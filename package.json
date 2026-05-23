@@ -1,0 +1,15 @@
+{
+  "name": "apex-chaos-vite-refactor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node tools/devServer.js",
+    "dev:vite": "vite --host 127.0.0.1 --port 5173",
+    "smoke": "node tools/runBalanceSuite.js --smoke --matches 6",
+    "balance": "node tools/runBalanceSuite.js --matches 20"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
