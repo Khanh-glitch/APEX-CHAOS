@@ -1,8 +1,9 @@
 # Apex Chaos
 
-Vanilla JS / Canvas rebuild of the original single-file Apex Chaos prototype.
-The game keeps the original square 1000x1000 arena, removes WIND, and ships a
-32-fighter roster with deterministic replay seeds and a headless balance suite.
+React / Vite wrapper around the canonical Apex Chaos Canvas runtime. The game
+keeps the original square 1000x1000 arena, the 32-fighter roster, and the
+single-file balance/gameplay engine, while moving the app shell into React so UI
+screens can be customized more easily.
 
 ## Run
 
@@ -11,17 +12,18 @@ npm install
 npm run dev
 ```
 
-`npm run dev` starts `tools/devServer.js`, a lightweight Vite-compatible ESM
-static server for low-spec machines. The app runs at:
+`npm run dev` starts the Vite React dev server. It prefers:
 
 ```text
 http://127.0.0.1:5173/
 ```
 
-If Vite is installed and you want the Vite CLI instead:
+If that port is already in use, Vite will automatically pick the next open port.
+
+Production build:
 
 ```bash
-npm run dev:vite
+npm run build
 ```
 
 ## Scripts
@@ -75,33 +77,20 @@ the game still ends naturally by fighter death unless the simulator reaches its
 
 ```text
 index.html
-src/core/gameLoop.js
-src/core/fighter.js
-src/core/damage.js
-src/core/status.js
-src/core/projectile.js
-src/core/collision.js
-src/core/rng.js
-src/data/fighterTypes.js
-src/data/balanceConfig.js
-src/data/audioManifest.js
-src/data/visualManifest.js
-src/systems/simulator.js
-src/systems/analytics.js
-src/systems/tournament.js
-src/systems/renderer.js
-src/systems/vfx.js
-src/systems/audio.js
-src/systems/replay.js
-src/ui/menu.js
-src/ui/select.js
-src/ui/hud.js
-src/ui/postMatch.js
-tools/runBalanceSuite.js
-tools/devServer.js
-reports/
-original/apex_chaos_32_runtime_stability_hotfix2.html
+src/main.jsx
+src/App.jsx
+src/styles.css
+src/game/apexEngine.js
+public/apexEngine.js
+vite.config.js
+apex_chaos_final_canonical_balance.html
 ```
+
+`src/App.jsx` owns the React shell and stable DOM IDs expected by the engine.
+`src/game/apexEngine.js` is the preserved gameplay runtime extracted from the
+canonical HTML. `public/apexEngine.js` is the browser-loaded copy used by the
+React shell so the old global Canvas runtime keeps behaving like the original
+single-file build.
 
 ## Roster
 
@@ -188,6 +177,12 @@ would need separate balance gates to avoid damaging the 1v1 core.
 - The graphics currently use procedural silhouettes and VFX fallbacks. Real PNG
   or WebP fighter art can be added through the manifests without changing core
   logic.
+- Solo 1v1 now exposes the full roster and manual normal/skill/rage controls,
+  but its skills are still adapted inside the Canvas runtime instead of being
+  fully extracted into a shared auto-battle/Solo skill module.
+- Spider's Solo web lines have been added to match the auto-battle identity more
+  closely; other fighters may still need the same visual parity pass if exact
+  auto-battle effects are required in local 1v1.
 - The simulator is deterministic for a seed, but low sample counts are noisy.
   Use the full 19,840-match report for balance claims.
 - Some over-180s matches are expected for PAINTER, PUPPET, SLIME, VAMPIRE, and
