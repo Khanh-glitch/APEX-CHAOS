@@ -1,9 +1,9 @@
 {
   "bladeWeakX16": {
     "role": "bladeWeakX16",
-    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\f80263b8-1a7d-4de2-a56d-f3852a5c921c.png",
+    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\f80263b8-1a7d-4de2-a56d-f3852a5c921c.webp",
     "sourceMode": "white_checker_red_preserve_highlights",
-    "path": "assets/blade_v1/normalized/bladeWeakX16.png",
+    "path": "assets/blade_v1/normalized/bladeWeakX16.webp",
     "width": 1254,
     "height": 1254,
     "frames": 16,
@@ -112,9 +112,9 @@
   },
   "bladeWaveRage16": {
     "role": "bladeWaveRage16",
-    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\560be963-e701-42a4-b082-057a951cc192.png",
+    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\560be963-e701-42a4-b082-057a951cc192.webp",
     "sourceMode": "white_checker_red_preserve_highlights",
-    "path": "assets/blade_v1/normalized/bladeWaveRage16.png",
+    "path": "assets/blade_v1/normalized/bladeWaveRage16.webp",
     "width": 1254,
     "height": 1254,
     "frames": 16,
@@ -223,9 +223,9 @@
   },
   "bladeWaveNormal16": {
     "role": "bladeWaveNormal16",
-    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\d4d3975c-fa7e-4353-b3d6-dc0437500e3f.png",
+    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\d4d3975c-fa7e-4353-b3d6-dc0437500e3f.webp",
     "sourceMode": "dark_checker_white",
-    "path": "assets/blade_v1/normalized/bladeWaveNormal16.png",
+    "path": "assets/blade_v1/normalized/bladeWaveNormal16.webp",
     "width": 1254,
     "height": 1254,
     "frames": 16,
@@ -334,9 +334,9 @@
   },
   "bladeCastRage16": {
     "role": "bladeCastRage16",
-    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\db329d7f-ae6c-4673-851e-ea50faa8472e.png",
+    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\db329d7f-ae6c-4673-851e-ea50faa8472e.webp",
     "sourceMode": "white_checker_cast",
-    "path": "assets/blade_v1/normalized/bladeCastRage16.png",
+    "path": "assets/blade_v1/normalized/bladeCastRage16.webp",
     "width": 1254,
     "height": 1254,
     "frames": 16,
@@ -445,9 +445,9 @@
   },
   "bladeCastNormal16": {
     "role": "bladeCastNormal16",
-    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\8aaf4bb1-54c9-4452-9f3a-8aedf4cb0ef3.png",
+    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\8aaf4bb1-54c9-4452-9f3a-8aedf4cb0ef3.webp",
     "sourceMode": "green_despill_strong",
-    "path": "assets/blade_v1/normalized/bladeCastNormal16.png",
+    "path": "assets/blade_v1/normalized/bladeCastNormal16.webp",
     "width": 1254,
     "height": 1254,
     "frames": 16,
@@ -556,9 +556,9 @@
   },
   "bladeMainNormal": {
     "role": "bladeMainNormal",
-    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\79aa4b95-e282-48c4-b1da-b0ad4cccb05c.png",
+    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\79aa4b95-e282-48c4-b1da-b0ad4cccb05c.webp",
     "sourceMode": "green",
-    "path": "assets/blade_v1/normalized/bladeMainNormal.png",
+    "path": "assets/blade_v1/normalized/bladeMainNormal.webp",
     "width": 1254,
     "height": 1254,
     "pivot": [
@@ -574,9 +574,9 @@
   },
   "bladeWeakText": {
     "role": "bladeWeakText",
-    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\a5d7f980-78db-4ee9-aeb7-11f702172739.png",
+    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\a5d7f980-78db-4ee9-aeb7-11f702172739.webp",
     "sourceMode": "green",
-    "path": "assets/blade_v1/normalized/bladeWeakText.png",
+    "path": "assets/blade_v1/normalized/bladeWeakText.webp",
     "width": 1248,
     "height": 607,
     "cropSource": [
@@ -588,9 +588,9 @@
   },
   "bladeMainRage": {
     "role": "bladeMainRage",
-    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\ae6284be-7679-4c8c-b7f6-69ba34309621.png",
+    "source": "C:\\Users\\LE QUOC KHANH\\Documents\\APEX CHAOS\\BLADE ASSETS\\ae6284be-7679-4c8c-b7f6-69ba34309621.webp",
     "sourceMode": "green",
-    "path": "assets/blade_v1/normalized/bladeMainRage.png",
+    "path": "assets/blade_v1/normalized/bladeMainRage.webp",
     "width": 1254,
     "height": 1254,
     "pivot": [

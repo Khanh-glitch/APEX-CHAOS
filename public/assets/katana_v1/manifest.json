@@ -1,0 +1,808 @@
+{
+  "version": 1,
+  "fighter": "KATANA",
+  "frameRate": 24,
+  "frameCount": 48,
+  "loopSeconds": 2.0,
+  "releaseFrame": 17,
+  "assets": {
+    "katana.frame.01": {
+      "file": "assets/katana_v1/frames/frame_001.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 144653,
+      "source": "frame_001.jpg"
+    },
+    "katana.frame.02": {
+      "file": "assets/katana_v1/frames/frame_002.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 144392,
+      "source": "frame_002.jpg"
+    },
+    "katana.frame.03": {
+      "file": "assets/katana_v1/frames/frame_003.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 144095,
+      "source": "frame_003.jpg"
+    },
+    "katana.frame.04": {
+      "file": "assets/katana_v1/frames/frame_004.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 143382,
+      "source": "frame_004.jpg"
+    },
+    "katana.frame.05": {
+      "file": "assets/katana_v1/frames/frame_005.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 143240,
+      "source": "frame_005.jpg"
+    },
+    "katana.frame.06": {
+      "file": "assets/katana_v1/frames/frame_006.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 143094,
+      "source": "frame_006.jpg"
+    },
+    "katana.frame.07": {
+      "file": "assets/katana_v1/frames/frame_007.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 142909,
+      "source": "frame_007.jpg"
+    },
+    "katana.frame.08": {
+      "file": "assets/katana_v1/frames/frame_008.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 143113,
+      "source": "frame_008.jpg"
+    },
+    "katana.frame.09": {
+      "file": "assets/katana_v1/frames/frame_009.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 142809,
+      "source": "frame_009.jpg"
+    },
+    "katana.frame.10": {
+      "file": "assets/katana_v1/frames/frame_010.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 143298,
+      "source": "frame_010.jpg"
+    },
+    "katana.frame.11": {
+      "file": "assets/katana_v1/frames/frame_011.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 144030,
+      "source": "frame_011.jpg"
+    },
+    "katana.frame.12": {
+      "file": "assets/katana_v1/frames/frame_012.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 146548,
+      "source": "frame_012.jpg"
+    },
+    "katana.frame.13": {
+      "file": "assets/katana_v1/frames/frame_013.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 153904,
+      "source": "frame_013.jpg"
+    },
+    "katana.frame.14": {
+      "file": "assets/katana_v1/frames/frame_014.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 151869,
+      "source": "frame_014.jpg"
+    },
+    "katana.frame.15": {
+      "file": "assets/katana_v1/frames/frame_015.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 143956,
+      "source": "frame_015.jpg"
+    },
+    "katana.frame.16": {
+      "file": "assets/katana_v1/frames/frame_016.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 142435,
+      "source": "frame_016.jpg"
+    },
+    "katana.frame.17": {
+      "file": "assets/katana_v1/frames/frame_017.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 145790,
+      "source": "frame_017.jpg"
+    },
+    "katana.frame.18": {
+      "file": "assets/katana_v1/frames/frame_018.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 169049,
+      "source": "frame_018.jpg"
+    },
+    "katana.frame.19": {
+      "file": "assets/katana_v1/frames/frame_019.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 173126,
+      "source": "frame_019.jpg"
+    },
+    "katana.frame.20": {
+      "file": "assets/katana_v1/frames/frame_020.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 169011,
+      "source": "frame_020.jpg"
+    },
+    "katana.frame.21": {
+      "file": "assets/katana_v1/frames/frame_021.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 168972,
+      "source": "frame_021.jpg"
+    },
+    "katana.frame.22": {
+      "file": "assets/katana_v1/frames/frame_022.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 169865,
+      "source": "frame_022.jpg"
+    },
+    "katana.frame.23": {
+      "file": "assets/katana_v1/frames/frame_023.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 171675,
+      "source": "frame_023.jpg"
+    },
+    "katana.frame.24": {
+      "file": "assets/katana_v1/frames/frame_024.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 167584,
+      "source": "frame_024.jpg"
+    },
+    "katana.frame.25": {
+      "file": "assets/katana_v1/frames/frame_025.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 171536,
+      "source": "frame_025.jpg"
+    },
+    "katana.frame.26": {
+      "file": "assets/katana_v1/frames/frame_026.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 158667,
+      "source": "frame_026.jpg"
+    },
+    "katana.frame.27": {
+      "file": "assets/katana_v1/frames/frame_027.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 149483,
+      "source": "frame_027.jpg"
+    },
+    "katana.frame.28": {
+      "file": "assets/katana_v1/frames/frame_028.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 147766,
+      "source": "frame_028.jpg"
+    },
+    "katana.frame.29": {
+      "file": "assets/katana_v1/frames/frame_029.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 145290,
+      "source": "frame_029.jpg"
+    },
+    "katana.frame.30": {
+      "file": "assets/katana_v1/frames/frame_030.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 155760,
+      "source": "frame_030.jpg"
+    },
+    "katana.frame.31": {
+      "file": "assets/katana_v1/frames/frame_031.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 143603,
+      "source": "frame_031.jpg"
+    },
+    "katana.frame.32": {
+      "file": "assets/katana_v1/frames/frame_032.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 141354,
+      "source": "frame_032.jpg"
+    },
+    "katana.frame.33": {
+      "file": "assets/katana_v1/frames/frame_033.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 143077,
+      "source": "frame_033.jpg"
+    },
+    "katana.frame.34": {
+      "file": "assets/katana_v1/frames/frame_034.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 147639,
+      "source": "frame_034.jpg"
+    },
+    "katana.frame.35": {
+      "file": "assets/katana_v1/frames/frame_035.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 148718,
+      "source": "frame_035.jpg"
+    },
+    "katana.frame.36": {
+      "file": "assets/katana_v1/frames/frame_036.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 150572,
+      "source": "frame_036.jpg"
+    },
+    "katana.frame.37": {
+      "file": "assets/katana_v1/frames/frame_037.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 151183,
+      "source": "frame_037.jpg"
+    },
+    "katana.frame.38": {
+      "file": "assets/katana_v1/frames/frame_038.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 148162,
+      "source": "frame_038.jpg"
+    },
+    "katana.frame.39": {
+      "file": "assets/katana_v1/frames/frame_039.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 146990,
+      "source": "frame_039.jpg"
+    },
+    "katana.frame.40": {
+      "file": "assets/katana_v1/frames/frame_040.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 147116,
+      "source": "frame_040.jpg"
+    },
+    "katana.frame.41": {
+      "file": "assets/katana_v1/frames/frame_041.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 146943,
+      "source": "frame_041.jpg"
+    },
+    "katana.frame.42": {
+      "file": "assets/katana_v1/frames/frame_042.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 146382,
+      "source": "frame_042.jpg"
+    },
+    "katana.frame.43": {
+      "file": "assets/katana_v1/frames/frame_043.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 145977,
+      "source": "frame_043.jpg"
+    },
+    "katana.frame.44": {
+      "file": "assets/katana_v1/frames/frame_044.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 145153,
+      "source": "frame_044.jpg"
+    },
+    "katana.frame.45": {
+      "file": "assets/katana_v1/frames/frame_045.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 145267,
+      "source": "frame_045.jpg"
+    },
+    "katana.frame.46": {
+      "file": "assets/katana_v1/frames/frame_046.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 145298,
+      "source": "frame_046.jpg"
+    },
+    "katana.frame.47": {
+      "file": "assets/katana_v1/frames/frame_047.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 144748,
+      "source": "frame_047.jpg"
+    },
+    "katana.frame.48": {
+      "file": "assets/katana_v1/frames/frame_048.webp",
+      "width": 1080,
+      "height": 1080,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 144119,
+      "source": "frame_048.jpg"
+    },
+    "katana.vfx.bladeWave": {
+      "file": "assets/katana_v1/bladeWave.webp",
+      "width": 1535,
+      "height": 1024,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 136474,
+      "source": "blade wave.png"
+    },
+    "katana.vfx.sakuraPetal": {
+      "file": "assets/katana_v1/sakuraPetal.webp",
+      "width": 505,
+      "height": 683,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 203136,
+      "source": "sakura for effect.png"
+    },
+    "katana.vfx.slashOverlay": {
+      "file": "assets/katana_v1/slashOverlay.webp",
+      "width": 1023,
+      "height": 1082,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 45468,
+      "source": "slash effect for everything when it hitted by blade or skill.png"
+    },
+    "katana.vfx.pinkMoon": {
+      "file": "assets/katana_v1/pinkMoon.webp",
+      "width": 819,
+      "height": 838,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 258957,
+      "source": "the moon that follow and hover behind KATANA.png"
+    },
+    "katana.vfx.pickButton": {
+      "file": "assets/katana_v1/pickButton.webp",
+      "width": 2037,
+      "height": 576,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 898710,
+      "source": "katana pick button.png"
+    },
+    "katana.vfx.picked": {
+      "file": "assets/katana_v1/picked.webp",
+      "width": 1101,
+      "height": 1254,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "greenishOpaquePixels": 0,
+      "opaquePixels": 564805,
+      "source": "fighter picked.png"
+    }
+  },
+  "audio": {
+    "katana.sfx.attack": {
+      "file": "assets/katana_v1/audio/attack.wav",
+      "source": "all attack sfx.WAV",
+      "duration": 2.02
+    },
+    "katana.sfx.infiniteSeverStart": {
+      "file": "assets/katana_v1/audio/infiniteSeverStart.wav",
+      "source": "3_sword_sfx_start_when_enemy_hit_the_center_of_3_clone.wav",
+      "duration": 3.442
+    },
+    "katana.sfx.directFleshHit": {
+      "file": "assets/katana_v1/audio/directFleshHit.wav",
+      "source": "flesh_sound_for_all_but_blade_wave.wav",
+      "duration": 1.939
+    },
+    "katana.sfx.twoSwordImpact": {
+      "file": "assets/katana_v1/audio/twoSwordImpact.wav",
+      "source": "flesh_hit_by_two_sword.wav",
+      "duration": 1.384
+    },
+    "katana.sfx.waveHitEnemy": {
+      "file": "assets/katana_v1/audio/waveHitEnemy.wav",
+      "source": "blade_wave_impact_on_enemy_sound.wav",
+      "duration": 1.123
+    },
+    "katana.sfx.waveHitDefendedObject": {
+      "file": "assets/katana_v1/audio/waveHitDefendedObject.wav",
+      "source": "blade_wave_impact_on_construction_shuriken_kunai_fighter_while_got_buff_bout_defence.wav",
+      "duration": 1.0
+    },
+    "katana.sfx.waveHitHeavyObject": {
+      "file": "assets/katana_v1/audio/waveHitHeavyObject.wav",
+      "source": "blade_wave_impact_on_planet_war_machine.wav",
+      "duration": 1.521
+    },
+    "katana.sfx.cloneTeleport": {
+      "file": "assets/ninja_v1/audio/teleport.mp3",
+      "source": "reused NINJA teleport.mp3",
+      "reused": true
+    }
+  }
+}

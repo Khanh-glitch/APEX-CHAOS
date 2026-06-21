@@ -1,7 +1,7 @@
 {
   "electricBallGrow16": {
-    "src": "NINJA ASSETS/13f75810-5903-4796-bcf7-bacd950f41d2.png",
-    "path": "assets/ninja_v1/normalized/electricBallGrow16.png",
+    "src": "NINJA ASSETS/13f75810-5903-4796-bcf7-bacd950f41d2.webp",
+    "path": "assets/ninja_v1/normalized/electricBallGrow16.webp",
     "size": [
       1536,
       1536
@@ -9,40 +9,40 @@
     "normalization": "4x4 padded circular reconstruction; 384px cells"
   },
   "ninjaAirPalmStatic": {
-    "src": "NINJA ASSETS/64374cc0-4c65-4380-a88c-0c620da74768.png",
-    "path": "assets/ninja_v1/normalized/ninjaAirPalmStatic.png",
+    "src": "NINJA ASSETS/64374cc0-4c65-4380-a88c-0c620da74768.webp",
+    "path": "assets/ninja_v1/normalized/ninjaAirPalmStatic.webp",
     "size": [
       1082,
       950
     ]
   },
   "ninjaMainStatic": {
-    "src": "NINJA ASSETS/a6fa1571-d3f2-49ee-9300-5a4f42716a82.png",
-    "path": "assets/ninja_v1/normalized/ninjaMainStatic.png",
+    "src": "NINJA ASSETS/a6fa1571-d3f2-49ee-9300-5a4f42716a82.webp",
+    "path": "assets/ninja_v1/normalized/ninjaMainStatic.webp",
     "size": [
       953,
       854
     ]
   },
   "ninjaThrowReleasedStatic": {
-    "src": "NINJA ASSETS/aa08def1-7c52-472b-9326-879a5ad6ccea.png",
-    "path": "assets/ninja_v1/normalized/ninjaThrowReleasedStatic.png",
+    "src": "NINJA ASSETS/aa08def1-7c52-472b-9326-879a5ad6ccea.webp",
+    "path": "assets/ninja_v1/normalized/ninjaThrowReleasedStatic.webp",
     "size": [
       954,
       863
     ]
   },
   "shurikenStatic": {
-    "src": "NINJA ASSETS/b41ba3c5-d482-45cd-a2cb-88e783fd3bd3.png",
-    "path": "assets/ninja_v1/normalized/shurikenStatic.png",
+    "src": "NINJA ASSETS/b41ba3c5-d482-45cd-a2cb-88e783fd3bd3.webp",
+    "path": "assets/ninja_v1/normalized/shurikenStatic.webp",
     "size": [
       757,
       747
     ]
   },
   "kunaiStatic": {
-    "src": "NINJA ASSETS/b5d67391-5224-430e-a265-7beab8abad2a.png",
-    "path": "assets/ninja_v1/normalized/kunaiStatic.png",
+    "src": "NINJA ASSETS/b5d67391-5224-430e-a265-7beab8abad2a.webp",
+    "path": "assets/ninja_v1/normalized/kunaiStatic.webp",
     "size": [
       603,
       1105

@@ -3,20 +3,40 @@ import React, { useEffect, useRef, useState } from 'react';
 const once = { loaded: false };
 
 const LOADING_ASSETS = {
-  bgPortrait: '/assets/loading/loading-bg-portrait.png',
-  bgLandscape: '/assets/loading/loading-bg-landscape.png',
-  gameTitle: '/assets/loading/apex-chaos-title.png',
-  loadingBarFrame: '/assets/loading/loading-bar-frame.png',
+  bgPortrait: '/assets/ui_2026/loading-bg-portrait.webp',
+  bgLandscape: '/assets/ui_2026/loading-bg-landscape.webp',
+  gameTitle: '/assets/ui_2026/game-name-icon.webp',
+  loadingBarFrame: '/assets/loading/loading-bar-frame.webp',
+};
+
+const UI_2026_ASSETS = {
+  menuBgLandscape: '/assets/ui_2026/menu-bg-landscape.webp',
+  menuBgPortrait: '/assets/ui_2026/menu-bg-portrait.webp',
+  menuVfxOverlay: '/assets/ui_2026/menu-vfx-overlay.webp',
+  fighterPickBg: '/assets/ui_2026/fighter-pick-bg.webp',
+  tabApexUpdate: '/assets/ui_2026/tab-apex-update.webp',
+  tabFullRoster: '/assets/ui_2026/tab-full-roster.webp',
+  p1SetupVfx: '/assets/ui_2026/p1-setup-vfx.webp',
+  p2SetupVfx: '/assets/ui_2026/p2-setup-vfx.webp',
+  fighterPickButton: '/assets/ui_2026/fighter-pick-button.webp',
+  fightButton: '/assets/ui_2026/fight-button.webp',
+  exitButton: '/assets/ui_2026/exit-button.webp',
+  pickedIce: '/assets/ui_2026/picked-ice.webp',
+  pickedString: '/assets/ui_2026/picked-string.webp',
+  pickedGalaxy: '/assets/ui_2026/picked-galaxy.webp',
+  pickedSoccer: '/assets/ui_2026/picked-soccer.webp',
+  pickedNinja: '/assets/ui_2026/picked-ninja.webp',
+  pickedEngineer: '/assets/ui_2026/picked-engineer.webp',
 };
 
 const MENU_AUDIO = '/assets/audio/menu_bgm.mp3';
 
 const MENU_BUTTONS = [
-  { id: 'play', label: 'Play', asset: '/assets/menu/menu_btn_play.png', action: 'goToSelect', primary: true },
-  { id: 'trial', label: 'Dau Thu', text: 'DAU THU', action: 'goToTrialSelect' },
-  { id: 'daily', label: 'Daily TikTok Challenge', asset: '/assets/menu/menu_btn_daily_tiktok_challenge.png', action: 'startDailyChallenge', startsMatch: true },
-  { id: 'giai', label: 'Giai Dau', asset: '/assets/menu/menu_btn_giai_dau.png', action: 'goToTournament' },
-  { id: 'solo', label: 'Solo 1v1 Local', asset: '/assets/menu/menu_btn_solo_1v1_local.png', action: 'goToSoloSelect' },
+  { id: 'play', label: 'Choi', asset: '/assets/ui_2026/menu-play.webp', action: 'goToSelect', primary: true },
+  { id: 'tam-chien', label: '3-Phase Battle', asset: '/assets/ui_2026/menu-3phase.webp', action: 'startTamChienMode' },
+  { id: 'trial', label: 'Test Battle With Saitama', asset: '/assets/ui_2026/menu-saitama-test.webp', action: 'goToTrialSelect' },
+  { id: 'giai', label: 'Tournament', asset: '/assets/ui_2026/menu-tournament.webp', action: 'goToTournament' },
+  { id: 'solo', label: 'Solo 1v1 Local', asset: '/assets/ui_2026/menu-solo.webp', action: 'goToSoloSelect' },
 ];
 
 const LOADING_LABELS = ['LOADING ASSETS', 'PREPARING ARENA', 'SYNCHRONIZING VFX'];
@@ -126,6 +146,8 @@ function criticalBootAssets(engineSrc) {
   return [
     { path: primaryBackground, type: 'image', required: true },
     { path: LOADING_ASSETS.gameTitle, type: 'image', required: true },
+    { path: MENU_AUDIO, type: 'audio', required: true },
+    ...Object.values(UI_2026_ASSETS).map((path) => ({ path, type: 'image', required: true })),
     ...MENU_BUTTONS.filter((button) => button.asset).map((button) => ({ path: button.asset, type: 'image', required: true })),
   ];
 }
@@ -224,10 +246,10 @@ function injectApexEngine(scriptRef, engineSrc) {
         try { window.startMatch = startMatch; } catch (error) {}
         try { window.startSoloMode = startSoloMode; } catch (error) {}
         try { window.goToSoloSelect = goToSoloSelect; } catch (error) {}
-        try { window.startDailyChallenge = startDailyChallenge; } catch (error) {}
         try { window.goToTrialSelect = goToTrialSelect; } catch (error) {}
         try { window.startTrialMode = startTrialMode; } catch (error) {}
         try { window.endTrialMode = endTrialMode; } catch (error) {}
+        try { window.startTamChienMode = startTamChienMode; } catch (error) {}
         try { window.toggleAutoBattlePause = toggleAutoBattlePause; } catch (error) {}
         try { window.restartAutoBattle = restartAutoBattle; } catch (error) {}
         try { window.exitAutoBattle = exitAutoBattle; } catch (error) {}
@@ -323,7 +345,8 @@ export default function App() {
       || visible('solo-screen')
       || visible('solo-select-screen')
       || visible('trial-screen')
-      || visible('trial-select-screen');
+      || visible('trial-select-screen')
+      || visible('tam-chien-screen');
   };
 
   const stopMenuMusic = (reset = false) => {
@@ -406,7 +429,7 @@ export default function App() {
     if (options.startsMatch) {
       stopMenuMusic(true);
       window.apexStopBattleAudio?.();
-    } else if (name === 'startMatch' || name === 'startSoloMode' || name === 'startDailyChallenge' || name === 'startTrialMode') {
+    } else if (name === 'startMatch' || name === 'startSoloMode' || name === 'startTrialMode') {
       stopMenuMusic(true);
       window.apexStopBattleAudio?.();
     } else if (name === 'goToMenu' || name === 'exitAutoBattle') {
@@ -417,7 +440,7 @@ export default function App() {
       playMenuMusic(false);
     }
     callApexGlobal(name, true);
-    if (options.startsMatch || name === 'startMatch' || name === 'startSoloMode' || name === 'startDailyChallenge' || name === 'startTrialMode') {
+    if (options.startsMatch || name === 'startMatch' || name === 'startSoloMode' || name === 'startTrialMode') {
       stopMenuMusic(true);
     }
   };
@@ -493,13 +516,11 @@ export default function App() {
       <div id="menu-screen" className="screen">
         <div className="menu-bg menu-bg-landscape" aria-hidden="true" />
         <div className="menu-bg menu-bg-portrait" aria-hidden="true" />
+        <div className="menu-vfx-overlay" aria-hidden="true" />
         <div className="menu-darken" aria-hidden="true" />
         <div className="menu-energy menu-energy-red" aria-hidden="true" />
         <div className="menu-energy menu-energy-cyan" aria-hidden="true" />
         <img className="menu-title-img" src={LOADING_ASSETS.gameTitle} alt="Apex Chaos" />
-        <p className="menu-subtitle">
-          32 Fighters. Canonical Identity + Balance Merge. Arena 1000x1000.
-        </p>
         <div className="menu-buttons">
           {MENU_BUTTONS.map((button, index) => (
             <button
@@ -523,11 +544,30 @@ export default function App() {
       </div>
 
       <div id="select-screen" className="screen hidden">
+        <div className="select-bg" aria-hidden="true" />
         <div id="select-ui">
           <h2 id="select-title" style={{ color: '#7fd4ff' }}>SELECT PLAYER 1</h2>
+          <div className="roster-tabs visual-tabs" aria-hidden="true">
+            <span className="visual-tab"><img src={UI_2026_ASSETS.tabApexUpdate} alt="" draggable="false" /></span>
+            <span className="visual-tab"><img src={UI_2026_ASSETS.tabFullRoster} alt="" draggable="false" /></span>
+          </div>
           <div className="roster" id="roster-grid" />
+          <div className="fighter-stage" aria-label="Selected fighters">
+            <div className="picked-fighter-slot picked-fighter-p1">
+              <img id="p1-fighter-vfx" className="picked-fighter-vfx" alt="Player 1 fighter" draggable="false" />
+              <span className="picked-fighter-label">P1</span>
+            </div>
+            <button id="start-btn" className="fight-stage-button hidden" type="button" disabled={!gameReady} onClick={() => runApex('startMatch')}>
+              <img className="fight-action-img" src={UI_2026_ASSETS.fightButton} alt="Fight" draggable="false" />
+            </button>
+            <div className="picked-fighter-slot picked-fighter-p2">
+              <img id="p2-fighter-vfx" className="picked-fighter-vfx" alt="Player 2 fighter" draggable="false" />
+              <span className="picked-fighter-label">P2</span>
+            </div>
+          </div>
           <div className="autobattle-settings" aria-label="Auto battle settings">
             <div className="ab-panel p1">
+              <img className="setup-vfx setup-vfx-p1" src={UI_2026_ASSETS.p1SetupVfx} alt="" draggable="false" />
               <b>P1 SETUP</b>
               <label>
                 <span>HP</span>
@@ -539,6 +579,7 @@ export default function App() {
               </label>
             </div>
             <div className="ab-panel p2">
+              <img className="setup-vfx setup-vfx-p2" src={UI_2026_ASSETS.p2SetupVfx} alt="" draggable="false" />
               <b>P2 SETUP</b>
               <label>
                 <span>HP</span>
@@ -551,14 +592,11 @@ export default function App() {
             </div>
           </div>
           <div className="select-actions">
-            <button id="start-btn" className="hidden" type="button" disabled={!gameReady} onClick={() => runApex('startMatch')}>
-              ENGAGE
-            </button>
             <button id="matchup-stats-btn" type="button" disabled={!gameReady} onClick={() => runApex('runMatchupStats')}>
               RUN 20 STATS
             </button>
             <button id="select-exit-btn" type="button" disabled={!gameReady} onClick={() => runApex('goToMenu')}>
-              EXIT
+              <img className="action-button-img exit-action-img" src={UI_2026_ASSETS.exitButton} alt="Exit" draggable="false" />
             </button>
           </div>
           <div id="matchup-report" className="matchup-report" />
@@ -595,9 +633,6 @@ export default function App() {
           <button type="button" disabled={!gameReady} onClick={() => runApex('goToSelect')}>Rematch</button>
           <button id="tournament-return-btn" className="hidden" type="button" disabled={!gameReady} onClick={() => runApex('goToTournament')}>
             Tiep tuc giai dau
-          </button>
-          <button id="challenge-retry-btn" className="hidden" type="button" disabled={!gameReady} onClick={() => runApex('startDailyChallenge')}>
-            Retry Challenge
           </button>
         </div>
       </div>
@@ -703,6 +738,10 @@ export default function App() {
           <span id="trial-boss-hp-readout">SAITAMA HP</span>
         </div>
         <button type="button" disabled={!gameReady} onClick={() => runApex('endTrialMode')}>KET THUC</button>
+      </div>
+
+      <div id="tam-chien-screen" className="screen hidden">
+        <div id="tam-chien-root" className="tam-chien-root" />
       </div>
     </div>
 

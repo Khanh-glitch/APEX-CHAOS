@@ -1,13 +1,13 @@
 {
   "sourceFolder": "ARCADE ASSET",
   "roles": {
-    "battleIdleReference": "battle_idle_reference.png",
-    "idleMove16": "idle_move_16.png",
-    "optionalHit16": "optional_hit_16.png",
-    "rageJackpot32": "rage_jackpot_32.png",
-    "defeatReviveVictory16": "defeat_revive_victory_16.png",
-    "propVfxSheet": "prop_vfx_sheet.png",
-    "textMultiplierSheet": "text_multiplier_sheet.png"
+    "battleIdleReference": "battle_idle_reference.webp",
+    "idleMove16": "idle_move_16.webp",
+    "optionalHit16": "optional_hit_16.webp",
+    "rageJackpot32": "rage_jackpot_32.webp",
+    "defeatReviveVictory16": "defeat_revive_victory_16.webp",
+    "propVfxSheet": "prop_vfx_sheet.webp",
+    "textMultiplierSheet": "text_multiplier_sheet.webp"
   },
   "classification": {
     "battleIdleReference": "single ARCADE robot with slot reels, joystick, cyan/purple ring and coins",

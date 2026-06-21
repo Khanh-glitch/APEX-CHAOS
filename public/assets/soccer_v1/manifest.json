@@ -1,8 +1,8 @@
 {
   "moveFrames": 2,
   "moveFrameFiles": [
-    "frame_065.png",
-    "frame_066.png"
+    "frame_065.webp",
+    "frame_066.webp"
   ],
   "kickFrames": 9,
   "moveFps": 4,

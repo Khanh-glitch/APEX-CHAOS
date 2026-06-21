@@ -3,43 +3,43 @@
   "version": "ice-v1",
   "assets": {
     "iceMainStatic": {
-      "source": "ICE ASSETS/eebfae87-d401-4a23-9923-36b906351d06.png",
-      "path": "assets/ice_v1/normalized/iceMainStatic.png",
+      "source": "ICE ASSETS/eebfae87-d401-4a23-9923-36b906351d06.webp",
+      "path": "assets/ice_v1/normalized/iceMainStatic.webp",
       "role": "default top-down battle body"
     },
     "iceFingerGunPose": {
-      "source": "ICE ASSETS/298e9142-8af0-4ca0-8c97-11189f8a1b5a.png",
-      "path": "assets/ice_v1/normalized/iceFingerGunPose.png",
+      "source": "ICE ASSETS/298e9142-8af0-4ca0-8c97-11189f8a1b5a.webp",
+      "path": "assets/ice_v1/normalized/iceFingerGunPose.webp",
       "role": "short finger-gun firing pose"
     },
     "iceLaneStartSegment": {
-      "source": "ICE ASSETS/d2c1e5fa-ff06-4620-b784-603aa4bb7ec6.png",
-      "path": "assets/ice_v1/normalized/iceLaneStartSegment.png",
+      "source": "ICE ASSETS/d2c1e5fa-ff06-4620-b784-603aa4bb7ec6.webp",
+      "path": "assets/ice_v1/normalized/iceLaneStartSegment.webp",
       "role": "variable-length lane texture with fixed gameplay width"
     },
     "iceShardProjectile": {
-      "source": "ICE ASSETS/825663ed-6d04-4db6-a894-65a99dfda3c4.png",
-      "path": "assets/ice_v1/normalized/iceShardProjectile.png",
+      "source": "ICE ASSETS/825663ed-6d04-4db6-a894-65a99dfda3c4.webp",
+      "path": "assets/ice_v1/normalized/iceShardProjectile.webp",
       "role": "homing ice_dart visual"
     },
     "frozenText": {
-      "source": "ICE ASSETS/152e26a7-3929-4619-8443-ac389421e922.png",
-      "path": "assets/ice_v1/normalized/frozenText.png",
+      "source": "ICE ASSETS/152e26a7-3929-4619-8443-ac389421e922.webp",
+      "path": "assets/ice_v1/normalized/frozenText.webp",
       "role": "freeze-start target label"
     },
     "iceBlockOverlay": {
-      "source": "ICE ASSETS/ff07dfa4-5606-48bf-ab68-802086f45f6c.png",
-      "path": "assets/ice_v1/normalized/iceBlockOverlay.png",
+      "source": "ICE ASSETS/ff07dfa4-5606-48bf-ab68-802086f45f6c.webp",
+      "path": "assets/ice_v1/normalized/iceBlockOverlay.webp",
       "role": "generic transparent target prison"
     },
     "fullArenaFrozenOverlay": {
-      "source": "ICE ASSETS/4f076e14-2ee1-4272-87c3-4d046c8be6ea.png",
-      "path": "assets/ice_v1/normalized/fullArenaFrozenOverlay.png",
+      "source": "ICE ASSETS/4f076e14-2ee1-4272-87c3-4d046c8be6ea.webp",
+      "path": "assets/ice_v1/normalized/fullArenaFrozenOverlay.webp",
       "role": "overscanned arena-clipped Rage ICE AGE field overlay"
     },
     "iceAgeText": {
-      "source": "ICE ASSETS/f1a158bc-54f3-4cb3-8611-428bcee6866c.png",
-      "path": "assets/ice_v1/normalized/iceAgeText.png",
+      "source": "ICE ASSETS/f1a158bc-54f3-4cb3-8611-428bcee6866c.webp",
+      "path": "assets/ice_v1/normalized/iceAgeText.webp",
       "role": "small Rage ICE AGE announcement above ICE"
     }
   },

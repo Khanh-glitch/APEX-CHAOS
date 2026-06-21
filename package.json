@@ -6,11 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173",
     "build": "node tools/generatePublicAssetManifest.cjs && vite build",
-    "preview": "vite preview --host 127.0.0.1 --port 4173",
-    "smoke": "node tools/runBalanceSuite.js --smoke --matches 6",
-    "balance": "node tools/runBalanceSuite.js --matches 20",
-    "tournament:balance": "node tools/runTournamentBalance.js --tournaments=64",
-    "tournament:coverage": "node tools/runTournamentBalance.js --tournaments=64 --untilAllChampions"
+    "preview": "vite preview --host 127.0.0.1 --port 4173"
   },
   "dependencies": {
     "react": "^18.3.1",

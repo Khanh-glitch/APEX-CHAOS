@@ -1,11 +1,11 @@
 {
-  "puppetMainStatic": "assets/puppet_v1/normalized/puppet_main_static.png",
-  "strawMonsterStatic": "assets/puppet_v1/normalized/straw_monster_static.png",
-  "puppetDissolve16": "assets/puppet_v1/normalized/puppet_dissolve_16.png",
-  "puppetRageStatic": "assets/puppet_v1/normalized/puppet_rage_static.png",
-  "strawMonsterAttack16": "assets/puppet_v1/normalized/straw_monster_attack_16.png",
-  "effigyWall4": "assets/puppet_v1/normalized/effigy_wall_4.png",
-  "transferLink16": "assets/puppet_v1/normalized/transfer_link_16.png",
+  "puppetMainStatic": "assets/puppet_v1/normalized/puppet_main_static.webp",
+  "strawMonsterStatic": "assets/puppet_v1/normalized/straw_monster_static.webp",
+  "puppetDissolve16": "assets/puppet_v1/normalized/puppet_dissolve_16.webp",
+  "puppetRageStatic": "assets/puppet_v1/normalized/puppet_rage_static.webp",
+  "strawMonsterAttack16": "assets/puppet_v1/normalized/straw_monster_attack_16.webp",
+  "effigyWall4": "assets/puppet_v1/normalized/effigy_wall_4.webp",
+  "transferLink16": "assets/puppet_v1/normalized/transfer_link_16.webp",
   "finalCardLaunch16": null,
   "finalCardValues": null,
   "fallbacks": {

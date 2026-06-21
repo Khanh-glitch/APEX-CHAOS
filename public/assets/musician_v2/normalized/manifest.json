@@ -1,15 +1,15 @@
 {
   "source": "apex_chaos_musician_visuals.html current MUSICIAN asset set",
   "roles": {
-    "battleIdleReference": "battle_idle_reference.png",
-    "move16": "move_16.png",
-    "noteShot16": "note_shot_16.png",
-    "majorChord16": "major_chord_16.png",
-    "minorChord16": "minor_chord_16.png",
-    "dropChord32": "drop_chord_32.png",
-    "soloChord32": "solo_chord_32.png",
-    "rage32": "rage_32.png",
-    "vfxAndTextSheet": "vfx_text_sheet.png"
+    "battleIdleReference": "battle_idle_reference.webp",
+    "move16": "move_16.webp",
+    "noteShot16": "note_shot_16.webp",
+    "majorChord16": "major_chord_16.webp",
+    "minorChord16": "minor_chord_16.webp",
+    "dropChord32": "drop_chord_32.webp",
+    "soloChord32": "solo_chord_32.webp",
+    "rage32": "rage_32.webp",
+    "vfxAndTextSheet": "vfx_text_sheet.webp"
   },
   "missingRoles": ["hit16", "defeat16", "victory16"],
   "normalization": "battleIdleReference is the canonical body for every rendered state; action sheets render as VFX layers only so body scale and anchor cannot shrink, pop, or disappear."

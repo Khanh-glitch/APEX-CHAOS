@@ -5,7 +5,7 @@ const root = path.resolve(__dirname, '..');
 const publicDir = path.join(root, 'public');
 const outputPath = path.join(publicDir, 'asset-manifest.json');
 
-const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.avif']);
+const IMAGE_EXTENSIONS = new Set(['.webp', '.jpg', '.jpeg', '.gif', '.svg', '.avif']);
 const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac']);
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov']);
 const DATA_EXTENSIONS = new Set(['.json']);
@@ -30,7 +30,7 @@ function assetType(absPath) {
 
 function shouldPreloadPublicAsset(publicPath) {
   const normalized = publicPath.replace(/\\/g, '/');
-  const soccerMove = normalized.match(/^\/assets\/soccer_v1\/move\/frame_(\d{3})\.png$/i);
+  const soccerMove = normalized.match(/^\/assets\/soccer_v1\/move\/frame_(\d{3})\.webp$/i);
   if (soccerMove) return soccerMove[1] === '065' || soccerMove[1] === '066';
   return true;
 }
@@ -48,8 +48,8 @@ function walk(dir, out = []) {
 const files = [
   ...walk(path.join(publicDir, 'assets')),
   path.join(publicDir, 'apexEngine.js'),
-  path.join(publicDir, 'sniper_cloak_move_sprite.png'),
-  path.join(publicDir, 'sniper_cloak_sprite.png'),
+  path.join(publicDir, 'sniper_cloak_move_sprite.webp'),
+  path.join(publicDir, 'sniper_cloak_sprite.webp'),
 ].filter((filePath) => {
   if (!fs.existsSync(filePath)) return false;
   const publicPath = toPublicPath(filePath);
@@ -74,10 +74,10 @@ const assets = files
   .sort((a, b) => a.path.localeCompare(b.path));
 
 const loadingAssets = {
-  bgPortrait: '/assets/loading/loading-bg-portrait.png',
-  bgLandscape: '/assets/loading/loading-bg-landscape.png',
-  gameTitle: '/assets/loading/apex-chaos-title.png',
-  loadingBarFrame: '/assets/loading/loading-bar-frame.png',
+  bgPortrait: '/assets/loading/loading-bg-portrait.webp',
+  bgLandscape: '/assets/loading/loading-bg-landscape.webp',
+  gameTitle: '/assets/loading/apex-chaos-title.webp',
+  loadingBarFrame: '/assets/loading/loading-bar-frame.webp',
 };
 
 fs.writeFileSync(
