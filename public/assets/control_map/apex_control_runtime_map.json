@@ -1,0 +1,2045 @@
+{
+  "source": {
+    "path": "CONTROL MAP ASSETS/apex_control_manual_map_cleaned.json",
+    "screen": "manual_map",
+    "version": 3,
+    "generatedAt": "2026-06-26T14:05:14.909Z"
+  },
+  "world": {
+    "width": 3000,
+    "height": 3000,
+    "centerX": 1500,
+    "centerY": 1500
+  },
+  "zoneIdentity": {
+    "p1Base": {
+      "role": "p1",
+      "label": "P1 BASE"
+    },
+    "topRightSpecial": {
+      "role": "heal",
+      "label": "HEAL"
+    },
+    "bottomLeftSpecial": {
+      "role": "rage",
+      "label": "RAGE"
+    },
+    "p2Base": {
+      "role": "p2",
+      "label": "P2 BASE"
+    }
+  },
+  "visualLayers": [
+    {
+      "id": "map-base-full",
+      "type": "image",
+      "assetKey": "base_full",
+      "src": "/assets/control_map/full_base.png",
+      "x": 0,
+      "y": 0,
+      "w": 3000,
+      "h": 3000,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 0,
+      "visible": true
+    },
+    {
+      "id": "overlay_cyan_cpgc91p",
+      "type": "image",
+      "assetKey": "overlay_cyan",
+      "src": "/assets/control_map/overlay_cyan_alpha.png",
+      "x": 0,
+      "y": 0,
+      "w": 1500,
+      "h": 1500,
+      "rotation": 180,
+      "flipX": false,
+      "flipY": false,
+      "z": 11,
+      "visible": true
+    },
+    {
+      "id": "overlay_green_fixed",
+      "type": "image",
+      "assetKey": "overlay_green",
+      "src": "/assets/control_map/overlay_green_alpha.png",
+      "x": 1500,
+      "y": 0,
+      "w": 1500,
+      "h": 1500,
+      "rotation": 180,
+      "flipX": true,
+      "flipY": false,
+      "z": 12,
+      "visible": true
+    },
+    {
+      "id": "overlay_purple_fixed",
+      "type": "image",
+      "assetKey": "overlay_purple",
+      "src": "/assets/control_map/overlay_purple_alpha.png",
+      "x": 0,
+      "y": 1500,
+      "w": 1500,
+      "h": 1500,
+      "rotation": 0,
+      "flipX": true,
+      "flipY": false,
+      "z": 13,
+      "visible": true
+    },
+    {
+      "id": "overlay_red_0i901cv",
+      "type": "image",
+      "assetKey": "overlay_red",
+      "src": "/assets/control_map/overlay_red_alpha.png",
+      "x": 1500,
+      "y": 1500,
+      "w": 1500,
+      "h": 1500,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 14,
+      "visible": true
+    },
+    {
+      "id": "hallway_layer_m8td2qr",
+      "type": "image",
+      "assetKey": "hallway_layer",
+      "src": "/assets/control_map/neutral_zone.png",
+      "x": 0,
+      "y": 0,
+      "w": 3000,
+      "h": 3000,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 15,
+      "visible": true
+    }
+  ],
+  "walls": [
+    {
+      "id": "polygon-block",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 2362,
+      "y": 0,
+      "w": 526,
+      "h": 88,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 16,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 2870,
+          "y": 5
+        },
+        {
+          "x": 2813,
+          "y": 57
+        },
+        {
+          "x": 2383,
+          "y": 55
+        },
+        {
+          "x": 2380,
+          "y": 5
+        }
+      ],
+      "center": {
+        "x": 2611.5,
+        "y": 30.5
+      }
+    },
+    {
+      "id": "polygon-block-2",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 2058,
+      "y": 205,
+      "w": 793,
+      "h": 818,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 17,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 2266,
+          "y": 255
+        },
+        {
+          "x": 2229,
+          "y": 223
+        },
+        {
+          "x": 2080,
+          "y": 353
+        },
+        {
+          "x": 2076,
+          "y": 675
+        },
+        {
+          "x": 2409,
+          "y": 1005
+        },
+        {
+          "x": 2779,
+          "y": 1000
+        },
+        {
+          "x": 2833,
+          "y": 950
+        },
+        {
+          "x": 2813,
+          "y": 928
+        },
+        {
+          "x": 2439,
+          "y": 919
+        },
+        {
+          "x": 2161,
+          "y": 655
+        },
+        {
+          "x": 2161,
+          "y": 378
+        }
+      ],
+      "center": {
+        "x": 2386,
+        "y": 667.36
+      }
+    },
+    {
+      "id": "polygon-block-3",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 1606,
+      "y": 297,
+      "w": 100,
+      "h": 856,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 18,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 1688,
+          "y": 315
+        },
+        {
+          "x": 1626,
+          "y": 317
+        },
+        {
+          "x": 1624,
+          "y": 1135
+        },
+        {
+          "x": 1688,
+          "y": 1135
+        }
+      ],
+      "center": {
+        "x": 1656.5,
+        "y": 725.5
+      }
+    },
+    {
+      "id": "polygon-block-3-copy",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 1311,
+      "y": 297,
+      "w": 100,
+      "h": 856,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 19,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 1393,
+          "y": 315
+        },
+        {
+          "x": 1331,
+          "y": 317
+        },
+        {
+          "x": 1329,
+          "y": 1135
+        },
+        {
+          "x": 1393,
+          "y": 1135
+        }
+      ],
+      "center": {
+        "x": 1361.5,
+        "y": 725.5
+      }
+    },
+    {
+      "id": "polygon-block-3-copy-copy",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 1311,
+      "y": 1895,
+      "w": 100,
+      "h": 856,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 20,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 1393,
+          "y": 1913
+        },
+        {
+          "x": 1331,
+          "y": 1915
+        },
+        {
+          "x": 1329,
+          "y": 2733
+        },
+        {
+          "x": 1393,
+          "y": 2733
+        }
+      ],
+      "center": {
+        "x": 1361.5,
+        "y": 2323.5
+      }
+    },
+    {
+      "id": "polygon-block-3-copy-copy-copy",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 1606,
+      "y": 1895,
+      "w": 100,
+      "h": 856,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 21,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 1688,
+          "y": 1913
+        },
+        {
+          "x": 1626,
+          "y": 1915
+        },
+        {
+          "x": 1624,
+          "y": 2733
+        },
+        {
+          "x": 1688,
+          "y": 2733
+        }
+      ],
+      "center": {
+        "x": 1656.5,
+        "y": 2323.5
+      }
+    },
+    {
+      "id": "polygon-block-4",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 1885,
+      "y": 1319,
+      "w": 932,
+      "h": 98,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 22,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 2797,
+          "y": 1337
+        },
+        {
+          "x": 2799,
+          "y": 1383
+        },
+        {
+          "x": 1908,
+          "y": 1399
+        },
+        {
+          "x": 1903,
+          "y": 1347
+        }
+      ],
+      "center": {
+        "x": 2351.75,
+        "y": 1366.5
+      }
+    },
+    {
+      "id": "polygon-block-4-copy",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 1885,
+      "y": 1591,
+      "w": 932,
+      "h": 98,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 23,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 2797,
+          "y": 1609
+        },
+        {
+          "x": 2799,
+          "y": 1655
+        },
+        {
+          "x": 1908,
+          "y": 1671
+        },
+        {
+          "x": 1903,
+          "y": 1619
+        }
+      ],
+      "center": {
+        "x": 2351.75,
+        "y": 1638.5
+      }
+    },
+    {
+      "id": "polygon-block-4-copy-copy",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 189,
+      "y": 1368,
+      "w": 932,
+      "h": 98,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 24,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 1101,
+          "y": 1386
+        },
+        {
+          "x": 1103,
+          "y": 1432
+        },
+        {
+          "x": 212,
+          "y": 1448
+        },
+        {
+          "x": 207,
+          "y": 1396
+        }
+      ],
+      "center": {
+        "x": 655.75,
+        "y": 1415.5
+      }
+    },
+    {
+      "id": "polygon-block-4-copy-copy-copy",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 189,
+      "y": 1591,
+      "w": 932,
+      "h": 98,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 25,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 1101,
+          "y": 1609
+        },
+        {
+          "x": 1103,
+          "y": 1655
+        },
+        {
+          "x": 212,
+          "y": 1671
+        },
+        {
+          "x": 207,
+          "y": 1619
+        }
+      ],
+      "center": {
+        "x": 655.75,
+        "y": 1638.5
+      }
+    },
+    {
+      "id": "polygon-block-5",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 2350,
+      "y": 2905,
+      "w": 542,
+      "h": 95,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 26,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 2369,
+          "y": 2994
+        },
+        {
+          "x": 2368,
+          "y": 2926
+        },
+        {
+          "x": 2803,
+          "y": 2923
+        },
+        {
+          "x": 2874,
+          "y": 2996
+        }
+      ],
+      "center": {
+        "x": 2603.5,
+        "y": 2959.75
+      }
+    },
+    {
+      "id": "polygon-block-6",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 2054,
+      "y": 1984,
+      "w": 793,
+      "h": 819,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 27,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 2265,
+          "y": 2739
+        },
+        {
+          "x": 2219,
+          "y": 2785
+        },
+        {
+          "x": 2075,
+          "y": 2651
+        },
+        {
+          "x": 2072,
+          "y": 2327
+        },
+        {
+          "x": 2410,
+          "y": 2002
+        },
+        {
+          "x": 2779,
+          "y": 2002
+        },
+        {
+          "x": 2829,
+          "y": 2057
+        },
+        {
+          "x": 2823,
+          "y": 2080
+        },
+        {
+          "x": 2443,
+          "y": 2085
+        },
+        {
+          "x": 2169,
+          "y": 2352
+        },
+        {
+          "x": 2163,
+          "y": 2626
+        }
+      ],
+      "center": {
+        "x": 2386.09,
+        "y": 2336.91
+      }
+    },
+    {
+      "id": "polygon-block-7",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 108,
+      "y": 2901,
+      "w": 541,
+      "h": 99,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 28,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 631,
+          "y": 2925
+        },
+        {
+          "x": 627,
+          "y": 2993
+        },
+        {
+          "x": 126,
+          "y": 2988
+        },
+        {
+          "x": 191,
+          "y": 2919
+        }
+      ],
+      "center": {
+        "x": 393.75,
+        "y": 2956.25
+      }
+    },
+    {
+      "id": "polygon-block-8",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 160,
+      "y": 1989,
+      "w": 771,
+      "h": 810,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 29,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 724,
+          "y": 2743
+        },
+        {
+          "x": 760,
+          "y": 2781
+        },
+        {
+          "x": 900,
+          "y": 2661
+        },
+        {
+          "x": 913,
+          "y": 2337
+        },
+        {
+          "x": 580,
+          "y": 2007
+        },
+        {
+          "x": 226,
+          "y": 2010
+        },
+        {
+          "x": 178,
+          "y": 2060
+        },
+        {
+          "x": 189,
+          "y": 2109
+        },
+        {
+          "x": 210,
+          "y": 2083
+        },
+        {
+          "x": 566,
+          "y": 2087
+        },
+        {
+          "x": 836,
+          "y": 2355
+        },
+        {
+          "x": 835,
+          "y": 2628
+        }
+      ],
+      "center": {
+        "x": 576.42,
+        "y": 2321.75
+      }
+    },
+    {
+      "id": "polygon-block-9",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 154,
+      "y": 199,
+      "w": 780,
+      "h": 827,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 30,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 172,
+          "y": 934
+        },
+        {
+          "x": 236,
+          "y": 1008
+        },
+        {
+          "x": 586,
+          "y": 997
+        },
+        {
+          "x": 916,
+          "y": 671
+        },
+        {
+          "x": 915,
+          "y": 359
+        },
+        {
+          "x": 770,
+          "y": 217
+        },
+        {
+          "x": 725,
+          "y": 257
+        },
+        {
+          "x": 826,
+          "y": 377
+        },
+        {
+          "x": 835,
+          "y": 645
+        },
+        {
+          "x": 566,
+          "y": 920
+        }
+      ],
+      "center": {
+        "x": 654.7,
+        "y": 638.5
+      }
+    },
+    {
+      "id": "polygon-block-10",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 107,
+      "y": 0,
+      "w": 533,
+      "h": 105,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 31,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 620,
+          "y": 72
+        },
+        {
+          "x": 622,
+          "y": 8
+        },
+        {
+          "x": 125,
+          "y": 11
+        },
+        {
+          "x": 188,
+          "y": 77
+        }
+      ],
+      "center": {
+        "x": 388.75,
+        "y": 42
+      }
+    },
+    {
+      "id": "polygon-block-11",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 1654,
+      "y": 1044,
+      "w": 347,
+      "h": 334,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 32,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 1680,
+          "y": 1068
+        },
+        {
+          "x": 1840,
+          "y": 1062
+        },
+        {
+          "x": 1983,
+          "y": 1200
+        },
+        {
+          "x": 1974,
+          "y": 1360
+        },
+        {
+          "x": 1913,
+          "y": 1358
+        },
+        {
+          "x": 1911,
+          "y": 1223
+        },
+        {
+          "x": 1817,
+          "y": 1143
+        },
+        {
+          "x": 1672,
+          "y": 1135
+        }
+      ],
+      "center": {
+        "x": 1848.75,
+        "y": 1193.63
+      }
+    },
+    {
+      "id": "polygon-block-12",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 1659,
+      "y": 1618,
+      "w": 341,
+      "h": 386,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 33,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 1905,
+          "y": 1636
+        },
+        {
+          "x": 1975,
+          "y": 1638
+        },
+        {
+          "x": 1982,
+          "y": 1844
+        },
+        {
+          "x": 1853,
+          "y": 1981
+        },
+        {
+          "x": 1684,
+          "y": 1986
+        },
+        {
+          "x": 1677,
+          "y": 1920
+        },
+        {
+          "x": 1821,
+          "y": 1908
+        },
+        {
+          "x": 1898,
+          "y": 1824
+        }
+      ],
+      "center": {
+        "x": 1849.38,
+        "y": 1842.13
+      }
+    },
+    {
+      "id": "polygon-block-13",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 1012,
+      "y": 1613,
+      "w": 392,
+      "h": 385,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 34,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 1038,
+          "y": 1631
+        },
+        {
+          "x": 1030,
+          "y": 1839
+        },
+        {
+          "x": 1168,
+          "y": 1980
+        },
+        {
+          "x": 1386,
+          "y": 1971
+        },
+        {
+          "x": 1378,
+          "y": 1924
+        },
+        {
+          "x": 1219,
+          "y": 1910
+        },
+        {
+          "x": 1126,
+          "y": 1826
+        },
+        {
+          "x": 1113,
+          "y": 1638
+        }
+      ],
+      "center": {
+        "x": 1182.25,
+        "y": 1839.88
+      }
+    },
+    {
+      "id": "polygon-block-14",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 1008,
+      "y": 1042,
+      "w": 367,
+      "h": 376,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 35,
+      "visible": true,
+      "kind": "collision_polygon",
+      "zoneId": null,
+      "role": null,
+      "worldPoints": [
+        {
+          "x": 1107,
+          "y": 1377
+        },
+        {
+          "x": 1117,
+          "y": 1233
+        },
+        {
+          "x": 1196,
+          "y": 1139
+        },
+        {
+          "x": 1357,
+          "y": 1132
+        },
+        {
+          "x": 1350,
+          "y": 1073
+        },
+        {
+          "x": 1166,
+          "y": 1060
+        },
+        {
+          "x": 1026,
+          "y": 1192
+        },
+        {
+          "x": 1030,
+          "y": 1392
+        },
+        {
+          "x": 1103,
+          "y": 1400
+        }
+      ],
+      "center": {
+        "x": 1161.33,
+        "y": 1222
+      }
+    }
+  ],
+  "captureZones": [
+    {
+      "id": "polygon-block-15",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "capture zone HEAL",
+      "label": "",
+      "mapKind": "capture_polygon",
+      "mapAssetId": "",
+      "x": 2141,
+      "y": 0,
+      "w": 859,
+      "h": 964,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 36,
+      "visible": true,
+      "kind": "capture_polygon",
+      "zoneId": "topRightSpecial",
+      "role": "heal",
+      "worldPoints": [
+        {
+          "x": 2265,
+          "y": 244
+        },
+        {
+          "x": 2434,
+          "y": 60
+        },
+        {
+          "x": 2815,
+          "y": 55
+        },
+        {
+          "x": 2874,
+          "y": 1
+        },
+        {
+          "x": 2990,
+          "y": 2
+        },
+        {
+          "x": 2997,
+          "y": 733
+        },
+        {
+          "x": 2959,
+          "y": 735
+        },
+        {
+          "x": 2791,
+          "y": 929
+        },
+        {
+          "x": 2449,
+          "y": 923
+        },
+        {
+          "x": 2159,
+          "y": 656
+        },
+        {
+          "x": 2159,
+          "y": 374
+        }
+      ],
+      "center": {
+        "x": 2626.55,
+        "y": 428.36
+      }
+    },
+    {
+      "id": "polygon-block-16",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "capture zone (heal)",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 2138,
+      "y": 2060,
+      "w": 862,
+      "h": 940,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 37,
+      "visible": true,
+      "kind": "capture_polygon",
+      "zoneId": "p2Base",
+      "role": "p2",
+      "worldPoints": [
+        {
+          "x": 2260,
+          "y": 2741
+        },
+        {
+          "x": 2405,
+          "y": 2916
+        },
+        {
+          "x": 2801,
+          "y": 2925
+        },
+        {
+          "x": 2872,
+          "y": 2996
+        },
+        {
+          "x": 2995,
+          "y": 2983
+        },
+        {
+          "x": 2985,
+          "y": 3000
+        },
+        {
+          "x": 2994,
+          "y": 2269
+        },
+        {
+          "x": 2958,
+          "y": 2265
+        },
+        {
+          "x": 2818,
+          "y": 2078
+        },
+        {
+          "x": 2439,
+          "y": 2080
+        },
+        {
+          "x": 2162,
+          "y": 2342
+        },
+        {
+          "x": 2156,
+          "y": 2627
+        }
+      ],
+      "center": {
+        "x": 2653.75,
+        "y": 2601.83
+      }
+    },
+    {
+      "id": "polygon-block-17",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "capture zone P2\n",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 0,
+      "y": 2066,
+      "w": 877,
+      "h": 934,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 38,
+      "visible": true,
+      "kind": "capture_polygon",
+      "zoneId": "bottomLeftSpecial",
+      "role": "rage",
+      "worldPoints": [
+        {
+          "x": 3,
+          "y": 2266
+        },
+        {
+          "x": 42,
+          "y": 2272
+        },
+        {
+          "x": 213,
+          "y": 2090
+        },
+        {
+          "x": 567,
+          "y": 2084
+        },
+        {
+          "x": 844,
+          "y": 2351
+        },
+        {
+          "x": 836,
+          "y": 2632
+        },
+        {
+          "x": 728,
+          "y": 2742
+        },
+        {
+          "x": 596,
+          "y": 2926
+        },
+        {
+          "x": 197,
+          "y": 2930
+        },
+        {
+          "x": 119,
+          "y": 2985
+        },
+        {
+          "x": 3,
+          "y": 2996
+        }
+      ],
+      "center": {
+        "x": 377.09,
+        "y": 2570.36
+      }
+    },
+    {
+      "id": "polygon-block-18",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "capture zone RAGE\n",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 0,
+      "y": 0,
+      "w": 874,
+      "h": 978,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 39,
+      "visible": true,
+      "kind": "capture_polygon",
+      "zoneId": "p1Base",
+      "role": "p1",
+      "worldPoints": [
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 126,
+          "y": 8
+        },
+        {
+          "x": 182,
+          "y": 74
+        },
+        {
+          "x": 617,
+          "y": 73
+        },
+        {
+          "x": 730,
+          "y": 257
+        },
+        {
+          "x": 833,
+          "y": 372
+        },
+        {
+          "x": 838,
+          "y": 650
+        },
+        {
+          "x": 561,
+          "y": 931
+        },
+        {
+          "x": 177,
+          "y": 942
+        },
+        {
+          "x": 35,
+          "y": 734
+        },
+        {
+          "x": 0,
+          "y": 730
+        }
+      ],
+      "center": {
+        "x": 372.64,
+        "y": 433.73
+      }
+    }
+  ],
+  "activeZones": [
+    {
+      "id": "polygon-block-19",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "capture zone ",
+      "label": "",
+      "mapKind": "performance_polygon",
+      "mapAssetId": "",
+      "x": 1657,
+      "y": 0,
+      "w": 1343,
+      "h": 1385,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 40,
+      "visible": true,
+      "kind": "performance_polygon",
+      "zoneId": "topRightSpecial",
+      "role": "heal",
+      "worldPoints": [
+        {
+          "x": 1675,
+          "y": 8
+        },
+        {
+          "x": 1675,
+          "y": 319
+        },
+        {
+          "x": 1690,
+          "y": 1077
+        },
+        {
+          "x": 1833,
+          "y": 1069
+        },
+        {
+          "x": 1977,
+          "y": 1206
+        },
+        {
+          "x": 1972,
+          "y": 1356
+        },
+        {
+          "x": 2995,
+          "y": 1335
+        },
+        {
+          "x": 2995,
+          "y": 7
+        }
+      ],
+      "center": {
+        "x": 2101.5,
+        "y": 797.13
+      }
+    },
+    {
+      "id": "polygon-block-20",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "zone active",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 0,
+      "y": 0,
+      "w": 1375,
+      "h": 1417,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 41,
+      "visible": true,
+      "kind": "active_polygon",
+      "zoneId": "p1Base",
+      "role": "p1",
+      "worldPoints": [
+        {
+          "x": 1344,
+          "y": 6
+        },
+        {
+          "x": 1339,
+          "y": 1074
+        },
+        {
+          "x": 1166,
+          "y": 1071
+        },
+        {
+          "x": 1038,
+          "y": 1195
+        },
+        {
+          "x": 1030,
+          "y": 1382
+        },
+        {
+          "x": 5,
+          "y": 1369
+        },
+        {
+          "x": 8,
+          "y": 1
+        }
+      ],
+      "center": {
+        "x": 847.14,
+        "y": 871.14
+      }
+    },
+    {
+      "id": "polygon-block-21",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "zone active",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 1672,
+      "y": 1658,
+      "w": 1328,
+      "h": 1342,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 42,
+      "visible": true,
+      "kind": "active_polygon",
+      "zoneId": "p2Base",
+      "role": "p2",
+      "worldPoints": [
+        {
+          "x": 1697,
+          "y": 1946
+        },
+        {
+          "x": 1826,
+          "y": 1937
+        },
+        {
+          "x": 1908,
+          "y": 1858
+        },
+        {
+          "x": 1915,
+          "y": 1663
+        },
+        {
+          "x": 2789,
+          "y": 1658
+        },
+        {
+          "x": 3000,
+          "y": 1679
+        },
+        {
+          "x": 3000,
+          "y": 3000
+        },
+        {
+          "x": 1672,
+          "y": 3000
+        }
+      ],
+      "center": {
+        "x": 2225.88,
+        "y": 2092.63
+      }
+    },
+    {
+      "id": "polygon-block-22",
+      "type": "map-polygon",
+      "group": "map-blocks",
+      "note": "zone active",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 0,
+      "y": 1619,
+      "w": 1394,
+      "h": 1381,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 43,
+      "visible": true,
+      "kind": "active_polygon",
+      "zoneId": "bottomLeftSpecial",
+      "role": "rage",
+      "worldPoints": [
+        {
+          "x": 6,
+          "y": 1637
+        },
+        {
+          "x": 1069,
+          "y": 1648
+        },
+        {
+          "x": 1108,
+          "y": 1839
+        },
+        {
+          "x": 1206,
+          "y": 1939
+        },
+        {
+          "x": 1364,
+          "y": 1939
+        },
+        {
+          "x": 1353,
+          "y": 2956
+        },
+        {
+          "x": 1351,
+          "y": 2995
+        },
+        {
+          "x": 8,
+          "y": 2990
+        }
+      ],
+      "center": {
+        "x": 933.13,
+        "y": 2242.88
+      }
+    }
+  ],
+  "spawnPoints": [
+    {
+      "id": "p1-zone-spawn-point-image",
+      "type": "image",
+      "group": "",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 427,
+      "y": 515,
+      "w": 260,
+      "h": 260,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 47,
+      "visible": true,
+      "markerType": "spawn",
+      "zoneId": "p1Base",
+      "role": "p1",
+      "bounds": {
+        "x": 297,
+        "y": 385,
+        "w": 260,
+        "h": 260
+      }
+    },
+    {
+      "id": "heal-zone-spawn-point-image",
+      "type": "image",
+      "group": "",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 2571,
+      "y": 515,
+      "w": 260,
+      "h": 260,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 50,
+      "visible": true,
+      "markerType": "spawn",
+      "zoneId": "topRightSpecial",
+      "role": "heal",
+      "bounds": {
+        "x": 2441,
+        "y": 385,
+        "w": 260,
+        "h": 260
+      }
+    },
+    {
+      "id": "rage-zone-spawn-point-image",
+      "type": "image",
+      "group": "",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 427,
+      "y": 2494,
+      "w": 260,
+      "h": 260,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 49,
+      "visible": true,
+      "markerType": "spawn",
+      "zoneId": "bottomLeftSpecial",
+      "role": "rage",
+      "bounds": {
+        "x": 297,
+        "y": 2364,
+        "w": 260,
+        "h": 260
+      }
+    },
+    {
+      "id": "p2-zone-spawn-point-image",
+      "type": "image",
+      "group": "",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 2585,
+      "y": 2503,
+      "w": 260,
+      "h": 260,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 48,
+      "visible": true,
+      "markerType": "spawn",
+      "zoneId": "p2Base",
+      "role": "p2",
+      "bounds": {
+        "x": 2455,
+        "y": 2373,
+        "w": 260,
+        "h": 260
+      }
+    }
+  ],
+  "bossSpawns": [
+    {
+      "id": "shotgunboss-image",
+      "type": "image",
+      "group": "",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 961,
+      "y": 2060,
+      "w": 260,
+      "h": 260,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 46,
+      "visible": true,
+      "markerType": "boss_shotgun",
+      "zoneId": "bottomLeftSpecial",
+      "role": "rage",
+      "bounds": {
+        "x": 831,
+        "y": 1930,
+        "w": 260,
+        "h": 260
+      }
+    },
+    {
+      "id": "stringboss-image",
+      "type": "image",
+      "group": "",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 2086,
+      "y": 978,
+      "w": 260,
+      "h": 260,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 45,
+      "visible": true,
+      "markerType": "boss_string",
+      "zoneId": "topRightSpecial",
+      "role": "heal",
+      "bounds": {
+        "x": 1956,
+        "y": 848,
+        "w": 260,
+        "h": 260
+      }
+    },
+    {
+      "id": "iceboss-image",
+      "type": "image",
+      "group": "",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 1505,
+      "y": 1528,
+      "w": 260,
+      "h": 260,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 44,
+      "visible": true,
+      "markerType": "boss_ice",
+      "zoneId": "center",
+      "role": "ice",
+      "bounds": {
+        "x": 1375,
+        "y": 1398,
+        "w": 260,
+        "h": 260
+      }
+    }
+  ],
+  "captureRings": [
+    {
+      "id": "p1-processing-capture-image",
+      "type": "image",
+      "group": "",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": -62,
+      "y": 123,
+      "w": 959,
+      "h": 760,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 51,
+      "visible": true,
+      "role": "p1",
+      "zoneId": "p1Base",
+      "assetKey": "charge_cyan",
+      "progress": 0,
+      "mode": "image_mask_edge_progress"
+    },
+    {
+      "id": "heal-processing-capture-image",
+      "type": "image",
+      "group": "",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 2186,
+      "y": 97,
+      "w": 798,
+      "h": 813,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 52,
+      "visible": true,
+      "role": "heal",
+      "zoneId": "topRightSpecial",
+      "assetKey": "charge_green",
+      "progress": 0,
+      "mode": "image_mask_edge_progress"
+    },
+    {
+      "id": "rage-processing-capture-image",
+      "type": "image",
+      "group": "",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 35,
+      "y": 2080,
+      "w": 765,
+      "h": 829,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 53,
+      "visible": true,
+      "role": "rage",
+      "zoneId": "bottomLeftSpecial",
+      "assetKey": "charge_purple",
+      "progress": 0,
+      "mode": "image_mask_edge_progress"
+    },
+    {
+      "id": "p2-processing-capture-image",
+      "type": "image",
+      "group": "",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 2121,
+      "y": 2080,
+      "w": 900,
+      "h": 822,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 54,
+      "visible": true,
+      "role": "p2",
+      "zoneId": "p2Base",
+      "assetKey": "charge_red",
+      "progress": 0,
+      "mode": "image_mask_edge_progress"
+    }
+  ],
+  "ringAssets": {
+    "charge_cyan": "/assets/control_map/charge_cyan_alpha.png",
+    "charge_green": "/assets/control_map/charge_green_alpha.png",
+    "charge_purple": "/assets/control_map/charge_purple_alpha.png",
+    "charge_red": "/assets/control_map/charge_red_alpha.png"
+  },
+  "turretSpawns": [
+    {
+      "id": "p1-defender-tower-image",
+      "type": "image",
+      "group": "",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 130,
+      "y": 205,
+      "w": 260,
+      "h": 260,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 55,
+      "visible": true,
+      "markerType": "neutral_turret",
+      "zoneId": "p1Base",
+      "role": "p1",
+      "bounds": {
+        "x": 0,
+        "y": 75,
+        "w": 260,
+        "h": 260
+      }
+    },
+    {
+      "id": "p2-defender-tower-image",
+      "type": "image",
+      "group": "",
+      "note": "",
+      "label": "",
+      "mapKind": "",
+      "mapAssetId": "",
+      "x": 2870,
+      "y": 2823,
+      "w": 260,
+      "h": 260,
+      "rotation": 0,
+      "flipX": false,
+      "flipY": false,
+      "z": 56,
+      "visible": true,
+      "markerType": "neutral_turret",
+      "zoneId": "p2Base",
+      "role": "p2",
+      "bounds": {
+        "x": 2740,
+        "y": 2693,
+        "w": 260,
+        "h": 260
+      }
+    }
+  ],
+  "missingMetadata": [],
+  "notes": [
+    "Zone identity fixed by user: RAGE bottom-left, HEAL top-right, P1 top-left, P2 bottom-right.",
+    "Some export polygon notes conflict with quadrant/ring/boss marker identity; runtime zoneId follows user-provided quadrant mapping.",
+    "No explicit top-right active zone polygon labeled zone active was found; HEAL boss active trigger may use capture-zone fallback until export note is corrected."
+  ]
+}

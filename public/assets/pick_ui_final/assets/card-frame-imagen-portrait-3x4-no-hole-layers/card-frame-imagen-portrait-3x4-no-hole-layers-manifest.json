@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "frame": "imagen-portrait-3x4-no-hole",
+  "size": {
+    "w": 971,
+    "h": 1619
+  },
+  "rule": "Only the outside of the full card silhouette is transparent. No internal aperture cutout and no icon socket hole.",
+  "layers": {
+    "base": "61-card-frame-imagen-portrait-3x4-solid-base-no-holes.webp",
+    "tintMask": "62-card-frame-imagen-portrait-3x4-neutral-tint-mask-exact.webp",
+    "softGloss": "63-card-frame-imagen-portrait-3x4-soft-gloss-exact.webp",
+    "bevelHighlight": "64-card-frame-imagen-portrait-3x4-bevel-highlight-exact.webp",
+    "rimHighlight": "65-card-frame-imagen-portrait-3x4-rim-highlight-exact.webp",
+    "selectedGlowMask": "66-card-frame-imagen-portrait-3x4-selected-glow-mask-exact.webp"
+  }
+}

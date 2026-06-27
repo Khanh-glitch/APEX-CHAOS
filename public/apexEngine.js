@@ -140,6 +140,15 @@ var STATUS_VFX = {
 };
 
 var clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+function hpRatio(entity) {
+    return entity && Number.isFinite(entity.maxHp) && entity.maxHp > 0 ? entity.hp / entity.maxHp : 1;
+}
+function isHpBelowRatio(entity, ratio) {
+    return !!entity && entity.hp > 0 && hpRatio(entity) <= ratio;
+}
+function shouldTriggerRage(entity) {
+    return !!entity && !entity.isRage && !entity.type?.noRage && isHpBelowRatio(entity, 0.5);
+}
 var rand = (min, max) => Math.random() * (max - min) + min;
 var dist = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
 var lerp = (a, b, t) => a + (b - a) * t;
@@ -852,7 +861,7 @@ var Fighter = class Fighter {
         spawnDamageText(this.x, this.y - this.radius - 6, amount, false);
         emitParticles(this.x, this.y, this.color, Math.min(22, 4 + Math.ceil(amount * 2)), 245, 4, 0.45, 'square');
         if (this.type.onTakeDamage && !this.hasStatus('abilityDisabled')) this.type.onTakeDamage(this, amount, source, label);
-        if (this.hp <= 50 && !this.isRage && !this.type.noRage) {
+        if (shouldTriggerRage(this)) {
             this.isRage = true;
             this.rageStartHp = this.hp;
             playFighterSound(this, 'skill');
@@ -923,6 +932,11 @@ var Fighter = class Fighter {
     resolveWalls() {
         this.data.wallInteractionBlocked = false;
         let side = null;
+        const apexControlWalls = window.APEX_CONTROL_BATTLE_WALLS;
+        if (apexControlWalls?.active?.()) {
+            const hit = apexControlWalls.resolveFighterWall?.(this);
+            if (hit) side = hit.side || hit.id || 'wall';
+        }
         if (this.x - this.radius < 0) { this.x = this.radius; this.dir.x = Math.abs(this.dir.x); side = 'left'; }
         if (this.x + this.radius > GAME_SIZE) { this.x = GAME_SIZE - this.radius; this.dir.x = -Math.abs(this.dir.x); side = 'right'; }
         if (this.y - this.radius < 0) { this.y = this.radius; this.dir.y = Math.abs(this.dir.y); side = 'top'; }
@@ -2463,6 +2477,7 @@ function draw() {
     ctx.save();
     try {
         const shakeX=rand(-cameraShake,cameraShake), shakeY=rand(-cameraShake,cameraShake);
+        window.__apexCameraView = { shakeX, shakeY, zoom:cameraZoom };
         ctx.translate(GAME_SIZE/2+shakeX,GAME_SIZE/2+shakeY); ctx.scale(cameraZoom,cameraZoom); ctx.translate(-GAME_SIZE/2,-GAME_SIZE/2);
         drawBackground(ctx); drawProjectiles(ctx);
         for (const f of fighters) { 
@@ -4686,6 +4701,58 @@ function endMatch() {
     ctx.restore();
     return true;
   }
+  function whenEngineerImageReady(key) {
+    const img = images[key];
+    if (!img) return Promise.resolve(false);
+    if (img.complete && img.naturalWidth) {
+      return img.decode ? img.decode().catch(() => false).then(() => true) : Promise.resolve(true);
+    }
+    if (img.complete && !img.naturalWidth) return Promise.resolve(false);
+    return new Promise(resolve => {
+      const done = () => {
+        if (img.decode) img.decode().catch(() => false).then(() => resolve(!!img.naturalWidth));
+        else resolve(!!img.naturalWidth);
+      };
+      img.addEventListener('load', done, {once:true});
+      img.addEventListener('error', () => resolve(false), {once:true});
+    });
+  }
+  function warmEngineerDrawImage(ctx, key, size = 72) {
+    const img = images[key];
+    if (!ctx || !img?.naturalWidth) return false;
+    const ratio = img.naturalHeight / Math.max(1, img.naturalWidth);
+    const w = Math.max(1, Math.min(size, img.naturalWidth));
+    const h = Math.max(1, Math.min(size * ratio, img.naturalHeight));
+    ctx.save();
+    ctx.globalAlpha = .001;
+    ctx.drawImage(img, 0, 0, w, h);
+    ctx.restore();
+    return true;
+  }
+  function warmEngineerVisualAssets() {
+    if (engineerState.visualWarmup?.started) return engineerState.visualWarmup.promise;
+    const canvas = typeof OffscreenCanvas !== 'undefined'
+      ? new OffscreenCanvas(128, 128)
+      : Object.assign(document.createElement('canvas'), {width:128, height:128});
+    const warmCtx = canvas.getContext?.('2d');
+    const hotKeys = ['main', 'shieldNexus', 'shieldRage', 'turret', 'mine', 'repair', 'factory', 'warMachine', 'warPilot'];
+    engineerState.visualWarmup = {
+      started:true,
+      ready:false,
+      promise:Promise.all(hotKeys.map(whenEngineerImageReady)).then(() => {
+        for (const key of hotKeys) warmEngineerDrawImage(warmCtx, key, key === 'main' ? 96 : 72);
+        keyedAsset('shieldNexus');
+        keyedAsset('shieldRage');
+        engineerState.visualWarmup.ready = true;
+        engineerState.visualWarmup.finishedAt = performance.now();
+        return true;
+      }).catch(error => {
+        engineerState.visualWarmup.error = String(error?.message || error);
+        return false;
+      })
+    };
+    return engineerState.visualWarmup.promise;
+  }
   function keyedAsset(key, threshold = 54, options = {}) {
     const img = images[key];
     if (!ready(key) || !img) return null;
@@ -4761,7 +4828,7 @@ function endMatch() {
   }
 
   const BASE = {
-    mine: { label:'Mine', cost:2, build:0.8, hp:95, underHp:55, radius:38, baseScore:25 },
+    mine: { label:'Mine', cost:2, build:0, hp:95, underHp:55, radius:38, baseScore:25 },
     turret: { label:'Turret', cost:3, build:1.4, hp:130, underHp:80, radius:48, baseScore:30 },
     repair: { label:'Repair Station', cost:4, build:1.8, hp:165, underHp:88, radius:52, baseScore:20 },
     factory: { label:'Factory', cost:5, build:2.4, hp:210, underHp:110, radius:58, baseScore:24 }
@@ -4784,6 +4851,7 @@ function endMatch() {
     vfx: [],
     nextId: 1
   };
+  engineerState.warmVisualAssets = warmEngineerVisualAssets;
   const buildKinds = ['turret', 'mine', 'repair', 'factory'];
   const kindOrder = { turret:0, mine:1, repair:2, factory:3 };
   const recipeResult = {
@@ -5433,6 +5501,47 @@ function endMatch() {
     d.repairHolding = .35;
     return dist(f.x, f.y, anchor.x, anchor.y) > 95;
   }
+  function beginConstructionAt(f, kind, pos, opening = false) {
+    const d = ownerData(f);
+    const spec = BASE[kind];
+    if (!spec || !pos) return false;
+    d.scrap -= spec.cost;
+    const bonus = Math.min(.8, d.buildTimeBonus || 0);
+    d.buildTimeBonus = Math.max(0, (d.buildTimeBonus || 0) - bonus);
+    const instantMine = kind === 'mine';
+    const buildTime = instantMine ? 0 : Math.max(.35, spec.build * BUILD_TIME_MULT - bonus);
+    const s = {
+      id: engineerState.nextId++,
+      owner:f,
+      kind,
+      state:instantMine ? 'online' : 'building',
+      x:pos.x,
+      y:pos.y,
+      radius:spec.radius,
+      blockRadius:footprintForKind(kind, spec.radius),
+      cost:spec.cost,
+      buildTime,
+      progress:instantMine ? 1 : 0,
+      hp:structureHp(instantMine ? spec.hp : spec.underHp),
+      maxHp:structureHp(instantMine ? spec.hp : spec.underHp),
+      onlineHp:structureHp(spec.hp),
+      createdAt:matchClock,
+      onlineAt:instantMine ? matchClock : 0,
+      fireCd: kind === 'turret' ? .2 : 0,
+      spawnCd:0,
+      prodTick:0,
+      healTick:0,
+      pulse:0,
+      opening,
+      armed:instantMine ? false : undefined,
+      armDelay:instantMine ? 1 : undefined
+    };
+    d.structures.push(s);
+    engineerState.vfx.push({ type:'blueprint', x:s.x, y:s.y, life:Math.max(.12, buildTime), maxLife:Math.max(.12, buildTime), radius:s.radius + 18 });
+    playEngineerAudio('buildStart', .46, 1, .12);
+    recordSkill(f);
+    return true;
+  }
   function commitBuild(f, kind, opening = false) {
     const d = ownerData(f);
     const spec = BASE[kind];
@@ -5453,39 +5562,7 @@ function endMatch() {
     if (kind === 'repair' && !opening && shouldWaitForBetterRepairSpot(f, pos)) return false;
     d.repairHoldSince = 0;
     d.repairHolding = 0;
-    d.scrap -= spec.cost;
-    const bonus = Math.min(.8, d.buildTimeBonus || 0);
-    d.buildTimeBonus = Math.max(0, (d.buildTimeBonus || 0) - bonus);
-    const buildTime = Math.max(.35, spec.build * BUILD_TIME_MULT - bonus);
-    const s = {
-      id: engineerState.nextId++,
-      owner:f,
-      kind,
-      state:'building',
-      x:pos.x,
-      y:pos.y,
-      radius:spec.radius,
-      blockRadius:footprintForKind(kind, spec.radius),
-      cost:spec.cost,
-      buildTime,
-      progress:0,
-      hp:structureHp(spec.underHp),
-      maxHp:structureHp(spec.underHp),
-      onlineHp:structureHp(spec.hp),
-      createdAt:matchClock,
-      onlineAt:0,
-      fireCd: kind === 'turret' ? .2 : 0,
-      spawnCd:0,
-      prodTick:0,
-      healTick:0,
-      pulse:0,
-      opening
-    };
-    d.structures.push(s);
-    engineerState.vfx.push({ type:'blueprint', x:s.x, y:s.y, life:buildTime, maxLife:buildTime, radius:s.radius + 18 });
-    playEngineerAudio('buildStart', .46, 1, .12);
-    recordSkill(f);
-    return true;
+    return beginConstructionAt(f, kind, pos, opening);
   }
   function useSalvagePulse(f) {
     const d = ownerData(f);
@@ -5497,6 +5574,39 @@ function endMatch() {
     d.salvageLock = 1;
     engineerState.vfx.push({ type:'salvage', x:f.x, y:f.y, owner:f, life:1, maxLife:1, radius:300 });
     return true;
+  }
+  function manualPlacementStatus(f, kind, x, y, buildRange = 100) {
+    const d = f ? ownerData(f) : null;
+    const spec = BASE[kind];
+    const distance = f && Number.isFinite(x) && Number.isFinite(y) ? dist(f.x, f.y, x, y) : Infinity;
+    const result = { valid:false, reason:'INVALID', kind, cost:spec?.cost ?? 0, scrap:d?.scrap ?? 0, distance, range:buildRange };
+    if (!f || f.name !== 'ENGINEER' || !live(f) || !spec) return result;
+    if (d.pilotingWarMachine) return { ...result, reason:'PILOTING WAR MACHINE' };
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return { ...result, reason:'AIM OUTSIDE ARENA' };
+    if (distance > buildRange + .0001) return { ...result, reason:`OUT OF RANGE (${Math.ceil(distance)}/${buildRange})` };
+    if (d.scrap < spec.cost) return { ...result, reason:`NEED ${spec.cost - d.scrap} SCRAP` };
+    if (currentConstruction(d)) return { ...result, reason:'CONSTRUCTION ACTIVE' };
+    if (f.hardCC() || f.hasStatus?.('abilityDisabled')) return { ...result, reason:'ENGINEER DISABLED' };
+    if (!validPlacement(f, kind, x, y)) return { ...result, reason:'PLACEMENT BLOCKED' };
+    return { ...result, valid:true, reason:'READY' };
+  }
+  function commitManualBuild(f, kind, x, y) {
+    const status = manualPlacementStatus(f, kind, x, y, 100);
+    if (!status.valid) return status;
+    const built = beginConstructionAt(f, kind, { x, y }, false);
+    return { ...status, valid:built, committed:built, reason:built ? 'BUILD STARTED' : 'BUILD FAILED' };
+  }
+  function setManualMagnetRequested(f, requested) {
+    if (!f || f.name !== 'ENGINEER') return false;
+    const d = ownerData(f);
+    if (!requested) {
+      d.salvagePulse = 0;
+      d.salvageLock = 0;
+      return false;
+    }
+    if (d.pilotingWarMachine || f.hardCC() || f.hasStatus?.('abilityDisabled')) return false;
+    if ((d.salvagePulse || 0) > 0) return true;
+    return useSalvagePulse(f);
   }
   function availableWarMachines(f) {
     const d = ownerData(f);
@@ -5512,7 +5622,7 @@ function endMatch() {
     d.salvagePulse = 0;
     d.salvageLock = 0;
     d.plan = null;
-    f.hp = Math.max(1, Math.min(f.hp, 1));
+    f.hp = Math.max(1, Math.min(Number.isFinite(f.hp) ? f.hp : (f.maxHp || 1), f.maxHp || (Number.isFinite(f.hp) ? f.hp : 1) || 1));
     wm.pilotedBy = f;
     wm.pilotPulse = .9;
     engineerState.vfx.push({ type:'pilot', x:wm.x, y:wm.y, life:.9, maxLife:.9, radius:structureVisualFootprint(wm) + 36 });
@@ -5529,7 +5639,7 @@ function endMatch() {
     }
     d.pilotingWarMachine = false;
     d.pilotWarMachineId = null;
-    f.hp = Math.max(1, Math.min(f.hp || 1, 1));
+    f.hp = Math.max(1, Math.min(Number.isFinite(f.hp) ? f.hp : (f.maxHp || 1), f.maxHp || (Number.isFinite(f.hp) ? f.hp : 1) || 1));
     if (destroyedMachine) {
       const away = enemyOf(f) ? norm(destroyedMachine.x - enemyOf(f).x, destroyedMachine.y - enemyOf(f).y) : norm(f.dir?.x || 1, f.dir?.y || 0);
       f.x = clamp(destroyedMachine.x + away.x * 82, f.radius, GAME_SIZE - f.radius);
@@ -5546,6 +5656,68 @@ function endMatch() {
     return !!wm && enterEngineerWarMachine(f, wm);
   }
   engineerState.tryPilotWarMachine = tryEngineerPilotWarMachine;
+  function manualMergeCandidate(f, x, y) {
+    if (!f || f.name !== 'ENGINEER' || !Number.isFinite(x) || !Number.isFinite(y)) return null;
+    const d = ownerData(f);
+    if ((d.mergeBlockUntil || 0) > matchClock || Object.keys(d.mergeIds || {}).length || d.pilotingWarMachine) return null;
+    for (const kind of buildKinds) {
+      const ingredients = onlineStructures(d, kind).sort((a,b)=>a.onlineAt-b.onlineAt).slice(0, 3);
+      if (ingredients.length !== 3) continue;
+      const hovered = ingredients.find(s => dist(x, y, s.x, s.y) <= structureVisualFootprint(s));
+      if (hovered) return { kind, resultKind:recipeResult[kind], ingredients, hovered };
+    }
+    return null;
+  }
+  function requestManualMerge(f, x, y) {
+    const candidate = manualMergeCandidate(f, x, y);
+    if (!candidate) return false;
+    return startMerge(f, candidate.ingredients, candidate.resultKind);
+  }
+  function requestManualAutoMerge(f) {
+    if (!f || f.name !== 'ENGINEER') return { valid:false, committed:false, reason:'ENGINEER REQUIRED' };
+    const d = ownerData(f);
+    if ((d.mergeBlockUntil || 0) > matchClock || Object.keys(d.mergeIds || {}).length || d.pilotingWarMachine) {
+      return { valid:false, committed:false, reason:'MERGE BUSY' };
+    }
+    const candidate = pendingMergeInfo(d);
+    if (!candidate) return { valid:false, committed:false, reason:'NO MERGE SET' };
+    const ok = startMerge(f, candidate.ingredients, candidate.resultKind, {x:f.x, y:f.y});
+    return { ...candidate, valid:ok, committed:ok, reason:ok ? `AUTO MERGE ${candidate.resultKind.toUpperCase()}` : 'AUTO MERGE FAILED' };
+  }
+  function manualWarMachineStatus(f) {
+    if (!f || f.name !== 'ENGINEER') return { valid:false, reason:'ENGINEER REQUIRED' };
+    const d = ownerData(f);
+    if (d.pilotingWarMachine) return { valid:false, reason:'ALREADY PILOTING' };
+    if (Object.keys(d.mergeIds || {}).length) return { valid:false, reason:'MERGE ACTIVE' };
+    const existing = availableWarMachines(f)[0];
+    if (existing) return { valid:true, action:'PILOT', machine:existing, reason:'WAR MACHINE READY' };
+    const ingredients = [onlineStructures(d, 'heavy_turret')[0], onlineStructures(d, 'healing_nexus')[0], onlineStructures(d, 'mega_factory')[0]];
+    if (ingredients.every(Boolean)) return { valid:true, action:'ASSEMBLE', ingredients, reason:'ASSEMBLY READY' };
+    return { valid:false, reason:'NEED HEAVY TURRET + HEALING NEXUS + MEGA FACTORY' };
+  }
+  function requestManualWarMachine(f) {
+    if (f?.name === 'ENGINEER' && ownerData(f).pilotingWarMachine) {
+      const d = ownerData(f);
+      const wm = (d.structures || []).find(s => s.id === d.pilotWarMachineId && s.kind === 'war_machine');
+      if (wm) {
+        wm.pilotedBy = null;
+        wm.pilotPulse = .45;
+        f.x = clamp(wm.x, f.radius, GAME_SIZE - f.radius);
+        f.y = clamp(wm.y, f.radius, GAME_SIZE - f.radius);
+      }
+      d.pilotingWarMachine = false;
+      d.pilotWarMachineId = null;
+      engineerState.vfx.push({ type:'pilotExit', x:f.x, y:f.y, life:.55, maxLife:.55, radius:f.radius * 3.2 });
+      updateHUD(true);
+      return { valid:true, committed:true, action:'EJECT', reason:'WAR MACHINE EJECTED' };
+    }
+    const status = manualWarMachineStatus(f);
+    if (!status.valid) return status;
+    const ok = status.action === 'PILOT'
+      ? enterEngineerWarMachine(f, status.machine)
+      : startMerge(f, status.ingredients, 'war_machine');
+    return { ...status, valid:ok, committed:ok, reason:ok ? (status.action === 'PILOT' ? 'PILOT LINKED' : 'WAR MACHINE ASSEMBLY STARTED') : 'WAR MACHINE REQUEST FAILED' };
+  }
   function updatePilotedWarMachineMovement(f, wm, e, dt) {
     if (!f || !wm) return;
     const canMove = !!e;
@@ -5586,11 +5758,27 @@ function endMatch() {
     const clampedY = clamp(ny, r, GAME_SIZE - r);
     if (clampedX !== nx) move.x *= -1;
     if (clampedY !== ny) move.y *= -1;
+    const before = { x:wm.x, y:wm.y };
     wm.x = clampedX;
     wm.y = clampedY;
+    const controlWalls = window.APEX_CONTROL_BATTLE_WALLS;
+    if (controlWalls?.active?.()) {
+      const blocked = controlWalls.isBlocked?.(wm.x, wm.y, r)
+        || controlWalls.segmentIntersectsWall?.(before, {x:wm.x,y:wm.y}, Math.min(42, r * .45));
+      if (blocked) {
+        wm.x = before.x;
+        wm.y = before.y;
+        move.x *= -1;
+        move.y *= -1;
+      }
+    }
     f.setDir(move.x, move.y);
   }
   function updateEngineerFighter(f, e, dt) {
+    const manualController = f.data?.manualController;
+    if (manualController?.active && manualController.mode === 'MANUAL_LAB') {
+      return updateManualEngineerFighter(f, e, dt, manualController);
+    }
     const d = ownerData(f);
     updateEngineerRepairHealText(f, dt);
     updateEngineerVirtualShield(f, dt);
@@ -5643,6 +5831,42 @@ function endMatch() {
       if (d.plan && !commitBuild(f, d.plan, false) && !(d.plan === 'repair' && (d.repairHolding || 0) > 0)) useSalvagePulse(f);
     }
     d.repairHolding = Math.max(0, (d.repairHolding || 0) - dt);
+  }
+  function updateManualEngineerFighter(f, e, dt, controller) {
+    const d = ownerData(f);
+    updateEngineerRepairHealText(f, dt);
+    updateEngineerVirtualShield(f, dt);
+    if (d.pilotingWarMachine) {
+      const wm = (d.structures || []).find(s => s.id === d.pilotWarMachineId && s.kind === 'war_machine' && !s.dead && s.hp > 0);
+      if (wm) {
+        controller.updateWarMachine?.(f, wm, e, dt, engineerState.manualApi);
+        f.hp = Math.max(1, f.hp);
+        f.x = wm.x;
+        f.y = wm.y;
+        d.salvagePulse = 0;
+        d.salvageLock = 0;
+        d.openingPending = false;
+        return;
+      }
+      exitEngineerWarMachine(f, null);
+    }
+    d.salvageLock = Math.max(0, (d.salvageLock || 0) - dt);
+    if (f.isRage) {
+      const bucket = Math.floor((f.maxHp - f.hp) / Math.max(1, f.maxHp * .1));
+      if (bucket > (d.rageShieldBucket ?? -1)) applyEngineerRageShield(f, 'hp_threshold');
+    }
+    if ((d.scrap || 0) < 3) {
+      d.lowScrapTimer = (d.lowScrapTimer || 0) + dt;
+      if (d.lowScrapTimer >= 10) {
+        d.lowScrapTimer = 0;
+        grantScrap(f, 5, f.x, f.y);
+        engineerState.vfx.push({ type:'restock', x:f.x, y:f.y, life:.7, maxLife:.7, radius:180 });
+      }
+    } else d.lowScrapTimer = 0;
+    d.salvageCd = Math.max(0, d.salvageCd - dt);
+    d.salvagePulse = Math.max(0, (d.salvagePulse || 0) - dt);
+    d.openingPending = false;
+    controller.updateEngineer?.(f, e, dt, engineerState.manualApi);
   }
   function createStructure(kind, owner, x, y) {
     const spec = UPGRADED[kind] || BASE[kind];
@@ -5756,10 +5980,17 @@ function endMatch() {
     if (emergencyRepair || emergencyOffense) return null;
     return null;
   }
-  function startMerge(owner, ingredients, resultKind) {
+  function startMerge(owner, ingredients, resultKind, preferredPoint=null) {
     const d = ownerData(owner);
     const mergeId = `m${engineerState.nextId++}`;
-    const p = findMergePlacement(owner, ingredients, resultKind);
+    const spec = UPGRADED[resultKind] || BASE[resultKind];
+    const visualPad = visualFootprintForKind(resultKind, spec?.radius || 70);
+    const preferred = preferredPoint && Number.isFinite(preferredPoint.x) && Number.isFinite(preferredPoint.y)
+      ? {x:clamp(preferredPoint.x, visualPad + 12, GAME_SIZE - visualPad - 12), y:clamp(preferredPoint.y, visualPad + 12, GAME_SIZE - visualPad - 12)}
+      : null;
+    const p = preferred && validMergePlacement(owner, ingredients, resultKind, preferred.x, preferred.y)
+      ? preferred
+      : findMergePlacement(owner, ingredients, resultKind);
     const duration = resultKind === 'war_machine' ? 30 : 9;
     d.mergeIds[mergeId] = { id:mergeId, resultKind, timer:duration, duration, x:p.x, y:p.y, ingredients, scrapCost:0 };
     for (const s of ingredients) {
@@ -5926,7 +6157,7 @@ function endMatch() {
       pushDir:{x:dir.x,y:dir.y}, ticksDone:0, totalTicks:10
     });
     s.laserLockUntil = matchClock + 1;
-    s.fireCd = 3.2;
+    s.fireCd = 5;
     playEngineerAudio('warLaser', s.pilotedBy ? .58 : .48, 1, .15);
     return true;
   }
@@ -5970,18 +6201,23 @@ function endMatch() {
         for (const q of ownerData(f).structures) if (q !== s && q.hp > 0 && !q.dead && dist(q.x,q.y,s.x,s.y) < 310) healStructure(q, structureOutput(20), 0);
       }
       const inRange = dist(s.x,s.y,e.x,e.y) <= 930;
-      if (inRange && !(s.laserLockUntil > matchClock)) {
+      const manualPilot = s.pilotedBy?.data?.manualController;
+      if (manualPilot?.active && manualPilot.mode === 'MANUAL_LAB') {
+        const aim = manualPilot.getAimPoint?.();
+        if (aim && Number.isFinite(aim.x) && Number.isFinite(aim.y)) s.aimAngle = Math.atan2(aim.y - s.y, aim.x - s.x) - Math.PI / 2;
+        s.fireCd = 0;
+      } else if (inRange && !(s.laserLockUntil > matchClock)) {
         s.aimAngle = Math.atan2(e.y - s.y, e.x - s.x) - Math.PI / 2;
         s.fireCd = Math.max(0, (s.fireCd || 0) - actionDt);
       } else if (!inRange) {
-        s.fireCd = Math.max(0, Math.min(s.fireCd || 0, 3.2));
+        s.fireCd = Math.max(0, Math.min(s.fireCd || 0, 5));
       }
-      if (s.fireCd <= 0 && inRange && !birdCageBlocksStructureEffect(s, e)) {
+      if (!(manualPilot?.active && manualPilot.mode === 'MANUAL_LAB') && s.fireCd <= 0 && inRange && !birdCageBlocksStructureEffect(s, e)) {
         fireWarMachineLaser(s, e);
       }
     } else if (s.kind === 'mine' || s.kind === 'small_mine') {
       if (!s.armed) {
-        s.armDelay = (s.armDelay ?? .5) - actionDt;
+        s.armDelay = (s.armDelay ?? 1) - actionDt;
         if (s.armDelay <= 0) s.armed = true;
       } else if (!s.triggered && dist(s.x,s.y,e.x,e.y) <= (s.kind === 'small_mine' ? 55 : 70) + e.radius && !birdCageBlocksStructureEffect(s, e)) {
         s.triggered = true;
@@ -6005,7 +6241,8 @@ function endMatch() {
         m.maxHp = 1;
         m.radius = 28;
         m.blockRadius = footprintForKind('small_mine', 28);
-        m.armed = true;
+        m.armed = false;
+        m.armDelay = 1;
         m.damage = 45;
         m.life = 16;
       }
@@ -6103,6 +6340,17 @@ function endMatch() {
         updateStructureNumberText(s, dt);
         updateStructureFreeze(s, dt);
         s.shieldPulse = Math.max(0, (s.shieldPulse || 0) - dt);
+        if ((s.kind === 'mine' || s.kind === 'small_mine') && s.state === 'online' && !s.armed) {
+          s.armDelay = (s.armDelay ?? 1) - dt;
+          if (s.armDelay <= 0) s.armed = true;
+        }
+        if ((s.kind === 'mine' || s.kind === 'small_mine') && s.state === 'online' && s.triggered) {
+          s.triggerDelay = (s.triggerDelay ?? .2) - dt;
+          if (s.triggerDelay <= 0) {
+            explodeMine(s, s.kind === 'small_mine');
+            continue;
+          }
+        }
         if ((s.shield || 0) > 0) {
           s.shieldTimer = Math.max(0, (s.shieldTimer ?? 10) - dt);
           if (s.shieldTimer <= 0) {
@@ -6125,10 +6373,21 @@ function endMatch() {
         } else if (s.state === 'online') {
           if (s.life !== undefined) { s.life -= dt; if (s.life <= 0) s.dead = true; }
           if (!s.disabled) updateStructureOnline(s, dt);
+          if ((s.kind === 'mine' || s.kind === 'small_mine') && s.armed && !s.triggered && !s.dead) {
+            const triggerRadius = (s.kind === 'small_mine' ? 55 : 70);
+            const victim = (fighters || []).find(q => q && q !== f && q.hp > 0 && q.id !== f.id
+              && dist(s.x,s.y,q.x,q.y) <= triggerRadius + (q.radius || 0)
+              && !birdCageBlocksStructureEffect(s, q));
+            if (victim) {
+              s.triggered = true;
+              s.triggerDelay = s.kind === 'small_mine' ? .12 : .28;
+              engineerState.vfx.push({ type:'warning', x:s.x, y:s.y, life:s.triggerDelay, maxLife:s.triggerDelay, radius:s.kind === 'small_mine' ? 95 : 120 });
+            }
+          }
         }
       }
       d.structures = d.structures.filter(s => !s.dead && s.hp > 0);
-      checkMerges(f);
+      if (!(f.data?.manualController?.active && f.data.manualController.mode === 'MANUAL_LAB')) checkMerges(f);
     }
 
     for (const s of engineerState.scraps) {
@@ -6194,7 +6453,6 @@ function endMatch() {
     if (engineerState.shots.length > 140) engineerState.shots.splice(0, engineerState.shots.length - 140);
 
     for (const laser of engineerState.lasers) {
-      const lifeBefore = Math.max(.001, laser.life);
       laser.life = Math.max(0, laser.life - dt);
       const target = laser.targetId != null ? fighters.find(q => q && q.id === laser.targetId && q.hp > 0) : null;
       if (!target) { laser.life = 0; continue; }
@@ -6203,10 +6461,7 @@ function endMatch() {
         : allEngineerStructures().find(s => s.id === laser.sourceId && !s.dead);
       if (!source) { laser.life = 0; continue; }
       const pushDir = norm(target.x - source.x, target.y - source.y);
-      const edgeX = pushDir.x > .0001 ? (GAME_SIZE - target.radius - target.x) / pushDir.x : pushDir.x < -.0001 ? (target.radius - target.x) / pushDir.x : Infinity;
-      const edgeY = pushDir.y > .0001 ? (GAME_SIZE - target.radius - target.y) / pushDir.y : pushDir.y < -.0001 ? (target.radius - target.y) / pushDir.y : Infinity;
-      const edgeDistance = Math.max(0, Math.min(edgeX > 0 ? edgeX : Infinity, edgeY > 0 ? edgeY : Infinity));
-      const linearStep = edgeDistance * clamp(dt / lifeBefore, 0, 1);
+      const linearStep = (laser.pushStrength || 260) * dt;
       target.x = clamp(target.x + pushDir.x * linearStep, target.radius, GAME_SIZE - target.radius);
       target.y = clamp(target.y + pushDir.y * linearStep, target.radius, GAME_SIZE - target.radius);
       const trackingDir = norm(target.x - source.x, target.y - source.y);
@@ -6834,7 +7089,12 @@ function endMatch() {
     ctx.save();
     const moveAngle = Math.atan2(f.dir?.y || 0, f.dir?.x || 1);
     const e = enemyOf(f);
-    const faceAngle = e ? Math.atan2(e.y - f.y, e.x - f.x) : moveAngle;
+    const manualAim = f.data?.manualController?.active && f.data.manualController.mode === 'MANUAL_LAB'
+      ? f.data.manualController.getAimPoint?.()
+      : null;
+    const faceAngle = manualAim && Number.isFinite(manualAim.x) && Number.isFinite(manualAim.y)
+      ? Math.atan2(manualAim.y - f.y, manualAim.x - f.x)
+      : e ? Math.atan2(e.y - f.y, e.x - f.x) : moveAngle;
     const angle = faceAngle - moveAngle + Math.PI*1.5;
     const glow = d.salvagePulse > 0 ? 22 : 8;
     ctx.shadowColor = d.salvagePulse > 0 ? '#31f5ff' : '#f0a020';
@@ -6873,7 +7133,11 @@ function endMatch() {
     speedModifier:f => {
       const d = ownerData(f);
       if (d.pilotingWarMachine || (d.salvageLock || 0) > 0) return 0;
-      return currentConstruction(d) ? .72 : 1;
+      const manualController = f.data?.manualController;
+      const manualMove = manualController?.active && manualController.mode === 'MANUAL_LAB'
+        ? clamp(manualController.moveMagnitude?.() || 0, 0, 1)
+        : 1;
+      return (currentConstruction(d) ? .72 : 1) * manualMove;
     },
     update:updateEngineerFighter,
     onCollide:() => false,
@@ -6985,6 +7249,24 @@ function endMatch() {
     fireWarMachineLaser,
     cancelMerge,
     structureFootprint,
+    manualApi:Object.freeze({
+      buildKinds:Object.freeze([...buildKinds]),
+      baseSpecs:BASE,
+      upgradedSpecs:UPGRADED,
+      buildRange:100,
+      placementStatus:manualPlacementStatus,
+      commitBuildAt:commitManualBuild,
+      setMagnetRequested:setManualMagnetRequested,
+      mergeCandidateAt:manualMergeCandidate,
+      requestMergeAt:requestManualMerge,
+      requestAutoMerge:requestManualAutoMerge,
+      warMachineStatus:manualWarMachineStatus,
+      requestWarMachine:requestManualWarMachine,
+      fireWarMachineLaser,
+      drawStructure,
+      structureVisualFootprint,
+      structureFootprint
+    }),
     clearMatch:() => {
       for (const s of allEngineerStructures()) stopStructureLoops(s);
       engineerState.scraps.length = 0;
@@ -9546,7 +9828,7 @@ window.apexBeforeFinalPatch = true;
     return target.hasStatus?.('immune') || target.hasStatus?.('painterGuard') || target.name === 'DRUM' && target.data?.rageSolo > 0;
   }
   function maybeTriggerStandardRageAndDeath(target){
-    if (target.hp <= 50 && !target.isRage && !target.type.noRage) {
+    if (shouldTriggerRage(target)) {
       target.isRage = true;
       target.rageStartHp = target.hp;
       playFighterSound(target, 'skill');
@@ -15875,12 +16157,13 @@ var soloShake=0; var soloKeys={}, soloPrev={};
       }
     }
     function soloSkillNote(st,p,label){text(st,p.x,p.y-35,label,p.color||'#ffe783');playFighterSound(p.name,'skill');}
-    function sAttack(st,p){if(p.cd.normal>0||p.dead)return;if(p.name==='RUBBER'){p.dash=.22;p.bounce=3;p.cd.normal=.65;}else if(p.name==='ICE'){p.selfSlow=.35;p.cd.normal=1;st.projectiles.push({type:'solo_arrow',owner:p,x:p.x+p.dx*34,y:p.y+p.dy*34,vx:p.dx*460,vy:p.dy*460,life:3,maxLife:3,damage:3});}else if(p.name==='BLADE'){p.cd.normal=.1;}else if(p.name==='KATANA'){window.APEX_KATANA?.soloAttack?.(st,p);}else if(p.name==='SHOTGUN'){if(window.APEX_SHOTGUN?.soloFire?.(st,p,false)){p.cd.normal=2;soloSkillNote(st,p,'SCATTER SHOT');}}else if(['FLASH','WOLF','KUNGFU','MONK'].includes(p.name)){p.dash=.16;p.bounce=1;p.cd.normal=.7;}else{soloBasicShot(st,p,'solo_generic',{damage:3.2,radius:10});p.cd.normal=clamp(.92/soloSpeedScale(p.type),.55,1.1);playFighterSound(p.name,'wall');}}
+    function sAttack(st,p){if(p.cd.normal>0||p.dead)return;if(p.name==='RUBBER'){p.dash=.22;p.bounce=3;p.cd.normal=.65;}else if(p.name==='ICE'){p.selfSlow=.35;p.cd.normal=1;st.projectiles.push({type:'solo_arrow',owner:p,x:p.x+p.dx*34,y:p.y+p.dy*34,vx:p.dx*460,vy:p.dy*460,life:3,maxLife:3,damage:3});}else if(p.name==='BLADE'){p.cd.normal=.1;}else if(p.name==='KATANA'){window.APEX_KATANA?.soloAttack?.(st,p);}else if(p.name==='FANG'){window.APEX_FANG?.soloAttack?.(st,p);}else if(p.name==='SHOTGUN'){if(window.APEX_SHOTGUN?.soloFire?.(st,p,false)){p.cd.normal=2;soloSkillNote(st,p,'SCATTER SHOT');}}else if(['FLASH','WOLF','KUNGFU','MONK'].includes(p.name)){p.dash=.16;p.bounce=1;p.cd.normal=.7;}else{soloBasicShot(st,p,'solo_generic',{damage:3.2,radius:10});p.cd.normal=clamp(.92/soloSpeedScale(p.type),.55,1.1);playFighterSound(p.name,'wall');}}
     function sSpecial(st,p){
       if(p.cd.special>0||p.dead)return;
       const e=p.side===1?st.p2:st.p1;
       if(p.name==='SHOTGUN'){const used=window.APEX_SHOTGUN?.soloHook?.(st,p);if(used)soloSkillNote(st,p,'HOOK BREACH');p.cd.special=used?6:.35;return;}
       if(p.name==='KATANA'){window.APEX_KATANA?.soloSpecial?.(st,p);return;}
+      if(p.name==='FANG'){window.APEX_FANG?.soloSpecial?.(st,p);return;}
       const mid={x:(p.x+e.x)/2,y:(p.y+e.y)/2};
       let nextCd=5.8;
       if(p.name==='RUBBER'){
@@ -15931,6 +16214,7 @@ var soloShake=0; var soloKeys={}, soloPrev={};
       const e=p.side===1?st.p2:st.p1;
       if(p.name==='SHOTGUN'){if(window.APEX_SHOTGUN?.soloFire?.(st,p,true))soloSkillNote(st,p,'RAGE DOUBLE SHOT');p.cd.rage=10;soloShake=Math.max(soloShake,12);return;}
       if(p.name==='KATANA'){window.APEX_KATANA?.soloRage?.(st,p);soloShake=Math.max(soloShake,12);return;}
+      if(p.name==='FANG'){window.APEX_FANG?.soloRage?.(st,p);soloShake=Math.max(soloShake,10);return;}
       p.data.ragePulse=4.5;
       p.super=Math.max(p.super,2.4);
       soloSkillNote(st,p,'RAGE');
@@ -15952,7 +16236,7 @@ var soloShake=0; var soloKeys={}, soloPrev={};
       soloShake=Math.max(soloShake,12);
     }
     function updateSolo375(dt){const st=soloState();if(!st.p1||!st.p2)return;if(st.winner){if(edge('KeyT'))window.startSoloMode();if(edge('KeyB'))goToMenu();return;}st.clock+=dt;soloShake=Math.max(0,soloShake-dt*16);if(edge('Escape'))st.paused=!st.paused;if(edge('KeyT'))return window.startSoloMode();if(edge('KeyB'))return goToMenu();if(st.paused)return;for(const p of [st.p1,st.p2]){const p1=p.side===1;const ix=(soloKeys[p1?'KeyD':'ArrowRight']?1:0)-(soloKeys[p1?'KeyA':'ArrowLeft']?1:0);const iy=(soloKeys[p1?'KeyS':'ArrowDown']?1:0)-(soloKeys[p1?'KeyW':'ArrowUp']?1:0);if(ix||iy){const n=norm(ix,iy);p.dx=n.x;p.dy=n.y;if(p.bounce>0)p.bounce=0;}const normalDown=p1?soloKeys.KeyE:(soloKeys.Numpad1||soloKeys.Digit1);if(edge(p1?'KeyE':(soloKeys.Numpad1?'Numpad1':'Digit1')))sAttack(st,p);if(edge(p1?'KeyR':(soloKeys.Numpad2?'Numpad2':'Digit2')))sSpecial(st,p);if(edge(p1?'Space':(soloKeys.Numpad3?'Numpad3':'Digit3')))sRage(st,p);for(const k of Object.keys(p.cd))p.cd[k]=Math.max(0,p.cd[k]-dt);p.super=Math.max(0,p.super-dt);p.black=Math.max(0,p.black-dt);p.selfSlow=Math.max(0,p.selfSlow-dt);p.data.shield=Math.max(0,(p.data.shield||0)-dt);p.data.mirror=Math.max(0,(p.data.mirror||0)-dt);p.data.spin=Math.max(0,(p.data.spin||0)-dt);p.data.ragePulse=Math.max(0,(p.data.ragePulse||0)-dt);if(p.data.spin>0){const e2=p.side===1?st.p2:st.p1;if(dist(p.x,p.y,e2.x,e2.y)<p.radius+e2.radius+34&&Math.random()<dt*9)dmg(st,e2,p,.75,p.color);}let sp=(p.baseSpeed||135)*(p.selfSlow>0?.7:1);if(p.name==='TOXIC'&&!normalDown)sp*=1.3;if(p.super>0)sp*=1.4;if(!ix&&!iy){/* auto-forward */}p.x+=p.dx*sp*dt;p.y+=p.dy*sp*dt;if(p.dash>0){p.dash-=dt;p.x+=p.dx*520*dt;p.y+=p.dy*520*dt;}let wall=false;if(p.x<p.radius||p.x>st.w-p.radius){p.dx*=-1;wall=true;}if(p.y<p.radius||p.y>st.h-p.radius){p.dy*=-1;wall=true;}p.x=clamp(p.x,p.radius,st.w-p.radius);p.y=clamp(p.y,p.radius,st.h-p.radius);if(wall&&p.name==='RUBBER'&&(p.bounce>0||p.dash>0||p.super>0)){p.k++;p.t++;st.projectiles.push({type:'solo_rubber_spark',x:p.x,y:p.y,life:.35,maxLife:.35});}if(wall&&p.name==='BLADE'){const speed=p.black>0?560:380;st.projectiles.push({type:'solo_blade',owner:p,x:p.x,y:p.y,vx:-p.dx*speed,vy:-p.dy*speed,life:1.4,maxLife:1.4,damage:p.black>0?7:4});}if(p.name==='TOXIC'&&normalDown)st.projectiles.push({type:'solo_poison',owner:p,x:p.x,y:p.y,radius:26,life:2.4,maxLife:2.4});}const a=st.p1,b=st.p2;if(dist(a.x,a.y,b.x,b.y)<a.radius+b.radius){if(a.name==='RUBBER'&&(a.bounce>0||a.dash>0||a.super>0))dmg(st,b,a,8+(a.super>0?4:0),'#ffd65c');if(b.name==='RUBBER'&&(b.bounce>0||b.dash>0||b.super>0))dmg(st,a,b,8+(b.super>0?4:0),'#ffd65c');if(a.data.spin>0)dmg(st,b,a,1.4,a.color);if(b.data.spin>0)dmg(st,a,b,1.4,b.color);}for(const pr of st.projectiles){pr.life-=dt;if(pr.vx){pr.x+=pr.vx*dt;pr.y+=pr.vy*dt;}const e=pr.owner?.side===1?st.p2:st.p1;if(!e)continue;if(pr.type==='solo_web_line'){pr.x2=pr.owner.x;pr.y2=pr.owner.y;pr.hitCd=Math.max(0,(pr.hitCd||0)-dt);if(distToSegment(e.x,e.y,pr.x1,pr.y1,pr.x2,pr.y2)<e.radius+8&&pr.hitCd<=0){dmg(st,e,pr.owner,.75,'#d9ccff');e.selfSlow=Math.max(e.selfSlow,.75);pr.hitCd=.42;if(Math.random()<.35)text(st,e.x,e.y-e.radius-24,'THREAD CUT','#d9ccff');}continue;}if((pr.type==='solo_generic'||pr.type==='solo_generic_special')&&dist(pr.x,pr.y,e.x,e.y)<e.radius+(pr.radius||10)){let amount=pr.damage||3;if(e.data?.shield>0)amount*=.55;if(e.data?.mirror>0){amount*=.55;dmg(st,pr.owner,e,amount*.65,'#d7dde0');}dmg(st,e,pr.owner,amount,pr.color||pr.owner?.color);if(pr.heal)pr.owner.hp=Math.min(pr.owner.maxHp,pr.owner.hp+pr.heal);if(pr.effect==='drain'||pr.owner?.name==='VAMPIRE')pr.owner.hp=Math.min(pr.owner.maxHp,pr.owner.hp+2.5);if(pr.slow)e.selfSlow=Math.max(e.selfSlow,pr.slow);if(['stun','web','gravity','time','anchor','curse','crystal','paint','slime'].includes(pr.effect))e.selfSlow=Math.max(e.selfSlow,pr.slow||.65);if(pr.effect==='virus')e.poison=clamp((e.poison||0)+1,0,5);if(pr.effect==='weak')e.cd.special+=.8;pr.life=0;}if(pr.type==='solo_generic_burst'&&!pr.hit&&dist(pr.x,pr.y,e.x,e.y)<e.radius+(pr.radius||60)){let amount=pr.damage||8;if(e.data?.shield>0)amount*=.55;if(e.data?.mirror>0){amount*=.55;dmg(st,pr.owner,e,amount*.65,'#d7dde0');}dmg(st,e,pr.owner,amount,pr.color||pr.owner?.color);if(pr.slow||['web','gravity','time','magnet','paint','crystal','slime','puppet'].includes(pr.effect))e.selfSlow=Math.max(e.selfSlow,pr.slow||.75);if(pr.effect==='poison'||pr.effect==='virus')e.poison=clamp((e.poison||0)+1.5,0,5);if(pr.effect==='nova'||pr.effect==='drum')soloShake=Math.max(soloShake,10);pr.hit=true;pr.life=0;}if(pr.type==='solo_arrow'&&dist(pr.x,pr.y,e.x,e.y)<e.radius+10){dmg(st,e,pr.owner,3,'#bffcff');e.cd.normal+=.3;pr.life=0;}if(pr.type==='solo_poison'&&dist(pr.x,pr.y,e.x,e.y)<e.radius+pr.radius){e.poison=clamp((e.poison||0)+dt,0,5);if(Math.random()<dt*2)dmg(st,e,pr.owner,.3,'#9dff47');}if(pr.type==='solo_ice_lane'&&distToSegment(e.x,e.y,pr.x,pr.y,pr.x+pr.dx*380,pr.y+pr.dy*380)<pr.width)dmg(st,e,pr.owner,pr.damage*dt,'#bffcff');if(pr.type==='solo_blade'&&dist(pr.x,pr.y,e.x,e.y)<e.radius+18){dmg(st,e,pr.owner,pr.damage,'#ff3333');pr.life=0;}}st.projectiles=st.projectiles.filter(p=>p.life>0&&p.x>-80&&p.x<1080&&p.y>-80&&p.y<455).slice(-120);st.texts.forEach(t=>{t.life-=dt;t.y-=18*dt;});st.texts=st.texts.filter(t=>t.life>0);}
-    function drawSoloF(c,p){c.save();resetCtx(c);c.translate(p.x,p.y);c.rotate(Math.atan2(p.dy,p.dx));const s=.42;if(p.name==='RUBBER'){c.scale(s*(1+(p.dash>0?.25:0)),s*(1-(p.dash>0?.12:0)));drawSketchBlob(c,65*(p.super>0?1.15:1),'#2b2b30',12);c.strokeStyle=p.super>0?'#ffe783':'#ddd';c.lineWidth=7;c.beginPath();c.ellipse(0,0,58,42,0,0,TAU);c.stroke();}else if(p.name==='ICE'){c.scale(s,s);drawPolygon(c,[[-50,-60],[24,-76],[70,-8],[36,62],[-42,58],[-74,-4]],'#d8ffff','#124d64',5);}else if(p.name==='TOXIC'){c.scale(s,s);drawSketchBlob(c,65,'#315015',12);c.fillStyle='#9dff47';for(let i=0;i<5;i++){c.beginPath();c.arc(Math.cos(i)*34,Math.sin(i*2)*24,8,0,TAU);c.fill();}}else if(p.name==='BLADE'){c.scale(s,s);drawPolygon(c,[[-64,-24],[10,-16],[100,0],[10,16],[-64,24],[-36,0]],p.black>0?'#101018':'#c6cfd2',p.black>0?'#ff3333':'#101010',6);}else if(p.name==='KATANA'){window.APEX_KATANA?.drawSolo?.(c,p);}else if(p.name==='SHOTGUN'){window.APEX_SHOTGUN?.drawSolo?.(c,p);}else{c.scale(s,s);drawSketchBlob(c,58,p.color||'#f5dfaa',10);c.strokeStyle='#080808';c.lineWidth=5;c.stroke();c.fillStyle='#0a0a0a';c.font='900 38px serif';c.textAlign='center';c.textBaseline='middle';c.rotate(-Math.atan2(p.dy,p.dx));c.fillText(fighterGlyph(p.name),0,2);}c.restore();}
+    function drawSoloF(c,p){c.save();resetCtx(c);c.translate(p.x,p.y);c.rotate(Math.atan2(p.dy,p.dx));const s=.42;if(p.name==='RUBBER'){c.scale(s*(1+(p.dash>0?.25:0)),s*(1-(p.dash>0?.12:0)));drawSketchBlob(c,65*(p.super>0?1.15:1),'#2b2b30',12);c.strokeStyle=p.super>0?'#ffe783':'#ddd';c.lineWidth=7;c.beginPath();c.ellipse(0,0,58,42,0,0,TAU);c.stroke();}else if(p.name==='ICE'){c.scale(s,s);drawPolygon(c,[[-50,-60],[24,-76],[70,-8],[36,62],[-42,58],[-74,-4]],'#d8ffff','#124d64',5);}else if(p.name==='TOXIC'){c.scale(s,s);drawSketchBlob(c,65,'#315015',12);c.fillStyle='#9dff47';for(let i=0;i<5;i++){c.beginPath();c.arc(Math.cos(i)*34,Math.sin(i*2)*24,8,0,TAU);c.fill();}}else if(p.name==='BLADE'){c.scale(s,s);drawPolygon(c,[[-64,-24],[10,-16],[100,0],[10,16],[-64,24],[-36,0]],p.black>0?'#101018':'#c6cfd2',p.black>0?'#ff3333':'#101010',6);}else if(p.name==='KATANA'){window.APEX_KATANA?.drawSolo?.(c,p);}else if(p.name==='FANG'){window.APEX_FANG?.drawSolo?.(c,p);}else if(p.name==='SHOTGUN'){window.APEX_SHOTGUN?.drawSolo?.(c,p);}else{c.scale(s,s);drawSketchBlob(c,58,p.color||'#f5dfaa',10);c.strokeStyle='#080808';c.lineWidth=5;c.stroke();c.fillStyle='#0a0a0a';c.font='900 38px serif';c.textAlign='center';c.textBaseline='middle';c.rotate(-Math.atan2(p.dy,p.dx));c.fillText(fighterGlyph(p.name),0,2);}c.restore();}
     function drawSolo375(){const st=soloState();ctx.save();resetCtx(ctx);ctx.clearRect(0,0,GAME_SIZE,GAME_SIZE);ctx.fillStyle='#090706';ctx.fillRect(0,0,1000,1000);ctx.translate(0,312+rand(-soloShake,soloShake));const sy=1000/1000;ctx.scale(1,sy);ctx.fillStyle='#15100e';ctx.fillRect(0,0,1000,375);ctx.strokeStyle='#806f4e';ctx.lineWidth=8;ctx.strokeRect(0,0,1000,375);ctx.globalAlpha=.12;ctx.strokeStyle='#d5c08a';for(let x=0;x<1000;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,375);ctx.stroke();}ctx.globalAlpha=1;for(const p of st.projectiles){ctx.save();resetCtx(ctx);const a=clamp(p.life/(p.maxLife||p.life||1),0,1);ctx.globalAlpha=a;if(p.type==='solo_web_line'){if(p.owner){p.x2=p.owner.x;p.y2=p.owner.y;}ctx.strokeStyle='rgba(217,204,255,.86)';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(p.x1,p.y1);ctx.lineTo(p.x2,p.y2);ctx.stroke();ctx.strokeStyle='rgba(74,59,91,.9)';ctx.lineWidth=1.5;for(let i=1;i<4;i++){ctx.beginPath();ctx.moveTo(p.x1,p.y1);ctx.lineTo(lerp(p.x1,p.x2,i/4)+rand(-4,4),lerp(p.y1,p.y2,i/4)+rand(-4,4));ctx.stroke();}}else if(p.type==='solo_poison'){ctx.fillStyle='rgba(117,255,85,.38)';ctx.beginPath();ctx.arc(p.x,p.y,p.radius,0,TAU);ctx.fill();}else if(p.type==='solo_arrow'){ctx.translate(p.x,p.y);ctx.rotate(Math.atan2(p.vy,p.vx));drawPolygon(ctx,[[-24,-6],[22,0],[-24,6]],'#d8ffff','#58c8d8',2);}else if(p.type==='solo_ice_lane'){ctx.strokeStyle='rgba(191,252,255,.55)';ctx.lineWidth=p.width;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+p.dx*380,p.y+p.dy*380);ctx.stroke();}else if(p.type==='solo_blade'){ctx.translate(p.x,p.y);ctx.rotate(Math.atan2(p.vy,p.vx));ctx.strokeStyle=p.owner?.black>0?'#ff3333':'#f4fbff';ctx.lineWidth=7;ctx.beginPath();ctx.arc(-40,0,42,-.7,.7);ctx.stroke();}else if(p.type==='solo_rubber_spark'){ctx.strokeStyle='#ffe783';ctx.lineWidth=4;ctx.beginPath();ctx.arc(p.x,p.y,(1-a)*30+6,0,TAU);ctx.stroke();}else if(p.type==='solo_generic'||p.type==='solo_generic_special'){ctx.translate(p.x,p.y);ctx.rotate(Math.atan2(p.vy||0,p.vx||1));ctx.fillStyle=p.color||p.owner?.color||'#fff';ctx.strokeStyle='#080808';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,p.radius||10,0,TAU);ctx.fill();ctx.stroke();}else if(p.type==='solo_generic_burst'){ctx.strokeStyle=p.color||p.owner?.color||'#fff';ctx.lineWidth=6;ctx.beginPath();ctx.arc(p.x,p.y,(1-a)*(p.radius||70),0,TAU);ctx.stroke();}ctx.restore();}drawSoloF(ctx,st.p1);drawSoloF(ctx,st.p2);for(const t of st.texts){ctx.save();ctx.globalAlpha=clamp(t.life/t.maxLife,0,1);ctx.fillStyle=t.color;ctx.font='900 18px sans-serif';ctx.textAlign='center';ctx.fillText(t.text,t.x,t.y);ctx.restore();}ctx.restore();function hud(x,y,p){ctx.fillStyle='rgba(0,0,0,.75)';ctx.fillRect(x,y,280,52);ctx.strokeStyle='rgba(255,231,160,.35)';ctx.strokeRect(x,y,280,52);ctx.fillStyle=p.color||'#f5dfaa';ctx.font='900 14px sans-serif';ctx.textAlign='left';ctx.fillText(`${p.name} HP ${p.hp.toFixed(0)}`,x+8,y+17);ctx.fillStyle='#25100d';ctx.fillRect(x+8,y+25,264,10);ctx.fillStyle=p.hp>35?'#82e06b':'#ff4a4a';ctx.fillRect(x+8,y+25,264*clamp(p.hp/100,0,1),10);ctx.fillStyle='#d8ccb1';ctx.font='800 10px monospace';ctx.fillText(`N ${p.cd.normal.toFixed(1)} S ${p.cd.special.toFixed(1)} R ${p.cd.rage.toFixed(1)} ${p.name==='TOXIC'?`P${Math.ceil(p.poison||0)}`:p.name==='RUBBER'?`K${p.k} T${p.t}`:p.name==='BLADE'?`B${p.black.toFixed(1)}`:`SPD ${Math.round(p.baseSpeed||135)}`}`,x+8,y+45);}hud(16,16,st.p1);hud(704,16,st.p2);ctx.fillStyle='#f5dfaa';ctx.font='900 16px sans-serif';ctx.textAlign='center';ctx.fillText('SOLO 1V1 | P1 E/R/SPACE  P2 1/2/3 | T restart B menu',500,970);if(st.winner){ctx.fillStyle='rgba(0,0,0,.65)';ctx.fillRect(0,0,1000,1000);ctx.fillStyle='#ffe783';ctx.font='900 48px serif';ctx.fillText(`${st.winner.name} WINS`,500,500);}}
     update=function(dt){if(gameState==='SOLO')return updateSolo375(dt);return oldUpdate4(dt);};draw=function(){if(gameState==='SOLO')return drawSolo375();return oldDraw4();};
   window.apexSolo1v1RestorePatch = 'ready';
@@ -21176,25 +21460,7 @@ window.apexFighterTypes = FighterTypes;
     });
   }
   function ensureRosterTabs(grid) {
-    const ui = document.getElementById('select-ui');
-    if (!ui || document.getElementById('roster-tabs')) return;
-    const tabs = document.createElement('div');
-    tabs.id = 'roster-tabs';
-    tabs.className = 'roster-tabs';
-    const make = (mode, text) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.dataset.rosterMode = mode;
-      button.textContent = text;
-      button.onclick = () => {
-        rosterMode = mode;
-        populateRoster();
-      };
-      tabs.appendChild(button);
-    };
-    make('featured', 'APEX UPDATE');
-    make('full', 'FULL ROSTER');
-    ui.insertBefore(tabs, grid);
+    document.getElementById('roster-tabs')?.remove();
   }
   function renderCard(ft, grid) {
     const card = document.createElement('div');
@@ -21710,7 +21976,7 @@ window.apexFighterTypes = FighterTypes;
   if (window.__apexTamChienLocalMode) return;
   window.__apexTamChienLocalMode = true;
 
-  const POOL = ['ICE', 'STRING', 'GALAXY', 'SOCCER', 'NINJA', 'ENGINEER', 'SHOTGUN', 'KATANA'];
+  const POOL = ['ICE', 'STRING', 'GALAXY', 'SOCCER', 'NINJA', 'ENGINEER', 'SHOTGUN', 'KATANA', 'FANG'];
   const SIDES = ['blue', 'red'];
   const ROUNDS = [
     { id:'round1', short:'R1', name:'Doi Khang', label:'Round 1 - Doi Khang', damage:{blue:1, red:1} },
@@ -21721,11 +21987,11 @@ window.apexFighterTypes = FighterTypes;
   const OPP = { blue:'red', red:'blue' };
   const PHASES = ['BAN_PHASE', 'PICK_1', 'PICK_2', 'PICK_3', 'SWAP_PHASE'];
   const ROUND_PREF = {
-    round1:{ ICE:32, GALAXY:33, ENGINEER:33, STRING:27, SOCCER:23, NINJA:22, SHOTGUN:35, KATANA:34 },
-    round2:{ NINJA:38, SOCCER:33, GALAXY:32, ENGINEER:28, ICE:27, STRING:22, SHOTGUN:36, KATANA:37 },
-    round3:{ GALAXY:39, ENGINEER:39, ICE:33, STRING:32, SOCCER:24, NINJA:28, SHOTGUN:37, KATANA:38 }
+    round1:{ ICE:32, GALAXY:33, ENGINEER:33, STRING:27, SOCCER:23, NINJA:22, SHOTGUN:35, KATANA:34, FANG:35 },
+    round2:{ NINJA:38, SOCCER:33, GALAXY:32, ENGINEER:28, ICE:27, STRING:22, SHOTGUN:36, KATANA:37, FANG:38 },
+    round3:{ GALAXY:39, ENGINEER:39, ICE:33, STRING:32, SOCCER:24, NINJA:28, SHOTGUN:37, KATANA:38, FANG:39 }
   };
-  const BASE_VALUE = { ICE:29, STRING:27, GALAXY:33, SOCCER:26, NINJA:29, ENGINEER:32, SHOTGUN:33, KATANA:34 };
+  const BASE_VALUE = { ICE:29, STRING:27, GALAXY:33, SOCCER:26, NINJA:29, ENGINEER:32, SHOTGUN:33, KATANA:34, FANG:35 };
   const ROUND_LABEL = Object.fromEntries(ROUNDS.map(r => [r.id, r.label]));
 
   let session = null;
@@ -22618,7 +22884,7 @@ window.apexFighterTypes = FighterTypes;
     normalCollisionCooldown:5,
     rageCollisionCooldown:1,
     ragePostDashImmunity:.5,
-    rageHp:500
+    rageHpRatio:.5
   };
 
   const frameImages = Array.from({length:FRAME_COUNT}, (_, i) => {
@@ -22647,7 +22913,7 @@ window.apexFighterTypes = FighterTypes;
   };
   const audio = {};
   const audioPools = {};
-  const state = { waves:[], vfx:[], lastTick:0 };
+  const state = { waves:[], vfx:[], lastTick:0, updateFrame:0, perf:{secondStart:0, collisionCalls:0, oneSwordTriggers:0, twinTriggers:0, infiniteTriggers:0, frameTimeMs:0} };
   const bladeMask = { canvas:null, ctx:null, data:null, width:0, height:0 };
   let nextWaveId = 1;
   let nextVfxId = 1;
@@ -22657,6 +22923,61 @@ window.apexFighterTypes = FighterTypes;
     img.decoding = 'async';
     img.src = ROOT + file;
     return img;
+  }
+  function whenImageReady(img) {
+    if (!img) return Promise.resolve(false);
+    if (img.complete && img.naturalWidth) {
+      return img.decode ? img.decode().catch(() => false).then(() => true) : Promise.resolve(true);
+    }
+    if (img.complete && !img.naturalWidth) return Promise.resolve(false);
+    return new Promise(resolve => {
+      const done = () => {
+        if (img.decode) img.decode().catch(() => false).then(() => resolve(!!img.naturalWidth));
+        else resolve(!!img.naturalWidth);
+      };
+      img.addEventListener('load', done, {once:true});
+      img.addEventListener('error', () => resolve(false), {once:true});
+    });
+  }
+  function warmDrawImage(ctx, img, scale=1) {
+    if (!ctx || !img?.naturalWidth) return false;
+    const w = Math.max(1, Math.min(64, img.naturalWidth * scale));
+    const h = Math.max(1, Math.min(64, img.naturalHeight * scale));
+    ctx.save();
+    ctx.globalAlpha = .001;
+    ctx.drawImage(img, 0, 0, w, h);
+    ctx.restore();
+    return true;
+  }
+  function warmKatanaVisualAssets() {
+    if (state.visualWarmup?.started) return state.visualWarmup.promise;
+    const canvas = typeof OffscreenCanvas !== 'undefined'
+      ? new OffscreenCanvas(96, 96)
+      : Object.assign(document.createElement('canvas'), {width:96, height:96});
+    const warmCtx = canvas.getContext?.('2d');
+    const hotFrames = frameImages.filter(Boolean);
+    const hotImages = [...hotFrames, images.bladeWave, images.sakuraPetal, images.slashOverlay, images.pinkMoon];
+    state.visualWarmup = {
+      started:true,
+      ready:false,
+      promise:Promise.all(hotImages.map(whenImageReady)).then(() => {
+        for (const img of hotImages) warmDrawImage(warmCtx, img, img === images.sakuraPetal ? .08 : .35);
+        ensureBladeMask();
+        state.visualWarmup.bladeMaskReady = !!bladeMask.data;
+        state.visualWarmup.ready = true;
+        state.visualWarmup.finishedAt = performance.now();
+        return true;
+      }).catch(error => {
+        state.visualWarmup.error = String(error?.message || error);
+        return false;
+      })
+    };
+    return state.visualWarmup.promise;
+  }
+  function scheduleKatanaVisualWarmup() {
+    const run = () => warmKatanaVisualAssets();
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(run, {timeout:1800});
+    else setTimeout(run, 300);
   }
   function preloadAudio() {
     for (const [key, src] of Object.entries(audioFiles)) {
@@ -22721,10 +23042,16 @@ window.apexFighterTypes = FighterTypes;
     d.animTime = 0;
     d.lastFrame = 1;
   }
+  function nextKatanaActionId(f) {
+    const d = katanaData(f);
+    d.actionSerial = (d.actionSerial || 0) + 1;
+    return d.actionSerial;
+  }
   function enemyOf(f) {
     return (fighters || []).find(q => q && q !== f && q.hp > 0) || null;
   }
   function live(f) { return f && f.hp > 0; }
+  function katanaShouldRage(f) { return isHpBelowRatio(f, C.rageHpRatio); }
   function dirTo(a,b) { return norm((b?.x || a.x + a.dir.x) - a.x, (b?.y || a.y + a.dir.y) - a.y); }
   function cross(ax, ay, bx, by) { return ax * by - ay * bx; }
   function pointLineProjection(px, py, ax, ay, bx, by) {
@@ -22738,6 +23065,55 @@ window.apexFighterTypes = FighterTypes;
   }
   function oldestAvailableClones(d) {
     return (d.clones || []).filter(c => !c.consumed && !c.reserved && matchClock - (c.createdAt ?? -Infinity) >= C.cloneMaturity).sort((a,b) => a.id - b.id);
+  }
+  function katanaPerfCounter(key, amount=1) {
+    state.perf ||= {secondStart:0};
+    state.perf[key] = (state.perf[key] || 0) + amount;
+  }
+  function refreshKatanaPerfCounters(frameStart=performance.now()) {
+    const now = performance.now();
+    const perf = state.perf || (state.perf = {});
+    perf.frameTimeMs = now - frameStart;
+    perf.activeBladeWaves = state.waves.length;
+    perf.activeKatanaVfx = state.vfx.length;
+    perf.activeClones = (fighters || []).filter(f => f?.name === 'KATANA').reduce((sum, f) => sum + ((f.data?.katana?.clones || []).filter(c => !c.consumed).length), 0);
+    if (!perf.secondStart) perf.secondStart = now;
+    if (now - perf.secondStart >= 1000) {
+      perf.lastSecond = {
+        katanaCollisionCallsPerSecond:perf.collisionCalls || 0,
+        katanaOneSwordTriggersPerSecond:perf.oneSwordTriggers || 0,
+        katanaTwinTriggersPerSecond:perf.twinTriggers || 0,
+        katanaInfiniteTriggersPerSecond:perf.infiniteTriggers || 0,
+        activeBladeWaves:perf.activeBladeWaves || 0,
+        activeKatanaVfx:perf.activeKatanaVfx || 0,
+        activeClones:perf.activeClones || 0,
+        frameTimeMs:perf.frameTimeMs || 0
+      };
+      perf.collisionCalls = 0;
+      perf.oneSwordTriggers = 0;
+      perf.twinTriggers = 0;
+      perf.infiniteTriggers = 0;
+      perf.secondStart = now;
+    }
+    window.__apexKatanaDebugCounters = perf.lastSecond || {
+      katanaCollisionCallsPerSecond:perf.collisionCalls || 0,
+      katanaOneSwordTriggersPerSecond:perf.oneSwordTriggers || 0,
+      katanaTwinTriggersPerSecond:perf.twinTriggers || 0,
+      katanaInfiniteTriggersPerSecond:perf.infiniteTriggers || 0,
+      activeBladeWaves:perf.activeBladeWaves || 0,
+      activeKatanaVfx:perf.activeKatanaVfx || 0,
+      activeClones:perf.activeClones || 0,
+      frameTimeMs:perf.frameTimeMs || 0
+    };
+  }
+  function visualCentroid(f) {
+    const d = katanaData(f);
+    const trio = (d.clones || []).filter(c => !c.consumed && !c.reserved).sort((a,b) => a.id - b.id).slice(0, 3);
+    if (trio.length < 3) return null;
+    const ids = trio.map(c => c.id).join(',');
+    const x = trio.reduce((s,c) => s + c.x, 0) / 3;
+    const y = trio.reduce((s,c) => s + c.y, 0) / 3;
+    return { ids, clones:trio, x, y, radius:C.centroidRadius, visualOnly:true };
   }
   function updateCentroid(f) {
     const d = katanaData(f);
@@ -22759,7 +23135,7 @@ window.apexFighterTypes = FighterTypes;
   function createClone(f, x=f.x, y=f.y, dir=f.dir) {
     const d = katanaData(f);
     const rec = currentFrameRecord(f);
-    const clone = { id:++d.cloneSerial, x, y, dir:{x:dir.x,y:dir.y}, frame:rec.frame, createdAt:matchClock, consumed:false, reserved:false };
+    const clone = { id:++d.cloneSerial, ownerId:f.id, x, y, dir:{x:dir.x,y:dir.y}, frame:rec.frame, createdAt:matchClock, consumed:false, reserved:false };
     d.clones.push(clone);
     for (let i=0;i<6;i++) spawnPetal(clone.x + rand(-28,28), clone.y + rand(-28,28), rand(-20,20), rand(-34,24), .95 + rand(0,.55), .36, clone.id);
     updateCentroid(f);
@@ -22804,6 +23180,7 @@ window.apexFighterTypes = FighterTypes;
     }
   }
   function spawnPetal(x,y,vx=0,vy=0,life=.8,alpha=.75,cloneId=null, anchor=null) {
+    if (state.vfx.length > 360) return;
     const fx = { type:'petal', id:nextVfxId++, x,y,vx:vx+rand(-18,18),vy:vy+rand(-25,20),rot:rand(0,TAU),spin:rand(-5,5),scale:rand(.035,.075) * C.effectScale,life,maxLife:life,alpha,cloneId };
     if (anchor?.target) {
       fx.targetId = anchor.target.id;
@@ -22824,6 +23201,7 @@ window.apexFighterTypes = FighterTypes;
     state.vfx.push(fx);
   }
   function spawnAfterimage(f, x, y, dir, frame, life=.34) {
+    if (state.vfx.length > 360) return;
     state.vfx.push({ type:'afterimage', id:nextVfxId++, x,y,dir:{x:dir.x,y:dir.y},frame,life,maxLife:life,scale:C.scale, ownerId:f.id });
   }
   function emitAfterimageTrail(f, sx, sy, ex, ey, dir, count=8) {
@@ -22914,6 +23292,7 @@ window.apexFighterTypes = FighterTypes;
   }
   function spawnWave(owner, dir, opts={}) {
     const d = katanaData(owner);
+    if (state.waves.length > 44) state.waves.splice(0, state.waves.length - 44);
     const dmg = opts.damage ?? C.waveDamage;
     const wave = {
       id:nextWaveId++,
@@ -23006,9 +23385,9 @@ window.apexFighterTypes = FighterTypes;
   function postDashImmunityFor(f) {
     return f?.isRage ? C.ragePostDashImmunity : C.postDashImmunity;
   }
-  function twinCandidate(f,e,wave=null) {
+  function getKatanaTwoSwordCandidate(f,e,wave=null, clonesOverride=null, options={}) {
     const d = katanaData(f);
-    const clones = oldestAvailableClones(d);
+    const clones = clonesOverride || oldestAvailableClones(d);
     const axisDir = wave?.dir ? norm(wave.dir.x, wave.dir.y) : dirTo(f,e);
     const axisCenter = wave
       ? {x:wave.x,y:wave.y}
@@ -23016,40 +23395,58 @@ window.apexFighterTypes = FighterTypes;
     const halfLength = (wave?.length || C.waveLength) * .5;
     const hitRadius = e.radius + 18;
     let best = null;
+    let failReason = clones.length ? 'no aligned clone' : 'no mature clone';
     for (const c of clones) {
-      if (dist(c.x,c.y,e.x,e.y) <= C.twinMinCloneDistance) continue;
+      if (dist(c.x,c.y,e.x,e.y) <= C.twinMinCloneDistance) { failReason = 'clone too close to enemy'; continue; }
       const axisProjection = pointLineProjection(c.x,c.y,axisCenter.x,axisCenter.y,axisCenter.x+axisDir.x,axisCenter.y+axisDir.y);
       const pathOffset = dist(c.x,c.y,axisProjection.x,axisProjection.y);
       const pathAlong = dot(c.x-axisCenter.x,c.y-axisCenter.y,axisDir.x,axisDir.y);
-      if (pathOffset > (wave?.halfWidth || C.waveHalfWidth) || pathAlong < -halfLength) continue;
+      if (pathOffset > (wave?.halfWidth || C.waveHalfWidth)) { failReason = 'clone off wave axis'; continue; }
+      if (pathAlong < -halfLength) { failReason = 'clone behind wave segment'; continue; }
       for (let i=0;i<C.twinPathSamples;i++) {
         const u = -halfLength + (halfLength * 2 * i) / Math.max(1, C.twinPathSamples - 1);
         const sourcePoint = {x:axisCenter.x + axisDir.x * u,y:axisCenter.y + axisDir.y * u};
         const proj = pointLineProjection(e.x,e.y,sourcePoint.x,sourcePoint.y,c.x,c.y);
-        if (proj.t <= .02 || proj.t >= .98) continue;
+        if (proj.t <= .02 || proj.t >= .98) { failReason = 'enemy not between wave and clone'; continue; }
         const off = dist(e.x,e.y,proj.x,proj.y);
-        if (off > hitRadius) continue;
+        if (off > hitRadius) { failReason = 'enemy too far from wave-clone line'; continue; }
         const score = off + Math.abs(proj.t - .5) * 10;
-        if (!best || score < best.score) best = {clone:c, score, proj, sourcePoint, pathOffset, waveAxis:{center:axisCenter,dir:axisDir}};
+        if (!best || score < best.score) best = {clone:c, score, proj, sourcePoint, pathOffset, cloneAlignment:pathOffset, distanceToWaveLine:off, waveAxis:{center:axisCenter,dir:axisDir}};
       }
     }
+    if (options.debug || window.__apexKatanaDebugTwoSword) {
+      state.lastTwoSwordDebug = {
+        waveId:wave?.id ?? null,
+        enemyCenter:e ? {x:e.x,y:e.y} : null,
+        cloneId:best?.clone?.id ?? null,
+        distanceToWaveLine:best?.distanceToWaveLine ?? null,
+        cloneAlignment:best?.cloneAlignment ?? null,
+        candidate:!!best,
+        failReason:best ? null : failReason
+      };
+    }
     return best;
+  }
+  function twinCandidate(f,e,wave=null) {
+    return getKatanaTwoSwordCandidate(f,e,wave);
   }
   function beginOneSword(f,e,opts={}) {
     const d = katanaData(f);
     if ((d.oneSwordLockoutUntil || 0) > matchClock) return false;
+    katanaPerfCounter('oneSwordTriggers');
     d.oneSwordLockoutUntil = matchClock + .92;
     d.twinHistory = [];
     d.pendingTwinInfinite = false;
     createClone(f, f.x, f.y, f.dir);
     const dir = dirTo(f,e);
-    const end = {x:clamp(e.x + dir.x * (e.radius + f.radius + 112), f.radius, GAME_SIZE - f.radius), y:clamp(e.y + dir.y * (e.radius + f.radius + 112), f.radius, GAME_SIZE - f.radius)};
+    let end = {x:clamp(e.x + dir.x * (e.radius + f.radius + 112), f.radius, GAME_SIZE - f.radius), y:clamp(e.y + dir.y * (e.radius + f.radius + 112), f.radius, GAME_SIZE - f.radius)};
+    if (opts.manual || d.manual?.enabled) end = controlSafeDashEnd(f, f.x, f.y, end.x, end.y);
     d.visualDir = {x:dir.x,y:dir.y};
     d.awaitFaceFrame1 = true;
     emitAfterimageTrail(f, f.x, f.y, end.x, end.y, dir, 9);
     emitDashPetals({x:f.x,y:f.y}, end, 16);
     const postDashImmunity = opts.postDashImmunity ?? postDashImmunityFor(f);
-    d.action = { type:'one', t:0, duration:C.dashDuration, sx:f.x, sy:f.y, ex:end.x, ey:end.y, dir, targetId:e.id, hit:false, sample:0, postDashImmunity };
+    d.action = { type:'one', actionId:nextKatanaActionId(f), t:0, duration:C.dashDuration, sx:f.x, sy:f.y, ex:end.x, ey:end.y, dir, targetId:e.id, hit:false, sample:0, postDashImmunity, manual:!!opts.manual };
     f.applyStatus('immune', C.dashDuration + postDashImmunity, { source:f });
     return true;
   }
@@ -23079,10 +23476,11 @@ window.apexFighterTypes = FighterTypes;
     f.applyStatus('immune', 2, { source:f });
     return true;
   }
-  function beginTwin(f,e,candidate, sourceWave=null) {
+  function beginTwin(f,e,candidate, sourceWave=null, opts={}) {
     const d = katanaData(f);
     const clone = candidate.clone;
     if (!reserveClone(clone)) return false;
+    katanaPerfCounter('twinTriggers');
     const wave = sourceWave || spawnWave(f, dirTo(f,e), {reserved:true, life:1.3});
     wave.reserved = true;
     wave.twinUsed = true;
@@ -23098,7 +23496,8 @@ window.apexFighterTypes = FighterTypes;
     spawnShockwave(f.x, f.y, '#ff9dce', 115);
     emitDashPetals({x:f.x-10,y:f.y}, {x:f.x+10,y:f.y}, 10);
     const dir = dirTo(f,e);
-    const end = {x:clamp(e.x + dir.x * (e.radius + f.radius + 116), f.radius, GAME_SIZE - f.radius), y:clamp(e.y + dir.y * (e.radius + f.radius + 116), f.radius, GAME_SIZE - f.radius)};
+    let end = {x:clamp(e.x + dir.x * (e.radius + f.radius + 116), f.radius, GAME_SIZE - f.radius), y:clamp(e.y + dir.y * (e.radius + f.radius + 116), f.radius, GAME_SIZE - f.radius)};
+    if (opts.manual || d.manual?.enabled) end = controlSafeDashEnd(f, f.x, f.y, end.x, end.y);
     const pathLength = Math.max(1,dist(f.x,f.y,end.x,end.y));
     const hitDistance = Math.max(0,dist(f.x,f.y,e.x,e.y) - (e.radius + 18));
     const hitProgress = clamp(hitDistance / pathLength,.08,.95);
@@ -23112,8 +23511,10 @@ window.apexFighterTypes = FighterTypes;
     d.lastTwinWaveSpeed = wave.speed;
     d.lastTwinWaitDuration = waitDuration;
     d.lastTwinTravelDuration = travelDuration;
-    d.action = { type:'twin', phase:waitDuration > .008 ? 'wait' : 'dash', waitRemaining:waitDuration, t:0, duration:travelDuration, sx:f.x, sy:f.y, ex:end.x, ey:end.y, dir, targetId:e.id, hit:false, waveId:wave.id, sample:0, holdStarted:false, pulse2:false, animStart:0, animImpact:(RELEASE_FRAME-1)/FRAME_RATE };
+    const manual = !!opts.manual || !!d.manual?.enabled;
+    d.action = { type:'twin', actionId:nextKatanaActionId(f), phase:waitDuration > .008 ? 'wait' : 'dash', waitRemaining:waitDuration, t:0, duration:travelDuration, sx:f.x, sy:f.y, ex:end.x, ey:end.y, dir, targetId:e.id, hit:false, waveId:wave.id, sample:0, holdStarted:false, pulse2:false, animStart:0, animImpact:(RELEASE_FRAME-1)/FRAME_RATE, manual };
     noteTwinUse(f);
+    if (manual) consumeManualTwinRefresh(f);
     f.applyStatus('immune', waitDuration + travelDuration + postDashImmunityFor(f), { source:f });
     return true;
   }
@@ -23148,17 +23549,19 @@ window.apexFighterTypes = FighterTypes;
       return aa - bb || a.id - b.id;
     });
   }
-  function beginInfinite(f,e) {
+  function beginInfinite(f,e,opts={}) {
     const d = katanaData(f);
     const centroid = updateCentroid(f);
     if (!centroid || d.action?.type === 'infinite') return false;
     const clones = centroid.clones.slice();
     clones.forEach(c => c.reserved = true);
+    katanaPerfCounter('infiniteTriggers');
     playKatanaSound('infiniteSeverStart', .72, .1);
     d.twinHistory = [];
     d.pendingTwinInfinite = false;
     const route = sortedInfiniteRoute(clones, e);
-    d.action = { type:'infinite', phase:'leg', leg:0, t:0, route, targetId:e.id, hit:false, sample:0, finisherHits:0, finisherTimer:.18, finisherRolls:Array.from({length:10}, () => 1 + Math.floor(Math.random() * 10)) };
+    const manual = !!opts.manual || !!d.manual?.enabled;
+    d.action = { type:'infinite', actionId:nextKatanaActionId(f), phase:'leg', leg:0, t:0, route:route.map(c => ({id:c.id, x:c.x, y:c.y, dir:{...c.dir}, frame:c.frame, sourceClone:c})), targetId:e.id, hit:false, sample:0, finisherHits:0, finisherTimer:.18, finisherRolls:Array.from({length:10}, () => 1 + Math.floor(Math.random() * 10)), manual, legDuration:C.infiniteLegDuration };
     e.data.katanaSuspendedBy = f.id;
     e.applyStatus('stun', 5, { source:f });
     f.applyStatus('immune', 5, { source:f });
@@ -23175,10 +23578,17 @@ window.apexFighterTypes = FighterTypes;
       a.finisherTimer = .16;
       return;
     }
-    consumeClone(f, clone, true);
-    const dir = dirTo(f,e);
-    const end = {x:clamp(e.x + dir.x * C.infiniteBeyond, f.radius, GAME_SIZE - f.radius), y:clamp(e.y + dir.y * C.infiniteBeyond, f.radius, GAME_SIZE - f.radius)};
-    Object.assign(a, { phase:'leg', t:0, duration:C.infiniteLegDuration, sx:f.x, sy:f.y, ex:end.x, ey:end.y, dir, hit:false, sample:0 });
+    const sx = clone.x;
+    const sy = clone.y;
+    consumeClone(f, clone.sourceClone || clone, true);
+    f.x = sx;
+    f.y = sy;
+    const dir = norm(e.x - sx, e.y - sy);
+    let end = {x:clamp(e.x + dir.x * C.infiniteBeyond, f.radius, GAME_SIZE - f.radius), y:clamp(e.y + dir.y * C.infiniteBeyond, f.radius, GAME_SIZE - f.radius)};
+    if (a.manual) end = controlSafeDashEnd(f, sx, sy, end.x, end.y);
+    d.visualDir = {x:dir.x,y:dir.y};
+    spawnShockwave(sx, sy, '#ffd6ed', 90);
+    Object.assign(a, { phase:'leg', t:0, duration:a.legDuration || C.infiniteLegDuration, sx, sy, ex:end.x, ey:end.y, dir, hit:false, sample:0 });
   }
   function beginEvade(f, source) {
     const d = katanaData(f);
@@ -23196,13 +23606,414 @@ window.apexFighterTypes = FighterTypes;
     emitDashPetals(from, f, 12);
     return true;
   }
+  const MANUAL = Object.freeze({
+    qDistance:800,
+    qCooldown:5,
+    qWindow:1,
+    lmbCooldown:2,
+    evadeCooldown:7,
+    rewriteCooldown:10,
+    rewriteDuration:.6,
+    apexChargeDuration:2,
+    apexFanWaves:10,
+    apexFanArc:Math.PI * 2 / 3,
+    lmbReleaseTime:2 / FRAME_RATE
+  });
+  function manualState(f) {
+    const d = katanaData(f);
+    return d.manual || (d.manual = {
+      enabled:true, mode:'idle', swordTime:0, lmbCooldown:0, qCooldown:0, eCooldown:0, qCastId:0, qWindowRemaining:0,
+      qWindowConsumed:false, qDash:null, rewrite:null, rCooldown:0, rCharge:null, collisionCd:0, selectedEvadeId:null,
+      selectedRewriteId:null, selectionNextAt:0, selectionAimX:null, selectionAimY:null, feedback:'', feedbackUntil:0
+    });
+  }
+  function isManualKatana(f) {
+    return !!(f?.name === 'KATANA' && f.data?.manualController?.mode === 'MANUAL_LAB' && f.data.manualController.active);
+  }
+  function manualFeedback(f, text, duration=.7) {
+    const m = manualState(f);
+    m.feedback = text;
+    m.feedbackUntil = matchClock + duration;
+  }
+  function updateManualCloneSelection(d, m, aim, active) {
+    if (!aim || (m.selectionNextAt || 0) > matchClock) return;
+    m.selectionNextAt = matchClock + .05;
+    m.selectionAimX = aim.x;
+    m.selectionAimY = aim.y;
+    const available = oldestAvailableClones(d);
+    m.selectedEvadeId = available.length > 3 ? cloneUnderPoint(available, aim)?.id ?? null : null;
+    m.selectedRewriteId = active ? cloneUnderPoint(active.clones, aim)?.id ?? null : null;
+  }
+  function consumeManualTwinRefresh(f) {
+    const m = katanaData(f).manual;
+    if (!m?.enabled || m.qWindowConsumed || m.qWindowRemaining <= 0) return false;
+    m.qCooldown = 0;
+    m.qWindowRemaining = 0;
+    m.qWindowConsumed = true;
+    manualFeedback(f, 'Q REFRESHED', .8);
+    return true;
+  }
+  function cloneHitRadius(c) {
+    const img = frameImages[(c?.frame || 1) - 1];
+    const w = (img?.naturalWidth || C.drawW) * C.scale;
+    const h = (img?.naturalHeight || C.drawH) * C.scale;
+    return Math.max(30, Math.min(78, Math.max(w,h) * .42));
+  }
+  function cloneUnderPoint(clones, point) {
+    if (!point) return null;
+    let best = null, bestDist = Infinity;
+    for (const c of clones || []) {
+      if (!c || c.consumed || c.reserved) continue;
+      const dx = c.x - point.x, dy = c.y - point.y;
+      const d2 = dx * dx + dy * dy;
+      const r = cloneHitRadius(c);
+      if (d2 > r * r) continue;
+      if (!best || d2 < bestDist || (d2 === bestDist && c.id < best.id)) {
+        best = c;
+        bestDist = d2;
+      }
+    }
+    return best;
+  }
+  function resetManualPose(f, preserveCooldowns=true) {
+    const d = katanaData(f), old = d.manual;
+    const keepManual = isManualKatana(f);
+    const qCooldown = keepManual && preserveCooldowns ? old?.qCooldown || 0 : 0;
+    const rCooldown = keepManual && preserveCooldowns ? old?.rCooldown || 0 : 0;
+    d.manual = keepManual ? null : undefined;
+    const m = keepManual ? manualState(f) : null;
+    if (m) {
+      m.qCooldown = qCooldown;
+      m.rCooldown = rCooldown;
+    }
+    d.action = null;
+    d.manualQPassThrough = false;
+    resetAnim(f);
+    return m;
+  }
+  function cancelManualPreparation(f) {
+    const d = katanaData(f), m = manualState(f);
+    m.mode = 'idle';
+    m.swordTime = 0;
+    m.qDash = null;
+    d.manualQPassThrough = false;
+    resetAnim(f);
+  }
+  function sweepPointFraction(sx,sy,ex,ey,cx,cy,r) {
+    const vx=ex-sx, vy=ey-sy, ox=sx-cx, oy=sy-cy;
+    const a=vx*vx+vy*vy;
+    if (a <= 1e-9) return ox*ox+oy*oy <= r*r ? 0 : null;
+    const c=ox*ox+oy*oy-r*r;
+    if (c <= 0) return 0;
+    const b=2*(ox*vx+oy*vy), disc=b*b-4*a*c;
+    if (disc < 0) return null;
+    const t=(-b-Math.sqrt(disc))/(2*a);
+    return t >= 0 && t <= 1 ? t : null;
+  }
+  function qBlockFraction(f,sx,sy,ex,ey) {
+    let best=1;
+    const apexWalls = window.APEX_CONTROL_BATTLE_WALLS;
+    if (apexWalls?.active?.()) {
+      const wall = apexWalls.raycast?.(sx, sy, ex, ey, f.radius || 0);
+      if (wall) {
+        const cx = clamp((wall.x || 0) + (wall.w || 0) / 2, Math.min(sx, ex), Math.max(sx, ex));
+        const cy = clamp((wall.y || 0) + (wall.h || 0) / 2, Math.min(sy, ey), Math.max(sy, ey));
+        const total = Math.max(1, dist(sx, sy, ex, ey));
+        best = Math.min(best, clamp(dist(sx, sy, cx, cy) / total - .01, 0, 1));
+      }
+    }
+    const engineer=window.APEX_ENGINEER;
+    for (const s of engineer?.allStructures?.() || []) {
+      if (!s || s.dead || s.hp <= 0 || s.owner === f) continue;
+      const radius=(engineer.structureFootprint?.(s) || s.blockRadius || s.radius || 36) + f.radius;
+      const t=sweepPointFraction(sx,sy,ex,ey,s.x,s.y,radius);
+      if (t !== null) best=Math.min(best,Math.max(0,t-.002));
+    }
+    return best;
+  }
+  function controlWallPadding(f) {
+    return Math.min(42, (f.radius || 0) * .45);
+  }
+  function controlPathBlocked(f, sx, sy, ex, ey) {
+    const apexWalls = window.APEX_CONTROL_BATTLE_WALLS;
+    if (!apexWalls?.active?.()) return false;
+    const r = f.radius || 0;
+    const end = {x:ex,y:ey};
+    return !!(apexWalls.isBlocked?.(ex, ey, r) || apexWalls.segmentIntersectsWall?.({x:sx,y:sy}, end, controlWallPadding(f)));
+  }
+  function controlSafeDashEnd(f, sx, sy, ex, ey) {
+    const r = f.radius || 0;
+    const end = {x:clamp(ex, r, GAME_SIZE - r), y:clamp(ey, r, GAME_SIZE - r)};
+    const apexWalls = window.APEX_CONTROL_BATTLE_WALLS;
+    if (!apexWalls?.active?.() || !controlPathBlocked(f, sx, sy, end.x, end.y)) return end;
+    let lo = 0, hi = 1;
+    let best = {x:sx, y:sy};
+    for (let i = 0; i < 12; i += 1) {
+      const mid = (lo + hi) / 2;
+      const p = {x:lerp(sx, end.x, mid), y:lerp(sy, end.y, mid)};
+      if (controlPathBlocked(f, sx, sy, p.x, p.y)) hi = mid;
+      else { best = p; lo = mid; }
+    }
+    return {x:clamp(best.x, r, GAME_SIZE - r), y:clamp(best.y, r, GAME_SIZE - r)};
+  }
+  function beginManualOne(f,e) {
+    const d=katanaData(f), m=manualState(f);
+    d.oneSwordLockoutUntil=0;
+    m.mode='recovery';
+    m.swordTime=Math.max(m.swordTime,(RELEASE_FRAME-1)/FRAME_RATE);
+    d.animTime=m.swordTime;
+    return beginOneSword(f,e,{manual:true,postDashImmunity:postDashImmunityFor(f)});
+  }
+  function manualCollisionOne(f,e) {
+    if (!isManualKatana(f) || !live(e)) return false;
+    const d=katanaData(f), m=manualState(f);
+    if (d.action || !['rmbWindup','rmbHold'].includes(m.mode)) return false;
+    m.swordTime=(RELEASE_FRAME-1)/FRAME_RATE;
+    d.animTime=m.swordTime;
+    return beginManualOne(f,e);
+  }
+  function acceptManualQ(f,e,controller) {
+    const d=katanaData(f), m=manualState(f);
+    if (m.qCooldown > 0 || m.qDash || d.action || m.rewrite || m.mode === 'recovery') return false;
+    if (!['idle','lmbWindup','rmbWindup','rmbHold'].includes(m.mode) || f.hasStatus?.('abilityDisabled') || f.hardCC?.()) return false;
+    const aim=controller.getAimPoint(), dir=norm(aim.x-f.x,aim.y-f.y);
+    if (!Number.isFinite(dir.x) || (!dir.x && !dir.y)) return false;
+    const length=Math.min(MANUAL.qDistance,dist(f.x,f.y,aim.x,aim.y));
+    if (length <= .5) return false;
+    const sx=f.x, sy=f.y;
+    const rawX=clamp(sx+dir.x*length,f.radius,GAME_SIZE-f.radius);
+    const rawY=clamp(sy+dir.y*length,f.radius,GAME_SIZE-f.radius);
+    const block=qBlockFraction(f,sx,sy,rawX,rawY);
+    const safeEnd=controlSafeDashEnd(f,sx,sy,lerp(sx,rawX,block),lerp(sy,rawY,block));
+    const ex=safeEnd.x, ey=safeEnd.y;
+    if (dist(sx,sy,ex,ey) <= .5) return false;
+    m.qCooldown=MANUAL.qCooldown;
+    m.qCastId++;
+    m.qWindowRemaining=MANUAL.qWindow;
+    m.qWindowConsumed=false;
+    m.qDash={sx,sy,ex,ey,t:0,duration:C.dashDuration,dir,withPreparation:['rmbWindup','rmbHold'].includes(m.mode),sample:0};
+    d.manualQPassThrough=!m.qDash.withPreparation;
+    emitAfterimageTrail(f,sx,sy,ex,ey,dir,7);
+    emitDashPetals({x:sx,y:sy},{x:ex,y:ey},10);
+    return true;
+  }
+  function updateManualQ(f,e,dt) {
+    const d=katanaData(f), m=manualState(f), q=m.qDash;
+    if (!q) return false;
+    q.t+=dt;
+    const p=clamp(q.t/q.duration,0,1), prev={x:f.x,y:f.y};
+    let nx=lerp(q.sx,q.ex,p), ny=lerp(q.sy,q.ey,p);
+    if (q.withPreparation && live(e)) {
+      const hit=sweepPointFraction(prev.x,prev.y,nx,ny,e.x,e.y,f.radius+e.radius);
+      if (hit !== null) {
+        f.x=lerp(prev.x,nx,hit); f.y=lerp(prev.y,ny,hit);
+        m.qDash=null; d.manualQPassThrough=false;
+        manualCollisionOne(f,e);
+        return true;
+      }
+    }
+    f.x=nx; f.y=ny; f.setDir(q.dir.x,q.dir.y); f.data.positionLocked=true;
+    q.sample+=dt;
+    if (q.sample >= .055) { q.sample=0; spawnAfterimage(f,f.x,f.y,q.dir,frameIndex(f),.3); }
+    if (p >= 1) { m.qDash=null; d.manualQPassThrough=false; }
+    return true;
+  }
+  function manualEvade(f,controller) {
+    const d=katanaData(f), m=manualState(f);
+    if (d.action?.type === 'infinite' || d.action?.type === 'twin' || !live(f)) return false;
+    if (m.eCooldown > 0) { manualFeedback(f, `E ${m.eCooldown.toFixed(1)}s`); return false; }
+    const available=oldestAvailableClones(d);
+    if (available.length <= 3) { manualFeedback(f,'E NEEDS >3 CLONES'); return false; }
+    const e = enemyOf(f);
+    const selected=available.slice().sort((a,b) => (dist(b.x,b.y,e?.x || f.x,e?.y || f.y) - dist(a.x,a.y,e?.x || f.x,e?.y || f.y)) || a.id - b.id)[0];
+    if (!selected || !reserveClone(selected)) { manualFeedback(f,'NO CLONE UNDER CURSOR'); return false; }
+    const from={x:f.x,y:f.y};
+    d.action=null; m.rewrite=null; m.qDash=null; d.manualQPassThrough=false;
+    if (!consumeClone(f,selected,true)) { selected.reserved=false; return false; }
+    const post=postDashImmunityFor(f);
+    f.applyStatus('immune',post,{source:f}); d.invulnUntil=matchClock+post;
+    emitDashPetals(from,f,12);
+    m.mode='idle'; m.swordTime=0; resetAnim(f); updateCentroid(f);
+    m.eCooldown = MANUAL.evadeCooldown;
+    manualFeedback(f,'CLONE EVADE',.55);
+    return true;
+  }
+  function beginRewrite(f,controller) {
+    const d=katanaData(f), m=manualState(f), c=updateCentroid(f);
+    if (m.rCooldown>0 || m.rewrite || d.action || !c || oldestAvailableClones(d).length<3) return false;
+    const selected=cloneUnderPoint(c.clones,controller.getAimPoint());
+    if (!selected || selected.reserved || selected.consumed) { manualFeedback(f,'R: SELECT ACTIVE CLONE'); return false; }
+    const captured={x:f.x,y:f.y,dir:{x:(d.visualDir||f.dir).x,y:(d.visualDir||f.dir).y},frame:frameIndex(f)};
+    const others=c.clones.filter(q=>q!==selected);
+    const future={x:(others[0].x+others[1].x+captured.x)/3,y:(others[0].y+others[1].y+captured.y)/3};
+    m.rCooldown=MANUAL.rewriteCooldown;
+    m.rewrite={timer:MANUAL.rewriteDuration,sourceId:selected.id,oldCentroid:{x:c.x,y:c.y,ids:c.ids},future,captured};
+    manualFeedback(f,'LUNAR REWRITE',.6);
+    return true;
+  }
+  function cancelRewrite(f) {
+    const m=manualState(f);
+    m.rewrite=null;
+  }
+  function updateRewrite(f,e,dt) {
+    const d=katanaData(f), m=manualState(f), r=m.rewrite;
+    if (!r) return false;
+    const source=d.clones.find(c=>c.id===r.sourceId);
+    if (!source || source.consumed || source.reserved) { cancelRewrite(f); return false; }
+    r.timer-=dt;
+    if (r.timer>0) return true;
+    source.x=clamp(r.captured.x,f.radius,GAME_SIZE-f.radius);
+    source.y=clamp(r.captured.y,f.radius,GAME_SIZE-f.radius);
+    source.dir={...r.captured.dir}; source.frame=r.captured.frame;
+    m.rewrite=null;
+    const next=updateCentroid(f);
+    if (next && e && dist(e.x,e.y,next.x,next.y)<=next.radius+e.radius*.12) beginInfinite(f,e,{manual:true});
+    return true;
+  }
+  function spawnManualFanWaves(f, dir) {
+    const base = Math.atan2(dir.y || f.dir?.y || 0, dir.x || f.dir?.x || 1);
+    const count = MANUAL.apexFanWaves;
+    const arc = MANUAL.apexFanArc;
+    for (let i = 0; i < count; i += 1) {
+      const t = count === 1 ? .5 : i / (count - 1);
+      const a = base - arc / 2 + arc * t;
+      spawnWave(f, {x:Math.cos(a), y:Math.sin(a)}, {life:2.55});
+    }
+    spawnShockwave(f.x, f.y, C.color, 210);
+    manualFeedback(f, 'TEN WAVE ARC', .8);
+  }
+  function beginManualApexCharge(f, controller) {
+    const d=katanaData(f), m=manualState(f);
+    if (m.rCooldown > 0 || m.rCharge || d.action || m.qDash || f.hardCC?.() || f.hasStatus?.('abilityDisabled')) return false;
+    const aim = controller.getAimPoint?.() || {x:f.x + (f.dir?.x || 1), y:f.y + (f.dir?.y || 0)};
+    const dir = norm(aim.x - f.x, aim.y - f.y);
+    m.rCooldown = MANUAL.rewriteCooldown;
+    m.rCharge = {timer:MANUAL.apexChargeDuration, dir:dir.x || dir.y ? dir : (d.visualDir || f.dir || {x:1,y:0})};
+    m.mode = 'apexCharge';
+    m.swordTime = 0;
+    d.action = null;
+    d.manualQPassThrough = false;
+    manualFeedback(f, 'APEX CHARGE', .7);
+    return true;
+  }
+  function updateManualApexCharge(f, dt) {
+    const d=katanaData(f), m=manualState(f), charge=m.rCharge;
+    if (!charge) return false;
+    f.data.positionLocked = true;
+    f.applyStatus?.('immune', .16, {source:f, katanaApexCharge:true});
+    d.invulnUntil = Math.max(d.invulnUntil || 0, matchClock + .16);
+    charge.timer -= dt;
+    d.animTime = 0;
+    d.lastFrame = frameIndex(f);
+    if (charge.timer > 0) return true;
+    d.animTime = (RELEASE_FRAME - 1) / FRAME_RATE;
+    d.lastFrame = RELEASE_FRAME;
+    spawnManualFanWaves(f, charge.dir);
+    m.rCharge = null;
+    m.mode = 'recovery';
+    m.swordTime = (RELEASE_FRAME - 1) / FRAME_RATE;
+    return true;
+  }
+  function commitManualLmb(f,e,controller) {
+    const d=katanaData(f), m=manualState(f);
+    if (m.lmbCooldown > 0) return false;
+    const secondary = controller.isHeld?.('SECONDARY');
+    if (secondary && e && dist(f.x,f.y,e.x,e.y) <= C.oneSwordDistance && beginManualOne(f,e)) {
+      m.lmbCooldown = MANUAL.lmbCooldown;
+      m.mode='recovery';
+      return 'one';
+    }
+    const twin=e ? twinCandidate(f,e) : null;
+    if (twin && beginTwin(f,e,twin,null,{manual:true})) { m.lmbCooldown = MANUAL.lmbCooldown; m.mode='recovery'; return 'twin'; }
+    if (e && dist(f.x,f.y,e.x,e.y)<=50 && beginManualOne(f,e)) { m.lmbCooldown = MANUAL.lmbCooldown; return 'one'; }
+    const aim=controller.getAimPoint(), dir=norm(aim.x-f.x,aim.y-f.y);
+    spawnWave(f,dir.x||dir.y?dir:(d.visualDir||f.dir));
+    d.twinHistory=[]; d.pendingTwinInfinite=false;
+    m.lmbCooldown = MANUAL.lmbCooldown;
+    m.mode='recovery';
+    return 'wave';
+  }
+  function updateManualAnimation(f,e,dt,controller) {
+    const d=katanaData(f), m=manualState(f);
+    if (d.action?.type === 'twin' || d.action?.type === 'infinite') return;
+    const frozen=f.hasStatus?.('stun') || f.hasStatus?.('freeze') || window.__apexUniversalVisualStopMotionActive?.();
+    const secondary=controller.isHeld('SECONDARY');
+    if ((m.mode==='rmbWindup'||m.mode==='rmbHold') && !secondary) { cancelManualPreparation(f); return; }
+    if (m.mode==='idle') { m.swordTime=0; d.animTime=0; d.lastFrame=1; return; }
+    if (m.mode==='rmbHold') { m.swordTime=15/FRAME_RATE; d.animTime=m.swordTime; d.lastFrame=16; return; }
+    if (frozen) return;
+    const previous=m.swordTime;
+    m.swordTime=Math.min(LOOP,m.swordTime+dt);
+    if (m.mode==='rmbWindup' && m.swordTime>=15/FRAME_RATE) { m.swordTime=15/FRAME_RATE; m.mode='rmbHold'; }
+    if (m.mode==='lmbWindup' && previous<MANUAL.lmbReleaseTime && m.swordTime>=MANUAL.lmbReleaseTime) {
+      m.swordTime=(RELEASE_FRAME-1)/FRAME_RATE;
+      commitManualLmb(f,e,controller);
+    }
+    if (m.mode==='recovery' && m.swordTime>=LOOP) { m.mode='idle'; m.swordTime=0; }
+    d.animTime=m.swordTime; d.lastFrame=frameIndex(f);
+  }
+  function manualKatanaThink(f,e,dt,controller) {
+    const d=katanaData(f), m=manualState(f);
+    m.enabled=true;
+    if (katanaShouldRage(f) && !f.isRage) { f.isRage=true; f.rageStartHp=f.hp; d.rage=true; spawnShockwave(f.x,f.y,C.color,190); }
+    m.lmbCooldown=Math.max(0,(m.lmbCooldown || 0)-dt);
+    m.qCooldown=Math.max(0,m.qCooldown-dt);
+    m.eCooldown=Math.max(0,(m.eCooldown || 0)-dt);
+    m.rCooldown=Math.max(0,m.rCooldown-dt);
+    m.collisionCd=Math.max(0,(m.collisionCd || 0)-dt);
+    m.qWindowRemaining=Math.max(0,m.qWindowRemaining-dt);
+    const aim=controller.getAimPoint();
+    const active=updateCentroid(f);
+    updateManualCloneSelection(d,m,aim,active);
+    if (e && active && !d.action) {
+      const prev=d.lastEnemy&&Number.isFinite(d.lastEnemy.x)?d.lastEnemy:{x:e.x,y:e.y};
+      const steppedIntoCentroid = dist(e.x,e.y,active.x,active.y) <= active.radius + e.radius * .55;
+      if (steppedIntoCentroid || segmentCircleHit(prev.x,prev.y,e.x,e.y,active.x,active.y,active.radius+e.radius*.55)) {
+        cancelRewrite(f); beginInfinite(f,e,{manual:true});
+      }
+    }
+    if (controller.consume('ABILITY_2')) manualEvade(f,controller);
+    const actionBefore=d.action?.type || null;
+    if (updateManualApexCharge(f, dt)) {
+      updateMoon(f,dt);
+      if (e) d.lastEnemy={x:e.x,y:e.y};
+      return;
+    }
+    const acted=updateAction(f,e,dt);
+    if ((actionBefore === 'twin' || actionBefore === 'infinite') && !d.action) {
+      m.mode='idle'; m.swordTime=0; d.manualQPassThrough=false; resetAnim(f);
+    }
+    if (d.action?.type==='infinite' || d.action?.type==='twin') {
+      m.qDash=null;
+      d.manualQPassThrough=false;
+      updateMoon(f,dt);
+      if (e) d.lastEnemy={x:e.x,y:e.y};
+      return;
+    }
+    if (!d.action) updateRewrite(f,e,dt);
+    if (controller.consume('APEX')) beginManualApexCharge(f,controller);
+    if (controller.consume('ABILITY_1')) acceptManualQ(f,e,controller);
+    updateManualQ(f,e,dt);
+    if (!d.action && !m.rewrite && m.mode==='idle') {
+      if (controller.isHeld('PRIMARY') && m.lmbCooldown <= 0) { m.mode='lmbWindup'; m.swordTime=0; resetAnim(f); }
+      else if (controller.isHeld('SECONDARY')) { m.mode='rmbWindup'; m.swordTime=0; resetAnim(f); }
+    } else if (m.mode!=='idle') controller.consume('PRIMARY');
+    updateManualAnimation(f,e,dt,controller);
+    if (!acted && !m.qDash && !d.action) {
+      const move=controller.getMoveVector?.() || {x:0,y:0};
+      if (move.x||move.y) { f.setDir(move.x,move.y); d.visualDir={x:move.x,y:move.y}; }
+    }
+    updateMoon(f,dt);
+    if (e) d.lastEnemy={x:e.x,y:e.y};
+  }
   function updateAction(f, e, dt) {
     const d = katanaData(f);
     const a = d.action;
     if (!a) return false;
-    if (!live(e) && a.type !== 'one') { d.action = null; return false; }
+    const lockedTarget = a.targetId !== undefined ? fighters.find(q => q && q.id === a.targetId) : e;
+    if (!live(lockedTarget) && a.type !== 'one') { d.action = null; return false; }
     if (a.type === 'twin' && a.phase === 'wait') {
-      const targetLock = fighters.find(q => q && q.id === a.targetId);
+      const targetLock = lockedTarget;
       f.x = a.sx; f.y = a.sy; f.data.positionLocked = true;
       d.animTime = 0;
       if (targetLock) {
@@ -23229,7 +24040,7 @@ window.apexFighterTypes = FighterTypes;
       f.setDir(a.dir.x, a.dir.y);
       f.data.positionLocked = true;
       if (a.type === 'twin') {
-        const targetLock = fighters.find(q => q && q.id === a.targetId);
+        const targetLock = lockedTarget;
         if (targetLock) {
           const anchor = targetLock.data.katanaTwinAnchor;
           if (anchor) { targetLock.x = anchor.x; targetLock.y = anchor.y; }
@@ -23259,7 +24070,7 @@ window.apexFighterTypes = FighterTypes;
         a.sample = 0;
         spawnAfterimage(f, f.x, f.y, f.dir, frameIndex(f), .32);
       }
-      const target = fighters.find(q => q && q.id === a.targetId);
+      const target = lockedTarget;
       if (target && !a.hit && segmentCircleHit(prev.x,prev.y,f.x,f.y,target.x,target.y,target.radius + 18)) {
         a.hit = true;
         if (a.type === 'twin') {
@@ -23283,6 +24094,11 @@ window.apexFighterTypes = FighterTypes;
           if (along < minPass) {
             f.x = clamp(target.x + a.dir.x * minPass, f.radius, GAME_SIZE - f.radius);
             f.y = clamp(target.y + a.dir.y * minPass, f.radius, GAME_SIZE - f.radius);
+            if (a.manual) {
+              const safe = controlSafeDashEnd(f, target.x, target.y, f.x, f.y);
+              f.x = safe.x;
+              f.y = safe.y;
+            }
           }
         }
         if (target && !a.hit) {
@@ -23312,7 +24128,7 @@ window.apexFighterTypes = FighterTypes;
       return true;
     }
     if (a.type === 'infinite') {
-      const target = fighters.find(q => q && q.id === a.targetId);
+      const target = lockedTarget;
       if (target) {
         target.data.positionLocked = true;
         target.applyStatus('stun', .12, { source:f });
@@ -23321,7 +24137,7 @@ window.apexFighterTypes = FighterTypes;
       if (a.phase === 'leg') {
         a.t += dt;
         const p = clamp(a.t / Math.max(.001, a.duration || C.infiniteLegDuration), 0, 1);
-        const dashP = p <= .5 ? 0 : clamp((p - .5) * 2, 0, 1);
+        const dashP = 1 - Math.pow(1 - p, 2.4);
         const prev = {x:f.x,y:f.y};
         d.animTime = lerp(0, (C.infiniteEndFrame - 1) / FRAME_RATE, dashP);
         f.x = lerp(a.sx, a.ex, dashP);
@@ -23354,8 +24170,14 @@ window.apexFighterTypes = FighterTypes;
         }
       } else if (a.phase === 'finisher') {
         a.finisherTimer -= dt;
+        if (a.manual && a.finisherTimer < -C.infiniteFinisherInterval) {
+          a.finisherTimer = -C.infiniteFinisherInterval;
+        }
         d.animTime = lerp(0, (C.infiniteEndFrame - 1) / FRAME_RATE, clamp(1 - a.finisherTimer / C.infiniteFinisherInterval, 0, 1));
-        while (a.finisherTimer <= 0 && a.finisherHits < 10) {
+        let finisherHitsThisFrame = 0;
+        const finisherHitBudget = a.manual ? 1 : 10;
+        while (a.finisherTimer <= 0 && a.finisherHits < 10 && finisherHitsThisFrame < finisherHitBudget) {
+          finisherHitsThisFrame += 1;
           d.animTime = (C.infiniteEndFrame - 1) / FRAME_RATE;
           a.finisherTimer += C.infiniteFinisherInterval;
           const pass = a.finisherHits++;
@@ -23365,10 +24187,11 @@ window.apexFighterTypes = FighterTypes;
           const axis = {x:Math.cos(axisAngle),y:Math.sin(axisAngle)};
           const side = pass % 2 === 0 ? -1 : 1;
           const from = {x:f.x,y:f.y};
-          const end = target ? {
+          let end = target ? {
             x:clamp(target.x + axis.x * C.infiniteBeyond * side, f.radius, GAME_SIZE - f.radius),
             y:clamp(target.y + axis.y * C.infiniteBeyond * side, f.radius, GAME_SIZE - f.radius)
           } : from;
+          if (a.manual) end = controlSafeDashEnd(f, from.x, from.y, end.x, end.y);
           const dir = norm(end.x - from.x, end.y - from.y);
           emitAfterimageTrail(f, from.x, from.y, end.x, end.y, dir, 4);
           emitDashPetals(from, end, 5);
@@ -23474,6 +24297,8 @@ window.apexFighterTypes = FighterTypes;
     } else if (w.x < -w.length || w.x > GAME_SIZE + w.length || w.y < -w.length || w.y > GAME_SIZE + w.length) w.life = 0;
     if (resolveBladeWaveBlocker(w)) return;
     const enemy = enemyOf(w.owner);
+    const cand = enemy && !w.twinUsed ? twinCandidate(w.owner, enemy, w) : null;
+    if (cand && !katanaData(w.owner).action && beginTwin(w.owner, enemy, cand, w)) return;
     if (enemy && !w.reserved && !w.hit && bladeWaveVisualHit(w, enemy)) {
       w.hit = true;
       w.life = 0;
@@ -23482,8 +24307,6 @@ window.apexFighterTypes = FighterTypes;
       w.brightRealUntil = 0;
       applyKatanaDamage(w.owner, enemy, w.damage, 'katana-blade-wave', w.dir, true);
     }
-    const cand = enemy && !w.twinUsed && w.owner.isRage ? twinCandidate(w.owner, enemy, w) : null;
-    if (cand && !katanaData(w.owner).action) beginTwin(w.owner, enemy, cand, w);
   }
   function updateWaves(dt) {
     for (const w of state.waves) updateWave(w, dt);
@@ -23507,10 +24330,14 @@ window.apexFighterTypes = FighterTypes;
   }
   function updateMoon(f, dt) {
     const d = katanaData(f);
-    const c = updateCentroid(f);
+    const c = updateCentroid(f) || (d.manual?.enabled ? visualCentroid(f) : null);
+    const rewrite = d.manual?.rewrite;
     const moon = d.moon || (d.moon = {x:f.x,y:f.y});
     let tx, ty;
-    if (c) {
+    if (rewrite) {
+      tx = rewrite.future.x; ty = rewrite.future.y;
+      moon.mode = 'rewrite';
+    } else if (c) {
       tx = c.x; ty = c.y;
       moon.mode = 'centroid';
     } else {
@@ -23519,7 +24346,7 @@ window.apexFighterTypes = FighterTypes;
       ty = f.y - f.dir.y * 58 + f.dir.x * side * 34 - 48;
       moon.mode = 'follow';
     }
-    const targetKey = c ? `centroid:${c.ids}` : 'follow';
+    const targetKey = rewrite ? `rewrite:${rewrite.sourceId}` : c ? `centroid:${c.ids}` : 'follow';
     if (moon.targetKey !== targetKey) {
       moon.targetKey = targetKey;
       moon.gliding = true;
@@ -23538,7 +24365,11 @@ window.apexFighterTypes = FighterTypes;
   }
   function katanaThink(f,e,dt) {
     const d = katanaData(f);
-    if (f.hp <= C.rageHp && !f.isRage) {
+    if (isManualKatana(f)) {
+      manualKatanaThink(f,e,dt,f.data.manualController);
+      return;
+    }
+    if (katanaShouldRage(f) && !f.isRage) {
       f.isRage = true;
       f.rageStartHp = f.hp;
       d.rage = true;
@@ -23564,7 +24395,9 @@ window.apexFighterTypes = FighterTypes;
     const centroid = d.centroid;
     if (e && centroid && !d.action) {
       const prev = d.lastEnemy && Number.isFinite(d.lastEnemy.x) ? d.lastEnemy : {x:e.x,y:e.y};
-      if (segmentCircleHit(prev.x,prev.y,e.x,e.y,centroid.x,centroid.y,centroid.radius + e.radius*.12)) beginInfinite(f,e);
+      const severRadius = centroid.radius + e.radius * .55;
+      const insideSeverMark = dist(e.x,e.y,centroid.x,centroid.y) <= severRadius;
+      if (insideSeverMark || segmentCircleHit(prev.x,prev.y,e.x,e.y,centroid.x,centroid.y,severRadius)) beginInfinite(f,e);
     }
     if (!acted && e && prevFrame !== RELEASE_FRAME && curFrame === RELEASE_FRAME && !d.action) {
       const twin = twinCandidate(f,e);
@@ -23595,7 +24428,16 @@ window.apexFighterTypes = FighterTypes;
     drawBodyImage(ctx, frameImages[idx - 1], 1, C.scale);
     ctx.restore();
   }
+  function visibleInApexView(x, y, radius=180) {
+    const view = window.__apexCameraView;
+    if (!view || !Number.isFinite(view.worldX) || !Number.isFinite(view.worldY)) return true;
+    const width = Number.isFinite(view.width) ? view.width : (canvas?.width || GAME_SIZE) / Math.max(.001, view.zoom || 1);
+    const height = Number.isFinite(view.height) ? view.height : (canvas?.height || GAME_SIZE) / Math.max(.001, view.zoom || 1);
+    return x + radius >= view.worldX && x - radius <= view.worldX + width
+      && y + radius >= view.worldY && y - radius <= view.worldY + height;
+  }
   function drawClone(ctx,c) {
+    if (!visibleInApexView(c.x, c.y, 180)) return;
     ctx.save();
     ctx.translate(c.x,c.y);
     const petalImg = images.sakuraPetal;
@@ -23628,6 +24470,7 @@ window.apexFighterTypes = FighterTypes;
   function drawMoon(ctx,f) {
     const d = katanaData(f), moon = d.moon;
     if (!moon) return;
+    if (!visibleInApexView(moon.x, moon.y, 160)) return;
     const img = images.pinkMoon;
     ctx.save();
     ctx.translate(moon.x, moon.y);
@@ -23639,12 +24482,37 @@ window.apexFighterTypes = FighterTypes;
     else { ctx.strokeStyle=C.color; ctx.lineWidth=7; ctx.beginPath(); ctx.arc(0,0,40,-1.1,1.1); ctx.stroke(); }
     ctx.restore();
   }
+  function drawManualKatanaVfx(ctx,f) {
+    const d=katanaData(f), m=d.manual;
+    if (!m?.enabled) return;
+    const drawSelectedClone = (id) => {
+      if (!Number.isFinite(id)) return;
+      const c=d.clones.find(q=>q.id===id&&!q.consumed&&!q.reserved);
+      if (!c || !visibleInApexView(c.x, c.y, 190)) return;
+      ctx.save(); ctx.globalAlpha=.34; ctx.filter='brightness(1.65) drop-shadow(0 0 16px rgba(255,220,245,.95))'; drawClone(ctx,c); ctx.restore();
+    };
+    drawSelectedClone(m.selectedEvadeId);
+    if (m.selectedRewriteId !== m.selectedEvadeId) drawSelectedClone(m.selectedRewriteId);
+    const r=m.rewrite;
+    if (!r) return;
+    const progress=clamp(r.timer/MANUAL.rewriteDuration,0,1);
+    const img=images.pinkMoon;
+    if (!visibleInApexView(r.oldCentroid.x, r.oldCentroid.y, 170)) return;
+    ctx.save(); ctx.translate(r.oldCentroid.x,r.oldCentroid.y); ctx.globalAlpha=.48*progress;
+    ctx.filter='drop-shadow(0 0 12px rgba(255,110,190,.65))';
+    const ms=C.effectScale;
+    if (img.complete&&img.naturalWidth) ctx.drawImage(img,-46*ms,-48*ms,92*ms,96*ms);
+    ctx.restore();
+    const ghost={id:r.sourceId,x:r.captured.x,y:r.captured.y,dir:r.captured.dir,frame:r.captured.frame};
+    ctx.save(); ctx.globalAlpha=.42; ctx.filter='brightness(1.25) drop-shadow(0 0 13px rgba(255,120,190,.78))'; drawClone(ctx,ghost); ctx.restore();
+  }
   function drawVfx(ctx, layer='all') {
     if (layer !== 'top') {
       for (const f of fighters || []) if (f?.name === 'KATANA') {
         const d = katanaData(f);
         drawMoon(ctx,f);
         for (const c of d.clones || []) if (!c.consumed) drawClone(ctx,c);
+        drawManualKatanaVfx(ctx,f);
       }
     }
     for (const fx of state.vfx) {
@@ -23652,6 +24520,7 @@ window.apexFighterTypes = FighterTypes;
       if (layer === 'top' && !isTop) continue;
       if (layer === 'under' && isTop) continue;
       syncStickyFx(fx);
+      if (!visibleInApexView(fx.x, fx.y, fx.type === 'afterimage' ? 150 : 100)) continue;
       const a = clamp(fx.life / Math.max(.001, fx.maxLife), 0, 1);
       ctx.save();
       ctx.globalAlpha = (fx.alpha ?? 1) * a;
@@ -23677,6 +24546,7 @@ window.apexFighterTypes = FighterTypes;
   function drawWaves(ctx) {
     for (const w of state.waves) {
       if (!w || w.hit || !(w.life > 0)) continue;
+      if (!visibleInApexView(w.x, w.y, Math.max(w.length, w.halfWidth * 2))) continue;
       const img = images.bladeWave;
       const a = clamp(w.life / Math.max(.001,w.maxLife), 0, 1);
       const bright = w.brightHeld || (w.brightUntil || 0) > matchClock || (w.brightRealUntil || 0) > performance.now() ? 1 : 0;
@@ -23711,7 +24581,27 @@ window.apexFighterTypes = FighterTypes;
     update:(f,e,dt) => {
       if (!e || katanaData(f).action) return;
     },
+    speedModifier:f => {
+      if (!isManualKatana(f)) return 1;
+      const d=katanaData(f), m=manualState(f);
+      if (d.action || m.qDash || m.rewrite) return 0;
+      return Math.min(1,Math.max(0,f.data.manualController.getMoveMagnitude?.() ?? f.data.manualController.moveMagnitude?.() ?? 0));
+    },
     onCollide:(f,e) => {
+      katanaPerfCounter('collisionCalls');
+      if (isManualKatana(f)) {
+        const d = katanaData(f);
+        const m = manualState(f);
+        const held = f.data?.manualController?.isHeld?.('SECONDARY');
+        if (!held) return false;
+        if (d.action || m.qDash || m.mode === 'recovery' || (Number.isFinite(m.lastCollisionTick) && m.lastCollisionTick === state.updateFrame)) return true;
+        m.lastCollisionTick = state.updateFrame;
+        if (m.collisionCd <= 0 && manualCollisionOne(f,e)) {
+          m.collisionCd = f.isRage ? C.rageCollisionCooldown : C.normalCollisionCooldown;
+        }
+        f.applyStatus?.('immune', .12, {source:f, katanaCollisionGuard:true});
+        return true;
+      }
       const d = katanaData(f);
       if (d.action || matchClock < (d.collisionOneReadyAt || 0)) return false;
       d.oneSwordLockoutUntil = 0;
@@ -23764,9 +24654,16 @@ window.apexFighterTypes = FighterTypes;
   }
   function updateAllKatana(dt) {
     if (gameState !== 'PLAYING') return;
+    const frameStart = performance.now();
+    state.updateFrame = (state.updateFrame || 0) + 1;
     for (const f of fighters || []) if (live(f) && f.name === 'KATANA') katanaThink(f, enemyOf(f), dt);
+    const waveStart = performance.now();
     updateWaves(dt);
+    state.perf.waveUpdateMs = performance.now() - waveStart;
+    const vfxStart = performance.now();
     updateVisuals(dt);
+    state.perf.vfxUpdateMs = performance.now() - vfxStart;
+    refreshKatanaPerfCounters(frameStart);
   }
   function clearKatanaRuntime() {
     state.waves.length = 0;
@@ -23777,6 +24674,7 @@ window.apexFighterTypes = FighterTypes;
     state.slowUntil = 0;
     nextWaveId = 1;
     nextVfxId = 1;
+    for (const f of fighters || []) if (f?.name === 'KATANA' && f.data?.katana?.manual) resetManualPose(f,false);
   }
   function soloEnsure(p) {
     p.data.katana ||= { clock:0, clones:[], cloneId:0, waves:[], vfx:[] };
@@ -23900,21 +24798,34 @@ window.apexFighterTypes = FighterTypes;
   };
   const prevHandleCollisionsKatana = handleCollisions;
   handleCollisions = function(dt) {
-    const a = fighters?.[0], b = fighters?.[1];
-    if (a && b && a.hp > 0 && b.hp > 0) {
-      const dx = b.x - a.x, dy = b.y - a.y;
+    const list = fighters || [];
+    for (let i = 0; i < list.length; i += 1) for (let j = i + 1; j < list.length; j += 1) {
+      const a = list[i], b = list[j];
+      if (!a || !b || a.hp <= 0 || b.hp <= 0) continue;
+      const ka = a.name === 'KATANA' ? a : b.name === 'KATANA' ? b : null;
+      const other = ka === a ? b : ka === b ? a : null;
+      if (!ka || !other) continue;
+      const dx = other.x - ka.x, dy = other.y - ka.y;
       const gap = Math.hypot(dx, dy) || 1;
-      const overlap = gap < a.radius + b.radius;
-      if (overlap) {
-        const ka = a.name === 'KATANA' ? a : b.name === 'KATANA' ? b : null;
-        const other = ka === a ? b : ka === b ? a : null;
-        if (ka && other) {
-          const d = katanaData(ka);
-          const piercing = d.action || (d.noCollisionUntil || 0) > matchClock;
-          if (piercing) return;
-          if (!ka.hasStatus('abilityDisabled') && ka.type?.onCollide?.(ka, other, dt, norm(other.x-ka.x, other.y-ka.y))) return;
-        }
+      if (gap >= ka.radius + other.radius) continue;
+      katanaPerfCounter('collisionCalls');
+      const d = katanaData(ka);
+      const piercing = d.action || d.manualQPassThrough || (d.noCollisionUntil || 0) > matchClock;
+      if (piercing) return;
+      const manualHeldRmb = isManualKatana(ka) && ka.data?.manualController?.isHeld?.('SECONDARY');
+      if (manualHeldRmb) {
+        const m = manualState(ka);
+        if (!ka.hasStatus('abilityDisabled') && m.collisionCd <= 0 && ka.type?.onCollide?.(ka, other, dt, norm(other.x-ka.x, other.y-ka.y))) return;
+        const nx = dx / gap, ny = dy / gap;
+        const overlapPush = Math.max(0, ka.radius + other.radius - gap) + .5;
+        ka.x = clamp(ka.x - nx * overlapPush * .5, ka.radius, GAME_SIZE - ka.radius);
+        ka.y = clamp(ka.y - ny * overlapPush * .5, ka.radius, GAME_SIZE - ka.radius);
+        other.x = clamp(other.x + nx * overlapPush * .5, other.radius, GAME_SIZE - other.radius);
+        other.y = clamp(other.y + ny * overlapPush * .5, other.radius, GAME_SIZE - other.radius);
+        ka.applyStatus?.('immune', .08, {source:ka, katanaCollisionGuard:true});
+        return;
       }
+      if (!ka.hasStatus('abilityDisabled') && ka.type?.onCollide?.(ka, other, dt, norm(other.x-ka.x, other.y-ka.y))) return;
     }
     return prevHandleCollisionsKatana(dt);
   };
@@ -23939,7 +24850,7 @@ window.apexFighterTypes = FighterTypes;
       const key = `${source.id ?? source.name ?? 'src'}:${label || 'direct'}`;
       d.hitHistory = (d.hitHistory || []).filter(h => matchClock - h.t <= C.evadeWindow && h.key === key);
       const total = d.hitHistory.reduce((s,h) => s + h.amount, 0) + amount;
-      if (total > C.evadeThreshold && oldestAvailableClones(d).length >= 4 && beginEvade(this, source)) {
+      if (!d.manual?.enabled && total > C.evadeThreshold && oldestAvailableClones(d).length >= 4 && beginEvade(this, source)) {
         d.hitHistory = [];
         return;
       }
@@ -23947,7 +24858,7 @@ window.apexFighterTypes = FighterTypes;
     }
     const before = this.hp;
     const result = prevDamageKatana.call(this, amount, source, label, statusDamage);
-    if (this.name === 'KATANA' && this.hp <= C.rageHp && !this.isRage && this.hp > 0) {
+    if (this.name === 'KATANA' && katanaShouldRage(this) && !this.isRage) {
       this.isRage = true;
       this.rageStartHp = this.hp;
       katanaData(this).rage = true;
@@ -23956,17 +24867,1590 @@ window.apexFighterTypes = FighterTypes;
     return result;
   };
 
-  window.APEX_KATANA = { constants:C, images, frameImages, audioFiles, state, KatanaType, frameIndex, _debugBladeWaveVisualHit:bladeWaveVisualHit, selfTest:() => ({
+  const manualApi = {
+    constants:MANUAL,
+    reset(f) { if (f?.name === 'KATANA') resetManualPose(f,false); },
+    hudState(f) {
+      if (!f?.data?.katana?.manual) return null;
+      const d=katanaData(f), m=d.manual;
+      return {
+        mode:m.mode, frame:frameIndex(f), lmbCooldown:m.lmbCooldown || 0, qCooldown:m.qCooldown, qWindow:m.qWindowRemaining,
+        qCastId:m.qCastId, eCooldown:m.eCooldown || 0, eReady:oldestAvailableClones(d).length>3, selectedEvadeId:m.selectedEvadeId,
+        selectedRewriteId:m.selectedRewriteId, rCooldown:m.rCooldown,
+        rewriteRemaining:m.rCharge?.timer || m.rewrite?.timer || 0, collisionCd:m.collisionCd || 0, feedback:m.feedbackUntil>matchClock?m.feedback:''
+      };
+    },
+    createCloneForTest:createClone,
+    updateCentroid,
+    cloneUnderPoint,
+    beginRewrite,
+    manualEvade,
+    acceptQ:acceptManualQ
+  };
+  window.APEX_KATANA = { constants:C, manualApi, images, frameImages, audioFiles, state, KatanaType, frameIndex, getKatanaTwoSwordCandidate, spawnSlashEffect:spawnSlash, warmVisualAssets:warmKatanaVisualAssets, _debugBladeWaveVisualHit:bladeWaveVisualHit, selfTest:() => ({
     registered:FighterTypes.filter(ft => ft.name === 'KATANA').length,
     frames:frameImages.length,
     releaseFrame:RELEASE_FRAME,
     pickButton:images.pickButton.src,
-    picked:images.picked.src
+    picked:images.picked.src,
+    visualWarmupReady:!!state.visualWarmup?.ready
   }), soloAttack, soloSpecial, soloRage, soloAdvance, drawSolo };
   Object.assign(window.apexReactBridge || {}, { startSpecificMatch, goToMenu });
   Object.assign(window, window.apexReactBridge || {}, { APEX_KATANA:window.APEX_KATANA, startSpecificMatch, goToMenu });
+  scheduleKatanaVisualWarmup();
   if (document.getElementById('roster-grid')) appendKatanaCard();
   console.info('[Apex Chaos] KATANA champion integrated', window.APEX_KATANA.selfTest());
+})();
+
+// ===== FANG V7: lunar/solar wolf hunt, frame-authoritative pounces =====
+(function APEX_FANG_CHAMPION(){
+  if (window.__apexFangChampion) return;
+  window.__apexFangChampion = true;
+
+  const ROOT='/assets/fang_v1/';
+  const C=Object.freeze({
+    color:'#d9d1be', normalFps:24, bloodFps:24*(200/175), scale:.16,
+    bodyForwardOffset:Math.PI/2, radius:49, normalFrames:13, huntFrames:22, howlFrames:48,
+    normalMult:.6, huntMult:1.225, bloodMult:1.4, huntCooldown:5, stackLife:10,
+    pounceDamage:9, collisionDamage:4.5, reboundDamage:18, cloneHp:200, cloneLife:10,
+    pounceBeyond:200, pounceSpeed:(window.APEX_KATANA?.constants?.oneSwordDistance||400)/(window.APEX_KATANA?.constants?.dashDuration||.105)*.5,
+    huntDepth:400, huntFarWidth:200, normalDepth:200, normalFarWidth:200,
+    mainStun:.5, reboundStun:1, cloneFollow:760, trueRatio:.05, maxAfterimages:34, huntMistParticles:22000,
+    maxParticles:1600, maxTrailSamples:260
+  });
+  const clips={normal:[],hunt:[],howl:[]};
+  for(const [name,count] of [['normal',13],['hunt',22],['howl',48]]) for(let i=1;i<=count;i++){
+    const img=new Image();img.decoding='async';img.src=`${ROOT}frames/${name}/frame_${String(i).padStart(3,'0')}.webp`;clips[name].push(img);
+  }
+  const imageNames=['selectionVisual','selectionButton','howlRing','biteMark','moonIcon','sunIcon','speckBlood','speckMoon','speckSun','huntMistBack','huntMistMid','huntMistFront','trailMist'];
+  const images=Object.fromEntries(imageNames.map(k=>{const img=new Image();img.decoding='async';const mist=/^(huntMist|trailMist)/.test(k)?'?v=fog-v4':'';img.src=ROOT+k+'.webp'+mist;return [k,img];}));
+  const audioFiles={
+    collisionBite:ROOT+'audio/collisionBite.wav', huntingPounce:ROOT+'audio/huntingPounce.wav',
+    postCollisionRoar:ROOT+'audio/postCollisionRoar.wav', huntRunStep:ROOT+'audio/huntRunStep.wav',
+    sniff:ROOT+'audio/sniff.wav', huntStart:ROOT+'audio/huntStart.wav', wallRebound:ROOT+'audio/wallRebound.wav',
+    howl:ROOT+'audio/howl.mp3', heavyImpact:ROOT+'audio/heavyImpact.wav'
+  };
+  const sounds={},soundPools={};
+  const state={afterimages:[],marks:[],rings:[],particles:[],seed:0x46a91d2b,lastHeavyBlock:null,huntMist:null};
+  for(const [key,src] of Object.entries(audioFiles)){const a=registerBattleMediaElement(new Audio(src));a.preload='auto';sounds[key]=a;soundPools[key]=[a];}
+  function play(key,volume=.65){
+    const base=sounds[key];if(!base)return;const pool=soundPools[key];let a=pool.find(x=>x.paused||x.ended);
+    if(!a&&pool.length<8){a=registerBattleMediaElement(base.cloneNode(true));a.preload='auto';pool.push(a);}if(!a)return;
+    try{a.currentTime=0;}catch{}a.volume=volume;const p=a.play();if(p?.catch)p.catch(()=>{});
+  }
+  function seeded(){state.seed=(Math.imul(state.seed,1664525)+1013904223)>>>0;return state.seed/4294967296;}
+  function alive(f){return !!f&&f.hp>0;}
+  function enemyOf(f){return (fighters||[]).find(q=>q&&q!==f&&q.hp>0)||null;}
+  function fangData(f){f.data||={};if(!f.data.fang)initFang(f);return f.data.fang;}
+  function initFang(f){
+    f.radius=f.baseRadius=C.radius;f.maxHp=f.hp=1000;
+    const roster=FighterTypes.filter(x=>x&&x.name!=='FANG').map(x=>x.speed||450);
+    const average=roster.reduce((a,b)=>a+b,0)/Math.max(1,roster.length);
+    f.baseSpeed=average*C.normalMult;
+    f.data.fang={state:'NORMAL_LOOP',clip:'normal',frame:1,frameElapsed:0,lastEntered:1,visualDir:{...f.dir},huntReadyAt:5,
+      huntPending:false,huntActive:false,blood:false,action:null,stacks:[],stackVisualCount:0,clones:[],cloneSerial:0,
+      trail:[],trailDistance:0,trailCursor:0,overlapLatch:false,pendingHowl:false,pendingPostStack:0,
+      iconMoon:{x:f.x,y:f.y,vx:0,vy:0},iconSun:{x:f.x,y:f.y,vx:0,vy:0},actionActualDamage:0,howlStunTarget:null,
+      silhouette:0,interceptFx:[],afterimageClock:0,normalSpeed:average};
+  }
+  function angleLerpDir(current,target,dt){
+    let a=Math.atan2(current.y,current.x),b=Math.atan2(target.y,target.x),delta=((b-a+Math.PI*3)%TAU)-Math.PI;
+    a+=delta*clamp(dt/.13,0,1);return{x:Math.cos(a),y:Math.sin(a)};
+  }
+  function setState(d,name,clip,frame){d.state=name;d.clip=clip;d.frame=frame;d.frameElapsed=0;d.lastEntered=frame;}
+  function enterFrame(f,d,frame){
+    d.frame=frame;d.lastEntered=frame;
+    if((d.state==='HUNT_LOOP'||d.state==='BLOOD_CHASE_LOOP')&&(frame===9||frame===16))play('huntRunStep',.48);
+    if(d.state==='HOWL_48'&&frame===17){play('howl',.74);d.howlStopped=true;state.rings.push({x:f.x+d.visualDir.x*C.radius*.72,y:f.y+d.visualDir.y*C.radius*.72,life:.78,maxLife:.78,age:0});emitSpecks('moon',f.x,f.y,24,150);emitSpecks('sun',f.x,f.y,24,150);}
+  }
+  function stepFrames(f,d,dt,fps,next){
+    d.frameElapsed+=dt;const frameTime=1/Math.max(.001,fps);let guard=0;
+    while(d.frameElapsed+1e-9>=frameTime&&guard++<96){d.frameElapsed-=frameTime;const n=next(d.frame);if(n==null)break;enterFrame(f,d,n);}
+  }
+  function startHuntTransition(f,d){d.huntPending=false;d.huntActive=false;d.blood=false;setState(d,'HUNT_TRANSITION','hunt',2);play('huntStart',.64);}
+  function completeHowl(f,d){
+    if(!alive(f)||gameState!=='PLAYING')return;
+    for(const c of d.clones)c.dead=true;
+    d.clones=[createClone(f,'moon',-1),createClone(f,'sun',1)];d.silhouette=0;d.pendingHowl=false;
+    if(d.howlStunTarget?.statuses?.stun){delete d.howlStunTarget.statuses.stun;}d.howlStunTarget=null;
+    setState(d,'NORMAL_LOOP','normal',13);d.huntActive=false;d.blood=false;
+    if(d.pendingPostStack>0){d.stacks=[{expires:matchClock+C.stackLife}];d.pendingPostStack=0;syncStackVisual(f,d,true);}
+  }
+  function updateAnimation(f,d,dt){
+    if(d.state==='NORMAL_LOOP')stepFrames(f,d,dt,24,frame=>{if(frame===13&&d.huntPending){startHuntTransition(f,d);return null;}return frame===13?1:frame+1;});
+    else if(d.state==='HUNT_TRANSITION')stepFrames(f,d,dt,24,frame=>{if(frame===8){d.huntActive=true;setState(d,'HUNT_LOOP','hunt',9);enterFrame(f,d,9);return null;}return frame+1;});
+    else if(d.state==='HUNT_LOOP'||d.state==='BLOOD_CHASE_LOOP')stepFrames(f,d,dt,d.blood?C.bloodFps:24,frame=>frame===22?9:frame+1);
+    else if(d.state==='HOWL_48')stepFrames(f,d,dt,24,frame=>{if(frame===48){completeHowl(f,d);return null;}return frame+1;});
+    else if(d.action){
+      const a=d.action;if(a.freezeH20&&d.frame===20)return;
+      const fps=Math.max(24,a.animFps||24);
+      stepFrames(f,d,dt,fps,frame=>{if(frame===22){if(d.pendingHowl){finishAction(f,d);return null;}return 9;}if(frame===9&&a.recovering&&!d.pendingHowl){finishAction(f,d);return null;}return frame===22?9:frame+1;});
+    }
+  }
+  function createClone(f,kind,side){const d=fangData(f),right={x:-d.visualDir.y,y:d.visualDir.x};return{id:++d.cloneSerial,kind,side,x:f.x+right.x*side*102-d.visualDir.x*58,y:f.y+right.y*side*102-d.visualDir.y*58,hp:C.cloneHp,life:C.cloneLife,frame:1,frameElapsed:0,reserved:false,dead:false,action:null};}
+  function liveClones(d){return d.clones.filter(c=>!c.dead&&c.hp>0&&c.life>0);}
+  function emitSpecks(kind,x,y,count=12,speed=90,dir=null){
+    const img=kind==='blood'?images.speckBlood:kind==='moon'?images.speckMoon:images.speckSun;
+    for(let i=0;i<count;i++){if(state.particles.length>=C.maxParticles)state.particles.shift();const base=dir?Math.atan2(dir.y,dir.x):seeded()*TAU;const a=base+(seeded()-.5)*(dir?.spread||TAU);const life=.25+seeded()*.48;state.particles.push({img,x,y,vx:Math.cos(a)*speed*(.35+seeded()),vy:Math.sin(a)*speed*(.35+seeded()),life,maxLife:life,scale:.010+seeded()*.010,rot:seeded()*TAU,spin:(seeded()-.5)*4,kind});}
+  }
+  function syncStackVisual(f,d,burst=false){
+    const count=d.stacks.length;if(count===d.stackVisualCount)return;
+    if(count<d.stackVisualCount){if(d.stackVisualCount>=2&&count<2)emitSpecks('sun',d.iconSun.x,d.iconSun.y,18,120);if(d.stackVisualCount>=1&&count<1)emitSpecks('moon',d.iconMoon.x,d.iconMoon.y,18,120);}
+    else if(burst||count>d.stackVisualCount){if(count>=1&&d.stackVisualCount<1)emitSpecks('moon',f.x,f.y,16,110);if(count>=2&&d.stackVisualCount<2)emitSpecks('sun',f.x,f.y,16,110);}
+    d.stackVisualCount=count;
+  }
+  function expireStacks(f,d){
+    if(d.action?.reservedStacks)return;
+    const before=d.stacks.length;d.stacks=d.stacks.filter(s=>s.expires>matchClock);if(before!==d.stacks.length)syncStackVisual(f,d);
+  }
+  function actualDamage(owner,target,amount,label){const before=target.hp;target.takeDamage(amount,owner,label,false);return Math.max(0,before-target.hp);}
+  function applyTrue(owner,target,amount,label){
+    if(!alive(target)||!(amount>0))return 0;const dealt=Math.min(target.hp,amount);target.hp-=dealt;target.damageTaken=(target.damageTaken||0)+dealt;
+    owner.damageDone=(owner.damageDone||0)+dealt;owner.hitsLanded=(owner.hitsLanded||0)+1;owner.maxHit=Math.max(owner.maxHit||0,dealt);owner.damageLabels[label+'-true']=(owner.damageLabels[label+'-true']||0)+dealt;
+    floatingTexts.push(new FloatingText(target.x,target.y-target.radius-22,dealt.toFixed(1),'#ffffff'));updateHUD();return dealt;
+  }
+  function triggerThird(f,d,target,dir){
+    d.stacks=[];d.stackVisualCount=0;d.pendingHowl=false;d.howlStunTarget=null;d.silhouette=0;
+    emitSpecks('moon',f.x,f.y,34,180);emitSpecks('sun',f.x,f.y,34,180);
+    const right={x:-dir.y,y:dir.x};
+    for(const [kind,side] of [['moon',-1],['sun',1]]){
+      const c=createClone(f,kind,side);c.reserved=true;c.consumeAfterCross=true;c.life=.36;c.hp=C.cloneHp;c.x=f.x-right.x*side*82-dir.x*40;c.y=f.y-right.y*side*82-dir.y*40;
+      c.action={phase:'cross',t:0,startX:c.x,startY:c.y,targetX:target.x,targetY:target.y,dir:{x:dir.x,y:dir.y}};d.clones.push(c);
+    }
+  }
+  function pounceHit(f,d,target,base,kind,fromRebound=false){
+    const a=d.action;if(!a||a.hitKeys.has(kind))return 0;a.hitKeys.add(kind);
+    const count=fromRebound?d.stacks.length:a.stackSnapshot;
+    const missingBefore=Math.max(0,target.maxHp-target.hp);let dealt=0;
+    const clones=kind==='hunting'&&!fromRebound?liveClones(d):kind==='collision'&&!fromRebound?liveClones(d):[];
+    const three=kind==='hunting'&&clones.length===2;
+    dealt+=actualDamage(f,target,base,`fang-${kind}`);
+    if(!fromRebound){
+      if(three){for(const c of clones){c.reserved=true;c.action={phase:'cross',t:0,startX:c.x,startY:c.y,targetX:target.x,targetY:target.y,dir:{x:a.dir.x,y:a.dir.y}};dealt+=actualDamage(f,target,base*.5,`fang-three-wolf-${c.kind}`);} }
+      else for(const c of clones.slice(0,kind==='collision'?2:1))dealt+=actualDamage(f,target,base*.5,`fang-double-${kind}`);
+    }
+    const third=count===2;const sharedTrue=three||third;if(sharedTrue)dealt+=applyTrue(f,target,missingBefore*C.trueRatio,'fang-lunar-solar');
+    if(third)triggerThird(f,d,target,a.dir);else if(fromRebound&&d.pendingHowl){d.pendingPostStack=Math.min(2,d.pendingPostStack+1);}else{d.stacks.push({expires:matchClock+C.stackLife});syncStackVisual(f,d,true);}
+    if(three)for(const c of clones)c.consumeAfterCross=true;
+    target.applyStatus('stun',fromRebound?C.reboundStun:C.mainStun,{source:f});
+    emitSpecks('blood',target.x,target.y,18,190,{...a.dir,spread:.8});state.marks.push({x:target.x,y:target.y,angle:Math.atan2(a.dir.y,a.dir.x),life:.26,maxLife:.26,targetId:target.id});
+    if(kind==='collision')play('collisionBite',.62);
+    a.actual=(a.actual||0)+dealt;return dealt;
+  }
+  function rearEndpoint(target,dir){return{x:target.x+dir.x*(target.radius+C.pounceBeyond),y:target.y+dir.y*(target.radius+C.pounceBeyond)};}
+  function intervalsTo20(frame){if(frame<=20)return 20-frame;return (22-frame)+12;}
+  function beginPounce(f,target,kind,dir=f.dir){
+    const d=fangData(f);if(d.action||!target)return false;dir=norm(dir.x,dir.y);const endpoint=rearEndpoint(target,dir);const distance=Math.hypot(target.x-f.x,target.y-f.y);
+    d.visualDir={x:dir.x,y:dir.y};f.setDir(dir.x,dir.y);
+    const frame=kind==='collision'?17:d.frame;setState(d,kind==='collision'?'NORMAL_COLLISION_POUNCE':'HUNT_POUNCE','hunt',frame);
+    const time=Math.max(.001,(Math.max(0,distance-target.radius-f.radius))/C.pounceSpeed);const intervals=intervalsTo20(frame);
+    d.action={kind,dir,start:{x:f.x,y:f.y},endpoint,targetId:target.id,targetSnapshot:{x:target.x,y:target.y,radius:target.radius},hit:false,hitKeys:new Set(),reboundUsed:false,rebounding:false,recovering:false,freezeH20:false,animFps:intervals/24<=time?24:intervals/time,stackSnapshot:d.stacks.length,reservedStacks:d.stacks.slice(),lifesteal:d.stacks.length===1,actual:0,lastX:f.x,lastY:f.y};
+    d.huntActive=false;d.blood=false;if(kind==='hunting'){d.huntReadyAt=matchClock+C.huntCooldown;d.huntPending=false;play('huntingPounce',.68);}else play('postCollisionRoar',.62);
+    return true;
+  }
+  function segmentCircle(x1,y1,x2,y2,cx,cy,r){return distToSegment(cx,cy,x1,y1,x2,y2)<=r;}
+  function heavyBlockerOnSegment(f,a,nx,ny){
+    for(const p of projectiles||[]){if(!p||p.owner===f||!(p.life>0)||!/(rocket|planet|war_machine|soccer|mine_explosion|turret)/i.test(p.type||''))continue;if(segmentCircle(f.x,f.y,nx,ny,p.x,p.y,(p.radius||24)+f.radius*.35))return p;}
+    const eng=enemyOf(f);for(const s of eng?.data?.engineer?.structures||[]){if(s.hp>0&&segmentCircle(f.x,f.y,nx,ny,s.x,s.y,(s.radius||s.size||55)+f.radius*.35))return s;}
+    return null;
+  }
+  function wallAt(x,y,r){if(x<r)return'left';if(x>GAME_SIZE-r)return'right';if(y<r)return'top';if(y>GAME_SIZE-r)return'bottom';return null;}
+  function startRebound(f,d,target,side){
+    const a=d.action;if(a.reboundUsed){a.recovering=true;a.freezeH20=false;return;}a.reboundUsed=true;a.rebounding=true;a.hit=false;
+    f.x=clamp(f.x,f.radius,GAME_SIZE-f.radius);f.y=clamp(f.y,f.radius,GAME_SIZE-f.radius);a.dir=norm(target.x-f.x,target.y-f.y);a.endpoint=rearEndpoint(target,a.dir);a.lastX=f.x;a.lastY=f.y;a.freezeH20=false;a.animFps=Math.max(24,intervalsTo20(d.frame)/Math.max(.001,dist(f.x,f.y,target.x,target.y)/C.pounceSpeed));
+    d.visualDir={x:a.dir.x,y:a.dir.y};f.setDir(a.dir.x,a.dir.y);
+    play('wallRebound',.72);play('huntingPounce',.48);
+  }
+  function finishAction(f,d){
+    const a=d.action;if(!a)return;if(a.lifesteal&&a.actual>0)f.heal(a.actual,false);
+    d.action=null;d.overlapLatch=true;
+    if(d.pendingHowl){setState(d,'HOWL_48','howl',1);d.silhouette=Math.max(d.silhouette,.35);return;}
+    setState(d,'NORMAL_LOOP','normal',1);d.huntActive=false;d.blood=false;
+  }
+  function updatePounce(f,d,target,dt){
+    const a=d.action;if(!a)return;f.data.positionLocked=true;d.visualDir={x:a.dir.x,y:a.dir.y};f.setDir(a.dir.x,a.dir.y);if(a.recovering)return;const ox=f.x,oy=f.y;let remaining=C.pounceSpeed*dt;const ex=a.endpoint.x-f.x,ey=a.endpoint.y-f.y;const len=Math.hypot(ex,ey);const step=Math.min(remaining,len);let nx=f.x+a.dir.x*step,ny=f.y+a.dir.y*step;
+    const blocker=heavyBlockerOnSegment(f,a,nx,ny);if(blocker){play('heavyImpact',.7);if(Number.isFinite(blocker.hp))blocker.hp=Math.max(0,blocker.hp-C.pounceDamage);state.lastHeavyBlock={type:blocker.type||'construction',t:matchClock};a.recovering=true;a.freezeH20=false;a.animFps=24;enterFrame(f,d,21);return;}
+    f.x=nx;f.y=ny;a.lastX=ox;a.lastY=oy;
+    if(state.afterimages.length>=C.maxAfterimages)state.afterimages.shift();d.afterimageClock+=dt;if(d.afterimageClock>=.025){d.afterimageClock=0;state.afterimages.push({x:f.x,y:f.y,dir:{...a.dir},clip:d.clip,frame:d.frame,life:.22,maxLife:.22,kind:'main'});}
+    const hitTarget=alive(target)&&!a.hit&&segmentCircle(ox,oy,f.x,f.y,target.x,target.y,target.radius+f.radius*.28);
+    if(hitTarget&&d.frame!==20){const intervals=intervalsTo20(d.frame);a.animFps=Math.max(a.animFps||24,intervals/Math.max(.001,dt));let guard=0;while(d.frame!==20&&guard++<32)enterFrame(f,d,d.frame===22?9:d.frame+1);}
+    if(hitTarget&&d.frame===20){a.hit=true;a.freezeH20=false;pounceHit(f,d,target,a.rebounding?C.reboundDamage:(a.kind==='collision'?C.collisionDamage:C.pounceDamage),a.rebounding?'rebound':a.kind,a.rebounding);}
+    if(d.frame===20&&!a.hit)a.freezeH20=true;
+    const side=wallAt(f.x,f.y,f.radius);if(side){if(target)startRebound(f,d,target,side);else{a.recovering=true;a.freezeH20=false;enterFrame(f,d,21);}return;}
+    if(len<=step+.001){a.freezeH20=false;a.recovering=true;a.animFps=24;enterFrame(f,d,21);}
+  }
+  function updateTrail(f,d,target){
+    if(!target)return;const last=d.trail[d.trail.length-1];if(!last||dist(last.x,last.y,target.x,target.y)>=10)d.trail.push({x:target.x,y:target.y,t:matchClock});
+    let maxLen=clamp(360+((target.maxHp-target.hp)/Math.max(1,target.maxHp))*100*16,360,2000),sum=0,cut=0;
+    for(let i=d.trail.length-1;i>0;i--){sum+=dist(d.trail[i].x,d.trail[i].y,d.trail[i-1].x,d.trail[i-1].y);if(sum>maxLen){cut=i;break;}}
+    if(cut>0)d.trail.splice(0,cut);if(d.trail.length>C.maxTrailSamples)d.trail.splice(0,d.trail.length-C.maxTrailSamples);
+  }
+  function inHuntTrapezoid(f,d,target){
+    const dir=d.visualDir,right={x:-dir.y,y:dir.x},mouth={x:f.x+dir.x*f.radius*.8,y:f.y+dir.y*f.radius*.8};const rx=target.x-mouth.x,ry=target.y-mouth.y;const forward=rx*dir.x+ry*dir.y,lateral=Math.abs(rx*right.x+ry*right.y);if(forward<-target.radius||forward>C.huntDepth+target.radius)return false;const half=lerp(f.radius*.42,C.huntFarWidth*.5,clamp(forward/C.huntDepth,0,1));return lateral<=half+target.radius;
+  }
+  function checkBlood(f,d){
+    const nose={x:f.x+d.visualDir.x*f.radius*.82,y:f.y+d.visualDir.y*f.radius*.82};let best=-1,bestD=Infinity;
+    for(let i=0;i<d.trail.length;i++){const p=d.trail[i],dd=dist(nose.x,nose.y,p.x,p.y);if(dd<52&&dd<bestD){best=i;bestD=dd;}}
+    if(best>=0){if(!d.blood){d.blood=true;d.state='BLOOD_CHASE_LOOP';play('sniff',.58);}d.trailCursor=Math.min(d.trail.length-1,best+1);}
+    if(d.blood){const p=d.trail[d.trailCursor];if(p){const to=norm(p.x-f.x,p.y-f.y);f.setDir(to.x,to.y);if(dist(f.x,f.y,p.x,p.y)<48)d.trailCursor++;}if(d.trailCursor>=d.trail.length){d.blood=false;d.state='HUNT_LOOP';}}
+  }
+  function updateIcons(f,d,dt){
+    const right={x:-d.visualDir.y,y:d.visualDir.x};for(const [icon,side] of [[d.iconMoon,-1],[d.iconSun,1]]){
+      const clone=liveClones(d).find(c=>c.side===side);let tx=f.x+right.x*side*104-d.visualDir.x*12,ty=f.y+right.y*side*104-d.visualDir.y*12;
+      if(clone){tx=clone.x+right.x*side*54+d.visualDir.x*34;ty=clone.y+right.y*side*54+d.visualDir.y*34;}
+      const dx=tx-icon.x,dy=ty-icon.y;icon.vx=(icon.vx+dx*22*dt)*Math.exp(-8*dt);icon.vy=(icon.vy+dy*22*dt)*Math.exp(-8*dt);icon.x+=icon.vx*dt;icon.y+=icon.vy*dt;
+    }
+  }
+  function updateClones(f,d,dt){
+    const right={x:-d.visualDir.y,y:d.visualDir.x};for(const c of d.clones){if(c.dead)continue;if(!c.reserved)c.life-=dt;if(c.life<=0||c.hp<=0){c.dead=true;emitSpecks(c.kind,c.x,c.y,24,130);continue;}
+      if(c.action?.phase==='cross'){c.action.t+=dt;const t=clamp(c.action.t/.16,0,1),crossSide=-c.side;const ex=c.action.targetX+c.action.dir.x*(C.pounceBeyond*.72)+right.x*crossSide*100,ey=c.action.targetY+c.action.dir.y*(C.pounceBeyond*.72)+right.y*crossSide*100;c.x=lerp(c.action.startX,ex,t);c.y=lerp(c.action.startY,ey,t);c.frame=20;if(t>=1&&c.consumeAfterCross){c.dead=true;emitSpecks(c.kind,c.x,c.y,30,170,c.action.dir);}}
+      else{const tx=f.x+right.x*c.side*104-d.visualDir.x*64,ty=f.y+right.y*c.side*104-d.visualDir.y*64;const dd=dist(c.x,c.y,tx,ty),step=Math.min(dd,C.cloneFollow*dt);if(dd>.01){c.x+=(tx-c.x)/dd*step;c.y+=(ty-c.y)/dd*step;}c.frame=d.clip==='normal'?d.frame:clamp(d.frame,1,22);}
+    }d.clones=d.clones.filter(c=>!c.dead);
+  }
+  function updateVisualState(dt){
+    for(const fx of state.afterimages)fx.life-=dt;state.afterimages=state.afterimages.filter(x=>x.life>0);
+    for(const fx of state.marks)fx.life-=dt;state.marks=state.marks.filter(x=>x.life>0);
+    for(const r of state.rings){r.life-=dt;r.age+=dt;}state.rings=state.rings.filter(x=>x.life>0);
+    for(const p of state.particles){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.exp(-2.4*dt);p.vy*=Math.exp(-2.4*dt);p.rot+=p.spin*dt;}state.particles=state.particles.filter(x=>x.life>0);
+  }
+  function updateFang(f,target,dt){
+    const d=fangData(f);updateTrail(f,d,target);expireStacks(f,d);updateIcons(f,d,dt);updateClones(f,d,dt);
+    if(!d.action&&d.state!=='HOWL_48'&&matchClock>=d.huntReadyAt&&!d.huntActive)d.huntPending=true;
+    if(d.action)updatePounce(f,d,target,dt);
+    else if(d.state==='HOWL_48'){
+      f.data.positionLocked=true;const frame=d.frame;if(frame<=16){f.x+=f.dir.x*d.normalSpeed*.5*dt;f.y+=f.dir.y*d.normalSpeed*.5*dt;}else if(frame>=41){const mult=lerp(.5,1,(frame-41)/7);f.x+=f.dir.x*d.normalSpeed*mult*dt;f.y+=f.dir.y*d.normalSpeed*mult*dt;}
+      f.x=clamp(f.x,f.radius,GAME_SIZE-f.radius);f.y=clamp(f.y,f.radius,GAME_SIZE-f.radius);d.silhouette=clamp(d.silhouette+dt*.55,0,1);
+    }else if(d.huntActive){checkBlood(f,d);if(target&&inHuntTrapezoid(f,d,target))beginPounce(f,target,'hunting',d.visualDir);}
+    updateAnimation(f,d,dt);
+    const wanted=d.action?.dir||f.dir;if(Math.hypot(wanted.x,wanted.y)>.01)d.visualDir=angleLerpDir(d.visualDir,wanted,dt);
+  }
+  function speedModifier(f){const d=fangData(f);if(d.state==='HUNT_TRANSITION')return lerp(1,C.huntMult/C.normalMult,clamp((d.frame-2)/6,0,1));if(d.huntActive)return(d.blood?C.bloodMult:C.huntMult)/C.normalMult;return 1;}
+  function bodyImage(d){return clips[d.clip]?.[clamp(d.frame,1,clips[d.clip]?.length||1)-1]||clips.normal[0];}
+  function drawBody(ctx,img,alpha=1,filter='',scale=C.scale){if(!img?.complete||!img.naturalWidth)return;ctx.save();ctx.globalAlpha*=alpha;if(filter)ctx.filter=filter;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';const w=img.naturalWidth*scale,h=img.naturalHeight*scale;ctx.drawImage(img,-w/2,-h/2,w,h);ctx.restore();}
+  function drawFang(ctx,f){const d=fangData(f),base=Math.atan2(f.dir.y,f.dir.x),face=Math.atan2(d.visualDir.y,d.visualDir.x);ctx.save();ctx.rotate(face-base+C.bodyForwardOffset);if(d.action){ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.20;ctx.fillStyle='#9b0012';ctx.beginPath();ctx.ellipse(0,18,48,150,0,0,TAU);ctx.fill();ctx.restore();drawBody(ctx,bodyImage(d),1,'drop-shadow(0 0 11px #ff3140) drop-shadow(0 0 18px #6d0010)',C.scale*1.08);}else drawBody(ctx,bodyImage(d),1);ctx.restore();}
+  function ribbonPath(ctx,points){
+    if(!points||points.length<2)return;ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);
+    for(let i=1;i<points.length-1;i++){const mx=(points[i].x+points[i+1].x)/2,my=(points[i].y+points[i+1].y)/2;ctx.quadraticCurveTo(points[i].x,points[i].y,mx,my);}
+    const last=points[points.length-1];ctx.lineTo(last.x,last.y);
+  }
+  function fract(n){return n-Math.floor(n);}
+  function speckAt(ctx,img,x,y,scale,alpha,rot=0,filter='',tint=''){
+    if(!img?.complete)return;ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.globalAlpha*=alpha;if(filter)ctx.filter=filter;ctx.drawImage(img,-img.width*scale/2,-img.height*scale/2,img.width*scale,img.height*scale);
+    if(tint){ctx.globalCompositeOperation='source-atop';ctx.fillStyle=tint;ctx.fillRect(-img.width*scale/2,-img.height*scale/2,img.width*scale,img.height*scale);}
+    ctx.restore();
+  }
+  function mistFade(age,life){const x=clamp(age/life,0,1);return Math.sin(Math.PI*x)*Math.pow(1-x,.35);}
+  function makeBloodFogTexture(key,w,h,count,shapeFn,opts={}){
+    if(typeof document==='undefined')return null;const img=images.speckBlood;if(!img?.complete||!img.naturalWidth)return null;
+    const mask=document.createElement('canvas');mask.width=w;mask.height=h;const m=mask.getContext('2d');
+    const detail=document.createElement('canvas');detail.width=w;detail.height=h;const q=detail.getContext('2d');
+    if(!m||!q)return null;m.clearRect(0,0,w,h);q.clearRect(0,0,w,h);m.globalCompositeOperation=q.globalCompositeOperation='source-over';
+    for(let i=0;i<count;i++){
+      const r1=fract(Math.sin((i+1)*(opts.a||12.9898)+(opts.b||3.71))*43758.5453),r2=fract(Math.sin((i+1)*(opts.c||78.233)+(opts.d||1.91))*24634.6345),r3=fract(Math.sin((i+1)*(opts.e||37.719)+(opts.g||8.13))*96321.417),r4=fract(Math.sin((i+1)*(opts.h||5.398)+(opts.j||9.17))*16431.371);
+      const p=shapeFn(r1,r2,r3,r4,i);if(!p)continue;
+      const density=p.density??1,scale=Math.min(C.radius*.095/img.width,p.scale||.0042),alpha=(p.alpha??.1)*density,rot=(p.rot??r2*TAU),dw=img.width*scale,dh=img.height*scale;
+      m.save();m.translate(p.x,p.y);m.rotate(rot);m.globalAlpha=Math.min(1,alpha*2.9);m.drawImage(img,-dw/2,-dh/2,dw,dh);m.restore();
+      if(i%3===0){q.save();q.translate(p.x,p.y);q.rotate(rot);q.globalAlpha=Math.min(.72,alpha*2.3);q.drawImage(img,-dw/2,-dh/2,dw,dh);q.globalCompositeOperation='source-atop';q.fillStyle=density>.62?'#4a0000':'#cc0000';q.fillRect(-dw/2,-dh/2,dw,dh);q.restore();}
+    }
+    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const c=canvas.getContext('2d');if(!c)return null;
+    c.clearRect(0,0,w,h);c.globalCompositeOperation='source-over';
+    const low=document.createElement('canvas'),lw=Math.max(24,Math.ceil(w/7)),lh=Math.max(18,Math.ceil(h/7));low.width=lw;low.height=lh;const l=low.getContext('2d');
+    if(l){l.clearRect(0,0,lw,lh);l.globalAlpha=1;l.drawImage(mask,0,0,lw,lh);l.filter='blur(2.4px)';l.globalAlpha=.95;l.drawImage(low,-1,0);l.globalAlpha=.75;l.drawImage(low,1,-1);l.filter='none';}
+    c.filter='blur(9px)';c.globalAlpha=.94;c.drawImage(low,0,0,lw,lh,0,0,w,h);c.globalAlpha=.52;c.drawImage(low,0,0,lw,lh,-10,4,w+20,h-8);c.filter='none';
+    const blur=Math.max(3.2,opts.blur||4.4);c.filter=`blur(${blur}px)`;c.globalAlpha=.72;c.drawImage(mask,-2,0);c.globalAlpha=.54;c.drawImage(mask,3,-2);c.globalAlpha=.42;c.drawImage(mask,0,3);c.filter='none';
+    c.globalCompositeOperation='source-in';const ramp=c.createLinearGradient(0,0,w,0);ramp.addColorStop(0,'rgba(43,0,0,.95)');ramp.addColorStop(.46,'rgba(74,0,0,.92)');ramp.addColorStop(.78,'rgba(158,0,0,.88)');ramp.addColorStop(1,'rgba(204,0,0,.72)');c.fillStyle=ramp;c.fillRect(0,0,w,h);
+    c.globalCompositeOperation='lighter';c.globalAlpha=.88;c.drawImage(detail,0,0);
+    return {key,canvas,w,h};
+  }
+  function getTrailMistTexture(){
+    const baked=images.trailMist;if(baked?.complete&&baked.naturalWidth)return{key:'trailMist:baked',canvas:baked,w:baked.naturalWidth,h:baked.naturalHeight};
+    const key='trailMist:v2:speckBlood';if(state.trailMist?.key===key)return state.trailMist;const size=176,center=size/2;
+    const tex=makeBloodFogTexture(key,size,size,1350,(r1,r2,r3,r4,i)=>{const ang=r1*TAU,rad=Math.pow(r2,.55)*center*.92,x=center+Math.cos(ang)*rad*(.85+.25*r3),y=center+Math.sin(ang)*rad*.66;const edge=rad/(center*.92);return{x,y,scale:lerp(.0017,.0043,r4),alpha:lerp(.055,.17,r3)*(1-edge*.62),density:1-edge,dark:r3*.34,hot:.14+r4*.18,rot:ang};},{blur:1.1,blurAlpha:.20});
+    return state.trailMist=tex;
+  }
+  function drawBloodRibbon(ctx,d,alpha=1){
+    const pts=d.trail,tex=getTrailMistTexture();if(!pts||pts.length<2||!tex)return;const life=2.15;
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    for(let i=Math.max(0,pts.length-150);i<pts.length;i+=6){
+      const p=pts[i],age=matchClock-(p.t||matchClock);if(age<0||age>life)continue;const x=age/life,fade=mistFade(age,life);
+      const r1=fract(Math.sin((i+1)*91.37)*43758.5453),r2=fract(Math.sin((i+1)*27.73)*24634.6345);
+      const driftX=(r1-.5)*32*x+Math.sin(matchClock*.8+i)*10*x,driftY=-18*x+Math.cos(matchClock*.65+i*.31)*8*x,scale=lerp(.34,.64,x);
+      ctx.save();ctx.translate(p.x+driftX,p.y+driftY);ctx.rotate((r2-.5)*.65+Math.sin(matchClock*.45+i)*.08);ctx.globalAlpha=alpha*fade;ctx.filter='blur(2.8px) brightness(1.65) saturate(1.35)';ctx.drawImage(tex.canvas,-tex.w*scale/2,-tex.h*scale*.82/2,tex.w*scale,tex.h*scale*.82);ctx.filter='brightness(1.9) saturate(1.45)';ctx.globalAlpha=alpha*fade*.48;ctx.drawImage(tex.canvas,-tex.w*scale*.72/2,-tex.h*scale*.58/2,tex.w*scale*.72,tex.h*scale*.58);ctx.restore();
+    }
+    ctx.restore();
+  }
+  function getHuntMistTexture(){
+    const pad=30,near=C.radius*.72,farHalf=C.huntFarWidth*.52,w=Math.ceil(C.huntDepth+pad*2),h=Math.ceil(farHalf*2+pad*2),key=`${w}x${h}:${C.huntMistParticles}:speckBlood:v3`;
+    const baked=[images.huntMistBack,images.huntMistMid,images.huntMistFront];
+    if(baked.every(img=>img?.complete&&img.naturalWidth))return{key:'huntMist:baked:23000',layers:baked.map((canvas,i)=>({key:`baked-${i}`,canvas,w:canvas.naturalWidth,h:canvas.naturalHeight})),pad,w:baked[0].naturalWidth,h:baked[0].naturalHeight,particles:23000};
+    if(state.huntMist?.key===key)return state.huntMist;
+    const counts=[8000,9000,6000],layers=counts.map((count,li)=>makeBloodFogTexture(`${key}:layer${li}`,w,h,count,(r1,r2,r3,r4,i)=>{
+      const t=Math.pow(r1,li===0?.62:li===1?.72:.82),wobble=1+Math.sin(t*(6.3+li*2.7)+i*.011)*(.14-li*.025)+Math.sin(t*14.7+i*.019)*.055;
+      const half=lerp(near*(li===2?.55:.85),farHalf*(li===0?1.15:li===1?1:.82),t)*wobble,side=(r2-.5)*2*half*(.11+.89*r3),edge=Math.abs(side)/Math.max(1,half);
+      return{x:pad+C.huntDepth*t+Math.sin(t*10+i*.007)*8*(li+1),y:h/2+side,scale:lerp(.0024,.0060,r4)*(li===2?1.18:1),alpha:lerp(li===0?.25:li===1?.42:.30,li===0?.075:li===1?.13:.09,t)*(1-edge*.38),density:1-edge,dark:(1-t)*(li===0?.76:.48),hot:t*(li===2?.42:.30),rot:r2*TAU};
+    },{blur:li===0?2.2:li===1?1.3:2.8,blurAlpha:li===0?.28:li===1?.20:.16,a:12.9+li*4.7,c:78.2+li*9.1,e:37.7+li*6.3}));
+    state.huntMist={key,layers:layers.filter(Boolean),pad,w,h,particles:counts.reduce((a,b)=>a+b,0)};return state.huntMist;
+  }
+  function drawHuntZone(ctx,f,d){
+    if(!d.huntActive&&!d.action)return;const dir=d.action?.dir||d.visualDir,nose={x:f.x+dir.x*f.radius*.62,y:f.y+dir.y*f.radius*.62},mist=getHuntMistTexture();
+    if(!mist)return;const pulse=.72+.20*Math.sin(matchClock*2.3)+.08*Math.sin(matchClock*5.1),shift1=Math.sin(matchClock*.9)*18,shift2=Math.cos(matchClock*.7)*11;
+    ctx.save();ctx.translate(nose.x,nose.y);ctx.rotate(Math.atan2(dir.y,dir.x));
+    for(let i=0;i<(mist.layers?.length||0);i++){
+      const layer=mist.layers[i],par=i===0?.35:i===1?.72:1.25,sx=1.03+Math.sin(matchClock*(.55+i*.21))*0.035,sy=(i===0?1.38:i===1?1.18:1.52)+Math.cos(matchClock*(.72+i*.27))*0.07;
+      ctx.save();ctx.scale(sx,sy);ctx.globalCompositeOperation=i===2?'lighter':'source-over';ctx.filter=`blur(${i===0?4.5:i===1?2.2:6.5}px)`;ctx.globalAlpha=(d.blood?1:.94)*(i===0?.88:i===1?.92:.46)*(i===1?pulse:1.04-pulse*.18);
+      const x=-mist.pad+shift1*par+i*3,y=-mist.h/2+shift2*par-i*4;ctx.drawImage(layer.canvas,x,y);ctx.globalAlpha*=.42;ctx.drawImage(layer.canvas,x-12*par,y+8*Math.sin(matchClock*.8+i));ctx.restore();
+    }
+    ctx.restore();
+  }
+  function drawPounceLine(ctx,f,d){
+    const a=d.action;if(!a)return;ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';ctx.lineJoin='round';const end=a.endpoint||f,pts=[a.start,{x:f.x,y:f.y},end].filter(Boolean);
+    ctx.shadowColor='rgba(255,35,45,.85)';ctx.shadowBlur=16;ctx.strokeStyle=a.rebounding?'rgba(255,228,160,.58)':'rgba(255,34,47,.50)';ctx.lineWidth=a.rebounding?18:15;ribbonPath(ctx,pts);ctx.stroke();
+    ctx.shadowBlur=0;ctx.strokeStyle='rgba(255,245,230,.72)';ctx.lineWidth=3;ribbonPath(ctx,pts);ctx.stroke();
+    ctx.restore();
+  }
+  function drawWorldFang(ctx){
+    for(const fx of state.afterimages){const img=clips[fx.clip]?.[fx.frame-1],a=fx.life/fx.maxLife;ctx.save();ctx.translate(fx.x,fx.y);ctx.rotate(Math.atan2(fx.dir.y,fx.dir.x)+C.bodyForwardOffset);drawBody(ctx,img,.28*a,'saturate(.55)');ctx.restore();}
+    for(const f of fighters||[]){if(f?.name!=='FANG'||!alive(f))continue;const d=fangData(f);
+      drawHuntZone(ctx,f,d);if((d.huntActive||d.blood)&&d.trail.length>1)drawBloodRibbon(ctx,d,d.blood?1:.82);
+      for(const c of liveClones(d)){ctx.save();ctx.translate(c.x,c.y);ctx.rotate(Math.atan2(d.visualDir.y,d.visualDir.x)+C.bodyForwardOffset);const img=d.clip==='howl'?clips.howl[d.frame-1]:d.clip==='hunt'?clips.hunt[(c.frame||d.frame)-1]:clips.normal[(c.frame||d.frame)-1];drawBody(ctx,img,.68,c.kind==='moon'?'saturate(.72) drop-shadow(0 0 12px #63a8ff)':'saturate(.82) drop-shadow(0 0 12px #ffb248)');ctx.restore();}
+      if(d.silhouette>0&&d.pendingHowl){const right={x:-d.visualDir.y,y:d.visualDir.x};for(const side of [-1,1]){ctx.save();ctx.translate(f.x+right.x*side*105,f.y+right.y*side*105);ctx.rotate(Math.atan2(d.visualDir.y,d.visualDir.x)+C.bodyForwardOffset);drawBody(ctx,bodyImage(d),.46*d.silhouette,side<0?'brightness(.72) saturate(.7) drop-shadow(0 0 14px #65adff)':'brightness(.78) saturate(.8) drop-shadow(0 0 14px #ffae48)');ctx.restore();}}
+      const bob=Math.sin(matchClock*3.1)*5;if(d.stacks.length>=1)drawIcon(ctx,images.moonIcon,d.iconMoon.x,d.iconMoon.y+bob,'#6cb7ff');if(d.stacks.length>=2)drawIcon(ctx,images.sunIcon,d.iconSun.x,d.iconSun.y-bob,'#ffb84f');
+    }
+    for(const r of state.rings){const t=r.age/r.maxLife,rad=25+t*250;ctx.save();ctx.globalAlpha=clamp(r.life/r.maxLife,0,1)*.75;ctx.strokeStyle=ctx.createPattern(images.howlRing,'repeat')||'#e9d9c1';ctx.lineWidth=lerp(10,5,t);ctx.beginPath();ctx.arc(r.x,r.y,rad,0,TAU);ctx.stroke();ctx.restore();}
+    for(const p of state.particles){const a=p.life/p.maxLife;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.globalAlpha=a*.8;const s=p.scale*(.7+.3*a);if(p.img.complete)ctx.drawImage(p.img,-p.img.width*s/2,-p.img.height*s/2,p.img.width*s,p.img.height*s);ctx.restore();}
+  }
+  function drawIcon(ctx,img,x,y,color){if(!img?.complete)return;ctx.save();ctx.translate(x,y);ctx.globalAlpha=.92;ctx.filter=`drop-shadow(0 0 9px ${color}) drop-shadow(0 0 14px ${color})`;const s=.066;ctx.drawImage(img,-img.width*s/2,-img.height*s/2,img.width*s,img.height*s);ctx.restore();}
+  function drawTopFang(ctx){for(const fx of state.marks){const target=(fighters||[]).find(f=>f.id===fx.targetId),x=target?.x??fx.x,y=target?.y??fx.y,t=1-fx.life/fx.maxLife,a=fx.life/fx.maxLife;ctx.save();ctx.translate(x,y);ctx.rotate(fx.angle+C.bodyForwardOffset);ctx.globalAlpha=Math.sin(Math.min(1,t/.18)*Math.PI*.5)*Math.min(1,a/.4);const img=images.biteMark,s=.07;if(img.complete)ctx.drawImage(img,-img.width*s/2,-img.height*s/2,img.width*s,img.height*s);ctx.restore();}}
+  function beginCollision(f,target){const d=fangData(f);if(d.action||d.huntActive||d.overlapLatch)return false;return beginPounce(f,target,'collision',d.visualDir);}
+  function interceptDamage(f,amount,source,label,statusDamage){const d=fangData(f);if(statusDamage||!source||source===f||d.clones.every(c=>c.dead||c.reserved))return false;const c=liveClones(d).filter(x=>!x.reserved).sort((a,b)=>dist(a.x,a.y,source.x??f.x,source.y??f.y)-dist(b.x,b.y,source.x??f.x,source.y??f.y))[0];if(!c)return false;c.hp-=amount;d.interceptFx.push({x:c.x,y:c.y,life:.22,kind:c.kind});if(c.hp<=0){c.dead=true;emitSpecks(c.kind,c.x,c.y,28,150);}return true;}
+  function clearFang(){state.afterimages.length=state.marks.length=state.rings.length=state.particles.length=0;state.seed=0x46a91d2b;}
+  const FangType={id:'fang',name:'FANG',color:C.color,desc:'Lunar-solar blood hunter with wall-rebound pounces and an energy wolf pack',speed:540,startDx:1,startDy:.35,noRage:true,
+    init:initFang,update:updateFang,speedModifier,draw:drawFang,onCollide:(f,e)=>beginCollision(f,e)};
+  const old=FighterTypes.find(x=>x?.name==='FANG');if(old)Object.assign(old,FangType);else FighterTypes.push(FangType);ASSET_ONLY_FIGHTER_SFX.add('FANG');
+  window.FighterTypes=window.apexFighterTypes=FighterTypes;
+  const previousGlyphFang=fighterGlyph;fighterGlyph=name=>name==='FANG'?'F':previousGlyphFang(name);
+  function appendFangCard(){const grid=document.getElementById('roster-grid'),ft=FighterTypes.find(x=>x.name==='FANG');if(!grid||!ft||grid.querySelector('[data-fighter="FANG"]'))return;const card=document.createElement('div');card.className='fighter-card';card.dataset.fighter='FANG';card.style.color=ft.color;const name=document.createElement('div');name.className='f-name';name.textContent='FANG';const preview=document.createElement('canvas');preview.className='f-preview';preview.width=140;preview.height=96;card.append(name,preview);card.onclick=()=>selectFighter(ft,card);grid.appendChild(card);}
+  const prevPopulateFang=populateRoster;populateRoster=function(...args){const result=prevPopulateFang.apply(this,args);appendFangCard();return result;};
+  const prevSyncFang=syncSelectedFighterVfx;syncSelectedFighterVfx=function(...args){const result=prevSyncFang.apply(this,args);for(const [player,ft] of [[1,p1Selection],[2,p2Selection]])if(ft?.name==='FANG'){const img=document.getElementById(`p${player}-fighter-vfx`);if(img){img.src=ROOT+'selectionVisual.webp';img.classList.add('has-fighter');img.closest('.picked-fighter-slot')?.setAttribute('data-fighter','FANG');}}return result;};
+  const prevUpdateFang=update;update=function(dt){const result=prevUpdateFang(dt);if(gameState==='PLAYING')updateVisualState(dt);if(gameState==='SOLO')window.APEX_FANG?.soloAdvance?.(window.__solo375,dt);return result;};
+  const prevCollisionsFang=handleCollisions;handleCollisions=function(dt){const a=fighters?.[0],b=fighters?.[1];if(a&&b&&alive(a)&&alive(b)){const gap=dist(a.x,a.y,b.x,b.y),overlap=gap<a.radius+b.radius;for(const [f,e] of [[a,b],[b,a]])if(f.name==='FANG'){const d=fangData(f);if(!overlap)d.overlapLatch=false;if(d.action&&overlap)return;if(overlap&&!f.hasStatus('abilityDisabled')&&beginCollision(f,e))return;if(overlap&&d.huntActive&&beginPounce(f,e,'hunting',d.visualDir))return;}}return prevCollisionsFang(dt);};
+  const prevDamageFang=Fighter.prototype.takeDamage;Fighter.prototype.takeDamage=function(amount,source=null,label='',statusDamage=false){if(this.name==='FANG'&&Number.isFinite(amount)&&amount>0&&interceptDamage(this,amount,source,label,statusDamage))return;return prevDamageFang.call(this,amount,source,label,statusDamage);};
+  const prevStartFang=startSpecificMatch;startSpecificMatch=function(...args){clearFang();return prevStartFang.apply(this,args);};
+  const prevEndFang=endMatch;endMatch=function(...args){const result=prevEndFang.apply(this,args);clearFang();return result;};
+  const prevMenuFang=goToMenu;goToMenu=function(...args){clearFang();return prevMenuFang.apply(this,args);};
+  const prevDrawProjFang=drawProjectiles;drawProjectiles=function(ctx){const result=prevDrawProjFang(ctx);drawWorldFang(ctx);return result;};
+  const prevTopFang=window.__apexTopLayerDraw;window.__apexTopLayerDraw=function(ctx){if(typeof prevTopFang==='function')prevTopFang(ctx);drawTopFang(ctx);};
+  function soloEnsure(p){return p.data.fang||=( {clock:0,stacks:0,clones:0,hunt:0} );}
+  function soloAttack(st,p){const d=soloEnsure(p),e=p.side===1?st.p2:st.p1;if(!e||e.dead)return;p.dash=.18;p.cd.normal=.7;if(Math.abs(e.x-p.x)<125){e.hp=Math.max(0,e.hp-(d.clones>=2?18:d.clones===1?13.5:9));d.stacks++;if(d.clones>=2)d.clones=0;if(d.stacks>=3){d.stacks=0;d.clones=2;}if(e.hp<=0){e.dead=true;st.winner=p;}play('huntingPounce',.58);}}
+  function soloSpecial(st,p){const d=soloEnsure(p);d.hunt=2;p.cd.special=5;play('huntStart',.56);}
+  function soloRage(st,p){const d=soloEnsure(p);d.stacks=0;d.clones=2;p.cd.rage=8;play('howl',.62);}
+  function soloAdvance(st,dt){for(const p of [st?.p1,st?.p2])if(p?.name==='FANG'){const d=soloEnsure(p);d.clock=(d.clock+dt)%(.5416667);d.hunt=Math.max(0,d.hunt-dt);}}
+  function drawSolo(ctx,p){const d=soloEnsure(p),frame=Math.floor(d.clock*24)%13;const img=clips.normal[frame];if(img.complete){const s=.052;ctx.rotate(C.bodyForwardOffset);ctx.drawImage(img,-img.width*s/2,-img.height*s/2,img.width*s,img.height*s);}else drawSketchBlob(ctx,46,C.color,12);}
+  window.APEX_FANG={constants:C,clips,images,audioFiles,state,FangType,beginPounce,fangData,soloAttack,soloSpecial,soloRage,soloAdvance,drawSolo,selfTest:()=>({registered:FighterTypes.filter(x=>x.name==='FANG').length,frames:{normal:clips.normal.length,hunt:clips.hunt.length,howl:clips.howl.length},pounceSpeed:C.pounceSpeed,pickButton:images.selectionButton.src,picked:images.selectionVisual.src})};
+  Object.assign(window.apexReactBridge||{},{APEX_FANG:window.APEX_FANG,startSpecificMatch,goToMenu});Object.assign(window,{APEX_FANG:window.APEX_FANG,startSpecificMatch,goToMenu});
+  appendFangCard();
+  console.info('[Apex Chaos] FANG V7 integrated',window.APEX_FANG.selfTest());
+})();
+
+// ===== CHARACTER SELECT UI UPGRADE: framed runtime composition =====
+(function APEX_CHARACTER_SELECT_UI_UPGRADE(){
+  if (window.__apexCharacterSelectUpgrade) return;
+  window.__apexCharacterSelectUpgrade = true;
+
+  const ROOT = '/assets/pick_ui_final/assets/';
+  const path = file => ROOT + encodeURIComponent(file).replace(/%2F/g, '/');
+  const requiredRoster = ['SHOTGUN','KATANA','ENGINEER','GALAXY','ICE','NINJA','SOCCER','STRING','FANG'];
+  const fitDefault = { scale:1, offsetX:0, offsetY:0, focalX:.5, focalY:.5 };
+  const championData = Object.freeze({
+    SHOTGUN:{ id:'shotgun', name:'SHOTGUN', accent:'#FF6A2A', glow:'#FFB075', standing:path('standing/shotgun-standing.webp'), cardArt:path('hero-cards/shotgun-card.webp'), icon:path('hero-icons/shotgun-icon.webp'), stats:{ hp:1000, dmg:100 } },
+    KATANA:{ id:'katana', name:'KATANA', accent:'#FF5AAE', glow:'#FFC1DF', standing:path('standing/katana-standing.webp'), cardArt:path('hero-cards/katana-card.webp'), icon:path('hero-icons/katana-icon.webp'), stats:{ hp:1000, dmg:100 } },
+    ENGINEER:{ id:'engineer', name:'ENGINEER', accent:'#F5A623', glow:'#FFD27A', standing:path('standing/engineer-standing.webp'), cardArt:path('hero-cards/engineer-card.webp'), icon:path('hero-icons/engineer-icon.webp'), stats:{ hp:1000, dmg:100 } },
+    GALAXY:{ id:'galaxy', name:'GALAXY', accent:'#8A5CFF', glow:'#C6A8FF', standing:path('standing/galaxy-standing.webp'), cardArt:path('hero-cards/galaxy-card.webp'), icon:path('hero-icons/galaxy-icon.webp'), stats:{ hp:1000, dmg:100 } },
+    ICE:{ id:'ice', name:'ICE', accent:'#63D6FF', glow:'#BDF4FF', standing:path('standing/ice-standing.webp'), cardArt:path('hero-cards/ice-card.webp'), icon:path('hero-icons/ice-icon.webp'), stats:{ hp:1000, dmg:100 } },
+    NINJA:{ id:'ninja', name:'NINJA', accent:'#4EA8FF', glow:'#B6DCFF', standing:path('standing/ninja-standing.webp'), cardArt:path('hero-cards/ninja-card.webp'), icon:path('hero-icons/ninja-icon.webp'), stats:{ hp:1000, dmg:100 } },
+    SOCCER:{ id:'soccer', name:'SOCCER', accent:'#FF3B30', glow:'#FF7A70', standing:path('standing/soccer-standing.webp'), cardArt:path('hero-cards/soccer-card.webp'), icon:path('hero-icons/soccer-icon.webp'), stats:{ hp:1000, dmg:100 } },
+    STRING:{ id:'string', name:'STRING', accent:'#FF4FB3', glow:'#FF9DDA', standing:path('standing/string-standing.webp'), cardArt:path('hero-cards/string-card.webp'), icon:path('hero-icons/string-icon.webp'), stats:{ hp:1000, dmg:100 } },
+    FANG:{ id:'fang', name:'FANG', accent:'#FF3A3A', glow:'#FF8B8B', standing:path('standing/fang-standing.webp'), cardArt:path('hero-cards/fang-card.webp'), icon:path('hero-icons/fang-icon.webp'), stats:{ hp:1000, dmg:100 } }
+  });
+  const uiAssetManifest = Object.freeze({
+    root: ROOT,
+    assets: Object.freeze({
+      selectBackground: path('01-select-screen-background.webp'),
+      sideFrameBase: path('02-side-frame-base.webp'),
+      sideColorMask: path('03-side-frame-color-mask.webp'),
+      sideFrameHighlight: path('04-side-frame-highlight.webp'),
+      sideBackdrop: path('05-portrait-inner-backdrop.webp'),
+      statsPanelBase: path('06-stats-panel-base.webp'),
+      cardFrameNormal: path('07-card-frame-normal.webp'),
+      cardFrameSelected: path('08-card-frame-selected.webp'),
+      cardSelectedMask: path('09-card-selected-color-mask.webp'),
+      cardBack: path('10-card-back.webp'),
+      startNormal: path('11-start-normal.webp'),
+      startHover: path('12-start-hover.webp'),
+      startPressed: path('13-start-pressed.webp'),
+      exitNormal: path('14-exit-normal.webp'),
+      exitHover: path('15-exit-hover.webp'),
+      exitPressed: path('16-exit-pressed.webp'),
+      arrowLeftNormal: path('17-arrow-left-normal.webp'),
+      arrowLeftHover: path('18-arrow-left-hover.webp'),
+      arrowRightNormal: path('19-arrow-right-normal.webp'),
+      arrowRightHover: path('20-arrow-right-hover.webp'),
+      cardFrameBase: path('card-frame-imagen-portrait-3x4-exact-layers/41-card-frame-imagen-portrait-3x4-base.webp'),
+      cardFrameTint: path('card-frame-imagen-portrait-3x4-exact-layers/52-card-frame-imagen-portrait-3x4-neutral-tint-mask-exact.webp'),
+      cardFrameSoftGloss: path('card-frame-imagen-portrait-3x4-exact-layers/50-card-frame-imagen-portrait-3x4-soft-gloss-exact.webp'),
+      cardFrameBevel: path('card-frame-imagen-portrait-3x4-exact-layers/48-card-frame-imagen-portrait-3x4-bevel-highlight-exact.webp'),
+      cardFrameRim: path('card-frame-imagen-portrait-3x4-exact-layers/49-card-frame-imagen-portrait-3x4-rim-highlight-exact.webp'),
+      cardFrameSelectedGlow: path('card-frame-imagen-portrait-3x4-exact-layers/53-card-frame-imagen-portrait-3x4-selected-glow-mask-exact.webp')
+    }),
+    championSelectUI: Object.freeze({
+      ...championData
+    })
+  });
+  window.uiAssetManifest = uiAssetManifest;
+
+  let focusedIndex = 0;
+  let currentRoster = [];
+  const alphaBoundsCache = new Map();
+  const warnedMissing = new Set();
+  const preloaded = new Map();
+
+  function fighterMeta(ft) {
+    return uiAssetManifest.championSelectUI[ft?.name] || null;
+  }
+  function sidePickedArtwork(fighter) {
+    if (!fighter) return '';
+    return fighterMeta(fighter)?.standing || SELECTED_FIGHTER_VFX?.[fighter.name] || '';
+  }
+  function selectScreenVisible() {
+    const screen = document.getElementById('select-screen');
+    return !!screen && !screen.classList.contains('hidden');
+  }
+  function loadImage(src) {
+    if (!src) return Promise.resolve(null);
+    if (preloaded.has(src)) return preloaded.get(src);
+    const promise = new Promise(resolve => {
+      const img = new Image();
+      img.decoding = 'async';
+      img.onload = async () => {
+        try { if (img.decode) await img.decode(); } catch (error) {}
+        resolve(img);
+      };
+      img.onerror = () => {
+        if (!warnedMissing.has(src)) {
+          warnedMissing.add(src);
+          console.warn('[select-ui] Missing image asset', src);
+        }
+        resolve(null);
+      };
+      img.src = src;
+    });
+    preloaded.set(src, promise);
+    return promise;
+  }
+  function preloadSelectUi() {
+    const screen = document.getElementById('select-screen');
+    if (!screen) return Promise.resolve();
+    screen.classList.add('select-loading');
+    setManifestSources();
+    const sources = [
+      ...Object.values(uiAssetManifest.assets),
+      ...Object.values(uiAssetManifest.championSelectUI).flatMap(meta => [meta.cardArt, meta.icon, meta.standing])
+    ];
+    return Promise.all(sources.map(loadImage)).then(() => {
+      screen.classList.remove('select-loading');
+      screen.classList.add('select-assets-ready');
+      scheduleFitAll();
+    });
+  }
+  function setCssUrl(name, value) {
+    document.documentElement.style.setProperty(name, `url("${value}")`);
+  }
+  function setManifestSources() {
+    const assets = uiAssetManifest.assets;
+    document.querySelectorAll('[data-select-asset]').forEach(el => {
+      const key = el.getAttribute('data-select-asset');
+      if (assets[key] && el.getAttribute('src') !== assets[key]) el.setAttribute('src', assets[key]);
+    });
+    setCssUrl('--select-bg-image', assets.selectBackground);
+    setCssUrl('--select-side-mask', assets.sideColorMask);
+    setCssUrl('--select-card-mask', assets.cardSelectedMask);
+    setCssUrl('--select-start-normal', assets.startNormal);
+    setCssUrl('--select-start-hover', assets.startHover);
+    setCssUrl('--select-start-pressed', assets.startPressed);
+    setCssUrl('--select-exit-normal', assets.exitNormal);
+    setCssUrl('--select-exit-hover', assets.exitHover);
+    setCssUrl('--select-exit-pressed', assets.exitPressed);
+    setCssUrl('--select-arrow-left-normal', assets.arrowLeftNormal);
+    setCssUrl('--select-arrow-left-hover', assets.arrowLeftHover);
+    setCssUrl('--select-arrow-right-normal', assets.arrowRightNormal);
+    setCssUrl('--select-arrow-right-hover', assets.arrowRightHover);
+    setCssUrl('--select-card-tint-mask', assets.cardFrameTint);
+    setCssUrl('--select-card-focus-mask', assets.cardFrameSelectedGlow);
+  }
+  function getAlphaBounds(img) {
+    const src = img.currentSrc || img.src;
+    if (alphaBoundsCache.has(src)) return alphaBoundsCache.get(src);
+    const w = img.naturalWidth || 0, h = img.naturalHeight || 0;
+    if (!w || !h) return { x:0, y:0, width:1, height:1 };
+    let bounds = { x:0, y:0, width:w, height:h };
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d', { willReadFrequently:true });
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, w, h).data;
+      let minX = w, minY = h, maxX = -1, maxY = -1;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          if (data[(y * w + x) * 4 + 3] > 8) {
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      if (maxX >= minX && maxY >= minY) bounds = { x:minX, y:minY, width:maxX - minX + 1, height:maxY - minY + 1 };
+    } catch (error) {
+      bounds = { x:0, y:0, width:w, height:h };
+    }
+    alphaBoundsCache.set(src, bounds);
+    return bounds;
+  }
+  function clampValue(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+  function applyFocalFit(img, aperture, fitInput) {
+    if (!img || !aperture || !img.complete || !img.naturalWidth) return;
+    const rect = aperture.getBoundingClientRect();
+    const aw = rect.width, ah = rect.height;
+    if (aw < 2 || ah < 2) return;
+    const fit = Object.assign({}, fitDefault, fitInput || {});
+    fit.scale = clampValue(Number(fit.scale) || 1, .9, 1.15);
+    fit.offsetX = clampValue(Number(fit.offsetX) || 0, -.12, .12);
+    fit.offsetY = clampValue(Number(fit.offsetY) || 0, -.12, .12);
+    fit.focalX = clampValue(Number(fit.focalX) || .5, .18, .82);
+    fit.focalY = clampValue(Number(fit.focalY) || .5, .18, .82);
+    const bounds = getAlphaBounds(img);
+    const baseScale = Math.max(aw / bounds.width, ah / bounds.height);
+    const scale = Math.max(baseScale, baseScale * fit.scale);
+    let left = aw * fit.focalX - (bounds.x + bounds.width * fit.focalX) * scale + fit.offsetX * aw;
+    let top = ah * fit.focalY - (bounds.y + bounds.height * fit.focalY) * scale + fit.offsetY * ah;
+    const minLeft = aw - (bounds.x + bounds.width) * scale;
+    const maxLeft = -bounds.x * scale;
+    const minTop = ah - (bounds.y + bounds.height) * scale;
+    const maxTop = -bounds.y * scale;
+    left = minLeft <= maxLeft ? clampValue(left, minLeft, maxLeft) : (aw - img.naturalWidth * scale) / 2;
+    top = minTop <= maxTop ? clampValue(top, minTop, maxTop) : (ah - img.naturalHeight * scale) / 2;
+    img.style.width = `${img.naturalWidth * scale}px`;
+    img.style.height = `${img.naturalHeight * scale}px`;
+    img.style.left = `${left}px`;
+    img.style.top = `${top}px`;
+  }
+  function scheduleFitAll() {
+    if (scheduleFitAll.raf) cancelAnimationFrame(scheduleFitAll.raf);
+    scheduleFitAll.raf = requestAnimationFrame(() => {
+      document.querySelectorAll('.side-art-aperture img[data-fit-kind="side"]').forEach(img => {
+        const ft = FighterTypes.find(q => q.name === img.dataset.fighter);
+        applyFocalFit(img, img.closest('.side-art-aperture'), fighterMeta(ft)?.sideFit);
+      });
+      document.querySelectorAll('.select-card-art img[data-fit-kind="card"]').forEach(img => {
+        const ft = FighterTypes.find(q => q.name === img.dataset.fighter);
+        applyFocalFit(img, img.closest('.select-card-art'), fighterMeta(ft)?.cardFit);
+      });
+    });
+  }
+  function getSelectRoster() {
+    return requiredRoster.map(name => FighterTypes.find(ft => ft && ft.name === name)).filter(Boolean);
+  }
+  function makeCard(ft, index) {
+    const meta = fighterMeta(ft);
+    const assets = uiAssetManifest.assets;
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'fighter-card';
+    card.dataset.fighter = ft.name;
+    card.dataset.index = String(index);
+    card.style.setProperty('--champion-accent', meta?.accent || ft.color || '#7fd4ff');
+    card.style.setProperty('--champion-glow', meta?.glow || ft.color || '#ffffff');
+    card.style.color = meta?.accent || ft.color || '#f3efe3';
+    card.setAttribute('aria-label', `${ft.name} fighter`);
+
+    const artWrap = document.createElement('span');
+    artWrap.className = 'select-card-art';
+    const art = document.createElement('img');
+    art.alt = '';
+    art.draggable = false;
+    art.decoding = 'async';
+    art.dataset.fighter = ft.name;
+    art.dataset.fitKind = 'card-static';
+    art.src = meta?.cardArt || assets.cardBack;
+    art.onload = () => {};
+    art.onerror = () => {
+      art.src = assets.cardBack;
+      card.classList.add('art-failed');
+    };
+    artWrap.appendChild(art);
+
+    const frameBase = document.createElement('img');
+    frameBase.className = 'select-card-layer select-card-frame-base';
+    frameBase.alt = '';
+    frameBase.draggable = false;
+    frameBase.src = assets.cardFrameBase;
+
+    const tint = document.createElement('span');
+    tint.className = 'select-card-layer select-card-tint-mask';
+    tint.setAttribute('aria-hidden', 'true');
+
+    const gloss = document.createElement('img');
+    gloss.className = 'select-card-layer select-card-gloss';
+    gloss.alt = '';
+    gloss.draggable = false;
+    gloss.src = assets.cardFrameSoftGloss;
+
+    const bevel = document.createElement('img');
+    bevel.className = 'select-card-layer select-card-bevel';
+    bevel.alt = '';
+    bevel.draggable = false;
+    bevel.src = assets.cardFrameBevel;
+
+    const rim = document.createElement('img');
+    rim.className = 'select-card-layer select-card-rim';
+    rim.alt = '';
+    rim.draggable = false;
+    rim.src = assets.cardFrameRim;
+
+    const selectedGlow = document.createElement('span');
+    selectedGlow.className = 'select-card-layer select-card-focus-glow';
+    selectedGlow.setAttribute('aria-hidden', 'true');
+
+    const icon = document.createElement('img');
+    icon.className = 'select-card-icon';
+    icon.alt = '';
+    icon.draggable = false;
+    icon.decoding = 'async';
+    icon.src = meta?.icon || assets.cardBack;
+
+    const name = document.createElement('span');
+    name.className = 'f-name';
+    name.textContent = ft.name;
+
+    card.append(artWrap, frameBase, tint, gloss, bevel, rim, selectedGlow, icon, name);
+    card.onclick = () => {
+      focusedIndex = index;
+      selectFighter(ft, card);
+    };
+    return card;
+  }
+  function syncRosterVisuals() {
+    const grid = document.getElementById('roster-grid');
+    if (!grid) return;
+    grid.querySelectorAll('.fighter-card').forEach((card, index) => {
+      const ft = FighterTypes.find(q => q && q.name === card.dataset.fighter);
+      const selected = ft && (p1Selection === ft || p2Selection === ft);
+      const focused = index === focusedIndex;
+      const prev = index === (focusedIndex - 1 + currentRoster.length) % currentRoster.length;
+      const next = index === (focusedIndex + 1) % currentRoster.length;
+      card.classList.toggle('is-focused', focused);
+      card.classList.toggle('slot-focused', focused);
+      card.classList.toggle('slot-previous', prev);
+      card.classList.toggle('slot-next', next);
+      card.classList.toggle('slot-hidden', !focused && !prev && !next);
+      card.classList.toggle('selected-p1', ft && p1Selection === ft);
+      card.classList.toggle('selected-p2', ft && p2Selection === ft);
+      card.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      card.setAttribute('aria-hidden', !focused && !prev && !next ? 'true' : 'false');
+      card.tabIndex = (focused || prev || next) ? 0 : -1;
+    });
+    updateArrows();
+  }
+  function setFocusedIndex(next, scroll = true) {
+    if (!currentRoster.length) return;
+    focusedIndex = (next + currentRoster.length) % currentRoster.length;
+    syncRosterVisuals();
+    updateInfo();
+    if (scroll) {
+      document.querySelector(`#roster-grid .fighter-card[data-index="${focusedIndex}"]`)?.scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
+    }
+  }
+  function updateArrows() {
+    const has = currentRoster.length > 1;
+    document.getElementById('select-arrow-left')?.toggleAttribute('disabled', !has);
+    document.getElementById('select-arrow-right')?.toggleAttribute('disabled', !has);
+  }
+  function renderRoster() {
+    const grid = document.getElementById('roster-grid');
+    if (!grid) return;
+    setManifestSources();
+    document.getElementById('roster-tabs')?.remove();
+    currentRoster = getSelectRoster();
+    focusedIndex = clampValue(focusedIndex, 0, Math.max(0, currentRoster.length - 1));
+    grid.innerHTML = '';
+    currentRoster.forEach((ft, index) => grid.appendChild(makeCard(ft, index)));
+    bindSelectControls();
+    syncRosterVisuals();
+    syncSelectPresentation();
+    scheduleFitAll();
+  }
+  function updateSide(player, fighter) {
+    const slot = document.querySelector(`.picked-fighter-slot[data-player="${player}"]`);
+    const image = document.getElementById(`p${player}-fighter-vfx`);
+    if (!slot || !image) return;
+    const meta = fighterMeta(fighter);
+    slot.dataset.fighter = fighter?.name || '';
+    slot.style.setProperty('--champion-accent', meta?.accent || fighter?.color || (player === 1 ? '#7fd4ff' : '#ff776f'));
+    slot.style.setProperty('--champion-glow', meta?.glow || fighter?.color || '#ffffff');
+    image.dataset.fighter = fighter?.name || '';
+    image.dataset.fitKind = 'side-static';
+    image.alt = fighter ? `Player ${player}: ${fighter.name}` : `Player ${player} fighter`;
+    const nextSrc = sidePickedArtwork(fighter) || uiAssetManifest.assets.cardBack;
+    if (image.getAttribute('src') !== nextSrc) {
+      image.onload = null;
+      image.onerror = () => {
+        if (fighter && !warnedMissing.has(nextSrc)) {
+          warnedMissing.add(nextSrc);
+          console.warn('[select-ui] Falling back for side artwork', fighter.name, nextSrc);
+        }
+        image.src = uiAssetManifest.assets.cardBack;
+      };
+      image.src = nextSrc;
+    } else {
+      image.onload = null;
+    }
+    image.classList.toggle('has-fighter', Boolean(fighter));
+    const name = document.getElementById(`p${player}-select-name`);
+    if (name) {
+      if (fighter) name.textContent = fighter.name;
+      else name.textContent = player === 1 ? 'SELECTING' : 'WAITING';
+    }
+    const hp = document.getElementById(`p${player}-select-hp`);
+    const dmg = document.getElementById(`p${player}-select-dmg`);
+    if (hp) hp.textContent = fighter ? String(meta?.stats?.hp ?? 1000) : '1000';
+    if (dmg) dmg.textContent = fighter ? String(meta?.stats?.dmg ?? 100) : '100';
+  }
+  function updateInfo() {
+    const focus = currentRoster[focusedIndex] || p2Selection || p1Selection;
+    const status = !p1Selection ? 'P1_SELECTING' : !p2Selection ? 'P2_SELECTING' : 'BOTH_READY';
+    const statusEl = document.getElementById('select-info-status');
+    const phaseEl = document.getElementById('select-phase-label');
+    const nameEl = document.getElementById('select-info-name');
+    const descEl = document.getElementById('select-info-desc');
+    const speedEl = document.getElementById('select-info-speed');
+    if (statusEl) statusEl.textContent = status.replace(/_/g, ' ');
+    if (phaseEl) phaseEl.textContent = status.replace(/_/g, ' ');
+    if (nameEl) nameEl.textContent = focus?.name || 'CHOOSE FIGHTER';
+    if (descEl) descEl.textContent = focus?.desc || 'Pick a champion to preview combat data.';
+    if (speedEl) speedEl.textContent = Number.isFinite(focus?.speed) ? String(focus.speed) : '--';
+    const title = document.getElementById('select-title');
+    if (title) title.textContent = !p1Selection ? 'SELECT PLAYER 1' : !p2Selection ? 'SELECT PLAYER 2' : 'READY TO FIGHT';
+  }
+  function syncSelectPresentation() {
+    setManifestSources();
+    updateSide(1, p1Selection);
+    updateSide(2, p2Selection);
+    syncRosterVisuals();
+    updateInfo();
+  }
+  function activateFocused() {
+    const ft = currentRoster[focusedIndex];
+    const card = document.querySelector(`#roster-grid .fighter-card[data-index="${focusedIndex}"]`);
+    if (ft && card) selectFighter(ft, card);
+  }
+  function bindSelectControls() {
+    if (bindSelectControls.done) return;
+    bindSelectControls.done = true;
+    document.getElementById('select-arrow-left')?.addEventListener('click', () => setFocusedIndex(focusedIndex - 1));
+    document.getElementById('select-arrow-right')?.addEventListener('click', () => setFocusedIndex(focusedIndex + 1));
+    window.addEventListener('resize', scheduleFitAll);
+    document.addEventListener('keydown', event => {
+      if (!selectScreenVisible()) return;
+      const target = event.target;
+      if (target?.matches?.('input, textarea, select, [contenteditable="true"]')) return;
+      if (event.key === 'ArrowLeft') { event.preventDefault(); setFocusedIndex(focusedIndex - 1); }
+      else if (event.key === 'ArrowRight') { event.preventDefault(); setFocusedIndex(focusedIndex + 1); }
+      else if (event.key === 'Enter' || event.key === ' ') {
+        if (document.activeElement?.matches?.('button') && document.activeElement.id !== 'roster-grid') return;
+        event.preventDefault();
+        activateFocused();
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        goToMenu();
+      }
+    });
+  }
+
+  const previousPopulateRosterSelectUi = populateRoster;
+  populateRoster = function() {
+    renderRoster();
+  };
+  syncSelectedFighterVfx = function(...args) {
+    syncSelectPresentation();
+  };
+  const previousSelectFighterSelectUi = selectFighter;
+  selectFighter = function(ft, card) {
+    const result = previousSelectFighterSelectUi(ft, card);
+    const index = currentRoster.findIndex(q => q === ft || q?.name === ft?.name);
+    if (index >= 0) focusedIndex = index;
+    syncSelectPresentation();
+    return result;
+  };
+  const previousGoToSelectSelectUi = goToSelect;
+  goToSelect = function(...args) {
+    const result = previousGoToSelectSelectUi.apply(this, args);
+    focusedIndex = 0;
+    renderRoster();
+    preloadSelectUi();
+    return result;
+  };
+  Object.assign(window.apexReactBridge || {}, { goToSelect, startMatch, goToMenu });
+  Object.assign(window, window.apexReactBridge || {}, { uiAssetManifest });
+  if (document.getElementById('roster-grid')) {
+    setManifestSources();
+    renderRoster();
+    preloadSelectUi();
+  }
+})();
+
+// ===== ISOLATED JSON PICK RUNTIME: absolute design-pixel renderer =====
+(function APEX_JSON_PICK_RUNTIME(){
+  if (window.__apexJsonPickRuntime) return;
+  window.__apexJsonPickRuntime = true;
+
+  const DESIGN_W = 1672;
+  const DESIGN_H = 941;
+  const ROOT = '/assets/pick_ui_final/assets/';
+  const LAYOUT_URL = '/assets/pick_ui_final/pick-layout-final-v1.json';
+  const path = file => ROOT + encodeURIComponent(String(file).replace(/^\.\/assets\//, '')).replace(/%2F/g, '/');
+  const rosterNames = ['SHOTGUN','KATANA','ENGINEER','GALAXY','ICE','NINJA','SOCCER','STRING','FANG'];
+  const cardFrame = Object.freeze({
+    base: path('card-frame-imagen-portrait-3x4-exact-layers/41-card-frame-imagen-portrait-3x4-base.webp'),
+    tint: path('card-frame-imagen-portrait-3x4-exact-layers/52-card-frame-imagen-portrait-3x4-neutral-tint-mask-exact.webp'),
+    softGloss: path('card-frame-imagen-portrait-3x4-exact-layers/50-card-frame-imagen-portrait-3x4-soft-gloss-exact.webp'),
+    bevel: path('card-frame-imagen-portrait-3x4-exact-layers/48-card-frame-imagen-portrait-3x4-bevel-highlight-exact.webp'),
+    rim: path('card-frame-imagen-portrait-3x4-exact-layers/49-card-frame-imagen-portrait-3x4-rim-highlight-exact.webp'),
+    selectedGlow: path('card-frame-imagen-portrait-3x4-exact-layers/53-card-frame-imagen-portrait-3x4-selected-glow-mask-exact.webp')
+  });
+  const buttonStates = Object.freeze({
+    'arrow-left': { normal:path('17-arrow-left-normal.webp'), hover:path('18-arrow-left-hover.webp'), pressed:path('18-arrow-left-hover.webp') },
+    'arrow-right': { normal:path('19-arrow-right-normal.webp'), hover:path('20-arrow-right-hover.webp'), pressed:path('20-arrow-right-hover.webp') },
+    'start-button': { normal:path('11-start-normal.webp'), hover:path('12-start-hover.webp'), pressed:path('13-start-pressed.webp') },
+    'exit-button': { normal:path('14-exit-normal.webp'), hover:path('15-exit-hover.webp'), pressed:path('16-exit-pressed.webp') },
+    'music-button': { normal:path('14-exit-normal.webp'), hover:path('15-exit-hover.webp'), pressed:path('16-exit-pressed.webp') },
+    'fullscreen-button': { normal:path('14-exit-normal.webp'), hover:path('15-exit-hover.webp'), pressed:path('16-exit-pressed.webp') }
+  });
+  const buttonLabelIds = Object.freeze({
+    'start-button': 'start-label',
+    'exit-button': 'exit-label',
+    'music-button': 'music label',
+    'fullscreen-button': 'full screen label'
+  });
+
+  let layoutPromise = null;
+  let layout = null;
+  let carouselTouched = false;
+  let stage = null;
+  let pickAnimationTimer = 0;
+  const PICK_CARD_ANIMATION_MS = 90;
+  const refs = new Map();
+  const PickRuntimeController = {
+    champions: [],
+    centerIndex: 0,
+    p1ChampionId: null,
+    p2ChampionId: null,
+    activePlayer: 1,
+    isAnimating: false,
+    animationDirection: 0,
+    p1Hp: '1000',
+    p2Hp: '1000',
+    p1Dmg: '100',
+    p2Dmg: '100',
+    musicEnabled: true
+  };
+  window.PickRuntimeController = PickRuntimeController;
+
+  function pickRoot() {
+    return document.getElementById('apex-pick-runtime-root');
+  }
+  function layerStyle(el, layer) {
+    el.classList.add('apex-pick-layer');
+    el.dataset.layerId = layer.id;
+    el.style.left = `${layer.x}px`;
+    el.style.top = `${layer.y}px`;
+    el.style.width = `${layer.w}px`;
+    el.style.height = `${layer.h}px`;
+    el.style.zIndex = String(layer.z ?? 0);
+    el.style.opacity = String(layer.opacity ?? 1);
+    el.style.visibility = layer.visible === false ? 'hidden' : 'visible';
+  }
+  function resolveLayerSrc(layer) {
+    return path(layer.src || '');
+  }
+  function setTextAlign(el, align) {
+    el.style.justifyContent = align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start';
+    el.style.textAlign = align || 'left';
+  }
+  function loadLayout() {
+    if (!layoutPromise) {
+      layoutPromise = fetch(`${LAYOUT_URL}?v=${Date.now()}`, { cache:'no-store' })
+        .then(response => {
+          if (!response.ok) throw new Error(`Pick layout failed: ${response.status}`);
+          return response.json();
+        })
+        .then(json => {
+          layout = json.screens?.pick || json;
+          return layout;
+        });
+    }
+    return layoutPromise;
+  }
+  function championRecords() {
+    const records = layout?.champions || [];
+    return records.map(champ => ({
+      ...champ,
+      name: champ.name?.toUpperCase?.() || champ.id?.toUpperCase?.(),
+      standing: path(champ.standing || `standing/${champ.id}-standing.webp`),
+      cardArt: path(champ.cardArt || `hero-cards/${champ.id}-card.webp`),
+      icon: path(champ.icon || `hero-icons/${champ.id}-icon.webp`),
+      accentGlow: champ.accentGlow || champ.accent || '#ffffff'
+    }));
+  }
+  function currentRoster() {
+    const byName = new Map(championRecords().map(champ => [champ.name, champ]));
+    const roster = rosterNames.map(name => byName.get(name)).filter(Boolean);
+    PickRuntimeController.champions = roster;
+    return roster;
+  }
+  function fighterForChampion(champ) {
+    return FighterTypes.find(ft => ft && ft.name === champ?.name) || null;
+  }
+  function championForFighter(fighter) {
+    if (!fighter) return null;
+    return currentRoster().find(champ => champ.name === fighter.name) || null;
+  }
+  function championById(id) {
+    if (!id) return null;
+    return currentRoster().find(champ => champ.id === id || champ.name === String(id).toUpperCase()) || null;
+  }
+  function focusedChampion() {
+    const roster = currentRoster();
+    return roster[PickRuntimeController.centerIndex] || roster[0] || null;
+  }
+  function setLayerText(id, text) {
+    const el = refs.get(id);
+    if (!el) return;
+    if ('value' in el) el.value = text;
+    else el.textContent = text;
+  }
+  function setLayerColor(id, color) {
+    const el = refs.get(id);
+    if (el) el.style.color = color;
+  }
+  function setLayerImage(id, src) {
+    const el = refs.get(id);
+    if (el && src && el.getAttribute('src') !== src) el.setAttribute('src', src);
+  }
+  function hiddenSetting(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.value = String(value);
+  }
+  function syncHiddenMatchSettings() {
+    hiddenSetting('p1-hp-setting', PickRuntimeController.p1Hp);
+    hiddenSetting('p2-hp-setting', PickRuntimeController.p2Hp);
+    hiddenSetting('p1-dmg-setting', PickRuntimeController.p1Dmg);
+    hiddenSetting('p2-dmg-setting', PickRuntimeController.p2Dmg);
+  }
+  function standingLayer(player) {
+    return (layout?.layers || []).find(layer => layer.id === `p${player}-standing`);
+  }
+  const standingAlpha = Object.freeze({
+    beast: { w:.991498, h:.940789 },
+    fang: { w:.991498, h:.940789 },
+    engineer: { w:.952854, h:.952782 },
+    galaxy: { w:.953394, h:.953043 },
+    ice: { w:.953177, h:.953408 },
+    katana: { w:.967302, h:.974482 },
+    ninja: { w:.952703, h:.953807 },
+    shotgun: { w:.969398, h:.976032 },
+    soccer: { w:.952941, h:.953448 },
+    string: { w:.954071, h:.953871 }
+  });
+  function standingContentHeight(layer, aspect) {
+    if (!layer || !Number.isFinite(aspect) || aspect <= 0) return 0;
+    return (layer.w / layer.h) > aspect ? layer.h : layer.w / aspect;
+  }
+  function standingKeyFromSrc(src) {
+    const match = String(src || '').match(/standing\/([^/?#]+?)-standing\.webp/i);
+    return match?.[1] || '';
+  }
+  function layerById(id) {
+    return (layout?.layers || []).find(layer => layer.id === id) || null;
+  }
+  function applyStandingFit(player) {
+    const img = refs.get(`p${player}-standing`);
+    const layer = standingLayer(player);
+    if (!img || !layer) return;
+    if (!img.complete || !img.naturalWidth || !img.naturalHeight) {
+      img.addEventListener('load', () => applyStandingFit(player), { once: true });
+      return;
+    }
+    const alpha = standingAlpha[standingKeyFromSrc(img.getAttribute('src'))] || { w:1, h:1 };
+    const currentHeight = standingContentHeight(layer, img.naturalWidth / img.naturalHeight);
+    const visualHeight = currentHeight * alpha.h;
+    const targetVisualHeight = 430;
+    const visualScale = visualHeight ? targetVisualHeight / visualHeight : 1;
+    const scale = Math.min(1, visualScale);
+    const frame = layerById(`p${player}-frame-base`);
+    const shiftX = player === 2 && frame
+      ? (frame.x + frame.w / 2) - (layer.x + layer.w / 2)
+      : 0;
+    img.style.transform = `translateX(${shiftX}px) scale(${scale})`;
+    img.style.transformOrigin = 'center bottom';
+  }
+  function renderStandingLayer(layer) {
+    const shell = document.createElement('span');
+    shell.className = 'apex-pick-standing-shell';
+    layerStyle(shell, layer);
+    const img = document.createElement('img');
+    img.alt = '';
+    img.draggable = false;
+    img.decoding = 'async';
+    img.src = resolveLayerSrc(layer);
+    img.style.objectFit = layer.fit === 'contain' ? 'contain' : 'fill';
+    img.style.objectPosition = layer.pos || 'center bottom';
+    shell.appendChild(img);
+    refs.set(layer.id, img);
+    refs.set(`${layer.id}-shell`, shell);
+    applyStandingFit(layer.id === 'p1-standing' ? 1 : 2);
+    return shell;
+  }
+  function renderImageLayer(layer) {
+    const interactive = buttonStates[layer.id];
+    if (interactive) return renderButtonLayer(layer);
+    if (layer.id === 'p1-standing' || layer.id === 'p2-standing') return renderStandingLayer(layer);
+    const img = document.createElement('img');
+    img.className = 'apex-pick-img';
+    img.alt = '';
+    img.draggable = false;
+    img.decoding = 'async';
+    img.src = resolveLayerSrc(layer);
+    if (layer.fit === 'contain') img.classList.add('contain');
+    img.style.objectPosition = layer.pos || 'center center';
+    layerStyle(img, layer);
+    refs.set(layer.id, img);
+    return img;
+  }
+  function renderTextLayer(layer) {
+    if (layer.id === 'heroesnameoncard') return document.createComment('runtime hero card name layer');
+    if (['p1-hp-number','p2-hp-number','p1-dmg%-numbur','p2-dmg%-number'].includes(layer.id)) {
+      return renderStatInputLayer(layer);
+    }
+    const div = document.createElement('div');
+    div.className = 'apex-pick-text';
+    div.textContent = layer.text || '';
+    div.style.fontSize = `${layer.fontSize || 16}px`;
+    div.style.color = layer.color || '#fff';
+    div.style.lineHeight = `${layer.h || layer.fontSize || 16}px`;
+    setTextAlign(div, layer.align);
+    layerStyle(div, layer);
+    refs.set(layer.id, div);
+    return div;
+  }
+  function statKeyForLayer(id) {
+    if (id === 'p1-hp-number') return 'p1Hp';
+    if (id === 'p2-hp-number') return 'p2Hp';
+    if (id === 'p1-dmg%-numbur') return 'p1Dmg';
+    if (id === 'p2-dmg%-number') return 'p2Dmg';
+    return null;
+  }
+  function renderStatInputLayer(layer) {
+    const input = document.createElement('input');
+    input.className = 'apex-pick-text apex-pick-stat-input';
+    input.type = 'text';
+    input.inputMode = layer.id.includes('hp') ? 'text' : 'numeric';
+    input.value = PickRuntimeController[statKeyForLayer(layer.id)] || layer.text || '';
+    input.style.fontSize = `${layer.fontSize || 16}px`;
+    input.style.color = layer.color || '#fff';
+    input.style.lineHeight = `${layer.h || layer.fontSize || 16}px`;
+    setTextAlign(input, layer.align);
+    layerStyle(input, layer);
+    input.addEventListener('input', () => updateStatFromInput(layer.id, input.value));
+    input.addEventListener('change', () => {
+      input.value = sanitizeStatValue(layer.id, input.value);
+      updateStatFromInput(layer.id, input.value);
+      syncPickState();
+    });
+    refs.set(layer.id, input);
+    return input;
+  }
+  function sanitizeStatValue(id, value) {
+    const raw = String(value || '').trim().toUpperCase();
+    if (id.includes('hp') && (raw === 'INF' || raw === 'INFINITY' || raw === '∞')) return 'INF';
+    const n = Number(raw.replace(/,/g, ''));
+    if (!Number.isFinite(n)) return id.includes('hp') ? '1000' : '100';
+    if (id.includes('hp')) return String(Math.max(100, Math.round(n)));
+    return String(Math.max(100, Math.min(1000, Math.round(n))));
+  }
+  function updateStatFromInput(id, value) {
+    const key = statKeyForLayer(id);
+    if (!key) return;
+    PickRuntimeController[key] = value;
+    syncHiddenMatchSettings();
+  }
+  function renderButtonLayer(layer) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'apex-pick-button';
+    btn.setAttribute('aria-label', layer.id);
+    layerStyle(btn, layer);
+    const img = document.createElement('img');
+    img.alt = '';
+    img.draggable = false;
+    img.decoding = 'async';
+    btn.appendChild(img);
+    setButtonAsset(btn, layer.id, 'normal');
+    btn.addEventListener('pointerenter', () => setButtonAsset(btn, layer.id, 'hover'));
+    btn.addEventListener('pointerleave', () => setButtonAsset(btn, layer.id, 'normal'));
+    btn.addEventListener('pointerdown', () => setButtonAsset(btn, layer.id, 'pressed'));
+    btn.addEventListener('pointerup', () => setButtonAsset(btn, layer.id, 'hover'));
+    if (layer.id === 'arrow-left') btn.addEventListener('click', () => setFocusedIndex(PickRuntimeController.centerIndex - 1));
+    if (layer.id === 'arrow-right') btn.addEventListener('click', () => setFocusedIndex(PickRuntimeController.centerIndex + 1));
+    if (layer.id === 'start-button') btn.addEventListener('click', () => {
+      if (PickRuntimeController.p1ChampionId && PickRuntimeController.p2ChampionId) {
+        window.apexStopMenuMusic?.(true);
+        syncHiddenMatchSettings();
+        startMatch();
+      }
+    });
+    if (layer.id === 'exit-button') btn.addEventListener('click', () => goToMenu());
+    if (layer.id === 'music-button') btn.addEventListener('click', () => togglePickMusic());
+    if (layer.id === 'fullscreen-button') btn.addEventListener('click', () => toggleFullscreen());
+    refs.set(layer.id, btn);
+    return btn;
+  }
+  function setButtonAsset(btn, id, state) {
+    const states = buttonStates[id];
+    if (!states) return;
+    const img = btn.querySelector('img');
+    if (img) img.src = id.startsWith('arrow') ? states.normal : (states[state] || states.normal);
+    btn.dataset.state = state;
+    syncButtonLabelMotion(id, state);
+  }
+  function syncButtonLabelMotion(buttonId, state) {
+    const label = refs.get(buttonLabelIds[buttonId]);
+    if (!label) return;
+    label.dataset.buttonState = state;
+    const transform = state === 'pressed' ? 'scale(.96)' : state === 'hover' ? 'scale(1.025)' : '';
+    if (transform) label.style.setProperty('transform', transform, 'important');
+    else label.style.removeProperty('transform');
+  }
+  function syncButtonLabelStates() {
+    for (const id of Object.keys(buttonLabelIds)) {
+      const btn = refs.get(id);
+      if (btn) syncButtonLabelMotion(id, btn.dataset.state || 'normal');
+    }
+  }
+  function renderFrameAccent(layer, player) {
+    const mask = document.createElement('span');
+    mask.className = 'apex-pick-frame-mask';
+    mask.dataset.player = String(player);
+    mask.style.left = `${layer.x}px`;
+    mask.style.top = `${layer.y}px`;
+    mask.style.width = `${layer.w}px`;
+    mask.style.height = `${layer.h}px`;
+    mask.style.zIndex = String((layer.z ?? 10) + .5);
+    mask.style.opacity = '.86';
+    refs.set(`p${player}-frame-mask`, mask);
+    return mask;
+  }
+  function slotLayers() {
+    const layers = layout?.layers || [];
+    return {
+      left: layers.find(layer => layer.id === 'carousel-left-slot'),
+      center: layers.find(layer => layer.id === 'carousel-center-slot'),
+      right: layers.find(layer => layer.id === 'carousel-right-slot')
+    };
+  }
+  function cardNameStyleFor(slotLayer, centerSlot) {
+    const nameLayer = layerById('heroesnameoncard');
+    if (!nameLayer || !centerSlot) return null;
+    const scale = slotLayer.w / centerSlot.w;
+    return {
+      left: ((nameLayer.x - centerSlot.x) / centerSlot.w) * 100,
+      top: ((nameLayer.y - centerSlot.y) / centerSlot.h) * 100,
+      width: (nameLayer.w / centerSlot.w) * 100,
+      height: (nameLayer.h / centerSlot.h) * 100,
+      fontSize: (nameLayer.fontSize || 30) * scale
+    };
+  }
+  function createCard(champ, slotName, slotLayer) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'apex-pick-card';
+    card.dataset.champion = champ.name;
+    card.dataset.slot = slotName === 'center' ? 'focus' : `side-${slotName}`;
+    card.style.setProperty('--champion-accent', champ.accent);
+    card.style.setProperty('--champion-glow', champ.accentGlow);
+    layerStyle(card, slotLayer);
+    card.setAttribute('aria-label', champ.name);
+
+    const artWrap = document.createElement('span');
+    artWrap.className = 'apex-pick-card-art';
+    const art = document.createElement('img');
+    art.src = champ.cardArt;
+    art.alt = '';
+    art.draggable = false;
+    artWrap.appendChild(art);
+
+    const base = document.createElement('img');
+    base.className = 'apex-pick-card-layer';
+    base.src = cardFrame.base;
+    base.alt = '';
+    base.style.zIndex = '2';
+
+    const tint = document.createElement('span');
+    tint.className = 'apex-pick-card-tint';
+    tint.style.zIndex = '3';
+
+    const gloss = document.createElement('img');
+    gloss.className = 'apex-pick-card-layer';
+    gloss.src = cardFrame.softGloss;
+    gloss.alt = '';
+    gloss.style.zIndex = '4';
+
+    const bevel = document.createElement('img');
+    bevel.className = 'apex-pick-card-layer';
+    bevel.src = cardFrame.bevel;
+    bevel.alt = '';
+    bevel.style.zIndex = '5';
+
+    const rim = document.createElement('img');
+    rim.className = 'apex-pick-card-layer';
+    rim.src = cardFrame.rim;
+    rim.alt = '';
+    rim.style.zIndex = '6';
+
+    const glow = document.createElement('span');
+    glow.className = 'apex-pick-card-glow';
+
+    const icon = document.createElement('img');
+    icon.className = 'apex-pick-card-icon';
+    icon.src = champ.icon;
+    icon.alt = '';
+    icon.draggable = false;
+
+    const name = document.createElement('span');
+    name.className = 'apex-pick-card-name';
+    name.textContent = champ.name;
+    name.style.color = champ.accent;
+    const nameStyle = cardNameStyleFor(slotLayer, slotLayers().center);
+    if (nameStyle) {
+      name.style.left = `${nameStyle.left}%`;
+      name.style.top = `${nameStyle.top}%`;
+      name.style.width = `${nameStyle.width}%`;
+      name.style.height = `${nameStyle.height}%`;
+      name.style.fontSize = `${nameStyle.fontSize}px`;
+    }
+
+    card.append(artWrap, base, tint, gloss, bevel, rim, glow, icon, name);
+    card.addEventListener('click', () => {
+      confirmChampion(champ);
+    });
+    return card;
+  }
+  function renderCards() {
+    if (!stage) return;
+    stage.querySelectorAll('.apex-pick-card').forEach(card => card.remove());
+    const roster = currentRoster();
+    if (!roster.length) return;
+    const slots = slotLayers();
+    const byId = new Map(roster.flatMap(champ => [[champ.id, champ], [champ.name, champ]]));
+    const centerIndex = PickRuntimeController.centerIndex;
+    const useLayoutSlots = !carouselTouched && !PickRuntimeController.p1ChampionId && !PickRuntimeController.p2ChampionId;
+    const previous = useLayoutSlots
+      ? byId.get(slots.left?.championId) || roster[(centerIndex - 1 + roster.length) % roster.length]
+      : roster[(centerIndex - 1 + roster.length) % roster.length];
+    const focused = useLayoutSlots
+      ? byId.get(slots.center?.championId) || roster[centerIndex % roster.length]
+      : roster[centerIndex % roster.length];
+    const next = useLayoutSlots
+      ? byId.get(slots.right?.championId) || roster[(centerIndex + 1) % roster.length]
+      : roster[(centerIndex + 1) % roster.length];
+    const leftCard = createCard(previous, 'left', slots.left);
+    const rightCard = createCard(next, 'right', slots.right);
+    const centerCard = createCard(focused, 'center', slots.center);
+    stage.appendChild(leftCard);
+    stage.appendChild(rightCard);
+    stage.appendChild(centerCard);
+    applyCarouselMotion({ leftCard, centerCard, rightCard, slots });
+  }
+  function transformFromSlot(from, to) {
+    const sx = from.w / to.w;
+    const sy = from.h / to.h;
+    const dx = from.x - to.x;
+    const dy = from.y - to.y;
+    return `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+  }
+  function primeCardMotion(card, fromSlot, toSlot, startOpacity = null) {
+    card.style.transition = 'none';
+    card.style.transform = transformFromSlot(fromSlot, toSlot);
+    if (startOpacity !== null) card.style.opacity = String(startOpacity);
+    card.getBoundingClientRect();
+    requestAnimationFrame(() => {
+      card.style.transition = '';
+      card.style.transform = '';
+      card.style.opacity = '';
+    });
+  }
+  function applyCarouselMotion({ leftCard, centerCard, rightCard, slots }) {
+    const direction = PickRuntimeController.animationDirection;
+    if (!PickRuntimeController.isAnimating || !direction) return;
+    if (direction > 0) {
+      primeCardMotion(leftCard, slots.center, slots.left, 1);
+      primeCardMotion(centerCard, slots.right, slots.center, .42);
+      primeCardMotion(rightCard, { ...slots.right, x: slots.right.x + 76 }, slots.right, .08);
+    } else {
+      primeCardMotion(leftCard, { ...slots.left, x: slots.left.x - 76 }, slots.left, .08);
+      primeCardMotion(centerCard, slots.left, slots.center, .42);
+      primeCardMotion(rightCard, slots.center, slots.right, 1);
+    }
+  }
+  function renderStaticLayout() {
+    const root = pickRoot();
+    if (!root || !layout) return;
+    root.innerHTML = '';
+    refs.clear();
+    root.style.setProperty('--p1-accent', '#FF6A2A');
+    root.style.setProperty('--p2-accent', '#FF5AAE');
+    root.style.setProperty('--center-accent', '#FF5AAE');
+    root.style.setProperty('--pick-side-mask', `url("${path('03-side-frame-color-mask.webp')}")`);
+    root.style.setProperty('--pick-card-tint-mask', `url("${cardFrame.tint}")`);
+    root.style.setProperty('--pick-card-glow-mask', `url("${cardFrame.selectedGlow}")`);
+    stage = document.createElement('div');
+    stage.className = 'apex-pick-stage';
+    root.appendChild(stage);
+
+    const layers = (layout.layers || []).slice().sort((a, b) => (a.z ?? 0) - (b.z ?? 0));
+    for (const layer of layers) {
+      if (layer.type === 'hero-card') continue;
+      if (layer.type === 'image') {
+        stage.appendChild(renderImageLayer(layer));
+        if (layer.id === 'p1-frame-base') stage.appendChild(renderFrameAccent(layer, 1));
+        if (layer.id === 'p2-frame-base') stage.appendChild(renderFrameAccent(layer, 2));
+      } else if (layer.type === 'text') {
+        stage.appendChild(renderTextLayer(layer));
+      }
+    }
+    syncButtonLabelStates();
+    renderCards();
+    bindKeyboard();
+    updateStageScale();
+    syncHiddenMatchSettings();
+    syncPickState();
+  }
+  function togglePickMusic() {
+    PickRuntimeController.musicEnabled = !PickRuntimeController.musicEnabled;
+    if (PickRuntimeController.musicEnabled) window.apexPlayMenuMusic?.(false);
+    else window.apexStopMenuMusic?.(false);
+    syncUtilityState();
+  }
+  function toggleFullscreen() {
+    const doc = document;
+    if (doc.fullscreenElement) doc.exitFullscreen?.();
+    else document.documentElement.requestFullscreen?.();
+    window.setTimeout(() => {
+      setLayerText('full screen label', document.fullscreenElement ? 'WINDOW' : 'FULL');
+    }, 80);
+  }
+  function syncUtilityState() {
+    const music = refs.get('music-button');
+    const musicLabel = refs.get('music label');
+    if (music) music.dataset.enabled = PickRuntimeController.musicEnabled ? 'true' : 'false';
+    if (musicLabel) {
+      musicLabel.style.color = PickRuntimeController.musicEnabled ? '#FF3B30' : '#B8B8B8';
+      musicLabel.style.textShadow = PickRuntimeController.musicEnabled ? '0 0 14px rgba(255,59,48,.92), 0 2px 0 #000' : 'none';
+      musicLabel.style.opacity = PickRuntimeController.musicEnabled ? '1' : '.72';
+    }
+    setLayerText('full screen label', document.fullscreenElement ? 'WINDOW' : 'FULL');
+  }
+  function updateStageScale() {
+    if (!stage) return;
+    const scale = Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H);
+    const left = (window.innerWidth - DESIGN_W * scale) / 2;
+    const top = (window.innerHeight - DESIGN_H * scale) / 2;
+    stage.style.transform = `translate(${left}px, ${top}px) scale(${scale})`;
+  }
+  function setFocusedIndex(nextIndex) {
+    const roster = currentRoster();
+    if (!roster.length) return;
+    carouselTouched = true;
+    if (pickAnimationTimer) {
+      window.clearTimeout(pickAnimationTimer);
+      pickAnimationTimer = 0;
+    }
+    const previousIndex = PickRuntimeController.centerIndex;
+    PickRuntimeController.isAnimating = true;
+    PickRuntimeController.animationDirection = nextIndex >= previousIndex ? 1 : -1;
+    PickRuntimeController.centerIndex = (nextIndex + roster.length) % roster.length;
+    renderCards();
+    syncPickState();
+    pickAnimationTimer = window.setTimeout(() => {
+      PickRuntimeController.isAnimating = false;
+      PickRuntimeController.animationDirection = 0;
+      pickAnimationTimer = 0;
+      syncPickState();
+    }, PICK_CARD_ANIMATION_MS);
+  }
+  function confirmChampion(champ) {
+    if (!champ) return;
+    if (pickAnimationTimer) {
+      window.clearTimeout(pickAnimationTimer);
+      pickAnimationTimer = 0;
+    }
+    PickRuntimeController.isAnimating = false;
+    PickRuntimeController.animationDirection = 0;
+    const ft = fighterForChampion(champ);
+    if (!ft) return;
+    carouselTouched = true;
+    PickRuntimeController.centerIndex = currentRoster().findIndex(item => item.name === champ.name);
+    if (PickRuntimeController.activePlayer === 1) {
+      PickRuntimeController.p1ChampionId = champ.id;
+      p1Selection = ft;
+      PickRuntimeController.activePlayer = 2;
+    } else if (PickRuntimeController.activePlayer === 2) {
+      PickRuntimeController.p2ChampionId = champ.id;
+      p2Selection = ft;
+      PickRuntimeController.activePlayer = 0;
+    } else {
+      PickRuntimeController.p1ChampionId = champ.id;
+      PickRuntimeController.p2ChampionId = null;
+      p1Selection = ft;
+      p2Selection = null;
+      PickRuntimeController.activePlayer = 2;
+    }
+    renderCards();
+    syncPickState();
+  }
+  function syncPlayerPanel(player, champ) {
+    if (!champ) return;
+    setLayerImage(`p${player}-standing`, champ.standing);
+    const standing = refs.get(`p${player}-standing`);
+    if (standing) standing.style.opacity = '1';
+    applyStandingFit(player);
+    setLayerText(`p${player}-name`, champ.name);
+    setLayerText(`p${player}-hp-number`, PickRuntimeController[`p${player}Hp`]);
+    const dmgId = player === 1 ? 'p1-dmg%-numbur' : 'p2-dmg%-number';
+    setLayerText(dmgId, PickRuntimeController[`p${player}Dmg`]);
+    setLayerColor(`p${player}-title`, champ.accent);
+    setLayerColor(`p${player}-name`, champ.accent);
+    setLayerColor(`p${player}-hp-number`, champ.accent);
+    setLayerColor(dmgId, champ.accent);
+    pickRoot()?.style.setProperty(`--p${player}-accent`, champ.accent);
+  }
+  function syncEmptyPlayerPanel(player) {
+    const standing = refs.get(`p${player}-standing`);
+    if (standing) standing.style.opacity = '0';
+    setLayerText(`p${player}-name`, '');
+    setLayerText(`p${player}-hp-number`, PickRuntimeController[`p${player}Hp`]);
+    const dmgId = player === 1 ? 'p1-dmg%-numbur' : 'p2-dmg%-number';
+    setLayerText(dmgId, PickRuntimeController[`p${player}Dmg`]);
+    setLayerColor(`p${player}-title`, player === 1 ? '#FF6A2A' : '#FF5AAE');
+    setLayerColor(`p${player}-name`, '#F7F7F4');
+    setLayerColor(`p${player}-hp-number`, '#FFFFFF');
+    setLayerColor(dmgId, '#FFFFFF');
+  }
+  function syncPickState() {
+    const p1Champ = championById(PickRuntimeController.p1ChampionId);
+    const p2Champ = championById(PickRuntimeController.p2ChampionId);
+    const centerChamp = focusedChampion();
+    if (centerChamp) pickRoot()?.style.setProperty('--center-accent', centerChamp.accent);
+    if (centerChamp) setLayerText('heroesnameoncard', centerChamp.name);
+    if (centerChamp) setLayerColor('heroesnameoncard', centerChamp.accent);
+    if (p1Champ) syncPlayerPanel(1, p1Champ);
+    else syncEmptyPlayerPanel(1);
+    if (p2Champ) syncPlayerPanel(2, p2Champ);
+    else syncEmptyPlayerPanel(2);
+    syncHiddenMatchSettings();
+    setLayerText('title', PickRuntimeController.activePlayer === 1 ? 'SELECT PLAYER 1' : PickRuntimeController.activePlayer === 2 ? 'SELECT PLAYER 2' : 'READY TO FIGHT');
+    const start = refs.get('start-button');
+    if (start) start.disabled = !(PickRuntimeController.p1ChampionId && PickRuntimeController.p2ChampionId);
+    stage?.querySelectorAll('.apex-pick-card').forEach(card => {
+      const selected = [p1Champ?.name, p2Champ?.name].includes(card.dataset.champion);
+      card.classList.toggle('is-selected', selected);
+    });
+    syncUtilityState();
+    document.getElementById('roster-grid')?.replaceChildren();
+  }
+  function bindKeyboard() {
+    if (bindKeyboard.done) return;
+    bindKeyboard.done = true;
+    window.addEventListener('resize', updateStageScale);
+    document.addEventListener('keydown', event => {
+      const screen = document.getElementById('select-screen');
+      if (!screen || screen.classList.contains('hidden')) return;
+      const target = event.target;
+      if (target?.matches?.('input, textarea, select, [contenteditable="true"]')) return;
+      if (event.key === 'ArrowLeft') { event.preventDefault(); setFocusedIndex(PickRuntimeController.centerIndex - 1); }
+      if (event.key === 'ArrowRight') { event.preventDefault(); setFocusedIndex(PickRuntimeController.centerIndex + 1); }
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        confirmChampion(focusedChampion());
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        goToMenu();
+      }
+    });
+  }
+  async function renderPickRuntime() {
+    await loadLayout();
+    const centerChampionId = (layout.layers || []).find(layer => layer.id === 'carousel-center-slot')?.championId;
+    const centerIndex = currentRoster().findIndex(champ => champ.id === centerChampionId || champ.name === String(centerChampionId || '').toUpperCase());
+    if (!PickRuntimeController.p1ChampionId && !PickRuntimeController.p2ChampionId && centerIndex >= 0) PickRuntimeController.centerIndex = centerIndex;
+    renderStaticLayout();
+  }
+
+  const legacyPopulateRosterJsonPick = populateRoster;
+  populateRoster = function() {
+    document.getElementById('roster-grid')?.replaceChildren();
+    renderPickRuntime();
+  };
+
+  const legacySyncSelectedFighterVfxJsonPick = syncSelectedFighterVfx;
+  syncSelectedFighterVfx = function(...args) {
+    syncPickState();
+  };
+
+  const legacySelectFighterJsonPick = selectFighter;
+  selectFighter = function(ft, card) {
+    const champ = championForFighter(ft);
+    if (champ) confirmChampion(champ);
+    return ft;
+  };
+
+  const legacyGoToSelectJsonPick = goToSelect;
+  goToSelect = function(...args) {
+    const result = legacyGoToSelectJsonPick.apply(this, args);
+    PickRuntimeController.centerIndex = 0;
+    PickRuntimeController.p1ChampionId = null;
+    PickRuntimeController.p2ChampionId = null;
+    PickRuntimeController.activePlayer = 1;
+    PickRuntimeController.isAnimating = false;
+    PickRuntimeController.p1Hp = '1000';
+    PickRuntimeController.p2Hp = '1000';
+    PickRuntimeController.p1Dmg = '100';
+    PickRuntimeController.p2Dmg = '100';
+    p1Selection = null;
+    p2Selection = null;
+    carouselTouched = false;
+    document.getElementById('roster-grid')?.replaceChildren();
+    renderPickRuntime();
+    return result;
+  };
+
+  Object.assign(window.apexReactBridge || {}, { goToSelect, startMatch, goToMenu });
+  Object.assign(window, window.apexReactBridge || {});
+  if (document.getElementById('apex-pick-runtime-root')) renderPickRuntime();
 })();
 
 // ===== UNIVERSAL FIGHTER POSE LOCK: stun, freeze and cinematic stop-motion =====
@@ -23993,24 +26477,117 @@ window.apexFighterTypes = FighterTypes;
         frameClock:typeof matchClock === 'number' ? matchClock : 0,
         canvas:null
       };
+      const cache = f.data.apexControlPoseCache;
+      if (cache?.canvas && f.name === 'ENGINEER' && window.APEX_CONTROL_BATTLE_WALLS?.active?.()) {
+        f.data.apexPoseLock.canvas = cache.canvas;
+        f.data.apexPoseLock.offsetX = cache.offsetX;
+        f.data.apexPoseLock.offsetY = cache.offsetY;
+        f.data.apexPoseLock.size = cache.size;
+        f.data.apexPoseLock.cached = true;
+      }
     }
     return f.data.apexPoseLock;
   }
   function captureLocalPose(f, lock) {
     if (lock.canvas || !f?.type?.draw || typeof document === 'undefined') return;
     try {
-      const size = 1024;
-      const off = document.createElement('canvas');
-      off.width = size;
-      off.height = size;
-      const c = off.getContext('2d');
+      const controlPoseLock = !!window.APEX_CONTROL_BATTLE_WALLS?.active?.();
+      const size = controlPoseLock ? 320 : 1024;
+      const useOffscreenPose = controlPoseLock && typeof OffscreenCanvas !== 'undefined';
+      const off = useOffscreenPose ? new OffscreenCanvas(size, size) : document.createElement('canvas');
+      if (!useOffscreenPose) {
+        off.width = size;
+        off.height = size;
+      }
+      const c = off.getContext('2d', {willReadFrequently:!controlPoseLock});
       c.translate(size / 2, size / 2);
       f.type.draw(c, f);
-      lock.canvas = off;
+      if (controlPoseLock) {
+        lock.canvas = useOffscreenPose && typeof off.transferToImageBitmap === 'function'
+          ? off.transferToImageBitmap()
+          : off;
+        lock.offsetX = -size / 2;
+        lock.offsetY = -size / 2;
+        lock.size = size;
+        return;
+      }
+      const image = c.getImageData(0, 0, size, size);
+      const data = image.data;
+      let minX = size, minY = size, maxX = -1, maxY = -1;
+      for (let y = 0; y < size; y += 1) {
+        const row = y * size * 4;
+        for (let x = 0; x < size; x += 1) {
+          if (data[row + x * 4 + 3] <= 2) continue;
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+      if (maxX >= minX && maxY >= minY) {
+        const pad = 18;
+        minX = Math.max(0, minX - pad);
+        minY = Math.max(0, minY - pad);
+        maxX = Math.min(size - 1, maxX + pad);
+        maxY = Math.min(size - 1, maxY + pad);
+        const trimmed = document.createElement('canvas');
+        trimmed.width = maxX - minX + 1;
+        trimmed.height = maxY - minY + 1;
+        trimmed.getContext('2d').putImageData(c.getImageData(minX, minY, trimmed.width, trimmed.height), 0, 0);
+        lock.canvas = trimmed;
+        lock.offsetX = minX - size / 2;
+        lock.offsetY = minY - size / 2;
+      } else {
+        lock.canvas = off;
+        lock.offsetX = -size / 2;
+        lock.offsetY = -size / 2;
+      }
       lock.size = size;
     } catch (error) {
       lock.canvas = null;
     }
+  }
+  function closePoseSource(source) {
+    try {
+      if (source && typeof ImageBitmap !== 'undefined' && source instanceof ImageBitmap && typeof source.close === 'function') source.close();
+    } catch (error) {}
+  }
+  function shouldCacheControlPose(f) {
+    return !!(f?.name === 'ENGINEER'
+      && f.hp > 0
+      && window.APEX_CONTROL_BATTLE_WALLS?.active?.()
+      && !posePaused(f));
+  }
+  function refreshControlPoseCache(f) {
+    if (!shouldCacheControlPose(f)) return;
+    f.data ||= {};
+    const lock = {};
+    captureLocalPose(f, lock);
+    if (!lock.canvas) return;
+    const previous = f.data.apexControlPoseCache;
+    if (previous?.canvas && previous.canvas !== lock.canvas) closePoseSource(previous.canvas);
+    f.data.apexControlPoseCache = {
+      canvas:lock.canvas,
+      offsetX:lock.offsetX,
+      offsetY:lock.offsetY,
+      size:lock.size,
+      capturedAt:performance.now()
+    };
+  }
+  function scheduleControlPoseCache(f) {
+    if (!shouldCacheControlPose(f)) return;
+    f.data ||= {};
+    const now = performance.now();
+    const cache = f.data.apexControlPoseCache;
+    if (f.data.apexControlPoseCachePending) return;
+    if (cache?.canvas && now - (cache.capturedAt || 0) < 700) return;
+    f.data.apexControlPoseCachePending = true;
+    const run = () => {
+      f.data.apexControlPoseCachePending = false;
+      refreshControlPoseCache(f);
+    };
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(run, {timeout:500});
+    else setTimeout(run, 80);
   }
 
   const previousApplyStatusPoseLock = Fighter.prototype.applyStatus;
@@ -24030,7 +26607,9 @@ window.apexFighterTypes = FighterTypes;
     const paused = posePaused(this);
     if (!paused) {
       if (this.data?.apexPoseLock) delete this.data.apexPoseLock;
-      return previousDrawPoseLock.call(this, ctx);
+      const result = previousDrawPoseLock.call(this, ctx);
+      scheduleControlPoseCache(this);
+      return result;
     }
     const lock = ensurePoseLock(this);
     captureLocalPose(this, lock);
@@ -24043,7 +26622,7 @@ window.apexFighterTypes = FighterTypes;
     if (originalClock !== null) matchClock = lock.frameClock;
     if (lock.canvas && this.type) {
       this.type.draw = function(localCtx) {
-        localCtx.drawImage(lock.canvas, -lock.size / 2, -lock.size / 2);
+        localCtx.drawImage(lock.canvas, lock.offsetX ?? -lock.size / 2, lock.offsetY ?? -lock.size / 2);
       };
     }
     try {

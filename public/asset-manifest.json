@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-21T20:03:56.071Z",
+  "generatedAt": "2026-06-27T13:30:40.871Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -10,7 +10,7 @@
     {
       "path": "/apexEngine.js",
       "type": "script",
-      "bytes": 1276053
+      "bytes": 1445680
     },
     {
       "path": "/assets/arcade_v1/normalized/battle_idle_reference.webp",
@@ -101,6 +101,11 @@
       "path": "/assets/blade_v1/normalized/manifest.json",
       "type": "data",
       "bytes": 8705
+    },
+    {
+      "path": "/assets/control_map/apex_control_runtime_map.json",
+      "type": "data",
+      "bytes": 37517
     },
     {
       "path": "/assets/engineer_v1/%C4%91%E1%BA%BF%20chung%20cho%20c%E1%BA%A3%20turret%20v%C3%A0%20rocket.webp",
@@ -381,6 +386,536 @@
       "path": "/assets/engineer_v1/war%20machine%20laser%20strip.webp",
       "type": "image",
       "bytes": 44218
+    },
+    {
+      "path": "/assets/fang_v1/audio/collisionBite.wav",
+      "type": "audio",
+      "bytes": 280198
+    },
+    {
+      "path": "/assets/fang_v1/audio/heavyImpact.wav",
+      "type": "audio",
+      "bytes": 268334
+    },
+    {
+      "path": "/assets/fang_v1/audio/howl.mp3",
+      "type": "audio",
+      "bytes": 95212
+    },
+    {
+      "path": "/assets/fang_v1/audio/huntingPounce.wav",
+      "type": "audio",
+      "bytes": 280662
+    },
+    {
+      "path": "/assets/fang_v1/audio/huntRunStep.wav",
+      "type": "audio",
+      "bytes": 176478
+    },
+    {
+      "path": "/assets/fang_v1/audio/huntStart.wav",
+      "type": "audio",
+      "bytes": 605442
+    },
+    {
+      "path": "/assets/fang_v1/audio/postCollisionRoar.wav",
+      "type": "audio",
+      "bytes": 176478
+    },
+    {
+      "path": "/assets/fang_v1/audio/sniff.wav",
+      "type": "audio",
+      "bytes": 316978
+    },
+    {
+      "path": "/assets/fang_v1/audio/wallRebound.wav",
+      "type": "audio",
+      "bytes": 190590
+    },
+    {
+      "path": "/assets/fang_v1/biteMark.webp",
+      "type": "image",
+      "bytes": 492292
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_001.webp",
+      "type": "image",
+      "bytes": 452212
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_002.webp",
+      "type": "image",
+      "bytes": 466006
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_003.webp",
+      "type": "image",
+      "bytes": 476704
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_004.webp",
+      "type": "image",
+      "bytes": 484664
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_005.webp",
+      "type": "image",
+      "bytes": 487144
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_006.webp",
+      "type": "image",
+      "bytes": 496194
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_007.webp",
+      "type": "image",
+      "bytes": 486594
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_008.webp",
+      "type": "image",
+      "bytes": 468984
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_009.webp",
+      "type": "image",
+      "bytes": 485332
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_010.webp",
+      "type": "image",
+      "bytes": 488540
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_011.webp",
+      "type": "image",
+      "bytes": 510122
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_012.webp",
+      "type": "image",
+      "bytes": 506502
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_013.webp",
+      "type": "image",
+      "bytes": 502878
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_014.webp",
+      "type": "image",
+      "bytes": 507364
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_015.webp",
+      "type": "image",
+      "bytes": 512590
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_016.webp",
+      "type": "image",
+      "bytes": 509160
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_017.webp",
+      "type": "image",
+      "bytes": 530878
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_018.webp",
+      "type": "image",
+      "bytes": 539818
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_019.webp",
+      "type": "image",
+      "bytes": 579144
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_020.webp",
+      "type": "image",
+      "bytes": 583284
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_021.webp",
+      "type": "image",
+      "bytes": 588462
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_022.webp",
+      "type": "image",
+      "bytes": 580842
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_023.webp",
+      "type": "image",
+      "bytes": 577074
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_024.webp",
+      "type": "image",
+      "bytes": 569462
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_025.webp",
+      "type": "image",
+      "bytes": 570964
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_026.webp",
+      "type": "image",
+      "bytes": 563338
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_027.webp",
+      "type": "image",
+      "bytes": 571530
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_028.webp",
+      "type": "image",
+      "bytes": 568186
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_029.webp",
+      "type": "image",
+      "bytes": 579234
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_030.webp",
+      "type": "image",
+      "bytes": 573684
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_031.webp",
+      "type": "image",
+      "bytes": 589564
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_032.webp",
+      "type": "image",
+      "bytes": 578846
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_033.webp",
+      "type": "image",
+      "bytes": 586314
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_034.webp",
+      "type": "image",
+      "bytes": 576464
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_035.webp",
+      "type": "image",
+      "bytes": 587460
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_036.webp",
+      "type": "image",
+      "bytes": 585732
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_037.webp",
+      "type": "image",
+      "bytes": 590454
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_038.webp",
+      "type": "image",
+      "bytes": 577732
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_039.webp",
+      "type": "image",
+      "bytes": 587458
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_040.webp",
+      "type": "image",
+      "bytes": 579818
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_041.webp",
+      "type": "image",
+      "bytes": 575800
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_042.webp",
+      "type": "image",
+      "bytes": 573664
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_043.webp",
+      "type": "image",
+      "bytes": 541192
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_044.webp",
+      "type": "image",
+      "bytes": 522666
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_045.webp",
+      "type": "image",
+      "bytes": 496436
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_046.webp",
+      "type": "image",
+      "bytes": 496902
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_047.webp",
+      "type": "image",
+      "bytes": 507534
+    },
+    {
+      "path": "/assets/fang_v1/frames/howl/frame_048.webp",
+      "type": "image",
+      "bytes": 508796
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_001.webp",
+      "type": "image",
+      "bytes": 448534
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_002.webp",
+      "type": "image",
+      "bytes": 469064
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_003.webp",
+      "type": "image",
+      "bytes": 480100
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_004.webp",
+      "type": "image",
+      "bytes": 499208
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_005.webp",
+      "type": "image",
+      "bytes": 513004
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_006.webp",
+      "type": "image",
+      "bytes": 513898
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_007.webp",
+      "type": "image",
+      "bytes": 503330
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_008.webp",
+      "type": "image",
+      "bytes": 514304
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_009.webp",
+      "type": "image",
+      "bytes": 507244
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_010.webp",
+      "type": "image",
+      "bytes": 509126
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_011.webp",
+      "type": "image",
+      "bytes": 503100
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_012.webp",
+      "type": "image",
+      "bytes": 529534
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_013.webp",
+      "type": "image",
+      "bytes": 545098
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_014.webp",
+      "type": "image",
+      "bytes": 531662
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_015.webp",
+      "type": "image",
+      "bytes": 526622
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_016.webp",
+      "type": "image",
+      "bytes": 509090
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_017.webp",
+      "type": "image",
+      "bytes": 510368
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_018.webp",
+      "type": "image",
+      "bytes": 502452
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_019.webp",
+      "type": "image",
+      "bytes": 526570
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_020.webp",
+      "type": "image",
+      "bytes": 537040
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_021.webp",
+      "type": "image",
+      "bytes": 539142
+    },
+    {
+      "path": "/assets/fang_v1/frames/hunt/frame_022.webp",
+      "type": "image",
+      "bytes": 528842
+    },
+    {
+      "path": "/assets/fang_v1/frames/normal/frame_001.webp",
+      "type": "image",
+      "bytes": 477316
+    },
+    {
+      "path": "/assets/fang_v1/frames/normal/frame_002.webp",
+      "type": "image",
+      "bytes": 477316
+    },
+    {
+      "path": "/assets/fang_v1/frames/normal/frame_003.webp",
+      "type": "image",
+      "bytes": 503628
+    },
+    {
+      "path": "/assets/fang_v1/frames/normal/frame_004.webp",
+      "type": "image",
+      "bytes": 501906
+    },
+    {
+      "path": "/assets/fang_v1/frames/normal/frame_005.webp",
+      "type": "image",
+      "bytes": 504588
+    },
+    {
+      "path": "/assets/fang_v1/frames/normal/frame_006.webp",
+      "type": "image",
+      "bytes": 500128
+    },
+    {
+      "path": "/assets/fang_v1/frames/normal/frame_007.webp",
+      "type": "image",
+      "bytes": 510216
+    },
+    {
+      "path": "/assets/fang_v1/frames/normal/frame_008.webp",
+      "type": "image",
+      "bytes": 504802
+    },
+    {
+      "path": "/assets/fang_v1/frames/normal/frame_009.webp",
+      "type": "image",
+      "bytes": 507112
+    },
+    {
+      "path": "/assets/fang_v1/frames/normal/frame_010.webp",
+      "type": "image",
+      "bytes": 499354
+    },
+    {
+      "path": "/assets/fang_v1/frames/normal/frame_011.webp",
+      "type": "image",
+      "bytes": 503846
+    },
+    {
+      "path": "/assets/fang_v1/frames/normal/frame_012.webp",
+      "type": "image",
+      "bytes": 488618
+    },
+    {
+      "path": "/assets/fang_v1/frames/normal/frame_013.webp",
+      "type": "image",
+      "bytes": 490262
+    },
+    {
+      "path": "/assets/fang_v1/howlRing.webp",
+      "type": "image",
+      "bytes": 305006
+    },
+    {
+      "path": "/assets/fang_v1/huntMistBack.webp",
+      "type": "image",
+      "bytes": 42120
+    },
+    {
+      "path": "/assets/fang_v1/huntMistFront.webp",
+      "type": "image",
+      "bytes": 44700
+    },
+    {
+      "path": "/assets/fang_v1/huntMistMid.webp",
+      "type": "image",
+      "bytes": 51424
+    },
+    {
+      "path": "/assets/fang_v1/manifest.json",
+      "type": "data",
+      "bytes": 46323
+    },
+    {
+      "path": "/assets/fang_v1/moonIcon.webp",
+      "type": "image",
+      "bytes": 1112948
+    },
+    {
+      "path": "/assets/fang_v1/selectionButton.webp",
+      "type": "image",
+      "bytes": 1172842
+    },
+    {
+      "path": "/assets/fang_v1/selectionVisual.webp",
+      "type": "image",
+      "bytes": 1030454
+    },
+    {
+      "path": "/assets/fang_v1/speckBlood.webp",
+      "type": "image",
+      "bytes": 275720
+    },
+    {
+      "path": "/assets/fang_v1/speckMoon.webp",
+      "type": "image",
+      "bytes": 301524
+    },
+    {
+      "path": "/assets/fang_v1/speckSun.webp",
+      "type": "image",
+      "bytes": 334272
+    },
+    {
+      "path": "/assets/fang_v1/sunIcon.webp",
+      "type": "image",
+      "bytes": 1232672
+    },
+    {
+      "path": "/assets/fang_v1/trailMist.webp",
+      "type": "image",
+      "bytes": 10534
     },
     {
       "path": "/assets/galaxy_v1/audio/BLUEHOLE.mp3",
@@ -900,7 +1435,7 @@
     {
       "path": "/assets/katana_v1/manifest.json",
       "type": "data",
-      "bytes": 18789
+      "bytes": 18859
     },
     {
       "path": "/assets/katana_v1/pickButton.webp",
@@ -1118,6 +1653,561 @@
       "bytes": 58566
     },
     {
+      "path": "/assets/pick_ui_final/assets/01-select-screen-background.webp",
+      "type": "image",
+      "bytes": 1305146
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/02-side-frame-base.webp",
+      "type": "image",
+      "bytes": 499940
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/03-side-frame-color-mask.webp",
+      "type": "image",
+      "bytes": 56108
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/04-side-frame-highlight.webp",
+      "type": "image",
+      "bytes": 20050
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/05-portrait-inner-backdrop.webp",
+      "type": "image",
+      "bytes": 1281438
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/06-stats-panel-base.webp",
+      "type": "image",
+      "bytes": 820162
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/07-card-frame-normal.webp",
+      "type": "image",
+      "bytes": 256286
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/08-card-frame-selected.webp",
+      "type": "image",
+      "bytes": 292872
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/09-card-selected-color-mask.webp",
+      "type": "image",
+      "bytes": 69760
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/10-card-back.webp",
+      "type": "image",
+      "bytes": 1293876
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/11-start-normal.webp",
+      "type": "image",
+      "bytes": 761918
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/12-start-hover.webp",
+      "type": "image",
+      "bytes": 809628
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/13-start-pressed.webp",
+      "type": "image",
+      "bytes": 712366
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/14-exit-normal.webp",
+      "type": "image",
+      "bytes": 605458
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/15-exit-hover.webp",
+      "type": "image",
+      "bytes": 669676
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/16-exit-pressed.webp",
+      "type": "image",
+      "bytes": 565352
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/17-arrow-left-normal.webp",
+      "type": "image",
+      "bytes": 628678
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/18-arrow-left-hover.webp",
+      "type": "image",
+      "bytes": 638550
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/19-arrow-right-normal.webp",
+      "type": "image",
+      "bytes": 617630
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/20-arrow-right-hover.webp",
+      "type": "image",
+      "bytes": 640754
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-4x3/21-card-frame-4x3-normal.webp",
+      "type": "image",
+      "bytes": 26450
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-4x3/22-card-frame-4x3-selected.webp",
+      "type": "image",
+      "bytes": 31068
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-4x3/23-card-frame-4x3-selected-color-mask.webp",
+      "type": "image",
+      "bytes": 822
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-4x3/24-card-back-4x3.webp",
+      "type": "image",
+      "bytes": 40900
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-4x3/25-card-4x3-inner-backdrop.webp",
+      "type": "image",
+      "bytes": 194
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/41-card-frame-imagen-portrait-3x4-base.webp",
+      "type": "image",
+      "bytes": 691716
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/42-card-frame-imagen-portrait-3x4-color-mask.webp",
+      "type": "image",
+      "bytes": 2486
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/44-card-frame-imagen-portrait-3x4-inner-backdrop.webp",
+      "type": "image",
+      "bytes": 206
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/48-card-frame-imagen-portrait-3x4-bevel-highlight-exact.webp",
+      "type": "image",
+      "bytes": 127856
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/49-card-frame-imagen-portrait-3x4-rim-highlight-exact.webp",
+      "type": "image",
+      "bytes": 89234
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/50-card-frame-imagen-portrait-3x4-soft-gloss-exact.webp",
+      "type": "image",
+      "bytes": 346546
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/51-card-frame-imagen-portrait-3x4-highlight-combined-exact.webp",
+      "type": "image",
+      "bytes": 378528
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/52-card-frame-imagen-portrait-3x4-neutral-tint-mask-exact.webp",
+      "type": "image",
+      "bytes": 148978
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/53-card-frame-imagen-portrait-3x4-selected-glow-mask-exact.webp",
+      "type": "image",
+      "bytes": 33248
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-exact-layers/card-frame-imagen-portrait-3x4-exact-layers-manifest.json",
+      "type": "data",
+      "bytes": 2083
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-no-hole-layers/61-card-frame-imagen-portrait-3x4-solid-base-no-holes.webp",
+      "type": "image",
+      "bytes": 978342
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-no-hole-layers/62-card-frame-imagen-portrait-3x4-neutral-tint-mask-exact.webp",
+      "type": "image",
+      "bytes": 148978
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-no-hole-layers/63-card-frame-imagen-portrait-3x4-soft-gloss-exact.webp",
+      "type": "image",
+      "bytes": 346546
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-no-hole-layers/64-card-frame-imagen-portrait-3x4-bevel-highlight-exact.webp",
+      "type": "image",
+      "bytes": 127856
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-no-hole-layers/65-card-frame-imagen-portrait-3x4-rim-highlight-exact.webp",
+      "type": "image",
+      "bytes": 89234
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-no-hole-layers/66-card-frame-imagen-portrait-3x4-selected-glow-mask-exact.webp",
+      "type": "image",
+      "bytes": 33248
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-no-hole-layers/card-frame-imagen-portrait-3x4-no-hole-layers-manifest.json",
+      "type": "data",
+      "bytes": 757
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-open-center-no-hex-layers/71-card-frame-imagen-portrait-3x4-base-open-center-no-hex-hole.webp",
+      "type": "image",
+      "bytes": 647588
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-open-center-no-hex-layers/72-card-frame-imagen-portrait-3x4-neutral-tint-mask-exact.webp",
+      "type": "image",
+      "bytes": 148978
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-open-center-no-hex-layers/73-card-frame-imagen-portrait-3x4-soft-gloss-exact.webp",
+      "type": "image",
+      "bytes": 346546
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-open-center-no-hex-layers/74-card-frame-imagen-portrait-3x4-bevel-highlight-exact.webp",
+      "type": "image",
+      "bytes": 127856
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-open-center-no-hex-layers/75-card-frame-imagen-portrait-3x4-rim-highlight-exact.webp",
+      "type": "image",
+      "bytes": 89234
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-open-center-no-hex-layers/76-card-frame-imagen-portrait-3x4-selected-glow-mask-exact.webp",
+      "type": "image",
+      "bytes": 33248
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4-open-center-no-hex-layers/card-frame-imagen-portrait-3x4-open-center-no-hex-layers-manifest.json",
+      "type": "data",
+      "bytes": 791
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4/42-card-frame-imagen-portrait-3x4-color-mask.webp",
+      "type": "image",
+      "bytes": 2486
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4/43-card-frame-imagen-portrait-3x4-highlight.webp",
+      "type": "image",
+      "bytes": 3704
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4/44-card-frame-imagen-portrait-3x4-inner-backdrop.webp",
+      "type": "image",
+      "bytes": 206
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4/46-card-frame-imagen-portrait-3x4-gloss-highlight.webp",
+      "type": "image",
+      "bytes": 56748
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-imagen-portrait-3x4/47-card-frame-imagen-portrait-3x4-neutral-tint-mask.webp",
+      "type": "image",
+      "bytes": 2486
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-portrait-3x4/31-card-frame-portrait-3x4-base.webp",
+      "type": "image",
+      "bytes": 137116
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-portrait-3x4/32-card-frame-portrait-3x4-color-mask.webp",
+      "type": "image",
+      "bytes": 1508
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-portrait-3x4/33-card-frame-portrait-3x4-highlight.webp",
+      "type": "image",
+      "bytes": 1762
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/card-frame-portrait-3x4/34-card-frame-portrait-3x4-inner-backdrop.webp",
+      "type": "image",
+      "bytes": 188
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/champions.json",
+      "type": "data",
+      "bytes": 3957
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/generated-cards/engineer-card-normal.webp",
+      "type": "image",
+      "bytes": 84238
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/generated-cards/engineer-card-selected.webp",
+      "type": "image",
+      "bytes": 91154
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/generated-cards/galaxy-card-normal.webp",
+      "type": "image",
+      "bytes": 76114
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/generated-cards/galaxy-card-selected.webp",
+      "type": "image",
+      "bytes": 83558
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/generated-cards/ice-card-normal.webp",
+      "type": "image",
+      "bytes": 70452
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/generated-cards/ice-card-selected.webp",
+      "type": "image",
+      "bytes": 77194
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/generated-cards/katana-card-normal.webp",
+      "type": "image",
+      "bytes": 75148
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/generated-cards/katana-card-selected.webp",
+      "type": "image",
+      "bytes": 82020
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/generated-cards/ninja-card-normal.webp",
+      "type": "image",
+      "bytes": 72290
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/generated-cards/ninja-card-selected.webp",
+      "type": "image",
+      "bytes": 79684
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/generated-cards/shotgun-card-normal.webp",
+      "type": "image",
+      "bytes": 77786
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/generated-cards/shotgun-card-selected.webp",
+      "type": "image",
+      "bytes": 84634
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/generated-cards/string-card-normal.webp",
+      "type": "image",
+      "bytes": 85302
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/generated-cards/string-card-selected.webp",
+      "type": "image",
+      "bytes": 91846
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-cards/engineer-card.webp",
+      "type": "image",
+      "bytes": 321494
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-cards/fang-card.webp",
+      "type": "image",
+      "bytes": 304240
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-cards/galaxy-card.webp",
+      "type": "image",
+      "bytes": 377982
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-cards/ice-card.webp",
+      "type": "image",
+      "bytes": 409422
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-cards/katana-card.webp",
+      "type": "image",
+      "bytes": 294572
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-cards/ninja-card.webp",
+      "type": "image",
+      "bytes": 291232
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-cards/shotgun-card.webp",
+      "type": "image",
+      "bytes": 297690
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-cards/soccer-card.webp",
+      "type": "image",
+      "bytes": 361066
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-cards/string-card.webp",
+      "type": "image",
+      "bytes": 264790
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-icons/engineer-icon.webp",
+      "type": "image",
+      "bytes": 187356
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-icons/fang-icon.webp",
+      "type": "image",
+      "bytes": 207410
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-icons/galaxy-icon.webp",
+      "type": "image",
+      "bytes": 234328
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-icons/ice-icon.webp",
+      "type": "image",
+      "bytes": 217774
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-icons/katana-icon.webp",
+      "type": "image",
+      "bytes": 199260
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-icons/ninja-icon.webp",
+      "type": "image",
+      "bytes": 205388
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-icons/shotgun-icon.webp",
+      "type": "image",
+      "bytes": 206796
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-icons/soccer-icon.webp",
+      "type": "image",
+      "bytes": 169294
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/hero-icons/string-icon.webp",
+      "type": "image",
+      "bytes": 195232
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/icons/beast-icon.webp",
+      "type": "image",
+      "bytes": 4436
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/icons/engineer-icon.webp",
+      "type": "image",
+      "bytes": 4872
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/icons/galaxy-icon.webp",
+      "type": "image",
+      "bytes": 5008
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/icons/ice-icon.webp",
+      "type": "image",
+      "bytes": 3336
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/icons/katana-icon.webp",
+      "type": "image",
+      "bytes": 4486
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/icons/ninja-icon.webp",
+      "type": "image",
+      "bytes": 5170
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/icons/shotgun-icon.webp",
+      "type": "image",
+      "bytes": 4804
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/icons/soccer-icon.webp",
+      "type": "image",
+      "bytes": 3830
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/icons/string-icon.webp",
+      "type": "image",
+      "bytes": 6916
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/standing/engineer-standing.webp",
+      "type": "image",
+      "bytes": 200368
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/standing/fang-standing.webp",
+      "type": "image",
+      "bytes": 1030454
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/standing/galaxy-standing.webp",
+      "type": "image",
+      "bytes": 133696
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/standing/ice-standing.webp",
+      "type": "image",
+      "bytes": 113048
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/standing/katana-standing.webp",
+      "type": "image",
+      "bytes": 756204
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/standing/ninja-standing.webp",
+      "type": "image",
+      "bytes": 110450
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/standing/shotgun-standing.webp",
+      "type": "image",
+      "bytes": 138602
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/standing/soccer-standing.webp",
+      "type": "image",
+      "bytes": 110038
+    },
+    {
+      "path": "/assets/pick_ui_final/assets/standing/string-standing.webp",
+      "type": "image",
+      "bytes": 182354
+    },
+    {
+      "path": "/assets/pick_ui_final/pick-layout-card-system-v1.json",
+      "type": "data",
+      "bytes": 53550
+    },
+    {
+      "path": "/assets/pick_ui_final/pick-layout-final-v1.json",
+      "type": "data",
+      "bytes": 89566
+    },
+    {
       "path": "/assets/puppet_v1/normalized/effigy_wall_4.webp",
       "type": "image",
       "bytes": 274958
@@ -1235,7 +2325,7 @@
     {
       "path": "/assets/shotgun_v1/manifest.json",
       "type": "data",
-      "bytes": 5542
+      "bytes": 5560
     },
     {
       "path": "/assets/shotgun_v1/muzzle.webp",
@@ -1736,6 +2826,16 @@
       "path": "/assets/ui_2026/tab-full-roster.webp",
       "type": "image",
       "bytes": 25854
+    },
+    {
+      "path": "/manualLab.js",
+      "type": "script",
+      "bytes": 199085
+    },
+    {
+      "path": "/manualLabOnline.js",
+      "type": "script",
+      "bytes": 7457
     },
     {
       "path": "/sniper_cloak_move_sprite.webp",

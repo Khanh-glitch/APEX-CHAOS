@@ -1,0 +1,1963 @@
+{
+  "version": 7,
+  "fighter": "FANG",
+  "frameRate": 24,
+  "clips": {
+    "normal": {
+      "count": 13,
+      "loop": [
+        1,
+        13
+      ],
+      "seconds": 0.5416666666666666
+    },
+    "hunt": {
+      "count": 22,
+      "transition": [
+        2,
+        8
+      ],
+      "loop": [
+        9,
+        22
+      ]
+    },
+    "howl": {
+      "count": 48,
+      "seconds": 2,
+      "howlEventFrame": 17
+    }
+  },
+  "registration": {
+    "policy": "shared-source-canvas",
+    "canvas": [
+      1080,
+      1920
+    ],
+    "pivot": [
+      540,
+      960
+    ]
+  },
+  "assets": {
+    "fang.anim.normal.01": {
+      "file": "assets/fang_v1/frames/normal/frame_001.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 509933,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        275,
+        139,
+        778,
+        1839
+      ],
+      "source": "FANG ASSETS\\13 frame normal move_load by 24 fps\\frame_001.webp"
+    },
+    "fang.anim.normal.02": {
+      "file": "assets/fang_v1/frames/normal/frame_002.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 509933,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        275,
+        139,
+        778,
+        1839
+      ],
+      "source": "FANG ASSETS\\13 frame normal move_load by 24 fps\\frame_002.webp"
+    },
+    "fang.anim.normal.03": {
+      "file": "assets/fang_v1/frames/normal/frame_003.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 516133,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        278,
+        131,
+        775,
+        1861
+      ],
+      "source": "FANG ASSETS\\13 frame normal move_load by 24 fps\\frame_003.webp"
+    },
+    "fang.anim.normal.04": {
+      "file": "assets/fang_v1/frames/normal/frame_004.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 516652,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        278,
+        131,
+        785,
+        1851
+      ],
+      "source": "FANG ASSETS\\13 frame normal move_load by 24 fps\\frame_004.webp"
+    },
+    "fang.anim.normal.05": {
+      "file": "assets/fang_v1/frames/normal/frame_005.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 514359,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        278,
+        134,
+        799,
+        1843
+      ],
+      "source": "FANG ASSETS\\13 frame normal move_load by 24 fps\\frame_005.webp"
+    },
+    "fang.anim.normal.06": {
+      "file": "assets/fang_v1/frames/normal/frame_006.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 513707,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        289,
+        146,
+        799,
+        1830
+      ],
+      "source": "FANG ASSETS\\13 frame normal move_load by 24 fps\\frame_006.webp"
+    },
+    "fang.anim.normal.07": {
+      "file": "assets/fang_v1/frames/normal/frame_007.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 518076,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        304,
+        153,
+        785,
+        1832
+      ],
+      "source": "FANG ASSETS\\13 frame normal move_load by 24 fps\\frame_007.webp"
+    },
+    "fang.anim.normal.08": {
+      "file": "assets/fang_v1/frames/normal/frame_008.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 519358,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        306,
+        153,
+        788,
+        1843
+      ],
+      "source": "FANG ASSETS\\13 frame normal move_load by 24 fps\\frame_008.webp"
+    },
+    "fang.anim.normal.09": {
+      "file": "assets/fang_v1/frames/normal/frame_009.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 522984,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        309,
+        145,
+        794,
+        1877
+      ],
+      "source": "FANG ASSETS\\13 frame normal move_load by 24 fps\\frame_009.webp"
+    },
+    "fang.anim.normal.10": {
+      "file": "assets/fang_v1/frames/normal/frame_010.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 522306,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        311,
+        133,
+        797,
+        1901
+      ],
+      "source": "FANG ASSETS\\13 frame normal move_load by 24 fps\\frame_010.webp"
+    },
+    "fang.anim.normal.11": {
+      "file": "assets/fang_v1/frames/normal/frame_011.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 517964,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        311,
+        128,
+        800,
+        1899
+      ],
+      "source": "FANG ASSETS\\13 frame normal move_load by 24 fps\\frame_011.webp"
+    },
+    "fang.anim.normal.12": {
+      "file": "assets/fang_v1/frames/normal/frame_012.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 502366,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        298,
+        124,
+        805,
+        1888
+      ],
+      "source": "FANG ASSETS\\13 frame normal move_load by 24 fps\\frame_012.webp"
+    },
+    "fang.anim.normal.13": {
+      "file": "assets/fang_v1/frames/normal/frame_013.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 499964,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        281,
+        133,
+        803,
+        1865
+      ],
+      "source": "FANG ASSETS\\13 frame normal move_load by 24 fps\\frame_013.webp"
+    },
+    "fang.anim.hunt.01": {
+      "file": "assets/fang_v1/frames/hunt/frame_001.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 505141,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        281,
+        132,
+        803,
+        1864
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_001.webp"
+    },
+    "fang.anim.hunt.02": {
+      "file": "assets/fang_v1/frames/hunt/frame_002.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 511886,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        254,
+        143,
+        805,
+        1842
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_002.webp"
+    },
+    "fang.anim.hunt.03": {
+      "file": "assets/fang_v1/frames/hunt/frame_003.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 516263,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        236,
+        178,
+        792,
+        1818
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_003.webp"
+    },
+    "fang.anim.hunt.04": {
+      "file": "assets/fang_v1/frames/hunt/frame_004.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 527688,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        295,
+        164,
+        787,
+        1858
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_004.webp"
+    },
+    "fang.anim.hunt.05": {
+      "file": "assets/fang_v1/frames/hunt/frame_005.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 542112,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        305,
+        186,
+        792,
+        1892
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_005.webp"
+    },
+    "fang.anim.hunt.06": {
+      "file": "assets/fang_v1/frames/hunt/frame_006.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 537502,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        305,
+        161,
+        800,
+        1911
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_006.webp"
+    },
+    "fang.anim.hunt.07": {
+      "file": "assets/fang_v1/frames/hunt/frame_007.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 534536,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        314,
+        200,
+        821,
+        1920
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_007.webp"
+    },
+    "fang.anim.hunt.08": {
+      "file": "assets/fang_v1/frames/hunt/frame_008.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 531685,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        312,
+        165,
+        826,
+        1907
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_008.webp"
+    },
+    "fang.anim.hunt.09": {
+      "file": "assets/fang_v1/frames/hunt/frame_009.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 518005,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        309,
+        153,
+        852,
+        1872
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_009.webp"
+    },
+    "fang.anim.hunt.10": {
+      "file": "assets/fang_v1/frames/hunt/frame_010.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 514839,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        309,
+        163,
+        873,
+        1855
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_010.webp"
+    },
+    "fang.anim.hunt.11": {
+      "file": "assets/fang_v1/frames/hunt/frame_011.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 516972,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        300,
+        200,
+        903,
+        1840
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_011.webp"
+    },
+    "fang.anim.hunt.12": {
+      "file": "assets/fang_v1/frames/hunt/frame_012.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 538541,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        304,
+        190,
+        874,
+        1847
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_012.webp"
+    },
+    "fang.anim.hunt.13": {
+      "file": "assets/fang_v1/frames/hunt/frame_013.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 555447,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        306,
+        178,
+        806,
+        1879
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_013.webp"
+    },
+    "fang.anim.hunt.14": {
+      "file": "assets/fang_v1/frames/hunt/frame_014.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 551947,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        311,
+        201,
+        812,
+        1892
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_014.webp"
+    },
+    "fang.anim.hunt.15": {
+      "file": "assets/fang_v1/frames/hunt/frame_015.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 541383,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        313,
+        167,
+        818,
+        1901
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_015.webp"
+    },
+    "fang.anim.hunt.16": {
+      "file": "assets/fang_v1/frames/hunt/frame_016.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 518729,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        310,
+        151,
+        809,
+        1890
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_016.webp"
+    },
+    "fang.anim.hunt.17": {
+      "file": "assets/fang_v1/frames/hunt/frame_017.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 503725,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        310,
+        170,
+        812,
+        1889
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_017.webp"
+    },
+    "fang.anim.hunt.18": {
+      "file": "assets/fang_v1/frames/hunt/frame_018.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 510329,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        301,
+        210,
+        797,
+        1872
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_018.webp"
+    },
+    "fang.anim.hunt.19": {
+      "file": "assets/fang_v1/frames/hunt/frame_019.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 528431,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        302,
+        208,
+        790,
+        1873
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_019.webp"
+    },
+    "fang.anim.hunt.20": {
+      "file": "assets/fang_v1/frames/hunt/frame_020.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 553288,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        304,
+        181,
+        798,
+        1890
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_020.webp"
+    },
+    "fang.anim.hunt.21": {
+      "file": "assets/fang_v1/frames/hunt/frame_021.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 558100,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        312,
+        196,
+        818,
+        1901
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_021.webp"
+    },
+    "fang.anim.hunt.22": {
+      "file": "assets/fang_v1/frames/hunt/frame_022.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 539410,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        313,
+        160,
+        821,
+        1897
+      ],
+      "source": "FANG ASSETS\\7 first frame (except the 1) for transform to the hauting mode_loop 9 to 22 and back to 9 for haunting moving\\frame_022.webp"
+    },
+    "fang.anim.howl.01": {
+      "file": "assets/fang_v1/frames/howl/frame_001.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 505171,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        280,
+        132,
+        803,
+        1865
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_001.webp"
+    },
+    "fang.anim.howl.02": {
+      "file": "assets/fang_v1/frames/howl/frame_002.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 507398,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        263,
+        135,
+        800,
+        1842
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_002.webp"
+    },
+    "fang.anim.howl.03": {
+      "file": "assets/fang_v1/frames/howl/frame_003.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 510282,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        245,
+        143,
+        790,
+        1797
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_003.webp"
+    },
+    "fang.anim.howl.04": {
+      "file": "assets/fang_v1/frames/howl/frame_004.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 513839,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        258,
+        146,
+        788,
+        1796
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_004.webp"
+    },
+    "fang.anim.howl.05": {
+      "file": "assets/fang_v1/frames/howl/frame_005.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 517045,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        305,
+        153,
+        792,
+        1816
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_005.webp"
+    },
+    "fang.anim.howl.06": {
+      "file": "assets/fang_v1/frames/howl/frame_006.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 517134,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        304,
+        155,
+        798,
+        1834
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_006.webp"
+    },
+    "fang.anim.howl.07": {
+      "file": "assets/fang_v1/frames/howl/frame_007.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 512666,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        305,
+        155,
+        806,
+        1866
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_007.webp"
+    },
+    "fang.anim.howl.08": {
+      "file": "assets/fang_v1/frames/howl/frame_008.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 502862,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        309,
+        155,
+        810,
+        1883
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_008.webp"
+    },
+    "fang.anim.howl.09": {
+      "file": "assets/fang_v1/frames/howl/frame_009.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 504336,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        314,
+        158,
+        816,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_009.webp"
+    },
+    "fang.anim.howl.10": {
+      "file": "assets/fang_v1/frames/howl/frame_010.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 508591,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        317,
+        159,
+        818,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_010.webp"
+    },
+    "fang.anim.howl.11": {
+      "file": "assets/fang_v1/frames/howl/frame_011.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 517946,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        314,
+        177,
+        818,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_011.webp"
+    },
+    "fang.anim.howl.12": {
+      "file": "assets/fang_v1/frames/howl/frame_012.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 517970,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        311,
+        195,
+        830,
+        1891
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_012.webp"
+    },
+    "fang.anim.howl.13": {
+      "file": "assets/fang_v1/frames/howl/frame_013.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 512153,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        309,
+        241,
+        840,
+        1858
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_013.webp"
+    },
+    "fang.anim.howl.14": {
+      "file": "assets/fang_v1/frames/howl/frame_014.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 513183,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        307,
+        256,
+        828,
+        1852
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_014.webp"
+    },
+    "fang.anim.howl.15": {
+      "file": "assets/fang_v1/frames/howl/frame_015.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 518980,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        305,
+        243,
+        830,
+        1885
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_015.webp"
+    },
+    "fang.anim.howl.16": {
+      "file": "assets/fang_v1/frames/howl/frame_016.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 526554,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        305,
+        218,
+        831,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_016.webp"
+    },
+    "fang.anim.howl.17": {
+      "file": "assets/fang_v1/frames/howl/frame_017.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 550208,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        304,
+        149,
+        831,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_017.webp"
+    },
+    "fang.anim.howl.18": {
+      "file": "assets/fang_v1/frames/howl/frame_018.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 564539,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        303,
+        122,
+        832,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_018.webp"
+    },
+    "fang.anim.howl.19": {
+      "file": "assets/fang_v1/frames/howl/frame_019.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 576850,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        301,
+        112,
+        832,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_019.webp"
+    },
+    "fang.anim.howl.20": {
+      "file": "assets/fang_v1/frames/howl/frame_020.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 578532,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        300,
+        106,
+        832,
+        1911
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_020.webp"
+    },
+    "fang.anim.howl.21": {
+      "file": "assets/fang_v1/frames/howl/frame_021.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 579662,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        300,
+        96,
+        833,
+        1864
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_021.webp"
+    },
+    "fang.anim.howl.22": {
+      "file": "assets/fang_v1/frames/howl/frame_022.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 580340,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        300,
+        89,
+        833,
+        1856
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_022.webp"
+    },
+    "fang.anim.howl.23": {
+      "file": "assets/fang_v1/frames/howl/frame_023.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 581260,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        300,
+        83,
+        832,
+        1870
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_023.webp"
+    },
+    "fang.anim.howl.24": {
+      "file": "assets/fang_v1/frames/howl/frame_024.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 580918,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        301,
+        83,
+        832,
+        1880
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_024.webp"
+    },
+    "fang.anim.howl.25": {
+      "file": "assets/fang_v1/frames/howl/frame_025.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 578972,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        301,
+        83,
+        832,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_025.webp"
+    },
+    "fang.anim.howl.26": {
+      "file": "assets/fang_v1/frames/howl/frame_026.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 577130,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        301,
+        85,
+        832,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_026.webp"
+    },
+    "fang.anim.howl.27": {
+      "file": "assets/fang_v1/frames/howl/frame_027.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 574019,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        301,
+        97,
+        832,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_027.webp"
+    },
+    "fang.anim.howl.28": {
+      "file": "assets/fang_v1/frames/howl/frame_028.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 573892,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        301,
+        102,
+        832,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_028.webp"
+    },
+    "fang.anim.howl.29": {
+      "file": "assets/fang_v1/frames/howl/frame_029.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 576685,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        301,
+        90,
+        832,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_029.webp"
+    },
+    "fang.anim.howl.30": {
+      "file": "assets/fang_v1/frames/howl/frame_030.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 578731,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        301,
+        82,
+        832,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_030.webp"
+    },
+    "fang.anim.howl.31": {
+      "file": "assets/fang_v1/frames/howl/frame_031.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 581449,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        301,
+        74,
+        832,
+        1888
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_031.webp"
+    },
+    "fang.anim.howl.32": {
+      "file": "assets/fang_v1/frames/howl/frame_032.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 582199,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        301,
+        72,
+        832,
+        1878
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_032.webp"
+    },
+    "fang.anim.howl.33": {
+      "file": "assets/fang_v1/frames/howl/frame_033.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 583531,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        301,
+        71,
+        832,
+        1866
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_033.webp"
+    },
+    "fang.anim.howl.34": {
+      "file": "assets/fang_v1/frames/howl/frame_034.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 583805,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        300,
+        71,
+        832,
+        1865
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_034.webp"
+    },
+    "fang.anim.howl.35": {
+      "file": "assets/fang_v1/frames/howl/frame_035.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 583056,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        300,
+        76,
+        832,
+        1863
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_035.webp"
+    },
+    "fang.anim.howl.36": {
+      "file": "assets/fang_v1/frames/howl/frame_036.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 582503,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        300,
+        80,
+        832,
+        1864
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_036.webp"
+    },
+    "fang.anim.howl.37": {
+      "file": "assets/fang_v1/frames/howl/frame_037.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 582244,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        301,
+        82,
+        833,
+        1866
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_037.webp"
+    },
+    "fang.anim.howl.38": {
+      "file": "assets/fang_v1/frames/howl/frame_038.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 582753,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        300,
+        86,
+        833,
+        1866
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_038.webp"
+    },
+    "fang.anim.howl.39": {
+      "file": "assets/fang_v1/frames/howl/frame_039.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 582770,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        303,
+        76,
+        833,
+        1866
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_039.webp"
+    },
+    "fang.anim.howl.40": {
+      "file": "assets/fang_v1/frames/howl/frame_040.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 579337,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        306,
+        76,
+        833,
+        1863
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_040.webp"
+    },
+    "fang.anim.howl.41": {
+      "file": "assets/fang_v1/frames/howl/frame_041.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 575320,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        308,
+        90,
+        833,
+        1860
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_041.webp"
+    },
+    "fang.anim.howl.42": {
+      "file": "assets/fang_v1/frames/howl/frame_042.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 574561,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        304,
+        96,
+        834,
+        1858
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_042.webp"
+    },
+    "fang.anim.howl.43": {
+      "file": "assets/fang_v1/frames/howl/frame_043.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 554291,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        301,
+        126,
+        833,
+        1884
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_043.webp"
+    },
+    "fang.anim.howl.44": {
+      "file": "assets/fang_v1/frames/howl/frame_044.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 541306,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        301,
+        138,
+        832,
+        1909
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_044.webp"
+    },
+    "fang.anim.howl.45": {
+      "file": "assets/fang_v1/frames/howl/frame_045.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 512985,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        306,
+        159,
+        807,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_045.webp"
+    },
+    "fang.anim.howl.46": {
+      "file": "assets/fang_v1/frames/howl/frame_046.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 510844,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        307,
+        167,
+        809,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_046.webp"
+    },
+    "fang.anim.howl.47": {
+      "file": "assets/fang_v1/frames/howl/frame_047.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 512753,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        308,
+        180,
+        809,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_047.webp"
+    },
+    "fang.anim.howl.48": {
+      "file": "assets/fang_v1/frames/howl/frame_048.webp",
+      "width": 1080,
+      "height": 1920,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 514941,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        306,
+        187,
+        799,
+        1920
+      ],
+      "source": "FANG ASSETS\\48 frame hawling\\frame_048.webp"
+    },
+    "fang.ui.selectionVisual": {
+      "file": "assets/fang_v1/selectionVisual.webp",
+      "width": 941,
+      "height": 1672,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 842268,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        0,
+        60,
+        933,
+        1633
+      ],
+      "source": "FANG ASSETS\\FIGHTER PICKED MENU.webp",
+      "key": "green"
+    },
+    "fang.ui.selectionButton": {
+      "file": "assets/fang_v1/selectionButton.webp",
+      "width": 2079,
+      "height": 677,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 932695,
+      "residualKeyPixels": 13522,
+      "alphaBounds": [
+        16,
+        16,
+        2063,
+        661
+      ],
+      "source": "FANG ASSETS\\fighter button.webp",
+      "key": "white"
+    },
+    "fang.vfx.howlRing": {
+      "file": "assets/fang_v1/howlRing.webp",
+      "width": 1121,
+      "height": 1093,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 169946,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        16,
+        16,
+        1105,
+        1077
+      ],
+      "source": "FANG ASSETS\\circle sign for howl.webp",
+      "key": "magenta"
+    },
+    "fang.vfx.biteMark": {
+      "file": "assets/fang_v1/biteMark.webp",
+      "width": 937,
+      "height": 975,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 313551,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        16,
+        16,
+        921,
+        959
+      ],
+      "source": "FANG ASSETS\\fang icon overlay enemy when enemy got hit.webp",
+      "key": "green"
+    },
+    "fang.vfx.moonIcon": {
+      "file": "assets/fang_v1/moonIcon.webp",
+      "width": 1092,
+      "height": 1102,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 760429,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        16,
+        16,
+        1076,
+        1086
+      ],
+      "source": "FANG ASSETS\\moon icon.webp",
+      "key": "green"
+    },
+    "fang.vfx.sunIcon": {
+      "file": "assets/fang_v1/sunIcon.webp",
+      "width": 1089,
+      "height": 1095,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 737048,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        16,
+        16,
+        1073,
+        1079
+      ],
+      "source": "FANG ASSETS\\sun icon.webp",
+      "key": "green"
+    },
+    "fang.vfx.speckBlood": {
+      "file": "assets/fang_v1/speckBlood.webp",
+      "width": 770,
+      "height": 766,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 423242,
+      "residualKeyPixels": 0,
+      "alphaBounds": [
+        16,
+        16,
+        754,
+        750
+      ],
+      "source": "FANG ASSETS\\Speck of blood.webp",
+      "key": "green"
+    },
+    "fang.vfx.speckMoon": {
+      "file": "assets/fang_v1/speckMoon.webp",
+      "width": 679,
+      "height": 689,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 332026,
+      "residualKeyPixels": 19,
+      "alphaBounds": [
+        16,
+        16,
+        663,
+        673
+      ],
+      "source": "FANG ASSETS\\Speck of moon energy.webp",
+      "key": "magenta"
+    },
+    "fang.vfx.speckSun": {
+      "file": "assets/fang_v1/speckSun.webp",
+      "width": 742,
+      "height": 745,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "visiblePixels": 395963,
+      "residualKeyPixels": 281,
+      "alphaBounds": [
+        16,
+        16,
+        726,
+        729
+      ],
+      "source": "FANG ASSETS\\Speck of sun energy.webp",
+      "key": "magenta"
+    }
+  },
+  "audio": {
+    "fang.sfx.collisionBite": {
+      "file": "assets/fang_v1/audio/collisionBite.wav",
+      "source": "FANG ASSETS\\Collision_bite.wav",
+      "duration": 1.587982,
+      "sha256": "4313320931488cf09b7b4c7357f8361263fa8ff1d526c528c9f17fc3c810ac30",
+      "sampleOffset": 0
+    },
+    "fang.sfx.huntingPounce": {
+      "file": "assets/fang_v1/audio/huntingPounce.wav",
+      "source": "FANG ASSETS\\Hunting_Pounce_sfx.wav",
+      "duration": 1.590612,
+      "sha256": "3933eb909808fe4b1b1a043adc09e6d387e2dcf396f639361f4c766fd1b7968a",
+      "sampleOffset": 0
+    },
+    "fang.sfx.postCollisionRoar": {
+      "file": "assets/fang_v1/audio/postCollisionRoar.wav",
+      "source": "FANG ASSETS\\roar_right_after_Collision_with_enemy.wav",
+      "duration": 1.0,
+      "sha256": "7e8b822aeeb809db27b5f39e8ed2d9eb3226df9ddebdacd8cfe939bd4653bdbf",
+      "sampleOffset": 0
+    },
+    "fang.sfx.huntRunStep": {
+      "file": "assets/fang_v1/audio/huntRunStep.wav",
+      "source": "FANG ASSETS\\running_in_hauting_mode.wav",
+      "duration": 1.0,
+      "sha256": "f55dd1c71dd0eb1bb477f828412b91cc968c31ab6efeafa4d4e954da2af2fa31",
+      "sampleOffset": 0
+    },
+    "fang.sfx.sniff": {
+      "file": "assets/fang_v1/audio/sniff.wav",
+      "source": "FANG ASSETS\\sniff.wav",
+      "duration": 1.796485,
+      "sha256": "c32e40d5d84019bd634be677d2b257715c9e45b13a6bcb2a80aef98c9c7d8276",
+      "sampleOffset": 0
+    },
+    "fang.sfx.huntStart": {
+      "file": "assets/fang_v1/audio/huntStart.wav",
+      "source": "FANG ASSETS\\starting_hunting.wav",
+      "duration": 3.431769,
+      "sha256": "2f256acb9634501c98f963224085e19d1a0f89921d84df16d1f90b8a50d3a329",
+      "sampleOffset": 0
+    },
+    "fang.sfx.wallRebound": {
+      "file": "assets/fang_v1/audio/wallRebound.wav",
+      "source": "FANG ASSETS\\wall_hit_by_wall_pounce.wav",
+      "duration": 1.08,
+      "sha256": "074359ff50fa18227c7db107b537999eef9a92137edc3e0e2a4375925c89b981",
+      "sampleOffset": 0
+    },
+    "fang.sfx.howl": {
+      "file": "assets/fang_v1/audio/howl.mp3",
+      "source": "C:\\Users\\LE QUOC KHANH\\Downloads\\wolf-howling (1).mp3",
+      "duration": null,
+      "sha256": "4ea594bc23a069d724756b4217e46b50ad5d49c1508d28679dfae20f95b8f48c",
+      "sampleOffset": 0
+    },
+    "fang.sfx.heavyImpact": {
+      "file": "assets/fang_v1/audio/heavyImpact.wav",
+      "source": "KATANA ASSETS\\blade_wave_impact_on_planet_war_machine.wav",
+      "duration": 1.520726,
+      "sha256": "bdb5c684871150793876e24ba49655968e727eef58d8a9630bf65061b00bfd85",
+      "sampleOffset": 0
+    }
+  },
+  "review": {
+    "normal": "assets/fang_v1/review/normal-contact-sheet.webp",
+    "hunt": "assets/fang_v1/review/hunt-contact-sheet.webp",
+    "howl": "assets/fang_v1/review/howl-contact-sheet.webp"
+  }
+}

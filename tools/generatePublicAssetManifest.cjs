@@ -48,6 +48,8 @@ function walk(dir, out = []) {
 const files = [
   ...walk(path.join(publicDir, 'assets')),
   path.join(publicDir, 'apexEngine.js'),
+  path.join(publicDir, 'manualLab.js'),
+  path.join(publicDir, 'manualLabOnline.js'),
   path.join(publicDir, 'sniper_cloak_move_sprite.webp'),
   path.join(publicDir, 'sniper_cloak_sprite.webp'),
 ].filter((filePath) => {

@@ -18,7 +18,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 144653,
-      "source": "frame_001.jpg"
+      "source": "frame_001.webp"
     },
     "katana.frame.02": {
       "file": "assets/katana_v1/frames/frame_002.webp",
@@ -32,7 +32,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 144392,
-      "source": "frame_002.jpg"
+      "source": "frame_002.webp"
     },
     "katana.frame.03": {
       "file": "assets/katana_v1/frames/frame_003.webp",
@@ -46,7 +46,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 144095,
-      "source": "frame_003.jpg"
+      "source": "frame_003.webp"
     },
     "katana.frame.04": {
       "file": "assets/katana_v1/frames/frame_004.webp",
@@ -60,7 +60,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 143382,
-      "source": "frame_004.jpg"
+      "source": "frame_004.webp"
     },
     "katana.frame.05": {
       "file": "assets/katana_v1/frames/frame_005.webp",
@@ -74,7 +74,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 143240,
-      "source": "frame_005.jpg"
+      "source": "frame_005.webp"
     },
     "katana.frame.06": {
       "file": "assets/katana_v1/frames/frame_006.webp",
@@ -88,7 +88,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 143094,
-      "source": "frame_006.jpg"
+      "source": "frame_006.webp"
     },
     "katana.frame.07": {
       "file": "assets/katana_v1/frames/frame_007.webp",
@@ -102,7 +102,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 142909,
-      "source": "frame_007.jpg"
+      "source": "frame_007.webp"
     },
     "katana.frame.08": {
       "file": "assets/katana_v1/frames/frame_008.webp",
@@ -116,7 +116,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 143113,
-      "source": "frame_008.jpg"
+      "source": "frame_008.webp"
     },
     "katana.frame.09": {
       "file": "assets/katana_v1/frames/frame_009.webp",
@@ -130,7 +130,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 142809,
-      "source": "frame_009.jpg"
+      "source": "frame_009.webp"
     },
     "katana.frame.10": {
       "file": "assets/katana_v1/frames/frame_010.webp",
@@ -144,7 +144,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 143298,
-      "source": "frame_010.jpg"
+      "source": "frame_010.webp"
     },
     "katana.frame.11": {
       "file": "assets/katana_v1/frames/frame_011.webp",
@@ -158,7 +158,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 144030,
-      "source": "frame_011.jpg"
+      "source": "frame_011.webp"
     },
     "katana.frame.12": {
       "file": "assets/katana_v1/frames/frame_012.webp",
@@ -172,7 +172,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 146548,
-      "source": "frame_012.jpg"
+      "source": "frame_012.webp"
     },
     "katana.frame.13": {
       "file": "assets/katana_v1/frames/frame_013.webp",
@@ -186,7 +186,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 153904,
-      "source": "frame_013.jpg"
+      "source": "frame_013.webp"
     },
     "katana.frame.14": {
       "file": "assets/katana_v1/frames/frame_014.webp",
@@ -200,7 +200,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 151869,
-      "source": "frame_014.jpg"
+      "source": "frame_014.webp"
     },
     "katana.frame.15": {
       "file": "assets/katana_v1/frames/frame_015.webp",
@@ -214,7 +214,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 143956,
-      "source": "frame_015.jpg"
+      "source": "frame_015.webp"
     },
     "katana.frame.16": {
       "file": "assets/katana_v1/frames/frame_016.webp",
@@ -228,7 +228,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 142435,
-      "source": "frame_016.jpg"
+      "source": "frame_016.webp"
     },
     "katana.frame.17": {
       "file": "assets/katana_v1/frames/frame_017.webp",
@@ -242,7 +242,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 145790,
-      "source": "frame_017.jpg"
+      "source": "frame_017.webp"
     },
     "katana.frame.18": {
       "file": "assets/katana_v1/frames/frame_018.webp",
@@ -256,7 +256,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 169049,
-      "source": "frame_018.jpg"
+      "source": "frame_018.webp"
     },
     "katana.frame.19": {
       "file": "assets/katana_v1/frames/frame_019.webp",
@@ -270,7 +270,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 173126,
-      "source": "frame_019.jpg"
+      "source": "frame_019.webp"
     },
     "katana.frame.20": {
       "file": "assets/katana_v1/frames/frame_020.webp",
@@ -284,7 +284,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 169011,
-      "source": "frame_020.jpg"
+      "source": "frame_020.webp"
     },
     "katana.frame.21": {
       "file": "assets/katana_v1/frames/frame_021.webp",
@@ -298,7 +298,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 168972,
-      "source": "frame_021.jpg"
+      "source": "frame_021.webp"
     },
     "katana.frame.22": {
       "file": "assets/katana_v1/frames/frame_022.webp",
@@ -312,7 +312,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 169865,
-      "source": "frame_022.jpg"
+      "source": "frame_022.webp"
     },
     "katana.frame.23": {
       "file": "assets/katana_v1/frames/frame_023.webp",
@@ -326,7 +326,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 171675,
-      "source": "frame_023.jpg"
+      "source": "frame_023.webp"
     },
     "katana.frame.24": {
       "file": "assets/katana_v1/frames/frame_024.webp",
@@ -340,7 +340,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 167584,
-      "source": "frame_024.jpg"
+      "source": "frame_024.webp"
     },
     "katana.frame.25": {
       "file": "assets/katana_v1/frames/frame_025.webp",
@@ -354,7 +354,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 171536,
-      "source": "frame_025.jpg"
+      "source": "frame_025.webp"
     },
     "katana.frame.26": {
       "file": "assets/katana_v1/frames/frame_026.webp",
@@ -368,7 +368,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 158667,
-      "source": "frame_026.jpg"
+      "source": "frame_026.webp"
     },
     "katana.frame.27": {
       "file": "assets/katana_v1/frames/frame_027.webp",
@@ -382,7 +382,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 149483,
-      "source": "frame_027.jpg"
+      "source": "frame_027.webp"
     },
     "katana.frame.28": {
       "file": "assets/katana_v1/frames/frame_028.webp",
@@ -396,7 +396,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 147766,
-      "source": "frame_028.jpg"
+      "source": "frame_028.webp"
     },
     "katana.frame.29": {
       "file": "assets/katana_v1/frames/frame_029.webp",
@@ -410,7 +410,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 145290,
-      "source": "frame_029.jpg"
+      "source": "frame_029.webp"
     },
     "katana.frame.30": {
       "file": "assets/katana_v1/frames/frame_030.webp",
@@ -424,7 +424,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 155760,
-      "source": "frame_030.jpg"
+      "source": "frame_030.webp"
     },
     "katana.frame.31": {
       "file": "assets/katana_v1/frames/frame_031.webp",
@@ -438,7 +438,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 143603,
-      "source": "frame_031.jpg"
+      "source": "frame_031.webp"
     },
     "katana.frame.32": {
       "file": "assets/katana_v1/frames/frame_032.webp",
@@ -452,7 +452,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 141354,
-      "source": "frame_032.jpg"
+      "source": "frame_032.webp"
     },
     "katana.frame.33": {
       "file": "assets/katana_v1/frames/frame_033.webp",
@@ -466,7 +466,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 143077,
-      "source": "frame_033.jpg"
+      "source": "frame_033.webp"
     },
     "katana.frame.34": {
       "file": "assets/katana_v1/frames/frame_034.webp",
@@ -480,7 +480,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 147639,
-      "source": "frame_034.jpg"
+      "source": "frame_034.webp"
     },
     "katana.frame.35": {
       "file": "assets/katana_v1/frames/frame_035.webp",
@@ -494,7 +494,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 148718,
-      "source": "frame_035.jpg"
+      "source": "frame_035.webp"
     },
     "katana.frame.36": {
       "file": "assets/katana_v1/frames/frame_036.webp",
@@ -508,7 +508,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 150572,
-      "source": "frame_036.jpg"
+      "source": "frame_036.webp"
     },
     "katana.frame.37": {
       "file": "assets/katana_v1/frames/frame_037.webp",
@@ -522,7 +522,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 151183,
-      "source": "frame_037.jpg"
+      "source": "frame_037.webp"
     },
     "katana.frame.38": {
       "file": "assets/katana_v1/frames/frame_038.webp",
@@ -536,7 +536,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 148162,
-      "source": "frame_038.jpg"
+      "source": "frame_038.webp"
     },
     "katana.frame.39": {
       "file": "assets/katana_v1/frames/frame_039.webp",
@@ -550,7 +550,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 146990,
-      "source": "frame_039.jpg"
+      "source": "frame_039.webp"
     },
     "katana.frame.40": {
       "file": "assets/katana_v1/frames/frame_040.webp",
@@ -564,7 +564,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 147116,
-      "source": "frame_040.jpg"
+      "source": "frame_040.webp"
     },
     "katana.frame.41": {
       "file": "assets/katana_v1/frames/frame_041.webp",
@@ -578,7 +578,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 146943,
-      "source": "frame_041.jpg"
+      "source": "frame_041.webp"
     },
     "katana.frame.42": {
       "file": "assets/katana_v1/frames/frame_042.webp",
@@ -592,7 +592,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 146382,
-      "source": "frame_042.jpg"
+      "source": "frame_042.webp"
     },
     "katana.frame.43": {
       "file": "assets/katana_v1/frames/frame_043.webp",
@@ -606,7 +606,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 145977,
-      "source": "frame_043.jpg"
+      "source": "frame_043.webp"
     },
     "katana.frame.44": {
       "file": "assets/katana_v1/frames/frame_044.webp",
@@ -620,7 +620,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 145153,
-      "source": "frame_044.jpg"
+      "source": "frame_044.webp"
     },
     "katana.frame.45": {
       "file": "assets/katana_v1/frames/frame_045.webp",
@@ -634,7 +634,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 145267,
-      "source": "frame_045.jpg"
+      "source": "frame_045.webp"
     },
     "katana.frame.46": {
       "file": "assets/katana_v1/frames/frame_046.webp",
@@ -648,7 +648,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 145298,
-      "source": "frame_046.jpg"
+      "source": "frame_046.webp"
     },
     "katana.frame.47": {
       "file": "assets/katana_v1/frames/frame_047.webp",
@@ -662,7 +662,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 144748,
-      "source": "frame_047.jpg"
+      "source": "frame_047.webp"
     },
     "katana.frame.48": {
       "file": "assets/katana_v1/frames/frame_048.webp",
@@ -676,7 +676,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 144119,
-      "source": "frame_048.jpg"
+      "source": "frame_048.webp"
     },
     "katana.vfx.bladeWave": {
       "file": "assets/katana_v1/bladeWave.webp",
@@ -690,7 +690,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 136474,
-      "source": "blade wave.png"
+      "source": "blade wave.webp"
     },
     "katana.vfx.sakuraPetal": {
       "file": "assets/katana_v1/sakuraPetal.webp",
@@ -704,7 +704,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 203136,
-      "source": "sakura for effect.png"
+      "source": "sakura for effect.webp"
     },
     "katana.vfx.slashOverlay": {
       "file": "assets/katana_v1/slashOverlay.webp",
@@ -718,7 +718,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 45468,
-      "source": "slash effect for everything when it hitted by blade or skill.png"
+      "source": "slash effect for everything when it hitted by blade or skill.webp"
     },
     "katana.vfx.pinkMoon": {
       "file": "assets/katana_v1/pinkMoon.webp",
@@ -732,7 +732,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 258957,
-      "source": "the moon that follow and hover behind KATANA.png"
+      "source": "the moon that follow and hover behind KATANA.webp"
     },
     "katana.vfx.pickButton": {
       "file": "assets/katana_v1/pickButton.webp",
@@ -746,7 +746,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 898710,
-      "source": "katana pick button.png"
+      "source": "katana pick button.webp"
     },
     "katana.vfx.picked": {
       "file": "assets/katana_v1/picked.webp",
@@ -760,7 +760,7 @@
       ],
       "greenishOpaquePixels": 0,
       "opaquePixels": 564805,
-      "source": "fighter picked.png"
+      "source": "fighter picked.webp"
     }
   },
   "audio": {

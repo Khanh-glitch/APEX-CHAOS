@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 const once = { loaded: false };
+const MANUAL_ROOM_WS_URL = import.meta.env.VITE_MANUAL_ROOM_WS_URL || '';
 
 const LOADING_ASSETS = {
   bgPortrait: '/assets/ui_2026/loading-bg-portrait.webp',
@@ -33,6 +34,7 @@ const MENU_AUDIO = '/assets/audio/menu_bgm.mp3';
 
 const MENU_BUTTONS = [
   { id: 'play', label: 'Choi', asset: '/assets/ui_2026/menu-play.webp', action: 'goToSelect', primary: true },
+  { id: 'manual-lab', label: 'APEX CONTROL', text: 'APEX CONTROL', action: 'goToManualLabSelect' },
   { id: 'tam-chien', label: '3-Phase Battle', asset: '/assets/ui_2026/menu-3phase.webp', action: 'startTamChienMode' },
   { id: 'trial', label: 'Test Battle With Saitama', asset: '/assets/ui_2026/menu-saitama-test.webp', action: 'goToTrialSelect' },
   { id: 'giai', label: 'Tournament', asset: '/assets/ui_2026/menu-tournament.webp', action: 'goToTournament' },
@@ -66,6 +68,7 @@ async function preloadImage(path) {
   await new Promise((resolve) => {
     const img = new Image();
     let settled = false;
+    let decodeStarted = false;
     const timeout = window.setTimeout(() => finish('timeout'), IMAGE_PRELOAD_TIMEOUT_MS);
     const finish = (ok) => {
       if (settled) return;
@@ -77,11 +80,26 @@ async function preloadImage(path) {
       if (ok === false) console.warn(`[asset-loader] Failed image asset: ${path}`);
       resolve();
     };
+    const finishLoaded = async () => {
+      if (settled || decodeStarted) return;
+      decodeStarted = true;
+      try {
+        if (img.decode) await img.decode();
+      } catch (decodeError) {
+        if (!img.naturalWidth) {
+          console.warn(`[asset-loader] Failed to decode image asset: ${path}`, decodeError);
+        }
+      }
+      finish(true);
+    };
     img.decoding = 'async';
-    img.onload = () => finish(true);
+    img.onload = () => { void finishLoaded(); };
     img.onerror = () => finish(false);
     img.src = path;
-    if (img.complete) finish(img.naturalWidth > 0);
+    if (img.complete) {
+      if (img.naturalWidth > 0) void finishLoaded();
+      else finish(false);
+    }
   });
 }
 
@@ -228,6 +246,23 @@ async function waitForRuntimeAssetReadiness() {
   console.warn('[asset-loader] Timed out waiting for runtime GALAXY audio decode; gameplay will use safe fallbacks.');
 }
 
+async function waitForChampionVisualWarmup() {
+  const warmers = [
+    ['KATANA', window.APEX_KATANA?.warmVisualAssets],
+    ['ENGINEER', window.APEX_ENGINEER?.warmVisualAssets],
+  ].filter(([, warm]) => typeof warm === 'function');
+  if (!warmers.length) return;
+  let timedOut = false;
+  await Promise.race([
+    Promise.all(warmers.map(([, warm]) => warm())),
+    wait(RUNTIME_READY_TIMEOUT_MS).then(() => { timedOut = true; }),
+  ]);
+  if (timedOut) {
+    const names = warmers.map(([name]) => name).join('/');
+    console.warn(`[asset-loader] Timed out waiting for ${names} visual warmup; first use may complete warmup in-game.`);
+  }
+}
+
 function injectApexEngine(scriptRef, engineSrc) {
   if (window.__apexEngineReady) return Promise.resolve();
   if (window.__apexEngineLoadPromise) return window.__apexEngineLoadPromise;
@@ -236,7 +271,7 @@ function injectApexEngine(scriptRef, engineSrc) {
     script.src = engineSrc;
     script.async = false;
     script.dataset.apexEngine = 'true';
-    script.onload = () => {
+    const finishRuntimeLoad = () => {
       const bridge = document.createElement('script');
       bridge.textContent = `
         try { window.goToMenu = goToMenu; } catch (error) {}
@@ -250,6 +285,7 @@ function injectApexEngine(scriptRef, engineSrc) {
         try { window.startTrialMode = startTrialMode; } catch (error) {}
         try { window.endTrialMode = endTrialMode; } catch (error) {}
         try { window.startTamChienMode = startTamChienMode; } catch (error) {}
+        try { window.goToManualLabSelect = goToManualLabSelect; } catch (error) {}
         try { window.toggleAutoBattlePause = toggleAutoBattlePause; } catch (error) {}
         try { window.restartAutoBattle = restartAutoBattle; } catch (error) {}
         try { window.exitAutoBattle = exitAutoBattle; } catch (error) {}
@@ -258,6 +294,31 @@ function injectApexEngine(scriptRef, engineSrc) {
       document.body.appendChild(bridge);
       window.__apexEngineReady = true;
       resolve();
+    };
+    script.onload = () => {
+      const manualLab = document.createElement('script');
+      manualLab.src = `/manualLab.js?v=${Date.now()}`;
+      manualLab.async = false;
+      manualLab.dataset.apexManualLab = 'true';
+      manualLab.onload = () => {
+        window.APEX_MANUAL_ROOM_WS_URL = MANUAL_ROOM_WS_URL;
+        const manualLabOnline = document.createElement('script');
+        manualLabOnline.src = `/manualLabOnline.js?v=${Date.now()}`;
+        manualLabOnline.async = false;
+        manualLabOnline.dataset.apexManualLabOnline = 'true';
+        manualLabOnline.onload = finishRuntimeLoad;
+        manualLabOnline.onerror = () => {
+          console.warn('[asset-loader] Failed APEX CONTROL online runtime; local control mode still works.');
+          finishRuntimeLoad();
+        };
+        document.body.appendChild(manualLabOnline);
+      };
+      manualLab.onerror = () => {
+        console.warn('[asset-loader] Failed APEX CONTROL runtime.');
+        window.__apexEngineLoadPromise = null;
+        reject(new Error('Failed to load /manualLab.js'));
+      };
+      document.body.appendChild(manualLab);
     };
     script.onerror = () => {
       console.warn(`[asset-loader] Failed engine script: ${engineSrc}`);
@@ -309,6 +370,7 @@ export default function App() {
       setLoader((current) => ({ ...current, percent: 100, status: 'STARTING ENGINE' }));
       await enginePromise;
       await waitForRuntimeAssetReadiness();
+      await waitForChampionVisualWarmup();
       if (cancelled) return;
       once.loaded = true;
       setGameReady(true);
@@ -435,7 +497,7 @@ export default function App() {
     } else if (name === 'goToMenu' || name === 'exitAutoBattle') {
       window.apexStopBattleAudio?.();
       playMenuMusic(true);
-    } else if (name === 'goToSelect' || name === 'goToTournament' || name === 'goToSoloSelect') {
+    } else if (name === 'goToSelect' || name === 'goToManualLabSelect' || name === 'goToTournament' || name === 'goToSoloSelect') {
       window.apexStopBattleAudio?.();
       playMenuMusic(false);
     }
@@ -505,6 +567,27 @@ export default function App() {
             <div className="rage-indicator" id="p2-rage">RAGE ACTIVE</div>
           </div>
         </div>
+        <div id="manual-lab-hud" className="manual-lab-hud hidden" aria-live="polite">
+          <div className="manual-lab-title">APEX CONTROL · TERRITORY MODE</div>
+          <div className="manual-engineer-hud">
+          <div className="manual-lab-readout">
+            <span>BLUEPRINT <b id="manual-blueprint">TURRET</b></span>
+            <span>COST <b id="manual-cost">3</b></span>
+            <span>SCRAP <b id="manual-scrap">3</b></span>
+          </div>
+          </div>
+          <div className="manual-katana-hud hidden">
+            <div className="manual-katana-slots">
+              <span><b>LMB</b> ADAPTIVE ATTACK</span>
+              <span><b>RMB</b> COLLISION EXECUTION</span>
+              <span><b>Q</b> DASH <i id="manual-katana-q">READY</i></span>
+              <span><b>E</b> CLONE EVADE <i id="manual-katana-e">LOCKED</i></span>
+              <span><b>R</b> LUNAR REWRITE <i id="manual-katana-r">LOCKED</i></span>
+            </div>
+          </div>
+          <div id="manual-status" className="manual-lab-status">READY</div>
+          <div className="manual-lab-keys">WASD MOVE · MOUSE AIM · LMB BUILD/FIRE · RMB MAGNET · Q/E BLUEPRINT · SPACE MERGE · R WAR MACHINE</div>
+        </div>
       </div>
 
       <div id="battle-controls" className="battle-controls hidden">
@@ -526,7 +609,7 @@ export default function App() {
             <button
               key={button.id}
               type="button"
-              className={`menu-image-button ${button.primary ? 'primary' : ''} ${pressedMenuButton === button.id ? 'is-pressed' : ''}`}
+              className={`menu-image-button ${button.id === 'manual-lab' ? 'manual-lab-button' : ''} ${button.primary ? 'primary' : ''} ${pressedMenuButton === button.id ? 'is-pressed' : ''}`}
               style={{ '--menu-delay': `${index * 42 + 80}ms` }}
               disabled={!gameReady}
               onClick={() => handleMenuButton(button)}
@@ -544,60 +627,102 @@ export default function App() {
       </div>
 
       <div id="select-screen" className="screen hidden">
+        <div id="apex-pick-runtime-root" aria-label="Champion pick screen" />
         <div className="select-bg" aria-hidden="true" />
         <div id="select-ui">
-          <h2 id="select-title" style={{ color: '#7fd4ff' }}>SELECT PLAYER 1</h2>
-          <div className="roster-tabs visual-tabs" aria-hidden="true">
-            <span className="visual-tab"><img src={UI_2026_ASSETS.tabApexUpdate} alt="" draggable="false" /></span>
-            <span className="visual-tab"><img src={UI_2026_ASSETS.tabFullRoster} alt="" draggable="false" /></span>
+          <div className="select-loading-panel" aria-live="polite">LOADING SELECT UI</div>
+          <div id="manual-room-panel" className="manual-room-panel" aria-live="polite">
+            <div className="manual-room-title">APEX CONTROL ROOM</div>
+            <div className="manual-room-row">
+              <button id="manual-room-create" type="button">CREATE</button>
+              <input id="manual-room-input" type="text" maxLength={4} placeholder="CODE" spellCheck="false" />
+              <button id="manual-room-join" type="button">JOIN</button>
+            </div>
+            <div className="manual-room-row">
+              <span>CODE <b id="manual-room-code">----</b></span>
+              <span>ROLE <b id="manual-room-role">OFFLINE</b></span>
+            </div>
+            <div className="manual-room-row">
+              <button id="manual-room-copy" type="button">COPY CODE</button>
+              <button id="manual-room-start" type="button" disabled>START ROOM</button>
+              <button id="manual-room-leave" type="button" disabled>LEAVE</button>
+            </div>
+            <div id="manual-room-status" className="manual-room-status">LOCAL ONLY</div>
           </div>
-          <div className="roster" id="roster-grid" />
           <div className="fighter-stage" aria-label="Selected fighters">
-            <div className="picked-fighter-slot picked-fighter-p1">
-              <img id="p1-fighter-vfx" className="picked-fighter-vfx" alt="Player 1 fighter" draggable="false" />
-              <span className="picked-fighter-label">P1</span>
+            <h2 id="select-title">SELECT PLAYER 1</h2>
+            <div id="select-phase-label">P1 SELECTING</div>
+            <div className="picked-fighter-slot picked-fighter-p1" data-player="1">
+              <img className="side-backdrop" data-select-asset="sideBackdrop" alt="" draggable="false" />
+              <div className="side-art-aperture">
+                <img id="p1-fighter-vfx" className="picked-fighter-vfx" alt="Player 1 fighter" draggable="false" />
+              </div>
+              <img className="side-frame side-frame-base" data-select-asset="sideFrameBase" alt="" draggable="false" />
+              <span className="side-frame-tint" aria-hidden="true" />
+              <img className="side-frame side-frame-highlight" data-select-asset="sideFrameHighlight" alt="" draggable="false" />
+              <div className="picked-fighter-copy">
+                <span className="picked-fighter-label">P1</span>
+                <b id="p1-select-name">SELECTING</b>
+              </div>
             </div>
-            <button id="start-btn" className="fight-stage-button hidden" type="button" disabled={!gameReady} onClick={() => runApex('startMatch')}>
-              <img className="fight-action-img" src={UI_2026_ASSETS.fightButton} alt="Fight" draggable="false" />
-            </button>
-            <div className="picked-fighter-slot picked-fighter-p2">
-              <img id="p2-fighter-vfx" className="picked-fighter-vfx" alt="Player 2 fighter" draggable="false" />
-              <span className="picked-fighter-label">P2</span>
+            <div className="pick-stat-panel pick-stat-p1" data-player="1">
+              <img className="pick-stat-base" data-select-asset="statsPanelBase" alt="" draggable="false" />
+              <span className="pick-stat-label pick-hp-label">HP</span>
+              <span id="p1-select-hp" className="pick-stat-value pick-hp-value">1000</span>
+              <span className="pick-stat-label pick-dmg-label">DMG%</span>
+              <span id="p1-select-dmg" className="pick-stat-value pick-dmg-value">100</span>
             </div>
-          </div>
-          <div className="autobattle-settings" aria-label="Auto battle settings">
-            <div className="ab-panel p1">
-              <img className="setup-vfx setup-vfx-p1" src={UI_2026_ASSETS.p1SetupVfx} alt="" draggable="false" />
-              <b>P1 SETUP</b>
-              <label>
-                <span>HP</span>
-                <input id="p1-hp-setting" type="text" inputMode="numeric" defaultValue="1000" placeholder="1000 or INF" />
-              </label>
-              <label>
-                <span>DMG %</span>
-                <input id="p1-dmg-setting" type="number" min="100" max="1000" step="10" defaultValue="100" />
-              </label>
+            <div className="select-center" aria-label="Champion select controls">
+              <div className="select-vs" aria-hidden="true">VS</div>
+              <div className="carousel-shell">
+                <button id="select-arrow-left" className="select-arrow select-arrow-left" type="button" disabled={!gameReady} aria-label="Previous fighter" />
+                <div className="roster" id="roster-grid" />
+                <button id="select-arrow-right" className="select-arrow select-arrow-right" type="button" disabled={!gameReady} aria-label="Next fighter" />
+              </div>
+              <div className="select-info-panel" aria-label="Champion information">
+                <img className="stats-panel-base" data-select-asset="statsPanelBase" alt="" draggable="false" />
+                <div className="select-info-copy">
+                  <span id="select-info-status">P1 SELECTING</span>
+                  <h3 id="select-info-name">CHOOSE FIGHTER</h3>
+                  <p id="select-info-desc">Pick a champion to preview combat data.</p>
+                  <dl className="select-stat-list">
+                    <div><dt>Speed</dt><dd id="select-info-speed">--</dd></div>
+                    <div><dt>P1 HP</dt><dd><input id="p1-hp-setting" type="text" inputMode="numeric" defaultValue="1000" placeholder="1000 or INF" /></dd></div>
+                    <div><dt>P1 DMG</dt><dd><input id="p1-dmg-setting" type="number" min="100" max="1000" step="10" defaultValue="100" /></dd></div>
+                    <div><dt>P2 HP</dt><dd><input id="p2-hp-setting" type="text" inputMode="numeric" defaultValue="1000" placeholder="1000 or INF" /></dd></div>
+                    <div><dt>P2 DMG</dt><dd><input id="p2-dmg-setting" type="number" min="100" max="1000" step="10" defaultValue="100" /></dd></div>
+                  </dl>
+                </div>
+              </div>
+              <div className="select-actions">
+                <button id="start-btn" className="fight-stage-button hidden" type="button" disabled={!gameReady} onClick={() => runApex('startMatch')}>
+                  <span>START BATTLE</span>
+                </button>
+                <button id="select-exit-btn" type="button" disabled={!gameReady} onClick={() => runApex('goToMenu')}>
+                  <span>BACK</span>
+                </button>
+              </div>
             </div>
-            <div className="ab-panel p2">
-              <img className="setup-vfx setup-vfx-p2" src={UI_2026_ASSETS.p2SetupVfx} alt="" draggable="false" />
-              <b>P2 SETUP</b>
-              <label>
-                <span>HP</span>
-                <input id="p2-hp-setting" type="text" inputMode="numeric" defaultValue="1000" placeholder="1000 or INF" />
-              </label>
-              <label>
-                <span>DMG %</span>
-                <input id="p2-dmg-setting" type="number" min="100" max="1000" step="10" defaultValue="100" />
-              </label>
+            <div className="picked-fighter-slot picked-fighter-p2" data-player="2">
+              <img className="side-backdrop" data-select-asset="sideBackdrop" alt="" draggable="false" />
+              <div className="side-art-aperture">
+                <img id="p2-fighter-vfx" className="picked-fighter-vfx" alt="Player 2 fighter" draggable="false" />
+              </div>
+              <img className="side-frame side-frame-base" data-select-asset="sideFrameBase" alt="" draggable="false" />
+              <span className="side-frame-tint" aria-hidden="true" />
+              <img className="side-frame side-frame-highlight" data-select-asset="sideFrameHighlight" alt="" draggable="false" />
+              <div className="picked-fighter-copy">
+                <span className="picked-fighter-label">P2</span>
+                <b id="p2-select-name">WAITING</b>
+              </div>
             </div>
-          </div>
-          <div className="select-actions">
-            <button id="matchup-stats-btn" type="button" disabled={!gameReady} onClick={() => runApex('runMatchupStats')}>
-              RUN 20 STATS
-            </button>
-            <button id="select-exit-btn" type="button" disabled={!gameReady} onClick={() => runApex('goToMenu')}>
-              <img className="action-button-img exit-action-img" src={UI_2026_ASSETS.exitButton} alt="Exit" draggable="false" />
-            </button>
+            <div className="pick-stat-panel pick-stat-p2" data-player="2">
+              <img className="pick-stat-base" data-select-asset="statsPanelBase" alt="" draggable="false" />
+              <span className="pick-stat-label pick-hp-label">HP</span>
+              <span id="p2-select-hp" className="pick-stat-value pick-hp-value">1000</span>
+              <span className="pick-stat-label pick-dmg-label">DMG%</span>
+              <span id="p2-select-dmg" className="pick-stat-value pick-dmg-value">100</span>
+            </div>
           </div>
           <div id="matchup-report" className="matchup-report" />
         </div>

@@ -1,0 +1,1854 @@
+{
+  "version": 4,
+  "canvas": {
+    "width": 1672,
+    "height": 941
+  },
+  "screens": {
+    "pick": {
+      "name": "Champion Pick",
+      "canvas": {
+        "width": 1672,
+        "height": 941
+      },
+      "champions": [
+        {
+          "id": "shotgun",
+          "name": "SHOTGUN",
+          "accent": "#FF6A2A",
+          "accentGlow": "#FFB075",
+          "standing": "./assets/standing/shotgun-standing.webp",
+          "cardArt": "./assets/hero-cards/shotgun-card.webp",
+          "icon": "./assets/hero-icons/shotgun-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "katana",
+          "name": "KATANA",
+          "accent": "#FF5AAE",
+          "accentGlow": "#FFC1DF",
+          "standing": "./assets/standing/katana-standing.webp",
+          "cardArt": "./assets/hero-cards/katana-card.webp",
+          "icon": "./assets/hero-icons/katana-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "engineer",
+          "name": "ENGINEER",
+          "accent": "#F5A623",
+          "accentGlow": "#FFD27A",
+          "standing": "./assets/standing/engineer-standing.webp",
+          "cardArt": "./assets/hero-cards/engineer-card.webp",
+          "icon": "./assets/hero-icons/engineer-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "galaxy",
+          "name": "GALAXY",
+          "accent": "#8A5CFF",
+          "accentGlow": "#C6A8FF",
+          "standing": "./assets/standing/galaxy-standing.webp",
+          "cardArt": "./assets/hero-cards/galaxy-card.webp",
+          "icon": "./assets/hero-icons/galaxy-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "ice",
+          "name": "ICE",
+          "accent": "#63D6FF",
+          "accentGlow": "#BDF4FF",
+          "standing": "./assets/standing/ice-standing.webp",
+          "cardArt": "./assets/hero-cards/ice-card.webp",
+          "icon": "./assets/hero-icons/ice-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "ninja",
+          "name": "NINJA",
+          "accent": "#4EA8FF",
+          "accentGlow": "#B6DCFF",
+          "standing": "./assets/standing/ninja-standing.webp",
+          "cardArt": "./assets/hero-cards/ninja-card.webp",
+          "icon": "./assets/hero-icons/ninja-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "soccer",
+          "name": "SOCCER",
+          "accent": "#FF3B30",
+          "accentGlow": "#FF7A70",
+          "standing": "./assets/standing/soccer-standing.webp",
+          "cardArt": "./assets/hero-cards/soccer-card.webp",
+          "icon": "./assets/hero-icons/soccer-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "string",
+          "name": "STRING",
+          "accent": "#FF4FB3",
+          "accentGlow": "#FF9DDA",
+          "standing": "./assets/standing/string-standing.webp",
+          "cardArt": "./assets/hero-cards/string-card.webp",
+          "icon": "./assets/hero-icons/string-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "fang",
+          "name": "FANG",
+          "accent": "#FF3A3A",
+          "accentGlow": "#FF8B8B",
+          "standing": "./assets/standing/fang-standing.webp",
+          "cardArt": "./assets/hero-cards/fang-card.webp",
+          "icon": "./assets/hero-icons/fang-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        }
+      ],
+      "layers": [
+        {
+          "id": "background",
+          "type": "image",
+          "src": "./assets/01-select-screen-background.webp",
+          "x": 0,
+          "y": 0,
+          "w": 1672,
+          "h": 941,
+          "z": -2,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center"
+        },
+        {
+          "id": "portrait-inner-backdrop-p1",
+          "type": "image",
+          "src": "./assets/05-portrait-inner-backdrop.webp",
+          "x": 194,
+          "y": 128,
+          "w": 324,
+          "h": 486,
+          "z": 0,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center"
+        },
+        {
+          "id": "portrait-inner-backdrop-p2",
+          "type": "image",
+          "src": "./assets/05-portrait-inner-backdrop.webp",
+          "x": 1159,
+          "y": 128,
+          "w": 324,
+          "h": 486,
+          "z": 0,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center"
+        },
+        {
+          "id": "p1-standing",
+          "type": "image",
+          "src": "./assets/standing/shotgun-standing.webp",
+          "x": 190,
+          "y": 128,
+          "w": 333,
+          "h": 475,
+          "z": 5,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "contain",
+          "pos": "center bottom"
+        },
+        {
+          "id": "p2-standing",
+          "type": "image",
+          "src": "./assets/standing/katana-standing.webp",
+          "x": 1126,
+          "y": -41,
+          "w": 357,
+          "h": 628,
+          "z": 5,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "contain",
+          "pos": "center bottom"
+        },
+        {
+          "id": "p1-stats",
+          "type": "image",
+          "src": "./assets/06-stats-panel-base.webp",
+          "x": 131,
+          "y": 568,
+          "w": 448,
+          "h": 418,
+          "z": 8,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center"
+        },
+        {
+          "id": "p2-stats",
+          "type": "image",
+          "src": "./assets/06-stats-panel-base.webp",
+          "x": 1096,
+          "y": 568,
+          "w": 448,
+          "h": 418,
+          "z": 8,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center"
+        },
+        {
+          "id": "p1-frame-base",
+          "type": "image",
+          "src": "./assets/02-side-frame-base.webp",
+          "x": 106,
+          "y": 18,
+          "w": 499,
+          "h": 722,
+          "z": 10,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "interaction": {
+            "role": "side-frame-p1",
+            "bindAccent": "p1Champion",
+            "transition": "160ms easeOut",
+            "event": "onP1ChampionChanged",
+            "note": "When P1 champion changes, update standing image, name text, P1/P1 title accent and side-frame tint/glow."
+          }
+        },
+        {
+          "id": "p2-frame-base",
+          "type": "image",
+          "src": "./assets/02-side-frame-base.webp",
+          "x": 1071,
+          "y": 18,
+          "w": 499,
+          "h": 722,
+          "z": 10,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "interaction": {
+            "role": "side-frame-p2",
+            "bindAccent": "p2Champion",
+            "transition": "160ms easeOut",
+            "event": "onP2ChampionChanged",
+            "note": "When P2 champion changes, update standing image, name text, P2 title accent and side-frame tint/glow."
+          }
+        },
+        {
+          "id": "p1-frame-highlight",
+          "type": "image",
+          "src": "./assets/04-side-frame-highlight.webp",
+          "x": 106,
+          "y": 18,
+          "w": 499,
+          "h": 722,
+          "z": 11,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "interaction": {
+            "role": "side-frame-p1",
+            "bindAccent": "p1Champion",
+            "transition": "160ms easeOut",
+            "event": "onP1ChampionChanged",
+            "note": "When P1 champion changes, update standing image, name text, P1/P1 title accent and side-frame tint/glow."
+          }
+        },
+        {
+          "id": "p2-frame-highlight",
+          "type": "image",
+          "src": "./assets/04-side-frame-highlight.webp",
+          "x": 1071,
+          "y": 18,
+          "w": 499,
+          "h": 722,
+          "z": 11,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "interaction": {
+            "role": "side-frame-p2",
+            "bindAccent": "p2Champion",
+            "transition": "160ms easeOut",
+            "event": "onP2ChampionChanged",
+            "note": "When P2 champion changes, update standing image, name text, P2 title accent and side-frame tint/glow."
+          }
+        },
+        {
+          "id": "p1-title",
+          "type": "text",
+          "text": "P1",
+          "x": 265,
+          "y": 52,
+          "w": 183,
+          "h": 76,
+          "z": 12,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 48,
+          "color": "#FF6B2B",
+          "align": "center"
+        },
+        {
+          "id": "p1-name",
+          "type": "text",
+          "text": "SHOTGUN",
+          "x": 207,
+          "y": 635,
+          "w": 296,
+          "h": 55,
+          "z": 12,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 24,
+          "color": "#F7F7F4",
+          "align": "center"
+        },
+        {
+          "id": "p1-hp-text",
+          "type": "text",
+          "text": "HP",
+          "x": 190,
+          "y": 720,
+          "w": 160,
+          "h": 66,
+          "z": 12,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 40,
+          "color": "#FFFFFF",
+          "align": "left"
+        },
+        {
+          "id": "p1-dmg",
+          "type": "text",
+          "text": "DMG %       100",
+          "x": 700,
+          "y": 726,
+          "w": 250,
+          "h": 34,
+          "z": 12,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 22,
+          "color": "#FFFFFF",
+          "align": "center"
+        },
+        {
+          "id": "p2-title",
+          "type": "text",
+          "text": "P2",
+          "x": 1247,
+          "y": 54,
+          "w": 146,
+          "h": 74,
+          "z": 12,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 48,
+          "color": "#FF72B6",
+          "align": "center",
+          "group": ""
+        },
+        {
+          "id": "p2-name",
+          "type": "text",
+          "text": "KATANA",
+          "x": 1200,
+          "y": 644,
+          "w": 240,
+          "h": 38,
+          "z": 12,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 24,
+          "color": "#F7F7F4",
+          "align": "center"
+        },
+        {
+          "id": "arrow-left",
+          "type": "image",
+          "src": "./assets/17-arrow-left-normal.webp",
+          "x": 503,
+          "y": 328,
+          "w": 122,
+          "h": 133,
+          "z": 30,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "interaction": {
+            "role": "button",
+            "bindAccent": "selectedChampion",
+            "transition": "90ms easeOut",
+            "event": "hover/pressed/click",
+            "note": "Use normal/hover arrow assets. On click, move carousel 1 step; scale 0.96 while pressed."
+          }
+        },
+        {
+          "id": "arrow-right",
+          "type": "image",
+          "src": "./assets/19-arrow-right-normal.webp",
+          "x": 1053,
+          "y": 328,
+          "w": 122,
+          "h": 133,
+          "z": 30,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "interaction": {
+            "role": "button",
+            "bindAccent": "selectedChampion",
+            "transition": "90ms easeOut",
+            "event": "hover/pressed/click",
+            "note": "Use normal/hover arrow assets. On click, move carousel 1 step; scale 0.96 while pressed."
+          }
+        },
+        {
+          "id": "start-button",
+          "type": "image",
+          "src": "./assets/11-start-normal.webp",
+          "x": 594,
+          "y": 654,
+          "w": 490,
+          "h": 242,
+          "z": 30,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "interaction": {
+            "role": "button",
+            "bindAccent": "manual",
+            "transition": "90ms easeOut",
+            "event": "hover/pressed/start",
+            "note": "Use 11 normal, 12 hover, 13 pressed. Enable only when both players have selected champions."
+          }
+        },
+        {
+          "id": "exit-button",
+          "type": "image",
+          "src": "./assets/14-exit-normal.webp",
+          "x": 1515,
+          "y": 0,
+          "w": 175,
+          "h": 76,
+          "z": 30,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "interaction": {
+            "role": "button",
+            "bindAccent": "manual",
+            "transition": "90ms easeOut",
+            "event": "hover/pressed/back",
+            "note": "Use 14 normal, 15 hover, 16 pressed."
+          }
+        },
+        {
+          "id": "start-label",
+          "type": "text",
+          "text": "START BATTLE",
+          "x": 619,
+          "y": 739,
+          "w": 434,
+          "h": 69,
+          "z": 31,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fontSize": 43,
+          "color": "#FFF8E6",
+          "align": "center"
+        },
+        {
+          "id": "exit-label",
+          "type": "text",
+          "text": "EXIT",
+          "x": 1535,
+          "y": 14,
+          "w": 135,
+          "h": 48,
+          "z": 31,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 20,
+          "color": "#F4F1EC",
+          "align": "center"
+        },
+        {
+          "id": "title",
+          "type": "text",
+          "text": "SELECT PLAYER 1",
+          "x": 539,
+          "y": 92,
+          "w": 620,
+          "h": 72,
+          "z": 31,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 48,
+          "color": "#D7D8D6",
+          "align": "center"
+        },
+        {
+          "id": "p1-hp-copy",
+          "type": "text",
+          "text": "DMG%",
+          "x": 190,
+          "y": 825,
+          "w": 221,
+          "h": 38,
+          "z": 32,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 40,
+          "color": "#FFFFFF",
+          "align": "left"
+        },
+        {
+          "id": "p1-dmg%-numbur",
+          "type": "text",
+          "text": "100",
+          "x": 292,
+          "y": 825,
+          "w": 221,
+          "h": 38,
+          "z": 33,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 40,
+          "color": "#FFFFFF",
+          "align": "right"
+        },
+        {
+          "id": "p1-hp-number",
+          "type": "text",
+          "text": "1000",
+          "x": 297,
+          "y": 734,
+          "w": 221,
+          "h": 38,
+          "z": 34,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 40,
+          "color": "#FFFFFF",
+          "align": "right"
+        },
+        {
+          "id": "p2-hp-number",
+          "type": "text",
+          "text": "1000",
+          "x": 1266,
+          "y": 734,
+          "w": 221,
+          "h": 38,
+          "z": 36,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 40,
+          "color": "#FFFFFF",
+          "align": "right"
+        },
+        {
+          "id": "p2-hp-text",
+          "type": "text",
+          "text": "HP",
+          "x": 1155,
+          "y": 720,
+          "w": 160,
+          "h": 66,
+          "z": 37,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 40,
+          "color": "#FFFFFF",
+          "align": "left"
+        },
+        {
+          "id": "p2-dmg%-text",
+          "type": "text",
+          "text": "DMG%",
+          "x": 1159,
+          "y": 825,
+          "w": 221,
+          "h": 38,
+          "z": 38,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 40,
+          "color": "#FFFFFF",
+          "align": "left"
+        },
+        {
+          "id": "p2-dmg%-number",
+          "type": "text",
+          "text": "100",
+          "x": 1262,
+          "y": 825,
+          "w": 221,
+          "h": 38,
+          "z": 39,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 40,
+          "color": "#FFFFFF",
+          "align": "right"
+        },
+        {
+          "id": "carousel-left-slot",
+          "type": "hero-card",
+          "championId": "shotgun",
+          "x": 576,
+          "y": 255,
+          "w": 218,
+          "h": 363,
+          "z": 16,
+          "rotate": 0,
+          "opacity": 0.42,
+          "locked": false,
+          "visible": true,
+          "accent": "#FF6A2A",
+          "lockAspect": true,
+          "group": "carousel-slots",
+          "state": "side-left",
+          "interaction": {
+            "role": "carousel-card",
+            "bindAccent": "selectedChampion",
+            "transition": "180ms easeOutCubic",
+            "event": "onCarouselFocus",
+            "note": "Runtime shows max 3 cards: center focus, left/right dim. Press arrow to slide cards; center card scale/glow increases, side cards fade back."
+          }
+        },
+        {
+          "id": "carousel-right-slot",
+          "type": "hero-card",
+          "championId": "ice",
+          "x": 878,
+          "y": 255,
+          "w": 218,
+          "h": 363,
+          "z": 16,
+          "rotate": 0,
+          "opacity": 0.42,
+          "locked": false,
+          "visible": true,
+          "accent": "#63D6FF",
+          "lockAspect": true,
+          "group": "carousel-slots",
+          "state": "side-right",
+          "interaction": {
+            "role": "carousel-card",
+            "bindAccent": "selectedChampion",
+            "transition": "180ms easeOutCubic",
+            "event": "onCarouselFocus",
+            "note": "Runtime shows max 3 cards: center focus, left/right dim. Press arrow to slide cards; center card scale/glow increases, side cards fade back."
+          }
+        },
+        {
+          "id": "carousel-center-slot",
+          "type": "hero-card",
+          "championId": "katana",
+          "x": 674,
+          "y": 150,
+          "w": 324,
+          "h": 540,
+          "z": 22,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "accent": "#FF5AAE",
+          "lockAspect": true,
+          "group": "carousel-slots",
+          "state": "focus",
+          "interaction": {
+            "role": "carousel-card",
+            "bindAccent": "selectedChampion",
+            "transition": "180ms easeOutCubic",
+            "event": "onCarouselFocus",
+            "note": "Runtime shows max 3 cards: center focus, left/right dim. Press arrow to slide cards; center card scale/glow increases, side cards fade back."
+          }
+        }
+      ],
+      "runtimeNotes": [
+        "Only three carousel hero cards should render at runtime: left, center, right.",
+        "All nine champions are already registered in champions.json and in this studio; do not manually place nine cards on the pick screen.",
+        "HeroCardFactory uses champion.cardArt + champion.icon + champion.name + champion.accent and the fixed frame layers.",
+        "Side frames P1/P2 should bind to p1Champion and p2Champion and update portrait/name/accent/stats together.",
+        "Button animation uses the existing normal/hover/pressed assets."
+      ]
+    },
+    "menu": {
+      "name": "Main Menu",
+      "canvas": {
+        "width": 1672,
+        "height": 941
+      },
+      "layers": [
+        {
+          "id": "background",
+          "type": "image",
+          "src": "./assets/01-select-screen-background.webp",
+          "x": 0,
+          "y": 0,
+          "w": 1672,
+          "h": 941,
+          "z": 0,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "group": ""
+        },
+        {
+          "id": "logo-title",
+          "type": "text",
+          "text": "APEX CHAOS",
+          "x": 420,
+          "y": 118,
+          "w": 832,
+          "h": 96,
+          "z": 10,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 72,
+          "color": "#F7F3EE",
+          "align": "center",
+          "group": ""
+        },
+        {
+          "id": "start-button",
+          "type": "image",
+          "src": "./assets/11-start-normal.webp",
+          "x": 606,
+          "y": 460,
+          "w": 460,
+          "h": 115,
+          "z": 20,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "group": ""
+        },
+        {
+          "id": "play-label",
+          "type": "text",
+          "text": "PLAY",
+          "x": 606,
+          "y": 460,
+          "w": 460,
+          "h": 115,
+          "z": 21,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 50,
+          "color": "#FFF8E6",
+          "align": "center",
+          "group": ""
+        }
+      ]
+    },
+    "lobby": {
+      "name": "Lobby",
+      "canvas": {
+        "width": 1672,
+        "height": 941
+      },
+      "layers": [
+        {
+          "id": "background",
+          "type": "image",
+          "src": "./assets/01-select-screen-background.webp",
+          "x": 0,
+          "y": 0,
+          "w": 1672,
+          "h": 941,
+          "z": 0,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "group": ""
+        },
+        {
+          "id": "lobby-title",
+          "type": "text",
+          "text": "LOBBY",
+          "x": 526,
+          "y": 70,
+          "w": 620,
+          "h": 72,
+          "z": 10,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 54,
+          "color": "#fff",
+          "align": "center",
+          "group": ""
+        },
+        {
+          "id": "p1-panel",
+          "type": "image",
+          "src": "./assets/02-side-frame-base.webp",
+          "x": 140,
+          "y": 120,
+          "w": 360,
+          "h": 600,
+          "z": 20,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "group": ""
+        },
+        {
+          "id": "p2-panel",
+          "type": "image",
+          "src": "./assets/02-side-frame-base.webp",
+          "x": 1172,
+          "y": 120,
+          "w": 360,
+          "h": 600,
+          "z": 20,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "group": ""
+        },
+        {
+          "id": "ready-button",
+          "type": "image",
+          "src": "./assets/11-start-normal.webp",
+          "x": 606,
+          "y": 740,
+          "w": 460,
+          "h": 115,
+          "z": 30,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "group": ""
+        },
+        {
+          "id": "ready-label",
+          "type": "text",
+          "text": "READY",
+          "x": 606,
+          "y": 740,
+          "w": 460,
+          "h": 115,
+          "z": 31,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 46,
+          "color": "#FFF8E6",
+          "align": "center",
+          "group": ""
+        }
+      ]
+    },
+    "mode": {
+      "name": "Mode Select",
+      "canvas": {
+        "width": 1672,
+        "height": 941
+      },
+      "layers": [
+        {
+          "id": "background",
+          "type": "image",
+          "src": "./assets/01-select-screen-background.webp",
+          "x": 0,
+          "y": 0,
+          "w": 1672,
+          "h": 941,
+          "z": 0,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "group": ""
+        },
+        {
+          "id": "mode-title",
+          "type": "text",
+          "text": "SELECT MODE",
+          "x": 526,
+          "y": 70,
+          "w": 620,
+          "h": 72,
+          "z": 10,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 54,
+          "color": "#fff",
+          "align": "center",
+          "group": ""
+        },
+        {
+          "id": "mode-official",
+          "type": "image",
+          "src": "./assets/06-stats-panel-base.webp",
+          "x": 220,
+          "y": 300,
+          "w": 360,
+          "h": 175,
+          "z": 20,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "group": ""
+        },
+        {
+          "id": "mode-experimental",
+          "type": "image",
+          "src": "./assets/06-stats-panel-base.webp",
+          "x": 656,
+          "y": 300,
+          "w": 360,
+          "h": 175,
+          "z": 20,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "group": ""
+        },
+        {
+          "id": "mode-manual",
+          "type": "image",
+          "src": "./assets/06-stats-panel-base.webp",
+          "x": 1092,
+          "y": 300,
+          "w": 360,
+          "h": 175,
+          "z": 20,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "group": ""
+        }
+      ]
+    },
+    "arena": {
+      "name": "Arena HUD",
+      "canvas": {
+        "width": 1672,
+        "height": 941
+      },
+      "layers": [
+        {
+          "id": "background",
+          "type": "image",
+          "src": "./assets/01-select-screen-background.webp",
+          "x": 0,
+          "y": 0,
+          "w": 1672,
+          "h": 941,
+          "z": 0,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "group": ""
+        },
+        {
+          "id": "arena-title",
+          "type": "text",
+          "text": "ARENA HUD",
+          "x": 526,
+          "y": 35,
+          "w": 620,
+          "h": 56,
+          "z": 10,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 42,
+          "color": "#fff",
+          "align": "center",
+          "group": ""
+        },
+        {
+          "id": "p1-hud",
+          "type": "image",
+          "src": "./assets/06-stats-panel-base.webp",
+          "x": 40,
+          "y": 28,
+          "w": 360,
+          "h": 120,
+          "z": 20,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "group": ""
+        },
+        {
+          "id": "p2-hud",
+          "type": "image",
+          "src": "./assets/06-stats-panel-base.webp",
+          "x": 1272,
+          "y": 28,
+          "w": 360,
+          "h": 120,
+          "z": 20,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center",
+          "group": ""
+        },
+        {
+          "id": "timer",
+          "type": "text",
+          "text": "60",
+          "x": 746,
+          "y": 35,
+          "w": 180,
+          "h": 70,
+          "z": 30,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 60,
+          "color": "#FFF8E6",
+          "align": "center",
+          "group": ""
+        }
+      ]
+    },
+    "card-library": {
+      "name": "Hero Card Library",
+      "canvas": {
+        "width": 1672,
+        "height": 941
+      },
+      "champions": [
+        {
+          "id": "shotgun",
+          "name": "SHOTGUN",
+          "accent": "#FF6A2A",
+          "accentGlow": "#FFB075",
+          "standing": "./assets/standing/shotgun-standing.webp",
+          "cardArt": "./assets/hero-cards/shotgun-card.webp",
+          "icon": "./assets/hero-icons/shotgun-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "katana",
+          "name": "KATANA",
+          "accent": "#FF5AAE",
+          "accentGlow": "#FFC1DF",
+          "standing": "./assets/standing/katana-standing.webp",
+          "cardArt": "./assets/hero-cards/katana-card.webp",
+          "icon": "./assets/hero-icons/katana-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "engineer",
+          "name": "ENGINEER",
+          "accent": "#F5A623",
+          "accentGlow": "#FFD27A",
+          "standing": "./assets/standing/engineer-standing.webp",
+          "cardArt": "./assets/hero-cards/engineer-card.webp",
+          "icon": "./assets/hero-icons/engineer-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "galaxy",
+          "name": "GALAXY",
+          "accent": "#8A5CFF",
+          "accentGlow": "#C6A8FF",
+          "standing": "./assets/standing/galaxy-standing.webp",
+          "cardArt": "./assets/hero-cards/galaxy-card.webp",
+          "icon": "./assets/hero-icons/galaxy-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "ice",
+          "name": "ICE",
+          "accent": "#63D6FF",
+          "accentGlow": "#BDF4FF",
+          "standing": "./assets/standing/ice-standing.webp",
+          "cardArt": "./assets/hero-cards/ice-card.webp",
+          "icon": "./assets/hero-icons/ice-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "ninja",
+          "name": "NINJA",
+          "accent": "#4EA8FF",
+          "accentGlow": "#B6DCFF",
+          "standing": "./assets/standing/ninja-standing.webp",
+          "cardArt": "./assets/hero-cards/ninja-card.webp",
+          "icon": "./assets/hero-icons/ninja-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "soccer",
+          "name": "SOCCER",
+          "accent": "#FF3B30",
+          "accentGlow": "#FF7A70",
+          "standing": "./assets/standing/soccer-standing.webp",
+          "cardArt": "./assets/hero-cards/soccer-card.webp",
+          "icon": "./assets/hero-icons/soccer-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "string",
+          "name": "STRING",
+          "accent": "#FF4FB3",
+          "accentGlow": "#FF9DDA",
+          "standing": "./assets/standing/string-standing.webp",
+          "cardArt": "./assets/hero-cards/string-card.webp",
+          "icon": "./assets/hero-icons/string-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        },
+        {
+          "id": "fang",
+          "name": "FANG",
+          "accent": "#FF3A3A",
+          "accentGlow": "#FF8B8B",
+          "standing": "./assets/standing/fang-standing.webp",
+          "cardArt": "./assets/hero-cards/fang-card.webp",
+          "icon": "./assets/hero-icons/fang-icon.webp",
+          "stats": {
+            "hp": 1000,
+            "dmg": 100
+          },
+          "ui": {
+            "cardArtScale": 1,
+            "cardArtOffsetX": 0,
+            "cardArtOffsetY": 0
+          }
+        }
+      ],
+      "layers": [
+        {
+          "id": "card-library-bg",
+          "type": "image",
+          "src": "./assets/01-select-screen-background.webp",
+          "x": 0,
+          "y": 0,
+          "w": 1672,
+          "h": 941,
+          "z": -5,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": true,
+          "visible": true,
+          "fit": "fill",
+          "pos": "center center"
+        },
+        {
+          "id": "card-library-title",
+          "type": "text",
+          "text": "HERO CARD LIBRARY - 9 CHAMPIONS",
+          "x": 350,
+          "y": 30,
+          "w": 980,
+          "h": 70,
+          "z": 50,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "fontSize": 42,
+          "color": "#F7F7F4",
+          "align": "center"
+        },
+        {
+          "id": "library-card-shotgun",
+          "type": "hero-card",
+          "championId": "shotgun",
+          "x": 52,
+          "y": 170,
+          "w": 155,
+          "h": 258,
+          "z": 5,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "accent": "#FF6A2A",
+          "lockAspect": true,
+          "group": "carousel-slots",
+          "state": "library",
+          "interaction": {
+            "role": "carousel-card",
+            "bindAccent": "selectedChampion",
+            "transition": "180ms easeOutCubic",
+            "event": "onCarouselFocus",
+            "note": "Runtime shows max 3 cards: center focus, left/right dim. Press arrow to slide cards; center card scale/glow increases, side cards fade back."
+          }
+        },
+        {
+          "id": "library-card-katana",
+          "type": "hero-card",
+          "championId": "katana",
+          "x": 230,
+          "y": 170,
+          "w": 155,
+          "h": 258,
+          "z": 5,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "accent": "#FF5AAE",
+          "lockAspect": true,
+          "group": "carousel-slots",
+          "state": "library",
+          "interaction": {
+            "role": "carousel-card",
+            "bindAccent": "selectedChampion",
+            "transition": "180ms easeOutCubic",
+            "event": "onCarouselFocus",
+            "note": "Runtime shows max 3 cards: center focus, left/right dim. Press arrow to slide cards; center card scale/glow increases, side cards fade back."
+          }
+        },
+        {
+          "id": "library-card-engineer",
+          "type": "hero-card",
+          "championId": "engineer",
+          "x": 408,
+          "y": 170,
+          "w": 155,
+          "h": 258,
+          "z": 5,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "accent": "#F5A623",
+          "lockAspect": true,
+          "group": "carousel-slots",
+          "state": "library",
+          "interaction": {
+            "role": "carousel-card",
+            "bindAccent": "selectedChampion",
+            "transition": "180ms easeOutCubic",
+            "event": "onCarouselFocus",
+            "note": "Runtime shows max 3 cards: center focus, left/right dim. Press arrow to slide cards; center card scale/glow increases, side cards fade back."
+          }
+        },
+        {
+          "id": "library-card-galaxy",
+          "type": "hero-card",
+          "championId": "galaxy",
+          "x": 586,
+          "y": 170,
+          "w": 155,
+          "h": 258,
+          "z": 5,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "accent": "#8A5CFF",
+          "lockAspect": true,
+          "group": "carousel-slots",
+          "state": "library",
+          "interaction": {
+            "role": "carousel-card",
+            "bindAccent": "selectedChampion",
+            "transition": "180ms easeOutCubic",
+            "event": "onCarouselFocus",
+            "note": "Runtime shows max 3 cards: center focus, left/right dim. Press arrow to slide cards; center card scale/glow increases, side cards fade back."
+          }
+        },
+        {
+          "id": "library-card-ice",
+          "type": "hero-card",
+          "championId": "ice",
+          "x": 764,
+          "y": 170,
+          "w": 155,
+          "h": 258,
+          "z": 5,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "accent": "#63D6FF",
+          "lockAspect": true,
+          "group": "carousel-slots",
+          "state": "library",
+          "interaction": {
+            "role": "carousel-card",
+            "bindAccent": "selectedChampion",
+            "transition": "180ms easeOutCubic",
+            "event": "onCarouselFocus",
+            "note": "Runtime shows max 3 cards: center focus, left/right dim. Press arrow to slide cards; center card scale/glow increases, side cards fade back."
+          }
+        },
+        {
+          "id": "library-card-ninja",
+          "type": "hero-card",
+          "championId": "ninja",
+          "x": 942,
+          "y": 170,
+          "w": 155,
+          "h": 258,
+          "z": 5,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "accent": "#4EA8FF",
+          "lockAspect": true,
+          "group": "carousel-slots",
+          "state": "library",
+          "interaction": {
+            "role": "carousel-card",
+            "bindAccent": "selectedChampion",
+            "transition": "180ms easeOutCubic",
+            "event": "onCarouselFocus",
+            "note": "Runtime shows max 3 cards: center focus, left/right dim. Press arrow to slide cards; center card scale/glow increases, side cards fade back."
+          }
+        },
+        {
+          "id": "library-card-soccer",
+          "type": "hero-card",
+          "championId": "soccer",
+          "x": 1120,
+          "y": 170,
+          "w": 155,
+          "h": 258,
+          "z": 5,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "accent": "#FF3B30",
+          "lockAspect": true,
+          "group": "carousel-slots",
+          "state": "library",
+          "interaction": {
+            "role": "carousel-card",
+            "bindAccent": "selectedChampion",
+            "transition": "180ms easeOutCubic",
+            "event": "onCarouselFocus",
+            "note": "Runtime shows max 3 cards: center focus, left/right dim. Press arrow to slide cards; center card scale/glow increases, side cards fade back."
+          }
+        },
+        {
+          "id": "library-card-string",
+          "type": "hero-card",
+          "championId": "string",
+          "x": 1298,
+          "y": 170,
+          "w": 155,
+          "h": 258,
+          "z": 5,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "accent": "#FF4FB3",
+          "lockAspect": true,
+          "group": "carousel-slots",
+          "state": "library",
+          "interaction": {
+            "role": "carousel-card",
+            "bindAccent": "selectedChampion",
+            "transition": "180ms easeOutCubic",
+            "event": "onCarouselFocus",
+            "note": "Runtime shows max 3 cards: center focus, left/right dim. Press arrow to slide cards; center card scale/glow increases, side cards fade back."
+          }
+        },
+        {
+          "id": "library-card-fang",
+          "type": "hero-card",
+          "championId": "fang",
+          "x": 1476,
+          "y": 170,
+          "w": 155,
+          "h": 258,
+          "z": 5,
+          "rotate": 0,
+          "opacity": 1,
+          "locked": false,
+          "visible": true,
+          "accent": "#FF3A3A",
+          "lockAspect": true,
+          "group": "carousel-slots",
+          "state": "library",
+          "interaction": {
+            "role": "carousel-card",
+            "bindAccent": "selectedChampion",
+            "transition": "180ms easeOutCubic",
+            "event": "onCarouselFocus",
+            "note": "Runtime shows max 3 cards: center focus, left/right dim. Press arrow to slide cards; center card scale/glow increases, side cards fade back."
+          }
+        }
+      ],
+      "runtimeNotes": [
+        "QA screen only. It proves all 9 hero cards use the same frame/art/icon alignment."
+      ]
+    }
+  },
+  "activeScreen": "pick",
+  "frameSystem": {
+    "type": "imagen-portrait-3x4-full-frame-no-crop",
+    "frame": {
+      "w": 971,
+      "h": 1619,
+      "base": "./assets/card-frame-imagen-portrait-3x4-exact-layers/41-card-frame-imagen-portrait-3x4-base.webp",
+      "tint": "./assets/card-frame-imagen-portrait-3x4-exact-layers/52-card-frame-imagen-portrait-3x4-neutral-tint-mask-exact.webp",
+      "softGloss": "./assets/card-frame-imagen-portrait-3x4-exact-layers/50-card-frame-imagen-portrait-3x4-soft-gloss-exact.webp",
+      "bevel": "./assets/card-frame-imagen-portrait-3x4-exact-layers/48-card-frame-imagen-portrait-3x4-bevel-highlight-exact.webp",
+      "rim": "./assets/card-frame-imagen-portrait-3x4-exact-layers/49-card-frame-imagen-portrait-3x4-rim-highlight-exact.webp",
+      "selectedGlow": "./assets/card-frame-imagen-portrait-3x4-exact-layers/53-card-frame-imagen-portrait-3x4-selected-glow-mask-exact.webp",
+      "note": "Full-frame rendering. No aperture crop and no socket cutout in Studio."
+    }
+  },
+  "interactionSpecs": {
+    "pick": [],
+    "menu": [],
+    "lobby": [],
+    "mode": [],
+    "arena": [],
+    "pick-runtime": {
+      "carousel": "Use carousel-left-slot, carousel-center-slot, carousel-right-slot as runtime slots. Do not create nine visible cards on pick screen.",
+      "heroCardFactory": "Create cards from champion.cardArt, champion.icon, champion.name, champion.accent. Frame base is full, no frame crop/punch.",
+      "buttonStates": "Start: 11/12/13. Exit: 14/15/16. Arrows: 17/18 and 19/20.",
+      "playerBinding": "P1/P2 frame, standing image, name, text accent and stats update from selected champion."
+    }
+  },
+  "champions": [
+    {
+      "id": "shotgun",
+      "name": "SHOTGUN",
+      "accent": "#FF6A2A",
+      "accentGlow": "#FFB075",
+      "standing": "./assets/standing/shotgun-standing.webp",
+      "cardArt": "./assets/hero-cards/shotgun-card.webp",
+      "icon": "./assets/hero-icons/shotgun-icon.webp",
+      "stats": {
+        "hp": 1000,
+        "dmg": 100
+      },
+      "ui": {
+        "cardArtScale": 1,
+        "cardArtOffsetX": 0,
+        "cardArtOffsetY": 0
+      }
+    },
+    {
+      "id": "katana",
+      "name": "KATANA",
+      "accent": "#FF5AAE",
+      "accentGlow": "#FFC1DF",
+      "standing": "./assets/standing/katana-standing.webp",
+      "cardArt": "./assets/hero-cards/katana-card.webp",
+      "icon": "./assets/hero-icons/katana-icon.webp",
+      "stats": {
+        "hp": 1000,
+        "dmg": 100
+      },
+      "ui": {
+        "cardArtScale": 1,
+        "cardArtOffsetX": 0,
+        "cardArtOffsetY": 0
+      }
+    },
+    {
+      "id": "engineer",
+      "name": "ENGINEER",
+      "accent": "#F5A623",
+      "accentGlow": "#FFD27A",
+      "standing": "./assets/standing/engineer-standing.webp",
+      "cardArt": "./assets/hero-cards/engineer-card.webp",
+      "icon": "./assets/hero-icons/engineer-icon.webp",
+      "stats": {
+        "hp": 1000,
+        "dmg": 100
+      },
+      "ui": {
+        "cardArtScale": 1,
+        "cardArtOffsetX": 0,
+        "cardArtOffsetY": 0
+      }
+    },
+    {
+      "id": "galaxy",
+      "name": "GALAXY",
+      "accent": "#8A5CFF",
+      "accentGlow": "#C6A8FF",
+      "standing": "./assets/standing/galaxy-standing.webp",
+      "cardArt": "./assets/hero-cards/galaxy-card.webp",
+      "icon": "./assets/hero-icons/galaxy-icon.webp",
+      "stats": {
+        "hp": 1000,
+        "dmg": 100
+      },
+      "ui": {
+        "cardArtScale": 1,
+        "cardArtOffsetX": 0,
+        "cardArtOffsetY": 0
+      }
+    },
+    {
+      "id": "ice",
+      "name": "ICE",
+      "accent": "#63D6FF",
+      "accentGlow": "#BDF4FF",
+      "standing": "./assets/standing/ice-standing.webp",
+      "cardArt": "./assets/hero-cards/ice-card.webp",
+      "icon": "./assets/hero-icons/ice-icon.webp",
+      "stats": {
+        "hp": 1000,
+        "dmg": 100
+      },
+      "ui": {
+        "cardArtScale": 1,
+        "cardArtOffsetX": 0,
+        "cardArtOffsetY": 0
+      }
+    },
+    {
+      "id": "ninja",
+      "name": "NINJA",
+      "accent": "#4EA8FF",
+      "accentGlow": "#B6DCFF",
+      "standing": "./assets/standing/ninja-standing.webp",
+      "cardArt": "./assets/hero-cards/ninja-card.webp",
+      "icon": "./assets/hero-icons/ninja-icon.webp",
+      "stats": {
+        "hp": 1000,
+        "dmg": 100
+      },
+      "ui": {
+        "cardArtScale": 1,
+        "cardArtOffsetX": 0,
+        "cardArtOffsetY": 0
+      }
+    },
+    {
+      "id": "soccer",
+      "name": "SOCCER",
+      "accent": "#FF3B30",
+      "accentGlow": "#FF7A70",
+      "standing": "./assets/standing/soccer-standing.webp",
+      "cardArt": "./assets/hero-cards/soccer-card.webp",
+      "icon": "./assets/hero-icons/soccer-icon.webp",
+      "stats": {
+        "hp": 1000,
+        "dmg": 100
+      },
+      "ui": {
+        "cardArtScale": 1,
+        "cardArtOffsetX": 0,
+        "cardArtOffsetY": 0
+      }
+    },
+    {
+      "id": "string",
+      "name": "STRING",
+      "accent": "#FF4FB3",
+      "accentGlow": "#FF9DDA",
+      "standing": "./assets/standing/string-standing.webp",
+      "cardArt": "./assets/hero-cards/string-card.webp",
+      "icon": "./assets/hero-icons/string-icon.webp",
+      "stats": {
+        "hp": 1000,
+        "dmg": 100
+      },
+      "ui": {
+        "cardArtScale": 1,
+        "cardArtOffsetX": 0,
+        "cardArtOffsetY": 0
+      }
+    },
+    {
+      "id": "fang",
+      "name": "FANG",
+      "accent": "#FF3A3A",
+      "accentGlow": "#FF8B8B",
+      "standing": "./assets/standing/fang-standing.webp",
+      "cardArt": "./assets/hero-cards/fang-card.webp",
+      "icon": "./assets/hero-icons/fang-icon.webp",
+      "stats": {
+        "hp": 1000,
+        "dmg": 100
+      },
+      "ui": {
+        "cardArtScale": 1,
+        "cardArtOffsetX": 0,
+        "cardArtOffsetY": 0
+      }
+    }
+  ],
+  "cardFactory": {
+    "type": "hero-card-factory-v1",
+    "frame": {
+      "base": "./assets/card-frame-imagen-portrait-3x4-exact-layers/41-card-frame-imagen-portrait-3x4-base.webp",
+      "tint": "./assets/card-frame-imagen-portrait-3x4-exact-layers/52-card-frame-imagen-portrait-3x4-neutral-tint-mask-exact.webp",
+      "softGloss": "./assets/card-frame-imagen-portrait-3x4-exact-layers/50-card-frame-imagen-portrait-3x4-soft-gloss-exact.webp",
+      "bevel": "./assets/card-frame-imagen-portrait-3x4-exact-layers/48-card-frame-imagen-portrait-3x4-bevel-highlight-exact.webp",
+      "rim": "./assets/card-frame-imagen-portrait-3x4-exact-layers/49-card-frame-imagen-portrait-3x4-rim-highlight-exact.webp",
+      "selectedGlow": "./assets/card-frame-imagen-portrait-3x4-exact-layers/53-card-frame-imagen-portrait-3x4-selected-glow-mask-exact.webp"
+    },
+    "note": "Hero cards are runtime composites: art fits inside the artwork window, icon overlays the bottom socket, frame is never cropped or punched."
+  }
+}

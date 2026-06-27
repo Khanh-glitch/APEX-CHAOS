@@ -1,0 +1,164 @@
+[
+  {
+    "id": "shotgun",
+    "name": "SHOTGUN",
+    "accent": "#FF6A2A",
+    "accentGlow": "#FFB075",
+    "standing": "./assets/standing/shotgun-standing.webp",
+    "cardArt": "./assets/hero-cards/shotgun-card.webp",
+    "icon": "./assets/hero-icons/shotgun-icon.webp",
+    "stats": {
+      "hp": 1000,
+      "dmg": 100
+    },
+    "ui": {
+      "cardArtScale": 1,
+      "cardArtOffsetX": 0,
+      "cardArtOffsetY": 0
+    }
+  },
+  {
+    "id": "katana",
+    "name": "KATANA",
+    "accent": "#FF5AAE",
+    "accentGlow": "#FFC1DF",
+    "standing": "./assets/standing/katana-standing.webp",
+    "cardArt": "./assets/hero-cards/katana-card.webp",
+    "icon": "./assets/hero-icons/katana-icon.webp",
+    "stats": {
+      "hp": 1000,
+      "dmg": 100
+    },
+    "ui": {
+      "cardArtScale": 1,
+      "cardArtOffsetX": 0,
+      "cardArtOffsetY": 0
+    }
+  },
+  {
+    "id": "engineer",
+    "name": "ENGINEER",
+    "accent": "#F5A623",
+    "accentGlow": "#FFD27A",
+    "standing": "./assets/standing/engineer-standing.webp",
+    "cardArt": "./assets/hero-cards/engineer-card.webp",
+    "icon": "./assets/hero-icons/engineer-icon.webp",
+    "stats": {
+      "hp": 1000,
+      "dmg": 100
+    },
+    "ui": {
+      "cardArtScale": 1,
+      "cardArtOffsetX": 0,
+      "cardArtOffsetY": 0
+    }
+  },
+  {
+    "id": "galaxy",
+    "name": "GALAXY",
+    "accent": "#8A5CFF",
+    "accentGlow": "#C6A8FF",
+    "standing": "./assets/standing/galaxy-standing.webp",
+    "cardArt": "./assets/hero-cards/galaxy-card.webp",
+    "icon": "./assets/hero-icons/galaxy-icon.webp",
+    "stats": {
+      "hp": 1000,
+      "dmg": 100
+    },
+    "ui": {
+      "cardArtScale": 1,
+      "cardArtOffsetX": 0,
+      "cardArtOffsetY": 0
+    }
+  },
+  {
+    "id": "ice",
+    "name": "ICE",
+    "accent": "#63D6FF",
+    "accentGlow": "#BDF4FF",
+    "standing": "./assets/standing/ice-standing.webp",
+    "cardArt": "./assets/hero-cards/ice-card.webp",
+    "icon": "./assets/hero-icons/ice-icon.webp",
+    "stats": {
+      "hp": 1000,
+      "dmg": 100
+    },
+    "ui": {
+      "cardArtScale": 1,
+      "cardArtOffsetX": 0,
+      "cardArtOffsetY": 0
+    }
+  },
+  {
+    "id": "ninja",
+    "name": "NINJA",
+    "accent": "#4EA8FF",
+    "accentGlow": "#B6DCFF",
+    "standing": "./assets/standing/ninja-standing.webp",
+    "cardArt": "./assets/hero-cards/ninja-card.webp",
+    "icon": "./assets/hero-icons/ninja-icon.webp",
+    "stats": {
+      "hp": 1000,
+      "dmg": 100
+    },
+    "ui": {
+      "cardArtScale": 1,
+      "cardArtOffsetX": 0,
+      "cardArtOffsetY": 0
+    }
+  },
+  {
+    "id": "soccer",
+    "name": "SOCCER",
+    "accent": "#FF3B30",
+    "accentGlow": "#FF7A70",
+    "standing": "./assets/standing/soccer-standing.webp",
+    "cardArt": "./assets/hero-cards/soccer-card.webp",
+    "icon": "./assets/hero-icons/soccer-icon.webp",
+    "stats": {
+      "hp": 1000,
+      "dmg": 100
+    },
+    "ui": {
+      "cardArtScale": 1,
+      "cardArtOffsetX": 0,
+      "cardArtOffsetY": 0
+    }
+  },
+  {
+    "id": "string",
+    "name": "STRING",
+    "accent": "#FF4FB3",
+    "accentGlow": "#FF9DDA",
+    "standing": "./assets/standing/string-standing.webp",
+    "cardArt": "./assets/hero-cards/string-card.webp",
+    "icon": "./assets/hero-icons/string-icon.webp",
+    "stats": {
+      "hp": 1000,
+      "dmg": 100
+    },
+    "ui": {
+      "cardArtScale": 1,
+      "cardArtOffsetX": 0,
+      "cardArtOffsetY": 0
+    }
+  },
+  {
+    "id": "fang",
+    "name": "FANG",
+    "accent": "#FF3A3A",
+    "accentGlow": "#FF8B8B",
+    "standing": "./assets/standing/fang-standing.webp",
+    "cardArt": "./assets/hero-cards/fang-card.webp",
+    "icon": "./assets/hero-icons/fang-icon.webp",
+    "stats": {
+      "hp": 1000,
+      "dmg": 100
+    },
+    "ui": {
+      "cardArtScale": 1,
+      "cardArtOffsetX": 0,
+      "cardArtOffsetY": 0
+    }
+  }
+]

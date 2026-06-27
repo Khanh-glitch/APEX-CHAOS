@@ -6,7 +6,7 @@
       "file": "assets/shotgun_v1/pellet.webp",
       "width": 1034,
       "height": 446,
-      "source": "bulleet.png",
+      "source": "bulleet.webp",
       "crop": [
         110,
         373,
@@ -18,7 +18,7 @@
       "file": "assets/shotgun_v1/muzzle.webp",
       "width": 1232,
       "height": 817,
-      "source": "52e60624-56a1-44e6-96a5-d616aef6d86f.png",
+      "source": "52e60624-56a1-44e6-96a5-d616aef6d86f.webp",
       "crop": [
         14,
         187,
@@ -30,7 +30,7 @@
       "file": "assets/shotgun_v1/gun_after.webp",
       "width": 282,
       "height": 1153,
-      "source": "gun after right after shoot.png",
+      "source": "gun after right after shoot.webp",
       "crop": [
         503,
         53,
@@ -42,7 +42,7 @@
       "file": "assets/shotgun_v1/gun_ready.webp",
       "width": 282,
       "height": 1153,
-      "source": "gun after right before shoot.png",
+      "source": "gun after right before shoot.webp",
       "crop": [
         503,
         53,
@@ -54,7 +54,7 @@
       "file": "assets/shotgun_v1/gun_pump.webp",
       "width": 282,
       "height": 1153,
-      "source": "gun after small reload.png",
+      "source": "gun after small reload.webp",
       "crop": [
         503,
         53,
@@ -66,7 +66,7 @@
       "file": "assets/shotgun_v1/body.webp",
       "width": 752,
       "height": 1014,
-      "source": "main visual (no gun).png",
+      "source": "main visual (no gun).webp",
       "crop": [
         280,
         118,
@@ -78,7 +78,7 @@
       "file": "assets/shotgun_v1/ring_0.webp",
       "width": 993,
       "height": 1001,
-      "source": "reloading circle 0 per 6.png",
+      "source": "reloading circle 0 per 6.webp",
       "crop": [
         130,
         90,
@@ -90,7 +90,7 @@
       "file": "assets/shotgun_v1/ring_1.webp",
       "width": 993,
       "height": 1001,
-      "source": "reloading circle 1 per 6.png",
+      "source": "reloading circle 1 per 6.webp",
       "crop": [
         130,
         90,
@@ -102,7 +102,7 @@
       "file": "assets/shotgun_v1/ring_2.webp",
       "width": 993,
       "height": 1001,
-      "source": "reloading circle 2 per 6.png",
+      "source": "reloading circle 2 per 6.webp",
       "crop": [
         130,
         90,
@@ -114,7 +114,7 @@
       "file": "assets/shotgun_v1/ring_3.webp",
       "width": 993,
       "height": 1001,
-      "source": "reloading circle 3 per 6.png",
+      "source": "reloading circle 3 per 6.webp",
       "crop": [
         130,
         90,
@@ -126,7 +126,7 @@
       "file": "assets/shotgun_v1/ring_4.webp",
       "width": 993,
       "height": 1001,
-      "source": "reloading circle 4 per 6.png",
+      "source": "reloading circle 4 per 6.webp",
       "crop": [
         130,
         90,
@@ -138,7 +138,7 @@
       "file": "assets/shotgun_v1/ring_5.webp",
       "width": 993,
       "height": 1001,
-      "source": "reloading circle 5 per 6.png",
+      "source": "reloading circle 5 per 6.webp",
       "crop": [
         130,
         90,
@@ -150,7 +150,7 @@
       "file": "assets/shotgun_v1/ring_6.webp",
       "width": 993,
       "height": 1001,
-      "source": "reloading circle 6 per 6.png",
+      "source": "reloading circle 6 per 6.webp",
       "crop": [
         130,
         90,
@@ -162,7 +162,7 @@
       "file": "assets/shotgun_v1/shell.webp",
       "width": 342,
       "height": 844,
-      "source": "Shell casing.png",
+      "source": "Shell casing.webp",
       "crop": [
         456,
         205,
@@ -174,7 +174,7 @@
       "file": "assets/shotgun_v1/pick_button.webp",
       "width": 2430,
       "height": 627,
-      "source": "shotgun pick button.png",
+      "source": "shotgun pick button.webp",
       "crop": [
         36,
         0,
@@ -186,7 +186,7 @@
       "file": "assets/shotgun_v1/picked.webp",
       "width": 1013,
       "height": 1502,
-      "source": "visual for picked.png",
+      "source": "visual for picked.webp",
       "crop": [
         11,
         19,
@@ -198,7 +198,7 @@
       "file": "assets/shotgun_v1/hook_rope.webp",
       "width": 1017,
       "height": 67,
-      "source": "the hook.png",
+      "source": "the hook.webp",
       "crop": [
         0,
         6,
@@ -210,7 +210,7 @@
       "file": "assets/shotgun_v1/hook_head.webp",
       "width": 419,
       "height": 279,
-      "source": "the hook.png",
+      "source": "the hook.webp",
       "crop": [
         0,
         0,

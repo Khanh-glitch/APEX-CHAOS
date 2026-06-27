@@ -6,4 +6,6 @@ replays/
 .agents/
 .codex/
 .katana-chrome-profile/
+.control-*-profile/
+.manual-*-chrome-profile/
 .DS_Store

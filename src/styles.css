@@ -14,6 +14,830 @@
         overflow: hidden;
         user-select: none;
     }
+
+/* Character select UI upgrade */
+#select-screen {
+    --side-ratio: 971 / 1619;
+    --card-ratio: 942 / 1670;
+    background: #05070b;
+    overflow: hidden;
+}
+
+#select-screen .select-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background: var(--select-bg-image) center / cover no-repeat, #05070b;
+}
+
+#select-screen::before {
+    display: none;
+}
+
+#select-ui {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    width: 100%;
+    height: 100%;
+    padding: clamp(10px, 1.3vmin, 18px);
+    overflow: hidden;
+    opacity: 1;
+    transition: opacity .16s ease;
+}
+
+#select-screen.select-loading #select-ui {
+    opacity: .08;
+}
+
+#select-screen .select-loading-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: none;
+    place-items: center;
+    background: #05070b;
+    color: #f5efe6;
+    font: 900 1rem/1 "Segoe UI", sans-serif;
+    letter-spacing: .18em;
+    text-shadow: 0 0 16px rgba(255,255,255,.34);
+}
+
+.manual-room-panel {
+    position: absolute;
+    z-index: 15;
+    top: clamp(54px, 8vh, 88px);
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    width: min(520px, 46vw);
+    padding: 10px 12px;
+    border: 2px solid rgba(127,248,255,.72);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(5,10,14,.9), rgba(1,5,8,.78));
+    box-shadow: 0 0 18px rgba(49,245,255,.18), inset 0 0 18px rgba(49,245,255,.08);
+    color: #eaffff;
+    font: 900 .72rem/1.1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: .08em;
+}
+
+body.manual-lab-select .manual-room-panel {
+    display: block;
+}
+
+.manual-room-title {
+    margin-bottom: 7px;
+    color: #9ffcff;
+    text-align: center;
+    font-size: .8rem;
+}
+
+.manual-room-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+
+.manual-room-row button,
+.manual-room-row input {
+    border: 1px solid rgba(255,234,166,.8);
+    border-radius: 9px;
+    background: rgba(0,0,0,.72);
+    color: #fff1b5;
+    font: inherit;
+    letter-spacing: .08em;
+    padding: 7px 9px;
+}
+
+.manual-room-row button:disabled {
+    opacity: .38;
+}
+
+.manual-room-row input {
+    width: 86px;
+    color: #9ffcff;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.manual-room-row span {
+    color: #cfdbdc;
+}
+
+.manual-room-row b {
+    color: #ffe58d;
+}
+
+.manual-room-status {
+    min-height: 1em;
+    margin-top: 7px;
+    color: #cfdbdc;
+    text-align: center;
+}
+
+.manual-room-status.valid {
+    color: #9cffad;
+}
+
+.manual-room-status.invalid {
+    color: #ff9b8e;
+}
+
+#select-screen.select-loading .select-loading-panel {
+    display: grid;
+}
+
+#select-title {
+    position: absolute;
+    z-index: 12;
+    top: clamp(8px, 1.5vh, 18px);
+    left: 50%;
+    width: min(42vw, 620px);
+    margin: 0;
+    transform: translateX(-50%);
+    color: #f5efe6 !important;
+    text-align: center;
+    font-size: clamp(1.1rem, 2.4vh, 2rem);
+    line-height: 1;
+    letter-spacing: .08em;
+    text-shadow: 0 3px 0 #000, 0 0 18px rgba(255,214,92,.4);
+    animation: none;
+}
+
+#select-screen .visual-tabs,
+#select-screen #roster-tabs,
+#select-screen #matchup-stats-btn,
+#select-screen .autobattle-settings,
+#select-screen .setup-vfx,
+#select-screen .action-button-img,
+#select-screen #matchup-report {
+    display: none !important;
+}
+
+#select-screen .fighter-stage {
+    position: relative;
+    inset: auto;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: minmax(190px, 25.4vw) minmax(460px, 1fr) minmax(190px, 25.4vw);
+    align-items: end;
+    gap: clamp(8px, 1.15vw, 22px);
+    width: min(100%, 1920px);
+    height: min(100%, 1080px);
+    min-height: 0;
+    margin: auto;
+    padding: clamp(36px, 5.3vh, 66px) clamp(8px, 1.2vw, 20px) clamp(8px, 1.4vh, 18px);
+    overflow: hidden;
+}
+
+#select-screen .picked-fighter-slot {
+    position: relative;
+    isolation: isolate;
+    align-self: stretch;
+    justify-self: center;
+    display: block;
+    width: min(100%, 28vw);
+    max-width: 420px;
+    aspect-ratio: var(--side-ratio);
+    min-width: 0;
+    max-height: calc(100vh - 56px);
+    overflow: visible;
+    --champion-accent: #7fd4ff;
+    --champion-glow: #ffffff;
+}
+
+#select-screen .picked-fighter-slot::before,
+#select-screen .picked-fighter-slot::after {
+    display: none;
+}
+
+#select-screen .side-backdrop,
+#select-screen .side-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+}
+
+#select-screen .side-backdrop { z-index: 0; }
+
+#select-screen .side-art-aperture {
+    position: absolute;
+    z-index: 1;
+    left: 14.3%;
+    top: 7.7%;
+    width: 71.4%;
+    height: 82%;
+    overflow: hidden;
+    clip-path: polygon(12% 0, 88% 0, 100% 8%, 92% 97%, 8% 97%, 0 8%);
+}
+
+#select-screen .picked-fighter-vfx {
+    position: absolute;
+    z-index: 1;
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    object-fit: unset;
+    object-position: unset;
+    opacity: 0;
+    transform: none;
+    filter: drop-shadow(0 20px 24px rgba(0,0,0,.68)) drop-shadow(0 0 24px color-mix(in srgb, var(--champion-glow) 42%, transparent));
+    transition: opacity .22s ease;
+    pointer-events: none;
+}
+
+#select-screen .picked-fighter-vfx.has-fighter {
+    opacity: 1;
+    transform: none;
+}
+
+#select-screen .side-frame-base { z-index: 3; }
+
+#select-screen .side-frame-tint {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    display: block;
+    background: var(--champion-accent);
+    opacity: .92;
+    pointer-events: none;
+    mask: var(--select-side-mask) center / contain no-repeat;
+    -webkit-mask: var(--select-side-mask) center / contain no-repeat;
+}
+
+#select-screen .side-frame-highlight { z-index: 5; }
+
+#select-screen .picked-fighter-copy {
+    position: absolute;
+    z-index: 7;
+    left: 10%;
+    right: 10%;
+    bottom: 4.5%;
+    display: grid;
+    gap: 2px;
+    text-align: center;
+    pointer-events: none;
+}
+
+#select-screen .picked-fighter-label {
+    position: static;
+    transform: none;
+    color: #f6efe2;
+    font-size: clamp(.66rem, 1.1vw, .9rem);
+    font-weight: 950;
+    letter-spacing: .16em;
+    opacity: .82;
+    text-shadow: 0 2px 8px #000;
+}
+
+#select-screen .picked-fighter-slot:has(.has-fighter) .picked-fighter-label { opacity: .9; }
+
+#select-screen .picked-fighter-copy b {
+    min-width: 0;
+    color: var(--champion-accent);
+    font-size: clamp(.72rem, 1.4vw, 1.14rem);
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+    text-shadow: 0 2px 8px #000, 0 0 14px color-mix(in srgb, var(--champion-accent) 58%, transparent);
+}
+
+#select-screen .select-center {
+    position: relative;
+    z-index: 8;
+    align-self: stretch;
+    display: grid;
+    grid-template-rows: minmax(28px, 6vh) minmax(210px, 36vh) minmax(130px, 23vh) minmax(58px, 8vh);
+    gap: clamp(5px, 1.2vh, 14px);
+    min-width: 0;
+    min-height: 0;
+    padding-top: clamp(14px, 2vh, 28px);
+}
+
+#select-screen .select-vs {
+    align-self: end;
+    justify-self: center;
+    color: #f6efe2;
+    font-size: clamp(2rem, 5.2vh, 4.4rem);
+    font-weight: 950;
+    line-height: .85;
+    text-shadow: 0 4px 0 #000, 0 0 22px rgba(255,214,92,.42);
+}
+
+#select-screen .carousel-shell {
+    position: relative;
+    display: grid;
+    grid-template-columns: clamp(44px, 5.2vw, 76px) minmax(0, 1fr) clamp(44px, 5.2vw, 76px);
+    align-items: center;
+    min-width: 0;
+    min-height: 0;
+    gap: clamp(4px, .8vw, 14px);
+}
+
+#select-screen .roster {
+    position: relative;
+    inset: auto;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: 1.2% 2.2%;
+    gap: clamp(8px, 1.2vw, 18px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    background: transparent;
+}
+
+#select-screen .roster::-webkit-scrollbar { display: none; }
+
+#select-screen .fighter-card {
+    position: relative;
+    flex: 0 0 clamp(96px, 10.6vw, 156px);
+    width: auto;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: var(--card-ratio);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none;
+    overflow: visible;
+    scroll-snap-align: center;
+    transform: translateY(3%) scale(.9);
+    transition: transform .18s ease, filter .18s ease;
+    cursor: pointer;
+    color: var(--champion-accent);
+    --champion-accent: currentColor;
+    --champion-glow: currentColor;
+}
+
+#select-screen .fighter-card.is-focused,
+#select-screen .fighter-card.selected-p1,
+#select-screen .fighter-card.selected-p2 {
+    transform: translateY(-1.5%) scale(1.055);
+    filter: drop-shadow(0 0 13px color-mix(in srgb, var(--champion-accent) 68%, transparent));
+}
+
+#select-screen .select-card-art {
+    position: absolute;
+    z-index: 1;
+    left: 12%;
+    top: 7.2%;
+    width: 76%;
+    height: 82.5%;
+    overflow: hidden;
+    clip-path: polygon(10% 0, 90% 0, 100% 8%, 92% 98%, 8% 98%, 0 8%);
+    background: rgba(0,0,0,.28);
+}
+
+#select-screen .select-card-art::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: 38%;
+    background: linear-gradient(0deg, rgba(0,0,0,.55), transparent);
+    pointer-events: none;
+}
+
+#select-screen .select-card-art img {
+    position: absolute;
+    max-width: none;
+    max-height: none;
+    pointer-events: none;
+    user-select: none;
+}
+
+#select-screen .select-card-frame {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+#select-screen .select-card-mask {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    display: block;
+    background: var(--champion-accent);
+    opacity: 0;
+    pointer-events: none;
+    mask: var(--select-card-mask) center / contain no-repeat;
+    -webkit-mask: var(--select-card-mask) center / contain no-repeat;
+}
+
+#select-screen .fighter-card.is-focused .select-card-mask,
+#select-screen .fighter-card.selected-p1 .select-card-mask,
+#select-screen .fighter-card.selected-p2 .select-card-mask {
+    opacity: .9;
+}
+
+#select-screen .fighter-card .f-name {
+    position: absolute;
+    z-index: 6;
+    left: 9%;
+    right: 9%;
+    bottom: 7%;
+    display: block;
+    margin: 0;
+    color: #fff6e6;
+    font-size: clamp(.52rem, .74vw, .82rem);
+    font-weight: 950;
+    line-height: 1;
+    text-align: center;
+    text-shadow: 0 2px 5px #000, 0 0 12px var(--champion-accent);
+    overflow-wrap: anywhere;
+}
+
+#select-screen .fighter-card .f-preview { display: none !important; }
+
+#select-screen .fighter-card:focus-visible,
+#select-screen .select-arrow:focus-visible,
+#select-screen #start-btn:focus-visible,
+#select-screen #select-exit-btn:focus-visible {
+    outline: 2px solid #fff6d8;
+    outline-offset: 3px;
+}
+
+#select-screen .select-arrow {
+    position: relative;
+    z-index: 5;
+    width: clamp(44px, 5vw, 72px);
+    aspect-ratio: 1;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: center / contain no-repeat transparent;
+    box-shadow: none;
+    cursor: pointer;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,.62));
+}
+
+#select-screen .select-arrow-left { background-image: var(--select-arrow-left-normal); }
+#select-screen .select-arrow-left:hover,
+#select-screen .select-arrow-left:focus-visible { background-image: var(--select-arrow-left-hover); }
+#select-screen .select-arrow-right { background-image: var(--select-arrow-right-normal); }
+#select-screen .select-arrow-right:hover,
+#select-screen .select-arrow-right:focus-visible { background-image: var(--select-arrow-right-hover); }
+#select-screen .select-arrow:disabled {
+    opacity: .38;
+    cursor: default;
+    filter: grayscale(.8);
+}
+
+#select-screen .select-info-panel {
+    position: relative;
+    align-self: stretch;
+    justify-self: center;
+    width: min(100%, 780px);
+    min-height: 0;
+    aspect-ratio: 1797 / 875;
+}
+
+#select-screen .stats-panel-base {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+#select-screen .select-info-copy {
+    position: absolute;
+    z-index: 1;
+    inset: 13% 8.5% 11%;
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    gap: clamp(2px, .5vh, 7px);
+    color: #fff7e8;
+    text-shadow: 0 2px 5px rgba(0,0,0,.8);
+}
+
+#select-screen #select-info-status {
+    color: #ffd768;
+    font-size: clamp(.58rem, 1.1vh, .82rem);
+    font-weight: 900;
+    letter-spacing: .12em;
+}
+
+#select-screen #select-info-name {
+    margin: 0;
+    color: #ffffff;
+    font-size: clamp(.9rem, 2.1vh, 1.55rem);
+    line-height: 1;
+}
+
+#select-screen #select-info-desc {
+    margin: 0;
+    min-height: 0;
+    color: rgba(255,247,232,.88);
+    font-size: clamp(.62rem, 1.22vh, .9rem);
+    line-height: 1.22;
+    overflow: hidden;
+}
+
+#select-screen .select-stat-list {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: clamp(3px, .5vw, 8px);
+    margin: 0;
+    min-width: 0;
+}
+
+#select-screen .select-stat-list div {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+#select-screen .select-stat-list dt {
+    color: rgba(255,239,203,.68);
+    font-size: clamp(.48rem, .95vh, .7rem);
+    font-weight: 900;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+#select-screen .select-stat-list dd {
+    margin: 0;
+    min-width: 0;
+    color: #fff;
+    font-size: clamp(.58rem, 1.18vh, .86rem);
+    font-weight: 850;
+}
+
+#select-screen .select-stat-list input {
+    width: 100%;
+    height: clamp(22px, 3vh, 34px);
+    min-height: 0;
+    padding: 0 4px;
+    border: 1px solid rgba(255,226,164,.28);
+    border-radius: 3px;
+    background: rgba(0,0,0,.3);
+    color: #fff8e8;
+    text-align: center;
+    font: 850 clamp(.58rem, 1.1vh, .84rem)/1 "Segoe UI", sans-serif;
+    box-shadow: none;
+}
+
+#select-screen .select-actions {
+    position: relative;
+    inset: auto;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: minmax(170px, 1.3fr) minmax(130px, .9fr);
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 1.5vw, 18px);
+    width: min(100%, 630px);
+    height: auto;
+    min-height: 0;
+    margin: 0 auto;
+    transform: none;
+}
+
+#select-screen .select-actions > button {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: center / contain no-repeat transparent;
+    box-shadow: none;
+    color: #fff7e8;
+    font-weight: 950;
+    letter-spacing: .09em;
+    line-height: 1;
+    text-shadow: 0 2px 4px #000, 0 0 12px rgba(255,221,123,.48);
+    overflow: visible;
+    cursor: pointer;
+}
+
+#select-screen #start-btn {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    aspect-ratio: 1774 / 887;
+    transform: none;
+    background-image: var(--select-start-normal);
+    font-size: clamp(.8rem, 1.55vw, 1.25rem);
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,.65));
+}
+
+#select-screen #start-btn:hover,
+#select-screen #start-btn:focus-visible {
+    transform: none;
+    background-image: var(--select-start-hover);
+    filter: drop-shadow(0 0 18px rgba(255,190,65,.34));
+}
+
+#select-screen #start-btn:active { background-image: var(--select-start-pressed); }
+
+#select-screen #select-exit-btn {
+    aspect-ratio: 2106 / 748;
+    background-image: var(--select-exit-normal);
+    font-size: clamp(.66rem, 1.25vw, 1rem);
+}
+
+#select-screen #select-exit-btn:hover,
+#select-screen #select-exit-btn:focus-visible { background-image: var(--select-exit-hover); }
+#select-screen #select-exit-btn:active { background-image: var(--select-exit-pressed); }
+
+#select-screen .select-actions > button.hidden {
+    visibility: hidden;
+    display: grid !important;
+    pointer-events: none;
+}
+
+#select-screen .select-actions > button span {
+    transform: translateY(-2%);
+    white-space: nowrap;
+}
+
+@media (max-width: 1380px), (max-height: 780px) {
+    #select-screen .fighter-stage {
+        grid-template-columns: minmax(160px, 24vw) minmax(390px, 1fr) minmax(160px, 24vw);
+        gap: clamp(6px, .8vw, 14px);
+        padding-top: clamp(34px, 5vh, 50px);
+    }
+
+    #select-screen .picked-fighter-slot { max-width: 330px; }
+
+    #select-screen .select-center {
+        grid-template-rows: minmax(24px, 5vh) minmax(170px, 34vh) minmax(112px, 22vh) minmax(50px, 8vh);
+    }
+
+    #select-screen .fighter-card { flex-basis: clamp(82px, 9.6vw, 126px); }
+}
+
+@media (max-width: 900px), (orientation: portrait) {
+    #select-screen {
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    #select-ui {
+        position: relative;
+        min-height: 100dvh;
+        height: auto;
+        padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+        overflow: visible;
+    }
+
+    #select-title {
+        position: relative;
+        top: auto;
+        left: auto;
+        width: 100%;
+        transform: none;
+        margin: 0 0 6px;
+        font-size: clamp(1rem, 5vw, 1.55rem);
+    }
+
+    #select-screen .fighter-stage {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        padding: 0;
+        gap: 8px;
+        overflow: visible;
+    }
+
+    #select-screen .picked-fighter-slot {
+        width: min(43vw, 190px);
+        max-width: 190px;
+        max-height: none;
+        justify-self: center;
+        grid-row: 1;
+    }
+
+    #select-screen .select-center {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        display: grid;
+        grid-template-rows: auto minmax(190px, 30vh) auto auto;
+        gap: 8px;
+        padding-top: 0;
+    }
+
+    #select-screen .select-vs {
+        position: absolute;
+        top: calc(-1 * min(27vw, 118px));
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: clamp(1.35rem, 7vw, 2.2rem);
+    }
+
+    #select-screen .carousel-shell { grid-template-columns: 44px minmax(0, 1fr) 44px; }
+    #select-screen .fighter-card { flex-basis: clamp(82px, 26vw, 118px); }
+    #select-screen .select-info-panel {
+        width: 100%;
+        max-width: 620px;
+    }
+    #select-screen .select-info-copy { inset: 13% 8% 10%; }
+    #select-screen .select-stat-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    #select-screen .select-actions {
+        grid-template-columns: minmax(0, 1fr) minmax(0, .82fr);
+        width: min(100%, 520px);
+        gap: 8px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #select-screen .fighter-card,
+    #select-screen .picked-fighter-vfx,
+    #select-screen #select-ui {
+        transition-duration: 1ms !important;
+    }
+
+    #select-screen .fighter-card.is-focused,
+    #select-screen .fighter-card.selected-p1,
+    #select-screen .fighter-card.selected-p2 {
+        transform: none;
+    }
+}
+
+/* APEX CONTROL reuses the isolated Manual Lab runtime; this HUD never receives pointer input. */
+.manual-lab-hud {
+    position: absolute;
+    z-index: 8;
+    right: calc(100% + 16px);
+    top: 74px;
+    width: clamp(140px, calc((100vw - 100%) / 2 - 28px), 340px);
+    min-width: 0;
+    margin: 0;
+    padding: 10px 14px;
+    border: 1px solid rgba(49, 245, 255, .72);
+    border-left: 5px solid #31f5ff;
+    border-radius: 8px;
+    background: linear-gradient(90deg, rgba(5, 14, 18, .94), rgba(12, 9, 5, .88));
+    box-shadow: 0 0 24px rgba(49, 245, 255, .2), inset 0 0 22px rgba(49, 245, 255, .06);
+    color: #ecffff;
+    font: 800 .76rem/1.35 ui-monospace, Consolas, monospace;
+    letter-spacing: .04em;
+    text-shadow: 0 1px 2px #000;
+}
+.manual-lab-hud.hidden { display: none; }
+.manual-lab-title { color: #7ff8ff; font-size: .88rem; letter-spacing: .14em; }
+.manual-lab-readout { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 3px; }
+.manual-lab-readout b { color: #ffd36a; }
+.manual-lab-status { min-height: 1.35em; margin-top: 2px; color: #9cffad; }
+.manual-lab-status.invalid { color: #ff8c7f; }
+.manual-lab-keys { margin-top: 2px; color: #c6d8d8; font-size: .68rem; }
+.manual-katana-hud.hidden, .manual-engineer-hud.hidden, .manual-lab-keys.hidden { display: none; }
+.manual-katana-slots { display: grid; gap: 3px; margin-top: 5px; }
+.manual-katana-slots span { display: flex; justify-content: space-between; gap: 8px; color: #dce8e8; }
+.manual-katana-slots b { min-width: 2.4rem; color: #ff91c5; }
+.manual-katana-slots i { margin-left: auto; color: #ffd36a; font-style: normal; white-space: nowrap; }
+
+@media (orientation: portrait) {
+    .manual-lab-hud {
+        position: static;
+        width: 100%;
+        min-width: 0;
+        margin-top: 8px;
+    }
+}
+
+#menu-screen .menu-image-button.manual-lab-button {
+    border: 1px solid rgba(49, 245, 255, .72);
+    border-left: clamp(5px, .55vmin, 9px) solid #31f5ff;
+    background: linear-gradient(90deg, rgba(7, 24, 30, .94), rgba(18, 12, 7, .88));
+    clip-path: polygon(2.5% 0, 100% 0, 97.5% 100%, 0 100%);
+    box-shadow: inset 0 0 22px rgba(49, 245, 255, .08);
+}
+#menu-screen .menu-image-button.manual-lab-button .menu-text-label {
+    color: #dfffff;
+    font-size: clamp(.82rem, 2.7vmin, 1.65rem);
+    text-shadow: 0 0 12px rgba(49, 245, 255, .55), 2px 2px 0 #000;
+}
     #game-wrapper {
         position: relative;
         width: min(100vw - 150px, 100dvh - 190px, 950px);
@@ -37,6 +861,15 @@
         border-radius: 8px;
         box-shadow: inset 0 0 80px rgba(0,0,0,0.82), 0 20px 80px rgba(0,0,0,0.55);
         image-rendering: pixelated;
+    }
+
+    body.apex-control-camera #game-wrapper {
+        width: min(100vw - 150px, calc((100dvh - 190px) * 4 / 3), 1080px);
+        max-width: 1080px;
+    }
+
+    body.apex-control-camera #game-canvas {
+        aspect-ratio: 4 / 3;
     }
 
     #combat-inspector {
@@ -142,7 +975,13 @@
         text-shadow: 2px 2px 0 #000;
         width: 100%;
     }
-    .player-info { width: 42%; display: flex; flex-direction: column; gap: 6px; }
+.player-info { width: 42%; display: flex; flex-direction: column; gap: 6px; }
+body.manual-lab-mode .player-info > :not(.name):not(.hp-bar-bg):not(.rage-indicator) {
+    display: none !important;
+}
+body.manual-lab-mode #combat-inspector {
+    display: none !important;
+}
     .p2-info { align-items: flex-end; }
     .name { font-size: 1.5rem; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; }
 
@@ -734,6 +1573,14 @@
         height: auto;
         aspect-ratio: 1;
         display: block;
+    }
+
+    body.apex-control-camera #game-wrapper {
+        width: min(100vw - 150px, calc((100dvh - 230px) * 4 / 3), 1080px);
+    }
+
+    body.apex-control-camera #game-canvas {
+        aspect-ratio: 4 / 3;
     }
 
     .screen {
@@ -1749,6 +2596,11 @@
         background-size: contain;
         background-position: center;
     }
+    #select-screen .fighter-card[data-fighter="FANG"] {
+        background-image: url('/assets/fang_v1/selectionButton.webp') !important;
+        background-size: contain;
+        background-position: center;
+    }
 
     #select-screen .fighter-card:hover {
         background-color: transparent;
@@ -2420,6 +3272,7 @@
     #select-screen .fighter-card[data-fighter="ENGINEER"] { --fighter-glow: #ff9c25; color: #ff9c25 !important; }
     #select-screen .fighter-card[data-fighter="SHOTGUN"] { --fighter-glow: #ff6238; color: #ff6238 !important; }
     #select-screen .fighter-card[data-fighter="KATANA"] { --fighter-glow: #ff78b7; color: #ff78b7 !important; }
+    #select-screen .fighter-card[data-fighter="FANG"] { --fighter-glow: #e8d9b4; color: #e8d9b4 !important; }
 
     #select-screen .fighter-card:hover,
     #select-screen .fighter-card.selected-p1,
@@ -2509,6 +3362,7 @@
     #select-screen .picked-fighter-slot[data-fighter="ENGINEER"] { --fighter-light: #ff9c25; --picked-scale: .93; --picked-y: 3.4%; --picked-x: -2%; }
     #select-screen .picked-fighter-slot[data-fighter="SHOTGUN"] { --fighter-light: #ff6238; --picked-scale: .90; --picked-y: 4.2%; --picked-x: -2%; }
     #select-screen .picked-fighter-slot[data-fighter="KATANA"] { --fighter-light: #ff78b7; --picked-scale: .92; --picked-y: 2.6%; --picked-x: -1%; }
+    #select-screen .picked-fighter-slot[data-fighter="FANG"] { --fighter-light: #e8d9b4; --picked-scale: .94; --picked-y: 2.2%; --picked-x: -1%; }
 
     #select-screen .picked-fighter-vfx {
         position: relative;
@@ -2707,3 +3561,1298 @@
             width: 70%;
         }
     }
+
+/* Character select UI upgrade final override */
+#select-screen { --side-ratio: 971 / 1619; --card-ratio: 942 / 1670; background:#05070b; overflow:hidden; }
+#select-screen .select-bg { position:fixed; inset:0; z-index:-2; background:var(--select-bg-image) center / cover no-repeat, #05070b; }
+#select-screen::before { display:none; }
+#select-ui { position:absolute; inset:0; display:grid; grid-template-rows:minmax(0,1fr); width:100%; height:100%; padding:clamp(10px,1.3vmin,18px); overflow:hidden; opacity:1; transition:opacity .16s ease; }
+#select-screen.select-loading #select-ui { opacity:.08; }
+#select-screen .select-loading-panel { position:fixed; inset:0; z-index:30; display:none; place-items:center; background:#05070b; color:#f5efe6; font:900 1rem/1 "Segoe UI",sans-serif; letter-spacing:.18em; text-shadow:0 0 16px rgba(255,255,255,.34); }
+#select-screen.select-loading .select-loading-panel { display:grid; }
+#select-title { position:absolute; z-index:12; top:clamp(8px,1.5vh,18px); left:50%; width:min(42vw,620px); margin:0; transform:translateX(-50%); color:#f5efe6 !important; text-align:center; font-size:clamp(1.1rem,2.4vh,2rem); line-height:1; letter-spacing:.08em; text-shadow:0 3px 0 #000,0 0 18px rgba(255,214,92,.4); animation:none; }
+#select-screen .visual-tabs, #select-screen #roster-tabs, #select-screen #matchup-stats-btn, #select-screen .autobattle-settings, #select-screen .setup-vfx, #select-screen .action-button-img, #select-screen #matchup-report { display:none !important; }
+#select-screen .fighter-stage { position:relative; inset:auto; z-index:2; display:grid; grid-template-columns:minmax(190px,25.4vw) minmax(460px,1fr) minmax(190px,25.4vw); align-items:end; gap:clamp(8px,1.15vw,22px); width:min(100%,1920px); height:min(100%,1080px); min-height:0; margin:auto; padding:clamp(36px,5.3vh,66px) clamp(8px,1.2vw,20px) clamp(8px,1.4vh,18px); overflow:hidden; }
+#select-screen .picked-fighter-slot { position:relative; isolation:isolate; align-self:stretch; justify-self:center; display:block; width:min(100%,28vw); max-width:420px; aspect-ratio:var(--side-ratio); min-width:0; max-height:calc(100vh - 56px); overflow:visible; --champion-accent:#7fd4ff; --champion-glow:#ffffff; }
+#select-screen .picked-fighter-slot::before, #select-screen .picked-fighter-slot::after { display:none; }
+#select-screen .side-backdrop, #select-screen .side-frame { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; user-select:none; }
+#select-screen .side-backdrop { z-index:0; }
+#select-screen .side-art-aperture { position:absolute; z-index:1; left:14.3%; top:7.7%; width:71.4%; height:82%; overflow:hidden; clip-path:polygon(12% 0,88% 0,100% 8%,92% 97%,8% 97%,0 8%); }
+#select-screen .picked-fighter-vfx { position:absolute; z-index:1; display:block; width:auto; height:auto; max-width:none; max-height:none; object-fit:unset; object-position:unset; opacity:0; transform:none; filter:drop-shadow(0 20px 24px rgba(0,0,0,.68)) drop-shadow(0 0 24px color-mix(in srgb,var(--champion-glow) 42%,transparent)); transition:opacity .22s ease; pointer-events:none; }
+#select-screen .picked-fighter-vfx.has-fighter { opacity:1; transform:none; }
+#select-screen .side-frame-base { z-index:3; }
+#select-screen .side-frame-tint { position:absolute; inset:0; z-index:4; display:block; background:var(--champion-accent); opacity:.92; pointer-events:none; mask:var(--select-side-mask) center / contain no-repeat; -webkit-mask:var(--select-side-mask) center / contain no-repeat; }
+#select-screen .side-frame-highlight { z-index:5; }
+#select-screen .picked-fighter-copy { position:absolute; z-index:7; left:10%; right:10%; bottom:4.5%; display:grid; gap:2px; text-align:center; pointer-events:none; }
+#select-screen .picked-fighter-label { position:static; transform:none; color:#f6efe2; font-size:clamp(.66rem,1.1vw,.9rem); font-weight:950; letter-spacing:.16em; opacity:.82; text-shadow:0 2px 8px #000; }
+#select-screen .picked-fighter-slot:has(.has-fighter) .picked-fighter-label { opacity:.9; }
+#select-screen .picked-fighter-copy b { min-width:0; color:var(--champion-accent); font-size:clamp(.72rem,1.4vw,1.14rem); line-height:1.05; overflow-wrap:anywhere; text-shadow:0 2px 8px #000,0 0 14px color-mix(in srgb,var(--champion-accent) 58%,transparent); }
+#select-screen .select-center { position:relative; z-index:8; align-self:stretch; display:grid; grid-template-rows:minmax(28px,6vh) minmax(210px,36vh) minmax(130px,23vh) minmax(58px,8vh); gap:clamp(5px,1.2vh,14px); min-width:0; min-height:0; padding-top:clamp(14px,2vh,28px); }
+#select-screen .select-vs { align-self:end; justify-self:center; color:#f6efe2; font-size:clamp(2rem,5.2vh,4.4rem); font-weight:950; line-height:.85; text-shadow:0 4px 0 #000,0 0 22px rgba(255,214,92,.42); }
+#select-screen .carousel-shell { position:relative; display:grid; grid-template-columns:clamp(44px,5.2vw,76px) minmax(0,1fr) clamp(44px,5.2vw,76px); align-items:center; min-width:0; min-height:0; gap:clamp(4px,.8vw,14px); }
+#select-screen .roster { position:relative; inset:auto; z-index:3; display:flex; align-items:center; width:100%; height:100%; max-height:none; margin:0; padding:1.2% 2.2%; gap:clamp(8px,1.2vw,18px); overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; scrollbar-width:none; background:transparent; }
+#select-screen .roster::-webkit-scrollbar { display:none; }
+#select-screen .fighter-card { position:relative; flex:0 0 clamp(96px,10.6vw,156px); width:auto; height:auto; min-height:0; aspect-ratio:var(--card-ratio); padding:0; border:0; border-radius:0; background:transparent !important; box-shadow:none; overflow:visible; scroll-snap-align:center; transform:translateY(3%) scale(.9); transition:transform .18s ease,filter .18s ease; cursor:pointer; color:var(--champion-accent); --champion-accent:currentColor; --champion-glow:currentColor; }
+#select-screen .fighter-card.is-focused, #select-screen .fighter-card.selected-p1, #select-screen .fighter-card.selected-p2 { transform:translateY(-1.5%) scale(1.055); filter:drop-shadow(0 0 13px color-mix(in srgb,var(--champion-accent) 68%,transparent)); }
+#select-screen .select-card-art { position:absolute; z-index:1; left:12%; top:7.2%; width:76%; height:82.5%; overflow:hidden; clip-path:polygon(10% 0,90% 0,100% 8%,92% 98%,8% 98%,0 8%); background:rgba(0,0,0,.28); }
+#select-screen .select-card-art::after { content:''; position:absolute; inset:auto 0 0; height:38%; background:linear-gradient(0deg,rgba(0,0,0,.55),transparent); pointer-events:none; }
+#select-screen .select-card-art img { position:absolute; max-width:none; max-height:none; pointer-events:none; user-select:none; }
+#select-screen .select-card-frame { position:absolute; inset:0; z-index:3; width:100%; height:100%; object-fit:contain; pointer-events:none; }
+#select-screen .select-card-mask { position:absolute; inset:0; z-index:4; display:block; background:var(--champion-accent); opacity:0; pointer-events:none; mask:var(--select-card-mask) center / contain no-repeat; -webkit-mask:var(--select-card-mask) center / contain no-repeat; }
+#select-screen .fighter-card.is-focused .select-card-mask, #select-screen .fighter-card.selected-p1 .select-card-mask, #select-screen .fighter-card.selected-p2 .select-card-mask { opacity:.9; }
+#select-screen .fighter-card .f-name { position:absolute; z-index:6; left:9%; right:9%; bottom:7%; display:block; margin:0; color:#fff6e6; font-size:clamp(.52rem,.74vw,.82rem); font-weight:950; line-height:1; text-align:center; text-shadow:0 2px 5px #000,0 0 12px var(--champion-accent); overflow-wrap:anywhere; }
+#select-screen .fighter-card .f-preview { display:none !important; }
+#select-screen .fighter-card:focus-visible, #select-screen .select-arrow:focus-visible, #select-screen #start-btn:focus-visible, #select-screen #select-exit-btn:focus-visible { outline:2px solid #fff6d8; outline-offset:3px; }
+#select-screen .select-arrow { position:relative; z-index:5; width:clamp(44px,5vw,72px); aspect-ratio:1; min-width:44px; min-height:44px; padding:0; border:0; background:center / contain no-repeat transparent; box-shadow:none; cursor:pointer; filter:drop-shadow(0 8px 16px rgba(0,0,0,.62)); }
+#select-screen .select-arrow-left { background-image:var(--select-arrow-left-normal); }
+#select-screen .select-arrow-left:hover, #select-screen .select-arrow-left:focus-visible { background-image:var(--select-arrow-left-hover); }
+#select-screen .select-arrow-right { background-image:var(--select-arrow-right-normal); }
+#select-screen .select-arrow-right:hover, #select-screen .select-arrow-right:focus-visible { background-image:var(--select-arrow-right-hover); }
+#select-screen .select-arrow:disabled { opacity:.38; cursor:default; filter:grayscale(.8); }
+#select-screen .select-info-panel { position:relative; align-self:stretch; justify-self:center; width:min(100%,780px); min-height:0; aspect-ratio:1797 / 875; }
+#select-screen .stats-panel-base { position:absolute; inset:0; z-index:0; width:100%; height:100%; object-fit:contain; pointer-events:none; }
+#select-screen .select-info-copy { position:absolute; z-index:1; inset:13% 8.5% 11%; display:grid; grid-template-rows:auto auto minmax(0,1fr) auto; gap:clamp(2px,.5vh,7px); color:#fff7e8; text-shadow:0 2px 5px rgba(0,0,0,.8); }
+#select-screen #select-info-status { color:#ffd768; font-size:clamp(.58rem,1.1vh,.82rem); font-weight:900; letter-spacing:.12em; }
+#select-screen #select-info-name { margin:0; color:#ffffff; font-size:clamp(.9rem,2.1vh,1.55rem); line-height:1; }
+#select-screen #select-info-desc { margin:0; min-height:0; color:rgba(255,247,232,.88); font-size:clamp(.62rem,1.22vh,.9rem); line-height:1.22; overflow:hidden; }
+#select-screen .select-stat-list { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:clamp(3px,.5vw,8px); margin:0; min-width:0; }
+#select-screen .select-stat-list div { display:grid; gap:2px; min-width:0; }
+#select-screen .select-stat-list dt { color:rgba(255,239,203,.68); font-size:clamp(.48rem,.95vh,.7rem); font-weight:900; letter-spacing:.04em; text-transform:uppercase; }
+#select-screen .select-stat-list dd { margin:0; min-width:0; color:#fff; font-size:clamp(.58rem,1.18vh,.86rem); font-weight:850; }
+#select-screen .select-stat-list input { width:100%; height:clamp(22px,3vh,34px); min-height:0; padding:0 4px; border:1px solid rgba(255,226,164,.28); border-radius:3px; background:rgba(0,0,0,.3); color:#fff8e8; text-align:center; font:850 clamp(.58rem,1.1vh,.84rem)/1 "Segoe UI",sans-serif; box-shadow:none; }
+#select-screen .select-actions { position:relative; inset:auto; z-index:10; display:grid; grid-template-columns:minmax(170px,1.3fr) minmax(130px,.9fr); align-items:center; justify-content:center; gap:clamp(8px,1.5vw,18px); width:min(100%,630px); height:auto; min-height:0; margin:0 auto; transform:none; }
+#select-screen .select-actions > button { position:relative; display:grid; place-items:center; width:100%; height:auto; min-height:0; padding:0; border:0; background:center / contain no-repeat transparent; box-shadow:none; color:#fff7e8; font-weight:950; letter-spacing:.09em; line-height:1; text-shadow:0 2px 4px #000,0 0 12px rgba(255,221,123,.48); overflow:visible; cursor:pointer; }
+#select-screen #start-btn { position:relative; inset:auto; width:100%; aspect-ratio:1774 / 887; transform:none; background-image:var(--select-start-normal); font-size:clamp(.8rem,1.55vw,1.25rem); filter:drop-shadow(0 8px 18px rgba(0,0,0,.65)); }
+#select-screen #start-btn:hover, #select-screen #start-btn:focus-visible { transform:none; background-image:var(--select-start-hover); filter:drop-shadow(0 0 18px rgba(255,190,65,.34)); }
+#select-screen #start-btn:active { background-image:var(--select-start-pressed); }
+#select-screen #select-exit-btn { aspect-ratio:2106 / 748; background-image:var(--select-exit-normal); font-size:clamp(.66rem,1.25vw,1rem); }
+#select-screen #select-exit-btn:hover, #select-screen #select-exit-btn:focus-visible { background-image:var(--select-exit-hover); }
+#select-screen #select-exit-btn:active { background-image:var(--select-exit-pressed); }
+#select-screen .select-actions > button.hidden { visibility:hidden; display:grid !important; pointer-events:none; }
+#select-screen .select-actions > button span { transform:translateY(-2%); white-space:nowrap; }
+@media (max-width:1380px), (max-height:780px) {
+    #select-screen .fighter-stage { grid-template-columns:minmax(160px,24vw) minmax(390px,1fr) minmax(160px,24vw); gap:clamp(6px,.8vw,14px); padding-top:clamp(34px,5vh,50px); }
+    #select-screen .picked-fighter-slot { max-width:330px; }
+    #select-screen .select-center { grid-template-rows:minmax(24px,5vh) minmax(170px,34vh) minmax(112px,22vh) minmax(50px,8vh); }
+    #select-screen .fighter-card { flex-basis:clamp(82px,9.6vw,126px); }
+}
+@media (max-width:900px), (orientation:portrait) {
+    #select-screen { overflow-y:auto; overflow-x:hidden; }
+    #select-ui { position:relative; min-height:100dvh; height:auto; padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left)); overflow:visible; }
+    #select-title { position:relative; top:auto; left:auto; width:100%; transform:none; margin:0 0 6px; font-size:clamp(1rem,5vw,1.55rem); }
+    #select-screen .fighter-stage { display:grid; grid-template-columns:1fr 1fr; grid-template-rows:auto auto; width:100%; height:auto; min-height:0; padding:0; gap:8px; overflow:visible; }
+    #select-screen .picked-fighter-slot { width:min(43vw,190px); max-width:190px; max-height:none; justify-self:center; grid-row:1; }
+    #select-screen .select-center { grid-column:1 / -1; grid-row:2; display:grid; grid-template-rows:auto minmax(190px,30vh) auto auto; gap:8px; padding-top:0; }
+    #select-screen .select-vs { position:absolute; top:calc(-1 * min(27vw,118px)); left:50%; transform:translateX(-50%); font-size:clamp(1.35rem,7vw,2.2rem); }
+    #select-screen .carousel-shell { grid-template-columns:44px minmax(0,1fr) 44px; }
+    #select-screen .fighter-card { flex-basis:clamp(82px,26vw,118px); }
+    #select-screen .select-info-panel { width:100%; max-width:620px; }
+    #select-screen .select-info-copy { inset:13% 8% 10%; }
+    #select-screen .select-stat-list { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    #select-screen .select-actions { grid-template-columns:minmax(0,1fr) minmax(0,.82fr); width:min(100%,520px); gap:8px; }
+}
+@media (prefers-reduced-motion:reduce) {
+    #select-screen .fighter-card, #select-screen .picked-fighter-vfx, #select-screen #select-ui { transition-duration:1ms !important; }
+    #select-screen .fighter-card.is-focused, #select-screen .fighter-card.selected-p1, #select-screen .fighter-card.selected-p2 { transform:none; }
+}
+
+/* Manifest v1 layout: fixed 1920x1080 design coordinates, contained responsively. */
+@media (min-width: 1100px) and (min-aspect-ratio: 145/100) {
+    #select-screen {
+        overflow: hidden !important;
+    }
+
+    #select-screen #select-ui {
+        position: absolute !important;
+        inset: 0 !important;
+        display: block !important;
+        width: 100% !important;
+        height: 100% !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #select-screen .fighter-stage {
+        position: absolute !important;
+        inset: 0 !important;
+        display: block !important;
+        width: min(100vw, 177.7778vh) !important;
+        height: min(100vh, 56.25vw) !important;
+        margin: auto !important;
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+
+    #select-title {
+        position: absolute !important;
+        left: 31.7708% !important;
+        top: 2.7778% !important;
+        width: 36.4583% !important;
+        height: 6.8519% !important;
+        transform: none !important;
+        display: grid !important;
+        place-items: center !important;
+        font-size: clamp(1.4rem, 4.0741vh, 2.75rem) !important;
+        font-weight: 800 !important;
+        letter-spacing: 1px !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+    }
+
+    #select-phase-label {
+        position: absolute;
+        z-index: 61;
+        left: 39.5833%;
+        top: 8.7037%;
+        width: 20.8333%;
+        height: 3.1481%;
+        display: grid;
+        place-items: center;
+        color: #9FB1C7;
+        font-weight: 900;
+        font-size: clamp(.78rem, 1.6667vh, 1.125rem);
+        letter-spacing: .08em;
+        text-shadow: 0 2px 6px #000;
+        pointer-events: none;
+    }
+
+    #select-screen .picked-fighter-slot {
+        position: absolute !important;
+        top: 13.5185% !important;
+        width: 21.875% !important;
+        height: 64.8148% !important;
+        max-width: none !important;
+        max-height: none !important;
+        aspect-ratio: auto !important;
+    }
+
+    #select-screen .picked-fighter-p1 {
+        left: 3.6458% !important;
+    }
+
+    #select-screen .picked-fighter-p2 {
+        left: 74.4792% !important;
+    }
+
+    #select-screen .picked-fighter-p2 .side-backdrop,
+    #select-screen .picked-fighter-p2 .side-frame,
+    #select-screen .picked-fighter-p2 .side-frame-tint {
+        transform: scaleX(-1);
+    }
+
+    #select-screen .side-art-aperture {
+        left: 17.817% !important;
+        top: 15.7505% !important;
+        width: 64.3666% !important;
+        height: 66.2755% !important;
+        clip-path: polygon(7% 0, 93% 0, 100% 7%, 94% 100%, 6% 100%, 0 7%) !important;
+    }
+
+    #select-screen .picked-fighter-copy {
+        left: 2.8571% !important;
+        right: 2.8571% !important;
+        top: 100.5714% !important;
+        bottom: auto !important;
+        height: 14.2857% !important;
+        align-content: start;
+        gap: .15em;
+    }
+
+    #select-screen .picked-fighter-label {
+        font-size: clamp(.78rem, 1.6667vh, 1.125rem) !important;
+    }
+
+    #select-screen .picked-fighter-copy b {
+        font-size: clamp(.95rem, 2.2222vh, 1.5rem) !important;
+    }
+
+    #select-screen .select-center {
+        position: absolute !important;
+        inset: 0 !important;
+        display: block !important;
+        padding: 0 !important;
+        z-index: 40 !important;
+        pointer-events: none;
+    }
+
+    #select-screen .select-vs {
+        position: absolute !important;
+        left: 47.1875% !important;
+        top: 11.9444% !important;
+        width: 5.625% !important;
+        height: 5.3704% !important;
+        display: grid !important;
+        place-items: center !important;
+        font-size: clamp(1.25rem, 3.3333vh, 2.25rem) !important;
+        pointer-events: none;
+    }
+
+    #select-screen .carousel-shell {
+        position: absolute !important;
+        left: 27.9167% !important;
+        top: 14.0741% !important;
+        width: 44.1667% !important;
+        height: 36.5741% !important;
+        display: block !important;
+        overflow: visible !important;
+        pointer-events: auto;
+    }
+
+    #select-screen .roster {
+        position: absolute !important;
+        inset: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        display: block !important;
+        scroll-snap-type: none !important;
+        pointer-events: none;
+    }
+
+    #select-screen .fighter-card {
+        position: absolute !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        flex: none !important;
+        pointer-events: auto;
+        transform-origin: center center !important;
+        transition: transform 90ms cubic-bezier(.16, 1, .3, 1), opacity 90ms cubic-bezier(.16, 1, .3, 1), filter 90ms cubic-bezier(.16, 1, .3, 1) !important;
+    }
+
+    #select-screen .fighter-card.slot-previous {
+        left: 13.4434% !important;
+        top: 11.3924% !important;
+        width: 20.0472% !important;
+        height: 76.2025% !important;
+        opacity: .72;
+        transform: scale(.82) !important;
+    }
+
+    #select-screen .fighter-card.slot-focused {
+        left: 37.0283% !important;
+        top: 3.038% !important;
+        width: 25.9434% !important;
+        height: 98.7342% !important;
+        opacity: 1;
+        transform: scale(1) !important;
+        z-index: 4;
+    }
+
+    #select-screen .fighter-card.slot-next {
+        left: 66.5094% !important;
+        top: 11.3924% !important;
+        width: 20.0472% !important;
+        height: 76.2025% !important;
+        opacity: .72;
+        transform: scale(.82) !important;
+    }
+
+    #select-screen .fighter-card.slot-hidden {
+        left: 37.0283% !important;
+        top: 3.038% !important;
+        width: 25.9434% !important;
+        height: 98.7342% !important;
+        opacity: 0;
+        transform: scale(.65) !important;
+        pointer-events: none !important;
+    }
+
+    #select-screen .select-card-art {
+        left: 25.3715% !important;
+        top: 11.1377% !important;
+        width: 49.3631% !important;
+        height: 72.7545% !important;
+        clip-path: polygon(8% 0, 92% 0, 100% 6%, 94% 100%, 6% 100%, 0 6%) !important;
+    }
+
+    #select-screen .select-arrow {
+        position: absolute !important;
+        width: 10.6132% !important;
+        height: 22.7848% !important;
+        min-width: 44px !important;
+        min-height: 44px !important;
+        z-index: 8 !important;
+    }
+
+    #select-screen .select-arrow-left {
+        left: 1.6509% !important;
+        top: 35.9494% !important;
+    }
+
+    #select-screen .select-arrow-right {
+        left: 87.7358% !important;
+        top: 35.9494% !important;
+    }
+
+    #select-screen .select-info-panel {
+        position: absolute !important;
+        left: 33.0208% !important;
+        top: 53.1481% !important;
+        width: 33.9583% !important;
+        height: 29.4444% !important;
+        max-width: none !important;
+        aspect-ratio: auto !important;
+        pointer-events: auto;
+    }
+
+    #select-screen .select-info-copy {
+        inset: 15.0943% 8.8957% 14.4654% 8.8957% !important;
+        grid-template-rows: auto auto minmax(0, 1fr) auto !important;
+    }
+
+    #select-screen #select-info-status {
+        font-size: clamp(.72rem, 1.4815vh, 1rem) !important;
+    }
+
+    #select-screen #select-info-name {
+        font-size: clamp(1rem, 2.2222vh, 1.5rem) !important;
+    }
+
+    #select-screen #select-info-desc {
+        font-size: clamp(.72rem, 1.4815vh, 1rem) !important;
+    }
+
+    #select-screen .select-actions {
+        position: absolute !important;
+        inset: 0 !important;
+        display: block !important;
+        width: auto !important;
+        height: auto !important;
+        pointer-events: none;
+    }
+
+    #select-screen #start-btn {
+        position: absolute !important;
+        left: 40% !important;
+        top: 82.5% !important;
+        width: 20% !important;
+        height: 17.7778% !important;
+        aspect-ratio: auto !important;
+        font-size: clamp(1rem, 2.5926vh, 1.75rem) !important;
+        pointer-events: auto;
+    }
+
+    #select-screen #select-exit-btn {
+        position: absolute !important;
+        left: 2.1875% !important;
+        top: 3.1481% !important;
+        width: 13.4375% !important;
+        height: 8.5185% !important;
+        aspect-ratio: auto !important;
+        font-size: clamp(.9rem, 2.4074vh, 1.625rem) !important;
+        pointer-events: auto;
+    }
+}
+
+@media (max-width: 1099px), (max-aspect-ratio: 144/100) {
+    #select-screen #select-phase-label {
+        position: relative;
+        z-index: 12;
+        width: 100%;
+        margin: -2px 0 6px;
+        color: #9FB1C7;
+        text-align: center;
+        font-weight: 900;
+        font-size: 14px;
+        letter-spacing: .08em;
+    }
+}
+
+/* Select upgrade lock: defeat legacy two-column placement and side-art bleed. */
+#select-screen #select-ui {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr !important;
+}
+
+#select-screen .fighter-stage {
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+}
+
+#select-screen .side-art-aperture {
+    left: 11.8% !important;
+    top: 33.2% !important;
+    width: 76.4% !important;
+    height: 42.2% !important;
+    clip-path: polygon(7% 0, 93% 0, 100% 9%, 91% 100%, 9% 100%, 0 9%) !important;
+}
+
+#select-screen .roster {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    padding-left: max(18px, calc(50% - 78px)) !important;
+    padding-right: max(18px, calc(50% - 78px)) !important;
+    scroll-padding-inline: max(18px, calc(50% - 78px));
+}
+
+#select-screen .select-arrow-left {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+}
+
+#select-screen .select-arrow-right {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+}
+
+/* Pick final v1 lock: 1672x941 design canvas scaled uniformly to viewport. */
+#select-screen {
+    --pick-w: 1672;
+    --pick-h: 941;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+    background: #020305 !important;
+    z-index: 100 !important;
+}
+
+#select-screen #select-ui {
+    position: absolute !important;
+    inset: 0 !important;
+    display: grid !important;
+    place-items: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    opacity: 1 !important;
+}
+
+#select-screen.select-loading #select-ui {
+    opacity: 1 !important;
+}
+
+#select-screen .select-loading-panel {
+    display: none !important;
+}
+
+#select-screen .select-bg {
+    position: absolute !important;
+    inset: 0 !important;
+    background: #020305 !important;
+}
+
+#select-screen .fighter-stage {
+    position: relative !important;
+    display: block !important;
+    width: min(100vw, calc(100dvh * 1672 / 941)) !important;
+    height: min(100dvh, calc(100vw * 941 / 1672)) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: var(--select-bg-image) center / 100% 100% no-repeat, #020305 !important;
+}
+
+#select-title {
+    position: absolute !important;
+    left: calc(526 / 1672 * 100%) !important;
+    top: calc(92 / 941 * 100%) !important;
+    width: calc(620 / 1672 * 100%) !important;
+    height: calc(72 / 941 * 100%) !important;
+    transform: none !important;
+    display: grid !important;
+    place-items: center !important;
+    margin: 0 !important;
+    color: #d7d8d6 !important;
+    font-size: calc(min(100vw / 1672, 100dvh / 941) * 48) !important;
+    font-weight: 950 !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+    text-shadow: 0 3px 0 #000, 0 0 18px rgba(255,255,255,.22) !important;
+    pointer-events: none !important;
+}
+
+#select-screen #select-phase-label,
+#select-screen .select-vs,
+#select-screen .select-info-panel {
+    display: none !important;
+}
+
+#select-screen .picked-fighter-slot {
+    position: absolute !important;
+    top: calc(18 / 941 * 100%) !important;
+    width: calc(499 / 1672 * 100%) !important;
+    height: calc(722 / 941 * 100%) !important;
+    max-width: none !important;
+    max-height: none !important;
+    aspect-ratio: auto !important;
+    overflow: visible !important;
+}
+
+#select-screen .picked-fighter-p1 { left: calc(106 / 1672 * 100%) !important; }
+#select-screen .picked-fighter-p2 { left: calc(1071 / 1672 * 100%) !important; }
+
+#select-screen .side-frame-base,
+#select-screen .side-frame-highlight,
+#select-screen .side-frame-tint {
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
+}
+
+#select-screen .side-backdrop {
+    left: calc(88 / 499 * 100%) !important;
+    top: calc(110 / 722 * 100%) !important;
+    width: calc(324 / 499 * 100%) !important;
+    height: calc(486 / 722 * 100%) !important;
+    object-fit: fill !important;
+}
+
+#select-screen .side-art-aperture {
+    overflow: visible !important;
+    clip-path: none !important;
+}
+
+#select-screen .picked-fighter-p1 .side-art-aperture {
+    left: calc(84 / 499 * 100%) !important;
+    top: calc(110 / 722 * 100%) !important;
+    width: calc(333 / 499 * 100%) !important;
+    height: calc(475 / 722 * 100%) !important;
+}
+
+#select-screen .picked-fighter-p2 .side-art-aperture {
+    left: calc(55 / 499 * 100%) !important;
+    top: calc(-59 / 722 * 100%) !important;
+    width: calc(357 / 499 * 100%) !important;
+    height: calc(628 / 722 * 100%) !important;
+}
+
+#select-screen .picked-fighter-vfx {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: center bottom !important;
+    opacity: 0 !important;
+    filter: drop-shadow(0 20px 24px rgba(0,0,0,.68)) drop-shadow(0 0 24px color-mix(in srgb, var(--champion-glow) 42%, transparent)) !important;
+}
+
+#select-screen .picked-fighter-vfx.has-fighter { opacity: 1 !important; }
+
+#select-screen .picked-fighter-copy {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    pointer-events: none !important;
+}
+
+#select-screen .picked-fighter-label,
+#select-screen .picked-fighter-copy b {
+    position: absolute !important;
+    display: grid !important;
+    place-items: center !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    text-align: center !important;
+    text-shadow: 0 3px 0 #000, 0 0 16px color-mix(in srgb, var(--champion-accent) 58%, transparent) !important;
+}
+
+#select-screen .picked-fighter-label {
+    top: calc(34 / 722 * 100%) !important;
+    height: calc(76 / 722 * 100%) !important;
+    color: var(--champion-accent) !important;
+    font-size: calc(min(100vw / 1672, 100dvh / 941) * 48) !important;
+    font-weight: 950 !important;
+}
+
+#select-screen .picked-fighter-p1 .picked-fighter-label {
+    left: calc(159 / 499 * 100%) !important;
+    width: calc(183 / 499 * 100%) !important;
+}
+
+#select-screen .picked-fighter-p2 .picked-fighter-label {
+    left: calc(176 / 499 * 100%) !important;
+    width: calc(146 / 499 * 100%) !important;
+}
+
+#select-screen .picked-fighter-copy b {
+    color: #f7f7f4 !important;
+    font-size: calc(min(100vw / 1672, 100dvh / 941) * 24) !important;
+    font-weight: 900 !important;
+    overflow-wrap: normal !important;
+}
+
+#select-screen .picked-fighter-p1 .picked-fighter-copy b {
+    left: calc(101 / 499 * 100%) !important;
+    top: calc(617 / 722 * 100%) !important;
+    width: calc(296 / 499 * 100%) !important;
+    height: calc(55 / 722 * 100%) !important;
+}
+
+#select-screen .picked-fighter-p2 .picked-fighter-copy b {
+    left: calc(129 / 499 * 100%) !important;
+    top: calc(626 / 722 * 100%) !important;
+    width: calc(240 / 499 * 100%) !important;
+    height: calc(38 / 722 * 100%) !important;
+}
+
+#select-screen .pick-stat-panel {
+    position: absolute !important;
+    top: calc(568 / 941 * 100%) !important;
+    width: calc(448 / 1672 * 100%) !important;
+    height: calc(418 / 941 * 100%) !important;
+    z-index: 8 !important;
+    pointer-events: none !important;
+    color: #fff !important;
+}
+
+#select-screen .pick-stat-p1 { left: calc(131 / 1672 * 100%) !important; }
+#select-screen .pick-stat-p2 { left: calc(1096 / 1672 * 100%) !important; }
+
+#select-screen .pick-stat-base {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
+}
+
+#select-screen .pick-stat-label,
+#select-screen .pick-stat-value {
+    position: absolute !important;
+    z-index: 2 !important;
+    display: grid !important;
+    align-items: center !important;
+    height: calc(66 / 418 * 100%) !important;
+    font-size: calc(min(100vw / 1672, 100dvh / 941) * 40) !important;
+    font-weight: 950 !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    text-shadow: 0 3px 0 #000, 0 0 14px color-mix(in srgb, var(--champion-accent, #fff) 38%, transparent) !important;
+}
+
+#select-screen .pick-stat-label {
+    left: calc(59 / 448 * 100%) !important;
+    width: calc(160 / 448 * 100%) !important;
+    justify-items: start !important;
+}
+
+#select-screen .pick-stat-value {
+    left: calc(166 / 448 * 100%) !important;
+    width: calc(221 / 448 * 100%) !important;
+    justify-items: end !important;
+}
+
+#select-screen .pick-hp-label { top: calc(152 / 418 * 100%) !important; }
+#select-screen .pick-hp-value { top: calc(166 / 418 * 100%) !important; }
+#select-screen .pick-dmg-label { top: calc(257 / 418 * 100%) !important; }
+#select-screen .pick-dmg-value { top: calc(257 / 418 * 100%) !important; }
+
+#select-screen .select-center {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    padding: 0 !important;
+    pointer-events: none !important;
+}
+
+#select-screen .carousel-shell {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    overflow: visible !important;
+    pointer-events: none !important;
+}
+
+#select-screen .roster {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    pointer-events: none !important;
+}
+
+#select-screen .fighter-card {
+    position: absolute !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    transform-origin: center center !important;
+    transition: left 90ms cubic-bezier(.16,1,.3,1), top 90ms cubic-bezier(.16,1,.3,1), width 90ms cubic-bezier(.16,1,.3,1), height 90ms cubic-bezier(.16,1,.3,1), opacity 90ms cubic-bezier(.16,1,.3,1), filter 90ms cubic-bezier(.16,1,.3,1) !important;
+}
+
+#select-screen .fighter-card.slot-previous,
+#select-screen .fighter-card.slot-next {
+    top: calc(255 / 941 * 100%) !important;
+    width: calc(218 / 1672 * 100%) !important;
+    height: calc(363 / 941 * 100%) !important;
+    z-index: 16 !important;
+    opacity: .42 !important;
+    transform: none !important;
+    filter: brightness(.62) saturate(.86) drop-shadow(0 12px 20px rgba(0,0,0,.62)) !important;
+}
+
+#select-screen .fighter-card.slot-previous { left: calc(576 / 1672 * 100%) !important; }
+#select-screen .fighter-card.slot-next { left: calc(878 / 1672 * 100%) !important; }
+
+#select-screen .fighter-card.slot-focused {
+    left: calc(674 / 1672 * 100%) !important;
+    top: calc(150 / 941 * 100%) !important;
+    width: calc(324 / 1672 * 100%) !important;
+    height: calc(540 / 941 * 100%) !important;
+    z-index: 22 !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: brightness(1.12) saturate(1.08) drop-shadow(0 0 22px color-mix(in srgb, var(--champion-glow) 58%, transparent)) drop-shadow(0 18px 28px rgba(0,0,0,.66)) !important;
+}
+
+#select-screen .fighter-card.slot-hidden {
+    left: calc(674 / 1672 * 100%) !important;
+    top: calc(150 / 941 * 100%) !important;
+    width: calc(324 / 1672 * 100%) !important;
+    height: calc(540 / 941 * 100%) !important;
+    z-index: 1 !important;
+    opacity: 0 !important;
+    transform: none !important;
+    pointer-events: none !important;
+    filter: brightness(.45) !important;
+}
+
+#select-screen .select-card-art {
+    position: absolute !important;
+    left: -3.0864% !important;
+    top: 12.963% !important;
+    width: 106.4815% !important;
+    height: 70.9259% !important;
+    overflow: hidden !important;
+    clip-path: none !important;
+    background: transparent !important;
+    z-index: 1 !important;
+}
+
+#select-screen .select-card-art::after { display: none !important; }
+
+#select-screen .select-card-art img {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: center center !important;
+}
+
+#select-screen .select-card-layer {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    pointer-events: none !important;
+}
+
+#select-screen .select-card-frame-base { z-index: 2 !important; object-fit: contain !important; }
+#select-screen .select-card-tint-mask {
+    z-index: 3 !important;
+    background: var(--champion-accent) !important;
+    opacity: .78 !important;
+    mask: var(--select-card-tint-mask) center / contain no-repeat !important;
+    -webkit-mask: var(--select-card-tint-mask) center / contain no-repeat !important;
+}
+#select-screen .select-card-gloss { z-index: 4 !important; object-fit: contain !important; opacity: .94 !important; }
+#select-screen .select-card-bevel { z-index: 5 !important; object-fit: contain !important; }
+#select-screen .select-card-rim { z-index: 6 !important; object-fit: contain !important; }
+#select-screen .select-card-focus-glow {
+    z-index: 7 !important;
+    background: var(--champion-glow) !important;
+    opacity: 0 !important;
+    mask: var(--select-card-focus-mask) center / contain no-repeat !important;
+    -webkit-mask: var(--select-card-focus-mask) center / contain no-repeat !important;
+}
+#select-screen .fighter-card.slot-focused .select-card-focus-glow,
+#select-screen .fighter-card.selected-p1 .select-card-focus-glow,
+#select-screen .fighter-card.selected-p2 .select-card-focus-glow {
+    opacity: .95 !important;
+}
+
+#select-screen .select-card-icon {
+    position: absolute !important;
+    left: 27.4691% !important;
+    top: 77.4074% !important;
+    width: 45.3704% !important;
+    height: 19.0741% !important;
+    z-index: 8 !important;
+    object-fit: contain !important;
+    pointer-events: none !important;
+}
+
+#select-screen .fighter-card .f-name {
+    position: absolute !important;
+    left: 9% !important;
+    right: 9% !important;
+    bottom: 5.6% !important;
+    z-index: 9 !important;
+    display: block !important;
+    color: #fff6e6 !important;
+    font-size: calc(min(100vw / 1672, 100dvh / 941) * 16) !important;
+    font-weight: 950 !important;
+    line-height: 1 !important;
+    text-align: center !important;
+    letter-spacing: 0 !important;
+    text-shadow: 0 2px 5px #000, 0 0 12px var(--champion-accent) !important;
+}
+
+#select-screen .select-arrow {
+    position: absolute !important;
+    width: calc(122 / 1672 * 100%) !important;
+    height: calc(133 / 941 * 100%) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background-position: center !important;
+    background-size: 100% 100% !important;
+    background-repeat: no-repeat !important;
+    background-color: transparent !important;
+    pointer-events: auto !important;
+    z-index: 30 !important;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,.62)) !important;
+    transition: transform 60ms ease-out, filter 60ms ease-out !important;
+}
+
+#select-screen .select-arrow-left {
+    left: calc(503 / 1672 * 100%) !important;
+    top: calc(328 / 941 * 100%) !important;
+}
+
+#select-screen .select-arrow-right {
+    left: calc(1053 / 1672 * 100%) !important;
+    top: calc(328 / 941 * 100%) !important;
+}
+
+#select-screen .select-arrow:hover { transform: scale(1.035) !important; }
+#select-screen .select-arrow:active { transform: scale(.96) !important; }
+
+#select-screen .select-actions {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    pointer-events: none !important;
+}
+
+#select-screen #start-btn,
+#select-screen #select-exit-btn {
+    position: absolute !important;
+    border: 0 !important;
+    padding: 0 !important;
+    background-position: center !important;
+    background-size: 100% 100% !important;
+    background-repeat: no-repeat !important;
+    background-color: transparent !important;
+    color: #fff8e6 !important;
+    pointer-events: auto !important;
+    z-index: 30 !important;
+    transition: transform 60ms ease-out, filter 60ms ease-out !important;
+}
+
+#select-screen #start-btn {
+    left: calc(594 / 1672 * 100%) !important;
+    top: calc(654 / 941 * 100%) !important;
+    width: calc(490 / 1672 * 100%) !important;
+    height: calc(242 / 941 * 100%) !important;
+    font-size: calc(min(100vw / 1672, 100dvh / 941) * 43) !important;
+}
+
+#select-screen #select-exit-btn {
+    left: calc(1515 / 1672 * 100%) !important;
+    top: 0 !important;
+    width: calc(175 / 1672 * 100%) !important;
+    height: calc(76 / 941 * 100%) !important;
+    font-size: calc(min(100vw / 1672, 100dvh / 941) * 20) !important;
+}
+
+#select-screen #start-btn:hover,
+#select-screen #select-exit-btn:hover {
+    transform: scale(1.025) !important;
+}
+
+#select-screen #start-btn:active,
+#select-screen #select-exit-btn:active {
+    transform: scale(.96) !important;
+}
+
+#select-screen .select-actions > button.hidden {
+    visibility: hidden !important;
+    display: grid !important;
+    pointer-events: none !important;
+}
+
+#select-screen .select-actions > button span {
+    transform: none !important;
+    white-space: nowrap !important;
+}
+
+/* Isolated JSON-driven champion pick renderer. */
+#apex-pick-runtime-root {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: none;
+    overflow: hidden;
+    background: #020305;
+    pointer-events: auto;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    color: #fff;
+}
+
+#select-screen:not(.hidden) #apex-pick-runtime-root {
+    display: block;
+}
+
+#select-screen:not(.hidden) #apex-pick-runtime-root + .select-bg,
+#select-screen:not(.hidden) #apex-pick-runtime-root ~ #select-ui {
+    display: none !important;
+}
+
+#apex-pick-runtime-root,
+#apex-pick-runtime-root * {
+    box-sizing: border-box;
+}
+
+#apex-pick-runtime-root .apex-pick-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1672px;
+    height: 941px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    user-select: none;
+}
+
+#apex-pick-runtime-root .apex-pick-layer {
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+#apex-pick-runtime-root .apex-pick-img {
+    display: block;
+    object-fit: fill;
+    object-position: center center;
+    pointer-events: none;
+    user-select: none;
+}
+
+#apex-pick-runtime-root .apex-pick-img.contain {
+    object-fit: contain;
+}
+
+#apex-pick-runtime-root .apex-pick-standing-shell {
+    display: block;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+}
+
+#apex-pick-runtime-root .apex-pick-standing-shell img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    object-fit: contain;
+    object-position: center bottom;
+    pointer-events: none;
+    user-select: none;
+}
+
+#apex-pick-runtime-root .apex-pick-text {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-weight: 950;
+    line-height: 1;
+    white-space: pre-wrap;
+    text-shadow: 0 3px 0 #000, 0 0 14px rgba(255,255,255,.18);
+    pointer-events: none;
+    transform-origin: center center;
+    transition: transform 60ms ease-out;
+}
+
+#apex-pick-runtime-root .apex-pick-text[data-button-state="hover"] {
+    transform: scale(1.025) !important;
+}
+
+#apex-pick-runtime-root .apex-pick-text[data-button-state="pressed"] {
+    transform: scale(.96) !important;
+}
+
+#apex-pick-runtime-root .apex-pick-stat-input {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: 0;
+    outline: 0;
+    box-shadow: none !important;
+    font: inherit;
+    font-weight: 950;
+    text-shadow: 0 3px 0 #000, 0 0 14px rgba(255,255,255,.18);
+    pointer-events: auto;
+    cursor: text;
+}
+
+#apex-pick-runtime-root .apex-pick-stat-input:focus {
+    background: transparent;
+    border: 0;
+    outline: 0;
+    box-shadow: none !important;
+}
+
+#apex-pick-runtime-root .apex-pick-button {
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    pointer-events: auto;
+    transform-origin: center;
+    transition: transform 60ms ease-out, filter 60ms ease-out;
+}
+
+#apex-pick-runtime-root .apex-pick-button img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    object-fit: fill;
+    pointer-events: none;
+    user-select: none;
+}
+
+#apex-pick-runtime-root .apex-pick-button:focus,
+#apex-pick-runtime-root .apex-pick-button:focus-visible {
+    outline: 0 !important;
+    box-shadow: none !important;
+}
+
+#apex-pick-runtime-root .apex-pick-button:hover {
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: scale(1.025);
+}
+
+#apex-pick-runtime-root .apex-pick-button[data-layer-id="music-button"][data-enabled="true"] {
+    filter: brightness(1.22) drop-shadow(0 0 10px rgba(255,59,48,.88)) drop-shadow(0 0 22px rgba(255,59,48,.5)) !important;
+}
+
+#apex-pick-runtime-root .apex-pick-button[data-layer-id="music-button"][data-enabled="false"] {
+    filter: brightness(.45) saturate(.2) !important;
+}
+
+#apex-pick-runtime-root .apex-pick-button[data-layer-id^="arrow"][data-state="hover"] {
+    filter: brightness(1.35) drop-shadow(0 0 9px #46d8ff) drop-shadow(0 0 18px rgba(70,216,255,.64)) !important;
+}
+
+#apex-pick-runtime-root .apex-pick-button[data-layer-id^="arrow"][data-state="pressed"] {
+    filter: brightness(1.7) drop-shadow(0 0 7px #7de8ff) drop-shadow(0 0 14px rgba(125,232,255,.72)) !important;
+}
+
+#apex-pick-runtime-root .apex-pick-button:active,
+#apex-pick-runtime-root .apex-pick-button.is-pressed {
+    transform: scale(.96);
+}
+
+#apex-pick-runtime-root .apex-pick-button:disabled {
+    opacity: .45;
+    cursor: default;
+    pointer-events: none;
+}
+
+#apex-pick-runtime-root .apex-pick-mini-button {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    padding: 0;
+    border: 1px solid rgba(128, 210, 255, .55);
+    border-radius: 4px;
+    background: linear-gradient(180deg, rgba(23,35,45,.92), rgba(6,9,13,.94));
+    color: #e8f8ff;
+    font-size: 13px;
+    font-weight: 950;
+    letter-spacing: 0;
+    text-shadow: 0 2px 0 #000, 0 0 10px rgba(69,210,255,.55);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 0 14px rgba(33,178,255,.22);
+    cursor: pointer;
+    pointer-events: auto;
+    transform-origin: center;
+    transition: transform 60ms ease-out, filter 60ms ease-out, border-color 60ms ease-out;
+}
+
+#apex-pick-runtime-root .apex-pick-mini-button:hover {
+    border-color: rgba(149,230,255,.92);
+    filter: brightness(1.15);
+    transform: scale(1.025);
+}
+
+#apex-pick-runtime-root .apex-pick-mini-button:active {
+    transform: scale(.96);
+}
+
+#apex-pick-runtime-root .apex-pick-card {
+    position: absolute;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+    cursor: pointer;
+    pointer-events: auto;
+    transform-origin: center;
+    transition:
+        transform 90ms cubic-bezier(.16,1,.3,1),
+        opacity 90ms cubic-bezier(.16,1,.3,1),
+        filter 90ms cubic-bezier(.16,1,.3,1);
+}
+
+#apex-pick-runtime-root .apex-pick-card:hover,
+#apex-pick-runtime-root .apex-pick-card:focus,
+#apex-pick-runtime-root .apex-pick-card:focus-visible {
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+    transform: none;
+}
+
+#apex-pick-runtime-root .apex-pick-card:active {
+    transform: none;
+}
+
+#apex-pick-runtime-root .apex-pick-card[data-slot="focus"] {
+    filter: brightness(1.12) saturate(1.08);
+}
+
+#apex-pick-runtime-root .apex-pick-card[data-slot^="side"] {
+    filter: brightness(.62) saturate(.86);
+}
+
+#apex-pick-runtime-root .apex-pick-card-art {
+    position: absolute;
+    left: -3.0864%;
+    top: 12.963%;
+    width: 106.4815%;
+    height: 70.9259%;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+#apex-pick-runtime-root .apex-pick-card-art img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center center;
+}
+
+#apex-pick-runtime-root .apex-pick-card-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+#apex-pick-runtime-root .apex-pick-card-tint,
+#apex-pick-runtime-root .apex-pick-card-glow {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--champion-accent);
+    mask: var(--pick-card-tint-mask) center / contain no-repeat;
+    -webkit-mask: var(--pick-card-tint-mask) center / contain no-repeat;
+    pointer-events: none;
+}
+
+#apex-pick-runtime-root .apex-pick-card-tint {
+    opacity: .78;
+}
+
+#apex-pick-runtime-root .apex-pick-card-glow {
+    z-index: 7;
+    background: var(--champion-glow);
+    opacity: 0;
+    mask-image: var(--pick-card-glow-mask);
+    -webkit-mask-image: var(--pick-card-glow-mask);
+}
+
+#apex-pick-runtime-root .apex-pick-card[data-slot="focus"] .apex-pick-card-glow,
+#apex-pick-runtime-root .apex-pick-card:hover .apex-pick-card-glow,
+#apex-pick-runtime-root .apex-pick-card.is-selected .apex-pick-card-glow {
+    opacity: .95;
+}
+
+#apex-pick-runtime-root .apex-pick-card-icon {
+    position: absolute;
+    left: 27.4691%;
+    top: 77.4074%;
+    width: 45.3704%;
+    height: 19.0741%;
+    z-index: 8;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+#apex-pick-runtime-root .apex-pick-card-name {
+    position: absolute;
+    z-index: 9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 950;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    text-shadow: 0 2px 5px #000, 0 0 14px var(--champion-accent);
+    pointer-events: none;
+}
+
+#apex-pick-runtime-root .apex-pick-frame-mask {
+    position: absolute;
+    mask: var(--pick-side-mask) center / 100% 100% no-repeat;
+    -webkit-mask: var(--pick-side-mask) center / 100% 100% no-repeat;
+    pointer-events: none;
+}
+
+#apex-pick-runtime-root .apex-pick-frame-mask[data-player="1"] {
+    background: var(--p1-accent);
+}
+
+#apex-pick-runtime-root .apex-pick-frame-mask[data-player="2"] {
+    background: var(--p2-accent);
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "canvas": {
+    "w": 971,
+    "h": 1619
+  },
+  "base": "71-card-frame-imagen-portrait-3x4-base-open-center-no-hex-hole.webp",
+  "tint": "72-card-frame-imagen-portrait-3x4-neutral-tint-mask-exact.webp",
+  "softGloss": "73-card-frame-imagen-portrait-3x4-soft-gloss-exact.webp",
+  "bevel": "74-card-frame-imagen-portrait-3x4-bevel-highlight-exact.webp",
+  "rim": "75-card-frame-imagen-portrait-3x4-rim-highlight-exact.webp",
+  "selectedGlow": "76-card-frame-imagen-portrait-3x4-selected-glow-mask-exact.webp",
+  "transparentComponentsPolicy": "outer silhouette and central artwork aperture remain transparent; accidental small hex socket hole is filled opaque",
+  "renderPolicy": "Studio render must not add selection background or CSS mask tint by default."
+}

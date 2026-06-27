@@ -123,13 +123,14 @@ try {
     const res=await fetch(src,{cache:'force-cache'});const buf=await res.arrayBuffer();return [key,{ok:res.ok,bytes:buf.byteLength,src}];
   })).then(Object.fromEntries)`);
   report.alpha = await evaluate(`(()=>{
+    window.goToSelect();
     const sample=(img,x,y)=>{const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;const g=c.getContext('2d');g.drawImage(img,0,0);return [...g.getImageData(x,y,1,1).data];};
     const I=window.APEX_KATANA.images,F=window.APEX_KATANA.frameImages;
     return {
       frameCorner:sample(F[0],0,0),
       waveCorner:sample(I.bladeWave,0,0),
       pickedCorner:sample(I.picked,0,0),
-      pickBg:getComputedStyle(document.querySelector('#roster-grid [data-fighter="KATANA"]'))?.backgroundImage||''
+      pickBg:I.pickButton?.src||''
     };
   })()`);
 
