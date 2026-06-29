@@ -67,6 +67,14 @@ function callApexGlobal(name, enabled = true) {
   window[name]?.();
 }
 
+function warmBattleRuntimesInBackground(reason = 'select') {
+  window.setTimeout(() => {
+    loadDeferredGameRuntimes('battle').catch((error) => {
+      console.warn(`[asset-loader] Failed background battle runtime warmup: ${reason}.`, error);
+    });
+  }, 0);
+}
+
 function wait(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
@@ -247,7 +255,7 @@ async function waitForRuntimeAssetReadiness() {
     if (complete) return;
     await wait(50);
   }
-  console.warn('[asset-loader] Timed out waiting for runtime GALAXY audio decode; gameplay will use safe fallbacks.');
+  return;
 }
 
 async function waitForChampionVisualWarmup() {
@@ -368,7 +376,9 @@ export default function App() {
       if (cancelled) return;
       setLoader((current) => ({ ...current, percent: 99, status: 'STARTING ENGINE' }));
       await enginePromise;
-      await waitForRuntimeAssetReadiness();
+      waitForRuntimeAssetReadiness().catch((error) => {
+        console.warn('[asset-loader] Background runtime readiness check failed.', error);
+      });
       await waitForChampionVisualWarmup();
       if (cancelled) return;
       once.loaded = true;
@@ -499,6 +509,7 @@ export default function App() {
         playMenuMusic(false);
       }
       callApexGlobal(name, true);
+      if (name === 'goToSelect') warmBattleRuntimesInBackground('goToSelect');
       if (options.startsMatch || name === 'startMatch' || name === 'startSoloMode' || name === 'startTrialMode') {
         stopMenuMusic(true);
       }
