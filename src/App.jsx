@@ -67,12 +67,12 @@ function callApexGlobal(name, enabled = true) {
   window[name]?.();
 }
 
-function warmBattleRuntimesInBackground(reason = 'select') {
+function warmBattleRuntimesInBackground(reason = 'select', delayMs = 0) {
   window.setTimeout(() => {
     loadDeferredGameRuntimes('battle').catch((error) => {
       console.warn(`[asset-loader] Failed background battle runtime warmup: ${reason}.`, error);
     });
-  }, 0);
+  }, delayMs);
 }
 
 function wait(ms) {
@@ -383,6 +383,7 @@ export default function App() {
       if (cancelled) return;
       once.loaded = true;
       setGameReady(true);
+      warmBattleRuntimesInBackground('boot-ready', 600);
       setLoader((current) => ({ ...current, active: false, fading: false, percent: 100, status: 'READY' }));
     };
 
