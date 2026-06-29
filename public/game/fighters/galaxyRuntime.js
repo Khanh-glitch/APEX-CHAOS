@@ -47,10 +47,13 @@
       G.images[key] = img;
     }
   }
-  async function decodeGalaxyAudio(){
-    if (G.decodeStarted) return;
-    G.decodeStarted = true;
-    for (const [key, file] of Object.entries(GALAXY_AUDIO_FILES)) {
+  async function decodeGalaxyAudioKey(key){
+    if (Object.prototype.hasOwnProperty.call(G.audio, key)) return G.audio[key];
+    G.audioPromises ||= {};
+    if (G.audioPromises[key]) return G.audioPromises[key];
+    const file = GALAXY_AUDIO_FILES[key];
+    if (!file) return null;
+    G.audioPromises[key] = (async () => {
       try {
         const res = await fetch(gPath('audio', file), { cache: 'force-cache' });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
@@ -60,14 +63,21 @@
         console.warn('[GALAXY audio] failed', file, error);
         G.audio[key] = null;
       }
-    }
+      return G.audio[key];
+    })();
+    return G.audioPromises[key];
   }
-  decodeGalaxyAudio();
+  G.ensureAudio = decodeGalaxyAudioKey;
   function playGalaxySound(key, opts = {}) {
     if (window.__apexStatsSilent) return null;
     try { if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (error) {}
     const buffer = G.audio[key];
-    if (!buffer) return null;
+    if (!buffer) {
+      decodeGalaxyAudioKey(key).then(decoded => {
+        if (decoded) playGalaxySound(key, opts);
+      });
+      return null;
+    }
     const src = audioCtx.createBufferSource();
     const gain = audioCtx.createGain();
     src.buffer = buffer;

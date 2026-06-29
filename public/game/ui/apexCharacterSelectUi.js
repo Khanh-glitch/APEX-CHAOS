@@ -445,15 +445,12 @@
   goToSelect = function(...args) {
     const result = previousGoToSelectSelectUi.apply(this, args);
     focusedIndex = 0;
-    renderRoster();
-    preloadSelectUi();
+    if (!window.__apexJsonPickRuntime) {
+      renderRoster();
+      preloadSelectUi();
+    }
     return result;
   };
   Object.assign(window.apexReactBridge || {}, { goToSelect, startMatch, goToMenu });
   Object.assign(window, window.apexReactBridge || {}, { uiAssetManifest });
-  if (document.getElementById('roster-grid')) {
-    setManifestSources();
-    renderRoster();
-    preloadSelectUi();
-  }
 })();

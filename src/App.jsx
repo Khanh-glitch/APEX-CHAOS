@@ -4,6 +4,12 @@ import {
   loadRequiredGameRuntimes,
 } from './game/runtimeLoader.js';
 import { preloadRuntimeSources } from './game/runtimeManifest.js';
+import {
+  beginPerfSpan,
+  markBootInteractive,
+  markBootPhase,
+  markLoaderHidden,
+} from './game/performanceMetrics.js';
 
 const once = { loaded: false };
 const MANUAL_ROOM_WS_URL = import.meta.env.VITE_MANUAL_ROOM_WS_URL || '';
@@ -48,10 +54,8 @@ const MENU_BUTTONS = [
 
 const LOADING_LABELS = ['LOADING ASSETS', 'PREPARING ARENA', 'SYNCHRONIZING VFX'];
 const IMAGE_PRELOAD_TIMEOUT_MS = 7000;
-const RUNTIME_READY_TIMEOUT_MS = 4500;
 const LOADER_READY_HOLD_MS = 160;
 const LOADER_FADE_MS = 280;
-let preloadAudioContext = null;
 
 const DEFERRED_RUNTIME_ACTION_GROUPS = {
   startMatch: 'battle',
@@ -133,24 +137,10 @@ async function preloadFetchAsset(path, type) {
   try {
     const response = await fetch(path, { cache: 'force-cache' });
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-    const buffer = await response.arrayBuffer();
-    if (type === 'audio') {
-      try {
-        preloadAudioContext ||= new (window.AudioContext || window.webkitAudioContext)();
-        await preloadAudioContext.decodeAudioData(buffer.slice(0));
-      } catch (decodeError) {
-        console.warn(`[asset-loader] Failed to decode audio asset: ${path}`, decodeError);
-      }
-    }
+    await response.arrayBuffer();
   } catch (error) {
     console.warn(`[asset-loader] Failed ${type} asset: ${path}`, error);
   }
-}
-
-let menuAudioWarmup = null;
-function warmMenuAudio() {
-  if (!menuAudioWarmup) menuAudioWarmup = preloadFetchAsset(MENU_AUDIO, 'audio');
-  return menuAudioWarmup;
 }
 
 function uniqueAssets(manifestAssets, engineSrc) {
@@ -201,8 +191,15 @@ async function preloadAssetList(assets, onProgress) {
 
   const loadOne = async (asset) => {
     const type = asset.type || assetTypeFromPath(asset.path);
-    if (type === 'image') await preloadImage(asset.path);
-    else await preloadFetchAsset(asset.path, type);
+    const endTiming = beginPerfSpan('asset', asset.path, { type });
+    try {
+      if (type === 'image') await preloadImage(asset.path);
+      else await preloadFetchAsset(asset.path, type);
+      endTiming({ ok: true });
+    } catch (error) {
+      endTiming({ ok: false });
+      throw error;
+    }
   };
 
   const tick = () => {
@@ -233,52 +230,10 @@ async function preloadGameAssets(engineSrc, onProgress) {
   return { totalCount: assets.length, loadedCount: assets.length };
 }
 
-async function waitForRuntimeAssetReadiness() {
-  const expectedGalaxyAudio = [
-    'throw',
-    'explosion',
-    'pressureWalk',
-    'pressureContact',
-    'wall',
-    'divine',
-    'impact',
-    'rage',
-    'bluehole',
-  ];
-  const start = performance.now();
-  while (performance.now() - start < RUNTIME_READY_TIMEOUT_MS) {
-    const galaxy = window.APEX_GALAXY;
-    if (!galaxy || !galaxy.audio) {
-      await wait(50);
-      continue;
-    }
-    const complete = expectedGalaxyAudio.every((key) => Object.prototype.hasOwnProperty.call(galaxy.audio, key));
-    if (complete) return;
-    await wait(50);
-  }
-  return;
-}
-
-async function waitForChampionVisualWarmup() {
-  const warmers = [
-    ['KATANA', window.APEX_KATANA?.warmVisualAssets],
-    ['ENGINEER', window.APEX_ENGINEER?.warmVisualAssets],
-  ].filter(([, warm]) => typeof warm === 'function');
-  if (!warmers.length) return;
-  let timedOut = false;
-  await Promise.race([
-    Promise.all(warmers.map(([, warm]) => warm())),
-    wait(RUNTIME_READY_TIMEOUT_MS).then(() => { timedOut = true; }),
-  ]);
-  if (timedOut) {
-    const names = warmers.map(([name]) => name).join('/');
-    console.warn(`[asset-loader] Timed out waiting for ${names} visual warmup; first use may complete warmup in-game.`);
-  }
-}
-
 function injectApexEngine(scriptRef, engineSrc) {
   if (window.__apexEngineReady) return Promise.resolve();
   if (window.__apexEngineLoadPromise) return window.__apexEngineLoadPromise;
+  const endEngineTiming = beginPerfSpan('engine', engineSrc);
   window.__apexEngineLoadPromise = new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.src = engineSrc;
@@ -313,6 +268,7 @@ function injectApexEngine(scriptRef, engineSrc) {
       bridge.dataset.apexEngineBridge = 'true';
       document.body.appendChild(bridge);
       window.__apexEngineReady = true;
+      endEngineTiming({ ok: true });
       resolve();
     };
     script.onload = async () => {
@@ -324,12 +280,14 @@ function injectApexEngine(scriptRef, engineSrc) {
       } catch (error) {
         console.warn('[asset-loader] Failed required game runtime.', error);
         window.__apexEngineLoadPromise = null;
+        endEngineTiming({ ok: false, error: String(error?.message || error) });
         reject(error);
       }
     };
     script.onerror = () => {
       console.warn(`[asset-loader] Failed engine script: ${engineSrc}`);
       window.__apexEngineLoadPromise = null;
+      endEngineTiming({ ok: false, error: `Failed to load ${engineSrc}` });
       reject(new Error(`Failed to load ${engineSrc}`));
     };
     document.body.appendChild(script);
@@ -360,6 +318,7 @@ export default function App() {
     const engineSrc = '/apexEngine.js';
 
     const boot = async () => {
+      markBootPhase('boot-start');
       preloadRuntimeSources();
       const enginePromise = injectApexEngine(scriptRef, engineSrc);
       enginePromise.catch(() => {});
@@ -373,30 +332,25 @@ export default function App() {
           totalCount: progress.totalCount,
         }));
       });
+      markBootPhase('critical-assets-ready', { assets: preloadResult.loadedCount });
       if (cancelled) return;
       setLoader((current) => ({ ...current, percent: 99, status: 'STARTING ENGINE' }));
       await enginePromise;
-      waitForRuntimeAssetReadiness().catch((error) => {
-        console.warn('[asset-loader] Background runtime readiness check failed.', error);
-      });
+      markBootPhase('engine-ready');
       if (cancelled) return;
       once.loaded = true;
       setGameReady(true);
-      const warmNonCriticalAssets = () => {
-        warmMenuAudio().catch(() => {});
-      };
-      if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(warmNonCriticalAssets, { timeout: 2500 });
-      } else {
-        window.setTimeout(warmNonCriticalAssets, 1200);
-      }
+      markBootPhase('game-ready');
       setLoader((current) => ({ ...current, active: true, fading: false, percent: 100, status: 'READY' }));
       await wait(LOADER_READY_HOLD_MS);
       if (cancelled) return;
       setLoader((current) => ({ ...current, fading: true }));
+      markBootInteractive();
       await wait(LOADER_FADE_MS);
       if (cancelled) return;
       setLoader((current) => ({ ...current, active: false, fading: false }));
+      markLoaderHidden();
+      window.dispatchEvent(new CustomEvent('apex:boot-interactive'));
     };
 
     boot().catch((error) => {
@@ -524,11 +478,6 @@ export default function App() {
       callApexGlobal(name, true);
       if (name === 'goToSelect') {
         warmBattleRuntimesInBackground('goToSelect');
-        window.setTimeout(() => {
-          waitForChampionVisualWarmup().catch((error) => {
-            console.warn('[asset-loader] Background champion visual warmup failed.', error);
-          });
-        }, 500);
       }
       if (options.startsMatch || name === 'startMatch' || name === 'startSoloMode' || name === 'startTrialMode') {
         stopMenuMusic(true);

@@ -39,6 +39,31 @@
   let pickAnimationTimer = 0;
   const PICK_CARD_ANIMATION_MS = 90;
   const refs = new Map();
+  const pendingImages = [];
+  const warmedPickChromeSources = new Set();
+  let pendingImageTimer = 0;
+
+  function pumpImageQueue() {
+    pendingImageTimer = 0;
+    const next = pendingImages.shift();
+    if (next && next.img.isConnected && next.img.dataset.apexPendingSrc === next.src) {
+      delete next.img.dataset.apexPendingSrc;
+      next.img.src = next.src;
+    }
+    if (pendingImages.length) pendingImageTimer = window.setTimeout(pumpImageQueue, 16);
+  }
+
+  function assignImageSource(img, src, immediate = false) {
+    if (!img || !src || img.getAttribute('src') === src) return;
+    if (immediate || warmedPickChromeSources.has(src)) {
+      delete img.dataset.apexPendingSrc;
+      img.src = src;
+      return;
+    }
+    img.dataset.apexPendingSrc = src;
+    pendingImages.push({ img, src });
+    if (!pendingImageTimer) pendingImageTimer = window.setTimeout(pumpImageQueue, 0);
+  }
   const PickRuntimeController = {
     champions: [],
     centerIndex: 0,
@@ -78,7 +103,7 @@
   }
   function loadLayout() {
     if (!layoutPromise) {
-      layoutPromise = fetch(`${LAYOUT_URL}?v=${Date.now()}`, { cache:'no-store' })
+      layoutPromise = fetch(LAYOUT_URL, { cache:'force-cache' })
         .then(response => {
           if (!response.ok) throw new Error(`Pick layout failed: ${response.status}`);
           return response.json();
@@ -134,7 +159,7 @@
   }
   function setLayerImage(id, src) {
     const el = refs.get(id);
-    if (el && src && el.getAttribute('src') !== src) el.setAttribute('src', src);
+    if (el && src) assignImageSource(el, src, true);
   }
   function hiddenSetting(id, value) {
     const el = document.getElementById(id);
@@ -201,7 +226,6 @@
     img.alt = '';
     img.draggable = false;
     img.decoding = 'async';
-    img.src = resolveLayerSrc(layer);
     img.style.objectFit = layer.fit === 'contain' ? 'contain' : 'fill';
     img.style.objectPosition = layer.pos || 'center bottom';
     shell.appendChild(img);
@@ -219,7 +243,7 @@
     img.alt = '';
     img.draggable = false;
     img.decoding = 'async';
-    img.src = resolveLayerSrc(layer);
+    assignImageSource(img, resolveLayerSrc(layer), layer.id === 'background');
     if (layer.fit === 'contain') img.classList.add('contain');
     img.style.objectPosition = layer.pos || 'center center';
     layerStyle(img, layer);
@@ -318,7 +342,10 @@
     const states = buttonStates[id];
     if (!states) return;
     const img = btn.querySelector('img');
-    if (img) img.src = id.startsWith('arrow') ? states.normal : (states[state] || states.normal);
+    if (img) {
+      const src = id.startsWith('arrow') ? states.normal : (states[state] || states.normal);
+      assignImageSource(img, src, state !== 'normal');
+    }
     btn.dataset.state = state;
     syncButtonLabelMotion(id, state);
   }
@@ -383,14 +410,14 @@
     const artWrap = document.createElement('span');
     artWrap.className = 'apex-pick-card-art';
     const art = document.createElement('img');
-    art.src = champ.cardArt;
+    assignImageSource(art, champ.cardArt, slotName === 'center');
     art.alt = '';
     art.draggable = false;
     artWrap.appendChild(art);
 
     const base = document.createElement('img');
     base.className = 'apex-pick-card-layer';
-    base.src = cardFrame.base;
+    assignImageSource(base, cardFrame.base);
     base.alt = '';
     base.style.zIndex = '2';
 
@@ -400,19 +427,19 @@
 
     const gloss = document.createElement('img');
     gloss.className = 'apex-pick-card-layer';
-    gloss.src = cardFrame.softGloss;
+    assignImageSource(gloss, cardFrame.softGloss);
     gloss.alt = '';
     gloss.style.zIndex = '4';
 
     const bevel = document.createElement('img');
     bevel.className = 'apex-pick-card-layer';
-    bevel.src = cardFrame.bevel;
+    assignImageSource(bevel, cardFrame.bevel);
     bevel.alt = '';
     bevel.style.zIndex = '5';
 
     const rim = document.createElement('img');
     rim.className = 'apex-pick-card-layer';
-    rim.src = cardFrame.rim;
+    assignImageSource(rim, cardFrame.rim);
     rim.alt = '';
     rim.style.zIndex = '6';
 
@@ -421,7 +448,7 @@
 
     const icon = document.createElement('img');
     icon.className = 'apex-pick-card-icon';
-    icon.src = champ.icon;
+    assignImageSource(icon, champ.icon, slotName === 'center');
     icon.alt = '';
     icon.draggable = false;
 
@@ -696,6 +723,50 @@
     renderStaticLayout();
   }
 
+  let pickChromeWarmup = null;
+  const pickChromeWarmImages = [];
+  function warmPickChrome() {
+    if (pickChromeWarmup) return pickChromeWarmup;
+    pickChromeWarmup = loadLayout().then(async () => {
+      const layerSources = (layout?.layers || [])
+        .filter(layer => layer.type === 'image' && !/^p[12]-standing$/.test(layer.id))
+        .map(resolveLayerSrc);
+      const sources = [...new Set([
+        ...layerSources,
+        cardFrame.base,
+        cardFrame.softGloss,
+        cardFrame.bevel,
+        cardFrame.rim,
+        cardFrame.tint,
+        cardFrame.selectedGlow,
+      ])];
+      for (const src of sources) {
+        await new Promise(resolve => {
+          const img = new Image();
+          img.decoding = 'async';
+          pickChromeWarmImages.push(img);
+          let settled = false;
+          const finish = () => {
+            if (settled) return;
+            settled = true;
+            if (img.naturalWidth) warmedPickChromeSources.add(src);
+            resolve();
+          };
+          img.onload = () => {
+            if (img.decode) img.decode().catch(() => {}).finally(finish);
+            else finish();
+          };
+          img.onerror = finish;
+          img.src = src;
+          window.setTimeout(finish, 1200);
+        });
+      }
+    }).catch(error => {
+      console.warn('[Apex Pick] Chrome warmup failed.', error);
+    });
+    return pickChromeWarmup;
+  }
+
   const legacyPopulateRosterJsonPick = populateRoster;
   populateRoster = function() {
     document.getElementById('roster-grid')?.replaceChildren();
@@ -736,5 +807,8 @@
 
   Object.assign(window.apexReactBridge || {}, { goToSelect, startMatch, goToMenu });
   Object.assign(window, window.apexReactBridge || {});
-  if (document.getElementById('apex-pick-runtime-root')) renderPickRuntime();
+  // Warm only the small JSON layout during boot. Building the full pick DOM here
+  // forces the browser to decode large standing/card images before the screen is used.
+  loadLayout().catch(error => console.warn('[Apex Pick] Layout preload failed.', error));
+  window.addEventListener('apex:boot-interactive', warmPickChrome, { once:true });
 })();

@@ -22,7 +22,6 @@ export const BOOT_GAME_RUNTIMES = [
   ['/game/fighters/soccerRuntime.js', 'apexSoccerRuntime'],
   ['/game/fighters/katanaRuntime.js', 'apexKatanaRuntime'],
   ['/game/fighters/fangRuntime.js', 'apexFangRuntime'],
-  ['/game/ui/apexCharacterSelectUi.js', 'apexCharacterSelectUi'],
   ['/game/ui/apexPickRuntime.js', 'apexPickRuntime'],
 ];
 

@@ -7,11 +7,14 @@ import {
   prefetchDeferredRuntimeSources,
   preloadRuntimeSources,
 } from './runtimeManifest.js';
+import { beginPerfSpan } from './performanceMetrics.js';
 
 export function loadClassicRuntime(src, dataKey) {
   return new Promise((resolve, reject) => {
+    const endTiming = beginPerfSpan('runtime', src);
     const existing = document.querySelector(`script[src="${src}"]`);
     if (existing?.dataset.apexLoaded === 'true') {
+      endTiming({ ok: true, cached: true });
       resolve();
       return;
     }
@@ -20,11 +23,17 @@ export function loadClassicRuntime(src, dataKey) {
     runtime.src = src;
     runtime.async = false;
     runtime.dataset[dataKey] = 'true';
-    runtime.onload = () => {
+    const handleLoad = () => {
       runtime.dataset.apexLoaded = 'true';
+      endTiming({ ok: true, cached: false });
       resolve();
     };
-    runtime.onerror = () => reject(new Error(`Failed to load ${src}`));
+    const handleError = () => {
+      endTiming({ ok: false, cached: false });
+      reject(new Error(`Failed to load ${src}`));
+    };
+    runtime.addEventListener('load', handleLoad, { once: true });
+    runtime.addEventListener('error', handleError, { once: true });
     if (!existing) document.body.appendChild(runtime);
   });
 }
