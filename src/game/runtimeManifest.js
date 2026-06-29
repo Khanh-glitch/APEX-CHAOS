@@ -15,11 +15,6 @@ export const BOOT_GAME_RUNTIMES = [
   ['/game/guards/apexSlimeBodyCap.js', 'apexSlimeBodyCap'],
   ['/game/core/apexCanonicalBalance.js', 'apexCanonicalBalance'],
   ['/game/core/apexRosterExtensions.js', 'apexRosterExtensions'],
-  ['/game/fighters/musicianVisualRuntime.js', 'apexMusicianVisualRuntime'],
-  ['/game/fighters/arcadeVisualRuntime.js', 'apexArcadeVisualRuntime'],
-  ['/game/fighters/puppetVisualRuntime.js', 'apexPuppetVisualRuntime'],
-  ['/game/fighters/bladeVisualRuntime.js', 'apexBladeVisualRuntime'],
-  ['/game/fighters/ninjaVisualRuntime.js', 'apexNinjaVisualRuntime'],
   ['/game/core/apexTextHygiene.js', 'apexTextHygiene'],
   ['/game/fighters/iceVisualRuntime.js', 'apexIceVisualRuntime'],
   ['/game/fighters/stringRuntime.js', 'apexStringRuntime'],
@@ -33,6 +28,11 @@ export const BOOT_GAME_RUNTIMES = [
 
 export const DEFERRED_GAME_RUNTIMES = [
   ['/game/core/apexFightTelemetry.js', 'apexFightTelemetry'],
+  ['/game/fighters/musicianVisualRuntime.js', 'apexMusicianVisualRuntime'],
+  ['/game/fighters/arcadeVisualRuntime.js', 'apexArcadeVisualRuntime'],
+  ['/game/fighters/puppetVisualRuntime.js', 'apexPuppetVisualRuntime'],
+  ['/game/fighters/bladeVisualRuntime.js', 'apexBladeVisualRuntime'],
+  ['/game/fighters/ninjaVisualRuntime.js', 'apexNinjaVisualRuntime'],
   ['/game/modes/soloRuntime.js', 'apexSoloRuntime'],
   ['/game/modes/trialRuntime.js', 'apexTrialRuntime'],
   ['/game/fighters/stringHardeningRuntime.js', 'apexStringHardeningRuntime'],
