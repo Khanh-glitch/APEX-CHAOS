@@ -1,5 +1,6 @@
 export const REQUIRED_GAME_RUNTIMES = [
   ['/game/core/apexBattleAudioRuntime.js', 'apexBattleAudioRuntime'],
+  ['/game/core/apexRenderPrimitives.js', 'apexRenderPrimitives'],
   ['/game/core/apexMajorMechanicVisuals.js', 'apexMajorMechanicVisuals'],
   ['/game/fighters/shotgunRuntime.js', 'apexShotgunRuntime'],
   ['/game/fighters/engineerRuntime.js', 'apexEngineerRuntime'],
