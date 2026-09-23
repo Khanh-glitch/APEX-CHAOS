@@ -1,0 +1,47 @@
+name: Aftermath Prototype CI
+
+on:
+  push:
+    branches:
+      - prototype/aftermath-32
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout prototype branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check engine
+        run: node --check public/apexEngine.js
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Verify Aftermath build markers
+        shell: bash
+        run: |
+          test -f dist/index.html
+          test -f dist/apexEngine.js
+          grep -q "AFTERMATH 3V3 PROTOTYPE" dist/apexEngine.js
+          grep -q "SPIDER.*VAMPIRE.*BLADE" dist/apexEngine.js
+          grep -q "PAINTER.*CARD.*TIME" dist/apexEngine.js
+
+      - name: Upload playable build
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-chaos-aftermath-demo
+          path: dist/
+          if-no-files-found: error
