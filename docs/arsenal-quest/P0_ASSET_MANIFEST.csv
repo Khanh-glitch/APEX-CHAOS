@@ -1,0 +1,13 @@
+id,name,category,source_family,original_file,logical_sprite_key,prototype_behavior,priority
+G01,Pistol,guns,Kay Lousberg 2D Guns,pistol.png,G01_pistol,3 quick shots,P0
+G03,Shotgun,guns,Kay Lousberg 2D Guns,shotgun.png,G03_shotgun,1 cone blast,P0
+G05,SMG,guns,Kay Lousberg 2D Guns,smg.png,G05_smg,8-shot burst,P0
+G08,Sniper Rifle,guns,Kay Lousberg 2D Guns,sniper.png,G08_sniper_rifle,1 aimed heavy shot,P0
+G10,Grenade,guns,Kay Lousberg 2D Guns,grenade.png,G10_grenade,1 timed bouncing throw,P0
+M01,Sabre,melee,JoeRaig Ancient Armory,swords_01.png,M01_sabre,fast sweep,P0
+M04,Battle Axe,melee,JoeRaig Ancient Armory,axes_06.png,M04_battle_axe,heavy chop,P0
+M08,Dagger,melee,JoeRaig Ancient Armory,knives_08.png,M08_dagger,dash stab,P0
+M10,Spear,melee,JoeRaig Ancient Armory,spears_11.png,M10_spear,long lunge,P0
+M12,Spiked Club,melee,JoeRaig Ancient Armory,misc_03.png,M12_spiked_club,stun smash,P0
+D03,Swirl Shield,defense,JoeRaig Ancient Armory,shields_08.png,D03_swirl_shield,reflect one projectile,P0
+D07,Tower Shield,defense,JoeRaig Ancient Armory,shields_21.png,D07_tower_shield,temporary fortress guard,P0
