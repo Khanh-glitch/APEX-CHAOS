@@ -59,6 +59,12 @@ export const MODE_DEFERRED_RUNTIMES = {
   tamChien: [
     ['/game/modes/tamChienRuntime.js', 'apexTamChienRuntime'],
   ],
+  arsenalQuest: [
+    ['/game/arsenal/arsenalQuestConfig.js', 'apexArsenalQuestConfig'],
+    ['/game/arsenal/arsenalWeaponRuntime.js', 'apexArsenalWeaponRuntime'],
+    ['/game/arsenal/arsenalSpawnRuntime.js', 'apexArsenalSpawnRuntime'],
+    ['/game/modes/arsenalQuestRuntime.js', 'apexArsenalQuestRuntime'],
+  ],
 };
 
 export const DEFERRED_GAME_RUNTIMES = [
@@ -67,6 +73,7 @@ export const DEFERRED_GAME_RUNTIMES = [
   ...MODE_DEFERRED_RUNTIMES.solo,
   ...MODE_DEFERRED_RUNTIMES.trial,
   ...MODE_DEFERRED_RUNTIMES.tamChien,
+  ...MODE_DEFERRED_RUNTIMES.arsenalQuest,
 ];
 
 export const REQUIRED_GAME_RUNTIMES = BOOT_GAME_RUNTIMES;

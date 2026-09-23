@@ -72,6 +72,7 @@ const MENU_BUTTONS = [
   { id: 'trial', label: 'Test Battle With Saitama', asset: '/assets/ui_2026/menu-saitama-test.webp', action: 'goToTrialSelect' },
   { id: 'giai', label: 'Tournament', asset: '/assets/ui_2026/menu-tournament.webp', action: 'goToTournament' },
   { id: 'solo', label: 'Solo 1v1 Local', asset: '/assets/ui_2026/menu-solo.webp', action: 'goToSoloSelect' },
+  { id: 'arsenal-quest', label: 'ARSENAL QUEST PROTOTYPE', text: 'ARSENAL QUEST PROTOTYPE', action: 'startArsenalQuestMode' },
 ];
 
 const LOADING_LABELS = ['LOADING ASSETS', 'PREPARING ARENA', 'SYNCHRONIZING VFX'];
@@ -88,6 +89,7 @@ const DEFERRED_RUNTIME_ACTION_GROUPS = {
   goToTrialSelect: 'trial',
   startTrialMode: 'trialBattle',
   startTamChienMode: 'tamChien',
+  startArsenalQuestMode: 'arsenalQuest',
 };
 
 function callApexGlobal(name, enabled = true) {
@@ -490,7 +492,7 @@ export default function App() {
       if (options.startsMatch) {
         stopMenuMusic(true);
         window.apexStopBattleAudio?.();
-      } else if (name === 'startMatch' || name === 'startSoloMode' || name === 'startTrialMode') {
+      } else if (name === 'startMatch' || name === 'startSoloMode' || name === 'startTrialMode' || name === 'startArsenalQuestMode') {
         stopMenuMusic(true);
         window.apexStopBattleAudio?.();
       } else if (name === 'goToMenu' || name === 'exitAutoBattle') {

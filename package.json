@@ -9,6 +9,8 @@
     "dev:lan": "vite --host 0.0.0.0 --port 5173",
     "room-server": "node server/manual-room-relay.js",
     "test:multiplayer": "node tools/testRealtimeMultiplayer.mjs",
+    "test:arsenal": "node tools/testArsenalQuestRuntime.mjs",
+    "test:arsenal:headless": "node tools/testArsenalQuestHeadless.mjs",
     "build": "node tools/generatePublicAssetManifest.cjs && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173"
   },

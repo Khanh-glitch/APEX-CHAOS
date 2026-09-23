@@ -1,0 +1,508 @@
+{
+  "gates": {
+    "runtime-registered": {
+      "pass": true,
+      "detail": {
+        "bootLoadErrors": []
+      }
+    },
+    "normal-modes-launch": {
+      "pass": true,
+      "detail": {
+        "selectState": "SELECT",
+        "menuState": "MENU",
+        "menuVisible": true,
+        "normalMatchState": "PLAYING",
+        "normalFighters": [
+          "ICE",
+          "TOXIC"
+        ],
+        "normalSimMoved": true,
+        "menuAfterMatch": "MENU"
+      }
+    },
+    "entry-state": {
+      "pass": true,
+      "detail": {
+        "gameState": "ARSENAL",
+        "hero": {
+          "name": "HERO",
+          "hp": 100,
+          "maxHp": 100,
+          "x": 220,
+          "y": 500,
+          "weapon": "NONE",
+          "weaponPhase": null,
+          "shotsFired": 0
+        },
+        "rival": {
+          "name": "RIVAL",
+          "hp": 100,
+          "maxHp": 100,
+          "x": 780,
+          "y": 500,
+          "weapon": "NONE",
+          "weaponPhase": null,
+          "shotsFired": 0
+        },
+        "hudOpacity": "1",
+        "menuHidden": true,
+        "p1Name": "HERO",
+        "p2Name": "RIVAL"
+      }
+    },
+    "spawn-cadence-independent": {
+      "pass": true,
+      "detail": "spawnedTotal=4 over 10s (first 1.0s, cadence 3.0s)"
+    },
+    "reveal-delay-1.2-1.8s": {
+      "pass": true,
+      "detail": [
+        1.613,
+        1.68,
+        1.415,
+        1.495
+      ]
+    },
+    "multi-slot-coexist": {
+      "pass": true,
+      "detail": "maxActiveSlots=4"
+    },
+    "reveal-events-structured": {
+      "pass": true
+    },
+    "telegraph-not-collectible": {
+      "pass": true
+    },
+    "telegraph-no-identity": {
+      "pass": true
+    },
+    "reveal-then-collectible": {
+      "pass": true,
+      "detail": {
+        "weapon": "DAGGER",
+        "phase": "READY",
+        "shots": 0
+      }
+    },
+    "rival-can-collect": {
+      "pass": true
+    },
+    "hero-can-collect": {
+      "pass": true
+    },
+    "armed-fighter-cannot-vacuum": {
+      "pass": true
+    },
+    "soft-cap-suppresses-and-logs": {
+      "pass": true
+    },
+    "weapon-PISTOL": {
+      "pass": true,
+      "detail": "dmg=13.5 USE=1 HIT=3 CONSUME=1"
+    },
+    "weapon-SHOTGUN": {
+      "pass": true,
+      "detail": "dmg=14.4 USE=1 HIT=4 CONSUME=1"
+    },
+    "weapon-SMG": {
+      "pass": true,
+      "detail": "dmg=19.2 USE=1 HIT=8 CONSUME=1"
+    },
+    "weapon-SNIPER": {
+      "pass": true,
+      "detail": "dmg=26 USE=1 HIT=1 CONSUME=1"
+    },
+    "weapon-GRENADE": {
+      "pass": true,
+      "detail": "dmg=10.4 USE=1 HIT=1 CONSUME=1"
+    },
+    "weapon-SABRE": {
+      "pass": true,
+      "detail": "dmg=12 USE=1 HIT=1 CONSUME=1"
+    },
+    "weapon-BATTLE_AXE": {
+      "pass": true,
+      "detail": "dmg=26 USE=1 HIT=1 CONSUME=1"
+    },
+    "weapon-DAGGER": {
+      "pass": true,
+      "detail": "dmg=9 USE=1 HIT=1 CONSUME=1"
+    },
+    "weapon-SPEAR": {
+      "pass": true,
+      "detail": "dmg=15 USE=1 HIT=1 CONSUME=1"
+    },
+    "weapon-SPIKED_CLUB": {
+      "pass": true,
+      "detail": "dmg=18 USE=1 HIT=1 CONSUME=1"
+    },
+    "pistol-3-shots": {
+      "pass": true,
+      "detail": "hits=3"
+    },
+    "smg-8-shots": {
+      "pass": true,
+      "detail": "hits=8"
+    },
+    "sniper-single-high-damage": {
+      "pass": true,
+      "detail": "dmg=26"
+    },
+    "sniper-aim-telegraph-window": {
+      "pass": true,
+      "detail": "phase@0.3s=READY phase@0.65s=AIM"
+    },
+    "club-stun-applied": {
+      "pass": true,
+      "detail": [
+        "stun"
+      ]
+    },
+    "axe-knockback-applied": {
+      "pass": true,
+      "detail": [
+        "push"
+      ]
+    },
+    "grenade-throw-consumes-immediately": {
+      "pass": true
+    },
+    "grenade-resolves-after-fuse": {
+      "pass": true,
+      "detail": "rivalHp=90"
+    },
+    "melee-not-wasted-out-of-range": {
+      "pass": true
+    },
+    "melee-activates-in-range": {
+      "pass": true
+    },
+    "swirl-reflects-projectile": {
+      "pass": true,
+      "detail": "heroHp=100 rivalHp=74"
+    },
+    "swirl-reflect-ownership-correct": {
+      "pass": true,
+      "detail": "reflected bullet source=HERO target=RIVAL"
+    },
+    "tower-shield-reduces-damage": {
+      "pass": true,
+      "detail": "withShield 10->2.5, without 10->10"
+    },
+    "tower-shield-slow-while-active": {
+      "pass": true
+    },
+    "tower-shield-expires-to-unarmed": {
+      "pass": true
+    },
+    "exit-cleanup": {
+      "pass": true,
+      "detail": {
+        "gameStateAfter": "MENU",
+        "menuVisible": true,
+        "hudHidden": true,
+        "slotsCleared": true,
+        "aqProjectilesCleared": true,
+        "heroHolderCleared": true,
+        "exitLogged": true
+      }
+    },
+    "f3-debug-overlay-toggle": {
+      "pass": true
+    },
+    "five-minute-no-uncaught-errors": {
+      "pass": true,
+      "detail": "steps=9000 (300s @30Hz) kos=4 spawnedCumulative=101 wallClock=230ms earlyErrors=0"
+    },
+    "reveal-delay-range-over-5min": {
+      "pass": true,
+      "detail": "samples=4371"
+    },
+    "structured-aq-events": {
+      "pass": true,
+      "detail": {
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=10 x=447 y=646",
+        "REVEAL": "[AQ] REVEAL id=10 weapon=PISTOL",
+        "PICKUP": "[AQ] PICKUP id=9 fighter=RIVAL weapon=DAGGER",
+        "USE": "[AQ] USE fighter=HERO weapon=SPIKED_CLUB",
+        "HIT": "[AQ] HIT source=RIVAL target=HERO weapon=DAGGER damage=9.0",
+        "CONSUME": "[AQ] CONSUME fighter=HERO weapon=SPIKED_CLUB reason=melee-resolved"
+      }
+    }
+  },
+  "failures": [],
+  "loadErrors": [],
+  "evidence": [
+    "docs/arsenal-quest/evidence/01-hidden-telegraph.png",
+    "docs/arsenal-quest/evidence/02-multiple-simultaneous-pickups.png",
+    "docs/arsenal-quest/evidence/03-hero-pickup.png",
+    "docs/arsenal-quest/evidence/04-rival-pickup.png",
+    "docs/arsenal-quest/evidence/05-ranged-sniper-aim.png",
+    "docs/arsenal-quest/evidence/05b-ranged-pistol-burst.png",
+    "docs/arsenal-quest/evidence/06-melee-axe-slash.png",
+    "docs/arsenal-quest/evidence/07-tower-shield-guard.png",
+    "docs/arsenal-quest/evidence/07b-swirl-reflect.png",
+    "docs/arsenal-quest/evidence/08-f3-debug-overlay.png"
+  ],
+  "normalModes": {
+    "selectState": "SELECT",
+    "menuState": "MENU",
+    "menuVisible": true,
+    "normalMatchState": "PLAYING",
+    "normalFighters": [
+      "ICE",
+      "TOXIC"
+    ],
+    "normalSimMoved": true,
+    "menuAfterMatch": "MENU"
+  },
+  "entry": {
+    "gameState": "ARSENAL",
+    "hero": {
+      "name": "HERO",
+      "hp": 100,
+      "maxHp": 100,
+      "x": 220,
+      "y": 500,
+      "weapon": "NONE",
+      "weaponPhase": null,
+      "shotsFired": 0
+    },
+    "rival": {
+      "name": "RIVAL",
+      "hp": 100,
+      "maxHp": 100,
+      "x": 780,
+      "y": 500,
+      "weapon": "NONE",
+      "weaponPhase": null,
+      "shotsFired": 0
+    },
+    "hudOpacity": "1",
+    "menuHidden": true,
+    "p1Name": "HERO",
+    "p2Name": "RIVAL"
+  },
+  "spawnLaw": {
+    "spawnedTotal": 4,
+    "maxActive": 4,
+    "delayValues": [
+      1.6128584784205189,
+      1.6799464966532645,
+      1.4149605292540102,
+      1.495185427091484
+    ],
+    "delaysInRange": true,
+    "spawnEvents": 4,
+    "revealEvents": 3,
+    "revealWeaponsKnown": true
+  },
+  "telegraphLaw": {
+    "duringPhase": "TELEGRAPH",
+    "duringWeaponId": null,
+    "duringHolder": null,
+    "finalHolder": {
+      "weapon": "DAGGER",
+      "phase": "READY",
+      "shots": 0
+    },
+    "pickupEvent": 1,
+    "events": [
+      "[AQ] REVEAL id=1 weapon=DAGGER",
+      "[AQ] PICKUP id=1 fighter=HERO weapon=DAGGER"
+    ],
+    "heroPos": {
+      "x": 500,
+      "y": 500
+    },
+    "slotSnapshot": []
+  },
+  "pickupRules": {
+    "rivalGot": "SABRE",
+    "heroGot": "SMG",
+    "heroStillArmedWith": "SMG",
+    "rejectedStillThere": true,
+    "rejectLogged": true
+  },
+  "softCap": {
+    "spawned": false,
+    "suppressed": 1
+  },
+  "weapons": {
+    "PISTOL": {
+      "midPhase": "READY",
+      "midPhase2": "FIRING",
+      "damageDealt": 13.5,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 3,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": [
+        "push"
+      ]
+    },
+    "SHOTGUN": {
+      "midPhase": "READY",
+      "damageDealt": 14.4,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 4,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": [
+        "push"
+      ]
+    },
+    "SMG": {
+      "midPhase": "READY",
+      "midPhase2": "FIRING",
+      "damageDealt": 19.2,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 8,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": [
+        "push"
+      ]
+    },
+    "SNIPER": {
+      "midPhase": "READY",
+      "midPhase2": "AIM",
+      "damageDealt": 26,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 1,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": []
+    },
+    "GRENADE": {
+      "midPhase": "READY",
+      "damageDealt": 10.4,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 1,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": []
+    },
+    "SABRE": {
+      "damageDealt": 12,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 1,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": []
+    },
+    "BATTLE_AXE": {
+      "midPhase": "WINDUP",
+      "damageDealt": 26,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 1,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": [
+        "push"
+      ]
+    },
+    "DAGGER": {
+      "damageDealt": 9,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 1,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": []
+    },
+    "SPEAR": {
+      "damageDealt": 15,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 1,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": []
+    },
+    "SPIKED_CLUB": {
+      "damageDealt": 18,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 1,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": [
+        "stun"
+      ]
+    }
+  },
+  "grenade": {
+    "afterThrow": {
+      "holder": null,
+      "grenadeInWorld": true
+    },
+    "rivalHpAfter": 90,
+    "explodeLogged": true,
+    "grenadeGone": true
+  },
+  "meleeWait": {
+    "farHolder": "BATTLE_AXE",
+    "farRivalHp": 100,
+    "nearHolder": null,
+    "nearRivalHp": 74
+  },
+  "swirl": {
+    "heroHp": 100,
+    "rivalHp": 74,
+    "heroHolder": null,
+    "reflectLogged": true,
+    "hitOnRivalFromHero": 1
+  },
+  "tower": {
+    "speedStatus": true,
+    "guardedHp": 97.5,
+    "expiredHolder": null,
+    "unguardedHp": 87.5,
+    "unguardedDelta": 10
+  },
+  "cleanup": {
+    "gameStateAfter": "MENU",
+    "menuVisible": true,
+    "hudHidden": true,
+    "slotsCleared": true,
+    "aqProjectilesCleared": true,
+    "heroHolderCleared": true,
+    "exitLogged": true
+  },
+  "f3": {
+    "toggledOn": true
+  },
+  "fiveMinute": {
+    "error": null,
+    "koCount": 4,
+    "restarts": 4,
+    "spawnedTotal": 5,
+    "spawnedCumulative": 101,
+    "delaySamplesInRange": true,
+    "delaySampleCount": 4371,
+    "earlyErrors": [],
+    "wallClockMs": 230
+  },
+  "logSample": {
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=10 x=447 y=646",
+    "REVEAL": "[AQ] REVEAL id=10 weapon=PISTOL",
+    "PICKUP": "[AQ] PICKUP id=9 fighter=RIVAL weapon=DAGGER",
+    "USE": "[AQ] USE fighter=HERO weapon=SPIKED_CLUB",
+    "HIT": "[AQ] HIT source=RIVAL target=HERO weapon=DAGGER damage=9.0",
+    "CONSUME": "[AQ] CONSUME fighter=HERO weapon=SPIKED_CLUB reason=melee-resolved"
+  },
+  "summary": {
+    "total": 44,
+    "passed": 44,
+    "failed": []
+  }
+}

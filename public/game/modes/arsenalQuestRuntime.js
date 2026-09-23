@@ -1,0 +1,362 @@
+// ARSENAL QUEST PROTOTYPE — mode runtime (handoff §4, §10, §11, §12).
+// Runs INSIDE the Apex engine: reuses Fighter movement/bounce/collision,
+// handleCollisions, projectiles/particles/floatingTexts/shockwaves, camera
+// shake / hit stop, HUD and SFX hooks. No standalone engine, no weapon-seeking
+// AI — HERO and RIVAL ride the normal Apex auto movement law.
+(function apexArsenalQuestRuntime() {
+  if (window.apexArsenalQuestRuntime === 'ready') return;
+  const AQ = window.APEX_ARSENAL;
+  const CFG = window.APEX_ARSENAL_CONFIG;
+  const SPAWN = window.APEX_ARSENAL_SPAWN;
+  const weaponApi = AQ.weaponApi;
+
+  // -------------------------------------------------------------------------
+  // Blank fighter model (handoff §4): standard Apex Fighter machinery,
+  // 100 HP, no update ability logic, no onCollide intrinsic damage, no rage.
+  // -------------------------------------------------------------------------
+  function makeArsenalFighterType(name, color, startDx, startDy) {
+    return {
+      name,
+      color,
+      desc: 'Arsenal Quest blank fighter — no intrinsic kit',
+      speed: CFG.FIGHTER_SPEED,
+      startDx,
+      startDy,
+      noRage: true,
+      arsenalBlank: true,
+      init: () => {},
+      draw: (c, f) => {
+        drawSketchBlob(c, f.radius, f.color, name === 'HERO' ? 13 : 17);
+        c.save();
+        c.rotate(-Math.atan2(f.dir.y, f.dir.x));
+        c.fillStyle = '#12100a';
+        c.strokeStyle = 'rgba(255,255,255,0.7)';
+        c.lineWidth = 3;
+        c.font = "900 52px 'Segoe UI'";
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.strokeText(name[0], 0, 2);
+        c.fillText(name[0], 0, 2);
+        c.restore();
+      },
+    };
+  }
+
+  const HERO_TYPE = makeArsenalFighterType('HERO', CFG.HERO_COLOR, 1, 0.55);
+  const RIVAL_TYPE = makeArsenalFighterType('RIVAL', CFG.RIVAL_COLOR, -1, -0.55);
+
+  function resetState() {
+    const state = {
+      active: true,
+      time: 0,
+      spawnTimer: CFG.FIRST_SPAWN_DELAY_SECONDS,
+      slots: [],
+      visuals: [],
+      nextSlotId: 1,
+      spawnedTotal: 0,
+      suppressedSpawns: 0,
+      maxActiveSlots: 0,
+      over: null,
+      debugOverlay: AQ.state ? AQ.state.debugOverlay : false,
+    };
+    AQ.state = state;
+    return state;
+  }
+
+  // -------------------------------------------------------------------------
+  // Simulation tick — the ONLY gameplay step; rAF and headless tests share it.
+  // -------------------------------------------------------------------------
+  function stepSimulation(dt) {
+    const state = AQ.state;
+    if (!state || !state.active) return;
+    matchClock += dt;
+    state.time += dt;
+    if (!state.over) {
+      // Fixed spawn cadence — independent of collection state (handoff §5).
+      state.spawnTimer -= dt;
+      let guard = 0;
+      while (state.spawnTimer <= 0 && guard++ < 4) {
+        state.spawnTimer += CFG.SPAWN_CADENCE_SECONDS;
+        SPAWN.trySpawnSlot();
+      }
+      SPAWN.updateSlots(dt);
+      if (fighters[0] && fighters[1]) {
+        fighters[0].update(dt, fighters[1]);
+        fighters[1].update(dt, fighters[0]);
+        handleCollisions(dt);
+      }
+      SPAWN.resolvePickups();
+      for (const f of fighters) if (f) weaponApi.updateHolder(f, dt);
+      updateProjectiles(dt);                     // engine lifecycle + cleanup
+      weaponApi.updateArsenalProjectiles(dt);    // aq_* movement + hits
+    }
+    weaponApi.tickVisuals(dt);
+    // Presentation decay over the shared engine collections.
+    for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.update(dt); if (p.life <= 0) particles.splice(i, 1); }
+    for (let i = floatingTexts.length - 1; i >= 0; i--) { const t = floatingTexts[i]; t.update(dt); if (t.life <= 0) floatingTexts.splice(i, 1); }
+    for (let i = shockwaves.length - 1; i >= 0; i--) { const s = shockwaves[i]; s.r += 420 * dt; s.alpha = Math.max(0, 1 - s.r / s.maxR); if (s.alpha <= 0) shockwaves.splice(i, 1); }
+    if (arenaFlash.a > 0) arenaFlash.a = Math.max(0, arenaFlash.a - dt * 1.6);
+    if (cameraShake > 0) cameraShake = Math.max(0, cameraShake - dt * 22);
+    cameraZoom = lerp(cameraZoom, 1, dt * 2);
+    if (!state.over && fighters[0] && fighters[1] && (fighters[0].hp <= 0 || fighters[1].hp <= 0)) {
+      const winner = fighters[0].hp > fighters[1].hp ? fighters[0] : fighters[1];
+      state.over = winner.name;
+      AQ.log('KO', `winner=${winner.name}`);
+      updateHUD();
+    }
+  }
+
+  function updateArsenalQuest(dt) {
+    if (hitStop > 0) { hitStop -= dt; dt *= 0.1; }
+    stepSimulation(dt);
+  }
+
+  // -------------------------------------------------------------------------
+  // Engine integration — wrap update/draw/background/projectile passes,
+  // following the same convention as solo/trial/tamChien mode runtimes.
+  // -------------------------------------------------------------------------
+  const baseUpdate = update;
+  const baseDraw = draw;
+  const baseDrawBackground = drawBackground;
+  const baseDrawProjectiles = drawProjectiles;
+
+  update = function (dt) {
+    if (gameState === 'ARSENAL') { updateArsenalQuest(dt); return; }
+    return baseUpdate(dt);
+  };
+
+  drawBackground = function (c) {
+    baseDrawBackground(c);
+    if (gameState === 'ARSENAL') SPAWN.drawSlots(c);
+  };
+
+  drawProjectiles = function (c) {
+    if (gameState === 'ARSENAL') weaponApi.drawArsenalProjectiles(c);
+    baseDrawProjectiles(c);
+  };
+
+  function drawHolderTags(c) {
+    for (const f of fighters) {
+      const h = weaponApi.getHolder(f);
+      if (!f || !h) continue;
+      const label = h.weaponId.replace(/_/g, ' ');
+      c.save();
+      c.font = "900 22px 'Segoe UI'";
+      c.textAlign = 'center';
+      const w = c.measureText(label).width + 20;
+      c.fillStyle = 'rgba(10,8,4,0.62)';
+      c.fillRect(f.x - w / 2, f.y - f.radius - 62, w, 30);
+      c.fillStyle = h.def.category === 'ranged' ? '#ffd479' : h.def.category === 'melee' ? '#ff9d7a' : '#9fd8ff';
+      c.fillText(label, f.x, f.y - f.radius - 40);
+      c.restore();
+    }
+  }
+
+  function drawDebugOverlay(c) {
+    const s = window.getArsenalQuestDebugState();
+    const lines = [
+      'ARSENAL QUEST DEBUG',
+      `spawn in: ${s.spawnIn.toFixed(1)}s`,
+      `active slots: ${s.activeSlots}`,
+      `telegraphs: ${s.telegraphs}`,
+      `revealed: ${s.revealed}`,
+      '',
+      `HERO  HP ${s.hero ? s.hero.hp : 0}/${CFG.MATCH_HP}   weapon: ${s.hero ? s.hero.weapon : 'NONE'}`,
+      `RIVAL HP ${s.rival ? s.rival.hp : 0}/${CFG.MATCH_HP}   weapon: ${s.rival ? s.rival.weapon : 'NONE'}`,
+    ];
+    c.save();
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.font = "700 22px monospace";
+    const pad = 14;
+    const lineH = 28;
+    c.fillStyle = 'rgba(6,6,10,0.78)';
+    c.fillRect(16, 96, 420, pad * 2 + lines.length * lineH);
+    c.strokeStyle = '#6d8f4e';
+    c.lineWidth = 2;
+    c.strokeRect(16, 96, 420, pad * 2 + lines.length * lineH);
+    c.textAlign = 'left';
+    c.textBaseline = 'top';
+    lines.forEach((line, i) => {
+      c.fillStyle = i === 0 ? '#ffe08a' : line.startsWith('HERO') ? CFG.HERO_COLOR : line.startsWith('RIVAL') ? CFG.RIVAL_COLOR : '#d8d2c0';
+      c.fillText(line, 16 + pad, 96 + pad + i * lineH);
+    });
+    c.restore();
+  }
+
+  function drawForeground() {
+    const state = AQ.state;
+    const view = window.__apexCameraView || { shakeX: 0, shakeY: 0, zoom: 1 };
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.translate(GAME_SIZE / 2 + view.shakeX, GAME_SIZE / 2 + view.shakeY);
+    ctx.scale(view.zoom, view.zoom);
+    ctx.translate(-GAME_SIZE / 2, -GAME_SIZE / 2);
+    weaponApi.drawArsenalVisuals(ctx);
+    drawHolderTags(ctx);
+    ctx.restore();
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = 'rgba(232,224,200,0.85)';
+    ctx.font = "800 20px monospace";
+    ctx.textAlign = 'center';
+    ctx.fillText('ARSENAL QUEST PROTOTYPE — F3 debug · T rematch · B/ESC menu', GAME_SIZE / 2, GAME_SIZE - 18);
+    if (state && state.over) {
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(0, 380, GAME_SIZE, 240);
+      ctx.fillStyle = state.over === 'HERO' ? CFG.HERO_COLOR : CFG.RIVAL_COLOR;
+      ctx.font = "900 96px 'Segoe UI'";
+      ctx.fillText(`${state.over} WINS`, GAME_SIZE / 2, 500);
+      ctx.fillStyle = '#efe6c8';
+      ctx.font = "800 30px monospace";
+      ctx.fillText('T — REMATCH      B — MENU', GAME_SIZE / 2, 570);
+    }
+    ctx.restore();
+  }
+
+  draw = function () {
+    baseDraw();
+    if (gameState !== 'ARSENAL') return;
+    drawForeground();
+    if (AQ.state && AQ.state.debugOverlay) drawDebugOverlay(ctx);
+  };
+
+  // -------------------------------------------------------------------------
+  // Entry / exit (handoff §12)
+  // -------------------------------------------------------------------------
+  let keyListener = null;
+
+  function onKeyDown(e) {
+    if (e.code === 'F3') {
+      e.preventDefault();
+      if (gameState === 'ARSENAL' && AQ.state) AQ.state.debugOverlay = !AQ.state.debugOverlay;
+      return;
+    }
+    if (gameState !== 'ARSENAL') return;
+    if (e.code === 'KeyT' && AQ.state && AQ.state.over) { window.startArsenalQuestMode(); return; }
+    if (e.code === 'KeyB' || e.code === 'Escape') { window.exitArsenalQuestMode(); }
+  }
+
+  window.startArsenalQuestMode = function startArsenalQuestMode() {
+    resetState();
+    ['menu-screen', 'select-screen', 'tournament-screen', 'end-screen', 'solo-screen', 'trial-screen', 'tam-chien-screen', 'manual-room-screen']
+      .forEach(id => document.getElementById(id)?.classList.add('hidden'));
+    const hud = document.getElementById('hud');
+    if (hud) hud.style.opacity = 1;
+
+    // Blank HERO / RIVAL on the real Apex Fighter runtime.
+    fighters = [
+      new Fighter(1, 220, GAME_SIZE / 2, HERO_TYPE),
+      new Fighter(2, GAME_SIZE - 220, GAME_SIZE / 2, RIVAL_TYPE),
+    ];
+    for (const f of fighters) {
+      f.maxHp = CFG.MATCH_HP;
+      f.hp = CFG.MATCH_HP;
+      const a = Math.random() * TAU;
+      f.setDir(Math.cos(a), Math.sin(a));
+    }
+
+    // Clear prior normal-match projectiles/effects.
+    projectiles = [];
+    particles = [];
+    floatingTexts = [];
+    shockwaves = [];
+    timeScale = 1.0;
+    cameraZoom = 1.0;
+    cameraShake = 0;
+    hitStop = 0;
+    matchClock = 0;
+    arenaFlash = { r: 0, g: 0, b: 0, a: 0 };
+    sawWallRage = { timer: 0, owner: null, phase: 0 };
+
+    const p1n = document.getElementById('p1-name');
+    const p2n = document.getElementById('p2-name');
+    if (p1n) { p1n.innerText = 'HERO'; p1n.style.color = CFG.HERO_COLOR; }
+    if (p2n) { p2n.innerText = 'RIVAL'; p2n.style.color = CFG.RIVAL_COLOR; }
+    const p1hp = document.getElementById('p1-hp');
+    const p2hp = document.getElementById('p2-hp');
+    if (p1hp) p1hp.style.backgroundColor = CFG.HERO_COLOR;
+    if (p2hp) p2hp.style.backgroundColor = CFG.RIVAL_COLOR;
+    updateHUD();
+
+    window.apexStopBattleAudio?.();
+    gameState = 'ARSENAL';
+    lastTime = performance.now();
+    if (!reqId) reqId = requestAnimationFrame(loop);
+    if (!keyListener) {
+      keyListener = onKeyDown;
+      window.addEventListener('keydown', keyListener);
+    }
+    AQ.log('MODE_ENTER', 'mode=ARSENAL_QUEST');
+    try { draw(); } catch (error) { console.warn('[AQ] initial draw failed', error); }
+  };
+
+  window.exitArsenalQuestMode = function exitArsenalQuestMode() {
+    const state = AQ.state;
+    if (state) {
+      for (const f of fighters || []) if (f && f.data) f.data.arsenal = null;
+      state.active = false;
+      state.slots = [];
+      state.visuals = [];
+      state.over = null;
+    }
+    for (let i = projectiles.length - 1; i >= 0; i--) if (projectiles[i] && projectiles[i].aq) projectiles.splice(i, 1);
+    particles.length = 0;
+    floatingTexts.length = 0;
+    shockwaves.length = 0;
+    if (keyListener) {
+      window.removeEventListener('keydown', keyListener);
+      keyListener = null; // no leaked listeners
+    }
+    AQ.log('MODE_EXIT', 'mode=ARSENAL_QUEST');
+    goToMenu(); // restores MENU state + screens, stops battle audio
+    window.apexPlayMenuMusic?.(true);
+  };
+
+  // -------------------------------------------------------------------------
+  // Inspection API (handoff §11)
+  // -------------------------------------------------------------------------
+  function fighterSnapshot(f) {
+    if (!f) return null;
+    const h = weaponApi.getHolder(f);
+    return {
+      name: f.name,
+      hp: Math.round(f.hp * 10) / 10,
+      maxHp: f.maxHp,
+      x: Math.round(f.x),
+      y: Math.round(f.y),
+      weapon: h ? h.weaponId : 'NONE',
+      weaponPhase: h ? h.phase : null,
+      shotsFired: h ? h.shotsFired : 0,
+    };
+  }
+
+  window.getArsenalQuestDebugState = function getArsenalQuestDebugState() {
+    const state = AQ.state;
+    if (!state) return { active: false, gameState };
+    const telegraphs = state.slots.filter(s => s.phase === 'TELEGRAPH').length;
+    const revealed = state.slots.filter(s => s.phase === 'REVEALED').length;
+    return {
+      active: state.active,
+      gameState,
+      over: state.over,
+      time: Math.round(state.time * 100) / 100,
+      spawnIn: Math.max(0, Math.round(state.spawnTimer * 100) / 100),
+      activeSlots: state.slots.length,
+      telegraphs,
+      revealed,
+      spawnedTotal: state.spawnedTotal,
+      suppressedSpawns: state.suppressedSpawns,
+      maxActiveSlots: state.maxActiveSlots,
+      aqProjectiles: projectiles.filter(p => p && p.aq).length,
+      hero: fighterSnapshot(fighters[0]),
+      rival: fighterSnapshot(fighters[1]),
+      events: AQ.events.slice(-40),
+    };
+  };
+
+  // Headless stepping hook — identical code path to the rAF update.
+  AQ.step = updateArsenalQuest;
+  AQ.resetState = resetState;
+
+  window.apexArsenalQuestRuntime = 'ready';
+})();
