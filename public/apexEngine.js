@@ -6198,3 +6198,247 @@ exposeApexGlobal('resetTournament', typeof resetTournament !== 'undefined' ? res
 exposeApexGlobal('startMatch', typeof startMatch !== 'undefined' ? startMatch : window.startMatch);
 exposeApexGlobal('startSoloMode', typeof startSoloMode !== 'undefined' ? startSoloMode : window.startSoloMode);
 exposeApexGlobal('goToSoloSelect', typeof goToSoloSelect !== 'undefined' ? goToSoloSelect : window.goToSoloSelect);
+
+
+// ===== AFTERMATH 3V3 PROTOTYPE =====
+(function aftermathPrototype(){
+  const AFTERMATH_TEAMS = [
+    ['SPIDER', 'VAMPIRE', 'BLADE'],
+    ['PAINTER', 'CARD', 'TIME']
+  ];
+  const LEGACY_TYPES = new Set(['web_line', 'painter_stroke', 'painter_ink']);
+  const baseEndMatch = endMatch;
+
+  let state = {
+    active: false,
+    indices: [0, 0],
+    defeated: [[], []],
+    transitionLock: false
+  };
+
+  function typeByName(name) {
+    return FighterTypes.find(f => f && f.name === name) || null;
+  }
+
+  function sideForFighter(f) {
+    if (!f) return -1;
+    return f.id === 1 ? 0 : f.id === 2 ? 1 : -1;
+  }
+
+  function legacyProjectilesOnly() {
+    projectiles = projectiles.filter(p => p && LEGACY_TYPES.has(p.type));
+    for (const p of projectiles) {
+      p.aftermathLegacy = true;
+      if (p.type === 'painter_stroke' || p.type === 'painter_ink') {
+        const keepFor = 12;
+        if (p.life !== Infinity) p.life = Math.max(p.life || 0, keepFor);
+        if (p.maxLife !== Infinity) p.maxLife = Math.max(p.maxLife || 0, keepFor);
+      }
+    }
+    particles = [];
+    shockwaves = [];
+    floatingTexts = [];
+  }
+
+  function updatePrototypeHud() {
+    if (!state.active || !fighters[0] || !fighters[1]) return;
+    for (let side = 0; side < 2; side++) {
+      const current = fighters[side];
+      const team = AFTERMATH_TEAMS[side];
+      const idx = state.indices[side];
+      const nameEl = document.getElementById(`p${side + 1}-name`);
+      if (nameEl && current) {
+        nameEl.innerText = `[${idx + 1}/${team.length}] ${current.name}`;
+        nameEl.style.color = current.color;
+      }
+    }
+    updateHUD();
+  }
+
+  function spawnNext(side) {
+    const team = AFTERMATH_TEAMS[side];
+    const nextIndex = state.indices[side] + 1;
+    if (nextIndex >= team.length) return false;
+
+    const old = fighters[side];
+    if (old) state.defeated[side].push(old.name);
+    state.indices[side] = nextIndex;
+
+    const name = team[nextIndex];
+    const ft = typeByName(name);
+    if (!ft) {
+      console.error('[Aftermath] Missing fighter type:', name);
+      return false;
+    }
+
+    const id = side + 1;
+    const x = side === 0 ? 200 : GAME_SIZE - 200;
+    const incoming = new Fighter(id, x, GAME_SIZE / 2, ft);
+    incoming.data.aftermathEntry = true;
+    incoming.data.aftermathTeam = side;
+    fighters[side] = incoming;
+
+    floatingTexts.push(new FloatingText(
+      incoming.x,
+      incoming.y - incoming.radius - 95,
+      `${incoming.name} ENTERS`,
+      incoming.color
+    ));
+    playFighterSound(incoming, 'skill');
+    return true;
+  }
+
+  function showAftermathFinal(winningSide) {
+    state.active = false;
+    state.transitionLock = false;
+    gameState = 'END';
+
+    const winner = fighters[winningSide] || fighters.find(f => f && f.hp > 0) || fighters[0];
+    const losingSide = winningSide === 0 ? 1 : 0;
+    const winnerText = document.getElementById('winner-text');
+    const stats = document.getElementById('stats-panel');
+
+    if (winnerText) {
+      winnerText.innerText = `TEAM ${winningSide === 0 ? 'A' : 'B'} SURVIVES`;
+      winnerText.style.color = winner?.color || '#fff';
+    }
+    if (stats) {
+      const left = AFTERMATH_TEAMS[0].map((n,i) => `${i < state.indices[0] ? '☠' : i === state.indices[0] ? '●' : '○'} ${n}`).join('<br>');
+      const right = AFTERMATH_TEAMS[1].map((n,i) => `${i < state.indices[1] ? '☠' : i === state.indices[1] ? '●' : '○'} ${n}`).join('<br>');
+      stats.innerHTML = `
+        <div style="text-align:center;max-width:760px;margin:0 auto">
+          <h3>AFTERMATH 3V3 PROTOTYPE</h3>
+          <p>Winner stays. Fallen fighters leave only whitelisted legacy effects.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;text-align:left">
+            <div><b>TEAM A</b><br>${left}</div>
+            <div><b>TEAM B</b><br>${right}</div>
+          </div>
+          <p style="margin-top:16px">Legacy whitelist: SPIDER web + PAINTER terrain.</p>
+        </div>`;
+    }
+
+    const tournamentBtn = document.getElementById('tournament-return-btn');
+    if (tournamentBtn) tournamentBtn.classList.add('hidden');
+    const aftermathBtn = document.getElementById('aftermath-rematch-btn');
+    if (aftermathBtn) aftermathBtn.classList.remove('hidden');
+
+    document.getElementById('end-screen')?.classList.remove('hidden');
+    const hud = document.getElementById('hud');
+    if (hud) hud.style.opacity = 0;
+
+    console.info('[Aftermath] Final', {
+      winningSide,
+      losingSide,
+      indices: [...state.indices],
+      defeated: state.defeated.map(x => [...x])
+    });
+  }
+
+  endMatch = function aftermathEndMatch(){
+    if (!state.active) return baseEndMatch();
+    if (state.transitionLock || gameState !== 'PLAYING') return;
+
+    const deadSides = [];
+    if (!fighters[0] || fighters[0].hp <= 0) deadSides.push(0);
+    if (!fighters[1] || fighters[1].hp <= 0) deadSides.push(1);
+    if (!deadSides.length) return;
+
+    state.transitionLock = true;
+
+    const canAdvance = deadSides.map(side => state.indices[side] + 1 < AFTERMATH_TEAMS[side].length);
+
+    // The arena remembers only deliberate legacy objects.
+    legacyProjectilesOnly();
+
+    // If a team has no fighter left, the other side wins immediately.
+    if (deadSides.length === 1 && !canAdvance[0]) {
+      showAftermathFinal(deadSides[0] === 0 ? 1 : 0);
+      return;
+    }
+
+    // Double KO: advance both if possible; otherwise resolve by remaining roster.
+    if (deadSides.length === 2) {
+      const can0 = canAdvance[0];
+      const can1 = canAdvance[1];
+      if (!can0 || !can1) {
+        if (can0 && !can1) { showAftermathFinal(0); return; }
+        if (!can0 && can1) { showAftermathFinal(1); return; }
+        // Both rosters exhausted: use the less-negative final HP as a deterministic tiebreak.
+        showAftermathFinal((fighters[0]?.hp || -9999) >= (fighters[1]?.hp || -9999) ? 0 : 1);
+        return;
+      }
+    }
+
+    const downNames = deadSides.map(side => fighters[side]?.name || '?');
+    for (const side of deadSides) spawnNext(side);
+
+    matchClock = 0;
+    hitStop = 0;
+    timeScale = 1;
+    cameraShake = Math.max(cameraShake, 8);
+    gameState = 'PLAYING';
+    updatePrototypeHud();
+
+    const centerX = GAME_SIZE / 2;
+    floatingTexts.push(new FloatingText(
+      centerX,
+      105,
+      `AFTERMATH: ${downNames.join(' + ')} DOWN`,
+      '#ffe7a8'
+    ));
+
+    state.transitionLock = false;
+  };
+
+  function startAftermathMode() {
+    state = {
+      active: true,
+      indices: [0, 0],
+      defeated: [[], []],
+      transitionLock: false
+    };
+
+    const a = typeByName(AFTERMATH_TEAMS[0][0]);
+    const b = typeByName(AFTERMATH_TEAMS[1][0]);
+    if (!a || !b) {
+      console.error('[Aftermath] Prototype fighters missing', {a:!!a, b:!!b});
+      state.active = false;
+      return;
+    }
+
+    document.getElementById('aftermath-rematch-btn')?.classList.add('hidden');
+    startSpecificMatch(a, b, {countdown:false, tournament:false});
+    state.active = true;
+    legacyProjectilesOnly(); // full clean at the beginning; whitelist is empty here.
+    updatePrototypeHud();
+
+    floatingTexts.push(new FloatingText(
+      GAME_SIZE / 2,
+      105,
+      'AFTERMATH 3V3',
+      '#ffe7a8'
+    ));
+
+    console.info('[Aftermath] Started', {
+      teamA: AFTERMATH_TEAMS[0],
+      teamB: AFTERMATH_TEAMS[1],
+      legacy: [...LEGACY_TYPES]
+    });
+  }
+
+  window.startAftermathMode = startAftermathMode;
+  window.getAftermathPrototypeState = () => ({
+    active: state.active,
+    indices: [...state.indices],
+    defeated: state.defeated.map(x => [...x]),
+    teams: AFTERMATH_TEAMS.map(x => [...x]),
+    activeFighters: fighters.map(f => f ? {name:f.name, hp:f.hp, id:f.id} : null),
+    legacyProjectiles: projectiles.filter(p => p && LEGACY_TYPES.has(p.type)).map(p => p.type)
+  });
+
+  if (window.apexReactBridge) {
+    window.apexReactBridge.startAftermathMode = startAftermathMode;
+  }
+
+  console.info('[Aftermath] 3v3 prototype layer ready');
+})();
