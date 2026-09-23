@@ -48,4 +48,8 @@ function localReplaySaver() {
 
 export default defineConfig({
   plugins: [react(), localReplaySaver(), manualLabRoomRelay()],
+  server: {
+    // Allow proxied dev-preview hosts (LAN / sandbox preview URLs).
+    allowedHosts: true,
+  },
 });
