@@ -24,7 +24,7 @@ export default function App() {
         try { window.resetTournament = resetTournament; } catch (error) {}
         try { window.startMatch = startMatch; } catch (error) {}
         try { window.startSoloMode = startSoloMode; } catch (error) {}
-        try { window.goToSoloSelect = goToSoloSelect; } catch (error) {}
+        try { window.goToSoloSelect = goToSoloSelect; } catch (error) {}\n        try { window.startAftermathMode = window.startAftermathMode || startAftermathMode; } catch (error) {}
       `;
       document.body.appendChild(bridge);
     };
@@ -78,7 +78,7 @@ export default function App() {
         <div className="menu-buttons">
           <button type="button" onClick={() => callApexGlobal('goToSelect')}>Play</button>
           <button type="button" onClick={() => callApexGlobal('goToTournament')}>GIAI DAU</button>
-          <button type="button" onClick={() => callApexGlobal('goToSoloSelect')}>SOLO 1V1 LOCAL</button>
+          <button type="button" onClick={() => callApexGlobal('goToSoloSelect')}>SOLO 1V1 LOCAL</button>\n          <button type="button" onClick={() => callApexGlobal('startAftermathMode')}>AFTERMATH 3V3</button>
         </div>
       </div>
 
@@ -116,7 +116,7 @@ export default function App() {
         <h1 id="winner-text">WINNER</h1>
         <div id="stats-panel" className="stats-panel" />
         <div id="end-actions" style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button type="button" onClick={() => callApexGlobal('goToSelect')}>Rematch</button>
+          <button type="button" onClick={() => callApexGlobal('goToSelect')}>Rematch</button>\n          <button id="aftermath-rematch-btn" className="hidden" type="button" onClick={() => callApexGlobal('startAftermathMode')}>AFTERMATH REMATCH</button>
           <button id="tournament-return-btn" className="hidden" type="button" onClick={() => callApexGlobal('goToTournament')}>
             Tiep tuc giai dau
           </button>
