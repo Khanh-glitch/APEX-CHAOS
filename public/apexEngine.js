@@ -6407,6 +6407,8 @@ exposeApexGlobal('goToSoloSelect', typeof goToSoloSelect !== 'undefined' ? goToS
     }
 
     document.getElementById('aftermath-rematch-btn')?.classList.add('hidden');
+    document.getElementById('menu-screen')?.classList.add('hidden');
+    document.getElementById('solo-screen')?.classList.add('hidden');
     startSpecificMatch(a, b, {countdown:false, tournament:false});
     state.active = true;
     legacyProjectilesOnly(); // full clean at the beginning; whitelist is empty here.
