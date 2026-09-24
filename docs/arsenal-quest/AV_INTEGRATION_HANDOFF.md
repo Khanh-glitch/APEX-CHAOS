@@ -34,33 +34,9 @@ The UI redesign is a later pass. First make the battlefield itself feel material
 
 ---
 
-## 1. Required external asset pack
+## 1. Runtime assets are already committed
 
-The curated binary pack is named:
-
-`APEX_ARSENAL_AV_PACK.zip`
-
-Expected SHA-256:
-
-`bca069a9851c21b654a107a533551b87a6942d492fb135054fb13c03c339bf2d`
-
-This ZIP is intentionally NOT committed to Git at the time of this handoff.
-
-### Hard rule
-
-If `APEX_ARSENAL_AV_PACK.zip` is not present in your workspace, STOP and ask the project owner to provide it.
-
-Do NOT:
-- search for replacement assets,
-- substitute random internet packs,
-- generate your own fake VFX art,
-- permanently fall back to procedural circles/text and claim the task is complete.
-
-Temporary existing Apex fallback is acceptable only while wiring the integration layer, never as final evidence for this task.
-
-### Install location
-
-After receiving the ZIP, unpack only the curated contents to:
+The curated VFX/SFX runtime subset is already present in Git under:
 
 ```
 public/assets/arsenal/av/
@@ -76,7 +52,23 @@ public/assets/arsenal/av/
     scifi/
 ```
 
-Do not commit the outer ZIP itself if repository policy prefers extracted runtime assets only.
+Do **not** ask the project owner for a ZIP.
+
+Do **not** search for replacement assets or substitute random internet packs.
+
+The assets were bootstrapped from the original CC0 source pages by:
+
+`.github/workflows/arsenal-av-bootstrap.yml`
+
+Source/license evidence is stored in:
+
+`public/assets/arsenal/av/PROVENANCE.md`
+
+Per-file SHA-256 and sizes are stored in:
+
+`public/assets/arsenal/av/MANIFEST.csv`
+
+Use the committed runtime assets directly.
 
 Preserve the curated filenames unless there is a strong technical reason not to.
 
@@ -473,9 +465,9 @@ Include:
 
 Stop and report instead of improvising if:
 
-- curated ZIP is missing
-- ZIP checksum does not match and contents look materially different
-- asset license evidence is missing for an asset you intend to ship
+- committed Arsenal AV assets are missing from `public/assets/arsenal/av/`
+- `MANIFEST.csv` indicates corrupted/missing files
+- asset license/provenance evidence is missing for an asset you intend to ship
 - a requested asset cannot technically render cleanly without destructive changes
 - integrating an asset would require rewriting the Apex engine
 
