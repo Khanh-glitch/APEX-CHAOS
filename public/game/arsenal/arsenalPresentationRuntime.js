@@ -7,6 +7,24 @@
   if (window.apexArsenalPresentationRuntime === 'ready') return;
   const AQ = window.APEX_ARSENAL;
   const AV_ROOT = '/assets/arsenal/av/';
+  const WEAPON_ROOT = '/assets/arsenal/weapons/';
+  const WEAPON_ATLAS = {
+    file: WEAPON_ROOT + 'arsenal_p0_weapon_atlas.png',
+    cells: {
+      PISTOL:       { x:0,   y:0,   box:{x:22,y:43,w:212,h:169} },
+      SHOTGUN:      { x:256, y:0,   box:{x:22,y:97,w:212,h:61} },
+      SMG:          { x:512, y:0,   box:{x:22,y:91,w:212,h:74} },
+      SNIPER:       { x:768, y:0,   box:{x:22,y:87,w:212,h:81} },
+      GRENADE:      { x:0,   y:256, box:{x:33,y:22,w:189,h:212} },
+      SABRE:        { x:256, y:256, box:{x:108,y:22,w:40,h:212} },
+      BATTLE_AXE:   { x:512, y:256, box:{x:97,y:22,w:62,h:212} },
+      DAGGER:       { x:768, y:256, box:{x:102,y:22,w:51,h:212} },
+      SPEAR:        { x:0,   y:512, box:{x:123,y:22,w:10,h:212} },
+      SPIKED_CLUB:  { x:256, y:512, box:{x:115,y:22,w:25,h:212} },
+      SWIRL_SHIELD: { x:512, y:512, box:{x:22,y:22,w:212,h:212} },
+      TOWER_SHIELD: { x:768, y:512, box:{x:67,y:22,w:121,h:212} },
+    },
+  };
 
   // ---------------------------------------------------------------------------
   // Asset tables — exact bindings from docs/arsenal-quest/AV_ASSET_MAP.csv.
@@ -95,6 +113,8 @@
     audioFailed: 0,
     vfxPeak: 0,
     vfxDropped: 0,
+    floorSpriteDraws: 0,
+    equippedSpriteDraws: 0,
   };
   function pushRing(ring, entry, cap = 600) {
     ring.push(entry);
@@ -116,7 +136,7 @@
       img = new Image();
       img.onload = () => { stats.imagesLoaded += 1; };
       img.onerror = () => { stats.imagesFailed += 1; avLog('IMG_FAIL', `file=${rel}`); };
-      img.src = AV_ROOT + rel;
+      img.src = rel.startsWith('/') ? rel : AV_ROOT + rel;
       imageCache.set(rel, img);
     }
     return img;
@@ -136,7 +156,7 @@
   }
 
   const ALL_IMAGES = [
-    MUZZLE.sheet, ATLAS.file,
+    WEAPON_ATLAS.file, MUZZLE.sheet, ATLAS.file,
     ...Array.from({ length: 30 }, (_, i) => ORANGE(i + 1)),
     ...Array.from({ length: 30 }, (_, i) => BLUE(i + 1)),
   ];
@@ -216,20 +236,19 @@
     pushRing(stats.cued, Object.assign({ event: name, x: Math.round(o.x || 0), y: Math.round(o.y || 0) }, o.weapon ? { weapon: o.weapon } : {}));
     switch (name) {
       case 'telegraph': {
+        // Audio only: slash-family art must never decorate an unknown pickup.
         playAll('telegraph');
-        // Neutral cool accent — identical for every slot, no identity hint.
-        seqAnim(BLUE, [13, 14, 15, 16, 17, 18], { x: o.x, y: o.y, angle: Math.random() * TAU, scale: 0.8, life: 1.1, alpha: 0.3, spin: 1.6 });
         break;
       }
       case 'reveal': {
+        // Spawn runtime already supplies a neutral shockwave/particle pop.
+        // Do not use slash-family art for reveal.
         playAll('reveal');
-        seqAnim(BLUE, [3, 4, 5, 4, 3], { x: o.x, y: o.y, angle: Math.random() * TAU, scale: 1.0, life: 0.34, alpha: 0.75, spin: 2.2 });
         break;
       }
       case 'pickup': {
         playAll('pickup');
         if (o.weapon === 'DAGGER') playAll('dagger_swing'); // draw-knife accent on equip
-        muzzle(o.x, o.y - 10, 0, 1.0, [3, 2], 0.16);
         break;
       }
       case 'fire': {
@@ -240,8 +259,8 @@
         break;
       }
       case 'sniper_aim': {
+        // The weapon runtime owns the actual red aimline. Keep this cue audio-only.
         playAll('sniper_charge');
-        seqAnim(BLUE, [19, 20, 21], { x: o.x, y: o.y, angle: o.angle || 0, scale: 0.7, life: 0.7, alpha: 0.35, spin: 0 });
         break;
       }
       case 'sniper_shot': {
@@ -250,7 +269,7 @@
         break;
       }
       case 'grenade_throw': {
-        seqAnim(ORANGE, [13, 14], { x: o.x, y: o.y, angle: o.angle || 0, scale: 0.7, life: 0.2, alpha: 0.5, spin: 0 });
+        // The grenade projectile itself communicates the throw; no slash trail.
         break;
       }
       case 'explosion': {
@@ -261,7 +280,7 @@
       case 'melee_swing': {
         const recipe = MELEE_VFX[o.weapon];
         if (!recipe) break;
-        seqAnim(recipe.family, recipe.seq, { x: o.x, y: o.y, angle: o.angle || 0, scale: recipe.scale, life: recipe.life, alpha: 0.95, spin: recipe.spin });
+        seqAnim(recipe.family, recipe.seq, { x: o.x, y: o.y, angle: o.angle || 0, scale: recipe.scale, life: recipe.life, alpha: 0.95, spin: 0 });
         if (o.weapon === 'SABRE') playAll('sabre_swing');
         else if (o.weapon === 'BATTLE_AXE') playAll('axe_swing');
         else if (o.weapon === 'DAGGER') playAll('dagger_swing');
@@ -276,14 +295,15 @@
         break;
       }
       case 'shield_activate': {
+        // Equipped shield sprite is the persistent visual; activation is audio-only.
         playAll(o.weapon === 'TOWER_SHIELD' ? 'shield_activate_tower' : 'shield_activate_swirl');
-        seqAnim(BLUE, [1, 2, 3, 4, 5, 6, 7, 8], { x: o.x, y: o.y, angle: 0, scale: 0.85, life: 0.6, alpha: 0.55, spin: 3.4 });
         break;
       }
       case 'reflect': {
+        // This cue is emitted at actual projectile/shield contact and already
+        // carries the reflected direction.
         playAll('reflect');
-        seqAnim(BLUE, [20, 21, 22, 23], { x: o.x, y: o.y, angle: o.angle || 0, scale: 0.9, life: 0.3, alpha: 0.95, spin: 0 });
-        muzzle(o.x, o.y, (o.angle || 0) + Math.PI, 0.9, [3, 2], 0.14);
+        seqAnim(BLUE, [20, 21, 22, 23], { x: o.x, y: o.y, angle: o.angle || 0, scale: 0.72, life: 0.22, alpha: 0.95, spin: 0 });
         break;
       }
       case 'tower_block': {
@@ -322,6 +342,78 @@
     const s = (v.scale || 1) * 2.2;
     ctx.drawImage(img, (-75 * s) / 2 + 20, (-85 * s) / 2, 126 * s * 0.9, 150 * s * 0.9);
     ctx.restore();
+  }
+
+  function drawWeaponSprite(ctx, weaponId, x, y, options = {}) {
+    const meta = WEAPON_ATLAS.cells[weaponId];
+    if (!meta) return false;
+    const img = getImg(WEAPON_ATLAS.file);
+    if (!img || !img.complete || !img.width) return false;
+
+    const box = meta.box;
+    const sx = meta.x + box.x;
+    const sy = meta.y + box.y;
+    const sw = box.w;
+    const sh = box.h;
+    const longSide = Math.max(sw, sh) || 1;
+    const targetLongSide = options.targetLongSide || 120;
+    const scale = targetLongSide / longSide;
+    const dw = sw * scale;
+    const dh = sh * scale;
+
+    ctx.save();
+    ctx.translate(x || 0, y || 0);
+    if (options.angle) ctx.rotate(options.angle);
+    ctx.globalAlpha *= options.alpha == null ? 1 : options.alpha;
+    if (options.glow) {
+      ctx.shadowColor = options.glow;
+      ctx.shadowBlur = options.shadowBlur || 14;
+    }
+    ctx.drawImage(img, sx, sy, sw, sh, -dw / 2, -dh / 2, dw, dh);
+    ctx.restore();
+
+    if (options.mode === 'equipped') stats.equippedSpriteDraws += 1;
+    else stats.floorSpriteDraws += 1;
+    return true;
+  }
+
+  function drawEquippedWeapon(ctx, fighter, holder) {
+    if (!fighter || !holder || !holder.weaponId) return false;
+    const weaponId = holder.weaponId;
+    const meta = WEAPON_ATLAS.cells[weaponId];
+    if (!meta) return false;
+
+    const angle = Math.atan2(fighter.dir?.y || 0, fighter.dir?.x || 1);
+    const category = holder.def?.category || '';
+    let drawAngle = angle;
+    let offset = (fighter.radius || 75) * 0.72;
+    let targetLongSide = 138;
+
+    if (category === 'melee') {
+      // Melee source sprites are authored upright; rotate their -Y long axis
+      // onto the fighter's facing direction.
+      drawAngle = angle + Math.PI / 2;
+      targetLongSide = weaponId === 'SPEAR' ? 190 : weaponId === 'BATTLE_AXE' ? 155 : 145;
+      offset = (fighter.radius || 75) * 0.72;
+    } else if (category === 'defense') {
+      targetLongSide = weaponId === 'TOWER_SHIELD' ? 145 : 128;
+      drawAngle = 0;
+      offset = (fighter.radius || 75) * 0.82;
+    } else {
+      targetLongSide = weaponId === 'SNIPER' ? 185 : weaponId === 'SHOTGUN' ? 165 : 145;
+      offset = (fighter.radius || 75) * 0.78;
+    }
+
+    const x = fighter.x + Math.cos(angle) * offset;
+    const y = fighter.y + Math.sin(angle) * offset;
+    return drawWeaponSprite(ctx, weaponId, x, y, {
+      mode: 'equipped',
+      targetLongSide,
+      angle: drawAngle,
+      alpha: 0.98,
+      glow: category === 'defense' ? '#9fe8ff' : null,
+      shadowBlur: 10,
+    });
   }
 
   function draw(ctx) {
@@ -370,8 +462,11 @@
     audioReady: () => stats.audioLoaded,
     imagesReady: () => stats.imagesLoaded,
     activeVfx: () => vfx.length,
+    drawWeaponSprite,
+    drawEquippedWeapon,
     describe: () => ({
       root: AV_ROOT,
+      weaponAtlas: WEAPON_ATLAS.file,
       muzzleSheet: MUZZLE.sheet,
       explosionAtlas: ATLAS.file,
       melee: Object.fromEntries(Object.entries(MELEE_VFX).map(([k, v]) => [k, v.seq.map((n) => v.family(n))])),
