@@ -257,8 +257,8 @@ try {
     report.telegraphLaw.before);
   gate('telegraph-no-identity', report.telegraphLaw.before?.weaponId === null);
   gate('proximity-reveal-on-approach',
-    report.telegraphLaw.revealedOnApproach && /eta=\\d+\\.\\d+/.test(report.telegraphLaw.revealLog)
-      && /lead=1\\.50/.test(report.telegraphLaw.revealLog) && /fighter=HERO/.test(report.telegraphLaw.revealLog),
+    report.telegraphLaw.revealedOnApproach && /eta=\d+\.\d+/.test(report.telegraphLaw.revealLog)
+      && /lead=1\.50/.test(report.telegraphLaw.revealLog) && /fighter=HERO/.test(report.telegraphLaw.revealLog),
     report.telegraphLaw.revealLog);
   gate('reveal-then-collectible', report.telegraphLaw.pickupEvent === 1,
     report.telegraphLaw.revealLog || JSON.stringify(report.telegraphLaw.finalHolder));
