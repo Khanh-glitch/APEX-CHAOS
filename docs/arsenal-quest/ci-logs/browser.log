@@ -10,17 +10,17 @@ Materialized 20 owner-approved final-lock SFX files.
 PASS  runtime-registered  — arsenalQuest deferred group loaded
 PASS  normal-modes-launch  — {"selectVisible":true,"menuVisible":true,"normalMatchState":"PLAYING","normalFighters":["ICE","TOXIC"],"normalSimOk":true,"menuAfterMatch":"MENU"}
 PASS  entry-state  — {"gameState":"ARSENAL","hero":{"name":"HERO","hp":100,"maxHp":100,"x":220,"y":500,"weapon":"NONE","weaponPhase":null,"shotsFired":0},"rival":{"name":"RIVAL","hp":100,"maxHp":100,"x":780,"y":500,"weapon":"NONE","weaponPhase":null,"shotsFired":0},"hudOpacity":"1","menuHidden":true}
-PASS  spawn-cadence-3.0s  — spawnTimes=[1,4.1,7.1,10.04,13.04,16.04,19.04] gaps=[3.1,3,2.94,3,3,3]
+PASS  spawn-cadence-3.0s  — spawnTimes=[1,4.1,7.1,10.1,13.1,16.1,19.1] gaps=[3.1,3,3,3,3,3]
 PASS  reveal-lead-fixed-2.0  — ["2.00","2.00","2.00","2.00","2.00","2.00","2.00"]
-PASS  multi-slot-coexist  — maxActiveSlots=6
+PASS  multi-slot-coexist  — maxActiveSlots=7
 PASS  force-reveals-only-while-unapproached  — reveals=6 (all force=true, identity null while hidden)
 PASS  hidden-until-force-age-3.0  — {"id":1,"phase":"TELEGRAPH","age":2.9,"weaponId":null,"revealLeadSeconds":2,"predictedHeroETA":null,"predictedRivalETA":null,"earliestETA":null,"predictedFighter":null}
 PASS  telegraph-no-identity
-PASS  force-reveal-at-3.0-not-autopickup  — [AQ] REVEAL id=1 weapon=M16 eta=null lead=2.00 fighter=TIMEOUT force=true
-PASS  movement-reveal-lead-2.0  — [AQ] REVEAL id=2 weapon=SPIKED_CLUB eta=1.36 lead=2.00 fighter=HERO force=false
-PASS  near-miss-outside-circle-stays-hidden  — {"nearMissStayedHidden":true,"edgeOfCircleReveals":true,"edgeLog":"[AQ] REVEAL id=2 weapon=MBR2 eta=0.80 lead=2.00 fighter=HERO force=false","hiddenBeforeBounce":true,"revealedAfterBounce":true,"bounceLog":"[AQ] REVEAL id=3 weapon=MAC_10 eta=0.06 lead=2.00 fighter=HERO force=false"}
-PASS  edge-of-circle-approach-reveals  — [AQ] REVEAL id=2 weapon=MBR2 eta=0.80 lead=2.00 fighter=HERO force=false
-PASS  no-reveal-before-bounce  — [AQ] REVEAL id=3 weapon=MAC_10 eta=0.06 lead=2.00 fighter=HERO force=false
+PASS  force-reveal-at-3.0-not-autopickup  — [AQ] REVEAL id=1 weapon=SHOTGUN eta=null lead=2.00 fighter=TIMEOUT force=true
+PASS  movement-reveal-lead-2.0  — [AQ] REVEAL id=2 weapon=DAGGER eta=1.36 lead=2.00 fighter=HERO force=false
+PASS  near-miss-outside-circle-stays-hidden  — {"nearMissStayedHidden":true,"edgeOfCircleReveals":true,"edgeLog":"[AQ] REVEAL id=2 weapon=MAC_10 eta=0.80 lead=2.00 fighter=HERO force=false","hiddenBeforeBounce":true,"revealedAfterBounce":true,"bounceLog":"[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S2 eta=0.06 lead=2.00 fighter=HERO force=false"}
+PASS  edge-of-circle-approach-reveals  — [AQ] REVEAL id=2 weapon=MAC_10 eta=0.80 lead=2.00 fighter=HERO force=false
+PASS  no-reveal-before-bounce  — [AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S2 eta=0.06 lead=2.00 fighter=HERO force=false
 PASS  aim-never-steers-fighter  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
 PASS  dagger-no-body-dash  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
 PASS  no-slash-vfx-in-combat  — {"noSlashSeq":true,"bombAtlas":true}
@@ -86,18 +86,15 @@ PASS  browser-reserved-shield-not-stolen  — {"stolen":null,"hero":"SWIRL_SHIEL
 PASS  browser-casing-uses-metadata  — {"glock":{"n":4,"usedMeta":true,"sample":{"event":"casing","x":349,"y":491,"weapon":"GLOCK_17","usedMeta":true}},"ak":{"n":6,"usedMeta":true,"sample":{"event":"casing","x":349,"y":491,"weapon":"AK_47","usedMeta":true}},"m249":{"n":8,"usedMeta":true,"sample":{"event":"casing","x":339,"y":488,"weapon":"M249_SAW","usedMeta":true}},"spas":{"n":2,"usedMeta":true,"sample":{"event":"casing","x":341,"y":495,"weapon":"SHOTGUN","usedMeta":true}},"mbr":{"n":1,"usedMeta":true,"sample":{"event":"casing","x":293,"y":493,"weapon":"MBR","usedMeta":true}},"snipex":{"n":1,"usedMeta":true,"sample":{"event":"casing","x":262,"y":492,"weapon":"SNIPER","usedMeta":true}}}
 PASS  browser-rev2-senko-scale  — {"scale":0.55,"g":72.19395700000001,"s":420.29125600000003,"ratio":5.821695796505516,"src":5.821695796505517}
 PASS  browser-rev2-detached-exits  — {"GLOCK_17":{"x":385.5,"y":507.5,"rot":1.8,"follow":false,"key":"cartwheel"},"AK_47":{"x":370.5,"y":523.5,"rot":-0.5,"follow":false,"key":"stockKick"},"MAC_10":{"x":383.5,"y":517.5,"rot":1.4000000000000001,"follow":false,"key":"tumble"},"SHOTGUN":{"x":375.5,"y":545.5,"rot":-0.6000000000000001,"follow":false,"key":"bodyPunch"},"M249_SAW":{"x":380,"y":535,"rot":0.12,"follow":false,"key":"noseSlump"},"SNIPER":{"x":364.5,"y":547.5,"rot":-0.33999999999999997,"follow":false,"key":"kickBack"}}
-FAIL  browser-rev2-quest-1-10-20  — {"a":{"ok":true,"n":1,"opponent":"PAINTER","live":"PAINTER"},"p2a":"PAINTER","b":{"ok":false,"reason":"locked"},"p2b":"PAINTER","c":{"ok":true,"n":20,"opponent":"MONK","live":"KUNGFU"},"p2c":"KUNGFU","live":"KUNGFU"}
+PASS  browser-rev2-quest-1-10-20  — {"a":{"ok":true,"n":1,"opponent":"PAINTER","live":"PAINTER"},"p2a":"PAINTER","b":{"ok":true,"n":10,"opponent":"ELECTRIC","live":"ELECTRIC"},"p2b":"ELECTRIC","c":{"ok":true,"n":20,"opponent":"MONK","live":"KUNGFU"},"p2c":"KUNGFU","live":"KUNGFU"}
 PASS  browser-rev2-cooldown-hud  — {"has":true,"text":"J · —"}
 PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=13 restarts=13 spawnedCumulative=101 earlyErrors=0
-PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=1 x=630 y=723 lead=2.00","REVEAL":"[AQ] REVEAL id=1 weapon=DAGGER eta=0.53 lead=2.00 fighter=NEWBIE force=false","PICKUP":"[AQ] PICKUP id=6 fighter=KUNGFU weapon=SWIRL_SHIELD","USE":"[AQ] USE fighter=KUNGFU weapon=SWIRL_SHIELD","HIT":"[AQ] HIT source=NEWBIE target=KUNGFU weapon=PISTOL damage=4.5","CONSUME":"[AQ] CONSUME fighter=NEWBIE weapon=PISTOL reason=sequence-complete"}
+PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=2 x=908 y=738 lead=2.00","REVEAL":"[AQ] REVEAL id=2 weapon=TEC_9 eta=null lead=2.00 fighter=TIMEOUT force=true","PICKUP":"[AQ] PICKUP id=2 fighter=NEWBIE weapon=TEC_9","USE":"[AQ] USE fighter=NEWBIE weapon=TEC_9","HIT":"[AQ] HIT source=KUNGFU target=NEWBIE weapon=MAC_10 damage=2.0","CONSUME":"[AQ] CONSUME fighter=KUNGFU weapon=MAC_10 reason=sequence-complete"}
 
 ==== ARSENAL QUEST TEST SUMMARY ====
 {
   "total": 83,
-  "passed": 82,
-  "failed": [
-    "browser-rev2-quest-1-10-20"
-  ]
+  "passed": 83,
+  "failed": []
 }
 report+evidence written under docs/arsenal-quest/browser-evidence/
- ELIFECYCLE  Command failed with exit code 1.
