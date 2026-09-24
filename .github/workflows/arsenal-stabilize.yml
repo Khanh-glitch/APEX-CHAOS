@@ -63,6 +63,9 @@ jobs:
         shell: bash
         run: |
           cd release/arsenal-quest-windows
+          trap 'mkdir -p ../../docs/arsenal-quest/ci-logs; cp /tmp/serve1.log /tmp/serve2.log ../../docs/arsenal-quest/ci-logs/ 2>/dev/null || true' EXIT
+          command -v pwsh || { echo "FATAL: pwsh not available"; exit 1; }
+          pwsh --version
           SHA=$(cat app/ARSENAL_BUILD_SHA.txt)
           pwsh -NoProfile -File serve.ps1 > /tmp/serve1.log 2>&1 &
           S1=$!
@@ -82,9 +85,6 @@ jobs:
           PORT2=$(sed -n 's|.*localhost:\([0-9]*\)/.*|\1|p' /tmp/serve2.log | head -1)
           echo "ports: $PORT1 $PORT2"
           if [ -z "$PORT2" ] || [ "$PORT2" = "$PORT1" ]; then echo "stale/fixed port collision!"; exit 1; fi
-          mkdir -p ../../docs/arsenal-quest/ci-logs
-          cp /tmp/serve1.log ../../docs/arsenal-quest/ci-logs/serve1.log || true
-          cp /tmp/serve2.log ../../docs/arsenal-quest/ci-logs/serve2.log || true
           kill $S1 $S2 2>/dev/null || true
           echo "LAUNCHER SMOKE OK"
 
