@@ -65,8 +65,10 @@ win.HTMLCanvasElement.prototype.getContext = function (type) {
   const el = this;
   const realCtx = realCanvasFor(el).getContext('2d');
   return new Proxy(realCtx, {
-    get(target, prop, receiver) {
-      const value = Reflect.get(target, prop, receiver);
+    get(target, prop) {
+      // @napi-rs/canvas accessors require the native context itself as receiver;
+      // using the Proxy as receiver causes "Failed to unwrap exclusive reference".
+      const value = Reflect.get(target, prop, target);
       if (prop === 'drawImage' && typeof value === 'function') {
         return function (img, ...args) {
           const mapped = img && (img.__realImage || realCanvases.get(img) || (img instanceof win.HTMLCanvasElement ? realCanvasFor(img) : null));
@@ -77,7 +79,7 @@ win.HTMLCanvasElement.prototype.getContext = function (type) {
       return value;
     },
     set(target, prop, value) {
-      return Reflect.set(target, prop, value);
+      return Reflect.set(target, prop, value, target);
     },
   });
 };
