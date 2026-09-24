@@ -147,7 +147,8 @@
   }
   function selectSpawnWeapon(rng) {
     const random = typeof rng === 'function' ? rng : (AQ.rng || Math.random);
-    const ids = CFG.P0_WEAPON_IDS;
+    if (CFG.selectOffensiveWeapon) return CFG.selectOffensiveWeapon(random).id;
+    const ids = (CFG.OFFENSIVE_WEAPON_IDS || CFG.P0_WEAPON_IDS).filter((id) => id !== 'SWIRL_SHIELD' && id !== 'TOWER_SHIELD');
     let total = 0;
     for (const id of ids) total += weightFor(id);
     let roll = random() * total;
@@ -161,6 +162,7 @@
   function revealSlot(slot, eta, fighter, force = false) {
     slot.phase = 'REVEALED';
     slot.weaponId = selectSpawnWeapon();
+    slot.tier = CFG.tierOf ? CFG.tierOf(slot.weaponId) : null;
     slot.revealedFor = 0;
     const etaText = Number.isFinite(eta) ? eta.toFixed(2) : 'null';
     const who = fighter?.name || 'TIMEOUT';
@@ -191,12 +193,32 @@
         slot.earliestETA = earliest ? earliest.eta : null;
         slot.predictedFighter = earliest?.fighter?.name || null;
 
+        const weaponApi = AQ.weaponApi;
+        if (earliest && weaponApi && earliest.fighter && !weaponApi.getHolder(earliest.fighter)) {
+          const other = earliest.fighter === hero ? rival : hero;
+          const otherHold = other ? weaponApi.getHolder(other) : null;
+          const threatId = otherHold && otherHold.weaponId;
+          if (threatId && CFG.isOffensive && CFG.isOffensive(threatId) && threatId !== 'SWIRL_SHIELD' && threatId !== 'TOWER_SHIELD') {
+            slot.phase = 'COUNTER_RESERVED';
+            slot.reservedFor = earliest.fighter.id;
+            slot.weaponId = (CFG.threatShield && CFG.threatShield(threatId)) || 'SWIRL_SHIELD';
+            slot.boundWeaponId = threatId;
+            slot.boundOwnerId = other.id;
+            slot.tier = null;
+            log('COUNTER_RESERVED', `id=${slot.id} for=${earliest.fighter.name} shield=${slot.weaponId} vs=${threatId}`);
+            continue;
+          }
+        }
         if (earliest && earliest.eta <= slot.revealLeadSeconds + 1e-6) {
           revealSlot(slot, earliest.eta, earliest.fighter, false);
         } else if (state.time - slot.spawnTime >= Number(CFG.FORCE_REVEAL_AGE_SECONDS ?? 3.0)) {
-          // A-CORR-2 failsafe: a slot hidden for 3.0s force-reveals. This is
-          // FORCE REVEAL (becomes a normal collectible), NOT auto-pickup.
           revealSlot(slot, null, null, true);
+        }
+      } else if (slot.phase === 'COUNTER_RESERVED') {
+        slot.revealedFor += dt;
+        if (slot.revealedFor >= 8) {
+          slot.phase = 'REMOVED';
+          log('EXPIRE', `id=${slot.id} weapon=${slot.weaponId} reason=counter-timeout`);
         }
       } else if (slot.phase === 'REVEALED') {
         slot.revealedFor += dt;
@@ -220,7 +242,7 @@
     const weaponApi = AQ.weaponApi;
 
     for (const slot of state.slots) {
-      if (slot.phase !== 'REVEALED') continue;
+      if (slot.phase !== 'REVEALED' && slot.phase !== 'COUNTER_RESERVED') continue;
       let closest = null;
       let closestDist = Infinity;
 
@@ -242,6 +264,12 @@
       slot.phase = 'PICKED_UP';
       slot.pickedBy = closest.name;
       weaponApi.equip(closest, slot.weaponId);
+      const hold = weaponApi.getHolder(closest);
+      if (hold && hold.meta) {
+        if (slot.boundWeaponId) hold.meta.boundWeaponId = slot.boundWeaponId;
+        if (slot.boundOwnerId != null) hold.meta.boundOwnerId = slot.boundOwnerId;
+        if (slot.tier) hold.meta.tier = slot.tier;
+      }
       log('PICKUP', `id=${slot.id} fighter=${closest.name} weapon=${slot.weaponId}`);
       emitParticles(slot.x, slot.y, PLACEHOLDER_ART[slot.weaponId]?.color || '#ffffff', 22, 360, 5, 0.5, 'square');
       spawnShockwave(slot.x, slot.y, '#ffffff', 140);
@@ -279,7 +307,7 @@
       ctx.save();
       ctx.translate(slot.x, slot.y);
 
-      if (slot.phase === 'TELEGRAPH') {
+      if (slot.phase === 'TELEGRAPH' || slot.phase === 'COUNTER_RESERVED') {
         // A-CORR-2: the visible circle IS the reveal region. Radius is pinned
         // to the shared CFG.REVEAL_CIRCLE_RADIUS (pulse moves alpha/weight
         // only, never the geometry the reveal logic tests against).
@@ -324,6 +352,17 @@
         ctx.restore();
       } else if (slot.phase === 'REVEALED') {
         const bob = Math.sin(t * 3.1 + slot.id) * 4;
+        const glow = (CFG.TIER_COLORS && slot.tier && CFG.TIER_COLORS[slot.tier]) || null;
+        if (glow) {
+          ctx.save();
+          ctx.translate(0, bob);
+          ctx.globalAlpha = 0.35;
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.ellipse(0, 22, 34, 10, 0, 0, TAU);
+          ctx.fill();
+          ctx.restore();
+        }
         const expireSoon = slot.revealedFor > CFG.PICKUP_LIFETIME_SECONDS - 3;
         ctx.globalAlpha = expireSoon && Math.floor(t * 8) % 2 === 0 ? 0.45 : 1;
         ctx.translate(0, bob);

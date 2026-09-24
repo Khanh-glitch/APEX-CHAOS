@@ -13,6 +13,18 @@
   // elapsed timers / consumed flag. Lives on fighter.data.arsenal.
   // ---------------------------------------------------------------------------
   function getHolder(f) { return (f && f.data && f.data.arsenal) || null; }
+  function shieldBoundGone(h) {
+    if (!h || !h.meta) return true;
+    const ownerId = h.meta.boundOwnerId;
+    const wId = h.meta.boundWeaponId;
+    if (ownerId == null || !wId) return h.meta.timer <= 0;
+    const owner = (typeof fighters !== 'undefined' ? fighters : []).find((x) => x && x.id === ownerId);
+    if (!owner || owner.hp <= 0) return true;
+    const oh = getHolder(owner);
+    if (oh && oh.weaponId === wId) return false;
+    if (typeof projectiles !== 'undefined' && projectiles.some((p) => p && p.aq && p.weapon === wId && p.owner && p.owner.id === ownerId && p.life > 0)) return false;
+    return true;
+  }
 
   // ---------------------------------------------------------------------------
   // V2 B-handoff PART 2 — independent weapon pose state (Checkpoint B).
@@ -281,15 +293,21 @@
 
   // C §eject: spent casing leaves the port on every shot — open-mouth brass
   // arc/spin/fall with bounded life (presentation owns the physics).
-  function ejectCasing(f, angle, power) {
-    const side = angle + Math.PI / 2;
-    const bx = f.x + Math.cos(angle) * (f.radius * 0.55) + Math.cos(side) * 10;
-    const by = f.y + Math.sin(angle) * (f.radius * 0.55) + Math.sin(side) * 10;
-    const sp = (110 + Math.random() * 70) * (power || 1);
+  function ejectCasing(f, angle, power, weaponId) {
+    const spec = (CFG.WEAPONS && weaponId && CFG.WEAPONS[weaponId]) || {};
+    if (spec.noCasing) return;
+    const rear = angle + Math.PI;
+    const side = angle + Math.PI / 2 + (Math.random() * 0.7 - 0.35);
+    const mix = 0.55 + Math.random() * 0.35;
+    const dirx = Math.cos(side) * mix + Math.cos(rear) * (1 - mix);
+    const diry = Math.sin(side) * mix + Math.sin(rear) * (1 - mix);
+    const bx = f.x + Math.cos(angle) * (f.radius * 0.35) + dirx * 14;
+    const by = f.y + Math.sin(angle) * (f.radius * 0.35) + diry * 14;
+    const sp = (140 + Math.random() * 110) * (power || 1) * (spec.casingFan || 1);
     window.avCue('casing', {
       x: bx, y: by,
-      vx: Math.cos(side) * sp + Math.cos(angle) * 50,
-      vy: Math.sin(side) * sp + Math.sin(angle) * 50 - 150,
+      vx: dirx * sp + Math.cos(rear) * 40,
+      vy: diry * sp + Math.sin(rear) * 40 - 80,
       rot: Math.random() * TAU,
       vrot: (Math.random() < 0.5 ? -1 : 1) * (8 + Math.random() * 7),
     });
@@ -801,7 +819,7 @@
         y: f.y + Math.sin(base) * muzzleDistance,
         angle: base,
       });
-      ejectCasing(f, base, casingPower); // C: brass leaves the port
+      ejectCasing(f, base, casingPower, id);
     }
     return {
       id,
@@ -982,10 +1000,11 @@
   const WEAPONS = {
     PISTOL: makeGun('PISTOL', 'G01_pistol', '#ffe08a'),
 
-    SHOTGUN: (() => {
+    SHOTGUN: makeGun('SHOTGUN', 'G03_shotgun', '#ffbe6b'),
+    _SHOTGUN_LEGACY: (() => {
       const spec = CFG.WEAPONS.SHOTGUN;
       return {
-        id: 'SHOTGUN',
+        id: 'SHOTGUN_LEGACY',
         category: 'ranged',
         spriteKey: 'G03_shotgun',
         onEquip(ctx) { ctx.holder.phase = 'READY'; },
@@ -1275,10 +1294,13 @@
             cameraShake = Math.max(cameraShake, 6);
             playFighterSound(f, 'skill');
             log('REFLECT', `fighter=${f.name} weapon=SWIRL_SHIELD projectileFrom=${originalOwner.name}`);
-            consume(f, 'reflect-resolved');
+            if (!h.meta.boundWeaponId) consume(f, 'reflect-resolved');
+            else if (shieldBoundGone(h)) consume(f, 'bound-over');
             return;
           }
-          if (h.meta.timer <= 0) consume(f, 'expired');
+          if (h.meta.boundWeaponId) {
+            if (shieldBoundGone(h) || h.elapsed > 12) consume(f, 'expired');
+          } else if (h.meta.timer <= 0) consume(f, 'expired');
         },
       };
     })(),
@@ -1306,7 +1328,9 @@
           if (h.meta.pose) h.meta.pose.localTargetX = poseRecipe('TOWER_SHIELD').guardForward;
           // Movement penalty while the fortress state is up (engine slow status).
           f.applyStatus('slow', 0.25, { mult: spec.speedMult });
-          if (h.meta.timer <= 0) consume(f, 'expired');
+          if (h.meta.boundWeaponId) {
+            if (shieldBoundGone(h) || h.elapsed > 12) consume(f, 'expired');
+          } else if (h.meta.timer <= 0) consume(f, 'expired');
         },
       };
     })(),

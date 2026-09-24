@@ -29,14 +29,13 @@
         drawSketchBlob(c, f.radius, f.color, name === 'HERO' ? 13 : 17);
         c.save();
         c.rotate(-Math.atan2(f.dir.y, f.dir.x));
-        c.fillStyle = '#12100a';
-        c.strokeStyle = 'rgba(255,255,255,0.7)';
-        c.lineWidth = 3;
-        c.font = "900 52px 'Segoe UI'";
-        c.textAlign = 'center';
-        c.textBaseline = 'middle';
-        c.strokeText(name[0], 0, 2);
-        c.fillText(name[0], 0, 2);
+        c.fillStyle = name === 'HERO' ? '#efe6c8' : '#1b1a16';
+        c.beginPath();
+        c.moveTo(f.radius * 0.55, 0);
+        c.lineTo(f.radius * 0.18, -12);
+        c.lineTo(f.radius * 0.18, 12);
+        c.closePath();
+        c.fill();
         c.restore();
       },
     };
@@ -279,60 +278,71 @@
   }
 
   function drawHolderTags(c) {
-    // World-space weapon names are debug-only. Real atlas sprites are the
-    // primary normal-gameplay representation.
     if (!(AQ.state && AQ.state.debugOverlay)) return;
     for (const f of fighters) {
       const h = weaponApi.getHolder(f);
       if (!f || !h) continue;
-      const label = h.weaponId.replace(/_/g, ' ');
       c.save();
-      c.font = "900 18px monospace";
-      c.textAlign = 'center';
-      const w = c.measureText(label).width + 16;
-      c.fillStyle = 'rgba(10,8,4,0.68)';
-      c.fillRect(f.x - w / 2, f.y - f.radius - 58, w, 26);
       c.fillStyle = h.def.category === 'ranged' ? '#ffd479' : h.def.category === 'melee' ? '#ff9d7a' : '#9fd8ff';
-      c.fillText(label, f.x, f.y - f.radius - 39);
+      c.fillRect(f.x - 22, f.y - f.radius - 48, 44, 8);
       c.restore();
     }
   }
 
-  function drawDebugOverlay(c) {
-    const s = window.getArsenalQuestDebugState();
-    const n1 = s.hero ? s.hero.name : 'P1';
-    const n2 = s.rival ? s.rival.name : 'P2';
-    const lines = [
-      'ARSENAL QUEST DEBUG',
-      `spawn in: ${s.spawnIn.toFixed(1)}s`,
-      `active slots: ${s.activeSlots}`,
-      `telegraphs: ${s.telegraphs}`,
-      `revealed: ${s.revealed}`,
-      '',
-      `${n1}  HP ${s.hero ? s.hero.hp : 0}/${CFG.MATCH_HP}   weapon: ${s.hero ? s.hero.weapon : 'NONE'}`,
-      `${n2} HP ${s.rival ? s.rival.hp : 0}/${CFG.MATCH_HP}   weapon: ${s.rival ? s.rival.weapon : 'NONE'}`,
-    ];
-    c.save();
-    c.setTransform(1, 0, 0, 1, 0, 0);
-    c.font = "700 22px monospace";
-    const pad = 14;
-    const lineH = 28;
-    c.fillStyle = 'rgba(6,6,10,0.78)';
-    c.fillRect(16, 96, 420, pad * 2 + lines.length * lineH);
-    c.strokeStyle = '#6d8f4e';
-    c.lineWidth = 2;
-    c.strokeRect(16, 96, 420, pad * 2 + lines.length * lineH);
-    c.textAlign = 'left';
-    c.textBaseline = 'top';
-    lines.forEach((line, i) => {
-      c.fillStyle = i === 0 ? '#ffe08a' : line.startsWith(n1) ? (fighters[0]?.color || CFG.HERO_COLOR) : line.startsWith(n2) ? (fighters[1]?.color || CFG.RIVAL_COLOR) : '#d8d2c0';
-      c.fillText(line, 16 + pad, 96 + pad + i * lineH);
-    });
-    c.restore();
+  function hudRoot() {
+    let el = document.getElementById('aq-dom-hud');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'aq-dom-hud';
+      el.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:40;font-family:monospace;';
+      (document.getElementById('game-wrap') || document.body).appendChild(el);
+    }
+    return el;
+  }
+  function syncDomHud() {
+    const state = AQ.state;
+    const el = hudRoot();
+    const hint = document.getElementById('aq-hint') || (() => {
+      const n = document.createElement('div');
+      n.id = 'aq-hint';
+      n.style.cssText = 'position:absolute;left:0;right:0;bottom:12px;text-align:center;color:rgba(232,224,200,0.9);font-weight:800;font-size:14px;';
+      n.textContent = 'ARSENAL QUEST — F3 debug · T rematch · B/ESC menu';
+      el.appendChild(n);
+      return n;
+    })();
+    hint.style.display = (state && state.active) ? 'block' : 'none';
+    let win = document.getElementById('aq-win');
+    if (state && state.over) {
+      if (!win) {
+        win = document.createElement('div');
+        win.id = 'aq-win';
+        win.style.cssText = 'position:absolute;left:0;right:0;top:38%;text-align:center;color:#efe6c8;';
+        el.appendChild(win);
+      }
+      win.innerHTML = `<div style="font:900 64px Segoe UI">${state.over} WINS</div><div style="font:800 22px monospace;margin-top:8px">T — REMATCH      B — MENU</div>`;
+    } else if (win) win.remove();
+    let dbg = document.getElementById('aq-debug');
+    if (state && state.debugOverlay) {
+      const s = window.getArsenalQuestDebugState();
+      if (!dbg) {
+        dbg = document.createElement('div');
+        dbg.id = 'aq-debug';
+        dbg.style.cssText = 'position:absolute;left:16px;top:96px;padding:12px;background:rgba(6,6,10,0.78);color:#d8d2c0;font:700 14px monospace;white-space:pre;border:2px solid #6d8f4e;';
+        el.appendChild(dbg);
+      }
+      dbg.textContent = [
+        'ARSENAL QUEST DEBUG',
+        `spawn in: ${s.spawnIn.toFixed(1)}s`,
+        `active slots: ${s.activeSlots}`,
+        `telegraphs: ${s.telegraphs}`,
+        `revealed: ${s.revealed}`,
+        `${s.hero ? s.hero.name : 'P1'}  HP ${s.hero ? s.hero.hp : 0}/${CFG.MATCH_HP}   weapon: ${s.hero ? s.hero.weapon : 'NONE'}`,
+        `${s.rival ? s.rival.name : 'P2'} HP ${s.rival ? s.rival.hp : 0}/${CFG.MATCH_HP}   weapon: ${s.rival ? s.rival.weapon : 'NONE'}`,
+      ].join('\n');
+    } else if (dbg) dbg.remove();
   }
 
   function drawForeground() {
-    const state = AQ.state;
     const view = window.__apexCameraView || { shakeX: 0, shakeY: 0, zoom: 1 };
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -344,23 +354,7 @@
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.draw(ctx);
     drawHolderTags(ctx);
     ctx.restore();
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = 'rgba(232,224,200,0.85)';
-    ctx.font = "800 20px monospace";
-    ctx.textAlign = 'center';
-    ctx.fillText('ARSENAL QUEST PROTOTYPE — F3 debug · T rematch · B/ESC menu', GAME_SIZE / 2, GAME_SIZE - 18);
-    if (state && state.over) {
-      ctx.fillStyle = 'rgba(0,0,0,0.55)';
-      ctx.fillRect(0, 380, GAME_SIZE, 240);
-      ctx.fillStyle = state.over === 'HERO' ? CFG.HERO_COLOR : CFG.RIVAL_COLOR;
-      ctx.font = "900 96px 'Segoe UI'";
-      ctx.fillText(`${state.over} WINS`, GAME_SIZE / 2, 500);
-      ctx.fillStyle = '#efe6c8';
-      ctx.font = "800 30px monospace";
-      ctx.fillText('T — REMATCH      B — MENU', GAME_SIZE / 2, 570);
-    }
-    ctx.restore();
+    syncDomHud();
   }
 
   // POST-C §8: mute typographic fill/stroke on the battlefield canvas while
@@ -379,7 +373,6 @@
     const restore = muteArenaGlyphs(ctx);
     try { baseDraw(); } finally { restore(); }
     drawForeground();
-    if (AQ.state && AQ.state.debugOverlay) drawDebugOverlay(ctx);
   };
 
   // -------------------------------------------------------------------------

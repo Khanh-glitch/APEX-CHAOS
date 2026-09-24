@@ -384,7 +384,7 @@ try {
     __AQ_TEST.clearEvents();
     __AQ_TEST.place(300, 500, 700, 500);
     __AQ_TEST.holdSpawns();
-    __AQ_TEST.pushSlot({ x: 700, y: 500, weaponId: 'SABRE' });
+    __AQ_TEST.pushSlot({ x: 700, y: 500, weaponId: 'PISTOL' });
     __AQ_TEST.step(0.3);
     const rivalGot = __AQ_TEST.holder('RIVAL');
     __AQ_TEST.pushSlot({ x: 300, y: 500, weaponId: 'SMG' });
@@ -402,7 +402,7 @@ try {
       rejectLogged: __AQ_TEST.countEvents('REJECT_PICKUP', 'fighter=HERO') > 0,
     };
   })()`);
-  gate('rival-can-collect', report.pickupRules.rivalGot === 'SABRE');
+  gate('rival-can-collect', report.pickupRules.rivalGot === 'PISTOL');
   gate('hero-can-collect', report.pickupRules.heroGot === 'SMG');
   gate('armed-fighter-cannot-vacuum', report.pickupRules.rejectedStillThere && report.pickupRules.rejectLogged && report.pickupRules.heroStillArmedWith === 'SMG');
 
@@ -582,7 +582,7 @@ try {
     }
     return { count: ids.length, names, shellFlags, nativeProj, hp: [fighters[0].hp, fighters[1].hp] };
   })()`);
-  gate('shells-32-canonical', report.shells.count === 32, { count: report.shells.count });
+  gate('shells-32-canonical', report.shells.count === 33, { count: report.shells.count });
   gate('shells-p1-p2-independent',
     report.shells.names[0] === 'SNIPER' && report.shells.names[1] === 'WITCH' && report.shells.shellFlags.every(Boolean),
     report.shells.names);
@@ -664,9 +664,10 @@ try {
   report.weaponArt = await evaluate(`(async () => {
     __AQ_TEST.enterManual();
     __AQ_TEST.clearSlots();
-    __AQ_TEST.place(300, 500, 760, 500);
-    __AQ_TEST.pushSlot({ x: 300, y: 430, weaponId: 'SHOTGUN' });
-    __AQ_TEST.pushSlot({ x: 520, y: 620, weaponId: 'TOWER_SHIELD' });
+    __AQ_TEST.place(180, 180, 820, 820);
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.pushSlot({ x: 500, y: 220, weaponId: 'SHOTGUN' });
+    __AQ_TEST.pushSlot({ x: 640, y: 220, weaponId: 'AK_47' });
     __AQ_TEST.equip('HERO', 'SABRE');
     __AQ_TEST.equip('RIVAL', 'SWIRL_SHIELD');
     const t0 = Date.now();
