@@ -39,7 +39,13 @@ jobs:
         run: pnpm add -D --save-exact jsdom @napi-rs/canvas
 
       - name: Run headless acceptance suite
-        run: pnpm test:arsenal:headless
+        run: |
+          set +e
+          pnpm test:arsenal:headless > /tmp/headless.log 2>&1
+          RC=$?
+          set -e
+          cat /tmp/headless.log
+          exit $RC
 
       - name: Build production bundle
         run: pnpm build
@@ -119,7 +125,13 @@ jobs:
           CHROME_PATH: ${{ steps.chrome.outputs.path }}
           APEX_APP_URL: http://127.0.0.1:5173
           AQ_EVIDENCE_DIR: docs/arsenal-quest/browser-evidence
-        run: pnpm test:arsenal
+        run: |
+          set +e
+          pnpm test:arsenal > /tmp/browser.log 2>&1
+          RC=$?
+          set -e
+          cat /tmp/browser.log
+          exit $RC
 
       - name: Upload browser evidence
         if: always()
@@ -135,6 +147,8 @@ jobs:
         if: always()
         shell: bash
         run: |
+          mkdir -p docs/arsenal-quest/ci-logs
+          cp /tmp/headless.log /tmp/browser.log /tmp/apex-vite.log docs/arsenal-quest/ci-logs/ 2>/dev/null || true
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/arsenal-quest/browser-evidence docs/arsenal-quest/ci-logs docs/arsenal-quest/evidence/headless-test-report.json 2>/dev/null || true
