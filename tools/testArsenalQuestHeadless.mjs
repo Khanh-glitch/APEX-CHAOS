@@ -819,10 +819,23 @@ gate('av-muzzle-uses-warm-c-family',
 gate('av-no-laser-charge-sfx',
   !!avDescribe && !Object.values(avDescribe.audio).flat().some(rel => String(rel).includes('laserLarge')),
   avDescribe && Object.keys(avDescribe.audio));
+const finalLockAudioKeys = [
+  'pistol_mech', 'shotgun_rack_pull', 'shotgun_rack_push',
+  'sniper_chamber', 'sniper_bolt_lock',
+  'axe_swing', 'axe_hit', 'club_swing', 'club_hit',
+  'dagger_swing', 'dagger_hit', 'sabre_swing', 'sabre_hit',
+  'spear_swing', 'spear_hit', 'swirl_block', 'tower_block', 'explosion',
+];
+const baselineGunAudioKeys = ['pistol_shot', 'shotgun_shot', 'smg_shot', 'sniper_shot'];
 gate('av-asset-map-complete',
   !!avDescribe
-  && ['pistol_shot', 'shotgun_shot', 'smg_shot', 'sniper_shot', 'explosion', 'sabre_swing', 'axe_swing', 'dagger_swing', 'spear_swing', 'club_swing', 'shield_activate_swirl', 'shield_activate_tower', 'reflect', 'block_heavy', 'telegraph', 'reveal', 'pickup'].every(k => (avDescribe.audio[k] || []).length > 0),
-  Object.keys(avDescribe ? avDescribe.audio : {}));
+  && ['telegraph', 'reveal', 'pickup', ...baselineGunAudioKeys, ...finalLockAudioKeys]
+    .every(k => (avDescribe.audio[k] || []).length > 0)
+  && finalLockAudioKeys.every(k => (avDescribe.audio[k] || []).every(rel => String(rel).includes('sfx/c-final/')))
+  && baselineGunAudioKeys.every(k => (avDescribe.audio[k] || []).every(rel => String(rel).includes('sfx/guns/')))
+  && !['shield_activate_swirl', 'shield_activate_tower', 'reflect', 'block_heavy', 'hit_heavy', 'hit_thrust', 'hit_blade', 'sniper_charge']
+    .some(k => Object.prototype.hasOwnProperty.call(avDescribe.audio, k)),
+  avDescribe && avDescribe.audio);
 gate('av-melee-contact-transients',
   !!avDescribe && ['SABRE', 'BATTLE_AXE', 'SPEAR', 'SPIKED_CLUB', 'DAGGER'].every(k => (avDescribe.melee[k] || '').includes('vfx/kenney/spark_')),
   avDescribe && avDescribe.melee);
