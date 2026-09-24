@@ -15,7 +15,7 @@ import { createRequire } from 'node:module';
 import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES } from '../src/game/runtimeManifest.js';
 
 const REPO = process.cwd();
-const TOOLING_DIR = process.env.AQ_TOOLING_DIR || '/home/user/.tooling/browser';
+const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules');
 const evidenceDir = process.env.AQ_EVIDENCE_DIR || 'docs/arsenal-quest/evidence';
 const requireTool = createRequire(path.join(TOOLING_DIR, 'noop.js'));
 const { JSDOM } = requireTool('jsdom');
