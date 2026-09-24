@@ -13,6 +13,9 @@
     REVEAL_LOOKAHEAD_MAX_SECONDS: 1.8,
     REVEAL_PREDICT_HORIZON_SECONDS: 2.0,
     REVEAL_PREDICT_STEP_SECONDS: 1 / 30,
+    // V2 Checkpoint A (V2_MAJOR_PASS_HANDOFF §A5): strict fixed centerline gate.
+    REVEAL_LEAD_SECONDS: 1.0,            // fixed lead; never 1.2-1.8 anymore
+    CENTERLINE_TOLERANCE_PX: 16,         // tight center corridor (~12-18 px)
     // Deprecated aliases retained only for compatibility with older debug/tests.
     REVEAL_DELAY_MIN_SECONDS: 1.2,
     REVEAL_DELAY_MAX_SECONDS: 1.8,

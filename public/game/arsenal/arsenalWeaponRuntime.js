@@ -221,7 +221,37 @@
   function enemyAlive(ctx) { return !!(ctx.enemy && ctx.enemy.hp > 0); }
   function enemyDistance(ctx) { return enemyAlive(ctx) ? dist(ctx.fighter.x, ctx.fighter.y, ctx.enemy.x, ctx.enemy.y) : Infinity; }
   function angleToEnemy(ctx) { return Math.atan2(ctx.enemy.y - ctx.fighter.y, ctx.enemy.x - ctx.fighter.x); }
-  function aimAtHolder(ctx) { ctx.fighter.setDir(Math.cos(angleToEnemy(ctx)), Math.sin(angleToEnemy(ctx))); }
+
+  // ---------------------------------------------------------------------------
+  // V2 Checkpoint A (V2_MAJOR_PASS_HANDOFF §A1/§A2): fighter movement and weapon
+  // aim are separate systems. The independent aim angle lives on holder.meta and
+  // is damped (~60ms) only to remove jitter. NO weapon path may call setDir.
+  // ---------------------------------------------------------------------------
+  function logicalAim(ctx) {
+    return enemyAlive(ctx) ? angleToEnemy(ctx) : Math.atan2(ctx.fighter.dir.y, ctx.fighter.dir.x);
+  }
+  function dampAngle(from, to, dt, tau = 0.06) {
+    let d = to - from;
+    while (d > Math.PI) d -= TAU;
+    while (d < -Math.PI) d += TAU;
+    return from + d * Math.min(1, dt / Math.max(1e-3, tau));
+  }
+  function holderAim(ctx) {
+    const h = ctx.holder || getHolder(ctx.fighter);
+    if (h && h.meta && h.meta.aimAngle != null) return h.meta.aimAngle;
+    return logicalAim(ctx);
+  }
+  // Legacy name kept for call sites; it now ONLY reports the weapon aim angle
+  // and never mutates fighter.dir (product law §A1).
+  function aimAtHolder(ctx) { return holderAim(ctx); }
+
+  function distPointToSegment(px, py, x1, y1, x2, y2) {
+    const vx = x2 - x1, vy = y2 - y1;
+    const len2 = vx * vx + vy * vy;
+    if (len2 <= 1e-9) return dist(px, py, x1, y1);
+    const t = clamp(((px - x1) * vx + (py - y1) * vy) / len2, 0, 1);
+    return dist(px, py, x1 + vx * t, y1 + vy * t);
+  }
 
   function gunMuzzleDistance(weaponId, fighter) {
     const r = fighter?.radius || 75;
@@ -260,7 +290,9 @@
     if (enemyAlive(ctx)) {
       const d = dist(f.x, f.y, e.x, e.y);
       const ang = Math.atan2(e.y - f.y, e.x - f.x);
-      let diff = Math.abs(ang - Math.atan2(f.dir.y, f.dir.x));
+      // V2 §A1/§A2: strike geometry follows the independent weapon aim angle,
+      // never the fighter movement direction.
+      let diff = Math.abs(ang - holderAim(ctx));
       if (diff > Math.PI) diff = TAU - diff;
       if (d <= spec.reach + e.radius * 0.35 && diff <= spec.halfAngle) {
         aqDamage(e, spec.damage, f, weaponId, { knockback: spec.knockback, stun: spec.stun, shake: spec.shake || 7, hitStop: spec.hitStop });
@@ -297,7 +329,7 @@
         h.meta.windupLeft -= dt;
         if (h.meta.windupLeft <= 0) {
           h.phase = 'STRIKE';
-          const attackAngle = Math.atan2(ctx.fighter.dir.y, ctx.fighter.dir.x);
+          const attackAngle = holderAim(ctx);
           const anchor = meleeSwingAnchor(id, ctx.fighter, spec, attackAngle);
           window.avCue('melee_swing', { weapon: id, x: anchor.x, y: anchor.y, angle: anchor.angle });
           const landed = strikeCone(ctx, spec, id, { color });
@@ -446,8 +478,9 @@
           const f = ctx.fighter;
           if (h.phase === 'AIM') {
             // Visible aim telegraph so the shot feels dangerous before firing.
+            // The weapon tracks the opponent via holder.meta.aimAngle (§A2);
+            // the fighter body is never steered (§A1).
             if (enemyAlive(ctx)) {
-              aimAtHolder(ctx);
               pushVisual({ kind: 'aimline', x1: f.x, y1: f.y, x2: ctx.enemy.x, y2: ctx.enemy.y, life: 0.06, maxLife: 0.06, color: '#ff4a4a' });
             }
             h.meta.aimLeft -= dt;
@@ -529,29 +562,39 @@
           h.phase = 'DASH';
           h.meta.dashLeft = spec.dashTime;
           h.meta.hitDone = false;
-          aimAtHolder(ctx);
           log('USE', `fighter=${ctx.fighter.name} weapon=DAGGER`);
           playFighterSound(ctx.fighter, 'skill');
-          const dashAngle = Math.atan2(ctx.fighter.dir.y, ctx.fighter.dir.x);
-          const dashOffset = ctx.fighter.radius + 48;
+          // V2 §A1: weapon-only thrust — the fighter body keeps its Apex
+          // trajectory; only the dagger lunges toward the opponent.
+          const thrustAngle = holderAim(ctx);
+          const thrustOffset = ctx.fighter.radius + 48;
           window.avCue('melee_swing', {
             weapon: 'DAGGER',
-            x: ctx.fighter.x + Math.cos(dashAngle) * dashOffset,
-            y: ctx.fighter.y + Math.sin(dashAngle) * dashOffset,
-            angle: dashAngle,
+            x: ctx.fighter.x + Math.cos(thrustAngle) * thrustOffset,
+            y: ctx.fighter.y + Math.sin(thrustAngle) * thrustOffset,
+            angle: thrustAngle,
+          });
+          pushVisual({
+            kind: 'thrust',
+            owner: ctx.fighter,
+            life: spec.dashTime,
+            maxLife: spec.dashTime,
+            reach: spec.dashSpeed * spec.dashTime,
+            color: '#e8f4ff',
           });
         },
         update(ctx, dt) {
           const h = ctx.holder;
           if (h.phase !== 'DASH') return;
           const f = ctx.fighter;
-          f.x += f.dir.x * spec.dashSpeed * dt;
-          f.y += f.dir.y * spec.dashSpeed * dt;
-          f.x = clamp(f.x, f.radius, GAME_SIZE - f.radius);
-          f.y = clamp(f.y, f.radius, GAME_SIZE - f.radius);
-          // Precise hitbox, but it must account for the Apex body volumes so a
-          // dash that reaches the opponent always connects.
-          if (!h.meta.hitDone && enemyAlive(ctx) && dist(f.x, f.y, ctx.enemy.x, ctx.enemy.y) < ctx.enemy.radius + f.radius * 0.6 + spec.hitBonus) {
+          // Weapon-only thrust probe swept along the independent aim angle.
+          const progress = clamp(1 - Math.max(0, h.meta.dashLeft) / spec.dashTime, 0, 1);
+          const extension = (spec.dashSpeed * spec.dashTime) * Math.sin(progress * Math.PI);
+          const ang = holderAim(ctx);
+          const tipX = f.x + Math.cos(ang) * (f.radius * 0.6 + extension);
+          const tipY = f.y + Math.sin(ang) * (f.radius * 0.6 + extension);
+          if (!h.meta.hitDone && enemyAlive(ctx)
+            && distPointToSegment(ctx.enemy.x, ctx.enemy.y, f.x, f.y, tipX, tipY) < ctx.enemy.radius + spec.hitBonus) {
             h.meta.hitDone = true;
             aqDamage(ctx.enemy, spec.damage, f, 'DAGGER', { shake: 5 });
             emitParticles(ctx.enemy.x, ctx.enemy.y, '#e8f4ff', 16, 340, 4, 0.4, 'square');
@@ -649,6 +692,9 @@
     h.elapsed += dt;
     const ctx = makeCtx(f);
     ctx.holder = h;
+    // Independent weapon aim (V2 §A2): continuous opponent facing, damped ~60ms.
+    h.meta = h.meta || {};
+    h.meta.aimAngle = h.meta.aimAngle == null ? logicalAim(ctx) : dampAngle(h.meta.aimAngle, logicalAim(ctx), dt);
     if (h.phase === 'READY' && h.def.canActivate && h.def.canActivate(ctx)) {
       h.def.activate(ctx);
     }
@@ -694,13 +740,41 @@
         const owner = v.owner;
         if (owner) {
           const t = 1 - clamp(v.life / v.maxLife, 0, 1);
+          const h = getHolder(owner);
+          const aim = (h && h.meta && h.meta.aimAngle != null) ? h.meta.aimAngle : Math.atan2(owner.dir.y, owner.dir.x);
           ctx.translate(owner.x, owner.y);
-          ctx.rotate(Math.atan2(owner.dir.y, owner.dir.x));
+          ctx.rotate(aim);
           ctx.strokeStyle = v.color;
           ctx.lineWidth = 9;
           ctx.beginPath();
           ctx.arc(0, 0, owner.radius + 34, -1.1 + t * 0.5, 1.1 - t * 0.5);
           ctx.stroke();
+        }
+      } else if (v.kind === 'thrust') {
+        // Procedural weapon-only lunge (no imported slash art, V2 §A4).
+        const owner = v.owner;
+        if (owner) {
+          const h = getHolder(owner);
+          const aim = (h && h.meta && h.meta.aimAngle != null) ? h.meta.aimAngle : Math.atan2(owner.dir.y, owner.dir.x);
+          const progress = clamp(1 - v.life / v.maxLife, 0, 1);
+          const extension = (v.reach || 200) * Math.sin(progress * Math.PI);
+          const a = clamp(Math.sin(progress * Math.PI), 0, 1);
+          ctx.translate(owner.x, owner.y);
+          ctx.rotate(aim);
+          ctx.globalAlpha = 0.55 * a + 0.15;
+          ctx.strokeStyle = v.color || '#ffffff';
+          ctx.lineWidth = 7;
+          ctx.beginPath();
+          ctx.moveTo(owner.radius * 0.5, 0);
+          ctx.lineTo(owner.radius * 0.6 + extension, 0);
+          ctx.stroke();
+          ctx.fillStyle = v.color || '#ffffff';
+          ctx.beginPath();
+          ctx.moveTo(owner.radius * 0.6 + extension + 18, 0);
+          ctx.lineTo(owner.radius * 0.6 + extension - 6, -9);
+          ctx.lineTo(owner.radius * 0.6 + extension - 6, 9);
+          ctx.closePath();
+          ctx.fill();
         }
       }
       ctx.restore();

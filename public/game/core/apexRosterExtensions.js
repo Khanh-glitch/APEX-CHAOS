@@ -2,8 +2,14 @@
 (function apexNewRosterChefMaskArcadeNinjaPatch(){
   try {
     const removedNames = new Set(['MAGNET','MATH_V2','HUNTER','PAINTER','WITCH']);
+    // V2 Checkpoint A: stash the canonical bodies the normal roster trims so the
+    // Arsenal shell select can reuse their real draw identity (normal play unchanged).
+    const removedStore = window.__APEX_REMOVED_FIGHTER_TYPES || (window.__APEX_REMOVED_FIGHTER_TYPES = {});
     for (let i = FighterTypes.length - 1; i >= 0; i--) {
-      if (removedNames.has(FighterTypes[i].name)) FighterTypes.splice(i, 1);
+      if (removedNames.has(FighterTypes[i].name)) {
+        removedStore[FighterTypes[i].name] = FighterTypes[i];
+        FighterTypes.splice(i, 1);
+      }
     }
     const FTNew = name => FighterTypes.find(f => f && f.name === name);
     const enemyOfNew = owner => fighters.find(f => f && owner && f.id !== owner.id && f.hp > 0) || fighters.find(f => f && f !== owner && f.hp > 0) || null;

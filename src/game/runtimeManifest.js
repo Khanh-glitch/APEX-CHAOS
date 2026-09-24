@@ -64,6 +64,7 @@ export const MODE_DEFERRED_RUNTIMES = {
     ['/game/arsenal/arsenalWeaponRuntime.js', 'apexArsenalWeaponRuntime'],
     ['/game/arsenal/arsenalSpawnRuntime.js', 'apexArsenalSpawnRuntime'],
     ['/game/arsenal/arsenalPresentationRuntime.js', 'apexArsenalPresentationRuntime'],
+    ['/game/arsenal/arsenalShellSelectRuntime.js', 'apexArsenalShellSelectRuntime'],
     ['/game/modes/arsenalQuestRuntime.js', 'apexArsenalQuestRuntime'],
   ],
 };

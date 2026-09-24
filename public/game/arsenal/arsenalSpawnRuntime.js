@@ -49,42 +49,52 @@
     return !(weaponApi && weaponApi.getHolder && weaponApi.getHolder(f));
   }
 
-  // Predict the current Apex trajectory without steering toward the pickup.
-  // We intentionally simulate only the fighter's current direction/speed plus
-  // arena wall bounces. Fighter-fighter collision is ignored as documented.
+  // V2 Checkpoint A (V2_MAJOR_PASS_HANDOFF §A5): strict fixed 1.0-second
+  // centerline reveal. A hidden pickup reveals only when an eligible fighter's
+  // CURRENT straight movement line passes through the item's center corridor
+  // and the center crossing is <= REVEAL_LEAD_SECONDS away.
+  //  - grazing the pickup collision circle is NOT enough (tight cross-track
+  //    tolerance, not the full touch radius);
+  //  - broad future-contact prediction is NOT enough;
+  //  - paths that would need a wall bounce do NOT reveal before the bounce
+  //    (after a bounce the new direction is re-evaluated naturally next frame).
   function predictContactETA(slot, fighter) {
     if (!slot || !fighter || !isEligibleForPickup(fighter)) return null;
-    const touch = pickupTouchRadius(fighter);
-    let x = fighter.x;
-    let y = fighter.y;
     let dx = fighter.dir?.x || 0;
     let dy = fighter.dir?.y || 0;
-    const mag = Math.hypot(dx, dy) || 1;
+    const mag = Math.hypot(dx, dy);
+    if (!(mag > 1e-6)) return null;
     dx /= mag;
     dy /= mag;
 
     let speed = Number(fighter.baseSpeed ?? CFG.FIGHTER_SPEED ?? 0);
     if (typeof fighter.speedMult === 'function') speed *= Math.max(0, fighter.speedMult());
-    if (!(speed > 0)) return dist(x, y, slot.x, slot.y) <= touch ? 0 : null;
+    if (!(speed > 0)) return null;
 
-    const step = Math.max(1 / 120, Number(CFG.REVEAL_PREDICT_STEP_SECONDS || 1 / 30));
-    const horizon = Math.max(Number(CFG.REVEAL_PREDICT_HORIZON_SECONDS || 2), Number(slot.revealLeadSeconds || 0));
+    const rx = slot.x - fighter.x;
+    const ry = slot.y - fighter.y;
+    const forward = rx * dx + ry * dy;              // forward distance to center plane
+    if (forward <= 0) return null;                  // pickup is behind the fighter
+    const cross = Math.abs(rx * dy - ry * dx);      // cross-track distance
+    const tolerance = Number(CFG.CENTERLINE_TOLERANCE_PX ?? 16);
+    if (cross > tolerance) return null;             // clips radius but misses corridor
+
+    const eta = forward / speed;                    // ETA to centerline crossing
+    const lead = Number(CFG.REVEAL_LEAD_SECONDS ?? 1.0);
+    if (!(eta > 0) || eta > lead + 1e-9) return null;
+
+    // Wall-bounce guard: evaluate only the current straight segment. Time until
+    // the fighter body would touch any arena wall; the center crossing must
+    // happen on this segment (before any bounce).
     const radius = fighter.radius || 75;
+    let tWall = Infinity;
+    if (dx > 1e-9) tWall = Math.min(tWall, (GAME_SIZE - radius - fighter.x) / (dx * speed));
+    if (dx < -1e-9) tWall = Math.min(tWall, (radius - fighter.x) / (dx * speed));
+    if (dy > 1e-9) tWall = Math.min(tWall, (GAME_SIZE - radius - fighter.y) / (dy * speed));
+    if (dy < -1e-9) tWall = Math.min(tWall, (radius - fighter.y) / (dy * speed));
+    if (eta > tWall + 1e-9) return null;            // would bounce first -> stay hidden
 
-    for (let t = 0; t <= horizon + 1e-9; t += step) {
-      if (dist(x, y, slot.x, slot.y) <= touch) return Math.min(t, horizon);
-      x += dx * speed * step;
-      y += dy * speed * step;
-
-      if (x - radius < 0) { x = radius; dx = Math.abs(dx); }
-      if (x + radius > GAME_SIZE) { x = GAME_SIZE - radius; dx = -Math.abs(dx); }
-      if (y - radius < 0) { y = radius; dy = Math.abs(dy); }
-      if (y + radius > GAME_SIZE) { y = GAME_SIZE - radius; dy = -Math.abs(dy); }
-      const dmag = Math.hypot(dx, dy) || 1;
-      dx /= dmag;
-      dy /= dmag;
-    }
-    return null;
+    return eta;
   }
 
   function trySpawnSlot() {
@@ -104,11 +114,8 @@
       y: point.y,
       phase: 'TELEGRAPH',
       weaponId: null,
-      // This is a look-ahead threshold, NOT an age-based reveal delay.
-      revealLeadSeconds: rand(
-        CFG.REVEAL_LOOKAHEAD_MIN_SECONDS ?? CFG.REVEAL_DELAY_MIN_SECONDS ?? 1.2,
-        CFG.REVEAL_LOOKAHEAD_MAX_SECONDS ?? CFG.REVEAL_DELAY_MAX_SECONDS ?? 1.8
-      ),
+      // V2 §A5: fixed 1.0s centerline lead for every slot (no 1.2-1.8 spread).
+      revealLeadSeconds: Number(CFG.REVEAL_LEAD_SECONDS ?? 1.0),
       revealedFor: 0,
       pickedBy: null,
       rejectedFor: {},

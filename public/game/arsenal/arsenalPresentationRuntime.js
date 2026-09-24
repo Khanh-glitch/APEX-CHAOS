@@ -226,6 +226,7 @@
     pushVfx({ kind: 'muzzle', x, y, angle, scale, frames, life });
   }
   function seqAnim(family, seq, o) {
+    stats.seqAnimsPushed = (stats.seqAnimsPushed || 0) + 1;
     pushVfx(Object.assign({ kind: 'seq', family }, o, { seq }));
   }
 
@@ -274,13 +275,14 @@
       }
       case 'explosion': {
         playAll('explosion');
+        stats.atlasCued = (stats.atlasCued || 0) + 1; // bomb explosion stays (V2 §A4)
         pushVfx({ kind: 'atlas', x: o.x, y: o.y, life: 64 / 34, fps: 34, size: 400 });
         break;
       }
       case 'melee_swing': {
-        const recipe = MELEE_VFX[o.weapon];
-        if (!recipe) break;
-        seqAnim(recipe.family, recipe.seq, { x: o.x, y: o.y, angle: o.angle || 0, scale: recipe.scale, life: recipe.life, alpha: 0.95, spin: 0 });
+        // V2 §A4: imported slash/swipe sequences are disabled in normal
+        // gameplay. The weapon sprite's own motion communicates the attack;
+        // swing SFX remain.
         if (o.weapon === 'SABRE') playAll('sabre_swing');
         else if (o.weapon === 'BATTLE_AXE') playAll('axe_swing');
         else if (o.weapon === 'DAGGER') playAll('dagger_swing');
@@ -300,15 +302,13 @@
         break;
       }
       case 'reflect': {
-        // This cue is emitted at actual projectile/shield contact and already
-        // carries the reflected direction.
+        // V2 §A4: no blue slash art on shield events; audio + the runtime's
+        // native shockwave/particles already communicate the reflect.
         playAll('reflect');
-        seqAnim(BLUE, [20, 21, 22, 23], { x: o.x, y: o.y, angle: o.angle || 0, scale: 0.72, life: 0.22, alpha: 0.95, spin: 0 });
         break;
       }
       case 'tower_block': {
         playAll(o.heavy ? 'block_heavy' : 'block_light');
-        seqAnim(BLUE, [8, 9, 10], { x: o.x, y: o.y, angle: o.angle || 0, scale: 0.9, life: 0.18, alpha: 0.8, spin: 0 });
         break;
       }
       default:
@@ -383,7 +383,11 @@
     const meta = WEAPON_ATLAS.cells[weaponId];
     if (!meta) return false;
 
-    const angle = Math.atan2(fighter.dir?.y || 0, fighter.dir?.x || 1);
+    // V2 §A2: equipped weapons continuously face the opponent through the
+    // independent aim angle — never through the fighter movement direction.
+    const angle = (holder.meta && holder.meta.aimAngle != null)
+      ? holder.meta.aimAngle
+      : Math.atan2(fighter.dir?.y || 0, fighter.dir?.x || 1);
     const category = holder.def?.category || '';
     let drawAngle = angle;
     let offset = (fighter.radius || 75) * 0.72;
@@ -391,13 +395,14 @@
 
     if (category === 'melee') {
       // Melee source sprites are authored upright; rotate their -Y long axis
-      // onto the fighter's facing direction.
+      // onto the weapon aim direction.
       drawAngle = angle + Math.PI / 2;
       targetLongSide = weaponId === 'SPEAR' ? 190 : weaponId === 'BATTLE_AXE' ? 155 : 145;
       offset = (fighter.radius || 75) * 0.72;
     } else if (category === 'defense') {
+      // Shields face the opponent (V2 §A2).
       targetLongSide = weaponId === 'TOWER_SHIELD' ? 145 : 128;
-      drawAngle = 0;
+      drawAngle = angle + Math.PI / 2;
       offset = (fighter.radius || 75) * 0.82;
     } else {
       targetLongSide = weaponId === 'SNIPER' ? 185 : weaponId === 'SHOTGUN' ? 165 : 145;

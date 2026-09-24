@@ -208,6 +208,10 @@
     });
   }
   function getSelectRoster() {
+    // V2 Checkpoint A: Arsenal select reuses this renderer with the canonical 32 shells.
+    if (window.__apexArsenalSelectPending && window.APEX_ARSENAL_SHELLS) {
+      return window.APEX_ARSENAL_SHELLS.roster();
+    }
     return requiredRoster.map(name => FighterTypes.find(ft => ft && ft.name === name)).filter(Boolean);
   }
   function makeCard(ft, index) {

@@ -72,7 +72,7 @@ const MENU_BUTTONS = [
   { id: 'trial', label: 'Test Battle With Saitama', asset: '/assets/ui_2026/menu-saitama-test.webp', action: 'goToTrialSelect' },
   { id: 'giai', label: 'Tournament', asset: '/assets/ui_2026/menu-tournament.webp', action: 'goToTournament' },
   { id: 'solo', label: 'Solo 1v1 Local', asset: '/assets/ui_2026/menu-solo.webp', action: 'goToSoloSelect' },
-  { id: 'arsenal-quest', label: 'ARSENAL QUEST PROTOTYPE', text: 'ARSENAL QUEST PROTOTYPE', action: 'startArsenalQuestMode' },
+  { id: 'arsenal-quest', label: 'ARSENAL QUEST PROTOTYPE', text: 'ARSENAL QUEST PROTOTYPE', action: 'beginArsenalQuestSelection' },
 ];
 
 const LOADING_LABELS = ['LOADING ASSETS', 'PREPARING ARENA', 'SYNCHRONIZING VFX'];
@@ -90,6 +90,7 @@ const DEFERRED_RUNTIME_ACTION_GROUPS = {
   startTrialMode: 'trialBattle',
   startTamChienMode: 'tamChien',
   startArsenalQuestMode: 'arsenalQuest',
+  beginArsenalQuestSelection: 'arsenalQuest',
 };
 
 function callApexGlobal(name, enabled = true) {
@@ -498,7 +499,7 @@ export default function App() {
       } else if (name === 'goToMenu' || name === 'exitAutoBattle') {
         window.apexStopBattleAudio?.();
         playMenuMusic(true);
-      } else if (name === 'goToSelect' || name === 'goToManualLabSelect' || name === 'goToTournament' || name === 'goToSoloSelect') {
+      } else if (name === 'goToSelect' || name === 'goToManualLabSelect' || name === 'goToTournament' || name === 'goToSoloSelect' || name === 'beginArsenalQuestSelection') {
         window.apexStopBattleAudio?.();
         playMenuMusic(false);
       }

@@ -336,7 +336,8 @@ report.spawnLaw = run(`
     spawnedTotal: d.spawnedTotal,
     maxActive: d.maxActiveSlots,
     leadValues,
-    leadsInRange: leadValues.length >= 3 && leadValues.every(v => v >= 1.2 && v <= 1.8),
+    // V2 §A5: every slot must carry the FIXED 1.0s centerline lead.
+    leadsFixedOne: leadValues.length >= 3 && leadValues.every(v => Math.abs(v - 1.0) < 1e-9),
     spawnEvents: __AQ_TEST.countEvents('SPAWN_SLOT'),
     revealEvents: __AQ_TEST.countEvents('REVEAL'),
     allHiddenIdentityNull: d.slots.filter(s => s.phase === 'TELEGRAPH').every(s => s.weaponId === null),
@@ -345,7 +346,7 @@ report.spawnLaw = run(`
 `);
 gate('spawn-cadence-independent', report.spawnLaw.spawnedTotal >= 4 && report.spawnLaw.spawnEvents >= 4,
   `spawnedTotal=${report.spawnLaw.spawnedTotal} over 10s (first 1.0s, cadence 3.0s)`);
-gate('reveal-lookahead-1.2-1.8s', report.spawnLaw.leadsInRange, report.spawnLaw.leadValues.map(v => +v.toFixed(3)));
+gate('centerline-lead-fixed-1.0', report.spawnLaw.leadsFixedOne, report.spawnLaw.leadValues.map(v => +v.toFixed(3)));
 gate('multi-slot-coexist', report.spawnLaw.maxActive >= 3, `maxActiveSlots=${report.spawnLaw.maxActive}`);
 gate('no-age-based-reveal-while-far', report.spawnLaw.longHiddenCount >= 1 && report.spawnLaw.allHiddenIdentityNull,
     `longHidden=${report.spawnLaw.longHiddenCount} reveals=${report.spawnLaw.revealEvents}`);
@@ -355,10 +356,10 @@ report.telegraphLaw = run(`
   __AQ_TEST.enterManual();
   __AQ_TEST.clearEvents();
   __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(150, 500, 900, 900); // frozen by default
+  __AQ_TEST.place(400, 500, 900, 900); // frozen by default
   const id = __AQ_TEST.pushSlot({
     x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null,
-    revealLeadSeconds: 1.5
+    revealLeadSeconds: 1.0
   });
 
   // Even after >5s, no eligible moving fighter is approaching.
@@ -392,12 +393,45 @@ gate('telegraph-not-collectible-and-long-hidden',
   report.telegraphLaw.hiddenAfter6s && report.telegraphLaw.beforeDebug?.age >= 6 && report.telegraphLaw.beforeDebug?.weaponId === null,
   report.telegraphLaw.beforeDebug);
 gate('telegraph-no-identity', report.telegraphLaw.beforeDebug?.weaponId === null);
-gate('proximity-reveal-on-approach',
+gate('centerline-reveal-on-aligned-approach',
   report.telegraphLaw.revealedOnApproach && /eta=\d+\.\d+/.test(report.telegraphLaw.revealLog)
-    && /lead=1\.50/.test(report.telegraphLaw.revealLog) && /fighter=HERO/.test(report.telegraphLaw.revealLog),
+    && /lead=1\.00/.test(report.telegraphLaw.revealLog) && /fighter=HERO/.test(report.telegraphLaw.revealLog),
   report.telegraphLaw.revealLog);
 gate('reveal-then-collectible', report.telegraphLaw.pickupEvent === 1,
     report.telegraphLaw.revealLog || JSON.stringify(report.telegraphLaw.finalHolder));
+
+// --------------------- gate: V2 §A5 negatives — graze + pre-bounce stay hidden
+report.centerlineNeg = run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.clearEvents();
+  // Graze: corridor offset 70px — inside the OLD broad touch radius (~117px)
+  // but outside the 16px center corridor. Must never reveal.
+  __AQ_TEST.place(400, 500, 900, 200);
+  const grazeId = __AQ_TEST.pushSlot({ x: 850, y: 570, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 1.0 });
+  fighters[0].baseSpeed = 520; fighters[0].setDir(1, 0); fighters[1].baseSpeed = 0;
+  __AQ_TEST.step(1.2); // hero passes the slot's x while 70px off-center
+  const graze = APEX_ARSENAL.state.slots.find(s => s.id === grazeId);
+  const grazeStayedHidden = !!graze && graze.phase === 'TELEGRAPH' && graze.weaponId === null;
+
+  // Pre-bounce: slot behind the fighter's current motion line, near the wall.
+  // Old bounce-simulating predictor would forecast the post-bounce return path;
+  // the centerline gate must stay hidden until the bounce actually happens.
+  __AQ_TEST.place(900, 500, 300, 200);
+  const bounceId = __AQ_TEST.pushSlot({ x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 1.0 });
+  fighters[0].baseSpeed = 520; fighters[0].setDir(1, 0); fighters[1].baseSpeed = 0;
+  __AQ_TEST.step(0.03); // still pre-bounce (wall contact ~0.05s away)
+  const preBounce = APEX_ARSENAL.state.slots.find(s => s.id === bounceId);
+  const hiddenBeforeBounce = !!preBounce && preBounce.phase === 'TELEGRAPH' && preBounce.weaponId === null;
+  // After the wall bounce flips the direction, the new segment re-evaluates and
+  // the aligned center crossing reveals.
+  __AQ_TEST.step(0.35);
+  const postBounce = APEX_ARSENAL.state.slots.find(s => s.id === bounceId);
+  const revealedAfterBounce = !postBounce || postBounce.phase === 'REVEALED';
+  return { grazeStayedHidden, hiddenBeforeBounce, revealedAfterBounce };
+`);
+gate('centerline-graze-stays-hidden', report.centerlineNeg.grazeStayedHidden, report.centerlineNeg);
+gate('centerline-no-reveal-before-bounce', report.centerlineNeg.hiddenBeforeBounce && report.centerlineNeg.revealedAfterBounce, report.centerlineNeg);
 
 // ------------------------------------------------ gate: pickup rules both sides
 report.pickupRules = run(`
@@ -670,7 +704,7 @@ run(`
   __AQ_TEST.step(0.6);
   __AQ_TEST.redraw();
 `);
-snapshot('06-melee-axe-slash');
+snapshot('06-melee-axe-swing');
 
 // Evidence 7: shields — tower guard absorbing + swirl reflect frame.
 run(`
@@ -821,7 +855,7 @@ snapshot('av-07-grenade-explosion');
 
 // AV evidence 8-12: melee family presentations.
 const meleeScenes = [
-  ['av-08-sabre-slash', 'SABRE', 0.2],
+  ['av-08-sabre-swing', 'SABRE', 0.2],
   ['av-09-battle-axe-hit', 'BATTLE_AXE', 0.6],
   ['av-10-dagger-attack', 'DAGGER', 0.12],
   ['av-11-spear-thrust', 'SPEAR', 0.28],
@@ -874,6 +908,57 @@ run(`
   __AQ_TEST.redraw();
 `);
 snapshot('av-15-multi-pickup-stable');
+
+// V2 evidence 16: P1/P2 canonical shells (SNIPER vs WITCH) with body art.
+run(`
+  window.startArsenalQuestMode('SNIPER', 'WITCH');
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+  __AQ_TEST.step(0.6);
+  __AQ_TEST.redraw();
+`);
+snapshot('16-v2-shells-sniper-vs-witch');
+
+// V2 evidence 17: movement direction unchanged while equipped weapon aims.
+run(`
+  window.startArsenalQuestMode('RUBBER', 'ICE');
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+  fighters[0].x = 250; fighters[0].y = 500; fighters[1].x = 800; fighters[1].y = 500;
+  fighters[0].baseSpeed = 520; fighters[0].setDir(0, 1); fighters[1].baseSpeed = 0;
+  APEX_ARSENAL.weaponApi.equip(fighters[0], 'SNIPER');
+  __AQ_TEST.step(0.45); // sniper aiming right while body travels down
+  __AQ_TEST.redraw();
+`);
+snapshot('17-v2-aim-independent-of-movement');
+
+// V2 evidence 18: strict centerline reveal — aligned path reveals at <=1.0s.
+run(`
+  window.startArsenalQuestMode('RUBBER', 'ICE');
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+  fighters[0].x = 400; fighters[0].y = 500; fighters[1].x = 900; fighters[1].y = 150;
+  fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+  __AQ_TEST.pushSlot({ x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 1.0 });
+  fighters[0].baseSpeed = 520; fighters[0].setDir(1, 0);
+  __AQ_TEST.step(0.1);
+  __AQ_TEST.redraw();
+`);
+snapshot('18-v2-centerline-reveal');
+
+// V2 evidence 19: grazing trajectory (70px off-center) stays a hidden telegraph.
+run(`
+  window.startArsenalQuestMode('RUBBER', 'ICE');
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+  fighters[0].x = 400; fighters[0].y = 500; fighters[1].x = 900; fighters[1].y = 150;
+  fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+  __AQ_TEST.pushSlot({ x: 850, y: 570, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 1.0 });
+  fighters[0].baseSpeed = 520; fighters[0].setDir(1, 0);
+  __AQ_TEST.step(0.8); // hero is now beside the slot, 70px off its centerline
+  __AQ_TEST.redraw();
+`);
+snapshot('19-v2-graze-stays-hidden');
 
 report.av.after = avStats();
 gate('av-assets-preloaded',
@@ -936,7 +1021,8 @@ report.fiveMinute = (() => {
       error, koCount, restarts,
       spawnedTotal: d.spawnedTotal,
       spawnedCumulative,
-      leadSamplesInRange: leadSamples.length > 100 && leadSamples.every(v => v >= 1.2 && v <= 1.8),
+      // V2 §A5: fixed 1.0s centerline lead on every telegraph, forever.
+      leadSamplesFixedOne: leadSamples.length > 100 && leadSamples.every(v => Math.abs(v - 1.0) < 1e-9),
       leadSampleCount: leadSamples.length,
       earlyErrors: __AQ_TEST.earlyErrors(),
     };
@@ -947,13 +1033,141 @@ report.fiveMinute = (() => {
 gate('five-minute-no-uncaught-errors',
   report.fiveMinute.error === null && report.fiveMinute.earlyErrors.length === 0,
   `steps=9000 (300s @30Hz) kos=${report.fiveMinute.koCount} spawnedCumulative=${report.fiveMinute.spawnedCumulative} wallClock=${report.fiveMinute.wallClockMs}ms earlyErrors=${report.fiveMinute.earlyErrors.length}`);
-gate('reveal-lookahead-range-over-5min', report.fiveMinute.leadSamplesInRange, `samples=${report.fiveMinute.leadSampleCount}`);
+gate('centerline-lead-fixed-over-5min', report.fiveMinute.leadSamplesFixedOne, `samples=${report.fiveMinute.leadSampleCount}`);
+
+// ----------------------------------------- gate: V2 §A1 — aim never steers body
+report.aimLaw = run(`
+  const out = {};
+  __AQ_TEST.enterManual();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(200, 500, 800, 500);
+  // Fighter commits to a vertical trajectory while the enemy sits horizontal:
+  // any weapon steering would bend dir toward the enemy.
+  fighters[0].baseSpeed = 520; fighters[0].setDir(0, 1); fighters[1].baseSpeed = 0;
+  const d0 = { x: fighters[0].dir.x, y: fighters[0].dir.y };
+  const p0 = { x: fighters[0].x, y: fighters[0].y };
+  __AQ_TEST.equip('HERO', 'SNIPER');
+  __AQ_TEST.step(0.5); // full live-aim window
+  out.aimDirSame = fighters[0].dir.x === d0.x && fighters[0].dir.y === d0.y;
+  out.aimKeptApexTrajectory = Math.abs(fighters[0].y - (p0.y + 260)) < 8 && Math.abs(fighters[0].x - p0.x) < 1e-6;
+  out.aimAngleTrackedEnemy = (() => {
+    const h = APEX_ARSENAL.weaponApi.getHolder(fighters[0]);
+    return h && h.meta && h.meta.aimAngle != null;
+  })();
+  __AQ_TEST.enterManual();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(200, 500, 800, 500);
+  fighters[0].baseSpeed = 520; fighters[0].setDir(0, 1); fighters[1].baseSpeed = 0;
+  const q0 = { x: fighters[0].dir.x, y: fighters[0].dir.y };
+  __AQ_TEST.equip('HERO', 'PISTOL');
+  __AQ_TEST.step(0.8); // three shots while moving
+  out.fireDirSame = fighters[0].dir.x === q0.x && fighters[0].dir.y === q0.y;
+  return out;
+`);
+gate('aim-never-steers-fighter',
+  report.aimLaw.aimDirSame && report.aimLaw.aimKeptApexTrajectory && report.aimLaw.fireDirSame && report.aimLaw.aimAngleTrackedEnemy,
+  report.aimLaw);
+
+// ----------------------------------------- gate: V2 §A1 — dagger body stays put
+report.daggerLaw = run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.clearEvents();
+  __AQ_TEST.place(500, 500, 700, 500); // 200px apart, inside dagger trigger range
+  fighters[0].baseSpeed = 520; fighters[0].setDir(0, 1); fighters[1].baseSpeed = 0;
+  const p0 = { x: fighters[0].x, y: fighters[0].y };
+  __AQ_TEST.equip('HERO', 'DAGGER');
+  __AQ_TEST.step(0.2);
+  const dx = fighters[0].x - p0.x;
+  const dy = fighters[0].y - p0.y;
+  return {
+    dx, dy,
+    bodyKeptTrajectory: Math.abs(dy - 104) < 12 && Math.abs(dx) < 1e-6,
+    thrustConnected: __AQ_TEST.countEvents('CONSUME', 'stab-landed') >= 1,
+  };
+`);
+gate('dagger-no-body-dash', report.daggerLaw.bodyKeptTrajectory, report.daggerLaw);
+gate('dagger-weapon-only-thrust-hits', report.daggerLaw.thrustConnected, report.daggerLaw);
+
+// ----------------------------------------- gate: V2 §A3 — 32 canonical shells
+report.shells = run(`
+  const shells = window.APEX_ARSENAL_SHELLS;
+  const ids = shells ? shells.ids : [];
+  window.startArsenalQuestMode('SNIPER', 'WITCH');
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+  const names = fighters.map(f => f.name);
+  const shellFlags = fighters.map(f => !!f.type.arsenalShell);
+  const speedOk = fighters.every(f => f.type.speed === APEX_ARSENAL_CONFIG.FIGHTER_SPEED);
+  const drawFns = fighters.map(f => typeof f.type.draw === 'function');
+  let nativeProj = 0;
+  for (let i = 0; i < 180; i++) {
+    APEX_ARSENAL.step(1 / 60);
+    nativeProj = Math.max(nativeProj, projectiles.filter(p => !p.aq).length);
+  }
+  return {
+    count: ids.length,
+    allResolvable: ids.every(n => !!shells.typeFor(n)),
+    names, shellFlags, speedOk, drawFns, nativeProj,
+    hp: [fighters[0].hp, fighters[1].hp],
+    rage: fighters.some(f => f.isRage),
+  };
+`);
+gate('shells-32-canonical', report.shells.count === 32 && report.shells.allResolvable, { count: report.shells.count });
+gate('shells-p1-p2-independent',
+  report.shells.names[0] === 'SNIPER' && report.shells.names[1] === 'WITCH'
+    && report.shells.shellFlags.every(Boolean) && report.shells.drawFns.every(Boolean),
+  report.shells.names);
+gate('shells-native-kits-disabled',
+  report.shells.nativeProj === 0 && !report.shells.rage && report.shells.hp.every(h => h === 100) && report.shells.speedOk,
+  { nativeProj: report.shells.nativeProj, hp: report.shells.hp });
+
+// ----------------------------------------- gate: V2 §A4 — slash VFX absent, bomb stays
+report.noSlash = run(`
+  const av = window.APEX_ARSENAL_AV;
+  const seqBefore = av.stats.seqAnimsPushed || 0;
+  __AQ_TEST.enterManual();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(500, 500, 650, 500);
+  __AQ_TEST.equip('HERO', 'SABRE');
+  __AQ_TEST.step(0.5);
+  __AQ_TEST.equip('RIVAL', 'BATTLE_AXE');
+  __AQ_TEST.step(0.8);
+  __AQ_TEST.equip('RIVAL', 'SWIRL_SHIELD');
+  __AQ_TEST.equip('HERO', 'PISTOL');
+  __AQ_TEST.step(1.0);
+  const seqAfter = av.stats.seqAnimsPushed || 0;
+  let atlasAfter = av.stats.atlasCued || 0;
+  __AQ_TEST.equip('HERO', 'GRENADE');
+  for (let i = 0; i < 150; i++) APEX_ARSENAL.step(1 / 60);
+  return {
+    seqBefore, seqAfter,
+    noSlashSeq: seqBefore === 0 && seqAfter === 0,
+    bombAtlas: (av.stats.atlasCued || 0) > atlasAfter || (av.stats.atlasCued || 0) >= 1,
+  };
+`);
+gate('no-slash-vfx-in-combat', report.noSlash.noSlashSeq, report.noSlash);
+gate('bomb-explosion-vfx-remains', report.noSlash.bombAtlas, report.noSlash);
 
 // ------------------------------------------------------- gate: structured log
 report.logSample = run(`
+  // Self-contained organic window so every lifecycle kind is present regardless
+  // of earlier event-ring clears.
+  window.startArsenalQuestMode();
+  cancelAnimationFrame(reqId); reqId = 0;
+  __AQ_TEST.clearEvents();
   const kinds = ['SPAWN_SLOT', 'REVEAL', 'PICKUP', 'USE', 'HIT', 'CONSUME'];
   const out = {};
-  for (const k of kinds) out[k] = APEX_ARSENAL.events.find(e => e.startsWith('[AQ] ' + k)) || null;
+  // The event ring trims to 160 lines, so scan it every second of sim time and
+  // keep the first sighting of each lifecycle kind.
+  for (let s = 0; s < 60; s++) {
+    __AQ_TEST.step(1);
+    for (const e of APEX_ARSENAL.events) {
+      const m = e.match(/^\\[AQ\\] ([A-Z_]+)/);
+      if (m && kinds.includes(m[1]) && !out[m[1]]) out[m[1]] = e;
+    }
+  }
+  for (const k of kinds) if (!out[k]) out[k] = null;
   return out;
 `);
 gate('structured-aq-events', Object.values(report.logSample).every(Boolean), report.logSample);

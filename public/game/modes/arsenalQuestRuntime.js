@@ -169,6 +169,8 @@
 
   function drawDebugOverlay(c) {
     const s = window.getArsenalQuestDebugState();
+    const n1 = s.hero ? s.hero.name : 'P1';
+    const n2 = s.rival ? s.rival.name : 'P2';
     const lines = [
       'ARSENAL QUEST DEBUG',
       `spawn in: ${s.spawnIn.toFixed(1)}s`,
@@ -176,8 +178,8 @@
       `telegraphs: ${s.telegraphs}`,
       `revealed: ${s.revealed}`,
       '',
-      `HERO  HP ${s.hero ? s.hero.hp : 0}/${CFG.MATCH_HP}   weapon: ${s.hero ? s.hero.weapon : 'NONE'}`,
-      `RIVAL HP ${s.rival ? s.rival.hp : 0}/${CFG.MATCH_HP}   weapon: ${s.rival ? s.rival.weapon : 'NONE'}`,
+      `${n1}  HP ${s.hero ? s.hero.hp : 0}/${CFG.MATCH_HP}   weapon: ${s.hero ? s.hero.weapon : 'NONE'}`,
+      `${n2} HP ${s.rival ? s.rival.hp : 0}/${CFG.MATCH_HP}   weapon: ${s.rival ? s.rival.weapon : 'NONE'}`,
     ];
     c.save();
     c.setTransform(1, 0, 0, 1, 0, 0);
@@ -192,7 +194,7 @@
     c.textAlign = 'left';
     c.textBaseline = 'top';
     lines.forEach((line, i) => {
-      c.fillStyle = i === 0 ? '#ffe08a' : line.startsWith('HERO') ? CFG.HERO_COLOR : line.startsWith('RIVAL') ? CFG.RIVAL_COLOR : '#d8d2c0';
+      c.fillStyle = i === 0 ? '#ffe08a' : line.startsWith(n1) ? (fighters[0]?.color || CFG.HERO_COLOR) : line.startsWith(n2) ? (fighters[1]?.color || CFG.RIVAL_COLOR) : '#d8d2c0';
       c.fillText(line, 16 + pad, 96 + pad + i * lineH);
     });
     c.restore();
@@ -253,17 +255,26 @@
     if (e.code === 'KeyB' || e.code === 'Escape') { window.exitArsenalQuestMode(); }
   }
 
-  window.startArsenalQuestMode = function startArsenalQuestMode() {
+  let lastShells = null;
+
+  window.startArsenalQuestMode = function startArsenalQuestMode(p1Name, p2Name) {
     resetState();
     ['menu-screen', 'select-screen', 'tournament-screen', 'end-screen', 'solo-screen', 'trial-screen', 'tam-chien-screen', 'manual-room-screen']
       .forEach(id => document.getElementById(id)?.classList.add('hidden'));
     const hud = document.getElementById('hud');
     if (hud) hud.style.opacity = 1;
 
-    // Blank HERO / RIVAL on the real Apex Fighter runtime.
+    // V2 §A3: P1/P2 canonical test shells from the shared select screen;
+    // blank HERO/RIVAL remains the direct-entry fallback (harnesses, rematch).
+    const shells = window.APEX_ARSENAL_SHELLS || null;
+    const want1 = p1Name || (lastShells && lastShells[0]) || null;
+    const want2 = p2Name || (lastShells && lastShells[1]) || null;
+    const t1 = (shells && want1 && shells.typeFor(want1)) || HERO_TYPE;
+    const t2 = (shells && want2 && shells.typeFor(want2)) || RIVAL_TYPE;
+    lastShells = [t1.name, t2.name];
     fighters = [
-      new Fighter(1, 220, GAME_SIZE / 2, HERO_TYPE),
-      new Fighter(2, GAME_SIZE - 220, GAME_SIZE / 2, RIVAL_TYPE),
+      new Fighter(1, 220, GAME_SIZE / 2, t1),
+      new Fighter(2, GAME_SIZE - 220, GAME_SIZE / 2, t2),
     ];
     for (const f of fighters) {
       f.maxHp = CFG.MATCH_HP;
@@ -287,12 +298,12 @@
 
     const p1n = document.getElementById('p1-name');
     const p2n = document.getElementById('p2-name');
-    if (p1n) { p1n.innerText = 'HERO'; p1n.style.color = CFG.HERO_COLOR; }
-    if (p2n) { p2n.innerText = 'RIVAL'; p2n.style.color = CFG.RIVAL_COLOR; }
+    if (p1n) { p1n.innerText = fighters[0].name; p1n.style.color = fighters[0].color; }
+    if (p2n) { p2n.innerText = fighters[1].name; p2n.style.color = fighters[1].color; }
     const p1hp = document.getElementById('p1-hp');
     const p2hp = document.getElementById('p2-hp');
-    if (p1hp) p1hp.style.backgroundColor = CFG.HERO_COLOR;
-    if (p2hp) p2hp.style.backgroundColor = CFG.RIVAL_COLOR;
+    if (p1hp) p1hp.style.backgroundColor = fighters[0].color;
+    if (p2hp) p2hp.style.backgroundColor = fighters[1].color;
     updateHUD();
 
     window.apexStopBattleAudio?.();
