@@ -93,11 +93,11 @@
     },
     "centerline-reveal-on-aligned-approach": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=TOWER_SHIELD eta=0.87 lead=1.00 fighter=HERO"
+      "detail": "[AQ] REVEAL id=1 weapon=BATTLE_AXE eta=0.87 lead=1.00 fighter=HERO"
     },
     "reveal-then-collectible": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=TOWER_SHIELD eta=0.87 lead=1.00 fighter=HERO"
+      "detail": "[AQ] REVEAL id=1 weapon=BATTLE_AXE eta=0.87 lead=1.00 fighter=HERO"
     },
     "centerline-graze-stays-hidden": {
       "pass": true,
@@ -313,7 +313,7 @@
     },
     "av-all-12-weapons-cued": {
       "pass": true,
-      "detail": 49
+      "detail": 46
     },
     "av-smg-shots-trimmed": {
       "pass": true,
@@ -341,7 +341,7 @@
     "av-smg-voice-cap-enforced": {
       "pass": true,
       "detail": {
-        "notReady": 100,
+        "notReady": 98,
         "sfx/guns/sks.wav": 3,
         "sfx/scifi/forceField_001.ogg": 1
       }
@@ -361,11 +361,11 @@
     },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=3 spawnedCumulative=96 wallClock=220ms earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=3 spawnedCumulative=89 wallClock=256ms earlyErrors=0"
     },
     "centerline-lead-fixed-over-5min": {
       "pass": true,
-      "detail": "samples=46758"
+      "detail": "samples=47964"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -438,12 +438,12 @@
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=1 x=250 y=682 lead=1.00",
-        "REVEAL": "[AQ] REVEAL id=3 weapon=SPIKED_CLUB eta=0.99 lead=1.00 fighter=SNIPER",
-        "PICKUP": "[AQ] PICKUP id=3 fighter=SNIPER weapon=SPIKED_CLUB",
-        "USE": "[AQ] USE fighter=WITCH weapon=SWIRL_SHIELD",
-        "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=SPIKED_CLUB damage=18.0",
-        "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=SPIKED_CLUB reason=melee-resolved"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=1 x=529 y=341 lead=1.00",
+        "REVEAL": "[AQ] REVEAL id=2 weapon=PISTOL eta=0.52 lead=1.00 fighter=SNIPER",
+        "PICKUP": "[AQ] PICKUP id=2 fighter=SNIPER weapon=PISTOL",
+        "USE": "[AQ] USE fighter=SNIPER weapon=PISTOL",
+        "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=PISTOL reason=sequence-complete",
+        "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=SPEAR damage=15.0"
       }
     }
   },
@@ -554,10 +554,10 @@
       "predictedFighter": null
     },
     "revealedOnApproach": true,
-    "revealLog": "[AQ] REVEAL id=1 weapon=TOWER_SHIELD eta=0.87 lead=1.00 fighter=HERO",
+    "revealLog": "[AQ] REVEAL id=1 weapon=BATTLE_AXE eta=0.87 lead=1.00 fighter=HERO",
     "finalHolder": {
-      "weapon": "TOWER_SHIELD",
-      "phase": "GUARD",
+      "weapon": "BATTLE_AXE",
+      "phase": "READY",
       "shots": 0
     },
     "pickupEvent": 1
@@ -731,64 +731,52 @@
     "toggledOn": true
   },
   "av": {
-    "scheduledBefore": 132,
+    "scheduledBefore": 130,
     "after": {
       "cued": [
         {
           "event": "telegraph",
-          "x": 179,
-          "y": 799
+          "x": 394,
+          "y": 665
         },
         {
           "event": "telegraph",
-          "x": 809,
-          "y": 184
+          "x": 111,
+          "y": 723
         },
         {
           "event": "telegraph",
-          "x": 479,
-          "y": 157
+          "x": 762,
+          "y": 401
         },
         {
           "event": "telegraph",
-          "x": 266,
-          "y": 226
+          "x": 257,
+          "y": 895
         },
         {
           "event": "reveal",
           "x": 850,
           "y": 500,
-          "weapon": "TOWER_SHIELD"
-        },
-        {
-          "event": "shield_activate",
-          "x": 741,
-          "y": 500,
-          "weapon": "TOWER_SHIELD"
+          "weapon": "BATTLE_AXE"
         },
         {
           "event": "pickup",
           "x": 741,
           "y": 500,
-          "weapon": "TOWER_SHIELD"
+          "weapon": "BATTLE_AXE"
         },
         {
           "event": "reveal",
           "x": 850,
           "y": 500,
-          "weapon": "TOWER_SHIELD"
-        },
-        {
-          "event": "shield_activate",
-          "x": 916,
-          "y": 500,
-          "weapon": "TOWER_SHIELD"
+          "weapon": "SHOTGUN"
         },
         {
           "event": "pickup",
           "x": 916,
           "y": 500,
-          "weapon": "TOWER_SHIELD"
+          "weapon": "SHOTGUN"
         },
         {
           "event": "pickup",
@@ -805,25 +793,25 @@
         {
           "event": "fire",
           "x": 413,
-          "y": 502,
+          "y": 510,
           "weapon": "SMG"
         },
         {
           "event": "fire",
           "x": 413,
-          "y": 507,
+          "y": 490,
+          "weapon": "SMG"
+        },
+        {
+          "event": "fire",
+          "x": 413,
+          "y": 509,
           "weapon": "SMG"
         },
         {
           "event": "fire",
           "x": 412,
-          "y": 489,
-          "weapon": "SMG"
-        },
-        {
-          "event": "fire",
-          "x": 413,
-          "y": 506,
+          "y": 511,
           "weapon": "SMG"
         },
         {
@@ -835,19 +823,19 @@
         {
           "event": "fire",
           "x": 401,
-          "y": 501,
+          "y": 498,
           "weapon": "PISTOL"
         },
         {
           "event": "fire",
           "x": 401,
-          "y": 497,
+          "y": 503,
           "weapon": "PISTOL"
         },
         {
           "event": "fire",
           "x": 401,
-          "y": 496,
+          "y": 500,
           "weapon": "PISTOL"
         },
         {
@@ -871,25 +859,25 @@
         {
           "event": "fire",
           "x": 413,
+          "y": 495,
+          "weapon": "SMG"
+        },
+        {
+          "event": "fire",
+          "x": 413,
           "y": 508,
           "weapon": "SMG"
         },
         {
           "event": "fire",
           "x": 413,
-          "y": 496,
+          "y": 510,
           "weapon": "SMG"
         },
         {
           "event": "fire",
-          "x": 412,
-          "y": 511,
-          "weapon": "SMG"
-        },
-        {
-          "event": "fire",
-          "x": 412,
-          "y": 489,
+          "x": 413,
+          "y": 492,
           "weapon": "SMG"
         },
         {
@@ -901,19 +889,19 @@
         {
           "event": "fire",
           "x": 413,
-          "y": 496,
+          "y": 510,
           "weapon": "SMG"
         },
         {
           "event": "fire",
           "x": 413,
-          "y": 500,
+          "y": 505,
           "weapon": "SMG"
         },
         {
           "event": "fire",
           "x": 413,
-          "y": 502,
+          "y": 494,
           "weapon": "SMG"
         },
         {
@@ -1194,13 +1182,13 @@
         {
           "event": "fire",
           "x": 679,
-          "y": 500,
+          "y": 502,
           "weapon": "PISTOL"
         },
         {
           "event": "fire",
           "x": 679,
-          "y": 495,
+          "y": 496,
           "weapon": "PISTOL"
         },
         {
@@ -1273,13 +1261,13 @@
         },
         {
           "event": "telegraph",
-          "x": 165,
-          "y": 454
+          "x": 444,
+          "y": 511
         },
         {
           "event": "telegraph",
-          "x": 315,
-          "y": 331
+          "x": 109,
+          "y": 257
         },
         {
           "event": "pickup",
@@ -1290,13 +1278,13 @@
         {
           "event": "fire",
           "x": 421,
-          "y": 502,
+          "y": 498,
           "weapon": "PISTOL"
         },
         {
           "event": "fire",
           "x": 421,
-          "y": 502,
+          "y": 499,
           "weapon": "PISTOL"
         },
         {
@@ -1320,37 +1308,37 @@
         {
           "event": "fire",
           "x": 413,
-          "y": 483,
-          "weapon": "SMG"
-        },
-        {
-          "event": "fire",
-          "x": 413,
-          "y": 470,
-          "weapon": "SMG"
-        },
-        {
-          "event": "fire",
-          "x": 413,
-          "y": 485,
-          "weapon": "SMG"
-        },
-        {
-          "event": "fire",
-          "x": 413,
-          "y": 486,
-          "weapon": "SMG"
-        },
-        {
-          "event": "fire",
-          "x": 412,
-          "y": 469,
+          "y": 474,
           "weapon": "SMG"
         },
         {
           "event": "fire",
           "x": 413,
           "y": 482,
+          "weapon": "SMG"
+        },
+        {
+          "event": "fire",
+          "x": 413,
+          "y": 490,
+          "weapon": "SMG"
+        },
+        {
+          "event": "fire",
+          "x": 413,
+          "y": 476,
+          "weapon": "SMG"
+        },
+        {
+          "event": "fire",
+          "x": 413,
+          "y": 480,
+          "weapon": "SMG"
+        },
+        {
+          "event": "fire",
+          "x": 413,
+          "y": 484,
           "weapon": "SMG"
         },
         {
@@ -1513,40 +1501,18 @@
         },
         {
           "event": "telegraph",
-          "x": 333,
-          "y": 797
-        },
-        {
-          "event": "reveal",
-          "x": 333,
-          "y": 797,
-          "weapon": "GRENADE"
-        },
-        {
-          "event": "pickup",
-          "x": 374,
-          "y": 902,
-          "weapon": "GRENADE"
-        },
-        {
-          "event": "grenade_throw",
-          "x": 364,
-          "y": 681
+          "x": 198,
+          "y": 202
         },
         {
           "event": "telegraph",
-          "x": 457,
-          "y": 363
-        },
-        {
-          "event": "explosion",
-          "x": 631,
-          "y": 427
+          "x": 889,
+          "y": 496
         },
         {
           "event": "telegraph",
-          "x": 330,
-          "y": 260
+          "x": 529,
+          "y": 637
         },
         {
           "event": "pickup",
@@ -1563,7 +1529,7 @@
           "event": "reveal",
           "x": 850,
           "y": 500,
-          "weapon": "SHOTGUN"
+          "weapon": "SMG"
         }
       ],
       "scheduled": [
@@ -1604,12 +1570,6 @@
           "vol": 0.18
         },
         {
-          "rel": "sfx/scifi/forceField_003.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.28
-        },
-        {
           "rel": "sfx/rpg/metalLatch.ogg",
           "offset": 0,
           "dur": null,
@@ -1632,12 +1592,6 @@
           "offset": 0,
           "dur": null,
           "vol": 0.18
-        },
-        {
-          "rel": "sfx/scifi/forceField_003.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.28
         },
         {
           "rel": "sfx/rpg/metalLatch.ogg",
@@ -2714,46 +2668,10 @@
           "vol": 0.3
         },
         {
-          "rel": "sfx/rpg/metalClick.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.55
-        },
-        {
-          "rel": "sfx/impact/impactGeneric_light_002.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.18
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.7
-        },
-        {
-          "rel": "sfx/impact/impactGeneric_light_002.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2
-        },
-        {
           "rel": "sfx/scifi/forceField_001.ogg",
           "offset": 0,
           "dur": null,
           "vol": 0.3
-        },
-        {
-          "rel": "sfx/scifi/explosionCrunch_002.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.9
-        },
-        {
-          "rel": "sfx/scifi/lowFrequency_explosion_001.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.32
         },
         {
           "rel": "sfx/scifi/forceField_001.ogg",
@@ -2793,7 +2711,7 @@
         }
       ],
       "throttled": {
-        "notReady": 100,
+        "notReady": 98,
         "sfx/guns/sks.wav": 3,
         "sfx/scifi/forceField_001.ogg": 1
       },
@@ -2811,12 +2729,12 @@
     "error": null,
     "koCount": 3,
     "restarts": 3,
-    "spawnedTotal": 11,
-    "spawnedCumulative": 96,
+    "spawnedTotal": 12,
+    "spawnedCumulative": 89,
     "leadSamplesFixedOne": true,
-    "leadSampleCount": 46758,
+    "leadSampleCount": 47964,
     "earlyErrors": [],
-    "wallClockMs": 220
+    "wallClockMs": 256
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -2860,12 +2778,12 @@
     "bombAtlas": true
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=1 x=250 y=682 lead=1.00",
-    "REVEAL": "[AQ] REVEAL id=3 weapon=SPIKED_CLUB eta=0.99 lead=1.00 fighter=SNIPER",
-    "PICKUP": "[AQ] PICKUP id=3 fighter=SNIPER weapon=SPIKED_CLUB",
-    "USE": "[AQ] USE fighter=WITCH weapon=SWIRL_SHIELD",
-    "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=SPIKED_CLUB damage=18.0",
-    "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=SPIKED_CLUB reason=melee-resolved"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=1 x=529 y=341 lead=1.00",
+    "REVEAL": "[AQ] REVEAL id=2 weapon=PISTOL eta=0.52 lead=1.00 fighter=SNIPER",
+    "PICKUP": "[AQ] PICKUP id=2 fighter=SNIPER weapon=PISTOL",
+    "USE": "[AQ] USE fighter=SNIPER weapon=PISTOL",
+    "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=PISTOL reason=sequence-complete",
+    "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=SPEAR damage=15.0"
   },
   "summary": {
     "total": 71,

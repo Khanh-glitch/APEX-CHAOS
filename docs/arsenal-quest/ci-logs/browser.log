@@ -11,8 +11,8 @@ PASS  multi-slot-coexist  — maxActiveSlots=4
 PASS  no-age-based-reveal-while-far  — longHidden=2 reveals=0
 PASS  telegraph-not-collectible-and-long-hidden  — {"id":1,"phase":"TELEGRAPH","age":6.1,"weaponId":null,"revealLeadSeconds":1,"predictedHeroETA":null,"predictedRivalETA":null,"earliestETA":null,"predictedFighter":null}
 PASS  telegraph-no-identity
-PASS  centerline-reveal-on-aligned-approach  — [AQ] REVEAL id=1 weapon=DAGGER eta=0.87 lead=1.00 fighter=HERO
-PASS  reveal-then-collectible  — [AQ] REVEAL id=1 weapon=DAGGER eta=0.87 lead=1.00 fighter=HERO
+PASS  centerline-reveal-on-aligned-approach  — [AQ] REVEAL id=1 weapon=SHOTGUN eta=0.87 lead=1.00 fighter=HERO
+PASS  reveal-then-collectible  — [AQ] REVEAL id=1 weapon=SHOTGUN eta=0.87 lead=1.00 fighter=HERO
 PASS  centerline-graze-stays-hidden  — {"grazeStayedHidden":true,"hiddenBeforeBounce":true,"revealedAfterBounce":true}
 PASS  centerline-no-reveal-before-bounce  — {"grazeStayedHidden":true,"hiddenBeforeBounce":true,"revealedAfterBounce":true}
 PASS  aim-never-steers-fighter  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
@@ -59,8 +59,8 @@ PASS  browser-no-atlas-fallback  — {"floor":2,"equipped":2,"imgFail":0,"sfxFai
 PASS  shell-select-32-cards  — {"count":32,"p1":"SNIPER","p2":"WITCH","selectVisible":true}
 PASS  shell-select-p1-p2-locks  — {"count":32,"p1":"SNIPER","p2":"WITCH","selectVisible":true}
 PASS  shell-select-enters-arsenal  — {"gameState":"ARSENAL","names":["SNIPER","WITCH"],"shells":[true,true]}
-PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=3 restarts=3 spawnedCumulative=92 earlyErrors=0
-PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=26 x=182 y=293 lead=1.00","REVEAL":"[AQ] REVEAL id=18 weapon=PISTOL eta=0.97 lead=1.00 fighter=SNIPER","PICKUP":"[AQ] PICKUP id=18 fighter=SNIPER weapon=PISTOL","USE":"[AQ] USE fighter=SNIPER weapon=PISTOL","HIT":"[AQ] HIT source=WITCH target=SNIPER weapon=SNIPER damage=26.0","CONSUME":"[AQ] CONSUME fighter=SNIPER weapon=PISTOL reason=sequence-complete"}
+PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=3 restarts=3 spawnedCumulative=98 earlyErrors=0
+PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=15 x=707 y=539 lead=1.00","REVEAL":"[AQ] REVEAL id=9 weapon=BATTLE_AXE eta=0.37 lead=1.00 fighter=WITCH","PICKUP":"[AQ] PICKUP id=9 fighter=WITCH weapon=BATTLE_AXE","USE":"[AQ] USE fighter=WITCH weapon=BATTLE_AXE","HIT":"[AQ] HIT source=SNIPER target=WITCH weapon=SHOTGUN damage=3.6","CONSUME":"[AQ] CONSUME fighter=WITCH weapon=DAGGER reason=stab-landed"}
 
 ==== ARSENAL QUEST TEST SUMMARY ====
 {
