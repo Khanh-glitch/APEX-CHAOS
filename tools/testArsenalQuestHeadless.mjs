@@ -1848,15 +1848,18 @@ report.gapCasing = run(`
   __AQ_TEST.enterManual();
   __AQ_TEST.holdSpawns();
   __AQ_TEST.place(300, 500, 700, 500);
-  fighters[0].baseSpeed = 0;
+  fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
   const av = APEX_ARSENAL_AV;
-  av.clear();
+  av.stats.cued.length = 0;
   APEX_ARSENAL.weaponApi.equip(fighters[0], 'AK_47');
   for (let i = 0; i < 50; i++) APEX_ARSENAL.step(1 / 60);
-  const cued = av.stats.cued.filter(c => c.event === 'casing');
-  return { n: cued.length, usedMeta: cued.some(c => c.usedMeta) };
+  const fresh = av.stats.cued.filter(c => c.event === 'casing' && c.weapon === 'AK_47');
+  const anchor = APEX_ARSENAL.weaponApi.worldAnchor(fighters[0], 'AK_47', 'casing', fighters[0].data?.arsenal?.meta?.aimAngle || 0);
+  const first = fresh[0];
+  const dist = first && anchor ? Math.hypot(first.x - anchor.x, first.y - anchor.y) : 999;
+  return { n: fresh.length, usedMeta: fresh.every(c => c.usedMeta === true) && fresh.length > 0, dist: +dist.toFixed(1), ax: anchor && +anchor.x.toFixed(1), cx: first && first.x, usedMetaFlag: anchor && anchor.usedMeta };
 `);
-gate('gap-casing-uses-metadata', report.gapCasing.n >= 1, report.gapCasing);
+gate('gap-casing-uses-metadata', report.gapCasing.usedMeta === true && report.gapCasing.n >= 1 && report.gapCasing.dist < 80, report.gapCasing);
 
 report.gapSawed = run(`
   __AQ_TEST.enterManual();
@@ -1881,6 +1884,7 @@ report.gapMagnum = run(`
   __AQ_TEST.place(300, 500, 620, 500);
   fighters[0].baseSpeed = 0;
   APEX_ARSENAL_AV.clear();
+  APEX_ARSENAL_AV.stats.cued.length = 0;
   APEX_ARSENAL.weaponApi.equip(fighters[0], 'MAGNUM_500');
   let during = 0;
   for (let i = 0; i < 40; i++) {

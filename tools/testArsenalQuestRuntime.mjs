@@ -1105,6 +1105,33 @@ try {
   })()`);
   report.evidence.push(await screenshot('gap-rarity-melee-grenade'));
 
+  async function casingScene(weaponId, name) {
+    const detail = await evaluate(`(() => {
+      __AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();
+      __AQ_TEST.place(280, 500, 720, 500);
+      fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+      APEX_ARSENAL_AV.stats.cued.length = 0;
+      APEX_ARSENAL.weaponApi.equip(fighters[0], '${weaponId}');
+      for (let i = 0; i < 55; i++) APEX_ARSENAL.step(1 / 60);
+      const fresh = APEX_ARSENAL_AV.stats.cued.filter(c => c.event === 'casing' && c.weapon === '${weaponId}');
+      __AQ_TEST.redraw();
+      return { n: fresh.length, usedMeta: fresh.length > 0 && fresh.every(c => c.usedMeta === true), sample: fresh[0] || null };
+    })()`);
+    report.evidence.push(await screenshot(name));
+    return detail;
+  }
+  report.gapCasingBr = {
+    glock: await casingScene('GLOCK_17', 'gap-casing-glock'),
+    ak: await casingScene('AK_47', 'gap-casing-ak'),
+    m249: await casingScene('M249_SAW', 'gap-casing-m249'),
+    spas: await casingScene('SHOTGUN', 'gap-casing-spas'),
+    mbr: await casingScene('MBR', 'gap-casing-mbr'),
+    snipex: await casingScene('SNIPER', 'gap-casing-snipex'),
+  };
+  gate('browser-casing-uses-metadata',
+    ['glock', 'ak', 'm249', 'spas', 'mbr', 'snipex'].every((k) => report.gapCasingBr[k].usedMeta === true),
+    report.gapCasingBr);
+
   // --------------------------------------------- 5-minute simulation -------
   report.fiveMinute = await evaluate(`(() => {
     __AQ_TEST.enterManual();

@@ -307,16 +307,17 @@
 
   // C §eject: spent casing leaves the port on every shot — open-mouth brass
   // arc/spin/fall with bounded life (presentation owns the physics).
-  function ejectCasing(f, angle, power, weaponId) {
+  function ejectCasing(f, angle, power, weaponId, forceHull) {
     const spec = (CFG.WEAPONS && weaponId && CFG.WEAPONS[weaponId]) || {};
-    if (spec.noCasing) return;
+    if (spec.noCasing && !forceHull) return;
     const rear = angle + Math.PI;
     const side = angle + Math.PI / 2 + (Math.random() * 0.7 - 0.35);
     const mix = 0.55 + Math.random() * 0.35;
     const dirx = Math.cos(side) * mix + Math.cos(rear) * (1 - mix);
     const diry = Math.sin(side) * mix + Math.sin(rear) * (1 - mix);
-    const bx = f.x + Math.cos(angle) * (f.radius * 0.35) + dirx * 14;
-    const by = f.y + Math.sin(angle) * (f.radius * 0.35) + diry * 14;
+    const origin = weaponId ? weaponWorldAnchor(f, weaponId, 'casing', angle) : null;
+    const bx = origin ? origin.x : (f.x + Math.cos(angle) * (f.radius * 0.35) + dirx * 14);
+    const by = origin ? origin.y : (f.y + Math.sin(angle) * (f.radius * 0.35) + diry * 14);
     const sp = (140 + Math.random() * 110) * (power || 1) * (spec.casingFan || 1);
     window.avCue('casing', {
       x: bx, y: by,
@@ -324,6 +325,8 @@
       vy: diry * sp + Math.sin(rear) * 40 - 80,
       rot: Math.random() * TAU,
       vrot: (Math.random() < 0.5 ? -1 : 1) * (8 + Math.random() * 7),
+      weapon: weaponId,
+      usedMeta: !!(origin && origin.usedMeta),
     });
   }
 

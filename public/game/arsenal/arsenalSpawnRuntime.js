@@ -377,18 +377,32 @@
         const glowSpec = (CFG.TIER_GLOW && slot.tier && CFG.TIER_GLOW[slot.tier]) || { rx: 34, ry: 10, a: 0.35, pulse: 0 };
         if (glow) {
           const pulse = 0.5 + 0.5 * Math.sin(t * (1.4 + glowSpec.pulse * 4) + slot.id);
+          const rx = glowSpec.rx + pulse * 4;
+          const ry = glowSpec.ry + pulse * 1.5;
           ctx.save();
-          ctx.translate(0, bob);
-          ctx.globalAlpha = glowSpec.a + glowSpec.pulse * pulse;
-          ctx.fillStyle = glow;
+          ctx.translate(0, bob + 22);
+          ctx.globalAlpha = 1;
+          const grad = ctx.createRadialGradient(0, 0, 2, 0, 0, rx);
+          const a0 = Math.min(0.95, glowSpec.a + glowSpec.pulse * pulse + 0.15);
+          grad.addColorStop(0, glow);
+          grad.addColorStop(0.35, glow);
+          grad.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.globalAlpha = a0;
+          ctx.fillStyle = grad;
+          ctx.shadowColor = glow;
+          ctx.shadowBlur = 18 + glowSpec.rx * 0.35 + pulse * 10;
           ctx.beginPath();
-          ctx.ellipse(0, 22, glowSpec.rx + pulse * 4, glowSpec.ry + pulse * 1.5, 0, 0, TAU);
+          ctx.ellipse(0, 0, rx, ry, 0, 0, TAU);
           ctx.fill();
+          ctx.shadowBlur = 0;
           if (glowSpec.shimmer) {
-            ctx.globalAlpha = 0.18 + 0.12 * pulse;
-            ctx.fillStyle = '#FFD27A';
+            const warm = ctx.createRadialGradient(0, 0, 1, 0, 0, rx * 0.55);
+            warm.addColorStop(0, 'rgba(255,210,122,0.55)');
+            warm.addColorStop(1, 'rgba(255,210,122,0)');
+            ctx.globalAlpha = 0.22 + 0.16 * pulse;
+            ctx.fillStyle = warm;
             ctx.beginPath();
-            ctx.ellipse(0, 22, glowSpec.rx * 0.55, glowSpec.ry * 0.55, 0, 0, TAU);
+            ctx.ellipse(0, 0, rx * 0.55, ry * 0.55, 0, 0, TAU);
             ctx.fill();
           }
           ctx.restore();
