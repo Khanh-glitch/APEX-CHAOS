@@ -9,7 +9,12 @@
   const CONFIG = {
     // --- Spawn law (handoff §5) ---
     SPAWN_CADENCE_SECONDS: 3.0,          // timer-driven, independent of collection state
-    REVEAL_DELAY_MIN_SECONDS: 1.2,       // identity hidden window
+    REVEAL_LOOKAHEAD_MIN_SECONDS: 1.2,   // predicted time-to-contact threshold
+    REVEAL_LOOKAHEAD_MAX_SECONDS: 1.8,
+    REVEAL_PREDICT_HORIZON_SECONDS: 2.0,
+    REVEAL_PREDICT_STEP_SECONDS: 1 / 30,
+    // Deprecated aliases retained only for compatibility with older debug/tests.
+    REVEAL_DELAY_MIN_SECONDS: 1.2,
     REVEAL_DELAY_MAX_SECONDS: 1.8,
     SPAWN_MARGIN: 90,                    // keep slots away from walls
     PICKUP_RADIUS: 42,                   // floor pickup marker radius
