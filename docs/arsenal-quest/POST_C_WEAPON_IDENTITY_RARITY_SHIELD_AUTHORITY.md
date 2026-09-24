@@ -65,7 +65,7 @@ No rarity text is rendered inside the battlefield.
 
 ### 2.2 Floor presentation
 
-For a REVEALED pickup only:
+For any REVEALED offensive pickup — gun, melee or grenade:
 
 - keep the normal dark contact shadow;
 - add a second blurred luminous ellipse beneath the hovering weapon using the tier color;
@@ -95,6 +95,39 @@ Within a tier:
 
 This preserves the owner's melee-halving rule while making rarity meaningful.
 
+### 2.4 Full offensive tier roster
+
+Rarity applies to the entire offensive Arsenal pool, not guns only.
+
+The random offensive pool contains **30 weapons**:
+- 24 Senko guns;
+- 5 melee weapons;
+- GRENADE.
+
+The two shields are not part of these tiers because they are contextual counter objects, not random offensive loot.
+
+| Tier | Offensive weapons |
+|---|---|
+| T1 COMMON | PISTOL / Colt, GLOCK_17, TEC_9, MAC_10, DAGGER |
+| T2 UNCOMMON | BERETTA_93R, SMG / MP5, P90, ZBROYAR_Z15, ZBROYAR_Z15_S1, ZBROYAR_Z15_S2, ZBROYAR_Z15_S3, MOSSBERG_500, SABRE |
+| T3 RARE | DESERT_DEAGLE, AK_47, M16, MBR, SPAS_12 / SHOTGUN, SAWED_OFF, SPEAR, GRENADE |
+| T4 EPIC | MAGNUM_500, M249_SAW, MBR2, SZECSEI_FUCHS, SPIKED_CLUB |
+| T5 LEGENDARY | SNIPER / Snipex Alligator, JACKHAMMER, BATTLE_AXE |
+
+Melee tier placement is intentionally aligned with the already-approved +50% melee damage authority and the weapon's risk / reach / throw behavior:
+
+- DAGGER -> T1: 13.5 direct damage, fastest/lightest melee, high ricochet mobility but lowest single-hit payoff;
+- SABRE -> T2: 18 damage, flexible mid-light blade;
+- SPEAR -> T3: 22.5 damage, long reach and strong linear control;
+- SPIKED_CLUB -> T4: 27 damage, heavy blunt payoff and stun identity;
+- BATTLE_AXE -> T5: 39 damage, slowest/heaviest commit and highest melee payoff.
+
+GRENADE -> T3 RARE:
+- raw max damage is lower than some T3 guns;
+- its area coverage, 155px blast radius, 900 knockback and delayed positional threat raise its effective combat value above a simple 20-damage comparison.
+
+The tier roll happens first, so adding a melee item to T5 does not make T5 more common. Within the selected tier, melee still uses raw item weight 0.5 while gun / grenade use 1.0.
+
 These percentages are an initial authored target. Browser simulation may adjust them slightly, but ordering must remain T1 > T2 > T3 > T4 > T5 and Legendary must remain clearly uncommon.
 
 ## 3. Power envelopes
@@ -122,7 +155,9 @@ A short-range shotgun may have a high ceiling but poor reliability outside its i
 
 Do not map real-world muzzle velocity 1:1 into game pixels. Preserve physically sensible relative ordering while keeping swept collision and readable tracer timing.
 
-## 4. 24-gun identity matrix
+## 4. Weapon identity matrices
+
+### 4.1 24-gun identity matrix
 
 | Weapon ID | Tier | Role / attack grammar | Target full-connect payoff | Signature motion / exit |
 |---|---:|---|---:|---|
@@ -150,6 +185,25 @@ Do not map real-world muzzle velocity 1:1 into game pixels. Preserve physically 
 | SZECSEI_FUCHS | T4 | double-barrel heavy precision rifle: two deliberate powerful shots | ~30 | ceremonial two-shot cadence, two large casing events, long rifle settles then drops; DO NOT treat as handgun-like SEMI |
 | SNIPER / Snipex Alligator | T5 | one anti-materiel shot after the longest visible aim ceremony | ~38 | massive recoil, shockwave/smoke, heavy casing event, magazine/part drop only if source permits, full rifle kicks backward physically |
 | JACKHAMMER | T5 | 3 automatic shotgun pulses, close-range high payoff | ~36 | rhythmic 3-pulse body recoil; cassette/cylinder part spins free if cleanly extractable; body recoils and exits |
+
+### 4.2 Melee + grenade identity / rarity matrix
+
+| Weapon | Tier | Current approved payoff authority | Rarity rationale |
+|---|---:|---:|---|
+| DAGGER | T1 | 13.5 damage; thrown speed increases ~12%; 4 ricochets | lowest direct melee payoff; speed/ricochet create utility rather than raw power |
+| SABRE | T2 | 18 damage; ~3 ricochets | reliable flexible blade with moderate payoff |
+| SPEAR | T3 | 22.5 damage; longest melee trigger/reach; ~2 ricochets | range and linear control justify Rare |
+| SPIKED_CLUB | T4 | 27 damage; stun / heavy blunt identity; ~1 ricochet | strong control + heavy impact |
+| BATTLE_AXE | T5 | 39 damage; slow heavy commit; ~1 ricochet | highest melee direct payoff; Legendary risk/reward |
+| GRENADE | T3 | up to 20 blast damage; 155 radius; 900 knockback | area denial + delayed threat + strong displacement |
+
+All five melee weapons use the same rarity under-light system while REVEALED. Their rarity is never shown while the slot is hidden.
+
+Melee rarity does not alter the already-frozen pickup behavior:
+- in range at pickup -> immediate melee commit;
+- out of range at pickup -> immediate straight throw;
+- +50% damage authority remains centralized;
+- thrown-melee pin / ricochet rules remain unchanged except for the approved slight speed increase.
 
 ## 5. Grounding notes for identity
 
@@ -353,14 +407,16 @@ The next Agent pass must prove:
 9. part-exit animation is used only where a semantic part map is visually verified;
 10. rarity tier glow is visible in real browser without text;
 11. hidden telegraph leaks no rarity information;
-12. tier selection distribution and melee 0.5 intra-tier weight are deterministically tested;
-13. both shields are absent from normal random selection;
-14. hidden-slot + opponent-armed contact resolves a guaranteed shield;
-15. threat mapping selects Swirl vs Tower correctly;
-16. a burst shield counters one attack transaction rather than one pellet/bullet only;
-17. shield never survives into a later unrelated opponent weapon;
-18. melee throw speeds are +10–15% over the previous POST-C baseline;
-19. casing scatter is rear-side, varied and physically bounded;
-20. real-browser screenshots/video are inspected at normal speed, not only static assertions.
+12. all 30 offensive weapons have an explicit rarity tier;
+13. tier selection distribution and melee 0.5 intra-tier weight are deterministically tested;
+14. rarity under-light works for gun, melee and grenade pickups;
+15. both shields are absent from normal random selection;
+16. hidden-slot + opponent-armed contact resolves a guaranteed shield;
+17. threat mapping selects Swirl vs Tower correctly;
+18. a burst shield counters one attack transaction rather than one pellet/bullet only;
+19. shield never survives into a later unrelated opponent weapon;
+20. melee throw speeds are +10–15% over the previous POST-C baseline;
+21. casing scatter is rear-side, varied and physically bounded;
+22. real-browser screenshots/video are inspected at normal speed, not only static assertions.
 
 This document is design authority. Implementation may choose internal helper structure, but it may not reinterpret the observable weapon identities above.
