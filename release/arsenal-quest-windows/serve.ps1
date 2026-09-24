@@ -61,8 +61,10 @@ Write-Host '=============================================================='
 # Open the browser only after the server is listening.
 try { Start-Process $url } catch { Write-Host "Could not auto-open browser; visit $url manually." }
 
-function Resolve-PathSafe([string]$rawUrl) {
-  $p = [Uri]::UnescapeDataString(([System.Uri]$rawUrl).AbsolutePath)
+function Resolve-PathSafe([string]$absPath) {
+  # $absPath must already be an ABSOLUTE path (Request.Url.AbsolutePath).
+  # Casting a relative RawUrl to [System.Uri] throws on .NET and 500s every request.
+  $p = [Uri]::UnescapeDataString($absPath)
   if ($p -eq '/' -or $p -eq '') { $p = '/index.html' }
   $full = [System.IO.Path]::GetFullPath((Join-Path $appDir $p.TrimStart('/')))
   $appFull = [System.IO.Path]::GetFullPath($appDir)
@@ -78,7 +80,7 @@ try {
       $resp.AddHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
       $resp.AddHeader('Pragma', 'no-cache')
       $resp.AddHeader('Expires', '0')
-      $file = Resolve-PathSafe $ctx.Request.RawUrl
+      $file = Resolve-PathSafe $ctx.Request.Url.AbsolutePath
       if ($null -eq $file -or -not (Test-Path $file -PathType Leaf)) {
         $resp.StatusCode = 404
         $bytes = [System.Text.Encoding]::UTF8.GetBytes('404 not found')
