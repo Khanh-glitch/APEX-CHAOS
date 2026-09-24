@@ -1112,7 +1112,8 @@ try {
       fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
       APEX_ARSENAL_AV.stats.cued.length = 0;
       APEX_ARSENAL.weaponApi.equip(fighters[0], '${weaponId}');
-      for (let i = 0; i < 55; i++) APEX_ARSENAL.step(1 / 60);
+      const frames = '${weaponId}' === 'SNIPER' ? 120 : 55;
+      for (let i = 0; i < frames; i++) APEX_ARSENAL.step(1 / 60);
       const fresh = APEX_ARSENAL_AV.stats.cued.filter(c => c.event === 'casing' && c.weapon === '${weaponId}');
       __AQ_TEST.redraw();
       return { n: fresh.length, usedMeta: fresh.length > 0 && fresh.every(c => c.usedMeta === true), sample: fresh[0] || null };
