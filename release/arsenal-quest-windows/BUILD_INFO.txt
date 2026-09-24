@@ -3,9 +3,9 @@ APEX CHAOS — Arsenal Quest playable Windows package
 Source repo   : Khanh-glitch/APEX-CHAOS
 Source branch : arena/01a0cf5e-apex-chaos (layered on prototype/arsenal-quest)
 Corrected runtime baseline : f350f82a58805a7a77c04813470cde66d2cffb7e
-Packaged source SHA        : 49e28975d4e333d3a7a46675f0c1af74acd34605
-                             (stored in app\ARSENAL_BUILD_SHA.txt inside the
-                             ZIP and printed by PLAY_WINDOWS.bat at launch).
+Packaged source SHA        : see app\ARSENAL_BUILD_SHA.txt inside the ZIP
+                             (written at assembly time from the finalize commit
+                             and printed by the launcher at startup).
 Build system  : vite 5 (pnpm build), packaged as static files only.
 Runtime needs : none beyond a modern browser + built-in Windows PowerShell.
 

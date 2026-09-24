@@ -10,7 +10,8 @@ progression, UI, or weapon changes in this pass.
   `origin/prototype/arsenal-quest` at `f350f82a58805a7a77c04813470cde66d2cffb7e`
   (the completed correction pass).
 - Packaged source SHA (value of `app/ARSENAL_BUILD_SHA.txt` inside the ZIP):
-  `49e28975d4e333d3a7a46675f0c1af74acd34605`.
+  the report-finalize commit (the commit containing this sentence); written from
+  `git rev-parse HEAD` at assembly time immediately after that commit.
 - Delivery / report-finalize commit: the commit containing this sentence
   (verify with `git log -1 -- docs/arsenal-quest/PLAYABLE_BUILD_REPORT.md`).
 
@@ -91,8 +92,13 @@ failure pause) and serve.ps1 itself is what the smoke test executes.
 ## Delivery SHAs
 
 - Packaged source SHA (in `app/ARSENAL_BUILD_SHA.txt` and printed by the launcher):
-  `49e28975d4e333d3a7a46675f0c1af74acd34605` — the commit whose tree was packaged
-  (workflow + report v1); the ZIP was assembled from that exact tree.
+  the report-finalize commit below; the ZIP was assembled from that exact tree
+  (final rebuild, exactly once, after full CI verification).
+- Verification CI run: **35959219649 — SUCCESS** on `abb0409` (serve.ps1 URI fix +
+  CI evidence-staging fix): headless 61/61; launcher smoke PASS with concurrent
+  instances on ports 44001 and 35869; real-browser suite 47/47 PASS including all
+  weapon-atlas sprite gates; evidence committed back by CI as `97bf0a7`
+  (`docs/arsenal-quest/browser-evidence/` + `docs/arsenal-quest/ci-logs/`).
 - Report-finalize commit: the commit containing this sentence.
 - ZIP workspace path: `APEX_ARSENAL_QUEST_PLAYABLE_WINDOWS.zip` (repo root; gitignored
   by policy — delivered as the workspace artifact, not through Git).
