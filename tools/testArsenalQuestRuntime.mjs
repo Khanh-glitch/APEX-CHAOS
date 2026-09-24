@@ -210,13 +210,15 @@ try {
       spawnEvents: __AQ_TEST.countEvents('SPAWN_SLOT'),
       revealEvents: __AQ_TEST.countEvents('REVEAL'),
       allHiddenIdentityNull: d.slots.filter(s => s.phase === 'TELEGRAPH').every(s => s.weaponId === null),
+      longHiddenCount: d.slots.filter(s => s.phase === 'TELEGRAPH' && s.age >= 5 && s.weaponId === null).length,
     };
   })()`);
   gate('spawn-cadence-independent', report.spawnLaw.spawnedTotal >= 4 && report.spawnLaw.spawnEvents >= 4,
     `spawnedTotal=${report.spawnLaw.spawnedTotal} over 10s (cadence 3.0s, first 1.0s)`);
   gate('reveal-lookahead-1.2-1.8s', report.spawnLaw.leadsInRange, report.spawnLaw.leadValues.map(v => v.toFixed(2)));
   gate('multi-slot-coexist', report.spawnLaw.maxActive >= 3, `maxActiveSlots=${report.spawnLaw.maxActive}`);
-  gate('no-age-based-reveal-while-far', report.spawnLaw.revealEvents === 0 && report.spawnLaw.allHiddenIdentityNull);
+  gate('no-age-based-reveal-while-far', report.spawnLaw.longHiddenCount >= 1 && report.spawnLaw.allHiddenIdentityNull,
+    `longHidden=${report.spawnLaw.longHiddenCount} reveals=${report.spawnLaw.revealEvents}`);
 
   // ------------------------------------- telegraph law (proximity reveal) ---
   report.telegraphLaw = await evaluate(`(() => {
