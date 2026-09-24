@@ -5,16 +5,17 @@
 PASS  runtime-registered  — arsenalQuest deferred group loaded
 PASS  normal-modes-launch  — {"selectVisible":true,"menuVisible":true,"normalMatchState":"PLAYING","normalFighters":["ICE","TOXIC"],"normalSimOk":true,"menuAfterMatch":"MENU"}
 PASS  entry-state  — {"gameState":"ARSENAL","hero":{"name":"HERO","hp":100,"maxHp":100,"x":220,"y":500,"weapon":"NONE","weaponPhase":null,"shotsFired":0},"rival":{"name":"RIVAL","hp":100,"maxHp":100,"x":780,"y":500,"weapon":"NONE","weaponPhase":null,"shotsFired":0},"hudOpacity":"1","menuHidden":true}
-PASS  spawn-cadence-independent  — spawnedTotal=4 over 10s (cadence 3.0s, first 1.0s)
-PASS  centerline-lead-fixed-1.0  — ["1.00","1.00","1.00","1.00"]
-PASS  multi-slot-coexist  — maxActiveSlots=4
-PASS  no-age-based-reveal-while-far  — longHidden=2 reveals=0
-PASS  telegraph-not-collectible-and-long-hidden  — {"id":1,"phase":"TELEGRAPH","age":6.1,"weaponId":null,"revealLeadSeconds":1,"predictedHeroETA":null,"predictedRivalETA":null,"earliestETA":null,"predictedFighter":null}
+PASS  spawn-cadence-4.5s  — spawnTimes=[1,5.6,10.1,14.6,19.1] gaps=[4.6,4.5,4.5,4.5]
+PASS  reveal-lead-fixed-2.0  — ["2.00","2.00","2.00","2.00","2.00"]
+PASS  multi-slot-coexist  — maxActiveSlots=5
+PASS  force-reveals-only-while-unapproached  — reveals=4 (all force=true, identity null while hidden)
+PASS  hidden-until-force-age-3.0  — {"id":1,"phase":"TELEGRAPH","age":2.9,"weaponId":null,"revealLeadSeconds":2,"predictedHeroETA":null,"predictedRivalETA":null,"earliestETA":null,"predictedFighter":null}
 PASS  telegraph-no-identity
-PASS  centerline-reveal-on-aligned-approach  — [AQ] REVEAL id=1 weapon=SHOTGUN eta=0.87 lead=1.00 fighter=HERO
-PASS  reveal-then-collectible  — [AQ] REVEAL id=1 weapon=SHOTGUN eta=0.87 lead=1.00 fighter=HERO
-PASS  centerline-graze-stays-hidden  — {"grazeStayedHidden":true,"hiddenBeforeBounce":true,"revealedAfterBounce":true}
-PASS  centerline-no-reveal-before-bounce  — {"grazeStayedHidden":true,"hiddenBeforeBounce":true,"revealedAfterBounce":true}
+PASS  force-reveal-at-3.0-not-autopickup  — [AQ] REVEAL id=1 weapon=BATTLE_AXE eta=null lead=2.00 fighter=TIMEOUT force=true
+PASS  movement-reveal-lead-2.0  — [AQ] REVEAL id=2 weapon=SPEAR eta=1.36 lead=2.00 fighter=HERO force=false
+PASS  near-miss-outside-circle-stays-hidden  — {"nearMissStayedHidden":true,"edgeOfCircleReveals":true,"edgeLog":"[AQ] REVEAL id=2 weapon=SHOTGUN eta=0.80 lead=2.00 fighter=HERO force=false","hiddenBeforeBounce":true,"revealedAfterBounce":true,"bounceLog":"[AQ] REVEAL id=3 weapon=GRENADE eta=0.06 lead=2.00 fighter=HERO force=false"}
+PASS  edge-of-circle-approach-reveals  — [AQ] REVEAL id=2 weapon=SHOTGUN eta=0.80 lead=2.00 fighter=HERO force=false
+PASS  no-reveal-before-bounce  — [AQ] REVEAL id=3 weapon=GRENADE eta=0.06 lead=2.00 fighter=HERO force=false
 PASS  aim-never-steers-fighter  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
 PASS  dagger-no-body-dash  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
 PASS  no-slash-vfx-in-combat  — {"noSlashSeq":true,"bombAtlas":true}
@@ -51,7 +52,12 @@ PASS  tower-shield-expires-to-unarmed
 PASS  exit-cleanup  — {"gameStateAfter":"MENU","menuVisible":true,"hudHidden":true,"slotsCleared":true,"aqProjectilesCleared":true,"heroHolderCleared":true,"staleAqAfterConsume":0,"exitLogged":true}
 PASS  shells-32-canonical  — {"count":32}
 PASS  shells-p1-p2-independent  — ["SNIPER","WITCH"]
-PASS  shells-native-kits-disabled  — {"count":32,"names":["SNIPER","WITCH"],"shellFlags":[true,true],"nativeProj":0,"hp":[100,100]}
+PASS  shells-native-kits-active-in-arsenal  — {"count":32,"names":["SNIPER","WITCH"],"shellFlags":[true,true],"nativeProj":2,"hp":[96.4672,100]}
+PASS  roster-all-32-classified-keep-or-adapt  — {"adapted":["VAMPIRE","MONK"]}
+PASS  roster-keep-native-skill-runs  — {"iceLaneFired":true}
+PASS  roster-adapt-vampire-latch-2.5  — latchTimer=2.5
+PASS  roster-adapt-monk-rush-2.5  — rushTimer=2.5
+PASS  roster-native-skill-and-weapon-coexist  — {"nativeFrames":20,"aqFrames":63}
 PASS  f3-debug-overlay-toggle
 PASS  browser-weapon-atlas-floor-sprite  — {"floor":2,"equipped":2,"imgFail":0,"sfxFail":0}
 PASS  browser-weapon-atlas-equipped-sprite  — {"floor":2,"equipped":2,"imgFail":0,"sfxFail":0}
@@ -59,13 +65,17 @@ PASS  browser-no-atlas-fallback  — {"floor":2,"equipped":2,"imgFail":0,"sfxFai
 PASS  shell-select-32-cards  — {"count":32,"p1":"SNIPER","p2":"WITCH","selectVisible":true}
 PASS  shell-select-p1-p2-locks  — {"count":32,"p1":"SNIPER","p2":"WITCH","selectVisible":true}
 PASS  shell-select-enters-arsenal  — {"gameState":"ARSENAL","names":["SNIPER","WITCH"],"shells":[true,true]}
-PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=3 restarts=3 spawnedCumulative=98 earlyErrors=0
-PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=15 x=707 y=539 lead=1.00","REVEAL":"[AQ] REVEAL id=9 weapon=BATTLE_AXE eta=0.37 lead=1.00 fighter=WITCH","PICKUP":"[AQ] PICKUP id=9 fighter=WITCH weapon=BATTLE_AXE","USE":"[AQ] USE fighter=WITCH weapon=BATTLE_AXE","HIT":"[AQ] HIT source=SNIPER target=WITCH weapon=SHOTGUN damage=3.6","CONSUME":"[AQ] CONSUME fighter=WITCH weapon=DAGGER reason=stab-landed"}
+PASS  motion-browser-gun-signatures  — {"pistol":{"pulses":3,"maxRecoil":14,"minRecoil":0,"maxRot":0.1,"minRot":0,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"shotgun":{"pulses":0,"maxRecoil":28,"minRecoil":0,"maxRot":0.24,"minRot":0,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"smg":{"pulses":8,"maxRecoil":10,"minRecoil":0,"maxRot":0.06,"minRot":-0.06,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"sniper":{"pulses":0,"maxRecoil":34,"minRecoil":0,"maxRot":0.16,"minRot":0,"maxLocalX":0,"minLocalY":0,"maxFlourish":8.99,"flips":0,"guardX":0,"bodySame":true},"grenade":{"pulses":0,"maxRecoil":0,"minRecoil":0,"maxRot":0,"minRot":0,"maxLocalX":30,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true}}
+PASS  motion-browser-melee-signatures  — {"sabre":{"pulses":0,"maxRecoil":6,"minRecoil":0,"maxRot":0.45,"minRot":-0.74,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"axe":{"pulses":0,"maxRecoil":6,"minRecoil":0,"maxRot":0.75,"minRot":-1.25,"maxLocalX":0,"minLocalY":-10.5,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"club":{"pulses":0,"maxRecoil":6,"minRecoil":0,"maxRot":0.62,"minRot":-0.99,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"dagger":{"pulses":0,"maxRecoil":0,"minRecoil":0,"maxRot":0,"minRot":0,"maxLocalX":78,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"spear":{"pulses":0,"maxRecoil":6,"minRecoil":0,"maxRot":0.4,"minRot":0,"maxLocalX":108,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true}}
+PASS  motion-browser-shield-signatures  — {"swirl":{"pulses":0,"maxRecoil":0,"minRecoil":-16,"maxRot":0,"minRot":0,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":4,"guardX":0,"bodySame":true},"tower":{"pulses":0,"maxRecoil":12,"minRecoil":0,"maxRot":0.14,"minRot":0,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":11.8,"bodySame":true}}
+PASS  motion-browser-body-untouched  — PISTOL:true,SHOTGUN:true,SMG:true,SNIPER:true,GRENADE:true,SABRE:true,BATTLE_AXE:true,DAGGER:true,SPEAR:true,SPIKED_CLUB:true,SWIRL_SHIELD:true,TOWER_SHIELD:true
+PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=7 restarts=7 spawnedCumulative=69 earlyErrors=0
+PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=9 x=729 y=737 lead=2.00","REVEAL":"[AQ] REVEAL id=8 weapon=SHOTGUN eta=null lead=2.00 fighter=TIMEOUT force=true","PICKUP":"[AQ] PICKUP id=7 fighter=SNIPER weapon=DAGGER","USE":"[AQ] USE fighter=WITCH weapon=SABRE","HIT":"[AQ] HIT source=SNIPER target=WITCH weapon=DAGGER damage=9.0","CONSUME":"[AQ] CONSUME fighter=WITCH weapon=SWIRL_SHIELD reason=expired"}
 
 ==== ARSENAL QUEST TEST SUMMARY ====
 {
-  "total": 59,
-  "passed": 59,
+  "total": 69,
+  "passed": 69,
   "failed": []
 }
 report+evidence written under docs/arsenal-quest/browser-evidence/

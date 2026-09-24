@@ -46,35 +46,36 @@
         "menuHidden": true
       }
     },
-    "spawn-cadence-independent": {
+    "spawn-cadence-4.5s": {
       "pass": true,
-      "detail": "spawnedTotal=4 over 10s (cadence 3.0s, first 1.0s)"
+      "detail": "spawnTimes=[1,5.6,10.1,14.6,19.1] gaps=[4.6,4.5,4.5,4.5]"
     },
-    "centerline-lead-fixed-1.0": {
+    "reveal-lead-fixed-2.0": {
       "pass": true,
       "detail": [
-        "1.00",
-        "1.00",
-        "1.00",
-        "1.00"
+        "2.00",
+        "2.00",
+        "2.00",
+        "2.00",
+        "2.00"
       ]
     },
     "multi-slot-coexist": {
       "pass": true,
-      "detail": "maxActiveSlots=4"
+      "detail": "maxActiveSlots=5"
     },
-    "no-age-based-reveal-while-far": {
+    "force-reveals-only-while-unapproached": {
       "pass": true,
-      "detail": "longHidden=2 reveals=0"
+      "detail": "reveals=4 (all force=true, identity null while hidden)"
     },
-    "telegraph-not-collectible-and-long-hidden": {
+    "hidden-until-force-age-3.0": {
       "pass": true,
       "detail": {
         "id": 1,
         "phase": "TELEGRAPH",
-        "age": 6.1,
+        "age": 2.9,
         "weaponId": null,
-        "revealLeadSeconds": 1,
+        "revealLeadSeconds": 2,
         "predictedHeroETA": null,
         "predictedRivalETA": null,
         "earliestETA": null,
@@ -84,29 +85,32 @@
     "telegraph-no-identity": {
       "pass": true
     },
-    "centerline-reveal-on-aligned-approach": {
+    "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=SHOTGUN eta=0.87 lead=1.00 fighter=HERO"
+      "detail": "[AQ] REVEAL id=1 weapon=BATTLE_AXE eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
-    "reveal-then-collectible": {
+    "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=SHOTGUN eta=0.87 lead=1.00 fighter=HERO"
+      "detail": "[AQ] REVEAL id=2 weapon=SPEAR eta=1.36 lead=2.00 fighter=HERO force=false"
     },
-    "centerline-graze-stays-hidden": {
+    "near-miss-outside-circle-stays-hidden": {
       "pass": true,
       "detail": {
-        "grazeStayedHidden": true,
+        "nearMissStayedHidden": true,
+        "edgeOfCircleReveals": true,
+        "edgeLog": "[AQ] REVEAL id=2 weapon=SHOTGUN eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
-        "revealedAfterBounce": true
+        "revealedAfterBounce": true,
+        "bounceLog": "[AQ] REVEAL id=3 weapon=GRENADE eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
-    "centerline-no-reveal-before-bounce": {
+    "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": {
-        "grazeStayedHidden": true,
-        "hiddenBeforeBounce": true,
-        "revealedAfterBounce": true
-      }
+      "detail": "[AQ] REVEAL id=2 weapon=SHOTGUN eta=0.80 lead=2.00 fighter=HERO force=false"
+    },
+    "no-reveal-before-bounce": {
+      "pass": true,
+      "detail": "[AQ] REVEAL id=3 weapon=GRENADE eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -277,7 +281,7 @@
         "WITCH"
       ]
     },
-    "shells-native-kits-disabled": {
+    "shells-native-kits-active-in-arsenal": {
       "pass": true,
       "detail": {
         "count": 32,
@@ -289,11 +293,41 @@
           true,
           true
         ],
-        "nativeProj": 0,
+        "nativeProj": 2,
         "hp": [
-          100,
+          96.4672,
           100
         ]
+      }
+    },
+    "roster-all-32-classified-keep-or-adapt": {
+      "pass": true,
+      "detail": {
+        "adapted": [
+          "VAMPIRE",
+          "MONK"
+        ]
+      }
+    },
+    "roster-keep-native-skill-runs": {
+      "pass": true,
+      "detail": {
+        "iceLaneFired": true
+      }
+    },
+    "roster-adapt-vampire-latch-2.5": {
+      "pass": true,
+      "detail": "latchTimer=2.5"
+    },
+    "roster-adapt-monk-rush-2.5": {
+      "pass": true,
+      "detail": "rushTimer=2.5"
+    },
+    "roster-native-skill-and-weapon-coexist": {
+      "pass": true,
+      "detail": {
+        "nativeFrames": 20,
+        "aqFrames": 63
       }
     },
     "f3-debug-overlay-toggle": {
@@ -358,19 +392,194 @@
         ]
       }
     },
+    "motion-browser-gun-signatures": {
+      "pass": true,
+      "detail": {
+        "pistol": {
+          "pulses": 3,
+          "maxRecoil": 14,
+          "minRecoil": 0,
+          "maxRot": 0.1,
+          "minRot": 0,
+          "maxLocalX": 0,
+          "minLocalY": 0,
+          "maxFlourish": 0,
+          "flips": 0,
+          "guardX": 0,
+          "bodySame": true
+        },
+        "shotgun": {
+          "pulses": 0,
+          "maxRecoil": 28,
+          "minRecoil": 0,
+          "maxRot": 0.24,
+          "minRot": 0,
+          "maxLocalX": 0,
+          "minLocalY": 0,
+          "maxFlourish": 0,
+          "flips": 0,
+          "guardX": 0,
+          "bodySame": true
+        },
+        "smg": {
+          "pulses": 8,
+          "maxRecoil": 10,
+          "minRecoil": 0,
+          "maxRot": 0.06,
+          "minRot": -0.06,
+          "maxLocalX": 0,
+          "minLocalY": 0,
+          "maxFlourish": 0,
+          "flips": 0,
+          "guardX": 0,
+          "bodySame": true
+        },
+        "sniper": {
+          "pulses": 0,
+          "maxRecoil": 34,
+          "minRecoil": 0,
+          "maxRot": 0.16,
+          "minRot": 0,
+          "maxLocalX": 0,
+          "minLocalY": 0,
+          "maxFlourish": 8.99,
+          "flips": 0,
+          "guardX": 0,
+          "bodySame": true
+        },
+        "grenade": {
+          "pulses": 0,
+          "maxRecoil": 0,
+          "minRecoil": 0,
+          "maxRot": 0,
+          "minRot": 0,
+          "maxLocalX": 30,
+          "minLocalY": 0,
+          "maxFlourish": 0,
+          "flips": 0,
+          "guardX": 0,
+          "bodySame": true
+        }
+      }
+    },
+    "motion-browser-melee-signatures": {
+      "pass": true,
+      "detail": {
+        "sabre": {
+          "pulses": 0,
+          "maxRecoil": 6,
+          "minRecoil": 0,
+          "maxRot": 0.45,
+          "minRot": -0.74,
+          "maxLocalX": 0,
+          "minLocalY": 0,
+          "maxFlourish": 0,
+          "flips": 0,
+          "guardX": 0,
+          "bodySame": true
+        },
+        "axe": {
+          "pulses": 0,
+          "maxRecoil": 6,
+          "minRecoil": 0,
+          "maxRot": 0.75,
+          "minRot": -1.25,
+          "maxLocalX": 0,
+          "minLocalY": -10.5,
+          "maxFlourish": 0,
+          "flips": 0,
+          "guardX": 0,
+          "bodySame": true
+        },
+        "club": {
+          "pulses": 0,
+          "maxRecoil": 6,
+          "minRecoil": 0,
+          "maxRot": 0.62,
+          "minRot": -0.99,
+          "maxLocalX": 0,
+          "minLocalY": 0,
+          "maxFlourish": 0,
+          "flips": 0,
+          "guardX": 0,
+          "bodySame": true
+        },
+        "dagger": {
+          "pulses": 0,
+          "maxRecoil": 0,
+          "minRecoil": 0,
+          "maxRot": 0,
+          "minRot": 0,
+          "maxLocalX": 78,
+          "minLocalY": 0,
+          "maxFlourish": 0,
+          "flips": 0,
+          "guardX": 0,
+          "bodySame": true
+        },
+        "spear": {
+          "pulses": 0,
+          "maxRecoil": 6,
+          "minRecoil": 0,
+          "maxRot": 0.4,
+          "minRot": 0,
+          "maxLocalX": 108,
+          "minLocalY": 0,
+          "maxFlourish": 0,
+          "flips": 0,
+          "guardX": 0,
+          "bodySame": true
+        }
+      }
+    },
+    "motion-browser-shield-signatures": {
+      "pass": true,
+      "detail": {
+        "swirl": {
+          "pulses": 0,
+          "maxRecoil": 0,
+          "minRecoil": -16,
+          "maxRot": 0,
+          "minRot": 0,
+          "maxLocalX": 0,
+          "minLocalY": 0,
+          "maxFlourish": 0,
+          "flips": 4,
+          "guardX": 0,
+          "bodySame": true
+        },
+        "tower": {
+          "pulses": 0,
+          "maxRecoil": 12,
+          "minRecoil": 0,
+          "maxRot": 0.14,
+          "minRot": 0,
+          "maxLocalX": 0,
+          "minLocalY": 0,
+          "maxFlourish": 0,
+          "flips": 0,
+          "guardX": 11.8,
+          "bodySame": true
+        }
+      }
+    },
+    "motion-browser-body-untouched": {
+      "pass": true,
+      "detail": "PISTOL:true,SHOTGUN:true,SMG:true,SNIPER:true,GRENADE:true,SABRE:true,BATTLE_AXE:true,DAGGER:true,SPEAR:true,SPIKED_CLUB:true,SWIRL_SHIELD:true,TOWER_SHIELD:true"
+    },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=3 restarts=3 spawnedCumulative=98 earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=7 restarts=7 spawnedCumulative=69 earlyErrors=0"
     },
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=15 x=707 y=539 lead=1.00",
-        "REVEAL": "[AQ] REVEAL id=9 weapon=BATTLE_AXE eta=0.37 lead=1.00 fighter=WITCH",
-        "PICKUP": "[AQ] PICKUP id=9 fighter=WITCH weapon=BATTLE_AXE",
-        "USE": "[AQ] USE fighter=WITCH weapon=BATTLE_AXE",
-        "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=SHOTGUN damage=3.6",
-        "CONSUME": "[AQ] CONSUME fighter=WITCH weapon=DAGGER reason=stab-landed"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=9 x=729 y=737 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=8 weapon=SHOTGUN eta=null lead=2.00 fighter=TIMEOUT force=true",
+        "PICKUP": "[AQ] PICKUP id=7 fighter=SNIPER weapon=DAGGER",
+        "USE": "[AQ] USE fighter=WITCH weapon=SABRE",
+        "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=DAGGER damage=9.0",
+        "CONSUME": "[AQ] CONSUME fighter=WITCH weapon=SWIRL_SHIELD reason=expired"
       }
     }
   },
@@ -389,9 +598,21 @@
     "docs/arsenal-quest/browser-evidence/16-v2-shell-select-locked.png",
     "docs/arsenal-quest/browser-evidence/16b-v2-shells-in-arena.png",
     "docs/arsenal-quest/browser-evidence/17-v2-aim-independent-of-movement.png",
-    "docs/arsenal-quest/browser-evidence/18-v2-centerline-reveal.png",
-    "docs/arsenal-quest/browser-evidence/19-v2-graze-stays-hidden.png",
-    "docs/arsenal-quest/browser-evidence/20-v2-dagger-thrust-no-body-dash.png"
+    "docs/arsenal-quest/browser-evidence/18-v2-edge-of-circle-reveal.png",
+    "docs/arsenal-quest/browser-evidence/19-v2-near-miss-stays-hidden.png",
+    "docs/arsenal-quest/browser-evidence/20-v2-dagger-thrust-no-body-dash.png",
+    "docs/arsenal-quest/browser-evidence/21-v2-motion-pistol.png",
+    "docs/arsenal-quest/browser-evidence/21-v2-motion-shotgun.png",
+    "docs/arsenal-quest/browser-evidence/21-v2-motion-smg.png",
+    "docs/arsenal-quest/browser-evidence/21-v2-motion-sniper.png",
+    "docs/arsenal-quest/browser-evidence/21-v2-motion-grenade.png",
+    "docs/arsenal-quest/browser-evidence/21-v2-motion-sabre.png",
+    "docs/arsenal-quest/browser-evidence/21-v2-motion-battle_axe.png",
+    "docs/arsenal-quest/browser-evidence/21-v2-motion-dagger.png",
+    "docs/arsenal-quest/browser-evidence/21-v2-motion-spear.png",
+    "docs/arsenal-quest/browser-evidence/21-v2-motion-spiked_club.png",
+    "docs/arsenal-quest/browser-evidence/21-v2-motion-swirl_shield.png",
+    "docs/arsenal-quest/browser-evidence/21-v2-motion-tower_shield.png"
   ],
   "normalModes": {
     "selectVisible": true,
@@ -430,42 +651,61 @@
     "menuHidden": true
   },
   "spawnLaw": {
-    "spawnedTotal": 4,
-    "maxActive": 4,
-    "leadValues": [
+    "spawnedTotal": 5,
+    "maxActive": 5,
+    "spawnTimes": [
       1,
-      1,
-      1,
-      1
+      5.6,
+      10.1,
+      14.6,
+      19.1
     ],
-    "leadsFixedOne": true,
-    "spawnEvents": 4,
-    "revealEvents": 0,
-    "allHiddenIdentityNull": true,
-    "longHiddenCount": 2
+    "gaps": [
+      4.6,
+      4.5,
+      4.5,
+      4.5
+    ],
+    "cadenceOk": true,
+    "leadValues": [
+      2,
+      2,
+      2,
+      2,
+      2
+    ],
+    "leadsFixedTwo": true,
+    "spawnEvents": 5,
+    "revealCount": 4,
+    "allRevealsForced": true,
+    "allHiddenIdentityNull": true
   },
   "telegraphLaw": {
-    "hiddenAfter6s": true,
+    "hiddenAt2_9": true,
     "before": {
       "id": 1,
       "phase": "TELEGRAPH",
-      "age": 6.1,
+      "age": 2.9,
       "weaponId": null,
-      "revealLeadSeconds": 1,
+      "revealLeadSeconds": 2,
       "predictedHeroETA": null,
       "predictedRivalETA": null,
       "earliestETA": null,
       "predictedFighter": null
     },
-    "revealedOnApproach": true,
-    "revealLog": "[AQ] REVEAL id=1 weapon=SHOTGUN eta=0.87 lead=1.00 fighter=HERO",
-    "finalHolder": null,
-    "pickupEvent": 1
+    "forceRevealed": true,
+    "forceLog": "[AQ] REVEAL id=1 weapon=BATTLE_AXE eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "pickupAfterForce": true,
+    "revealedOnMovement": true,
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=SPEAR eta=1.36 lead=2.00 fighter=HERO force=false"
   },
-  "centerlineNeg": {
-    "grazeStayedHidden": true,
+  "circleNeg": {
+    "nearMissStayedHidden": true,
+    "edgeOfCircleReveals": true,
+    "edgeLog": "[AQ] REVEAL id=2 weapon=SHOTGUN eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
-    "revealedAfterBounce": true
+    "revealedAfterBounce": true,
+    "bounceLog": "[AQ] REVEAL id=3 weapon=GRENADE eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -670,11 +910,58 @@
       true,
       true
     ],
-    "nativeProj": 0,
+    "nativeProj": 2,
     "hp": [
-      100,
+      96.4672,
       100
     ]
+  },
+  "roster": {
+    "kits": {
+      "RUBBER": "KEEP",
+      "ICE": "KEEP",
+      "VAMPIRE": "ADAPT",
+      "STRING": "KEEP",
+      "VOLCANO": "KEEP",
+      "MAGNET": "KEEP",
+      "FLASH": "KEEP",
+      "ELECTRIC": "KEEP",
+      "ORBIT": "KEEP",
+      "TOXIC": "KEEP",
+      "MIRROR": "KEEP",
+      "BLACK_HOLE": "KEEP",
+      "SAW": "KEEP",
+      "BLADE": "KEEP",
+      "NOVA": "KEEP",
+      "HUNTER": "KEEP",
+      "CRYSTAL": "KEEP",
+      "VIRUS": "KEEP",
+      "DRUM": "KEEP",
+      "CARD": "KEEP",
+      "MATH": "KEEP",
+      "MATH_V2": "KEEP",
+      "SNIPER": "KEEP",
+      "SLIME": "KEEP",
+      "TIME": "KEEP",
+      "WOLF": "KEEP",
+      "WIND": "KEEP",
+      "WITCH": "KEEP",
+      "PIRATE": "KEEP",
+      "PAINTER": "KEEP",
+      "MONK": "ADAPT",
+      "SUPERSTAR": "KEEP"
+    },
+    "allClassified": true,
+    "adapted": [
+      "VAMPIRE",
+      "MONK"
+    ],
+    "iceLaneFired": true,
+    "vampLatch": 2.5,
+    "monkRush": 2.5,
+    "nativeSeen": 20,
+    "aqSeen": 63,
+    "holderIntact": true
   },
   "f3": {
     "toggledOn": true
@@ -685,26 +972,184 @@
     "imgFail": 0,
     "sfxFail": 0
   },
+  "motion": {
+    "PISTOL": {
+      "pulses": 3,
+      "maxRecoil": 14,
+      "minRecoil": 0,
+      "maxRot": 0.1,
+      "minRot": 0,
+      "maxLocalX": 0,
+      "minLocalY": 0,
+      "maxFlourish": 0,
+      "flips": 0,
+      "guardX": 0,
+      "bodySame": true
+    },
+    "SHOTGUN": {
+      "pulses": 0,
+      "maxRecoil": 28,
+      "minRecoil": 0,
+      "maxRot": 0.24,
+      "minRot": 0,
+      "maxLocalX": 0,
+      "minLocalY": 0,
+      "maxFlourish": 0,
+      "flips": 0,
+      "guardX": 0,
+      "bodySame": true
+    },
+    "SMG": {
+      "pulses": 8,
+      "maxRecoil": 10,
+      "minRecoil": 0,
+      "maxRot": 0.06,
+      "minRot": -0.06,
+      "maxLocalX": 0,
+      "minLocalY": 0,
+      "maxFlourish": 0,
+      "flips": 0,
+      "guardX": 0,
+      "bodySame": true
+    },
+    "SNIPER": {
+      "pulses": 0,
+      "maxRecoil": 34,
+      "minRecoil": 0,
+      "maxRot": 0.16,
+      "minRot": 0,
+      "maxLocalX": 0,
+      "minLocalY": 0,
+      "maxFlourish": 8.99,
+      "flips": 0,
+      "guardX": 0,
+      "bodySame": true
+    },
+    "GRENADE": {
+      "pulses": 0,
+      "maxRecoil": 0,
+      "minRecoil": 0,
+      "maxRot": 0,
+      "minRot": 0,
+      "maxLocalX": 30,
+      "minLocalY": 0,
+      "maxFlourish": 0,
+      "flips": 0,
+      "guardX": 0,
+      "bodySame": true
+    },
+    "SABRE": {
+      "pulses": 0,
+      "maxRecoil": 6,
+      "minRecoil": 0,
+      "maxRot": 0.45,
+      "minRot": -0.74,
+      "maxLocalX": 0,
+      "minLocalY": 0,
+      "maxFlourish": 0,
+      "flips": 0,
+      "guardX": 0,
+      "bodySame": true
+    },
+    "BATTLE_AXE": {
+      "pulses": 0,
+      "maxRecoil": 6,
+      "minRecoil": 0,
+      "maxRot": 0.75,
+      "minRot": -1.25,
+      "maxLocalX": 0,
+      "minLocalY": -10.5,
+      "maxFlourish": 0,
+      "flips": 0,
+      "guardX": 0,
+      "bodySame": true
+    },
+    "DAGGER": {
+      "pulses": 0,
+      "maxRecoil": 0,
+      "minRecoil": 0,
+      "maxRot": 0,
+      "minRot": 0,
+      "maxLocalX": 78,
+      "minLocalY": 0,
+      "maxFlourish": 0,
+      "flips": 0,
+      "guardX": 0,
+      "bodySame": true
+    },
+    "SPEAR": {
+      "pulses": 0,
+      "maxRecoil": 6,
+      "minRecoil": 0,
+      "maxRot": 0.4,
+      "minRot": 0,
+      "maxLocalX": 108,
+      "minLocalY": 0,
+      "maxFlourish": 0,
+      "flips": 0,
+      "guardX": 0,
+      "bodySame": true
+    },
+    "SPIKED_CLUB": {
+      "pulses": 0,
+      "maxRecoil": 6,
+      "minRecoil": 0,
+      "maxRot": 0.62,
+      "minRot": -0.99,
+      "maxLocalX": 0,
+      "minLocalY": 0,
+      "maxFlourish": 0,
+      "flips": 0,
+      "guardX": 0,
+      "bodySame": true
+    },
+    "SWIRL_SHIELD": {
+      "pulses": 0,
+      "maxRecoil": 0,
+      "minRecoil": -16,
+      "maxRot": 0,
+      "minRot": 0,
+      "maxLocalX": 0,
+      "minLocalY": 0,
+      "maxFlourish": 0,
+      "flips": 4,
+      "guardX": 0,
+      "bodySame": true
+    },
+    "TOWER_SHIELD": {
+      "pulses": 0,
+      "maxRecoil": 12,
+      "minRecoil": 0,
+      "maxRot": 0.14,
+      "minRot": 0,
+      "maxLocalX": 0,
+      "minLocalY": 0,
+      "maxFlourish": 0,
+      "flips": 0,
+      "guardX": 11.8,
+      "bodySame": true
+    }
+  },
   "fiveMinute": {
     "error": null,
-    "restarts": 3,
-    "koCount": 3,
-    "spawnedTotal": 14,
-    "spawnedCumulative": 98,
+    "restarts": 7,
+    "koCount": 7,
+    "spawnedTotal": 8,
+    "spawnedCumulative": 69,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=15 x=707 y=539 lead=1.00",
-    "REVEAL": "[AQ] REVEAL id=9 weapon=BATTLE_AXE eta=0.37 lead=1.00 fighter=WITCH",
-    "PICKUP": "[AQ] PICKUP id=9 fighter=WITCH weapon=BATTLE_AXE",
-    "USE": "[AQ] USE fighter=WITCH weapon=BATTLE_AXE",
-    "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=SHOTGUN damage=3.6",
-    "CONSUME": "[AQ] CONSUME fighter=WITCH weapon=DAGGER reason=stab-landed"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=9 x=729 y=737 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=8 weapon=SHOTGUN eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "PICKUP": "[AQ] PICKUP id=7 fighter=SNIPER weapon=DAGGER",
+    "USE": "[AQ] USE fighter=WITCH weapon=SABRE",
+    "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=DAGGER damage=9.0",
+    "CONSUME": "[AQ] CONSUME fighter=WITCH weapon=SWIRL_SHIELD reason=expired"
   },
   "summary": {
-    "total": 59,
-    "passed": 59,
+    "total": 69,
+    "passed": 69,
     "failed": []
   }
 }
