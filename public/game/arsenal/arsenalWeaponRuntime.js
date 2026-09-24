@@ -657,6 +657,7 @@
           }
           const muzzleDistance = gunMuzzleDistance('SHOTGUN', f);
           window.avCue('fire', { weapon: 'SHOTGUN', x: f.x + Math.cos(base) * muzzleDistance, y: f.y + Math.sin(base) * muzzleDistance, angle: base });
+          window.avCue('shotgun_rack', { weapon: 'SHOTGUN', x: f.x, y: f.y, angle: base });
           ejectCasing(f, base, 1.4);
           spawnShockwave(f.x, f.y, '#ffbe6b', 130);
           cameraShake = Math.max(cameraShake, 9);
@@ -710,7 +711,7 @@
             if (progress >= recipe.flourishAfter && h.meta.aimLeft > 0) {
               if (!h.meta.chambered) {
                 h.meta.chambered = true;
-                playFighterSound(f, 'wall'); // existing metallic SFX = chamber beat
+                window.avCue('sniper_bolt_lock', { weapon: 'SNIPER', x: f.x, y: f.y, angle: enemyAlive(ctx) ? angleToEnemy(ctx) : Math.atan2(f.dir.y, f.dir.x) });
               }
               const spinT = (progress - recipe.flourishAfter) / (1 - recipe.flourishAfter);
               p.flourish = spinT * TAU * recipe.flourishTurns;

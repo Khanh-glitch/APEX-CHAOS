@@ -5,14 +5,15 @@
   "packageManager": "pnpm@9.15.9",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --port 5173",
-    "dev:lan": "vite --host 0.0.0.0 --port 5173",
+    "dev": "pnpm arsenal:sfx:materialize && vite --host 127.0.0.1 --port 5173",
+    "dev:lan": "pnpm arsenal:sfx:materialize && vite --host 0.0.0.0 --port 5173",
     "room-server": "node server/manual-room-relay.js",
     "test:multiplayer": "node tools/testRealtimeMultiplayer.mjs",
-    "test:arsenal": "node tools/testArsenalQuestRuntime.mjs",
-    "test:arsenal:headless": "node tools/testArsenalQuestHeadless.mjs",
-    "build": "node tools/generatePublicAssetManifest.cjs && vite build",
-    "preview": "vite preview --host 127.0.0.1 --port 4173"
+    "test:arsenal": "pnpm arsenal:sfx:materialize && node tools/testArsenalQuestRuntime.mjs",
+    "test:arsenal:headless": "pnpm arsenal:sfx:materialize && node tools/testArsenalQuestHeadless.mjs",
+    "build": "pnpm arsenal:sfx:materialize && node tools/generatePublicAssetManifest.cjs && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "arsenal:sfx:materialize": "node tools/materializeArsenalFinalSfx.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

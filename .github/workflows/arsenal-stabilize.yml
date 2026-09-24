@@ -158,7 +158,12 @@ jobs:
           git add docs/arsenal-quest/ci-logs 2>/dev/null || true
           git add docs/arsenal-quest/browser-evidence 2>/dev/null || true
           git add docs/arsenal-quest/evidence/headless-test-report.json 2>/dev/null || true
-          git status --short | head -20 || true
+          # Persist the recovered owner-approved final-lock WAVs so future
+          # checkouts no longer depend on ChatGPT Library materialization.
+          git add public/assets/arsenal/av/sfx/c-final 2>/dev/null || true
+          git add public/assets/arsenal/av/MANIFEST.csv 2>/dev/null || true
+          git add public/asset-manifest.json 2>/dev/null || true
+          git status --short | head -40 || true
           if git diff --cached --quiet; then
             echo "No browser evidence changes."
           else

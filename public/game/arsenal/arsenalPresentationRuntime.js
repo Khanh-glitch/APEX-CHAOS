@@ -27,49 +27,46 @@
   // Trim windows measured from the source envelopes (onset analysis):
   // cz shot @0.14s, sks repeated shots from 0.34s, mosin crack @0.43s.
   const AUDIO = {
-    telegraph: [{ rel: 'sfx/scifi/forceField_001.ogg', vol: 0.30, maxVoices: 2 }],
+    telegraph: [{ rel: 'sfx/scifi/forceField_001.ogg', vol: 0.18, maxVoices: 2 }],
     reveal: [
-      { rel: 'sfx/rpg/metalClick.ogg', vol: 0.55, maxVoices: 3 },
-      { rel: 'sfx/impact/impactGeneric_light_002.ogg', vol: 0.18, maxVoices: 3 },
+      { rel: 'sfx/rpg/metalClick.ogg', vol: 0.35, maxVoices: 3 },
+      { rel: 'sfx/impact/impactGeneric_light_002.ogg', vol: 0.12, maxVoices: 3 },
     ],
-    pickup: [
-      { rel: 'sfx/rpg/metalLatch.ogg', vol: 0.7, maxVoices: 3 },
-      { rel: 'sfx/impact/impactGeneric_light_002.ogg', vol: 0.2, maxVoices: 3 },
-    ],
+    pickup: [{ rel: 'sfx/rpg/metalLatch.ogg', vol: 0.42, maxVoices: 3 }],
+
+    // Approved gun-fire baseline retained.
     pistol_shot: [{ rel: 'sfx/guns/cz.wav', offset: 0.10, dur: 0.85, vol: 0.75, maxVoices: 4 }],
-    shotgun_shot: [
-      { rel: 'sfx/guns/shotty.wav', offset: 0.0, dur: 0.7, vol: 0.95, maxVoices: 2 },
-      { rel: 'sfx/impact/impactPunch_heavy_001.ogg', vol: 0.25, maxVoices: 2 },
-    ],
     smg_shot: [{ rel: 'sfx/guns/sks.wav', slices: [0.32, 2.27, 3.31, 5.98, 7.25, 9.69, 11.43, 12.70], dur: 0.24, vol: 0.5, maxVoices: 3 }],
-    // C: sci-fi charge removed. The chamber beat is a restrained mechanical
-    // click (separate event per identity direction §audio), not a laser whine.
-    sniper_charge: [{ rel: 'sfx/rpg/metalClick.ogg', vol: 0.30, maxVoices: 1 }],
+    shotgun_shot: [{ rel: 'sfx/guns/shotty.wav', offset: 0.0, dur: 0.7, vol: 0.95, maxVoices: 2 }],
     sniper_shot: [{ rel: 'sfx/guns/mosin.wav', offset: 0.40, dur: 1.7, vol: 0.95, maxVoices: 2 }],
-    casing_drop: [{ rel: 'sfx/impact/impactPlate_light_001.ogg', vol: 0.16, maxVoices: 2 }],
+
+    // Owner-approved C1 FINAL SFX LOCK.
+    pistol_mech: [{ rel: 'sfx/c-final/PISTOL/pistol_mech_click.wav', vol: 0.50, maxVoices: 2 }],
+    shotgun_rack_pull: [{ rel: 'sfx/c-final/SHOTGUN/shotgun_rack_pull.wav', vol: 0.71, maxVoices: 2 }],
+    shotgun_rack_push: [{ rel: 'sfx/c-final/SHOTGUN/shotgun_rack_push.wav', vol: 0.71, maxVoices: 2 }],
+    sniper_chamber: [{ rel: 'sfx/c-final/SNIPER/sniper_chamber.wav', vol: 0.63, maxVoices: 1 }],
+    sniper_bolt_lock: [{ rel: 'sfx/c-final/SNIPER/sniper_bolt_lock.wav', vol: 0.50, maxVoices: 1 }],
+
+    axe_swing: [{ rel: 'sfx/c-final/BATTLE_AXE/axe_motion.wav', vol: 0.63, maxVoices: 2 }],
+    axe_hit: [
+      { rel: 'sfx/c-final/BATTLE_AXE/axe_contact.wav', vol: 1.00, maxVoices: 3 },
+      { rel: 'sfx/c-final/BATTLE_AXE/axe_body.wav', vol: 0.40, maxVoices: 3 },
+    ],
+    club_swing: [{ rel: 'sfx/c-final/SPIKED_CLUB/club_swing.wav', vol: 0.79, maxVoices: 2 }],
+    club_hit: [{ rel: 'sfx/c-final/SPIKED_CLUB/club_body.wav', vol: 1.00, maxVoices: 3 }],
+    dagger_swing: [{ rel: 'sfx/c-final/DAGGER/dagger_motion.wav', vol: 0.71, maxVoices: 3 }],
+    dagger_hit: [{ rel: 'sfx/c-final/DAGGER/dagger_contact.wav', vol: 0.71, maxVoices: 3 }],
+    sabre_swing: [{ rel: 'sfx/c-final/SABRE/sabre_motion.wav', vol: 0.63, maxVoices: 3 }],
+    sabre_hit: [{ rel: 'sfx/c-final/SABRE/sabre_cut.wav', vol: 1.00, maxVoices: 3 }],
+    spear_swing: [{ rel: 'sfx/c-final/SPEAR/spear_motion.wav', vol: 0.56, maxVoices: 3 }],
+    spear_hit: [{ rel: 'sfx/c-final/SPEAR/spear_impact.wav', vol: 1.00, maxVoices: 3 }],
+    swirl_block: [{ rel: 'sfx/c-final/SWIRL_SHIELD/swirl_shield_block.wav', vol: 1.00, maxVoices: 3 }],
+    tower_block: [{ rel: 'sfx/c-final/TOWER_SHIELD/tower_shield_block.wav', vol: 1.00, maxVoices: 3 }],
     explosion: [
-      { rel: 'sfx/scifi/explosionCrunch_002.ogg', vol: 0.9, maxVoices: 2 },
-      { rel: 'sfx/scifi/lowFrequency_explosion_001.ogg', vol: 0.32, maxVoices: 2 },
+      { rel: 'sfx/c-final/GRENADE/grenade_core.wav', vol: 1.00, maxVoices: 2 },
+      { rel: 'sfx/c-final/GRENADE/grenade_low.wav', vol: 0.40, maxVoices: 2 },
     ],
-    sabre_swing: [{ rel: 'sfx/rpg/knifeSlice.ogg', vol: 0.65, maxVoices: 3 }],
-    axe_swing: [{ rel: 'sfx/rpg/chop.ogg', vol: 0.85, maxVoices: 3 }],
-    dagger_swing: [
-      { rel: 'sfx/rpg/knifeSlice2.ogg', vol: 0.6, maxVoices: 3 },
-      { rel: 'sfx/rpg/drawKnife1.ogg', vol: 0.25, maxVoices: 2 },
-    ],
-    spear_swing: [{ rel: 'sfx/rpg/knifeSlice.ogg', vol: 0.55, maxVoices: 3 }],
-    club_swing: [{ rel: 'sfx/rpg/chop.ogg', vol: 0.5, maxVoices: 3 }],
-    hit_blade: [{ rel: 'sfx/impact/impactGeneric_light_002.ogg', vol: 0.5, maxVoices: 5 }],
-    hit_thrust: [{ rel: 'sfx/impact/impactPunch_medium_001.ogg', vol: 0.6, maxVoices: 5 }],
-    hit_heavy: [{ rel: 'sfx/impact/impactPunch_heavy_001.ogg', vol: 0.8, maxVoices: 5 }],
-    shield_activate_swirl: [{ rel: 'sfx/scifi/forceField_003.ogg', vol: 0.5, maxVoices: 2 }],
-    shield_activate_tower: [{ rel: 'sfx/scifi/forceField_003.ogg', vol: 0.28, maxVoices: 2 }],
-    reflect: [
-      { rel: 'sfx/scifi/impactMetal_002.ogg', vol: 0.85, maxVoices: 3 },
-      { rel: 'sfx/impact/impactPlate_light_001.ogg', vol: 0.3, maxVoices: 3 },
-    ],
-    block_heavy: [{ rel: 'sfx/impact/impactPlate_heavy_001.ogg', vol: 0.8, maxVoices: 4 }],
-    block_light: [{ rel: 'sfx/impact/impactPlate_light_001.ogg', vol: 0.5, maxVoices: 4 }],
+    casing_drop: [{ rel: 'sfx/impact/impactPlate_light_001.ogg', vol: 0.12, maxVoices: 2 }],
   };
 
   // Checkpoint C melee contact language: weapon-specific impact transients
@@ -206,6 +203,10 @@
     if (!list) return;
     for (const entry of list) playEntry(entry);
   }
+  function playLater(listName, delayMs) {
+    if (typeof setTimeout !== 'function') return;
+    setTimeout(() => playAll(listName), Math.max(0, delayMs | 0));
+  }
 
   // ---------------------------------------------------------------------------
   // VFX instances — pure value snapshots (no fighter refs retained).
@@ -240,7 +241,7 @@
       }
       case 'pickup': {
         playAll('pickup');
-        if (o.weapon === 'DAGGER') playAll('dagger_swing'); // draw-knife accent on equip
+        if (o.weapon === 'PISTOL') playAll('pistol_mech');
         break;
       }
       case 'fire': {
@@ -262,8 +263,17 @@
         break;
       }
       case 'sniper_aim': {
-        // The weapon runtime owns the actual red aimline. Keep this cue audio-only.
-        playAll('sniper_charge');
+        // Owner-approved mechanical chamber gesture; no sci-fi charge.
+        playAll('sniper_chamber');
+        break;
+      }
+      case 'sniper_bolt_lock': {
+        playAll('sniper_bolt_lock');
+        break;
+      }
+      case 'shotgun_rack': {
+        playAll('shotgun_rack_pull');
+        playLater('shotgun_rack_push', 170);
         break;
       }
       case 'sniper_shot': {
@@ -295,26 +305,27 @@
         break;
       }
       case 'melee_hit': {
-        if (o.weapon === 'BATTLE_AXE' || o.weapon === 'SPIKED_CLUB') playAll('hit_heavy');
-        else if (o.weapon === 'SPEAR') playAll('hit_thrust');
-        else playAll('hit_blade');
+        if (o.weapon === 'BATTLE_AXE') playAll('axe_hit');
+        else if (o.weapon === 'SPIKED_CLUB') playAll('club_hit');
+        else if (o.weapon === 'SPEAR') playAll('spear_hit');
+        else if (o.weapon === 'SABRE') playAll('sabre_hit');
+        else if (o.weapon === 'DAGGER') playAll('dagger_hit');
         const contact = MELEE_CONTACT[o.weapon];
         if (contact) pushVfx({ kind: 'contact', x: o.x, y: o.y, angle: o.angle != null ? o.angle : Math.random() * 6.28, conf: contact, life: contact.life });
         break;
       }
       case 'shield_activate': {
-        // Equipped shield sprite is the persistent visual; activation is audio-only.
-        playAll(o.weapon === 'TOWER_SHIELD' ? 'shield_activate_tower' : 'shield_activate_swirl');
+        // Final-lock shield identity is reserved for actual contact.
         break;
       }
       case 'reflect': {
         // V2 §A4: no blue slash art on shield events; audio + the runtime's
         // native shockwave/particles already communicate the reflect.
-        playAll('reflect');
+        playAll('swirl_block');
         break;
       }
       case 'tower_block': {
-        playAll(o.heavy ? 'block_heavy' : 'block_light');
+        playAll('tower_block');
         break;
       }
       default:
