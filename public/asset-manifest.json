@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-24T02:37:48.466Z",
+  "generatedAt": "2026-09-24T04:37:03.727Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -191,6 +191,11 @@
       "path": "/assets/arsenal/av/sfx/scifi/lowFrequency_explosion_001.ogg",
       "type": "audio",
       "bytes": 9408
+    },
+    {
+      "path": "/assets/arsenal/weapons/arsenal_p0_weapon_atlas.json",
+      "type": "data",
+      "bytes": 1646
     },
     {
       "path": "/assets/audio/menu_bgm.mp3",
