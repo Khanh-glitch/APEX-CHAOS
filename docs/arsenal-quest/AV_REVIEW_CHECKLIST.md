@@ -1,9 +1,9 @@
 # Arsenal Quest — VFX/SFX Integration Review Checklist
 
 ## Asset integrity
-- [ ] `APEX_ARSENAL_AV_PACK.zip` was supplied by the owner.
-- [ ] ZIP checksum verified or discrepancy documented.
-- [ ] Curated contents installed under `public/assets/arsenal/av/`.
+- [ ] Curated AV runtime assets exist under `public/assets/arsenal/av/`.
+- [ ] `MANIFEST.csv` integrity/provenance is present and valid.
+- [ ] P0 weapon atlas exists under `public/assets/arsenal/weapons/`.
 - [ ] Duplicate original archives were not committed.
 - [ ] Transparent muzzle flash is used for runtime rendering.
 - [ ] Asset provenance / licenses remain documented.
@@ -20,6 +20,8 @@
 ## Shared lifecycle
 - [ ] Telegraph audio works.
 - [ ] Telegraph does not reveal weapon identity.
+- [ ] Telegraph/reveal do not use slash-family attack art.
+- [ ] Reveal uses proximity prediction, not slot age.
 - [ ] Reveal has distinct audio/visual cue.
 - [ ] Pickup has distinct audio/visual cue.
 - [ ] Multiple simultaneous pickups do not create unbearable audio spam.
@@ -29,7 +31,7 @@
 - [ ] Shotgun feels heavier than Pistol.
 - [ ] SMG burst is readable and audio-safe.
 - [ ] Sniper charge/shot is distinct.
-- [ ] Muzzle flash is correctly positioned/oriented to fighter direction.
+- [ ] Muzzle flash is positioned at the equipped weapon/barrel front, not fighter center.
 
 ## Grenade
 - [ ] Grenade throw/fuse still works.
@@ -43,7 +45,7 @@
 - [ ] Dagger uses compact/fast presentation.
 - [ ] Spear uses thrust-like presentation.
 - [ ] Club reads as blunt impact, not just another sword.
-- [ ] Melee VFX matches fighter/world orientation.
+- [ ] Melee VFX matches actual attack origin/path/orientation and hit-only effects occur only on confirmed contact.
 
 ## Defense
 - [ ] Swirl Shield activation reads clearly.
