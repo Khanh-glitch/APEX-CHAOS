@@ -107,6 +107,35 @@
     }
   }
 
+  function showMap() {
+    let el = document.getElementById('aq-quest-map');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'aq-quest-map';
+      el.style.cssText = 'position:absolute;inset:8% 8%;z-index:60;background:rgba(8,8,12,0.92);color:#efe6c8;padding:16px;overflow:auto;font:700 13px monospace;pointer-events:auto;';
+      (document.getElementById('game-wrap') || document.body).appendChild(el);
+    }
+    const save = loadSave();
+    el.style.display = 'block';
+    const cells = STAGES.map((s) => {
+      const done = save.completedStages.includes(s.n);
+      const open = canPlay(s.n, save);
+      const st = done ? 'DONE' : open ? 'OPEN' : 'LOCK';
+      return `<button data-n="${s.n}" ${open ? '' : 'disabled'} style="margin:4px;padding:8px;min-width:140px;background:${open ? '#2a3320' : '#1a1a1e'};color:#efe6c8;border:1px solid #6d8f4e;">${s.n}. ${s.opponent} [${st}]</button>`;
+    }).join('');
+    el.innerHTML = `<div>ARSENAL QUEST V1</div><div style="margin-top:8px">${cells}</div><div style="margin-top:12px"><button id="aq-quest-freeplay">FREE PLAY</button> <button id="aq-quest-close">CLOSE</button></div>`;
+    el.onclick = (e) => {
+      const n = e.target && e.target.getAttribute && e.target.getAttribute('data-n');
+      if (n) { el.style.display = 'none'; startStage(parseInt(n, 10), 'NEWBIE'); }
+      if (e.target && e.target.id === 'aq-quest-close') el.style.display = 'none';
+      if (e.target && e.target.id === 'aq-quest-freeplay') {
+        el.style.display = 'none';
+        if (typeof window.startArsenalQuestMode === 'function') window.startArsenalQuestMode();
+      }
+    };
+    return el;
+  }
+
   window.APEX_ARSENAL_QUEST = {
     STORAGE_KEY,
     STAGES,
