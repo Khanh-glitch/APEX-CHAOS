@@ -1045,11 +1045,16 @@ try {
     for (let i = 0; i < 50; i++) APEX_ARSENAL.step(1 / 60);
     const rack = APEX_ARSENAL_AV.stats.cued.filter(c => c.event === 'shotgun_rack').length - rack0;
     const ghost = fighters[0].data && fighters[0].data.arsenalFade;
-    APEX_ARSENAL_AV.clear();
+    const casing0 = APEX_ARSENAL_AV.stats.cued.filter(c => c.event === 'casing').length;
     APEX_ARSENAL.weaponApi.equip(fighters[0], 'MAGNUM_500');
     __AQ_TEST.place(300, 500, 640, 500);
-    for (let i = 0; i < 40; i++) APEX_ARSENAL.step(1 / 60);
-    const magCasing = APEX_ARSENAL_AV.stats.cued.filter(c => c.event === 'casing').length;
+    let magCasing = 0;
+    for (let i = 0; i < 40; i++) {
+      APEX_ARSENAL.step(1 / 60);
+      if (APEX_ARSENAL.weaponApi.getHolder(fighters[0])) {
+        magCasing = APEX_ARSENAL_AV.stats.cued.filter(c => c.event === 'casing').length - casing0;
+      }
+    }
     const magGhost = fighters[0].data && fighters[0].data.arsenalFade;
     return { rack, sawedExit: ghost && ghost.exitKey, magCasing, magExit: magGhost && magGhost.exitKey };
   })()`);
