@@ -148,17 +148,17 @@ jobs:
         if: always()
         shell: bash
         run: |
-            mkdir -p docs/arsenal-quest/ci-logs
-            cp /tmp/headless.log /tmp/browser.log /tmp/apex-vite.log docs/arsenal-quest/ci-logs/ 2>/dev/null || true
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            # add each path separately: --ignore-missing is NOT a "skip missing" flag
-            # (it requires --dry-run and aborts the whole add), which is why earlier
-            # evidence commits silently staged nothing.
-            git add docs/arsenal-quest/ci-logs 2>/dev/null || true
-            git add docs/arsenal-quest/browser-evidence 2>/dev/null || true
-            git add docs/arsenal-quest/evidence/headless-test-report.json 2>/dev/null || true
-            git status --short | head -20 || true
+          mkdir -p docs/arsenal-quest/ci-logs
+          cp /tmp/headless.log /tmp/browser.log /tmp/apex-vite.log docs/arsenal-quest/ci-logs/ 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # add each path separately: --ignore-missing is NOT a "skip missing" flag
+          # (it requires --dry-run and aborts the whole add), which is why earlier
+          # evidence commits silently staged nothing.
+          git add docs/arsenal-quest/ci-logs 2>/dev/null || true
+          git add docs/arsenal-quest/browser-evidence 2>/dev/null || true
+          git add docs/arsenal-quest/evidence/headless-test-report.json 2>/dev/null || true
+          git status --short | head -20 || true
           if git diff --cached --quiet; then
             echo "No browser evidence changes."
           else
