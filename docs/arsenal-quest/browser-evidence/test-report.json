@@ -62,7 +62,7 @@
     },
     "multi-slot-coexist": {
       "pass": true,
-      "detail": "maxActiveSlots=5"
+      "detail": "maxActiveSlots=4"
     },
     "force-reveals-only-while-unapproached": {
       "pass": true,
@@ -87,30 +87,30 @@
     },
     "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=SPEAR eta=null lead=2.00 fighter=TIMEOUT force=true"
+      "detail": "[AQ] REVEAL id=1 weapon=SMG eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=SNIPER eta=1.36 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=SPEAR eta=1.36 lead=2.00 fighter=HERO force=false"
     },
     "near-miss-outside-circle-stays-hidden": {
       "pass": true,
       "detail": {
         "nearMissStayedHidden": true,
         "edgeOfCircleReveals": true,
-        "edgeLog": "[AQ] REVEAL id=2 weapon=SPEAR eta=0.80 lead=2.00 fighter=HERO force=false",
+        "edgeLog": "[AQ] REVEAL id=2 weapon=BATTLE_AXE eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=SWIRL_SHIELD eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=DAGGER eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=SPEAR eta=0.80 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=BATTLE_AXE eta=0.80 lead=2.00 fighter=HERO force=false"
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=3 weapon=SWIRL_SHIELD eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=3 weapon=DAGGER eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -327,7 +327,7 @@
       "pass": true,
       "detail": {
         "nativeFrames": 20,
-        "aqFrames": 36
+        "aqFrames": 67
       }
     },
     "f3-debug-overlay-toggle": {
@@ -569,17 +569,17 @@
     },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=7 restarts=7 spawnedCumulative=69 earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=8 restarts=8 spawnedCumulative=68 earlyErrors=0"
     },
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=7 x=888 y=847 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=7 weapon=SPIKED_CLUB eta=null lead=2.00 fighter=TIMEOUT force=true",
-        "PICKUP": "[AQ] PICKUP id=5 fighter=WITCH weapon=SWIRL_SHIELD",
-        "USE": "[AQ] USE fighter=SNIPER weapon=BATTLE_AXE",
-        "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=SPIKED_CLUB damage=18.0",
-        "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=BATTLE_AXE reason=melee-resolved"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=6 x=124 y=377 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=6 weapon=DAGGER eta=null lead=2.00 fighter=TIMEOUT force=true",
+        "PICKUP": "[AQ] PICKUP id=5 fighter=WITCH weapon=PISTOL",
+        "USE": "[AQ] USE fighter=WITCH weapon=PISTOL",
+        "HIT": "[AQ] HIT source=WITCH target=SNIPER weapon=PISTOL damage=4.5",
+        "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=DAGGER reason=stab-landed"
       }
     }
   },
@@ -652,7 +652,7 @@
   },
   "spawnLaw": {
     "spawnedTotal": 5,
-    "maxActive": 5,
+    "maxActive": 4,
     "spawnTimes": [
       1,
       5.6,
@@ -694,18 +694,18 @@
       "predictedFighter": null
     },
     "forceRevealed": true,
-    "forceLog": "[AQ] REVEAL id=1 weapon=SPEAR eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "forceLog": "[AQ] REVEAL id=1 weapon=SMG eta=null lead=2.00 fighter=TIMEOUT force=true",
     "pickupAfterForce": true,
     "revealedOnMovement": true,
-    "moveRevealLog": "[AQ] REVEAL id=2 weapon=SNIPER eta=1.36 lead=2.00 fighter=HERO force=false"
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=SPEAR eta=1.36 lead=2.00 fighter=HERO force=false"
   },
   "circleNeg": {
     "nearMissStayedHidden": true,
     "edgeOfCircleReveals": true,
-    "edgeLog": "[AQ] REVEAL id=2 weapon=SPEAR eta=0.80 lead=2.00 fighter=HERO force=false",
+    "edgeLog": "[AQ] REVEAL id=2 weapon=BATTLE_AXE eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=SWIRL_SHIELD eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=DAGGER eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -960,7 +960,7 @@
     "vampLatch": 2.5,
     "monkRush": 2.5,
     "nativeSeen": 20,
-    "aqSeen": 36,
+    "aqSeen": 67,
     "holderIntact": true
   },
   "f3": {
@@ -1132,20 +1132,20 @@
   },
   "fiveMinute": {
     "error": null,
-    "restarts": 7,
-    "koCount": 7,
-    "spawnedTotal": 5,
-    "spawnedCumulative": 69,
+    "restarts": 8,
+    "koCount": 8,
+    "spawnedTotal": 4,
+    "spawnedCumulative": 68,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=7 x=888 y=847 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=7 weapon=SPIKED_CLUB eta=null lead=2.00 fighter=TIMEOUT force=true",
-    "PICKUP": "[AQ] PICKUP id=5 fighter=WITCH weapon=SWIRL_SHIELD",
-    "USE": "[AQ] USE fighter=SNIPER weapon=BATTLE_AXE",
-    "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=SPIKED_CLUB damage=18.0",
-    "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=BATTLE_AXE reason=melee-resolved"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=6 x=124 y=377 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=6 weapon=DAGGER eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "PICKUP": "[AQ] PICKUP id=5 fighter=WITCH weapon=PISTOL",
+    "USE": "[AQ] USE fighter=WITCH weapon=PISTOL",
+    "HIT": "[AQ] HIT source=WITCH target=SNIPER weapon=PISTOL damage=4.5",
+    "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=DAGGER reason=stab-landed"
   },
   "summary": {
     "total": 69,
