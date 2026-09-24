@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-24T15:23:51.319Z",
+  "generatedAt": "2026-09-24T16:02:46.432Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -51,6 +51,106 @@
       "path": "/assets/arcade_v1/normalized/text_multiplier_sheet.webp",
       "type": "image",
       "bytes": 331278
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/BATTLE_AXE/axe_body.wav",
+      "type": "audio",
+      "bytes": 47308
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/BATTLE_AXE/axe_contact.wav",
+      "type": "audio",
+      "bytes": 110820
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/BATTLE_AXE/axe_motion.wav",
+      "type": "audio",
+      "bytes": 108770
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/DAGGER/dagger_contact.wav",
+      "type": "audio",
+      "bytes": 36152
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/DAGGER/dagger_motion.wav",
+      "type": "audio",
+      "bytes": 27736
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/GRENADE/grenade_core.wav",
+      "type": "audio",
+      "bytes": 114844
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/GRENADE/grenade_low.wav",
+      "type": "audio",
+      "bytes": 85712
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/PISTOL/pistol_mech_click.wav",
+      "type": "audio",
+      "bytes": 17934
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SABRE/sabre_cut.wav",
+      "type": "audio",
+      "bytes": 57884
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SABRE/sabre_motion.wav",
+      "type": "audio",
+      "bytes": 75346
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SHOTGUN/shotgun_rack_pull.wav",
+      "type": "audio",
+      "bytes": 41926
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SHOTGUN/shotgun_rack_push.wav",
+      "type": "audio",
+      "bytes": 84166
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SNIPER/sniper_bolt_lock.wav",
+      "type": "audio",
+      "bytes": 57856
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SNIPER/sniper_chamber.wav",
+      "type": "audio",
+      "bytes": 88576
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SPEAR/spear_impact.wav",
+      "type": "audio",
+      "bytes": 34844
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SPEAR/spear_motion.wav",
+      "type": "audio",
+      "bytes": 98202
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SPIKED_CLUB/club_body.wav",
+      "type": "audio",
+      "bytes": 47308
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SPIKED_CLUB/club_swing.wav",
+      "type": "audio",
+      "bytes": 78238
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/SWIRL_SHIELD/swirl_shield_block.wav",
+      "type": "audio",
+      "bytes": 33222
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/c-final/TOWER_SHIELD/tower_shield_block.wav",
+      "type": "audio",
+      "bytes": 107084
     },
     {
       "path": "/assets/arsenal/av/sfx/guns/cz.wav",

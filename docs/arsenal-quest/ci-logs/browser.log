@@ -1,7 +1,12 @@
 
 > apex-chaos-vite-refactor@0.1.0 test:arsenal /home/runner/work/APEX-CHAOS/APEX-CHAOS
-> node tools/testArsenalQuestRuntime.mjs
+> pnpm arsenal:sfx:materialize && node tools/testArsenalQuestRuntime.mjs
 
+
+> apex-chaos-vite-refactor@0.1.0 arsenal:sfx:materialize /home/runner/work/APEX-CHAOS/APEX-CHAOS
+> node tools/materializeArsenalFinalSfx.mjs
+
+Materialized 20 owner-approved final-lock SFX files.
 PASS  runtime-registered  — arsenalQuest deferred group loaded
 PASS  normal-modes-launch  — {"selectVisible":true,"menuVisible":true,"normalMatchState":"PLAYING","normalFighters":["ICE","TOXIC"],"normalSimOk":true,"menuAfterMatch":"MENU"}
 PASS  entry-state  — {"gameState":"ARSENAL","hero":{"name":"HERO","hp":100,"maxHp":100,"x":220,"y":500,"weapon":"NONE","weaponPhase":null,"shotsFired":0},"rival":{"name":"RIVAL","hp":100,"maxHp":100,"x":780,"y":500,"weapon":"NONE","weaponPhase":null,"shotsFired":0},"hudOpacity":"1","menuHidden":true}
@@ -11,11 +16,11 @@ PASS  multi-slot-coexist  — maxActiveSlots=5
 PASS  force-reveals-only-while-unapproached  — reveals=4 (all force=true, identity null while hidden)
 PASS  hidden-until-force-age-3.0  — {"id":1,"phase":"TELEGRAPH","age":2.9,"weaponId":null,"revealLeadSeconds":2,"predictedHeroETA":null,"predictedRivalETA":null,"earliestETA":null,"predictedFighter":null}
 PASS  telegraph-no-identity
-PASS  force-reveal-at-3.0-not-autopickup  — [AQ] REVEAL id=1 weapon=BATTLE_AXE eta=null lead=2.00 fighter=TIMEOUT force=true
-PASS  movement-reveal-lead-2.0  — [AQ] REVEAL id=2 weapon=SABRE eta=1.36 lead=2.00 fighter=HERO force=false
-PASS  near-miss-outside-circle-stays-hidden  — {"nearMissStayedHidden":true,"edgeOfCircleReveals":true,"edgeLog":"[AQ] REVEAL id=2 weapon=SPIKED_CLUB eta=0.80 lead=2.00 fighter=HERO force=false","hiddenBeforeBounce":true,"revealedAfterBounce":true,"bounceLog":"[AQ] REVEAL id=3 weapon=SABRE eta=0.06 lead=2.00 fighter=HERO force=false"}
-PASS  edge-of-circle-approach-reveals  — [AQ] REVEAL id=2 weapon=SPIKED_CLUB eta=0.80 lead=2.00 fighter=HERO force=false
-PASS  no-reveal-before-bounce  — [AQ] REVEAL id=3 weapon=SABRE eta=0.06 lead=2.00 fighter=HERO force=false
+PASS  force-reveal-at-3.0-not-autopickup  — [AQ] REVEAL id=1 weapon=SNIPER eta=null lead=2.00 fighter=TIMEOUT force=true
+PASS  movement-reveal-lead-2.0  — [AQ] REVEAL id=2 weapon=SNIPER eta=1.36 lead=2.00 fighter=HERO force=false
+PASS  near-miss-outside-circle-stays-hidden  — {"nearMissStayedHidden":true,"edgeOfCircleReveals":true,"edgeLog":"[AQ] REVEAL id=2 weapon=TOWER_SHIELD eta=0.80 lead=2.00 fighter=HERO force=false","hiddenBeforeBounce":true,"revealedAfterBounce":true,"bounceLog":"[AQ] REVEAL id=3 weapon=BATTLE_AXE eta=0.06 lead=2.00 fighter=HERO force=false"}
+PASS  edge-of-circle-approach-reveals  — [AQ] REVEAL id=2 weapon=TOWER_SHIELD eta=0.80 lead=2.00 fighter=HERO force=false
+PASS  no-reveal-before-bounce  — [AQ] REVEAL id=3 weapon=BATTLE_AXE eta=0.06 lead=2.00 fighter=HERO force=false
 PASS  aim-never-steers-fighter  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
 PASS  dagger-no-body-dash  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
 PASS  no-slash-vfx-in-combat  — {"noSlashSeq":true,"bombAtlas":true}
@@ -57,7 +62,7 @@ PASS  roster-all-32-classified-keep-or-adapt  — {"adapted":["VAMPIRE","MONK"]}
 PASS  roster-keep-native-skill-runs  — {"iceLaneFired":true}
 PASS  roster-adapt-vampire-latch-2.5  — latchTimer=2.5
 PASS  roster-adapt-monk-rush-2.5  — rushTimer=2.5
-PASS  roster-native-skill-and-weapon-coexist  — {"nativeFrames":20,"aqFrames":31}
+PASS  roster-native-skill-and-weapon-coexist  — {"nativeFrames":20,"aqFrames":39}
 PASS  f3-debug-overlay-toggle
 PASS  browser-weapon-cset-floor-sprite  — {"floor":2,"equipped":2,"imgFail":0,"sfxFail":0}
 PASS  browser-weapon-cset-equipped-sprite  — {"floor":2,"equipped":2,"imgFail":0,"sfxFail":0}
@@ -69,8 +74,8 @@ PASS  motion-browser-gun-signatures  — {"pistol":{"pulses":3,"maxRecoil":14,"m
 PASS  motion-browser-melee-signatures  — {"sabre":{"pulses":0,"maxRecoil":6,"minRecoil":0,"maxRot":0.45,"minRot":-0.77,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"axe":{"pulses":0,"maxRecoil":6,"minRecoil":0,"maxRot":0.75,"minRot":-1.25,"maxLocalX":0,"minLocalY":-9.4,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"club":{"pulses":0,"maxRecoil":6,"minRecoil":0,"maxRot":0.62,"minRot":-1,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"dagger":{"pulses":0,"maxRecoil":0,"minRecoil":0,"maxRot":0.65,"minRot":-0.15,"maxLocalX":78,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"spear":{"pulses":0,"maxRecoil":6,"minRecoil":0,"maxRot":0.84,"minRot":-0.18,"maxLocalX":108,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true}}
 PASS  motion-browser-shield-signatures  — {"swirl":{"pulses":0,"maxRecoil":0,"minRecoil":-16,"maxRot":0,"minRot":0,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":4,"guardX":0,"bodySame":true},"tower":{"pulses":0,"maxRecoil":12,"minRecoil":0,"maxRot":0.14,"minRot":0,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":11.8,"bodySame":true}}
 PASS  motion-browser-body-untouched  — PISTOL:true,SHOTGUN:true,SMG:true,SNIPER:true,GRENADE:true,SABRE:true,BATTLE_AXE:true,DAGGER:true,SPEAR:true,SPIKED_CLUB:true,SWIRL_SHIELD:true,TOWER_SHIELD:true
-PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=8 restarts=8 spawnedCumulative=68 earlyErrors=0
-PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=4 x=676 y=879 lead=2.00","REVEAL":"[AQ] REVEAL id=4 weapon=SNIPER eta=0.03 lead=2.00 fighter=WITCH force=false","PICKUP":"[AQ] PICKUP id=4 fighter=WITCH weapon=SNIPER","USE":"[AQ] USE fighter=WITCH weapon=SNIPER","HIT":"[AQ] HIT source=WITCH target=SNIPER weapon=SHOTGUN damage=3.6","CONSUME":"[AQ] CONSUME fighter=WITCH weapon=SHOTGUN reason=blast-resolved"}
+PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=6 restarts=6 spawnedCumulative=67 earlyErrors=0
+PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=8 x=114 y=754 lead=2.00","REVEAL":"[AQ] REVEAL id=8 weapon=BATTLE_AXE eta=null lead=2.00 fighter=TIMEOUT force=true","PICKUP":"[AQ] PICKUP id=8 fighter=WITCH weapon=BATTLE_AXE","USE":"[AQ] USE fighter=WITCH weapon=BATTLE_AXE","HIT":"[AQ] HIT source=WITCH target=SNIPER weapon=SPEAR damage=15.0","CONSUME":"[AQ] CONSUME fighter=WITCH weapon=BATTLE_AXE reason=melee-resolved"}
 
 ==== ARSENAL QUEST TEST SUMMARY ====
 {

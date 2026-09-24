@@ -1,10 +1,15 @@
 
 > apex-chaos-vite-refactor@0.1.0 dev /home/runner/work/APEX-CHAOS/APEX-CHAOS
-> vite --host 127.0.0.1 --port 5173
+> pnpm arsenal:sfx:materialize && vite --host 127.0.0.1 --port 5173
 
 
-  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m191[22m[2m[0m ms[22m
+> apex-chaos-vite-refactor@0.1.0 arsenal:sfx:materialize /home/runner/work/APEX-CHAOS/APEX-CHAOS
+> node tools/materializeArsenalFinalSfx.mjs
+
+Materialized 20 owner-approved final-lock SFX files.
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m206[22m[2m[0m ms[22m
 
   [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5173[22m/[39m
-[2m3:33:24 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.arsenal-chrome-profile/Default/Extensions/ghbmnnjooekpmoecnnnilnnbdlolhkhi/1.110.1_0/offscreendocument.html[22m
-[2m3:33:24 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.arsenal-chrome-profile/Default/Extensions/nmmhkkegccagdldgiimedpiccmgmieda/1.0.0.6_0/html/craw_window.html[22m
+[2m4:03:13 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.arsenal-chrome-profile/Default/Extensions/ghbmnnjooekpmoecnnnilnnbdlolhkhi/1.110.1_0/offscreendocument.html[22m
+[2m4:03:13 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.arsenal-chrome-profile/Default/Extensions/nmmhkkegccagdldgiimedpiccmgmieda/1.0.0.6_0/html/craw_window.html[22m
