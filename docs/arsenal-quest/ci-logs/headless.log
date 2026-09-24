@@ -1,0 +1,1463 @@
+
+> apex-chaos-vite-refactor@0.1.0 test:arsenal:headless /home/runner/work/APEX-CHAOS/APEX-CHAOS
+> node tools/testArsenalQuestHeadless.mjs
+
+[Apex Chaos] SHOTGUN champion integrated {
+  ok: true,
+  errors: [],
+  totals: {
+    '1': 10,
+    '2': 16,
+    '3': 22.5,
+    '4': 28,
+    '5': 32.5,
+    '6': 36,
+    '7': 38.5
+  },
+  constants: {
+    PELLET_COUNT: 7,
+    PELLET_DAMAGE: 10,
+    CONE_DEGREES: 60,
+    RAY_WIDTH: 10,
+    MAX_SHELLS: 6,
+    SHOT_CYCLE: 2,
+    PUMP_READY_TIME: 1.9,
+    SHOT_AFTER_TIME: 0.2,
+    SHOT_SPIN_START: 0.8,
+    SHOT_SPIN_END: 1.5,
+    SHOT_READY_TIME: 1.9,
+    LONG_RELOAD_TIME: 7,
+    LONG_RELOAD_FILL_TIME: 6,
+    HARD_STUN_IMMUNITY: 2.5,
+    HOOK_MIN_RANGE: 700,
+    HOOK_MAX_RANGE: 800,
+    HOOK_MIN_GAP: 700,
+    HOOK_MAX_GAP: 800,
+    HOOK_PULL: 85,
+    HOOK_DASH: 140,
+    HOOK_FLIGHT_TIME: 0.12,
+    HOOK_PULL_END: 0.68,
+    HOOK_SHOT_TIME: 0.72,
+    HOOK_LOCK_TIME: 1,
+    GUN_X: -7,
+    GUN_Y: 45,
+    GUN_WIDTH: 60,
+    GUN_LENGTH: 238,
+    GUN_RECOIL: 24,
+    MUZZLE_SIDE_OFFSET: -4,
+    COUNTER_RANGE: 150,
+    COUNTER_RECOIL: 210,
+    COUNTER_CONE_SCALE: 0.85,
+    SHOT_LOCK_TIME: 0.18,
+    GUN_SPIN_TIME: 0.7,
+    COUNTER_SPIN_TIME: 0.34,
+    HEAT_PER_SHOT: 5,
+    COOLING_TIME_AT_FULL_HEAT: 15,
+    BUTT_STRIKE_DAMAGE: 5,
+    BUTT_STRIKE_INTERVAL: 1,
+    BUTT_STRIKE_VISUAL_INTERVAL: 0.24,
+    BUTT_STRIKE_VISUAL_TIME: 0.22,
+    RELOAD_SPIN_TIME: 1,
+    DOUBLE_DELAY: 0.22,
+    MULTIPLIER: {
+      '1': 1,
+      '2': 0.8,
+      '3': 0.75,
+      '4': 0.7,
+      '5': 0.65,
+      '6': 0.6,
+      '7': 0.55
+    }
+  },
+  assets: {
+    body: '/assets/shotgun_v1/body.webp',
+    gunReady: '/assets/shotgun_v1/gun_ready.webp',
+    gunAfter: '/assets/shotgun_v1/gun_after.webp',
+    gunPump: '/assets/shotgun_v1/gun_pump.webp',
+    muzzle: '/assets/shotgun_v1/muzzle.webp',
+    pellet: '/assets/shotgun_v1/pellet.webp',
+    shell: '/assets/shotgun_v1/shell.webp',
+    hookRope: '/assets/shotgun_v1/hook_rope.webp',
+    hookHead: '/assets/shotgun_v1/hook_head.webp',
+    ring0: '/assets/shotgun_v1/ring_0.webp',
+    ring1: '/assets/shotgun_v1/ring_1.webp',
+    ring2: '/assets/shotgun_v1/ring_2.webp',
+    ring3: '/assets/shotgun_v1/ring_3.webp',
+    ring4: '/assets/shotgun_v1/ring_4.webp',
+    ring5: '/assets/shotgun_v1/ring_5.webp',
+    ring6: '/assets/shotgun_v1/ring_6.webp',
+    pickButton: '/assets/shotgun_v1/pick_button.webp',
+    picked: '/assets/shotgun_v1/picked.webp'
+  }
+}
+[Apex Chaos] ENGINEER champion integrated { assets: 40, spec: 'scrap-build-merge-war-machine' }
+[Apex Final] canonical identity + balance merge loaded [
+  'RUBBER',   'ICE',       'VAMPIRE',
+  'STRING',   'VOLCANO',   'MAGNET',
+  'FLASH',    'ELECTRIC',  'ORBIT',
+  'TOXIC',    'MIRROR',    'BLACK_HOLE',
+  'SAW',      'BLADE',     'NOVA',
+  'HUNTER',   'CRYSTAL',   'VIRUS',
+  'DRUM',     'CARD',      'MATH',
+  'MATH_V2',  'SNIPER',    'SLIME',
+  'TIME',     'WOLF',      'PUPPET',
+  'WITCH',    'PIRATE',    'PAINTER',
+  'KUNGFU',   'SUPERSTAR', 'SHOTGUN',
+  'ENGINEER'
+]
+[Apex Chaos] roster replacement loaded {
+  removed: [ 'MAGNET', 'MATH_V2', 'HUNTER', 'PAINTER', 'WITCH' ],
+  added: [ 'MUSICIAN', 'MASTER_CHEF', 'MASK', 'ARCADE', 'NINJA' ],
+  roster: [
+    'RUBBER',      'ICE',        'VAMPIRE',
+    'STRING',      'VOLCANO',    'FLASH',
+    'ELECTRIC',    'ORBIT',      'TOXIC',
+    'MIRROR',      'BLACK_HOLE', 'SAW',
+    'BLADE',       'NOVA',       'CRYSTAL',
+    'VIRUS',       'DRUM',       'CARD',
+    'MATH',        'SNIPER',     'SLIME',
+    'TIME',        'WOLF',       'PUPPET',
+    'PIRATE',      'KUNGFU',     'SUPERSTAR',
+    'SHOTGUN',     'ENGINEER',   'MUSICIAN',
+    'MASTER_CHEF', 'MASK',       'ARCADE',
+    'NINJA'
+  ],
+  count: 34
+}
+[Apex Chaos] text hygiene failed ReferenceError: CanvasRenderingContext2D is not defined
+    at patchCanvasText (eval at loadScript (file:///home/runner/work/APEX-CHAOS/APEX-CHAOS/tools/testArsenalQuestHeadless.mjs:177:9), <anonymous>:107:21)
+    at apexTextHygiene (eval at loadScript (file:///home/runner/work/APEX-CHAOS/APEX-CHAOS/tools/testArsenalQuestHeadless.mjs:177:9), <anonymous>:118:5)
+    at eval (eval at loadScript (file:///home/runner/work/APEX-CHAOS/APEX-CHAOS/tools/testArsenalQuestHeadless.mjs:177:9), <anonymous>:134:3)
+    at eval (<anonymous>)
+    at loadScript (file:///home/runner/work/APEX-CHAOS/APEX-CHAOS/tools/testArsenalQuestHeadless.mjs:177:9)
+    at file:///home/runner/work/APEX-CHAOS/APEX-CHAOS/tools/testArsenalQuestHeadless.mjs:187:41
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+[Apex Chaos] ICE visual, audio, and Rage ICE AGE integrated {
+  mainStatic: 'assets/ice_v1/normalized/iceMainStatic.webp',
+  fingerGunPose: 'assets/ice_v1/normalized/iceFingerGunPose.webp',
+  laneStartSegment: 'assets/ice_v1/normalized/iceLaneStartSegment.webp',
+  shardProjectile: 'assets/ice_v1/normalized/iceShardProjectile.webp',
+  frozenText: 'assets/ice_v1/normalized/frozenText.webp',
+  iceBlockOverlay: 'assets/ice_v1/normalized/iceBlockOverlay.webp',
+  fullArenaFrozenOverlay: 'assets/ice_v1/normalized/fullArenaFrozenOverlay.webp',
+  iceAgeText: 'assets/ice_v1/normalized/iceAgeText.webp'
+} {
+  castHaki: 'assets/ice_v1/audio/cast_haki.mp3',
+  castFreeze: 'assets/ice_v1/audio/cast_freeze_hq.mp3',
+  iceAgeCall: 'assets/ice_v1/audio/ice_age_call.mp3',
+  ambientWind: 'assets/ice_v1/audio/ambient_wind.mp3',
+  ambientIceCrack: 'assets/ice_v1/audio/ambient_ice_crack.mp3',
+  ambientFreezeCrack: 'assets/ice_v1/audio/ambient_freeze_crack.mp3',
+  freezeTarget: 'assets/ice_v1/audio/freeze_target.wav',
+  iceDartFly: 'assets/ice_v1/audio/ice_dart_fly.wav',
+  iceDartHit: 'assets/ice_v1/audio/ice_dart_hit.wav'
+}
+[Apex Chaos] KATANA champion integrated {
+  registered: 1,
+  frames: 48,
+  releaseFrame: 17,
+  pickButton: '/assets/katana_v1/pickButton.webp',
+  picked: '/assets/katana_v1/picked.webp',
+  visualWarmupReady: false
+}
+[Apex Chaos] FANG V7 integrated {
+  registered: 1,
+  frames: { normal: 13, hunt: 22, howl: 48 },
+  pounceSpeed: 1904.7619047619048,
+  pickButton: '/assets/fang_v1/selectionButton.webp',
+  picked: '/assets/fang_v1/selectionVisual.webp'
+}
+PASS  runtime-registered  — {"bootLoadErrors":["/game/fighters/soccerChampionRuntime.js"]}
+PASS  normal-modes-launch  — {"selectState":"SELECT","menuState":"MENU","menuVisible":true,"normalMatchState":"PLAYING","normalFighters":["ICE","TOXIC"],"normalSimMoved":true,"menuAfterMatch":"MENU"}
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+PASS  entry-state  — {"gameState":"ARSENAL","hero":{"name":"HERO","hp":100,"maxHp":100,"x":220,"y":500,"weapon":"NONE","weaponPhase":null,"shotsFired":0},"rival":{"name":"RIVAL","hp":100,"maxHp":100,"x":780,"y":500,"weapon":"NONE","weaponPhase":null,"shotsFired":0},"hudOpacity":"1","menuHidden":true,"p1Name":"HERO","p2Name":"RIVAL"}
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=539 y=553 lead=1.27
+[AQ] SPAWN_SLOT id=2 x=472 y=301 lead=1.55
+[AQ] SPAWN_SLOT id=3 x=194 y=780 lead=1.40
+[AQ] SPAWN_SLOT id=4 x=122 y=234 lead=1.70
+PASS  spawn-cadence-independent  — spawnedTotal=4 over 10s (first 1.0s, cadence 3.0s)
+PASS  reveal-lookahead-1.2-1.8s  — [1.274,1.554,1.397,1.701]
+PASS  multi-slot-coexist  — maxActiveSlots=4
+PASS  no-age-based-reveal-while-far  — longHidden=2 reveals=0
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] REVEAL id=1 weapon=SMG eta=1.13 lead=1.50 fighter=HERO
+[AQ] PICKUP id=1 fighter=HERO weapon=SMG
+[AQ] USE fighter=HERO weapon=SMG
+PASS  telegraph-not-collectible-and-long-hidden  — {"id":1,"phase":"TELEGRAPH","age":6.1,"weaponId":null,"revealLeadSeconds":1.5,"predictedHeroETA":null,"predictedRivalETA":null,"earliestETA":null,"predictedFighter":null}
+PASS  telegraph-no-identity
+PASS  proximity-reveal-on-approach  — [AQ] REVEAL id=1 weapon=SMG eta=1.13 lead=1.50 fighter=HERO
+PASS  reveal-then-collectible  — [AQ] REVEAL id=1 weapon=SMG eta=1.13 lead=1.50 fighter=HERO
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] PICKUP id=1 fighter=RIVAL weapon=SABRE
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] PICKUP id=2 fighter=HERO weapon=SMG
+[AQ] REJECT_PICKUP fighter=HERO id=3 reason=already-armed
+[AQ] USE fighter=HERO weapon=SMG
+PASS  rival-can-collect
+PASS  hero-can-collect
+PASS  armed-fighter-cannot-vacuum
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] SPAWN_SUPPRESSED active=8 cap=8
+PASS  soft-cap-suppresses-and-logs
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=HERO weapon=PISTOL
+[AQ] HIT source=HERO target=RIVAL weapon=PISTOL damage=4.5
+[AQ] HIT source=HERO target=RIVAL weapon=PISTOL damage=4.5
+[AQ] CONSUME fighter=HERO weapon=PISTOL reason=sequence-complete
+[AQ] HIT source=HERO target=RIVAL weapon=PISTOL damage=4.5
+PASS  weapon-PISTOL  — dmg=13.5 USE=1 HIT=3 CONSUME=1
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=HERO weapon=SHOTGUN
+[AQ] CONSUME fighter=HERO weapon=SHOTGUN reason=blast-resolved
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+PASS  weapon-SHOTGUN  — dmg=14.4 USE=1 HIT=4 CONSUME=1
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=HERO weapon=SMG
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] CONSUME fighter=HERO weapon=SMG reason=sequence-complete
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+PASS  weapon-SMG  — dmg=19.2 USE=1 HIT=8 CONSUME=1
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=HERO weapon=SNIPER
+[AQ] CONSUME fighter=HERO weapon=SNIPER reason=shot-fired
+[AQ] HIT source=HERO target=RIVAL weapon=SNIPER damage=26.0
+PASS  weapon-SNIPER  — dmg=26 USE=1 HIT=1 CONSUME=1
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=HERO weapon=GRENADE
+[AQ] CONSUME fighter=HERO weapon=GRENADE reason=thrown
+[AQ] HIT source=HERO target=RIVAL weapon=GRENADE damage=10.4
+[AQ] EXPLODE weapon=GRENADE x=689 y=500
+PASS  weapon-GRENADE  — dmg=10.4 USE=1 HIT=1 CONSUME=1
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=SABRE
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=HERO target=RIVAL weapon=SABRE damage=12.0
+[AQ] CONSUME fighter=HERO weapon=SABRE reason=melee-resolved
+PASS  weapon-SABRE  — dmg=12 USE=1 HIT=1 CONSUME=1
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=BATTLE_AXE
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=HERO target=RIVAL weapon=BATTLE_AXE damage=26.0
+[AQ] CONSUME fighter=HERO weapon=BATTLE_AXE reason=melee-resolved
+PASS  weapon-BATTLE_AXE  — dmg=26 USE=1 HIT=1 CONSUME=1
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=DAGGER
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=HERO target=RIVAL weapon=DAGGER damage=9.0
+[AQ] CONSUME fighter=HERO weapon=DAGGER reason=stab-landed
+PASS  weapon-DAGGER  — dmg=9 USE=1 HIT=1 CONSUME=1
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=SPEAR
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=HERO target=RIVAL weapon=SPEAR damage=15.0
+[AQ] CONSUME fighter=HERO weapon=SPEAR reason=melee-resolved
+PASS  weapon-SPEAR  — dmg=15 USE=1 HIT=1 CONSUME=1
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=SPIKED_CLUB
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=HERO target=RIVAL weapon=SPIKED_CLUB damage=18.0
+[AQ] CONSUME fighter=HERO weapon=SPIKED_CLUB reason=melee-resolved
+PASS  weapon-SPIKED_CLUB  — dmg=18 USE=1 HIT=1 CONSUME=1
+PASS  pistol-3-shots  — hits=3
+PASS  smg-8-shots  — hits=8
+PASS  sniper-single-high-damage  — dmg=26
+PASS  sniper-aim-telegraph-window  — phase@0.3s=READY phase@0.65s=AIM
+PASS  club-stun-applied  — ["stun"]
+PASS  axe-knockback-applied  — ["push"]
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=HERO weapon=GRENADE
+[AQ] CONSUME fighter=HERO weapon=GRENADE reason=thrown
+[AQ] HIT source=HERO target=RIVAL weapon=GRENADE damage=10.0
+[AQ] EXPLODE weapon=GRENADE x=643 y=500
+PASS  grenade-throw-consumes-immediately
+PASS  grenade-resolves-after-fuse  — rivalHp=90
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=HERO weapon=BATTLE_AXE
+[AQ] HIT source=HERO target=RIVAL weapon=BATTLE_AXE damage=26.0
+[AQ] CONSUME fighter=HERO weapon=BATTLE_AXE reason=melee-resolved
+PASS  melee-not-wasted-out-of-range
+PASS  melee-activates-in-range
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=SWIRL_SHIELD
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=RIVAL weapon=SNIPER
+[AQ] CONSUME fighter=RIVAL weapon=SNIPER reason=shot-fired
+[AQ] REFLECT fighter=HERO weapon=SWIRL_SHIELD projectileFrom=RIVAL
+[AQ] CONSUME fighter=HERO weapon=SWIRL_SHIELD reason=reflect-resolved
+[AQ] HIT source=HERO target=RIVAL weapon=SNIPER damage=26.0
+PASS  swirl-reflects-projectile  — heroHp=100 rivalHp=74
+PASS  swirl-reflect-ownership-correct  — reflected bullet source=HERO target=RIVAL
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=TOWER_SHIELD
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=RIVAL target=HERO weapon=TEST_PROBE damage=2.5
+[AQ] CONSUME fighter=HERO weapon=TOWER_SHIELD reason=expired
+[AQ] HIT source=RIVAL target=HERO weapon=TEST_PROBE damage=10.0
+PASS  tower-shield-reduces-damage  — withShield 10->2.5, without 10->10
+PASS  tower-shield-slow-while-active
+PASS  tower-shield-expires-to-unarmed
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=HERO weapon=SNIPER
+[AQ] CONSUME fighter=HERO weapon=SNIPER reason=shot-fired
+[AQ] HIT source=HERO target=RIVAL weapon=SNIPER damage=26.0
+[AQ] USE fighter=RIVAL weapon=TOWER_SHIELD
+[AQ] MODE_EXIT mode=ARSENAL_QUEST
+PASS  exit-cleanup  — {"gameStateAfter":"MENU","menuVisible":true,"hudHidden":true,"slotsCleared":true,"aqProjectilesCleared":true,"heroHolderCleared":true,"exitLogged":true}
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+PASS  f3-debug-overlay-toggle
+[ENGINEER] asset failed main visual.webp
+[ENGINEER] asset failed đế chung cho cả turret và rocket.webp
+[ENGINEER] asset failed Turret 2.webp
+[ENGINEER] asset failed turret bulllet.webp
+[ENGINEER] asset failed mine lv2.webp
+[ENGINEER] asset failed repair station.webp
+[ENGINEER] asset failed healing nexus.webp
+[ENGINEER] asset failed factory lv1.webp
+[ENGINEER] asset failed factory lv1.webp
+[ENGINEER] asset failed mega factory.webp
+[ENGINEER] asset failed đế chung cho cả turret và rocket.webp
+[ENGINEER] asset failed thân trên trục xoay rocket.webp
+[ENGINEER] asset failed thân súng trên trục xoay rocket nhưng đang reload.webp
+[ENGINEER] asset failed rocket bullet.webp
+[ENGINEER] asset failed war machine.webp
+[ENGINEER] asset failed đế war machine.webp
+[ENGINEER] asset failed thân súng war machine.webp
+[ENGINEER] asset failed war machine bullet.webp
+[ENGINEER] asset failed linh kiện.webp
+[ENGINEER] asset failed Component 1.webp
+[ENGINEER] asset failed Component 2.webp
+[ENGINEER] asset failed Component 3.webp
+[ENGINEER] asset failed Component 4.webp
+[ENGINEER] asset failed Component 5.webp
+[ENGINEER] asset failed thu linh kiện về.webp
+[ENGINEER] asset failed tia từ hút linh kiện và các vật thể hợp nhất.webp
+[ENGINEER] asset failed magnetic line.webp
+[ENGINEER] asset failed SHIELD of nexus healing.webp
+[ENGINEER] asset failed SHIELD of RAGE.webp
+[ENGINEER] asset failed war machine laser strip.webp
+[ENGINEER] asset failed war machine fushion with ENGINEER.webp
+[ENGINEER] asset failed upgrade circle in 0%.webp
+[ENGINEER] asset failed upgrade circle in 100%.webp
+[ENGINEER] asset failed vòng tròn loading xây dựng 0%.webp
+[ENGINEER] asset failed vòng tròn loading xây dựng 100%.webp
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=RIVAL weapon=SWIRL_SHIELD
+[AQ] PICKUP id=4 fighter=RIVAL weapon=SWIRL_SHIELD
+[AQ] PICKUP id=6 fighter=HERO weapon=SNIPER
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] PICKUP id=1 fighter=RIVAL weapon=SPIKED_CLUB
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=HERO weapon=SNIPER
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=RIVAL weapon=PISTOL
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=BATTLE_AXE
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=HERO target=RIVAL weapon=BATTLE_AXE damage=26.0
+[AQ] CONSUME fighter=HERO weapon=BATTLE_AXE reason=melee-resolved
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=TOWER_SHIELD
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=RIVAL target=HERO weapon=TEST_PROBE damage=2.5
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=SWIRL_SHIELD
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=RIVAL weapon=SNIPER
+[AQ] CONSUME fighter=RIVAL weapon=SNIPER reason=shot-fired
+[AQ] REFLECT fighter=HERO weapon=SWIRL_SHIELD projectileFrom=RIVAL
+[AQ] CONSUME fighter=HERO weapon=SWIRL_SHIELD reason=reflect-resolved
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=345 y=841 lead=1.48
+PASS  av-runtime-registered
+PASS  av-muzzle-uses-transparent-sheet  — vfx/muzzle_flash/muzzleFlash0_transparent.png
+PASS  av-asset-map-complete  — ["telegraph","reveal","pickup","pistol_shot","shotgun_shot","smg_shot","sniper_charge","sniper_shot","explosion","sabre_swing","axe_swing","dagger_swing","spear_swing","club_swing","hit_blade","hit_thrust","hit_heavy","shield_activate_swirl","shield_activate_tower","reflect","block_heavy","block_light"]
+PASS  av-melee-sequences-distinct  — {"SABRE":5,"BATTLE_AXE":5,"SPEAR":5,"SPIKED_CLUB":5,"DAGGER":3}
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] SPAWN_SLOT id=1 x=327 y=391 lead=1.74
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] REVEAL id=1 weapon=SMG eta=1.13 lead=1.50 fighter=HERO
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=HERO weapon=PISTOL
+[AQ] HIT source=HERO target=RIVAL weapon=PISTOL damage=4.5
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=HERO weapon=SHOTGUN
+[AQ] CONSUME fighter=HERO weapon=SHOTGUN reason=blast-resolved
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=HERO weapon=SMG
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=HERO weapon=SNIPER
+[AQ] CONSUME fighter=HERO weapon=SNIPER reason=shot-fired
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=HERO weapon=GRENADE
+[AQ] CONSUME fighter=HERO weapon=GRENADE reason=thrown
+[AQ] HIT source=HERO target=RIVAL weapon=GRENADE damage=12.6
+[AQ] EXPLODE weapon=GRENADE x=689 y=500
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=SABRE
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=HERO target=RIVAL weapon=SABRE damage=12.0
+[AQ] CONSUME fighter=HERO weapon=SABRE reason=melee-resolved
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=BATTLE_AXE
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=HERO target=RIVAL weapon=BATTLE_AXE damage=26.0
+[AQ] CONSUME fighter=HERO weapon=BATTLE_AXE reason=melee-resolved
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=DAGGER
+[AQ] HIT source=HERO target=RIVAL weapon=DAGGER damage=9.0
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=SPEAR
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=HERO target=RIVAL weapon=SPEAR damage=15.0
+[AQ] CONSUME fighter=HERO weapon=SPEAR reason=melee-resolved
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=SPIKED_CLUB
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=HERO target=RIVAL weapon=SPIKED_CLUB damage=18.0
+[AQ] CONSUME fighter=HERO weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=HERO weapon=SWIRL_SHIELD
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] USE fighter=RIVAL weapon=TOWER_SHIELD
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=276 y=307 lead=1.54
+[AQ] SPAWN_SLOT id=2 x=139 y=561 lead=1.61
+[AQ] REVEAL id=1 weapon=PISTOL eta=1.53 lead=1.54 fighter=RIVAL
+[AQ] SPAWN_SLOT id=3 x=878 y=801 lead=1.43
+[AQ] PICKUP id=1 fighter=RIVAL weapon=PISTOL
+[AQ] REVEAL id=3 weapon=DAGGER eta=1.40 lead=1.43 fighter=HERO
+[AQ] USE fighter=RIVAL weapon=PISTOL
+[AQ] CONSUME fighter=RIVAL weapon=PISTOL reason=sequence-complete
+[AQ] PICKUP id=3 fighter=HERO weapon=DAGGER
+PASS  av-assets-preloaded  — {"images":"63/63","audio":"21/21","imgFail":0,"sfxFail":0}
+PASS  weapon-atlas-floor-sprite-rendered  — draws=3
+PASS  weapon-atlas-equipped-sprite-rendered  — draws=16
+PASS  av-telegraph-audio-bound
+PASS  av-reveal-audio-bound
+PASS  av-pickup-audio-bound
+PASS  av-all-12-weapons-cued  — 45
+PASS  av-smg-shots-trimmed  — [{"rel":"sfx/guns/sks.wav","offset":0,"dur":0.24,"vol":0.5},{"rel":"sfx/guns/sks.wav","offset":0,"dur":0.24,"vol":0.5},{"rel":"sfx/guns/sks.wav","offset":0,"dur":0.24,"vol":0.5}]
+PASS  av-smg-voice-cap-enforced  — {"notReady":96,"sfx/guns/sks.wav":3,"sfx/scifi/forceField_001.ogg":1,"sfx/impact/impactGeneric_light_002.ogg":1}
+PASS  av-mosin-pistol-trimmed
+PASS  av-vfx-expire-no-leak  — {"activeAfterQuiet":0,"peak":2}
+PASS  av-no-asset-load-failures
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=898 y=298 lead=1.42
+[AQ] SPAWN_SLOT id=2 x=463 y=507 lead=1.27
+[AQ] REVEAL id=2 weapon=SNIPER eta=1.27 lead=1.27 fighter=HERO
+[AQ] SPAWN_SLOT id=3 x=539 y=291 lead=1.70
+[AQ] PICKUP id=2 fighter=HERO weapon=SNIPER
+[AQ] USE fighter=HERO weapon=SNIPER
+[AQ] REVEAL id=3 weapon=PISTOL eta=1.63 lead=1.70 fighter=RIVAL
+[AQ] CONSUME fighter=HERO weapon=SNIPER reason=shot-fired
+[AQ] HIT source=HERO target=RIVAL weapon=SNIPER damage=26.0
+[AQ] REVEAL id=1 weapon=SNIPER eta=1.37 lead=1.42 fighter=RIVAL
+[AQ] PICKUP id=3 fighter=RIVAL weapon=PISTOL
+[AQ] USE fighter=RIVAL weapon=PISTOL
+[AQ] REJECT_PICKUP fighter=RIVAL id=1 reason=already-armed
+[AQ] SPAWN_SLOT id=4 x=777 y=452 lead=1.50
+[AQ] CONSUME fighter=RIVAL weapon=PISTOL reason=sequence-complete
+[AQ] REVEAL id=4 weapon=SABRE eta=0.17 lead=1.50 fighter=RIVAL
+[AQ] PICKUP id=1 fighter=RIVAL weapon=SNIPER
+[AQ] REJECT_PICKUP fighter=RIVAL id=4 reason=already-armed
+[AQ] USE fighter=RIVAL weapon=SNIPER
+[AQ] CONSUME fighter=RIVAL weapon=SNIPER reason=shot-fired
+[AQ] HIT source=RIVAL target=HERO weapon=SNIPER damage=26.0
+[AQ] PICKUP id=4 fighter=RIVAL weapon=SABRE
+[AQ] SPAWN_SLOT id=5 x=812 y=867 lead=1.38
+[AQ] USE fighter=RIVAL weapon=SABRE
+[AQ] CONSUME fighter=RIVAL weapon=SABRE reason=melee-resolved
+[AQ] REVEAL id=5 weapon=SPEAR eta=0.97 lead=1.38 fighter=RIVAL
+[AQ] SPAWN_SLOT id=6 x=792 y=592 lead=1.66
+[AQ] REVEAL id=6 weapon=SPIKED_CLUB eta=1.10 lead=1.66 fighter=RIVAL
+[AQ] PICKUP id=5 fighter=RIVAL weapon=SPEAR
+[AQ] REJECT_PICKUP fighter=RIVAL id=6 reason=already-armed
+[AQ] USE fighter=RIVAL weapon=SPEAR
+[AQ] HIT source=RIVAL target=HERO weapon=SPEAR damage=15.0
+[AQ] CONSUME fighter=RIVAL weapon=SPEAR reason=melee-resolved
+[AQ] SPAWN_SLOT id=7 x=621 y=395 lead=1.28
+[AQ] REVEAL id=7 weapon=SPIKED_CLUB eta=0.17 lead=1.28 fighter=RIVAL
+[AQ] PICKUP id=7 fighter=RIVAL weapon=SPIKED_CLUB
+[AQ] USE fighter=RIVAL weapon=SPIKED_CLUB
+[AQ] CONSUME fighter=RIVAL weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] SPAWN_SLOT id=8 x=572 y=589 lead=1.72
+[AQ] REVEAL id=8 weapon=SWIRL_SHIELD eta=0.00 lead=1.72 fighter=RIVAL
+[AQ] USE fighter=RIVAL weapon=SWIRL_SHIELD
+[AQ] PICKUP id=8 fighter=RIVAL weapon=SWIRL_SHIELD
+[AQ] SPAWN_SLOT id=9 x=218 y=708 lead=1.52
+[AQ] SPAWN_SLOT id=10 x=622 y=561 lead=1.49
+[AQ] REVEAL id=10 weapon=PISTOL eta=0.83 lead=1.49 fighter=HERO
+[AQ] REJECT_PICKUP fighter=RIVAL id=10 reason=already-armed
+[AQ] PICKUP id=10 fighter=HERO weapon=PISTOL
+[AQ] REJECT_PICKUP fighter=HERO id=6 reason=already-armed
+[AQ] USE fighter=HERO weapon=PISTOL
+[AQ] REFLECT fighter=RIVAL weapon=SWIRL_SHIELD projectileFrom=HERO
+[AQ] CONSUME fighter=RIVAL weapon=SWIRL_SHIELD reason=reflect-resolved
+[AQ] REVEAL id=9 weapon=TOWER_SHIELD eta=0.00 lead=1.52 fighter=RIVAL
+[AQ] USE fighter=RIVAL weapon=TOWER_SHIELD
+[AQ] PICKUP id=9 fighter=RIVAL weapon=TOWER_SHIELD
+[AQ] CONSUME fighter=HERO weapon=PISTOL reason=sequence-complete
+[AQ] PICKUP id=6 fighter=HERO weapon=SPIKED_CLUB
+[AQ] HIT source=HERO target=RIVAL weapon=PISTOL damage=1.1
+[AQ] HIT source=RIVAL target=HERO weapon=PISTOL damage=4.5
+[AQ] HIT source=HERO target=RIVAL weapon=PISTOL damage=1.1
+[AQ] USE fighter=HERO weapon=SPIKED_CLUB
+[AQ] CONSUME fighter=HERO weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] SPAWN_SLOT id=11 x=341 y=446 lead=1.73
+[AQ] CONSUME fighter=RIVAL weapon=TOWER_SHIELD reason=expired
+[AQ] REVEAL id=11 weapon=SABRE eta=0.87 lead=1.73 fighter=RIVAL
+[AQ] PICKUP id=11 fighter=RIVAL weapon=SABRE
+[AQ] SPAWN_SLOT id=12 x=199 y=426 lead=1.38
+[AQ] USE fighter=RIVAL weapon=SABRE
+[AQ] HIT source=RIVAL target=HERO weapon=SABRE damage=12.0
+[AQ] CONSUME fighter=RIVAL weapon=SABRE reason=melee-resolved
+[AQ] SPAWN_SLOT id=13 x=849 y=655 lead=1.38
+[AQ] REVEAL id=13 weapon=DAGGER eta=0.00 lead=1.38 fighter=RIVAL
+[AQ] PICKUP id=13 fighter=RIVAL weapon=DAGGER
+[AQ] SPAWN_SLOT id=14 x=224 y=121 lead=1.42
+[AQ] REVEAL id=14 weapon=SMG eta=0.03 lead=1.42 fighter=HERO
+[AQ] PICKUP id=14 fighter=HERO weapon=SMG
+[AQ] USE fighter=HERO weapon=SMG
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] CONSUME fighter=HERO weapon=SMG reason=sequence-complete
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] USE fighter=RIVAL weapon=DAGGER
+[AQ] HIT source=RIVAL target=HERO weapon=DAGGER damage=9.0
+[AQ] CONSUME fighter=RIVAL weapon=DAGGER reason=stab-landed
+[AQ] REVEAL id=12 weapon=SPIKED_CLUB eta=0.00 lead=1.38 fighter=RIVAL
+[AQ] PICKUP id=12 fighter=RIVAL weapon=SPIKED_CLUB
+[AQ] USE fighter=RIVAL weapon=SPIKED_CLUB
+[AQ] CONSUME fighter=RIVAL weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] SPAWN_SLOT id=15 x=451 y=220 lead=1.21
+[AQ] SPAWN_SLOT id=16 x=637 y=239 lead=1.44
+[AQ] REVEAL id=16 weapon=TOWER_SHIELD eta=0.90 lead=1.44 fighter=HERO
+[AQ] REVEAL id=15 weapon=DAGGER eta=1.20 lead=1.21 fighter=HERO
+[AQ] USE fighter=HERO weapon=TOWER_SHIELD
+[AQ] PICKUP id=16 fighter=HERO weapon=TOWER_SHIELD
+[AQ] REJECT_PICKUP fighter=HERO id=15 reason=already-armed
+[AQ] SPAWN_SLOT id=17 x=875 y=253 lead=1.20
+[AQ] CONSUME fighter=HERO weapon=TOWER_SHIELD reason=expired
+[AQ] SPAWN_SLOT id=18 x=839 y=95 lead=1.58
+[AQ] REVEAL id=18 weapon=SNIPER eta=1.57 lead=1.58 fighter=HERO
+[AQ] PICKUP id=15 fighter=RIVAL weapon=DAGGER
+[AQ] USE fighter=RIVAL weapon=DAGGER
+[AQ] HIT source=RIVAL target=HERO weapon=DAGGER damage=9.0
+[AQ] REVEAL id=17 weapon=PISTOL eta=0.93 lead=1.20 fighter=HERO
+[AQ] CONSUME fighter=RIVAL weapon=DAGGER reason=stab-landed
+[AQ] PICKUP id=17 fighter=RIVAL weapon=PISTOL
+[AQ] USE fighter=RIVAL weapon=PISTOL
+[AQ] HIT source=RIVAL target=HERO weapon=PISTOL damage=4.5
+[AQ] HIT source=RIVAL target=HERO weapon=PISTOL damage=4.5
+[AQ] REJECT_PICKUP fighter=RIVAL id=18 reason=already-armed
+[AQ] CONSUME fighter=RIVAL weapon=PISTOL reason=sequence-complete
+[AQ] PICKUP id=18 fighter=RIVAL weapon=SNIPER
+[AQ] USE fighter=RIVAL weapon=SNIPER
+[AQ] HIT source=RIVAL target=HERO weapon=PISTOL damage=4.5
+[AQ] SPAWN_SLOT id=19 x=296 y=181 lead=1.59
+[AQ] REVEAL id=19 weapon=SHOTGUN eta=0.17 lead=1.59 fighter=HERO
+[AQ] REJECT_PICKUP fighter=RIVAL id=19 reason=already-armed
+[AQ] CONSUME fighter=RIVAL weapon=SNIPER reason=shot-fired
+[AQ] HIT source=RIVAL target=HERO weapon=SNIPER damage=26.0
+[AQ] KO winner=RIVAL
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=179 y=395 lead=1.30
+[AQ] SPAWN_SLOT id=2 x=177 y=102 lead=1.48
+[AQ] REVEAL id=2 weapon=DAGGER eta=1.47 lead=1.48 fighter=RIVAL
+[AQ] SPAWN_SLOT id=3 x=616 y=700 lead=1.68
+[AQ] PICKUP id=2 fighter=RIVAL weapon=DAGGER
+[AQ] REVEAL id=3 weapon=DAGGER eta=1.67 lead=1.68 fighter=HERO
+[AQ] USE fighter=RIVAL weapon=DAGGER
+[AQ] HIT source=RIVAL target=HERO weapon=DAGGER damage=9.0
+[AQ] REVEAL id=1 weapon=SHOTGUN eta=1.30 lead=1.30 fighter=HERO
+[AQ] CONSUME fighter=RIVAL weapon=DAGGER reason=stab-landed
+[AQ] SPAWN_SLOT id=4 x=211 y=604 lead=1.53
+[AQ] REVEAL id=4 weapon=SWIRL_SHIELD eta=1.47 lead=1.53 fighter=RIVAL
+[AQ] PICKUP id=1 fighter=HERO weapon=SHOTGUN
+[AQ] REJECT_PICKUP fighter=HERO id=4 reason=already-armed
+[AQ] USE fighter=HERO weapon=SHOTGUN
+[AQ] CONSUME fighter=HERO weapon=SHOTGUN reason=blast-resolved
+[AQ] USE fighter=HERO weapon=SWIRL_SHIELD
+[AQ] PICKUP id=4 fighter=HERO weapon=SWIRL_SHIELD
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+[AQ] SPAWN_SLOT id=5 x=318 y=598 lead=1.62
+[AQ] REVEAL id=5 weapon=SWIRL_SHIELD eta=0.50 lead=1.62 fighter=RIVAL
+[AQ] USE fighter=RIVAL weapon=SWIRL_SHIELD
+[AQ] PICKUP id=5 fighter=RIVAL weapon=SWIRL_SHIELD
+[AQ] SPAWN_SLOT id=6 x=714 y=113 lead=1.79
+[AQ] SPAWN_SLOT id=7 x=565 y=398 lead=1.64
+[AQ] CONSUME fighter=HERO weapon=SWIRL_SHIELD reason=expired
+[AQ] REVEAL id=7 weapon=TOWER_SHIELD eta=1.63 lead=1.64 fighter=HERO
+[AQ] PICKUP id=3 fighter=HERO weapon=DAGGER
+[AQ] SPAWN_SLOT id=8 x=874 y=308 lead=1.69
+[AQ] USE fighter=HERO weapon=DAGGER
+[AQ] HIT source=HERO target=RIVAL weapon=DAGGER damage=9.0
+[AQ] CONSUME fighter=RIVAL weapon=SWIRL_SHIELD reason=expired
+[AQ] CONSUME fighter=HERO weapon=DAGGER reason=stab-landed
+[AQ] USE fighter=HERO weapon=TOWER_SHIELD
+[AQ] PICKUP id=7 fighter=HERO weapon=TOWER_SHIELD
+[AQ] SPAWN_SLOT id=9 x=101 y=309 lead=1.46
+[AQ] CONSUME fighter=HERO weapon=TOWER_SHIELD reason=expired
+[AQ] REVEAL id=6 weapon=SPIKED_CLUB eta=1.77 lead=1.79 fighter=RIVAL
+[AQ] SPAWN_SLOT id=10 x=619 y=789 lead=1.54
+[AQ] REVEAL id=10 weapon=SPIKED_CLUB eta=0.00 lead=1.54 fighter=RIVAL
+[AQ] PICKUP id=10 fighter=RIVAL weapon=SPIKED_CLUB
+[AQ] USE fighter=RIVAL weapon=SPIKED_CLUB
+[AQ] REVEAL id=8 weapon=SABRE eta=1.47 lead=1.69 fighter=HERO
+[AQ] CONSUME fighter=RIVAL weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] REVEAL id=9 weapon=SABRE eta=1.43 lead=1.46 fighter=RIVAL
+[AQ] PICKUP id=6 fighter=HERO weapon=SPIKED_CLUB
+[AQ] SPAWN_SLOT id=11 x=377 y=366 lead=1.24
+[AQ] REJECT_PICKUP fighter=HERO id=8 reason=already-armed
+[AQ] REVEAL id=11 weapon=BATTLE_AXE eta=1.23 lead=1.24 fighter=RIVAL
+[AQ] PICKUP id=9 fighter=RIVAL weapon=SABRE
+[AQ] REJECT_PICKUP fighter=RIVAL id=11 reason=already-armed
+[AQ] SPAWN_SLOT id=12 x=216 y=460 lead=1.47
+[AQ] REJECT_PICKUP fighter=HERO id=11 reason=already-armed
+[AQ] REJECT_PICKUP fighter=RIVAL id=8 reason=already-armed
+[AQ] USE fighter=HERO weapon=SPIKED_CLUB
+[AQ] USE fighter=RIVAL weapon=SABRE
+[AQ] CONSUME fighter=RIVAL weapon=SABRE reason=melee-resolved
+[AQ] PICKUP id=8 fighter=RIVAL weapon=SABRE
+[AQ] USE fighter=RIVAL weapon=SABRE
+[AQ] CONSUME fighter=HERO weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] HIT source=RIVAL target=HERO weapon=SABRE damage=12.0
+[AQ] CONSUME fighter=RIVAL weapon=SABRE reason=melee-resolved
+[AQ] SPAWN_SLOT id=13 x=287 y=157 lead=1.25
+[AQ] REVEAL id=13 weapon=SHOTGUN eta=0.00 lead=1.25 fighter=RIVAL
+[AQ] PICKUP id=13 fighter=RIVAL weapon=SHOTGUN
+[AQ] USE fighter=RIVAL weapon=SHOTGUN
+[AQ] CONSUME fighter=RIVAL weapon=SHOTGUN reason=blast-resolved
+[AQ] PICKUP id=11 fighter=HERO weapon=BATTLE_AXE
+[AQ] HIT source=RIVAL target=HERO weapon=SHOTGUN damage=3.6
+[AQ] HIT source=RIVAL target=HERO weapon=SHOTGUN damage=3.6
+[AQ] USE fighter=HERO weapon=BATTLE_AXE
+[AQ] CONSUME fighter=HERO weapon=BATTLE_AXE reason=melee-resolved
+[AQ] SPAWN_SLOT id=14 x=661 y=371 lead=1.48
+[AQ] REVEAL id=14 weapon=GRENADE eta=0.00 lead=1.48 fighter=RIVAL
+[AQ] PICKUP id=14 fighter=RIVAL weapon=GRENADE
+[AQ] REVEAL id=12 weapon=SPEAR eta=1.43 lead=1.47 fighter=HERO
+[AQ] USE fighter=RIVAL weapon=GRENADE
+[AQ] CONSUME fighter=RIVAL weapon=GRENADE reason=thrown
+[AQ] PICKUP id=12 fighter=HERO weapon=SPEAR
+[AQ] EXPLODE weapon=GRENADE x=377 y=363
+[AQ] SPAWN_SLOT id=15 x=141 y=273 lead=1.32
+[AQ] USE fighter=HERO weapon=SPEAR
+[AQ] CONSUME fighter=HERO weapon=SPEAR reason=melee-resolved
+[AQ] REVEAL id=15 weapon=SABRE eta=1.30 lead=1.32 fighter=HERO
+[AQ] SPAWN_SLOT id=16 x=722 y=403 lead=1.66
+[AQ] REVEAL id=16 weapon=SABRE eta=1.43 lead=1.66 fighter=HERO
+[AQ] PICKUP id=15 fighter=HERO weapon=SABRE
+[AQ] USE fighter=HERO weapon=SABRE
+[AQ] CONSUME fighter=HERO weapon=SABRE reason=melee-resolved
+[AQ] SPAWN_SLOT id=17 x=187 y=266 lead=1.64
+[AQ] REVEAL id=17 weapon=SWIRL_SHIELD eta=1.47 lead=1.64 fighter=RIVAL
+[AQ] PICKUP id=16 fighter=RIVAL weapon=SABRE
+[AQ] REJECT_PICKUP fighter=RIVAL id=17 reason=already-armed
+[AQ] SPAWN_SLOT id=18 x=830 y=774 lead=1.72
+[AQ] USE fighter=RIVAL weapon=SABRE
+[AQ] HIT source=RIVAL target=HERO weapon=SABRE damage=12.0
+[AQ] CONSUME fighter=RIVAL weapon=SABRE reason=melee-resolved
+[AQ] USE fighter=RIVAL weapon=SWIRL_SHIELD
+[AQ] PICKUP id=17 fighter=RIVAL weapon=SWIRL_SHIELD
+[AQ] SPAWN_SLOT id=19 x=364 y=540 lead=1.57
+[AQ] REVEAL id=19 weapon=GRENADE eta=0.37 lead=1.57 fighter=HERO
+[AQ] PICKUP id=19 fighter=HERO weapon=GRENADE
+[AQ] USE fighter=HERO weapon=GRENADE
+[AQ] CONSUME fighter=HERO weapon=GRENADE reason=thrown
+[AQ] EXPLODE weapon=GRENADE x=520 y=316
+[AQ] REVEAL id=18 weapon=SABRE eta=1.70 lead=1.72 fighter=HERO
+[AQ] SPAWN_SLOT id=20 x=103 y=357 lead=1.24
+[AQ] PICKUP id=18 fighter=HERO weapon=SABRE
+[AQ] USE fighter=HERO weapon=SABRE
+[AQ] SPAWN_SLOT id=21 x=695 y=238 lead=1.77
+[AQ] CONSUME fighter=HERO weapon=SABRE reason=melee-resolved
+[AQ] REVEAL id=21 weapon=SPIKED_CLUB eta=0.00 lead=1.77 fighter=HERO
+[AQ] PICKUP id=21 fighter=HERO weapon=SPIKED_CLUB
+[AQ] USE fighter=HERO weapon=SPIKED_CLUB
+[AQ] CONSUME fighter=HERO weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] CONSUME fighter=RIVAL weapon=SWIRL_SHIELD reason=expired
+[AQ] REVEAL id=20 weapon=SMG eta=1.07 lead=1.24 fighter=RIVAL
+[AQ] PICKUP id=20 fighter=RIVAL weapon=SMG
+[AQ] USE fighter=RIVAL weapon=SMG
+[AQ] SPAWN_SLOT id=22 x=576 y=839 lead=1.50
+[AQ] REVEAL id=22 weapon=PISTOL eta=0.00 lead=1.50 fighter=HERO
+[AQ] PICKUP id=22 fighter=HERO weapon=PISTOL
+[AQ] CONSUME fighter=RIVAL weapon=SMG reason=sequence-complete
+[AQ] USE fighter=HERO weapon=PISTOL
+[AQ] HIT source=HERO target=RIVAL weapon=PISTOL damage=4.5
+[AQ] HIT source=HERO target=RIVAL weapon=PISTOL damage=4.5
+[AQ] CONSUME fighter=HERO weapon=PISTOL reason=sequence-complete
+[AQ] SPAWN_SLOT id=23 x=572 y=295 lead=1.36
+[AQ] REVEAL id=23 weapon=DAGGER eta=0.50 lead=1.36 fighter=RIVAL
+[AQ] PICKUP id=23 fighter=RIVAL weapon=DAGGER
+[AQ] USE fighter=RIVAL weapon=DAGGER
+[AQ] CONSUME fighter=RIVAL weapon=DAGGER reason=stab-whiffed
+[AQ] SPAWN_SLOT id=24 x=249 y=677 lead=1.78
+[AQ] REVEAL id=24 weapon=BATTLE_AXE eta=1.13 lead=1.78 fighter=RIVAL
+[AQ] PICKUP id=24 fighter=RIVAL weapon=BATTLE_AXE
+[AQ] USE fighter=RIVAL weapon=BATTLE_AXE
+[AQ] CONSUME fighter=RIVAL weapon=BATTLE_AXE reason=melee-resolved
+[AQ] SPAWN_SLOT id=25 x=359 y=367 lead=1.79
+[AQ] REVEAL id=25 weapon=SHOTGUN eta=1.77 lead=1.79 fighter=HERO
+[AQ] PICKUP id=25 fighter=HERO weapon=SHOTGUN
+[AQ] SPAWN_SLOT id=26 x=275 y=477 lead=1.35
+[AQ] REVEAL id=26 weapon=SNIPER eta=0.37 lead=1.35 fighter=RIVAL
+[AQ] USE fighter=HERO weapon=SHOTGUN
+[AQ] CONSUME fighter=HERO weapon=SHOTGUN reason=blast-resolved
+[AQ] PICKUP id=26 fighter=RIVAL weapon=SNIPER
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+[AQ] USE fighter=RIVAL weapon=SNIPER
+[AQ] CONSUME fighter=RIVAL weapon=SNIPER reason=shot-fired
+[AQ] HIT source=RIVAL target=HERO weapon=SNIPER damage=26.0
+[AQ] SPAWN_SLOT id=27 x=616 y=838 lead=1.69
+[AQ] REVEAL id=27 weapon=BATTLE_AXE eta=1.67 lead=1.69 fighter=HERO
+[AQ] SPAWN_SLOT id=28 x=903 y=181 lead=1.38
+[AQ] SPAWN_SLOT id=29 x=135 y=694 lead=1.59
+[AQ] REVEAL id=29 weapon=DAGGER eta=1.57 lead=1.59 fighter=RIVAL
+[AQ] PICKUP id=27 fighter=RIVAL weapon=BATTLE_AXE
+[AQ] USE fighter=RIVAL weapon=BATTLE_AXE
+[AQ] CONSUME fighter=RIVAL weapon=BATTLE_AXE reason=melee-resolved
+[AQ] SPAWN_SLOT id=30 x=141 y=309 lead=1.77
+[AQ] REVEAL id=30 weapon=SPEAR eta=0.00 lead=1.77 fighter=RIVAL
+[AQ] PICKUP id=30 fighter=RIVAL weapon=SPEAR
+[AQ] USE fighter=RIVAL weapon=SPEAR
+[AQ] CONSUME fighter=RIVAL weapon=SPEAR reason=melee-resolved
+[AQ] PICKUP id=29 fighter=HERO weapon=DAGGER
+[AQ] SPAWN_SLOT id=31 x=890 y=571 lead=1.23
+[AQ] USE fighter=HERO weapon=DAGGER
+[AQ] SPAWN_SLOT id=32 x=349 y=306 lead=1.64
+[AQ] CONSUME fighter=HERO weapon=DAGGER reason=stab-whiffed
+[AQ] REVEAL id=28 weapon=BATTLE_AXE eta=0.00 lead=1.38 fighter=HERO
+[AQ] REVEAL id=32 weapon=SHOTGUN eta=1.10 lead=1.64 fighter=HERO
+[AQ] PICKUP id=28 fighter=HERO weapon=BATTLE_AXE
+[AQ] REJECT_PICKUP fighter=HERO id=32 reason=already-armed
+[AQ] REVEAL id=31 weapon=BATTLE_AXE eta=1.20 lead=1.23 fighter=RIVAL
+[AQ] USE fighter=HERO weapon=BATTLE_AXE
+[AQ] SPAWN_SLOT id=33 x=657 y=163 lead=1.78
+[AQ] REVEAL id=33 weapon=SPIKED_CLUB eta=1.07 lead=1.78 fighter=RIVAL
+[AQ] CONSUME fighter=HERO weapon=BATTLE_AXE reason=melee-resolved
+[AQ] PICKUP id=33 fighter=RIVAL weapon=SPIKED_CLUB
+[AQ] REJECT_PICKUP fighter=RIVAL id=31 reason=already-armed
+[AQ] USE fighter=RIVAL weapon=SPIKED_CLUB
+[AQ] CONSUME fighter=RIVAL weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] PICKUP id=31 fighter=RIVAL weapon=BATTLE_AXE
+[AQ] USE fighter=RIVAL weapon=BATTLE_AXE
+[AQ] SPAWN_SLOT id=34 x=578 y=416 lead=1.29
+[AQ] REVEAL id=34 weapon=DAGGER eta=0.37 lead=1.29 fighter=HERO
+[AQ] CONSUME fighter=RIVAL weapon=BATTLE_AXE reason=melee-resolved
+[AQ] PICKUP id=34 fighter=HERO weapon=DAGGER
+[AQ] SPAWN_SLOT id=35 x=285 y=475 lead=1.40
+[AQ] SPAWN_SLOT id=36 x=821 y=105 lead=1.23
+[AQ] USE fighter=HERO weapon=DAGGER
+[AQ] HIT source=HERO target=RIVAL weapon=DAGGER damage=9.0
+[AQ] CONSUME fighter=HERO weapon=DAGGER reason=stab-landed
+[AQ] REVEAL id=36 weapon=SMG eta=0.43 lead=1.23 fighter=HERO
+[AQ] PICKUP id=36 fighter=HERO weapon=SMG
+[AQ] USE fighter=HERO weapon=SMG
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] CONSUME fighter=HERO weapon=SMG reason=sequence-complete
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] REVEAL id=35 weapon=DAGGER eta=1.40 lead=1.40 fighter=HERO
+[AQ] SPAWN_SLOT id=37 x=98 y=759 lead=1.59
+[AQ] PICKUP id=35 fighter=HERO weapon=DAGGER
+[AQ] USE fighter=HERO weapon=DAGGER
+[AQ] CONSUME fighter=HERO weapon=DAGGER reason=stab-whiffed
+[AQ] REVEAL id=37 weapon=DAGGER eta=1.10 lead=1.59 fighter=HERO
+[AQ] SPAWN_SLOT id=38 x=419 y=519 lead=1.35
+[AQ] REVEAL id=38 weapon=SMG eta=0.80 lead=1.35 fighter=RIVAL
+[AQ] PICKUP id=37 fighter=HERO weapon=DAGGER
+[AQ] PICKUP id=38 fighter=RIVAL weapon=SMG
+[AQ] USE fighter=RIVAL weapon=SMG
+[AQ] HIT source=RIVAL target=HERO weapon=SMG damage=2.4
+[AQ] HIT source=RIVAL target=HERO weapon=SMG damage=2.4
+[AQ] HIT source=RIVAL target=HERO weapon=SMG damage=2.4
+[AQ] HIT source=RIVAL target=HERO weapon=SMG damage=2.4
+[AQ] CONSUME fighter=RIVAL weapon=SMG reason=sequence-complete
+[AQ] HIT source=RIVAL target=HERO weapon=SMG damage=2.4
+[AQ] EXPIRE id=32 weapon=SHOTGUN
+[AQ] SPAWN_SLOT id=39 x=654 y=618 lead=1.36
+[AQ] REVEAL id=39 weapon=PISTOL eta=0.00 lead=1.36 fighter=RIVAL
+[AQ] PICKUP id=39 fighter=RIVAL weapon=PISTOL
+[AQ] USE fighter=RIVAL weapon=PISTOL
+[AQ] HIT source=RIVAL target=HERO weapon=PISTOL damage=4.5
+[AQ] HIT source=RIVAL target=HERO weapon=PISTOL damage=4.5
+[AQ] HIT source=RIVAL target=HERO weapon=PISTOL damage=4.5
+[AQ] USE fighter=HERO weapon=DAGGER
+[AQ] CONSUME fighter=RIVAL weapon=PISTOL reason=sequence-complete
+[AQ] CONSUME fighter=HERO weapon=DAGGER reason=stab-whiffed
+[AQ] SPAWN_SLOT id=40 x=373 y=96 lead=1.77
+[AQ] REVEAL id=40 weapon=SPEAR eta=1.33 lead=1.77 fighter=RIVAL
+[AQ] PICKUP id=40 fighter=RIVAL weapon=SPEAR
+[AQ] SPAWN_SLOT id=41 x=351 y=775 lead=1.31
+[AQ] REVEAL id=41 weapon=SPIKED_CLUB eta=0.87 lead=1.31 fighter=HERO
+[AQ] USE fighter=RIVAL weapon=SPEAR
+[AQ] HIT source=RIVAL target=HERO weapon=SPEAR damage=15.0
+[AQ] CONSUME fighter=RIVAL weapon=SPEAR reason=melee-resolved
+[AQ] KO winner=RIVAL
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=152 y=523 lead=1.31
+[AQ] REVEAL id=1 weapon=BATTLE_AXE eta=1.30 lead=1.31 fighter=HERO
+[AQ] SPAWN_SLOT id=2 x=604 y=508 lead=1.50
+[AQ] PICKUP id=1 fighter=HERO weapon=BATTLE_AXE
+[AQ] REVEAL id=2 weapon=SHOTGUN eta=1.50 lead=1.50 fighter=RIVAL
+[AQ] USE fighter=HERO weapon=BATTLE_AXE
+[AQ] PICKUP id=2 fighter=RIVAL weapon=SHOTGUN
+[AQ] CONSUME fighter=HERO weapon=BATTLE_AXE reason=melee-resolved
+[AQ] SPAWN_SLOT id=3 x=898 y=225 lead=1.65
+[AQ] USE fighter=RIVAL weapon=SHOTGUN
+[AQ] CONSUME fighter=RIVAL weapon=SHOTGUN reason=blast-resolved
+[AQ] HIT source=RIVAL target=HERO weapon=SHOTGUN damage=3.6
+[AQ] HIT source=RIVAL target=HERO weapon=SHOTGUN damage=3.6
+[AQ] HIT source=RIVAL target=HERO weapon=SHOTGUN damage=3.6
+[AQ] REVEAL id=3 weapon=SPEAR eta=0.87 lead=1.65 fighter=RIVAL
+[AQ] SPAWN_SLOT id=4 x=881 y=792 lead=1.65
+[AQ] PICKUP id=3 fighter=RIVAL weapon=SPEAR
+[AQ] SPAWN_SLOT id=5 x=804 y=352 lead=1.40
+[AQ] USE fighter=RIVAL weapon=SPEAR
+[AQ] CONSUME fighter=RIVAL weapon=SPEAR reason=melee-resolved
+[AQ] REVEAL id=5 weapon=SPEAR eta=1.33 lead=1.40 fighter=HERO
+[AQ] PICKUP id=5 fighter=HERO weapon=SPEAR
+[AQ] USE fighter=HERO weapon=SPEAR
+[AQ] SPAWN_SLOT id=6 x=449 y=414 lead=1.71
+[AQ] REVEAL id=6 weapon=DAGGER eta=0.03 lead=1.71 fighter=RIVAL
+[AQ] PICKUP id=6 fighter=RIVAL weapon=DAGGER
+[AQ] HIT source=HERO target=RIVAL weapon=SPEAR damage=15.0
+[AQ] CONSUME fighter=HERO weapon=SPEAR reason=melee-resolved
+[AQ] USE fighter=RIVAL weapon=DAGGER
+[AQ] HIT source=RIVAL target=HERO weapon=DAGGER damage=9.0
+[AQ] CONSUME fighter=RIVAL weapon=DAGGER reason=stab-landed
+[AQ] REVEAL id=4 weapon=DAGGER eta=1.60 lead=1.65 fighter=RIVAL
+[AQ] PICKUP id=4 fighter=RIVAL weapon=DAGGER
+[AQ] SPAWN_SLOT id=7 x=256 y=147 lead=1.69
+[AQ] USE fighter=RIVAL weapon=DAGGER
+[AQ] REVEAL id=7 weapon=SABRE eta=1.23 lead=1.69 fighter=HERO
+[AQ] CONSUME fighter=RIVAL weapon=DAGGER reason=stab-whiffed
+[AQ] SPAWN_SLOT id=8 x=240 y=708 lead=1.75
+[AQ] PICKUP id=7 fighter=HERO weapon=SABRE
+[AQ] USE fighter=HERO weapon=SABRE
+[AQ] CONSUME fighter=HERO weapon=SABRE reason=melee-resolved
+[AQ] SPAWN_SLOT id=9 x=296 y=186 lead=1.54
+[AQ] REVEAL id=9 weapon=SABRE eta=1.23 lead=1.54 fighter=RIVAL
+[AQ] REVEAL id=8 weapon=PISTOL eta=1.73 lead=1.75 fighter=RIVAL
+[AQ] PICKUP id=9 fighter=RIVAL weapon=SABRE
+[AQ] REJECT_PICKUP fighter=RIVAL id=8 reason=already-armed
+[AQ] SPAWN_SLOT id=10 x=374 y=110 lead=1.50
+[AQ] USE fighter=RIVAL weapon=SABRE
+[AQ] CONSUME fighter=RIVAL weapon=SABRE reason=melee-resolved
+[AQ] SPAWN_SLOT id=11 x=316 y=366 lead=1.76
+[AQ] REVEAL id=11 weapon=PISTOL eta=1.47 lead=1.76 fighter=HERO
+[AQ] PICKUP id=11 fighter=HERO weapon=PISTOL
+[AQ] PICKUP id=8 fighter=RIVAL weapon=PISTOL
+[AQ] USE fighter=HERO weapon=PISTOL
+[AQ] USE fighter=RIVAL weapon=PISTOL
+[AQ] HIT source=HERO target=RIVAL weapon=PISTOL damage=4.5
+[AQ] HIT source=RIVAL target=HERO weapon=PISTOL damage=4.5
+[AQ] CONSUME fighter=HERO weapon=PISTOL reason=sequence-complete
+[AQ] CONSUME fighter=RIVAL weapon=PISTOL reason=sequence-complete
+[AQ] SPAWN_SLOT id=12 x=364 y=799 lead=1.67
+[AQ] REVEAL id=12 weapon=TOWER_SHIELD eta=0.00 lead=1.67 fighter=RIVAL
+[AQ] REVEAL id=10 weapon=PISTOL eta=1.47 lead=1.50 fighter=RIVAL
+[AQ] PICKUP id=10 fighter=RIVAL weapon=PISTOL
+[AQ] SPAWN_SLOT id=13 x=564 y=489 lead=1.44
+[AQ] USE fighter=RIVAL weapon=PISTOL
+[AQ] HIT source=RIVAL target=HERO weapon=PISTOL damage=4.5
+[AQ] HIT source=RIVAL target=HERO weapon=PISTOL damage=4.5
+[AQ] CONSUME fighter=RIVAL weapon=PISTOL reason=sequence-complete
+[AQ] REVEAL id=13 weapon=SPEAR eta=0.00 lead=1.44 fighter=RIVAL
+[AQ] PICKUP id=13 fighter=RIVAL weapon=SPEAR
+[AQ] USE fighter=RIVAL weapon=SPEAR
+[AQ] HIT source=RIVAL target=HERO weapon=SPEAR damage=15.0
+[AQ] CONSUME fighter=RIVAL weapon=SPEAR reason=melee-resolved
+[AQ] SPAWN_SLOT id=14 x=387 y=499 lead=1.49
+[AQ] REVEAL id=14 weapon=TOWER_SHIELD eta=1.47 lead=1.49 fighter=RIVAL
+[AQ] USE fighter=RIVAL weapon=TOWER_SHIELD
+[AQ] PICKUP id=12 fighter=RIVAL weapon=TOWER_SHIELD
+[AQ] SPAWN_SLOT id=15 x=245 y=324 lead=1.41
+[AQ] REJECT_PICKUP fighter=RIVAL id=14 reason=already-armed
+[AQ] CONSUME fighter=RIVAL weapon=TOWER_SHIELD reason=expired
+[AQ] USE fighter=RIVAL weapon=TOWER_SHIELD
+[AQ] PICKUP id=14 fighter=RIVAL weapon=TOWER_SHIELD
+[AQ] SPAWN_SLOT id=16 x=824 y=412 lead=1.59
+[AQ] REVEAL id=15 weapon=SABRE eta=1.40 lead=1.41 fighter=HERO
+[AQ] CONSUME fighter=RIVAL weapon=TOWER_SHIELD reason=expired
+[AQ] PICKUP id=15 fighter=HERO weapon=SABRE
+[AQ] USE fighter=HERO weapon=SABRE
+[AQ] CONSUME fighter=HERO weapon=SABRE reason=melee-resolved
+[AQ] REVEAL id=16 weapon=BATTLE_AXE eta=1.57 lead=1.59 fighter=RIVAL
+[AQ] SPAWN_SLOT id=17 x=565 y=450 lead=1.28
+[AQ] PICKUP id=16 fighter=RIVAL weapon=BATTLE_AXE
+[AQ] USE fighter=RIVAL weapon=BATTLE_AXE
+[AQ] CONSUME fighter=RIVAL weapon=BATTLE_AXE reason=melee-resolved
+[AQ] REVEAL id=17 weapon=DAGGER eta=1.03 lead=1.28 fighter=RIVAL
+[AQ] SPAWN_SLOT id=18 x=683 y=173 lead=1.70
+[AQ] PICKUP id=17 fighter=RIVAL weapon=DAGGER
+[AQ] USE fighter=RIVAL weapon=DAGGER
+[AQ] CONSUME fighter=RIVAL weapon=DAGGER reason=stab-whiffed
+[AQ] SPAWN_SLOT id=19 x=898 y=708 lead=1.72
+[AQ] REVEAL id=18 weapon=SPEAR eta=0.53 lead=1.70 fighter=HERO
+[AQ] SPAWN_SLOT id=20 x=888 y=402 lead=1.69
+[AQ] PICKUP id=18 fighter=HERO weapon=SPEAR
+[AQ] REVEAL id=20 weapon=DAGGER eta=1.67 lead=1.69 fighter=RIVAL
+[AQ] USE fighter=HERO weapon=SPEAR
+[AQ] CONSUME fighter=HERO weapon=SPEAR reason=melee-resolved
+[AQ] REVEAL id=19 weapon=SABRE eta=0.87 lead=1.72 fighter=RIVAL
+[AQ] PICKUP id=19 fighter=RIVAL weapon=SABRE
+[AQ] SPAWN_SLOT id=21 x=403 y=608 lead=1.59
+[AQ] PICKUP id=20 fighter=HERO weapon=DAGGER
+[AQ] USE fighter=RIVAL weapon=SABRE
+[AQ] USE fighter=HERO weapon=DAGGER
+[AQ] HIT source=HERO target=RIVAL weapon=DAGGER damage=9.0
+[AQ] CONSUME fighter=RIVAL weapon=SABRE reason=melee-resolved
+[AQ] REVEAL id=21 weapon=SWIRL_SHIELD eta=0.00 lead=1.59 fighter=RIVAL
+[AQ] USE fighter=RIVAL weapon=SWIRL_SHIELD
+[AQ] PICKUP id=21 fighter=RIVAL weapon=SWIRL_SHIELD
+[AQ] CONSUME fighter=HERO weapon=DAGGER reason=stab-landed
+[AQ] SPAWN_SLOT id=22 x=243 y=868 lead=1.26
+[AQ] SPAWN_SLOT id=23 x=433 y=755 lead=1.44
+[AQ] REVEAL id=22 weapon=DAGGER eta=1.23 lead=1.26 fighter=HERO
+[AQ] PICKUP id=22 fighter=HERO weapon=DAGGER
+[AQ] USE fighter=HERO weapon=DAGGER
+[AQ] HIT source=HERO target=RIVAL weapon=DAGGER damage=9.0
+[AQ] CONSUME fighter=HERO weapon=DAGGER reason=stab-landed
+[AQ] SPAWN_SLOT id=24 x=167 y=180 lead=1.55
+[AQ] REVEAL id=24 weapon=SHOTGUN eta=0.00 lead=1.55 fighter=HERO
+[AQ] PICKUP id=24 fighter=HERO weapon=SHOTGUN
+[AQ] CONSUME fighter=RIVAL weapon=SWIRL_SHIELD reason=expired
+[AQ] REVEAL id=23 weapon=DAGGER eta=0.67 lead=1.44 fighter=RIVAL
+[AQ] USE fighter=HERO weapon=SHOTGUN
+[AQ] CONSUME fighter=HERO weapon=SHOTGUN reason=blast-resolved
+[AQ] PICKUP id=23 fighter=RIVAL weapon=DAGGER
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+[AQ] HIT source=HERO target=RIVAL weapon=SHOTGUN damage=3.6
+[AQ] USE fighter=RIVAL weapon=DAGGER
+[AQ] CONSUME fighter=RIVAL weapon=DAGGER reason=stab-whiffed
+[AQ] SPAWN_SLOT id=25 x=840 y=171 lead=1.50
+[AQ] REVEAL id=25 weapon=SHOTGUN eta=1.50 lead=1.50 fighter=RIVAL
+[AQ] SPAWN_SLOT id=26 x=396 y=749 lead=1.39
+[AQ] REVEAL id=26 weapon=GRENADE eta=0.33 lead=1.39 fighter=RIVAL
+[AQ] PICKUP id=26 fighter=RIVAL weapon=GRENADE
+[AQ] USE fighter=RIVAL weapon=GRENADE
+[AQ] CONSUME fighter=RIVAL weapon=GRENADE reason=thrown
+[AQ] PICKUP id=25 fighter=RIVAL weapon=SHOTGUN
+[AQ] EXPLODE weapon=GRENADE x=860 y=873
+[AQ] SPAWN_SLOT id=27 x=590 y=776 lead=1.77
+[AQ] USE fighter=RIVAL weapon=SHOTGUN
+[AQ] CONSUME fighter=RIVAL weapon=SHOTGUN reason=blast-resolved
+[AQ] REVEAL id=27 weapon=SWIRL_SHIELD eta=1.73 lead=1.77 fighter=HERO
+[AQ] HIT source=RIVAL target=HERO weapon=SHOTGUN damage=3.6
+[AQ] HIT source=RIVAL target=HERO weapon=SHOTGUN damage=3.6
+[AQ] USE fighter=HERO weapon=SWIRL_SHIELD
+[AQ] PICKUP id=27 fighter=HERO weapon=SWIRL_SHIELD
+[AQ] SPAWN_SLOT id=28 x=568 y=171 lead=1.70
+[AQ] SPAWN_SLOT id=29 x=573 y=741 lead=1.75
+[AQ] REVEAL id=29 weapon=PISTOL eta=1.33 lead=1.75 fighter=RIVAL
+[AQ] PICKUP id=29 fighter=RIVAL weapon=PISTOL
+[AQ] USE fighter=RIVAL weapon=PISTOL
+[AQ] REFLECT fighter=HERO weapon=SWIRL_SHIELD projectileFrom=RIVAL
+[AQ] CONSUME fighter=HERO weapon=SWIRL_SHIELD reason=reflect-resolved
+[AQ] HIT source=HERO target=RIVAL weapon=PISTOL damage=4.5
+[AQ] CONSUME fighter=RIVAL weapon=PISTOL reason=sequence-complete
+[AQ] HIT source=RIVAL target=HERO weapon=PISTOL damage=4.5
+[AQ] SPAWN_SLOT id=30 x=176 y=586 lead=1.66
+[AQ] REVEAL id=30 weapon=PISTOL eta=1.63 lead=1.66 fighter=HERO
+[AQ] PICKUP id=30 fighter=HERO weapon=PISTOL
+[AQ] USE fighter=HERO weapon=PISTOL
+[AQ] SPAWN_SLOT id=31 x=141 y=212 lead=1.79
+[AQ] REVEAL id=31 weapon=SPEAR eta=1.23 lead=1.79 fighter=RIVAL
+[AQ] HIT source=HERO target=RIVAL weapon=PISTOL damage=4.5
+[AQ] CONSUME fighter=HERO weapon=PISTOL reason=sequence-complete
+[AQ] HIT source=HERO target=RIVAL weapon=PISTOL damage=4.5
+[AQ] REVEAL id=28 weapon=SPIKED_CLUB eta=1.67 lead=1.70 fighter=HERO
+[AQ] PICKUP id=31 fighter=RIVAL weapon=SPEAR
+[AQ] PICKUP id=28 fighter=HERO weapon=SPIKED_CLUB
+[AQ] USE fighter=RIVAL weapon=SPEAR
+[AQ] USE fighter=HERO weapon=SPIKED_CLUB
+[AQ] HIT source=RIVAL target=HERO weapon=SPEAR damage=15.0
+[AQ] CONSUME fighter=RIVAL weapon=SPEAR reason=melee-resolved
+[AQ] CONSUME fighter=HERO weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] SPAWN_SLOT id=32 x=291 y=174 lead=1.58
+[AQ] REVEAL id=32 weapon=SPIKED_CLUB eta=1.57 lead=1.58 fighter=HERO
+[AQ] SPAWN_SLOT id=33 x=309 y=898 lead=1.56
+[AQ] PICKUP id=32 fighter=HERO weapon=SPIKED_CLUB
+[AQ] REVEAL id=33 weapon=SMG eta=1.53 lead=1.56 fighter=RIVAL
+[AQ] PICKUP id=33 fighter=RIVAL weapon=SMG
+[AQ] USE fighter=RIVAL weapon=SMG
+[AQ] SPAWN_SLOT id=34 x=693 y=492 lead=1.35
+[AQ] CONSUME fighter=RIVAL weapon=SMG reason=sequence-complete
+[AQ] HIT source=RIVAL target=HERO weapon=SMG damage=2.4
+[AQ] HIT source=RIVAL target=HERO weapon=SMG damage=2.4
+[AQ] HIT source=RIVAL target=HERO weapon=SMG damage=2.4
+[AQ] REVEAL id=34 weapon=SABRE eta=1.33 lead=1.35 fighter=RIVAL
+[AQ] PICKUP id=34 fighter=RIVAL weapon=SABRE
+[AQ] SPAWN_SLOT id=35 x=637 y=727 lead=1.76
+[AQ] USE fighter=HERO weapon=SPIKED_CLUB
+[AQ] USE fighter=RIVAL weapon=SABRE
+[AQ] CONSUME fighter=RIVAL weapon=SABRE reason=melee-resolved
+[AQ] REVEAL id=35 weapon=SNIPER eta=1.00 lead=1.76 fighter=RIVAL
+[AQ] CONSUME fighter=HERO weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] PICKUP id=35 fighter=RIVAL weapon=SNIPER
+[AQ] USE fighter=RIVAL weapon=SNIPER
+[AQ] CONSUME fighter=RIVAL weapon=SNIPER reason=shot-fired
+[AQ] HIT source=RIVAL target=HERO weapon=SNIPER damage=26.0
+[AQ] KO winner=RIVAL
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=849 y=845 lead=1.51
+[AQ] REVEAL id=1 weapon=SPIKED_CLUB eta=1.13 lead=1.51 fighter=RIVAL
+[AQ] PICKUP id=1 fighter=RIVAL weapon=SPIKED_CLUB
+[AQ] SPAWN_SLOT id=2 x=716 y=106 lead=1.32
+[AQ] USE fighter=RIVAL weapon=SPIKED_CLUB
+[AQ] CONSUME fighter=RIVAL weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] REVEAL id=2 weapon=SMG eta=1.30 lead=1.32 fighter=HERO
+[AQ] SPAWN_SLOT id=3 x=466 y=447 lead=1.51
+[AQ] PICKUP id=2 fighter=HERO weapon=SMG
+[AQ] USE fighter=HERO weapon=SMG
+[AQ] CONSUME fighter=HERO weapon=SMG reason=sequence-complete
+[AQ] REVEAL id=3 weapon=TOWER_SHIELD eta=1.50 lead=1.51 fighter=HERO
+[AQ] USE fighter=HERO weapon=TOWER_SHIELD
+[AQ] PICKUP id=3 fighter=HERO weapon=TOWER_SHIELD
+[AQ] SPAWN_SLOT id=4 x=736 y=458 lead=1.29
+[AQ] REVEAL id=4 weapon=GRENADE eta=1.27 lead=1.29 fighter=RIVAL
+[AQ] CONSUME fighter=HERO weapon=TOWER_SHIELD reason=expired
+[AQ] SPAWN_SLOT id=5 x=318 y=837 lead=1.68
+[AQ] REVEAL id=5 weapon=SHOTGUN eta=0.43 lead=1.68 fighter=HERO
+[AQ] PICKUP id=5 fighter=HERO weapon=SHOTGUN
+[AQ] USE fighter=HERO weapon=SHOTGUN
+[AQ] CONSUME fighter=HERO weapon=SHOTGUN reason=blast-resolved
+[AQ] SPAWN_SLOT id=6 x=549 y=734 lead=1.32
+PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=3 spawnedCumulative=101 wallClock=304ms earlyErrors=0
+PASS  reveal-lookahead-range-over-5min  — samples=5873
+PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=14 x=387 y=499 lead=1.49","REVEAL":"[AQ] REVEAL id=14 weapon=TOWER_SHIELD eta=1.47 lead=1.49 fighter=RIVAL","PICKUP":"[AQ] PICKUP id=12 fighter=RIVAL weapon=TOWER_SHIELD","USE":"[AQ] USE fighter=RIVAL weapon=TOWER_SHIELD","HIT":"[AQ] HIT source=HERO target=RIVAL weapon=DAGGER damage=9.0","CONSUME":"[AQ] CONSUME fighter=RIVAL weapon=TOWER_SHIELD reason=expired"}
+
+==== ARSENAL QUEST HEADLESS TEST SUMMARY ====
+{
+  "total": 61,
+  "passed": 61,
+  "failed": []
+}
+non-fatal boot runtime load errors: [
+  {
+    "file": "/game/fighters/soccerChampionRuntime.js",
+    "error": "image.addEventListener is not a function"
+  }
+]
+report+evidence written under docs/arsenal-quest/evidence/
