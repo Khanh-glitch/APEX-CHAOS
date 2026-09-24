@@ -135,7 +135,8 @@ try {
         const s = APEX_ARSENAL.state;
         const slot = Object.assign({
           id: s.nextSlotId++, x: 500, y: 500, phase: 'REVEALED', weaponId: 'PISTOL',
-          revealDelay: 1.5, revealTimer: 0, revealedFor: 0, pickedBy: null, rejectedFor: {}, spawnTime: s.time,
+          revealLeadSeconds: 1.5, revealedFor: 0, pickedBy: null, rejectedFor: {}, spawnTime: s.time,
+          predictedHeroETA: null, predictedRivalETA: null, earliestETA: null, predictedFighter: null,
         }, overrides);
         s.slots.push(slot);
         return slot.id;
@@ -191,65 +192,74 @@ try {
     __AQ_TEST.enterManual();
     __AQ_TEST.clearSlots();
     __AQ_TEST.clearEvents();
-    __AQ_TEST.place(80, 80, 920, 920);
-    const samples = [];
-    const delays = {};
+    __AQ_TEST.place(90, 90, 910, 910);
+    const leads = {};
     for (let t = 0; t < 10; t += 0.1) {
       __AQ_TEST.step(0.1);
-      const s = APEX_ARSENAL.state;
-      samples.push({ t: +t.toFixed(2), ids: s.slots.map(x => x.id) });
-      for (const slot of s.slots) if (slot.phase === 'TELEGRAPH') delays[slot.id] = slot.revealDelay;
+      for (const slot of APEX_ARSENAL.state.slots) {
+        if (slot.phase === 'TELEGRAPH') leads[slot.id] = slot.revealLeadSeconds;
+      }
     }
     const d = __AQ_TEST.debug();
-    const delayValues = Object.values(delays);
+    const leadValues = Object.values(leads);
     return {
       spawnedTotal: d.spawnedTotal,
       maxActive: d.maxActiveSlots,
-      delayValues,
-      delaysInRange: delayValues.length >= 3 && delayValues.every(v => v >= 1.2 && v <= 1.8),
+      leadValues,
+      leadsInRange: leadValues.length >= 3 && leadValues.every(v => v >= 1.2 && v <= 1.8),
       spawnEvents: __AQ_TEST.countEvents('SPAWN_SLOT'),
       revealEvents: __AQ_TEST.countEvents('REVEAL'),
-      revealWeaponsKnown: __AQ_TEST.events().filter(e => e.startsWith('[AQ] REVEAL')).every(e => /weapon=[A-Z_]+/.test(e)),
-      suppressed: d.suppressedSpawns,
-      samples: samples.filter((_, i) => i % 10 === 0),
+      allHiddenIdentityNull: d.slots.filter(s => s.phase === 'TELEGRAPH').every(s => s.weaponId === null),
     };
   })()`);
-  gate('spawn-cadence-independent', report.spawnLaw.spawnedTotal >= 4 && report.spawnLaw.spawnEvents >= 4, `spawnedTotal=${report.spawnLaw.spawnedTotal} over 10s (cadence 3.0s, first 1.0s)`);
-  gate('reveal-delay-1.2-1.8s', report.spawnLaw.delaysInRange, report.spawnLaw.delayValues.map(v => v.toFixed(2)));
+  gate('spawn-cadence-independent', report.spawnLaw.spawnedTotal >= 4 && report.spawnLaw.spawnEvents >= 4,
+    `spawnedTotal=${report.spawnLaw.spawnedTotal} over 10s (cadence 3.0s, first 1.0s)`);
+  gate('reveal-lookahead-1.2-1.8s', report.spawnLaw.leadsInRange, report.spawnLaw.leadValues.map(v => v.toFixed(2)));
   gate('multi-slot-coexist', report.spawnLaw.maxActive >= 3, `maxActiveSlots=${report.spawnLaw.maxActive}`);
-  gate('reveal-events-structured', report.spawnLaw.revealEvents >= 3 && report.spawnLaw.revealWeaponsKnown);
+  gate('no-age-based-reveal-while-far', report.spawnLaw.revealEvents === 0 && report.spawnLaw.allHiddenIdentityNull);
 
-  // ------------------------------------- telegraph law (hidden identity) ---
+  // ------------------------------------- telegraph law (proximity reveal) ---
   report.telegraphLaw = await evaluate(`(() => {
     __AQ_TEST.enterManual();
     __AQ_TEST.clearEvents();
-    __AQ_TEST.place(500, 500, 120, 880);
     __AQ_TEST.holdSpawns();
-    const id = __AQ_TEST.pushSlot({ x: 500, y: 500, phase: 'TELEGRAPH', weaponId: null, revealDelay: 1.5, revealTimer: 1.5 });
-    __AQ_TEST.step(0.5);
-    const during = {
-      holder: __AQ_TEST.holder('HERO'),
-      slot: APEX_ARSENAL.state.slots.find(s => s.id === id) || null,
-    };
-    const duringSnap = during.slot ? { phase: during.slot.phase, weaponId: during.slot.weaponId } : null;
-    __AQ_TEST.step(1.2);
-    const after = APEX_ARSENAL.state.slots.find(s => s.id === id);
-    const afterSnap = after ? { phase: after.phase, weaponId: after.weaponId } : 'PICKED_OR_GONE';
-    __AQ_TEST.step(0.5);
+    __AQ_TEST.place(150, 500, 900, 900);
+    const id = __AQ_TEST.pushSlot({ x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 1.5 });
+
+    __AQ_TEST.step(6.1);
+    let slot = APEX_ARSENAL.state.slots.find(s => s.id === id) || null;
+    const hiddenAfter6s = !!slot && slot.phase === 'TELEGRAPH' && slot.weaponId === null;
+    const before = __AQ_TEST.debug().slots.find(s => s.id === id) || null;
+
+    fighters[0].baseSpeed = 520;
+    fighters[0].setDir(1, 0);
+    fighters[1].baseSpeed = 0;
+    __AQ_TEST.step(0.04);
+
+    slot = APEX_ARSENAL.state.slots.find(s => s.id === id) || null;
+    const revealedOnApproach = !!slot && slot.phase === 'REVEALED' && !!slot.weaponId;
+    const revealLog = __AQ_TEST.events().find(e => e.startsWith('[AQ] REVEAL') && e.includes('id=' + id)) || '';
+
+    __AQ_TEST.step(1.5);
     return {
-      duringPhase: duringSnap && duringSnap.phase,
-      duringWeaponId: duringSnap ? duringSnap.weaponId : 'slot-gone',
-      duringHolder: during.holder,
-      afterPhase: afterSnap.phase || afterSnap,
-      afterWeaponId: afterSnap.weaponId,
+      hiddenAfter6s,
+      before,
+      revealedOnApproach,
+      revealLog,
       finalHolder: __AQ_TEST.holder('HERO'),
       pickupEvent: __AQ_TEST.countEvents('PICKUP', 'fighter=HERO'),
     };
   })()`);
-  gate('telegraph-not-collectible', report.telegraphLaw.duringPhase === 'TELEGRAPH' && report.telegraphLaw.duringHolder === null);
-  gate('telegraph-no-identity', report.telegraphLaw.duringWeaponId === null);
+  gate('telegraph-not-collectible-and-long-hidden',
+    report.telegraphLaw.hiddenAfter6s && report.telegraphLaw.before?.age >= 6 && report.telegraphLaw.before?.weaponId === null,
+    report.telegraphLaw.before);
+  gate('telegraph-no-identity', report.telegraphLaw.before?.weaponId === null);
+  gate('proximity-reveal-on-approach',
+    report.telegraphLaw.revealedOnApproach && /eta=\\d+\\.\\d+/.test(report.telegraphLaw.revealLog)
+      && /lead=1\\.50/.test(report.telegraphLaw.revealLog) && /fighter=HERO/.test(report.telegraphLaw.revealLog),
+    report.telegraphLaw.revealLog);
   gate('reveal-then-collectible', !!report.telegraphLaw.finalHolder && report.telegraphLaw.pickupEvent === 1,
-    `revealed=${report.telegraphLaw.afterWeaponId} picked=${JSON.stringify(report.telegraphLaw.finalHolder)}`);
+    JSON.stringify(report.telegraphLaw.finalHolder));
 
   // --------------------------------- both sides collect + armed rejection --
   report.pickupRules = await evaluate(`(() => {
