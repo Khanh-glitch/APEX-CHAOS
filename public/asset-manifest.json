@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-24T04:53:07.389Z",
+  "generatedAt": "2026-09-24T15:23:51.319Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -10,7 +10,7 @@
     {
       "path": "/apexEngine.js",
       "type": "script",
-      "bytes": 226297
+      "bytes": 226462
     },
     {
       "path": "/assets/arcade_v1/normalized/battle_idle_reference.webp",
@@ -196,6 +196,11 @@
       "path": "/assets/arsenal/weapons/arsenal_p0_weapon_atlas.json",
       "type": "data",
       "bytes": 1646
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/arsenal_c_weapon_set.json",
+      "type": "data",
+      "bytes": 2485
     },
     {
       "path": "/assets/audio/menu_bgm.mp3",
@@ -2980,7 +2985,7 @@
     {
       "path": "/game/core/apexCanonicalBalance.js",
       "type": "script",
-      "bytes": 119027
+      "bytes": 119331
     },
     {
       "path": "/game/core/apexFightTelemetry.js",
@@ -3005,12 +3010,12 @@
     {
       "path": "/game/core/apexPrecisionFixes.js",
       "type": "script",
-      "bytes": 29726
+      "bytes": 29815
     },
     {
       "path": "/game/core/apexRosterExtensions.js",
       "type": "script",
-      "bytes": 42631
+      "bytes": 42989
     },
     {
       "path": "/game/core/apexTextHygiene.js",
@@ -3170,12 +3175,12 @@
     {
       "path": "/game/ui/apexCharacterSelectUi.js",
       "type": "script",
-      "bytes": 22416
+      "bytes": 22637
     },
     {
       "path": "/game/ui/apexPickRuntime.js",
       "type": "script",
-      "bytes": 37831
+      "bytes": 38786
     },
     {
       "path": "/manualLab.js",

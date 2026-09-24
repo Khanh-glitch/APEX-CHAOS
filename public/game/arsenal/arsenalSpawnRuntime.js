@@ -303,7 +303,8 @@
         const av = window.APEX_ARSENAL_AV;
         const drawn = !!(av && av.drawWeaponSprite && av.drawWeaponSprite(ctx, slot.weaponId, 0, 0, {
           mode: 'floor',
-          targetLongSide: 118,
+          // C grenade continuity: pickup scale matches equipped/in-flight reads.
+          targetLongSide: slot.weaponId === 'GRENADE' ? 56 : 118,
           alpha: 1,
         }));
         if (!drawn) drawDebugMissingWeapon(ctx, slot.weaponId);

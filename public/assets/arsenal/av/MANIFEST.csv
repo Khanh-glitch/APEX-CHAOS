@@ -1,4 +1,15 @@
 path,bytes,sha256
+public/assets/arsenal/av/vfx/c/muzzle_0.png,12430,0a9478f32a6cad63840284bfd2ef72e949d89af6bc02f41b54584528a949932f
+public/assets/arsenal/av/vfx/c/muzzle_1.png,14138,3132ea5c37e3e02024b4da2d8971b37e669456dc75807b573741e168a1a69e09
+public/assets/arsenal/av/vfx/c/muzzle_2.png,20916,bbbd8b0330506e911080622df2a541a797cf547acb9416e4542e5187b23a7090
+public/assets/arsenal/av/vfx/c/muzzle_3.png,10493,b1ef7357b919461d619aa44288fe5c10a460275ff9f1f69470539f8dac38f4ee
+public/assets/arsenal/av/vfx/c/muzzle_4.png,9523,10926f5ee61d502c252fca8d00b4597ab2747df17968b399d6f91ab1e7715e5e
+public/assets/arsenal/av/vfx/c/muzzle_5.png,15447,efb52a0b5e792adceb55af2eda16cbc76052480dadbea8cda25309294b28c2ea
+public/assets/arsenal/av/vfx/kenney/smoke_01.png,86344,288b7a29b659030fe7da333159c641e2325e41e704c05b8c6db1531b59c09897
+public/assets/arsenal/av/vfx/kenney/smoke_03.png,33642,588255cfa015d2fd44488cf9a03d15edd73b2f5777dbf0301f431835b49eacc4
+public/assets/arsenal/av/vfx/kenney/spark_05.png,44785,173bcf3e75969a08d8db3e64ec4f5e78ffe11fee156186e30076baea649f673d
+public/assets/arsenal/av/vfx/kenney/spark_07.png,27522,1f1f798a6f969349da9cdbc87738ab8bc26542149f3a421cf9b64726491e01e1
+public/assets/arsenal/av/vfx/kenney/LICENSE.txt,645,dabd7cc9f78caf9dd0e0c2dbf27eca9c22383bed5bf035bc26341a246b748cc6
 public/assets/arsenal/av/PROVENANCE.md,958,5a001dac4cbdb1fb1c1d2d3a2e9568941fbb4b28fbe5277bf172f080b5f68cf1
 public/assets/arsenal/av/sfx/guns/cz.wav,1312536,4a8594b3cf3f2bfe49497c4a9ae6301b5c7000f21c7cbcb6650df8f594fce713
 public/assets/arsenal/av/sfx/guns/mosin.wav,2824684,ece6fff8f3b21aa8bc41943c0293d3fab6a553db33dd2427a388838324a39719

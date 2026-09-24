@@ -71,3 +71,65 @@ Three canonical names are re-keyed by mainline boot patches before any Arsenal c
 | MONK | KUNGFU | `public/game/core/apexCanonicalBalance.js` + kit rewrite in `public/game/core/apexPrecisionFixes.js` |
 
 `arsenalShellSelectRuntime.js` maps these via `IDENTITY_ALIASES` so the shells run the CURRENT live identity while cards, engine name-keyed hooks and QA keep the canonical 32 names. Without this mapping the three shells previously fell back to blank gray blobs (Checkpoint A behavior).
+
+## Checkpoint C — native lethality normalization (per-mechanic, §6)
+
+Checkpoint C adds ONE roster-wide, per-mechanic adaptation layer
+(`arsenalQuestRuntime.js` → `aqAdaptedTakeDamage`, config
+`NATIVE_ARSENAL_MULT`), active only while `gameState === 'ARSENAL'`.
+It scales REALIZED direct damage by mechanic class — never one blind global
+multiplier — and telemeters every point (`state.dmg`) for the acceptance
+suite. Identity (setup/control/mobility/defense/sustain) is untouched:
+statuses, pushes, locks, walls, summons, speeds and heals run unchanged.
+
+| Mechanic class | Mult | Native sources it covers (engine labels) |
+|---|---|---|
+| projectile | 0.55 | `engineer-*` shots, `galaxy-impact`, `card_throw`, `blade_wave`, `ice_lane`, `soccer-*` impacts, `math` formula hits |
+| blast | 0.50 | `galaxy-divine`, `galaxy-planet-explosion`, mines, meteor/volcano strikes, nukes |
+| beam | 0.50 | `engineer-war-machine-laser`, field/zone rays, witch ray |
+| dot | 0.60 | status ticks: burn/poison/bleed (`statusDamage=true`), saw rip, puppet cyclone DoT |
+| melee | 0.70 | `shotgun-butt-stroke`, bite/strike/punch labels, qi strikes |
+| contact | 0.85 | collision/body-slam family damage (RUBBER kinetic, ELECTRIC discharge, ORBIT satellite touch) |
+| default | 0.65 | anything unclassified |
+
+Per-fighter notes (direct-damage source → class; utility kept):
+
+| Fighter | Direct native source → class | Utility kept (identity) |
+|---|---|---|
+| RUBBER | collision damage → contact | kinetic bounce/speed growth |
+| ICE | `ice_lane` → projectile | frost slow/setup |
+| VAMPIRE | latch drain → dot | latch/heal (duration already adapted in B) |
+| STRING | web hits → projectile | web control |
+| VOLCANO | meteor strikes → blast | zone pressure |
+| MAGNET | field slam → blast | pull/positioning |
+| FLASH | dash hits → melee | dash/immunity |
+| ELECTRIC | discharge → contact | charge nodes |
+| ORBIT | satellite touch → contact | element ring |
+| TOXIC | puddle/droplets → dot | trail space control |
+| MIRROR | stolen-kit hits → (class of stolen kit) | gate reposition |
+| BLACK_HOLE | well slam → blast | gravity pull (setup) |
+| SAW | rip ticks → dot | spin mobility |
+| BLADE | `blade_wave` → projectile | bounce waves |
+| NOVA/GALAXY | divine/planet → blast | charge timing identity |
+| HUNTER | weak strike → melee | alpha/steer |
+| CRYSTAL | prison execution → melee | wall control |
+| VIRUS | swarm contact → contact | summons |
+| DRUM | beat shockwave → blast | wall beats |
+| CARD | `card_throw` → projectile | draw cycle |
+| MATH / MATH_V2 | formula/graph → projectile/beam | positional puzzle |
+| SNIPER | laser shot → beam | lock-on identity |
+| SLIME | burst/armor → default | split-guard defense |
+| TIME | clock ticks → dot | rewind utility |
+| WOLF | bite → melee | scent speed |
+| WIND/PUPPET | cyclone DoT → dot | hold/orbit movement |
+| WITCH | ray/curse → beam/dot | curse rolls |
+| PIRATE | combo hits → melee | loot hooks |
+| PAINTER | blobs → projectile | terrain paint |
+| MONK/KUNGFU | qi strikes → melee | combo/palm (durations adapted in B) |
+| SUPERSTAR | event hits → default | event invuln windows |
+
+Acceptance (headless + CI browser): `c-native-damage-normalized` asserts a
+blast-labeled hit realizes at exactly 0.5× an equal arsenal hit;
+`c-power-telemetry-live` asserts the telemetry split is live; the aggregate
+target (weapons 70–80% of meaningful direct damage over representative
+matches) is reported per-run via `weaponDamageShare` in the debug state.

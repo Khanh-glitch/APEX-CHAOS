@@ -44,10 +44,12 @@
 
     // --- Per-weapon first-pass tuning (handoff §7) ---
     WEAPONS: {
-      PISTOL:      { shots: 3, interval: 0.22, damagePerShot: 4.5, spread: 0.05, bulletSpeed: 780, bulletRadius: 7, bulletLife: 2.2, knockback: 120 },
-      SHOTGUN:     { pellets: 8, cone: 0.62, damagePerPellet: 3.6, bulletSpeed: 640, bulletLife: 0.42, bulletRadius: 6, knockback: 950, triggerRange: 430 },
-      SMG:         { shots: 8, interval: 0.085, damagePerShot: 2.4, spread: 0.10, bulletSpeed: 820, bulletRadius: 6, bulletLife: 2.2, knockback: 60 },
-      SNIPER:      { aimTime: 0.8, damage: 26, bulletSpeed: 1450, bulletRadius: 8, bulletLife: 2.0, knockback: 260 },
+      // Checkpoint C §5.2: guns read as tracer events, not floating balls.
+      // Collision is swept-segment, so speeds are never compensated by radius.
+      PISTOL:      { shots: 3, interval: 0.22, damagePerShot: 4.5, spread: 0.05, bulletSpeed: 2600, bulletRadius: 7, bulletLife: 1.0, knockback: 120 },
+      SHOTGUN:     { pellets: 8, cone: 0.62, damagePerPellet: 3.6, bulletSpeed: 2500, bulletLife: 0.17, bulletRadius: 6, knockback: 950, triggerRange: 430 },
+      SMG:         { shots: 8, interval: 0.085, damagePerShot: 2.4, spread: 0.10, bulletSpeed: 3100, bulletRadius: 6, bulletLife: 0.9, knockback: 60 },
+      SNIPER:      { aimTime: 0.8, damage: 26, bulletSpeed: 5800, bulletRadius: 8, bulletLife: 1.0, knockback: 260 },
       GRENADE:     { throwSpeed: 540, fuse: 1.4, blastRadius: 155, maxDamage: 20, knockback: 900 },
       SABRE:       { triggerRange: 225, windup: 0.10, reach: 250, halfAngle: 0.95, damage: 12, knockback: 520 },
       BATTLE_AXE:  { triggerRange: 265, windup: 0.42, reach: 285, halfAngle: 1.05, damage: 26, knockback: 1000, hitStop: 0.06, shake: 12 },
@@ -56,6 +58,20 @@
       SPIKED_CLUB: { triggerRange: 245, windup: 0.22, reach: 255, halfAngle: 1.00, damage: 18, knockback: 850, stun: 0.8 },
       SWIRL_SHIELD:  { reflectRadius: 150, duration: 8 },
       TOWER_SHIELD:  { duration: 2.8, damageTakenMult: 0.25, speedMult: 0.55 },
+    },
+
+    // --- Checkpoint C §6: fighter vs weapon power hierarchy ---
+    // Identity preserved, lethality normalized PER MECHANIC (never one blind
+    // global multiplier). Target over 60-120s: weapons 70-80% of meaningful
+    // direct damage, native kit 20-30% mostly as setup/control/mobility/defense.
+    NATIVE_ARSENAL_MULT: {
+      projectile: 0.55, // native shots / rockets / thrown impacts
+      blast: 0.50,      // aoe nukes, mines, explosions
+      beam: 0.50,       // lasers / fields / zones
+      dot: 0.60,        // burn / poison / status ticks
+      melee: 0.70,      // native close-combat hits
+      contact: 0.85,    // body-slam / collision-family damage
+      default: 0.65,
     },
   };
 

@@ -812,16 +812,20 @@ while (AV && (AV.imagesReady() < AV.describe().allImages.length || AV.audioReady
 gate('av-runtime-registered', !!AV && typeof AV.cue === 'function' && typeof AV.draw === 'function');
 
 const avDescribe = AV ? AV.describe() : null;
-gate('av-muzzle-uses-transparent-sheet',
-  !!avDescribe && avDescribe.muzzleSheet.includes('muzzleFlash0_transparent'),
-  avDescribe && avDescribe.muzzleSheet);
+gate('av-muzzle-uses-warm-c-family',
+  !!avDescribe && Array.isArray(avDescribe.muzzleFrames) && avDescribe.muzzleFrames.length === 6
+  && avDescribe.muzzleFrames.every(f => f.includes('vfx/c/muzzle_')),
+  avDescribe && avDescribe.muzzleFrames);
+gate('av-no-laser-charge-sfx',
+  !!avDescribe && !Object.values(avDescribe.audio).flat().some(rel => String(rel).includes('laserLarge')),
+  avDescribe && Object.keys(avDescribe.audio));
 gate('av-asset-map-complete',
   !!avDescribe
   && ['pistol_shot', 'shotgun_shot', 'smg_shot', 'sniper_shot', 'explosion', 'sabre_swing', 'axe_swing', 'dagger_swing', 'spear_swing', 'club_swing', 'shield_activate_swirl', 'shield_activate_tower', 'reflect', 'block_heavy', 'telegraph', 'reveal', 'pickup'].every(k => (avDescribe.audio[k] || []).length > 0),
   Object.keys(avDescribe ? avDescribe.audio : {}));
-gate('av-melee-sequences-distinct',
-  !!avDescribe && new Set(Object.values(avDescribe.melee).map(s => s.join(','))).size === 5,
-  avDescribe && Object.fromEntries(Object.entries(avDescribe.melee).map(([k, v]) => [k, v.length])));
+gate('av-melee-contact-transients',
+  !!avDescribe && ['SABRE', 'BATTLE_AXE', 'SPEAR', 'SPIKED_CLUB', 'DAGGER'].every(k => (avDescribe.melee[k] || '').includes('vfx/kenney/spark_')),
+  avDescribe && avDescribe.melee);
 
 report.av = { scheduledBefore: AV ? AV.stats.scheduled.length : 0 };
 const avStats = () => win.eval('JSON.parse(JSON.stringify({ cued: APEX_ARSENAL_AV.stats.cued, scheduled: APEX_ARSENAL_AV.stats.scheduled, throttled: APEX_ARSENAL_AV.stats.throttled, imagesLoaded: APEX_ARSENAL_AV.stats.imagesLoaded, imagesFailed: APEX_ARSENAL_AV.stats.imagesFailed, audioLoaded: APEX_ARSENAL_AV.stats.audioLoaded, audioFailed: APEX_ARSENAL_AV.stats.audioFailed, active: APEX_ARSENAL_AV.activeVfx(), peak: APEX_ARSENAL_AV.stats.vfxPeak, floorSpriteDraws: APEX_ARSENAL_AV.stats.floorSpriteDraws, equippedSpriteDraws: APEX_ARSENAL_AV.stats.equippedSpriteDraws }))');
@@ -1022,8 +1026,19 @@ report.av.after = avStats();
 gate('av-assets-preloaded',
   report.av.after.imagesLoaded === avDescribe.allImages.length && report.av.after.audioLoaded === avDescribe.allAudio.length,
   { images: `${report.av.after.imagesLoaded}/${avDescribe.allImages.length}`, audio: `${report.av.after.audioLoaded}/${avDescribe.allAudio.length}`, imgFail: report.av.after.imagesFailed, sfxFail: report.av.after.audioFailed });
-gate('weapon-atlas-floor-sprite-rendered', report.av.after.floorSpriteDraws > 0, `draws=${report.av.after.floorSpriteDraws}`);
-gate('weapon-atlas-equipped-sprite-rendered', report.av.after.equippedSpriteDraws > 0, `draws=${report.av.after.equippedSpriteDraws}`);
+gate('weapon-cset-floor-sprite-rendered', report.av.after.floorSpriteDraws > 0, `draws=${report.av.after.floorSpriteDraws}`);
+gate('weapon-cset-equipped-sprite-rendered', report.av.after.equippedSpriteDraws > 0, `draws=${report.av.after.equippedSpriteDraws}`);
+gate('weapon-cset-all-12-authored',
+  !!avDescribe && ['PISTOL', 'SHOTGUN', 'SMG', 'SNIPER', 'GRENADE', 'SABRE', 'BATTLE_AXE', 'DAGGER', 'SPEAR', 'SPIKED_CLUB', 'SWIRL_SHIELD', 'TOWER_SHIELD']
+    .every(id => String(avDescribe.weaponSet[id] || '').includes('weapons/c/')),
+  avDescribe && Object.keys(avDescribe.weaponSet || {}));
+gate('c-projectile-speeds-v2', (() => {
+  const W = win.APEX_ARSENAL_CONFIG.WEAPONS;
+  return W.PISTOL.bulletSpeed >= 2400 && W.PISTOL.bulletSpeed <= 2800
+    && W.SMG.bulletSpeed >= 2800 && W.SMG.bulletSpeed <= 3400
+    && W.SHOTGUN.bulletSpeed >= 2200 && W.SHOTGUN.bulletSpeed <= 2800 && W.SHOTGUN.bulletLife <= 0.25
+    && W.SNIPER.bulletSpeed >= 5000 && W.SNIPER.bulletSpeed <= 6500;
+})(), win.eval('JSON.stringify({p: APEX_ARSENAL_CONFIG.WEAPONS.PISTOL.bulletSpeed, s: APEX_ARSENAL_CONFIG.WEAPONS.SMG.bulletSpeed, g: APEX_ARSENAL_CONFIG.WEAPONS.SHOTGUN.bulletSpeed, n: APEX_ARSENAL_CONFIG.WEAPONS.SNIPER.bulletSpeed})'));
 gate('av-telegraph-audio-bound', report.av.after.scheduled.some(s => s.rel === 'sfx/scifi/forceField_001.ogg'));
 gate('av-reveal-audio-bound', report.av.after.scheduled.some(s => s.rel === 'sfx/rpg/metalClick.ogg'));
 gate('av-pickup-audio-bound', report.av.after.scheduled.some(s => s.rel === 'sfx/rpg/metalLatch.ogg'));
@@ -1493,6 +1508,64 @@ report.noSlash = run(`
 `);
 gate('no-slash-vfx-in-combat', report.noSlash.noSlashSeq, report.noSlash);
 gate('bomb-explosion-vfx-remains', report.noSlash.bombAtlas, report.noSlash);
+
+// ------------------------------------- gates: Checkpoint C combat language
+run(`
+  window.startArsenalQuestMode();
+  cancelAnimationFrame(reqId); reqId = 0;
+  __AQ_TEST.step(2);
+  __AQ_TEST.redraw();
+`);
+snapshot('20-chamber01-arena');
+
+run(`
+  window.startArsenalQuestMode();
+  cancelAnimationFrame(reqId); reqId = 0;
+  __AQ_TEST.place(300, 500, 640, 500);
+  __AQ_TEST.equip('HERO', 'GRENADE');
+  for (let i = 0; i < 12; i++) APEX_ARSENAL.step(1 / 60);
+  __AQ_TEST.redraw();
+`);
+snapshot('21a-grenade-equipped');
+run(`
+  for (let i = 0; i < 26; i++) APEX_ARSENAL.step(1 / 60);
+  __AQ_TEST.redraw();
+`);
+snapshot('21b-grenade-in-flight');
+
+report.cCasing = run(`
+  window.startArsenalQuestMode();
+  cancelAnimationFrame(reqId); reqId = 0;
+  __AQ_TEST.place(240, 500, 760, 500);
+  __AQ_TEST.equip('HERO', 'PISTOL');
+  for (let i = 0; i < 90; i++) APEX_ARSENAL.step(1 / 60);
+  const cued = APEX_ARSENAL_AV.stats.cued;
+  return { casing: cued.some(c => c.event === 'casing') };
+`);
+gate('c-casing-ejected-on-fire', report.cCasing.casing, report.cCasing);
+
+report.cNative = run(`
+  window.startArsenalQuestMode();
+  cancelAnimationFrame(reqId); reqId = 0;
+  __AQ_TEST.step(0.1);
+  const t = fighters[1];
+  const h0 = t.hp;
+  t.takeDamage(10, fighters[0], 'galaxy-divine', false);
+  const nativeDealt = +(h0 - t.hp).toFixed(2);
+  const h1 = t.hp;
+  t.takeDamage(10, fighters[0], 'arsenal-pistol', false);
+  const weaponDealt = +(h1 - t.hp).toFixed(2);
+  return { nativeDealt, weaponDealt, telemetry: APEX_ARSENAL.state.dmg };
+`);
+// The engine applies a small global damage scale to everything, so assert the
+// RATIO: blast-labeled native damage must realize at exactly 0.5x of an
+// equal-amount arsenal hit, and the arsenal hit must be unscaled-relative.
+gate('c-native-damage-normalized',
+  Math.abs(report.cNative.nativeDealt - 0.5 * report.cNative.weaponDealt) < 0.01 && report.cNative.weaponDealt > 9,
+  report.cNative);
+gate('c-power-telemetry-live',
+  !!report.cNative.telemetry && report.cNative.telemetry.weapon >= 10 && report.cNative.telemetry.native >= 5,
+  report.cNative.telemetry);
 
 // ------------------------------------------------------- gate: structured log
 report.logSample = run(`

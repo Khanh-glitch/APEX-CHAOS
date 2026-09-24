@@ -57,10 +57,55 @@
       suppressedSpawns: 0,
       maxActiveSlots: 0,
       over: null,
+      // C §6 telemetry: realized direct damage split weapon vs native kit.
+      dmg: { weapon: 0, native: 0, byMechanic: {} },
       debugOverlay: AQ.state ? AQ.state.debugOverlay : false,
     };
     AQ.state = state;
     return state;
+  }
+
+  // ---------------------------------------------------------------------------
+  // C §6 native lethality normalization — per-mechanic adaptation applied only
+  // while the Arsenal mode is live. Identity (setup/control/mobility/defense/
+  // sustain) is untouched; only realized direct damage is scaled, and every
+  // point is telemetered for the acceptance suite.
+  // ---------------------------------------------------------------------------
+  function nativeMechanic(label, statusDamage) {
+    const l = String(label || '');
+    if (statusDamage) return 'dot';
+    if (/explosion|blast|divine|planet|nuke|mine/.test(l)) return 'blast';
+    if (/laser|beam|field/.test(l)) return 'beam';
+    if (/butt|strike|slash|stab|punch|melee|kick|drive/.test(l)) return 'melee';
+    if (/shot|bullet|rocket|ball|impact|proj/.test(l)) return 'projectile';
+    if (/collide|contact|body/.test(l)) return 'contact';
+    return 'default';
+  }
+  if (typeof Fighter !== 'undefined' && !Fighter.prototype.__aqNativeAdapt) {
+    Fighter.prototype.__aqNativeAdapt = true;
+    const baseTakeDamage = Fighter.prototype.takeDamage;
+    Fighter.prototype.takeDamage = function aqAdaptedTakeDamage(amount, source, label, statusDamage) {
+      const st = (typeof gameState !== 'undefined' && gameState === 'ARSENAL') ? (AQ.state || null) : null;
+      if (!st || !(amount > 0)) return baseTakeDamage.call(this, amount, source, label, statusDamage);
+      const isWeapon = String(label || '').startsWith('arsenal-');
+      let scaled = amount;
+      let mech = null;
+      if (!isWeapon) {
+        mech = nativeMechanic(label, statusDamage);
+        const mult = CFG.NATIVE_ARSENAL_MULT[mech] != null ? CFG.NATIVE_ARSENAL_MULT[mech] : CFG.NATIVE_ARSENAL_MULT.default;
+        scaled = amount * mult;
+      }
+      const before = this.hp;
+      const out = baseTakeDamage.call(this, scaled, source, label, statusDamage);
+      const dealt = Math.max(0, before - this.hp);
+      st.dmg = st.dmg || { weapon: 0, native: 0, byMechanic: {} };
+      if (isWeapon) st.dmg.weapon += dealt;
+      else {
+        st.dmg.native += dealt;
+        st.dmg.byMechanic[mech] = (st.dmg.byMechanic[mech] || 0) + dealt;
+      }
+      return out;
+    };
   }
 
   // -------------------------------------------------------------------------
@@ -127,9 +172,100 @@
   };
 
   drawBackground = function (c) {
+    if (gameState === 'ARSENAL') {
+      drawChamber01(c); // Arsenal-only arena; global Apex background untouched
+      SPAWN.drawSlots(c);
+      return;
+    }
     baseDrawBackground(c);
-    if (gameState === 'ARSENAL') SPAWN.drawSlots(c);
   };
+
+  // ---------------------------------------------------------------------------
+  // C §7 — ARSENAL FIELD TEST // CHAMBER 01. Dark graphite evaluation room:
+  // restrained range grid, sparse ticks/zone marks, industrial wall panels,
+  // neutral pickup floor. Low contrast, no bright lanes, no center obstacle.
+  // ---------------------------------------------------------------------------
+  function drawChamber01(c) {
+    const S = GAME_SIZE;
+    c.save();
+    // Base graphite with subtle material variation.
+    c.fillStyle = '#17181c';
+    c.fillRect(0, 0, S, S);
+    const grad = c.createRadialGradient(S / 2, S / 2, S * 0.18, S / 2, S / 2, S * 0.72);
+    grad.addColorStop(0, 'rgba(38,41,47,0.55)');
+    grad.addColorStop(1, 'rgba(10,11,14,0.85)');
+    c.fillStyle = grad;
+    c.fillRect(0, 0, S, S);
+
+    // Very restrained range grid.
+    c.strokeStyle = 'rgba(255,255,255,0.028)';
+    c.lineWidth = 1;
+    for (let g = 125; g < S; g += 125) {
+      c.beginPath(); c.moveTo(g, 40); c.lineTo(g, S - 40); c.stroke();
+      c.beginPath(); c.moveTo(40, g); c.lineTo(S - 40, g); c.stroke();
+    }
+    // Sparse measurement ticks along the walls.
+    c.strokeStyle = 'rgba(255,255,255,0.06)';
+    c.lineWidth = 2;
+    for (let g = 100; g < S; g += 100) {
+      c.beginPath(); c.moveTo(g, 34); c.lineTo(g, 46); c.stroke();
+      c.beginPath(); c.moveTo(g, S - 46); c.lineTo(g, S - 34); c.stroke();
+      c.beginPath(); c.moveTo(34, g); c.lineTo(46, g); c.stroke();
+      c.beginPath(); c.moveTo(S - 46, g); c.lineTo(S - 34, g); c.stroke();
+    }
+    // Zone numerals, faint industrial stencil.
+    c.fillStyle = 'rgba(255,255,255,0.05)';
+    c.font = "700 26px monospace";
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText('Z-01', S * 0.25, S * 0.25);
+    c.fillText('Z-02', S * 0.75, S * 0.25);
+    c.fillText('Z-03', S * 0.25, S * 0.75);
+    c.fillText('Z-04', S * 0.75, S * 0.75);
+
+    // Central alignment marks (no obstacle, no glow).
+    c.strokeStyle = 'rgba(255,255,255,0.07)';
+    c.lineWidth = 2;
+    c.beginPath(); c.arc(S / 2, S / 2, 62, 0, Math.PI * 2); c.stroke();
+    c.beginPath();
+    c.moveTo(S / 2 - 88, S / 2); c.lineTo(S / 2 - 40, S / 2);
+    c.moveTo(S / 2 + 40, S / 2); c.lineTo(S / 2 + 88, S / 2);
+    c.moveTo(S / 2, S / 2 - 88); c.lineTo(S / 2, S / 2 - 40);
+    c.moveTo(S / 2, S / 2 + 40); c.lineTo(S / 2, S / 2 + 88);
+    c.stroke();
+
+    // Industrial wall band: panels + guard rail, brighter boundary read.
+    c.fillStyle = '#202227';
+    c.fillRect(0, 0, S, 30); c.fillRect(0, S - 30, S, 30);
+    c.fillRect(0, 0, 30, S); c.fillRect(S - 30, 0, 30, S);
+    c.strokeStyle = 'rgba(0,0,0,0.4)';
+    c.lineWidth = 2;
+    for (let g = 0; g <= S; g += 125) {
+      c.beginPath(); c.moveTo(g, 0); c.lineTo(g, 30); c.stroke();
+      c.beginPath(); c.moveTo(g, S - 30); c.lineTo(g, S); c.stroke();
+      c.beginPath(); c.moveTo(0, g); c.lineTo(30, g); c.stroke();
+      c.beginPath(); c.moveTo(S - 30, g); c.lineTo(S, g); c.stroke();
+    }
+    c.strokeStyle = '#2c2f36';
+    c.lineWidth = 6;
+    c.strokeRect(30, 30, S - 60, S - 60);
+    c.strokeStyle = 'rgba(255,255,255,0.05)';
+    c.lineWidth = 2;
+    c.strokeRect(36, 36, S - 72, S - 72);
+    // Corner vent slats, slow static machinery hint.
+    c.strokeStyle = 'rgba(255,255,255,0.045)';
+    c.lineWidth = 3;
+    for (let i = 0; i < 4; i++) {
+      c.beginPath(); c.moveTo(52 + i * 10, 52); c.lineTo(52 + i * 10, 84); c.stroke();
+      c.beginPath(); c.moveTo(S - 84 + i * 10, S - 84); c.lineTo(S - 84 + i * 10, S - 52); c.stroke();
+    }
+    // Chamber plate.
+    c.fillStyle = 'rgba(255,255,255,0.10)';
+    c.font = "700 20px monospace";
+    c.textAlign = 'left';
+    c.fillText('ARSENAL FIELD TEST // CHAMBER 01', 48, S - 52);
+    c.restore();
+  }
 
   drawProjectiles = function (c) {
     if (gameState === 'ARSENAL') weaponApi.drawArsenalProjectiles(c);
@@ -379,6 +515,10 @@
       spawnedTotal: state.spawnedTotal,
       suppressedSpawns: state.suppressedSpawns,
       maxActiveSlots: state.maxActiveSlots,
+      dmg: state.dmg || null,
+      weaponDamageShare: state.dmg && (state.dmg.weapon + state.dmg.native) > 0
+        ? Math.round(100 * state.dmg.weapon / (state.dmg.weapon + state.dmg.native)) / 100
+        : null,
       aqProjectiles: projectiles.filter(p => p && p.aq).length,
       hero: fighterSnapshot(fighters[0]),
       rival: fighterSnapshot(fighters[1]),

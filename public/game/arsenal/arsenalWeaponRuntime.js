@@ -96,6 +96,9 @@
       t: 0,
       life: 0.38,
       maxLife: 0.38,
+      drop: 0,
+      dropV: -30,
+      exitRot: ({ PISTOL: 3.2, SMG: 3.8, SHOTGUN: -3.4, SNIPER: 2.0, SABRE: 2.6, BATTLE_AXE: -2.2, DAGGER: 1.8, SPEAR: 1.2, SPIKED_CLUB: -2.6 })[h.weaponId] || 0,
     };
   }
   function advancePoseGhost(ghost, dt) {
@@ -118,6 +121,24 @@
       const k = Math.min(1, dt / Math.max(0.01, r.returnTau || 0.1));
       p.recoil += (0 - p.recoil) * k;
       p.rotKick += (0 - p.rotKick) * k;
+    }
+    // C §3.2 physical exit: the consumed weapon drops/rotates away (guns flick
+    // off, heavies throw down), shields physically retract, the grenade scales
+    // out along the throw. Alpha cleanup happens only in the final 15%
+    // (drawPoseGhost), never as the primary consume read.
+    if (ghost.weaponId === 'GRENADE') {
+      const u = Math.min(1, ghost.t / (r.throwTime || 0.34));
+      p.scaleX = Math.max(0.2, 1 - u * 0.8);
+      p.scaleY = p.scaleX;
+    } else if (ghost.category === 'defense') {
+      const u = Math.min(1, ghost.t / ghost.maxLife);
+      p.scaleX = Math.max(0.5, 1 - u * 0.6);
+      p.scaleY = p.scaleX;
+      ghost.drop = (ghost.drop || 0) + 50 * dt;
+    } else {
+      ghost.dropV = (ghost.dropV == null ? -30 : ghost.dropV) + 1500 * dt;
+      ghost.drop = (ghost.drop || 0) + ghost.dropV * dt;
+      if (ghost.exitRot) p.rotKick += ghost.exitRot * dt;
     }
   }
   function tickPoseGhost(f, dt) {
@@ -146,6 +167,15 @@
       consumed: false,
       meta: { pose: makePose() },
     };
+    // C §3.1 anticipation beat: the weapon arrives offset (raised/cocked) and
+    // the pose spring settles it into ready — never an instant static equip.
+    const ANTICIPATION = {
+      PISTOL: [10, -0.10], SMG: [10, -0.06], SHOTGUN: [16, -0.20], SNIPER: [18, -0.10],
+      SABRE: [8, -0.30], BATTLE_AXE: [10, -0.50], DAGGER: [6, -0.20],
+      SPEAR: [8, -0.20], SPIKED_CLUB: [10, -0.40],
+    };
+    const ant = ANTICIPATION[weaponId];
+    if (ant) { f.data.arsenal.meta.pose.localY = ant[0]; f.data.arsenal.meta.pose.rotKick = ant[1]; }
     if (def.onEquip) def.onEquip(makeCtx(f));
     playFighterSound(f, 'wall');
     floatingTexts.push(new FloatingText(f.x, f.y - f.radius - 78, weaponId.replace(/_/g, ' '), defColor(def)));
@@ -212,6 +242,7 @@
       owner,
       weapon,
       x, y,
+      px: x, py: y,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
       radius: spec.radius || 7,
@@ -221,6 +252,22 @@
       knockback: spec.knockback || 0,
       stun: spec.stun || 0,
       color: spec.color || (owner && owner.color) || '#ffffff',
+    });
+  }
+
+  // C §eject: spent casing leaves the port on every shot — open-mouth brass
+  // arc/spin/fall with bounded life (presentation owns the physics).
+  function ejectCasing(f, angle, power) {
+    const side = angle + Math.PI / 2;
+    const bx = f.x + Math.cos(angle) * (f.radius * 0.55) + Math.cos(side) * 10;
+    const by = f.y + Math.sin(angle) * (f.radius * 0.55) + Math.sin(side) * 10;
+    const sp = (110 + Math.random() * 70) * (power || 1);
+    window.avCue('casing', {
+      x: bx, y: by,
+      vx: Math.cos(side) * sp + Math.cos(angle) * 50,
+      vy: Math.sin(side) * sp + Math.sin(angle) * 50 - 150,
+      rot: Math.random() * TAU,
+      vrot: (Math.random() < 0.5 ? -1 : 1) * (8 + Math.random() * 7),
     });
   }
 
@@ -267,20 +314,33 @@
       const p = projectiles[i];
       if (!p || !p.aq) continue;
       if (p.type === 'aq_bullet') {
+        // C §5.2: swept segment vs fighter circle — speeds are tracer-grade and
+        // tunneling is solved by continuous testing, never by bigger bullets.
+        p.px = p.x; p.py = p.y;
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         if (p.x < -20 || p.x > GAME_SIZE + 20 || p.y < -20 || p.y > GAME_SIZE + 20) { p.life = 0; continue; }
         const target = fighters.find(f => f && f !== p.owner && f.hp > 0);
-        if (target && dist(p.x, p.y, target.x, target.y) < target.radius * CFG.BULLET_HIT_RADIUS_SCALE + p.radius) {
-          aqDamage(target, p.damage, p.owner, p.weapon, { knockback: p.knockback, stun: p.stun });
-          emitParticles(p.x, p.y, p.color, 12, 300, 4, 0.35, 'square');
-          p.life = 0;
+        if (target) {
+          const hitR = target.radius * CFG.BULLET_HIT_RADIUS_SCALE + p.radius;
+          if (distPointToSegment(target.x, target.y, p.px, p.py, p.x, p.y) < hitR) {
+            const heavy = p.weapon === 'SNIPER';
+            aqDamage(target, p.damage, p.owner, p.weapon, { knockback: p.knockback, stun: p.stun, hitStop: heavy ? 0.05 : 0 });
+            // C §5.4 impact hierarchy: pistol tiny snap, SMG minimal repeated,
+            // shotgun broad cluster, sniper sharp focused.
+            if (p.weapon === 'SMG') emitParticles(p.x, p.y, p.color, 3, 260, 3, 0.2, 'square');
+            else if (p.weapon === 'SHOTGUN') emitParticles(p.x, p.y, p.color, 9, 340, 5, 0.3, 'square');
+            else if (heavy) emitParticles(p.x, p.y, p.color, 8, 420, 4, 0.3, 'square');
+            else emitParticles(p.x, p.y, p.color, 5, 300, 3, 0.25, 'square');
+            p.life = 0;
+          }
         }
         continue;
       }
       if (p.type === 'aq_grenade') {
         p.x += p.vx * dt;
         p.y += p.vy * dt;
+        p.rot = (p.rot || 0) + dt * 9; // canonical sprite spins in flight (C §3.3)
         // Bounce off arena walls until the fuse burns out.
         if (p.x < p.radius) { p.x = p.radius; p.vx = Math.abs(p.vx); }
         if (p.x > GAME_SIZE - p.radius) { p.x = GAME_SIZE - p.radius; p.vx = -Math.abs(p.vx); }
@@ -293,40 +353,68 @@
     }
   }
 
-  // Presentation for aq projectiles; injected ahead of the engine draw pass.
+  // C §5.3 tracer language: thin core from previous to current position,
+  // bright short head, capped length; no outlined ellipse balls.
+  const TRACER = {
+    PISTOL:  { trail: 0.050, width: 3.0, head: 2.6 },
+    SMG:     { trail: 0.032, width: 2.2, head: 2.0 },
+    SHOTGUN: { trail: 0.024, width: 2.6, head: 2.2 },
+    SNIPER:  { trail: 0.075, width: 4.0, head: 3.2, after: 1.3 },
+  };
   function drawArsenalProjectiles(ctx) {
+    const av = window.APEX_ARSENAL_AV;
     for (const p of projectiles) {
       if (!p || !p.aq) continue;
       ctx.save();
       if (p.type === 'aq_bullet') {
-        const a = clamp(p.life / p.maxLife, 0.35, 1);
-        ctx.globalAlpha = a;
-        ctx.translate(p.x, p.y);
-        ctx.rotate(Math.atan2(p.vy, p.vx));
-        ctx.fillStyle = p.color;
-        ctx.strokeStyle = '#141008';
-        ctx.lineWidth = 3;
+        const t = TRACER[p.weapon] || TRACER.PISTOL;
+        const a = clamp(p.life / p.maxLife, 0.4, 1);
+        ctx.globalCompositeOperation = 'lighter';
+        if (t.after) { // sniper afterimage: longer faint transient
+          ctx.globalAlpha = 0.22 * a;
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = t.width * 0.6;
+          ctx.beginPath();
+          ctx.moveTo(p.x - p.vx * t.trail * t.after, p.y - p.vy * t.trail * t.after);
+          ctx.lineTo(p.x, p.y);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 0.9 * a;
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = t.width;
+        ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.ellipse(0, 0, p.radius * 1.7, p.radius * 0.85, 0, 0, TAU);
-        ctx.fill();
+        ctx.moveTo(p.x - p.vx * t.trail, p.y - p.vy * t.trail);
+        ctx.lineTo(p.x, p.y);
         ctx.stroke();
+        ctx.globalAlpha = a;
         ctx.fillStyle = '#fff8e0';
         ctx.beginPath();
-        ctx.arc(p.radius * 0.7, 0, p.radius * 0.34, 0, TAU);
+        ctx.arc(p.x, p.y, t.head, 0, TAU);
         ctx.fill();
       } else if (p.type === 'aq_grenade') {
+        // Exact identity continuity: the same canonical sprite as pickup and
+        // equipped states, spinning in flight (C §3.3 grenade).
+        const g = av && av.weaponImage ? av.weaponImage('GRENADE') : null;
         ctx.translate(p.x, p.y);
-        ctx.fillStyle = p.color;
-        ctx.strokeStyle = '#20280f';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(0, 0, p.radius, 0, TAU);
-        ctx.fill();
-        ctx.stroke();
+        if (g) {
+          ctx.rotate(p.rot || 0);
+          const s = 40 / Math.max(g.w, g.h);
+          ctx.drawImage(g.img, 0, 0, g.w, g.h, (-g.w * s) / 2, (-g.h * s) / 2, g.w * s, g.h * s);
+        } else {
+          ctx.fillStyle = p.color;
+          ctx.strokeStyle = '#20280f';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(0, 0, p.radius, 0, TAU);
+          ctx.fill();
+          ctx.stroke();
+        }
+        ctx.rotate(-(p.rot || 0));
         const blink = p.fuse < 0.5 && Math.floor(p.fuse * 12) % 2 === 0;
         ctx.fillStyle = blink ? '#ff5a3c' : '#c8b26a';
         ctx.beginPath();
-        ctx.arc(0, -p.radius - 5, 5, 0, TAU);
+        ctx.arc(0, -p.radius - 5, 4, 0, TAU);
         ctx.fill();
       }
       ctx.restore();
@@ -459,7 +547,7 @@
           const anchor = meleeSwingAnchor(id, ctx.fighter, spec, attackAngle);
           window.avCue('melee_swing', { weapon: id, x: anchor.x, y: anchor.y, angle: anchor.angle });
           const landed = strikeCone(ctx, spec, id, { color });
-          if (landed) window.avCue('melee_hit', { weapon: id, x: ctx.enemy.x, y: ctx.enemy.y });
+          if (landed) window.avCue('melee_hit', { weapon: id, x: ctx.enemy.x, y: ctx.enemy.y, angle: attackAngle });
           consume(ctx.fighter, 'melee-resolved');
         }
       },
@@ -510,6 +598,7 @@
             knockback: spec.knockback,
             color,
           });
+          ejectCasing(f, angle, id === 'SMG' ? 0.8 : 1); // C: brass leaves the port
           h.shotsFired += 1;
           h.meta.nextShot += spec.interval;
           poseKick(h, poseRecipe(id)); // weapon-only recoil pulse (B1/B3)
@@ -568,6 +657,7 @@
           }
           const muzzleDistance = gunMuzzleDistance('SHOTGUN', f);
           window.avCue('fire', { weapon: 'SHOTGUN', x: f.x + Math.cos(base) * muzzleDistance, y: f.y + Math.sin(base) * muzzleDistance, angle: base });
+          ejectCasing(f, base, 1.4);
           spawnShockwave(f.x, f.y, '#ffbe6b', 130);
           cameraShake = Math.max(cameraShake, 9);
           hitStop = Math.max(hitStop, 0.03);
@@ -648,6 +738,7 @@
               playFighterSound(f, 'skill');
               const muzzleDistance = gunMuzzleDistance('SNIPER', f);
               window.avCue('sniper_shot', { x: f.x + Math.cos(angle) * muzzleDistance, y: f.y + Math.sin(angle) * muzzleDistance, angle });
+              ejectCasing(f, angle, 1.2);
               consume(f, 'shot-fired');
             }
           }
@@ -749,7 +840,7 @@
             h.meta.hitDone = true;
             aqDamage(ctx.enemy, spec.damage, f, 'DAGGER', { shake: 5 });
             emitParticles(ctx.enemy.x, ctx.enemy.y, '#e8f4ff', 16, 340, 4, 0.4, 'square');
-            window.avCue('melee_hit', { weapon: 'DAGGER', x: ctx.enemy.x, y: ctx.enemy.y });
+            window.avCue('melee_hit', { weapon: 'DAGGER', x: ctx.enemy.x, y: ctx.enemy.y, angle: ang });
           }
           h.meta.dashLeft -= dt;
           if (h.meta.dashLeft <= 0) consume(f, h.meta.hitDone ? 'stab-landed' : 'stab-whiffed');

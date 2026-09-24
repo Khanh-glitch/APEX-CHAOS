@@ -657,7 +657,7 @@ try {
   })()`);
   gate('f3-debug-overlay-toggle', report.f3.toggledOn === true);
 
-  // Issue #4: real-browser proof that the committed atlas renders (floor +
+  // Issue #4/C: real-browser proof that the committed C weapon set renders (floor +
   // equipped) and the old placeholder path is not serving weapon art.
   report.weaponArt = await evaluate(`(async () => {
     __AQ_TEST.enterManual();
@@ -676,9 +676,9 @@ try {
     const s = APEX_ARSENAL_AV.stats;
     return { floor: s.floorSpriteDraws, equipped: s.equippedSpriteDraws, imgFail: s.imagesFailed, sfxFail: s.audioFailed };
   })()`);
-  gate('browser-weapon-atlas-floor-sprite', report.weaponArt.floor >= 2, report.weaponArt);
-  gate('browser-weapon-atlas-equipped-sprite', report.weaponArt.equipped >= 2, report.weaponArt);
-  gate('browser-no-atlas-fallback', report.weaponArt.imgFail === 0 && report.weaponArt.floor > 0, report.weaponArt);
+  gate('browser-weapon-cset-floor-sprite', report.weaponArt.floor >= 2, report.weaponArt);
+  gate('browser-weapon-cset-equipped-sprite', report.weaponArt.equipped >= 2, report.weaponArt);
+  gate('browser-no-cset-fallback', report.weaponArt.imgFail === 0 && report.weaponArt.floor > 0, report.weaponArt);
 
   // Screenshot 1: hidden telegraph (deterministic scene, direct draw()).
   await evaluate(`(() => {

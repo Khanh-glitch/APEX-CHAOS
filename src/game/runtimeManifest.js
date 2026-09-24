@@ -60,6 +60,7 @@ export const MODE_DEFERRED_RUNTIMES = {
     ['/game/modes/tamChienRuntime.js', 'apexTamChienRuntime'],
   ],
   arsenalQuest: [
+    ['/game/arsenal/arsenalCWeaponSet.generated.js', 'apexArsenalCSet'],
     ['/game/arsenal/arsenalQuestConfig.js', 'apexArsenalQuestConfig'],
     ['/game/arsenal/arsenalWeaponRuntime.js', 'apexArsenalWeaponRuntime'],
     ['/game/arsenal/arsenalSpawnRuntime.js', 'apexArsenalSpawnRuntime'],
