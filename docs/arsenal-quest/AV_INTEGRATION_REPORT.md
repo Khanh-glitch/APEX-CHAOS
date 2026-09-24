@@ -9,7 +9,9 @@ Spec: `docs/arsenal-quest/AV_INTEGRATION_HANDOFF.md` (updated rev `1df3996`), `A
 - Session branch: `arena/01a0cf5e-apex-chaos` (this Arena session is pinned to it; it
   fast-forwards `prototype/arsenal-quest` at `1df3996` — the branch the issue names —
   so all spec docs + committed AV assets are included verbatim).
-- Final SHA: see last commit of this pass (pushed to `arena/01a0cf5e-apex-chaos` only).
+- AV pass commit: `351db5b662536421839d4f50210958863190d75a`; report finalized in the
+  following doc commit (final SHA = `git log -1` on the branch; pushed to
+  `arena/01a0cf5e-apex-chaos` only).
 
 ## Asset installation
 
@@ -114,9 +116,15 @@ HUD. Melee recipes were chosen by inspecting the 30-frame families (crescents 1-
   errors**, 3 KOs with restarts, 101 cumulative spawns, 4352 reveal-delay samples all in
   [1.2,1.8].
 - Real-browser acceptance: `.github/workflows/arsenal-stabilize.yml` now runs the repo's
-  CDP suite (`pnpm test:arsenal`, Chrome on the GitHub runner) for this branch too;
-  run + artifact links recorded in the closing chat message. (This sandbox has no browser
-  binary and none is downloadable here — browser evidence therefore comes from CI.)
+  CDP suite (`pnpm test:arsenal`, Chrome on the GitHub runner) for this branch too.
+  Run **35947883081** on `351db5b`: job `stabilize` **success, 17/17 steps** including
+  `Run headless acceptance suite`, `Build production bundle`,
+  `Run real-browser Arsenal acceptance suite` and `Upload browser evidence`
+  (https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/35947883081).
+  Artifacts on that run: `arsenal-quest-browser-evidence` (3,157,403 B — CDP-suite PNG
+  evidence + vite log) and `arsenal-quest-production-build`. (This sandbox has no browser
+  binary and artifact blob storage is unreachable from here, so browser evidence lives in
+  the CI artifacts rather than in-repo.)
 - Normal non-Arsenal modes: still launch and return to menu (legacy gate re-verified).
 
 ## Evidence paths
