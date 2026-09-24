@@ -1,0 +1,20 @@
+{
+  "image": "arsenal_p0_weapon_atlas.png",
+  "cellSize": 256,
+  "columns": 4,
+  "rows": 3,
+  "weapons": {
+    "PISTOL": {"x":0,"y":0,"w":256,"h":256,"source":"guns/G01_pistol.png","contentBox":{"x":22,"y":43,"w":212,"h":169}},
+    "SHOTGUN": {"x":256,"y":0,"w":256,"h":256,"source":"guns/G03_shotgun.png","contentBox":{"x":22,"y":97,"w":212,"h":61}},
+    "SMG": {"x":512,"y":0,"w":256,"h":256,"source":"guns/G05_smg.png","contentBox":{"x":22,"y":91,"w":212,"h":74}},
+    "SNIPER": {"x":768,"y":0,"w":256,"h":256,"source":"guns/G08_sniper_rifle.png","contentBox":{"x":22,"y":87,"w":212,"h":81}},
+    "GRENADE": {"x":0,"y":256,"w":256,"h":256,"source":"guns/G10_grenade.png","contentBox":{"x":33,"y":22,"w":189,"h":212}},
+    "SABRE": {"x":256,"y":256,"w":256,"h":256,"source":"melee/M01_sabre.png","contentBox":{"x":108,"y":22,"w":40,"h":212}},
+    "BATTLE_AXE": {"x":512,"y":256,"w":256,"h":256,"source":"melee/M04_battle_axe.png","contentBox":{"x":97,"y":22,"w":62,"h":212}},
+    "DAGGER": {"x":768,"y":256,"w":256,"h":256,"source":"melee/M08_dagger.png","contentBox":{"x":102,"y":22,"w":51,"h":212}},
+    "SPEAR": {"x":0,"y":512,"w":256,"h":256,"source":"melee/M10_spear.png","contentBox":{"x":123,"y":22,"w":10,"h":212}},
+    "SPIKED_CLUB": {"x":256,"y":512,"w":256,"h":256,"source":"melee/M12_spiked_club.png","contentBox":{"x":115,"y":22,"w":25,"h":212}},
+    "SWIRL_SHIELD": {"x":512,"y":512,"w":256,"h":256,"source":"defense/D03_swirl_shield.png","contentBox":{"x":22,"y":22,"w":212,"h":212}},
+    "TOWER_SHIELD": {"x":768,"y":512,"w":256,"h":256,"source":"defense/D07_tower_shield.png","contentBox":{"x":67,"y":22,"w":121,"h":212}}
+  }
+}
