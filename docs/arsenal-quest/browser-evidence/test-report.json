@@ -89,30 +89,30 @@
     },
     "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=MBR2 eta=null lead=2.00 fighter=TIMEOUT force=true"
+      "detail": "[AQ] REVEAL id=1 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=TEC_9 eta=1.36 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=M249_SAW eta=1.36 lead=2.00 fighter=HERO force=false"
     },
     "near-miss-outside-circle-stays-hidden": {
       "pass": true,
       "detail": {
         "nearMissStayedHidden": true,
         "edgeOfCircleReveals": true,
-        "edgeLog": "[AQ] REVEAL id=2 weapon=GLOCK_17 eta=0.80 lead=2.00 fighter=HERO force=false",
+        "edgeLog": "[AQ] REVEAL id=2 weapon=GRENADE eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=SABRE eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S3 eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=GLOCK_17 eta=0.80 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=GRENADE eta=0.80 lead=2.00 fighter=HERO force=false"
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=3 weapon=SABRE eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S3 eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -736,12 +736,12 @@
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=4 x=794 y=800 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=5 weapon=SNIPER eta=0.23 lead=2.00 fighter=RUBBER force=false",
-        "PICKUP": "[AQ] PICKUP id=4 fighter=ICE weapon=SWIRL_SHIELD",
-        "USE": "[AQ] USE fighter=ICE weapon=SWIRL_SHIELD",
-        "HIT": "[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0",
-        "CONSUME": "[AQ] CONSUME fighter=RUBBER weapon=MAC_10 reason=sequence-complete"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=3 x=543 y=566 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=3 weapon=AK_47 eta=1.01 lead=2.00 fighter=ICE force=false",
+        "PICKUP": "[AQ] PICKUP id=3 fighter=RUBBER weapon=AK_47",
+        "USE": "[AQ] USE fighter=RUBBER weapon=AK_47",
+        "HIT": "[AQ] HIT source=RUBBER target=ICE weapon=AK_47 damage=3.8",
+        "CONSUME": "[AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S1 reason=sequence-complete"
       }
     }
   },
@@ -872,18 +872,18 @@
       "predictedFighter": null
     },
     "forceRevealed": true,
-    "forceLog": "[AQ] REVEAL id=1 weapon=MBR2 eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "forceLog": "[AQ] REVEAL id=1 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true",
     "pickupAfterForce": true,
     "revealedOnMovement": true,
-    "moveRevealLog": "[AQ] REVEAL id=2 weapon=TEC_9 eta=1.36 lead=2.00 fighter=HERO force=false"
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=M249_SAW eta=1.36 lead=2.00 fighter=HERO force=false"
   },
   "circleNeg": {
     "nearMissStayedHidden": true,
     "edgeOfCircleReveals": true,
-    "edgeLog": "[AQ] REVEAL id=2 weapon=GLOCK_17 eta=0.80 lead=2.00 fighter=HERO force=false",
+    "edgeLog": "[AQ] REVEAL id=2 weapon=GRENADE eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=SABRE eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S3 eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -1430,18 +1430,18 @@
     "error": null,
     "restarts": 12,
     "koCount": 12,
-    "spawnedTotal": 6,
+    "spawnedTotal": 8,
     "spawnedCumulative": 103,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=4 x=794 y=800 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=5 weapon=SNIPER eta=0.23 lead=2.00 fighter=RUBBER force=false",
-    "PICKUP": "[AQ] PICKUP id=4 fighter=ICE weapon=SWIRL_SHIELD",
-    "USE": "[AQ] USE fighter=ICE weapon=SWIRL_SHIELD",
-    "HIT": "[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0",
-    "CONSUME": "[AQ] CONSUME fighter=RUBBER weapon=MAC_10 reason=sequence-complete"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=3 x=543 y=566 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=3 weapon=AK_47 eta=1.01 lead=2.00 fighter=ICE force=false",
+    "PICKUP": "[AQ] PICKUP id=3 fighter=RUBBER weapon=AK_47",
+    "USE": "[AQ] USE fighter=RUBBER weapon=AK_47",
+    "HIT": "[AQ] HIT source=RUBBER target=ICE weapon=AK_47 damage=3.8",
+    "CONSUME": "[AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S1 reason=sequence-complete"
   },
   "summary": {
     "total": 79,
