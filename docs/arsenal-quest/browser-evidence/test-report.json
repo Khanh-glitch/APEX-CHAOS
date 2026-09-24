@@ -46,13 +46,15 @@
         "menuHidden": true
       }
     },
-    "spawn-cadence-4.5s": {
+    "spawn-cadence-3.0s": {
       "pass": true,
-      "detail": "spawnTimes=[1,5.6,10.1,14.6,19.1] gaps=[4.6,4.5,4.5,4.5]"
+      "detail": "spawnTimes=[1,4.1,7.1,10.1,13.1,16.1,19.04] gaps=[3.1,3,3,3,3,2.94]"
     },
     "reveal-lead-fixed-2.0": {
       "pass": true,
       "detail": [
+        "2.00",
+        "2.00",
         "2.00",
         "2.00",
         "2.00",
@@ -62,11 +64,11 @@
     },
     "multi-slot-coexist": {
       "pass": true,
-      "detail": "maxActiveSlots=5"
+      "detail": "maxActiveSlots=6"
     },
     "force-reveals-only-while-unapproached": {
       "pass": true,
-      "detail": "reveals=4 (all force=true, identity null while hidden)"
+      "detail": "reveals=6 (all force=true, identity null while hidden)"
     },
     "hidden-until-force-age-3.0": {
       "pass": true,
@@ -87,30 +89,30 @@
     },
     "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=SABRE eta=null lead=2.00 fighter=TIMEOUT force=true"
+      "detail": "[AQ] REVEAL id=1 weapon=ZBROYAR_Z15_S2 eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=DAGGER eta=1.36 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=M16 eta=1.36 lead=2.00 fighter=HERO force=false"
     },
     "near-miss-outside-circle-stays-hidden": {
       "pass": true,
       "detail": {
         "nearMissStayedHidden": true,
         "edgeOfCircleReveals": true,
-        "edgeLog": "[AQ] REVEAL id=2 weapon=DAGGER eta=0.80 lead=2.00 fighter=HERO force=false",
+        "edgeLog": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S3 eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=GRENADE eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S1 eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=DAGGER eta=0.80 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S3 eta=0.80 lead=2.00 fighter=HERO force=false"
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=3 weapon=GRENADE eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S1 eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -145,7 +147,7 @@
       }
     },
     "rival-can-collect": {
-      "pass": true
+      "pass": false
     },
     "hero-can-collect": {
       "pass": true
@@ -178,23 +180,23 @@
     },
     "weapon-SABRE": {
       "pass": true,
-      "detail": "dmg=12 holder=null USE=1 HIT=1 CONSUME=1"
+      "detail": "dmg=18 holder=null USE=1 HIT=1 CONSUME=1"
     },
     "weapon-BATTLE_AXE": {
       "pass": true,
-      "detail": "dmg=26 holder=null USE=1 HIT=1 CONSUME=1"
+      "detail": "dmg=39 holder=null USE=1 HIT=1 CONSUME=1"
     },
     "weapon-DAGGER": {
       "pass": true,
-      "detail": "dmg=9 holder=null USE=1 HIT=1 CONSUME=1"
+      "detail": "dmg=13.5 holder=null USE=1 HIT=1 CONSUME=1"
     },
     "weapon-SPEAR": {
       "pass": true,
-      "detail": "dmg=15 holder=null USE=1 HIT=1 CONSUME=1"
+      "detail": "dmg=22.5 holder=null USE=1 HIT=1 CONSUME=1"
     },
     "weapon-SPIKED_CLUB": {
       "pass": true,
-      "detail": "dmg=18 holder=null USE=1 HIT=1 CONSUME=1"
+      "detail": "dmg=27 holder=null USE=1 HIT=1 CONSUME=1"
     },
     "pistol-3-shots": {
       "pass": true,
@@ -232,7 +234,11 @@
       "detail": "rivalHp=90"
     },
     "melee-not-wasted-out-of-range": {
-      "pass": true
+      "pass": true,
+      "detail": {
+        "holder": null,
+        "rivalHp": 61
+      }
     },
     "melee-activates-in-range": {
       "pass": true
@@ -269,9 +275,9 @@
       }
     },
     "shells-32-canonical": {
-      "pass": true,
+      "pass": false,
       "detail": {
-        "count": 32
+        "count": 33
       }
     },
     "shells-p1-p2-independent": {
@@ -284,7 +290,7 @@
     "shells-native-kits-active-in-arsenal": {
       "pass": true,
       "detail": {
-        "count": 32,
+        "count": 33,
         "names": [
           "SNIPER",
           "WITCH"
@@ -300,7 +306,7 @@
         ]
       }
     },
-    "roster-all-32-classified-keep-or-adapt": {
+    "roster-all-33-classified-keep-or-adapt": {
       "pass": true,
       "detail": {
         "adapted": [
@@ -327,16 +333,16 @@
       "pass": true,
       "detail": {
         "nativeFrames": 20,
-        "aqFrames": 41
+        "aqFrames": 21
       }
     },
     "f3-debug-overlay-toggle": {
       "pass": true
     },
     "browser-weapon-cset-floor-sprite": {
-      "pass": true,
+      "pass": false,
       "detail": {
-        "floor": 2,
+        "floor": 1,
         "equipped": 2,
         "imgFail": 0,
         "sfxFail": 0
@@ -345,7 +351,7 @@
     "browser-weapon-cset-equipped-sprite": {
       "pass": true,
       "detail": {
-        "floor": 2,
+        "floor": 1,
         "equipped": 2,
         "imgFail": 0,
         "sfxFail": 0
@@ -354,16 +360,16 @@
     "browser-no-cset-fallback": {
       "pass": true,
       "detail": {
-        "floor": 2,
+        "floor": 1,
         "equipped": 2,
         "imgFail": 0,
         "sfxFail": 0
       }
     },
-    "shell-select-32-cards": {
+    "shell-select-33-cards": {
       "pass": true,
       "detail": {
-        "count": 32,
+        "count": 33,
         "p1": "SNIPER",
         "p2": "WITCH",
         "selectVisible": true
@@ -372,7 +378,7 @@
     "shell-select-p1-p2-locks": {
       "pass": true,
       "detail": {
-        "count": 32,
+        "count": 33,
         "p1": "SNIPER",
         "p2": "WITCH",
         "selectVisible": true
@@ -569,21 +575,25 @@
     },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=5 restarts=5 spawnedCumulative=69 earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=9 restarts=9 spawnedCumulative=101 earlyErrors=0"
     },
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=5 x=531 y=692 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=4 weapon=BATTLE_AXE eta=0.49 lead=2.00 fighter=SNIPER force=false",
-        "PICKUP": "[AQ] PICKUP id=4 fighter=SNIPER weapon=BATTLE_AXE",
-        "USE": "[AQ] USE fighter=SNIPER weapon=BATTLE_AXE",
-        "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=PISTOL damage=4.5",
-        "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=PISTOL reason=sequence-complete"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=5 x=741 y=319 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=4 weapon=ZBROYAR_Z15 eta=null lead=2.00 fighter=TIMEOUT force=true",
+        "PICKUP": "[AQ] PICKUP id=4 fighter=WITCH weapon=ZBROYAR_Z15",
+        "USE": "[AQ] USE fighter=WITCH weapon=ZBROYAR_Z15",
+        "HIT": "[AQ] HIT source=WITCH target=SNIPER weapon=ZBROYAR_Z15 damage=4.2",
+        "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=JACKHAMMER reason=sequence-complete"
       }
     }
   },
-  "failures": [],
+  "failures": [
+    "rival-can-collect",
+    "shells-32-canonical",
+    "browser-weapon-cset-floor-sprite"
+  ],
   "evidence": [
     "docs/arsenal-quest/browser-evidence/01-hidden-telegraph.png",
     "docs/arsenal-quest/browser-evidence/02-multiple-simultaneous-pickups.png",
@@ -651,20 +661,24 @@
     "menuHidden": true
   },
   "spawnLaw": {
-    "spawnedTotal": 5,
-    "maxActive": 5,
+    "spawnedTotal": 7,
+    "maxActive": 6,
     "spawnTimes": [
       1,
-      5.6,
+      4.1,
+      7.1,
       10.1,
-      14.6,
-      19.1
+      13.1,
+      16.1,
+      19.04
     ],
     "gaps": [
-      4.6,
-      4.5,
-      4.5,
-      4.5
+      3.1,
+      3,
+      3,
+      3,
+      3,
+      2.94
     ],
     "cadenceOk": true,
     "leadValues": [
@@ -672,11 +686,13 @@
       2,
       2,
       2,
+      2,
+      2,
       2
     ],
     "leadsFixedTwo": true,
-    "spawnEvents": 5,
-    "revealCount": 4,
+    "spawnEvents": 7,
+    "revealCount": 6,
     "allRevealsForced": true,
     "allHiddenIdentityNull": true
   },
@@ -694,18 +710,18 @@
       "predictedFighter": null
     },
     "forceRevealed": true,
-    "forceLog": "[AQ] REVEAL id=1 weapon=SABRE eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "forceLog": "[AQ] REVEAL id=1 weapon=ZBROYAR_Z15_S2 eta=null lead=2.00 fighter=TIMEOUT force=true",
     "pickupAfterForce": true,
     "revealedOnMovement": true,
-    "moveRevealLog": "[AQ] REVEAL id=2 weapon=DAGGER eta=1.36 lead=2.00 fighter=HERO force=false"
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=M16 eta=1.36 lead=2.00 fighter=HERO force=false"
   },
   "circleNeg": {
     "nearMissStayedHidden": true,
     "edgeOfCircleReveals": true,
-    "edgeLog": "[AQ] REVEAL id=2 weapon=DAGGER eta=0.80 lead=2.00 fighter=HERO force=false",
+    "edgeLog": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S3 eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=GRENADE eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S1 eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -718,7 +734,7 @@
     "bombAtlas": true
   },
   "pickupRules": {
-    "rivalGot": "SABRE",
+    "rivalGot": null,
     "heroGot": "SMG",
     "heroStillArmedWith": "SMG",
     "rejectedStillThere": true,
@@ -793,8 +809,8 @@
       "statusesMid": []
     },
     "SABRE": {
-      "rivalHp": 88,
-      "damageDealt": 12,
+      "rivalHp": 82,
+      "damageDealt": 18,
       "holderAfter": null,
       "useLogged": 1,
       "hitLogged": 1,
@@ -804,8 +820,8 @@
     },
     "BATTLE_AXE": {
       "midPhase": "WINDUP",
-      "rivalHp": 74,
-      "damageDealt": 26,
+      "rivalHp": 61,
+      "damageDealt": 39,
       "holderAfter": null,
       "useLogged": 1,
       "hitLogged": 1,
@@ -816,8 +832,8 @@
       ]
     },
     "DAGGER": {
-      "rivalHp": 91,
-      "damageDealt": 9,
+      "rivalHp": 86.5,
+      "damageDealt": 13.5,
       "holderAfter": null,
       "useLogged": 1,
       "hitLogged": 1,
@@ -826,8 +842,8 @@
       "statusesMid": []
     },
     "SPEAR": {
-      "rivalHp": 85,
-      "damageDealt": 15,
+      "rivalHp": 77.5,
+      "damageDealt": 22.5,
       "holderAfter": null,
       "useLogged": 1,
       "hitLogged": 1,
@@ -836,8 +852,8 @@
       "statusesMid": []
     },
     "SPIKED_CLUB": {
-      "rivalHp": 82,
-      "damageDealt": 18,
+      "rivalHp": 73,
+      "damageDealt": 27,
       "holderAfter": null,
       "useLogged": 1,
       "hitLogged": 1,
@@ -860,17 +876,12 @@
   },
   "meleeWait": {
     "farState": {
-      "holder": {
-        "weapon": "BATTLE_AXE",
-        "phase": "READY",
-        "shots": 0,
-        "elapsed": 1.9999999999999978
-      },
-      "rivalHp": 100
+      "holder": null,
+      "rivalHp": 61
     },
     "nearState": {
       "holder": null,
-      "rivalHp": 74
+      "rivalHp": 61
     }
   },
   "swirl": {
@@ -899,7 +910,7 @@
     "exitLogged": true
   },
   "shells": {
-    "count": 32,
+    "count": 33,
     "names": [
       "SNIPER",
       "WITCH"
@@ -947,7 +958,8 @@
       "PIRATE": "KEEP",
       "PAINTER": "KEEP",
       "MONK": "ADAPT",
-      "SUPERSTAR": "KEEP"
+      "SUPERSTAR": "KEEP",
+      "NEWBIE": "KEEP"
     },
     "allClassified": true,
     "adapted": [
@@ -958,14 +970,14 @@
     "vampLatch": 2.5,
     "monkRush": 2.5,
     "nativeSeen": 20,
-    "aqSeen": 41,
+    "aqSeen": 21,
     "holderIntact": true
   },
   "f3": {
     "toggledOn": true
   },
   "weaponArt": {
-    "floor": 2,
+    "floor": 1,
     "equipped": 2,
     "imgFail": 0,
     "sfxFail": 0
@@ -1130,24 +1142,28 @@
   },
   "fiveMinute": {
     "error": null,
-    "restarts": 5,
-    "koCount": 5,
-    "spawnedTotal": 6,
-    "spawnedCumulative": 69,
+    "restarts": 9,
+    "koCount": 9,
+    "spawnedTotal": 3,
+    "spawnedCumulative": 101,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=5 x=531 y=692 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=4 weapon=BATTLE_AXE eta=0.49 lead=2.00 fighter=SNIPER force=false",
-    "PICKUP": "[AQ] PICKUP id=4 fighter=SNIPER weapon=BATTLE_AXE",
-    "USE": "[AQ] USE fighter=SNIPER weapon=BATTLE_AXE",
-    "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=PISTOL damage=4.5",
-    "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=PISTOL reason=sequence-complete"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=5 x=741 y=319 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=4 weapon=ZBROYAR_Z15 eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "PICKUP": "[AQ] PICKUP id=4 fighter=WITCH weapon=ZBROYAR_Z15",
+    "USE": "[AQ] USE fighter=WITCH weapon=ZBROYAR_Z15",
+    "HIT": "[AQ] HIT source=WITCH target=SNIPER weapon=ZBROYAR_Z15 damage=4.2",
+    "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=JACKHAMMER reason=sequence-complete"
   },
   "summary": {
     "total": 69,
-    "passed": 69,
-    "failed": []
+    "passed": 66,
+    "failed": [
+      "rival-can-collect",
+      "shells-32-canonical",
+      "browser-weapon-cset-floor-sprite"
+    ]
   }
 }
