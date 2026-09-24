@@ -64,7 +64,7 @@
     },
     "multi-slot-coexist": {
       "pass": true,
-      "detail": "maxActiveSlots=7"
+      "detail": "maxActiveSlots=6"
     },
     "force-reveals-only-while-unapproached": {
       "pass": true,
@@ -89,30 +89,30 @@
     },
     "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=MBR2 eta=null lead=2.00 fighter=TIMEOUT force=true"
+      "detail": "[AQ] REVEAL id=1 weapon=GLOCK_17 eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=MAC_10 eta=1.36 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=TEC_9 eta=1.36 lead=2.00 fighter=HERO force=false"
     },
     "near-miss-outside-circle-stays-hidden": {
       "pass": true,
       "detail": {
         "nearMissStayedHidden": true,
         "edgeOfCircleReveals": true,
-        "edgeLog": "[AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false",
+        "edgeLog": "[AQ] REVEAL id=2 weapon=SNIPER eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=M249_SAW eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=MOSSBERG_500 eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=SNIPER eta=0.80 lead=2.00 fighter=HERO force=false"
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=3 weapon=M249_SAW eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=3 weapon=MOSSBERG_500 eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -658,6 +658,71 @@
         "hero": "SWIRL_SHIELD"
       }
     },
+    "browser-casing-uses-metadata": {
+      "pass": false,
+      "detail": {
+        "glock": {
+          "n": 4,
+          "usedMeta": true,
+          "sample": {
+            "event": "casing",
+            "x": 358,
+            "y": 483,
+            "weapon": "GLOCK_17",
+            "usedMeta": true
+          }
+        },
+        "ak": {
+          "n": 6,
+          "usedMeta": true,
+          "sample": {
+            "event": "casing",
+            "x": 346,
+            "y": 494,
+            "weapon": "AK_47",
+            "usedMeta": true
+          }
+        },
+        "m249": {
+          "n": 8,
+          "usedMeta": true,
+          "sample": {
+            "event": "casing",
+            "x": 339,
+            "y": 493,
+            "weapon": "M249_SAW",
+            "usedMeta": true
+          }
+        },
+        "spas": {
+          "n": 2,
+          "usedMeta": true,
+          "sample": {
+            "event": "casing",
+            "x": 342,
+            "y": 493,
+            "weapon": "SHOTGUN",
+            "usedMeta": true
+          }
+        },
+        "mbr": {
+          "n": 1,
+          "usedMeta": true,
+          "sample": {
+            "event": "casing",
+            "x": 294,
+            "y": 493,
+            "weapon": "MBR",
+            "usedMeta": true
+          }
+        },
+        "snipex": {
+          "n": 0,
+          "usedMeta": false,
+          "sample": null
+        }
+      }
+    },
     "five-minute-no-uncaught-errors": {
       "pass": true,
       "detail": "steps=9000 (300s @30Hz) kos=12 restarts=12 spawnedCumulative=101 earlyErrors=0"
@@ -665,16 +730,18 @@
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=4 x=792 y=458 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=3 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true",
-        "PICKUP": "[AQ] PICKUP id=3 fighter=RUBBER weapon=MAC_10",
-        "USE": "[AQ] USE fighter=RUBBER weapon=MAC_10",
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=3 x=420 y=281 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=2 weapon=MAC_10 eta=1.04 lead=2.00 fighter=ICE force=false",
+        "PICKUP": "[AQ] PICKUP id=2 fighter=ICE weapon=MAC_10",
+        "USE": "[AQ] USE fighter=ICE weapon=MAC_10",
         "HIT": "[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0",
-        "CONSUME": "[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15 reason=sequence-complete"
+        "CONSUME": "[AQ] CONSUME fighter=ICE weapon=MAC_10 reason=sequence-complete"
       }
     }
   },
-  "failures": [],
+  "failures": [
+    "browser-casing-uses-metadata"
+  ],
   "evidence": [
     "docs/arsenal-quest/browser-evidence/01-hidden-telegraph.png",
     "docs/arsenal-quest/browser-evidence/02-multiple-simultaneous-pickups.png",
@@ -707,7 +774,13 @@
     "docs/arsenal-quest/browser-evidence/gap-rarity-t1.png",
     "docs/arsenal-quest/browser-evidence/gap-rarity-t3.png",
     "docs/arsenal-quest/browser-evidence/gap-rarity-t5.png",
-    "docs/arsenal-quest/browser-evidence/gap-rarity-melee-grenade.png"
+    "docs/arsenal-quest/browser-evidence/gap-rarity-melee-grenade.png",
+    "docs/arsenal-quest/browser-evidence/gap-casing-glock.png",
+    "docs/arsenal-quest/browser-evidence/gap-casing-ak.png",
+    "docs/arsenal-quest/browser-evidence/gap-casing-m249.png",
+    "docs/arsenal-quest/browser-evidence/gap-casing-spas.png",
+    "docs/arsenal-quest/browser-evidence/gap-casing-mbr.png",
+    "docs/arsenal-quest/browser-evidence/gap-casing-snipex.png"
   ],
   "normalModes": {
     "selectVisible": true,
@@ -747,7 +820,7 @@
   },
   "spawnLaw": {
     "spawnedTotal": 7,
-    "maxActive": 7,
+    "maxActive": 6,
     "spawnTimes": [
       1,
       4.1,
@@ -795,18 +868,18 @@
       "predictedFighter": null
     },
     "forceRevealed": true,
-    "forceLog": "[AQ] REVEAL id=1 weapon=MBR2 eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "forceLog": "[AQ] REVEAL id=1 weapon=GLOCK_17 eta=null lead=2.00 fighter=TIMEOUT force=true",
     "pickupAfterForce": true,
     "revealedOnMovement": true,
-    "moveRevealLog": "[AQ] REVEAL id=2 weapon=MAC_10 eta=1.36 lead=2.00 fighter=HERO force=false"
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=TEC_9 eta=1.36 lead=2.00 fighter=HERO force=false"
   },
   "circleNeg": {
     "nearMissStayedHidden": true,
     "edgeOfCircleReveals": true,
-    "edgeLog": "[AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false",
+    "edgeLog": "[AQ] REVEAL id=2 weapon=SNIPER eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=M249_SAW eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=MOSSBERG_500 eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -1281,26 +1354,90 @@
     "stolen": null,
     "hero": "SWIRL_SHIELD"
   },
+  "gapCasingBr": {
+    "glock": {
+      "n": 4,
+      "usedMeta": true,
+      "sample": {
+        "event": "casing",
+        "x": 358,
+        "y": 483,
+        "weapon": "GLOCK_17",
+        "usedMeta": true
+      }
+    },
+    "ak": {
+      "n": 6,
+      "usedMeta": true,
+      "sample": {
+        "event": "casing",
+        "x": 346,
+        "y": 494,
+        "weapon": "AK_47",
+        "usedMeta": true
+      }
+    },
+    "m249": {
+      "n": 8,
+      "usedMeta": true,
+      "sample": {
+        "event": "casing",
+        "x": 339,
+        "y": 493,
+        "weapon": "M249_SAW",
+        "usedMeta": true
+      }
+    },
+    "spas": {
+      "n": 2,
+      "usedMeta": true,
+      "sample": {
+        "event": "casing",
+        "x": 342,
+        "y": 493,
+        "weapon": "SHOTGUN",
+        "usedMeta": true
+      }
+    },
+    "mbr": {
+      "n": 1,
+      "usedMeta": true,
+      "sample": {
+        "event": "casing",
+        "x": 294,
+        "y": 493,
+        "weapon": "MBR",
+        "usedMeta": true
+      }
+    },
+    "snipex": {
+      "n": 0,
+      "usedMeta": false,
+      "sample": null
+    }
+  },
   "fiveMinute": {
     "error": null,
     "restarts": 12,
     "koCount": 12,
-    "spawnedTotal": 5,
+    "spawnedTotal": 9,
     "spawnedCumulative": 101,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=4 x=792 y=458 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=3 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true",
-    "PICKUP": "[AQ] PICKUP id=3 fighter=RUBBER weapon=MAC_10",
-    "USE": "[AQ] USE fighter=RUBBER weapon=MAC_10",
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=3 x=420 y=281 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=2 weapon=MAC_10 eta=1.04 lead=2.00 fighter=ICE force=false",
+    "PICKUP": "[AQ] PICKUP id=2 fighter=ICE weapon=MAC_10",
+    "USE": "[AQ] USE fighter=ICE weapon=MAC_10",
     "HIT": "[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0",
-    "CONSUME": "[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15 reason=sequence-complete"
+    "CONSUME": "[AQ] CONSUME fighter=ICE weapon=MAC_10 reason=sequence-complete"
   },
   "summary": {
-    "total": 78,
+    "total": 79,
     "passed": 78,
-    "failed": []
+    "failed": [
+      "browser-casing-uses-metadata"
+    ]
   }
 }

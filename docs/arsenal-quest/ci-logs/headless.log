@@ -188,19 +188,19 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=92 y=229 lead=2.00
-[AQ] SPAWN_SLOT id=2 x=643 y=762 lead=2.00
-[AQ] REVEAL id=1 weapon=SPIKED_CLUB eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] SPAWN_SLOT id=3 x=901 y=388 lead=2.00
-[AQ] REVEAL id=2 weapon=SAWED_OFF eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] SPAWN_SLOT id=4 x=899 y=761 lead=2.00
-[AQ] REVEAL id=3 weapon=MBR2 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] SPAWN_SLOT id=5 x=138 y=403 lead=2.00
-[AQ] REVEAL id=4 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] SPAWN_SLOT id=6 x=669 y=284 lead=2.00
-[AQ] REVEAL id=5 weapon=SMG eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] SPAWN_SLOT id=7 x=284 y=609 lead=2.00
-[AQ] REVEAL id=6 weapon=SABRE eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] SPAWN_SLOT id=1 x=833 y=702 lead=2.00
+[AQ] SPAWN_SLOT id=2 x=431 y=739 lead=2.00
+[AQ] REVEAL id=1 weapon=TEC_9 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] SPAWN_SLOT id=3 x=367 y=128 lead=2.00
+[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S3 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] SPAWN_SLOT id=4 x=636 y=629 lead=2.00
+[AQ] REVEAL id=3 weapon=SAWED_OFF eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] SPAWN_SLOT id=5 x=563 y=466 lead=2.00
+[AQ] REVEAL id=4 weapon=SHOTGUN eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] SPAWN_SLOT id=6 x=114 y=581 lead=2.00
+[AQ] REVEAL id=5 weapon=BATTLE_AXE eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] SPAWN_SLOT id=7 x=746 y=325 lead=2.00
+[AQ] REVEAL id=6 weapon=MAGNUM_500 eta=null lead=2.00 fighter=TIMEOUT force=true
 PASS  spawn-cadence-3.0s  — spawnTimes=[1,4.1,7.1,10.1,13.1,16.1,19.1] gaps=[3.1,3,3,3,3,3]
 PASS  reveal-lead-fixed-2.0  — [2,2,2,2,2,2,2]
 PASS  multi-slot-coexist  — maxActiveSlots=7
@@ -215,31 +215,23 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] REVEAL id=1 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=1 fighter=HERO weapon=MAC_10
-[AQ] USE fighter=HERO weapon=MAC_10
-[AQ] SHOT fighter=HERO weapon=MAC_10 t=4.083
-[AQ] SHOT fighter=HERO weapon=MAC_10 t=4.133
-[AQ] HIT source=HERO target=RIVAL weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=HERO weapon=MAC_10 t=4.183
-[AQ] HIT source=HERO target=RIVAL weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=HERO weapon=MAC_10 t=4.233
-[AQ] HIT source=HERO target=RIVAL weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=HERO weapon=MAC_10 t=4.300
-[AQ] HIT source=HERO target=RIVAL weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=HERO weapon=MAC_10 t=4.350
-[AQ] HIT source=HERO target=RIVAL weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=HERO weapon=MAC_10 t=4.400
-[AQ] HIT source=HERO target=RIVAL weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=HERO weapon=MAC_10 t=4.467
-[AQ] HIT source=HERO target=RIVAL weapon=MAC_10 damage=2.0
-[AQ] CONSUME fighter=HERO weapon=MAC_10 reason=sequence-complete
-[AQ] HIT source=HERO target=RIVAL weapon=MAC_10 damage=2.0
-[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S1 eta=1.36 lead=2.00 fighter=HERO force=false
+[AQ] REVEAL id=1 weapon=GLOCK_17 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=1 fighter=HERO weapon=GLOCK_17
+[AQ] USE fighter=HERO weapon=GLOCK_17
+[AQ] SHOT fighter=HERO weapon=GLOCK_17 t=4.083
+[AQ] HIT source=HERO target=RIVAL weapon=GLOCK_17 damage=3.5
+[AQ] SHOT fighter=HERO weapon=GLOCK_17 t=4.200
+[AQ] HIT source=HERO target=RIVAL weapon=GLOCK_17 damage=3.5
+[AQ] SHOT fighter=HERO weapon=GLOCK_17 t=4.317
+[AQ] HIT source=HERO target=RIVAL weapon=GLOCK_17 damage=3.5
+[AQ] SHOT fighter=HERO weapon=GLOCK_17 t=4.433
+[AQ] HIT source=HERO target=RIVAL weapon=GLOCK_17 damage=3.5
+[AQ] CONSUME fighter=HERO weapon=GLOCK_17 reason=sequence-complete
+[AQ] REVEAL id=2 weapon=SAWED_OFF eta=1.36 lead=2.00 fighter=HERO force=false
 PASS  hidden-until-force-age-3.0  — {"id":1,"phase":"TELEGRAPH","age":2.9,"weaponId":null,"revealLeadSeconds":2,"predictedHeroETA":null,"predictedRivalETA":null,"earliestETA":null,"predictedFighter":null}
 PASS  telegraph-no-identity
-PASS  force-reveal-at-3.0-not-autopickup  — [AQ] REVEAL id=1 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true
-PASS  movement-reveal-lead-2.0  — [AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S1 eta=1.36 lead=2.00 fighter=HERO force=false eta=1.36
+PASS  force-reveal-at-3.0-not-autopickup  — [AQ] REVEAL id=1 weapon=GLOCK_17 eta=null lead=2.00 fighter=TIMEOUT force=true
+PASS  movement-reveal-lead-2.0  — [AQ] REVEAL id=2 weapon=SAWED_OFF eta=1.36 lead=2.00 fighter=HERO force=false eta=1.36
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -250,15 +242,12 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] REVEAL id=2 weapon=DAGGER eta=0.80 lead=2.00 fighter=HERO force=false
-[AQ] REVEAL id=3 weapon=SABRE eta=0.06 lead=2.00 fighter=HERO force=false
-[AQ] MELEE_DECIDE fighter=HERO weapon=SABRE decision=throw
-[AQ] PICKUP id=3 fighter=HERO weapon=SABRE
-[AQ] THROW fighter=HERO weapon=SABRE ricochets=3
-[AQ] CONSUME fighter=HERO weapon=SABRE reason=thrown
-PASS  near-miss-outside-circle-stays-hidden  — {"nearMissStayedHidden":true,"edgeOfCircleReveals":true,"edgeLog":"[AQ] REVEAL id=2 weapon=DAGGER eta=0.80 lead=2.00 fighter=HERO force=false","hiddenBeforeBounce":true,"revealedAfterBounce":true,"bounceLog":"[AQ] REVEAL id=3 weapon=SABRE eta=0.06 lead=2.00 fighter=HERO force=false"}
-PASS  edge-of-circle-approach-reveals  — [AQ] REVEAL id=2 weapon=DAGGER eta=0.80 lead=2.00 fighter=HERO force=false
-PASS  no-reveal-before-bounce  — hidden=true after=true [AQ] REVEAL id=3 weapon=SABRE eta=0.06 lead=2.00 fighter=HERO force=false
+[AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false
+[AQ] REVEAL id=3 weapon=MAC_10 eta=0.06 lead=2.00 fighter=HERO force=false
+[AQ] PICKUP id=3 fighter=HERO weapon=MAC_10
+PASS  near-miss-outside-circle-stays-hidden  — {"nearMissStayedHidden":true,"edgeOfCircleReveals":true,"edgeLog":"[AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false","hiddenBeforeBounce":true,"revealedAfterBounce":true,"bounceLog":"[AQ] REVEAL id=3 weapon=MAC_10 eta=0.06 lead=2.00 fighter=HERO force=false"}
+PASS  edge-of-circle-approach-reveals  — [AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false
+PASS  no-reveal-before-bounce  — hidden=true after=true [AQ] REVEAL id=3 weapon=MAC_10 eta=0.06 lead=2.00 fighter=HERO force=false
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 [AQ] MELEE_DECIDE fighter=RIVAL weapon=SABRE decision=throw
 [AQ] PICKUP id=1 fighter=RIVAL weapon=SABRE
@@ -281,8 +270,8 @@ Not implemented: HTMLMediaElement's pause() method
 [AQ] SHOT fighter=HERO weapon=SMG t=0.657
 [AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.3
 [AQ] SHOT fighter=HERO weapon=SMG t=0.740
-[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.3
 [AQ] SHOT fighter=HERO weapon=SMG t=0.823
+[AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.3
 PASS  rival-can-collect
 PASS  hero-can-collect
 PASS  armed-fighter-cannot-vacuum
@@ -567,8 +556,8 @@ Not implemented: HTMLMediaElement's pause() method
 PASS  exit-cleanup  — {"gameStateAfter":"MENU","menuVisible":true,"hudHidden":true,"slotsCleared":true,"aqProjectilesCleared":true,"heroHolderCleared":true,"exitLogged":true}
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 PASS  f3-debug-overlay-toggle
-[ENGINEER] asset failed main visual.webp
 [ENGINEER] asset failed đế chung cho cả turret và rocket.webp
+[ENGINEER] asset failed main visual.webp
 [ENGINEER] asset failed Turret 2.webp
 [ENGINEER] asset failed turret bulllet.webp
 [ENGINEER] asset failed mine lv2.webp
@@ -707,28 +696,14 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=151 y=578 lead=2.00
-[AQ] REVEAL id=1 weapon=TEC_9 eta=1.48 lead=2.00 fighter=HERO force=false
-[AQ] PICKUP id=1 fighter=HERO weapon=TEC_9
-[AQ] USE fighter=HERO weapon=TEC_9
-[AQ] SHOT fighter=HERO weapon=TEC_9 t=2.950
-[AQ] SHOT fighter=HERO weapon=TEC_9 t=3.033
-[AQ] SHOT fighter=HERO weapon=TEC_9 t=3.117
-[AQ] HIT source=HERO target=RIVAL weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=HERO weapon=TEC_9 t=3.217
-[AQ] HIT source=HERO target=RIVAL weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=HERO weapon=TEC_9 t=3.300
-[AQ] HIT source=HERO target=RIVAL weapon=TEC_9 damage=3.0
-[AQ] HIT source=HERO target=RIVAL weapon=TEC_9 damage=3.0
-[AQ] CONSUME fighter=HERO weapon=TEC_9 reason=sequence-complete
-[AQ] HIT source=HERO target=RIVAL weapon=TEC_9 damage=3.0
+[AQ] SPAWN_SLOT id=1 x=101 y=468 lead=2.00
 PASS  av-runtime-registered
 PASS  av-muzzle-uses-warm-c-family  — ["vfx/c/muzzle_0.png","vfx/c/muzzle_1.png","vfx/c/muzzle_2.png","vfx/c/muzzle_3.png","vfx/c/muzzle_4.png","vfx/c/muzzle_5.png"]
 PASS  av-no-laser-charge-sfx  — ["telegraph","reveal","pickup","pistol_shot","smg_shot","shotgun_shot","sniper_shot","pistol_mech","shotgun_rack_pull","shotgun_rack_push","sniper_chamber","sniper_bolt_lock","axe_swing","axe_hit","club_swing","club_hit","dagger_swing","dagger_hit","sabre_swing","sabre_hit","spear_swing","spear_hit","swirl_block","tower_block","explosion","casing_drop","ricochet","newbie_dash","newbie_fail"]
 PASS  av-asset-map-complete  — {"telegraph":["sfx/scifi/forceField_001.ogg"],"reveal":["sfx/rpg/metalClick.ogg","sfx/impact/impactGeneric_light_002.ogg"],"pickup":["sfx/rpg/metalLatch.ogg"],"pistol_shot":["sfx/guns/cz.wav"],"smg_shot":["sfx/guns/sks.wav"],"shotgun_shot":["sfx/guns/shotty.wav"],"sniper_shot":["sfx/guns/mosin.wav"],"pistol_mech":["sfx/c-final/PISTOL/pistol_mech_click.wav"],"shotgun_rack_pull":["sfx/c-final/SHOTGUN/shotgun_rack_pull.wav"],"shotgun_rack_push":["sfx/c-final/SHOTGUN/shotgun_rack_push.wav"],"sniper_chamber":["sfx/c-final/SNIPER/sniper_chamber.wav"],"sniper_bolt_lock":["sfx/c-final/SNIPER/sniper_bolt_lock.wav"],"axe_swing":["sfx/c-final/BATTLE_AXE/axe_motion.wav"],"axe_hit":["sfx/c-final/BATTLE_AXE/axe_contact.wav","sfx/c-final/BATTLE_AXE/axe_body.wav"],"club_swing":["sfx/c-final/SPIKED_CLUB/club_swing.wav"],"club_hit":["sfx/c-final/SPIKED_CLUB/club_body.wav"],"dagger_swing":["sfx/c-final/DAGGER/dagger_motion.wav"],"dagger_hit":["sfx/c-final/DAGGER/dagger_contact.wav"],"sabre_swing":["sfx/c-final/SABRE/sabre_motion.wav"],"sabre_hit":["sfx/c-final/SABRE/sabre_cut.wav"],"spear_swing":["sfx/c-final/SPEAR/spear_motion.wav"],"spear_hit":["sfx/c-final/SPEAR/spear_impact.wav"],"swirl_block":["sfx/c-final/SWIRL_SHIELD/swirl_shield_block.wav"],"tower_block":["sfx/c-final/TOWER_SHIELD/tower_shield_block.wav"],"explosion":["sfx/c-final/GRENADE/grenade_core.wav","sfx/c-final/GRENADE/grenade_low.wav"],"casing_drop":["sfx/impact/impactPlate_light_001.ogg"],"ricochet":["sfx/impact/impactPlate_light_001.ogg"],"newbie_dash":["sfx/scifi/forceField_001.ogg"],"newbie_fail":["sfx/rpg/metalClick.ogg"]}
 PASS  av-melee-contact-transients  — {"SABRE":"vfx/c/spark_05.png","BATTLE_AXE":"vfx/c/spark_07.png","SPEAR":"vfx/c/spark_05.png","SPIKED_CLUB":"vfx/c/spark_07.png","DAGGER":"vfx/c/spark_05.png"}
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
-[AQ] SPAWN_SLOT id=1 x=608 y=114 lead=2.00
+[AQ] SPAWN_SLOT id=1 x=288 y=304 lead=2.00
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -748,7 +723,7 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] REVEAL id=1 weapon=PISTOL eta=null lead=1.50 fighter=TIMEOUT force=true
+[AQ] REVEAL id=1 weapon=ZBROYAR_Z15_S1 eta=null lead=1.50 fighter=TIMEOUT force=true
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -931,25 +906,17 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=423 y=576 lead=2.00
-[AQ] SPAWN_SLOT id=2 x=170 y=407 lead=2.00
-[AQ] REVEAL id=1 weapon=DAGGER eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] MELEE_DECIDE fighter=RIVAL weapon=DAGGER decision=throw
-[AQ] PICKUP id=1 fighter=RIVAL weapon=DAGGER
-[AQ] THROW fighter=RIVAL weapon=DAGGER ricochets=4
-[AQ] CONSUME fighter=RIVAL weapon=DAGGER reason=thrown
-[AQ] THROWN_RICOCHET weapon=DAGGER left=3
-[AQ] SPAWN_SLOT id=3 x=778 y=746 lead=2.00
-[AQ] REVEAL id=2 weapon=TEC_9 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] THROWN_RICOCHET weapon=DAGGER left=2
-[AQ] THROWN_RICOCHET weapon=DAGGER left=1
-[AQ] THROWN_RICOCHET weapon=DAGGER left=0
-[AQ] REVEAL id=3 weapon=SABRE eta=0.27 lead=2.00 fighter=RIVAL force=false
-[AQ] MELEE_DECIDE fighter=RIVAL weapon=SABRE decision=throw
-[AQ] PICKUP id=3 fighter=RIVAL weapon=SABRE
-[AQ] THROW fighter=RIVAL weapon=SABRE ricochets=3
-[AQ] CONSUME fighter=RIVAL weapon=SABRE reason=thrown
-[AQ] THROWN_RICOCHET weapon=SABRE left=2
+[AQ] SPAWN_SLOT id=1 x=103 y=431 lead=2.00
+[AQ] SPAWN_SLOT id=2 x=366 y=827 lead=2.00
+[AQ] REVEAL id=1 weapon=BERETTA_93R eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] SPAWN_SLOT id=3 x=346 y=144 lead=2.00
+[AQ] REVEAL id=2 weapon=SNIPER eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] REVEAL id=3 weapon=MAGNUM_500 eta=0.42 lead=2.00 fighter=HERO force=false
+[AQ] PICKUP id=3 fighter=HERO weapon=MAGNUM_500
+[AQ] USE fighter=HERO weapon=MAGNUM_500
+[AQ] SHOT fighter=HERO weapon=MAGNUM_500 t=8.067
+[AQ] CONSUME fighter=HERO weapon=MAGNUM_500 reason=sequence-complete
+[AQ] HIT source=HERO target=RIVAL weapon=MAGNUM_500 damage=28.0
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -972,7 +939,7 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 [AQ] USE fighter=RUBBER weapon=SNIPER
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
-[AQ] REVEAL id=1 weapon=SMG eta=0.78 lead=1.00 fighter=RUBBER force=false
+[AQ] REVEAL id=1 weapon=SHOTGUN eta=0.78 lead=1.00 fighter=RUBBER force=false
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -993,7 +960,7 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 PASS  av-assets-preloaded  — {"images":"44/44","audio":"29/29","imgFail":0,"sfxFail":0}
-PASS  weapon-cset-floor-sprite-rendered  — draws=5
+PASS  weapon-cset-floor-sprite-rendered  — draws=6
 PASS  weapon-cset-equipped-sprite-rendered  — draws=25
 PASS  weapon-cset-all-12-authored  — ["PISTOL","SMG","SHOTGUN","SNIPER","AK_47","BERETTA_93R","MAC_10","MOSSBERG_500","ZBROYAR_Z15","ZBROYAR_Z15_S1","ZBROYAR_Z15_S2","ZBROYAR_Z15_S3","DESERT_DEAGLE","GLOCK_17","M16","M249_SAW","MAGNUM_500","P90","JACKHAMMER","MBR","MBR2","SAWED_OFF","SZECSEI_FUCHS","TEC_9","GRENADE","CASING","SABRE","DAGGER","SPEAR","BATTLE_AXE","SPIKED_CLUB","SWIRL_SHIELD","TOWER_SHIELD"]
 PASS  c-projectile-speeds-v2  — {"p":2600,"s":3100,"g":2500,"n":5800}
@@ -1002,11 +969,11 @@ PASS  av-reveal-audio-bound
 PASS  av-pickup-audio-bound
 PASS  av-all-12-weapons-cued  — 48
 PASS  av-smg-shots-trimmed  — [{"rel":"sfx/guns/sks.wav","offset":0,"dur":0.24,"vol":0.5},{"rel":"sfx/guns/sks.wav","offset":0,"dur":0.24,"vol":0.5},{"rel":"sfx/guns/sks.wav","offset":0,"dur":0.24,"vol":0.5}]
-PASS  av-smg-voice-cap-enforced  — {"notReady":136,"sfx/impact/impactPlate_light_001.ogg":9,"sfx/guns/sks.wav":5,"sfx/scifi/forceField_001.ogg":1}
+PASS  av-smg-voice-cap-enforced  — {"notReady":127,"sfx/impact/impactPlate_light_001.ogg":4,"sfx/guns/sks.wav":3,"sfx/scifi/forceField_001.ogg":1}
 PASS  av-mosin-pistol-trimmed
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-PASS  av-vfx-expire-no-leak  — {"activeAfterQuiet":0,"peak":14}
+PASS  av-vfx-expire-no-leak  — {"activeAfterQuiet":0,"peak":13}
 PASS  av-no-asset-load-failures
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
@@ -1018,378 +985,107 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=225 y=108 lead=2.00
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=2 x=662 y=389 lead=2.00
-[AQ] REVEAL id=1 weapon=MOSSBERG_500 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] REVEAL id=2 weapon=TEC_9 eta=0.66 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=2 fighter=ICE weapon=TEC_9
-[AQ] USE fighter=ICE weapon=TEC_9
-[AQ] SHOT fighter=ICE weapon=TEC_9 t=6.567
-[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=ICE weapon=TEC_9 t=6.633
-[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=ICE weapon=TEC_9 t=6.733
-[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=ICE weapon=TEC_9 t=6.833
-[AQ] SHOT fighter=ICE weapon=TEC_9 t=6.900
-[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
-[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
-[AQ] CONSUME fighter=ICE weapon=TEC_9 reason=sequence-complete
-[AQ] SPAWN_SLOT id=3 x=769 y=540 lead=2.00
-[AQ] REVEAL id=3 weapon=SZECSEI_FUCHS eta=1.98 lead=2.00 fighter=RUBBER force=false
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] PICKUP id=3 fighter=ICE weapon=SZECSEI_FUCHS
-[AQ] USE fighter=ICE weapon=SZECSEI_FUCHS
-[AQ] SHOT fighter=ICE weapon=SZECSEI_FUCHS t=9.000
-[AQ] HIT source=ICE target=RUBBER weapon=SZECSEI_FUCHS damage=15.0
-[AQ] SHOT fighter=ICE weapon=SZECSEI_FUCHS t=9.573
-[AQ] CONSUME fighter=ICE weapon=SZECSEI_FUCHS reason=shot-fired
-[AQ] HIT source=ICE target=RUBBER weapon=SZECSEI_FUCHS damage=15.0
-[AQ] PICKUP id=1 fighter=ICE weapon=MOSSBERG_500
-[AQ] SPAWN_SLOT id=4 x=848 y=890 lead=2.00
-[AQ] USE fighter=ICE weapon=MOSSBERG_500
-[AQ] CONSUME fighter=ICE weapon=MOSSBERG_500 reason=blast-resolved
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] REVEAL id=4 weapon=TEC_9 eta=0.03 lead=2.00 fighter=RUBBER force=false
-[AQ] PICKUP id=4 fighter=RUBBER weapon=TEC_9
-[AQ] USE fighter=RUBBER weapon=TEC_9
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=12.750
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=12.817
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=12.917
-[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
-[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
-[AQ] SPAWN_SLOT id=5 x=443 y=385 lead=2.00
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=13.017
-[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=13.083
-[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
-[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
-[AQ] CONSUME fighter=RUBBER weapon=TEC_9 reason=sequence-complete
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=6 x=648 y=759 lead=2.00
-[AQ] REVEAL id=5 weapon=SZECSEI_FUCHS eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=5 fighter=RUBBER weapon=SZECSEI_FUCHS
-[AQ] USE fighter=RUBBER weapon=SZECSEI_FUCHS
-[AQ] SHOT fighter=RUBBER weapon=SZECSEI_FUCHS t=18.483
-[AQ] HIT source=RUBBER target=ICE weapon=SZECSEI_FUCHS damage=15.0
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=7 x=159 y=798 lead=2.00
-[AQ] REVEAL id=6 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] SHOT fighter=RUBBER weapon=SZECSEI_FUCHS t=19.057
-[AQ] CONSUME fighter=RUBBER weapon=SZECSEI_FUCHS reason=shot-fired
-Not implemented: HTMLMediaElement's pause() method
-[AQ] HIT source=RUBBER target=ICE weapon=SZECSEI_FUCHS damage=15.0
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=8 x=871 y=809 lead=2.00
-[AQ] REVEAL id=7 weapon=SZECSEI_FUCHS eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=6 fighter=RUBBER weapon=GRENADE
-[AQ] USE fighter=RUBBER weapon=GRENADE
-[AQ] CONSUME fighter=RUBBER weapon=GRENADE reason=thrown
-[AQ] EXPLODE weapon=GRENADE x=287 y=293
-[AQ] SPAWN_SLOT id=9 x=565 y=373 lead=2.00
-[AQ] REVEAL id=8 weapon=ZBROYAR_Z15_S1 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] REVEAL id=9 weapon=TEC_9 eta=0.57 lead=2.00 fighter=RUBBER force=false
-[AQ] PICKUP id=9 fighter=RUBBER weapon=TEC_9
-[AQ] USE fighter=RUBBER weapon=TEC_9
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=25.863
-[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=25.930
-[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=26.030
-[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=26.130
-[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=26.197
-[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
-[AQ] CONSUME fighter=RUBBER weapon=TEC_9 reason=sequence-complete
-[AQ] PICKUP id=7 fighter=RUBBER weapon=SZECSEI_FUCHS
-[AQ] USE fighter=RUBBER weapon=SZECSEI_FUCHS
-[AQ] SHOT fighter=RUBBER weapon=SZECSEI_FUCHS t=27.697
-[AQ] HIT source=RUBBER target=ICE weapon=SZECSEI_FUCHS damage=15.0
-[AQ] SPAWN_SLOT id=10 x=306 y=908 lead=2.00
-[AQ] COUNTER_RESERVED id=10 for=ICE shield=SWIRL_SHIELD vs=SZECSEI_FUCHS
-[AQ] USE fighter=ICE weapon=SWIRL_SHIELD
-[AQ] PICKUP id=10 fighter=ICE weapon=SWIRL_SHIELD
-[AQ] SHOT fighter=RUBBER weapon=SZECSEI_FUCHS t=28.270
-[AQ] CONSUME fighter=RUBBER weapon=SZECSEI_FUCHS reason=shot-fired
-[AQ] REFLECT fighter=ICE weapon=SWIRL_SHIELD projectileFrom=RUBBER
-[AQ] CONSUME fighter=ICE weapon=SWIRL_SHIELD reason=bound-over
-[AQ] HIT source=ICE target=RUBBER weapon=SZECSEI_FUCHS damage=15.0
-[AQ] KO winner=ICE
-[AQ] MODE_ENTER mode=ARSENAL_QUEST
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=437 y=468 lead=2.00
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] REVEAL id=1 weapon=GLOCK_17 eta=0.49 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=1 fighter=ICE weapon=GLOCK_17
-[AQ] USE fighter=ICE weapon=GLOCK_17
-[AQ] SHOT fighter=ICE weapon=GLOCK_17 t=3.133
-[AQ] HIT source=ICE target=RUBBER weapon=GLOCK_17 damage=3.5
-[AQ] SHOT fighter=ICE weapon=GLOCK_17 t=3.233
-[AQ] HIT source=ICE target=RUBBER weapon=GLOCK_17 damage=3.5
-[AQ] SHOT fighter=ICE weapon=GLOCK_17 t=3.367
-[AQ] HIT source=ICE target=RUBBER weapon=GLOCK_17 damage=3.5
-[AQ] SHOT fighter=ICE weapon=GLOCK_17 t=3.467
-[AQ] HIT source=ICE target=RUBBER weapon=GLOCK_17 damage=3.5
-[AQ] CONSUME fighter=ICE weapon=GLOCK_17 reason=sequence-complete
-[AQ] SPAWN_SLOT id=2 x=363 y=476 lead=2.00
-[AQ] REVEAL id=2 weapon=BERETTA_93R eta=1.05 lead=2.00 fighter=ICE force=false
-[AQ] SPAWN_SLOT id=3 x=279 y=815 lead=2.00
-[AQ] PICKUP id=2 fighter=ICE weapon=BERETTA_93R
-[AQ] USE fighter=ICE weapon=BERETTA_93R
-[AQ] SHOT fighter=ICE weapon=BERETTA_93R t=7.733
-[AQ] SHOT fighter=ICE weapon=BERETTA_93R t=7.767
-[AQ] HIT source=ICE target=RUBBER weapon=BERETTA_93R damage=3.0
-[AQ] SHOT fighter=ICE weapon=BERETTA_93R t=7.833
-[AQ] HIT source=ICE target=RUBBER weapon=BERETTA_93R damage=3.0
-[AQ] HIT source=ICE target=RUBBER weapon=BERETTA_93R damage=3.0
-[AQ] SHOT fighter=ICE weapon=BERETTA_93R t=8.067
-[AQ] SHOT fighter=ICE weapon=BERETTA_93R t=8.133
-[AQ] HIT source=ICE target=RUBBER weapon=BERETTA_93R damage=3.0
-[AQ] SHOT fighter=ICE weapon=BERETTA_93R t=8.167
-[AQ] CONSUME fighter=ICE weapon=BERETTA_93R reason=sequence-complete
-[AQ] HIT source=ICE target=RUBBER weapon=BERETTA_93R damage=3.0
-[AQ] HIT source=ICE target=RUBBER weapon=BERETTA_93R damage=3.0
-[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S3 eta=1.21 lead=2.00 fighter=RUBBER force=false
-[AQ] PICKUP id=3 fighter=RUBBER weapon=ZBROYAR_Z15_S3
-[AQ] USE fighter=RUBBER weapon=ZBROYAR_Z15_S3
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=9.233
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=9.367
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=9.533
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=9.700
-[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S3 damage=4.8
-[AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S3 reason=sequence-complete
-[AQ] SPAWN_SLOT id=4 x=163 y=547 lead=2.00
-[AQ] SPAWN_SLOT id=5 x=494 y=411 lead=2.00
-[AQ] REVEAL id=4 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] REVEAL id=5 weapon=TEC_9 eta=0.87 lead=2.00 fighter=RUBBER force=false
-[AQ] PICKUP id=5 fighter=ICE weapon=TEC_9
-[AQ] USE fighter=ICE weapon=TEC_9
-[AQ] SHOT fighter=ICE weapon=TEC_9 t=14.533
-[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=ICE weapon=TEC_9 t=14.600
-[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=ICE weapon=TEC_9 t=14.700
-[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=ICE weapon=TEC_9 t=14.800
-[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=ICE weapon=TEC_9 t=14.867
-[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
-[AQ] CONSUME fighter=ICE weapon=TEC_9 reason=sequence-complete
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] PICKUP id=4 fighter=RUBBER weapon=PISTOL
-[AQ] SPAWN_SLOT id=6 x=816 y=749 lead=2.00
-[AQ] USE fighter=RUBBER weapon=PISTOL
-[AQ] SHOT fighter=RUBBER weapon=PISTOL t=16.033
-[AQ] SHOT fighter=RUBBER weapon=PISTOL t=16.233
-[AQ] SHOT fighter=RUBBER weapon=PISTOL t=16.467
-[AQ] CONSUME fighter=RUBBER weapon=PISTOL reason=sequence-complete
-[AQ] SPAWN_SLOT id=7 x=123 y=842 lead=2.00
-[AQ] REVEAL id=6 weapon=SHOTGUN eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=6 fighter=ICE weapon=SHOTGUN
-[AQ] USE fighter=ICE weapon=SHOTGUN
-[AQ] SHOT fighter=ICE weapon=SHOTGUN t=19.500
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] SHOT fighter=ICE weapon=SHOTGUN t=19.767
-[AQ] CONSUME fighter=ICE weapon=SHOTGUN reason=sequence-complete
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] SPAWN_SLOT id=8 x=878 y=804 lead=2.00
-[AQ] REVEAL id=7 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] REVEAL id=8 weapon=ZBROYAR_Z15_S1 eta=0.11 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=8 fighter=ICE weapon=ZBROYAR_Z15_S1
-[AQ] USE fighter=ICE weapon=ZBROYAR_Z15_S1
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S1 t=22.567
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S1 damage=4.8
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S1 t=22.700
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S1 damage=4.8
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S1 t=22.867
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S1 damage=4.8
-[AQ] KO winner=ICE
-[AQ] MODE_ENTER mode=ARSENAL_QUEST
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=803 y=868 lead=2.00
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=2 x=536 y=182 lead=2.00
-[AQ] REVEAL id=1 weapon=SPIKED_CLUB eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] MELEE_DECIDE fighter=ICE weapon=SPIKED_CLUB decision=throw
-[AQ] PICKUP id=1 fighter=ICE weapon=SPIKED_CLUB
-[AQ] THROW fighter=ICE weapon=SPIKED_CLUB ricochets=1
-[AQ] CONSUME fighter=ICE weapon=SPIKED_CLUB reason=thrown
-[AQ] THROWN_RICOCHET weapon=SPIKED_CLUB left=0
-[AQ] SPAWN_SLOT id=3 x=139 y=280 lead=2.00
-[AQ] REVEAL id=2 weapon=MOSSBERG_500 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] HIT source=ICE target=RUBBER weapon=SPIKED_CLUB damage=27.0
-[AQ] THROWN_PIN weapon=SPIKED_CLUB target=RUBBER pin=1s
-[AQ] REVEAL id=3 weapon=AK_47 eta=0.06 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=3 fighter=ICE weapon=AK_47
-[AQ] USE fighter=ICE weapon=AK_47
-[AQ] SHOT fighter=ICE weapon=AK_47 t=8.273
-[AQ] HIT source=ICE target=RUBBER weapon=AK_47 damage=3.8
-[AQ] SHOT fighter=ICE weapon=AK_47 t=8.373
-[AQ] HIT source=ICE target=RUBBER weapon=AK_47 damage=3.8
-[AQ] SHOT fighter=ICE weapon=AK_47 t=8.473
-[AQ] HIT source=ICE target=RUBBER weapon=AK_47 damage=3.8
-[AQ] SHOT fighter=ICE weapon=AK_47 t=8.573
-[AQ] HIT source=ICE target=RUBBER weapon=AK_47 damage=3.8
-[AQ] SHOT fighter=ICE weapon=AK_47 t=8.707
-[AQ] HIT source=ICE target=RUBBER weapon=AK_47 damage=3.8
-[AQ] SHOT fighter=ICE weapon=AK_47 t=8.807
-[AQ] HIT source=ICE target=RUBBER weapon=AK_47 damage=3.8
-[AQ] CONSUME fighter=ICE weapon=AK_47 reason=sequence-complete
-[AQ] SPAWN_SLOT id=4 x=623 y=759 lead=2.00
-[AQ] PICKUP id=2 fighter=ICE weapon=MOSSBERG_500
-[AQ] USE fighter=ICE weapon=MOSSBERG_500
-[AQ] CONSUME fighter=ICE weapon=MOSSBERG_500 reason=blast-resolved
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] SPAWN_SLOT id=5 x=756 y=181 lead=2.00
-[AQ] REVEAL id=4 weapon=SZECSEI_FUCHS eta=null lead=2.00 fighter=TIMEOUT force=true
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=6 x=724 y=532 lead=2.00
-[AQ] REVEAL id=5 weapon=SMG eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=5 fighter=ICE weapon=SMG
-[AQ] USE fighter=ICE weapon=SMG
-[AQ] SHOT fighter=ICE weapon=SMG t=18.743
-[AQ] SHOT fighter=ICE weapon=SMG t=18.810
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
-[AQ] SHOT fighter=ICE weapon=SMG t=18.910
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
-[AQ] SHOT fighter=ICE weapon=SMG t=18.977
-Not implemented: HTMLMediaElement's pause() method
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
-[AQ] SPAWN_SLOT id=7 x=440 y=142 lead=2.00
-[AQ] REVEAL id=6 weapon=JACKHAMMER eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
-[AQ] SHOT fighter=ICE weapon=SMG t=19.077
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SHOT fighter=ICE weapon=SMG t=19.143
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
-Not implemented: HTMLMediaElement's pause() method
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
-[AQ] SHOT fighter=ICE weapon=SMG t=19.243
-Not implemented: HTMLMediaElement's pause() method
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
-[AQ] KO winner=ICE
-[AQ] MODE_ENTER mode=ARSENAL_QUEST
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=836 y=831 lead=2.00
-[AQ] REVEAL id=1 weapon=SNIPER eta=1.75 lead=2.00 fighter=RUBBER force=false
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] PICKUP id=1 fighter=ICE weapon=SNIPER
-[AQ] USE fighter=ICE weapon=SNIPER
-[AQ] SHOT fighter=ICE weapon=SNIPER t=3.733
-[AQ] CONSUME fighter=ICE weapon=SNIPER reason=shot-fired
-[AQ] HIT source=ICE target=RUBBER weapon=SNIPER damage=38.0
-[AQ] SPAWN_SLOT id=2 x=382 y=571 lead=2.00
-[AQ] REVEAL id=2 weapon=M16 eta=0.38 lead=2.00 fighter=ICE force=false
-[AQ] SPAWN_SLOT id=3 x=123 y=654 lead=2.00
-[AQ] PICKUP id=2 fighter=ICE weapon=M16
-[AQ] USE fighter=ICE weapon=M16
-[AQ] SHOT fighter=ICE weapon=M16 t=7.440
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SHOT fighter=ICE weapon=M16 t=7.507
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SHOT fighter=ICE weapon=M16 t=7.573
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SHOT fighter=ICE weapon=M16 t=7.873
-[AQ] SHOT fighter=ICE weapon=M16 t=7.940
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SHOT fighter=ICE weapon=M16 t=8.040
-[AQ] CONSUME fighter=ICE weapon=M16 reason=sequence-complete
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SPAWN_SLOT id=4 x=231 y=116 lead=2.00
-[AQ] REVEAL id=3 weapon=MBR eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] SPAWN_SLOT id=5 x=653 y=616 lead=2.00
-[AQ] REVEAL id=4 weapon=SPEAR eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=3 fighter=ICE weapon=MBR
-[AQ] USE fighter=ICE weapon=MBR
-[AQ] SHOT fighter=ICE weapon=MBR t=13.807
-[AQ] HIT source=ICE target=RUBBER weapon=MBR damage=11.0
-[AQ] SHOT fighter=ICE weapon=MBR t=14.280
-[AQ] CONSUME fighter=ICE weapon=MBR reason=shot-fired
-[AQ] HIT source=ICE target=RUBBER weapon=MBR damage=11.0
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=6 x=880 y=708 lead=2.00
-[AQ] REVEAL id=5 weapon=DESERT_DEAGLE eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] SPAWN_SLOT id=7 x=216 y=780 lead=2.00
-[AQ] REVEAL id=6 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] SPAWN_SLOT id=1 x=284 y=650 lead=2.00
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=2 x=482 y=170 lead=2.00
+[AQ] REVEAL id=1 weapon=SPEAR eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] REVEAL id=2 weapon=SABRE eta=0.90 lead=2.00 fighter=RUBBER force=false
+[AQ] MELEE_DECIDE fighter=RUBBER weapon=SABRE decision=throw
+[AQ] PICKUP id=2 fighter=RUBBER weapon=SABRE
+[AQ] THROW fighter=RUBBER weapon=SABRE ricochets=3
+[AQ] CONSUME fighter=RUBBER weapon=SABRE reason=thrown
+[AQ] SPAWN_SLOT id=3 x=765 y=640 lead=2.00
+[AQ] THROWN_RICOCHET weapon=SABRE left=2
+[AQ] THROWN_RICOCHET weapon=SABRE left=1
 [AQ] MELEE_DECIDE fighter=ICE weapon=SPEAR decision=throw
-[AQ] PICKUP id=4 fighter=ICE weapon=SPEAR
+[AQ] PICKUP id=1 fighter=ICE weapon=SPEAR
 [AQ] THROW fighter=ICE weapon=SPEAR ricochets=2
 [AQ] CONSUME fighter=ICE weapon=SPEAR reason=thrown
-[AQ] THROWN_RICOCHET weapon=SPEAR left=1
-[AQ] THROWN_RICOCHET weapon=SPEAR left=0
-[AQ] SPAWN_SLOT id=8 x=619 y=366 lead=2.00
-[AQ] REVEAL id=7 weapon=P90 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=6 fighter=RUBBER weapon=MAC_10
+[AQ] THROWN_RICOCHET weapon=SABRE left=0
 [AQ] HIT source=ICE target=RUBBER weapon=SPEAR damage=22.5
 [AQ] THROWN_PIN weapon=SPEAR target=RUBBER pin=1s
+[AQ] THROWN_RICOCHET weapon=SABRE left=-1
+[AQ] SPAWN_SLOT id=4 x=470 y=803 lead=2.00
+[AQ] REVEAL id=3 weapon=SMG eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=3 fighter=ICE weapon=SMG
+[AQ] USE fighter=ICE weapon=SMG
+[AQ] SHOT fighter=ICE weapon=SMG t=11.040
+[AQ] SHOT fighter=ICE weapon=SMG t=11.107
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] SHOT fighter=ICE weapon=SMG t=11.207
+[AQ] SHOT fighter=ICE weapon=SMG t=11.273
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] SHOT fighter=ICE weapon=SMG t=11.373
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] SHOT fighter=ICE weapon=SMG t=11.440
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] SHOT fighter=ICE weapon=SMG t=11.540
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] SHOT fighter=ICE weapon=SMG t=11.607
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] CONSUME fighter=ICE weapon=SMG reason=sequence-complete
+[AQ] SPAWN_SLOT id=5 x=183 y=840 lead=2.00
+[AQ] REVEAL id=4 weapon=ZBROYAR_Z15_S1 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=4 fighter=ICE weapon=ZBROYAR_Z15_S1
+[AQ] USE fighter=ICE weapon=ZBROYAR_Z15_S1
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S1 t=14.340
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S1 t=14.473
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S1 t=14.640
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S1 t=14.807
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15_S1 reason=sequence-complete
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=6 x=407 y=885 lead=2.00
+[AQ] REVEAL id=5 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=5 fighter=ICE weapon=MAC_10
+[AQ] USE fighter=ICE weapon=MAC_10
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=17.173
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=17.207
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=17.273
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=17.307
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=17.373
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=17.440
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=17.473
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=17.540
+[AQ] CONSUME fighter=ICE weapon=MAC_10 reason=sequence-complete
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] REVEAL id=6 weapon=MAC_10 eta=1.05 lead=2.00 fighter=ICE force=false
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=7 x=814 y=469 lead=2.00
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] PICKUP id=6 fighter=ICE weapon=MAC_10
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=ICE weapon=MAC_10
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=19.507
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=19.540
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=19.607
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=19.640
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=19.707
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=19.773
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=19.807
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=19.873
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] CONSUME fighter=ICE weapon=MAC_10 reason=sequence-complete
 [AQ] KO winner=ICE
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
@@ -1401,161 +1097,37 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=846 y=719 lead=2.00
+[AQ] SPAWN_SLOT id=1 x=714 y=203 lead=2.00
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=2 x=342 y=298 lead=2.00
-[AQ] REVEAL id=1 weapon=ZBROYAR_Z15 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=1 fighter=ICE weapon=ZBROYAR_Z15
-[AQ] USE fighter=ICE weapon=ZBROYAR_Z15
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=4.400
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=4.533
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=4.700
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=4.867
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
-[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15 reason=sequence-complete
-[AQ] REVEAL id=2 weapon=MOSSBERG_500 eta=0.55 lead=2.00 fighter=ICE force=false
-[AQ] SPAWN_SLOT id=3 x=814 y=566 lead=2.00
-[AQ] PICKUP id=2 fighter=ICE weapon=MOSSBERG_500
-[AQ] USE fighter=ICE weapon=MOSSBERG_500
-[AQ] CONSUME fighter=ICE weapon=MOSSBERG_500 reason=blast-resolved
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] REVEAL id=3 weapon=ZBROYAR_Z15 eta=0.61 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=3 fighter=ICE weapon=ZBROYAR_Z15
-[AQ] USE fighter=ICE weapon=ZBROYAR_Z15
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=8.970
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=9.103
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=9.270
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=9.437
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
-[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15 reason=sequence-complete
-[AQ] SPAWN_SLOT id=4 x=694 y=489 lead=2.00
-[AQ] SPAWN_SLOT id=5 x=769 y=116 lead=2.00
-[AQ] REVEAL id=4 weapon=P90 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] REVEAL id=5 weapon=PISTOL eta=1.27 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=5 fighter=ICE weapon=PISTOL
-[AQ] PICKUP id=4 fighter=RUBBER weapon=P90
-[AQ] USE fighter=ICE weapon=PISTOL
-[AQ] SHOT fighter=ICE weapon=PISTOL t=14.737
-[AQ] USE fighter=RUBBER weapon=P90
-[AQ] SHOT fighter=RUBBER weapon=P90 t=14.770
-[AQ] SHOT fighter=RUBBER weapon=P90 t=14.803
-[AQ] HIT source=RUBBER target=ICE weapon=P90 damage=1.9
-[AQ] SHOT fighter=RUBBER weapon=P90 t=14.870
-[AQ] HIT source=RUBBER target=ICE weapon=P90 damage=1.9
-[AQ] SHOT fighter=RUBBER weapon=P90 t=14.937
-[AQ] SHOT fighter=ICE weapon=PISTOL t=14.937
-[AQ] HIT source=RUBBER target=ICE weapon=P90 damage=1.9
-[AQ] SHOT fighter=RUBBER weapon=P90 t=15.003
-[AQ] HIT source=RUBBER target=ICE weapon=P90 damage=1.9
-[AQ] HIT source=ICE target=RUBBER weapon=PISTOL damage=4.5
-[AQ] SHOT fighter=RUBBER weapon=P90 t=15.070
-[AQ] HIT source=RUBBER target=ICE weapon=P90 damage=1.9
-[AQ] SHOT fighter=RUBBER weapon=P90 t=15.137
-[AQ] HIT source=RUBBER target=ICE weapon=P90 damage=1.9
-[AQ] SHOT fighter=ICE weapon=PISTOL t=15.170
-[AQ] SHOT fighter=RUBBER weapon=P90 t=15.203
-[AQ] HIT source=RUBBER target=ICE weapon=P90 damage=1.9
-[AQ] SHOT fighter=RUBBER weapon=P90 t=15.270
-[AQ] HIT source=RUBBER target=ICE weapon=P90 damage=1.9
-[AQ] SHOT fighter=RUBBER weapon=P90 t=15.337
-[AQ] HIT source=RUBBER target=ICE weapon=P90 damage=1.9
-[AQ] CONSUME fighter=ICE weapon=PISTOL reason=sequence-complete
-[AQ] CONSUME fighter=RUBBER weapon=P90 reason=sequence-complete
-[AQ] HIT source=RUBBER target=ICE weapon=P90 damage=1.9
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=6 x=824 y=887 lead=2.00
-[AQ] SPAWN_SLOT id=7 x=523 y=412 lead=2.00
-[AQ] REVEAL id=6 weapon=DESERT_DEAGLE eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] SPAWN_SLOT id=8 x=671 y=140 lead=2.00
-[AQ] REVEAL id=7 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=7 fighter=RUBBER weapon=MAC_10
-[AQ] COUNTER_RESERVED id=8 for=ICE shield=SWIRL_SHIELD vs=MAC_10
-[AQ] USE fighter=ICE weapon=SWIRL_SHIELD
-[AQ] PICKUP id=8 fighter=ICE weapon=SWIRL_SHIELD
-[AQ] USE fighter=RUBBER weapon=MAC_10
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=22.337
-[AQ] REFLECT fighter=ICE weapon=SWIRL_SHIELD projectileFrom=RUBBER
-[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=22.370
-[AQ] REFLECT fighter=ICE weapon=SWIRL_SHIELD projectileFrom=RUBBER
-[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=22.437
-[AQ] REFLECT fighter=ICE weapon=SWIRL_SHIELD projectileFrom=RUBBER
-[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=22.470
-[AQ] REFLECT fighter=ICE weapon=SWIRL_SHIELD projectileFrom=RUBBER
-[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=22.537
-[AQ] REFLECT fighter=ICE weapon=SWIRL_SHIELD projectileFrom=RUBBER
-[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=22.603
-[AQ] REFLECT fighter=ICE weapon=SWIRL_SHIELD projectileFrom=RUBBER
-[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=22.637
-[AQ] REFLECT fighter=ICE weapon=SWIRL_SHIELD projectileFrom=RUBBER
-[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=22.703
-[AQ] REFLECT fighter=ICE weapon=SWIRL_SHIELD projectileFrom=RUBBER
-[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
-[AQ] CONSUME fighter=RUBBER weapon=MAC_10 reason=sequence-complete
-[AQ] CONSUME fighter=ICE weapon=SWIRL_SHIELD reason=expired
-[AQ] PICKUP id=6 fighter=RUBBER weapon=DESERT_DEAGLE
-[AQ] USE fighter=RUBBER weapon=DESERT_DEAGLE
-[AQ] SHOT fighter=RUBBER weapon=DESERT_DEAGLE t=24.903
-[AQ] SPAWN_SLOT id=9 x=656 y=790 lead=2.00
-[AQ] HIT source=RUBBER target=ICE weapon=DESERT_DEAGLE damage=10.5
-[AQ] SHOT fighter=RUBBER weapon=DESERT_DEAGLE t=25.270
-[AQ] HIT source=RUBBER target=ICE weapon=DESERT_DEAGLE damage=10.5
-[AQ] CONSUME fighter=RUBBER weapon=DESERT_DEAGLE reason=sequence-complete
-[AQ] SPAWN_SLOT id=10 x=209 y=169 lead=2.00
-[AQ] REVEAL id=9 weapon=BERETTA_93R eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=9 fighter=RUBBER weapon=BERETTA_93R
-[AQ] USE fighter=RUBBER weapon=BERETTA_93R
-[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=28.337
-[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=28.370
-[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=28.437
-[AQ] HIT source=RUBBER target=ICE weapon=BERETTA_93R damage=3.0
-[AQ] HIT source=RUBBER target=ICE weapon=BERETTA_93R damage=3.0
-[AQ] HIT source=RUBBER target=ICE weapon=BERETTA_93R damage=3.0
-[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=28.670
-[AQ] HIT source=RUBBER target=ICE weapon=BERETTA_93R damage=3.0
-[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=28.737
-[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=28.770
-[AQ] HIT source=RUBBER target=ICE weapon=BERETTA_93R damage=3.0
-[AQ] HIT source=RUBBER target=ICE weapon=BERETTA_93R damage=3.0
-[AQ] CONSUME fighter=RUBBER weapon=BERETTA_93R reason=sequence-complete
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=11 x=603 y=94 lead=2.00
-[AQ] REVEAL id=10 weapon=M249_SAW eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] REVEAL id=11 weapon=ZBROYAR_Z15_S3 eta=0.69 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=10 fighter=ICE weapon=M249_SAW
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] USE fighter=ICE weapon=M249_SAW
-[AQ] SHOT fighter=ICE weapon=M249_SAW t=33.170
-Not implemented: HTMLMediaElement's pause() method
-[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
-[AQ] REJECT_PICKUP fighter=ICE id=11 reason=already-armed
-[AQ] SHOT fighter=ICE weapon=M249_SAW t=33.237
-Not implemented: HTMLMediaElement's pause() method
-[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
-[AQ] KO winner=ICE
-[AQ] MODE_ENTER mode=ARSENAL_QUEST
+[AQ] REVEAL id=1 weapon=SAWED_OFF eta=0.16 lead=2.00 fighter=ICE force=false
+[AQ] PICKUP id=1 fighter=ICE weapon=SAWED_OFF
+[AQ] USE fighter=ICE weapon=SAWED_OFF
+[AQ] CONSUME fighter=ICE weapon=SAWED_OFF reason=blast-resolved
+[AQ] HIT source=ICE target=RUBBER weapon=SAWED_OFF damage=2.5
+[AQ] HIT source=ICE target=RUBBER weapon=SAWED_OFF damage=2.5
+[AQ] HIT source=ICE target=RUBBER weapon=SAWED_OFF damage=2.5
+[AQ] HIT source=ICE target=RUBBER weapon=SAWED_OFF damage=2.5
+[AQ] HIT source=ICE target=RUBBER weapon=SAWED_OFF damage=2.5
+[AQ] HIT source=ICE target=RUBBER weapon=SAWED_OFF damage=2.5
+[AQ] HIT source=ICE target=RUBBER weapon=SAWED_OFF damage=2.5
+[AQ] HIT source=ICE target=RUBBER weapon=SAWED_OFF damage=2.5
+[AQ] HIT source=ICE target=RUBBER weapon=SAWED_OFF damage=2.5
+[AQ] HIT source=ICE target=RUBBER weapon=SAWED_OFF damage=2.5
+[AQ] SPAWN_SLOT id=2 x=229 y=428 lead=2.00
+[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S1 eta=0.23 lead=2.00 fighter=ICE force=false
+[AQ] PICKUP id=2 fighter=RUBBER weapon=ZBROYAR_Z15_S1
+[AQ] USE fighter=RUBBER weapon=ZBROYAR_Z15_S1
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=5.337
+[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=5.470
+[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=5.637
+[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=5.803
+[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S1 reason=sequence-complete
+[AQ] SPAWN_SLOT id=3 x=265 y=509 lead=2.00
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -1563,446 +1135,81 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=551 y=657 lead=2.00
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=2 x=618 y=182 lead=2.00
-[AQ] REVEAL id=1 weapon=DESERT_DEAGLE eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=1 fighter=ICE weapon=DESERT_DEAGLE
-[AQ] USE fighter=ICE weapon=DESERT_DEAGLE
-[AQ] SHOT fighter=ICE weapon=DESERT_DEAGLE t=5.100
-[AQ] HIT source=ICE target=RUBBER weapon=DESERT_DEAGLE damage=10.5
-[AQ] SHOT fighter=ICE weapon=DESERT_DEAGLE t=5.467
-[AQ] HIT source=ICE target=RUBBER weapon=DESERT_DEAGLE damage=10.5
-[AQ] CONSUME fighter=ICE weapon=DESERT_DEAGLE reason=sequence-complete
-[AQ] SPAWN_SLOT id=3 x=898 y=169 lead=2.00
-[AQ] REVEAL id=2 weapon=M16 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=2 fighter=ICE weapon=M16
-[AQ] SPAWN_SLOT id=4 x=575 y=814 lead=2.00
-[AQ] REVEAL id=3 weapon=MBR2 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] USE fighter=ICE weapon=M16
-[AQ] SHOT fighter=ICE weapon=M16 t=10.300
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SHOT fighter=ICE weapon=M16 t=10.367
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SHOT fighter=ICE weapon=M16 t=10.433
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] PICKUP id=3 fighter=RUBBER weapon=MBR2
-[AQ] SHOT fighter=ICE weapon=M16 t=10.733
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SHOT fighter=ICE weapon=M16 t=10.800
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SHOT fighter=ICE weapon=M16 t=10.900
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
+[AQ] SPAWN_SLOT id=4 x=467 y=627 lead=2.00
+[AQ] REVEAL id=3 weapon=MBR eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=3 fighter=ICE weapon=MBR
+[AQ] USE fighter=ICE weapon=MBR
+[AQ] SHOT fighter=ICE weapon=MBR t=12.503
+[AQ] HIT source=ICE target=RUBBER weapon=MBR damage=11.0
+[AQ] SHOT fighter=ICE weapon=MBR t=12.977
+[AQ] CONSUME fighter=ICE weapon=MBR reason=shot-fired
+[AQ] SPAWN_SLOT id=5 x=169 y=447 lead=2.00
+[AQ] REVEAL id=4 weapon=MBR2 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] HIT source=ICE target=RUBBER weapon=MBR damage=11.0
+[AQ] PICKUP id=4 fighter=RUBBER weapon=MBR2
 [AQ] USE fighter=RUBBER weapon=MBR2
-[AQ] CONSUME fighter=ICE weapon=M16 reason=sequence-complete
-[AQ] SHOT fighter=RUBBER weapon=MBR2 t=11.300
+[AQ] SHOT fighter=RUBBER weapon=MBR2 t=14.683
 [AQ] HIT source=RUBBER target=ICE weapon=MBR2 damage=14.0
-[AQ] SHOT fighter=RUBBER weapon=MBR2 t=11.807
+[AQ] SHOT fighter=RUBBER weapon=MBR2 t=15.190
 [AQ] CONSUME fighter=RUBBER weapon=MBR2 reason=shot-fired
 [AQ] HIT source=RUBBER target=ICE weapon=MBR2 damage=14.0
-[AQ] SPAWN_SLOT id=5 x=402 y=804 lead=2.00
-[AQ] REVEAL id=4 weapon=DAGGER eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] MELEE_DECIDE fighter=RUBBER weapon=DAGGER decision=throw
-[AQ] PICKUP id=4 fighter=RUBBER weapon=DAGGER
-[AQ] THROW fighter=RUBBER weapon=DAGGER ricochets=4
-[AQ] CONSUME fighter=RUBBER weapon=DAGGER reason=thrown
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=6 x=578 y=804 lead=2.00
-[AQ] THROWN_RICOCHET weapon=DAGGER left=3
-[AQ] REVEAL id=5 weapon=SHOTGUN eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] THROWN_RICOCHET weapon=DAGGER left=2
-[AQ] THROWN_RICOCHET weapon=DAGGER left=1
-[AQ] PICKUP id=5 fighter=RUBBER weapon=SHOTGUN
-[AQ] USE fighter=RUBBER weapon=SHOTGUN
-[AQ] SHOT fighter=RUBBER weapon=SHOTGUN t=17.547
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=SHOTGUN t=17.813
-[AQ] CONSUME fighter=RUBBER weapon=SHOTGUN reason=sequence-complete
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] THROWN_RICOCHET weapon=DAGGER left=0
-[AQ] THROWN_RICOCHET weapon=DAGGER left=-1
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=7 x=552 y=441 lead=2.00
-[AQ] REVEAL id=6 weapon=DESERT_DEAGLE eta=null lead=2.00 fighter=TIMEOUT force=true
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] PICKUP id=6 fighter=ICE weapon=DESERT_DEAGLE
-[AQ] USE fighter=ICE weapon=DESERT_DEAGLE
-[AQ] SHOT fighter=ICE weapon=DESERT_DEAGLE t=20.280
-[AQ] HIT source=ICE target=RUBBER weapon=DESERT_DEAGLE damage=10.5
-[AQ] SHOT fighter=ICE weapon=DESERT_DEAGLE t=20.647
-[AQ] HIT source=ICE target=RUBBER weapon=DESERT_DEAGLE damage=10.5
-[AQ] CONSUME fighter=ICE weapon=DESERT_DEAGLE reason=sequence-complete
-[AQ] SPAWN_SLOT id=8 x=716 y=407 lead=2.00
-[AQ] REVEAL id=7 weapon=SAWED_OFF eta=null lead=2.00 fighter=TIMEOUT force=true
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] REVEAL id=8 weapon=SHOTGUN eta=0.62 lead=2.00 fighter=ICE force=false
-[AQ] SPAWN_SLOT id=9 x=131 y=344 lead=2.00
-[AQ] PICKUP id=8 fighter=ICE weapon=SHOTGUN
-[AQ] USE fighter=ICE weapon=SHOTGUN
-[AQ] SHOT fighter=ICE weapon=SHOTGUN t=25.580
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] KO winner=ICE
-[AQ] MODE_ENTER mode=ARSENAL_QUEST
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=416 y=872 lead=2.00
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] REVEAL id=1 weapon=ZBROYAR_Z15_S2 eta=1.04 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=1 fighter=ICE weapon=ZBROYAR_Z15_S2
-[AQ] USE fighter=ICE weapon=ZBROYAR_Z15_S2
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S2 t=3.500
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S2 damage=4.8
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S2 t=3.633
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S2 damage=4.8
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S2 t=3.800
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S2 damage=4.8
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S2 t=3.967
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S2 damage=4.8
-[AQ] SPAWN_SLOT id=2 x=611 y=291 lead=2.00
-[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15_S2 reason=sequence-complete
-[AQ] SPAWN_SLOT id=3 x=115 y=269 lead=2.00
-[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S3 eta=0.79 lead=2.00 fighter=RUBBER force=false
-[AQ] REVEAL id=2 weapon=DAGGER eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=3 fighter=RUBBER weapon=ZBROYAR_Z15_S3
-[AQ] USE fighter=RUBBER weapon=ZBROYAR_Z15_S3
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=7.667
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=7.800
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=7.967
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=8.133
-[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S3 damage=4.8
-[AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S3 reason=sequence-complete
-[AQ] MELEE_DECIDE fighter=ICE weapon=DAGGER decision=throw
-[AQ] PICKUP id=2 fighter=ICE weapon=DAGGER
-[AQ] THROW fighter=ICE weapon=DAGGER ricochets=4
-[AQ] CONSUME fighter=ICE weapon=DAGGER reason=thrown
-[AQ] HIT source=ICE target=RUBBER weapon=DAGGER damage=13.5
-[AQ] THROWN_PIN weapon=DAGGER target=RUBBER pin=1s
-[AQ] SPAWN_SLOT id=4 x=790 y=587 lead=2.00
-[AQ] SPAWN_SLOT id=5 x=235 y=234 lead=2.00
-[AQ] REVEAL id=4 weapon=SAWED_OFF eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] REVEAL id=5 weapon=TEC_9 eta=0.23 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=5 fighter=ICE weapon=TEC_9
+[AQ] SPAWN_SLOT id=6 x=756 y=426 lead=2.00
+[AQ] REVEAL id=5 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=5 fighter=RUBBER weapon=MAC_10
+[AQ] USE fighter=RUBBER weapon=MAC_10
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=18.363
+[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=18.397
+[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=18.463
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=18.497
+[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
+[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=18.563
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=18.630
+[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=18.663
+[AQ] COUNTER_RESERVED id=6 for=ICE shield=SWIRL_SHIELD vs=MAC_10
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=18.730
+[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
+[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
+[AQ] CONSUME fighter=RUBBER weapon=MAC_10 reason=sequence-complete
+[AQ] COUNTER_RELEASE id=6 reason=invalid
+[AQ] REVEAL id=6 weapon=TEC_9 eta=0.35 lead=2.00 fighter=ICE force=false
+[AQ] SPAWN_SLOT id=7 x=507 y=94 lead=2.00
+[AQ] PICKUP id=6 fighter=ICE weapon=TEC_9
 [AQ] USE fighter=ICE weapon=TEC_9
-[AQ] SHOT fighter=ICE weapon=TEC_9 t=14.707
-[AQ] SHOT fighter=ICE weapon=TEC_9 t=14.773
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=19.430
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=19.497
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=19.597
 [AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=ICE weapon=TEC_9 t=14.873
-[AQ] SHOT fighter=ICE weapon=TEC_9 t=14.973
-[AQ] SHOT fighter=ICE weapon=TEC_9 t=15.040
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=19.697
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=19.763
 [AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
 [AQ] CONSUME fighter=ICE weapon=TEC_9 reason=sequence-complete
 [AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
-[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=6 x=132 y=302 lead=2.00
-[AQ] REVEAL id=6 weapon=M249_SAW eta=0.79 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=6 fighter=ICE weapon=M249_SAW
-[AQ] USE fighter=ICE weapon=M249_SAW
-[AQ] SHOT fighter=ICE weapon=M249_SAW t=17.240
-[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=ICE weapon=M249_SAW t=17.307
-[AQ] SHOT fighter=ICE weapon=M249_SAW t=17.373
-[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
-[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=ICE weapon=M249_SAW t=17.440
-[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=ICE weapon=M249_SAW t=17.507
-[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=ICE weapon=M249_SAW t=17.607
-[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=ICE weapon=M249_SAW t=17.673
-[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=ICE weapon=M249_SAW t=17.740
-[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=ICE weapon=M249_SAW t=17.807
-[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=ICE weapon=M249_SAW t=17.907
-[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=ICE weapon=M249_SAW t=17.973
-[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=ICE weapon=M249_SAW t=18.040
-[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
-[AQ] CONSUME fighter=ICE weapon=M249_SAW reason=sequence-complete
-[AQ] SPAWN_SLOT id=7 x=506 y=426 lead=2.00
-[AQ] SPAWN_SLOT id=8 x=719 y=394 lead=2.00
-[AQ] REVEAL id=7 weapon=SAWED_OFF eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=7 fighter=RUBBER weapon=SAWED_OFF
-[AQ] SPAWN_SLOT id=9 x=593 y=245 lead=2.00
-[AQ] REVEAL id=8 weapon=SMG eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] USE fighter=RUBBER weapon=SAWED_OFF
-[AQ] CONSUME fighter=RUBBER weapon=SAWED_OFF reason=blast-resolved
-[AQ] REVEAL id=9 weapon=MBR2 eta=1.23 lead=2.00 fighter=RUBBER force=false
-[AQ] SPAWN_SLOT id=10 x=700 y=819 lead=2.00
-[AQ] PICKUP id=9 fighter=RUBBER weapon=MBR2
-[AQ] USE fighter=RUBBER weapon=MBR2
-[AQ] SHOT fighter=RUBBER weapon=MBR2 t=29.277
-[AQ] HIT source=RUBBER target=ICE weapon=MBR2 damage=14.0
-[AQ] REJECT_PICKUP fighter=RUBBER id=8 reason=already-armed
-[AQ] SHOT fighter=RUBBER weapon=MBR2 t=29.783
-[AQ] CONSUME fighter=RUBBER weapon=MBR2 reason=shot-fired
-[AQ] PICKUP id=8 fighter=RUBBER weapon=SMG
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] HIT source=RUBBER target=ICE weapon=MBR2 damage=14.0
-[AQ] USE fighter=RUBBER weapon=SMG
-[AQ] SHOT fighter=RUBBER weapon=SMG t=30.157
-[AQ] SHOT fighter=RUBBER weapon=SMG t=30.223
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.3
-[AQ] SHOT fighter=RUBBER weapon=SMG t=30.323
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.3
-[AQ] SHOT fighter=RUBBER weapon=SMG t=30.390
-[AQ] SHOT fighter=RUBBER weapon=SMG t=30.490
-[AQ] SHOT fighter=RUBBER weapon=SMG t=30.557
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.3
-[AQ] SHOT fighter=RUBBER weapon=SMG t=30.657
-[AQ] SHOT fighter=RUBBER weapon=SMG t=30.723
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.3
-[AQ] CONSUME fighter=RUBBER weapon=SMG reason=sequence-complete
-[AQ] SPAWN_SLOT id=11 x=383 y=803 lead=2.00
-[AQ] REVEAL id=10 weapon=SHOTGUN eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=10 fighter=RUBBER weapon=SHOTGUN
-[AQ] USE fighter=RUBBER weapon=SHOTGUN
-[AQ] SHOT fighter=RUBBER weapon=SHOTGUN t=33.023
-[AQ] EXPIRE id=4 weapon=SAWED_OFF
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=SHOTGUN t=33.290
-[AQ] CONSUME fighter=RUBBER weapon=SHOTGUN reason=sequence-complete
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=2.0
-[AQ] SPAWN_SLOT id=12 x=695 y=118 lead=2.00
-[AQ] REVEAL id=11 weapon=GLOCK_17 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] REVEAL id=12 weapon=DESERT_DEAGLE eta=1.99 lead=2.00 fighter=RUBBER force=false
-[AQ] PICKUP id=12 fighter=RUBBER weapon=DESERT_DEAGLE
-[AQ] USE fighter=RUBBER weapon=DESERT_DEAGLE
-[AQ] SHOT fighter=RUBBER weapon=DESERT_DEAGLE t=36.723
-[AQ] HIT source=RUBBER target=ICE weapon=DESERT_DEAGLE damage=10.5
-[AQ] SPAWN_SLOT id=13 x=586 y=139 lead=2.00
-[AQ] SHOT fighter=RUBBER weapon=DESERT_DEAGLE t=37.090
-[AQ] CONSUME fighter=RUBBER weapon=DESERT_DEAGLE reason=sequence-complete
-[AQ] SPAWN_SLOT id=14 x=713 y=779 lead=2.00
-[AQ] REVEAL id=14 weapon=DAGGER eta=0.07 lead=2.00 fighter=RUBBER force=false
-[AQ] MELEE_DECIDE fighter=RUBBER weapon=DAGGER decision=throw
-[AQ] PICKUP id=14 fighter=RUBBER weapon=DAGGER
-[AQ] THROW fighter=RUBBER weapon=DAGGER ricochets=4
-[AQ] CONSUME fighter=RUBBER weapon=DAGGER reason=thrown
-[AQ] REVEAL id=13 weapon=GLOCK_17 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=11 fighter=ICE weapon=GLOCK_17
-[AQ] THROWN_RICOCHET weapon=DAGGER left=3
-[AQ] THROWN_RICOCHET weapon=DAGGER left=2
-[AQ] USE fighter=ICE weapon=GLOCK_17
-[AQ] SHOT fighter=ICE weapon=GLOCK_17 t=41.123
-[AQ] SHOT fighter=ICE weapon=GLOCK_17 t=41.223
-[AQ] SHOT fighter=ICE weapon=GLOCK_17 t=41.357
-[AQ] HIT source=ICE target=RUBBER weapon=GLOCK_17 damage=3.5
-[AQ] SHOT fighter=ICE weapon=GLOCK_17 t=41.457
-[AQ] HIT source=ICE target=RUBBER weapon=GLOCK_17 damage=3.5
-[AQ] KO winner=ICE
-[AQ] MODE_ENTER mode=ARSENAL_QUEST
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=304 y=282 lead=2.00
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=2 x=899 y=274 lead=2.00
-[AQ] REVEAL id=1 weapon=M16 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=1 fighter=ICE weapon=M16
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] USE fighter=ICE weapon=M16
-[AQ] SHOT fighter=ICE weapon=M16 t=5.033
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SHOT fighter=ICE weapon=M16 t=5.100
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SHOT fighter=ICE weapon=M16 t=5.167
-Not implemented: HTMLMediaElement's pause() method
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SHOT fighter=ICE weapon=M16 t=5.467
-[AQ] SHOT fighter=ICE weapon=M16 t=5.533
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SHOT fighter=ICE weapon=M16 t=5.633
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] CONSUME fighter=ICE weapon=M16 reason=sequence-complete
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SPAWN_SLOT id=3 x=288 y=388 lead=2.00
-[AQ] REVEAL id=3 weapon=MAGNUM_500 eta=0.13 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=3 fighter=ICE weapon=MAGNUM_500
-[AQ] REVEAL id=2 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] USE fighter=ICE weapon=MAGNUM_500
-[AQ] SHOT fighter=ICE weapon=MAGNUM_500 t=7.367
-[AQ] CONSUME fighter=ICE weapon=MAGNUM_500 reason=sequence-complete
-[AQ] HIT source=ICE target=RUBBER weapon=MAGNUM_500 damage=28.0
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=4 x=255 y=327 lead=2.00
-[AQ] REVEAL id=4 weapon=SNIPER eta=0.12 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=4 fighter=ICE weapon=SNIPER
-[AQ] USE fighter=ICE weapon=SNIPER
-[AQ] SPAWN_SLOT id=5 x=224 y=586 lead=2.00
-[AQ] SHOT fighter=ICE weapon=SNIPER t=13.667
-[AQ] CONSUME fighter=ICE weapon=SNIPER reason=shot-fired
-[AQ] HIT source=ICE target=RUBBER weapon=SNIPER damage=38.0
-[AQ] KO winner=ICE
-[AQ] MODE_ENTER mode=ARSENAL_QUEST
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=732 y=547 lead=2.00
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=2 x=310 y=445 lead=2.00
-[AQ] REVEAL id=2 weapon=SZECSEI_FUCHS eta=0.49 lead=2.00 fighter=ICE force=false
-[AQ] REVEAL id=1 weapon=ZBROYAR_Z15_S3 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=2 fighter=ICE weapon=SZECSEI_FUCHS
-[AQ] USE fighter=ICE weapon=SZECSEI_FUCHS
-[AQ] SHOT fighter=ICE weapon=SZECSEI_FUCHS t=5.133
-[AQ] HIT source=ICE target=RUBBER weapon=SZECSEI_FUCHS damage=15.0
-[AQ] SHOT fighter=ICE weapon=SZECSEI_FUCHS t=5.707
-[AQ] CONSUME fighter=ICE weapon=SZECSEI_FUCHS reason=shot-fired
-[AQ] HIT source=ICE target=RUBBER weapon=SZECSEI_FUCHS damage=15.0
-[AQ] SPAWN_SLOT id=3 x=358 y=510 lead=2.00
-[AQ] SPAWN_SLOT id=4 x=124 y=144 lead=2.00
-[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S2 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=3 fighter=RUBBER weapon=ZBROYAR_Z15_S2
-[AQ] USE fighter=RUBBER weapon=ZBROYAR_Z15_S2
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=10.480
-[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S2 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=10.613
-[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S2 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=10.780
-[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S2 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=10.947
-[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S2 damage=4.8
-[AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S2 reason=sequence-complete
-[AQ] REVEAL id=4 weapon=SHOTGUN eta=1.47 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=1 fighter=RUBBER weapon=ZBROYAR_Z15_S3
+[AQ] SPAWN_SLOT id=8 x=421 y=855 lead=2.00
+[AQ] REVEAL id=7 weapon=ZBROYAR_Z15_S3 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=7 fighter=RUBBER weapon=ZBROYAR_Z15_S3
 [AQ] USE fighter=RUBBER weapon=ZBROYAR_Z15_S3
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=12.280
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=23.497
 [AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S3 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=12.413
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=23.630
 [AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S3 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=12.580
-[AQ] PICKUP id=4 fighter=ICE weapon=SHOTGUN
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=23.797
 [AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S3 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=12.747
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=23.963
 [AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S3 damage=4.8
 [AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S3 reason=sequence-complete
-[AQ] USE fighter=ICE weapon=SHOTGUN
-[AQ] SHOT fighter=ICE weapon=SHOTGUN t=12.980
-[AQ] SPAWN_SLOT id=5 x=238 y=630 lead=2.00
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] SHOT fighter=ICE weapon=SHOTGUN t=13.247
-[AQ] CONSUME fighter=ICE weapon=SHOTGUN reason=sequence-complete
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] REVEAL id=5 weapon=ZBROYAR_Z15_S3 eta=1.07 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=5 fighter=RUBBER weapon=ZBROYAR_Z15_S3
-[AQ] USE fighter=RUBBER weapon=ZBROYAR_Z15_S3
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=15.413
-[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S3 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=15.547
-[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S3 damage=4.8
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=15.713
-[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S3 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=15.880
-[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S3 damage=4.8
-[AQ] SPAWN_SLOT id=6 x=523 y=639 lead=2.00
-[AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S3 reason=sequence-complete
-[AQ] SPAWN_SLOT id=7 x=351 y=591 lead=2.00
-[AQ] REVEAL id=6 weapon=SNIPER eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] REVEAL id=7 weapon=TEC_9 eta=0.83 lead=2.00 fighter=RUBBER force=false
-[AQ] PICKUP id=6 fighter=RUBBER weapon=SNIPER
+[AQ] SPAWN_SLOT id=9 x=101 y=156 lead=2.00
+[AQ] REVEAL id=8 weapon=SNIPER eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=8 fighter=RUBBER weapon=SNIPER
 [AQ] USE fighter=RUBBER weapon=SNIPER
-[AQ] REJECT_PICKUP fighter=RUBBER id=7 reason=already-armed
-[AQ] SHOT fighter=RUBBER weapon=SNIPER t=21.013
+[AQ] SHOT fighter=RUBBER weapon=SNIPER t=26.563
 [AQ] CONSUME fighter=RUBBER weapon=SNIPER reason=shot-fired
 [AQ] HIT source=RUBBER target=ICE weapon=SNIPER damage=38.0
-[AQ] PICKUP id=7 fighter=RUBBER weapon=TEC_9
-[AQ] USE fighter=RUBBER weapon=TEC_9
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=21.387
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=21.453
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=21.553
-[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=21.653
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=21.720
-[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
-[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
-[AQ] CONSUME fighter=RUBBER weapon=TEC_9 reason=sequence-complete
-[AQ] SPAWN_SLOT id=8 x=769 y=584 lead=2.00
-[AQ] SPAWN_SLOT id=9 x=173 y=373 lead=2.00
-[AQ] REVEAL id=8 weapon=GLOCK_17 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=8 fighter=RUBBER weapon=GLOCK_17
-[AQ] USE fighter=RUBBER weapon=GLOCK_17
-[AQ] SHOT fighter=RUBBER weapon=GLOCK_17 t=25.520
-[AQ] HIT source=RUBBER target=ICE weapon=GLOCK_17 damage=3.5
 [AQ] KO winner=RUBBER
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
@@ -2014,124 +1221,95 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=848 y=442 lead=2.00
+[AQ] SPAWN_SLOT id=1 x=705 y=892 lead=2.00
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] REVEAL id=1 weapon=SAWED_OFF eta=0.42 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=1 fighter=ICE weapon=SAWED_OFF
-[AQ] USE fighter=ICE weapon=SAWED_OFF
-[AQ] CONSUME fighter=ICE weapon=SAWED_OFF reason=blast-resolved
-[AQ] SPAWN_SLOT id=2 x=201 y=359 lead=2.00
-[AQ] SPAWN_SLOT id=3 x=702 y=120 lead=2.00
-[AQ] REVEAL id=2 weapon=MAGNUM_500 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=2 fighter=RUBBER weapon=MAGNUM_500
-[AQ] USE fighter=RUBBER weapon=MAGNUM_500
-[AQ] SHOT fighter=RUBBER weapon=MAGNUM_500 t=9.203
-[AQ] CONSUME fighter=RUBBER weapon=MAGNUM_500 reason=sequence-complete
-[AQ] SPAWN_SLOT id=4 x=909 y=440 lead=2.00
-[AQ] REVEAL id=3 weapon=SHOTGUN eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] SPAWN_SLOT id=5 x=566 y=716 lead=2.00
-[AQ] REVEAL id=4 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] REVEAL id=1 weapon=ZBROYAR_Z15_S2 eta=0.63 lead=2.00 fighter=RUBBER force=false
+[AQ] PICKUP id=1 fighter=RUBBER weapon=ZBROYAR_Z15_S2
+[AQ] USE fighter=RUBBER weapon=ZBROYAR_Z15_S2
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=2.267
+[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S2 damage=4.8
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=2.400
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=2.567
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=2.733
+[AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S2 reason=sequence-complete
+[AQ] SPAWN_SLOT id=2 x=546 y=515 lead=2.00
+[AQ] REVEAL id=2 weapon=M16 eta=0.00 lead=2.00 fighter=ICE force=false
+[AQ] PICKUP id=2 fighter=ICE weapon=M16
+[AQ] USE fighter=ICE weapon=M16
+[AQ] SHOT fighter=ICE weapon=M16 t=4.367
+[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
+[AQ] SHOT fighter=ICE weapon=M16 t=4.433
+[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
+[AQ] SHOT fighter=ICE weapon=M16 t=4.500
+[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SHOT fighter=ICE weapon=M16 t=4.800
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SHOT fighter=ICE weapon=M16 t=4.867
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
+[AQ] SHOT fighter=ICE weapon=M16 t=4.967
+[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
+Not implemented: HTMLMediaElement's pause() method
+[AQ] CONSUME fighter=ICE weapon=M16 reason=sequence-complete
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=3 x=345 y=331 lead=2.00
+[AQ] REVEAL id=3 weapon=SHOTGUN eta=0.49 lead=2.00 fighter=ICE force=false
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
 [AQ] PICKUP id=3 fighter=ICE weapon=SHOTGUN
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
 [AQ] USE fighter=ICE weapon=SHOTGUN
-[AQ] SHOT fighter=ICE weapon=SHOTGUN t=15.137
+[AQ] SHOT fighter=ICE weapon=SHOTGUN t=9.367
 [AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
 [AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] SHOT fighter=ICE weapon=SHOTGUN t=15.403
+[AQ] SHOT fighter=ICE weapon=SHOTGUN t=9.633
 [AQ] CONSUME fighter=ICE weapon=SHOTGUN reason=sequence-complete
-[AQ] REVEAL id=5 weapon=SMG eta=0.91 lead=2.00 fighter=ICE force=false
 [AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
 [AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
 [AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
 [AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
 [AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=6 x=733 y=234 lead=2.00
-[AQ] PICKUP id=5 fighter=ICE weapon=SMG
-[AQ] USE fighter=ICE weapon=SMG
-[AQ] SHOT fighter=ICE weapon=SMG t=16.337
-[AQ] SHOT fighter=ICE weapon=SMG t=16.403
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
-[AQ] SHOT fighter=ICE weapon=SMG t=16.503
-[AQ] SHOT fighter=ICE weapon=SMG t=16.570
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
-[AQ] SHOT fighter=ICE weapon=SMG t=16.670
-[AQ] SHOT fighter=ICE weapon=SMG t=16.737
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
-[AQ] SHOT fighter=ICE weapon=SMG t=16.837
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
-[AQ] SHOT fighter=ICE weapon=SMG t=16.903
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
-[AQ] CONSUME fighter=ICE weapon=SMG reason=sequence-complete
-[AQ] REVEAL id=6 weapon=SABRE eta=0.47 lead=2.00 fighter=ICE force=false
-[AQ] MELEE_DECIDE fighter=ICE weapon=SABRE decision=throw
-[AQ] PICKUP id=6 fighter=ICE weapon=SABRE
-[AQ] THROW fighter=ICE weapon=SABRE ricochets=3
-[AQ] CONSUME fighter=ICE weapon=SABRE reason=thrown
-[AQ] HIT source=ICE target=RUBBER weapon=SABRE damage=18.0
-[AQ] THROWN_PIN weapon=SABRE target=RUBBER pin=1s
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=7 x=143 y=890 lead=2.00
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] REVEAL id=7 weapon=SNIPER eta=1.99 lead=2.00 fighter=RUBBER force=false
-[AQ] SPAWN_SLOT id=8 x=761 y=258 lead=2.00
-[AQ] REVEAL id=8 weapon=GRENADE eta=0.71 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=7 fighter=RUBBER weapon=SNIPER
-[AQ] USE fighter=RUBBER weapon=SNIPER
-[AQ] PICKUP id=8 fighter=ICE weapon=GRENADE
+[AQ] SPAWN_SLOT id=4 x=551 y=684 lead=2.00
+[AQ] REVEAL id=4 weapon=GRENADE eta=1.18 lead=2.00 fighter=ICE force=false
+[AQ] SPAWN_SLOT id=5 x=388 y=796 lead=2.00
+[AQ] PICKUP id=4 fighter=ICE weapon=GRENADE
 [AQ] USE fighter=ICE weapon=GRENADE
 [AQ] CONSUME fighter=ICE weapon=GRENADE reason=thrown
-[AQ] SHOT fighter=RUBBER weapon=SNIPER t=23.377
-[AQ] CONSUME fighter=RUBBER weapon=SNIPER reason=shot-fired
-[AQ] HIT source=RUBBER target=ICE weapon=SNIPER damage=38.0
-[AQ] EXPLODE weapon=GRENADE x=316 y=783
-[AQ] SPAWN_SLOT id=9 x=363 y=307 lead=2.00
-[AQ] SPAWN_SLOT id=10 x=332 y=507 lead=2.00
-[AQ] REVEAL id=9 weapon=SABRE eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] REVEAL id=10 weapon=SPIKED_CLUB eta=0.68 lead=2.00 fighter=RUBBER force=false
+[AQ] HIT source=ICE target=RUBBER weapon=GRENADE damage=10.6
+[AQ] EXPLODE weapon=GRENADE x=622 y=202
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=11 x=774 y=783 lead=2.00
-[AQ] MELEE_DECIDE fighter=RUBBER weapon=SPIKED_CLUB decision=throw
-[AQ] PICKUP id=10 fighter=RUBBER weapon=SPIKED_CLUB
-[AQ] THROW fighter=RUBBER weapon=SPIKED_CLUB ricochets=1
-[AQ] CONSUME fighter=RUBBER weapon=SPIKED_CLUB reason=thrown
-[AQ] THROWN_RICOCHET weapon=SPIKED_CLUB left=0
-[AQ] THROWN_RICOCHET weapon=SPIKED_CLUB left=-1
+[AQ] SPAWN_SLOT id=6 x=488 y=176 lead=2.00
+[AQ] REVEAL id=5 weapon=M249_SAW eta=null lead=2.00 fighter=TIMEOUT force=true
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] EXPIRE id=4 weapon=PISTOL
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=7 x=378 y=424 lead=2.00
+[AQ] REVEAL id=6 weapon=SAWED_OFF eta=null lead=2.00 fighter=TIMEOUT force=true
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=12 x=161 y=273 lead=2.00
-[AQ] REVEAL id=12 weapon=MOSSBERG_500 eta=0.25 lead=2.00 fighter=ICE force=false
-[AQ] REVEAL id=11 weapon=ZBROYAR_Z15_S2 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=12 fighter=ICE weapon=MOSSBERG_500
-[AQ] REJECT_PICKUP fighter=ICE id=9 reason=already-armed
-[AQ] USE fighter=ICE weapon=MOSSBERG_500
-[AQ] CONSUME fighter=ICE weapon=MOSSBERG_500 reason=blast-resolved
-[AQ] MELEE_DECIDE fighter=ICE weapon=SABRE decision=throw
-[AQ] PICKUP id=9 fighter=ICE weapon=SABRE
-[AQ] THROW fighter=ICE weapon=SABRE ricochets=3
-[AQ] CONSUME fighter=ICE weapon=SABRE reason=thrown
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
-[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=8 x=771 y=364 lead=2.00
+[AQ] REVEAL id=7 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=5 fighter=ICE weapon=M249_SAW
+[AQ] USE fighter=ICE weapon=M249_SAW
+[AQ] SHOT fighter=ICE weapon=M249_SAW t=22.373
+[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
 [AQ] KO winner=ICE
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
@@ -2143,140 +1321,1117 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=132 y=706 lead=2.00
+[AQ] SPAWN_SLOT id=1 x=244 y=605 lead=2.00
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=2 x=446 y=132 lead=2.00
-[AQ] REVEAL id=1 weapon=SABRE eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] MELEE_DECIDE fighter=RUBBER weapon=SABRE decision=strike
-[AQ] PICKUP id=1 fighter=RUBBER weapon=SABRE
-[AQ] USE fighter=RUBBER weapon=SABRE
-[AQ] HIT source=RUBBER target=ICE weapon=SABRE damage=18.0
-[AQ] CONSUME fighter=RUBBER weapon=SABRE reason=melee-resolved
-[AQ] SPAWN_SLOT id=3 x=302 y=852 lead=2.00
-[AQ] REVEAL id=2 weapon=SAWED_OFF eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] SPAWN_SLOT id=4 x=637 y=806 lead=2.00
-[AQ] REVEAL id=3 weapon=SMG eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] REVEAL id=4 weapon=P90 eta=0.16 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=4 fighter=ICE weapon=P90
+[AQ] REVEAL id=1 weapon=DAGGER eta=0.20 lead=2.00 fighter=ICE force=false
+[AQ] MELEE_DECIDE fighter=ICE weapon=DAGGER decision=throw
+[AQ] PICKUP id=1 fighter=ICE weapon=DAGGER
+[AQ] THROW fighter=ICE weapon=DAGGER ricochets=4
+[AQ] CONSUME fighter=ICE weapon=DAGGER reason=thrown
+[AQ] THROWN_RICOCHET weapon=DAGGER left=3
+[AQ] THROWN_RICOCHET weapon=DAGGER left=2
+[AQ] THROWN_RICOCHET weapon=DAGGER left=1
+[AQ] SPAWN_SLOT id=2 x=897 y=324 lead=2.00
+[AQ] THROWN_RICOCHET weapon=DAGGER left=0
+[AQ] THROWN_RICOCHET weapon=DAGGER left=-1
+[AQ] SPAWN_SLOT id=3 x=404 y=851 lead=2.00
+[AQ] REVEAL id=2 weapon=ZBROYAR_Z15 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] SPAWN_SLOT id=4 x=560 y=896 lead=2.00
+[AQ] REVEAL id=3 weapon=SPIKED_CLUB eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=2 fighter=RUBBER weapon=ZBROYAR_Z15
+[AQ] SPAWN_SLOT id=5 x=505 y=610 lead=2.00
+[AQ] REVEAL id=4 weapon=TEC_9 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] USE fighter=RUBBER weapon=ZBROYAR_Z15
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15 t=13.067
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15 t=13.200
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15 t=13.367
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15 t=13.533
+[AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15 reason=sequence-complete
+[AQ] REVEAL id=5 weapon=BERETTA_93R eta=0.65 lead=2.00 fighter=RUBBER force=false
+[AQ] PICKUP id=4 fighter=RUBBER weapon=TEC_9
+[AQ] USE fighter=RUBBER weapon=TEC_9
+[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=14.567
+[AQ] REJECT_PICKUP fighter=RUBBER id=5 reason=already-armed
+[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=14.633
+[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
+[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
+[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=14.733
+[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
+[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=14.833
+[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=14.900
+[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
+[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
+[AQ] CONSUME fighter=RUBBER weapon=TEC_9 reason=sequence-complete
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=6 x=542 y=129 lead=2.00
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=7 x=621 y=295 lead=2.00
+[AQ] REVEAL id=6 weapon=TEC_9 eta=null lead=2.00 fighter=TIMEOUT force=true
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] MELEE_DECIDE fighter=ICE weapon=SPIKED_CLUB decision=throw
+[AQ] PICKUP id=3 fighter=ICE weapon=SPIKED_CLUB
+[AQ] THROW fighter=ICE weapon=SPIKED_CLUB ricochets=1
+[AQ] CONSUME fighter=ICE weapon=SPIKED_CLUB reason=thrown
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=ICE target=RUBBER weapon=SPIKED_CLUB damage=27.0
+[AQ] THROWN_PIN weapon=SPIKED_CLUB target=RUBBER pin=1s
+[AQ] PICKUP id=5 fighter=ICE weapon=BERETTA_93R
+[AQ] USE fighter=ICE weapon=BERETTA_93R
+[AQ] SHOT fighter=ICE weapon=BERETTA_93R t=20.073
+[AQ] HIT source=ICE target=RUBBER weapon=BERETTA_93R damage=3.0
+[AQ] SHOT fighter=ICE weapon=BERETTA_93R t=20.107
+[AQ] HIT source=ICE target=RUBBER weapon=BERETTA_93R damage=3.0
+[AQ] SHOT fighter=ICE weapon=BERETTA_93R t=20.173
+[AQ] HIT source=ICE target=RUBBER weapon=BERETTA_93R damage=3.0
+[AQ] SHOT fighter=ICE weapon=BERETTA_93R t=20.407
+[AQ] SHOT fighter=ICE weapon=BERETTA_93R t=20.473
+[AQ] HIT source=ICE target=RUBBER weapon=BERETTA_93R damage=3.0
+[AQ] SHOT fighter=ICE weapon=BERETTA_93R t=20.507
+[AQ] CONSUME fighter=ICE weapon=BERETTA_93R reason=sequence-complete
+[AQ] HIT source=ICE target=RUBBER weapon=BERETTA_93R damage=3.0
+[AQ] HIT source=ICE target=RUBBER weapon=BERETTA_93R damage=3.0
+[AQ] SPAWN_SLOT id=8 x=159 y=423 lead=2.00
+[AQ] REVEAL id=7 weapon=BERETTA_93R eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] REVEAL id=8 weapon=ZBROYAR_Z15_S3 eta=0.98 lead=2.00 fighter=ICE force=false
+[AQ] PICKUP id=8 fighter=ICE weapon=ZBROYAR_Z15_S3
+[AQ] PICKUP id=7 fighter=RUBBER weapon=BERETTA_93R
+[AQ] USE fighter=ICE weapon=ZBROYAR_Z15_S3
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S3 t=23.240
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S3 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S3 t=23.373
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S3 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S3 t=23.540
+[AQ] USE fighter=RUBBER weapon=BERETTA_93R
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=23.573
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S3 damage=4.8
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=23.607
+[AQ] HIT source=RUBBER target=ICE weapon=BERETTA_93R damage=3.0
+[AQ] HIT source=RUBBER target=ICE weapon=BERETTA_93R damage=3.0
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=23.673
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S3 t=23.707
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S3 damage=4.8
+[AQ] HIT source=RUBBER target=ICE weapon=BERETTA_93R damage=3.0
+[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15_S3 reason=sequence-complete
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=23.907
+[AQ] HIT source=RUBBER target=ICE weapon=BERETTA_93R damage=3.0
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=23.973
+[AQ] HIT source=RUBBER target=ICE weapon=BERETTA_93R damage=3.0
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=24.007
+[AQ] HIT source=RUBBER target=ICE weapon=BERETTA_93R damage=3.0
+[AQ] CONSUME fighter=RUBBER weapon=BERETTA_93R reason=sequence-complete
+[AQ] PICKUP id=6 fighter=ICE weapon=TEC_9
+[AQ] USE fighter=ICE weapon=TEC_9
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=24.473
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=24.540
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=24.640
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=24.740
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] KO winner=ICE
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=573 y=144 lead=2.00
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=2 x=406 y=190 lead=2.00
+[AQ] REVEAL id=1 weapon=DESERT_DEAGLE eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=1 fighter=ICE weapon=DESERT_DEAGLE
+[AQ] USE fighter=ICE weapon=DESERT_DEAGLE
+[AQ] SHOT fighter=ICE weapon=DESERT_DEAGLE t=4.667
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=ICE target=RUBBER weapon=DESERT_DEAGLE damage=10.5
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SHOT fighter=ICE weapon=DESERT_DEAGLE t=5.033
+[AQ] HIT source=ICE target=RUBBER weapon=DESERT_DEAGLE damage=10.5
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] CONSUME fighter=ICE weapon=DESERT_DEAGLE reason=sequence-complete
+[AQ] SPAWN_SLOT id=3 x=491 y=649 lead=2.00
+[AQ] REVEAL id=2 weapon=P90 eta=null lead=2.00 fighter=TIMEOUT force=true
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] PICKUP id=2 fighter=ICE weapon=P90
 [AQ] USE fighter=ICE weapon=P90
-[AQ] SHOT fighter=ICE weapon=P90 t=10.967
-[AQ] SHOT fighter=ICE weapon=P90 t=11.000
+[AQ] SHOT fighter=ICE weapon=P90 t=9.267
+[AQ] SHOT fighter=ICE weapon=P90 t=9.300
+[AQ] SHOT fighter=ICE weapon=P90 t=9.367
 [AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
-[AQ] SHOT fighter=ICE weapon=P90 t=11.067
+[AQ] SHOT fighter=ICE weapon=P90 t=9.433
 [AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
-[AQ] SHOT fighter=ICE weapon=P90 t=11.133
+[AQ] SHOT fighter=ICE weapon=P90 t=9.500
 [AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
-[AQ] SHOT fighter=ICE weapon=P90 t=11.200
-[AQ] SHOT fighter=ICE weapon=P90 t=11.267
+[AQ] SHOT fighter=ICE weapon=P90 t=9.567
 [AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
-[AQ] SHOT fighter=ICE weapon=P90 t=11.333
+[AQ] SHOT fighter=ICE weapon=P90 t=9.633
 [AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
-[AQ] SHOT fighter=ICE weapon=P90 t=11.400
+[AQ] SHOT fighter=ICE weapon=P90 t=9.700
 [AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
-[AQ] SHOT fighter=ICE weapon=P90 t=11.467
-[AQ] SHOT fighter=ICE weapon=P90 t=11.533
+[AQ] SHOT fighter=ICE weapon=P90 t=9.767
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=9.833
 [AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
 [AQ] CONSUME fighter=ICE weapon=P90 reason=sequence-complete
 [AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
 [AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
-[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
-[AQ] PICKUP id=2 fighter=RUBBER weapon=SAWED_OFF
-[AQ] USE fighter=RUBBER weapon=SAWED_OFF
-[AQ] CONSUME fighter=RUBBER weapon=SAWED_OFF reason=blast-resolved
-[AQ] HIT source=RUBBER target=ICE weapon=SAWED_OFF damage=2.5
-[AQ] HIT source=RUBBER target=ICE weapon=SAWED_OFF damage=2.5
-[AQ] HIT source=RUBBER target=ICE weapon=SAWED_OFF damage=2.5
-[AQ] HIT source=RUBBER target=ICE weapon=SAWED_OFF damage=2.5
-[AQ] HIT source=RUBBER target=ICE weapon=SAWED_OFF damage=2.5
-[AQ] HIT source=RUBBER target=ICE weapon=SAWED_OFF damage=2.5
-[AQ] HIT source=RUBBER target=ICE weapon=SAWED_OFF damage=2.5
-[AQ] HIT source=RUBBER target=ICE weapon=SAWED_OFF damage=2.5
-[AQ] HIT source=RUBBER target=ICE weapon=SAWED_OFF damage=2.5
-[AQ] HIT source=RUBBER target=ICE weapon=SAWED_OFF damage=2.5
-[AQ] SPAWN_SLOT id=5 x=655 y=112 lead=2.00
-[AQ] PICKUP id=3 fighter=RUBBER weapon=SMG
-[AQ] USE fighter=RUBBER weapon=SMG
-[AQ] SHOT fighter=RUBBER weapon=SMG t=15.370
-[AQ] SHOT fighter=RUBBER weapon=SMG t=15.437
-[AQ] SHOT fighter=RUBBER weapon=SMG t=15.537
-[AQ] SHOT fighter=RUBBER weapon=SMG t=15.603
+[AQ] SPAWN_SLOT id=4 x=403 y=464 lead=2.00
+[AQ] REVEAL id=3 weapon=SABRE eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] MELEE_DECIDE fighter=ICE weapon=SABRE decision=strike
+[AQ] PICKUP id=3 fighter=ICE weapon=SABRE
+[AQ] USE fighter=ICE weapon=SABRE
+[AQ] HIT source=ICE target=RUBBER weapon=SABRE damage=18.0
+[AQ] CONSUME fighter=ICE weapon=SABRE reason=melee-resolved
+[AQ] SPAWN_SLOT id=5 x=649 y=410 lead=2.00
+[AQ] REVEAL id=4 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SHOT fighter=RUBBER weapon=SMG t=15.703
-[AQ] SHOT fighter=RUBBER weapon=SMG t=15.770
-[AQ] SHOT fighter=RUBBER weapon=SMG t=15.870
-[AQ] SHOT fighter=RUBBER weapon=SMG t=15.937
-[AQ] SPAWN_SLOT id=6 x=507 y=524 lead=2.00
-[AQ] REVEAL id=5 weapon=M16 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] CONSUME fighter=RUBBER weapon=SMG reason=sequence-complete
-[AQ] REVEAL id=6 weapon=DESERT_DEAGLE eta=1.98 lead=2.00 fighter=RUBBER force=false
-[AQ] PICKUP id=5 fighter=ICE weapon=M16
-[AQ] USE fighter=ICE weapon=M16
-[AQ] SHOT fighter=ICE weapon=M16 t=18.337
-[AQ] SHOT fighter=ICE weapon=M16 t=18.403
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SHOT fighter=ICE weapon=M16 t=18.470
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SHOT fighter=ICE weapon=M16 t=18.770
-[AQ] SHOT fighter=ICE weapon=M16 t=18.837
-Not implemented: HTMLMediaElement's pause() method
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-Not implemented: HTMLMediaElement's pause() method
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SHOT fighter=ICE weapon=M16 t=18.937
-Not implemented: HTMLMediaElement's pause() method
-[AQ] HIT source=ICE target=RUBBER weapon=M16 damage=3.6
-[AQ] SPAWN_SLOT id=7 x=899 y=853 lead=2.00
-[AQ] CONSUME fighter=ICE weapon=M16 reason=sequence-complete
+[AQ] SPAWN_SLOT id=6 x=818 y=333 lead=2.00
+[AQ] REVEAL id=5 weapon=ZBROYAR_Z15 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] REVEAL id=6 weapon=M249_SAW eta=0.19 lead=2.00 fighter=ICE force=false
+[AQ] PICKUP id=6 fighter=ICE weapon=M249_SAW
+[AQ] REJECT_PICKUP fighter=ICE id=5 reason=already-armed
+[AQ] USE fighter=ICE weapon=M249_SAW
+[AQ] SHOT fighter=ICE weapon=M249_SAW t=17.700
+[AQ] SHOT fighter=ICE weapon=M249_SAW t=17.767
+[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
+[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=ICE weapon=M249_SAW t=17.833
+[AQ] HIT source=ICE target=RUBBER weapon=M249_SAW damage=2.5
+[AQ] KO winner=ICE
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] PICKUP id=6 fighter=RUBBER weapon=DESERT_DEAGLE
-[AQ] USE fighter=RUBBER weapon=DESERT_DEAGLE
-[AQ] SHOT fighter=RUBBER weapon=DESERT_DEAGLE t=20.703
-[AQ] HIT source=RUBBER target=ICE weapon=DESERT_DEAGLE damage=10.5
-[AQ] SHOT fighter=RUBBER weapon=DESERT_DEAGLE t=21.070
-[AQ] HIT source=RUBBER target=ICE weapon=DESERT_DEAGLE damage=10.5
-[AQ] CONSUME fighter=RUBBER weapon=DESERT_DEAGLE reason=sequence-complete
-[AQ] SPAWN_SLOT id=8 x=153 y=210 lead=2.00
-[AQ] REVEAL id=7 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=7 fighter=ICE weapon=PISTOL
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=618 y=386 lead=2.00
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] REVEAL id=1 weapon=PISTOL eta=0.66 lead=2.00 fighter=ICE force=false
+[AQ] SPAWN_SLOT id=2 x=690 y=634 lead=2.00
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=3 x=220 y=104 lead=2.00
+[AQ] REVEAL id=2 weapon=MOSSBERG_500 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=1 fighter=ICE weapon=PISTOL
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] REJECT_PICKUP fighter=ICE id=2 reason=already-armed
 [AQ] USE fighter=ICE weapon=PISTOL
-[AQ] SHOT fighter=ICE weapon=PISTOL t=22.670
-[AQ] SHOT fighter=ICE weapon=PISTOL t=22.870
-[AQ] COUNTER_RESERVED id=8 for=RUBBER shield=SWIRL_SHIELD vs=PISTOL
+[AQ] SHOT fighter=ICE weapon=PISTOL t=8.233
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=ICE target=RUBBER weapon=PISTOL damage=4.5
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SHOT fighter=ICE weapon=PISTOL t=8.433
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=ICE target=RUBBER weapon=PISTOL damage=4.5
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SHOT fighter=ICE weapon=PISTOL t=8.667
+[AQ] HIT source=ICE target=RUBBER weapon=PISTOL damage=4.5
+[AQ] CONSUME fighter=ICE weapon=PISTOL reason=sequence-complete
+[AQ] SPAWN_SLOT id=4 x=420 y=352 lead=2.00
+[AQ] REVEAL id=3 weapon=MOSSBERG_500 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=2 fighter=ICE weapon=MOSSBERG_500
+[AQ] USE fighter=ICE weapon=MOSSBERG_500
+[AQ] CONSUME fighter=ICE weapon=MOSSBERG_500 reason=blast-resolved
+[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
+[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
+[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
+[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
+[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
+[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
+[AQ] REVEAL id=4 weapon=MBR eta=1.08 lead=2.00 fighter=ICE force=false
+[AQ] PICKUP id=4 fighter=RUBBER weapon=MBR
+[AQ] USE fighter=RUBBER weapon=MBR
+[AQ] SHOT fighter=RUBBER weapon=MBR t=12.637
+[AQ] HIT source=RUBBER target=ICE weapon=MBR damage=11.0
+[AQ] SPAWN_SLOT id=5 x=670 y=281 lead=2.00
+[AQ] SHOT fighter=RUBBER weapon=MBR t=13.110
+[AQ] CONSUME fighter=RUBBER weapon=MBR reason=shot-fired
+[AQ] HIT source=RUBBER target=ICE weapon=MBR damage=11.0
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=6 x=705 y=626 lead=2.00
+[AQ] REVEAL id=5 weapon=SNIPER eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=3 fighter=RUBBER weapon=MOSSBERG_500
+[AQ] USE fighter=RUBBER weapon=MOSSBERG_500
+[AQ] CONSUME fighter=RUBBER weapon=MOSSBERG_500 reason=blast-resolved
+[AQ] HIT source=RUBBER target=ICE weapon=MOSSBERG_500 damage=2.8
+[AQ] HIT source=RUBBER target=ICE weapon=MOSSBERG_500 damage=2.8
+[AQ] HIT source=RUBBER target=ICE weapon=MOSSBERG_500 damage=2.8
+[AQ] HIT source=RUBBER target=ICE weapon=MOSSBERG_500 damage=2.8
+[AQ] HIT source=RUBBER target=ICE weapon=MOSSBERG_500 damage=2.8
+[AQ] HIT source=RUBBER target=ICE weapon=MOSSBERG_500 damage=2.8
+[AQ] HIT source=RUBBER target=ICE weapon=MOSSBERG_500 damage=2.8
+[AQ] SPAWN_SLOT id=7 x=868 y=470 lead=2.00
+[AQ] REVEAL id=6 weapon=ZBROYAR_Z15_S3 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=5 fighter=ICE weapon=SNIPER
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=ICE weapon=SNIPER
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SHOT fighter=ICE weapon=SNIPER t=20.187
+[AQ] CONSUME fighter=ICE weapon=SNIPER reason=shot-fired
+[AQ] HIT source=ICE target=RUBBER weapon=SNIPER damage=38.0
+[AQ] KO winner=ICE
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=861 y=772 lead=2.00
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] REVEAL id=1 weapon=TEC_9 eta=0.34 lead=2.00 fighter=RUBBER force=false
+[AQ] PICKUP id=1 fighter=RUBBER weapon=TEC_9
+[AQ] USE fighter=RUBBER weapon=TEC_9
+[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=3.933
+[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=4.000
+[AQ] SPAWN_SLOT id=2 x=222 y=240 lead=2.00
+[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=4.100
+[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=4.200
+[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
+[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=4.267
+[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
+[AQ] CONSUME fighter=RUBBER weapon=TEC_9 reason=sequence-complete
+[AQ] HIT source=RUBBER target=ICE weapon=TEC_9 damage=3.0
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=3 x=137 y=735 lead=2.00
+[AQ] REVEAL id=2 weapon=SMG eta=null lead=2.00 fighter=TIMEOUT force=true
+Not implemented: HTMLMediaElement's pause() method
+[AQ] PICKUP id=2 fighter=ICE weapon=SMG
+[AQ] USE fighter=ICE weapon=SMG
+[AQ] SHOT fighter=ICE weapon=SMG t=8.900
+[AQ] SHOT fighter=ICE weapon=SMG t=8.967
+[AQ] SHOT fighter=ICE weapon=SMG t=9.067
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] SHOT fighter=ICE weapon=SMG t=9.133
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] SHOT fighter=ICE weapon=SMG t=9.233
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] SHOT fighter=ICE weapon=SMG t=9.300
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] SHOT fighter=ICE weapon=SMG t=9.400
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] SHOT fighter=ICE weapon=SMG t=9.467
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] CONSUME fighter=ICE weapon=SMG reason=sequence-complete
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.3
+[AQ] SPAWN_SLOT id=4 x=263 y=323 lead=2.00
+[AQ] REVEAL id=3 weapon=SZECSEI_FUCHS eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] REVEAL id=4 weapon=M249_SAW eta=0.31 lead=2.00 fighter=RUBBER force=false
+[AQ] PICKUP id=4 fighter=RUBBER weapon=M249_SAW
+[AQ] USE fighter=RUBBER weapon=M249_SAW
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=12.133
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=12.200
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=12.267
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=12.333
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=12.400
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=12.500
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=12.567
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=12.633
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=12.700
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=12.800
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=12.867
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=12.933
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] CONSUME fighter=RUBBER weapon=M249_SAW reason=sequence-complete
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SPAWN_SLOT id=5 x=522 y=411 lead=2.00
+[AQ] REVEAL id=5 weapon=BERETTA_93R eta=0.81 lead=2.00 fighter=RUBBER force=false
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] PICKUP id=3 fighter=ICE weapon=SZECSEI_FUCHS
+[AQ] PICKUP id=5 fighter=RUBBER weapon=BERETTA_93R
+[AQ] USE fighter=ICE weapon=SZECSEI_FUCHS
+[AQ] SPAWN_SLOT id=6 x=119 y=631 lead=2.00
+[AQ] USE fighter=RUBBER weapon=BERETTA_93R
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=16.300
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=16.333
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=16.400
+[AQ] SHOT fighter=ICE weapon=SZECSEI_FUCHS t=16.400
+[AQ] HIT source=ICE target=RUBBER weapon=SZECSEI_FUCHS damage=15.0
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=16.640
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=16.673
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=16.740
+[AQ] HIT source=RUBBER target=ICE weapon=BERETTA_93R damage=3.0
+[AQ] HIT source=RUBBER target=ICE weapon=BERETTA_93R damage=3.0
+[AQ] CONSUME fighter=RUBBER weapon=BERETTA_93R reason=sequence-complete
+[AQ] HIT source=RUBBER target=ICE weapon=BERETTA_93R damage=3.0
+[AQ] SHOT fighter=ICE weapon=SZECSEI_FUCHS t=16.973
+[AQ] CONSUME fighter=ICE weapon=SZECSEI_FUCHS reason=shot-fired
+[AQ] HIT source=ICE target=RUBBER weapon=SZECSEI_FUCHS damage=15.0
+[AQ] SPAWN_SLOT id=7 x=759 y=902 lead=2.00
+[AQ] REVEAL id=6 weapon=MBR2 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=6 fighter=ICE weapon=MBR2
+[AQ] USE fighter=ICE weapon=MBR2
+[AQ] SHOT fighter=ICE weapon=MBR2 t=21.813
+[AQ] HIT source=ICE target=RUBBER weapon=MBR2 damage=14.0
+[AQ] SPAWN_SLOT id=8 x=487 y=446 lead=2.00
+[AQ] REVEAL id=7 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] SHOT fighter=ICE weapon=MBR2 t=22.320
+[AQ] CONSUME fighter=ICE weapon=MBR2 reason=shot-fired
+[AQ] HIT source=ICE target=RUBBER weapon=MBR2 damage=14.0
+[AQ] KO winner=ICE
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=510 y=176 lead=2.00
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=2 x=388 y=533 lead=2.00
+[AQ] REVEAL id=1 weapon=DESERT_DEAGLE eta=null lead=2.00 fighter=TIMEOUT force=true
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] PICKUP id=1 fighter=ICE weapon=DESERT_DEAGLE
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=ICE weapon=DESERT_DEAGLE
+[AQ] SHOT fighter=ICE weapon=DESERT_DEAGLE t=5.567
+[AQ] HIT source=ICE target=RUBBER weapon=DESERT_DEAGLE damage=10.5
+[AQ] SHOT fighter=ICE weapon=DESERT_DEAGLE t=5.933
+[AQ] HIT source=ICE target=RUBBER weapon=DESERT_DEAGLE damage=10.5
+[AQ] CONSUME fighter=ICE weapon=DESERT_DEAGLE reason=sequence-complete
+[AQ] SPAWN_SLOT id=3 x=549 y=618 lead=2.00
+[AQ] REVEAL id=3 weapon=ZBROYAR_Z15 eta=0.03 lead=2.00 fighter=ICE force=false
+[AQ] PICKUP id=3 fighter=ICE weapon=ZBROYAR_Z15
+[AQ] REVEAL id=2 weapon=BATTLE_AXE eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] USE fighter=ICE weapon=ZBROYAR_Z15
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=7.367
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=7.500
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=7.667
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=7.833
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
+[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15 reason=sequence-complete
+[AQ] MELEE_DECIDE fighter=ICE weapon=BATTLE_AXE decision=throw
+[AQ] PICKUP id=2 fighter=ICE weapon=BATTLE_AXE
+[AQ] THROW fighter=ICE weapon=BATTLE_AXE ricochets=1
+[AQ] CONSUME fighter=ICE weapon=BATTLE_AXE reason=thrown
+[AQ] THROWN_RICOCHET weapon=BATTLE_AXE left=0
+[AQ] THROWN_RICOCHET weapon=BATTLE_AXE left=-1
+[AQ] SPAWN_SLOT id=4 x=269 y=280 lead=2.00
+[AQ] REVEAL id=4 weapon=MAGNUM_500 eta=0.33 lead=2.00 fighter=RUBBER force=false
+[AQ] PICKUP id=4 fighter=RUBBER weapon=MAGNUM_500
+[AQ] USE fighter=RUBBER weapon=MAGNUM_500
+[AQ] SHOT fighter=RUBBER weapon=MAGNUM_500 t=10.500
+[AQ] CONSUME fighter=RUBBER weapon=MAGNUM_500 reason=sequence-complete
+[AQ] HIT source=RUBBER target=ICE weapon=MAGNUM_500 damage=28.0
+[AQ] SPAWN_SLOT id=5 x=659 y=266 lead=2.00
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=6 x=493 y=125 lead=2.00
+[AQ] REVEAL id=5 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] REVEAL id=6 weapon=TEC_9 eta=0.49 lead=2.00 fighter=ICE force=false
+[AQ] PICKUP id=6 fighter=ICE weapon=TEC_9
+[AQ] USE fighter=ICE weapon=TEC_9
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=16.933
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=17.000
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=17.100
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=17.200
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=17.267
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] CONSUME fighter=ICE weapon=TEC_9 reason=sequence-complete
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] SPAWN_SLOT id=7 x=93 y=699 lead=2.00
+[AQ] SPAWN_SLOT id=8 x=446 y=602 lead=2.00
+[AQ] REVEAL id=7 weapon=AK_47 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=5 fighter=ICE weapon=PISTOL
+[AQ] SPAWN_SLOT id=9 x=294 y=99 lead=2.00
+[AQ] REVEAL id=8 weapon=SAWED_OFF eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] USE fighter=ICE weapon=PISTOL
+[AQ] SHOT fighter=ICE weapon=PISTOL t=25.333
+[AQ] HIT source=ICE target=RUBBER weapon=PISTOL damage=4.5
+[AQ] SHOT fighter=ICE weapon=PISTOL t=25.533
+[AQ] HIT source=ICE target=RUBBER weapon=PISTOL damage=4.5
+[AQ] SHOT fighter=ICE weapon=PISTOL t=25.767
+[AQ] HIT source=ICE target=RUBBER weapon=PISTOL damage=4.5
+[AQ] CONSUME fighter=ICE weapon=PISTOL reason=sequence-complete
+[AQ] PICKUP id=8 fighter=ICE weapon=SAWED_OFF
+[AQ] USE fighter=ICE weapon=SAWED_OFF
+[AQ] CONSUME fighter=ICE weapon=SAWED_OFF reason=blast-resolved
+[AQ] SPAWN_SLOT id=10 x=544 y=576 lead=2.00
+[AQ] REVEAL id=10 weapon=SHOTGUN eta=0.83 lead=2.00 fighter=ICE force=false
+[AQ] REVEAL id=9 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=10 fighter=ICE weapon=SHOTGUN
+[AQ] USE fighter=ICE weapon=SHOTGUN
+[AQ] SHOT fighter=ICE weapon=SHOTGUN t=29.003
+[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
+[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
+[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
+[AQ] KO winner=ICE
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=832 y=795 lead=2.00
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=2 x=149 y=755 lead=2.00
+[AQ] REVEAL id=1 weapon=TEC_9 eta=null lead=2.00 fighter=TIMEOUT force=true
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] PICKUP id=1 fighter=ICE weapon=TEC_9
+[AQ] USE fighter=ICE weapon=TEC_9
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=5.967
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=6.033
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=6.133
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=6.233
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=6.300
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] CONSUME fighter=ICE weapon=TEC_9 reason=sequence-complete
+[AQ] SPAWN_SLOT id=3 x=687 y=425 lead=2.00
+[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S1 eta=null lead=2.00 fighter=TIMEOUT force=true
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=4 x=614 y=579 lead=2.00
+[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S1 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] REVEAL id=4 weapon=SABRE eta=0.99 lead=2.00 fighter=RUBBER force=false
+[AQ] MELEE_DECIDE fighter=RUBBER weapon=SABRE decision=throw
+[AQ] PICKUP id=4 fighter=RUBBER weapon=SABRE
+[AQ] THROW fighter=RUBBER weapon=SABRE ricochets=3
+[AQ] CONSUME fighter=RUBBER weapon=SABRE reason=thrown
+[AQ] THROWN_RICOCHET weapon=SABRE left=2
+[AQ] SPAWN_SLOT id=5 x=225 y=489 lead=2.00
+[AQ] THROWN_RICOCHET weapon=SABRE left=1
+[AQ] PICKUP id=2 fighter=RUBBER weapon=ZBROYAR_Z15_S1
+[AQ] USE fighter=RUBBER weapon=ZBROYAR_Z15_S1
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=14.400
+[AQ] THROWN_RICOCHET weapon=SABRE left=0
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=14.533
+[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=14.700
+[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=14.867
+[AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S1 reason=sequence-complete
+[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S1 damage=4.8
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] PICKUP id=3 fighter=ICE weapon=ZBROYAR_Z15_S1
+[AQ] SPAWN_SLOT id=6 x=285 y=186 lead=2.00
+[AQ] REVEAL id=5 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] USE fighter=ICE weapon=ZBROYAR_Z15_S1
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S1 t=16.167
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S1 t=16.300
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S1 t=16.467
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S1 t=16.633
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15_S1 reason=sequence-complete
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=7 x=579 y=417 lead=2.00
+[AQ] REVEAL id=6 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] PICKUP id=6 fighter=ICE weapon=GRENADE
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=ICE weapon=GRENADE
+[AQ] CONSUME fighter=ICE weapon=GRENADE reason=thrown
+[AQ] PICKUP id=5 fighter=ICE weapon=MAC_10
+[AQ] USE fighter=ICE weapon=MAC_10
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=20.533
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=20.567
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=20.633
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] COUNTER_RESERVED id=7 for=RUBBER shield=SWIRL_SHIELD vs=MAC_10
 [AQ] USE fighter=RUBBER weapon=SWIRL_SHIELD
-[AQ] PICKUP id=8 fighter=RUBBER weapon=SWIRL_SHIELD
-[AQ] HIT source=ICE target=RUBBER weapon=PISTOL damage=4.5
+[AQ] PICKUP id=7 fighter=RUBBER weapon=SWIRL_SHIELD
 [AQ] REFLECT fighter=RUBBER weapon=SWIRL_SHIELD projectileFrom=ICE
-[AQ] SHOT fighter=ICE weapon=PISTOL t=23.103
-[AQ] HIT source=RUBBER target=ICE weapon=PISTOL damage=4.5
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=20.667
 [AQ] REFLECT fighter=RUBBER weapon=SWIRL_SHIELD projectileFrom=ICE
-[AQ] CONSUME fighter=ICE weapon=PISTOL reason=sequence-complete
-[AQ] CONSUME fighter=RUBBER weapon=SWIRL_SHIELD reason=expired
-[AQ] HIT source=RUBBER target=ICE weapon=PISTOL damage=4.5
-[AQ] SPAWN_SLOT id=9 x=108 y=232 lead=2.00
-[AQ] SPAWN_SLOT id=10 x=226 y=734 lead=2.00
-[AQ] REVEAL id=9 weapon=TEC_9 eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] REVEAL id=10 weapon=PISTOL eta=0.36 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=10 fighter=ICE weapon=PISTOL
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=20.733
+[AQ] REFLECT fighter=RUBBER weapon=SWIRL_SHIELD projectileFrom=ICE
+[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=20.800
+[AQ] REFLECT fighter=RUBBER weapon=SWIRL_SHIELD projectileFrom=ICE
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=20.833
+[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
+[AQ] REFLECT fighter=RUBBER weapon=SWIRL_SHIELD projectileFrom=ICE
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=20.900
+[AQ] REFLECT fighter=RUBBER weapon=SWIRL_SHIELD projectileFrom=ICE
+[AQ] CONSUME fighter=ICE weapon=MAC_10 reason=sequence-complete
+[AQ] REFLECT fighter=RUBBER weapon=SWIRL_SHIELD projectileFrom=ICE
+[AQ] CONSUME fighter=RUBBER weapon=SWIRL_SHIELD reason=bound-over
+[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
+[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
+[AQ] HIT source=ICE target=RUBBER weapon=GRENADE damage=16.0
+[AQ] EXPLODE weapon=GRENADE x=586 y=417
+[AQ] KO winner=ICE
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=125 y=652 lead=2.00
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] REVEAL id=1 weapon=SPEAR eta=0.15 lead=2.00 fighter=ICE force=false
+[AQ] SPAWN_SLOT id=2 x=818 y=486 lead=2.00
+[AQ] MELEE_DECIDE fighter=ICE weapon=SPEAR decision=strike
+[AQ] PICKUP id=1 fighter=ICE weapon=SPEAR
+[AQ] USE fighter=ICE weapon=SPEAR
+[AQ] HIT source=ICE target=RUBBER weapon=SPEAR damage=22.5
+[AQ] CONSUME fighter=ICE weapon=SPEAR reason=melee-resolved
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] REVEAL id=2 weapon=P90 eta=0.31 lead=2.00 fighter=ICE force=false
+[AQ] PICKUP id=2 fighter=ICE weapon=P90
+[AQ] SPAWN_SLOT id=3 x=690 y=426 lead=2.00
+[AQ] USE fighter=ICE weapon=P90
+[AQ] SHOT fighter=ICE weapon=P90 t=7.200
+[AQ] SHOT fighter=ICE weapon=P90 t=7.233
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=7.300
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=7.367
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=7.433
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=7.500
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=7.567
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=7.633
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=7.700
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=7.767
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] CONSUME fighter=ICE weapon=P90 reason=sequence-complete
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=4 x=335 y=488 lead=2.00
+[AQ] REVEAL id=3 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=3 fighter=RUBBER weapon=MAC_10
+[AQ] USE fighter=RUBBER weapon=MAC_10
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=11.967
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=12.000
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=12.067
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=12.100
+[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=12.167
+[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=12.233
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=12.267
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=12.333
+[AQ] CONSUME fighter=RUBBER weapon=MAC_10 reason=sequence-complete
+[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
+[AQ] REVEAL id=4 weapon=P90 eta=0.81 lead=2.00 fighter=ICE force=false
+[AQ] SPAWN_SLOT id=5 x=875 y=471 lead=2.00
+[AQ] PICKUP id=4 fighter=ICE weapon=P90
+[AQ] USE fighter=ICE weapon=P90
+[AQ] SHOT fighter=ICE weapon=P90 t=13.767
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=13.800
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=13.867
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=13.933
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=14.000
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=14.067
+[AQ] SHOT fighter=ICE weapon=P90 t=14.133
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=14.200
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=14.267
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] SHOT fighter=ICE weapon=P90 t=14.333
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+[AQ] CONSUME fighter=ICE weapon=P90 reason=sequence-complete
+[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=6 x=448 y=774 lead=2.00
+[AQ] REVEAL id=5 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] KO winner=ICE
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=586 y=599 lead=2.00
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=2 x=579 y=441 lead=2.00
+[AQ] REVEAL id=1 weapon=ZBROYAR_Z15 eta=null lead=2.00 fighter=TIMEOUT force=true
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=3 x=210 y=233 lead=2.00
+[AQ] REVEAL id=2 weapon=JACKHAMMER eta=null lead=2.00 fighter=TIMEOUT force=true
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] PICKUP id=1 fighter=ICE weapon=ZBROYAR_Z15
+[AQ] USE fighter=ICE weapon=ZBROYAR_Z15
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=9.133
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=9.267
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=9.433
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=9.600
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
+[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15 reason=sequence-complete
+[AQ] SPAWN_SLOT id=4 x=550 y=198 lead=2.00
+[AQ] REVEAL id=3 weapon=MBR2 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=2 fighter=RUBBER weapon=JACKHAMMER
+[AQ] USE fighter=RUBBER weapon=JACKHAMMER
+[AQ] SHOT fighter=RUBBER weapon=JACKHAMMER t=10.667
+[AQ] HIT source=RUBBER target=ICE weapon=JACKHAMMER damage=2.4
+[AQ] HIT source=RUBBER target=ICE weapon=JACKHAMMER damage=2.4
+[AQ] HIT source=RUBBER target=ICE weapon=JACKHAMMER damage=2.4
+[AQ] HIT source=RUBBER target=ICE weapon=JACKHAMMER damage=2.4
+[AQ] SHOT fighter=RUBBER weapon=JACKHAMMER t=10.800
+[AQ] HIT source=RUBBER target=ICE weapon=JACKHAMMER damage=2.4
+[AQ] HIT source=RUBBER target=ICE weapon=JACKHAMMER damage=2.4
+[AQ] HIT source=RUBBER target=ICE weapon=JACKHAMMER damage=2.4
+[AQ] SHOT fighter=RUBBER weapon=JACKHAMMER t=10.933
+[AQ] CONSUME fighter=RUBBER weapon=JACKHAMMER reason=sequence-complete
+[AQ] PICKUP id=3 fighter=ICE weapon=MBR2
+[AQ] USE fighter=ICE weapon=MBR2
+[AQ] SPAWN_SLOT id=5 x=765 y=909 lead=2.00
+[AQ] REVEAL id=4 weapon=M249_SAW eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] SHOT fighter=ICE weapon=MBR2 t=13.067
+[AQ] HIT source=ICE target=RUBBER weapon=MBR2 damage=14.0
+[AQ] SHOT fighter=ICE weapon=MBR2 t=13.573
+[AQ] CONSUME fighter=ICE weapon=MBR2 reason=shot-fired
+[AQ] HIT source=ICE target=RUBBER weapon=MBR2 damage=14.0
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=6 x=443 y=854 lead=2.00
+[AQ] REVEAL id=5 weapon=GLOCK_17 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=5 fighter=ICE weapon=GLOCK_17
+[AQ] PICKUP id=4 fighter=RUBBER weapon=M249_SAW
+[AQ] USE fighter=ICE weapon=GLOCK_17
+[AQ] SHOT fighter=ICE weapon=GLOCK_17 t=16.813
+[AQ] USE fighter=RUBBER weapon=M249_SAW
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=16.913
+[AQ] SHOT fighter=ICE weapon=GLOCK_17 t=16.913
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=16.980
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=17.047
+[AQ] SHOT fighter=ICE weapon=GLOCK_17 t=17.047
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] HIT source=ICE target=RUBBER weapon=GLOCK_17 damage=3.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=17.113
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] HIT source=ICE target=RUBBER weapon=GLOCK_17 damage=3.5
+[AQ] SHOT fighter=ICE weapon=GLOCK_17 t=17.147
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=17.180
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] HIT source=ICE target=RUBBER weapon=GLOCK_17 damage=3.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=17.280
+[AQ] CONSUME fighter=ICE weapon=GLOCK_17 reason=sequence-complete
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] HIT source=ICE target=RUBBER weapon=GLOCK_17 damage=3.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=17.347
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=17.413
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=17.480
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=17.580
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=17.647
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=17.713
+[AQ] HIT source=RUBBER target=ICE weapon=M249_SAW damage=2.5
+[AQ] CONSUME fighter=RUBBER weapon=M249_SAW reason=sequence-complete
+[AQ] SPAWN_SLOT id=7 x=709 y=411 lead=2.00
+[AQ] REVEAL id=6 weapon=ZBROYAR_Z15_S2 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=6 fighter=ICE weapon=ZBROYAR_Z15_S2
+[AQ] USE fighter=ICE weapon=ZBROYAR_Z15_S2
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S2 t=19.547
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S2 damage=4.8
+[AQ] KO winner=ICE
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=207 y=769 lead=2.00
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] REVEAL id=1 weapon=SABRE eta=0.96 lead=2.00 fighter=ICE force=false
+[AQ] MELEE_DECIDE fighter=ICE weapon=SABRE decision=throw
+[AQ] PICKUP id=1 fighter=ICE weapon=SABRE
+[AQ] THROW fighter=ICE weapon=SABRE ricochets=3
+[AQ] CONSUME fighter=ICE weapon=SABRE reason=thrown
+[AQ] SPAWN_SLOT id=2 x=804 y=819 lead=2.00
+[AQ] HIT source=ICE target=RUBBER weapon=SABRE damage=18.0
+[AQ] THROWN_PIN weapon=SABRE target=RUBBER pin=1s
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=3 x=275 y=906 lead=2.00
+[AQ] REVEAL id=2 weapon=SHOTGUN eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] REVEAL id=3 weapon=MAC_10 eta=0.77 lead=2.00 fighter=ICE force=false
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] PICKUP id=3 fighter=ICE weapon=MAC_10
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=ICE weapon=MAC_10
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=8.540
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=8.573
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=8.640
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=8.673
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=8.740
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=8.807
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=8.840
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] SHOT fighter=ICE weapon=MAC_10 t=8.907
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
+[AQ] CONSUME fighter=ICE weapon=MAC_10 reason=sequence-complete
+[AQ] SPAWN_SLOT id=4 x=148 y=113 lead=2.00
+[AQ] SPAWN_SLOT id=5 x=843 y=128 lead=2.00
+[AQ] REVEAL id=4 weapon=MBR2 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] REVEAL id=5 weapon=GLOCK_17 eta=1.74 lead=2.00 fighter=RUBBER force=false
+[AQ] PICKUP id=2 fighter=ICE weapon=SHOTGUN
+[AQ] USE fighter=ICE weapon=SHOTGUN
+[AQ] SHOT fighter=ICE weapon=SHOTGUN t=15.207
+[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
+[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
+[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
+[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
+[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
+[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=2.0
+[AQ] SHOT fighter=ICE weapon=SHOTGUN t=15.473
+[AQ] CONSUME fighter=ICE weapon=SHOTGUN reason=sequence-complete
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=6 x=350 y=523 lead=2.00
+[AQ] REVEAL id=6 weapon=AK_47 eta=1.99 lead=2.00 fighter=RUBBER force=false
+[AQ] PICKUP id=6 fighter=ICE weapon=AK_47
+[AQ] USE fighter=ICE weapon=AK_47
+[AQ] SHOT fighter=ICE weapon=AK_47 t=17.140
+[AQ] SHOT fighter=ICE weapon=AK_47 t=17.240
+[AQ] HIT source=ICE target=RUBBER weapon=AK_47 damage=3.8
+[AQ] HIT source=ICE target=RUBBER weapon=AK_47 damage=3.8
+[AQ] SHOT fighter=ICE weapon=AK_47 t=17.340
+[AQ] HIT source=ICE target=RUBBER weapon=AK_47 damage=3.8
+[AQ] SHOT fighter=ICE weapon=AK_47 t=17.440
+[AQ] HIT source=ICE target=RUBBER weapon=AK_47 damage=3.8
+[AQ] SHOT fighter=ICE weapon=AK_47 t=17.573
+[AQ] HIT source=ICE target=RUBBER weapon=AK_47 damage=3.8
+[AQ] KO winner=ICE
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=160 y=747 lead=2.00
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=2 x=240 y=594 lead=2.00
+[AQ] REVEAL id=1 weapon=ZBROYAR_Z15 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=1 fighter=ICE weapon=ZBROYAR_Z15
+Not implemented: HTMLMediaElement's pause() method
+[AQ] USE fighter=ICE weapon=ZBROYAR_Z15
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=4.733
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=4.867
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=5.033
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=5.200
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
+[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15 reason=sequence-complete
+[AQ] SPAWN_SLOT id=3 x=898 y=702 lead=2.00
+[AQ] REVEAL id=2 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=2 fighter=ICE weapon=PISTOL
 [AQ] USE fighter=ICE weapon=PISTOL
-[AQ] SHOT fighter=ICE weapon=PISTOL t=29.970
+[AQ] SHOT fighter=ICE weapon=PISTOL t=8.233
 [AQ] HIT source=ICE target=RUBBER weapon=PISTOL damage=4.5
-[AQ] SHOT fighter=ICE weapon=PISTOL t=30.170
+[AQ] SHOT fighter=ICE weapon=PISTOL t=8.433
 [AQ] HIT source=ICE target=RUBBER weapon=PISTOL damage=4.5
-[AQ] SHOT fighter=ICE weapon=PISTOL t=30.403
+[AQ] SHOT fighter=ICE weapon=PISTOL t=8.667
 [AQ] HIT source=ICE target=RUBBER weapon=PISTOL damage=4.5
 [AQ] CONSUME fighter=ICE weapon=PISTOL reason=sequence-complete
-PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=10 spawnedCumulative=103 wallClock=478ms earlyErrors=0
-PASS  reveal-lead-fixed-over-5min  — samples=6495
+[AQ] SPAWN_SLOT id=4 x=477 y=341 lead=2.00
+[AQ] REVEAL id=3 weapon=TEC_9 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] SPAWN_SLOT id=5 x=853 y=533 lead=2.00
+[AQ] REVEAL id=4 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=4 fighter=ICE weapon=GRENADE
+[AQ] COUNTER_RESERVED id=5 for=RUBBER shield=TOWER_SHIELD vs=GRENADE
+[AQ] USE fighter=ICE weapon=GRENADE
+[AQ] CONSUME fighter=ICE weapon=GRENADE reason=thrown
+[AQ] COUNTER_RELEASE id=5 reason=invalid
+[AQ] REVEAL id=5 weapon=SPEAR eta=0.23 lead=2.00 fighter=RUBBER force=false
+[AQ] MELEE_DECIDE fighter=RUBBER weapon=SPEAR decision=throw
+[AQ] PICKUP id=5 fighter=RUBBER weapon=SPEAR
+[AQ] THROW fighter=RUBBER weapon=SPEAR ricochets=2
+[AQ] CONSUME fighter=RUBBER weapon=SPEAR reason=thrown
+[AQ] HIT source=RUBBER target=ICE weapon=SPEAR damage=22.5
+[AQ] THROWN_PIN weapon=SPEAR target=ICE pin=1s
+[AQ] EXPLODE weapon=GRENADE x=850 y=360
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=6 x=421 y=415 lead=2.00
+[AQ] REVEAL id=6 weapon=ZBROYAR_Z15_S2 eta=0.39 lead=2.00 fighter=RUBBER force=false
+[AQ] PICKUP id=6 fighter=RUBBER weapon=ZBROYAR_Z15_S2
+[AQ] PICKUP id=3 fighter=ICE weapon=TEC_9
+[AQ] USE fighter=RUBBER weapon=ZBROYAR_Z15_S2
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=16.340
+[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S2 damage=4.8
+[AQ] USE fighter=ICE weapon=TEC_9
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=16.440
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=16.473
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=16.507
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=16.607
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=16.640
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=16.707
+[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S2 damage=4.8
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] SHOT fighter=ICE weapon=TEC_9 t=16.773
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=16.807
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] CONSUME fighter=ICE weapon=TEC_9 reason=sequence-complete
+[AQ] HIT source=ICE target=RUBBER weapon=TEC_9 damage=3.0
+[AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S2 reason=sequence-complete
+[AQ] SPAWN_SLOT id=7 x=593 y=805 lead=2.00
+[AQ] REVEAL id=7 weapon=ZBROYAR_Z15_S1 eta=0.92 lead=2.00 fighter=ICE force=false
+[AQ] SPAWN_SLOT id=8 x=737 y=648 lead=2.00
+[AQ] PICKUP id=7 fighter=ICE weapon=ZBROYAR_Z15_S1
+[AQ] USE fighter=ICE weapon=ZBROYAR_Z15_S1
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S1 t=22.807
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S1 t=22.940
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S1 t=23.107
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15_S1 t=23.273
+[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15_S1 reason=sequence-complete
+[AQ] SPAWN_SLOT id=9 x=453 y=797 lead=2.00
+[AQ] REVEAL id=8 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] SPAWN_SLOT id=10 x=715 y=342 lead=2.00
+[AQ] REVEAL id=9 weapon=MOSSBERG_500 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] REVEAL id=10 weapon=GRENADE eta=1.07 lead=2.00 fighter=ICE force=false
+[AQ] PICKUP id=10 fighter=ICE weapon=GRENADE
+[AQ] USE fighter=ICE weapon=GRENADE
+[AQ] CONSUME fighter=ICE weapon=GRENADE reason=thrown
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] PICKUP id=8 fighter=RUBBER weapon=GRENADE
+[AQ] EXPLODE weapon=GRENADE x=457 y=176
+[AQ] USE fighter=RUBBER weapon=GRENADE
+[AQ] CONSUME fighter=RUBBER weapon=GRENADE reason=thrown
+[AQ] SPAWN_SLOT id=11 x=274 y=383 lead=2.00
+[AQ] PICKUP id=9 fighter=ICE weapon=MOSSBERG_500
+[AQ] USE fighter=ICE weapon=MOSSBERG_500
+[AQ] CONSUME fighter=ICE weapon=MOSSBERG_500 reason=blast-resolved
+[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
+[AQ] HIT source=ICE target=RUBBER weapon=MOSSBERG_500 damage=2.8
+[AQ] EXPLODE weapon=GRENADE x=354 y=431
+[AQ] KO winner=ICE
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=641 y=494 lead=2.00
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] REVEAL id=1 weapon=SZECSEI_FUCHS eta=1.99 lead=2.00 fighter=RUBBER force=false
+[AQ] SPAWN_SLOT id=2 x=881 y=662 lead=2.00
+[AQ] REVEAL id=2 weapon=DESERT_DEAGLE eta=0.84 lead=2.00 fighter=ICE force=false
+[AQ] PICKUP id=1 fighter=RUBBER weapon=SZECSEI_FUCHS
+[AQ] USE fighter=RUBBER weapon=SZECSEI_FUCHS
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SHOT fighter=RUBBER weapon=SZECSEI_FUCHS t=5.033
+Not implemented: HTMLMediaElement's pause() method
+[AQ] HIT source=RUBBER target=ICE weapon=SZECSEI_FUCHS damage=15.0
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SHOT fighter=RUBBER weapon=SZECSEI_FUCHS t=5.607
+[AQ] CONSUME fighter=RUBBER weapon=SZECSEI_FUCHS reason=shot-fired
+[AQ] HIT source=RUBBER target=ICE weapon=SZECSEI_FUCHS damage=15.0
+PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=13 spawnedCumulative=102 wallClock=514ms earlyErrors=0
+PASS  reveal-lead-fixed-over-5min  — samples=6902
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -2627,7 +2782,7 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=223 y=188 lead=2.00
+[AQ] SPAWN_SLOT id=1 x=755 y=295 lead=2.00
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -2657,7 +2812,7 @@ Not implemented: HTMLMediaElement's pause() method
 [AQ] HIT source=RUBBER target=WITCH weapon=PISTOL damage=4.5
 [AQ] SHOT fighter=RUBBER weapon=PISTOL t=0.783
 [AQ] HIT source=RUBBER target=WITCH weapon=PISTOL damage=4.5
-[AQ] SPAWN_SLOT id=1 x=506 y=579 lead=2.00
+[AQ] SPAWN_SLOT id=1 x=562 y=584 lead=2.00
 [AQ] CONSUME fighter=RUBBER weapon=PISTOL reason=sequence-complete
 PASS  c-casing-ejected-on-fire  — {"casing":true}
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
@@ -2686,7 +2841,6 @@ Not implemented: HTMLMediaElement's pause() method
 [AQ] SHOT fighter=RUBBER weapon=PISTOL t=0.350
 [AQ] HIT source=RUBBER target=WITCH weapon=PISTOL damage=4.5
 [AQ] SHOT fighter=RUBBER weapon=PISTOL t=0.567
-[AQ] HIT source=RUBBER target=WITCH weapon=PISTOL damage=4.5
 [AQ] SHOT fighter=RUBBER weapon=PISTOL t=0.783
 [AQ] HIT source=RUBBER target=WITCH weapon=PISTOL damage=4.5
 [AQ] CONSUME fighter=RUBBER weapon=PISTOL reason=sequence-complete
@@ -2696,10 +2850,9 @@ Not implemented: HTMLMediaElement's pause() method
 [AQ] SHOT fighter=RUBBER weapon=SMG t=1.933
 [AQ] HIT source=RUBBER target=WITCH weapon=SMG damage=2.3
 [AQ] SHOT fighter=RUBBER weapon=SMG t=2.017
-[AQ] HIT source=RUBBER target=WITCH weapon=SMG damage=2.3
 [AQ] SHOT fighter=RUBBER weapon=SMG t=2.100
-[AQ] SHOT fighter=RUBBER weapon=SMG t=2.183
 [AQ] HIT source=RUBBER target=WITCH weapon=SMG damage=2.3
+[AQ] SHOT fighter=RUBBER weapon=SMG t=2.183
 [AQ] HIT source=RUBBER target=WITCH weapon=SMG damage=2.3
 [AQ] SHOT fighter=RUBBER weapon=SMG t=2.267
 [AQ] HIT source=RUBBER target=WITCH weapon=SMG damage=2.3
@@ -2708,6 +2861,7 @@ Not implemented: HTMLMediaElement's pause() method
 [AQ] SHOT fighter=RUBBER weapon=SMG t=2.433
 [AQ] HIT source=RUBBER target=WITCH weapon=SMG damage=2.3
 [AQ] CONSUME fighter=RUBBER weapon=SMG reason=sequence-complete
+[AQ] HIT source=RUBBER target=WITCH weapon=SMG damage=2.3
 [AQ] USE fighter=RUBBER weapon=SHOTGUN
 [AQ] SHOT fighter=RUBBER weapon=SHOTGUN t=3.350
 [AQ] HIT source=RUBBER target=WITCH weapon=SHOTGUN damage=2.0
@@ -2719,199 +2873,192 @@ Not implemented: HTMLMediaElement's pause() method
 [AQ] USE fighter=RUBBER weapon=SNIPER
 [AQ] SHOT fighter=RUBBER weapon=SNIPER t=5.633
 [AQ] CONSUME fighter=RUBBER weapon=SNIPER reason=shot-fired
+[AQ] HIT source=RUBBER target=WITCH weapon=SNIPER damage=38.0
 [AQ] USE fighter=RUBBER weapon=GLOCK_17
-[AQ] SHOT fighter=RUBBER weapon=GLOCK_17 t=6.350
-[AQ] SHOT fighter=RUBBER weapon=GLOCK_17 t=6.467
-[AQ] HIT source=RUBBER target=WITCH weapon=GLOCK_17 damage=3.5
-[AQ] SHOT fighter=RUBBER weapon=GLOCK_17 t=6.583
-[AQ] HIT source=RUBBER target=WITCH weapon=GLOCK_17 damage=3.5
-[AQ] SHOT fighter=RUBBER weapon=GLOCK_17 t=6.700
+[AQ] SHOT fighter=RUBBER weapon=GLOCK_17 t=6.290
+[AQ] SHOT fighter=RUBBER weapon=GLOCK_17 t=6.407
+[AQ] SHOT fighter=RUBBER weapon=GLOCK_17 t=6.523
+[AQ] SHOT fighter=RUBBER weapon=GLOCK_17 t=6.640
 [AQ] CONSUME fighter=RUBBER weapon=GLOCK_17 reason=sequence-complete
-[AQ] HIT source=RUBBER target=WITCH weapon=GLOCK_17 damage=3.5
-[AQ] HIT source=RUBBER target=WITCH weapon=GLOCK_17 damage=3.5
 [AQ] USE fighter=RUBBER weapon=BERETTA_93R
-[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=7.850
-[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=7.900
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=7.790
 [AQ] HIT source=RUBBER target=WITCH weapon=BERETTA_93R damage=3.0
-[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=7.967
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=7.840
 [AQ] HIT source=RUBBER target=WITCH weapon=BERETTA_93R damage=3.0
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=7.907
 [AQ] HIT source=RUBBER target=WITCH weapon=BERETTA_93R damage=3.0
-[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=8.183
-[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=8.250
-[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=8.300
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=8.123
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=8.190
+[AQ] HIT source=RUBBER target=WITCH weapon=BERETTA_93R damage=3.0
+[AQ] SHOT fighter=RUBBER weapon=BERETTA_93R t=8.240
+[AQ] HIT source=RUBBER target=WITCH weapon=BERETTA_93R damage=3.0
 [AQ] CONSUME fighter=RUBBER weapon=BERETTA_93R reason=sequence-complete
 [AQ] HIT source=RUBBER target=WITCH weapon=BERETTA_93R damage=3.0
-[AQ] HIT source=RUBBER target=WITCH weapon=BERETTA_93R damage=3.0
-[AQ] HIT source=RUBBER target=WITCH weapon=BERETTA_93R damage=3.0
 [AQ] USE fighter=RUBBER weapon=DESERT_DEAGLE
-[AQ] SHOT fighter=RUBBER weapon=DESERT_DEAGLE t=9.350
+[AQ] SHOT fighter=RUBBER weapon=DESERT_DEAGLE t=9.290
 [AQ] HIT source=RUBBER target=WITCH weapon=DESERT_DEAGLE damage=10.5
-[AQ] SHOT fighter=RUBBER weapon=DESERT_DEAGLE t=9.717
+[AQ] SHOT fighter=RUBBER weapon=DESERT_DEAGLE t=9.657
 [AQ] HIT source=RUBBER target=WITCH weapon=DESERT_DEAGLE damage=10.5
 [AQ] CONSUME fighter=RUBBER weapon=DESERT_DEAGLE reason=sequence-complete
 [AQ] USE fighter=RUBBER weapon=MAGNUM_500
-[AQ] SHOT fighter=RUBBER weapon=MAGNUM_500 t=10.850
+[AQ] SHOT fighter=RUBBER weapon=MAGNUM_500 t=10.790
 [AQ] CONSUME fighter=RUBBER weapon=MAGNUM_500 reason=sequence-complete
 [AQ] HIT source=RUBBER target=WITCH weapon=MAGNUM_500 damage=28.0
 [AQ] USE fighter=RUBBER weapon=SZECSEI_FUCHS
-[AQ] SHOT fighter=RUBBER weapon=SZECSEI_FUCHS t=12.750
+[AQ] SHOT fighter=RUBBER weapon=SZECSEI_FUCHS t=12.690
 [AQ] HIT source=RUBBER target=WITCH weapon=SZECSEI_FUCHS damage=15.0
-[AQ] SHOT fighter=RUBBER weapon=SZECSEI_FUCHS t=13.307
+[AQ] SHOT fighter=RUBBER weapon=SZECSEI_FUCHS t=13.247
 [AQ] CONSUME fighter=RUBBER weapon=SZECSEI_FUCHS reason=shot-fired
 [AQ] HIT source=RUBBER target=WITCH weapon=SZECSEI_FUCHS damage=15.0
 [AQ] USE fighter=RUBBER weapon=TEC_9
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=13.730
+[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=13.720
+[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=13.803
 [AQ] HIT source=RUBBER target=WITCH weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=13.813
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=13.897
+[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=13.887
 [AQ] HIT source=RUBBER target=WITCH weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=13.997
-[AQ] HIT source=RUBBER target=WITCH weapon=TEC_9 damage=3.0
-[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=14.080
+[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=13.987
+[AQ] SHOT fighter=RUBBER weapon=TEC_9 t=14.070
 [AQ] HIT source=RUBBER target=WITCH weapon=TEC_9 damage=3.0
 [AQ] CONSUME fighter=RUBBER weapon=TEC_9 reason=sequence-complete
 [AQ] HIT source=RUBBER target=WITCH weapon=TEC_9 damage=3.0
+[AQ] HIT source=RUBBER target=WITCH weapon=TEC_9 damage=3.0
 [AQ] USE fighter=RUBBER weapon=MAC_10
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.230
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.280
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.170
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.220
 [AQ] HIT source=RUBBER target=WITCH weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.330
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.270
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.320
 [AQ] HIT source=RUBBER target=WITCH weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.380
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.387
 [AQ] HIT source=RUBBER target=WITCH weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.447
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.497
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.437
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.487
 [AQ] HIT source=RUBBER target=WITCH weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.547
+[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.553
 [AQ] HIT source=RUBBER target=WITCH weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=15.613
 [AQ] CONSUME fighter=RUBBER weapon=MAC_10 reason=sequence-complete
 [AQ] HIT source=RUBBER target=WITCH weapon=MAC_10 damage=2.0
+[AQ] HIT source=RUBBER target=WITCH weapon=MAC_10 damage=2.0
 [AQ] USE fighter=RUBBER weapon=P90
-[AQ] SHOT fighter=RUBBER weapon=P90 t=16.730
-[AQ] SHOT fighter=RUBBER weapon=P90 t=16.780
+[AQ] SHOT fighter=RUBBER weapon=P90 t=16.670
+[AQ] SHOT fighter=RUBBER weapon=P90 t=16.720
 [AQ] HIT source=RUBBER target=WITCH weapon=P90 damage=1.9
-[AQ] SHOT fighter=RUBBER weapon=P90 t=16.847
+[AQ] SHOT fighter=RUBBER weapon=P90 t=16.787
 [AQ] HIT source=RUBBER target=WITCH weapon=P90 damage=1.9
-[AQ] SHOT fighter=RUBBER weapon=P90 t=16.913
+[AQ] SHOT fighter=RUBBER weapon=P90 t=16.853
 [AQ] HIT source=RUBBER target=WITCH weapon=P90 damage=1.9
-[AQ] SHOT fighter=RUBBER weapon=P90 t=16.980
+[AQ] SHOT fighter=RUBBER weapon=P90 t=16.920
 [AQ] HIT source=RUBBER target=WITCH weapon=P90 damage=1.9
-[AQ] SHOT fighter=RUBBER weapon=P90 t=17.047
-[AQ] SHOT fighter=RUBBER weapon=P90 t=17.113
+[AQ] SHOT fighter=RUBBER weapon=P90 t=16.987
+[AQ] SHOT fighter=RUBBER weapon=P90 t=17.053
 [AQ] HIT source=RUBBER target=WITCH weapon=P90 damage=1.9
-[AQ] SHOT fighter=RUBBER weapon=P90 t=17.180
+[AQ] SHOT fighter=RUBBER weapon=P90 t=17.120
 [AQ] HIT source=RUBBER target=WITCH weapon=P90 damage=1.9
-[AQ] SHOT fighter=RUBBER weapon=P90 t=17.247
+[AQ] SHOT fighter=RUBBER weapon=P90 t=17.187
 [AQ] HIT source=RUBBER target=WITCH weapon=P90 damage=1.9
-[AQ] SHOT fighter=RUBBER weapon=P90 t=17.313
+[AQ] SHOT fighter=RUBBER weapon=P90 t=17.253
 [AQ] HIT source=RUBBER target=WITCH weapon=P90 damage=1.9
 [AQ] CONSUME fighter=RUBBER weapon=P90 reason=sequence-complete
 [AQ] HIT source=RUBBER target=WITCH weapon=P90 damage=1.9
-[AQ] HIT source=RUBBER target=WITCH weapon=P90 damage=1.9
 [AQ] USE fighter=RUBBER weapon=AK_47
-[AQ] SHOT fighter=RUBBER weapon=AK_47 t=18.230
+[AQ] SHOT fighter=RUBBER weapon=AK_47 t=18.170
 [AQ] HIT source=RUBBER target=WITCH weapon=AK_47 damage=3.8
-[AQ] SHOT fighter=RUBBER weapon=AK_47 t=18.330
+[AQ] SHOT fighter=RUBBER weapon=AK_47 t=18.270
 [AQ] HIT source=RUBBER target=WITCH weapon=AK_47 damage=3.8
-[AQ] SHOT fighter=RUBBER weapon=AK_47 t=18.447
-[AQ] SHOT fighter=RUBBER weapon=AK_47 t=18.547
+[AQ] SHOT fighter=RUBBER weapon=AK_47 t=18.387
+[AQ] SHOT fighter=RUBBER weapon=AK_47 t=18.487
 [AQ] HIT source=RUBBER target=WITCH weapon=AK_47 damage=3.8
-[AQ] SHOT fighter=RUBBER weapon=AK_47 t=18.663
+[AQ] SHOT fighter=RUBBER weapon=AK_47 t=18.603
 [AQ] HIT source=RUBBER target=WITCH weapon=AK_47 damage=3.8
-[AQ] SHOT fighter=RUBBER weapon=AK_47 t=18.780
+[AQ] SHOT fighter=RUBBER weapon=AK_47 t=18.720
 [AQ] HIT source=RUBBER target=WITCH weapon=AK_47 damage=3.8
 [AQ] CONSUME fighter=RUBBER weapon=AK_47 reason=sequence-complete
-[AQ] HIT source=RUBBER target=WITCH weapon=AK_47 damage=3.8
 [AQ] USE fighter=RUBBER weapon=M16
-[AQ] SHOT fighter=RUBBER weapon=M16 t=19.730
+[AQ] SHOT fighter=RUBBER weapon=M16 t=19.670
 [AQ] HIT source=RUBBER target=WITCH weapon=M16 damage=3.6
-[AQ] SHOT fighter=RUBBER weapon=M16 t=19.797
+[AQ] SHOT fighter=RUBBER weapon=M16 t=19.737
 [AQ] HIT source=RUBBER target=WITCH weapon=M16 damage=3.6
-[AQ] SHOT fighter=RUBBER weapon=M16 t=19.880
+[AQ] SHOT fighter=RUBBER weapon=M16 t=19.820
 [AQ] HIT source=RUBBER target=WITCH weapon=M16 damage=3.6
-[AQ] SHOT fighter=RUBBER weapon=M16 t=20.163
-[AQ] SHOT fighter=RUBBER weapon=M16 t=20.247
+[AQ] SHOT fighter=RUBBER weapon=M16 t=20.103
+[AQ] SHOT fighter=RUBBER weapon=M16 t=20.187
+[AQ] SHOT fighter=RUBBER weapon=M16 t=20.270
 [AQ] HIT source=RUBBER target=WITCH weapon=M16 damage=3.6
-[AQ] SHOT fighter=RUBBER weapon=M16 t=20.330
 [AQ] CONSUME fighter=RUBBER weapon=M16 reason=sequence-complete
 [AQ] HIT source=RUBBER target=WITCH weapon=M16 damage=3.6
-[AQ] HIT source=RUBBER target=WITCH weapon=M16 damage=3.6
 [AQ] USE fighter=RUBBER weapon=ZBROYAR_Z15
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15 t=21.230
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15 t=21.170
 [AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15 t=21.380
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15 t=21.320
 [AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15 t=21.547
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15 t=21.697
-[AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15 damage=4.8
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15 t=21.487
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15 t=21.637
 [AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15 damage=4.8
 [AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15 reason=sequence-complete
 [AQ] USE fighter=RUBBER weapon=ZBROYAR_Z15_S1
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=22.730
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=22.670
 [AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15_S1 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=22.880
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=22.820
 [AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15_S1 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=23.047
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=23.197
-[AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15_S1 damage=4.8
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=22.987
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S1 t=23.137
 [AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15_S1 damage=4.8
 [AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S1 reason=sequence-complete
+[AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15_S1 damage=4.8
 [AQ] USE fighter=RUBBER weapon=ZBROYAR_Z15_S2
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=24.230
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=24.170
 [AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15_S2 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=24.380
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=24.320
 [AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15_S2 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=24.547
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=24.697
-[AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15_S2 damage=4.8
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=24.487
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=24.637
 [AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15_S2 damage=4.8
 [AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S2 reason=sequence-complete
 [AQ] USE fighter=RUBBER weapon=ZBROYAR_Z15_S3
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=25.730
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=25.670
 [AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15_S3 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=25.880
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=25.820
 [AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15_S3 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=26.047
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=26.197
-[AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15_S3 damage=4.8
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=25.987
+[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S3 t=26.137
 [AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15_S3 damage=4.8
 [AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S3 reason=sequence-complete
+[AQ] HIT source=RUBBER target=WITCH weapon=ZBROYAR_Z15_S3 damage=4.8
 [AQ] USE fighter=RUBBER weapon=M249_SAW
-[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.230
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.170
 [AQ] HIT source=RUBBER target=WITCH weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.297
-[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.380
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.237
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.320
 [AQ] HIT source=RUBBER target=WITCH weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.447
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.387
 [AQ] HIT source=RUBBER target=WITCH weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.530
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.470
 [AQ] HIT source=RUBBER target=WITCH weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.597
-[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.680
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.537
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.620
 [AQ] HIT source=RUBBER target=WITCH weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.747
-[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.830
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.687
 [AQ] HIT source=RUBBER target=WITCH weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.897
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.770
 [AQ] HIT source=RUBBER target=WITCH weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.980
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.837
 [AQ] HIT source=RUBBER target=WITCH weapon=M249_SAW damage=2.5
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.920
+[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=27.987
 [AQ] HIT source=RUBBER target=WITCH weapon=M249_SAW damage=2.5
-[AQ] SHOT fighter=RUBBER weapon=M249_SAW t=28.047
 [AQ] HIT source=RUBBER target=WITCH weapon=M249_SAW damage=2.5
 [AQ] CONSUME fighter=RUBBER weapon=M249_SAW reason=sequence-complete
 [AQ] HIT source=RUBBER target=WITCH weapon=M249_SAW damage=2.5
 [AQ] USE fighter=RUBBER weapon=MBR
-[AQ] SHOT fighter=RUBBER weapon=MBR t=28.997
+[AQ] SHOT fighter=RUBBER weapon=MBR t=28.937
 [AQ] HIT source=RUBBER target=WITCH weapon=MBR damage=11.0
-[AQ] SHOT fighter=RUBBER weapon=MBR t=29.453
+[AQ] SHOT fighter=RUBBER weapon=MBR t=29.393
 [AQ] CONSUME fighter=RUBBER weapon=MBR reason=shot-fired
 [AQ] HIT source=RUBBER target=WITCH weapon=MBR damage=11.0
 [AQ] USE fighter=RUBBER weapon=MBR2
-[AQ] SHOT fighter=RUBBER weapon=MBR2 t=30.443
+[AQ] SHOT fighter=RUBBER weapon=MBR2 t=30.383
 [AQ] HIT source=RUBBER target=WITCH weapon=MBR2 damage=14.0
-[AQ] SHOT fighter=RUBBER weapon=MBR2 t=30.950
+[AQ] SHOT fighter=RUBBER weapon=MBR2 t=30.890
 [AQ] CONSUME fighter=RUBBER weapon=MBR2 reason=shot-fired
 [AQ] HIT source=RUBBER target=WITCH weapon=MBR2 damage=14.0
 [AQ] USE fighter=RUBBER weapon=MOSSBERG_500
@@ -2928,19 +3075,14 @@ Not implemented: HTMLMediaElement's pause() method
 [AQ] HIT source=RUBBER target=WITCH weapon=SAWED_OFF damage=2.5
 [AQ] HIT source=RUBBER target=WITCH weapon=SAWED_OFF damage=2.5
 [AQ] HIT source=RUBBER target=WITCH weapon=SAWED_OFF damage=2.5
-[AQ] HIT source=RUBBER target=WITCH weapon=SAWED_OFF damage=2.5
-[AQ] HIT source=RUBBER target=WITCH weapon=SAWED_OFF damage=2.5
-[AQ] HIT source=RUBBER target=WITCH weapon=SAWED_OFF damage=2.5
 [AQ] USE fighter=RUBBER weapon=JACKHAMMER
-[AQ] SHOT fighter=RUBBER weapon=JACKHAMMER t=34.430
+[AQ] SHOT fighter=RUBBER weapon=JACKHAMMER t=34.370
 [AQ] HIT source=RUBBER target=WITCH weapon=JACKHAMMER damage=2.4
 [AQ] HIT source=RUBBER target=WITCH weapon=JACKHAMMER damage=2.4
 [AQ] HIT source=RUBBER target=WITCH weapon=JACKHAMMER damage=2.4
-[AQ] HIT source=RUBBER target=WITCH weapon=JACKHAMMER damage=2.4
-[AQ] SHOT fighter=RUBBER weapon=JACKHAMMER t=34.563
-[AQ] SHOT fighter=RUBBER weapon=JACKHAMMER t=34.697
+[AQ] SHOT fighter=RUBBER weapon=JACKHAMMER t=34.503
+[AQ] SHOT fighter=RUBBER weapon=JACKHAMMER t=34.637
 [AQ] CONSUME fighter=RUBBER weapon=JACKHAMMER reason=sequence-complete
-[AQ] HIT source=RUBBER target=WITCH weapon=JACKHAMMER damage=2.4
 PASS  postc-24-senko-guns-registered  — {"count":24,"missing":[],"firedAll":true,"fired":{"PISTOL":true,"SMG":true,"SHOTGUN":true,"SNIPER":true,"GLOCK_17":true,"BERETTA_93R":true,"DESERT_DEAGLE":true,"MAGNUM_500":true,"SZECSEI_FUCHS":true,"TEC_9":true,"MAC_10":true,"P90":true,"AK_47":true,"M16":true,"ZBROYAR_Z15":true,"ZBROYAR_Z15_S1":true,"ZBROYAR_Z15_S2":true,"ZBROYAR_Z15_S3":true,"M249_SAW":true,"MBR":true,"MBR2":true,"MOSSBERG_500":true,"SAWED_OFF":true,"JACKHAMMER":true}}
 PASS  postc-24-senko-guns-fire  — {"PISTOL":true,"SMG":true,"SHOTGUN":true,"SNIPER":true,"GLOCK_17":true,"BERETTA_93R":true,"DESERT_DEAGLE":true,"MAGNUM_500":true,"SZECSEI_FUCHS":true,"TEC_9":true,"MAC_10":true,"P90":true,"AK_47":true,"M16":true,"ZBROYAR_Z15":true,"ZBROYAR_Z15_S1":true,"ZBROYAR_Z15_S2":true,"ZBROYAR_Z15_S3":true,"M249_SAW":true,"MBR":true,"MBR2":true,"MOSSBERG_500":true,"SAWED_OFF":true,"JACKHAMMER":true}
 PASS  postc-melee-weight-0.5  — {"ratio":0.49873529088309687,"meleeAvg":362.8,"nonAvg":727.44,"sample":20000}
@@ -2961,15 +3103,23 @@ Not implemented: HTMLMediaElement's pause() method
 [AQ] MELEE_DECIDE fighter=RUBBER weapon=DAGGER decision=throw
 [AQ] THROW fighter=RUBBER weapon=DAGGER ricochets=4
 [AQ] CONSUME fighter=RUBBER weapon=DAGGER reason=thrown
+[AQ] HIT source=RUBBER target=WITCH weapon=DAGGER damage=13.5
+[AQ] THROWN_PIN weapon=DAGGER target=WITCH pin=1s
 [AQ] MELEE_DECIDE fighter=RUBBER weapon=SABRE decision=throw
 [AQ] THROW fighter=RUBBER weapon=SABRE ricochets=3
 [AQ] CONSUME fighter=RUBBER weapon=SABRE reason=thrown
+[AQ] HIT source=RUBBER target=WITCH weapon=SABRE damage=18.0
+[AQ] THROWN_PIN weapon=SABRE target=WITCH pin=1s
 [AQ] MELEE_DECIDE fighter=RUBBER weapon=SPEAR decision=throw
 [AQ] THROW fighter=RUBBER weapon=SPEAR ricochets=2
 [AQ] CONSUME fighter=RUBBER weapon=SPEAR reason=thrown
+[AQ] HIT source=RUBBER target=WITCH weapon=SPEAR damage=22.5
+[AQ] THROWN_PIN weapon=SPEAR target=WITCH pin=1s
 [AQ] MELEE_DECIDE fighter=RUBBER weapon=SPIKED_CLUB decision=throw
 [AQ] THROW fighter=RUBBER weapon=SPIKED_CLUB ricochets=1
 [AQ] CONSUME fighter=RUBBER weapon=SPIKED_CLUB reason=thrown
+[AQ] HIT source=RUBBER target=WITCH weapon=SPIKED_CLUB damage=27.0
+[AQ] THROWN_PIN weapon=SPIKED_CLUB target=WITCH pin=1s
 [AQ] MELEE_DECIDE fighter=RUBBER weapon=SABRE decision=strike
 [AQ] USE fighter=RUBBER weapon=SABRE
 [AQ] HIT source=RUBBER target=WITCH weapon=SABRE damage=18.0
@@ -3004,9 +3154,9 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 [AQ] NEWBIE_DASH fighter=NEWBIE slot=1 weapon=PISTOL
 [AQ] PICKUP id=1 fighter=ICE weapon=PISTOL
-PASS  postc-newbie-selectable  — {"name":"NEWBIE","cooldown":10,"failedNoPickup":true,"dashed":true,"cdAfter":9.683333333333318,"slot":1,"x":745.8888888888889}
-PASS  postc-newbie-no-consume-without-pickup  — {"name":"NEWBIE","cooldown":10,"failedNoPickup":true,"dashed":true,"cdAfter":9.683333333333318,"slot":1,"x":745.8888888888889}
-PASS  postc-newbie-dash-to-revealed  — {"name":"NEWBIE","cooldown":10,"failedNoPickup":true,"dashed":true,"cdAfter":9.683333333333318,"slot":1,"x":745.8888888888889}
+PASS  postc-newbie-selectable  — {"name":"NEWBIE","cooldown":10,"failedNoPickup":true,"dashed":true,"cdAfter":9.683333333333318,"slot":1,"x":694.2858813014047}
+PASS  postc-newbie-no-consume-without-pickup  — {"name":"NEWBIE","cooldown":10,"failedNoPickup":true,"dashed":true,"cdAfter":9.683333333333318,"slot":1,"x":694.2858813014047}
+PASS  postc-newbie-dash-to-revealed  — {"name":"NEWBIE","cooldown":10,"failedNoPickup":true,"dashed":true,"cdAfter":9.683333333333318,"slot":1,"x":694.2858813014047}
 PASS  postc-no-arena-glyphs-in-draw  — {"noZ":true,"noChamberTitle":true,"noQuestionGlyph":true}
 PASS  postc-vfx-uses-sanitized-c-paths  — {"smokeRel":"vfx/c/smoke_01.png"}
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
@@ -3158,7 +3308,7 @@ Not implemented: HTMLMediaElement's pause() method
 [AQ] HIT source=ICE target=RUBBER weapon=GLOCK_17 damage=3.5
 [AQ] SHOT fighter=ICE weapon=GLOCK_17 t=0.583
 [AQ] HIT source=ICE target=RUBBER weapon=GLOCK_17 damage=3.5
-PASS  gap-muzzle-uses-metadata  — {"bx":638.8,"by":471.2,"mx":425.4,"my":476.6,"usedMeta":true}
+PASS  gap-muzzle-uses-metadata  — {"bx":638.9,"by":473.4,"mx":425.4,"my":476.6,"usedMeta":true}
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -3179,7 +3329,7 @@ Not implemented: HTMLMediaElement's pause() method
 [AQ] SHOT fighter=ICE weapon=AK_47 t=0.667
 [AQ] HIT source=ICE target=RUBBER weapon=AK_47 damage=3.8
 [AQ] SHOT fighter=ICE weapon=AK_47 t=0.783
-PASS  gap-casing-uses-metadata  — {"n":196,"usedMeta":false}
+PASS  gap-casing-uses-metadata  — {"n":5,"usedMeta":true,"dist":1.9,"ax":364.2,"cx":366,"usedMetaFlag":true}
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -3202,8 +3352,8 @@ Not implemented: HTMLMediaElement's pause() method
 [AQ] HIT source=ICE target=RUBBER weapon=SAWED_OFF damage=2.5
 [AQ] HIT source=ICE target=RUBBER weapon=SAWED_OFF damage=2.5
 [AQ] HIT source=ICE target=RUBBER weapon=SAWED_OFF damage=2.5
-PASS  gap-sawed-no-rack  — {"rack":0,"casingDuring":0,"exit":"breakOpen"}
-PASS  gap-sawed-no-per-shot-casing  — {"rack":0,"casingDuring":0,"exit":"breakOpen"}
+PASS  gap-sawed-no-rack  — {"rack":0,"casingDuring":2,"exit":"breakOpen"}
+PASS  gap-sawed-no-per-shot-casing  — {"rack":0,"casingDuring":2,"exit":"breakOpen"}
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -3286,92 +3436,77 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=264 y=868 lead=2.00
-[AQ] SPAWN_SLOT id=2 x=408 y=99 lead=2.00
-[AQ] REVEAL id=1 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] PICKUP id=1 fighter=RUBBER weapon=GRENADE
-[AQ] USE fighter=RUBBER weapon=GRENADE
-[AQ] CONSUME fighter=RUBBER weapon=GRENADE reason=thrown
-[AQ] EXPLODE weapon=GRENADE x=729 y=852
-[AQ] SPAWN_SLOT id=3 x=626 y=490 lead=2.00
-[AQ] REVEAL id=2 weapon=SPEAR eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] MELEE_DECIDE fighter=RUBBER weapon=SPEAR decision=strike
-[AQ] PICKUP id=2 fighter=RUBBER weapon=SPEAR
-[AQ] USE fighter=RUBBER weapon=SPEAR
-[AQ] CONSUME fighter=RUBBER weapon=SPEAR reason=melee-resolved
-[AQ] SPAWN_SLOT id=4 x=546 y=656 lead=2.00
-[AQ] REVEAL id=3 weapon=BATTLE_AXE eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] MELEE_DECIDE fighter=RUBBER weapon=BATTLE_AXE decision=throw
-[AQ] PICKUP id=3 fighter=RUBBER weapon=BATTLE_AXE
-[AQ] THROW fighter=RUBBER weapon=BATTLE_AXE ricochets=1
-[AQ] CONSUME fighter=RUBBER weapon=BATTLE_AXE reason=thrown
-[AQ] HIT source=RUBBER target=ICE weapon=BATTLE_AXE damage=39.0
-[AQ] THROWN_PIN weapon=BATTLE_AXE target=ICE pin=1s
-[AQ] REVEAL id=4 weapon=MAC_10 eta=0.33 lead=2.00 fighter=RUBBER force=false
-[AQ] PICKUP id=4 fighter=ICE weapon=MAC_10
-[AQ] USE fighter=ICE weapon=MAC_10
-[AQ] SHOT fighter=ICE weapon=MAC_10 t=11.057
-[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=ICE weapon=MAC_10 t=11.107
-[AQ] SHOT fighter=ICE weapon=MAC_10 t=11.157
-[AQ] SHOT fighter=ICE weapon=MAC_10 t=11.207
-[AQ] SHOT fighter=ICE weapon=MAC_10 t=11.273
-[AQ] SHOT fighter=ICE weapon=MAC_10 t=11.323
-[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=ICE weapon=MAC_10 t=11.373
-[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=ICE weapon=MAC_10 t=11.440
-[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
-[AQ] HIT source=ICE target=RUBBER weapon=MAC_10 damage=2.0
-[AQ] CONSUME fighter=ICE weapon=MAC_10 reason=sequence-complete
-[AQ] SPAWN_SLOT id=5 x=700 y=405 lead=2.00
-[AQ] REVEAL id=5 weapon=MAC_10 eta=0.15 lead=2.00 fighter=RUBBER force=false
-[AQ] PICKUP id=5 fighter=RUBBER weapon=MAC_10
-[AQ] USE fighter=RUBBER weapon=MAC_10
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=13.423
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=13.473
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=13.523
-[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
-[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=13.573
-[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
-[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=13.640
-[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=13.690
-[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=13.740
-[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
-[AQ] SHOT fighter=RUBBER weapon=MAC_10 t=13.807
-[AQ] CONSUME fighter=RUBBER weapon=MAC_10 reason=sequence-complete
-[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0
-[AQ] SPAWN_SLOT id=6 x=789 y=129 lead=2.00
-[AQ] SPAWN_SLOT id=7 x=155 y=288 lead=2.00
-[AQ] REVEAL id=7 weapon=ZBROYAR_Z15 eta=0.00 lead=2.00 fighter=ICE force=false
-[AQ] PICKUP id=7 fighter=ICE weapon=ZBROYAR_Z15
-[AQ] REVEAL id=6 weapon=SZECSEI_FUCHS eta=null lead=2.00 fighter=TIMEOUT force=true
-[AQ] USE fighter=ICE weapon=ZBROYAR_Z15
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=19.340
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=19.490
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=19.657
-[AQ] SHOT fighter=ICE weapon=ZBROYAR_Z15 t=19.807
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
-[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15 reason=sequence-complete
-[AQ] HIT source=ICE target=RUBBER weapon=ZBROYAR_Z15 damage=4.8
-[AQ] SPAWN_SLOT id=8 x=602 y=796 lead=2.00
-[AQ] REVEAL id=8 weapon=ZBROYAR_Z15_S2 eta=0.44 lead=2.00 fighter=RUBBER force=false
-[AQ] PICKUP id=8 fighter=RUBBER weapon=ZBROYAR_Z15_S2
-[AQ] USE fighter=RUBBER weapon=ZBROYAR_Z15_S2
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=24.957
-[AQ] SPAWN_SLOT id=9 x=274 y=133 lead=2.00
-[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S2 damage=4.8
-[AQ] SHOT fighter=RUBBER weapon=ZBROYAR_Z15_S2 t=25.107
-[AQ] HIT source=RUBBER target=ICE weapon=ZBROYAR_Z15_S2 damage=4.8
+[AQ] SPAWN_SLOT id=1 x=369 y=721 lead=2.00
+[AQ] SPAWN_SLOT id=2 x=760 y=330 lead=2.00
+[AQ] REVEAL id=1 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] REVEAL id=2 weapon=JACKHAMMER eta=0.18 lead=2.00 fighter=RUBBER force=false
+[AQ] PICKUP id=2 fighter=RUBBER weapon=JACKHAMMER
+[AQ] USE fighter=RUBBER weapon=JACKHAMMER
+[AQ] SHOT fighter=RUBBER weapon=JACKHAMMER t=5.017
+[AQ] SHOT fighter=RUBBER weapon=JACKHAMMER t=5.150
+[AQ] SHOT fighter=RUBBER weapon=JACKHAMMER t=5.283
+[AQ] CONSUME fighter=RUBBER weapon=JACKHAMMER reason=sequence-complete
+[AQ] HIT source=RUBBER target=ICE weapon=JACKHAMMER damage=2.4
+[AQ] PICKUP id=1 fighter=RUBBER weapon=PISTOL
+[AQ] HIT source=RUBBER target=ICE weapon=JACKHAMMER damage=2.4
+[AQ] HIT source=RUBBER target=ICE weapon=JACKHAMMER damage=2.4
+[AQ] HIT source=RUBBER target=ICE weapon=JACKHAMMER damage=2.4
+[AQ] HIT source=RUBBER target=ICE weapon=JACKHAMMER damage=2.4
+[AQ] HIT source=RUBBER target=ICE weapon=JACKHAMMER damage=2.4
+[AQ] USE fighter=RUBBER weapon=PISTOL
+[AQ] SHOT fighter=RUBBER weapon=PISTOL t=5.667
+[AQ] SHOT fighter=RUBBER weapon=PISTOL t=5.883
+[AQ] SHOT fighter=RUBBER weapon=PISTOL t=6.100
+[AQ] CONSUME fighter=RUBBER weapon=PISTOL reason=sequence-complete
+[AQ] SPAWN_SLOT id=3 x=583 y=298 lead=2.00
+[AQ] SPAWN_SLOT id=4 x=876 y=242 lead=2.00
+[AQ] REVEAL id=3 weapon=SMG eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=3 fighter=RUBBER weapon=SMG
+[AQ] USE fighter=RUBBER weapon=SMG
+[AQ] SHOT fighter=RUBBER weapon=SMG t=11.600
+[AQ] SHOT fighter=RUBBER weapon=SMG t=11.683
+[AQ] SHOT fighter=RUBBER weapon=SMG t=11.767
+[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.3
+[AQ] SHOT fighter=RUBBER weapon=SMG t=11.850
+[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.3
+[AQ] SHOT fighter=RUBBER weapon=SMG t=11.933
+[AQ] SHOT fighter=RUBBER weapon=SMG t=12.017
+[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.3
+[AQ] SHOT fighter=RUBBER weapon=SMG t=12.100
+[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.3
+[AQ] SHOT fighter=RUBBER weapon=SMG t=12.183
+[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.3
+[AQ] CONSUME fighter=RUBBER weapon=SMG reason=sequence-complete
+[AQ] REVEAL id=4 weapon=AK_47 eta=0.92 lead=2.00 fighter=RUBBER force=false
+[AQ] SPAWN_SLOT id=5 x=511 y=600 lead=2.00
+[AQ] PICKUP id=4 fighter=RUBBER weapon=AK_47
+[AQ] USE fighter=RUBBER weapon=AK_47
+[AQ] SHOT fighter=RUBBER weapon=AK_47 t=14.067
+[AQ] HIT source=RUBBER target=ICE weapon=AK_47 damage=3.8
+[AQ] SHOT fighter=RUBBER weapon=AK_47 t=14.167
+[AQ] HIT source=RUBBER target=ICE weapon=AK_47 damage=3.8
+[AQ] SHOT fighter=RUBBER weapon=AK_47 t=14.283
+[AQ] HIT source=RUBBER target=ICE weapon=AK_47 damage=3.8
+[AQ] SHOT fighter=RUBBER weapon=AK_47 t=14.383
+[AQ] HIT source=RUBBER target=ICE weapon=AK_47 damage=3.8
+[AQ] SHOT fighter=RUBBER weapon=AK_47 t=14.500
+[AQ] HIT source=RUBBER target=ICE weapon=AK_47 damage=3.8
+[AQ] SHOT fighter=RUBBER weapon=AK_47 t=14.617
+[AQ] HIT source=RUBBER target=ICE weapon=AK_47 damage=3.8
+[AQ] CONSUME fighter=RUBBER weapon=AK_47 reason=sequence-complete
+[AQ] SPAWN_SLOT id=6 x=208 y=498 lead=2.00
+[AQ] REVEAL id=5 weapon=SZECSEI_FUCHS eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] PICKUP id=5 fighter=RUBBER weapon=SZECSEI_FUCHS
+[AQ] USE fighter=RUBBER weapon=SZECSEI_FUCHS
+[AQ] SHOT fighter=RUBBER weapon=SZECSEI_FUCHS t=18.933
+[AQ] HIT source=RUBBER target=ICE weapon=SZECSEI_FUCHS damage=15.0
+[AQ] SPAWN_SLOT id=7 x=880 y=129 lead=2.00
+[AQ] REVEAL id=6 weapon=TEC_9 eta=null lead=2.00 fighter=TIMEOUT force=true
+[AQ] SHOT fighter=RUBBER weapon=SZECSEI_FUCHS t=19.490
+[AQ] CONSUME fighter=RUBBER weapon=SZECSEI_FUCHS reason=shot-fired
+[AQ] HIT source=RUBBER target=ICE weapon=SZECSEI_FUCHS damage=15.0
 [AQ] KO winner=RUBBER
-PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=1 x=264 y=868 lead=2.00","REVEAL":"[AQ] REVEAL id=1 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true","PICKUP":"[AQ] PICKUP id=1 fighter=RUBBER weapon=GRENADE","USE":"[AQ] USE fighter=RUBBER weapon=GRENADE","CONSUME":"[AQ] CONSUME fighter=RUBBER weapon=GRENADE reason=thrown","HIT":"[AQ] HIT source=RUBBER target=ICE weapon=BATTLE_AXE damage=39.0"}
+PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=1 x=369 y=721 lead=2.00","REVEAL":"[AQ] REVEAL id=1 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true","PICKUP":"[AQ] PICKUP id=2 fighter=RUBBER weapon=JACKHAMMER","USE":"[AQ] USE fighter=RUBBER weapon=JACKHAMMER","CONSUME":"[AQ] CONSUME fighter=RUBBER weapon=JACKHAMMER reason=sequence-complete","HIT":"[AQ] HIT source=RUBBER target=ICE weapon=JACKHAMMER damage=2.4"}
 
 ==== ARSENAL QUEST HEADLESS TEST SUMMARY ====
 {
