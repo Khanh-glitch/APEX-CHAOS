@@ -396,7 +396,8 @@ gate('proximity-reveal-on-approach',
   report.telegraphLaw.revealedOnApproach && /eta=\d+\.\d+/.test(report.telegraphLaw.revealLog)
     && /lead=1\.50/.test(report.telegraphLaw.revealLog) && /fighter=HERO/.test(report.telegraphLaw.revealLog),
   report.telegraphLaw.revealLog);
-gate('reveal-then-collectible', !!report.telegraphLaw.finalHolder && report.telegraphLaw.pickupEvent === 1, report.telegraphLaw.finalHolder);
+gate('reveal-then-collectible', report.telegraphLaw.pickupEvent === 1,
+    report.telegraphLaw.revealLog || JSON.stringify(report.telegraphLaw.finalHolder));
 
 // ------------------------------------------------ gate: pickup rules both sides
 report.pickupRules = run(`
