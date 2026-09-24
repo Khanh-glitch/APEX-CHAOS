@@ -588,6 +588,14 @@ report.f3 = run(`
 `);
 gate('f3-debug-overlay-toggle', report.f3.toggledOn === true);
 
+// Wait for curated + atlas assets to decode before snapshotting weapon art.
+{
+  const w0 = Date.now();
+  while (win.APEX_ARSENAL_AV && (win.APEX_ARSENAL_AV.imagesReady() < win.APEX_ARSENAL_AV.describe().allImages.length) && Date.now() - w0 < 20000) {
+    await new Promise(r => setTimeout(r, 100));
+  }
+}
+
 // Evidence 1: hidden telegraph + F3 overlay.
 run(`
   __AQ_TEST.enterManual();

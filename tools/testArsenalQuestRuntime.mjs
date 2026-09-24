@@ -460,7 +460,7 @@ try {
 
   // Issue #4: real-browser proof that the committed atlas renders (floor +
   // equipped) and the old placeholder path is not serving weapon art.
-  report.weaponArt = await evaluate(`(() => {
+  report.weaponArt = await evaluate(`(async () => {
     __AQ_TEST.enterManual();
     __AQ_TEST.clearSlots();
     __AQ_TEST.place(300, 500, 760, 500);
@@ -468,6 +468,10 @@ try {
     __AQ_TEST.pushSlot({ x: 520, y: 620, weaponId: 'TOWER_SHIELD' });
     __AQ_TEST.equip('HERO', 'SABRE');
     __AQ_TEST.equip('RIVAL', 'SWIRL_SHIELD');
+    const t0 = Date.now();
+    while (APEX_ARSENAL_AV.imagesReady() < APEX_ARSENAL_AV.describe().allImages.length && Date.now() - t0 < 15000) {
+      await new Promise(r => setTimeout(r, 100));
+    }
     __AQ_TEST.step(0.3);
     __AQ_TEST.redraw();
     const s = APEX_ARSENAL_AV.stats;
