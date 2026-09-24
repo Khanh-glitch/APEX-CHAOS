@@ -63,7 +63,7 @@
     dx /= mag;
     dy /= mag;
 
-    let speed = Number(fighter.baseSpeed || CFG.FIGHTER_SPEED || 0);
+    let speed = Number(fighter.baseSpeed ?? CFG.FIGHTER_SPEED ?? 0);
     if (typeof fighter.speedMult === 'function') speed *= Math.max(0, fighter.speedMult());
     if (!(speed > 0)) return dist(x, y, slot.x, slot.y) <= touch ? 0 : null;
 
