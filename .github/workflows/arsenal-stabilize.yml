@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   stabilize:
@@ -159,6 +160,21 @@ jobs:
             git commit -m "chore(arsenal): refresh real-browser evidence [skip ci]"
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
+
+      - name: Publish diagnosis to issue 4
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "run=$GITHUB_RUN_ID job-sha=$(git rev-parse HEAD)"
+            echo '--- serve1 ---'; tail -50 /tmp/serve1.log 2>/dev/null || echo absent
+            echo '--- serve2 ---'; tail -20 /tmp/serve2.log 2>/dev/null || echo absent
+            echo '--- headless tail ---'; tail -25 /tmp/headless.log 2>/dev/null || echo absent
+            echo '--- browser tail ---'; tail -25 /tmp/browser.log 2>/dev/null || echo absent
+            echo '--- git status ---'; git status --short | head -30
+          } > /tmp/diag.md || true
+          gh issue comment 4 --repo Khanh-glitch/APEX-CHAOS --body-file /tmp/diag.md || echo "issue comment failed"
 
       - name: Commit reproducible QA dependencies
         shell: bash
