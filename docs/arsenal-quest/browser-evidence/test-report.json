@@ -62,7 +62,7 @@
     },
     "multi-slot-coexist": {
       "pass": true,
-      "detail": "maxActiveSlots=4"
+      "detail": "maxActiveSlots=5"
     },
     "force-reveals-only-while-unapproached": {
       "pass": true,
@@ -87,11 +87,11 @@
     },
     "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true"
+      "detail": "[AQ] REVEAL id=1 weapon=SPEAR eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=GRENADE eta=1.36 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=SNIPER eta=1.36 lead=2.00 fighter=HERO force=false"
     },
     "near-miss-outside-circle-stays-hidden": {
       "pass": true,
@@ -101,7 +101,7 @@
         "edgeLog": "[AQ] REVEAL id=2 weapon=SPEAR eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=SPIKED_CLUB eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=SWIRL_SHIELD eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
@@ -110,7 +110,7 @@
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=3 weapon=SPIKED_CLUB eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=3 weapon=SWIRL_SHIELD eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -327,7 +327,7 @@
       "pass": true,
       "detail": {
         "nativeFrames": 20,
-        "aqFrames": 58
+        "aqFrames": 36
       }
     },
     "f3-debug-overlay-toggle": {
@@ -569,17 +569,17 @@
     },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=7 restarts=7 spawnedCumulative=68 earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=7 restarts=7 spawnedCumulative=69 earlyErrors=0"
     },
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=5 x=692 y=295 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=5 weapon=BATTLE_AXE eta=0.28 lead=2.00 fighter=WITCH force=false",
-        "PICKUP": "[AQ] PICKUP id=5 fighter=WITCH weapon=BATTLE_AXE",
-        "USE": "[AQ] USE fighter=SNIPER weapon=SABRE",
-        "HIT": "[AQ] HIT source=WITCH target=SNIPER weapon=DAGGER damage=9.0",
-        "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=SABRE reason=melee-resolved"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=7 x=888 y=847 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=7 weapon=SPIKED_CLUB eta=null lead=2.00 fighter=TIMEOUT force=true",
+        "PICKUP": "[AQ] PICKUP id=5 fighter=WITCH weapon=SWIRL_SHIELD",
+        "USE": "[AQ] USE fighter=SNIPER weapon=BATTLE_AXE",
+        "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=SPIKED_CLUB damage=18.0",
+        "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=BATTLE_AXE reason=melee-resolved"
       }
     }
   },
@@ -652,7 +652,7 @@
   },
   "spawnLaw": {
     "spawnedTotal": 5,
-    "maxActive": 4,
+    "maxActive": 5,
     "spawnTimes": [
       1,
       5.6,
@@ -694,10 +694,10 @@
       "predictedFighter": null
     },
     "forceRevealed": true,
-    "forceLog": "[AQ] REVEAL id=1 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "forceLog": "[AQ] REVEAL id=1 weapon=SPEAR eta=null lead=2.00 fighter=TIMEOUT force=true",
     "pickupAfterForce": true,
     "revealedOnMovement": true,
-    "moveRevealLog": "[AQ] REVEAL id=2 weapon=GRENADE eta=1.36 lead=2.00 fighter=HERO force=false"
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=SNIPER eta=1.36 lead=2.00 fighter=HERO force=false"
   },
   "circleNeg": {
     "nearMissStayedHidden": true,
@@ -705,7 +705,7 @@
     "edgeLog": "[AQ] REVEAL id=2 weapon=SPEAR eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=SPIKED_CLUB eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=SWIRL_SHIELD eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -960,7 +960,7 @@
     "vampLatch": 2.5,
     "monkRush": 2.5,
     "nativeSeen": 20,
-    "aqSeen": 58,
+    "aqSeen": 36,
     "holderIntact": true
   },
   "f3": {
@@ -1134,18 +1134,18 @@
     "error": null,
     "restarts": 7,
     "koCount": 7,
-    "spawnedTotal": 2,
-    "spawnedCumulative": 68,
+    "spawnedTotal": 5,
+    "spawnedCumulative": 69,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=5 x=692 y=295 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=5 weapon=BATTLE_AXE eta=0.28 lead=2.00 fighter=WITCH force=false",
-    "PICKUP": "[AQ] PICKUP id=5 fighter=WITCH weapon=BATTLE_AXE",
-    "USE": "[AQ] USE fighter=SNIPER weapon=SABRE",
-    "HIT": "[AQ] HIT source=WITCH target=SNIPER weapon=DAGGER damage=9.0",
-    "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=SABRE reason=melee-resolved"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=7 x=888 y=847 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=7 weapon=SPIKED_CLUB eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "PICKUP": "[AQ] PICKUP id=5 fighter=WITCH weapon=SWIRL_SHIELD",
+    "USE": "[AQ] USE fighter=SNIPER weapon=BATTLE_AXE",
+    "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=SPIKED_CLUB damage=18.0",
+    "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=BATTLE_AXE reason=melee-resolved"
   },
   "summary": {
     "total": 69,
