@@ -8,10 +8,9 @@ Scope: packaging + final verification only. No gameplay/UI/balance/weapon change
 - Corrected runtime baseline (latest `origin/prototype/arsenal-quest` at task start):
   `f350f82a58805a7a77c04813470cde66d2cffb7e` (correction pass landed, CI green).
 - Session branch: `arena/01a0cf5e-apex-chaos`, fast-forwarded onto that exact tip.
-- Delivery commit: the commit that adds this report + `release/arsenal-quest-windows/`
-  (see `git log -1 --format=%H -- docs/arsenal-quest/PLAYABLE_BUILD_REPORT.md`);
-  the same SHA is baked into the ZIP as `app/ARSENAL_BUILD_SHA.txt` and printed by
-  `PLAY_WINDOWS.bat`.
+- Delivery commit: the final commit of `arena/01a0cf5e-apex-chaos` for this task;
+  its exact SHA is baked into the ZIP as `app/ARSENAL_BUILD_SHA.txt` and printed by
+  `PLAY_WINDOWS.bat` (the ZIP is rebaked after the last commit, so the two match).
 
 ## Pre-packaging verification of the corrected runtime
 
