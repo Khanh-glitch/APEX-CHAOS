@@ -268,6 +268,7 @@
   // ---------------------------------------------------------------------------
   function fireBullet(spec) {
     const { owner, x, y, angle, speed, damage, weapon } = spec;
+    if (!Number.isFinite(angle) || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(speed)) return;
     const wspec = CFG.WEAPONS[weapon] || {};
     const family = wspec.family || (weapon === 'SNIPER' ? 'PRECISION' : weapon === 'SHOTGUN' ? 'SHOTGUN' : weapon === 'SMG' ? 'AUTO' : 'SEMI');
     projectiles.push({
@@ -795,7 +796,7 @@
       const pellets = spec.pellets > 1 ? spec.pellets : 1;
       for (let i = 0; i < pellets; i++) {
         const t = pellets === 1 ? 0.5 : i / (pellets - 1);
-        const spread = (Math.random() * 2 - 1) * spec.spread + (pellets > 1 ? (t - 0.5) * spec.cone : 0);
+        const spread = (Math.random() * 2 - 1) * (spec.spread || 0) + (pellets > 1 ? (t - 0.5) * (spec.cone || 0) : 0);
         const angle = base + spread;
         fireBullet({
           owner: f,
@@ -855,7 +856,11 @@
           cameraShake = Math.max(cameraShake, family === 'AUTOSHOT' ? 6 : 3);
           playFighterSound(f, 'skill');
         }
-        if (h.shotsFired >= spec.shots && h.meta.nextShot <= 0) consume(f, 'sequence-complete');
+        const need = spec.shots || 1;
+        if (h.shotsFired >= need) {
+          const dump = family === 'AUTOSHOT' || family === 'SHOTGUN' || need === 1;
+          if (dump || h.meta.nextShot <= 0) consume(f, 'sequence-complete');
+        }
       },
       ...extra,
     };

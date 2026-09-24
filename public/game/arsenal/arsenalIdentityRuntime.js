@@ -68,8 +68,8 @@
     AK_47: { family: 'AUTO', shots: 6, interval: 0.11, damagePerShot: 3.8, spread: 0.09, knockback: 110, bulletSpeed: 3300, bulletLife: 0.36, bulletRadius: 6.5, sfx: 'smg_shot', sfxRate: 0.92, vfx: 'ar', exit: 'stockKick' },
     M16: { family: 'BURST', shots: 6, interval: 0.08, burstPause: 0.28, burstSize: 3, damagePerShot: 3.6, spread: 0.04, knockback: 100, bulletSpeed: 3400, bulletLife: 0.38, bulletRadius: 6.5, sfx: 'smg_shot', sfxRate: 1.02, vfx: 'ar', exit: 'longToss' },
     MBR: { family: 'PRECISION', shots: 2, aimTime: 0.28, interval: 0.45, damage: 11, knockback: 300, bulletSpeed: 5000, bulletLife: 0.7, bulletRadius: 7, sfx: 'sniper_shot', sfxRate: 1.06, vfx: 'dmr', exit: 'opticSettle' },
-    SHOTGUN: { family: 'AUTOSHOT', shots: 2, interval: 0.28, pellets: 6, cone: 0.48, damagePerPellet: 2.0, knockback: 200, bulletSpeed: 2500, bulletLife: 0.17, bulletRadius: 6, triggerRange: 430, sfx: 'shotgun_shot', sfxRate: 1.0, vfx: 'semiShot', noPumpRack: true, exit: 'bodyPunch' },
-    SAWED_OFF: { family: 'SHOTGUN', pellets: 10, cone: 1.05, damagePerPellet: 2.45, knockback: 280, bulletSpeed: 2100, bulletLife: 0.12, bulletRadius: 6.5, triggerRange: 300, sfx: 'shotgun_shot', sfxRate: 0.88, vfx: 'sawedOff', noPumpRack: true, noCasing: true, hullOnExit: true, exit: 'breakOpen' },
+    SHOTGUN: { family: 'AUTOSHOT', shots: 2, interval: 0.28, pellets: 6, cone: 0.28, spread: 0, damagePerPellet: 2.0, knockback: 200, bulletSpeed: 2500, bulletLife: 0.17, bulletRadius: 7, triggerRange: 640, sfx: 'shotgun_shot', sfxRate: 1.0, vfx: 'semiShot', noPumpRack: true, exit: 'bodyPunch' },
+    SAWED_OFF: { family: 'SHOTGUN', pellets: 10, cone: 0.55, damagePerPellet: 2.45, knockback: 280, bulletSpeed: 2100, bulletLife: 0.12, bulletRadius: 6.5, triggerRange: 900, sfx: 'shotgun_shot', sfxRate: 0.88, vfx: 'sawedOff', noPumpRack: true, noCasing: true, hullOnExit: true, exit: 'breakOpen' },
     MAGNUM_500: { family: 'SEMI', shots: 1, interval: 0, damagePerShot: 28, spread: 0.02, knockback: 380, bulletSpeed: 3000, bulletLife: 0.5, bulletRadius: 9, sfx: 'pistol_shot', sfxRate: 0.78, vfx: 'revolver', noCasing: true, hullOnExit: true, exit: 'cylinderSpill' },
     M249_SAW: { family: 'AUTO', shots: 12, interval: 0.075, damagePerShot: 2.5, spread: 0.12, knockback: 70, bulletSpeed: 3100, bulletLife: 0.34, bulletRadius: 6, sfx: 'smg_shot', sfxRate: 0.84, vfx: 'lmg', casingFan: 1.8, exit: 'noseSlump' },
     MBR2: { family: 'PRECISION', shots: 2, aimTime: 0.34, interval: 0.5, damage: 14, knockback: 360, bulletSpeed: 5200, bulletLife: 0.72, bulletRadius: 7.2, sfx: 'sniper_shot', sfxRate: 0.98, vfx: 'dmr', exit: 'deepRecoil' },
@@ -105,11 +105,15 @@
   }
   function selectOffensiveWeapon(rng) {
     const random = typeof rng === 'function' ? rng : Math.random;
-    const tier = rollTier(random);
+    const u = random();
+    // Independent intra-tier sample even if the caller only advances RNG once
+    // per select (headless LCG). Keep u in [0,1) for the tier table.
+    const u2 = (u * 104729 + 0.6180339887) % 1;
+    const tier = rollTier(() => u);
     const pool = BY_TIER[tier];
     let total = 0;
     for (const id of pool) total += weightFor(id);
-    let roll = random() * total;
+    let roll = u2 * total;
     for (const id of pool) {
       roll -= weightFor(id);
       if (roll < 0) return { id, tier };
