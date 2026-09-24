@@ -1,80 +1,105 @@
 # ARSENAL QUEST — PLAYABLE WINDOWS BUILD REPORT
 
 Issue: #4 — Package and verify a truly playable Windows Arsenal Quest build
-Scope: packaging + final verification only. No gameplay/UI/balance/weapon changes.
+Scope: delivery / packaging / final verification only. No gameplay, balance,
+progression, UI, or weapon changes in this pass.
 
-## Branches / SHAs
+## Source branch / SHA
 
-- Corrected runtime baseline (latest `origin/prototype/arsenal-quest` at task start):
-  `f350f82a58805a7a77c04813470cde66d2cffb7e` (correction pass landed, CI green).
-- Session branch: `arena/01a0cf5e-apex-chaos`, fast-forwarded onto that exact tip.
-- Delivery commit: the final commit of `arena/01a0cf5e-apex-chaos` for this task;
-  its exact SHA is baked into the ZIP as `app/ARSENAL_BUILD_SHA.txt` and printed by
-  `PLAY_WINDOWS.bat` (the ZIP is rebaked after the last commit, so the two match).
+- Session branch: `arena/01a0cf5e-apex-chaos`, layered on (descendant of) the latest
+  `origin/prototype/arsenal-quest` at `f350f82a58805a7a77c04813470cde66d2cffb7e`
+  (the completed correction pass).
+- Packaged source SHA (value of `app/ARSENAL_BUILD_SHA.txt` inside the ZIP):
+  **see §Delivery SHAs below**.
+- Delivery / report-finalize commit: **see §Delivery SHAs below**.
 
-## Pre-packaging verification of the corrected runtime
+## Build result
 
-- Atlas integrity: `public/assets/arsenal/weapons/arsenal_p0_weapon_atlas.png`
-  SHA-256 `bb11c1c7df0a274b6e1106f074295c0ffe0b84a4c86ae964f068eeaa42b01f6f`,
-  exactly matching `PROVENANCE.md`; all 12 cells populated (per-cell alpha scan).
-- Headless suite (real engine + real assets in jsdom): **61/61 PASS**, including
-  `weapon-atlas-floor-sprite-rendered`, `weapon-atlas-equipped-sprite-rendered`,
-  `telegraph-not-collectible-and-long-hidden`, `proximity-reveal-on-approach`
-  (REVEAL log format `eta=… lead=… fighter=…` asserted), reveal-lookahead 1.2–1.8.
-- Real browser: repo CI (`Arsenal Quest Stabilization`) runs
-  `tools/testArsenalQuestRuntime.mjs` over CDP/Chrome on every push of this branch;
-  this delivery adds three browser-side gates: `browser-weapon-atlas-floor-sprite`,
-  `browser-weapon-atlas-equipped-sprite`, `browser-no-atlas-fallback`.
-  Run URL for the delivery push is recorded in the closing chat message.
-- Visual confirmation (headless canvas renders, evidence dir): revealed floor pickups
-  show real atlas sprites (gun/melee/shield), fighters carry real equipped sprites,
-  telegraph stays a neutral "?" beacon, no PIS/AXE/SWL circle+tag renderer on the
-  normal path (placeholder renderer removed; debug-only missing-art fallback remains).
+- `pnpm install --frozen-lockfile` + `pnpm build` (vite 5.4.21): **passes**.
+- `release/arsenal-quest-windows/app/` = exact production `dist/` contents plus
+  `ARSENAL_BUILD_SHA.txt` (gitignored; assembled at delivery time, never stale in Git).
+- Headless acceptance on the packaged tree: **61/61 gates PASS**
+  (`node tools/testArsenalQuestHeadless.mjs`), including the correction-pass gates
+  (proximity-predicted reveal, atlas floor/equipped sprites, VFX anchoring) and the
+  five-minute no-error simulation.
 
-## Packaging
-
-`release/arsenal-quest-windows/` (this repo) and the single user ZIP
-`APEX_ARSENAL_QUEST_PLAYABLE_WINDOWS.zip` (workspace root, not committed):
+## Package contents (inside `APEX_ARSENAL_QUEST_PLAYABLE_WINDOWS.zip`)
 
 ```
 PLAY_WINDOWS.bat   double-click launcher
-serve.ps1          built-in PowerShell/.NET static server only
-app/               vite production dist + ARSENAL_BUILD_SHA.txt
+serve.ps1          built-in PowerShell/.NET static server
 BUILD_INFO.txt     package metadata
-README_FIRST.txt   user instructions
+README_FIRST.txt   how to play
+app/               production build + ARSENAL_BUILD_SHA.txt
 ```
 
-serve.ps1 behavior (as required):
-- dynamic free localhost port (OS probe + random fallback; never 8765/fixed),
-- serves `app/` with MIME map for html/js/css/png/jpg/webp/svg/ico/ogg/wav/mp3/json/txt/…,
-- `Cache-Control: no-store, no-cache, must-revalidate` + Pragma/Expires on every response,
-- browser opened only after the listener reports listening,
-- appends `?build=<sha>` to the URL and prints the exact SHA,
-- loud fatal + non-zero exit on bind/start failure, serves until the console closes,
-- path-traversal guarded; 404 for missing files.
+No Node, pnpm, npm, Python, Git, VS Code, or internet required.
 
-## Smoke test performed
+## Launcher design (serve.ps1 / PLAY_WINDOWS.bat)
 
-1. Built from the delivery commit tree (`pnpm build`, vite 5.4.21, exit 0).
-2. Packaged `app/` = dist + `ARSENAL_BUILD_SHA.txt` = delivery SHA.
-3. Served `app/` from a sandbox static server; `GET /ARSENAL_BUILD_SHA.txt`
-   returned the exact SHA; `GET /` returned the built index referencing the built
-   assets; asset routes (js/png/ogg) returned 200 with expected content types.
-4. Headless Arsenal acceptance re-run on the same tree: 61/61 PASS.
-5. Relaunch safety: port is chosen at bind time per process; two concurrent servers
-   cannot collide (no fixed port), and no-cache headers prevent stale caches.
+- Built-in .NET `System.Net.HttpListener` only.
+- Port: asks the OS for a free ephemeral port first (`TcpListener` on port 0), then
+  random probes; binds the first that accepts. **No fixed port anywhere (never 8765).**
+- Serves `app/` with a MIME table for html/js/mjs/css/json/png/jpg/gif/webp/svg/ico/
+  ogg/wav/mp3/opus/txt/map/woff/woff2, octet-stream fallback; path-traversal guarded.
+- Sends `Cache-Control: no-store, no-cache, must-revalidate`, `Pragma: no-cache`,
+  `Expires: 0` on every response.
+- Opens the browser **only after** the listener reports listening; URL carries
+  `?build=<sha>`.
+- Prints the exact build SHA + URL; on bind/start failure it `Write-Error`s and
+  exits 1, and the .bat pauses with a visible failure message (never silent).
+- Keeps serving until the console closes; multiple concurrent instances each get
+  their own free port.
 
-## Limitations (stated plainly)
+## Anti-stale protections
 
-- The sandbox has no Windows and no PowerShell binary; `serve.ps1`/`PLAY_WINDOWS.bat`
-  could not be double-click-executed here. Their logic was validated by review and by
-  exercising the identical serving contract (dynamic port, SHA endpoint, MIME, no-cache)
-  with a sandbox static server; the browser-side acceptance ran on GitHub-hosted Chrome
-  via CI, not on Windows.
-- Real-browser screenshots live in the CI run artifacts
-  (`arsenal-quest-browser-evidence`); blob storage is unreachable from this sandbox.
+- `app/ARSENAL_BUILD_SHA.txt` is written from `git rev-parse HEAD` of the packaged
+  source commit at assembly time; the launcher reads and prints that same file, and
+  appends it to the URL query.
+- `app/` and the ZIP are gitignored, so Git never serves a stale embedded build; the
+  CI smoke step re-assembles `app/` from the checked-out tree and asserts
+  `GET /ARSENAL_BUILD_SHA.txt` equals `git rev-parse HEAD` of that checkout.
+- Dynamic port + browser-after-listen means a relaunch can never open against an old
+  server: the browser is pointed at the just-bound port only.
+- CI smoke test launches **two** concurrent instances and asserts distinct ports.
 
-## Result
+## Runtime / browser verification
 
-One self-contained ZIP, no external runtime dependencies, exact-SHA anti-stale
-launcher, corrected Arsenal Quest with real weapon art inside.
+- Real-browser (Chrome) acceptance runs in CI on this branch
+  (`.github/workflows/arsenal-stabilize.yml`), including the correction-pass gates
+  `browser-weapon-atlas-floor-sprite`, `browser-weapon-atlas-equipped-sprite`,
+  `browser-no-atlas-fallback`, proximity-reveal gates, and VFX anchoring gates.
+  Browser evidence PNGs are committed back to the branch by CI under
+  `docs/arsenal-quest/browser-evidence/` for in-repo visual review.
+- Verified from that evidence: real weapon sprites on the floor and on fighters,
+  no PIS/AXE/SWL placeholder circles in normal gameplay, hidden telegraph persisting
+  while unapproached, reveal at predicted-ETA threshold with `[AQ] REVEAL … eta=… lead=…
+  fighter=…` logs.
+
+## Launcher smoke verification (CI, pwsh on ubuntu)
+
+Step "Smoke-test packaged launcher server (pwsh)" asserts on the runner:
+1. `serve.ps1` starts and prints URL+SHA; 2. `GET /ARSENAL_BUILD_SHA.txt` equals the
+checkout SHA; 3. `/` returns 200 with `no-store` cache headers and the app root div;
+4. a curated asset path serves 200; 5. a second concurrent instance binds a different
+port (no fixed/stale port). Limitation: `.bat` double-click and Windows-specific
+browser auto-open cannot be executed in this Linux sandbox/CI; the .bat is a thin
+wrapper (`powershell -NoProfile -ExecutionPolicy Bypass -File serve.ps1` + visible
+failure pause) and serve.ps1 itself is what the smoke test executes.
+
+## Delivery SHAs
+
+- Packaged source SHA (in `app/ARSENAL_BUILD_SHA.txt` and printed by the launcher):
+  filled at delivery commit time (the commit whose tree was packaged).
+- Report-finalize commit: the commit adding these two lines.
+- ZIP workspace path: `APEX_ARSENAL_QUEST_PLAYABLE_WINDOWS.zip` (repo root; gitignored
+  by policy — delivered as the workspace artifact, not through Git).
+
+## Known limitations
+
+- ZIP is ~the full production dist size (whole Apex game assets), same footprint as
+  the CI playable-build artifact; Arsenal-specific trimming was intentionally not
+  done (would risk breaking shared menu/preload paths).
+- Windows double-click behavior is verified by component (pwsh smoke of serve.ps1 on
+  CI Linux + code review of the 6-line .bat), not by an actual Windows machine in this
+  environment; stated plainly per issue #4.

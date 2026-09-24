@@ -51,6 +51,40 @@ jobs:
           path: dist/
           if-no-files-found: error
 
+      - name: Assemble packaged app for launcher smoke test
+        shell: bash
+        run: |
+          rm -rf release/arsenal-quest-windows/app
+          cp -r dist release/arsenal-quest-windows/app
+          git rev-parse HEAD > release/arsenal-quest-windows/app/ARSENAL_BUILD_SHA.txt
+          echo "assembled app with SHA $(cat release/arsenal-quest-windows/app/ARSENAL_BUILD_SHA.txt)"
+
+      - name: Smoke-test packaged launcher server (pwsh)
+        shell: bash
+        run: |
+          cd release/arsenal-quest-windows
+          SHA=$(cat app/ARSENAL_BUILD_SHA.txt)
+          pwsh -NoProfile -File serve.ps1 > /tmp/serve1.log 2>&1 &
+          S1=$!
+          for i in $(seq 1 30); do grep -q "URL       :" /tmp/serve1.log && break; sleep 1; done
+          cat /tmp/serve1.log
+          PORT1=$(sed -n 's|.*localhost:\([0-9]*\)/.*|\1|p' /tmp/serve1.log | head -1)
+          if [ -z "$PORT1" ]; then echo "launcher failed to print URL"; exit 1; fi
+          SERVED_SHA=$(curl -fsS "http://localhost:$PORT1/ARSENAL_BUILD_SHA.txt")
+          echo "served SHA=$SERVED_SHA expected=$SHA"
+          test "$SERVED_SHA" = "$SHA"
+          curl -fsSI "http://localhost:$PORT1/" | grep -i cache-control | grep -i no-store
+          curl -fsS "http://localhost:$PORT1/" | grep -q 'id="root"'
+          curl -fsS "http://localhost:$PORT1/assets/arsenal/av/vfx/muzzle_flash/muzzleFlash0_transparent.png" -o /dev/null
+          pwsh -NoProfile -File serve.ps1 > /tmp/serve2.log 2>&1 &
+          S2=$!
+          for i in $(seq 1 30); do grep -q "URL       :" /tmp/serve2.log && break; sleep 1; done
+          PORT2=$(sed -n 's|.*localhost:\([0-9]*\)/.*|\1|p' /tmp/serve2.log | head -1)
+          echo "ports: $PORT1 $PORT2"
+          if [ -z "$PORT2" ] || [ "$PORT2" = "$PORT1" ]; then echo "stale/fixed port collision!"; exit 1; fi
+          kill $S1 $S2 2>/dev/null || true
+          echo "LAUNCHER SMOKE OK"
+
       - name: Start Apex dev server
         shell: bash
         run: |
@@ -93,6 +127,19 @@ jobs:
             docs/arsenal-quest/browser-evidence/
             /tmp/apex-vite.log
           if-no-files-found: warn
+
+      - name: Commit browser evidence for in-repo review
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/arsenal-quest/browser-evidence 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No browser evidence changes."
+          else
+            git commit -m "chore(arsenal): refresh real-browser evidence [skip ci]"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
 
       - name: Commit reproducible QA dependencies
         shell: bash
