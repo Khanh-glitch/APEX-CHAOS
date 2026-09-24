@@ -131,16 +131,24 @@ holder state untouched by native kits (existing QA gates re-pass).
 
 ## 11. Verification (DoD §11)
 
-- Headless (real engine + real canvas, this SHA): **96/96 gates** including
+- Headless (real engine + real canvas): **96/96 gates** including
   new C gates (`weapon-cset-*`, `av-muzzle-uses-warm-c-family`,
   `av-no-laser-charge-sfx`, `av-melee-contact-transients`,
   `c-projectile-speeds-v2`, `c-casing-ejected-on-fire`,
   `c-native-damage-normalized`, `c-power-telemetry-live`).
 - `pnpm build` passes.
-- Real-browser suite runs in CI from the pushed SHA (same path as B).
+- Real-browser suite (CI, from pushed SHA `f27ad18`): **69/69 gates**;
+  browser evidence + logs committed back as `e45671a`. Frames confirm the C
+  set, tracers, casings, grenade continuity and Chamber 01 in a live browser.
 - Evidence refreshed under `docs/arsenal-quest/evidence/` from this build:
   chamber arena, all gun firings, grenade continuity trio, melee contacts,
   shields, pickups.
+- Final-lock re-verification at tip `c05fe4c` (this turn):
+  `tools/materializeArsenalFinalSfx.mjs` reproduces all 20 WAVs
+  byte-identical from the sha-locked ZIP; headless re-run 96/96 with all 20
+  `sfx/c-final/` layers present in the scheduled-audio ring across the combat
+  scenarios; CI at `e35819f` (last code-changing commit) ran headless +
+  real-browser green.
 
 ## 12. No placeholders (DoD §12)
 
