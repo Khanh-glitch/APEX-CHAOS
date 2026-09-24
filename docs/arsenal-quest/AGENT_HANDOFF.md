@@ -4,13 +4,15 @@ Status: AUTHORITATIVE IMPLEMENTATION BRIEF
 Target branch: `prototype/arsenal-quest`  
 Do not modify or merge into `main` unless the owner explicitly asks later.
 
+> **IMPORTANT CORRECTION OVERRIDE:** Read `docs/arsenal-quest/CORRECTION_PASS_HANDOFF.md` before implementation. Its weapon-art, reveal-timing, VFX-placement, and related acceptance rules supersede conflicting wording in this older brief.
+
 ## 0. Read this first
 
 This file replaces earlier conversational descriptions and the old one-pickup prototype behavior.
 
 The current product hypothesis is:
 
-> Reuse Apex Chaos' existing auto-battle movement/combat engine, but make both fighters fundamentally unarmed and force them to contest a continuously spawning shared arsenal. Spawn locations telegraph first; weapon identity is hidden for 1–2 seconds; multiple pickups may coexist.
+> Reuse Apex Chaos' existing auto-battle movement/combat engine, but make both fighters fundamentally unarmed and force them to contest a continuously spawning shared arsenal. Spawn locations telegraph first; weapon identity remains hidden until an eligible fighter is predicted to reach that slot roughly 1–2 seconds later; multiple pickups may coexist.
 
 The implementation goal is NOT to build the full game. It is to prove whether the shared-weapon arena is fun before adding progression.
 
@@ -24,7 +26,7 @@ These are non-negotiable.
 4. Spawn cadence is timer-driven and **independent of whether old pickups have been collected**.
 5. Multiple telegraphs / revealed pickups may coexist.
 6. A spawn location appears BEFORE the weapon identity is known.
-7. Reveal delay is random **1.2–1.8 seconds** for the first tuning pass.
+7. Each slot gets a random **1.2–1.8 second reveal look-ahead threshold**. This is NOT a timer after spawn: reveal occurs only when an eligible fighter's predicted time-to-contact enters that threshold.
 8. Before reveal, the slot is visible but:
    - shows no weapon identity/category,
    - cannot be collected,
@@ -131,8 +133,8 @@ Suggested first-pass values:
 
 ```
 SPAWN_CADENCE_SECONDS = 3.0
-REVEAL_DELAY_MIN_SECONDS = 1.2
-REVEAL_DELAY_MAX_SECONDS = 1.8
+REVEAL_LOOKAHEAD_MIN_SECONDS = 1.2
+REVEAL_LOOKAHEAD_MAX_SECONDS = 1.8
 SPAWN_MARGIN = 90
 PICKUP_RADIUS = 42
 ```
@@ -159,21 +161,27 @@ At `TELEGRAPH`:
 - no color-coding that gives away the weapon,
 - non-interactable.
 
-After random 1.2–1.8s:
-- select/reveal the actual weapon if not selected earlier internally,
-- show weapon sprite or temporary placeholder,
-- make collectible.
+While TELEGRAPH:
+- keep weapon identity null / hidden,
+- estimate future time-to-contact for each living eligible fighter,
+- remain hidden for as long as nobody is predicted to touch within the slot's 1.2–1.8s look-ahead threshold.
 
-Spawn cadence continues regardless of slot lifecycle.
+When earliest predicted contact enters that threshold:
+- select/reveal the actual weapon at that moment,
+- show the committed real weapon sprite,
+- make collectible immediately.
+
+Spawn cadence continues regardless of slot lifecycle. A slot may remain hidden for many seconds.
 
 ### Important example
 
 ```
 t=0.0 slot A telegraph
-t=1.4 A reveals Shotgun
-t=3.0 slot B telegraph   (A may still be on floor)
-t=4.6 B reveals Shield
-t=6.0 slot C telegraph   (A and B may both still exist)
+t=3.0 slot B telegraph   (A may still be hidden)
+t=6.0 slot C telegraph   (A/B may both still be hidden)
+t=8.2 HERO trajectory now predicts contact with A in 1.5s
+t=8.2 A reveals Shotgun
+t≈9.7 HERO reaches A if trajectory remains valid
 ```
 
 This is a core product rule.
@@ -396,7 +404,7 @@ Do not hijack normal Play, Tournament, Solo, or Apex Control.
 
 ## 13. Asset plan for this coding pass
 
-Weapon art was curated separately, but binary integration is intentionally not a blocker for this coding pass.
+Weapon art is now committed and mandatory for normal gameplay rendering.
 
 P0 logical art keys:
 
@@ -419,9 +427,13 @@ Source families:
 - Kay Lousberg 2D Guns — gun family
 - JoeRaig Ancient Armory — melee/shield family
 
-Until binaries are committed, use a clearly isolated placeholder renderer or existing temporary local art key. Do NOT redesign weapon silhouettes in code and do NOT make placeholder presentation part of game logic.
+Runtime atlas:
+- `public/assets/arsenal/weapons/arsenal_p0_weapon_atlas.png`
+- `public/assets/arsenal/weapons/arsenal_p0_weapon_atlas.json`
 
-See `docs/arsenal-quest/P0_ASSET_MANIFEST.csv` and `docs/arsenal-quest/ASSET_AND_LICENSE_NOTES.md`.
+Colored circles / 3-letter tags are no longer accepted as the primary normal-gameplay representation of revealed or equipped weapons. See `docs/arsenal-quest/CORRECTION_PASS_HANDOFF.md` for the mandatory rendering rules.
+
+Also see `docs/arsenal-quest/P0_ASSET_MANIFEST.csv` and `docs/arsenal-quest/ASSET_AND_LICENSE_NOTES.md`.
 
 ## 14. Non-goals
 
@@ -461,7 +473,7 @@ It is accepted only when all of these are demonstrated:
 4. Both start unarmed at 100 HP.
 5. New spawn slots appear at the configured cadence even while old pickups remain.
 6. At least 3 floor pickups/telegraphs can coexist.
-7. Spawn telegraph appears 1.2–1.8s before reveal.
+7. Reveal is proximity-predicted: a slot may stay hidden >5s, and reveals only when an eligible fighter's predicted contact time enters its 1.2–1.8s look-ahead threshold.
 8. Telegraph gives no weapon identity/category.
 9. Telegraph cannot be collected.
 10. Both HERO and RIVAL can collect revealed pickups.
