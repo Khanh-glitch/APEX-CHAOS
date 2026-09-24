@@ -1,16 +1,15 @@
-// ARSENAL QUEST P0 — spawn slot lifecycle (handoff §5, §6).
+// ARSENAL QUEST — spawn / hidden-reveal pickup lifecycle.
+// Authoritative override: docs/arsenal-quest/CORRECTION_PASS_HANDOFF.md
 // TELEGRAPH -> REVEALED -> PICKED_UP -> REMOVED
-// Cadence is timer-driven and independent of collection state; multiple slots coexist.
-// Placeholder rendering is isolated presentation — never part of game logic (§13).
+// Spawn cadence is independent of collection state; reveal is proximity-predicted.
 (function apexArsenalSpawnRuntime() {
   if (window.apexArsenalSpawnRuntime === 'ready') return;
   const AQ = window.APEX_ARSENAL;
   const CFG = window.APEX_ARSENAL_CONFIG;
   const log = (event, fields) => AQ.log(event, fields);
 
-  // Isolated placeholder presentation table (logical sprite keys from
-  // docs/arsenal-quest/P0_ASSET_MANIFEST.csv). Swap for real art later without
-  // touching gameplay.
+  // Kept only for secondary feedback/debug fallback colors. Normal revealed
+  // pickup rendering MUST use the committed P0 weapon atlas.
   const PLACEHOLDER_ART = {
     PISTOL:       { tag: 'PIS', color: '#ffd479' },
     SHOTGUN:      { tag: 'SHG', color: '#ffbe6b' },
@@ -40,56 +39,127 @@
     return best ? { x: best.x, y: best.y } : { x: rand(margin, GAME_SIZE - margin), y: rand(margin, GAME_SIZE - margin) };
   }
 
+  function pickupTouchRadius(f) {
+    return (f?.radius || 75) * 0.6 + CFG.PICKUP_RADIUS + CFG.PICKUP_TOUCH_BONUS;
+  }
+
+  function isEligibleForPickup(f) {
+    if (!f || f.hp <= 0) return false;
+    const weaponApi = AQ.weaponApi;
+    return !(weaponApi && weaponApi.getHolder && weaponApi.getHolder(f));
+  }
+
+  // Predict the current Apex trajectory without steering toward the pickup.
+  // We intentionally simulate only the fighter's current direction/speed plus
+  // arena wall bounces. Fighter-fighter collision is ignored as documented.
+  function predictContactETA(slot, fighter) {
+    if (!slot || !fighter || !isEligibleForPickup(fighter)) return null;
+    const touch = pickupTouchRadius(fighter);
+    let x = fighter.x;
+    let y = fighter.y;
+    let dx = fighter.dir?.x || 0;
+    let dy = fighter.dir?.y || 0;
+    const mag = Math.hypot(dx, dy) || 1;
+    dx /= mag;
+    dy /= mag;
+
+    let speed = Number(fighter.baseSpeed || CFG.FIGHTER_SPEED || 0);
+    if (typeof fighter.speedMult === 'function') speed *= Math.max(0, fighter.speedMult());
+    if (!(speed > 0)) return dist(x, y, slot.x, slot.y) <= touch ? 0 : null;
+
+    const step = Math.max(1 / 120, Number(CFG.REVEAL_PREDICT_STEP_SECONDS || 1 / 30));
+    const horizon = Math.max(Number(CFG.REVEAL_PREDICT_HORIZON_SECONDS || 2), Number(slot.revealLeadSeconds || 0));
+    const radius = fighter.radius || 75;
+
+    for (let t = 0; t <= horizon + 1e-9; t += step) {
+      if (dist(x, y, slot.x, slot.y) <= touch) return Math.min(t, horizon);
+      x += dx * speed * step;
+      y += dy * speed * step;
+
+      if (x - radius < 0) { x = radius; dx = Math.abs(dx); }
+      if (x + radius > GAME_SIZE) { x = GAME_SIZE - radius; dx = -Math.abs(dx); }
+      if (y - radius < 0) { y = radius; dy = Math.abs(dy); }
+      if (y + radius > GAME_SIZE) { y = GAME_SIZE - radius; dy = -Math.abs(dy); }
+      const dmag = Math.hypot(dx, dy) || 1;
+      dx /= dmag;
+      dy /= dmag;
+    }
+    return null;
+  }
+
   function trySpawnSlot() {
     const state = AQ.state;
     if (!state) return null;
     const active = state.slots.filter(s => s.phase !== 'REMOVED');
     if (active.length >= CFG.MAX_ACTIVE_SLOTS) {
-      // Soft safety cap — suppression must be visible (handoff §5).
       state.suppressedSpawns += 1;
       log('SPAWN_SUPPRESSED', `active=${active.length} cap=${CFG.MAX_ACTIVE_SLOTS}`);
       return null;
     }
+
     const point = pickSpawnPoint(state.slots);
     const slot = {
       id: state.nextSlotId++,
       x: point.x,
       y: point.y,
       phase: 'TELEGRAPH',
-      // Weapon identity is NOT selected before reveal — telegraph carries no
-      // weapon/category information by construction.
       weaponId: null,
-      revealDelay: rand(CFG.REVEAL_DELAY_MIN_SECONDS, CFG.REVEAL_DELAY_MAX_SECONDS),
-      revealTimer: 0,
+      // This is a look-ahead threshold, NOT an age-based reveal delay.
+      revealLeadSeconds: rand(
+        CFG.REVEAL_LOOKAHEAD_MIN_SECONDS ?? CFG.REVEAL_DELAY_MIN_SECONDS ?? 1.2,
+        CFG.REVEAL_LOOKAHEAD_MAX_SECONDS ?? CFG.REVEAL_DELAY_MAX_SECONDS ?? 1.8
+      ),
       revealedFor: 0,
       pickedBy: null,
       rejectedFor: {},
       spawnTime: state.time,
+      predictedHeroETA: null,
+      predictedRivalETA: null,
+      earliestETA: null,
+      predictedFighter: null,
     };
-    slot.revealTimer = slot.revealDelay;
     state.slots.push(slot);
     state.spawnedTotal += 1;
-    log('SPAWN_SLOT', `id=${slot.id} x=${Math.round(slot.x)} y=${Math.round(slot.y)}`);
+    log('SPAWN_SLOT', `id=${slot.id} x=${Math.round(slot.x)} y=${Math.round(slot.y)} lead=${slot.revealLeadSeconds.toFixed(2)}`);
     window.avCue('telegraph', { x: slot.x, y: slot.y });
     return slot;
+  }
+
+  function revealSlot(slot, eta, fighter) {
+    slot.phase = 'REVEALED';
+    slot.weaponId = CFG.P0_WEAPON_IDS[Math.floor(Math.random() * CFG.P0_WEAPON_IDS.length)];
+    slot.revealedFor = 0;
+    const etaText = Number.isFinite(eta) ? eta.toFixed(2) : 'null';
+    const who = fighter?.name || 'UNKNOWN';
+    log('REVEAL', `id=${slot.id} weapon=${slot.weaponId} eta=${etaText} lead=${slot.revealLeadSeconds.toFixed(2)} fighter=${who}`);
+    spawnShockwave(slot.x, slot.y, '#e8d9a0', 120);
+    emitParticles(slot.x, slot.y, '#e8d9a0', 14, 260, 4, 0.45, 'square');
+    playFighterSound('CARD', 'skill');
+    window.avCue('reveal', { x: slot.x, y: slot.y, weapon: slot.weaponId });
   }
 
   function updateSlots(dt) {
     const state = AQ.state;
     if (!state) return;
+
     for (const slot of state.slots) {
       if (slot.phase === 'TELEGRAPH') {
-        slot.revealTimer -= dt;
-        if (slot.revealTimer <= 0) {
-          slot.phase = 'REVEALED';
-          // Identity is only rolled at reveal time.
-          slot.weaponId = CFG.P0_WEAPON_IDS[Math.floor(Math.random() * CFG.P0_WEAPON_IDS.length)];
-          slot.revealedFor = 0;
-          log('REVEAL', `id=${slot.id} weapon=${slot.weaponId}`);
-          spawnShockwave(slot.x, slot.y, '#e8d9a0', 120);
-          emitParticles(slot.x, slot.y, '#e8d9a0', 14, 260, 4, 0.45, 'square');
-          playFighterSound('CARD', 'skill');
-          window.avCue('reveal', { x: slot.x, y: slot.y, weapon: slot.weaponId });
+        const hero = fighters?.[0] || null;
+        const rival = fighters?.[1] || null;
+        slot.predictedHeroETA = predictContactETA(slot, hero);
+        slot.predictedRivalETA = predictContactETA(slot, rival);
+
+        const candidates = [];
+        if (slot.predictedHeroETA != null) candidates.push({ eta: slot.predictedHeroETA, fighter: hero });
+        if (slot.predictedRivalETA != null) candidates.push({ eta: slot.predictedRivalETA, fighter: rival });
+        candidates.sort((a, b) => a.eta - b.eta);
+
+        const earliest = candidates[0] || null;
+        slot.earliestETA = earliest ? earliest.eta : null;
+        slot.predictedFighter = earliest?.fighter?.name || null;
+
+        if (earliest && earliest.eta <= slot.revealLeadSeconds + 1e-6) {
+          revealSlot(slot, earliest.eta, earliest.fighter);
         }
       } else if (slot.phase === 'REVEALED') {
         slot.revealedFor += dt;
@@ -100,26 +170,28 @@
         }
       }
     }
+
     state.slots = state.slots.filter(s => s.phase !== 'REMOVED');
     state.maxActiveSlots = Math.max(state.maxActiveSlots || 0, state.slots.length);
   }
 
-  // A revealed floor pickup is collected by the first living fighter whose
-  // collision volume overlaps it. Armed fighters cannot collect (P0 rule).
+  // A revealed floor pickup is collected by the first living UNARMED fighter
+  // whose collision volume overlaps it.
   function resolvePickups() {
     const state = AQ.state;
     if (!state) return;
     const weaponApi = AQ.weaponApi;
+
     for (const slot of state.slots) {
       if (slot.phase !== 'REVEALED') continue;
       let closest = null;
       let closestDist = Infinity;
+
       for (const f of fighters) {
         if (!f || f.hp <= 0) continue;
         const d = dist(f.x, f.y, slot.x, slot.y);
-        if (d > f.radius * 0.6 + CFG.PICKUP_RADIUS + CFG.PICKUP_TOUCH_BONUS) continue;
+        if (d > pickupTouchRadius(f)) continue;
         if (weaponApi.getHolder(f)) {
-          // Already armed: leave the pickup for the opponent; log once per pair.
           if (!slot.rejectedFor[f.id]) {
             slot.rejectedFor[f.id] = true;
             log('REJECT_PICKUP', `fighter=${f.name} id=${slot.id} reason=already-armed`);
@@ -128,6 +200,7 @@
         }
         if (d < closestDist) { closest = f; closestDist = d; }
       }
+
       if (!closest) continue;
       slot.phase = 'PICKED_UP';
       slot.pickedBy = closest.name;
@@ -139,18 +212,34 @@
     }
   }
 
-  // Floor rendering — called from inside the engine camera transform
-  // (drawBackground wrapper) so slots sit under projectiles/fighters.
+  function drawDebugMissingWeapon(ctx, weaponId) {
+    if (!(AQ.state && AQ.state.debugOverlay)) return;
+    ctx.save();
+    ctx.fillStyle = '#ff2bd6';
+    ctx.strokeStyle = '#1b0016';
+    ctx.lineWidth = 4;
+    ctx.fillRect(-28, -28, 56, 56);
+    ctx.strokeRect(-28, -28, 56, 56);
+    ctx.fillStyle = '#1b0016';
+    ctx.font = "900 13px monospace";
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('MISSING', 0, -7);
+    ctx.fillText(weaponId || '?', 0, 9);
+    ctx.restore();
+  }
+
+  // Called inside the engine camera transform so slots sit in world space.
   function drawSlots(ctx) {
     const state = AQ.state;
     if (!state) return;
     const t = state.time;
+
     for (const slot of state.slots) {
       ctx.save();
       ctx.translate(slot.x, slot.y);
+
       if (slot.phase === 'TELEGRAPH') {
-        // Neutral marker: no weapon sprite, no category hint, no identity
-        // color-coding. Just a pulsing question slot.
         const pulse = 0.5 + 0.5 * Math.sin(t * 5.2 + slot.id * 1.7);
         ctx.globalAlpha = 0.45 + 0.35 * pulse;
         ctx.strokeStyle = '#cfc6a8';
@@ -160,6 +249,7 @@
         ctx.arc(0, 0, CFG.PICKUP_RADIUS * (0.82 + 0.22 * pulse), 0, TAU);
         ctx.stroke();
         ctx.setLineDash([]);
+
         ctx.globalAlpha = 0.55 + 0.3 * pulse;
         ctx.strokeStyle = '#a89f83';
         ctx.lineWidth = 2;
@@ -170,6 +260,7 @@
           ctx.lineTo(Math.cos(a) * (CFG.PICKUP_RADIUS + 20), Math.sin(a) * (CFG.PICKUP_RADIUS + 20));
           ctx.stroke();
         }
+
         ctx.fillStyle = '#efe6c8';
         ctx.strokeStyle = '#241f14';
         ctx.lineWidth = 6;
@@ -179,31 +270,26 @@
         ctx.strokeText('?', 0, 2);
         ctx.fillText('?', 0, 2);
       } else if (slot.phase === 'REVEALED') {
-        const art = PLACEHOLDER_ART[slot.weaponId] || { tag: '???', color: '#ffffff' };
         const bob = Math.sin(t * 3.1 + slot.id) * 4;
         const expireSoon = slot.revealedFor > CFG.PICKUP_LIFETIME_SECONDS - 3;
         ctx.globalAlpha = expireSoon && Math.floor(t * 8) % 2 === 0 ? 0.45 : 1;
         ctx.translate(0, bob);
-        ctx.fillStyle = 'rgba(12,10,6,0.55)';
+
+        // Neutral floor shadow; the weapon itself is rendered from the real atlas.
+        ctx.fillStyle = 'rgba(12,10,6,0.5)';
         ctx.beginPath();
-        ctx.ellipse(0, CFG.PICKUP_RADIUS * 0.8, CFG.PICKUP_RADIUS * 0.9, 12, 0, 0, TAU);
+        ctx.ellipse(0, CFG.PICKUP_RADIUS * 0.9, CFG.PICKUP_RADIUS * 1.0, 12, 0, 0, TAU);
         ctx.fill();
-        ctx.fillStyle = art.color;
-        ctx.strokeStyle = '#171308';
-        ctx.lineWidth = 5;
-        ctx.beginPath();
-        ctx.arc(0, 0, CFG.PICKUP_RADIUS * 0.72, 0, TAU);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = '#171308';
-        ctx.font = "900 24px 'Segoe UI'";
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(art.tag, 0, 1);
-        ctx.fillStyle = art.color;
-        ctx.font = "900 15px 'Segoe UI'";
-        ctx.fillText(slot.weaponId.replace(/_/g, ' '), 0, CFG.PICKUP_RADIUS + 20);
+
+        const av = window.APEX_ARSENAL_AV;
+        const drawn = !!(av && av.drawWeaponSprite && av.drawWeaponSprite(ctx, slot.weaponId, 0, 0, {
+          mode: 'floor',
+          targetLongSide: 118,
+          alpha: 1,
+        }));
+        if (!drawn) drawDebugMissingWeapon(ctx, slot.weaponId);
       }
+
       ctx.restore();
     }
   }
@@ -213,6 +299,8 @@
     updateSlots,
     resolvePickups,
     drawSlots,
+    predictContactETA,
+    isEligibleForPickup,
     PLACEHOLDER_ART,
   };
   window.apexArsenalSpawnRuntime = 'ready';
