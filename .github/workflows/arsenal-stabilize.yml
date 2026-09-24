@@ -1,0 +1,103 @@
+name: Arsenal Quest Stabilization
+
+on:
+  push:
+    branches:
+      - prototype/arsenal-quest
+
+permissions:
+  contents: write
+
+jobs:
+  stabilize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: prototype/arsenal-quest
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.9 --activate
+          pnpm --version
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Add reproducible headless QA dependencies
+        run: pnpm add -D --save-exact jsdom @napi-rs/canvas
+
+      - name: Run headless acceptance suite
+        run: |
+          mkdir -p /tmp/aq-tooling
+          AQ_TOOLING_DIR="$PWD/node_modules" pnpm test:arsenal:headless
+
+      - name: Build production bundle
+        run: pnpm build
+
+      - name: Start Apex dev server
+        shell: bash
+        run: |
+          pnpm dev >/tmp/apex-vite.log 2>&1 &
+          echo $! >/tmp/apex-vite.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/apex-vite.log
+          exit 1
+
+      - name: Locate Chrome
+        id: chrome
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chrome/Chromium found on runner."
+            exit 1
+          fi
+          echo "path=$CHROME" >> "$GITHUB_OUTPUT"
+          "$CHROME" --version
+
+      - name: Run real-browser Arsenal acceptance suite
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          AQ_EVIDENCE_DIR: docs/arsenal-quest/browser-evidence
+        run: pnpm test:arsenal
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arsenal-quest-browser-evidence
+          path: |
+            docs/arsenal-quest/browser-evidence/
+            /tmp/apex-vite.log
+          if-no-files-found: warn
+
+      - name: Commit reproducible QA dependencies
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml
+          if git diff --cached --quiet; then
+            echo "No dependency metadata changes required."
+          else
+            git commit -m "test: make Arsenal headless QA reproducible [skip ci]"
+            git push origin HEAD:prototype/arsenal-quest
+          fi
