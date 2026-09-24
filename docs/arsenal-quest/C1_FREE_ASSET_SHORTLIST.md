@@ -1,5 +1,7 @@
 # ARSENAL QUEST C1 — FREE ASSET SHORTLIST (RESEARCHED 2026-09-24)
 
+> **SUPERSEDED FOR WEAPON ART:** the owner's later direction is 2D-first, high-contrast, non-pixel, and GUN-FAMILY scoped (not Pistol-only). Use `C1_FREE_2D_ASSET_SHORTLIST.md` as the current weapon-art shortlist. The 3D sources below remain arena/reference/fallback material only.
+
 Purpose: shortlist free asset families that can support the locked Arsenal hybrid direction
 (A tactical readability + B showmanship rhythm + C heavy impact) **before any large integration**.
 
