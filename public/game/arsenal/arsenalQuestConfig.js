@@ -7,15 +7,18 @@
   // First-pass tuning values from the handoff. All gameplay numbers live here
   // (or in the weapon registry below) so balance passes never touch logic.
   const CONFIG = {
-    // --- Spawn law (handoff §5) ---
-    SPAWN_CADENCE_SECONDS: 3.0,          // timer-driven, independent of collection state
-    REVEAL_LOOKAHEAD_MIN_SECONDS: 1.2,   // predicted time-to-contact threshold
+    // --- Spawn law (handoff §5; V2 B-handoff A-CORR-1) ---
+    SPAWN_CADENCE_SECONDS: 4.5,          // owner playtest: 2/3 of the 3.0s A cadence
+    // V2 B-handoff A-CORR-2: whole-circle reveal. One shared radius so the
+    // rendered question-mark circle and the reveal logic cannot drift.
+    REVEAL_CIRCLE_RADIUS: 42,            // == PICKUP_RADIUS (visible circle)
+    REVEAL_LEAD_SECONDS: 2.0,            // movement-triggered lead
+    FORCE_REVEAL_AGE_SECONDS: 3.0,       // hidden slot force-reveals at this age
+    // Deprecated Checkpoint A centerline fields (superseded by A-CORR-2):
+    REVEAL_LOOKAHEAD_MIN_SECONDS: 1.2,
     REVEAL_LOOKAHEAD_MAX_SECONDS: 1.8,
     REVEAL_PREDICT_HORIZON_SECONDS: 2.0,
     REVEAL_PREDICT_STEP_SECONDS: 1 / 30,
-    // V2 Checkpoint A (V2_MAJOR_PASS_HANDOFF §A5): strict fixed centerline gate.
-    REVEAL_LEAD_SECONDS: 1.0,            // fixed lead; never 1.2-1.8 anymore
-    CENTERLINE_TOLERANCE_PX: 16,         // tight center corridor (~12-18 px)
     // Deprecated aliases retained only for compatibility with older debug/tests.
     REVEAL_DELAY_MIN_SECONDS: 1.2,
     REVEAL_DELAY_MAX_SECONDS: 1.8,

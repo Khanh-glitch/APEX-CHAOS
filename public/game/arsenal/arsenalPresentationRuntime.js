@@ -377,48 +377,65 @@
     return true;
   }
 
-  function drawEquippedWeapon(ctx, fighter, holder) {
-    if (!fighter || !holder || !holder.weaponId) return false;
-    const weaponId = holder.weaponId;
+  // Shared per-weapon draw parameters (base pose, before Checkpoint B pose
+  // state is applied). Melee/shield sprites are authored upright: their -Y
+  // long axis is rotated onto the weapon aim direction.
+  function weaponDrawParams(weaponId, category, radius) {
+    let drawOffset = Math.PI / 2; // extra rotation for upright-authored sprites
+    let targetLongSide = 138;
+    let offset = radius * 0.72;
+    if (category === 'melee') {
+      targetLongSide = weaponId === 'SPEAR' ? 190 : weaponId === 'BATTLE_AXE' ? 155 : 145;
+    } else if (category === 'defense') {
+      targetLongSide = weaponId === 'TOWER_SHIELD' ? 145 : 128;
+      offset = radius * 0.82;
+    } else {
+      drawOffset = 0;
+      targetLongSide = weaponId === 'SNIPER' ? 185 : weaponId === 'SHOTGUN' ? 165 : 145;
+      offset = radius * 0.78;
+    }
+    return { drawOffset, targetLongSide, offset };
+  }
+
+  // Checkpoint B (B-handoff PART 2): the weapon sprite transform consumes the
+  // independent weaponPose state — recoil along aim, rotational kick, local
+  // offsets, flourish spin, scale. The fighter body is never touched here.
+  function drawWeaponWithPose(ctx, fighter, weaponId, category, aimAngle, pose, alpha) {
     const meta = WEAPON_ATLAS.cells[weaponId];
     if (!meta) return false;
+    const params = weaponDrawParams(weaponId, category, fighter.radius || 75);
+    const p = pose || {};
+    const offset = params.offset + (p.localX || 0) - (p.recoil || 0);
+    const lateral = p.localY || 0;
+    const drawAngle = aimAngle + params.drawOffset + (p.rotKick || 0) + (p.flourish || 0);
+    const x = fighter.x + Math.cos(aimAngle) * offset + Math.cos(aimAngle + Math.PI / 2) * lateral;
+    const y = fighter.y + Math.sin(aimAngle) * offset + Math.sin(aimAngle + Math.PI / 2) * lateral;
+    return drawWeaponSprite(ctx, weaponId, x, y, {
+      mode: 'equipped',
+      targetLongSide: params.targetLongSide * (p.scaleX || 1),
+      angle: drawAngle,
+      alpha: alpha == null ? 0.98 : alpha,
+      glow: category === 'defense' ? '#9fe8ff' : null,
+      shadowBlur: 10,
+    });
+  }
 
+  function drawEquippedWeapon(ctx, fighter, holder) {
+    if (!fighter || !holder || !holder.weaponId) return false;
     // V2 §A2: equipped weapons continuously face the opponent through the
     // independent aim angle — never through the fighter movement direction.
     const angle = (holder.meta && holder.meta.aimAngle != null)
       ? holder.meta.aimAngle
       : Math.atan2(fighter.dir?.y || 0, fighter.dir?.x || 1);
-    const category = holder.def?.category || '';
-    let drawAngle = angle;
-    let offset = (fighter.radius || 75) * 0.72;
-    let targetLongSide = 138;
+    return drawWeaponWithPose(ctx, fighter, holder.weaponId, holder.def?.category || '', angle, holder.meta && holder.meta.pose, 0.98);
+  }
 
-    if (category === 'melee') {
-      // Melee source sprites are authored upright; rotate their -Y long axis
-      // onto the weapon aim direction.
-      drawAngle = angle + Math.PI / 2;
-      targetLongSide = weaponId === 'SPEAR' ? 190 : weaponId === 'BATTLE_AXE' ? 155 : 145;
-      offset = (fighter.radius || 75) * 0.72;
-    } else if (category === 'defense') {
-      // Shields face the opponent (V2 §A2).
-      targetLongSide = weaponId === 'TOWER_SHIELD' ? 145 : 128;
-      drawAngle = angle + Math.PI / 2;
-      offset = (fighter.radius || 75) * 0.82;
-    } else {
-      targetLongSide = weaponId === 'SNIPER' ? 185 : weaponId === 'SHOTGUN' ? 165 : 145;
-      offset = (fighter.radius || 75) * 0.78;
-    }
-
-    const x = fighter.x + Math.cos(angle) * offset;
-    const y = fighter.y + Math.sin(angle) * offset;
-    return drawWeaponSprite(ctx, weaponId, x, y, {
-      mode: 'equipped',
-      targetLongSide,
-      angle: drawAngle,
-      alpha: 0.98,
-      glow: category === 'defense' ? '#9fe8ff' : null,
-      shadowBlur: 10,
-    });
+  // Pose ghost: the fading weapon sprite that carries the recoil settle /
+  // throw / thrust-return motion for a beat after consume() (presentation only).
+  function drawPoseGhost(ctx, fighter, ghost) {
+    if (!fighter || !ghost || !ghost.weaponId) return false;
+    const a = Math.max(0, Math.min(1, ghost.life / (ghost.maxLife || 0.38)));
+    return drawWeaponWithPose(ctx, fighter, ghost.weaponId, ghost.category || '', ghost.aimAngle || 0, ghost.pose, 0.55 * a + 0.15);
   }
 
   function draw(ctx) {
@@ -469,6 +486,7 @@
     activeVfx: () => vfx.length,
     drawWeaponSprite,
     drawEquippedWeapon,
+    drawPoseGhost,
     describe: () => ({
       root: AV_ROOT,
       weaponAtlas: WEAPON_ATLAS.file,

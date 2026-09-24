@@ -310,7 +310,7 @@
       const front=dot(toEnemy.x,toEnemy.y,fangDir.x,fangDir.y);
       if(front<-.05){mechNote(f.x,f.y-f.radius-62,'BITE MISS','#bb2038'); return false;}
       f.data.latchOffset=norm(f.x-e.x,f.y-e.y);
-      f.data.latchTimer=5.0;
+      f.data.latchTimer=f.type?.arsenalShell?2.5:5.0; /* Arsenal A-CORR-3 ADAPT: 2.5s latch */
       f.data.latchTick=0;
       f.data.latchCd=2.0;
       if(f.isRage){f.data.bloodLinkLevel=(f.data.bloodLinkLevel||0)+1; mechNote(e.x,e.y-e.radius-84,`BLOOD LINK ${f.data.bloodLinkLevel}`,'#ff3040');}
@@ -387,7 +387,7 @@
       if(c===1){ e.takeDamage(10,f,'kungfu-qi-punch'); projectiles.push({type:'kungfu_qi',owner:f,x:e.x,y:e.y,life:.45,maxLife:.45}); playFighterSound(f,'skill'); }
       else if(c===2){ e.applyStatus('rapidPunch',2.0,{source:f,tick:0}); mechNote(e.x,e.y-e.radius-88,'RAPID FISTS','#ffd28a'); }
       else if(c===3){ e.takeDamage(24,f,'giant-palm'); const n=norm(e.x-f.x,e.y-f.y); e.applyStatus('push',.8,{x:n.x,y:n.y,strength:2100}); projectiles.push({type:'kungfu_palm',owner:f,x:f.x,y:f.y,vx:n.x*520,vy:n.y*520,life:1.1,maxLife:1.1}); }
-      else if(c===4){ e.takeDamage(9,f,'trauma-rush-start'); e.applyStatus('stun',.55,{source:f}); f.data.rushTimer=4.2; f.data.rushHitCd=0; mechNote(e.x,e.y-e.radius-100,'TRAUMA RUSH','#ff9b50'); }
+      else if(c===4){ e.takeDamage(9,f,'trauma-rush-start'); e.applyStatus('stun',.55,{source:f}); f.data.rushTimer=f.type?.arsenalShell?2.5:4.2; /* Arsenal A-CORR-3 ADAPT: 2.5s pin */ f.data.rushHitCd=0; mechNote(e.x,e.y-e.radius-100,'TRAUMA RUSH','#ff9b50'); }
       else if(c===5 && f.isRage){ e.applyStatus('stun',.8,{source:f}); projectiles.push({type:'kungfu_rage_seal',owner:f,x:e.x,y:e.y,life:1,maxLife:1}); e.takeDamage(22,f,'dim-mak-qi-seal'); }
       return true;
     };
@@ -1533,7 +1533,7 @@
         const fang = {x:f.x+forward.x*f.radius*.92, y:f.y+forward.y*f.radius*.92};
         const gap = dist(fang.x, fang.y, e.x, e.y) - e.radius;
         if (front <= .15 || gap > 52 || dist(f.x,f.y,e.x,e.y) > f.radius+e.radius+12) return false;
-        f.data.latchTimer = 5.0;
+        f.data.latchTimer = f.type?.arsenalShell ? 2.5 : 5.0; /* Arsenal A-CORR-3 ADAPT */
         f.data.latchTick = 0;
         f.data.latchTarget = e.id;
         f.data.bloodLinkLevel = (f.data.bloodLinkLevel||0) + 1;
@@ -1847,7 +1847,7 @@
         f.data.latchCd = f.data.biteCd;
         if (f.data.biteCd > 0) return false;
         if (!window.isVampireFrontBite(f, e)) return false;
-        f.data.latchTimer = 5;
+        f.data.latchTimer = f.type?.arsenalShell ? 2.5 : 5; /* Arsenal A-CORR-3 ADAPT */
         f.data.latchPulse = 0;
         f.data.latchTarget = e.id;
         f.data.latchTargetId = e.id;
@@ -2113,7 +2113,7 @@
         if (f.data.biteCd > 0) return false;
         const biteNormal = normal ? {x:normal.x, y:normal.y} : null;
         if (!window.isVampireFrontBite(f,e,biteNormal)) return false;
-        f.data.latchTimer = 5;
+        f.data.latchTimer = f.type?.arsenalShell ? 2.5 : 5; /* Arsenal A-CORR-3 ADAPT */
         f.data.latchPulse = 0;
         f.data.latchTarget = e.id;
         f.data.latchTargetId = e.id;

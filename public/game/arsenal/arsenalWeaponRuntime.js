@@ -14,6 +14,119 @@
   // ---------------------------------------------------------------------------
   function getHolder(f) { return (f && f.data && f.data.arsenal) || null; }
 
+  // ---------------------------------------------------------------------------
+  // V2 B-handoff PART 2 — independent weapon pose state (Checkpoint B).
+  // Motion comes from the equipped weapon sprite/pose, never from rewriting
+  // fighter movement: every recipe below only moves/rotates/scales the WEAPON.
+  // weaponPose = { aimAngle(on meta), recoil, rotKick, localX, localY,
+  //                scaleX, scaleY, flourish, pulses, t }
+  // recoil: positive = kickback along -aim; negative = forward pop.
+  const POSE_RECIPES = {
+    // B1 Pistol: 3 visually countable pulses, 12-16px kickback, fast spring.
+    PISTOL:       { recoilPx: 14, rotKick: 0.10, returnTau: 0.05 },
+    // B2 Shotgun: one heavy 24-32px recoil, larger rotational kick, slow settle.
+    SHOTGUN:      { recoilPx: 28, rotKick: 0.24, returnTau: 0.17 },
+    // B3 SMG: 8 micro pulses synced to fire interval, alternating jitter.
+    SMG:          { recoilPx: 10, rotKick: 0.055, returnTau: 0.045, alternate: true },
+    // B4 Sniper: stylized spin during latter aim, snap on target, long recoil.
+    SNIPER:       { recoilPx: 34, rotKick: 0.16, returnTau: 0.20, flourishAfter: 0.55, flourishTurns: 1.5 },
+    // B5 Grenade: backward draw -> forward throw (grenade leaves the hand pose).
+    GRENADE:      { drawBack: 18, throwFwd: 30, throwTime: 0.34, throwRot: 0.5 },
+    // B6 Sabre: backswing then fast cut/snap (no imported slash VFX).
+    SABRE:        { windupRot: -0.85, strikeRot: 0.45, returnTau: 0.10 },
+    // B7 Battle Axe: pronounced raise/windup, heavy chop, slower recovery.
+    BATTLE_AXE:   { windupRot: -1.25, windupLift: 12, strikeRot: 0.75, returnTau: 0.20 },
+    // B8 Dagger: weapon-only straight thrust, 60-90px extension, quick retract.
+    DAGGER:       { thrustPx: 78, returnTau: 0.07 },
+    // B9 Spear: long narrow thrust, 90-120px extension, controlled return.
+    SPEAR:        { thrustPx: 108, returnTau: 0.14 },
+    // B10 Spiked Club: backswing + blunt smash, heavier easing than blades.
+    SPIKED_CLUB:  { windupRot: -1.00, strikeRot: 0.62, returnTau: 0.17 },
+    // B11 Swirl Shield: idle settle; reflect = brief forward pop/tilt.
+    SWIRL_SHIELD: { idleSettle: 0.05, reflectPop: 16, reflectRot: 0.22, returnTau: 0.10 },
+    // B12 Tower Shield: forward guard pose; block = shield-only pushback/tilt.
+    TOWER_SHIELD: { guardForward: 12, blockPop: 12, blockRot: 0.14, returnTau: 0.12 },
+  };
+  function poseRecipe(id) { return POSE_RECIPES[id] || { returnTau: 0.08 }; }
+  function makePose() {
+    return { recoil: 0, rotKick: 0, localX: 0, localY: 0, scaleX: 1, scaleY: 1, flourish: 0, pulses: 0, t: 0 };
+  }
+  // One recoil pulse (guns). alternate flips rotational jitter sign per pulse.
+  function poseKick(h, recipe) {
+    const p = h && h.meta && h.meta.pose;
+    if (!p || !recipe) return;
+    const sign = recipe.alternate ? (p.pulses % 2 === 0 ? 1 : -1) : 1;
+    p.recoil = recipe.recoilPx || 0;
+    p.rotKick = (recipe.rotKick || 0) * sign;
+    p.pulses += 1;
+  }
+  // Per-frame pose integration: springs toward the weapon-set targets. Runs
+  // BEFORE weapon update so same-frame set values are authoritative.
+  function integratePose(h, dt) {
+    const p = h.meta.pose || (h.meta.pose = makePose());
+    const recipe = poseRecipe(h.weaponId);
+    p.t += dt;
+    const tau = Math.max(0.01, recipe.returnTau || 0.08);
+    const k = Math.min(1, dt / tau);
+    // Melee windup holds a rotational target while WINDUP; everything springs to 0.
+    const windupHold = h.phase === 'WINDUP' && recipe.windupRot != null;
+    const rotTarget = windupHold ? recipe.windupRot : 0;
+    p.rotKick += (rotTarget - p.rotKick) * Math.min(1, dt / (windupHold ? 0.05 : tau));
+    p.recoil += (0 - p.recoil) * k;
+    if (!p.directLocalX) p.localX += ((p.localTargetX || 0) - p.localX) * k;
+    else p.directLocalX = false;
+    const liftTarget = (h.phase === 'WINDUP' && recipe.windupLift) ? -recipe.windupLift : 0;
+    p.localY += (liftTarget - p.localY) * k;
+    p.scaleX += (1 - p.scaleX) * k;
+    p.scaleY += (1 - p.scaleY) * k;
+    // Sniper flourish decays to 0 (snap onto target) unless the weapon re-sets it.
+    if (!p.holdFlourish) p.flourish += (0 - p.flourish) * Math.min(1, dt / 0.02);
+    else p.holdFlourish = false;
+  }
+  // Pose ghosts: consume() snapshots the pose so recoil settles / throws /
+  // thrust returns stay visible for a beat after the weapon leaves the hand.
+  // Presentation-only; no gameplay reads these.
+  function snapshotPoseGhost(f, h) {
+    if (!f || !f.data || !h || !h.meta) return;
+    f.data.arsenalFade = {
+      weaponId: h.weaponId,
+      category: (h.def && h.def.category) || '',
+      aimAngle: h.meta.aimAngle != null ? h.meta.aimAngle : Math.atan2(f.dir?.y || 0, f.dir?.x || 1),
+      pose: Object.assign(makePose(), h.meta.pose || {}),
+      t: 0,
+      life: 0.38,
+      maxLife: 0.38,
+    };
+  }
+  function advancePoseGhost(ghost, dt) {
+    if (!ghost) return;
+    const r = poseRecipe(ghost.weaponId);
+    const p = ghost.pose;
+    ghost.t += dt;
+    ghost.life -= dt;
+    if (ghost.weaponId === 'GRENADE') {
+      // Backward draw already happened pre-throw; ghost animates the forward
+      // throw so the grenade visibly leaves from the weapon/hand pose.
+      const u = Math.min(1, ghost.t / (r.throwTime || 0.34));
+      p.localX = -(r.drawBack || 18) + ((r.drawBack || 18) + (r.throwFwd || 30)) * u * u;
+      p.rotKick = -(r.throwRot || 0.5) * (1 - u);
+    } else if (ghost.weaponId === 'SPEAR' || ghost.weaponId === 'DAGGER') {
+      // Thrust out-and-return: extension peaks at thrustPx then retracts.
+      const u = Math.min(1, ghost.t / 0.30);
+      p.localX = (r.thrustPx || 80) * Math.sin(u * Math.PI);
+    } else {
+      const k = Math.min(1, dt / Math.max(0.01, r.returnTau || 0.1));
+      p.recoil += (0 - p.recoil) * k;
+      p.rotKick += (0 - p.rotKick) * k;
+    }
+  }
+  function tickPoseGhost(f, dt) {
+    const g = f && f.data && f.data.arsenalFade;
+    if (!g) return;
+    advancePoseGhost(g, dt);
+    if (g.life <= 0) f.data.arsenalFade = null;
+  }
+
   function makeCtx(f) {
     const enemy = (typeof fighters !== 'undefined' && fighters)
       ? fighters.find(q => q && q !== f) || null
@@ -31,7 +144,7 @@
       elapsed: 0,
       shotsFired: 0,
       consumed: false,
-      meta: {},
+      meta: { pose: makePose() },
     };
     if (def.onEquip) def.onEquip(makeCtx(f));
     playFighterSound(f, 'wall');
@@ -44,6 +157,7 @@
     const h = getHolder(f);
     if (!h) return;
     h.consumed = true;
+    snapshotPoseGhost(f, h);
     if (h.def.cleanup) { try { h.def.cleanup(makeCtx(f)); } catch (error) { console.warn('[AQ] weapon cleanup failed', h.weaponId, error); } }
     f.data.arsenal = null; // holder returns to UNARMED; no stale owner/target refs remain
     log('CONSUME', `fighter=${f.name} weapon=${h.weaponId}${reason ? ` reason=${reason}` : ''}`);
@@ -67,6 +181,10 @@
       emitParticles(target.x, target.y, '#9fd8ff', 10, 200, 4, 0.35, 'square');
       const srcAngle = source && source !== target ? Math.atan2(source.y - target.y, source.x - target.x) : 0;
       window.avCue('tower_block', { x: target.x + Math.cos(srcAngle) * target.radius, y: target.y + Math.sin(srcAngle) * target.radius, angle: srcAngle, heavy: amount >= 10 });
+      if (th.meta && th.meta.pose) { // B12: short shield-only pushback/tilt
+        th.meta.pose.recoil = poseRecipe('TOWER_SHIELD').blockPop;
+        th.meta.pose.rotKick = poseRecipe('TOWER_SHIELD').blockRot;
+      }
     }
     const dealt = amount * mult;
     target.takeDamage(dealt, source && source !== target ? source : null, `arsenal-${(weaponId || 'unknown').toLowerCase()}`, !!opts.statusDamage);
@@ -329,6 +447,14 @@
         h.meta.windupLeft -= dt;
         if (h.meta.windupLeft <= 0) {
           h.phase = 'STRIKE';
+          // B6/B7/B9/B10: the cut/chop/thrust snap lives on the weapon pose;
+          // the pose ghost carries its recovery after consume().
+          const recipe = poseRecipe(id);
+          if (h.meta.pose) {
+            h.meta.pose.rotKick = recipe.strikeRot || 0.4;
+            h.meta.pose.recoil = 6;
+            if (recipe.thrustPx) { h.meta.pose.localX = recipe.thrustPx * 0.55; h.meta.pose.directLocalX = true; }
+          }
           const attackAngle = holderAim(ctx);
           const anchor = meleeSwingAnchor(id, ctx.fighter, spec, attackAngle);
           window.avCue('melee_swing', { weapon: id, x: anchor.x, y: anchor.y, angle: anchor.angle });
@@ -386,6 +512,7 @@
           });
           h.shotsFired += 1;
           h.meta.nextShot += spec.interval;
+          poseKick(h, poseRecipe(id)); // weapon-only recoil pulse (B1/B3)
           fired = true;
         }
         if (fired) {
@@ -447,6 +574,7 @@
           playFighterSound(f, 'skill');
           log('USE', `fighter=${f.name} weapon=SHOTGUN`);
           h.shotsFired = 1;
+          poseKick(h, poseRecipe('SHOTGUN')); // one heavy weapon-only recoil (B2)
           consume(f, 'blast-resolved');
         },
         update() {},
@@ -484,7 +612,23 @@
               pushVisual({ kind: 'aimline', x1: f.x, y1: f.y, x2: ctx.enemy.x, y2: ctx.enemy.y, life: 0.06, maxLife: 0.06, color: '#ff4a4a' });
             }
             h.meta.aimLeft -= dt;
+            // B4: distinctive pre-fire preparation — stylized weapon spin during
+            // the latter part of the aim, chamber beat, then snap onto target.
+            const recipe = poseRecipe('SNIPER');
+            const progress = clamp(1 - Math.max(0, h.meta.aimLeft) / spec.aimTime, 0, 1);
+            const p = h.meta.pose;
+            if (progress >= recipe.flourishAfter && h.meta.aimLeft > 0) {
+              if (!h.meta.chambered) {
+                h.meta.chambered = true;
+                playFighterSound(f, 'wall'); // existing metallic SFX = chamber beat
+              }
+              const spinT = (progress - recipe.flourishAfter) / (1 - recipe.flourishAfter);
+              p.flourish = spinT * TAU * recipe.flourishTurns;
+              p.holdFlourish = true;
+            }
             if (h.meta.aimLeft <= 0) {
+              if (p) { p.flourish = 0; p.holdFlourish = false; } // snap exactly onto target
+              poseKick(h, recipe); // strong long recoil
               const angle = enemyAlive(ctx) ? angleToEnemy(ctx) : Math.atan2(f.dir.y, f.dir.x);
               fireBullet({
                 owner: f,
@@ -519,6 +663,12 @@
         spriteKey: 'G10_grenade',
         onEquip(ctx) { ctx.holder.phase = 'READY'; },
         canActivate(ctx) { return ctx.holder.phase === 'READY' && enemyAlive(ctx) && ctx.holder.elapsed >= CFG.RANGED_READY_DELAY_SECONDS; },
+        update(ctx) {
+          // B5: short backward draw while the throw is winding up; the forward
+          // throw motion is carried by the pose ghost after the release.
+          const h = ctx.holder;
+          if (h.phase === 'READY' && h.meta.pose) h.meta.pose.localTargetX = -(poseRecipe('GRENADE').drawBack || 18);
+        },
         activate(ctx) {
           const f = ctx.fighter;
           const angle = angleToEnemy(ctx);
@@ -540,7 +690,6 @@
           // Consumed immediately after throw; grenade stays in world until it resolves.
           consume(f, 'thrown');
         },
-        update() {},
       };
     })(),
 
@@ -590,6 +739,8 @@
           // Weapon-only thrust probe swept along the independent aim angle.
           const progress = clamp(1 - Math.max(0, h.meta.dashLeft) / spec.dashTime, 0, 1);
           const extension = (spec.dashSpeed * spec.dashTime) * Math.sin(progress * Math.PI);
+          // B8: the dagger sprite itself lunges (weapon-only, ~78px peak).
+          if (h.meta.pose) { h.meta.pose.localX = Math.min(extension, poseRecipe('DAGGER').thrustPx); h.meta.pose.directLocalX = true; }
           const ang = holderAim(ctx);
           const tipX = f.x + Math.cos(ang) * (f.radius * 0.6 + extension);
           const tipY = f.y + Math.sin(ang) * (f.radius * 0.6 + extension);
@@ -628,6 +779,8 @@
           const f = ctx.fighter;
           if (h.phase !== 'GUARD') return;
           h.meta.timer -= dt;
+          // B11: faces opponent with a subtle idle settle (weapon-only wobble).
+          if (h.meta.pose) h.meta.pose.rotKick = poseRecipe('SWIRL_SHIELD').idleSettle * Math.sin(h.elapsed * 8.4);
           // Reflect the first eligible hostile projectile that comes close.
           for (const p of projectiles) {
             if (!p || p.type !== 'aq_bullet' || !p.owner || p.owner === f || p.aqReflected) continue;
@@ -645,6 +798,10 @@
             spawnShockwave(p.x, p.y, '#9fe8ff', 150);
             emitParticles(p.x, p.y, '#cff4ff', 20, 380, 5, 0.5, 'square');
             floatingTexts.push(new FloatingText(f.x, f.y - f.radius - 92, 'REFLECT', '#9fe8ff'));
+            if (h.meta.pose) { // brief forward pop/tilt on the shield only
+              h.meta.pose.recoil = -poseRecipe('SWIRL_SHIELD').reflectPop;
+              h.meta.pose.rotKick = poseRecipe('SWIRL_SHIELD').reflectRot;
+            }
             cameraShake = Math.max(cameraShake, 6);
             playFighterSound(f, 'skill');
             log('REFLECT', `fighter=${f.name} weapon=SWIRL_SHIELD projectileFrom=${originalOwner.name}`);
@@ -675,6 +832,8 @@
           const f = ctx.fighter;
           if (h.phase !== 'GUARD') return;
           h.meta.timer -= dt;
+          // B12: visible forward guard pose (weapon-only offset toward opponent).
+          if (h.meta.pose) h.meta.pose.localTargetX = poseRecipe('TOWER_SHIELD').guardForward;
           // Movement penalty while the fortress state is up (engine slow status).
           f.applyStatus('slow', 0.25, { mult: spec.speedMult });
           if (h.meta.timer <= 0) consume(f, 'expired');
@@ -687,6 +846,7 @@
   // Per-frame holder driver — called by the mode runtime for each fighter.
   // ---------------------------------------------------------------------------
   function updateHolder(f, dt) {
+    tickPoseGhost(f, dt); // ghosts must animate after consume() cleared the holder
     const h = getHolder(f);
     if (!h || f.hp <= 0) return;
     h.elapsed += dt;
@@ -695,6 +855,8 @@
     // Independent weapon aim (V2 §A2): continuous opponent facing, damped ~60ms.
     h.meta = h.meta || {};
     h.meta.aimAngle = h.meta.aimAngle == null ? logicalAim(ctx) : dampAngle(h.meta.aimAngle, logicalAim(ctx), dt);
+    integratePose(h, dt); // Checkpoint B: weapon pose springs (weapon-only motion)
+    tickPoseGhost(f, dt);
     if (h.phase === 'READY' && h.def.canActivate && h.def.canActivate(ctx)) {
       h.def.activate(ctx);
     }
@@ -805,6 +967,9 @@
     updateHolder,
     strikeCone,
     makeCtx,
+    poseRecipe,
+    advancePoseGhost,
+    POSE_RECIPES,
   };
 
   window.APEX_ARSENAL_WEAPONS = WEAPONS;

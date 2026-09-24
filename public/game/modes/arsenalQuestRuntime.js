@@ -142,8 +142,10 @@
     for (const f of fighters) {
       if (!f) continue;
       const h = weaponApi.getHolder(f);
-      if (!h) continue;
-      av.drawEquippedWeapon(c, f, h);
+      if (h) av.drawEquippedWeapon(c, f, h);
+      // Checkpoint B pose ghost: recoil settle / throw / thrust return keeps
+      // animating for a beat after the weapon is consumed.
+      if (f.data && f.data.arsenalFade && av.drawPoseGhost) av.drawPoseGhost(c, f, f.data.arsenalFade);
     }
   }
 

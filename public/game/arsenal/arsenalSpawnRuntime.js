@@ -49,15 +49,18 @@
     return !(weaponApi && weaponApi.getHolder && weaponApi.getHolder(f));
   }
 
-  // V2 Checkpoint A (V2_MAJOR_PASS_HANDOFF §A5): strict fixed 1.0-second
-  // centerline reveal. A hidden pickup reveals only when an eligible fighter's
-  // CURRENT straight movement line passes through the item's center corridor
-  // and the center crossing is <= REVEAL_LEAD_SECONDS away.
-  //  - grazing the pickup collision circle is NOT enough (tight cross-track
-  //    tolerance, not the full touch radius);
-  //  - broad future-contact prediction is NOT enough;
-  //  - paths that would need a wall bounce do NOT reveal before the bounce
-  //    (after a bounce the new direction is re-evaluated naturally next frame).
+  // V2 B-handoff A-CORR-2: whole-circle reveal. The hidden slot IS the visible
+  // question-mark pickup circle, and its radius is the shared config value
+  // CFG.REVEAL_CIRCLE_RADIUS that drawSlots renders, so rendering and reveal
+  // logic cannot drift. The fighter's CURRENT straight movement segment is
+  // tested as a ray against that circle:
+  //  - fighter already inside the circle        -> eta 0 (immediate reveal);
+  //  - segment enters the circle within the
+  //    fixed 2.0s lead                          -> that entry eta;
+  //  - near miss OUTSIDE the visible circle     -> null (stays hidden);
+  //  - a wall bounce happens before entry       -> null (no pre-bounce reveal;
+  //    recomputed naturally after the bounce).
+  // No center-crossing requirement, no multi-bounce future predictor.
   function predictContactETA(slot, fighter) {
     if (!slot || !fighter || !isEligibleForPickup(fighter)) return null;
     let dx = fighter.dir?.x || 0;
@@ -71,30 +74,32 @@
     if (typeof fighter.speedMult === 'function') speed *= Math.max(0, fighter.speedMult());
     if (!(speed > 0)) return null;
 
+    const R = Number(CFG.REVEAL_CIRCLE_RADIUS ?? 42);
     const rx = slot.x - fighter.x;
     const ry = slot.y - fighter.y;
-    const forward = rx * dx + ry * dy;              // forward distance to center plane
-    if (forward <= 0) return null;                  // pickup is behind the fighter
-    const cross = Math.abs(rx * dy - ry * dx);      // cross-track distance
-    const tolerance = Number(CFG.CENTERLINE_TOLERANCE_PX ?? 16);
-    if (cross > tolerance) return null;             // clips radius but misses corridor
+    const c2 = rx * rx + ry * ry;
+    if (c2 <= R * R) return 0;                      // already inside visible circle
 
-    const eta = forward / speed;                    // ETA to centerline crossing
-    const lead = Number(CFG.REVEAL_LEAD_SECONDS ?? 1.0);
-    if (!(eta > 0) || eta > lead + 1e-9) return null;
+    const proj = rx * dx + ry * dy;                 // along-track distance to center
+    if (proj <= 0) return null;                     // circle is behind the fighter
+    const perp2 = c2 - proj * proj;                 // squared cross-track miss
+    if (perp2 > R * R) return null;                 // near miss outside the circle
 
-    // Wall-bounce guard: evaluate only the current straight segment. Time until
-    // the fighter body would touch any arena wall; the center crossing must
-    // happen on this segment (before any bounce).
+    const tEnter = (proj - Math.sqrt(R * R - perp2)) / speed;
+    const lead = Number(CFG.REVEAL_LEAD_SECONDS ?? 2.0);
+    if (!(tEnter >= 0) || tEnter > lead + 1e-9) return null;
+
+    // Wall-bounce guard: only the current straight segment counts. Circle entry
+    // must happen before the fighter body would touch any arena wall.
     const radius = fighter.radius || 75;
     let tWall = Infinity;
     if (dx > 1e-9) tWall = Math.min(tWall, (GAME_SIZE - radius - fighter.x) / (dx * speed));
     if (dx < -1e-9) tWall = Math.min(tWall, (radius - fighter.x) / (dx * speed));
     if (dy > 1e-9) tWall = Math.min(tWall, (GAME_SIZE - radius - fighter.y) / (dy * speed));
     if (dy < -1e-9) tWall = Math.min(tWall, (radius - fighter.y) / (dy * speed));
-    if (eta > tWall + 1e-9) return null;            // would bounce first -> stay hidden
+    if (tEnter > tWall + 1e-9) return null;         // would bounce first -> stay hidden
 
-    return eta;
+    return tEnter;
   }
 
   function trySpawnSlot() {
@@ -114,8 +119,8 @@
       y: point.y,
       phase: 'TELEGRAPH',
       weaponId: null,
-      // V2 §A5: fixed 1.0s centerline lead for every slot (no 1.2-1.8 spread).
-      revealLeadSeconds: Number(CFG.REVEAL_LEAD_SECONDS ?? 1.0),
+      // V2 B-handoff A-CORR-2: fixed 2.0s whole-circle reveal lead per slot.
+      revealLeadSeconds: Number(CFG.REVEAL_LEAD_SECONDS ?? 2.0),
       revealedFor: 0,
       pickedBy: null,
       rejectedFor: {},
@@ -132,13 +137,13 @@
     return slot;
   }
 
-  function revealSlot(slot, eta, fighter) {
+  function revealSlot(slot, eta, fighter, force = false) {
     slot.phase = 'REVEALED';
     slot.weaponId = CFG.P0_WEAPON_IDS[Math.floor(Math.random() * CFG.P0_WEAPON_IDS.length)];
     slot.revealedFor = 0;
     const etaText = Number.isFinite(eta) ? eta.toFixed(2) : 'null';
-    const who = fighter?.name || 'UNKNOWN';
-    log('REVEAL', `id=${slot.id} weapon=${slot.weaponId} eta=${etaText} lead=${slot.revealLeadSeconds.toFixed(2)} fighter=${who}`);
+    const who = fighter?.name || 'TIMEOUT';
+    log('REVEAL', `id=${slot.id} weapon=${slot.weaponId} eta=${etaText} lead=${slot.revealLeadSeconds.toFixed(2)} fighter=${who} force=${force}`);
     spawnShockwave(slot.x, slot.y, '#e8d9a0', 120);
     emitParticles(slot.x, slot.y, '#e8d9a0', 14, 260, 4, 0.45, 'square');
     playFighterSound('CARD', 'skill');
@@ -166,7 +171,11 @@
         slot.predictedFighter = earliest?.fighter?.name || null;
 
         if (earliest && earliest.eta <= slot.revealLeadSeconds + 1e-6) {
-          revealSlot(slot, earliest.eta, earliest.fighter);
+          revealSlot(slot, earliest.eta, earliest.fighter, false);
+        } else if (state.time - slot.spawnTime >= Number(CFG.FORCE_REVEAL_AGE_SECONDS ?? 3.0)) {
+          // A-CORR-2 failsafe: a slot hidden for 3.0s force-reveals. This is
+          // FORCE REVEAL (becomes a normal collectible), NOT auto-pickup.
+          revealSlot(slot, null, null, true);
         }
       } else if (slot.phase === 'REVEALED') {
         slot.revealedFor += dt;
@@ -247,13 +256,16 @@
       ctx.translate(slot.x, slot.y);
 
       if (slot.phase === 'TELEGRAPH') {
+        // A-CORR-2: the visible circle IS the reveal region. Radius is pinned
+        // to the shared CFG.REVEAL_CIRCLE_RADIUS (pulse moves alpha/weight
+        // only, never the geometry the reveal logic tests against).
         const pulse = 0.5 + 0.5 * Math.sin(t * 5.2 + slot.id * 1.7);
         ctx.globalAlpha = 0.45 + 0.35 * pulse;
         ctx.strokeStyle = '#cfc6a8';
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3 + 2.5 * pulse;
         ctx.setLineDash([10, 8]);
         ctx.beginPath();
-        ctx.arc(0, 0, CFG.PICKUP_RADIUS * (0.82 + 0.22 * pulse), 0, TAU);
+        ctx.arc(0, 0, CFG.REVEAL_CIRCLE_RADIUS, 0, TAU);
         ctx.stroke();
         ctx.setLineDash([]);
 
