@@ -1,0 +1,41 @@
+target_path,status,role
+tools/arsenal-assets/source/guns/senko-v9/Beretta 93R.svg,IMPORTED,gun-family-candidate
+tools/arsenal-assets/source/guns/senko-v9/MAC 10.svg,IMPORTED,gun-family-candidate
+tools/arsenal-assets/source/guns/senko-v9/MP5.svg,IMPORTED,gun-family-candidate
+tools/arsenal-assets/source/guns/senko-v9/Mossberg 500.svg,IMPORTED,gun-family-candidate
+tools/arsenal-assets/source/guns/senko-v9/SPAS 12.svg,IMPORTED,gun-family-candidate
+tools/arsenal-assets/source/guns/senko-v9/Snipex Alligator.svg,IMPORTED,gun-family-candidate
+tools/arsenal-assets/source/guns/senko-v9/colt.svg,IMPORTED,gun-family-candidate
+tools/arsenal-assets/source/guns/senko-v9/desert deagle.svg,IMPORTED,gun-family-candidate
+tools/arsenal-assets/source/guns/senko-v9/glock-17.svg,IMPORTED,gun-family-candidate
+tools/arsenal-assets/source/guns/senko-v9/p90.svg,IMPORTED,gun-family-candidate
+tools/arsenal-assets/source/guns/senko-v9/project MBR.svg,IMPORTED,gun-family-candidate
+tools/arsenal-assets/source/guns/senko-v9/tec 9.svg,IMPORTED,gun-family-candidate
+tools/arsenal-assets/source/projectile-grenade/kay-cc0/grenade_alt@2x.png,IMPORTED,grenade-projectile-donor
+tools/arsenal-assets/source/projectile-grenade/kay-cc0/grenade_default@2x.png,IMPORTED,grenade-projectile-donor
+tools/arsenal-assets/source/projectile-grenade/kay-cc0/large_bullet@2x.png,IMPORTED,grenade-projectile-donor
+tools/arsenal-assets/source/projectile-grenade/kay-cc0/medium_bullet2@2x.png,IMPORTED,grenade-projectile-donor
+tools/arsenal-assets/source/projectile-grenade/kay-cc0/small_bullet2@2x.png,IMPORTED,grenade-projectile-donor
+tools/arsenal-assets/source/projectile-grenade/kay-cc0/small_bullet3@2x.png,IMPORTED,grenade-projectile-donor
+tools/arsenal-assets/source/projectile-grenade/kay-cc0/small_bullet@2x.png,IMPORTED,grenade-projectile-donor
+tools/arsenal-assets/source/vfx/16-toon-muzzle-flash/m_1.png,IMPORTED,muzzle-candidate
+tools/arsenal-assets/source/vfx/16-toon-muzzle-flash/m_12.png,IMPORTED,muzzle-candidate
+tools/arsenal-assets/source/vfx/16-toon-muzzle-flash/m_4.png,IMPORTED,muzzle-candidate
+tools/arsenal-assets/source/vfx/16-toon-muzzle-flash/m_5.png,IMPORTED,muzzle-candidate
+tools/arsenal-assets/source/vfx/16-toon-muzzle-flash/m_8.png,IMPORTED,muzzle-candidate
+tools/arsenal-assets/source/vfx/16-toon-muzzle-flash/m_9.png,IMPORTED,muzzle-candidate
+tools/arsenal-assets/source/vfx/explosion-2/1.png,IMPORTED,explosion-candidate
+tools/arsenal-assets/source/vfx/explosion-2/2.png,IMPORTED,explosion-candidate
+tools/arsenal-assets/source/vfx/explosion-2/3.png,IMPORTED,explosion-candidate
+tools/arsenal-assets/source/vfx/explosion-2/4.png,IMPORTED,explosion-candidate
+tools/arsenal-assets/source/vfx/kenney/LICENSE.txt,IMPORTED,license
+tools/arsenal-assets/source/vfx/kenney/muzzle_01.png,IMPORTED,particle-vfx-candidate
+tools/arsenal-assets/source/vfx/kenney/muzzle_03.png,IMPORTED,particle-vfx-candidate
+tools/arsenal-assets/source/vfx/kenney/muzzle_05.png,IMPORTED,particle-vfx-candidate
+tools/arsenal-assets/source/vfx/kenney/smoke_01.png,IMPORTED,particle-vfx-candidate
+tools/arsenal-assets/source/vfx/kenney/smoke_03.png,IMPORTED,particle-vfx-candidate
+tools/arsenal-assets/source/vfx/kenney/smoke_06.png,IMPORTED,particle-vfx-candidate
+tools/arsenal-assets/source/vfx/kenney/smoke_09.png,IMPORTED,particle-vfx-candidate
+tools/arsenal-assets/source/vfx/kenney/spark_02.png,IMPORTED,particle-vfx-candidate
+tools/arsenal-assets/source/vfx/kenney/spark_05.png,IMPORTED,particle-vfx-candidate
+tools/arsenal-assets/source/vfx/kenney/spark_07.png,IMPORTED,particle-vfx-candidate
