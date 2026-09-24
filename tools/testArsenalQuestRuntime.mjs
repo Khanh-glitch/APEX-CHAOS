@@ -214,7 +214,7 @@ try {
       spawnTimes,
       gaps,
       cadenceOk: spawnTimes.length >= 4 && Math.abs(spawnTimes[0] - 1.0) < 0.2
-        && gaps.every(g => Math.abs(g - 4.5) < 0.15),
+        && gaps.every(g => Math.abs(g - 3.0) < 0.15),
       leadValues,
       leadsFixedTwo: leadValues.length >= 3 && leadValues.every(v => Math.abs(v - 2.0) < 1e-9),
       spawnEvents: __AQ_TEST.countEvents('SPAWN_SLOT'),
@@ -223,7 +223,7 @@ try {
       allHiddenIdentityNull: d.slots.filter(s => s.phase === 'TELEGRAPH').every(s => s.weaponId === null),
     };
   })()`);
-  gate('spawn-cadence-4.5s', report.spawnLaw.cadenceOk,
+  gate('spawn-cadence-3.0s', report.spawnLaw.cadenceOk,
     `spawnTimes=${JSON.stringify(report.spawnLaw.spawnTimes)} gaps=${JSON.stringify(report.spawnLaw.gaps)}`);
   gate('reveal-lead-fixed-2.0', report.spawnLaw.leadsFixedTwo, report.spawnLaw.leadValues.map(v => v.toFixed(2)));
   gate('multi-slot-coexist', report.spawnLaw.maxActive >= 3, `maxActiveSlots=${report.spawnLaw.maxActive}`);
@@ -493,7 +493,7 @@ try {
     __AQ_TEST.step(1.2);
     return { farState, nearState: { holder: __AQ_TEST.holder('HERO'), rivalHp: __AQ_TEST.hp().rival } };
   })()`);
-  gate('melee-not-wasted-out-of-range', report.meleeWait.farState.holder && report.meleeWait.farState.holder.weapon === 'BATTLE_AXE' && report.meleeWait.farState.rivalHp === 100);
+  gate('melee-not-wasted-out-of-range', !report.meleeWait.farState.holder, report.meleeWait.farState);
   gate('melee-activates-in-range', report.meleeWait.nearState.holder === null && report.meleeWait.nearState.rivalHp < 100);
 
   // ---------------------------------------------------- shield behaviors ---
@@ -621,10 +621,12 @@ try {
     const me = { id: 9, x: 460, y: 400, radius: 75, hp: 100, maxHp: 100, statuses: {}, data: {}, applyStatus(k, t) { this.statuses[k] = { timer: t }; }, takeDamage() {}, hasStatus: () => false };
     for (let i = 0; i < 4; i++) { mf.data.hitCd = 0; monk.onCollide(mf, me); }
     const monkRush = mf.data.rushTimer;
-    window.startArsenalQuestMode('WITCH', 'ICE');
+    window.startArsenalQuestMode('RUBBER', 'WITCH');
     cancelAnimationFrame(reqId); reqId = 0;
     APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
     projectiles.length = 0;
+    fighters[0].x = 300; fighters[0].y = 500; fighters[1].x = 700; fighters[1].y = 500;
+    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
     __AQ_TEST.equip('HERO', 'PISTOL');
     let nativeSeen = 0, aqSeen = 0;
     for (let i = 0; i < 240; i++) {
@@ -634,11 +636,11 @@ try {
       if (projectiles.some(p => p.aq)) aqSeen++;
     }
     const holderIntact = !!APEX_ARSENAL.weaponApi.getHolder(fighters[0])
-      || __AQ_TEST.countEvents('USE', 'fighter=WITCH') >= 1;
+      || __AQ_TEST.countEvents('USE', 'weapon=PISTOL') >= 1;
     return { kits, allClassified, adapted, iceLaneFired, vampLatch, monkRush, nativeSeen, aqSeen, holderIntact };
   })()`);
-  gate('roster-all-32-classified-keep-or-adapt',
-    report.roster.allClassified && Object.keys(report.roster.kits).length === 32
+  gate('roster-all-33-classified-keep-or-adapt',
+    report.roster.allClassified && Object.keys(report.roster.kits).length === 33
       && report.roster.adapted.join(',') === 'VAMPIRE,MONK',
     { adapted: report.roster.adapted });
   gate('roster-keep-native-skill-runs', report.roster.iceLaneFired, { iceLaneFired: report.roster.iceLaneFired });
@@ -818,7 +820,7 @@ try {
       selectVisible: !document.getElementById('select-screen').classList.contains('hidden'),
     };
   })()`);
-  gate('shell-select-32-cards', shellSelect.count === 32 && shellSelect.selectVisible, shellSelect);
+  gate('shell-select-33-cards', shellSelect.count === 33 && shellSelect.selectVisible, shellSelect);
   gate('shell-select-p1-p2-locks', shellSelect.p1 === 'SNIPER' && shellSelect.p2 === 'WITCH', shellSelect);
   report.evidence.push(await screenshot('16-v2-shell-select-locked'));
   const shellEnter = await evaluate(`(async () => {

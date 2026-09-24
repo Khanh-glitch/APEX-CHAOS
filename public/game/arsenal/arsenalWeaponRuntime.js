@@ -47,7 +47,21 @@
     // B12 Tower Shield: forward guard pose; block = shield-only pushback/tilt.
     TOWER_SHIELD: { guardForward: 12, blockPop: 12, blockRot: 0.14, returnTau: 0.12 },
   };
-  function poseRecipe(id) { return POSE_RECIPES[id] || { returnTau: 0.08 }; }
+  // POST-C §3: registry guns have no hand-authored recipe — derive one from
+  // the firing family so every staged gun gets sensible weapon-only motion.
+  const FAMILY_POSE = {
+    SEMI: { recoilPx: 12, rotKick: 0.08, returnTau: 0.055 },
+    AUTO: { recoilPx: 9, rotKick: 0.05, returnTau: 0.045, alternate: true },
+    BURST: { recoilPx: 11, rotKick: 0.07, returnTau: 0.05, alternate: true },
+    PRECISION: { recoilPx: 30, rotKick: 0.15, returnTau: 0.18, flourishAfter: 0.5, flourishTurns: 1.2 },
+    SHOTGUN: { recoilPx: 26, rotKick: 0.22, returnTau: 0.16 },
+    AUTOSHOT: { recoilPx: 20, rotKick: 0.16, returnTau: 0.10, alternate: true },
+  };
+  function poseRecipe(id) {
+    return POSE_RECIPES[id]
+      || FAMILY_POSE[(CFG.WEAPONS[id] || {}).family]
+      || { returnTau: 0.08 };
+  }
   function makePose() {
     return { recoil: 0, rotKick: 0, localX: 0, localY: 0, scaleX: 1, scaleY: 1, flourish: 0, pulses: 0, t: 0 };
   }
@@ -169,16 +183,22 @@
     };
     // C §3.1 anticipation beat: the weapon arrives offset (raised/cocked) and
     // the pose spring settles it into ready — never an instant static equip.
+    // POST-C §3: registry guns take their beat from the firing family.
     const ANTICIPATION = {
       PISTOL: [10, -0.10], SMG: [10, -0.06], SHOTGUN: [16, -0.20], SNIPER: [18, -0.10],
       SABRE: [8, -0.30], BATTLE_AXE: [10, -0.50], DAGGER: [6, -0.20],
       SPEAR: [8, -0.20], SPIKED_CLUB: [10, -0.40],
     };
-    const ant = ANTICIPATION[weaponId];
+    const FAMILY_ANTICIPATION = {
+      SEMI: [10, -0.10], AUTO: [10, -0.06], BURST: [10, -0.08],
+      PRECISION: [18, -0.10], SHOTGUN: [16, -0.20], AUTOSHOT: [14, -0.16],
+    };
+    const ant = ANTICIPATION[weaponId] || FAMILY_ANTICIPATION[def.family];
     if (ant) { f.data.arsenal.meta.pose.localY = ant[0]; f.data.arsenal.meta.pose.rotKick = ant[1]; }
     if (def.onEquip) def.onEquip(makeCtx(f));
     playFighterSound(f, 'wall');
-    floatingTexts.push(new FloatingText(f.x, f.y - f.radius - 78, weaponId.replace(/_/g, ' '), defColor(def)));
+    // POST-C §8: no floating name text on the arena canvas — the pickup pop
+    // (particles + shockwave + SFX) carries the moment instead.
     window.avCue('pickup', { x: f.x, y: f.y, weapon: weaponId });
     return true;
   }
@@ -207,8 +227,8 @@
     const th = getHolder(target);
     if (th && th.weaponId === 'TOWER_SHIELD' && th.phase === 'GUARD') {
       mult = CFG.WEAPONS.TOWER_SHIELD.damageTakenMult;
-      floatingTexts.push(new FloatingText(target.x, target.y - target.radius - 104, 'GUARDED', '#9fd8ff'));
-      emitParticles(target.x, target.y, '#9fd8ff', 10, 200, 4, 0.35, 'square');
+      // POST-C §8: the guard read is particles + pose + SFX, not a word.
+      emitParticles(target.x, target.y, '#9fd8ff', 12, 240, 4, 0.35, 'square');
       const srcAngle = source && source !== target ? Math.atan2(source.y - target.y, source.x - target.x) : 0;
       window.avCue('tower_block', { x: target.x + Math.cos(srcAngle) * target.radius, y: target.y + Math.sin(srcAngle) * target.radius, angle: srcAngle, heavy: amount >= 10 });
       if (th.meta && th.meta.pose) { // B12: short shield-only pushback/tilt
@@ -236,11 +256,15 @@
   // ---------------------------------------------------------------------------
   function fireBullet(spec) {
     const { owner, x, y, angle, speed, damage, weapon } = spec;
+    const wspec = CFG.WEAPONS[weapon] || {};
+    const family = wspec.family || (weapon === 'SNIPER' ? 'PRECISION' : weapon === 'SHOTGUN' ? 'SHOTGUN' : weapon === 'SMG' ? 'AUTO' : 'SEMI');
     projectiles.push({
       type: 'aq_bullet',
       aq: true,
       owner,
       weapon,
+      family,
+      heavy: family === 'PRECISION',
       x, y,
       px: x, py: y,
       vx: Math.cos(angle) * speed,
@@ -324,12 +348,14 @@
         if (target) {
           const hitR = target.radius * CFG.BULLET_HIT_RADIUS_SCALE + p.radius;
           if (distPointToSegment(target.x, target.y, p.px, p.py, p.x, p.y) < hitR) {
-            const heavy = p.weapon === 'SNIPER';
+            const heavy = !!p.heavy;
             aqDamage(target, p.damage, p.owner, p.weapon, { knockback: p.knockback, stun: p.stun, hitStop: heavy ? 0.05 : 0 });
-            // C §5.4 impact hierarchy: pistol tiny snap, SMG minimal repeated,
-            // shotgun broad cluster, sniper sharp focused.
-            if (p.weapon === 'SMG') emitParticles(p.x, p.y, p.color, 3, 260, 3, 0.2, 'square');
-            else if (p.weapon === 'SHOTGUN') emitParticles(p.x, p.y, p.color, 9, 340, 5, 0.3, 'square');
+            // C §5.4 impact hierarchy, generalized to firing families (POST-C
+            // §3): pistol tiny snap, SMG minimal repeated, shotgun broad
+            // cluster, precision sharp focused.
+            const fam = p.family || 'SEMI';
+            if (fam === 'AUTO') emitParticles(p.x, p.y, p.color, 3, 260, 3, 0.2, 'square');
+            else if (fam === 'SHOTGUN' || fam === 'AUTOSHOT') emitParticles(p.x, p.y, p.color, 9, 340, 5, 0.3, 'square');
             else if (heavy) emitParticles(p.x, p.y, p.color, 8, 420, 4, 0.3, 'square');
             else emitParticles(p.x, p.y, p.color, 5, 300, 3, 0.25, 'square');
             p.life = 0;
@@ -350,24 +376,107 @@
         if (p.fuse <= 0) explodeGrenade(p);
         continue;
       }
+      if (p.type === 'aq_thrown') {
+        // POST-C §5 thrown-melee lifecycle: flight -> pinned -> exit.
+        p.grace = Math.max(0, (p.grace || 0) - dt);
+        if (p.state === 'flight') {
+          p.px = p.x; p.py = p.y;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.rot += p.spin * dt;
+          // Swept segment vs fighter circle — damage exactly once, on hit.
+          const target = fighters.find(f => f && f !== p.owner && f.hp > 0);
+          if (target && p.grace <= 0) {
+            const hitR = target.radius * CFG.BULLET_HIT_RADIUS_SCALE + p.radius;
+            if (distPointToSegment(target.x, target.y, p.px, p.py, p.x, p.y) < hitR) {
+              const spec = CFG.WEAPONS[p.weapon] || {};
+              p.pinAngle = Math.atan2(p.vy, p.vx);
+              // ONE melee damage authority: thrown hits read the same x1.5.
+              aqDamage(target, CFG.meleeDamage(p.weapon), p.owner, p.weapon, {
+                knockback: spec.knockback, stun: spec.stun, shake: 8, hitStop: 0.05,
+              });
+              window.avCue('melee_hit', { weapon: p.weapon, x: target.x, y: target.y, angle: p.pinAngle });
+              p.state = 'pinned';
+              p.pinnedTo = target;
+              p.pinTimer = CFG.THROWN_MELEE.pinSeconds;
+              log('THROWN_PIN', `weapon=${p.weapon} target=${target.name} pin=${CFG.THROWN_MELEE.pinSeconds}s`);
+              continue;
+            }
+          }
+          // Wall ricochet with the per-weapon budget; exhausted -> exit.
+          let bounced = false;
+          if (p.x < p.radius) { p.x = p.radius; p.vx = Math.abs(p.vx); bounced = true; }
+          else if (p.x > GAME_SIZE - p.radius) { p.x = GAME_SIZE - p.radius; p.vx = -Math.abs(p.vx); bounced = true; }
+          if (p.y < p.radius) { p.y = p.radius; p.vy = Math.abs(p.vy); bounced = true; }
+          else if (p.y > GAME_SIZE - p.radius) { p.y = GAME_SIZE - p.radius; p.vy = -Math.abs(p.vy); bounced = true; }
+          if (bounced) {
+            p.ricochetsLeft -= 1;
+            p.spin *= -1; // readable flip off the wall
+            window.avCue('ricochet', { weapon: p.weapon, x: p.x, y: p.y, angle: Math.atan2(p.vy, p.vx) });
+            emitParticles(p.x, p.y, '#ffe6a8', 10, 320, 4, 0.3, 'square');
+            log('THROWN_RICOCHET', `weapon=${p.weapon} left=${p.ricochetsLeft}`);
+            if (p.ricochetsLeft < 0) thrownExit(p);
+          }
+        } else if (p.state === 'pinned') {
+          const t = p.pinnedTo;
+          if (!t || t.hp <= 0) {
+            thrownExit(p);
+          } else {
+            // Pinned INTO the struck fighter and following it (~1.0s).
+            const depth = t.radius * 0.45;
+            p.x = t.x + Math.cos(p.pinAngle) * depth;
+            p.y = t.y + Math.sin(p.pinAngle) * depth;
+            p.rot = p.pinAngle + Math.PI; // blade/haft axis points into the target
+            p.pinTimer -= dt;
+            if (p.pinTimer <= 0) thrownExit(p);
+          }
+        } else {
+          // exit — physical tumble under gravity; no homing, no fade-as-exit.
+          p.vy += 1500 * dt;
+          p.px = p.x; p.py = p.y;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.rot += p.spin * dt;
+          if (p.x < p.radius) { p.x = p.radius; p.vx = Math.abs(p.vx) * 0.4; }
+          else if (p.x > GAME_SIZE - p.radius) { p.x = GAME_SIZE - p.radius; p.vx = -Math.abs(p.vx) * 0.4; }
+          if (p.y > GAME_SIZE - p.radius) { p.y = GAME_SIZE - p.radius; p.vy = -Math.abs(p.vy) * 0.35; p.vx *= 0.7; }
+        }
+        p.life -= dt;
+        if (p.life <= 0 || p.y > GAME_SIZE + 60) { projectiles.splice(i, 1); }
+        continue;
+      }
     }
   }
 
   // C §5.3 tracer language: thin core from previous to current position,
   // bright short head, capped length; no outlined ellipse balls.
+  // POST-C §3: registry guns derive their tracer from the firing family.
   const TRACER = {
     PISTOL:  { trail: 0.050, width: 3.0, head: 2.6 },
     SMG:     { trail: 0.032, width: 2.2, head: 2.0 },
     SHOTGUN: { trail: 0.024, width: 2.6, head: 2.2 },
     SNIPER:  { trail: 0.075, width: 4.0, head: 3.2, after: 1.3 },
   };
+  const FAMILY_TRACER = {
+    SEMI: TRACER.PISTOL,
+    AUTO: TRACER.SMG,
+    BURST: { trail: 0.040, width: 2.6, head: 2.3 },
+    SHOTGUN: TRACER.SHOTGUN,
+    AUTOSHOT: TRACER.SHOTGUN,
+    PRECISION: { trail: 0.065, width: 3.6, head: 3.0, after: 1.2 },
+  };
+  function tracerFor(weaponId) {
+    if (TRACER[weaponId]) return TRACER[weaponId];
+    const fam = (CFG.WEAPONS[weaponId] || {}).family;
+    return FAMILY_TRACER[fam] || TRACER.PISTOL;
+  }
   function drawArsenalProjectiles(ctx) {
     const av = window.APEX_ARSENAL_AV;
     for (const p of projectiles) {
       if (!p || !p.aq) continue;
       ctx.save();
       if (p.type === 'aq_bullet') {
-        const t = TRACER[p.weapon] || TRACER.PISTOL;
+        const t = tracerFor(p.weapon);
         const a = clamp(p.life / p.maxLife, 0.4, 1);
         ctx.globalCompositeOperation = 'lighter';
         if (t.after) { // sniper afterimage: longer faint transient
@@ -392,6 +501,30 @@
         ctx.beginPath();
         ctx.arc(p.x, p.y, t.head, 0, TAU);
         ctx.fill();
+      } else if (p.type === 'aq_thrown') {
+        // POST-C §5: the ACTUAL weapon sprite flies — same authored art as the
+        // pickup/equipped reads, oriented along its travel (tip-first).
+        const av = window.APEX_ARSENAL_AV;
+        const w = av && av.weaponImage ? av.weaponImage(p.weapon) : null;
+        const fade = p.life < 0.18 ? Math.max(0, p.life / 0.18) : 1; // tiny final cleanup only
+        ctx.globalAlpha = fade;
+        ctx.translate(p.x, p.y);
+        if (w) {
+          // Melee sprites are authored upright (long axis -Y): rotate the long
+          // axis onto the flight/pin direction.
+          ctx.rotate(p.rot + Math.PI / 2);
+          const s = 110 / Math.max(w.w, w.h);
+          ctx.drawImage(w.img, 0, 0, w.w, w.h, (-w.w * s) / 2, (-w.h * s) / 2, w.w * s, w.h * s);
+        } else {
+          ctx.rotate(p.rot);
+          ctx.fillStyle = '#d8d2c0';
+          ctx.strokeStyle = '#241f14';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 18, 7, 0, 0, TAU);
+          ctx.fill();
+          ctx.stroke();
+        }
       } else if (p.type === 'aq_grenade') {
         // Exact identity continuity: the same canonical sprite as pickup and
         // equipped states, spinning in flight (C §3.3 grenade).
@@ -464,7 +597,12 @@
     if (weaponId === 'SNIPER') return r + 72;
     if (weaponId === 'SHOTGUN') return r + 52;
     if (weaponId === 'SMG') return r + 38;
-    return r + 26; // PISTOL + safe default
+    if (weaponId === 'PISTOL') return r + 26;
+    // POST-C §3: registry guns anchor the muzzle by firing family, scaled by
+    // the sprite's authored long side so longer barrels flash further out.
+    const spec = CFG.WEAPONS[weaponId] || {};
+    const base = { PRECISION: 58, SHOTGUN: 46, AUTOSHOT: 44, AUTO: 34, BURST: 34, SEMI: 26 }[spec.family] || 28;
+    return r + base + Math.max(0, ((spec.longSide || 145) - 145) * 0.25);
   }
 
   function meleeSwingAnchor(weaponId, fighter, spec, angle) {
@@ -490,6 +628,8 @@
   }
 
   // Melee strike geometry: cone + reach around holder facing (handoff §7).
+  // POST-C §5: damage flows through the ONE melee authority (CFG.meleeDamage),
+  // shared by hand strikes and thrown strikes.
   function strikeCone(ctx, spec, weaponId, extra = {}) {
     const { fighter: f, enemy: e } = ctx;
     let hit = false;
@@ -501,12 +641,67 @@
       let diff = Math.abs(ang - holderAim(ctx));
       if (diff > Math.PI) diff = TAU - diff;
       if (d <= spec.reach + e.radius * 0.35 && diff <= spec.halfAngle) {
-        aqDamage(e, spec.damage, f, weaponId, { knockback: spec.knockback, stun: spec.stun, shake: spec.shake || 7, hitStop: spec.hitStop });
+        aqDamage(e, CFG.meleeDamage(weaponId), f, weaponId, { knockback: spec.knockback, stun: spec.stun, shake: spec.shake || 7, hitStop: spec.hitStop });
         hit = true;
       }
     }
     // Curated slash VFX + SFX come from the presentation layer (avCue melee_*).
     return hit;
+  }
+
+  // ---------------------------------------------------------------------------
+  // POST-C §5 — thrown melee. Decision happens at pickup: opponent inside the
+  // weapon's trigger range -> iconic attack; otherwise the ACTUAL sprite is
+  // thrown straight at the opponent. No homing, swept-segment collision,
+  // damage once on fighter hit, pin into the struck target ~1.0s following
+  // it, then a physical exit. Wall ricochets with per-weapon budgets; when
+  // the budget is exhausted the weapon exits physically. Never rewrites
+  // fighter.dir — only a projectile is spawned.
+  // ---------------------------------------------------------------------------
+  function thrownSpec(weaponId) {
+    return {
+      speed: CFG.THROWN_MELEE.speed[weaponId] || 900,
+      ricochets: CFG.THROWN_MELEE.ricochets[weaponId] ?? 2,
+      spin: CFG.THROWN_MELEE.spinRate[weaponId] || 8,
+    };
+  }
+  function spawnThrownMelee(f, weaponId, angle) {
+    const t = thrownSpec(weaponId);
+    const aq = window.APEX_ARSENAL;
+    const state = aq && aq.state;
+    projectiles.push({
+      type: 'aq_thrown',
+      aq: true,
+      owner: f,
+      weapon: weaponId,
+      x: f.x + Math.cos(angle) * (f.radius * 0.7),
+      y: f.y + Math.sin(angle) * (f.radius * 0.7),
+      px: f.x, py: f.y,
+      vx: Math.cos(angle) * t.speed,
+      vy: Math.sin(angle) * t.speed,
+      radius: 15,
+      ricochetsLeft: t.ricochets,
+      state: 'flight',
+      pinnedTo: null,
+      pinTimer: 0,
+      pinAngle: angle,
+      rot: angle,
+      spin: t.spin,
+      grace: CFG.THROWN_MELEE.pickupDelay || 0,
+      life: 6.0,
+      maxLife: 6.0,
+    });
+    window.avCue('melee_throw', { weapon: weaponId, x: f.x, y: f.y, angle });
+    log('THROW', `fighter=${f.name} weapon=${weaponId} ricochets=${t.ricochets}`);
+  }
+  function thrownExit(p) {
+    // Physical exit: the sprite tumbles away under gravity; alpha cleanup
+    // only in the final moments (presentation), never as the primary exit.
+    p.state = 'exit';
+    p.vx *= 0.35;
+    p.vy = -140;
+    p.spin *= 1.6;
+    p.life = Math.min(p.life, 0.75);
   }
 
   function makeMelee(id, spriteKey, color, extra = {}) {
@@ -515,12 +710,27 @@
       id,
       category: 'melee',
       spriteKey,
-      // Critical rule: melee is NOT consumed on pickup; it waits for valid
-      // activation geometry (opponent inside trigger range).
-      onEquip(ctx) { ctx.holder.phase = 'READY'; },
-      canActivate(ctx) { return ctx.holder.phase === 'READY' && enemyAlive(ctx) && enemyDistance(ctx) <= spec.triggerRange; },
+      // POST-C §5: the decision is made IMMEDIATELY at pickup — opponent
+      // inside trigger range -> iconic attack; outside -> throw the actual
+      // sprite straight at the opponent. The weapon is still not consumed on
+      // pickup; it resolves through the chosen branch.
+      onEquip(ctx) {
+        const h = ctx.holder;
+        h.phase = 'READY';
+        h.meta.decision = (enemyAlive(ctx) && enemyDistance(ctx) <= spec.triggerRange) ? 'strike' : 'throw';
+        log('MELEE_DECIDE', `fighter=${ctx.fighter.name} weapon=${id} decision=${h.meta.decision}`);
+      },
+      canActivate(ctx) { return ctx.holder.phase === 'READY' && ctx.holder.meta.decision != null; },
       activate(ctx) {
         const h = ctx.holder;
+        if (h.meta.decision === 'throw') {
+          // Straight throw along the independent weapon aim; never the
+          // fighter movement direction and never a setDir rewrite.
+          const angle = holderAim(ctx);
+          spawnThrownMelee(ctx.fighter, id, angle);
+          consume(ctx.fighter, 'thrown');
+          return;
+        }
         h.phase = 'WINDUP';
         h.meta.windupLeft = spec.windup;
         aimAtHolder(ctx);
@@ -555,8 +765,44 @@
     };
   }
 
+  // POST-C §3: one gun pipeline serves every firing family that fires
+  // sequential shots (SEMI/AUTO/BURST, plus AUTOSHOT with pellets>0 which
+  // releases a pellet fan per shot). All per-gun differences are DATA.
   function makeGun(id, spriteKey, color, extra = {}) {
     const spec = CFG.WEAPONS[id];
+    const family = spec.family || 'SEMI';
+    const casingPower = family === 'AUTO' ? 0.8 : family === 'PRECISION' ? 1.2 : 1;
+    function fireOneShot(ctx, f) {
+      const base = enemyAlive(ctx) ? angleToEnemy(ctx) : Math.atan2(f.dir.y, f.dir.x);
+      const pellets = spec.pellets > 1 ? spec.pellets : 1;
+      for (let i = 0; i < pellets; i++) {
+        const t = pellets === 1 ? 0.5 : i / (pellets - 1);
+        const spread = (Math.random() * 2 - 1) * spec.spread + (pellets > 1 ? (t - 0.5) * spec.cone : 0);
+        const angle = base + spread;
+        fireBullet({
+          owner: f,
+          x: f.x + Math.cos(angle) * (f.radius * 0.7),
+          y: f.y + Math.sin(angle) * (f.radius * 0.7),
+          angle,
+          speed: spec.bulletSpeed * (pellets > 1 ? (0.92 + Math.random() * 0.16) : 1),
+          damage: pellets > 1 ? spec.damagePerPellet : spec.damagePerShot,
+          radius: spec.bulletRadius,
+          life: spec.bulletLife,
+          weapon: id,
+          knockback: pellets > 1 ? spec.knockback / pellets : spec.knockback,
+          stun: spec.stun,
+          color,
+        });
+      }
+      const muzzleDistance = gunMuzzleDistance(id, f);
+      window.avCue('fire', {
+        weapon: id, family, sfx: spec.sfx,
+        x: f.x + Math.cos(base) * muzzleDistance,
+        y: f.y + Math.sin(base) * muzzleDistance,
+        angle: base,
+      });
+      ejectCasing(f, base, casingPower); // C: brass leaves the port
+    }
     return {
       id,
       category: 'ranged',
@@ -581,36 +827,152 @@
         h.meta.nextShot -= dt;
         let fired = false;
         while (h.meta.nextShot <= 0 && h.shotsFired < spec.shots) {
-          const spread = (Math.random() * 2 - 1) * spec.spread;
-          const angle = enemyAlive(ctx) ? angleToEnemy(ctx) + spread : Math.atan2(f.dir.y, f.dir.x) + spread;
-          const muzzleDistance = gunMuzzleDistance(id, f);
-          window.avCue('fire', { weapon: id, x: f.x + Math.cos(angle) * muzzleDistance, y: f.y + Math.sin(angle) * muzzleDistance, angle });
-          fireBullet({
-            owner: f,
-            x: f.x + Math.cos(angle) * (f.radius * 0.7),
-            y: f.y + Math.sin(angle) * (f.radius * 0.7),
-            angle,
-            speed: spec.bulletSpeed,
-            damage: spec.damagePerShot,
-            radius: spec.bulletRadius,
-            life: spec.bulletLife,
-            weapon: id,
-            knockback: spec.knockback,
-            color,
-          });
-          ejectCasing(f, angle, id === 'SMG' ? 0.8 : 1); // C: brass leaves the port
+          fireOneShot(ctx, f);
           h.shotsFired += 1;
           h.meta.nextShot += spec.interval;
           poseKick(h, poseRecipe(id)); // weapon-only recoil pulse (B1/B3)
           fired = true;
         }
         if (fired) {
-          cameraShake = Math.max(cameraShake, 3);
+          cameraShake = Math.max(cameraShake, family === 'AUTOSHOT' ? 6 : 3);
           playFighterSound(f, 'skill');
         }
         if (h.shotsFired >= spec.shots && h.meta.nextShot <= 0) consume(f, 'sequence-complete');
       },
       ...extra,
+    };
+  }
+
+  // POST-C §3: instant pellet-fan blast (SHOTGUN family), parameterized —
+  // same C pipeline as the SPAS 12, different data per gun.
+  function makeBlastGun(id, color) {
+    const spec = CFG.WEAPONS[id];
+    return {
+      id,
+      category: 'ranged',
+      spriteKey: null,
+      onEquip(ctx) { ctx.holder.phase = 'READY'; },
+      canActivate(ctx) {
+        return ctx.holder.phase === 'READY'
+          && enemyAlive(ctx)
+          && ctx.holder.elapsed >= CFG.RANGED_READY_DELAY_SECONDS
+          && enemyDistance(ctx) <= spec.triggerRange;
+      },
+      activate(ctx) {
+        const h = ctx.holder;
+        h.phase = 'FIRING';
+        const f = ctx.fighter;
+        const base = angleToEnemy(ctx);
+        for (let i = 0; i < spec.pellets; i++) {
+          const t = spec.pellets === 1 ? 0.5 : i / (spec.pellets - 1);
+          const angle = base + (t - 0.5) * spec.cone;
+          fireBullet({
+            owner: f,
+            x: f.x + Math.cos(angle) * (f.radius * 0.7),
+            y: f.y + Math.sin(angle) * (f.radius * 0.7),
+            angle,
+            speed: spec.bulletSpeed * (0.92 + Math.random() * 0.16),
+            damage: spec.damagePerPellet,
+            radius: spec.bulletRadius,
+            life: spec.bulletLife,
+            weapon: id,
+            knockback: spec.knockback / spec.pellets,
+            color,
+          });
+        }
+        const muzzleDistance = gunMuzzleDistance(id, f);
+        window.avCue('fire', {
+          weapon: id, family: 'SHOTGUN', sfx: spec.sfx,
+          x: f.x + Math.cos(base) * muzzleDistance,
+          y: f.y + Math.sin(base) * muzzleDistance,
+          angle: base,
+        });
+        window.avCue('shotgun_rack', { weapon: id, x: f.x, y: f.y, angle: base });
+        ejectCasing(f, base, 1.4);
+        spawnShockwave(f.x, f.y, color || '#ffbe6b', 130);
+        cameraShake = Math.max(cameraShake, 9);
+        hitStop = Math.max(hitStop, 0.03);
+        playFighterSound(f, 'skill');
+        log('USE', `fighter=${f.name} weapon=${id}`);
+        h.shotsFired = 1;
+        poseKick(h, poseRecipe(id)); // one heavy weapon-only recoil (B2)
+        consume(f, 'blast-resolved');
+      },
+      update() {},
+    };
+  }
+
+  // POST-C §3: aim-then-release precision family, parameterized from the
+  // registry (aimTime / damage / bulletSpeed). Same C pipeline as the Snipex.
+  function makePrecisionGun(id, color) {
+    const spec = CFG.WEAPONS[id];
+    return {
+      id,
+      category: 'ranged',
+      spriteKey: null,
+      onEquip(ctx) { ctx.holder.phase = 'READY'; },
+      canActivate(ctx) {
+        return ctx.holder.phase === 'READY' && enemyAlive(ctx) && ctx.holder.elapsed >= CFG.RANGED_READY_DELAY_SECONDS;
+      },
+      activate(ctx) {
+        const h = ctx.holder;
+        h.phase = 'AIM';
+        h.meta.aimLeft = spec.aimTime;
+        log('USE', `fighter=${ctx.fighter.name} weapon=${id}`);
+        playFighterSound(ctx.fighter, 'skill');
+        window.avCue('sniper_aim', { x: ctx.fighter.x, y: ctx.fighter.y, angle: enemyAlive(ctx) ? angleToEnemy(ctx) : Math.atan2(ctx.fighter.dir.y, ctx.fighter.dir.x) });
+      },
+      update(ctx, dt) {
+        const h = ctx.holder;
+        const f = ctx.fighter;
+        if (h.phase === 'AIM') {
+          // Visible aim telegraph; weapon tracks via holder.meta.aimAngle (§A2).
+          if (enemyAlive(ctx)) {
+            pushVisual({ kind: 'aimline', x1: f.x, y1: f.y, x2: ctx.enemy.x, y2: ctx.enemy.y, life: 0.06, maxLife: 0.06, color: '#ff4a4a' });
+          }
+          h.meta.aimLeft -= dt;
+          const recipe = poseRecipe(id);
+          const progress = clamp(1 - Math.max(0, h.meta.aimLeft) / spec.aimTime, 0, 1);
+          const p = h.meta.pose;
+          const flourishAfter = recipe.flourishAfter != null ? recipe.flourishAfter : 0.55;
+          if (progress >= flourishAfter && h.meta.aimLeft > 0) {
+            if (!h.meta.chambered) {
+              h.meta.chambered = true;
+              window.avCue('sniper_bolt_lock', { weapon: id, x: f.x, y: f.y, angle: enemyAlive(ctx) ? angleToEnemy(ctx) : Math.atan2(f.dir.y, f.dir.x) });
+            }
+            const spinT = (progress - flourishAfter) / (1 - flourishAfter);
+            p.flourish = spinT * TAU * (recipe.flourishTurns || 1.5);
+            p.holdFlourish = true;
+          }
+          if (h.meta.aimLeft <= 0) {
+            if (p) { p.flourish = 0; p.holdFlourish = false; } // snap onto target
+            poseKick(h, recipe); // strong long recoil
+            const spread = (Math.random() * 2 - 1) * (spec.spread || 0.02);
+            const angle = (enemyAlive(ctx) ? angleToEnemy(ctx) : Math.atan2(f.dir.y, f.dir.x)) + spread;
+            fireBullet({
+              owner: f,
+              x: f.x + Math.cos(angle) * (f.radius * 0.7),
+              y: f.y + Math.sin(angle) * (f.radius * 0.7),
+              angle,
+              speed: spec.bulletSpeed,
+              damage: spec.damage,
+              radius: spec.bulletRadius,
+              life: spec.bulletLife,
+              weapon: id,
+              knockback: spec.knockback,
+              stun: spec.stun,
+              color: color || '#f4f4f4',
+            });
+            cameraShake = Math.max(cameraShake, 8);
+            triggerFlash(255, 250, 235, 0.12);
+            playFighterSound(f, 'skill');
+            const muzzleDistance = gunMuzzleDistance(id, f);
+            window.avCue('sniper_shot', { x: f.x + Math.cos(angle) * muzzleDistance, y: f.y + Math.sin(angle) * muzzleDistance, angle });
+            ejectCasing(f, angle, 1.2);
+            consume(f, 'shot-fired');
+          }
+        }
+      },
     };
   }
 
@@ -794,12 +1156,26 @@
         id: 'DAGGER',
         category: 'melee',
         spriteKey: 'M08_dagger',
-        onEquip(ctx) { ctx.holder.phase = 'READY'; },
+        // POST-C §5: same immediate pickup decision as the other melee —
+        // in range the iconic thrust, out of range an actual thrown dagger
+        // (highest ricochet budget: 4 walls).
+        onEquip(ctx) {
+          const h = ctx.holder;
+          h.phase = 'READY';
+          h.meta.decision = (enemyAlive(ctx) && enemyDistance(ctx) <= spec.triggerRange) ? 'strike' : 'throw';
+          log('MELEE_DECIDE', `fighter=${ctx.fighter.name} weapon=DAGGER decision=${h.meta.decision}`);
+        },
         canActivate(ctx) {
-          return ctx.holder.phase === 'READY' && enemyAlive(ctx) && enemyDistance(ctx) <= spec.triggerRange;
+          return ctx.holder.phase === 'READY' && ctx.holder.meta.decision != null;
         },
         activate(ctx) {
           const h = ctx.holder;
+          if (h.meta.decision === 'throw') {
+            const angle = holderAim(ctx);
+            spawnThrownMelee(ctx.fighter, 'DAGGER', angle);
+            consume(ctx.fighter, 'thrown');
+            return;
+          }
           h.phase = 'DASH';
           h.meta.dashLeft = spec.dashTime;
           h.meta.hitDone = false;
@@ -839,7 +1215,8 @@
           if (!h.meta.hitDone && enemyAlive(ctx)
             && distPointToSegment(ctx.enemy.x, ctx.enemy.y, f.x, f.y, tipX, tipY) < ctx.enemy.radius + spec.hitBonus) {
             h.meta.hitDone = true;
-            aqDamage(ctx.enemy, spec.damage, f, 'DAGGER', { shake: 5 });
+            // POST-C §5: ONE melee damage authority (C value x1.5).
+            aqDamage(ctx.enemy, CFG.meleeDamage('DAGGER'), f, 'DAGGER', { shake: 5 });
             emitParticles(ctx.enemy.x, ctx.enemy.y, '#e8f4ff', 16, 340, 4, 0.4, 'square');
             window.avCue('melee_hit', { weapon: 'DAGGER', x: ctx.enemy.x, y: ctx.enemy.y, angle: ang });
           }
@@ -888,8 +1265,9 @@
             p.vy = back.y * speed * 1.08;
             window.avCue('reflect', { x: p.x, y: p.y, angle: Math.atan2(back.y, back.x) });
             spawnShockwave(p.x, p.y, '#9fe8ff', 150);
-            emitParticles(p.x, p.y, '#cff4ff', 20, 380, 5, 0.5, 'square');
-            floatingTexts.push(new FloatingText(f.x, f.y - f.radius - 92, 'REFLECT', '#9fe8ff'));
+            emitParticles(p.x, p.y, '#cff4ff', 22, 420, 5, 0.5, 'square');
+            // POST-C §8: the reflect reads through shockwave + particles + SFX,
+            // never a floating word.
             if (h.meta.pose) { // brief forward pop/tilt on the shield only
               h.meta.pose.recoil = -poseRecipe('SWIRL_SHIELD').reflectPop;
               h.meta.pose.rotKick = poseRecipe('SWIRL_SHIELD').reflectRot;
@@ -933,6 +1311,23 @@
       };
     })(),
   };
+
+  // ---------------------------------------------------------------------------
+  // POST-C §3 — every staged Senko v9 gun is a real, separately spawnable
+  // weapon. The 20 new entries are generated from GUN_REGISTRY data through
+  // the shared family executors above; no per-gun hand-written runtimes.
+  // ---------------------------------------------------------------------------
+  const REGISTRY_COLORS = {
+    SEMI: '#ffe08a', AUTO: '#b9f6ca', BURST: '#d7f7a8',
+    PRECISION: '#f4f4f4', SHOTGUN: '#ffbe6b', AUTOSHOT: '#ffc98a',
+  };
+  for (const entry of (CFG.GUN_REGISTRY || [])) {
+    if (entry.compat || WEAPONS[entry.id]) continue;
+    const color = REGISTRY_COLORS[entry.family] || '#ffe08a';
+    if (entry.family === 'PRECISION') WEAPONS[entry.id] = makePrecisionGun(entry.id, color);
+    else if (entry.family === 'SHOTGUN') WEAPONS[entry.id] = makeBlastGun(entry.id, color);
+    else WEAPONS[entry.id] = makeGun(entry.id, null, color);
+  }
 
   // ---------------------------------------------------------------------------
   // Per-frame holder driver — called by the mode runtime for each fighter.
@@ -1052,6 +1447,8 @@
     fireBullet,
     throwGrenade,
     explodeGrenade,
+    spawnThrownMelee,
+    thrownSpec,
     updateArsenalProjectiles,
     drawArsenalProjectiles,
     drawArsenalVisuals,
@@ -1062,6 +1459,7 @@
     poseRecipe,
     advancePoseGhost,
     POSE_RECIPES,
+    FAMILY_POSE,
   };
 
   window.APEX_ARSENAL_WEAPONS = WEAPONS;

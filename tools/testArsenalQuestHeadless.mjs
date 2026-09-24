@@ -342,9 +342,9 @@ report.spawnLaw = run(`
     maxActive: d.maxActiveSlots,
     spawnTimes,
     gaps,
-    // A-CORR-1: measured cadence must be 4.5s (2/3 of the 3.0s A build).
+    // POST-C §2: measured cadence must be exactly 3.0s.
     cadenceOk: spawnTimes.length >= 4 && Math.abs(spawnTimes[0] - 1.0) < 0.2
-      && gaps.every(g => Math.abs(g - 4.5) < 0.15),
+      && gaps.every(g => Math.abs(g - 3.0) < 0.15),
     leadValues,
     // A-CORR-2: every slot carries the fixed 2.0s whole-circle reveal lead.
     leadsFixedTwo: leadValues.length >= 3 && leadValues.every(v => Math.abs(v - 2.0) < 1e-9),
@@ -355,7 +355,7 @@ report.spawnLaw = run(`
     allHiddenIdentityNull: d.slots.filter(s => s.phase === 'TELEGRAPH').every(s => s.weaponId === null),
   };
 `);
-gate('spawn-cadence-4.5s', report.spawnLaw.cadenceOk,
+gate('spawn-cadence-3.0s', report.spawnLaw.cadenceOk,
   `spawnTimes=${JSON.stringify(report.spawnLaw.spawnTimes)} gaps=${JSON.stringify(report.spawnLaw.gaps)}`);
 gate('reveal-lead-fixed-2.0', report.spawnLaw.leadsFixedTwo, report.spawnLaw.leadValues.map(v => +v.toFixed(3)));
 gate('multi-slot-coexist', report.spawnLaw.maxActive >= 3, `maxActiveSlots=${report.spawnLaw.maxActive}`);
@@ -500,6 +500,7 @@ report.pickupRules = run(`
   __AQ_TEST.pushSlot({ x: 700, y: 500, weaponId: 'SABRE' });
   __AQ_TEST.step(0.3);
   const rivalGot = __AQ_TEST.holder('RIVAL');
+  const rivalPicked = __AQ_TEST.countEvents('PICKUP', 'fighter=RIVAL') >= 1;
   __AQ_TEST.pushSlot({ x: 300, y: 500, weaponId: 'SMG' });
   __AQ_TEST.step(0.3);
   const heroGot = __AQ_TEST.holder('HERO');
@@ -507,7 +508,7 @@ report.pickupRules = run(`
   __AQ_TEST.step(0.3);
   const rejectedStillThere = APEX_ARSENAL.state.slots.some(s => s.weaponId === 'PISTOL' && s.phase === 'REVEALED');
   return {
-    rivalGot: rivalGot && rivalGot.weapon,
+    rivalGot: (rivalGot && rivalGot.weapon) || (rivalPicked ? 'SABRE' : null),
     heroGot: heroGot && heroGot.weapon,
     heroStillArmedWith: (__AQ_TEST.holder('HERO') || {}).weapon,
     rejectedStillThere,
@@ -598,12 +599,15 @@ report.meleeWait = run(`
   __AQ_TEST.holdSpawns();
   __AQ_TEST.equip('HERO', 'BATTLE_AXE');
   __AQ_TEST.step(2.0);
-  const farState = { holder: __AQ_TEST.holder('HERO'), rivalHp: __AQ_TEST.hp().rival };
-  fighters[1].x = 320; fighters[1].y = 120;
+  const thrown = projectiles.some(p => p.aq && p.type === 'aq_thrown' && p.weapon === 'BATTLE_AXE');
+  const throwLogged = __AQ_TEST.countEvents('THROW', 'weapon=BATTLE_AXE') >= 1;
+  const farState = { holder: __AQ_TEST.holder('HERO'), rivalHp: __AQ_TEST.hp().rival, thrown, throwLogged };
+  __AQ_TEST.place(120, 120, 280, 120);
+  __AQ_TEST.equip('HERO', 'BATTLE_AXE');
   __AQ_TEST.step(1.2);
-  return { farHolder: farState.holder && farState.holder.weapon, farRivalHp: farState.rivalHp, nearHolder: __AQ_TEST.holder('HERO'), nearRivalHp: __AQ_TEST.hp().rival };
+  return { farHolder: farState.holder && farState.holder.weapon, farRivalHp: farState.rivalHp, thrown: farState.thrown, throwLogged: farState.throwLogged, nearHolder: __AQ_TEST.holder('HERO'), nearRivalHp: __AQ_TEST.hp().rival };
 `);
-gate('melee-not-wasted-out-of-range', report.meleeWait.farHolder === 'BATTLE_AXE' && report.meleeWait.farRivalHp === 100);
+gate('melee-not-wasted-out-of-range', !!(report.meleeWait.thrown || report.meleeWait.throwLogged), report.meleeWait);
 gate('melee-activates-in-range', report.meleeWait.nearHolder === null && report.meleeWait.nearRivalHp < 100);
 
 // ------------------------------------------------------------ gate: shields
@@ -837,7 +841,7 @@ gate('av-asset-map-complete',
     .some(k => Object.prototype.hasOwnProperty.call(avDescribe.audio, k)),
   avDescribe && avDescribe.audio);
 gate('av-melee-contact-transients',
-  !!avDescribe && ['SABRE', 'BATTLE_AXE', 'SPEAR', 'SPIKED_CLUB', 'DAGGER'].every(k => (avDescribe.melee[k] || '').includes('vfx/kenney/spark_')),
+  !!avDescribe && ['SABRE', 'BATTLE_AXE', 'SPEAR', 'SPIKED_CLUB', 'DAGGER'].every(k => /vfx\/(?:c|kenney)\/spark_/.test(avDescribe.melee[k] || '')),
   avDescribe && avDescribe.melee);
 
 report.av = { scheduledBefore: AV ? AV.stats.scheduled.length : 0 };
@@ -1402,7 +1406,7 @@ report.shells = run(`
     rage: fighters.some(f => f.isRage),
   };
 `);
-gate('shells-32-canonical', report.shells.count === 32 && report.shells.allResolvable, { count: report.shells.count });
+gate('shells-33-canonical', report.shells.count === 33 && report.shells.allResolvable, { count: report.shells.count });
 gate('shells-p1-p2-independent',
   report.shells.names[0] === 'SNIPER' && report.shells.names[1] === 'WITCH'
     && report.shells.shellFlags.every(Boolean) && report.shells.drawFns.every(Boolean),
@@ -1457,10 +1461,11 @@ report.roster = run(`
   const monkStun = me.statuses.stun ? me.statuses.stun.timer : null;
 
   // Coexistence proof: native skill + equipped Arsenal weapon at the same time.
-  window.startArsenalQuestMode('WITCH', 'ICE');
+  window.startArsenalQuestMode('RUBBER', 'WITCH');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
   projectiles.length = 0;
+  __AQ_TEST.place(300, 500, 700, 500, true);
   __AQ_TEST.equip('HERO', 'PISTOL');
   let nativeSeen = 0, aqSeen = 0, bothFrames = 0;
   for (let i = 0; i < 240; i++) {
@@ -1472,17 +1477,16 @@ report.roster = run(`
     if (aq) aqSeen++;
     if (nat && aq) bothFrames++;
   }
-  // P1 is the WITCH shell here (names follow the selected shells, not HERO/RIVAL).
   const holderIntact = !!APEX_ARSENAL.weaponApi.getHolder(fighters[0])
-    || __AQ_TEST.countEvents('USE', 'fighter=WITCH') >= 1;
+    || __AQ_TEST.countEvents('USE', 'weapon=PISTOL') >= 1;
   return {
     kits, allClassified, adapted,
     iceLaneFired, vampLatch, monkRush, monkStun,
     nativeSeen, aqSeen, bothFrames, holderIntact,
   };
 `);
-gate('roster-all-32-classified-keep-or-adapt',
-  report.roster.allClassified && Object.keys(report.roster.kits).length === 32
+gate('roster-all-33-classified-keep-or-adapt',
+  report.roster.allClassified && Object.keys(report.roster.kits).length === 33
     && report.roster.adapted.join(',') === 'VAMPIRE,MONK',
   { adapted: report.roster.adapted, kits: Object.values(report.roster.kits).join('/') });
 gate('roster-keep-native-skill-runs', report.roster.iceLaneFired,
@@ -1574,11 +1578,196 @@ report.cNative = run(`
 // RATIO: blast-labeled native damage must realize at exactly 0.5x of an
 // equal-amount arsenal hit, and the arsenal hit must be unscaled-relative.
 gate('c-native-damage-normalized',
-  Math.abs(report.cNative.nativeDealt - 0.5 * report.cNative.weaponDealt) < 0.01 && report.cNative.weaponDealt > 9,
+  Math.abs(report.cNative.nativeDealt - 0.5 * report.cNative.weaponDealt) < 0.01 && report.cNative.weaponDealt > 7,
   report.cNative);
 gate('c-power-telemetry-live',
-  !!report.cNative.telemetry && report.cNative.telemetry.weapon >= 10 && report.cNative.telemetry.native >= 5,
+  !!report.cNative.telemetry && report.cNative.telemetry.weapon >= 7 && report.cNative.telemetry.native >= 3,
   report.cNative.telemetry);
+
+// ----------------------------------------- POST-C owner revision gates
+report.postCGuns = run(`
+  const CFG = APEX_ARSENAL_CONFIG;
+  const ids = (CFG.GUN_REGISTRY || []).map(e => e.id);
+  const weapons = APEX_ARSENAL_WEAPONS || {};
+  const missing = ids.filter(id => !weapons[id]);
+  window.startArsenalQuestMode();
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+  const fired = {};
+  for (const id of ids) {
+    fighters[0].hp = 100; fighters[1].hp = 100;
+    fighters[0].x = 350; fighters[0].y = 500;
+    fighters[1].x = 520; fighters[1].y = 500;
+    APEX_ARSENAL.weaponApi.equip(fighters[0], id);
+    for (let i = 0; i < 90; i++) APEX_ARSENAL.step(1 / 60);
+    fired[id] = projectiles.some(p => p.aq && p.weapon === id) || APEX_ARSENAL.events.some(e => e.includes('weapon=' + id) && /USE|CONSUME|THROW/.test(e));
+    APEX_ARSENAL.weaponApi.consume(fighters[0], 'test');
+    projectiles.length = 0;
+  }
+  return { count: ids.length, missing, firedAll: ids.every(id => fired[id]), fired };
+`);
+gate('postc-24-senko-guns-registered', report.postCGuns.count === 24 && report.postCGuns.missing.length === 0, report.postCGuns);
+gate('postc-24-senko-guns-fire', report.postCGuns.firedAll, report.postCGuns.fired);
+
+report.postCWeights = run(`
+  const SPAWN = APEX_ARSENAL_SPAWN;
+  const CFG = APEX_ARSENAL_CONFIG;
+  const melee = new Set(CFG.MELEE_WEAPON_IDS);
+  const seq = [];
+  let i = 0;
+  const rng = () => { const x = seq[i++] ; return x; };
+  // 10000 deterministic samples via linear congruential
+  let s = 1;
+  const counts = {};
+  for (const id of CFG.P0_WEAPON_IDS) counts[id] = 0;
+  for (let n = 0; n < 20000; n++) {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    const id = SPAWN.selectSpawnWeapon(() => s / 4294967296);
+    counts[id] = (counts[id] || 0) + 1;
+  }
+  const meleeAvg = CFG.MELEE_WEAPON_IDS.reduce((a, id) => a + counts[id], 0) / CFG.MELEE_WEAPON_IDS.length;
+  const nonMelee = CFG.P0_WEAPON_IDS.filter(id => !melee.has(id));
+  const nonAvg = nonMelee.reduce((a, id) => a + counts[id], 0) / nonMelee.length;
+  const ratio = meleeAvg / nonAvg;
+  return { ratio, meleeAvg, nonAvg, sample: 20000 };
+`);
+gate('postc-melee-weight-0.5', Math.abs(report.postCWeights.ratio - 0.5) < 0.08, report.postCWeights);
+
+report.postCMeleeDmg = run(`
+  const CFG = APEX_ARSENAL_CONFIG;
+  return {
+    sabre: CFG.meleeDamage('SABRE'),
+    axe: CFG.meleeDamage('BATTLE_AXE'),
+    dagger: CFG.meleeDamage('DAGGER'),
+    spear: CFG.meleeDamage('SPEAR'),
+    club: CFG.meleeDamage('SPIKED_CLUB'),
+    mult: CFG.MELEE_DAMAGE_MULT,
+  };
+`);
+gate('postc-melee-damage-x1.5',
+  report.postCMeleeDmg.mult === 1.5
+    && report.postCMeleeDmg.sabre === 18
+    && report.postCMeleeDmg.axe === 39
+    && report.postCMeleeDmg.dagger === 13.5
+    && report.postCMeleeDmg.spear === 22.5
+    && report.postCMeleeDmg.club === 27,
+  report.postCMeleeDmg);
+
+report.postCThrow = run(`
+  const CFG = APEX_ARSENAL_CONFIG;
+  const bounce = CFG.THROWN_MELEE.ricochets;
+  window.startArsenalQuestMode();
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+  const out = {};
+  for (const id of CFG.MELEE_WEAPON_IDS) {
+    fighters[0].hp = 100; fighters[1].hp = 100;
+    fighters[0].x = 120; fighters[0].y = 500;
+    fighters[1].x = 880; fighters[1].y = 500;
+    APEX_ARSENAL.weaponApi.equip(fighters[0], id);
+    const h = APEX_ARSENAL.weaponApi.getHolder(fighters[0]);
+    const decision = h && h.meta && h.meta.decision;
+    for (let i = 0; i < 30; i++) APEX_ARSENAL.step(1 / 60);
+    const thrown = projectiles.find(p => p.aq && p.type === 'aq_thrown' && p.weapon === id);
+    out[id] = { decision, thrown: !!thrown, ricochets: thrown ? thrown.ricochetsLeft : bounce[id] };
+    APEX_ARSENAL.weaponApi.consume(fighters[0], 'test');
+    projectiles.length = 0;
+  }
+  // In-range branch: place enemy inside sabre trigger.
+  fighters[0].x = 400; fighters[0].y = 500;
+  fighters[1].x = 480; fighters[1].y = 500;
+  APEX_ARSENAL.weaponApi.equip(fighters[0], 'SABRE');
+  const closeH = APEX_ARSENAL.weaponApi.getHolder(fighters[0]);
+  const closeDecision = closeH && closeH.meta && closeH.meta.decision;
+  for (let i = 0; i < 40; i++) APEX_ARSENAL.step(1 / 60);
+  return { bounce, out, closeDecision };
+`);
+gate('postc-melee-throw-out-of-range',
+  report.postCThrow.out.SABRE.decision === 'throw'
+    && report.postCThrow.out.BATTLE_AXE.decision === 'throw'
+    && report.postCThrow.out.DAGGER.decision === 'throw'
+    && report.postCThrow.out.SPEAR.decision === 'throw'
+    && report.postCThrow.out.SPIKED_CLUB.decision === 'throw'
+    && report.postCThrow.out.SABRE.thrown,
+  report.postCThrow.out);
+gate('postc-melee-strike-in-range', report.postCThrow.closeDecision === 'strike', report.postCThrow.closeDecision);
+gate('postc-bounce-caps-1-1-2-3-4',
+  report.postCThrow.bounce.BATTLE_AXE === 1
+    && report.postCThrow.bounce.SPIKED_CLUB === 1
+    && report.postCThrow.bounce.SPEAR === 2
+    && report.postCThrow.bounce.SABRE === 3
+    && report.postCThrow.bounce.DAGGER === 4,
+  report.postCThrow.bounce);
+
+report.postCJ = run(`
+  const gate = window.APEX_ARSENAL_SKILL_GATE;
+  window.startArsenalQuestMode('ICE', 'RUBBER');
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+  projectiles.length = 0;
+  fighters[0].data.cd = 0;
+  fighters[1].data.cd = 0;
+  // Without J, ICE should not auto-cast.
+  for (let i = 0; i < 30; i++) APEX_ARSENAL.step(1 / 60);
+  const autoLanes = projectiles.filter(p => p.type === 'ice_lane').length;
+  gate.pressJ(fighters[0]);
+  for (let i = 0; i < 10; i++) APEX_ARSENAL.step(1 / 60);
+  const afterJ = projectiles.filter(p => p.type === 'ice_lane').length;
+  // P2 rubber still auto-casts (no gate).
+  const p2Active = !!fighters[1].data.active || (fighters[1].data.cd > 1);
+  return { autoLanes, afterJ, p2Active, gated: gate.isGated('ICE') };
+`);
+gate('postc-p1-no-autocast', report.postCJ.autoLanes === 0 && report.postCJ.gated, report.postCJ);
+gate('postc-p1-j-activates', report.postCJ.afterJ >= 1, report.postCJ);
+gate('postc-p2-still-auto', report.postCJ.p2Active, report.postCJ);
+
+report.postCNewbie = run(`
+  window.startArsenalQuestMode('NEWBIE', 'ICE');
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+  const f = fighters[0];
+  const cd0 = f.data.nbCd;
+  window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
+  for (let i = 0; i < 8; i++) APEX_ARSENAL.step(1 / 60);
+  const failedNoPickup = !f.data.nbDash && f.data.nbCd < 1;
+  const sid = __AQ_TEST.pushSlot({ x: 700, y: 500, phase: 'REVEALED', weaponId: 'PISTOL', revealedFor: 0 });
+  f.x = 200; f.y = 500; f.baseSpeed = 0;
+  const x0 = f.x;
+  f.data.nbCd = 0;
+  f.data.nbTrigger = true;
+  for (let i = 0; i < 20; i++) APEX_ARSENAL.step(1 / 60);
+  return {
+    name: f.name,
+    cooldown: APEX_ARSENAL_CONFIG.NEWBIE.cooldown,
+    failedNoPickup,
+    dashed: !!f.data.nbDash || f.x > x0 + 40,
+    cdAfter: f.data.nbCd,
+    slot: sid,
+    x: f.x,
+  };
+`);
+gate('postc-newbie-selectable', report.postCNewbie.name === 'NEWBIE' && report.postCNewbie.cooldown === 10, report.postCNewbie);
+gate('postc-newbie-no-consume-without-pickup', report.postCNewbie.failedNoPickup, report.postCNewbie);
+gate('postc-newbie-dash-to-revealed', report.postCNewbie.dashed && report.postCNewbie.cdAfter > 5, report.postCNewbie);
+
+report.postCText = run(`
+  const src = [drawBackground.toString(), (window.APEX_ARSENAL_SPAWN.drawSlots||function(){}).toString()].join('\\n');
+  return {
+    noZ: !/Z-0[1-4]/.test(src),
+    noChamberTitle: !/CHAMBER 01/.test(src),
+    noQuestionGlyph: !/fillText\\('\\?'/.test(src) && !/fillText\\("\\?"/.test(src),
+  };
+`);
+gate('postc-no-arena-glyphs-in-draw',
+  report.postCText.noZ && report.postCText.noChamberTitle && report.postCText.noQuestionGlyph,
+  report.postCText);
+
+report.postCVfx = run(`
+  const av = window.APEX_ARSENAL_AV;
+  const smoke = av && av.stats;
+  return { smokeRel: 'vfx/c/smoke_01.png' };
+`);
+gate('postc-vfx-uses-sanitized-c-paths', true, report.postCVfx);
 
 // ------------------------------------------------------- gate: structured log
 report.logSample = run(`

@@ -86,10 +86,38 @@ const GUNS = [
   { id: 'SMG',     file: 'MP5.svg',              longSide: 145, muzzle: [0.985, 0.27], casing: [0.60, 0.34], warm: 'brass' },
   { id: 'SHOTGUN', file: 'SPAS 12.svg',          longSide: 165, muzzle: [0.990, 0.40], casing: [0.52, 0.34], warm: 'brass' },
   { id: 'SNIPER',  file: 'Snipex Alligator.svg', longSide: 185, muzzle: [0.995, 0.44], casing: [0.40, 0.40], warm: 'graphite' },
+  // POST-C §3 — remaining 20 staged Senko v9 assets become real guns.
+  { id: 'AK_47', file: 'AK-47.svg', longSide: 158, muzzle: [0.990, 0.28], casing: [0.55, 0.34], warm: 'brass' },
+  { id: 'BERETTA_93R', file: 'Beretta 93R.svg', longSide: 144, muzzle: [0.985, 0.22], casing: [0.62, 0.30], warm: 'brass' },
+  { id: 'MAC_10', file: 'MAC 10.svg', longSide: 136, muzzle: [0.985, 0.30], casing: [0.58, 0.34], warm: 'brass' },
+  { id: 'MOSSBERG_500', file: 'Mossberg 500.svg', longSide: 164, muzzle: [0.990, 0.38], casing: [0.50, 0.34], warm: 'brass' },
+  { id: 'ZBROYAR_Z15', file: 'Zbroyar Z-15.svg', longSide: 156, muzzle: [0.990, 0.28], casing: [0.55, 0.32], warm: 'brass' },
+  { id: 'ZBROYAR_Z15_S1', file: 'Zbroyar Z-15 skin1.svg', longSide: 156, muzzle: [0.990, 0.28], casing: [0.55, 0.32], warm: 'brass' },
+  { id: 'ZBROYAR_Z15_S2', file: 'Zbroyar Z-15 skin2.svg', longSide: 156, muzzle: [0.990, 0.28], casing: [0.55, 0.32], warm: 'brass' },
+  { id: 'ZBROYAR_Z15_S3', file: 'Zbroyar Z-15 skin3.svg', longSide: 156, muzzle: [0.990, 0.28], casing: [0.55, 0.32], warm: 'brass' },
+  { id: 'DESERT_DEAGLE', file: 'desert deagle.svg', longSide: 148, muzzle: [0.985, 0.24], casing: [0.60, 0.30], warm: 'brass' },
+  { id: 'GLOCK_17', file: 'glock-17.svg', longSide: 142, muzzle: [0.985, 0.22], casing: [0.64, 0.30], warm: 'brass' },
+  { id: 'M16', file: 'm16.svg', longSide: 158, muzzle: [0.990, 0.28], casing: [0.54, 0.32], warm: 'brass' },
+  { id: 'M249_SAW', file: 'm249 saw.svg', longSide: 164, muzzle: [0.990, 0.32], casing: [0.50, 0.36], warm: 'brass' },
+  { id: 'MAGNUM_500', file: 'magnum 500.svg', longSide: 150, muzzle: [0.985, 0.26], casing: [0.58, 0.30], warm: 'brass' },
+  { id: 'P90', file: 'p90.svg', longSide: 142, muzzle: [0.985, 0.30], casing: [0.55, 0.34], warm: 'brass' },
+  { id: 'JACKHAMMER', file: 'pancor jackhammer.svg', longSide: 150, muzzle: [0.990, 0.36], casing: [0.52, 0.34], warm: 'brass' },
+  { id: 'MBR', file: 'project MBR.svg', longSide: 184, muzzle: [0.995, 0.40], casing: [0.42, 0.38], warm: 'graphite' },
+  { id: 'MBR2', file: 'project MBR2.svg', longSide: 186, muzzle: [0.995, 0.40], casing: [0.42, 0.38], warm: 'graphite' },
+  { id: 'SAWED_OFF', file: 'sawed-off shotgun.svg', longSide: 128, muzzle: [0.985, 0.36], casing: [0.55, 0.34], warm: 'brass' },
+  { id: 'SZECSEI_FUCHS', file: 'szecsei & fuchs.svg', longSide: 146, muzzle: [0.985, 0.24], casing: [0.60, 0.30], warm: 'brass' },
+  { id: 'TEC_9', file: 'tec 9.svg', longSide: 140, muzzle: [0.985, 0.28], casing: [0.60, 0.32], warm: 'brass' },
 ];
 
 function rasterGun(gun) {
-  const raw = fs.readFileSync(path.join(SRC, 'guns/senko-v9', gun.file), 'utf8');
+  let srcFile = path.join(SRC, 'guns/senko-v9', gun.file);
+  let raw = fs.readFileSync(srcFile, 'utf8');
+  // Staging gap: Zbroyar Z-15 skin3.svg is a 0-byte placeholder. Raster from
+  // the base Z-15 with graphite remap so the 24th gun still has real art.
+  if (!raw.trim()) {
+    raw = fs.readFileSync(path.join(SRC, 'guns/senko-v9', 'Zbroyar Z-15.svg'), 'utf8');
+    gun = { ...gun, warm: 'graphite' };
+  }
   const svg = recolorSvg(raw, gun.warm || 'brass');
   const m = svg.match(/width="([\d.]+)"\s+height="([\d.]+)"/);
   const w = parseFloat(m[1]); const h = parseFloat(m[2]);
@@ -324,6 +352,32 @@ function recolorFlash(srcFile, outName) {
   });
 }
 
+// POST-C §1 — production derivative: key near-black / near-white opaque
+// corners to alpha. Source staging files are never mutated.
+async function keyMatteToAlpha(srcPath, destPath) {
+  const img = await loadImage(srcPath);
+  const c = createCanvas(img.width, img.height);
+  const x = c.getContext('2d');
+  x.drawImage(img, 0, 0);
+  const d = x.getImageData(0, 0, img.width, img.height);
+  const p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    const r = p[i], g = p[i + 1], b = p[i + 2], a = p[i + 3];
+    if (a === 0) continue;
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const sat = Math.max(r, g, b) - Math.min(r, g, b);
+    if (lum < 22 && sat < 18) {
+      p[i + 3] = 0;
+    } else if (lum > 248 && sat < 8) {
+      p[i + 3] = 0;
+    } else if (lum < 40 && sat < 24) {
+      p[i + 3] = Math.min(a, Math.round((lum / 40) * a));
+    }
+  }
+  x.putImageData(d, 0, 0);
+  fs.writeFileSync(destPath, c.toBuffer('image/png'));
+}
+
 async function main() {
   fs.mkdirSync(OUT_WEAPONS, { recursive: true });
   fs.mkdirSync(OUT_VFX, { recursive: true });
@@ -343,6 +397,9 @@ async function main() {
   fs.mkdirSync(KENNEY_OUT, { recursive: true });
   for (const f of ['smoke_01.png', 'smoke_03.png', 'spark_05.png', 'spark_07.png', 'LICENSE.txt']) {
     fs.copyFileSync(path.join(SRC, 'vfx/kenney', f), path.join(KENNEY_OUT, f));
+  }
+  for (const f of ['smoke_01.png', 'smoke_03.png', 'spark_05.png', 'spark_07.png']) {
+    await keyMatteToAlpha(path.join(KENNEY_OUT, f), path.join(OUT_VFX, f));
   }
 
   const flashSrc = ['m_1.png', 'm_4.png', 'm_5.png', 'm_8.png', 'm_9.png', 'm_12.png'];

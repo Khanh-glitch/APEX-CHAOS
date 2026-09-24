@@ -57,6 +57,286 @@ window.APEX_ARSENAL_C_SET = {
         0.4
       ]
     },
+    "AK_47": {
+      "id": "AK_47",
+      "file": "weapons/c/AK_47.png",
+      "w": 316,
+      "h": 81,
+      "muzzle": [
+        0.99,
+        0.28
+      ],
+      "casing": [
+        0.55,
+        0.34
+      ]
+    },
+    "BERETTA_93R": {
+      "id": "BERETTA_93R",
+      "file": "weapons/c/BERETTA_93R.png",
+      "w": 288,
+      "h": 197,
+      "muzzle": [
+        0.985,
+        0.22
+      ],
+      "casing": [
+        0.62,
+        0.3
+      ]
+    },
+    "MAC_10": {
+      "id": "MAC_10",
+      "file": "weapons/c/MAC_10.png",
+      "w": 272,
+      "h": 128,
+      "muzzle": [
+        0.985,
+        0.3
+      ],
+      "casing": [
+        0.58,
+        0.34
+      ]
+    },
+    "MOSSBERG_500": {
+      "id": "MOSSBERG_500",
+      "file": "weapons/c/MOSSBERG_500.png",
+      "w": 328,
+      "h": 62,
+      "muzzle": [
+        0.99,
+        0.38
+      ],
+      "casing": [
+        0.5,
+        0.34
+      ]
+    },
+    "ZBROYAR_Z15": {
+      "id": "ZBROYAR_Z15",
+      "file": "weapons/c/ZBROYAR_Z15.png",
+      "w": 312,
+      "h": 96,
+      "muzzle": [
+        0.99,
+        0.28
+      ],
+      "casing": [
+        0.55,
+        0.32
+      ]
+    },
+    "ZBROYAR_Z15_S1": {
+      "id": "ZBROYAR_Z15_S1",
+      "file": "weapons/c/ZBROYAR_Z15_S1.png",
+      "w": 312,
+      "h": 96,
+      "muzzle": [
+        0.99,
+        0.28
+      ],
+      "casing": [
+        0.55,
+        0.32
+      ]
+    },
+    "ZBROYAR_Z15_S2": {
+      "id": "ZBROYAR_Z15_S2",
+      "file": "weapons/c/ZBROYAR_Z15_S2.png",
+      "w": 312,
+      "h": 96,
+      "muzzle": [
+        0.99,
+        0.28
+      ],
+      "casing": [
+        0.55,
+        0.32
+      ]
+    },
+    "ZBROYAR_Z15_S3": {
+      "id": "ZBROYAR_Z15_S3",
+      "file": "weapons/c/ZBROYAR_Z15_S3.png",
+      "w": 312,
+      "h": 96,
+      "muzzle": [
+        0.99,
+        0.28
+      ],
+      "casing": [
+        0.55,
+        0.32
+      ]
+    },
+    "DESERT_DEAGLE": {
+      "id": "DESERT_DEAGLE",
+      "file": "weapons/c/DESERT_DEAGLE.png",
+      "w": 296,
+      "h": 173,
+      "muzzle": [
+        0.985,
+        0.24
+      ],
+      "casing": [
+        0.6,
+        0.3
+      ]
+    },
+    "GLOCK_17": {
+      "id": "GLOCK_17",
+      "file": "weapons/c/GLOCK_17.png",
+      "w": 284,
+      "h": 167,
+      "muzzle": [
+        0.985,
+        0.22
+      ],
+      "casing": [
+        0.64,
+        0.3
+      ]
+    },
+    "M16": {
+      "id": "M16",
+      "file": "weapons/c/M16.png",
+      "w": 316,
+      "h": 97,
+      "muzzle": [
+        0.99,
+        0.28
+      ],
+      "casing": [
+        0.54,
+        0.32
+      ]
+    },
+    "M249_SAW": {
+      "id": "M249_SAW",
+      "file": "weapons/c/M249_SAW.png",
+      "w": 328,
+      "h": 95,
+      "muzzle": [
+        0.99,
+        0.32
+      ],
+      "casing": [
+        0.5,
+        0.36
+      ]
+    },
+    "MAGNUM_500": {
+      "id": "MAGNUM_500",
+      "file": "weapons/c/MAGNUM_500.png",
+      "w": 300,
+      "h": 145,
+      "muzzle": [
+        0.985,
+        0.26
+      ],
+      "casing": [
+        0.58,
+        0.3
+      ]
+    },
+    "P90": {
+      "id": "P90",
+      "file": "weapons/c/P90.png",
+      "w": 284,
+      "h": 116,
+      "muzzle": [
+        0.985,
+        0.3
+      ],
+      "casing": [
+        0.55,
+        0.34
+      ]
+    },
+    "JACKHAMMER": {
+      "id": "JACKHAMMER",
+      "file": "weapons/c/JACKHAMMER.png",
+      "w": 300,
+      "h": 99,
+      "muzzle": [
+        0.99,
+        0.36
+      ],
+      "casing": [
+        0.52,
+        0.34
+      ]
+    },
+    "MBR": {
+      "id": "MBR",
+      "file": "weapons/c/MBR.png",
+      "w": 368,
+      "h": 115,
+      "muzzle": [
+        0.995,
+        0.4
+      ],
+      "casing": [
+        0.42,
+        0.38
+      ]
+    },
+    "MBR2": {
+      "id": "MBR2",
+      "file": "weapons/c/MBR2.png",
+      "w": 372,
+      "h": 126,
+      "muzzle": [
+        0.995,
+        0.4
+      ],
+      "casing": [
+        0.42,
+        0.38
+      ]
+    },
+    "SAWED_OFF": {
+      "id": "SAWED_OFF",
+      "file": "weapons/c/SAWED_OFF.png",
+      "w": 256,
+      "h": 93,
+      "muzzle": [
+        0.985,
+        0.36
+      ],
+      "casing": [
+        0.55,
+        0.34
+      ]
+    },
+    "SZECSEI_FUCHS": {
+      "id": "SZECSEI_FUCHS",
+      "file": "weapons/c/SZECSEI_FUCHS.png",
+      "w": 292,
+      "h": 69,
+      "muzzle": [
+        0.985,
+        0.24
+      ],
+      "casing": [
+        0.6,
+        0.3
+      ]
+    },
+    "TEC_9": {
+      "id": "TEC_9",
+      "file": "weapons/c/TEC_9.png",
+      "w": 280,
+      "h": 201,
+      "muzzle": [
+        0.985,
+        0.28
+      ],
+      "casing": [
+        0.6,
+        0.32
+      ]
+    },
     "GRENADE": {
       "id": "GRENADE",
       "file": "weapons/c/GRENADE.png",

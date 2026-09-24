@@ -125,8 +125,13 @@
         SPAWN.trySpawnSlot();
       }
       SPAWN.updateSlots(dt);
+      // POST-C §6: P1 cooldown-only skills wait for J. Gate wraps P1 update
+      // only; P2 keeps automatic kit behavior.
+      const gate = window.APEX_ARSENAL_SKILL_GATE;
       if (fighters[0] && fighters[1]) {
+        if (gate && gate.preUpdate) gate.preUpdate(fighters[0], dt);
         fighters[0].update(dt, fighters[1]);
+        if (gate && gate.postUpdate) gate.postUpdate(fighters[0]);
         fighters[1].update(dt, fighters[0]);
         handleCollisions(dt);
       }
@@ -213,15 +218,7 @@
       c.beginPath(); c.moveTo(34, g); c.lineTo(46, g); c.stroke();
       c.beginPath(); c.moveTo(S - 46, g); c.lineTo(S - 34, g); c.stroke();
     }
-    // Zone numerals, faint industrial stencil.
-    c.fillStyle = 'rgba(255,255,255,0.05)';
-    c.font = "700 26px monospace";
-    c.textAlign = 'center';
-    c.textBaseline = 'middle';
-    c.fillText('Z-01', S * 0.25, S * 0.25);
-    c.fillText('Z-02', S * 0.75, S * 0.25);
-    c.fillText('Z-03', S * 0.25, S * 0.75);
-    c.fillText('Z-04', S * 0.75, S * 0.75);
+    // POST-C §8: zone marks are glyph-free ticks, never Z-01..Z-04 numerals.
 
     // Central alignment marks (no obstacle, no glow).
     c.strokeStyle = 'rgba(255,255,255,0.07)';
@@ -259,11 +256,7 @@
       c.beginPath(); c.moveTo(52 + i * 10, 52); c.lineTo(52 + i * 10, 84); c.stroke();
       c.beginPath(); c.moveTo(S - 84 + i * 10, S - 84); c.lineTo(S - 84 + i * 10, S - 52); c.stroke();
     }
-    // Chamber plate.
-    c.fillStyle = 'rgba(255,255,255,0.10)';
-    c.font = "700 20px monospace";
-    c.textAlign = 'left';
-    c.fillText('ARSENAL FIELD TEST // CHAMBER 01', 48, S - 52);
+    // POST-C §8: chamber identity is the graphite room itself — no title plate.
     c.restore();
   }
 
@@ -370,9 +363,21 @@
     ctx.restore();
   }
 
+  // POST-C §8: mute typographic fill/stroke on the battlefield canvas while
+  // the engine draws fighters/projectiles/particles. HUD/debug overlays
+  // restore the original methods before they paint.
+  function muteArenaGlyphs(c) {
+    const fill = c.fillText;
+    const stroke = c.strokeText;
+    c.fillText = function mutedFillText() {};
+    c.strokeText = function mutedStrokeText() {};
+    return function restoreArenaGlyphs() { c.fillText = fill; c.strokeText = stroke; };
+  }
+
   draw = function () {
-    baseDraw();
-    if (gameState !== 'ARSENAL') return;
+    if (gameState !== 'ARSENAL') { baseDraw(); return; }
+    const restore = muteArenaGlyphs(ctx);
+    try { baseDraw(); } finally { restore(); }
     drawForeground();
     if (AQ.state && AQ.state.debugOverlay) drawDebugOverlay(ctx);
   };

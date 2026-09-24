@@ -137,9 +137,30 @@
     return slot;
   }
 
+  // POST-C §4 — weighted selection. Raw weights: melee 0.5, everything else
+  // 1.0 (NOT gun-count dilution: each non-melee id keeps full individual
+  // weight). The RNG is injectable (AQ.rng) so probability gates are
+  // deterministic in tests and the live game uses Math.random.
+  function weightFor(weaponId) {
+    const w = CFG.SPAWN_WEIGHTS || { melee: 0.5, base: 1.0 };
+    return (CFG.MELEE_WEAPON_IDS || []).includes(weaponId) ? w.melee : w.base;
+  }
+  function selectSpawnWeapon(rng) {
+    const random = typeof rng === 'function' ? rng : (AQ.rng || Math.random);
+    const ids = CFG.P0_WEAPON_IDS;
+    let total = 0;
+    for (const id of ids) total += weightFor(id);
+    let roll = random() * total;
+    for (const id of ids) {
+      roll -= weightFor(id);
+      if (roll < 0) return id;
+    }
+    return ids[ids.length - 1];
+  }
+
   function revealSlot(slot, eta, fighter, force = false) {
     slot.phase = 'REVEALED';
-    slot.weaponId = CFG.P0_WEAPON_IDS[Math.floor(Math.random() * CFG.P0_WEAPON_IDS.length)];
+    slot.weaponId = selectSpawnWeapon();
     slot.revealedFor = 0;
     const etaText = Number.isFinite(eta) ? eta.toFixed(2) : 'null';
     const who = fighter?.name || 'TIMEOUT';
@@ -228,6 +249,9 @@
     }
   }
 
+  // POST-C §8: the missing-asset fallback is a glyph-free magenta plate with a
+  // cross — debug tooling stays, arena text goes to zero. The weapon id is
+  // still logged for F3/diagnostics.
   function drawDebugMissingWeapon(ctx, weaponId) {
     if (!(AQ.state && AQ.state.debugOverlay)) return;
     ctx.save();
@@ -236,12 +260,12 @@
     ctx.lineWidth = 4;
     ctx.fillRect(-28, -28, 56, 56);
     ctx.strokeRect(-28, -28, 56, 56);
-    ctx.fillStyle = '#1b0016';
-    ctx.font = "900 13px monospace";
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('MISSING', 0, -7);
-    ctx.fillText(weaponId || '?', 0, 9);
+    ctx.strokeStyle = '#1b0016';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-14, -14); ctx.lineTo(14, 14);
+    ctx.moveTo(14, -14); ctx.lineTo(-14, 14);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -280,14 +304,24 @@
           ctx.stroke();
         }
 
+        // POST-C §8: no '?' glyph — the unknown-pickup core is a glyph-free
+        // rotating diamond that pulses with the same cadence as the ring.
+        ctx.globalAlpha = 0.6 + 0.3 * pulse;
         ctx.fillStyle = '#efe6c8';
         ctx.strokeStyle = '#241f14';
-        ctx.lineWidth = 6;
-        ctx.font = "900 44px 'Segoe UI'";
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.strokeText('?', 0, 2);
-        ctx.fillText('?', 0, 2);
+        ctx.lineWidth = 4;
+        ctx.save();
+        ctx.rotate(t * 1.4 + slot.id);
+        const core = 11 + 2.5 * pulse;
+        ctx.beginPath();
+        ctx.moveTo(0, -core);
+        ctx.lineTo(core * 0.72, 0);
+        ctx.lineTo(0, core);
+        ctx.lineTo(-core * 0.72, 0);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+        ctx.restore();
       } else if (slot.phase === 'REVEALED') {
         const bob = Math.sin(t * 3.1 + slot.id) * 4;
         const expireSoon = slot.revealedFor > CFG.PICKUP_LIFETIME_SECONDS - 3;
@@ -321,6 +355,8 @@
     drawSlots,
     predictContactETA,
     isEligibleForPickup,
+    selectSpawnWeapon,
+    weightFor,
     PLACEHOLDER_ART,
   };
   window.apexArsenalSpawnRuntime = 'ready';

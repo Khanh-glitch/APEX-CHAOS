@@ -19,9 +19,13 @@
 
   // ---------------------------------------------------------------------------
   // Asset tables — Checkpoint C bindings (AV_ASSET_MAP superseded for weapons).
+  // POST-C §1 VFX transparency: smoke/spark are served from the BUILD-SANITIZED
+  // copies under vfx/c/ (alpha keyed in tools/buildArsenalCAssets.mjs); the raw
+  // kenney sources are 100%-opaque black-matte PNGs and must never be drawn
+  // directly. The explosion atlas already carries real alpha.
   // ---------------------------------------------------------------------------
-  const SMOKE = (n) => `vfx/kenney/smoke_${n}.png`;
-  const SPARK = (n) => `vfx/kenney/spark_${n}.png`;
+  const SMOKE = (n) => `vfx/c/smoke_${n}.png`;
+  const SPARK = (n) => `vfx/c/spark_${n}.png`;
   const ATLAS = { file: 'vfx/explosion_pack_2/half/1.png', cell: 256, frames: 64 };
 
   // Trim windows measured from the source envelopes (onset analysis):
@@ -67,6 +71,13 @@
       { rel: 'sfx/c-final/GRENADE/grenade_low.wav', vol: 0.40, maxVoices: 2 },
     ],
     casing_drop: [{ rel: 'sfx/impact/impactPlate_light_001.ogg', vol: 0.12, maxVoices: 2 }],
+
+    // POST-C additions — reuse the approved baseline files ONLY (no new
+    // audio sourcing): ricochet = plate tick, NEWBIE dash = force field
+    // whoosh, NEWBIE fail = short metal click.
+    ricochet: [{ rel: 'sfx/impact/impactPlate_light_001.ogg', vol: 0.34, maxVoices: 3 }],
+    newbie_dash: [{ rel: 'sfx/scifi/forceField_001.ogg', vol: 0.30, maxVoices: 2 }],
+    newbie_fail: [{ rel: 'sfx/rpg/metalClick.ogg', vol: 0.28, maxVoices: 2 }],
   };
 
   // Checkpoint C melee contact language: weapon-specific impact transients
@@ -245,16 +256,44 @@
         break;
       }
       case 'fire': {
-        // C §5.4 muzzle hierarchy: pistol crisp-small, SMG fine rapid,
-        // shotgun broad + smoke; warm flash family, no square bursts.
+        // C §5.4 muzzle hierarchy, generalized to firing families (POST-C §3).
+        // SFX stay on the locked baseline only — spec.sfx names one of the
+        // four approved gun-fire lists; no new audio is ever sourced.
         const w = o.weapon;
-        if (w === 'PISTOL') { playAll('pistol_shot'); muzzle(o.x, o.y, o.angle, 0.7, [0, 1], 0.09, 1); }
-        else if (w === 'SMG') { playAll('smg_shot'); muzzle(o.x, o.y, o.angle, 0.5, [2 + (smgSliceCursor % 2), 3], 0.06, 0.9); }
-        else if (w === 'SHOTGUN') {
-          playAll('shotgun_shot');
-          muzzle(o.x, o.y, o.angle, 1.5, [4, 0], 0.13, 1.35);
+        const fam = o.family || (w === 'PISTOL' ? 'SEMI' : w === 'SMG' ? 'AUTO' : w === 'SHOTGUN' ? 'SHOTGUN' : 'SEMI');
+        const sfx = o.sfx || { SEMI: 'pistol_shot', AUTO: 'smg_shot', BURST: 'smg_shot', SHOTGUN: 'shotgun_shot', AUTOSHOT: 'shotgun_shot', PRECISION: 'sniper_shot' }[fam];
+        playAll(sfx);
+        if (fam === 'AUTO') muzzle(o.x, o.y, o.angle, 0.5, [2 + (smgSliceCursor % 2), 3], 0.06, 0.9);
+        else if (fam === 'SHOTGUN' || fam === 'AUTOSHOT') {
+          muzzle(o.x, o.y, o.angle, fam === 'SHOTGUN' ? 1.5 : 1.15, [4, 0], 0.13, 1.35);
           pushVfx({ kind: 'smoke', x: o.x, y: o.y, angle: o.angle, scale: 1.1, life: 0.5, file: SMOKE('01') });
         }
+        else if (fam === 'BURST') muzzle(o.x, o.y, o.angle, 0.62, [0, 2], 0.08, 1);
+        else muzzle(o.x, o.y, o.angle, 0.7, [0, 1], 0.09, 1); // SEMI (crisp-small)
+        break;
+      }
+      case 'melee_throw': {
+        // POST-C §5: the thrown sprite is the primary read; swing-family SFX
+        // punctuates the release.
+        if (o.weapon === 'SABRE') playAll('sabre_swing');
+        else if (o.weapon === 'BATTLE_AXE') playAll('axe_swing');
+        else if (o.weapon === 'DAGGER') playAll('dagger_swing');
+        else if (o.weapon === 'SPEAR') playAll('spear_swing');
+        else if (o.weapon === 'SPIKED_CLUB') playAll('club_swing');
+        break;
+      }
+      case 'ricochet': {
+        // Readable wall bounce: small metal tick + the runtime spark particles.
+        playAll('ricochet');
+        break;
+      }
+      case 'newbie_dash': {
+        playAll('newbie_dash');
+        break;
+      }
+      case 'newbie_fail': {
+        // Deliberate no-pickup rejection: short dry click, cooldown untouched.
+        playAll('newbie_fail');
         break;
       }
       case 'casing': {
@@ -405,8 +444,11 @@
       offset = radius * 0.82;
     } else {
       drawOffset = 0;
-      targetLongSide = weaponId === 'SNIPER' ? 185 : weaponId === 'SHOTGUN' ? 165
-        : weaponId === 'GRENADE' ? 62 : 145;
+      const meta = weaponMeta(weaponId);
+      const cfgLong = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.WEAPONS[weaponId]
+        && window.APEX_ARSENAL_CONFIG.WEAPONS[weaponId].longSide) || 0;
+      targetLongSide = cfgLong || (weaponId === 'SNIPER' ? 185 : weaponId === 'SHOTGUN' ? 165
+        : weaponId === 'GRENADE' ? 62 : 145);
       offset = radius * 0.78;
     }
     return { drawOffset, targetLongSide, offset };
