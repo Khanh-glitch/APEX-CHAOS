@@ -1,0 +1,18 @@
+event_or_weapon,visual_asset,audio_asset,secondary_audio,implementation_note
+telegraph,existing Arsenal telegraph + optional cool blue accent,sfx/scifi/forceField_001.ogg,,Low volume; throttle when several spawn close together
+reveal,brief existing flash/pop,sfx/rpg/metalClick.ogg,sfx/impact/impactGeneric_light_002.ogg,Secondary layer optional and quiet
+pickup,weapon sprite/equip feedback,sfx/rpg/metalLatch.ogg,sfx/impact/impactGeneric_light_002.ogg,One clear pickup cue
+pistol,vfx/muzzle_flash/muzzleFlash0_transparent.png,sfx/guns/cz.wav,sfx/scifi/laserSmall_002.ogg,Use normal muzzle scale; alt energy sound optional only
+shotgun,vfx/muzzle_flash/muzzleFlash0_transparent.png,sfx/guns/shotty.wav,sfx/impact/impactPunch_heavy_001.ogg,Larger muzzle and stronger hit feedback
+smg,vfx/muzzle_flash/muzzleFlash0_transparent.png,sfx/guns/sks.wav,,Bounded rapid playback; avoid eight full overlapping clips
+sniper,vfx/muzzle_flash/muzzleFlash0_transparent.png,sfx/guns/mosin.wav,sfx/scifi/laserLarge_003.ogg,Optional charge layer; decisive shot
+grenade,vfx/explosion_pack_2/half/{chosen 1-4}.png,sfx/scifi/explosionCrunch_002.ogg,sfx/scifi/lowFrequency_explosion_001.ogg,Inspect atlas layout; layer low-end quietly
+sabre,vfx/slash_orange_primary/{stable sequence}.png,sfx/rpg/knifeSlice.ogg,,Fast clean slash
+battle_axe,vfx/slash_orange_primary/{heavy sequence}.png,sfx/rpg/chop.ogg,sfx/impact/impactPunch_heavy_001.ogg,Heavier scale/timing than sabre
+dagger,vfx/slash_orange_primary/{compact sequence}.png,sfx/rpg/knifeSlice2.ogg,sfx/rpg/drawKnife1.ogg,Compact quick slash/streak
+spear,vfx/slash_orange_primary/{thrust-like sequence}.png,sfx/rpg/knifeSlice.ogg,sfx/impact/impactPunch_medium_001.ogg,Prefer streak/thrust look over broad crescent
+spiked_club,vfx/slash_orange_primary/{impact/streak sequence}.png,sfx/impact/impactPunch_heavy_001.ogg,sfx/rpg/chop.ogg,Prioritize blunt impact feel
+swirl_shield_activate,vfx/slash_blue_shield/{activation sequence}.png,sfx/scifi/forceField_003.ogg,,Cool defensive visual
+swirl_shield_reflect,vfx/slash_blue_shield/{reflect burst sequence}.png,sfx/scifi/impactMetal_002.ogg,sfx/impact/impactPlate_light_001.ogg,Ownership reversal must be obvious
+tower_shield_activate,existing guard + optional blue accent,sfx/scifi/forceField_003.ogg,,Restrained activation
+tower_shield_block,existing guard impact,sfx/impact/impactPlate_heavy_001.ogg,sfx/impact/impactPlate_light_001.ogg,Heavy block for strong hit; light variant for small hit
