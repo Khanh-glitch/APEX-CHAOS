@@ -36,6 +36,7 @@
     if (def.onEquip) def.onEquip(makeCtx(f));
     playFighterSound(f, 'wall');
     floatingTexts.push(new FloatingText(f.x, f.y - f.radius - 78, weaponId.replace(/_/g, ' '), defColor(def)));
+    window.avCue('pickup', { x: f.x, y: f.y, weapon: weaponId });
     return true;
   }
 
@@ -64,6 +65,8 @@
       mult = CFG.WEAPONS.TOWER_SHIELD.damageTakenMult;
       floatingTexts.push(new FloatingText(target.x, target.y - target.radius - 104, 'GUARDED', '#9fd8ff'));
       emitParticles(target.x, target.y, '#9fd8ff', 10, 200, 4, 0.35, 'square');
+      const srcAngle = source && source !== target ? Math.atan2(source.y - target.y, source.x - target.x) : 0;
+      window.avCue('tower_block', { x: target.x + Math.cos(srcAngle) * target.radius, y: target.y + Math.sin(srcAngle) * target.radius, angle: srcAngle, heavy: amount >= 10 });
     }
     const dealt = amount * mult;
     target.takeDamage(dealt, source && source !== target ? source : null, `arsenal-${(weaponId || 'unknown').toLowerCase()}`, !!opts.statusDamage);
@@ -135,6 +138,7 @@
     emitParticles(p.x, p.y, '#ffcf7a', 42, 620, 8, 0.7, 'square');
     emitParticles(p.x, p.y, '#8a5a2b', 26, 380, 6, 0.9, 'friction');
     playFighterSound(p.owner || 'VOLCANO', 'skill');
+    window.avCue('explosion', { x: p.x, y: p.y });
     log('EXPLODE', `weapon=GRENADE x=${Math.round(p.x)} y=${Math.round(p.y)}`);
     p.life = 0;
   }
@@ -239,16 +243,7 @@
         hit = true;
       }
     }
-    pushVisual({
-      kind: 'slash',
-      x: f.x, y: f.y,
-      angle: Math.atan2(f.dir.y, f.dir.x),
-      reach: spec.reach,
-      halfAngle: spec.halfAngle,
-      color: extra.color || '#ffd9c0',
-      life: 0.22, maxLife: 0.22,
-    });
-    playFighterSound(f, 'skill');
+    // Curated slash VFX + SFX come from the presentation layer (avCue melee_*).
     return hit;
   }
 
@@ -278,7 +273,9 @@
         h.meta.windupLeft -= dt;
         if (h.meta.windupLeft <= 0) {
           h.phase = 'STRIKE';
-          strikeCone(ctx, spec, id, { color });
+          window.avCue('melee_swing', { weapon: id, x: ctx.fighter.x, y: ctx.fighter.y, angle: Math.atan2(ctx.fighter.dir.y, ctx.fighter.dir.x) });
+          const landed = strikeCone(ctx, spec, id, { color });
+          if (landed) window.avCue('melee_hit', { weapon: id, x: ctx.enemy.x, y: ctx.enemy.y });
           consume(ctx.fighter, 'melee-resolved');
         }
       },
@@ -314,6 +311,7 @@
         while (h.meta.nextShot <= 0 && h.shotsFired < spec.shots) {
           const spread = (Math.random() * 2 - 1) * spec.spread;
           const angle = enemyAlive(ctx) ? angleToEnemy(ctx) + spread : Math.atan2(f.dir.y, f.dir.x) + spread;
+          window.avCue('fire', { weapon: id, x: f.x + Math.cos(angle) * (f.radius * 0.95), y: f.y + Math.sin(angle) * (f.radius * 0.95), angle });
           fireBullet({
             owner: f,
             x: f.x + Math.cos(angle) * (f.radius * 0.7),
@@ -382,6 +380,7 @@
               color: '#ffbe6b',
             });
           }
+          window.avCue('fire', { weapon: 'SHOTGUN', x: f.x + Math.cos(base) * (f.radius * 0.95), y: f.y + Math.sin(base) * (f.radius * 0.95), angle: base });
           spawnShockwave(f.x, f.y, '#ffbe6b', 130);
           cameraShake = Math.max(cameraShake, 9);
           hitStop = Math.max(hitStop, 0.03);
@@ -412,6 +411,7 @@
           h.meta.aimLeft = spec.aimTime;
           log('USE', `fighter=${ctx.fighter.name} weapon=SNIPER`);
           playFighterSound(ctx.fighter, 'skill');
+          window.avCue('sniper_aim', { x: ctx.fighter.x, y: ctx.fighter.y, angle: enemyAlive(ctx) ? angleToEnemy(ctx) : Math.atan2(ctx.fighter.dir.y, ctx.fighter.dir.x) });
         },
         update(ctx, dt) {
           const h = ctx.holder;
@@ -441,6 +441,7 @@
               cameraShake = Math.max(cameraShake, 8);
               triggerFlash(255, 250, 235, 0.12);
               playFighterSound(f, 'skill');
+              window.avCue('sniper_shot', { x: f.x + Math.cos(angle) * (f.radius * 0.95), y: f.y + Math.sin(angle) * (f.radius * 0.95), angle });
               consume(f, 'shot-fired');
             }
           }
@@ -473,6 +474,7 @@
           });
           log('USE', `fighter=${f.name} weapon=GRENADE`);
           playFighterSound(f, 'skill');
+          window.avCue('grenade_throw', { x: f.x + Math.cos(angle) * (f.radius * 0.95), y: f.y + Math.sin(angle) * (f.radius * 0.95), angle });
           // Consumed immediately after throw; grenade stays in world until it resolves.
           consume(f, 'thrown');
         },
@@ -501,6 +503,7 @@
           aimAtHolder(ctx);
           log('USE', `fighter=${ctx.fighter.name} weapon=DAGGER`);
           playFighterSound(ctx.fighter, 'skill');
+          window.avCue('melee_swing', { weapon: 'DAGGER', x: ctx.fighter.x, y: ctx.fighter.y, angle: Math.atan2(ctx.fighter.dir.y, ctx.fighter.dir.x) });
         },
         update(ctx, dt) {
           const h = ctx.holder;
@@ -516,6 +519,7 @@
             h.meta.hitDone = true;
             aqDamage(ctx.enemy, spec.damage, f, 'DAGGER', { shake: 5 });
             emitParticles(ctx.enemy.x, ctx.enemy.y, '#e8f4ff', 16, 340, 4, 0.4, 'square');
+            window.avCue('melee_hit', { weapon: 'DAGGER', x: ctx.enemy.x, y: ctx.enemy.y });
           }
           h.meta.dashLeft -= dt;
           if (h.meta.dashLeft <= 0) consume(f, h.meta.hitDone ? 'stab-landed' : 'stab-whiffed');
@@ -536,6 +540,7 @@
           ctx.holder.phase = 'GUARD';
           ctx.holder.meta.timer = spec.duration;
           log('USE', `fighter=${ctx.fighter.name} weapon=SWIRL_SHIELD`);
+          window.avCue('shield_activate', { weapon: 'SWIRL_SHIELD', x: ctx.fighter.x, y: ctx.fighter.y });
         },
         canActivate() { return false; },
         activate() {},
@@ -557,6 +562,7 @@
             const back = norm(originalOwner.x - p.x || 1, originalOwner.y - p.y);
             p.vx = back.x * speed * 1.08;
             p.vy = back.y * speed * 1.08;
+            window.avCue('reflect', { x: p.x, y: p.y, angle: Math.atan2(back.y, back.x) });
             spawnShockwave(p.x, p.y, '#9fe8ff', 150);
             emitParticles(p.x, p.y, '#cff4ff', 20, 380, 5, 0.5, 'square');
             floatingTexts.push(new FloatingText(f.x, f.y - f.radius - 92, 'REFLECT', '#9fe8ff'));
@@ -581,6 +587,7 @@
           ctx.holder.phase = 'GUARD';
           ctx.holder.meta.timer = spec.duration;
           log('USE', `fighter=${ctx.fighter.name} weapon=TOWER_SHIELD`);
+          window.avCue('shield_activate', { weapon: 'TOWER_SHIELD', x: ctx.fighter.x, y: ctx.fighter.y });
         },
         canActivate() { return false; },
         activate() {},

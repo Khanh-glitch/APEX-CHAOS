@@ -72,5 +72,10 @@
 
   window.APEX_ARSENAL_CONFIG = CONFIG;
   window.APEX_ARSENAL = API;
+  // Semantic presentation hook (arsenalPresentationRuntime owns the mapping).
+  // No-op until the presentation layer registers; gameplay never depends on it.
+  window.avCue = function avCue(name, opts) {
+    if (window.APEX_ARSENAL_AV && window.APEX_ARSENAL_AV.cue) window.APEX_ARSENAL_AV.cue(name, opts);
+  };
   window.apexArsenalQuestConfig = 'ready';
 })();

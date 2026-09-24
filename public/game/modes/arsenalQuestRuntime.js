@@ -91,6 +91,7 @@
       weaponApi.updateArsenalProjectiles(dt);    // aq_* movement + hits
     }
     weaponApi.tickVisuals(dt);
+    if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.tick(dt);
     // Presentation decay over the shared engine collections.
     for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.update(dt); if (p.life <= 0) particles.splice(i, 1); }
     for (let i = floatingTexts.length - 1; i >= 0; i--) { const t = floatingTexts[i]; t.update(dt); if (t.life <= 0) floatingTexts.splice(i, 1); }
@@ -192,6 +193,7 @@
     ctx.scale(view.zoom, view.zoom);
     ctx.translate(-GAME_SIZE / 2, -GAME_SIZE / 2);
     weaponApi.drawArsenalVisuals(ctx);
+    if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.draw(ctx);
     drawHolderTags(ctx);
     ctx.restore();
     ctx.save();
@@ -279,6 +281,7 @@
     updateHUD();
 
     window.apexStopBattleAudio?.();
+    if (window.APEX_ARSENAL_AV) { window.APEX_ARSENAL_AV.clear(); window.APEX_ARSENAL_AV.preload(); }
     gameState = 'ARSENAL';
     lastTime = performance.now();
     if (!reqId) reqId = requestAnimationFrame(loop);
@@ -303,6 +306,7 @@
     particles.length = 0;
     floatingTexts.length = 0;
     shockwaves.length = 0;
+    if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.clear();
     if (keyListener) {
       window.removeEventListener('keydown', keyListener);
       keyListener = null; // no leaked listeners
