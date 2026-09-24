@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-24T22:25:03.619Z",
+  "generatedAt": "2026-09-24T22:39:19.060Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -300,7 +300,7 @@
     {
       "path": "/assets/arsenal/weapons/c/arsenal_c_weapon_set.json",
       "type": "data",
-      "bytes": 7079
+      "bytes": 10006
     },
     {
       "path": "/assets/audio/menu_bgm.mp3",

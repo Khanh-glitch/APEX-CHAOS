@@ -48,7 +48,7 @@
     },
     "spawn-cadence-3.0s": {
       "pass": true,
-      "detail": "spawnTimes=[1,4.1,7.1,10.1,13.1,16.1,19.1] gaps=[3.1,3,3,3,3,3]"
+      "detail": "spawnTimes=[1,4.1,7.1,10.04,13.04,16.04,19.04] gaps=[3.1,3,2.94,3,3,3]"
     },
     "reveal-lead-fixed-2.0": {
       "pass": true,
@@ -64,7 +64,7 @@
     },
     "multi-slot-coexist": {
       "pass": true,
-      "detail": "maxActiveSlots=7"
+      "detail": "maxActiveSlots=6"
     },
     "force-reveals-only-while-unapproached": {
       "pass": true,
@@ -89,30 +89,30 @@
     },
     "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true"
+      "detail": "[AQ] REVEAL id=1 weapon=M16 eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=M249_SAW eta=1.36 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=SPIKED_CLUB eta=1.36 lead=2.00 fighter=HERO force=false"
     },
     "near-miss-outside-circle-stays-hidden": {
       "pass": true,
       "detail": {
         "nearMissStayedHidden": true,
         "edgeOfCircleReveals": true,
-        "edgeLog": "[AQ] REVEAL id=2 weapon=GRENADE eta=0.80 lead=2.00 fighter=HERO force=false",
+        "edgeLog": "[AQ] REVEAL id=2 weapon=MBR2 eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S3 eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=MAC_10 eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=GRENADE eta=0.80 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=MBR2 eta=0.80 lead=2.00 fighter=HERO force=false"
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S3 eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=3 weapon=MAC_10 eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -333,7 +333,7 @@
       "pass": true,
       "detail": {
         "nativeFrames": 20,
-        "aqFrames": 17
+        "aqFrames": 20
       }
     },
     "f3-debug-overlay-toggle": {
@@ -405,7 +405,7 @@
           "pulses": 3,
           "maxRecoil": 14,
           "minRecoil": 0,
-          "maxRot": 0.57,
+          "maxRot": 0.1,
           "minRot": -0.07,
           "maxLocalX": 0,
           "minLocalY": 0,
@@ -431,7 +431,7 @@
           "pulses": 8,
           "maxRecoil": 10,
           "minRecoil": 0,
-          "maxRot": 0.18,
+          "maxRot": 0.06,
           "minRot": -0.06,
           "maxLocalX": 0,
           "minLocalY": 0,
@@ -666,8 +666,8 @@
           "usedMeta": true,
           "sample": {
             "event": "casing",
-            "x": 358,
-            "y": 483,
+            "x": 349,
+            "y": 491,
             "weapon": "GLOCK_17",
             "usedMeta": true
           }
@@ -677,8 +677,8 @@
           "usedMeta": true,
           "sample": {
             "event": "casing",
-            "x": 346,
-            "y": 494,
+            "x": 349,
+            "y": 491,
             "weapon": "AK_47",
             "usedMeta": true
           }
@@ -689,7 +689,7 @@
           "sample": {
             "event": "casing",
             "x": 339,
-            "y": 493,
+            "y": 488,
             "weapon": "M249_SAW",
             "usedMeta": true
           }
@@ -699,8 +699,8 @@
           "usedMeta": true,
           "sample": {
             "event": "casing",
-            "x": 342,
-            "y": 493,
+            "x": 341,
+            "y": 495,
             "weapon": "SHOTGUN",
             "usedMeta": true
           }
@@ -710,7 +710,7 @@
           "usedMeta": true,
           "sample": {
             "event": "casing",
-            "x": 294,
+            "x": 293,
             "y": 493,
             "weapon": "MBR",
             "usedMeta": true
@@ -721,31 +721,122 @@
           "usedMeta": true,
           "sample": {
             "event": "casing",
-            "x": 286,
-            "y": 496,
+            "x": 262,
+            "y": 492,
             "weapon": "SNIPER",
             "usedMeta": true
           }
         }
       }
     },
+    "browser-rev2-senko-scale": {
+      "pass": true,
+      "detail": {
+        "scale": 0.55,
+        "g": 72.19395700000001,
+        "s": 420.29125600000003,
+        "ratio": 5.821695796505516,
+        "src": 5.821695796505517
+      }
+    },
+    "browser-rev2-detached-exits": {
+      "pass": true,
+      "detail": {
+        "GLOCK_17": {
+          "x": 385.5,
+          "y": 507.5,
+          "rot": 1.8,
+          "follow": false,
+          "key": "cartwheel"
+        },
+        "AK_47": {
+          "x": 370.5,
+          "y": 523.5,
+          "rot": -0.5,
+          "follow": false,
+          "key": "stockKick"
+        },
+        "MAC_10": {
+          "x": 383.5,
+          "y": 517.5,
+          "rot": 1.4000000000000001,
+          "follow": false,
+          "key": "tumble"
+        },
+        "SHOTGUN": {
+          "x": 375.5,
+          "y": 545.5,
+          "rot": -0.6000000000000001,
+          "follow": false,
+          "key": "bodyPunch"
+        },
+        "M249_SAW": {
+          "x": 380,
+          "y": 535,
+          "rot": 0.12,
+          "follow": false,
+          "key": "noseSlump"
+        },
+        "SNIPER": {
+          "x": 364.5,
+          "y": 547.5,
+          "rot": -0.33999999999999997,
+          "follow": false,
+          "key": "kickBack"
+        }
+      }
+    },
+    "browser-rev2-quest-1-10-20": {
+      "pass": false,
+      "detail": {
+        "a": {
+          "ok": true,
+          "n": 1,
+          "opponent": "PAINTER",
+          "live": "PAINTER"
+        },
+        "p2a": "PAINTER",
+        "b": {
+          "ok": false,
+          "reason": "locked"
+        },
+        "p2b": "PAINTER",
+        "c": {
+          "ok": true,
+          "n": 20,
+          "opponent": "MONK",
+          "live": "KUNGFU"
+        },
+        "p2c": "KUNGFU",
+        "live": "KUNGFU"
+      }
+    },
+    "browser-rev2-cooldown-hud": {
+      "pass": true,
+      "detail": {
+        "has": true,
+        "text": "J · —"
+      }
+    },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=12 restarts=12 spawnedCumulative=103 earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=13 restarts=13 spawnedCumulative=101 earlyErrors=0"
     },
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=3 x=543 y=566 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=3 weapon=AK_47 eta=1.01 lead=2.00 fighter=ICE force=false",
-        "PICKUP": "[AQ] PICKUP id=3 fighter=RUBBER weapon=AK_47",
-        "USE": "[AQ] USE fighter=RUBBER weapon=AK_47",
-        "HIT": "[AQ] HIT source=RUBBER target=ICE weapon=AK_47 damage=3.8",
-        "CONSUME": "[AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S1 reason=sequence-complete"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=1 x=630 y=723 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=1 weapon=DAGGER eta=0.53 lead=2.00 fighter=NEWBIE force=false",
+        "PICKUP": "[AQ] PICKUP id=6 fighter=KUNGFU weapon=SWIRL_SHIELD",
+        "USE": "[AQ] USE fighter=KUNGFU weapon=SWIRL_SHIELD",
+        "HIT": "[AQ] HIT source=NEWBIE target=KUNGFU weapon=PISTOL damage=4.5",
+        "CONSUME": "[AQ] CONSUME fighter=NEWBIE weapon=PISTOL reason=sequence-complete"
       }
     }
   },
-  "failures": [],
+  "failures": [
+    "browser-rev2-quest-1-10-20"
+  ],
   "evidence": [
     "docs/arsenal-quest/browser-evidence/01-hidden-telegraph.png",
     "docs/arsenal-quest/browser-evidence/02-multiple-simultaneous-pickups.png",
@@ -784,7 +875,9 @@
     "docs/arsenal-quest/browser-evidence/gap-casing-m249.png",
     "docs/arsenal-quest/browser-evidence/gap-casing-spas.png",
     "docs/arsenal-quest/browser-evidence/gap-casing-mbr.png",
-    "docs/arsenal-quest/browser-evidence/gap-casing-snipex.png"
+    "docs/arsenal-quest/browser-evidence/gap-casing-snipex.png",
+    "docs/arsenal-quest/browser-evidence/rev2-senko-scale-lineup.png",
+    "docs/arsenal-quest/browser-evidence/rev2-detached-exits.png"
   ],
   "normalModes": {
     "selectVisible": true,
@@ -824,20 +917,20 @@
   },
   "spawnLaw": {
     "spawnedTotal": 7,
-    "maxActive": 7,
+    "maxActive": 6,
     "spawnTimes": [
       1,
       4.1,
       7.1,
-      10.1,
-      13.1,
-      16.1,
-      19.1
+      10.04,
+      13.04,
+      16.04,
+      19.04
     ],
     "gaps": [
       3.1,
       3,
-      3,
+      2.94,
       3,
       3,
       3
@@ -872,18 +965,18 @@
       "predictedFighter": null
     },
     "forceRevealed": true,
-    "forceLog": "[AQ] REVEAL id=1 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "forceLog": "[AQ] REVEAL id=1 weapon=M16 eta=null lead=2.00 fighter=TIMEOUT force=true",
     "pickupAfterForce": true,
     "revealedOnMovement": true,
-    "moveRevealLog": "[AQ] REVEAL id=2 weapon=M249_SAW eta=1.36 lead=2.00 fighter=HERO force=false"
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=SPIKED_CLUB eta=1.36 lead=2.00 fighter=HERO force=false"
   },
   "circleNeg": {
     "nearMissStayedHidden": true,
     "edgeOfCircleReveals": true,
-    "edgeLog": "[AQ] REVEAL id=2 weapon=GRENADE eta=0.80 lead=2.00 fighter=HERO force=false",
+    "edgeLog": "[AQ] REVEAL id=2 weapon=MBR2 eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S3 eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=MAC_10 eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -1134,7 +1227,7 @@
     "vampLatch": 2.5,
     "monkRush": 2.5,
     "nativeSeen": 20,
-    "aqSeen": 17,
+    "aqSeen": 20,
     "holderIntact": true
   },
   "f3": {
@@ -1151,7 +1244,7 @@
       "pulses": 3,
       "maxRecoil": 14,
       "minRecoil": 0,
-      "maxRot": 0.57,
+      "maxRot": 0.1,
       "minRot": -0.07,
       "maxLocalX": 0,
       "minLocalY": 0,
@@ -1177,7 +1270,7 @@
       "pulses": 8,
       "maxRecoil": 10,
       "minRecoil": 0,
-      "maxRot": 0.18,
+      "maxRot": 0.06,
       "minRot": -0.06,
       "maxLocalX": 0,
       "minLocalY": 0,
@@ -1364,8 +1457,8 @@
       "usedMeta": true,
       "sample": {
         "event": "casing",
-        "x": 358,
-        "y": 483,
+        "x": 349,
+        "y": 491,
         "weapon": "GLOCK_17",
         "usedMeta": true
       }
@@ -1375,8 +1468,8 @@
       "usedMeta": true,
       "sample": {
         "event": "casing",
-        "x": 346,
-        "y": 494,
+        "x": 349,
+        "y": 491,
         "weapon": "AK_47",
         "usedMeta": true
       }
@@ -1387,7 +1480,7 @@
       "sample": {
         "event": "casing",
         "x": 339,
-        "y": 493,
+        "y": 488,
         "weapon": "M249_SAW",
         "usedMeta": true
       }
@@ -1397,8 +1490,8 @@
       "usedMeta": true,
       "sample": {
         "event": "casing",
-        "x": 342,
-        "y": 493,
+        "x": 341,
+        "y": 495,
         "weapon": "SHOTGUN",
         "usedMeta": true
       }
@@ -1408,7 +1501,7 @@
       "usedMeta": true,
       "sample": {
         "event": "casing",
-        "x": 294,
+        "x": 293,
         "y": 493,
         "weapon": "MBR",
         "usedMeta": true
@@ -1419,33 +1512,112 @@
       "usedMeta": true,
       "sample": {
         "event": "casing",
-        "x": 286,
-        "y": 496,
+        "x": 262,
+        "y": 492,
         "weapon": "SNIPER",
         "usedMeta": true
       }
     }
   },
+  "rev2ScaleBr": {
+    "scale": 0.55,
+    "g": 72.19395700000001,
+    "s": 420.29125600000003,
+    "ratio": 5.821695796505516,
+    "src": 5.821695796505517
+  },
+  "rev2ExitBr": {
+    "GLOCK_17": {
+      "x": 385.5,
+      "y": 507.5,
+      "rot": 1.8,
+      "follow": false,
+      "key": "cartwheel"
+    },
+    "AK_47": {
+      "x": 370.5,
+      "y": 523.5,
+      "rot": -0.5,
+      "follow": false,
+      "key": "stockKick"
+    },
+    "MAC_10": {
+      "x": 383.5,
+      "y": 517.5,
+      "rot": 1.4000000000000001,
+      "follow": false,
+      "key": "tumble"
+    },
+    "SHOTGUN": {
+      "x": 375.5,
+      "y": 545.5,
+      "rot": -0.6000000000000001,
+      "follow": false,
+      "key": "bodyPunch"
+    },
+    "M249_SAW": {
+      "x": 380,
+      "y": 535,
+      "rot": 0.12,
+      "follow": false,
+      "key": "noseSlump"
+    },
+    "SNIPER": {
+      "x": 364.5,
+      "y": 547.5,
+      "rot": -0.33999999999999997,
+      "follow": false,
+      "key": "kickBack"
+    }
+  },
+  "rev2QuestBr": {
+    "a": {
+      "ok": true,
+      "n": 1,
+      "opponent": "PAINTER",
+      "live": "PAINTER"
+    },
+    "p2a": "PAINTER",
+    "b": {
+      "ok": false,
+      "reason": "locked"
+    },
+    "p2b": "PAINTER",
+    "c": {
+      "ok": true,
+      "n": 20,
+      "opponent": "MONK",
+      "live": "KUNGFU"
+    },
+    "p2c": "KUNGFU",
+    "live": "KUNGFU"
+  },
+  "rev2Hud": {
+    "has": true,
+    "text": "J · —"
+  },
   "fiveMinute": {
     "error": null,
-    "restarts": 12,
-    "koCount": 12,
-    "spawnedTotal": 8,
-    "spawnedCumulative": 103,
+    "restarts": 13,
+    "koCount": 13,
+    "spawnedTotal": 6,
+    "spawnedCumulative": 101,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=3 x=543 y=566 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=3 weapon=AK_47 eta=1.01 lead=2.00 fighter=ICE force=false",
-    "PICKUP": "[AQ] PICKUP id=3 fighter=RUBBER weapon=AK_47",
-    "USE": "[AQ] USE fighter=RUBBER weapon=AK_47",
-    "HIT": "[AQ] HIT source=RUBBER target=ICE weapon=AK_47 damage=3.8",
-    "CONSUME": "[AQ] CONSUME fighter=RUBBER weapon=ZBROYAR_Z15_S1 reason=sequence-complete"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=1 x=630 y=723 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=1 weapon=DAGGER eta=0.53 lead=2.00 fighter=NEWBIE force=false",
+    "PICKUP": "[AQ] PICKUP id=6 fighter=KUNGFU weapon=SWIRL_SHIELD",
+    "USE": "[AQ] USE fighter=KUNGFU weapon=SWIRL_SHIELD",
+    "HIT": "[AQ] HIT source=NEWBIE target=KUNGFU weapon=PISTOL damage=4.5",
+    "CONSUME": "[AQ] CONSUME fighter=NEWBIE weapon=PISTOL reason=sequence-complete"
   },
   "summary": {
-    "total": 79,
-    "passed": 79,
-    "failed": []
+    "total": 83,
+    "passed": 82,
+    "failed": [
+      "browser-rev2-quest-1-10-20"
+    ]
   }
 }
