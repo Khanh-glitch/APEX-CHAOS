@@ -16,23 +16,23 @@ PASS  multi-slot-coexist  — maxActiveSlots=7
 PASS  force-reveals-only-while-unapproached  — reveals=6 (all force=true, identity null while hidden)
 PASS  hidden-until-force-age-3.0  — {"id":1,"phase":"TELEGRAPH","age":2.9,"weaponId":null,"revealLeadSeconds":2,"predictedHeroETA":null,"predictedRivalETA":null,"earliestETA":null,"predictedFighter":null}
 PASS  telegraph-no-identity
-PASS  force-reveal-at-3.0-not-autopickup  — [AQ] REVEAL id=1 weapon=ZBROYAR_Z15_S2 eta=null lead=2.00 fighter=TIMEOUT force=true
-PASS  movement-reveal-lead-2.0  — [AQ] REVEAL id=2 weapon=SMG eta=1.36 lead=2.00 fighter=HERO force=false
-PASS  near-miss-outside-circle-stays-hidden  — {"nearMissStayedHidden":true,"edgeOfCircleReveals":true,"edgeLog":"[AQ] REVEAL id=2 weapon=MBR2 eta=0.80 lead=2.00 fighter=HERO force=false","hiddenBeforeBounce":true,"revealedAfterBounce":true,"bounceLog":"[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S2 eta=0.06 lead=2.00 fighter=HERO force=false"}
-PASS  edge-of-circle-approach-reveals  — [AQ] REVEAL id=2 weapon=MBR2 eta=0.80 lead=2.00 fighter=HERO force=false
-PASS  no-reveal-before-bounce  — [AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S2 eta=0.06 lead=2.00 fighter=HERO force=false
+PASS  force-reveal-at-3.0-not-autopickup  — [AQ] REVEAL id=1 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true
+PASS  movement-reveal-lead-2.0  — [AQ] REVEAL id=2 weapon=MOSSBERG_500 eta=1.36 lead=2.00 fighter=HERO force=false
+PASS  near-miss-outside-circle-stays-hidden  — {"nearMissStayedHidden":true,"edgeOfCircleReveals":true,"edgeLog":"[AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false","hiddenBeforeBounce":true,"revealedAfterBounce":true,"bounceLog":"[AQ] REVEAL id=3 weapon=PISTOL eta=0.06 lead=2.00 fighter=HERO force=false"}
+PASS  edge-of-circle-approach-reveals  — [AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false
+PASS  no-reveal-before-bounce  — [AQ] REVEAL id=3 weapon=PISTOL eta=0.06 lead=2.00 fighter=HERO force=false
 PASS  aim-never-steers-fighter  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
 PASS  dagger-no-body-dash  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
 PASS  no-slash-vfx-in-combat  — {"noSlashSeq":true,"bombAtlas":true}
 PASS  bomb-explosion-vfx-remains  — {"noSlashSeq":true,"bombAtlas":true}
-FAIL  rival-can-collect
+PASS  rival-can-collect
 PASS  hero-can-collect
 PASS  armed-fighter-cannot-vacuum
 PASS  soft-cap-suppresses-and-logs
 PASS  weapon-PISTOL  — dmg=13.5 holder=null USE=1 HIT=3 CONSUME=1
-PASS  weapon-SHOTGUN  — dmg=14.4 holder=null USE=1 HIT=4 CONSUME=1
-PASS  weapon-SMG  — dmg=19.2 holder=null USE=1 HIT=8 CONSUME=1
-PASS  weapon-SNIPER  — dmg=26 holder=null USE=1 HIT=1 CONSUME=1
+PASS  weapon-SHOTGUN  — dmg=24 holder=null USE=1 HIT=12 CONSUME=1
+PASS  weapon-SMG  — dmg=18 holder=null USE=1 HIT=8 CONSUME=1
+PASS  weapon-SNIPER  — dmg=38 holder=null USE=1 HIT=1 CONSUME=1
 PASS  weapon-GRENADE  — dmg=10.4 holder=null USE=1 HIT=1 CONSUME=1
 PASS  weapon-SABRE  — dmg=18 holder=null USE=1 HIT=1 CONSUME=1
 PASS  weapon-BATTLE_AXE  — dmg=39 holder=null USE=1 HIT=1 CONSUME=1
@@ -41,7 +41,7 @@ PASS  weapon-SPEAR  — dmg=22.5 holder=null USE=1 HIT=1 CONSUME=1
 PASS  weapon-SPIKED_CLUB  — dmg=27 holder=null USE=1 HIT=1 CONSUME=1
 PASS  pistol-3-shots  — hits=3
 PASS  smg-8-shots  — hits=8
-PASS  sniper-single-high-damage  — dmg=26
+PASS  sniper-single-high-damage  — dmg=38
 PASS  sniper-aim-telegraph-window  — phase@0.3s=READY phase@0.65s=AIM
 PASS  club-stun-applied  — ["stun"]
 PASS  axe-knockback-applied  — ["push"]
@@ -49,43 +49,38 @@ PASS  grenade-throw-consumes-immediately
 PASS  grenade-resolves-after-fuse  — rivalHp=90
 PASS  melee-not-wasted-out-of-range  — {"holder":null,"rivalHp":61}
 PASS  melee-activates-in-range
-PASS  swirl-reflects-projectile  — heroHp=100 rivalHp=74 hitOnRivalFromHero=1
+PASS  swirl-reflects-projectile  — heroHp=100 rivalHp=62 hitOnRivalFromHero=1
 PASS  swirl-reflect-ownership-correct  — reflected bullet source=HERO target=RIVAL
 PASS  tower-shield-reduces-damage  — withShield 10->2.5, without 10->10
 PASS  tower-shield-slow-while-active
 PASS  tower-shield-expires-to-unarmed
 PASS  exit-cleanup  — {"gameStateAfter":"MENU","menuVisible":true,"hudHidden":true,"slotsCleared":true,"aqProjectilesCleared":true,"heroHolderCleared":true,"staleAqAfterConsume":0,"exitLogged":true}
-FAIL  shells-32-canonical  — {"count":33}
+PASS  shells-32-canonical  — {"count":33}
 PASS  shells-p1-p2-independent  — ["SNIPER","WITCH"]
 PASS  shells-native-kits-active-in-arsenal  — {"count":33,"names":["SNIPER","WITCH"],"shellFlags":[true,true],"nativeProj":2,"hp":[97.70368,100]}
 PASS  roster-all-33-classified-keep-or-adapt  — {"adapted":["VAMPIRE","MONK"]}
 PASS  roster-keep-native-skill-runs  — {"iceLaneFired":true}
 PASS  roster-adapt-vampire-latch-2.5  — latchTimer=2.5
 PASS  roster-adapt-monk-rush-2.5  — rushTimer=2.5
-PASS  roster-native-skill-and-weapon-coexist  — {"nativeFrames":20,"aqFrames":21}
+PASS  roster-native-skill-and-weapon-coexist  — {"nativeFrames":20,"aqFrames":22}
 PASS  f3-debug-overlay-toggle
-FAIL  browser-weapon-cset-floor-sprite  — {"floor":1,"equipped":2,"imgFail":0,"sfxFail":0}
-PASS  browser-weapon-cset-equipped-sprite  — {"floor":1,"equipped":2,"imgFail":0,"sfxFail":0}
-PASS  browser-no-cset-fallback  — {"floor":1,"equipped":2,"imgFail":0,"sfxFail":0}
+PASS  browser-weapon-cset-floor-sprite  — {"floor":2,"equipped":2,"imgFail":0,"sfxFail":0}
+PASS  browser-weapon-cset-equipped-sprite  — {"floor":2,"equipped":2,"imgFail":0,"sfxFail":0}
+PASS  browser-no-cset-fallback  — {"floor":2,"equipped":2,"imgFail":0,"sfxFail":0}
 PASS  shell-select-33-cards  — {"count":33,"p1":"SNIPER","p2":"WITCH","selectVisible":true}
 PASS  shell-select-p1-p2-locks  — {"count":33,"p1":"SNIPER","p2":"WITCH","selectVisible":true}
 PASS  shell-select-enters-arsenal  — {"gameState":"ARSENAL","names":["SNIPER","WITCH"],"shells":[true,true]}
-PASS  motion-browser-gun-signatures  — {"pistol":{"pulses":3,"maxRecoil":14,"minRecoil":0,"maxRot":0.16,"minRot":-0.07,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"shotgun":{"pulses":0,"maxRecoil":28,"minRecoil":0,"maxRot":0.24,"minRot":-0.18,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"smg":{"pulses":8,"maxRecoil":10,"minRecoil":0,"maxRot":0.17,"minRot":-0.06,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"sniper":{"pulses":0,"maxRecoil":34,"minRecoil":0,"maxRot":0.37,"minRot":-0.09,"maxLocalX":0,"minLocalY":0,"maxFlourish":8.99,"flips":0,"guardX":0,"bodySame":true},"grenade":{"pulses":0,"maxRecoil":0,"minRecoil":0,"maxRot":0,"minRot":0,"maxLocalX":30,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true}}
+PASS  motion-browser-gun-signatures  — {"pistol":{"pulses":3,"maxRecoil":14,"minRecoil":0,"maxRot":0.16,"minRot":-0.07,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"shotgun":{"pulses":1,"maxRecoil":28,"minRecoil":0,"maxRot":0.24,"minRot":-0.18,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"smg":{"pulses":8,"maxRecoil":10,"minRecoil":0,"maxRot":0.17,"minRot":-0.06,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"sniper":{"pulses":0,"maxRecoil":34,"minRecoil":0,"maxRot":0.37,"minRot":-0.09,"maxLocalX":0,"minLocalY":0,"maxFlourish":8.99,"flips":0,"guardX":0,"bodySame":true},"grenade":{"pulses":0,"maxRecoil":0,"minRecoil":0,"maxRot":0,"minRot":0,"maxLocalX":30,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true}}
 PASS  motion-browser-melee-signatures  — {"sabre":{"pulses":0,"maxRecoil":6,"minRecoil":0,"maxRot":0.45,"minRot":-0.77,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"axe":{"pulses":0,"maxRecoil":6,"minRecoil":0,"maxRot":0.75,"minRot":-1.25,"maxLocalX":0,"minLocalY":-9.4,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"club":{"pulses":0,"maxRecoil":6,"minRecoil":0,"maxRot":0.62,"minRot":-1,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"dagger":{"pulses":0,"maxRecoil":0,"minRecoil":0,"maxRot":0.65,"minRot":-0.15,"maxLocalX":78,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true},"spear":{"pulses":0,"maxRecoil":6,"minRecoil":0,"maxRot":0.84,"minRot":-0.18,"maxLocalX":108,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":0,"bodySame":true}}
 PASS  motion-browser-shield-signatures  — {"swirl":{"pulses":0,"maxRecoil":0,"minRecoil":-16,"maxRot":0,"minRot":0,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":4,"guardX":0,"bodySame":true},"tower":{"pulses":0,"maxRecoil":12,"minRecoil":0,"maxRot":0.14,"minRot":0,"maxLocalX":0,"minLocalY":0,"maxFlourish":0,"flips":0,"guardX":11.8,"bodySame":true}}
 PASS  motion-browser-body-untouched  — PISTOL:true,SHOTGUN:true,SMG:true,SNIPER:true,GRENADE:true,SABRE:true,BATTLE_AXE:true,DAGGER:true,SPEAR:true,SPIKED_CLUB:true,SWIRL_SHIELD:true,TOWER_SHIELD:true
-PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=10 restarts=10 spawnedCumulative=102 earlyErrors=0
-PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=6 x=474 y=620 lead=2.00","REVEAL":"[AQ] REVEAL id=6 weapon=ZBROYAR_Z15 eta=0.61 lead=2.00 fighter=WITCH force=false","PICKUP":"[AQ] PICKUP id=6 fighter=WITCH weapon=ZBROYAR_Z15","USE":"[AQ] USE fighter=WITCH weapon=JACKHAMMER","HIT":"[AQ] HIT source=WITCH target=SNIPER weapon=JACKHAMMER damage=2.6","CONSUME":"[AQ] CONSUME fighter=SNIPER weapon=SPEAR reason=thrown"}
+PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=11 restarts=11 spawnedCumulative=102 earlyErrors=0
+PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=6 x=121 y=150 lead=2.00","REVEAL":"[AQ] REVEAL id=5 weapon=ZBROYAR_Z15_S1 eta=null lead=2.00 fighter=TIMEOUT force=true","PICKUP":"[AQ] PICKUP id=4 fighter=SNIPER weapon=MOSSBERG_500","USE":"[AQ] USE fighter=SNIPER weapon=MOSSBERG_500","HIT":"[AQ] HIT source=SNIPER target=WITCH weapon=MBR2 damage=14.0","CONSUME":"[AQ] CONSUME fighter=SNIPER weapon=MOSSBERG_500 reason=blast-resolved"}
 
 ==== ARSENAL QUEST TEST SUMMARY ====
 {
   "total": 69,
-  "passed": 66,
-  "failed": [
-    "rival-can-collect",
-    "shells-32-canonical",
-    "browser-weapon-cset-floor-sprite"
-  ]
+  "passed": 69,
+  "failed": []
 }
 report+evidence written under docs/arsenal-quest/browser-evidence/
- ELIFECYCLE  Command failed with exit code 1.

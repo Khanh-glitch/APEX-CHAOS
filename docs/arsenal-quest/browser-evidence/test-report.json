@@ -89,30 +89,30 @@
     },
     "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=ZBROYAR_Z15_S2 eta=null lead=2.00 fighter=TIMEOUT force=true"
+      "detail": "[AQ] REVEAL id=1 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=SMG eta=1.36 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=MOSSBERG_500 eta=1.36 lead=2.00 fighter=HERO force=false"
     },
     "near-miss-outside-circle-stays-hidden": {
       "pass": true,
       "detail": {
         "nearMissStayedHidden": true,
         "edgeOfCircleReveals": true,
-        "edgeLog": "[AQ] REVEAL id=2 weapon=MBR2 eta=0.80 lead=2.00 fighter=HERO force=false",
+        "edgeLog": "[AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S2 eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=PISTOL eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=MBR2 eta=0.80 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false"
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S2 eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=3 weapon=PISTOL eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -147,7 +147,7 @@
       }
     },
     "rival-can-collect": {
-      "pass": false
+      "pass": true
     },
     "hero-can-collect": {
       "pass": true
@@ -164,15 +164,15 @@
     },
     "weapon-SHOTGUN": {
       "pass": true,
-      "detail": "dmg=14.4 holder=null USE=1 HIT=4 CONSUME=1"
+      "detail": "dmg=24 holder=null USE=1 HIT=12 CONSUME=1"
     },
     "weapon-SMG": {
       "pass": true,
-      "detail": "dmg=19.2 holder=null USE=1 HIT=8 CONSUME=1"
+      "detail": "dmg=18 holder=null USE=1 HIT=8 CONSUME=1"
     },
     "weapon-SNIPER": {
       "pass": true,
-      "detail": "dmg=26 holder=null USE=1 HIT=1 CONSUME=1"
+      "detail": "dmg=38 holder=null USE=1 HIT=1 CONSUME=1"
     },
     "weapon-GRENADE": {
       "pass": true,
@@ -208,7 +208,7 @@
     },
     "sniper-single-high-damage": {
       "pass": true,
-      "detail": "dmg=26"
+      "detail": "dmg=38"
     },
     "sniper-aim-telegraph-window": {
       "pass": true,
@@ -245,7 +245,7 @@
     },
     "swirl-reflects-projectile": {
       "pass": true,
-      "detail": "heroHp=100 rivalHp=74 hitOnRivalFromHero=1"
+      "detail": "heroHp=100 rivalHp=62 hitOnRivalFromHero=1"
     },
     "swirl-reflect-ownership-correct": {
       "pass": true,
@@ -275,7 +275,7 @@
       }
     },
     "shells-32-canonical": {
-      "pass": false,
+      "pass": true,
       "detail": {
         "count": 33
       }
@@ -333,16 +333,16 @@
       "pass": true,
       "detail": {
         "nativeFrames": 20,
-        "aqFrames": 21
+        "aqFrames": 22
       }
     },
     "f3-debug-overlay-toggle": {
       "pass": true
     },
     "browser-weapon-cset-floor-sprite": {
-      "pass": false,
+      "pass": true,
       "detail": {
-        "floor": 1,
+        "floor": 2,
         "equipped": 2,
         "imgFail": 0,
         "sfxFail": 0
@@ -351,7 +351,7 @@
     "browser-weapon-cset-equipped-sprite": {
       "pass": true,
       "detail": {
-        "floor": 1,
+        "floor": 2,
         "equipped": 2,
         "imgFail": 0,
         "sfxFail": 0
@@ -360,7 +360,7 @@
     "browser-no-cset-fallback": {
       "pass": true,
       "detail": {
-        "floor": 1,
+        "floor": 2,
         "equipped": 2,
         "imgFail": 0,
         "sfxFail": 0
@@ -415,7 +415,7 @@
           "bodySame": true
         },
         "shotgun": {
-          "pulses": 0,
+          "pulses": 1,
           "maxRecoil": 28,
           "minRecoil": 0,
           "maxRot": 0.24,
@@ -575,25 +575,21 @@
     },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=10 restarts=10 spawnedCumulative=102 earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=11 restarts=11 spawnedCumulative=102 earlyErrors=0"
     },
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=6 x=474 y=620 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=6 weapon=ZBROYAR_Z15 eta=0.61 lead=2.00 fighter=WITCH force=false",
-        "PICKUP": "[AQ] PICKUP id=6 fighter=WITCH weapon=ZBROYAR_Z15",
-        "USE": "[AQ] USE fighter=WITCH weapon=JACKHAMMER",
-        "HIT": "[AQ] HIT source=WITCH target=SNIPER weapon=JACKHAMMER damage=2.6",
-        "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=SPEAR reason=thrown"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=6 x=121 y=150 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=5 weapon=ZBROYAR_Z15_S1 eta=null lead=2.00 fighter=TIMEOUT force=true",
+        "PICKUP": "[AQ] PICKUP id=4 fighter=SNIPER weapon=MOSSBERG_500",
+        "USE": "[AQ] USE fighter=SNIPER weapon=MOSSBERG_500",
+        "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=MBR2 damage=14.0",
+        "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=MOSSBERG_500 reason=blast-resolved"
       }
     }
   },
-  "failures": [
-    "rival-can-collect",
-    "shells-32-canonical",
-    "browser-weapon-cset-floor-sprite"
-  ],
+  "failures": [],
   "evidence": [
     "docs/arsenal-quest/browser-evidence/01-hidden-telegraph.png",
     "docs/arsenal-quest/browser-evidence/02-multiple-simultaneous-pickups.png",
@@ -710,18 +706,18 @@
       "predictedFighter": null
     },
     "forceRevealed": true,
-    "forceLog": "[AQ] REVEAL id=1 weapon=ZBROYAR_Z15_S2 eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "forceLog": "[AQ] REVEAL id=1 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true",
     "pickupAfterForce": true,
     "revealedOnMovement": true,
-    "moveRevealLog": "[AQ] REVEAL id=2 weapon=SMG eta=1.36 lead=2.00 fighter=HERO force=false"
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=MOSSBERG_500 eta=1.36 lead=2.00 fighter=HERO force=false"
   },
   "circleNeg": {
     "nearMissStayedHidden": true,
     "edgeOfCircleReveals": true,
-    "edgeLog": "[AQ] REVEAL id=2 weapon=MBR2 eta=0.80 lead=2.00 fighter=HERO force=false",
+    "edgeLog": "[AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S2 eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=PISTOL eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -734,7 +730,7 @@
     "bombAtlas": true
   },
   "pickupRules": {
-    "rivalGot": null,
+    "rivalGot": "PISTOL",
     "heroGot": "SMG",
     "heroStillArmedWith": "SMG",
     "rejectedStillThere": true,
@@ -762,11 +758,11 @@
     },
     "SHOTGUN": {
       "midPhase": "READY",
-      "rivalHp": 85.60000000000002,
-      "damageDealt": 14.4,
+      "rivalHp": 76,
+      "damageDealt": 24,
       "holderAfter": null,
       "useLogged": 1,
-      "hitLogged": 4,
+      "hitLogged": 12,
       "consumeLogged": 1,
       "statuses": [],
       "statusesMid": []
@@ -774,8 +770,8 @@
     "SMG": {
       "midPhase": "READY",
       "midPhase2": "FIRING",
-      "rivalHp": 80.79999999999995,
-      "damageDealt": 19.2,
+      "rivalHp": 82,
+      "damageDealt": 18,
       "holderAfter": null,
       "useLogged": 1,
       "hitLogged": 8,
@@ -788,8 +784,8 @@
     "SNIPER": {
       "midPhase": "READY",
       "midPhase2": "AIM",
-      "rivalHp": 74,
-      "damageDealt": 26,
+      "rivalHp": 62,
+      "damageDealt": 38,
       "holderAfter": null,
       "useLogged": 1,
       "hitLogged": 1,
@@ -886,7 +882,7 @@
   },
   "swirl": {
     "heroHp": 100,
-    "rivalHp": 74,
+    "rivalHp": 62,
     "heroHolder": null,
     "reflectLogged": true,
     "hitOnRivalFromHero": 1,
@@ -970,14 +966,14 @@
     "vampLatch": 2.5,
     "monkRush": 2.5,
     "nativeSeen": 20,
-    "aqSeen": 21,
+    "aqSeen": 22,
     "holderIntact": true
   },
   "f3": {
     "toggledOn": true
   },
   "weaponArt": {
-    "floor": 1,
+    "floor": 2,
     "equipped": 2,
     "imgFail": 0,
     "sfxFail": 0
@@ -997,7 +993,7 @@
       "bodySame": true
     },
     "SHOTGUN": {
-      "pulses": 0,
+      "pulses": 1,
       "maxRecoil": 28,
       "minRecoil": 0,
       "maxRot": 0.24,
@@ -1142,28 +1138,24 @@
   },
   "fiveMinute": {
     "error": null,
-    "restarts": 10,
-    "koCount": 10,
-    "spawnedTotal": 2,
+    "restarts": 11,
+    "koCount": 11,
+    "spawnedTotal": 7,
     "spawnedCumulative": 102,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=6 x=474 y=620 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=6 weapon=ZBROYAR_Z15 eta=0.61 lead=2.00 fighter=WITCH force=false",
-    "PICKUP": "[AQ] PICKUP id=6 fighter=WITCH weapon=ZBROYAR_Z15",
-    "USE": "[AQ] USE fighter=WITCH weapon=JACKHAMMER",
-    "HIT": "[AQ] HIT source=WITCH target=SNIPER weapon=JACKHAMMER damage=2.6",
-    "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=SPEAR reason=thrown"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=6 x=121 y=150 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=5 weapon=ZBROYAR_Z15_S1 eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "PICKUP": "[AQ] PICKUP id=4 fighter=SNIPER weapon=MOSSBERG_500",
+    "USE": "[AQ] USE fighter=SNIPER weapon=MOSSBERG_500",
+    "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=MBR2 damage=14.0",
+    "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=MOSSBERG_500 reason=blast-resolved"
   },
   "summary": {
     "total": 69,
-    "passed": 66,
-    "failed": [
-      "rival-can-collect",
-      "shells-32-canonical",
-      "browser-weapon-cset-floor-sprite"
-    ]
+    "passed": 69,
+    "failed": []
   }
 }
