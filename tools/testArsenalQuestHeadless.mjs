@@ -19,7 +19,7 @@ const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules'
 const evidenceDir = process.env.AQ_EVIDENCE_DIR || 'docs/arsenal-quest/evidence';
 const requireTool = createRequire(path.join(TOOLING_DIR, 'noop.js'));
 const { JSDOM } = requireTool('jsdom');
-const { createCanvas } = requireTool('@napi-rs/canvas');
+const { createCanvas, loadImage } = requireTool('@napi-rs/canvas');
 
 // ---------------------------------------------------------------- DOM setup
 const dom = new JSDOM(`<!doctype html><html><body>
@@ -69,7 +69,7 @@ win.HTMLCanvasElement.prototype.getContext = function (type) {
       const value = Reflect.get(target, prop, receiver);
       if (prop === 'drawImage' && typeof value === 'function') {
         return function (img, ...args) {
-          const mapped = img && (realCanvases.get(img) || (img instanceof win.HTMLCanvasElement ? realCanvasFor(img) : null));
+          const mapped = img && (img.__realImage || realCanvases.get(img) || (img instanceof win.HTMLCanvasElement ? realCanvasFor(img) : null));
           return value.call(target, mapped || img, ...args);
         };
       }
@@ -106,6 +106,11 @@ class AudioNodeStub {
 }
 class AudioContextStub {
   constructor() { this.currentTime = 0; this.state = 'running'; this.sampleRate = 48000; this.destination = new AudioNodeStub(); }
+  decodeAudioData(buf) {
+    // Fake decoded buffer; duration derived from byte length (16-bit mono).
+    const seconds = Math.max(0.05, (buf && buf.byteLength ? buf.byteLength / 2 / 48000 : 0.5));
+    return Promise.resolve({ duration: seconds, sampleRate: 48000, length: Math.floor(seconds * 48000) });
+  }
   createGain() { return new AudioNodeStub(); }
   createOscillator() { return new AudioNodeStub(); }
   createBufferSource() { return new AudioNodeStub(); }
@@ -119,8 +124,44 @@ class AudioContextStub {
 win.AudioContext = AudioContextStub;
 win.webkitAudioContext = AudioContextStub;
 
-// jsdom has no fetch; UI runtimes (pick layout JSON) park on a pending promise with this stub.
-win.fetch = () => new Promise(() => {});
+// jsdom has no fetch; UI runtimes (pick layout JSON) park on a pending promise.
+// AV presentation audio fetches ARE served from the repo so preload/decode and
+// the bounded-voice playback path run for real (sound itself stays stubbed).
+win.fetch = (url) => {
+  const u = String(url);
+  if (u.includes('/assets/arsenal/av/')) {
+    const rel = u.slice(u.indexOf('/assets/') + 1);
+    try {
+      const data = fs.readFileSync(path.join(REPO, 'public', rel));
+      const copy = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+      return Promise.resolve({ ok: true, arrayBuffer: () => Promise.resolve(copy) });
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+  return new Promise(() => {});
+};
+
+// jsdom Image cannot decode PNGs; back every Image with a real @napi-rs image
+// loaded from public/ so curated VFX actually render into evidence frames.
+class HarnessImage {
+  constructor() { this.complete = false; this.width = 0; this.height = 0; this.__realImage = null; this.onload = null; this.onerror = null; }
+  set src(v) {
+    this._src = v;
+    const rel = String(v).replace(/^\//, '');
+    loadImage(path.join(REPO, 'public', rel))
+      .then((im) => {
+        this.__realImage = im;
+        this.width = im.width;
+        this.height = im.height;
+        this.complete = true;
+        if (this.onload) this.onload();
+      })
+      .catch(() => { if (this.onerror) this.onerror(); });
+  }
+  get src() { return this._src; }
+}
+win.Image = HarnessImage;
 
 // Harness owns time: no automatic frames; tests step deterministically.
 win.requestAnimationFrame = () => 0;
@@ -624,6 +665,203 @@ run(`
   __AQ_TEST.redraw();
 `);
 snapshot('08-f3-debug-overlay');
+
+// ------------------------------------- AV presentation acceptance (issue #2)
+// Curated VFX/SFX bindings + lifecycle evidence. Images decode asynchronously,
+// so give the preload a beat before snapshotting AV frames.
+await new Promise(r => setTimeout(r, 900));
+
+const AV = win.APEX_ARSENAL_AV;
+// The engine's own asset queue can delay AV decodes; wait until the curated
+// set is actually decoded before snapshotting AV frames or reading stats.
+const avWaitStart = Date.now();
+while (AV && (AV.imagesReady() < AV.describe().allImages.length || AV.audioReady() < AV.describe().allAudio.length) && Date.now() - avWaitStart < 20000) {
+  await new Promise(r => setTimeout(r, 100));
+}
+gate('av-runtime-registered', !!AV && typeof AV.cue === 'function' && typeof AV.draw === 'function');
+
+const avDescribe = AV ? AV.describe() : null;
+gate('av-muzzle-uses-transparent-sheet',
+  !!avDescribe && avDescribe.muzzleSheet.includes('muzzleFlash0_transparent'),
+  avDescribe && avDescribe.muzzleSheet);
+gate('av-asset-map-complete',
+  !!avDescribe
+  && ['pistol_shot', 'shotgun_shot', 'smg_shot', 'sniper_shot', 'explosion', 'sabre_swing', 'axe_swing', 'dagger_swing', 'spear_swing', 'club_swing', 'shield_activate_swirl', 'shield_activate_tower', 'reflect', 'block_heavy', 'telegraph', 'reveal', 'pickup'].every(k => (avDescribe.audio[k] || []).length > 0),
+  Object.keys(avDescribe ? avDescribe.audio : {}));
+gate('av-melee-sequences-distinct',
+  !!avDescribe && new Set(Object.values(avDescribe.melee).map(s => s.join(','))).size === 5,
+  avDescribe && Object.fromEntries(Object.entries(avDescribe.melee).map(([k, v]) => [k, v.length])));
+
+report.av = { scheduledBefore: AV ? AV.stats.scheduled.length : 0 };
+const avStats = () => win.eval('JSON.parse(JSON.stringify({ cued: APEX_ARSENAL_AV.stats.cued, scheduled: APEX_ARSENAL_AV.stats.scheduled, throttled: APEX_ARSENAL_AV.stats.throttled, imagesLoaded: APEX_ARSENAL_AV.stats.imagesLoaded, imagesFailed: APEX_ARSENAL_AV.stats.imagesFailed, audioLoaded: APEX_ARSENAL_AV.stats.audioLoaded, audioFailed: APEX_ARSENAL_AV.stats.audioFailed, active: APEX_ARSENAL_AV.activeVfx(), peak: APEX_ARSENAL_AV.stats.vfxPeak }))');
+
+// AV evidence 1: pickup telegraph with cool neutral accent.
+run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(240, 620, 780, 340);
+  window.APEX_ARSENAL_SPAWN.trySpawnSlot();
+  __AQ_TEST.step(0.5);
+  __AQ_TEST.redraw();
+`);
+snapshot('av-01-pickup-telegraph');
+
+// AV evidence 2: weapon reveal accent.
+run(`
+  window.APEX_ARSENAL_SPAWN.trySpawnSlot();
+  __AQ_TEST.step(2.0);
+  __AQ_TEST.redraw();
+`);
+snapshot('av-02-weapon-reveal');
+
+// AV evidence 3: pistol firing (muzzle + gunshot bound).
+run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(320, 500, 640, 500);
+  __AQ_TEST.equip('HERO', 'PISTOL');
+  __AQ_TEST.step(0.5);
+  __AQ_TEST.step(0.1);
+  __AQ_TEST.redraw();
+`);
+snapshot('av-03-pistol-firing');
+
+// AV evidence 4: shotgun blast.
+run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(300, 520, 620, 520);
+  __AQ_TEST.equip('HERO', 'SHOTGUN');
+  __AQ_TEST.step(0.42);
+  __AQ_TEST.redraw();
+`);
+snapshot('av-04-shotgun-firing');
+
+// AV evidence 5: SMG burst mid-stream.
+run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(300, 480, 660, 480);
+  __AQ_TEST.equip('HERO', 'SMG');
+  __AQ_TEST.step(0.5);
+  __AQ_TEST.step(0.3);
+  __AQ_TEST.redraw();
+`);
+snapshot('av-05-smg-burst');
+
+// AV evidence 6: sniper aim window, then the shot.
+run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(240, 500, 820, 500);
+  __AQ_TEST.equip('HERO', 'SNIPER');
+  __AQ_TEST.step(0.5);
+  __AQ_TEST.step(0.3);
+  __AQ_TEST.redraw();
+`);
+snapshot('av-06-sniper-aim');
+run(`__AQ_TEST.step(0.37); __AQ_TEST.redraw();`);
+snapshot('av-06b-sniper-shot');
+
+// AV evidence 7: grenade explosion atlas.
+run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(300, 500, 620, 500);
+  __AQ_TEST.equip('HERO', 'GRENADE');
+  __AQ_TEST.step(0.5);
+  __AQ_TEST.step(2.2);
+  __AQ_TEST.redraw();
+`);
+snapshot('av-07-grenade-explosion');
+
+// AV evidence 8-12: melee family presentations.
+const meleeScenes = [
+  ['av-08-sabre-slash', 'SABRE', 0.2],
+  ['av-09-battle-axe-hit', 'BATTLE_AXE', 0.6],
+  ['av-10-dagger-attack', 'DAGGER', 0.12],
+  ['av-11-spear-thrust', 'SPEAR', 0.28],
+  ['av-12-spiked-club-hit', 'SPIKED_CLUB', 0.34],
+];
+for (const [name, weapon, t] of meleeScenes) {
+  run(`
+    __AQ_TEST.enterManual();
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.place(330, 500, 470, 500);
+    __AQ_TEST.equip('HERO', '${weapon}');
+    __AQ_TEST.step(${t});
+    __AQ_TEST.redraw();
+  `);
+  snapshot(name);
+}
+
+// AV evidence 13: swirl shield reflect.
+run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(430, 500, 700, 500);
+  __AQ_TEST.equip('HERO', 'SWIRL_SHIELD');
+  __AQ_TEST.equip('RIVAL', 'PISTOL');
+  let guard = 0;
+  while (guard++ < 200 && !APEX_ARSENAL.events.some(e => e.includes('REFLECT'))) __AQ_TEST.step(0.02);
+  __AQ_TEST.step(0.05);
+  __AQ_TEST.redraw();
+`);
+snapshot('av-13-swirl-reflect');
+
+// AV evidence 14: tower shield block.
+run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(320, 500, 640, 500);
+  __AQ_TEST.equip('RIVAL', 'TOWER_SHIELD');
+  __AQ_TEST.equip('HERO', 'SHOTGUN');
+  let guard2 = 0;
+  while (guard2++ < 200 && !APEX_ARSENAL.events.some(e => e.startsWith('[AQ] HIT'))) __AQ_TEST.step(0.02);
+  __AQ_TEST.step(0.04);
+  __AQ_TEST.redraw();
+`);
+snapshot('av-14-tower-shield-block');
+
+// AV evidence 15: multiple simultaneous pickups while VFX/audio stay stable.
+run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.step(10);
+  __AQ_TEST.redraw();
+`);
+snapshot('av-15-multi-pickup-stable');
+
+report.av.after = avStats();
+gate('av-assets-preloaded',
+  report.av.after.imagesLoaded === avDescribe.allImages.length && report.av.after.audioLoaded === avDescribe.allAudio.length,
+  { images: `${report.av.after.imagesLoaded}/${avDescribe.allImages.length}`, audio: `${report.av.after.audioLoaded}/${avDescribe.allAudio.length}`, imgFail: report.av.after.imagesFailed, sfxFail: report.av.after.audioFailed });
+gate('av-telegraph-audio-bound', report.av.after.scheduled.some(s => s.rel === 'sfx/scifi/forceField_001.ogg'));
+gate('av-reveal-audio-bound', report.av.after.scheduled.some(s => s.rel === 'sfx/rpg/metalClick.ogg'));
+gate('av-pickup-audio-bound', report.av.after.scheduled.some(s => s.rel === 'sfx/rpg/metalLatch.ogg'));
+gate('av-all-12-weapons-cued', (() => {
+  const c = report.av.after.cued;
+  const has = (ev, w) => c.some(e => e.event === ev && (!w || e.weapon === w));
+  return has('fire', 'PISTOL') && has('fire', 'SHOTGUN') && has('fire', 'SMG')
+    && has('sniper_aim') && has('sniper_shot') && has('grenade_throw') && has('explosion')
+    && has('melee_swing', 'SABRE') && has('melee_swing', 'BATTLE_AXE') && has('melee_swing', 'DAGGER')
+    && has('melee_swing', 'SPEAR') && has('melee_swing', 'SPIKED_CLUB')
+    && ['SABRE', 'BATTLE_AXE', 'DAGGER', 'SPEAR', 'SPIKED_CLUB'].every(w => has('melee_hit', w))
+    && c.some(e => e.event === 'shield_activate' && e.weapon === 'SWIRL_SHIELD')
+    && c.some(e => e.event === 'shield_activate' && e.weapon === 'TOWER_SHIELD')
+    && has('reflect') && has('tower_block');
+})(), report.av.after.cued.filter(e => ['melee_swing', 'melee_hit', 'shield_activate', 'reflect', 'tower_block', 'sniper_aim', 'explosion'].includes(e.event)).length);
+gate('av-smg-shots-trimmed', (() => {
+  const smg = report.av.after.scheduled.filter(s => s.rel.endsWith('sks.wav'));
+  return smg.length >= 8 && smg.every(s => s.dur && s.dur <= 0.3);
+})(), report.av.after.scheduled.filter(s => s.rel.endsWith('sks.wav')).slice(0, 3));
+gate('av-smg-voice-cap-enforced', (report.av.after.throttled['sfx/guns/sks.wav'] || 0) >= 1, report.av.after.throttled);
+gate('av-mosin-pistol-trimmed', report.av.after.scheduled.filter(s => s.rel.endsWith('cz.wav')).every(s => s.dur <= 0.9)
+  && report.av.after.scheduled.filter(s => s.rel.endsWith('mosin.wav')).every(s => s.dur <= 1.8));
+gate('av-vfx-expire-no-leak', (() => {
+  run(`__AQ_TEST.holdSpawns(); __AQ_TEST.clearSlots(); __AQ_TEST.step(3);`);
+  return AV.activeVfx() === 0 && report.av.after.peak > 0;
+})(), { activeAfterQuiet: AV.activeVfx(), peak: report.av.after.peak });
+gate('av-no-asset-load-failures', report.av.after.imagesFailed === 0 && report.av.after.audioFailed === 0);
 
 // -------------------------------------------------- gate: 5-minute simulation
 report.fiveMinute = (() => {

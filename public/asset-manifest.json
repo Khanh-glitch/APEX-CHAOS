@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-23T18:24:19.008Z",
+  "generatedAt": "2026-09-24T02:37:48.466Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -51,6 +51,146 @@
       "path": "/assets/arcade_v1/normalized/text_multiplier_sheet.webp",
       "type": "image",
       "bytes": 331278
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/guns/cz.wav",
+      "type": "audio",
+      "bytes": 1312536
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/guns/mosin.wav",
+      "type": "audio",
+      "bytes": 2824684
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/guns/shotty.wav",
+      "type": "audio",
+      "bytes": 134104
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/guns/sks.wav",
+      "type": "audio",
+      "bytes": 2979538
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/impact/impactGeneric_light_002.ogg",
+      "type": "audio",
+      "bytes": 5795
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/impact/impactMetal_heavy_002.ogg",
+      "type": "audio",
+      "bytes": 5634
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/impact/impactMetal_light_002.ogg",
+      "type": "audio",
+      "bytes": 6804
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/impact/impactMetal_medium_002.ogg",
+      "type": "audio",
+      "bytes": 5857
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/impact/impactPlate_heavy_001.ogg",
+      "type": "audio",
+      "bytes": 8713
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/impact/impactPlate_light_001.ogg",
+      "type": "audio",
+      "bytes": 11730
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/impact/impactPunch_heavy_001.ogg",
+      "type": "audio",
+      "bytes": 10861
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/impact/impactPunch_medium_001.ogg",
+      "type": "audio",
+      "bytes": 8701
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/impact/impactSoft_medium_001.ogg",
+      "type": "audio",
+      "bytes": 5506
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/rpg/chop.ogg",
+      "type": "audio",
+      "bytes": 9370
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/rpg/drawKnife1.ogg",
+      "type": "audio",
+      "bytes": 11134
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/rpg/drawKnife2.ogg",
+      "type": "audio",
+      "bytes": 12395
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/rpg/drawKnife3.ogg",
+      "type": "audio",
+      "bytes": 12726
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/rpg/knifeSlice.ogg",
+      "type": "audio",
+      "bytes": 15532
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/rpg/knifeSlice2.ogg",
+      "type": "audio",
+      "bytes": 15099
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/rpg/metalClick.ogg",
+      "type": "audio",
+      "bytes": 13615
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/rpg/metalLatch.ogg",
+      "type": "audio",
+      "bytes": 10208
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/scifi/explosionCrunch_002.ogg",
+      "type": "audio",
+      "bytes": 47907
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/scifi/forceField_001.ogg",
+      "type": "audio",
+      "bytes": 28947
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/scifi/forceField_003.ogg",
+      "type": "audio",
+      "bytes": 23938
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/scifi/impactMetal_002.ogg",
+      "type": "audio",
+      "bytes": 12708
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/scifi/laserLarge_003.ogg",
+      "type": "audio",
+      "bytes": 26104
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/scifi/laserSmall_002.ogg",
+      "type": "audio",
+      "bytes": 8973
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/scifi/lowFrequency_explosion_001.ogg",
+      "type": "audio",
+      "bytes": 9408
     },
     {
       "path": "/assets/audio/menu_bgm.mp3",

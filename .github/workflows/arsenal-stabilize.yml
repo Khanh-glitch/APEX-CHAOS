@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - prototype/arsenal-quest
+      - 'arena/**'
 
 permissions:
   contents: write
@@ -15,10 +16,9 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - name: Checkout target branch
+      - name: Checkout triggering branch
         uses: actions/checkout@v4
         with:
-          ref: prototype/arsenal-quest
           fetch-depth: 0
 
       - name: Setup Node
@@ -104,5 +104,5 @@ jobs:
             echo "No dependency metadata changes required."
           else
             git commit -m "test: make Arsenal headless QA reproducible [skip ci]"
-            git push origin HEAD:prototype/arsenal-quest
+            git push origin "HEAD:${GITHUB_REF_NAME}"
           fi

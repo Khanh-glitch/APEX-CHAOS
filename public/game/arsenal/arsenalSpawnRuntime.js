@@ -70,6 +70,7 @@
     state.slots.push(slot);
     state.spawnedTotal += 1;
     log('SPAWN_SLOT', `id=${slot.id} x=${Math.round(slot.x)} y=${Math.round(slot.y)}`);
+    window.avCue('telegraph', { x: slot.x, y: slot.y });
     return slot;
   }
 
@@ -88,6 +89,7 @@
           spawnShockwave(slot.x, slot.y, '#e8d9a0', 120);
           emitParticles(slot.x, slot.y, '#e8d9a0', 14, 260, 4, 0.45, 'square');
           playFighterSound('CARD', 'skill');
+          window.avCue('reveal', { x: slot.x, y: slot.y, weapon: slot.weaponId });
         }
       } else if (slot.phase === 'REVEALED') {
         slot.revealedFor += dt;
