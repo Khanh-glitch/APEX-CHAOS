@@ -64,7 +64,7 @@
     },
     "multi-slot-coexist": {
       "pass": true,
-      "detail": "maxActiveSlots=6"
+      "detail": "maxActiveSlots=7"
     },
     "force-reveals-only-while-unapproached": {
       "pass": true,
@@ -93,26 +93,26 @@
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=TEC_9 eta=1.36 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=M16 eta=1.36 lead=2.00 fighter=HERO force=false"
     },
     "near-miss-outside-circle-stays-hidden": {
       "pass": true,
       "detail": {
         "nearMissStayedHidden": true,
         "edgeOfCircleReveals": true,
-        "edgeLog": "[AQ] REVEAL id=2 weapon=SNIPER eta=0.80 lead=2.00 fighter=HERO force=false",
+        "edgeLog": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S1 eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=MOSSBERG_500 eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=PISTOL eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=SNIPER eta=0.80 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S1 eta=0.80 lead=2.00 fighter=HERO force=false"
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=3 weapon=MOSSBERG_500 eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=3 weapon=PISTOL eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -659,7 +659,7 @@
       }
     },
     "browser-casing-uses-metadata": {
-      "pass": false,
+      "pass": true,
       "detail": {
         "glock": {
           "n": 4,
@@ -717,31 +717,35 @@
           }
         },
         "snipex": {
-          "n": 0,
-          "usedMeta": false,
-          "sample": null
+          "n": 1,
+          "usedMeta": true,
+          "sample": {
+            "event": "casing",
+            "x": 286,
+            "y": 496,
+            "weapon": "SNIPER",
+            "usedMeta": true
+          }
         }
       }
     },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=12 restarts=12 spawnedCumulative=101 earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=13 restarts=13 spawnedCumulative=103 earlyErrors=0"
     },
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=3 x=420 y=281 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=2 weapon=MAC_10 eta=1.04 lead=2.00 fighter=ICE force=false",
-        "PICKUP": "[AQ] PICKUP id=2 fighter=ICE weapon=MAC_10",
-        "USE": "[AQ] USE fighter=ICE weapon=MAC_10",
-        "HIT": "[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0",
-        "CONSUME": "[AQ] CONSUME fighter=ICE weapon=MAC_10 reason=sequence-complete"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=2 x=542 y=653 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=2 weapon=P90 eta=0.14 lead=2.00 fighter=ICE force=false",
+        "PICKUP": "[AQ] PICKUP id=1 fighter=RUBBER weapon=MAGNUM_500",
+        "USE": "[AQ] USE fighter=RUBBER weapon=MAGNUM_500",
+        "HIT": "[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9",
+        "CONSUME": "[AQ] CONSUME fighter=RUBBER weapon=MAGNUM_500 reason=sequence-complete"
       }
     }
   },
-  "failures": [
-    "browser-casing-uses-metadata"
-  ],
+  "failures": [],
   "evidence": [
     "docs/arsenal-quest/browser-evidence/01-hidden-telegraph.png",
     "docs/arsenal-quest/browser-evidence/02-multiple-simultaneous-pickups.png",
@@ -820,7 +824,7 @@
   },
   "spawnLaw": {
     "spawnedTotal": 7,
-    "maxActive": 6,
+    "maxActive": 7,
     "spawnTimes": [
       1,
       4.1,
@@ -871,15 +875,15 @@
     "forceLog": "[AQ] REVEAL id=1 weapon=GLOCK_17 eta=null lead=2.00 fighter=TIMEOUT force=true",
     "pickupAfterForce": true,
     "revealedOnMovement": true,
-    "moveRevealLog": "[AQ] REVEAL id=2 weapon=TEC_9 eta=1.36 lead=2.00 fighter=HERO force=false"
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=M16 eta=1.36 lead=2.00 fighter=HERO force=false"
   },
   "circleNeg": {
     "nearMissStayedHidden": true,
     "edgeOfCircleReveals": true,
-    "edgeLog": "[AQ] REVEAL id=2 weapon=SNIPER eta=0.80 lead=2.00 fighter=HERO force=false",
+    "edgeLog": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S1 eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=MOSSBERG_500 eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=PISTOL eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -1411,33 +1415,37 @@
       }
     },
     "snipex": {
-      "n": 0,
-      "usedMeta": false,
-      "sample": null
+      "n": 1,
+      "usedMeta": true,
+      "sample": {
+        "event": "casing",
+        "x": 286,
+        "y": 496,
+        "weapon": "SNIPER",
+        "usedMeta": true
+      }
     }
   },
   "fiveMinute": {
     "error": null,
-    "restarts": 12,
-    "koCount": 12,
-    "spawnedTotal": 9,
-    "spawnedCumulative": 101,
+    "restarts": 13,
+    "koCount": 13,
+    "spawnedTotal": 2,
+    "spawnedCumulative": 103,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=3 x=420 y=281 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=2 weapon=MAC_10 eta=1.04 lead=2.00 fighter=ICE force=false",
-    "PICKUP": "[AQ] PICKUP id=2 fighter=ICE weapon=MAC_10",
-    "USE": "[AQ] USE fighter=ICE weapon=MAC_10",
-    "HIT": "[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0",
-    "CONSUME": "[AQ] CONSUME fighter=ICE weapon=MAC_10 reason=sequence-complete"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=2 x=542 y=653 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=2 weapon=P90 eta=0.14 lead=2.00 fighter=ICE force=false",
+    "PICKUP": "[AQ] PICKUP id=1 fighter=RUBBER weapon=MAGNUM_500",
+    "USE": "[AQ] USE fighter=RUBBER weapon=MAGNUM_500",
+    "HIT": "[AQ] HIT source=ICE target=RUBBER weapon=P90 damage=1.9",
+    "CONSUME": "[AQ] CONSUME fighter=RUBBER weapon=MAGNUM_500 reason=sequence-complete"
   },
   "summary": {
     "total": 79,
-    "passed": 78,
-    "failed": [
-      "browser-casing-uses-metadata"
-    ]
+    "passed": 79,
+    "failed": []
   }
 }
