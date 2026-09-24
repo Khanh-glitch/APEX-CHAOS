@@ -4,6 +4,8 @@ Status: AUTHORITATIVE PRESENTATION TASK
 Target branch: `prototype/arsenal-quest`  
 Current branch baseline at handoff creation: `69d6d94ab5753d50ecdbc4c3798196f3f842eb52`
 
+> **IMPORTANT CORRECTION OVERRIDE:** `docs/arsenal-quest/CORRECTION_PASS_HANDOFF.md` supersedes this file where it changes weapon sprite integration, reveal timing semantics, telegraph/reveal VFX semantics, and attack-effect positioning.
+
 ## 0. Purpose
 
 The Arsenal Quest core mechanic already passes architecture, headless QA, production build, and real-browser acceptance.
@@ -110,11 +112,11 @@ Treat the 30 images as grouped animation frames / visual candidates. Inspect the
 
 `vfx/slash_blue_shield/Alternative_2_01.png` through `Alternative_2_30.png`
 
-Use for:
-- Swirl Shield reflect
-- shield activation accents
-- special cool-tone trail accents
+Use only where semantically justified:
+- Swirl Shield successful reflect/contact
 - optional Sniper charge/shot accent if visually coherent
+
+Do NOT use slash-family frames for generic pickup telegraph, reveal, or unrelated ambient decoration.
 
 Do not reuse the blue family for every gun just because it exists.
 
@@ -332,7 +334,7 @@ Do not alter the already-approved core unless required for VFX timing hooks.
 
 Preserve:
 - 3s spawn cadence
-- 1.2–1.8s hidden reveal delay
+- proximity-predicted reveal using a per-slot 1.2–1.8s look-ahead threshold (not age-based reveal)
 - multiple simultaneous pickups
 - unrevealed slots non-collectable
 - 100 HP blank HERO/RIVAL
