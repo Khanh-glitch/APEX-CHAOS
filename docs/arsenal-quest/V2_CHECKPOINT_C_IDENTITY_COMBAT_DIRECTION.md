@@ -91,6 +91,18 @@ sound transient, and a physical exit.
 Current weapon atlas remains a temporary functional fallback. Do NOT acquire or
 integrate more unrelated packs before this language is locked.
 
+**Owner correction — 2D-first:** replacement gameplay weapon art should be sourced or
+authored as native 2D whenever practical. Do not default to low-poly 3D renders. The owner
+specifically rejects washed-out / low-contrast / samey weapon art. Required qualities are:
+- bold, crisp shape language;
+- high local contrast;
+- strong color separation between weapon classes;
+- saturated accents used intentionally;
+- clear silhouette at gameplay scale;
+- non-pixel art unless separately approved.
+
+3D sources are fallback/reference only, not the preferred production pipeline.
+
 ## 2.1 Overall look
 
 Direction:
@@ -113,7 +125,7 @@ Visual priorities:
 ## 2.2 Weapon rendering language
 
 All replacement weapon assets must share:
-- consistent 3/4-ish side readability suitable for rotation toward the target;
+- native 2D side/three-quarter readability suitable for rotation toward the target;
 - high-contrast silhouette at 90–190px on a 1000px arena;
 - one consistent outline treatment;
 - one consistent material rendering family;
@@ -124,10 +136,10 @@ All replacement weapon assets must share:
 - no perspective that makes rotation look obviously wrong.
 
 Recommended style:
-- stylized hard-surface / arcade;
-- dark body values;
-- warm metal / ivory edge highlights;
-- restrained per-family accent;
+- stylized hard-surface / arcade illustration;
+- crisp outline / edge separation;
+- dark-to-mid body values with bright highlights;
+- **high-contrast, clearly different family accents rather than muted samey palettes**;
 - slightly oversized functional shapes so weapon class reads immediately.
 
 Family accent is allowed but must not recolor the whole weapon:
@@ -515,7 +527,7 @@ Do not replace everything in one uncontrolled batch.
 
 ## Phase C1 — style proof
 Produce a coherent mini-set first:
-- Pistol
+- **Gun family proof** (not Pistol-only): show at least 3 gun-class silhouettes from the intended family, including one compact/automatic gun, one shotgun/heavy gun, and one long gun/sniper/rifle
 - Battle Axe
 - Grenade
 - Tower Shield
@@ -523,7 +535,7 @@ Produce a coherent mini-set first:
 - one melee impact
 - one arena concept/background
 
-These four weapons deliberately cover gun / heavy melee / explosive / defense.
+These four proof groups deliberately cover the **gun family** / heavy melee / explosive / defense. The gun decision is a family-level art decision, not a Pistol-specific decision.
 
 Owner must approve this style proof before generating/integrating the remaining
 8 weapons.
@@ -572,7 +584,7 @@ No gameplay implementation.
 ## C1 — STYLE PROOF
 Deliver only:
 - audited asset disposition: KEEP / REPROCESS / REPLACE;
-- Pistol/Axe/Grenade/Tower Shield coherent visual proof;
+- Gun-family/Axe/Grenade/Tower Shield coherent visual proof;
 - projectile visual proof;
 - melee impact/audio proof;
 - Chamber 01 arena proof;
@@ -620,7 +632,7 @@ Before editing gameplay code, produce:
 - reason for each decision
 
 `docs/arsenal-quest/C1_STYLE_PROOF_PLAN.md`
-- exact visual spec for Pistol/Axe/Grenade/Tower Shield
+- exact visual spec for Gun family/Axe/Grenade/Tower Shield
 - exact arena composition plan
 - exact projectile/tracer prototype
 - exact audio events to audition
