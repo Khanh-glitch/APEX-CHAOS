@@ -119,25 +119,86 @@
     const aim = h.meta.aimAngle != null ? h.meta.aimAngle : Math.atan2(f.dir?.y || 0, f.dir?.x || 1);
     const legacySpin = ({ PISTOL: 3.2, SMG: 3.8, SHOTGUN: -3.4, SNIPER: 2.0, SABRE: 2.6, BATTLE_AXE: -2.2, DAGGER: 1.8, SPEAR: 1.2, SPIKED_CLUB: -2.6 })[h.weaponId] || 0;
     const life = profile ? profile.life : 0.38;
-    f.data.arsenalFade = {
-      weaponId: h.weaponId,
-      category: (h.def && h.def.category) || '',
-      aimAngle: aim,
-      pose: Object.assign(makePose(), h.meta.pose || {}),
-      t: 0,
-      life,
-      maxLife: life,
-      drop: 0,
-      dropV: profile ? profile.vy : -30,
-      exitRot: profile ? profile.spin : legacySpin,
-      exitVx: profile ? profile.vx : 0,
-      exitG: profile ? profile.g : 1500,
-      exitKey: spec.exit || null,
-      lateral: 0,
-    };
+    const cat = (h.def && h.def.category) || '';
+    const isGun = cat === 'ranged' && h.weaponId !== 'GRENADE';
+    if (isGun) {
+      const pose = h.meta.pose || {};
+      const r = f.radius || 75;
+      const offset = r * 0.78 + (pose.localX || 0) - (pose.recoil || 0);
+      const lateral = pose.localY || 0;
+      const x = f.x + Math.cos(aim) * offset + Math.cos(aim + Math.PI / 2) * lateral;
+      const y = f.y + Math.sin(aim) * offset + Math.sin(aim + Math.PI / 2) * lateral;
+      const vxRel = profile ? profile.vx : 40;
+      const vyRel = profile ? profile.vy : -180;
+      const g = profile ? profile.g : 1500;
+      const spin = profile ? profile.spin : legacySpin;
+      if (!AQ.state.detachedWeapons) AQ.state.detachedWeapons = [];
+      AQ.state.detachedWeapons.push({
+        weaponId: h.weaponId,
+        x, y,
+        vx: Math.cos(aim) * vxRel,
+        vy: Math.sin(aim) * vxRel + vyRel,
+        rot: aim + (pose.rotKick || 0),
+        spin,
+        g,
+        t: 0,
+        life,
+        maxLife: life,
+        bounced: false,
+        exitKey: spec.exit || null,
+        ownerId: f.id,
+        originX: x,
+        originY: y,
+      });
+      f.data.arsenalFade = {
+        weaponId: h.weaponId, exitKey: spec.exit || null, detached: true,
+        t: 0, life, maxLife: life,
+        pose: Object.assign(makePose(), h.meta.pose || {}),
+        aimAngle: aim, category: cat,
+      };
+    } else {
+      f.data.arsenalFade = {
+        weaponId: h.weaponId,
+        category: cat,
+        aimAngle: aim,
+        pose: Object.assign(makePose(), h.meta.pose || {}),
+        t: 0,
+        life,
+        maxLife: life,
+        drop: 0,
+        dropV: profile ? profile.vy : -30,
+        exitRot: profile ? profile.spin : legacySpin,
+        exitVx: profile ? profile.vx : 0,
+        exitG: profile ? profile.g : 1500,
+        exitKey: spec.exit || null,
+        lateral: 0,
+      };
+    }
     if (profile && (profile.hulls || spec.hullOnExit)) {
       const n = profile.hulls || 1;
       for (let i = 0; i < n; i++) ejectCasing(f, aim, 1.6, h.weaponId, true);
+    }
+  }
+
+  function tickDetachedWeapons(dt) {
+    const list = AQ.state && AQ.state.detachedWeapons;
+    if (!list) return;
+    const floor = (typeof GAME_SIZE === 'number' ? GAME_SIZE : 1000) - 28;
+    for (let i = list.length - 1; i >= 0; i--) {
+      const d = list[i];
+      d.t += dt;
+      d.life -= dt;
+      d.vy += (d.g || 1500) * dt;
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+      d.rot += (d.spin || 0) * dt;
+      if (!d.bounced && d.vy > 0 && d.y > floor) {
+        d.y = floor;
+        d.vy *= -0.38;
+        d.vx *= 0.55;
+        d.bounced = true;
+      }
+      if (d.life <= 0) list.splice(i, 1);
     }
   }
   function advancePoseGhost(ghost, dt) {
@@ -183,6 +244,12 @@
   function tickPoseGhost(f, dt) {
     const g = f && f.data && f.data.arsenalFade;
     if (!g) return;
+    if (g.detached) {
+      g.t += dt;
+      g.life -= dt;
+      if (g.life <= 0) f.data.arsenalFade = null;
+      return;
+    }
     advancePoseGhost(g, dt);
     if (g.life <= 0) f.data.arsenalFade = null;
   }
@@ -327,6 +394,7 @@
       vrot: (Math.random() < 0.5 ? -1 : 1) * (8 + Math.random() * 7),
       weapon: weaponId,
       usedMeta: !!(origin && origin.usedMeta),
+      hull: !!forceHull,
     });
   }
 
@@ -445,12 +513,15 @@
           if (p.y < p.radius) { p.y = p.radius; p.vy = Math.abs(p.vy); bounced = true; }
           else if (p.y > GAME_SIZE - p.radius) { p.y = GAME_SIZE - p.radius; p.vy = -Math.abs(p.vy); bounced = true; }
           if (bounced) {
-            p.ricochetsLeft -= 1;
-            p.spin *= -1; // readable flip off the wall
-            window.avCue('ricochet', { weapon: p.weapon, x: p.x, y: p.y, angle: Math.atan2(p.vy, p.vx) });
-            emitParticles(p.x, p.y, '#ffe6a8', 10, 320, 4, 0.3, 'square');
-            log('THROWN_RICOCHET', `weapon=${p.weapon} left=${p.ricochetsLeft}`);
-            if (p.ricochetsLeft < 0) thrownExit(p);
+            if (p.ricochetsLeft <= 0) {
+              thrownExit(p);
+            } else {
+              p.ricochetsLeft -= 1;
+              p.spin *= -1;
+              window.avCue('ricochet', { weapon: p.weapon, x: p.x, y: p.y, angle: Math.atan2(p.vy, p.vx) });
+              emitParticles(p.x, p.y, '#ffe6a8', 10, 320, 4, 0.3, 'square');
+              log('THROWN_RICOCHET', `weapon=${p.weapon} left=${p.ricochetsLeft}`);
+            }
           }
         } else if (p.state === 'pinned') {
           const t = p.pinnedTo;
@@ -458,10 +529,11 @@
             thrownExit(p);
           } else {
             // Pinned INTO the struck fighter and following it (~1.0s).
-            const depth = t.radius * 0.45;
-            p.x = t.x + Math.cos(p.pinAngle) * depth;
-            p.y = t.y + Math.sin(p.pinAngle) * depth;
-            p.rot = p.pinAngle + Math.PI; // blade/haft axis points into the target
+            const long = meleeDrawLong(p.weapon);
+            const depth = t.radius * 0.55 + long * 0.28;
+            p.x = t.x - Math.cos(p.pinAngle) * depth;
+            p.y = t.y - Math.sin(p.pinAngle) * depth;
+            p.rot = p.pinAngle;
             p.pinTimer -= dt;
             if (p.pinTimer <= 0) thrownExit(p);
           }
@@ -548,7 +620,7 @@
           // Melee sprites are authored upright (long axis -Y): rotate the long
           // axis onto the flight/pin direction.
           ctx.rotate(p.rot + Math.PI / 2);
-          const s = 110 / Math.max(w.w, w.h);
+          const s = meleeDrawLong(p.weapon) / Math.max(w.w, w.h);
           ctx.drawImage(w.img, 0, 0, w.w, w.h, (-w.w * s) / 2, (-w.h * s) / 2, w.w * s, w.h * s);
         } else {
           ctx.rotate(p.rot);
@@ -635,7 +707,18 @@
     if (weaponId === 'PISTOL') return r + 26;
     const spec = CFG.WEAPONS[weaponId] || {};
     const base = { PRECISION: 58, SHOTGUN: 46, AUTOSHOT: 44, AUTO: 34, BURST: 34, SEMI: 26 }[spec.family] || 28;
-    return r + base + Math.max(0, ((spec.longSide || 145) - 145) * 0.25);
+    return r + base;
+  }
+
+  function gunWorldLong(weaponId) {
+    const set = window.APEX_ARSENAL_C_SET && window.APEX_ARSENAL_C_SET.weapons && window.APEX_ARSENAL_C_SET.weapons[weaponId];
+    if (set && set.worldW) return Math.max(set.worldW, set.worldH);
+    return 120;
+  }
+  function gunWorldSize(weaponId) {
+    const set = window.APEX_ARSENAL_C_SET && window.APEX_ARSENAL_C_SET.weapons && window.APEX_ARSENAL_C_SET.weapons[weaponId];
+    if (set && set.worldW) return { w: set.worldW, h: set.worldH };
+    return { w: 120, h: 48 };
   }
 
   // Canonical weapon-space -> world transform for generated C-set anchors.
@@ -645,7 +728,7 @@
     const pose = (h && h.meta && h.meta.pose) || {};
     const spec = CFG.WEAPONS[weaponId] || {};
     const r = f.radius || 75;
-    const targetLong = spec.longSide || (weaponId === 'SNIPER' ? 185 : weaponId === 'SHOTGUN' ? 165 : 145);
+    const targetLong = gunWorldLong(weaponId);
     const offset = r * 0.78 + (pose.localX || 0) - (pose.recoil || 0);
     const lateral = pose.localY || 0;
     const cx = f.x + Math.cos(aim) * offset + Math.cos(aim + Math.PI / 2) * lateral;
@@ -730,21 +813,29 @@
       spin: CFG.THROWN_MELEE.spinRate[weaponId] || 8,
     };
   }
+  function meleeDrawLong(weaponId) {
+    return weaponId === 'SPEAR' ? 190 : weaponId === 'BATTLE_AXE' ? 155 : weaponId === 'SPIKED_CLUB' ? 150 : weaponId === 'DAGGER' ? 110 : 145;
+  }
   function spawnThrownMelee(f, weaponId, angle) {
     const t = thrownSpec(weaponId);
-    const aq = window.APEX_ARSENAL;
-    const state = aq && aq.state;
+    const h = getHolder(f);
+    const pose = (h && h.meta && h.meta.pose) || {};
+    const r = f.radius || 75;
+    const ox = r * 0.78 + (pose.localX || 0);
+    const oy = pose.localY || 0;
+    const x = f.x + Math.cos(angle) * ox + Math.cos(angle + Math.PI / 2) * oy;
+    const y = f.y + Math.sin(angle) * ox + Math.sin(angle + Math.PI / 2) * oy;
+    const long = meleeDrawLong(weaponId);
     projectiles.push({
       type: 'aq_thrown',
       aq: true,
       owner: f,
       weapon: weaponId,
-      x: f.x + Math.cos(angle) * (f.radius * 0.7),
-      y: f.y + Math.sin(angle) * (f.radius * 0.7),
-      px: f.x, py: f.y,
+      x, y,
+      px: x, py: y,
       vx: Math.cos(angle) * t.speed,
       vy: Math.sin(angle) * t.speed,
-      radius: 15,
+      radius: Math.max(10, long * 0.14),
       ricochetsLeft: t.ricochets,
       state: 'flight',
       pinnedTo: null,
@@ -1538,6 +1629,7 @@
     drawArsenalVisuals,
     tickVisuals,
     updateHolder,
+    tickDetachedWeapons,
     strikeCone,
     makeCtx,
     poseRecipe,

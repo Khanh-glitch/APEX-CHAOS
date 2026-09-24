@@ -1053,7 +1053,8 @@ gate('c-projectile-speeds-v2', (() => {
   const W = win.APEX_ARSENAL_CONFIG.WEAPONS;
   return W.PISTOL.bulletSpeed >= 2400 && W.PISTOL.bulletSpeed <= 2800
     && W.SMG.bulletSpeed >= 2800 && W.SMG.bulletSpeed <= 3400
-    && W.SHOTGUN.bulletSpeed >= 2200 && W.SHOTGUN.bulletSpeed <= 2800 && W.SHOTGUN.bulletLife <= 0.25
+    && W.SHOTGUN.bulletSpeed >= 2200 && W.SHOTGUN.bulletSpeed <= 2800
+    && W.SHOTGUN.bulletLife * W.SHOTGUN.bulletSpeed >= (1000 * Math.SQRT2)
     && W.SNIPER.bulletSpeed >= 5000 && W.SNIPER.bulletSpeed <= 6500;
 })(), win.eval('JSON.stringify({p: APEX_ARSENAL_CONFIG.WEAPONS.PISTOL.bulletSpeed, s: APEX_ARSENAL_CONFIG.WEAPONS.SMG.bulletSpeed, g: APEX_ARSENAL_CONFIG.WEAPONS.SHOTGUN.bulletSpeed, n: APEX_ARSENAL_CONFIG.WEAPONS.SNIPER.bulletSpeed})'));
 gate('av-telegraph-audio-bound', report.av.after.scheduled.some(s => s.rel === 'sfx/scifi/forceField_001.ogg'));
@@ -1734,7 +1735,7 @@ report.postCNewbie = run(`
   f.x = 200; f.y = 500; f.baseSpeed = 0;
   const x0 = f.x;
   f.data.nbCd = 0;
-  f.data.nbTrigger = true;
+  window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
   for (let i = 0; i < 20; i++) APEX_ARSENAL.step(1 / 60);
   return {
     name: f.name,
@@ -1990,6 +1991,147 @@ report.logSample = run(`
 `);
 gate('structured-aq-events', Object.values(report.logSample).every(Boolean), report.logSample);
 
+report.rev2Scale = run(`
+  const set = APEX_ARSENAL_C_SET;
+  const guns = ['GLOCK_17','P90','AK_47','M249_SAW','SNIPER','PISTOL'];
+  const rows = {};
+  for (const id of guns) {
+    const m = set.weapons[id];
+    rows[id] = { sourceW: m.sourceW, worldW: m.worldW, longSide: APEX_ARSENAL_CONFIG.WEAPONS[id] && APEX_ARSENAL_CONFIG.WEAPONS[id].longSide };
+  }
+  const ratio = rows.SNIPER.sourceW / rows.GLOCK_17.sourceW;
+  const worldRatio = rows.SNIPER.worldW / rows.GLOCK_17.worldW;
+  return { scale: set.SENKO_WORLD_SCALE, ratio, worldRatio, rows, z15: set.weapons.ZBROYAR_Z15.worldW, z15s1: set.weapons.ZBROYAR_Z15_S1.worldW };
+`);
+gate('rev2-senko-one-scale', report.rev2Scale.scale > 0 && Math.abs(report.rev2Scale.ratio - report.rev2Scale.worldRatio) < 0.02, report.rev2Scale);
+gate('rev2-senko-source-metadata', gunsOk(report.rev2Scale), report.rev2Scale);
+function gunsOk(d) {
+  return ['GLOCK_17','SNIPER','AK_47','M249_SAW'].every((id) => d.rows[id].sourceW > 0 && d.rows[id].worldW > 0);
+}
+gate('rev2-z15-shared-scale', Math.abs(report.rev2Scale.z15 - report.rev2Scale.z15s1) < 1, report.rev2Scale);
+
+report.rev2Exit = run(`
+  __AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(300, 500, 700, 500);
+  fighters[0].baseSpeed = 0;
+  const ids = ['GLOCK_17','AK_47','M249_SAW','SNIPER','SHOTGUN','MAC_10'];
+  const traces = {};
+  for (const id of ids) {
+    APEX_ARSENAL.weaponApi.equip(fighters[0], id);
+    const h = APEX_ARSENAL.weaponApi.getHolder(fighters[0]);
+    if (h) { h.shotsFired = 99; APEX_ARSENAL.weaponApi.consume(fighters[0], 'test'); }
+    const d0 = (APEX_ARSENAL.state.detachedWeapons || [])[0];
+    const fx0 = fighters[0].x;
+    fighters[0].x += 80;
+    APEX_ARSENAL.weaponApi.tickDetachedWeapons(0.08);
+    const d1 = (APEX_ARSENAL.state.detachedWeapons || [])[0];
+    traces[id] = d0 && d1 ? { x0: d0.originX, x1: d1.x, y1: d1.y, rot: d1.rot, follow: Math.abs(d1.x - (fx0+80)) < 5, exit: d0.exitKey } : null;
+    APEX_ARSENAL.state.detachedWeapons = [];
+    fighters[0].x = 300;
+  }
+  const xs = ids.map(id => traces[id] && traces[id].x1);
+  const distinct = new Set(xs.map(v => Math.round((v||0)/8))).size;
+  return { traces, distinct, noFollow: ids.every(id => traces[id] && traces[id].follow === false) };
+`);
+gate('rev2-detached-world-exit', report.rev2Exit.noFollow && report.rev2Exit.distinct >= 4, report.rev2Exit);
+
+report.rev2Audio = run(`
+  const AUDIO = APEX_ARSENAL_AV.describe().audio;
+  const last = APEX_ARSENAL_AV.stats.lastFade;
+  window.avCue('fire', { weapon: 'GLOCK_17', family: 'SEMI', x: 0, y: 0, angle: 0, sfx: 'pistol_shot' });
+  const fade = APEX_ARSENAL_AV.stats.lastFade;
+  APEX_ARSENAL_AV.stats.cued.length = 0;
+  APEX_ARSENAL_AV.stats.casingLands = 0;
+  window.avCue('casing', { x: 10, y: 10, vx: 0, vy: 400, weapon: 'AK_47' });
+  const spawnLand = (APEX_ARSENAL_AV.stats.casingLands || 0);
+  for (let i = 0; i < 40; i++) APEX_ARSENAL_AV.tick(1/60);
+  const after = APEX_ARSENAL_AV.stats.casingLands || 0;
+  return { fade, spawnLand, after, envelopes: APEX_ARSENAL_AV.stats.fadeEnvelopes };
+`);
+gate('rev2-gunshot-fade-tail', !!(report.rev2Audio.fade && report.rev2Audio.fade.stopAfterGain && report.rev2Audio.fade.fadeTail > 0), report.rev2Audio);
+gate('rev2-casing-lands-on-floor', report.rev2Audio.spawnLand === 0 && report.rev2Audio.after >= 1, report.rev2Audio);
+
+report.rev2Melee = run(`
+  const r = APEX_ARSENAL_CONFIG.THROWN_MELEE.ricochets;
+  return r;
+`);
+gate('rev2-melee-bounce-caps', report.rev2Melee.BATTLE_AXE === 1 && report.rev2Melee.SPIKED_CLUB === 1 && report.rev2Melee.SPEAR === 2 && report.rev2Melee.SABRE === 3 && report.rev2Melee.DAGGER === 4, report.rev2Melee);
+
+report.rev2MeleeRuntime = run(`
+  __AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(200, 200, 800, 800);
+  fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+  const out = {};
+  for (const id of ['BATTLE_AXE','SPIKED_CLUB','SPEAR','SABRE','DAGGER']) {
+    APEX_ARSENAL.state.slots = [];
+    projectiles.length = 0;
+    APEX_ARSENAL.weaponApi.spawnThrownMelee(fighters[0], id, 0);
+    const p = projectiles.find(q => q.type === 'aq_thrown');
+    let bounces = 0;
+    const start = p.ricochetsLeft;
+    for (let i = 0; i < 720 && p.state === 'flight'; i++) {
+      const left = p.ricochetsLeft;
+      APEX_ARSENAL.weaponApi.updateArsenalProjectiles(1/60);
+      if (p.ricochetsLeft < left) bounces++;
+      if (p.state !== 'flight') break;
+    }
+    out[id] = { start, bounces, state: p.state, radius: p.radius };
+  }
+  return out;
+`);
+gate('rev2-melee-exact-bounces',
+  report.rev2MeleeRuntime.BATTLE_AXE.bounces === 1
+  && report.rev2MeleeRuntime.SPIKED_CLUB.bounces === 1
+  && report.rev2MeleeRuntime.SPEAR.bounces === 2
+  && report.rev2MeleeRuntime.SABRE.bounces === 3
+  && report.rev2MeleeRuntime.DAGGER.bounces === 4,
+  report.rev2MeleeRuntime);
+
+report.rev2Shotgun = run(`
+  const ids = ['SHOTGUN','MOSSBERG_500','SAWED_OFF','JACKHAMMER'];
+  const size = GAME_SIZE;
+  const need = size * Math.SQRT2 + 80;
+  const rows = {};
+  for (const id of ids) {
+    const w = APEX_ARSENAL_CONFIG.WEAPONS[id];
+    rows[id] = { life: w.bulletLife, speed: w.bulletSpeed, dist: w.bulletLife * w.bulletSpeed };
+  }
+  return { need, rows, ok: ids.every(id => rows[id].dist + 1 >= need) };
+`);
+gate('rev2-shotgun-diagonal-ttl', report.rev2Shotgun.ok, report.rev2Shotgun);
+
+report.rev2NewbieJ = run(`
+  __AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();
+  window.startArsenalQuestMode('NEWBIE', 'PAINTER');
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.slots = [];
+  fighters[0].data.nbCd = 0;
+  const gate = APEX_ARSENAL_SKILL_GATE;
+  const pulsed = gate.pressJ(fighters[0]);
+  const snap = gate.snapshot(fighters[0]);
+  return { pulsed, buffered: snap.pulseBuffered, cd: fighters[0].data.nbCd, dash: !!fighters[0].data.nbDash };
+`);
+gate('rev2-newbie-invalid-j-noop', report.rev2NewbieJ.pulsed === false && report.rev2NewbieJ.buffered === false && report.rev2NewbieJ.cd === 0 && !report.rev2NewbieJ.dash, report.rev2NewbieJ);
+
+report.rev2Quest = run(`
+  const Q = APEX_ARSENAL_QUEST;
+  const order = Q.STAGES.map(s => s.opponent);
+  const s1 = Q.stage(1).opponent;
+  const s10 = Q.stage(10).opponent;
+  const s20 = Q.stage(20).opponent;
+  const live20 = Q.liveOpponent('MONK');
+  try { localStorage.setItem(Q.STORAGE_KEY, '{bad'); } catch (e) {}
+  const safe = Q.loadSave();
+  Q.persist({ unlockedThrough: 1, completedStages: [] });
+  const locked = Q.canPlay(2);
+  const win = Q.recordWin(1);
+  const after = Q.loadSave();
+  return { order, s1, s10, s20, live20, safe, locked, after };
+`);
+gate('rev2-quest-order', report.rev2Quest.s1 === 'PAINTER' && report.rev2Quest.s10 === 'ELECTRIC' && report.rev2Quest.s20 === 'MONK' && report.rev2Quest.order.length === 20, report.rev2Quest);
+gate('rev2-quest-persist', report.rev2Quest.safe.unlockedThrough === 1 && report.rev2Quest.locked === false && report.rev2Quest.after.unlockedThrough === 2, report.rev2Quest);
+gate('rev2-quest-monk-live', report.rev2Quest.live20 === 'KUNGFU' || report.rev2Quest.live20 === 'MONK', report.rev2Quest);
+
 // ------------------------------------------------------------------- summary
 report.summary = {
   total: Object.keys(report.gates).length,
@@ -2002,3 +2144,4 @@ if (loadErrors.length) console.log('non-fatal boot runtime load errors:', JSON.s
 fs.writeFileSync(path.join(evidenceDir, 'headless-test-report.json'), JSON.stringify(report, null, 2));
 console.log(`report+evidence written under ${evidenceDir}/`);
 if (report.failures.length) process.exitCode = 1;
+1;

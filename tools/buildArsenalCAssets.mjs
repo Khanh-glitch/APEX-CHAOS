@@ -81,53 +81,81 @@ function recolorSvg(svg, warmMode = 'brass') {
 // Gun rasters — one representative per gun class from the Senko v9 family.
 // longSide = runtime draw long side at 1x; PNGs authored at 2x.
 // ---------------------------------------------------------------------------
+const SENKO_WORLD_SCALE = 0.55;
+const SENKO_RASTER_PER_WORLD = 2;
 const GUNS = [
-  { id: 'PISTOL',  file: 'colt.svg',             longSide: 145, muzzle: [0.985, 0.21], casing: [0.66, 0.30], warm: 'brass' },
-  { id: 'SMG',     file: 'MP5.svg',              longSide: 145, muzzle: [0.985, 0.27], casing: [0.60, 0.34], warm: 'brass' },
-  { id: 'SHOTGUN', file: 'SPAS 12.svg',          longSide: 165, muzzle: [0.990, 0.40], casing: [0.52, 0.34], warm: 'brass' },
-  { id: 'SNIPER',  file: 'Snipex Alligator.svg', longSide: 185, muzzle: [0.995, 0.44], casing: [0.40, 0.40], warm: 'graphite' },
+  { id: 'PISTOL',  file: 'colt.svg',             muzzle: [0.985, 0.21], casing: [0.66, 0.30], warm: 'brass' },
+  { id: 'SMG',     file: 'MP5.svg',              muzzle: [0.985, 0.27], casing: [0.60, 0.34], warm: 'brass' },
+  { id: 'SHOTGUN', file: 'SPAS 12.svg',          muzzle: [0.990, 0.40], casing: [0.52, 0.34], warm: 'brass' },
+  { id: 'SNIPER',  file: 'Snipex Alligator.svg', muzzle: [0.995, 0.44], casing: [0.40, 0.40], warm: 'graphite' },
   // POST-C §3 — remaining 20 staged Senko v9 assets become real guns.
-  { id: 'AK_47', file: 'AK-47.svg', longSide: 158, muzzle: [0.990, 0.28], casing: [0.55, 0.34], warm: 'brass' },
-  { id: 'BERETTA_93R', file: 'Beretta 93R.svg', longSide: 144, muzzle: [0.985, 0.22], casing: [0.62, 0.30], warm: 'brass' },
-  { id: 'MAC_10', file: 'MAC 10.svg', longSide: 136, muzzle: [0.985, 0.30], casing: [0.58, 0.34], warm: 'brass' },
-  { id: 'MOSSBERG_500', file: 'Mossberg 500.svg', longSide: 164, muzzle: [0.990, 0.38], casing: [0.50, 0.34], warm: 'brass' },
-  { id: 'ZBROYAR_Z15', file: 'Zbroyar Z-15.svg', longSide: 156, muzzle: [0.990, 0.28], casing: [0.55, 0.32], warm: 'brass' },
-  { id: 'ZBROYAR_Z15_S1', file: 'Zbroyar Z-15 skin1.svg', longSide: 156, muzzle: [0.990, 0.28], casing: [0.55, 0.32], warm: 'brass' },
-  { id: 'ZBROYAR_Z15_S2', file: 'Zbroyar Z-15 skin2.svg', longSide: 156, muzzle: [0.990, 0.28], casing: [0.55, 0.32], warm: 'brass' },
-  { id: 'ZBROYAR_Z15_S3', file: 'Zbroyar Z-15 skin3.svg', longSide: 156, muzzle: [0.990, 0.28], casing: [0.55, 0.32], warm: 'brass' },
-  { id: 'DESERT_DEAGLE', file: 'desert deagle.svg', longSide: 148, muzzle: [0.985, 0.24], casing: [0.60, 0.30], warm: 'brass' },
-  { id: 'GLOCK_17', file: 'glock-17.svg', longSide: 142, muzzle: [0.985, 0.22], casing: [0.64, 0.30], warm: 'brass' },
-  { id: 'M16', file: 'm16.svg', longSide: 158, muzzle: [0.990, 0.28], casing: [0.54, 0.32], warm: 'brass' },
-  { id: 'M249_SAW', file: 'm249 saw.svg', longSide: 164, muzzle: [0.990, 0.32], casing: [0.50, 0.36], warm: 'brass' },
-  { id: 'MAGNUM_500', file: 'magnum 500.svg', longSide: 150, muzzle: [0.985, 0.26], casing: [0.58, 0.30], warm: 'brass' },
-  { id: 'P90', file: 'p90.svg', longSide: 142, muzzle: [0.985, 0.30], casing: [0.55, 0.34], warm: 'brass' },
-  { id: 'JACKHAMMER', file: 'pancor jackhammer.svg', longSide: 150, muzzle: [0.990, 0.36], casing: [0.52, 0.34], warm: 'brass' },
-  { id: 'MBR', file: 'project MBR.svg', longSide: 184, muzzle: [0.995, 0.40], casing: [0.42, 0.38], warm: 'graphite' },
-  { id: 'MBR2', file: 'project MBR2.svg', longSide: 186, muzzle: [0.995, 0.40], casing: [0.42, 0.38], warm: 'graphite' },
-  { id: 'SAWED_OFF', file: 'sawed-off shotgun.svg', longSide: 128, muzzle: [0.985, 0.36], casing: [0.55, 0.34], warm: 'brass' },
-  { id: 'SZECSEI_FUCHS', file: 'szecsei & fuchs.svg', longSide: 146, muzzle: [0.985, 0.24], casing: [0.60, 0.30], warm: 'brass' },
-  { id: 'TEC_9', file: 'tec 9.svg', longSide: 140, muzzle: [0.985, 0.28], casing: [0.60, 0.32], warm: 'brass' },
+  { id: 'AK_47', file: 'AK-47.svg', muzzle: [0.990, 0.28], casing: [0.55, 0.34], warm: 'brass' },
+  { id: 'BERETTA_93R', file: 'Beretta 93R.svg', muzzle: [0.985, 0.22], casing: [0.62, 0.30], warm: 'brass' },
+  { id: 'MAC_10', file: 'MAC 10.svg', muzzle: [0.985, 0.30], casing: [0.58, 0.34], warm: 'brass' },
+  { id: 'MOSSBERG_500', file: 'Mossberg 500.svg', muzzle: [0.990, 0.38], casing: [0.50, 0.34], warm: 'brass' },
+  { id: 'ZBROYAR_Z15', file: 'Zbroyar Z-15.svg', muzzle: [0.990, 0.28], casing: [0.55, 0.32], warm: 'brass' },
+  { id: 'ZBROYAR_Z15_S1', file: 'Zbroyar Z-15 skin1.svg', muzzle: [0.990, 0.28], casing: [0.55, 0.32], warm: 'brass' },
+  { id: 'ZBROYAR_Z15_S2', file: 'Zbroyar Z-15 skin2.svg', muzzle: [0.990, 0.28], casing: [0.55, 0.32], warm: 'brass' },
+  { id: 'ZBROYAR_Z15_S3', file: 'Zbroyar Z-15 skin3.svg', muzzle: [0.990, 0.28], casing: [0.55, 0.32], warm: 'brass' },
+  { id: 'DESERT_DEAGLE', file: 'desert deagle.svg', muzzle: [0.985, 0.24], casing: [0.60, 0.30], warm: 'brass' },
+  { id: 'GLOCK_17', file: 'glock-17.svg', muzzle: [0.985, 0.22], casing: [0.64, 0.30], warm: 'brass' },
+  { id: 'M16', file: 'm16.svg', muzzle: [0.990, 0.28], casing: [0.54, 0.32], warm: 'brass' },
+  { id: 'M249_SAW', file: 'm249 saw.svg', muzzle: [0.990, 0.32], casing: [0.50, 0.36], warm: 'brass' },
+  { id: 'MAGNUM_500', file: 'magnum 500.svg', muzzle: [0.985, 0.26], casing: [0.58, 0.30], warm: 'brass' },
+  { id: 'P90', file: 'p90.svg', muzzle: [0.985, 0.30], casing: [0.55, 0.34], warm: 'brass' },
+  { id: 'JACKHAMMER', file: 'pancor jackhammer.svg', muzzle: [0.990, 0.36], casing: [0.52, 0.34], warm: 'brass' },
+  { id: 'MBR', file: 'project MBR.svg', muzzle: [0.995, 0.40], casing: [0.42, 0.38], warm: 'graphite' },
+  { id: 'MBR2', file: 'project MBR2.svg', muzzle: [0.995, 0.40], casing: [0.42, 0.38], warm: 'graphite' },
+  { id: 'SAWED_OFF', file: 'sawed-off shotgun.svg', muzzle: [0.985, 0.36], casing: [0.55, 0.34], warm: 'brass' },
+  { id: 'SZECSEI_FUCHS', file: 'szecsei & fuchs.svg', muzzle: [0.985, 0.24], casing: [0.60, 0.30], warm: 'brass' },
+  { id: 'TEC_9', file: 'tec 9.svg', muzzle: [0.985, 0.28], casing: [0.60, 0.32], warm: 'brass' },
 ];
+
+function parseSvgIntrinsic(svg) {
+  const vb = svg.match(/viewBox=["']([\d.\s,-]+)["']/);
+  const wh = svg.match(/width=["']([\d.]+)["']\s+height=["']([\d.]+)["']/);
+  let w = wh ? parseFloat(wh[1]) : 0;
+  let h = wh ? parseFloat(wh[2]) : 0;
+  if (vb) {
+    const p = vb[1].trim().split(/[\s,]+/).map(Number);
+    if (p.length === 4) {
+      if (!w) w = p[2];
+      if (!h) h = p[3];
+    }
+  }
+  return { w, h };
+}
 
 function rasterGun(gun) {
   let srcFile = path.join(SRC, 'guns/senko-v9', gun.file);
   let raw = fs.readFileSync(srcFile, 'utf8');
-  // Staging gap: Zbroyar Z-15 skin3.svg is a 0-byte placeholder. Raster from
-  // the base Z-15 with graphite remap so the 24th gun still has real art.
   if (!raw.trim()) {
     raw = fs.readFileSync(path.join(SRC, 'guns/senko-v9', 'Zbroyar Z-15.svg'), 'utf8');
     gun = { ...gun, warm: 'graphite' };
   }
   const svg = recolorSvg(raw, gun.warm || 'brass');
-  const m = svg.match(/width="([\d.]+)"\s+height="([\d.]+)"/);
-  const w = parseFloat(m[1]); const h = parseFloat(m[2]);
-  const scale = (gun.longSide * 2) / Math.max(w, h);
-  const r = new Resvg(svg, { fitTo: { mode: 'width', value: Math.max(8, Math.round(w * scale)) } });
-  const buf = Buffer.from(r.render().asPng());
+  const { w, h } = parseSvgIntrinsic(svg);
+  const worldW = w * SENKO_WORLD_SCALE;
+  const worldH = h * SENKO_WORLD_SCALE;
+  const raster = SENKO_WORLD_SCALE * SENKO_RASTER_PER_WORLD;
+  const outW = Math.max(8, Math.round(w * raster));
+  const r = new Resvg(svg, { fitTo: { mode: 'width', value: outW } });
+  const png = r.render();
+  const buf = Buffer.from(png.asPng());
   const out = path.join(OUT_WEAPONS, `${gun.id}.png`);
   fs.writeFileSync(out, buf);
-  const outW = Math.round(w * scale); const outH = Math.round(h * scale);
-  return { id: gun.id, file: `weapons/c/${gun.id}.png`, w: outW, h: outH, muzzle: gun.muzzle, casing: gun.casing };
+  return {
+    id: gun.id,
+    file: `weapons/c/${gun.id}.png`,
+    w: png.width,
+    h: png.height,
+    sourceW: w,
+    sourceH: h,
+    worldW,
+    worldH,
+    muzzle: gun.muzzle,
+    casing: gun.casing,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -382,7 +410,7 @@ async function main() {
   fs.mkdirSync(OUT_WEAPONS, { recursive: true });
   fs.mkdirSync(OUT_VFX, { recursive: true });
 
-  const manifest = { weapons: {}, muzzleFrames: [] };
+  const manifest = { SENKO_WORLD_SCALE, weapons: {}, muzzleFrames: [] };
   for (const gun of GUNS) {
     const meta = rasterGun(gun);
     manifest.weapons[meta.id] = meta;

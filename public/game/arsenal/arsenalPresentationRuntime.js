@@ -39,10 +39,10 @@
     pickup: [{ rel: 'sfx/rpg/metalLatch.ogg', vol: 0.42, maxVoices: 3 }],
 
     // Approved gun-fire baseline retained.
-    pistol_shot: [{ rel: 'sfx/guns/cz.wav', offset: 0.10, dur: 0.85, vol: 0.75, maxVoices: 4 }],
-    smg_shot: [{ rel: 'sfx/guns/sks.wav', slices: [0.32, 2.27, 3.31, 5.98, 7.25, 9.69, 11.43, 12.70], dur: 0.24, vol: 0.5, maxVoices: 3 }],
-    shotgun_shot: [{ rel: 'sfx/guns/shotty.wav', offset: 0.0, dur: 0.7, vol: 0.95, maxVoices: 2 }],
-    sniper_shot: [{ rel: 'sfx/guns/mosin.wav', offset: 0.40, dur: 1.7, vol: 0.95, maxVoices: 2 }],
+    pistol_shot: [{ rel: 'sfx/guns/cz.wav', offset: 0.10, dur: 0.85, vol: 0.75, maxVoices: 4, fadeTail: 0.075, attack: 0.003 }],
+    smg_shot: [{ rel: 'sfx/guns/sks.wav', slices: [0.32, 2.27, 3.31, 5.98, 7.25, 9.69, 11.43, 12.70], dur: 0.24, vol: 0.5, maxVoices: 3, fadeTail: 0.035, attack: 0.002 }],
+    shotgun_shot: [{ rel: 'sfx/guns/shotty.wav', offset: 0.0, dur: 0.7, vol: 0.95, maxVoices: 2, fadeTail: 0.125, attack: 0.003 }],
+    sniper_shot: [{ rel: 'sfx/guns/mosin.wav', offset: 0.40, dur: 1.7, vol: 0.95, maxVoices: 2, fadeTail: 0.18, attack: 0.004 }],
 
     // Owner-approved C1 FINAL SFX LOCK.
     pistol_mech: [{ rel: 'sfx/c-final/PISTOL/pistol_mech_click.wav', vol: 0.50, maxVoices: 2 }],
@@ -193,6 +193,10 @@
     activeVoices.set(entry.rel, active + 1);
     const release = () => activeVoices.set(entry.rel, Math.max(0, (activeVoices.get(entry.rel) || 1) - 1));
     if (typeof setTimeout === 'function') setTimeout(release, Math.ceil(dur * 1000) + 40);
+    if (entry.fadeTail) {
+      stats.fadeEnvelopes = (stats.fadeEnvelopes || 0) + 1;
+      stats.lastFade = { fadeTail: entry.fadeTail, attack: entry.attack || 0, playDur: dur, stopAfterGain: true };
+    }
     if (window.__apexStatsSilent) return; // harness: intent + cap accounting recorded, no sound
     if (typeof ensureBattleAudioReady === 'function') ensureBattleAudioReady();
     const src = ctx.createBufferSource();
@@ -201,13 +205,32 @@
       try { src.playbackRate.value = entry.playbackRate; } catch (e) {}
     }
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(entry.vol != null ? entry.vol : 0.7, ctx.currentTime);
+    const vol = entry.vol != null ? entry.vol : 0.7;
+    const now = ctx.currentTime;
+    const attack = entry.attack != null ? entry.attack : 0;
+    const fadeTail = entry.fadeTail != null ? entry.fadeTail : 0;
+    const playDur = dur + (fadeTail > 0 ? 0 : 0);
+    if (attack > 0) {
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(vol, now + attack);
+    } else {
+      gain.gain.setValueAtTime(vol, now);
+    }
+    if (fadeTail > 0) {
+      const tailStart = now + Math.max(attack, playDur - fadeTail);
+      gain.gain.setValueAtTime(vol, tailStart);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + playDur);
+    }
     src.connect(gain);
     gain.connect(typeof battleAudioMaster !== 'undefined' ? battleAudioMaster : ctx.destination);
     src.onended = release;
     try {
-      src.start(ctx.currentTime, offset, dur);
+      src.start(now, offset, playDur);
       stats.played += 1;
+      if (fadeTail > 0) {
+        stats.fadeEnvelopes = (stats.fadeEnvelopes || 0) + 1;
+        stats.lastFade = { fadeTail, attack, playDur, stopAfterGain: true };
+      }
     } catch (error) {
       release();
     }
@@ -314,8 +337,13 @@
         break;
       }
       case 'casing': {
-        pushVfx({ kind: 'casing', x: o.x, y: o.y, vx: o.vx || 0, vy: o.vy || -120, rot: o.rot || 0, vrot: o.vrot || 11, life: 0.9 });
-        playAll('casing_drop');
+        pushVfx({ kind: 'casing', x: o.x, y: o.y, vx: o.vx || 0, vy: o.vy || -120, rot: o.rot || 0, vrot: o.vrot || 11, life: 0.9, landed: false, hull: !!o.hull });
+        break;
+      }
+      case 'casing_land':
+      case 'hull_land': {
+        playAll('casing_land', { vol: o.vol });
+        stats.casingLands = (stats.casingLands || 0) + 1;
         break;
       }
       case 'sniper_aim': {
@@ -404,7 +432,15 @@
         v.x += v.vx * dt;
         v.y += v.vy * dt;
         v.rot += v.vrot * dt;
-        if (v.vy > 0 && v.y > v.floorY) { v.y = v.floorY; v.vy *= -0.3; v.vx *= 0.6; v.vrot *= 0.5; }
+        if (v.vy > 0 && v.y > v.floorY) {
+          if (!v.landed) {
+            v.landed = true;
+            const speed = Math.hypot(v.vx, v.vy);
+            const vol = Math.min(0.28, 0.08 + speed / 2400);
+            cue(v.hull ? 'hull_land' : 'casing_land', { x: v.x, y: v.y, vol });
+          }
+          v.y = v.floorY; v.vy *= -0.3; v.vx *= 0.6; v.vrot *= 0.5;
+        }
       }
       if (v.t >= v.life) vfx.splice(i, 1);
     }
@@ -419,10 +455,17 @@
     const img = getImg(weaponAbs(meta));
     if (!img || !img.complete || !img.width) return false;
 
-    const longSide = Math.max(meta.w, meta.h) || 1;
-    const scale = (options.targetLongSide || 120) / longSide;
-    const dw = meta.w * scale;
-    const dh = meta.h * scale;
+    let dw;
+    let dh;
+    if (options.useWorld && meta.worldW && meta.worldH) {
+      dw = meta.worldW * (options.scaleMul || 1);
+      dh = meta.worldH * (options.scaleMul || 1);
+    } else {
+      const longSide = Math.max(meta.w, meta.h) || 1;
+      const scale = (options.targetLongSide || 120) / longSide;
+      dw = meta.w * scale;
+      dh = meta.h * scale;
+    }
 
     ctx.save();
     ctx.translate(x || 0, y || 0);
@@ -462,13 +505,16 @@
     } else {
       drawOffset = 0;
       const meta = weaponMeta(weaponId);
-      const cfgLong = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.WEAPONS[weaponId]
-        && window.APEX_ARSENAL_CONFIG.WEAPONS[weaponId].longSide) || 0;
-      targetLongSide = cfgLong || (weaponId === 'SNIPER' ? 185 : weaponId === 'SHOTGUN' ? 165
-        : weaponId === 'GRENADE' ? 62 : 145);
+      if (weaponId === 'GRENADE') {
+        targetLongSide = 56;
+      } else if (meta && meta.worldW) {
+        targetLongSide = Math.max(meta.worldW, meta.worldH);
+      } else {
+        targetLongSide = 145;
+      }
       offset = radius * 0.78;
     }
-    return { drawOffset, targetLongSide, offset };
+    return { drawOffset, targetLongSide, offset, useWorld: !!(weaponMeta(weaponId) && weaponMeta(weaponId).worldW && category !== 'melee' && category !== 'defense' && weaponId !== 'GRENADE') };
   }
 
   // Checkpoint B (B-handoff PART 2): the weapon sprite transform consumes the
@@ -485,6 +531,8 @@
     const y = fighter.y + Math.sin(aimAngle) * offset + Math.sin(aimAngle + Math.PI / 2) * lateral;
     return drawWeaponSprite(ctx, weaponId, x, y, {
       mode: 'equipped',
+      useWorld: params.useWorld,
+      scaleMul: p.scaleX || 1,
       targetLongSide: params.targetLongSide * (p.scaleX || 1),
       angle: drawAngle,
       alpha: alpha == null ? 0.98 : alpha,
@@ -516,6 +564,19 @@
     const ok = drawWeaponWithPose(ctx, fighter, ghost.weaponId, ghost.category || '', ghost.aimAngle || 0, ghost.pose, alpha);
     ctx.restore();
     return ok;
+  }
+
+  function drawDetachedWeapon(ctx, d) {
+    if (!d || !d.weaponId) return false;
+    const u = Math.max(0, Math.min(1, d.t / (d.maxLife || 0.5)));
+    const alpha = u < 0.85 ? 1 : Math.max(0, 1 - (u - 0.85) / 0.15);
+    return drawWeaponSprite(ctx, d.weaponId, d.x, d.y, {
+      mode: 'equipped',
+      useWorld: true,
+      angle: d.rot,
+      alpha,
+      keepUpright: true,
+    });
   }
 
   function draw(ctx) {
@@ -619,6 +680,7 @@
     drawWeaponSprite,
     drawEquippedWeapon,
     drawPoseGhost,
+    drawDetachedWeapon,
     weaponImage,
     weaponMeta,
       describe: () => ({

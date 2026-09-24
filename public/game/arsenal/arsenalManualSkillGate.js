@@ -115,6 +115,12 @@
     isGated(shellName) { return !!GATED_SKILLS[shellName]; },
     // Edge-triggered press from the mode runtime (KeyJ, P1 only).
     pressJ(f) {
+      const shell = (f && f.type && (f.type.shellOf || f.type.name)) || (f && f.name);
+      if (shell === 'NEWBIE') {
+        const slots = (window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.slots) || [];
+        const has = slots.some((s) => s && s.phase === 'REVEALED' && s.weaponId);
+        if (!has) return false;
+      }
       const g = gateState(f);
       g.pulseAge = 0;
       return true;

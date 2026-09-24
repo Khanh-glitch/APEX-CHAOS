@@ -84,7 +84,17 @@
     w.family = spec.family;
     w.tier = WEAPON_TIER[id];
   }
+  CFG.shotgunPelletLife = function shotgunPelletLife(speed) {
+    const size = (typeof GAME_SIZE === 'number' && GAME_SIZE) || 1000;
+    return (size * Math.SQRT2 + 80) / Math.max(1, speed);
+  };
   for (const [id, spec] of Object.entries(IDENTITY)) applyIdentity(id, spec);
+  for (const [id, spec] of Object.entries(IDENTITY)) {
+    if (spec.family === 'SHOTGUN' || spec.family === 'AUTOSHOT') {
+      const w = CFG.WEAPONS[id];
+      if (w) w.bulletLife = CFG.shotgunPelletLife(w.bulletSpeed || spec.bulletSpeed);
+    }
+  }
   for (const entry of (CFG.GUN_REGISTRY || [])) {
     const spec = IDENTITY[entry.id];
     if (!spec) continue;

@@ -411,17 +411,20 @@
         ctx.globalAlpha = expireSoon && Math.floor(t * 8) % 2 === 0 ? 0.45 : 1;
         ctx.translate(0, bob);
 
-        // Neutral floor shadow; the weapon itself is rendered from the real atlas.
-        ctx.fillStyle = 'rgba(12,10,6,0.5)';
-        ctx.beginPath();
-        ctx.ellipse(0, CFG.PICKUP_RADIUS * 0.9, CFG.PICKUP_RADIUS * 1.0, 12, 0, 0, TAU);
-        ctx.fill();
+        if (!glow) {
+          ctx.fillStyle = 'rgba(12,10,6,0.5)';
+          ctx.beginPath();
+          ctx.ellipse(0, CFG.PICKUP_RADIUS * 0.9, CFG.PICKUP_RADIUS * 1.0, 12, 0, 0, TAU);
+          ctx.fill();
+        }
 
         const av = window.APEX_ARSENAL_AV;
+        const meta = av && av.weaponMeta && av.weaponMeta(slot.weaponId);
+        const useWorld = !!(meta && meta.worldW);
         const drawn = !!(av && av.drawWeaponSprite && av.drawWeaponSprite(ctx, slot.weaponId, 0, 0, {
           mode: 'floor',
-          // C grenade continuity: pickup scale matches equipped/in-flight reads.
-          targetLongSide: slot.weaponId === 'GRENADE' ? 56 : 118,
+          useWorld,
+          targetLongSide: slot.weaponId === 'GRENADE' ? 56 : (useWorld ? undefined : 118),
           alpha: 1,
         }));
         if (!drawn) drawDebugMissingWeapon(ctx, slot.weaponId);

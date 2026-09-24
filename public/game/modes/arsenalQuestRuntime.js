@@ -51,6 +51,7 @@
       spawnTimer: CFG.FIRST_SPAWN_DELAY_SECONDS,
       slots: [],
       visuals: [],
+      detachedWeapons: [],
       nextSlotId: 1,
       spawnedTotal: 0,
       suppressedSpawns: 0,
@@ -136,6 +137,7 @@
       }
       SPAWN.resolvePickups();
       for (const f of fighters) if (f) weaponApi.updateHolder(f, dt);
+      if (weaponApi.tickDetachedWeapons) weaponApi.tickDetachedWeapons(dt);
       updateProjectiles(dt);                     // engine lifecycle + cleanup
       weaponApi.updateArsenalProjectiles(dt);    // aq_* movement + hits
     }
@@ -152,6 +154,9 @@
       const winner = fighters[0].hp > fighters[1].hp ? fighters[0] : fighters[1];
       state.over = winner.name;
       AQ.log('KO', `winner=${winner.name}`);
+      if (window.APEX_ARSENAL_QUEST && window.APEX_ARSENAL_QUEST.onMatchOver) {
+        window.APEX_ARSENAL_QUEST.onMatchOver(winner.name);
+      }
       updateHUD();
     }
   }
@@ -273,7 +278,11 @@
       if (h) av.drawEquippedWeapon(c, f, h);
       // Checkpoint B pose ghost: recoil settle / throw / thrust return keeps
       // animating for a beat after the weapon is consumed.
-      if (f.data && f.data.arsenalFade && av.drawPoseGhost) av.drawPoseGhost(c, f, f.data.arsenalFade);
+      if (f.data && f.data.arsenalFade && !f.data.arsenalFade.detached && av.drawPoseGhost) av.drawPoseGhost(c, f, f.data.arsenalFade);
+    }
+    const detached = AQ.state && AQ.state.detachedWeapons;
+    if (detached && av.drawDetachedWeapon) {
+      for (const d of detached) av.drawDetachedWeapon(c, d);
     }
   }
 
@@ -287,6 +296,43 @@
       c.fillRect(f.x - 22, f.y - f.radius - 48, 44, 8);
       c.restore();
     }
+  }
+
+  function syncSkillHud(el, state) {
+    let box = document.getElementById('aq-skill-hud');
+    if (!state || !state.active) {
+      if (box) box.style.display = 'none';
+      return;
+    }
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'aq-skill-hud';
+      box.style.cssText = 'position:absolute;left:12px;top:8px;pointer-events:none;color:#efe6c8;font:800 13px monospace;background:rgba(8,8,12,0.55);padding:6px 10px;border:1px solid rgba(180,170,140,0.35);';
+      el.appendChild(box);
+    }
+    box.style.display = 'block';
+    const f = typeof fighters !== 'undefined' && fighters[0];
+    const gate = window.APEX_ARSENAL_SKILL_GATE;
+    const snap = gate && f ? gate.snapshot(f) : null;
+    const slots = (state.slots || []).filter((s) => s && s.phase === 'REVEALED');
+    const lines = [];
+    if (snap && snap.shell === 'NEWBIE') {
+      const cd = f && f.data ? f.data.nbCd : 0;
+      let text = 'J · —';
+      if (cd > 0.05) text = 'J · ' + cd.toFixed(1) + 's';
+      else if (slots.length) text = 'J · READY';
+      lines.push(text);
+    } else if (snap && snap.keys && snap.keys.length) {
+      for (const k of snap.keys) {
+        const v = k.value;
+        if (typeof v !== 'number') continue;
+        const label = k.key.replace(/Cd$/, '').slice(0, 8);
+        if (v > 0.09) lines.push(label + ' · ' + v.toFixed(1) + 's');
+        else lines.push(label + ' · READY');
+      }
+    }
+    box.textContent = lines.join('  |  ') || '';
+    box.style.visibility = lines.length ? 'visible' : 'hidden';
   }
 
   function hudRoot() {
@@ -311,6 +357,7 @@
       return n;
     })();
     hint.style.display = (state && state.active) ? 'block' : 'none';
+    syncSkillHud(el, state);
     let win = document.getElementById('aq-win');
     if (state && state.over) {
       if (!win) {

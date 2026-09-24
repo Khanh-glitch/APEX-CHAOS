@@ -1133,6 +1133,67 @@ try {
     ['glock', 'ak', 'm249', 'spas', 'mbr', 'snipex'].every((k) => report.gapCasingBr[k].usedMeta === true),
     report.gapCasingBr);
 
+  await evaluate(`(() => {
+    __AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();
+    APEX_ARSENAL.state.slots = [];
+    const ids = ['GLOCK_17','P90','AK_47','M249_SAW','SNIPER'];
+    ids.forEach((id, i) => __AQ_TEST.pushSlot({ x: 140 + i * 160, y: 420, phase: 'REVEALED', weaponId: id, tier: 'T1', revealedFor: 0 }));
+    __AQ_TEST.redraw();
+  })()`);
+  report.evidence.push(await screenshot('rev2-senko-scale-lineup'));
+  report.rev2ScaleBr = await evaluate(`(() => {
+    const set = APEX_ARSENAL_C_SET;
+    const g = set.weapons.GLOCK_17, s = set.weapons.SNIPER;
+    return { scale: set.SENKO_WORLD_SCALE, g: g.worldW, s: s.worldW, ratio: s.worldW / g.worldW, src: s.sourceW / g.sourceW };
+  })()`);
+  gate('browser-rev2-senko-scale', Math.abs(report.rev2ScaleBr.ratio - report.rev2ScaleBr.src) < 0.02 && report.rev2ScaleBr.s > report.rev2ScaleBr.g * 3, report.rev2ScaleBr);
+
+  report.rev2ExitBr = await evaluate(`(() => {
+    __AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();
+    __AQ_TEST.place(320, 520, 760, 520);
+    fighters[0].baseSpeed = 0;
+    const ids = ['GLOCK_17','AK_47','MAC_10','SHOTGUN','M249_SAW','SNIPER'];
+    const out = {};
+    for (const id of ids) {
+      APEX_ARSENAL.state.detachedWeapons = [];
+      APEX_ARSENAL.weaponApi.equip(fighters[0], id);
+      APEX_ARSENAL.weaponApi.consume(fighters[0], 'test');
+      const d0 = (APEX_ARSENAL.state.detachedWeapons || [])[0];
+      fighters[0].x += 90;
+      APEX_ARSENAL.weaponApi.tickDetachedWeapons(0.1);
+      const d1 = (APEX_ARSENAL.state.detachedWeapons || [])[0];
+      out[id] = d1 ? { x: d1.x, y: d1.y, rot: d1.rot, follow: Math.abs(d1.x - fighters[0].x) < 8, key: d0 && d0.exitKey } : null;
+      fighters[0].x = 320;
+    }
+    return out;
+  })()`);
+  gate('browser-rev2-detached-exits', Object.values(report.rev2ExitBr).every((v) => v && v.follow === false), report.rev2ExitBr);
+  await evaluate(`__AQ_TEST.redraw()`);
+  report.evidence.push(await screenshot('rev2-detached-exits'));
+
+  report.rev2QuestBr = await evaluate(`(() => {
+    const Q = APEX_ARSENAL_QUEST;
+    const a = Q.startStage(1, 'NEWBIE');
+    const p2a = fighters[1] && (fighters[1].type && fighters[1].type.name);
+    const b = Q.startStage(10, 'NEWBIE');
+    const p2b = fighters[1] && fighters[1].type && fighters[1].type.name;
+    Q.persist({ unlockedThrough: 20, completedStages: [1] });
+    const c = Q.startStage(20, 'NEWBIE');
+    const p2c = fighters[1] && fighters[1].type && fighters[1].type.name;
+    return { a, p2a, b, p2b, c, p2c, live: Q.liveOpponent('MONK') };
+  })()`);
+  gate('browser-rev2-quest-1-10-20',
+    report.rev2QuestBr.a.opponent === 'PAINTER' && report.rev2QuestBr.b.opponent === 'ELECTRIC' && report.rev2QuestBr.c.opponent === 'MONK',
+    report.rev2QuestBr);
+
+  report.rev2Hud = await evaluate(`(() => {
+    __AQ_TEST.enterManual();
+    __AQ_TEST.redraw();
+    const el = document.getElementById('aq-skill-hud');
+    return { has: !!el, text: el ? el.textContent : '' };
+  })()`);
+  gate('browser-rev2-cooldown-hud', report.rev2Hud.has === true, report.rev2Hud);
+
   // --------------------------------------------- 5-minute simulation -------
   report.fiveMinute = await evaluate(`(() => {
     __AQ_TEST.enterManual();
