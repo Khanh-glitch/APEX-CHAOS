@@ -183,10 +183,10 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=425 y=245 lead=1.00
-[AQ] SPAWN_SLOT id=2 x=249 y=331 lead=1.00
-[AQ] SPAWN_SLOT id=3 x=500 y=905 lead=1.00
-[AQ] SPAWN_SLOT id=4 x=279 y=577 lead=1.00
+[AQ] SPAWN_SLOT id=1 x=179 y=799 lead=1.00
+[AQ] SPAWN_SLOT id=2 x=809 y=184 lead=1.00
+[AQ] SPAWN_SLOT id=3 x=479 y=157 lead=1.00
+[AQ] SPAWN_SLOT id=4 x=266 y=226 lead=1.00
 PASS  spawn-cadence-independent  — spawnedTotal=4 over 10s (first 1.0s, cadence 3.0s)
 PASS  centerline-lead-fixed-1.0  — [1,1,1,1]
 PASS  multi-slot-coexist  — maxActiveSlots=4
@@ -201,13 +201,13 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] REVEAL id=1 weapon=SNIPER eta=0.87 lead=1.00 fighter=HERO
-[AQ] PICKUP id=1 fighter=HERO weapon=SNIPER
-[AQ] USE fighter=HERO weapon=SNIPER
+[AQ] REVEAL id=1 weapon=TOWER_SHIELD eta=0.87 lead=1.00 fighter=HERO
+[AQ] USE fighter=HERO weapon=TOWER_SHIELD
+[AQ] PICKUP id=1 fighter=HERO weapon=TOWER_SHIELD
 PASS  telegraph-not-collectible-and-long-hidden  — {"id":1,"phase":"TELEGRAPH","age":6.1,"weaponId":null,"revealLeadSeconds":1,"predictedHeroETA":null,"predictedRivalETA":null,"earliestETA":null,"predictedFighter":null}
 PASS  telegraph-no-identity
-PASS  centerline-reveal-on-aligned-approach  — [AQ] REVEAL id=1 weapon=SNIPER eta=0.87 lead=1.00 fighter=HERO
-PASS  reveal-then-collectible  — [AQ] REVEAL id=1 weapon=SNIPER eta=0.87 lead=1.00 fighter=HERO
+PASS  centerline-reveal-on-aligned-approach  — [AQ] REVEAL id=1 weapon=TOWER_SHIELD eta=0.87 lead=1.00 fighter=HERO
+PASS  reveal-then-collectible  — [AQ] REVEAL id=1 weapon=TOWER_SHIELD eta=0.87 lead=1.00 fighter=HERO
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -218,8 +218,9 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] REVEAL id=2 weapon=BATTLE_AXE eta=0.14 lead=1.00 fighter=HERO
-[AQ] PICKUP id=2 fighter=HERO weapon=BATTLE_AXE
+[AQ] REVEAL id=2 weapon=TOWER_SHIELD eta=0.14 lead=1.00 fighter=HERO
+[AQ] USE fighter=HERO weapon=TOWER_SHIELD
+[AQ] PICKUP id=2 fighter=HERO weapon=TOWER_SHIELD
 PASS  centerline-graze-stays-hidden  — {"grazeStayedHidden":true,"hiddenBeforeBounce":true,"revealedAfterBounce":true}
 PASS  centerline-no-reveal-before-bounce  — {"grazeStayedHidden":true,"hiddenBeforeBounce":true,"revealedAfterBounce":true}
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
@@ -291,8 +292,8 @@ Not implemented: HTMLMediaElement's pause() method
 [AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
 [AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
 [AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
-[AQ] CONSUME fighter=HERO weapon=SMG reason=sequence-complete
 [AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
+[AQ] CONSUME fighter=HERO weapon=SMG reason=sequence-complete
 [AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
 [AQ] HIT source=HERO target=RIVAL weapon=SMG damage=2.4
 PASS  weapon-SMG  — dmg=19.2 USE=1 HIT=8 CONSUME=1
@@ -508,8 +509,8 @@ PASS  f3-debug-overlay-toggle
 [ENGINEER] asset failed Component 2.webp
 [ENGINEER] asset failed Component 3.webp
 [ENGINEER] asset failed Component 4.webp
-[ENGINEER] asset failed thu linh kiện về.webp
 [ENGINEER] asset failed Component 5.webp
+[ENGINEER] asset failed thu linh kiện về.webp
 [ENGINEER] asset failed tia từ hút linh kiện và các vật thể hợp nhất.webp
 [ENGINEER] asset failed magnetic line.webp
 [ENGINEER] asset failed SHIELD of nexus healing.webp
@@ -616,13 +617,13 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=571 y=252 lead=1.00
+[AQ] SPAWN_SLOT id=1 x=165 y=454 lead=1.00
 PASS  av-runtime-registered
 PASS  av-muzzle-uses-transparent-sheet  — vfx/muzzle_flash/muzzleFlash0_transparent.png
 PASS  av-asset-map-complete  — ["telegraph","reveal","pickup","pistol_shot","shotgun_shot","smg_shot","sniper_charge","sniper_shot","explosion","sabre_swing","axe_swing","dagger_swing","spear_swing","club_swing","hit_blade","hit_thrust","hit_heavy","shield_activate_swirl","shield_activate_tower","reflect","block_heavy","block_light"]
 PASS  av-melee-sequences-distinct  — {"SABRE":5,"BATTLE_AXE":5,"SPEAR":5,"SPIKED_CLUB":5,"DAGGER":3}
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
-[AQ] SPAWN_SLOT id=1 x=385 y=681 lead=1.00
+[AQ] SPAWN_SLOT id=1 x=315 y=331 lead=1.00
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -801,11 +802,14 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=585 y=766 lead=1.00
-[AQ] SPAWN_SLOT id=2 x=876 y=846 lead=1.00
-[AQ] SPAWN_SLOT id=3 x=738 y=116 lead=1.00
-[AQ] REVEAL id=3 weapon=SNIPER eta=0.33 lead=1.00 fighter=RIVAL
-[AQ] PICKUP id=3 fighter=RIVAL weapon=SNIPER
+[AQ] SPAWN_SLOT id=1 x=333 y=797 lead=1.00
+[AQ] REVEAL id=1 weapon=GRENADE eta=0.26 lead=1.00 fighter=RIVAL
+[AQ] PICKUP id=1 fighter=RIVAL weapon=GRENADE
+[AQ] USE fighter=RIVAL weapon=GRENADE
+[AQ] CONSUME fighter=RIVAL weapon=GRENADE reason=thrown
+[AQ] SPAWN_SLOT id=2 x=457 y=363 lead=1.00
+[AQ] EXPLODE weapon=GRENADE x=631 y=427
+[AQ] SPAWN_SLOT id=3 x=330 y=260 lead=1.00
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -828,7 +832,7 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 [AQ] USE fighter=RUBBER weapon=SNIPER
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
-[AQ] REVEAL id=1 weapon=TOWER_SHIELD eta=0.87 lead=1.00 fighter=RUBBER
+[AQ] REVEAL id=1 weapon=SHOTGUN eta=0.87 lead=1.00 fighter=RUBBER
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -850,13 +854,13 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 PASS  av-assets-preloaded  — {"images":"63/63","audio":"21/21","imgFail":0,"sfxFail":0}
 PASS  weapon-atlas-floor-sprite-rendered  — draws=3
-PASS  weapon-atlas-equipped-sprite-rendered  — draws=17
+PASS  weapon-atlas-equipped-sprite-rendered  — draws=16
 PASS  av-telegraph-audio-bound
 PASS  av-reveal-audio-bound
 PASS  av-pickup-audio-bound
-PASS  av-all-12-weapons-cued  — 47
+PASS  av-all-12-weapons-cued  — 49
 PASS  av-smg-shots-trimmed  — [{"rel":"sfx/guns/sks.wav","offset":0,"dur":0.24,"vol":0.5},{"rel":"sfx/guns/sks.wav","offset":0,"dur":0.24,"vol":0.5},{"rel":"sfx/guns/sks.wav","offset":0,"dur":0.24,"vol":0.5}]
-PASS  av-smg-voice-cap-enforced  — {"notReady":99,"sfx/guns/sks.wav":3,"sfx/scifi/forceField_001.ogg":1}
+PASS  av-smg-voice-cap-enforced  — {"notReady":100,"sfx/guns/sks.wav":3,"sfx/scifi/forceField_001.ogg":1}
 PASS  av-mosin-pistol-trimmed
 PASS  av-vfx-expire-no-leak  — {"activeAfterQuiet":0,"peak":1}
 PASS  av-no-asset-load-failures
@@ -870,131 +874,189 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=566 y=779 lead=1.00
-[AQ] REVEAL id=1 weapon=DAGGER eta=0.97 lead=1.00 fighter=RUBBER
-[AQ] SPAWN_SLOT id=2 x=692 y=319 lead=1.00
-[AQ] PICKUP id=1 fighter=RUBBER weapon=DAGGER
+[AQ] SPAWN_SLOT id=1 x=599 y=873 lead=1.00
+[AQ] SPAWN_SLOT id=2 x=800 y=630 lead=1.00
+[AQ] SPAWN_SLOT id=3 x=324 y=580 lead=1.00
+[AQ] REVEAL id=2 weapon=SPEAR eta=0.25 lead=1.00 fighter=ICE
+[AQ] PICKUP id=2 fighter=ICE weapon=SPEAR
+[AQ] USE fighter=ICE weapon=SPEAR
+[AQ] HIT source=ICE target=RUBBER weapon=SPEAR damage=15.0
+[AQ] CONSUME fighter=ICE weapon=SPEAR reason=melee-resolved
+[AQ] SPAWN_SLOT id=4 x=829 y=757 lead=1.00
+[AQ] REVEAL id=4 weapon=GRENADE eta=0.11 lead=1.00 fighter=ICE
+[AQ] PICKUP id=4 fighter=ICE weapon=GRENADE
+[AQ] USE fighter=ICE weapon=GRENADE
+[AQ] CONSUME fighter=ICE weapon=GRENADE reason=thrown
+[AQ] SPAWN_SLOT id=5 x=844 y=424 lead=1.00
+[AQ] EXPLODE weapon=GRENADE x=519 y=766
+[AQ] SPAWN_SLOT id=6 x=845 y=848 lead=1.00
+[AQ] REVEAL id=3 weapon=DAGGER eta=0.99 lead=1.00 fighter=ICE
+[AQ] PICKUP id=3 fighter=RUBBER weapon=DAGGER
 [AQ] USE fighter=RUBBER weapon=DAGGER
 [AQ] HIT source=RUBBER target=ICE weapon=DAGGER damage=9.0
 [AQ] CONSUME fighter=RUBBER weapon=DAGGER reason=stab-landed
-[AQ] SPAWN_SLOT id=3 x=542 y=679 lead=1.00
-[AQ] SPAWN_SLOT id=4 x=264 y=537 lead=1.00
-[AQ] REVEAL id=4 weapon=SHOTGUN eta=0.97 lead=1.00 fighter=ICE
-[AQ] SPAWN_SLOT id=5 x=204 y=111 lead=1.00
-[AQ] PICKUP id=4 fighter=ICE weapon=SHOTGUN
-[AQ] USE fighter=ICE weapon=SHOTGUN
-[AQ] CONSUME fighter=ICE weapon=SHOTGUN reason=blast-resolved
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=3.6
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=3.6
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=3.6
-[AQ] HIT source=ICE target=RUBBER weapon=SHOTGUN damage=3.6
-[AQ] SPAWN_SLOT id=6 x=724 y=902 lead=1.00
-[AQ] SPAWN_SLOT id=7 x=790 y=631 lead=1.00
-[AQ] REVEAL id=6 weapon=SWIRL_SHIELD eta=0.98 lead=1.00 fighter=RUBBER
-[AQ] USE fighter=RUBBER weapon=SWIRL_SHIELD
-[AQ] PICKUP id=6 fighter=RUBBER weapon=SWIRL_SHIELD
-[AQ] SPAWN_SLOT id=8 x=174 y=907 lead=1.00
-[AQ] REVEAL id=3 weapon=SPIKED_CLUB eta=0.50 lead=1.00 fighter=ICE
-[AQ] PICKUP id=3 fighter=ICE weapon=SPIKED_CLUB
-[AQ] SPAWN_SLOT id=9 x=475 y=138 lead=1.00
-[AQ] USE fighter=ICE weapon=SPIKED_CLUB
-[AQ] HIT source=ICE target=RUBBER weapon=SPIKED_CLUB damage=18.0
-[AQ] CONSUME fighter=ICE weapon=SPIKED_CLUB reason=melee-resolved
-[AQ] SPAWN_SLOT id=10 x=828 y=184 lead=1.00
-[AQ] CONSUME fighter=RUBBER weapon=SWIRL_SHIELD reason=expired
-[AQ] REVEAL id=2 weapon=SPIKED_CLUB eta=1.00 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=2 fighter=RUBBER weapon=SPIKED_CLUB
-[AQ] SPAWN_SLOT id=11 x=524 y=404 lead=1.00
-[AQ] USE fighter=RUBBER weapon=SPIKED_CLUB
-[AQ] HIT source=RUBBER target=ICE weapon=SPIKED_CLUB damage=18.0
-[AQ] CONSUME fighter=RUBBER weapon=SPIKED_CLUB reason=melee-resolved
-[AQ] SPAWN_SLOT id=12 x=116 y=640 lead=1.00
-[AQ] REVEAL id=9 weapon=PISTOL eta=0.95 lead=1.00 fighter=ICE
-[AQ] PICKUP id=9 fighter=ICE weapon=PISTOL
-[AQ] USE fighter=ICE weapon=PISTOL
-[AQ] SPAWN_SLOT id=13 x=460 y=907 lead=1.00
-[AQ] CONSUME fighter=ICE weapon=PISTOL reason=sequence-complete
-[AQ] REVEAL id=11 weapon=SPEAR eta=0.94 lead=1.00 fighter=ICE
-[AQ] PICKUP id=11 fighter=ICE weapon=SPEAR
-[AQ] USE fighter=ICE weapon=SPEAR
-[AQ] HIT source=ICE target=RUBBER weapon=SPEAR damage=15.0
-[AQ] CONSUME fighter=ICE weapon=SPEAR reason=melee-resolved
-[AQ] SPAWN_SLOT id=14 x=488 y=714 lead=1.00
-[AQ] REVEAL id=13 weapon=SMG eta=0.07 lead=1.00 fighter=ICE
-[AQ] PICKUP id=13 fighter=ICE weapon=SMG
-[AQ] USE fighter=ICE weapon=SMG
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.4
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.4
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.4
-[AQ] CONSUME fighter=ICE weapon=SMG reason=sequence-complete
-[AQ] SPAWN_SLOT id=15 x=346 y=601 lead=1.00
-[AQ] SPAWN_SLOT id=16 x=663 y=878 lead=1.00
-[AQ] REVEAL id=8 weapon=SMG eta=0.04 lead=1.00 fighter=ICE
-[AQ] PICKUP id=8 fighter=ICE weapon=SMG
-[AQ] USE fighter=ICE weapon=SMG
-[AQ] CONSUME fighter=ICE weapon=SMG reason=sequence-complete
-[AQ] SPAWN_SLOT id=17 x=849 y=814 lead=1.00
-[AQ] REVEAL id=7 weapon=SNIPER eta=0.97 lead=1.00 fighter=RUBBER
-[AQ] REVEAL id=14 weapon=GRENADE eta=0.97 lead=1.00 fighter=ICE
-[AQ] PICKUP id=7 fighter=RUBBER weapon=SNIPER
-[AQ] USE fighter=RUBBER weapon=SNIPER
-[AQ] PICKUP id=14 fighter=ICE weapon=GRENADE
-[AQ] USE fighter=ICE weapon=GRENADE
-[AQ] CONSUME fighter=ICE weapon=GRENADE reason=thrown
-[AQ] CONSUME fighter=RUBBER weapon=SNIPER reason=shot-fired
-[AQ] HIT source=RUBBER target=ICE weapon=SNIPER damage=26.0
-[AQ] REVEAL id=10 weapon=SWIRL_SHIELD eta=0.98 lead=1.00 fighter=ICE
-[AQ] USE fighter=RUBBER weapon=SWIRL_SHIELD
-[AQ] PICKUP id=10 fighter=RUBBER weapon=SWIRL_SHIELD
-[AQ] SPAWN_SLOT id=18 x=680 y=451 lead=1.00
-[AQ] EXPLODE weapon=GRENADE x=862 y=941
-[AQ] REVEAL id=17 weapon=DAGGER eta=0.23 lead=1.00 fighter=ICE
-[AQ] REJECT_PICKUP fighter=RUBBER id=17 reason=already-armed
-[AQ] PICKUP id=17 fighter=ICE weapon=DAGGER
-[AQ] USE fighter=ICE weapon=DAGGER
-[AQ] HIT source=ICE target=RUBBER weapon=DAGGER damage=9.0
-[AQ] CONSUME fighter=ICE weapon=DAGGER reason=stab-landed
-[AQ] SPAWN_SLOT id=19 x=891 y=871 lead=1.00
-[AQ] SPAWN_SLOT id=20 x=322 y=229 lead=1.00
-[AQ] CONSUME fighter=RUBBER weapon=SWIRL_SHIELD reason=expired
-[AQ] SPAWN_SLOT id=21 x=891 y=544 lead=1.00
-[AQ] REVEAL id=20 weapon=SMG eta=0.30 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=20 fighter=RUBBER weapon=SMG
-[AQ] USE fighter=RUBBER weapon=SMG
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.4
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.4
-[AQ] REVEAL id=18 weapon=SPEAR eta=0.60 lead=1.00 fighter=ICE
-[AQ] CONSUME fighter=RUBBER weapon=SMG reason=sequence-complete
-[AQ] PICKUP id=18 fighter=ICE weapon=SPEAR
-[AQ] SPAWN_SLOT id=22 x=335 y=804 lead=1.00
-[AQ] SPAWN_SLOT id=23 x=513 y=808 lead=1.00
-[AQ] USE fighter=ICE weapon=SPEAR
-[AQ] HIT source=ICE target=RUBBER weapon=SPEAR damage=15.0
-[AQ] CONSUME fighter=ICE weapon=SPEAR reason=melee-resolved
-[AQ] SPAWN_SUPPRESSED active=8 cap=8
-[AQ] SPAWN_SUPPRESSED active=8 cap=8
-[AQ] SPAWN_SUPPRESSED active=8 cap=8
-[AQ] REVEAL id=21 weapon=SWIRL_SHIELD eta=0.09 lead=1.00 fighter=ICE
+[AQ] SPAWN_SLOT id=7 x=584 y=494 lead=1.00
+[AQ] SPAWN_SLOT id=8 x=91 y=855 lead=1.00
+[AQ] REVEAL id=8 weapon=TOWER_SHIELD eta=0.97 lead=1.00 fighter=ICE
+[AQ] USE fighter=ICE weapon=TOWER_SHIELD
+[AQ] PICKUP id=8 fighter=ICE weapon=TOWER_SHIELD
+[AQ] SPAWN_SLOT id=9 x=463 y=802 lead=1.00
+[AQ] CONSUME fighter=ICE weapon=TOWER_SHIELD reason=expired
+[AQ] SPAWN_SLOT id=10 x=191 y=804 lead=1.00
+[AQ] REVEAL id=7 weapon=SWIRL_SHIELD eta=0.42 lead=1.00 fighter=ICE
 [AQ] USE fighter=ICE weapon=SWIRL_SHIELD
-[AQ] PICKUP id=21 fighter=ICE weapon=SWIRL_SHIELD
-[AQ] SPAWN_SLOT id=24 x=543 y=264 lead=1.00
-[AQ] SPAWN_SUPPRESSED active=8 cap=8
+[AQ] PICKUP id=7 fighter=ICE weapon=SWIRL_SHIELD
+[AQ] SPAWN_SLOT id=11 x=594 y=172 lead=1.00
+[AQ] SPAWN_SLOT id=12 x=342 y=156 lead=1.00
+[AQ] REVEAL id=6 weapon=SABRE eta=0.20 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=6 fighter=RUBBER weapon=SABRE
+[AQ] USE fighter=RUBBER weapon=SABRE
+[AQ] HIT source=RUBBER target=ICE weapon=SABRE damage=12.0
+[AQ] CONSUME fighter=RUBBER weapon=SABRE reason=melee-resolved
+[AQ] SPAWN_SLOT id=13 x=609 y=523 lead=1.00
+[AQ] REVEAL id=11 weapon=SHOTGUN eta=0.26 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=11 fighter=RUBBER weapon=SHOTGUN
 [AQ] CONSUME fighter=ICE weapon=SWIRL_SHIELD reason=expired
-[AQ] SPAWN_SUPPRESSED active=8 cap=8
-[AQ] REVEAL id=23 weapon=SHOTGUN eta=0.99 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=23 fighter=RUBBER weapon=SHOTGUN
 [AQ] USE fighter=RUBBER weapon=SHOTGUN
 [AQ] CONSUME fighter=RUBBER weapon=SHOTGUN reason=blast-resolved
 [AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=3.6
-[AQ] SPAWN_SLOT id=25 x=801 y=381 lead=1.00
-[AQ] REVEAL id=25 weapon=SPEAR eta=0.71 lead=1.00 fighter=ICE
-[AQ] PICKUP id=25 fighter=ICE weapon=SPEAR
-[AQ] SPAWN_SLOT id=26 x=693 y=376 lead=1.00
-[AQ] REVEAL id=12 weapon=SABRE eta=0.70 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=12 fighter=RUBBER weapon=SABRE
-[AQ] SPAWN_SLOT id=27 x=124 y=259 lead=1.00
-[AQ] USE fighter=ICE weapon=SPEAR
+[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=3.6
+[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=3.6
+[AQ] REVEAL id=9 weapon=BATTLE_AXE eta=0.99 lead=1.00 fighter=RUBBER
+[AQ] SPAWN_SLOT id=14 x=154 y=422 lead=1.00
+[AQ] PICKUP id=9 fighter=RUBBER weapon=BATTLE_AXE
+[AQ] USE fighter=RUBBER weapon=BATTLE_AXE
+[AQ] CONSUME fighter=RUBBER weapon=BATTLE_AXE reason=melee-resolved
+[AQ] REVEAL id=1 weapon=SNIPER eta=0.13 lead=1.00 fighter=ICE
+[AQ] PICKUP id=1 fighter=ICE weapon=SNIPER
+[AQ] SPAWN_SLOT id=15 x=355 y=310 lead=1.00
+[AQ] USE fighter=ICE weapon=SNIPER
+[AQ] CONSUME fighter=ICE weapon=SNIPER reason=shot-fired
+[AQ] HIT source=ICE target=RUBBER weapon=SNIPER damage=26.0
+[AQ] SPAWN_SLOT id=16 x=165 y=232 lead=1.00
+[AQ] REVEAL id=10 weapon=TOWER_SHIELD eta=0.28 lead=1.00 fighter=RUBBER
+[AQ] USE fighter=RUBBER weapon=TOWER_SHIELD
+[AQ] PICKUP id=10 fighter=RUBBER weapon=TOWER_SHIELD
+[AQ] SPAWN_SLOT id=17 x=419 y=641 lead=1.00
+[AQ] CONSUME fighter=RUBBER weapon=TOWER_SHIELD reason=expired
+[AQ] SPAWN_SLOT id=18 x=904 y=225 lead=1.00
+[AQ] REVEAL id=15 weapon=SABRE eta=0.14 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=15 fighter=RUBBER weapon=SABRE
+[AQ] USE fighter=RUBBER weapon=SABRE
+[AQ] HIT source=RUBBER target=ICE weapon=SABRE damage=12.0
+[AQ] CONSUME fighter=RUBBER weapon=SABRE reason=melee-resolved
+[AQ] REVEAL id=16 weapon=GRENADE eta=0.23 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=16 fighter=RUBBER weapon=GRENADE
+[AQ] USE fighter=RUBBER weapon=GRENADE
+[AQ] CONSUME fighter=RUBBER weapon=GRENADE reason=thrown
+[AQ] SPAWN_SLOT id=19 x=504 y=286 lead=1.00
+[AQ] EXPLODE weapon=GRENADE x=232 y=745
+[AQ] SPAWN_SLOT id=20 x=318 y=312 lead=1.00
+[AQ] REVEAL id=12 weapon=GRENADE eta=0.53 lead=1.00 fighter=RUBBER
+[AQ] REVEAL id=17 weapon=SMG eta=0.71 lead=1.00 fighter=ICE
+[AQ] PICKUP id=12 fighter=RUBBER weapon=GRENADE
+[AQ] PICKUP id=17 fighter=ICE weapon=SMG
+[AQ] USE fighter=RUBBER weapon=GRENADE
+[AQ] CONSUME fighter=RUBBER weapon=GRENADE reason=thrown
+[AQ] USE fighter=ICE weapon=SMG
+[AQ] CONSUME fighter=ICE weapon=SMG reason=sequence-complete
+[AQ] EXPLODE weapon=GRENADE x=463 y=661
+[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.4
+[AQ] SPAWN_SLOT id=21 x=681 y=229 lead=1.00
+[AQ] REVEAL id=21 weapon=BATTLE_AXE eta=0.99 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=21 fighter=RUBBER weapon=BATTLE_AXE
+[AQ] SPAWN_SLOT id=22 x=888 y=836 lead=1.00
+[AQ] USE fighter=RUBBER weapon=BATTLE_AXE
+[AQ] REVEAL id=19 weapon=BATTLE_AXE eta=0.14 lead=1.00 fighter=ICE
+[AQ] PICKUP id=19 fighter=ICE weapon=BATTLE_AXE
+[AQ] USE fighter=ICE weapon=BATTLE_AXE
+[AQ] CONSUME fighter=RUBBER weapon=BATTLE_AXE reason=melee-resolved
+[AQ] CONSUME fighter=ICE weapon=BATTLE_AXE reason=melee-resolved
+[AQ] REVEAL id=20 weapon=SHOTGUN eta=0.97 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=20 fighter=RUBBER weapon=SHOTGUN
+[AQ] USE fighter=RUBBER weapon=SHOTGUN
+[AQ] CONSUME fighter=RUBBER weapon=SHOTGUN reason=blast-resolved
+[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=3.6
+[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=3.6
+[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=3.6
+[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=3.6
+[AQ] REVEAL id=13 weapon=DAGGER eta=0.55 lead=1.00 fighter=ICE
+[AQ] PICKUP id=13 fighter=ICE weapon=DAGGER
+[AQ] SPAWN_SLOT id=23 x=375 y=359 lead=1.00
+[AQ] USE fighter=ICE weapon=DAGGER
+[AQ] HIT source=ICE target=RUBBER weapon=DAGGER damage=9.0
+[AQ] CONSUME fighter=ICE weapon=DAGGER reason=stab-landed
+[AQ] SPAWN_SLOT id=24 x=558 y=400 lead=1.00
+[AQ] SPAWN_SLOT id=25 x=591 y=813 lead=1.00
+[AQ] REVEAL id=5 weapon=TOWER_SHIELD eta=0.76 lead=1.00 fighter=RUBBER
+[AQ] REVEAL id=23 weapon=SWIRL_SHIELD eta=0.60 lead=1.00 fighter=ICE
+[AQ] USE fighter=RUBBER weapon=TOWER_SHIELD
+[AQ] PICKUP id=5 fighter=RUBBER weapon=TOWER_SHIELD
+[AQ] USE fighter=ICE weapon=SWIRL_SHIELD
+[AQ] PICKUP id=23 fighter=ICE weapon=SWIRL_SHIELD
+[AQ] SPAWN_SLOT id=26 x=342 y=221 lead=1.00
+[AQ] CONSUME fighter=RUBBER weapon=TOWER_SHIELD reason=expired
+[AQ] REVEAL id=18 weapon=TOWER_SHIELD eta=0.29 lead=1.00 fighter=RUBBER
+[AQ] USE fighter=RUBBER weapon=TOWER_SHIELD
+[AQ] PICKUP id=18 fighter=RUBBER weapon=TOWER_SHIELD
+[AQ] SPAWN_SLOT id=27 x=890 y=314 lead=1.00
+[AQ] CONSUME fighter=RUBBER weapon=TOWER_SHIELD reason=expired
+[AQ] REVEAL id=27 weapon=SNIPER eta=0.97 lead=1.00 fighter=RUBBER
+[AQ] SPAWN_SLOT id=28 x=617 y=230 lead=1.00
+[AQ] CONSUME fighter=ICE weapon=SWIRL_SHIELD reason=expired
+[AQ] PICKUP id=27 fighter=RUBBER weapon=SNIPER
+[AQ] USE fighter=RUBBER weapon=SNIPER
+[AQ] CONSUME fighter=RUBBER weapon=SNIPER reason=shot-fired
+[AQ] HIT source=RUBBER target=ICE weapon=SNIPER damage=26.0
+[AQ] SPAWN_SLOT id=29 x=324 y=815 lead=1.00
+[AQ] REVEAL id=22 weapon=TOWER_SHIELD eta=0.38 lead=1.00 fighter=RUBBER
+[AQ] USE fighter=RUBBER weapon=TOWER_SHIELD
+[AQ] PICKUP id=22 fighter=RUBBER weapon=TOWER_SHIELD
+[AQ] REVEAL id=29 weapon=GRENADE eta=0.98 lead=1.00 fighter=ICE
+[AQ] PICKUP id=29 fighter=ICE weapon=GRENADE
+[AQ] SPAWN_SLOT id=30 x=229 y=673 lead=1.00
+[AQ] USE fighter=ICE weapon=GRENADE
+[AQ] CONSUME fighter=ICE weapon=GRENADE reason=thrown
+[AQ] EXPLODE weapon=GRENADE x=712 y=767
+[AQ] CONSUME fighter=RUBBER weapon=TOWER_SHIELD reason=expired
+[AQ] SPAWN_SLOT id=31 x=455 y=670 lead=1.00
+[AQ] SPAWN_SLOT id=32 x=359 y=539 lead=1.00
+[AQ] REVEAL id=28 weapon=SHOTGUN eta=0.25 lead=1.00 fighter=ICE
+[AQ] PICKUP id=28 fighter=ICE weapon=SHOTGUN
+[AQ] SPAWN_SLOT id=33 x=842 y=540 lead=1.00
+[AQ] USE fighter=ICE weapon=SHOTGUN
+[AQ] CONSUME fighter=ICE weapon=SHOTGUN reason=blast-resolved
+[AQ] REVEAL id=32 weapon=SPIKED_CLUB eta=0.90 lead=1.00 fighter=ICE
 [AQ] SPAWN_SUPPRESSED active=8 cap=8
+[AQ] REVEAL id=25 weapon=TOWER_SHIELD eta=0.72 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=32 fighter=ICE weapon=SPIKED_CLUB
+[AQ] USE fighter=RUBBER weapon=TOWER_SHIELD
+[AQ] PICKUP id=25 fighter=RUBBER weapon=TOWER_SHIELD
+[AQ] USE fighter=ICE weapon=SPIKED_CLUB
+[AQ] HIT source=ICE target=RUBBER weapon=SPIKED_CLUB damage=4.5
+[AQ] CONSUME fighter=ICE weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] SPAWN_SLOT id=34 x=763 y=99 lead=1.00
+[AQ] CONSUME fighter=RUBBER weapon=TOWER_SHIELD reason=expired
+[AQ] SPAWN_SLOT id=35 x=625 y=880 lead=1.00
+[AQ] REVEAL id=35 weapon=TOWER_SHIELD eta=0.14 lead=1.00 fighter=ICE
+[AQ] USE fighter=ICE weapon=TOWER_SHIELD
+[AQ] PICKUP id=35 fighter=ICE weapon=TOWER_SHIELD
+[AQ] SPAWN_SLOT id=36 x=802 y=714 lead=1.00
+[AQ] CONSUME fighter=ICE weapon=TOWER_SHIELD reason=expired
+[AQ] REVEAL id=33 weapon=SNIPER eta=0.63 lead=1.00 fighter=ICE
+[AQ] REVEAL id=36 weapon=SPEAR eta=0.97 lead=1.00 fighter=ICE
+[AQ] PICKUP id=33 fighter=ICE weapon=SNIPER
+[AQ] SPAWN_SLOT id=37 x=892 y=459 lead=1.00
+[AQ] REVEAL id=37 weapon=SHOTGUN eta=1.00 lead=1.00 fighter=RUBBER
+[AQ] REJECT_PICKUP fighter=ICE id=37 reason=already-armed
+[AQ] REJECT_PICKUP fighter=ICE id=36 reason=already-armed
+[AQ] USE fighter=ICE weapon=SNIPER
+[AQ] CONSUME fighter=ICE weapon=SNIPER reason=shot-fired
+[AQ] REVEAL id=24 weapon=SPIKED_CLUB eta=0.99 lead=1.00 fighter=ICE
+[AQ] PICKUP id=36 fighter=ICE weapon=SPEAR
+[AQ] HIT source=ICE target=RUBBER weapon=SNIPER damage=26.0
+[AQ] REJECT_PICKUP fighter=ICE id=24 reason=already-armed
+[AQ] USE fighter=ICE weapon=SPEAR
 [AQ] HIT source=ICE target=RUBBER weapon=SPEAR damage=15.0
 [AQ] CONSUME fighter=ICE weapon=SPEAR reason=melee-resolved
 [AQ] KO winner=ICE
@@ -1008,335 +1070,73 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=841 y=238 lead=1.00
-[AQ] SPAWN_SLOT id=2 x=811 y=808 lead=1.00
-[AQ] SPAWN_SLOT id=3 x=679 y=419 lead=1.00
-[AQ] SPAWN_SLOT id=4 x=303 y=686 lead=1.00
-[AQ] REVEAL id=3 weapon=TOWER_SHIELD eta=1.00 lead=1.00 fighter=ICE
-[AQ] REVEAL id=2 weapon=PISTOL eta=0.65 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=2 fighter=ICE weapon=PISTOL
-[AQ] USE fighter=ICE weapon=PISTOL
-[AQ] REJECT_PICKUP fighter=ICE id=3 reason=already-armed
-[AQ] CONSUME fighter=ICE weapon=PISTOL reason=sequence-complete
-[AQ] HIT source=ICE target=RUBBER weapon=PISTOL damage=4.5
-[AQ] SPAWN_SLOT id=5 x=829 y=524 lead=1.00
-[AQ] SPAWN_SLOT id=6 x=176 y=868 lead=1.00
-[AQ] REVEAL id=6 weapon=GRENADE eta=0.12 lead=1.00 fighter=ICE
-[AQ] PICKUP id=6 fighter=ICE weapon=GRENADE
-[AQ] USE fighter=ICE weapon=GRENADE
-[AQ] CONSUME fighter=ICE weapon=GRENADE reason=thrown
-[AQ] EXPLODE weapon=GRENADE x=647 y=675
-[AQ] SPAWN_SLOT id=7 x=159 y=822 lead=1.00
-[AQ] SPAWN_SLOT id=8 x=133 y=348 lead=1.00
-[AQ] USE fighter=ICE weapon=TOWER_SHIELD
-[AQ] PICKUP id=3 fighter=ICE weapon=TOWER_SHIELD
-[AQ] SPAWN_SLOT id=9 x=598 y=130 lead=1.00
-[AQ] REVEAL id=5 weapon=SMG eta=0.24 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=5 fighter=RUBBER weapon=SMG
-[AQ] USE fighter=RUBBER weapon=SMG
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=0.6
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=0.6
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=0.6
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=0.6
-[AQ] CONSUME fighter=RUBBER weapon=SMG reason=sequence-complete
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=0.6
-[AQ] CONSUME fighter=ICE weapon=TOWER_SHIELD reason=expired
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.4
-[AQ] SPAWN_SLOT id=10 x=496 y=246 lead=1.00
-[AQ] REVEAL id=9 weapon=SPIKED_CLUB eta=0.20 lead=1.00 fighter=ICE
-[AQ] PICKUP id=9 fighter=ICE weapon=SPIKED_CLUB
-[AQ] SPAWN_SLOT id=11 x=633 y=858 lead=1.00
-[AQ] USE fighter=ICE weapon=SPIKED_CLUB
-[AQ] HIT source=ICE target=RUBBER weapon=SPIKED_CLUB damage=18.0
-[AQ] CONSUME fighter=ICE weapon=SPIKED_CLUB reason=melee-resolved
-[AQ] SPAWN_SLOT id=12 x=692 y=462 lead=1.00
-[AQ] REVEAL id=12 weapon=SMG eta=0.30 lead=1.00 fighter=ICE
-[AQ] PICKUP id=12 fighter=ICE weapon=SMG
-[AQ] USE fighter=ICE weapon=SMG
-[AQ] CONSUME fighter=ICE weapon=SMG reason=sequence-complete
-[AQ] REVEAL id=4 weapon=SPEAR eta=0.73 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=4 fighter=RUBBER weapon=SPEAR
-[AQ] USE fighter=RUBBER weapon=SPEAR
-[AQ] HIT source=RUBBER target=ICE weapon=SPEAR damage=15.0
-[AQ] CONSUME fighter=RUBBER weapon=SPEAR reason=melee-resolved
-[AQ] SPAWN_SLOT id=13 x=640 y=575 lead=1.00
-[AQ] REVEAL id=1 weapon=GRENADE eta=0.18 lead=1.00 fighter=ICE
-[AQ] PICKUP id=1 fighter=ICE weapon=GRENADE
-[AQ] USE fighter=ICE weapon=GRENADE
-[AQ] CONSUME fighter=ICE weapon=GRENADE reason=thrown
-[AQ] EXPLODE weapon=GRENADE x=266 y=488
-[AQ] SPAWN_SLOT id=14 x=91 y=608 lead=1.00
-[AQ] REVEAL id=13 weapon=DAGGER eta=0.71 lead=1.00 fighter=ICE
-[AQ] REVEAL id=8 weapon=SABRE eta=0.19 lead=1.00 fighter=ICE
-[AQ] PICKUP id=8 fighter=ICE weapon=SABRE
-[AQ] SPAWN_SLOT id=15 x=362 y=624 lead=1.00
-[AQ] REJECT_PICKUP fighter=ICE id=13 reason=already-armed
-[AQ] USE fighter=ICE weapon=SABRE
-[AQ] HIT source=ICE target=RUBBER weapon=SABRE damage=12.0
-[AQ] CONSUME fighter=ICE weapon=SABRE reason=melee-resolved
-[AQ] SPAWN_SLOT id=16 x=842 y=705 lead=1.00
-[AQ] REVEAL id=10 weapon=SWIRL_SHIELD eta=0.94 lead=1.00 fighter=RUBBER
-[AQ] USE fighter=ICE weapon=SWIRL_SHIELD
-[AQ] PICKUP id=10 fighter=ICE weapon=SWIRL_SHIELD
-[AQ] PICKUP id=13 fighter=RUBBER weapon=DAGGER
-[AQ] SPAWN_SLOT id=17 x=113 y=190 lead=1.00
-[AQ] USE fighter=RUBBER weapon=DAGGER
-[AQ] HIT source=RUBBER target=ICE weapon=DAGGER damage=9.0
-[AQ] CONSUME fighter=RUBBER weapon=DAGGER reason=stab-landed
-[AQ] SPAWN_SLOT id=18 x=166 y=461 lead=1.00
-[AQ] CONSUME fighter=ICE weapon=SWIRL_SHIELD reason=expired
-[AQ] SPAWN_SLOT id=19 x=577 y=341 lead=1.00
-[AQ] REVEAL id=14 weapon=DAGGER eta=0.11 lead=1.00 fighter=ICE
-[AQ] PICKUP id=14 fighter=ICE weapon=DAGGER
-[AQ] USE fighter=ICE weapon=DAGGER
-[AQ] HIT source=ICE target=RUBBER weapon=DAGGER damage=9.0
-[AQ] CONSUME fighter=ICE weapon=DAGGER reason=stab-landed
-[AQ] REVEAL id=18 weapon=PISTOL eta=0.52 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=18 fighter=RUBBER weapon=PISTOL
-[AQ] USE fighter=RUBBER weapon=PISTOL
-[AQ] HIT source=RUBBER target=ICE weapon=PISTOL damage=4.5
-[AQ] SPAWN_SLOT id=20 x=111 y=363 lead=1.00
-[AQ] CONSUME fighter=RUBBER weapon=PISTOL reason=sequence-complete
-[AQ] REVEAL id=19 weapon=GRENADE eta=0.71 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=19 fighter=RUBBER weapon=GRENADE
-[AQ] USE fighter=RUBBER weapon=GRENADE
-[AQ] CONSUME fighter=RUBBER weapon=GRENADE reason=thrown
-[AQ] SPAWN_SLOT id=21 x=607 y=262 lead=1.00
-[AQ] REVEAL id=15 weapon=PISTOL eta=0.58 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=15 fighter=RUBBER weapon=PISTOL
-[AQ] EXPLODE weapon=GRENADE x=877 y=214
+[AQ] SPAWN_SLOT id=1 x=173 y=602 lead=1.00
+[AQ] SPAWN_SLOT id=2 x=340 y=490 lead=1.00
+[AQ] SPAWN_SLOT id=3 x=344 y=660 lead=1.00
+[AQ] SPAWN_SLOT id=4 x=882 y=546 lead=1.00
+[AQ] SPAWN_SLOT id=5 x=653 y=758 lead=1.00
+[AQ] REVEAL id=5 weapon=PISTOL eta=0.23 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=5 fighter=RUBBER weapon=PISTOL
 [AQ] USE fighter=RUBBER weapon=PISTOL
 [AQ] CONSUME fighter=RUBBER weapon=PISTOL reason=sequence-complete
-[AQ] HIT source=RUBBER target=ICE weapon=PISTOL damage=4.5
-[AQ] SPAWN_SLOT id=22 x=175 y=566 lead=1.00
-[AQ] REVEAL id=20 weapon=SPIKED_CLUB eta=0.38 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=20 fighter=RUBBER weapon=SPIKED_CLUB
-[AQ] SPAWN_SLOT id=23 x=383 y=156 lead=1.00
-[AQ] USE fighter=RUBBER weapon=SPIKED_CLUB
-[AQ] HIT source=RUBBER target=ICE weapon=SPIKED_CLUB damage=18.0
-[AQ] CONSUME fighter=RUBBER weapon=SPIKED_CLUB reason=melee-resolved
-[AQ] SPAWN_SLOT id=24 x=327 y=388 lead=1.00
-[AQ] REVEAL id=22 weapon=SHOTGUN eta=0.23 lead=1.00 fighter=ICE
-[AQ] PICKUP id=22 fighter=ICE weapon=SHOTGUN
-[AQ] USE fighter=ICE weapon=SHOTGUN
-[AQ] CONSUME fighter=ICE weapon=SHOTGUN reason=blast-resolved
-[AQ] SPAWN_SLOT id=25 x=454 y=795 lead=1.00
-[AQ] REVEAL id=7 weapon=SNIPER eta=0.97 lead=1.00 fighter=ICE
-[AQ] PICKUP id=7 fighter=RUBBER weapon=SNIPER
-[AQ] USE fighter=RUBBER weapon=SNIPER
-[AQ] CONSUME fighter=RUBBER weapon=SNIPER reason=shot-fired
-[AQ] REVEAL id=11 weapon=TOWER_SHIELD eta=0.57 lead=1.00 fighter=RUBBER
-[AQ] HIT source=RUBBER target=ICE weapon=SNIPER damage=26.0
-[AQ] SPAWN_SLOT id=26 x=167 y=344 lead=1.00
-[AQ] USE fighter=RUBBER weapon=TOWER_SHIELD
-[AQ] PICKUP id=11 fighter=RUBBER weapon=TOWER_SHIELD
-[AQ] REVEAL id=24 weapon=PISTOL eta=0.50 lead=1.00 fighter=ICE
-[AQ] PICKUP id=24 fighter=ICE weapon=PISTOL
-[AQ] CONSUME fighter=RUBBER weapon=TOWER_SHIELD reason=expired
-[AQ] USE fighter=ICE weapon=PISTOL
-[AQ] SPAWN_SLOT id=27 x=585 y=697 lead=1.00
-[AQ] CONSUME fighter=ICE weapon=PISTOL reason=sequence-complete
-[AQ] REVEAL id=23 weapon=SABRE eta=0.97 lead=1.00 fighter=ICE
-[AQ] PICKUP id=23 fighter=ICE weapon=SABRE
-[AQ] REVEAL id=25 weapon=SNIPER eta=0.91 lead=1.00 fighter=RUBBER
-[AQ] SPAWN_SLOT id=28 x=578 y=898 lead=1.00
-[AQ] PICKUP id=25 fighter=RUBBER weapon=SNIPER
-[AQ] USE fighter=RUBBER weapon=SNIPER
-[AQ] CONSUME fighter=RUBBER weapon=SNIPER reason=shot-fired
-[AQ] REVEAL id=16 weapon=SMG eta=0.98 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=16 fighter=RUBBER weapon=SMG
-[AQ] USE fighter=RUBBER weapon=SMG
-[AQ] SPAWN_SLOT id=29 x=160 y=909 lead=1.00
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.4
-[AQ] CONSUME fighter=RUBBER weapon=SMG reason=sequence-complete
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.4
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.4
-[AQ] HIT source=RUBBER target=ICE weapon=SMG damage=2.4
-[AQ] USE fighter=ICE weapon=SABRE
-[AQ] HIT source=ICE target=RUBBER weapon=SABRE damage=12.0
-[AQ] CONSUME fighter=ICE weapon=SABRE reason=melee-resolved
-[AQ] SPAWN_SLOT id=30 x=770 y=108 lead=1.00
-[AQ] REVEAL id=29 weapon=SWIRL_SHIELD eta=0.19 lead=1.00 fighter=RUBBER
-[AQ] USE fighter=RUBBER weapon=SWIRL_SHIELD
-[AQ] PICKUP id=29 fighter=RUBBER weapon=SWIRL_SHIELD
-[AQ] REVEAL id=21 weapon=SMG eta=0.91 lead=1.00 fighter=ICE
-[AQ] REJECT_PICKUP fighter=RUBBER id=21 reason=already-armed
-[AQ] PICKUP id=21 fighter=ICE weapon=SMG
-[AQ] USE fighter=ICE weapon=SMG
-[AQ] SPAWN_SLOT id=31 x=414 y=881 lead=1.00
-[AQ] CONSUME fighter=ICE weapon=SMG reason=sequence-complete
-[AQ] REVEAL id=31 weapon=SPIKED_CLUB eta=0.89 lead=1.00 fighter=ICE
-[AQ] REFLECT fighter=RUBBER weapon=SWIRL_SHIELD projectileFrom=ICE
-[AQ] CONSUME fighter=RUBBER weapon=SWIRL_SHIELD reason=reflect-resolved
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.4
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.4
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.4
-[AQ] PICKUP id=31 fighter=ICE weapon=SPIKED_CLUB
-[AQ] SPAWN_SLOT id=32 x=214 y=625 lead=1.00
-[AQ] REVEAL id=27 weapon=DAGGER eta=0.46 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=27 fighter=RUBBER weapon=DAGGER
-[AQ] SPAWN_SLOT id=33 x=468 y=237 lead=1.00
-[AQ] USE fighter=ICE weapon=SPIKED_CLUB
-[AQ] USE fighter=RUBBER weapon=DAGGER
-[AQ] HIT source=RUBBER target=ICE weapon=DAGGER damage=9.0
-[AQ] CONSUME fighter=RUBBER weapon=DAGGER reason=stab-landed
-[AQ] HIT source=ICE target=RUBBER weapon=SPIKED_CLUB damage=18.0
-[AQ] CONSUME fighter=ICE weapon=SPIKED_CLUB reason=melee-resolved
-[AQ] SPAWN_SLOT id=34 x=779 y=832 lead=1.00
-[AQ] SPAWN_SLOT id=35 x=516 y=587 lead=1.00
-[AQ] SPAWN_SUPPRESSED active=8 cap=8
-[AQ] REVEAL id=32 weapon=DAGGER eta=0.33 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=32 fighter=RUBBER weapon=DAGGER
-[AQ] USE fighter=RUBBER weapon=DAGGER
-[AQ] HIT source=RUBBER target=ICE weapon=DAGGER damage=9.0
-[AQ] KO winner=RUBBER
-[AQ] MODE_ENTER mode=ARSENAL_QUEST
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=218 y=182 lead=1.00
-[AQ] SPAWN_SLOT id=2 x=176 y=505 lead=1.00
-[AQ] SPAWN_SLOT id=3 x=472 y=218 lead=1.00
-[AQ] REVEAL id=2 weapon=SWIRL_SHIELD eta=0.61 lead=1.00 fighter=ICE
-[AQ] USE fighter=ICE weapon=SWIRL_SHIELD
-[AQ] PICKUP id=2 fighter=ICE weapon=SWIRL_SHIELD
-[AQ] SPAWN_SLOT id=4 x=628 y=191 lead=1.00
-[AQ] SPAWN_SLOT id=5 x=740 y=613 lead=1.00
-[AQ] CONSUME fighter=ICE weapon=SWIRL_SHIELD reason=expired
-[AQ] REVEAL id=4 weapon=SPEAR eta=0.83 lead=1.00 fighter=ICE
-[AQ] PICKUP id=4 fighter=RUBBER weapon=SPEAR
-[AQ] SPAWN_SLOT id=6 x=877 y=434 lead=1.00
-[AQ] USE fighter=RUBBER weapon=SPEAR
-[AQ] HIT source=RUBBER target=ICE weapon=SPEAR damage=15.0
-[AQ] CONSUME fighter=RUBBER weapon=SPEAR reason=melee-resolved
-[AQ] SPAWN_SLOT id=7 x=308 y=543 lead=1.00
-[AQ] REVEAL id=1 weapon=SMG eta=1.00 lead=1.00 fighter=ICE
-[AQ] PICKUP id=1 fighter=ICE weapon=SMG
-[AQ] SPAWN_SLOT id=8 x=881 y=771 lead=1.00
-[AQ] USE fighter=ICE weapon=SMG
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.4
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.4
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.4
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.4
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.4
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.4
-[AQ] CONSUME fighter=ICE weapon=SMG reason=sequence-complete
-[AQ] HIT source=ICE target=RUBBER weapon=SMG damage=2.4
-[AQ] SPAWN_SLOT id=9 x=745 y=247 lead=1.00
-[AQ] REVEAL id=9 weapon=SHOTGUN eta=0.35 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=9 fighter=RUBBER weapon=SHOTGUN
-[AQ] USE fighter=RUBBER weapon=SHOTGUN
-[AQ] CONSUME fighter=RUBBER weapon=SHOTGUN reason=blast-resolved
-[AQ] SPAWN_SLOT id=10 x=259 y=199 lead=1.00
-[AQ] REVEAL id=3 weapon=SNIPER eta=0.76 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=3 fighter=RUBBER weapon=SNIPER
-[AQ] USE fighter=RUBBER weapon=SNIPER
-[AQ] REVEAL id=7 weapon=TOWER_SHIELD eta=0.99 lead=1.00 fighter=ICE
-[AQ] USE fighter=ICE weapon=TOWER_SHIELD
-[AQ] PICKUP id=7 fighter=ICE weapon=TOWER_SHIELD
-[AQ] CONSUME fighter=RUBBER weapon=SNIPER reason=shot-fired
-[AQ] REVEAL id=10 weapon=BATTLE_AXE eta=0.98 lead=1.00 fighter=RUBBER
-[AQ] HIT source=RUBBER target=ICE weapon=SNIPER damage=6.5
-[AQ] SPAWN_SLOT id=11 x=652 y=449 lead=1.00
-[AQ] PICKUP id=10 fighter=RUBBER weapon=BATTLE_AXE
-[AQ] CONSUME fighter=ICE weapon=TOWER_SHIELD reason=expired
-[AQ] SPAWN_SLOT id=12 x=408 y=258 lead=1.00
-[AQ] SPAWN_SLOT id=13 x=379 y=897 lead=1.00
-[AQ] REVEAL id=13 weapon=SNIPER eta=0.99 lead=1.00 fighter=ICE
-[AQ] PICKUP id=13 fighter=ICE weapon=SNIPER
-[AQ] USE fighter=ICE weapon=SNIPER
-[AQ] CONSUME fighter=ICE weapon=SNIPER reason=shot-fired
-[AQ] SPAWN_SLOT id=14 x=255 y=421 lead=1.00
-[AQ] SPAWN_SLOT id=15 x=667 y=191 lead=1.00
-[AQ] REVEAL id=5 weapon=DAGGER eta=0.36 lead=1.00 fighter=ICE
-[AQ] PICKUP id=5 fighter=ICE weapon=DAGGER
-[AQ] SPAWN_SLOT id=16 x=640 y=699 lead=1.00
-[AQ] SPAWN_SLOT id=17 x=315 y=700 lead=1.00
-[AQ] USE fighter=RUBBER weapon=BATTLE_AXE
-[AQ] USE fighter=ICE weapon=DAGGER
-[AQ] HIT source=ICE target=RUBBER weapon=DAGGER damage=9.0
-[AQ] CONSUME fighter=ICE weapon=DAGGER reason=stab-landed
-[AQ] HIT source=RUBBER target=ICE weapon=BATTLE_AXE damage=26.0
-[AQ] CONSUME fighter=RUBBER weapon=BATTLE_AXE reason=melee-resolved
-[AQ] REVEAL id=12 weapon=SWIRL_SHIELD eta=0.93 lead=1.00 fighter=ICE
-[AQ] USE fighter=ICE weapon=SWIRL_SHIELD
-[AQ] PICKUP id=12 fighter=ICE weapon=SWIRL_SHIELD
-[AQ] SPAWN_SLOT id=18 x=496 y=145 lead=1.00
-[AQ] SPAWN_SUPPRESSED active=8 cap=8
-[AQ] SPAWN_SUPPRESSED active=8 cap=8
-[AQ] CONSUME fighter=ICE weapon=SWIRL_SHIELD reason=expired
-[AQ] REVEAL id=15 weapon=TOWER_SHIELD eta=0.28 lead=1.00 fighter=ICE
-[AQ] USE fighter=ICE weapon=TOWER_SHIELD
-[AQ] PICKUP id=15 fighter=ICE weapon=TOWER_SHIELD
-[AQ] SPAWN_SLOT id=19 x=278 y=233 lead=1.00
-[AQ] REVEAL id=18 weapon=SNIPER eta=0.21 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=18 fighter=RUBBER weapon=SNIPER
-[AQ] USE fighter=RUBBER weapon=SNIPER
-[AQ] CONSUME fighter=RUBBER weapon=SNIPER reason=shot-fired
-[AQ] CONSUME fighter=ICE weapon=TOWER_SHIELD reason=expired
-[AQ] SPAWN_SLOT id=20 x=476 y=698 lead=1.00
-[AQ] REVEAL id=17 weapon=SMG eta=0.60 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=17 fighter=ICE weapon=SMG
-[AQ] USE fighter=ICE weapon=SMG
-[AQ] CONSUME fighter=ICE weapon=SMG reason=sequence-complete
-[AQ] SPAWN_SLOT id=21 x=289 y=687 lead=1.00
-[AQ] REVEAL id=14 weapon=SWIRL_SHIELD eta=1.00 lead=1.00 fighter=RUBBER
-[AQ] USE fighter=RUBBER weapon=SWIRL_SHIELD
-[AQ] PICKUP id=14 fighter=RUBBER weapon=SWIRL_SHIELD
-[AQ] SPAWN_SLOT id=22 x=292 y=841 lead=1.00
-[AQ] REVEAL id=6 weapon=SABRE eta=0.10 lead=1.00 fighter=ICE
-[AQ] PICKUP id=6 fighter=ICE weapon=SABRE
-[AQ] SPAWN_SLOT id=23 x=189 y=378 lead=1.00
-[AQ] USE fighter=ICE weapon=SABRE
-[AQ] SPAWN_SUPPRESSED active=8 cap=8
-[AQ] HIT source=ICE target=RUBBER weapon=SABRE damage=12.0
-[AQ] CONSUME fighter=ICE weapon=SABRE reason=melee-resolved
-[AQ] CONSUME fighter=RUBBER weapon=SWIRL_SHIELD reason=expired
-[AQ] SPAWN_SUPPRESSED active=8 cap=8
-[AQ] REVEAL id=23 weapon=DAGGER eta=0.97 lead=1.00 fighter=ICE
-[AQ] PICKUP id=23 fighter=ICE weapon=DAGGER
-[AQ] SPAWN_SLOT id=24 x=852 y=151 lead=1.00
-[AQ] REVEAL id=16 weapon=SABRE eta=0.65 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=16 fighter=RUBBER weapon=SABRE
+[AQ] SPAWN_SLOT id=6 x=428 y=264 lead=1.00
+[AQ] SPAWN_SLOT id=7 x=537 y=497 lead=1.00
+[AQ] REVEAL id=6 weapon=SABRE eta=0.37 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=6 fighter=RUBBER weapon=SABRE
+[AQ] SPAWN_SLOT id=8 x=578 y=119 lead=1.00
 [AQ] USE fighter=RUBBER weapon=SABRE
-[AQ] USE fighter=ICE weapon=DAGGER
 [AQ] HIT source=RUBBER target=ICE weapon=SABRE damage=12.0
 [AQ] CONSUME fighter=RUBBER weapon=SABRE reason=melee-resolved
-[AQ] HIT source=ICE target=RUBBER weapon=DAGGER damage=9.0
-[AQ] CONSUME fighter=ICE weapon=DAGGER reason=stab-landed
-[AQ] REVEAL id=20 weapon=GRENADE eta=0.10 lead=1.00 fighter=ICE
-[AQ] PICKUP id=20 fighter=ICE weapon=GRENADE
-[AQ] USE fighter=ICE weapon=GRENADE
-[AQ] CONSUME fighter=ICE weapon=GRENADE reason=thrown
-[AQ] REVEAL id=21 weapon=SPEAR eta=0.49 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=21 fighter=RUBBER weapon=SPEAR
-[AQ] SPAWN_SLOT id=25 x=584 y=640 lead=1.00
-[AQ] EXPLODE weapon=GRENADE x=178 y=912
-[AQ] USE fighter=RUBBER weapon=SPEAR
-[AQ] HIT source=RUBBER target=ICE weapon=SPEAR damage=15.0
-[AQ] CONSUME fighter=RUBBER weapon=SPEAR reason=melee-resolved
-[AQ] REVEAL id=24 weapon=SNIPER eta=0.17 lead=1.00 fighter=ICE
-[AQ] PICKUP id=24 fighter=ICE weapon=SNIPER
-[AQ] USE fighter=ICE weapon=SNIPER
-[AQ] CONSUME fighter=ICE weapon=SNIPER reason=shot-fired
-[AQ] HIT source=ICE target=RUBBER weapon=SNIPER damage=26.0
-[AQ] REVEAL id=25 weapon=DAGGER eta=0.36 lead=1.00 fighter=RUBBER
-[AQ] PICKUP id=25 fighter=RUBBER weapon=DAGGER
-[AQ] USE fighter=RUBBER weapon=DAGGER
-[AQ] HIT source=RUBBER target=ICE weapon=DAGGER damage=9.0
-[AQ] CONSUME fighter=RUBBER weapon=DAGGER reason=stab-landed
-[AQ] SPAWN_SLOT id=26 x=273 y=574 lead=1.00
-[AQ] REVEAL id=11 weapon=SPIKED_CLUB eta=0.99 lead=1.00 fighter=ICE
-[AQ] PICKUP id=11 fighter=ICE weapon=SPIKED_CLUB
+[AQ] SPAWN_SLOT id=9 x=824 y=778 lead=1.00
+[AQ] SPAWN_SLOT id=10 x=335 y=831 lead=1.00
+[AQ] REVEAL id=7 weapon=SPIKED_CLUB eta=0.78 lead=1.00 fighter=RUBBER
+[AQ] REVEAL id=2 weapon=SABRE eta=1.00 lead=1.00 fighter=ICE
+[AQ] PICKUP id=7 fighter=ICE weapon=SPIKED_CLUB
 [AQ] USE fighter=ICE weapon=SPIKED_CLUB
 [AQ] HIT source=ICE target=RUBBER weapon=SPIKED_CLUB damage=18.0
 [AQ] CONSUME fighter=ICE weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] PICKUP id=2 fighter=ICE weapon=SABRE
+[AQ] USE fighter=ICE weapon=SABRE
+[AQ] HIT source=ICE target=RUBBER weapon=SABRE damage=12.0
+[AQ] CONSUME fighter=ICE weapon=SABRE reason=melee-resolved
+[AQ] SPAWN_SLOT id=11 x=762 y=361 lead=1.00
+[AQ] SPAWN_SLOT id=12 x=262 y=423 lead=1.00
+[AQ] REVEAL id=10 weapon=BATTLE_AXE eta=1.00 lead=1.00 fighter=ICE
+[AQ] PICKUP id=10 fighter=ICE weapon=BATTLE_AXE
+[AQ] USE fighter=ICE weapon=BATTLE_AXE
+[AQ] HIT source=ICE target=RUBBER weapon=BATTLE_AXE damage=26.0
+[AQ] CONSUME fighter=ICE weapon=BATTLE_AXE reason=melee-resolved
+[AQ] SPAWN_SLOT id=13 x=94 y=786 lead=1.00
+[AQ] REVEAL id=13 weapon=DAGGER eta=0.04 lead=1.00 fighter=ICE
+[AQ] PICKUP id=13 fighter=ICE weapon=DAGGER
+[AQ] REVEAL id=11 weapon=TOWER_SHIELD eta=0.97 lead=1.00 fighter=RUBBER
+[AQ] USE fighter=ICE weapon=DAGGER
+[AQ] HIT source=ICE target=RUBBER weapon=DAGGER damage=9.0
+[AQ] CONSUME fighter=ICE weapon=DAGGER reason=stab-landed
+[AQ] USE fighter=RUBBER weapon=TOWER_SHIELD
+[AQ] PICKUP id=11 fighter=RUBBER weapon=TOWER_SHIELD
+[AQ] SPAWN_SLOT id=14 x=698 y=534 lead=1.00
+[AQ] CONSUME fighter=RUBBER weapon=TOWER_SHIELD reason=expired
+[AQ] SPAWN_SLOT id=15 x=96 y=766 lead=1.00
+[AQ] REVEAL id=1 weapon=SPIKED_CLUB eta=1.00 lead=1.00 fighter=ICE
+[AQ] REVEAL id=15 weapon=GRENADE eta=0.98 lead=1.00 fighter=ICE
+[AQ] PICKUP id=1 fighter=ICE weapon=SPIKED_CLUB
+[AQ] REJECT_PICKUP fighter=ICE id=15 reason=already-armed
+[AQ] SPAWN_SLOT id=16 x=382 y=850 lead=1.00
+[AQ] USE fighter=ICE weapon=SPIKED_CLUB
+[AQ] REVEAL id=12 weapon=SPEAR eta=0.45 lead=1.00 fighter=RUBBER
+[AQ] REJECT_PICKUP fighter=ICE id=12 reason=already-armed
+[AQ] HIT source=ICE target=RUBBER weapon=SPIKED_CLUB damage=18.0
+[AQ] CONSUME fighter=ICE weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] PICKUP id=12 fighter=RUBBER weapon=SPEAR
+[AQ] USE fighter=RUBBER weapon=SPEAR
+[AQ] HIT source=RUBBER target=ICE weapon=SPEAR damage=15.0
+[AQ] CONSUME fighter=RUBBER weapon=SPEAR reason=melee-resolved
+[AQ] REVEAL id=9 weapon=SPEAR eta=0.99 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=9 fighter=ICE weapon=SPEAR
+[AQ] USE fighter=ICE weapon=SPEAR
+[AQ] HIT source=ICE target=RUBBER weapon=SPEAR damage=15.0
+[AQ] CONSUME fighter=ICE weapon=SPEAR reason=melee-resolved
 [AQ] KO winner=ICE
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
@@ -1348,10 +1148,207 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=457 y=759 lead=1.00
-[AQ] SPAWN_SLOT id=2 x=520 y=295 lead=1.00
-PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=3 spawnedCumulative=90 wallClock=258ms earlyErrors=0
-PASS  centerline-lead-fixed-over-5min  — samples=49527
+[AQ] SPAWN_SLOT id=1 x=361 y=153 lead=1.00
+[AQ] REVEAL id=1 weapon=SABRE eta=0.98 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=1 fighter=RUBBER weapon=SABRE
+[AQ] SPAWN_SLOT id=2 x=812 y=495 lead=1.00
+[AQ] SPAWN_SLOT id=3 x=597 y=648 lead=1.00
+[AQ] USE fighter=RUBBER weapon=SABRE
+[AQ] HIT source=RUBBER target=ICE weapon=SABRE damage=12.0
+[AQ] CONSUME fighter=RUBBER weapon=SABRE reason=melee-resolved
+[AQ] REVEAL id=2 weapon=BATTLE_AXE eta=0.85 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=2 fighter=ICE weapon=BATTLE_AXE
+[AQ] USE fighter=ICE weapon=BATTLE_AXE
+[AQ] SPAWN_SLOT id=4 x=311 y=892 lead=1.00
+[AQ] CONSUME fighter=ICE weapon=BATTLE_AXE reason=melee-resolved
+[AQ] SPAWN_SLOT id=5 x=837 y=245 lead=1.00
+[AQ] REVEAL id=5 weapon=DAGGER eta=0.78 lead=1.00 fighter=ICE
+[AQ] PICKUP id=5 fighter=ICE weapon=DAGGER
+[AQ] USE fighter=ICE weapon=DAGGER
+[AQ] HIT source=ICE target=RUBBER weapon=DAGGER damage=9.0
+[AQ] CONSUME fighter=ICE weapon=DAGGER reason=stab-landed
+[AQ] SPAWN_SLOT id=6 x=625 y=161 lead=1.00
+[AQ] SPAWN_SLOT id=7 x=351 y=104 lead=1.00
+[AQ] REVEAL id=3 weapon=GRENADE eta=0.97 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=3 fighter=RUBBER weapon=GRENADE
+[AQ] USE fighter=RUBBER weapon=GRENADE
+[AQ] CONSUME fighter=RUBBER weapon=GRENADE reason=thrown
+[AQ] SPAWN_SLOT id=8 x=288 y=684 lead=1.00
+[AQ] EXPLODE weapon=GRENADE x=829 y=377
+[AQ] REVEAL id=4 weapon=DAGGER eta=0.66 lead=1.00 fighter=ICE
+[AQ] PICKUP id=4 fighter=ICE weapon=DAGGER
+[AQ] USE fighter=ICE weapon=DAGGER
+[AQ] HIT source=ICE target=RUBBER weapon=DAGGER damage=9.0
+[AQ] REVEAL id=8 weapon=SNIPER eta=0.22 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=8 fighter=RUBBER weapon=SNIPER
+[AQ] CONSUME fighter=ICE weapon=DAGGER reason=stab-landed
+[AQ] SPAWN_SLOT id=9 x=121 y=677 lead=1.00
+[AQ] USE fighter=RUBBER weapon=SNIPER
+[AQ] CONSUME fighter=RUBBER weapon=SNIPER reason=shot-fired
+[AQ] REVEAL id=6 weapon=PISTOL eta=0.83 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=6 fighter=RUBBER weapon=PISTOL
+[AQ] USE fighter=RUBBER weapon=PISTOL
+[AQ] CONSUME fighter=RUBBER weapon=PISTOL reason=sequence-complete
+[AQ] HIT source=RUBBER target=ICE weapon=PISTOL damage=4.5
+[AQ] SPAWN_SLOT id=10 x=794 y=772 lead=1.00
+[AQ] SPAWN_SLOT id=11 x=346 y=639 lead=1.00
+[AQ] SPAWN_SLOT id=12 x=104 y=347 lead=1.00
+[AQ] REVEAL id=7 weapon=PISTOL eta=0.53 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=7 fighter=RUBBER weapon=PISTOL
+[AQ] REVEAL id=9 weapon=SPEAR eta=0.10 lead=1.00 fighter=ICE
+[AQ] PICKUP id=9 fighter=ICE weapon=SPEAR
+[AQ] USE fighter=RUBBER weapon=PISTOL
+[AQ] CONSUME fighter=RUBBER weapon=PISTOL reason=sequence-complete
+[AQ] SPAWN_SLOT id=13 x=626 y=598 lead=1.00
+[AQ] SPAWN_SLOT id=14 x=275 y=135 lead=1.00
+[AQ] USE fighter=ICE weapon=SPEAR
+[AQ] HIT source=ICE target=RUBBER weapon=SPEAR damage=15.0
+[AQ] CONSUME fighter=ICE weapon=SPEAR reason=melee-resolved
+[AQ] REVEAL id=14 weapon=SWIRL_SHIELD eta=0.99 lead=1.00 fighter=ICE
+[AQ] SPAWN_SLOT id=15 x=106 y=828 lead=1.00
+[AQ] USE fighter=ICE weapon=SWIRL_SHIELD
+[AQ] PICKUP id=14 fighter=ICE weapon=SWIRL_SHIELD
+[AQ] SPAWN_SLOT id=16 x=151 y=502 lead=1.00
+[AQ] SPAWN_SLOT id=17 x=380 y=122 lead=1.00
+[AQ] CONSUME fighter=ICE weapon=SWIRL_SHIELD reason=expired
+[AQ] SPAWN_SLOT id=18 x=567 y=453 lead=1.00
+[AQ] REVEAL id=11 weapon=SHOTGUN eta=0.90 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=11 fighter=RUBBER weapon=SHOTGUN
+[AQ] USE fighter=RUBBER weapon=SHOTGUN
+[AQ] CONSUME fighter=RUBBER weapon=SHOTGUN reason=blast-resolved
+[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=3.6
+[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=3.6
+[AQ] HIT source=RUBBER target=ICE weapon=SHOTGUN damage=3.6
+[AQ] SPAWN_SLOT id=19 x=819 y=208 lead=1.00
+[AQ] REVEAL id=17 weapon=PISTOL eta=0.21 lead=1.00 fighter=ICE
+[AQ] PICKUP id=17 fighter=ICE weapon=PISTOL
+[AQ] USE fighter=ICE weapon=PISTOL
+[AQ] SPAWN_SLOT id=20 x=333 y=230 lead=1.00
+[AQ] CONSUME fighter=ICE weapon=PISTOL reason=sequence-complete
+[AQ] REVEAL id=12 weapon=SABRE eta=0.99 lead=1.00 fighter=ICE
+[AQ] PICKUP id=12 fighter=ICE weapon=SABRE
+[AQ] SPAWN_SLOT id=21 x=496 y=889 lead=1.00
+[AQ] USE fighter=ICE weapon=SABRE
+[AQ] HIT source=ICE target=RUBBER weapon=SABRE damage=12.0
+[AQ] CONSUME fighter=ICE weapon=SABRE reason=melee-resolved
+[AQ] REVEAL id=13 weapon=SPIKED_CLUB eta=0.58 lead=1.00 fighter=ICE
+[AQ] PICKUP id=13 fighter=RUBBER weapon=SPIKED_CLUB
+[AQ] USE fighter=RUBBER weapon=SPIKED_CLUB
+[AQ] HIT source=RUBBER target=ICE weapon=SPIKED_CLUB damage=18.0
+[AQ] CONSUME fighter=RUBBER weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] SPAWN_SLOT id=22 x=716 y=487 lead=1.00
+[AQ] REVEAL id=15 weapon=TOWER_SHIELD eta=0.08 lead=1.00 fighter=ICE
+[AQ] USE fighter=ICE weapon=TOWER_SHIELD
+[AQ] PICKUP id=15 fighter=ICE weapon=TOWER_SHIELD
+[AQ] SPAWN_SLOT id=23 x=120 y=268 lead=1.00
+[AQ] CONSUME fighter=ICE weapon=TOWER_SHIELD reason=expired
+[AQ] SPAWN_SUPPRESSED active=8 cap=8
+[AQ] REVEAL id=18 weapon=SMG eta=0.60 lead=1.00 fighter=RUBBER
+[AQ] SPAWN_SUPPRESSED active=8 cap=8
+[AQ] PICKUP id=18 fighter=RUBBER weapon=SMG
+[AQ] USE fighter=RUBBER weapon=SMG
+[AQ] CONSUME fighter=RUBBER weapon=SMG reason=sequence-complete
+[AQ] REVEAL id=23 weapon=SWIRL_SHIELD eta=0.26 lead=1.00 fighter=ICE
+[AQ] USE fighter=ICE weapon=SWIRL_SHIELD
+[AQ] PICKUP id=23 fighter=ICE weapon=SWIRL_SHIELD
+[AQ] SPAWN_SLOT id=24 x=893 y=632 lead=1.00
+[AQ] SPAWN_SLOT id=25 x=177 y=206 lead=1.00
+[AQ] REVEAL id=19 weapon=SHOTGUN eta=0.24 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=19 fighter=RUBBER weapon=SHOTGUN
+[AQ] USE fighter=RUBBER weapon=SHOTGUN
+[AQ] CONSUME fighter=RUBBER weapon=SHOTGUN reason=blast-resolved
+[AQ] REVEAL id=16 weapon=PISTOL eta=0.97 lead=1.00 fighter=RUBBER
+[AQ] REJECT_PICKUP fighter=ICE id=16 reason=already-armed
+[AQ] PICKUP id=16 fighter=RUBBER weapon=PISTOL
+[AQ] USE fighter=RUBBER weapon=PISTOL
+[AQ] REFLECT fighter=ICE weapon=SWIRL_SHIELD projectileFrom=RUBBER
+[AQ] CONSUME fighter=ICE weapon=SWIRL_SHIELD reason=reflect-resolved
+[AQ] HIT source=ICE target=RUBBER weapon=PISTOL damage=4.5
+[AQ] HIT source=RUBBER target=ICE weapon=PISTOL damage=4.5
+[AQ] HIT source=RUBBER target=ICE weapon=PISTOL damage=4.5
+[AQ] CONSUME fighter=RUBBER weapon=PISTOL reason=sequence-complete
+[AQ] SPAWN_SLOT id=26 x=217 y=818 lead=1.00
+[AQ] REVEAL id=26 weapon=SPIKED_CLUB eta=0.98 lead=1.00 fighter=ICE
+[AQ] PICKUP id=26 fighter=ICE weapon=SPIKED_CLUB
+[AQ] SPAWN_SLOT id=27 x=569 y=432 lead=1.00
+[AQ] SPAWN_SLOT id=28 x=220 y=523 lead=1.00
+[AQ] USE fighter=ICE weapon=SPIKED_CLUB
+[AQ] HIT source=ICE target=RUBBER weapon=SPIKED_CLUB damage=18.0
+[AQ] CONSUME fighter=ICE weapon=SPIKED_CLUB reason=melee-resolved
+[AQ] REVEAL id=22 weapon=SABRE eta=0.41 lead=1.00 fighter=ICE
+[AQ] PICKUP id=22 fighter=ICE weapon=SABRE
+[AQ] USE fighter=ICE weapon=SABRE
+[AQ] HIT source=ICE target=RUBBER weapon=SABRE damage=12.0
+[AQ] CONSUME fighter=ICE weapon=SABRE reason=melee-resolved
+[AQ] REVEAL id=28 weapon=SWIRL_SHIELD eta=0.37 lead=1.00 fighter=ICE
+[AQ] SPAWN_SLOT id=29 x=122 y=715 lead=1.00
+[AQ] USE fighter=ICE weapon=SWIRL_SHIELD
+[AQ] PICKUP id=28 fighter=ICE weapon=SWIRL_SHIELD
+[AQ] SPAWN_SLOT id=30 x=210 y=575 lead=1.00
+[AQ] REVEAL id=27 weapon=TOWER_SHIELD eta=0.80 lead=1.00 fighter=RUBBER
+[AQ] REJECT_PICKUP fighter=ICE id=27 reason=already-armed
+[AQ] USE fighter=RUBBER weapon=TOWER_SHIELD
+[AQ] PICKUP id=27 fighter=RUBBER weapon=TOWER_SHIELD
+[AQ] SPAWN_SLOT id=31 x=526 y=95 lead=1.00
+[AQ] CONSUME fighter=RUBBER weapon=TOWER_SHIELD reason=expired
+[AQ] CONSUME fighter=ICE weapon=SWIRL_SHIELD reason=expired
+[AQ] SPAWN_SUPPRESSED active=8 cap=8
+[AQ] REVEAL id=24 weapon=DAGGER eta=0.17 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=24 fighter=RUBBER weapon=DAGGER
+[AQ] USE fighter=RUBBER weapon=DAGGER
+[AQ] HIT source=RUBBER target=ICE weapon=DAGGER damage=9.0
+[AQ] CONSUME fighter=RUBBER weapon=DAGGER reason=stab-landed
+[AQ] SPAWN_SLOT id=32 x=177 y=385 lead=1.00
+[AQ] REVEAL id=31 weapon=SPEAR eta=0.84 lead=1.00 fighter=ICE
+[AQ] REVEAL id=10 weapon=SABRE eta=0.50 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=10 fighter=RUBBER weapon=SABRE
+[AQ] PICKUP id=31 fighter=ICE weapon=SPEAR
+[AQ] USE fighter=ICE weapon=SPEAR
+[AQ] HIT source=ICE target=RUBBER weapon=SPEAR damage=15.0
+[AQ] CONSUME fighter=ICE weapon=SPEAR reason=melee-resolved
+[AQ] KO winner=ICE
+[AQ] MODE_ENTER mode=ARSENAL_QUEST
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+Not implemented: HTMLMediaElement's pause() method
+[AQ] SPAWN_SLOT id=1 x=238 y=550 lead=1.00
+[AQ] SPAWN_SLOT id=2 x=677 y=438 lead=1.00
+[AQ] SPAWN_SLOT id=3 x=501 y=633 lead=1.00
+[AQ] REVEAL id=3 weapon=DAGGER eta=0.98 lead=1.00 fighter=ICE
+[AQ] PICKUP id=3 fighter=ICE weapon=DAGGER
+[AQ] USE fighter=ICE weapon=DAGGER
+[AQ] HIT source=ICE target=RUBBER weapon=DAGGER damage=9.0
+[AQ] CONSUME fighter=ICE weapon=DAGGER reason=stab-landed
+[AQ] SPAWN_SLOT id=4 x=252 y=208 lead=1.00
+[AQ] SPAWN_SLOT id=5 x=856 y=670 lead=1.00
+[AQ] REVEAL id=1 weapon=SABRE eta=0.97 lead=1.00 fighter=ICE
+[AQ] SPAWN_SLOT id=6 x=190 y=715 lead=1.00
+[AQ] REVEAL id=4 weapon=SMG eta=0.26 lead=1.00 fighter=RUBBER
+[AQ] PICKUP id=4 fighter=RUBBER weapon=SMG
+[AQ] SPAWN_SLOT id=7 x=593 y=99 lead=1.00
+[AQ] USE fighter=RUBBER weapon=SMG
+[AQ] CONSUME fighter=RUBBER weapon=SMG reason=sequence-complete
+[AQ] PICKUP id=1 fighter=RUBBER weapon=SABRE
+[AQ] SPAWN_SLOT id=8 x=221 y=162 lead=1.00
+[AQ] USE fighter=RUBBER weapon=SABRE
+[AQ] HIT source=RUBBER target=ICE weapon=SABRE damage=12.0
+[AQ] CONSUME fighter=RUBBER weapon=SABRE reason=melee-resolved
+[AQ] SPAWN_SLOT id=9 x=393 y=415 lead=1.00
+[AQ] REVEAL id=7 weapon=BATTLE_AXE eta=0.84 lead=1.00 fighter=ICE
+[AQ] PICKUP id=7 fighter=ICE weapon=BATTLE_AXE
+[AQ] SPAWN_SLOT id=10 x=678 y=866 lead=1.00
+[AQ] USE fighter=ICE weapon=BATTLE_AXE
+[AQ] HIT source=ICE target=RUBBER weapon=BATTLE_AXE damage=26.0
+[AQ] CONSUME fighter=ICE weapon=BATTLE_AXE reason=melee-resolved
+[AQ] SPAWN_SLOT id=11 x=619 y=607 lead=1.00
+PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=3 spawnedCumulative=96 wallClock=220ms earlyErrors=0
+PASS  centerline-lead-fixed-over-5min  — samples=46758
 [AQ] MODE_ENTER mode=ARSENAL_QUEST
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
@@ -1443,90 +1440,76 @@ Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
 Not implemented: HTMLMediaElement's pause() method
-[AQ] SPAWN_SLOT id=1 x=650 y=202 lead=1.00
-[AQ] SPAWN_SLOT id=2 x=122 y=530 lead=1.00
-[AQ] SPAWN_SLOT id=3 x=386 y=148 lead=1.00
-[AQ] SPAWN_SLOT id=4 x=224 y=266 lead=1.00
-[AQ] REVEAL id=4 weapon=SHOTGUN eta=0.41 lead=1.00 fighter=SNIPER
-[AQ] PICKUP id=4 fighter=SNIPER weapon=SHOTGUN
-[AQ] USE fighter=SNIPER weapon=SHOTGUN
-[AQ] CONSUME fighter=SNIPER weapon=SHOTGUN reason=blast-resolved
-[AQ] HIT source=SNIPER target=WITCH weapon=SHOTGUN damage=3.6
-[AQ] REVEAL id=1 weapon=TOWER_SHIELD eta=0.53 lead=1.00 fighter=SNIPER
-[AQ] REVEAL id=3 weapon=SHOTGUN eta=1.00 lead=1.00 fighter=SNIPER
-[AQ] SPAWN_SLOT id=5 x=424 y=904 lead=1.00
-[AQ] USE fighter=SNIPER weapon=TOWER_SHIELD
-[AQ] PICKUP id=1 fighter=SNIPER weapon=TOWER_SHIELD
-[AQ] REJECT_PICKUP fighter=SNIPER id=3 reason=already-armed
-[AQ] CONSUME fighter=SNIPER weapon=TOWER_SHIELD reason=expired
-[AQ] SPAWN_SLOT id=6 x=824 y=649 lead=1.00
-[AQ] PICKUP id=3 fighter=SNIPER weapon=SHOTGUN
-[AQ] USE fighter=SNIPER weapon=SHOTGUN
-[AQ] CONSUME fighter=SNIPER weapon=SHOTGUN reason=blast-resolved
-[AQ] SPAWN_SLOT id=7 x=122 y=774 lead=1.00
-[AQ] REVEAL id=2 weapon=TOWER_SHIELD eta=1.00 lead=1.00 fighter=WITCH
-[AQ] USE fighter=WITCH weapon=TOWER_SHIELD
-[AQ] PICKUP id=2 fighter=WITCH weapon=TOWER_SHIELD
-[AQ] SPAWN_SLOT id=8 x=601 y=429 lead=1.00
-[AQ] CONSUME fighter=WITCH weapon=TOWER_SHIELD reason=expired
-[AQ] SPAWN_SLOT id=9 x=296 y=277 lead=1.00
-[AQ] REVEAL id=9 weapon=SMG eta=0.43 lead=1.00 fighter=SNIPER
-[AQ] PICKUP id=9 fighter=SNIPER weapon=SMG
-[AQ] USE fighter=SNIPER weapon=SMG
-[AQ] CONSUME fighter=SNIPER weapon=SMG reason=sequence-complete
-[AQ] HIT source=SNIPER target=WITCH weapon=SMG damage=2.4
-[AQ] HIT source=SNIPER target=WITCH weapon=SMG damage=2.4
-[AQ] SPAWN_SLOT id=10 x=576 y=236 lead=1.00
-[AQ] SPAWN_SLOT id=11 x=782 y=456 lead=1.00
-[AQ] SPAWN_SLOT id=12 x=660 y=845 lead=1.00
-[AQ] REVEAL id=6 weapon=SWIRL_SHIELD eta=0.66 lead=1.00 fighter=SNIPER
-[AQ] REVEAL id=12 weapon=TOWER_SHIELD eta=0.17 lead=1.00 fighter=SNIPER
-[AQ] USE fighter=SNIPER weapon=TOWER_SHIELD
-[AQ] PICKUP id=12 fighter=SNIPER weapon=TOWER_SHIELD
-[AQ] REJECT_PICKUP fighter=SNIPER id=6 reason=already-armed
-[AQ] SPAWN_SLOT id=13 x=654 y=700 lead=1.00
-[AQ] CONSUME fighter=SNIPER weapon=TOWER_SHIELD reason=expired
-[AQ] SPAWN_SLOT id=14 x=851 y=835 lead=1.00
-[AQ] SPAWN_SUPPRESSED active=8 cap=8
-[AQ] REVEAL id=14 weapon=GRENADE eta=0.38 lead=1.00 fighter=WITCH
-[AQ] PICKUP id=14 fighter=WITCH weapon=GRENADE
-[AQ] USE fighter=WITCH weapon=GRENADE
-[AQ] CONSUME fighter=WITCH weapon=GRENADE reason=thrown
+[AQ] SPAWN_SLOT id=1 x=250 y=682 lead=1.00
+[AQ] SPAWN_SLOT id=2 x=673 y=334 lead=1.00
+[AQ] SPAWN_SLOT id=3 x=708 y=881 lead=1.00
+[AQ] REVEAL id=3 weapon=SPIKED_CLUB eta=0.99 lead=1.00 fighter=SNIPER
+[AQ] PICKUP id=3 fighter=SNIPER weapon=SPIKED_CLUB
+[AQ] SPAWN_SLOT id=4 x=279 y=190 lead=1.00
+[AQ] REVEAL id=4 weapon=SWIRL_SHIELD eta=1.00 lead=1.00 fighter=WITCH
 [AQ] USE fighter=WITCH weapon=SWIRL_SHIELD
-[AQ] PICKUP id=6 fighter=WITCH weapon=SWIRL_SHIELD
-[AQ] REVEAL id=5 weapon=GRENADE eta=0.99 lead=1.00 fighter=SNIPER
-[AQ] EXPLODE weapon=GRENADE x=828 y=391
-[AQ] REVEAL id=13 weapon=BATTLE_AXE eta=0.99 lead=1.00 fighter=SNIPER
-[AQ] SPAWN_SLOT id=15 x=225 y=93 lead=1.00
-[AQ] PICKUP id=13 fighter=SNIPER weapon=BATTLE_AXE
-[AQ] USE fighter=SNIPER weapon=BATTLE_AXE
-[AQ] HIT source=SNIPER target=WITCH weapon=BATTLE_AXE damage=26.0
-[AQ] CONSUME fighter=SNIPER weapon=BATTLE_AXE reason=melee-resolved
-[AQ] REVEAL id=10 weapon=SPIKED_CLUB eta=0.91 lead=1.00 fighter=SNIPER
-[AQ] PICKUP id=10 fighter=SNIPER weapon=SPIKED_CLUB
+[AQ] PICKUP id=4 fighter=WITCH weapon=SWIRL_SHIELD
 [AQ] USE fighter=SNIPER weapon=SPIKED_CLUB
 [AQ] HIT source=SNIPER target=WITCH weapon=SPIKED_CLUB damage=18.0
 [AQ] CONSUME fighter=SNIPER weapon=SPIKED_CLUB reason=melee-resolved
-[AQ] SPAWN_SLOT id=16 x=211 y=434 lead=1.00
+[AQ] SPAWN_SLOT id=5 x=118 y=529 lead=1.00
+[AQ] SPAWN_SLOT id=6 x=668 y=515 lead=1.00
+[AQ] SPAWN_SLOT id=7 x=749 y=879 lead=1.00
 [AQ] CONSUME fighter=WITCH weapon=SWIRL_SHIELD reason=expired
-[AQ] SPAWN_SLOT id=17 x=534 y=700 lead=1.00
-[AQ] PICKUP id=5 fighter=SNIPER weapon=GRENADE
-[AQ] USE fighter=SNIPER weapon=GRENADE
-[AQ] CONSUME fighter=SNIPER weapon=GRENADE reason=thrown
-[AQ] EXPLODE weapon=GRENADE x=733 y=768
-[AQ] SPAWN_SLOT id=18 x=653 y=263 lead=1.00
-[AQ] SPAWN_SLOT id=19 x=608 y=94 lead=1.00
-[AQ] REVEAL id=19 weapon=SPIKED_CLUB eta=0.23 lead=1.00 fighter=WITCH
-[AQ] PICKUP id=19 fighter=WITCH weapon=SPIKED_CLUB
-[AQ] USE fighter=WITCH weapon=SPIKED_CLUB
-[AQ] HIT source=WITCH target=SNIPER weapon=SPIKED_CLUB damage=18.0
-[AQ] CONSUME fighter=WITCH weapon=SPIKED_CLUB reason=melee-resolved
-[AQ] REVEAL id=18 weapon=SPEAR eta=0.54 lead=1.00 fighter=WITCH
-[AQ] PICKUP id=18 fighter=WITCH weapon=SPEAR
+[AQ] REVEAL id=2 weapon=GRENADE eta=0.61 lead=1.00 fighter=WITCH
+[AQ] PICKUP id=2 fighter=WITCH weapon=GRENADE
+[AQ] USE fighter=WITCH weapon=GRENADE
+[AQ] CONSUME fighter=WITCH weapon=GRENADE reason=thrown
+[AQ] SPAWN_SLOT id=8 x=780 y=320 lead=1.00
+[AQ] REVEAL id=8 weapon=PISTOL eta=0.65 lead=1.00 fighter=WITCH
+[AQ] PICKUP id=8 fighter=WITCH weapon=PISTOL
+[AQ] USE fighter=WITCH weapon=PISTOL
+[AQ] EXPLODE weapon=GRENADE x=277 y=527
+[AQ] CONSUME fighter=WITCH weapon=PISTOL reason=sequence-complete
+[AQ] SPAWN_SLOT id=9 x=223 y=117 lead=1.00
+[AQ] REVEAL id=1 weapon=SMG eta=0.51 lead=1.00 fighter=WITCH
+[AQ] PICKUP id=1 fighter=WITCH weapon=SMG
+[AQ] USE fighter=WITCH weapon=SMG
+[AQ] CONSUME fighter=WITCH weapon=SMG reason=sequence-complete
+[AQ] SPAWN_SLOT id=10 x=809 y=380 lead=1.00
+[AQ] REVEAL id=6 weapon=SPEAR eta=0.75 lead=1.00 fighter=WITCH
+[AQ] PICKUP id=6 fighter=WITCH weapon=SPEAR
 [AQ] USE fighter=WITCH weapon=SPEAR
 [AQ] HIT source=WITCH target=SNIPER weapon=SPEAR damage=15.0
 [AQ] CONSUME fighter=WITCH weapon=SPEAR reason=melee-resolved
-PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=1 x=650 y=202 lead=1.00","REVEAL":"[AQ] REVEAL id=4 weapon=SHOTGUN eta=0.41 lead=1.00 fighter=SNIPER","PICKUP":"[AQ] PICKUP id=4 fighter=SNIPER weapon=SHOTGUN","USE":"[AQ] USE fighter=SNIPER weapon=SHOTGUN","CONSUME":"[AQ] CONSUME fighter=SNIPER weapon=SHOTGUN reason=blast-resolved","HIT":"[AQ] HIT source=SNIPER target=WITCH weapon=SHOTGUN damage=3.6"}
+[AQ] SPAWN_SLOT id=11 x=582 y=377 lead=1.00
+[AQ] SPAWN_SLOT id=12 x=836 y=123 lead=1.00
+[AQ] SPAWN_SLOT id=13 x=700 y=559 lead=1.00
+[AQ] SPAWN_SLOT id=14 x=443 y=453 lead=1.00
+[AQ] SPAWN_SUPPRESSED active=8 cap=8
+[AQ] SPAWN_SUPPRESSED active=8 cap=8
+[AQ] SPAWN_SUPPRESSED active=8 cap=8
+[AQ] REVEAL id=13 weapon=BATTLE_AXE eta=0.44 lead=1.00 fighter=WITCH
+[AQ] PICKUP id=13 fighter=WITCH weapon=BATTLE_AXE
+[AQ] USE fighter=WITCH weapon=BATTLE_AXE
+[AQ] SPAWN_SLOT id=15 x=619 y=177 lead=1.00
+[AQ] CONSUME fighter=WITCH weapon=BATTLE_AXE reason=melee-resolved
+[AQ] REVEAL id=11 weapon=SMG eta=0.99 lead=1.00 fighter=SNIPER
+[AQ] PICKUP id=11 fighter=WITCH weapon=SMG
+[AQ] USE fighter=WITCH weapon=SMG
+[AQ] CONSUME fighter=WITCH weapon=SMG reason=sequence-complete
+[AQ] SPAWN_SLOT id=16 x=174 y=349 lead=1.00
+[AQ] REVEAL id=10 weapon=SMG eta=0.22 lead=1.00 fighter=WITCH
+[AQ] PICKUP id=10 fighter=WITCH weapon=SMG
+[AQ] USE fighter=WITCH weapon=SMG
+[AQ] CONSUME fighter=WITCH weapon=SMG reason=sequence-complete
+[AQ] REVEAL id=16 weapon=DAGGER eta=0.77 lead=1.00 fighter=WITCH
+[AQ] SPAWN_SLOT id=17 x=630 y=460 lead=1.00
+[AQ] PICKUP id=16 fighter=WITCH weapon=DAGGER
+[AQ] REVEAL id=5 weapon=SABRE eta=0.12 lead=1.00 fighter=SNIPER
+[AQ] PICKUP id=5 fighter=SNIPER weapon=SABRE
+[AQ] USE fighter=SNIPER weapon=SABRE
+[AQ] USE fighter=WITCH weapon=DAGGER
+[AQ] HIT source=WITCH target=SNIPER weapon=DAGGER damage=9.0
+[AQ] HIT source=SNIPER target=WITCH weapon=SABRE damage=12.0
+[AQ] CONSUME fighter=SNIPER weapon=SABRE reason=melee-resolved
+[AQ] CONSUME fighter=WITCH weapon=DAGGER reason=stab-landed
+PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=1 x=250 y=682 lead=1.00","REVEAL":"[AQ] REVEAL id=3 weapon=SPIKED_CLUB eta=0.99 lead=1.00 fighter=SNIPER","PICKUP":"[AQ] PICKUP id=3 fighter=SNIPER weapon=SPIKED_CLUB","USE":"[AQ] USE fighter=WITCH weapon=SWIRL_SHIELD","HIT":"[AQ] HIT source=SNIPER target=WITCH weapon=SPIKED_CLUB damage=18.0","CONSUME":"[AQ] CONSUME fighter=SNIPER weapon=SPIKED_CLUB reason=melee-resolved"}
 
 ==== ARSENAL QUEST HEADLESS TEST SUMMARY ====
 {

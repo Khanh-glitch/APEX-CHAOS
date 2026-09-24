@@ -3,8 +3,8 @@
 > vite --host 127.0.0.1 --port 5173
 
 
-  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m186[22m[2m[0m ms[22m
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m174[22m[2m[0m ms[22m
 
   [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5173[22m/[39m
-[2m6:18:34 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.arsenal-chrome-profile/Default/Extensions/ghbmnnjooekpmoecnnnilnnbdlolhkhi/1.110.1_0/offscreendocument.html[22m
-[2m6:18:34 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.arsenal-chrome-profile/Default/Extensions/nmmhkkegccagdldgiimedpiccmgmieda/1.0.0.6_0/html/craw_window.html[22m
+[2m6:24:59 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.arsenal-chrome-profile/Default/Extensions/ghbmnnjooekpmoecnnnilnnbdlolhkhi/1.110.1_0/offscreendocument.html[22m
+[2m6:25:00 AM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2m.arsenal-chrome-profile/Default/Extensions/nmmhkkegccagdldgiimedpiccmgmieda/1.0.0.6_0/html/craw_window.html[22m

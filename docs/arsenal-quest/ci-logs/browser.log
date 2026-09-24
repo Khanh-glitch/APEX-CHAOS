@@ -11,70 +11,61 @@ PASS  multi-slot-coexist  — maxActiveSlots=4
 PASS  no-age-based-reveal-while-far  — longHidden=2 reveals=0
 PASS  telegraph-not-collectible-and-long-hidden  — {"id":1,"phase":"TELEGRAPH","age":6.1,"weaponId":null,"revealLeadSeconds":1,"predictedHeroETA":null,"predictedRivalETA":null,"earliestETA":null,"predictedFighter":null}
 PASS  telegraph-no-identity
-PASS  centerline-reveal-on-aligned-approach  — [AQ] REVEAL id=1 weapon=SNIPER eta=0.87 lead=1.00 fighter=HERO
-PASS  reveal-then-collectible  — [AQ] REVEAL id=1 weapon=SNIPER eta=0.87 lead=1.00 fighter=HERO
+PASS  centerline-reveal-on-aligned-approach  — [AQ] REVEAL id=1 weapon=DAGGER eta=0.87 lead=1.00 fighter=HERO
+PASS  reveal-then-collectible  — [AQ] REVEAL id=1 weapon=DAGGER eta=0.87 lead=1.00 fighter=HERO
 PASS  centerline-graze-stays-hidden  — {"grazeStayedHidden":true,"hiddenBeforeBounce":true,"revealedAfterBounce":true}
 PASS  centerline-no-reveal-before-bounce  — {"grazeStayedHidden":true,"hiddenBeforeBounce":true,"revealedAfterBounce":true}
 PASS  aim-never-steers-fighter  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
 PASS  dagger-no-body-dash  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
-PASS  shells-32-canonical  — {"count":32}
-PASS  shells-p1-p2-independent  — ["SNIPER","WITCH"]
-PASS  shells-native-kits-disabled  — {"count":32,"names":["SNIPER","WITCH"],"shellFlags":[true,true],"nativeProj":0,"hp":[100,100]}
 PASS  no-slash-vfx-in-combat  — {"noSlashSeq":true,"bombAtlas":true}
 PASS  bomb-explosion-vfx-remains  — {"noSlashSeq":true,"bombAtlas":true}
 PASS  rival-can-collect
 PASS  hero-can-collect
-FAIL  armed-fighter-cannot-vacuum
+PASS  armed-fighter-cannot-vacuum
 PASS  soft-cap-suppresses-and-logs
-PASS  weapon-PISTOL  — dmg=12.8 holder=null USE=1 HIT=3 CONSUME=1
-PASS  weapon-SHOTGUN  — dmg=13.7 holder=null USE=1 HIT=4 CONSUME=1
-PASS  weapon-SMG  — dmg=18.2 holder=null USE=1 HIT=8 CONSUME=1
-PASS  weapon-SNIPER  — dmg=24.7 holder=null USE=1 HIT=1 CONSUME=1
-PASS  weapon-GRENADE  — dmg=9.9 holder=null USE=1 HIT=1 CONSUME=1
-PASS  weapon-SABRE  — dmg=11.4 holder=null USE=1 HIT=1 CONSUME=1
-PASS  weapon-BATTLE_AXE  — dmg=24.7 holder=null USE=1 HIT=1 CONSUME=1
-PASS  weapon-DAGGER  — dmg=8.6 holder=null USE=1 HIT=1 CONSUME=1
-PASS  weapon-SPEAR  — dmg=14.3 holder=null USE=1 HIT=1 CONSUME=1
-PASS  weapon-SPIKED_CLUB  — dmg=17.1 holder=null USE=1 HIT=1 CONSUME=1
+PASS  weapon-PISTOL  — dmg=13.5 holder=null USE=1 HIT=3 CONSUME=1
+PASS  weapon-SHOTGUN  — dmg=14.4 holder=null USE=1 HIT=4 CONSUME=1
+PASS  weapon-SMG  — dmg=19.2 holder=null USE=1 HIT=8 CONSUME=1
+PASS  weapon-SNIPER  — dmg=26 holder=null USE=1 HIT=1 CONSUME=1
+PASS  weapon-GRENADE  — dmg=10.4 holder=null USE=1 HIT=1 CONSUME=1
+PASS  weapon-SABRE  — dmg=12 holder=null USE=1 HIT=1 CONSUME=1
+PASS  weapon-BATTLE_AXE  — dmg=26 holder=null USE=1 HIT=1 CONSUME=1
+PASS  weapon-DAGGER  — dmg=9 holder=null USE=1 HIT=1 CONSUME=1
+PASS  weapon-SPEAR  — dmg=15 holder=null USE=1 HIT=1 CONSUME=1
+PASS  weapon-SPIKED_CLUB  — dmg=18 holder=null USE=1 HIT=1 CONSUME=1
 PASS  pistol-3-shots  — hits=3
 PASS  smg-8-shots  — hits=8
-PASS  sniper-single-high-damage  — dmg=24.7
+PASS  sniper-single-high-damage  — dmg=26
 PASS  sniper-aim-telegraph-window  — phase@0.3s=READY phase@0.65s=AIM
 PASS  club-stun-applied  — ["stun"]
 PASS  axe-knockback-applied  — ["push"]
 PASS  grenade-throw-consumes-immediately
-PASS  grenade-resolves-after-fuse  — rivalHp=90.496
+PASS  grenade-resolves-after-fuse  — rivalHp=90
 PASS  melee-not-wasted-out-of-range
 PASS  melee-activates-in-range
-FAIL  swirl-reflects-projectile  — heroHp=100 rivalHp=75.2896 hitOnRivalFromHero=0
-FAIL  swirl-reflect-ownership-correct  — reflected bullet source=HERO target=RIVAL
-FAIL  tower-shield-reduces-damage  — withShield 10->2.760000000000005, without 10->11.04
+PASS  swirl-reflects-projectile  — heroHp=100 rivalHp=74 hitOnRivalFromHero=1
+PASS  swirl-reflect-ownership-correct  — reflected bullet source=HERO target=RIVAL
+PASS  tower-shield-reduces-damage  — withShield 10->2.5, without 10->10
 PASS  tower-shield-slow-while-active
 PASS  tower-shield-expires-to-unarmed
 PASS  exit-cleanup  — {"gameStateAfter":"MENU","menuVisible":true,"hudHidden":true,"slotsCleared":true,"aqProjectilesCleared":true,"heroHolderCleared":true,"staleAqAfterConsume":0,"exitLogged":true}
+PASS  shells-32-canonical  — {"count":32}
+PASS  shells-p1-p2-independent  — ["SNIPER","WITCH"]
+PASS  shells-native-kits-disabled  — {"count":32,"names":["SNIPER","WITCH"],"shellFlags":[true,true],"nativeProj":0,"hp":[100,100]}
 PASS  f3-debug-overlay-toggle
 PASS  browser-weapon-atlas-floor-sprite  — {"floor":2,"equipped":2,"imgFail":0,"sfxFail":0}
 PASS  browser-weapon-atlas-equipped-sprite  — {"floor":2,"equipped":2,"imgFail":0,"sfxFail":0}
 PASS  browser-no-atlas-fallback  — {"floor":2,"equipped":2,"imgFail":0,"sfxFail":0}
-FAIL  shell-select-32-cards  — {"count":0,"p1":null,"p2":null,"startVisible":false}
-FAIL  shell-select-p1-p2-locks  — {"count":0,"p1":null,"p2":null,"startVisible":false}
-FAIL  shell-select-enters-arsenal  — {"gameState":"SELECT","names":["SNIPER","WITCH"],"shells":[true,true]}
-PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=3 restarts=3 spawnedCumulative=98 earlyErrors=0
-PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=23 x=664 y=369 lead=1.00","REVEAL":"[AQ] REVEAL id=13 weapon=SPEAR eta=0.29 lead=1.00 fighter=SNIPER","PICKUP":"[AQ] PICKUP id=19 fighter=WITCH weapon=SABRE","USE":"[AQ] USE fighter=WITCH weapon=SABRE","HIT":"[AQ] HIT source=WITCH target=SNIPER weapon=SABRE damage=12.0","CONSUME":"[AQ] CONSUME fighter=WITCH weapon=SABRE reason=melee-resolved"}
+PASS  shell-select-32-cards  — {"count":32,"p1":"SNIPER","p2":"WITCH","selectVisible":true}
+PASS  shell-select-p1-p2-locks  — {"count":32,"p1":"SNIPER","p2":"WITCH","selectVisible":true}
+PASS  shell-select-enters-arsenal  — {"gameState":"ARSENAL","names":["SNIPER","WITCH"],"shells":[true,true]}
+PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=3 restarts=3 spawnedCumulative=92 earlyErrors=0
+PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=26 x=182 y=293 lead=1.00","REVEAL":"[AQ] REVEAL id=18 weapon=PISTOL eta=0.97 lead=1.00 fighter=SNIPER","PICKUP":"[AQ] PICKUP id=18 fighter=SNIPER weapon=PISTOL","USE":"[AQ] USE fighter=SNIPER weapon=PISTOL","HIT":"[AQ] HIT source=WITCH target=SNIPER weapon=SNIPER damage=26.0","CONSUME":"[AQ] CONSUME fighter=SNIPER weapon=PISTOL reason=sequence-complete"}
 
 ==== ARSENAL QUEST TEST SUMMARY ====
 {
   "total": 59,
-  "passed": 52,
-  "failed": [
-    "armed-fighter-cannot-vacuum",
-    "swirl-reflects-projectile",
-    "swirl-reflect-ownership-correct",
-    "tower-shield-reduces-damage",
-    "shell-select-32-cards",
-    "shell-select-p1-p2-locks",
-    "shell-select-enters-arsenal"
-  ]
+  "passed": 59,
+  "failed": []
 }
 report+evidence written under docs/arsenal-quest/browser-evidence/
- ELIFECYCLE  Command failed with exit code 1.

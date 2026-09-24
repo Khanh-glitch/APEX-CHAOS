@@ -86,11 +86,11 @@
     },
     "centerline-reveal-on-aligned-approach": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=SNIPER eta=0.87 lead=1.00 fighter=HERO"
+      "detail": "[AQ] REVEAL id=1 weapon=DAGGER eta=0.87 lead=1.00 fighter=HERO"
     },
     "reveal-then-collectible": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=SNIPER eta=0.87 lead=1.00 fighter=HERO"
+      "detail": "[AQ] REVEAL id=1 weapon=DAGGER eta=0.87 lead=1.00 fighter=HERO"
     },
     "centerline-graze-stays-hidden": {
       "pass": true,
@@ -126,6 +126,144 @@
         "daggerThrustConnected": true
       }
     },
+    "no-slash-vfx-in-combat": {
+      "pass": true,
+      "detail": {
+        "noSlashSeq": true,
+        "bombAtlas": true
+      }
+    },
+    "bomb-explosion-vfx-remains": {
+      "pass": true,
+      "detail": {
+        "noSlashSeq": true,
+        "bombAtlas": true
+      }
+    },
+    "rival-can-collect": {
+      "pass": true
+    },
+    "hero-can-collect": {
+      "pass": true
+    },
+    "armed-fighter-cannot-vacuum": {
+      "pass": true
+    },
+    "soft-cap-suppresses-and-logs": {
+      "pass": true
+    },
+    "weapon-PISTOL": {
+      "pass": true,
+      "detail": "dmg=13.5 holder=null USE=1 HIT=3 CONSUME=1"
+    },
+    "weapon-SHOTGUN": {
+      "pass": true,
+      "detail": "dmg=14.4 holder=null USE=1 HIT=4 CONSUME=1"
+    },
+    "weapon-SMG": {
+      "pass": true,
+      "detail": "dmg=19.2 holder=null USE=1 HIT=8 CONSUME=1"
+    },
+    "weapon-SNIPER": {
+      "pass": true,
+      "detail": "dmg=26 holder=null USE=1 HIT=1 CONSUME=1"
+    },
+    "weapon-GRENADE": {
+      "pass": true,
+      "detail": "dmg=10.4 holder=null USE=1 HIT=1 CONSUME=1"
+    },
+    "weapon-SABRE": {
+      "pass": true,
+      "detail": "dmg=12 holder=null USE=1 HIT=1 CONSUME=1"
+    },
+    "weapon-BATTLE_AXE": {
+      "pass": true,
+      "detail": "dmg=26 holder=null USE=1 HIT=1 CONSUME=1"
+    },
+    "weapon-DAGGER": {
+      "pass": true,
+      "detail": "dmg=9 holder=null USE=1 HIT=1 CONSUME=1"
+    },
+    "weapon-SPEAR": {
+      "pass": true,
+      "detail": "dmg=15 holder=null USE=1 HIT=1 CONSUME=1"
+    },
+    "weapon-SPIKED_CLUB": {
+      "pass": true,
+      "detail": "dmg=18 holder=null USE=1 HIT=1 CONSUME=1"
+    },
+    "pistol-3-shots": {
+      "pass": true,
+      "detail": "hits=3"
+    },
+    "smg-8-shots": {
+      "pass": true,
+      "detail": "hits=8"
+    },
+    "sniper-single-high-damage": {
+      "pass": true,
+      "detail": "dmg=26"
+    },
+    "sniper-aim-telegraph-window": {
+      "pass": true,
+      "detail": "phase@0.3s=READY phase@0.65s=AIM"
+    },
+    "club-stun-applied": {
+      "pass": true,
+      "detail": [
+        "stun"
+      ]
+    },
+    "axe-knockback-applied": {
+      "pass": true,
+      "detail": [
+        "push"
+      ]
+    },
+    "grenade-throw-consumes-immediately": {
+      "pass": true
+    },
+    "grenade-resolves-after-fuse": {
+      "pass": true,
+      "detail": "rivalHp=90"
+    },
+    "melee-not-wasted-out-of-range": {
+      "pass": true
+    },
+    "melee-activates-in-range": {
+      "pass": true
+    },
+    "swirl-reflects-projectile": {
+      "pass": true,
+      "detail": "heroHp=100 rivalHp=74 hitOnRivalFromHero=1"
+    },
+    "swirl-reflect-ownership-correct": {
+      "pass": true,
+      "detail": "reflected bullet source=HERO target=RIVAL"
+    },
+    "tower-shield-reduces-damage": {
+      "pass": true,
+      "detail": "withShield 10->2.5, without 10->10"
+    },
+    "tower-shield-slow-while-active": {
+      "pass": true
+    },
+    "tower-shield-expires-to-unarmed": {
+      "pass": true
+    },
+    "exit-cleanup": {
+      "pass": true,
+      "detail": {
+        "gameStateAfter": "MENU",
+        "menuVisible": true,
+        "hudHidden": true,
+        "slotsCleared": true,
+        "aqProjectilesCleared": true,
+        "heroHolderCleared": true,
+        "staleAqAfterConsume": 0,
+        "exitLogged": true
+      }
+    },
     "shells-32-canonical": {
       "pass": true,
       "detail": {
@@ -156,144 +294,6 @@
           100,
           100
         ]
-      }
-    },
-    "no-slash-vfx-in-combat": {
-      "pass": true,
-      "detail": {
-        "noSlashSeq": true,
-        "bombAtlas": true
-      }
-    },
-    "bomb-explosion-vfx-remains": {
-      "pass": true,
-      "detail": {
-        "noSlashSeq": true,
-        "bombAtlas": true
-      }
-    },
-    "rival-can-collect": {
-      "pass": true
-    },
-    "hero-can-collect": {
-      "pass": true
-    },
-    "armed-fighter-cannot-vacuum": {
-      "pass": false
-    },
-    "soft-cap-suppresses-and-logs": {
-      "pass": true
-    },
-    "weapon-PISTOL": {
-      "pass": true,
-      "detail": "dmg=12.8 holder=null USE=1 HIT=3 CONSUME=1"
-    },
-    "weapon-SHOTGUN": {
-      "pass": true,
-      "detail": "dmg=13.7 holder=null USE=1 HIT=4 CONSUME=1"
-    },
-    "weapon-SMG": {
-      "pass": true,
-      "detail": "dmg=18.2 holder=null USE=1 HIT=8 CONSUME=1"
-    },
-    "weapon-SNIPER": {
-      "pass": true,
-      "detail": "dmg=24.7 holder=null USE=1 HIT=1 CONSUME=1"
-    },
-    "weapon-GRENADE": {
-      "pass": true,
-      "detail": "dmg=9.9 holder=null USE=1 HIT=1 CONSUME=1"
-    },
-    "weapon-SABRE": {
-      "pass": true,
-      "detail": "dmg=11.4 holder=null USE=1 HIT=1 CONSUME=1"
-    },
-    "weapon-BATTLE_AXE": {
-      "pass": true,
-      "detail": "dmg=24.7 holder=null USE=1 HIT=1 CONSUME=1"
-    },
-    "weapon-DAGGER": {
-      "pass": true,
-      "detail": "dmg=8.6 holder=null USE=1 HIT=1 CONSUME=1"
-    },
-    "weapon-SPEAR": {
-      "pass": true,
-      "detail": "dmg=14.3 holder=null USE=1 HIT=1 CONSUME=1"
-    },
-    "weapon-SPIKED_CLUB": {
-      "pass": true,
-      "detail": "dmg=17.1 holder=null USE=1 HIT=1 CONSUME=1"
-    },
-    "pistol-3-shots": {
-      "pass": true,
-      "detail": "hits=3"
-    },
-    "smg-8-shots": {
-      "pass": true,
-      "detail": "hits=8"
-    },
-    "sniper-single-high-damage": {
-      "pass": true,
-      "detail": "dmg=24.7"
-    },
-    "sniper-aim-telegraph-window": {
-      "pass": true,
-      "detail": "phase@0.3s=READY phase@0.65s=AIM"
-    },
-    "club-stun-applied": {
-      "pass": true,
-      "detail": [
-        "stun"
-      ]
-    },
-    "axe-knockback-applied": {
-      "pass": true,
-      "detail": [
-        "push"
-      ]
-    },
-    "grenade-throw-consumes-immediately": {
-      "pass": true
-    },
-    "grenade-resolves-after-fuse": {
-      "pass": true,
-      "detail": "rivalHp=90.496"
-    },
-    "melee-not-wasted-out-of-range": {
-      "pass": true
-    },
-    "melee-activates-in-range": {
-      "pass": true
-    },
-    "swirl-reflects-projectile": {
-      "pass": false,
-      "detail": "heroHp=100 rivalHp=75.2896 hitOnRivalFromHero=0"
-    },
-    "swirl-reflect-ownership-correct": {
-      "pass": false,
-      "detail": "reflected bullet source=HERO target=RIVAL"
-    },
-    "tower-shield-reduces-damage": {
-      "pass": false,
-      "detail": "withShield 10->2.760000000000005, without 10->11.04"
-    },
-    "tower-shield-slow-while-active": {
-      "pass": true
-    },
-    "tower-shield-expires-to-unarmed": {
-      "pass": true
-    },
-    "exit-cleanup": {
-      "pass": true,
-      "detail": {
-        "gameStateAfter": "MENU",
-        "menuVisible": true,
-        "hudHidden": true,
-        "slotsCleared": true,
-        "aqProjectilesCleared": true,
-        "heroHolderCleared": true,
-        "staleAqAfterConsume": 0,
-        "exitLogged": true
       }
     },
     "f3-debug-overlay-toggle": {
@@ -327,27 +327,27 @@
       }
     },
     "shell-select-32-cards": {
-      "pass": false,
+      "pass": true,
       "detail": {
-        "count": 0,
-        "p1": null,
-        "p2": null,
-        "startVisible": false
+        "count": 32,
+        "p1": "SNIPER",
+        "p2": "WITCH",
+        "selectVisible": true
       }
     },
     "shell-select-p1-p2-locks": {
-      "pass": false,
+      "pass": true,
       "detail": {
-        "count": 0,
-        "p1": null,
-        "p2": null,
-        "startVisible": false
+        "count": 32,
+        "p1": "SNIPER",
+        "p2": "WITCH",
+        "selectVisible": true
       }
     },
     "shell-select-enters-arsenal": {
-      "pass": false,
+      "pass": true,
       "detail": {
-        "gameState": "SELECT",
+        "gameState": "ARSENAL",
         "names": [
           "SNIPER",
           "WITCH"
@@ -360,29 +360,21 @@
     },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=3 restarts=3 spawnedCumulative=98 earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=3 restarts=3 spawnedCumulative=92 earlyErrors=0"
     },
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=23 x=664 y=369 lead=1.00",
-        "REVEAL": "[AQ] REVEAL id=13 weapon=SPEAR eta=0.29 lead=1.00 fighter=SNIPER",
-        "PICKUP": "[AQ] PICKUP id=19 fighter=WITCH weapon=SABRE",
-        "USE": "[AQ] USE fighter=WITCH weapon=SABRE",
-        "HIT": "[AQ] HIT source=WITCH target=SNIPER weapon=SABRE damage=12.0",
-        "CONSUME": "[AQ] CONSUME fighter=WITCH weapon=SABRE reason=melee-resolved"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=26 x=182 y=293 lead=1.00",
+        "REVEAL": "[AQ] REVEAL id=18 weapon=PISTOL eta=0.97 lead=1.00 fighter=SNIPER",
+        "PICKUP": "[AQ] PICKUP id=18 fighter=SNIPER weapon=PISTOL",
+        "USE": "[AQ] USE fighter=SNIPER weapon=PISTOL",
+        "HIT": "[AQ] HIT source=WITCH target=SNIPER weapon=SNIPER damage=26.0",
+        "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=PISTOL reason=sequence-complete"
       }
     }
   },
-  "failures": [
-    "armed-fighter-cannot-vacuum",
-    "swirl-reflects-projectile",
-    "swirl-reflect-ownership-correct",
-    "tower-shield-reduces-damage",
-    "shell-select-32-cards",
-    "shell-select-p1-p2-locks",
-    "shell-select-enters-arsenal"
-  ],
+  "failures": [],
   "evidence": [
     "docs/arsenal-quest/browser-evidence/01-hidden-telegraph.png",
     "docs/arsenal-quest/browser-evidence/02-multiple-simultaneous-pickups.png",
@@ -466,10 +458,10 @@
       "predictedFighter": null
     },
     "revealedOnApproach": true,
-    "revealLog": "[AQ] REVEAL id=1 weapon=SNIPER eta=0.87 lead=1.00 fighter=HERO",
+    "revealLog": "[AQ] REVEAL id=1 weapon=DAGGER eta=0.87 lead=1.00 fighter=HERO",
     "finalHolder": {
-      "weapon": "SNIPER",
-      "phase": "AIM",
+      "weapon": "DAGGER",
+      "phase": "READY",
       "shots": 0,
       "elapsed": 0.9000000000000011
     },
@@ -485,6 +477,193 @@
     "aimKeptApexTrajectory": true,
     "daggerBodyKeptTrajectory": true,
     "daggerThrustConnected": true
+  },
+  "noSlash": {
+    "noSlashSeq": true,
+    "bombAtlas": true
+  },
+  "pickupRules": {
+    "rivalGot": "SABRE",
+    "heroGot": "SMG",
+    "heroStillArmedWith": "SMG",
+    "rejectedStillThere": true,
+    "rejectLogged": true
+  },
+  "softCap": {
+    "spawned": false,
+    "active": 8,
+    "suppressed": 1
+  },
+  "weapons": {
+    "PISTOL": {
+      "midPhase": "READY",
+      "midPhase2": "FIRING",
+      "rivalHp": 86.5,
+      "damageDealt": 13.5,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 3,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": [
+        "push"
+      ]
+    },
+    "SHOTGUN": {
+      "midPhase": "READY",
+      "rivalHp": 85.60000000000002,
+      "damageDealt": 14.4,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 4,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": [
+        "push"
+      ]
+    },
+    "SMG": {
+      "midPhase": "READY",
+      "midPhase2": "FIRING",
+      "rivalHp": 80.79999999999995,
+      "damageDealt": 19.2,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 8,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": [
+        "push"
+      ]
+    },
+    "SNIPER": {
+      "midPhase": "READY",
+      "midPhase2": "AIM",
+      "rivalHp": 74,
+      "damageDealt": 26,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 1,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": []
+    },
+    "GRENADE": {
+      "midPhase": "READY",
+      "rivalHp": 89.56756756756756,
+      "damageDealt": 10.4,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 1,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": []
+    },
+    "SABRE": {
+      "rivalHp": 88,
+      "damageDealt": 12,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 1,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": []
+    },
+    "BATTLE_AXE": {
+      "midPhase": "WINDUP",
+      "rivalHp": 74,
+      "damageDealt": 26,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 1,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": [
+        "push"
+      ]
+    },
+    "DAGGER": {
+      "rivalHp": 91,
+      "damageDealt": 9,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 1,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": []
+    },
+    "SPEAR": {
+      "rivalHp": 85,
+      "damageDealt": 15,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 1,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": []
+    },
+    "SPIKED_CLUB": {
+      "rivalHp": 82,
+      "damageDealt": 18,
+      "holderAfter": null,
+      "useLogged": 1,
+      "hitLogged": 1,
+      "consumeLogged": 1,
+      "statuses": [],
+      "statusesMid": [
+        "stun"
+      ]
+    }
+  },
+  "grenade": {
+    "afterThrow": {
+      "holder": null,
+      "grenadeInWorld": true,
+      "rivalHp": 100
+    },
+    "rivalHpAfter": 90,
+    "explodeLogged": true,
+    "grenadeGone": true
+  },
+  "meleeWait": {
+    "farState": {
+      "holder": {
+        "weapon": "BATTLE_AXE",
+        "phase": "READY",
+        "shots": 0,
+        "elapsed": 1.9999999999999978
+      },
+      "rivalHp": 100
+    },
+    "nearState": {
+      "holder": null,
+      "rivalHp": 74
+    }
+  },
+  "swirl": {
+    "heroHp": 100,
+    "rivalHp": 74,
+    "heroHolder": null,
+    "reflectLogged": true,
+    "hitOnRivalFromHero": 1,
+    "bulletOwners": []
+  },
+  "tower": {
+    "speedStatus": true,
+    "guardedHp": 97.5,
+    "expiredHolder": null,
+    "unguardedHp": 87.5,
+    "unguardedDelta": 10
+  },
+  "cleanup": {
+    "gameStateAfter": "MENU",
+    "menuVisible": true,
+    "hudHidden": true,
+    "slotsCleared": true,
+    "aqProjectilesCleared": true,
+    "heroHolderCleared": true,
+    "staleAqAfterConsume": 0,
+    "exitLogged": true
   },
   "shells": {
     "count": 32,
@@ -502,193 +681,6 @@
       100
     ]
   },
-  "noSlash": {
-    "noSlashSeq": true,
-    "bombAtlas": true
-  },
-  "pickupRules": {
-    "rivalGot": "SABRE",
-    "heroGot": "SMG",
-    "heroStillArmedWith": "SMG",
-    "rejectedStillThere": true,
-    "rejectLogged": false
-  },
-  "softCap": {
-    "spawned": false,
-    "active": 8,
-    "suppressed": 1
-  },
-  "weapons": {
-    "PISTOL": {
-      "midPhase": "READY",
-      "midPhase2": "FIRING",
-      "rivalHp": 87.16960000000002,
-      "damageDealt": 12.8,
-      "holderAfter": null,
-      "useLogged": 1,
-      "hitLogged": 3,
-      "consumeLogged": 1,
-      "statuses": [],
-      "statusesMid": [
-        "push"
-      ]
-    },
-    "SHOTGUN": {
-      "midPhase": "READY",
-      "rivalHp": 86.31423999999998,
-      "damageDealt": 13.7,
-      "holderAfter": null,
-      "useLogged": 1,
-      "hitLogged": 4,
-      "consumeLogged": 1,
-      "statuses": [],
-      "statusesMid": [
-        "push"
-      ]
-    },
-    "SMG": {
-      "midPhase": "READY",
-      "midPhase2": "FIRING",
-      "rivalHp": 81.75232000000005,
-      "damageDealt": 18.2,
-      "holderAfter": null,
-      "useLogged": 1,
-      "hitLogged": 8,
-      "consumeLogged": 1,
-      "statuses": [],
-      "statusesMid": [
-        "push"
-      ]
-    },
-    "SNIPER": {
-      "midPhase": "READY",
-      "midPhase2": "AIM",
-      "rivalHp": 75.2896,
-      "damageDealt": 24.7,
-      "holderAfter": null,
-      "useLogged": 1,
-      "hitLogged": 1,
-      "consumeLogged": 1,
-      "statuses": [],
-      "statusesMid": []
-    },
-    "GRENADE": {
-      "midPhase": "READY",
-      "rivalHp": 90.08501621621622,
-      "damageDealt": 9.9,
-      "holderAfter": null,
-      "useLogged": 1,
-      "hitLogged": 1,
-      "consumeLogged": 1,
-      "statuses": [],
-      "statusesMid": []
-    },
-    "SABRE": {
-      "rivalHp": 88.5952,
-      "damageDealt": 11.4,
-      "holderAfter": null,
-      "useLogged": 1,
-      "hitLogged": 1,
-      "consumeLogged": 1,
-      "statuses": [],
-      "statusesMid": []
-    },
-    "BATTLE_AXE": {
-      "midPhase": "WINDUP",
-      "rivalHp": 75.2896,
-      "damageDealt": 24.7,
-      "holderAfter": null,
-      "useLogged": 1,
-      "hitLogged": 1,
-      "consumeLogged": 1,
-      "statuses": [],
-      "statusesMid": [
-        "push"
-      ]
-    },
-    "DAGGER": {
-      "rivalHp": 91.4464,
-      "damageDealt": 8.6,
-      "holderAfter": null,
-      "useLogged": 1,
-      "hitLogged": 1,
-      "consumeLogged": 1,
-      "statuses": [],
-      "statusesMid": []
-    },
-    "SPEAR": {
-      "rivalHp": 85.744,
-      "damageDealt": 14.3,
-      "holderAfter": null,
-      "useLogged": 1,
-      "hitLogged": 1,
-      "consumeLogged": 1,
-      "statuses": [],
-      "statusesMid": []
-    },
-    "SPIKED_CLUB": {
-      "rivalHp": 82.8928,
-      "damageDealt": 17.1,
-      "holderAfter": null,
-      "useLogged": 1,
-      "hitLogged": 1,
-      "consumeLogged": 1,
-      "statuses": [],
-      "statusesMid": [
-        "stun"
-      ]
-    }
-  },
-  "grenade": {
-    "afterThrow": {
-      "holder": null,
-      "grenadeInWorld": true,
-      "rivalHp": 100
-    },
-    "rivalHpAfter": 90.496,
-    "explodeLogged": true,
-    "grenadeGone": true
-  },
-  "meleeWait": {
-    "farState": {
-      "holder": {
-        "weapon": "BATTLE_AXE",
-        "phase": "READY",
-        "shots": 0,
-        "elapsed": 1.9999999999999978
-      },
-      "rivalHp": 100
-    },
-    "nearState": {
-      "holder": null,
-      "rivalHp": 75.2896
-    }
-  },
-  "swirl": {
-    "heroHp": 100,
-    "rivalHp": 75.2896,
-    "heroHolder": null,
-    "reflectLogged": false,
-    "hitOnRivalFromHero": 0,
-    "bulletOwners": []
-  },
-  "tower": {
-    "speedStatus": true,
-    "guardedHp": 97.24,
-    "expiredHolder": null,
-    "unguardedHp": 86.19999999999999,
-    "unguardedDelta": 11.04
-  },
-  "cleanup": {
-    "gameStateAfter": "MENU",
-    "menuVisible": true,
-    "hudHidden": true,
-    "slotsCleared": true,
-    "aqProjectilesCleared": true,
-    "heroHolderCleared": true,
-    "staleAqAfterConsume": 0,
-    "exitLogged": true
-  },
   "f3": {
     "toggledOn": true
   },
@@ -702,30 +694,22 @@
     "error": null,
     "restarts": 3,
     "koCount": 3,
-    "spawnedTotal": 26,
-    "spawnedCumulative": 98,
+    "spawnedTotal": 25,
+    "spawnedCumulative": 92,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=23 x=664 y=369 lead=1.00",
-    "REVEAL": "[AQ] REVEAL id=13 weapon=SPEAR eta=0.29 lead=1.00 fighter=SNIPER",
-    "PICKUP": "[AQ] PICKUP id=19 fighter=WITCH weapon=SABRE",
-    "USE": "[AQ] USE fighter=WITCH weapon=SABRE",
-    "HIT": "[AQ] HIT source=WITCH target=SNIPER weapon=SABRE damage=12.0",
-    "CONSUME": "[AQ] CONSUME fighter=WITCH weapon=SABRE reason=melee-resolved"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=26 x=182 y=293 lead=1.00",
+    "REVEAL": "[AQ] REVEAL id=18 weapon=PISTOL eta=0.97 lead=1.00 fighter=SNIPER",
+    "PICKUP": "[AQ] PICKUP id=18 fighter=SNIPER weapon=PISTOL",
+    "USE": "[AQ] USE fighter=SNIPER weapon=PISTOL",
+    "HIT": "[AQ] HIT source=WITCH target=SNIPER weapon=SNIPER damage=26.0",
+    "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=PISTOL reason=sequence-complete"
   },
   "summary": {
     "total": 59,
-    "passed": 52,
-    "failed": [
-      "armed-fighter-cannot-vacuum",
-      "swirl-reflects-projectile",
-      "swirl-reflect-ownership-correct",
-      "tower-shield-reduces-damage",
-      "shell-select-32-cards",
-      "shell-select-p1-p2-locks",
-      "shell-select-enters-arsenal"
-    ]
+    "passed": 59,
+    "failed": []
   }
 }
