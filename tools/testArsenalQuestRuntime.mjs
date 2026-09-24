@@ -1173,11 +1173,11 @@ try {
 
   report.rev2QuestBr = await evaluate(`(() => {
     const Q = APEX_ARSENAL_QUEST;
+    Q.persist({ unlockedThrough: 20, completedStages: [1] });
     const a = Q.startStage(1, 'NEWBIE');
     const p2a = fighters[1] && (fighters[1].type && fighters[1].type.name);
     const b = Q.startStage(10, 'NEWBIE');
     const p2b = fighters[1] && fighters[1].type && fighters[1].type.name;
-    Q.persist({ unlockedThrough: 20, completedStages: [1] });
     const c = Q.startStage(20, 'NEWBIE');
     const p2c = fighters[1] && fighters[1].type && fighters[1].type.name;
     return { a, p2a, b, p2b, c, p2c, live: Q.liveOpponent('MONK') };
