@@ -222,6 +222,30 @@
   function enemyDistance(ctx) { return enemyAlive(ctx) ? dist(ctx.fighter.x, ctx.fighter.y, ctx.enemy.x, ctx.enemy.y) : Infinity; }
   function angleToEnemy(ctx) { return Math.atan2(ctx.enemy.y - ctx.fighter.y, ctx.enemy.x - ctx.fighter.x); }
   function aimAtHolder(ctx) { ctx.fighter.setDir(Math.cos(angleToEnemy(ctx)), Math.sin(angleToEnemy(ctx))); }
+
+  function gunMuzzleDistance(weaponId, fighter) {
+    const r = fighter?.radius || 75;
+    if (weaponId === 'SNIPER') return r + 72;
+    if (weaponId === 'SHOTGUN') return r + 52;
+    if (weaponId === 'SMG') return r + 38;
+    return r + 26; // PISTOL + safe default
+  }
+
+  function meleeSwingAnchor(weaponId, fighter, spec, angle) {
+    const reach = spec?.reach || fighter?.radius || 75;
+    let factor = 0.46;
+    if (weaponId === 'SPEAR') factor = 0.58;
+    else if (weaponId === 'SPIKED_CLUB') factor = 0.42;
+    else if (weaponId === 'BATTLE_AXE') factor = 0.50;
+    else if (weaponId === 'SABRE') factor = 0.48;
+    const d = Math.max((fighter?.radius || 75) * 0.65, reach * factor);
+    return {
+      x: fighter.x + Math.cos(angle) * d,
+      y: fighter.y + Math.sin(angle) * d,
+      angle,
+    };
+  }
+
   function pushVisual(visual) {
     const state = AQ.state;
     if (!state || !state.visuals) return;
@@ -273,7 +297,9 @@
         h.meta.windupLeft -= dt;
         if (h.meta.windupLeft <= 0) {
           h.phase = 'STRIKE';
-          window.avCue('melee_swing', { weapon: id, x: ctx.fighter.x, y: ctx.fighter.y, angle: Math.atan2(ctx.fighter.dir.y, ctx.fighter.dir.x) });
+          const attackAngle = Math.atan2(ctx.fighter.dir.y, ctx.fighter.dir.x);
+          const anchor = meleeSwingAnchor(id, ctx.fighter, spec, attackAngle);
+          window.avCue('melee_swing', { weapon: id, x: anchor.x, y: anchor.y, angle: anchor.angle });
           const landed = strikeCone(ctx, spec, id, { color });
           if (landed) window.avCue('melee_hit', { weapon: id, x: ctx.enemy.x, y: ctx.enemy.y });
           consume(ctx.fighter, 'melee-resolved');
@@ -311,7 +337,8 @@
         while (h.meta.nextShot <= 0 && h.shotsFired < spec.shots) {
           const spread = (Math.random() * 2 - 1) * spec.spread;
           const angle = enemyAlive(ctx) ? angleToEnemy(ctx) + spread : Math.atan2(f.dir.y, f.dir.x) + spread;
-          window.avCue('fire', { weapon: id, x: f.x + Math.cos(angle) * (f.radius * 0.95), y: f.y + Math.sin(angle) * (f.radius * 0.95), angle });
+          const muzzleDistance = gunMuzzleDistance(id, f);
+          window.avCue('fire', { weapon: id, x: f.x + Math.cos(angle) * muzzleDistance, y: f.y + Math.sin(angle) * muzzleDistance, angle });
           fireBullet({
             owner: f,
             x: f.x + Math.cos(angle) * (f.radius * 0.7),
@@ -380,7 +407,8 @@
               color: '#ffbe6b',
             });
           }
-          window.avCue('fire', { weapon: 'SHOTGUN', x: f.x + Math.cos(base) * (f.radius * 0.95), y: f.y + Math.sin(base) * (f.radius * 0.95), angle: base });
+          const muzzleDistance = gunMuzzleDistance('SHOTGUN', f);
+          window.avCue('fire', { weapon: 'SHOTGUN', x: f.x + Math.cos(base) * muzzleDistance, y: f.y + Math.sin(base) * muzzleDistance, angle: base });
           spawnShockwave(f.x, f.y, '#ffbe6b', 130);
           cameraShake = Math.max(cameraShake, 9);
           hitStop = Math.max(hitStop, 0.03);
@@ -441,7 +469,8 @@
               cameraShake = Math.max(cameraShake, 8);
               triggerFlash(255, 250, 235, 0.12);
               playFighterSound(f, 'skill');
-              window.avCue('sniper_shot', { x: f.x + Math.cos(angle) * (f.radius * 0.95), y: f.y + Math.sin(angle) * (f.radius * 0.95), angle });
+              const muzzleDistance = gunMuzzleDistance('SNIPER', f);
+              window.avCue('sniper_shot', { x: f.x + Math.cos(angle) * muzzleDistance, y: f.y + Math.sin(angle) * muzzleDistance, angle });
               consume(f, 'shot-fired');
             }
           }
@@ -474,7 +503,7 @@
           });
           log('USE', `fighter=${f.name} weapon=GRENADE`);
           playFighterSound(f, 'skill');
-          window.avCue('grenade_throw', { x: f.x + Math.cos(angle) * (f.radius * 0.95), y: f.y + Math.sin(angle) * (f.radius * 0.95), angle });
+          window.avCue('grenade_throw', { x: f.x + Math.cos(angle) * (f.radius + 24), y: f.y + Math.sin(angle) * (f.radius + 24), angle });
           // Consumed immediately after throw; grenade stays in world until it resolves.
           consume(f, 'thrown');
         },
@@ -503,7 +532,14 @@
           aimAtHolder(ctx);
           log('USE', `fighter=${ctx.fighter.name} weapon=DAGGER`);
           playFighterSound(ctx.fighter, 'skill');
-          window.avCue('melee_swing', { weapon: 'DAGGER', x: ctx.fighter.x, y: ctx.fighter.y, angle: Math.atan2(ctx.fighter.dir.y, ctx.fighter.dir.x) });
+          const dashAngle = Math.atan2(ctx.fighter.dir.y, ctx.fighter.dir.x);
+          const dashOffset = ctx.fighter.radius + 48;
+          window.avCue('melee_swing', {
+            weapon: 'DAGGER',
+            x: ctx.fighter.x + Math.cos(dashAngle) * dashOffset,
+            y: ctx.fighter.y + Math.sin(dashAngle) * dashOffset,
+            angle: dashAngle,
+          });
         },
         update(ctx, dt) {
           const h = ctx.holder;
