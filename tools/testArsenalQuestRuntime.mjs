@@ -458,6 +458,25 @@ try {
   })()`);
   gate('f3-debug-overlay-toggle', report.f3.toggledOn === true);
 
+  // Issue #4: real-browser proof that the committed atlas renders (floor +
+  // equipped) and the old placeholder path is not serving weapon art.
+  report.weaponArt = await evaluate(`(() => {
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearSlots();
+    __AQ_TEST.place(300, 500, 760, 500);
+    __AQ_TEST.pushSlot({ x: 300, y: 430, weaponId: 'SHOTGUN' });
+    __AQ_TEST.pushSlot({ x: 520, y: 620, weaponId: 'TOWER_SHIELD' });
+    __AQ_TEST.equip('HERO', 'SABRE');
+    __AQ_TEST.equip('RIVAL', 'SWIRL_SHIELD');
+    __AQ_TEST.step(0.3);
+    __AQ_TEST.redraw();
+    const s = APEX_ARSENAL_AV.stats;
+    return { floor: s.floorSpriteDraws, equipped: s.equippedSpriteDraws, imgFail: s.imagesFailed, sfxFail: s.audioFailed };
+  })()`);
+  gate('browser-weapon-atlas-floor-sprite', report.weaponArt.floor >= 2, report.weaponArt);
+  gate('browser-weapon-atlas-equipped-sprite', report.weaponArt.equipped >= 2, report.weaponArt);
+  gate('browser-no-atlas-fallback', report.weaponArt.imgFail === 0 && report.weaponArt.floor > 0, report.weaponArt);
+
   // Screenshot 1: hidden telegraph (deterministic scene, direct draw()).
   await evaluate(`(() => {
     __AQ_TEST.enterManual();
