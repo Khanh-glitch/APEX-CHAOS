@@ -87,7 +87,7 @@
     },
     "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=SHOTGUN eta=null lead=2.00 fighter=TIMEOUT force=true"
+      "detail": "[AQ] REVEAL id=1 weapon=SABRE eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
@@ -98,19 +98,19 @@
       "detail": {
         "nearMissStayedHidden": true,
         "edgeOfCircleReveals": true,
-        "edgeLog": "[AQ] REVEAL id=2 weapon=SABRE eta=0.80 lead=2.00 fighter=HERO force=false",
+        "edgeLog": "[AQ] REVEAL id=2 weapon=DAGGER eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=SMG eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=GRENADE eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=SABRE eta=0.80 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=DAGGER eta=0.80 lead=2.00 fighter=HERO force=false"
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=3 weapon=SMG eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=3 weapon=GRENADE eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -327,7 +327,7 @@
       "pass": true,
       "detail": {
         "nativeFrames": 20,
-        "aqFrames": 16
+        "aqFrames": 41
       }
     },
     "f3-debug-overlay-toggle": {
@@ -569,17 +569,17 @@
     },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=7 restarts=7 spawnedCumulative=70 earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=5 restarts=5 spawnedCumulative=69 earlyErrors=0"
     },
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=7 x=414 y=349 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=7 weapon=SMG eta=null lead=2.00 fighter=TIMEOUT force=true",
-        "PICKUP": "[AQ] PICKUP id=7 fighter=WITCH weapon=SMG",
-        "USE": "[AQ] USE fighter=WITCH weapon=SMG",
-        "HIT": "[AQ] HIT source=WITCH target=SNIPER weapon=SMG damage=2.4",
-        "CONSUME": "[AQ] CONSUME fighter=WITCH weapon=TOWER_SHIELD reason=expired"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=5 x=531 y=692 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=4 weapon=BATTLE_AXE eta=0.49 lead=2.00 fighter=SNIPER force=false",
+        "PICKUP": "[AQ] PICKUP id=4 fighter=SNIPER weapon=BATTLE_AXE",
+        "USE": "[AQ] USE fighter=SNIPER weapon=BATTLE_AXE",
+        "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=PISTOL damage=4.5",
+        "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=PISTOL reason=sequence-complete"
       }
     }
   },
@@ -694,7 +694,7 @@
       "predictedFighter": null
     },
     "forceRevealed": true,
-    "forceLog": "[AQ] REVEAL id=1 weapon=SHOTGUN eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "forceLog": "[AQ] REVEAL id=1 weapon=SABRE eta=null lead=2.00 fighter=TIMEOUT force=true",
     "pickupAfterForce": true,
     "revealedOnMovement": true,
     "moveRevealLog": "[AQ] REVEAL id=2 weapon=DAGGER eta=1.36 lead=2.00 fighter=HERO force=false"
@@ -702,10 +702,10 @@
   "circleNeg": {
     "nearMissStayedHidden": true,
     "edgeOfCircleReveals": true,
-    "edgeLog": "[AQ] REVEAL id=2 weapon=SABRE eta=0.80 lead=2.00 fighter=HERO force=false",
+    "edgeLog": "[AQ] REVEAL id=2 weapon=DAGGER eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=SMG eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=GRENADE eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -958,7 +958,7 @@
     "vampLatch": 2.5,
     "monkRush": 2.5,
     "nativeSeen": 20,
-    "aqSeen": 16,
+    "aqSeen": 41,
     "holderIntact": true
   },
   "f3": {
@@ -1130,20 +1130,20 @@
   },
   "fiveMinute": {
     "error": null,
-    "restarts": 7,
-    "koCount": 7,
-    "spawnedTotal": 9,
-    "spawnedCumulative": 70,
+    "restarts": 5,
+    "koCount": 5,
+    "spawnedTotal": 6,
+    "spawnedCumulative": 69,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=7 x=414 y=349 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=7 weapon=SMG eta=null lead=2.00 fighter=TIMEOUT force=true",
-    "PICKUP": "[AQ] PICKUP id=7 fighter=WITCH weapon=SMG",
-    "USE": "[AQ] USE fighter=WITCH weapon=SMG",
-    "HIT": "[AQ] HIT source=WITCH target=SNIPER weapon=SMG damage=2.4",
-    "CONSUME": "[AQ] CONSUME fighter=WITCH weapon=TOWER_SHIELD reason=expired"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=5 x=531 y=692 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=4 weapon=BATTLE_AXE eta=0.49 lead=2.00 fighter=SNIPER force=false",
+    "PICKUP": "[AQ] PICKUP id=4 fighter=SNIPER weapon=BATTLE_AXE",
+    "USE": "[AQ] USE fighter=SNIPER weapon=BATTLE_AXE",
+    "HIT": "[AQ] HIT source=SNIPER target=WITCH weapon=PISTOL damage=4.5",
+    "CONSUME": "[AQ] CONSUME fighter=SNIPER weapon=PISTOL reason=sequence-complete"
   },
   "summary": {
     "total": 69,
