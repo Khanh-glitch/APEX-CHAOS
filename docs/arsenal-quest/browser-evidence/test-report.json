@@ -89,30 +89,30 @@
     },
     "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=SNIPER eta=null lead=2.00 fighter=TIMEOUT force=true"
+      "detail": "[AQ] REVEAL id=1 weapon=MBR2 eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S2 eta=1.36 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=MAC_10 eta=1.36 lead=2.00 fighter=HERO force=false"
     },
     "near-miss-outside-circle-stays-hidden": {
       "pass": true,
       "detail": {
         "nearMissStayedHidden": true,
         "edgeOfCircleReveals": true,
-        "edgeLog": "[AQ] REVEAL id=2 weapon=MBR eta=0.80 lead=2.00 fighter=HERO force=false",
+        "edgeLog": "[AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=GLOCK_17 eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=M249_SAW eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=MBR eta=0.80 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false"
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=3 weapon=GLOCK_17 eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=3 weapon=M249_SAW eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -638,16 +638,16 @@
       "detail": {
         "rack": 0,
         "sawedExit": "breakOpen",
-        "magCasing": 65,
+        "magCasing": 0,
         "magExit": "cylinderSpill"
       }
     },
     "browser-magnum-no-shot-casing": {
-      "pass": false,
+      "pass": true,
       "detail": {
         "rack": 0,
         "sawedExit": "breakOpen",
-        "magCasing": 65,
+        "magCasing": 0,
         "magExit": "cylinderSpill"
       }
     },
@@ -660,23 +660,21 @@
     },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=11 restarts=11 spawnedCumulative=101 earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=12 restarts=12 spawnedCumulative=101 earlyErrors=0"
     },
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=1 x=199 y=243 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=9 weapon=SAWED_OFF eta=0.60 lead=2.00 fighter=ICE force=false",
-        "PICKUP": "[AQ] PICKUP id=9 fighter=ICE weapon=SAWED_OFF",
-        "USE": "[AQ] USE fighter=ICE weapon=SAWED_OFF",
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=4 x=792 y=458 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=3 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true",
+        "PICKUP": "[AQ] PICKUP id=3 fighter=RUBBER weapon=MAC_10",
+        "USE": "[AQ] USE fighter=RUBBER weapon=MAC_10",
         "HIT": "[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0",
-        "CONSUME": "[AQ] CONSUME fighter=RUBBER weapon=MAC_10 reason=sequence-complete"
+        "CONSUME": "[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15 reason=sequence-complete"
       }
     }
   },
-  "failures": [
-    "browser-magnum-no-shot-casing"
-  ],
+  "failures": [],
   "evidence": [
     "docs/arsenal-quest/browser-evidence/01-hidden-telegraph.png",
     "docs/arsenal-quest/browser-evidence/02-multiple-simultaneous-pickups.png",
@@ -797,18 +795,18 @@
       "predictedFighter": null
     },
     "forceRevealed": true,
-    "forceLog": "[AQ] REVEAL id=1 weapon=SNIPER eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "forceLog": "[AQ] REVEAL id=1 weapon=MBR2 eta=null lead=2.00 fighter=TIMEOUT force=true",
     "pickupAfterForce": true,
     "revealedOnMovement": true,
-    "moveRevealLog": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S2 eta=1.36 lead=2.00 fighter=HERO force=false"
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=MAC_10 eta=1.36 lead=2.00 fighter=HERO force=false"
   },
   "circleNeg": {
     "nearMissStayedHidden": true,
     "edgeOfCircleReveals": true,
-    "edgeLog": "[AQ] REVEAL id=2 weapon=MBR eta=0.80 lead=2.00 fighter=HERO force=false",
+    "edgeLog": "[AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=GLOCK_17 eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=M249_SAW eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -1276,7 +1274,7 @@
   "gapSawedMag": {
     "rack": 0,
     "sawedExit": "breakOpen",
-    "magCasing": 65,
+    "magCasing": 0,
     "magExit": "cylinderSpill"
   },
   "gapReserveBr": {
@@ -1285,26 +1283,24 @@
   },
   "fiveMinute": {
     "error": null,
-    "restarts": 11,
-    "koCount": 11,
-    "spawnedTotal": 4,
+    "restarts": 12,
+    "koCount": 12,
+    "spawnedTotal": 5,
     "spawnedCumulative": 101,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=1 x=199 y=243 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=9 weapon=SAWED_OFF eta=0.60 lead=2.00 fighter=ICE force=false",
-    "PICKUP": "[AQ] PICKUP id=9 fighter=ICE weapon=SAWED_OFF",
-    "USE": "[AQ] USE fighter=ICE weapon=SAWED_OFF",
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=4 x=792 y=458 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=3 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "PICKUP": "[AQ] PICKUP id=3 fighter=RUBBER weapon=MAC_10",
+    "USE": "[AQ] USE fighter=RUBBER weapon=MAC_10",
     "HIT": "[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0",
-    "CONSUME": "[AQ] CONSUME fighter=RUBBER weapon=MAC_10 reason=sequence-complete"
+    "CONSUME": "[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15 reason=sequence-complete"
   },
   "summary": {
     "total": 78,
-    "passed": 77,
-    "failed": [
-      "browser-magnum-no-shot-casing"
-    ]
+    "passed": 78,
+    "failed": []
   }
 }

@@ -16,11 +16,11 @@ PASS  multi-slot-coexist  — maxActiveSlots=7
 PASS  force-reveals-only-while-unapproached  — reveals=6 (all force=true, identity null while hidden)
 PASS  hidden-until-force-age-3.0  — {"id":1,"phase":"TELEGRAPH","age":2.9,"weaponId":null,"revealLeadSeconds":2,"predictedHeroETA":null,"predictedRivalETA":null,"earliestETA":null,"predictedFighter":null}
 PASS  telegraph-no-identity
-PASS  force-reveal-at-3.0-not-autopickup  — [AQ] REVEAL id=1 weapon=SNIPER eta=null lead=2.00 fighter=TIMEOUT force=true
-PASS  movement-reveal-lead-2.0  — [AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S2 eta=1.36 lead=2.00 fighter=HERO force=false
-PASS  near-miss-outside-circle-stays-hidden  — {"nearMissStayedHidden":true,"edgeOfCircleReveals":true,"edgeLog":"[AQ] REVEAL id=2 weapon=MBR eta=0.80 lead=2.00 fighter=HERO force=false","hiddenBeforeBounce":true,"revealedAfterBounce":true,"bounceLog":"[AQ] REVEAL id=3 weapon=GLOCK_17 eta=0.06 lead=2.00 fighter=HERO force=false"}
-PASS  edge-of-circle-approach-reveals  — [AQ] REVEAL id=2 weapon=MBR eta=0.80 lead=2.00 fighter=HERO force=false
-PASS  no-reveal-before-bounce  — [AQ] REVEAL id=3 weapon=GLOCK_17 eta=0.06 lead=2.00 fighter=HERO force=false
+PASS  force-reveal-at-3.0-not-autopickup  — [AQ] REVEAL id=1 weapon=MBR2 eta=null lead=2.00 fighter=TIMEOUT force=true
+PASS  movement-reveal-lead-2.0  — [AQ] REVEAL id=2 weapon=MAC_10 eta=1.36 lead=2.00 fighter=HERO force=false
+PASS  near-miss-outside-circle-stays-hidden  — {"nearMissStayedHidden":true,"edgeOfCircleReveals":true,"edgeLog":"[AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false","hiddenBeforeBounce":true,"revealedAfterBounce":true,"bounceLog":"[AQ] REVEAL id=3 weapon=M249_SAW eta=0.06 lead=2.00 fighter=HERO force=false"}
+PASS  edge-of-circle-approach-reveals  — [AQ] REVEAL id=2 weapon=P90 eta=0.80 lead=2.00 fighter=HERO force=false
+PASS  no-reveal-before-bounce  — [AQ] REVEAL id=3 weapon=M249_SAW eta=0.06 lead=2.00 fighter=HERO force=false
 PASS  aim-never-steers-fighter  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
 PASS  dagger-no-body-dash  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
 PASS  no-slash-vfx-in-combat  — {"noSlashSeq":true,"bombAtlas":true}
@@ -80,19 +80,16 @@ PASS  browser-m16-burst-pause  — {"n":6,"gaps":[0.067,0.083,0.283,0.084,0.083]
 PASS  browser-mbr-two-shot  — {"n":2,"gaps":[0.456]}
 PASS  browser-mbr2-two-shot  — {"n":2,"gaps":[0.507]}
 PASS  browser-szecsei-two-shot  — {"n":2,"gaps":[0.557]}
-PASS  browser-sawed-no-rack  — {"rack":0,"sawedExit":"breakOpen","magCasing":65,"magExit":"cylinderSpill"}
-FAIL  browser-magnum-no-shot-casing  — {"rack":0,"sawedExit":"breakOpen","magCasing":65,"magExit":"cylinderSpill"}
+PASS  browser-sawed-no-rack  — {"rack":0,"sawedExit":"breakOpen","magCasing":0,"magExit":"cylinderSpill"}
+PASS  browser-magnum-no-shot-casing  — {"rack":0,"sawedExit":"breakOpen","magCasing":0,"magExit":"cylinderSpill"}
 PASS  browser-reserved-shield-not-stolen  — {"stolen":null,"hero":"SWIRL_SHIELD"}
-PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=11 restarts=11 spawnedCumulative=101 earlyErrors=0
-PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=1 x=199 y=243 lead=2.00","REVEAL":"[AQ] REVEAL id=9 weapon=SAWED_OFF eta=0.60 lead=2.00 fighter=ICE force=false","PICKUP":"[AQ] PICKUP id=9 fighter=ICE weapon=SAWED_OFF","USE":"[AQ] USE fighter=ICE weapon=SAWED_OFF","HIT":"[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0","CONSUME":"[AQ] CONSUME fighter=RUBBER weapon=MAC_10 reason=sequence-complete"}
+PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=12 restarts=12 spawnedCumulative=101 earlyErrors=0
+PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=4 x=792 y=458 lead=2.00","REVEAL":"[AQ] REVEAL id=3 weapon=MAC_10 eta=null lead=2.00 fighter=TIMEOUT force=true","PICKUP":"[AQ] PICKUP id=3 fighter=RUBBER weapon=MAC_10","USE":"[AQ] USE fighter=RUBBER weapon=MAC_10","HIT":"[AQ] HIT source=RUBBER target=ICE weapon=MAC_10 damage=2.0","CONSUME":"[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15 reason=sequence-complete"}
 
 ==== ARSENAL QUEST TEST SUMMARY ====
 {
   "total": 78,
-  "passed": 77,
-  "failed": [
-    "browser-magnum-no-shot-casing"
-  ]
+  "passed": 78,
+  "failed": []
 }
 report+evidence written under docs/arsenal-quest/browser-evidence/
- ELIFECYCLE  Command failed with exit code 1.
