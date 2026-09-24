@@ -71,17 +71,36 @@ Grenade explosion atlas retained per V2 §A4.
 
 ## 7. Audio (DoD §7)
 
-- Kept baseline: cz (pistol), sks slices (SMG), shotty, mosin (sniper), Kenney
-  impact/rpg mechanism layers, explosion pair.
-- **Removed `sfx/scifi/laserLarge_003.ogg`** (sci-fi sniper charge) — gate
-  `av-no-laser-charge-sfx`. Sniper chamber beat is now a restrained mechanical
-  click; the weapon runtime's chamber event uses the existing metallic cue.
-- Casing landings reuse `impactPlate_light_001` at 0.16 vol, voice-capped.
-- **Restoration gap (documented, not substituted)**: the owner-PASSed Sonniss
-  GDC 2026 melee/shield/grenade layers are not present anywhere in this
-  repository and cannot be fetched (owner-side ZIPs only, per handoff §18).
-  Per contract, no random SFX were substituted; the PASSed baseline +
-  existing mechanism layers remain until the owner bundles Sonniss.
+- **Gun-fire baseline retained exactly as owner-approved**:
+  `cz.wav` (Pistol), sliced `sks.wav` (SMG), `shotty.wav` (Shotgun),
+  and `mosin.wav` (Sniper).
+- **Owner-approved C1 FINAL SFX LOCK restored and integrated** from
+  `tools/arsenal-assets/source/sfx/final-lock/APEX_C1_SFX_FINAL_LOCK.zip`
+  (SHA-256 `cd1181a6c2957cd93dfbb32f41ad540a6918ec7eee03d34218434c0a4604ffac`).
+  The deterministic materializer verifies the bundle and each runtime WAV
+  before writing `public/assets/arsenal/av/sfx/c-final/`.
+- **20 final-lock runtime WAVs are now in-repo and active**:
+  Battle Axe motion/contact/body, Club swing/body, Dagger motion/contact,
+  Sabre motion/cut, Spear motion/impact, Swirl Shield block, Tower Shield
+  block, Grenade core/low body, Pistol mechanism click, Shotgun rack
+  pull/push, and Sniper chamber/bolt lock.
+- Exact trims/gain/source identities are preserved in
+  `public/assets/arsenal/av/sfx/c-final/metadata/APEX_C1_FINAL_SFX_MAP.csv`.
+- Runtime event mapping now uses the final-lock files at the actual semantic
+  beats: melee motion on commit, melee contacts on hit, shield identities on
+  block/reflect, grenade core+low layer on explosion, pistol mechanism on
+  equip, shotgun rack micro-sequence after blast, sniper chamber during aim
+  and bolt lock on the chamber gesture.
+- **Removed the sci-fi sniper charge** and removed the old generic
+  Kenney/RPG/scifi fallback mappings for the weapon events covered by the
+  final lock. Shield activation itself is intentionally quiet; the approved
+  shield sound is reserved for actual contact.
+- Casing landing remains the restrained `impactPlate_light_001` utility cue
+  because casing was not part of the final-lock bundle.
+- QA now enforces the audio authority: `av-asset-map-complete` requires all
+  final-lock event keys to resolve under `sfx/c-final/`, the four gun-fire
+  keys to remain under `sfx/guns/`, and rejects the superseded fallback keys.
+- Verified at `71b21fb7003fb6f5e0fbf6936453d9d9e4f6fc0b`: **96/96 headless** and **69/69 real-browser**.
 
 ## 8. Chamber 01 (DoD §8)
 
@@ -130,6 +149,7 @@ every cue maps to authored or curated assets.
 
 ## Open items for owner
 
-1. Sonniss bundle (owner-side) — swap-in point documented in §7.
-2. Playtest tuning of tracer speeds / damage feel (contract allows drift).
+1. Owner playtest / feel review of the completed Checkpoint C rebuild.
+2. Tune tracer speeds / damage feel only if the owner playtest identifies a
+   concrete problem; the current implementation is already fully integrated.
 3. `playtest/arsenal` remains frozen until this build is reviewed.
