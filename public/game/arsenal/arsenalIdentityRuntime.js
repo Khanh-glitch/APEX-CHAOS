@@ -75,7 +75,7 @@
     MBR2: { family: 'PRECISION', shots: 2, aimTime: 0.34, interval: 0.5, damage: 14, knockback: 360, bulletSpeed: 5200, bulletLife: 0.72, bulletRadius: 7.2, sfx: 'sniper_shot', sfxRate: 0.98, vfx: 'dmr', exit: 'deepRecoil' },
     SZECSEI_FUCHS: { family: 'PRECISION', shots: 2, aimTime: 0.40, interval: 0.55, damage: 15, knockback: 400, bulletSpeed: 5400, bulletLife: 0.8, bulletRadius: 7.5, sfx: 'sniper_shot', sfxRate: 0.90, vfx: 'heavyPrecision', exit: 'longDrop' },
     SNIPER: { family: 'PRECISION', shots: 1, aimTime: 0.8, damage: 38, knockback: 420, bulletSpeed: 5800, bulletLife: 1.0, bulletRadius: 8, sfx: 'sniper_shot', sfxRate: 0.82, vfx: 'snipex', exit: 'kickBack' },
-    JACKHAMMER: { family: 'AUTOSHOT', shots: 3, interval: 0.14, pellets: 5, cone: 0.55, damagePerPellet: 2.4, knockback: 160, bulletSpeed: 2400, bulletLife: 0.16, bulletRadius: 6.5, triggerRange: 400, sfx: 'shotgun_shot', sfxRate: 1.05, vfx: 'autoShot', noPumpRack: true, exit: 'cassetteSpin' },
+    JACKHAMMER: { family: 'AUTOSHOT', shots: 3, interval: 0.14, pellets: 5, cone: 0.55, damagePerPellet: 2.4, knockback: 160, bulletSpeed: 2400, bulletLife: 0.16, bulletRadius: 6.5, triggerRange: 900, sfx: 'shotgun_shot', sfxRate: 1.05, vfx: 'autoShot', noPumpRack: true, exit: 'cassetteSpin' },
   };
 
   function applyIdentity(id, spec) {
@@ -128,6 +128,55 @@
     if (weaponId === 'GRENADE' || CFG.isMelee(weaponId)) return 'TOWER_SHIELD';
     return 'SWIRL_SHIELD';
   }
+
+  CFG.TIER_GLOW = {
+    T1: { rx: 22, ry: 7, a: 0.20, pulse: 0.04, shimmer: false },
+    T2: { rx: 28, ry: 8, a: 0.28, pulse: 0.08, shimmer: false },
+    T3: { rx: 36, ry: 11, a: 0.38, pulse: 0.13, shimmer: false },
+    T4: { rx: 48, ry: 14, a: 0.48, pulse: 0.18, shimmer: false },
+    T5: { rx: 60, ry: 17, a: 0.58, pulse: 0.26, shimmer: true },
+  };
+
+  CFG.EXIT_PROFILES = {
+    pistolFlip:     { vx: 90,  vy: -240, g: 1650, spin: 11.5, life: 0.52 },
+    cartwheel:      { vx: 70,  vy: -300, g: 1750, spin: 18,   life: 0.50 },
+    rearToss:       { vx: -40, vy: -220, g: 1600, spin: 9,    life: 0.48 },
+    tumble:         { vx: 50,  vy: -180, g: 1550, spin: 14,   life: 0.46 },
+    sideSpin:       { vx: 110, vy: -160, g: 1500, spin: 16,   life: 0.50 },
+    settleFall:     { vx: 20,  vy: -80,  g: 1400, spin: 4,    life: 0.42 },
+    rollOut:        { vx: 130, vy: -90,  g: 1450, spin: 10,   life: 0.48 },
+    magDrop:        { vx: 15,  vy: -60,  g: 1700, spin: 3.5,  life: 0.55, magBeat: true },
+    dropThrow:      { vx: 40,  vy: -140, g: 1600, spin: -6,   life: 0.50 },
+    heavySpin:      { vx: 55,  vy: -200, g: 1700, spin: 8,    life: 0.55 },
+    stockKick:      { vx: -80, vy: -120, g: 1550, spin: -5,   life: 0.52 },
+    longToss:       { vx: 70,  vy: -260, g: 1500, spin: 7,    life: 0.62 },
+    opticSettle:    { vx: 25,  vy: -90,  g: 1400, spin: 2.2,  life: 0.48 },
+    bodyPunch:      { vx: -30, vy: -70,  g: 1650, spin: -4,   life: 0.42 },
+    breakOpen:      { vx: 20,  vy: -40,  g: 1200, spin: 2.8,  life: 0.70, hulls: 2 },
+    cylinderSpill:  { vx: 10,  vy: -50,  g: 1300, spin: 1.6,  life: 0.65, hulls: 1 },
+    noseSlump:      { vx: 15,  vy: -30,  g: 1800, spin: 1.2,  life: 0.70, nose: true },
+    deepRecoil:     { vx: -100,vy: -80,  g: 1500, spin: -3,   life: 0.58 },
+    longDrop:       { vx: 30,  vy: -220, g: 1450, spin: 5.5,  life: 0.68 },
+    kickBack:       { vx: -140,vy: -60,  g: 1550, spin: -2.4, life: 0.60 },
+    cassetteSpin:   { vx: 45,  vy: -110, g: 1500, spin: 22,   life: 0.55 },
+  };
+
+  CFG.VFX_RECIPES = {
+    lightPistol:     { scale: 0.52, stretch: 0.82, smoke: 0.0,  smokeLife: 0.0,  impulse: 0 },
+    burstPistol:     { scale: 0.62, stretch: 0.95, smoke: 0.15, smokeLife: 0.22, impulse: 1 },
+    heavyPistol:     { scale: 1.05, stretch: 1.18, smoke: 0.45, smokeLife: 0.40, impulse: 4 },
+    revolver:        { scale: 1.22, stretch: 1.25, smoke: 0.55, smokeLife: 0.48, impulse: 6 },
+    compactSmg:      { scale: 0.48, stretch: 0.88, smoke: 0.25, smokeLife: 0.18, impulse: 1 },
+    ar:              { scale: 0.78, stretch: 1.10, smoke: 0.35, smokeLife: 0.32, impulse: 3 },
+    lmg:             { scale: 0.70, stretch: 1.05, smoke: 0.70, smokeLife: 0.55, impulse: 2 },
+    pumpShot:        { scale: 1.45, stretch: 1.35, smoke: 1.10, smokeLife: 0.55, impulse: 8 },
+    semiShot:        { scale: 1.15, stretch: 1.22, smoke: 0.70, smokeLife: 0.42, impulse: 6 },
+    sawedOff:        { scale: 1.55, stretch: 1.10, smoke: 1.30, smokeLife: 0.62, impulse: 10 },
+    autoShot:        { scale: 1.05, stretch: 1.15, smoke: 0.80, smokeLife: 0.36, impulse: 5 },
+    dmr:             { scale: 0.95, stretch: 1.40, smoke: 0.40, smokeLife: 0.38, impulse: 5 },
+    heavyPrecision:  { scale: 1.10, stretch: 1.55, smoke: 0.55, smokeLife: 0.48, impulse: 7 },
+    snipex:          { scale: 1.35, stretch: 1.70, smoke: 0.75, smokeLife: 0.55, impulse: 9 },
+  };
 
   CFG.weightFor = weightFor;
   CFG.selectOffensiveWeapon = selectOffensiveWeapon;

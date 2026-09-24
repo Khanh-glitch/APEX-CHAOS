@@ -197,6 +197,9 @@
     if (typeof ensureBattleAudioReady === 'function') ensureBattleAudioReady();
     const src = ctx.createBufferSource();
     src.buffer = buffer;
+    if (entry.playbackRate && src.playbackRate) {
+      try { src.playbackRate.value = entry.playbackRate; } catch (e) {}
+    }
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(entry.vol != null ? entry.vol : 0.7, ctx.currentTime);
     src.connect(gain);
@@ -209,10 +212,18 @@
       release();
     }
   }
-  function playAll(listName) {
+  function playAll(listName, opts) {
     const list = AUDIO[listName];
     if (!list) return;
-    for (const entry of list) playEntry(entry);
+    for (const entry of list) {
+      const e = (opts && (opts.rate || opts.vol != null))
+        ? Object.assign({}, entry, {
+            playbackRate: opts.rate || entry.playbackRate,
+            vol: opts.vol != null ? opts.vol : entry.vol,
+          })
+        : entry;
+      playEntry(e);
+    }
   }
   function playLater(listName, delayMs) {
     if (typeof setTimeout !== 'function') return;
@@ -237,7 +248,13 @@
   // Semantic cue dispatch — the only entry point used by gameplay runtimes.
   // ---------------------------------------------------------------------------
   function cue(name, o = {}) {
-    pushRing(stats.cued, Object.assign({ event: name, x: Math.round(o.x || 0), y: Math.round(o.y || 0) }, o.weapon ? { weapon: o.weapon } : {}));
+    pushRing(stats.cued, Object.assign(
+      { event: name, x: Math.round(o.x || 0), y: Math.round(o.y || 0) },
+      o.weapon ? { weapon: o.weapon } : {},
+      o.usedMeta ? { usedMeta: true } : {},
+      o.vfx ? { vfx: o.vfx } : {},
+      o.sfxRate ? { sfxRate: o.sfxRate } : {},
+    ));
     switch (name) {
       case 'telegraph': {
         // Audio only: slash-family art must never decorate an unknown pickup.
@@ -256,20 +273,20 @@
         break;
       }
       case 'fire': {
-        // C §5.4 muzzle hierarchy, generalized to firing families (POST-C §3).
-        // SFX stay on the locked baseline only — spec.sfx names one of the
-        // four approved gun-fire lists; no new audio is ever sourced.
         const w = o.weapon;
         const fam = o.family || (w === 'PISTOL' ? 'SEMI' : w === 'SMG' ? 'AUTO' : w === 'SHOTGUN' ? 'SHOTGUN' : 'SEMI');
         const sfx = o.sfx || { SEMI: 'pistol_shot', AUTO: 'smg_shot', BURST: 'smg_shot', SHOTGUN: 'shotgun_shot', AUTOSHOT: 'shotgun_shot', PRECISION: 'sniper_shot' }[fam];
-        playAll(sfx);
-        if (fam === 'AUTO') muzzle(o.x, o.y, o.angle, 0.5, [2 + (smgSliceCursor % 2), 3], 0.06, 0.9);
-        else if (fam === 'SHOTGUN' || fam === 'AUTOSHOT') {
-          muzzle(o.x, o.y, o.angle, fam === 'SHOTGUN' ? 1.5 : 1.15, [4, 0], 0.13, 1.35);
-          pushVfx({ kind: 'smoke', x: o.x, y: o.y, angle: o.angle, scale: 1.1, life: 0.5, file: SMOKE('01') });
+        const recipes = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.VFX_RECIPES) || {};
+        const rec = recipes[o.vfx] || null;
+        playAll(sfx, { rate: o.sfxRate || 1 });
+        const scale = rec ? rec.scale : (fam === 'AUTO' ? 0.5 : fam === 'SHOTGUN' ? 1.5 : fam === 'AUTOSHOT' ? 1.15 : fam === 'BURST' ? 0.62 : 0.7);
+        const stretch = rec ? rec.stretch : (fam === 'SHOTGUN' || fam === 'AUTOSHOT' ? 1.35 : 1);
+        const frames = fam === 'AUTO' ? [2 + (smgSliceCursor % 2), 3] : (fam === 'SHOTGUN' || fam === 'AUTOSHOT') ? [4, 0] : fam === 'BURST' ? [0, 2] : [0, 1];
+        muzzle(o.x, o.y, o.angle, scale, frames, rec ? 0.08 + (rec.smokeLife || 0) * 0.15 : 0.09, stretch);
+        if (rec ? rec.smoke > 0.05 : (fam === 'SHOTGUN' || fam === 'AUTOSHOT')) {
+          const smokeScale = rec ? (0.7 + rec.smoke * 0.6) : 1.1;
+          pushVfx({ kind: 'smoke', x: o.x, y: o.y, angle: o.angle, scale: smokeScale, life: rec ? rec.smokeLife : 0.5, file: SMOKE('01') });
         }
-        else if (fam === 'BURST') muzzle(o.x, o.y, o.angle, 0.62, [0, 2], 0.08, 1);
-        else muzzle(o.x, o.y, o.angle, 0.7, [0, 1], 0.09, 1); // SEMI (crisp-small)
         break;
       }
       case 'melee_throw': {

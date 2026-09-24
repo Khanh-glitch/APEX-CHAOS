@@ -216,9 +216,23 @@
         }
       } else if (slot.phase === 'COUNTER_RESERVED') {
         slot.revealedFor += dt;
-        if (slot.revealedFor >= 8) {
-          slot.phase = 'REMOVED';
-          log('EXPIRE', `id=${slot.id} weapon=${slot.weaponId} reason=counter-timeout`);
+        const weaponApi = AQ.weaponApi;
+        const reserved = (fighters || []).find((f) => f && f.id === slot.reservedFor) || null;
+        const owner = (fighters || []).find((f) => f && f.id === slot.boundOwnerId) || null;
+        const oh = owner && weaponApi ? weaponApi.getHolder(owner) : null;
+        const threatLive = !!(oh && oh.weaponId === slot.boundWeaponId);
+        const reservedOk = !!(reserved && reserved.hp > 0 && weaponApi && !weaponApi.getHolder(reserved));
+        const eta = reservedOk ? predictContactETA(slot, reserved) : null;
+        const staleFailsafe = slot.revealedFor >= 14;
+        if (!reservedOk || !owner || owner.hp <= 0 || !threatLive || eta == null || staleFailsafe) {
+          log('COUNTER_RELEASE', `id=${slot.id} reason=${staleFailsafe ? 'failsafe' : 'invalid'}`);
+          slot.phase = 'TELEGRAPH';
+          slot.reservedFor = null;
+          slot.boundWeaponId = null;
+          slot.boundOwnerId = null;
+          slot.weaponId = null;
+          slot.tier = null;
+          slot.revealedFor = 0;
         }
       } else if (slot.phase === 'REVEALED') {
         slot.revealedFor += dt;
@@ -250,6 +264,13 @@
         if (!f || f.hp <= 0) continue;
         const d = dist(f.x, f.y, slot.x, slot.y);
         if (d > pickupTouchRadius(f)) continue;
+        if (slot.phase === 'COUNTER_RESERVED' && slot.reservedFor !== f.id) {
+          if (!slot.rejectedFor[f.id]) {
+            slot.rejectedFor[f.id] = true;
+            log('REJECT_PICKUP', `fighter=${f.name} id=${slot.id} reason=not-reserved`);
+          }
+          continue;
+        }
         if (weaponApi.getHolder(f)) {
           if (!slot.rejectedFor[f.id]) {
             slot.rejectedFor[f.id] = true;
@@ -353,14 +374,23 @@
       } else if (slot.phase === 'REVEALED') {
         const bob = Math.sin(t * 3.1 + slot.id) * 4;
         const glow = (CFG.TIER_COLORS && slot.tier && CFG.TIER_COLORS[slot.tier]) || null;
+        const glowSpec = (CFG.TIER_GLOW && slot.tier && CFG.TIER_GLOW[slot.tier]) || { rx: 34, ry: 10, a: 0.35, pulse: 0 };
         if (glow) {
+          const pulse = 0.5 + 0.5 * Math.sin(t * (1.4 + glowSpec.pulse * 4) + slot.id);
           ctx.save();
           ctx.translate(0, bob);
-          ctx.globalAlpha = 0.35;
+          ctx.globalAlpha = glowSpec.a + glowSpec.pulse * pulse;
           ctx.fillStyle = glow;
           ctx.beginPath();
-          ctx.ellipse(0, 22, 34, 10, 0, 0, TAU);
+          ctx.ellipse(0, 22, glowSpec.rx + pulse * 4, glowSpec.ry + pulse * 1.5, 0, 0, TAU);
           ctx.fill();
+          if (glowSpec.shimmer) {
+            ctx.globalAlpha = 0.18 + 0.12 * pulse;
+            ctx.fillStyle = '#FFD27A';
+            ctx.beginPath();
+            ctx.ellipse(0, 22, glowSpec.rx * 0.55, glowSpec.ry * 0.55, 0, 0, TAU);
+            ctx.fill();
+          }
           ctx.restore();
         }
         const expireSoon = slot.revealedFor > CFG.PICKUP_LIFETIME_SECONDS - 3;

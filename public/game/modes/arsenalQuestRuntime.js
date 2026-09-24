@@ -387,6 +387,11 @@
       return;
     }
     if (gameState !== 'ARSENAL') return;
+    if (e.code === 'KeyJ' && !e.repeat) {
+      const gate = window.APEX_ARSENAL_SKILL_GATE;
+      if (gate && fighters[0]) gate.pressJ(fighters[0]);
+      return;
+    }
     if (e.code === 'KeyT' && AQ.state && AQ.state.over) { window.startArsenalQuestMode(); return; }
     if (e.code === 'KeyB' || e.code === 'Escape') { window.exitArsenalQuestMode(); }
   }

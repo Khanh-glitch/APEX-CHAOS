@@ -114,18 +114,31 @@
   // Presentation-only; no gameplay reads these.
   function snapshotPoseGhost(f, h) {
     if (!f || !f.data || !h || !h.meta) return;
+    const spec = (CFG.WEAPONS && CFG.WEAPONS[h.weaponId]) || {};
+    const profile = (CFG.EXIT_PROFILES && spec.exit && CFG.EXIT_PROFILES[spec.exit]) || null;
+    const aim = h.meta.aimAngle != null ? h.meta.aimAngle : Math.atan2(f.dir?.y || 0, f.dir?.x || 1);
+    const legacySpin = ({ PISTOL: 3.2, SMG: 3.8, SHOTGUN: -3.4, SNIPER: 2.0, SABRE: 2.6, BATTLE_AXE: -2.2, DAGGER: 1.8, SPEAR: 1.2, SPIKED_CLUB: -2.6 })[h.weaponId] || 0;
+    const life = profile ? profile.life : 0.38;
     f.data.arsenalFade = {
       weaponId: h.weaponId,
       category: (h.def && h.def.category) || '',
-      aimAngle: h.meta.aimAngle != null ? h.meta.aimAngle : Math.atan2(f.dir?.y || 0, f.dir?.x || 1),
+      aimAngle: aim,
       pose: Object.assign(makePose(), h.meta.pose || {}),
       t: 0,
-      life: 0.38,
-      maxLife: 0.38,
+      life,
+      maxLife: life,
       drop: 0,
-      dropV: -30,
-      exitRot: ({ PISTOL: 3.2, SMG: 3.8, SHOTGUN: -3.4, SNIPER: 2.0, SABRE: 2.6, BATTLE_AXE: -2.2, DAGGER: 1.8, SPEAR: 1.2, SPIKED_CLUB: -2.6 })[h.weaponId] || 0,
+      dropV: profile ? profile.vy : -30,
+      exitRot: profile ? profile.spin : legacySpin,
+      exitVx: profile ? profile.vx : 0,
+      exitG: profile ? profile.g : 1500,
+      exitKey: spec.exit || null,
+      lateral: 0,
     };
+    if (profile && (profile.hulls || spec.hullOnExit)) {
+      const n = profile.hulls || 1;
+      for (let i = 0; i < n; i++) ejectCasing(f, aim, 1.6, h.weaponId, true);
+    }
   }
   function advancePoseGhost(ghost, dt) {
     if (!ghost) return;
@@ -617,11 +630,41 @@
     if (weaponId === 'SHOTGUN') return r + 52;
     if (weaponId === 'SMG') return r + 38;
     if (weaponId === 'PISTOL') return r + 26;
-    // POST-C §3: registry guns anchor the muzzle by firing family, scaled by
-    // the sprite's authored long side so longer barrels flash further out.
     const spec = CFG.WEAPONS[weaponId] || {};
     const base = { PRECISION: 58, SHOTGUN: 46, AUTOSHOT: 44, AUTO: 34, BURST: 34, SEMI: 26 }[spec.family] || 28;
     return r + base + Math.max(0, ((spec.longSide || 145) - 145) * 0.25);
+  }
+
+  // Canonical weapon-space -> world transform for generated C-set anchors.
+  function weaponWorldAnchor(f, weaponId, kind, angle) {
+    const aim = Number.isFinite(angle) ? angle : Math.atan2(f.dir?.y || 0, f.dir?.x || 1);
+    const h = getHolder(f);
+    const pose = (h && h.meta && h.meta.pose) || {};
+    const spec = CFG.WEAPONS[weaponId] || {};
+    const r = f.radius || 75;
+    const targetLong = spec.longSide || (weaponId === 'SNIPER' ? 185 : weaponId === 'SHOTGUN' ? 165 : 145);
+    const offset = r * 0.78 + (pose.localX || 0) - (pose.recoil || 0);
+    const lateral = pose.localY || 0;
+    const cx = f.x + Math.cos(aim) * offset + Math.cos(aim + Math.PI / 2) * lateral;
+    const cy = f.y + Math.sin(aim) * offset + Math.sin(aim + Math.PI / 2) * lateral;
+    const set = window.APEX_ARSENAL_C_SET && window.APEX_ARSENAL_C_SET.weapons && window.APEX_ARSENAL_C_SET.weapons[weaponId];
+    const uv = set && set[kind];
+    if (!uv || !set) {
+      const d = gunMuzzleDistance(weaponId, f);
+      return { x: f.x + Math.cos(aim) * d, y: f.y + Math.sin(aim) * d, usedMeta: false, cx, cy };
+    }
+    const longSide = Math.max(set.w, set.h) || 1;
+    const scale = targetLong / longSide;
+    const dw = set.w * scale;
+    const dh = set.h * scale;
+    let lx = (uv[0] - 0.5) * dw;
+    let ly = (uv[1] - 0.5) * dh;
+    if (Math.cos(aim) < 0) ly = -ly;
+    return {
+      x: cx + lx * Math.cos(aim) - ly * Math.sin(aim),
+      y: cy + lx * Math.sin(aim) + ly * Math.cos(aim),
+      usedMeta: true, cx, cy,
+    };
   }
 
   function meleeSwingAnchor(weaponId, fighter, spec, angle) {
@@ -793,6 +836,7 @@
     const casingPower = family === 'AUTO' ? 0.8 : family === 'PRECISION' ? 1.2 : 1;
     function fireOneShot(ctx, f) {
       const base = enemyAlive(ctx) ? angleToEnemy(ctx) : Math.atan2(f.dir.y, f.dir.x);
+      const muz = weaponWorldAnchor(f, id, 'muzzle', base);
       const pellets = spec.pellets > 1 ? spec.pellets : 1;
       for (let i = 0; i < pellets; i++) {
         const t = pellets === 1 ? 0.5 : i / (pellets - 1);
@@ -800,8 +844,8 @@
         const angle = base + spread;
         fireBullet({
           owner: f,
-          x: f.x + Math.cos(angle) * (f.radius * 0.7),
-          y: f.y + Math.sin(angle) * (f.radius * 0.7),
+          x: muz.x,
+          y: muz.y,
           angle,
           speed: spec.bulletSpeed * (pellets > 1 ? (0.92 + Math.random() * 0.16) : 1),
           damage: pellets > 1 ? spec.damagePerPellet : spec.damagePerShot,
@@ -813,14 +857,12 @@
           color,
         });
       }
-      const muzzleDistance = gunMuzzleDistance(id, f);
       window.avCue('fire', {
-        weapon: id, family, sfx: spec.sfx,
-        x: f.x + Math.cos(base) * muzzleDistance,
-        y: f.y + Math.sin(base) * muzzleDistance,
-        angle: base,
+        weapon: id, family, sfx: spec.sfx, sfxRate: spec.sfxRate, vfx: spec.vfx,
+        x: muz.x, y: muz.y, angle: base, usedMeta: muz.usedMeta,
       });
       ejectCasing(f, base, casingPower, id);
+      log('SHOT', `fighter=${f.name} weapon=${id} t=${(typeof matchClock === 'number' ? matchClock : 0).toFixed(3)}`);
     }
     return {
       id,
@@ -848,8 +890,10 @@
         while (h.meta.nextShot <= 0 && h.shotsFired < spec.shots) {
           fireOneShot(ctx, f);
           h.shotsFired += 1;
-          h.meta.nextShot += spec.interval;
-          poseKick(h, poseRecipe(id)); // weapon-only recoil pulse (B1/B3)
+          const burstSize = spec.burstSize || 0;
+          const atBurstEnd = burstSize > 0 && (h.shotsFired % burstSize === 0) && h.shotsFired < spec.shots;
+          h.meta.nextShot += atBurstEnd ? (spec.burstPause || spec.interval) : spec.interval;
+          poseKick(h, poseRecipe(id));
           fired = true;
         }
         if (fired) {
@@ -886,13 +930,14 @@
         h.phase = 'FIRING';
         const f = ctx.fighter;
         const base = angleToEnemy(ctx);
+        const muz = weaponWorldAnchor(f, id, 'muzzle', base);
         for (let i = 0; i < spec.pellets; i++) {
           const t = spec.pellets === 1 ? 0.5 : i / (spec.pellets - 1);
           const angle = base + (t - 0.5) * spec.cone;
           fireBullet({
             owner: f,
-            x: f.x + Math.cos(angle) * (f.radius * 0.7),
-            y: f.y + Math.sin(angle) * (f.radius * 0.7),
+            x: muz.x,
+            y: muz.y,
             angle,
             speed: spec.bulletSpeed * (0.92 + Math.random() * 0.16),
             damage: spec.damagePerPellet,
@@ -903,22 +948,19 @@
             color,
           });
         }
-        const muzzleDistance = gunMuzzleDistance(id, f);
         window.avCue('fire', {
-          weapon: id, family: 'SHOTGUN', sfx: spec.sfx,
-          x: f.x + Math.cos(base) * muzzleDistance,
-          y: f.y + Math.sin(base) * muzzleDistance,
-          angle: base,
+          weapon: id, family: 'SHOTGUN', sfx: spec.sfx, sfxRate: spec.sfxRate, vfx: spec.vfx,
+          x: muz.x, y: muz.y, angle: base, usedMeta: muz.usedMeta,
         });
-        window.avCue('shotgun_rack', { weapon: id, x: f.x, y: f.y, angle: base });
-        ejectCasing(f, base, 1.4);
+        if (!spec.noPumpRack) window.avCue('shotgun_rack', { weapon: id, x: f.x, y: f.y, angle: base });
+        ejectCasing(f, base, 1.4, id);
         spawnShockwave(f.x, f.y, color || '#ffbe6b', 130);
         cameraShake = Math.max(cameraShake, 9);
         hitStop = Math.max(hitStop, 0.03);
         playFighterSound(f, 'skill');
         log('USE', `fighter=${f.name} weapon=${id}`);
         h.shotsFired = 1;
-        poseKick(h, poseRecipe(id)); // one heavy weapon-only recoil (B2)
+        poseKick(h, poseRecipe(id));
         consume(f, 'blast-resolved');
       },
       update() {},
@@ -968,14 +1010,15 @@
             p.holdFlourish = true;
           }
           if (h.meta.aimLeft <= 0) {
-            if (p) { p.flourish = 0; p.holdFlourish = false; } // snap onto target
-            poseKick(h, recipe); // strong long recoil
+            if (p) { p.flourish = 0; p.holdFlourish = false; }
+            poseKick(h, recipe);
             const spread = (Math.random() * 2 - 1) * (spec.spread || 0.02);
             const angle = (enemyAlive(ctx) ? angleToEnemy(ctx) : Math.atan2(f.dir.y, f.dir.x)) + spread;
+            const muz = weaponWorldAnchor(f, id, 'muzzle', angle);
             fireBullet({
               owner: f,
-              x: f.x + Math.cos(angle) * (f.radius * 0.7),
-              y: f.y + Math.sin(angle) * (f.radius * 0.7),
+              x: muz.x,
+              y: muz.y,
               angle,
               speed: spec.bulletSpeed,
               damage: spec.damage,
@@ -989,10 +1032,18 @@
             cameraShake = Math.max(cameraShake, 8);
             triggerFlash(255, 250, 235, 0.12);
             playFighterSound(f, 'skill');
-            const muzzleDistance = gunMuzzleDistance(id, f);
-            window.avCue('sniper_shot', { x: f.x + Math.cos(angle) * muzzleDistance, y: f.y + Math.sin(angle) * muzzleDistance, angle });
-            ejectCasing(f, angle, 1.2);
-            consume(f, 'shot-fired');
+            window.avCue('sniper_shot', {
+              x: muz.x, y: muz.y, angle, weapon: id, sfxRate: spec.sfxRate, vfx: spec.vfx, usedMeta: muz.usedMeta,
+            });
+            ejectCasing(f, angle, 1.2, id);
+            log('SHOT', `fighter=${f.name} weapon=${id} t=${(typeof matchClock === 'number' ? matchClock : 0).toFixed(3)}`);
+            h.shotsFired = (h.shotsFired || 0) + 1;
+            const need = spec.shots || 1;
+            if (h.shotsFired >= need) consume(f, 'shot-fired');
+            else {
+              h.meta.aimLeft = spec.interval || 0.45;
+              h.meta.chambered = false;
+            }
           }
         }
       },
@@ -1107,10 +1158,11 @@
               if (p) { p.flourish = 0; p.holdFlourish = false; } // snap exactly onto target
               poseKick(h, recipe); // strong long recoil
               const angle = enemyAlive(ctx) ? angleToEnemy(ctx) : Math.atan2(f.dir.y, f.dir.x);
+              const muz = weaponWorldAnchor(f, 'SNIPER', 'muzzle', angle);
               fireBullet({
                 owner: f,
-                x: f.x + Math.cos(angle) * (f.radius * 0.7),
-                y: f.y + Math.sin(angle) * (f.radius * 0.7),
+                x: muz.x,
+                y: muz.y,
                 angle,
                 speed: spec.bulletSpeed,
                 damage: spec.damage,
@@ -1123,9 +1175,9 @@
               cameraShake = Math.max(cameraShake, 8);
               triggerFlash(255, 250, 235, 0.12);
               playFighterSound(f, 'skill');
-              const muzzleDistance = gunMuzzleDistance('SNIPER', f);
-              window.avCue('sniper_shot', { x: f.x + Math.cos(angle) * muzzleDistance, y: f.y + Math.sin(angle) * muzzleDistance, angle });
-              ejectCasing(f, angle, 1.2);
+              window.avCue('sniper_shot', { x: muz.x, y: muz.y, angle, weapon: 'SNIPER', usedMeta: muz.usedMeta });
+              ejectCasing(f, angle, 1.2, 'SNIPER');
+              log('SHOT', `fighter=${f.name} weapon=SNIPER t=${(typeof matchClock === 'number' ? matchClock : 0).toFixed(3)}`);
               consume(f, 'shot-fired');
             }
           }
@@ -1487,6 +1539,7 @@
     makeCtx,
     poseRecipe,
     advancePoseGhost,
+    worldAnchor: weaponWorldAnchor,
     POSE_RECIPES,
     FAMILY_POSE,
   };

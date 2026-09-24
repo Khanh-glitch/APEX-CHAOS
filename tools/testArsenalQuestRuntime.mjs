@@ -1000,6 +1000,106 @@ try {
     Object.values(report.motion).every(s => s.bodySame),
     Object.entries(report.motion).map(([k, v]) => `${k}:${v.bodySame}`).join(','));
 
+  report.gapKeyJ = await evaluate(`(() => {
+    window.startArsenalQuestMode('ICE', 'RUBBER');
+    cancelAnimationFrame(reqId); reqId = 0;
+    APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+    projectiles.length = 0;
+    fighters[0].data.cd = 0;
+    for (let i = 0; i < 20; i++) APEX_ARSENAL.step(1 / 60);
+    const before = projectiles.filter(p => p.type === 'ice_lane').length;
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyJ', bubbles: true, cancelable: true }));
+    for (let i = 0; i < 12; i++) APEX_ARSENAL.step(1 / 60);
+    const after = projectiles.filter(p => p.type === 'ice_lane').length;
+    return { before, after };
+  })()`);
+  gate('browser-real-keyj-keydown', report.gapKeyJ.before === 0 && report.gapKeyJ.after >= 1, report.gapKeyJ);
+
+  report.gapBurst = await evaluate(`(() => {
+    function stamps(id, n) {
+      __AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();
+      __AQ_TEST.place(320, 500, 540, 500);
+      fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+      __AQ_TEST.clearEvents();
+      APEX_ARSENAL.weaponApi.equip(fighters[0], id);
+      for (let i = 0; i < n; i++) APEX_ARSENAL.step(1 / 60);
+      const shots = APEX_ARSENAL.events.filter(e => e.startsWith('[AQ] SHOT') && e.includes('weapon=' + id)).map(e => {
+        const m = e.match(/t=([0-9.]+)/); return m ? +m[1] : null;
+      }).filter(x => x != null);
+      return { n: shots.length, gaps: shots.slice(1).map((t,i) => +(t - shots[i]).toFixed(3)) };
+    }
+    return { beretta: stamps('BERETTA_93R', 180), m16: stamps('M16', 200), mbr: stamps('MBR', 200), mbr2: stamps('MBR2', 220), szec: stamps('SZECSEI_FUCHS', 240) };
+  })()`);
+  gate('browser-beretta-burst-pause', report.gapBurst.beretta.n === 6 && report.gapBurst.beretta.gaps[2] >= 0.16, report.gapBurst.beretta);
+  gate('browser-m16-burst-pause', report.gapBurst.m16.n === 6 && report.gapBurst.m16.gaps[2] >= 0.18, report.gapBurst.m16);
+  gate('browser-mbr-two-shot', report.gapBurst.mbr.n === 2, report.gapBurst.mbr);
+  gate('browser-mbr2-two-shot', report.gapBurst.mbr2.n === 2, report.gapBurst.mbr2);
+  gate('browser-szecsei-two-shot', report.gapBurst.szec.n === 2, report.gapBurst.szec);
+
+  report.gapSawedMag = await evaluate(`(() => {
+    __AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();
+    __AQ_TEST.place(300, 500, 480, 500);
+    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+    const rack0 = APEX_ARSENAL_AV.stats.cued.filter(c => c.event === 'shotgun_rack').length;
+    APEX_ARSENAL.weaponApi.equip(fighters[0], 'SAWED_OFF');
+    for (let i = 0; i < 50; i++) APEX_ARSENAL.step(1 / 60);
+    const rack = APEX_ARSENAL_AV.stats.cued.filter(c => c.event === 'shotgun_rack').length - rack0;
+    const ghost = fighters[0].data && fighters[0].data.arsenalFade;
+    APEX_ARSENAL_AV.clear();
+    APEX_ARSENAL.weaponApi.equip(fighters[0], 'MAGNUM_500');
+    __AQ_TEST.place(300, 500, 640, 500);
+    for (let i = 0; i < 40; i++) APEX_ARSENAL.step(1 / 60);
+    const magCasing = APEX_ARSENAL_AV.stats.cued.filter(c => c.event === 'casing').length;
+    const magGhost = fighters[0].data && fighters[0].data.arsenalFade;
+    return { rack, sawedExit: ghost && ghost.exitKey, magCasing, magExit: magGhost && magGhost.exitKey };
+  })()`);
+  gate('browser-sawed-no-rack', report.gapSawedMag.rack === 0, report.gapSawedMag);
+  gate('browser-magnum-no-shot-casing', report.gapSawedMag.magCasing === 0, report.gapSawedMag);
+
+  report.gapReserveBr = await evaluate(`(() => {
+    __AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();
+    __AQ_TEST.place(300, 500, 700, 500);
+    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+    APEX_ARSENAL.weaponApi.equip(fighters[1], 'P90');
+    __AQ_TEST.pushSlot({ x: 300, y: 500, phase: 'COUNTER_RESERVED', weaponId: 'SWIRL_SHIELD', reservedFor: fighters[0].id, boundWeaponId: 'P90', boundOwnerId: fighters[1].id, revealedFor: 0 });
+    fighters[1].x = 300; fighters[1].y = 500;
+    APEX_ARSENAL.weaponApi.consume(fighters[1], 'test');
+    APEX_ARSENAL_SPAWN.resolvePickups();
+    const stolen = __AQ_TEST.holder('RIVAL');
+    fighters[1].x = 700;
+    APEX_ARSENAL_SPAWN.resolvePickups();
+    const hero = __AQ_TEST.holder('HERO');
+    return { stolen: stolen && stolen.weapon, hero: hero && hero.weapon };
+  })()`);
+  gate('browser-reserved-shield-not-stolen', report.gapReserveBr.stolen == null && report.gapReserveBr.hero === 'SWIRL_SHIELD', report.gapReserveBr);
+
+  await evaluate(`(() => {
+    __AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();
+    __AQ_TEST.place(180, 200, 820, 800);
+    __AQ_TEST.pushSlot({ x: 400, y: 280, phase: 'REVEALED', weaponId: 'PISTOL', tier: 'T1', revealedFor: 0 });
+    __AQ_TEST.redraw();
+  })()`);
+  report.evidence.push(await screenshot('gap-rarity-t1'));
+  await evaluate(`(() => {
+    APEX_ARSENAL.state.slots = [];
+    __AQ_TEST.pushSlot({ x: 400, y: 280, phase: 'REVEALED', weaponId: 'AK_47', tier: 'T3', revealedFor: 0 });
+    __AQ_TEST.redraw();
+  })()`);
+  report.evidence.push(await screenshot('gap-rarity-t3'));
+  await evaluate(`(() => {
+    APEX_ARSENAL.state.slots = [];
+    __AQ_TEST.pushSlot({ x: 400, y: 280, phase: 'REVEALED', weaponId: 'SNIPER', tier: 'T5', revealedFor: 0 });
+    __AQ_TEST.redraw();
+  })()`);
+  report.evidence.push(await screenshot('gap-rarity-t5'));
+  await evaluate(`(() => {
+    APEX_ARSENAL.state.slots = [];
+    __AQ_TEST.pushSlot({ x: 360, y: 280, phase: 'REVEALED', weaponId: 'SABRE', tier: 'T2', revealedFor: 0 });
+    __AQ_TEST.pushSlot({ x: 520, y: 280, phase: 'REVEALED', weaponId: 'GRENADE', tier: 'T3', revealedFor: 0 });
+    __AQ_TEST.redraw();
+  })()`);
+  report.evidence.push(await screenshot('gap-rarity-melee-grenade'));
+
   // --------------------------------------------- 5-minute simulation -------
   report.fiveMinute = await evaluate(`(() => {
     __AQ_TEST.enterManual();
