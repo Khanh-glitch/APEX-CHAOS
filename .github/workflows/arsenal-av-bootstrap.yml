@@ -1,0 +1,221 @@
+name: Bootstrap Arsenal AV Assets
+
+on:
+  push:
+    branches:
+      - prototype/arsenal-quest
+    paths:
+      - .github/workflows/arsenal-av-bootstrap.yml
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap-assets:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: prototype/arsenal-quest
+          fetch-depth: 0
+
+      - name: Download curated CC0 source packs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/aq-av
+          cd /tmp/aq-av
+
+          curl -L --fail --retry 3 -o slash.zip             "https://opengameart.org/sites/default/files/Everything_0.zip"
+          curl -L --fail --retry 3 -o explosions.zip             "https://opengameart.org/sites/default/files/free%20explosion%20animations%202.zip"
+          curl -L --fail --retry 3 -o gunshots.zip             "https://opengameart.org/sites/default/files/sounds.zip"
+          curl -L --fail --retry 3 -o muzzle.png             "https://opengameart.org/sites/default/files/muzzleFlash0_0.png"
+
+          curl -L --fail --retry 3 -o impact.zip             "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip"
+          curl -L --fail --retry 3 -o rpg.zip             "https://kenney.nl/media/pages/assets/rpg-audio/8e99002d76-1677590336/kenney_rpg-audio.zip"
+          curl -L --fail --retry 3 -o scifi.zip             "https://kenney.nl/media/pages/assets/sci-fi-sounds/6b296f9ecf-1677589334/kenney_sci-fi-sounds.zip"
+
+          ls -lh *.zip muzzle.png
+
+      - name: Curate runtime subset
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet pillow
+
+          rm -rf public/assets/arsenal/av
+          mkdir -p public/assets/arsenal/av
+
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          from PIL import Image
+          import shutil, csv, hashlib
+
+          repo = Path.cwd()
+          src = Path('/tmp/aq-av')
+          work = Path('/tmp/aq-av/extracted')
+          out = repo / 'public/assets/arsenal/av'
+          work.mkdir(parents=True, exist_ok=True)
+
+          archives = {
+              'slash': src/'slash.zip',
+              'explosions': src/'explosions.zip',
+              'gunshots': src/'gunshots.zip',
+              'impact': src/'impact.zip',
+              'rpg': src/'rpg.zip',
+              'scifi': src/'scifi.zip',
+          }
+          roots = {}
+          for key, archive in archives.items():
+              root = work/key
+              root.mkdir(parents=True, exist_ok=True)
+              with ZipFile(archive) as z:
+                  z.extractall(root)
+              roots[key] = root
+
+          def find_one(root: Path, basename: str, contains=None):
+              matches = [p for p in root.rglob(basename) if p.is_file()]
+              if contains:
+                  matches = [p for p in matches if contains.lower() in str(p).lower()]
+              if not matches:
+                  raise FileNotFoundError(f'{basename} under {root} contains={contains}')
+              return matches[0]
+
+          def copy(src_path: Path, rel: str):
+              dst = out/rel
+              dst.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(src_path, dst)
+              return dst
+
+          # Muzzle flash: keep original + processed transparent runtime copy.
+          orig = copy(src/'muzzle.png', 'vfx/muzzle_flash/muzzleFlash0_original_black.png')
+          im = Image.open(orig).convert('RGBA')
+          px = im.load()
+          for y in range(im.height):
+              for x in range(im.width):
+                  r,g,b,a = px[x,y]
+                  lum = max(r,g,b)
+                  # Preserve white flash intensity while turning black into alpha.
+                  alpha = int(max(0, min(255, lum)))
+                  px[x,y] = (255,255,255,alpha)
+          trans = out/'vfx/muzzle_flash/muzzleFlash0_transparent.png'
+          trans.parent.mkdir(parents=True, exist_ok=True)
+          im.save(trans)
+
+          # Slash families: selected warm + cool variants only.
+          for alt, dest in [('Alternative 3', 'slash_orange_primary'), ('Alternative 2', 'slash_blue_shield')]:
+              candidates = sorted([
+                  p for p in roots['slash'].rglob('*.png')
+                  if alt.lower() in str(p).lower()
+                  and 'preview' not in p.name.lower()
+              ])
+              if len(candidates) < 30:
+                  raise RuntimeError(f'Expected >=30 frames for {alt}, got {len(candidates)}')
+              for p in candidates:
+                  copy(p, f'vfx/{dest}/{p.name}')
+
+          # Explosion half-sized atlases only for runtime.
+          for name in ['1.png','2.png','3.png','4.png']:
+              copy(find_one(roots['explosions'], name, 'Half Sized'),
+                   f'vfx/explosion_pack_2/half/{name}')
+
+          # Gunshots.
+          for name in ['cz.wav','mosin.wav','shotty.wav','sks.wav']:
+              copy(find_one(roots['gunshots'], name), f'sfx/guns/{name}')
+
+          # Curated impacts.
+          impact_names = [
+              'impactGeneric_light_002.ogg',
+              'impactMetal_light_002.ogg',
+              'impactMetal_medium_002.ogg',
+              'impactMetal_heavy_002.ogg',
+              'impactPunch_medium_001.ogg',
+              'impactPunch_heavy_001.ogg',
+              'impactPlate_heavy_001.ogg',
+              'impactPlate_light_001.ogg',
+              'impactSoft_medium_001.ogg',
+          ]
+          for name in impact_names:
+              copy(find_one(roots['impact'], name), f'sfx/impact/{name}')
+
+          # Curated RPG melee / pickup.
+          rpg_names = [
+              'drawKnife1.ogg','drawKnife2.ogg','drawKnife3.ogg',
+              'knifeSlice.ogg','knifeSlice2.ogg','chop.ogg',
+              'metalClick.ogg','metalLatch.ogg',
+          ]
+          for name in rpg_names:
+              copy(find_one(roots['rpg'], name), f'sfx/rpg/{name}')
+
+          # Curated sci-fi support.
+          scifi_names = [
+              'explosionCrunch_002.ogg',
+              'forceField_001.ogg','forceField_003.ogg',
+              'impactMetal_002.ogg',
+              'laserLarge_003.ogg','laserSmall_002.ogg',
+              'lowFrequency_explosion_001.ogg',
+          ]
+          for name in scifi_names:
+              copy(find_one(roots['scifi'], name), f'sfx/scifi/{name}')
+
+          provenance = '''# Arsenal Quest AV asset provenance
+
+          All runtime assets in this directory were downloaded from their original public source pages and curated automatically by .github/workflows/arsenal-av-bootstrap.yml.
+
+          Sources / licenses:
+          - Cethiel — Weapon Slash Effect — CC0
+            https://opengameart.org/content/weapon-slash-effect
+          - Sinestesia — 2D Explosion Animations #2 — CC0
+            https://opengameart.org/content/2d-explosion-animations-2-frame-by-frame
+          - leftshoe18 — Muzzle Flash particle sheet — CC0
+            https://opengameart.org/content/muzzle-flash-particle-sheet
+          - Tabasco — Gunshot Sounds — CC0
+            https://opengameart.org/content/gunshot-sounds
+          - Kenney — Impact Sounds — CC0
+            https://kenney.nl/assets/impact-sounds
+          - Kenney — RPG Audio — CC0
+            https://kenney.nl/assets/rpg-audio
+          - Kenney — Sci-fi Sounds — CC0
+            https://kenney.nl/assets/sci-fi-sounds
+
+          The repository stores only the curated runtime subset, not the complete source archives.
+          '''
+          (out/'PROVENANCE.md').write_text(provenance, encoding='utf-8')
+
+          rows=[]
+          for p in sorted(out.rglob('*')):
+              if p.is_file() and p.name != 'MANIFEST.csv':
+                  rows.append({
+                      'path': str(p.relative_to(repo)).replace('\\','/'),
+                      'bytes': p.stat().st_size,
+                      'sha256': hashlib.sha256(p.read_bytes()).hexdigest(),
+                  })
+          with (out/'MANIFEST.csv').open('w', newline='', encoding='utf-8') as f:
+              w=csv.DictWriter(f, fieldnames=['path','bytes','sha256'])
+              w.writeheader(); w.writerows(rows)
+
+          print(f'Curated {len(rows)} runtime files')
+          print(f'Total bytes: {sum(r["bytes"] for r in rows):,}')
+          PY
+
+          find public/assets/arsenal/av -type f -maxdepth 6 -print | sort
+          du -sh public/assets/arsenal/av
+
+      - name: Commit runtime assets to prototype branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets/arsenal/av
+          if git diff --cached --quiet; then
+            echo "No asset changes to commit."
+            exit 0
+          fi
+          git commit -m "assets: add curated Arsenal Quest VFX and SFX [skip ci]"
+          git push origin HEAD:prototype/arsenal-quest
