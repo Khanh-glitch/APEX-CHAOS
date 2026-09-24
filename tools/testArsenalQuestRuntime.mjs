@@ -317,28 +317,6 @@ try {
   gate('aim-never-steers-fighter', report.aimLaw.aimDirSame && report.aimLaw.aimKeptApexTrajectory, report.aimLaw);
   gate('dagger-no-body-dash', report.aimLaw.daggerBodyKeptTrajectory && report.aimLaw.daggerThrustConnected, report.aimLaw);
 
-  // ------------------------- V2 §A3: 32 canonical shells, kits disabled -------
-  report.shells = await evaluate(`(() => {
-    const shells = window.APEX_ARSENAL_SHELLS;
-    const ids = shells ? shells.ids : [];
-    window.startArsenalQuestMode('SNIPER', 'WITCH');
-    cancelAnimationFrame(reqId); reqId = 0;
-    APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
-    const names = fighters.map(f => f.name);
-    const shellFlags = fighters.map(f => !!f.type.arsenalShell);
-    let nativeProj = 0;
-    for (let i = 0; i < 180; i++) {
-      APEX_ARSENAL.step(1 / 60);
-      nativeProj = Math.max(nativeProj, projectiles.filter(p => !p.aq).length);
-    }
-    return { count: ids.length, names, shellFlags, nativeProj, hp: [fighters[0].hp, fighters[1].hp] };
-  })()`);
-  gate('shells-32-canonical', report.shells.count === 32, { count: report.shells.count });
-  gate('shells-p1-p2-independent',
-    report.shells.names[0] === 'SNIPER' && report.shells.names[1] === 'WITCH' && report.shells.shellFlags.every(Boolean),
-    report.shells.names);
-  gate('shells-native-kits-disabled', report.shells.nativeProj === 0 && report.shells.hp.every(h => h === 100), report.shells);
-
   // ------------------------- V2 §A4: no slash VFX; bomb explosion stays -------
   report.noSlash = await evaluate(`(() => {
     const av = window.APEX_ARSENAL_AV;
@@ -545,6 +523,30 @@ try {
   gate('exit-cleanup', report.cleanup.gameStateAfter === 'MENU' && report.cleanup.menuVisible && report.cleanup.hudHidden
     && report.cleanup.slotsCleared && report.cleanup.aqProjectilesCleared && report.cleanup.heroHolderCleared && report.cleanup.exitLogged, report.cleanup);
 
+  // ------------------------- V2 §A3: 32 canonical shells, kits disabled -------
+  // Runs AFTER the shield/pickup gates so their blank HERO/RIVAL expectations
+  // are not affected by the shell matchup remembered for rematch (lastShells).
+  report.shells = await evaluate(`(() => {
+    const shells = window.APEX_ARSENAL_SHELLS;
+    const ids = shells ? shells.ids : [];
+    window.startArsenalQuestMode('SNIPER', 'WITCH');
+    cancelAnimationFrame(reqId); reqId = 0;
+    APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+    const names = fighters.map(f => f.name);
+    const shellFlags = fighters.map(f => !!f.type.arsenalShell);
+    let nativeProj = 0;
+    for (let i = 0; i < 180; i++) {
+      APEX_ARSENAL.step(1 / 60);
+      nativeProj = Math.max(nativeProj, projectiles.filter(p => !p.aq).length);
+    }
+    return { count: ids.length, names, shellFlags, nativeProj, hp: [fighters[0].hp, fighters[1].hp] };
+  })()`);
+  gate('shells-32-canonical', report.shells.count === 32, { count: report.shells.count });
+  gate('shells-p1-p2-independent',
+    report.shells.names[0] === 'SNIPER' && report.shells.names[1] === 'WITCH' && report.shells.shellFlags.every(Boolean),
+    report.shells.names);
+  gate('shells-native-kits-disabled', report.shells.nativeProj === 0 && report.shells.hp.every(h => h === 100), report.shells);
+
   // ------------------------------------------------- F3 overlay + screenshots
   report.f3 = await evaluate(`(() => {
     __AQ_TEST.enterLive();
@@ -701,22 +703,25 @@ try {
   // P1 locks SNIPER, P2 locks WITCH independently, START enters Arsenal.
   const shellSelect = await evaluate(`(async () => {
     window.beginArsenalQuestSelection();
-    await new Promise(r => setTimeout(r, 150));
-    const cards = document.querySelectorAll('#roster-grid .fighter-card');
-    const count = cards.length;
-    document.querySelector('#roster-grid .fighter-card[data-fighter="SNIPER"]')?.click();
-    await new Promise(r => setTimeout(r, 80));
-    document.querySelector('#roster-grid .fighter-card[data-fighter="WITCH"]')?.click();
-    await new Promise(r => setTimeout(r, 80));
-    const p1 = p1Selection && p1Selection.name;
-    const p2 = p2Selection && p2Selection.name;
-    return { count, p1, p2, startVisible: !document.getElementById('start-btn').classList.contains('hidden') };
+    await new Promise(r => setTimeout(r, 400));
+    const t = window.__APEX_PICK_TEST;
+    const count = t ? t.roster().length : 0;
+    if (t) t.confirmByName('SNIPER');
+    await new Promise(r => setTimeout(r, 100));
+    if (t) t.confirmByName('WITCH');
+    await new Promise(r => setTimeout(r, 100));
+    return {
+      count,
+      p1: p1Selection && p1Selection.name,
+      p2: p2Selection && p2Selection.name,
+      selectVisible: !document.getElementById('select-screen').classList.contains('hidden'),
+    };
   })()`);
-  gate('shell-select-32-cards', shellSelect.count === 32, shellSelect);
-  gate('shell-select-p1-p2-locks', shellSelect.p1 === 'SNIPER' && shellSelect.p2 === 'WITCH' && shellSelect.startVisible, shellSelect);
+  gate('shell-select-32-cards', shellSelect.count === 32 && shellSelect.selectVisible, shellSelect);
+  gate('shell-select-p1-p2-locks', shellSelect.p1 === 'SNIPER' && shellSelect.p2 === 'WITCH', shellSelect);
   report.evidence.push(await screenshot('16-v2-shell-select-locked'));
   const shellEnter = await evaluate(`(async () => {
-    document.getElementById('start-btn').click();
+    document.querySelector('.apex-pick-button[aria-label="start-button"]')?.click();
     const t0 = Date.now();
     while (gameState !== 'ARSENAL' && Date.now() - t0 < 6000) await new Promise(r => setTimeout(r, 100));
     cancelAnimationFrame(reqId); reqId = 0;

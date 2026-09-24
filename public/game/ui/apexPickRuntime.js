@@ -136,12 +136,30 @@
     }));
   }
   function currentRoster() {
+    // V2 §A3: Arsenal select reuses this pick UI with the canonical 32 shells.
+    if (window.__apexArsenalSelectPending && window.APEX_ARSENAL_SHELLS) {
+      const roster = window.APEX_ARSENAL_SHELLS.roster().map(ft => ({
+        id: ft.name.toLowerCase(),
+        name: ft.name,
+        accent: ft.color,
+        glow: ft.color,
+        standing: '',
+        cardArt: '',
+        icon: '',
+        stats: { hp: 1000, dmg: 100 },
+      }));
+      PickRuntimeController.champions = roster;
+      return roster;
+    }
     const byName = new Map(championRecords().map(champ => [champ.name, champ]));
     const roster = rosterNames.map(name => byName.get(name)).filter(Boolean);
     PickRuntimeController.champions = roster;
     return roster;
   }
   function fighterForChampion(champ) {
+    if (window.__apexArsenalSelectPending && window.APEX_ARSENAL_SHELLS) {
+      return window.APEX_ARSENAL_SHELLS.typeFor(champ?.name);
+    }
     return FighterTypes.find(ft => ft && ft.name === champ?.name) || null;
   }
   function championForFighter(fighter) {
@@ -883,6 +901,15 @@
     document.getElementById('roster-grid')?.replaceChildren();
     renderPickRuntime();
     return result;
+  };
+
+  // Programmatic lock-in hook (V2 evidence + harnesses); same code path as a
+  // real card confirm click.
+  window.__APEX_PICK_TEST = {
+    roster: () => currentRoster(),
+    confirmByName(name) {
+      confirmChampion(currentRoster().find(c => c && c.name === name) || null);
+    },
   };
 
   Object.assign(window.apexReactBridge || {}, { goToSelect, startMatch, goToMenu });
