@@ -136,19 +136,33 @@
     baseDrawProjectiles(c);
   };
 
+  function drawEquippedWeapons(c) {
+    const av = window.APEX_ARSENAL_AV;
+    if (!av || !av.drawEquippedWeapon) return;
+    for (const f of fighters) {
+      if (!f) continue;
+      const h = weaponApi.getHolder(f);
+      if (!h) continue;
+      av.drawEquippedWeapon(c, f, h);
+    }
+  }
+
   function drawHolderTags(c) {
+    // World-space weapon names are debug-only. Real atlas sprites are the
+    // primary normal-gameplay representation.
+    if (!(AQ.state && AQ.state.debugOverlay)) return;
     for (const f of fighters) {
       const h = weaponApi.getHolder(f);
       if (!f || !h) continue;
       const label = h.weaponId.replace(/_/g, ' ');
       c.save();
-      c.font = "900 22px 'Segoe UI'";
+      c.font = "900 18px monospace";
       c.textAlign = 'center';
-      const w = c.measureText(label).width + 20;
-      c.fillStyle = 'rgba(10,8,4,0.62)';
-      c.fillRect(f.x - w / 2, f.y - f.radius - 62, w, 30);
+      const w = c.measureText(label).width + 16;
+      c.fillStyle = 'rgba(10,8,4,0.68)';
+      c.fillRect(f.x - w / 2, f.y - f.radius - 58, w, 26);
       c.fillStyle = h.def.category === 'ranged' ? '#ffd479' : h.def.category === 'melee' ? '#ff9d7a' : '#9fd8ff';
-      c.fillText(label, f.x, f.y - f.radius - 40);
+      c.fillText(label, f.x, f.y - f.radius - 39);
       c.restore();
     }
   }
@@ -192,6 +206,7 @@
     ctx.translate(GAME_SIZE / 2 + view.shakeX, GAME_SIZE / 2 + view.shakeY);
     ctx.scale(view.zoom, view.zoom);
     ctx.translate(-GAME_SIZE / 2, -GAME_SIZE / 2);
+    drawEquippedWeapons(ctx);
     weaponApi.drawArsenalVisuals(ctx);
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.draw(ctx);
     drawHolderTags(ctx);
@@ -354,6 +369,17 @@
       aqProjectiles: projectiles.filter(p => p && p.aq).length,
       hero: fighterSnapshot(fighters[0]),
       rival: fighterSnapshot(fighters[1]),
+      slots: state.slots.map(slot => ({
+        id: slot.id,
+        phase: slot.phase,
+        age: Math.max(0, Math.round((state.time - (slot.spawnTime || 0)) * 100) / 100),
+        weaponId: slot.weaponId || null,
+        revealLeadSeconds: slot.revealLeadSeconds == null ? null : Math.round(slot.revealLeadSeconds * 100) / 100,
+        predictedHeroETA: slot.predictedHeroETA == null ? null : Math.round(slot.predictedHeroETA * 100) / 100,
+        predictedRivalETA: slot.predictedRivalETA == null ? null : Math.round(slot.predictedRivalETA * 100) / 100,
+        earliestETA: slot.earliestETA == null ? null : Math.round(slot.earliestETA * 100) / 100,
+        predictedFighter: slot.predictedFighter || null,
+      })),
       events: AQ.events.slice(-40),
     };
   };
