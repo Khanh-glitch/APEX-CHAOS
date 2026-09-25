@@ -16,11 +16,11 @@ PASS  multi-slot-coexist  — maxActiveSlots=7
 PASS  force-reveals-only-while-unapproached  — reveals=6 (all force=true, identity null while hidden)
 PASS  hidden-until-force-age-3.0  — {"id":1,"phase":"TELEGRAPH","age":2.9,"weaponId":null,"revealLeadSeconds":2,"predictedHeroETA":null,"predictedRivalETA":null,"earliestETA":null,"predictedFighter":null}
 PASS  telegraph-no-identity
-PASS  force-reveal-at-3.0-not-autopickup  — [AQ] REVEAL id=1 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true
-PASS  movement-reveal-lead-2.0  — [AQ] REVEAL id=2 weapon=TEC_9 eta=1.36 lead=2.00 fighter=HERO force=false
-PASS  near-miss-outside-circle-stays-hidden  — {"nearMissStayedHidden":true,"edgeOfCircleReveals":true,"edgeLog":"[AQ] REVEAL id=2 weapon=MBR eta=0.80 lead=2.00 fighter=HERO force=false","hiddenBeforeBounce":true,"revealedAfterBounce":true,"bounceLog":"[AQ] REVEAL id=3 weapon=SZECSEI_FUCHS eta=0.06 lead=2.00 fighter=HERO force=false"}
-PASS  edge-of-circle-approach-reveals  — [AQ] REVEAL id=2 weapon=MBR eta=0.80 lead=2.00 fighter=HERO force=false
-PASS  no-reveal-before-bounce  — [AQ] REVEAL id=3 weapon=SZECSEI_FUCHS eta=0.06 lead=2.00 fighter=HERO force=false
+PASS  force-reveal-at-3.0-not-autopickup  — [AQ] REVEAL id=1 weapon=SMG eta=null lead=2.00 fighter=TIMEOUT force=true
+PASS  movement-reveal-lead-2.0  — [AQ] REVEAL id=2 weapon=PISTOL eta=1.36 lead=2.00 fighter=HERO force=false
+PASS  near-miss-outside-circle-stays-hidden  — {"nearMissStayedHidden":true,"edgeOfCircleReveals":true,"edgeLog":"[AQ] REVEAL id=2 weapon=SNIPER eta=0.80 lead=2.00 fighter=HERO force=false","hiddenBeforeBounce":true,"revealedAfterBounce":true,"bounceLog":"[AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S2 eta=0.06 lead=2.00 fighter=HERO force=false"}
+PASS  edge-of-circle-approach-reveals  — [AQ] REVEAL id=2 weapon=SNIPER eta=0.80 lead=2.00 fighter=HERO force=false
+PASS  no-reveal-before-bounce  — [AQ] REVEAL id=3 weapon=ZBROYAR_Z15_S2 eta=0.06 lead=2.00 fighter=HERO force=false
 PASS  aim-never-steers-fighter  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
 PASS  dagger-no-body-dash  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
 PASS  no-slash-vfx-in-combat  — {"noSlashSeq":true,"bombAtlas":true}
@@ -95,8 +95,8 @@ PASS  browser-rev2-quest-win-ui  — {"mode":"quest-win","actions":["NEXT","REPL
 PASS  browser-rev2-quest-next-drum  — {"n":2,"p1":"ICE","p2":"DRUM"}
 PASS  browser-rev2-quest-loss-ui  — {"mode":"quest-loss","actions":["RETRY","QUEST MAP"],"stage":2}
 PASS  browser-rev2-quest-persist  — {"unlockedThrough":2,"completedStages":[1]}
-PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=12 restarts=12 spawnedCumulative=103 earlyErrors=0
-PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=3 x=414 y=111 lead=2.00","REVEAL":"[AQ] REVEAL id=3 weapon=GLOCK_17 eta=null lead=2.00 fighter=TIMEOUT force=true","PICKUP":"[AQ] PICKUP id=2 fighter=ICE weapon=AK_47","USE":"[AQ] USE fighter=ICE weapon=AK_47","HIT":"[AQ] HIT source=ICE target=DRUM weapon=AK_47 damage=3.8","CONSUME":"[AQ] CONSUME fighter=ICE weapon=AK_47 reason=sequence-complete"}
+PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=10 restarts=10 spawnedCumulative=101 earlyErrors=0
+PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=9 x=336 y=574 lead=2.00","REVEAL":"[AQ] REVEAL id=9 weapon=ZBROYAR_Z15 eta=0.69 lead=2.00 fighter=DRUM force=false","PICKUP":"[AQ] PICKUP id=9 fighter=DRUM weapon=ZBROYAR_Z15","USE":"[AQ] USE fighter=DRUM weapon=ZBROYAR_Z15","HIT":"[AQ] HIT source=ICE target=DRUM weapon=MAC_10 damage=2.0","CONSUME":"[AQ] CONSUME fighter=ICE weapon=MAC_10 reason=sequence-complete"}
 
 ==== ARSENAL QUEST TEST SUMMARY ====
 {
