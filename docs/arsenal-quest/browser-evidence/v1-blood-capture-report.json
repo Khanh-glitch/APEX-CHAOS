@@ -1,0 +1,150 @@
+{
+  "scenarios": [
+    {
+      "name": "v1-blood-l2r-normal",
+      "file": "docs/arsenal-quest/browser-evidence/v1-blood-l2r-normal.png",
+      "stats": {
+        "v1Hits": 1,
+        "v1Cores": 1,
+        "v1Streaks": 4,
+        "v1Drops": 12,
+        "v1Micro": 38,
+        "v1Decals": 1,
+        "v1FloorStamps": 1,
+        "sprayPeak": 55,
+        "lastV1": {
+          "x": 714.5,
+          "y": 500,
+          "angle": 0,
+          "critical": false
+        }
+      }
+    },
+    {
+      "name": "v1-blood-r2l-normal",
+      "file": "docs/arsenal-quest/browser-evidence/v1-blood-r2l-normal.png",
+      "stats": {
+        "v1Hits": 2,
+        "v1Cores": 2,
+        "v1Streaks": 8,
+        "v1Drops": 24,
+        "v1Micro": 76,
+        "v1Decals": 2,
+        "v1FloorStamps": 8,
+        "sprayPeak": 68,
+        "lastV1": {
+          "x": 305.5,
+          "y": 500,
+          "angle": 3.141592653589793,
+          "critical": false
+        }
+      }
+    },
+    {
+      "name": "v1-blood-diagonal",
+      "file": "docs/arsenal-quest/browser-evidence/v1-blood-diagonal.png",
+      "stats": {
+        "v1Hits": 3,
+        "v1Cores": 3,
+        "v1Streaks": 12,
+        "v1Drops": 36,
+        "v1Micro": 114,
+        "v1Decals": 3,
+        "v1FloorStamps": 22,
+        "sprayPeak": 68,
+        "lastV1": {
+          "x": 701.607675658868,
+          "y": 490.3253229496926,
+          "angle": 0.5,
+          "critical": false
+        }
+      }
+    },
+    {
+      "name": "v1-blood-crit",
+      "file": "docs/arsenal-quest/browser-evidence/v1-blood-crit.png",
+      "stats": {
+        "v1Hits": 4,
+        "v1Cores": 4,
+        "v1Streaks": 19,
+        "v1Drops": 54,
+        "v1Micro": 178,
+        "v1Decals": 4,
+        "v1FloorStamps": 35,
+        "sprayPeak": 95,
+        "lastV1": {
+          "x": 714.5,
+          "y": 500,
+          "angle": 0,
+          "critical": true
+        }
+      }
+    },
+    {
+      "name": "v1-blood-repeated-hits",
+      "file": "docs/arsenal-quest/browser-evidence/v1-blood-repeated-hits.png",
+      "stats": {
+        "v1Hits": 10,
+        "v1Cores": 10,
+        "v1Streaks": 43,
+        "v1Drops": 126,
+        "v1Micro": 406,
+        "v1Decals": 10,
+        "v1FloorStamps": 108,
+        "sprayPeak": 95,
+        "lastV1": {
+          "x": 714.5,
+          "y": 500,
+          "angle": 0,
+          "critical": false
+        }
+      }
+    },
+    {
+      "name": "v1-blood-sustained",
+      "file": "docs/arsenal-quest/browser-evidence/v1-blood-sustained.png",
+      "stats": {
+        "v1Hits": 34,
+        "v1Cores": 34,
+        "v1Streaks": 148,
+        "v1Drops": 432,
+        "v1Micro": 1396,
+        "v1Decals": 34,
+        "v1FloorStamps": 355,
+        "sprayPeak": 449,
+        "lastV1": {
+          "x": 714.5,
+          "y": 500,
+          "angle": 0,
+          "critical": true
+        }
+      }
+    },
+    {
+      "name": "v1-blood-layering",
+      "file": "docs/arsenal-quest/browser-evidence/v1-blood-layering.png",
+      "stats": {
+        "v1Hits": 35,
+        "v1Cores": 35,
+        "v1Streaks": 152,
+        "v1Drops": 444,
+        "v1Micro": 1434,
+        "v1Decals": 35,
+        "v1FloorStamps": 356,
+        "sprayPeak": 449,
+        "lastV1": {
+          "x": 634.5,
+          "y": 500,
+          "angle": 0,
+          "critical": false
+        }
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "summary": {
+    "scenarios": 7,
+    "v1HitsTotal": 35,
+    "consoleErrorCount": 0
+  }
+}
