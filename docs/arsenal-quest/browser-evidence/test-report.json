@@ -87,30 +87,30 @@
     },
     "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true"
+      "detail": "[AQ] REVEAL id=1 weapon=MBR2 eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=SHOTGUN eta=1.36 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=MOSSBERG_500 eta=1.36 lead=2.00 fighter=HERO force=false"
     },
     "near-miss-outside-circle-stays-hidden": {
       "pass": true,
       "detail": {
         "nearMissStayedHidden": true,
         "edgeOfCircleReveals": true,
-        "edgeLog": "[AQ] REVEAL id=2 weapon=GRENADE eta=0.80 lead=2.00 fighter=HERO force=false",
+        "edgeLog": "[AQ] REVEAL id=2 weapon=AK_47 eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=M16 eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=DESERT_DEAGLE eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=GRENADE eta=0.80 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=AK_47 eta=0.80 lead=2.00 fighter=HERO force=false"
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=3 weapon=M16 eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=3 weapon=DESERT_DEAGLE eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -158,15 +158,15 @@
     },
     "weapon-PISTOL": {
       "pass": true,
-      "detail": "dmg=110.3 holder=null USE=1 HIT=3 CONSUME=1"
+      "detail": "dmg=94.5 holder=null USE=1 HIT=3 CONSUME=1"
     },
     "weapon-SHOTGUN": {
       "pass": true,
-      "detail": "dmg=210 holder=null USE=1 HIT=12 CONSUME=1"
+      "detail": "dmg=168 holder=null USE=1 HIT=12 CONSUME=1"
     },
     "weapon-SMG": {
       "pass": true,
-      "detail": "dmg=133.9 holder=null USE=1 HIT=8 CONSUME=1"
+      "detail": "dmg=126 holder=null USE=1 HIT=8 CONSUME=1"
     },
     "weapon-SNIPER": {
       "pass": true,
@@ -331,7 +331,7 @@
       "pass": true,
       "detail": {
         "nativeFrames": 20,
-        "aqFrames": 20
+        "aqFrames": 17
       }
     },
     "f3-debug-overlay-toggle": {
@@ -365,29 +365,29 @@
       }
     },
     "shell-select-33-cards": {
-      "pass": true,
+      "pass": false,
       "detail": {
-        "count": 33,
-        "p1": "SNIPER",
-        "p2": "WITCH",
-        "selectVisible": true
+        "count": 9,
+        "p1": null,
+        "p2": null,
+        "selectVisible": false
       }
     },
     "shell-select-p1-p2-locks": {
-      "pass": true,
+      "pass": false,
       "detail": {
-        "count": 33,
-        "p1": "SNIPER",
-        "p2": "WITCH",
-        "selectVisible": true
+        "count": 9,
+        "p1": null,
+        "p2": null,
+        "selectVisible": false
       }
     },
     "shell-select-enters-arsenal": {
-      "pass": true,
+      "pass": false,
       "detail": {
         "gameState": "ARSENAL",
         "names": [
-          "SNIPER",
+          "RUBBER",
           "WITCH"
         ],
         "shells": [
@@ -664,8 +664,8 @@
           "usedMeta": true,
           "sample": {
             "event": "casing",
-            "x": 349,
-            "y": 491,
+            "x": 356,
+            "y": 485,
             "weapon": "GLOCK_17",
             "usedMeta": true
           }
@@ -675,8 +675,8 @@
           "usedMeta": true,
           "sample": {
             "event": "casing",
-            "x": 349,
-            "y": 491,
+            "x": 346,
+            "y": 494,
             "weapon": "AK_47",
             "usedMeta": true
           }
@@ -687,7 +687,7 @@
           "sample": {
             "event": "casing",
             "x": 339,
-            "y": 488,
+            "y": 493,
             "weapon": "M249_SAW",
             "usedMeta": true
           }
@@ -697,8 +697,8 @@
           "usedMeta": true,
           "sample": {
             "event": "casing",
-            "x": 341,
-            "y": 495,
+            "x": 342,
+            "y": 493,
             "weapon": "SHOTGUN",
             "usedMeta": true
           }
@@ -708,8 +708,8 @@
           "usedMeta": true,
           "sample": {
             "event": "casing",
-            "x": 293,
-            "y": 493,
+            "x": 295,
+            "y": 494,
             "weapon": "MBR",
             "usedMeta": true
           }
@@ -719,8 +719,8 @@
           "usedMeta": true,
           "sample": {
             "event": "casing",
-            "x": 262,
-            "y": 492,
+            "x": 286,
+            "y": 496,
             "weapon": "SNIPER",
             "usedMeta": true
           }
@@ -829,47 +829,34 @@
           "n": 1,
           "opponent": "PAINTER"
         },
-        "selectVisible": true,
+        "selectVisible": false,
         "names": [
-          "ICE",
-          "PAINTER"
+          "NEWBIE",
+          "KUNGFU"
         ],
         "types": [
-          "ICE",
-          "PAINTER"
+          "NEWBIE",
+          "KUNGFU"
         ],
-        "winText": "NEXTREPLAYQUEST MAP",
+        "winText": "",
         "winActs": {
-          "mode": "quest-win",
-          "actions": [
-            "NEXT",
-            "REPLAY",
-            "QUEST MAP"
-          ],
-          "stage": 1
+          "mode": "none",
+          "actions": []
         },
         "next": {
-          "ok": true,
-          "n": 2,
-          "opponent": "DRUM",
-          "live": "DRUM",
-          "p1": "ICE"
+          "ok": false,
+          "reason": "noNext"
         },
         "stage2": {
-          "n": 2,
-          "p1": "ICE",
-          "p2": "DRUM"
+          "p1": "NEWBIE",
+          "p2": "KUNGFU"
         },
         "lossActs": {
-          "mode": "quest-loss",
-          "actions": [
-            "RETRY",
-            "QUEST MAP"
-          ],
-          "stage": 2
+          "mode": "none",
+          "actions": []
         },
-        "lossText": "RETRYQUEST MAP",
-        "mapHtml": "ARSENAL QUEST V1\n1. PAINTER [DONE]2. DRUM [OPEN]3. CARD [LOCK]4. ICE [LOCK]5. MATH [LOCK]6. BLADE [LOCK]7. TOXIC [LOCK]8. ORBIT [LOCK]9. FLASH [LOCK]10. ELECTRIC [LOCK]11. VAMPIRE [LOCK]12. SAW [LOCK]13. HUNTER [LOCK]14. WOLF [LOCK]15. CRYSTAL [LOCK]16. MAGNET [LOCK]17. BLACK_HOLE [LOCK]18. WITCH [LOCK]19. TIME [LOCK]20. MONK [LOCK]\nFREE PLAY CLOSE",
+        "lossText": "",
+        "mapHtml": "QUEST MAP\nFREE PLAY CLOSE\n1. PAINTER\nDONE\n2. DRUM\nOPEN\n3. CARD\nLOCK\n4. ICE\nLOCK\n5. MATH\nLOCK\n6. BLADE\nLOCK\n7. TOXIC\nLOCK\n8. ORBIT\nLOCK\n9. FLASH\nLOCK\n10. ELECTRIC\nLOCK\n11. VAMPIRE\nLOCK\n12. SAW\nLOCK\n13. HUNTER\nLOCK\n14. WOLF\nLOCK\n15. CRYSTAL\nLOCK\n16. MAGNET\nLOCK\n17. BLACK_HOLE\nLOCK\n18. WITCH\nLOCK\n19. TIME\nLOCK\n20. MONK\nLOCK",
         "save": {
           "unlockedThrough": 2,
           "completedStages": [
@@ -881,54 +868,41 @@
       }
     },
     "browser-rev2-quest-stage1-opens-selector": {
-      "pass": true,
+      "pass": false,
       "detail": {
         "mapOpen": true,
         "pending": {
           "n": 1,
           "opponent": "PAINTER"
         },
-        "selectVisible": true,
+        "selectVisible": false,
         "names": [
-          "ICE",
-          "PAINTER"
+          "NEWBIE",
+          "KUNGFU"
         ],
         "types": [
-          "ICE",
-          "PAINTER"
+          "NEWBIE",
+          "KUNGFU"
         ],
-        "winText": "NEXTREPLAYQUEST MAP",
+        "winText": "",
         "winActs": {
-          "mode": "quest-win",
-          "actions": [
-            "NEXT",
-            "REPLAY",
-            "QUEST MAP"
-          ],
-          "stage": 1
+          "mode": "none",
+          "actions": []
         },
         "next": {
-          "ok": true,
-          "n": 2,
-          "opponent": "DRUM",
-          "live": "DRUM",
-          "p1": "ICE"
+          "ok": false,
+          "reason": "noNext"
         },
         "stage2": {
-          "n": 2,
-          "p1": "ICE",
-          "p2": "DRUM"
+          "p1": "NEWBIE",
+          "p2": "KUNGFU"
         },
         "lossActs": {
-          "mode": "quest-loss",
-          "actions": [
-            "RETRY",
-            "QUEST MAP"
-          ],
-          "stage": 2
+          "mode": "none",
+          "actions": []
         },
-        "lossText": "RETRYQUEST MAP",
-        "mapHtml": "ARSENAL QUEST V1\n1. PAINTER [DONE]2. DRUM [OPEN]3. CARD [LOCK]4. ICE [LOCK]5. MATH [LOCK]6. BLADE [LOCK]7. TOXIC [LOCK]8. ORBIT [LOCK]9. FLASH [LOCK]10. ELECTRIC [LOCK]11. VAMPIRE [LOCK]12. SAW [LOCK]13. HUNTER [LOCK]14. WOLF [LOCK]15. CRYSTAL [LOCK]16. MAGNET [LOCK]17. BLACK_HOLE [LOCK]18. WITCH [LOCK]19. TIME [LOCK]20. MONK [LOCK]\nFREE PLAY CLOSE",
+        "lossText": "",
+        "mapHtml": "QUEST MAP\nFREE PLAY CLOSE\n1. PAINTER\nDONE\n2. DRUM\nOPEN\n3. CARD\nLOCK\n4. ICE\nLOCK\n5. MATH\nLOCK\n6. BLADE\nLOCK\n7. TOXIC\nLOCK\n8. ORBIT\nLOCK\n9. FLASH\nLOCK\n10. ELECTRIC\nLOCK\n11. VAMPIRE\nLOCK\n12. SAW\nLOCK\n13. HUNTER\nLOCK\n14. WOLF\nLOCK\n15. CRYSTAL\nLOCK\n16. MAGNET\nLOCK\n17. BLACK_HOLE\nLOCK\n18. WITCH\nLOCK\n19. TIME\nLOCK\n20. MONK\nLOCK",
         "save": {
           "unlockedThrough": 2,
           "completedStages": [
@@ -940,54 +914,41 @@
       }
     },
     "browser-rev2-quest-ice-vs-painter": {
-      "pass": true,
+      "pass": false,
       "detail": {
         "mapOpen": true,
         "pending": {
           "n": 1,
           "opponent": "PAINTER"
         },
-        "selectVisible": true,
+        "selectVisible": false,
         "names": [
-          "ICE",
-          "PAINTER"
+          "NEWBIE",
+          "KUNGFU"
         ],
         "types": [
-          "ICE",
-          "PAINTER"
+          "NEWBIE",
+          "KUNGFU"
         ],
-        "winText": "NEXTREPLAYQUEST MAP",
+        "winText": "",
         "winActs": {
-          "mode": "quest-win",
-          "actions": [
-            "NEXT",
-            "REPLAY",
-            "QUEST MAP"
-          ],
-          "stage": 1
+          "mode": "none",
+          "actions": []
         },
         "next": {
-          "ok": true,
-          "n": 2,
-          "opponent": "DRUM",
-          "live": "DRUM",
-          "p1": "ICE"
+          "ok": false,
+          "reason": "noNext"
         },
         "stage2": {
-          "n": 2,
-          "p1": "ICE",
-          "p2": "DRUM"
+          "p1": "NEWBIE",
+          "p2": "KUNGFU"
         },
         "lossActs": {
-          "mode": "quest-loss",
-          "actions": [
-            "RETRY",
-            "QUEST MAP"
-          ],
-          "stage": 2
+          "mode": "none",
+          "actions": []
         },
-        "lossText": "RETRYQUEST MAP",
-        "mapHtml": "ARSENAL QUEST V1\n1. PAINTER [DONE]2. DRUM [OPEN]3. CARD [LOCK]4. ICE [LOCK]5. MATH [LOCK]6. BLADE [LOCK]7. TOXIC [LOCK]8. ORBIT [LOCK]9. FLASH [LOCK]10. ELECTRIC [LOCK]11. VAMPIRE [LOCK]12. SAW [LOCK]13. HUNTER [LOCK]14. WOLF [LOCK]15. CRYSTAL [LOCK]16. MAGNET [LOCK]17. BLACK_HOLE [LOCK]18. WITCH [LOCK]19. TIME [LOCK]20. MONK [LOCK]\nFREE PLAY CLOSE",
+        "lossText": "",
+        "mapHtml": "QUEST MAP\nFREE PLAY CLOSE\n1. PAINTER\nDONE\n2. DRUM\nOPEN\n3. CARD\nLOCK\n4. ICE\nLOCK\n5. MATH\nLOCK\n6. BLADE\nLOCK\n7. TOXIC\nLOCK\n8. ORBIT\nLOCK\n9. FLASH\nLOCK\n10. ELECTRIC\nLOCK\n11. VAMPIRE\nLOCK\n12. SAW\nLOCK\n13. HUNTER\nLOCK\n14. WOLF\nLOCK\n15. CRYSTAL\nLOCK\n16. MAGNET\nLOCK\n17. BLACK_HOLE\nLOCK\n18. WITCH\nLOCK\n19. TIME\nLOCK\n20. MONK\nLOCK",
         "save": {
           "unlockedThrough": 2,
           "completedStages": [
@@ -999,34 +960,24 @@
       }
     },
     "browser-rev2-quest-win-ui": {
-      "pass": true,
+      "pass": false,
       "detail": {
-        "mode": "quest-win",
-        "actions": [
-          "NEXT",
-          "REPLAY",
-          "QUEST MAP"
-        ],
-        "stage": 1
+        "mode": "none",
+        "actions": []
       }
     },
     "browser-rev2-quest-next-drum": {
-      "pass": true,
+      "pass": false,
       "detail": {
-        "n": 2,
-        "p1": "ICE",
-        "p2": "DRUM"
+        "p1": "NEWBIE",
+        "p2": "KUNGFU"
       }
     },
     "browser-rev2-quest-loss-ui": {
-      "pass": true,
+      "pass": false,
       "detail": {
-        "mode": "quest-loss",
-        "actions": [
-          "RETRY",
-          "QUEST MAP"
-        ],
-        "stage": 2
+        "mode": "none",
+        "actions": []
       }
     },
     "browser-rev2-quest-persist": {
@@ -1040,17 +991,17 @@
     },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=6 restarts=6 spawnedCumulative=99 earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=5 restarts=5 spawnedCumulative=104 earlyErrors=0"
     },
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=13 x=488 y=257 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=12 weapon=GLOCK_17 eta=null lead=2.00 fighter=TIMEOUT force=true",
-        "PICKUP": "[AQ] PICKUP id=12 fighter=DRUM weapon=GLOCK_17",
-        "USE": "[AQ] USE fighter=ICE weapon=TEC_9",
-        "HIT": "[AQ] HIT source=ICE target=DRUM weapon=TEC_9 damage=21.0",
-        "CONSUME": "[AQ] CONSUME fighter=ICE weapon=TEC_9 reason=sequence-complete"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=14 x=832 y=521 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=13 weapon=P90 eta=0.26 lead=2.00 fighter=KUNGFU force=false",
+        "PICKUP": "[AQ] PICKUP id=13 fighter=KUNGFU weapon=P90",
+        "USE": "[AQ] USE fighter=KUNGFU weapon=P90",
+        "HIT": "[AQ] HIT source=KUNGFU target=NEWBIE weapon=P90 damage=13.3",
+        "CONSUME": "[AQ] CONSUME fighter=KUNGFU weapon=P90 reason=sequence-complete"
       }
     },
     "rev2-perf-pass1-api": {
@@ -1059,16 +1010,16 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 139,
+        "drawsA": 134,
         "buildsB": 1,
-        "drawsB": 140,
-        "hitsB": 139,
+        "drawsB": 135,
+        "hitsB": 134,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 11,
-        "debugWrites": 14,
-        "winWrites": 3,
-        "winWritesBefore": 2,
+        "skillWrites": 9,
+        "debugWrites": 12,
+        "winWrites": 1,
+        "winWritesBefore": 0,
         "sections": [
           "arsenalFrame",
           "arsenalVfxDraw",
@@ -1082,11 +1033,11 @@
         ],
         "peaks": {
           "slots": 5,
-          "particles": 401,
-          "shockwaves": 5,
-          "aqProjectiles": 14,
-          "projectiles": 16,
-          "arsenalVfx": 27,
+          "particles": 361,
+          "shockwaves": 3,
+          "aqProjectiles": 13,
+          "projectiles": 13,
+          "arsenalVfx": 21,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -1098,16 +1049,16 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 139,
+        "drawsA": 134,
         "buildsB": 1,
-        "drawsB": 140,
-        "hitsB": 139,
+        "drawsB": 135,
+        "hitsB": 134,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 11,
-        "debugWrites": 14,
-        "winWrites": 3,
-        "winWritesBefore": 2,
+        "skillWrites": 9,
+        "debugWrites": 12,
+        "winWrites": 1,
+        "winWritesBefore": 0,
         "sections": [
           "arsenalFrame",
           "arsenalVfxDraw",
@@ -1121,11 +1072,11 @@
         ],
         "peaks": {
           "slots": 5,
-          "particles": 401,
-          "shockwaves": 5,
-          "aqProjectiles": 14,
-          "projectiles": 16,
-          "arsenalVfx": 27,
+          "particles": 361,
+          "shockwaves": 3,
+          "aqProjectiles": 13,
+          "projectiles": 13,
+          "arsenalVfx": 21,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -1137,16 +1088,16 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 139,
+        "drawsA": 134,
         "buildsB": 1,
-        "drawsB": 140,
-        "hitsB": 139,
+        "drawsB": 135,
+        "hitsB": 134,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 11,
-        "debugWrites": 14,
-        "winWrites": 3,
-        "winWritesBefore": 2,
+        "skillWrites": 9,
+        "debugWrites": 12,
+        "winWrites": 1,
+        "winWritesBefore": 0,
         "sections": [
           "arsenalFrame",
           "arsenalVfxDraw",
@@ -1160,11 +1111,11 @@
         ],
         "peaks": {
           "slots": 5,
-          "particles": 401,
-          "shockwaves": 5,
-          "aqProjectiles": 14,
-          "projectiles": 16,
-          "arsenalVfx": 27,
+          "particles": 361,
+          "shockwaves": 3,
+          "aqProjectiles": 13,
+          "projectiles": 13,
+          "arsenalVfx": 21,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -1176,16 +1127,16 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 139,
+        "drawsA": 134,
         "buildsB": 1,
-        "drawsB": 140,
-        "hitsB": 139,
+        "drawsB": 135,
+        "hitsB": 134,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 11,
-        "debugWrites": 14,
-        "winWrites": 3,
-        "winWritesBefore": 2,
+        "skillWrites": 9,
+        "debugWrites": 12,
+        "winWrites": 1,
+        "winWritesBefore": 0,
         "sections": [
           "arsenalFrame",
           "arsenalVfxDraw",
@@ -1199,11 +1150,11 @@
         ],
         "peaks": {
           "slots": 5,
-          "particles": 401,
-          "shockwaves": 5,
-          "aqProjectiles": 14,
-          "projectiles": 16,
-          "arsenalVfx": 27,
+          "particles": 361,
+          "shockwaves": 3,
+          "aqProjectiles": 13,
+          "projectiles": 13,
+          "arsenalVfx": 21,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -1226,7 +1177,7 @@
     "feel-runtime-ready": {
       "pass": true,
       "detail": {
-        "stamps": 855,
+        "stamps": 1001,
         "miss": "MISS",
         "sgReady": {
           "weapon": "SHOTGUN",
@@ -1246,15 +1197,15 @@
           280,
           385
         ],
-        "pal": "#FF5A36",
-        "organic": 8510,
+        "pal": "#F2382F",
+        "organic": 8235,
         "casingKey": true
       }
     },
     "feel-miss-text-only": {
       "pass": true,
       "detail": {
-        "stamps": 855,
+        "stamps": 1001,
         "miss": "MISS",
         "sgReady": {
           "weapon": "SHOTGUN",
@@ -1274,8 +1225,8 @@
           280,
           385
         ],
-        "pal": "#FF5A36",
-        "organic": 8510,
+        "pal": "#F2382F",
+        "organic": 8235,
         "casingKey": true
       }
     },
@@ -1298,7 +1249,7 @@
     "feel-heal-values-authorized": {
       "pass": true,
       "detail": {
-        "stamps": 855,
+        "stamps": 1001,
         "miss": "MISS",
         "sgReady": {
           "weapon": "SHOTGUN",
@@ -1318,15 +1269,15 @@
           280,
           385
         ],
-        "pal": "#FF5A36",
-        "organic": 8510,
+        "pal": "#F2382F",
+        "organic": 8235,
         "casingKey": true
       }
     },
     "feel-splatter-organic-mask": {
       "pass": true,
       "detail": {
-        "stamps": 855,
+        "stamps": 1001,
         "miss": "MISS",
         "sgReady": {
           "weapon": "SHOTGUN",
@@ -1346,15 +1297,15 @@
           280,
           385
         ],
-        "pal": "#FF5A36",
-        "organic": 8510,
+        "pal": "#F2382F",
+        "organic": 8235,
         "casingKey": true
       }
     },
     "feel-damage-palette-vermilion": {
-      "pass": true,
+      "pass": false,
       "detail": {
-        "stamps": 855,
+        "stamps": 1001,
         "miss": "MISS",
         "sgReady": {
           "weapon": "SHOTGUN",
@@ -1374,8 +1325,8 @@
           280,
           385
         ],
-        "pal": "#FF5A36",
-        "organic": 8510,
+        "pal": "#F2382F",
+        "organic": 8235,
         "casingKey": true
       }
     },
@@ -1408,11 +1359,11 @@
     "atlas-normal-fill-and-edge-pixels": {
       "pass": true,
       "detail": {
-        "fillHits": 15549,
-        "edgeHits": 7775,
+        "fillHits": 15816,
+        "edgeHits": 7863,
         "opaque": 25678,
-        "fill": "#FF5A36",
-        "edge": "#4A1710",
+        "fill": "#F2382F",
+        "edge": "#5A0C09",
         "w": 240,
         "h": 160
       }
@@ -1433,18 +1384,18 @@
       "pass": true,
       "detail": {
         "samples": 89,
-        "avgMs": 59.92247191011234,
-        "medianMs": 66.59999999999854,
-        "p95Ms": 66.70000000000073,
-        "p99Ms": 83.30000000000291,
-        "maxMs": 83.30000000000291,
+        "avgMs": 49.060674157303346,
+        "medianMs": 50,
+        "p95Ms": 66.59999999999854,
+        "p99Ms": 99.90000000000146,
+        "maxMs": 99.90000000000146,
         "buckets": {
           "le16_7": 0,
           "gt16_7_20": 0,
           "gt20_25": 0,
           "gt25_33": 0,
-          "gt33_50": 29,
-          "gt50": 60
+          "gt33_50": 76,
+          "gt50": 13
         },
         "interpolation": false
       }
@@ -1460,8 +1411,8 @@
     "smooth-rarity-cache-reuse": {
       "pass": true,
       "detail": {
-        "builds": 13,
-        "draws": 21,
+        "builds": 12,
+        "draws": 20,
         "hits": 8
       }
     },
@@ -1684,7 +1635,17 @@
       }
     }
   },
-  "failures": [],
+  "failures": [
+    "shell-select-33-cards",
+    "shell-select-p1-p2-locks",
+    "shell-select-enters-arsenal",
+    "browser-rev2-quest-stage1-opens-selector",
+    "browser-rev2-quest-ice-vs-painter",
+    "browser-rev2-quest-win-ui",
+    "browser-rev2-quest-next-drum",
+    "browser-rev2-quest-loss-ui",
+    "feel-damage-palette-vermilion"
+  ],
   "evidence": [
     "docs/arsenal-quest/browser-evidence/01-hidden-telegraph.png",
     "docs/arsenal-quest/browser-evidence/02-multiple-simultaneous-pickups.png",
@@ -1808,18 +1769,18 @@
       "predictedFighter": null
     },
     "forceRevealed": true,
-    "forceLog": "[AQ] REVEAL id=1 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "forceLog": "[AQ] REVEAL id=1 weapon=MBR2 eta=null lead=2.00 fighter=TIMEOUT force=true",
     "pickupAfterForce": true,
     "revealedOnMovement": true,
-    "moveRevealLog": "[AQ] REVEAL id=2 weapon=SHOTGUN eta=1.36 lead=2.00 fighter=HERO force=false"
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=MOSSBERG_500 eta=1.36 lead=2.00 fighter=HERO force=false"
   },
   "circleNeg": {
     "nearMissStayedHidden": true,
     "edgeOfCircleReveals": true,
-    "edgeLog": "[AQ] REVEAL id=2 weapon=GRENADE eta=0.80 lead=2.00 fighter=HERO force=false",
+    "edgeLog": "[AQ] REVEAL id=2 weapon=AK_47 eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=M16 eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=DESERT_DEAGLE eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -1847,8 +1808,8 @@
     "PISTOL": {
       "midPhase": "READY",
       "midPhase2": "FIRING",
-      "rivalHp": 889.75,
-      "damageDealt": 110.3,
+      "rivalHp": 905.5,
+      "damageDealt": 94.5,
       "holderAfter": null,
       "useLogged": 1,
       "hitLogged": 3,
@@ -1860,8 +1821,8 @@
     },
     "SHOTGUN": {
       "midPhase": "READY",
-      "rivalHp": 790,
-      "damageDealt": 210,
+      "rivalHp": 832,
+      "damageDealt": 168,
       "holderAfter": null,
       "useLogged": 1,
       "hitLogged": 12,
@@ -1874,8 +1835,8 @@
     "SMG": {
       "midPhase": "READY",
       "midPhase2": "FIRING",
-      "rivalHp": 866.125,
-      "damageDealt": 133.9,
+      "rivalHp": 874,
+      "damageDealt": 126,
       "holderAfter": null,
       "useLogged": 1,
       "hitLogged": 8,
@@ -2070,7 +2031,7 @@
     "vampLatch": 2.5,
     "monkRush": 2.5,
     "nativeSeen": 20,
-    "aqSeen": 20,
+    "aqSeen": 17,
     "holderIntact": true
   },
   "f3": {
@@ -2300,8 +2261,8 @@
       "usedMeta": true,
       "sample": {
         "event": "casing",
-        "x": 349,
-        "y": 491,
+        "x": 356,
+        "y": 485,
         "weapon": "GLOCK_17",
         "usedMeta": true
       }
@@ -2311,8 +2272,8 @@
       "usedMeta": true,
       "sample": {
         "event": "casing",
-        "x": 349,
-        "y": 491,
+        "x": 346,
+        "y": 494,
         "weapon": "AK_47",
         "usedMeta": true
       }
@@ -2323,7 +2284,7 @@
       "sample": {
         "event": "casing",
         "x": 339,
-        "y": 488,
+        "y": 493,
         "weapon": "M249_SAW",
         "usedMeta": true
       }
@@ -2333,8 +2294,8 @@
       "usedMeta": true,
       "sample": {
         "event": "casing",
-        "x": 341,
-        "y": 495,
+        "x": 342,
+        "y": 493,
         "weapon": "SHOTGUN",
         "usedMeta": true
       }
@@ -2344,8 +2305,8 @@
       "usedMeta": true,
       "sample": {
         "event": "casing",
-        "x": 293,
-        "y": 493,
+        "x": 295,
+        "y": 494,
         "weapon": "MBR",
         "usedMeta": true
       }
@@ -2355,8 +2316,8 @@
       "usedMeta": true,
       "sample": {
         "event": "casing",
-        "x": 262,
-        "y": 492,
+        "x": 286,
+        "y": 496,
         "weapon": "SNIPER",
         "usedMeta": true
       }
@@ -2450,47 +2411,34 @@
       "n": 1,
       "opponent": "PAINTER"
     },
-    "selectVisible": true,
+    "selectVisible": false,
     "names": [
-      "ICE",
-      "PAINTER"
+      "NEWBIE",
+      "KUNGFU"
     ],
     "types": [
-      "ICE",
-      "PAINTER"
+      "NEWBIE",
+      "KUNGFU"
     ],
-    "winText": "NEXTREPLAYQUEST MAP",
+    "winText": "",
     "winActs": {
-      "mode": "quest-win",
-      "actions": [
-        "NEXT",
-        "REPLAY",
-        "QUEST MAP"
-      ],
-      "stage": 1
+      "mode": "none",
+      "actions": []
     },
     "next": {
-      "ok": true,
-      "n": 2,
-      "opponent": "DRUM",
-      "live": "DRUM",
-      "p1": "ICE"
+      "ok": false,
+      "reason": "noNext"
     },
     "stage2": {
-      "n": 2,
-      "p1": "ICE",
-      "p2": "DRUM"
+      "p1": "NEWBIE",
+      "p2": "KUNGFU"
     },
     "lossActs": {
-      "mode": "quest-loss",
-      "actions": [
-        "RETRY",
-        "QUEST MAP"
-      ],
-      "stage": 2
+      "mode": "none",
+      "actions": []
     },
-    "lossText": "RETRYQUEST MAP",
-    "mapHtml": "ARSENAL QUEST V1\n1. PAINTER [DONE]2. DRUM [OPEN]3. CARD [LOCK]4. ICE [LOCK]5. MATH [LOCK]6. BLADE [LOCK]7. TOXIC [LOCK]8. ORBIT [LOCK]9. FLASH [LOCK]10. ELECTRIC [LOCK]11. VAMPIRE [LOCK]12. SAW [LOCK]13. HUNTER [LOCK]14. WOLF [LOCK]15. CRYSTAL [LOCK]16. MAGNET [LOCK]17. BLACK_HOLE [LOCK]18. WITCH [LOCK]19. TIME [LOCK]20. MONK [LOCK]\nFREE PLAY CLOSE",
+    "lossText": "",
+    "mapHtml": "QUEST MAP\nFREE PLAY CLOSE\n1. PAINTER\nDONE\n2. DRUM\nOPEN\n3. CARD\nLOCK\n4. ICE\nLOCK\n5. MATH\nLOCK\n6. BLADE\nLOCK\n7. TOXIC\nLOCK\n8. ORBIT\nLOCK\n9. FLASH\nLOCK\n10. ELECTRIC\nLOCK\n11. VAMPIRE\nLOCK\n12. SAW\nLOCK\n13. HUNTER\nLOCK\n14. WOLF\nLOCK\n15. CRYSTAL\nLOCK\n16. MAGNET\nLOCK\n17. BLACK_HOLE\nLOCK\n18. WITCH\nLOCK\n19. TIME\nLOCK\n20. MONK\nLOCK",
     "save": {
       "unlockedThrough": 2,
       "completedStages": [
@@ -2502,35 +2450,35 @@
   },
   "fiveMinute": {
     "error": null,
-    "restarts": 6,
-    "koCount": 6,
-    "spawnedTotal": 8,
-    "spawnedCumulative": 99,
+    "restarts": 5,
+    "koCount": 5,
+    "spawnedTotal": 21,
+    "spawnedCumulative": 104,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=13 x=488 y=257 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=12 weapon=GLOCK_17 eta=null lead=2.00 fighter=TIMEOUT force=true",
-    "PICKUP": "[AQ] PICKUP id=12 fighter=DRUM weapon=GLOCK_17",
-    "USE": "[AQ] USE fighter=ICE weapon=TEC_9",
-    "HIT": "[AQ] HIT source=ICE target=DRUM weapon=TEC_9 damage=21.0",
-    "CONSUME": "[AQ] CONSUME fighter=ICE weapon=TEC_9 reason=sequence-complete"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=14 x=832 y=521 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=13 weapon=P90 eta=0.26 lead=2.00 fighter=KUNGFU force=false",
+    "PICKUP": "[AQ] PICKUP id=13 fighter=KUNGFU weapon=P90",
+    "USE": "[AQ] USE fighter=KUNGFU weapon=P90",
+    "HIT": "[AQ] HIT source=KUNGFU target=NEWBIE weapon=P90 damage=13.3",
+    "CONSUME": "[AQ] CONSUME fighter=KUNGFU weapon=P90 reason=sequence-complete"
   },
   "rev2PerfPass1": {
     "api": true,
     "globalApi": true,
     "buildsA": 1,
-    "drawsA": 139,
+    "drawsA": 134,
     "buildsB": 1,
-    "drawsB": 140,
-    "hitsB": 139,
+    "drawsB": 135,
+    "hitsB": 134,
     "usedCache": true,
     "afterSink": 0,
-    "skillWrites": 11,
-    "debugWrites": 14,
-    "winWrites": 3,
-    "winWritesBefore": 2,
+    "skillWrites": 9,
+    "debugWrites": 12,
+    "winWrites": 1,
+    "winWritesBefore": 0,
     "sections": [
       "arsenalFrame",
       "arsenalVfxDraw",
@@ -2544,17 +2492,17 @@
     ],
     "peaks": {
       "slots": 5,
-      "particles": 401,
-      "shockwaves": 5,
-      "aqProjectiles": 14,
-      "projectiles": 16,
-      "arsenalVfx": 27,
+      "particles": 361,
+      "shockwaves": 3,
+      "aqProjectiles": 13,
+      "projectiles": 13,
+      "arsenalVfx": 21,
       "detachedWeapons": 2
     },
     "size": 1000
   },
   "rev2Feel": {
-    "stamps": 855,
+    "stamps": 1001,
     "miss": "MISS",
     "sgReady": {
       "weapon": "SHOTGUN",
@@ -2574,8 +2522,8 @@
       280,
       385
     ],
-    "pal": "#FF5A36",
-    "organic": 8510,
+    "pal": "#F2382F",
+    "organic": 8235,
     "casingKey": true
   },
   "healPlay": {
@@ -2590,11 +2538,11 @@
   },
   "atlasPixels": {
     "dmg": {
-      "fillHits": 15549,
-      "edgeHits": 7775,
+      "fillHits": 15816,
+      "edgeHits": 7863,
       "opaque": 25678,
-      "fill": "#FF5A36",
-      "edge": "#4A1710",
+      "fill": "#F2382F",
+      "edge": "#5A0C09",
       "w": 240,
       "h": 160
     },
@@ -2611,82 +2559,82 @@
   "rafPlay": {
     "pacing": {
       "samples": 89,
-      "avgMs": 59.92247191011234,
-      "medianMs": 66.59999999999854,
-      "p95Ms": 66.70000000000073,
-      "p99Ms": 83.30000000000291,
-      "maxMs": 83.30000000000291,
+      "avgMs": 49.060674157303346,
+      "medianMs": 50,
+      "p95Ms": 66.59999999999854,
+      "p99Ms": 99.90000000000146,
+      "maxMs": 99.90000000000146,
       "buckets": {
         "le16_7": 0,
         "gt16_7_20": 0,
         "gt20_25": 0,
         "gt25_33": 0,
-        "gt33_50": 29,
-        "gt50": 60
+        "gt33_50": 76,
+        "gt50": 13
       },
       "interpolation": false
     },
     "sections": {
       "chamber": {
-        "n": 249,
-        "avgMs": 0.088,
-        "maxMs": 13.3
+        "n": 243,
+        "avgMs": 0.054,
+        "maxMs": 9.8
       },
       "pickupDraw": {
-        "n": 249,
-        "avgMs": 0.229,
-        "maxMs": 3.2
+        "n": 243,
+        "avgMs": 0.252,
+        "maxMs": 2.9
       },
       "background": {
-        "n": 249,
-        "avgMs": 0.322,
-        "maxMs": 14.1
+        "n": 243,
+        "avgMs": 0.316,
+        "maxMs": 13.1
       },
       "foreground": {
-        "n": 247,
-        "avgMs": 0.02,
-        "maxMs": 0.7
-      },
-      "arsenalVfxDraw": {
-        "n": 247,
-        "avgMs": 0.011,
+        "n": 241,
+        "avgMs": 0.021,
         "maxMs": 0.3
       },
+      "arsenalVfxDraw": {
+        "n": 241,
+        "avgMs": 0.004,
+        "maxMs": 0.2
+      },
       "hud": {
-        "n": 247,
-        "avgMs": 0.018,
-        "maxMs": 0.5
+        "n": 241,
+        "avgMs": 0.023,
+        "maxMs": 0.4
       },
       "foregroundTotal": {
-        "n": 247,
-        "avgMs": 0.081,
-        "maxMs": 2
+        "n": 241,
+        "avgMs": 0.08,
+        "maxMs": 1.1
       },
       "arsenalFrame": {
-        "n": 247,
-        "avgMs": 0.765,
-        "maxMs": 17.2
+        "n": 241,
+        "avgMs": 0.732,
+        "maxMs": 14.8
       },
       "simulation": {
         "n": 19263,
-        "avgMs": 0.067,
-        "maxMs": 24.3
+        "avgMs": 0.056,
+        "maxMs": 20.7
       }
     },
     "peaks": {
       "slots": 5,
-      "particles": 401,
-      "shockwaves": 5,
-      "aqProjectiles": 14,
-      "projectiles": 16,
-      "arsenalVfx": 27,
+      "particles": 361,
+      "shockwaves": 3,
+      "aqProjectiles": 13,
+      "projectiles": 13,
+      "arsenalVfx": 21,
       "detachedWeapons": 2
     },
     "longTasks": {
-      "count": 9,
+      "count": 8,
       "slowest": {
-        "at": 3085.2,
-        "durationMs": 1057
+        "at": 2342.9,
+        "durationMs": 704
       }
     },
     "interpolation": false
@@ -2697,8 +2645,8 @@
     "b": 106
   },
   "smoothRarity": {
-    "builds": 13,
-    "draws": 21,
+    "builds": 12,
+    "draws": 20,
     "hits": 8
   },
   "bothUnarmed": {
@@ -2742,7 +2690,17 @@
   },
   "summary": {
     "total": 120,
-    "passed": 120,
-    "failed": []
+    "passed": 111,
+    "failed": [
+      "shell-select-33-cards",
+      "shell-select-p1-p2-locks",
+      "shell-select-enters-arsenal",
+      "browser-rev2-quest-stage1-opens-selector",
+      "browser-rev2-quest-ice-vs-painter",
+      "browser-rev2-quest-win-ui",
+      "browser-rev2-quest-next-drum",
+      "browser-rev2-quest-loss-ui",
+      "feel-damage-palette-vermilion"
+    ]
   }
 }
