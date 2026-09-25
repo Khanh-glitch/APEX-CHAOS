@@ -48,7 +48,7 @@
     },
     "spawn-cadence-3.0s": {
       "pass": true,
-      "detail": "spawnTimes=[1,4.1,7.1,10.1,13.1,16.1,19.1] gaps=[3.1,3,3,3,3,3]"
+      "detail": "spawnTimes=[0.1,3.1,6.1,9.1,12.1,15.1,18.1] gaps=[3,3,3,3,3,3]"
     },
     "reveal-lead-fixed-2.0": {
       "pass": true,
@@ -64,7 +64,7 @@
     },
     "multi-slot-coexist": {
       "pass": true,
-      "detail": "maxActiveSlots=6"
+      "detail": "maxActiveSlots=7"
     },
     "force-reveals-only-while-unapproached": {
       "pass": true,
@@ -89,30 +89,30 @@
     },
     "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=P90 eta=null lead=2.00 fighter=TIMEOUT force=true"
+      "detail": "[AQ] REVEAL id=1 weapon=DESERT_DEAGLE eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=AK_47 eta=1.36 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=BERETTA_93R eta=1.36 lead=2.00 fighter=HERO force=false"
     },
     "near-miss-outside-circle-stays-hidden": {
       "pass": true,
       "detail": {
         "nearMissStayedHidden": true,
         "edgeOfCircleReveals": true,
-        "edgeLog": "[AQ] REVEAL id=2 weapon=JACKHAMMER eta=0.80 lead=2.00 fighter=HERO force=false",
+        "edgeLog": "[AQ] REVEAL id=2 weapon=MAC_10 eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=MBR2 eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=SNIPER eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=JACKHAMMER eta=0.80 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=MAC_10 eta=0.80 lead=2.00 fighter=HERO force=false"
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=3 weapon=MBR2 eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=3 weapon=SNIPER eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -302,7 +302,7 @@
         "nativeProj": 2,
         "hp": [
           97.70368,
-          100
+          81.94240000000002
         ]
       }
     },
@@ -1042,17 +1042,17 @@
     },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=11 restarts=11 spawnedCumulative=102 earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=16 restarts=16 spawnedCumulative=155 earlyErrors=0"
     },
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=8 x=141 y=366 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=6 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true",
-        "PICKUP": "[AQ] PICKUP id=7 fighter=DRUM weapon=GLOCK_17",
-        "USE": "[AQ] USE fighter=ICE weapon=P90",
-        "HIT": "[AQ] HIT source=ICE target=DRUM weapon=P90 damage=1.9",
-        "CONSUME": "[AQ] CONSUME fighter=ICE weapon=P90 reason=sequence-complete"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=1 x=804 y=594 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=1 weapon=M16 eta=0.14 lead=2.00 fighter=DRUM force=false",
+        "PICKUP": "[AQ] PICKUP id=6 fighter=ICE weapon=ZBROYAR_Z15",
+        "USE": "[AQ] USE fighter=DRUM weapon=P90",
+        "HIT": "[AQ] HIT source=DRUM target=ICE weapon=P90 damage=1.9",
+        "CONSUME": "[AQ] CONSUME fighter=DRUM weapon=P90 reason=sequence-complete"
       }
     },
     "rev2-perf-pass1-api": {
@@ -1061,14 +1061,14 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 145,
+        "drawsA": 150,
         "buildsB": 1,
-        "drawsB": 146,
-        "hitsB": 145,
+        "drawsB": 151,
+        "hitsB": 150,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 10,
-        "debugWrites": 13,
+        "skillWrites": 11,
+        "debugWrites": 14,
         "winWrites": 3,
         "winWritesBefore": 2,
         "sections": [
@@ -1083,12 +1083,12 @@
           "simulation"
         ],
         "peaks": {
-          "slots": 6,
-          "particles": 207,
-          "shockwaves": 4,
-          "aqProjectiles": 11,
-          "projectiles": 12,
-          "arsenalVfx": 21,
+          "slots": 7,
+          "particles": 256,
+          "shockwaves": 11,
+          "aqProjectiles": 17,
+          "projectiles": 18,
+          "arsenalVfx": 22,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -1100,14 +1100,14 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 145,
+        "drawsA": 150,
         "buildsB": 1,
-        "drawsB": 146,
-        "hitsB": 145,
+        "drawsB": 151,
+        "hitsB": 150,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 10,
-        "debugWrites": 13,
+        "skillWrites": 11,
+        "debugWrites": 14,
         "winWrites": 3,
         "winWritesBefore": 2,
         "sections": [
@@ -1122,12 +1122,12 @@
           "simulation"
         ],
         "peaks": {
-          "slots": 6,
-          "particles": 207,
-          "shockwaves": 4,
-          "aqProjectiles": 11,
-          "projectiles": 12,
-          "arsenalVfx": 21,
+          "slots": 7,
+          "particles": 256,
+          "shockwaves": 11,
+          "aqProjectiles": 17,
+          "projectiles": 18,
+          "arsenalVfx": 22,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -1139,14 +1139,14 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 145,
+        "drawsA": 150,
         "buildsB": 1,
-        "drawsB": 146,
-        "hitsB": 145,
+        "drawsB": 151,
+        "hitsB": 150,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 10,
-        "debugWrites": 13,
+        "skillWrites": 11,
+        "debugWrites": 14,
         "winWrites": 3,
         "winWritesBefore": 2,
         "sections": [
@@ -1161,12 +1161,12 @@
           "simulation"
         ],
         "peaks": {
-          "slots": 6,
-          "particles": 207,
-          "shockwaves": 4,
-          "aqProjectiles": 11,
-          "projectiles": 12,
-          "arsenalVfx": 21,
+          "slots": 7,
+          "particles": 256,
+          "shockwaves": 11,
+          "aqProjectiles": 17,
+          "projectiles": 18,
+          "arsenalVfx": 22,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -1178,14 +1178,14 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 145,
+        "drawsA": 150,
         "buildsB": 1,
-        "drawsB": 146,
-        "hitsB": 145,
+        "drawsB": 151,
+        "hitsB": 150,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 10,
-        "debugWrites": 13,
+        "skillWrites": 11,
+        "debugWrites": 14,
         "winWrites": 3,
         "winWritesBefore": 2,
         "sections": [
@@ -1200,12 +1200,12 @@
           "simulation"
         ],
         "peaks": {
-          "slots": 6,
-          "particles": 207,
-          "shockwaves": 4,
-          "aqProjectiles": 11,
-          "projectiles": 12,
-          "arsenalVfx": 21,
+          "slots": 7,
+          "particles": 256,
+          "shockwaves": 11,
+          "aqProjectiles": 17,
+          "projectiles": 18,
+          "arsenalVfx": 22,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -1228,7 +1228,7 @@
     "feel-runtime-ready": {
       "pass": true,
       "detail": {
-        "stamps": 726,
+        "stamps": 873,
         "miss": "MISS",
         "sgReady": {
           "weapon": "SHOTGUN",
@@ -1247,7 +1247,7 @@
     "feel-miss-text-only": {
       "pass": true,
       "detail": {
-        "stamps": 726,
+        "stamps": 873,
         "miss": "MISS",
         "sgReady": {
           "weapon": "SHOTGUN",
@@ -1282,9 +1282,135 @@
     "smooth-rarity-cache-reuse": {
       "pass": true,
       "detail": {
-        "builds": 11,
-        "draws": 14,
-        "hits": 3
+        "builds": 13,
+        "draws": 30,
+        "hits": 17
+      }
+    },
+    "both-unarmed-immediate-fresh": {
+      "pass": true,
+      "detail": {
+        "afterImmediate": 1,
+        "timerAfter": 2.9833333333333334,
+        "mid": 1,
+        "afterOneArmed": 1,
+        "armedBefore": 1,
+        "retrigBefore": 1,
+        "retrigAfter": 2,
+        "ak": {
+          "weapon": "AK_47",
+          "cue": "pickup_rifle_ak",
+          "rel": "sfx/feel/rifle_take_01.wav"
+        },
+        "pistol": {
+          "weapon": "PISTOL",
+          "cue": "pickup_pistol",
+          "rel": "sfx/feel/pickup_pistol.wav"
+        }
+      }
+    },
+    "both-unarmed-timer-reset-3s": {
+      "pass": true,
+      "detail": {
+        "afterImmediate": 1,
+        "timerAfter": 2.9833333333333334,
+        "mid": 1,
+        "afterOneArmed": 1,
+        "armedBefore": 1,
+        "retrigBefore": 1,
+        "retrigAfter": 2,
+        "ak": {
+          "weapon": "AK_47",
+          "cue": "pickup_rifle_ak",
+          "rel": "sfx/feel/rifle_take_01.wav"
+        },
+        "pistol": {
+          "weapon": "PISTOL",
+          "cue": "pickup_pistol",
+          "rel": "sfx/feel/pickup_pistol.wav"
+        }
+      }
+    },
+    "both-unarmed-no-spam": {
+      "pass": true,
+      "detail": {
+        "afterImmediate": 1,
+        "timerAfter": 2.9833333333333334,
+        "mid": 1,
+        "afterOneArmed": 1,
+        "armedBefore": 1,
+        "retrigBefore": 1,
+        "retrigAfter": 2,
+        "ak": {
+          "weapon": "AK_47",
+          "cue": "pickup_rifle_ak",
+          "rel": "sfx/feel/rifle_take_01.wav"
+        },
+        "pistol": {
+          "weapon": "PISTOL",
+          "cue": "pickup_pistol",
+          "rel": "sfx/feel/pickup_pistol.wav"
+        }
+      }
+    },
+    "both-unarmed-one-armed-no-fast": {
+      "pass": true,
+      "detail": {
+        "afterImmediate": 1,
+        "timerAfter": 2.9833333333333334,
+        "mid": 1,
+        "afterOneArmed": 1,
+        "armedBefore": 1,
+        "retrigBefore": 1,
+        "retrigAfter": 2,
+        "ak": {
+          "weapon": "AK_47",
+          "cue": "pickup_rifle_ak",
+          "rel": "sfx/feel/rifle_take_01.wav"
+        },
+        "pistol": {
+          "weapon": "PISTOL",
+          "cue": "pickup_pistol",
+          "rel": "sfx/feel/pickup_pistol.wav"
+        }
+      }
+    },
+    "both-unarmed-retrigger": {
+      "pass": true,
+      "detail": {
+        "afterImmediate": 1,
+        "timerAfter": 2.9833333333333334,
+        "mid": 1,
+        "afterOneArmed": 1,
+        "armedBefore": 1,
+        "retrigBefore": 1,
+        "retrigAfter": 2,
+        "ak": {
+          "weapon": "AK_47",
+          "cue": "pickup_rifle_ak",
+          "rel": "sfx/feel/rifle_take_01.wav"
+        },
+        "pistol": {
+          "weapon": "PISTOL",
+          "cue": "pickup_pistol",
+          "rel": "sfx/feel/pickup_pistol.wav"
+        }
+      }
+    },
+    "feel-rifle-pickup-derived": {
+      "pass": true,
+      "detail": {
+        "weapon": "AK_47",
+        "cue": "pickup_rifle_ak",
+        "rel": "sfx/feel/rifle_take_01.wav"
+      }
+    },
+    "feel-pistol-source-recharge": {
+      "pass": true,
+      "detail": {
+        "weapon": "PISTOL",
+        "cue": "pickup_pistol",
+        "rel": "sfx/feel/pickup_pistol.wav"
       }
     }
   },
@@ -1370,18 +1496,18 @@
   },
   "spawnLaw": {
     "spawnedTotal": 7,
-    "maxActive": 6,
+    "maxActive": 7,
     "spawnTimes": [
-      1,
-      4.1,
-      7.1,
-      10.1,
-      13.1,
-      16.1,
-      19.1
+      0.1,
+      3.1,
+      6.1,
+      9.1,
+      12.1,
+      15.1,
+      18.1
     ],
     "gaps": [
-      3.1,
+      3,
       3,
       3,
       3,
@@ -1418,18 +1544,18 @@
       "predictedFighter": null
     },
     "forceRevealed": true,
-    "forceLog": "[AQ] REVEAL id=1 weapon=P90 eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "forceLog": "[AQ] REVEAL id=1 weapon=DESERT_DEAGLE eta=null lead=2.00 fighter=TIMEOUT force=true",
     "pickupAfterForce": true,
     "revealedOnMovement": true,
-    "moveRevealLog": "[AQ] REVEAL id=2 weapon=AK_47 eta=1.36 lead=2.00 fighter=HERO force=false"
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=BERETTA_93R eta=1.36 lead=2.00 fighter=HERO force=false"
   },
   "circleNeg": {
     "nearMissStayedHidden": true,
     "edgeOfCircleReveals": true,
-    "edgeLog": "[AQ] REVEAL id=2 weapon=JACKHAMMER eta=0.80 lead=2.00 fighter=HERO force=false",
+    "edgeLog": "[AQ] REVEAL id=2 weapon=MAC_10 eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=MBR2 eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=SNIPER eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -1632,7 +1758,7 @@
     "nativeProj": 2,
     "hp": [
       97.70368,
-      100
+      81.94240000000002
     ]
   },
   "roster": {
@@ -2112,33 +2238,33 @@
   },
   "fiveMinute": {
     "error": null,
-    "restarts": 11,
-    "koCount": 11,
-    "spawnedTotal": 5,
-    "spawnedCumulative": 102,
+    "restarts": 16,
+    "koCount": 16,
+    "spawnedTotal": 1,
+    "spawnedCumulative": 155,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=8 x=141 y=366 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=6 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true",
-    "PICKUP": "[AQ] PICKUP id=7 fighter=DRUM weapon=GLOCK_17",
-    "USE": "[AQ] USE fighter=ICE weapon=P90",
-    "HIT": "[AQ] HIT source=ICE target=DRUM weapon=P90 damage=1.9",
-    "CONSUME": "[AQ] CONSUME fighter=ICE weapon=P90 reason=sequence-complete"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=1 x=804 y=594 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=1 weapon=M16 eta=0.14 lead=2.00 fighter=DRUM force=false",
+    "PICKUP": "[AQ] PICKUP id=6 fighter=ICE weapon=ZBROYAR_Z15",
+    "USE": "[AQ] USE fighter=DRUM weapon=P90",
+    "HIT": "[AQ] HIT source=DRUM target=ICE weapon=P90 damage=1.9",
+    "CONSUME": "[AQ] CONSUME fighter=DRUM weapon=P90 reason=sequence-complete"
   },
   "rev2PerfPass1": {
     "api": true,
     "globalApi": true,
     "buildsA": 1,
-    "drawsA": 145,
+    "drawsA": 150,
     "buildsB": 1,
-    "drawsB": 146,
-    "hitsB": 145,
+    "drawsB": 151,
+    "hitsB": 150,
     "usedCache": true,
     "afterSink": 0,
-    "skillWrites": 10,
-    "debugWrites": 13,
+    "skillWrites": 11,
+    "debugWrites": 14,
     "winWrites": 3,
     "winWritesBefore": 2,
     "sections": [
@@ -2153,18 +2279,18 @@
       "simulation"
     ],
     "peaks": {
-      "slots": 6,
-      "particles": 207,
-      "shockwaves": 4,
-      "aqProjectiles": 11,
-      "projectiles": 12,
-      "arsenalVfx": 21,
+      "slots": 7,
+      "particles": 256,
+      "shockwaves": 11,
+      "aqProjectiles": 17,
+      "projectiles": 18,
+      "arsenalVfx": 22,
       "detachedWeapons": 2
     },
     "size": 1000
   },
   "rev2Feel": {
-    "stamps": 726,
+    "stamps": 873,
     "miss": "MISS",
     "sgReady": {
       "weapon": "SHOTGUN",
@@ -2180,13 +2306,32 @@
     "casingKey": true
   },
   "smoothRarity": {
-    "builds": 11,
-    "draws": 14,
-    "hits": 3
+    "builds": 13,
+    "draws": 30,
+    "hits": 17
+  },
+  "bothUnarmed": {
+    "afterImmediate": 1,
+    "timerAfter": 2.9833333333333334,
+    "mid": 1,
+    "afterOneArmed": 1,
+    "armedBefore": 1,
+    "retrigBefore": 1,
+    "retrigAfter": 2,
+    "ak": {
+      "weapon": "AK_47",
+      "cue": "pickup_rifle_ak",
+      "rel": "sfx/feel/rifle_take_01.wav"
+    },
+    "pistol": {
+      "weapon": "PISTOL",
+      "cue": "pickup_pistol",
+      "rel": "sfx/feel/pickup_pistol.wav"
+    }
   },
   "summary": {
-    "total": 100,
-    "passed": 100,
+    "total": 107,
+    "passed": 107,
     "failed": []
   }
 }
