@@ -16,11 +16,11 @@ PASS  multi-slot-coexist  — maxActiveSlots=5
 PASS  force-reveals-only-while-unapproached  — reveals=4 (all force=true, identity null while hidden)
 PASS  hidden-until-force-age-3.0  — {"id":1,"phase":"TELEGRAPH","age":2.9,"weaponId":null,"revealLeadSeconds":2,"predictedHeroETA":null,"predictedRivalETA":null,"earliestETA":null,"predictedFighter":null}
 PASS  telegraph-no-identity
-PASS  force-reveal-at-3.0-not-autopickup  — [AQ] REVEAL id=1 weapon=GLOCK_17 eta=null lead=2.00 fighter=TIMEOUT force=true
-PASS  movement-reveal-lead-2.0  — [AQ] REVEAL id=2 weapon=SHOTGUN eta=1.36 lead=2.00 fighter=HERO force=false
-PASS  near-miss-outside-circle-stays-hidden  — {"nearMissStayedHidden":true,"edgeOfCircleReveals":true,"edgeLog":"[AQ] REVEAL id=2 weapon=DAGGER eta=0.80 lead=2.00 fighter=HERO force=false","hiddenBeforeBounce":true,"revealedAfterBounce":true,"bounceLog":"[AQ] REVEAL id=3 weapon=TEC_9 eta=0.06 lead=2.00 fighter=HERO force=false"}
-PASS  edge-of-circle-approach-reveals  — [AQ] REVEAL id=2 weapon=DAGGER eta=0.80 lead=2.00 fighter=HERO force=false
-PASS  no-reveal-before-bounce  — [AQ] REVEAL id=3 weapon=TEC_9 eta=0.06 lead=2.00 fighter=HERO force=false
+PASS  force-reveal-at-3.0-not-autopickup  — [AQ] REVEAL id=1 weapon=SMG eta=null lead=2.00 fighter=TIMEOUT force=true
+PASS  movement-reveal-lead-2.0  — [AQ] REVEAL id=2 weapon=BERETTA_93R eta=1.36 lead=2.00 fighter=HERO force=false
+PASS  near-miss-outside-circle-stays-hidden  — {"nearMissStayedHidden":true,"edgeOfCircleReveals":true,"edgeLog":"[AQ] REVEAL id=2 weapon=M249_SAW eta=0.80 lead=2.00 fighter=HERO force=false","hiddenBeforeBounce":true,"revealedAfterBounce":true,"bounceLog":"[AQ] REVEAL id=3 weapon=DESERT_DEAGLE eta=0.06 lead=2.00 fighter=HERO force=false"}
+PASS  edge-of-circle-approach-reveals  — [AQ] REVEAL id=2 weapon=M249_SAW eta=0.80 lead=2.00 fighter=HERO force=false
+PASS  no-reveal-before-bounce  — [AQ] REVEAL id=3 weapon=DESERT_DEAGLE eta=0.06 lead=2.00 fighter=HERO force=false
 PASS  aim-never-steers-fighter  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
 PASS  dagger-no-body-dash  — {"aimDirSame":true,"aimKeptApexTrajectory":true,"daggerBodyKeptTrajectory":true,"daggerThrustConnected":true}
 PASS  no-slash-vfx-in-combat  — {"noSlashSeq":true,"bombAtlas":true}
@@ -30,8 +30,8 @@ PASS  hero-can-collect
 PASS  armed-fighter-cannot-vacuum
 PASS  soft-cap-suppresses-and-logs
 PASS  weapon-PISTOL  — dmg=94.5 holder=null USE=1 HIT=3 CONSUME=1
-PASS  weapon-SHOTGUN  — dmg=168 holder=null USE=1 HIT=12 CONSUME=1
-PASS  weapon-SMG  — dmg=126 holder=null USE=1 HIT=8 CONSUME=1
+PASS  weapon-SHOTGUN  — dmg=210 holder=null USE=1 HIT=12 CONSUME=1
+PASS  weapon-SMG  — dmg=133.9 holder=null USE=1 HIT=8 CONSUME=1
 PASS  weapon-SNIPER  — dmg=266 holder=null USE=1 HIT=1 CONSUME=1
 PASS  weapon-GRENADE  — dmg=73 holder=null USE=1 HIT=1 CONSUME=1
 PASS  weapon-SABRE  — dmg=126 holder=null USE=1 HIT=1 CONSUME=1
@@ -57,7 +57,7 @@ PASS  tower-shield-expires-to-unarmed
 PASS  exit-cleanup  — {"gameStateAfter":"MENU","menuVisible":true,"hudHidden":true,"slotsCleared":true,"aqProjectilesCleared":true,"heroHolderCleared":true,"staleAqAfterConsume":0,"exitLogged":true}
 PASS  shells-32-canonical  — {"count":33}
 PASS  shells-p1-p2-independent  — ["SNIPER","WITCH"]
-PASS  shells-native-kits-active-in-arsenal  — {"count":33,"names":["SNIPER","WITCH"],"shellFlags":[true,true],"nativeProj":2,"hp":[997.70368,980.0416]}
+PASS  shells-native-kits-active-in-arsenal  — {"count":33,"names":["SNIPER","WITCH"],"shellFlags":[true,true],"nativeProj":2,"hp":[997.70368,1000]}
 PASS  roster-all-33-classified-keep-or-adapt  — {"adapted":["VAMPIRE","MONK"]}
 PASS  roster-keep-native-skill-runs  — {"iceLaneFired":true}
 PASS  roster-adapt-vampire-latch-2.5  — latchTimer=2.5
@@ -99,27 +99,27 @@ PASS  browser-rev2-quest-win-ui  — {"mode":"quest-win","actions":["NEXT","REPL
 PASS  browser-rev2-quest-next-drum  — {"n":2,"p1":"ICE","p2":"DRUM"}
 PASS  browser-rev2-quest-loss-ui  — {"mode":"quest-loss","actions":["RETRY","QUEST MAP"],"stage":2}
 PASS  browser-rev2-quest-persist  — {"unlockedThrough":2,"completedStages":[1]}
-PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=5 restarts=5 spawnedCumulative=96 earlyErrors=0
-PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=17 x=215 y=826 lead=2.00","REVEAL":"[AQ] REVEAL id=17 weapon=DAGGER eta=null lead=2.00 fighter=TIMEOUT force=true","PICKUP":"[AQ] PICKUP_HEAL id=16 fighter=ICE restore=126","USE":"[AQ] USE fighter=DRUM weapon=MAGNUM_500","HIT":"[AQ] HIT source=DRUM target=ICE weapon=M249_SAW damage=17.5","CONSUME":"[AQ] CONSUME fighter=DRUM weapon=M249_SAW reason=sequence-complete"}
-PASS  rev2-perf-pass1-api  — {"api":true,"globalApi":true,"buildsA":1,"drawsA":139,"buildsB":1,"drawsB":140,"hitsB":139,"usedCache":true,"afterSink":0,"skillWrites":12,"debugWrites":14,"winWrites":3,"winWritesBefore":2,"sections":["arsenalFrame","arsenalVfxDraw","background","chamber","foreground","foregroundTotal","hud","pickupDraw","simulation"],"peaks":{"slots":5,"particles":446,"shockwaves":5,"aqProjectiles":11,"projectiles":11,"arsenalVfx":24,"detachedWeapons":2},"size":1000}
-PASS  rev2-perf-pass1-chamber-cache  — {"api":true,"globalApi":true,"buildsA":1,"drawsA":139,"buildsB":1,"drawsB":140,"hitsB":139,"usedCache":true,"afterSink":0,"skillWrites":12,"debugWrites":14,"winWrites":3,"winWritesBefore":2,"sections":["arsenalFrame","arsenalVfxDraw","background","chamber","foreground","foregroundTotal","hud","pickupDraw","simulation"],"peaks":{"slots":5,"particles":446,"shockwaves":5,"aqProjectiles":11,"projectiles":11,"arsenalVfx":24,"detachedWeapons":2},"size":1000}
-PASS  rev2-perf-pass1-floating-text-sink  — {"api":true,"globalApi":true,"buildsA":1,"drawsA":139,"buildsB":1,"drawsB":140,"hitsB":139,"usedCache":true,"afterSink":0,"skillWrites":12,"debugWrites":14,"winWrites":3,"winWritesBefore":2,"sections":["arsenalFrame","arsenalVfxDraw","background","chamber","foreground","foregroundTotal","hud","pickupDraw","simulation"],"peaks":{"slots":5,"particles":446,"shockwaves":5,"aqProjectiles":11,"projectiles":11,"arsenalVfx":24,"detachedWeapons":2},"size":1000}
-PASS  rev2-perf-pass1-hud-win-once  — {"api":true,"globalApi":true,"buildsA":1,"drawsA":139,"buildsB":1,"drawsB":140,"hitsB":139,"usedCache":true,"afterSink":0,"skillWrites":12,"debugWrites":14,"winWrites":3,"winWritesBefore":2,"sections":["arsenalFrame","arsenalVfxDraw","background","chamber","foreground","foregroundTotal","hud","pickupDraw","simulation"],"peaks":{"slots":5,"particles":446,"shockwaves":5,"aqProjectiles":11,"projectiles":11,"arsenalVfx":24,"detachedWeapons":2},"size":1000}
+PASS  five-minute-no-uncaught-errors  — steps=9000 (300s @30Hz) kos=5 restarts=5 spawnedCumulative=93 earlyErrors=0
+PASS  structured-aq-events  — {"SPAWN_SLOT":"[AQ] SPAWN_SLOT id=4 x=783 y=672 lead=2.00","REVEAL":"[AQ] REVEAL id=4 weapon=JACKHAMMER eta=null lead=2.00 fighter=TIMEOUT force=true","PICKUP":"[AQ] PICKUP id=2 fighter=DRUM weapon=DESERT_DEAGLE","USE":"[AQ] USE fighter=DRUM weapon=DESERT_DEAGLE","HIT":"[AQ] HIT source=ICE target=DRUM weapon=MAC_10 damage=14.0","CONSUME":"[AQ] CONSUME fighter=ICE weapon=MAC_10 reason=sequence-complete"}
+PASS  rev2-perf-pass1-api  — {"api":true,"globalApi":true,"buildsA":1,"drawsA":139,"buildsB":1,"drawsB":140,"hitsB":139,"usedCache":true,"afterSink":0,"skillWrites":11,"debugWrites":14,"winWrites":3,"winWritesBefore":2,"sections":["arsenalFrame","arsenalVfxDraw","background","chamber","foreground","foregroundTotal","hud","pickupDraw","simulation"],"peaks":{"slots":5,"particles":322,"shockwaves":5,"aqProjectiles":13,"projectiles":13,"arsenalVfx":21,"detachedWeapons":2},"size":1000}
+PASS  rev2-perf-pass1-chamber-cache  — {"api":true,"globalApi":true,"buildsA":1,"drawsA":139,"buildsB":1,"drawsB":140,"hitsB":139,"usedCache":true,"afterSink":0,"skillWrites":11,"debugWrites":14,"winWrites":3,"winWritesBefore":2,"sections":["arsenalFrame","arsenalVfxDraw","background","chamber","foreground","foregroundTotal","hud","pickupDraw","simulation"],"peaks":{"slots":5,"particles":322,"shockwaves":5,"aqProjectiles":13,"projectiles":13,"arsenalVfx":21,"detachedWeapons":2},"size":1000}
+PASS  rev2-perf-pass1-floating-text-sink  — {"api":true,"globalApi":true,"buildsA":1,"drawsA":139,"buildsB":1,"drawsB":140,"hitsB":139,"usedCache":true,"afterSink":0,"skillWrites":11,"debugWrites":14,"winWrites":3,"winWritesBefore":2,"sections":["arsenalFrame","arsenalVfxDraw","background","chamber","foreground","foregroundTotal","hud","pickupDraw","simulation"],"peaks":{"slots":5,"particles":322,"shockwaves":5,"aqProjectiles":13,"projectiles":13,"arsenalVfx":21,"detachedWeapons":2},"size":1000}
+PASS  rev2-perf-pass1-hud-win-once  — {"api":true,"globalApi":true,"buildsA":1,"drawsA":139,"buildsB":1,"drawsB":140,"hitsB":139,"usedCache":true,"afterSink":0,"skillWrites":11,"debugWrites":14,"winWrites":3,"winWritesBefore":2,"sections":["arsenalFrame","arsenalVfxDraw","background","chamber","foreground","foregroundTotal","hud","pickupDraw","simulation"],"peaks":{"slots":5,"particles":322,"shockwaves":5,"aqProjectiles":13,"projectiles":13,"arsenalVfx":21,"detachedWeapons":2},"size":1000}
 PASS  rev2-perf-pass1-sections  — ["arsenalFrame","arsenalVfxDraw","background","chamber","foreground","foregroundTotal","hud","pickupDraw","simulation"]
-PASS  feel-runtime-ready  — {"stamps":282,"miss":"MISS","sgReady":{"weapon":"SHOTGUN","cue":"pickup_shotgun","rel":"sfx/feel/pickup_shotgun.wav"},"snReady":{"weapon":"SNIPER","cue":"pickup_sniper","rel":"sfx/feel/pickup_sniper.wav"},"healEnabled":true,"restores":[70,126,196,280,385],"pal":"#F2382F","organic":2268,"casingKey":true}
-PASS  feel-miss-text-only  — {"stamps":282,"miss":"MISS","sgReady":{"weapon":"SHOTGUN","cue":"pickup_shotgun","rel":"sfx/feel/pickup_shotgun.wav"},"snReady":{"weapon":"SNIPER","cue":"pickup_sniper","rel":"sfx/feel/pickup_sniper.wav"},"healEnabled":true,"restores":[70,126,196,280,385],"pal":"#F2382F","organic":2268,"casingKey":true}
+PASS  feel-runtime-ready  — {"stamps":285,"miss":"MISS","sgReady":{"weapon":"SHOTGUN","cue":"pickup_shotgun","rel":"sfx/feel/pickup_shotgun.wav"},"snReady":{"weapon":"SNIPER","cue":"pickup_sniper","rel":"sfx/feel/pickup_sniper.wav"},"healEnabled":true,"restores":[70,126,196,280,385],"pal":"#F2382F","organic":2292,"casingKey":true}
+PASS  feel-miss-text-only  — {"stamps":285,"miss":"MISS","sgReady":{"weapon":"SHOTGUN","cue":"pickup_shotgun","rel":"sfx/feel/pickup_shotgun.wav"},"snReady":{"weapon":"SNIPER","cue":"pickup_sniper","rel":"sfx/feel/pickup_sniper.wav"},"healEnabled":true,"restores":[70,126,196,280,385],"pal":"#F2382F","organic":2292,"casingKey":true}
 PASS  feel-shotgun-pickup-real-file  — {"weapon":"SHOTGUN","cue":"pickup_shotgun","rel":"sfx/feel/pickup_shotgun.wav"}
 PASS  feel-sniper-pickup-chamber  — {"weapon":"SNIPER","cue":"pickup_sniper","rel":"sfx/feel/pickup_sniper.wav"}
-PASS  feel-heal-values-authorized  — {"stamps":282,"miss":"MISS","sgReady":{"weapon":"SHOTGUN","cue":"pickup_shotgun","rel":"sfx/feel/pickup_shotgun.wav"},"snReady":{"weapon":"SNIPER","cue":"pickup_sniper","rel":"sfx/feel/pickup_sniper.wav"},"healEnabled":true,"restores":[70,126,196,280,385],"pal":"#F2382F","organic":2268,"casingKey":true}
-PASS  feel-splatter-organic-mask  — {"stamps":282,"miss":"MISS","sgReady":{"weapon":"SHOTGUN","cue":"pickup_shotgun","rel":"sfx/feel/pickup_shotgun.wav"},"snReady":{"weapon":"SNIPER","cue":"pickup_sniper","rel":"sfx/feel/pickup_sniper.wav"},"healEnabled":true,"restores":[70,126,196,280,385],"pal":"#F2382F","organic":2268,"casingKey":true}
-PASS  feel-damage-palette-v3-red  — {"stamps":282,"miss":"MISS","sgReady":{"weapon":"SHOTGUN","cue":"pickup_shotgun","rel":"sfx/feel/pickup_shotgun.wav"},"snReady":{"weapon":"SNIPER","cue":"pickup_sniper","rel":"sfx/feel/pickup_sniper.wav"},"healEnabled":true,"restores":[70,126,196,280,385],"pal":"#F2382F","organic":2268,"casingKey":true}
+PASS  feel-heal-values-authorized  — {"stamps":285,"miss":"MISS","sgReady":{"weapon":"SHOTGUN","cue":"pickup_shotgun","rel":"sfx/feel/pickup_shotgun.wav"},"snReady":{"weapon":"SNIPER","cue":"pickup_sniper","rel":"sfx/feel/pickup_sniper.wav"},"healEnabled":true,"restores":[70,126,196,280,385],"pal":"#F2382F","organic":2292,"casingKey":true}
+PASS  feel-splatter-organic-mask  — {"stamps":285,"miss":"MISS","sgReady":{"weapon":"SHOTGUN","cue":"pickup_shotgun","rel":"sfx/feel/pickup_shotgun.wav"},"snReady":{"weapon":"SNIPER","cue":"pickup_sniper","rel":"sfx/feel/pickup_sniper.wav"},"healEnabled":true,"restores":[70,126,196,280,385],"pal":"#F2382F","organic":2292,"casingKey":true}
+PASS  feel-damage-palette-v3-red  — {"stamps":285,"miss":"MISS","sgReady":{"weapon":"SHOTGUN","cue":"pickup_shotgun","rel":"sfx/feel/pickup_shotgun.wav"},"snReady":{"weapon":"SNIPER","cue":"pickup_sniper","rel":"sfx/feel/pickup_sniper.wav"},"healEnabled":true,"restores":[70,126,196,280,385],"pal":"#F2382F","organic":2292,"casingKey":true}
 PASS  heal-spawns-when-injured  — {"noneAtFull":0,"spawned":1,"hp":826,"id":"HEAL_H2","healingDone":126,"hud":"826.0 / 1000","popCount":1,"pop":"+126"}
 PASS  heal-hud-and-healingDone  — {"noneAtFull":0,"spawned":1,"hp":826,"id":"HEAL_H2","healingDone":126,"hud":"826.0 / 1000","popCount":1,"pop":"+126"}
 PASS  atlas-normal-fill-and-edge-pixels  — {"fillHits":15816,"edgeHits":7863,"opaque":25678,"fill":"#F2382F","edge":"#5A0C09","w":240,"h":160}
 PASS  atlas-miss-slate-and-light-halo  — {"fillHits":15808,"edgeHits":10196,"opaque":30167,"fill":"#465361","edge":"#E8EEF4","w":240,"h":160}
-PASS  real-raf-pacing-sample  — {"samples":89,"avgMs":67.03820224719098,"medianMs":66.69999999999709,"p95Ms":83.40000000000146,"p99Ms":116.70000000000073,"maxMs":116.70000000000073,"buckets":{"le16_7":0,"gt16_7_20":0,"gt20_25":0,"gt25_33":0,"gt33_50":11,"gt50":78},"interpolation":false}
+PASS  real-raf-pacing-sample  — {"samples":89,"avgMs":60.67191011235954,"medianMs":50.10000000000582,"p95Ms":83.39999999999782,"p99Ms":116.69999999999709,"maxMs":116.69999999999709,"buckets":{"le16_7":0,"gt16_7_20":0,"gt20_25":0,"gt25_33":0,"gt33_50":38,"gt50":51},"interpolation":false}
 PASS  chamber-midtone-graphite  — {"r":88,"g":95,"b":106}
-PASS  smooth-rarity-cache-reuse  — {"builds":12,"draws":15,"hits":3}
+PASS  smooth-rarity-cache-reuse  — {"builds":11,"draws":15,"hits":4}
 PASS  both-unarmed-immediate-fresh  — {"afterImmediate":1,"timerAfter":4.483333333333333,"mid":1,"afterOneArmed":1,"armedBefore":1,"retrigBefore":1,"retrigAfter":2,"ak":{"weapon":"AK_47","cue":"pickup_rifle_ak","rel":"sfx/feel/rifle_take_01.wav"},"pistol":{"weapon":"PISTOL","cue":"pickup_pistol","rel":"sfx/feel/pickup_pistol.wav"}}
 PASS  both-unarmed-timer-reset-3s  — {"afterImmediate":1,"timerAfter":4.483333333333333,"mid":1,"afterOneArmed":1,"armedBefore":1,"retrigBefore":1,"retrigAfter":2,"ak":{"weapon":"AK_47","cue":"pickup_rifle_ak","rel":"sfx/feel/rifle_take_01.wav"},"pistol":{"weapon":"PISTOL","cue":"pickup_pistol","rel":"sfx/feel/pickup_pistol.wav"}}
 PASS  both-unarmed-no-spam  — {"afterImmediate":1,"timerAfter":4.483333333333333,"mid":1,"afterOneArmed":1,"armedBefore":1,"retrigBefore":1,"retrigAfter":2,"ak":{"weapon":"AK_47","cue":"pickup_rifle_ak","rel":"sfx/feel/rifle_take_01.wav"},"pistol":{"weapon":"PISTOL","cue":"pickup_pistol","rel":"sfx/feel/pickup_pistol.wav"}}
