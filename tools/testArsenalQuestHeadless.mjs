@@ -3087,6 +3087,121 @@ gate('v1-blood-material-identity',
   && JSON.stringify(report.v1Blood.bloodV1.streakTip) === '[125,3,3]',
   report.v1Blood.bloodV1);
 
+// ---------------------------------------------------------------------------
+// PASS A gates (docs/arsenal-quest/OWNER_PLAYTEST_PASS_A_HIT_FEEDBACK_AND_NAV_AUTHORITY_2026-09-25.md)
+// §3.1 blood first-visible-frame immediacy + §3.2 immediate-first aggregation.
+// ---------------------------------------------------------------------------
+report.passA = run(`
+  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  cancelAnimationFrame(reqId); reqId = 0;
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.clearSlots();
+  APEX_ARSENAL.combatRng = () => 0.99;
+  const feel = window.APEX_ARSENAL_FEEL;
+  const api = APEX_ARSENAL.weaponApi;
+  const CFG = APEX_ARSENAL_CONFIG;
+  const hero = fighters[0];
+  const rival = fighters[1];
+  const popTexts = () => feel.livePopups().map(p => p.kind + ':' + p.text);
+
+  // ---- 1) §3.1 first-visible-frame blood immediacy (real collision loop) ----
+  APEX_ARSENAL_FEEL.resetMatch();
+  fighters[0].hp = 1000; fighters[1].hp = 1000;
+  __AQ_TEST.place(240, 500, 780, 500);
+  api.fireBullet({ owner: hero, x: hero.x + 30, y: hero.y, angle: 0, speed: 2600,
+    damage: CFG.WEAPONS.PISTOL.damagePerShot, weapon: 'PISTOL', critical: false });
+  const hits0 = feel.stats.v1Hits;
+  const stamps0 = feel.stats.v1FloorStamps;
+  let guard = 0;
+  while (feel.stats.v1Hits === hits0 && guard++ < 40) {
+    __AQ_TEST.step(1 / 60); // stop EXACTLY on the tick that carried the collision
+  }
+  const live = feel.liveSpray();
+  const core = live.find(p => p.kind === 'v1core');
+  const last = feel.stats.lastV1 || {};
+  const firstFrame = {
+    coreLifeFull: !!core && Math.abs(core.life - 0.12) < 1e-9,
+    coreAtImpact: !!core && core.x === last.x && core.y === last.y,
+    streaksLive: live.filter(p => p.kind === 'v1streak').length === 4,
+    dropsLive: live.filter(p => p.kind === 'v1drop').length === 12,
+    microLive: live.filter(p => p.kind === 'v1micro').length === 38,
+    noneAged: live.every(p => (p.kind || '').indexOf('v1') !== 0
+      || (p.kind === 'v1core' ? Math.abs(p.life - 0.12) < 1e-9 : p.life >= 0.16 - 1e-9)),
+    stainStamped: feel.stats.v1FloorStamps >= stamps0 + 1,
+  };
+  // First-render probe: draw now (the first rendered frame after collision)
+  // and require dark-crimson V1 family pixels at the real collision point.
+  __AQ_TEST.redraw();
+  const g2d = document.getElementById('game-canvas').getContext('2d');
+  const img = g2d.getImageData(Math.max(0, (last.x | 0) - 22), Math.max(0, (last.y | 0) - 22), 44, 44).data;
+  let v1Pix = 0;
+  for (let i = 0; i < img.length; i += 4) {
+    if (img[i] >= 28 && img[i] <= 140 && img[i + 1] <= 16 && img[i + 2] <= 16) v1Pix += 1;
+  }
+  firstFrame.renderedV1Pixels = v1Pix;
+  firstFrame.ok = firstFrame.coreLifeFull && firstFrame.coreAtImpact && firstFrame.streaksLive
+    && firstFrame.dropsLive && firstFrame.microLive && firstFrame.noneAged
+    && firstFrame.stainStamped && v1Pix >= 6;
+
+  // ---- 2) §3.2 AUTO immediate-first aggregation ----
+  feel.resetMatch();
+  rival.hp = 1000;
+  rival.takeDamage(4, hero, 'arsenal-smg', false);
+  const auto1 = popTexts();
+  rival.takeDamage(4, hero, 'arsenal-smg', false);
+  const auto2 = popTexts();
+  APEX_ARSENAL.step(0.05);
+  rival.takeDamage(4, hero, 'arsenal-smg', false);
+  const auto3 = popTexts();
+  APEX_ARSENAL.step(0.25); // 110 ms window expires
+  const auto4 = popTexts();
+
+  // mixed normal + crit stays semantically split, both immediate
+  feel.resetMatch();
+  rival.hp = 1000;
+  rival.takeDamage(5, hero, 'arsenal-smg', false);
+  const mix1 = popTexts();
+  rival.__aqHitCrit = true;
+  rival.takeDamage(7, hero, 'arsenal-smg', false);
+  const mix2 = popTexts();
+  rival.takeDamage(5, hero, 'arsenal-smg', false);
+  const mix3 = popTexts();
+  APEX_ARSENAL.step(0.25);
+  const mix4 = popTexts();
+
+  // ---- 3) §3.2 SHOTGUN immediate-first aggregation ----
+  feel.resetMatch();
+  rival.hp = 1000;
+  rival.takeDamage(8, hero, 'arsenal-shotgun', false);
+  const sg1 = popTexts();
+  rival.takeDamage(8, hero, 'arsenal-shotgun', false);
+  const sg2 = popTexts();
+  APEX_ARSENAL.step(0.2); // 50 ms window expires
+  const sg3 = popTexts();
+
+  return { firstFrame, auto1, auto2, auto3, auto4, mix1, mix2, mix3, mix4, sg1, sg2, sg3 };
+`);
+gate('passa-v1-blood-first-frame-immediate',
+  report.passA.firstFrame.ok === true,
+  report.passA.firstFrame);
+gate('passa-auto-immediate-first-aggregation',
+  JSON.stringify(report.passA.auto1) === '["dmg:4"]'
+  && JSON.stringify(report.passA.auto2) === '["dmg:8"]'
+  && JSON.stringify(report.passA.auto3) === '["dmg:12"]'
+  && JSON.stringify(report.passA.auto4) === '["dmg:12"]',
+  { auto1: report.passA.auto1, auto2: report.passA.auto2, auto3: report.passA.auto3, auto4: report.passA.auto4 });
+gate('passa-mixed-split-immediate',
+  JSON.stringify(report.passA.mix1) === '["dmg:5"]'
+  && JSON.stringify(report.passA.mix2) === '["dmg:5","crit:7"]'
+  && JSON.stringify(report.passA.mix3) === '["dmg:10","crit:7"]'
+  && JSON.stringify(report.passA.mix4) === '["dmg:10","crit:7"]',
+  { mix1: report.passA.mix1, mix2: report.passA.mix2, mix3: report.passA.mix3, mix4: report.passA.mix4 });
+gate('passa-shotgun-immediate-first-aggregation',
+  JSON.stringify(report.passA.sg1) === '["dmg:8"]'
+  && JSON.stringify(report.passA.sg2) === '["dmg:16"]'
+  && JSON.stringify(report.passA.sg3) === '["dmg:16"]',
+  { sg1: report.passA.sg1, sg2: report.passA.sg2, sg3: report.passA.sg3 });
+
 // ------------------------------------------------------------------- summary
 report.summary = {
   total: Object.keys(report.gates).length,

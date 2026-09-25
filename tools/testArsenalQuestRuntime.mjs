@@ -1346,6 +1346,207 @@ try {
   await evaluate(`(() => { APEX_ARSENAL_META.hideMeta(); APEX_ARSENAL_QUEST.showMap(); return true; })()`);
   report.evidence.push(await screenshot('v3-quest-map'));
 
+  // ------------------------------------------------------------- PASS A -----
+  // Owner playtest Pass A (OWNER_PLAYTEST_PASS_A_HIT_FEEDBACK_AND_NAV_AUTHORITY):
+  // main-menu entry resolves to the Hub, Hub-rooted navigation with visible
+  // exits, and frame-stepped hit-feedback evidence.
+  await evaluate(`(() => {
+    if (gameState === 'ARSENAL' && typeof window.exitArsenalQuestMode === 'function') window.exitArsenalQuestMode();
+    if (typeof goToMenu === 'function') goToMenu();
+    return true;
+  })()`);
+  await sleep(400);
+  // 1) the REAL main-menu Arsenal action must open the Hub (not Quest Map).
+  await evaluate(`(() => {
+    const btn = [...document.querySelectorAll('#menu-screen button')]
+      .find(b => /ARSENAL/i.test(b.textContent || ''));
+    if (btn) btn.click();
+    return !!btn;
+  })()`);
+  let menuHub = null;
+  for (let i = 0; i < 40; i++) {
+    menuHub = await evaluate(`(() => {
+      const meta = document.getElementById('aq-meta-root');
+      return {
+        hubVisible: !!meta && meta.style.display !== 'none'
+          && !!meta.querySelector('[data-go="free"]')
+          && !!meta.querySelector('[data-go="quest"]')
+          && !!meta.querySelector('[data-go="shop"]')
+          && !!meta.querySelector('[data-go="draw"]'),
+        hubExit: !!document.getElementById('aq-hub-exit'),
+        state: gameState,
+      };
+    })()`);
+    if (menuHub.hubVisible && menuHub.hubExit) break;
+    await sleep(250);
+  }
+  gate('passa-menu-arsenal-opens-hub', menuHub.hubVisible === true && menuHub.hubExit === true, menuHub);
+  report.evidence.push(await screenshot('passa-menu-hub'));
+
+  // 2) Hub visible EXIT -> global Main Menu.
+  await evaluate(`document.getElementById('aq-hub-exit')?.click()`);
+  await sleep(300);
+  const hubExit = await evaluate(`(() => ({
+    state: gameState,
+    menuVisible: !document.getElementById('menu-screen').classList.contains('hidden'),
+    metaHidden: !document.getElementById('aq-meta-root') || document.getElementById('aq-meta-root').style.display === 'none',
+  }))()`);
+  gate('passa-hub-exit-main-menu', hubExit.state === 'MENU' && hubExit.menuVisible === true && hubExit.metaHidden === true, hubExit);
+  report.evidence.push(await screenshot('passa-hub-exit-mainmenu'));
+
+  // 3) Hub -> Shop -> BACK -> Hub.
+  await evaluate(`APEX_ARSENAL_META.openHub()`);
+  await sleep(150);
+  await evaluate(`document.querySelector('#aq-meta-root [data-go="shop"]')?.click()`);
+  await sleep(250);
+  const shopView = await evaluate(`!!document.getElementById('aq-shop-back')`);
+  gate('passa-hub-to-shop', shopView === true, shopView);
+  report.evidence.push(await screenshot('passa-shop'));
+  await evaluate(`document.getElementById('aq-shop-back')?.click()`);
+  await sleep(200);
+  gate('passa-shop-back-hub', await evaluate(`!!document.querySelector('#aq-meta-root [data-go="free"]')`) === true);
+  report.evidence.push(await screenshot('passa-shop-back-hub'));
+
+  // 4) Hub -> Lucky Draw -> BACK -> Hub.
+  await evaluate(`document.querySelector('#aq-meta-root [data-go="draw"]')?.click()`);
+  await sleep(250);
+  const drawView = await evaluate(`!!document.getElementById('aq-draw-back')`);
+  gate('passa-hub-to-lucky-draw', drawView === true, drawView);
+  report.evidence.push(await screenshot('passa-lucky-draw'));
+  await evaluate(`document.getElementById('aq-draw-back')?.click()`);
+  await sleep(200);
+  gate('passa-draw-back-hub', await evaluate(`!!document.querySelector('#aq-meta-root [data-go="free"]')`) === true);
+  report.evidence.push(await screenshot('passa-draw-back-hub'));
+
+  // 5) Hub -> Quest Map -> visible BACK -> Hub.
+  await evaluate(`document.querySelector('#aq-meta-root [data-go="quest"]')?.click()`);
+  await sleep(400);
+  const qmap = await evaluate(`(() => {
+    const el = document.getElementById('aq-quest-map');
+    return { visible: !!el && el.style.display !== 'none', close: !!document.getElementById('aq-quest-close') };
+  })()`);
+  gate('passa-hub-to-quest-map', qmap.visible === true && qmap.close === true, qmap);
+  report.evidence.push(await screenshot('passa-quest-map'));
+  await evaluate(`document.getElementById('aq-quest-close')?.click()`);
+  await sleep(200);
+  gate('passa-quest-map-back-hub', await evaluate(`!!document.querySelector('#aq-meta-root [data-go="free"]')`) === true);
+  report.evidence.push(await screenshot('passa-quest-map-back-hub'));
+
+  // 6) Hub -> Free Battle picker -> visible exit back to Hub.
+  await evaluate(`document.querySelector('#aq-meta-root [data-go="free"]')?.click()`);
+  await sleep(500);
+  const pick = await evaluate(`(() => ({
+    selectVisible: !document.getElementById('select-screen').classList.contains('hidden'),
+    exitBtn: !!document.querySelector('button[aria-label="exit-button"]'),
+  }))()`);
+  gate('passa-hub-to-free-pick', pick.selectVisible === true && pick.exitBtn === true, pick);
+  report.evidence.push(await screenshot('passa-free-pick'));
+  await evaluate(`document.querySelector('button[aria-label="exit-button"]')?.click()`);
+  await sleep(300);
+  const pickBack = await evaluate(`(() => ({
+    hubVisible: !!document.querySelector('#aq-meta-root [data-go="free"]'),
+    state: gameState,
+  }))()`);
+  gate('passa-free-pick-back-hub', pickBack.hubVisible === true, pickBack);
+  report.evidence.push(await screenshot('passa-free-pick-back-hub'));
+
+  // 7) Active battle exposes a visible EXIT; it mirrors the accepted B/ESC behavior.
+  await evaluate(`(() => {
+    APEX_ARSENAL_META.hideMeta();
+    window.startArsenalQuestMode('HERO', 'RIVAL');
+    return true;
+  })()`);
+  // Deterministic: paint one explicit Arsenal frame (draw -> syncDomHud) so the
+  // visible-exit assertion does not depend on headless rAF scheduling.
+  await evaluate(`__AQ_TEST.redraw(); true`);
+  let battle = null;
+  for (let i = 0; i < 10; i++) {
+    battle = await evaluate(`(() => {
+      const b = document.getElementById('aq-battle-exit');
+      return { visible: !!b && b.style.display !== 'none', state: gameState };
+    })()`);
+    if (battle.visible) break;
+    await evaluate(`__AQ_TEST.redraw(); true`);
+    await sleep(100);
+  }
+  gate('passa-battle-visible-exit', battle.visible === true && battle.state === 'ARSENAL', battle);
+  report.evidence.push(await screenshot('passa-battle-exit-visible'));
+  await evaluate(`document.getElementById('aq-battle-exit')?.click()`);
+  await sleep(300);
+  const battleExit = await evaluate(`(() => ({
+    state: gameState,
+    menuVisible: !document.getElementById('menu-screen').classList.contains('hidden'),
+  }))()`);
+  gate('passa-battle-exit-works', battleExit.state === 'MENU' && battleExit.menuVisible === true, battleExit);
+
+  // 8) Frame-stepped hit feedback — deterministic manual stepping + real draw().
+  await evaluate(`(() => {
+    window.startArsenalQuestMode('HERO', 'RIVAL');
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.clearSlots();
+    APEX_ARSENAL_FEEL.resetMatch();
+    APEX_ARSENAL.combatRng = () => 0.99;
+    fighters[0].hp = 1000; fighters[1].hp = 1000;
+    __AQ_TEST.place(240, 500, 780, 500);
+    return true;
+  })()`);
+  await evaluate(`APEX_ARSENAL.weaponApi.fireBullet({
+    owner: fighters[0], x: fighters[0].x + 30, y: fighters[0].y, angle: 0, speed: 2600,
+    damage: APEX_ARSENAL_CONFIG.WEAPONS.PISTOL.damagePerShot, weapon: 'PISTOL', critical: false,
+  }); true`);
+  const collided = await evaluate(`(() => {
+    const h0 = APEX_ARSENAL_FEEL.stats.v1Hits;
+    let g = 0;
+    while (APEX_ARSENAL_FEEL.stats.v1Hits === h0 && g++ < 40) __AQ_TEST.step(1 / 60);
+    __AQ_TEST.redraw(); // the FIRST rendered frame after the collision
+    return APEX_ARSENAL_FEEL.stats.v1Hits > h0;
+  })()`);
+  gate('passa-frame-normal-collision-landed', collided === true);
+  const frameNormal = await evaluate(`(() => {
+    const core = APEX_ARSENAL_FEEL.liveSpray().find(p => p.kind === 'v1core');
+    return { life: core ? core.life : null, max: core ? core.max : null, alpha: core ? core.life / core.max : 0 };
+  })()`);
+  gate('passa-frame-normal-blood-fresh-on-first-frame',
+    frameNormal !== null && Math.abs(frameNormal.life - 0.12) < 1e-9 && Math.abs(frameNormal.alpha - 1) < 1e-9,
+    frameNormal);
+  report.evidence.push(await screenshot('passa-frame-normal-first'));
+  await evaluate(`__AQ_TEST.step(0.12); __AQ_TEST.redraw(); true`);
+  report.evidence.push(await screenshot('passa-frame-normal-decay'));
+
+  // AUTO: immediate first popup on the collision frame, then in-place aggregate.
+  const autoFrames = await evaluate(`(() => {
+    APEX_ARSENAL_FEEL.resetMatch();
+    fighters[1].hp = 1000;
+    fighters[1].takeDamage(4, fighters[0], 'arsenal-smg', false);
+    const first = APEX_ARSENAL_FEEL.livePopups().map(p => p.kind + ':' + p.text);
+    __AQ_TEST.redraw();
+    fighters[1].takeDamage(4, fighters[0], 'arsenal-smg', false);
+    const second = APEX_ARSENAL_FEEL.livePopups().map(p => p.kind + ':' + p.text);
+    __AQ_TEST.redraw();
+    return { first, second };
+  })()`);
+  gate('passa-frame-auto-immediate-then-aggregate',
+    JSON.stringify(autoFrames.first) === '["dmg:4"]' && JSON.stringify(autoFrames.second) === '["dmg:8"]',
+    autoFrames);
+  report.evidence.push(await screenshot('passa-frame-auto-first-popup'));
+
+  // SHOTGUN: immediate truthful first popup, aggregate stays single.
+  const sgFrames = await evaluate(`(() => {
+    APEX_ARSENAL_FEEL.resetMatch();
+    fighters[1].hp = 1000;
+    fighters[1].takeDamage(8, fighters[0], 'arsenal-shotgun', false);
+    const first = APEX_ARSENAL_FEEL.livePopups().map(p => p.kind + ':' + p.text);
+    __AQ_TEST.redraw();
+    fighters[1].takeDamage(8, fighters[0], 'arsenal-shotgun', false);
+    const second = APEX_ARSENAL_FEEL.livePopups().map(p => p.kind + ':' + p.text);
+    __AQ_TEST.redraw();
+    return { first, second };
+  })()`);
+  gate('passa-frame-shotgun-immediate-then-aggregate',
+    JSON.stringify(sgFrames.first) === '["dmg:8"]' && JSON.stringify(sgFrames.second) === '["dmg:16"]',
+    sgFrames);
+  report.evidence.push(await screenshot('passa-frame-shotgun-first-popup'));
+
   // --------------------------------------------- 5-minute simulation -------
   report.fiveMinute = await evaluate(`(() => {
     __AQ_TEST.enterManual();

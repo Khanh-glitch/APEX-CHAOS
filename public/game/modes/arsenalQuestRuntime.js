@@ -580,6 +580,34 @@
       hudRefs.hint.style.display = hintDisplay;
       hudLast.hintDisplay = hintDisplay;
     }
+    // PASS A §4.2: a discoverable visible way out of an active battle — the
+    // button mirrors the accepted B/ESC behavior exactly (Quest battle →
+    // Quest Map; Free battle → global Main Menu). Keyboard-only exit is not
+    // sufficient for the owner.
+    if (!hudRefs.exitBtn) {
+      let btn = document.getElementById('aq-battle-exit');
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'aq-battle-exit';
+        btn.type = 'button';
+        btn.textContent = '✕ EXIT';
+        btn.style.cssText = 'position:absolute;right:18px;bottom:12px;pointer-events:auto;cursor:pointer;z-index:41;min-width:96px;min-height:40px;border:1px solid rgba(232,224,200,0.55);background:rgba(8,10,14,0.72);color:rgba(232,224,200,0.95);font:800 14px monospace;letter-spacing:1px;';
+        btn.addEventListener('click', () => {
+          const Q = window.APEX_ARSENAL_QUEST;
+          if (AQ.state && AQ.state.questStage && Q && Q.returnToMap) Q.returnToMap();
+          else window.exitArsenalQuestMode();
+        });
+        el.appendChild(btn);
+      }
+      hudRefs.exitBtn = btn;
+    }
+    const exitDisplay = (state && state.active) ? 'block' : 'none';
+    // Compare against the element's real style: exitArsenalQuestMode hides the
+    // button directly (outside this sync), so a cached flag can go stale.
+    if (hudRefs.exitBtn.style.display !== exitDisplay) {
+      hudRefs.exitBtn.style.display = exitDisplay;
+      hudLast.exitDisplay = exitDisplay;
+    }
     syncSkillHud(el, state, now, !!force || !!(state && state.over && hudLast.winKey == null));
     let win = hudRefs.win || document.getElementById('aq-win');
     if (state && state.over) {
@@ -820,6 +848,8 @@
     particles.length = 0;
     floatingTexts.length = 0;
     shockwaves.length = 0;
+    const battleExitBtn = document.getElementById('aq-battle-exit');
+    if (battleExitBtn) battleExitBtn.style.display = 'none'; // PASS A: no menu-screen leak
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.clear();
     if (keyListener) {
       window.removeEventListener('keydown', keyListener);

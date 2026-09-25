@@ -163,7 +163,10 @@
     el.innerHTML = shell(`
       <div id="aq-hub">
         <div id="aq-meta-head">
-          <h1>ARSENAL QUEST</h1>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <button id="aq-hub-exit" type="button" title="Back to Main Menu" style="min-width:44px;min-height:44px;border:0;cursor:pointer;display:flex;align-items:center;gap:10px;color:#fff;font:800 14px 'Segoe UI',sans-serif;letter-spacing:2px;background:transparent url(${PICK_ASSETS}14-exit-normal.webp) left center/contain no-repeat;padding:0 0 0 44px;">MAIN MENU</button>
+            <h1>ARSENAL QUEST</h1>
+          </div>
           <div class="aq-meta-stats"><span id="aq-ac">AC ${state.credits}</span><span>FIGHTERS ${ownedN} / ${total}</span></div>
         </div>
         <div class="aq-ident">
@@ -190,6 +193,14 @@
     });
     const ch = el.querySelector('#aq-change');
     if (ch) ch.addEventListener('click', openFreePick);
+    // PASS A §4.2: Hub is the Arsenal navigation root; its visible EXIT is the
+    // only in-Arsenal action that returns to the global Main Menu.
+    const hx = el.querySelector('#aq-hub-exit');
+    if (hx) hx.addEventListener('click', () => {
+      hideMeta();
+      if (typeof goToMenu === 'function') goToMenu();
+      else if (typeof window.goToMenu === 'function') window.goToMenu();
+    });
   }
   function paintShop() {
     const el = ensureRoot();

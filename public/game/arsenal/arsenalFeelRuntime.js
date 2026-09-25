@@ -273,6 +273,7 @@
     p.size = 0;
     p.landChance = 0;
     p.landPower = 0;
+    p.fresh = false;
     return p;
   }
 
@@ -512,6 +513,7 @@
     core.rot = baseAngle;
     core.stretch = 1.5;
     core.rgb = V1_COLORS.coreCenter;
+    core.fresh = true; // PASS A: full first-frame read — no pre-render aging
     sprayLive.push(core);
     stats.v1Cores += 1;
 
@@ -533,6 +535,7 @@
       p.rot = a;
       p.drag = v1Rnd(0.88, 0.93);
       p.rgb = V1_COLORS.streakTip;
+      p.fresh = true; // PASS A
       sprayLive.push(p);
     }
     stats.v1Streaks += nStreak;
@@ -555,6 +558,7 @@
       p.landChance = 0.55;
       p.landPower = 0.18;
       p.rgb = V1_COLORS.drop;
+      p.fresh = true; // PASS A
       sprayLive.push(p);
     }
     stats.v1Drops += nDrop;
@@ -578,6 +582,7 @@
       p.landChance = 0.11;
       p.landPower = 0.06;
       p.rgb = V1_COLORS.micro;
+      p.fresh = true; // PASS A
       sprayLive.push(p);
     }
     stats.v1Micro += nMicro;
@@ -615,12 +620,51 @@
     if (kind === 'miss') stats.missPopups += 1;
   }
 
+  // PASS A immediate-first aggregation: the first hit of an AUTO/SHOTGUN
+  // sequence creates its popup immediately; later hits inside the window
+  // update the already-live popup in place (or recreate it if its own life
+  // expired during a long burst). Normal red and crit orange totals stay
+  // semantically split. No 50/110 ms blank first-hit period; no number spam.
+  function refreshAggPopups(a) {
+    if (a.normal > 0) {
+      const text = String(Math.round(a.normal));
+      const band = bandFor(a.normal);
+      let p = a.popNormal;
+      if (!p || popupLive.indexOf(p) < 0) {
+        pushPopup(a.x, a.y, text, 'dmg', a.normal);
+        p = popupLive[popupLive.length - 1];
+        a.popNormal = p;
+      } else {
+        p.text = text;
+        p.scale = band.scale;
+        p.band = band.id;
+        p.x = Math.round(a.x);
+        p.y = Math.round(a.y - 18);
+        p.life = 0.7;
+      }
+    }
+    if (a.crit > 0) {
+      const text = String(Math.round(a.crit));
+      const band = bandFor(a.crit);
+      let p = a.popCrit;
+      if (!p || popupLive.indexOf(p) < 0) {
+        pushPopup(a.x + 18, a.y - 12, text, 'crit', a.crit);
+        p = popupLive[popupLive.length - 1];
+        a.popCrit = p;
+      } else {
+        p.text = text;
+        p.scale = band.scale;
+        p.band = band.id;
+        p.x = Math.round(a.x + 18);
+        p.y = Math.round(a.y - 30);
+        p.life = 0.9;
+      }
+    }
+  }
   function flushAgg(key) {
     const a = agg.get(key);
     if (!a) return;
-    if (a.normal > 0) pushPopup(a.x, a.y, String(Math.round(a.normal)), 'dmg', a.normal);
-    if (a.crit > 0) pushPopup(a.x + 18, a.y - 12, String(Math.round(a.crit)), 'crit', a.crit);
-    agg.delete(key);
+    agg.delete(key); // popups already live; they finish their own lifetime
   }
 
   function noteDamage(opts) {
@@ -676,9 +720,12 @@
       if (prev && now - prev.t < windowMs) {
         if (crit) prev.crit += dealt; else prev.normal += dealt;
         prev.x = victim.x; prev.y = victim.y; prev.t = now;
+        refreshAggPopups(prev); // PASS A: update the already-live aggregate
       } else {
         if (prev) flushAgg(key);
-        agg.set(key, { normal: crit ? 0 : dealt, crit: crit ? dealt : 0, x: victim.x, y: victim.y, t: now, windowMs });
+        const entry = { normal: crit ? 0 : dealt, crit: crit ? dealt : 0, x: victim.x, y: victim.y, t: now, windowMs, popNormal: null, popCrit: null };
+        agg.set(key, entry);
+        refreshAggPopups(entry); // PASS A: first hit shows its number NOW
       }
     } else {
       pushPopup(victim.x, victim.y, String(Math.round(dealt)), kind, dealt);
@@ -697,6 +744,13 @@
     }
     for (let i = sprayLive.length - 1; i >= 0; i--) {
       const p = sprayLive[i];
+      if (p.fresh) {
+        // PASS A hit-feedback law: the simulation tick that created this V1
+        // particle must not age or move it before the first rendered frame.
+        // The very next tick resumes the approved reference physics.
+        p.fresh = false;
+        continue;
+      }
       p.life -= dt;
       if (p.kind === 'v1core') {
         // Reference: the impact blot fades in place — velocity is not applied.
@@ -934,6 +988,7 @@
     forceAtlasImage(img) { atlasImg = img; buildTintedAtlas(); },
     stainSurface() { return stainCanvas; },
     livePopups() { return popupLive; },
+    liveSpray() { return sprayLive; },
     bandFor,
     sizeBands: SIZE_BANDS,
     blood: BLOOD,

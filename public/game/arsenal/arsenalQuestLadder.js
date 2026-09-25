@@ -231,6 +231,10 @@
       if (e.target && e.target.id === 'aq-quest-close') {
         pendingStage = null;
         el.style.display = 'none';
+        // PASS A §4.2: Quest Map BACK returns to the Arsenal Hub (the
+        // navigation root), not to the global Main Menu.
+        const M = window.APEX_ARSENAL_META;
+        if (M && typeof M.openHub === 'function') M.openHub();
       }
       if (e.target && e.target.id === 'aq-quest-freeplay') {
         pendingStage = null;
