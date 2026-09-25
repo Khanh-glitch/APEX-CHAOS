@@ -1501,9 +1501,20 @@ try {
     APEX_ARSENAL.state.unarmedFastConsumed = false;
     APEX_ARSENAL.state.unarmedFastPending = false;
     APEX_ARSENAL.state.spawnHeld = false;
+    APEX_ARSENAL.state.over = null;
+    APEX_ARSENAL.state.time = 0;
+    APEX_ARSENAL.state.healCooldown = 9;
     APEX_ARSENAL.state.spawnTimer = 2.4;
     fighters[0].hp = 100; fighters[1].hp = 100;
     fighters[0].data.arsenal = null; fighters[1].data.arsenal = null;
+    fighters[0].x = 500; fighters[0].y = 500;
+    fighters[1].x = 520; fighters[1].y = 520;
+    fighters[0].data.positionLocked = true;
+    fighters[1].data.positionLocked = true;
+    fighters[0].dir = { x: 0, y: 0 };
+    fighters[1].dir = { x: 0, y: 0 };
+    fighters[0].baseSpeed = 0;
+    fighters[1].baseSpeed = 0;
     for (let i = 0; i < cap; i++) {
       __AQ_TEST.pushSlot({ x: 120 + (i % 4) * 180, y: 140 + Math.floor(i / 4) * 180, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 2.0 });
     }
