@@ -412,7 +412,11 @@
     if (gs === 'ARSENAL') {
       const AQ = window.APEX_ARSENAL;
       const q = (AQ && AQ.state && AQ.state.questStage) ? 'ARSENAL QUEST' : 'FREE BATTLE';
-      text = q;
+      // V6 visual correction: keep truthful skill/cooldown state, but move it
+      // into the panel footer instead of overlapping identity/HP.
+      const skill = document.getElementById('aq-skill-hud');
+      const skillText = skill && skill.textContent ? String(skill.textContent).trim() : '';
+      text = skillText ? q + ' · ' + skillText : q;
     } else if (document.body && document.body.classList && document.body.classList.contains('manual-lab-mode')) {
       text = 'APEX CONTROL';
     }
