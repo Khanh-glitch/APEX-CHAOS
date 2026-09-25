@@ -197,7 +197,7 @@
     if (!el) {
       el = document.createElement('div');
       el.id = 'aq-quest-map';
-      el.style.cssText = 'position:absolute;inset:6% 8%;z-index:70;background:rgba(8,8,12,0.94);color:#efe6c8;padding:16px;overflow:auto;font:700 13px monospace;pointer-events:auto;border:2px solid #6d8f4e;';
+      el.style.cssText = 'position:absolute;inset:0;z-index:510;pointer-events:auto;';
       (document.getElementById('game-wrap') || document.getElementById('game-wrapper') || document.body).appendChild(el);
     }
     const save = loadSave();
@@ -206,9 +206,19 @@
       const done = save.completedStages.includes(s.n);
       const open = canPlay(s.n, save);
       const st = done ? 'DONE' : open ? 'OPEN' : 'LOCK';
-      return `<button data-n="${s.n}" ${open ? '' : 'disabled'} style="margin:4px;padding:8px;min-width:140px;background:${open ? '#2a3320' : '#1a1a1e'};color:#efe6c8;border:1px solid #6d8f4e;">${s.n}. ${s.opponent} [${st}]</button>`;
+      const op = open ? '1' : '.45';
+      return `<button data-n="${s.n}" ${open ? '' : 'disabled'} style="min-height:72px;opacity:${op};border:0;color:#fff;font:800 13px Segoe UI,sans-serif;background:url(/assets/pick_ui_final/assets/07-card-frame-normal.webp) center/100% 100% no-repeat;cursor:${open ? 'pointer' : 'default'};">${s.n}. ${s.opponent}<div style="margin-top:6px;font:700 11px Segoe UI">${st}</div></button>`;
     }).join('');
-    el.innerHTML = `<div id="aq-quest-map-title">ARSENAL QUEST V1</div><div id="aq-quest-map-grid" style="margin-top:8px">${cells}</div><div style="margin-top:12px"><button id="aq-quest-freeplay">FREE PLAY</button> <button id="aq-quest-close">CLOSE</button></div>`;
+    el.innerHTML = `<div style="position:absolute;left:50%;top:50%;width:1672px;height:941px;transform:translate(-50%,-50%);overflow:hidden;background:#020305;font-family:Segoe UI,sans-serif;color:#fff">
+      <img alt="" src="/assets/pick_ui_final/assets/01-select-screen-background.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none"/>
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(4,6,10,.5),rgba(4,6,10,.2) 50%,rgba(4,6,10,.5));pointer-events:none"></div>
+      <div style="position:relative;z-index:2;padding:28px 64px 24px;display:flex;justify-content:space-between;align-items:center">
+        <div id="aq-quest-map-title" style="font:800 32px/1 Segoe UI;letter-spacing:2px">QUEST MAP</div>
+        <div><button id="aq-quest-freeplay" style="min-height:44px;margin-right:12px;border:0;color:#fff;padding:0 22px;font:800 13px Segoe UI;background:transparent url(/assets/pick_ui_final/assets/11-start-normal.webp) center/100% 100% no-repeat">FREE PLAY</button>
+        <button id="aq-quest-close" style="min-width:44px;min-height:44px;border:0;color:transparent;background:transparent url(/assets/pick_ui_final/assets/14-exit-normal.webp) center/contain no-repeat">CLOSE</button></div>
+      </div>
+      <div id="aq-quest-map-grid" style="position:relative;z-index:2;margin:8px 64px 0;display:grid;grid-template-columns:repeat(5,1fr);gap:12px">${cells}</div>
+    </div>`;
     el.onclick = (e) => {
       const n = e.target && e.target.getAttribute && e.target.getAttribute('data-n');
       if (n) { requestStage(parseInt(n, 10)); return; }

@@ -52,12 +52,12 @@
     deep: [0x26, 0x04, 0x07],
   };
   const SIZE_BANDS = [
-    { id: 'XS', min: 1, max: 34, scale: 0.85 },
-    { id: 'S', min: 35, max: 69, scale: 1.00 },
-    { id: 'M', min: 70, max: 139, scale: 1.15 },
-    { id: 'L', min: 140, max: 239, scale: 1.32 },
-    { id: 'XL', min: 240, max: 399, scale: 1.50 },
-    { id: 'XXL', min: 400, max: 1e9, scale: 1.70 },
+    { id: 'XS', min: 1, max: 34, scale: 1.35 },
+    { id: 'S', min: 35, max: 69, scale: 1.60 },
+    { id: 'M', min: 70, max: 139, scale: 1.90 },
+    { id: 'L', min: 140, max: 239, scale: 2.20 },
+    { id: 'XL', min: 240, max: 399, scale: 2.50 },
+    { id: 'XXL', min: 400, max: 1e9, scale: 2.85 },
   ];
   function bandFor(amount) {
     const a = Math.abs(Number(amount) || 0);
@@ -573,7 +573,7 @@
     if (!src) return false;
     stats.atlasDraws = (stats.atlasDraws || 0) + 1;
     stats.lastPopupPalette = PALETTE[palKey].fill;
-    const s = 0.9 * (scale || 1);
+    const s = 1.55 * (scale || 1);
     if (kind === 'miss') {
       const w = ATLAS_COL * 4;
       const h = ATLAS_ROW;
@@ -615,7 +615,7 @@
       const a = Math.max(0, Math.min(1, p.life / 0.7));
       c.globalAlpha = a;
       const ok = drawAtlasText(c, p.text, p.x, p.y, p.kind, p.scale);
-      if (p.kind === 'crit') drawCritMark(c, p.x + 22, p.y - 8, 0.7 * (p.punch || 1));
+      if (p.kind === 'crit') drawCritMark(c, p.x + 36, p.y - 14, 1.15 * (p.punch || 1));
       if (ok) continue;
     }
     c.restore();

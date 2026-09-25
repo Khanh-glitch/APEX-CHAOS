@@ -2708,9 +2708,20 @@ report.v3Combat = run(`
   api.aqDamage(fighters[1], 1, fighters[0], 'AK_47', {});
   APEX_ARSENAL.rng = (() => { let i = 0; const seq = [0.1,0.2,0.3,0.4]; return () => seq[i++ % seq.length]; })();
   const b = APEX_ARSENAL_SPAWN.selectSpawnWeapon();
-  return { hp, scale: CFG.ARSENAL_DAMAGE_SCALE, pistol, pistolCrit, melee, native, spawnSame: a === b, chance: CFG.CRIT_CHANCE.SNIPER };
+  return {
+    hp, scale: CFG.ARSENAL_DAMAGE_SCALE, pistol, pistolCrit, melee, native, spawnSame: a === b, chance: CFG.CRIT_CHANCE.SNIPER,
+    authoredPistol: CFG.WEAPONS.PISTOL.damagePerShot,
+    authoredSniper: CFG.WEAPONS.SNIPER.damage,
+    authoredGrenade: CFG.WEAPONS.GRENADE.maxDamage,
+    authoredSmg: CFG.WEAPONS.SMG.damagePerShot,
+    authoredShotgunPellet: CFG.WEAPONS.SHOTGUN.damagePerPellet,
+  };
 `);
 gate('v3-match-hp-1000', report.v3Combat.hp === 1000, report.v3Combat);
+gate('v3-authored-pistol-4.5', report.v3Combat.authoredPistol === 4.5, report.v3Combat);
+gate('v3-authored-sniper-38', report.v3Combat.authoredSniper === 38, report.v3Combat);
+gate('v3-authored-grenade-20', report.v3Combat.authoredGrenade === 20, report.v3Combat);
+gate('v3-identity-smg-shotgun', report.v3Combat.authoredSmg === 2.25 && report.v3Combat.authoredShotgunPellet === 2, report.v3Combat);
 gate('v3-pistol-x7', report.v3Combat.pistol === 31.5, report.v3Combat);
 gate('v3-pistol-crit-x150', report.v3Combat.pistolCrit === 47.25, report.v3Combat);
 gate('v3-melee-x7-no-crit', report.v3Combat.melee === 84, report.v3Combat);

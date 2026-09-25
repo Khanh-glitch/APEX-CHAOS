@@ -484,10 +484,10 @@
     }
   }
 
-  const hudRefs = { root: null, hint: null, skill: null, win: null, dbg: null, battle: null };
+  const hudRefs = { root: null, hint: null, skill: null, win: null, dbg: null };
   const hudLast = {
     hintDisplay: null, skillText: null, skillVis: null, skillAt: 0,
-    winKey: null, debugText: null, debugOn: false, debugAt: 0, battleKey: null,
+    winKey: null, debugText: null, debugOn: false, debugAt: 0,
   };
   function skillHudText(state) {
     const f = typeof fighters !== 'undefined' && fighters[0];
@@ -545,47 +545,6 @@
     if (hudRefs.skill.style.visibility !== vis) hudRefs.skill.style.visibility = vis;
   }
 
-  function fighterChip(f, side) {
-    const h = f && weaponApi.getHolder(f);
-    const hp = f ? Math.max(0, Math.round(f.hp)) : 0;
-    const max = f ? Math.round(f.maxHp || 1000) : 1000;
-    const name = f ? f.name : side;
-    const wpn = h ? h.weaponId : 'UNARMED';
-    const pct = max ? Math.max(0, Math.min(1, hp / max)) : 0;
-    const low = pct < 0.25;
-    return '<div style="min-width:240px;background:rgba(8,8,12,0.62);border:1px solid rgba(180,170,140,0.35);padding:8px 10px;">'
-      + '<div style="font:800 13px monospace;letter-spacing:1px;">' + name + '</div>'
-      + '<div style="height:10px;background:#1a1d22;margin:6px 0 4px;overflow:hidden;">'
-      + '<div style="height:100%;width:' + (pct * 100).toFixed(1) + '%;background:' + (low ? '#c43b32' : '#c4a574') + ';"></div></div>'
-      + '<div style="font:700 11px monospace;">' + hp + ' / ' + max + '</div>'
-      + '<div style="font:700 11px monospace;margin-top:4px;">' + wpn + '</div></div>';
-  }
-  function syncBattleHud(el, state) {
-    if (!state || !state.active) {
-      if (hudRefs.battle) hudRefs.battle.style.display = 'none';
-      return;
-    }
-    if (!hudRefs.battle) {
-      const box = document.createElement('div');
-      box.id = 'aq-battle-hud';
-      box.style.cssText = 'position:absolute;left:12px;right:12px;top:8px;display:flex;justify-content:space-between;pointer-events:none;z-index:41;';
-      el.appendChild(box);
-      hudRefs.battle = box;
-    }
-    hudRefs.battle.style.display = 'flex';
-    const p1 = typeof fighters !== 'undefined' ? fighters[0] : null;
-    const p2 = typeof fighters !== 'undefined' ? fighters[1] : null;
-    const center = state.questStage
-      ? ('STAGE ' + String(state.questStage).padStart(2, '0') + ' / 20')
-      : 'ARSENAL — FREE BATTLE';
-    const key = (p1 && p1.hp) + '|' + (p2 && p2.hp) + '|' + center + '|' + ((p1 && weaponApi.getHolder(p1) || {}).weaponId) + '|' + ((p2 && weaponApi.getHolder(p2) || {}).weaponId);
-    if (hudLast.battleKey === key) return;
-    hudLast.battleKey = key;
-    hudRefs.battle.innerHTML = fighterChip(p1, 'P1')
-      + '<div style="align-self:flex-start;font:800 12px monospace;color:#efe6c8;text-align:center;padding-top:8px;">' + center + '</div>'
-      + fighterChip(p2, 'P2');
-  }
-
   function hudRoot() {
     if (hudRefs.root && hudRefs.root.isConnected) return hudRefs.root;
     let el = document.getElementById('aq-dom-hud');
@@ -620,7 +579,6 @@
       hudLast.hintDisplay = hintDisplay;
     }
     syncSkillHud(el, state, now, !!force || !!(state && state.over && hudLast.winKey == null));
-    syncBattleHud(el, state);
     let win = hudRefs.win || document.getElementById('aq-win');
     if (state && state.over) {
       const Q = window.APEX_ARSENAL_QUEST;

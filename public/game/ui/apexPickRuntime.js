@@ -451,7 +451,17 @@
     const artWrap = document.createElement('span');
     artWrap.className = 'apex-pick-card-art';
     const art = document.createElement('img');
-    assignImageSource(art, champ.cardArt, slotName === 'center');
+    if (champ.cardArt) {
+      assignImageSource(art, champ.cardArt, slotName === 'center');
+    } else {
+      art.alt = '';
+      artWrap.style.background = `linear-gradient(180deg, ${(champ.accent || '#888')}aa 0%, #141218 72%)`;
+      art.style.display = 'none';
+      const glyph = document.createElement('span');
+      glyph.textContent = String(champ.name || '?').slice(0, 2);
+      glyph.style.cssText = 'position:absolute;inset:18% 10% 28%;display:flex;align-items:center;justify-content:center;font:800 42px "Segoe UI",sans-serif;color:#fff;letter-spacing:1px;text-shadow:0 2px 10px rgba(0,0,0,.65);';
+      artWrap.appendChild(glyph);
+    }
     art.alt = '';
     art.draggable = false;
     artWrap.appendChild(art);
@@ -489,7 +499,8 @@
 
     const icon = document.createElement('img');
     icon.className = 'apex-pick-card-icon';
-    assignImageSource(icon, champ.icon, slotName === 'center');
+    if (champ.icon) assignImageSource(icon, champ.icon, slotName === 'center');
+    else icon.style.display = 'none';
     icon.alt = '';
     icon.draggable = false;
 
@@ -711,9 +722,12 @@
   }
   function syncPlayerPanel(player, champ) {
     if (!champ) return;
-    setLayerImage(`p${player}-standing`, champ.standing);
+    if (champ.standing) setLayerImage(`p${player}-standing`, champ.standing);
     const standing = refs.get(`p${player}-standing`);
-    if (standing) standing.style.opacity = '1';
+    if (standing) {
+      standing.style.opacity = champ.standing ? '1' : '0';
+      if (!champ.standing) standing.removeAttribute('src');
+    }
     applyStandingFit(player);
     setLayerText(`p${player}-name`, champ.name);
     setLayerText(`p${player}-hp-number`, PickRuntimeController[`p${player}Hp`]);
