@@ -216,8 +216,10 @@
           label,
           statusDamage: !!statusDamage,
           critical: !!this.__aqHitCrit,
+          impact: this.__aqImpact || null, // V1: real firearm collision point + projectile velocity
         });
         this.__aqHitCrit = false;
+        this.__aqImpact = null;
       }
       return out;
     };

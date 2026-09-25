@@ -344,7 +344,12 @@
       }
     }
     const dealt = amount * mult;
-    if (target) target.__aqHitCrit = !!opts.critical;
+    if (target) {
+      target.__aqHitCrit = !!opts.critical;
+      // V1 blood port §6: real firearm impact metadata rides next to the crit
+      // flag (null for melee / grenade / native — they keep accepted behavior).
+      target.__aqImpact = opts.impact || null;
+    }
     target.takeDamage(dealt, source && source !== target ? source : null, `arsenal-${(weaponId || 'unknown').toLowerCase()}`, !!opts.statusDamage);
     if (opts.knockback && source && source !== target && target.hp > 0) {
       const n = norm(target.x - source.x || 1, target.y - source.y);
@@ -362,6 +367,28 @@
   // `projectiles` collection with aq_* types (handoff §8). Movement/hit logic
   // is in updateArsenalProjectiles below; life/cleanup reuse the engine path.
   // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // V1 blood port (docs/arsenal-quest/v1-blood-port/): exact swept
+  // segment-vs-circle intersection, same math as the approved executable
+  // reference. Used ONLY to resolve the real firearm collision point for VFX;
+  // damage math is untouched.
+  // ---------------------------------------------------------------------------
+  function sweptSegmentCircleHit(x1, y1, x2, y2, cx, cy, r) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const fx = x1 - cx, fy = y1 - cy;
+    const a = dx * dx + dy * dy;
+    if (!(a > 0)) return null;
+    const b = 2 * (fx * dx + fy * dy);
+    const c = fx * fx + fy * fy - r * r;
+    let disc = b * b - 4 * a * c;
+    if (disc < 0) return null;
+    disc = Math.sqrt(disc);
+    const t1 = (-b - disc) / (2 * a), t2 = (-b + disc) / (2 * a);
+    let t = null;
+    if (t1 >= 0 && t1 <= 1) t = t1; else if (t2 >= 0 && t2 <= 1) t = t2;
+    return t === null ? null : { x: x1 + dx * t, y: y1 + dy * t };
+  }
+
   function fireBullet(spec) {
     const { owner, x, y, angle, speed, damage, weapon } = spec;
     if (!Number.isFinite(angle) || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(speed)) return;
@@ -470,7 +497,15 @@
           const hitR = target.radius * CFG.BULLET_HIT_RADIUS_SCALE + p.radius;
           if (distPointToSegment(target.x, target.y, p.px, p.py, p.x, p.y) < hitR) {
             const heavy = !!p.heavy;
-            aqDamage(target, p.damage, p.owner, p.weapon, { knockback: p.knockback, stun: p.stun, hitStop: heavy ? 0.05 : 0, critical: !!p.critical });
+            // V1 blood port §6: consume the REAL collision point + REAL
+            // projectile travel vector at impact (visual consumer only —
+            // never gameplay truth).
+            const hit = sweptSegmentCircleHit(p.px, p.py, p.x, p.y, target.x, target.y, hitR)
+              || { x: p.x, y: p.y };
+            aqDamage(target, p.damage, p.owner, p.weapon, {
+              knockback: p.knockback, stun: p.stun, hitStop: heavy ? 0.05 : 0, critical: !!p.critical,
+              impact: { x: hit.x, y: hit.y, vx: p.vx, vy: p.vy },
+            });
             // C §5.4 impact hierarchy, generalized to firing families (POST-C
             // §3): pistol tiny snap, SMG minimal repeated, shotgun broad
             // cluster, precision sharp focused.

@@ -2893,6 +2893,191 @@ gate('v3-24-firearm-x7-identity', report.v3GunAudit.fail === 0 && report.v3GunAu
 gate('v3-grenade-melee-x7-no-crit', report.v3GunAudit.grenade === 140 && report.v3GunAudit.melee === +(report.v3GunAudit.sabreAuthored * 7).toFixed(2), report.v3GunAudit);
 gate('v3-native-not-equipment-x7', report.v3GunAudit.native < 10 && report.v3GunAudit.native > 0, report.v3GunAudit);
 
+// ---------------------------------------------------------------------------
+// V1 blood port gates (docs/arsenal-quest/v1-blood-port/) — drive the REAL
+// firearm collision loop (weaponApi.fireBullet + APEX_ARSENAL.step) and prove:
+// real impact metadata consumed, reference emission counts, mirror travel
+// vector, legacy splatter preserved for non-projectile damage, popup parity,
+// sustained bounded workload, and V1 material identity.
+// ---------------------------------------------------------------------------
+report.v1Blood = run(`
+  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  cancelAnimationFrame(reqId); reqId = 0;
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.clearSlots();
+  APEX_ARSENAL.combatRng = () => 0.99; // never roll crits; crits are forced per-shot
+  const feel = window.APEX_ARSENAL_FEEL;
+  const api = APEX_ARSENAL.weaponApi;
+  const CFG = APEX_ARSENAL_CONFIG;
+  const hero = fighters[0];
+  const rival = fighters[1];
+  hero.hp = 1000; rival.hp = 1000;
+  const out = { shots: 0 };
+  const firePistolFromHero = (critical) => api.fireBullet({
+    owner: hero, x: hero.x + 30, y: hero.y, angle: 0, speed: 2600,
+    damage: CFG.WEAPONS.PISTOL.damagePerShot, weapon: 'PISTOL', critical: !!critical,
+  });
+  const diff = (before) => ({
+    cores: feel.stats.v1Cores - before.cores,
+    streaks: feel.stats.v1Streaks - before.streaks,
+    drops: feel.stats.v1Drops - before.drops,
+    micro: feel.stats.v1Micro - before.micro,
+    decals: feel.stats.v1Decals - before.decals,
+  });
+  const snap = () => ({
+    cores: feel.stats.v1Cores, streaks: feel.stats.v1Streaks,
+    drops: feel.stats.v1Drops, micro: feel.stats.v1Micro, decals: feel.stats.v1Decals,
+  });
+
+  // 1) left→right normal firearm hit through the REAL collision loop.
+  __AQ_TEST.place(240, 500, 780, 500);
+  const before1 = snap();
+  out.legacyStampsBefore = feel.stats.stamps;
+  firePistolFromHero(false);
+  out.shots += 1;
+  __AQ_TEST.step(0.4);
+  out.normalCounts = diff(before1);
+  const last1 = feel.stats.lastV1 || {};
+  out.normalAngle = last1.angle;
+  const hitCircleMax = rival.radius * CFG.BULLET_HIT_RADIUS_SCALE + 7;
+  out.hitCircleMax = hitCircleMax;
+  out.impactDist = Number.isFinite(last1.x) ? Math.hypot(last1.x - rival.x, last1.y - rival.y) : NaN;
+  out.normalAtRealImpact = out.impactDist <= hitCircleMax + 2;
+  out.normalAngleIsTravel = Math.abs(last1.angle - 0) < 0.02;
+  out.normalPopups = feel.livePopups().map(p => p.kind + ':' + p.text);
+
+  // 2) direction = REAL projectile travel vector, NOT victim − source.
+  //    Teleport the SOURCE away before impact; legacy victim−source math
+  //    would follow the moved shooter, V1 must not.
+  __AQ_TEST.place(240, 500, 780, 500);
+  firePistolFromHero(false);
+  out.shots += 1;
+  hero.x = 700; hero.y = 150;
+  __AQ_TEST.step(0.4);
+  const last2 = feel.stats.lastV1 || {};
+  out.travelAngle = last2.angle;
+  out.victimSourceAngle = Math.atan2(rival.y - hero.y, rival.x - hero.x);
+  out.directionIsProjectile = Math.abs(last2.angle - 0) < 0.02
+    && Math.abs(last2.angle - out.victimSourceAngle) > 1.0;
+
+  // 3) critical: same blood language, reference-stronger counts, crimson.
+  const before3 = snap();
+  const v1HitsBefore3 = feel.stats.v1Hits;
+  __AQ_TEST.place(240, 500, 780, 500);
+  firePistolFromHero(true);
+  out.shots += 1;
+  __AQ_TEST.step(0.4);
+  out.critCounts = diff(before3);
+  const last3 = feel.stats.lastV1 || {};
+  out.critFlagCarried = last3.critical === true;
+  out.critPopups = feel.livePopups().filter(p => p.kind === 'crit').map(p => p.text);
+  out.v1HitsAfterCrit = feel.stats.v1Hits - v1HitsBefore3;
+
+  // 4) right→left mirror: blood continues along the travel vector (≈ π).
+  __AQ_TEST.place(240, 500, 780, 500);
+  api.fireBullet({
+    owner: rival, x: rival.x - 30, y: rival.y, angle: Math.PI, speed: 2600,
+    damage: CFG.WEAPONS.PISTOL.damagePerShot, weapon: 'PISTOL', critical: false,
+  });
+  out.shots += 1;
+  __AQ_TEST.step(0.4);
+  const last4 = feel.stats.lastV1 || {};
+  out.mirrorAngle = last4.angle;
+  out.mirrorIsTravel = Math.abs(Math.abs(last4.angle) - Math.PI) < 0.02;
+
+  // 5) non-projectile damage keeps the accepted legacy splatter path.
+  const legacyBefore = { stamps: feel.stats.stamps, hits: feel.stats.v1Hits };
+  hero.takeDamage(12, rival, 'arsenal-pistol', false);
+  out.legacyStampsGrew = feel.stats.stamps === legacyBefore.stamps + 1;
+  out.legacyV1Untouched = feel.stats.v1Hits === legacyBefore.hits;
+  rival.hp = 1000;
+  api.explodeGrenade({ owner: hero, x: rival.x - 5, y: rival.y, weapon: 'GRENADE' });
+  out.grenadeStampsGrew = feel.stats.stamps >= legacyBefore.stamps + 2;
+  out.grenadeV1Untouched = feel.stats.v1Hits === legacyBefore.hits;
+
+  // 6) sustained/high-rate combat (20 shots/s incl. forced crits every 8th):
+  //    every shot lands, live workload stays bounded, stain stays one surface.
+  __AQ_TEST.place(240, 500, 780, 500);
+  const sustainedBefore = snap();
+  const v1HitsBeforeSustained = feel.stats.v1Hits;
+  for (let b = 0; b < 24; b++) {
+    if (rival.hp < 400) rival.hp = 1000; // keep the target alive; test-only
+    firePistolFromHero(b % 8 === 7);
+    out.shots += 1;
+    __AQ_TEST.step(0.05);
+  }
+  __AQ_TEST.step(0.35); // let the last in-flight bullets reach the target (travel ≈ 0.2 s)
+  out.sustained = {
+    hits: feel.stats.v1Hits - v1HitsBeforeSustained,
+    sprayPeak: feel.stats.sprayPeak,
+    decals: feel.stats.v1Decals - sustainedBefore.decals,
+    lands: feel.stats.v1LandMarks,
+    dropsSkipped: feel.stats.v1DropsSkipped,
+    microSkipped: feel.stats.v1MicroSkipped,
+  };
+  out.sustainedAllHit = out.sustained.hits === 24;
+  out.sustainedBounded = feel.stats.sprayPeak <= 600;
+  out.sustainedLands = feel.stats.v1LandMarks > 0;
+  out.stainSingleSurface = !!feel.stainSurface();
+
+  // 7) V1 material identity — dark crimson family, blood never goes orange.
+  out.bloodV1 = {
+    coreCenter: feel.bloodV1 && feel.bloodV1.coreCenter,
+    drop: feel.bloodV1 && feel.bloodV1.drop,
+    micro: feel.bloodV1 && feel.bloodV1.micro,
+    streakTip: feel.bloodV1 && feel.bloodV1.streakTip,
+  };
+  out.popupPalettes = {
+    dmg: feel.palettes.dmg.fill,
+    crit: feel.palettes.crit.fill,
+    heal: feel.palettes.heal.fill,
+  };
+  return out;
+`);
+gate('v1-blood-real-impact-metadata',
+  report.v1Blood.normalAtRealImpact === true
+  && report.v1Blood.normalAngleIsTravel === true
+  && report.v1Blood.directionIsProjectile === true,
+  { impactDist: report.v1Blood.impactDist, hitCircleMax: report.v1Blood.hitCircleMax,
+    travelAngle: report.v1Blood.travelAngle, victimSourceAngle: report.v1Blood.victimSourceAngle,
+    normalAngle: report.v1Blood.normalAngle });
+gate('v1-blood-normal-emission-counts',
+  report.v1Blood.normalCounts.cores === 1 && report.v1Blood.normalCounts.streaks === 4
+  && report.v1Blood.normalCounts.drops === 12 && report.v1Blood.normalCounts.micro === 38
+  && report.v1Blood.normalCounts.decals === 1,
+  report.v1Blood.normalCounts);
+gate('v1-blood-crit-stronger-same-language',
+  report.v1Blood.critCounts.cores === 1 && report.v1Blood.critCounts.streaks === 7
+  && report.v1Blood.critCounts.drops === 18 && report.v1Blood.critCounts.micro === 64
+  && report.v1Blood.critFlagCarried === true && report.v1Blood.v1HitsAfterCrit === 1,
+  report.v1Blood.critCounts);
+gate('v1-blood-mirror-travel-vector',
+  report.v1Blood.mirrorIsTravel === true,
+  { mirrorAngle: report.v1Blood.mirrorAngle });
+gate('v1-blood-legacy-preserved-nonprojectile',
+  report.v1Blood.legacyStampsGrew === true && report.v1Blood.legacyV1Untouched === true
+  && report.v1Blood.grenadeStampsGrew === true && report.v1Blood.grenadeV1Untouched === true,
+  { legacyStampsGrew: report.v1Blood.legacyStampsGrew, legacyV1Untouched: report.v1Blood.legacyV1Untouched,
+    grenadeStampsGrew: report.v1Blood.grenadeStampsGrew, grenadeV1Untouched: report.v1Blood.grenadeV1Untouched });
+gate('v1-blood-popup-parity',
+  report.v1Blood.normalPopups.some(t => t === 'dmg:32')
+  && report.v1Blood.critPopups.some(t => t === '47')
+  && report.v1Blood.popupPalettes.dmg === '#F2382F'
+  && report.v1Blood.popupPalettes.crit === '#FF8A24'
+  && report.v1Blood.popupPalettes.heal === '#37D96B',
+  { normalPopups: report.v1Blood.normalPopups, critPopups: report.v1Blood.critPopups,
+    palettes: report.v1Blood.popupPalettes });
+gate('v1-blood-sustained-bounded',
+  report.v1Blood.sustainedAllHit === true && report.v1Blood.sustainedBounded === true
+  && report.v1Blood.sustainedLands === true && report.v1Blood.stainSingleSurface === true,
+  report.v1Blood.sustained);
+gate('v1-blood-material-identity',
+  JSON.stringify(report.v1Blood.bloodV1.coreCenter) === '[92,0,0]'
+  && JSON.stringify(report.v1Blood.bloodV1.drop) === '[102,0,0]'
+  && JSON.stringify(report.v1Blood.bloodV1.micro) === '[115,2,2]'
+  && JSON.stringify(report.v1Blood.bloodV1.streakTip) === '[125,3,3]',
+  report.v1Blood.bloodV1);
+
 // ------------------------------------------------------------------- summary
 report.summary = {
   total: Object.keys(report.gates).length,

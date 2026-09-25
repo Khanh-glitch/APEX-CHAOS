@@ -38,6 +38,20 @@
     organicMaskStamps: 0,
     ellipseCore: 0,
     atlasVariant: {},
+    // V1 blood port counters (docs/arsenal-quest/v1-blood-port/): the blood
+    // system is only a visual consumer of combat state; these exist so the
+    // acceptance suite can prove real metadata is consumed.
+    v1Hits: 0,
+    v1Cores: 0,
+    v1Streaks: 0,
+    v1Drops: 0,
+    v1Micro: 0,
+    v1Decals: 0,
+    v1LandMarks: 0,
+    v1FloorStamps: 0,
+    v1DropsSkipped: 0,
+    v1MicroSkipped: 0,
+    lastV1: null,
   };
   const PALETTE = {
     dmg: { fill: '#F2382F', edge: '#5A0C09' },
@@ -51,6 +65,24 @@
     core: [0x3A, 0x05, 0x08],
     deep: [0x26, 0x04, 0x07],
   };
+  // V1 material identity (approved reference): dark crimson family, blood
+  // absorbs light — no bright flat red, no additive glow, no orange crits.
+  const V1_COLORS = {
+    coreCenter: [92, 0, 0],
+    coreMid: [74, 0, 0],
+    coreEdge: [38, 0, 0],
+    streakDark: [48, 0, 0],
+    streakMid: [92, 0, 0],
+    streakTip: [125, 3, 3],
+    drop: [102, 0, 0],
+    micro: [115, 2, 2],
+    floorDotMin: 45,
+    floorDotMax: 78,
+  };
+  // V1 §14 priority: recycle micro spray first, then medium drops. Caps sit far
+  // above the approved per-hit workload (55 normal / 90 critical live objects),
+  // so they only engage in pathological sustained bursts.
+  const V1_LIVE_SOFT_CAP = { micro: 420, drop: 560 };
   const SIZE_BANDS = [
     { id: 'XS', min: 1, max: 34, scale: 1.35 },
     { id: 'S', min: 35, max: 69, scale: 1.60 },
@@ -232,6 +264,15 @@
   function allocSpray() {
     const p = sprayPool.pop() || { x: 0, y: 0, vx: 0, vy: 0, r: 2, life: 0, max: 0.2, rgb: [0, 0, 0] };
     if (p.max) stats.sprayReuse += 1;
+    // Reset V1-only fields every alloc: recycled objects must never leak a
+    // stale kind/drag/landing state into the legacy spray path (or back).
+    p.kind = null;
+    p.drag = 0;
+    p.stretch = 0;
+    p.rot = 0;
+    p.size = 0;
+    p.landChance = 0;
+    p.landPower = 0;
     return p;
   }
 
@@ -388,6 +429,169 @@
     if (sprayLive.length > stats.sprayPeak) stats.sprayPeak = sprayLive.length;
   }
 
+  // ---------------------------------------------------------------------------
+  // V1 BLOOD PORT — owner-approved executable reference, ported verbatim.
+  // Identity: projectile ---> victim X===========> blood — blood is violently
+  // carried THROUGH the victim by projectile momentum. Never a radial burst,
+  // never side cones, never a forward rebound, never orange.
+  // Reference: docs/arsenal-quest/v1-blood-port/01_APPROVED_EXECUTABLE_REFERENCE_V1.html
+  // ---------------------------------------------------------------------------
+  function v1Rnd(a, b) { return a + Math.random() * (b - a); }
+
+  function irregularBlob(g, x, y, r, alpha, rotation, stretch) {
+    const points = 18;
+    g.save();
+    g.translate(x, y);
+    g.rotate(rotation || 0);
+    g.scale(stretch || 1, 1);
+    g.beginPath();
+    for (let i = 0; i < points; i++) {
+      const a = (i / points) * Math.PI * 2;
+      const rr = r * v1Rnd(0.65, 1.28);
+      const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+      if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+    }
+    g.closePath();
+    const grad = g.createRadialGradient(-r * 0.25, -r * 0.18, r * 0.05, 0, 0, r * 1.3);
+    grad.addColorStop(0, `rgba(92,0,0,${alpha})`);
+    grad.addColorStop(0.55, `rgba(74,0,0,${alpha * 0.96})`);
+    grad.addColorStop(1, `rgba(38,0,0,${alpha * 0.85})`);
+    g.fillStyle = grad;
+    g.fill();
+    g.restore();
+  }
+
+  // Persistent floor blood onto the shared cached/offscreen stain layer.
+  // source-over compositing per the approved reference; darker/drier marks.
+  function v1FloorSplat(x, y, dx, dy, power) {
+    const c = ensureStain();
+    if (!c) return;
+    const a = Math.atan2(dy, dx);
+    c.save();
+    c.globalCompositeOperation = 'source-over';
+    irregularBlob(c, x, y, 7 + power * 9, 0.88, a, 1 + v1Rnd(0.2, 0.8));
+    const n = Math.round(6 + power * 8);
+    for (let i = 0; i < n; i++) {
+      const dist = v1Rnd(8, 26 + power * 42);
+      const aa = a + v1Rnd(-0.55, 0.55);
+      const px = x + Math.cos(aa) * dist;
+      const py = y + Math.sin(aa) * dist;
+      const rr = v1Rnd(1.4, 4.6 + power * 3.5);
+      irregularBlob(c, px, py, rr, v1Rnd(0.5, 0.82), aa, v1Rnd(1, 2.4));
+    }
+    for (let i = 0; i < 18 + power * 28; i++) {
+      const dist = v1Rnd(10, 38 + power * 70);
+      const aa = a + v1Rnd(-0.75, 0.75);
+      const px = x + Math.cos(aa) * dist;
+      const py = y + Math.sin(aa) * dist;
+      c.beginPath();
+      c.arc(px, py, v1Rnd(0.45, 1.8 + power * 0.6), 0, Math.PI * 2);
+      c.fillStyle = `rgba(${v1Rnd(V1_COLORS.floorDotMin, V1_COLORS.floorDotMax) | 0},0,0,${v1Rnd(0.35, 0.72)})`;
+      c.fill();
+    }
+    c.restore();
+    stats.v1FloorStamps += 1;
+  }
+
+  // Reference spawnBlood(): x/y = REAL collision point, bvx/bvy = REAL
+  // projectile velocity, crit = REAL critical flag. Counts and constants are
+  // the approved V1 numbers, not a reinterpretation.
+  function emitV1Blood(x, y, bvx, bvy, crit) {
+    let dx = bvx, dy = bvy;
+    const L = Math.hypot(dx, dy);
+    if (L < 1e-6) { dx = 1; dy = 0; } else { dx /= L; dy /= L; }
+    const baseAngle = Math.atan2(dy, dx);
+
+    // A. impact core — irregular blot, asymmetric, stretched along travel.
+    const core = allocSpray();
+    core.kind = 'v1core';
+    core.x = x; core.y = y;
+    core.vx = dx * 15; core.vy = dy * 15;
+    core.life = 0.12; core.max = 0.12;
+    core.size = crit ? 18 : 13;
+    core.rot = baseAngle;
+    core.stretch = 1.5;
+    core.rgb = V1_COLORS.coreCenter;
+    sprayLive.push(core);
+    stats.v1Cores += 1;
+
+    // B. manga/liquid streaks — elongated tapered marks aligned to velocity.
+    const nStreak = crit ? 7 : 4;
+    for (let i = 0; i < nStreak; i++) {
+      const p = allocSpray();
+      const a = baseAngle + v1Rnd(-0.34, 0.34);
+      const sp = v1Rnd(260, 470) * (crit ? 1.08 : 1);
+      p.kind = 'v1streak';
+      p.x = x + dx * v1Rnd(2, 10);
+      p.y = y + dy * v1Rnd(2, 10);
+      p.vx = Math.cos(a) * sp;
+      p.vy = Math.sin(a) * sp;
+      p.life = v1Rnd(0.16, 0.28);
+      p.max = 0; // reference alpha denominator: life / (max || 0.38)
+      p.size = v1Rnd(2.2, 4.6);
+      p.stretch = v1Rnd(5, 11);
+      p.rot = a;
+      p.drag = v1Rnd(0.88, 0.93);
+      p.rgb = V1_COLORS.streakTip;
+      sprayLive.push(p);
+    }
+    stats.v1Streaks += nStreak;
+
+    // C. medium droplets — ~55% leave a small landing mark at end-of-life.
+    let nDrop = crit ? 18 : 12;
+    if (sprayLive.length > V1_LIVE_SOFT_CAP.drop) { stats.v1DropsSkipped += nDrop; nDrop = 0; }
+    for (let i = 0; i < nDrop; i++) {
+      const p = allocSpray();
+      const a = baseAngle + v1Rnd(-0.56, 0.56);
+      const sp = v1Rnd(120, 300);
+      p.kind = 'v1drop';
+      p.x = x; p.y = y;
+      p.vx = Math.cos(a) * sp;
+      p.vy = Math.sin(a) * sp;
+      p.life = v1Rnd(0.32, 0.58);
+      p.max = 0;
+      p.size = v1Rnd(1.7, 4.6);
+      p.drag = v1Rnd(0.94, 0.975);
+      p.landChance = 0.55;
+      p.landPower = 0.18;
+      p.rgb = V1_COLORS.drop;
+      sprayLive.push(p);
+    }
+    stats.v1Drops += nDrop;
+
+    // D. micro spray — texture, not the dominant silhouette; recycled first.
+    let nMicro = crit ? 64 : 38;
+    if (sprayLive.length > V1_LIVE_SOFT_CAP.micro) { stats.v1MicroSkipped += nMicro; nMicro = 0; }
+    for (let i = 0; i < nMicro; i++) {
+      const p = allocSpray();
+      const a = baseAngle + v1Rnd(-0.72, 0.72);
+      const sp = v1Rnd(70, 360) * (Math.random() < 0.15 ? 1.4 : 1);
+      p.kind = 'v1micro';
+      p.x = x + v1Rnd(-3, 3);
+      p.y = y + v1Rnd(-3, 3);
+      p.vx = Math.cos(a) * sp;
+      p.vy = Math.sin(a) * sp;
+      p.life = v1Rnd(0.18, 0.45);
+      p.max = 0;
+      p.size = v1Rnd(0.55, 1.55);
+      p.drag = v1Rnd(0.925, 0.97);
+      p.landChance = 0.11;
+      p.landPower = 0.06;
+      p.rgb = V1_COLORS.micro;
+      sprayLive.push(p);
+    }
+    stats.v1Micro += nMicro;
+
+    // Main decal: along the projectile direction, farther/stronger on crit.
+    const decalDist = crit ? v1Rnd(24, 44) : v1Rnd(16, 32);
+    v1FloorSplat(x + dx * decalDist, y + dy * decalDist, dx, dy, crit ? 1.3 : 0.82);
+
+    stats.v1Decals += 1;
+    stats.v1Hits += 1;
+    stats.lastV1 = { x, y, angle: baseAngle, critical: !!crit };
+    if (sprayLive.length > stats.sprayPeak) stats.sprayPeak = sprayLive.length;
+  }
+
   function allocPopup() {
     const p = popupPool.pop() || { x: 0, y: 0, text: '', kind: 'dmg', life: 0, vy: 0, scale: 1, punch: 1, age: 0, band: 'S' };
     if (p.life || p.text) stats.popupReuse += 1;
@@ -434,11 +638,7 @@
       return;
     }
     const rgb = BLOOD.main;
-    const dx = victim && source ? victim.x - source.x : 1;
-    const dy = victim && source ? victim.y - source.y : 0;
-    const len = Math.hypot(dx, dy) || 1;
-    const dirx = dx / len;
-    const diry = dy / len;
+    const crit = !!opts.critical;
     const wid = weaponFromLabel(label);
     const fam = (wid && SHOTGUN_IDS[wid]) ? 'SHOTGUN'
       : (wid && AUTO_IDS[wid]) ? 'AUTO'
@@ -446,10 +646,26 @@
       : /melee|axe|sabre|dagger|spear|club/i.test(wid || label) ? 'MELEE'
       : /grenade|blast/i.test(wid || label) ? 'BLAST'
       : 'SEMI';
-    const crit = !!opts.critical;
+    // V1 blood port §6/§13: only firearm projectile hits carry real impact
+    // metadata — they consume the actual collision point + actual projectile
+    // velocity. Melee / grenade / native damage keeps the currently accepted
+    // splatter behavior (no fabricated trajectory).
+    const impact = opts.impact;
+    const v1Firearm = !!(impact
+      && Number.isFinite(impact.x) && Number.isFinite(impact.y)
+      && Number.isFinite(impact.vx) && Number.isFinite(impact.vy));
     stats.splatters += 1;
-    stampStain(victim.x, victim.y, dealt, rgb, dirx, diry, fam, crit);
-    emitSpray(victim.x, victim.y, dealt, rgb, dirx, diry, crit);
+    if (v1Firearm) {
+      emitV1Blood(impact.x, impact.y, impact.vx, impact.vy, crit);
+    } else {
+      const dx = victim && source ? victim.x - source.x : 1;
+      const dy = victim && source ? victim.y - source.y : 0;
+      const len = Math.hypot(dx, dy) || 1;
+      const dirx = dx / len;
+      const diry = dy / len;
+      stampStain(victim.x, victim.y, dealt, rgb, dirx, diry, fam, crit);
+      emitSpray(victim.x, victim.y, dealt, rgb, dirx, diry, crit);
+    }
 
     const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     const kind = crit ? 'crit' : 'dmg';
@@ -482,11 +698,28 @@
     for (let i = sprayLive.length - 1; i >= 0; i--) {
       const p = sprayLive[i];
       p.life -= dt;
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.vy += 420 * dt;
+      if (p.kind === 'v1core') {
+        // Reference: the impact blot fades in place — velocity is not applied.
+      } else if (p.kind === 'v1streak' || p.kind === 'v1drop' || p.kind === 'v1micro') {
+        // Reference physics: frame-equivalent drag only, no gravity.
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        const drag = Math.pow(p.drag || 0.95, dt * 60);
+        p.vx *= drag;
+        p.vy *= drag;
+      } else {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 420 * dt;
+      }
       if (p.life <= 0) {
         sprayLive.splice(i, 1);
+        // V1 §9: dying drops/micro may leave a tiny LOCAL mark — never a new
+        // explosion. Reference chances: drop ~55% / micro ~11%.
+        if ((p.kind === 'v1drop' || p.kind === 'v1micro') && Math.random() < p.landChance) {
+          v1FloorSplat(p.x, p.y, p.vx, p.vy, p.landPower);
+          stats.v1LandMarks += 1;
+        }
         sprayPool.push(p);
       }
     }
@@ -510,31 +743,80 @@
     stats.stainDraws += 1;
   }
 
+  function drawV1Streak(g, p) {
+    const alpha = Math.max(0, Math.min(1, p.life / (p.max || 0.38)));
+    const ang = Math.atan2(p.vy, p.vx);
+    const speed = Math.hypot(p.vx, p.vy);
+    const length = Math.max(12, Math.min(55, speed * 0.035 * (p.stretch || 1)));
+    g.globalAlpha = 1; // reference bakes alpha into the gradient, not globalAlpha
+    g.save();
+    g.translate(p.x, p.y);
+    g.rotate(ang);
+    const gr = g.createLinearGradient(-length, 0, 4, 0);
+    gr.addColorStop(0, 'rgba(48,0,0,0)');
+    gr.addColorStop(0.35, `rgba(92,0,0,${alpha * 0.55})`);
+    gr.addColorStop(1, `rgba(125,3,3,${alpha * 0.96})`);
+    g.fillStyle = gr;
+    g.beginPath();
+    g.moveTo(-length, 0);
+    g.quadraticCurveTo(-length * 0.35, -p.size * 1.4, 2, -p.size * 0.55);
+    g.quadraticCurveTo(8, 0, 2, p.size * 0.55);
+    g.quadraticCurveTo(-length * 0.35, p.size * 1.4, -length, 0);
+    g.fill();
+    g.restore();
+  }
+
   function drawSpray(c) {
     for (const p of sprayLive) {
-      c.globalAlpha = Math.max(0, p.life / p.max);
-      c.fillStyle = rgba(p.rgb, 0.95);
-      if (p.wedge && p.len) {
+      if (p.kind === 'v1core') {
+        const alpha = Math.max(0, Math.min(1, p.life / (p.max || 0.38)));
+        irregularBlob(c, p.x, p.y, p.size, alpha * 0.95, p.rot, p.stretch || 1.5);
+      } else if (p.kind === 'v1streak') {
+        drawV1Streak(c, p);
+      } else if (p.kind === 'v1drop' || p.kind === 'v1micro') {
+        const alpha = Math.max(0, Math.min(1, p.life / (p.max || 0.38)));
         const ang = Math.atan2(p.vy, p.vx);
+        const speed = Math.hypot(p.vx, p.vy);
+        const stretch = p.kind === 'v1drop'
+          ? Math.max(1.2, Math.min(3.4, speed / 85))
+          : Math.max(1, Math.min(2.3, speed / 120));
+        c.globalAlpha = 1;
         c.save();
         c.translate(p.x, p.y);
         c.rotate(ang);
+        c.scale(stretch, 1);
         c.beginPath();
-        c.moveTo(0, 0);
-        c.lineTo(p.len, -p.r);
-        c.lineTo(p.len * 0.9, 0);
-        c.lineTo(p.len, p.r);
-        c.closePath();
+        c.arc(0, 0, p.size, 0, Math.PI * 2);
+        c.fillStyle = p.kind === 'v1micro'
+          ? `rgba(115,2,2,${alpha * 0.82})`
+          : `rgba(102,0,0,${alpha * 0.92})`;
         c.fill();
         c.restore();
       } else {
-        c.beginPath();
-        c.moveTo(p.x + p.r * 1.6, p.y);
-        c.lineTo(p.x, p.y - p.r);
-        c.lineTo(p.x - p.r * 0.6, p.y);
-        c.lineTo(p.x, p.y + p.r);
-        c.closePath();
-        c.fill();
+        c.globalAlpha = Math.max(0, p.life / p.max);
+        c.fillStyle = rgba(p.rgb, 0.95);
+        if (p.wedge && p.len) {
+          const ang = Math.atan2(p.vy, p.vx);
+          c.save();
+          c.translate(p.x, p.y);
+          c.rotate(ang);
+          c.beginPath();
+          c.moveTo(0, 0);
+          c.lineTo(p.len, -p.r);
+          c.lineTo(p.len * 0.9, 0);
+          c.lineTo(p.len, p.r);
+          c.closePath();
+          c.fill();
+          c.restore();
+        } else {
+          c.beginPath();
+          c.moveTo(p.x + p.r * 1.6, p.y);
+          c.lineTo(p.x, p.y - p.r);
+          c.lineTo(p.x - p.r * 0.6, p.y);
+          c.lineTo(p.x, p.y + p.r);
+          c.closePath();
+          c.fill();
+        }
       }
     }
     c.globalAlpha = 1;
@@ -655,6 +937,8 @@
     bandFor,
     sizeBands: SIZE_BANDS,
     blood: BLOOD,
+    bloodV1: V1_COLORS,
+    v1LiveCap: V1_LIVE_SOFT_CAP,
   };
   window.APEX_ARSENAL_FEEL = AQ.feel;
   window.apexArsenalFeelRuntime = 'ready';
