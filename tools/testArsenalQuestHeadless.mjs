@@ -2763,6 +2763,76 @@ gate('v3-meta-fresh-350-newbie', report.v3Meta.credits0 === 350 && report.v3Meta
 gate('v3-meta-shop-rules', report.v3Meta.buyNew.ok === false && report.v3Meta.poor.ok === false && report.v3Meta.ice.ok === true && report.v3Meta.ice2.ok === false, report.v3Meta);
 gate('v3-meta-spin-no-dup', report.v3Meta.spinOk === true && report.v3Meta.spinName !== 'ICE' && report.v3Meta.spinName !== 'NEWBIE', report.v3Meta);
 
+run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(300, 500, 700, 500);
+  fighters[0].hp = 1000; fighters[1].hp = 1000;
+  APEX_ARSENAL.feel.resetMatch();
+  APEX_ARSENAL.feel.noteDamage({ dealt: 31.5, victim: fighters[1], source: fighters[0], label: 'arsenal-PISTOL', critical: false });
+  __AQ_TEST.redraw();
+`);
+snapshot('v3-01-hud-unarmed-red-dmg');
+run(`
+  APEX_ARSENAL.weaponApi.equip(fighters[0], 'SNIPER');
+  APEX_ARSENAL.feel.noteDamage({ dealt: 188, victim: fighters[1], source: fighters[0], label: 'arsenal-SNIPER', critical: true });
+  __AQ_TEST.redraw();
+`);
+snapshot('v3-02-sniper-crit-orange');
+run(`
+  fighters[0].hp = 700;
+  APEX_ARSENAL.feel.noteHeal(fighters[0], 70);
+  __AQ_TEST.redraw();
+`);
+snapshot('v3-03-heal-green');
+run(`
+  APEX_ARSENAL.weaponApi.consume(fighters[0], 'test');
+  APEX_ARSENAL.weaponApi.equip(fighters[0], 'SHOTGUN');
+  APEX_ARSENAL.feel.noteDamage({ dealt: 90, victim: fighters[1], source: fighters[0], label: 'arsenal-SHOTGUN', critical: false });
+  __AQ_TEST.redraw();
+`);
+snapshot('v3-04-shotgun-splatter');
+run(`
+  window.startArsenalQuestMode('CARD', 'MATH');
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+  __AQ_TEST.place(320, 500, 680, 500);
+  __AQ_TEST.redraw();
+`);
+snapshot('v3-05-card-math');
+run(`
+  window.startArsenalQuestMode('MATH_V2', 'SNIPER');
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.spawnTimer = 1e6;
+  __AQ_TEST.redraw();
+`);
+snapshot('v3-06-mathv2-sniper');
+run(`
+  window.startArsenalQuestMode('NEWBIE', 'HUNTER');
+  cancelAnimationFrame(reqId); reqId = 0;
+  __AQ_TEST.redraw();
+`);
+snapshot('v3-07-newbie-hunter');
+run(`
+  const M = APEX_ARSENAL_META;
+  M.openHub();
+`);
+snapshot('v3-08-hub');
+run(` APEX_ARSENAL_META.paintShop(); `);
+snapshot('v3-09-shop');
+run(` APEX_ARSENAL_META.paintDraw(); `);
+snapshot('v3-10-lucky-draw');
+run(` APEX_ARSENAL_META.hideMeta(); `);
+
+report.v3Perf = run(`
+  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  cancelAnimationFrame(reqId); reqId = 0;
+  for (let i = 0; i < 120; i++) APEX_ARSENAL.step(1/60);
+  const p = apexArsenalPerfSummary();
+  return { interpolation: p.interpolation, chamberHits: p.chamber && p.chamber.hits, feel: p.feel, hud: p.hud };
+`);
+gate('v3-perf-summary', !!report.v3Perf && report.v3Perf.interpolation === false, report.v3Perf);
+
 // ------------------------------------------------------------------- summary
 report.summary = {
   total: Object.keys(report.gates).length,

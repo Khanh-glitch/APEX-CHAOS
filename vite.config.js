@@ -47,6 +47,17 @@ function localReplaySaver() {
 }
 
 export default defineConfig({
-  plugins: [react(), localReplaySaver(), manualLabRoomRelay()]
-,
+  plugins: [react(), localReplaySaver(), manualLabRoomRelay()],
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
+    allowedHosts: true,
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 4173,
+    strictPort: true,
+    allowedHosts: true,
+  },
 });
