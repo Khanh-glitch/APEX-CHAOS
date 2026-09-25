@@ -1,0 +1,7 @@
+derived_file,source_file,start_sec,end_sec,duration_sec,peak_or_rms,assigned_weapons
+pickup_shotgun.wav,public/assets/shotgun_v1/audio/special_reloading_after_use_the_dash_skill.wav,0.050,0.300,0.250,rms~0.55_peak_cluster,SHOTGUN|MOSSBERG_500|SAWED_OFF|JACKHAMMER
+pickup_sniper.wav,public/assets/arsenal/av/sfx/c-final/SNIPER/sniper_chamber.wav,0.000,0.920,0.920,full_chamber,SNIPER
+pickup_pistol.wav,public/assets/arsenal/av/sfx/c-final/PISTOL/pistol_mech_click.wav,0.000,end,source_len,existing_cfinal,PISTOL|GLOCK_17|TEC_9|BERETTA_93R|DESERT_DEAGLE|MAGNUM_500
+rifle_take_XX,Rifle Reload Sound Effect.mp3,BLOCKED,BLOCKED,BLOCKED,Asset Vault c8e04857 unreachable from agent token,MAC_10|SMG|P90|AK_47|M16|ZBROYAR_Z15*|MBR|MBR2|M249_SAW|SZECSEI_FUCHS
+casing_general,318964__gryffdavid__bouncing-shell-casings-various-sizes.wav,BLOCKED,BLOCKED,BLOCKED,Asset Vault unreachable; casing_land semantic uses in-repo impactPlate until vault copy,all_non_shotgun_firearms
+casing_shotgun,620929__metrolynn__empty-shotgun-shellscasings-hitting-ground-bouncing.wav,BLOCKED,BLOCKED,BLOCKED,Asset Vault unreachable; shotgun_shell_land key wired,SHOTGUN|MOSSBERG_500|SAWED_OFF|JACKHAMMER

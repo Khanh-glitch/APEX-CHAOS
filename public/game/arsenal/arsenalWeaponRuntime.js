@@ -395,6 +395,7 @@
       weapon: weaponId,
       usedMeta: !!(origin && origin.usedMeta),
       hull: !!forceHull,
+      shotgun: !!(weaponId === 'SHOTGUN' || weaponId === 'MOSSBERG_500' || weaponId === 'SAWED_OFF' || weaponId === 'JACKHAMMER'),
     });
   }
 

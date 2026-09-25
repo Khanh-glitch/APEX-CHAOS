@@ -153,6 +153,16 @@
         st.dmg.native += dealt;
         st.dmg.byMechanic[mech] = (st.dmg.byMechanic[mech] || 0) + dealt;
       }
+      if (AQ.feel && AQ.feel.noteDamage) {
+        AQ.feel.noteDamage({
+          dealt,
+          miss: dealt <= 0 && amount > 0 && !statusDamage,
+          victim: this,
+          source,
+          label,
+          statusDamage: !!statusDamage,
+        });
+      }
       return out;
     };
   }
@@ -198,6 +208,7 @@
     // allocate FloatingText; sink them before update/draw so they incur no
     // lifecycle cost. Other modes keep the legacy path.
     if (floatingTexts.length) floatingTexts.length = 0;
+    if (AQ.feel && AQ.feel.tick) AQ.feel.tick(dt);
     for (let i = shockwaves.length - 1; i >= 0; i--) { const s = shockwaves[i]; s.r += 420 * dt; s.alpha = Math.max(0, 1 - s.r / s.maxR); if (s.alpha <= 0) shockwaves.splice(i, 1); }
     if (arenaFlash.a > 0) arenaFlash.a = Math.max(0, arenaFlash.a - dt * 1.6);
     if (cameraShake > 0) cameraShake = Math.max(0, cameraShake - dt * 22);
@@ -240,6 +251,7 @@
       const t0 = performance.now();
       drawChamber01(c); // Arsenal-only arena; global Apex background untouched
       const t1 = performance.now();
+      if (AQ.feel && AQ.feel.drawStain) AQ.feel.drawStain(c);
       SPAWN.drawSlots(c);
       aqPerfMark('pickupDraw', performance.now() - t1);
       aqPerfMark('background', performance.now() - t0);
@@ -267,23 +279,23 @@
   function paintChamber01(c, S) {
     c.save();
     // Base graphite with subtle material variation.
-    c.fillStyle = '#17181c';
+    c.fillStyle = '#A4A7AC';
     c.fillRect(0, 0, S, S);
     const grad = c.createRadialGradient(S / 2, S / 2, S * 0.18, S / 2, S / 2, S * 0.72);
-    grad.addColorStop(0, 'rgba(38,41,47,0.55)');
-    grad.addColorStop(1, 'rgba(10,11,14,0.85)');
+    grad.addColorStop(0, 'rgba(185,188,193,0.75)');
+    grad.addColorStop(1, 'rgba(135,140,147,0.92)');
     c.fillStyle = grad;
     c.fillRect(0, 0, S, S);
 
     // Very restrained range grid.
-    c.strokeStyle = 'rgba(255,255,255,0.028)';
+    c.strokeStyle = 'rgba(40,42,46,0.16)';
     c.lineWidth = 1;
     for (let g = 125; g < S; g += 125) {
       c.beginPath(); c.moveTo(g, 40); c.lineTo(g, S - 40); c.stroke();
       c.beginPath(); c.moveTo(40, g); c.lineTo(S - 40, g); c.stroke();
     }
     // Sparse measurement ticks along the walls.
-    c.strokeStyle = 'rgba(255,255,255,0.06)';
+    c.strokeStyle = 'rgba(40,42,48,0.28)';
     c.lineWidth = 2;
     for (let g = 100; g < S; g += 100) {
       c.beginPath(); c.moveTo(g, 34); c.lineTo(g, 46); c.stroke();
@@ -294,7 +306,7 @@
     // POST-C §8: zone marks are glyph-free ticks, never Z-01..Z-04 numerals.
 
     // Central alignment marks (no obstacle, no glow).
-    c.strokeStyle = 'rgba(255,255,255,0.07)';
+    c.strokeStyle = 'rgba(50,54,60,0.22)';
     c.lineWidth = 2;
     c.beginPath(); c.arc(S / 2, S / 2, 62, 0, Math.PI * 2); c.stroke();
     c.beginPath();
@@ -305,7 +317,7 @@
     c.stroke();
 
     // Industrial wall band: panels + guard rail, brighter boundary read.
-    c.fillStyle = '#202227';
+    c.fillStyle = '#747980';
     c.fillRect(0, 0, S, 30); c.fillRect(0, S - 30, S, 30);
     c.fillRect(0, 0, 30, S); c.fillRect(S - 30, 0, 30, S);
     c.strokeStyle = 'rgba(0,0,0,0.4)';
@@ -316,7 +328,7 @@
       c.beginPath(); c.moveTo(0, g); c.lineTo(30, g); c.stroke();
       c.beginPath(); c.moveTo(S - 30, g); c.lineTo(S, g); c.stroke();
     }
-    c.strokeStyle = '#2c2f36';
+    c.strokeStyle = '#656A71';
     c.lineWidth = 6;
     c.strokeRect(30, 30, S - 60, S - 60);
     c.strokeStyle = 'rgba(255,255,255,0.05)';
@@ -575,6 +587,7 @@
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.draw(ctx);
     aqPerfMark('arsenalVfxDraw', performance.now() - tVfx);
     drawHolderTags(ctx);
+    if (AQ.feel && AQ.feel.drawForeground) AQ.feel.drawForeground(ctx);
     ctx.restore();
     syncDomHud();
     aqPerfMark('foregroundTotal', performance.now() - t0);
@@ -634,6 +647,7 @@
 
   window.startArsenalQuestMode = function startArsenalQuestMode(p1Name, p2Name) {
     resetState();
+    if (AQ.feel && AQ.feel.resetMatch) AQ.feel.resetMatch();
     ['menu-screen', 'select-screen', 'tournament-screen', 'end-screen', 'solo-screen', 'trial-screen', 'tam-chien-screen', 'manual-room-screen']
       .forEach(id => document.getElementById(id)?.classList.add('hidden'));
     const hud = document.getElementById('hud');

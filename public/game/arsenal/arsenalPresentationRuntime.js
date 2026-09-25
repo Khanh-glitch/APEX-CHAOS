@@ -37,6 +37,10 @@
       { rel: 'sfx/impact/impactGeneric_light_002.ogg', vol: 0.12, maxVoices: 3 },
     ],
     pickup: [{ rel: 'sfx/rpg/metalLatch.ogg', vol: 0.42, maxVoices: 3 }],
+    pickup_pistol: [{ rel: 'sfx/c-final/PISTOL/pistol_mech_click.wav', vol: 0.55, maxVoices: 2 }],
+    pickup_shotgun: [{ rel: 'sfx/feel/pickup_shotgun.wav', vol: 0.72, maxVoices: 2 }],
+    pickup_sniper: [{ rel: 'sfx/feel/pickup_sniper.wav', vol: 0.63, maxVoices: 1 }],
+    pickup_sniper_lock: [{ rel: 'sfx/c-final/SNIPER/sniper_bolt_lock.wav', vol: 0.42, maxVoices: 1 }],
 
     // Approved gun-fire baseline retained.
     pistol_shot: [{ rel: 'sfx/guns/cz.wav', offset: 0.10, dur: 0.85, vol: 0.75, maxVoices: 4, fadeTail: 0.075, attack: 0.003 }],
@@ -70,7 +74,8 @@
       { rel: 'sfx/c-final/GRENADE/grenade_core.wav', vol: 1.00, maxVoices: 2 },
       { rel: 'sfx/c-final/GRENADE/grenade_low.wav', vol: 0.40, maxVoices: 2 },
     ],
-    casing_drop: [{ rel: 'sfx/impact/impactPlate_light_001.ogg', vol: 0.12, maxVoices: 2 }],
+    casing_land: [{ rel: 'sfx/impact/impactPlate_light_001.ogg', vol: 0.16, maxVoices: 4 }],
+    shotgun_shell_land: [{ rel: 'sfx/impact/impactPlate_light_001.ogg', vol: 0.20, maxVoices: 3 }],
 
     // POST-C additions — reuse the approved baseline files ONLY (no new
     // audio sourcing): ricochet = plate tick, NEWBIE dash = force field
@@ -79,6 +84,19 @@
     newbie_dash: [{ rel: 'sfx/scifi/forceField_001.ogg', vol: 0.30, maxVoices: 2 }],
     newbie_fail: [{ rel: 'sfx/rpg/metalClick.ogg', vol: 0.28, maxVoices: 2 }],
   };
+
+  const PISTOL_READY = { PISTOL: 1, GLOCK_17: 1, TEC_9: 1, BERETTA_93R: 1, DESERT_DEAGLE: 1, MAGNUM_500: 1 };
+  const SHOTGUN_READY = { SHOTGUN: 1, MOSSBERG_500: 1, SAWED_OFF: 1, JACKHAMMER: 1 };
+  const GUN_READY = {
+    PISTOL: 'pickup_pistol', GLOCK_17: 'pickup_pistol', TEC_9: 'pickup_pistol',
+    BERETTA_93R: 'pickup_pistol', DESERT_DEAGLE: 'pickup_pistol', MAGNUM_500: 'pickup_pistol',
+    SHOTGUN: 'pickup_shotgun', MOSSBERG_500: 'pickup_shotgun', SAWED_OFF: 'pickup_shotgun', JACKHAMMER: 'pickup_shotgun',
+    SNIPER: 'pickup_sniper',
+  };
+  const GUN_IDS = Object.assign({}, PISTOL_READY, SHOTGUN_READY, {
+    MAC_10: 1, SMG: 1, P90: 1, AK_47: 1, M16: 1, ZBROYAR_Z15: 1, ZBROYAR_Z15_S1: 1,
+    ZBROYAR_Z15_S2: 1, ZBROYAR_Z15_S3: 1, MBR: 1, MBR2: 1, M249_SAW: 1, SZECSEI_FUCHS: 1, SNIPER: 1,
+  });
 
   // Checkpoint C melee contact language: weapon-specific impact transients
   // (spark/shock), never imported slash sheets. The weapon body's own motion
@@ -291,8 +309,19 @@
         break;
       }
       case 'pickup': {
-        playAll('pickup');
-        if (o.weapon === 'PISTOL') playAll('pistol_mech');
+        const w = o.weapon;
+        const ready = GUN_READY[w];
+        if (ready) {
+          playAll(ready);
+          if (w === 'SNIPER') playLater('pickup_sniper_lock', 180);
+          stats.gunReady = (stats.gunReady || 0) + 1;
+          stats.lastGunReady = { weapon: w, cue: ready, rel: (AUDIO[ready] && AUDIO[ready][0] && AUDIO[ready][0].rel) };
+        } else if (!GUN_IDS[w]) {
+          playAll('pickup');
+        } else {
+          stats.gunReadyBlocked = (stats.gunReadyBlocked || 0) + 1;
+          stats.lastGunReady = { weapon: w, cue: null, rel: null, blocked: 'rifle-master-missing' };
+        }
         break;
       }
       case 'fire': {
@@ -337,22 +366,23 @@
         break;
       }
       case 'casing': {
-        pushVfx({ kind: 'casing', x: o.x, y: o.y, vx: o.vx || 0, vy: o.vy || -120, rot: o.rot || 0, vrot: o.vrot || 11, life: 0.9, landed: false, hull: !!o.hull });
+        pushVfx({ kind: 'casing', x: o.x, y: o.y, vx: o.vx || 0, vy: o.vy || -120, rot: o.rot || 0, vrot: o.vrot || 11, life: 0.9, landed: false, hull: !!o.hull, shotgun: !!o.shotgun, weapon: o.weapon });
         break;
       }
       case 'casing_land':
       case 'hull_land': {
-        playAll('casing_land', { vol: o.vol });
+        const shotgun = !!(o.shotgun || SHOTGUN_READY[o.weapon]);
+        const key = shotgun ? 'shotgun_shell_land' : 'casing_land';
+        playAll(key, { vol: o.vol });
         stats.casingLands = (stats.casingLands || 0) + 1;
+        stats.lastCasingLand = { key, rel: AUDIO[key][0].rel, shotgun: !!shotgun };
         break;
       }
       case 'sniper_aim': {
-        // Owner-approved mechanical chamber gesture; no sci-fi charge.
-        playAll('sniper_chamber');
+        // Readiness identity moved to pickup; do not duplicate chamber here.
         break;
       }
       case 'sniper_bolt_lock': {
-        playAll('sniper_bolt_lock');
         break;
       }
       case 'shotgun_rack': {
@@ -437,7 +467,7 @@
             v.landed = true;
             const speed = Math.hypot(v.vx, v.vy);
             const vol = Math.min(0.28, 0.08 + speed / 2400);
-            cue(v.hull ? 'hull_land' : 'casing_land', { x: v.x, y: v.y, vol });
+            cue(v.hull ? 'hull_land' : 'casing_land', { x: v.x, y: v.y, vol, shotgun: !!v.shotgun, weapon: v.weapon });
           }
           v.y = v.floorY; v.vy *= -0.3; v.vx *= 0.6; v.vrot *= 0.5;
         }

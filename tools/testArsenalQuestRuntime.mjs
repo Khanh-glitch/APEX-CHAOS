@@ -1359,6 +1359,31 @@ try {
     && report.rev2PerfPass1.sections.indexOf('simulation') >= 0,
     report.rev2PerfPass1.sections);
 
+
+  report.rev2Feel = await evaluate(`(() => {
+    if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+    const feel = window.APEX_ARSENAL_FEEL;
+    const av = window.APEX_ARSENAL_AV;
+    fighters[0].takeDamage(12, fighters[1], 'arsenal-pistol', false);
+    feel.noteDamage({ miss: true, victim: fighters[1], dealt: 0 });
+    const miss = feel.livePopups().filter(p => p.kind === 'miss');
+    window.avCue('pickup', { weapon: 'SHOTGUN', x: 1, y: 1 });
+    const sgReady = av.stats.lastGunReady;
+    window.avCue('pickup', { weapon: 'SNIPER', x: 1, y: 1 });
+    const snReady = av.stats.lastGunReady;
+    return {
+      stamps: feel.stats.stamps,
+      miss: miss[0] && miss[0].text,
+      sgReady, snReady,
+      healBlocked: feel.healGameplayEnabled === false,
+      casingKey: !!(av.stats && true),
+    };
+  })()`);
+  gate('feel-runtime-ready', report.rev2Feel.stamps >= 1, report.rev2Feel);
+  gate('feel-miss-text-only', report.rev2Feel.miss === 'MISS', report.rev2Feel);
+  gate('feel-shotgun-pickup-real-file', report.rev2Feel.sgReady && report.rev2Feel.sgReady.cue === 'pickup_shotgun', report.rev2Feel.sgReady);
+  gate('feel-sniper-pickup-chamber', report.rev2Feel.snReady && report.rev2Feel.snReady.cue === 'pickup_sniper', report.rev2Feel.snReady);
+
   // ------------------------------------------------------------ summary ----
   report.summary = {
     total: Object.keys(report.gates).length,

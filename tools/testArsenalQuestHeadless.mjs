@@ -2265,6 +2265,88 @@ gate('rev2-perf-pass1-sections',
   && report.rev2PerfPass1.sections.indexOf('simulation') >= 0,
   report.rev2PerfPass1.sections);
 
+
+report.rev2Feel = run(`
+  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  const feel = window.APEX_ARSENAL_FEEL;
+  const av = window.APEX_ARSENAL_AV;
+  const pal = { floor: true };
+  // Light floor: chamber cache still one build.
+  const c = document.createElement('canvas').getContext('2d');
+  drawBackground(c); drawBackground(c);
+  const perf = typeof apexArsenalPerfSummary === 'function' ? apexArsenalPerfSummary() : {};
+  const hero = fighters[0]; const rival = fighters[1];
+  hero.color = '#2a6dff'; rival.color = '#e24b2a';
+  const stamps0 = feel.stats.stamps;
+  hero.takeDamage(12, rival, 'arsenal-pistol', false);
+  const stamps1 = feel.stats.stamps;
+  const pop1 = feel.livePopups().map(p => p.text).join(',');
+  rival.takeDamage(4, hero, 'arsenal-smg', false);
+  rival.takeDamage(4, hero, 'arsenal-smg', false);
+  APEX_ARSENAL.step(0.05);
+  rival.takeDamage(4, hero, 'arsenal-smg', false);
+  APEX_ARSENAL.step(0.2);
+  const autoTexts = feel.livePopups().map(p => p.text);
+  hero.takeDamage(8, rival, 'arsenal-shotgun', false);
+  hero.takeDamage(8, rival, 'arsenal-shotgun', false);
+  APEX_ARSENAL.step(0.12);
+  const sg = feel.livePopups().filter(p => p.kind !== 'miss').map(p => p.text);
+  feel.noteDamage({ miss: true, victim: rival, dealt: 0, label: 'arsenal-pistol' });
+  const miss = feel.livePopups().filter(p => p.kind === 'miss');
+  const missBad = miss.some(p => /\\d/.test(p.text) || p.text !== 'MISS');
+  const surface = feel.stainSurface();
+  window.avCue('pickup', { weapon: 'SHOTGUN', x: 1, y: 1 });
+  const sgReady = av.stats.lastGunReady;
+  window.avCue('pickup', { weapon: 'SNIPER', x: 1, y: 1 });
+  const snReady = av.stats.lastGunReady;
+  window.avCue('pickup', { weapon: 'PISTOL', x: 1, y: 1 });
+  const pReady = av.stats.lastGunReady;
+  window.avCue('pickup', { weapon: 'AK_47', x: 1, y: 1 });
+  const akReady = av.stats.lastGunReady;
+  window.avCue('casing', { x: 100, y: 100, vx: 0, vy: 400, shotgun: false, weapon: 'PISTOL' });
+  const lands0 = av.stats.casingLands || 0;
+  APEX_ARSENAL_AV.tick(0.05);
+  const landsMid = av.stats.casingLands || 0;
+  APEX_ARSENAL_AV.tick(1.0);
+  const lands1 = av.stats.casingLands || 0;
+  APEX_ARSENAL_AV.tick(1.0);
+  const lands2 = av.stats.casingLands || 0;
+  const heals = feel.heals;
+  const healBlocked = feel.healGameplayEnabled === false && heals.every(h => h.restore == null);
+  return {
+    feelReady: !!feel,
+    stampsGrew: stamps1 === stamps0 + 1,
+    pop1, autoTexts, sg, missText: miss[0] && miss[0].text, missBad,
+    numericOnMiss: feel.stats.numericOnMiss,
+    stain: !!(surface && feel.stats.stainDraws >= 0),
+    chamberBuilds: perf.chamber && perf.chamber.builds,
+    sgReady, snReady, pReady, akReady,
+    lands0, landsMid, lands1, lands2, lastCasing: av.stats.lastCasingLand,
+    healBlocked, healIds: heals.map(h => h.id),
+    floating: floatingTexts.length,
+  };
+`);
+gate('feel-runtime-ready', report.rev2Feel.feelReady === true, report.rev2Feel);
+gate('feel-splatter-on-real-damage', report.rev2Feel.stampsGrew === true, report.rev2Feel);
+gate('feel-miss-text-only', report.rev2Feel.missText === 'MISS' && report.rev2Feel.missBad === false && report.rev2Feel.numericOnMiss === 0, report.rev2Feel);
+gate('feel-shotgun-pickup-real-file',
+  report.rev2Feel.sgReady && report.rev2Feel.sgReady.cue === 'pickup_shotgun' && String(report.rev2Feel.sgReady.rel).indexOf('pickup_shotgun.wav') >= 0,
+  report.rev2Feel.sgReady);
+gate('feel-sniper-pickup-chamber',
+  report.rev2Feel.snReady && report.rev2Feel.snReady.cue === 'pickup_sniper',
+  report.rev2Feel.snReady);
+gate('feel-pistol-pickup-ready',
+  report.rev2Feel.pReady && report.rev2Feel.pReady.cue === 'pickup_pistol',
+  report.rev2Feel.pReady);
+gate('feel-casing-land-once',
+  report.rev2Feel.lands0 === report.rev2Feel.landsMid
+  && report.rev2Feel.lands1 === report.rev2Feel.lands0 + 1
+  && report.rev2Feel.lands2 === report.rev2Feel.lands1
+  && report.rev2Feel.lastCasing && report.rev2Feel.lastCasing.key === 'casing_land',
+  report.rev2Feel);
+gate('feel-heal-values-blocked', report.rev2Feel.healBlocked === true && report.rev2Feel.healIds.length === 5, report.rev2Feel);
+gate('feel-floating-text-still-sunk', report.rev2Feel.floating === 0, report.rev2Feel);
+
 // ------------------------------------------------------------------- summary
 report.summary = {
   total: Object.keys(report.gates).length,
