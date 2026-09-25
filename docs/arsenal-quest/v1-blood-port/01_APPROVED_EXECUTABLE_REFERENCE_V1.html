@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>APEX CHAOS — Manga Blood Hit Prototype</title>
+<style>
+  :root{
+    --bg:#090b0f;
+    --panel:rgba(16,19,25,.82);
+    --line:rgba(255,255,255,.09);
+    --text:#f2f4f7;
+    --muted:#9ba3af;
+    --danger:#ff2a2a;
+    --crit:#ff8a1f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text)}
+  canvas{display:block;width:100vw;height:100vh;cursor:crosshair}
+  .hud{
+    position:fixed;left:18px;top:18px;z-index:5;
+    width:min(420px,calc(100vw - 36px));
+    padding:14px 14px 12px;border:1px solid var(--line);border-radius:16px;
+    background:var(--panel);backdrop-filter:blur(12px);box-shadow:0 12px 40px rgba(0,0,0,.35)
+  }
+  .title{font-weight:900;letter-spacing:.08em;font-size:15px}
+  .sub{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.45}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+  button{
+    appearance:none;border:1px solid var(--line);background:#151922;color:var(--text);
+    padding:9px 11px;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer
+  }
+  button:hover{background:#1b202b}
+  button.active.normal{border-color:rgba(255,42,42,.55);box-shadow:inset 0 0 0 1px rgba(255,42,42,.18)}
+  button.active.critical{border-color:rgba(255,138,31,.65);box-shadow:inset 0 0 0 1px rgba(255,138,31,.2)}
+  .legend{display:grid;grid-template-columns:auto 1fr;gap:5px 10px;margin-top:10px;font-size:11px;color:var(--muted)}
+  .dot{width:8px;height:8px;border-radius:50%;margin-top:3px;background:#4b5563}
+  .badge{
+    position:fixed;right:18px;bottom:18px;z-index:5;
+    padding:8px 10px;border:1px solid var(--line);border-radius:10px;
+    background:rgba(16,19,25,.72);color:#aab2bf;font-size:11px;backdrop-filter:blur(10px)
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="hud">
+  <div class="title">APEX CHAOS — BLOOD HIT VFX TEST</div>
+  <div class="sub">Aim at the enemy and click. Blood projects through the hit direction, creates manga streaks, droplets and a persistent floor splat.</div>
+  <div class="row">
+    <button id="normalBtn" class="active normal">Normal hit</button>
+    <button id="criticalBtn">Critical hit</button>
+    <button id="burstBtn">Burst test</button>
+    <button id="clearBtn">Clear blood</button>
+  </div>
+  <div class="legend">
+    <div class="dot"></div><div>Left click: fire a bullet</div>
+    <div class="dot"></div><div>Right click: instant critical hit</div>
+    <div class="dot"></div><div>Orange number = critical damage; blood stays red</div>
+  </div>
+</div>
+
+<div class="badge">Single-file HTML • Canvas 2D • no external assets</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const bloodCanvas = document.createElement('canvas');
+  const bctx = bloodCanvas.getContext('2d');
+
+  const state = {
+    mode:'normal',
+    bullets:[],
+    particles:[],
+    numbers:[],
+    muzzle:[],
+    shake:0,
+    t:0
+  };
+
+  let DPR = Math.min(window.devicePixelRatio || 1, 2);
+  let W=innerWidth,H=innerHeight;
+
+  const shooter = {x:0,y:0,r:20};
+  const target = {x:0,y:0,r:38,hp:9999};
+  let mouse = {x:W*.75,y:H*.5};
+
+  function resize(){
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    canvas.width = Math.round(W*DPR); canvas.height = Math.round(H*DPR);
+    canvas.style.width=W+'px'; canvas.style.height=H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+
+    const old = document.createElement('canvas');
+    old.width=bloodCanvas.width; old.height=bloodCanvas.height;
+    if(old.width && old.height) old.getContext('2d').drawImage(bloodCanvas,0,0);
+    bloodCanvas.width=Math.round(W*DPR); bloodCanvas.height=Math.round(H*DPR);
+    bctx.setTransform(DPR,0,0,DPR,0,0);
+    if(old.width && old.height) bctx.drawImage(old,0,0,old.width,old.height,0,0,W,H);
+
+    shooter.x = W*.27; shooter.y = H*.58;
+    target.x = W*.62; target.y = H*.54;
+  }
+  addEventListener('resize', resize); resize();
+
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const len=(x,y)=>Math.hypot(x,y)||1;
+
+  function irregularBlob(g,x,y,r,alpha=1,rotation=0,stretch=1){
+    const points=18;
+    g.save();
+    g.translate(x,y); g.rotate(rotation); g.scale(stretch,1);
+    g.beginPath();
+    for(let i=0;i<points;i++){
+      const a=(i/points)*Math.PI*2;
+      const rr=r*rnd(.65,1.28);
+      const px=Math.cos(a)*rr, py=Math.sin(a)*rr;
+      i===0?g.moveTo(px,py):g.lineTo(px,py);
+    }
+    g.closePath();
+    const grad=g.createRadialGradient(-r*.25,-r*.18,r*.05,0,0,r*1.3);
+    grad.addColorStop(0,`rgba(92,0,0,${alpha})`);
+    grad.addColorStop(.55,`rgba(74,0,0,${alpha*.96})`);
+    grad.addColorStop(1,`rgba(38,0,0,${alpha*.85})`);
+    g.fillStyle=grad;
+    g.fill();
+    g.restore();
+  }
+
+  function floorSplat(x,y,dx,dy,power){
+    const a=Math.atan2(dy,dx);
+    bctx.save();
+    bctx.globalCompositeOperation='source-over';
+
+    irregularBlob(bctx,x,y,7+power*9,.88,a,1+rnd(.2,.8));
+
+    const n=Math.round(6+power*8);
+    for(let i=0;i<n;i++){
+      const dist=rnd(8,26+power*42);
+      const spread=rnd(-.55,.55);
+      const aa=a+spread;
+      const px=x+Math.cos(aa)*dist;
+      const py=y+Math.sin(aa)*dist;
+      const rr=rnd(1.4,4.6+power*3.5);
+      irregularBlob(bctx,px,py,rr,rnd(.5,.82),aa,rnd(1,2.4));
+    }
+
+    for(let i=0;i<18+power*28;i++){
+      const dist=rnd(10,38+power*70);
+      const aa=a+rnd(-.75,.75);
+      const px=x+Math.cos(aa)*dist;
+      const py=y+Math.sin(aa)*dist;
+      bctx.beginPath();
+      bctx.arc(px,py,rnd(.45,1.8+power*.6),0,Math.PI*2);
+      bctx.fillStyle=`rgba(${rnd(45,78)|0},0,0,${rnd(.35,.72)})`;
+      bctx.fill();
+    }
+    bctx.restore();
+  }
+
+  function spawnBlood(x,y,dirX,dirY,critical=false){
+    const L=len(dirX,dirY); dirX/=L; dirY/=L;
+    const baseAngle=Math.atan2(dirY,dirX);
+    const power=critical?1.3:0.82;
+
+    state.particles.push({
+      type:'core',x,y,vx:dirX*15,vy:dirY*15,life:.12,max:.12,
+      size:critical?18:13,rot:baseAngle
+    });
+
+    const streaks=critical?7:4;
+    for(let i=0;i<streaks;i++){
+      const a=baseAngle+rnd(-.34,.34);
+      const sp=rnd(260,470)*(critical?1.08:1);
+      state.particles.push({
+        type:'streak',x:x+dirX*rnd(2,10),y:y+dirY*rnd(2,10),
+        vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+        life:rnd(.16,.28),max:0,size:rnd(2.2,4.6),
+        stretch:rnd(5,11),rot:a,drag:rnd(.88,.93)
+      });
+    }
+
+    const medium=critical?18:12;
+    for(let i=0;i<medium;i++){
+      const a=baseAngle+rnd(-.56,.56);
+      const sp=rnd(120,300);
+      state.particles.push({
+        type:'drop',x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+        life:rnd(.32,.58),max:0,size:rnd(1.7,4.6),drag:rnd(.94,.975),
+        landed:false
+      });
+    }
+
+    const micro=critical?64:38;
+    for(let i=0;i<micro;i++){
+      const a=baseAngle+rnd(-.72,.72);
+      const sp=rnd(70,360)*(Math.random()<.15?1.4:1);
+      state.particles.push({
+        type:'micro',x:x+rnd(-3,3),y:y+rnd(-3,3),
+        vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+        life:rnd(.18,.45),max:0,size:rnd(.55,1.55),drag:rnd(.925,.97)
+      });
+    }
+
+    const decalDist=critical?rnd(24,44):rnd(16,32);
+    floorSplat(x+dirX*decalDist,y+dirY*decalDist,dirX,dirY,power);
+
+    state.shake=Math.max(state.shake,critical?9:5);
+
+    state.numbers.push({
+      x:x+rnd(-5,5),y:y-24,vx:rnd(-8,8),vy:-42,
+      life:.62,max:.62,critical,
+      text:critical?String(Math.round(rnd(72,98))):String(Math.round(rnd(18,34)))
+    });
+  }
+
+  function fireAt(x,y,critical=false){
+    let dx=x-shooter.x, dy=y-shooter.y;
+    const L=len(dx,dy); dx/=L; dy/=L;
+    state.bullets.push({
+      x:shooter.x+dx*26,y:shooter.y+dy*26,
+      vx:dx*920,vy:dy*920,life:1.2,critical
+    });
+    state.muzzle.push({x:shooter.x+dx*26,y:shooter.y+dy*26,ang:Math.atan2(dy,dx),life:.07,max:.07});
+    state.shake=Math.max(state.shake,1.4);
+  }
+
+  function lineCircleHit(x1,y1,x2,y2,cx,cy,r){
+    const dx=x2-x1, dy=y2-y1;
+    const fx=x1-cx, fy=y1-cy;
+    const a=dx*dx+dy*dy;
+    const b=2*(fx*dx+fy*dy);
+    const c=fx*fx+fy*fy-r*r;
+    let d=b*b-4*a*c;
+    if(d<0) return null;
+    d=Math.sqrt(d);
+    const t1=(-b-d)/(2*a), t2=(-b+d)/(2*a);
+    let t=null;
+    if(t1>=0&&t1<=1)t=t1; else if(t2>=0&&t2<=1)t=t2;
+    return t===null?null:{x:x1+dx*t,y:y1+dy*t};
+  }
+
+  function update(dt){
+    state.t+=dt;
+    state.shake*=Math.pow(.08,dt);
+
+    for(let i=state.bullets.length-1;i>=0;i--){
+      const b=state.bullets[i], ox=b.x, oy=b.y;
+      b.x+=b.vx*dt; b.y+=b.vy*dt; b.life-=dt;
+      const hit=lineCircleHit(ox,oy,b.x,b.y,target.x,target.y,target.r);
+      if(hit){
+        spawnBlood(hit.x,hit.y,b.vx,b.vy,b.critical);
+        state.bullets.splice(i,1); continue;
+      }
+      if(b.life<=0||b.x<0||b.x>W||b.y<0||b.y>H) state.bullets.splice(i,1);
+    }
+
+    for(let i=state.particles.length-1;i>=0;i--){
+      const p=state.particles[i]; p.life-=dt;
+      if(p.type!=='core'){
+        p.x+=p.vx*dt; p.y+=p.vy*dt;
+        const drag=Math.pow(p.drag||.95,dt*60);
+        p.vx*=drag; p.vy*=drag;
+      }
+      if(p.life<=0){
+        if((p.type==='drop'||p.type==='micro') && Math.random()<(p.type==='drop'?.55:.11)){
+          floorSplat(p.x,p.y,p.vx,p.vy,p.type==='drop'?.18:.06);
+        }
+        state.particles.splice(i,1);
+      }
+    }
+
+    for(let i=state.numbers.length-1;i>=0;i--){
+      const n=state.numbers[i]; n.life-=dt;
+      n.x+=n.vx*dt; n.y+=n.vy*dt; n.vy+=45*dt;
+      if(n.life<=0)state.numbers.splice(i,1);
+    }
+    for(let i=state.muzzle.length-1;i>=0;i--){
+      state.muzzle[i].life-=dt;
+      if(state.muzzle[i].life<=0)state.muzzle.splice(i,1);
+    }
+  }
+
+  function drawArena(g){
+    g.fillStyle='#0a0d12'; g.fillRect(0,0,W,H);
+
+    g.strokeStyle='rgba(255,255,255,.035)'; g.lineWidth=1;
+    const grid=48;
+    for(let x=(state.t*6)%grid;x<W;x+=grid){ g.beginPath();g.moveTo(x,0);g.lineTo(x,H);g.stroke(); }
+    for(let y=0;y<H;y+=grid){ g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke(); }
+
+    g.drawImage(bloodCanvas,0,0,bloodCanvas.width,bloodCanvas.height,0,0,W,H);
+
+    g.beginPath(); g.ellipse(target.x,target.y+18,44,22,0,0,Math.PI*2);
+    g.fillStyle='rgba(0,0,0,.5)'; g.fill();
+
+    const bodyGrad=g.createRadialGradient(target.x-12,target.y-15,6,target.x,target.y,target.r+12);
+    bodyGrad.addColorStop(0,'#545b66'); bodyGrad.addColorStop(.55,'#2c3139'); bodyGrad.addColorStop(1,'#171b21');
+    g.beginPath(); g.arc(target.x,target.y,target.r,0,Math.PI*2);
+    g.fillStyle=bodyGrad; g.fill();
+    g.strokeStyle='rgba(255,255,255,.16)'; g.lineWidth=2; g.stroke();
+
+    g.textAlign='center'; g.font='700 11px system-ui'; g.fillStyle='rgba(255,255,255,.55)';
+    g.fillText('ENEMY',target.x,target.y-target.r-13);
+
+    g.beginPath(); g.arc(shooter.x,shooter.y,shooter.r,0,Math.PI*2);
+    g.fillStyle='#d7dde7'; g.fill();
+    g.beginPath(); g.arc(shooter.x,shooter.y,shooter.r-7,0,Math.PI*2);
+    g.fillStyle='#202631'; g.fill();
+
+    const dx=mouse.x-shooter.x, dy=mouse.y-shooter.y, L=len(dx,dy), ux=dx/L, uy=dy/L;
+    g.save(); g.translate(shooter.x,shooter.y); g.rotate(Math.atan2(uy,ux));
+    g.fillStyle='#9fa7b3'; g.fillRect(8,-4,26,8);
+    g.fillStyle='#535b68'; g.fillRect(19,-6,17,12);
+    g.restore();
+
+    g.setLineDash([5,10]); g.strokeStyle='rgba(255,255,255,.10)'; g.lineWidth=1;
+    g.beginPath(); g.moveTo(shooter.x+ux*38,shooter.y+uy*38); g.lineTo(mouse.x,mouse.y); g.stroke(); g.setLineDash([]);
+  }
+
+  function drawBloodParticles(g){
+    for(const p of state.particles){
+      const alpha=clamp(p.life/(p.max||.38),0,1);
+      if(p.type==='core'){
+        irregularBlob(g,p.x,p.y,p.size,alpha*.95,p.rot,1.5);
+      }else if(p.type==='streak'){
+        const ang=Math.atan2(p.vy,p.vx);
+        const speed=Math.hypot(p.vx,p.vy);
+        const length=clamp(speed*.035*p.stretch,12,55);
+        g.save(); g.translate(p.x,p.y); g.rotate(ang);
+        const gr=g.createLinearGradient(-length,0,4,0);
+        gr.addColorStop(0,'rgba(48,0,0,0)');
+        gr.addColorStop(.35,`rgba(92,0,0,${alpha*.55})`);
+        gr.addColorStop(1,`rgba(125,3,3,${alpha*.96})`);
+        g.fillStyle=gr;
+        g.beginPath();
+        g.moveTo(-length,0);
+        g.quadraticCurveTo(-length*.35,-p.size*1.4,2,-p.size*.55);
+        g.quadraticCurveTo(8,0,2,p.size*.55);
+        g.quadraticCurveTo(-length*.35,p.size*1.4,-length,0);
+        g.fill();
+        g.restore();
+      }else{
+        const ang=Math.atan2(p.vy,p.vx);
+        const speed=Math.hypot(p.vx,p.vy);
+        g.save(); g.translate(p.x,p.y); g.rotate(ang);
+        const stretch=p.type==='drop'?clamp(speed/85,1.2,3.4):clamp(speed/120,1,2.3);
+        g.scale(stretch,1);
+        g.beginPath(); g.arc(0,0,p.size,0,Math.PI*2);
+        g.fillStyle=p.type==='micro'
+          ? `rgba(115,2,2,${alpha*.82})`
+          : `rgba(102,0,0,${alpha*.92})`;
+        g.fill();
+        g.restore();
+      }
+    }
+  }
+
+  function drawBullets(g){
+    for(const b of state.bullets){
+      const a=Math.atan2(b.vy,b.vx);
+      g.save();g.translate(b.x,b.y);g.rotate(a);
+      g.strokeStyle=b.critical?'rgba(255,138,31,.8)':'rgba(255,235,190,.75)';
+      g.lineWidth=b.critical?2.4:1.8;
+      g.beginPath();g.moveTo(-13,0);g.lineTo(4,0);g.stroke();
+      g.restore();
+    }
+    for(const m of state.muzzle){
+      const a=m.life/m.max;
+      g.save();g.translate(m.x,m.y);g.rotate(m.ang);
+      g.globalAlpha=a;
+      g.fillStyle='#ffd28d';
+      g.beginPath();
+      g.moveTo(0,0);g.lineTo(20,-7);g.lineTo(11,0);g.lineTo(20,7);g.closePath();g.fill();
+      g.restore();
+    }
+  }
+
+  function drawNumbers(g){
+    for(const n of state.numbers){
+      const a=clamp(n.life/n.max,0,1);
+      g.save();
+      g.globalAlpha=Math.min(1,a*1.7);
+      g.textAlign='center';
+      g.font=`900 ${n.critical?27:22}px system-ui`;
+      g.lineWidth=5; g.strokeStyle='rgba(0,0,0,.72)';
+      g.strokeText(n.text,n.x,n.y);
+      g.fillStyle=n.critical?'#ff8a1f':'#ff2a2a';
+      g.fillText(n.text,n.x,n.y);
+      g.restore();
+    }
+  }
+
+  function render(){
+    const sx=rnd(-state.shake,state.shake), sy=rnd(-state.shake,state.shake);
+    ctx.save();ctx.translate(sx,sy);
+    drawArena(ctx);
+    drawBullets(ctx);
+    drawBloodParticles(ctx);
+    drawNumbers(ctx);
+    ctx.restore();
+
+    ctx.strokeStyle=state.mode==='critical'?'rgba(255,138,31,.78)':'rgba(255,255,255,.48)';
+    ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(mouse.x,mouse.y,9,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(mouse.x-15,mouse.y);ctx.lineTo(mouse.x-5,mouse.y);
+    ctx.moveTo(mouse.x+5,mouse.y);ctx.lineTo(mouse.x+15,mouse.y);
+    ctx.moveTo(mouse.x,mouse.y-15);ctx.lineTo(mouse.x,mouse.y-5);
+    ctx.moveTo(mouse.x,mouse.y+5);ctx.lineTo(mouse.x,mouse.y+15);ctx.stroke();
+  }
+
+  let last=performance.now();
+  function loop(now){
+    const dt=Math.min((now-last)/1000,.033); last=now;
+    update(dt); render(); requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  canvas.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY});
+  canvas.addEventListener('mousedown',e=>{
+    if(e.button===0)fireAt(e.clientX,e.clientY,state.mode==='critical');
+    if(e.button===2)fireAt(e.clientX,e.clientY,true);
+  });
+  canvas.addEventListener('contextmenu',e=>e.preventDefault());
+
+  const normalBtn=document.getElementById('normalBtn');
+  const criticalBtn=document.getElementById('criticalBtn');
+  function setMode(m){
+    state.mode=m;
+    normalBtn.className=m==='normal'?'active normal':'';
+    criticalBtn.className=m==='critical'?'active critical':'';
+  }
+  normalBtn.onclick=()=>setMode('normal');
+  criticalBtn.onclick=()=>setMode('critical');
+  document.getElementById('clearBtn').onclick=()=>bctx.clearRect(0,0,W,H);
+  document.getElementById('burstBtn').onclick=()=>{
+    const dx=target.x-shooter.x,dy=target.y-shooter.y,L=len(dx,dy);
+    const ux=dx/L,uy=dy/L;
+    for(let i=0;i<5;i++){
+      setTimeout(()=>spawnBlood(
+        target.x-ux*target.r+ux*rnd(-5,5),
+        target.y-uy*target.r+uy*rnd(-5,5),
+        ux+rnd(-.08,.08),uy+rnd(-.08,.08),
+        i===4
+      ),i*95);
+    }
+  };
+})();
+</script>
+</body>
+</html>
