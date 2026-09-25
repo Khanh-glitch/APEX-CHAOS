@@ -379,7 +379,7 @@
     const locked = poolLocked();
     const labels = locked.slice(0, 12).map((n, i, arr) => {
       const a = (360 / Math.max(1, arr.length)) * i;
-      return `<span class="aq-wheel-label" style="transform:rotate(${a}deg) translateY(calc(-1 * min(25vmin,245px))) rotate(${-a}deg)">${esc(n)}</span>`;
+      return `<span class="aq-wheel-label" style="transform:rotate(${a}deg) translateY(max(-25vmin,-245px)) rotate(${-a}deg)">${esc(n)}</span>`;
     }).join('');
     const result = lastDrawResult
       ? `<div class="aq-draw-result"><strong>${esc(lastDrawResult.name)}</strong><span>UNLOCKED</span><div class="aq-draw-actions"><button id="aq-use-now" type="button">USE NOW</button><button id="aq-spin-again" type="button">SPIN AGAIN</button></div></div>`
