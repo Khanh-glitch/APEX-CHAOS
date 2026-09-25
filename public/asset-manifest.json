@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-25T07:53:55.114Z",
+  "generatedAt": "2026-09-25T08:57:23.250Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -180,72 +180,72 @@
     {
       "path": "/assets/arsenal/av/sfx/feel/pickup_pistol.wav",
       "type": "audio",
-      "bytes": 49436
+      "bytes": 56492
     },
     {
       "path": "/assets/arsenal/av/sfx/feel/pickup_shotgun.wav",
       "type": "audio",
-      "bytes": 44144
+      "bytes": 53670
     },
     {
       "path": "/assets/arsenal/av/sfx/feel/pickup_sniper.wav",
       "type": "audio",
-      "bytes": 88576
+      "bytes": 87774
     },
     {
       "path": "/assets/arsenal/av/sfx/feel/rifle_take_01.wav",
       "type": "audio",
-      "bytes": 56488
+      "bytes": 45464
     },
     {
       "path": "/assets/arsenal/av/sfx/feel/rifle_take_02.wav",
       "type": "audio",
-      "bytes": 35324
+      "bytes": 22410
     },
     {
       "path": "/assets/arsenal/av/sfx/feel/rifle_take_03.wav",
       "type": "audio",
-      "bytes": 40616
+      "bytes": 43082
     },
     {
       "path": "/assets/arsenal/av/sfx/feel/rifle_take_04.wav",
       "type": "audio",
-      "bytes": 38852
+      "bytes": 43964
     },
     {
       "path": "/assets/arsenal/av/sfx/feel/rifle_take_05.wav",
       "type": "audio",
-      "bytes": 35324
+      "bytes": 42188
     },
     {
       "path": "/assets/arsenal/av/sfx/feel/rifle_take_06.wav",
       "type": "audio",
-      "bytes": 30032
+      "bytes": 26208
     },
     {
       "path": "/assets/arsenal/av/sfx/feel/rifle_take_07.wav",
       "type": "audio",
-      "bytes": 47672
+      "bytes": 45182
     },
     {
       "path": "/assets/arsenal/av/sfx/feel/rifle_take_08.wav",
       "type": "audio",
-      "bytes": 56492
+      "bytes": 45428
     },
     {
       "path": "/assets/arsenal/av/sfx/feel/rifle_take_09.wav",
       "type": "audio",
-      "bytes": 37088
+      "bytes": 22450
     },
     {
       "path": "/assets/arsenal/av/sfx/feel/rifle_take_10.wav",
       "type": "audio",
-      "bytes": 38856
+      "bytes": 43962
     },
     {
       "path": "/assets/arsenal/av/sfx/feel/rifle_take_11.wav",
       "type": "audio",
-      "bytes": 44144
+      "bytes": 46498
     },
     {
       "path": "/assets/arsenal/av/sfx/feel/shell_01.wav",

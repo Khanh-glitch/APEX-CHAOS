@@ -89,30 +89,30 @@
     },
     "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=JACKHAMMER eta=null lead=2.00 fighter=TIMEOUT force=true"
+      "detail": "[AQ] REVEAL id=1 weapon=MBR eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=DAGGER eta=1.36 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S1 eta=1.36 lead=2.00 fighter=HERO force=false"
     },
     "near-miss-outside-circle-stays-hidden": {
       "pass": true,
       "detail": {
         "nearMissStayedHidden": true,
         "edgeOfCircleReveals": true,
-        "edgeLog": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15 eta=0.80 lead=2.00 fighter=HERO force=false",
+        "edgeLog": "[AQ] REVEAL id=2 weapon=MAC_10 eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=MAGNUM_500 eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=DESERT_DEAGLE eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15 eta=0.80 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=MAC_10 eta=0.80 lead=2.00 fighter=HERO force=false"
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=3 weapon=MAGNUM_500 eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=3 weapon=DESERT_DEAGLE eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -302,7 +302,7 @@
         "nativeProj": 2,
         "hp": [
           97.70368,
-          86.69439999999997
+          100
         ]
       }
     },
@@ -1042,17 +1042,17 @@
     },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=14 restarts=14 spawnedCumulative=156 earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=10 restarts=10 spawnedCumulative=153 earlyErrors=0"
     },
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=8 x=348 y=666 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=7 weapon=ZBROYAR_Z15 eta=1.15 lead=2.00 fighter=DRUM force=false",
-        "PICKUP": "[AQ] PICKUP id=6 fighter=ICE weapon=ZBROYAR_Z15",
-        "USE": "[AQ] USE fighter=ICE weapon=ZBROYAR_Z15",
-        "HIT": "[AQ] HIT source=ICE target=DRUM weapon=ZBROYAR_Z15 damage=4.8",
-        "CONSUME": "[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15 reason=sequence-complete"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=10 x=365 y=328 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=12 weapon=SHOTGUN eta=0.52 lead=2.00 fighter=DRUM force=false",
+        "PICKUP": "[AQ] PICKUP id=7 fighter=ICE weapon=ZBROYAR_Z15_S2",
+        "USE": "[AQ] USE fighter=ICE weapon=ZBROYAR_Z15_S2",
+        "HIT": "[AQ] HIT source=ICE target=DRUM weapon=SMG damage=2.3",
+        "CONSUME": "[AQ] CONSUME fighter=ICE weapon=SMG reason=sequence-complete"
       }
     },
     "rev2-perf-pass1-api": {
@@ -1061,10 +1061,10 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 147,
+        "drawsA": 144,
         "buildsB": 1,
-        "drawsB": 148,
-        "hitsB": 147,
+        "drawsB": 145,
+        "hitsB": 144,
         "usedCache": true,
         "afterSink": 0,
         "skillWrites": 11,
@@ -1084,11 +1084,11 @@
         ],
         "peaks": {
           "slots": 7,
-          "particles": 324,
-          "shockwaves": 6,
-          "aqProjectiles": 13,
+          "particles": 233,
+          "shockwaves": 4,
+          "aqProjectiles": 14,
           "projectiles": 14,
-          "arsenalVfx": 18,
+          "arsenalVfx": 21,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -1100,10 +1100,10 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 147,
+        "drawsA": 144,
         "buildsB": 1,
-        "drawsB": 148,
-        "hitsB": 147,
+        "drawsB": 145,
+        "hitsB": 144,
         "usedCache": true,
         "afterSink": 0,
         "skillWrites": 11,
@@ -1123,11 +1123,11 @@
         ],
         "peaks": {
           "slots": 7,
-          "particles": 324,
-          "shockwaves": 6,
-          "aqProjectiles": 13,
+          "particles": 233,
+          "shockwaves": 4,
+          "aqProjectiles": 14,
           "projectiles": 14,
-          "arsenalVfx": 18,
+          "arsenalVfx": 21,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -1139,10 +1139,10 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 147,
+        "drawsA": 144,
         "buildsB": 1,
-        "drawsB": 148,
-        "hitsB": 147,
+        "drawsB": 145,
+        "hitsB": 144,
         "usedCache": true,
         "afterSink": 0,
         "skillWrites": 11,
@@ -1162,11 +1162,11 @@
         ],
         "peaks": {
           "slots": 7,
-          "particles": 324,
-          "shockwaves": 6,
-          "aqProjectiles": 13,
+          "particles": 233,
+          "shockwaves": 4,
+          "aqProjectiles": 14,
           "projectiles": 14,
-          "arsenalVfx": 18,
+          "arsenalVfx": 21,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -1178,10 +1178,10 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 147,
+        "drawsA": 144,
         "buildsB": 1,
-        "drawsB": 148,
-        "hitsB": 147,
+        "drawsB": 145,
+        "hitsB": 144,
         "usedCache": true,
         "afterSink": 0,
         "skillWrites": 11,
@@ -1201,11 +1201,11 @@
         ],
         "peaks": {
           "slots": 7,
-          "particles": 324,
-          "shockwaves": 6,
-          "aqProjectiles": 13,
+          "particles": 233,
+          "shockwaves": 4,
+          "aqProjectiles": 14,
           "projectiles": 14,
-          "arsenalVfx": 18,
+          "arsenalVfx": 21,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -1228,7 +1228,7 @@
     "feel-runtime-ready": {
       "pass": true,
       "detail": {
-        "stamps": 847,
+        "stamps": 842,
         "miss": "MISS",
         "sgReady": {
           "weapon": "SHOTGUN",
@@ -1240,14 +1240,23 @@
           "cue": "pickup_sniper",
           "rel": "sfx/feel/pickup_sniper.wav"
         },
-        "healBlocked": true,
+        "healEnabled": true,
+        "restores": [
+          10,
+          18,
+          28,
+          40,
+          55
+        ],
+        "pal": "#FF5A36",
+        "organic": 8536,
         "casingKey": true
       }
     },
     "feel-miss-text-only": {
       "pass": true,
       "detail": {
-        "stamps": 847,
+        "stamps": 842,
         "miss": "MISS",
         "sgReady": {
           "weapon": "SHOTGUN",
@@ -1259,7 +1268,16 @@
           "cue": "pickup_sniper",
           "rel": "sfx/feel/pickup_sniper.wav"
         },
-        "healBlocked": true,
+        "healEnabled": true,
+        "restores": [
+          10,
+          18,
+          28,
+          40,
+          55
+        ],
+        "pal": "#FF5A36",
+        "organic": 8536,
         "casingKey": true
       }
     },
@@ -1279,12 +1297,105 @@
         "rel": "sfx/feel/pickup_sniper.wav"
       }
     },
+    "feel-heal-values-authorized": {
+      "pass": true,
+      "detail": {
+        "stamps": 842,
+        "miss": "MISS",
+        "sgReady": {
+          "weapon": "SHOTGUN",
+          "cue": "pickup_shotgun",
+          "rel": "sfx/feel/pickup_shotgun.wav"
+        },
+        "snReady": {
+          "weapon": "SNIPER",
+          "cue": "pickup_sniper",
+          "rel": "sfx/feel/pickup_sniper.wav"
+        },
+        "healEnabled": true,
+        "restores": [
+          10,
+          18,
+          28,
+          40,
+          55
+        ],
+        "pal": "#FF5A36",
+        "organic": 8536,
+        "casingKey": true
+      }
+    },
+    "feel-splatter-organic-mask": {
+      "pass": true,
+      "detail": {
+        "stamps": 842,
+        "miss": "MISS",
+        "sgReady": {
+          "weapon": "SHOTGUN",
+          "cue": "pickup_shotgun",
+          "rel": "sfx/feel/pickup_shotgun.wav"
+        },
+        "snReady": {
+          "weapon": "SNIPER",
+          "cue": "pickup_sniper",
+          "rel": "sfx/feel/pickup_sniper.wav"
+        },
+        "healEnabled": true,
+        "restores": [
+          10,
+          18,
+          28,
+          40,
+          55
+        ],
+        "pal": "#FF5A36",
+        "organic": 8536,
+        "casingKey": true
+      }
+    },
+    "feel-damage-palette-vermilion": {
+      "pass": true,
+      "detail": {
+        "stamps": 842,
+        "miss": "MISS",
+        "sgReady": {
+          "weapon": "SHOTGUN",
+          "cue": "pickup_shotgun",
+          "rel": "sfx/feel/pickup_shotgun.wav"
+        },
+        "snReady": {
+          "weapon": "SNIPER",
+          "cue": "pickup_sniper",
+          "rel": "sfx/feel/pickup_sniper.wav"
+        },
+        "healEnabled": true,
+        "restores": [
+          10,
+          18,
+          28,
+          40,
+          55
+        ],
+        "pal": "#FF5A36",
+        "organic": 8536,
+        "casingKey": true
+      }
+    },
+    "heal-spawns-when-injured": {
+      "pass": true,
+      "detail": {
+        "noneAtFull": 0,
+        "spawned": 1,
+        "hp": 78,
+        "id": "HEAL_H2"
+      }
+    },
     "smooth-rarity-cache-reuse": {
       "pass": true,
       "detail": {
-        "builds": 11,
-        "draws": 31,
-        "hits": 20
+        "builds": 12,
+        "draws": 16,
+        "hits": 4
       }
     },
     "both-unarmed-immediate-fresh": {
@@ -1636,18 +1747,18 @@
       "predictedFighter": null
     },
     "forceRevealed": true,
-    "forceLog": "[AQ] REVEAL id=1 weapon=JACKHAMMER eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "forceLog": "[AQ] REVEAL id=1 weapon=MBR eta=null lead=2.00 fighter=TIMEOUT force=true",
     "pickupAfterForce": true,
     "revealedOnMovement": true,
-    "moveRevealLog": "[AQ] REVEAL id=2 weapon=DAGGER eta=1.36 lead=2.00 fighter=HERO force=false"
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S1 eta=1.36 lead=2.00 fighter=HERO force=false"
   },
   "circleNeg": {
     "nearMissStayedHidden": true,
     "edgeOfCircleReveals": true,
-    "edgeLog": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15 eta=0.80 lead=2.00 fighter=HERO force=false",
+    "edgeLog": "[AQ] REVEAL id=2 weapon=MAC_10 eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=MAGNUM_500 eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=DESERT_DEAGLE eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -1850,7 +1961,7 @@
     "nativeProj": 2,
     "hp": [
       97.70368,
-      86.69439999999997
+      100
     ]
   },
   "roster": {
@@ -2330,29 +2441,29 @@
   },
   "fiveMinute": {
     "error": null,
-    "restarts": 14,
-    "koCount": 14,
-    "spawnedTotal": 4,
-    "spawnedCumulative": 156,
+    "restarts": 10,
+    "koCount": 10,
+    "spawnedTotal": 12,
+    "spawnedCumulative": 153,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=8 x=348 y=666 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=7 weapon=ZBROYAR_Z15 eta=1.15 lead=2.00 fighter=DRUM force=false",
-    "PICKUP": "[AQ] PICKUP id=6 fighter=ICE weapon=ZBROYAR_Z15",
-    "USE": "[AQ] USE fighter=ICE weapon=ZBROYAR_Z15",
-    "HIT": "[AQ] HIT source=ICE target=DRUM weapon=ZBROYAR_Z15 damage=4.8",
-    "CONSUME": "[AQ] CONSUME fighter=ICE weapon=ZBROYAR_Z15 reason=sequence-complete"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=10 x=365 y=328 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=12 weapon=SHOTGUN eta=0.52 lead=2.00 fighter=DRUM force=false",
+    "PICKUP": "[AQ] PICKUP id=7 fighter=ICE weapon=ZBROYAR_Z15_S2",
+    "USE": "[AQ] USE fighter=ICE weapon=ZBROYAR_Z15_S2",
+    "HIT": "[AQ] HIT source=ICE target=DRUM weapon=SMG damage=2.3",
+    "CONSUME": "[AQ] CONSUME fighter=ICE weapon=SMG reason=sequence-complete"
   },
   "rev2PerfPass1": {
     "api": true,
     "globalApi": true,
     "buildsA": 1,
-    "drawsA": 147,
+    "drawsA": 144,
     "buildsB": 1,
-    "drawsB": 148,
-    "hitsB": 147,
+    "drawsB": 145,
+    "hitsB": 144,
     "usedCache": true,
     "afterSink": 0,
     "skillWrites": 11,
@@ -2372,17 +2483,17 @@
     ],
     "peaks": {
       "slots": 7,
-      "particles": 324,
-      "shockwaves": 6,
-      "aqProjectiles": 13,
+      "particles": 233,
+      "shockwaves": 4,
+      "aqProjectiles": 14,
       "projectiles": 14,
-      "arsenalVfx": 18,
+      "arsenalVfx": 21,
       "detachedWeapons": 2
     },
     "size": 1000
   },
   "rev2Feel": {
-    "stamps": 847,
+    "stamps": 842,
     "miss": "MISS",
     "sgReady": {
       "weapon": "SHOTGUN",
@@ -2394,13 +2505,28 @@
       "cue": "pickup_sniper",
       "rel": "sfx/feel/pickup_sniper.wav"
     },
-    "healBlocked": true,
+    "healEnabled": true,
+    "restores": [
+      10,
+      18,
+      28,
+      40,
+      55
+    ],
+    "pal": "#FF5A36",
+    "organic": 8536,
     "casingKey": true
   },
+  "healPlay": {
+    "noneAtFull": 0,
+    "spawned": 1,
+    "hp": 78,
+    "id": "HEAL_H2"
+  },
   "smoothRarity": {
-    "builds": 11,
-    "draws": 31,
-    "hits": 20
+    "builds": 12,
+    "draws": 16,
+    "hits": 4
   },
   "bothUnarmed": {
     "afterImmediate": 1,
@@ -2442,8 +2568,8 @@
     "sup2": 0
   },
   "summary": {
-    "total": 111,
-    "passed": 111,
+    "total": 115,
+    "passed": 115,
     "failed": []
   }
 }
