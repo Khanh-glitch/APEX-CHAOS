@@ -44,6 +44,55 @@
   const HERO_TYPE = makeArsenalFighterType('HERO', CFG.HERO_COLOR, 1, 0.55);
   const RIVAL_TYPE = makeArsenalFighterType('RIVAL', CFG.RIVAL_COLOR, -1, -0.55);
 
+  const AQ_PERF = {
+    sections: {},
+    peaks: {},
+    chamber: { builds: 0, draws: 0, hits: 0, size: 0, usedCacheLast: false },
+    hud: { skillWrites: 0, winWrites: 0, debugWrites: 0 },
+  };
+  function aqPerfMark(name, ms) {
+    const s = AQ_PERF.sections[name] || (AQ_PERF.sections[name] = { n: 0, sum: 0, max: 0 });
+    s.n += 1;
+    s.sum += ms;
+    if (ms > s.max) s.max = ms;
+  }
+  function aqPerfPeak(name, value) {
+    const v = value || 0;
+    if (v > (AQ_PERF.peaks[name] || 0)) AQ_PERF.peaks[name] = v;
+  }
+  function aqPerfSampleCounts() {
+    const av = window.APEX_ARSENAL_AV;
+    const slots = (AQ.state && AQ.state.slots) || [];
+    let aqProj = 0;
+    for (const p of (typeof projectiles !== 'undefined' && projectiles) || []) if (p && p.aq) aqProj += 1;
+    aqPerfPeak('slots', slots.length);
+    aqPerfPeak('aqProjectiles', aqProj);
+    aqPerfPeak('projectiles', (typeof projectiles !== 'undefined' && projectiles.length) || 0);
+    aqPerfPeak('particles', (typeof particles !== 'undefined' && particles.length) || 0);
+    aqPerfPeak('floatingTexts', (typeof floatingTexts !== 'undefined' && floatingTexts.length) || 0);
+    aqPerfPeak('shockwaves', (typeof shockwaves !== 'undefined' && shockwaves.length) || 0);
+    aqPerfPeak('arsenalVfx', av && av.activeVfx ? av.activeVfx() : 0);
+    aqPerfPeak('detachedWeapons', (AQ.state && AQ.state.detachedWeapons && AQ.state.detachedWeapons.length) || 0);
+  }
+  function aqPerfSectionSummary() {
+    const out = {};
+    for (const [k, s] of Object.entries(AQ_PERF.sections)) {
+      out[k] = { n: s.n, avgMs: s.n ? +(s.sum / s.n).toFixed(3) : 0, maxMs: +s.max.toFixed(3) };
+    }
+    return out;
+  }
+  window.apexArsenalPerfSummary = function apexArsenalPerfSummary() {
+    const global = (typeof window.apexPerfReport === 'function') ? window.apexPerfReport() : null;
+    return {
+      frames: global && global.frames,
+      longTasks: global && global.longTasks && { count: global.longTasks.count, slowest: global.longTasks.slowest && global.longTasks.slowest[0] },
+      sections: aqPerfSectionSummary(),
+      peaks: Object.assign({}, AQ_PERF.peaks),
+      chamber: Object.assign({}, AQ_PERF.chamber),
+      hud: Object.assign({}, AQ_PERF.hud),
+    };
+  };
+
   function resetState() {
     const state = {
       active: true,
@@ -145,7 +194,10 @@
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.tick(dt);
     // Presentation decay over the shared engine collections.
     for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.update(dt); if (p.life <= 0) particles.splice(i, 1); }
-    for (let i = floatingTexts.length - 1; i >= 0; i--) { const t = floatingTexts[i]; t.update(dt); if (t.life <= 0) floatingTexts.splice(i, 1); }
+    // Pass 1: battlefield typography is muted in Arsenal. Native kits may still
+    // allocate FloatingText; sink them before update/draw so they incur no
+    // lifecycle cost. Other modes keep the legacy path.
+    if (floatingTexts.length) floatingTexts.length = 0;
     for (let i = shockwaves.length - 1; i >= 0; i--) { const s = shockwaves[i]; s.r += 420 * dt; s.alpha = Math.max(0, 1 - s.r / s.maxR); if (s.alpha <= 0) shockwaves.splice(i, 1); }
     if (arenaFlash.a > 0) arenaFlash.a = Math.max(0, arenaFlash.a - dt * 1.6);
     if (cameraShake > 0) cameraShake = Math.max(0, cameraShake - dt * 22);
@@ -162,8 +214,11 @@
   }
 
   function updateArsenalQuest(dt) {
+    const t0 = performance.now();
     if (hitStop > 0) { hitStop -= dt; dt *= 0.1; }
     stepSimulation(dt);
+    aqPerfMark('simulation', performance.now() - t0);
+    aqPerfSampleCounts();
   }
 
   // -------------------------------------------------------------------------
@@ -182,8 +237,12 @@
 
   drawBackground = function (c) {
     if (gameState === 'ARSENAL') {
+      const t0 = performance.now();
       drawChamber01(c); // Arsenal-only arena; global Apex background untouched
+      const t1 = performance.now();
       SPAWN.drawSlots(c);
+      aqPerfMark('pickupDraw', performance.now() - t1);
+      aqPerfMark('background', performance.now() - t0);
       return;
     }
     baseDrawBackground(c);
@@ -194,8 +253,18 @@
   // restrained range grid, sparse ticks/zone marks, industrial wall panels,
   // neutral pickup floor. Low contrast, no bright lanes, no center obstacle.
   // ---------------------------------------------------------------------------
-  function drawChamber01(c) {
-    const S = GAME_SIZE;
+  let chamberCache = null;
+  let chamberCacheSize = 0;
+  function makeChamberSurface(S) {
+    if (typeof OffscreenCanvas !== 'undefined') {
+      try { return new OffscreenCanvas(S, S); } catch (e) { /* fall through */ }
+    }
+    const el = document.createElement('canvas');
+    el.width = S;
+    el.height = S;
+    return el;
+  }
+  function paintChamber01(c, S) {
     c.save();
     // Base graphite with subtle material variation.
     c.fillStyle = '#17181c';
@@ -263,6 +332,26 @@
     // POST-C §8: chamber identity is the graphite room itself — no title plate.
     c.restore();
   }
+  function drawChamber01(c) {
+    const S = GAME_SIZE;
+    const t0 = performance.now();
+    let usedCache = true;
+    if (!chamberCache || chamberCacheSize !== S) {
+      const surface = makeChamberSurface(S);
+      const sc = surface.getContext('2d');
+      paintChamber01(sc, S);
+      chamberCache = surface;
+      chamberCacheSize = S;
+      AQ_PERF.chamber.builds += 1;
+      AQ_PERF.chamber.size = S;
+      usedCache = false;
+    }
+    c.drawImage(chamberCache, 0, 0);
+    AQ_PERF.chamber.draws += 1;
+    if (usedCache) AQ_PERF.chamber.hits += 1;
+    AQ_PERF.chamber.usedCacheLast = usedCache;
+    aqPerfMark('chamber', performance.now() - t0);
+  }
 
   drawProjectiles = function (c) {
     if (gameState === 'ARSENAL') weaponApi.drawArsenalProjectiles(c);
@@ -298,29 +387,24 @@
     }
   }
 
-  function syncSkillHud(el, state) {
-    let box = document.getElementById('aq-skill-hud');
-    if (!state || !state.active) {
-      if (box) box.style.display = 'none';
-      return;
-    }
-    if (!box) {
-      box = document.createElement('div');
-      box.id = 'aq-skill-hud';
-      box.style.cssText = 'position:absolute;left:12px;top:8px;pointer-events:none;color:#efe6c8;font:800 13px monospace;background:rgba(8,8,12,0.55);padding:6px 10px;border:1px solid rgba(180,170,140,0.35);';
-      el.appendChild(box);
-    }
-    box.style.display = 'block';
+  const hudRefs = { root: null, hint: null, skill: null, win: null, dbg: null };
+  const hudLast = {
+    hintDisplay: null, skillText: null, skillVis: null, skillAt: 0,
+    winKey: null, debugText: null, debugOn: false, debugAt: 0,
+  };
+  function skillHudText(state) {
     const f = typeof fighters !== 'undefined' && fighters[0];
     const gate = window.APEX_ARSENAL_SKILL_GATE;
     const snap = gate && f ? gate.snapshot(f) : null;
-    const slots = (state.slots || []).filter((s) => s && s.phase === 'REVEALED');
+    let revealed = 0;
+    const slots = state.slots || [];
+    for (let i = 0; i < slots.length; i++) if (slots[i] && slots[i].phase === 'REVEALED') revealed += 1;
     const lines = [];
     if (snap && snap.shell === 'NEWBIE') {
       const cd = f && f.data ? f.data.nbCd : 0;
       let text = 'J · —';
       if (cd > 0.05) text = 'J · ' + cd.toFixed(1) + 's';
-      else if (slots.length) text = 'J · READY';
+      else if (revealed) text = 'J · READY';
       lines.push(text);
     } else if (snap && snap.keys && snap.keys.length) {
       for (const k of snap.keys) {
@@ -331,11 +415,41 @@
         else lines.push(label + ' · READY');
       }
     }
-    box.textContent = lines.join('  |  ') || '';
-    box.style.visibility = lines.length ? 'visible' : 'hidden';
+    return lines.join('  |  ');
+  }
+  function syncSkillHud(el, state, now, force) {
+    if (!state || !state.active) {
+      if (hudRefs.skill && hudLast.skillVis !== 'hidden-off') {
+        hudRefs.skill.style.display = 'none';
+        hudLast.skillVis = 'hidden-off';
+      }
+      return;
+    }
+    if (!force && now - hudLast.skillAt < 100) return;
+    hudLast.skillAt = now;
+    if (!hudRefs.skill) {
+      const box = document.createElement('div');
+      box.id = 'aq-skill-hud';
+      box.style.cssText = 'position:absolute;left:12px;top:8px;pointer-events:none;color:#efe6c8;font:800 13px monospace;background:rgba(8,8,12,0.55);padding:6px 10px;border:1px solid rgba(180,170,140,0.35);';
+      el.appendChild(box);
+      hudRefs.skill = box;
+    }
+    if (hudLast.skillVis !== 'block') {
+      hudRefs.skill.style.display = 'block';
+      hudLast.skillVis = 'block';
+    }
+    const text = skillHudText(state);
+    if (text !== hudLast.skillText) {
+      hudRefs.skill.textContent = text;
+      hudLast.skillText = text;
+      AQ_PERF.hud.skillWrites += 1;
+    }
+    const vis = text ? 'visible' : 'hidden';
+    if (hudRefs.skill.style.visibility !== vis) hudRefs.skill.style.visibility = vis;
   }
 
   function hudRoot() {
+    if (hudRefs.root && hudRefs.root.isConnected) return hudRefs.root;
     let el = document.getElementById('aq-dom-hud');
     if (!el) {
       el = document.createElement('div');
@@ -343,81 +457,127 @@
       el.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:40;font-family:monospace;';
       (document.getElementById('game-wrap') || document.body).appendChild(el);
     }
+    hudRefs.root = el;
     return el;
   }
-  function syncDomHud() {
+  function syncDomHud(force) {
+    const t0 = performance.now();
     const state = AQ.state;
     const el = hudRoot();
-    const hint = document.getElementById('aq-hint') || (() => {
-      const n = document.createElement('div');
-      n.id = 'aq-hint';
-      n.style.cssText = 'position:absolute;left:0;right:0;bottom:12px;text-align:center;color:rgba(232,224,200,0.9);font-weight:800;font-size:14px;';
-      n.textContent = 'ARSENAL QUEST — F3 debug · T rematch · B/ESC menu';
-      el.appendChild(n);
-      return n;
-    })();
-    hint.style.display = (state && state.active) ? 'block' : 'none';
-    syncSkillHud(el, state);
-    let win = document.getElementById('aq-win');
-    if (state && state.over) {
-      if (!win) {
-        win = document.createElement('div');
-        win.id = 'aq-win';
-        win.style.cssText = 'position:absolute;left:0;right:0;top:32%;text-align:center;color:#efe6c8;pointer-events:auto;z-index:50;';
-        el.appendChild(win);
+    const now = t0;
+    if (!hudRefs.hint) {
+      let hint = document.getElementById('aq-hint');
+      if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'aq-hint';
+        hint.style.cssText = 'position:absolute;left:0;right:0;bottom:12px;text-align:center;color:rgba(232,224,200,0.9);font-weight:800;font-size:14px;';
+        hint.textContent = 'ARSENAL QUEST — F3 debug · T rematch · B/ESC menu';
+        el.appendChild(hint);
       }
+      hudRefs.hint = hint;
+    }
+    const hintDisplay = (state && state.active) ? 'block' : 'none';
+    if (hudLast.hintDisplay !== hintDisplay) {
+      hudRefs.hint.style.display = hintDisplay;
+      hudLast.hintDisplay = hintDisplay;
+    }
+    syncSkillHud(el, state, now, !!force || !!(state && state.over && hudLast.winKey == null));
+    let win = hudRefs.win || document.getElementById('aq-win');
+    if (state && state.over) {
       const Q = window.APEX_ARSENAL_QUEST;
       const spec = Q && Q.resultActions ? Q.resultActions(state) : { mode: 'freeplay', actions: ['REMATCH', 'MENU'] };
-      const title = `<div style="font:900 56px Segoe UI">${state.over} WINS</div>`;
-      const btn = (id, label) => `<button data-aq-act="${id}" style="margin:8px;padding:10px 16px;font:800 16px monospace;pointer-events:auto;cursor:pointer;">${label}</button>`;
-      if (spec.mode === 'quest-win' || spec.mode === 'quest-loss') {
-        win.innerHTML = title + `<div id="aq-quest-actions" style="margin-top:12px">${spec.actions.map((a) => btn(a, a)).join('')}</div>`;
-        win.onclick = (e) => {
-          const act = e.target && e.target.getAttribute && e.target.getAttribute('data-aq-act');
-          if (!act) return;
-          if (act === 'NEXT' && Q.nextStage) Q.nextStage();
-          else if ((act === 'REPLAY' || act === 'RETRY') && Q.replay) Q.replay();
-          else if (act === 'QUEST MAP' && Q.returnToMap) Q.returnToMap();
-        };
-      } else {
-        win.innerHTML = title + `<div style="font:800 22px monospace;margin-top:8px">T — REMATCH      B — MENU</div>`;
-        win.onclick = null;
+      const winKey = state.over + '|' + spec.mode + '|' + (spec.actions || []).join(',');
+      if (hudLast.winKey !== winKey) {
+        if (!win) {
+          win = document.createElement('div');
+          win.id = 'aq-win';
+          win.style.cssText = 'position:absolute;left:0;right:0;top:32%;text-align:center;color:#efe6c8;pointer-events:auto;z-index:50;';
+          el.appendChild(win);
+        }
+        hudRefs.win = win;
+        const title = '<div style="font:900 56px Segoe UI">' + state.over + ' WINS</div>';
+        const btn = (id, label) => '<button data-aq-act="' + id + '" style="margin:8px;padding:10px 16px;font:800 16px monospace;pointer-events:auto;cursor:pointer;">' + label + '</button>';
+        if (spec.mode === 'quest-win' || spec.mode === 'quest-loss') {
+          win.innerHTML = title + '<div id="aq-quest-actions" style="margin-top:12px">' + spec.actions.map((a) => btn(a, a)).join('') + '</div>';
+          win.onclick = (e) => {
+            const act = e.target && e.target.getAttribute && e.target.getAttribute('data-aq-act');
+            if (!act) return;
+            if (act === 'NEXT' && Q.nextStage) Q.nextStage();
+            else if ((act === 'REPLAY' || act === 'RETRY') && Q.replay) Q.replay();
+            else if (act === 'QUEST MAP' && Q.returnToMap) Q.returnToMap();
+          };
+        } else {
+          win.innerHTML = title + '<div style="font:800 22px monospace;margin-top:8px">T — REMATCH      B — MENU</div>';
+          win.onclick = null;
+        }
+        hudLast.winKey = winKey;
+        AQ_PERF.hud.winWrites += 1;
       }
-    } else if (win) win.remove();
-    let dbg = document.getElementById('aq-debug');
-    if (state && state.debugOverlay) {
+    } else if (win) {
+      win.remove();
+      hudRefs.win = null;
+      hudLast.winKey = null;
+    }
+    const wantDebug = !!(state && state.debugOverlay);
+    if (wantDebug !== hudLast.debugOn) {
+      hudLast.debugOn = wantDebug;
+      hudLast.debugAt = 0;
+    }
+    if (wantDebug) {
+      if (!force && now - hudLast.debugAt < 100 && hudRefs.dbg) {
+        aqPerfMark('hud', performance.now() - t0);
+        return;
+      }
+      hudLast.debugAt = now;
       const s = window.getArsenalQuestDebugState();
-      if (!dbg) {
-        dbg = document.createElement('div');
+      if (!hudRefs.dbg) {
+        const dbg = document.createElement('div');
         dbg.id = 'aq-debug';
         dbg.style.cssText = 'position:absolute;left:16px;top:96px;padding:12px;background:rgba(6,6,10,0.78);color:#d8d2c0;font:700 14px monospace;white-space:pre;border:2px solid #6d8f4e;';
         el.appendChild(dbg);
+        hudRefs.dbg = dbg;
       }
-      dbg.textContent = [
+      const text = [
         'ARSENAL QUEST DEBUG',
-        `spawn in: ${s.spawnIn.toFixed(1)}s`,
-        `active slots: ${s.activeSlots}`,
-        `telegraphs: ${s.telegraphs}`,
-        `revealed: ${s.revealed}`,
-        `${s.hero ? s.hero.name : 'P1'}  HP ${s.hero ? s.hero.hp : 0}/${CFG.MATCH_HP}   weapon: ${s.hero ? s.hero.weapon : 'NONE'}`,
-        `${s.rival ? s.rival.name : 'P2'} HP ${s.rival ? s.rival.hp : 0}/${CFG.MATCH_HP}   weapon: ${s.rival ? s.rival.weapon : 'NONE'}`,
+        'spawn in: ' + s.spawnIn.toFixed(1) + 's',
+        'active slots: ' + s.activeSlots,
+        'telegraphs: ' + s.telegraphs,
+        'revealed: ' + s.revealed,
+        (s.hero ? s.hero.name : 'P1') + '  HP ' + (s.hero ? s.hero.hp : 0) + '/' + CFG.MATCH_HP + '   weapon: ' + (s.hero ? s.hero.weapon : 'NONE'),
+        (s.rival ? s.rival.name : 'P2') + ' HP ' + (s.rival ? s.rival.hp : 0) + '/' + CFG.MATCH_HP + '   weapon: ' + (s.rival ? s.rival.weapon : 'NONE'),
       ].join('\n');
-    } else if (dbg) dbg.remove();
+      if (text !== hudLast.debugText) {
+        hudRefs.dbg.textContent = text;
+        hudLast.debugText = text;
+        AQ_PERF.hud.debugWrites += 1;
+      }
+    } else if (hudRefs.dbg) {
+      hudRefs.dbg.remove();
+      hudRefs.dbg = null;
+      hudLast.debugText = null;
+    }
+    aqPerfMark('hud', performance.now() - t0);
   }
 
   function drawForeground() {
+    const t0 = performance.now();
     const view = window.__apexCameraView || { shakeX: 0, shakeY: 0, zoom: 1 };
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.translate(GAME_SIZE / 2 + view.shakeX, GAME_SIZE / 2 + view.shakeY);
     ctx.scale(view.zoom, view.zoom);
     ctx.translate(-GAME_SIZE / 2, -GAME_SIZE / 2);
+    const tEq = performance.now();
     drawEquippedWeapons(ctx);
     weaponApi.drawArsenalVisuals(ctx);
+    aqPerfMark('foreground', performance.now() - tEq);
+    const tVfx = performance.now();
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.draw(ctx);
+    aqPerfMark('arsenalVfxDraw', performance.now() - tVfx);
     drawHolderTags(ctx);
     ctx.restore();
     syncDomHud();
+    aqPerfMark('foregroundTotal', performance.now() - t0);
   }
 
   // POST-C §8: mute typographic fill/stroke on the battlefield canvas while
@@ -433,9 +593,11 @@
 
   draw = function () {
     if (gameState !== 'ARSENAL') { baseDraw(); return; }
+    const t0 = performance.now();
     const restore = muteArenaGlyphs(ctx);
     try { baseDraw(); } finally { restore(); }
     drawForeground();
+    aqPerfMark('arsenalFrame', performance.now() - t0);
   };
 
   // -------------------------------------------------------------------------

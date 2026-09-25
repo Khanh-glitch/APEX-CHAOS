@@ -1303,6 +1303,62 @@ try {
   })()`);
   gate('structured-aq-events', Object.values(report.logSample).every(Boolean), report.logSample);
 
+
+  report.rev2PerfPass1 = await evaluate(`(() => {
+    if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+    const c = document.createElement('canvas').getContext('2d');
+    const api = typeof apexArsenalPerfSummary === 'function';
+    const globalApi = typeof apexPerfSummary === 'function';
+    drawBackground(c);
+    const a = apexArsenalPerfSummary();
+    drawBackground(c);
+    const b = apexArsenalPerfSummary();
+    floatingTexts.push({ life: 1, update() { this.life -= 1; }, draw() {} });
+    APEX_ARSENAL.step(1/60);
+    const afterSink = floatingTexts.length;
+    APEX_ARSENAL.state.debugOverlay = true;
+    for (let i = 0; i < 12; i++) { if (typeof draw === 'function') draw(); }
+    const hud = apexArsenalPerfSummary();
+    const winWritesBefore = hud.hud.winWrites;
+    fighters[1].hp = 0;
+    APEX_ARSENAL.step(1/60);
+    if (typeof draw === 'function') { draw(); draw(); draw(); }
+    const afterWin = apexArsenalPerfSummary();
+    return {
+      api, globalApi,
+      buildsA: a.chamber.builds, drawsA: a.chamber.draws,
+      buildsB: b.chamber.builds, drawsB: b.chamber.draws, hitsB: b.chamber.hits, usedCache: b.chamber.usedCacheLast,
+      afterSink,
+      skillWrites: hud.hud.skillWrites,
+      debugWrites: hud.hud.debugWrites,
+      winWrites: afterWin.hud.winWrites,
+      winWritesBefore,
+      sections: Object.keys(hud.sections || {}).sort(),
+      peaks: hud.peaks,
+      size: b.chamber.size,
+    };
+  })()`);
+  gate('rev2-perf-pass1-api',
+    report.rev2PerfPass1.api === true,
+    report.rev2PerfPass1);
+  gate('rev2-perf-pass1-chamber-cache',
+    report.rev2PerfPass1.buildsB === report.rev2PerfPass1.buildsA
+    && report.rev2PerfPass1.drawsB > report.rev2PerfPass1.drawsA
+    && report.rev2PerfPass1.usedCache === true
+    && report.rev2PerfPass1.hitsB >= 1,
+    report.rev2PerfPass1);
+  gate('rev2-perf-pass1-floating-text-sink',
+    report.rev2PerfPass1.afterSink === 0,
+    report.rev2PerfPass1);
+  gate('rev2-perf-pass1-hud-win-once',
+    report.rev2PerfPass1.winWrites === report.rev2PerfPass1.winWritesBefore + 1,
+    report.rev2PerfPass1);
+  gate('rev2-perf-pass1-sections',
+    report.rev2PerfPass1.sections.indexOf('chamber') >= 0
+    && report.rev2PerfPass1.sections.indexOf('hud') >= 0
+    && report.rev2PerfPass1.sections.indexOf('simulation') >= 0,
+    report.rev2PerfPass1.sections);
+
   // ------------------------------------------------------------ summary ----
   report.summary = {
     total: Object.keys(report.gates).length,
