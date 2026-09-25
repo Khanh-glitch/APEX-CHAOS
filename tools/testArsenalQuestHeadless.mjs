@@ -2321,7 +2321,8 @@ report.rev2Feel = run(`
   APEX_ARSENAL_AV.tick(1.0);
   const lands2 = av.stats.casingLands || 0;
   const heals = feel.heals;
-  const healBlocked = feel.healGameplayEnabled === false && heals.every(h => h.restore == null);
+  const healEnabled = feel.healGameplayEnabled === true && heals.every(h => h.restore > 0);
+  const dmgPal = feel.palettes && feel.palettes.dmg && feel.palettes.dmg.fill;
   return {
     feelReady: !!feel,
     stampsGrew: stamps1 === stamps0 + 1,
@@ -2333,7 +2334,8 @@ report.rev2Feel = run(`
     atlasSrc: '/assets/arsenal/feel/damage/damage1.png',
     healFiles: heals.map(h => h.file),
     lands0, landsMid, lands1, lands2, lastCasing: av.stats.lastCasingLand,
-    healBlocked, healIds: heals.map(h => h.id),
+    healEnabled, healIds: heals.map(h => h.id), healRestores: heals.map(h => h.restore),
+    organic: feel.stats.organicMaskStamps, dmgPal, lastPalette: feel.stats.lastPopupPalette,
     floating: floatingTexts.length,
   };
 `);
@@ -2371,7 +2373,10 @@ gate('feel-heal-runtime-files',
   report.rev2Feel.healFiles && report.rev2Feel.healFiles.length === 5
   && report.rev2Feel.healFiles.every(f => String(f).indexOf('/heals/runtime/') >= 0),
   report.rev2Feel.healFiles);
-gate('feel-heal-values-blocked', report.rev2Feel.healBlocked === true && report.rev2Feel.healIds.length === 5, report.rev2Feel);
+gate('feel-heal-values-authorized', report.rev2Feel.healEnabled === true
+  && JSON.stringify(report.rev2Feel.healRestores) === JSON.stringify([10, 18, 28, 40, 55]), report.rev2Feel);
+gate('feel-splatter-organic-mask', report.rev2Feel.organic >= 1, report.rev2Feel);
+gate('feel-damage-palette-vermilion', report.rev2Feel.dmgPal === '#FF5A36', report.rev2Feel);
 gate('feel-floating-text-still-sunk', report.rev2Feel.floating === 0, report.rev2Feel);
 
 
@@ -2392,6 +2397,48 @@ report.smoothRarity = run(`
   return { b0, b1, b2, d, h, reuse: h > 0 && b2 <= b1 + 8 };
 `);
 gate('smooth-rarity-cache-reuse', report.smoothRarity.reuse === true && report.smoothRarity.h >= 1, report.smoothRarity);
+
+report.healPlay = run(`
+  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  const st = APEX_ARSENAL.state;
+  const S = APEX_ARSENAL_SPAWN;
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.clearSlots();
+  st.healCooldown = 0;
+  st.forceHealId = 'HEAL_H3';
+  fighters[0].hp = 100; fighters[1].hp = 100;
+  S.updateSlots(0.05);
+  const noneAtFull = st.slots.filter(s => s.kind === 'HEAL').length;
+  fighters[0].hp = 70;
+  S.updateSlots(0.05);
+  const heals = st.slots.filter(s => s.kind === 'HEAL' && s.phase === 'REVEALED');
+  const offCap = st.slots.filter(s => s.phase !== 'REMOVED' && s.kind !== 'HEAL').length;
+  const slot = heals[0];
+  fighters[0].x = 80; fighters[0].y = 80;
+  fighters[1].hp = 100;
+  fighters[1].x = slot.x; fighters[1].y = slot.y;
+  S.resolvePickups();
+  const still = st.slots.filter(s => s.kind === 'HEAL' && s.phase === 'REVEALED').length;
+  const hpFull = fighters[1].hp;
+  fighters[0].x = slot.x; fighters[0].y = slot.y;
+  S.resolvePickups();
+  const hpAfter = fighters[0].hp;
+  const pops = APEX_ARSENAL_FEEL.livePopups().filter(p => p.kind === 'heal').map(p => p.text);
+  const cd = st.healCooldown;
+  st.forceHealId = 'HEAL_H1';
+  S.updateSlots(0.05);
+  const noSecond = st.slots.filter(s => s.kind === 'HEAL' && s.phase !== 'REMOVED').length;
+  return {
+    noneAtFull, spawned: heals.length, healId: slot && slot.weaponId, offCap,
+    still, hpFull, hpAfter, pops, cd, noSecond, organic: APEX_ARSENAL_FEEL.stats.organicMaskStamps,
+  };
+`);
+gate('heal-no-spawn-at-full', report.healPlay.noneAtFull === 0, report.healPlay);
+gate('heal-spawns-when-injured', report.healPlay.spawned === 1 && report.healPlay.healId === 'HEAL_H3', report.healPlay);
+gate('heal-does-not-consume-offensive-cap', report.healPlay.offCap === 0, report.healPlay);
+gate('heal-full-health-cannot-consume', report.healPlay.still === 1 && report.healPlay.hpFull === 100, report.healPlay);
+gate('heal-clamped-restore-and-popup', report.healPlay.hpAfter === 98 && report.healPlay.pops.indexOf('+28') >= 0, report.healPlay);
+gate('heal-cooldown-blocks-second', report.healPlay.cd > 8 && report.healPlay.noSecond === 0, report.healPlay);
 
 
 report.bothUnarmed = run(`

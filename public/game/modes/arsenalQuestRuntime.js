@@ -109,6 +109,8 @@
       unarmedFastConsumed: false,
       unarmedFastPending: false,
       spawnHeld: false,
+      healCooldown: 0,
+      forceHealId: null,
       slots: [],
       visuals: [],
       detachedWeapons: [],
@@ -194,7 +196,7 @@
         state.unarmedFastPending = false;
       } else if (!state.spawnHeld && !state.unarmedFastConsumed) {
         const cap = CFG.MAX_ACTIVE_SLOTS;
-        const active = (state.slots || []).filter((s) => s.phase !== 'REMOVED').length;
+        const active = (state.slots || []).filter((s) => s.phase !== 'REMOVED' && s.kind !== 'HEAL').length;
         if (active >= cap) {
           // Cap: keep the episode pending. Do not consume, do not reset the
           // timer, and do not call trySpawnSlot (avoids per-frame suppress logs).

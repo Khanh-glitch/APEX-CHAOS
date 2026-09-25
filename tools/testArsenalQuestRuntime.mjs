@@ -1375,7 +1375,10 @@ try {
       stamps: feel.stats.stamps,
       miss: miss[0] && miss[0].text,
       sgReady, snReady,
-      healBlocked: feel.healGameplayEnabled === false,
+      healEnabled: feel.healGameplayEnabled === true,
+      restores: feel.heals.map(h => h.restore),
+      pal: feel.palettes && feel.palettes.dmg && feel.palettes.dmg.fill,
+      organic: feel.stats.organicMaskStamps,
       casingKey: !!(av.stats && true),
     };
   })()`);
@@ -1383,6 +1386,31 @@ try {
   gate('feel-miss-text-only', report.rev2Feel.miss === 'MISS', report.rev2Feel);
   gate('feel-shotgun-pickup-real-file', report.rev2Feel.sgReady && report.rev2Feel.sgReady.cue === 'pickup_shotgun', report.rev2Feel.sgReady);
   gate('feel-sniper-pickup-chamber', report.rev2Feel.snReady && report.rev2Feel.snReady.cue === 'pickup_sniper', report.rev2Feel.snReady);
+  gate('feel-heal-values-authorized', report.rev2Feel.healEnabled === true
+    && JSON.stringify(report.rev2Feel.restores) === JSON.stringify([10, 18, 28, 40, 55]), report.rev2Feel);
+  gate('feel-splatter-organic-mask', report.rev2Feel.organic >= 1, report.rev2Feel);
+  gate('feel-damage-palette-vermilion', report.rev2Feel.pal === '#FF5A36', report.rev2Feel);
+
+  report.healPlay = await evaluate(`(() => {
+    const st = APEX_ARSENAL.state;
+    const S = APEX_ARSENAL_SPAWN;
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.clearSlots();
+    st.healCooldown = 0;
+    st.forceHealId = 'HEAL_H2';
+    fighters[0].hp = 100; fighters[1].hp = 100;
+    S.updateSlots(0.05);
+    const noneAtFull = st.slots.filter(s => s.kind === 'HEAL').length;
+    fighters[0].hp = 60;
+    S.updateSlots(0.05);
+    const heals = st.slots.filter(s => s.kind === 'HEAL' && s.phase === 'REVEALED');
+    const slot = heals[0];
+    fighters[0].x = slot.x; fighters[0].y = slot.y;
+    S.resolvePickups();
+    return { noneAtFull, spawned: heals.length, hp: fighters[0].hp, id: slot && slot.weaponId };
+  })()`);
+  gate('heal-spawns-when-injured', report.healPlay.noneAtFull === 0 && report.healPlay.spawned === 1
+    && report.healPlay.id === 'HEAL_H2' && report.healPlay.hp === 78, report.healPlay);
 
   report.smoothRarity = await evaluate(`(() => {
     const S = APEX_ARSENAL_SPAWN;

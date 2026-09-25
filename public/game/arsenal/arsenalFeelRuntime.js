@@ -34,8 +34,18 @@
     popupReuse: 0,
     resets: 0,
     atlasReady: false,
-    healRestoreBlocked: true,
+    healRestoreBlocked: false,
+    organicMaskStamps: 0,
+    ellipseCore: 0,
+    atlasVariant: {},
   };
+  const PALETTE = {
+    dmg: { fill: '#FF5A36', edge: '#4A1710' },
+    heavy: { fill: '#FFC247', edge: '#5A3A00' },
+    heal: { fill: '#38E07A', edge: '#0B4C2A' },
+    miss: { fill: '#465361', edge: '#E8EEF4' },
+  };
+  const tintedAtlas = { dmg: null, heavy: null, heal: null, miss: null };
 
   let stainCanvas = null;
   let stainCtx = null;
@@ -57,7 +67,39 @@
   }
   speckImg = loadImg(SPECK);
   atlasImg = loadImg(ATLAS_SRC);
-  atlasImg.onload = () => { stats.atlasReady = true; };
+  function buildTintedAtlas() {
+    if (!atlasImg || !atlasImg.complete || !atlasImg.naturalWidth) return;
+    const w = atlasImg.naturalWidth;
+    const h = atlasImg.naturalHeight;
+    for (const kind of Object.keys(PALETTE)) {
+      const cnv = document.createElement('canvas');
+      cnv.width = w; cnv.height = h;
+      const c = cnv.getContext('2d');
+      const pal = PALETTE[kind];
+      if (kind === 'miss') {
+        c.save();
+        c.shadowColor = pal.edge;
+        c.shadowBlur = 6;
+        c.drawImage(atlasImg, 0, 0);
+        c.restore();
+      } else {
+        c.drawImage(atlasImg, 1, 1);
+        c.globalCompositeOperation = 'source-atop';
+        c.fillStyle = pal.edge;
+        c.fillRect(0, 0, w, h);
+        c.globalCompositeOperation = 'source-over';
+        c.drawImage(atlasImg, 0, 0);
+      }
+      c.globalCompositeOperation = 'source-atop';
+      c.fillStyle = pal.fill;
+      c.fillRect(0, 0, w, h);
+      tintedAtlas[kind] = cnv;
+      stats.atlasVariant[kind] = pal.fill;
+    }
+    stats.atlasReady = true;
+  }
+  atlasImg.onload = () => { buildTintedAtlas(); };
+  if (atlasImg.complete) buildTintedAtlas();
 
   function ensureStain(size) {
     const S = size || (typeof GAME_SIZE !== 'undefined' ? GAME_SIZE : 1000);
@@ -120,48 +162,97 @@
     return p;
   }
 
+  let tintScratch = null;
+  function ensureSpeckFallback() {
+    if (speckImg && speckImg.complete && speckImg.naturalWidth) return speckImg;
+    if (ensureSpeckFallback._c) return ensureSpeckFallback._c;
+    const cnv = document.createElement('canvas');
+    cnv.width = 64; cnv.height = 64;
+    const g = cnv.getContext('2d');
+    g.clearRect(0, 0, 64, 64);
+    g.fillStyle = '#fff';
+    for (let i = 0; i < 28; i++) {
+      const x = 8 + Math.random() * 48;
+      const y = 8 + Math.random() * 48;
+      const rx = 2 + Math.random() * 9;
+      const ry = 2 + Math.random() * 6;
+      g.beginPath();
+      g.ellipse(x, y, rx, ry, Math.random() * 3, 0, Math.PI * 2);
+      g.fill();
+    }
+    ensureSpeckFallback._c = cnv;
+    return cnv;
+  }
+  function tintedSpeck(rgb, a) {
+    const src = ensureSpeckFallback();
+    if (!src) return null;
+    const sw = 96, sh = 96;
+    if (!tintScratch) {
+      tintScratch = document.createElement('canvas');
+      tintScratch.width = sw; tintScratch.height = sh;
+    }
+    const tc = tintScratch.getContext('2d');
+    tc.clearRect(0, 0, sw, sh);
+    tc.globalCompositeOperation = 'source-over';
+    tc.globalAlpha = 1;
+    tc.drawImage(src, 0, 0, sw, sh);
+    tc.globalCompositeOperation = 'source-atop';
+    tc.fillStyle = rgba(rgb, a);
+    tc.fillRect(0, 0, sw, sh);
+    tc.globalCompositeOperation = 'source-over';
+    return tintScratch;
+  }
+
+  function stampOrganic(c, ox, oy, sx, sy, rot, rgb, alpha) {
+    const src = tintedSpeck(rgb, alpha);
+    if (!src) return false;
+    c.save();
+    c.translate(ox, oy);
+    c.rotate(rot);
+    c.drawImage(src, -sx / 2, -sy / 2, sx, sy);
+    c.restore();
+    stats.organicMaskStamps += 1;
+    return true;
+  }
+
   function stampStain(x, y, dealt, victimRgb, dirx, diry, family) {
     const c = ensureStain();
     if (!c) return;
     const fp = footprint(dealt);
-    const main = darken(victimRgb, 0.68);
-    const core = darken(victimRgb, 0.48);
-    const edge = victimRgb;
-    const drops = family === 'SHOTGUN' ? 14 : family === 'PRECISION' ? 10 : family === 'AUTO' ? 8 : 7;
+    const main = darken(victimRgb, 0.62);
+    const core = darken(victimRgb, 0.42);
+    const wet = victimRgb;
+    const ang = Math.atan2(diry, dirx);
+    const fan = family === 'SHOTGUN' || family === 'BLAST' ? 1.35
+      : family === 'AUTO' ? 0.85
+      : family === 'MELEE' ? 0.55
+      : family === 'PRECISION' ? 0.45
+      : 0.7;
+    const stretch = family === 'PRECISION' ? 1.85
+      : family === 'MELEE' ? 1.45
+      : family === 'SHOTGUN' ? 1.15
+      : 1.05;
     c.save();
     c.translate(x, y);
-    const ang = Math.atan2(diry, dirx);
     c.rotate(ang);
-    c.globalCompositeOperation = 'source-over';
-    if (speckImg && speckImg.complete && speckImg.naturalWidth) {
-      c.save();
-      c.globalAlpha = 0.85;
-      c.drawImage(speckImg, -fp * 0.55, -fp * 0.45, fp * 1.1, fp * 0.9);
-      c.globalCompositeOperation = 'source-atop';
-      c.fillStyle = rgba(main, 0.9);
-      c.fillRect(-fp * 0.55, -fp * 0.45, fp * 1.1, fp * 0.9);
-      c.restore();
+    const used = stampOrganic(c, 0, 0, fp * stretch, fp * 0.78, (Math.random() - 0.5) * 0.4, main, 0.88);
+    stampOrganic(c, fp * 0.12, fp * 0.08, fp * 0.7, fp * 0.55, 0.7 + Math.random(), core, 0.7);
+    if (family === 'PRECISION' || family === 'MELEE') {
+      stampOrganic(c, fp * 0.55, 0, fp * stretch * 0.9, fp * 0.28, 0.15, main, 0.55);
     }
-    c.globalCompositeOperation = 'source-over';
-    c.fillStyle = rgba(core, 0.72);
-    c.beginPath();
-    c.ellipse(0, 0, fp * 0.38, fp * 0.22, 0, 0, Math.PI * 2);
-    c.fill();
-    const streak = family === 'PRECISION' ? fp * 1.15 : family === 'MELEE' ? fp * 0.7 : fp * 0.55;
-    c.fillStyle = rgba(main, 0.45);
-    c.beginPath();
-    c.ellipse(streak * 0.35, 0, streak * 0.55, fp * 0.08, 0, 0, Math.PI * 2);
-    c.fill();
-    for (let i = 0; i < drops; i++) {
-      const a = (Math.random() - 0.5) * (family === 'SHOTGUN' ? 1.6 : 0.9);
-      const dist = fp * (0.25 + Math.random() * 0.85);
-      const rr = 1.2 + Math.random() * (fp * 0.08);
-      c.fillStyle = rgba(i % 3 === 0 ? edge : main, 0.25 + Math.random() * 0.45);
-      c.beginPath();
-      c.arc(Math.cos(a) * dist, Math.sin(a) * dist * 0.55, rr, 0, Math.PI * 2);
-      c.fill();
+    const nDrop = family === 'SHOTGUN' || family === 'BLAST' ? 12
+      : family === 'AUTO' ? 9
+      : family === 'PRECISION' ? 8
+      : 6;
+    for (let i = 0; i < nDrop; i++) {
+      const a = (Math.random() - 0.5) * fan;
+      const dist = fp * (0.28 + Math.random() * (family === 'SHOTGUN' ? 1.15 : 0.8));
+      const sx = 4 + Math.random() * fp * 0.22;
+      const sy = 3 + Math.random() * fp * 0.12;
+      stampOrganic(c, Math.cos(a) * dist, Math.sin(a) * dist * 0.55, sx, sy, a, i % 2 ? wet : main, 0.35 + Math.random() * 0.4);
     }
     c.restore();
+    if (!used) stats.ellipseCore += 1;
     stats.stamps += 1;
   }
 
@@ -237,6 +328,7 @@
       : (wid && AUTO_IDS[wid]) ? 'AUTO'
       : /sniper|snipex|mbr/i.test(wid || label) ? 'PRECISION'
       : /melee|axe|sabre|dagger|spear|club/i.test(wid || label) ? 'MELEE'
+      : /grenade|blast/i.test(wid || label) ? 'BLAST'
       : 'SEMI';
     stats.splatters += 1;
     stampStain(victim.x, victim.y, dealt, rgb, dirx, diry, fam);
@@ -318,15 +410,21 @@
     return 0;
   }
   function drawAtlasText(c, text, x, y, kind, scale) {
-    const ready = atlasImg && atlasImg.complete && atlasImg.naturalWidth >= 240;
-    if (!ready) return false;
+    if (!stats.atlasReady) buildTintedAtlas();
+    const sheet = tintedAtlas[kind === 'heal' ? 'heal' : kind === 'heavy' ? 'heavy' : kind === 'miss' ? 'miss' : 'dmg']
+      || (atlasImg && atlasImg.complete ? atlasImg : null);
+    if (!sheet || (sheet.naturalWidth != null && sheet.naturalWidth < 240 && !tintedAtlas.dmg)) {
+      if (!(atlasImg && atlasImg.complete && atlasImg.naturalWidth >= 240)) return false;
+    }
+    const src = sheet && (sheet.width || sheet.naturalWidth) ? sheet : atlasImg;
+    if (!src) return false;
     stats.atlasDraws = (stats.atlasDraws || 0) + 1;
+    stats.lastPopupPalette = PALETTE[kind === 'heal' ? 'heal' : kind === 'heavy' ? 'heavy' : kind === 'miss' ? 'miss' : 'dmg'].fill;
     const s = 0.9 * (scale || 1);
     if (kind === 'miss') {
-      // Row 4 left cluster is the word MISS (~4 glyph cells).
       const w = ATLAS_COL * 4;
       const h = ATLAS_ROW;
-      c.drawImage(atlasImg, 0, ATLAS_ROW * 4, w, h, x - (w * s) / 2, y - (h * s) / 2, w * s, h * s);
+      c.drawImage(src, 0, ATLAS_ROW * 4, w, h, x - (w * s) / 2, y - (h * s) / 2, w * s, h * s);
       return true;
     }
     const row = atlasRowFor(kind);
@@ -336,9 +434,10 @@
     for (let i = 0; i < glyphs.length; i++) {
       const ch = glyphs[i];
       if (ch === '+') {
-        // plus is not on the sheet; skip glyph slot width of a thin mark
         c.save();
-        c.fillStyle = '#5dff7a';
+        c.fillStyle = PALETTE.heal.fill;
+        c.strokeStyle = PALETTE.heal.edge;
+        c.lineWidth = 2;
         c.fillRect(cx + 6 * s, y - 2 * s, 10 * s, 4 * s);
         c.fillRect(cx + 9 * s, y - 7 * s, 4 * s, 14 * s);
         c.restore();
@@ -347,7 +446,7 @@
       }
       const d = ch.charCodeAt(0) - 48;
       if (d < 0 || d > 9) { cx += ATLAS_COL * s; continue; }
-      c.drawImage(atlasImg, d * ATLAS_COL, row * ATLAS_ROW, ATLAS_COL, ATLAS_ROW,
+      c.drawImage(src, d * ATLAS_COL, row * ATLAS_ROW, ATLAS_COL, ATLAS_ROW,
         cx, y - (ATLAS_ROW * s) / 2, ATLAS_COL * s, ATLAS_ROW * s);
       cx += ATLAS_COL * s;
     }
@@ -383,11 +482,11 @@
   }
 
   const HEALS = [
-    { id: 'HEAL_H1', identity: 'Field Dressing', file: HEAL_FILES.HEAL_H1, master: HEAL_MASTERS.HEAL_H1, restore: null },
-    { id: 'HEAL_H2', identity: 'Medication', file: HEAL_FILES.HEAL_H2, master: HEAL_MASTERS.HEAL_H2, restore: null },
-    { id: 'HEAL_H3', identity: 'Auto-injector', file: HEAL_FILES.HEAL_H3, master: HEAL_MASTERS.HEAL_H3, restore: null },
-    { id: 'HEAL_H4', identity: 'IV / life-support pack', file: HEAL_FILES.HEAL_H4, master: HEAL_MASTERS.HEAL_H4, restore: null },
-    { id: 'HEAL_H5', identity: 'Trauma hard case', file: HEAL_FILES.HEAL_H5, master: HEAL_MASTERS.HEAL_H5, restore: null },
+    { id: 'HEAL_H1', identity: 'Field Dressing', file: HEAL_FILES.HEAL_H1, master: HEAL_MASTERS.HEAL_H1, restore: 10 },
+    { id: 'HEAL_H2', identity: 'Medication', file: HEAL_FILES.HEAL_H2, master: HEAL_MASTERS.HEAL_H2, restore: 18 },
+    { id: 'HEAL_H3', identity: 'Auto-injector', file: HEAL_FILES.HEAL_H3, master: HEAL_MASTERS.HEAL_H3, restore: 28 },
+    { id: 'HEAL_H4', identity: 'IV / life-support pack', file: HEAL_FILES.HEAL_H4, master: HEAL_MASTERS.HEAL_H4, restore: 40 },
+    { id: 'HEAL_H5', identity: 'Trauma hard case', file: HEAL_FILES.HEAL_H5, master: HEAL_MASTERS.HEAL_H5, restore: 55 },
   ];
   HEALS.forEach((h) => { h.img = loadImg(h.file); });
 
@@ -401,7 +500,9 @@
     ensureStain,
     stats,
     heals: HEALS,
-    healGameplayEnabled: false,
+    healGameplayEnabled: true,
+    palettes: PALETTE,
+    tintedAtlas,
     stainSurface() { return stainCanvas; },
     livePopups() { return popupLive; },
   };

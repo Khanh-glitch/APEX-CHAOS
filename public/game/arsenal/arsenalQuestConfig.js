@@ -250,6 +250,19 @@
   CONFIG.GUN_REGISTRY = GUN_REGISTRY;
   CONFIG.GUN_FAMILIES = GUN_FAMILIES;
 
+  // Owner-feedback heal support (independent of offensive 3.0s law).
+  CONFIG.HEAL_ELIGIBLE_HP = 80;
+  CONFIG.HEAL_MAX_ACTIVE = 1;
+  CONFIG.HEAL_SPAWN_COOLDOWN = 9.0;
+  CONFIG.HEAL_LIFETIME_SECONDS = 12;
+  CONFIG.HEAL_RESTORE = {
+    HEAL_H1: 10, HEAL_H2: 18, HEAL_H3: 28, HEAL_H4: 40, HEAL_H5: 55,
+  };
+  CONFIG.HEAL_WEIGHTS = {
+    HEAL_H1: 7, HEAL_H2: 5, HEAL_H3: 3, HEAL_H4: 2, HEAL_H5: 1,
+  };
+  CONFIG.HEAL_IDS = ['HEAL_H1', 'HEAL_H2', 'HEAL_H3', 'HEAL_H4', 'HEAL_H5'];
+
   // P0 roster order matches docs/arsenal-quest/P0_ASSET_MANIFEST.csv
   // Spawn roster (POST-C §3): all 24 staged Senko v9 guns are separately
   // spawnable, plus GRENADE, the 5 melee weapons and the 2 shields.

@@ -68,21 +68,26 @@ function frameSummary() {
   if (!values.length) return { samples: 0, avgMs: 0, p95Ms: 0, maxMs: 0, fps: 0, slowFrames: 0 };
   const total = values.reduce((sum, value) => sum + value, 0);
   const avgMs = total / values.length;
-  const buckets = { le16_7: 0, le20: 0, le33: 0, le50: 0, gt50: 0 };
+  const sorted = [...values].sort((a, b) => a - b);
+  const buckets = { le16_7: 0, gt16_7_20: 0, gt20_25: 0, gt25_33: 0, gt33_50: 0, gt50: 0 };
   for (const v of values) {
     if (v <= 16.7) buckets.le16_7 += 1;
-    else if (v <= 20) buckets.le20 += 1;
-    else if (v <= 33) buckets.le33 += 1;
-    else if (v <= 50) buckets.le50 += 1;
+    else if (v <= 20) buckets.gt16_7_20 += 1;
+    else if (v <= 25) buckets.gt20_25 += 1;
+    else if (v <= 33) buckets.gt25_33 += 1;
+    else if (v <= 50) buckets.gt33_50 += 1;
     else buckets.gt50 += 1;
   }
   const n = values.length || 1;
   const bucketPct = {};
   for (const k of Object.keys(buckets)) bucketPct[k] = round((buckets[k] / n) * 100, 1);
+  const medianMs = sorted[Math.floor(sorted.length / 2)];
   return {
     samples: values.length,
     avgMs: round(avgMs, 2),
+    medianMs: round(medianMs, 2),
     p95Ms: round(percentile(values, 0.95), 2),
+    p99Ms: round(percentile(values, 0.99), 2),
     maxMs: round(Math.max(...values), 2),
     fps: round(1000 / avgMs, 1),
     slowFrames: values.filter((value) => value > 20).length,

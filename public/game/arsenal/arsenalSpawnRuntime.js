@@ -105,7 +105,7 @@
   function trySpawnSlot() {
     const state = AQ.state;
     if (!state) return null;
-    const active = state.slots.filter(s => s.phase !== 'REMOVED');
+    const active = state.slots.filter(s => s.phase !== 'REMOVED' && s.kind !== 'HEAL');
     if (active.length >= CFG.MAX_ACTIVE_SLOTS) {
       state.suppressedSpawns += 1;
       log('SPAWN_SUPPRESSED', `active=${active.length} cap=${CFG.MAX_ACTIVE_SLOTS}`);
@@ -173,11 +173,71 @@
     window.avCue('reveal', { x: slot.x, y: slot.y, weapon: slot.weaponId });
   }
 
+  function selectHealId(rng) {
+    const random = typeof rng === 'function' ? rng : (AQ.rng || Math.random);
+    const state = AQ.state;
+    if (state && state.forceHealId) return state.forceHealId;
+    const weights = CFG.HEAL_WEIGHTS || {};
+    const ids = CFG.HEAL_IDS || Object.keys(weights);
+    let total = 0;
+    for (const id of ids) total += weights[id] || 0;
+    let roll = random() * total;
+    for (const id of ids) {
+      roll -= weights[id] || 0;
+      if (roll < 0) return id;
+    }
+    return ids[ids.length - 1];
+  }
+
+  function trySpawnHealSupport() {
+    const state = AQ.state;
+    const feel = window.APEX_ARSENAL_FEEL;
+    if (!state || !feel || !feel.healGameplayEnabled) return null;
+    if ((state.healCooldown || 0) > 0) return null;
+    const activeHeal = state.slots.filter((s) => s.kind === 'HEAL' && s.phase !== 'REMOVED');
+    if (activeHeal.length >= (CFG.HEAL_MAX_ACTIVE || 1)) return null;
+    const living = (typeof fighters !== 'undefined' ? fighters : []).filter((f) => f && f.hp > 0);
+    const eligible = living.some((f) => f.hp <= (CFG.HEAL_ELIGIBLE_HP || 80));
+    if (!eligible) return null;
+    const point = pickSpawnPoint(state.slots);
+    const healId = selectHealId();
+    const slot = {
+      id: state.nextSlotId++,
+      x: point.x,
+      y: point.y,
+      phase: 'REVEALED',
+      kind: 'HEAL',
+      weaponId: healId,
+      healRestore: (CFG.HEAL_RESTORE && CFG.HEAL_RESTORE[healId]) || 0,
+      revealedFor: 0,
+      pickedBy: null,
+      rejectedFor: {},
+      spawnTime: state.time,
+    };
+    state.slots.push(slot);
+    state.healCooldown = CFG.HEAL_SPAWN_COOLDOWN || 9;
+    state.healSpawnedTotal = (state.healSpawnedTotal || 0) + 1;
+    log('SPAWN_HEAL', `id=${slot.id} heal=${healId} restore=${slot.healRestore}`);
+    return slot;
+  }
+
   function updateSlots(dt) {
     const state = AQ.state;
     if (!state) return;
+    if (state.healCooldown > 0) state.healCooldown = Math.max(0, state.healCooldown - dt);
+    trySpawnHealSupport();
 
     for (const slot of state.slots) {
+      if (slot.kind === 'HEAL') {
+        if (slot.phase === 'REVEALED') {
+          slot.revealedFor += dt;
+          if (slot.revealedFor >= (CFG.HEAL_LIFETIME_SECONDS || 12)) {
+            slot.phase = 'REMOVED';
+            log('EXPIRE_HEAL', `id=${slot.id}`);
+          }
+        }
+        continue;
+      }
       if (slot.phase === 'TELEGRAPH') {
         const hero = fighters?.[0] || null;
         const rival = fighters?.[1] || null;
@@ -259,6 +319,38 @@
       if (slot.phase !== 'REVEALED' && slot.phase !== 'COUNTER_RESERVED') continue;
       let closest = null;
       let closestDist = Infinity;
+
+      if (slot.kind === 'HEAL') {
+        const maxHp = CFG.MATCH_HP || 100;
+        for (const f of fighters) {
+          if (!f || f.hp <= 0) continue;
+          const cap = f.maxHp || maxHp;
+          if (f.hp >= cap) {
+            if (!slot.rejectedFor[f.id]) {
+              slot.rejectedFor[f.id] = true;
+              log('REJECT_HEAL', `fighter=${f.name} id=${slot.id} reason=full-health`);
+            }
+            continue;
+          }
+          const d = dist(f.x, f.y, slot.x, slot.y);
+          if (d > pickupTouchRadius(f)) continue;
+          if (d < closestDist) { closest = f; closestDist = d; }
+        }
+        if (!closest) continue;
+        const cap = closest.maxHp || maxHp;
+        const nominal = slot.healRestore || 0;
+        const actual = Math.min(nominal, Math.max(0, cap - closest.hp));
+        closest.hp = Math.min(cap, closest.hp + actual);
+        slot.phase = 'PICKED_UP';
+        slot.pickedBy = closest.name;
+        log('PICKUP_HEAL', `id=${slot.id} fighter=${closest.name} restore=${actual}`);
+        if (window.APEX_ARSENAL_FEEL && window.APEX_ARSENAL_FEEL.noteHeal) {
+          window.APEX_ARSENAL_FEEL.noteHeal(closest, actual);
+        }
+        emitParticles(slot.x, slot.y, '#38E07A', 16, 280, 4, 0.4, 'square');
+        slot.phase = 'REMOVED';
+        continue;
+      }
 
       for (const f of fighters) {
         if (!f || f.hp <= 0) continue;
@@ -373,6 +465,34 @@
       ctx.save();
       ctx.translate(slot.x, slot.y);
 
+      if (slot.kind === 'HEAL' && slot.phase === 'REVEALED') {
+        const bob = Math.sin(t * 3.1 + slot.id) * 4;
+        const pulse = 0.5 + 0.5 * Math.sin(t * 2.2 + slot.id);
+        ctx.save();
+        ctx.translate(0, bob + 18);
+        ctx.globalAlpha = 0.28 + 0.18 * pulse;
+        ctx.fillStyle = 'rgba(56,224,122,0.55)';
+        ctx.beginPath();
+        ctx.ellipse(0, 8, 28 + pulse * 4, 10, 0, 0, TAU);
+        ctx.fill();
+        ctx.restore();
+        ctx.globalAlpha = 1;
+        ctx.translate(0, bob);
+        const feel = window.APEX_ARSENAL_FEEL;
+        const rec = feel && feel.heals && feel.heals.find((h) => h.id === slot.weaponId);
+        const img = rec && rec.img;
+        if (img && img.complete && img.naturalWidth) {
+          const h = 52;
+          const w = img.naturalWidth * (h / img.naturalHeight);
+          ctx.drawImage(img, -w / 2, -h / 2, w, h);
+        } else {
+          ctx.fillStyle = '#38E07A';
+          ctx.beginPath(); ctx.arc(0, 0, 16, 0, TAU); ctx.fill();
+        }
+        ctx.restore();
+        continue;
+      }
+
       if (slot.phase === 'TELEGRAPH' || slot.phase === 'COUNTER_RESERVED') {
         // A-CORR-2: the visible circle IS the reveal region. Radius is pinned
         // to the shared CFG.REVEAL_CIRCLE_RADIUS (pulse moves alpha/weight
@@ -460,6 +580,8 @@
 
   window.APEX_ARSENAL_SPAWN = {
     trySpawnSlot,
+    trySpawnHealSupport,
+    selectHealId,
     updateSlots,
     resolvePickups,
     drawSlots,
