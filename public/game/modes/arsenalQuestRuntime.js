@@ -559,8 +559,30 @@
     hudRefs.root = el;
     return el;
   }
+  function ensureArsenalBattleUiStyle() {
+    if (document.getElementById('aq-battle-ui-style')) return;
+    const style = document.createElement('style');
+    style.id = 'aq-battle-ui-style';
+    style.textContent = `
+      #aq-dom-hud{font-family:"ApcKanit","Segoe UI",sans-serif!important}
+      #aq-hint{left:50%!important;right:auto!important;bottom:12px!important;transform:translateX(-50%);padding:7px 10px;border:1px solid rgba(255,255,255,.1);background:rgba(8,11,15,.72);color:rgba(224,219,205,.62)!important;font:800 9px/1 ui-monospace,monospace!important;letter-spacing:.12em}
+      #aq-battle-exit.aq-battle-exit-btn{position:absolute;right:14px;bottom:12px;z-index:41;min-width:92px;min-height:38px;padding:0 12px;border:1px solid #444d56;background:linear-gradient(180deg,rgba(32,38,45,.95),rgba(13,18,23,.95));color:#e8e2d3;cursor:pointer;font:900 10px/1 "Segoe UI",sans-serif;letter-spacing:.08em;clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+      #aq-win.aq-result-layer{position:absolute!important;inset:0!important;z-index:80!important;display:grid!important;place-items:center!important;padding:20px;background:rgba(4,7,10,.58);backdrop-filter:blur(3px);text-align:left!important;color:#f4f0e6!important}
+      .aq-result-card{width:min(560px,92%);padding:28px;border:1px solid #454f59;background:linear-gradient(180deg,rgba(23,29,36,.98),rgba(10,14,18,.98));box-shadow:0 24px 70px rgba(0,0,0,.48);clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
+      .aq-result-kicker{color:#d7bd72;font:800 9px/1 ui-monospace,monospace;letter-spacing:.18em}
+      .aq-result-title{margin-top:8px;font-size:clamp(36px,5vw,64px);font-style:italic;font-weight:900;line-height:.86}
+      .aq-result-reward{margin-top:16px;padding:10px 12px;border:1px solid #3b4338;background:#11160f;color:#d8c982;font:800 11px/1.35 ui-monospace,monospace}
+      .aq-result-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:20px}
+      .aq-result-actions button{min-height:44px;border:1px solid #424b55;background:#171d24;color:#f1ece1;cursor:pointer;font:900 11px/1 "Segoe UI",sans-serif;letter-spacing:.06em}
+      .aq-result-actions button:first-child{border-color:#62583b;background:#3c341f;color:#f4df9a}
+      @media(max-width:520px){.aq-result-actions{grid-template-columns:1fr}}
+    `;
+    document.head.appendChild(style);
+  }
+
   function syncDomHud(force) {
     const t0 = performance.now();
+    ensureArsenalBattleUiStyle();
     const state = AQ.state;
     const el = hudRoot();
     const now = t0;
@@ -569,8 +591,7 @@
       if (!hint) {
         hint = document.createElement('div');
         hint.id = 'aq-hint';
-        hint.style.cssText = 'position:absolute;left:0;right:0;bottom:12px;text-align:center;color:rgba(232,224,200,0.9);font-weight:800;font-size:14px;';
-        hint.textContent = 'ARSENAL QUEST — F3 debug · T rematch · B/ESC menu';
+        hint.textContent = 'B / ESC · EXIT';
         el.appendChild(hint);
       }
       hudRefs.hint = hint;
@@ -590,8 +611,8 @@
         btn = document.createElement('button');
         btn.id = 'aq-battle-exit';
         btn.type = 'button';
-        btn.textContent = '✕ EXIT';
-        btn.style.cssText = 'position:absolute;right:18px;bottom:12px;pointer-events:auto;cursor:pointer;z-index:41;min-width:96px;min-height:40px;border:1px solid rgba(232,224,200,0.55);background:rgba(8,10,14,0.72);color:rgba(232,224,200,0.95);font:800 14px monospace;letter-spacing:1px;';
+        btn.textContent = 'EXIT';
+        btn.className = 'aq-battle-exit-btn';
         btn.addEventListener('click', () => {
           const Q = window.APEX_ARSENAL_QUEST;
           if (AQ.state && AQ.state.questStage && Q && Q.returnToMap) Q.returnToMap();
@@ -612,44 +633,41 @@
     let win = hudRefs.win || document.getElementById('aq-win');
     if (state && state.over) {
       const Q = window.APEX_ARSENAL_QUEST;
-      const spec = Q && Q.resultActions ? Q.resultActions(state) : { mode: 'freeplay', actions: ['REMATCH', 'MENU'] };
+      const spec = Q && Q.resultActions ? Q.resultActions(state) : { mode: 'freeplay', actions: ['REMATCH', 'HUB'] };
       const winKey = state.over + '|' + spec.mode + '|' + (spec.actions || []).join(',');
       if (hudLast.winKey !== winKey) {
         if (!win) {
           win = document.createElement('div');
           win.id = 'aq-win';
-          win.style.cssText = 'position:absolute;left:0;right:0;top:32%;text-align:center;color:#efe6c8;pointer-events:auto;z-index:50;';
           el.appendChild(win);
         }
+        win.className = 'aq-result-layer';
         hudRefs.win = win;
-        const title = '<div style="font:900 56px Segoe UI">' + state.over + ' WINS</div>';
-        const btn = (id, label) => '<button data-aq-act="' + id + '" style="margin:8px;padding:10px 16px;font:800 16px monospace;pointer-events:auto;cursor:pointer;">' + label + '</button>';
+        const M = window.APEX_ARSENAL_META;
+        const aw = M && M.lastAward ? M.lastAward() : null;
+        const reward = aw && aw.amount
+          ? '<div class="aq-result-reward">+' + aw.amount + ' AC · BALANCE ' + aw.balance + '</div>'
+          : '';
+        let actions = [];
         if (spec.mode === 'quest-win' || spec.mode === 'quest-loss') {
-          win.innerHTML = title + '<div id="aq-quest-actions" style="margin-top:12px">' + spec.actions.map((a) => btn(a, a)).join('') + '</div>';
-          win.onclick = (e) => {
-            const act = e.target && e.target.getAttribute && e.target.getAttribute('data-aq-act');
-            if (!act) return;
-            if (act === 'NEXT' && Q.nextStage) Q.nextStage();
-            else if ((act === 'REPLAY' || act === 'RETRY') && Q.replay) Q.replay();
-            else if (act === 'QUEST MAP' && Q.returnToMap) Q.returnToMap();
-          };
+          actions = (spec.actions || []).slice();
+          if (!actions.includes('HUB')) actions.push('HUB');
         } else {
-          const M = window.APEX_ARSENAL_META;
-          const aw = M && M.lastAward ? M.lastAward() : null;
-          const reward = aw && aw.amount ? '<div style="font:700 16px monospace;margin-top:8px">+' + aw.amount + ' AC · balance ' + aw.balance + '</div>' : '';
-          win.innerHTML = title + reward
-            + '<div style="margin-top:12px">'
-            + '<button data-aq-act="REMATCH" style="margin:8px;padding:10px 16px;font:800 16px monospace;pointer-events:auto;cursor:pointer;">REMATCH</button>'
-            + '<button data-aq-act="PICK AGAIN" style="margin:8px;padding:10px 16px;font:800 16px monospace;pointer-events:auto;cursor:pointer;">PICK AGAIN</button>'
-            + '<button data-aq-act="HUB" style="margin:8px;padding:10px 16px;font:800 16px monospace;pointer-events:auto;cursor:pointer;">HUB</button>'
-            + '</div>';
-          win.onclick = (e) => {
-            const act = e.target && e.target.getAttribute && e.target.getAttribute('data-aq-act');
-            if (act === 'REMATCH') window.startArsenalQuestMode();
-            else if (act === 'PICK AGAIN' && window.APEX_ARSENAL_META) window.APEX_ARSENAL_META.openFreePick();
-            else if (act === 'HUB' && window.APEX_ARSENAL_META) window.APEX_ARSENAL_META.openHub();
-          };
+          actions = ['REMATCH', 'PICK AGAIN', 'HUB'];
         }
+        win.innerHTML = '<div class="aq-result-card"><div class="aq-result-kicker">ARSENAL RESULT</div><div class="aq-result-title">' + state.over + ' WINS</div>' + reward
+          + '<div class="aq-result-actions">' + actions.map((a) => '<button data-aq-act="' + a + '">' + a + '</button>').join('') + '</div></div>';
+        win.onclick = (e) => {
+          const btn = e.target && e.target.closest ? e.target.closest('[data-aq-act]') : null;
+          const act = btn && btn.getAttribute('data-aq-act');
+          if (!act) return;
+          if (act === 'NEXT' && Q && Q.nextStage) Q.nextStage();
+          else if ((act === 'REPLAY' || act === 'RETRY') && Q && Q.replay) Q.replay();
+          else if (act === 'QUEST MAP' && Q && Q.returnToMap) Q.returnToMap();
+          else if (act === 'REMATCH') window.startArsenalQuestMode();
+          else if (act === 'PICK AGAIN' && M) M.openFreePick();
+          else if (act === 'HUB' && M) { window.exitArsenalQuestMode(); M.openHub(); }
+        };
         hudLast.winKey = winKey;
         AQ_PERF.hud.winWrites += 1;
       }

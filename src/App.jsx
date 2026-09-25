@@ -72,7 +72,7 @@ const MENU_BUTTONS = [
   { id: 'trial', label: 'Test Battle With Saitama', asset: '/assets/ui_2026/menu-saitama-test.webp', action: 'goToTrialSelect' },
   { id: 'giai', label: 'Tournament', asset: '/assets/ui_2026/menu-tournament.webp', action: 'goToTournament' },
   { id: 'solo', label: 'Solo 1v1 Local', asset: '/assets/ui_2026/menu-solo.webp', action: 'goToSoloSelect' },
-  { id: 'arsenal-quest', label: 'ARSENAL QUEST PROTOTYPE', text: 'ARSENAL QUEST PROTOTYPE', action: 'beginArsenalQuestSelection' },
+  { id: 'arsenal-quest', label: 'ARSENAL QUEST', text: 'ARSENAL QUEST', action: 'beginArsenalQuestSelection' },
 ];
 
 const LOADING_LABELS = ['LOADING ASSETS', 'PREPARING ARENA', 'SYNCHRONIZING VFX'];

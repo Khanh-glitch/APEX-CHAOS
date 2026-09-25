@@ -25,6 +25,37 @@
     { n: 19, opponent: 'TIME' },
     { n: 20, opponent: 'MONK' },
   ];
+  const QUEST_CSS = `
+    #aq-quest-map{position:fixed!important;inset:0!important;z-index:510;pointer-events:auto;overflow:auto;background:#080b0f;color:#f4f0e6;font-family:"ApcKanit","Segoe UI",sans-serif}
+    #aq-quest-map *{box-sizing:border-box}
+    .aq-map-bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.55) contrast(1.08) brightness(.4);pointer-events:none}
+    .aq-map-veil{position:fixed;inset:0;background:linear-gradient(180deg,rgba(3,6,9,.32),rgba(3,6,9,.82)),radial-gradient(circle at 50% 42%,rgba(100,120,145,.12),transparent 38%);pointer-events:none}
+    .aq-map-ui{position:relative;z-index:2;width:min(1480px,100%);min-height:100dvh;margin:auto;padding:clamp(18px,2.2vw,34px) clamp(18px,3vw,48px) 34px}
+    .aq-map-top{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.1)}
+    .aq-map-brand{display:flex;gap:14px;align-items:center}
+    .aq-map-back{display:grid;place-items:center;width:44px;height:44px;border:1px solid #4a5057;background:linear-gradient(180deg,#2b3138,#151a20);color:#f4f0e6;cursor:pointer;font:900 18px/1 sans-serif;clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+    .aq-map-kicker{color:#d7bd72;font:800 10px/1 ui-monospace,monospace;letter-spacing:.22em}
+    .aq-map-title{margin:4px 0 0;font-size:clamp(24px,3vw,42px);line-height:.92;font-style:italic}
+    .aq-map-actions{display:flex;gap:9px;align-items:center}
+    .aq-map-actions button{min-height:44px;padding:0 15px;border:1px solid #404953;background:#151b21;color:#f3efe5;cursor:pointer;font:800 11px/1 "Segoe UI",sans-serif;letter-spacing:.07em}
+    .aq-map-progress{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;margin:20px 0 16px;padding:13px 15px;border:1px solid #303842;background:#0e1318}
+    .aq-map-track{height:8px;background:#05080a;border:1px solid #323a43;overflow:hidden}
+    .aq-map-fill{height:100%;background:linear-gradient(90deg,#776628,#d7bd72)}
+    .aq-map-progress b{color:#e7d28d;font:900 13px/1 ui-monospace,monospace}
+    .aq-map-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+    .aq-stage{position:relative;min-height:122px;padding:14px;border:1px solid #343d46;background:linear-gradient(180deg,#171d24,#0d1217);color:#f2eee5;text-align:left;cursor:pointer;clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+    .aq-stage:hover:not(:disabled){transform:translateY(-3px);filter:brightness(1.08);border-color:#59636d}
+    .aq-stage:disabled{cursor:default;opacity:.42;filter:saturate(.25)}
+    .aq-stage[data-state="DONE"]{border-color:#5d7654}
+    .aq-stage[data-state="OPEN"]{box-shadow:inset 3px 0 #d7bd72}
+    .aq-stage-num{display:block;color:#7f8993;font:800 9px/1 ui-monospace,monospace;letter-spacing:.12em}
+    .aq-stage-name{display:block;margin-top:12px;font-size:clamp(16px,1.45vw,22px);font-style:italic;font-weight:900;line-height:.95;overflow-wrap:anywhere}
+    .aq-stage-state{display:inline-block;margin-top:14px;padding:5px 7px;border:1px solid #39424b;color:#d7bd72;font:800 8px/1 ui-monospace,monospace;letter-spacing:.12em}
+    .aq-stage[data-state="DONE"] .aq-stage-state{color:#9fc08f;border-color:#455b40}
+    @media(max-width:1050px){.aq-map-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+    @media(max-width:760px),(orientation:portrait){.aq-map-top{grid-template-columns:1fr}.aq-map-actions{justify-content:flex-start}.aq-map-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.aq-map-ui{padding:16px}}
+  `;
+
 
   let pendingStage = null;
   let lastQuestP1 = null;
@@ -203,44 +234,47 @@
     if (!el) {
       el = document.createElement('div');
       el.id = 'aq-quest-map';
-      el.style.cssText = 'position:absolute;inset:0;z-index:510;pointer-events:auto;';
       (document.getElementById('game-wrap') || document.getElementById('game-wrapper') || document.body).appendChild(el);
     }
     const save = loadSave();
+    const cleared = save.completedStages.length;
     el.style.display = 'block';
     const cells = STAGES.map((s) => {
       const done = save.completedStages.includes(s.n);
       const open = canPlay(s.n, save);
       const st = done ? 'DONE' : open ? 'OPEN' : 'LOCK';
-      const op = open ? '1' : '.45';
-      return `<button data-n="${s.n}" ${open ? '' : 'disabled'} style="min-height:72px;opacity:${op};border:0;color:#fff;font:800 13px Segoe UI,sans-serif;background:url(/assets/pick_ui_final/assets/07-card-frame-normal.webp) center/100% 100% no-repeat;cursor:${open ? 'pointer' : 'default'};">${s.n}. ${s.opponent}<div style="margin-top:6px;font:700 11px Segoe UI">${st}</div></button>`;
+      return `<button class="aq-stage" data-n="${s.n}" data-state="${st}" ${open ? '' : 'disabled'}><span class="aq-stage-num">STAGE ${String(s.n).padStart(2,'0')}</span><span class="aq-stage-name">${s.opponent}</span><span class="aq-stage-state">${st}</span></button>`;
     }).join('');
-    el.innerHTML = `<div style="position:absolute;left:50%;top:50%;width:1672px;height:941px;transform:translate(-50%,-50%);overflow:hidden;background:#020305;font-family:Segoe UI,sans-serif;color:#fff">
-      <img alt="" src="/assets/pick_ui_final/assets/01-select-screen-background.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none"/>
-      <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(4,6,10,.5),rgba(4,6,10,.2) 50%,rgba(4,6,10,.5));pointer-events:none"></div>
-      <div style="position:relative;z-index:2;padding:28px 64px 24px;display:flex;justify-content:space-between;align-items:center">
-        <div id="aq-quest-map-title" style="font:800 32px/1 Segoe UI;letter-spacing:2px">QUEST MAP</div>
-        <div><button id="aq-quest-freeplay" style="min-height:44px;margin-right:12px;border:0;color:#fff;padding:0 22px;font:800 13px Segoe UI;background:transparent url(/assets/pick_ui_final/assets/11-start-normal.webp) center/100% 100% no-repeat">FREE PLAY</button>
-        <button id="aq-quest-close" style="min-width:44px;min-height:44px;border:0;color:transparent;background:transparent url(/assets/pick_ui_final/assets/14-exit-normal.webp) center/contain no-repeat">CLOSE</button></div>
-      </div>
-      <div id="aq-quest-map-grid" style="position:relative;z-index:2;margin:8px 64px 0;display:grid;grid-template-columns:repeat(5,1fr);gap:12px">${cells}</div>
-    </div>`;
+    el.innerHTML = `<style>${QUEST_CSS}</style><img class="aq-map-bg" alt="" src="/assets/pick_ui_final/assets/01-select-screen-background.webp"/><div class="aq-map-veil"></div>
+      <main class="aq-map-ui">
+        <header class="aq-map-top">
+          <div class="aq-map-brand"><button id="aq-quest-close" class="aq-map-back" type="button" aria-label="Back to Arsenal Hub">←</button><div><div class="aq-map-kicker">ARSENAL · CAMPAIGN</div><h1 class="aq-map-title">QUEST MAP</h1></div></div>
+          <div class="aq-map-actions"><button id="aq-quest-freeplay" type="button">FREE BATTLE</button></div>
+        </header>
+        <section class="aq-map-progress"><div class="aq-map-track"><div class="aq-map-fill" style="width:${Math.round((cleared/20)*100)}%"></div></div><b>${cleared} / 20 CLEARED</b></section>
+        <section id="aq-quest-map-grid" class="aq-map-grid">${cells}</section>
+      </main>`;
     el.onclick = (e) => {
-      const n = e.target && e.target.getAttribute && e.target.getAttribute('data-n');
-      if (n) { requestStage(parseInt(n, 10)); return; }
-      if (e.target && e.target.id === 'aq-quest-close') {
+      const stageButton = e.target && e.target.closest ? e.target.closest('[data-n]') : null;
+      if (stageButton) { requestStage(parseInt(stageButton.getAttribute('data-n'), 10)); return; }
+      const close = e.target && e.target.closest ? e.target.closest('#aq-quest-close') : null;
+      if (close) {
         pendingStage = null;
         el.style.display = 'none';
-        // PASS A §4.2: Quest Map BACK returns to the Arsenal Hub (the
-        // navigation root), not to the global Main Menu.
         const M = window.APEX_ARSENAL_META;
         if (M && typeof M.openHub === 'function') M.openHub();
+        return;
       }
-      if (e.target && e.target.id === 'aq-quest-freeplay') {
+      const free = e.target && e.target.closest ? e.target.closest('#aq-quest-freeplay') : null;
+      if (free) {
         pendingStage = null;
         el.style.display = 'none';
-        if (typeof window.beginArsenalQuestSelection === 'function') window.beginArsenalQuestSelection();
+        if (window.APEX_ARSENAL_META && typeof window.APEX_ARSENAL_META.openFreePick === 'function') window.APEX_ARSENAL_META.openFreePick();
+        else if (typeof window.beginArsenalQuestSelection === 'function') window.beginArsenalQuestSelection();
       }
+    };
+    el.onkeydown = (e) => {
+      if (e.key === 'Escape') el.querySelector('#aq-quest-close')?.click();
     };
     return el;
   }
