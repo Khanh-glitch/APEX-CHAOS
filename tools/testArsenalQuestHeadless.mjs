@@ -3496,3 +3496,7 @@ if (loadErrors.length) console.log('non-fatal boot runtime load errors:', JSON.s
 fs.writeFileSync(path.join(evidenceDir, 'headless-test-report.json'), JSON.stringify(report, null, 2));
 console.log(`report+evidence written under ${evidenceDir}/`);
 if (report.failures.length) process.exitCode = 1;
+// PASS B harness lifecycle: the production HUD owns window timers (100 ms
+// state sync + burst timeouts). JSDOM keeps Node alive while those timers
+// exist, so close the test window after the report is fully written.
+try { win.close(); } catch (error) { /* teardown only */ }
