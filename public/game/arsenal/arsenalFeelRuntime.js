@@ -902,10 +902,19 @@
     for (let i = sprayLive.length - 1; i >= 0; i--) {
       const p = sprayLive[i];
       if (p.fresh) {
-        // PASS A hit-feedback law: the simulation tick that created this V1
-        // particle must not age or move it before the first rendered frame.
-        // The very next tick resumes the approved reference physics.
+        // PASS A + splatter correction:
+        // keep the first rendered frame at full strength (no life aging), but
+        // start airborne V1 motion on the collision tick, matching the approved
+        // reference's spawn-then-update ordering. This prevents the burst from
+        // reading like a spray source left behind at a stale impact position.
         p.fresh = false;
+        if (p.kind === 'v1streak' || p.kind === 'v1drop' || p.kind === 'v1micro') {
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          const drag = Math.pow(p.drag || 0.95, dt * 60);
+          p.vx *= drag;
+          p.vy *= drag;
+        }
         continue;
       }
       p.life -= dt;
