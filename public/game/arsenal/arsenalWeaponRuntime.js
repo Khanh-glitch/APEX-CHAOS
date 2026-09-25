@@ -313,8 +313,23 @@
   // Damage pipeline — single entry point so Tower Shield / logging / feedback
   // stay consistent (handoff §8 reuse policy).
   // ---------------------------------------------------------------------------
+  function rollFirearmCrit(weaponId) {
+    if (!(CFG.isGun && CFG.isGun(weaponId))) return false;
+    const p = (CFG.CRIT_CHANCE && CFG.CRIT_CHANCE[weaponId]) || 0;
+    const rng = (window.APEX_ARSENAL && window.APEX_ARSENAL.combatRng) || Math.random;
+    return rng() < p;
+  }
+  function scaleEquipmentDamage(amount, weaponId, critical) {
+    let dmg = amount;
+    const gun = CFG.isGun && CFG.isGun(weaponId);
+    const melee = CFG.isMelee && CFG.isMelee(weaponId);
+    if (gun || melee || weaponId === 'GRENADE') dmg *= (CFG.ARSENAL_DAMAGE_SCALE || 1);
+    if (critical && gun) dmg *= (CFG.CRIT_DAMAGE_MULTIPLIER || 1.5);
+    return dmg;
+  }
   function aqDamage(target, amount, source, weaponId, opts = {}) {
     if (!target || target.hp <= 0 || !(amount > 0)) return 0;
+    amount = scaleEquipmentDamage(amount, weaponId, !!opts.critical);
     let mult = 1;
     const th = getHolder(target);
     if (th && th.weaponId === 'TOWER_SHIELD' && th.phase === 'GUARD') {
@@ -329,6 +344,7 @@
       }
     }
     const dealt = amount * mult;
+    if (target) target.__aqHitCrit = !!opts.critical;
     target.takeDamage(dealt, source && source !== target ? source : null, `arsenal-${(weaponId || 'unknown').toLowerCase()}`, !!opts.statusDamage);
     if (opts.knockback && source && source !== target && target.hp > 0) {
       const n = norm(target.x - source.x || 1, target.y - source.y);
@@ -356,6 +372,7 @@
       aq: true,
       owner,
       weapon,
+      critical: !!spec.critical,
       family,
       heavy: family === 'PRECISION',
       x, y,
@@ -453,7 +470,7 @@
           const hitR = target.radius * CFG.BULLET_HIT_RADIUS_SCALE + p.radius;
           if (distPointToSegment(target.x, target.y, p.px, p.py, p.x, p.y) < hitR) {
             const heavy = !!p.heavy;
-            aqDamage(target, p.damage, p.owner, p.weapon, { knockback: p.knockback, stun: p.stun, hitStop: heavy ? 0.05 : 0 });
+            aqDamage(target, p.damage, p.owner, p.weapon, { knockback: p.knockback, stun: p.stun, hitStop: heavy ? 0.05 : 0, critical: !!p.critical });
             // C §5.4 impact hierarchy, generalized to firing families (POST-C
             // §3): pistol tiny snap, SMG minimal repeated, shotgun broad
             // cluster, precision sharp focused.
@@ -933,6 +950,7 @@
       const base = enemyAlive(ctx) ? angleToEnemy(ctx) : Math.atan2(f.dir.y, f.dir.x);
       const muz = weaponWorldAnchor(f, id, 'muzzle', base);
       const pellets = spec.pellets > 1 ? spec.pellets : 1;
+      const blastCrit = pellets > 1 ? rollFirearmCrit(id) : null;
       for (let i = 0; i < pellets; i++) {
         const t = pellets === 1 ? 0.5 : i / (pellets - 1);
         const spread = (Math.random() * 2 - 1) * (spec.spread || 0) + (pellets > 1 ? (t - 0.5) * (spec.cone || 0) : 0);
@@ -947,6 +965,7 @@
           radius: spec.bulletRadius,
           life: spec.bulletLife,
           weapon: id,
+          critical: pellets > 1 ? blastCrit : rollFirearmCrit(id),
           knockback: pellets > 1 ? spec.knockback / pellets : spec.knockback,
           stun: spec.stun,
           color,
@@ -1026,6 +1045,7 @@
         const f = ctx.fighter;
         const base = angleToEnemy(ctx);
         const muz = weaponWorldAnchor(f, id, 'muzzle', base);
+        const blastCrit = rollFirearmCrit(id);
         for (let i = 0; i < spec.pellets; i++) {
           const t = spec.pellets === 1 ? 0.5 : i / (spec.pellets - 1);
           const angle = base + (t - 0.5) * spec.cone;
@@ -1039,6 +1059,7 @@
             radius: spec.bulletRadius,
             life: spec.bulletLife,
             weapon: id,
+            critical: blastCrit,
             knockback: spec.knockback / spec.pellets,
             color,
           });
@@ -1120,6 +1141,7 @@
               radius: spec.bulletRadius,
               life: spec.bulletLife,
               weapon: id,
+              critical: rollFirearmCrit(id),
               knockback: spec.knockback,
               stun: spec.stun,
               color: color || '#f4f4f4',

@@ -523,11 +523,11 @@
   }
 
   const HEALS = [
-    { id: 'HEAL_H1', identity: 'Field Dressing', file: HEAL_FILES.HEAL_H1, master: HEAL_MASTERS.HEAL_H1, restore: 10 },
-    { id: 'HEAL_H2', identity: 'Medication', file: HEAL_FILES.HEAL_H2, master: HEAL_MASTERS.HEAL_H2, restore: 18 },
-    { id: 'HEAL_H3', identity: 'Auto-injector', file: HEAL_FILES.HEAL_H3, master: HEAL_MASTERS.HEAL_H3, restore: 28 },
-    { id: 'HEAL_H4', identity: 'IV / life-support pack', file: HEAL_FILES.HEAL_H4, master: HEAL_MASTERS.HEAL_H4, restore: 40 },
-    { id: 'HEAL_H5', identity: 'Trauma hard case', file: HEAL_FILES.HEAL_H5, master: HEAL_MASTERS.HEAL_H5, restore: 55 },
+    { id: 'HEAL_H1', identity: 'Field Dressing', file: HEAL_FILES.HEAL_H1, master: HEAL_MASTERS.HEAL_H1, restore: 70 },
+    { id: 'HEAL_H2', identity: 'Medication', file: HEAL_FILES.HEAL_H2, master: HEAL_MASTERS.HEAL_H2, restore: 126 },
+    { id: 'HEAL_H3', identity: 'Auto-injector', file: HEAL_FILES.HEAL_H3, master: HEAL_MASTERS.HEAL_H3, restore: 196 },
+    { id: 'HEAL_H4', identity: 'IV / life-support pack', file: HEAL_FILES.HEAL_H4, master: HEAL_MASTERS.HEAL_H4, restore: 280 },
+    { id: 'HEAL_H5', identity: 'Trauma hard case', file: HEAL_FILES.HEAL_H5, master: HEAL_MASTERS.HEAL_H5, restore: 385 },
   ];
   HEALS.forEach((h) => { h.img = loadImg(h.file); });
 

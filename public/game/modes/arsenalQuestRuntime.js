@@ -215,7 +215,9 @@
           source,
           label,
           statusDamage: !!statusDamage,
+          critical: !!this.__aqHitCrit,
         });
+        this.__aqHitCrit = false;
       }
       return out;
     };
@@ -231,23 +233,28 @@
     state.time += dt;
     if (!state.over) {
       const living = (typeof fighters !== 'undefined' ? fighters : []).filter((f) => f && f.hp > 0);
-      const bothUnarmed = living.length >= 2 && living.every((f) => !weaponApi.getHolder(f));
-      if (!bothUnarmed) {
+      const holdsGun = (f) => {
+        const h = weaponApi.getHolder(f);
+        return !!(h && CFG.isGun && CFG.isGun(h.weaponId));
+      };
+      const revealedGuns = (state.slots || []).filter((s) => s.phase === 'REVEALED' && s.kind !== 'HEAL' && CFG.isGun && CFG.isGun(s.weaponId)).length;
+      const emergencyGunNeeded = living.length >= 2 && living.every((f) => !holdsGun(f)) && revealedGuns === 0;
+      let emergencySpawned = false;
+      if (!emergencyGunNeeded) {
         state.unarmedFastConsumed = false;
         state.unarmedFastPending = false;
       } else if (!state.spawnHeld && !state.unarmedFastConsumed) {
         const cap = CFG.MAX_ACTIVE_SLOTS;
         const active = (state.slots || []).filter((s) => s.phase !== 'REMOVED' && s.kind !== 'HEAL').length;
         if (active >= cap) {
-          // Cap: keep the episode pending. Do not consume, do not reset the
-          // timer, and do not call trySpawnSlot (avoids per-frame suppress logs).
           state.unarmedFastPending = true;
         } else {
-          const slot = SPAWN.trySpawnSlot();
+          const slot = SPAWN.trySpawnSlot({ forceFirearm: true });
           if (slot) {
             state.spawnTimer = CFG.SPAWN_CADENCE_SECONDS;
             state.unarmedFastConsumed = true;
             state.unarmedFastPending = false;
+            emergencySpawned = true;
           } else {
             state.unarmedFastPending = true;
           }
@@ -258,6 +265,7 @@
       let guard = 0;
       while (state.spawnTimer <= 0 && guard++ < 4) {
         state.spawnTimer += CFG.SPAWN_CADENCE_SECONDS;
+        if (emergencySpawned) continue;
         SPAWN.trySpawnSlot();
       }
       SPAWN.updateSlots(dt);

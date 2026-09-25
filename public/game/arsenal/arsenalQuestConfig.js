@@ -8,7 +8,7 @@
   // (or in the weapon registry below) so balance passes never touch logic.
   const CONFIG = {
     // --- Spawn law (handoff §5; V2 B-handoff A-CORR-1) ---
-    SPAWN_CADENCE_SECONDS: 3.0,          // POST-C owner revision: exactly 3.0s
+    SPAWN_CADENCE_SECONDS: 4.5,          // V3: 4.5s offensive cadence
     // V2 B-handoff A-CORR-2: whole-circle reveal. One shared radius so the
     // rendered question-mark circle and the reveal logic cannot drift.
     REVEAL_CIRCLE_RADIUS: 42,            // == PICKUP_RADIUS (visible circle)
@@ -30,10 +30,12 @@
 
     // --- Safety valves (must NOT restore one-at-a-time spawning) ---
     PICKUP_LIFETIME_SECONDS: 20,         // revealed pickups expire
-    MAX_ACTIVE_SLOTS: 8,                 // soft cap; suppression is logged
+    MAX_ACTIVE_SLOTS: 5,                 // V3 offensive cap
 
     // --- Fighters ---
-    MATCH_HP: 100,
+    MATCH_HP: 1000,
+    ARSENAL_DAMAGE_SCALE: 7,
+    CRIT_DAMAGE_MULTIPLIER: 1.50,
     FIGHTER_SPEED: 520,
     HERO_COLOR: '#4fc3f7',
     RIVAL_COLOR: '#ff7043',
@@ -251,12 +253,27 @@
   CONFIG.GUN_FAMILIES = GUN_FAMILIES;
 
   // Owner-feedback heal support (independent of offensive 3.0s law).
-  CONFIG.HEAL_ELIGIBLE_HP = 80;
+  CONFIG.HEAL_ELIGIBLE_HP = 800;
   CONFIG.HEAL_MAX_ACTIVE = 1;
   CONFIG.HEAL_SPAWN_COOLDOWN = 9.0;
   CONFIG.HEAL_LIFETIME_SECONDS = 12;
   CONFIG.HEAL_RESTORE = {
-    HEAL_H1: 10, HEAL_H2: 18, HEAL_H3: 28, HEAL_H4: 40, HEAL_H5: 55,
+    HEAL_H1: 70, HEAL_H2: 126, HEAL_H3: 196, HEAL_H4: 280, HEAL_H5: 385,
+  };
+  CONFIG.CRIT_CHANCE = {
+    PISTOL: 0.07, GLOCK_17: 0.06, TEC_9: 0.06, MAC_10: 0.05,
+    BERETTA_93R: 0.07, SMG: 0.07, P90: 0.08,
+    ZBROYAR_Z15: 0.09, ZBROYAR_Z15_S1: 0.09, ZBROYAR_Z15_S2: 0.08, ZBROYAR_Z15_S3: 0.10,
+    MOSSBERG_500: 0.10, DESERT_DEAGLE: 0.13, AK_47: 0.10, M16: 0.11,
+    MBR: 0.18, SHOTGUN: 0.12, SAWED_OFF: 0.11, MAGNUM_500: 0.18,
+    M249_SAW: 0.10, MBR2: 0.22, SZECSEI_FUCHS: 0.24, SNIPER: 0.32, JACKHAMMER: 0.14,
+  };
+  CONFIG.FIREARM_LONG_SIDE = {
+    PISTOL: 126, GLOCK_17: 124, TEC_9: 132, BERETTA_93R: 130, DESERT_DEAGLE: 138, MAGNUM_500: 142,
+    MAC_10: 136, SMG: 142, P90: 140, AK_47: 154, M16: 154,
+    ZBROYAR_Z15: 152, ZBROYAR_Z15_S1: 152, ZBROYAR_Z15_S2: 152, ZBROYAR_Z15_S3: 152,
+    M249_SAW: 170, MBR: 174, MBR2: 176, SZECSEI_FUCHS: 176, SNIPER: 188,
+    MOSSBERG_500: 158, SHOTGUN: 160, SAWED_OFF: 132, JACKHAMMER: 156,
   };
   CONFIG.HEAL_WEIGHTS = {
     HEAL_H1: 7, HEAL_H2: 5, HEAL_H3: 3, HEAL_H4: 2, HEAL_H5: 1,

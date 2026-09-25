@@ -120,7 +120,7 @@ try {
         a.setDir(Math.sign(ex - fx) || 1, 0); b.setDir(-Math.sign(ex - fx) || -1, 0);
         if (freeze !== false) { a.baseSpeed = 0; b.baseSpeed = 0; }
       },
-      hp() { return { hero: fighters[0].hp, rival: fighters[1].hp }; },
+      hp() { return { hero: fighters[0].hp, rival: fighters[1].hp, heroMax: fighters[0].maxHp, rivalMax: fighters[1].maxHp }; },
       holder(who) {
         const f = who === 'HERO' ? fighters[0] : fighters[1];
         const h = APEX_ARSENAL.weaponApi.getHolder(f);
@@ -183,7 +183,7 @@ try {
     return { gameState: d.gameState, hero: d.hero, rival: d.rival, hudOpacity: document.getElementById('hud').style.opacity, menuHidden: document.getElementById('menu-screen').classList.contains('hidden') };
   })()`);
   gate('entry-state', report.entry.gameState === 'ARSENAL'
-    && report.entry.hero.hp === 100 && report.entry.rival.hp === 100
+    && report.entry.hero.hp === 1000 && report.entry.rival.hp === 1000
     && report.entry.hero.weapon === 'NONE' && report.entry.rival.weapon === 'NONE'
     && report.entry.menuHidden, report.entry);
 
@@ -214,7 +214,7 @@ try {
       spawnTimes,
       gaps,
       cadenceOk: spawnTimes.length >= 4 && spawnTimes[0] <= 0.2
-        && gaps.every(g => Math.abs(g - 3.0) < 0.15),
+        && gaps.every(g => Math.abs(g - 4.5) < 0.15),
       leadValues,
       leadsFixedTwo: leadValues.length >= 3 && leadValues.every(v => Math.abs(v - 2.0) < 1e-9),
       spawnEvents: __AQ_TEST.countEvents('SPAWN_SLOT'),
@@ -411,7 +411,7 @@ try {
     __AQ_TEST.enterManual();
     __AQ_TEST.clearEvents();
     __AQ_TEST.clearSlots();
-    for (let i = 0; i < 8; i++) __AQ_TEST.pushSlot({ x: 100 + i * 100, y: 200, weaponId: 'PISTOL' });
+    for (let i = 0; i < APEX_ARSENAL_CONFIG.MAX_ACTIVE_SLOTS; i++) __AQ_TEST.pushSlot({ x: 100 + i * 100, y: 200, weaponId: 'PISTOL' });
     const result = APEX_ARSENAL_SPAWN.trySpawnSlot();
     return { spawned: result !== null && result !== undefined, active: APEX_ARSENAL.state.slots.length, suppressed: __AQ_TEST.countEvents('SPAWN_SUPPRESSED') };
   })()`);
@@ -440,7 +440,7 @@ try {
         midPhase,
         midPhase2,
         rivalHp: hp.rival,
-        damageDealt: +(100 - hp.rival).toFixed(1),
+        damageDealt: +(hp.rivalMax - hp.rival).toFixed(1),
         holderAfter: __AQ_TEST.holder('HERO'),
         useLogged: __AQ_TEST.countEvents('USE', 'weapon=${weaponId}'),
         hitLogged: __AQ_TEST.countEvents('HIT', 'weapon=${weaponId}'),
@@ -478,7 +478,7 @@ try {
     };
   })()`);
   gate('grenade-throw-consumes-immediately', report.grenade.afterThrow.holder === null && report.grenade.afterThrow.grenadeInWorld);
-  gate('grenade-resolves-after-fuse', report.grenade.rivalHpAfter < 100 && report.grenade.explodeLogged && report.grenade.grenadeGone, `rivalHp=${report.grenade.rivalHpAfter}`);
+  gate('grenade-resolves-after-fuse', report.grenade.rivalHpAfter < 1000 && report.grenade.explodeLogged && report.grenade.grenadeGone, `rivalHp=${report.grenade.rivalHpAfter}`);
 
   // Melee waits for valid activation geometry (does not waste itself).
   report.meleeWait = await evaluate(`(() => {
@@ -494,7 +494,7 @@ try {
     return { farState, nearState: { holder: __AQ_TEST.holder('HERO'), rivalHp: __AQ_TEST.hp().rival } };
   })()`);
   gate('melee-not-wasted-out-of-range', !report.meleeWait.farState.holder, report.meleeWait.farState);
-  gate('melee-activates-in-range', report.meleeWait.nearState.holder === null && report.meleeWait.nearState.rivalHp < 100);
+  gate('melee-activates-in-range', report.meleeWait.nearState.holder === null && report.meleeWait.nearState.rivalHp < 1000);
 
   // ---------------------------------------------------- shield behaviors ---
   report.swirl = await evaluate(`(() => {
@@ -515,7 +515,7 @@ try {
       bulletOwners,
     };
   })()`);
-  gate('swirl-reflects-projectile', report.swirl.reflectLogged && report.swirl.heroHp === 100 && report.swirl.rivalHp < 100 && report.swirl.heroHolder === null,
+  gate('swirl-reflects-projectile', report.swirl.reflectLogged && report.swirl.heroHp === 1000 && report.swirl.rivalHp < 1000 && report.swirl.heroHolder === null,
     `heroHp=${report.swirl.heroHp} rivalHp=${report.swirl.rivalHp} hitOnRivalFromHero=${report.swirl.hitOnRivalFromHero}`);
   gate('swirl-reflect-ownership-correct', report.swirl.hitOnRivalFromHero >= 1, 'reflected bullet source=HERO target=RIVAL');
 
@@ -535,8 +535,8 @@ try {
     const unguardedHp = __AQ_TEST.hp().hero;
     return { speedStatus, guardedHp, expiredHolder: expired, unguardedHp, unguardedDelta: +(guardedHp - unguardedHp).toFixed(2) };
   })()`);
-  gate('tower-shield-reduces-damage', report.tower.guardedHp === 97.5 && report.tower.unguardedDelta === 10,
-    `withShield 10->${100 - report.tower.guardedHp}, without 10->${report.tower.unguardedDelta}`);
+  gate('tower-shield-reduces-damage', report.tower.guardedHp === 997.5 && report.tower.unguardedDelta === 10,
+    `withShield 10->${report.tower.guardedDelta}, without 10->${report.tower.unguardedDelta}`);
   gate('tower-shield-slow-while-active', report.tower.speedStatus);
   gate('tower-shield-expires-to-unarmed', report.tower.expiredHolder === null);
 
@@ -587,7 +587,7 @@ try {
     report.shells.names[0] === 'SNIPER' && report.shells.names[1] === 'WITCH' && report.shells.shellFlags.every(Boolean),
     report.shells.names);
   gate('shells-native-kits-active-in-arsenal',
-    report.shells.nativeProj >= 1 && report.shells.hp.every(h => h > 0 && h <= 100), report.shells);
+    report.shells.nativeProj >= 1 && report.shells.hp.every(h => h > 0 && h <= 1000), report.shells);
 
   // A-CORR-3 roster matrix proof (real browser): classification, KEEP skill,
   // ADAPT durations, native-skill + Arsenal-weapon coexistence.
@@ -1387,7 +1387,7 @@ try {
   gate('feel-shotgun-pickup-real-file', report.rev2Feel.sgReady && report.rev2Feel.sgReady.cue === 'pickup_shotgun', report.rev2Feel.sgReady);
   gate('feel-sniper-pickup-chamber', report.rev2Feel.snReady && report.rev2Feel.snReady.cue === 'pickup_sniper', report.rev2Feel.snReady);
   gate('feel-heal-values-authorized', report.rev2Feel.healEnabled === true
-    && JSON.stringify(report.rev2Feel.restores) === JSON.stringify([10, 18, 28, 40, 55]), report.rev2Feel);
+    && JSON.stringify(report.rev2Feel.restores) === JSON.stringify([70, 126, 196, 280, 385]), report.rev2Feel);
   gate('feel-splatter-organic-mask', report.rev2Feel.organic >= 1, report.rev2Feel);
   gate('feel-damage-palette-vermilion', report.rev2Feel.pal === '#FF5A36', report.rev2Feel);
 
@@ -1398,10 +1398,10 @@ try {
     __AQ_TEST.clearSlots();
     st.healCooldown = 0;
     st.forceHealId = 'HEAL_H2';
-    fighters[0].hp = 100; fighters[1].hp = 100;
+    fighters[0].hp = 1000; fighters[1].hp = 1000;
     S.updateSlots(0.05);
     const noneAtFull = st.slots.filter(s => s.kind === 'HEAL').length;
-    fighters[0].hp = 60;
+    fighters[0].hp = 700;
     S.updateSlots(0.05);
     const heals = st.slots.filter(s => s.kind === 'HEAL' && s.phase === 'REVEALED');
     const slot = heals[0];
@@ -1416,10 +1416,10 @@ try {
     };
   })()`);
   gate('heal-spawns-when-injured', report.healPlay.noneAtFull === 0 && report.healPlay.spawned === 1
-    && report.healPlay.id === 'HEAL_H2' && report.healPlay.hp === 78, report.healPlay);
-  gate('heal-hud-and-healingDone', report.healPlay.healingDone === 18
-    && String(report.healPlay.hud).indexOf('78') >= 0
-    && report.healPlay.popCount === 1 && report.healPlay.pop === '+18', report.healPlay);
+    && report.healPlay.id === 'HEAL_H2' && report.healPlay.hp === 826, report.healPlay);
+  gate('heal-hud-and-healingDone', report.healPlay.healingDone === 126
+    && String(report.healPlay.hud).indexOf('826') >= 0
+    && report.healPlay.popCount === 1 && report.healPlay.pop === '+126', report.healPlay);
 
   report.atlasPixels = await evaluate(`(() => {
     const feel = APEX_ARSENAL_FEEL;
@@ -1461,7 +1461,7 @@ try {
     __AQ_TEST.clearSlots();
     APEX_ARSENAL.state.spawnedTotal = 0;
     APEX_ARSENAL.state.unarmedFastConsumed = false;
-    APEX_ARSENAL.state.spawnTimer = 3.0;
+    APEX_ARSENAL.state.spawnTimer = 4.5;
     fighters[0].hp = 100; fighters[1].hp = 100;
     fighters[0].data.arsenal = null; fighters[1].data.arsenal = null;
     __AQ_TEST.step(1/60);
@@ -1485,7 +1485,7 @@ try {
     return { afterImmediate, timerAfter, mid, afterOneArmed, armedBefore, retrigBefore, retrigAfter, ak, pistol };
   })()`);
   gate('both-unarmed-immediate-fresh', report.bothUnarmed.afterImmediate === 1, report.bothUnarmed);
-  gate('both-unarmed-timer-reset-3s', report.bothUnarmed.timerAfter > 2.9 && report.bothUnarmed.timerAfter <= 3.0, report.bothUnarmed);
+  gate('both-unarmed-timer-reset-3s', report.bothUnarmed.timerAfter > 4.4 && report.bothUnarmed.timerAfter <= 4.5, report.bothUnarmed);
   gate('both-unarmed-no-spam', report.bothUnarmed.mid === report.bothUnarmed.afterImmediate, report.bothUnarmed);
   gate('both-unarmed-one-armed-no-fast', report.bothUnarmed.afterOneArmed === report.bothUnarmed.armedBefore, report.bothUnarmed);
   gate('both-unarmed-retrigger', report.bothUnarmed.retrigAfter === report.bothUnarmed.retrigBefore + 1, report.bothUnarmed);
@@ -1561,7 +1561,7 @@ try {
   gate('both-unarmed-cap-pending-then-one',
     report.bothUnarmedCap.spawned4 === report.bothUnarmedCap.spawned3 + 1
     && report.bothUnarmedCap.afterFreeSlots === report.bothUnarmedCap.cap
-    && report.bothUnarmedCap.timer4 > 2.9 && report.bothUnarmedCap.timer4 <= 3.0
+    && report.bothUnarmedCap.timer4 > 4.4 && report.bothUnarmedCap.timer4 <= 4.5
     && report.bothUnarmedCap.consumed4 === true
     && report.bothUnarmedCap.spawned5 === report.bothUnarmedCap.spawned4,
     report.bothUnarmedCap);

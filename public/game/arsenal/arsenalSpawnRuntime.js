@@ -102,7 +102,20 @@
     return tEnter;
   }
 
-  function trySpawnSlot() {
+  function selectFirearmWeapon(rng) {
+    const random = typeof rng === 'function' ? rng : (AQ.rng || Math.random);
+    const ids = (CFG.GUN_REGISTRY || []).map((e) => e.id);
+    if (!ids.length) return 'PISTOL';
+    if (CFG.selectOffensiveWeapon) {
+      for (let i = 0; i < 24; i++) {
+        const id = CFG.selectOffensiveWeapon(random).id;
+        if (CFG.isGun && CFG.isGun(id)) return id;
+      }
+    }
+    return ids[Math.floor(random() * ids.length)] || 'PISTOL';
+  }
+
+  function trySpawnSlot(opts) {
     const state = AQ.state;
     if (!state) return null;
     const active = state.slots.filter(s => s.phase !== 'REMOVED' && s.kind !== 'HEAL');
@@ -119,6 +132,7 @@
       y: point.y,
       phase: 'TELEGRAPH',
       weaponId: null,
+      forceFirearm: !!(opts && opts.forceFirearm),
       // V2 B-handoff A-CORR-2: fixed 2.0s whole-circle reveal lead per slot.
       revealLeadSeconds: Number(CFG.REVEAL_LEAD_SECONDS ?? 2.0),
       revealedFor: 0,
@@ -161,7 +175,7 @@
 
   function revealSlot(slot, eta, fighter, force = false) {
     slot.phase = 'REVEALED';
-    slot.weaponId = selectSpawnWeapon();
+    slot.weaponId = slot.forceFirearm ? selectFirearmWeapon() : selectSpawnWeapon();
     slot.tier = CFG.tierOf ? CFG.tierOf(slot.weaponId) : null;
     slot.revealedFor = 0;
     const etaText = Number.isFinite(eta) ? eta.toFixed(2) : 'null';
@@ -607,6 +621,7 @@
 
   window.APEX_ARSENAL_SPAWN = {
     trySpawnSlot,
+    selectFirearmWeapon,
     trySpawnHealSupport,
     selectHealId,
     updateSlots,
