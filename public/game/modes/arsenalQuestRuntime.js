@@ -107,6 +107,7 @@
       time: 0,
       spawnTimer: CFG.SPAWN_CADENCE_SECONDS,
       unarmedFastConsumed: false,
+      unarmedFastPending: false,
       spawnHeld: false,
       slots: [],
       visuals: [],
@@ -188,15 +189,25 @@
     if (!state.over) {
       const living = (typeof fighters !== 'undefined' ? fighters : []).filter((f) => f && f.hp > 0);
       const bothUnarmed = living.length >= 2 && living.every((f) => !weaponApi.getHolder(f));
-      if (!bothUnarmed) state.unarmedFastConsumed = false;
-      else if (!state.spawnHeld && !state.unarmedFastConsumed) {
-        const slot = SPAWN.trySpawnSlot();
-        if (slot) {
-          state.spawnTimer = CFG.SPAWN_CADENCE_SECONDS;
-          state.unarmedFastConsumed = true;
+      if (!bothUnarmed) {
+        state.unarmedFastConsumed = false;
+        state.unarmedFastPending = false;
+      } else if (!state.spawnHeld && !state.unarmedFastConsumed) {
+        const cap = CFG.MAX_ACTIVE_SLOTS;
+        const active = (state.slots || []).filter((s) => s.phase !== 'REMOVED').length;
+        if (active >= cap) {
+          // Cap: keep the episode pending. Do not consume, do not reset the
+          // timer, and do not call trySpawnSlot (avoids per-frame suppress logs).
+          state.unarmedFastPending = true;
         } else {
-          // Cap suppress: do not reset timer or retry every frame.
-          state.unarmedFastConsumed = true;
+          const slot = SPAWN.trySpawnSlot();
+          if (slot) {
+            state.spawnTimer = CFG.SPAWN_CADENCE_SECONDS;
+            state.unarmedFastConsumed = true;
+            state.unarmedFastPending = false;
+          } else {
+            state.unarmedFastPending = true;
+          }
         }
       }
       // Fixed spawn cadence — independent of collection state (handoff §5).

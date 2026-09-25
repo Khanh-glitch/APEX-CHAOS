@@ -1430,6 +1430,69 @@ try {
   gate('feel-rifle-pickup-derived', report.bothUnarmed.ak && String(report.bothUnarmed.ak.rel).indexOf('rifle_take_01.wav') >= 0, report.bothUnarmed.ak);
   gate('feel-pistol-source-recharge', report.bothUnarmed.pistol && String(report.bothUnarmed.pistol.rel).indexOf('pickup_pistol.wav') >= 0, report.bothUnarmed.pistol);
 
+
+  report.bothUnarmedCap = await evaluate(`(() => {
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearSlots();
+    const cap = APEX_ARSENAL_CONFIG.MAX_ACTIVE_SLOTS;
+    APEX_ARSENAL.state.spawnedTotal = 0;
+    APEX_ARSENAL.state.unarmedFastConsumed = false;
+    APEX_ARSENAL.state.unarmedFastPending = false;
+    APEX_ARSENAL.state.spawnHeld = false;
+    APEX_ARSENAL.state.spawnTimer = 2.4;
+    fighters[0].hp = 100; fighters[1].hp = 100;
+    fighters[0].data.arsenal = null; fighters[1].data.arsenal = null;
+    for (let i = 0; i < cap; i++) {
+      __AQ_TEST.pushSlot({ x: 120 + (i % 4) * 180, y: 140 + Math.floor(i / 4) * 180, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 2.0 });
+    }
+    const filled = APEX_ARSENAL.state.slots.filter(s => s.phase !== 'REMOVED').length;
+    const spawned0 = APEX_ARSENAL.state.spawnedTotal;
+    const sup0 = APEX_ARSENAL.state.suppressedSpawns;
+    __AQ_TEST.step(1/60);
+    const afterTrigSlots = APEX_ARSENAL.state.slots.filter(s => s.phase !== 'REMOVED').length;
+    const spawned1 = APEX_ARSENAL.state.spawnedTotal;
+    const timer1 = APEX_ARSENAL.state.spawnTimer;
+    const consumed1 = APEX_ARSENAL.state.unarmedFastConsumed;
+    const pending1 = APEX_ARSENAL.state.unarmedFastPending;
+    const sup1 = APEX_ARSENAL.state.suppressedSpawns;
+    __AQ_TEST.step(0.5);
+    const spawned2 = APEX_ARSENAL.state.spawnedTotal;
+    const sup2 = APEX_ARSENAL.state.suppressedSpawns;
+    APEX_ARSENAL.state.spawnTimer = 1.8;
+    const free = APEX_ARSENAL.state.slots.find(s => s.phase !== 'REMOVED');
+    if (free) free.phase = 'REMOVED';
+    const spawned3 = APEX_ARSENAL.state.spawnedTotal;
+    __AQ_TEST.step(1/60);
+    const afterFreeSlots = APEX_ARSENAL.state.slots.filter(s => s.phase !== 'REMOVED').length;
+    const spawned4 = APEX_ARSENAL.state.spawnedTotal;
+    const timer4 = APEX_ARSENAL.state.spawnTimer;
+    const consumed4 = APEX_ARSENAL.state.unarmedFastConsumed;
+    __AQ_TEST.step(1/60);
+    const spawned5 = APEX_ARSENAL.state.spawnedTotal;
+    return { cap, filled, spawned0, spawned1, spawned2, spawned3, spawned4, spawned5, afterTrigSlots, afterFreeSlots, timer1, timer4, consumed1, pending1, consumed4, sup0, sup1, sup2 };
+  })()`);
+  gate('both-unarmed-cap-no-illegal-slot',
+    report.bothUnarmedCap.filled === report.bothUnarmedCap.cap
+    && report.bothUnarmedCap.afterTrigSlots === report.bothUnarmedCap.cap
+    && report.bothUnarmedCap.spawned1 === report.bothUnarmedCap.spawned0,
+    report.bothUnarmedCap);
+  gate('both-unarmed-cap-timer-not-reset',
+    report.bothUnarmedCap.timer1 < 2.4 && report.bothUnarmedCap.timer1 > 2.3
+    && report.bothUnarmedCap.consumed1 === false && report.bothUnarmedCap.pending1 === true,
+    report.bothUnarmedCap);
+  gate('both-unarmed-cap-no-per-frame-suppress',
+    report.bothUnarmedCap.spawned2 === report.bothUnarmedCap.spawned1
+    && report.bothUnarmedCap.sup2 === report.bothUnarmedCap.sup1
+    && report.bothUnarmedCap.sup1 === report.bothUnarmedCap.sup0,
+    report.bothUnarmedCap);
+  gate('both-unarmed-cap-pending-then-one',
+    report.bothUnarmedCap.spawned4 === report.bothUnarmedCap.spawned3 + 1
+    && report.bothUnarmedCap.afterFreeSlots === report.bothUnarmedCap.cap
+    && report.bothUnarmedCap.timer4 > 2.9 && report.bothUnarmedCap.timer4 <= 3.0
+    && report.bothUnarmedCap.consumed4 === true
+    && report.bothUnarmedCap.spawned5 === report.bothUnarmedCap.spawned4,
+    report.bothUnarmedCap);
+
   // ------------------------------------------------------------ summary ----
   report.summary = {
     total: Object.keys(report.gates).length,
