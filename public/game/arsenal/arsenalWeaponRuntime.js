@@ -728,10 +728,13 @@
     return r + base;
   }
 
-  function gunWorldLong(weaponId) {
+  function gunWorldLong(weaponId, mode) {
+    const table = CFG.FIREARM_LONG_SIDE || {};
+    const mul = (CFG.FIREARM_DISPLAY_MODE && CFG.FIREARM_DISPLAY_MODE[mode || 'equipped']) || 1;
+    if (table[weaponId]) return table[weaponId] * mul;
     const set = window.APEX_ARSENAL_C_SET && window.APEX_ARSENAL_C_SET.weapons && window.APEX_ARSENAL_C_SET.weapons[weaponId];
-    if (set && set.worldW) return Math.max(set.worldW, set.worldH);
-    return 120;
+    if (set && set.worldW) return Math.max(set.worldW, set.worldH) * mul;
+    return 120 * mul;
   }
   function gunWorldSize(weaponId) {
     const set = window.APEX_ARSENAL_C_SET && window.APEX_ARSENAL_C_SET.weapons && window.APEX_ARSENAL_C_SET.weapons[weaponId];

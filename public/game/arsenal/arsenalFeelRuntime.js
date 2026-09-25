@@ -40,12 +40,34 @@
     atlasVariant: {},
   };
   const PALETTE = {
-    dmg: { fill: '#FF5A36', edge: '#4A1710' },
-    heavy: { fill: '#FFC247', edge: '#5A3A00' },
-    heal: { fill: '#38E07A', edge: '#0B4C2A' },
+    dmg: { fill: '#F2382F', edge: '#5A0C09' },
+    crit: { fill: '#FF8A24', edge: '#5A2700' },
+    heal: { fill: '#37D96B', edge: '#063D1D' },
     miss: { fill: '#465361', edge: '#E8EEF4' },
   };
-  const tintedAtlas = { dmg: null, heavy: null, heal: null, miss: null };
+  const BLOOD = {
+    spray: [0xD7, 0x2A, 0x32],
+    main: [0x8E, 0x0E, 0x18],
+    core: [0x3A, 0x05, 0x08],
+    deep: [0x26, 0x04, 0x07],
+  };
+  const SIZE_BANDS = [
+    { id: 'XS', min: 1, max: 34, scale: 0.85 },
+    { id: 'S', min: 35, max: 69, scale: 1.00 },
+    { id: 'M', min: 70, max: 139, scale: 1.15 },
+    { id: 'L', min: 140, max: 239, scale: 1.32 },
+    { id: 'XL', min: 240, max: 399, scale: 1.50 },
+    { id: 'XXL', min: 400, max: 1e9, scale: 1.70 },
+  ];
+  function bandFor(amount) {
+    const a = Math.abs(Number(amount) || 0);
+    for (const b of SIZE_BANDS) {
+      if (a >= b.min && a <= b.max) return b;
+    }
+    return SIZE_BANDS[SIZE_BANDS.length - 1];
+  }
+  const tintedAtlas = { dmg: null, crit: null, heal: null, miss: null };
+  const bandCache = {};
 
   let stainCanvas = null;
   let stainCtx = null;
@@ -111,8 +133,20 @@
       c.drawImage(fillLayer, 0, 0);
       tintedAtlas[kind] = cnv;
       stats.atlasVariant[kind] = { fill: pal.fill, edge: pal.edge };
+      for (const b of SIZE_BANDS) {
+        const key = kind + ':' + b.id;
+        const bw = Math.max(1, Math.round(w * b.scale));
+        const bh = Math.max(1, Math.round(h * b.scale));
+        const bc = document.createElement('canvas');
+        bc.width = bw; bc.height = bh;
+        const bctx = bc.getContext('2d');
+        bctx.imageSmoothingEnabled = false;
+        bctx.drawImage(cnv, 0, 0, bw, bh);
+        bandCache[key] = bc;
+      }
     }
     stats.atlasReady = true;
+    stats.sizeBands = SIZE_BANDS.map((b) => b.id);
   }
   function nearColor(px, rgb, tol) {
     return Math.abs(px[0] - rgb[0]) <= tol && Math.abs(px[1] - rgb[1]) <= tol && Math.abs(px[2] - rgb[2]) <= tol && px[3] > 40;
@@ -188,10 +222,11 @@
     return m[1].toUpperCase().replace(/-/g, '_');
   }
 
-  function footprint(dealt) {
-    const d = Math.max(0, dealt);
-    const px = 18 + Math.sqrt(d) * 9;
-    return Math.min(80, px);
+  function footprint(dealt, crit) {
+    const scale = (CFG && CFG.ARSENAL_DAMAGE_SCALE) || 7;
+    const visual = Math.max(0, dealt) / scale;
+    const px = 16 + Math.sqrt(visual) * 8;
+    return Math.min(72, px * (crit ? 1.2 : 1));
   }
 
   function allocSpray() {
@@ -256,91 +291,131 @@
     return true;
   }
 
-  function stampStain(x, y, dealt, victimRgb, dirx, diry, family) {
+  function drawWedge(c, len, half, rgb, a) {
+    c.beginPath();
+    c.moveTo(0, 0);
+    c.lineTo(len, -half);
+    c.lineTo(len * 0.92, 0);
+    c.lineTo(len, half);
+    c.closePath();
+    c.fillStyle = rgba(rgb, a);
+    c.fill();
+  }
+  function stampStain(x, y, dealt, victimRgb, dirx, diry, family, crit) {
     const c = ensureStain();
     if (!c) return;
-    const fp = footprint(dealt);
-    const main = darken(victimRgb, 0.62);
-    const core = darken(victimRgb, 0.42);
-    const wet = victimRgb;
+    const fp = footprint(dealt, crit);
+    const main = BLOOD.main;
+    const core = BLOOD.core;
+    const wet = BLOOD.spray;
     const ang = Math.atan2(diry, dirx);
-    const fan = family === 'SHOTGUN' || family === 'BLAST' ? 1.35
-      : family === 'AUTO' ? 0.85
-      : family === 'MELEE' ? 0.55
-      : family === 'PRECISION' ? 0.45
-      : 0.7;
-    const stretch = family === 'PRECISION' ? 1.85
-      : family === 'MELEE' ? 1.45
-      : family === 'SHOTGUN' ? 1.15
-      : 1.05;
+    const fan = family === 'SHOTGUN' || family === 'BLAST' ? 1.22
+      : family === 'AUTO' ? 0.72
+      : family === 'MELEE' ? 0.85
+      : family === 'PRECISION' ? 0.28
+      : 0.55;
+    const nSlash = family === 'SHOTGUN' || family === 'BLAST' ? 5
+      : family === 'AUTO' ? 2
+      : family === 'PRECISION' ? 3
+      : family === 'MELEE' ? 4
+      : 3;
     c.save();
     c.translate(x, y);
     c.rotate(ang);
-    const used = stampOrganic(c, 0, 0, fp * stretch, fp * 0.78, (Math.random() - 0.5) * 0.4, main, 0.88);
-    stampOrganic(c, fp * 0.12, fp * 0.08, fp * 0.7, fp * 0.55, 0.7 + Math.random(), core, 0.7);
-    if (family === 'PRECISION' || family === 'MELEE') {
-      stampOrganic(c, fp * 0.55, 0, fp * stretch * 0.9, fp * 0.28, 0.15, main, 0.55);
+    c.imageSmoothingEnabled = false;
+    stampOrganic(c, fp * 0.08, 0, fp * 0.55, fp * 0.42, (Math.random() - 0.5) * 0.5, main, 0.9);
+    stampOrganic(c, fp * 0.04, fp * 0.06, fp * 0.32, fp * 0.28, 0.8, core, 0.75);
+    for (let i = 0; i < nSlash; i++) {
+      const a = (Math.random() - 0.5) * fan;
+      c.save();
+      c.rotate(a);
+      const len = fp * (family === 'PRECISION' ? 1.7 : family === 'MELEE' ? 1.35 : 1.05) * (0.7 + Math.random() * 0.45);
+      const half = family === 'PRECISION' ? 1.6 + Math.random() : 2.2 + Math.random() * 2.4;
+      drawWedge(c, len, half, i ? main : BLOOD.deep, 0.85);
+      c.restore();
     }
-    const nDrop = family === 'SHOTGUN' || family === 'BLAST' ? 12
-      : family === 'AUTO' ? 9
-      : family === 'PRECISION' ? 8
+    const nDrop = family === 'SHOTGUN' || family === 'BLAST' ? 9
+      : family === 'AUTO' ? 5
+      : family === 'PRECISION' ? 4
       : 6;
     for (let i = 0; i < nDrop; i++) {
       const a = (Math.random() - 0.5) * fan;
-      const dist = fp * (0.28 + Math.random() * (family === 'SHOTGUN' ? 1.15 : 0.8));
-      const sx = 4 + Math.random() * fp * 0.22;
-      const sy = 3 + Math.random() * fp * 0.12;
-      stampOrganic(c, Math.cos(a) * dist, Math.sin(a) * dist * 0.55, sx, sy, a, i % 2 ? wet : main, 0.35 + Math.random() * 0.4);
+      const dist = fp * (0.35 + Math.random() * (family === 'SHOTGUN' ? 1.2 : 0.75));
+      const sx = 3 + Math.random() * fp * 0.16;
+      const sy = 2 + Math.random() * 3;
+      stampOrganic(c, Math.cos(a) * dist, Math.sin(a) * dist * 0.45, sx, sy, a, i % 2 ? wet : main, 0.45 + Math.random() * 0.35);
     }
     c.restore();
-    if (!used) stats.ellipseCore += 1;
     stats.stamps += 1;
   }
 
-  function emitSpray(x, y, dealt, victimRgb, dirx, diry) {
-    const n = Math.min(18, 4 + Math.round(Math.sqrt(dealt) * 2));
-    for (let i = 0; i < n; i++) {
+  function emitSpray(x, y, dealt, victimRgb, dirx, diry, crit) {
+    const visual = Math.max(0, dealt) / ((CFG && CFG.ARSENAL_DAMAGE_SCALE) || 7);
+    const nStreak = 3 + Math.min(4, Math.round(Math.sqrt(visual)));
+    const nDrop = 6 + Math.min(12, Math.round(visual));
+    const baseAng = Math.atan2(diry, dirx);
+    const boost = crit ? 1.2 : 1;
+    for (let i = 0; i < nStreak; i++) {
       const p = allocSpray();
-      const spread = (Math.random() - 0.5) * 0.9;
-      const sp = 90 + Math.random() * 220 + dealt * 4;
+      const spread = (Math.random() - 0.5) * (70 * Math.PI / 180);
+      const sp = (140 + Math.random() * 180 + visual * 8) * boost;
       p.x = x; p.y = y;
-      p.vx = dirx * sp + Math.cos(spread) * 40;
-      p.vy = diry * sp + Math.sin(spread) * 40;
-      p.r = 1.5 + Math.random() * 3.5;
-      p.life = 0.12 + Math.random() * 0.18;
+      p.vx = Math.cos(baseAng + spread) * sp;
+      p.vy = Math.sin(baseAng + spread) * sp;
+      p.r = 1.2 + Math.random() * 1.6;
+      p.len = 10 + Math.random() * 16 * boost;
+      p.life = 0.12 + Math.random() * 0.1;
       p.max = p.life;
-      p.rgb = victimRgb;
+      p.rgb = BLOOD.spray;
+      p.wedge = true;
+      sprayLive.push(p);
+    }
+    for (let i = 0; i < nDrop; i++) {
+      const p = allocSpray();
+      const spread = (Math.random() - 0.5) * (70 * Math.PI / 180);
+      const sp = (70 + Math.random() * 160) * boost;
+      p.x = x; p.y = y;
+      p.vx = Math.cos(baseAng + spread) * sp;
+      p.vy = Math.sin(baseAng + spread) * sp;
+      p.r = 1.2 + Math.random() * 2.4;
+      p.len = 0;
+      p.life = 0.12 + Math.random() * 0.1;
+      p.max = p.life;
+      p.rgb = i % 3 ? BLOOD.main : BLOOD.spray;
+      p.wedge = false;
       sprayLive.push(p);
     }
     if (sprayLive.length > stats.sprayPeak) stats.sprayPeak = sprayLive.length;
   }
 
   function allocPopup() {
-    const p = popupPool.pop() || { x: 0, y: 0, text: '', kind: 'dmg', life: 0, vy: 0, scale: 1 };
+    const p = popupPool.pop() || { x: 0, y: 0, text: '', kind: 'dmg', life: 0, vy: 0, scale: 1, punch: 1, age: 0, band: 'S' };
     if (p.life || p.text) stats.popupReuse += 1;
     return p;
   }
 
-  function pushPopup(x, y, text, kind, scale) {
+  function pushPopup(x, y, text, kind, amount) {
     const p = allocPopup();
-    p.x = x; p.y = y - 18;
+    const band = bandFor(amount || 0);
+    p.x = Math.round(x); p.y = Math.round(y - 18);
     p.text = text;
     p.kind = kind;
-    p.life = 0.7;
-    p.vy = -46;
-    p.scale = scale || 1;
+    p.life = kind === 'crit' ? 0.9 : 0.7;
+    p.vy = kind === 'crit' ? -62 : (kind === 'heal' ? -40 : -46);
+    p.scale = band.scale;
+    p.band = band.id;
+    p.punch = kind === 'crit' ? 1.15 : 1;
+    p.age = 0;
     popupLive.push(p);
     stats.popups += 1;
     if (kind === 'miss') stats.missPopups += 1;
   }
 
-  function flushAgg(key, now) {
+  function flushAgg(key) {
     const a = agg.get(key);
     if (!a) return;
-    if (a.amount > 0) {
-      const heavy = a.amount >= 18;
-      pushPopup(a.x, a.y, String(Math.round(a.amount)), heavy ? 'heavy' : 'dmg', heavy ? 1.35 : 1);
-    }
+    if (a.normal > 0) pushPopup(a.x, a.y, String(Math.round(a.normal)), 'dmg', a.normal);
+    if (a.crit > 0) pushPopup(a.x + 18, a.y - 12, String(Math.round(a.crit)), 'crit', a.crit);
     agg.delete(key);
   }
 
@@ -358,7 +433,7 @@
       }
       return;
     }
-    const rgb = parseHex(victim && (victim.color || (victim.type && victim.type.color)));
+    const rgb = BLOOD.main;
     const dx = victim && source ? victim.x - source.x : 1;
     const dy = victim && source ? victim.y - source.y : 0;
     const len = Math.hypot(dx, dy) || 1;
@@ -371,37 +446,38 @@
       : /melee|axe|sabre|dagger|spear|club/i.test(wid || label) ? 'MELEE'
       : /grenade|blast/i.test(wid || label) ? 'BLAST'
       : 'SEMI';
+    const crit = !!opts.critical;
     stats.splatters += 1;
-    stampStain(victim.x, victim.y, dealt, rgb, dirx, diry, fam);
-    emitSpray(victim.x, victim.y, dealt, rgb, dirx, diry);
+    stampStain(victim.x, victim.y, dealt, rgb, dirx, diry, fam, crit);
+    emitSpray(victim.x, victim.y, dealt, rgb, dirx, diry, crit);
 
     const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    const kind = crit ? 'crit' : 'dmg';
     if (fam === 'SHOTGUN' || fam === 'AUTO') {
       const key = (victim && victim.name) + '|' + (fam === 'SHOTGUN' ? 'SG' : 'AU');
       const windowMs = fam === 'AUTO' ? 110 : 50;
       const prev = agg.get(key);
       if (prev && now - prev.t < windowMs) {
-        prev.amount += dealt;
+        if (crit) prev.crit += dealt; else prev.normal += dealt;
         prev.x = victim.x; prev.y = victim.y; prev.t = now;
       } else {
-        if (prev) flushAgg(key, now);
-        agg.set(key, { amount: dealt, x: victim.x, y: victim.y, t: now, windowMs });
+        if (prev) flushAgg(key);
+        agg.set(key, { normal: crit ? 0 : dealt, crit: crit ? dealt : 0, x: victim.x, y: victim.y, t: now, windowMs });
       }
     } else {
-      const heavy = dealt >= 18;
-      pushPopup(victim.x, victim.y, String(Math.round(dealt)), heavy ? 'heavy' : 'dmg', heavy ? 1.35 : 1);
+      pushPopup(victim.x, victim.y, String(Math.round(dealt)), kind, dealt);
     }
   }
 
   function noteHeal(victim, amount) {
     if (!(amount > 0) || !victim) return;
-    pushPopup(victim.x, victim.y, '+' + Math.round(amount), 'heal', 1.1);
+    pushPopup(victim.x, victim.y, '+' + Math.round(amount), 'heal', amount);
   }
 
   function tick(dt) {
     const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     for (const [k, a] of agg) {
-      if (now - a.t > (a.windowMs || 110)) flushAgg(k, now);
+      if (now - a.t > (a.windowMs || 110)) flushAgg(k);
     }
     for (let i = sprayLive.length - 1; i >= 0; i--) {
       const p = sprayLive[i];
@@ -417,7 +493,10 @@
     for (let i = popupLive.length - 1; i >= 0; i--) {
       const p = popupLive[i];
       p.life -= dt;
+      p.age = (p.age || 0) + dt;
       p.y += p.vy * dt;
+      if (p.kind === 'crit' && p.age < 0.09) p.punch = 1.15 - (p.age / 0.09) * 0.15;
+      else p.punch = 1;
       if (p.life <= 0) {
         popupLive.splice(i, 1);
         popupPool.push(p);
@@ -434,10 +513,29 @@
   function drawSpray(c) {
     for (const p of sprayLive) {
       c.globalAlpha = Math.max(0, p.life / p.max);
-      c.fillStyle = rgba(p.rgb, 0.9);
-      c.beginPath();
-      c.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      c.fill();
+      c.fillStyle = rgba(p.rgb, 0.95);
+      if (p.wedge && p.len) {
+        const ang = Math.atan2(p.vy, p.vx);
+        c.save();
+        c.translate(p.x, p.y);
+        c.rotate(ang);
+        c.beginPath();
+        c.moveTo(0, 0);
+        c.lineTo(p.len, -p.r);
+        c.lineTo(p.len * 0.9, 0);
+        c.lineTo(p.len, p.r);
+        c.closePath();
+        c.fill();
+        c.restore();
+      } else {
+        c.beginPath();
+        c.moveTo(p.x + p.r * 1.6, p.y);
+        c.lineTo(p.x, p.y - p.r);
+        c.lineTo(p.x - p.r * 0.6, p.y);
+        c.lineTo(p.x, p.y + p.r);
+        c.closePath();
+        c.fill();
+      }
     }
     c.globalAlpha = 1;
   }
@@ -446,13 +544,27 @@
   const ATLAS_ROW = 32;
   function atlasRowFor(kind) {
     if (kind === 'heal') return 1;
-    if (kind === 'heavy') return 2;
     if (kind === 'miss') return 4;
     return 0;
   }
+  function drawCritMark(c, x, y, s) {
+    c.save();
+    c.fillStyle = PALETTE.crit.fill;
+    c.strokeStyle = PALETTE.crit.edge;
+    c.lineWidth = 1.5;
+    c.translate(x, y);
+    c.beginPath();
+    c.moveTo(0, -10 * s); c.lineTo(4 * s, 0); c.lineTo(0, 10 * s); c.lineTo(-4 * s, 0); c.closePath();
+    c.fill(); c.stroke();
+    c.beginPath();
+    c.moveTo(-10 * s, 0); c.lineTo(0, 4 * s); c.lineTo(10 * s, 0); c.lineTo(0, -4 * s); c.closePath();
+    c.fill();
+    c.restore();
+  }
   function drawAtlasText(c, text, x, y, kind, scale) {
     if (!stats.atlasReady) buildTintedAtlas();
-    const sheet = tintedAtlas[kind === 'heal' ? 'heal' : kind === 'heavy' ? 'heavy' : kind === 'miss' ? 'miss' : 'dmg']
+    const palKey = kind === 'heal' ? 'heal' : kind === 'crit' ? 'crit' : kind === 'miss' ? 'miss' : 'dmg';
+    const sheet = tintedAtlas[palKey]
       || (atlasImg && atlasImg.complete ? atlasImg : null);
     if (!sheet || (sheet.naturalWidth != null && sheet.naturalWidth < 240 && !tintedAtlas.dmg)) {
       if (!(atlasImg && atlasImg.complete && atlasImg.naturalWidth >= 240)) return false;
@@ -460,7 +572,7 @@
     const src = sheet && (sheet.width || sheet.naturalWidth) ? sheet : atlasImg;
     if (!src) return false;
     stats.atlasDraws = (stats.atlasDraws || 0) + 1;
-    stats.lastPopupPalette = PALETTE[kind === 'heal' ? 'heal' : kind === 'heavy' ? 'heavy' : kind === 'miss' ? 'miss' : 'dmg'].fill;
+    stats.lastPopupPalette = PALETTE[palKey].fill;
     const s = 0.9 * (scale || 1);
     if (kind === 'miss') {
       const w = ATLAS_COL * 4;
@@ -502,17 +614,9 @@
       if (p.kind === 'miss' && /\d/.test(p.text)) stats.numericOnMiss += 1;
       const a = Math.max(0, Math.min(1, p.life / 0.7));
       c.globalAlpha = a;
-      if (drawAtlasText(c, p.text, p.x, p.y, p.kind, p.scale)) continue;
-      const fs = 22 * p.scale;
-      c.font = '900 ' + fs + 'px Impact, Arial Black, sans-serif';
-      if (p.kind === 'heal') c.fillStyle = '#5dff7a';
-      else if (p.kind === 'heavy') c.fillStyle = '#ffd24a';
-      else if (p.kind === 'miss') c.fillStyle = '#d8d2c4';
-      else c.fillStyle = '#f4f4f4';
-      c.strokeStyle = 'rgba(20,16,12,0.7)';
-      c.lineWidth = 4;
-      c.strokeText(p.text, p.x, p.y);
-      c.fillText(p.text, p.x, p.y);
+      const ok = drawAtlasText(c, p.text, p.x, p.y, p.kind, p.scale);
+      if (p.kind === 'crit') drawCritMark(c, p.x + 22, p.y - 8, 0.7 * (p.punch || 1));
+      if (ok) continue;
     }
     c.restore();
   }
@@ -548,6 +652,9 @@
     forceAtlasImage(img) { atlasImg = img; buildTintedAtlas(); },
     stainSurface() { return stainCanvas; },
     livePopups() { return popupLive; },
+    bandFor,
+    sizeBands: SIZE_BANDS,
+    blood: BLOOD,
   };
   window.APEX_ARSENAL_FEEL = AQ.feel;
   window.apexArsenalFeelRuntime = 'ready';

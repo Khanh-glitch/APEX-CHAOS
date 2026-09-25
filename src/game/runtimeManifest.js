@@ -70,6 +70,7 @@ export const MODE_DEFERRED_RUNTIMES = {
     ['/game/arsenal/arsenalManualSkillGate.js', 'apexArsenalManualSkillGate'],
     ['/game/arsenal/arsenalShellSelectRuntime.js', 'apexArsenalShellSelectRuntime'],
     ['/game/arsenal/arsenalQuestLadder.js', 'apexArsenalQuestLadder'],
+    ['/game/arsenal/arsenalMetaRuntime.js', 'apexArsenalMetaRuntime'],
     ['/game/modes/arsenalQuestRuntime.js', 'apexArsenalQuestRuntime'],
   ],
 };

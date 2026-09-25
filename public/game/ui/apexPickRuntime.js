@@ -138,16 +138,24 @@
   function currentRoster() {
     // V2 §A3: Arsenal select reuses this pick UI with the canonical 32 shells.
     if (window.__apexArsenalSelectPending && window.APEX_ARSENAL_SHELLS) {
-      const roster = window.APEX_ARSENAL_SHELLS.roster().map(ft => ({
-        id: ft.name.toLowerCase(),
-        name: ft.name,
-        accent: ft.color,
-        glow: ft.color,
-        standing: '',
-        cardArt: '',
-        icon: '',
-        stats: { hp: 1000, dmg: 100 },
-      }));
+      const recs = championRecords();
+      const byName = new Map(recs.map((c) => [c.name, c]));
+      const raw = window.APEX_ARSENAL_SHELLS.roster();
+      const owned = (window.APEX_ARSENAL_META && window.APEX_ARSENAL_META.filterOwned)
+        ? window.APEX_ARSENAL_META.filterOwned(raw) : raw;
+      const roster = owned.map(ft => {
+        const rec = byName.get(ft.name);
+        return {
+          id: ft.name.toLowerCase(),
+          name: ft.name,
+          accent: ft.color,
+          glow: ft.color,
+          standing: (rec && rec.standing) || '',
+          cardArt: (rec && rec.cardArt) || '',
+          icon: (rec && rec.icon) || '',
+          stats: { hp: 1000, dmg: 100 },
+        };
+      });
       PickRuntimeController.champions = roster;
       return roster;
     }

@@ -692,8 +692,7 @@
   draw = function () {
     if (gameState !== 'ARSENAL') { baseDraw(); return; }
     const t0 = performance.now();
-    const restore = muteArenaGlyphs(ctx);
-    try { baseDraw(); } finally { restore(); }
+    baseDraw();
     drawForeground();
     aqPerfMark('arsenalFrame', performance.now() - t0);
   };

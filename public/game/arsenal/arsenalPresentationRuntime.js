@@ -572,14 +572,15 @@
       const meta = weaponMeta(weaponId);
       if (weaponId === 'GRENADE') {
         targetLongSide = 56;
-      } else if (meta && meta.worldW) {
-        targetLongSide = Math.max(meta.worldW, meta.worldH);
       } else {
-        targetLongSide = 145;
+        const table = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.FIREARM_LONG_SIDE) || {};
+        targetLongSide = table[weaponId] || 145;
       }
       offset = radius * 0.78;
     }
-    return { drawOffset, targetLongSide, offset, useWorld: !!(weaponMeta(weaponId) && weaponMeta(weaponId).worldW && category !== 'melee' && category !== 'defense' && weaponId !== 'GRENADE') };
+    const gunTable = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.FIREARM_LONG_SIDE) || {};
+    const isGun = !!gunTable[weaponId];
+    return { drawOffset, targetLongSide, offset, useWorld: !isGun && !!(weaponMeta(weaponId) && weaponMeta(weaponId).worldW && category !== 'melee' && category !== 'defense' && weaponId !== 'GRENADE') };
   }
 
   // Checkpoint B (B-handoff PART 2): the weapon sprite transform consumes the
@@ -635,9 +636,13 @@
     if (!d || !d.weaponId) return false;
     const u = Math.max(0, Math.min(1, d.t / (d.maxLife || 0.5)));
     const alpha = u < 0.85 ? 1 : Math.max(0, 1 - (u - 0.85) / 0.15);
+    const table = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.FIREARM_LONG_SIDE) || {};
+    const mul = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.FIREARM_DISPLAY_MODE && window.APEX_ARSENAL_CONFIG.FIREARM_DISPLAY_MODE.exit) || 0.96;
+    const long = table[d.weaponId] ? table[d.weaponId] * mul : undefined;
     return drawWeaponSprite(ctx, d.weaponId, d.x, d.y, {
       mode: 'equipped',
-      useWorld: true,
+      useWorld: !table[d.weaponId],
+      targetLongSide: long || 140,
       angle: d.rot,
       alpha,
       keepUpright: true,
@@ -743,6 +748,7 @@
     imagesReady: () => stats.imagesLoaded,
     activeVfx: () => vfx.length,
     drawWeaponSprite,
+    weaponDrawParams,
     drawEquippedWeapon,
     drawPoseGhost,
     drawDetachedWeapon,

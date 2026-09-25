@@ -604,12 +604,13 @@
         ctx.translate(0, bob);
 
         const av = window.APEX_ARSENAL_AV;
-        const meta = av && av.weaponMeta && av.weaponMeta(slot.weaponId);
-        const useWorld = !!(meta && meta.worldW);
+        const table = (CFG.FIREARM_LONG_SIDE) || {};
+        const mul = (CFG.FIREARM_DISPLAY_MODE && CFG.FIREARM_DISPLAY_MODE.floor) || 0.92;
+        const gunLong = table[slot.weaponId] ? table[slot.weaponId] * mul : 118;
         const drawn = !!(av && av.drawWeaponSprite && av.drawWeaponSprite(ctx, slot.weaponId, 0, 0, {
           mode: 'floor',
-          useWorld,
-          targetLongSide: slot.weaponId === 'GRENADE' ? 56 : (useWorld ? undefined : 118),
+          useWorld: false,
+          targetLongSide: slot.weaponId === 'GRENADE' ? 56 : gunLong,
           alpha: 1,
         }));
         if (!drawn) drawDebugMissingWeapon(ctx, slot.weaponId);

@@ -2378,7 +2378,7 @@ gate('feel-heal-runtime-files',
 gate('feel-heal-values-authorized', report.rev2Feel.healEnabled === true
   && JSON.stringify(report.rev2Feel.healRestores) === JSON.stringify([70, 126, 196, 280, 385]), report.rev2Feel);
 gate('feel-splatter-organic-mask', report.rev2Feel.organic >= 1, report.rev2Feel);
-gate('feel-damage-palette-vermilion', report.rev2Feel.dmgPal === '#FF5A36', report.rev2Feel);
+gate('feel-damage-palette-vermilion', report.rev2Feel.dmgPal === '#F2382F', report.rev2Feel);
 gate('feel-floating-text-still-sunk', report.rev2Feel.floating === 0, report.rev2Feel);
 
 
@@ -2716,6 +2716,52 @@ gate('v3-pistol-crit-x150', report.v3Combat.pistolCrit === 47.25, report.v3Comba
 gate('v3-melee-x7-no-crit', report.v3Combat.melee === 84, report.v3Combat);
 gate('v3-native-not-x7', report.v3Combat.native < 10 && report.v3Combat.native > 0, report.v3Combat);
 gate('v3-crit-rng-isolated', report.v3Combat.spawnSame === true && report.v3Combat.chance === 0.32, report.v3Combat);
+
+report.v3Visual = run(`
+  const CFG = APEX_ARSENAL_CONFIG;
+  const feel = APEX_ARSENAL_FEEL;
+  const longs = Object.keys(CFG.FIREARM_LONG_SIDE).map(id => CFG.FIREARM_LONG_SIDE[id]);
+  const params = APEX_ARSENAL_AV.weaponDrawParams('PISTOL', 'ranged', 75);
+  const sn = APEX_ARSENAL_AV.weaponDrawParams('SNIPER', 'ranged', 75);
+  feel.noteDamage({ dealt: 31.5, victim: { x: 100, y: 100, name: 'R' }, source: { x: 0, y: 100 }, label: 'arsenal-PISTOL', critical: false });
+  feel.noteDamage({ dealt: 47, victim: { x: 120, y: 100, name: 'R2' }, source: { x: 0, y: 100 }, label: 'arsenal-SNIPER', critical: true });
+  feel.noteHeal({ x: 80, y: 80 }, 70);
+  const pops = feel.livePopups();
+  const kinds = pops.map(p => p.kind);
+  const src = (draw.toString() + '');
+  return {
+    minL: Math.min.apply(null, longs), maxL: Math.max.apply(null, longs),
+    pistolLong: params.targetLongSide, snLong: sn.targetLongSide, useWorld: params.useWorld,
+    kinds, pal: feel.palettes, bands: (feel.sizeBands || []).map(b => b.id),
+    muted: src.indexOf('muteArenaGlyphs(ctx)') >= 0,
+    blood: feel.blood && feel.blood.main,
+  };
+`);
+gate('v3-gun-longside-table', report.v3Visual.minL >= 108 && report.v3Visual.maxL <= 188
+  && report.v3Visual.pistolLong === 126 && report.v3Visual.snLong === 188 && report.v3Visual.useWorld === false, report.v3Visual);
+gate('v3-popup-kinds', report.v3Visual.kinds.includes('dmg') && report.v3Visual.kinds.includes('crit') && report.v3Visual.kinds.includes('heal'), report.v3Visual);
+gate('v3-popup-palette', report.v3Visual.pal.dmg.fill === '#F2382F' && report.v3Visual.pal.crit.fill === '#FF8A24' && report.v3Visual.pal.heal.fill === '#37D96B', report.v3Visual);
+gate('v3-size-bands', report.v3Visual.bands.join(',') === 'XS,S,M,L,XL,XXL', report.v3Visual);
+gate('v3-no-blanket-text-mute', report.v3Visual.muted === false, report.v3Visual);
+
+report.v3Meta = run(`
+  const M = window.APEX_ARSENAL_META;
+  try { localStorage.removeItem(M.KEY); } catch (e) {}
+  const fresh = M.sanitize(null);
+  M.save(fresh);
+  const st = M.getState();
+  const buyNew = M.buy('NEWBIE');
+  const poor = M.buy('ICE');
+  M.award('test', 2000);
+  const ice = M.buy('ICE');
+  const ice2 = M.buy('ICE');
+  const spin = M.spin(() => 0);
+  const emptyPool = M.poolLocked();
+  return { credits0: st.credits, owned0: st.ownedFighters, buyNew, poor, ice, ice2, spinOk: spin.ok, spinName: spin.name, credits: M.credits() };
+`);
+gate('v3-meta-fresh-350-newbie', report.v3Meta.credits0 === 350 && report.v3Meta.owned0[0] === 'NEWBIE', report.v3Meta);
+gate('v3-meta-shop-rules', report.v3Meta.buyNew.ok === false && report.v3Meta.poor.ok === false && report.v3Meta.ice.ok === true && report.v3Meta.ice2.ok === false, report.v3Meta);
+gate('v3-meta-spin-no-dup', report.v3Meta.spinOk === true && report.v3Meta.spinName !== 'ICE' && report.v3Meta.spinName !== 'NEWBIE', report.v3Meta);
 
 // ------------------------------------------------------------------- summary
 report.summary = {
