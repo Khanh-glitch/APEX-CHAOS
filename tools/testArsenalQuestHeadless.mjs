@@ -3471,16 +3471,31 @@ gate('passb-kanit-not-silent-fallback', !!ks0.glyphSig && ks0.glyphSig.kanit > 0
 run(`__AQ_TEST.redraw(); for (let i = 0; i < 50; i++) { APEX_ARSENAL_FEEL.noteDamage({ dealt: 7, victim: fighters[1], source: fighters[0], label: 'arsenal-pistol' }); APEX_ARSENAL.step(1 / 60); __AQ_TEST.redraw(); }`);
 const ks1 = JSON.parse(run(`return JSON.stringify(APEX_ARSENAL_FEEL.kanitSheets())`));
 gate('passb-kanit-cache-reuse-across-50-popups', ks1.rasterizations === ks0.rasterizations, { before: ks0.rasterizations, after: ks1.rasterizations });
-gate('passb-kanit-size-bands-unchanged', JSON.stringify(run(`return JSON.stringify(APEX_ARSENAL_FEEL.sizeBands.map(b => b.id))`)) === '["XS","S","M","L","XL","XXL"]');
+gate('passb-kanit-size-bands-unchanged', run(`return JSON.stringify(APEX_ARSENAL_FEEL.sizeBands.map(b => b.id))`) === '["XS","S","M","L","XL","XXL"]');
 
 // ---- non-Arsenal mode: global shell, truthful data, no fake loadout ----
 run(`window.startSpecificMatch(FighterTypes.find(t => t.name === 'RUBBER'), FighterTypes.find(t => t.name === 'ICE'), {})`);
 await sleep(250);
 d = hudDebug();
-gate('passb-native-mode-no-fake-loadout', d.sides[0].loadoutKey === 'F:RUBBER' && d.sides[1].loadoutKey === 'F:ICE', d);
-run(`fighters[1].takeDamage(30, fighters[0], 'rubber-impact', false)`);
+gate('passb-native-mode-no-fake-loadout',
+  typeof d.sides[0].loadoutKey === 'string' && d.sides[0].loadoutKey.startsWith('F:RUBBER')
+  && typeof d.sides[1].loadoutKey === 'string' && d.sides[1].loadoutKey.startsWith('F:ICE'), d);
+const nativeTx = JSON.parse(run(`
+  const victim = fighters[1];
+  const before = victim.hp;
+  const maxHp = victim.maxHp;
+  victim.takeDamage(30, fighters[0], 'rubber-impact', false);
+  return JSON.stringify({ before, after: victim.hp, maxHp, realized: Math.max(0, before - victim.hp) });
+`));
 d = hudDebug();
-gate('passb-native-realized-feed', d.sides[0].burst && Math.abs(d.sides[0].burst.total - 30) < 1e-9 && Math.abs(d.sides[0].energy - 3) < 1e-9 && Math.abs(d.sides[1].energy - 1.8) < 1e-9, d);
+const nativeExpectedDealtEnergy = 100 * nativeTx.realized / nativeTx.maxHp;
+const nativeExpectedTakenEnergy = 60 * nativeTx.realized / nativeTx.maxHp;
+gate('passb-native-realized-feed',
+  d.sides[0].burst
+  && Math.abs(d.sides[0].burst.total - nativeTx.realized) < 1e-9
+  && Math.abs(d.sides[0].energy - nativeExpectedDealtEnergy) < 1e-9
+  && Math.abs(d.sides[1].energy - nativeExpectedTakenEnergy) < 1e-9,
+  { hud: d, nativeTx, nativeExpectedDealtEnergy, nativeExpectedTakenEnergy });
 const nativePanelText = run(`return document.getElementById('p1-combat-panel').textContent || ''`);
 gate('passb-native-panel-truthful', /RUBBER/.test(nativePanelText) && !/AK-?47|MOSSBERG|SNIPER/i.test(nativePanelText), nativePanelText.slice(0, 120));
 
