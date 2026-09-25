@@ -357,7 +357,9 @@
         window.lockManualRoomChampion?.();
         return;
       }
-      if (PickRuntimeController.p1ChampionId && PickRuntimeController.p2ChampionId) {
+      const questPend = window.APEX_ARSENAL_QUEST && window.APEX_ARSENAL_QUEST.peekPending && window.APEX_ARSENAL_QUEST.peekPending();
+      if ((questPend && PickRuntimeController.p1ChampionId)
+          || (PickRuntimeController.p1ChampionId && PickRuntimeController.p2ChampionId)) {
         window.apexStopMenuMusic?.(true);
         syncHiddenMatchSettings();
         startMatch();
@@ -751,8 +753,11 @@
       refs.get('arrow-right')?.toggleAttribute('disabled', !!onlineState.championLocked);
       stage?.classList.toggle('online-ready-locked', !!onlineState.championLocked);
     } else {
-      setLayerText('start-label', 'START BATTLE');
-      if (start) start.disabled = !(PickRuntimeController.p1ChampionId && PickRuntimeController.p2ChampionId);
+      const questPend = window.APEX_ARSENAL_QUEST && window.APEX_ARSENAL_QUEST.peekPending && window.APEX_ARSENAL_QUEST.peekPending();
+      setLayerText('start-label', questPend ? 'START STAGE' : 'START BATTLE');
+      if (start) start.disabled = questPend
+        ? !PickRuntimeController.p1ChampionId
+        : !(PickRuntimeController.p1ChampionId && PickRuntimeController.p2ChampionId);
       refs.get('arrow-left')?.removeAttribute('disabled');
       refs.get('arrow-right')?.removeAttribute('disabled');
       stage?.classList.remove('online-ready-locked');

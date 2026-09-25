@@ -1194,6 +1194,76 @@ try {
   })()`);
   gate('browser-rev2-cooldown-hud', report.rev2Hud.has === true, report.rev2Hud);
 
+  report.rev2QuestUxBr = await evaluate(`(async () => {
+    const Q = APEX_ARSENAL_QUEST;
+    Q.persist({ unlockedThrough: 1, completedStages: [] });
+    if (gameState === 'ARSENAL') window.exitArsenalQuestMode();
+    Q.showMap();
+    const map1 = document.getElementById('aq-quest-map');
+    const mapOpen = !!(map1 && map1.style.display !== 'none' && typeof Q.showMap === 'function');
+    const btn1 = map1 && map1.querySelector('button[data-n="1"]');
+    if (btn1) btn1.click();
+    await new Promise(r => setTimeout(r, 400));
+    const pending = Q.peekPending && Q.peekPending();
+    const selectVisible = !document.getElementById('select-screen').classList.contains('hidden');
+    const t = window.__APEX_PICK_TEST;
+    if (t) t.confirmByName('ICE');
+    await new Promise(r => setTimeout(r, 120));
+    document.querySelector('.apex-pick-button[aria-label="start-button"]')?.click();
+    const t0 = Date.now();
+    while (gameState !== 'ARSENAL' && Date.now() - t0 < 6000) await new Promise(r => setTimeout(r, 80));
+    cancelAnimationFrame(reqId); reqId = 0;
+    const names = fighters.map(f => f.name);
+    const types = fighters.map(f => f.type && f.type.name);
+    fighters[1].hp = 0;
+    APEX_ARSENAL.step(1/60);
+    __AQ_TEST.redraw();
+    const winEl = document.getElementById('aq-quest-actions');
+    const winText = winEl ? winEl.textContent : '';
+    const winActs = Q.resultActions(APEX_ARSENAL.state);
+    const next = Q.nextStage();
+    cancelAnimationFrame(reqId); reqId = 0;
+    const stage2 = { n: APEX_ARSENAL.state.questStage, p1: fighters[0].name, p2: fighters[1].type && fighters[1].type.name };
+    fighters[0].hp = 0; fighters[1].hp = 100;
+    APEX_ARSENAL.step(1/60);
+    __AQ_TEST.redraw();
+    const lossActs = Q.resultActions(APEX_ARSENAL.state);
+    const lossEl = document.getElementById('aq-quest-actions');
+    Q.recordWin(1);
+    Q.showMap();
+    const map2 = document.getElementById('aq-quest-map');
+    const mapHtml = map2 ? map2.innerText : '';
+    const save = Q.loadSave();
+    Q.persist(save);
+    const raw = localStorage.getItem(Q.STORAGE_KEY);
+    return {
+      mapOpen, pending, selectVisible, names, types, winText, winActs, next, stage2, lossActs,
+      lossText: lossEl ? lossEl.textContent : '',
+      mapHtml, save, raw, showFn: typeof Q.showMap,
+    };
+  })()`);
+  report.evidence.push(await screenshot('rev2-quest-map'));
+  gate('browser-rev2-quest-map-opens', report.rev2QuestUxBr.mapOpen === true && report.rev2QuestUxBr.showFn === 'function', report.rev2QuestUxBr);
+  gate('browser-rev2-quest-stage1-opens-selector',
+    report.rev2QuestUxBr.pending && report.rev2QuestUxBr.pending.n === 1 && report.rev2QuestUxBr.selectVisible === true,
+    report.rev2QuestUxBr);
+  gate('browser-rev2-quest-ice-vs-painter',
+    report.rev2QuestUxBr.names && report.rev2QuestUxBr.names[0] === 'ICE' && report.rev2QuestUxBr.types && report.rev2QuestUxBr.types[1] === 'PAINTER',
+    report.rev2QuestUxBr);
+  gate('browser-rev2-quest-win-ui',
+    report.rev2QuestUxBr.winActs && report.rev2QuestUxBr.winActs.actions && report.rev2QuestUxBr.winActs.actions.join(',') === 'NEXT,REPLAY,QUEST MAP'
+    && /NEXT/.test(report.rev2QuestUxBr.winText),
+    report.rev2QuestUxBr.winActs);
+  gate('browser-rev2-quest-next-drum',
+    report.rev2QuestUxBr.stage2 && report.rev2QuestUxBr.stage2.n === 2 && report.rev2QuestUxBr.stage2.p2 === 'DRUM' && report.rev2QuestUxBr.stage2.p1 === 'ICE',
+    report.rev2QuestUxBr.stage2);
+  gate('browser-rev2-quest-loss-ui',
+    report.rev2QuestUxBr.lossActs && report.rev2QuestUxBr.lossActs.actions && report.rev2QuestUxBr.lossActs.actions.join(',') === 'RETRY,QUEST MAP',
+    report.rev2QuestUxBr.lossActs);
+  gate('browser-rev2-quest-persist',
+    report.rev2QuestUxBr.save && report.rev2QuestUxBr.save.unlockedThrough >= 2 && !!report.rev2QuestUxBr.raw,
+    report.rev2QuestUxBr.save);
+
   // --------------------------------------------- 5-minute simulation -------
   report.fiveMinute = await evaluate(`(() => {
     __AQ_TEST.enterManual();

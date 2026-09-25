@@ -2132,6 +2132,77 @@ gate('rev2-quest-order', report.rev2Quest.s1 === 'PAINTER' && report.rev2Quest.s
 gate('rev2-quest-persist', report.rev2Quest.safe.unlockedThrough === 1 && report.rev2Quest.locked === false && report.rev2Quest.after.unlockedThrough === 2, report.rev2Quest);
 gate('rev2-quest-monk-live', report.rev2Quest.live20 === 'KUNGFU' || report.rev2Quest.live20 === 'MONK', report.rev2Quest);
 
+report.rev2QuestUx = run(`
+  const Q = APEX_ARSENAL_QUEST;
+  Q.persist({ unlockedThrough: 1, completedStages: [] });
+  const show = typeof Q.showMap === 'function';
+  Q.showMap();
+  const mapEl = document.getElementById('aq-quest-map');
+  const mapOpen = !!(mapEl && mapEl.style.display !== 'none');
+  const req = Q.requestStage(1);
+  const gsAfterReq = gameState;
+  const pending = Q.peekPending && Q.peekPending();
+  const p1AfterReq = fighters[0] && fighters[0].name;
+  const confirmed = Q.confirmP1('ICE');
+  cancelAnimationFrame(reqId); reqId = 0;
+  const p1 = fighters[0] && fighters[0].name;
+  const p2 = fighters[1] && fighters[1].type && fighters[1].type.name;
+  const stage = APEX_ARSENAL.state.questStage;
+  fighters[1].hp = 0;
+  APEX_ARSENAL.step(1/60);
+  const winActs = Q.resultActions(APEX_ARSENAL.state);
+  const next = Q.nextStage();
+  cancelAnimationFrame(reqId); reqId = 0;
+  const p2b = fighters[1] && fighters[1].type && fighters[1].type.name;
+  const st2 = APEX_ARSENAL.state.questStage;
+  fighters[0].hp = 0; fighters[1].hp = 100;
+  APEX_ARSENAL.step(1/60);
+  const lossActs = Q.resultActions(APEX_ARSENAL.state);
+  Q.persist({ unlockedThrough: 20, completedStages: [20] });
+  const s20 = Q.startStage(20, 'RUBBER');
+  cancelAnimationFrame(reqId); reqId = 0;
+  fighters[1].hp = 0;
+  APEX_ARSENAL.step(1/60);
+  const win20 = Q.resultActions(APEX_ARSENAL.state);
+  window.startArsenalQuestMode('HERO', 'RIVAL');
+  cancelAnimationFrame(reqId); reqId = 0;
+  fighters[1].hp = 0;
+  APEX_ARSENAL.step(1/60);
+  const free = Q.resultActions(APEX_ARSENAL.state);
+  return { show, mapOpen, req, gsAfterReq, pending, p1AfterReq, confirmed, p1, p2, stage, winActs, next, p2b, st2, lossActs, s20, win20, free };
+`);
+gate('rev2-quest-showmap-export', report.rev2QuestUx.show === true && report.rev2QuestUx.mapOpen === true, report.rev2QuestUx);
+gate('rev2-quest-stage-click-not-newbie',
+  report.rev2QuestUx.req && report.rev2QuestUx.req.started === false
+  && report.rev2QuestUx.pending && report.rev2QuestUx.pending.n === 1
+  && report.rev2QuestUx.pending.opponent === 'PAINTER',
+  report.rev2QuestUx);
+gate('rev2-quest-confirm-p1-ice-vs-painter',
+  report.rev2QuestUx.p1 === 'ICE' && report.rev2QuestUx.p2 === 'PAINTER' && report.rev2QuestUx.stage === 1,
+  report.rev2QuestUx);
+gate('rev2-quest-win-actions',
+  report.rev2QuestUx.winActs.mode === 'quest-win'
+  && report.rev2QuestUx.winActs.actions.indexOf('NEXT') >= 0
+  && report.rev2QuestUx.winActs.actions.indexOf('REPLAY') >= 0
+  && report.rev2QuestUx.winActs.actions.indexOf('QUEST MAP') >= 0,
+  report.rev2QuestUx.winActs);
+gate('rev2-quest-next-stage-2-drum',
+  report.rev2QuestUx.st2 === 2 && report.rev2QuestUx.p2b === 'DRUM',
+  report.rev2QuestUx);
+gate('rev2-quest-loss-actions',
+  report.rev2QuestUx.lossActs.mode === 'quest-loss'
+  && report.rev2QuestUx.lossActs.actions.indexOf('RETRY') >= 0
+  && report.rev2QuestUx.lossActs.actions.indexOf('QUEST MAP') >= 0
+  && report.rev2QuestUx.lossActs.actions.indexOf('NEXT') < 0,
+  report.rev2QuestUx.lossActs);
+gate('rev2-quest-stage20-no-next',
+  report.rev2QuestUx.win20.mode === 'quest-win' && report.rev2QuestUx.win20.actions.indexOf('NEXT') < 0,
+  report.rev2QuestUx.win20);
+gate('rev2-quest-freeplay-result-unchanged',
+  report.rev2QuestUx.free.mode === 'freeplay'
+  && report.rev2QuestUx.free.actions.indexOf('REMATCH') >= 0,
+  report.rev2QuestUx.free);
+
 // ------------------------------------------------------------------- summary
 report.summary = {
   total: Object.keys(report.gates).length,
@@ -2144,4 +2215,3 @@ if (loadErrors.length) console.log('non-fatal boot runtime load errors:', JSON.s
 fs.writeFileSync(path.join(evidenceDir, 'headless-test-report.json'), JSON.stringify(report, null, 2));
 console.log(`report+evidence written under ${evidenceDir}/`);
 if (report.failures.length) process.exitCode = 1;
-1;

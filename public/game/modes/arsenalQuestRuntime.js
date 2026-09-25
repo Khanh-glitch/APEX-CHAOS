@@ -363,10 +363,26 @@
       if (!win) {
         win = document.createElement('div');
         win.id = 'aq-win';
-        win.style.cssText = 'position:absolute;left:0;right:0;top:38%;text-align:center;color:#efe6c8;';
+        win.style.cssText = 'position:absolute;left:0;right:0;top:32%;text-align:center;color:#efe6c8;pointer-events:auto;z-index:50;';
         el.appendChild(win);
       }
-      win.innerHTML = `<div style="font:900 64px Segoe UI">${state.over} WINS</div><div style="font:800 22px monospace;margin-top:8px">T — REMATCH      B — MENU</div>`;
+      const Q = window.APEX_ARSENAL_QUEST;
+      const spec = Q && Q.resultActions ? Q.resultActions(state) : { mode: 'freeplay', actions: ['REMATCH', 'MENU'] };
+      const title = `<div style="font:900 56px Segoe UI">${state.over} WINS</div>`;
+      const btn = (id, label) => `<button data-aq-act="${id}" style="margin:8px;padding:10px 16px;font:800 16px monospace;pointer-events:auto;cursor:pointer;">${label}</button>`;
+      if (spec.mode === 'quest-win' || spec.mode === 'quest-loss') {
+        win.innerHTML = title + `<div id="aq-quest-actions" style="margin-top:12px">${spec.actions.map((a) => btn(a, a)).join('')}</div>`;
+        win.onclick = (e) => {
+          const act = e.target && e.target.getAttribute && e.target.getAttribute('data-aq-act');
+          if (!act) return;
+          if (act === 'NEXT' && Q.nextStage) Q.nextStage();
+          else if ((act === 'REPLAY' || act === 'RETRY') && Q.replay) Q.replay();
+          else if (act === 'QUEST MAP' && Q.returnToMap) Q.returnToMap();
+        };
+      } else {
+        win.innerHTML = title + `<div style="font:800 22px monospace;margin-top:8px">T — REMATCH      B — MENU</div>`;
+        win.onclick = null;
+      }
     } else if (win) win.remove();
     let dbg = document.getElementById('aq-debug');
     if (state && state.debugOverlay) {
@@ -439,8 +455,17 @@
       if (gate && fighters[0]) gate.pressJ(fighters[0]);
       return;
     }
-    if (e.code === 'KeyT' && AQ.state && AQ.state.over) { window.startArsenalQuestMode(); return; }
-    if (e.code === 'KeyB' || e.code === 'Escape') { window.exitArsenalQuestMode(); }
+    if (e.code === 'KeyT' && AQ.state && AQ.state.over) {
+      const Q = window.APEX_ARSENAL_QUEST;
+      if (AQ.state.questStage && Q && Q.replay) Q.replay();
+      else window.startArsenalQuestMode();
+      return;
+    }
+    if (e.code === 'KeyB' || e.code === 'Escape') {
+      const Q = window.APEX_ARSENAL_QUEST;
+      if (AQ.state && AQ.state.questStage && Q && Q.returnToMap) Q.returnToMap();
+      else window.exitArsenalQuestMode();
+    }
   }
 
   let lastShells = null;

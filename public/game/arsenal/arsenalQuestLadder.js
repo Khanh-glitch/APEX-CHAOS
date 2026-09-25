@@ -26,6 +26,9 @@
     { n: 20, opponent: 'MONK' },
   ];
 
+  let pendingStage = null;
+  let lastQuestP1 = null;
+
   function emptySave() {
     return { unlockedThrough: 1, completedStages: [] };
   }
@@ -83,19 +86,93 @@
     return persist(s);
   }
 
+  function hideMap() {
+    const el = document.getElementById('aq-quest-map');
+    if (el) el.style.display = 'none';
+  }
+
+  function openP1Selector() {
+    window.__apexArsenalSelectPending = true;
+    const shells = window.APEX_ARSENAL_SHELLS;
+    if (shells && shells.beginSelection) shells.beginSelection();
+    else if (typeof window.beginArsenalQuestSelection === 'function') window.beginArsenalQuestSelection();
+    else if (typeof window.goToSelect === 'function') window.goToSelect();
+  }
+
   function startStage(n, p1Name) {
     const row = stage(n);
     if (!row) return { ok: false, reason: 'missing' };
     if (!canPlay(n)) return { ok: false, reason: 'locked' };
+    if (!p1Name) return { ok: false, reason: 'needP1', pending: { n, opponent: row.opponent } };
     const p2 = liveOpponent(row.opponent);
+    lastQuestP1 = p1Name;
+    pendingStage = null;
+    hideMap();
     if (typeof window.startArsenalQuestMode === 'function') {
-      window.startArsenalQuestMode(p1Name || 'NEWBIE', p2);
+      window.startArsenalQuestMode(p1Name, p2);
       if (window.APEX_ARSENAL && window.APEX_ARSENAL.state) {
         window.APEX_ARSENAL.state.questStage = n;
         window.APEX_ARSENAL.state.questOpponent = row.opponent;
+        window.APEX_ARSENAL.state.questP1 = p1Name;
       }
     }
-    return { ok: true, n, opponent: row.opponent, live: p2 };
+    return { ok: true, n, opponent: row.opponent, live: p2, p1: p1Name };
+  }
+
+  function requestStage(n) {
+    const row = stage(n);
+    if (!row) return { ok: false, reason: 'missing' };
+    if (!canPlay(n)) return { ok: false, reason: 'locked' };
+    pendingStage = { n, opponent: row.opponent };
+    hideMap();
+    openP1Selector();
+    return { ok: true, started: false, pending: { n: pendingStage.n, opponent: pendingStage.opponent } };
+  }
+
+  function consumePending() {
+    const p = pendingStage;
+    pendingStage = null;
+    return p;
+  }
+
+  function peekPending() {
+    return pendingStage;
+  }
+
+  function confirmP1(p1Name) {
+    const p = pendingStage || peekPending();
+    if (!p) return { ok: false, reason: 'noPending' };
+    return startStage(p.n, p1Name);
+  }
+
+  function replay() {
+    const st = window.APEX_ARSENAL && window.APEX_ARSENAL.state;
+    const n = st && st.questStage;
+    const p1 = (st && st.questP1) || lastQuestP1;
+    if (!n || !p1) return { ok: false, reason: 'noQuest' };
+    return startStage(n, p1);
+  }
+
+  function nextStage() {
+    const st = window.APEX_ARSENAL && window.APEX_ARSENAL.state;
+    const n = st && st.questStage;
+    const p1 = (st && st.questP1) || lastQuestP1;
+    if (!n || n >= 20) return { ok: false, reason: 'noNext' };
+    if (!p1) return { ok: false, reason: 'needP1' };
+    return startStage(n + 1, p1);
+  }
+
+  function resultActions(state) {
+    const st = state || (window.APEX_ARSENAL && window.APEX_ARSENAL.state);
+    if (!st || !st.over) return { mode: 'none', actions: [] };
+    if (!st.questStage) return { mode: 'freeplay', actions: ['REMATCH', 'MENU'] };
+    const p1 = (typeof fighters !== 'undefined' && fighters[0]) ? fighters[0].name : st.questP1;
+    const won = st.over === p1;
+    if (won) {
+      const actions = st.questStage >= 20 ? ['REPLAY', 'QUEST MAP'] : ['NEXT', 'REPLAY', 'QUEST MAP'];
+      return { mode: 'quest-win', actions, stage: st.questStage };
+    }
+    return { mode: 'quest-loss', actions: ['RETRY', 'QUEST MAP'], stage: st.questStage };
   }
 
   function onMatchOver(winnerName) {
@@ -107,13 +184,21 @@
     }
   }
 
+  function returnToMap() {
+    pendingStage = null;
+    if (typeof window.exitArsenalQuestMode === 'function' && window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.active) {
+      window.exitArsenalQuestMode();
+    }
+    showMap();
+  }
+
   function showMap() {
     let el = document.getElementById('aq-quest-map');
     if (!el) {
       el = document.createElement('div');
       el.id = 'aq-quest-map';
-      el.style.cssText = 'position:absolute;inset:8% 8%;z-index:60;background:rgba(8,8,12,0.92);color:#efe6c8;padding:16px;overflow:auto;font:700 13px monospace;pointer-events:auto;';
-      (document.getElementById('game-wrap') || document.body).appendChild(el);
+      el.style.cssText = 'position:absolute;inset:6% 8%;z-index:70;background:rgba(8,8,12,0.94);color:#efe6c8;padding:16px;overflow:auto;font:700 13px monospace;pointer-events:auto;border:2px solid #6d8f4e;';
+      (document.getElementById('game-wrap') || document.getElementById('game-wrapper') || document.body).appendChild(el);
     }
     const save = loadSave();
     el.style.display = 'block';
@@ -123,18 +208,51 @@
       const st = done ? 'DONE' : open ? 'OPEN' : 'LOCK';
       return `<button data-n="${s.n}" ${open ? '' : 'disabled'} style="margin:4px;padding:8px;min-width:140px;background:${open ? '#2a3320' : '#1a1a1e'};color:#efe6c8;border:1px solid #6d8f4e;">${s.n}. ${s.opponent} [${st}]</button>`;
     }).join('');
-    el.innerHTML = `<div>ARSENAL QUEST V1</div><div style="margin-top:8px">${cells}</div><div style="margin-top:12px"><button id="aq-quest-freeplay">FREE PLAY</button> <button id="aq-quest-close">CLOSE</button></div>`;
+    el.innerHTML = `<div id="aq-quest-map-title">ARSENAL QUEST V1</div><div id="aq-quest-map-grid" style="margin-top:8px">${cells}</div><div style="margin-top:12px"><button id="aq-quest-freeplay">FREE PLAY</button> <button id="aq-quest-close">CLOSE</button></div>`;
     el.onclick = (e) => {
       const n = e.target && e.target.getAttribute && e.target.getAttribute('data-n');
-      if (n) { el.style.display = 'none'; startStage(parseInt(n, 10), 'NEWBIE'); }
-      if (e.target && e.target.id === 'aq-quest-close') el.style.display = 'none';
-      if (e.target && e.target.id === 'aq-quest-freeplay') {
+      if (n) { requestStage(parseInt(n, 10)); return; }
+      if (e.target && e.target.id === 'aq-quest-close') {
+        pendingStage = null;
         el.style.display = 'none';
-        if (typeof window.startArsenalQuestMode === 'function') window.startArsenalQuestMode();
+      }
+      if (e.target && e.target.id === 'aq-quest-freeplay') {
+        pendingStage = null;
+        el.style.display = 'none';
+        if (typeof window.beginArsenalQuestSelection === 'function') window.beginArsenalQuestSelection();
       }
     };
     return el;
   }
+
+  function beginArsenalQuestMap() {
+    if (typeof window.__apexEnsureDeferredRuntimes === 'function') {
+      window.__apexEnsureDeferredRuntimes('arsenalQuest').then(() => showMap()).catch(() => showMap());
+      return;
+    }
+    showMap();
+  }
+
+  const prevStart = window.startMatch;
+  window.startMatch = function (...args) {
+    if (pendingStage && window.__apexArsenalSelectPending) {
+      window.__apexArsenalSelectPending = false;
+      const p1 = (typeof p1Selection !== 'undefined' && p1Selection) ? p1Selection.name : null;
+      if (p1) return startStage(pendingStage.n, p1);
+    }
+    if (typeof prevStart === 'function') return prevStart.apply(this, args);
+  };
+
+  const prevMenu = window.goToMenu;
+  window.goToMenu = function (...args) {
+    const had = !!pendingStage;
+    if (had) pendingStage = null;
+    const r = typeof prevMenu === 'function' ? prevMenu.apply(this, args) : undefined;
+    if (had) showMap();
+    return r;
+  };
+
+  window.beginArsenalQuestMap = beginArsenalQuestMap;
 
   window.APEX_ARSENAL_QUEST = {
     STORAGE_KEY,
@@ -147,7 +265,17 @@
     canPlay,
     recordWin,
     startStage,
+    requestStage,
+    consumePending,
+    peekPending,
+    confirmP1,
+    replay,
+    nextStage,
+    resultActions,
     onMatchOver,
+    returnToMap,
+    showMap,
+    beginArsenalQuestMap,
   };
   window.apexArsenalQuestLadder = 'ready';
 })();
