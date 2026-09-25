@@ -89,30 +89,30 @@
     },
     "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true"
+      "detail": "[AQ] REVEAL id=1 weapon=SNIPER eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=BERETTA_93R eta=1.36 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S1 eta=1.36 lead=2.00 fighter=HERO force=false"
     },
     "near-miss-outside-circle-stays-hidden": {
       "pass": true,
       "detail": {
         "nearMissStayedHidden": true,
         "edgeOfCircleReveals": true,
-        "edgeLog": "[AQ] REVEAL id=2 weapon=SPIKED_CLUB eta=0.80 lead=2.00 fighter=HERO force=false",
+        "edgeLog": "[AQ] REVEAL id=2 weapon=PISTOL eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=MAGNUM_500 eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=TEC_9 eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=SPIKED_CLUB eta=0.80 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=PISTOL eta=0.80 lead=2.00 fighter=HERO force=false"
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=3 weapon=MAGNUM_500 eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=3 weapon=TEC_9 eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -793,21 +793,24 @@
           "ok": true,
           "n": 1,
           "opponent": "PAINTER",
-          "live": "PAINTER"
+          "live": "PAINTER",
+          "p1": "NEWBIE"
         },
         "p2a": "PAINTER",
         "b": {
           "ok": true,
           "n": 10,
           "opponent": "ELECTRIC",
-          "live": "ELECTRIC"
+          "live": "ELECTRIC",
+          "p1": "NEWBIE"
         },
         "p2b": "ELECTRIC",
         "c": {
           "ok": true,
           "n": 20,
           "opponent": "MONK",
-          "live": "KUNGFU"
+          "live": "KUNGFU",
+          "p1": "NEWBIE"
         },
         "p2c": "KUNGFU",
         "live": "KUNGFU"
@@ -820,19 +823,236 @@
         "text": "J · —"
       }
     },
+    "browser-rev2-quest-map-opens": {
+      "pass": true,
+      "detail": {
+        "mapOpen": true,
+        "pending": {
+          "n": 1,
+          "opponent": "PAINTER"
+        },
+        "selectVisible": true,
+        "names": [
+          "ICE",
+          "PAINTER"
+        ],
+        "types": [
+          "ICE",
+          "PAINTER"
+        ],
+        "winText": "NEXTREPLAYQUEST MAP",
+        "winActs": {
+          "mode": "quest-win",
+          "actions": [
+            "NEXT",
+            "REPLAY",
+            "QUEST MAP"
+          ],
+          "stage": 1
+        },
+        "next": {
+          "ok": true,
+          "n": 2,
+          "opponent": "DRUM",
+          "live": "DRUM",
+          "p1": "ICE"
+        },
+        "stage2": {
+          "n": 2,
+          "p1": "ICE",
+          "p2": "DRUM"
+        },
+        "lossActs": {
+          "mode": "quest-loss",
+          "actions": [
+            "RETRY",
+            "QUEST MAP"
+          ],
+          "stage": 2
+        },
+        "lossText": "RETRYQUEST MAP",
+        "mapHtml": "ARSENAL QUEST V1\n1. PAINTER [DONE]2. DRUM [OPEN]3. CARD [LOCK]4. ICE [LOCK]5. MATH [LOCK]6. BLADE [LOCK]7. TOXIC [LOCK]8. ORBIT [LOCK]9. FLASH [LOCK]10. ELECTRIC [LOCK]11. VAMPIRE [LOCK]12. SAW [LOCK]13. HUNTER [LOCK]14. WOLF [LOCK]15. CRYSTAL [LOCK]16. MAGNET [LOCK]17. BLACK_HOLE [LOCK]18. WITCH [LOCK]19. TIME [LOCK]20. MONK [LOCK]\nFREE PLAY CLOSE",
+        "save": {
+          "unlockedThrough": 2,
+          "completedStages": [
+            1
+          ]
+        },
+        "raw": "{\"unlockedThrough\":2,\"completedStages\":[1]}",
+        "showFn": "function"
+      }
+    },
+    "browser-rev2-quest-stage1-opens-selector": {
+      "pass": true,
+      "detail": {
+        "mapOpen": true,
+        "pending": {
+          "n": 1,
+          "opponent": "PAINTER"
+        },
+        "selectVisible": true,
+        "names": [
+          "ICE",
+          "PAINTER"
+        ],
+        "types": [
+          "ICE",
+          "PAINTER"
+        ],
+        "winText": "NEXTREPLAYQUEST MAP",
+        "winActs": {
+          "mode": "quest-win",
+          "actions": [
+            "NEXT",
+            "REPLAY",
+            "QUEST MAP"
+          ],
+          "stage": 1
+        },
+        "next": {
+          "ok": true,
+          "n": 2,
+          "opponent": "DRUM",
+          "live": "DRUM",
+          "p1": "ICE"
+        },
+        "stage2": {
+          "n": 2,
+          "p1": "ICE",
+          "p2": "DRUM"
+        },
+        "lossActs": {
+          "mode": "quest-loss",
+          "actions": [
+            "RETRY",
+            "QUEST MAP"
+          ],
+          "stage": 2
+        },
+        "lossText": "RETRYQUEST MAP",
+        "mapHtml": "ARSENAL QUEST V1\n1. PAINTER [DONE]2. DRUM [OPEN]3. CARD [LOCK]4. ICE [LOCK]5. MATH [LOCK]6. BLADE [LOCK]7. TOXIC [LOCK]8. ORBIT [LOCK]9. FLASH [LOCK]10. ELECTRIC [LOCK]11. VAMPIRE [LOCK]12. SAW [LOCK]13. HUNTER [LOCK]14. WOLF [LOCK]15. CRYSTAL [LOCK]16. MAGNET [LOCK]17. BLACK_HOLE [LOCK]18. WITCH [LOCK]19. TIME [LOCK]20. MONK [LOCK]\nFREE PLAY CLOSE",
+        "save": {
+          "unlockedThrough": 2,
+          "completedStages": [
+            1
+          ]
+        },
+        "raw": "{\"unlockedThrough\":2,\"completedStages\":[1]}",
+        "showFn": "function"
+      }
+    },
+    "browser-rev2-quest-ice-vs-painter": {
+      "pass": true,
+      "detail": {
+        "mapOpen": true,
+        "pending": {
+          "n": 1,
+          "opponent": "PAINTER"
+        },
+        "selectVisible": true,
+        "names": [
+          "ICE",
+          "PAINTER"
+        ],
+        "types": [
+          "ICE",
+          "PAINTER"
+        ],
+        "winText": "NEXTREPLAYQUEST MAP",
+        "winActs": {
+          "mode": "quest-win",
+          "actions": [
+            "NEXT",
+            "REPLAY",
+            "QUEST MAP"
+          ],
+          "stage": 1
+        },
+        "next": {
+          "ok": true,
+          "n": 2,
+          "opponent": "DRUM",
+          "live": "DRUM",
+          "p1": "ICE"
+        },
+        "stage2": {
+          "n": 2,
+          "p1": "ICE",
+          "p2": "DRUM"
+        },
+        "lossActs": {
+          "mode": "quest-loss",
+          "actions": [
+            "RETRY",
+            "QUEST MAP"
+          ],
+          "stage": 2
+        },
+        "lossText": "RETRYQUEST MAP",
+        "mapHtml": "ARSENAL QUEST V1\n1. PAINTER [DONE]2. DRUM [OPEN]3. CARD [LOCK]4. ICE [LOCK]5. MATH [LOCK]6. BLADE [LOCK]7. TOXIC [LOCK]8. ORBIT [LOCK]9. FLASH [LOCK]10. ELECTRIC [LOCK]11. VAMPIRE [LOCK]12. SAW [LOCK]13. HUNTER [LOCK]14. WOLF [LOCK]15. CRYSTAL [LOCK]16. MAGNET [LOCK]17. BLACK_HOLE [LOCK]18. WITCH [LOCK]19. TIME [LOCK]20. MONK [LOCK]\nFREE PLAY CLOSE",
+        "save": {
+          "unlockedThrough": 2,
+          "completedStages": [
+            1
+          ]
+        },
+        "raw": "{\"unlockedThrough\":2,\"completedStages\":[1]}",
+        "showFn": "function"
+      }
+    },
+    "browser-rev2-quest-win-ui": {
+      "pass": true,
+      "detail": {
+        "mode": "quest-win",
+        "actions": [
+          "NEXT",
+          "REPLAY",
+          "QUEST MAP"
+        ],
+        "stage": 1
+      }
+    },
+    "browser-rev2-quest-next-drum": {
+      "pass": true,
+      "detail": {
+        "n": 2,
+        "p1": "ICE",
+        "p2": "DRUM"
+      }
+    },
+    "browser-rev2-quest-loss-ui": {
+      "pass": true,
+      "detail": {
+        "mode": "quest-loss",
+        "actions": [
+          "RETRY",
+          "QUEST MAP"
+        ],
+        "stage": 2
+      }
+    },
+    "browser-rev2-quest-persist": {
+      "pass": true,
+      "detail": {
+        "unlockedThrough": 2,
+        "completedStages": [
+          1
+        ]
+      }
+    },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=12 restarts=12 spawnedCumulative=102 earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=11 restarts=11 spawnedCumulative=102 earlyErrors=0"
     },
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=9 x=316 y=454 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=8 weapon=GLOCK_17 eta=null lead=2.00 fighter=TIMEOUT force=true",
-        "PICKUP": "[AQ] PICKUP id=8 fighter=NEWBIE weapon=GLOCK_17",
-        "USE": "[AQ] USE fighter=KUNGFU weapon=GRENADE",
-        "HIT": "[AQ] HIT source=KUNGFU target=NEWBIE weapon=GLOCK_17 damage=3.5",
-        "CONSUME": "[AQ] CONSUME fighter=KUNGFU weapon=GRENADE reason=thrown"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=6 x=579 y=763 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=5 weapon=P90 eta=1.19 lead=2.00 fighter=ICE force=false",
+        "PICKUP": "[AQ] PICKUP id=5 fighter=ICE weapon=P90",
+        "USE": "[AQ] USE fighter=ICE weapon=P90",
+        "HIT": "[AQ] HIT source=DRUM target=ICE weapon=SPEAR damage=22.5",
+        "CONSUME": "[AQ] CONSUME fighter=DRUM weapon=SPEAR reason=melee-resolved"
       }
     }
   },
@@ -877,7 +1097,8 @@
     "docs/arsenal-quest/browser-evidence/gap-casing-mbr.png",
     "docs/arsenal-quest/browser-evidence/gap-casing-snipex.png",
     "docs/arsenal-quest/browser-evidence/rev2-senko-scale-lineup.png",
-    "docs/arsenal-quest/browser-evidence/rev2-detached-exits.png"
+    "docs/arsenal-quest/browser-evidence/rev2-detached-exits.png",
+    "docs/arsenal-quest/browser-evidence/rev2-quest-map.png"
   ],
   "normalModes": {
     "selectVisible": true,
@@ -965,18 +1186,18 @@
       "predictedFighter": null
     },
     "forceRevealed": true,
-    "forceLog": "[AQ] REVEAL id=1 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "forceLog": "[AQ] REVEAL id=1 weapon=SNIPER eta=null lead=2.00 fighter=TIMEOUT force=true",
     "pickupAfterForce": true,
     "revealedOnMovement": true,
-    "moveRevealLog": "[AQ] REVEAL id=2 weapon=BERETTA_93R eta=1.36 lead=2.00 fighter=HERO force=false"
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S1 eta=1.36 lead=2.00 fighter=HERO force=false"
   },
   "circleNeg": {
     "nearMissStayedHidden": true,
     "edgeOfCircleReveals": true,
-    "edgeLog": "[AQ] REVEAL id=2 weapon=SPIKED_CLUB eta=0.80 lead=2.00 fighter=HERO force=false",
+    "edgeLog": "[AQ] REVEAL id=2 weapon=PISTOL eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=MAGNUM_500 eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=TEC_9 eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -1575,21 +1796,24 @@
       "ok": true,
       "n": 1,
       "opponent": "PAINTER",
-      "live": "PAINTER"
+      "live": "PAINTER",
+      "p1": "NEWBIE"
     },
     "p2a": "PAINTER",
     "b": {
       "ok": true,
       "n": 10,
       "opponent": "ELECTRIC",
-      "live": "ELECTRIC"
+      "live": "ELECTRIC",
+      "p1": "NEWBIE"
     },
     "p2b": "ELECTRIC",
     "c": {
       "ok": true,
       "n": 20,
       "opponent": "MONK",
-      "live": "KUNGFU"
+      "live": "KUNGFU",
+      "p1": "NEWBIE"
     },
     "p2c": "KUNGFU",
     "live": "KUNGFU"
@@ -1598,26 +1822,82 @@
     "has": true,
     "text": "J · —"
   },
+  "rev2QuestUxBr": {
+    "mapOpen": true,
+    "pending": {
+      "n": 1,
+      "opponent": "PAINTER"
+    },
+    "selectVisible": true,
+    "names": [
+      "ICE",
+      "PAINTER"
+    ],
+    "types": [
+      "ICE",
+      "PAINTER"
+    ],
+    "winText": "NEXTREPLAYQUEST MAP",
+    "winActs": {
+      "mode": "quest-win",
+      "actions": [
+        "NEXT",
+        "REPLAY",
+        "QUEST MAP"
+      ],
+      "stage": 1
+    },
+    "next": {
+      "ok": true,
+      "n": 2,
+      "opponent": "DRUM",
+      "live": "DRUM",
+      "p1": "ICE"
+    },
+    "stage2": {
+      "n": 2,
+      "p1": "ICE",
+      "p2": "DRUM"
+    },
+    "lossActs": {
+      "mode": "quest-loss",
+      "actions": [
+        "RETRY",
+        "QUEST MAP"
+      ],
+      "stage": 2
+    },
+    "lossText": "RETRYQUEST MAP",
+    "mapHtml": "ARSENAL QUEST V1\n1. PAINTER [DONE]2. DRUM [OPEN]3. CARD [LOCK]4. ICE [LOCK]5. MATH [LOCK]6. BLADE [LOCK]7. TOXIC [LOCK]8. ORBIT [LOCK]9. FLASH [LOCK]10. ELECTRIC [LOCK]11. VAMPIRE [LOCK]12. SAW [LOCK]13. HUNTER [LOCK]14. WOLF [LOCK]15. CRYSTAL [LOCK]16. MAGNET [LOCK]17. BLACK_HOLE [LOCK]18. WITCH [LOCK]19. TIME [LOCK]20. MONK [LOCK]\nFREE PLAY CLOSE",
+    "save": {
+      "unlockedThrough": 2,
+      "completedStages": [
+        1
+      ]
+    },
+    "raw": "{\"unlockedThrough\":2,\"completedStages\":[1]}",
+    "showFn": "function"
+  },
   "fiveMinute": {
     "error": null,
-    "restarts": 12,
-    "koCount": 12,
-    "spawnedTotal": 3,
+    "restarts": 11,
+    "koCount": 11,
+    "spawnedTotal": 6,
     "spawnedCumulative": 102,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=9 x=316 y=454 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=8 weapon=GLOCK_17 eta=null lead=2.00 fighter=TIMEOUT force=true",
-    "PICKUP": "[AQ] PICKUP id=8 fighter=NEWBIE weapon=GLOCK_17",
-    "USE": "[AQ] USE fighter=KUNGFU weapon=GRENADE",
-    "HIT": "[AQ] HIT source=KUNGFU target=NEWBIE weapon=GLOCK_17 damage=3.5",
-    "CONSUME": "[AQ] CONSUME fighter=KUNGFU weapon=GRENADE reason=thrown"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=6 x=579 y=763 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=5 weapon=P90 eta=1.19 lead=2.00 fighter=ICE force=false",
+    "PICKUP": "[AQ] PICKUP id=5 fighter=ICE weapon=P90",
+    "USE": "[AQ] USE fighter=ICE weapon=P90",
+    "HIT": "[AQ] HIT source=DRUM target=ICE weapon=SPEAR damage=22.5",
+    "CONSUME": "[AQ] CONSUME fighter=DRUM weapon=SPEAR reason=melee-resolved"
   },
   "summary": {
-    "total": 83,
-    "passed": 83,
+    "total": 90,
+    "passed": 90,
     "failed": []
   }
 }
