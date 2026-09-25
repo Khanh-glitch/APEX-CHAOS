@@ -318,6 +318,51 @@
     ctx.restore();
   }
 
+  const rarityCache = new Map();
+  const rarityStats = { builds: 0, draws: 0, hits: 0 };
+  function raritySprite(tier, glow, glowSpec, q) {
+    const key = tier + ':' + q;
+    const hit = rarityCache.get(key);
+    if (hit) return { canvas: hit.canvas, ox: hit.ox, oy: hit.oy, cached: true };
+    const pulse = q / 7;
+    const rx = glowSpec.rx + pulse * 4;
+    const ry = glowSpec.ry + pulse * 1.5;
+    const pad = 24 + glowSpec.rx * 0.5;
+    const w = Math.ceil(rx * 2 + pad * 2);
+    const h = Math.ceil(ry * 2 + pad * 2);
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const c = canvas.getContext('2d');
+    c.translate(w / 2, h / 2);
+    const a0 = Math.min(0.95, glowSpec.a + glowSpec.pulse * pulse + 0.15);
+    const grad = c.createRadialGradient(0, 0, 2, 0, 0, rx);
+    grad.addColorStop(0, glow);
+    grad.addColorStop(0.35, glow);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    c.globalAlpha = a0;
+    c.fillStyle = grad;
+    c.shadowColor = glow;
+    c.shadowBlur = 18 + glowSpec.rx * 0.35 + pulse * 10;
+    c.beginPath();
+    c.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+    c.fill();
+    c.shadowBlur = 0;
+    if (glowSpec.shimmer) {
+      const warm = c.createRadialGradient(0, 0, 1, 0, 0, rx * 0.55);
+      warm.addColorStop(0, 'rgba(255,210,122,0.55)');
+      warm.addColorStop(1, 'rgba(255,210,122,0)');
+      c.globalAlpha = 0.22 + 0.16 * pulse;
+      c.fillStyle = warm;
+      c.beginPath();
+      c.ellipse(0, 0, rx * 0.55, ry * 0.55, 0, 0, Math.PI * 2);
+      c.fill();
+    }
+    const rec = { canvas, ox: w / 2, oy: h / 2 };
+    rarityCache.set(key, rec);
+    rarityStats.builds += 1;
+    return { canvas, ox: rec.ox, oy: rec.oy, cached: false };
+  }
+
   // Called inside the engine camera transform so slots sit in world space.
   function drawSlots(ctx) {
     const state = AQ.state;
@@ -377,35 +422,14 @@
         const glowSpec = (CFG.TIER_GLOW && slot.tier && CFG.TIER_GLOW[slot.tier]) || { rx: 34, ry: 10, a: 0.35, pulse: 0 };
         if (glow) {
           const pulse = 0.5 + 0.5 * Math.sin(t * (1.4 + glowSpec.pulse * 4) + slot.id);
-          const rx = glowSpec.rx + pulse * 4;
-          const ry = glowSpec.ry + pulse * 1.5;
+          const q = Math.max(0, Math.min(7, pulse * 7 + 0.5 | 0));
+          const sprite = raritySprite(slot.tier, glow, glowSpec, q);
           ctx.save();
           ctx.translate(0, bob + 22);
-          ctx.globalAlpha = 1;
-          const grad = ctx.createRadialGradient(0, 0, 2, 0, 0, rx);
-          const a0 = Math.min(0.95, glowSpec.a + glowSpec.pulse * pulse + 0.15);
-          grad.addColorStop(0, glow);
-          grad.addColorStop(0.35, glow);
-          grad.addColorStop(1, 'rgba(0,0,0,0)');
-          ctx.globalAlpha = a0;
-          ctx.fillStyle = grad;
-          ctx.shadowColor = glow;
-          ctx.shadowBlur = 18 + glowSpec.rx * 0.35 + pulse * 10;
-          ctx.beginPath();
-          ctx.ellipse(0, 0, rx, ry, 0, 0, TAU);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-          if (glowSpec.shimmer) {
-            const warm = ctx.createRadialGradient(0, 0, 1, 0, 0, rx * 0.55);
-            warm.addColorStop(0, 'rgba(255,210,122,0.55)');
-            warm.addColorStop(1, 'rgba(255,210,122,0)');
-            ctx.globalAlpha = 0.22 + 0.16 * pulse;
-            ctx.fillStyle = warm;
-            ctx.beginPath();
-            ctx.ellipse(0, 0, rx * 0.55, ry * 0.55, 0, 0, TAU);
-            ctx.fill();
-          }
+          ctx.drawImage(sprite.canvas, -sprite.ox, -sprite.oy);
           ctx.restore();
+          rarityStats.draws += 1;
+          if (sprite.cached) rarityStats.hits += 1;
         }
         const expireSoon = slot.revealedFor > CFG.PICKUP_LIFETIME_SECONDS - 3;
         ctx.globalAlpha = expireSoon && Math.floor(t * 8) % 2 === 0 ? 0.45 : 1;
@@ -444,6 +468,7 @@
     selectSpawnWeapon,
     weightFor,
     PLACEHOLDER_ART,
+    rarityStats,
   };
   window.apexArsenalSpawnRuntime = 'ready';
 })();

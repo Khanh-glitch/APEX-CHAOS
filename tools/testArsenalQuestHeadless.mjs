@@ -2347,6 +2347,25 @@ gate('feel-casing-land-once',
 gate('feel-heal-values-blocked', report.rev2Feel.healBlocked === true && report.rev2Feel.healIds.length === 5, report.rev2Feel);
 gate('feel-floating-text-still-sunk', report.rev2Feel.floating === 0, report.rev2Feel);
 
+
+report.smoothRarity = run(`
+  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  const S = APEX_ARSENAL_SPAWN;
+  const slot = { id: 1, x: 200, y: 200, phase: 'REVEALED', weaponId: 'PISTOL', tier: 'T5', revealedFor: 1 };
+  APEX_ARSENAL.state.slots = [slot];
+  APEX_ARSENAL.state.time = 1;
+  const c = document.createElement('canvas').getContext('2d');
+  const b0 = S.rarityStats.builds;
+  S.drawSlots(c);
+  const b1 = S.rarityStats.builds;
+  S.drawSlots(c); S.drawSlots(c); S.drawSlots(c);
+  const b2 = S.rarityStats.builds;
+  const d = S.rarityStats.draws;
+  const h = S.rarityStats.hits;
+  return { b0, b1, b2, d, h, reuse: h > 0 && b2 <= b1 + 8 };
+`);
+gate('smooth-rarity-cache-reuse', report.smoothRarity.reuse === true && report.smoothRarity.h >= 1, report.smoothRarity);
+
 // ------------------------------------------------------------------- summary
 report.summary = {
   total: Object.keys(report.gates).length,

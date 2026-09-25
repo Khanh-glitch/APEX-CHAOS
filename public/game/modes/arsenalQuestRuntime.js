@@ -90,6 +90,14 @@
       peaks: Object.assign({}, AQ_PERF.peaks),
       chamber: Object.assign({}, AQ_PERF.chamber),
       hud: Object.assign({}, AQ_PERF.hud),
+      rarity: SPAWN.rarityStats ? Object.assign({}, SPAWN.rarityStats) : null,
+      feel: AQ.feel && AQ.feel.stats ? {
+        stamps: AQ.feel.stats.stamps,
+        stainDraws: AQ.feel.stats.stainDraws,
+        sprayPeak: AQ.feel.stats.sprayPeak,
+        sprayReuse: AQ.feel.stats.sprayReuse,
+        popupReuse: AQ.feel.stats.popupReuse,
+      } : null,
     };
   };
 

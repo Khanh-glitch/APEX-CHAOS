@@ -68,6 +68,17 @@ function frameSummary() {
   if (!values.length) return { samples: 0, avgMs: 0, p95Ms: 0, maxMs: 0, fps: 0, slowFrames: 0 };
   const total = values.reduce((sum, value) => sum + value, 0);
   const avgMs = total / values.length;
+  const buckets = { le16_7: 0, le20: 0, le33: 0, le50: 0, gt50: 0 };
+  for (const v of values) {
+    if (v <= 16.7) buckets.le16_7 += 1;
+    else if (v <= 20) buckets.le20 += 1;
+    else if (v <= 33) buckets.le33 += 1;
+    else if (v <= 50) buckets.le50 += 1;
+    else buckets.gt50 += 1;
+  }
+  const n = values.length || 1;
+  const bucketPct = {};
+  for (const k of Object.keys(buckets)) bucketPct[k] = round((buckets[k] / n) * 100, 1);
   return {
     samples: values.length,
     avgMs: round(avgMs, 2),
@@ -75,6 +86,8 @@ function frameSummary() {
     maxMs: round(Math.max(...values), 2),
     fps: round(1000 / avgMs, 1),
     slowFrames: values.filter((value) => value > 20).length,
+    buckets,
+    bucketPct,
   };
 }
 

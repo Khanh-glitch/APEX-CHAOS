@@ -1384,6 +1384,15 @@ try {
   gate('feel-shotgun-pickup-real-file', report.rev2Feel.sgReady && report.rev2Feel.sgReady.cue === 'pickup_shotgun', report.rev2Feel.sgReady);
   gate('feel-sniper-pickup-chamber', report.rev2Feel.snReady && report.rev2Feel.snReady.cue === 'pickup_sniper', report.rev2Feel.snReady);
 
+  report.smoothRarity = await evaluate(`(() => {
+    const S = APEX_ARSENAL_SPAWN;
+    APEX_ARSENAL.state.slots = [{ id: 1, x: 200, y: 200, phase: 'REVEALED', weaponId: 'PISTOL', tier: 'T5', revealedFor: 1 }];
+    const c = document.createElement('canvas').getContext('2d');
+    S.drawSlots(c); S.drawSlots(c); S.drawSlots(c);
+    return S.rarityStats;
+  })()`);
+  gate('smooth-rarity-cache-reuse', report.smoothRarity && report.smoothRarity.hits >= 1, report.smoothRarity);
+
   // ------------------------------------------------------------ summary ----
   report.summary = {
     total: Object.keys(report.gates).length,
