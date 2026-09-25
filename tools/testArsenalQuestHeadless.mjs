@@ -2479,6 +2479,12 @@ report.bothUnarmed = run(`
   APEX_ARSENAL.state.spawnHeld = false;
   APEX_ARSENAL.state.spawnTimer = 4.5;
   APEX_ARSENAL.state.over = null;
+  // Determinism completion of the authorized guard: earlier blocks can leave a
+  // residual engine hitStop, which scales simulation dt and makes fixed wall-
+  // clock windows straddle the 4.483 s cadence timer marginally (CI roll:
+  // cadence spawn fired one section late). Zero it so the windows below measure
+  // pure simulation time; no assertion changes.
+  if (typeof hitStop !== 'undefined') hitStop = 0;
   fighters[0].hp = 1000; fighters[1].hp = 1000;
   fighters[0].data.arsenal = null; fighters[1].data.arsenal = null;
   const before = APEX_ARSENAL.state.spawnedTotal;
@@ -2495,11 +2501,13 @@ report.bothUnarmed = run(`
   // same-tick / KO checks, so their coverage of the emergency law is intact
   // and every gate assertion remains unchanged.
   APEX_ARSENAL.state.spawnHeld = true;
-  // stay unarmed <3s: no extra immediate
-  __AQ_TEST.step(1.0);
+  // stay unarmed <3s: no extra immediate (1.5 s keeps the timer > 0 even under
+  // residual dt scaling, and still satisfies the <3 s law being asserted)
+  __AQ_TEST.step(1.5);
   const mid = APEX_ARSENAL.state.spawnedTotal;
-  // next cadence ~3s from immediate (timer was set to 3 then minus dt)
-  __AQ_TEST.step(3.6);
+  // next cadence ~3s from immediate (timer was set to 3 then minus dt);
+  // 1.5 + 4.2 = 5.7 s guarantees exactly one expiry inside the held window
+  __AQ_TEST.step(4.2);
   const later = APEX_ARSENAL.state.spawnedTotal;
   APEX_ARSENAL.state.spawnHeld = false;
   // arm one fighter: no fast path
