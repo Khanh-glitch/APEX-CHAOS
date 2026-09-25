@@ -37,7 +37,17 @@
       { rel: 'sfx/impact/impactGeneric_light_002.ogg', vol: 0.12, maxVoices: 3 },
     ],
     pickup: [{ rel: 'sfx/rpg/metalLatch.ogg', vol: 0.42, maxVoices: 3 }],
-    pickup_pistol: [{ rel: 'sfx/c-final/PISTOL/pistol_mech_click.wav', vol: 0.55, maxVoices: 2 }],
+    pickup_pistol: [{ rel: 'sfx/feel/pickup_pistol.wav', vol: 0.62, maxVoices: 2 }],
+    pickup_smg_mac10: [{ rel: 'sfx/feel/rifle_take_05.wav', vol: 0.58, maxVoices: 2 }],
+    pickup_smg_mp5: [{ rel: 'sfx/feel/rifle_take_02.wav', vol: 0.58, maxVoices: 2 }],
+    pickup_smg_p90: [{ rel: 'sfx/feel/rifle_take_09.wav', vol: 0.58, maxVoices: 2 }],
+    pickup_rifle_ak: [{ rel: 'sfx/feel/rifle_take_01.wav', vol: 0.62, maxVoices: 2 }],
+    pickup_rifle_m16: [{ rel: 'sfx/feel/rifle_take_03.wav', vol: 0.62, maxVoices: 2 }],
+    pickup_rifle_z15: [{ rel: 'sfx/feel/rifle_take_04.wav', vol: 0.62, maxVoices: 2 }],
+    pickup_rifle_mbr: [{ rel: 'sfx/feel/rifle_take_07.wav', vol: 0.68, maxVoices: 2 }],
+    pickup_rifle_mbr2: [{ rel: 'sfx/feel/rifle_take_08.wav', vol: 0.68, maxVoices: 2 }],
+    pickup_rifle_m249: [{ rel: 'sfx/feel/rifle_take_10.wav', vol: 0.70, maxVoices: 2 }],
+    pickup_rifle_szecsei: [{ rel: 'sfx/feel/rifle_take_11.wav', vol: 0.68, maxVoices: 2 }],
     pickup_shotgun: [{ rel: 'sfx/feel/pickup_shotgun.wav', vol: 0.72, maxVoices: 2 }],
     pickup_sniper: [{ rel: 'sfx/feel/pickup_sniper.wav', vol: 0.63, maxVoices: 1 }],
     pickup_sniper_lock: [{ rel: 'sfx/c-final/SNIPER/sniper_bolt_lock.wav', vol: 0.42, maxVoices: 1 }],
@@ -74,8 +84,8 @@
       { rel: 'sfx/c-final/GRENADE/grenade_core.wav', vol: 1.00, maxVoices: 2 },
       { rel: 'sfx/c-final/GRENADE/grenade_low.wav', vol: 0.40, maxVoices: 2 },
     ],
-    casing_land: [{ rel: 'sfx/impact/impactPlate_light_001.ogg', vol: 0.16, maxVoices: 4 }],
-    shotgun_shell_land: [{ rel: 'sfx/impact/impactPlate_light_001.ogg', vol: 0.20, maxVoices: 3 }],
+    casing_land: [{ rel: 'sfx/feel/casing_01.wav', vol: 0.22, maxVoices: 4 }],
+    shotgun_shell_land: [{ rel: 'sfx/feel/shell_01.wav', vol: 0.26, maxVoices: 3 }],
 
     // POST-C additions — reuse the approved baseline files ONLY (no new
     // audio sourcing): ricochet = plate tick, NEWBIE dash = force field
@@ -90,9 +100,29 @@
   const GUN_READY = {
     PISTOL: 'pickup_pistol', GLOCK_17: 'pickup_pistol', TEC_9: 'pickup_pistol',
     BERETTA_93R: 'pickup_pistol', DESERT_DEAGLE: 'pickup_pistol', MAGNUM_500: 'pickup_pistol',
+    MAC_10: 'pickup_smg_mac10', SMG: 'pickup_smg_mp5', P90: 'pickup_smg_p90',
+    AK_47: 'pickup_rifle_ak', M16: 'pickup_rifle_m16',
+    ZBROYAR_Z15: 'pickup_rifle_z15', ZBROYAR_Z15_S1: 'pickup_rifle_z15',
+    ZBROYAR_Z15_S2: 'pickup_rifle_z15', ZBROYAR_Z15_S3: 'pickup_rifle_z15',
+    MBR: 'pickup_rifle_mbr', MBR2: 'pickup_rifle_mbr2', M249_SAW: 'pickup_rifle_m249',
+    SZECSEI_FUCHS: 'pickup_rifle_szecsei',
     SHOTGUN: 'pickup_shotgun', MOSSBERG_500: 'pickup_shotgun', SAWED_OFF: 'pickup_shotgun', JACKHAMMER: 'pickup_shotgun',
     SNIPER: 'pickup_sniper',
   };
+  const CASING_VARS = [
+    { rel: 'sfx/feel/casing_01.wav', vol: 0.22, maxVoices: 4 },
+    { rel: 'sfx/feel/casing_02.wav', vol: 0.22, maxVoices: 4 },
+    { rel: 'sfx/feel/casing_03.wav', vol: 0.20, maxVoices: 4 },
+    { rel: 'sfx/feel/casing_04.wav', vol: 0.20, maxVoices: 4 },
+    { rel: 'sfx/feel/casing_05.wav', vol: 0.20, maxVoices: 4 },
+  ];
+  const SHELL_VARS = [
+    { rel: 'sfx/feel/shell_01.wav', vol: 0.26, maxVoices: 3 },
+    { rel: 'sfx/feel/shell_02.wav', vol: 0.24, maxVoices: 3 },
+    { rel: 'sfx/feel/shell_03.wav', vol: 0.24, maxVoices: 3 },
+  ];
+  let casingCursor = 0;
+  let shellCursor = 0;
   const GUN_IDS = Object.assign({}, PISTOL_READY, SHOTGUN_READY, {
     MAC_10: 1, SMG: 1, P90: 1, AK_47: 1, M16: 1, ZBROYAR_Z15: 1, ZBROYAR_Z15_S1: 1,
     ZBROYAR_Z15_S2: 1, ZBROYAR_Z15_S3: 1, MBR: 1, MBR2: 1, M249_SAW: 1, SZECSEI_FUCHS: 1, SNIPER: 1,
@@ -181,7 +211,11 @@
     ATLAS.file,
     SMOKE('01'), SMOKE('03'), SPARK('05'), SPARK('07'),
   ];
-  const ALL_AUDIO = Array.from(new Set(AUDIO ? Object.values(AUDIO).flat().map((a) => a.rel) : []));
+  const ALL_AUDIO = Array.from(new Set([
+    ...(AUDIO ? Object.values(AUDIO).flat().map((a) => a.rel) : []),
+    ...CASING_VARS.map((a) => a.rel),
+    ...SHELL_VARS.map((a) => a.rel),
+  ]));
 
   function preload() {
     for (const rel of ALL_IMAGES) getImg(rel);
@@ -316,11 +350,9 @@
           if (w === 'SNIPER') playLater('pickup_sniper_lock', 180);
           stats.gunReady = (stats.gunReady || 0) + 1;
           stats.lastGunReady = { weapon: w, cue: ready, rel: (AUDIO[ready] && AUDIO[ready][0] && AUDIO[ready][0].rel) };
-        } else if (!GUN_IDS[w]) {
-          playAll('pickup');
         } else {
-          stats.gunReadyBlocked = (stats.gunReadyBlocked || 0) + 1;
-          stats.lastGunReady = { weapon: w, cue: null, rel: null, blocked: 'rifle-master-missing' };
+          playAll('pickup');
+          stats.lastGunReady = { weapon: w, cue: 'pickup', rel: AUDIO.pickup[0].rel };
         }
         break;
       }
@@ -372,10 +404,13 @@
       case 'casing_land':
       case 'hull_land': {
         const shotgun = !!(o.shotgun || SHOTGUN_READY[o.weapon]);
+        const list = shotgun ? SHELL_VARS : CASING_VARS;
+        const entry = list[(shotgun ? shellCursor++ : casingCursor++) % list.length];
+        const e = (o.vol != null) ? Object.assign({}, entry, { vol: o.vol }) : entry;
+        playEntry(e);
         const key = shotgun ? 'shotgun_shell_land' : 'casing_land';
-        playAll(key, { vol: o.vol });
         stats.casingLands = (stats.casingLands || 0) + 1;
-        stats.lastCasingLand = { key, rel: AUDIO[key][0].rel, shotgun: !!shotgun };
+        stats.lastCasingLand = { key, rel: entry.rel, shotgun: !!shotgun };
         break;
       }
       case 'sniper_aim': {

@@ -8,6 +8,13 @@
   const SPECK = '/assets/fang_v1/speckBlood.webp';
   const ATLAS_SRC = '/assets/arsenal/feel/damage/damage1.png';
   const HEAL_FILES = {
+    HEAL_H1: '/assets/arsenal/feel/heals/runtime/heal_t1_field_dressing.png',
+    HEAL_H2: '/assets/arsenal/feel/heals/runtime/heal_t2_medication.png',
+    HEAL_H3: '/assets/arsenal/feel/heals/runtime/heal_t3_autoinjector.png',
+    HEAL_H4: '/assets/arsenal/feel/heals/runtime/heal_t4_iv_pack.png',
+    HEAL_H5: '/assets/arsenal/feel/heals/runtime/heal_t5_trauma_case.png',
+  };
+  const HEAL_MASTERS = {
     HEAL_H1: '/assets/arsenal/feel/heals/heal_t1_field_dressing.png',
     HEAL_H2: '/assets/arsenal/feel/heals/heal_t2_medication.png',
     HEAL_H3: '/assets/arsenal/feel/heals/heal_t3_autoinjector.png',
@@ -302,6 +309,50 @@
     c.globalAlpha = 1;
   }
 
+  const ATLAS_COL = 24;
+  const ATLAS_ROW = 32;
+  function atlasRowFor(kind) {
+    if (kind === 'heal') return 1;
+    if (kind === 'heavy') return 2;
+    if (kind === 'miss') return 4;
+    return 0;
+  }
+  function drawAtlasText(c, text, x, y, kind, scale) {
+    const ready = atlasImg && atlasImg.complete && atlasImg.naturalWidth >= 240;
+    if (!ready) return false;
+    stats.atlasDraws = (stats.atlasDraws || 0) + 1;
+    const s = 0.9 * (scale || 1);
+    if (kind === 'miss') {
+      // Row 4 left cluster is the word MISS (~4 glyph cells).
+      const w = ATLAS_COL * 4;
+      const h = ATLAS_ROW;
+      c.drawImage(atlasImg, 0, ATLAS_ROW * 4, w, h, x - (w * s) / 2, y - (h * s) / 2, w * s, h * s);
+      return true;
+    }
+    const row = atlasRowFor(kind);
+    const glyphs = String(text);
+    const total = glyphs.length * ATLAS_COL * s;
+    let cx = x - total / 2;
+    for (let i = 0; i < glyphs.length; i++) {
+      const ch = glyphs[i];
+      if (ch === '+') {
+        // plus is not on the sheet; skip glyph slot width of a thin mark
+        c.save();
+        c.fillStyle = '#5dff7a';
+        c.fillRect(cx + 6 * s, y - 2 * s, 10 * s, 4 * s);
+        c.fillRect(cx + 9 * s, y - 7 * s, 4 * s, 14 * s);
+        c.restore();
+        cx += ATLAS_COL * s * 0.7;
+        continue;
+      }
+      const d = ch.charCodeAt(0) - 48;
+      if (d < 0 || d > 9) { cx += ATLAS_COL * s; continue; }
+      c.drawImage(atlasImg, d * ATLAS_COL, row * ATLAS_ROW, ATLAS_COL, ATLAS_ROW,
+        cx, y - (ATLAS_ROW * s) / 2, ATLAS_COL * s, ATLAS_ROW * s);
+      cx += ATLAS_COL * s;
+    }
+    return true;
+  }
   function drawPopups(c) {
     c.save();
     c.textAlign = 'center';
@@ -311,6 +362,7 @@
       if (p.kind === 'miss' && /\d/.test(p.text)) stats.numericOnMiss += 1;
       const a = Math.max(0, Math.min(1, p.life / 0.7));
       c.globalAlpha = a;
+      if (drawAtlasText(c, p.text, p.x, p.y, p.kind, p.scale)) continue;
       const fs = 22 * p.scale;
       c.font = '900 ' + fs + 'px Impact, Arial Black, sans-serif';
       if (p.kind === 'heal') c.fillStyle = '#5dff7a';
@@ -331,12 +383,13 @@
   }
 
   const HEALS = [
-    { id: 'HEAL_H1', identity: 'Field Dressing', file: HEAL_FILES.HEAL_H1, restore: null },
-    { id: 'HEAL_H2', identity: 'Medication', file: HEAL_FILES.HEAL_H2, restore: null },
-    { id: 'HEAL_H3', identity: 'Auto-injector', file: HEAL_FILES.HEAL_H3, restore: null },
-    { id: 'HEAL_H4', identity: 'IV / life-support pack', file: HEAL_FILES.HEAL_H4, restore: null },
-    { id: 'HEAL_H5', identity: 'Trauma hard case', file: HEAL_FILES.HEAL_H5, restore: null },
+    { id: 'HEAL_H1', identity: 'Field Dressing', file: HEAL_FILES.HEAL_H1, master: HEAL_MASTERS.HEAL_H1, restore: null },
+    { id: 'HEAL_H2', identity: 'Medication', file: HEAL_FILES.HEAL_H2, master: HEAL_MASTERS.HEAL_H2, restore: null },
+    { id: 'HEAL_H3', identity: 'Auto-injector', file: HEAL_FILES.HEAL_H3, master: HEAL_MASTERS.HEAL_H3, restore: null },
+    { id: 'HEAL_H4', identity: 'IV / life-support pack', file: HEAL_FILES.HEAL_H4, master: HEAL_MASTERS.HEAL_H4, restore: null },
+    { id: 'HEAL_H5', identity: 'Trauma hard case', file: HEAL_FILES.HEAL_H5, master: HEAL_MASTERS.HEAL_H5, restore: null },
   ];
+  HEALS.forEach((h) => { h.img = loadImg(h.file); });
 
   AQ.feel = {
     resetMatch,

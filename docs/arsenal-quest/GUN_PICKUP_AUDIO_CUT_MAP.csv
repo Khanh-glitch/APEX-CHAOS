@@ -1,7 +1,23 @@
 derived_file,source_file,start_sec,end_sec,duration_sec,peak_or_rms,assigned_weapons
 pickup_shotgun.wav,public/assets/shotgun_v1/audio/special_reloading_after_use_the_dash_skill.wav,0.050,0.300,0.250,rms~0.55_peak_cluster,SHOTGUN|MOSSBERG_500|SAWED_OFF|JACKHAMMER
 pickup_sniper.wav,public/assets/arsenal/av/sfx/c-final/SNIPER/sniper_chamber.wav,0.000,0.920,0.920,full_chamber,SNIPER
-pickup_pistol.wav,public/assets/arsenal/av/sfx/c-final/PISTOL/pistol_mech_click.wav,0.000,end,source_len,existing_cfinal,PISTOL|GLOCK_17|TEC_9|BERETTA_93R|DESERT_DEAGLE|MAGNUM_500
-rifle_take_XX,Rifle Reload Sound Effect.mp3,BLOCKED,BLOCKED,BLOCKED,Asset Vault c8e04857 unreachable from agent token,MAC_10|SMG|P90|AK_47|M16|ZBROYAR_Z15*|MBR|MBR2|M249_SAW|SZECSEI_FUCHS
-casing_general,318964__gryffdavid__bouncing-shell-casings-various-sizes.wav,BLOCKED,BLOCKED,BLOCKED,Asset Vault unreachable; casing_land semantic uses in-repo impactPlate until vault copy,all_non_shotgun_firearms
-casing_shotgun,620929__metrolynn__empty-shotgun-shellscasings-hitting-ground-bouncing.wav,BLOCKED,BLOCKED,BLOCKED,Asset Vault unreachable; shotgun_shell_land key wired,SHOTGUN|MOSSBERG_500|SAWED_OFF|JACKHAMMER
+pickup_pistol.wav,public/assets/arsenal/av/sfx/source/sound-effect-recharge-gun.wav,0.000,0.280,0.280,peak=0.322_first_mechanical_cluster,PISTOL|GLOCK_17|TEC_9|BERETTA_93R|DESERT_DEAGLE|MAGNUM_500
+rifle_take_01.wav,public/assets/arsenal/av/sfx/source/Rifle Reload Sound Effect.mp3,15.920,16.240,0.320,peak=0.191,AK_47
+rifle_take_02.wav,public/assets/arsenal/av/sfx/source/Rifle Reload Sound Effect.mp3,18.460,18.660,0.200,peak=0.195,SMG
+rifle_take_03.wav,public/assets/arsenal/av/sfx/source/Rifle Reload Sound Effect.mp3,20.950,21.180,0.230,peak=0.216,M16
+rifle_take_04.wav,public/assets/arsenal/av/sfx/source/Rifle Reload Sound Effect.mp3,21.340,21.560,0.220,peak=0.188,ZBROYAR_Z15|ZBROYAR_Z15_S1|ZBROYAR_Z15_S2|ZBROYAR_Z15_S3
+rifle_take_05.wav,public/assets/arsenal/av/sfx/source/Rifle Reload Sound Effect.mp3,24.460,24.660,0.200,peak=0.146,MAC_10
+rifle_take_06.wav,public/assets/arsenal/av/sfx/source/Rifle Reload Sound Effect.mp3,24.730,24.900,0.170,peak=0.122,unused_short_alt
+rifle_take_07.wav,public/assets/arsenal/av/sfx/source/Rifle Reload Sound Effect.mp3,26.950,27.220,0.270,peak=0.213,MBR
+rifle_take_08.wav,public/assets/arsenal/av/sfx/source/Rifle Reload Sound Effect.mp3,29.440,29.760,0.320,peak=0.208,MBR2
+rifle_take_09.wav,public/assets/arsenal/av/sfx/source/Rifle Reload Sound Effect.mp3,31.970,32.180,0.210,peak=0.227,P90
+rifle_take_10.wav,public/assets/arsenal/av/sfx/source/Rifle Reload Sound Effect.mp3,34.300,34.520,0.220,peak=0.251,M249_SAW
+rifle_take_11.wav,public/assets/arsenal/av/sfx/source/Rifle Reload Sound Effect.mp3,34.690,34.940,0.250,peak=0.241,SZECSEI_FUCHS
+casing_01.wav,public/assets/arsenal/av/sfx/source/318964__gryffdavid__bouncing-shell-casings-various-sizes.wav,16.820,16.980,0.160,peak=0.168,all_non_shotgun_firearms
+casing_02.wav,public/assets/arsenal/av/sfx/source/318964__gryffdavid__bouncing-shell-casings-various-sizes.wav,18.980,19.140,0.160,peak=0.142,all_non_shotgun_firearms
+casing_03.wav,public/assets/arsenal/av/sfx/source/318964__gryffdavid__bouncing-shell-casings-various-sizes.wav,13.060,13.220,0.160,peak=0.116,all_non_shotgun_firearms
+casing_04.wav,public/assets/arsenal/av/sfx/source/318964__gryffdavid__bouncing-shell-casings-various-sizes.wav,11.160,11.320,0.160,peak=0.111,all_non_shotgun_firearms
+casing_05.wav,public/assets/arsenal/av/sfx/source/318964__gryffdavid__bouncing-shell-casings-various-sizes.wav,32.200,32.360,0.160,peak=0.120,all_non_shotgun_firearms
+shell_01.wav,public/assets/arsenal/av/sfx/source/620929__metrolynn__empty-shotgun-shellscasings-hitting-ground-bouncing.wav,0.068,0.165,0.097,peak=0.372,SHOTGUN|MOSSBERG_500|SAWED_OFF|JACKHAMMER
+shell_02.wav,public/assets/arsenal/av/sfx/source/620929__metrolynn__empty-shotgun-shellscasings-hitting-ground-bouncing.wav,0.218,0.290,0.072,peak=0.234,SHOTGUN|MOSSBERG_500|SAWED_OFF|JACKHAMMER
+shell_03.wav,public/assets/arsenal/av/sfx/source/620929__metrolynn__empty-shotgun-shellscasings-hitting-ground-bouncing.wav,0.344,0.420,0.076,peak=0.278,SHOTGUN|MOSSBERG_500|SAWED_OFF|JACKHAMMER

@@ -105,7 +105,9 @@
     const state = {
       active: true,
       time: 0,
-      spawnTimer: CFG.FIRST_SPAWN_DELAY_SECONDS,
+      spawnTimer: CFG.SPAWN_CADENCE_SECONDS,
+      unarmedFastConsumed: false,
+      spawnHeld: false,
       slots: [],
       visuals: [],
       detachedWeapons: [],
@@ -184,6 +186,19 @@
     matchClock += dt;
     state.time += dt;
     if (!state.over) {
+      const living = (typeof fighters !== 'undefined' ? fighters : []).filter((f) => f && f.hp > 0);
+      const bothUnarmed = living.length >= 2 && living.every((f) => !weaponApi.getHolder(f));
+      if (!bothUnarmed) state.unarmedFastConsumed = false;
+      else if (!state.spawnHeld && !state.unarmedFastConsumed) {
+        const slot = SPAWN.trySpawnSlot();
+        if (slot) {
+          state.spawnTimer = CFG.SPAWN_CADENCE_SECONDS;
+          state.unarmedFastConsumed = true;
+        } else {
+          // Cap suppress: do not reset timer or retry every frame.
+          state.unarmedFastConsumed = true;
+        }
+      }
       // Fixed spawn cadence — independent of collection state (handoff §5).
       state.spawnTimer -= dt;
       let guard = 0;

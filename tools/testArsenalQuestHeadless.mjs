@@ -230,7 +230,7 @@ win.eval(`(() => {
       return h ? { weapon: h.weaponId, phase: h.phase, shots: h.shotsFired } : null;
     },
     equip(who, weaponId) { APEX_ARSENAL.weaponApi.equip(who === 'HERO' ? fighters[0] : fighters[1], weaponId); },
-    holdSpawns() { APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = []; },
+    holdSpawns() { APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = []; APEX_ARSENAL.state.unarmedFastConsumed = true; APEX_ARSENAL.state.spawnHeld = true; },
     clearSlots() { APEX_ARSENAL.state.slots = []; },
     pushSlot(overrides) {
       const s = APEX_ARSENAL.state;
@@ -343,7 +343,7 @@ report.spawnLaw = run(`
     spawnTimes,
     gaps,
     // POST-C §2: measured cadence must be exactly 3.0s.
-    cadenceOk: spawnTimes.length >= 4 && Math.abs(spawnTimes[0] - 1.0) < 0.2
+    cadenceOk: spawnTimes.length >= 4 && spawnTimes[0] <= 0.2
       && gaps.every(g => Math.abs(g - 3.0) < 0.15),
     leadValues,
     // A-CORR-2: every slot carries the fixed 2.0s whole-circle reveal lead.
@@ -2303,6 +2303,15 @@ report.rev2Feel = run(`
   const pReady = av.stats.lastGunReady;
   window.avCue('pickup', { weapon: 'AK_47', x: 1, y: 1 });
   const akReady = av.stats.lastGunReady;
+  window.avCue('pickup', { weapon: 'ZBROYAR_Z15', x: 1, y: 1 });
+  const z15 = av.stats.lastGunReady;
+  window.avCue('pickup', { weapon: 'ZBROYAR_Z15_S2', x: 1, y: 1 });
+  const z15s = av.stats.lastGunReady;
+  window.avCue('pickup', { weapon: 'MAC_10', x: 1, y: 1 });
+  const macReady = av.stats.lastGunReady;
+  window.avCue('casing', { x: 400, y: 100, vx: 0, vy: 500, shotgun: true, weapon: 'SHOTGUN' });
+  APEX_ARSENAL_AV.tick(1.2);
+  const lastShell = av.stats.lastCasingLand;
   window.avCue('casing', { x: 100, y: 100, vx: 0, vy: 400, shotgun: false, weapon: 'PISTOL' });
   const lands0 = av.stats.casingLands || 0;
   APEX_ARSENAL_AV.tick(0.05);
@@ -2320,7 +2329,9 @@ report.rev2Feel = run(`
     numericOnMiss: feel.stats.numericOnMiss,
     stain: !!(surface && feel.stats.stainDraws >= 0),
     chamberBuilds: perf.chamber && perf.chamber.builds,
-    sgReady, snReady, pReady, akReady,
+    sgReady, snReady, pReady, akReady, z15, z15s, macReady, lastShell,
+    atlasSrc: '/assets/arsenal/feel/damage/damage1.png',
+    healFiles: heals.map(h => h.file),
     lands0, landsMid, lands1, lands2, lastCasing: av.stats.lastCasingLand,
     healBlocked, healIds: heals.map(h => h.id),
     floating: floatingTexts.length,
@@ -2336,14 +2347,30 @@ gate('feel-sniper-pickup-chamber',
   report.rev2Feel.snReady && report.rev2Feel.snReady.cue === 'pickup_sniper',
   report.rev2Feel.snReady);
 gate('feel-pistol-pickup-ready',
-  report.rev2Feel.pReady && report.rev2Feel.pReady.cue === 'pickup_pistol',
+  report.rev2Feel.pReady && report.rev2Feel.pReady.cue === 'pickup_pistol'
+  && String(report.rev2Feel.pReady.rel).indexOf('pickup_pistol.wav') >= 0,
   report.rev2Feel.pReady);
+gate('feel-rifle-pickup-derived',
+  report.rev2Feel.akReady && report.rev2Feel.akReady.cue === 'pickup_rifle_ak'
+  && String(report.rev2Feel.akReady.rel).indexOf('rifle_take_01.wav') >= 0
+  && report.rev2Feel.macReady && report.rev2Feel.macReady.cue === 'pickup_smg_mac10'
+  && report.rev2Feel.z15 && report.rev2Feel.z15s && report.rev2Feel.z15.cue === report.rev2Feel.z15s.cue,
+  { ak: report.rev2Feel.akReady, mac: report.rev2Feel.macReady, z15: report.rev2Feel.z15, z15s: report.rev2Feel.z15s });
 gate('feel-casing-land-once',
   report.rev2Feel.lands0 === report.rev2Feel.landsMid
   && report.rev2Feel.lands1 === report.rev2Feel.lands0 + 1
   && report.rev2Feel.lands2 === report.rev2Feel.lands1
-  && report.rev2Feel.lastCasing && report.rev2Feel.lastCasing.key === 'casing_land',
+  && report.rev2Feel.lastCasing && report.rev2Feel.lastCasing.key === 'casing_land'
+  && String(report.rev2Feel.lastCasing.rel).indexOf('sfx/feel/casing_') >= 0,
   report.rev2Feel);
+gate('feel-shotgun-shell-land-source',
+  report.rev2Feel.lastShell && report.rev2Feel.lastShell.shotgun === true
+  && String(report.rev2Feel.lastShell.rel).indexOf('sfx/feel/shell_') >= 0,
+  report.rev2Feel.lastShell);
+gate('feel-heal-runtime-files',
+  report.rev2Feel.healFiles && report.rev2Feel.healFiles.length === 5
+  && report.rev2Feel.healFiles.every(f => String(f).indexOf('/heals/runtime/') >= 0),
+  report.rev2Feel.healFiles);
 gate('feel-heal-values-blocked', report.rev2Feel.healBlocked === true && report.rev2Feel.healIds.length === 5, report.rev2Feel);
 gate('feel-floating-text-still-sunk', report.rev2Feel.floating === 0, report.rev2Feel);
 
@@ -2365,6 +2392,91 @@ report.smoothRarity = run(`
   return { b0, b1, b2, d, h, reuse: h > 0 && b2 <= b1 + 8 };
 `);
 gate('smooth-rarity-cache-reuse', report.smoothRarity.reuse === true && report.smoothRarity.h >= 1, report.smoothRarity);
+
+
+report.bothUnarmed = run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.clearSlots();
+  __AQ_TEST.clearEvents();
+  APEX_ARSENAL.state.spawnedTotal = 0;
+  APEX_ARSENAL.state.unarmedFastConsumed = false;
+  APEX_ARSENAL.state.spawnTimer = 3.0;
+  APEX_ARSENAL.state.over = null;
+  fighters[0].hp = 100; fighters[1].hp = 100;
+  fighters[0].data.arsenal = null; fighters[1].data.arsenal = null;
+  const before = APEX_ARSENAL.state.spawnedTotal;
+  __AQ_TEST.step(1/60);
+  const t0 = APEX_ARSENAL.state.time;
+  const afterImmediate = APEX_ARSENAL.state.spawnedTotal;
+  const timerAfter = +APEX_ARSENAL.state.spawnTimer.toFixed(3);
+  const slotsAfter = APEX_ARSENAL.state.slots.filter(s => s.phase !== 'REMOVED').length;
+  // stay unarmed <3s: no extra immediate
+  __AQ_TEST.step(1.0);
+  const mid = APEX_ARSENAL.state.spawnedTotal;
+  // next cadence ~3s from immediate (timer was set to 3 then minus dt)
+  __AQ_TEST.step(2.1);
+  const later = APEX_ARSENAL.state.spawnedTotal;
+  // arm one fighter: no fast path
+  APEX_ARSENAL.weaponApi.equip(fighters[0], 'PISTOL');
+  APEX_ARSENAL.state.unarmedFastConsumed = false;
+  const armedBefore = APEX_ARSENAL.state.spawnedTotal;
+  __AQ_TEST.step(1/60);
+  const afterOneArmed = APEX_ARSENAL.state.spawnedTotal;
+  // both unarmed again before timer
+  fighters[0].data.arsenal = null;
+  APEX_ARSENAL.state.spawnTimer = 2.5;
+  const retrigBefore = APEX_ARSENAL.state.spawnedTotal;
+  __AQ_TEST.step(1/60);
+  const retrigAfter = APEX_ARSENAL.state.spawnedTotal;
+  const retrigTimer = +APEX_ARSENAL.state.spawnTimer.toFixed(2);
+  // same-tick timer expiry + transition: one spawn
+  fighters[0].data.arsenal = null; fighters[1].data.arsenal = null;
+  APEX_ARSENAL.weaponApi.equip(fighters[0], 'SMG');
+  __AQ_TEST.step(1/60);
+  fighters[0].data.arsenal = null;
+  APEX_ARSENAL.state.spawnTimer = 0;
+  APEX_ARSENAL.state.unarmedFastConsumed = false;
+  const sameBefore = APEX_ARSENAL.state.spawnedTotal;
+  __AQ_TEST.step(1/60);
+  const sameAfter = APEX_ARSENAL.state.spawnedTotal;
+  // KO: no spawn
+  fighters[1].hp = 0;
+  APEX_ARSENAL.state.over = 'HERO';
+  APEX_ARSENAL.state.unarmedFastConsumed = false;
+  const koBefore = APEX_ARSENAL.state.spawnedTotal;
+  __AQ_TEST.step(1/60);
+  const koAfter = APEX_ARSENAL.state.spawnedTotal;
+  return {
+    afterImmediate, timerAfter, slotsAfter, mid, later,
+    afterOneArmed, armedBefore, retrigBefore, retrigAfter, retrigTimer,
+    sameBefore, sameAfter, koBefore, koAfter, t0,
+  };
+`);
+gate('both-unarmed-immediate-fresh',
+  report.bothUnarmed.afterImmediate === 1 && report.bothUnarmed.t0 <= 0.03,
+  report.bothUnarmed);
+gate('both-unarmed-timer-reset-3s',
+  report.bothUnarmed.timerAfter > 2.9 && report.bothUnarmed.timerAfter <= 3.0,
+  report.bothUnarmed);
+gate('both-unarmed-no-spam',
+  report.bothUnarmed.mid === report.bothUnarmed.afterImmediate,
+  report.bothUnarmed);
+gate('both-unarmed-next-cadence',
+  report.bothUnarmed.later === report.bothUnarmed.afterImmediate + 1,
+  report.bothUnarmed);
+gate('both-unarmed-one-armed-no-fast',
+  report.bothUnarmed.afterOneArmed === report.bothUnarmed.armedBefore,
+  report.bothUnarmed);
+gate('both-unarmed-retrigger',
+  report.bothUnarmed.retrigAfter === report.bothUnarmed.retrigBefore + 1
+  && report.bothUnarmed.retrigTimer > 2.9,
+  report.bothUnarmed);
+gate('both-unarmed-same-tick-one',
+  report.bothUnarmed.sameAfter === report.bothUnarmed.sameBefore + 1,
+  report.bothUnarmed);
+gate('both-unarmed-no-post-ko',
+  report.bothUnarmed.koAfter === report.bothUnarmed.koBefore,
+  report.bothUnarmed);
 
 // ------------------------------------------------------------------- summary
 report.summary = {

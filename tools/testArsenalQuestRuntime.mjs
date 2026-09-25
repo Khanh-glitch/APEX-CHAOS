@@ -129,7 +129,7 @@ try {
       equip(who, weaponId) {
         APEX_ARSENAL.weaponApi.equip(who === 'HERO' ? fighters[0] : fighters[1], weaponId);
       },
-      holdSpawns() { APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = []; },
+      holdSpawns() { APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = []; APEX_ARSENAL.state.unarmedFastConsumed = true; APEX_ARSENAL.state.spawnHeld = true; },
     clearSlots() { APEX_ARSENAL.state.slots = []; },
       pushSlot(overrides) {
         const s = APEX_ARSENAL.state;
@@ -213,7 +213,7 @@ try {
       maxActive: d.maxActiveSlots,
       spawnTimes,
       gaps,
-      cadenceOk: spawnTimes.length >= 4 && Math.abs(spawnTimes[0] - 1.0) < 0.2
+      cadenceOk: spawnTimes.length >= 4 && spawnTimes[0] <= 0.2
         && gaps.every(g => Math.abs(g - 3.0) < 0.15),
       leadValues,
       leadsFixedTwo: leadValues.length >= 3 && leadValues.every(v => Math.abs(v - 2.0) < 1e-9),
@@ -1392,6 +1392,43 @@ try {
     return S.rarityStats;
   })()`);
   gate('smooth-rarity-cache-reuse', report.smoothRarity && report.smoothRarity.hits >= 1, report.smoothRarity);
+
+
+  report.bothUnarmed = await evaluate(`(() => {
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearSlots();
+    APEX_ARSENAL.state.spawnedTotal = 0;
+    APEX_ARSENAL.state.unarmedFastConsumed = false;
+    APEX_ARSENAL.state.spawnTimer = 3.0;
+    fighters[0].hp = 100; fighters[1].hp = 100;
+    fighters[0].data.arsenal = null; fighters[1].data.arsenal = null;
+    __AQ_TEST.step(1/60);
+    const afterImmediate = APEX_ARSENAL.state.spawnedTotal;
+    const timerAfter = APEX_ARSENAL.state.spawnTimer;
+    __AQ_TEST.step(1.0);
+    const mid = APEX_ARSENAL.state.spawnedTotal;
+    APEX_ARSENAL.weaponApi.equip(fighters[0], 'PISTOL');
+    const armedBefore = APEX_ARSENAL.state.spawnedTotal;
+    __AQ_TEST.step(1/60);
+    const afterOneArmed = APEX_ARSENAL.state.spawnedTotal;
+    fighters[0].data.arsenal = null;
+    APEX_ARSENAL.state.spawnTimer = 2.4;
+    const retrigBefore = APEX_ARSENAL.state.spawnedTotal;
+    __AQ_TEST.step(1/60);
+    const retrigAfter = APEX_ARSENAL.state.spawnedTotal;
+    window.avCue('pickup', { weapon: 'AK_47', x: 1, y: 1 });
+    const ak = APEX_ARSENAL_AV.stats.lastGunReady;
+    window.avCue('pickup', { weapon: 'PISTOL', x: 1, y: 1 });
+    const pistol = APEX_ARSENAL_AV.stats.lastGunReady;
+    return { afterImmediate, timerAfter, mid, afterOneArmed, armedBefore, retrigBefore, retrigAfter, ak, pistol };
+  })()`);
+  gate('both-unarmed-immediate-fresh', report.bothUnarmed.afterImmediate === 1, report.bothUnarmed);
+  gate('both-unarmed-timer-reset-3s', report.bothUnarmed.timerAfter > 2.9 && report.bothUnarmed.timerAfter <= 3.0, report.bothUnarmed);
+  gate('both-unarmed-no-spam', report.bothUnarmed.mid === report.bothUnarmed.afterImmediate, report.bothUnarmed);
+  gate('both-unarmed-one-armed-no-fast', report.bothUnarmed.afterOneArmed === report.bothUnarmed.armedBefore, report.bothUnarmed);
+  gate('both-unarmed-retrigger', report.bothUnarmed.retrigAfter === report.bothUnarmed.retrigBefore + 1, report.bothUnarmed);
+  gate('feel-rifle-pickup-derived', report.bothUnarmed.ak && String(report.bothUnarmed.ak.rel).indexOf('rifle_take_01.wav') >= 0, report.bothUnarmed.ak);
+  gate('feel-pistol-source-recharge', report.bothUnarmed.pistol && String(report.bothUnarmed.pistol.rel).indexOf('pickup_pistol.wav') >= 0, report.bothUnarmed.pistol);
 
   // ------------------------------------------------------------ summary ----
   report.summary = {

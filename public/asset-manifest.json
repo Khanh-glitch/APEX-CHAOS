@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-25T05:07:19.173Z",
+  "generatedAt": "2026-09-25T07:28:16.767Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -153,6 +153,36 @@
       "bytes": 107084
     },
     {
+      "path": "/assets/arsenal/av/sfx/feel/casing_01.wav",
+      "type": "audio",
+      "bytes": 28268
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/casing_02.wav",
+      "type": "audio",
+      "bytes": 28268
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/casing_03.wav",
+      "type": "audio",
+      "bytes": 28268
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/casing_04.wav",
+      "type": "audio",
+      "bytes": 28268
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/casing_05.wav",
+      "type": "audio",
+      "bytes": 28268
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/pickup_pistol.wav",
+      "type": "audio",
+      "bytes": 49436
+    },
+    {
       "path": "/assets/arsenal/av/sfx/feel/pickup_shotgun.wav",
       "type": "audio",
       "bytes": 44144
@@ -161,6 +191,76 @@
       "path": "/assets/arsenal/av/sfx/feel/pickup_sniper.wav",
       "type": "audio",
       "bytes": 88576
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_01.wav",
+      "type": "audio",
+      "bytes": 56488
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_02.wav",
+      "type": "audio",
+      "bytes": 35324
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_03.wav",
+      "type": "audio",
+      "bytes": 40616
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_04.wav",
+      "type": "audio",
+      "bytes": 38852
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_05.wav",
+      "type": "audio",
+      "bytes": 35324
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_06.wav",
+      "type": "audio",
+      "bytes": 30032
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_07.wav",
+      "type": "audio",
+      "bytes": 47672
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_08.wav",
+      "type": "audio",
+      "bytes": 56492
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_09.wav",
+      "type": "audio",
+      "bytes": 37088
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_10.wav",
+      "type": "audio",
+      "bytes": 38856
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_11.wav",
+      "type": "audio",
+      "bytes": 44144
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/shell_01.wav",
+      "type": "audio",
+      "bytes": 17156
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/shell_02.wav",
+      "type": "audio",
+      "bytes": 12748
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/feel/shell_03.wav",
+      "type": "audio",
+      "bytes": 13452
     },
     {
       "path": "/assets/arsenal/av/sfx/guns/cz.wav",
@@ -301,6 +401,26 @@
       "path": "/assets/arsenal/av/sfx/scifi/lowFrequency_explosion_001.ogg",
       "type": "audio",
       "bytes": 9408
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/source/318964__gryffdavid__bouncing-shell-casings-various-sizes.wav",
+      "type": "audio",
+      "bytes": 7275564
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/source/620929__metrolynn__empty-shotgun-shellscasings-hitting-ground-bouncing.wav",
+      "type": "audio",
+      "bytes": 399936
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/source/Rifle%20Reload%20Sound%20Effect.mp3",
+      "type": "audio",
+      "bytes": 614861
+    },
+    {
+      "path": "/assets/arsenal/av/sfx/source/sound-effect-recharge-gun.wav",
+      "type": "audio",
+      "bytes": 454506
     },
     {
       "path": "/assets/arsenal/weapons/arsenal_p0_weapon_atlas.json",
