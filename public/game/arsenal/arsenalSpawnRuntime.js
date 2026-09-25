@@ -193,6 +193,7 @@
     const state = AQ.state;
     const feel = window.APEX_ARSENAL_FEEL;
     if (!state || !feel || !feel.healGameplayEnabled) return null;
+    if (state.spawnHeld) return null;
     if ((state.healCooldown || 0) > 0) return null;
     const activeHeal = state.slots.filter((s) => s.kind === 'HEAL' && s.phase !== 'REMOVED');
     if (activeHeal.length >= (CFG.HEAL_MAX_ACTIVE || 1)) return null;

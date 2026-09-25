@@ -2402,7 +2402,8 @@ report.healPlay = run(`
   if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
   const st = APEX_ARSENAL.state;
   const S = APEX_ARSENAL_SPAWN;
-  __AQ_TEST.holdSpawns();
+  if (__AQ_TEST.releaseSpawns) __AQ_TEST.releaseSpawns();
+  st.spawnHeld = false;
   __AQ_TEST.clearSlots();
   st.healCooldown = 0;
   st.forceHealId = 'HEAL_H3';

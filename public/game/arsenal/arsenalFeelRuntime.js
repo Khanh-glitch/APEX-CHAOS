@@ -163,6 +163,7 @@
   }
 
   let tintScratch = null;
+  const speckTintCache = new Map();
   function ensureSpeckFallback() {
     if (speckImg && speckImg.complete && speckImg.naturalWidth) return speckImg;
     if (ensureSpeckFallback._c) return ensureSpeckFallback._c;
@@ -186,21 +187,23 @@
   function tintedSpeck(rgb, a) {
     const src = ensureSpeckFallback();
     if (!src) return null;
+    const key = (rgb[0] | 0) + ',' + (rgb[1] | 0) + ',' + (rgb[2] | 0) + ':' + (a * 8 | 0);
+    const hit = speckTintCache.get(key);
+    if (hit) return hit;
     const sw = 96, sh = 96;
-    if (!tintScratch) {
-      tintScratch = document.createElement('canvas');
-      tintScratch.width = sw; tintScratch.height = sh;
-    }
-    const tc = tintScratch.getContext('2d');
-    tc.clearRect(0, 0, sw, sh);
-    tc.globalCompositeOperation = 'source-over';
-    tc.globalAlpha = 1;
+    const cnv = document.createElement('canvas');
+    cnv.width = sw; cnv.height = sh;
+    const tc = cnv.getContext('2d');
     tc.drawImage(src, 0, 0, sw, sh);
     tc.globalCompositeOperation = 'source-atop';
-    tc.fillStyle = rgba(rgb, a);
+    tc.fillStyle = rgba(rgb, Math.min(1, 0.35 + (a * 8 | 0) / 8));
     tc.fillRect(0, 0, sw, sh);
-    tc.globalCompositeOperation = 'source-over';
-    return tintScratch;
+    speckTintCache.set(key, cnv);
+    if (speckTintCache.size > 48) {
+      const first = speckTintCache.keys().next().value;
+      speckTintCache.delete(first);
+    }
+    return cnv;
   }
 
   function stampOrganic(c, ox, oy, sx, sy, rot, rgb, alpha) {

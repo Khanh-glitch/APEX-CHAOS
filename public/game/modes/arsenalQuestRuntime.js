@@ -98,6 +98,8 @@
         sprayReuse: AQ.feel.stats.sprayReuse,
         popupReuse: AQ.feel.stats.popupReuse,
       } : null,
+      frames: global && global.frames,
+      interpolation: false,
     };
   };
 

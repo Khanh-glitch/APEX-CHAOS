@@ -1394,7 +1394,7 @@ try {
   report.healPlay = await evaluate(`(() => {
     const st = APEX_ARSENAL.state;
     const S = APEX_ARSENAL_SPAWN;
-    __AQ_TEST.holdSpawns();
+    st.spawnHeld = false;
     __AQ_TEST.clearSlots();
     st.healCooldown = 0;
     st.forceHealId = 'HEAL_H2';
