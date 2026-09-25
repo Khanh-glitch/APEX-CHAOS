@@ -1756,6 +1756,11 @@ try {
     const armedBefore = APEX_ARSENAL.state.spawnedTotal;
     __AQ_TEST.step(1/60);
     const afterOneArmed = APEX_ARSENAL.state.spawnedTotal;
+    // Current V3 emergency law requires both fighters to lack a firearm AND
+    // no REVEALED firearm floor pickup. Remove the first emergency slot so
+    // this block creates a real false -> true retrigger instead of depending
+    // on incidental slot phase/timing.
+    __AQ_TEST.clearSlots();
     fighters[0].data.arsenal = null;
     APEX_ARSENAL.state.spawnTimer = 2.4;
     const retrigBefore = APEX_ARSENAL.state.spawnedTotal;
