@@ -322,6 +322,68 @@ function injectApexEngine(scriptRef, engineSrc) {
   return window.__apexEngineLoadPromise;
 }
 
+// PASS B — universal combat HUD side panel (authority §3/§6).
+// React owns this markup; the engine + APEX_COMBAT_HUD only WRITE into these
+// ids (cached refs, change-only). Engine-owned ids (p1/p2-name, -hp,
+// -hp-loss, -hp-text, -rage) are MOVED here from the legacy top header —
+// the engine keeps writing them exactly as before.
+function CombatPanelSide({ side }) {
+  const p = `p${side}`;
+  return (
+    <aside id={`${p}-combat-panel`} className={`combat-panel cp-side-p${side}`} aria-label={`Player ${side} combat panel`}>
+      <section className="cp-identity">
+        <div className="cp-id-row">
+          <span className="cp-chip" id={`${p}-cp-chip`} />
+          <div className="name" id={`${p}-name`}>P{side}</div>
+        </div>
+        <div className="hp-bar-bg">
+          <div className="hp-loss-trail" id={`${p}-hp-loss`} />
+          <div className="hp-bar-fill" id={`${p}-hp`} />
+          <div className="hp-text" id={`${p}-hp-text`}>100.0 / 100</div>
+        </div>
+        <div className="rage-indicator" id={`${p}-rage`}>RAGE ACTIVE</div>
+      </section>
+
+      <section className="cp-burst" id={`${p}-burst`}>
+        <div className="cp-burst-kicker">LIVE BURST</div>
+        <div className="cp-burst-label" id={`${p}-burst-label`} />
+        <div className="cp-burst-total" id={`${p}-burst-total`}>0</div>
+        <div className="cp-burst-meta">
+          <span className="cp-burst-hits" id={`${p}-burst-hits`}>0 HITS</span>
+          <span className="cp-burst-crits" id={`${p}-burst-crits`}>0 CRIT</span>
+        </div>
+      </section>
+
+      <section className="cp-loadout" id={`${p}-loadout`}>
+        <div className="cp-section-title">CURRENT LOADOUT</div>
+        <div className="cp-loadout-art">
+          <canvas id={`${p}-loadout-canvas`} className="cp-loadout-canvas" width="480" height="240" />
+          <div className="cp-loadout-fallback" id={`${p}-loadout-fallback`}>
+            <span className="cp-glyph" id={`${p}-cp-glyph`}>—</span>
+            <span className="cp-fallback-label" id={`${p}-loadout-fallback-label`}>UNARMED</span>
+          </div>
+        </div>
+        <div className="cp-loadout-name" id={`${p}-loadout-name`}>—</div>
+        <div className="cp-loadout-meta">
+          <span className="cp-loadout-family" id={`${p}-loadout-family`} />
+          <span className="cp-loadout-tier" id={`${p}-loadout-tier`} />
+        </div>
+      </section>
+
+      <section className="cp-energy" id={`${p}-energy`}>
+        <div className="cp-energy-head">
+          <span className="cp-energy-title">ENERGY</span>
+          <span className="cp-energy-val" id={`${p}-energy-val`}>0</span>
+        </div>
+        <div className="cp-energy-track"><div className="cp-energy-fill" id={`${p}-energy-fill`} /></div>
+        <div className="cp-energy-state" id={`${p}-energy-state`} />
+      </section>
+
+      <section className="cp-mode" id={`${p}-mode-slot`} />
+    </aside>
+  );
+}
+
 export default function App() {
   const scriptRef = useRef(null);
   const menuAudioRef = useRef(null);
@@ -549,6 +611,12 @@ export default function App() {
         </div>
       </div>
     )}
+    {/* PASS B: P1 SIDE PANEL | SQUARE ARENA | P2 SIDE PANEL (authority §3).
+        Side panels are hidden outside battle (CSS .is-battle); the arena
+        column keeps its exact legacy box so absolute screens/overlays
+        behave as before. Engine-owned p1/p2 ids now live in the panels. */}
+    <div id="battle-shell">
+      <CombatPanelSide side={1} />
     <div id="game-wrapper">
       <canvas id="game-canvas" width="1000" height="1000" />
 
@@ -558,27 +626,6 @@ export default function App() {
       </div>
 
       <div className="ui-layer" id="hud" style={{ opacity: 0 }}>
-        <div className="header">
-          <div className="player-info p1-info">
-            <div className="name" id="p1-name">P1</div>
-            <div className="hp-bar-bg">
-              <div className="hp-loss-trail" id="p1-hp-loss" />
-              <div className="hp-bar-fill" id="p1-hp" />
-              <div className="hp-text" id="p1-hp-text">100.0 / 100</div>
-            </div>
-            <div className="rage-indicator" id="p1-rage">RAGE ACTIVE</div>
-          </div>
-
-          <div className="player-info p2-info">
-            <div className="name" id="p2-name">P2</div>
-            <div className="hp-bar-bg">
-              <div className="hp-loss-trail" id="p2-hp-loss" />
-              <div className="hp-bar-fill" id="p2-hp" />
-              <div className="hp-text" id="p2-hp-text">100.0 / 100</div>
-            </div>
-            <div className="rage-indicator" id="p2-rage">RAGE ACTIVE</div>
-          </div>
-        </div>
         <div id="manual-lab-hud" className="manual-lab-hud hidden" aria-live="polite">
           <div className="manual-lab-title">APEX CONTROL · TERRITORY MODE</div>
           <div className="manual-engineer-hud">
@@ -918,6 +965,8 @@ export default function App() {
       <div id="tam-chien-screen" className="screen hidden">
         <div id="tam-chien-root" className="tam-chien-root" />
       </div>
+    </div>
+      <CombatPanelSide side={2} />
     </div>
 
     <div id="combat-inspector" aria-hidden="true">

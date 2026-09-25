@@ -568,8 +568,24 @@ var Fighter = class Fighter {
             this.data.shockDmgWindow.push({t: matchClock, amount});
         }
 
+        // PASS B §14: realized-damage transaction point — the engine's central
+        // choke point AFTER all mitigation/defense/early-return resolutions.
+        // The HUD observes actual HP loss only; this never changes the result.
+        const apexCombatHudHpBefore = this.hp;
         this.hp = Math.max(0, this.hp - amount);
         this.damageTaken += amount;
+        if (window.APEX_COMBAT_HUD && window.APEX_COMBAT_HUD.onRealizedDamage) {
+            try {
+                window.APEX_COMBAT_HUD.onRealizedDamage({
+                    attacker: (source && source !== this) ? source : null,
+                    victim: this,
+                    amount: Math.max(0, apexCombatHudHpBefore - this.hp),
+                    critical: !!this.__aqHitCrit,
+                    label: label,
+                    statusDamage: !!statusDamage,
+                });
+            } catch (apexCombatHudErr) { /* HUD failure never breaks combat */ }
+        }
         if (source && source !== this) {
             source.damageDone += amount;
             source.hitsLanded = (source.hitsLanded || 0) + 1;
@@ -2804,6 +2820,9 @@ function startSpecificMatch(ft1, ft2, opts = {}) {
     timeScale = 1.0; cameraZoom = 1.0; cameraShake = 0; hitStop = 0; calcOverlay = null; matchClock = 0; sawWallRage = { timer:0, owner:null, phase:0 };
     arenaFlash = {r:0,g:0,b:0,a:0};
     updateHUD();
+    if (window.APEX_COMBAT_HUD && window.APEX_COMBAT_HUD.onMatchStart) {
+        try { window.APEX_COMBAT_HUD.onMatchStart(); } catch (apexCombatHudErr) { /* HUD failure never breaks match start */ }
+    }
     lastTime = performance.now();
     if (!reqId) reqId = requestAnimationFrame(loop);
     if (opts.countdown) {

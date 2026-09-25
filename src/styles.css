@@ -5300,3 +5300,366 @@ body.manual-lab-select #select-screen:not(.hidden) #manual-room-panel {
 .multiplayer-debug-overlay.hidden { display: none; }
 .multiplayer-debug-overlay b { display:block; margin-bottom:6px; color:#f4dda0; font-size:.66rem; letter-spacing:.13em; }
 .multiplayer-debug-overlay pre { margin:0; color:#b9c9cc; font:700 .58rem/1.42 inherit; white-space:pre-wrap; }
+
+/* ============================================================
+   PASS B — universal combat HUD shell (P1 | arena | P2)
+   docs/arsenal-quest/pass-b/PASS_B_PRODUCTION_COMBAT_HUD_AUTHORITY_2026-09-26.md
+   Matte graphite + steel rim + dark separator + restrained bevel.
+   No glassmorphism, no neon bloom, no pill-heavy clutter.
+   ============================================================ */
+
+@font-face {
+    font-family: 'ApcKanit';
+    src: url('/assets/fonts/kanit/Kanit-BlackItalic.ttf') format('truetype');
+    font-weight: 900;
+    font-style: italic;
+    font-display: swap;
+}
+
+#battle-shell {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ---------- side panel material ---------- */
+.combat-panel {
+    --cp-accent: #ff5a4e;
+    --cp-accent-dim: rgba(255, 90, 78, 0.35);
+    --cp-ink: #efe9da;
+    --cp-ink-dim: rgba(230, 225, 210, 0.55);
+    position: relative;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    width: min(100%, 950px);
+    color: var(--cp-ink);
+    background:
+        linear-gradient(165deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.012) 24%, rgba(255, 255, 255, 0) 46%),
+        linear-gradient(180deg, #23262b 0%, #1b1e23 55%, #16181c 100%);
+    border: 1px solid #454b54;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.07),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.55),
+        inset 0 -14px 30px rgba(0, 0, 0, 0.30);
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+    filter: drop-shadow(0 12px 26px rgba(0, 0, 0, 0.45));
+}
+.combat-panel.is-battle { display: flex; }
+.cp-side-p2 {
+    --cp-accent: #4fa8d8;
+    --cp-accent-dim: rgba(79, 168, 216, 0.35);
+}
+.combat-panel::after {
+    /* thin team accent rail on the arena-facing edge */
+    content: '';
+    position: absolute;
+    top: 14px;
+    bottom: 14px;
+    right: -1px;
+    width: 2px;
+    background: linear-gradient(180deg, transparent, var(--cp-accent) 18%, var(--cp-accent) 82%, transparent);
+    opacity: 0.55;
+}
+.cp-side-p2::after { right: auto; left: -1px; }
+
+/* ---------- identity + HP ---------- */
+.cp-id-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cp-chip {
+    flex: 0 0 auto;
+    width: 12px;
+    height: 12px;
+    background: var(--cp-accent);
+    box-shadow: 0 0 8px var(--cp-accent-dim);
+    clip-path: polygon(0 0, 100% 0, 100% 72%, 72% 100%, 0 100%);
+}
+.combat-panel .name {
+    font-size: 1.02rem;
+    letter-spacing: 1.6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.combat-panel .hp-bar-bg { height: 18px; }
+.combat-panel .hp-text { font-size: 0.78rem; }
+.combat-panel .rage-indicator { font-size: 0.72rem; margin-top: -4px; }
+
+/* ---------- live burst ---------- */
+.cp-burst {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 10px 9px;
+    background: rgba(0, 0, 0, 0.32);
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    border-left: 3px solid var(--cp-accent);
+    transition: transform 90ms ease-out;
+}
+.cp-side-p1 .cp-burst.is-shift { transform: translateX(2px); }
+.cp-side-p2 .cp-burst.is-shift { transform: translateX(-2px); }
+.cp-burst-kicker {
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    color: var(--cp-ink-dim);
+}
+.cp-burst-label {
+    min-height: 1.05em;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    color: var(--cp-ink-dim);
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.cp-burst-total {
+    font-family: 'ApcKanit', 'Arial Black', sans-serif;
+    font-style: italic;
+    font-weight: 900;
+    font-size: 2.35rem;
+    line-height: 1;
+    color: var(--cp-ink);
+    transform-origin: left center;
+    transition: transform 120ms cubic-bezier(0.2, 0.8, 0.3, 1), color 90ms linear;
+}
+.cp-burst-total.is-punch {
+    transform: scale(1.10) translateY(-1px);
+    transition: transform 45ms ease-out;
+}
+.cp-burst-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    color: var(--cp-ink-dim);
+}
+
+/* ---------- current loadout ---------- */
+.cp-loadout {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 0;
+    flex: 1 1 auto;
+}
+.cp-section-title {
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    color: var(--cp-ink-dim);
+}
+.cp-loadout-art {
+    position: relative;
+    width: 100%;
+    min-height: 56px;
+    flex: 1 1 auto;
+    background:
+        radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.035) 0%, rgba(0, 0, 0, 0.34) 72%),
+        rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(0, 0, 0, 0.6);
+    box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+}
+.cp-loadout-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transition: opacity 140ms ease;
+}
+.cp-loadout-canvas.is-swapping { opacity: 0.3; }
+.cp-loadout-fallback {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--cp-ink);
+}
+.cp-glyph { font-size: 1.9rem; line-height: 1; opacity: 0.9; }
+.cp-fallback-label {
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.26em;
+    color: var(--cp-ink-dim);
+}
+.cp-loadout-name {
+    font-size: 0.86rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.cp-loadout-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: var(--cp-ink-dim);
+    text-transform: uppercase;
+}
+.cp-loadout-tier {
+    padding: 2px 6px 1px;
+    border: 1px solid currentColor;
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+}
+
+/* ---------- energy B1 (telemetry only) ---------- */
+.cp-energy { display: flex; flex-direction: column; gap: 4px; }
+.cp-energy-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+.cp-energy-title {
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    color: var(--cp-ink-dim);
+}
+.cp-energy-val {
+    font-family: 'ApcKanit', 'Arial Black', sans-serif;
+    font-style: italic;
+    font-weight: 900;
+    font-size: 1.15rem;
+    line-height: 1;
+    color: var(--cp-ink);
+    transition: color 120ms linear;
+}
+.cp-energy-val.is-ready { color: var(--cp-accent); }
+.cp-energy-track {
+    position: relative;
+    height: 11px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+}
+.cp-energy-fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 0%;
+    background: linear-gradient(90deg, #6a7078 0%, #a9b0b8 100%);
+    transition: width 120ms linear, background 160ms linear;
+}
+.cp-energy-fill.is-ready {
+    background: linear-gradient(90deg, var(--cp-accent-dim) 0%, var(--cp-accent) 100%);
+    box-shadow: 0 0 10px var(--cp-accent-dim);
+}
+.cp-energy-state {
+    min-height: 1em;
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 0.24em;
+    color: var(--cp-accent);
+    text-align: right;
+}
+
+/* ---------- mode-specific truthful slot ---------- */
+.cp-mode {
+    min-height: 1em;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    color: rgba(230, 225, 210, 0.4);
+    text-align: center;
+}
+
+/* ---------- narrow / portrait: compact strips, arena keeps priority ---------- */
+body.apex-battle #battle-shell { gap: 8px; }
+body.apex-battle #game-wrapper {
+    width: min(100vw - 150px, 100dvh - 330px, 950px);
+}
+@media (orientation: portrait) {
+    body.apex-battle #game-wrapper {
+        width: min(100vw - 150px, 100dvh - 348px, 950px);
+    }
+}
+body.apex-battle .combat-panel {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px 10px;
+}
+body.apex-battle .cp-identity { flex: 2 1 150px; min-width: 132px; }
+body.apex-battle .cp-burst { flex: 1 1 128px; min-width: 124px; padding: 6px 8px; }
+body.apex-battle .cp-burst-total { font-size: 1.7rem; }
+body.apex-battle .cp-loadout { flex: 3 1 200px; min-width: 170px; }
+body.apex-battle .cp-loadout-art { min-height: 44px; max-height: 72px; flex: 0 1 auto; }
+body.apex-battle .cp-glyph { font-size: 1.3rem; }
+body.apex-battle .cp-energy { flex: 1 1 120px; min-width: 112px; }
+body.apex-battle .cp-energy-track { height: 9px; }
+body.apex-battle .cp-energy-val { font-size: 0.95rem; }
+body.apex-battle .cp-mode { display: none; } /* secondary metadata compacts first */
+body.apex-battle .combat-panel::after { display: none; }
+
+/* ---------- wide desktop: P1 panel | square arena | P2 panel ---------- */
+@media (min-width: 1100px) and (min-aspect-ratio: 145/100) {
+    body.apex-battle #battle-shell {
+        display: grid;
+        grid-template-columns: minmax(232px, 300px) minmax(0, 1fr) minmax(232px, 300px);
+        justify-content: center;
+        align-items: stretch;
+        gap: clamp(10px, 1.4vw, 22px);
+        width: min(100%, 2560px);
+        height: min(100dvh - 24px, 1180px);
+    }
+    body.apex-battle #game-wrapper {
+        width: min(100%, calc(100dvh - 24px));
+        max-width: none;
+        height: auto;
+        aspect-ratio: 1;
+        align-self: center;
+        justify-self: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+    }
+    body.apex-battle #game-canvas {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1;
+        max-width: 100%;
+    }
+    body.apex-battle .combat-panel {
+        flex-direction: column;
+        width: auto;
+        height: 100%;
+        min-height: 0;
+        padding: 14px;
+    }
+    body.apex-battle .cp-burst { padding: 10px 12px 11px; }
+    body.apex-battle .cp-burst-total { font-size: 2.9rem; }
+    body.apex-battle .cp-burst-label { font-size: 0.84rem; }
+    body.apex-battle .cp-loadout-art { min-height: 130px; }
+    body.apex-battle .cp-glyph { font-size: 2.6rem; }
+    body.apex-battle .cp-energy-track { height: 13px; }
+    body.apex-battle .cp-energy-val { font-size: 1.3rem; }
+    body.apex-battle #battle-controls {
+        left: auto;
+        right: 10px;
+        top: auto;
+        bottom: 10px;
+        transform: none;
+        flex-direction: column;
+    }
+}

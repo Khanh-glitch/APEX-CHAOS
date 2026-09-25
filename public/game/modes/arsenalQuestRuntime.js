@@ -821,6 +821,10 @@
     if (p1hp) p1hp.style.backgroundColor = fighters[0].color;
     if (p2hp) p2hp.style.backgroundColor = fighters[1].color;
     updateHUD();
+    // PASS B §11: ENERGY B1 is match state — reset on every match start.
+    if (window.APEX_COMBAT_HUD && window.APEX_COMBAT_HUD.onMatchStart) {
+      try { window.APEX_COMBAT_HUD.onMatchStart(); } catch (apexCombatHudErr) { /* HUD failure never breaks match start */ }
+    }
 
     window.apexStopBattleAudio?.();
     if (window.APEX_ARSENAL_AV) { window.APEX_ARSENAL_AV.clear(); window.APEX_ARSENAL_AV.preload(); }

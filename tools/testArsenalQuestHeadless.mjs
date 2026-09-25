@@ -19,16 +19,35 @@ const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules'
 const evidenceDir = process.env.AQ_EVIDENCE_DIR || 'docs/arsenal-quest/evidence';
 const requireTool = createRequire(path.join(TOOLING_DIR, 'noop.js'));
 const { JSDOM } = requireTool('jsdom');
-const { createCanvas, loadImage } = requireTool('@napi-rs/canvas');
+const { createCanvas, loadImage, GlobalFonts } = requireTool('@napi-rs/canvas');
+
+// PASS B: the locally vendored Kanit Black Italic must be registered with the
+// canvas backend BEFORE the runtimes load, so the damage-number glyph cache
+// rasterizes the real font (never a silent fallback).
+GlobalFonts.registerFromPath(path.join(REPO, 'public', 'assets', 'fonts', 'kanit', 'Kanit-BlackItalic.ttf'), 'ApcKanit');
 
 // ---------------------------------------------------------------- DOM setup
+// Mirrors the production shell: PASS B side panels carry the engine-owned
+// p1/p2 identity + HP ids; #hud keeps the mode-only overlays.
 const dom = new JSDOM(`<!doctype html><html><body>
+  <div id="battle-shell">
+    <aside id="p1-combat-panel" class="combat-panel">
+      <div class="cp-identity">
+        <span id="p1-cp-chip"></span>
+        <div id="p1-name">P1</div>
+        <div class="hp-bar-bg"><div id="p1-hp-loss"></div><div id="p1-hp"></div><div id="p1-hp-text"></div></div>
+        <div id="p1-rage"></div>
+      </div>
+      <div id="p1-burst"><div id="p1-burst-label"></div><div id="p1-burst-total">0</div><span id="p1-burst-hits">0 HITS</span><span id="p1-burst-crits">0 CRIT</span></div>
+      <div id="p1-loadout"><canvas id="p1-loadout-canvas" width="480" height="240"></canvas><div id="p1-loadout-fallback"><span id="p1-cp-glyph"></span><span id="p1-loadout-fallback-label">UNARMED</span></div><div id="p1-loadout-name">—</div><span id="p1-loadout-family"></span><span id="p1-loadout-tier"></span></div>
+      <div id="p1-energy"><span id="p1-energy-val">0</span><div id="p1-energy-fill"></div><div id="p1-energy-state"></div></div>
+      <div id="p1-mode-slot"></div>
+    </aside>
   <div id="game-wrapper">
     <canvas id="game-canvas" width="1000" height="1000"></canvas>
     <div id="countdown-overlay" style="display:none"><div id="countdown-num">3</div><div id="countdown-sub"></div></div>
     <div class="ui-layer" id="hud">
-      <div id="p1-name">P1</div><div id="p1-hp-loss"></div><div id="p1-hp"></div><div id="p1-hp-text"></div><div id="p1-rage"></div>
-      <div id="p2-name">P2</div><div id="p2-hp-loss"></div><div id="p2-hp"></div><div id="p2-hp-text"></div><div id="p2-rage"></div>
+      <div id="manual-lab-hud" class="hidden"></div>
     </div>
     <div id="battle-controls" class="hidden"></div>
     <div id="menu-screen" class="screen"></div>
@@ -40,6 +59,19 @@ const dom = new JSDOM(`<!doctype html><html><body>
     <div id="trial-screen" class="screen hidden"></div>
     <div id="tam-chien-screen" class="screen hidden"></div>
     <div id="roster-grid"></div>
+  </div>
+    <aside id="p2-combat-panel" class="combat-panel">
+      <div class="cp-identity">
+        <span id="p2-cp-chip"></span>
+        <div id="p2-name">P2</div>
+        <div class="hp-bar-bg"><div id="p2-hp-loss"></div><div id="p2-hp"></div><div id="p2-hp-text"></div></div>
+        <div id="p2-rage"></div>
+      </div>
+      <div id="p2-burst"><div id="p2-burst-label"></div><div id="p2-burst-total">0</div><span id="p2-burst-hits">0 HITS</span><span id="p2-burst-crits">0 CRIT</span></div>
+      <div id="p2-loadout"><canvas id="p2-loadout-canvas" width="480" height="240"></canvas><div id="p2-loadout-fallback"><span id="p2-cp-glyph"></span><span id="p2-loadout-fallback-label">UNARMED</span></div><div id="p2-loadout-name">—</div><span id="p2-loadout-family"></span><span id="p2-loadout-tier"></span></div>
+      <div id="p2-energy"><span id="p2-energy-val">0</span><div id="p2-energy-fill"></div><div id="p2-energy-state"></div></div>
+      <div id="p2-mode-slot"></div>
+    </aside>
   </div>
 </body></html>`, { pretendToBeVisual: true, runScripts: 'dangerously', url: 'http://localhost/' });
 
@@ -3209,6 +3241,147 @@ gate('passa-shotgun-immediate-first-aggregation',
   && JSON.stringify(report.passA.sg2) === '["dmg:16"]'
   && JSON.stringify(report.passA.sg3) === '["dmg:16"]',
   { sg1: report.passA.sg1, sg2: report.passA.sg2, sg3: report.passA.sg3 });
+
+// ================================================================ PASS B ===
+// Universal combat HUD: live burst law, ENERGY B1, commentary, real loadout,
+// Kanit local typography. Authority:
+// docs/arsenal-quest/pass-b/PASS_B_PRODUCTION_COMBAT_HUD_AUTHORITY_2026-09-26.md
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+win.__AQ_PANEL_SAMPLE = (id) => {
+  const el = win.document.getElementById(id);
+  if (!el) return null;
+  const rc = realCanvases.get(el);
+  if (!rc) return { nonBlank: -1, reason: 'no-real-canvas' };
+  const d = rc.getContext('2d').getImageData(0, 0, rc.width, rc.height).data;
+  let nonBlank = 0;
+  for (let i = 3; i < d.length; i += 4) if (d[i] > 25) nonBlank++;
+  return { nonBlank, w: rc.width, h: rc.height };
+};
+const hudDebug = () => JSON.parse(run(`return JSON.stringify(APEX_COMBAT_HUD.debug())`));
+
+gate('passb-runtime-registered', !!win.APEX_COMBAT_HUD && win.apexCombatHudRuntime === 'ready');
+
+// ---- deterministic commentary (pure resolver, two max-HP values) ----
+const commentary = (total, hits, crits, bigHit, maxHp, aHp, vHp) =>
+  run(`return JSON.stringify(APEX_COMBAT_HUD.commentaryFor({ total: ${total}, hits: ${hits}, crits: ${crits}, bigHit: ${bigHit} }, ${maxHp}, ${aHp}, ${vHp}))`);
+gate('passb-commentary-contact', commentary(1, 1, 0, 1, 1000, 900, 1000) === '"CONTACT"');
+gate('passb-commentary-pressure', commentary(45, 1, 0, 45, 1000, 900, 1000) === '"PRESSURE"');
+gate('passb-commentary-rampage-dmg', commentary(90, 1, 0, 90, 1000, 900, 1000) === '"RAMPAGE"');
+gate('passb-commentary-rampage-hits', commentary(50, 4, 0, 13, 1000, 900, 1000) === '"RAMPAGE"');
+gate('passb-commentary-overdrive', commentary(150, 2, 0, 60, 1000, 900, 1000) === '"OVERDRIVE"');
+gate('passb-commentary-critical-rush', commentary(100, 2, 2, 40, 1000, 900, 1000) === '"CRITICAL RUSH"');
+gate('passb-commentary-devastating-single-hit', commentary(180, 1, 0, 180, 1000, 900, 1000) === '"DEVASTATING"');
+gate('passb-commentary-devastating-total', commentary(235, 5, 0, 60, 1000, 900, 1000) === '"DEVASTATING"');
+gate('passb-commentary-momentum-swing', commentary(125, 2, 0, 40, 1000, 500, 1000) === '"MOMENTUM SWING"');
+gate('passb-commentary-priority-critrush-beats-swing', commentary(125, 2, 2, 40, 1000, 500, 1000) === '"CRITICAL RUSH"');
+gate('passb-commentary-priority-devastating-top', commentary(240, 3, 2, 200, 1000, 900, 1000) === '"DEVASTATING"');
+// normalization at a second max-HP value (300)
+gate('passb-commentary-norm-300-pressure', commentary(13.5, 1, 0, 13.5, 300, 300, 300) === '"PRESSURE"');
+gate('passb-commentary-norm-300-overdrive', commentary(45, 2, 0, 20, 300, 300, 300) === '"OVERDRIVE"');
+gate('passb-commentary-norm-300-devastating', commentary(70.5, 2, 0, 20, 300, 300, 300) === '"DEVASTATING"');
+
+// ---- burst law: start / add / crit / exclusions / reset / sustain ----
+run(`__AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();`);
+await sleep(150);
+let d = hudDebug();
+gate('passb-burst-idle-at-match-start', d.sides[0].burst === null && d.sides[1].burst === null);
+run(`fighters[1].takeDamage(11, fighters[0], 'arsenal-test', false)`);
+d = hudDebug();
+gate('passb-burst-first-hit-starts', d.sides[0].burst && d.sides[0].burst.total === 11 && d.sides[0].burst.hits === 1 && d.sides[0].burst.crits === 0, d.sides[0].burst);
+run(`fighters[1].takeDamage(6, fighters[0], 'arsenal-test', false)`);
+d = hudDebug();
+gate('passb-burst-second-hit-adds', d.sides[0].burst && d.sides[0].burst.total === 17 && d.sides[0].burst.hits === 2, d.sides[0].burst);
+run(`fighters[1].__aqHitCrit = true; fighters[1].takeDamage(9, fighters[0], 'arsenal-test', false)`);
+d = hudDebug();
+gate('passb-burst-crit-count-explicit-only', d.sides[0].burst && d.sides[0].burst.total === 26 && d.sides[0].burst.crits === 1 && d.sides[0].burst.bigHit === 11, d.sides[0].burst);
+run(`fighters[0].heal(20, true); APEX_ARSENAL_FEEL.noteDamage({ miss: true, victim: fighters[1], dealt: 0, label: 'arsenal-pistol' });`);
+d = hudDebug();
+gate('passb-heal-and-miss-do-not-extend', d.sides[0].burst && d.sides[0].burst.hits === 3 && d.sides[0].burst.total === 26, d.sides[0].burst);
+await sleep(1350); // > 1.20 s silence
+d = hudDebug();
+gate('passb-burst-reset-after-silence', d.sides[0].burst === null, d.sides[0].burst);
+// sustained rapid fire: gaps < 1.2 s keep the burst alive past 1.2 s absolute
+run(`fighters[1].takeDamage(5, fighters[0], 'arsenal-test', false)`);
+await sleep(450);
+run(`fighters[1].takeDamage(5, fighters[0], 'arsenal-test', false)`);
+await sleep(450);
+run(`fighters[1].takeDamage(5, fighters[0], 'arsenal-test', false)`);
+await sleep(450);
+run(`fighters[1].takeDamage(5, fighters[0], 'arsenal-test', false)`);
+d = hudDebug();
+gate('passb-burst-sustained-beyond-12s-absolute', d.sides[0].burst && d.sides[0].burst.hits === 4 && d.sides[0].burst.total === 20, d.sides[0].burst);
+run(`APEX_COMBAT_HUD._test.forceExpire(0)`);
+
+// ---- ENERGY B1 ----
+run(`__AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();`);
+await sleep(150);
+d = hudDebug();
+gate('passb-energy-zero-at-match-start', d.sides[0].energy === 0 && d.sides[1].energy === 0);
+run(`fighters[1].takeDamage(100, fighters[0], 'arsenal-test', false)`);
+d = hudDebug();
+gate('passb-energy-dealt-100-taken-60-per-pct', Math.abs(d.sides[0].energy - 10) < 1e-9 && Math.abs(d.sides[1].energy - 6) < 1e-9, d);
+run(`for (let i = 0; i < 9; i++) fighters[1].takeDamage(100, fighters[0], 'arsenal-test', false);`);
+d = hudDebug();
+gate('passb-energy-cap-100', d.sides[0].energy === 100 && Math.abs(d.sides[1].energy - 60) < 1e-9, d);
+await sleep(700);
+d = hudDebug();
+gate('passb-energy-no-passive-gain', d.sides[0].energy === 100 && Math.abs(d.sides[1].energy - 60) < 1e-9, d);
+run(`__AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();`);
+await sleep(150);
+d = hudDebug();
+gate('passb-energy-reset-on-new-match', d.sides[0].energy === 0 && d.sides[1].energy === 0 && d.sides[0].burst === null);
+// ENERGY must not alter skill behavior (READY state is telemetry only)
+const skillSnap = () => run(`const g = window.APEX_ARSENAL_SKILL_GATE; const f = fighters[0]; return (g && g.snapshot) ? JSON.stringify(g.snapshot(f)) : 'n/a';`);
+const snap0 = skillSnap();
+run(`APEX_COMBAT_HUD._test.setEnergy(0, 100);`);
+await sleep(600);
+const snap1 = skillSnap();
+gate('passb-energy-no-skill-behavior-change', snap0 === snap1, { snap0, snap1 });
+
+// ---- real canonical loadout asset (holder id → canonical image) ----
+run(`__AQ_TEST.equip('HERO', 'AK_47'); __AQ_TEST.holdSpawns();`);
+await sleep(400);
+d = hudDebug();
+const canonical = run(`const w = APEX_ARSENAL_C_SET.weapons.AK_47; const r = APEX_ARSENAL_AV.weaponImage('AK_47'); return r && r.img ? { w: r.w, h: r.h, metaW: w.w, metaH: w.h, ready: !!(r.img.complete && r.img.width) } : null;`);
+gate('passb-loadout-canonical-image-api', !!canonical && canonical.ready === true && canonical.w === canonical.metaW && canonical.h === canonical.metaH, canonical);
+gate('passb-loadout-hud-key', d.sides[0].loadoutKey === 'W:AK_47', d.sides[0].loadoutKey);
+const artSample = win.__AQ_PANEL_SAMPLE('p1-loadout-canvas');
+gate('passb-loadout-art-rendered-nonblank', !!artSample && artSample.nonBlank > 300, artSample);
+const nameText = run(`return document.getElementById('p1-loadout-name').textContent`);
+const famText = run(`return document.getElementById('p1-loadout-family').textContent`);
+const tierText = run(`return document.getElementById('p1-loadout-tier').textContent`);
+gate('passb-loadout-truthful-name-family-tier', nameText === 'AK-47' && famText === 'AUTO' && tierText === 'T3', { nameText, famText, tierText });
+// UNARMED truthful fallback
+run(`fighters[0].data.arsenal = null;`);
+await sleep(250);
+d = hudDebug();
+gate('passb-loadout-unarmed-fallback', d.sides[0].loadoutKey === 'UNARMED'
+  && run(`return document.getElementById('p1-loadout-name').textContent`) === 'UNARMED'
+  && run(`return document.getElementById('p1-loadout-fallback-label').textContent`) === 'UNARMED', d.sides[0].loadoutKey);
+// no fake ammo anywhere in the panel
+const ammoBad = run(`const t = (document.getElementById('p1-combat-panel').textContent || '') + (document.getElementById('p2-combat-panel').textContent || ''); return /\\bAMMO\\b|\\bROUNDS?\\b|\\bMAGS?\\b\\s*\\d/i.test(t);`);
+gate('passb-no-fake-ammo', ammoBad === false);
+
+// ---- Kanit Black Italic local typography ----
+const ks0 = JSON.parse(run(`return JSON.stringify(APEX_ARSENAL_FEEL.kanitSheets())`));
+gate('passb-kanit-local-ready', ks0.ready === true && ks0.rasterizations >= 41 && /dmg:10/.test(ks0.digitsPerKind) && /crit:10/.test(ks0.digitsPerKind) && /heal:10/.test(ks0.digitsPerKind), ks0);
+gate('passb-kanit-not-silent-fallback', !!ks0.glyphSig && ks0.glyphSig.kanit > 0 && ks0.glyphSig.kanit !== ks0.glyphSig.other, ks0.glyphSig);
+// damage cache reuse: many popups must not re-rasterize
+run(`__AQ_TEST.redraw(); for (let i = 0; i < 50; i++) { APEX_ARSENAL_FEEL.noteDamage({ dealt: 7, victim: fighters[1], source: fighters[0], label: 'arsenal-pistol' }); APEX_ARSENAL.step(1 / 60); __AQ_TEST.redraw(); }`);
+const ks1 = JSON.parse(run(`return JSON.stringify(APEX_ARSENAL_FEEL.kanitSheets())`));
+gate('passb-kanit-cache-reuse-across-50-popups', ks1.rasterizations === ks0.rasterizations, { before: ks0.rasterizations, after: ks1.rasterizations });
+gate('passb-kanit-size-bands-unchanged', JSON.stringify(run(`return JSON.stringify(APEX_ARSENAL_FEEL.sizeBands.map(b => b.id))`)) === '["XS","S","M","L","XL","XXL"]');
+
+// ---- non-Arsenal mode: global shell, truthful data, no fake loadout ----
+run(`window.startSpecificMatch(FighterTypes.find(t => t.name === 'RUBBER'), FighterTypes.find(t => t.name === 'ICE'), {})`);
+await sleep(250);
+d = hudDebug();
+gate('passb-native-mode-no-fake-loadout', d.sides[0].loadoutKey === 'F:RUBBER' && d.sides[1].loadoutKey === 'F:ICE', d);
+run(`fighters[1].takeDamage(30, fighters[0], 'rubber-impact', false)`);
+d = hudDebug();
+gate('passb-native-realized-feed', d.sides[0].burst && Math.abs(d.sides[0].burst.total - 30) < 1e-9 && Math.abs(d.sides[0].energy - 3) < 1e-9 && Math.abs(d.sides[1].energy - 1.8) < 1e-9, d);
+const nativePanelText = run(`return document.getElementById('p1-combat-panel').textContent || ''`);
+gate('passb-native-panel-truthful', /RUBBER/.test(nativePanelText) && !/AK-?47|MOSSBERG|SNIPER/i.test(nativePanelText), nativePanelText.slice(0, 120));
 
 // ------------------------------------------------------------------- summary
 report.summary = {

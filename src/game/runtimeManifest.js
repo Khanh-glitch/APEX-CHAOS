@@ -23,6 +23,8 @@ export const BOOT_GAME_RUNTIMES = [
   ['/game/fighters/katanaRuntime.js', 'apexKatanaRuntime'],
   ['/game/fighters/fangRuntime.js', 'apexFangRuntime'],
   ['/game/ui/apexPickRuntime.js', 'apexPickRuntime'],
+  // PASS B: universal combat HUD state adapter + renderer (boot-wide shell).
+  ['/game/ui/apexCombatHudRuntime.js', 'apexCombatHudRuntime'],
 ];
 
 export const BATTLE_DEFERRED_RUNTIMES = [

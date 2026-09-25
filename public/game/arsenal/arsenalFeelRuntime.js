@@ -65,6 +65,153 @@
     core: [0x3A, 0x05, 0x08],
     deep: [0x26, 0x04, 0x07],
   };
+  // PASS B §12 — locally vendored Kanit Black Italic damage typography.
+  // The rasterized PNG atlas (damage1.png) is superseded as the DRAW source;
+  // it remains as the compatibility fallback if the font cannot load.
+  // The six magnitude thresholds (SIZE_BANDS) are unchanged — only the
+  // visible glyph heights move to the approved 34..60 px targets.
+  const KANIT_SRC = '/assets/fonts/kanit/Kanit-BlackItalic.ttf';
+  const KANIT_FAMILY = 'ApcKanit';
+  const KANIT_TARGET_H = { XS: 34, S: 38, M: 43, L: 48, XL: 54, XXL: 60 };
+  const KANIT_RASTER_H = 128; // constant raster height → per-band draw scale
+  const kanit = {
+    ready: false,
+    fontLoaded: false,
+    fontSource: 'pending',
+    digits: {},  // kind -> [10 glyph sheets {canvas, adv, inkTop, inkBottom, w, h}]
+    miss: null,  // 'MISS' string sheet
+    refInk: {},  // kind -> {top, bottom, baseline} measured from digit '0'
+    rasterizations: 0,
+    draws: 0,
+    glyphSig: null,
+  };
+  function fontSpec(px) { return `900 ${px}px "${KANIT_FAMILY}", "Arial Black", sans-serif`; }
+  function makeCanvas(w, h) {
+    if (typeof OffscreenCanvas !== 'undefined') {
+      try { const oc = new OffscreenCanvas(w, h); if (oc.getContext) return oc; } catch (e) { /* fall through */ }
+    }
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    return c;
+  }
+  function glyphSignature(familySpec) {
+    try {
+      const cnv = makeCanvas(160, 160);
+      const g = cnv.getContext('2d');
+      g.font = `900 80px ${familySpec}`;
+      g.textBaseline = 'alphabetic';
+      g.fillText('4', 12, 104);
+      const d = g.getImageData(0, 0, 160, 160).data;
+      let n = 0;
+      for (let i = 3; i < d.length; i += 4) if (d[i] > 40) n++;
+      return n;
+    } catch (e) { return -1; }
+  }
+  function rasterGlyph(kind, text) {
+    const pal = PALETTE[kind];
+    const probe = makeCanvas(4, 4).getContext('2d');
+    probe.font = fontSpec(KANIT_RASTER_H);
+    let adv = 0;
+    try { adv = Number(probe.measureText(text).width) || 0; } catch (e) { adv = 0; }
+    if (!(adv > 0)) adv = KANIT_RASTER_H * 0.55 * text.length;
+    const pad = 16;
+    const w = Math.max(8, Math.ceil(adv) + pad * 2);
+    const h = KANIT_RASTER_H + pad * 2 + 24;
+    const baseline = pad + KANIT_RASTER_H * 0.95;
+    const cnv = makeCanvas(w, h);
+    const c = cnv.getContext('2d');
+    c.font = fontSpec(KANIT_RASTER_H);
+    c.textBaseline = 'alphabetic';
+    c.lineJoin = 'round';
+    if (kind === 'miss') { c.shadowColor = pal.edge; c.shadowBlur = KANIT_RASTER_H / 16; }
+    c.strokeStyle = pal.edge;
+    c.lineWidth = KANIT_RASTER_H / 22; // crisp dark edge, no fuzzy bloom
+    c.strokeText(text, pad, baseline);
+    c.shadowBlur = 0;
+    c.fillStyle = pal.fill;
+    c.fillText(text, pad, baseline);
+    kanit.rasterizations += 1;
+    let inkTop = -1, inkBottom = -1;
+    try {
+      const data = c.getImageData(0, 0, w, h).data;
+      outer:
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          if (data[(y * w + x) * 4 + 3] > 30) { inkTop = y; break outer; }
+        }
+      }
+      for (let y = h - 1; y >= 0; y--) {
+        for (let x = 0; x < w; x++) {
+          if (data[(y * w + x) * 4 + 3] > 30) { inkBottom = y; break; }
+        }
+        if (inkBottom >= 0) break;
+      }
+    } catch (e) { /* opaque-only fallback below */ }
+    if (inkTop < 0) { inkTop = baseline - KANIT_RASTER_H * 0.72; inkBottom = baseline; }
+    return { canvas: cnv, w, h, adv, pad, baseline, inkTop, inkBottom };
+  }
+  function buildKanitSheets() {
+    if (kanit.ready) return true;
+    try {
+      // Silent-fallback guard: the vendored family must actually rasterize
+      // differently from a generic serif (headless canvas backends fall back
+      // silently to their default font when a family is unknown).
+      const sigKanit = glyphSignature(`"${KANIT_FAMILY}", "Arial Black", sans-serif`);
+      const sigOther = glyphSignature('serif');
+      if (sigKanit < 0 || (sigKanit === sigOther)) {
+        if (kanit.fontSource !== 'legacy-atlas-fallback') kanit.fontSource = 'fallback-guard (signature match)';
+        return false;
+      }
+      kanit.glyphSig = { kanit: sigKanit, other: sigOther };
+      for (const kind of ['dmg', 'crit', 'heal', 'miss']) {
+        const digits = [];
+        for (let d = 0; d <= 9; d++) digits.push(rasterGlyph(kind, String(d)));
+        kanit.digits[kind] = digits;
+        kanit.refInk[kind] = {
+          top: digits[0].inkTop,
+          bottom: digits[0].inkBottom,
+          baseline: digits[0].baseline,
+        };
+      }
+      kanit.miss = rasterGlyph('miss', 'MISS');
+      kanit.ready = true;
+      stats.kanitReady = true;
+      stats.kanitFont = KANIT_FAMILY;
+      stats.kanitFontSrc = KANIT_SRC;
+      stats.kanitRasterizations = kanit.rasterizations;
+      stats.atlasReady = true;
+      stats.sizeBands = SIZE_BANDS.map((b) => b.id);
+      return true;
+    } catch (e) {
+      kanit.fontSource = 'build-failed: ' + String((e && e.message) || e);
+      return false;
+    }
+  }
+  function startKanitFont() {
+    if (typeof document === 'undefined') return;
+    if (typeof FontFace === 'function' && document.fonts && document.fonts.add) {
+      kanit.fontSource = 'FontFace(local ' + KANIT_SRC + ')';
+      const face = new FontFace(KANIT_FAMILY, `url(${KANIT_SRC})`);
+      document.fonts.add(face);
+      face.load().then(() => {
+        kanit.fontLoaded = true;
+        buildKanitSheets();
+      }).catch(() => {
+        kanit.fontSource = 'FontFace-failed → legacy atlas';
+      });
+      return;
+    }
+    // Headless canvas backends register the family out-of-band (harness);
+    // build immediately if the probe accepts it, else retry on first draw.
+    if (!buildKanitSheets()) {
+      kanit.fontSource = 'probe-pending (retry on draw)';
+    }
+  }
+  function bandForScale(scale) {
+    for (const b of SIZE_BANDS) if (Math.abs(b.scale - (scale || 0)) < 1e-6) return b;
+    return bandFor(0);
+  }
+
   // V1 material identity (approved reference): dark crimson family, blood
   // absorbs light — no bright flat red, no additive glow, no orange crits.
   const V1_COLORS = {
@@ -183,10 +330,7 @@
   function nearColor(px, rgb, tol) {
     return Math.abs(px[0] - rgb[0]) <= tol && Math.abs(px[1] - rgb[1]) <= tol && Math.abs(px[2] - rgb[2]) <= tol && px[3] > 40;
   }
-  function sampleAtlasPixels(kind) {
-    if (!stats.atlasReady) buildTintedAtlas();
-    const cnv = tintedAtlas[kind];
-    if (!cnv) return { fillHits: 0, edgeHits: 0 };
+  function sampleCanvasPixels(cnv, kind) {
     const c = cnv.getContext('2d');
     const img = c.getImageData(0, 0, cnv.width, cnv.height);
     const pal = PALETTE[kind];
@@ -201,6 +345,19 @@
       else if (nearColor(px, edge, 36)) edgeHits += 1;
     }
     return { fillHits, edgeHits, opaque, fill: pal.fill, edge: pal.edge, w: cnv.width, h: cnv.height };
+  }
+  function sampleAtlasPixels(kind) {
+    // PASS B: when the local Kanit sheets are live, the acceptance sampling
+    // runs on the real draw source (cached glyph canvases), not the legacy
+    // PNG atlas.
+    if (kanit.ready) {
+      const sheet = kind === 'miss' ? kanit.miss : (kanit.digits[kind] && kanit.digits[kind][4]);
+      if (sheet && sheet.canvas) return sampleCanvasPixels(sheet.canvas, kind);
+    }
+    if (!stats.atlasReady) buildTintedAtlas();
+    const cnv = tintedAtlas[kind];
+    if (!cnv) return { fillHits: 0, edgeHits: 0 };
+    return sampleCanvasPixels(cnv, kind);
   }
   atlasImg.onload = () => { buildTintedAtlas(); };
   if (atlasImg.complete) buildTintedAtlas();
@@ -897,8 +1054,82 @@
     c.fill();
     c.restore();
   }
+  // PASS B §12.3: cached Kanit glyph draw. No per-frame font rasterization —
+  // digits are pre-rasterized once per kind; drawing is drawImage of cached
+  // canvases scaled to the band's target height.
+  function drawKanitText(c, text, x, y, kind, scale) {
+    const palKey = kind === 'heal' ? 'heal' : kind === 'crit' ? 'crit' : kind === 'miss' ? 'miss' : 'dmg';
+    if (!kanit.ready || !kanit.digits[palKey]) return null;
+    const band = bandForScale(scale);
+    const targetH = KANIT_TARGET_H[band.id] || 38;
+    const ref = kanit.refInk[palKey];
+    const k = targetH / KANIT_RASTER_H;
+    if (palKey === 'miss') {
+      const g = kanit.miss;
+      if (!g) return null;
+      const baseScreen = y + (g.baseline - (g.inkTop + g.inkBottom) / 2) * k;
+      c.drawImage(g.canvas, x - (g.w * k) / 2, baseScreen - g.baseline * k, g.w * k, g.h * k);
+      stats.kanitDraws = (stats.kanitDraws || 0) + 1;
+      return { halfW: (g.w * k) / 2, k, palKey, bandTarget: targetH };
+    }
+    const glyphs = String(text);
+    let total = 0;
+    let plusPrefix = false;
+    for (let i = 0; i < glyphs.length; i++) {
+      const ch = glyphs[i];
+      if (ch === '+') { plusPrefix = true; total += targetH * 0.75; continue; }
+      const d = ch.charCodeAt(0) - 48;
+      if (d < 0 || d > 9) { total += KANIT_RASTER_H * 0.55 * k; continue; }
+      total += kanit.digits[palKey][d].adv * k;
+    }
+    // Vertical centering: align the band's digit ink-center to y.
+    const baselineScreen = y + (ref.baseline - (ref.top + ref.bottom) / 2) * k;
+    let cx = x - total / 2;
+    for (let i = 0; i < glyphs.length; i++) {
+      const ch = glyphs[i];
+      if (ch === '+') {
+        const wPlus = targetH * 0.75;
+        const barW = targetH * 0.34;
+        const barH = Math.max(1.5, targetH * 0.16);
+        const px = cx + wPlus / 2;
+        const py = y + (ref.baseline - (ref.top + ref.bottom) / 2) * k - 0; // ink-center aligned
+        c.save();
+        c.fillStyle = PALETTE.heal.fill;
+        c.strokeStyle = PALETTE.heal.edge;
+        c.lineWidth = Math.max(1, barH * 0.55);
+        c.beginPath();
+        c.rect(px - barW / 2, py - barH / 2, barW, barH);
+        c.rect(px - barH / 2, py - barW / 2, barH, barW);
+        c.fill();
+        c.stroke();
+        c.restore();
+        cx += wPlus;
+        continue;
+      }
+      const d = ch.charCodeAt(0) - 48;
+      if (d < 0 || d > 9) { cx += KANIT_RASTER_H * 0.55 * k; continue; }
+      const g = kanit.digits[palKey][d];
+      c.drawImage(g.canvas, cx, baselineScreen - g.baseline * k, g.w * k, g.h * k);
+      cx += g.adv * k;
+    }
+    stats.kanitDraws = (stats.kanitDraws || 0) + 1;
+    return { halfW: total / 2, k, palKey, bandTarget: targetH };
+  }
+
   function drawAtlasText(c, text, x, y, kind, scale) {
+    if (kanit.ready) {
+      const res = drawKanitText(c, text, x, y, kind, scale);
+      if (res) {
+        stats.atlasDraws = (stats.atlasDraws || 0) + 1;
+        const palKey = kind === 'heal' ? 'heal' : kind === 'crit' ? 'crit' : kind === 'miss' ? 'miss' : 'dmg';
+        stats.lastPopupPalette = PALETTE[palKey].fill;
+        return res;
+      }
+    }
     if (!stats.atlasReady) buildTintedAtlas();
+    // Headless canvas backends may not have resolved the font yet — retry the
+    // cache build lazily (still bounded: rasterization happens at most once).
+    if (!kanit.ready && kanit.fontSource === 'probe-pending (retry on draw)') buildKanitSheets();
     const palKey = kind === 'heal' ? 'heal' : kind === 'crit' ? 'crit' : kind === 'miss' ? 'miss' : 'dmg';
     const sheet = tintedAtlas[palKey]
       || (atlasImg && atlasImg.complete ? atlasImg : null);
@@ -914,7 +1145,7 @@
       const w = ATLAS_COL * 4;
       const h = ATLAS_ROW;
       c.drawImage(src, 0, ATLAS_ROW * 4, w, h, x - (w * s) / 2, y - (h * s) / 2, w * s, h * s);
-      return true;
+      return { halfW: (ATLAS_COL * 4 * s) / 2, k: 1, legacy: true };
     }
     const row = atlasRowFor(kind);
     const glyphs = String(text);
@@ -939,7 +1170,7 @@
         cx, y - (ATLAS_ROW * s) / 2, ATLAS_COL * s, ATLAS_ROW * s);
       cx += ATLAS_COL * s;
     }
-    return true;
+    return { halfW: total / 2, k: 1, legacy: true };
   }
   function drawPopups(c) {
     c.save();
@@ -994,7 +1225,21 @@
     blood: BLOOD,
     bloodV1: V1_COLORS,
     v1LiveCap: V1_LIVE_SOFT_CAP,
+    // PASS B §12: local Kanit Black Italic glyph cache state (for gates).
+    kanitSheets: () => ({
+      ready: kanit.ready,
+      fontLoaded: kanit.fontLoaded,
+      fontSource: kanit.fontSource,
+      glyphSig: kanit.glyphSig,
+      rasterizations: kanit.rasterizations,
+      draws: stats.kanitDraws || 0,
+      kinds: Object.keys(kanit.digits).sort().join(','),
+      digitsPerKind: Object.keys(kanit.digits).sort().map((kk) => kk + ':' + (kanit.digits[kk] ? kanit.digits[kk].length : 0)).join(','),
+      targetH: KANIT_TARGET_H,
+    }),
+    rebuildKanit: buildKanitSheets,
   };
   window.APEX_ARSENAL_FEEL = AQ.feel;
   window.apexArsenalFeelRuntime = 'ready';
+  startKanitFont();
 })();
