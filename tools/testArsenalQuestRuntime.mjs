@@ -805,25 +805,56 @@ try {
 
   // V2 evidence 16: shared select screen renders the canonical 32 shells;
   // P1 locks SNIPER, P2 locks WITCH independently, START enters Arsenal.
-  const shellSelect = await evaluate(`(async () => {
-    window.beginArsenalQuestSelection();
+  const newbieFallback = await evaluate(`(async () => {
+    const M = window.APEX_ARSENAL_META;
+    M.save(M.sanitize({
+      version: 1, credits: 350,
+      ownedFighters: ['NEWBIE'],
+      lastSelectedP1: 'SNIPER', lastSelectedP2: 'WITCH', totalSpins: 0, unlockedAt: { NEWBIE: 0 },
+    }));
+    if (gameState === 'ARSENAL' && typeof window.exitArsenalQuestMode === 'function') window.exitArsenalQuestMode();
+    M.openFighterPick({ mode: 'free' });
     await new Promise(r => setTimeout(r, 400));
     const t = window.__APEX_PICK_TEST;
-    const count = t ? t.roster().length : 0;
-    if (t) t.confirmByName('SNIPER');
-    await new Promise(r => setTimeout(r, 100));
-    if (t) t.confirmByName('WITCH');
-    await new Promise(r => setTimeout(r, 100));
+    return { p1: t && t.p1(), p2: t && t.p2(), names: t ? t.roster().map(c => c.name) : [] };
+  })()`);
+  gate('v3-free-invalid-save-falls-back-newbie', newbieFallback.p1 === 'NEWBIE' && newbieFallback.p2 === 'NEWBIE' && newbieFallback.names.length === 1, newbieFallback);
+
+  const shellSelect = await evaluate(`(async () => {
+    const M = window.APEX_ARSENAL_META;
+    const seeded = M.sanitize({
+      version: 1, credits: 350,
+      ownedFighters: ['NEWBIE', 'ICE', 'CARD'],
+      lastSelectedP1: 'ICE', lastSelectedP2: 'CARD', totalSpins: 0, unlockedAt: { NEWBIE: 0, ICE: 1, CARD: 1 },
+    });
+    M.save(seeded);
+    if (gameState === 'ARSENAL' && typeof window.exitArsenalQuestMode === 'function') window.exitArsenalQuestMode();
+    M.openFighterPick({ mode: 'free' });
+    await new Promise(r => setTimeout(r, 450));
+    const t = window.__APEX_PICK_TEST;
+    const names = t ? t.roster().map(c => c.name) : [];
+    const restored = { p1: t && t.p1(), p2: t && t.p2() };
+    const hubHidden = !document.getElementById('aq-meta-root') || document.getElementById('aq-meta-root').style.display === 'none';
+    const broken = Array.from(document.querySelectorAll('.apex-pick-card img')).filter(img => img.getAttribute('src') === 'null' || img.getAttribute('src') === 'undefined').length;
+    if (t) t.confirmByName('NEWBIE');
+    await new Promise(r => setTimeout(r, 80));
+    if (t) t.confirmByName('ICE');
+    await new Promise(r => setTimeout(r, 80));
     return {
-      count,
-      p1: p1Selection && p1Selection.name,
-      p2: p2Selection && p2Selection.name,
+      names, restored,
+      p1: t && t.p1(),
+      p2: t && t.p2(),
       selectVisible: !document.getElementById('select-screen').classList.contains('hidden'),
+      hubHidden, broken,
+      newbie: names.includes('NEWBIE'),
+      unownedSniper: names.includes('SNIPER'),
     };
   })()`);
-  gate('shell-select-33-cards', shellSelect.count === 33 && shellSelect.selectVisible, shellSelect);
-  gate('shell-select-p1-p2-locks', shellSelect.p1 === 'SNIPER' && shellSelect.p2 === 'WITCH', shellSelect);
-  report.evidence.push(await screenshot('16-v2-shell-select-locked'));
+  gate('v3-free-owned-only-roster', shellSelect.newbie && !shellSelect.unownedSniper && shellSelect.names.length === 3 && shellSelect.selectVisible && shellSelect.hubHidden, shellSelect);
+  gate('v3-free-restore-saved-owned', shellSelect.restored.p1 === 'ICE' && shellSelect.restored.p2 === 'CARD', shellSelect);
+  gate('v3-free-p1-p2-independent', shellSelect.p1 === 'NEWBIE' && shellSelect.p2 === 'ICE', shellSelect);
+  gate('v3-free-no-broken-cards', shellSelect.broken === 0, shellSelect);
+  report.evidence.push(await screenshot('v3-free-pick-owned'));
   const shellEnter = await evaluate(`(async () => {
     document.querySelector('.apex-pick-button[aria-label="start-button"]')?.click();
     const t0 = Date.now();
@@ -831,10 +862,10 @@ try {
     cancelAnimationFrame(reqId); reqId = 0;
     return { gameState, names: fighters.map(f => f.name), shells: fighters.map(f => !!f.type.arsenalShell) };
   })()`);
-  gate('shell-select-enters-arsenal', shellEnter.gameState === 'ARSENAL'
-    && shellEnter.names[0] === 'SNIPER' && shellEnter.names[1] === 'WITCH'
+  gate('v3-free-enters-arsenal-owned', shellEnter.gameState === 'ARSENAL'
+    && shellEnter.names[0] === 'NEWBIE' && shellEnter.names[1] === 'ICE'
     && shellEnter.shells.every(Boolean), shellEnter);
-  report.evidence.push(await screenshot('16b-v2-shells-in-arena'));
+  report.evidence.push(await screenshot('v3-free-battle-enter'));
 
   // V2 evidence 17: movement direction unchanged while equipped weapon aims.
   await evaluate(`(() => {
@@ -1196,6 +1227,12 @@ try {
 
   report.rev2QuestUxBr = await evaluate(`(async () => {
     const Q = APEX_ARSENAL_QUEST;
+    const M = window.APEX_ARSENAL_META;
+    M.save(M.sanitize({
+      version: 1, credits: 350,
+      ownedFighters: ['NEWBIE', 'ICE'],
+      lastSelectedP1: 'ICE', lastSelectedP2: 'NEWBIE', totalSpins: 0, unlockedAt: { NEWBIE: 0, ICE: 1 },
+    }));
     Q.persist({ unlockedThrough: 1, completedStages: [] });
     if (gameState === 'ARSENAL') window.exitArsenalQuestMode();
     Q.showMap();
@@ -1206,8 +1243,20 @@ try {
     await new Promise(r => setTimeout(r, 400));
     const pending = Q.peekPending && Q.peekPending();
     const selectVisible = !document.getElementById('select-screen').classList.contains('hidden');
+    const hubHidden = !document.getElementById('aq-meta-root') || document.getElementById('aq-meta-root').style.display === 'none';
     const t = window.__APEX_PICK_TEST;
+    const rosterNames = t ? t.roster().map(c => c.name) : [];
+    const p2Before = t && t.p2();
     if (t) t.confirmByName('ICE');
+    await new Promise(r => setTimeout(r, 80));
+    const p1Locked = t && t.p1();
+    const p2Mid = t && t.p2();
+    if (t) t.confirmByName('NEWBIE');
+    await new Promise(r => setTimeout(r, 80));
+    const p2AfterAttempt = t && t.p2();
+    if (t) t.confirmByName('ICE');
+    await new Promise(r => setTimeout(r, 80));
+    const p1After = t && t.p1();
     await new Promise(r => setTimeout(r, 120));
     document.querySelector('.apex-pick-button[aria-label="start-button"]')?.click();
     const t0 = Date.now();
@@ -1237,7 +1286,8 @@ try {
     Q.persist(save);
     const raw = localStorage.getItem(Q.STORAGE_KEY);
     return {
-      mapOpen, pending, selectVisible, names, types, winText, winActs, next, stage2, lossActs,
+      mapOpen, pending, selectVisible, hubHidden, rosterNames, p2Before, p2Mid, p2AfterAttempt, p1Locked, p1After,
+      names, types, winText, winActs, next, stage2, lossActs,
       lossText: lossEl ? lossEl.textContent : '',
       mapHtml, save, raw, showFn: typeof Q.showMap,
     };
@@ -1245,7 +1295,14 @@ try {
   report.evidence.push(await screenshot('rev2-quest-map'));
   gate('browser-rev2-quest-map-opens', report.rev2QuestUxBr.mapOpen === true && report.rev2QuestUxBr.showFn === 'function', report.rev2QuestUxBr);
   gate('browser-rev2-quest-stage1-opens-selector',
-    report.rev2QuestUxBr.pending && report.rev2QuestUxBr.pending.n === 1 && report.rev2QuestUxBr.selectVisible === true,
+    report.rev2QuestUxBr.pending && report.rev2QuestUxBr.pending.n === 1 && report.rev2QuestUxBr.selectVisible === true && report.rev2QuestUxBr.hubHidden === true,
+    report.rev2QuestUxBr);
+  gate('v3-quest-owned-p1-fixed-unowned-p2',
+    report.rev2QuestUxBr.p2Before === 'PAINTER'
+    && report.rev2QuestUxBr.p2AfterAttempt === 'PAINTER'
+    && report.rev2QuestUxBr.p1After === 'ICE'
+    && report.rev2QuestUxBr.rosterNames && report.rev2QuestUxBr.rosterNames.includes('ICE')
+    && !report.rev2QuestUxBr.rosterNames.includes('PAINTER'),
     report.rev2QuestUxBr);
   gate('browser-rev2-quest-ice-vs-painter',
     report.rev2QuestUxBr.names && report.rev2QuestUxBr.names[0] === 'ICE' && report.rev2QuestUxBr.types && report.rev2QuestUxBr.types[1] === 'PAINTER',
@@ -1263,6 +1320,31 @@ try {
   gate('browser-rev2-quest-persist',
     report.rev2QuestUxBr.save && report.rev2QuestUxBr.save.unlockedThrough >= 2 && !!report.rev2QuestUxBr.raw,
     report.rev2QuestUxBr.save);
+  report.evidence.push(await screenshot('v3-quest-result-or-map'));
+
+  await evaluate(`(() => {
+    const M = window.APEX_ARSENAL_META;
+    if (gameState === 'ARSENAL' && typeof window.exitArsenalQuestMode === 'function') window.exitArsenalQuestMode();
+    M.openHub();
+    return true;
+  })()`);
+  report.evidence.push(await screenshot('v3-hub'));
+  await evaluate(`APEX_ARSENAL_META.paintShop()`);
+  report.evidence.push(await screenshot('v3-shop'));
+  await evaluate(`document.querySelector('[data-buy]')?.click()`);
+  report.evidence.push(await screenshot('v3-shop-detail'));
+  await evaluate(`APEX_ARSENAL_META.paintDraw()`);
+  report.evidence.push(await screenshot('v3-lucky-draw-idle'));
+  await evaluate(`(() => {
+    const el = document.getElementById('aq-wheel');
+    if (el) el.style.transform = 'rotate(540deg)';
+    return true;
+  })()`);
+  report.evidence.push(await screenshot('v3-lucky-draw-spin'));
+  await evaluate(`document.getElementById('aq-spin')?.click()`);
+  report.evidence.push(await screenshot('v3-lucky-draw-result'));
+  await evaluate(`(() => { APEX_ARSENAL_META.hideMeta(); APEX_ARSENAL_QUEST.showMap(); return true; })()`);
+  report.evidence.push(await screenshot('v3-quest-map'));
 
   // --------------------------------------------- 5-minute simulation -------
   report.fiveMinute = await evaluate(`(() => {
@@ -1389,7 +1471,7 @@ try {
   gate('feel-heal-values-authorized', report.rev2Feel.healEnabled === true
     && JSON.stringify(report.rev2Feel.restores) === JSON.stringify([70, 126, 196, 280, 385]), report.rev2Feel);
   gate('feel-splatter-organic-mask', report.rev2Feel.organic >= 1, report.rev2Feel);
-  gate('feel-damage-palette-vermilion', report.rev2Feel.pal === '#FF5A36', report.rev2Feel);
+  gate('feel-damage-palette-v3-red', report.rev2Feel.pal === '#F2382F', report.rev2Feel);
 
   report.healPlay = await evaluate(`(() => {
     const st = APEX_ARSENAL.state;

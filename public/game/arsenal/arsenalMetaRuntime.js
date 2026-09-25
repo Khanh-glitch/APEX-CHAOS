@@ -242,31 +242,28 @@
       if (u) u.onclick = () => { setLast(r.name, state.lastSelectedP2); openFreePick(); };
     };
   }
-  function openFreePick() {
+  function openFighterPick(opts) {
     hideMeta();
+    const mode = (opts && opts.mode) || 'free';
     window.__apexArsenalSelectPending = true;
-    window.__apexArsenalFreeBattle = true;
-    window.__apexSkipHub = true;
-    if (typeof goToSelect === 'function') goToSelect();
+    window.__apexArsenalFreeBattle = mode === 'free';
+    window.__apexArsenalQuestPick = mode === 'quest';
+    const shells = window.APEX_ARSENAL_SHELLS;
+    if (shells && typeof shells.beginSelection === 'function') shells.beginSelection();
+    else if (typeof goToSelect === 'function') goToSelect();
     else if (typeof window.goToSelect === 'function') window.goToSelect();
-    window.__apexSkipHub = false;
+  }
+  function openFreePick() {
+    openFighterPick({ mode: 'free' });
   }
   function openHub() {
     state = load();
     paintHub();
   }
 
-  const origBegin = window.beginArsenalQuestSelection;
   window.beginArsenalQuestSelection = function () {
     openHub();
   };
-  if (window.APEX_ARSENAL_SHELLS) {
-    const inner = window.APEX_ARSENAL_SHELLS.beginSelection;
-    window.APEX_ARSENAL_SHELLS.beginSelection = function () {
-      if (window.__apexSkipHub) return inner && inner();
-      openHub();
-    };
-  }
 
   if (window.APEX_ARSENAL_QUEST && window.APEX_ARSENAL_QUEST.onMatchOver) {
     const prev = window.APEX_ARSENAL_QUEST.onMatchOver;
@@ -293,7 +290,7 @@
     KEY, SHOP_COST, DRAW_COST,
     getState, credits, owns, buy, spin, award, filterOwned, setLast,
     load, save, emptyState, sanitize, poolLocked, lastAward: () => lastAward,
-    openHub, hideMeta, paintShop, paintDraw, openFreePick,
+    openHub, hideMeta, paintShop, paintDraw, openFreePick, openFighterPick,
   };
   window.apexArsenalMetaRuntime = 'ready';
 })();

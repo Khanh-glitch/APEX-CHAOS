@@ -93,9 +93,15 @@
 
   function openP1Selector() {
     window.__apexArsenalSelectPending = true;
+    window.__apexArsenalQuestPick = true;
+    window.__apexArsenalFreeBattle = false;
+    const meta = window.APEX_ARSENAL_META;
+    if (meta && typeof meta.openFighterPick === 'function') {
+      meta.openFighterPick({ mode: 'quest' });
+      return;
+    }
     const shells = window.APEX_ARSENAL_SHELLS;
     if (shells && shells.beginSelection) shells.beginSelection();
-    else if (typeof window.beginArsenalQuestSelection === 'function') window.beginArsenalQuestSelection();
     else if (typeof window.goToSelect === 'function') window.goToSelect();
   }
 

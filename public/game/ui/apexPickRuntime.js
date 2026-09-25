@@ -178,6 +178,63 @@
     if (!id) return null;
     return currentRoster().find(champ => champ.id === id || champ.name === String(id).toUpperCase()) || null;
   }
+  function questPending() {
+    const Q = window.APEX_ARSENAL_QUEST;
+    return (Q && Q.peekPending && Q.peekPending()) || null;
+  }
+  function syntheticChamp(name) {
+    if (!name) return null;
+    const id = String(name).toUpperCase();
+    const recs = championRecords();
+    const rec = recs.find(c => c.name === id);
+    const ft = window.APEX_ARSENAL_SHELLS && window.APEX_ARSENAL_SHELLS.typeFor && window.APEX_ARSENAL_SHELLS.typeFor(id);
+    return {
+      id: id.toLowerCase(),
+      name: id,
+      accent: (ft && ft.color) || (rec && rec.accent) || '#c4a574',
+      accentGlow: (ft && ft.color) || (rec && rec.accentGlow) || '#c4a574',
+      standing: (rec && rec.standing) || '',
+      cardArt: (rec && rec.cardArt) || '',
+      icon: (rec && rec.icon) || '',
+      stats: { hp: 1000, dmg: 100 },
+    };
+  }
+  function displayChamp(idOrName) {
+    return championById(idOrName) || syntheticChamp(idOrName);
+  }
+  function applyArsenalPickDefaults() {
+    if (!window.__apexArsenalSelectPending) return;
+    const roster = currentRoster();
+    const owned = (name) => roster.some(c => c.name === name);
+    const meta = window.APEX_ARSENAL_META && window.APEX_ARSENAL_META.getState ? window.APEX_ARSENAL_META.getState() : {};
+    const pickOwned = (name) => (owned(name) ? name : 'NEWBIE');
+    const p1Name = pickOwned(meta.lastSelectedP1 || 'NEWBIE');
+    const p1Champ = roster.find(c => c.name === p1Name) || roster.find(c => c.name === 'NEWBIE');
+    if (p1Champ) {
+      PickRuntimeController.p1ChampionId = p1Champ.id;
+      p1Selection = fighterForChampion(p1Champ);
+    }
+    const q = questPending();
+    if (q || window.__apexArsenalQuestPick) {
+      const oppRaw = (q && (q.opponent || (window.APEX_ARSENAL_QUEST.liveOpponent && window.APEX_ARSENAL_QUEST.liveOpponent(q.opponent)))) || null;
+      const opp = oppRaw && window.APEX_ARSENAL_QUEST.liveOpponent ? window.APEX_ARSENAL_QUEST.liveOpponent(q.opponent) : oppRaw;
+      const ft = window.APEX_ARSENAL_SHELLS && window.APEX_ARSENAL_SHELLS.typeFor && window.APEX_ARSENAL_SHELLS.typeFor(opp || q.opponent);
+      if (ft) {
+        p2Selection = ft;
+        PickRuntimeController.p2ChampionId = String(ft.name).toLowerCase();
+      }
+      PickRuntimeController.activePlayer = 1;
+      window.__apexArsenalQuestPick = true;
+    } else {
+      const p2Name = pickOwned(meta.lastSelectedP2 || 'NEWBIE');
+      const p2Champ = roster.find(c => c.name === p2Name) || roster.find(c => c.name === 'NEWBIE');
+      if (p2Champ) {
+        PickRuntimeController.p2ChampionId = p2Champ.id;
+        p2Selection = fighterForChampion(p2Champ);
+      }
+      PickRuntimeController.activePlayer = (PickRuntimeController.p1ChampionId && PickRuntimeController.p2ChampionId) ? 0 : 1;
+    }
+  }
   function focusedChampion() {
     const roster = currentRoster();
     return roster[PickRuntimeController.centerIndex] || roster[0] || null;
@@ -702,7 +759,11 @@
       if (title) title.textContent = `P${player} · ${ft.name} SELECTED`;
       return;
     }
-    if (PickRuntimeController.activePlayer === 1) {
+    if (window.__apexArsenalQuestPick || questPending()) {
+      PickRuntimeController.p1ChampionId = champ.id;
+      p1Selection = ft;
+      PickRuntimeController.activePlayer = 1;
+    } else if (PickRuntimeController.activePlayer === 1) {
       PickRuntimeController.p1ChampionId = champ.id;
       p1Selection = ft;
       PickRuntimeController.activePlayer = 2;
@@ -752,8 +813,8 @@
     setLayerColor(dmgId, '#FFFFFF');
   }
   function syncPickState() {
-    const p1Champ = championById(PickRuntimeController.p1ChampionId);
-    const p2Champ = championById(PickRuntimeController.p2ChampionId);
+    const p1Champ = displayChamp(PickRuntimeController.p1ChampionId);
+    const p2Champ = displayChamp(PickRuntimeController.p2ChampionId);
     const centerChamp = focusedChampion();
     if (centerChamp) pickRoot()?.style.setProperty('--center-accent', centerChamp.accent);
     if (centerChamp) setLayerText('heroesnameoncard', centerChamp.name);
@@ -766,7 +827,7 @@
     const onlineState = document.body.classList.contains('manual-online-select') ? window.APEX_MANUAL_LAB_ONLINE : null;
     const onlinePlayer = onlineState?.role === 'guest' ? 2 : 1;
     const onlineLocalChampionId = onlinePlayer === 2 ? PickRuntimeController.p2ChampionId : PickRuntimeController.p1ChampionId;
-    setLayerText('title', onlineState ? `SELECT PLAYER ${onlinePlayer}` : PickRuntimeController.activePlayer === 1 ? 'SELECT PLAYER 1' : PickRuntimeController.activePlayer === 2 ? 'SELECT PLAYER 2' : 'READY TO FIGHT');
+    if (onlineState) setLayerText('title', `SELECT PLAYER ${onlinePlayer}`);
     const start = refs.get('start-button');
     if (onlineState) {
       setLayerText('start-label', onlineState.championLocked ? 'READY ✓' : 'READY');
@@ -775,7 +836,10 @@
       refs.get('arrow-right')?.toggleAttribute('disabled', !!onlineState.championLocked);
       stage?.classList.toggle('online-ready-locked', !!onlineState.championLocked);
     } else {
-      const questPend = window.APEX_ARSENAL_QUEST && window.APEX_ARSENAL_QUEST.peekPending && window.APEX_ARSENAL_QUEST.peekPending();
+      const questPend = questPending() || window.__apexArsenalQuestPick;
+      setLayerText('title', questPend
+        ? (PickRuntimeController.p1ChampionId ? 'QUEST · P1 READY' : 'QUEST · SELECT P1')
+        : (PickRuntimeController.activePlayer === 1 ? 'SELECT PLAYER 1' : PickRuntimeController.activePlayer === 2 ? 'SELECT PLAYER 2' : 'READY TO FIGHT'));
       setLayerText('start-label', questPend ? 'START STAGE' : 'START BATTLE');
       if (start) start.disabled = questPend
         ? !PickRuntimeController.p1ChampionId
@@ -925,8 +989,10 @@
     p1Selection = null;
     p2Selection = null;
     carouselTouched = false;
+    applyArsenalPickDefaults();
     document.getElementById('roster-grid')?.replaceChildren();
     renderPickRuntime();
+    syncPickState();
     return result;
   };
 
@@ -937,6 +1003,10 @@
     confirmByName(name) {
       confirmChampion(currentRoster().find(c => c && c.name === name) || null);
     },
+    p1: () => p1Selection && p1Selection.name,
+    p2: () => p2Selection && p2Selection.name,
+    activePlayer: () => PickRuntimeController.activePlayer,
+    questPick: () => !!window.__apexArsenalQuestPick,
   };
 
   Object.assign(window.apexReactBridge || {}, { goToSelect, startMatch, goToMenu });

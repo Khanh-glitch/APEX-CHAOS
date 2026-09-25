@@ -2844,6 +2844,55 @@ report.v3Perf = run(`
 `);
 gate('v3-perf-summary', !!report.v3Perf && report.v3Perf.interpolation === false, report.v3Perf);
 
+report.v3GunAudit = run(`
+  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  cancelAnimationFrame(reqId); reqId = 0;
+  const CFG = APEX_ARSENAL_CONFIG;
+  const api = APEX_ARSENAL.weaponApi;
+  APEX_ARSENAL.combatRng = () => 0.99;
+  const BASE = {
+    PISTOL: { unit: 4.5, kind: 'shot' }, GLOCK_17: { unit: 3.5, kind: 'shot' }, TEC_9: { unit: 3.0, kind: 'shot' },
+    MAC_10: { unit: 2.0, kind: 'shot' }, BERETTA_93R: { unit: 3.0, kind: 'shot' }, SMG: { unit: 2.25, kind: 'shot' },
+    P90: { unit: 1.9, kind: 'shot' }, ZBROYAR_Z15: { unit: 4.75, kind: 'shot' }, ZBROYAR_Z15_S1: { unit: 4.75, kind: 'shot' },
+    ZBROYAR_Z15_S2: { unit: 4.75, kind: 'shot' }, ZBROYAR_Z15_S3: { unit: 4.75, kind: 'shot' },
+    MOSSBERG_500: { unit: 2.8, kind: 'pellet' }, DESERT_DEAGLE: { unit: 10.5, kind: 'shot' },
+    AK_47: { unit: 3.8, kind: 'shot' }, M16: { unit: 3.6, kind: 'shot' }, MBR: { unit: 11, kind: 'precision' },
+    SHOTGUN: { unit: 2.0, kind: 'pellet' }, SAWED_OFF: { unit: 2.45, kind: 'pellet' }, MAGNUM_500: { unit: 28, kind: 'shot' },
+    M249_SAW: { unit: 2.5, kind: 'shot' }, MBR2: { unit: 14, kind: 'precision' }, SZECSEI_FUCHS: { unit: 15, kind: 'precision' },
+    SNIPER: { unit: 38, kind: 'precision' }, JACKHAMMER: { unit: 2.4, kind: 'pellet' },
+  };
+  const rows = [];
+  let fail = 0;
+  for (const id of Object.keys(BASE)) {
+    const w = CFG.WEAPONS[id] || {};
+    const authored = BASE[id].kind === 'pellet' ? w.damagePerPellet : (BASE[id].kind === 'precision' ? w.damage : w.damagePerShot);
+    fighters[1].hp = 1000;
+    const before = fighters[1].hp;
+    api.aqDamage(fighters[1], authored, fighters[0], id, {});
+    const actual = +(before - fighters[1].hp).toFixed(4);
+    const expected = +(BASE[id].unit * 7).toFixed(4);
+    const pass = authored === BASE[id].unit && actual === expected;
+    if (!pass) fail += 1;
+    rows.push({ id, baseline: BASE[id].unit, authored, expected, actual, chance: CFG.CRIT_CHANCE[id], pass });
+  }
+  fighters[1].hp = 1000;
+  const g0 = fighters[1].hp;
+  api.aqDamage(fighters[1], CFG.WEAPONS.GRENADE.maxDamage, fighters[0], 'GRENADE', { critical: true });
+  const grenade = +(g0 - fighters[1].hp).toFixed(2);
+  fighters[1].hp = 1000;
+  const m0 = fighters[1].hp;
+  api.aqDamage(fighters[1], CFG.meleeDamage('SABRE'), fighters[0], 'SABRE', { critical: true });
+  const melee = +(m0 - fighters[1].hp).toFixed(2);
+  fighters[1].hp = 1000;
+  const n0 = fighters[1].hp;
+  fighters[1].takeDamage(10, fighters[0], 'ice-shard', false);
+  const native = +(n0 - fighters[1].hp).toFixed(2);
+  return { fail, n: rows.length, rows, grenade, melee, native, sabreAuthored: CFG.meleeDamage('SABRE') };
+`);
+gate('v3-24-firearm-x7-identity', report.v3GunAudit.fail === 0 && report.v3GunAudit.n === 24, report.v3GunAudit);
+gate('v3-grenade-melee-x7-no-crit', report.v3GunAudit.grenade === 140 && report.v3GunAudit.melee === +(report.v3GunAudit.sabreAuthored * 7).toFixed(2), report.v3GunAudit);
+gate('v3-native-not-equipment-x7', report.v3GunAudit.native < 10 && report.v3GunAudit.native > 0, report.v3GunAudit);
+
 // ------------------------------------------------------------------- summary
 report.summary = {
   total: Object.keys(report.gates).length,
