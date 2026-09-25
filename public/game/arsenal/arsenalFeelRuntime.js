@@ -902,10 +902,29 @@
     for (let i = sprayLive.length - 1; i >= 0; i--) {
       const p = sprayLive[i];
       if (p.fresh) {
-        // PASS A hit-feedback law: the simulation tick that created this V1
-        // particle must not age or move it before the first rendered frame.
-        // The very next tick resumes the approved reference physics.
+        // PASS A hit-feedback law (alpha only): the simulation tick that
+        // created this particle must not AGE it before the first rendered
+        // frame — full first-frame strength is preserved.
+        // PASS B splatter correction (V1 only): that same collision tick
+        // also carries each airborne V1 particle's first position
+        // integration + reference drag — exactly the approved reference,
+        // where spawnBlood and the particle update run in the same tick.
+        // The first rendered frame therefore shows the burst already in
+        // flight along its trajectories: a one-time burst on the collision
+        // tick, never a clump that keeps re-emerging from the stale impact
+        // point on later frames. v1core is the impact stain, not airborne
+        // blood — it stays in place (reference) and ages from the next tick
+        // like everything else. Legacy (non-V1) spray keeps its accepted
+        // behavior untouched.
         p.fresh = false;
+        if (p.kind === 'v1streak' || p.kind === 'v1drop' || p.kind === 'v1micro') {
+          // Reference physics: frame-equivalent drag only, no gravity.
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          const drag = Math.pow(p.drag || 0.95, dt * 60);
+          p.vx *= drag;
+          p.vy *= drag;
+        }
         continue;
       }
       p.life -= dt;

@@ -3128,6 +3128,107 @@ gate('v1-blood-material-identity',
   report.v1Blood.bloodV1);
 
 // ---------------------------------------------------------------------------
+// V1 blood correction gate (PASS B, splatter only): each projectile hit is a
+// ONE-TIME burst emission. The collision tick must contain the complete
+// airborne burst, already displaced from the impact point along its
+// trajectories (approved reference: spawnBlood + particle update in the same
+// tick); the v1core stays the in-place impact stain; and after the hit, no V1
+// spawn counter may increase without another projectile collision.
+// ---------------------------------------------------------------------------
+report.v1b = run(`
+  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  cancelAnimationFrame(reqId); reqId = 0;
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.clearSlots();
+  APEX_ARSENAL.combatRng = () => 0.99; // never roll crits; this gate is non-crit
+  APEX_ARSENAL_FEEL.resetMatch();
+  const feel = window.APEX_ARSENAL_FEEL;
+  const api = APEX_ARSENAL.weaponApi;
+  const CFG = APEX_ARSENAL_CONFIG;
+  const hero = fighters[0];
+  const rival = fighters[1];
+  hero.hp = 1000; rival.hp = 1000;
+  const DT = 1 / 60;
+  __AQ_TEST.place(240, 500, 780, 500);
+  const s0 = {
+    hits: feel.stats.v1Hits, cores: feel.stats.v1Cores, streaks: feel.stats.v1Streaks,
+    drops: feel.stats.v1Drops, micro: feel.stats.v1Micro,
+  };
+  api.fireBullet({
+    owner: hero, x: hero.x + 30, y: hero.y, angle: 0, speed: 2600,
+    damage: CFG.WEAPONS.PISTOL.damagePerShot, weapon: 'PISTOL', critical: false,
+  });
+  let guard = 0;
+  while (feel.stats.v1Hits === s0.hits && guard++ < 40) __AQ_TEST.step(DT); // stop on the collision tick
+  const last = feel.stats.lastV1 || {};
+  const live = feel.liveSpray().filter(p => (p.kind || '').indexOf('v1') === 0);
+  const noneAged = live.length > 0 && live.every(p => (
+    p.kind === 'v1core' ? Math.abs(p.life - 0.12) < 1e-9
+    : p.kind === 'v1streak' ? p.life >= 0.16 - 1e-9
+    : p.kind === 'v1drop' ? p.life >= 0.32 - 1e-9
+    : p.kind === 'v1micro' ? p.life >= 0.18 - 1e-9
+    : true
+  ));
+  // Drops spawn exactly AT the impact point, so on the collision tick each
+  // one must sit exactly |v0|*DT from it, with v0 = current speed / this
+  // tick's drag factor. Frozen-burst code leaves them at distance 0 -> fails.
+  const drops = live.filter(p => p.kind === 'v1drop');
+  const dropsInFlight = drops.length === 12 && drops.every(p => {
+    const d = Math.pow(p.drag || 0.95, DT * 60);
+    const v0 = Math.hypot(p.vx, p.vy) / d;
+    const dist = Math.hypot(p.x - last.x, p.y - last.y);
+    return dist > 0 && Math.abs(dist - v0 * DT) <= 1e-6 * Math.max(1, v0 * DT) + 1e-9;
+  });
+  const core = live.find(p => p.kind === 'v1core');
+  const out = {
+    hitLanded: guard < 40,
+    burstCompleteOnCollisionTick:
+      feel.stats.v1Hits - s0.hits === 1
+      && live.filter(p => p.kind === 'v1core').length === 1
+      && live.filter(p => p.kind === 'v1streak').length === 4
+      && live.filter(p => p.kind === 'v1drop').length === 12
+      && live.filter(p => p.kind === 'v1micro').length === 38
+      && noneAged,
+    dropsInFlight,
+    coreAtImpactStain: !!core && core.x === last.x && core.y === last.y,
+  };
+  // After the collision tick: no new projectile, so no V1 spawn counter may
+  // move again and the airborne population may only shrink (floor marks from
+  // dying drops are decals, not airborne spawns).
+  const frozen = {
+    hits: feel.stats.v1Hits, cores: feel.stats.v1Cores, streaks: feel.stats.v1Streaks,
+    drops: feel.stats.v1Drops, micro: feel.stats.v1Micro,
+  };
+  let countersFrozen = true;
+  let airborneNeverGrows = true;
+  let prev = live.length;
+  let extinguished = false;
+  for (let i = 0; i < 132; i++) { // ~2.2 s; max drop life is 0.58 s
+    __AQ_TEST.step(DT);
+    const s = feel.stats;
+    if (s.v1Hits !== frozen.hits || s.v1Cores !== frozen.cores
+      || s.v1Streaks !== frozen.streaks || s.v1Drops !== frozen.drops || s.v1Micro !== frozen.micro) countersFrozen = false;
+    const n = feel.liveSpray().filter(p => (p.kind || '').indexOf('v1') === 0).length;
+    if (n > prev) airborneNeverGrows = false;
+    prev = n;
+    if (n === 0) { extinguished = true; break; }
+  }
+  out.countersFrozenAfterHit = countersFrozen;
+  out.airborneNeverRegrows = airborneNeverGrows;
+  out.burstExtinguished = extinguished;
+  return out;
+`);
+gate('v1b-one-time-burst-collision-tick',
+  report.v1b.hitLanded === true
+  && report.v1b.burstCompleteOnCollisionTick === true
+  && report.v1b.dropsInFlight === true
+  && report.v1b.coreAtImpactStain === true
+  && report.v1b.countersFrozenAfterHit === true
+  && report.v1b.airborneNeverRegrows === true
+  && report.v1b.burstExtinguished === true,
+  report.v1b);
+
+// ---------------------------------------------------------------------------
 // PASS A gates (docs/arsenal-quest/OWNER_PLAYTEST_PASS_A_HIT_FEEDBACK_AND_NAV_AUTHORITY_2026-09-25.md)
 // §3.1 blood first-visible-frame immediacy + §3.2 immediate-first aggregation.
 // ---------------------------------------------------------------------------
