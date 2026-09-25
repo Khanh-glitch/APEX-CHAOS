@@ -342,9 +342,13 @@
         const nominal = slot.healRestore || 0;
         const actual = Math.min(nominal, Math.max(0, cap - closest.hp));
         closest.hp = Math.min(cap, closest.hp + actual);
+        closest.healingDone = (closest.healingDone || 0) + actual;
         slot.phase = 'PICKED_UP';
         slot.pickedBy = closest.name;
         log('PICKUP_HEAL', `id=${slot.id} fighter=${closest.name} restore=${actual}`);
+        if (typeof updateHUD === 'function') {
+          try { updateHUD(); } catch (e) { /* headless HUD optional */ }
+        }
         if (window.APEX_ARSENAL_FEEL && window.APEX_ARSENAL_FEEL.noteHeal) {
           window.APEX_ARSENAL_FEEL.noteHeal(closest, actual);
         }
@@ -413,6 +417,27 @@
 
   const rarityCache = new Map();
   const rarityStats = { builds: 0, draws: 0, hits: 0 };
+  const wellCache = new Map();
+  function contactWell(kind) {
+    const key = kind || 'gun';
+    const hit = wellCache.get(key);
+    if (hit) return hit;
+    const w = 96, h = 48;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const c = canvas.getContext('2d');
+    const g = c.createRadialGradient(w / 2, h / 2, 2, w / 2, h / 2, kind === 'heal' ? 38 : 34);
+    g.addColorStop(0, kind === 'heal' ? 'rgba(8,18,12,0.55)' : 'rgba(8,10,14,0.62)');
+    g.addColorStop(0.55, kind === 'heal' ? 'rgba(8,18,12,0.28)' : 'rgba(8,10,14,0.32)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g;
+    c.beginPath();
+    c.ellipse(w / 2, h / 2 + 4, kind === 'heal' ? 30 : 26, 11, 0, 0, Math.PI * 2);
+    c.fill();
+    const rec = { canvas, ox: w / 2, oy: h / 2 };
+    wellCache.set(key, rec);
+    return rec;
+  }
   function raritySprite(tier, glow, glowSpec, q) {
     const key = tier + ':' + q;
     const hit = rarityCache.get(key);
@@ -469,8 +494,11 @@
       if (slot.kind === 'HEAL' && slot.phase === 'REVEALED') {
         const bob = Math.sin(t * 3.1 + slot.id) * 4;
         const pulse = 0.5 + 0.5 * Math.sin(t * 2.2 + slot.id);
+        const well = contactWell('heal');
         ctx.save();
         ctx.translate(0, bob + 18);
+        ctx.globalAlpha = 0.9;
+        ctx.drawImage(well.canvas, -well.ox, -well.oy + 6);
         ctx.globalAlpha = 0.28 + 0.18 * pulse;
         ctx.fillStyle = 'rgba(56,224,122,0.55)';
         ctx.beginPath();
@@ -541,6 +569,11 @@
         const bob = Math.sin(t * 3.1 + slot.id) * 4;
         const glow = (CFG.TIER_COLORS && slot.tier && CFG.TIER_COLORS[slot.tier]) || null;
         const glowSpec = (CFG.TIER_GLOW && slot.tier && CFG.TIER_GLOW[slot.tier]) || { rx: 34, ry: 10, a: 0.35, pulse: 0 };
+        const well = contactWell('gun');
+        ctx.save();
+        ctx.translate(0, bob + 22);
+        ctx.drawImage(well.canvas, -well.ox, -well.oy + 4);
+        ctx.restore();
         if (glow) {
           const pulse = 0.5 + 0.5 * Math.sin(t * (1.4 + glowSpec.pulse * 4) + slot.id);
           const q = Math.max(0, Math.min(7, pulse * 7 + 0.5 | 0));
@@ -555,13 +588,6 @@
         const expireSoon = slot.revealedFor > CFG.PICKUP_LIFETIME_SECONDS - 3;
         ctx.globalAlpha = expireSoon && Math.floor(t * 8) % 2 === 0 ? 0.45 : 1;
         ctx.translate(0, bob);
-
-        if (!glow) {
-          ctx.fillStyle = 'rgba(12,10,6,0.5)';
-          ctx.beginPath();
-          ctx.ellipse(0, CFG.PICKUP_RADIUS * 0.9, CFG.PICKUP_RADIUS * 1.0, 12, 0, 0, TAU);
-          ctx.fill();
-        }
 
         const av = window.APEX_ARSENAL_AV;
         const meta = av && av.weaponMeta && av.weaponMeta(slot.weaponId);

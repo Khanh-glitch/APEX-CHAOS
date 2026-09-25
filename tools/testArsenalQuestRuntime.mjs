@@ -1406,11 +1406,45 @@ try {
     const heals = st.slots.filter(s => s.kind === 'HEAL' && s.phase === 'REVEALED');
     const slot = heals[0];
     fighters[0].x = slot.x; fighters[0].y = slot.y;
+    const beforeHeal = fighters[0].healingDone || 0;
     S.resolvePickups();
-    return { noneAtFull, spawned: heals.length, hp: fighters[0].hp, id: slot && slot.weaponId };
+    const hud = (document.getElementById('p1-hp-text') && document.getElementById('p1-hp-text').innerText) || '';
+    const pops = APEX_ARSENAL_FEEL.livePopups().filter(p => p.kind === 'heal');
+    return {
+      noneAtFull, spawned: heals.length, hp: fighters[0].hp, id: slot && slot.weaponId,
+      healingDone: (fighters[0].healingDone || 0) - beforeHeal, hud, popCount: pops.length, pop: pops[0] && pops[0].text,
+    };
   })()`);
   gate('heal-spawns-when-injured', report.healPlay.noneAtFull === 0 && report.healPlay.spawned === 1
     && report.healPlay.id === 'HEAL_H2' && report.healPlay.hp === 78, report.healPlay);
+  gate('heal-hud-and-healingDone', report.healPlay.healingDone === 18
+    && String(report.healPlay.hud).indexOf('78') >= 0
+    && report.healPlay.popCount === 1 && report.healPlay.pop === '+18', report.healPlay);
+
+  report.atlasPixels = await evaluate(`(() => {
+    const feel = APEX_ARSENAL_FEEL;
+    return { dmg: feel.sampleAtlasPixels('dmg'), miss: feel.sampleAtlasPixels('miss') };
+  })()`);
+  gate('atlas-normal-fill-and-edge-pixels', report.atlasPixels.dmg && report.atlasPixels.dmg.fillHits > 8 && report.atlasPixels.dmg.edgeHits > 8, report.atlasPixels.dmg);
+  gate('atlas-miss-slate-and-light-halo', report.atlasPixels.miss && report.atlasPixels.miss.fillHits > 8 && report.atlasPixels.miss.edgeHits > 8, report.atlasPixels.miss);
+
+  report.rafPlay = await evaluate(`(async () => {
+    if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+    const pacing = await window.apexArsenalObserveRaf(90);
+    const perf = typeof apexArsenalPerfSummary === 'function' ? apexArsenalPerfSummary() : {};
+    return { pacing, sections: perf.sections, peaks: perf.peaks, longTasks: perf.longTasks, interpolation: perf.interpolation };
+  })()`);
+  gate('real-raf-pacing-sample', report.rafPlay.pacing && report.rafPlay.pacing.samples >= 30, report.rafPlay.pacing);
+
+  report.chamberTone = await evaluate(`(() => {
+    const c = document.createElement('canvas');
+    c.width = 1000; c.height = 1000;
+    const ctx = c.getContext('2d');
+    drawBackground(ctx);
+    const pix = ctx.getImageData(500, 500, 1, 1).data;
+    return { r: pix[0], g: pix[1], b: pix[2] };
+  })()`);
+  gate('chamber-midtone-graphite', report.chamberTone.r >= 70 && report.chamberTone.r <= 140, report.chamberTone);
 
   report.smoothRarity = await evaluate(`(() => {
     const S = APEX_ARSENAL_SPAWN;

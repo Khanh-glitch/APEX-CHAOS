@@ -156,6 +156,8 @@ class HarnessImage {
         this.__realImage = im;
         this.width = im.width;
         this.height = im.height;
+        this.naturalWidth = im.width;
+        this.naturalHeight = im.height;
         this.complete = true;
         if (this.onload) this.onload();
       })
@@ -2425,13 +2427,15 @@ report.healPlay = run(`
   S.resolvePickups();
   const hpAfter = fighters[0].hp;
   const pops = APEX_ARSENAL_FEEL.livePopups().filter(p => p.kind === 'heal').map(p => p.text);
+  const hud = (document.getElementById('p1-hp-text') && document.getElementById('p1-hp-text').innerText) || '';
+  const healed = fighters[0].healingDone;
   const cd = st.healCooldown;
   st.forceHealId = 'HEAL_H1';
   S.updateSlots(0.05);
   const noSecond = st.slots.filter(s => s.kind === 'HEAL' && s.phase !== 'REMOVED').length;
   return {
     noneAtFull, spawned: heals.length, healId: slot && slot.weaponId, offCap,
-    still, hpFull, hpAfter, pops, cd, noSecond, organic: APEX_ARSENAL_FEEL.stats.organicMaskStamps,
+    still, hpFull, hpAfter, pops, cd, noSecond, hud, healed, organic: APEX_ARSENAL_FEEL.stats.organicMaskStamps,
   };
 `);
 gate('heal-no-spawn-at-full', report.healPlay.noneAtFull === 0, report.healPlay);
@@ -2439,7 +2443,31 @@ gate('heal-spawns-when-injured', report.healPlay.spawned === 1 && report.healPla
 gate('heal-does-not-consume-offensive-cap', report.healPlay.offCap === 0, report.healPlay);
 gate('heal-full-health-cannot-consume', report.healPlay.still === 1 && report.healPlay.hpFull === 100, report.healPlay);
 gate('heal-clamped-restore-and-popup', report.healPlay.hpAfter === 98 && report.healPlay.pops.indexOf('+28') >= 0, report.healPlay);
+gate('heal-hud-and-healingDone', report.healPlay.healed === 28 && String(report.healPlay.hud).indexOf('98') >= 0, report.healPlay);
 gate('heal-cooldown-blocks-second', report.healPlay.cd > 8 && report.healPlay.noSecond === 0, report.healPlay);
+
+report.atlasPixels = run(`
+  const feel = APEX_ARSENAL_FEEL;
+  if (feel.stats && !feel.stats.atlasReady && feel.forceAtlasImage) {
+    const im = document.createElement('img');
+  }
+  const dmg = feel.sampleAtlasPixels('dmg');
+  const miss = feel.sampleAtlasPixels('miss');
+  return { dmg, miss };
+`);
+gate('atlas-normal-fill-and-edge-pixels', report.atlasPixels.dmg && report.atlasPixels.dmg.fillHits > 8 && report.atlasPixels.dmg.edgeHits > 8, report.atlasPixels.dmg);
+gate('atlas-miss-slate-and-light-halo', report.atlasPixels.miss && report.atlasPixels.miss.fillHits > 8 && report.atlasPixels.miss.edgeHits > 8, report.atlasPixels.miss);
+
+report.chamberTone = run(`
+  const c = document.createElement('canvas');
+  c.width = 1000; c.height = 1000;
+  const ctx = c.getContext('2d');
+  drawBackground(ctx);
+  const pix = ctx.getImageData(500, 500, 1, 1).data;
+  const wall = ctx.getImageData(8, 8, 1, 1).data;
+  return { pix: [pix[0], pix[1], pix[2]], wall: [wall[0], wall[1], wall[2]], builds: apexArsenalPerfSummary().chamber.builds };
+`);
+gate('chamber-midtone-graphite', report.chamberTone.pix[0] >= 70 && report.chamberTone.pix[0] <= 140 && report.chamberTone.pix[1] >= 80 && report.chamberTone.pix[1] <= 150, report.chamberTone);
 
 
 report.bothUnarmed = run(`
@@ -2537,8 +2565,18 @@ report.bothUnarmedCap = run(`
   APEX_ARSENAL.state.unarmedFastPending = false;
   APEX_ARSENAL.state.spawnHeld = false;
   APEX_ARSENAL.state.over = null;
+  APEX_ARSENAL.state.time = 0;
+  APEX_ARSENAL.state.healCooldown = 9;
   APEX_ARSENAL.state.spawnTimer = 2.4;
   fighters[0].hp = 100; fighters[1].hp = 100;
+  fighters[0].x = 500; fighters[0].y = 500;
+  fighters[1].x = 520; fighters[1].y = 520;
+  fighters[0].data.positionLocked = true;
+  fighters[1].data.positionLocked = true;
+  fighters[0].dir = { x: 0, y: 0 };
+  fighters[1].dir = { x: 0, y: 0 };
+  fighters[0].baseSpeed = 0;
+  fighters[1].baseSpeed = 0;
   fighters[0].data.arsenal = null; fighters[1].data.arsenal = null;
   for (let i = 0; i < cap; i++) {
     __AQ_TEST.pushSlot({ x: 120 + (i % 4) * 180, y: 140 + Math.floor(i / 4) * 180, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 2.0 });
@@ -2581,6 +2619,8 @@ report.bothUnarmedCap = run(`
     timer0, timer1, timer2, timer4,
     consumed1, pending1, consumed4, pending4,
     sup0, sup1, sup2, events,
+    phasesHold: APEX_ARSENAL.state.slots.map(s => (s.kind||'w')+':'+s.phase),
+    time: APEX_ARSENAL.state.time,
   };
 `);
 gate('both-unarmed-cap-no-illegal-slot',

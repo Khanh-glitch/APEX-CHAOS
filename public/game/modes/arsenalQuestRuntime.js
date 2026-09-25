@@ -98,9 +98,48 @@
         sprayReuse: AQ.feel.stats.sprayReuse,
         popupReuse: AQ.feel.stats.popupReuse,
       } : null,
-      frames: global && global.frames,
       interpolation: false,
     };
+  };
+  window.apexArsenalObserveRaf = function apexArsenalObserveRaf(frames) {
+    const n = Math.max(30, frames || 90);
+    const samples = [];
+    return new Promise((resolve) => {
+      let last = 0;
+      let left = n;
+      const tick = (t) => {
+        if (last > 0) samples.push(t - last);
+        last = t;
+        left -= 1;
+        if (left <= 0) {
+          const sorted = samples.slice().sort((a, b) => a - b);
+          const sum = samples.reduce((s, v) => s + v, 0);
+          const pct = (r) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * r))] || 0;
+          const buckets = { le16_7: 0, gt16_7_20: 0, gt20_25: 0, gt25_33: 0, gt33_50: 0, gt50: 0 };
+          for (const v of samples) {
+            if (v <= 16.7) buckets.le16_7 += 1;
+            else if (v <= 20) buckets.gt16_7_20 += 1;
+            else if (v <= 25) buckets.gt20_25 += 1;
+            else if (v <= 33) buckets.gt25_33 += 1;
+            else if (v <= 50) buckets.gt33_50 += 1;
+            else buckets.gt50 += 1;
+          }
+          resolve({
+            samples: samples.length,
+            avgMs: samples.length ? sum / samples.length : 0,
+            medianMs: pct(0.5),
+            p95Ms: pct(0.95),
+            p99Ms: pct(0.99),
+            maxMs: sorted.length ? sorted[sorted.length - 1] : 0,
+            buckets,
+            interpolation: false,
+          });
+          return;
+        }
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
   };
 
   function resetState() {
@@ -317,23 +356,23 @@
   function paintChamber01(c, S) {
     c.save();
     // Base graphite with subtle material variation.
-    c.fillStyle = '#A4A7AC';
+    c.fillStyle = '#626A74';
     c.fillRect(0, 0, S, S);
     const grad = c.createRadialGradient(S / 2, S / 2, S * 0.18, S / 2, S / 2, S * 0.72);
-    grad.addColorStop(0, 'rgba(185,188,193,0.75)');
-    grad.addColorStop(1, 'rgba(135,140,147,0.92)');
+    grad.addColorStop(0, 'rgba(114,123,134,0.78)');
+    grad.addColorStop(1, 'rgba(79,87,97,0.92)');
     c.fillStyle = grad;
     c.fillRect(0, 0, S, S);
 
     // Very restrained range grid.
-    c.strokeStyle = 'rgba(40,42,46,0.16)';
+    c.strokeStyle = 'rgba(12,14,18,0.22)';
     c.lineWidth = 1;
     for (let g = 125; g < S; g += 125) {
       c.beginPath(); c.moveTo(g, 40); c.lineTo(g, S - 40); c.stroke();
       c.beginPath(); c.moveTo(40, g); c.lineTo(S - 40, g); c.stroke();
     }
     // Sparse measurement ticks along the walls.
-    c.strokeStyle = 'rgba(40,42,48,0.28)';
+    c.strokeStyle = 'rgba(10,12,16,0.38)';
     c.lineWidth = 2;
     for (let g = 100; g < S; g += 100) {
       c.beginPath(); c.moveTo(g, 34); c.lineTo(g, 46); c.stroke();
@@ -344,7 +383,7 @@
     // POST-C §8: zone marks are glyph-free ticks, never Z-01..Z-04 numerals.
 
     // Central alignment marks (no obstacle, no glow).
-    c.strokeStyle = 'rgba(50,54,60,0.22)';
+    c.strokeStyle = 'rgba(18,20,24,0.28)';
     c.lineWidth = 2;
     c.beginPath(); c.arc(S / 2, S / 2, 62, 0, Math.PI * 2); c.stroke();
     c.beginPath();
@@ -355,7 +394,7 @@
     c.stroke();
 
     // Industrial wall band: panels + guard rail, brighter boundary read.
-    c.fillStyle = '#747980';
+    c.fillStyle = '#3C434C';
     c.fillRect(0, 0, S, 30); c.fillRect(0, S - 30, S, 30);
     c.fillRect(0, 0, 30, S); c.fillRect(S - 30, 0, 30, S);
     c.strokeStyle = 'rgba(0,0,0,0.4)';
@@ -366,7 +405,7 @@
       c.beginPath(); c.moveTo(0, g); c.lineTo(30, g); c.stroke();
       c.beginPath(); c.moveTo(S - 30, g); c.lineTo(S, g); c.stroke();
     }
-    c.strokeStyle = '#656A71';
+    c.strokeStyle = '#2C3239';
     c.lineWidth = 6;
     c.strokeRect(30, 30, S - 60, S - 60);
     c.strokeStyle = 'rgba(255,255,255,0.05)';

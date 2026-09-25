@@ -67,36 +67,74 @@
   }
   speckImg = loadImg(SPECK);
   atlasImg = loadImg(ATLAS_SRC);
+  function parseRgb(hex) {
+    const s = String(hex).replace('#', '');
+    return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)];
+  }
+  function colorLayer(src, color) {
+    const cnv = document.createElement('canvas');
+    cnv.width = src.naturalWidth || src.width || 240;
+    cnv.height = src.naturalHeight || src.height || 160;
+    const c = cnv.getContext('2d');
+    c.drawImage(src, 0, 0);
+    c.globalCompositeOperation = 'source-in';
+    c.fillStyle = color;
+    c.fillRect(0, 0, cnv.width, cnv.height);
+    return cnv;
+  }
   function buildTintedAtlas() {
-    if (!atlasImg || !atlasImg.complete || !atlasImg.naturalWidth) return;
-    const w = atlasImg.naturalWidth;
-    const h = atlasImg.naturalHeight;
+    if (!atlasImg || !atlasImg.complete || !(atlasImg.naturalWidth || atlasImg.width)) return;
+    const w = atlasImg.naturalWidth || atlasImg.width;
+    const h = atlasImg.naturalHeight || atlasImg.height;
     for (const kind of Object.keys(PALETTE)) {
+      const pal = PALETTE[kind];
+      const edgeLayer = colorLayer(atlasImg, pal.edge);
+      const fillLayer = colorLayer(atlasImg, pal.fill);
       const cnv = document.createElement('canvas');
       cnv.width = w; cnv.height = h;
       const c = cnv.getContext('2d');
-      const pal = PALETTE[kind];
+      c.save();
       if (kind === 'miss') {
-        c.save();
         c.shadowColor = pal.edge;
-        c.shadowBlur = 6;
-        c.drawImage(atlasImg, 0, 0);
-        c.restore();
-      } else {
-        c.drawImage(atlasImg, 1, 1);
-        c.globalCompositeOperation = 'source-atop';
-        c.fillStyle = pal.edge;
-        c.fillRect(0, 0, w, h);
-        c.globalCompositeOperation = 'source-over';
-        c.drawImage(atlasImg, 0, 0);
+        c.shadowBlur = 5;
+        c.drawImage(fillLayer, 0, 0);
+        c.shadowBlur = 0;
       }
-      c.globalCompositeOperation = 'source-atop';
-      c.fillStyle = pal.fill;
-      c.fillRect(0, 0, w, h);
+      const spread = kind === 'miss' ? 1.6 : 1.2;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (!dx && !dy) continue;
+          c.drawImage(edgeLayer, dx * spread, dy * spread);
+        }
+      }
+      c.restore();
+      c.drawImage(fillLayer, 0, 0);
       tintedAtlas[kind] = cnv;
-      stats.atlasVariant[kind] = pal.fill;
+      stats.atlasVariant[kind] = { fill: pal.fill, edge: pal.edge };
     }
     stats.atlasReady = true;
+  }
+  function nearColor(px, rgb, tol) {
+    return Math.abs(px[0] - rgb[0]) <= tol && Math.abs(px[1] - rgb[1]) <= tol && Math.abs(px[2] - rgb[2]) <= tol && px[3] > 40;
+  }
+  function sampleAtlasPixels(kind) {
+    if (!stats.atlasReady) buildTintedAtlas();
+    const cnv = tintedAtlas[kind];
+    if (!cnv) return { fillHits: 0, edgeHits: 0 };
+    const c = cnv.getContext('2d');
+    const img = c.getImageData(0, 0, cnv.width, cnv.height);
+    const pal = PALETTE[kind];
+    const fill = parseRgb(pal.fill);
+    const edge = parseRgb(pal.edge);
+    let fillHits = 0, edgeHits = 0, opaque = 0;
+    for (let i = 0; i < img.data.length; i += 4) {
+      const px = [img.data[i], img.data[i + 1], img.data[i + 2], img.data[i + 3]];
+      if (px[3] < 20) continue;
+      opaque += 1;
+      if (nearColor(px, fill, 28)) fillHits += 1;
+      else if (nearColor(px, edge, 36)) edgeHits += 1;
+    }
+    return { fillHits, edgeHits, opaque, fill: pal.fill, edge: pal.edge, w: cnv.width, h: cnv.height };
   }
   atlasImg.onload = () => { buildTintedAtlas(); };
   if (atlasImg.complete) buildTintedAtlas();
@@ -506,6 +544,8 @@
     healGameplayEnabled: true,
     palettes: PALETTE,
     tintedAtlas,
+    sampleAtlasPixels,
+    forceAtlasImage(img) { atlasImg = img; buildTintedAtlas(); },
     stainSurface() { return stainCanvas; },
     livePopups() { return popupLive; },
   };
