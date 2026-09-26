@@ -115,15 +115,23 @@
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
     }[ch]));
   }
+  const FIGHTER_ART = Object.freeze({
+    ICE: 'ice',
+    STRING: 'string',
+    NOVA: 'galaxy',
+  });
   function fighterInfo(name) {
     const id = String(name || 'NEWBIE').toUpperCase();
     const shell = window.APEX_ARSENAL_SHELLS && window.APEX_ARSENAL_SHELLS.typeFor
       ? window.APEX_ARSENAL_SHELLS.typeFor(id) : null;
+    const artId = FIGHTER_ART[id] || null;
     return {
       id,
       color: (shell && shell.color) || '#d7bd72',
       desc: (shell && shell.desc) || 'Arsenal fighter',
       mark: (typeof window.fighterGlyph === 'function' && window.fighterGlyph(id)) || id.slice(0, 2),
+      standing: artId ? `${PICK_ASSETS}standing/${artId}-standing.webp` : '',
+      icon: artId ? `${PICK_ASSETS}hero-icons/${artId}-icon.webp` : '',
     };
   }
   function wireGridNav(root, selector, cols) {
@@ -170,8 +178,10 @@
     .aq-hub-layout{display:grid;grid-template-columns:minmax(260px,.72fr) minmax(0,1.55fr);gap:clamp(18px,2vw,28px);padding-top:clamp(22px,3vh,36px)}
     .aq-ident{min-height:min(690px,calc(100dvh - 142px));display:grid;grid-template-rows:auto minmax(190px,1fr) auto auto auto;align-items:center;padding:22px;border:1px solid #39424c;background:linear-gradient(180deg,#171d24,#0d1217);clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);}
     .aq-ident-label{justify-self:start;color:#7f8b97;font:800 9px/1 ui-monospace,monospace;letter-spacing:.18em}
-    .aq-plate{position:relative;display:grid;place-items:center;width:min(82%,290px);aspect-ratio:1;justify-self:center;margin:18px 0;border:1px solid color-mix(in srgb,var(--fighter-accent) 45%,#46515d);background:radial-gradient(circle at 50% 42%,color-mix(in srgb,var(--fighter-accent) 18%,transparent),transparent 50%),linear-gradient(180deg,#222a33,#10151b);color:#f3eee1;font:900 clamp(56px,7vw,96px)/1 "ApcKanit","Segoe UI",sans-serif;font-style:italic;clip-path:polygon(16% 0,84% 0,100% 16%,100% 84%,84% 100%,16% 100%,0 84%,0 16%);}
-    .aq-plate::after{content:"";position:absolute;left:18%;right:18%;bottom:10%;height:2px;background:var(--fighter-accent);box-shadow:0 0 16px color-mix(in srgb,var(--fighter-accent) 55%,transparent)}
+    .aq-plate{position:relative;display:grid;place-items:center;width:min(82%,290px);aspect-ratio:1;justify-self:center;margin:18px 0;border:1px solid color-mix(in srgb,var(--fighter-accent) 45%,#46515d);background:radial-gradient(circle at 50% 42%,color-mix(in srgb,var(--fighter-accent) 18%,transparent),transparent 50%),linear-gradient(180deg,#222a33,#10151b);color:#f3eee1;font:900 clamp(56px,7vw,96px)/1 "ApcKanit","Segoe UI",sans-serif;font-style:italic;overflow:hidden;clip-path:polygon(16% 0,84% 0,100% 16%,100% 84%,84% 100%,16% 100%,0 84%,0 16%);}
+    .aq-plate::after{content:"";position:absolute;z-index:3;left:18%;right:18%;bottom:10%;height:2px;background:var(--fighter-accent);box-shadow:0 0 16px color-mix(in srgb,var(--fighter-accent) 55%,transparent)}
+    .aq-standing{position:absolute;inset:4% 2% 0;width:96%;height:96%;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 18px 18px rgba(0,0,0,.48));transform:scale(1.04);transform-origin:center bottom}
+    .aq-plate-mark{position:relative;z-index:2;text-shadow:0 4px 18px rgba(0,0,0,.6)}
     .aq-sel{font-size:clamp(24px,2.4vw,36px);font-weight:900;font-style:italic;line-height:.94;text-align:center;overflow-wrap:anywhere}
     .aq-tag{margin-top:7px;color:var(--fighter-accent);font:800 10px/1 ui-monospace,monospace;letter-spacing:.18em;text-align:center}
     .aq-primary-btn{min-height:48px;margin-top:18px;border:1px solid #5a5541;background:linear-gradient(180deg,#4a4024,#282312);color:#f5e8bb;cursor:pointer;font:900 13px/1 "Segoe UI",sans-serif;letter-spacing:.08em;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);}
@@ -179,16 +189,19 @@
     .aq-hub-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(220px,1fr);gap:16px;min-height:min(690px,calc(100dvh - 142px));}
     .aq-hub-grid .aq-action{padding:24px 24px 22px}
     .aq-shop-layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,.7fr);gap:18px;padding-top:24px}
-    .aq-shop-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-content:start;max-height:calc(100dvh - 152px);overflow:auto;padding-right:6px}
+    .aq-shop-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-content:start;max-height:calc(100dvh - 152px);overflow:auto;padding-right:6px;scrollbar-width:thin;scrollbar-color:#59636d #0b0f13}
+    .aq-shop-grid::-webkit-scrollbar{width:8px}.aq-shop-grid::-webkit-scrollbar-track{background:#0b0f13}.aq-shop-grid::-webkit-scrollbar-thumb{background:#4a535d;border:2px solid #0b0f13}
     .aq-fighter-card{position:relative;min-height:132px;padding:15px;border:1px solid #333c45;background:linear-gradient(180deg,#161c22,#0d1217);color:#f0ece2;cursor:pointer;text-align:left;clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);}
     .aq-fighter-card:hover,.aq-fighter-card.is-selected{border-color:var(--fighter-accent);filter:brightness(1.08)}
     .aq-fighter-card.is-selected{box-shadow:inset 3px 0 var(--fighter-accent)}
     .aq-fighter-card.is-locked{opacity:.62;filter:saturate(.45)}
-    .aq-fighter-mark{display:grid;place-items:center;width:52px;height:52px;border:1px solid color-mix(in srgb,var(--fighter-accent) 48%,#46515d);background:#11171c;color:#f4f0e6;font:900 20px/1 "ApcKanit","Segoe UI",sans-serif;font-style:italic}
+    .aq-fighter-mark{display:grid;place-items:center;width:52px;height:52px;border:1px solid color-mix(in srgb,var(--fighter-accent) 48%,#46515d);background:#11171c;color:#f4f0e6;font:900 20px/1 "ApcKanit","Segoe UI",sans-serif;font-style:italic;overflow:hidden}
+    .aq-fighter-mark img{width:100%;height:100%;object-fit:cover;object-position:center}
     .aq-fighter-name{display:block;margin-top:13px;font:900 15px/1 "ApcKanit","Segoe UI",sans-serif;font-style:italic;overflow-wrap:anywhere}
     .aq-fighter-state{display:block;margin-top:7px;color:var(--fighter-accent);font:800 9px/1 ui-monospace,monospace;letter-spacing:.08em}
     .aq-detail{align-self:start;position:sticky;top:18px;min-height:360px;padding:24px;border:1px solid #39424c;background:linear-gradient(180deg,#171d24,#0c1116);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);}
-    .aq-detail-mark{display:grid;place-items:center;width:92px;height:92px;border:1px solid var(--fighter-accent);background:#11171c;color:#f4f0e6;font:900 32px/1 "ApcKanit","Segoe UI",sans-serif;font-style:italic}
+    .aq-detail-mark{display:grid;place-items:center;width:112px;height:112px;border:1px solid var(--fighter-accent);background:radial-gradient(circle at center,color-mix(in srgb,var(--fighter-accent) 12%,transparent),#11171c 70%);color:#f4f0e6;font:900 32px/1 "ApcKanit","Segoe UI",sans-serif;font-style:italic;overflow:hidden}
+    .aq-detail-mark img{width:100%;height:100%;object-fit:contain;object-position:center bottom}
     .aq-detail h2{margin:18px 0 0;font-size:clamp(24px,2.4vw,34px);line-height:.95;font-style:italic}
     .aq-detail p{margin:14px 0 0;color:#aab3bc;font:650 13px/1.55 "Segoe UI",sans-serif}
     .aq-detail-status{margin-top:20px;padding-top:14px;border-top:1px solid #2f3740;color:var(--fighter-accent);font:800 11px/1.2 ui-monospace,monospace;letter-spacing:.1em}
@@ -289,7 +302,7 @@
         <section class="aq-hub-layout">
           <article class="aq-ident" style="--fighter-accent:${esc(info.color)}">
             <div class="aq-ident-label">ACTIVE FIGHTER</div>
-            <div class="aq-plate" aria-hidden="true">${esc(info.mark)}</div>
+            <div class="aq-plate" aria-hidden="true">${info.standing ? `<img class="aq-standing" src="${esc(info.standing)}" alt=""/>` : `<span class="aq-plate-mark">${esc(info.mark)}</span>`}</div>
             <div class="aq-sel">${esc(info.id)}</div>
             <div class="aq-tag">SELECTED</div>
             <button id="aq-change" class="aq-primary-btn" type="button">CHANGE FIGHTER</button>
@@ -323,7 +336,7 @@
   function paintShop(selectedName) {
     const el = ensureRoot();
     const ids = ROSTER();
-    shopSelected = String(selectedName || shopSelected || state.lastSelectedP1 || 'NEWBIE').toUpperCase();
+    shopSelected = String(selectedName || state.lastSelectedP1 || shopSelected || 'NEWBIE').toUpperCase();
     if (!ids.includes(shopSelected)) shopSelected = 'NEWBIE';
     const selected = fighterInfo(shopSelected);
     const selectedOwned = owns(shopSelected);
@@ -331,7 +344,7 @@
       const owned = owns(n);
       const info = fighterInfo(n);
       const label = n === 'NEWBIE' ? 'DEFAULT / OWNED' : owned ? 'OWNED' : '1000 AC';
-      return `<button data-shop-card="${esc(n)}" class="aq-fighter-card ${owned ? '' : 'is-locked'} ${n === shopSelected ? 'is-selected' : ''}" style="--fighter-accent:${esc(info.color)}"><span class="aq-fighter-mark">${esc(info.mark)}</span><span class="aq-fighter-name">${esc(n)}</span><span class="aq-fighter-state">${label}</span></button>`;
+      return `<button data-shop-card="${esc(n)}" class="aq-fighter-card ${owned ? '' : 'is-locked'} ${n === shopSelected ? 'is-selected' : ''}" style="--fighter-accent:${esc(info.color)}"><span class="aq-fighter-mark">${info.icon ? `<img src="${esc(info.icon)}" alt=""/>` : esc(info.mark)}</span><span class="aq-fighter-name">${esc(n)}</span><span class="aq-fighter-state">${label}</span></button>`;
     }).join('');
     el.style.display = 'block';
     el.innerHTML = shell(`
@@ -343,7 +356,7 @@
         <section class="aq-shop-layout">
           <div class="aq-shop-grid" role="listbox" aria-label="Fighter roster">${cards}</div>
           <aside class="aq-detail" id="aq-shop-detail" style="--fighter-accent:${esc(selected.color)}">
-            <div class="aq-detail-mark">${esc(selected.mark)}</div>
+            <div class="aq-detail-mark">${selected.standing ? `<img src="${esc(selected.standing)}" alt=""/>` : esc(selected.mark)}</div>
             <div class="aq-kicker" style="margin-top:18px">FIGHTER PROFILE</div>
             <h2>${esc(selected.id)}</h2>
             <p>${esc(selected.desc)}</p>
