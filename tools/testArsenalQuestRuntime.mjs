@@ -1887,6 +1887,14 @@ try {
   gate('real-raf-pacing-sample', report.rafPlay.pacing && report.rafPlay.pacing.samples >= 30, report.rafPlay.pacing);
 
   report.chamberTone = await evaluate(`(() => {
+    // Sample the CHAMBER, not a random active pickup/heal/storm flash left
+    // from the rAF pacing probe. Freeze that loop and remove presentation
+    // overlays before the unchanged background draw; the next gate builds
+    // its own rarity slot independently.
+    cancelAnimationFrame(reqId); reqId = 0;
+    APEX_ARSENAL.state.slots = [];
+    APEX_ARSENAL_STORM?.clear();
+    APEX_ARSENAL_FEEL?.resetMatch();
     const c = document.createElement('canvas');
     c.width = 1000; c.height = 1000;
     const ctx = c.getContext('2d');
