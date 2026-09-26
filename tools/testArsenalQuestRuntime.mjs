@@ -1385,6 +1385,102 @@ try {
   await evaluate(`(() => { APEX_ARSENAL_META.hideMeta(); APEX_ARSENAL_QUEST.showMap(); return true; })()`);
   report.evidence.push(await screenshot('v3-quest-map'));
 
+  // ------------------------------------------ responsive UI / pointer QA -----
+  // These gates use real browser viewport overrides and physical CDP pointer
+  // dispatch. Programmatic HTMLElement.click() is intentionally insufficient:
+  // it can pass even when an overlay has pointer-events:none.
+  await evaluate(`(() => {
+    APEX_ARSENAL_QUEST.showMap();
+    document.getElementById('aq-quest-map').style.display = 'none';
+    APEX_ARSENAL_META.hideMeta();
+    window.startArsenalQuestMode('HERO', 'RIVAL');
+    APEX_ARSENAL.state.debugOverlay = false;
+    __AQ_TEST.redraw();
+    return true;
+  })()`);
+
+  const layoutProbe = async () => evaluate(`(() => {
+    const rect = (sel) => {
+      const e = document.querySelector(sel);
+      if (!e) return null;
+      const r = e.getBoundingClientRect();
+      return { left:r.left, top:r.top, right:r.right, bottom:r.bottom, width:r.width, height:r.height };
+    };
+    return {
+      innerWidth, innerHeight,
+      scrollWidth:document.documentElement.scrollWidth,
+      shell:rect('#battle-shell'),
+      arena:rect('#game-wrapper'),
+      p1:rect('#p1-combat-panel'),
+      p2:rect('#p2-combat-panel'),
+    };
+  })()`);
+
+  await setViewport(1920, 1080, false);
+  await evaluate(`__AQ_TEST.redraw(); true`);
+  const fullDesktop = await layoutProbe();
+  gate('responsive-fullscreen-battle-uses-width',
+    fullDesktop.shell && fullDesktop.shell.width >= fullDesktop.innerWidth - 16
+      && fullDesktop.scrollWidth <= fullDesktop.innerWidth + 2,
+    fullDesktop);
+  gate('responsive-fullscreen-arena-square-maximized',
+    fullDesktop.arena
+      && Math.abs(fullDesktop.arena.width - fullDesktop.arena.height) <= 2
+      && fullDesktop.arena.height >= fullDesktop.innerHeight * 0.94,
+    fullDesktop);
+  gate('responsive-fullscreen-side-panels-fill-height',
+    fullDesktop.p1 && fullDesktop.p2
+      && fullDesktop.p1.width >= 260 && fullDesktop.p2.width >= 260
+      && fullDesktop.p1.height >= fullDesktop.innerHeight * 0.94
+      && fullDesktop.p2.height >= fullDesktop.innerHeight * 0.94,
+    fullDesktop);
+  report.evidence.push(await screenshot('responsive-battle-1920x1080'));
+
+  await setViewport(1366, 768, false);
+  await evaluate(`__AQ_TEST.redraw(); true`);
+  const normalDesktop = await layoutProbe();
+  gate('responsive-desktop-battle-uses-width',
+    normalDesktop.shell && normalDesktop.shell.width >= normalDesktop.innerWidth - 16
+      && normalDesktop.scrollWidth <= normalDesktop.innerWidth + 2,
+    normalDesktop);
+  gate('responsive-desktop-arena-square',
+    normalDesktop.arena
+      && Math.abs(normalDesktop.arena.width - normalDesktop.arena.height) <= 2
+      && normalDesktop.arena.height >= normalDesktop.innerHeight * 0.92,
+    normalDesktop);
+  gate('responsive-desktop-side-panels-readable',
+    normalDesktop.p1 && normalDesktop.p2
+      && normalDesktop.p1.width >= 220 && normalDesktop.p2.width >= 220,
+    normalDesktop);
+  report.evidence.push(await screenshot('responsive-battle-1366x768'));
+
+  await setViewport(390, 844, true);
+  await evaluate(`__AQ_TEST.redraw(); true`);
+  const phone = await layoutProbe();
+  gate('responsive-phone-no-horizontal-overflow',
+    phone.shell && phone.shell.width <= phone.innerWidth + 2
+      && phone.scrollWidth <= phone.innerWidth + 2,
+    phone);
+  gate('responsive-phone-arena-full-width-square',
+    phone.arena
+      && Math.abs(phone.arena.width - phone.arena.height) <= 2
+      && phone.arena.width >= phone.innerWidth - 10,
+    phone);
+  gate('responsive-phone-panels-stack-full-width',
+    phone.p1 && phone.p2
+      && phone.p1.width >= phone.innerWidth - 12
+      && phone.p2.width >= phone.innerWidth - 12
+      && phone.p1.top >= phone.arena.bottom - 2
+      && phone.p2.top >= phone.p1.bottom - 2,
+    phone);
+  report.evidence.push(await screenshot('responsive-battle-390x844'));
+  await evaluate(`document.getElementById('p1-combat-panel')?.scrollIntoView({ block:'start' }); true`);
+  await sleep(100);
+  report.evidence.push(await screenshot('responsive-panels-390x844'));
+
+  await clearViewport();
+  await sleep(120);
+
   // ------------------------------------------------------------- PASS A -----
   // Owner playtest Pass A (OWNER_PLAYTEST_PASS_A_HIT_FEEDBACK_AND_NAV_AUTHORITY):
   // main-menu entry resolves to the Hub, Hub-rooted navigation with visible
