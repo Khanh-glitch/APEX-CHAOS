@@ -1,7 +1,7 @@
 // Cache-bust classic runtime scripts that live under /public and therefore do
 // not receive Vite content hashes. Without this, stable Cloudflare branch
 // aliases can serve a previous Arsenal runtime even when index.html is new.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20260926-storm-v9-parity-r4-rings';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20260926-storm-v9-parity-r5-flight';
 
 export const BOOT_GAME_RUNTIMES = [
   ['/game/core/apexBattleAudioRuntime.js?v=20260926-mobile-sfx-unlock1', 'apexBattleAudioRuntime'],
@@ -67,19 +67,19 @@ export const MODE_DEFERRED_RUNTIMES = {
     ['/game/modes/tamChienRuntime.js', 'apexTamChienRuntime'],
   ],
   arsenalQuest: [
-    ['/game/arsenal/arsenalCWeaponSet.generated.js?v=20260926-storm-v9-parity-r4-rings', 'apexArsenalCSet'],
-    ['/game/arsenal/arsenalQuestConfig.js?v=20260926-storm-v9-parity-r4-rings', 'apexArsenalQuestConfig'],
-    ['/game/arsenal/arsenalIdentityRuntime.js?v=20260926-storm-v9-parity-r4-rings', 'apexArsenalIdentityRuntime'],
-    ['/game/arsenal/arsenalWeaponRuntime.js?v=20260926-storm-v9-parity-r4-rings', 'apexArsenalWeaponRuntime'],
-    ['/game/arsenal/arsenalSpawnRuntime.js?v=20260926-storm-v9-parity-r4-rings', 'apexArsenalSpawnRuntime'],
-    ['/game/arsenal/arsenalPresentationRuntime.js?v=20260926-storm-v9-parity-r4-rings', 'apexArsenalPresentationRuntime'],
-    ['/game/arsenal/arsenalFeelRuntime.js?v=20260926-storm-v9-parity-r4-rings', 'apexArsenalFeelRuntime'],
-    ['/game/arsenal/arsenalStormbreakerVfxRuntime.js?v=20260926-storm-v9-parity-r4-rings', 'apexArsenalStormbreakerVfxRuntime'],
-    ['/game/arsenal/arsenalManualSkillGate.js?v=20260926-storm-v9-parity-r4-rings', 'apexArsenalManualSkillGate'],
-    ['/game/arsenal/arsenalShellSelectRuntime.js?v=20260926-storm-v9-parity-r4-rings', 'apexArsenalShellSelectRuntime'],
-    ['/game/arsenal/arsenalQuestLadder.js?v=20260926-storm-v9-parity-r4-rings', 'apexArsenalQuestLadder'],
-    ['/game/arsenal/arsenalMetaRuntime.js?v=20260926-storm-v9-parity-r4-rings', 'apexArsenalMetaRuntime'],
-    ['/game/modes/arsenalQuestRuntime.js?v=20260926-storm-v9-parity-r4-rings', 'apexArsenalQuestRuntime'],
+    ['/game/arsenal/arsenalCWeaponSet.generated.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalCSet'],
+    ['/game/arsenal/arsenalQuestConfig.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalQuestConfig'],
+    ['/game/arsenal/arsenalIdentityRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalIdentityRuntime'],
+    ['/game/arsenal/arsenalWeaponRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalWeaponRuntime'],
+    ['/game/arsenal/arsenalSpawnRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalSpawnRuntime'],
+    ['/game/arsenal/arsenalPresentationRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalPresentationRuntime'],
+    ['/game/arsenal/arsenalFeelRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalFeelRuntime'],
+    ['/game/arsenal/arsenalStormbreakerVfxRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalStormbreakerVfxRuntime'],
+    ['/game/arsenal/arsenalManualSkillGate.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalManualSkillGate'],
+    ['/game/arsenal/arsenalShellSelectRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalShellSelectRuntime'],
+    ['/game/arsenal/arsenalQuestLadder.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalQuestLadder'],
+    ['/game/arsenal/arsenalMetaRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalMetaRuntime'],
+    ['/game/modes/arsenalQuestRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalQuestRuntime'],
   ],
 };
 

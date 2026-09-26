@@ -703,6 +703,13 @@
         ctx.arc(p.x, p.y, t.head, 0, TAU);
         ctx.fill();
       } else if (p.type === 'aq_thrown') {
+        // Stormbreaker V9 presentation is owned by APEX_ARSENAL_STORM so its
+        // draw order can match the executable ref exactly. Physics/collision
+        // remain here; only the duplicate generic sprite draw is skipped.
+        if (p.weapon === 'STORMBREAKER' && window.APEX_ARSENAL_STORM && window.APEX_ARSENAL_STORM.ownsFlightSprite) {
+          ctx.restore();
+          continue;
+        }
         // POST-C §5: the ACTUAL weapon sprite flies — same authored art as the
         // pickup/equipped reads, oriented along its travel (tip-first).
         const av = window.APEX_ARSENAL_AV;

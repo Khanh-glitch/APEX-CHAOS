@@ -488,9 +488,20 @@
       flightHist.push({ x: fl.x, y: fl.y });
       if (flightHist.length > 6) flightHist.shift();
       if (flightHist.length === 1) {
-        // New throw: one-time release accent at the release point.
+        // Literal V9 release accent: 13 sparks + one short owner-to-weapon
+        // electrical snap. This is a bounded 110ms release transient, never a
+        // history/tail effect.
         stats.throws += 1;
         sparkBurst(fl.x, fl.y, 13, 0.9);
+        const owner = fl.owner;
+        if (owner) {
+          makeBolt(
+            owner.x, owner.y,
+            fl.x + 32, fl.y - 10,
+            { life: 0.11, width: 1.2, power: 0.9, rough: 0.22, branchCount: 1, branchScale: 0.2, regen: 0.02 }
+          );
+        }
+        if (typeof cameraShake !== 'undefined') cameraShake = Math.max(cameraShake, 2.5);
       }
     } else if (flightHist.length) {
       flightHist = []; // weapon resolved (hit/miss) — arcs die with flight
@@ -705,27 +716,38 @@
     const time = AQ.state.time;
     const g = ctx;
 
-    // --- flight: the ONLY in-flight VFX. Fixed cost, zero bolt objects,
-    // NO LONG TAIL (structurally: no trail/history render path exists).
+    // --- flight: V9 render order is local electricity first, then transient
+    // bolts, then three cached spin ghosts, then ONE solid weapon body.
+    // The real aq_thrown object remains the only physics/collision authority.
     const fl = findFlight();
+    let flightDraw = null;
     if (fl) {
       const long = T.flightLongSide || T.worldLongSide || 209;
       const visualOffset = T.flightVisualOffsetRad || 0;
       const theta = fl.rot + Math.PI / 2 + visualOffset;
-      const back1 = flightHist.length >= 2 ? flightHist[flightHist.length - 2] : { x: fl.px != null ? fl.px : fl.x, y: fl.py != null ? fl.py : fl.y };
-      const back2 = flightHist.length >= 4 ? flightHist[flightHist.length - 4] : back1;
-      // V9 spin blur: three cached ghosts (angular offsets behind the head).
-      drawWeaponCached(g, back2.x, back2.y, (fl.rot - 0.68) + Math.PI / 2 + visualOffset, long, 0.10, true);
-      drawWeaponCached(g, back1.x, back1.y, (fl.rot - 0.34) + Math.PI / 2 + visualOffset, long, 0.18, true);
-      drawWeaponCached(g, fl.x, fl.y, (fl.rot - 0.16) + Math.PI / 2 + visualOffset, long, 0.18, true);
-      // Linked electricity across the WHOLE spinning weapon + short snaps.
+
+      // Exact fixed-cost 10-link web + four short snaps. No history trail.
       drawLinkedArcs(g, fl.x, fl.y, theta, long, time, 1.0);
+
+      // V9 ghosts sample ~20ms and ~40ms behind the current weapon. APEX's
+      // projectile path is linear between collisions, so velocity gives the
+      // exact time-offset positions without frame-rate-dependent history.
+      const back1 = { x: fl.x - (fl.vx || 0) * 0.020, y: fl.y - (fl.vy || 0) * 0.020 };
+      const back2 = { x: fl.x - (fl.vx || 0) * 0.040, y: fl.y - (fl.vy || 0) * 0.040 };
+      flightDraw = { fl, long, visualOffset, theta, back1, back2 };
     }
 
-    // --- held: V9 uses the transient handle-web emitted in tick(); the fixed
-    // 10-link renderer belongs only to flight.
-    // --- airborne bolts (pickup/impact/crackle accents — never trails).
+    // --- held: V9 uses the transient handle-web emitted in tick().
+    // --- airborne bolts include pickup/impact/crackle + the 110ms release snap.
     for (const b of bolts) if (!b.floor) drawBolt(g, b);
+
+    if (flightDraw) {
+      const { fl: fp, long, visualOffset, theta, back1, back2 } = flightDraw;
+      drawWeaponCached(g, back2.x, back2.y, (fp.rot - 0.68) + Math.PI / 2 + visualOffset, long, 0.10, true);
+      drawWeaponCached(g, back1.x, back1.y, (fp.rot - 0.34) + Math.PI / 2 + visualOffset, long, 0.18, true);
+      drawWeaponCached(g, fp.x, fp.y, (fp.rot - 0.16) + Math.PI / 2 + visualOffset, long, 0.18, true);
+      drawWeaponCached(g, fp.x, fp.y, theta, long, 1.0, false);
+    }
 
     // --- claim concentration flash (brief, V9 pickup).
     for (const c of claims) {
@@ -801,6 +823,7 @@
   }
 
   window.APEX_ARSENAL_STORM = {
+    ownsFlightSprite: true,
     tick,
     draw,
     drawFloor,
@@ -832,6 +855,9 @@
       motesEnabled: true,
       ringRenderer: 'v9-local',
       genericShockwaveSubstitution: false,
+      flightPresentationOwner: 'storm-vfx',
+      ghostOffsetsSeconds: [0.04, 0.02, 0],
+      releaseBoltSeconds: 0.11,
       flightWidths: [4.1, 1.55, 0.62],
       spawnStrongEvery: 3,
       longTail: false,
