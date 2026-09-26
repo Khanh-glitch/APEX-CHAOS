@@ -23,6 +23,7 @@
     SPIKED_CLUB:  { tag: 'CLB', color: '#e6c9ff' },
     SWIRL_SHIELD: { tag: 'SWL', color: '#9fe8ff' },
     TOWER_SHIELD: { tag: 'TWR', color: '#9fd8ff' },
+    STORMBREAKER: { tag: 'STB', color: '#8fd8ff' },
   };
 
   function pickSpawnPoint(slots) {

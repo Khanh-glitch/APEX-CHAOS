@@ -69,6 +69,7 @@ export const MODE_DEFERRED_RUNTIMES = {
     ['/game/arsenal/arsenalSpawnRuntime.js', 'apexArsenalSpawnRuntime'],
     ['/game/arsenal/arsenalPresentationRuntime.js', 'apexArsenalPresentationRuntime'],
     ['/game/arsenal/arsenalFeelRuntime.js', 'apexArsenalFeelRuntime'],
+    ['/game/arsenal/arsenalStormbreakerVfxRuntime.js', 'apexArsenalStormbreakerVfxRuntime'],
     ['/game/arsenal/arsenalManualSkillGate.js', 'apexArsenalManualSkillGate'],
     ['/game/arsenal/arsenalShellSelectRuntime.js', 'apexArsenalShellSelectRuntime'],
     ['/game/arsenal/arsenalQuestLadder.js', 'apexArsenalQuestLadder'],

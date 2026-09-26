@@ -487,6 +487,12 @@ window.APEX_ARSENAL_C_SET = {
       "file": "weapons/c/TOWER_SHIELD.png",
       "w": 170,
       "h": 290
+    },
+    "STORMBREAKER": {
+      "id": "STORMBREAKER",
+      "file": "weapons/c/STORMBREAKER.png",
+      "w": 1086,
+      "h": 1448
     }
   },
   "muzzleFrames": [

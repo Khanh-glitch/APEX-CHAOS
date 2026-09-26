@@ -58,6 +58,10 @@
     SWIRL_SHIELD: { idleSettle: 0.05, reflectPop: 16, reflectRot: 0.22, returnTau: 0.10 },
     // B12 Tower Shield: forward guard pose; block = shield-only pushback/tilt.
     TOWER_SHIELD: { guardForward: 12, blockPop: 12, blockRot: 0.14, returnTau: 0.12 },
+    // B13 Stormbreaker (red tier): heavy raised windup, then the weapon
+    // LEAVES the hand along the aim (grenade-style forward throw) and scales
+    // out — no axe lingers in the hand after the release.
+    STORMBREAKER: { windupRot: -1.35, windupLift: 16, throwFwd: 46, throwTime: 0.22, throwRot: 0.6, returnTau: 0.14 },
   };
   // POST-C §3: registry guns have no hand-authored recipe — derive one from
   // the firing family so every staged gun gets sensible weapon-only motion.
@@ -213,6 +217,15 @@
       const u = Math.min(1, ghost.t / (r.throwTime || 0.34));
       p.localX = -(r.drawBack || 18) + ((r.drawBack || 18) + (r.throwFwd || 30)) * u * u;
       p.rotKick = -(r.throwRot || 0.5) * (1 - u);
+    } else if (ghost.weaponId === 'STORMBREAKER') {
+      // Heavy release: the red-tier body visibly leaves the hand along the
+      // aim and scales out as the real thrown projectile takes over — no
+      // second axe remains in the hand (locked impact/vanish identity).
+      const u = Math.min(1, ghost.t / (r.throwTime || 0.22));
+      p.localX = (r.throwFwd || 46) * u * u;
+      p.rotKick = (r.throwRot || 0.6) * (1 - u);
+      p.scaleX = Math.max(0, 1 - u);
+      p.scaleY = p.scaleX;
     } else if (ghost.weaponId === 'SPEAR' || ghost.weaponId === 'DAGGER') {
       // Thrust out-and-return: extension peaks at thrustPx then retracts.
       const u = Math.min(1, ghost.t / 0.30);
@@ -230,6 +243,8 @@
       const u = Math.min(1, ghost.t / (r.throwTime || 0.34));
       p.scaleX = Math.max(0.2, 1 - u * 0.8);
       p.scaleY = p.scaleX;
+    } else if (ghost.weaponId === 'STORMBREAKER') {
+      // Release is a forward scale-out, never a gravity drop.
     } else if (ghost.category === 'defense') {
       const u = Math.min(1, ghost.t / ghost.maxLife);
       p.scaleX = Math.max(0.5, 1 - u * 0.6);
@@ -280,6 +295,7 @@
       PISTOL: [10, -0.10], SMG: [10, -0.06], SHOTGUN: [16, -0.20], SNIPER: [18, -0.10],
       SABRE: [8, -0.30], BATTLE_AXE: [10, -0.50], DAGGER: [6, -0.20],
       SPEAR: [8, -0.20], SPIKED_CLUB: [10, -0.40],
+      STORMBREAKER: [16, -0.55],
     };
     const FAMILY_ANTICIPATION = {
       SEMI: [10, -0.10], AUTO: [10, -0.06], BURST: [10, -0.08],
@@ -323,7 +339,11 @@
     let dmg = amount;
     const gun = CFG.isGun && CFG.isGun(weaponId);
     const melee = CFG.isMelee && CFG.isMelee(weaponId);
-    if (gun || melee || weaponId === 'GRENADE') dmg *= (CFG.ARSENAL_DAMAGE_SCALE || 1);
+    // STORMBREAKER is equipment (red-tier) even though it is deliberately not
+    // a regular MELEE_IDS entry (no 0.5x melee spawn weight / melee tables):
+    // it rides the same x1.5 melee authority + x7 equipment scale as every
+    // other arsenal weapon — 52 x 1.5 x 7 = 546 per confirmed hit.
+    if (gun || melee || weaponId === 'GRENADE' || weaponId === 'STORMBREAKER') dmg *= (CFG.ARSENAL_DAMAGE_SCALE || 1);
     if (critical && gun) dmg *= (CFG.CRIT_DAMAGE_MULTIPLIER || 1.5);
     return dmg;
   }
@@ -546,6 +566,27 @@
             const hitR = target.radius * CFG.BULLET_HIT_RADIUS_SCALE + p.radius;
             if (distPointToSegment(target.x, target.y, p.px, p.py, p.x, p.y) < hitR) {
               const spec = CFG.WEAPONS[p.weapon] || {};
+              // STORMBREAKER: confirmed hit resolves damage through the ONE
+              // melee authority (x1.5) + x7 scale, real engine stun, then the
+              // weapon vanishes through the impact flash — it does NOT pin
+              // into the victim (locked owner decision: no axe left standing
+              // in the opponent). The VFX consumer gets the REAL swept
+              // collision point (visual only — damage is already resolved).
+              if (p.weapon === 'STORMBREAKER') {
+                const hit = sweptSegmentCircleHit(p.px, p.py, p.x, p.y, target.x, target.y, hitR) || { x: p.x, y: p.y };
+                aqDamage(target, CFG.meleeDamage('STORMBREAKER'), p.owner, 'STORMBREAKER', {
+                  knockback: spec.knockback, stun: spec.stun,
+                  shake: spec.shake != null ? spec.shake : 15,
+                  hitStop: spec.hitStop != null ? spec.hitStop : 0.08,
+                });
+                if (window.APEX_ARSENAL_STORM && window.APEX_ARSENAL_STORM.onImpact) {
+                  window.APEX_ARSENAL_STORM.onImpact(hit.x, hit.y, target);
+                }
+                window.avCue('storm_impact', { weapon: 'STORMBREAKER', x: hit.x, y: hit.y });
+                log('STORM_IMPACT', `target=${target.name} x=${Math.round(hit.x)} y=${Math.round(hit.y)}`);
+                projectiles.splice(i, 1);
+                continue;
+              }
               p.pinAngle = Math.atan2(p.vy, p.vx);
               // ONE melee damage authority: thrown hits read the same x1.5.
               aqDamage(target, CFG.meleeDamage(p.weapon), p.owner, p.weapon, {
@@ -870,6 +911,7 @@
     };
   }
   function meleeDrawLong(weaponId) {
+    if (weaponId === 'STORMBREAKER') return (CFG.STORMBREAKER && CFG.STORMBREAKER.worldLongSide) || 200;
     return weaponId === 'SPEAR' ? 190 : weaponId === 'BATTLE_AXE' ? 155 : weaponId === 'SPIKED_CLUB' ? 150 : weaponId === 'DAGGER' ? 110 : 145;
   }
   function spawnThrownMelee(f, weaponId, angle) {
@@ -899,7 +941,15 @@
       pinAngle: angle,
       rot: angle,
       spin: t.spin,
-      grace: CFG.THROWN_MELEE.pickupDelay || 0,
+      // STORMBREAKER exception: the red-tier release has no collision-grace
+      // window. At 1350 px/s the 0.35s grace would tunnel ~470px — a
+      // point-blank throw would pass THROUGH the opponent and only connect
+      // off a wall bounce, breaking the committed-release identity. Its own
+      // 0.45s ready + 0.28s windup already gates the release (no accidental
+      // instant throw), and a missed storm simply exits — it never
+      // re-enters the floor pickup pool, so the original re-collect concern
+      // the grace encoded does not apply.
+      grace: weaponId === 'STORMBREAKER' ? 0 : (CFG.THROWN_MELEE.pickupDelay || 0),
       life: 6.0,
       maxLife: 6.0,
     });
@@ -1380,6 +1430,54 @@
 
     SABRE: makeMelee('SABRE', 'M01_sabre', '#c9e6ff'),
     BATTLE_AXE: makeMelee('BATTLE_AXE', 'M04_battle_axe', '#ffb3a0'),
+
+    // STORMBREAKER — first red-tier (T6) fantasy weapon. The attack identity
+    // is locked (V1 port, docs/stormbreaker/v1-port): there is no melee
+    // strike/throw fork. After a short committed windup the ACTUAL weapon is
+    // thrown straight at the opponent through the standard aq_thrown
+    // lifecycle (swept-segment collision, wall ricochet budget, physical
+    // exit on a miss). On a confirmed hit the weapon vanishes through the
+    // impact flash instead of pinning (see updateArsenalProjectiles).
+    STORMBREAKER: (() => {
+      const T = CFG.STORMBREAKER || { windupSeconds: 0.28, readyDelaySeconds: 0.45 };
+      return {
+        id: 'STORMBREAKER',
+        category: 'melee',
+        spriteKey: 'STORMBREAKER',
+        exit: 'stormRelease',
+        onEquip(ctx) {
+          ctx.holder.phase = 'READY';
+          ctx.holder.meta.decision = 'throw';
+          log('MELEE_DECIDE', `fighter=${ctx.fighter.name} weapon=STORMBREAKER decision=throw`);
+        },
+        canActivate(ctx) {
+          return ctx.holder.phase === 'READY'
+            && enemyAlive(ctx)
+            && ctx.holder.elapsed >= T.readyDelaySeconds;
+        },
+        activate(ctx) {
+          const h = ctx.holder;
+          h.phase = 'WINDUP';
+          h.meta.windupLeft = T.windupSeconds;
+          aimAtHolder(ctx);
+          window.avCue('storm_windup', { weapon: 'STORMBREAKER', x: ctx.fighter.x, y: ctx.fighter.y });
+          pushVisual({ kind: 'windup', x: ctx.fighter.x, y: ctx.fighter.y, owner: ctx.fighter, life: T.windupSeconds, maxLife: T.windupSeconds, color: '#7fd4ff' });
+          log('USE', `fighter=${ctx.fighter.name} weapon=STORMBREAKER`);
+        },
+        update(ctx, dt) {
+          const h = ctx.holder;
+          if (h.phase !== 'WINDUP') return;
+          h.meta.windupLeft -= dt;
+          if (h.meta.windupLeft > 0) return;
+          // Committed heavy release: the real sprite flies, aim-locked at the
+          // moment of release (independent weapon aim, never fighter.dir).
+          const angle = holderAim(ctx);
+          spawnThrownMelee(ctx.fighter, 'STORMBREAKER', angle);
+          window.avCue('storm_throw', { weapon: 'STORMBREAKER', x: ctx.fighter.x, y: ctx.fighter.y, angle });
+          consume(ctx.fighter, 'thrown');
+        },
+      };
+    })(),
 
     DAGGER: (() => {
       const spec = CFG.WEAPONS.DAGGER;

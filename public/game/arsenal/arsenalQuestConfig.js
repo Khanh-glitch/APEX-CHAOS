@@ -58,6 +58,13 @@
       DAGGER:      { triggerRange: 210, dashSpeed: 1300, dashTime: 0.17, hitBonus: 34, damage: 9 },
       SPEAR:       { triggerRange: 345, windup: 0.18, reach: 360, halfAngle: 0.30, damage: 15, knockback: 1100 },
       SPIKED_CLUB: { triggerRange: 245, windup: 0.22, reach: 255, halfAngle: 1.00, damage: 18, knockback: 850, stun: 0.8 },
+      // STORMBREAKER — first red-tier (T6) fantasy weapon. Damage flows through
+      // the ONE melee authority (x1.5) and the x7 Arsenal equipment scale, like
+      // every other melee: 52 * 1.5 * 7 = 546 per confirmed hit on a 1000 HP
+      // match — a red-tier two-shot, never a blind one-shot. Balance values are
+      // production-audited (docs/stormbreaker/v1-port): the V9 demo numbers are
+      // effect/feel authority only, not balance authority.
+      STORMBREAKER:  { damage: 52, knockback: 900, stun: 1.0, shake: 15, hitStop: 0.08, exit: 'stormRelease' },
       SWIRL_SHIELD:  { reflectRadius: 150, duration: 8 },
       TOWER_SHIELD:  { duration: 2.8, damageTakenMult: 0.25, speedMult: 0.55 },
     },
@@ -233,10 +240,34 @@
   CONFIG.THROWN_MELEE = {
     pinSeconds: 1.0,          // pinned into the struck opponent, following it
     pinDepth: 12,             // how deep the sprite sits into the target
-    speed: { SABRE: 900, BATTLE_AXE: 820, DAGGER: 1080, SPEAR: 950, SPIKED_CLUB: 860 },
-    ricochets: { BATTLE_AXE: 1, SPIKED_CLUB: 1, SPEAR: 2, SABRE: 3, DAGGER: 4 },
+    speed: { SABRE: 900, BATTLE_AXE: 820, DAGGER: 1080, SPEAR: 950, SPIKED_CLUB: 860, STORMBREAKER: 1350 },
+    ricochets: { BATTLE_AXE: 1, SPIKED_CLUB: 1, SPEAR: 2, SABRE: 3, DAGGER: 4, STORMBREAKER: 1 },
     pickupDelay: 0.35,        // owner grace before the thrower can re-collect
-    spinRate: { SABRE: 9, BATTLE_AXE: 7, DAGGER: 12, SPEAR: 5, SPIKED_CLUB: 8 },
+    spinRate: { SABRE: 9, BATTLE_AXE: 7, DAGGER: 12, SPEAR: 5, SPIKED_CLUB: 8, STORMBREAKER: 64 },
+  };
+
+  // STORMBREAKER production tuning (red-tier V1 port — docs/stormbreaker/v1-port).
+  // Effect/feel values (spin blur, arc cadence, flash) live in
+  // arsenalStormbreakerVfxRuntime.js and mirror the approved V9 reference.
+  // These gameplay values are balance-audited against the live arsenal:
+  //  - slowMult 0.70: global unclaimed-floor slow (demo 0.54 was an explicit
+  //    demo-only exaggeration; -30% reads as "supernatural pressure" without
+  //    the weapon becoming a match-deciding wall).
+  //  - spinRate 64 rad/s: the V9 82 rad/s aliasing-safe equivalent at 60 Hz
+  //    (~60°/frame) — still a full rotational blur with the cached ghosts.
+  //  - throwSpeed 1350: faster than any current thrown melee (820–1210),
+  //    the "divine weapon release" velocity band.
+  //  - stun 1.0s: red-tier above the T4 club's 0.8s, below the demo 1.18s.
+  CONFIG.STORMBREAKER = {
+    slowMult: 0.70,
+    slowRefreshSeconds: 0.12,
+    windupSeconds: 0.28,
+    readyDelaySeconds: 0.45,
+    throwSpeed: 1350,
+    spinRate: 64,
+    stunSeconds: 1.0,
+    worldLongSide: 200,
+    floorLongSide: 150,
   };
 
   // ── §7 NEWBIE hero tuning ────────────────────────────────────────────────
@@ -275,6 +306,7 @@
     ZBROYAR_Z15: 152, ZBROYAR_Z15_S1: 152, ZBROYAR_Z15_S2: 152, ZBROYAR_Z15_S3: 152,
     M249_SAW: 170, MBR: 174, MBR2: 176, SZECSEI_FUCHS: 176, SNIPER: 188,
     MOSSBERG_500: 158, SHOTGUN: 160, SAWED_OFF: 132, JACKHAMMER: 156,
+    STORMBREAKER: 150, // red-tier floor read (x0.92 display mode ≈ 138px)
   };
   CONFIG.HEAL_WEIGHTS = {
     HEAL_H1: 7, HEAL_H2: 5, HEAL_H3: 3, HEAL_H4: 2, HEAL_H5: 1,
@@ -287,6 +319,7 @@
   CONFIG.P0_WEAPON_IDS = [
     ...GUN_REGISTRY.map((e) => e.id),
     'GRENADE', 'SABRE', 'BATTLE_AXE', 'DAGGER', 'SPEAR', 'SPIKED_CLUB',
+    'STORMBREAKER',
     'SWIRL_SHIELD', 'TOWER_SHIELD',
   ];
 

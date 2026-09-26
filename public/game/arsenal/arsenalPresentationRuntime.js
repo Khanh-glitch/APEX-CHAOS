@@ -93,6 +93,11 @@
     ricochet: [{ rel: 'sfx/impact/impactPlate_light_001.ogg', vol: 0.34, maxVoices: 3 }],
     newbie_dash: [{ rel: 'sfx/scifi/forceField_001.ogg', vol: 0.30, maxVoices: 2 }],
     newbie_fail: [{ rel: 'sfx/rpg/metalClick.ogg', vol: 0.28, maxVoices: 2 }],
+
+    // STORMBREAKER (red tier) — approved baseline files only, no new sourcing:
+    // charge = the existing force-field bed, release = the heavy axe whoosh,
+    // impact = the heavy axe contact pair (divine-weapon body strike).
+    storm_windup: [{ rel: 'sfx/scifi/forceField_001.ogg', vol: 0.30, maxVoices: 1 }],
   };
 
   const PISTOL_READY = { PISTOL: 1, GLOCK_17: 1, TEC_9: 1, BERETTA_93R: 1, DESERT_DEAGLE: 1, MAGNUM_500: 1 };
@@ -442,6 +447,21 @@
         pushVfx({ kind: 'atlas', x: o.x, y: o.y, life: 64 / 34, fps: 34, size: 400 });
         break;
       }
+      case 'storm_windup': {
+        // Red-tier charge: existing force-field bed (no new audio sourcing).
+        playAll('storm_windup');
+        break;
+      }
+      case 'storm_throw': {
+        // Heavy committed release — approved heavy whoosh.
+        playAll('axe_swing');
+        break;
+      }
+      case 'storm_impact': {
+        // Confirmed red-tier impact — approved heavy contact pair.
+        playAll('axe_hit');
+        break;
+      }
       case 'melee_swing': {
         // V2 §A4: imported slash/swipe sequences are disabled in normal
         // gameplay. The weapon sprite's own motion communicates the attack;
@@ -563,7 +583,8 @@
     let targetLongSide = 138;
     let offset = radius * 0.72;
     if (category === 'melee') {
-      targetLongSide = weaponId === 'SPEAR' ? 190 : weaponId === 'BATTLE_AXE' ? 155 : 145;
+      if (weaponId === 'STORMBREAKER') targetLongSide = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.STORMBREAKER && window.APEX_ARSENAL_CONFIG.STORMBREAKER.worldLongSide) || 200;
+      else targetLongSide = weaponId === 'SPEAR' ? 190 : weaponId === 'BATTLE_AXE' ? 155 : 145;
     } else if (category === 'defense') {
       targetLongSide = weaponId === 'TOWER_SHIELD' ? 145 : 128;
       offset = radius * 0.82;

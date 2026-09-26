@@ -2018,6 +2018,167 @@ try {
     && report.bothUnarmedCap.spawned5 === report.bothUnarmedCap.spawned4,
     report.bothUnarmedCap);
 
+  // =====================================================================
+  // STORMBREAKER — first red-tier (T6) weapon (V1 port mirror)
+  // =====================================================================
+  report.storm = await evaluate(`(async () => {
+    const CFG = APEX_ARSENAL_CONFIG;
+    const out = {};
+    const roll = CFG.TIER_ROLL.find(r => r[0] === 'T6');
+    out.identity = {
+      tier: CFG.tierOf('STORMBREAKER'),
+      color: CFG.TIER_COLORS && CFG.TIER_COLORS.T6,
+      rollT6: roll ? roll[1] : null,
+      glowT6: CFG.TIER_GLOW && CFG.TIER_GLOW.T6,
+      glowT5: CFG.TIER_GLOW && CFG.TIER_GLOW.T5,
+      shield: CFG.threatShield('STORMBREAKER'),
+      inPool: (CFG.OFFENSIVE_WEAPON_IDS || []).includes('STORMBREAKER'),
+      isMelee: CFG.isMelee('STORMBREAKER'),
+      cSet: APEX_ARSENAL_C_SET && APEX_ARSENAL_C_SET.weapons.STORMBREAKER,
+    };
+    // Asset must render from the real C set (floor + equipped).
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearSlots();
+    __AQ_TEST.place(240, 420, 760, 420);
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
+    __AQ_TEST.equip('HERO', 'STORMBREAKER');
+    const img = APEX_ARSENAL_AV.weaponImage('STORMBREAKER');
+    const t0 = Date.now();
+    while (!(img.img && img.img.complete && img.img.width) && Date.now() - t0 < 15000) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    const s0 = { floor: APEX_ARSENAL_AV.stats.floorSpriteDraws, equipped: APEX_ARSENAL_AV.stats.equippedSpriteDraws };
+    __AQ_TEST.step(0.3);
+    __AQ_TEST.redraw();
+    const s1 = { floor: APEX_ARSENAL_AV.stats.floorSpriteDraws, equipped: APEX_ARSENAL_AV.stats.equippedSpriteDraws };
+    out.render = { imgOk: !!(img.img && img.img.complete && img.img.width), imgW: img.img && img.img.width, imgH: img.img && img.img.height, floorDelta: s1.floor - s0.floor, equippedDelta: s1.equipped - s0.equipped };
+    // Screenshot: unclaimed floor — arena lightning, spawn aura, slow rings.
+    __AQ_TEST.step(0.15);
+    __AQ_TEST.redraw();
+    return JSON.stringify(out);
+  })()`);
+  const storm = JSON.parse(report.storm);
+  gate('storm-browser-identity-t6-red',
+    storm.identity.tier === 'T6' && storm.identity.color === '#FF4D5A'
+    && Math.abs(storm.identity.rollT6 - 0.02) < 1e-9
+    && storm.identity.shield === 'TOWER_SHIELD'
+    && storm.identity.inPool === true && storm.identity.isMelee === false
+    && storm.identity.glowT6.rx > storm.identity.glowT5.rx,
+    storm.identity);
+  gate('storm-browser-asset-render-real-cset',
+    storm.render.imgOk === true && storm.render.imgW === 1086 && storm.render.imgH === 1448
+    && storm.render.floorDelta >= 1 && storm.render.equippedDelta >= 1,
+    storm.render);
+  report.evidence.push(await screenshot('10a-storm-floor-lightning'));
+
+  // Held windup screenshot (deterministic: rAF cancelled under enterManual).
+  await evaluate(`(() => {
+    __AQ_TEST.clearSlots();
+    __AQ_TEST.place(240, 420, 760, 420);
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.equip('HERO', 'STORMBREAKER');
+    __AQ_TEST.step(0.55); // inside the 0.45-0.73s windup window
+    __AQ_TEST.redraw();
+    return __AQ_TEST.holder('HERO') && __AQ_TEST.holder('HERO').phase;
+  })()`);
+  report.evidence.push(await screenshot('10b-storm-held-windup'));
+
+  // Confirmed hit: 546 damage (52 x 1.5 x 7), real stun, knockback status,
+  // weapon vanishes (no pin). Frame-poll the 0.18s push inside the stun.
+  report.stormHit = await evaluate(`(() => {
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearEvents();
+    __AQ_TEST.place(400, 500, 600, 500);
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.equip('HERO', 'STORMBREAKER');
+    let sawPush = false, sawStun = false, rivalHp = 1000;
+    for (let n = 0; n < 120; n++) {
+      __AQ_TEST.step(1 / 60);
+      const f = fighters[1];
+      if (f.hasStatus('push')) sawPush = true;
+      if (f.hasStatus('stun')) sawStun = true;
+      if (f.hp < 1000) rivalHp = f.hp;
+      if (sawPush && sawStun && n > 30) break;
+    }
+    const stormProj = projectiles.filter(p => p.aq && p.weapon === 'STORMBREAKER').length;
+    const impactLogged = __AQ_TEST.countEvents('STORM_IMPACT') >= 1;
+    return { rivalHp, sawPush, sawStun, stormProj, impactLogged, heroHolder: __AQ_TEST.holder('HERO') };
+  })()`);
+  gate('storm-browser-hit-546-stun-no-pin',
+    report.stormHit.rivalHp === 454 && report.stormHit.sawStun === true
+    && report.stormHit.sawPush === true && report.stormHit.stormProj === 0
+    && report.stormHit.impactLogged === true && report.stormHit.heroHolder === null,
+    report.stormHit);
+
+  // Impact flash screenshot: fresh throw, capture ~35ms after the hit point.
+  await evaluate(`(() => {
+    __AQ_TEST.enterManual();
+    __AQ_TEST.place(400, 500, 600, 500);
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.equip('HERO', 'STORMBREAKER');
+    __AQ_TEST.step(0.80); // impact lands ~0.764s; flash still hot
+    __AQ_TEST.redraw();
+    return true;
+  })()`);
+  report.evidence.push(await screenshot('10c-storm-impact-flash'));
+
+  // Flight screenshot: spinning weapon + rotational ghosts + local arcs.
+  await evaluate(`(() => {
+    __AQ_TEST.enterManual();
+    __AQ_TEST.place(120, 120, 980, 120);
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.equip('HERO', 'STORMBREAKER');
+    __AQ_TEST.step(0.80); // release at 0.73s -> mid-flight, far from rival
+    __AQ_TEST.redraw();
+    return projectiles.some(p => p.aq && p.type === 'aq_thrown' && p.weapon === 'STORMBREAKER');
+  })()`);
+  report.evidence.push(await screenshot('10d-storm-flight-spin-ghosts'));
+
+  // Global slow: both fighters 0.70x while unclaimed, clean on pickup.
+  report.stormSlow = await evaluate(`(() => {
+    __AQ_TEST.enterManual();
+    __AQ_TEST.place(200, 300, 800, 300);
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
+    __AQ_TEST.step(0.4);
+    const slowHero = __AQ_TEST.statuses('HERO').includes('slow');
+    const slowRival = __AQ_TEST.statuses('RIVAL').includes('slow');
+    const mult = fighters[0].statuses && fighters[0].statuses.slow ? fighters[0].statuses.slow.mult : null;
+    APEX_ARSENAL.state.slots = [];
+    __AQ_TEST.step(0.3);
+    return {
+      slowHero, slowRival, mult,
+      slowHeroAfter: __AQ_TEST.statuses('HERO').includes('slow'),
+      slowRivalAfter: __AQ_TEST.statuses('RIVAL').includes('slow'),
+    };
+  })()`);
+  gate('storm-browser-floor-slows-both',
+    report.stormSlow.slowHero === true && report.stormSlow.slowRival === true && report.stormSlow.mult === 0.70,
+    report.stormSlow);
+  gate('storm-browser-slow-clean-removal',
+    report.stormSlow.slowHeroAfter === false && report.stormSlow.slowRivalAfter === false,
+    report.stormSlow);
+
+  // VFX: bounded pools, no trail entities, clean clear.
+  report.stormVfx = await evaluate(`(() => {
+    const S = window.APEX_ARSENAL_STORM;
+    if (!S) return JSON.stringify({ missing: true });
+    S.onImpact(520, 480, fighters[1]);
+    S.tick(1 / 60);
+    const after = { impacts: S.impactCount(), bolts: S.boltCount(), sparks: S.sparkCount(), trail: S.hasTrailEntities() };
+    S.clear();
+    const cleared = { bolts: S.boltCount(), impacts: S.impactCount() };
+    return JSON.stringify({ after, cleared });
+  })()`);
+  const stormVfx = JSON.parse(report.stormVfx);
+  gate('storm-browser-vfx-bounded-no-tail',
+    !stormVfx.missing
+    && stormVfx.after.bolts <= 30 && stormVfx.after.sparks <= 72
+    && stormVfx.after.trail === false
+    && stormVfx.cleared.bolts === 0 && stormVfx.cleared.impacts === 0,
+    stormVfx);
+
   // ------------------------------------------------------------ summary ----
   report.summary = {
     total: Object.keys(report.gates).length,

@@ -5,11 +5,14 @@
   const CFG = window.APEX_ARSENAL_CONFIG;
   if (!CFG) return;
 
+  // T6 RED is the first red tier (STORMBREAKER V1 port). Its 2% roll is carved
+  // out of T1–T5 proportionally (x0.98), preserving the accepted relative
+  // distribution of the existing tiers.
   const TIER_COLORS = {
-    T1: '#C9D0D7', T2: '#63E28B', T3: '#4F9DFF', T4: '#B66CFF', T5: '#FFB33C',
+    T1: '#C9D0D7', T2: '#63E28B', T3: '#4F9DFF', T4: '#B66CFF', T5: '#FFB33C', T6: '#FF4D5A',
   };
   const TIER_ROLL = [
-    ['T1', 0.30], ['T2', 0.30], ['T3', 0.23], ['T4', 0.12], ['T5', 0.05],
+    ['T1', 0.294], ['T2', 0.294], ['T3', 0.2254], ['T4', 0.1176], ['T5', 0.049], ['T6', 0.02],
   ];
   const WEAPON_TIER = {
     PISTOL: 'T1', GLOCK_17: 'T1', TEC_9: 'T1', MAC_10: 'T1', DAGGER: 'T1',
@@ -20,14 +23,18 @@
     SAWED_OFF: 'T3', SPEAR: 'T3', GRENADE: 'T3',
     MAGNUM_500: 'T4', M249_SAW: 'T4', MBR2: 'T4', SZECSEI_FUCHS: 'T4', SPIKED_CLUB: 'T4',
     SNIPER: 'T5', JACKHAMMER: 'T5', BATTLE_AXE: 'T5',
+    STORMBREAKER: 'T6',
   };
-  const BY_TIER = { T1: [], T2: [], T3: [], T4: [], T5: [] };
+  const BY_TIER = { T1: [], T2: [], T3: [], T4: [], T5: [], T6: [] };
   for (const [id, t] of Object.entries(WEAPON_TIER)) BY_TIER[t].push(id);
 
   const SHIELD_IDS = ['SWIRL_SHIELD', 'TOWER_SHIELD'];
   const MELEE_IDS = CFG.MELEE_WEAPON_IDS || ['BATTLE_AXE', 'DAGGER', 'SABRE', 'SPEAR', 'SPIKED_CLUB'];
   const GUN_IDS = (CFG.GUN_REGISTRY || []).map((e) => e.id);
-  const OFFENSIVE_IDS = [...GUN_IDS, 'GRENADE', ...MELEE_IDS];
+  // STORMBREAKER is offensive spawn pool material but is NOT a regular melee:
+  // it keeps full base weight (no 0.5x melee penalty) and only ever rolls as
+  // the T6 red tier.
+  const OFFENSIVE_IDS = [...GUN_IDS, 'GRENADE', ...MELEE_IDS, 'STORMBREAKER'];
 
   CFG.P0_WEAPON_IDS = OFFENSIVE_IDS.slice(); // shields out of random pool
   CFG.OFFENSIVE_WEAPON_IDS = OFFENSIVE_IDS;
@@ -43,6 +50,7 @@
 
   CFG.THROWN_MELEE.speed = {
     SABRE: 1010, BATTLE_AXE: 920, DAGGER: 1210, SPEAR: 1065, SPIKED_CLUB: 965,
+    STORMBREAKER: CFG.STORMBREAKER ? CFG.STORMBREAKER.throwSpeed : 1350,
   };
 
   // Z15 family shares one ballistic identity (skins only).
@@ -136,6 +144,10 @@
     const fam = w.family;
     if (fam === 'SHOTGUN' || fam === 'AUTOSHOT') return 'TOWER_SHIELD';
     if (weaponId === 'GRENADE' || CFG.isMelee(weaponId)) return 'TOWER_SHIELD';
+    // STORMBREAKER is not a regular melee (isMelee is false), but its honest
+    // counter is the TOWER fortress (25% damage + slow while guarding): the
+    // swirl reflect only turns aq_bullet projectiles, never the thrown body.
+    if (weaponId === 'STORMBREAKER') return 'TOWER_SHIELD';
     return 'SWIRL_SHIELD';
   }
 
@@ -145,6 +157,9 @@
     T3: { rx: 36, ry: 11, a: 0.38, pulse: 0.13, shimmer: false },
     T4: { rx: 48, ry: 14, a: 0.48, pulse: 0.18, shimmer: false },
     T5: { rx: 60, ry: 17, a: 0.58, pulse: 0.26, shimmer: true },
+    // T6 RED — the red-tier floor presence; the live arena lightning (see
+    // arsenalStormbreakerVfxRuntime) carries the rest of the escalation.
+    T6: { rx: 78, ry: 22, a: 0.72, pulse: 0.32, shimmer: true },
   };
 
   CFG.EXIT_PROFILES = {
@@ -169,6 +184,9 @@
     longDrop:       { vx: 30,  vy: -220, g: 1450, spin: 5.5,  life: 0.68 },
     kickBack:       { vx: -140,vy: -60,  g: 1550, spin: -2.4, life: 0.60 },
     cassetteSpin:   { vx: 45,  vy: -110, g: 1500, spin: 22,   life: 0.55 },
+    // STORMBREAKER release ghost: short forward scale-out, no gravity drop
+    // (the real thrown projectile IS the weapon — no second axe in hand).
+    stormRelease:  { vx: 0,   vy: 0,    g: 0,    spin: 0,    life: 0.22 },
   };
 
   CFG.VFX_RECIPES = {

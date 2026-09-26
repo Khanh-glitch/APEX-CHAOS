@@ -3500,6 +3500,382 @@ gate('passb-native-realized-feed',
 const nativePanelText = run(`return document.getElementById('p1-combat-panel').textContent || ''`);
 gate('passb-native-panel-truthful', /RUBBER/.test(nativePanelText) && !/AK-?47|MOSSBERG|SNIPER/i.test(nativePanelText), nativePanelText.slice(0, 120));
 
+// =====================================================================
+// STORMBREAKER — first red-tier (T6) weapon, V1 port gates
+// =====================================================================
+report.stormIdentity = run(`
+  const CFG = APEX_ARSENAL_CONFIG;
+  const roll = CFG.TIER_ROLL.find(r => r[0] === 'T6');
+  return JSON.stringify({
+    tier: CFG.tierOf('STORMBREAKER'),
+    color: CFG.TIER_COLORS && CFG.TIER_COLORS.T6,
+    rollT6: roll ? roll[1] : null,
+    rollSum: CFG.TIER_ROLL.reduce((a, r) => a + r[1], 0),
+    inPool: (CFG.OFFENSIVE_WEAPON_IDS || []).includes('STORMBREAKER'),
+    isMelee: CFG.isMelee('STORMBREAKER'),
+    isGun: CFG.isGun('STORMBREAKER'),
+    glowT6: CFG.TIER_GLOW && CFG.TIER_GLOW.T6,
+    glowT5: CFG.TIER_GLOW && CFG.TIER_GLOW.T5,
+    shield: CFG.threatShield('STORMBREAKER'),
+    spec: CFG.WEAPONS.STORMBREAKER,
+    tuning: CFG.STORMBREAKER,
+    speed: CFG.THROWN_MELEE.speed.STORMBREAKER,
+    ricochets: CFG.THROWN_MELEE.ricochets.STORMBREAKER,
+    spin: CFG.THROWN_MELEE.spinRate.STORMBREAKER,
+    cSet: APEX_ARSENAL_C_SET && APEX_ARSENAL_C_SET.weapons.STORMBREAKER,
+    vfxModule: !!window.APEX_ARSENAL_STORM,
+  });
+`);
+const stormId = JSON.parse(report.stormIdentity);
+gate('storm-identity-t6-red',
+  stormId.tier === 'T6'
+  && stormId.color === '#FF4D5A'
+  && stormId.inPool === true
+  && stormId.isMelee === false
+  && stormId.isGun === false
+  && stormId.shield === 'TOWER_SHIELD',
+  stormId);
+gate('storm-rarity-2pct-proportional-carve',
+  Math.abs(stormId.rollT6 - 0.02) < 1e-9
+  && Math.abs(stormId.rollSum - 1) < 1e-9
+  && Math.abs(stormId.rollT6 / 0.02 - 1) < 1e-9,
+  { rollT6: stormId.rollT6, rollSum: stormId.rollSum });
+gate('storm-glow-above-t5-t1t5-untouched',
+  stormId.glowT6 && stormId.glowT5
+  && stormId.glowT6.rx > stormId.glowT5.rx && stormId.glowT6.ry > stormId.glowT5.ry && stormId.glowT6.a > stormId.glowT5.a
+  && stormId.glowT5.rx === 60 && stormId.glowT5.ry === 17 && stormId.glowT5.a === 0.58,
+  { t5: stormId.glowT5, t6: stormId.glowT6 });
+gate('storm-balance-audited-values',
+  stormId.spec.damage === 52
+  && stormId.spec.knockback === 900
+  && stormId.spec.stun === 1.0
+  && stormId.spec.shake === 15
+  && stormId.spec.hitStop === 0.08
+  && stormId.tuning.slowMult === 0.70
+  && stormId.speed === 1350
+  && stormId.ricochets === 1
+  && stormId.spin === 64
+  && stormId.tuning.worldLongSide === 200,
+  { spec: stormId.spec, tuning: stormId.tuning });
+gate('storm-asset-cset-registered',
+  !!stormId.cSet && stormId.cSet.file === 'weapons/c/STORMBREAKER.png' && stormId.cSet.w === 1086 && stormId.cSet.h === 1448,
+  stormId.cSet);
+
+// T6 rarity actually rolls STORMBREAKER (deterministic LCG, 20000 samples).
+report.stormRoll = run(`
+  const SPAWN = APEX_ARSENAL_SPAWN;
+  const CFG = APEX_ARSENAL_CONFIG;
+  let s = 7919;
+  let storm = 0;
+  for (let n = 0; n < 20000; n++) {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    if (SPAWN.selectSpawnWeapon(() => s / 4294967296) === 'STORMBREAKER') storm += 1;
+  }
+  return { storm, rate: storm / 20000, sample: 20000 };
+`);
+gate('storm-rarity-roll-real', Math.abs(report.stormRoll.rate - 0.02) < 0.008, report.stormRoll);
+
+// Committed release: ready delay -> windup -> the ACTUAL weapon flies.
+report.stormThrow = run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.clearEvents();
+  __AQ_TEST.place(120, 120, 980, 120);
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.equip('HERO', 'STORMBREAKER');
+  __AQ_TEST.step(0.2);
+  const early = __AQ_TEST.holder('HERO');
+  __AQ_TEST.step(0.6); // t=0.8s: ready@0.45 + windup@0.28 -> thrown ~0.73s
+  const p = projectiles.find(q => q.aq && q.type === 'aq_thrown' && q.weapon === 'STORMBREAKER');
+  return {
+    earlyPhase: early && early.phase,
+    holderNow: __AQ_TEST.holder('HERO'),
+    thrown: !!p,
+    speed: p ? +Math.hypot(p.vx, p.vy).toFixed(0) : null,
+    spin: p ? p.spin : null,
+    ricochets: p ? p.ricochetsLeft : null,
+    throwLogged: __AQ_TEST.countEvents('THROW', 'weapon=STORMBREAKER') >= 1,
+    rivalHp: __AQ_TEST.hp().rival,
+  };
+`);
+gate('storm-ready-delay-then-committed-throw',
+  report.stormThrow.earlyPhase === 'READY'
+  && report.stormThrow.holderNow === null
+  && report.stormThrow.thrown
+  && report.stormThrow.throwLogged
+  && report.stormThrow.rivalHp === 1000,
+  report.stormThrow);
+gate('storm-throw-speed-spin-ricochet',
+  report.stormThrow.speed === 1350
+  && report.stormThrow.spin === 64
+  && report.stormThrow.ricochets === 1,
+  report.stormThrow);
+
+// Confirmed hit: real swept collision -> one melee-authority damage
+// (52 x 1.5 x 7 = 546), real stun, knockback status, and the weapon
+// VANISHES (no pin, no embedded axe). Frame-poll: the 0.18s push status
+// expires inside the 1.0s stun lock (engine hardCC law — same as the T4
+// club), so it must be observed frame-by-frame at the impact moment.
+report.stormImpact = run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.clearEvents();
+  __AQ_TEST.place(400, 500, 600, 500);
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.equip('HERO', 'STORMBREAKER');
+  let sawPush = false, sawStun = false, rivalHp = 1000;
+  for (let n = 0; n < 120; n++) {
+    __AQ_TEST.step(1 / 60);
+    const f = fighters[1];
+    if (f.hasStatus('push')) sawPush = true;
+    if (f.hasStatus('stun')) sawStun = true;
+    if (f.hp < 1000) rivalHp = f.hp;
+    if (sawPush && sawStun && n > 30) break;
+  }
+  const stormProj = __AQ_TEST.aqProjectiles().filter(p => p.weapon === 'STORMBREAKER');
+  const impactLogged = __AQ_TEST.countEvents('STORM_IMPACT') >= 1;
+  const hitLogged = __AQ_TEST.events().some(e => e.startsWith('[AQ] HIT') && e.includes('weapon=STORMBREAKER'));
+  return {
+    heroHolder: __AQ_TEST.holder('HERO'),
+    rivalHp,
+    sawPush,
+    sawStun,
+    stormProjCount: stormProj.length,
+    impactLogged,
+    hitLogged,
+  };
+`);
+gate('storm-hit-real-damage-x1.5x7', report.stormImpact.rivalHp === 454, report.stormImpact);
+gate('storm-hit-real-stun', report.stormImpact.sawStun, report.stormImpact);
+gate('storm-hit-knockback-status', report.stormImpact.sawPush, report.stormImpact);
+gate('storm-weapon-vanishes-no-pin',
+  report.stormImpact.stormProjCount === 0 && report.stormImpact.impactLogged && report.stormImpact.hitLogged && report.stormImpact.heroHolder === null,
+  report.stormImpact);
+
+// Miss path: the rival dodges perpendicular during flight — the aim-locked
+// line misses, the ricochet budget is spent on walls, the projectile
+// physically exits and is removed. No damage, no pin, flight VFX dies with
+// the weapon (no lingering arcs/ghosts after resolution).
+report.stormMiss = run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.clearEvents();
+  __AQ_TEST.place(200, 500, 800, 500);
+  __AQ_TEST.holdSpawns();
+  const S = window.APEX_ARSENAL_STORM;
+  __AQ_TEST.equip('HERO', 'STORMBREAKER');
+  __AQ_TEST.step(0.85); // release at 0.73s; projectile ~160px into a 540px flight
+  fighters[1].x = 200; fighters[1].y = 100; // rival dodges the flight line
+  let exitSeen = false, removed = false;
+  for (let n = 0; n < 300; n++) {
+    __AQ_TEST.step(1 / 60);
+    const p = projectiles.find(q => q.aq && q.weapon === 'STORMBREAKER');
+    if (p && p.state === 'exit') exitSeen = true;
+    if (!p) { removed = true; break; }
+  }
+  const hp = __AQ_TEST.hp();
+  return {
+    rivalHp: hp.rival, heroHp: hp.hero,
+    exitSeen, removed,
+    hitEvents: __AQ_TEST.events().filter(e => e.startsWith('[AQ] HIT') && e.includes('weapon=STORMBREAKER')).length,
+    ricochetEvents: __AQ_TEST.countEvents('THROWN_RICOCHET'),
+    stormProjLeft: __AQ_TEST.aqProjectiles().filter(p => p.weapon === 'STORMBREAKER').length,
+  };
+`);
+gate('storm-miss-no-damage-no-pin',
+  report.stormMiss.rivalHp === 1000 && report.stormMiss.hitEvents === 0 && report.stormMiss.stormProjLeft === 0,
+  report.stormMiss);
+gate('storm-miss-ricochet-then-exit-removal',
+  report.stormMiss.exitSeen === true && report.stormMiss.removed === true && report.stormMiss.ricochetEvents >= 1,
+  report.stormMiss);
+
+// Repeated spawn/use cycles through the REAL pickup path (auto-pickup on
+// touch), three different throw trajectories, state clean every cycle.
+report.stormCycle = run(`
+  const layouts = [
+    { h: [400, 500], r: [600, 500] },  // horizontal throw
+    { h: [300, 300], r: [700, 700] },  // diagonal throw
+    { h: [500, 200], r: [500, 800] },  // vertical throw
+  ];
+  const cycles = [];
+  for (let c = 0; c < 3; c++) {
+    const L = layouts[c];
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearEvents();
+    __AQ_TEST.place(L.h[0], L.h[1], L.r[0], L.r[1]);
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.pushSlot({ x: L.r[0], y: L.r[1], weaponId: 'STORMBREAKER' }); // on the rival
+    let pickedUp = null;
+    for (let n = 0; n < 180; n++) {
+      __AQ_TEST.step(1 / 60);
+      const hr = __AQ_TEST.holder('RIVAL');
+      if (hr && hr.weapon === 'STORMBREAKER') { pickedUp = n; break; }
+    }
+    let heroHp = 1000, sawStun = false;
+    for (let n = 0; n < 120; n++) {
+      __AQ_TEST.step(1 / 60);
+      const hf = fighters[0];
+      if (hf.hasStatus('stun')) sawStun = true;
+      if (hf.hp < 1000) heroHp = hf.hp;
+    }
+    cycles.push({
+      c, pickedUp, heroHp, sawStun,
+      projLeft: projectiles.filter(p => p.aq && p.weapon === 'STORMBREAKER').length,
+      rivalHolder: __AQ_TEST.holder('RIVAL'),
+      slotGone: APEX_ARSENAL.state.slots.filter(s => s.weaponId === 'STORMBREAKER').length,
+    });
+  }
+  return cycles;
+`);
+gate('storm-cycles-real-pickup-throw-hit',
+  report.stormCycle.every(c => c.pickedUp !== null && c.heroHp === 454 && c.sawStun === true
+    && c.projLeft === 0 && c.rivalHolder === null && c.slotGone === 0),
+  report.stormCycle);
+
+// Global unclaimed-floor slow: BOTH living fighters slowed 0.70x, clean
+// removal the moment the slot leaves REVEALED (pickup/expire).
+report.stormSlow = run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.clearEvents();
+  __AQ_TEST.place(200, 300, 800, 300);
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
+  __AQ_TEST.step(0.4);
+  const slowHero = __AQ_TEST.statuses('HERO').includes('slow');
+  const slowRival = __AQ_TEST.statuses('RIVAL').includes('slow');
+  const mult = fighters[0].statuses && fighters[0].statuses.slow ? fighters[0].statuses.slow.mult : null;
+  APEX_ARSENAL.state.slots = []; // pickup/expire
+  __AQ_TEST.step(0.3); // > 0.12s refresh window
+  return {
+    slowHero, slowRival, mult,
+    slowHeroAfter: __AQ_TEST.statuses('HERO').includes('slow'),
+    slowRivalAfter: __AQ_TEST.statuses('RIVAL').includes('slow'),
+  };
+`);
+gate('storm-floor-slows-both-fighters',
+  report.stormSlow.slowHero === true && report.stormSlow.slowRival === true && report.stormSlow.mult === 0.70,
+  report.stormSlow);
+gate('storm-slow-clean-removal-on-pickup',
+  report.stormSlow.slowHeroAfter === false && report.stormSlow.slowRivalAfter === false,
+  report.stormSlow);
+
+// VFX: bounded pools, zero in-flight trail entities, real-hit-point impact.
+report.stormVfx = run(`
+  const S = window.APEX_ARSENAL_STORM;
+  if (!S) return JSON.stringify({ missing: true });
+  __AQ_TEST.enterManual();
+  __AQ_TEST.place(200, 300, 800, 300); // keep fighters out of pickup range
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
+  __AQ_TEST.step(2.0); // full pulse cycle on the floor
+  const floorBolts = S.boltCount();
+  const floorSparks = S.sparkCount();
+  S.onImpact(520, 480, fighters[1]);
+  S.tick(1 / 60);
+  const after = {
+    impacts: S.impactCount(),
+    bolts: S.boltCount(),
+    sparks: S.sparkCount(),
+    trailEntities: S.hasTrailEntities(),
+    spawnTracked: S.spawnCount(),
+  };
+  S.clear();
+  const cleared = { bolts: S.boltCount(), impacts: S.impactCount(), spawns: S.spawnCount() };
+  return JSON.stringify({ floorBolts, floorSparks, after, cleared });
+`);
+const stormVfx = JSON.parse(report.stormVfx);
+gate('storm-vfx-bounded-pools',
+  !stormVfx.missing
+  && stormVfx.floorBolts <= 30 && stormVfx.floorSparks <= 72
+  && stormVfx.after.bolts <= 30 && stormVfx.after.sparks <= 72,
+  stormVfx);
+gate('storm-vfx-no-long-tail-structural',
+  stormVfx.after.trailEntities === false,
+  stormVfx.after);
+gate('storm-vfx-impact-real-hitpoint',
+  stormVfx.after.impacts === 1 && stormVfx.after.spawnTracked === 1,
+  stormVfx.after);
+gate('storm-vfx-clear-clean',
+  stormVfx.cleared.bolts === 0 && stormVfx.cleared.impacts === 0 && stormVfx.cleared.spawns === 0,
+  stormVfx.cleared);
+
+// Evidence frames (real canvas renders of the four canonical states).
+run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.place(200, 300, 800, 300);
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
+  __AQ_TEST.step(0.3);
+  __AQ_TEST.redraw();
+  return true;
+`);
+report.evidence.push(snapshot('storm-01-floor-lightning'));
+run(`
+  __AQ_TEST.clearSlots();
+  __AQ_TEST.place(240, 420, 760, 420);
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.equip('HERO', 'STORMBREAKER');
+  __AQ_TEST.step(0.55); // inside the windup window
+  __AQ_TEST.redraw();
+  return true;
+`);
+report.evidence.push(snapshot('storm-02-held-windup'));
+run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.place(120, 120, 980, 120);
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.equip('HERO', 'STORMBREAKER');
+  __AQ_TEST.step(0.80); // mid-flight after the 0.73s release
+  __AQ_TEST.redraw();
+  return true;
+`);
+report.evidence.push(snapshot('storm-03-flight-spin-ghosts'));
+run(`
+  __AQ_TEST.enterManual();
+  __AQ_TEST.place(400, 500, 600, 500);
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.equip('HERO', 'STORMBREAKER');
+  __AQ_TEST.step(0.80); // impact lands ~0.764s — flash still hot
+  __AQ_TEST.redraw();
+  return true;
+`);
+report.evidence.push(snapshot('storm-04-impact-flash'));
+
+// Perf evidence (not a gate): direct full-frame cost with the storm at
+// full activity (floor lightning + thrown flight + impact discharge) vs an
+// otherwise-identical frame without it. jsdom + real @napi-rs canvas, so
+// this is CPU-inclusive (rasterization included) — a conservative bound.
+report.stormPerf = run(`
+  const S = window.APEX_ARSENAL_STORM;
+  // Baseline: same scene, no storm anywhere.
+  __AQ_TEST.enterManual();
+  __AQ_TEST.place(120, 120, 980, 120);
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.step(0.3); __AQ_TEST.redraw();
+  let t0 = performance.now();
+  for (let i = 0; i < 240; i++) { __AQ_TEST.step(1 / 60); __AQ_TEST.redraw(); }
+  const baselineMs = (performance.now() - t0) / 240;
+  // Storm: floor slot + committed throw (flight ~0.73s-1.27s, then floor-only).
+  __AQ_TEST.enterManual();
+  __AQ_TEST.place(120, 120, 980, 120);
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
+  __AQ_TEST.equip('HERO', 'STORMBREAKER');
+  __AQ_TEST.step(0.85); // storm on floor AND mid-flight
+  t0 = performance.now();
+  for (let i = 0; i < 240; i++) { __AQ_TEST.step(1 / 60); __AQ_TEST.redraw(); }
+  const stormMs = (performance.now() - t0) / 240;
+  __AQ_TEST.step(0.3);
+  const summary = (typeof window.apexArsenalPerfSummary === 'function') ? window.apexArsenalPerfSummary() : null;
+  const pick = (o, keys) => { const out = {}; for (const k of keys) if (o && o[k]) out[k] = o[k]; return out; };
+  return JSON.stringify({
+    baselineFrameMs: +baselineMs.toFixed(3),
+    stormFrameMs: +stormMs.toFixed(3),
+    deltaMs: +(stormMs - baselineMs).toFixed(3),
+    sections: pick(summary && summary.sections, ['simulation', 'background', 'foreground', 'arsenalVfxDraw', 'stormVfxDraw', 'arsenalFrame']),
+    peaks: pick(summary && summary.peaks, ['stormBolts', 'stormSparks', 'shockwaves', 'particles', 'projectiles', 'arsenalVfx']),
+    stormModuleStats: S ? { frames: S.stats.frames, boltsPeak: S.stats.boltsPeak, sparksPeak: S.stats.sparksPeak, throws: S.stats.throws, impacts: S.stats.impacts, trailEntities: S.stats.trailEntities } : null,
+  });
+`);
+console.log('STORM_PERF ' + report.stormPerf);
+
 // ------------------------------------------------------------------- summary
 report.summary = {
   total: Object.keys(report.gates).length,

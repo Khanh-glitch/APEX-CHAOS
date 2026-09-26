@@ -73,6 +73,11 @@
     aqPerfPeak('shockwaves', (typeof shockwaves !== 'undefined' && shockwaves.length) || 0);
     aqPerfPeak('arsenalVfx', av && av.activeVfx ? av.activeVfx() : 0);
     aqPerfPeak('detachedWeapons', (AQ.state && AQ.state.detachedWeapons && AQ.state.detachedWeapons.length) || 0);
+    const storm = window.APEX_ARSENAL_STORM;
+    if (storm) {
+      aqPerfPeak('stormBolts', storm.boltCount());
+      aqPerfPeak('stormSparks', storm.sparkCount());
+    }
   }
   function aqPerfSectionSummary() {
     const out = {};
@@ -271,6 +276,19 @@
         SPAWN.trySpawnSlot();
       }
       SPAWN.updateSlots(dt);
+      // STORMBREAKER global state (red-tier V1): while the weapon sits
+      // unclaimed on the floor, BOTH living fighters are slowed. Standard
+      // engine 'slow' status, refreshed per frame (TOWER_SHIELD precedent) —
+      // removal is clean because the refresh stops the moment the slot leaves
+      // REVEALED (pickup or expire), after which the timer simply runs out.
+      const stormFloor = !!(state.slots || []).some((s) => s.phase === 'REVEALED' && s.weaponId === 'STORMBREAKER');
+      if (stormFloor) {
+        const slowMult = (CFG.STORMBREAKER && CFG.STORMBREAKER.slowMult) || 0.70;
+        const slowT = (CFG.STORMBREAKER && CFG.STORMBREAKER.slowRefreshSeconds) || 0.12;
+        for (const f of fighters) {
+          if (f && f.hp > 0 && f.applyStatus) f.applyStatus('slow', slowT, { mult: slowMult });
+        }
+      }
       // POST-C §6: P1 cooldown-only skills wait for J. Gate wraps P1 update
       // only; P2 keeps automatic kit behavior.
       const gate = window.APEX_ARSENAL_SKILL_GATE;
@@ -289,6 +307,7 @@
     }
     weaponApi.tickVisuals(dt);
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.tick(dt);
+    if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.tick(dt);
     // Presentation decay over the shared engine collections.
     for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.update(dt); if (p.life <= 0) particles.splice(i, 1); }
     // Pass 1: battlefield typography is muted in Arsenal. Native kits may still
@@ -339,6 +358,8 @@
       drawChamber01(c); // Arsenal-only arena; global Apex background untouched
       const t1 = performance.now();
       if (AQ.feel && AQ.feel.drawStain) AQ.feel.drawStain(c);
+      // Stormbreaker floor lightning sits UNDER the actors (V9 layering).
+      if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.drawFloor(c);
       SPAWN.drawSlots(c);
       aqPerfMark('pickupDraw', performance.now() - t1);
       aqPerfMark('background', performance.now() - t0);
@@ -736,6 +757,10 @@
     const tVfx = performance.now();
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.draw(ctx);
     aqPerfMark('arsenalVfxDraw', performance.now() - tVfx);
+    // Red-tier presentation (fixed cost; zero in-flight bolt objects).
+    const tStorm = performance.now();
+    if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.draw(ctx);
+    aqPerfMark('stormVfxDraw', performance.now() - tStorm);
     drawHolderTags(ctx);
     if (AQ.feel && AQ.feel.drawForeground) AQ.feel.drawForeground(ctx);
     ctx.restore();
@@ -850,6 +875,7 @@
 
     window.apexStopBattleAudio?.();
     if (window.APEX_ARSENAL_AV) { window.APEX_ARSENAL_AV.clear(); window.APEX_ARSENAL_AV.preload(); }
+    if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.clear();
     gameState = 'ARSENAL';
     lastTime = performance.now();
     if (!reqId) reqId = requestAnimationFrame(loop);
@@ -877,6 +903,7 @@
     const battleExitBtn = document.getElementById('aq-battle-exit');
     if (battleExitBtn) battleExitBtn.style.display = 'none'; // PASS A: no menu-screen leak
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.clear();
+    if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.clear();
     if (keyListener) {
       window.removeEventListener('keydown', keyListener);
       keyListener = null; // no leaked listeners
