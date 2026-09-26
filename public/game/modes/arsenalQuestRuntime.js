@@ -660,7 +660,7 @@
           actions = ['REMATCH', 'PICK AGAIN', 'HUB'];
         }
         win.innerHTML = '<div class="aq-result-card"><div class="aq-result-kicker">ARSENAL RESULT</div><div class="aq-result-title">' + state.over + ' WINS</div>' + reward
-          + '<div id="aq-quest-actions" class="aq-result-actions">' + actions.map((a) => '<button data-aq-act="' + a + '">' + a + '</button>').join('') + '</div></div>';
+          + '<div id="aq-quest-actions" class="aq-result-actions">' + actions.map((a) => '<button type="button" data-aq-act="' + a + '">' + a + '</button>').join('') + '</div></div>';
         win.onclick = (e) => {
           const btn = e.target && e.target.closest ? e.target.closest('[data-aq-act]') : null;
           const act = btn && btn.getAttribute('data-aq-act');
