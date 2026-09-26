@@ -1927,17 +1927,20 @@ try {
     const timerAfter = APEX_ARSENAL.state.spawnTimer;
     __AQ_TEST.step(1.0);
     const mid = APEX_ARSENAL.state.spawnedTotal;
+    // Make the false phase deterministic: remove any incidental emergency
+    // pickup/holder first, then arm HERO with a known firearm for one tick.
+    __AQ_TEST.clearSlots();
+    fighters[0].data.arsenal = null;
+    fighters[1].data.arsenal = null;
     APEX_ARSENAL.weaponApi.equip(fighters[0], 'PISTOL');
     const armedBefore = APEX_ARSENAL.state.spawnedTotal;
     __AQ_TEST.step(1/60);
     const afterOneArmed = APEX_ARSENAL.state.spawnedTotal;
-    // Current V3 emergency law requires both fighters to lack a firearm AND
-    // no REVEALED firearm floor pickup. Remove the first emergency slot so
-    // this block creates a real false -> true retrigger instead of depending
-    // on incidental slot phase/timing.
+    // Now create the exact false -> true retrigger: no holders and no
+    // revealed firearm floor pickup.
     __AQ_TEST.clearSlots();
     fighters[0].data.arsenal = null;
-    fighters[1].data.arsenal = null; // rival may collect the first emergency slot
+    fighters[1].data.arsenal = null;
     APEX_ARSENAL.state.spawnTimer = 2.4;
     const retrigBefore = APEX_ARSENAL.state.spawnedTotal;
     __AQ_TEST.step(1/60);
@@ -2135,13 +2138,15 @@ try {
   })()`);
   report.evidence.push(await screenshot('10c-storm-impact-flash'));
 
-  // Flight screenshot: spinning weapon + rotational ghosts + local arcs.
+  // Flight screenshot: centered, unobstructed A/B evidence for the V9
+  // local-electricity + ghosts + solid-body composition.
   await evaluate(`(() => {
     __AQ_TEST.enterManual();
-    __AQ_TEST.place(120, 120, 980, 120);
+    APEX_ARSENAL.state.debugOverlay = false;
+    __AQ_TEST.place(220, 500, 900, 500);
     __AQ_TEST.holdSpawns();
     __AQ_TEST.equip('HERO', 'STORMBREAKER');
-    __AQ_TEST.step(0.80); // release at 0.73s -> mid-flight, far from rival
+    __AQ_TEST.step(0.95); // ~220ms after release: centered, still pre-impact
     __AQ_TEST.redraw();
     return projectiles.some(p => p.aq && p.type === 'aq_thrown' && p.weapon === 'STORMBREAKER');
   })()`);
@@ -2190,6 +2195,19 @@ try {
     && stormVfx.after.trail === false
     && stormVfx.cleared.bolts === 0 && stormVfx.cleared.impacts === 0,
     stormVfx);
+
+  report.stormFlightOwner = await evaluate(`(() => ({
+    stormOwns: window.APEX_ARSENAL_STORM?.ownsFlightSprite === true,
+    genericYields: String(APEX_ARSENAL.weaponApi.drawArsenalProjectiles).includes('ownsFlightSprite'),
+    profile: window.APEX_ARSENAL_STORM?.referenceProfile?.(),
+  }))()`);
+  gate('storm-browser-flight-single-presentation-owner',
+    report.stormFlightOwner.stormOwns === true
+    && report.stormFlightOwner.genericYields === true
+    && report.stormFlightOwner.profile?.flightPresentationOwner === 'storm-vfx'
+    && report.stormFlightOwner.profile?.ghostOffsetsSeconds?.join(',') === '0.04,0.02,0'
+    && report.stormFlightOwner.profile?.releaseBoltSeconds === 0.11,
+    report.stormFlightOwner);
 
   // ------------------------------------------------ Arsenal Lab V1 real Chrome
   report.labV1 = await evaluate(`(() => {
