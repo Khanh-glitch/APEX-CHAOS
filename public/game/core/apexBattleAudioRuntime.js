@@ -6,6 +6,67 @@ battleAudioMaster.connect(audioCtx.destination);
 var battleAudioFadeTimer = null;
 var battleMediaElements = new Set();
 var activeBattleMediaElements = new Set();
+
+// Mobile WebAudio policy: the context is created during boot, so Safari/iOS can
+// leave it suspended until resume() is called from a trusted user activation.
+// Keep a tiny unlock bridge armed until the context is actually running. If
+// WebKit suspends/interrupts the context after backgrounding, re-arm the bridge
+// for the next real user gesture instead of changing the existing SFX engine.
+var battleAudioUnlockArmed = false;
+function removeBattleAudioUnlockListeners() {
+    if (!battleAudioUnlockArmed) return;
+    battleAudioUnlockArmed = false;
+    window.removeEventListener('pointerdown', unlockBattleAudioFromGesture, true);
+    window.removeEventListener('touchend', unlockBattleAudioFromGesture, true);
+    window.removeEventListener('keydown', unlockBattleAudioFromGesture, true);
+}
+function unlockBattleAudioFromGesture() {
+    if (window.__apexStatsSilent) {
+        removeBattleAudioUnlockListeners();
+        return;
+    }
+    if (audioCtx.state === 'running') {
+        removeBattleAudioUnlockListeners();
+        return;
+    }
+    try {
+        const resumeResult = audioCtx.resume();
+        if (resumeResult?.then) {
+            resumeResult.then(() => {
+                if (audioCtx.state === 'running') removeBattleAudioUnlockListeners();
+            }).catch(() => {
+                // Keep listeners armed. A later trusted gesture may succeed.
+            });
+        } else if (audioCtx.state === 'running') {
+            removeBattleAudioUnlockListeners();
+        }
+    } catch (error) {
+        // Keep listeners armed. A later trusted gesture may succeed.
+    }
+}
+function armBattleAudioUnlock() {
+    if (window.__apexStatsSilent || audioCtx.state === 'running' || battleAudioUnlockArmed) return;
+    battleAudioUnlockArmed = true;
+    window.addEventListener('pointerdown', unlockBattleAudioFromGesture, { capture: true, passive: true });
+    window.addEventListener('touchend', unlockBattleAudioFromGesture, { capture: true, passive: true });
+    window.addEventListener('keydown', unlockBattleAudioFromGesture, true);
+}
+armBattleAudioUnlock();
+if (audioCtx.addEventListener) {
+    audioCtx.addEventListener('statechange', () => {
+        if (audioCtx.state === 'running') removeBattleAudioUnlockListeners();
+        else armBattleAudioUnlock();
+    });
+}
+if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && audioCtx.state !== 'running') armBattleAudioUnlock();
+    });
+}
+window.addEventListener('pageshow', () => {
+    if (audioCtx.state !== 'running') armBattleAudioUnlock();
+});
+
 function registerBattleMediaElement(audio) {
     if (!audio || audio.__apexMenuMusic) return audio;
     if (audio.__apexBattleRegistered) {
