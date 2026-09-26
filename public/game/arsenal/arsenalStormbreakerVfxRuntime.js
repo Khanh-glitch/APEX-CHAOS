@@ -29,6 +29,7 @@
   const bolts = [];
   const sparks = [];
   const motes = [];
+  const shockRings = []; // exact V9 local ring pool; bounded and presentation-only
   const impacts = [];       // { x, y, t, victimId, pulse2, crackleT }
   const claims = [];        // { x, y, t } pickup concentration moment
   const spawned = new Map();// slotId -> { x, y, t, pulseTimer, pulseIndex, coronaT, activeLinks }
@@ -242,6 +243,26 @@
     }
     stats.motesPeak = Math.max(stats.motesPeak, motes.length);
   }
+  function ring(x, y, power = 1) {
+    if (shockRings.length >= 18) shockRings.shift();
+    shockRings.push({ x, y, r: 8, life: 0.34, max: 0.34, power });
+  }
+  function drawRings(g) {
+    for (const r of shockRings) {
+      const a = clamp(r.life / r.max, 0, 1);
+      g.save();
+      g.globalAlpha = a * 0.5;
+      g.lineWidth = 1.5 + r.power;
+      g.strokeStyle = 'rgba(67,179,255,.8)';
+      g.shadowColor = 'rgba(30,145,255,.9)';
+      g.shadowBlur = 9;
+      g.beginPath();
+      g.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+      g.stroke();
+      g.restore();
+    }
+  }
+
   function drawSparks(g) {
     for (const p of sparks) {
       const a = clamp(p.life / p.max, 0, 1);
@@ -526,6 +547,13 @@
       if (p.life <= 0) motes.splice(i, 1);
     }
 
+    for (let i = shockRings.length - 1; i >= 0; i--) {
+      const r = shockRings[i];
+      r.life -= dt;
+      r.r += dt * 260 * r.power;
+      if (r.life <= 0) shockRings.splice(i, 1);
+    }
+
     // V9 flash decays: full flash pow(.018,dt), hit flash pow(.0018,dt).
     arenaFlashA *= Math.pow(0.018, dt);
     if (impacts.length > 0) impactFlashA *= Math.pow(0.0018, dt);
@@ -545,7 +573,7 @@
         rough: 0.19, floor: true, branchCount: 2, branchScale: 0.14, regen: 0.02,
       });
     }
-    if (typeof spawnShockwave === 'function') spawnShockwave(x, y, 'rgba(80,190,255,0.85)', strong ? 150 : 110);
+    ring(x, y, strong ? 1.18 : 0.82);
     sparkBurst(x, y, strong ? 14 : 8, strong ? 1.06 : 0.76);
     flashCenter = { x, y };
     arenaFlashA = Math.max(arenaFlashA, strong ? 0.16 : 0.07);
@@ -561,7 +589,7 @@
     claims.push({ x: f.x, y: f.y, t: 0 });
     flashCenter = { x: f.x, y: f.y };
     arenaFlashA = Math.max(arenaFlashA, 0.14);
-    if (typeof spawnShockwave === 'function') spawnShockwave(f.x, f.y, 'rgba(120,220,255,0.9)', 150);
+    ring(f.x, f.y, 1.05);
     sparkBurst(f.x, f.y, 18, 1.06);
     if (typeof cameraShake !== 'undefined') cameraShake = Math.max(cameraShake, 3.5);
     makeBolt(wx, wy, f.x, f.y, { life: 0.17, width: 1.45, power: 0.92, rough: 0.18, branchCount: 2, branchScale: 0.16, regen: 0.027 });
@@ -579,11 +607,10 @@
     flashCenter = { x, y };
     arenaFlashA = Math.max(arenaFlashA, 0.92);
     if (typeof cameraShake !== 'undefined') cameraShake = Math.max(cameraShake, 12.5);
-    if (typeof triggerFlash === 'function') triggerFlash(190, 235, 255, 0.30); // arena-wide pulse
-    if (typeof spawnShockwave === 'function') {
-      spawnShockwave(x, y, 'rgba(140,225,255,0.95)', 260);
-      spawnShockwave(x, y, 'rgba(140,225,255,0.80)', 170);
-    }
+    // Exact V9: its own internal scene illumination + two thin local rings.
+    // Do not stack the generic APEX shockwave/flash grammar on top.
+    ring(x, y, 2.05);
+    ring(x, y, 1.28);
     sparkBurst(x, y, 36, 1.5);
     // Hero discharge + major floor branches + short local snaps (V9 impact).
     const hero = arenaEdgePoint();
@@ -612,6 +639,7 @@
     // V9 floor discharge is one arena layer. Drawing this inside the per-slot
     // loop duplicated every bolt when Lab spawned multiple Stormbreakers.
     for (const b of bolts) if (b.floor) drawBolt(ctx, b);
+    drawRings(ctx);
     for (const [id, rec] of spawned) {
       const bob = slotBob(id, time);
       const W = WORLD();
@@ -758,6 +786,7 @@
     bolts.length = 0;
     sparks.length = 0;
     motes.length = 0;
+    shockRings.length = 0;
     impacts.length = 0;
     claims.length = 0;
     spawned.clear();
@@ -780,6 +809,7 @@
     boltCount: () => bolts.length,
     sparkCount: () => sparks.length,
     moteCount: () => motes.length,
+    ringCount: () => shockRings.length,
     impactCount: () => impacts.length,
     spawnCount: () => spawned.size,
     // Structural no-long-tail guarantee: the module has no trail entity type;
@@ -800,6 +830,8 @@
       slowMult: T.slowMult || 0.54,
       spinRate: T.spinRate || 82,
       motesEnabled: true,
+      ringRenderer: 'v9-local',
+      genericShockwaveSubstitution: false,
       flightWidths: [4.1, 1.55, 0.62],
       spawnStrongEvery: 3,
       longTail: false,

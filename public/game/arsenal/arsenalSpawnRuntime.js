@@ -617,12 +617,16 @@
         const bob = Math.sin(t * 3.1 + slot.id) * 4;
         const glow = (CFG.TIER_COLORS && slot.tier && CFG.TIER_COLORS[slot.tier]) || null;
         const glowSpec = (CFG.TIER_GLOW && slot.tier && CFG.TIER_GLOW[slot.tier]) || { rx: 34, ry: 10, a: 0.35, pulse: 0 };
-        const well = contactWell('gun');
-        ctx.save();
-        ctx.translate(0, bob + 22);
-        ctx.drawImage(well.canvas, -well.ox, -well.oy + 4);
-        ctx.restore();
-        if (glow) {
+        // Stormbreaker V9 owns its floor aura/rings. The generic contact well
+        // and tier halo were not present in the approved executable reference.
+        if (slot.weaponId !== 'STORMBREAKER') {
+          const well = contactWell('gun');
+          ctx.save();
+          ctx.translate(0, bob + 22);
+          ctx.drawImage(well.canvas, -well.ox, -well.oy + 4);
+          ctx.restore();
+        }
+        if (glow && slot.weaponId !== 'STORMBREAKER') {
           const pulse = 0.5 + 0.5 * Math.sin(t * (1.4 + glowSpec.pulse * 4) + slot.id);
           const q = Math.max(0, Math.min(7, pulse * 7 + 0.5 | 0));
           const sprite = raritySprite(slot.tier, glow, glowSpec, q);
