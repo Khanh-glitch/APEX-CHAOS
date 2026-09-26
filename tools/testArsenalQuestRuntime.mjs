@@ -71,6 +71,45 @@ async function screenshot(name) {
   await writeFile(file, Buffer.from(shot.data, 'base64'));
   return file;
 }
+async function setViewport(width, height, mobile = false) {
+  await command('Emulation.setDeviceMetricsOverride', {
+    width, height, deviceScaleFactor: 1, mobile,
+    screenWidth: width, screenHeight: height,
+  });
+  await sleep(180);
+}
+async function clearViewport() {
+  await command('Emulation.clearDeviceMetricsOverride');
+  await sleep(180);
+}
+async function hitProbe(selector) {
+  return evaluate(`(() => {
+    const el = document.querySelector(${JSON.stringify(selector)});
+    if (!el) return { exists:false };
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const top = document.elementFromPoint(cx, cy);
+    const cs = getComputedStyle(el);
+    return {
+      exists:true, width:r.width, height:r.height, left:r.left, top:r.top,
+      cx, cy, display:cs.display, visibility:cs.visibility,
+      pointerEvents:cs.pointerEvents, disabled:!!el.disabled,
+      hitWithin:!!top && (top === el || el.contains(top)),
+      topTag:top ? top.tagName : null,
+      topId:top ? top.id : null,
+      topClass:top ? top.className : null,
+    };
+  })()`);
+}
+async function physicalClick(selector) {
+  const p = await hitProbe(selector);
+  if (!p.exists || p.disabled || !p.hitWithin || p.pointerEvents === 'none' || p.width < 1 || p.height < 1) return p;
+  await command('Input.dispatchMouseEvent', { type:'mouseMoved', x:p.cx, y:p.cy });
+  await command('Input.dispatchMouseEvent', { type:'mousePressed', x:p.cx, y:p.cy, button:'left', clickCount:1 });
+  await command('Input.dispatchMouseEvent', { type:'mouseReleased', x:p.cx, y:p.cy, button:'left', clickCount:1 });
+  await sleep(220);
+  return p;
+}
 
 const report = { gates: {}, failures: [], evidence: [] };
 function gate(name, ok, detail) {
