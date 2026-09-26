@@ -109,6 +109,17 @@
   let shopSelected = state.lastSelectedP1 || 'NEWBIE';
   let lastDrawResult = null;
   let drawBusy = false;
+  let drawTimer = 0;
+  let drawSpinToken = 0;
+
+  function cancelDrawSpinAnimation() {
+    drawSpinToken += 1;
+    drawBusy = false;
+    if (drawTimer) {
+      window.clearTimeout(drawTimer);
+      drawTimer = 0;
+    }
+  }
 
   function esc(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g, (ch) => ({
@@ -276,10 +287,12 @@
     return el;
   }
   function hideMeta() {
+    cancelDrawSpinAnimation();
     const el = document.getElementById('aq-meta-root');
     if (el) el.style.display = 'none';
   }
   function paintHub() {
+    cancelDrawSpinAnimation();
     const el = ensureRoot();
     const ownedN = state.ownedFighters.length;
     const total = ROSTER().length;
@@ -334,6 +347,7 @@
     wireGridNav(grid, '[data-go]', 2);
   }
   function paintShop(selectedName) {
+    cancelDrawSpinAnimation();
     const el = ensureRoot();
     const ids = ROSTER();
     shopSelected = String(selectedName || state.lastSelectedP1 || shopSelected || 'NEWBIE').toUpperCase();
@@ -437,7 +451,10 @@
         const idx = Math.max(0, before.indexOf(r.name));
         const stop = 360 * 5 + (360 - (idx * (360 / Math.max(1, before.length))));
         wheel.style.transform = `rotate(${stop}deg)`;
-        window.setTimeout(() => {
+        const spinToken = ++drawSpinToken;
+        drawTimer = window.setTimeout(() => {
+          drawTimer = 0;
+          if (spinToken !== drawSpinToken) return;
           drawBusy = false;
           lastDrawResult = r;
           paintDraw();
