@@ -2147,7 +2147,7 @@ try {
   })()`);
   report.evidence.push(await screenshot('10d-storm-flight-spin-ghosts'));
 
-  // Global slow: both fighters 0.70x while unclaimed, clean on pickup.
+  // Global slow: literal V9 0.54x while unclaimed, clean on pickup.
   report.stormSlow = await evaluate(`(() => {
     __AQ_TEST.enterManual();
     __AQ_TEST.place(200, 300, 800, 300);
@@ -2166,7 +2166,7 @@ try {
     };
   })()`);
   gate('storm-browser-floor-slows-both',
-    report.stormSlow.slowHero === true && report.stormSlow.slowRival === true && report.stormSlow.mult === 0.70,
+    report.stormSlow.slowHero === true && report.stormSlow.slowRival === true && report.stormSlow.mult === 0.54,
     report.stormSlow);
   gate('storm-browser-slow-clean-removal',
     report.stormSlow.slowHeroAfter === false && report.stormSlow.slowRivalAfter === false,
