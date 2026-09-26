@@ -110,6 +110,15 @@ async function physicalClick(selector) {
   await sleep(220);
   return p;
 }
+async function physicalTap(selector) {
+  const p = await hitProbe(selector);
+  if (!p.exists || p.disabled || !p.hitWithin || p.pointerEvents === 'none' || p.width < 1 || p.height < 1) return p;
+  const point = { x:p.cx, y:p.cy, radiusX:1, radiusY:1, force:1, id:1 };
+  await command('Input.dispatchTouchEvent', { type:'touchStart', touchPoints:[point] });
+  await command('Input.dispatchTouchEvent', { type:'touchEnd', touchPoints:[] });
+  await sleep(260);
+  return p;
+}
 
 const report = { gates: {}, failures: [], evidence: [] };
 function gate(name, ok, detail) {
@@ -1474,6 +1483,18 @@ try {
       && phone.p2.top >= phone.p1.bottom - 2,
     phone);
   report.evidence.push(await screenshot('responsive-battle-390x844'));
+  const phoneExitTap = await physicalTap('#aq-battle-exit');
+  const phoneExitState = await evaluate(`(() => ({
+    state:gameState,
+    menuVisible:!document.getElementById('menu-screen').classList.contains('hidden')
+  }))()`);
+  gate('responsive-phone-touch-exit-works',
+    phoneExitTap.hitWithin === true && phoneExitTap.pointerEvents !== 'none'
+      && phoneExitState.state === 'MENU' && phoneExitState.menuVisible === true,
+    { tap:phoneExitTap, after:phoneExitState });
+  window.__apexPhoneExitProbe = phoneExitState;
+
+  await evaluate(`window.startArsenalQuestMode('HERO','RIVAL'); APEX_ARSENAL.state.debugOverlay=false; __AQ_TEST.redraw(); true`);
   await evaluate(`document.getElementById('p1-combat-panel')?.scrollIntoView({ block:'start' }); true`);
   await sleep(100);
   report.evidence.push(await screenshot('responsive-panels-390x844'));
