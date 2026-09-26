@@ -5666,10 +5666,10 @@ body.apex-battle .combat-panel::after { display: none; }
 
 
 /* ============================================================
-   PASS B V6 OWNER VISUAL CORRECTION — runtime fidelity pass
+   PASS B V6 OWNER VISUAL CORRECTION — responsive runtime fidelity
    Visual authority: apex_pass_b_review_v6_loadout_showcase.html
-   The prototype's hierarchy is preserved while all values remain
-   bound to live engine truth.
+   Desktop uses the entire viewport: P1 | maximal square arena | P2.
+   Tablet/mobile reflow without shrinking controls into unusable targets.
    ============================================================ */
 
 body.apex-battle {
@@ -5682,62 +5682,95 @@ body.apex-battle {
     --apc-muted:#7e8996;
     --apc-text:#f4f1e8;
     --apc-energy:#e1b94a;
+    overflow:hidden;
+}
+
+body.apex-battle #root{
+    width:100vw;
+    min-height:100dvh;
+    max-width:none;
+    gap:0;
+    align-items:stretch;
+    justify-content:stretch;
 }
 
 body.apex-battle #battle-shell{
-    --apc-arena:min(72dvh,720px);
+    --apc-gap:clamp(8px,1vw,16px);
+    --apc-side-min:220px;
+    --apc-arena:min(
+        calc(100dvh - 12px),
+        calc(100vw - (var(--apc-side-min) * 2) - (var(--apc-gap) * 2) - 12px)
+    );
     display:grid;
-    grid-template-columns:minmax(220px,1fr) minmax(560px,var(--apc-arena)) minmax(220px,1fr);
-    gap:16px;
+    grid-template-columns:minmax(var(--apc-side-min),1fr) minmax(0,var(--apc-arena)) minmax(var(--apc-side-min),1fr);
+    grid-template-rows:minmax(0,1fr);
+    gap:var(--apc-gap);
     align-items:stretch;
-    justify-content:center;
-    width:min(calc(100vw - 32px),1800px);
-    max-width:1800px;
-    margin:0 auto;
+    justify-content:stretch;
+    width:calc(100vw - 12px);
+    max-width:none;
+    height:calc(100dvh - 12px);
+    margin:auto;
     padding:0;
-    height:auto;
 }
+
 body.apex-battle #game-wrapper{
     grid-column:2;
     grid-row:1;
     width:100%;
-    max-width:var(--apc-arena);
+    max-width:none;
     min-width:0;
     height:auto;
+    max-height:100%;
     aspect-ratio:1;
     align-self:center;
     justify-self:center;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:0;
+    position:relative;
 }
+
 body.apex-battle #game-canvas{
     width:100%;
     height:100%;
     max-width:100%;
+    max-height:100%;
     aspect-ratio:1;
+    display:block;
     object-fit:contain;
 }
 
+/* ---------------- side-panel material ---------------- */
 body.apex-battle .combat-panel{
     --cp-accent:var(--apc-p1);
     --cp-accent-deep:var(--apc-p1-deep);
     --cp-accent-dim:rgba(67,185,236,.34);
+    container-type:inline-size;
     position:relative;
     display:flex!important;
     flex-direction:column!important;
     flex-wrap:nowrap!important;
+    align-content:stretch!important;
+    justify-content:flex-start!important;
     gap:0!important;
-    min-width:0;
+    min-width:0!important;
     width:auto!important;
     height:100%;
-    padding:18px!important;
+    max-height:100%;
+    padding:clamp(12px,1.15vw,20px)!important;
     overflow:hidden;
     color:var(--apc-text);
-    background:linear-gradient(180deg,rgba(18,24,32,.96),rgba(10,14,19,.94));
+    background:linear-gradient(180deg,rgba(18,24,32,.97),rgba(9,13,18,.96));
     border:1px solid #303944;
     border-left:3px solid var(--cp-accent);
     box-shadow:0 18px 50px rgba(0,0,0,.34),inset 0 1px rgba(255,255,255,.03);
     clip-path:none!important;
     filter:none!important;
 }
+
 body.apex-battle .cp-side-p1{grid-column:1;grid-row:1}
 body.apex-battle .cp-side-p2{
     --cp-accent:var(--apc-p2);
@@ -5757,7 +5790,7 @@ body.apex-battle .combat-panel::before{
 }
 body.apex-battle .combat-panel::after{display:none!important}
 
-/* identity */
+/* ---------------- identity + HP ---------------- */
 body.apex-battle .cp-identity{
     position:relative;
     flex:0 0 auto!important;
@@ -5770,8 +5803,8 @@ body.apex-battle .cp-fighter-head{
     justify-content:space-between;
     align-items:flex-end;
     gap:12px;
-    padding-bottom:12px;
-    margin-bottom:14px;
+    padding-bottom:clamp(9px,1.1vh,13px);
+    margin-bottom:clamp(10px,1.25vh,15px);
     border-bottom:1px solid #252d36;
 }
 body.apex-battle .cp-side-p2 .cp-fighter-head{
@@ -5782,8 +5815,8 @@ body.apex-battle .cp-fighter-copy{min-width:0}
 body.apex-battle .cp-eyebrow{
     margin-bottom:6px;
     color:var(--apc-muted);
-    font:800 10px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    letter-spacing:.2em;
+    font:800 clamp(8px,.62vw,10px)/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    letter-spacing:.18em;
     white-space:nowrap;
 }
 body.apex-battle .combat-panel .name{
@@ -5792,8 +5825,8 @@ body.apex-battle .combat-panel .name{
     margin:0!important;
     max-width:100%;
     color:var(--cp-accent)!important;
-    font:900 italic clamp(22px,2vw,29px)/1 'ApcKanit','Arial Narrow',sans-serif!important;
-    letter-spacing:.045em!important;
+    font:900 italic clamp(20px,1.55vw,31px)/1 'ApcKanit','Arial Narrow',sans-serif!important;
+    letter-spacing:.035em!important;
     white-space:nowrap;
     overflow:hidden;
     text-overflow:ellipsis;
@@ -5817,14 +5850,14 @@ body.apex-battle .cp-chip{
     font:800 10px/1 ui-monospace,monospace;
     letter-spacing:.1em;
 }
-body.apex-battle .cp-hp-wrap{margin-bottom:18px}
+body.apex-battle .cp-hp-wrap{margin-bottom:clamp(13px,1.7vh,20px)}
 body.apex-battle .cp-hp-label{
     display:flex;
     justify-content:space-between;
     align-items:center;
     margin-bottom:7px;
     color:#cbd1d6;
-    font:700 11px/1 ui-monospace,monospace;
+    font:700 clamp(9px,.68vw,11px)/1 ui-monospace,monospace;
 }
 body.apex-battle .cp-side-p2 .cp-hp-label{flex-direction:row-reverse}
 body.apex-battle .combat-panel .hp-text{
@@ -5834,13 +5867,13 @@ body.apex-battle .combat-panel .hp-text{
     padding:0!important;
     color:#cbd1d6!important;
     background:none!important;
-    font:700 11px/1 ui-monospace,monospace!important;
+    font:700 clamp(9px,.68vw,11px)/1 ui-monospace,monospace!important;
     letter-spacing:0!important;
     text-shadow:none!important;
 }
 body.apex-battle .combat-panel .hp-bar-bg{
     position:relative;
-    height:18px!important;
+    height:clamp(14px,1.65vh,19px)!important;
     margin:0!important;
     overflow:hidden;
     border:1px solid #414a52;
@@ -5872,7 +5905,7 @@ body.apex-battle .combat-panel .rage-indicator{
     letter-spacing:.12em!important;
 }
 
-/* section labels */
+/* ---------------- section labels ---------------- */
 body.apex-battle .cp-section-title{
     display:flex;
     align-items:center;
@@ -5880,7 +5913,7 @@ body.apex-battle .cp-section-title{
     flex:0 0 auto;
     margin:0 0 8px;
     color:#77838f;
-    font:800 10px/1 ui-monospace,monospace;
+    font:800 clamp(8px,.63vw,10px)/1 ui-monospace,monospace;
     letter-spacing:.16em;
 }
 body.apex-battle .cp-section-title::after{
@@ -5889,9 +5922,8 @@ body.apex-battle .cp-section-title::after{
     flex:1;
     background:#252d35;
 }
-body.apex-battle .cp-pressure-title{margin-top:0}
 
-/* recent pressure */
+/* ---------------- recent pressure ---------------- */
 body.apex-battle .cp-burst{
     --cp-heat:#4e5964;
     position:relative;
@@ -5899,8 +5931,8 @@ body.apex-battle .cp-burst{
     flex:0 0 auto!important;
     min-width:0!important;
     min-height:0!important;
-    margin:0 0 0!important;
-    padding:12px 12px 11px!important;
+    margin:0!important;
+    padding:clamp(9px,1vw,13px)!important;
     overflow:hidden;
     background:linear-gradient(180deg,#0b1016,#080c11);
     border:1px solid #2b343d;
@@ -5914,9 +5946,7 @@ body.apex-battle .cp-burst::before{
     background:linear-gradient(90deg,color-mix(in srgb,var(--cp-heat) 8%,transparent),transparent 46%);
     opacity:.9;
 }
-body.apex-battle .cp-side-p2 .cp-burst::before{
-    background:linear-gradient(270deg,color-mix(in srgb,var(--cp-heat) 8%,transparent),transparent 46%);
-}
+body.apex-battle .cp-side-p2 .cp-burst::before{background:linear-gradient(270deg,color-mix(in srgb,var(--cp-heat) 8%,transparent),transparent 46%)}
 body.apex-battle .cp-burst.is-hot{
     border-color:color-mix(in srgb,var(--cp-heat) 78%,#2b343d);
     box-shadow:inset 0 0 26px color-mix(in srgb,var(--cp-heat) 10%,transparent);
@@ -5931,37 +5961,26 @@ body.apex-battle .cp-burst-top{
     align-items:flex-start;
     gap:10px;
 }
-body.apex-battle .cp-side-p2 .cp-burst-top{
-    flex-direction:row-reverse;
-    text-align:right;
-}
+body.apex-battle .cp-side-p2 .cp-burst-top{flex-direction:row-reverse;text-align:right}
 body.apex-battle .cp-burst-stack{min-width:0}
 body.apex-battle .cp-burst-kicker{
     margin-bottom:5px;
     color:#64707d;
-    font:800 9px/1 ui-monospace,monospace;
+    font:800 clamp(8px,.58vw,9px)/1 ui-monospace,monospace;
     letter-spacing:.16em;
 }
-body.apex-battle .cp-burst-readout{
-    display:flex;
-    align-items:baseline;
-    gap:4px;
-}
+body.apex-battle .cp-burst-readout{display:flex;align-items:baseline;gap:4px}
 body.apex-battle .cp-side-p2 .cp-burst-readout{justify-content:flex-end}
 body.apex-battle .cp-burst-total{
     display:inline-block;
     color:var(--cp-heat);
-    font:900 italic 34px/.92 'ApcKanit','Arial Narrow',sans-serif!important;
+    font:900 italic clamp(28px,2.25vw,42px)/.92 'ApcKanit','Arial Narrow',sans-serif!important;
     letter-spacing:-.02em!important;
     transform-origin:center;
     transition:color .1s ease,transform .1s ease;
 }
 body.apex-battle .cp-burst-total.is-punch{animation:apcBurstPulse .18s ease-out}
-@keyframes apcBurstPulse{
-    0%{transform:translateY(0) scale(1)}
-    35%{transform:translateY(-2px) scale(1.12)}
-    100%{transform:translateY(0) scale(1)}
-}
+@keyframes apcBurstPulse{0%{transform:translateY(0) scale(1)}35%{transform:translateY(-2px) scale(1.12)}100%{transform:translateY(0) scale(1)}}
 body.apex-battle .cp-burst-unit{
     color:#87919b;
     font:900 10px/1 ui-monospace,monospace;
@@ -5971,11 +5990,10 @@ body.apex-battle .cp-burst-label{
     max-width:142px;
     min-height:1.2em;
     color:var(--cp-heat);
-    font:900 11px/1.15 ui-monospace,monospace;
-    letter-spacing:.11em;
+    font:900 clamp(9px,.72vw,11px)/1.15 ui-monospace,monospace;
+    letter-spacing:.1em;
     text-align:right;
     white-space:normal;
-    transition:color .1s ease;
 }
 body.apex-battle .cp-side-p2 .cp-burst-label{text-align:left}
 body.apex-battle .cp-burst-meta{
@@ -6004,25 +6022,24 @@ body.apex-battle .cp-burst-fill{
 }
 body.apex-battle .cp-side-p2 .cp-burst-fill{margin-left:auto}
 
-/* loadout showcase */
+/* ---------------- loadout ---------------- */
 body.apex-battle .cp-combat-stage{
     position:relative;
     flex:0 0 auto;
-    min-height:144px;
-    margin-top:10px;
-    padding:14px 0 6px;
+    min-height:clamp(122px,17vh,164px);
+    margin-top:clamp(8px,1.2vh,12px);
+    padding:clamp(10px,1.45vh,15px) 0 6px;
     overflow:hidden;
     border-top:1px solid #222a32;
 }
 body.apex-battle .cp-loadout-shell{
     --cp-heat:var(--cp-accent);
     position:relative;
-    min-height:126px;
-    padding:12px 12px 11px;
+    min-height:clamp(108px,15vh,144px);
+    padding:clamp(10px,.9vw,13px);
     overflow:hidden;
     border:1px solid #202830;
     background:linear-gradient(180deg,#0a0e13,#0d1218 55%,#0b1015);
-    transition:border-color .12s ease,box-shadow .12s ease;
 }
 body.apex-battle .cp-loadout-shell::before{
     content:"";
@@ -6046,15 +6063,13 @@ body.apex-battle .cp-loadout-shell::after{
     background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--cp-heat) 30%,#2a333b),transparent);
     opacity:.8;
 }
-body.apex-battle .cp-loadout-shell.is-hot{
-    box-shadow:inset 0 0 18px color-mix(in srgb,var(--cp-heat) 6%,transparent),0 0 0 1px color-mix(in srgb,var(--cp-heat) 15%,transparent);
-}
+body.apex-battle .cp-loadout-shell.is-hot{box-shadow:inset 0 0 18px color-mix(in srgb,var(--cp-heat) 6%,transparent),0 0 0 1px color-mix(in srgb,var(--cp-heat) 15%,transparent)}
 body.apex-battle .cp-loadout-kicker{
     position:relative;
     z-index:2;
-    margin-bottom:12px;
+    margin-bottom:clamp(8px,1vh,12px);
     color:#74818d;
-    font:800 10px/1 ui-monospace,monospace;
+    font:800 clamp(8px,.63vw,10px)/1 ui-monospace,monospace;
     letter-spacing:.16em;
 }
 body.apex-battle .cp-loadout-top{
@@ -6063,30 +6078,21 @@ body.apex-battle .cp-loadout-top{
     display:flex;
     justify-content:space-between;
     align-items:flex-start;
-    gap:14px;
+    gap:clamp(8px,.9vw,14px);
 }
-body.apex-battle .cp-side-p2 .cp-loadout-top{
-    flex-direction:row-reverse;
-    text-align:right;
-}
+body.apex-battle .cp-side-p2 .cp-loadout-top{flex-direction:row-reverse;text-align:right}
 body.apex-battle .cp-loadout-copy{min-width:0;flex:1 1 auto}
 body.apex-battle .cp-loadout-name{
-    max-width:150px;
+    max-width:100%;
     color:#e7edf3;
-    font:900 italic 28px/.92 'ApcKanit','Arial Narrow',sans-serif!important;
+    font:900 italic clamp(21px,1.7vw,31px)/.92 'ApcKanit','Arial Narrow',sans-serif!important;
     letter-spacing:-.03em!important;
     text-transform:uppercase;
     white-space:normal!important;
     overflow-wrap:anywhere;
 }
 body.apex-battle .cp-side-p2 .cp-loadout-name{margin-left:auto;text-align:right}
-body.apex-battle .cp-loadout-line{
-    display:flex;
-    align-items:center;
-    gap:7px;
-    margin-top:5px;
-    min-height:14px;
-}
+body.apex-battle .cp-loadout-line{display:flex;align-items:center;gap:7px;margin-top:5px;min-height:14px;flex-wrap:wrap}
 body.apex-battle .cp-side-p2 .cp-loadout-line{justify-content:flex-end}
 body.apex-battle .cp-loadout-family,
 body.apex-battle .cp-loadout-tier{
@@ -6094,26 +6100,26 @@ body.apex-battle .cp-loadout-tier{
     padding:0!important;
     color:var(--cp-heat);
     background:none!important;
-    font:900 10px/1 ui-monospace,monospace!important;
-    letter-spacing:.14em!important;
+    font:900 9px/1 ui-monospace,monospace!important;
+    letter-spacing:.12em!important;
     text-transform:uppercase;
 }
 body.apex-battle .cp-loadout-tier::before{content:"· ";color:#59636e}
 body.apex-battle .cp-loadout-state{
-    margin-top:18px;
+    margin-top:clamp(11px,1.6vh,18px);
     color:#8f9ba6;
-    font:800 10px/1 ui-monospace,monospace;
-    letter-spacing:.16em;
+    font:800 9px/1 ui-monospace,monospace;
+    letter-spacing:.14em;
     text-transform:uppercase;
 }
 body.apex-battle .cp-loadout-art{
     position:relative;
     z-index:2;
-    flex:0 0 130px!important;
-    width:130px!important;
-    height:74px!important;
-    min-height:74px!important;
-    max-height:74px!important;
+    flex:0 0 clamp(104px,8.6vw,152px)!important;
+    width:clamp(104px,8.6vw,152px)!important;
+    height:clamp(60px,5.2vw,86px)!important;
+    min-height:60px!important;
+    max-height:86px!important;
     margin:0!important;
     overflow:hidden;
     border:1px dashed rgba(130,144,156,.16)!important;
@@ -6127,7 +6133,7 @@ body.apex-battle .cp-loadout-canvas{
     inset:4px!important;
     width:calc(100% - 8px)!important;
     height:calc(100% - 8px)!important;
-    opacity:.9;
+    opacity:.92;
     transition:opacity .14s ease;
 }
 body.apex-battle .cp-loadout-canvas.is-swapping{opacity:.38}
@@ -6143,7 +6149,7 @@ body.apex-battle .cp-loadout-fallback{
 }
 body.apex-battle .cp-glyph{
     color:#e3dfd3!important;
-    font:900 italic 31px/1 'ApcKanit','Arial Narrow',sans-serif!important;
+    font:900 italic clamp(25px,2vw,36px)/1 'ApcKanit','Arial Narrow',sans-serif!important;
     opacity:.88;
 }
 body.apex-battle .cp-fallback-label{
@@ -6152,33 +6158,29 @@ body.apex-battle .cp-fallback-label{
     letter-spacing:.16em!important;
 }
 
-/* energy */
-body.apex-battle .cp-energy-title-row{margin-top:8px}
+/* ---------------- energy ---------------- */
+body.apex-battle .cp-energy-title-row{margin-top:clamp(6px,1vh,10px)}
 body.apex-battle .cp-energy{
     flex:0 0 auto!important;
     margin:0!important;
     padding:0!important;
     border:0!important;
 }
-body.apex-battle .cp-energy-head{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-end;
-}
+body.apex-battle .cp-energy-head{display:flex;justify-content:space-between;align-items:flex-end}
 body.apex-battle .cp-side-p2 .cp-energy-head{flex-direction:row-reverse}
 body.apex-battle .cp-energy-kicker{
     color:var(--apc-muted);
-    font:800 10px/1 ui-monospace,monospace;
-    letter-spacing:.2em;
+    font:800 9px/1 ui-monospace,monospace;
+    letter-spacing:.16em;
 }
 body.apex-battle .cp-energy-val{
     color:#d9c780!important;
-    font:900 italic 22px/1 'ApcKanit','Arial Narrow',sans-serif!important;
+    font:900 italic clamp(18px,1.4vw,24px)/1 'ApcKanit','Arial Narrow',sans-serif!important;
 }
 body.apex-battle .cp-energy-track{
     position:relative;
-    height:13px!important;
-    margin-top:8px!important;
+    height:clamp(10px,1.2vh,14px)!important;
+    margin-top:7px!important;
     overflow:hidden;
     border:1px solid #41433b!important;
     background:#070909!important;
@@ -6191,14 +6193,8 @@ body.apex-battle .cp-energy-fill{
     background:linear-gradient(90deg,#735c1c,#e1b94a)!important;
     transition:width .11s ease-out;
 }
-body.apex-battle .cp-side-p2 .cp-energy-fill{
-    left:auto;
-    right:0;
-    background:linear-gradient(270deg,#735c1c,#e1b94a)!important;
-}
-body.apex-battle .cp-energy-fill.is-ready{
-    box-shadow:0 0 14px rgba(225,185,74,.28);
-}
+body.apex-battle .cp-side-p2 .cp-energy-fill{left:auto;right:0;background:linear-gradient(270deg,#735c1c,#e1b94a)!important}
+body.apex-battle .cp-energy-fill.is-ready{box-shadow:0 0 14px rgba(225,185,74,.28)}
 body.apex-battle .cp-energy-ready{
     position:absolute;
     right:6px;
@@ -6211,17 +6207,17 @@ body.apex-battle .cp-energy-ready{
 }
 body.apex-battle .cp-side-p2 .cp-energy-ready{right:auto;left:6px}
 
-/* truthful mode footer */
+/* ---------------- truthful mode footer ---------------- */
 body.apex-battle .cp-mode{
     display:block!important;
     flex:0 0 auto;
     min-height:0;
-    margin-top:17px;
-    padding:11px;
+    margin-top:clamp(10px,1.6vh,18px);
+    padding:clamp(7px,.75vw,11px);
     border:1px dashed #323b45;
     color:#697582;
     background:transparent;
-    font:700 10px/1.5 ui-monospace,monospace;
+    font:700 clamp(8px,.6vw,10px)/1.45 ui-monospace,monospace;
     letter-spacing:.04em;
     text-align:left;
     white-space:normal;
@@ -6229,7 +6225,7 @@ body.apex-battle .cp-mode{
 body.apex-battle .cp-side-p2 .cp-mode{text-align:right}
 body.apex-battle #aq-skill-hud{display:none!important}
 
-/* keep controls usable without visually competing with the panel */
+/* battle actions belong to the arena, not the page edge */
 body.apex-battle #battle-controls{
     left:auto;
     right:10px;
@@ -6237,65 +6233,142 @@ body.apex-battle #battle-controls{
     bottom:10px;
     transform:none;
     flex-direction:column;
+    z-index:70;
 }
 
-/* prototype responsive law: the square arena gets the first row, both
-   side panels become equal cards below it instead of being crushed. */
-@media (max-width:1120px), (max-aspect-ratio:144/100){
+/* Wider/fullscreen desktops: use the extra side-panel width rather than
+   leaving black margins. */
+@media (min-width:1600px) and (min-height:850px){
+    body.apex-battle #battle-shell{--apc-side-min:250px}
+    body.apex-battle .combat-panel{padding:clamp(16px,1.15vw,24px)!important}
+    body.apex-battle .cp-loadout-art{
+        flex-basis:clamp(132px,8.4vw,176px)!important;
+        width:clamp(132px,8.4vw,176px)!important;
+        height:clamp(74px,4.7vw,96px)!important;
+        max-height:96px!important;
+    }
+}
+
+/* Tablet / narrow browser: arena gets the first row and both panels become
+   equal cards below it. The page scrolls instead of crushing the arena. */
+@media (max-width:979px), (orientation:portrait){
+    body.apex-battle{overflow-x:hidden;overflow-y:auto}
+    body.apex-battle #root{min-height:100dvh;height:auto;overflow:visible}
     body.apex-battle #battle-shell{
-        --apc-arena:min(74dvh,760px);
+        display:grid;
         grid-template-columns:minmax(0,1fr) minmax(0,1fr);
         grid-template-rows:auto auto;
-        width:min(calc(100vw - 24px),1120px);
-        gap:12px;
+        width:calc(100vw - 12px);
+        height:auto;
+        min-height:100dvh;
+        gap:10px;
+        padding-bottom:10px;
     }
     body.apex-battle #game-wrapper{
         grid-column:1 / 3;
         grid-row:1;
-        width:min(92vw,74dvh,760px);
-        max-width:760px;
+        width:min(calc(100vw - 12px),calc(100dvh - 24px),900px);
+        max-width:900px;
+        height:auto;
+        aspect-ratio:1;
         justify-self:center;
     }
     body.apex-battle .cp-side-p1{grid-column:1;grid-row:2}
     body.apex-battle .cp-side-p2{grid-column:2;grid-row:2}
     body.apex-battle .combat-panel{
         height:auto;
-        min-height:0;
+        max-height:none;
         padding:14px!important;
     }
+    body.apex-battle .cp-combat-stage{min-height:120px;padding-top:10px}
+    body.apex-battle .cp-loadout-shell{min-height:108px}
     body.apex-battle .cp-loadout-art{
-        flex-basis:112px!important;
-        width:112px!important;
-        height:66px!important;
-        min-height:66px!important;
-        max-height:66px!important;
+        flex-basis:108px!important;
+        width:108px!important;
+        height:62px!important;
+        min-height:62px!important;
+        max-height:62px!important;
     }
-    body.apex-battle .cp-loadout-name{font-size:23px!important}
+    body.apex-battle .cp-loadout-name{font-size:21px!important}
     body.apex-battle .cp-mode{display:none!important}
 }
-@media (max-width:700px){
+
+/* Phone: one continuous readable stack. Touch targets stay >=44px and the
+   arena uses the full device width without horizontal scroll. */
+@media (max-width:640px){
     body.apex-battle #battle-shell{
         grid-template-columns:minmax(0,1fr);
         grid-template-rows:auto auto auto;
-        width:min(calc(100vw - 16px),700px);
-        gap:10px;
+        width:100vw;
+        padding:0 max(4px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(4px,env(safe-area-inset-left));
+        gap:8px;
     }
     body.apex-battle #game-wrapper{
         grid-column:1;
         grid-row:1;
-        width:min(96vw,70dvh,680px);
+        width:min(100vw,100dvh);
+        max-width:none;
+        border-radius:0;
     }
     body.apex-battle .cp-side-p1{grid-column:1;grid-row:2}
     body.apex-battle .cp-side-p2{grid-column:1;grid-row:3}
-    body.apex-battle .combat-panel{padding:12px!important}
-    body.apex-battle .cp-combat-stage{min-height:122px;padding-top:10px}
-    body.apex-battle .cp-loadout-shell{min-height:108px}
-    body.apex-battle .cp-loadout-art{
-        flex-basis:100px!important;
-        width:100px!important;
-        height:60px!important;
-        min-height:60px!important;
-        max-height:60px!important;
+    body.apex-battle .combat-panel{
+        width:100%!important;
+        padding:12px!important;
+        border-left-width:2px;
+        border-right-width:2px;
     }
-    body.apex-battle .cp-loadout-name{font-size:21px!important}
+    body.apex-battle .cp-fighter-head{margin-bottom:10px;padding-bottom:9px}
+    body.apex-battle .cp-hp-wrap{margin-bottom:12px}
+    body.apex-battle .cp-burst{padding:10px!important}
+    body.apex-battle .cp-combat-stage{min-height:112px;margin-top:8px;padding-top:9px}
+    body.apex-battle .cp-loadout-shell{min-height:100px;padding:10px}
+    body.apex-battle .cp-loadout-art{
+        flex-basis:96px!important;
+        width:96px!important;
+        height:56px!important;
+        min-height:56px!important;
+        max-height:56px!important;
+    }
+    body.apex-battle .cp-loadout-name{font-size:20px!important}
+    body.apex-battle .cp-loadout-state{margin-top:9px}
+    body.apex-battle .cp-energy-title-row{margin-top:6px}
+    body.apex-battle #battle-controls{
+        right:6px;
+        bottom:6px;
+        gap:5px;
+    }
+    body.apex-battle #battle-controls button{
+        width:44px;
+        height:44px;
+        min-width:44px;
+        min-height:44px;
+    }
+}
+
+/* Very short landscape windows: preserve arena size; panels scroll internally
+   rather than forcing the battlefield to a tiny square. */
+@media (min-width:980px) and (max-height:640px){
+    body.apex-battle #battle-shell{
+        --apc-side-min:200px;
+        --apc-arena:min(calc(100dvh - 8px),calc(100vw - 420px));
+        width:calc(100vw - 8px);
+        height:calc(100dvh - 8px);
+        gap:6px;
+    }
+    body.apex-battle .combat-panel{
+        padding:10px!important;
+        overflow-y:auto;
+        scrollbar-width:thin;
+    }
+    body.apex-battle .cp-combat-stage{min-height:104px;margin-top:6px;padding-top:7px}
+    body.apex-battle .cp-loadout-shell{min-height:94px}
+    body.apex-battle .cp-loadout-art{
+        flex-basis:94px!important;
+        width:94px!important;
+        height:52px!important;
+        min-height:52px!important;
+        max-height:52px!important;
+    }
+    body.apex-battle .cp-mode{display:none!important}
 }
