@@ -1423,7 +1423,8 @@ try {
   report.evidence.push(await screenshot('passa-menu-hub'));
 
   // 2) Hub visible EXIT -> global Main Menu.
-  await evaluate(`document.getElementById('aq-hub-exit')?.click()`);
+  const hubExitPointer = await physicalClick('#aq-hub-exit');
+  gate('responsive-pointer-hub-exit-hit-test', hubExitPointer.hitWithin === true && hubExitPointer.pointerEvents !== 'none', hubExitPointer);
   await sleep(300);
   const hubExit = await evaluate(`(() => ({
     state: gameState,
@@ -1436,29 +1437,34 @@ try {
   // 3) Hub -> Shop -> BACK -> Hub.
   await evaluate(`APEX_ARSENAL_META.openHub()`);
   await sleep(150);
-  await evaluate(`document.querySelector('#aq-meta-root [data-go="shop"]')?.click()`);
+  const shopPointer = await physicalClick('#aq-meta-root [data-go="shop"]');
+  gate('responsive-pointer-hub-shop-hit-test', shopPointer.hitWithin === true && shopPointer.pointerEvents !== 'none', shopPointer);
   await sleep(250);
   const shopView = await evaluate(`!!document.getElementById('aq-shop-back')`);
   gate('passa-hub-to-shop', shopView === true, shopView);
   report.evidence.push(await screenshot('passa-shop'));
-  await evaluate(`document.getElementById('aq-shop-back')?.click()`);
+  const shopBackPointer = await physicalClick('#aq-shop-back');
+  gate('responsive-pointer-shop-back-hit-test', shopBackPointer.hitWithin === true && shopBackPointer.pointerEvents !== 'none', shopBackPointer);
   await sleep(200);
   gate('passa-shop-back-hub', await evaluate(`!!document.querySelector('#aq-meta-root [data-go="free"]')`) === true);
   report.evidence.push(await screenshot('passa-shop-back-hub'));
 
   // 4) Hub -> Lucky Draw -> BACK -> Hub.
-  await evaluate(`document.querySelector('#aq-meta-root [data-go="draw"]')?.click()`);
+  const drawPointer = await physicalClick('#aq-meta-root [data-go="draw"]');
+  gate('responsive-pointer-hub-draw-hit-test', drawPointer.hitWithin === true && drawPointer.pointerEvents !== 'none', drawPointer);
   await sleep(250);
   const drawView = await evaluate(`!!document.getElementById('aq-draw-back')`);
   gate('passa-hub-to-lucky-draw', drawView === true, drawView);
   report.evidence.push(await screenshot('passa-lucky-draw'));
-  await evaluate(`document.getElementById('aq-draw-back')?.click()`);
+  const drawBackPointer = await physicalClick('#aq-draw-back');
+  gate('responsive-pointer-draw-back-hit-test', drawBackPointer.hitWithin === true && drawBackPointer.pointerEvents !== 'none', drawBackPointer);
   await sleep(200);
   gate('passa-draw-back-hub', await evaluate(`!!document.querySelector('#aq-meta-root [data-go="free"]')`) === true);
   report.evidence.push(await screenshot('passa-draw-back-hub'));
 
   // 5) Hub -> Quest Map -> visible BACK -> Hub.
-  await evaluate(`document.querySelector('#aq-meta-root [data-go="quest"]')?.click()`);
+  const questPointer = await physicalClick('#aq-meta-root [data-go="quest"]');
+  gate('responsive-pointer-hub-quest-hit-test', questPointer.hitWithin === true && questPointer.pointerEvents !== 'none', questPointer);
   await sleep(400);
   const qmap = await evaluate(`(() => {
     const el = document.getElementById('aq-quest-map');
@@ -1466,13 +1472,15 @@ try {
   })()`);
   gate('passa-hub-to-quest-map', qmap.visible === true && qmap.close === true, qmap);
   report.evidence.push(await screenshot('passa-quest-map'));
-  await evaluate(`document.getElementById('aq-quest-close')?.click()`);
+  const questBackPointer = await physicalClick('#aq-quest-close');
+  gate('responsive-pointer-quest-back-hit-test', questBackPointer.hitWithin === true && questBackPointer.pointerEvents !== 'none', questBackPointer);
   await sleep(200);
   gate('passa-quest-map-back-hub', await evaluate(`!!document.querySelector('#aq-meta-root [data-go="free"]')`) === true);
   report.evidence.push(await screenshot('passa-quest-map-back-hub'));
 
   // 6) Hub -> Free Battle picker -> visible exit back to Hub.
-  await evaluate(`document.querySelector('#aq-meta-root [data-go="free"]')?.click()`);
+  const freePointer = await physicalClick('#aq-meta-root [data-go="free"]');
+  gate('responsive-pointer-hub-free-hit-test', freePointer.hitWithin === true && freePointer.pointerEvents !== 'none', freePointer);
   await sleep(500);
   const pick = await evaluate(`(() => ({
     selectVisible: !document.getElementById('select-screen').classList.contains('hidden'),
@@ -1480,7 +1488,8 @@ try {
   }))()`);
   gate('passa-hub-to-free-pick', pick.selectVisible === true && pick.exitBtn === true, pick);
   report.evidence.push(await screenshot('passa-free-pick'));
-  await evaluate(`document.querySelector('button[aria-label="exit-button"]')?.click()`);
+  const pickerBackPointer = await physicalClick('button[aria-label="exit-button"]');
+  gate('responsive-pointer-picker-exit-hit-test', pickerBackPointer.hitWithin === true && pickerBackPointer.pointerEvents !== 'none', pickerBackPointer);
   await sleep(300);
   const pickBack = await evaluate(`(() => ({
     hubVisible: !!document.querySelector('#aq-meta-root [data-go="free"]'),
@@ -1510,7 +1519,8 @@ try {
   }
   gate('passa-battle-visible-exit', battle.visible === true && battle.state === 'ARSENAL', battle);
   report.evidence.push(await screenshot('passa-battle-exit-visible'));
-  await evaluate(`document.getElementById('aq-battle-exit')?.click()`);
+  const battleExitPointer = await physicalClick('#aq-battle-exit');
+  gate('responsive-pointer-battle-exit-hit-test', battleExitPointer.hitWithin === true && battleExitPointer.pointerEvents !== 'none', battleExitPointer);
   await sleep(300);
   const battleExit = await evaluate(`(() => ({
     state: gameState,
