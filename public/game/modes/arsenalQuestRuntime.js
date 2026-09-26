@@ -554,7 +554,7 @@
       el = document.createElement('div');
       el.id = 'aq-dom-hud';
       el.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:40;font-family:monospace;';
-      (document.getElementById('game-wrap') || document.body).appendChild(el);
+      (document.getElementById('game-wrapper') || document.getElementById('game-wrap') || document.body).appendChild(el);
     }
     hudRefs.root = el;
     return el;
@@ -564,11 +564,15 @@
     const style = document.createElement('style');
     style.id = 'aq-battle-ui-style';
     style.textContent = `
-      #aq-dom-hud{font-family:"ApcKanit","Segoe UI",sans-serif!important}
+      #aq-dom-hud{font-family:"ApcKanit","Segoe UI",sans-serif!important;pointer-events:none!important}
+      #aq-dom-hud #aq-hint,#aq-dom-hud #aq-skill-hud,#aq-dom-hud #aq-debug{pointer-events:none!important}
+      #aq-dom-hud #aq-battle-exit,#aq-dom-hud #aq-win,#aq-dom-hud #aq-win *{pointer-events:auto!important}
+      #aq-dom-hud button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+      #aq-dom-hud button:focus-visible{outline:2px solid #f3d477;outline-offset:2px}
       #aq-hint{left:50%!important;right:auto!important;bottom:12px!important;transform:translateX(-50%);padding:7px 10px;border:1px solid rgba(255,255,255,.1);background:rgba(8,11,15,.72);color:rgba(224,219,205,.62)!important;font:800 9px/1 ui-monospace,monospace!important;letter-spacing:.12em}
-      #aq-battle-exit.aq-battle-exit-btn{position:absolute;right:14px;bottom:12px;z-index:41;min-width:92px;min-height:38px;padding:0 12px;border:1px solid #444d56;background:linear-gradient(180deg,rgba(32,38,45,.95),rgba(13,18,23,.95));color:#e8e2d3;cursor:pointer;font:900 10px/1 "Segoe UI",sans-serif;letter-spacing:.08em;clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+      #aq-battle-exit.aq-battle-exit-btn{position:absolute;right:14px;bottom:12px;z-index:41;pointer-events:auto;min-width:92px;min-height:44px;padding:0 12px;border:1px solid #444d56;background:linear-gradient(180deg,rgba(32,38,45,.95),rgba(13,18,23,.95));color:#e8e2d3;cursor:pointer;font:900 10px/1 "Segoe UI",sans-serif;letter-spacing:.08em;clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
       #aq-win.aq-result-layer{position:absolute!important;inset:0!important;z-index:80!important;display:grid!important;place-items:center!important;padding:20px;background:rgba(4,7,10,.58);backdrop-filter:blur(3px);text-align:left!important;color:#f4f0e6!important}
-      .aq-result-card{width:min(560px,92%);padding:28px;border:1px solid #454f59;background:linear-gradient(180deg,rgba(23,29,36,.98),rgba(10,14,18,.98));box-shadow:0 24px 70px rgba(0,0,0,.48);clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
+      .aq-result-card{pointer-events:auto;width:min(560px,92%);padding:28px;border:1px solid #454f59;background:linear-gradient(180deg,rgba(23,29,36,.98),rgba(10,14,18,.98));box-shadow:0 24px 70px rgba(0,0,0,.48);clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
       .aq-result-kicker{color:#d7bd72;font:800 9px/1 ui-monospace,monospace;letter-spacing:.18em}
       .aq-result-title{margin-top:8px;font-size:clamp(36px,5vw,64px);font-style:italic;font-weight:900;line-height:.86}
       .aq-result-reward{margin-top:16px;padding:10px 12px;border:1px solid #3b4338;background:#11160f;color:#d8c982;font:800 11px/1.35 ui-monospace,monospace}
