@@ -111,6 +111,7 @@
     burstTotal: `p${n}-burst-total`,
     burstHits: `p${n}-burst-hits`,
     burstCrits: `p${n}-burst-crits`,
+    burstFill: `p${n}-burst-fill`,
     loadoutSection: `p${n}-loadout`,
     loadoutCanvas: `p${n}-loadout-canvas`,
     loadoutFallback: `p${n}-loadout-fallback`,
@@ -119,6 +120,7 @@
     loadoutName: `p${n}-loadout-name`,
     loadoutFamily: `p${n}-loadout-family`,
     loadoutTier: `p${n}-loadout-tier`,
+    loadoutState: `p${n}-loadout-state`,
     energyFill: `p${n}-energy-fill`,
     energyVal: `p${n}-energy-val`,
     energyState: `p${n}-energy-state`,
@@ -141,6 +143,8 @@
       r.burstTotal = $(ids.burstTotal);
       r.burstHits = $(ids.burstHits);
       r.burstCrits = $(ids.burstCrits);
+      r.burstFill = $(ids.burstFill);
+      r.loadoutSection = $(ids.loadoutSection);
       r.loadoutCanvas = $(ids.loadoutCanvas);
       r.loadoutFallback = $(ids.loadoutFallback);
       r.loadoutGlyph = $(ids.loadoutGlyph);
@@ -148,6 +152,7 @@
       r.loadoutName = $(ids.loadoutName);
       r.loadoutFamily = $(ids.loadoutFamily);
       r.loadoutTier = $(ids.loadoutTier);
+      r.loadoutState = $(ids.loadoutState);
       r.energyFill = $(ids.energyFill);
       r.energyVal = $(ids.energyVal);
       r.energyState = $(ids.energyState);
@@ -201,6 +206,11 @@
       r.energyFill.classList.toggle('is-ready', ready);
       if (r.energyVal) r.energyVal.classList.toggle('is-ready', ready);
     }
+    if (r.loadoutState && sides[i].loadoutKey) {
+      const armed = String(sides[i].loadoutKey).startsWith('W:');
+      const desired = ready && armed ? 'SKILL READY' : armed ? 'EQUIPPED' : (gameStateNow() === 'ARSENAL' ? 'UNARMED' : 'FIGHTER ID');
+      if (r.loadoutState.textContent !== desired) { r.loadoutState.textContent = desired; stats.panelWrites += 1; }
+    }
   }
 
   // --------------------------------------------------------------- burst --
@@ -218,6 +228,15 @@
       if (r.burstTotal.style.color !== '') r.burstTotal.style.color = '';
       if (r.burstHits.textContent !== '0 HITS') r.burstHits.textContent = '0 HITS';
       if (r.burstCrits.textContent !== '0 CRIT') r.burstCrits.textContent = '0 CRIT';
+      if (r.burstFill && r.burstFill.style.width !== '0%') r.burstFill.style.width = '0%';
+      if (r.burst) {
+        r.burst.style.setProperty('--cp-heat', '#4E5964');
+        r.burst.classList.remove('is-hot', 'is-shift');
+      }
+      if (r.loadoutSection) {
+        r.loadoutSection.style.setProperty('--cp-heat', i === 0 ? '#43B9EC' : '#FF6942');
+        r.loadoutSection.classList.remove('is-hot');
+      }
       if (r.burst.classList.contains('is-punch')) r.burst.classList.remove('is-punch');
       if (r.burstTotal.classList.contains('is-punch')) r.burstTotal.classList.remove('is-punch');
       return;
@@ -236,6 +255,21 @@
     if (r.burstHits && r.burstHits.textContent !== hitsText) { r.burstHits.textContent = hitsText; stats.panelWrites += 1; }
     const critsText = `${b.crits} CRIT${b.crits === 1 ? '' : 'S'}`;
     if (r.burstCrits && r.burstCrits.textContent !== critsText) { r.burstCrits.textContent = critsText; stats.panelWrites += 1; }
+    const maxHp = Math.max(1, Number(victim && victim.maxHp) || 1000);
+    const fillPct = Math.max(0, Math.min(100, (b.total / maxHp) * (100 / 0.24)));
+    if (r.burstFill) {
+      const w = `${fillPct.toFixed(1)}%`;
+      if (r.burstFill.style.width !== w) r.burstFill.style.width = w;
+      r.burstFill.style.backgroundColor = color;
+    }
+    if (r.burst) {
+      r.burst.style.setProperty('--cp-heat', color);
+      r.burst.classList.toggle('is-hot', TIER_RANK[tier] >= TIER_RANK['RAMPAGE']);
+    }
+    if (r.loadoutSection) {
+      r.loadoutSection.style.setProperty('--cp-heat', color);
+      r.loadoutSection.classList.toggle('is-hot', TIER_RANK[tier] >= TIER_RANK['OVERDRIVE']);
+    }
     // subtle panel impact translation at higher tiers only (authority §10)
     const shift = TIER_RANK[tier] >= TIER_RANK['OVERDRIVE'];
     if (r.burst.classList.contains('is-shift') !== shift) r.burst.classList.toggle('is-shift', shift);
@@ -382,6 +416,11 @@
       r.loadoutTier.style.color = tierColor || '';
       r.loadoutTier.style.display = tier ? 'inline-block' : 'none';
     }
+    if (r.loadoutState) {
+      const ready = sides[i].energy >= ENERGY_CAP;
+      const stateText = weaponId ? (ready ? 'SKILL READY' : 'EQUIPPED') : (arsenal ? 'UNARMED' : 'FIGHTER ID');
+      if (r.loadoutState.textContent !== stateText) { r.loadoutState.textContent = stateText; stats.panelWrites += 1; }
+    }
     if (r.loadoutGlyph && typeof window.fighterGlyph === 'function') {
       r.loadoutGlyph.textContent = window.fighterGlyph(f.name);
     }
@@ -409,6 +448,10 @@
     if (!r || !r.modeSlot) return;
     let text = '';
     const gs = gameStateNow();
+    if (r.chip) {
+      const chipText = gs === 'ARSENAL' ? 'ARSENAL' : (document.body && document.body.classList && document.body.classList.contains('manual-lab-mode') ? 'APEX CONTROL' : 'COMBAT');
+      if (r.chip.textContent !== chipText) { r.chip.textContent = chipText; stats.panelWrites += 1; }
+    }
     if (gs === 'ARSENAL') {
       const AQ = window.APEX_ARSENAL;
       const q = (AQ && AQ.state && AQ.state.questStage) ? 'ARSENAL QUEST' : 'FREE BATTLE';
