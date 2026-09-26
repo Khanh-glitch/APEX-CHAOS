@@ -161,12 +161,15 @@
   }
 
   const META_CSS = `
-    #aq-meta-root{position:fixed;inset:0;z-index:520;display:none;pointer-events:auto;overflow:auto;background:#080b0f;color:#f4f0e6;font-family:"ApcKanit","Segoe UI",sans-serif;}
+    #aq-meta-root{position:fixed;inset:0;z-index:520;display:none;pointer-events:auto;overflow:auto;overscroll-behavior:contain;background:#080b0f;color:#f4f0e6;font-family:"ApcKanit","Segoe UI",sans-serif;}
     #aq-meta-root *{box-sizing:border-box}
+    #aq-meta-root button{pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:44px}
+    #aq-meta-root button:focus-visible{outline:2px solid #f0d67e;outline-offset:3px}
+    #aq-meta-root button:disabled{pointer-events:none}
     #aq-meta-stage{--aq-accent:#d7bd72;--aq-panel:#12171d;--aq-panel2:#1a2027;--aq-line:#343c45;--aq-muted:#8e99a4;position:relative;min-height:100dvh;width:100%;overflow:hidden;background:#080b0f;}
     #aq-meta-stage .aq-bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.6) contrast(1.08) brightness(.42);pointer-events:none;}
     #aq-meta-stage .aq-veil{position:fixed;inset:0;background:radial-gradient(circle at 62% 42%,rgba(115,130,150,.12),transparent 34%),linear-gradient(180deg,rgba(4,7,10,.3),rgba(4,7,10,.78)),linear-gradient(90deg,rgba(2,4,7,.84),rgba(4,7,10,.35) 54%,rgba(2,4,7,.82));pointer-events:none;}
-    .aq-ui{position:relative;z-index:2;width:min(1480px,100%);min-height:100dvh;margin:0 auto;padding:clamp(18px,2.2vw,34px) clamp(18px,3vw,48px) clamp(24px,3vw,46px);}
+    .aq-ui{position:relative;z-index:2;width:100%;max-width:1920px;min-height:100dvh;margin:0 auto;padding:clamp(18px,2.2vw,38px) clamp(18px,3vw,56px) clamp(24px,3vw,50px);}
     .aq-topbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:center;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.1);}
     .aq-brand{display:flex;align-items:center;gap:14px;min-width:0}
     .aq-brand-copy{min-width:0}
@@ -177,10 +180,10 @@
     .aq-stat span{display:block;color:var(--aq-muted);font:800 9px/1 ui-monospace,monospace;letter-spacing:.14em}
     .aq-stat b{display:block;margin-top:5px;color:#f2ead2;font:900 16px/1 "ApcKanit","Segoe UI",sans-serif}
     .aq-back,.aq-exit{display:grid;place-items:center;width:44px;height:44px;flex:0 0 auto;border:1px solid #4a5057;background:linear-gradient(180deg,#2b3138,#151a20);color:#f4f0e6;cursor:pointer;font:900 18px/1 sans-serif;clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);}
-    .aq-back:hover,.aq-exit:hover{filter:brightness(1.14);transform:translateY(-1px)}
+    @media(hover:hover){.aq-back:hover,.aq-exit:hover{filter:brightness(1.14);transform:translateY(-1px)}}
     .aq-action{position:relative;border:1px solid var(--aq-line);background:linear-gradient(160deg,#1a2027,#0e1318 72%);color:#f4f0e6;cursor:pointer;text-align:left;overflow:hidden;box-shadow:inset 0 1px rgba(255,255,255,.035);transition:transform .14s ease,filter .14s ease,border-color .14s ease;clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);}
     .aq-action::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--aq-tile-accent,var(--aq-accent));opacity:.82}
-    .aq-action:hover{transform:translateY(-5px);filter:brightness(1.08);border-color:#59636d}
+    @media(hover:hover){.aq-action:hover{transform:translateY(-5px);filter:brightness(1.08);border-color:#59636d}}
     .aq-action:active{transform:translateY(0) scale(.985)}
     .aq-action-index{display:block;color:var(--aq-tile-accent,var(--aq-accent));font:800 10px/1 ui-monospace,monospace;letter-spacing:.18em}
     .aq-action-title{display:block;margin-top:14px;font-size:clamp(22px,2.1vw,34px);line-height:.92;font-style:italic;font-weight:900;letter-spacing:.01em}
@@ -196,14 +199,15 @@
     .aq-sel{font-size:clamp(24px,2.4vw,36px);font-weight:900;font-style:italic;line-height:.94;text-align:center;overflow-wrap:anywhere}
     .aq-tag{margin-top:7px;color:var(--fighter-accent);font:800 10px/1 ui-monospace,monospace;letter-spacing:.18em;text-align:center}
     .aq-primary-btn{min-height:48px;margin-top:18px;border:1px solid #5a5541;background:linear-gradient(180deg,#4a4024,#282312);color:#f5e8bb;cursor:pointer;font:900 13px/1 "Segoe UI",sans-serif;letter-spacing:.08em;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);}
-    .aq-primary-btn:hover{filter:brightness(1.14)}
+    @media(hover:hover){.aq-primary-btn:hover{filter:brightness(1.14)}}
     .aq-hub-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(220px,1fr);gap:16px;min-height:min(690px,calc(100dvh - 142px));}
     .aq-hub-grid .aq-action{padding:24px 24px 22px}
     .aq-shop-layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,.7fr);gap:18px;padding-top:24px}
     .aq-shop-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-content:start;max-height:calc(100dvh - 152px);overflow:auto;padding-right:6px;scrollbar-width:thin;scrollbar-color:#59636d #0b0f13}
     .aq-shop-grid::-webkit-scrollbar{width:8px}.aq-shop-grid::-webkit-scrollbar-track{background:#0b0f13}.aq-shop-grid::-webkit-scrollbar-thumb{background:#4a535d;border:2px solid #0b0f13}
     .aq-fighter-card{position:relative;min-height:132px;padding:15px;border:1px solid #333c45;background:linear-gradient(180deg,#161c22,#0d1217);color:#f0ece2;cursor:pointer;text-align:left;clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);}
-    .aq-fighter-card:hover,.aq-fighter-card.is-selected{border-color:var(--fighter-accent);filter:brightness(1.08)}
+    .aq-fighter-card.is-selected{border-color:var(--fighter-accent);filter:brightness(1.08)}
+    @media(hover:hover){.aq-fighter-card:hover{border-color:var(--fighter-accent);filter:brightness(1.08)}}
     .aq-fighter-card.is-selected{box-shadow:inset 3px 0 var(--fighter-accent)}
     .aq-fighter-card.is-locked{opacity:.62;filter:saturate(.45)}
     .aq-fighter-mark{display:grid;place-items:center;width:52px;height:52px;border:1px solid color-mix(in srgb,var(--fighter-accent) 48%,#46515d);background:#11171c;color:#f4f0e6;font:900 20px/1 "ApcKanit","Segoe UI",sans-serif;font-style:italic;overflow:hidden}
@@ -242,11 +246,18 @@
     .aq-spin{width:100%;min-height:52px;margin-top:20px;border:1px solid #5a5541;background:linear-gradient(180deg,#4b4124,#282311);color:#f7e7ac;cursor:pointer;font:900 14px/1 "Segoe UI",sans-serif;letter-spacing:.08em}
     .aq-spin:disabled{opacity:.42;cursor:default}
     .aq-note{margin-top:12px;color:#87929c;font:650 12px/1.45 "Segoe UI",sans-serif}
-    @media(max-width:1120px){
+    @media(min-width:1600px){
+      .aq-ui{max-width:none;padding-left:clamp(42px,3.4vw,72px);padding-right:clamp(42px,3.4vw,72px)}
+      .aq-hub-layout{grid-template-columns:clamp(320px,22vw,430px) minmax(0,1fr)}
+      .aq-ident,.aq-hub-grid{min-height:calc(100dvh - 146px)}
+      .aq-shop-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+      .aq-action-title{font-size:clamp(28px,2vw,40px)}
+    }
+    @media(max-width:1240px){
       .aq-shop-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
       .aq-hub-layout{grid-template-columns:minmax(230px,.65fr) minmax(0,1.35fr)}
     }
-    @media(max-width:860px),(orientation:portrait){
+    @media(max-width:900px),(orientation:portrait){
       #aq-meta-root{overflow-y:auto}
       .aq-ui{min-height:100dvh;padding:16px}
       .aq-topbar{grid-template-columns:1fr}
@@ -257,23 +268,43 @@
       .aq-plate{grid-row:2/4;width:92px;margin:0}
       .aq-sel,.aq-tag{text-align:left}
       .aq-primary-btn{grid-column:1/-1;margin-top:8px}
-      .aq-hub-grid{min-height:auto;grid-auto-rows:minmax(170px,auto)}
+      .aq-hub-grid{min-height:auto;grid-auto-rows:minmax(156px,auto)}
       .aq-shop-grid{grid-template-columns:repeat(2,minmax(0,1fr));max-height:none}
       .aq-detail{position:relative;top:auto}
       .aq-draw-layout{min-height:auto}
       .aq-wheel{width:min(82vw,520px)}
     }
-    @media(max-width:560px){
-      .aq-hub-grid{grid-template-columns:1fr}
-      .aq-shop-grid{grid-template-columns:1fr 1fr}
+    @media(max-width:600px){
+      .aq-ui{padding:12px 10px max(18px,env(safe-area-inset-bottom))}
+      .aq-title{font-size:clamp(22px,8vw,32px)}
+      .aq-brand{gap:9px}
+      .aq-back,.aq-exit{width:44px;height:44px}
+      .aq-hub-grid{grid-template-columns:1fr;gap:10px}
+      .aq-hub-grid .aq-action{padding:18px}
+      .aq-action-title{font-size:clamp(22px,7vw,30px)}
+      .aq-action-desc{font-size:12px}
+      .aq-shop-grid{grid-template-columns:1fr}
+      .aq-fighter-card{min-height:110px}
       .aq-meta-stats{display:grid;grid-template-columns:1fr 1fr;width:100%}
       .aq-stat{min-width:0}
       .aq-draw-facts{grid-template-columns:1fr}
+      .aq-draw-actions{grid-template-columns:1fr}
+      .aq-wheel{width:min(90vw,440px)}
+    }
+    @media(max-height:650px) and (min-width:901px){
+      .aq-ui{padding-top:12px;padding-bottom:14px}
+      .aq-ident,.aq-hub-grid{min-height:calc(100dvh - 104px)}
+      .aq-hub-grid{grid-auto-rows:minmax(150px,1fr)}
+      .aq-hub-grid .aq-action{padding:18px}
+      .aq-plate{width:min(68%,220px);margin:10px 0}
+      .aq-shop-grid{max-height:calc(100dvh - 112px)}
+      .aq-draw-layout{min-height:calc(100dvh - 90px)}
+      .aq-wheel{width:min(56vmin,520px)}
     }
   `;
 
   function host() {
-    return document.getElementById('game-wrap') || document.getElementById('game-wrapper') || document.body;
+    return document.body;
   }
   function shell(inner) {
     return `<div id="aq-meta-stage"><img class="aq-bg" alt="" src="${PICK_ASSETS}01-select-screen-background.webp"/><div class="aq-veil"></div>${inner}</div><style>${META_CSS}</style>`;
@@ -321,10 +352,10 @@
             <button id="aq-change" class="aq-primary-btn" type="button">CHANGE FIGHTER</button>
           </article>
           <div class="aq-hub-grid">
-            <button data-go="free" class="aq-action" style="--aq-tile-accent:#d7bd72"><span class="aq-action-index">01 · VERSUS</span><span class="aq-action-title">FREE BATTLE</span><span class="aq-action-desc">Local 1v1. Choose both owned fighters and jump straight into combat.</span><span class="aq-action-meta">OWNED ROSTER ONLY</span></button>
-            <button data-go="quest" class="aq-action" style="--aq-tile-accent:#8fb3d2"><span class="aq-action-index">02 · CAMPAIGN</span><span class="aq-action-title">QUEST MAP</span><span class="aq-action-desc">Climb the 20-stage Arsenal ladder against fixed opponents.</span><span class="aq-action-meta">${cleared} / 20 CLEARED</span></button>
-            <button data-go="shop" class="aq-action" style="--aq-tile-accent:#a8bf8b"><span class="aq-action-index">03 · ROSTER</span><span class="aq-action-title">FIGHTER SHOP</span><span class="aq-action-desc">Inspect every fighter and unlock directly with Arsenal Credits.</span><span class="aq-action-meta">1000 AC · FIXED PRICE</span></button>
-            <button data-go="draw" class="aq-action" style="--aq-tile-accent:#d29c74"><span class="aq-action-index">04 · DRAW</span><span class="aq-action-title">LUCKY DRAW</span><span class="aq-action-desc">Randomly unlock one fighter from the remaining unowned pool.</span><span class="aq-action-meta">350 AC · NO DUPLICATES</span></button>
+            <button type="button" data-go="free" class="aq-action" style="--aq-tile-accent:#d7bd72"><span class="aq-action-index">01 · VERSUS</span><span class="aq-action-title">FREE BATTLE</span><span class="aq-action-desc">Local 1v1. Choose both owned fighters and jump straight into combat.</span><span class="aq-action-meta">OWNED ROSTER ONLY</span></button>
+            <button type="button" data-go="quest" class="aq-action" style="--aq-tile-accent:#8fb3d2"><span class="aq-action-index">02 · CAMPAIGN</span><span class="aq-action-title">QUEST MAP</span><span class="aq-action-desc">Climb the 20-stage Arsenal ladder against fixed opponents.</span><span class="aq-action-meta">${cleared} / 20 CLEARED</span></button>
+            <button type="button" data-go="shop" class="aq-action" style="--aq-tile-accent:#a8bf8b"><span class="aq-action-index">03 · ROSTER</span><span class="aq-action-title">FIGHTER SHOP</span><span class="aq-action-desc">Inspect every fighter and unlock directly with Arsenal Credits.</span><span class="aq-action-meta">1000 AC · FIXED PRICE</span></button>
+            <button type="button" data-go="draw" class="aq-action" style="--aq-tile-accent:#d29c74"><span class="aq-action-index">04 · DRAW</span><span class="aq-action-title">LUCKY DRAW</span><span class="aq-action-desc">Randomly unlock one fighter from the remaining unowned pool.</span><span class="aq-action-meta">350 AC · NO DUPLICATES</span></button>
           </div>
         </section>
       </main>`);
@@ -358,7 +389,7 @@
       const owned = owns(n);
       const info = fighterInfo(n);
       const label = n === 'NEWBIE' ? 'DEFAULT / OWNED' : owned ? 'OWNED' : '1000 AC';
-      return `<button data-shop-card="${esc(n)}" class="aq-fighter-card ${owned ? '' : 'is-locked'} ${n === shopSelected ? 'is-selected' : ''}" style="--fighter-accent:${esc(info.color)}"><span class="aq-fighter-mark">${info.icon ? `<img src="${esc(info.icon)}" alt=""/>` : esc(info.mark)}</span><span class="aq-fighter-name">${esc(n)}</span><span class="aq-fighter-state">${label}</span></button>`;
+      return `<button type="button" data-shop-card="${esc(n)}" class="aq-fighter-card ${owned ? '' : 'is-locked'} ${n === shopSelected ? 'is-selected' : ''}" style="--fighter-accent:${esc(info.color)}"><span class="aq-fighter-mark">${info.icon ? `<img src="${esc(info.icon)}" alt=""/>` : esc(info.mark)}</span><span class="aq-fighter-name">${esc(n)}</span><span class="aq-fighter-state">${label}</span></button>`;
     }).join('');
     el.style.display = 'block';
     el.innerHTML = shell(`
