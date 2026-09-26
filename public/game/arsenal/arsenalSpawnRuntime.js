@@ -639,11 +639,14 @@
         const table = (CFG.FIREARM_LONG_SIDE) || {};
         const mul = (CFG.FIREARM_DISPLAY_MODE && CFG.FIREARM_DISPLAY_MODE.floor) || 0.92;
         const gunLong = table[slot.weaponId] ? table[slot.weaponId] * mul : 118;
+        const stormLong = slot.weaponId === 'STORMBREAKER'
+          ? ((CFG.STORMBREAKER && CFG.STORMBREAKER.spawnLongSide) || 261)
+          : null;
         const drawn = !!(av && av.drawWeaponSprite && av.drawWeaponSprite(ctx, slot.weaponId, 0, 0, {
           mode: 'floor',
           useWorld: false,
           angle: slot.weaponId === 'STORMBREAKER' ? CFG.STORMBREAKER.floorAngleRad : 0,
-          targetLongSide: slot.weaponId === 'GRENADE' ? 56 : gunLong,
+          targetLongSide: slot.weaponId === 'GRENADE' ? 56 : (stormLong || gunLong),
           alpha: 1,
         }));
         if (!drawn) drawDebugMissingWeapon(ctx, slot.weaponId);

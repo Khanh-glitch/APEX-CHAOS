@@ -248,41 +248,32 @@
     speed: { SABRE: 900, BATTLE_AXE: 820, DAGGER: 1080, SPEAR: 950, SPIKED_CLUB: 860, STORMBREAKER: 1350 },
     ricochets: { BATTLE_AXE: 1, SPIKED_CLUB: 1, SPEAR: 2, SABRE: 3, DAGGER: 4, STORMBREAKER: 1 },
     pickupDelay: 0.35,        // owner grace before the thrower can re-collect
-    spinRate: { SABRE: 9, BATTLE_AXE: 7, DAGGER: 12, SPEAR: 5, SPIKED_CLUB: 8, STORMBREAKER: 64 },
+    spinRate: { SABRE: 9, BATTLE_AXE: 7, DAGGER: 12, SPEAR: 5, SPIKED_CLUB: 8, STORMBREAKER: 82 },
   };
 
-  // STORMBREAKER production tuning (red-tier V1 port — docs/stormbreaker/v1-port).
-  // Effect/feel values (spin blur, arc cadence, flash) live in
-  // arsenalStormbreakerVfxRuntime.js and mirror the approved V9 reference.
-  // These gameplay values are balance-audited against the live arsenal:
-  //  - slowMult 0.70: global unclaimed-floor slow (demo 0.54 was an explicit
-  //    demo-only exaggeration; -30% reads as "supernatural pressure" without
-  //    the weapon becoming a match-deciding wall).
-  //  - spinRate 64 rad/s: the V9 82 rad/s aliasing-safe equivalent at 60 Hz
-  //    (~60°/frame) — still a full rotational blur with the cached ghosts.
-  //  - throwSpeed 1350: faster than any current thrown melee (820–1210),
-  //    the "divine weapon release" velocity band.
-  //  - stun 1.0s: red-tier above the T4 club's 0.8s, below the demo 1.18s.
+  // STORMBREAKER V9 executable-reference parity.
+  // The HTML reference is the visual/feel authority; the live engine remains
+  // physics/collision/damage authority. These visual dimensions are derived
+  // literally from the reference PNG (1448px long side * scale):
+  // spawn .18 = 260.64px, held .18*.86 = 224.15px, flight .18*.80 = 208.51px.
   CONFIG.STORMBREAKER = {
-    slowMult: 0.70,
+    slowMult: 0.54,
     slowRefreshSeconds: 0.12,
     windupSeconds: 0.28,
     readyDelaySeconds: 0.45,
     throwSpeed: 1350,
-    spinRate: 64,
+    spinRate: 82,
     stunSeconds: 1.0,
-    worldLongSide: 200,
-    floorLongSide: 150,
-    // OWNER-LOCKED floor pose (Arsenal Lab V1 pass): while REVEALED +
-    // unclaimed, the STORMBREAKER lies HORIZONTALLY on the floor. The art is
-    // authored portrait (head up, -Y long axis), so horizontal = +90° about
-    // Z. This is the ONE shared floor-angle authority: the spawn slot draw
-    // AND the floor-local VFX anchor origins must both consume it so the
-    // electrical anchors stay glued to the rotated weapon. Held/windup and
-    // flight poses are untouched (they keep their own angles).
+    spawnLongSide: 261,
+    heldLongSide: 224,
+    flightLongSide: 209,
+    // Compatibility aliases consumed by older Stormbreaker-only paths.
+    worldLongSide: 209,
+    floorLongSide: 261,
+    // Owner correction: floor/spawn is flipped 180° from the original port.
     floorAngleRad: Math.PI * 1.5,
-    // Owner parity correction: flight PRESENTATION is flipped 180° from the
-    // previous port. Physics aim/velocity/spin/collision remain untouched.
+    // Owner correction: thrown presentation is flipped 180° from original.
+    // Physics aim/velocity/collision remain untouched.
     flightVisualOffsetRad: Math.PI,
   };
 

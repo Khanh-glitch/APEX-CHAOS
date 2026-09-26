@@ -914,7 +914,7 @@
     };
   }
   function meleeDrawLong(weaponId) {
-    if (weaponId === 'STORMBREAKER') return (CFG.STORMBREAKER && CFG.STORMBREAKER.worldLongSide) || 200;
+    if (weaponId === 'STORMBREAKER') return (CFG.STORMBREAKER && CFG.STORMBREAKER.flightLongSide) || 209;
     return weaponId === 'SPEAR' ? 190 : weaponId === 'BATTLE_AXE' ? 155 : weaponId === 'SPIKED_CLUB' ? 150 : weaponId === 'DAGGER' ? 110 : 145;
   }
   function spawnThrownMelee(f, weaponId, angle) {

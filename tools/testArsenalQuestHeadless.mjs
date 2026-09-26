@@ -3551,11 +3551,13 @@ gate('storm-balance-audited-values',
   && stormId.spec.stun === 1.0
   && stormId.spec.shake === 15
   && stormId.spec.hitStop === 0.08
-  && stormId.tuning.slowMult === 0.70
+  && stormId.tuning.slowMult === 0.54
   && stormId.speed === 1350
   && stormId.ricochets === 1
-  && stormId.spin === 64
-  && stormId.tuning.worldLongSide === 200,
+  && stormId.spin === 82
+  && stormId.tuning.spawnLongSide === 261
+  && stormId.tuning.heldLongSide === 224
+  && stormId.tuning.flightLongSide === 209,
   { spec: stormId.spec, tuning: stormId.tuning });
 gate('storm-asset-cset-registered',
   !!stormId.cSet && stormId.cSet.file === 'weapons/c/STORMBREAKER.png' && stormId.cSet.w === 1086 && stormId.cSet.h === 1448,
@@ -3606,7 +3608,7 @@ gate('storm-ready-delay-then-committed-throw',
   report.stormThrow);
 gate('storm-throw-speed-spin-ricochet',
   report.stormThrow.speed === 1350
-  && report.stormThrow.spin === 64
+  && report.stormThrow.spin === 82
   && report.stormThrow.ricochets === 1,
   report.stormThrow);
 
@@ -3750,7 +3752,7 @@ report.stormSlow = run(`
   };
 `);
 gate('storm-floor-slows-both-fighters',
-  report.stormSlow.slowHero === true && report.stormSlow.slowRival === true && report.stormSlow.mult === 0.70,
+  report.stormSlow.slowHero === true && report.stormSlow.slowRival === true && report.stormSlow.mult === 0.54,
   report.stormSlow);
 gate('storm-slow-clean-removal-on-pickup',
   report.stormSlow.slowHeroAfter === false && report.stormSlow.slowRivalAfter === false,
@@ -3793,6 +3795,14 @@ gate('storm-v9-reference-structure',
   && stormVfx.profile.spawnPairCount === 13
   && stormVfx.profile.flightLinkCount === 10
   && stormVfx.profile.snapCount === 4
+  && stormVfx.profile.rawAnchorCount === 9
+  && stormVfx.profile.anchorTransform === 'ref-landscape-to-game-portrait-90cw'
+  && stormVfx.profile.spawnLongSide === 261
+  && stormVfx.profile.heldLongSide === 224
+  && stormVfx.profile.flightLongSide === 209
+  && stormVfx.profile.slowMult === 0.54
+  && stormVfx.profile.spinRate === 82
+  && stormVfx.profile.motesEnabled === true
   && Math.abs(stormVfx.profile.floorAngleRad - Math.PI * 1.5) < 1e-8
   && Math.abs(stormVfx.profile.flightVisualOffsetRad - Math.PI) < 1e-8
   && stormVfx.profile.flightWidths.join(',') === '4.1,1.55,0.62'

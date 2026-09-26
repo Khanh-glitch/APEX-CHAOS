@@ -583,7 +583,7 @@
     let targetLongSide = 138;
     let offset = radius * 0.72;
     if (category === 'melee') {
-      if (weaponId === 'STORMBREAKER') targetLongSide = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.STORMBREAKER && window.APEX_ARSENAL_CONFIG.STORMBREAKER.worldLongSide) || 200;
+      if (weaponId === 'STORMBREAKER') targetLongSide = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.STORMBREAKER && window.APEX_ARSENAL_CONFIG.STORMBREAKER.heldLongSide) || 224;
       else targetLongSide = weaponId === 'SPEAR' ? 190 : weaponId === 'BATTLE_AXE' ? 155 : 145;
     } else if (category === 'defense') {
       targetLongSide = weaponId === 'TOWER_SHIELD' ? 145 : 128;

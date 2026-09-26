@@ -2319,7 +2319,15 @@ try {
     && Math.abs(report.labFlight.floorAngle-Math.PI*1.5)<1e-8
     && Math.abs(report.labFlight.flightVisualOffset-Math.PI)<1e-8
     && report.labFlight.refProfile?.flightLinkCount===10
-    && report.labFlight.refProfile?.spawnPairCount===13, report.labFlight);
+    && report.labFlight.refProfile?.spawnPairCount===13
+    && report.labFlight.refProfile?.rawAnchorCount===9
+    && report.labFlight.refProfile?.anchorTransform==='ref-landscape-to-game-portrait-90cw'
+    && report.labFlight.refProfile?.spawnLongSide===261
+    && report.labFlight.refProfile?.heldLongSide===224
+    && report.labFlight.refProfile?.flightLongSide===209
+    && report.labFlight.refProfile?.slowMult===0.54
+    && report.labFlight.refProfile?.spinRate===82
+    && report.labFlight.refProfile?.motesEnabled===true, report.labFlight);
   report.labPigment = await evaluate(`(() => {
     const F=APEX_ARSENAL_FEEL;
     const victim = fighters[1], source = fighters[0];

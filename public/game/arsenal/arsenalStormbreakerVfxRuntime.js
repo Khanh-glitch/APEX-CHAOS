@@ -25,8 +25,10 @@
   // ---------------------------------------------------------------- pools --
   const BOLT_CAP = 30;      // spawn pulses + impact discharge + held accents
   const SPARK_CAP = 72;
+  const MOTE_CAP = 32;
   const bolts = [];
   const sparks = [];
+  const motes = [];
   const impacts = [];       // { x, y, t, victimId, pulse2, crackleT }
   const claims = [];        // { x, y, t } pickup concentration moment
   const spawned = new Map();// slotId -> { x, y, t, pulseTimer, pulseIndex, coronaT, activeLinks }
@@ -39,7 +41,7 @@
   let clock = 0;
 
   const stats = {
-    spawns: 0, throws: 0, impacts: 0, boltsPeak: 0, sparksPeak: 0,
+    spawns: 0, throws: 0, impacts: 0, boltsPeak: 0, sparksPeak: 0, motesPeak: 0,
     frames: 0, trailEntities: 0, spawnWebBursts: 0, heldWebBursts: 0,
   };
 
@@ -92,25 +94,16 @@
   }
 
   // ------------------------------------------------------- anchor lattice --
-  // Normalized coordinates in the rotated portrait derivative (head up,
-  // pommel down, hammer side right, blade side left), derived from the
-  // approved art's real geometry — not the prototype's image-space values.
-  // [sx, sy] with sx/sy in [-0.5, 0.5]; the drawn sprite spans that box.
-  const ANCHORS = [
-    [0.12, -0.38], // 0 hammer top
-    [0.20, -0.26], // 1 hammer face
-    [-0.34, -0.44], // 2 blade tip
-    [-0.20, -0.30], // 3 blade mid
-    [0.00, -0.18], // 4 neck (head-to-handle transition)
-    [-0.04, 0.00], // 5 upper handle
-    [-0.02, 0.16], // 6 mid handle
-    [0.00, 0.30],  // 7 lower handle
-    [-0.06, 0.45], // 8 pommel
+  // Literal V9 source coordinates. The executable reference uses a 1448x1086
+  // landscape PNG and samples the weapon in image-local coordinates. The game
+  // asset is the same artwork rotated 90deg CW into 1086x1448 portrait form.
+  // Therefore ref-local [px,py] maps to portrait-local [-py,px]. No hand-tuned
+  // normalized anchor approximation is permitted in this parity path.
+  const REF_SOURCE_LONG = 1448;
+  const REF_ANCHORS = [
+    [-310, -72], [-260, -35], [-214, -8], [-165, 12], [-110, 18],
+    [-52, 18], [8, 18], [62, 18], [115, 15],
   ];
-  // V9 source-of-truth topology. Spawn/held use the transient handle-web
-  // grammar from the executable reference: eight adjacent links plus five
-  // skip links. Flight uses its own fixed 10-link web; the previous port
-  // incorrectly shared one 12-link topology across all states.
   const SPAWN_PAIRS = [
     [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8],
     [0, 2], [1, 3], [3, 5], [5, 7], [6, 8],
@@ -122,8 +115,11 @@
   const SNAP_IDX = [0, 2, 5, 8];
 
   function anchorWorld(cx, cy, worldRot, long, ai) {
-    const [sx, sy] = ANCHORS[ai];
-    const ax = sx * long, ay = sy * long;
+    const [px, py] = REF_ANCHORS[ai];
+    const scale = long / REF_SOURCE_LONG;
+    // reference landscape -> game portrait = 90deg CW
+    const ax = -py * scale;
+    const ay = px * scale;
     const c = Math.cos(worldRot), s = Math.sin(worldRot);
     return { x: cx + ax * c - ay * s, y: cy + ax * s + ay * c };
   }
@@ -234,6 +230,18 @@
     }
     stats.sparksPeak = Math.max(stats.sparksPeak, sparks.length);
   }
+  function addMotes(x, y, count = 5) {
+    for (let i = 0; i < count; i++) {
+      if (motes.length >= MOTE_CAP) motes.shift();
+      const life = rand(0.25, 0.65);
+      motes.push({
+        x: x + rand(-22, 22), y: y + rand(-22, 22),
+        vx: rand(-15, 15), vy: rand(-28, -8),
+        life, max: life, size: rand(1, 2.4),
+      });
+    }
+    stats.motesPeak = Math.max(stats.motesPeak, motes.length);
+  }
   function drawSparks(g) {
     for (const p of sparks) {
       const a = clamp(p.life / p.max, 0, 1);
@@ -244,6 +252,16 @@
       g.shadowBlur = 5;
       g.lineWidth = p.size;
       g.beginPath(); g.moveTo(p.px, p.py); g.lineTo(p.x, p.y); g.stroke();
+      g.restore();
+    }
+    for (const p of motes) {
+      const a = clamp(p.life / p.max, 0, 1);
+      g.save();
+      g.globalAlpha = a * 0.6;
+      g.fillStyle = 'rgba(104,205,255,.9)';
+      g.shadowColor = 'rgba(42,160,255,.9)';
+      g.shadowBlur = 7;
+      g.beginPath(); g.arc(p.x, p.y, p.size, 0, Math.PI * 2); g.fill();
       g.restore();
     }
   }
@@ -280,7 +298,7 @@
       });
     }
     if (Math.random() < 0.6) {
-      const ai = Math.floor(rand(0, ANCHORS.length));
+      const ai = Math.floor(rand(0, REF_ANCHORS.length));
       const a = anchorWorld(cx, cy, worldRot, long, ai);
       makeBolt(a.x, a.y, a.x + rand(-22, 22), a.y + rand(-20, 20), {
         life: 0.05, width: 0.55, power: 0.55 * intensity, rough: 0.28, regen: 0.016,
@@ -346,7 +364,7 @@
     const pose = (h.meta && h.meta.pose) || {};
     const r = f.radius || 75;
     const aim = (h.meta && h.meta.aimAngle != null) ? h.meta.aimAngle : Math.atan2(f.dir?.y || 0, f.dir?.x || 1);
-    const long = (T.worldLongSide || 200) * 0.86; // V9 held scale .86
+    const long = T.heldLongSide || 224;
     const offset = r * 0.72 + (pose.localX || 0) - (pose.recoil || 0);
     const lateral = pose.localY || 0;
     const theta = aim + Math.PI / 2 + (pose.rotKick || 0) + (pose.flourish || 0);
@@ -409,9 +427,10 @@
           rec.coronaT = rand(0.06, 0.11);
           spawnHandleWeb(
             rec.x, rec.y + slotBob(s.id, time),
-            T.floorAngleRad || 0, (T.floorLongSide || 150) * 0.92,
+            T.floorAngleRad || 0, T.spawnLongSide || T.floorLongSide || 261,
             1.15, 'spawn'
           );
+          addMotes(rec.x, rec.y + slotBob(s.id, time), 2);
         }
       }
     }
@@ -499,6 +518,12 @@
       const drag = Math.pow(0.90, dt * 60);
       p.vx *= drag; p.vy *= drag;
       if (p.life <= 0) sparks.splice(i, 1);
+    }
+    for (let i = motes.length - 1; i >= 0; i--) {
+      const p = motes[i];
+      p.life -= dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.life <= 0) motes.splice(i, 1);
     }
 
     // V9 flash decays: full flash pow(.018,dt), hit flash pow(.0018,dt).
@@ -656,7 +681,7 @@
     // NO LONG TAIL (structurally: no trail/history render path exists).
     const fl = findFlight();
     if (fl) {
-      const long = (T.worldLongSide || 200);
+      const long = T.flightLongSide || T.worldLongSide || 209;
       const visualOffset = T.flightVisualOffsetRad || 0;
       const theta = fl.rot + Math.PI / 2 + visualOffset;
       const back1 = flightHist.length >= 2 ? flightHist[flightHist.length - 2] : { x: fl.px != null ? fl.px : fl.x, y: fl.py != null ? fl.py : fl.y };
@@ -732,6 +757,7 @@
   function clear() {
     bolts.length = 0;
     sparks.length = 0;
+    motes.length = 0;
     impacts.length = 0;
     claims.length = 0;
     spawned.clear();
@@ -753,6 +779,7 @@
     onImpact,
     boltCount: () => bolts.length,
     sparkCount: () => sparks.length,
+    moteCount: () => motes.length,
     impactCount: () => impacts.length,
     spawnCount: () => spawned.size,
     // Structural no-long-tail guarantee: the module has no trail entity type;
@@ -763,8 +790,16 @@
       spawnPairCount: SPAWN_PAIRS.length,
       flightLinkCount: FLIGHT_LINKS.length,
       snapCount: SNAP_IDX.length,
+      rawAnchorCount: REF_ANCHORS.length,
+      anchorTransform: 'ref-landscape-to-game-portrait-90cw',
       floorAngleRad: T.floorAngleRad || 0,
       flightVisualOffsetRad: T.flightVisualOffsetRad || 0,
+      spawnLongSide: T.spawnLongSide || 261,
+      heldLongSide: T.heldLongSide || 224,
+      flightLongSide: T.flightLongSide || 209,
+      slowMult: T.slowMult || 0.54,
+      spinRate: T.spinRate || 82,
+      motesEnabled: true,
       flightWidths: [4.1, 1.55, 0.62],
       spawnStrongEvery: 3,
       longTail: false,
