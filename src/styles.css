@@ -6162,6 +6162,26 @@ body.apex-battle .cp-fallback-label{
     letter-spacing:.16em!important;
 }
 
+@container (max-width:320px){
+    body.apex-battle .cp-loadout-art{
+        flex-basis:92px!important;
+        width:92px!important;
+        height:56px!important;
+        min-height:56px!important;
+        max-height:56px!important;
+    }
+    body.apex-battle .cp-loadout-name{
+        font-size:18px!important;
+        white-space:nowrap!important;
+        overflow:hidden!important;
+        text-overflow:ellipsis!important;
+        overflow-wrap:normal!important;
+    }
+    body.apex-battle .cp-loadout-family,
+    body.apex-battle .cp-loadout-tier{font-size:8px!important}
+    body.apex-battle .cp-loadout-state{margin-top:9px}
+}
+
 /* ---------------- energy ---------------- */
 body.apex-battle .cp-energy-title-row{margin-top:clamp(6px,1vh,10px)}
 body.apex-battle .cp-energy{
