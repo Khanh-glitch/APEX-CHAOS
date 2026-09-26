@@ -1,5 +1,5 @@
 export const BOOT_GAME_RUNTIMES = [
-  ['/game/core/apexBattleAudioRuntime.js', 'apexBattleAudioRuntime'],
+  ['/game/core/apexBattleAudioRuntime.js?v=20260926-mobile-sfx-unlock1', 'apexBattleAudioRuntime'],
   ['/game/core/apexBattleSfxRuntime.js', 'apexBattleSfxRuntime'],
   ['/game/core/apexRenderPrimitives.js', 'apexRenderPrimitives'],
   ['/game/core/apexCombatEffectsRuntime.js', 'apexCombatEffectsRuntime'],
