@@ -6255,7 +6255,7 @@ body.apex-battle #battle-controls{
 
 /* Tablet / narrow browser: arena gets the first row and both panels become
    equal cards below it. The page scrolls instead of crushing the arena. */
-@media (max-width:979px), (orientation:portrait){
+@media (max-width:1120px), (orientation:portrait){
     body.apex-battle{overflow-x:hidden;overflow-y:auto}
     body.apex-battle #root{min-height:100dvh;height:auto;overflow:visible}
     body.apex-battle #battle-shell{
@@ -6352,7 +6352,7 @@ body.apex-battle #battle-controls{
 
 /* Very short landscape windows: preserve arena size; panels scroll internally
    rather than forcing the battlefield to a tiny square. */
-@media (min-width:980px) and (max-height:640px){
+@media (min-width:1121px) and (max-height:640px){
     body.apex-battle #battle-shell{
         --apc-side-min:200px;
         --apc-arena:min(calc(100dvh - 8px),calc(100vw - 420px));
