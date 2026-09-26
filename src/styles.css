@@ -5673,6 +5673,10 @@ body.apex-battle .combat-panel::after { display: none; }
    ============================================================ */
 
 body.apex-battle {
+    margin:0!important;
+    padding:0!important;
+    width:100vw;
+    min-height:100dvh;
     --apc-p1:#43b9ec;
     --apc-p1-deep:#167cad;
     --apc-p2:#ff6942;
