@@ -713,7 +713,10 @@
         if (w) {
           // Melee sprites are authored upright (long axis -Y): rotate the long
           // axis onto the flight/pin direction.
-          ctx.rotate(p.rot + Math.PI / 2);
+          const stormVisualOffset = p.weapon === 'STORMBREAKER'
+            ? ((CFG.STORMBREAKER && CFG.STORMBREAKER.flightVisualOffsetRad) || 0)
+            : 0;
+          ctx.rotate(p.rot + Math.PI / 2 + stormVisualOffset);
           const s = meleeDrawLong(p.weapon) / Math.max(w.w, w.h);
           ctx.drawImage(w.img, 0, 0, w.w, w.h, (-w.w * s) / 2, (-w.h * s) / 2, w.w * s, w.h * s);
         } else {

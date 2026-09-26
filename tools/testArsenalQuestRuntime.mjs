@@ -2271,7 +2271,7 @@ try {
       heldOffset:av.weaponDrawParams('STORMBREAKER','melee',75).drawOffset};
   })()`);
   gate('lab-browser-storm-exact-horizontal-no-held-change', report.labFloor.weapon === 'STORMBREAKER'
-    && report.labFloor.phase === 'REVEALED' && Math.abs(report.labFloor.angle - Math.PI/2) < 1e-8
+    && report.labFloor.phase === 'REVEALED' && Math.abs(report.labFloor.angle - Math.PI * 1.5) < 1e-8
     && report.labFloor.angle === report.labFloor.authority && report.labFloor.heldOffset === Math.PI/2,
     report.labFloor);
   await sleep(1350); // let prior browser-HUD rolling damage decay in wall time
@@ -2309,12 +2309,17 @@ try {
       flight:flight && {spin:flight.spin,rot:flight.rot,velocity:Math.hypot(flight.vx,flight.vy)},
       expectedSpin:T.spinRate,expectedSpeed:T.throwSpeed,
       heldOffset:APEX_ARSENAL_AV.weaponDrawParams('STORMBREAKER','melee',75).drawOffset,
-      floorAngle:T.floorAngleRad};
+      floorAngle:T.floorAngleRad,flightVisualOffset:T.flightVisualOffsetRad,
+      refProfile:window.APEX_ARSENAL_STORM?.referenceProfile?.()};
   })()`);
-  gate('lab-browser-storm-held-flight-unchanged', report.labFlight.held==='STORMBREAKER'
+  gate('lab-browser-storm-flight-flip-gameplay-unchanged', report.labFlight.held==='STORMBREAKER'
     && report.labFlight.slotGone && report.labFlight.flight?.spin===report.labFlight.expectedSpin
     && Math.abs(report.labFlight.flight?.velocity-report.labFlight.expectedSpeed)<1e-6
-    && report.labFlight.heldOffset===Math.PI/2, report.labFlight);
+    && report.labFlight.heldOffset===Math.PI/2
+    && Math.abs(report.labFlight.floorAngle-Math.PI*1.5)<1e-8
+    && Math.abs(report.labFlight.flightVisualOffset-Math.PI)<1e-8
+    && report.labFlight.refProfile?.flightLinkCount===10
+    && report.labFlight.refProfile?.spawnPairCount===13, report.labFlight);
   report.labPigment = await evaluate(`(() => {
     const F=APEX_ARSENAL_FEEL;
     const victim = fighters[1], source = fighters[0];

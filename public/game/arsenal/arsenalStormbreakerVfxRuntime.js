@@ -38,7 +38,10 @@
   let lastHeldId = null;
   let clock = 0;
 
-  const stats = { spawns: 0, throws: 0, impacts: 0, boltsPeak: 0, sparksPeak: 0, frames: 0, trailEntities: 0 };
+  const stats = {
+    spawns: 0, throws: 0, impacts: 0, boltsPeak: 0, sparksPeak: 0,
+    frames: 0, trailEntities: 0, spawnWebBursts: 0, heldWebBursts: 0,
+  };
 
   // ------------------------------------------------- weapon sprite caches --
   // V5 law: pre-scale the huge source image ONCE. Drawing the small cached
@@ -104,9 +107,19 @@
     [0.00, 0.30],  // 7 lower handle
     [-0.06, 0.45], // 8 pommel
   ];
-  // Linked pairs across head + handle (V9 link grammar: short steps + skips).
-  const LINKS = [[0, 1], [0, 4], [1, 4], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [0, 2], [2, 6], [5, 8]];
-  const SNAP_IDX = [0, 2, 5, 8]; // distributed outward-snap origins (V9)
+  // V9 source-of-truth topology. Spawn/held use the transient handle-web
+  // grammar from the executable reference: eight adjacent links plus five
+  // skip links. Flight uses its own fixed 10-link web; the previous port
+  // incorrectly shared one 12-link topology across all states.
+  const SPAWN_PAIRS = [
+    [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8],
+    [0, 2], [1, 3], [3, 5], [5, 7], [6, 8],
+  ];
+  const FLIGHT_LINKS = [
+    [0, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7], [6, 8],
+    [0, 3], [2, 6], [4, 8],
+  ];
+  const SNAP_IDX = [0, 2, 5, 8];
 
   function anchorWorld(cx, cy, worldRot, long, ai) {
     const [sx, sy] = ANCHORS[ai];
@@ -238,45 +251,75 @@
   // --------------------------------------------------------- arena edges --
   function arenaEdgePoint() {
     const W = WORLD();
+    const wall = 30; // Chamber 01 visible/playable wall band.
+    const left = wall, top = wall, right = W - wall, bottom = W - wall;
     const side = Math.floor(rand(0, 4));
-    if (side === 0) return { x: rand(40, W - 40), y: rand(38, 75) };
-    if (side === 1) return { x: W - rand(38, 75), y: rand(40, W - 40) };
-    if (side === 2) return { x: rand(40, W - 40), y: W - rand(38, 75) };
-    return { x: rand(38, 75), y: rand(40, W - 40) };
+    if (side === 0) return { x: rand(left + 40, right - 40), y: top + rand(18, 55) };
+    if (side === 1) return { x: right - rand(18, 55), y: rand(top + 40, bottom - 40) };
+    if (side === 2) return { x: rand(left + 40, right - 40), y: bottom - rand(18, 55) };
+    return { x: left + rand(18, 55), y: rand(top + 40, bottom - 40) };
   }
 
   // ------------------------------------------------- linked arc drawing --
   // Fixed-cost local electricity: a fixed link set across the whole weapon
   // with rapid midpoint wobble (V9 flight grammar). No spawned objects.
-  function drawLinkedArcs(g, cx, cy, worldRot, long, t, alphaMul, linkList) {
-    const f = long / 260; // V9 reference weapon scale
-    const links = linkList || LINKS;
+  function spawnHandleWeb(cx, cy, worldRot, long, intensity = 1, phase = 'spawn') {
+    const limit = intensity > 1 ? 8 : 6;
+    for (let i = 0; i < limit; i++) {
+      const pair = SPAWN_PAIRS[Math.floor(rand(0, SPAWN_PAIRS.length))];
+      const a = anchorWorld(cx, cy, worldRot, long, pair[0]);
+      const b = anchorWorld(cx, cy, worldRot, long, pair[1]);
+      makeBolt(a.x, a.y, b.x, b.y, {
+        life: rand(0.04, 0.08),
+        width: rand(0.45, 0.85),
+        power: 0.62 * intensity,
+        rough: 0.24,
+        branchCount: Math.random() < 0.35 ? 1 : 0,
+        branchScale: 0.16,
+        regen: 0.018,
+      });
+    }
+    if (Math.random() < 0.6) {
+      const ai = Math.floor(rand(0, ANCHORS.length));
+      const a = anchorWorld(cx, cy, worldRot, long, ai);
+      makeBolt(a.x, a.y, a.x + rand(-22, 22), a.y + rand(-20, 20), {
+        life: 0.05, width: 0.55, power: 0.55 * intensity, rough: 0.28, regen: 0.016,
+      });
+    }
+    if (phase === 'held') stats.heldWebBursts += 1;
+    else stats.spawnWebBursts += 1;
+  }
+
+  // Literal V9 flight grammar: fixed 10-link web + four short outward snaps.
+  // Widths/wobble/snap distances are intentionally NOT multiplied by weapon
+  // scale: the prior port did so and made the final effect visibly weaker.
+  function drawLinkedArcs(g, cx, cy, worldRot, long, t, alphaMul = 1) {
     g.save();
     g.lineCap = 'round'; g.lineJoin = 'round';
-    for (let i = 0; i < links.length; i++) {
-      const [ia, ib] = links[i];
+    for (let i = 0; i < FLIGHT_LINKS.length; i++) {
+      const [ia, ib] = FLIGHT_LINKS[i];
       const a = anchorWorld(cx, cy, worldRot, long, ia);
       const b = anchorWorld(cx, cy, worldRot, long, ib);
-      const mx = (a.x + b.x) * 0.5 + Math.sin(t * 34 + i * 1.83) * 3.8 * f;
-      const my = (a.y + b.y) * 0.5 + Math.cos(t * 29 + i * 2.17) * 3.2 * f;
+      const mx = (a.x + b.x) * 0.5 + Math.sin(t * 34 + i * 1.83) * 3.8;
+      const my = (a.y + b.y) * 0.5 + Math.cos(t * 29 + i * 2.17) * 3.2;
       const pts = [a, { x: mx, y: my }, b];
-      strokePolyline(g, pts, 4.1 * f, 'rgba(30,136,255,.13)', 0.82 * alphaMul, 3.0);
-      strokePolyline(g, pts, 1.55 * f, 'rgba(100,218,255,.72)', 0.90 * alphaMul, 0.8);
-      strokePolyline(g, pts, 0.62 * f, 'rgba(246,253,255,.92)', 0.95 * alphaMul, 0);
+      strokePolyline(g, pts, 4.1, 'rgba(30,136,255,.13)', 0.82 * alphaMul, 3.0);
+      strokePolyline(g, pts, 1.55, 'rgba(100,218,255,.72)', 0.90 * alphaMul, 0.8);
+      strokePolyline(g, pts, 0.62, 'rgba(246,253,255,.92)', 0.95 * alphaMul, 0);
     }
     for (let j = 0; j < SNAP_IDX.length; j++) {
       const a = anchorWorld(cx, cy, worldRot, long, SNAP_IDX[j]);
       const phase = t * 26 + j * 2.31;
-      const ex = a.x + Math.cos(phase) * (13 + j * 1.7) * f;
-      const ey = a.y + Math.sin(phase * 1.11) * (11 + j * 1.4) * f;
+      const ex = a.x + Math.cos(phase) * (13 + j * 1.7);
+      const ey = a.y + Math.sin(phase * 1.11) * (11 + j * 1.4);
       const bend = {
-        x: (a.x + ex) * 0.5 + Math.sin(phase * 1.7) * 3 * f,
-        y: (a.y + ey) * 0.5 + Math.cos(phase * 1.5) * 3 * f,
+        x: (a.x + ex) * 0.5 + Math.sin(phase * 1.7) * 3,
+        y: (a.y + ey) * 0.5 + Math.cos(phase * 1.5) * 3,
       };
       const pts = [a, bend, { x: ex, y: ey }];
-      strokePolyline(g, pts, 3.2 * f, 'rgba(28,134,255,.12)', 0.76 * alphaMul, 2.4);
-      strokePolyline(g, pts, 1.25 * f, 'rgba(104,222,255,.66)', 0.86 * alphaMul, 0.6);
-      strokePolyline(g, pts, 0.52 * f, 'rgba(248,254,255,.88)', 0.92 * alphaMul, 0);
+      strokePolyline(g, pts, 3.2, 'rgba(28,134,255,.12)', 0.76 * alphaMul, 2.4);
+      strokePolyline(g, pts, 1.25, 'rgba(104,222,255,.66)', 0.86 * alphaMul, 0.6);
+      strokePolyline(g, pts, 0.52, 'rgba(248,254,255,.88)', 0.92 * alphaMul, 0);
     }
     g.restore();
   }
@@ -344,7 +387,6 @@
             pulseTimer: rand(0.10, 0.20),
             pulseIndex: 0,
             coronaT: 0,
-            activeLinks: LINKS.slice(),
           };
           spawned.set(s.id, rec);
           stats.spawns += 1;
@@ -354,25 +396,22 @@
         // Dense but hierarchical floor pulses (V9 cadence).
         rec.pulseTimer -= dt;
         if (rec.pulseTimer <= 0) {
-          spawnGroundPulse(rec.x, rec.y, rec.pulseIndex % 3 === 2);
+          const strong = rec.pulseIndex % 3 === 2;
+          rec.pulseIndex += 1;
+          spawnGroundPulse(rec.x, rec.y, strong);
           rec.pulseTimer = rand(0.28, 0.48);
         }
-        // Weapon-body crackle: the deterministic web reshapes each cycle
-        // (fixed cost, V5 law); a short air snap occasionally materializes.
+        // V9 executable reference: transient body web is actually emitted
+        // every 60–110ms. The previous port only shuffled activeLinks without
+        // rendering them, which is why the floor weapon read as an aura ring.
         rec.coronaT -= dt;
         if (rec.coronaT <= 0) {
           rec.coronaT = rand(0.06, 0.11);
-          const order = LINKS.slice();
-          for (let i = order.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [order[i], order[j]] = [order[j], order[i]];
-          }
-          rec.activeLinks = order.slice(0, 8);
-          if (Math.random() < 0.6) {
-            const ai = Math.floor(rand(0, ANCHORS.length));
-            const a = anchorWorld(rec.x, rec.y + slotBob(s.id, time), T.floorAngleRad || 0, (T.floorLongSide || 150) * 0.92, ai);
-            makeBolt(a.x, a.y, a.x + rand(-22, 22), a.y + rand(-20, 20), { life: 0.05, width: 0.55, power: 0.55, rough: 0.28, regen: 0.016 });
-          }
+          spawnHandleWeb(
+            rec.x, rec.y + slotBob(s.id, time),
+            T.floorAngleRad || 0, (T.floorLongSide || 150) * 0.92,
+            1.15, 'spawn'
+          );
         }
       }
     }
@@ -387,8 +426,9 @@
       heldCoronaT -= dt;
       if (heldCoronaT <= 0) {
         heldCoronaT = rand(0.05, 0.1);
+        const th = heldTransform(held);
+        spawnHandleWeb(th.x, th.y, th.theta, th.long, 1.2, 'held');
         if (Math.random() < 0.5) {
-          const th = heldTransform(held);
           makeBolt(
             held.f.x + rand(-12, 12), held.f.y + rand(-14, 14),
             th.x + rand(-14, 14), th.y + rand(-10, 10),
@@ -513,6 +553,7 @@
     impactFlashA = 1;
     flashCenter = { x, y };
     arenaFlashA = Math.max(arenaFlashA, 0.92);
+    if (typeof cameraShake !== 'undefined') cameraShake = Math.max(cameraShake, 12.5);
     if (typeof triggerFlash === 'function') triggerFlash(190, 235, 255, 0.30); // arena-wide pulse
     if (typeof spawnShockwave === 'function') {
       spawnShockwave(x, y, 'rgba(140,225,255,0.95)', 260);
@@ -543,6 +584,9 @@
   function drawFloor(ctx) {
     if (!AQ.state) return;
     const time = AQ.state.time;
+    // V9 floor discharge is one arena layer. Drawing this inside the per-slot
+    // loop duplicated every bolt when Lab spawned multiple Stormbreakers.
+    for (const b of bolts) if (b.floor) drawBolt(ctx, b);
     for (const [id, rec] of spawned) {
       const bob = slotBob(id, time);
       const W = WORLD();
@@ -555,8 +599,7 @@
       ctx.fillStyle = rg;
       ctx.fillRect(0, 0, W, W);
       ctx.restore();
-      // Floor-running bolts (under the actors, per V9 layering).
-      for (const b of bolts) if (b.floor) drawBolt(ctx, b);
+      // Floor-running bolts are drawn once above, before per-slot aura work.
       // Spawn aura ellipse (V9).
       const pulse = (Math.sin(rec.t * 5.5) + 1) * 0.5;
       ctx.save();
@@ -582,6 +625,22 @@
       ctx.beginPath();
       ctx.ellipse(f.x, f.y + f.radius * 0.72, f.radius * 0.9 + pulse * 3, (f.radius * 0.9 + pulse * 3) * 0.38, 0, 0, Math.PI * 2);
       ctx.stroke();
+      // Reference communication: explicit SLOWED marker on affected fighters.
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 0.84;
+      ctx.fillStyle = 'rgba(112,204,255,.84)';
+      ctx.font = '900 11px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('SLOWED', f.x, f.y + f.radius + 22);
+      ctx.restore();
+    }
+    if (spawned.size > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.50;
+      ctx.fillStyle = 'rgba(217,235,250,1)';
+      ctx.font = '800 11px system-ui';
+      ctx.textAlign = 'left';
+      ctx.fillText('RED TIER SPAWN • GLOBAL SLOW ACTIVE', 46, 47);
       ctx.restore();
     }
   }
@@ -598,24 +657,20 @@
     const fl = findFlight();
     if (fl) {
       const long = (T.worldLongSide || 200);
-      const theta = fl.rot + Math.PI / 2;
+      const visualOffset = T.flightVisualOffsetRad || 0;
+      const theta = fl.rot + Math.PI / 2 + visualOffset;
       const back1 = flightHist.length >= 2 ? flightHist[flightHist.length - 2] : { x: fl.px != null ? fl.px : fl.x, y: fl.py != null ? fl.py : fl.y };
       const back2 = flightHist.length >= 4 ? flightHist[flightHist.length - 4] : back1;
       // V9 spin blur: three cached ghosts (angular offsets behind the head).
-      drawWeaponCached(g, back2.x, back2.y, (fl.rot - 0.68) + Math.PI / 2, long, 0.10, true);
-      drawWeaponCached(g, back1.x, back1.y, (fl.rot - 0.34) + Math.PI / 2, long, 0.18, true);
-      drawWeaponCached(g, fl.x, fl.y, (fl.rot - 0.16) + Math.PI / 2, long, 0.18, true);
+      drawWeaponCached(g, back2.x, back2.y, (fl.rot - 0.68) + Math.PI / 2 + visualOffset, long, 0.10, true);
+      drawWeaponCached(g, back1.x, back1.y, (fl.rot - 0.34) + Math.PI / 2 + visualOffset, long, 0.18, true);
+      drawWeaponCached(g, fl.x, fl.y, (fl.rot - 0.16) + Math.PI / 2 + visualOffset, long, 0.18, true);
       // Linked electricity across the WHOLE spinning weapon + short snaps.
       drawLinkedArcs(g, fl.x, fl.y, theta, long, time, 1.0);
     }
 
-    // --- held: concentrated, calmer crackle around weapon + wielder.
-    const held = findHeld();
-    if (held) {
-      const th = heldTransform(held);
-      drawLinkedArcs(g, th.x, th.y, th.theta, th.long, time, 0.8);
-    }
-
+    // --- held: V9 uses the transient handle-web emitted in tick(); the fixed
+    // 10-link renderer belongs only to flight.
     // --- airborne bolts (pickup/impact/crackle accents — never trails).
     for (const b of bolts) if (!b.floor) drawBolt(g, b);
 
@@ -704,6 +759,16 @@
     // flight VFX is ghosts + fixed local arcs only.
     hasTrailEntities: () => stats.trailEntities > 0,
     stats,
+    referenceProfile: () => ({
+      spawnPairCount: SPAWN_PAIRS.length,
+      flightLinkCount: FLIGHT_LINKS.length,
+      snapCount: SNAP_IDX.length,
+      floorAngleRad: T.floorAngleRad || 0,
+      flightVisualOffsetRad: T.flightVisualOffsetRad || 0,
+      flightWidths: [4.1, 1.55, 0.62],
+      spawnStrongEvery: 3,
+      longTail: false,
+    }),
   };
   window.apexArsenalStormbreakerVfxRuntime = 'ready';
 })();

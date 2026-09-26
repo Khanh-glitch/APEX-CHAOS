@@ -280,7 +280,10 @@
     // AND the floor-local VFX anchor origins must both consume it so the
     // electrical anchors stay glued to the rotated weapon. Held/windup and
     // flight poses are untouched (they keep their own angles).
-    floorAngleRad: Math.PI / 2,
+    floorAngleRad: Math.PI * 1.5,
+    // Owner parity correction: flight PRESENTATION is flipped 180° from the
+    // previous port. Physics aim/velocity/spin/collision remain untouched.
+    flightVisualOffsetRad: Math.PI,
   };
 
   // ── §7 NEWBIE hero tuning ────────────────────────────────────────────────

@@ -3767,6 +3767,8 @@ report.stormVfx = run(`
   __AQ_TEST.step(2.0); // full pulse cycle on the floor
   const floorBolts = S.boltCount();
   const floorSparks = S.sparkCount();
+  const profile = S.referenceProfile ? S.referenceProfile() : null;
+  const spawnWebBursts = S.stats.spawnWebBursts;
   S.onImpact(520, 480, fighters[1]);
   S.tick(1 / 60);
   const after = {
@@ -3778,7 +3780,7 @@ report.stormVfx = run(`
   };
   S.clear();
   const cleared = { bolts: S.boltCount(), impacts: S.impactCount(), spawns: S.spawnCount() };
-  return JSON.stringify({ floorBolts, floorSparks, after, cleared });
+  return JSON.stringify({ floorBolts, floorSparks, profile, spawnWebBursts, after, cleared });
 `);
 const stormVfx = JSON.parse(report.stormVfx);
 gate('storm-vfx-bounded-pools',
@@ -3786,8 +3788,19 @@ gate('storm-vfx-bounded-pools',
   && stormVfx.floorBolts <= 30 && stormVfx.floorSparks <= 72
   && stormVfx.after.bolts <= 30 && stormVfx.after.sparks <= 72,
   stormVfx);
+gate('storm-v9-reference-structure',
+  !!stormVfx.profile
+  && stormVfx.profile.spawnPairCount === 13
+  && stormVfx.profile.flightLinkCount === 10
+  && stormVfx.profile.snapCount === 4
+  && Math.abs(stormVfx.profile.floorAngleRad - Math.PI * 1.5) < 1e-8
+  && Math.abs(stormVfx.profile.flightVisualOffsetRad - Math.PI) < 1e-8
+  && stormVfx.profile.flightWidths.join(',') === '4.1,1.55,0.62'
+  && stormVfx.profile.spawnStrongEvery === 3
+  && stormVfx.spawnWebBursts > 0,
+  stormVfx);
 gate('storm-vfx-no-long-tail-structural',
-  stormVfx.after.trailEntities === false,
+  stormVfx.after.trailEntities === false && stormVfx.profile?.longTail === false,
   stormVfx.after);
 gate('storm-vfx-impact-real-hitpoint',
   stormVfx.after.impacts === 1 && stormVfx.after.spawnTracked === 1,
@@ -3942,7 +3955,7 @@ gate('lab-exact-pistol-real-pickup-hit', report.labV1.first.length === 1 && repo
 gate('lab-lethal-feedback-no-ko-true-damage', report.labV1.lethal.hp.rival === 1000 && report.labV1.lethal.over === null
   && report.labV1.lethal.damage - report.labV1.damage >= 1600 && report.labV1.lethal.numbers.some(n => +n >= 1600), report.labV1.lethal);
 gate('lab-exact-storm-horizontal-floor', report.labV1.storm?.weapon === 'STORMBREAKER' && report.labV1.storm?.phase === 'REVEALED'
-  && Math.abs(report.labV1.floorAngle - Math.PI/2) < 1e-8, report.labV1.storm);
+  && Math.abs(report.labV1.floorAngle - Math.PI * 1.5) < 1e-8, report.labV1.storm);
 gate('lab-exit-no-progression', report.labV1.afterExit.credits === report.labV1.beforeExit.credits
   && report.labV1.afterExit.quest === report.labV1.beforeExit.quest && report.labV1.afterExit.hub === 'block'
   && report.labV1.afterExit.panelGone, report.labV1.afterExit);
