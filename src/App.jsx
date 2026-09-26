@@ -329,54 +329,85 @@ function injectApexEngine(scriptRef, engineSrc) {
 // the engine keeps writing them exactly as before.
 function CombatPanelSide({ side }) {
   const p = `p${side}`;
+  const isP1 = side === 1;
   return (
     <aside id={`${p}-combat-panel`} className={`combat-panel cp-side-p${side}`} aria-label={`Player ${side} combat panel`}>
       <section className="cp-identity">
-        <div className="cp-id-row">
+        <div className="cp-fighter-head">
+          <div className="cp-fighter-copy">
+            <div className="cp-eyebrow">{isP1 ? 'P1 · PLAYER SIDE' : 'P2 · RIVAL SIDE'}</div>
+            <div className="name" id={`${p}-name`}>P{side}</div>
+          </div>
           <span className="cp-chip" id={`${p}-cp-chip`} />
-          <div className="name" id={`${p}-name`}>P{side}</div>
         </div>
-        <div className="hp-bar-bg">
-          <div className="hp-loss-trail" id={`${p}-hp-loss`} />
-          <div className="hp-bar-fill" id={`${p}-hp`} />
-          <div className="hp-text" id={`${p}-hp-text`}>100.0 / 100</div>
+        <div className="cp-hp-wrap">
+          <div className="cp-hp-label">
+            <span>HP</span>
+            <span className="hp-text" id={`${p}-hp-text`}>1000 / 1000</span>
+          </div>
+          <div className="hp-bar-bg">
+            <div className="hp-loss-trail" id={`${p}-hp-loss`} />
+            <div className="hp-bar-fill" id={`${p}-hp`} />
+            <div className="cp-hp-ticks" />
+          </div>
+          <div className="rage-indicator" id={`${p}-rage`}>RAGE ACTIVE</div>
         </div>
-        <div className="rage-indicator" id={`${p}-rage`}>RAGE ACTIVE</div>
       </section>
 
+      <div className="cp-section-title cp-pressure-title">RECENT PRESSURE</div>
       <section className="cp-burst" id={`${p}-burst`}>
-        <div className="cp-burst-kicker">LIVE BURST</div>
-        <div className="cp-burst-label" id={`${p}-burst-label`} />
-        <div className="cp-burst-total" id={`${p}-burst-total`}>0</div>
-        <div className="cp-burst-meta">
-          <span className="cp-burst-hits" id={`${p}-burst-hits`}>0 HITS</span>
-          <span className="cp-burst-crits" id={`${p}-burst-crits`}>0 CRIT</span>
+        <div className="cp-burst-top">
+          <div className="cp-burst-stack">
+            <div className="cp-burst-kicker">ROLLING 1.2S</div>
+            <div className="cp-burst-readout">
+              <span className="cp-burst-total" id={`${p}-burst-total`}>0</span>
+              <span className="cp-burst-unit">DMG</span>
+            </div>
+            <div className="cp-burst-meta">
+              <span className="cp-burst-hits" id={`${p}-burst-hits`}>0 HITS</span>
+              <span className="cp-burst-crits" id={`${p}-burst-crits`}>0 CRIT</span>
+            </div>
+          </div>
+          <div className="cp-burst-label" id={`${p}-burst-label`} />
+        </div>
+        <div className="cp-burst-track">
+          <div className="cp-burst-fill" id={`${p}-burst-fill`} />
         </div>
       </section>
 
-      <section className="cp-loadout" id={`${p}-loadout`}>
-        <div className="cp-section-title">CURRENT LOADOUT</div>
-        <div className="cp-loadout-art">
-          <canvas id={`${p}-loadout-canvas`} className="cp-loadout-canvas" width="480" height="240" />
-          <div className="cp-loadout-fallback" id={`${p}-loadout-fallback`}>
-            <span className="cp-glyph" id={`${p}-cp-glyph`}>—</span>
-            <span className="cp-fallback-label" id={`${p}-loadout-fallback-label`}>UNARMED</span>
+      <section className="cp-combat-stage">
+        <div className="cp-loadout-shell" id={`${p}-loadout`}>
+          <div className="cp-loadout-kicker">CURRENT LOADOUT</div>
+          <div className="cp-loadout-top">
+            <div className="cp-loadout-copy">
+              <div className="cp-loadout-name" id={`${p}-loadout-name`}>—</div>
+              <div className="cp-loadout-line">
+                <span className="cp-loadout-family" id={`${p}-loadout-family`} />
+                <span className="cp-loadout-tier" id={`${p}-loadout-tier`} />
+              </div>
+              <div className="cp-loadout-state" id={`${p}-loadout-state`}>UNARMED</div>
+            </div>
+            <div className="cp-loadout-art">
+              <canvas id={`${p}-loadout-canvas`} className="cp-loadout-canvas" width="480" height="240" />
+              <div className="cp-loadout-fallback" id={`${p}-loadout-fallback`}>
+                <span className="cp-glyph" id={`${p}-cp-glyph`}>—</span>
+                <span className="cp-fallback-label" id={`${p}-loadout-fallback-label`}>UNARMED</span>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="cp-loadout-name" id={`${p}-loadout-name`}>—</div>
-        <div className="cp-loadout-meta">
-          <span className="cp-loadout-family" id={`${p}-loadout-family`} />
-          <span className="cp-loadout-tier" id={`${p}-loadout-tier`} />
-        </div>
       </section>
 
+      <div className="cp-section-title cp-energy-title-row">ENERGY</div>
       <section className="cp-energy" id={`${p}-energy`}>
         <div className="cp-energy-head">
-          <span className="cp-energy-title">ENERGY</span>
+          <span className="cp-energy-kicker">COMBAT RESOURCE</span>
           <span className="cp-energy-val" id={`${p}-energy-val`}>0</span>
         </div>
-        <div className="cp-energy-track"><div className="cp-energy-fill" id={`${p}-energy-fill`} /></div>
-        <div className="cp-energy-state" id={`${p}-energy-state`} />
+        <div className="cp-energy-track">
+          <div className="cp-energy-fill" id={`${p}-energy-fill`} />
+          <span className="cp-energy-ready" id={`${p}-energy-state`} />
+        </div>
       </section>
 
       <section className="cp-mode" id={`${p}-mode-slot`} />
