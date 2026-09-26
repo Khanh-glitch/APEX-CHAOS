@@ -1492,8 +1492,6 @@ try {
     phoneExitTap.hitWithin === true && phoneExitTap.pointerEvents !== 'none'
       && phoneExitState.state === 'MENU' && phoneExitState.menuVisible === true,
     { tap:phoneExitTap, after:phoneExitState });
-  window.__apexPhoneExitProbe = phoneExitState;
-
   await evaluate(`window.startArsenalQuestMode('HERO','RIVAL'); APEX_ARSENAL.state.debugOverlay=false; __AQ_TEST.redraw(); true`);
   await evaluate(`document.getElementById('p1-combat-panel')?.scrollIntoView({ block:'start' }); true`);
   await sleep(100);
