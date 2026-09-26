@@ -206,7 +206,8 @@ win.cancelAnimationFrame = () => {};
 // ------------------------------------------------------------ script loading
 const loadErrors = [];
 function loadScript(relPath, required) {
-  const file = path.join(REPO, 'public', relPath.replace(/^\//, ''));
+  const fileRelPath = String(relPath).split(/[?#]/, 1)[0];
+  const file = path.join(REPO, 'public', fileRelPath.replace(/^\//, ''));
   try {
     win.eval(fs.readFileSync(file, 'utf8'));
     return true;
