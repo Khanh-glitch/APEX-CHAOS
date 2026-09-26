@@ -376,7 +376,7 @@
     };
   }
   // Slot draw bob (SPAWN.drawSlots) — kept in sync so arcs track the sprite.
-  function slotBob(slotId, time) { return Math.sin(time * 3.1 + slotId) * 4; }
+  function slotBob(slotId, time) { return Math.sin(time * 2.6) * 2; }
 
   // --------------------------------------------------------------- tick --
   function tick(dt) {
@@ -402,7 +402,7 @@
         if (!rec) {
           rec = {
             x: s.x, y: s.y, t: 0,
-            pulseTimer: rand(0.10, 0.20),
+            pulseTimer: 0.08,
             pulseIndex: 0,
             coronaT: 0,
           };

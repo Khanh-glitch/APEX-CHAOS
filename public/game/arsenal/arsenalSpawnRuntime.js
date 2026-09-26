@@ -538,7 +538,9 @@
       ctx.translate(slot.x, slot.y);
 
       if (slot.kind === 'HEAL' && slot.phase === 'REVEALED') {
-        const bob = Math.sin(t * 3.1 + slot.id) * 4;
+        const bob = slot.weaponId === 'STORMBREAKER'
+        ? Math.sin(t * 2.6) * 2
+        : Math.sin(t * 3.1 + slot.id) * 4;
         const pulse = 0.5 + 0.5 * Math.sin(t * 2.2 + slot.id);
         const well = contactWell('heal');
         ctx.save();
