@@ -544,6 +544,9 @@
         sides[i].burst = null;
         sides[i].loadoutKey = null;
         sides[i].last = {};
+        // Lab entry (and any rematch) must not display the last match's
+        // RECENT PRESSURE after the burst state has been reset.
+        renderBurst(i);
       }
       sync();
     } catch (error) {

@@ -65,6 +65,19 @@
     core: [0x3A, 0x05, 0x08],
     deep: [0x26, 0x04, 0x07],
   };
+  // Arsenal-only pigment preference: separate from the locked meta-save schema.
+  const SPLATTER_KEY = 'apexChaos.arsenalSplatter.v1';
+  function loadSplatterMode() {
+    try { return localStorage.getItem(SPLATTER_KEY) === 'FIGHTER COLOR' ? 'FIGHTER COLOR' : 'BLOOD'; }
+    catch (e) { return 'BLOOD'; }
+  }
+  let splatterMode = loadSplatterMode();
+  function setSplatterMode(mode) {
+    if (mode !== 'BLOOD' && mode !== 'FIGHTER COLOR') return false;
+    splatterMode = mode;
+    try { localStorage.setItem(SPLATTER_KEY, mode); } catch (e) { /* private browsing */ }
+    return true;
+  }
   // PASS B §12 — locally vendored Kanit Black Italic damage typography.
   // The rasterized PNG atlas (damage1.png) is superseded as the DRAW source;
   // it remains as the compatibility fallback if the font cannot load.
@@ -229,6 +242,22 @@
   // V1 §14 priority: recycle micro spray first, then medium drops. Caps sit far
   // above the approved per-hit workload (55 normal / 90 critical live objects),
   // so they only engage in pathological sustained bursts.
+  function pigment(victim) {
+    if (splatterMode === 'BLOOD') return { legacy: BLOOD, v1: V1_COLORS };
+    const rgb = parseHex(victim && victim.color);
+    // Shade from the RECEIVER, not the attacker. The darkest floor layer
+    // remains legible while the brighter airborne layer carries identity.
+    const shade = (k) => rgb.map((v) => Math.max(0, Math.min(255, Math.round(v * k))));
+    return {
+      legacy: { spray: shade(1), main: shade(0.68), core: shade(0.30), deep: shade(0.19) },
+      v1: {
+        coreCenter: shade(0.62), coreMid: shade(0.50), coreEdge: shade(0.26),
+        streakDark: shade(0.34), streakMid: shade(0.62), streakTip: shade(0.86),
+        drop: shade(0.70), micro: shade(0.80),
+        floorDotMin: shade(0.30), floorDotMax: shade(0.52),
+      },
+    };
+  }
   const V1_LIVE_SOFT_CAP = { micro: 420, drop: 560 };
   const SIZE_BANDS = [
     { id: 'XS', min: 1, max: 34, scale: 1.35 },
@@ -431,6 +460,7 @@
     p.landChance = 0;
     p.landPower = 0;
     p.fresh = false;
+    p.pigment = null;
     return p;
   }
 
@@ -504,9 +534,9 @@
     const c = ensureStain();
     if (!c) return;
     const fp = footprint(dealt, crit);
-    const main = BLOOD.main;
-    const core = BLOOD.core;
-    const wet = BLOOD.spray;
+    const main = victimRgb.main;
+    const core = victimRgb.core;
+    const wet = victimRgb.spray;
     const ang = Math.atan2(diry, dirx);
     const fan = family === 'SHOTGUN' || family === 'BLAST' ? 1.22
       : family === 'AUTO' ? 0.72
@@ -530,7 +560,7 @@
       c.rotate(a);
       const len = fp * (family === 'PRECISION' ? 1.7 : family === 'MELEE' ? 1.35 : 1.05) * (0.7 + Math.random() * 0.45);
       const half = family === 'PRECISION' ? 1.6 + Math.random() : 2.2 + Math.random() * 2.4;
-      drawWedge(c, len, half, i ? main : BLOOD.deep, 0.85);
+      drawWedge(c, len, half, i ? main : victimRgb.deep, 0.85);
       c.restore();
     }
     const nDrop = family === 'SHOTGUN' || family === 'BLAST' ? 9
@@ -565,7 +595,7 @@
       p.len = 10 + Math.random() * 16 * boost;
       p.life = 0.12 + Math.random() * 0.1;
       p.max = p.life;
-      p.rgb = BLOOD.spray;
+      p.rgb = victimRgb.spray;
       p.wedge = true;
       sprayLive.push(p);
     }
@@ -580,7 +610,7 @@
       p.len = 0;
       p.life = 0.12 + Math.random() * 0.1;
       p.max = p.life;
-      p.rgb = i % 3 ? BLOOD.main : BLOOD.spray;
+      p.rgb = i % 3 ? victimRgb.main : victimRgb.spray;
       p.wedge = false;
       sprayLive.push(p);
     }
@@ -596,7 +626,7 @@
   // ---------------------------------------------------------------------------
   function v1Rnd(a, b) { return a + Math.random() * (b - a); }
 
-  function irregularBlob(g, x, y, r, alpha, rotation, stretch) {
+  function irregularBlob(g, x, y, r, alpha, rotation, stretch, colors = V1_COLORS) {
     const points = 18;
     g.save();
     g.translate(x, y);
@@ -611,9 +641,9 @@
     }
     g.closePath();
     const grad = g.createRadialGradient(-r * 0.25, -r * 0.18, r * 0.05, 0, 0, r * 1.3);
-    grad.addColorStop(0, `rgba(92,0,0,${alpha})`);
-    grad.addColorStop(0.55, `rgba(74,0,0,${alpha * 0.96})`);
-    grad.addColorStop(1, `rgba(38,0,0,${alpha * 0.85})`);
+    grad.addColorStop(0, rgba(colors.coreCenter, alpha));
+    grad.addColorStop(0.55, rgba(colors.coreMid, alpha * 0.96));
+    grad.addColorStop(1, rgba(colors.coreEdge, alpha * 0.85));
     g.fillStyle = grad;
     g.fill();
     g.restore();
@@ -621,13 +651,13 @@
 
   // Persistent floor blood onto the shared cached/offscreen stain layer.
   // source-over compositing per the approved reference; darker/drier marks.
-  function v1FloorSplat(x, y, dx, dy, power) {
+  function v1FloorSplat(x, y, dx, dy, power, colors = V1_COLORS) {
     const c = ensureStain();
     if (!c) return;
     const a = Math.atan2(dy, dx);
     c.save();
     c.globalCompositeOperation = 'source-over';
-    irregularBlob(c, x, y, 7 + power * 9, 0.88, a, 1 + v1Rnd(0.2, 0.8));
+    irregularBlob(c, x, y, 7 + power * 9, 0.88, a, 1 + v1Rnd(0.2, 0.8), colors);
     const n = Math.round(6 + power * 8);
     for (let i = 0; i < n; i++) {
       const dist = v1Rnd(8, 26 + power * 42);
@@ -635,7 +665,7 @@
       const px = x + Math.cos(aa) * dist;
       const py = y + Math.sin(aa) * dist;
       const rr = v1Rnd(1.4, 4.6 + power * 3.5);
-      irregularBlob(c, px, py, rr, v1Rnd(0.5, 0.82), aa, v1Rnd(1, 2.4));
+      irregularBlob(c, px, py, rr, v1Rnd(0.5, 0.82), aa, v1Rnd(1, 2.4), colors);
     }
     for (let i = 0; i < 18 + power * 28; i++) {
       const dist = v1Rnd(10, 38 + power * 70);
@@ -644,7 +674,10 @@
       const py = y + Math.sin(aa) * dist;
       c.beginPath();
       c.arc(px, py, v1Rnd(0.45, 1.8 + power * 0.6), 0, Math.PI * 2);
-      c.fillStyle = `rgba(${v1Rnd(V1_COLORS.floorDotMin, V1_COLORS.floorDotMax) | 0},0,0,${v1Rnd(0.35, 0.72)})`;
+      const dot = typeof colors.floorDotMin === 'number'
+        ? [v1Rnd(colors.floorDotMin, colors.floorDotMax) | 0, 0, 0]
+        : colors.floorDotMin.map((v, i) => v1Rnd(v, colors.floorDotMax[i]) | 0);
+      c.fillStyle = rgba(dot, v1Rnd(0.35, 0.72));
       c.fill();
     }
     c.restore();
@@ -654,7 +687,7 @@
   // Reference spawnBlood(): x/y = REAL collision point, bvx/bvy = REAL
   // projectile velocity, crit = REAL critical flag. Counts and constants are
   // the approved V1 numbers, not a reinterpretation.
-  function emitV1Blood(x, y, bvx, bvy, crit) {
+  function emitV1Blood(x, y, bvx, bvy, crit, colors = V1_COLORS) {
     let dx = bvx, dy = bvy;
     const L = Math.hypot(dx, dy);
     if (L < 1e-6) { dx = 1; dy = 0; } else { dx /= L; dy /= L; }
@@ -669,7 +702,8 @@
     core.size = crit ? 18 : 13;
     core.rot = baseAngle;
     core.stretch = 1.5;
-    core.rgb = V1_COLORS.coreCenter;
+    core.rgb = colors.coreCenter;
+    core.pigment = colors;
     core.fresh = true; // PASS A: full first-frame read — no pre-render aging
     sprayLive.push(core);
     stats.v1Cores += 1;
@@ -691,7 +725,8 @@
       p.stretch = v1Rnd(5, 11);
       p.rot = a;
       p.drag = v1Rnd(0.88, 0.93);
-      p.rgb = V1_COLORS.streakTip;
+      p.rgb = colors.streakTip;
+      p.pigment = colors;
       p.fresh = true; // PASS A
       sprayLive.push(p);
     }
@@ -714,7 +749,8 @@
       p.drag = v1Rnd(0.94, 0.975);
       p.landChance = 0.55;
       p.landPower = 0.18;
-      p.rgb = V1_COLORS.drop;
+      p.rgb = colors.drop;
+      p.pigment = colors;
       p.fresh = true; // PASS A
       sprayLive.push(p);
     }
@@ -738,7 +774,8 @@
       p.drag = v1Rnd(0.925, 0.97);
       p.landChance = 0.11;
       p.landPower = 0.06;
-      p.rgb = V1_COLORS.micro;
+      p.rgb = colors.micro;
+      p.pigment = colors;
       p.fresh = true; // PASS A
       sprayLive.push(p);
     }
@@ -746,7 +783,7 @@
 
     // Main decal: along the projectile direction, farther/stronger on crit.
     const decalDist = crit ? v1Rnd(24, 44) : v1Rnd(16, 32);
-    v1FloorSplat(x + dx * decalDist, y + dy * decalDist, dx, dy, crit ? 1.3 : 0.82);
+    v1FloorSplat(x + dx * decalDist, y + dy * decalDist, dx, dy, crit ? 1.3 : 0.82, colors);
 
     stats.v1Decals += 1;
     stats.v1Hits += 1;
@@ -838,7 +875,8 @@
       }
       return;
     }
-    const rgb = BLOOD.main;
+    const colors = pigment(victim);
+    const rgb = colors.legacy;
     const crit = !!opts.critical;
     const wid = weaponFromLabel(label);
     const fam = (wid && SHOTGUN_IDS[wid]) ? 'SHOTGUN'
@@ -857,7 +895,7 @@
       && Number.isFinite(impact.vx) && Number.isFinite(impact.vy));
     stats.splatters += 1;
     if (v1Firearm) {
-      emitV1Blood(impact.x, impact.y, impact.vx, impact.vy, crit);
+      emitV1Blood(impact.x, impact.y, impact.vx, impact.vy, crit, colors.v1);
     } else {
       const dx = victim && source ? victim.x - source.x : 1;
       const dy = victim && source ? victim.y - source.y : 0;
@@ -947,7 +985,7 @@
         // V1 §9: dying drops/micro may leave a tiny LOCAL mark — never a new
         // explosion. Reference chances: drop ~55% / micro ~11%.
         if ((p.kind === 'v1drop' || p.kind === 'v1micro') && Math.random() < p.landChance) {
-          v1FloorSplat(p.x, p.y, p.vx, p.vy, p.landPower);
+          v1FloorSplat(p.x, p.y, p.vx, p.vy, p.landPower, p.pigment || V1_COLORS);
           stats.v1LandMarks += 1;
         }
         sprayPool.push(p);
@@ -974,6 +1012,7 @@
   }
 
   function drawV1Streak(g, p) {
+    const colors = p.pigment || V1_COLORS;
     const alpha = Math.max(0, Math.min(1, p.life / (p.max || 0.38)));
     const ang = Math.atan2(p.vy, p.vx);
     const speed = Math.hypot(p.vx, p.vy);
@@ -983,9 +1022,9 @@
     g.translate(p.x, p.y);
     g.rotate(ang);
     const gr = g.createLinearGradient(-length, 0, 4, 0);
-    gr.addColorStop(0, 'rgba(48,0,0,0)');
-    gr.addColorStop(0.35, `rgba(92,0,0,${alpha * 0.55})`);
-    gr.addColorStop(1, `rgba(125,3,3,${alpha * 0.96})`);
+    gr.addColorStop(0, rgba(colors.streakDark, 0));
+    gr.addColorStop(0.35, rgba(colors.streakMid, alpha * 0.55));
+    gr.addColorStop(1, rgba(colors.streakTip, alpha * 0.96));
     g.fillStyle = gr;
     g.beginPath();
     g.moveTo(-length, 0);
@@ -1000,7 +1039,7 @@
     for (const p of sprayLive) {
       if (p.kind === 'v1core') {
         const alpha = Math.max(0, Math.min(1, p.life / (p.max || 0.38)));
-        irregularBlob(c, p.x, p.y, p.size, alpha * 0.95, p.rot, p.stretch || 1.5);
+        irregularBlob(c, p.x, p.y, p.size, alpha * 0.95, p.rot, p.stretch || 1.5, p.pigment || V1_COLORS);
       } else if (p.kind === 'v1streak') {
         drawV1Streak(c, p);
       } else if (p.kind === 'v1drop' || p.kind === 'v1micro') {
@@ -1017,9 +1056,7 @@
         c.scale(stretch, 1);
         c.beginPath();
         c.arc(0, 0, p.size, 0, Math.PI * 2);
-        c.fillStyle = p.kind === 'v1micro'
-          ? `rgba(115,2,2,${alpha * 0.82})`
-          : `rgba(102,0,0,${alpha * 0.92})`;
+        c.fillStyle = rgba(p.rgb, alpha * (p.kind === 'v1micro' ? 0.82 : 0.92));
         c.fill();
         c.restore();
       } else {
@@ -1243,6 +1280,11 @@
     sizeBands: SIZE_BANDS,
     blood: BLOOD,
     bloodV1: V1_COLORS,
+    SPLATTER_KEY,
+    getSplatterMode: () => splatterMode,
+    setSplatterMode,
+    reloadSplatterMode: () => (splatterMode = loadSplatterMode()),
+    pigment,
     v1LiveCap: V1_LIVE_SOFT_CAP,
     // PASS B §12: local Kanit Black Italic glyph cache state (for gates).
     kanitSheets: () => ({

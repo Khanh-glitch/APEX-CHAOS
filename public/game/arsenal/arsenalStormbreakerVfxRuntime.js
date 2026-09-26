@@ -370,7 +370,7 @@
           rec.activeLinks = order.slice(0, 8);
           if (Math.random() < 0.6) {
             const ai = Math.floor(rand(0, ANCHORS.length));
-            const a = anchorWorld(rec.x, rec.y + slotBob(s.id, time), 0, (T.floorLongSide || 150) * 0.92, ai);
+            const a = anchorWorld(rec.x, rec.y + slotBob(s.id, time), T.floorAngleRad || 0, (T.floorLongSide || 150) * 0.92, ai);
             makeBolt(a.x, a.y, a.x + rand(-22, 22), a.y + rand(-20, 20), { life: 0.05, width: 0.55, power: 0.55, rough: 0.28, regen: 0.016 });
           }
         }

@@ -36,7 +36,10 @@
   // the T6 red tier.
   const OFFENSIVE_IDS = [...GUN_IDS, 'GRENADE', ...MELEE_IDS, 'STORMBREAKER'];
 
-  CFG.P0_WEAPON_IDS = OFFENSIVE_IDS.slice(); // shields out of random pool
+  // P0 is the complete EQUIPMENT catalogue (including counter shields) for
+  // Arsenal Lab. OFFENSIVE_IDS remains the separate, unchanged random spawn
+  // authority: adding shields here never puts them into rarity selection.
+  CFG.P0_WEAPON_IDS = [...OFFENSIVE_IDS, ...SHIELD_IDS];
   CFG.OFFENSIVE_WEAPON_IDS = OFFENSIVE_IDS;
   CFG.SHIELD_IDS = SHIELD_IDS;
   CFG.WEAPON_TIER = WEAPON_TIER;

@@ -30,7 +30,12 @@
 
     // --- Safety valves (must NOT restore one-at-a-time spawning) ---
     PICKUP_LIFETIME_SECONDS: 20,         // revealed pickups expire
-    MAX_ACTIVE_SLOTS: 5,                 // V3 offensive cap
+    MAX_ACTIVE_SLOTS: 5,                 // V3 offensive cap (production law — unchanged)
+    // Arsenal Lab (V1): the Lab suppresses ALL automatic spawning; equipment
+    // exists ONLY when the owner taps it. Manual lab slots get their OWN
+    // bounded cap so the Lab can never out-run rendering/pickup budgets —
+    // this is separate from MAX_ACTIVE_SLOTS on purpose.
+    LAB_MANUAL_SLOT_CAP: 6,
 
     // --- Fighters ---
     MATCH_HP: 1000,
@@ -268,6 +273,14 @@
     stunSeconds: 1.0,
     worldLongSide: 200,
     floorLongSide: 150,
+    // OWNER-LOCKED floor pose (Arsenal Lab V1 pass): while REVEALED +
+    // unclaimed, the STORMBREAKER lies HORIZONTALLY on the floor. The art is
+    // authored portrait (head up, -Y long axis), so horizontal = +90° about
+    // Z. This is the ONE shared floor-angle authority: the spawn slot draw
+    // AND the floor-local VFX anchor origins must both consume it so the
+    // electrical anchors stay glued to the rotated weapon. Held/windup and
+    // flight poses are untouched (they keep their own angles).
+    floorAngleRad: Math.PI / 2,
   };
 
   // ── §7 NEWBIE hero tuning ────────────────────────────────────────────────

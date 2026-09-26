@@ -118,7 +118,7 @@
 
   function trySpawnSlot(opts) {
     const state = AQ.state;
-    if (!state) return null;
+    if (!state || state.labMode) return null; // Lab requests use spawnLabWeapon only.
     const active = state.slots.filter(s => s.phase !== 'REMOVED' && s.kind !== 'HEAL');
     if (active.length >= CFG.MAX_ACTIVE_SLOTS) {
       state.suppressedSpawns += 1;
@@ -149,6 +149,33 @@
     state.spawnedTotal += 1;
     log('SPAWN_SLOT', `id=${slot.id} x=${Math.round(slot.x)} y=${Math.round(slot.y)} lead=${slot.revealLeadSeconds.toFixed(2)}`);
     window.avCue('telegraph', { x: slot.x, y: slot.y });
+    return slot;
+  }
+
+  // Lab-only exact-ID request. All normal pickup/equip/attack handling below
+  // remains unchanged; this bypasses only the random/telegraph creation path.
+  function spawnLabWeapon(weaponId) {
+    const state = AQ.state;
+    if (!state || !state.active || !state.labMode || !(CFG.P0_WEAPON_IDS || []).includes(weaponId)) return null;
+    const active = state.slots.filter((s) => s.phase !== 'REMOVED');
+    if (active.length >= CFG.LAB_MANUAL_SLOT_CAP) return null;
+    // Reuse the existing arena-margin/spacing sampler, treating live fighters
+    // as occupied points as well: tapping a weapon must not auto-vacuum it on
+    // the same frame before the owner can see the revealed pickup.
+    const occupied = active.concat((typeof fighters !== 'undefined' ? fighters : [])
+      .filter((f) => f && f.hp > 0).map((f) => ({ x: f.x, y: f.y })));
+    const point = pickSpawnPoint(occupied);
+    const slot = {
+      id: state.nextSlotId++, x: point.x, y: point.y,
+      phase: 'REVEALED', weaponId,
+      tier: CFG.tierOf ? CFG.tierOf(weaponId) : null,
+      revealedFor: 0, pickedBy: null, rejectedFor: {},
+      spawnTime: state.time,
+    };
+    state.slots.push(slot);
+    state.spawnedTotal += 1;
+    state.maxActiveSlots = Math.max(state.maxActiveSlots || 0, state.slots.length);
+    log('LAB_SPAWN', `id=${slot.id} weapon=${weaponId} x=${Math.round(slot.x)} y=${Math.round(slot.y)}`);
     return slot;
   }
 
@@ -204,10 +231,14 @@
     return ids[ids.length - 1];
   }
 
+  // ARSENAL LAB V1 — owner law: in the Lab there is NO automatic spawning at
+  // all (no offensive cadence, no emergency firearm, NO heal). Equipment
+  // exists on the floor only after the owner taps a weapon in the lab panel.
   function trySpawnHealSupport() {
     const state = AQ.state;
     const feel = window.APEX_ARSENAL_FEEL;
     if (!state || !feel || !feel.healGameplayEnabled) return null;
+    if (state.labMode) return null;
     if (state.spawnHeld) return null;
     if ((state.healCooldown || 0) > 0) return null;
     const activeHeal = state.slots.filter((s) => s.kind === 'HEAL' && s.phase !== 'REMOVED');
@@ -611,6 +642,7 @@
         const drawn = !!(av && av.drawWeaponSprite && av.drawWeaponSprite(ctx, slot.weaponId, 0, 0, {
           mode: 'floor',
           useWorld: false,
+          angle: slot.weaponId === 'STORMBREAKER' ? CFG.STORMBREAKER.floorAngleRad : 0,
           targetLongSide: slot.weaponId === 'GRENADE' ? 56 : gunLong,
           alpha: 1,
         }));
@@ -623,6 +655,7 @@
 
   window.APEX_ARSENAL_SPAWN = {
     trySpawnSlot,
+    spawnLabWeapon,
     selectFirearmWeapon,
     trySpawnHealSupport,
     selectHealId,

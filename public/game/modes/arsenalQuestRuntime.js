@@ -155,6 +155,9 @@
       unarmedFastConsumed: false,
       unarmedFastPending: false,
       spawnHeld: false,
+      labMode: false,
+      labDamage: 0,
+      labHits: 0,
       healCooldown: 0,
       forceHealId: null,
       slots: [],
@@ -203,9 +206,20 @@
         const mult = CFG.NATIVE_ARSENAL_MULT[mech] != null ? CFG.NATIVE_ARSENAL_MULT[mech] : CFG.NATIVE_ARSENAL_MULT.default;
         scaled = amount * mult;
       }
+      // Lab: temporary HP headroom lets the unmodified engine resolve the
+      // ENTIRE real hit (including lethal-equivalent damage, HUD, VFX and
+      // callbacks), without ever reaching zero/KO. Restore only AFTER the
+      // transaction; do not short-circuit the damage path.
+      if (st.labMode) this.hp += scaled + 1;
       const before = this.hp;
       const out = baseTakeDamage.call(this, scaled, source, label, statusDamage);
       const dealt = Math.max(0, before - this.hp);
+      if (st.labMode) {
+        st.labDamage += dealt;
+        st.labHits += dealt > 0 ? 1 : 0;
+        this.hp = this.maxHp;
+        if (typeof updateHUD === 'function') updateHUD();
+      }
       st.dmg = st.dmg || { weapon: 0, native: 0, byMechanic: {} };
       if (isWeapon) st.dmg.weapon += dealt;
       else {
@@ -245,7 +259,7 @@
         return !!(h && CFG.isGun && CFG.isGun(h.weaponId));
       };
       const revealedGuns = (state.slots || []).filter((s) => s.phase === 'REVEALED' && s.kind !== 'HEAL' && CFG.isGun && CFG.isGun(s.weaponId)).length;
-      const emergencyGunNeeded = living.length >= 2 && living.every((f) => !holdsGun(f)) && revealedGuns === 0;
+      const emergencyGunNeeded = !state.labMode && living.length >= 2 && living.every((f) => !holdsGun(f)) && revealedGuns === 0;
       let emergencySpawned = false;
       if (!emergencyGunNeeded) {
         state.unarmedFastConsumed = false;
@@ -268,9 +282,9 @@
         }
       }
       // Fixed spawn cadence — independent of collection state (handoff §5).
-      state.spawnTimer -= dt;
+      if (!state.labMode) state.spawnTimer -= dt;
       let guard = 0;
-      while (state.spawnTimer <= 0 && guard++ < 4) {
+      while (!state.labMode && state.spawnTimer <= 0 && guard++ < 4) {
         state.spawnTimer += CFG.SPAWN_CADENCE_SECONDS;
         if (emergencySpawned) continue;
         SPAWN.trySpawnSlot();
@@ -319,7 +333,7 @@
     if (arenaFlash.a > 0) arenaFlash.a = Math.max(0, arenaFlash.a - dt * 1.6);
     if (cameraShake > 0) cameraShake = Math.max(0, cameraShake - dt * 22);
     cameraZoom = lerp(cameraZoom, 1, dt * 2);
-    if (!state.over && fighters[0] && fighters[1] && (fighters[0].hp <= 0 || fighters[1].hp <= 0)) {
+    if (!state.labMode && !state.over && fighters[0] && fighters[1] && (fighters[0].hp <= 0 || fighters[1].hp <= 0)) {
       const winner = fighters[0].hp > fighters[1].hp ? fighters[0] : fighters[1];
       state.over = winner.name;
       AQ.log('KO', `winner=${winner.name}`);
@@ -601,6 +615,24 @@
       .aq-result-actions button{min-height:44px;border:1px solid #424b55;background:#171d24;color:#f1ece1;cursor:pointer;font:900 11px/1 "Segoe UI",sans-serif;letter-spacing:.06em}
       .aq-result-actions button:first-child{border-color:#62583b;background:#3c341f;color:#f4df9a}
       @media(max-width:520px){.aq-result-actions{grid-template-columns:1fr}}
+      /* Arsenal Lab: compact scrollable dock, never an opaque full-screen layer. */
+      #aq-lab-panel{position:absolute;top:12px;right:12px;z-index:45;pointer-events:auto;
+        width:min(230px,28%);max-height:min(68vh,570px);overflow:auto;overscroll-behavior:contain;
+        color:#ede9df;background:rgba(11,17,23,.94);border:1px solid #627080;
+        box-shadow:0 10px 32px #0008;font:700 11px/1.3 "ApcKanit","Segoe UI",sans-serif}
+      #aq-lab-panel summary{cursor:pointer;padding:12px;color:#d7bd72;font-size:13px;letter-spacing:.09em}
+      #aq-lab-panel .aq-lab-intro{margin:0 10px 8px;color:#adb9c2}
+      #aq-lab-panel .aq-lab-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:6px}
+      #aq-lab-panel button{cursor:pointer;color:#f4f0e6;background:#1d2832;border:1px solid #45525e;
+        min-width:0;min-height:62px;padding:3px;font:700 10px/1.15 "Segoe UI",sans-serif;overflow-wrap:anywhere}
+      #aq-lab-panel button:hover{background:#344754}
+      #aq-lab-panel button img{display:block;margin:auto;width:70%;height:36px;object-fit:contain}
+      #aq-lab-panel .aq-lab-exit{display:block;width:calc(100% - 12px);margin:6px;min-height:44px;color:#f7d79b}
+      #aq-lab-panel .aq-lab-message{min-height:22px;padding:4px 10px;color:#d7bd72}
+      @media(max-width:600px){#aq-lab-panel{top:auto;bottom:6px;right:6px;left:6px;width:auto;max-height:min(24vh,160px)}
+        #aq-lab-panel:not([open]){max-height:none;width:max-content;left:auto}
+        #aq-lab-panel .aq-lab-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
     `;
     document.head.appendChild(style);
   }
@@ -640,7 +672,8 @@
         btn.className = 'aq-battle-exit-btn';
         btn.addEventListener('click', () => {
           const Q = window.APEX_ARSENAL_QUEST;
-          if (AQ.state && AQ.state.questStage && Q && Q.returnToMap) Q.returnToMap();
+          if (AQ.state && AQ.state.labMode) window.exitArsenalLab();
+          else if (AQ.state && AQ.state.questStage && Q && Q.returnToMap) Q.returnToMap();
           else window.exitArsenalQuestMode();
         });
         el.appendChild(btn);
@@ -812,7 +845,8 @@
     }
     if (e.code === 'KeyB' || e.code === 'Escape') {
       const Q = window.APEX_ARSENAL_QUEST;
-      if (AQ.state && AQ.state.questStage && Q && Q.returnToMap) Q.returnToMap();
+      if (AQ.state && AQ.state.labMode) window.exitArsenalLab();
+      else if (AQ.state && AQ.state.questStage && Q && Q.returnToMap) Q.returnToMap();
       else window.exitArsenalQuestMode();
     }
   }
@@ -887,6 +921,50 @@
     try { draw(); } catch (error) { console.warn('[AQ] initial draw failed', error); }
   };
 
+  // Lab entry deliberately reuses the real NEWBIE shell and Arsenal combat
+  // mode. Only spawn cadence, KO/reward and HP persistence are Lab-specific.
+  function mountLabPanel() {
+    const host = document.getElementById('aq-dom-hud') || hudRoot();
+    document.getElementById('aq-lab-panel')?.remove();
+    const panel = document.createElement('details');
+    panel.id = 'aq-lab-panel';
+    if (window.innerWidth > 600) panel.open = true;
+    const set = window.APEX_ARSENAL_C_SET && window.APEX_ARSENAL_C_SET.weapons || {};
+    const list = (CFG.P0_WEAPON_IDS || []).map((id) => {
+      const meta = set[id];
+      const img = meta && meta.file ? '<img alt="" src="/assets/arsenal/' + meta.file + '">' : '';
+      return '<button type="button" data-lab-weapon="' + id + '">' + img + id.replace(/_/g, ' ') + '</button>';
+    }).join('');
+    panel.innerHTML = '<summary>ARSENAL LAB · EQUIPMENT</summary>'
+      + '<div class="aq-lab-intro">Tap a weapon to reveal one pickup. NEWBIE vs NEWBIE · endless HP.</div>'
+      + '<button type="button" class="aq-lab-exit">← ARSENAL HUB</button>'
+      + '<div class="aq-lab-message" role="status" aria-live="polite"></div>'
+      + '<div class="aq-lab-grid">' + list + '</div>';
+    panel.querySelector('.aq-lab-exit').addEventListener('click', () => window.exitArsenalLab());
+    panel.querySelectorAll('[data-lab-weapon]').forEach((btn) => btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-lab-weapon');
+      const slot = SPAWN.spawnLabWeapon(id);
+      panel.querySelector('.aq-lab-message').textContent = slot
+        ? id.replace(/_/g, ' ') + ' · READY' : 'LAB FULL — collect a pickup first';
+    }));
+    host.appendChild(panel);
+  }
+
+  window.startArsenalLab = function startArsenalLab() {
+    window.startArsenalQuestMode('NEWBIE', 'NEWBIE');
+    const state = AQ.state;
+    state.labMode = true;
+    state.spawnHeld = true;
+    state.spawnTimer = Infinity;
+    state.unarmedFastConsumed = true;
+    mountLabPanel();
+    AQ.log('LAB_ENTER', 'fighters=NEWBIE,NEWBIE');
+  };
+  window.exitArsenalLab = function exitArsenalLab() {
+    window.exitArsenalQuestMode();
+    window.APEX_ARSENAL_META?.openHub();
+  };
+
   window.exitArsenalQuestMode = function exitArsenalQuestMode() {
     const state = AQ.state;
     if (state) {
@@ -900,6 +978,8 @@
     particles.length = 0;
     floatingTexts.length = 0;
     shockwaves.length = 0;
+    const labPanel = document.getElementById('aq-lab-panel');
+    if (labPanel) labPanel.remove();
     const battleExitBtn = document.getElementById('aq-battle-exit');
     if (battleExitBtn) battleExitBtn.style.display = 'none'; // PASS A: no menu-screen leak
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.clear();
@@ -940,6 +1020,9 @@
       active: state.active,
       gameState,
       over: state.over,
+      labMode: !!state.labMode,
+      labDamage: state.labDamage || 0,
+      labHits: state.labHits || 0,
       time: Math.round(state.time * 100) / 100,
       spawnIn: Math.max(0, Math.round(state.spawnTimer * 100) / 100),
       activeSlots: state.slots.length,

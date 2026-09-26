@@ -179,6 +179,7 @@
     .aq-stat{min-width:118px;padding:9px 12px;border:1px solid var(--aq-line);background:linear-gradient(180deg,#1a2027,#10151a);box-shadow:inset 0 1px rgba(255,255,255,.04);}
     .aq-stat span{display:block;color:var(--aq-muted);font:800 9px/1 ui-monospace,monospace;letter-spacing:.14em}
     .aq-stat b{display:block;margin-top:5px;color:#f2ead2;font:900 16px/1 "ApcKanit","Segoe UI",sans-serif}
+    #aq-splatter-mode{padding:7px 12px;border:1px solid #5d6670;background:#1b242c;color:#f4e7c5;cursor:pointer;font:800 11px/1.25 "Segoe UI",sans-serif;text-align:left}
     .aq-back,.aq-exit{display:grid;place-items:center;width:44px;height:44px;flex:0 0 auto;border:1px solid #4a5057;background:linear-gradient(180deg,#2b3138,#151a20);color:#f4f0e6;cursor:pointer;font:900 18px/1 sans-serif;clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);}
     @media(hover:hover){.aq-back:hover,.aq-exit:hover{filter:brightness(1.14);transform:translateY(-1px)}}
     .aq-action{position:relative;border:1px solid var(--aq-line);background:linear-gradient(160deg,#1a2027,#0e1318 72%);color:#f4f0e6;cursor:pointer;text-align:left;overflow:hidden;box-shadow:inset 0 1px rgba(255,255,255,.035);transition:transform .14s ease,filter .14s ease,border-color .14s ease;clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);}
@@ -341,6 +342,7 @@
           <div class="aq-meta-stats">
             <div class="aq-stat"><span>ARSENAL CREDITS</span><b id="aq-ac">${state.credits} AC</b></div>
             <div class="aq-stat"><span>ROSTER</span><b>${ownedN} / ${total}</b></div>
+            <button type="button" id="aq-splatter-mode" aria-label="Arsenal splatter mode">SPLATTER<br><b>${window.APEX_ARSENAL_FEEL?.getSplatterMode?.() || 'BLOOD'}</b></button>
           </div>
         </header>
         <section class="aq-hub-layout">
@@ -356,6 +358,7 @@
             <button type="button" data-go="quest" class="aq-action" style="--aq-tile-accent:#8fb3d2"><span class="aq-action-index">02 · CAMPAIGN</span><span class="aq-action-title">QUEST MAP</span><span class="aq-action-desc">Climb the 20-stage Arsenal ladder against fixed opponents.</span><span class="aq-action-meta">${cleared} / 20 CLEARED</span></button>
             <button type="button" data-go="shop" class="aq-action" style="--aq-tile-accent:#a8bf8b"><span class="aq-action-index">03 · ROSTER</span><span class="aq-action-title">FIGHTER SHOP</span><span class="aq-action-desc">Inspect every fighter and unlock directly with Arsenal Credits.</span><span class="aq-action-meta">1000 AC · FIXED PRICE</span></button>
             <button type="button" data-go="draw" class="aq-action" style="--aq-tile-accent:#d29c74"><span class="aq-action-index">04 · DRAW</span><span class="aq-action-title">LUCKY DRAW</span><span class="aq-action-desc">Randomly unlock one fighter from the remaining unowned pool.</span><span class="aq-action-meta">350 AC · NO DUPLICATES</span></button>
+            <button type="button" data-go="lab" class="aq-action" style="--aq-tile-accent:#91d7e5"><span class="aq-action-index">05 · TESTING</span><span class="aq-action-title">ARSENAL LAB</span><span class="aq-action-desc">NEWBIE vs NEWBIE · endless health. Spawn exact equipment on demand.</span><span class="aq-action-meta">NO RANDOM SPAWNS · NO REWARDS</span></button>
           </div>
         </section>
       </main>`);
@@ -366,7 +369,14 @@
         if (go === 'quest') { hideMeta(); if (window.beginArsenalQuestMap) window.beginArsenalQuestMap(); }
         if (go === 'shop') paintShop();
         if (go === 'draw') paintDraw();
+        if (go === 'lab') { hideMeta(); window.startArsenalLab?.(); }
       });
+    });
+    el.querySelector('#aq-splatter-mode')?.addEventListener('click', () => {
+      const feel = window.APEX_ARSENAL_FEEL;
+      if (!feel) return;
+      feel.setSplatterMode(feel.getSplatterMode() === 'BLOOD' ? 'FIGHTER COLOR' : 'BLOOD');
+      el.querySelector('#aq-splatter-mode b').textContent = feel.getSplatterMode();
     });
     el.querySelector('#aq-change')?.addEventListener('click', openFreePick);
     el.querySelector('#aq-hub-exit')?.addEventListener('click', () => {

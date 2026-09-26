@@ -1646,6 +1646,9 @@ try {
   // 8) Frame-stepped hit feedback — deterministic manual stepping + real draw().
   await evaluate(`(() => {
     window.startArsenalQuestMode('HERO', 'RIVAL');
+    // The assertions inspect the FIRST manual frame; a concurrent live rAF
+    // can age the core between the collision probe and the next CDP command.
+    cancelAnimationFrame(reqId); reqId = 0;
     __AQ_TEST.holdSpawns();
     __AQ_TEST.clearSlots();
     APEX_ARSENAL_FEEL.resetMatch();
@@ -1926,6 +1929,7 @@ try {
     // on incidental slot phase/timing.
     __AQ_TEST.clearSlots();
     fighters[0].data.arsenal = null;
+    fighters[1].data.arsenal = null; // rival may collect the first emergency slot
     APEX_ARSENAL.state.spawnTimer = 2.4;
     const retrigBefore = APEX_ARSENAL.state.spawnedTotal;
     __AQ_TEST.step(1/60);
@@ -2178,6 +2182,200 @@ try {
     && stormVfx.after.trail === false
     && stormVfx.cleared.bolts === 0 && stormVfx.cleared.impacts === 0,
     stormVfx);
+
+  // ------------------------------------------------ Arsenal Lab V1 real Chrome
+  report.labV1 = await evaluate(`(() => {
+    window.exitArsenalQuestMode();
+    APEX_ARSENAL_META.openHub();
+    const hub = document.getElementById('aq-meta-root');
+    const tiles = [...hub.querySelectorAll('[data-go]')].map(b => b.getAttribute('data-go'));
+    const toggle = hub.querySelector('#aq-splatter-mode');
+    hub.querySelector('[data-go="lab"]').click();
+    cancelAnimationFrame(reqId); reqId = 0;
+    APEX_ARSENAL.state.debugOverlay = false;
+    const entry = __AQ_TEST.debug();
+    const ids = [...document.querySelectorAll('[data-lab-weapon]')].map(b => b.dataset.labWeapon);
+    __AQ_TEST.step(31);
+    const idle = __AQ_TEST.debug();
+    const events = __AQ_TEST.events().filter(e => /SPAWN_SLOT|SPAWN_HEAL|LAB_SPAWN/.test(e));
+    return { tiles, toggle:!!toggle, entry:{lab:entry.labMode,hero:entry.hero.name,rival:entry.rival.name},
+      clearedPressure:[document.getElementById('p1-burst-total')?.textContent,document.getElementById('p2-burst-total')?.textContent],
+      ids, idle:{slots:idle.activeSlots,spawns:idle.spawnedTotal,over:idle.over}, events };
+  })()`);
+  gate('lab-browser-hub-and-newbie-panel', report.labV1.tiles.join(',') === 'free,quest,shop,draw,lab'
+    && report.labV1.toggle && report.labV1.entry.lab && report.labV1.entry.hero === 'NEWBIE'
+    && report.labV1.entry.rival === 'NEWBIE'
+    && report.labV1.ids.join(',') === (await evaluate('APEX_ARSENAL_CONFIG.P0_WEAPON_IDS.join(",")')),
+    { tiles:report.labV1.tiles, entry:report.labV1.entry, count:report.labV1.ids.length });
+  gate('lab-browser-entry-clears-stale-pressure', report.labV1.clearedPressure.join(',') === '0,0', report.labV1.clearedPressure);
+  gate('lab-browser-no-input-31s-no-spawns', report.labV1.idle.slots === 0
+    && report.labV1.idle.spawns === 0 && report.labV1.idle.over === null && !report.labV1.events.length,
+    { idle:report.labV1.idle, events:report.labV1.events });
+  await evaluate(`__AQ_TEST.redraw()`);
+  await sleep(1350); // clear stale prior-suite pressure's wall-clock window
+  report.evidence.push(await screenshot('lab-v1-desktop-empty'));
+  report.labManual = await evaluate(`(() => {
+    const A = APEX_ARSENAL;
+    __AQ_TEST.place(90,90,910,910);
+    document.querySelector('[data-lab-weapon="PISTOL"]').click();
+    const first = A.state.slots.map(s => [s.weaponId,s.phase]);
+    const slot = A.state.slots[0];
+    __AQ_TEST.place(slot.x,slot.y,700,500);
+    __AQ_TEST.step(1/60);
+    const holder = __AQ_TEST.holder('HERO');
+    __AQ_TEST.place(300,500,500,500);
+    __AQ_TEST.step(1.1);
+    const hits = A.state.labHits, damage = A.state.labDamage;
+    fighters[1].takeDamage(1600,fighters[0],'arsenal-pistol');
+    const post = {hp:fighters[1].hp,over:A.state.over,damage:A.state.labDamage,
+      numbers:APEX_ARSENAL_FEEL.livePopups().map(p => p.text)};
+    return { first, holder, hits, damage, post };
+  })()`);
+  gate('lab-browser-exact-firearm-real-hit-infinite-hp', report.labManual.first.length === 1
+    && report.labManual.first[0].join(',') === 'PISTOL,REVEALED'
+    && report.labManual.holder?.weapon === 'PISTOL' && report.labManual.hits > 0
+    && report.labManual.post.hp === 1000 && report.labManual.post.over === null
+    && report.labManual.post.damage - report.labManual.damage >= 1600
+    && report.labManual.post.numbers.some(x => +x >= 1600), report.labManual);
+  report.labFloor = await evaluate(`(() => {
+    // New clean Lab instance for visual evidence: prior firearm damage,
+    // numbers, bullet ghosts and stains must not pollute the floor pose.
+    window.startArsenalLab(); cancelAnimationFrame(reqId); reqId=0;
+    const A = APEX_ARSENAL, CFG = APEX_ARSENAL_CONFIG;
+    A.state.debugOverlay = false;
+    A.state.slots = [];
+    __AQ_TEST.place(90,90,910,910);
+    document.querySelector('[data-lab-weapon="STORMBREAKER"]').click();
+    const slot = A.state.slots[0];
+    // Stage the rendered evidence in the center AFTER verifying the real
+    // manual-spawn path, away from the two corner fighters.
+    slot.x=500; slot.y=500;
+    let angle = null;
+    const av = APEX_ARSENAL_AV, original = av.drawWeaponSprite;
+    av.drawWeaponSprite = function(c,id,x,y,opts) {
+      if (id === 'STORMBREAKER' && opts.mode === 'floor') angle = opts.angle;
+      return original.apply(this,arguments);
+    };
+    APEX_ARSENAL_SPAWN.drawSlots(ctx);
+    av.drawWeaponSprite = original;
+    __AQ_TEST.step(0.1); __AQ_TEST.redraw();
+    return {weapon:slot.weaponId,phase:slot.phase,angle,authority:CFG.STORMBREAKER.floorAngleRad,
+      heldOffset:av.weaponDrawParams('STORMBREAKER','melee',75).drawOffset};
+  })()`);
+  gate('lab-browser-storm-exact-horizontal-no-held-change', report.labFloor.weapon === 'STORMBREAKER'
+    && report.labFloor.phase === 'REVEALED' && Math.abs(report.labFloor.angle - Math.PI/2) < 1e-8
+    && report.labFloor.angle === report.labFloor.authority && report.labFloor.heldOffset === Math.PI/2,
+    report.labFloor);
+  await sleep(1350); // let prior browser-HUD rolling damage decay in wall time
+  report.evidence.push(await screenshot('lab-v1-storm-horizontal-desktop'));
+  await setViewport(390, 844, true);
+  await evaluate(`(() => { document.getElementById('aq-lab-panel').open=false; __AQ_TEST.redraw(); return true; })()`);
+  report.evidence.push(await screenshot('lab-v1-storm-horizontal-mobile'));
+  const mobilePanel = await evaluate(`(() => {
+    const el=document.getElementById('aq-lab-panel'); el.open=true;
+    return { open:el.open, height:el.getBoundingClientRect().height,
+      scroll:el.scrollHeight,client:el.clientHeight,viewport:innerHeight,
+      buttons:el.querySelectorAll('[data-lab-weapon]').length };
+  })()`);
+  gate('lab-browser-mobile-scrollable-dock-arena-visible', mobilePanel.open && mobilePanel.buttons === 33
+    && mobilePanel.scroll > mobilePanel.client && mobilePanel.height <= 165
+    && mobilePanel.height < mobilePanel.viewport / 4, mobilePanel);
+  report.evidence.push(await screenshot('lab-v1-mobile-panel-open'));
+  await clearViewport();
+  report.labFlight = await evaluate(`(() => {
+    // Pick up the very same real revealed Lab slot; run the existing
+    // windup/throw pipeline and verify floorAngleRad never enters flight.
+    const A=APEX_ARSENAL, T=APEX_ARSENAL_CONFIG.STORMBREAKER;
+    const slot=A.state.slots.find(s=>s.weaponId==='STORMBREAKER');
+    __AQ_TEST.place(slot.x,slot.y,850,500);
+    __AQ_TEST.step(1/60);
+    const held=__AQ_TEST.holder('HERO');
+    __AQ_TEST.place(200,500,850,500);
+    let flight=null;
+    for(let i=0;i<75;i++) {
+      __AQ_TEST.step(1/60);
+      flight=projectiles.find(p=>p.aq && p.type==='aq_thrown' && p.weapon==='STORMBREAKER' && p.state==='flight');
+      if(flight) break;
+    }
+    return {held:held?.weapon, slotGone:!A.state.slots.some(s=>s.id===slot.id),
+      flight:flight && {spin:flight.spin,rot:flight.rot,velocity:Math.hypot(flight.vx,flight.vy)},
+      expectedSpin:T.spinRate,expectedSpeed:T.throwSpeed,
+      heldOffset:APEX_ARSENAL_AV.weaponDrawParams('STORMBREAKER','melee',75).drawOffset,
+      floorAngle:T.floorAngleRad};
+  })()`);
+  gate('lab-browser-storm-held-flight-unchanged', report.labFlight.held==='STORMBREAKER'
+    && report.labFlight.slotGone && report.labFlight.flight?.spin===report.labFlight.expectedSpin
+    && Math.abs(report.labFlight.flight?.velocity-report.labFlight.expectedSpeed)<1e-6
+    && report.labFlight.heldOffset===Math.PI/2, report.labFlight);
+  report.labPigment = await evaluate(`(() => {
+    const F=APEX_ARSENAL_FEEL;
+    const victim = fighters[1], source = fighters[0];
+    victim.color='#3377bb'; source.color='#ff5533';
+    F.setSplatterMode('BLOOD'); F.resetMatch();
+    F.noteDamage({dealt:56,victim,source,label:'arsenal-pistol',impact:{x:500,y:500,vx:2600,vy:0}});
+    const blood = F.liveSpray()[0].rgb.slice();
+    __AQ_TEST.redraw();
+    return {blood,semantics:[F.palettes.dmg.fill,F.palettes.crit.fill,F.palettes.heal.fill]};
+  })()`);
+  report.evidence.push(await screenshot('lab-v1-splatter-blood'));
+  report.labPigmentColor = await evaluate(`(() => {
+    const F=APEX_ARSENAL_FEEL, victim=fighters[1], source=fighters[0];
+    F.setSplatterMode('FIGHTER COLOR'); F.resetMatch();
+    F.noteDamage({dealt:56,victim,source,label:'arsenal-pistol',impact:{x:500,y:500,vx:2600,vy:0}});
+    const v1=F.liveSpray()[0].rgb.slice(), expected=F.pigment(victim).v1.coreCenter;
+    __AQ_TEST.redraw();
+    F.resetMatch(); F.noteDamage({dealt:56,victim,source,label:'arsenal-sabre'});
+    const legacy=F.liveSpray()[0].rgb.slice(), legacyExpected=F.pigment(victim).legacy.spray;
+    const saved=localStorage.getItem(F.SPLATTER_KEY), reload=F.reloadSplatterMode();
+    __AQ_TEST.redraw();
+    const credits=APEX_ARSENAL_META.credits();
+    const quest=JSON.stringify(APEX_ARSENAL_QUEST.loadSave());
+    window.exitArsenalLab();
+    const exit={hub:document.getElementById('aq-meta-root').style.display,
+      gameState,credits:APEX_ARSENAL_META.credits(),quest:JSON.stringify(APEX_ARSENAL_QUEST.loadSave()),
+      panelGone:!document.getElementById('aq-lab-panel')};
+    F.setSplatterMode('BLOOD');
+    return {v1,expected,legacy,legacyExpected,saved,reload,credits,quest,exit};
+  })()`);
+  // Capture the color frame before the Lab exit (the data above includes its
+  // proof); a new Lab entry makes the two mode screenshots visually comparable.
+  await evaluate(`(() => {
+    // Direct test entry (unlike the hub tile) must hide the meta overlay first,
+    // or the screenshot would capture the Hub instead of fighter-color spray.
+    APEX_ARSENAL_META.hideMeta();
+    window.startArsenalLab(); cancelAnimationFrame(reqId); reqId=0;
+    const F=APEX_ARSENAL_FEEL;
+    F.setSplatterMode('FIGHTER COLOR');
+    fighters[1].color='#3377bb'; fighters[0].color='#ff5533';
+    __AQ_TEST.place(300,500,500,500); F.resetMatch();
+    F.noteDamage({dealt:56,victim:fighters[1],source:fighters[0],label:'arsenal-pistol',impact:{x:500,y:500,vx:2600,vy:0}});
+    __AQ_TEST.redraw(); return true;
+  })()`);
+  report.evidence.push(await screenshot('lab-v1-splatter-fighter-color'));
+  await evaluate(`(() => {window.exitArsenalLab();APEX_ARSENAL_FEEL.setSplatterMode('BLOOD');return true})()`);
+  gate('lab-browser-splatter-victim-both-paths-persist', report.labPigment.blood.join(',') === '92,0,0'
+    && report.labPigmentColor.v1.join(',') === report.labPigmentColor.expected.join(',')
+    && report.labPigmentColor.legacy.join(',') === report.labPigmentColor.legacyExpected.join(',')
+    && report.labPigmentColor.saved === 'FIGHTER COLOR' && report.labPigmentColor.reload === 'FIGHTER COLOR'
+    && report.labPigment.semantics.join(',') === '#F2382F,#FF8A24,#37D96B', report.labPigmentColor);
+  gate('lab-browser-exit-hub-zero-progression', report.labPigmentColor.exit.hub === 'block'
+    && report.labPigmentColor.exit.panelGone && report.labPigmentColor.exit.credits === report.labPigmentColor.credits
+    && report.labPigmentColor.exit.quest === report.labPigmentColor.quest, report.labPigmentColor.exit);
+
+  // Persistence through an actual page reload, not merely a getter call.
+  await evaluate(`APEX_ARSENAL_FEEL.setSplatterMode('FIGHTER COLOR')`);
+  await command('Page.reload', { ignoreCache: true });
+  await sleep(1200);
+  for (let i = 0; i < 80; i++) {
+    if (await evaluate('Boolean(window.__apexEngineReady && window.__apexEnsureDeferredRuntimes)')) break;
+    await sleep(250);
+  }
+  await evaluate(`window.__apexEnsureDeferredRuntimes('arsenalQuest').then(() => true)`);
+  const afterReload = await evaluate(`({mode:APEX_ARSENAL_FEEL.getSplatterMode(),
+    store:localStorage.getItem(APEX_ARSENAL_FEEL.SPLATTER_KEY)})`);
+  gate('lab-browser-splatter-survives-page-reload', afterReload.mode === 'FIGHTER COLOR'
+    && afterReload.store === 'FIGHTER COLOR', afterReload);
+  await evaluate(`APEX_ARSENAL_FEEL.setSplatterMode('BLOOD')`);
 
   // ------------------------------------------------------------ summary ----
   report.summary = {
