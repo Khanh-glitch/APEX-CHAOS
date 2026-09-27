@@ -3073,7 +3073,16 @@ try {
     out.matchBSfxLive = out.matchB.playedDelta > 0 && stB.masterGain > 0.5;
     window.exitArsenalQuestMode();
     const stB2 = state();
-    out.afterMatchBExit = { masterGain: stB2.masterGain, live: stB2.avLiveSources, timers: stB2.avPendingTimers };
+    // Web Audio readback race (seen on loaded CI runners): a gain
+    // setValueAtTime(v, now) is not reflected in gain.value until the audio
+    // render thread processes the event, which can outlast a synchronous
+    // read. Voices/cues are terminated synchronously (checked below), so
+    // nothing can audibly leak during that window; poll a bounded settle
+    // window for the scheduled mute to become visible.
+    let stB2s = stB2;
+    for (let i = 0; i < 12 && stB2s.masterGain > 0.01; i++) { await sleep(50); stB2s = state(); }
+    out.afterMatchBExit = { masterGain: stB2s.masterGain, live: stB2s.avLiveSources, timers: stB2s.avPendingTimers,
+      immediateLive: stB2.avLiveSources, immediateTimers: stB2.avPendingTimers };
     return JSON.stringify(out);
   })()`);
   const cp5Audio = JSON.parse(report.cp5Audio);
@@ -3087,7 +3096,7 @@ try {
   gate('battle-audio-cp5-match-a-to-b-no-leak',
     cp5Audio.matchBSfxLive === true
     && cp5Audio.afterMatchBExit.masterGain <= 0.01
-    && cp5Audio.afterMatchBExit.live === 0 && cp5Audio.afterMatchBExit.timers === 0,
+    && cp5Audio.afterMatchBExit.immediateLive === 0 && cp5Audio.afterMatchBExit.immediateTimers === 0,
     cp5Audio);
   gate('battle-audio-cp5-hot-bank-stays-decoded',
     cp5Audio.hotBank.bankSize === cp5Audio.hotBank.decoded && cp5Audio.hotBank.failed === 0,
