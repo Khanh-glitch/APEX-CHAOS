@@ -63,13 +63,16 @@
       DAGGER:      { triggerRange: 210, dashSpeed: 1300, dashTime: 0.17, hitBonus: 34, damage: 9 },
       SPEAR:       { triggerRange: 345, windup: 0.18, reach: 360, halfAngle: 0.30, damage: 15, knockback: 1100 },
       SPIKED_CLUB: { triggerRange: 245, windup: 0.22, reach: 255, halfAngle: 1.00, damage: 18, knockback: 850, stun: 0.8 },
-      // STORMBREAKER — first red-tier (T6) fantasy weapon. Damage flows through
-      // the ONE melee authority (x1.5) and the x7 Arsenal equipment scale, like
-      // every other melee: 52 * 1.5 * 7 = 546 per confirmed hit on a 1000 HP
-      // match — a red-tier two-shot, never a blind one-shot. Balance values are
-      // production-audited (docs/stormbreaker/v1-port): the V9 demo numbers are
-      // effect/feel authority only, not balance authority.
-      STORMBREAKER:  { damage: 52, knockback: 900, stun: 1.0, shake: 15, hitStop: 0.08, exit: 'stormRelease' },
+      // STORMBREAKER — first red-tier (T6) fantasy weapon. B1: the confirmed-hit
+      // damage is an EXPLICIT production-audited final value (446) — it does
+      // NOT ride the x1.5 melee authority + x7 Arsenal equipment scale chain
+      // (the old 52 x 1.5 x 7 = 546). The value flows through the ONE damage
+      // path (CFG.meleeDamage -> aqDamage -> takeDamage) with the equipment
+      // scale explicitly exempt for final-authority weapons — no hidden
+      // post-subtraction anywhere. Balance values are production-audited
+      // (docs/stormbreaker/v1-port): the V9 demo numbers are effect/feel
+      // authority only, not balance authority.
+      STORMBREAKER:  { confirmedHitDamage: 446, knockback: 900, stun: 2.0, shake: 15, hitStop: 0.08, exit: 'stormRelease' },
       SWIRL_SHIELD:  { reflectRadius: 150, duration: 8 },
       TOWER_SHIELD:  { duration: 2.8, damageTakenMult: 0.25, speedMult: 0.55 },
     },
@@ -236,8 +239,11 @@
   // (SABRE 12→18, BATTLE_AXE 26→39, DAGGER 9→13.5, SPEAR 15→22.5, CLUB 18→27).
   CONFIG.MELEE_DAMAGE_MULT = 1.5;
   CONFIG.meleeDamage = function meleeDamage(id) {
-    const base = (CONFIG.WEAPONS[id] && CONFIG.WEAPONS[id].damage) || 0;
-    return base * CONFIG.MELEE_DAMAGE_MULT;
+    const w = CONFIG.WEAPONS[id] || {};
+    // B1: red-tier confirmed-hit damage is an explicit audited FINAL value —
+    // it is not derived through the melee +50% authority.
+    if (w.confirmedHitDamage != null) return w.confirmedHitDamage;
+    return (w.damage || 0) * CONFIG.MELEE_DAMAGE_MULT;
   };
 
   // Thrown-melee tuning (owner: the throw must feel intentional — the actual
@@ -257,13 +263,17 @@
   // literally from the reference PNG (1448px long side * scale):
   // spawn .18 = 260.64px, held .18*.86 = 224.15px, flight .18*.80 = 208.51px.
   CONFIG.STORMBREAKER = {
-    slowMult: 0.54,
-    slowRefreshSeconds: 0.12,
     windupSeconds: 0.28,
     readyDelaySeconds: 0.45,
     throwSpeed: 1350,
     spinRate: 82,
-    stunSeconds: 1.0,
+    // Confirmed-hit stun (matches WEAPONS.STORMBREAKER.stun). The floor
+    // lightning hazard keeps its own distinct (shorter) pulse cadence.
+    stunSeconds: 2.0,
+    // B1 missed-storm failsafe: bounded flight lifetime (see
+    // arsenalWeaponRuntime aq_thrown flight update). A release that connects
+    // with nothing exits through the physical tumble — never lingers.
+    maxFlightSeconds: 2.2,
     spawnLongSide: 261,
     heldLongSide: 224,
     flightLongSide: 209,

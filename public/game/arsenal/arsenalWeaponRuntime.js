@@ -339,11 +339,15 @@
     let dmg = amount;
     const gun = CFG.isGun && CFG.isGun(weaponId);
     const melee = CFG.isMelee && CFG.isMelee(weaponId);
-    // STORMBREAKER is equipment (red-tier) even though it is deliberately not
-    // a regular MELEE_IDS entry (no 0.5x melee spawn weight / melee tables):
-    // it rides the same x1.5 melee authority + x7 equipment scale as every
-    // other arsenal weapon — 52 x 1.5 x 7 = 546 per confirmed hit.
-    if (gun || melee || weaponId === 'GRENADE' || weaponId === 'STORMBREAKER') dmg *= (CFG.ARSENAL_DAMAGE_SCALE || 1);
+    // B1 final-authority values: weapons with an explicit audited
+    // confirmedHitDamage (red-tier STORMBREAKER: 446) define the FINAL
+    // per-hit damage on a 1000 HP match directly — they ride the ONE damage
+    // path (CFG.meleeDamage -> aqDamage -> takeDamage) but are explicitly
+    // exempt from the x7 Arsenal equipment scale. Regular STORMBREAKER is
+    // still equipment (red-tier, deliberately not a MELEE_IDS entry), so the
+    // scale applies to every weapon EXCEPT the final-authority set.
+    const finalAuthority = !!(CFG.WEAPONS[weaponId] && CFG.WEAPONS[weaponId].confirmedHitDamage != null);
+    if (!finalAuthority && (gun || melee || weaponId === 'GRENADE' || weaponId === 'STORMBREAKER')) dmg *= (CFG.ARSENAL_DAMAGE_SCALE || 1);
     if (critical && gun) dmg *= (CFG.CRIT_DAMAGE_MULTIPLIER || 1.5);
     return dmg;
   }
@@ -615,6 +619,16 @@
               window.avCue('ricochet', { weapon: p.weapon, x: p.x, y: p.y, angle: Math.atan2(p.vy, p.vx) });
               emitParticles(p.x, p.y, '#ffe6a8', 10, 320, 4, 0.3, 'square');
               log('THROWN_RICOCHET', `weapon=${p.weapon} left=${p.ricochetsLeft}`);
+            }
+          }
+          // Missed-storm failsafe: bounded flight lifetime ends in the
+          // physical exit (tumble), same as ricochet exhaustion — the
+          // projectile is never silently spliced out of flight.
+          if (p.state === 'flight' && p.maxFlight > 0) {
+            p.flightTime += dt;
+            if (p.flightTime >= p.maxFlight) {
+              thrownExit(p);
+              log('THROWN_MAXFLIGHT', `weapon=${p.weapon} flight=${p.flightTime.toFixed(2)}s`);
             }
           }
         } else if (p.state === 'pinned') {
@@ -962,6 +976,12 @@
       grace: weaponId === 'STORMBREAKER' ? 0 : (CFG.THROWN_MELEE.pickupDelay || 0),
       life: 6.0,
       maxLife: 6.0,
+      // B1 missed-storm failsafe: a red-tier release that connects with
+      // nothing must never linger as a live projectile — after maxFlight it
+      // exits through the same physical tumble as ricochet exhaustion
+      // (never a silent fade). Regular thrown melees keep the plain 6s life.
+      flightTime: 0,
+      maxFlight: weaponId === 'STORMBREAKER' ? ((CFG.STORMBREAKER && CFG.STORMBREAKER.maxFlightSeconds) || 2.2) : 0,
     });
     window.avCue('melee_throw', { weapon: weaponId, x: f.x, y: f.y, angle });
     log('THROW', `fighter=${f.name} weapon=${weaponId} ricochets=${t.ricochets}`);

@@ -3556,12 +3556,14 @@ gate('storm-glow-above-t5-t1t5-untouched',
   && stormId.glowT5.rx === 60 && stormId.glowT5.ry === 17 && stormId.glowT5.a === 0.58,
   { t5: stormId.glowT5, t6: stormId.glowT6 });
 gate('storm-balance-audited-values',
-  stormId.spec.damage === 52
+  stormId.spec.confirmedHitDamage === 446
+  && stormId.spec.damage === undefined
   && stormId.spec.knockback === 900
-  && stormId.spec.stun === 1.0
+  && stormId.spec.stun === 2.0
   && stormId.spec.shake === 15
   && stormId.spec.hitStop === 0.08
-  && stormId.tuning.slowMult === 0.54
+  && stormId.tuning.slowMult === undefined
+  && stormId.tuning.maxFlightSeconds === 2.2
   && stormId.speed === 1350
   && stormId.ricochets === 1
   && stormId.spin === 82
@@ -3622,11 +3624,12 @@ gate('storm-throw-speed-spin-ricochet',
   && report.stormThrow.ricochets === 1,
   report.stormThrow);
 
-// Confirmed hit: real swept collision -> one melee-authority damage
-// (52 x 1.5 x 7 = 546), real stun, knockback status, and the weapon
-// VANISHES (no pin, no embedded axe). Frame-poll: the 0.18s push status
-// expires inside the 1.0s stun lock (engine hardCC law — same as the T4
-// club), so it must be observed frame-by-frame at the impact moment.
+// Confirmed hit: real swept collision -> the final-authority damage (446,
+// explicit audited value — no x1.5 melee / x7 equipment scale ride), real
+// 2.0s stun, knockback status, and the weapon VANISHES (no pin, no embedded
+// axe). Frame-poll: the 0.18s push status expires inside the 2.0s stun lock
+// (engine hardCC law — same as the T4 club), so it must be observed
+// frame-by-frame at the impact moment.
 report.stormImpact = run(`
   __AQ_TEST.enterManual();
   __AQ_TEST.clearEvents();
@@ -3655,47 +3658,77 @@ report.stormImpact = run(`
     hitLogged,
   };
 `);
-gate('storm-hit-real-damage-x1.5x7', report.stormImpact.rivalHp === 454, report.stormImpact);
+gate('storm-hit-final-authority-446-no-scale-ride', report.stormImpact.rivalHp === 554, report.stormImpact);
 gate('storm-hit-real-stun', report.stormImpact.sawStun, report.stormImpact);
 gate('storm-hit-knockback-status', report.stormImpact.sawPush, report.stormImpact);
 gate('storm-weapon-vanishes-no-pin',
   report.stormImpact.stormProjCount === 0 && report.stormImpact.impactLogged && report.stormImpact.hitLogged && report.stormImpact.heroHolder === null,
   report.stormImpact);
 
-// Miss path: the rival dodges perpendicular during flight — the aim-locked
-// line misses, the ricochet budget is spent on walls, the projectile
-// physically exits and is removed. No damage, no pin, flight VFX dies with
-// the weapon (no lingering arcs/ghosts after resolution).
+// Miss path (B1 redesign): the rival TELEPORTS away whenever the bolt gets
+// close, so the aim-locked release can never connect. The storm must then
+// exit through the physical path — ricochet budget and/or the maxFlight
+// failsafe — never a silent fade, never damage.
 report.stormMiss = run(`
   __AQ_TEST.enterManual();
   __AQ_TEST.clearEvents();
   __AQ_TEST.place(200, 500, 800, 500);
   __AQ_TEST.holdSpawns();
-  const S = window.APEX_ARSENAL_STORM;
   __AQ_TEST.equip('HERO', 'STORMBREAKER');
   __AQ_TEST.step(0.85); // release at 0.73s; projectile ~160px into a 540px flight
-  fighters[1].x = 200; fighters[1].y = 100; // rival dodges the flight line
-  let exitSeen = false, removed = false;
-  for (let n = 0; n < 300; n++) {
+  const farthestCorner = (p) => {
+    const corners = [[80, 80], [920, 80], [80, 920], [920, 920]];
+    let best = corners[0], bd = -1;
+    for (const c of corners) {
+      const d = Math.hypot(c[0] - p.x, c[1] - p.y);
+      if (d > bd) { bd = d; best = c; }
+    }
+    return best;
+  };
+  let exitSeen = false, removed = false, exitFrame = null, removedFrame = null;
+  let dirChanges = 0, lastVx = null, lastVy = null;
+  let vyAtExit = null, vyLater = null, tAfterExit = 0;
+  for (let n = 0; n < 400; n++) {
     __AQ_TEST.step(1 / 60);
     const p = projectiles.find(q => q.aq && q.weapon === 'STORMBREAKER');
-    if (p && p.state === 'exit') exitSeen = true;
-    if (!p) { removed = true; break; }
+    if (p) {
+      // Rival teleports away from the bolt — the miss is forced, repeatedly.
+      if (Math.hypot(fighters[1].x - p.x, fighters[1].y - p.y) < 420) {
+        const c = farthestCorner(p);
+        fighters[1].x = c[0]; fighters[1].y = c[1];
+      }
+      if (lastVx !== null && (Math.sign(Math.round(p.vx)) !== lastVx || Math.sign(Math.round(p.vy)) !== lastVy)) dirChanges += 1;
+      lastVx = Math.sign(Math.round(p.vx)); lastVy = Math.sign(Math.round(p.vy));
+      if (p.state === 'exit' && !exitSeen) { exitSeen = true; exitFrame = n; vyAtExit = p.vy; }
+      if (exitSeen) {
+        tAfterExit += 1 / 60;
+        if (tAfterExit >= 0.20 && vyLater === null) vyLater = p.vy;
+      }
+    } else if (removedFrame === null) { removed = true; removedFrame = n; break; }
   }
   const hp = __AQ_TEST.hp();
   return {
     rivalHp: hp.rival, heroHp: hp.hero,
-    exitSeen, removed,
+    exitSeen, removed, exitFrame, removedFrame,
+    dirChanges, vyAtExit, vyLater,
     hitEvents: __AQ_TEST.events().filter(e => e.startsWith('[AQ] HIT') && e.includes('weapon=STORMBREAKER')).length,
+    maxFlightLogged: __AQ_TEST.countEvents('THROWN_MAXFLIGHT'),
     ricochetEvents: __AQ_TEST.countEvents('THROWN_RICOCHET'),
     stormProjLeft: __AQ_TEST.aqProjectiles().filter(p => p.weapon === 'STORMBREAKER').length,
   };
 `);
-gate('storm-miss-no-damage-no-pin',
+gate('storm-miss-teleport-dodge-no-damage',
   report.stormMiss.rivalHp === 1000 && report.stormMiss.hitEvents === 0 && report.stormMiss.stormProjLeft === 0,
   report.stormMiss);
-gate('storm-miss-ricochet-then-exit-removal',
-  report.stormMiss.exitSeen === true && report.stormMiss.removed === true && report.stormMiss.ricochetEvents >= 1,
+gate('storm-miss-curvature-exit-bounded',
+  report.stormMiss.exitSeen === true && report.stormMiss.removed === true
+  // curvature: the path bends — wall ricochet flips direction at least once,
+  // and the exit tumble accelerates downward under gravity (1500 px/s²).
+  && report.stormMiss.dirChanges >= 1
+  && (report.stormMiss.vyLater - report.stormMiss.vyAtExit) >= 200
+  // bounded: from loop start (release +0.12s) the whole projectile is gone
+  // well inside the 6s generic life — maxFlight 2.2s + tumble.
+  && report.stormMiss.removedFrame <= 220,
   report.stormMiss);
 
 // Repeated spawn/use cycles through the REAL pickup path (auto-pickup on
@@ -3737,12 +3770,16 @@ report.stormCycle = run(`
   return cycles;
 `);
 gate('storm-cycles-real-pickup-throw-hit',
-  report.stormCycle.every(c => c.pickedUp !== null && c.heroHp === 454 && c.sawStun === true
+  report.stormCycle.every(c => c.pickedUp !== null && c.heroHp === 554 && c.sawStun === true
     && c.projLeft === 0 && c.rivalHolder === null && c.slotGone === 0),
   report.stormCycle);
 
 // Global unclaimed-floor slow: BOTH living fighters slowed 0.70x, clean
 // removal the moment the slot leaves REVEALED (pickup/expire).
+// B1 owner correction: the unclaimed STORMBREAKER no longer applies a global
+// arena slow — while it sits on the floor NEITHER fighter may carry a slow
+// status from it (the danger read is the local floor lightning, not a
+// movement debuff), and no slow may linger after the slot resolves.
 report.stormSlow = run(`
   __AQ_TEST.enterManual();
   __AQ_TEST.clearEvents();
@@ -3754,17 +3791,17 @@ report.stormSlow = run(`
   const slowRival = __AQ_TEST.statuses('RIVAL').includes('slow');
   const mult = fighters[0].statuses && fighters[0].statuses.slow ? fighters[0].statuses.slow.mult : null;
   APEX_ARSENAL.state.slots = []; // pickup/expire
-  __AQ_TEST.step(0.3); // > 0.12s refresh window
+  __AQ_TEST.step(0.3); // > old 0.12s refresh window
   return {
     slowHero, slowRival, mult,
     slowHeroAfter: __AQ_TEST.statuses('HERO').includes('slow'),
     slowRivalAfter: __AQ_TEST.statuses('RIVAL').includes('slow'),
   };
 `);
-gate('storm-floor-slows-both-fighters',
-  report.stormSlow.slowHero === true && report.stormSlow.slowRival === true && report.stormSlow.mult === 0.54,
+gate('storm-floor-no-global-slow',
+  report.stormSlow.slowHero === false && report.stormSlow.slowRival === false && report.stormSlow.mult === null,
   report.stormSlow);
-gate('storm-slow-clean-removal-on-pickup',
+gate('storm-no-slow-status-lingers',
   report.stormSlow.slowHeroAfter === false && report.stormSlow.slowRivalAfter === false,
   report.stormSlow);
 
@@ -3810,7 +3847,7 @@ gate('storm-v9-reference-structure',
   && stormVfx.profile.spawnLongSide === 261
   && stormVfx.profile.heldLongSide === 224
   && stormVfx.profile.flightLongSide === 209
-  && stormVfx.profile.slowMult === 0.54
+  && stormVfx.profile.slowMult === undefined
   && stormVfx.profile.spinRate === 82
   && stormVfx.profile.motesEnabled === true
   && Math.abs(stormVfx.profile.floorAngleRad - Math.PI * 1.5) < 1e-8

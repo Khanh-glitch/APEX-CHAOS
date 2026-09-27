@@ -94,30 +94,30 @@
     },
     "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=MOSSBERG_500 eta=null lead=2.00 fighter=TIMEOUT force=true"
+      "detail": "[AQ] REVEAL id=1 weapon=TEC_9 eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=SPIKED_CLUB eta=1.36 lead=2.00 fighter=HERO force=false eta=1.36"
+      "detail": "[AQ] REVEAL id=2 weapon=MAGNUM_500 eta=1.36 lead=2.00 fighter=HERO force=false eta=1.36"
     },
     "near-miss-outside-circle-stays-hidden": {
       "pass": true,
       "detail": {
         "nearMissStayedHidden": true,
         "edgeOfCircleReveals": true,
-        "edgeLog": "[AQ] REVEAL id=2 weapon=DESERT_DEAGLE eta=0.80 lead=2.00 fighter=HERO force=false",
+        "edgeLog": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S1 eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=MBR eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=TEC_9 eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=DESERT_DEAGLE eta=0.80 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S1 eta=0.80 lead=2.00 fighter=HERO force=false"
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "hidden=true after=true [AQ] REVEAL id=3 weapon=MBR eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "hidden=true after=true [AQ] REVEAL id=3 weapon=TEC_9 eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "rival-can-collect": {
       "pass": true
@@ -141,7 +141,7 @@
     },
     "weapon-SMG": {
       "pass": true,
-      "detail": "dmg=126 USE=1 HIT=8 CONSUME=1"
+      "detail": "dmg=133.9 USE=1 HIT=8 CONSUME=1"
     },
     "weapon-SNIPER": {
       "pass": true,
@@ -481,7 +481,7 @@
     },
     "weapon-cset-floor-sprite-rendered": {
       "pass": true,
-      "detail": "draws=5"
+      "detail": "draws=6"
     },
     "weapon-cset-equipped-sprite-rendered": {
       "pass": true,
@@ -569,13 +569,10 @@
     "av-smg-voice-cap-enforced": {
       "pass": true,
       "detail": {
-        "notReady": 106,
+        "notReady": 111,
         "sfx/c-final/SNIPER/sniper_bolt_lock.mp3": 3,
         "sfx/guns/sks.mp3": 5,
-        "sfx/scifi/forceField_001.ogg": 3,
-        "sfx/guns/cz.mp3": 6,
-        "sfx/rpg/metalClick.ogg": 1,
-        "sfx/impact/impactGeneric_light_002.ogg": 1
+        "sfx/scifi/forceField_001.ogg": 2
       }
     },
     "av-mosin-pistol-trimmed": {
@@ -593,11 +590,11 @@
     },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=6 spawnedCumulative=90 wallClock=2586ms earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=7 spawnedCumulative=92 wallClock=3271ms earlyErrors=0"
     },
     "reveal-lead-fixed-over-5min": {
       "pass": true,
-      "detail": "samples=6021"
+      "detail": "samples=5875"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -754,8 +751,8 @@
       "detail": {
         "nativeProj": 2,
         "hp": [
-          893.3756799999998,
-          970.0624
+          997.70368,
+          1000
         ]
       }
     },
@@ -1006,7 +1003,7 @@
         "dashed": true,
         "cdAfter": 9.683333333333318,
         "slot": 2,
-        "x": 745.8888888888889
+        "x": 718.2952439538503
       }
     },
     "postc-newbie-no-consume-without-pickup": {
@@ -1018,7 +1015,7 @@
         "dashed": true,
         "cdAfter": 9.683333333333318,
         "slot": 2,
-        "x": 745.8888888888889
+        "x": 718.2952439538503
       }
     },
     "postc-newbie-dash-to-revealed": {
@@ -1030,7 +1027,7 @@
         "dashed": true,
         "cdAfter": 9.683333333333318,
         "slot": 2,
-        "x": 745.8888888888889
+        "x": 718.2952439538503
       }
     },
     "postc-no-arena-glyphs-in-draw": {
@@ -1231,8 +1228,8 @@
     "gap-muzzle-uses-metadata": {
       "pass": true,
       "detail": {
-        "bx": 630.2,
-        "by": 481.2,
+        "bx": 630,
+        "by": 471.1,
         "mx": 416.7,
         "my": 479.5,
         "usedMeta": true
@@ -1324,12 +1321,12 @@
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=1 x=839 y=598 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=1 weapon=JACKHAMMER eta=null lead=2.00 fighter=TIMEOUT force=true",
-        "PICKUP": "[AQ] PICKUP id=2 fighter=ICE weapon=JACKHAMMER",
-        "USE": "[AQ] USE fighter=ICE weapon=JACKHAMMER",
-        "HIT": "[AQ] HIT source=ICE target=RUBBER weapon=JACKHAMMER damage=16.8",
-        "CONSUME": "[AQ] CONSUME fighter=ICE weapon=JACKHAMMER reason=sequence-complete"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=1 x=601 y=776 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=1 weapon=MAGNUM_500 eta=null lead=2.00 fighter=TIMEOUT force=true",
+        "PICKUP": "[AQ] PICKUP id=1 fighter=ICE weapon=MAGNUM_500",
+        "USE": "[AQ] USE fighter=ICE weapon=MAGNUM_500",
+        "CONSUME": "[AQ] CONSUME fighter=ICE weapon=MAGNUM_500 reason=sequence-complete",
+        "HIT": "[AQ] HIT source=ICE target=RUBBER weapon=MAGNUM_500 damage=294.0"
       }
     },
     "rev2-senko-one-scale": {
@@ -1520,7 +1517,7 @@
         },
         "spawnLand": 0,
         "after": 1,
-        "envelopes": 162
+        "envelopes": 145
       }
     },
     "rev2-casing-lands-on-floor": {
@@ -1534,7 +1531,7 @@
         },
         "spawnLand": 0,
         "after": 1,
-        "envelopes": 162
+        "envelopes": 145
       }
     },
     "rev2-melee-bounce-caps": {
@@ -2113,14 +2110,14 @@
         "api": true,
         "globalApi": false,
         "buildsA": 1,
-        "drawsA": 140,
+        "drawsA": 141,
         "buildsB": 1,
-        "drawsB": 141,
-        "hitsB": 140,
+        "drawsB": 142,
+        "hitsB": 141,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 5,
-        "debugWrites": 13,
+        "skillWrites": 6,
+        "debugWrites": 10,
         "winWrites": 1,
         "winWritesBefore": 0,
         "sections": [
@@ -2137,14 +2134,14 @@
         ],
         "peaks": {
           "slots": 5,
-          "particles": 419,
+          "particles": 366,
           "shockwaves": 5,
           "aqProjectiles": 13,
-          "projectiles": 17,
+          "projectiles": 13,
           "arsenalVfx": 22,
           "detachedWeapons": 2,
-          "stormBolts": 16,
-          "stormSparks": 36
+          "stormBolts": 13,
+          "stormSparks": 44
         },
         "size": 1000
       }
@@ -2155,14 +2152,14 @@
         "api": true,
         "globalApi": false,
         "buildsA": 1,
-        "drawsA": 140,
+        "drawsA": 141,
         "buildsB": 1,
-        "drawsB": 141,
-        "hitsB": 140,
+        "drawsB": 142,
+        "hitsB": 141,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 5,
-        "debugWrites": 13,
+        "skillWrites": 6,
+        "debugWrites": 10,
         "winWrites": 1,
         "winWritesBefore": 0,
         "sections": [
@@ -2179,14 +2176,14 @@
         ],
         "peaks": {
           "slots": 5,
-          "particles": 419,
+          "particles": 366,
           "shockwaves": 5,
           "aqProjectiles": 13,
-          "projectiles": 17,
+          "projectiles": 13,
           "arsenalVfx": 22,
           "detachedWeapons": 2,
-          "stormBolts": 16,
-          "stormSparks": 36
+          "stormBolts": 13,
+          "stormSparks": 44
         },
         "size": 1000
       }
@@ -2197,14 +2194,14 @@
         "api": true,
         "globalApi": false,
         "buildsA": 1,
-        "drawsA": 140,
+        "drawsA": 141,
         "buildsB": 1,
-        "drawsB": 141,
-        "hitsB": 140,
+        "drawsB": 142,
+        "hitsB": 141,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 5,
-        "debugWrites": 13,
+        "skillWrites": 6,
+        "debugWrites": 10,
         "winWrites": 1,
         "winWritesBefore": 0,
         "sections": [
@@ -2221,14 +2218,14 @@
         ],
         "peaks": {
           "slots": 5,
-          "particles": 419,
+          "particles": 366,
           "shockwaves": 5,
           "aqProjectiles": 13,
-          "projectiles": 17,
+          "projectiles": 13,
           "arsenalVfx": 22,
           "detachedWeapons": 2,
-          "stormBolts": 16,
-          "stormSparks": 36
+          "stormBolts": 13,
+          "stormSparks": 44
         },
         "size": 1000
       }
@@ -2239,14 +2236,14 @@
         "api": true,
         "globalApi": false,
         "buildsA": 1,
-        "drawsA": 140,
+        "drawsA": 141,
         "buildsB": 1,
-        "drawsB": 141,
-        "hitsB": 140,
+        "drawsB": 142,
+        "hitsB": 141,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 5,
-        "debugWrites": 13,
+        "skillWrites": 6,
+        "debugWrites": 10,
         "winWrites": 1,
         "winWritesBefore": 0,
         "sections": [
@@ -2263,14 +2260,14 @@
         ],
         "peaks": {
           "slots": 5,
-          "particles": 419,
+          "particles": 366,
           "shockwaves": 5,
           "aqProjectiles": 13,
-          "projectiles": 17,
+          "projectiles": 13,
           "arsenalVfx": 22,
           "detachedWeapons": 2,
-          "stormBolts": 16,
-          "stormSparks": 36
+          "stormBolts": 13,
+          "stormSparks": 44
         },
         "size": 1000
       }
@@ -2347,7 +2344,7 @@
         },
         "lastShell": {
           "key": "shotgun_shell_land",
-          "rel": "sfx/feel/shell_01.mp3",
+          "rel": "sfx/feel/shell_02.mp3",
           "shotgun": true
         },
         "atlasSrc": "/assets/arsenal/feel/damage/damage1.png",
@@ -2364,7 +2361,7 @@
         "lands2": 3,
         "lastCasing": {
           "key": "casing_land",
-          "rel": "sfx/feel/casing_03.mp3",
+          "rel": "sfx/feel/casing_04.mp3",
           "shotgun": false
         },
         "healEnabled": true,
@@ -2382,7 +2379,7 @@
           280,
           385
         ],
-        "organic": 1477,
+        "organic": 1672,
         "dmgPal": "#F2382F",
         "lastPalette": "#F2382F",
         "floating": 0
@@ -2445,7 +2442,7 @@
         },
         "lastShell": {
           "key": "shotgun_shell_land",
-          "rel": "sfx/feel/shell_01.mp3",
+          "rel": "sfx/feel/shell_02.mp3",
           "shotgun": true
         },
         "atlasSrc": "/assets/arsenal/feel/damage/damage1.png",
@@ -2462,7 +2459,7 @@
         "lands2": 3,
         "lastCasing": {
           "key": "casing_land",
-          "rel": "sfx/feel/casing_03.mp3",
+          "rel": "sfx/feel/casing_04.mp3",
           "shotgun": false
         },
         "healEnabled": true,
@@ -2480,7 +2477,7 @@
           280,
           385
         ],
-        "organic": 1477,
+        "organic": 1672,
         "dmgPal": "#F2382F",
         "lastPalette": "#F2382F",
         "floating": 0
@@ -2543,7 +2540,7 @@
         },
         "lastShell": {
           "key": "shotgun_shell_land",
-          "rel": "sfx/feel/shell_01.mp3",
+          "rel": "sfx/feel/shell_02.mp3",
           "shotgun": true
         },
         "atlasSrc": "/assets/arsenal/feel/damage/damage1.png",
@@ -2560,7 +2557,7 @@
         "lands2": 3,
         "lastCasing": {
           "key": "casing_land",
-          "rel": "sfx/feel/casing_03.mp3",
+          "rel": "sfx/feel/casing_04.mp3",
           "shotgun": false
         },
         "healEnabled": true,
@@ -2578,7 +2575,7 @@
           280,
           385
         ],
-        "organic": 1477,
+        "organic": 1672,
         "dmgPal": "#F2382F",
         "lastPalette": "#F2382F",
         "floating": 0
@@ -2690,7 +2687,7 @@
         },
         "lastShell": {
           "key": "shotgun_shell_land",
-          "rel": "sfx/feel/shell_01.mp3",
+          "rel": "sfx/feel/shell_02.mp3",
           "shotgun": true
         },
         "atlasSrc": "/assets/arsenal/feel/damage/damage1.png",
@@ -2707,7 +2704,7 @@
         "lands2": 3,
         "lastCasing": {
           "key": "casing_land",
-          "rel": "sfx/feel/casing_03.mp3",
+          "rel": "sfx/feel/casing_04.mp3",
           "shotgun": false
         },
         "healEnabled": true,
@@ -2725,7 +2722,7 @@
           280,
           385
         ],
-        "organic": 1477,
+        "organic": 1672,
         "dmgPal": "#F2382F",
         "lastPalette": "#F2382F",
         "floating": 0
@@ -2735,7 +2732,7 @@
       "pass": true,
       "detail": {
         "key": "shotgun_shell_land",
-        "rel": "sfx/feel/shell_01.mp3",
+        "rel": "sfx/feel/shell_02.mp3",
         "shotgun": true
       }
     },
@@ -2806,7 +2803,7 @@
         },
         "lastShell": {
           "key": "shotgun_shell_land",
-          "rel": "sfx/feel/shell_01.mp3",
+          "rel": "sfx/feel/shell_02.mp3",
           "shotgun": true
         },
         "atlasSrc": "/assets/arsenal/feel/damage/damage1.png",
@@ -2823,7 +2820,7 @@
         "lands2": 3,
         "lastCasing": {
           "key": "casing_land",
-          "rel": "sfx/feel/casing_03.mp3",
+          "rel": "sfx/feel/casing_04.mp3",
           "shotgun": false
         },
         "healEnabled": true,
@@ -2841,7 +2838,7 @@
           280,
           385
         ],
-        "organic": 1477,
+        "organic": 1672,
         "dmgPal": "#F2382F",
         "lastPalette": "#F2382F",
         "floating": 0
@@ -2904,7 +2901,7 @@
         },
         "lastShell": {
           "key": "shotgun_shell_land",
-          "rel": "sfx/feel/shell_01.mp3",
+          "rel": "sfx/feel/shell_02.mp3",
           "shotgun": true
         },
         "atlasSrc": "/assets/arsenal/feel/damage/damage1.png",
@@ -2921,7 +2918,7 @@
         "lands2": 3,
         "lastCasing": {
           "key": "casing_land",
-          "rel": "sfx/feel/casing_03.mp3",
+          "rel": "sfx/feel/casing_04.mp3",
           "shotgun": false
         },
         "healEnabled": true,
@@ -2939,7 +2936,7 @@
           280,
           385
         ],
-        "organic": 1477,
+        "organic": 1672,
         "dmgPal": "#F2382F",
         "lastPalette": "#F2382F",
         "floating": 0
@@ -3002,7 +2999,7 @@
         },
         "lastShell": {
           "key": "shotgun_shell_land",
-          "rel": "sfx/feel/shell_01.mp3",
+          "rel": "sfx/feel/shell_02.mp3",
           "shotgun": true
         },
         "atlasSrc": "/assets/arsenal/feel/damage/damage1.png",
@@ -3019,7 +3016,7 @@
         "lands2": 3,
         "lastCasing": {
           "key": "casing_land",
-          "rel": "sfx/feel/casing_03.mp3",
+          "rel": "sfx/feel/casing_04.mp3",
           "shotgun": false
         },
         "healEnabled": true,
@@ -3037,7 +3034,7 @@
           280,
           385
         ],
-        "organic": 1477,
+        "organic": 1672,
         "dmgPal": "#F2382F",
         "lastPalette": "#F2382F",
         "floating": 0
@@ -3100,7 +3097,7 @@
         },
         "lastShell": {
           "key": "shotgun_shell_land",
-          "rel": "sfx/feel/shell_01.mp3",
+          "rel": "sfx/feel/shell_02.mp3",
           "shotgun": true
         },
         "atlasSrc": "/assets/arsenal/feel/damage/damage1.png",
@@ -3117,7 +3114,7 @@
         "lands2": 3,
         "lastCasing": {
           "key": "casing_land",
-          "rel": "sfx/feel/casing_03.mp3",
+          "rel": "sfx/feel/casing_04.mp3",
           "shotgun": false
         },
         "healEnabled": true,
@@ -3135,7 +3132,7 @@
           280,
           385
         ],
-        "organic": 1477,
+        "organic": 1672,
         "dmgPal": "#F2382F",
         "lastPalette": "#F2382F",
         "floating": 0
@@ -3147,8 +3144,8 @@
         "b0": 3,
         "b1": 4,
         "b2": 4,
-        "d": 7,
-        "h": 3,
+        "d": 8,
+        "h": 4,
         "reuse": true
       }
     },
@@ -3169,7 +3166,7 @@
         "noSecond": 0,
         "hud": "896.0 / 1000",
         "healed": 196,
-        "organic": 1477
+        "organic": 1672
       }
     },
     "heal-spawns-when-injured": {
@@ -3189,7 +3186,7 @@
         "noSecond": 0,
         "hud": "896.0 / 1000",
         "healed": 196,
-        "organic": 1477
+        "organic": 1672
       }
     },
     "heal-does-not-consume-offensive-cap": {
@@ -3209,7 +3206,7 @@
         "noSecond": 0,
         "hud": "896.0 / 1000",
         "healed": 196,
-        "organic": 1477
+        "organic": 1672
       }
     },
     "heal-full-health-cannot-consume": {
@@ -3229,7 +3226,7 @@
         "noSecond": 0,
         "hud": "896.0 / 1000",
         "healed": 196,
-        "organic": 1477
+        "organic": 1672
       }
     },
     "heal-clamped-restore-and-popup": {
@@ -3249,7 +3246,7 @@
         "noSecond": 0,
         "hud": "896.0 / 1000",
         "healed": 196,
-        "organic": 1477
+        "organic": 1672
       }
     },
     "heal-hud-and-healingDone": {
@@ -3269,7 +3266,7 @@
         "noSecond": 0,
         "hud": "896.0 / 1000",
         "healed": 196,
-        "organic": 1477
+        "organic": 1672
       }
     },
     "heal-cooldown-blocks-second": {
@@ -3289,7 +3286,7 @@
         "noSecond": 0,
         "hud": "896.0 / 1000",
         "healed": 196,
-        "organic": 1477
+        "organic": 1672
       }
     },
     "atlas-normal-fill-and-edge-pixels": {
@@ -3343,12 +3340,12 @@
         "afterOneArmed": 2,
         "armedBefore": 2,
         "retrigBefore": 2,
-        "retrigAfter": 2,
-        "retrigTimer": 2.48,
-        "sameBefore": 2,
-        "sameAfter": 3,
-        "koBefore": 3,
-        "koAfter": 3,
+        "retrigAfter": 3,
+        "retrigTimer": 4.48,
+        "sameBefore": 3,
+        "sameAfter": 4,
+        "koBefore": 4,
+        "koAfter": 4,
         "t0": 0.016666666666666666
       }
     },
@@ -3363,12 +3360,12 @@
         "afterOneArmed": 2,
         "armedBefore": 2,
         "retrigBefore": 2,
-        "retrigAfter": 2,
-        "retrigTimer": 2.48,
-        "sameBefore": 2,
-        "sameAfter": 3,
-        "koBefore": 3,
-        "koAfter": 3,
+        "retrigAfter": 3,
+        "retrigTimer": 4.48,
+        "sameBefore": 3,
+        "sameAfter": 4,
+        "koBefore": 4,
+        "koAfter": 4,
         "t0": 0.016666666666666666
       }
     },
@@ -3383,12 +3380,12 @@
         "afterOneArmed": 2,
         "armedBefore": 2,
         "retrigBefore": 2,
-        "retrigAfter": 2,
-        "retrigTimer": 2.48,
-        "sameBefore": 2,
-        "sameAfter": 3,
-        "koBefore": 3,
-        "koAfter": 3,
+        "retrigAfter": 3,
+        "retrigTimer": 4.48,
+        "sameBefore": 3,
+        "sameAfter": 4,
+        "koBefore": 4,
+        "koAfter": 4,
         "t0": 0.016666666666666666
       }
     },
@@ -3403,12 +3400,12 @@
         "afterOneArmed": 2,
         "armedBefore": 2,
         "retrigBefore": 2,
-        "retrigAfter": 2,
-        "retrigTimer": 2.48,
-        "sameBefore": 2,
-        "sameAfter": 3,
-        "koBefore": 3,
-        "koAfter": 3,
+        "retrigAfter": 3,
+        "retrigTimer": 4.48,
+        "sameBefore": 3,
+        "sameAfter": 4,
+        "koBefore": 4,
+        "koAfter": 4,
         "t0": 0.016666666666666666
       }
     },
@@ -3423,12 +3420,12 @@
         "afterOneArmed": 2,
         "armedBefore": 2,
         "retrigBefore": 2,
-        "retrigAfter": 2,
-        "retrigTimer": 2.48,
-        "sameBefore": 2,
-        "sameAfter": 3,
-        "koBefore": 3,
-        "koAfter": 3,
+        "retrigAfter": 3,
+        "retrigTimer": 4.48,
+        "sameBefore": 3,
+        "sameAfter": 4,
+        "koBefore": 4,
+        "koAfter": 4,
         "t0": 0.016666666666666666
       }
     },
@@ -3443,12 +3440,12 @@
         "afterOneArmed": 2,
         "armedBefore": 2,
         "retrigBefore": 2,
-        "retrigAfter": 2,
-        "retrigTimer": 2.48,
-        "sameBefore": 2,
-        "sameAfter": 3,
-        "koBefore": 3,
-        "koAfter": 3,
+        "retrigAfter": 3,
+        "retrigTimer": 4.48,
+        "sameBefore": 3,
+        "sameAfter": 4,
+        "koBefore": 4,
+        "koAfter": 4,
         "t0": 0.016666666666666666
       }
     },
@@ -3463,12 +3460,12 @@
         "afterOneArmed": 2,
         "armedBefore": 2,
         "retrigBefore": 2,
-        "retrigAfter": 2,
-        "retrigTimer": 2.48,
-        "sameBefore": 2,
-        "sameAfter": 3,
-        "koBefore": 3,
-        "koAfter": 3,
+        "retrigAfter": 3,
+        "retrigTimer": 4.48,
+        "sameBefore": 3,
+        "sameAfter": 4,
+        "koBefore": 4,
+        "koAfter": 4,
         "t0": 0.016666666666666666
       }
     },
@@ -3483,12 +3480,12 @@
         "afterOneArmed": 2,
         "armedBefore": 2,
         "retrigBefore": 2,
-        "retrigAfter": 2,
-        "retrigTimer": 2.48,
-        "sameBefore": 2,
-        "sameAfter": 3,
-        "koBefore": 3,
-        "koAfter": 3,
+        "retrigAfter": 3,
+        "retrigTimer": 4.48,
+        "sameBefore": 3,
+        "sameAfter": 4,
+        "koBefore": 4,
+        "koAfter": 4,
         "t0": 0.016666666666666666
       }
     },
@@ -4186,18 +4183,18 @@
       "pass": true,
       "detail": {
         "interpolation": false,
-        "chamberHits": 177,
+        "chamberHits": 178,
         "feel": {
-          "stamps": 193,
-          "stainDraws": 178,
-          "sprayPeak": 562,
-          "sprayReuse": 5961,
+          "stamps": 217,
+          "stainDraws": 179,
+          "sprayPeak": 554,
+          "sprayReuse": 6120,
           "popupReuse": 469
         },
         "hud": {
-          "skillWrites": 8,
+          "skillWrites": 10,
           "winWrites": 1,
-          "debugWrites": 18
+          "debugWrites": 15
         }
       }
     },
@@ -4953,11 +4950,11 @@
       "pass": true,
       "detail": {
         "hits": 24,
-        "sprayPeak": 562,
+        "sprayPeak": 554,
         "decals": 24,
-        "lands": 7588,
-        "dropsSkipped": 18,
-        "microSkipped": 1438
+        "lands": 7251,
+        "dropsSkipped": 0,
+        "microSkipped": 1740
       }
     },
     "v1-blood-material-identity": {
@@ -5007,7 +5004,7 @@
         "microLive": true,
         "noneAged": true,
         "stainStamped": true,
-        "renderedV1Pixels": 610,
+        "renderedV1Pixels": 559,
         "ok": true
       }
     },
@@ -5286,7 +5283,7 @@
           "other": 1974
         },
         "rasterizations": 41,
-        "draws": 23,
+        "draws": 24,
         "kinds": "crit,dmg,heal,miss",
         "digitsPerKind": "crit:10,dmg:10,heal:10,miss:10",
         "targetH": {
@@ -5395,21 +5392,20 @@
         },
         "shield": "TOWER_SHIELD",
         "spec": {
-          "damage": 52,
+          "confirmedHitDamage": 446,
           "knockback": 900,
-          "stun": 1,
+          "stun": 2,
           "shake": 15,
           "hitStop": 0.08,
           "exit": "stormRelease"
         },
         "tuning": {
-          "slowMult": 0.54,
-          "slowRefreshSeconds": 0.12,
           "windupSeconds": 0.28,
           "readyDelaySeconds": 0.45,
           "throwSpeed": 1350,
           "spinRate": 82,
-          "stunSeconds": 1,
+          "stunSeconds": 2,
+          "maxFlightSeconds": 2.2,
           "spawnLongSide": 261,
           "heldLongSide": 224,
           "flightLongSide": 209,
@@ -5460,21 +5456,20 @@
       "pass": true,
       "detail": {
         "spec": {
-          "damage": 52,
+          "confirmedHitDamage": 446,
           "knockback": 900,
-          "stun": 1,
+          "stun": 2,
           "shake": 15,
           "hitStop": 0.08,
           "exit": "stormRelease"
         },
         "tuning": {
-          "slowMult": 0.54,
-          "slowRefreshSeconds": 0.12,
           "windupSeconds": 0.28,
           "readyDelaySeconds": 0.45,
           "throwSpeed": 1350,
           "spinRate": 82,
-          "stunSeconds": 1,
+          "stunSeconds": 2,
+          "maxFlightSeconds": 2.2,
           "spawnLongSide": 261,
           "heldLongSide": 224,
           "flightLongSide": 209,
@@ -5528,11 +5523,11 @@
         "rivalHp": 1000
       }
     },
-    "storm-hit-real-damage-x1.5x7": {
+    "storm-hit-final-authority-446-no-scale-ride": {
       "pass": true,
       "detail": {
         "heroHolder": null,
-        "rivalHp": 454,
+        "rivalHp": 554,
         "sawPush": true,
         "sawStun": true,
         "stormProjCount": 0,
@@ -5544,7 +5539,7 @@
       "pass": true,
       "detail": {
         "heroHolder": null,
-        "rivalHp": 454,
+        "rivalHp": 554,
         "sawPush": true,
         "sawStun": true,
         "stormProjCount": 0,
@@ -5556,7 +5551,7 @@
       "pass": true,
       "detail": {
         "heroHolder": null,
-        "rivalHp": 454,
+        "rivalHp": 554,
         "sawPush": true,
         "sawStun": true,
         "stormProjCount": 0,
@@ -5568,7 +5563,7 @@
       "pass": true,
       "detail": {
         "heroHolder": null,
-        "rivalHp": 454,
+        "rivalHp": 554,
         "sawPush": true,
         "sawStun": true,
         "stormProjCount": 0,
@@ -5576,26 +5571,38 @@
         "hitLogged": true
       }
     },
-    "storm-miss-no-damage-no-pin": {
+    "storm-miss-teleport-dodge-no-damage": {
       "pass": true,
       "detail": {
         "rivalHp": 1000,
         "heroHp": 1000,
         "exitSeen": true,
         "removed": true,
+        "exitFrame": 65,
+        "removedFrame": 87,
+        "dirChanges": 3,
+        "vyAtExit": -140,
+        "vyLater": 160,
         "hitEvents": 0,
+        "maxFlightLogged": 0,
         "ricochetEvents": 1,
         "stormProjLeft": 0
       }
     },
-    "storm-miss-ricochet-then-exit-removal": {
+    "storm-miss-curvature-exit-bounded": {
       "pass": true,
       "detail": {
         "rivalHp": 1000,
         "heroHp": 1000,
         "exitSeen": true,
         "removed": true,
+        "exitFrame": 65,
+        "removedFrame": 87,
+        "dirChanges": 3,
+        "vyAtExit": -140,
+        "vyLater": 160,
         "hitEvents": 0,
+        "maxFlightLogged": 0,
         "ricochetEvents": 1,
         "stormProjLeft": 0
       }
@@ -5606,7 +5613,7 @@
         {
           "c": 0,
           "pickedUp": 0,
-          "heroHp": 454,
+          "heroHp": 554,
           "sawStun": true,
           "projLeft": 0,
           "rivalHolder": null,
@@ -5615,7 +5622,7 @@
         {
           "c": 1,
           "pickedUp": 0,
-          "heroHp": 454,
+          "heroHp": 554,
           "sawStun": true,
           "projLeft": 0,
           "rivalHolder": null,
@@ -5624,7 +5631,7 @@
         {
           "c": 2,
           "pickedUp": 0,
-          "heroHp": 454,
+          "heroHp": 554,
           "sawStun": true,
           "projLeft": 0,
           "rivalHolder": null,
@@ -5632,22 +5639,22 @@
         }
       ]
     },
-    "storm-floor-slows-both-fighters": {
+    "storm-floor-no-global-slow": {
       "pass": true,
       "detail": {
-        "slowHero": true,
-        "slowRival": true,
-        "mult": 0.54,
+        "slowHero": false,
+        "slowRival": false,
+        "mult": null,
         "slowHeroAfter": false,
         "slowRivalAfter": false
       }
     },
-    "storm-slow-clean-removal-on-pickup": {
+    "storm-no-slow-status-lingers": {
       "pass": true,
       "detail": {
-        "slowHero": true,
-        "slowRival": true,
-        "mult": 0.54,
+        "slowHero": false,
+        "slowRival": false,
+        "mult": null,
         "slowHeroAfter": false,
         "slowRivalAfter": false
       }
@@ -5655,8 +5662,8 @@
     "storm-vfx-bounded-pools": {
       "pass": true,
       "detail": {
-        "floorBolts": 6,
-        "floorSparks": 2,
+        "floorBolts": 11,
+        "floorSparks": 14,
         "profile": {
           "spawnPairCount": 13,
           "flightLinkCount": 10,
@@ -5668,7 +5675,6 @@
           "spawnLongSide": 261,
           "heldLongSide": 224,
           "flightLongSide": 209,
-          "slowMult": 0.54,
           "spinRate": 82,
           "motesEnabled": true,
           "ringRenderer": "v9-local",
@@ -5688,11 +5694,11 @@
           "spawnStrongEvery": 3,
           "longTail": false
         },
-        "spawnWebBursts": 253,
+        "spawnWebBursts": 43,
         "after": {
           "impacts": 1,
-          "bolts": 11,
-          "sparks": 37,
+          "bolts": 22,
+          "sparks": 50,
           "trailEntities": false,
           "spawnTracked": 1
         },
@@ -5706,8 +5712,8 @@
     "storm-v9-reference-structure": {
       "pass": true,
       "detail": {
-        "floorBolts": 6,
-        "floorSparks": 2,
+        "floorBolts": 11,
+        "floorSparks": 14,
         "profile": {
           "spawnPairCount": 13,
           "flightLinkCount": 10,
@@ -5719,7 +5725,6 @@
           "spawnLongSide": 261,
           "heldLongSide": 224,
           "flightLongSide": 209,
-          "slowMult": 0.54,
           "spinRate": 82,
           "motesEnabled": true,
           "ringRenderer": "v9-local",
@@ -5739,11 +5744,11 @@
           "spawnStrongEvery": 3,
           "longTail": false
         },
-        "spawnWebBursts": 253,
+        "spawnWebBursts": 43,
         "after": {
           "impacts": 1,
-          "bolts": 11,
-          "sparks": 37,
+          "bolts": 22,
+          "sparks": 50,
           "trailEntities": false,
           "spawnTracked": 1
         },
@@ -5758,8 +5763,8 @@
       "pass": true,
       "detail": {
         "impacts": 1,
-        "bolts": 11,
-        "sparks": 37,
+        "bolts": 22,
+        "sparks": 50,
         "trailEntities": false,
         "spawnTracked": 1
       }
@@ -5768,8 +5773,8 @@
       "pass": true,
       "detail": {
         "impacts": 1,
-        "bolts": 11,
-        "sparks": 37,
+        "bolts": 22,
+        "sparks": 50,
         "trailEntities": false,
         "spawnTracked": 1
       }
@@ -5916,7 +5921,7 @@
         },
         "hits": 3,
         "damage": 94.5,
-        "popups": 3,
+        "popups": 2,
         "hpBefore": {
           "hero": 1000,
           "rival": 1000,
@@ -5934,7 +5939,6 @@
           "hits": 4,
           "damage": 1694.5,
           "numbers": [
-            "32",
             "32",
             "32",
             "1600"
@@ -5972,7 +5976,6 @@
         "hits": 4,
         "damage": 1694.5,
         "numbers": [
-          "32",
           "32",
           "32",
           "1600"
@@ -6291,20 +6294,20 @@
       "predictedFighter": null
     },
     "forceRevealed": true,
-    "forceLog": "[AQ] REVEAL id=1 weapon=MOSSBERG_500 eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "forceLog": "[AQ] REVEAL id=1 weapon=TEC_9 eta=null lead=2.00 fighter=TIMEOUT force=true",
     "heroHolderAfterForce": null,
     "pickupAfterForce": true,
     "revealedOnMovement": true,
-    "moveRevealLog": "[AQ] REVEAL id=2 weapon=SPIKED_CLUB eta=1.36 lead=2.00 fighter=HERO force=false",
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=MAGNUM_500 eta=1.36 lead=2.00 fighter=HERO force=false",
     "eta": 1.36
   },
   "circleNeg": {
     "nearMissStayedHidden": true,
     "edgeOfCircleReveals": true,
-    "edgeLog": "[AQ] REVEAL id=2 weapon=DESERT_DEAGLE eta=0.80 lead=2.00 fighter=HERO force=false",
+    "edgeLog": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15_S1 eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=MBR eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=TEC_9 eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "pickupRules": {
     "rivalGot": "SABRE",
@@ -6346,7 +6349,7 @@
     "SMG": {
       "midPhase": "READY",
       "midPhase2": "FIRING",
-      "damageDealt": 126,
+      "damageDealt": 133.9,
       "holderAfter": null,
       "useLogged": 1,
       "hitLogged": 8,
@@ -6472,121 +6475,191 @@
     "toggledOn": true
   },
   "av": {
-    "scheduledBefore": 150,
+    "scheduledBefore": 138,
     "after": {
       "cued": [
         {
           "event": "telegraph",
-          "x": 729,
-          "y": 544
+          "x": 578,
+          "y": 818
         },
         {
           "event": "reveal",
-          "x": 729,
-          "y": 544,
-          "weapon": "ZBROYAR_Z15_S1"
+          "x": 578,
+          "y": 818,
+          "weapon": "ZBROYAR_Z15"
         },
         {
           "event": "telegraph",
-          "x": 386,
-          "y": 717
+          "x": 356,
+          "y": 689
         },
         {
           "event": "reveal",
-          "x": 386,
-          "y": 717,
-          "weapon": "SPIKED_CLUB"
+          "x": 356,
+          "y": 689,
+          "weapon": "MAC_10"
         },
         {
           "event": "telegraph",
-          "x": 754,
-          "y": 882
+          "x": 206,
+          "y": 765
         },
         {
           "event": "reveal",
-          "x": 754,
-          "y": 882,
-          "weapon": "TEC_9"
+          "x": 206,
+          "y": 765,
+          "weapon": "MOSSBERG_500"
         },
         {
           "event": "telegraph",
-          "x": 417,
-          "y": 520
+          "x": 482,
+          "y": 446
         },
         {
           "event": "reveal",
-          "x": 417,
-          "y": 520,
-          "weapon": "TEC_9"
+          "x": 482,
+          "y": 446,
+          "weapon": "DAGGER"
         },
         {
           "event": "telegraph",
-          "x": 896,
-          "y": 300
+          "x": 905,
+          "y": 703
         },
         {
           "event": "reveal",
           "x": 850,
           "y": 500,
-          "weapon": "MOSSBERG_500"
+          "weapon": "TEC_9"
         },
         {
           "event": "pickup",
           "x": 738,
           "y": 500,
-          "weapon": "MOSSBERG_500"
+          "weapon": "TEC_9"
         },
         {
           "event": "fire",
-          "x": 904,
-          "y": 636,
-          "weapon": "MOSSBERG_500",
+          "x": 887,
+          "y": 622,
+          "weapon": "TEC_9",
           "usedMeta": true,
-          "vfx": "pumpShot",
-          "sfxRate": 0.96
-        },
-        {
-          "event": "shotgun_rack",
-          "x": 911,
-          "y": 500,
-          "weapon": "MOSSBERG_500"
+          "vfx": "burstPistol",
+          "sfxRate": 1.12
         },
         {
           "event": "casing",
-          "x": 905,
-          "y": 558,
-          "weapon": "MOSSBERG_500",
+          "x": 892,
+          "y": 571,
+          "weapon": "TEC_9",
+          "usedMeta": true
+        },
+        {
+          "event": "fire",
+          "x": 920,
+          "y": 620,
+          "weapon": "TEC_9",
+          "usedMeta": true,
+          "vfx": "burstPistol",
+          "sfxRate": 1.12
+        },
+        {
+          "event": "casing",
+          "x": 916,
+          "y": 570,
+          "weapon": "TEC_9",
+          "usedMeta": true
+        },
+        {
+          "event": "fire",
+          "x": 889,
+          "y": 618,
+          "weapon": "TEC_9",
+          "usedMeta": true,
+          "vfx": "burstPistol",
+          "sfxRate": 1.12
+        },
+        {
+          "event": "casing",
+          "x": 880,
+          "y": 567,
+          "weapon": "TEC_9",
+          "usedMeta": true
+        },
+        {
+          "event": "fire",
+          "x": 852,
+          "y": 613,
+          "weapon": "TEC_9",
+          "usedMeta": true,
+          "vfx": "burstPistol",
+          "sfxRate": 1.12
+        },
+        {
+          "event": "casing",
+          "x": 836,
+          "y": 565,
+          "weapon": "TEC_9",
+          "usedMeta": true
+        },
+        {
+          "event": "fire",
+          "x": 819,
+          "y": 607,
+          "weapon": "TEC_9",
+          "usedMeta": true,
+          "vfx": "burstPistol",
+          "sfxRate": 1.12
+        },
+        {
+          "event": "casing",
+          "x": 799,
+          "y": 561,
+          "weapon": "TEC_9",
           "usedMeta": true
         },
         {
           "event": "casing_land",
-          "x": 801,
-          "y": 608,
-          "weapon": "MOSSBERG_500"
+          "x": 856,
+          "y": 618,
+          "weapon": "TEC_9"
+        },
+        {
+          "event": "casing_land",
+          "x": 832,
+          "y": 617,
+          "weapon": "TEC_9"
         },
         {
           "event": "reveal",
           "x": 850,
           "y": 300,
-          "weapon": "SPIKED_CLUB"
+          "weapon": "MAGNUM_500"
+        },
+        {
+          "event": "casing_land",
+          "x": 832,
+          "y": 618,
+          "weapon": "TEC_9"
         },
         {
           "event": "reveal",
           "x": 850,
           "y": 500,
-          "weapon": "DESERT_DEAGLE"
+          "weapon": "ZBROYAR_Z15_S1"
         },
         {
           "event": "reveal",
           "x": 850,
           "y": 500,
-          "weapon": "MBR"
+          "weapon": "TEC_9"
         },
         {
           "event": "pickup",
           "x": 916,
           "y": 500,
-          "weapon": "MBR"
+          "weapon": "TEC_9"
         },
         {
           "event": "pickup",
@@ -6685,7 +6758,7 @@
         {
           "event": "casing_land",
           "x": 351,
-          "y": 530,
+          "y": 533,
           "weapon": "PISTOL"
         },
         {
@@ -6722,14 +6795,14 @@
         },
         {
           "event": "casing_land",
-          "x": 358,
-          "y": 535,
+          "x": 359,
+          "y": 534,
           "weapon": "PISTOL"
         },
         {
           "event": "casing_land",
-          "x": 345,
-          "y": 530,
+          "x": 359,
+          "y": 534,
           "weapon": "PISTOL"
         },
         {
@@ -6756,8 +6829,8 @@
         },
         {
           "event": "casing_land",
-          "x": 355,
-          "y": 544,
+          "x": 342,
+          "y": 543,
           "weapon": "SHOTGUN"
         },
         {
@@ -6778,7 +6851,7 @@
         },
         {
           "event": "casing_land",
-          "x": 337,
+          "x": 341,
           "y": 542,
           "weapon": "SHOTGUN"
         },
@@ -6838,74 +6911,8 @@
         },
         {
           "event": "casing_land",
-          "x": 352,
-          "y": 535,
-          "weapon": "SMG"
-        },
-        {
-          "event": "fire",
-          "x": 426,
-          "y": 484,
-          "weapon": "SMG",
-          "usedMeta": true,
-          "vfx": "compactSmg",
-          "sfxRate": 1
-        },
-        {
-          "event": "casing",
-          "x": 372,
-          "y": 489,
-          "weapon": "SMG",
-          "usedMeta": true
-        },
-        {
-          "event": "casing_land",
-          "x": 350,
-          "y": 539,
-          "weapon": "SMG"
-        },
-        {
-          "event": "fire",
-          "x": 426,
-          "y": 484,
-          "weapon": "SMG",
-          "usedMeta": true,
-          "vfx": "compactSmg",
-          "sfxRate": 1
-        },
-        {
-          "event": "casing",
-          "x": 372,
-          "y": 489,
-          "weapon": "SMG",
-          "usedMeta": true
-        },
-        {
-          "event": "casing_land",
-          "x": 353,
-          "y": 539,
-          "weapon": "SMG"
-        },
-        {
-          "event": "fire",
-          "x": 426,
-          "y": 484,
-          "weapon": "SMG",
-          "usedMeta": true,
-          "vfx": "compactSmg",
-          "sfxRate": 1
-        },
-        {
-          "event": "casing",
-          "x": 372,
-          "y": 489,
-          "weapon": "SMG",
-          "usedMeta": true
-        },
-        {
-          "event": "casing_land",
           "x": 351,
-          "y": 539,
+          "y": 540,
           "weapon": "SMG"
         },
         {
@@ -6926,7 +6933,7 @@
         },
         {
           "event": "casing_land",
-          "x": 355,
+          "x": 357,
           "y": 536,
           "weapon": "SMG"
         },
@@ -6948,19 +6955,85 @@
         },
         {
           "event": "casing_land",
-          "x": 350,
-          "y": 540,
-          "weapon": "SMG"
-        },
-        {
-          "event": "casing_land",
-          "x": 360,
+          "x": 358,
           "y": 537,
           "weapon": "SMG"
         },
         {
+          "event": "fire",
+          "x": 426,
+          "y": 484,
+          "weapon": "SMG",
+          "usedMeta": true,
+          "vfx": "compactSmg",
+          "sfxRate": 1
+        },
+        {
+          "event": "casing",
+          "x": 372,
+          "y": 489,
+          "weapon": "SMG",
+          "usedMeta": true
+        },
+        {
           "event": "casing_land",
-          "x": 366,
+          "x": 352,
+          "y": 541,
+          "weapon": "SMG"
+        },
+        {
+          "event": "fire",
+          "x": 426,
+          "y": 484,
+          "weapon": "SMG",
+          "usedMeta": true,
+          "vfx": "compactSmg",
+          "sfxRate": 1
+        },
+        {
+          "event": "casing",
+          "x": 372,
+          "y": 489,
+          "weapon": "SMG",
+          "usedMeta": true
+        },
+        {
+          "event": "casing_land",
+          "x": 351,
+          "y": 540,
+          "weapon": "SMG"
+        },
+        {
+          "event": "fire",
+          "x": 426,
+          "y": 484,
+          "weapon": "SMG",
+          "usedMeta": true,
+          "vfx": "compactSmg",
+          "sfxRate": 1
+        },
+        {
+          "event": "casing",
+          "x": 372,
+          "y": 489,
+          "weapon": "SMG",
+          "usedMeta": true
+        },
+        {
+          "event": "casing_land",
+          "x": 347,
+          "y": 538,
+          "weapon": "SMG"
+        },
+        {
+          "event": "casing_land",
+          "x": 355,
+          "y": 538,
+          "weapon": "SMG"
+        },
+        {
+          "event": "casing_land",
+          "x": 362,
           "y": 540,
           "weapon": "SMG"
         },
@@ -6997,8 +7070,8 @@
         },
         {
           "event": "casing_land",
-          "x": 290,
-          "y": 544,
+          "x": 280,
+          "y": 543,
           "weapon": "SNIPER"
         },
         {
@@ -7209,8 +7282,8 @@
         },
         {
           "event": "casing_land",
-          "x": 746,
-          "y": 548,
+          "x": 777,
+          "y": 546,
           "weapon": "SNIPER"
         },
         {
@@ -7263,8 +7336,8 @@
         },
         {
           "event": "casing_land",
-          "x": 289,
-          "y": 546,
+          "x": 285,
+          "y": 544,
           "weapon": "SNIPER"
         },
         {
@@ -7443,163 +7516,25 @@
         },
         {
           "event": "telegraph",
-          "x": 141,
-          "y": 301
+          "x": 192,
+          "y": 123
         },
         {
           "event": "reveal",
-          "x": 141,
-          "y": 301,
-          "weapon": "MAGNUM_500"
-        },
-        {
-          "event": "pickup",
-          "x": 243,
-          "y": 340,
-          "weapon": "MAGNUM_500"
-        },
-        {
-          "event": "fire",
-          "x": 201,
-          "y": 365,
-          "weapon": "MAGNUM_500",
-          "usedMeta": true,
-          "vfx": "revolver",
-          "sfxRate": 0.78
-        },
-        {
-          "event": "casing",
-          "x": 134,
-          "y": 346,
-          "weapon": "MAGNUM_500",
-          "usedMeta": true
-        },
-        {
-          "event": "telegraph",
-          "x": 876,
-          "y": 652
-        },
-        {
-          "event": "reveal",
-          "x": 876,
-          "y": 652,
-          "weapon": "ZBROYAR_Z15_S1"
-        },
-        {
-          "event": "pickup",
-          "x": 899,
-          "y": 620,
-          "weapon": "ZBROYAR_Z15_S1"
-        },
-        {
-          "event": "hull_land",
-          "x": 97,
-          "y": 395,
-          "weapon": "MAGNUM_500"
-        },
-        {
-          "event": "fire",
-          "x": 644,
-          "y": 556,
-          "weapon": "ZBROYAR_Z15_S1",
-          "usedMeta": true,
-          "vfx": "ar",
-          "sfxRate": 1
-        },
-        {
-          "event": "casing",
-          "x": 701,
-          "y": 592,
-          "weapon": "ZBROYAR_Z15_S1",
-          "usedMeta": true
-        },
-        {
-          "event": "fire",
-          "x": 582,
-          "y": 539,
-          "weapon": "ZBROYAR_Z15_S1",
-          "usedMeta": true,
-          "vfx": "ar",
-          "sfxRate": 1
-        },
-        {
-          "event": "casing",
-          "x": 632,
-          "y": 584,
-          "weapon": "ZBROYAR_Z15_S1",
-          "usedMeta": true
-        },
-        {
-          "event": "fire",
-          "x": 531,
-          "y": 513,
-          "weapon": "ZBROYAR_Z15_S1",
-          "usedMeta": true,
-          "vfx": "ar",
-          "sfxRate": 1
-        },
-        {
-          "event": "casing",
-          "x": 563,
-          "y": 572,
-          "weapon": "ZBROYAR_Z15_S1",
-          "usedMeta": true
-        },
-        {
-          "event": "casing_land",
-          "x": 745,
-          "y": 644,
-          "weapon": "ZBROYAR_Z15_S1"
-        },
-        {
-          "event": "fire",
-          "x": 511,
-          "y": 500,
-          "weapon": "ZBROYAR_Z15_S1",
-          "usedMeta": true,
-          "vfx": "ar",
-          "sfxRate": 1
-        },
-        {
-          "event": "casing",
-          "x": 514,
-          "y": 567,
-          "weapon": "ZBROYAR_Z15_S1",
-          "usedMeta": true
-        },
-        {
-          "event": "casing_land",
-          "x": 690,
-          "y": 633,
-          "weapon": "ZBROYAR_Z15_S1"
-        },
-        {
-          "event": "casing_land",
-          "x": 608,
-          "y": 621,
+          "x": 192,
+          "y": 123,
           "weapon": "ZBROYAR_Z15_S1"
         },
         {
           "event": "telegraph",
-          "x": 315,
-          "y": 525
-        },
-        {
-          "event": "casing_land",
-          "x": 554,
-          "y": 618,
-          "weapon": "ZBROYAR_Z15_S1"
-        },
-        {
-          "event": "telegraph",
-          "x": 764,
-          "y": 778
+          "x": 579,
+          "y": 674
         },
         {
           "event": "reveal",
           "x": 850,
           "y": 500,
-          "weapon": "MAGNUM_500"
+          "weapon": "SPIKED_CLUB"
         },
         {
           "event": "pickup",
@@ -7625,8 +7560,8 @@
         },
         {
           "event": "casing_land",
-          "x": 392,
-          "y": 536,
+          "x": 367,
+          "y": 534,
           "weapon": "PISTOL"
         },
         {
@@ -7723,7 +7658,7 @@
         },
         {
           "event": "casing_land",
-          "x": 358,
+          "x": 352,
           "y": 519,
           "weapon": "SMG"
         },
@@ -7745,8 +7680,8 @@
         },
         {
           "event": "casing_land",
-          "x": 349,
-          "y": 518,
+          "x": 362,
+          "y": 519,
           "weapon": "SMG"
         },
         {
@@ -7767,7 +7702,7 @@
         },
         {
           "event": "casing_land",
-          "x": 361,
+          "x": 347,
           "y": 517,
           "weapon": "SMG"
         },
@@ -7786,6 +7721,12 @@
           "y": 469,
           "weapon": "SMG",
           "usedMeta": true
+        },
+        {
+          "event": "casing_land",
+          "x": 346,
+          "y": 519,
+          "weapon": "SMG"
         },
         {
           "event": "pickup",
@@ -7962,378 +7903,203 @@
         },
         {
           "event": "telegraph",
-          "x": 229,
-          "y": 467
+          "x": 757,
+          "y": 471
         },
         {
           "event": "reveal",
-          "x": 229,
-          "y": 467,
-          "weapon": "GLOCK_17"
+          "x": 757,
+          "y": 471,
+          "weapon": "TEC_9"
         },
         {
           "event": "pickup",
-          "x": 211,
-          "y": 501,
-          "weapon": "GLOCK_17"
-        },
-        {
-          "event": "fire",
-          "x": 227,
-          "y": 494,
-          "weapon": "GLOCK_17",
-          "usedMeta": true,
-          "vfx": "lightPistol",
-          "sfxRate": 1.08
-        },
-        {
-          "event": "casing",
-          "x": 185,
-          "y": 501,
-          "weapon": "GLOCK_17",
-          "usedMeta": true
-        },
-        {
-          "event": "fire",
-          "x": 286,
-          "y": 498,
-          "weapon": "GLOCK_17",
-          "usedMeta": true,
-          "vfx": "lightPistol",
-          "sfxRate": 1.08
-        },
-        {
-          "event": "casing",
-          "x": 244,
+          "x": 774,
           "y": 506,
-          "weapon": "GLOCK_17",
-          "usedMeta": true
-        },
-        {
-          "event": "casing_land",
-          "x": 172,
-          "y": 548,
-          "weapon": "GLOCK_17"
+          "weapon": "TEC_9"
         },
         {
           "event": "fire",
-          "x": 346,
-          "y": 501,
-          "weapon": "GLOCK_17",
-          "usedMeta": true,
-          "vfx": "lightPistol",
-          "sfxRate": 1.08
-        },
-        {
-          "event": "casing",
-          "x": 304,
-          "y": 510,
-          "weapon": "GLOCK_17",
-          "usedMeta": true
-        },
-        {
-          "event": "casing_land",
-          "x": 231,
-          "y": 556,
-          "weapon": "GLOCK_17"
-        },
-        {
-          "event": "fire",
-          "x": 405,
-          "y": 502,
-          "weapon": "GLOCK_17",
-          "usedMeta": true,
-          "vfx": "lightPistol",
-          "sfxRate": 1.08
-        },
-        {
-          "event": "casing",
-          "x": 363,
-          "y": 513,
-          "weapon": "GLOCK_17",
-          "usedMeta": true
-        },
-        {
-          "event": "casing_land",
-          "x": 277,
-          "y": 558,
-          "weapon": "GLOCK_17"
-        },
-        {
-          "event": "telegraph",
-          "x": 346,
-          "y": 246
-        },
-        {
-          "event": "casing_land",
-          "x": 342,
-          "y": 561,
-          "weapon": "GLOCK_17"
-        },
-        {
-          "event": "reveal",
-          "x": 346,
-          "y": 246,
-          "weapon": "ZBROYAR_Z15"
-        },
-        {
-          "event": "pickup",
-          "x": 311,
-          "y": 138,
-          "weapon": "ZBROYAR_Z15"
-        },
-        {
-          "event": "fire",
-          "x": 426,
-          "y": 421,
-          "weapon": "ZBROYAR_Z15",
-          "usedMeta": true,
-          "vfx": "ar",
-          "sfxRate": 1
-        },
-        {
-          "event": "casing",
-          "x": 409,
-          "y": 357,
-          "weapon": "ZBROYAR_Z15",
-          "usedMeta": true
-        },
-        {
-          "event": "fire",
-          "x": 446,
-          "y": 495,
-          "weapon": "ZBROYAR_Z15",
-          "usedMeta": true,
-          "vfx": "ar",
-          "sfxRate": 1
-        },
-        {
-          "event": "casing",
-          "x": 435,
-          "y": 429,
-          "weapon": "ZBROYAR_Z15",
-          "usedMeta": true
-        },
-        {
-          "event": "fire",
-          "x": 426,
-          "y": 573,
-          "weapon": "ZBROYAR_Z15",
-          "usedMeta": true,
-          "vfx": "ar",
-          "sfxRate": 1
-        },
-        {
-          "event": "casing",
-          "x": 437,
-          "y": 507,
-          "weapon": "ZBROYAR_Z15",
-          "usedMeta": true
-        },
-        {
-          "event": "casing_land",
-          "x": 369,
-          "y": 408,
-          "weapon": "ZBROYAR_Z15"
-        },
-        {
-          "event": "fire",
-          "x": 401,
-          "y": 572,
-          "weapon": "ZBROYAR_Z15",
-          "usedMeta": true,
-          "vfx": "ar",
-          "sfxRate": 1
-        },
-        {
-          "event": "casing",
-          "x": 451,
-          "y": 528,
-          "weapon": "ZBROYAR_Z15",
-          "usedMeta": true
-        },
-        {
-          "event": "casing_land",
-          "x": 391,
-          "y": 478,
-          "weapon": "ZBROYAR_Z15"
-        },
-        {
-          "event": "telegraph",
-          "x": 191,
-          "y": 497
-        },
-        {
-          "event": "casing_land",
-          "x": 396,
-          "y": 558,
-          "weapon": "ZBROYAR_Z15"
-        },
-        {
-          "event": "casing_land",
-          "x": 435,
-          "y": 574,
-          "weapon": "ZBROYAR_Z15"
-        },
-        {
-          "event": "reveal",
-          "x": 191,
-          "y": 497,
-          "weapon": "BERETTA_93R"
-        },
-        {
-          "event": "pickup",
-          "x": 213,
-          "y": 590,
-          "weapon": "BERETTA_93R"
-        },
-        {
-          "event": "fire",
-          "x": 499,
-          "y": 526,
-          "weapon": "BERETTA_93R",
+          "x": 530,
+          "y": 609,
+          "weapon": "TEC_9",
           "usedMeta": true,
           "vfx": "burstPistol",
-          "sfxRate": 1.04
+          "sfxRate": 1.12
         },
         {
           "event": "casing",
-          "x": 454,
-          "y": 544,
-          "weapon": "BERETTA_93R",
+          "x": 581,
+          "y": 613,
+          "weapon": "TEC_9",
           "usedMeta": true
         },
         {
           "event": "fire",
-          "x": 520,
-          "y": 521,
-          "weapon": "BERETTA_93R",
+          "x": 501,
+          "y": 640,
+          "weapon": "TEC_9",
           "usedMeta": true,
           "vfx": "burstPistol",
-          "sfxRate": 1.04
+          "sfxRate": 1.12
         },
         {
           "event": "casing",
-          "x": 476,
-          "y": 540,
-          "weapon": "BERETTA_93R",
+          "x": 552,
+          "y": 644,
+          "weapon": "TEC_9",
           "usedMeta": true
         },
         {
           "event": "fire",
-          "x": 551,
-          "y": 512,
-          "weapon": "BERETTA_93R",
+          "x": 471,
+          "y": 671,
+          "weapon": "TEC_9",
           "usedMeta": true,
           "vfx": "burstPistol",
-          "sfxRate": 1.04
+          "sfxRate": 1.12
         },
         {
           "event": "casing",
-          "x": 509,
-          "y": 534,
-          "weapon": "BERETTA_93R",
+          "x": 522,
+          "y": 674,
+          "weapon": "TEC_9",
           "usedMeta": true
         },
         {
-          "event": "casing_land",
+          "event": "fire",
           "x": 434,
-          "y": 594,
-          "weapon": "BERETTA_93R"
+          "y": 708,
+          "weapon": "TEC_9",
+          "usedMeta": true,
+          "vfx": "burstPistol",
+          "sfxRate": 1.12
+        },
+        {
+          "event": "casing",
+          "x": 485,
+          "y": 712,
+          "weapon": "TEC_9",
+          "usedMeta": true
+        },
+        {
+          "event": "fire",
+          "x": 404,
+          "y": 739,
+          "weapon": "TEC_9",
+          "usedMeta": true,
+          "vfx": "burstPistol",
+          "sfxRate": 1.12
+        },
+        {
+          "event": "casing",
+          "x": 455,
+          "y": 742,
+          "weapon": "TEC_9",
+          "usedMeta": true
         },
         {
           "event": "casing_land",
-          "x": 462,
-          "y": 593,
-          "weapon": "BERETTA_93R"
-        },
-        {
-          "event": "casing_land",
-          "x": 490,
-          "y": 580,
-          "weapon": "BERETTA_93R"
-        },
-        {
-          "event": "fire",
-          "x": 557,
-          "y": 506,
-          "weapon": "BERETTA_93R",
-          "usedMeta": true,
-          "vfx": "burstPistol",
-          "sfxRate": 1.04
-        },
-        {
-          "event": "casing",
-          "x": 531,
-          "y": 546,
-          "weapon": "BERETTA_93R",
-          "usedMeta": true
-        },
-        {
-          "event": "fire",
-          "x": 533,
-          "y": 535,
-          "weapon": "BERETTA_93R",
-          "usedMeta": true,
-          "vfx": "burstPistol",
-          "sfxRate": 1.04
-        },
-        {
-          "event": "casing",
-          "x": 511,
-          "y": 577,
-          "weapon": "BERETTA_93R",
-          "usedMeta": true
-        },
-        {
-          "event": "fire",
-          "x": 519,
-          "y": 558,
-          "weapon": "BERETTA_93R",
-          "usedMeta": true,
-          "vfx": "burstPistol",
-          "sfxRate": 1.04
-        },
-        {
-          "event": "casing",
-          "x": 498,
-          "y": 601,
-          "weapon": "BERETTA_93R",
-          "usedMeta": true
+          "x": 650,
+          "y": 666,
+          "weapon": "TEC_9"
         },
         {
           "event": "telegraph",
-          "x": 230,
-          "y": 748
+          "x": 193,
+          "y": 299
         },
         {
           "event": "casing_land",
-          "x": 542,
-          "y": 593,
-          "weapon": "BERETTA_93R"
+          "x": 595,
+          "y": 691,
+          "weapon": "TEC_9"
         },
         {
           "event": "casing_land",
-          "x": 525,
-          "y": 625,
-          "weapon": "BERETTA_93R"
+          "x": 536,
+          "y": 723,
+          "weapon": "TEC_9"
         },
         {
           "event": "casing_land",
-          "x": 500,
-          "y": 650,
-          "weapon": "BERETTA_93R"
+          "x": 533,
+          "y": 764,
+          "weapon": "TEC_9"
+        },
+        {
+          "event": "casing_land",
+          "x": 502,
+          "y": 790,
+          "weapon": "TEC_9"
         },
         {
           "event": "reveal",
-          "x": 230,
-          "y": 748,
-          "weapon": "SMG"
+          "x": 193,
+          "y": 299,
+          "weapon": "SAWED_OFF"
+        },
+        {
+          "event": "pickup",
+          "x": 306,
+          "y": 308,
+          "weapon": "SAWED_OFF"
+        },
+        {
+          "event": "fire",
+          "x": 316,
+          "y": 388,
+          "weapon": "SAWED_OFF",
+          "usedMeta": true,
+          "vfx": "sawedOff",
+          "sfxRate": 0.88
+        },
+        {
+          "event": "casing",
+          "x": 243,
+          "y": 429,
+          "weapon": "SAWED_OFF",
+          "usedMeta": true
+        },
+        {
+          "event": "casing",
+          "x": 243,
+          "y": 429,
+          "weapon": "SAWED_OFF",
+          "usedMeta": true
         },
         {
           "event": "telegraph",
-          "x": 561,
-          "y": 703
+          "x": 607,
+          "y": 591
+        },
+        {
+          "event": "hull_land",
+          "x": 247,
+          "y": 479,
+          "weapon": "SAWED_OFF"
+        },
+        {
+          "event": "hull_land",
+          "x": 241,
+          "y": 478,
+          "weapon": "SAWED_OFF"
+        },
+        {
+          "event": "reveal",
+          "x": 607,
+          "y": 591,
+          "weapon": "GLOCK_17"
+        },
+        {
+          "event": "telegraph",
+          "x": 167,
+          "y": 330
+        },
+        {
+          "event": "telegraph",
+          "x": 200,
+          "y": 109
         },
         {
           "event": "pickup",
@@ -8348,19 +8114,19 @@
         },
         {
           "event": "telegraph",
-          "x": 347,
-          "y": 880
+          "x": 158,
+          "y": 724
         },
         {
           "event": "reveal",
           "x": 850,
           "y": 500,
-          "weapon": "BERETTA_93R"
+          "weapon": "MBR2"
         },
         {
           "event": "telegraph",
-          "x": 288,
-          "y": 803
+          "x": 123,
+          "y": 731
         }
       ],
       "scheduled": [
@@ -8455,28 +8221,70 @@
           "vol": 0.12
         },
         {
-          "rel": "sfx/feel/pickup_shotgun.mp3",
+          "rel": "sfx/feel/pickup_pistol.mp3",
           "offset": 0,
           "dur": null,
-          "vol": 0.72
+          "vol": 0.62
         },
         {
-          "rel": "sfx/guns/shotty.mp3",
+          "rel": "sfx/guns/sks.mp3",
           "offset": 0,
-          "dur": 0.7,
-          "vol": 0.95
+          "dur": 0.24,
+          "vol": 0.5
         },
         {
-          "rel": "sfx/c-final/SHOTGUN/shotgun_rack_pull.mp3",
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/feel/casing_01.mp3",
           "offset": 0,
           "dur": null,
-          "vol": 0.71
+          "vol": 0.2528456743616677
         },
         {
-          "rel": "sfx/feel/shell_01.mp3",
+          "rel": "sfx/feel/casing_02.mp3",
           "offset": 0,
           "dur": null,
-          "vol": 0.28
+          "vol": 0.2734593840243503
+        },
+        {
+          "rel": "sfx/rpg/metalClick.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.35
+        },
+        {
+          "rel": "sfx/impact/impactGeneric_light_002.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.12
+        },
+        {
+          "rel": "sfx/feel/casing_03.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.259409194715301
         },
         {
           "rel": "sfx/rpg/metalClick.ogg",
@@ -8503,22 +8311,10 @@
           "vol": 0.12
         },
         {
-          "rel": "sfx/rpg/metalClick.ogg",
+          "rel": "sfx/feel/pickup_pistol.mp3",
           "offset": 0,
           "dur": null,
-          "vol": 0.35
-        },
-        {
-          "rel": "sfx/impact/impactGeneric_light_002.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.12
-        },
-        {
-          "rel": "sfx/feel/rifle_take_07.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.68
+          "vol": 0.62
         },
         {
           "rel": "sfx/rpg/metalLatch.ogg",
@@ -8575,40 +8371,52 @@
           "vol": 0.75
         },
         {
+          "rel": "sfx/feel/casing_04.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.2446540143443826
+        },
+        {
+          "rel": "sfx/guns/cz.mp3",
+          "offset": 0.1,
+          "dur": 0.85,
+          "vol": 0.75
+        },
+        {
+          "rel": "sfx/guns/cz.mp3",
+          "offset": 0.1,
+          "dur": 0.85,
+          "vol": 0.75
+        },
+        {
+          "rel": "sfx/feel/casing_05.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.23992368914068912
+        },
+        {
           "rel": "sfx/feel/casing_01.mp3",
           "offset": 0,
           "dur": null,
-          "vol": 0.24397215149701207
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/feel/casing_02.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2426378287437705
-        },
-        {
-          "rel": "sfx/feel/casing_03.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.24481272457769332
+          "vol": 0.24249203759799898
         },
         {
           "rel": "sfx/feel/pickup_shotgun.mp3",
           "offset": 0,
           "dur": null,
           "vol": 0.72
+        },
+        {
+          "rel": "sfx/guns/shotty.mp3",
+          "offset": 0,
+          "dur": 0.7,
+          "vol": 0.95
+        },
+        {
+          "rel": "sfx/feel/shell_01.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.24586133056047677
         },
         {
           "rel": "sfx/guns/shotty.mp3",
@@ -8620,523 +8428,937 @@
           "rel": "sfx/feel/shell_02.mp3",
           "offset": 0,
           "dur": null,
-          "vol": 0.23992662988751084
+          "vol": 0.24662218057020802
+        },
+        {
+          "rel": "sfx/feel/rifle_take_02.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.58
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/feel/casing_02.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.24409947815963634
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/feel/casing_03.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.23413875134061563
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/feel/casing_04.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.2357216206247456
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/feel/casing_05.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.2473668305983724
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/feel/casing_01.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.24435731049055898
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/feel/casing_02.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.2408372064044852
+        },
+        {
+          "rel": "sfx/feel/casing_03.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.23975636899437786
+        },
+        {
+          "rel": "sfx/feel/casing_04.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.23925113822925193
+        },
+        {
+          "rel": "sfx/feel/pickup_sniper.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.63
+        },
+        {
+          "rel": "sfx/guns/mosin.mp3",
+          "offset": 0.4,
+          "dur": 1.7,
+          "vol": 0.95
+        },
+        {
+          "rel": "sfx/feel/casing_05.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.2421290377471647
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/GRENADE/grenade_core.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/c-final/GRENADE/grenade_low.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.4
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/SABRE/sabre_motion.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.63
+        },
+        {
+          "rel": "sfx/c-final/SABRE/sabre_cut.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/BATTLE_AXE/axe_motion.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.63
+        },
+        {
+          "rel": "sfx/c-final/BATTLE_AXE/axe_contact.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/c-final/BATTLE_AXE/axe_body.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.4
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/DAGGER/dagger_motion.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.71
+        },
+        {
+          "rel": "sfx/c-final/DAGGER/dagger_contact.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.71
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/SPEAR/spear_motion.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.56
+        },
+        {
+          "rel": "sfx/c-final/SPEAR/spear_impact.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/SPIKED_CLUB/club_swing.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.79
+        },
+        {
+          "rel": "sfx/c-final/SPIKED_CLUB/club_body.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/GRENADE/grenade_core.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/c-final/GRENADE/grenade_low.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.4
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/BATTLE_AXE/axe_motion.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.63
+        },
+        {
+          "rel": "sfx/c-final/BATTLE_AXE/axe_contact.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/c-final/BATTLE_AXE/axe_body.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.4
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/BATTLE_AXE/axe_motion.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.63
+        },
+        {
+          "rel": "sfx/c-final/BATTLE_AXE/axe_contact.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/c-final/BATTLE_AXE/axe_body.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.4
+        },
+        {
+          "rel": "sfx/feel/pickup_sniper.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.63
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/guns/mosin.mp3",
+          "offset": 0.4,
+          "dur": 1.7,
+          "vol": 0.95
+        },
+        {
+          "rel": "sfx/c-final/SWIRL_SHIELD/swirl_shield_block.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/feel/casing_01.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.28
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/TOWER_SHIELD/tower_shield_block.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/feel/pickup_sniper.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.63
+        },
+        {
+          "rel": "sfx/guns/mosin.mp3",
+          "offset": 0.4,
+          "dur": 1.7,
+          "vol": 0.95
+        },
+        {
+          "rel": "sfx/feel/casing_02.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.2503737730573722
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/SNIPER/sniper_bolt_lock.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/SNIPER/sniper_bolt_lock.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/SNIPER/sniper_bolt_lock.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/feel/pickup_sniper.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.63
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/SPIKED_CLUB/club_swing.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.79
+        },
+        {
+          "rel": "sfx/feel/pickup_sniper.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.63
+        },
+        {
+          "rel": "sfx/feel/pickup_pistol.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.62
+        },
+        {
+          "rel": "sfx/guns/cz.mp3",
+          "offset": 0.1,
+          "dur": 0.85,
+          "vol": 0.75
+        },
+        {
+          "rel": "sfx/guns/cz.mp3",
+          "offset": 0.1,
+          "dur": 0.85,
+          "vol": 0.75
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/BATTLE_AXE/axe_motion.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.63
+        },
+        {
+          "rel": "sfx/c-final/BATTLE_AXE/axe_contact.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/c-final/BATTLE_AXE/axe_body.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.4
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/TOWER_SHIELD/tower_shield_block.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/feel/pickup_sniper.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.63
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/guns/mosin.mp3",
+          "offset": 0.4,
+          "dur": 1.7,
+          "vol": 0.95
+        },
+        {
+          "rel": "sfx/c-final/SWIRL_SHIELD/swirl_shield_block.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/scifi/forceField_001.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.18
+        },
+        {
+          "rel": "sfx/rpg/metalClick.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.35
+        },
+        {
+          "rel": "sfx/impact/impactGeneric_light_002.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.12
+        },
+        {
+          "rel": "sfx/c-final/SNIPER/sniper_bolt_lock.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/SNIPER/sniper_bolt_lock.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/SNIPER/sniper_bolt_lock.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/scifi/forceField_001.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.18
+        },
+        {
+          "rel": "sfx/rpg/metalClick.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.35
+        },
+        {
+          "rel": "sfx/impact/impactGeneric_light_002.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.12
+        },
+        {
+          "rel": "sfx/feel/pickup_pistol.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.62
+        },
+        {
+          "rel": "sfx/guns/cz.mp3",
+          "offset": 0.1,
+          "dur": 0.85,
+          "vol": 0.75
+        },
+        {
+          "rel": "sfx/feel/casing_03.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.24993851056275157
+        },
+        {
+          "rel": "sfx/guns/cz.mp3",
+          "offset": 0.1,
+          "dur": 0.85,
+          "vol": 0.75
+        },
+        {
+          "rel": "sfx/feel/pickup_shotgun.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.72
         },
         {
           "rel": "sfx/guns/shotty.mp3",
           "offset": 0,
           "dur": 0.7,
           "vol": 0.95
+        },
+        {
+          "rel": "sfx/feel/rifle_take_02.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.58
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/feel/casing_04.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.24113263088528164
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/feel/casing_05.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.24338804735794112
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/feel/casing_01.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.2417248553361805
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/feel/casing_02.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.24729623421426516
+        },
+        {
+          "rel": "sfx/feel/pickup_sniper.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.63
+        },
+        {
+          "rel": "sfx/guns/mosin.mp3",
+          "offset": 0.4,
+          "dur": 1.7,
+          "vol": 0.95
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/GRENADE/grenade_core.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/c-final/GRENADE/grenade_low.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.4
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/SABRE/sabre_motion.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.63
+        },
+        {
+          "rel": "sfx/c-final/SABRE/sabre_cut.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/BATTLE_AXE/axe_motion.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.63
+        },
+        {
+          "rel": "sfx/c-final/BATTLE_AXE/axe_contact.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/c-final/BATTLE_AXE/axe_body.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.4
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/DAGGER/dagger_motion.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.71
+        },
+        {
+          "rel": "sfx/c-final/DAGGER/dagger_contact.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.71
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/SPEAR/spear_motion.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.56
+        },
+        {
+          "rel": "sfx/c-final/SPEAR/spear_impact.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/c-final/SPIKED_CLUB/club_swing.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.79
+        },
+        {
+          "rel": "sfx/c-final/SPIKED_CLUB/club_body.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 1
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/feel/pickup_pistol.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.62
+        },
+        {
+          "rel": "sfx/rpg/metalLatch.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.42
+        },
+        {
+          "rel": "sfx/feel/pickup_shotgun.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.72
+        },
+        {
+          "rel": "sfx/scifi/forceField_001.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.18
+        },
+        {
+          "rel": "sfx/rpg/metalClick.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.35
+        },
+        {
+          "rel": "sfx/impact/impactGeneric_light_002.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.12
+        },
+        {
+          "rel": "sfx/feel/pickup_pistol.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.62
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/guns/sks.mp3",
+          "offset": 0,
+          "dur": 0.24,
+          "vol": 0.5
+        },
+        {
+          "rel": "sfx/feel/casing_03.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.2731044018745136
+        },
+        {
+          "rel": "sfx/scifi/forceField_001.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.18
+        },
+        {
+          "rel": "sfx/feel/casing_04.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.2575364987822596
+        },
+        {
+          "rel": "sfx/feel/casing_05.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.2544605951550248
+        },
+        {
+          "rel": "sfx/feel/casing_01.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.26669503384438664
+        },
+        {
+          "rel": "sfx/feel/casing_02.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.25355665761081664
+        },
+        {
+          "rel": "sfx/rpg/metalClick.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.35
+        },
+        {
+          "rel": "sfx/impact/impactGeneric_light_002.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.12
+        },
+        {
+          "rel": "sfx/feel/pickup_shotgun.mp3",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.72
+        },
+        {
+          "rel": "sfx/guns/shotty.mp3",
+          "offset": 0,
+          "dur": 0.7,
+          "vol": 0.95
+        },
+        {
+          "rel": "sfx/scifi/forceField_001.ogg",
+          "offset": 0,
+          "dur": null,
+          "vol": 0.18
         },
         {
           "rel": "sfx/feel/shell_03.mp3",
           "offset": 0,
           "dur": null,
-          "vol": 0.243812100454956
+          "vol": 0.259461534938357
         },
         {
-          "rel": "sfx/feel/rifle_take_02.mp3",
+          "rel": "sfx/feel/shell_01.mp3",
           "offset": 0,
           "dur": null,
-          "vol": 0.58
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/feel/casing_04.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.23470427137707062
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/feel/casing_05.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.24408558091275606
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/feel/casing_01.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.24344540970331036
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/feel/casing_02.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2412670178584037
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/feel/casing_03.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2346897387860883
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/feel/casing_04.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.243207925543017
-        },
-        {
-          "rel": "sfx/feel/casing_05.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.23624878782870973
-        },
-        {
-          "rel": "sfx/feel/casing_01.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.242144286211687
-        },
-        {
-          "rel": "sfx/feel/pickup_sniper.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.63
-        },
-        {
-          "rel": "sfx/guns/mosin.mp3",
-          "offset": 0.4,
-          "dur": 1.7,
-          "vol": 0.95
-        },
-        {
-          "rel": "sfx/feel/casing_02.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.24301741740244454
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/GRENADE/grenade_core.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/c-final/GRENADE/grenade_low.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.4
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/SABRE/sabre_motion.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.63
-        },
-        {
-          "rel": "sfx/c-final/SABRE/sabre_cut.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/BATTLE_AXE/axe_motion.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.63
-        },
-        {
-          "rel": "sfx/c-final/BATTLE_AXE/axe_contact.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/c-final/BATTLE_AXE/axe_body.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.4
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/DAGGER/dagger_motion.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.71
-        },
-        {
-          "rel": "sfx/c-final/DAGGER/dagger_contact.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.71
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/SPEAR/spear_motion.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.56
-        },
-        {
-          "rel": "sfx/c-final/SPEAR/spear_impact.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/SPIKED_CLUB/club_swing.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.79
-        },
-        {
-          "rel": "sfx/c-final/SPIKED_CLUB/club_body.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/GRENADE/grenade_core.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/c-final/GRENADE/grenade_low.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.4
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/BATTLE_AXE/axe_motion.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.63
-        },
-        {
-          "rel": "sfx/c-final/BATTLE_AXE/axe_contact.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/c-final/BATTLE_AXE/axe_body.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.4
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/BATTLE_AXE/axe_motion.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.63
-        },
-        {
-          "rel": "sfx/c-final/BATTLE_AXE/axe_contact.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/c-final/BATTLE_AXE/axe_body.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.4
-        },
-        {
-          "rel": "sfx/feel/pickup_sniper.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.63
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/guns/mosin.mp3",
-          "offset": 0.4,
-          "dur": 1.7,
-          "vol": 0.95
-        },
-        {
-          "rel": "sfx/c-final/SWIRL_SHIELD/swirl_shield_block.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/feel/casing_03.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2706058722608922
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/TOWER_SHIELD/tower_shield_block.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/feel/pickup_sniper.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.63
-        },
-        {
-          "rel": "sfx/guns/mosin.mp3",
-          "offset": 0.4,
-          "dur": 1.7,
-          "vol": 0.95
-        },
-        {
-          "rel": "sfx/feel/casing_04.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.247989324654163
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/SHOTGUN/shotgun_rack_push.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.71
-        },
-        {
-          "rel": "sfx/c-final/SNIPER/sniper_bolt_lock.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/SNIPER/sniper_bolt_lock.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/SNIPER/sniper_bolt_lock.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/feel/pickup_sniper.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.63
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/SPIKED_CLUB/club_swing.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.79
-        },
-        {
-          "rel": "sfx/feel/pickup_sniper.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.63
-        },
-        {
-          "rel": "sfx/feel/pickup_pistol.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.62
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/BATTLE_AXE/axe_motion.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.63
-        },
-        {
-          "rel": "sfx/c-final/BATTLE_AXE/axe_contact.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/c-final/BATTLE_AXE/axe_body.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.4
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/TOWER_SHIELD/tower_shield_block.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/feel/pickup_sniper.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.63
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/guns/mosin.mp3",
-          "offset": 0.4,
-          "dur": 1.7,
-          "vol": 0.95
-        },
-        {
-          "rel": "sfx/c-final/SWIRL_SHIELD/swirl_shield_block.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/scifi/forceField_001.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.18
+          "vol": 0.24913537485635173
         },
         {
           "rel": "sfx/rpg/metalClick.ogg",
@@ -9151,640 +9373,10 @@
           "vol": 0.12
         },
         {
-          "rel": "sfx/feel/pickup_pistol.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.62
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
           "rel": "sfx/scifi/forceField_001.ogg",
           "offset": 0,
           "dur": null,
           "vol": 0.18
-        },
-        {
-          "rel": "sfx/rpg/metalClick.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.35
-        },
-        {
-          "rel": "sfx/impact/impactGeneric_light_002.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.12
-        },
-        {
-          "rel": "sfx/feel/rifle_take_04.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.62
-        },
-        {
-          "rel": "sfx/feel/casing_05.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.24941500786246507
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/feel/casing_01.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2622372832168902
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/feel/casing_02.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.26206140357855023
-        },
-        {
-          "rel": "sfx/feel/casing_03.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2524281090794961
-        },
-        {
-          "rel": "sfx/scifi/forceField_001.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.18
-        },
-        {
-          "rel": "sfx/feel/casing_04.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.25490576754278416
-        },
-        {
-          "rel": "sfx/c-final/SNIPER/sniper_bolt_lock.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/SNIPER/sniper_bolt_lock.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/SNIPER/sniper_bolt_lock.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/scifi/forceField_001.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.18
-        },
-        {
-          "rel": "sfx/rpg/metalClick.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.35
-        },
-        {
-          "rel": "sfx/impact/impactGeneric_light_002.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.12
-        },
-        {
-          "rel": "sfx/feel/pickup_pistol.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.62
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/feel/casing_05.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.24302043141551366
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/feel/pickup_shotgun.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.72
-        },
-        {
-          "rel": "sfx/guns/shotty.mp3",
-          "offset": 0,
-          "dur": 0.7,
-          "vol": 0.95
-        },
-        {
-          "rel": "sfx/feel/rifle_take_02.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.58
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/feel/casing_01.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2400674526224899
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/feel/casing_02.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.24252077586795145
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/feel/casing_03.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2399403448400258
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/feel/pickup_sniper.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.63
-        },
-        {
-          "rel": "sfx/guns/mosin.mp3",
-          "offset": 0.4,
-          "dur": 1.7,
-          "vol": 0.95
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/GRENADE/grenade_core.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/c-final/GRENADE/grenade_low.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.4
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/SABRE/sabre_motion.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.63
-        },
-        {
-          "rel": "sfx/c-final/SABRE/sabre_cut.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/BATTLE_AXE/axe_motion.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.63
-        },
-        {
-          "rel": "sfx/c-final/BATTLE_AXE/axe_contact.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/c-final/BATTLE_AXE/axe_body.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.4
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/DAGGER/dagger_motion.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.71
-        },
-        {
-          "rel": "sfx/c-final/DAGGER/dagger_contact.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.71
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/SPEAR/spear_motion.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.56
-        },
-        {
-          "rel": "sfx/c-final/SPEAR/spear_impact.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/c-final/SPIKED_CLUB/club_swing.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.79
-        },
-        {
-          "rel": "sfx/c-final/SPIKED_CLUB/club_body.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 1
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/feel/pickup_pistol.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.62
-        },
-        {
-          "rel": "sfx/rpg/metalLatch.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.42
-        },
-        {
-          "rel": "sfx/feel/pickup_shotgun.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.72
-        },
-        {
-          "rel": "sfx/scifi/forceField_001.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.18
-        },
-        {
-          "rel": "sfx/rpg/metalClick.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.35
-        },
-        {
-          "rel": "sfx/impact/impactGeneric_light_002.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.12
-        },
-        {
-          "rel": "sfx/feel/pickup_pistol.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.62
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/feel/casing_04.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.23393295206800108
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/feel/casing_05.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.24379285070035495
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/feel/casing_01.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.24046547448940464
-        },
-        {
-          "rel": "sfx/scifi/forceField_001.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.18
-        },
-        {
-          "rel": "sfx/feel/casing_02.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.23935157069456486
-        },
-        {
-          "rel": "sfx/rpg/metalClick.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.35
-        },
-        {
-          "rel": "sfx/impact/impactGeneric_light_002.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.12
-        },
-        {
-          "rel": "sfx/feel/rifle_take_04.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.62
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/feel/casing_03.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2539969462968359
-        },
-        {
-          "rel": "sfx/guns/sks.mp3",
-          "offset": 0,
-          "dur": 0.24,
-          "vol": 0.5
-        },
-        {
-          "rel": "sfx/feel/casing_04.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2550111791961115
-        },
-        {
-          "rel": "sfx/scifi/forceField_001.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.18
-        },
-        {
-          "rel": "sfx/feel/casing_05.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2556153787754912
-        },
-        {
-          "rel": "sfx/feel/casing_01.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.25927788918694644
-        },
-        {
-          "rel": "sfx/rpg/metalClick.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.35
-        },
-        {
-          "rel": "sfx/impact/impactGeneric_light_002.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.12
-        },
-        {
-          "rel": "sfx/feel/pickup_pistol.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.62
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/feel/casing_02.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2481596775317338
-        },
-        {
-          "rel": "sfx/feel/casing_03.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.24824341244357306
-        },
-        {
-          "rel": "sfx/feel/casing_04.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.23970930184745426
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/guns/cz.mp3",
-          "offset": 0.1,
-          "dur": 0.85,
-          "vol": 0.75
-        },
-        {
-          "rel": "sfx/scifi/forceField_001.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.18
-        },
-        {
-          "rel": "sfx/feel/casing_05.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2334237421017471
-        },
-        {
-          "rel": "sfx/feel/casing_01.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2398044254904138
-        },
-        {
-          "rel": "sfx/feel/casing_02.mp3",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.2351655920905426
-        },
-        {
-          "rel": "sfx/rpg/metalClick.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.35
-        },
-        {
-          "rel": "sfx/impact/impactGeneric_light_002.ogg",
-          "offset": 0,
-          "dur": null,
-          "vol": 0.12
         },
         {
           "rel": "sfx/scifi/forceField_001.ogg",
@@ -9824,13 +9416,10 @@
         }
       ],
       "throttled": {
-        "notReady": 106,
+        "notReady": 111,
         "sfx/c-final/SNIPER/sniper_bolt_lock.mp3": 3,
         "sfx/guns/sks.mp3": 5,
-        "sfx/scifi/forceField_001.ogg": 3,
-        "sfx/guns/cz.mp3": 6,
-        "sfx/rpg/metalClick.ogg": 1,
-        "sfx/impact/impactGeneric_light_002.ogg": 1
+        "sfx/scifi/forceField_001.ogg": 2
       },
       "imagesLoaded": 45,
       "imagesFailed": 0,
@@ -9838,20 +9427,20 @@
       "audioFailed": 0,
       "active": 0,
       "peak": 13,
-      "floorSpriteDraws": 5,
+      "floorSpriteDraws": 6,
       "equippedSpriteDraws": 25
     }
   },
   "fiveMinute": {
     "error": null,
-    "koCount": 6,
-    "restarts": 6,
-    "spawnedTotal": 14,
-    "spawnedCumulative": 90,
+    "koCount": 7,
+    "restarts": 7,
+    "spawnedTotal": 2,
+    "spawnedCumulative": 92,
     "leadSamplesFixedOne": true,
-    "leadSampleCount": 6021,
+    "leadSampleCount": 5875,
     "earlyErrors": [],
-    "wallClockMs": 2586
+    "wallClockMs": 3271
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -9956,8 +9545,8 @@
     ],
     "nativeProj": 2,
     "hp": [
-      893.3756799999998,
-      970.0624
+      997.70368,
+      1000
     ],
     "rage": false
   },
@@ -10127,7 +9716,7 @@
     "dashed": true,
     "cdAfter": 9.683333333333318,
     "slot": 2,
-    "x": 745.8888888888889
+    "x": 718.2952439538503
   },
   "postCText": {
     "noZ": true,
@@ -10240,8 +9829,8 @@
     "holder": null
   },
   "gapMuzzle": {
-    "bx": 630.2,
-    "by": 481.2,
+    "bx": 630,
+    "by": 471.1,
     "mx": 416.7,
     "my": 479.5,
     "usedMeta": true
@@ -10291,12 +9880,12 @@
     "p90Gone": true
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=1 x=839 y=598 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=1 weapon=JACKHAMMER eta=null lead=2.00 fighter=TIMEOUT force=true",
-    "PICKUP": "[AQ] PICKUP id=2 fighter=ICE weapon=JACKHAMMER",
-    "USE": "[AQ] USE fighter=ICE weapon=JACKHAMMER",
-    "HIT": "[AQ] HIT source=ICE target=RUBBER weapon=JACKHAMMER damage=16.8",
-    "CONSUME": "[AQ] CONSUME fighter=ICE weapon=JACKHAMMER reason=sequence-complete"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=1 x=601 y=776 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=1 weapon=MAGNUM_500 eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "PICKUP": "[AQ] PICKUP id=1 fighter=ICE weapon=MAGNUM_500",
+    "USE": "[AQ] USE fighter=ICE weapon=MAGNUM_500",
+    "CONSUME": "[AQ] CONSUME fighter=ICE weapon=MAGNUM_500 reason=sequence-complete",
+    "HIT": "[AQ] HIT source=ICE target=RUBBER weapon=MAGNUM_500 damage=294.0"
   },
   "rev2Scale": {
     "scale": 0.55,
@@ -10398,7 +9987,7 @@
     },
     "spawnLand": 0,
     "after": 1,
-    "envelopes": 162
+    "envelopes": 145
   },
   "rev2Melee": {
     "BATTLE_AXE": 1,
@@ -10591,14 +10180,14 @@
     "api": true,
     "globalApi": false,
     "buildsA": 1,
-    "drawsA": 140,
+    "drawsA": 141,
     "buildsB": 1,
-    "drawsB": 141,
-    "hitsB": 140,
+    "drawsB": 142,
+    "hitsB": 141,
     "usedCache": true,
     "afterSink": 0,
-    "skillWrites": 5,
-    "debugWrites": 13,
+    "skillWrites": 6,
+    "debugWrites": 10,
     "winWrites": 1,
     "winWritesBefore": 0,
     "sections": [
@@ -10615,14 +10204,14 @@
     ],
     "peaks": {
       "slots": 5,
-      "particles": 419,
+      "particles": 366,
       "shockwaves": 5,
       "aqProjectiles": 13,
-      "projectiles": 17,
+      "projectiles": 13,
       "arsenalVfx": 22,
       "detachedWeapons": 2,
-      "stormBolts": 16,
-      "stormSparks": 36
+      "stormBolts": 13,
+      "stormSparks": 44
     },
     "size": 1000
   },
@@ -10681,7 +10270,7 @@
     },
     "lastShell": {
       "key": "shotgun_shell_land",
-      "rel": "sfx/feel/shell_01.mp3",
+      "rel": "sfx/feel/shell_02.mp3",
       "shotgun": true
     },
     "atlasSrc": "/assets/arsenal/feel/damage/damage1.png",
@@ -10698,7 +10287,7 @@
     "lands2": 3,
     "lastCasing": {
       "key": "casing_land",
-      "rel": "sfx/feel/casing_03.mp3",
+      "rel": "sfx/feel/casing_04.mp3",
       "shotgun": false
     },
     "healEnabled": true,
@@ -10716,7 +10305,7 @@
       280,
       385
     ],
-    "organic": 1477,
+    "organic": 1672,
     "dmgPal": "#F2382F",
     "lastPalette": "#F2382F",
     "floating": 0
@@ -10725,8 +10314,8 @@
     "b0": 3,
     "b1": 4,
     "b2": 4,
-    "d": 7,
-    "h": 3,
+    "d": 8,
+    "h": 4,
     "reuse": true
   },
   "healPlay": {
@@ -10744,7 +10333,7 @@
     "noSecond": 0,
     "hud": "896.0 / 1000",
     "healed": 196,
-    "organic": 1477
+    "organic": 1672
   },
   "atlasPixels": {
     "dmg": {
@@ -10788,12 +10377,12 @@
     "afterOneArmed": 2,
     "armedBefore": 2,
     "retrigBefore": 2,
-    "retrigAfter": 2,
-    "retrigTimer": 2.48,
-    "sameBefore": 2,
-    "sameAfter": 3,
-    "koBefore": 3,
-    "koAfter": 3,
+    "retrigAfter": 3,
+    "retrigTimer": 4.48,
+    "sameBefore": 3,
+    "sameAfter": 4,
+    "koBefore": 4,
+    "koAfter": 4,
     "t0": 0.016666666666666666
   },
   "v3Emergency": {
@@ -10927,18 +10516,18 @@
   },
   "v3Perf": {
     "interpolation": false,
-    "chamberHits": 177,
+    "chamberHits": 178,
     "feel": {
-      "stamps": 193,
-      "stainDraws": 178,
-      "sprayPeak": 562,
-      "sprayReuse": 5961,
+      "stamps": 217,
+      "stainDraws": 179,
+      "sprayPeak": 554,
+      "sprayReuse": 6120,
       "popupReuse": 469
     },
     "hud": {
-      "skillWrites": 8,
+      "skillWrites": 10,
       "winWrites": 1,
-      "debugWrites": 18
+      "debugWrites": 15
     }
   },
   "v3GunAudit": {
@@ -11169,7 +10758,7 @@
   },
   "v1Blood": {
     "shots": 28,
-    "legacyStampsBefore": 220,
+    "legacyStampsBefore": 244,
     "normalCounts": {
       "cores": 1,
       "streaks": 4,
@@ -11208,11 +10797,11 @@
     "grenadeV1Untouched": true,
     "sustained": {
       "hits": 24,
-      "sprayPeak": 562,
+      "sprayPeak": 554,
       "decals": 24,
-      "lands": 7588,
-      "dropsSkipped": 18,
-      "microSkipped": 1438
+      "lands": 7251,
+      "dropsSkipped": 0,
+      "microSkipped": 1740
     },
     "sustainedAllHit": true,
     "sustainedBounded": true,
@@ -11264,7 +10853,7 @@
       "microLive": true,
       "noneAged": true,
       "stainStamped": true,
-      "renderedV1Pixels": 610,
+      "renderedV1Pixels": 559,
       "ok": true
     },
     "auto1": [
@@ -11304,7 +10893,7 @@
       "dmg:16"
     ]
   },
-  "stormIdentity": "{\"tier\":\"T6\",\"color\":\"#FF4D5A\",\"rollT6\":0.02,\"rollSum\":1,\"inPool\":true,\"isMelee\":false,\"isGun\":false,\"glowT6\":{\"rx\":78,\"ry\":22,\"a\":0.72,\"pulse\":0.32,\"shimmer\":true},\"glowT5\":{\"rx\":60,\"ry\":17,\"a\":0.58,\"pulse\":0.26,\"shimmer\":true},\"shield\":\"TOWER_SHIELD\",\"spec\":{\"damage\":52,\"knockback\":900,\"stun\":1,\"shake\":15,\"hitStop\":0.08,\"exit\":\"stormRelease\"},\"tuning\":{\"slowMult\":0.54,\"slowRefreshSeconds\":0.12,\"windupSeconds\":0.28,\"readyDelaySeconds\":0.45,\"throwSpeed\":1350,\"spinRate\":82,\"stunSeconds\":1,\"spawnLongSide\":261,\"heldLongSide\":224,\"flightLongSide\":209,\"worldLongSide\":209,\"floorLongSide\":261,\"floorAngleRad\":4.71238898038469,\"flightVisualOffsetRad\":3.141592653589793},\"speed\":1350,\"ricochets\":1,\"spin\":82,\"cSet\":{\"id\":\"STORMBREAKER\",\"file\":\"weapons/c/STORMBREAKER.webp\",\"w\":1086,\"h\":1448},\"vfxModule\":true}",
+  "stormIdentity": "{\"tier\":\"T6\",\"color\":\"#FF4D5A\",\"rollT6\":0.02,\"rollSum\":1,\"inPool\":true,\"isMelee\":false,\"isGun\":false,\"glowT6\":{\"rx\":78,\"ry\":22,\"a\":0.72,\"pulse\":0.32,\"shimmer\":true},\"glowT5\":{\"rx\":60,\"ry\":17,\"a\":0.58,\"pulse\":0.26,\"shimmer\":true},\"shield\":\"TOWER_SHIELD\",\"spec\":{\"confirmedHitDamage\":446,\"knockback\":900,\"stun\":2,\"shake\":15,\"hitStop\":0.08,\"exit\":\"stormRelease\"},\"tuning\":{\"windupSeconds\":0.28,\"readyDelaySeconds\":0.45,\"throwSpeed\":1350,\"spinRate\":82,\"stunSeconds\":2,\"maxFlightSeconds\":2.2,\"spawnLongSide\":261,\"heldLongSide\":224,\"flightLongSide\":209,\"worldLongSide\":209,\"floorLongSide\":261,\"floorAngleRad\":4.71238898038469,\"flightVisualOffsetRad\":3.141592653589793},\"speed\":1350,\"ricochets\":1,\"spin\":82,\"cSet\":{\"id\":\"STORMBREAKER\",\"file\":\"weapons/c/STORMBREAKER.webp\",\"w\":1086,\"h\":1448},\"vfxModule\":true}",
   "stormRoll": {
     "storm": 420,
     "rate": 0.021,
@@ -11322,7 +10911,7 @@
   },
   "stormImpact": {
     "heroHolder": null,
-    "rivalHp": 454,
+    "rivalHp": 554,
     "sawPush": true,
     "sawStun": true,
     "stormProjCount": 0,
@@ -11334,7 +10923,13 @@
     "heroHp": 1000,
     "exitSeen": true,
     "removed": true,
+    "exitFrame": 65,
+    "removedFrame": 87,
+    "dirChanges": 3,
+    "vyAtExit": -140,
+    "vyLater": 160,
     "hitEvents": 0,
+    "maxFlightLogged": 0,
     "ricochetEvents": 1,
     "stormProjLeft": 0
   },
@@ -11342,7 +10937,7 @@
     {
       "c": 0,
       "pickedUp": 0,
-      "heroHp": 454,
+      "heroHp": 554,
       "sawStun": true,
       "projLeft": 0,
       "rivalHolder": null,
@@ -11351,7 +10946,7 @@
     {
       "c": 1,
       "pickedUp": 0,
-      "heroHp": 454,
+      "heroHp": 554,
       "sawStun": true,
       "projLeft": 0,
       "rivalHolder": null,
@@ -11360,7 +10955,7 @@
     {
       "c": 2,
       "pickedUp": 0,
-      "heroHp": 454,
+      "heroHp": 554,
       "sawStun": true,
       "projLeft": 0,
       "rivalHolder": null,
@@ -11368,14 +10963,14 @@
     }
   ],
   "stormSlow": {
-    "slowHero": true,
-    "slowRival": true,
-    "mult": 0.54,
+    "slowHero": false,
+    "slowRival": false,
+    "mult": null,
     "slowHeroAfter": false,
     "slowRivalAfter": false
   },
-  "stormVfx": "{\"floorBolts\":6,\"floorSparks\":2,\"profile\":{\"spawnPairCount\":13,\"flightLinkCount\":10,\"snapCount\":4,\"rawAnchorCount\":9,\"anchorTransform\":\"ref-landscape-to-game-portrait-90cw\",\"floorAngleRad\":4.71238898038469,\"flightVisualOffsetRad\":3.141592653589793,\"spawnLongSide\":261,\"heldLongSide\":224,\"flightLongSide\":209,\"slowMult\":0.54,\"spinRate\":82,\"motesEnabled\":true,\"ringRenderer\":\"v9-local\",\"genericShockwaveSubstitution\":false,\"flightPresentationOwner\":\"storm-vfx\",\"ghostOffsetsSeconds\":[0.04,0.02,0],\"releaseBoltSeconds\":0.11,\"flightWidths\":[4.1,1.55,0.62],\"spawnStrongEvery\":3,\"longTail\":false},\"spawnWebBursts\":253,\"after\":{\"impacts\":1,\"bolts\":11,\"sparks\":37,\"trailEntities\":false,\"spawnTracked\":1},\"cleared\":{\"bolts\":0,\"impacts\":0,\"spawns\":0}}",
-  "stormPerf": "{\"baselineFrameMs\":0.35,\"stormFrameMs\":2.062,\"deltaMs\":1.712,\"sections\":{\"simulation\":{\"n\":27753,\"avgMs\":0.181,\"maxMs\":14.872},\"background\":{\"n\":735,\"avgMs\":0.218,\"maxMs\":14.602},\"foreground\":{\"n\":730,\"avgMs\":0.007,\"maxMs\":0.334},\"arsenalVfxDraw\":{\"n\":730,\"avgMs\":0.002,\"maxMs\":0.186},\"stormVfxDraw\":{\"n\":730,\"avgMs\":0.392,\"maxMs\":9.415},\"arsenalFrame\":{\"n\":730,\"avgMs\":1.365,\"maxMs\":141.891}},\"peaks\":{\"stormBolts\":23,\"stormSparks\":49,\"shockwaves\":5,\"particles\":419,\"projectiles\":17,\"arsenalVfx\":22},\"stormModuleStats\":{\"frames\":309,\"boltsPeak\":23,\"sparksPeak\":49,\"throws\":11,\"impacts\":8,\"trailEntities\":0}}",
+  "stormVfx": "{\"floorBolts\":11,\"floorSparks\":14,\"profile\":{\"spawnPairCount\":13,\"flightLinkCount\":10,\"snapCount\":4,\"rawAnchorCount\":9,\"anchorTransform\":\"ref-landscape-to-game-portrait-90cw\",\"floorAngleRad\":4.71238898038469,\"flightVisualOffsetRad\":3.141592653589793,\"spawnLongSide\":261,\"heldLongSide\":224,\"flightLongSide\":209,\"spinRate\":82,\"motesEnabled\":true,\"ringRenderer\":\"v9-local\",\"genericShockwaveSubstitution\":false,\"flightPresentationOwner\":\"storm-vfx\",\"ghostOffsetsSeconds\":[0.04,0.02,0],\"releaseBoltSeconds\":0.11,\"flightWidths\":[4.1,1.55,0.62],\"spawnStrongEvery\":3,\"longTail\":false},\"spawnWebBursts\":43,\"after\":{\"impacts\":1,\"bolts\":22,\"sparks\":50,\"trailEntities\":false,\"spawnTracked\":1},\"cleared\":{\"bolts\":0,\"impacts\":0,\"spawns\":0}}",
+  "stormPerf": "{\"baselineFrameMs\":0.62,\"stormFrameMs\":2.397,\"deltaMs\":1.777,\"sections\":{\"simulation\":{\"n\":27753,\"avgMs\":0.242,\"maxMs\":19.417},\"background\":{\"n\":736,\"avgMs\":0.272,\"maxMs\":21.615},\"foreground\":{\"n\":731,\"avgMs\":0.011,\"maxMs\":0.914},\"arsenalVfxDraw\":{\"n\":731,\"avgMs\":0.003,\"maxMs\":0.314},\"stormVfxDraw\":{\"n\":731,\"avgMs\":0.47,\"maxMs\":16.211},\"arsenalFrame\":{\"n\":731,\"avgMs\":1.858,\"maxMs\":150.024}},\"peaks\":{\"stormBolts\":21,\"stormSparks\":49,\"shockwaves\":5,\"particles\":424,\"projectiles\":13,\"arsenalVfx\":22},\"stormModuleStats\":{\"frames\":309,\"boltsPeak\":22,\"sparksPeak\":50,\"throws\":10,\"impacts\":8,\"trailEntities\":0}}",
   "labV1": {
     "tiles": [
       "free",
@@ -11464,7 +11059,7 @@
     },
     "hits": 3,
     "damage": 94.5,
-    "popups": 3,
+    "popups": 2,
     "hpBefore": {
       "hero": 1000,
       "rival": 1000,
@@ -11482,7 +11077,6 @@
       "hits": 4,
       "damage": 1694.5,
       "numbers": [
-        "32",
         "32",
         "32",
         "1600"

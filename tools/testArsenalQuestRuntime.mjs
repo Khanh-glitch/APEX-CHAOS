@@ -2262,7 +2262,7 @@ try {
     __AQ_TEST.redraw();
     const s1 = { floor: APEX_ARSENAL_AV.stats.floorSpriteDraws, equipped: APEX_ARSENAL_AV.stats.equippedSpriteDraws };
     out.render = { imgOk: !!(img.img && img.img.complete && img.img.width), imgW: img.img && img.img.width, imgH: img.img && img.img.height, floorDelta: s1.floor - s0.floor, equippedDelta: s1.equipped - s0.equipped };
-    // Screenshot: unclaimed floor — arena lightning, spawn aura, slow rings.
+    // Screenshot: unclaimed floor — arena lightning + spawn aura (no global slow).
     __AQ_TEST.step(0.15);
     __AQ_TEST.redraw();
     return JSON.stringify(out);
@@ -2293,8 +2293,8 @@ try {
   })()`);
   report.evidence.push(await screenshot('10b-storm-held-windup'));
 
-  // Confirmed hit: 546 damage (52 x 1.5 x 7), real stun, knockback status,
-  // weapon vanishes (no pin). Frame-poll the 0.18s push inside the stun.
+  // Confirmed hit: final-authority 446 damage (no scale ride), real stun,
+  // knockback status, weapon vanishes (no pin). Frame-poll the 0.18s push.
   report.stormHit = await evaluate(`(() => {
     __AQ_TEST.enterManual();
     __AQ_TEST.clearEvents();
@@ -2314,8 +2314,8 @@ try {
     const impactLogged = __AQ_TEST.countEvents('STORM_IMPACT') >= 1;
     return { rivalHp, sawPush, sawStun, stormProj, impactLogged, heroHolder: __AQ_TEST.holder('HERO') };
   })()`);
-  gate('storm-browser-hit-546-stun-no-pin',
-    report.stormHit.rivalHp === 454 && report.stormHit.sawStun === true
+  gate('storm-browser-hit-446-stun-no-pin',
+    report.stormHit.rivalHp === 554 && report.stormHit.sawStun === true
     && report.stormHit.sawPush === true && report.stormHit.stormProj === 0
     && report.stormHit.impactLogged === true && report.stormHit.heroHolder === null,
     report.stormHit);
@@ -2346,7 +2346,8 @@ try {
   })()`);
   report.evidence.push(await screenshot('10d-storm-flight-spin-ghosts'));
 
-  // Global slow: literal V9 0.54x while unclaimed, clean on pickup.
+  // B1 owner correction: no global slow while unclaimed — the unclaimed storm
+  // must not debuff either fighter's movement; nothing may linger after.
   report.stormSlow = await evaluate(`(() => {
     __AQ_TEST.enterManual();
     __AQ_TEST.place(200, 300, 800, 300);
@@ -2364,10 +2365,10 @@ try {
       slowRivalAfter: __AQ_TEST.statuses('RIVAL').includes('slow'),
     };
   })()`);
-  gate('storm-browser-floor-slows-both',
-    report.stormSlow.slowHero === true && report.stormSlow.slowRival === true && report.stormSlow.mult === 0.54,
+  gate('storm-browser-floor-no-global-slow',
+    report.stormSlow.slowHero === false && report.stormSlow.slowRival === false && report.stormSlow.mult === null,
     report.stormSlow);
-  gate('storm-browser-slow-clean-removal',
+  gate('storm-browser-no-slow-status-lingers',
     report.stormSlow.slowHeroAfter === false && report.stormSlow.slowRivalAfter === false,
     report.stormSlow);
 
@@ -2537,7 +2538,6 @@ try {
     && report.labFlight.refProfile?.spawnLongSide===261
     && report.labFlight.refProfile?.heldLongSide===224
     && report.labFlight.refProfile?.flightLongSide===209
-    && report.labFlight.refProfile?.slowMult===0.54
     && report.labFlight.refProfile?.spinRate===82
     && report.labFlight.refProfile?.motesEnabled===true, report.labFlight);
   report.labPigment = await evaluate(`(() => {

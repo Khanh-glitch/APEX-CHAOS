@@ -850,7 +850,6 @@
       spawnLongSide: T.spawnLongSide || 261,
       heldLongSide: T.heldLongSide || 224,
       flightLongSide: T.flightLongSide || 209,
-      slowMult: T.slowMult || 0.54,
       spinRate: T.spinRate || 82,
       motesEnabled: true,
       ringRenderer: 'v9-local',

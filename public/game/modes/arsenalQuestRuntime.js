@@ -290,19 +290,10 @@
         SPAWN.trySpawnSlot();
       }
       SPAWN.updateSlots(dt);
-      // STORMBREAKER global state (red-tier V1): while the weapon sits
-      // unclaimed on the floor, BOTH living fighters are slowed. Standard
-      // engine 'slow' status, refreshed per frame (TOWER_SHIELD precedent) —
-      // removal is clean because the refresh stops the moment the slot leaves
-      // REVEALED (pickup or expire), after which the timer simply runs out.
-      const stormFloor = !!(state.slots || []).some((s) => s.phase === 'REVEALED' && s.weaponId === 'STORMBREAKER');
-      if (stormFloor) {
-        const slowMult = (CFG.STORMBREAKER && CFG.STORMBREAKER.slowMult) || 0.70;
-        const slowT = (CFG.STORMBREAKER && CFG.STORMBREAKER.slowRefreshSeconds) || 0.12;
-        for (const f of fighters) {
-          if (f && f.hp > 0 && f.applyStatus) f.applyStatus('slow', slowT, { mult: slowMult });
-        }
-      }
+      // B1 owner correction: the unclaimed STORMBREAKER no longer applies a
+      // GLOBAL slow to both fighters while it sits on the floor. The danger
+      // read is local (floor lightning VFX around the slot itself) and the
+      // threat is the committed release — not an arena-wide movement debuff.
       // POST-C §6: P1 cooldown-only skills wait for J. Gate wraps P1 update
       // only; P2 keeps automatic kit behavior.
       const gate = window.APEX_ARSENAL_SKILL_GATE;
