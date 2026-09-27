@@ -3261,7 +3261,9 @@ try {
     out.masterInMatch = state().masterGain;
     // AV hot-bank decode must finish first: playEntry() no-ops (notReady)
     // on undecoded buffers, which would make the SFX-live evidence racy.
-    for (let i = 0; i < 60 && !APEX_ARSENAL_AV.audioReady(); i++) await sleep(150);
+    // 15s budget: cold dev-server runs (module graph recompiling) can push
+    // the 50-clip decode past the old 9s budget.
+    for (let i = 0; i < 100 && !APEX_ARSENAL_AV.audioReady(); i++) await sleep(150);
     // (2) Stormbreaker mid-flight + a registered LOOPING source, then exit
     //     mid-flight with a scheduled old-session cue still PENDING.
     const playedAtEquip = window.APEX_ARSENAL_AV.stats.played;
@@ -3322,6 +3324,13 @@ try {
     // Settle-poll: the menu music resume is async — a single read races it.
     let bgmAfter = window.__apexMenuBgmState();
     for (let i = 0; i < 24 && bgmAfter.paused; i++) { await sleep(75); bgmAfter = window.__apexMenuBgmState(); }
+    // CP7: a transient pause at the handoff must heal on the next user
+    // interaction (the unlock listener is re-armed) — assert that
+    // user-level recovery too, not just the immediate resume.
+    if (bgmAfter.paused) {
+      window.dispatchEvent(new Event('pointerdown'));
+      for (let i = 0; i < 12 && bgmAfter.paused; i++) { await sleep(75); bgmAfter = window.__apexMenuBgmState(); }
+    }
     out.bgmAfter = bgmAfter;
     return JSON.stringify(out);
   })()`);

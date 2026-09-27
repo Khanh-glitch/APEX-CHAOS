@@ -525,11 +525,20 @@ export default function App() {
     }
   };
 
-  const playMenuMusic = (restart = false) => {
+  const playMenuMusic = (restart = false, attempts = 0) => {
     const audio = menuAudioRef.current;
     if (!audio) return;
     if (!menuMusicAllowed()) {
       audio.pause();
+      // CP7 self-healing resume: the exit-to-menu handoff is fire-once — if
+      // the menu screen was not yet visible at that instant (screen swap,
+      // transient blur/hidden state on slow machines) the menu stayed silent
+      // with no retry. Retry briefly; never fight a real background-tab
+      // pause (document.hidden) or the battle-audio session (independent
+      // element, CP6).
+      if (attempts < 8 && !document.hidden) {
+        setTimeout(() => playMenuMusic(restart, attempts + 1), 250);
+      }
       return;
     }
     if (restart) {
@@ -569,6 +578,11 @@ export default function App() {
     window.apexStopMenuMusic = (reset = false) => stopMenuMusic(reset);
     window.apexPlayMenuMusic = (restart = false) => playMenuMusic(restart);
 
+    // CP7: re-armed on every interaction (NOT once) — if a resume was ever
+    // missed (transient blur/hidden state at the exit-to-menu handoff), the
+    // next click/keypress heals the menu music instead of leaving the menu
+    // silent for the rest of the session. playMenuMusic no-ops when already
+    // playing or when no menu screen is visible.
     const unlock = () => playMenuMusic(false);
     const pauseForHiddenTab = () => {
       const current = menuAudioRef.current;
@@ -590,8 +604,8 @@ export default function App() {
       if (document.hidden) pauseForHiddenTab();
       else resumeForVisibleTab();
     };
-    window.addEventListener('pointerdown', unlock, { once: true });
-    window.addEventListener('keydown', unlock, { once: true });
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('blur', pauseForHiddenTab);
     window.addEventListener('focus', resumeForVisibleTab);
