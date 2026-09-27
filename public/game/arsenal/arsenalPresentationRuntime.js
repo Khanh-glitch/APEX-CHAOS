@@ -242,9 +242,27 @@
     ...SHELL_VARS.map((a) => a.rel),
   ]));
 
-  function preload() {
-    for (const rel of ALL_IMAGES) getImg(rel);
-    for (const rel of ALL_AUDIO) loadAudio(rel);
+  function preload(opts) {
+    const noImages = !!(opts && opts.images === false);
+    const noAudio = !!(opts && opts.audio === false);
+    if (!noImages) for (const rel of ALL_IMAGES) getImg(rel);
+    if (!noAudio) for (const rel of ALL_AUDIO) loadAudio(rel);
+  }
+  // CP7 (owner playtest round 4): the combat shell used to mount while this
+  // runtime's async init (image fetch/decode) was still at zero — the arena
+  // looked broken until loading finished. These readiness probes back the
+  // gameplay-ready barrier in arsenalQuestConfig.js.
+  function imagesTotal() { return ALL_IMAGES.length; }
+  function imagesSettled() { return stats.imagesLoaded + stats.imagesFailed >= ALL_IMAGES.length; }
+  function whenImagesReady(timeoutMs = 8000) {
+    return new Promise((resolve) => {
+      const startedAt = Date.now();
+      const poll = () => {
+        if (imagesSettled() || Date.now() - startedAt > timeoutMs) resolve(imagesSettled());
+        else setTimeout(poll, 50);
+      };
+      poll();
+    });
   }
   // Audio 2B: promise form — resolves once every HOT-bank clip has decoded
   // (or failed). Idempotent; used by warmup integration and browser gates.
@@ -877,6 +895,9 @@
     tick,
     draw,
     preload,
+    imagesTotal,
+    imagesSettled,
+    whenImagesReady,
     warmAudio,
     audioStatus,
     clear,

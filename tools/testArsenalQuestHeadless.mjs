@@ -306,6 +306,14 @@ const run = expr => win.eval(`(() => { ${expr} })()`);
 
 fs.mkdirSync(evidenceDir, { recursive: true });
 
+// CP7: this harness loads every runtime directly — the runtimeLoader group
+// flags the gameplay-ready barrier reads never exist here. Declare the group
+// state only (the harness's own wait loop above still ensures the real AV
+// image/audio loads settle; the browser suite owns the true barrier
+// coverage).
+win['__apexDeferredRuntimesReady_arsenalQuest'] = true;
+win['__apexDeferredRuntimesReady_select'] = true;
+
 // ------------------------------------------------------- gate: registration
 gate('runtime-registered',
   typeof win.startArsenalQuestMode === 'function'

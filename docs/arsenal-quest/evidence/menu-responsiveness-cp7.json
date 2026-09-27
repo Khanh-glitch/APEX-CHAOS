@@ -1,0 +1,210 @@
+{
+  "label": "run",
+  "appUrl": "http://127.0.0.1:4173",
+  "sampledForMs": 10000,
+  "startedAtPageMs": 789,
+  "frames": {
+    "samples": 414,
+    "avgMs": 18.72,
+    "medianMs": 16.7,
+    "p95Ms": 16.8,
+    "p99Ms": 100,
+    "maxMs": 216.6,
+    "fps": 53.4,
+    "slowFrames": 9,
+    "buckets": {
+      "le16_7": 383,
+      "gt16_7_20": 22,
+      "gt20_25": 0,
+      "gt25_33": 0,
+      "gt33_50": 1,
+      "gt50": 8
+    },
+    "bucketPct": {
+      "le16_7": 92.5,
+      "gt16_7_20": 5.3,
+      "gt20_25": 0,
+      "gt25_33": 0,
+      "gt33_50": 0.2,
+      "gt50": 1.9
+    }
+  },
+  "longTasks": {
+    "count": 7,
+    "totalMs": 809,
+    "longestMs": 147,
+    "withOverlap": [
+      {
+        "atMs": 2935.2,
+        "durationMs": 76,
+        "overlappingRuntimes": [
+          "arsenalStormbreakerVfxRuntime.js"
+        ]
+      },
+      {
+        "atMs": 3607.9,
+        "durationMs": 143,
+        "overlappingRuntimes": []
+      },
+      {
+        "atMs": 3856,
+        "durationMs": 101,
+        "overlappingRuntimes": []
+      },
+      {
+        "atMs": 4089.9,
+        "durationMs": 120,
+        "overlappingRuntimes": []
+      },
+      {
+        "atMs": 4339.7,
+        "durationMs": 103,
+        "overlappingRuntimes": []
+      },
+      {
+        "atMs": 4556.1,
+        "durationMs": 147,
+        "overlappingRuntimes": []
+      },
+      {
+        "atMs": 4822.9,
+        "durationMs": 119,
+        "overlappingRuntimes": []
+      }
+    ]
+  },
+  "inputLatency": {
+    "pointermove": {
+      "samples": 50,
+      "median": 0.1,
+      "p95": 1.3,
+      "max": 2.8,
+      "over50ms": 0
+    },
+    "pointerdown": {
+      "samples": 26,
+      "median": 14.7,
+      "p95": 130.6,
+      "max": 473.4,
+      "over50ms": 2
+    },
+    "wheelOrKey": {
+      "samples": 16,
+      "median": 0.1,
+      "p95": 323,
+      "max": 323,
+      "over50ms": 1
+    }
+  },
+  "menuButtonActionMs": 7,
+  "warmupGroupsReadyAtPageMs": {
+    "arsenalQuest": 3509,
+    "select": 4224
+  },
+  "bootPhases": [
+    {
+      "name": "metrics-ready",
+      "atMs": 0.1
+    },
+    {
+      "name": "boot-start",
+      "atMs": 70.9
+    },
+    {
+      "name": "engine-ready",
+      "atMs": 142.4
+    },
+    {
+      "name": "menu-runtime-ready",
+      "atMs": 180.1
+    },
+    {
+      "name": "critical-shell-ready",
+      "atMs": 587.5
+    },
+    {
+      "name": "interactive",
+      "atMs": 587.6
+    },
+    {
+      "name": "menu-interactive",
+      "atMs": 587.6
+    },
+    {
+      "name": "warmup-start",
+      "atMs": 846.5
+    },
+    {
+      "name": "loader-hidden",
+      "atMs": 1035
+    },
+    {
+      "name": "warmup-end",
+      "atMs": 3361.9
+    }
+  ],
+  "interactiveMs": 587.6,
+  "loaderHiddenMs": 1035,
+  "gates": {
+    "menu-longtask-count": {
+      "pass": true,
+      "value": 7,
+      "baseline": 15,
+      "limit": 10
+    },
+    "menu-longtask-longest-ms": {
+      "pass": true,
+      "value": 147,
+      "baseline": 1078,
+      "limit": 250
+    },
+    "menu-longtask-total-ms": {
+      "pass": true,
+      "value": 809,
+      "baseline": 1695,
+      "limit": 1300
+    },
+    "menu-pointerdown-median-ms": {
+      "pass": true,
+      "value": 14.7,
+      "baseline": 14.5,
+      "limit": 30
+    },
+    "menu-pointerdown-p95-ms": {
+      "pass": true,
+      "value": 130.6,
+      "baseline": 328.3,
+      "limit": 500
+    },
+    "menu-pointerdown-over-50ms": {
+      "pass": true,
+      "value": 2,
+      "baseline": 2,
+      "limit": 5
+    },
+    "menu-frame-p95-ms": {
+      "pass": true,
+      "value": 16.8,
+      "baseline": 50,
+      "limit": 40
+    },
+    "menu-frame-samples": {
+      "pass": true,
+      "value": 414,
+      "baseline": 292,
+      "limit": 300
+    },
+    "menu-legacy-groups-not-warm": {
+      "pass": true,
+      "value": {
+        "arsenalQuest": 3509,
+        "select": 4224
+      }
+    }
+  },
+  "summary": {
+    "total": 9,
+    "passed": 9,
+    "failed": []
+  }
+}

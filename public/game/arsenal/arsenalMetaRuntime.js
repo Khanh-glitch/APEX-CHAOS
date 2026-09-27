@@ -385,13 +385,15 @@
         if (go === 'shop') paintShop();
         if (go === 'draw') paintDraw();
         if (go === 'lab') {
-          hideMeta();
-          if (groupReady('arsenalQuest') || typeof window.startArsenalLab !== 'function') window.startArsenalLab?.();
-          else {
-            const ensureLab = window.__apexEnsureDeferredRuntimes;
-            if (typeof ensureLab === 'function') ensureLab('arsenalQuest').then(() => window.startArsenalLab?.()).catch(() => window.startArsenalLab?.());
-            else window.startArsenalLab?.();
-          }
+          // CP7: hard gameplay-ready barrier. The hub stays visible (with a
+          // preparing badge) until the FULL arsenalQuest tier is loaded and
+          // its presentation images have settled — the Lab shell, fighters
+          // and lab controls never mount in a half-initialized state. Warm
+          // re-entry opens synchronously (barrier satisfied).
+          const openLab = () => { hideMeta(); window.startArsenalLab?.(); };
+          if (window.apexArsenalGameplayBarrierSync && window.apexArsenalGameplayBarrierSync('lab')) openLab();
+          else if (window.apexArsenalGameplayBarrier) window.apexArsenalGameplayBarrier('lab').then((ok) => { if (ok) openLab(); });
+          else openLab();
         }
       });
     });
@@ -539,15 +541,25 @@
     el.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawBusy) paintHub(); }, { once: true });
   }
   function openFighterPick(opts) {
-    hideMeta();
     const mode = (opts && opts.mode) || 'free';
     window.__apexArsenalSelectPending = true;
     window.__apexArsenalFreeBattle = mode === 'free';
     window.__apexArsenalQuestPick = mode === 'quest';
-    const shells = window.APEX_ARSENAL_SHELLS;
-    if (shells && typeof shells.beginSelection === 'function') shells.beginSelection();
-    else if (typeof goToSelect === 'function') goToSelect();
-    else if (typeof window.goToSelect === 'function') window.goToSelect();
+    // CP7: the Arsenal pick UI (select group) must be loaded before the
+    // picker opens — on a cold page the classic roster fallback used to
+    // appear instead, with a different START flow. The hub/map stays visible
+    // until the real picker is ready; warm opens stay synchronous.
+    const open = () => {
+      hideMeta();
+      const shells = window.APEX_ARSENAL_SHELLS;
+      if (shells && typeof shells.beginSelection === 'function') shells.beginSelection();
+      else if (typeof goToSelect === 'function') goToSelect();
+      else if (typeof window.goToSelect === 'function') window.goToSelect();
+    };
+    if (window['__apexDeferredRuntimesReady_select']) { open(); return; }
+    const ensure = window.__apexEnsureDeferredRuntimes;
+    if (typeof ensure === 'function') { ensure('select').then(open).catch(open); return; }
+    open();
   }
   function openFreePick() {
     openFighterPick({ mode: 'free' });

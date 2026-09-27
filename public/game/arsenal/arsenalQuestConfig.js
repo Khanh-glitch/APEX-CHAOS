@@ -410,5 +410,155 @@
   window.avCue = function avCue(name, opts) {
     if (window.APEX_ARSENAL_AV && window.APEX_ARSENAL_AV.cue) window.APEX_ARSENAL_AV.cue(name, opts);
   };
+
+  // ── CP7 (owner playtest round 4) — gameplay-ready barrier ──────────────
+  // The Arsenal HUB opens fast on its small critical-path group (CP6), but
+  // every transition from the hub INTO gameplay (Lab, Free Battle START,
+  // Quest stage, re-entry) is a HARD barrier: the combat shell, fighters,
+  // battle controls and Lab controls must not exist until the full
+  // arsenalQuest tier has loaded AND its presentation init (image atlas
+  // fetch/decode) has settled. Script evaluation alone is not readiness.
+  //
+  // State machine (window.apexArsenalTransitionState()):
+  //   idle → lab-loading | match-loading → lab-ready | match-ready
+  // Readiness probes: 'hub-ready', 'arsenal-full-runtime-ready',
+  // 'av-images-ready', 'av-audio-ready'.
+  window.__apexArsenalTransition = {
+    state: 'idle', destination: null, since: 0, lastDurationMs: null, error: null, _pending: null,
+  };
+  window.apexArsenalTransitionState = function () {
+    const t = window.__apexArsenalTransition;
+    const AV = window.APEX_ARSENAL_AV;
+    return {
+      state: t.state,
+      destination: t.destination,
+      lastDurationMs: t.lastDurationMs,
+      error: t.error,
+      readiness: {
+        'hub-ready': !!(window.APEX_ARSENAL_META && document.getElementById('aq-meta-root')),
+        'arsenal-full-runtime-ready': !!window['__apexDeferredRuntimesReady_arsenalQuest'],
+        'av-images-ready': !!(AV && AV.imagesSettled && AV.imagesSettled()),
+        'av-audio-ready': !!(AV && AV.audioReady && AV.audioReady()),
+      },
+    };
+  };
+  window.apexArsenalBarrierSatisfied = function () {
+    // Warm fast path: the full tier is loaded and images are settled — the
+    // destination may open synchronously (zero added latency on re-entry).
+    return !!(window['__apexDeferredRuntimesReady_arsenalQuest']
+      && window.APEX_ARSENAL_AV
+      && window.APEX_ARSENAL_AV.imagesSettled
+      && window.APEX_ARSENAL_AV.imagesSettled());
+  };
+  function showTransitionBadge(destination) {
+    try {
+      const host = document.getElementById('aq-meta-root') || document.body;
+      let badge = document.getElementById('aq-transition-badge');
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.id = 'aq-transition-badge';
+        badge.setAttribute('role', 'status');
+        badge.style.cssText = 'position:absolute;left:50%;bottom:18px;transform:translateX(-50%);'
+          + 'z-index:60;padding:8px 18px;border-radius:999px;background:rgba(20,22,28,0.92);'
+          + 'color:#e8d9a0;font:600 13px system-ui,sans-serif;letter-spacing:0.08em;'
+          + 'border:1px solid rgba(232,217,160,0.4);pointer-events:none;';
+        host.appendChild(badge);
+      }
+      badge.textContent = (destination === 'lab' ? 'ARSENAL LAB' : 'ARSENAL MATCH') + ' · PREPARING…';
+    } catch (error) { /* the badge is cosmetic; never block the barrier */ }
+  }
+  function hideTransitionBadge() {
+    try { document.getElementById('aq-transition-badge')?.remove(); } catch (error) {}
+  }
+  window.apexArsenalGameplayBarrierSync = function apexArsenalGameplayBarrierSync(destination) {
+    // Synchronous fast path for warm destinations: records the ready state
+    // (the state machine must reflect EVERY entry, sync or awaited) and
+    // returns true so the caller can open the destination in the same task —
+    // zero added latency for re-entry. Returns false when the async barrier
+    // must be used instead.
+    if (window.apexArsenalBarrierSatisfied()) {
+      const t = window.__apexArsenalTransition;
+      t.state = destination === 'lab' ? 'lab-ready' : 'match-ready';
+      t.destination = destination;
+      t.lastDurationMs = 0;
+      t.error = null;
+      return true;
+    }
+    return false;
+  };
+  window.apexArsenalGameplayBarrier = async function apexArsenalGameplayBarrier(destination) {
+    const t = window.__apexArsenalTransition;
+    const readyState = destination === 'lab' ? 'lab-ready' : 'match-ready';
+    const loadingState = destination === 'lab' ? 'lab-loading' : 'match-loading';
+    if (window.apexArsenalBarrierSatisfied()) {
+      t.state = readyState;
+      t.destination = destination;
+      t.lastDurationMs = 0;
+      t.error = null;
+      return true;
+    }
+    if (t._pending && t.state === loadingState && t.destination === destination) return t._pending;
+    t.state = loadingState;
+    t.destination = destination;
+    t.since = performance.now();
+    t.error = null;
+    showTransitionBadge(destination);
+    t._pending = (async () => {
+      try {
+        const ensure = window.__apexEnsureDeferredRuntimes;
+        if (typeof ensure === 'function') await ensure('arsenalQuest');
+        if (!window['__apexDeferredRuntimesReady_arsenalQuest']) {
+          throw new Error('arsenalQuest runtime group did not finish loading');
+        }
+        const AV = window.APEX_ARSENAL_AV;
+        if (AV && AV.preload) {
+          // Route intent: full preload (images + audio head start). The
+          // images are the blocking dependency; audio decodes in parallel
+          // and clips no-op safely until ready.
+          AV.preload();
+          if (AV.whenImagesReady) {
+            const ok = await AV.whenImagesReady(8000);
+            if (!ok) throw new Error('Arsenal presentation images did not finish loading');
+          }
+        }
+        t.state = readyState;
+        t.lastDurationMs = Math.round(performance.now() - t.since);
+        return true;
+      } catch (error) {
+        t.state = 'idle';
+        t.error = String((error && error.message) || error);
+        return false;
+      } finally {
+        hideTransitionBadge();
+        t._pending = null;
+      }
+    })();
+    return t._pending;
+  };
+  // When the background warmup finishes the arsenalQuest group, start the
+  // image-side preload early (NO audio decode — that stays route-intent
+  // only, per CP5). This makes the barrier resolve instantly in the common
+  // case where the user browses the hub for a moment before entering.
+  (function watchArsenalFullRuntime() {
+    const tick = () => {
+      try {
+        if (window['__apexDeferredRuntimesReady_arsenalQuest']) {
+          const AV = window.APEX_ARSENAL_AV;
+          if (AV && AV.preload) AV.preload({ audio: false });
+          return;
+        }
+        const gate = window['__apexDeferredRuntimesPromise_arsenalQuest'];
+        if (gate && gate.then) {
+          gate.then(() => {
+            const AV2 = window.APEX_ARSENAL_AV;
+            if (AV2 && AV2.preload) AV2.preload({ audio: false });
+          }).catch(() => {});
+          return;
+        }
+      } catch (error) { /* retry below */ }
+      setTimeout(tick, 500);
+    };
+    tick();
+  })();
   window.apexArsenalQuestConfig = 'ready';
 })();

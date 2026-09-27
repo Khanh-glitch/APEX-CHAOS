@@ -148,8 +148,8 @@
     const p2 = liveOpponent(row.opponent);
     lastQuestP1 = p1Name;
     pendingStage = null;
-    hideMap();
     const beginQuestStage = () => {
+      hideMap();
       window.startArsenalQuestMode(p1Name, p2);
       if (window.APEX_ARSENAL && window.APEX_ARSENAL.state) {
         window.APEX_ARSENAL.state.questStage = n;
@@ -157,10 +157,15 @@
         window.APEX_ARSENAL.state.questP1 = p1Name;
       }
     };
-    // CP6 belt-and-braces: the map normally opens only after the full
-    // arsenalQuest group loaded (beginArsenalQuestMap ensures it), but a
-    // stage start must never silently no-op if the mode entry is missing.
-    if (typeof window.startArsenalQuestMode === 'function') {
+    // CP7: hard gameplay-ready barrier — the stage's combat shell must not
+    // mount until the full arsenalQuest tier is loaded and its presentation
+    // images have settled. The map stays visible (with the hub badge) until
+    // ready; warm re-entry starts synchronously.
+    if (typeof window.startArsenalQuestMode === 'function' && window.apexArsenalGameplayBarrierSync && window.apexArsenalGameplayBarrierSync('match')) {
+      beginQuestStage();
+    } else if (window.apexArsenalGameplayBarrier) {
+      window.apexArsenalGameplayBarrier('match').then((ok) => { if (ok && typeof window.startArsenalQuestMode === 'function') beginQuestStage(); });
+    } else if (typeof window.startArsenalQuestMode === 'function') {
       beginQuestStage();
     } else if (typeof window.__apexEnsureDeferredRuntimes === 'function') {
       window.__apexEnsureDeferredRuntimes('arsenalQuest').then(beginQuestStage).catch(() => {});

@@ -75,10 +75,15 @@
       }
       return best;
     }
-    function tryLaunchDash(f) {
+    function tryLaunchDash(f, opts) {
       const slot = nearestRevealedPickup(f);
       if (!slot) {
-        window.avCue && window.avCue('newbie_fail', { x: f.x, y: f.y });
+        // CP7 (owner playtest round 4): fail feedback belongs to DELIBERATE
+        // activation (P1's skill-gate J pulse). The P2 auto-cast polls this
+        // every tick while unarmed with no revealed pickup — cueing here
+        // re-triggered metalClick ~10x/s from match start until the first
+        // pickup ("one sound loops forever"). Auto-cast failures are silent.
+        if (!(opts && opts.auto)) window.avCue && window.avCue('newbie_fail', { x: f.x, y: f.y });
         return false;
       }
       const dx = slot.x - f.x, dy = slot.y - f.y;
@@ -160,7 +165,7 @@
           tryLaunchDash(f);
           return;
         }
-        if (!isP1 && f.data.nbCd <= 1e-6) tryLaunchDash(f);
+        if (!isP1 && f.data.nbCd <= 1e-6) tryLaunchDash(f, { auto: true });
       },
       draw: (c, f) => {
         // Glyph-free beginner body: stacked rounded blobs + visor band.
@@ -287,15 +292,18 @@
       const p1 = typeof p1Selection !== 'undefined' ? p1Selection : null;
       const p2 = typeof p2Selection !== 'undefined' ? p2Selection : null;
       if (p1 && p2 && typeof window.startArsenalQuestMode === 'function') {
-        // CP6: a full Arsenal match needs the arsenalQuest group. When it is
-        // already warm (normal case after background warmup) the match starts
-        // synchronously; a cold group loads first with the button state
-        // already committed.
+        // CP7: hard gameplay-ready barrier — the match shell must not mount
+        // until the full arsenalQuest tier is loaded AND the presentation
+        // images have settled (script evaluation alone is not readiness).
+        // Warm re-entry launches synchronously.
         const launch = () => window.startArsenalQuestMode(p1.name, p2.name);
-        if (window['__apexDeferredRuntimesReady_arsenalQuest']) { launch(); }
+        if (window.apexArsenalGameplayBarrierSync && window.apexArsenalGameplayBarrierSync('match')) { launch(); }
+        else if (window.apexArsenalGameplayBarrier) {
+          window.apexArsenalGameplayBarrier('match').then((ok) => { if (ok) launch(); });
+        }
         else {
           const ensure = window.__apexEnsureDeferredRuntimes;
-          if (typeof ensure === 'function') ensure('arsenalQuest').then(launch).catch(launch);
+          if (typeof ensure === 'function') ensure('arsenalQuest').then(launch).catch(() => {});
           else launch();
         }
         return;

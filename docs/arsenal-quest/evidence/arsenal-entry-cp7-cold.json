@@ -1,0 +1,106 @@
+{
+  "label": "cp7-cold-press",
+  "menuInteractiveAt": 922.2000000001863,
+  "clickAt": 909.7,
+  "pressedPaintAt": 907.8,
+  "hubFirstPaintAt": 1925.5,
+  "pressToPaintMs": -1.9,
+  "pressToHubMs": 1015.8,
+  "groupReady": false,
+  "scriptSpans": [],
+  "longTasks": [],
+  "inputsDuringLoad": [
+    85.6
+  ],
+  "inputMaxMs": 85.6,
+  "inputOver100": 0,
+  "avWarm": null,
+  "imgResources": 223,
+  "scriptResources": 28,
+  "slowestResources": [
+    {
+      "at": 2175.6,
+      "dur": 272.4,
+      "type": "img",
+      "name": "howl/frame_003.webp"
+    },
+    {
+      "at": 2175.5,
+      "dur": 269.5,
+      "type": "img",
+      "name": "howl/frame_002.webp"
+    },
+    {
+      "at": 2175.5,
+      "dur": 263.2,
+      "type": "img",
+      "name": "howl/frame_001.webp"
+    },
+    {
+      "at": 2175.5,
+      "dur": 261.3,
+      "type": "img",
+      "name": "hunt/frame_022.webp"
+    },
+    {
+      "at": 2175.5,
+      "dur": 258.9,
+      "type": "img",
+      "name": "hunt/frame_021.webp"
+    },
+    {
+      "at": 2175.5,
+      "dur": 255.9,
+      "type": "img",
+      "name": "hunt/frame_020.webp"
+    },
+    {
+      "at": 1981.2,
+      "dur": 252,
+      "type": "img",
+      "name": "katana_v1/pickButton.webp"
+    },
+    {
+      "at": 1981.2,
+      "dur": 241.6,
+      "type": "img",
+      "name": "katana_v1/picked.webp"
+    },
+    {
+      "at": 2175.5,
+      "dur": 236.4,
+      "type": "img",
+      "name": "hunt/frame_019.webp"
+    },
+    {
+      "at": 2175.5,
+      "dur": 234.4,
+      "type": "img",
+      "name": "hunt/frame_018.webp"
+    },
+    {
+      "at": 2175.4,
+      "dur": 233.4,
+      "type": "img",
+      "name": "hunt/frame_017.webp"
+    },
+    {
+      "at": 1991.3,
+      "dur": 232.8,
+      "type": "audio",
+      "name": "audio/teleport.mp3"
+    }
+  ],
+  "events": [
+    {
+      "at": 0.2,
+      "type": "instrumented",
+      "detail": null
+    },
+    {
+      "at": 909.7,
+      "type": "cdp-click",
+      "detail": "arsenal-quest button"
+    }
+  ]
+}

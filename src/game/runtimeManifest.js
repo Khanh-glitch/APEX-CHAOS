@@ -1,9 +1,10 @@
 // Cache-bust classic runtime scripts that live under /public and therefore do
 // not receive Vite content hashes. Without this, stable Cloudflare branch
 // aliases can serve a previous Arsenal runtime even when index.html is new.
-// CP6: hub critical-path split + battle-audio session ownership + chunked
-// asset warmup — cache-bust every runtime that changed in this pass.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20260927-cp6-owner-flow-r1';
+// CP7: gameplay-ready barriers + start-of-match fail-cue fix — cache-bust
+// every runtime that changed in this pass (config/presentation/meta/
+// shellSelect/ladder).
+export const APEX_ARSENAL_RUNTIME_REVISION = '20260927-cp7-barriers-r1';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by

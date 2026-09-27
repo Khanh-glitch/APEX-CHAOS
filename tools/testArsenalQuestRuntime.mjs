@@ -3319,7 +3319,10 @@ try {
     out.otherToArsenal = info();
     window.exitArsenalQuestMode();
     await sleep(100);
-    out.bgmAfter = window.__apexMenuBgmState();
+    // Settle-poll: the menu music resume is async — a single read races it.
+    let bgmAfter = window.__apexMenuBgmState();
+    for (let i = 0; i < 24 && bgmAfter.paused; i++) { await sleep(75); bgmAfter = window.__apexMenuBgmState(); }
+    out.bgmAfter = bgmAfter;
     return JSON.stringify(out);
   })()`);
   const cp6A = JSON.parse(report.cp6Audio);
@@ -3352,6 +3355,233 @@ try {
     && cp6A.bgmAfter && cp6A.bgmAfter.paused === false
     && cp6A.bgmAfter.readyState >= 2,
     { afterEngineMenu: cp6A.afterEngineMenu, afterEngineMenuSettled: cp6A.afterEngineMenuSettled, otherToArsenal: cp6A.otherToArsenal, bgm: [cp6A.bgmBefore, cp6A.bgmAfter] });
+
+  // ── CP7 (owner playtest round 4): cold-transition ready barriers ────────
+  // BUG 1: Arsenal gameplay could open before its tier finished initializing
+  // (combat shell + fighters + Lab controls mounted while the presentation
+  // atlas was still at 0/45 images). Every hub→gameplay transition is now a
+  // hard barrier with an explicit state machine; these gates prove it from a
+  // COLD page each time: reload → ARSENAL immediately → destination
+  // immediately → the destination may only appear once ready.
+  const cp7HoldProbe = `(() => ({
+    atMs: Math.round(performance.now()),
+    transition: window.apexArsenalTransitionState ? window.apexArsenalTransitionState() : null,
+    fighters: (typeof fighters !== 'undefined' && fighters && fighters.length === 2) ? fighters.map(f => f.name) : null,
+    aqActive: !!(window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.active),
+    labPanel: !!document.getElementById('aq-lab-panel'),
+    gameState: typeof gameState !== 'undefined' ? gameState : null,
+  }))()`;
+  async function cp7ColdOpen(label, clickThrough) {
+    // Fresh document = cold owner path (menu → ARSENAL → destination, all
+    // clicked the moment the UI permits).
+    await command('Page.navigate', { url: appUrl });
+    await sleep(600);
+    for (let i = 0; i < 160; i++) {
+      if (await evaluate('Boolean(window.__apexEngineReady)').catch(() => false)) break;
+      await sleep(150);
+    }
+    for (let i = 0; i < 300; i++) {
+      const ok = await hitProbe('button[aria-label="ARSENAL QUEST"]').catch(() => null);
+      if (ok && ok.exists && !ok.disabled && ok.hitWithin && ok.width > 1) break;
+      await sleep(100);
+    }
+    await physicalClick('button[aria-label="ARSENAL QUEST"]');
+    for (let i = 0; i < 200; i++) {
+      if (await evaluate(`(() => { const h = document.getElementById('aq-meta-root'); return !!(h && h.style.display !== 'none' && h.getBoundingClientRect().width > 50); })()`).catch(() => false)) break;
+      await sleep(100);
+    }
+    const clicked = await clickThrough();
+    // Poll the whole transition window: while not ready, nothing gameplay-ish
+    // may exist. When it appears, it must already be ready.
+    const samples = [];
+    let firstGameplayAt = null;
+    for (let i = 0; i < 260; i++) {
+      const s = JSON.parse(await evaluate(`JSON.stringify(${cp7HoldProbe})`));
+      samples.push(s);
+      const gameplayLive = !!s.fighters || s.aqActive || s.labPanel;
+      if (gameplayLive) { firstGameplayAt = s; break; }
+      await sleep(100);
+    }
+    return { label, clicked, firstGameplayAt, lastSample: samples[samples.length - 1] };
+  }
+  const cp7PickStart = async () => {
+    // The Arsenal pick runtime pre-applies defaults (NEWBIE/NEWBIE for free
+    // battle; NEWBIE + quest opponent for the quest P1 picker), so its
+    // start-button commits immediately.
+    for (let i = 0; i < 240; i++) {
+      const ok = await hitProbe('[data-layer-id="start-button"]').catch(() => null);
+      if (ok && ok.exists && !ok.disabled && ok.hitWithin && ok.width > 1) break;
+      await sleep(50);
+    }
+    const p = await physicalClick('[data-layer-id="start-button"]');
+    await sleep(150);
+    return p;
+  };
+  const cp7AssertHeld = (r) => {
+    if (!r.firstGameplayAt) return { held: false, reason: 'gameplay never appeared' };
+    const t = r.firstGameplayAt.transition || {};
+    return {
+      held: true,
+      stateAtOpen: t.state,
+      ready: t.readiness || {},
+      fighters: r.firstGameplayAt.fighters,
+      labPanel: r.firstGameplayAt.labPanel,
+    };
+  };
+
+  // (1) LAB cold: click LAB the instant the hub permits.
+  const cp7Lab = cp7AssertHeld(await cp7ColdOpen('lab', async () => {
+    for (let i = 0; i < 200; i++) {
+      const ok = await hitProbe('#aq-meta-root [data-go="lab"]').catch(() => null);
+      if (ok && ok.exists && ok.hitWithin && ok.width > 1) break;
+      await sleep(50);
+    }
+    const p = await physicalClick('#aq-meta-root [data-go="lab"]');
+    await sleep(150);
+    return p;
+  }));
+  // After the lab opens it must be functional: 33 weapon buttons, a spawn
+  // works, and the exit returns to the hub.
+  const cp7LabFunctional = await evaluate(`(() => {
+    const buttons = document.querySelectorAll('[data-lab-weapon]').length;
+    const btn = document.querySelector('[data-lab-weapon="PISTOL"]');
+    if (btn) btn.click();
+    const state = APEX_ARSENAL.state;
+    return { buttons, labMode: !!state.labMode, spawnClicked: !!btn, slots: state.slots.length };
+  })()`);
+  report.evidence.push(await screenshot('cp7-01-cold-lab-barrier'));
+  gate('owner-cp7-lab-cold-barrier-held',
+    cp7Lab.held === true
+    && (cp7Lab.stateAtOpen === 'lab-ready' || cp7Lab.stateAtOpen === 'match-ready')
+    && cp7Lab.ready['arsenal-full-runtime-ready'] === true
+    && cp7Lab.ready['av-images-ready'] === true,
+    cp7Lab);
+  gate('owner-cp7-lab-cold-functional',
+    cp7LabFunctional.labMode === true && cp7LabFunctional.buttons >= 30 && cp7LabFunctional.slots >= 1,
+    cp7LabFunctional);
+
+  // (2) FREE BATTLE cold: hub → FREE → START immediately (default NEWBIEs).
+  const cp7Free = cp7AssertHeld(await cp7ColdOpen('free', async () => {
+    for (let i = 0; i < 200; i++) {
+      const ok = await hitProbe('#aq-meta-root [data-go="free"]').catch(() => null);
+      if (ok && ok.exists && ok.hitWithin && ok.width > 1) break;
+      await sleep(50);
+    }
+    await physicalClick('#aq-meta-root [data-go="free"]');
+    for (let i = 0; i < 200; i++) {
+      if (await evaluate(`(() => { const s = document.getElementById('select-screen'); return !!(s && !s.classList.contains('hidden')); })()`).catch(() => false)) break;
+      await sleep(50);
+    }
+    return cp7PickStart();
+  }));
+  report.evidence.push(await screenshot('cp7-02-cold-free-battle-barrier'));
+  gate('owner-cp7-free-battle-cold-barrier-held',
+    cp7Free.held === true
+    && (cp7Free.stateAtOpen === 'match-ready')
+    && cp7Free.ready['arsenal-full-runtime-ready'] === true
+    && cp7Free.ready['av-images-ready'] === true
+    && Array.isArray(cp7Free.fighters) && cp7Free.fighters.length === 2,
+    cp7Free);
+
+  // (3) QUEST cold: hub → QUEST → stage 01 immediately.
+  const cp7Quest = cp7AssertHeld(await cp7ColdOpen('quest', async () => {
+    for (let i = 0; i < 200; i++) {
+      const ok = await hitProbe('#aq-meta-root [data-go="quest"]').catch(() => null);
+      if (ok && ok.exists && ok.hitWithin && ok.width > 1) break;
+      await sleep(50);
+    }
+    await physicalClick('#aq-meta-root [data-go="quest"]');
+    for (let i = 0; i < 200; i++) {
+      if (await evaluate(`(() => { const m = document.getElementById('aq-quest-map'); return !!(m && m.style.display !== 'none'); })()`).catch(() => false)) break;
+      await sleep(50);
+    }
+    for (let i = 0; i < 200; i++) {
+      const ok = await hitProbe('.aq-stage[data-n="1"]').catch(() => null);
+      if (ok && ok.exists && !ok.disabled && ok.hitWithin && ok.width > 1) break;
+      await sleep(50);
+    }
+    await physicalClick('.aq-stage[data-n="1"]');
+    // Stage click opens the quest P1 picker (opponent pre-applied); its
+    // start-button commits the stage → barrier → battle.
+    return cp7PickStart();
+  }));
+  report.evidence.push(await screenshot('cp7-03-cold-quest-stage-barrier'));
+  gate('owner-cp7-quest-stage-cold-barrier-held',
+    cp7Quest.held === true
+    && (cp7Quest.stateAtOpen === 'match-ready')
+    && cp7Quest.ready['arsenal-full-runtime-ready'] === true
+    && cp7Quest.ready['av-images-ready'] === true
+    && Array.isArray(cp7Quest.fighters) && cp7Quest.fighters.length === 2,
+    cp7Quest);
+
+  // (4) Warm re-entry: exit to hub, re-open the Lab — the barrier must be
+  // satisfied synchronously (zero added latency).
+  const cp7Reentry = await evaluate(`(async () => {
+    window.exitArsenalQuestMode();
+    await new Promise(r => setTimeout(r, 250));
+    const M = window.APEX_ARSENAL_META;
+    if (M && M.openHub) M.openHub();
+    const t0 = performance.now();
+    const satisfiedBefore = window.apexArsenalBarrierSatisfied();
+    const ok = await window.apexArsenalGameplayBarrier('lab');
+    const dur = performance.now() - t0;
+    return { ok, satisfiedBefore, durationMs: Math.round(dur),
+      transition: window.apexArsenalTransitionState() };
+  })()`);
+  gate('owner-cp7-reentry-warm-instant',
+    cp7Reentry.ok === true && cp7Reentry.satisfiedBefore === true && cp7Reentry.durationMs < 50,
+    cp7Reentry);
+
+  // ── CP7 BUG 2: start-of-match fail-cue loop ─────────────────────────────
+  // Owner repro: fresh NEWBIE-vs-NEWBIE Arsenal battle, nobody picks up — a
+  // sound used to "loop" until the first pickup. Root cause: the P2 NEWBIE
+  // auto-cast re-attempted its dash every tick while no revealed pickup
+  // existed, cueing newbie_fail (metalClick) ~10x/s. Fix: auto-cast failures
+  // are silent; deliberate (skill-gate) activations keep the fail cue.
+  const cp7Loop = await evaluate(`(async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const AV = window.APEX_ARSENAL_AV;
+    const state = () => window.APEX_ARSENAL.state;
+    if (window.exitArsenalLab) { try { window.exitArsenalLab(); } catch (e) {} }
+    if (typeof gameState !== 'undefined' && gameState === 'ARSENAL') window.exitArsenalQuestMode();
+    await sleep(200);
+    window.startArsenalQuestMode('NEWBIE', 'NEWBIE');
+    // Hold every spawn/pickup path immediately (before the first weapon) and
+    // freeze both fighters so the unarmed brawl cannot end the match during
+    // the hold window (the auto-cast polling is movement-independent).
+    const s = APEX_ARSENAL.state;
+    s.spawnTimer = 1e6; s.slots = []; s.unarmedFastConsumed = true; s.spawnHeld = true;
+    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+    const cuedBefore = AV.stats.cued.filter(c => c.event === 'newbie_fail').length;
+    await sleep(4000); // "no pickup for several seconds"
+    const failCuesDuringHold = AV.stats.cued.filter(c => c.event === 'newbie_fail').length - cuedBefore;
+    const probeAfterHold = AV.audioSessionProbe();
+    const holdHealth = { over: !!s.over, hp: [fighters[0].hp, fighters[1].hp] };
+    // Real pickup: drop a REVEALED pistol under the hero.
+    s.slots.length = 0;
+    s.slots.push({ id: s.nextSlotId++, x: fighters[0].x, y: fighters[0].y, phase: 'REVEALED', weaponId: 'PISTOL',
+      revealLeadSeconds: 0, revealedFor: 0, pickedBy: null, rejectedFor: {}, spawnTime: s.time,
+      predictedHeroETA: null, predictedRivalETA: null, earliestETA: null, predictedFighter: null });
+    const pickupCuesBefore = AV.stats.cued.filter(c => c.event === 'pickup').length;
+    let holder = null;
+    for (let i = 0; i < 40 && !holder; i++) {
+      await sleep(100);
+      holder = APEX_ARSENAL.weaponApi.getHolder(fighters[0]) || APEX_ARSENAL.weaponApi.getHolder(fighters[1]);
+    }
+    const pickupCuesAfter = AV.stats.cued.filter(c => c.event === 'pickup').length - pickupCuesBefore;
+    const probeAfterPickup = AV.audioSessionProbe();
+    return { failCuesDuringHold, avVoicesDuringHold: probeAfterHold.activeVoices,
+      holder: holder ? holder.weaponId : null, pickupCuesAfter,
+      holdHealth,
+      avLiveAfterPickup: probeAfterPickup.liveSources, session: window.apexBattleAudioSessionInfo() };
+  })()`);
+  report.evidence.push(await screenshot('cp7-04-newbie-no-fail-loop'));
+  gate('owner-cp7-newbie-no-fail-loop',
+    cp7Loop.failCuesDuringHold <= 2
+    && cp7Loop.holder === 'PISTOL'
+    && cp7Loop.pickupCuesAfter >= 1
+    && cp7Loop.avVoicesDuringHold === 0,
+    cp7Loop);
 
   // ------------------------------------------------------------ summary ----
   report.summary = {
