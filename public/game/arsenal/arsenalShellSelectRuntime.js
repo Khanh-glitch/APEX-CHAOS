@@ -291,23 +291,32 @@
       window.__apexArsenalSelectPending = false;
       const p1 = typeof p1Selection !== 'undefined' ? p1Selection : null;
       const p2 = typeof p2Selection !== 'undefined' ? p2Selection : null;
-      if (p1 && p2 && typeof window.startArsenalQuestMode === 'function') {
-        // CP7: hard gameplay-ready barrier — the match shell must not mount
-        // until the full arsenalQuest tier is loaded AND the presentation
-        // images have settled (script evaluation alone is not readiness).
-        // Warm re-entry launches synchronously.
-        const launch = () => window.startArsenalQuestMode(p1.name, p2.name);
-        if (window.apexArsenalGameplayBarrierSync && window.apexArsenalGameplayBarrierSync('match')) { launch(); }
-        else if (window.apexArsenalGameplayBarrier) {
-          window.apexArsenalGameplayBarrier('match').then((ok) => { if (ok) launch(); });
-        }
-        else {
-          const ensure = window.__apexEnsureDeferredRuntimes;
-          if (typeof ensure === 'function') ensure('arsenalQuest').then(launch).catch(() => {});
-          else launch();
-        }
+      // CP7: while an Arsenal selection is pending, the shared START must
+      // NEVER fall through to the classic match engine. The old fall-through
+      // (startArsenalQuestMode not yet defined → baseStartMatch) opened a
+      // CLASSIC match with the picked shells on cold/slow machines — exactly
+      // the half-initialized gameplay the ready barrier exists to prevent.
+      // No resolvable selection → back to the Arsenal picker, never classic.
+      if (!p1 || !p2) { window.beginArsenalQuestSelection(); return; }
+      const launch = () => {
+        if (typeof window.startArsenalQuestMode === 'function') window.startArsenalQuestMode(p1.name, p2.name);
+        else window.beginArsenalQuestSelection();
+      };
+      // CP7: hard gameplay-ready barrier — the match shell must not mount
+      // until the full arsenalQuest tier is loaded AND the presentation
+      // images have settled (script evaluation alone is not readiness).
+      // Warm re-entry launches synchronously; cold START waits here (the
+      // barrier itself ensures the arsenalQuest group that defines
+      // startArsenalQuestMode, then settles the presentation images).
+      if (window.apexArsenalGameplayBarrierSync && window.apexArsenalGameplayBarrierSync('match')) { launch(); return; }
+      if (window.apexArsenalGameplayBarrier) {
+        window.apexArsenalGameplayBarrier('match').then((ok) => { if (ok) launch(); });
         return;
       }
+      const ensure = window.__apexEnsureDeferredRuntimes;
+      if (typeof ensure === 'function') ensure('arsenalQuest').then(launch).catch(() => {});
+      else launch();
+      return;
     }
     return baseStartMatch ? baseStartMatch.apply(this, args) : undefined;
   };

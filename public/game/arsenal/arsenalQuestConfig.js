@@ -452,7 +452,12 @@
   };
   function showTransitionBadge(destination) {
     try {
-      const host = document.getElementById('aq-meta-root') || document.body;
+      // Host the badge where it is actually VISIBLE: on the select screen the
+      // hub root is hidden, so a cold START that waits on the barrier must
+      // show the hint on the body instead of inside the hidden hub.
+      const hub = document.getElementById('aq-meta-root');
+      const hubVisible = !!(hub && hub.style.display !== 'none' && hub.getBoundingClientRect().width > 50);
+      const host = hubVisible ? hub : document.body;
       let badge = document.getElementById('aq-transition-badge');
       if (!badge) {
         badge = document.createElement('div');

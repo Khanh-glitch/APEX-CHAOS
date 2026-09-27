@@ -3426,6 +3426,10 @@ try {
       ready: t.readiness || {},
       fighters: r.firstGameplayAt.fighters,
       labPanel: r.firstGameplayAt.labPanel,
+      // A classic-engine match (the pre-CP7 cold-START fall-through) also
+      // creates the global fighters array — assert the ARSENAL state is the
+      // one that went active so that bypass class fails on every machine.
+      aqActive: r.firstGameplayAt.aqActive === true,
     };
   };
 
@@ -3480,6 +3484,7 @@ try {
     && (cp7Free.stateAtOpen === 'match-ready')
     && cp7Free.ready['arsenal-full-runtime-ready'] === true
     && cp7Free.ready['av-images-ready'] === true
+    && cp7Free.aqActive === true
     && Array.isArray(cp7Free.fighters) && cp7Free.fighters.length === 2,
     cp7Free);
 
@@ -3511,6 +3516,7 @@ try {
     && (cp7Quest.stateAtOpen === 'match-ready')
     && cp7Quest.ready['arsenal-full-runtime-ready'] === true
     && cp7Quest.ready['av-images-ready'] === true
+    && cp7Quest.aqActive === true
     && Array.isArray(cp7Quest.fighters) && cp7Quest.fighters.length === 2,
     cp7Quest);
 
