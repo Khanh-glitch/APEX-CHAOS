@@ -126,6 +126,20 @@ are the clean arena and every region above was re-verified against them.
 - Menu responsiveness: BEFORE 3/8 gates, AFTER 8/8
   (`evidence/menu-responsiveness-{before,after}.json`).
 
+### Test-tool note — Web Audio gain readback race (settle-aware gate)
+
+A gain `setValueAtTime(v, now)` is not reflected in `gain.value` until the
+audio render thread processes the event; on loaded CI runners that can
+outlast the gate's synchronous read (reproduced in isolation: immediate
+read 1, +200 ms read 0.001). The scheduled mutes/unmutes are real — only
+the readback lags — and voices/cues are terminated synchronously
+(`live: 0`, `timers: 0` at the same read), so nothing can audibly leak
+during the window. The match-B audio gate therefore polls a bounded
+600 ms settle window for the scheduled gain to become visible in both
+directions (session-begin unmute, session-end mute) while asserting the
+synchronous live/timers zeros immediately. Match-A gates already used the
+settled read.
+
 ### Known flake — `spawn-cadence-3.0s` (first gap only)
 
 The spawn-cadence gates sample the FIRST inter-spawn gap after scene setup.

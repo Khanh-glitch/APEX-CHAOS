@@ -3069,8 +3069,15 @@ try {
     __AQ_TEST.equip('HERO', 'STORMBREAKER');
     __AQ_TEST.step(1.0);
     const stB = state();
-    out.matchB = { masterGain: stB.masterGain, playedDelta: AV.stats.played - playedAtExit };
-    out.matchBSfxLive = out.matchB.playedDelta > 0 && stB.masterGain > 0.5;
+    // Same Web Audio readback race as the exit read below, mirrored: the
+    // session-begin unmute (setValueAtTime(1, now)) may not be visible in
+    // gain.value until the render thread catches up on slow runners. SFX
+    // liveness itself is proven by the played counter; poll for the unmute
+    // to become visible.
+    let stBs = stB;
+    for (let i = 0; i < 12 && stBs.masterGain <= 0.5; i++) { await sleep(50); stBs = state(); }
+    out.matchB = { masterGain: stBs.masterGain, playedDelta: AV.stats.played - playedAtExit };
+    out.matchBSfxLive = out.matchB.playedDelta > 0 && stBs.masterGain > 0.5;
     window.exitArsenalQuestMode();
     const stB2 = state();
     // Web Audio readback race (seen on loaded CI runners): a gain
