@@ -1,7 +1,7 @@
 ==============================================================
  APEX CHAOS — ARSENAL QUEST playable build (static server)
- Build SHA : cd672d9936ddcde2f8f1c54d75abbaf82b94b0b2
- URL       : http://localhost:39523/?build=cd672d9936ddcde2f8f1c54d75abbaf82b94b0b2
+ Build SHA : b820733b8964031e2bd504b99d080ce00607ab35
+ URL       : http://localhost:43293/?build=b820733b8964031e2bd504b99d080ce00607ab35
  Keep this window open while playing. Close it to stop.
 ==============================================================
 /usr/bin/xdg-open: 882: www-browser: not found
@@ -10,4 +10,4 @@
 /usr/bin/xdg-open: 882: links: not found
 /usr/bin/xdg-open: 882: lynx: not found
 /usr/bin/xdg-open: 882: w3m: not found
-xdg-open: no method available for opening 'http://localhost:39523/?build=cd672d9936ddcde2f8f1c54d75abbaf82b94b0b2'
+xdg-open: no method available for opening 'http://localhost:43293/?build=b820733b8964031e2bd504b99d080ce00607ab35'
