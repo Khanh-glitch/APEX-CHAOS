@@ -80,5 +80,5 @@ Instrumentation (CDP `addScriptToEvaluateOnNewDocument` hooking `AudioBufferSour
 ## Final acceptance state
 
 - First push `f026e5d` (remote SHA verified): CI headless **329/329 green**; the browser step failed on the known `spawn-cadence-3.0s` first-gap flake (gaps 4.5/4.44/4.5 pass, first gap 4.0 — documented rerun-don't-fix) **and** on the free-battle cold gate, which correctly caught the classic-match fall-through described above.
-- Final push: fix for that fall-through + strengthened gates, on top of the CI evidence commit. Local verification of exactly that code: forced-race probe PASS (race window open, no classic fall-through, `match-ready`), browser suite **217/217** against the dev server (CI's own invocation), headless **329/329**, menu **9/9** (145 ms worst warmup task). Expected CI: browser 217, headless 329.
+- Final push: `5fd6051` — fix for that fall-through + strengthened gates, on top of the CI evidence commit (rebased; remote fast-forward). Local verification of exactly that code: forced-race probe PASS (race window open, no classic fall-through, `match-ready`), browser suite **217/217** against the dev server (CI's own invocation), headless **329/329**, menu **9/9** (145 ms worst warmup task). Expected CI: browser 217, headless 329.
 - No Hero Rework work was started; no broad performance pass was performed.
