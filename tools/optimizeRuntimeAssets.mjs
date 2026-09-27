@@ -25,6 +25,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { isProtectedRuntimeWav, classifyAudio, AUDIO_DELIVERY_POLICY } from './audioDeliveryPolicy.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUBLIC = path.join(REPO, 'public');
@@ -45,7 +46,11 @@ const lazy = audit.assets.filter((a) => a.classification === 'SHIPPING_LAZY');
 
 const pngCandidates = lazy.filter((a) => a.path.endsWith('.png')
   && (a.bytes >= PNG_MIN_BYTES || TEMPLATE_FAMILY.test(a.path)));
-const wavCandidates = lazy.filter((a) => a.path.endsWith('.wav'));
+// Audio 2B policy: intentionally retained runtime WAVs (HOT bank latency/
+// quality audits) are never converted; long-stream media is never converted
+// to anything that would tempt AudioBuffer decoding (it is already compressed
+// delivery, so there is nothing to do).
+const wavCandidates = lazy.filter((a) => a.path.endsWith('.wav') && !isProtectedRuntimeWav(a.path));
 
 console.log(`PNG candidates: ${pngCandidates.length} (${(pngCandidates.reduce((s, a) => s + a.bytes, 0) / 1048576).toFixed(1)}MB)`);
 console.log(`WAV candidates: ${wavCandidates.length} (${(wavCandidates.reduce((s, a) => s + a.bytes, 0) / 1048576).toFixed(1)}MB)`);
@@ -284,6 +289,13 @@ const report = {
   referencesUpdated: refUpdates,
   mastersMoved: [...convertedPngs, ...convertedWavs].map((r) => ({ from: r.path, to: 'masters/' + (r.path.endsWith('.png') ? 'images/' : 'audio/') + r.path.replace(/^\//, '') })),
   hotPathBytes: audit.summary.hotPathBytes,
+  audioPolicy: {
+    policy: AUDIO_DELIVERY_POLICY,
+    classes: audit.summary.audioDeliveryPolicy?.classes || null,
+    retainedRuntimeWavs: AUDIO_DELIVERY_POLICY.HOT_LATENCY_SFX.retainWav,
+    streams: AUDIO_DELIVERY_POLICY.LONG_STREAM_AUDIO.streams,
+    convertedClasses: convertedWavs.map((r) => ({ path: r.path, audioClass: classifyAudio(r) })),
+  },
   remainingLargestShippingLazy: remainingLazy.sort((a, b) => b.bytes - a.bytes).slice(0, 15).map((a) => ({ path: a.path, bytes: a.bytes })),
 };
 

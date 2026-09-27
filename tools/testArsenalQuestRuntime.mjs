@@ -225,6 +225,68 @@ try {
     report.bootTruth.bgm);
   gate('boot-no-boot-errors', (report.bootTruth.errors || []).length === 0, report.bootTruth.errors);
 
+  // ------------------------------ Audio 2B: latency-critical SFX ----------
+  // The HOT bank (gunfire, melee impacts, pickups, storm combat SFX) must be
+  // fully decoded into AudioBuffers BEFORE gameplay. Triggering representative
+  // cues after warmup must cause ZERO new network requests and ZERO
+  // decodeAudioData calls, and must play through an already-decoded buffer.
+  report.audioLatency = await evaluate(`(async () => {
+    const AV = window.APEX_ARSENAL_AV;
+    if (!AV || !AV.warmAudio) return { missing: true };
+    await AV.warmAudio();
+    const before = AV.audioStatus();
+    const sfxResources = () => performance.getEntriesByType('resource')
+      .filter((e) => /\\/assets\\/arsenal\\/av\\/sfx\\//.test(e.name)).length;
+    // Clear the resource-timing buffer so any trigger-time fetch MUST appear
+    // as a fresh entry (the default 250-entry buffer may have evicted the
+    // warmup fetches, which would make a plain before/after count vacuous).
+    if (performance.clearResourceTimings) performance.clearResourceTimings();
+    const playedBefore = AV.stats.played;
+    // Four representative HOT cues through the real semantic dispatch.
+    window.avCue('fire', { weapon: 'PISTOL', x: 300, y: 300, angle: 0 });
+    window.avCue('melee_hit', { weapon: 'BATTLE_AXE', x: 400, y: 400, angle: 0 });
+    window.avCue('pickup', { weapon: 'AK_47', x: 500, y: 500 });
+    window.avCue('storm_impact', { weapon: 'STORMBREAKER', x: 600, y: 600 });
+    window.avCue('storm_windup', { weapon: 'STORMBREAKER', x: 620, y: 620 });
+    const after = AV.audioStatus();
+    const resAfter = sfxResources();
+    return {
+      resNote: 'cleared before triggers; resAfter counts only trigger-window fetches',
+      before: {
+        bankSize: before.bankSize, decoded: before.decoded, failed: before.failed,
+        pending: before.pending, decodeCalls: before.decodeCalls, pcmBytes: before.pcmBytes,
+        warmMs: before.warmMs, notReadyThrottles: before.notReadyThrottles,
+      },
+      after: {
+        decoded: after.decoded, decodeCalls: after.decodeCalls, played: after.played,
+        playedDelta: after.played - playedBefore, lastVoice: after.lastVoice,
+      },
+      resAfter,
+      warmPrefetch: window.apexWarmAudioStatus ? window.apexWarmAudioStatus() : null,
+      masterGainPath: typeof battleAudioMaster !== 'undefined',
+    };
+  })()`);
+  gate('audio-hot-bank-fully-predecoded',
+    !report.audioLatency.missing
+    && report.audioLatency.before.bankSize === report.audioLatency.before.decoded
+    && report.audioLatency.before.failed === 0
+    && report.audioLatency.before.pending === 0,
+    report.audioLatency.before);
+  gate('audio-hot-trigger-zero-fetch-zero-decode',
+    !report.audioLatency.missing
+    && report.audioLatency.resAfter === 0
+    && report.audioLatency.after.decodeCalls === report.audioLatency.before.decodeCalls
+    && report.audioLatency.after.playedDelta >= 5
+    && report.audioLatency.after.lastVoice
+    && report.audioLatency.after.lastVoice.viaBufferSource === true
+    && report.audioLatency.after.lastVoice.vol > 0,
+    report.audioLatency);
+  gate('audio-warm-bank-prefetched-by-loader',
+    !report.audioLatency.missing
+    && report.audioLatency.warmPrefetch
+    && report.audioLatency.warmPrefetch.prefetched >= 60,
+    report.audioLatency.warmPrefetch);
+
   // Test-side helpers installed in the page.
   await evaluate(`(() => {
     window.__AQ_TEST = {

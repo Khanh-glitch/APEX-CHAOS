@@ -11,6 +11,27 @@ import {
   preloadRuntimeSources,
 } from './runtimeManifest.js';
 import { beginPerfSpan, markBootPhase } from './performanceMetrics.js';
+import { AUDIO_WARM_BANKS } from './audioWarmBanks.generated.js';
+
+// Audio 2B — tiered audio preparation. Runs when a group's scripts have all
+// evaluated, so lazily-constructed HTMLAudioElements / runtime
+// fetch+decodeAudioData paths start from the HTTP cache (no trigger-time
+// network). The Arsenal AV HOT bank is separate: its clips are decoded into
+// AudioBuffers by the AV runtime's own preload (AudioBuffer authority), which
+// the quest group carrying it triggers here as well.
+function warmGroupAudio(group) {
+  try {
+    if (group === 'arsenalQuest' || group === 'battle') {
+      window.APEX_ARSENAL_AV?.preload?.();
+    }
+    const urls = AUDIO_WARM_BANKS[group];
+    if (urls?.length && typeof window.apexWarmAudioUrls === 'function') {
+      window.apexWarmAudioUrls(urls);
+    }
+  } catch (error) {
+    console.warn(`[asset-loader] Audio warmup failed for group ${group}.`, error);
+  }
+}
 
 export function loadClassicRuntime(src, dataKey) {
   return new Promise((resolve, reject) => {
@@ -162,6 +183,7 @@ export function loadDeferredGameRuntimes(group = 'all', { priority = true } = {}
     .then(() => {
       window[`__apexDeferredRuntimesReady_${group}`] = true;
       if (group === 'all') window.__apexDeferredRuntimesReady = true;
+      warmGroupAudio(group);
     })
     .catch((error) => {
       window[promiseKey] = null;

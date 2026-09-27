@@ -165,6 +165,9 @@
     imagesFailed: 0,
     audioLoaded: 0,
     audioFailed: 0,
+    decodeCalls: 0, // total decodeAudioData invocations (warmup only — a
+                    // trigger-time increase means a latency regression)
+    lastVoice: null, // {rel, vol, offset, dur, viaBufferSource} of last sound
     vfxPeak: 0,
     vfxDropped: 0,
     seqAnimsPushed: 0,
@@ -197,17 +200,34 @@
     return img;
   }
   function audioCtxOf() { return typeof audioCtx !== 'undefined' ? audioCtx : null; }
+  const audioPromises = new Map();
   function loadAudio(rel) {
-    if (audioBuffers.has(rel) || audioLoading.has(rel) || audioFailed.has(rel)) return;
+    if (audioPromises.has(rel)) return audioPromises.get(rel);
+    if (audioFailed.has(rel)) return Promise.resolve(false);
     const ctx = audioCtxOf();
-    if (!ctx || typeof fetch !== 'function' || !ctx.decodeAudioData) return;
-    audioLoading.add(rel);
-    fetch(AV_ROOT + rel)
+    if (!ctx || typeof fetch !== 'function' || !ctx.decodeAudioData) return Promise.resolve(false);
+    if (!stats.warmStartedAt) stats.warmStartedAt = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    stats.decodeCalls += 1;
+    const promise = fetch(AV_ROOT + rel)
       .then((res) => res.arrayBuffer())
-      .then((buf) => ctx.decodeAudioData(buf))
-      .then((decoded) => { audioBuffers.set(rel, decoded); stats.audioLoaded += 1; })
-      .catch(() => { audioFailed.add(rel); stats.audioFailed += 1; avLog('SFX_FAIL', `file=${rel}`); })
-      .finally(() => audioLoading.delete(rel));
+      .then((buf) => new Promise((resolve, reject) => {
+        // Support both promise-form and callback-form decodeAudioData
+        // (older Safari and test harness stubs use either).
+        let settled = false;
+        const ok = (d) => { if (!settled) { settled = true; resolve(d); } };
+        const fail = (e) => { if (!settled) { settled = true; reject(e); } };
+        try {
+          const maybePromise = ctx.decodeAudioData(buf, ok, fail);
+          if (maybePromise && typeof maybePromise.then === 'function') maybePromise.then(ok, fail);
+        } catch (error) {
+          fail(error);
+        }
+      }))
+      .then((decoded) => { audioBuffers.set(rel, decoded); stats.audioLoaded += 1; return true; })
+      .catch(() => { audioFailed.add(rel); stats.audioFailed += 1; avLog('SFX_FAIL', `file=${rel}`); return false; })
+      .finally(() => { if (audioBuffers.size + audioFailed.size >= ALL_AUDIO.length) stats.warmDecodedAt = (typeof performance !== 'undefined' ? performance.now() : Date.now()); });
+    audioPromises.set(rel, promise);
+    return promise;
   }
 
   const ALL_IMAGES = [
@@ -225,6 +245,32 @@
   function preload() {
     for (const rel of ALL_IMAGES) getImg(rel);
     for (const rel of ALL_AUDIO) loadAudio(rel);
+  }
+  // Audio 2B: promise form — resolves once every HOT-bank clip has decoded
+  // (or failed). Idempotent; used by warmup integration and browser gates.
+  function warmAudio() {
+    preload();
+    return Promise.all(ALL_AUDIO.map((rel) => loadAudio(rel)));
+  }
+  function audioStatus() {
+    let pcmBytes = 0;
+    for (const b of audioBuffers.values()) {
+      pcmBytes += (b.length || 0) * (b.numberOfChannels || 1) * 4;
+    }
+    return {
+      bankSize: ALL_AUDIO.length,
+      decoded: audioBuffers.size,
+      failed: audioFailed.size,
+      pending: Math.max(0, ALL_AUDIO.length - audioBuffers.size - audioFailed.size),
+      decodeCalls: stats.decodeCalls,
+      played: stats.played,
+      notReadyThrottles: stats.throttled.notReady || 0,
+      pcmBytes,
+      warmStartedAt: stats.warmStartedAt || null,
+      warmDecodedAt: stats.warmDecodedAt || null,
+      warmMs: (stats.warmStartedAt && stats.warmDecodedAt) ? stats.warmDecodedAt - stats.warmStartedAt : null,
+      lastVoice: stats.lastVoice,
+    };
   }
   function clear() {
     vfx.length = 0;
@@ -278,6 +324,7 @@
       gain.gain.setValueAtTime(vol, tailStart);
       gain.gain.exponentialRampToValueAtTime(0.001, now + playDur);
     }
+    stats.lastVoice = { rel: entry.rel, vol, offset, dur: playDur, viaBufferSource: true };
     src.connect(gain);
     gain.connect(typeof battleAudioMaster !== 'undefined' ? battleAudioMaster : ctx.destination);
     src.onended = release;
@@ -763,6 +810,8 @@
     tick,
     draw,
     preload,
+    warmAudio,
+    audioStatus,
     clear,
     stats,
     audioReady: () => stats.audioLoaded,

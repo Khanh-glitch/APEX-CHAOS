@@ -21,6 +21,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { classifyAudio, AUDIO_DELIVERY_POLICY } from './audioDeliveryPolicy.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUBLIC = path.join(REPO, 'public');
@@ -160,11 +161,13 @@ for (const { abs, publicPath } of assetIndex) {
   else if (shipRefs.length) classification = 'SHIPPING_LAZY';
   else classification = 'LEGACY_NON_SHIPPING';
 
+  const isAudio = ['.mp3', '.ogg', '.wav', '.m4a', '.aac', '.flac'].includes(ext);
   report.push({
     path: publicPath,
     bytes: fs.statSync(abs).size,
     type: ext.replace('.', ''),
     classification,
+    audioClass: isAudio ? classifyAudio({ path: publicPath, classification, shipRefs }) : undefined,
     shipRefs,
     toolRefs,
   });
@@ -178,8 +181,21 @@ for (const entry of report) {
 }
 const hotBytes = report.filter((e) => e.classification === 'SHIPPING_HOT').reduce((s, e) => s + e.bytes, 0);
 
+const audioPolicy = {};
+for (const e of report) {
+  if (!e.audioClass) continue;
+  audioPolicy[e.audioClass] ??= { files: 0, bytes: 0 };
+  audioPolicy[e.audioClass].files += 1;
+  audioPolicy[e.audioClass].bytes += e.bytes;
+}
+
 const summary = {
   generatedAt: new Date().toISOString(),
+  audioDeliveryPolicy: {
+    classes: audioPolicy,
+    retainedRuntimeWavs: AUDIO_DELIVERY_POLICY.HOT_LATENCY_SFX.retainWav,
+    streams: AUDIO_DELIVERY_POLICY.LONG_STREAM_AUDIO.streams,
+  },
   totalFiles: report.length,
   totalBytes: report.reduce((s, e) => s + e.bytes, 0),
   byClassification: byClass,

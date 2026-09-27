@@ -161,3 +161,37 @@ function stopBattleAudio() {
 }
 window.apexFadeBattleAudio = fadeBattleAudio;
 window.apexStopBattleAudio = stopBattleAudio;
+
+// ── Audio 2B: tiered WARM-bank prefetch ────────────────────────────────────
+// Fighter/mode runtimes play their SFX through HTMLAudioElement pools that are
+// created when the runtime script evaluates. A few create elements lazily on
+// the first gameplay event, which would turn the trigger into a network fetch.
+// The tiered runtime loader therefore prefetches every audio URL a group's
+// runtimes reference the moment that group loads (background warmup or route
+// intent): the bytes land in the HTTP cache, so the eventual trigger-time
+// element starts from cache with no network round-trip.
+// Elements are kept in a Set so the browser cannot GC-cancel the fetch, and
+// are never played or routed through the battle graph — volume/mute/fade
+// semantics of real playback are untouched.
+var apexWarmAudioPrefetched = new Set();
+window.apexWarmAudioUrls = function apexWarmAudioUrls(urls) {
+    if (!urls || !urls.length) return 0;
+    var warmed = 0;
+    for (var i = 0; i < urls.length; i++) {
+        var url = urls[i];
+        if (!url || apexWarmAudioPrefetched.has(url)) continue;
+        apexWarmAudioPrefetched.add(url);
+        try {
+            var el = new Audio(url);
+            el.preload = 'auto';
+            el.__apexAudioWarmOnly = true;
+            el.muted = true; // never audible; preload metadata/bytes only
+            el.load();
+            warmed += 1;
+        } catch (error) { /* prefetch is best-effort */ }
+    }
+    return warmed;
+};
+window.apexWarmAudioStatus = function apexWarmAudioStatus() {
+    return { prefetched: apexWarmAudioPrefetched.size };
+};
