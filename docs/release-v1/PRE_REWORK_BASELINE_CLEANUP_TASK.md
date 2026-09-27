@@ -14,14 +14,96 @@ The owner wants a real production pass, not a demo and not a documentation-only 
 
 ---
 
+# ARENA AGENT SESSION QUALIFICATION & RECOVERY PROTOCOL
+
+This task will be started in a **new Arena Agent Mode chat**. Arena randomly assigns an undisclosed orchestrator model per new Agent session. The owner is intentionally using the first production checkpoint below to decide whether this particular session is capable enough to continue the rest of the mission.
+
+Do **not** try to guess or claim the hidden model identity. The qualification is behavioral: repository understanding, implementation quality, steerability, bash recovery, scope discipline, evidence quality, and Git safety.
+
+## Q0 — session/branch safety
+
+Before editing:
+
+1. `git fetch` and inspect the exact local branch, remote refs, HEAD, worktree status, and recent log.
+2. The live accepted development tip at the time of this protocol is `8a60a8cf5a60cbc06ae1fefbe79d823a61656634`, whose parent gameplay/task-authority history includes the clean baseline. The baseline test evidence at this tip is **306/306 headless and 177/177 real-browser**.
+3. Arena normally gives the session its own repository copy / working branch. **Work and push only on the Arena session branch.** Do not move, force-update, merge into, or directly push implementation commits to `arena/01a0dc5e-apex-chaos` or `playtest/arsenal`.
+4. The accepted development branch is the comparison/base authority only. If it moved after this document was authored, fetch and reconcile deliberately; never overwrite newer accepted work.
+5. Never use force-push, destructive remote ref changes, or delete branches in this mission.
+6. Before any broad/generated asset rewrite, make sure all already-validated work is committed and pushed.
+
+## Q1 — first production qualification checkpoint
+
+Do **not** start the full Checkpoint A immediately.
+
+First complete only this bounded, shipping-relevant slice:
+
+- fix **loading-progress truth** so 100% means the menu is actually interactive;
+- reduce any clearly unnecessary menu-critical wait discovered in the real dependency graph, but do not perform the full asset-format migration yet;
+- warm/preload menu BGM without blocking menu interactivity and without violating autoplay policy;
+- add/retain timing instrumentation sufficient to measure boot start -> menu interactive -> loader hidden;
+- run the relevant build + focused real-browser validation;
+- measure before/after rather than claiming subjective improvement.
+
+Commit and push this as the **Qualification Checkpoint**, preferably:
+`perf(boot): align loader with menu-interactive readiness`
+
+Then **STOP and report to the owner before continuing**. Report only:
+- exact pushed SHA;
+- files changed;
+- actual before/after timing measurements;
+- tests/build/browser checks run and results;
+- any failed command and how it was recovered;
+- the next concrete step you would take for the remaining task.
+
+Do not continue into mass asset conversion or Checkpoint B until the owner explicitly says to continue in this same session.
+
+This stop is intentional: it lets the owner evaluate whether the randomly assigned Arena orchestrator is strong enough to trust with the riskier remainder.
+
+## Q2 — loop/crash prevention
+
+Arena sessions can lose useful local work if a long turn crashes before it is pushed. Follow these operational rules without turning the task into bureaucracy:
+
+- After every coherent, validated production checkpoint, **commit and push immediately** before beginning the next expensive phase.
+- Do not keep a large multi-file working tree uncommitted while running long browser suites or asset-generation jobs.
+- If the **same command or same implementation approach fails twice**, do not blindly repeat it. Re-read the error, change the hypothesis/approach, or inspect a smaller reproduction.
+- Never repeat the same failed approach more than **three times**. At that point, preserve/push any valid completed checkpoint and report the blocker rather than looping indefinitely.
+- Put sane timeouts around commands that can hang. If a process makes no meaningful progress, terminate it and inspect logs/process state instead of waiting forever.
+- A pre-existing or unrelated test failure is not permission to wander into unrelated fixes. Establish whether it predates the current diff first.
+- Before rewriting generated manifests/assets, identify the generator/source of truth. Do not manually patch generated output if a reproducible generator exists.
+- For asset conversion, work in small verified batches and retain source masters/provenance. Verify runtime references before removing or replacing delivery files.
+- If the session approaches context exhaustion or an Arena/tool failure threatens continuity, **commit + push the currently validated state first**, then write a concise handoff in the response. Never leave the only copy of substantial completed work local.
+- Do not claim a task is complete because constants look correct; inspect browser evidence for visual requirements.
+
+## Q3 — what demonstrates a strong session
+
+A strong session should naturally demonstrate most of the following without being spoon-fed through every command:
+
+- identifies and respects the live branch/SHA situation;
+- reads the authority and actual dependency graph before editing;
+- distinguishes menu-critical work from background/legacy work;
+- makes the smallest architecture change that solves the loading problem cleanly;
+- measures baseline and result;
+- recovers rationally from bash/browser failures instead of looping;
+- avoids hallucinated files/tools and scope creep;
+- creates a clean checkpoint commit and actually pushes it;
+- reports limitations honestly;
+- leaves the repository easier, not harder, to continue.
+
+The owner will use the Qualification Checkpoint to decide whether this Arena session should continue the rest of the mission.
+
+---
+
 # Mission
 
-Complete one coherent **Pre-Rework Baseline Cleanup** with two checkpoint commits:
+Complete one coherent **Pre-Rework Baseline Cleanup** after the Qualification Checkpoint is accepted by the owner.
 
-1. **Checkpoint A — Boot / loading / runtime asset delivery**
-2. **Checkpoint B — Weapon integrity / Stormbreaker / heal-tier presentation**
+After qualification, continue with these production phases:
 
-Checkpoint A must be independently valid and committable before Checkpoint B begins.
+1. **Checkpoint A2 — remaining runtime asset delivery / format optimization**
+2. **Checkpoint B1 — Stormbreaker gameplay + red-tier interaction rules**
+3. **Checkpoint B2 — weapon/heal presentation + scale normalization + final evidence**
+
+These may be grouped when naturally atomic, but do not accumulate the entire mission uncommitted. Every validated phase must be committed and pushed before the next risky/expensive phase begins.
 
 Do not spend this task inventing unrelated work. Everything below is intended to ship or directly support the release build.
 
@@ -414,15 +496,21 @@ Do not use debug overlays that obscure the subject.
 
 # Commit discipline
 
-Prefer exactly two meaningful implementation checkpoints:
+The first mandatory pushed checkpoint is the Qualification Checkpoint:
+`perf(boot): align loader with menu-interactive readiness`
 
-### Commit A
-`perf(boot): make menu interactive early and tier asset delivery`
+After owner approval to continue the same Arena session, prefer small coherent production checkpoints such as:
 
-### Commit B
-`fix(arsenal): harden weapon presentation and red-tier behavior`
+### A2
+`perf(assets): tier and optimize runtime asset delivery`
 
-If more commits are needed for generated assets/tests, keep them tightly scoped and explain them.
+### B1
+`feat(arsenal): harden Stormbreaker gameplay and red-tier rules`
+
+### B2
+`fix(arsenal): normalize weapon and heal presentation`
+
+Generated-asset/test commits are acceptable when they are reproducible and tightly scoped. The goal is recoverability without fragmenting the implementation into meaningless micro-commits.
 
 At the end report:
 - exact final SHA
