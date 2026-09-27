@@ -63,13 +63,13 @@
     picked:loadImage('picked.webp')
   };
   const audioFiles = {
-    attack:`${ROOT}audio/attack.wav`,
-    infiniteSeverStart:`${ROOT}audio/infiniteSeverStart.wav`,
-    directFleshHit:`${ROOT}audio/directFleshHit.wav`,
-    twoSwordImpact:`${ROOT}audio/twoSwordImpact.wav`,
-    waveHitEnemy:`${ROOT}audio/waveHitEnemy.wav`,
-    waveHitDefendedObject:`${ROOT}audio/waveHitDefendedObject.wav`,
-    waveHitHeavyObject:`${ROOT}audio/waveHitHeavyObject.wav`,
+    attack:`${ROOT}audio/attack.mp3`,
+    infiniteSeverStart:`${ROOT}audio/infiniteSeverStart.mp3`,
+    directFleshHit:`${ROOT}audio/directFleshHit.mp3`,
+    twoSwordImpact:`${ROOT}audio/twoSwordImpact.mp3`,
+    waveHitEnemy:`${ROOT}audio/waveHitEnemy.mp3`,
+    waveHitDefendedObject:`${ROOT}audio/waveHitDefendedObject.mp3`,
+    waveHitHeavyObject:`${ROOT}audio/waveHitHeavyObject.mp3`,
     cloneTeleport:'/assets/ninja_v1/audio/teleport.mp3'
   };
   const audio = {};

@@ -490,7 +490,7 @@ window.APEX_ARSENAL_C_SET = {
     },
     "STORMBREAKER": {
       "id": "STORMBREAKER",
-      "file": "weapons/c/STORMBREAKER.png",
+      "file": "weapons/c/STORMBREAKER.webp",
       "w": 1086,
       "h": 1448
     }

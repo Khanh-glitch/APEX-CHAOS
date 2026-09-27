@@ -1118,12 +1118,12 @@ gate('av-all-12-weapons-cued', (() => {
     && has('reflect') && has('tower_block');
 })(), report.av.after.cued.filter(e => ['melee_swing', 'melee_hit', 'shield_activate', 'reflect', 'tower_block', 'sniper_aim', 'explosion'].includes(e.event)).length);
 gate('av-smg-shots-trimmed', (() => {
-  const smg = report.av.after.scheduled.filter(s => s.rel.endsWith('sks.wav'));
+  const smg = report.av.after.scheduled.filter(s => s.rel.endsWith('sks.mp3'));
   return smg.length >= 8 && smg.every(s => s.dur && s.dur <= 0.3);
-})(), report.av.after.scheduled.filter(s => s.rel.endsWith('sks.wav')).slice(0, 3));
-gate('av-smg-voice-cap-enforced', (report.av.after.throttled['sfx/guns/sks.wav'] || 0) >= 1, report.av.after.throttled);
-gate('av-mosin-pistol-trimmed', report.av.after.scheduled.filter(s => s.rel.endsWith('cz.wav')).every(s => s.dur <= 0.9)
-  && report.av.after.scheduled.filter(s => s.rel.endsWith('mosin.wav')).every(s => s.dur <= 1.8));
+})(), report.av.after.scheduled.filter(s => s.rel.endsWith('sks.mp3')).slice(0, 3));
+gate('av-smg-voice-cap-enforced', (report.av.after.throttled['sfx/guns/sks.mp3'] || 0) >= 1, report.av.after.throttled);
+gate('av-mosin-pistol-trimmed', report.av.after.scheduled.filter(s => s.rel.endsWith('cz.mp3')).every(s => s.dur <= 0.9)
+  && report.av.after.scheduled.filter(s => s.rel.endsWith('mosin.mp3')).every(s => s.dur <= 1.8));
 gate('av-vfx-expire-no-leak', (() => {
   run(`__AQ_TEST.holdSpawns(); __AQ_TEST.clearSlots(); __AQ_TEST.step(3);`);
   return AV.activeVfx() === 0 && report.av.after.peak > 0;
@@ -1811,7 +1811,7 @@ gate('postc-no-arena-glyphs-in-draw',
 report.postCVfx = run(`
   const av = window.APEX_ARSENAL_AV;
   const smoke = av && av.stats;
-  return { smokeRel: 'vfx/c/smoke_01.png' };
+  return { smokeRel: 'vfx/c/smoke_01.webp' };
 `);
 gate('postc-vfx-uses-sanitized-c-paths', true, report.postCVfx);
 
@@ -2388,18 +2388,18 @@ gate('feel-runtime-ready', report.rev2Feel.feelReady === true, report.rev2Feel);
 gate('feel-splatter-on-real-damage', report.rev2Feel.stampsGrew === true, report.rev2Feel);
 gate('feel-miss-text-only', report.rev2Feel.missText === 'MISS' && report.rev2Feel.missBad === false && report.rev2Feel.numericOnMiss === 0, report.rev2Feel);
 gate('feel-shotgun-pickup-real-file',
-  report.rev2Feel.sgReady && report.rev2Feel.sgReady.cue === 'pickup_shotgun' && String(report.rev2Feel.sgReady.rel).indexOf('pickup_shotgun.wav') >= 0,
+  report.rev2Feel.sgReady && report.rev2Feel.sgReady.cue === 'pickup_shotgun' && String(report.rev2Feel.sgReady.rel).indexOf('pickup_shotgun.mp3') >= 0,
   report.rev2Feel.sgReady);
 gate('feel-sniper-pickup-chamber',
   report.rev2Feel.snReady && report.rev2Feel.snReady.cue === 'pickup_sniper',
   report.rev2Feel.snReady);
 gate('feel-pistol-pickup-ready',
   report.rev2Feel.pReady && report.rev2Feel.pReady.cue === 'pickup_pistol'
-  && String(report.rev2Feel.pReady.rel).indexOf('pickup_pistol.wav') >= 0,
+  && String(report.rev2Feel.pReady.rel).indexOf('pickup_pistol.mp3') >= 0,
   report.rev2Feel.pReady);
 gate('feel-rifle-pickup-derived',
   report.rev2Feel.akReady && report.rev2Feel.akReady.cue === 'pickup_rifle_ak'
-  && String(report.rev2Feel.akReady.rel).indexOf('rifle_take_01.wav') >= 0
+  && String(report.rev2Feel.akReady.rel).indexOf('rifle_take_01.mp3') >= 0
   && report.rev2Feel.macReady && report.rev2Feel.macReady.cue === 'pickup_smg_mac10'
   && report.rev2Feel.z15 && report.rev2Feel.z15s && report.rev2Feel.z15.cue === report.rev2Feel.z15s.cue,
   { ak: report.rev2Feel.akReady, mac: report.rev2Feel.macReady, z15: report.rev2Feel.z15, z15s: report.rev2Feel.z15s });
@@ -3570,7 +3570,7 @@ gate('storm-balance-audited-values',
   && stormId.tuning.flightLongSide === 209,
   { spec: stormId.spec, tuning: stormId.tuning });
 gate('storm-asset-cset-registered',
-  !!stormId.cSet && stormId.cSet.file === 'weapons/c/STORMBREAKER.png' && stormId.cSet.w === 1086 && stormId.cSet.h === 1448,
+  !!stormId.cSet && stormId.cSet.file === 'weapons/c/STORMBREAKER.webp' && stormId.cSet.w === 1086 && stormId.cSet.h === 1448,
   stormId.cSet);
 
 // T6 rarity actually rolls STORMBREAKER (deterministic LCG, 20000 samples).

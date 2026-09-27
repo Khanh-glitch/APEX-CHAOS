@@ -24,9 +24,9 @@
   // kenney sources are 100%-opaque black-matte PNGs and must never be drawn
   // directly. The explosion atlas already carries real alpha.
   // ---------------------------------------------------------------------------
-  const SMOKE = (n) => `vfx/c/smoke_${n}.png`;
-  const SPARK = (n) => `vfx/c/spark_${n}.png`;
-  const ATLAS = { file: 'vfx/explosion_pack_2/half/1.png', cell: 256, frames: 64 };
+  const SMOKE = (n) => `vfx/c/smoke_${n}.webp`;
+  const SPARK = (n) => `vfx/c/spark_${n}.webp`;
+  const ATLAS = { file: 'vfx/explosion_pack_2/half/1.webp', cell: 256, frames: 64 };
 
   // Trim windows measured from the source envelopes (onset analysis):
   // cz shot @0.14s, sks repeated shots from 0.34s, mosin crack @0.43s.
@@ -37,55 +37,55 @@
       { rel: 'sfx/impact/impactGeneric_light_002.ogg', vol: 0.12, maxVoices: 3 },
     ],
     pickup: [{ rel: 'sfx/rpg/metalLatch.ogg', vol: 0.42, maxVoices: 3 }],
-    pickup_pistol: [{ rel: 'sfx/feel/pickup_pistol.wav', vol: 0.62, maxVoices: 2 }],
-    pickup_smg_mac10: [{ rel: 'sfx/feel/rifle_take_05.wav', vol: 0.58, maxVoices: 2 }],
-    pickup_smg_mp5: [{ rel: 'sfx/feel/rifle_take_02.wav', vol: 0.58, maxVoices: 2 }],
-    pickup_smg_p90: [{ rel: 'sfx/feel/rifle_take_09.wav', vol: 0.58, maxVoices: 2 }],
-    pickup_rifle_ak: [{ rel: 'sfx/feel/rifle_take_01.wav', vol: 0.62, maxVoices: 2 }],
-    pickup_rifle_m16: [{ rel: 'sfx/feel/rifle_take_03.wav', vol: 0.62, maxVoices: 2 }],
-    pickup_rifle_z15: [{ rel: 'sfx/feel/rifle_take_04.wav', vol: 0.62, maxVoices: 2 }],
-    pickup_rifle_mbr: [{ rel: 'sfx/feel/rifle_take_07.wav', vol: 0.68, maxVoices: 2 }],
-    pickup_rifle_mbr2: [{ rel: 'sfx/feel/rifle_take_08.wav', vol: 0.68, maxVoices: 2 }],
-    pickup_rifle_m249: [{ rel: 'sfx/feel/rifle_take_10.wav', vol: 0.70, maxVoices: 2 }],
-    pickup_rifle_szecsei: [{ rel: 'sfx/feel/rifle_take_11.wav', vol: 0.68, maxVoices: 2 }],
-    pickup_shotgun: [{ rel: 'sfx/feel/pickup_shotgun.wav', vol: 0.72, maxVoices: 2 }],
-    pickup_sniper: [{ rel: 'sfx/feel/pickup_sniper.wav', vol: 0.63, maxVoices: 1 }],
-    pickup_sniper_lock: [{ rel: 'sfx/c-final/SNIPER/sniper_bolt_lock.wav', vol: 0.42, maxVoices: 1 }],
+    pickup_pistol: [{ rel: 'sfx/feel/pickup_pistol.mp3', vol: 0.62, maxVoices: 2 }],
+    pickup_smg_mac10: [{ rel: 'sfx/feel/rifle_take_05.mp3', vol: 0.58, maxVoices: 2 }],
+    pickup_smg_mp5: [{ rel: 'sfx/feel/rifle_take_02.mp3', vol: 0.58, maxVoices: 2 }],
+    pickup_smg_p90: [{ rel: 'sfx/feel/rifle_take_09.mp3', vol: 0.58, maxVoices: 2 }],
+    pickup_rifle_ak: [{ rel: 'sfx/feel/rifle_take_01.mp3', vol: 0.62, maxVoices: 2 }],
+    pickup_rifle_m16: [{ rel: 'sfx/feel/rifle_take_03.mp3', vol: 0.62, maxVoices: 2 }],
+    pickup_rifle_z15: [{ rel: 'sfx/feel/rifle_take_04.mp3', vol: 0.62, maxVoices: 2 }],
+    pickup_rifle_mbr: [{ rel: 'sfx/feel/rifle_take_07.mp3', vol: 0.68, maxVoices: 2 }],
+    pickup_rifle_mbr2: [{ rel: 'sfx/feel/rifle_take_08.mp3', vol: 0.68, maxVoices: 2 }],
+    pickup_rifle_m249: [{ rel: 'sfx/feel/rifle_take_10.mp3', vol: 0.70, maxVoices: 2 }],
+    pickup_rifle_szecsei: [{ rel: 'sfx/feel/rifle_take_11.mp3', vol: 0.68, maxVoices: 2 }],
+    pickup_shotgun: [{ rel: 'sfx/feel/pickup_shotgun.mp3', vol: 0.72, maxVoices: 2 }],
+    pickup_sniper: [{ rel: 'sfx/feel/pickup_sniper.mp3', vol: 0.63, maxVoices: 1 }],
+    pickup_sniper_lock: [{ rel: 'sfx/c-final/SNIPER/sniper_bolt_lock.mp3', vol: 0.42, maxVoices: 1 }],
 
     // Approved gun-fire baseline retained.
-    pistol_shot: [{ rel: 'sfx/guns/cz.wav', offset: 0.10, dur: 0.85, vol: 0.75, maxVoices: 4, fadeTail: 0.075, attack: 0.003 }],
-    smg_shot: [{ rel: 'sfx/guns/sks.wav', slices: [0.32, 2.27, 3.31, 5.98, 7.25, 9.69, 11.43, 12.70], dur: 0.24, vol: 0.5, maxVoices: 3, fadeTail: 0.035, attack: 0.002 }],
-    shotgun_shot: [{ rel: 'sfx/guns/shotty.wav', offset: 0.0, dur: 0.7, vol: 0.95, maxVoices: 2, fadeTail: 0.125, attack: 0.003 }],
-    sniper_shot: [{ rel: 'sfx/guns/mosin.wav', offset: 0.40, dur: 1.7, vol: 0.95, maxVoices: 2, fadeTail: 0.18, attack: 0.004 }],
+    pistol_shot: [{ rel: 'sfx/guns/cz.mp3', offset: 0.10, dur: 0.85, vol: 0.75, maxVoices: 4, fadeTail: 0.075, attack: 0.003 }],
+    smg_shot: [{ rel: 'sfx/guns/sks.mp3', slices: [0.32, 2.27, 3.31, 5.98, 7.25, 9.69, 11.43, 12.70], dur: 0.24, vol: 0.5, maxVoices: 3, fadeTail: 0.035, attack: 0.002 }],
+    shotgun_shot: [{ rel: 'sfx/guns/shotty.mp3', offset: 0.0, dur: 0.7, vol: 0.95, maxVoices: 2, fadeTail: 0.125, attack: 0.003 }],
+    sniper_shot: [{ rel: 'sfx/guns/mosin.mp3', offset: 0.40, dur: 1.7, vol: 0.95, maxVoices: 2, fadeTail: 0.18, attack: 0.004 }],
 
     // Owner-approved C1 FINAL SFX LOCK.
-    pistol_mech: [{ rel: 'sfx/c-final/PISTOL/pistol_mech_click.wav', vol: 0.50, maxVoices: 2 }],
-    shotgun_rack_pull: [{ rel: 'sfx/c-final/SHOTGUN/shotgun_rack_pull.wav', vol: 0.71, maxVoices: 2 }],
-    shotgun_rack_push: [{ rel: 'sfx/c-final/SHOTGUN/shotgun_rack_push.wav', vol: 0.71, maxVoices: 2 }],
-    sniper_chamber: [{ rel: 'sfx/c-final/SNIPER/sniper_chamber.wav', vol: 0.63, maxVoices: 1 }],
-    sniper_bolt_lock: [{ rel: 'sfx/c-final/SNIPER/sniper_bolt_lock.wav', vol: 0.50, maxVoices: 1 }],
+    pistol_mech: [{ rel: 'sfx/c-final/PISTOL/pistol_mech_click.mp3', vol: 0.50, maxVoices: 2 }],
+    shotgun_rack_pull: [{ rel: 'sfx/c-final/SHOTGUN/shotgun_rack_pull.mp3', vol: 0.71, maxVoices: 2 }],
+    shotgun_rack_push: [{ rel: 'sfx/c-final/SHOTGUN/shotgun_rack_push.mp3', vol: 0.71, maxVoices: 2 }],
+    sniper_chamber: [{ rel: 'sfx/c-final/SNIPER/sniper_chamber.mp3', vol: 0.63, maxVoices: 1 }],
+    sniper_bolt_lock: [{ rel: 'sfx/c-final/SNIPER/sniper_bolt_lock.mp3', vol: 0.50, maxVoices: 1 }],
 
-    axe_swing: [{ rel: 'sfx/c-final/BATTLE_AXE/axe_motion.wav', vol: 0.63, maxVoices: 2 }],
+    axe_swing: [{ rel: 'sfx/c-final/BATTLE_AXE/axe_motion.mp3', vol: 0.63, maxVoices: 2 }],
     axe_hit: [
-      { rel: 'sfx/c-final/BATTLE_AXE/axe_contact.wav', vol: 1.00, maxVoices: 3 },
-      { rel: 'sfx/c-final/BATTLE_AXE/axe_body.wav', vol: 0.40, maxVoices: 3 },
+      { rel: 'sfx/c-final/BATTLE_AXE/axe_contact.mp3', vol: 1.00, maxVoices: 3 },
+      { rel: 'sfx/c-final/BATTLE_AXE/axe_body.mp3', vol: 0.40, maxVoices: 3 },
     ],
-    club_swing: [{ rel: 'sfx/c-final/SPIKED_CLUB/club_swing.wav', vol: 0.79, maxVoices: 2 }],
-    club_hit: [{ rel: 'sfx/c-final/SPIKED_CLUB/club_body.wav', vol: 1.00, maxVoices: 3 }],
-    dagger_swing: [{ rel: 'sfx/c-final/DAGGER/dagger_motion.wav', vol: 0.71, maxVoices: 3 }],
-    dagger_hit: [{ rel: 'sfx/c-final/DAGGER/dagger_contact.wav', vol: 0.71, maxVoices: 3 }],
-    sabre_swing: [{ rel: 'sfx/c-final/SABRE/sabre_motion.wav', vol: 0.63, maxVoices: 3 }],
-    sabre_hit: [{ rel: 'sfx/c-final/SABRE/sabre_cut.wav', vol: 1.00, maxVoices: 3 }],
-    spear_swing: [{ rel: 'sfx/c-final/SPEAR/spear_motion.wav', vol: 0.56, maxVoices: 3 }],
-    spear_hit: [{ rel: 'sfx/c-final/SPEAR/spear_impact.wav', vol: 1.00, maxVoices: 3 }],
-    swirl_block: [{ rel: 'sfx/c-final/SWIRL_SHIELD/swirl_shield_block.wav', vol: 1.00, maxVoices: 3 }],
-    tower_block: [{ rel: 'sfx/c-final/TOWER_SHIELD/tower_shield_block.wav', vol: 1.00, maxVoices: 3 }],
+    club_swing: [{ rel: 'sfx/c-final/SPIKED_CLUB/club_swing.mp3', vol: 0.79, maxVoices: 2 }],
+    club_hit: [{ rel: 'sfx/c-final/SPIKED_CLUB/club_body.mp3', vol: 1.00, maxVoices: 3 }],
+    dagger_swing: [{ rel: 'sfx/c-final/DAGGER/dagger_motion.mp3', vol: 0.71, maxVoices: 3 }],
+    dagger_hit: [{ rel: 'sfx/c-final/DAGGER/dagger_contact.mp3', vol: 0.71, maxVoices: 3 }],
+    sabre_swing: [{ rel: 'sfx/c-final/SABRE/sabre_motion.mp3', vol: 0.63, maxVoices: 3 }],
+    sabre_hit: [{ rel: 'sfx/c-final/SABRE/sabre_cut.mp3', vol: 1.00, maxVoices: 3 }],
+    spear_swing: [{ rel: 'sfx/c-final/SPEAR/spear_motion.mp3', vol: 0.56, maxVoices: 3 }],
+    spear_hit: [{ rel: 'sfx/c-final/SPEAR/spear_impact.mp3', vol: 1.00, maxVoices: 3 }],
+    swirl_block: [{ rel: 'sfx/c-final/SWIRL_SHIELD/swirl_shield_block.mp3', vol: 1.00, maxVoices: 3 }],
+    tower_block: [{ rel: 'sfx/c-final/TOWER_SHIELD/tower_shield_block.mp3', vol: 1.00, maxVoices: 3 }],
     explosion: [
-      { rel: 'sfx/c-final/GRENADE/grenade_core.wav', vol: 1.00, maxVoices: 2 },
-      { rel: 'sfx/c-final/GRENADE/grenade_low.wav', vol: 0.40, maxVoices: 2 },
+      { rel: 'sfx/c-final/GRENADE/grenade_core.mp3', vol: 1.00, maxVoices: 2 },
+      { rel: 'sfx/c-final/GRENADE/grenade_low.mp3', vol: 0.40, maxVoices: 2 },
     ],
-    casing_land: [{ rel: 'sfx/feel/casing_01.wav', vol: 0.22, maxVoices: 4 }],
-    shotgun_shell_land: [{ rel: 'sfx/feel/shell_01.wav', vol: 0.26, maxVoices: 3 }],
+    casing_land: [{ rel: 'sfx/feel/casing_01.mp3', vol: 0.22, maxVoices: 4 }],
+    shotgun_shell_land: [{ rel: 'sfx/feel/shell_01.mp3', vol: 0.26, maxVoices: 3 }],
 
     // POST-C additions — reuse the approved baseline files ONLY (no new
     // audio sourcing): ricochet = plate tick, NEWBIE dash = force field
@@ -115,16 +115,16 @@
     SNIPER: 'pickup_sniper',
   };
   const CASING_VARS = [
-    { rel: 'sfx/feel/casing_01.wav', vol: 0.22, maxVoices: 4 },
-    { rel: 'sfx/feel/casing_02.wav', vol: 0.22, maxVoices: 4 },
-    { rel: 'sfx/feel/casing_03.wav', vol: 0.20, maxVoices: 4 },
-    { rel: 'sfx/feel/casing_04.wav', vol: 0.20, maxVoices: 4 },
-    { rel: 'sfx/feel/casing_05.wav', vol: 0.20, maxVoices: 4 },
+    { rel: 'sfx/feel/casing_01.mp3', vol: 0.22, maxVoices: 4 },
+    { rel: 'sfx/feel/casing_02.mp3', vol: 0.22, maxVoices: 4 },
+    { rel: 'sfx/feel/casing_03.mp3', vol: 0.20, maxVoices: 4 },
+    { rel: 'sfx/feel/casing_04.mp3', vol: 0.20, maxVoices: 4 },
+    { rel: 'sfx/feel/casing_05.mp3', vol: 0.20, maxVoices: 4 },
   ];
   const SHELL_VARS = [
-    { rel: 'sfx/feel/shell_01.wav', vol: 0.26, maxVoices: 3 },
-    { rel: 'sfx/feel/shell_02.wav', vol: 0.24, maxVoices: 3 },
-    { rel: 'sfx/feel/shell_03.wav', vol: 0.24, maxVoices: 3 },
+    { rel: 'sfx/feel/shell_01.mp3', vol: 0.26, maxVoices: 3 },
+    { rel: 'sfx/feel/shell_02.mp3', vol: 0.24, maxVoices: 3 },
+    { rel: 'sfx/feel/shell_03.mp3', vol: 0.24, maxVoices: 3 },
   ];
   let casingCursor = 0;
   let shellCursor = 0;

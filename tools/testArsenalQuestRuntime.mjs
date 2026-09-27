@@ -2088,8 +2088,8 @@ try {
   gate('both-unarmed-no-spam', report.bothUnarmed.mid === report.bothUnarmed.afterImmediate, report.bothUnarmed);
   gate('both-unarmed-one-armed-no-fast', report.bothUnarmed.afterOneArmed === report.bothUnarmed.armedBefore, report.bothUnarmed);
   gate('both-unarmed-retrigger', report.bothUnarmed.retrigAfter === report.bothUnarmed.retrigBefore + 1, report.bothUnarmed);
-  gate('feel-rifle-pickup-derived', report.bothUnarmed.ak && String(report.bothUnarmed.ak.rel).indexOf('rifle_take_01.wav') >= 0, report.bothUnarmed.ak);
-  gate('feel-pistol-source-recharge', report.bothUnarmed.pistol && String(report.bothUnarmed.pistol.rel).indexOf('pickup_pistol.wav') >= 0, report.bothUnarmed.pistol);
+  gate('feel-rifle-pickup-derived', report.bothUnarmed.ak && String(report.bothUnarmed.ak.rel).indexOf('rifle_take_01.mp3') >= 0, report.bothUnarmed.ak);
+  gate('feel-pistol-source-recharge', report.bothUnarmed.pistol && String(report.bothUnarmed.pistol.rel).indexOf('pickup_pistol.mp3') >= 0, report.bothUnarmed.pistol);
 
 
   report.bothUnarmedCap = await evaluate(`(() => {

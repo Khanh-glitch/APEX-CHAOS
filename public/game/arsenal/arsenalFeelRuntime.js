@@ -12,7 +12,7 @@
     HEAL_H2: '/assets/arsenal/feel/heals/runtime/heal_t2_medication.png',
     HEAL_H3: '/assets/arsenal/feel/heals/runtime/heal_t3_autoinjector.png',
     HEAL_H4: '/assets/arsenal/feel/heals/runtime/heal_t4_iv_pack.png',
-    HEAL_H5: '/assets/arsenal/feel/heals/runtime/heal_t5_trauma_case.png',
+    HEAL_H5: '/assets/arsenal/feel/heals/runtime/heal_t5_trauma_case.webp',
   };
   const HEAL_MASTERS = {
     HEAL_H1: '/assets/arsenal/feel/heals/heal_t1_field_dressing.png',

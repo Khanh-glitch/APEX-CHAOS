@@ -90,15 +90,15 @@
   STATE.images.reticle = loadImage(`${ROOT}/images/penalty-reticle.webp`, 'penalty reticle');
 
   const AUDIO_PATHS = {
-    bounce:`${ROOT}/audio/ball-bounce-hit.wav`,
-    hit:`${ROOT}/audio/ball-bounce-hit.wav`,
-    catch:`${ROOT}/audio/ball-catch.wav`,
-    ambience:`${ROOT}/audio/possession-ambience.wav`,
-    powerKick:`${ROOT}/audio/power-kick.wav`,
+    bounce:`${ROOT}/audio/ball-bounce-hit.mp3`,
+    hit:`${ROOT}/audio/ball-bounce-hit.mp3`,
+    catch:`${ROOT}/audio/ball-catch.mp3`,
+    ambience:`${ROOT}/audio/possession-ambience.mp3`,
+    powerKick:`${ROOT}/audio/power-kick.mp3`,
     heavyImpact:`${ROOT}/audio/skill-impact.mp3`,
-    goalImpact:`${ROOT}/audio/goal-impact.wav`,
-    penaltyActivation:`${ROOT}/audio/penalty-activation.wav`,
-    penaltyWhistle:`${ROOT}/audio/penalty-whistle.wav`,
+    goalImpact:`${ROOT}/audio/goal-impact.mp3`,
+    penaltyActivation:`${ROOT}/audio/penalty-activation.mp3`,
+    penaltyWhistle:`${ROOT}/audio/penalty-whistle.mp3`,
     chase:`${ROOT}/audio/chase-down.mp3`
   };
   for (const [key,path] of Object.entries(AUDIO_PATHS)) {

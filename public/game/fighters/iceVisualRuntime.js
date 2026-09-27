@@ -19,9 +19,9 @@
       ambientWind: 'assets/ice_v1/audio/ambient_wind.mp3',
       ambientIceCrack: 'assets/ice_v1/audio/ambient_ice_crack.mp3',
       ambientFreezeCrack: 'assets/ice_v1/audio/ambient_freeze_crack.mp3',
-      freezeTarget: 'assets/ice_v1/audio/freeze_target.wav',
-      iceDartFly: 'assets/ice_v1/audio/ice_dart_fly.wav',
-      iceDartHit: 'assets/ice_v1/audio/ice_dart_hit.wav'
+      freezeTarget: 'assets/ice_v1/audio/freeze_target.mp3',
+      iceDartFly: 'assets/ice_v1/audio/ice_dart_fly.mp3',
+      iceDartHit: 'assets/ice_v1/audio/ice_dart_hit.mp3'
     };
     const ICE_AUDIO = {};
     const ICE_AUDIO_STATE = {ambient:false,fadeStart:0,fadeDuration:1.5,pendingFreezeAt:0,castHakiStopAt:0};
