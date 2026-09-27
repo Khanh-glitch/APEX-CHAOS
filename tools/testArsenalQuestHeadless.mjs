@@ -2362,6 +2362,11 @@ report.rev2Feel = run(`
   const z15s = av.stats.lastGunReady;
   window.avCue('pickup', { weapon: 'MAC_10', x: 1, y: 1 });
   const macReady = av.stats.lastGunReady;
+  // Drain every casing still airborne from earlier sections first: a
+  // leftover pistol casing with a longer arc could otherwise land inside
+  // this window AFTER the test shell and overwrite lastCasingLand (a
+  // test-side race — same assertions, just a deterministic baseline).
+  APEX_ARSENAL_AV.tick(2.0);
   window.avCue('casing', { x: 400, y: 100, vx: 0, vy: 500, shotgun: true, weapon: 'SHOTGUN' });
   APEX_ARSENAL_AV.tick(1.2);
   const lastShell = av.stats.lastCasingLand;
@@ -2468,7 +2473,14 @@ report.healPlay = run(`
   const heals = st.slots.filter(s => s.kind === 'HEAL' && s.phase === 'REVEALED');
   const offCap = st.slots.filter(s => s.phase !== 'REMOVED' && s.kind !== 'HEAL').length;
   const slot = heals[0];
-  fighters[0].x = 80; fighters[0].y = 80;
+  // The heal spawns at a RANDOM position: park the injured hero in the
+  // OPPOSITE quadrant so only the full-health rival is ever within touch
+  // radius at the rejection check. (A heal that randomly spawned near the
+  // old fixed (80,80) parking spot once let the injured hero legitimately
+  // pick it up during the rival's check, failing the still-count — a
+  // test-side race, not a gameplay bug.)
+  fighters[0].x = slot.x < 512 ? 910 : 90;
+  fighters[0].y = slot.y < 512 ? 910 : 90;
   fighters[1].hp = 1000;
   fighters[1].x = slot.x; fighters[1].y = slot.y;
   S.resolvePickups();
