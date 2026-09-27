@@ -130,6 +130,50 @@ function gate(name, ok, detail) {
 try {
   await command('Runtime.enable');
   await command('Page.enable');
+  // Boot-truth observer (§A1/§A4): installed before navigation so loader/menu
+  // transitions are captured live, not reconstructed after the fact.
+  await command('Page.addScriptToEvaluateOnNewDocument', { source: `
+    window.__APEX_BOOT_OBSERVER = {
+      loaderHiddenAt: null, engineReadyAtLoaderHidden: null, menuButtonsDisabledAtLoaderHidden: null,
+      loaderMaxPercentSeen: 0, firstGestureAt: null, bgmAtLoaderHidden: null, errors: [], _seenLoader: false,
+    };
+    window.addEventListener('error', ev => { window.__APEX_BOOT_OBSERVER.errors.push(String(ev.message)); });
+    const snapshotLoaderHidden = () => {
+      if (window.__APEX_BOOT_OBSERVER.loaderHiddenAt !== null) return;
+      window.__APEX_BOOT_OBSERVER.loaderHiddenAt = performance.now();
+      window.__APEX_BOOT_OBSERVER.engineReadyAtLoaderHidden = Boolean(window.__apexEngineReady);
+      const btn = document.querySelector('#menu-screen .menu-buttons button');
+      window.__APEX_BOOT_OBSERVER.menuButtonsDisabledAtLoaderHidden = btn ? !!btn.disabled : null;
+      window.__APEX_BOOT_OBSERVER.bgmAtLoaderHidden = window.__apexMenuBgmState ? window.__apexMenuBgmState() : null;
+    };
+    const sample = () => {
+      const o = window.__APEX_BOOT_OBSERVER;
+      const l = document.getElementById('loading-screen');
+      if (l) {
+        o._seenLoader = true;
+        const p = l.querySelector('.loading-percent');
+        if (p) o.loaderMaxPercentSeen = Math.max(o.loaderMaxPercentSeen, parseInt(p.textContent, 10) || 0);
+      } else if (o._seenLoader) {
+        snapshotLoaderHidden();
+      }
+    };
+    // DOM-mutation sampling: fires on every React commit (percent text updates,
+    // loader mount/unmount) independent of frame production, which rAF is not.
+    const startSampling = () => {
+      if (!document.documentElement) { setTimeout(startSampling, 5); return; }
+      new MutationObserver(sample).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+      const tick = () => { sample(); setTimeout(tick, 40); };
+      tick();
+    };
+    startSampling();
+    const gesture = () => {
+      if (window.__APEX_BOOT_OBSERVER.firstGestureAt === null) {
+        window.__APEX_BOOT_OBSERVER.firstGestureAt = performance.now();
+      }
+    };
+    window.addEventListener('pointerdown', gesture, { once: true, capture: true });
+    window.addEventListener('keydown', gesture, { once: true, capture: true });
+  ` });
   await command('Page.navigate', { url: appUrl });
   await sleep(1500);
   await mkdir(evidenceDir, { recursive: true });
@@ -147,6 +191,39 @@ try {
     if (i === 59) throw new Error('Arsenal Quest runtime was not exposed.');
   }
   gate('runtime-registered', true, 'arsenalQuest deferred group loaded');
+
+  // ------------------------------------------------ boot truth (§A1/§A4) ---
+  report.bootTruth = await evaluate(`(() => {
+    const o = window.__APEX_BOOT_OBSERVER || {};
+    const perf = window.apexPerfReport ? window.apexPerfReport() : null;
+    const phases = perf && perf.boot ? perf.boot.phases.map(p => p.name) : [];
+    const bgm = window.__apexMenuBgmState ? window.__apexMenuBgmState() : null;
+    const bgmFetched = performance.getEntriesByType('resource').some(e => e.name.includes('/assets/audio/menu_bgm.mp3'));
+    return {
+      engineReadyAtLoaderHidden: o.engineReadyAtLoaderHidden,
+      menuButtonsDisabledAtLoaderHidden: o.menuButtonsDisabledAtLoaderHidden,
+      loaderMaxPercentSeen: o.loaderMaxPercentSeen,
+      loaderHiddenMs: perf && perf.boot ? perf.boot.loaderHiddenMs : null,
+      interactiveMs: perf && perf.boot ? perf.boot.interactiveMs : null,
+      phases, bgm, bgmFetched, firstGestureAt: o.firstGestureAt, errors: o.errors,
+    };
+  })()`);
+  gate('boot-loader-hides-only-when-menu-usable',
+    report.bootTruth.engineReadyAtLoaderHidden === true
+    && report.bootTruth.menuButtonsDisabledAtLoaderHidden === false
+    && report.bootTruth.loaderMaxPercentSeen === 100,
+    report.bootTruth);
+  gate('boot-marks-complete',
+    ['boot-start', 'critical-shell-ready', 'engine-ready', 'menu-runtime-ready', 'menu-interactive', 'loader-hidden', 'warmup-start']
+      .every(p => report.bootTruth.phases.includes(p)),
+    report.bootTruth.phases);
+  gate('boot-bgm-warmed-before-first-play',
+    report.bootTruth.bgmFetched
+    && report.bootTruth.bgm && report.bootTruth.bgm.preload === 'auto'
+    && report.bootTruth.bgm.readyState >= 1
+    && report.bootTruth.firstGestureAt === null,
+    report.bootTruth.bgm);
+  gate('boot-no-boot-errors', (report.bootTruth.errors || []).length === 0, report.bootTruth.errors);
 
   // Test-side helpers installed in the page.
   await evaluate(`(() => {
@@ -224,6 +301,61 @@ try {
     return results;
   })()`);
   gate('normal-modes-launch', report.normalModes.selectVisible && report.normalModes.menuVisible && report.normalModes.normalMatchState === 'PLAYING' && report.normalModes.menuAfterMatch === 'MENU', report.normalModes);
+
+  // ------------------------------- real menu-button route intent (§A3) ----
+  // A physical click on the real menu buttons must navigate through the
+  // tiered loader (intent group), proving no first-route regression.
+  await evaluate(`goToMenu()`);
+  await sleep(350);
+  const playProbe = await hitProbe('#menu-screen .menu-buttons button.primary');
+  await physicalClick('#menu-screen .menu-buttons button.primary');
+  for (let i = 0; i < 40; i++) {
+    if (await evaluate(`!document.getElementById('select-screen').classList.contains('hidden')`)) break;
+    await sleep(150);
+  }
+  // The pick presentation renders asynchronously (layout JSON + card art) as a
+  // 3-card carousel under its own stage root (NOT inside the React-owned
+  // .apex-pick-layer wrapper, which stays empty).
+  for (let i = 0; i < 40; i++) {
+    const counts = await evaluate(`(() => ({
+      pickCards: document.querySelectorAll('.apex-pick-stage .apex-pick-card').length,
+      rosterCards: document.querySelectorAll('#roster-grid .fighter-card').length,
+    }))()`).catch(() => ({ pickCards: 0, rosterCards: 0 }));
+    if (counts.pickCards >= 3 || counts.rosterCards >= 30) break;
+    await sleep(150);
+  }
+  report.menuPlayRoute = await evaluate(`(() => {
+    const grid = document.getElementById('roster-grid');
+    return {
+      probe: ${JSON.stringify(playProbe)},
+      selectVisible: !document.getElementById('select-screen').classList.contains('hidden'),
+      rosterCards: grid ? grid.querySelectorAll('.fighter-card').length : 0,
+      pickLayer: !!document.querySelector('.apex-pick-layer'),
+      pickCards: document.querySelectorAll('.apex-pick-stage .apex-pick-card').length,
+      menuHidden: document.getElementById('menu-screen').classList.contains('hidden'),
+    };
+  })()`);
+  gate('menu-button-play-route-select-loads',
+    report.menuPlayRoute.selectVisible
+    && (report.menuPlayRoute.rosterCards >= 30 || report.menuPlayRoute.pickCards >= 3)
+    && report.menuPlayRoute.pickLayer,
+    report.menuPlayRoute);
+  await evaluate(`goToMenu()`);
+  await sleep(350);
+  await physicalClick('#menu-screen .menu-buttons button[aria-label="ARSENAL QUEST"]');
+  let questHubVisible = false;
+  for (let i = 0; i < 40; i++) {
+    questHubVisible = await evaluate(`Boolean(document.getElementById('aq-hub'))`).catch(() => false);
+    if (questHubVisible) break;
+    await sleep(150);
+  }
+  report.menuQuestRoute = await evaluate(`(() => ({
+    hubVisible: Boolean(document.getElementById('aq-hub')),
+    menuHidden: document.getElementById('menu-screen').classList.contains('hidden'),
+  }))()`).catch(() => ({ hubVisible: questHubVisible }));
+  gate('menu-button-quest-route-hub-loads', report.menuQuestRoute.hubVisible === true, report.menuQuestRoute);
+  await evaluate(`(() => { try { window.aqExitToMainMenu ? window.aqExitToMainMenu() : document.getElementById('aq-hub-exit')?.click(); } catch (e) {} goToMenu(); return true; })()`);
+  await sleep(300);
 
   // ------------------------------------------------------- mode entry ------
   report.entry = await evaluate(`(() => {

@@ -219,8 +219,18 @@ function loadScript(relPath, required) {
 }
 
 loadScript('/apexEngine.js', true);
-for (const [src] of BOOT_GAME_RUNTIMES) loadScript(src, false);
-for (const [src] of MODE_DEFERRED_RUNTIMES.arsenalQuest) loadScript(src, true);
+// Boot the same world a real browser reaches: Tier-1 menu runtime + full
+// battle/select spine (BOOT_GAME_RUNTIMES compat aggregate), then Quest.
+const loadedRuntimeSrcs = new Set();
+for (const [src] of BOOT_GAME_RUNTIMES) {
+  loadedRuntimeSrcs.add(String(src).split(/[?#]/, 1)[0]);
+  loadScript(src, false);
+}
+for (const [src] of MODE_DEFERRED_RUNTIMES.arsenalQuest) {
+  const key = String(src).split(/[?#]/, 1)[0];
+  if (loadedRuntimeSrcs.has(key)) continue; // never double-eval a classic runtime
+  loadScript(src, true);
+}
 
 // ------------------------------------------------------------ test plumbing
 const report = { gates: {}, failures: [], loadErrors, evidence: [] };

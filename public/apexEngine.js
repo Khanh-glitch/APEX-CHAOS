@@ -2339,7 +2339,7 @@ function startDailyChallenge() {
     const left = fighterTypeByName(challenge.left);
     const right = fighterTypeByName(challenge.right);
     if (!left || !right) return;
-    startSpecificMatch(left, right, { countdown:true, tournament:false, challenge });
+    return apexEnsureBattleRuntimes().then(() => startSpecificMatch(left, right, { countdown:true, tournament:false, challenge }));
 }
 function tournamentFighterStyle(name){ const ft=fighterTypeByName(name); return ft ? ft.color : '#80786c'; }
 function tournamentMakeMatch(branch, round, index, a=null, b=null){ return { id:`${branch}-R${round}-M${index}`, branch, round, index, a, b, winner:null, loser:null, result:null, started:false }; }
@@ -2466,7 +2466,7 @@ function startTournamentMatch(matchId){
     tournamentModeActive = true;
     const a = fighterTypeByName(match.a), b = fighterTypeByName(match.b);
     if(!a || !b) return;
-    startSpecificMatch(a,b,{countdown:true,tournament:true});
+    return apexEnsureBattleRuntimes().then(() => startSpecificMatch(a,b,{countdown:true,tournament:true}));
 }
 function completeTournamentMatch(winner, loser){
     const match = tournamentFindMatch(activeTournamentMatchId);
@@ -2764,7 +2764,7 @@ function restartAutoBattle() {
     if (!autoBattleLastConfig) return;
     autoBattlePaused = false;
     const cfg = autoBattleLastConfig;
-    startSpecificMatch(cfg.ft1, cfg.ft2, Object.assign({}, cfg.opts, { countdown:false, tournament:false, challenge:null, trial:false }));
+    return apexEnsureBattleRuntimes().then(() => startSpecificMatch(cfg.ft1, cfg.ft2, Object.assign({}, cfg.opts, { countdown:false, tournament:false, challenge:null, trial:false })));
 }
 function exitAutoBattle() {
     autoBattlePaused = false;
@@ -2781,9 +2781,19 @@ window.toggleAutoBattlePause = toggleAutoBattlePause;
 window.restartAutoBattle = restartAutoBattle;
 window.exitAutoBattle = exitAutoBattle;
 
+// Tiered runtime loading (§A2/§A3): every engine entry point that creates a
+// match first ensures the battle runtime group. startSpecificMatch itself
+// stays synchronous — mode runtimes (trial/tamChien/quest) already load their
+// full group before they are invoked, and internal callers are gated here.
+function apexEnsureBattleRuntimes() {
+    const ensure = window.__apexEnsureDeferredRuntimes;
+    const ready = ensure ? ensure('battle') : null;
+    return ready && ready.then ? ready : Promise.resolve();
+}
 function startMatch() {
     if (!p1Selection || !p2Selection) return;
-    startSpecificMatch(p1Selection, p2Selection, { countdown:false, tournament:false });
+    const run = () => startSpecificMatch(p1Selection, p2Selection, { countdown:false, tournament:false });
+    return apexEnsureBattleRuntimes().then(run);
 }
 function startSpecificMatch(ft1, ft2, opts = {}) {
     clearNinjaVisualArtifacts();

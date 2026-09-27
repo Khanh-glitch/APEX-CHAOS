@@ -11,3 +11,6 @@ replays/
 .DS_Store
 release/arsenal-quest-windows/app/
 APEX_ARSENAL_QUEST_PLAYABLE_WINDOWS.zip
+
+# browser test profile artifacts
+.arsenal-chrome-profile/

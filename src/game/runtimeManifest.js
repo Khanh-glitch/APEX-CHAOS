@@ -1,14 +1,41 @@
 // Cache-bust classic runtime scripts that live under /public and therefore do
 // not receive Vite content hashes. Without this, stable Cloudflare branch
 // aliases can serve a previous Arsenal runtime even when index.html is new.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20260926-storm-v9-parity-r5-flight';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20260927-prerework-boot-tiers-r1';
 
-export const BOOT_GAME_RUNTIMES = [
-  ['/game/core/apexBattleAudioRuntime.js?v=20260926-mobile-sfx-unlock1', 'apexBattleAudioRuntime'],
-  ['/game/core/apexBattleSfxRuntime.js', 'apexBattleSfxRuntime'],
-  ['/game/core/apexRenderPrimitives.js', 'apexRenderPrimitives'],
-  ['/game/core/apexCombatEffectsRuntime.js', 'apexCombatEffectsRuntime'],
-  ['/game/core/apexMajorMechanicVisuals.js', 'apexMajorMechanicVisuals'],
+// ─────────────────────────────────────────────────────────────────────────────
+// PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by
+// historical placement (authority §A2). Tiers:
+//   Tier 0  critical boot shell      — React bundle + loader art (index.html).
+//   Tier 1  menu interactive         — engine + the one runtime the menu nav
+//                                      path actually calls into (audio bridge).
+//   Tier 2  likely-next warmup       — after the menu is interactive, warm the
+//                                      Quest experience first (primary shipping
+//                                      mode), then select/battle, then legacy
+//                                      modes. Background only, never blocking.
+//   Tier 3  intent-based             — a route click raises that route's group
+//                                      to high priority and waits only for it.
+//   Tier 4  match-specific           — assets actually needed by the selected
+//                                      fighters/arena/encounter (loaded by the
+//                                      runtimes themselves when they run).
+//   Tier 5  deep lazy / rare         — Lab-only extras and legacy-mode assets
+//                                      never sit on the first-interaction path.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Tier 1 — menu interactive. The engine's menu navigation (goToMenu /
+// goToSelect / goToTournament / exitAutoBattle) calls stopBattleAudio(), which
+// lives in apexBattleAudioRuntime. Nothing else from the old boot list is
+// referenced before a route is entered (verified by call-graph audit + browser
+// gate). The audio runtime also owns the eager AudioContext bootstrap.
+export const MENU_INTERACTIVE_RUNTIMES = [
+  ['/game/core/apexBattleAudioRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBattleAudioRuntime'],
+];
+
+// Roster/fighter runtimes. Relative order is the historical boot order and is
+// load-bearing: several of these chain-wrap populateRoster /
+// syncSelectedFighterVfx (engineer → galaxy → katana → fang …), so the order
+// must be preserved inside every group that includes them.
+export const ROSTER_RUNTIMES = [
   ['/game/fighters/shotgunRuntime.js', 'apexShotgunRuntime'],
   ['/game/fighters/engineerRuntime.js', 'apexEngineerRuntime'],
   ['/game/guards/apexEngineerMergeBridge.js', 'apexEngineerMergeBridge'],
@@ -27,9 +54,41 @@ export const BOOT_GAME_RUNTIMES = [
   ['/game/fighters/soccerRuntime.js', 'apexSoccerRuntime'],
   ['/game/fighters/katanaRuntime.js', 'apexKatanaRuntime'],
   ['/game/fighters/fangRuntime.js', 'apexFangRuntime'],
-  ['/game/ui/apexPickRuntime.js', 'apexPickRuntime'],
-  // PASS B: universal combat HUD state adapter + renderer (boot-wide shell).
+];
+
+// Combat leaf runtimes the engine's draw/update paths call (battle only —
+// drawRosterPreview additionally needs renderPrimitives, hence its presence in
+// the select group below).
+export const COMBAT_CORE_RUNTIMES = [
+  ['/game/core/apexBattleSfxRuntime.js', 'apexBattleSfxRuntime'],
+  ['/game/core/apexRenderPrimitives.js', 'apexRenderPrimitives'],
+  ['/game/core/apexCombatEffectsRuntime.js', 'apexCombatEffectsRuntime'],
+  ['/game/core/apexMajorMechanicVisuals.js', 'apexMajorMechanicVisuals'],
+];
+
+// PASS B: universal combat HUD state adapter + renderer (battle shell).
+export const HUD_RUNTIMES = [
   ['/game/ui/apexCombatHudRuntime.js', 'apexCombatHudRuntime'],
+];
+
+// JSON character-select presentation (wraps populateRoster at load time).
+export const PICK_RUNTIMES = [
+  ['/game/ui/apexPickRuntime.js', 'apexPickRuntime'],
+];
+
+// Tier 3 — the character-select route: roster patches + pick presentation.
+// renderPrimitives comes first because drawRosterPreview calls drawSketchBlob.
+export const SELECT_RUNTIMES = [
+  COMBAT_CORE_RUNTIMES[1], // apexRenderPrimitives
+  ...ROSTER_RUNTIMES,
+  ...PICK_RUNTIMES,
+];
+
+// Battle core = everything a match needs that is not select-specific.
+export const BATTLE_CORE_RUNTIMES = [
+  ...COMBAT_CORE_RUNTIMES,
+  ...ROSTER_RUNTIMES,
+  ...HUD_RUNTIMES,
 ];
 
 export const BATTLE_DEFERRED_RUNTIMES = [
@@ -50,49 +109,94 @@ export const BATTLE_DEFERRED_RUNTIMES = [
   ['/game/core/apexPoseLockRuntime.js', 'apexPoseLockRuntime'],
 ];
 
+// Full battle group (core + historically deferred battle extras).
+export const BATTLE_RUNTIMES = [
+  ...BATTLE_CORE_RUNTIMES,
+  ...BATTLE_DEFERRED_RUNTIMES,
+];
+
+export const SOLO_RUNTIMES = [
+  ['/game/modes/soloRuntime.js', 'apexSoloRuntime'],
+];
+export const TRIAL_RUNTIMES = [
+  ['/game/modes/trialRuntime.js', 'apexTrialRuntime'],
+];
+
 export const MODE_DEFERRED_RUNTIMES = {
   manualLab: [
-  ['/game/modes/apexControlChampionSkills.js', 'apexControlChampionSkills'],
-  ['/manualLab.js', 'apexManualLab'],
-  ['/game/network/apexRealtimeMultiplayer.js', 'apexRealtimeMultiplayer'],
-  ['/manualLabOnline.js', 'apexManualLabOnline', { optional: true }],
+    ...BATTLE_CORE_RUNTIMES,
+    ['/game/modes/apexControlChampionSkills.js', 'apexControlChampionSkills'],
+    ['/manualLab.js', 'apexManualLab'],
+    ['/game/network/apexRealtimeMultiplayer.js', 'apexRealtimeMultiplayer'],
+    ['/manualLabOnline.js', 'apexManualLabOnline', { optional: true }],
   ],
-  solo: [
-    ['/game/modes/soloRuntime.js', 'apexSoloRuntime'],
-  ],
-  trial: [
-    ['/game/modes/trialRuntime.js', 'apexTrialRuntime'],
-  ],
+  solo: SOLO_RUNTIMES,
+  trial: TRIAL_RUNTIMES,
   tamChien: [
+    ...BATTLE_CORE_RUNTIMES,
     ['/game/modes/tamChienRuntime.js', 'apexTamChienRuntime'],
   ],
+  // Quest is the primary shipping experience: its group carries the battle
+  // core it depends on so entering Quest never waits on anything else.
   arsenalQuest: [
-    ['/game/arsenal/arsenalCWeaponSet.generated.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalCSet'],
-    ['/game/arsenal/arsenalQuestConfig.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalQuestConfig'],
-    ['/game/arsenal/arsenalIdentityRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalIdentityRuntime'],
-    ['/game/arsenal/arsenalWeaponRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalWeaponRuntime'],
-    ['/game/arsenal/arsenalSpawnRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalSpawnRuntime'],
-    ['/game/arsenal/arsenalPresentationRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalPresentationRuntime'],
-    ['/game/arsenal/arsenalFeelRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalFeelRuntime'],
-    ['/game/arsenal/arsenalStormbreakerVfxRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalStormbreakerVfxRuntime'],
-    ['/game/arsenal/arsenalManualSkillGate.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalManualSkillGate'],
-    ['/game/arsenal/arsenalShellSelectRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalShellSelectRuntime'],
-    ['/game/arsenal/arsenalQuestLadder.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalQuestLadder'],
-    ['/game/arsenal/arsenalMetaRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalMetaRuntime'],
-    ['/game/modes/arsenalQuestRuntime.js?v=20260926-storm-v9-parity-r5-flight', 'apexArsenalQuestRuntime'],
+    ...BATTLE_CORE_RUNTIMES,
+    ['/game/arsenal/arsenalCWeaponSet.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalCSet'],
+    ['/game/arsenal/arsenalQuestConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestConfig'],
+    ['/game/arsenal/arsenalIdentityRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalIdentityRuntime'],
+    ['/game/arsenal/arsenalWeaponRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalWeaponRuntime'],
+    ['/game/arsenal/arsenalSpawnRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalSpawnRuntime'],
+    ['/game/arsenal/arsenalPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalPresentationRuntime'],
+    ['/game/arsenal/arsenalFeelRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalFeelRuntime'],
+    ['/game/arsenal/arsenalStormbreakerVfxRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalStormbreakerVfxRuntime'],
+    ['/game/arsenal/arsenalManualSkillGate.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalManualSkillGate'],
+    ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
+    ['/game/arsenal/arsenalQuestLadder.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestLadder'],
+    ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
+    ['/game/modes/arsenalQuestRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestRuntime'],
   ],
+  select: SELECT_RUNTIMES,
+  battle: BATTLE_RUNTIMES,
+  // Historical load order (battle core → mode → battle deferred) preserved.
+  soloBattle: [...BATTLE_CORE_RUNTIMES, ...SOLO_RUNTIMES, ...BATTLE_DEFERRED_RUNTIMES],
+  trialBattle: [...BATTLE_CORE_RUNTIMES, ...TRIAL_RUNTIMES, ...BATTLE_DEFERRED_RUNTIMES],
 };
 
 export const DEFERRED_GAME_RUNTIMES = [
-  ...BATTLE_DEFERRED_RUNTIMES,
-  ...MODE_DEFERRED_RUNTIMES.manualLab,
+  ...BATTLE_RUNTIMES,
+  ...MODE_DEFERRED_RUNTIMES.manualLab.filter((entry) => !BATTLE_RUNTIMES.some((b) => b[0] === entry[0])),
   ...MODE_DEFERRED_RUNTIMES.solo,
   ...MODE_DEFERRED_RUNTIMES.trial,
-  ...MODE_DEFERRED_RUNTIMES.tamChien,
-  ...MODE_DEFERRED_RUNTIMES.arsenalQuest,
+  ...MODE_DEFERRED_RUNTIMES.tamChien.filter((entry) => !BATTLE_RUNTIMES.some((b) => b[0] === entry[0])),
+  ...MODE_DEFERRED_RUNTIMES.arsenalQuest.filter((entry) => !BATTLE_RUNTIMES.some((b) => b[0] === entry[0])),
+  ...MODE_DEFERRED_RUNTIMES.select.filter((entry) => !BATTLE_RUNTIMES.some((b) => b[0] === entry[0])),
 ];
 
-export const REQUIRED_GAME_RUNTIMES = BOOT_GAME_RUNTIMES;
+// Tier 2 — background warmup order after the menu is interactive. Quest first
+// (primary shipping experience), then the select/battle spine, then legacy
+// modes. Loading remains sequential and priority-preemptable (see loader).
+export const WARMUP_GROUP_SEQUENCE = [
+  'arsenalQuest',
+  'battle',
+  'select',
+  'soloBattle',
+  'trialBattle',
+  'tamChien',
+  'manualLab',
+];
+
+// Back-compat aggregate: the engine-following set the old boot list implied
+// (menu + battle core + select presentation), in the historical order. Used by
+// the headless harness so it exercises the same world a real browser reaches
+// after warmup.
+export const BOOT_GAME_RUNTIMES = [
+  ...MENU_INTERACTIVE_RUNTIMES,
+  ...COMBAT_CORE_RUNTIMES,
+  ...ROSTER_RUNTIMES,
+  ...PICK_RUNTIMES,
+  ...HUD_RUNTIMES,
+];
+
+export const REQUIRED_GAME_RUNTIMES = MENU_INTERACTIVE_RUNTIMES;
 
 export function hintRuntimeSources(runtimes, rel = 'preload') {
   for (const [src] of runtimes) {
@@ -107,7 +211,7 @@ export function hintRuntimeSources(runtimes, rel = 'preload') {
 }
 
 export function preloadRuntimeSources() {
-  hintRuntimeSources(BOOT_GAME_RUNTIMES, 'preload');
+  hintRuntimeSources(MENU_INTERACTIVE_RUNTIMES, 'preload');
 }
 
 export function prefetchDeferredRuntimeSources() {

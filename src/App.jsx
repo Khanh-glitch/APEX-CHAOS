@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   loadDeferredGameRuntimes,
-  loadRequiredGameRuntimes,
+  loadMenuInteractiveRuntimes,
+  scheduleDeferredGameRuntimes,
 } from './game/runtimeLoader.js';
-import { preloadRuntimeSources } from './game/runtimeManifest.js';
+import { APEX_ARSENAL_RUNTIME_REVISION, preloadRuntimeSources } from './game/runtimeManifest.js';
 import {
   beginPerfSpan,
   markBootInteractive,
@@ -81,12 +82,13 @@ const LOADER_READY_HOLD_MS = 160;
 const LOADER_FADE_MS = 280;
 
 const DEFERRED_RUNTIME_ACTION_GROUPS = {
+  goToSelect: 'select',
   startMatch: 'battle',
-  goToTournament: 'battle',
+  goToTournament: 'select',
   goToManualLabSelect: 'manualLab',
-  goToSoloSelect: 'solo',
+  goToSoloSelect: 'soloBattle',
   startSoloMode: 'soloBattle',
-  goToTrialSelect: 'trial',
+  goToTrialSelect: 'trialBattle',
   startTrialMode: 'trialBattle',
   startTamChienMode: 'tamChien',
   startArsenalQuestMode: 'arsenalQuest',
@@ -101,7 +103,8 @@ function callApexGlobal(name, enabled = true) {
 
 function warmBattleRuntimesInBackground(reason = 'select', delayMs = 0) {
   window.setTimeout(() => {
-    loadDeferredGameRuntimes('battle').catch((error) => {
+    // Background warmup must never preempt a later route intent (§A3).
+    loadDeferredGameRuntimes('battle', { priority: false }).catch((error) => {
       console.warn(`[asset-loader] Failed background battle runtime warmup: ${reason}.`, error);
     });
   }, delayMs);
@@ -272,14 +275,7 @@ function injectApexEngine(scriptRef, engineSrc) {
         try { window.goToSelect = goToSelect; } catch (error) {}
         try { window.goToTournament = goToTournament; } catch (error) {}
         try { window.resetTournament = resetTournament; } catch (error) {}
-        try {
-          const apexOriginalStartMatch = startMatch;
-          window.startMatch = function(...args) {
-            const run = () => apexOriginalStartMatch(...args);
-            const ready = window.__apexEnsureDeferredRuntimes?.('battle');
-            return ready?.then ? ready.then(run) : run();
-          };
-        } catch (error) {}
+        try { window.startMatch = startMatch; } catch (error) {}
         try { window.startSoloMode = startSoloMode; } catch (error) {}
         try { window.goToSoloSelect = goToSoloSelect; } catch (error) {}
         try { window.goToTrialSelect = goToTrialSelect; } catch (error) {}
@@ -299,12 +295,16 @@ function injectApexEngine(scriptRef, engineSrc) {
     };
     script.onload = async () => {
       try {
-        await loadRequiredGameRuntimes();
+        markBootPhase('engine-ready');
+        // Tier 1 — only the menu-interactive runtime chain (§A2). Everything
+        // else loads as background warmup or route intent.
+        await loadMenuInteractiveRuntimes();
+        markBootPhase('menu-runtime-ready');
         window.APEX_MANUAL_ROOM_WS_URL = MANUAL_ROOM_WS_URL;
         window.__apexEnsureDeferredRuntimes = loadDeferredGameRuntimes;
         finishRuntimeLoad();
       } catch (error) {
-        console.warn('[asset-loader] Failed required game runtime.', error);
+        console.warn('[asset-loader] Failed menu-interactive game runtime.', error);
         window.__apexEngineLoadPromise = null;
         endEngineTiming({ ok: false, error: String(error?.message || error) });
         reject(error);
@@ -434,7 +434,9 @@ export default function App() {
   useEffect(() => {
     if (once.loaded) return undefined;
     let cancelled = false;
-    const engineSrc = '/apexEngine.js';
+    // Cache-bust the classic engine the same way as the other public
+    // runtimes so a stable Cloudflare alias can never serve stale bytes.
+    const engineSrc = `/apexEngine.js?v=${APEX_ARSENAL_RUNTIME_REVISION}`;
 
     wakeManualRoomRelay();
 
@@ -443,30 +445,45 @@ export default function App() {
       preloadRuntimeSources();
       const enginePromise = injectApexEngine(scriptRef, engineSrc);
       enginePromise.catch(() => {});
+      // Loading truth (§A1): progress counts EVERY menu-interactive unit —
+      // critical shell assets (which include the engine bytes) plus the
+      // engine + Tier-1 runtime execution unit. The percentage can therefore
+      // never read 100%/READY while a menu dependency is still pending.
+      let progressTotalUnits = 0;
       const preloadResult = await preloadGameAssets(engineSrc, (progress) => {
         if (cancelled) return;
+        if (!progressTotalUnits) progressTotalUnits = progress.totalCount + 1; // + engine/tier-1 unit
         setLoader((current) => ({
           ...current,
-          percent: Math.min(progress.percent, 99),
+          percent: Math.min(99, Math.floor((progress.loadedCount / progressTotalUnits) * 100)),
           status: progress.label,
           loadedCount: progress.loadedCount,
           totalCount: progress.totalCount,
         }));
       });
-      markBootPhase('critical-assets-ready', { assets: preloadResult.loadedCount });
+      markBootPhase('critical-shell-ready', { assets: preloadResult.loadedCount });
       if (cancelled) return;
-      setLoader((current) => ({ ...current, percent: 99, status: 'STARTING ENGINE' }));
+      setLoader((current) => ({
+        ...current,
+        // All shell assets in; the engine execution unit is still pending.
+        percent: Math.min(99, Math.floor((preloadResult.totalCount / (preloadResult.totalCount + 1)) * 100)),
+        status: 'STARTING ENGINE',
+      }));
       await enginePromise;
-      markBootPhase('engine-ready');
       if (cancelled) return;
       once.loaded = true;
       setGameReady(true);
-      markBootPhase('game-ready');
+      // The menu is genuinely usable from this tick onward (buttons enabled,
+      // engine nav globals bound, Tier-1 audio bridge live).
+      markBootInteractive();
+      markBootPhase('menu-interactive');
       setLoader((current) => ({ ...current, active: true, fading: false, percent: 100, status: 'READY' }));
+      // Tier 2 — background warmup of likely-next groups. Never blocks the
+      // menu; yields to any route intent through the priority queue.
+      scheduleDeferredGameRuntimes();
       await wait(LOADER_READY_HOLD_MS);
       if (cancelled) return;
       setLoader((current) => ({ ...current, fading: true }));
-      markBootInteractive();
       await wait(LOADER_FADE_MS);
       if (cancelled) return;
       setLoader((current) => ({ ...current, active: false, fading: false }));
@@ -531,11 +548,29 @@ export default function App() {
   useEffect(() => {
     const audio = new Audio();
     audio.loop = true;
-    audio.preload = 'none';
+    // §A4 — warm the menu BGM in the background before the first user
+    // gesture. Preload never blocks menu interactivity, and playback still
+    // respects autoplay policy (no forced audible autoplay); the first
+    // allowed play starts from already-warmed data.
+    audio.preload = 'auto';
     audio.volume = 0.48;
     audio.src = MENU_AUDIO;
     audio.__apexMenuMusic = true;
+    audio.load();
     menuAudioRef.current = audio;
+    // Evidence probe (§A4): read-only BGM readiness without exposing the
+    // element itself (it is deliberately never attached to the DOM).
+    window.__apexMenuBgmState = () => {
+      const a = menuAudioRef.current;
+      if (!a) return null;
+      return {
+        preload: a.preload,
+        readyState: a.readyState,
+        networkState: a.networkState,
+        paused: a.paused,
+        src: a.currentSrc || a.src,
+      };
+    };
     window.apexStopMenuMusic = (reset = false) => stopMenuMusic(reset);
     window.apexPlayMenuMusic = (restart = false) => playMenuMusic(restart);
 
@@ -576,6 +611,7 @@ export default function App() {
       menuAudioRef.current = null;
       if (window.apexStopMenuMusic) delete window.apexStopMenuMusic;
       if (window.apexPlayMenuMusic) delete window.apexPlayMenuMusic;
+      if (window.__apexMenuBgmState) delete window.__apexMenuBgmState;
     };
   }, []);
 
