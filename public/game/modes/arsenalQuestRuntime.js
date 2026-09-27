@@ -919,7 +919,10 @@
       try { window.APEX_COMBAT_HUD.onMatchStart(); } catch (apexCombatHudErr) { /* HUD failure never breaks match start */ }
     }
 
-    window.apexStopBattleAudio?.();
+    // Correction pass: match start = begin a NEW battle-audio session (the
+    // previous session's live sources/cues are terminated inside), then the
+    // AV runtime re-arms its HOT bank (buffers stay decoded across sessions).
+    window.apexBeginBattleAudioSession?.();
     if (window.APEX_ARSENAL_AV) { window.APEX_ARSENAL_AV.clear(); window.APEX_ARSENAL_AV.preload(); }
     if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.clear();
     gameState = 'ARSENAL';
@@ -994,6 +997,10 @@
     if (labPanel) labPanel.remove();
     const battleExitBtn = document.getElementById('aq-battle-exit');
     if (battleExitBtn) battleExitBtn.style.display = 'none'; // PASS A: no menu-screen leak
+    // Correction pass: exiting the mode ends the battle-audio session — the
+    // master stays silent (no auto-restore), pending AV cues are cancelled,
+    // and menu BGM (independent element) is untouched.
+    window.apexEndBattleAudioSession?.();
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.clear();
     if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.clear();
     if (keyListener) {

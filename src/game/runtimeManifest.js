@@ -171,17 +171,17 @@ export const DEFERRED_GAME_RUNTIMES = [
   ...MODE_DEFERRED_RUNTIMES.select.filter((entry) => !BATTLE_RUNTIMES.some((b) => b[0] === entry[0])),
 ];
 
-// Tier 2 — background warmup order after the menu is interactive. Quest first
-// (primary shipping experience), then the select/battle spine, then legacy
-// modes. Loading remains sequential and priority-preemptable (see loader).
+// Tier 2 — background warmup order after the menu is interactive.
+// Correction pass (menu responsiveness): warm ONLY the genuinely likely-next
+// groups — Quest (primary shipping experience) then select. Legacy modes
+// (classic battle, solo/trial/tamChien, manual lab) are route-intent /
+// deep-lazy: their groups load when actually clicked, never on the menu.
+// Measured on the deployed build: the old 7-group sequence put ~3.4s of long
+// tasks on the first menu seconds (arcadeVisualRuntime alone evaluated for
+// 1.18s). Loading remains sequential and priority-preemptable (see loader).
 export const WARMUP_GROUP_SEQUENCE = [
   'arsenalQuest',
-  'battle',
   'select',
-  'soloBattle',
-  'trialBattle',
-  'tamChien',
-  'manualLab',
 ];
 
 // Back-compat aggregate: the engine-following set the old boot list implied

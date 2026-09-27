@@ -291,6 +291,10 @@ try {
   await evaluate(`(() => {
     window.__AQ_TEST = {
       enterManual() {
+        // Direct entry (like the Lab blocks above) must hide the meta hub
+        // overlay first, or evidence screenshots capture the Hub over the
+        // arena instead of the fighters/weapon being verified.
+        window.APEX_ARSENAL_META?.hideMeta?.();
         window.startArsenalQuestMode();
         cancelAnimationFrame(reqId); reqId = 0;
         return getArsenalQuestDebugState();
@@ -2686,6 +2690,7 @@ try {
   report.evidence.push(await screenshot('10f-storm-held-mirrored'));
   gate('storm-browser-held-mirror-reflection',
     heldMir.probe && heldMir.probe.det === -1 && heldMir.probe.mirror === true
+    && heldMir.probe.bladeForward === true && heldMir.probe.bladeProj > 0
     && heldMir.aimRight === true,
     heldMir);
 
@@ -2824,8 +2829,9 @@ try {
     && report.labFlight.refProfile?.rawAnchorCount===9
     && report.labFlight.refProfile?.anchorTransform==='ref-landscape-to-game-portrait-90cw'
     && report.labFlight.refProfile?.spawnLongSide===240
-    && report.labFlight.refProfile?.heldLongSide===206
-    && report.labFlight.refProfile?.flightLongSide===192
+    && report.labFlight.refProfile?.heldLongSide===178
+    && report.labFlight.refProfile?.flightLongSide===164
+    && report.labFlight.refProfile?.thrownRadius===29.26
     && report.labFlight.refProfile?.spinRate===82
     && report.labFlight.refProfile?.motesEnabled===true, report.labFlight);
   report.labPigment = await evaluate(`(() => {
@@ -2882,6 +2888,229 @@ try {
   gate('lab-browser-exit-hub-zero-progression', report.labPigmentColor.exit.hub === 'block'
     && report.labPigmentColor.exit.panelGone && report.labPigmentColor.exit.credits === report.labPigmentColor.credits
     && report.labPigmentColor.exit.quest === report.labPigmentColor.quest, report.labPigmentColor.exit);
+
+  // ── Correction pass (owner playtest feedback round 2) ────────────────────
+  // Real-browser evidence: orientation sequence (held → exact release frame →
+  // first airborne frames with spin), body scale vs 75-radius fighters, REAL
+  // floor-contact points for HERO and RIVAL, battle-audio session lifecycle,
+  // likely-next-only warmup, and the stale global-slow label removal.
+  report.cp5Held = await evaluate(`(() => {
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearSlots(); __AQ_TEST.clearEvents();
+    __AQ_TEST.place(300, 500, 850, 500); // hero aims RIGHT at the rival
+    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.equip('HERO', 'STORMBREAKER');
+    __AQ_TEST.step(0.55); // static committed windup pose
+    const probe = window.APEX_ARSENAL_STORM.heldPresentationProbe();
+    __AQ_TEST.redraw();
+    return JSON.stringify({ probe, aimRight: fighters[0].x < fighters[1].x });
+  })()`);
+  const cp5Held = JSON.parse(report.cp5Held);
+  report.evidence.push(await screenshot('cp5-01-held-before-release'));
+  gate('storm-cp5-held-blade-forward-and-scale',
+    cp5Held.probe && cp5Held.probe.mirror === true && cp5Held.probe.det === -1
+    && cp5Held.probe.bladeForward === true && cp5Held.probe.bladeProj > 0
+    && cp5Held.probe.long === 178
+    && cp5Held.aimRight === true,
+    cp5Held);
+
+  // Exact release frame: first frame the flight object exists — rot = launch
+  // angle, velocity = throw direction. Then the first airborne frames (spin
+  // begins immediately at 82 rad/s).
+  report.cp5Release = await evaluate(`(() => {
+    const S = window.APEX_ARSENAL_STORM;
+    let rel = null;
+    for (let i = 0; i < 90 && !rel; i++) {
+      __AQ_TEST.step(1/60);
+      rel = projectiles.find(p => p.aq && p.type === 'aq_thrown' && p.weapon === 'STORMBREAKER' && p.state === 'flight') || null;
+    }
+    if (!rel) return JSON.stringify({ missing: true });
+    const release = S.flightPresentationProbe();
+    __AQ_TEST.redraw();
+    const frames = [{ bladeForward: release.bladeForward, bladeProj: release.bladeProj, rot: +rel.rot.toFixed(3), long: release.long }];
+    return JSON.stringify({ release, frames, thrownRadius: rel.radius, hitR75: +(75 * APEX_ARSENAL_CONFIG.BULLET_HIT_RADIUS_SCALE + rel.radius).toFixed(2) });
+  })()`);
+  const cp5Rel = JSON.parse(report.cp5Release);
+  report.evidence.push(await screenshot('cp5-02-exact-release-frame'));
+  report.cp5Airborne = await evaluate(`(() => {
+    const S = window.APEX_ARSENAL_STORM;
+    const f = [];
+    for (let i = 0; i < 6; i++) {
+      __AQ_TEST.step(1/60);
+      const p = S.flightPresentationProbe();
+      f.push(p && { x: p.x, y: p.y, theta: +p.theta.toFixed(3), spin: true });
+    }
+    __AQ_TEST.redraw();
+    return JSON.stringify({ frames: f });
+  })()`);
+  report.evidence.push(await screenshot('cp5-03-first-airborne-frames'));
+  await evaluate(`(() => { __AQ_TEST.step(6/60); __AQ_TEST.redraw(); return true; })()`);
+  report.evidence.push(await screenshot('cp5-04-airborne-spin'));
+  gate('storm-cp5-release-blade-forward-exact-frame',
+    !cp5Rel.missing
+    && cp5Rel.release.bladeForward === true && cp5Rel.release.bladeProj > 10
+    && cp5Rel.release.mirror === true && cp5Rel.release.det === -1
+    && cp5Rel.release.long === 164,
+    cp5Rel);
+  gate('storm-cp5-collision-authority-unchanged',
+    !cp5Rel.missing && cp5Rel.thrownRadius === 29.26 && Math.abs(cp5Rel.hitR75 - 87.76) < 0.01,
+    { thrownRadius: cp5Rel.thrownRadius, hitR75: cp5Rel.hitR75 });
+
+  // Floor-contact readability: the deterministic bolt crosses the HERO's and
+  // RIVAL's circle EDGES, so the real intersection is visibly ON the bolt —
+  // close-ups must show bolt -> contact flash -> victim body. The contact is
+  // sampled BEFORE stepping (the mode's own update consumes it per-pulse on
+  // the first step — same deterministic geometry).
+  report.cp5ContactHero = await evaluate(`(() => {
+    const S = window.APEX_ARSENAL_STORM;
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearSlots(); __AQ_TEST.clearEvents();
+    __AQ_TEST.place(500, 410, 850, 800); // HERO 60px below the bolt lane
+    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+    __AQ_TEST.holdSpawns();
+    // Two identical bolts: the first is consumed by THIS sampler probe (the
+    // per-pulse/per-fighter gate), the second drives the mode's real
+    // contact -> stun + onFloorContact flash, so neither path starves.
+    S.testInjectFloorBolt(280, 350, 720, 350);
+    const cs = S.floorContacts([fighters[0]]);
+    const contact = cs[0] || null;
+    S.testInjectFloorBolt(280, 350, 720, 350);
+    for (let i = 0; i < 3; i++) __AQ_TEST.step(1/60); // mode applies stun + contact flash
+    __AQ_TEST.redraw();
+    return JSON.stringify({
+      contact: contact && { x: +contact.x.toFixed(1), y: +contact.y.toFixed(1), main: contact.main, dist: contact.dist,
+        onBoltLane: contact ? Math.abs(contact.y - 350) < 0.01 : false,
+        notCenter: contact ? Math.hypot(contact.x - fighters[0].x, contact.y - fighters[0].y) > 30 : false },
+      stunned: fighters[0].hasStatus('stun'),
+    });
+  })()`);
+  const cp5Hero = JSON.parse(report.cp5ContactHero);
+  report.evidence.push(await screenshot('cp5-05-floor-contact-hero-closeup'));
+  report.cp5ContactRival = await evaluate(`(() => {
+    const S = window.APEX_ARSENAL_STORM;
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearSlots(); __AQ_TEST.clearEvents();
+    __AQ_TEST.place(150, 800, 500, 410); // RIVAL 60px below the bolt lane
+    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+    __AQ_TEST.holdSpawns();
+    S.testInjectFloorBolt(280, 350, 720, 350);
+    const cs = S.floorContacts([fighters[1]]);
+    const contact = cs[0] || null;
+    S.testInjectFloorBolt(280, 350, 720, 350);
+    for (let i = 0; i < 3; i++) __AQ_TEST.step(1/60);
+    __AQ_TEST.redraw();
+    return JSON.stringify({
+      contact: contact && { x: +contact.x.toFixed(1), y: +contact.y.toFixed(1), main: contact.main, dist: contact.dist,
+        onBoltLane: contact ? Math.abs(contact.y - 350) < 0.01 : false,
+        notCenter: contact ? Math.hypot(contact.x - fighters[1].x, contact.y - fighters[1].y) > 30 : false },
+      stunned: fighters[1].hasStatus('stun'),
+    });
+  })()`);
+  const cp5Rival = JSON.parse(report.cp5ContactRival);
+  report.evidence.push(await screenshot('cp5-06-floor-contact-rival-closeup'));
+  gate('storm-cp5-floor-contact-real-point-hero',
+    !!cp5Hero.contact && cp5Hero.contact.onBoltLane === true && cp5Hero.contact.notCenter === true
+    && cp5Hero.contact.main === true && cp5Hero.stunned === true,
+    cp5Hero);
+  gate('storm-cp5-floor-contact-real-point-rival',
+    !!cp5Rival.contact && cp5Rival.contact.onBoltLane === true && cp5Rival.contact.notCenter === true
+    && cp5Rival.stunned === true,
+    cp5Rival);
+  gate('storm-cp5-stale-global-slow-gone',
+    await evaluate(`!String(window.APEX_ARSENAL_STORM.drawFloor).includes('GLOBAL SLOW')
+      && !String(window.APEX_ARSENAL_STORM.drawFloor).includes("fillText('SLOWED'")`),
+    'drawFloor carries no global-slow presentation');
+
+  // Battle-audio session lifecycle (gates 1–5, real async timing).
+  report.cp5Audio = await evaluate(`(async () => {
+    const AV = window.APEX_ARSENAL_AV;
+    const out = {};
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    const state = () => window.apexBattleAudioSessionState();
+    const probe = () => AV.audioSessionProbe();
+    await AV.warmAudio();
+    // (1)+(3) match A: live SFX, a playLater cue scheduled to fire AFTER exit.
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearSlots(); __AQ_TEST.clearEvents();
+    __AQ_TEST.place(300, 500, 850, 500);
+    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.equip('HERO', 'STORMBREAKER');
+    __AQ_TEST.step(1.0); // windup + release + flight SFX
+    const playedMatchA = AV.stats.played;
+    AV.playLater('pickup_sniper_lock', 400); // cue that must die at exit
+    out.sfxLivedInMatchA = playedMatchA > 0;
+    const preExit = probe();
+    out.preExit = { live: preExit.liveSources, timers: preExit.pendingTimers };
+    window.exitArsenalQuestMode();
+    const stExit = state();
+    out.afterExit = { masterGain: stExit.masterGain, live: stExit.avLiveSources, timers: stExit.avPendingTimers };
+    const playedAtExit = AV.stats.played;
+    await sleep(650); // past the 400ms cue AND past the old 80ms auto-restore
+    const stSettled = state();
+    out.afterExitSettled = { masterGain: stSettled.masterGain, live: stSettled.avLiveSources, timers: stSettled.avPendingTimers };
+    out.noVoicesAfterExit = AV.stats.played === playedAtExit; // the scheduled cue never fired
+    out.noAutoRestore = stSettled.masterGain <= 0.01; // master still silent
+    // (4) HOT bank stays decoded/cached across the session reset.
+    const dec = AV.audioStatus();
+    out.hotBank = { bankSize: dec.bankSize, decoded: dec.decoded, failed: dec.failed };
+    // (5) menu BGM is independent of the battle-audio session.
+    const bgmBefore = window.__apexMenuBgmState();
+    window.apexEndBattleAudioSession();
+    const bgmAfter = window.__apexMenuBgmState();
+    out.menuBgmIndependent = !!bgmBefore && !!bgmAfter && bgmBefore.paused === bgmAfter.paused;
+    // (2) match B: clean session, SFX live again.
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearSlots(); __AQ_TEST.clearEvents();
+    __AQ_TEST.place(300, 500, 850, 500);
+    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.equip('HERO', 'STORMBREAKER');
+    __AQ_TEST.step(1.0);
+    const stB = state();
+    out.matchB = { masterGain: stB.masterGain, playedDelta: AV.stats.played - playedAtExit };
+    out.matchBSfxLive = out.matchB.playedDelta > 0 && stB.masterGain > 0.5;
+    window.exitArsenalQuestMode();
+    const stB2 = state();
+    out.afterMatchBExit = { masterGain: stB2.masterGain, live: stB2.avLiveSources, timers: stB2.avPendingTimers };
+    return JSON.stringify(out);
+  })()`);
+  const cp5Audio = JSON.parse(report.cp5Audio);
+  gate('battle-audio-cp5-exit-silence',
+    cp5Audio.sfxLivedInMatchA === true
+    && cp5Audio.afterExit.live === 0 && cp5Audio.afterExit.timers === 0
+    && cp5Audio.afterExitSettled.live === 0 && cp5Audio.afterExitSettled.timers === 0
+    && cp5Audio.noVoicesAfterExit === true
+    && cp5Audio.noAutoRestore === true,
+    cp5Audio);
+  gate('battle-audio-cp5-match-a-to-b-no-leak',
+    cp5Audio.matchBSfxLive === true
+    && cp5Audio.afterMatchBExit.masterGain <= 0.01
+    && cp5Audio.afterMatchBExit.live === 0 && cp5Audio.afterMatchBExit.timers === 0,
+    cp5Audio);
+  gate('battle-audio-cp5-hot-bank-stays-decoded',
+    cp5Audio.hotBank.bankSize === cp5Audio.hotBank.decoded && cp5Audio.hotBank.failed === 0,
+    cp5Audio.hotBank);
+  gate('battle-audio-cp5-menu-bgm-independent',
+    cp5Audio.menuBgmIndependent === true,
+    cp5Audio);
+
+  // Likely-next-only background warmup (menu responsiveness): quest + select
+  // warm, legacy battle groups never touched while staying inside quest.
+  report.cp5Warmup = await evaluate(`(() => ({
+    questReady: window.__apexDeferredRuntimesReady_arsenalQuest === true,
+    selectReady: window.__apexDeferredRuntimesReady_select === true,
+    legacyWarm: ['battle','soloBattle','trialBattle','tamChien','manualLab']
+      .filter(g => window['__apexDeferredRuntimesReady_' + g] === true),
+    warmupComplete: window.__apexWarmupComplete === true,
+  }))()`);
+  gate('menu-cp5-warmup-likely-next-only',
+    report.cp5Warmup.questReady === true
+    && report.cp5Warmup.selectReady === true
+    && report.cp5Warmup.legacyWarm.length === 0
+    && report.cp5Warmup.warmupComplete === true,
+    report.cp5Warmup);
 
   // Persistence through an actual page reload, not merely a getter call.
   await evaluate(`APEX_ARSENAL_FEEL.setSplatterMode('FIGHTER COLOR')`);

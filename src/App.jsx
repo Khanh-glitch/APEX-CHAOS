@@ -101,15 +101,6 @@ function callApexGlobal(name, enabled = true) {
   window[name]?.();
 }
 
-function warmBattleRuntimesInBackground(reason = 'select', delayMs = 0) {
-  window.setTimeout(() => {
-    // Background warmup must never preempt a later route intent (§A3).
-    loadDeferredGameRuntimes('battle', { priority: false }).catch((error) => {
-      console.warn(`[asset-loader] Failed background battle runtime warmup: ${reason}.`, error);
-    });
-  }, delayMs);
-}
-
 function wait(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
@@ -620,23 +611,24 @@ export default function App() {
     try {
       const deferredGroup = options.deferredGroup || (options.startsMatch ? 'battle' : DEFERRED_RUNTIME_ACTION_GROUPS[name]);
       if (deferredGroup) await loadDeferredGameRuntimes(deferredGroup);
+      // Battle-audio session lifecycle (correction pass): entering a match =
+      // terminate the previous session for real (old voices/cues die), then
+      // unmute the master for the new session. Menu/select navigation ends
+      // the session — battle SFX stay silent until the next match begins.
       if (options.startsMatch) {
         stopMenuMusic(true);
-        window.apexStopBattleAudio?.();
+        window.apexBeginBattleAudioSession?.();
       } else if (name === 'startMatch' || name === 'startSoloMode' || name === 'startTrialMode' || name === 'startArsenalQuestMode') {
         stopMenuMusic(true);
-        window.apexStopBattleAudio?.();
+        window.apexBeginBattleAudioSession?.();
       } else if (name === 'goToMenu' || name === 'exitAutoBattle') {
-        window.apexStopBattleAudio?.();
+        window.apexEndBattleAudioSession?.();
         playMenuMusic(true);
       } else if (name === 'goToSelect' || name === 'goToManualLabSelect' || name === 'goToTournament' || name === 'goToSoloSelect' || name === 'beginArsenalQuestSelection' || name === 'beginArsenalQuestMap') {
-        window.apexStopBattleAudio?.();
+        window.apexEndBattleAudioSession?.();
         playMenuMusic(false);
       }
       callApexGlobal(name, true);
-      if (name === 'goToSelect') {
-        warmBattleRuntimesInBackground('goToSelect');
-      }
       if (options.startsMatch || name === 'startMatch' || name === 'startSoloMode' || name === 'startTrialMode') {
         stopMenuMusic(true);
       }
@@ -649,12 +641,18 @@ export default function App() {
     if (!gameReady || pendingActionRef.current) return;
     pendingActionRef.current = button.action;
     setPressedMenuButton(button.id);
-    window.setTimeout(() => {
+    // Correction 3A: no artificial 105ms hold. The pressed visual state is
+    // committed first (React renders it), then the action starts on the very
+    // next animation frame — the button stays visually pressed until the
+    // navigation/match flow finishes.
+    const run = () => {
       runApex(button.action, { startsMatch: button.startsMatch }).finally(() => {
         setPressedMenuButton(null);
         pendingActionRef.current = null;
       });
-    }, 105);
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+    else run();
   };
 
   return (

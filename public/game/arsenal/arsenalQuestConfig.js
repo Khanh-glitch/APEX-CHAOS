@@ -285,17 +285,25 @@
     // floorBoltHazard is the balance kill-switch (default on).
     floorBoltHazard: true,
     floorBoltStunSeconds: 1.0,
-    // B4: body sprite at ~92% of the pre-CP4 size (240/261, 206/224,
-    // 192/209). ONLY the body and body-attached effects shrink with these —
-    // arena-edge lightning reach, floor discharge reach, impact burst, and
-    // scene flash keep their world scale (they are computed from world
-    // anchors, not from the body long side).
+    // B4/correction pass: body presentation shrank again (~86% of CP4) —
+    // held 178 / flight 164 vs the 150px-diameter (radius 75) fighters.
+    // ONLY the body and body-attached effects follow these — arena-edge
+    // lightning reach, floor discharge reach, impact burst, and scene flash
+    // keep their world scale (they are computed from world anchors, not from
+    // the body long side).
     spawnLongSide: 240,
-    heldLongSide: 206,
-    flightLongSide: 192,
+    heldLongSide: 178,
+    flightLongSide: 164,
     // Compatibility aliases consumed by older Stormbreaker-only paths.
-    worldLongSide: 192,
+    worldLongSide: 164,
     floorLongSide: 240,
+    // Correction pass: PROJECTILE COLLISION AUTHORITY, decoupled from every
+    // presentation long side. Value = the pre-CP4 accepted behavior:
+    // meleeDrawLong 209 * 0.14 = 29.26, i.e. swept hitR vs a 75-radius
+    // fighter = 75*0.78 + 29.26 = 87.76 (B7/B8 acceptance campaign values).
+    // spawnThrownMelee reads THIS, never a draw long side — shrinking the
+    // body sprite can no longer change gameplay collision.
+    thrownRadius: 29.26,
     // Owner correction: floor/spawn is flipped 180° from the original port.
     floorAngleRad: Math.PI * 1.5,
     // B6 owner correction: the held/flight change is a MIRROR REFLECTION of

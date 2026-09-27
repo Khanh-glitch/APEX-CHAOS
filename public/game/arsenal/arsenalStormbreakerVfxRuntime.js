@@ -104,9 +104,14 @@
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(worldRot);
-    // B6: local mirror reflection across the weapon long axis (local X) —
-    // presentation only; the world rotation above is the aim/flight truth.
-    if (mirror) ctx.scale(1, -1);
+    // B6/correction: the asset is portrait — its LONG axis is local Y
+    // (image top = blade/head). Mirroring ACROSS the long axis flips the
+    // width axis only: scale(-1, 1). The blade end stays on the -Y side, so
+    // with worldRot = aim + pi/2 (held) or rot + pi/2 (flight) the blade
+    // keeps pointing along the aim/velocity direction. scale(1, -1) would
+    // flip the long axis and reverse blade-vs-handle.
+    // Presentation only; the world rotation above is the aim/flight truth.
+    if (mirror) ctx.scale(-1, 1);
     ctx.globalAlpha = alpha;
     if (ghost) ctx.globalCompositeOperation = 'lighter';
     ctx.drawImage(src, -src.width * s / 2, -src.height * s / 2, src.width * s, src.height * s);
@@ -140,9 +145,11 @@
     // reference landscape -> game portrait = 90deg CW
     let ax = -py * scale;
     let ay = px * scale;
-    // B6: weapon-local anchors mirror with the body (reflect across the
-    // weapon long axis = local X) so the lattice never detaches.
-    if (mirror) ay = -ay;
+    // B6/correction: weapon-local anchors mirror with the body. The mirror
+    // is a reflection ACROSS the long axis, so it must flip the WIDTH
+    // coordinate (ax), never the long-axis coordinate (ay) — flipping ay
+    // would detach the lattice AND swap its blade/handle end mapping.
+    if (mirror) ax = -ax;
     const c = Math.cos(worldRot), s = Math.sin(worldRot);
     return { x: cx + ax * c - ay * s, y: cy + ax * s + ay * c };
   }
@@ -231,7 +238,9 @@
     const fade = clamp(b.life / b.max, 0, 1);
     const flicker = 0.68 + Math.random() * 0.32;
     const a = b.alpha * fade * flicker * b.power;
-    const floorMul = b.floor ? 0.74 : 1;
+    // Correction pass: floor bolts read slightly hotter (0.82 vs 0.74) so the
+    // bolt→contact→victim chain stays legible; reach/geometry unchanged.
+    const floorMul = b.floor ? 0.82 : 1;
     strokePolyline(g, b.points, b.width * 10, 'rgba(28,123,255,.18)', a * 0.58 * floorMul, b.width * 9);
     strokePolyline(g, b.points, b.width * 4.8, 'rgba(30,150,255,.50)', a * 0.85 * floorMul, b.width * 4.2);
     strokePolyline(g, b.points, b.width * 2.2, 'rgba(96,211,255,.92)', a * 0.95 * floorMul, b.width * 1.5);
@@ -416,6 +425,7 @@
       y: f.y + Math.sin(aim) * offset + Math.sin(aim + Math.PI / 2) * lateral,
       theta,
       long,
+      aim,
       // B6: held arcs mirror with the held body.
       mirror: T.mirrorLocal === true,
     };
@@ -533,6 +543,12 @@
       flightHist = []; // weapon resolved (hit/miss) — arcs die with flight
     }
 
+    // Contact flashes: high-energy core decay at the real floor-contact point.
+    for (let i = contactFlashes.length - 1; i >= 0; i--) {
+      contactFlashes[i].t += dt;
+      if (contactFlashes[i].t >= contactFlashes[i].max) contactFlashes.splice(i, 1);
+    }
+
     // B3 residual crackle: a floor-struck fighter stays electrically
     // readable for a short window while the stun is actually on them.
     for (let i = floorVictims.length - 1; i >= 0; i--) {
@@ -617,7 +633,9 @@
   function spawnGroundPulse(x, y, strong) {
     const p = arenaEdgePoint();
     makeBolt(x + rand(-8, 8), y + rand(-6, 6), p.x, p.y, {
-      life: strong ? 0.16 : 0.12, width: strong ? 1.8 : 1.35, power: strong ? 1.0 : 0.82,
+      // Correction pass: modestly stronger floor bolts (width/power) for
+      // contact readability — reach and targeting are unchanged.
+      life: strong ? 0.16 : 0.12, width: strong ? 2.0 : 1.5, power: strong ? 1.08 : 0.9,
       rough: 0.17, floor: true, branchCount: strong ? 4 : 3, branchScale: strong ? 0.24 : 0.18, regen: 0.024,
     });
     if (Math.random() < 0.85) {
@@ -720,36 +738,11 @@
       ctx.stroke();
       ctx.restore();
     }
-    // Restrained ground ring under each fighter while the global slow is up.
-    for (const f of fightersAlive()) {
-      if (!f || f.hp <= 0) continue;
-      if (!(f.statuses && f.statuses.slow && f.statuses.slow.timer > 0)) continue;
-      const pulse = (Math.sin(time * 4.2 + f.id) + 1) * 0.5;
-      ctx.save();
-      ctx.globalAlpha = 0.10 + 0.08 * pulse;
-      ctx.strokeStyle = 'rgba(90,190,255,.8)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.ellipse(f.x, f.y + f.radius * 0.72, f.radius * 0.9 + pulse * 3, (f.radius * 0.9 + pulse * 3) * 0.38, 0, 0, Math.PI * 2);
-      ctx.stroke();
-      // Reference communication: explicit SLOWED marker on affected fighters.
-      ctx.shadowBlur = 0;
-      ctx.globalAlpha = 0.84;
-      ctx.fillStyle = 'rgba(112,204,255,.84)';
-      ctx.font = '900 11px system-ui';
-      ctx.textAlign = 'center';
-      ctx.fillText('SLOWED', f.x, f.y + f.radius + 22);
-      ctx.restore();
-    }
-    if (spawned.size > 0) {
-      ctx.save();
-      ctx.globalAlpha = 0.50;
-      ctx.fillStyle = 'rgba(217,235,250,1)';
-      ctx.font = '800 11px system-ui';
-      ctx.textAlign = 'left';
-      ctx.fillText('RED TIER SPAWN • GLOBAL SLOW ACTIVE', 46, 47);
-      ctx.restore();
-    }
+    // Correction pass: the stale "global slow" presentation (RED TIER SPAWN
+    // banner + SLOWED rings/markers this module drew over fighters) is removed.
+    // The Stormbreaker no longer applies a global slow, so its floor layer must
+    // not imply one. Legitimate slow UI owned by other heroes/systems is
+    // untouched; this module draws only storm-owned floor presentation above.
   }
 
   // Foreground pass (drawForeground, after equipped weapons + AV VFX):
@@ -843,6 +836,28 @@
       g.restore();
     }
 
+    // --- floor-contact core: bright white/cyan flash AT the real
+    // polyline∩fighter intersection (correction pass readability).
+    for (const cf of contactFlashes) {
+      const u = clamp(cf.t / cf.max, 0, 1);
+      const a = (1 - u) * (1 - u);
+      const rad = 16 + u * 46;
+      g.save();
+      g.globalCompositeOperation = 'screen';
+      const rg = g.createRadialGradient(cf.x, cf.y, 0, cf.x, cf.y, rad);
+      rg.addColorStop(0, `rgba(255,255,255,${(a * 0.98).toFixed(3)})`);
+      rg.addColorStop(0.22, `rgba(198,243,255,${(a * 0.85).toFixed(3)})`);
+      rg.addColorStop(0.55, `rgba(74,196,255,${(a * 0.5).toFixed(3)})`);
+      rg.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = rg;
+      g.beginPath(); g.arc(cf.x, cf.y, rad, 0, Math.PI * 2); g.fill();
+      // Hard contact core dot — readable on a pause frame.
+      g.globalAlpha = a;
+      g.fillStyle = 'rgba(255,255,255,1)';
+      g.beginPath(); g.arc(cf.x, cf.y, 2.6 + (cf.main ? 1.4 : 0), 0, Math.PI * 2); g.fill();
+      g.restore();
+    }
+
     drawSparks(g);
 
     // --- tight hit-point flash (V9 impactFlash, screen composite).
@@ -885,7 +900,19 @@
 
   // ------------------------------ presentation probes (B6/B9 evidence) --
   // Same code paths the draw uses; tests assert the local transform law
-  // (det < 0 = reflection, not rotation) and the ghost trajectory sampling.
+  // (det < 0 = reflection, not rotation), the ghost trajectory sampling, and
+  // (correction pass) the blade-forward half-plane projection.
+  //
+  // Correction-pass orientation law (deterministic probe). The BLADE end of
+    // the real asset is the image top = local -Y: under the landscape->portrait
+    // 90deg-CW anchor mapping (ax=-py, ay=px), the extreme head-side anchor is
+    // index 0 (px=-310). A reflection (det<0) alone cannot prove orientation —
+    // the blade-side anchor's WORLD offset must project into the FORWARD
+    // half-plane of the aim vector (held) / initial velocity vector (airborne).
+  function bladeForwardProjection(cx, cy, worldRot, long, mirror, dirX, dirY) {
+    const a = anchorWorld(cx, cy, worldRot, long, 0, mirror);
+    return (a.x - cx) * dirX + (a.y - cy) * dirY;
+  }
   function flightPresentationProbe() {
     const fl = findFlight();
     if (!fl) return null;
@@ -896,15 +923,25 @@
       dt: GHOST_OFFSETS[k],
       x: +gh.x.toFixed(1), y: +gh.y.toFixed(1), rot: +gh.rot.toFixed(3),
     }));
-    return { x: +fl.x.toFixed(1), y: +fl.y.toFixed(1), theta, long, mirror, det: mirror ? -1 : 1, ghosts, ghostTint: 'cyan', spinRate: 82 };
+    const vLen = Math.hypot(fl.vx || 0, fl.vy || 0) || 1;
+    const bladeProj = bladeForwardProjection(fl.x, fl.y, theta, long, mirror, (fl.vx || 0) / vLen, (fl.vy || 0) / vLen);
+    return {
+      x: +fl.x.toFixed(1), y: +fl.y.toFixed(1), theta, long, mirror, det: mirror ? -1 : 1,
+      bladeAnchorIndex: 0, bladeProj: +bladeProj.toFixed(1), bladeForward: bladeProj > 0,
+      ghosts, ghostTint: 'cyan', spinRate: 82,
+    };
   }
   function heldPresentationProbe() {
     const held = findHeld();
     if (!held) return null;
     const th = heldTransform(held);
-    return { x: +th.x.toFixed(1), y: +th.y.toFixed(1), theta: th.theta, long: th.long, mirror: th.mirror === true, det: th.mirror ? -1 : 1 };
+    const bladeProj = bladeForwardProjection(th.x, th.y, th.theta, th.long, th.mirror, Math.cos(th.aim), Math.sin(th.aim));
+    return {
+      x: +th.x.toFixed(1), y: +th.y.toFixed(1), theta: th.theta, long: th.long,
+      mirror: th.mirror === true, det: th.mirror ? -1 : 1,
+      bladeAnchorIndex: 0, bladeProj: +bladeProj.toFixed(1), bladeForward: bladeProj > 0,
+    };
   }
-
   // ------------------------------------------- B3 floor contact hazard --
   // The VISIBLE floor-bolt geometry is the contact-hit authority. This
   // sampler reports discrete contacts between the CURRENT floor-bolt
@@ -913,7 +950,11 @@
   // owns stun truth. Per-pulse/per-fighter gate: a bolt that already
   // reported a fighter never reports that fighter again.
   function polylineCircleHit(pts, cx, cy, r) {
-    let bestD = Infinity;
+    // Correction pass: returns the REAL closest contact point ON the polyline
+    // (+ its segment tangent + distance) or null — the presentation uses the
+    // actual intersection, never the fighter center. Truthiness is unchanged
+    // (object = hit, null = miss) for boolean callers.
+    let best = null;
     for (let i = 0; i < pts.length - 1; i++) {
       const a = pts[i], b = pts[i + 1];
       const dx = b.x - a.x, dy = b.y - a.y;
@@ -922,9 +963,12 @@
       t = t < 0 ? 0 : (t > 1 ? 1 : t);
       const px = a.x + dx * t, py = a.y + dy * t;
       const d = Math.hypot(cx - px, cy - py);
-      if (d < bestD) bestD = d;
+      if (d <= r && (!best || d < best.dist)) {
+        const segLen = Math.sqrt(L2) || 1;
+        best = { dist: d, x: px, y: py, tangentX: dx / segLen, tangentY: dy / segLen };
+      }
     }
-    return bestD <= r;
+    return best;
   }
   function floorContacts(fighters) {
     const out = [];
@@ -935,30 +979,63 @@
       for (const b of bolts) {
         if (!b.floor || b.life <= 0) continue;
         if (b.hitFighters && b.hitFighters[f.id]) continue;
-        if (polylineCircleHit(b.points, f.x, f.y, r)
-          || (b.branches || []).some(br => polylineCircleHit(br, f.x, f.y, r))) {
+        // MAIN polyline first, then branches. The reported contact is the
+        // real closest intersection with the visible geometry: contact point
+        // ON the polyline + segment tangent + main/branch flag. The polyline
+        // stays the collision authority (no invisible targeting, no second
+        // hit test).
+        let hit = polylineCircleHit(b.points, f.x, f.y, r);
+        let main = true;
+        if (!hit) {
+          for (const br of (b.branches || [])) {
+            const bh = polylineCircleHit(br, f.x, f.y, r);
+            if (bh) { hit = bh; main = false; break; }
+          }
+        }
+        if (hit) {
           (b.hitFighters = b.hitFighters || {})[f.id] = true;
-          out.push({ x: f.x, y: f.y, fighterId: f.id, fighter: f });
+          out.push({
+            x: hit.x, y: hit.y,
+            tangentX: +hit.tangentX.toFixed(3), tangentY: +hit.tangentY.toFixed(3),
+            dist: +hit.dist.toFixed(1), main,
+            fighterId: f.id, fighter: f,
+          });
         }
       }
     }
     return out;
   }
-  // Contact readability: local, brief electrical crawl across the victim
-  // body + a short residual crackle window (driven in tick while the victim
-  // carries the stun). Bounded like every other pool here.
+  // Contact readability: presentation is anchored at the REAL polyline∩fighter
+  // contact point (c.x/c.y from the sampler above), so the pause-frame read is
+  // bolt -> contact flash -> victim body. A bright white/cyan core flashes at
+  // the intersection, sparks burst FROM that point, and several short
+  // branches crawl from the contact point into the victim body. The residual
+  // crackle window below stays as-is while the victim carries the stun.
+  const contactFlashes = [];
   function onFloorContact(c) {
     if (!c) return;
     const f = c.fighter;
     stats.floorContacts = (stats.floorContacts || 0) + 1;
     if (!f) return;
     const r = f.radius || 75;
-    makeBolt(f.x - r * 0.8, f.y + rand(-r * 0.4, r * 0.4), f.x + r * 0.8, f.y + rand(-r * 0.4, r * 0.4),
-      { life: 0.12, width: 0.9, power: 0.8, rough: 0.26, branchCount: 2, branchScale: 0.2, regen: 0.02 });
-    makeBolt(f.x + rand(-r * 0.5, r * 0.5), f.y - r * 0.85, f.x + rand(-r * 0.5, r * 0.5), f.y + r * 0.85,
-      { life: 0.1, width: 0.75, power: 0.7, rough: 0.28, regen: 0.02 });
-    sparkBurst(f.x, f.y, 8, 0.7);
-    if (typeof cameraShake !== 'undefined') cameraShake = Math.max(cameraShake, 2.2);
+    const cx = c.x != null ? c.x : f.x;
+    const cy = c.y != null ? c.y : f.y;
+    // High-energy contact core at the real intersection (short flash).
+    if (contactFlashes.length >= 8) contactFlashes.shift();
+    contactFlashes.push({ x: cx, y: cy, t: 0, max: 0.17, main: c.main !== false });
+    sparkBurst(cx, cy, 12, 1.0);
+    // Several short branches crawling from the contact point into the victim
+    // body — the strike visibly lands ON the fighter, not behind it.
+    const ang = Math.atan2(f.y - cy, f.x - cx);
+    const reach = Math.hypot(f.x - cx, f.y - cy);
+    for (let i = 0; i < 3; i++) {
+      const dir = ang + (i - 1) * 0.52;
+      const len = Math.min(r * 1.2, Math.max(r * 0.5, reach + r * 0.55));
+      makeBolt(cx, cy, cx + Math.cos(dir) * len, cy + Math.sin(dir) * len,
+        { life: 0.11 + i * 0.015, width: 0.95, power: 0.9, rough: 0.3, branchCount: 1, branchScale: 0.18, regen: 0.03 });
+    }
+    // Stronger impulse at the real contact (was 2.2 at fighter center).
+    if (typeof cameraShake !== 'undefined') cameraShake = Math.max(cameraShake, 3.4);
     if (!floorVictims.some(v => v.id === f.id)) floorVictims.push({ id: f.id, t: 0.4, crackleT: 0 });
   }
   // Deterministic hazard test hook (B3 gates): straight, never-regenerating
@@ -978,6 +1055,7 @@
     spawned.clear();
     flightHist = [];
     floorVictims.length = 0;
+    contactFlashes.length = 0;
     lastHeldId = null;
     heldCoronaT = 0;
     arenaFlashA = 0;
@@ -1016,6 +1094,12 @@
       snapCount: SNAP_IDX.length,
       rawAnchorCount: REF_ANCHORS.length,
       anchorTransform: 'ref-landscape-to-game-portrait-90cw',
+      // Correction pass: the asset is portrait — long axis = local Y, image
+      // top = blade/head (anchor index 0). mirrorLocal reflects ACROSS the
+      // long axis: local X flips (ax -> -ax), the long-axis coordinate never.
+      mirrorLaw: 'scale(-1,1) local width-axis flip; anchors flip ax only',
+      bladeAnchorIndex: 0,
+      thrownRadius: T.thrownRadius != null ? T.thrownRadius : null,
       floorAngleRad: T.floorAngleRad || 0,
       flightVisualOffsetRad: T.flightVisualOffsetRad || 0,
       mirrorLocal: T.mirrorLocal === true,

@@ -274,7 +274,50 @@
   }
   function clear() {
     vfx.length = 0;
+    resetAudioSession();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Audio session lifecycle (owner correction pass): every AudioBufferSourceNode
+  // this runtime starts and every raw setTimeout it schedules (playLater cues,
+  // voice-count releases) is tracked so a session reset can TERMINATE sound
+  // for real — stop()+disconnect live sources, cancel pending cues. Decoded
+  // AudioBuffers (the HOT bank) are never cleared: the cache stays warm across
+  // sessions; only playback state resets.
+  // ---------------------------------------------------------------------------
+  const liveSources = new Set();
+  const pendingTimers = new Set();
+  function trackTimer(id) {
+    if (id == null) return id;
+    pendingTimers.add(id);
+    return id;
+  }
+  function untrackTimer(id) {
+    pendingTimers.delete(id);
+  }
+  function resetAudioSession() {
+    for (const id of Array.from(pendingTimers)) {
+      pendingTimers.delete(id);
+      if (typeof clearTimeout === 'function') { try { clearTimeout(id); } catch (e) {} }
+    }
+    for (const src of Array.from(liveSources)) {
+      liveSources.delete(src);
+      try { src.onended = null; } catch (e) {}
+      try { src.stop(); } catch (e) {} // already-ended sources throw — fine
+      try { src.disconnect(); } catch (e) {}
+    }
     activeVoices.clear();
+    smgSliceCursor = 0; // per-session slice cursor
+  }
+  function audioSessionProbe() {
+    let voices = 0;
+    for (const v of activeVoices.values()) voices += v || 0;
+    return {
+      liveSources: liveSources.size,
+      pendingTimers: pendingTimers.size,
+      activeVoices: voices,
+      decodedBuffers: audioBuffers.size,
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -295,7 +338,10 @@
     // when the clip would have ended.
     activeVoices.set(entry.rel, active + 1);
     const release = () => activeVoices.set(entry.rel, Math.max(0, (activeVoices.get(entry.rel) || 1) - 1));
-    if (typeof setTimeout === 'function') setTimeout(release, Math.ceil(dur * 1000) + 40);
+    if (typeof setTimeout === 'function') {
+      const relId = setTimeout(() => { untrackTimer(relId); release(); }, Math.ceil(dur * 1000) + 40);
+      trackTimer(relId);
+    }
     if (entry.fadeTail) {
       stats.fadeEnvelopes = (stats.fadeEnvelopes || 0) + 1;
       stats.lastFade = { fadeTail: entry.fadeTail, attack: entry.attack || 0, playDur: dur, stopAfterGain: true };
@@ -327,9 +373,10 @@
     stats.lastVoice = { rel: entry.rel, vol, offset, dur: playDur, viaBufferSource: true };
     src.connect(gain);
     gain.connect(typeof battleAudioMaster !== 'undefined' ? battleAudioMaster : ctx.destination);
-    src.onended = release;
+    src.onended = () => { liveSources.delete(src); release(); };
     try {
       src.start(now, offset, playDur);
+      liveSources.add(src);
       stats.played += 1;
       if (fadeTail > 0) {
         stats.fadeEnvelopes = (stats.fadeEnvelopes || 0) + 1;
@@ -354,7 +401,10 @@
   }
   function playLater(listName, delayMs) {
     if (typeof setTimeout !== 'function') return;
-    setTimeout(() => playAll(listName), Math.max(0, delayMs | 0));
+    // Session lifecycle: the raw timeout is tracked so resetAudioSession()
+    // can cancel cues that are still pending when a battle session ends.
+    const id = setTimeout(() => { untrackTimer(id); playAll(listName); }, Math.max(0, delayMs | 0));
+    trackTimer(id);
   }
 
   // ---------------------------------------------------------------------------
@@ -603,10 +653,15 @@
     ctx.translate(x || 0, y || 0);
     if (options.angle) ctx.rotate(options.angle);
     if (options.keepUpright && Math.cos(options.angle || 0) < 0) ctx.scale(1, -1);
-    // B6: local mirror reflection across the weapon's long axis (local X).
+    // B6/correction: the STORMBREAKER asset is portrait — its LONG axis is
+    // local Y (image top = blade/head, confirmed by pixel mass analysis of
+    // the real webp: top 30% carries the head, the rest is the shaft).
+    // A mirror ACROSS the long axis therefore flips the WIDTH axis only:
+    // scale(-1, 1). scale(1, -1) would flip the long axis itself, swapping
+    // blade and handle ends so the blade faces AWAY from the target.
     // Pure presentation: world angle, aim, physics, and collision are set
     // before this transform and are not affected by it.
-    if (options.mirrorLocal) ctx.scale(1, -1);
+    if (options.mirrorLocal) ctx.scale(-1, 1);
     ctx.globalAlpha *= options.alpha == null ? 1 : options.alpha;
     if (options.glow) {
       ctx.shadowColor = options.glow;
@@ -825,6 +880,9 @@
     warmAudio,
     audioStatus,
     clear,
+    resetAudioSession,
+    audioSessionProbe,
+    playLater,
     stats,
     audioReady: () => stats.audioLoaded,
     imagesReady: () => stats.imagesLoaded,

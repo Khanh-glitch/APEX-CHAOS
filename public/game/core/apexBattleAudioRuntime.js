@@ -142,25 +142,73 @@ function fadeBattleAudio(duration = .85, stopAfter = false) {
         }
     }, 33);
 }
-function stopBattleAudio() {
-    if (battleAudioFadeTimer) {
-        clearInterval(battleAudioFadeTimer);
-        battleAudioFadeTimer = null;
-    }
-    const now = audioCtx.currentTime;
-    battleAudioMaster.gain.cancelScheduledValues(now);
-    battleAudioMaster.gain.setValueAtTime(.001, now);
+// ── Battle-audio session lifecycle (owner correction pass) ─────────────────
+// Explicit session semantics replace the old mute-then-auto-restore timer:
+// entering battle TERMINATES the previous session (every live Arsenal
+// AudioBufferSourceNode is stopped+disconnected, pending playLater cues are
+// cancelled, battle media elements pause, ninja audio stops) and then unmutes
+// the master for the new session. Leaving battle/menu return ends the session
+// and the master STAYS silent until the next explicit begin — old voices can
+// never become audible again behind a restore. Menu BGM is a separate
+// HTMLMediaElement (never routed through this graph), so it is unaffected.
+// Decoded AudioBuffers (the AV HOT bank) are session-independent and stay
+// cached; only playback state resets.
+function stopActiveBattleMediaElements() {
     for (const audio of [...activeBattleMediaElements]) {
         if (!audio || audio.__apexMenuMusic) continue;
         audio.pause();
         try { audio.currentTime = 0; } catch (err) {}
     }
     activeBattleMediaElements.clear();
+}
+function terminateBattleAudioPlayback() {
+    if (battleAudioFadeTimer) {
+        clearInterval(battleAudioFadeTimer);
+        battleAudioFadeTimer = null;
+    }
+    if (window.APEX_ARSENAL_AV && typeof window.APEX_ARSENAL_AV.resetAudioSession === 'function') {
+        try { window.APEX_ARSENAL_AV.resetAudioSession(); } catch (error) {}
+    }
     if (typeof window.stopNinjaAudio === 'function') window.stopNinjaAudio();
-    if (!window.__apexStatsSilent) window.setTimeout(() => restoreBattleAudio(), 80);
+    stopActiveBattleMediaElements();
+}
+function beginBattleAudioSession() {
+    terminateBattleAudioPlayback();
+    // Explicit session start: the master goes live NOW, for THIS session only.
+    restoreBattleAudio();
+}
+function endBattleAudioSession() {
+    terminateBattleAudioPlayback();
+    // No auto-restore timer: the master stays silent until the next explicit
+    // beginBattleAudioSession() (or the engine's post-first-frame restore at
+    // a real match start).
+    const now = audioCtx.currentTime;
+    battleAudioMaster.gain.cancelScheduledValues(now);
+    battleAudioMaster.gain.setValueAtTime(.001, now);
+}
+function stopBattleAudio() {
+    // Back-compat alias: every historical call site wants "no battle SFX
+    // after this point" — that is end-of-session semantics.
+    endBattleAudioSession();
+}
+function apexBattleAudioSessionState() {
+    let avSources = null, avTimers = null;
+    if (window.APEX_ARSENAL_AV && typeof window.APEX_ARSENAL_AV.audioSessionProbe === 'function') {
+        try {
+            const probe = window.APEX_ARSENAL_AV.audioSessionProbe();
+            avSources = probe.liveSources;
+            avTimers = probe.pendingTimers;
+        } catch (error) {}
+    }
+    let masterGain = null;
+    try { masterGain = battleAudioMaster.gain.value; } catch (error) {}
+    return { masterGain, avLiveSources: avSources, avPendingTimers: avTimers };
 }
 window.apexFadeBattleAudio = fadeBattleAudio;
 window.apexStopBattleAudio = stopBattleAudio;
+window.apexBeginBattleAudioSession = beginBattleAudioSession;
+window.apexEndBattleAudioSession = endBattleAudioSession;
+window.apexBattleAudioSessionState = apexBattleAudioSessionState;
 
 // ── Audio 2B: tiered WARM-bank prefetch ────────────────────────────────────
 // Fighter/mode runtimes play their SFX through HTMLAudioElement pools that are

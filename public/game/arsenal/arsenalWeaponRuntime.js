@@ -971,6 +971,13 @@
     const x = f.x + Math.cos(angle) * ox + Math.cos(angle + Math.PI / 2) * oy;
     const y = f.y + Math.sin(angle) * ox + Math.sin(angle + Math.PI / 2) * oy;
     const long = meleeDrawLong(weaponId);
+    // Correction pass: STORMBREAKER collision radius is the explicit
+    // gameplay authority in arsenalQuestConfig (THROWN_MELEE-free) — it must
+    // not move when the presentation long side shrinks. Other thrown melee
+    // keep the historical formula.
+    const radius = weaponId === 'STORMBREAKER'
+      ? ((CFG.STORMBREAKER && CFG.STORMBREAKER.thrownRadius) || Math.max(10, long * 0.14))
+      : Math.max(10, long * 0.14);
     projectiles.push({
       type: 'aq_thrown',
       aq: true,
@@ -980,7 +987,7 @@
       px: x, py: y,
       vx: Math.cos(angle) * t.speed,
       vy: Math.sin(angle) * t.speed,
-      radius: Math.max(10, long * 0.14),
+      radius,
       ricochetsLeft: t.ricochets,
       state: 'flight',
       pinnedTo: null,

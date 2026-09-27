@@ -12,7 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES } from '../src/game/runtimeManifest.js';
+import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES, WARMUP_GROUP_SEQUENCE } from '../src/game/runtimeManifest.js';
 
 const REPO = process.cwd();
 const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules');
@@ -3568,8 +3568,9 @@ gate('storm-balance-audited-values',
   && stormId.ricochets === 1
   && stormId.spin === 82
   && stormId.tuning.spawnLongSide === 240
-  && stormId.tuning.heldLongSide === 206
-  && stormId.tuning.flightLongSide === 192,
+  && stormId.tuning.heldLongSide === 178
+  && stormId.tuning.flightLongSide === 164
+  && stormId.tuning.thrownRadius === 29.26,
   { spec: stormId.spec, tuning: stormId.tuning });
 gate('storm-asset-cset-registered',
   !!stormId.cSet && stormId.cSet.file === 'weapons/c/STORMBREAKER.webp' && stormId.cSet.w === 1086 && stormId.cSet.h === 1448,
@@ -4072,16 +4073,22 @@ report.cp4Present = run(`
   const AV = APEX_ARSENAL_AV;
   const out = {};
 
-  // --- B4: body sprite scale ~ low-90% of pre-CP4 (261/224/209).
+  // --- B4/correction pass: body presentation shrank again (~86% of CP4).
+  // The floor/spawn read was accepted — spawn stays 240. Held/flight drop to
+  // 178/164 against the 150px-diameter (radius 75) fighters.
   out.bodyScale = {
     spawn: CFG.STORMBREAKER.spawnLongSide, held: CFG.STORMBREAKER.heldLongSide, flight: CFG.STORMBREAKER.flightLongSide,
     ratioSpawn: +(CFG.STORMBREAKER.spawnLongSide / 261).toFixed(4),
     ratioHeld: +(CFG.STORMBREAKER.heldLongSide / 224).toFixed(4),
     ratioFlight: +(CFG.STORMBREAKER.flightLongSide / 209).toFixed(4),
+    ratioHeldVsCp4: +(CFG.STORMBREAKER.heldLongSide / 206).toFixed(4),
+    ratioFlightVsCp4: +(CFG.STORMBREAKER.flightLongSide / 192).toFixed(4),
   };
-  out.b4Body = out.bodyScale.ratioSpawn > 0.90 && out.bodyScale.ratioSpawn <= 0.93
-    && out.bodyScale.ratioHeld > 0.90 && out.bodyScale.ratioHeld <= 0.93
-    && out.bodyScale.ratioFlight > 0.90 && out.bodyScale.ratioFlight <= 0.93;
+  out.b4Body = out.bodyScale.spawn === 240
+    && out.bodyScale.held === 178 && out.bodyScale.flight === 164
+    && out.bodyScale.ratioSpawn > 0.90 && out.bodyScale.ratioSpawn <= 0.93
+    && out.bodyScale.ratioHeldVsCp4 > 0.85 && out.bodyScale.ratioHeldVsCp4 <= 0.87
+    && out.bodyScale.ratioFlightVsCp4 > 0.84 && out.bodyScale.ratioFlightVsCp4 <= 0.86;
   // World-scale effects are NOT keyed to the body long side: the impact
   // flash radius and arena illumination live in the vfx draw at fixed world
   // radii, and floor discharge bolts span slot -> arena edge (unchanged
@@ -4103,7 +4110,7 @@ out.impactRadiusIsWorldFixed = String(S.draw).includes('g.arc(x, y, 130,');
   __AQ_TEST.place(400, 500, 800, 500);
   __AQ_TEST.equip('HERO', 'STORMBREAKER');
   const heldProbe = S.heldPresentationProbe ? S.heldPresentationProbe() : null;
-  out.heldProbe = heldProbe && { det: heldProbe.det, mirror: heldProbe.mirror, long: heldProbe.long };
+  out.heldProbe = heldProbe && { det: heldProbe.det, mirror: heldProbe.mirror, long: heldProbe.long, bladeForward: heldProbe.bladeForward, bladeProj: heldProbe.bladeProj };
   __AQ_TEST.step(0.85); // release ~0.73s -> flight
   let flightProbe = null;
   for (let i = 0; i < 30 && !flightProbe; i++) {
@@ -4112,6 +4119,7 @@ out.impactRadiusIsWorldFixed = String(S.draw).includes('g.arc(x, y, 130,');
   }
   out.flightProbe = flightProbe && {
     det: flightProbe.det, mirror: flightProbe.mirror, long: flightProbe.long,
+    bladeForward: flightProbe.bladeForward, bladeProj: flightProbe.bladeProj,
     ghostCount: flightProbe.ghosts.length,
     ghostDts: flightProbe.ghosts.map(g => g.dt),
     ghostTint: flightProbe.ghostTint,
@@ -4201,6 +4209,135 @@ gate('storm-cp4-mirror-not-rotation',
   && cp4.flightProbe && cp4.flightProbe.det === -1 && cp4.flightProbe.mirror === true
   && cp4.flightSpeed === 1350,
   { held: cp4.heldProbe, flight: cp4.flightProbe, speed: cp4.flightSpeed });
+// Correction pass: a reflection (det<0) alone is NOT orientation proof — the
+// blade-side anchor (index 0, image top = local -Y) must project into the
+// FORWARD half-plane of the aim vector (held) and the initial velocity vector
+// (airborne). Positive projection = blade faces the target/throw direction.
+gate('storm-cp5-blade-forward-held-and-flight',
+  cp4.heldProbe && cp4.heldProbe.bladeForward === true && cp4.heldProbe.bladeProj > 0
+  && cp4.flightProbe && cp4.flightProbe.bladeForward === true && cp4.flightProbe.bladeProj > 10,
+  { held: cp4.heldProbe, flight: cp4.flightProbe });
+
+// ── Correction pass (owner playtest feedback round 2) ───────────────────────
+// 1) Orientation: mirror across the LONG axis (portrait asset) = width-axis
+//    flip; blade-side anchor forward-half-plane projection.
+// 2) Body smaller, collision decoupled: explicit thrownRadius gameplay
+//    authority (29.26 = pre-CP4 accepted 209*0.14; hitR vs 75 = 87.76).
+// 3) Menu: no artificial 105ms button delay; likely-next-only warmup; audio
+//    warming on route intent.
+// 4) Battle-audio session lifecycle: real termination, no auto-restore timer.
+// 5) Floor contact sampler reports the REAL polyline intersection.
+// 6) Stale global-slow floor presentation removed.
+report.cp5Correction = run(`
+  const CFG = APEX_ARSENAL_CONFIG;
+  const AV = window.APEX_ARSENAL_AV;
+  const out = {};
+  __AQ_TEST.enterManual();
+  __AQ_TEST.clearEvents();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(400, 500, 800, 500);
+  __AQ_TEST.equip('HERO', 'STORMBREAKER');
+  __AQ_TEST.step(0.85); // ready + windup -> release
+  let proj = null;
+  for (let i = 0; i < 30 && !proj; i++) {
+    __AQ_TEST.step(1 / 60);
+    proj = (typeof projectiles !== 'undefined' ? projectiles : [])
+      .find(p => p && p.aq && p.type === 'aq_thrown' && p.weapon === 'STORMBREAKER') || null;
+  }
+  out.projRadius = proj ? proj.radius : null;
+  out.hitR75 = proj ? +(75 * CFG.BULLET_HIT_RADIUS_SCALE + proj.radius).toFixed(2) : null;
+  out.radiusIsAuthority = !!proj && Math.abs(proj.radius - CFG.STORMBREAKER.thrownRadius) < 1e-9;
+  out.hitRMatchesPreCp4 = out.hitR75 !== null && Math.abs(out.hitR75 - 87.76) < 0.01;
+  // Battle-audio session lifecycle API surface.
+  out.audioApi = {
+    begin: typeof window.apexBeginBattleAudioSession === 'function',
+    end: typeof window.apexEndBattleAudioSession === 'function',
+    state: typeof window.apexBattleAudioSessionState === 'function',
+    avReset: typeof (AV && AV.resetAudioSession) === 'function',
+    avProbe: typeof (AV && AV.audioSessionProbe) === 'function',
+    avPlayLater: typeof (AV && AV.playLater) === 'function',
+  };
+  // playLater cues are tracked and TERMINATED by a session reset: schedule a
+  // long-delay cue, see it tracked, reset, and confirm the timer is gone
+  // (the cue can never fire) with no live sources left behind.
+  const probe0 = AV.audioSessionProbe();
+  AV.playLater('pickup_sniper_lock', 20000);
+  const probe1 = AV.audioSessionProbe();
+  AV.resetAudioSession();
+  const probe2 = AV.audioSessionProbe();
+  out.playLaterLifecycle = {
+    pendingBefore: probe0.pendingTimers,
+    pendingScheduled: probe1.pendingTimers,
+    pendingAfterReset: probe2.pendingTimers,
+    liveSourcesAfterReset: probe2.liveSources,
+    decodedKept: probe2.decodedBuffers === probe1.decodedBuffers,
+  };
+  return JSON.stringify(out);
+`);
+const cp5 = JSON.parse(report.cp5Correction);
+gate('storm-cp5-thrown-radius-decoupled',
+  cp5.radiusIsAuthority === true && cp5.projRadius === 29.26 && cp5.hitRMatchesPreCp4 === true,
+  { radius: cp5.projRadius, hitR75: cp5.hitR75 });
+gate('battle-audio-cp5-session-api-surface',
+  cp5.audioApi.begin === true && cp5.audioApi.end === true && cp5.audioApi.state === true
+  && cp5.audioApi.avReset === true && cp5.audioApi.avProbe === true && cp5.audioApi.avPlayLater === true,
+  cp5.audioApi);
+gate('battle-audio-cp5-playlater-cues-cancelled',
+  cp5.playLaterLifecycle.pendingScheduled >= 1
+  && cp5.playLaterLifecycle.pendingAfterReset === 0
+  && cp5.playLaterLifecycle.liveSourcesAfterReset === 0
+  && cp5.playLaterLifecycle.decodedKept === true,
+  cp5.playLaterLifecycle);
+
+// Source-law gates (node-side): the mirror law, stale-presentation removal,
+// collision-authority decoupling, menu restructure, and audio-session
+// architecture are asserted against the real shipped source text.
+const cp5Src = {
+  vfx: fs.readFileSync(path.join(REPO, 'public/game/arsenal/arsenalStormbreakerVfxRuntime.js'), 'utf8'),
+  pres: fs.readFileSync(path.join(REPO, 'public/game/arsenal/arsenalPresentationRuntime.js'), 'utf8'),
+  weapon: fs.readFileSync(path.join(REPO, 'public/game/arsenal/arsenalWeaponRuntime.js'), 'utf8'),
+  battleAudio: fs.readFileSync(path.join(REPO, 'public/game/core/apexBattleAudioRuntime.js'), 'utf8'),
+  loader: fs.readFileSync(path.join(REPO, 'src/game/runtimeLoader.js'), 'utf8'),
+  app: fs.readFileSync(path.join(REPO, 'src/App.jsx'), 'utf8'),
+};
+gate('storm-cp5-mirror-law-width-axis-source',
+  cp5Src.vfx.includes('if (mirror) ctx.scale(-1, 1)')
+  && cp5Src.vfx.includes('if (mirror) ax = -ax')
+  && !cp5Src.vfx.includes('if (mirror) ctx.scale(1, -1)')
+  && !cp5Src.vfx.includes('if (mirror) ay = -ay')
+  && cp5Src.pres.includes('if (options.mirrorLocal) ctx.scale(-1, 1)')
+  && !cp5Src.pres.includes('if (options.mirrorLocal) ctx.scale(1, -1)'),
+  { vfxScaleNegX: cp5Src.vfx.includes('if (mirror) ctx.scale(-1, 1)'), presScaleNegX: cp5Src.pres.includes('if (options.mirrorLocal) ctx.scale(-1, 1)') });
+gate('storm-cp5-stale-global-slow-removed',
+  !cp5Src.vfx.includes("fillText('RED TIER SPAWN")
+  && !cp5Src.vfx.includes("fillText('SLOWED'")
+  && !cp5Src.vfx.includes('GLOBAL SLOW ACTIVE'),
+  { bannerGone: !cp5Src.vfx.includes("fillText('RED TIER SPAWN"), slowedGone: !cp5Src.vfx.includes("fillText('SLOWED'") });
+gate('storm-cp5-collision-authority-source',
+  cp5Src.weapon.includes('STORMBREAKER.thrownRadius')
+  && !/radius: Math\.max\(10, long \* 0\.14\),/.test(cp5Src.weapon),
+  { explicitAuthority: cp5Src.weapon.includes('STORMBREAKER.thrownRadius') });
+gate('menu-cp5-warmup-likely-next-only',
+  WARMUP_GROUP_SEQUENCE.length === 2
+  && WARMUP_GROUP_SEQUENCE[0] === 'arsenalQuest'
+  && WARMUP_GROUP_SEQUENCE[1] === 'select',
+  { sequence: WARMUP_GROUP_SEQUENCE });
+gate('menu-cp5-no-prefetch-everything',
+  !cp5Src.loader.includes('prefetchDeferredRuntimeSources'),
+  { loaderStillReferencesIt: cp5Src.loader.includes('prefetchDeferredRuntimeSources') });
+gate('menu-cp5-audio-warm-on-intent-only',
+  cp5Src.loader.includes('if (priority) warmGroupAudioWhenReady(group, window[promiseKey])')
+  && cp5Src.loader.includes('if (priority) warmGroupAudioWhenReady(group, gate);'),
+  { earlyReturnIntent: cp5Src.loader.includes('if (priority) warmGroupAudioWhenReady(group, window[promiseKey])') });
+gate('menu-cp5-button-no-artificial-delay',
+  cp5Src.app.includes('requestAnimationFrame(run)')
+  && !cp5Src.app.includes('}, 105)'),
+  { rafExec: cp5Src.app.includes('requestAnimationFrame(run)'), no105: !cp5Src.app.includes('}, 105)') });
+gate('battle-audio-cp5-no-auto-restore-timer',
+  !cp5Src.battleAudio.includes('restoreBattleAudio(), 80')
+  && cp5Src.battleAudio.includes('window.apexBeginBattleAudioSession = beginBattleAudioSession')
+  && cp5Src.battleAudio.includes('window.apexEndBattleAudioSession = endBattleAudioSession'),
+  { autoRestoreGone: !cp5Src.battleAudio.includes('restoreBattleAudio(), 80') });
 gate('storm-cp4-cyan-afterimages-recorded-trajectory',
   cp4.b9 === true,
   cp4.flightProbe);
@@ -4238,10 +4375,24 @@ report.stormFloorHazard = run(`
   // with the mode-level phases below (y=500).
   const onProbe = { id: 99902, x: 350, y: 200, radius: 75, hp: 1 };
   const offProbe = { id: 99903, x: 800, y: 200, radius: 75, hp: 1 };
+  // Correction pass: edge-grazing probe — the segment passes through the
+  // probe circle's EDGE (closest point (500,200), distance 60 <= 75), so the
+  // real contact point differs from the fighter center and proves the
+  // sampler reports the polyline intersection, not the center.
+  const edgeProbe = { id: 99904, x: 500, y: 260, radius: 75, hp: 1 };
   S.testInjectFloorBolt(300, 200, 700, 200);
-  const cs = S.floorContacts([onProbe, offProbe]);
+  const cs = S.floorContacts([onProbe, offProbe, edgeProbe]);
   out.onPathContacts = cs.filter(c => c.fighter === onProbe).length;
   out.offPathContacts = cs.filter(c => c.fighter === offProbe).length;
+  const ec = cs.find(c => c.fighter === edgeProbe);
+  out.edgeContact = ec ? {
+    x: +ec.x.toFixed(2), y: +ec.y.toFixed(2),
+    center: [edgeProbe.x, edgeProbe.y],
+    tangentX: ec.tangentX, tangentY: ec.tangentY, main: ec.main, dist: ec.dist,
+    // Distance from the reported contact to the bolt segment must be ~0.
+    onSegment: Math.abs(ec.y - 200) < 0.01 && ec.x >= 299.99 && ec.x <= 700.01,
+    notCenter: Math.hypot(ec.x - edgeProbe.x, ec.y - edgeProbe.y) > 30,
+  } : null;
   // Per-pulse/per-fighter gate: re-sampling the same live bolt never
   // re-reports an already-hit fighter.
   out.resampleContacts = S.floorContacts([onProbe, offProbe]).length;
@@ -4319,6 +4470,17 @@ gate('storm-floor-bolt-contact-stun-authority',
   && b3.rivalStruckOnPath === true && b3.rivalHpDelta === 0
   && b3.livePulseReachesSampler === true && b3.realFighterStruckByLivePulses === true,
   b3);
+// Correction pass: the sampler reports the REAL polyline∩fighter contact —
+// point ON the segment (+ tangent + main/branch), never the fighter center,
+// so presentation anchors where the bolt visibly meets the body.
+gate('storm-floor-contact-real-point',
+  !!b3.edgeContact
+  && b3.edgeContact.onSegment === true
+  && b3.edgeContact.notCenter === true
+  && b3.edgeContact.main === true
+  && b3.edgeContact.dist > 30 && b3.edgeContact.dist <= 60.01
+  && b3.edgeContact.tangentX > 0.999 && Math.abs(b3.edgeContact.tangentY) < 0.001,
+  b3.edgeContact);
 
 
 // VFX: bounded pools, zero in-flight trail entities, real-hit-point impact.
@@ -4361,8 +4523,8 @@ gate('storm-v9-reference-structure',
   && stormVfx.profile.rawAnchorCount === 9
   && stormVfx.profile.anchorTransform === 'ref-landscape-to-game-portrait-90cw'
   && stormVfx.profile.spawnLongSide === 240
-  && stormVfx.profile.heldLongSide === 206
-  && stormVfx.profile.flightLongSide === 192
+  && stormVfx.profile.heldLongSide === 178
+  && stormVfx.profile.flightLongSide === 164
   && stormVfx.profile.slowMult === undefined
   && stormVfx.profile.spinRate === 82
   && stormVfx.profile.motesEnabled === true
@@ -4371,6 +4533,10 @@ gate('storm-v9-reference-structure',
   // mirror reflection (negative local scale), never a rotation.
   && stormVfx.profile.flightVisualOffsetRad === 0
   && stormVfx.profile.mirrorLocal === true
+  // Correction pass: the mirror reflects ACROSS the long axis — the width
+  // axis (local X) flips; the long-axis coordinate never does.
+  && stormVfx.profile.mirrorLaw === 'scale(-1,1) local width-axis flip; anchors flip ax only'
+  && stormVfx.profile.bladeAnchorIndex === 0
   // B9: cyan afterimages sampled from the recorded curved trajectory.
   && stormVfx.profile.ghostOffsetsSeconds.join(',') === '0.12,0.07,0.03'
   && stormVfx.profile.ghostTint === 'cyan'

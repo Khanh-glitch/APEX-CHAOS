@@ -7,7 +7,6 @@ import {
   SELECT_RUNTIMES,
   WARMUP_GROUP_SEQUENCE,
   hintRuntimeSources,
-  prefetchDeferredRuntimeSources,
   preloadRuntimeSources,
 } from './runtimeManifest.js';
 import { beginPerfSpan, markBootPhase } from './performanceMetrics.js';
@@ -174,22 +173,37 @@ const RUNTIME_GROUPS = {
   trialBattle: MODE_DEFERRED_RUNTIMES.trialBattle,
 };
 
+// Audio banks (dozens of HTMLAudioElements per group and the AV HOT-bank
+// decode) warm on ROUTE INTENT only — the moment the user actually heads
+// somewhere. Background warmup never pays that cost on the menu. The warm
+// is keyed to the GROUP, not to whichever caller created the load promise:
+// a route intent for a group the background warmup already started still
+// fires the warm exactly once.
+const warmAudioDone = new Set();
+function warmGroupAudioWhenReady(group, gatePromise) {
+  if (warmAudioDone.has(group)) return;
+  warmAudioDone.add(group);
+  gatePromise.then(() => warmGroupAudio(group)).catch(() => {});
+}
 export function loadDeferredGameRuntimes(group = 'all', { priority = true } = {}) {
   const runtimes = RUNTIME_GROUPS[group] || RUNTIME_GROUPS.all;
   const promiseKey = `__apexDeferredRuntimesPromise_${group}`;
-  if (window[promiseKey]) return window[promiseKey];
+  if (window[promiseKey]) {
+    if (priority) warmGroupAudioWhenReady(group, window[promiseKey]);
+    return window[promiseKey];
+  }
   // Route intent: this group must not wait behind background warmup entries.
   const gate = enqueueGroup(runtimes, { priority })
     .then(() => {
       window[`__apexDeferredRuntimesReady_${group}`] = true;
       if (group === 'all') window.__apexDeferredRuntimesReady = true;
-      warmGroupAudio(group);
     })
     .catch((error) => {
       window[promiseKey] = null;
       throw error;
     });
   window[promiseKey] = gate;
+  if (priority) warmGroupAudioWhenReady(group, gate);
   hintRuntimeSources(runtimes, 'prefetch');
   if (group === 'all') window.__apexDeferredRuntimesPromise = gate;
   return gate;
@@ -199,18 +213,37 @@ export function loadDeferredGameRuntimes(group = 'all', { priority = true } = {}
 // interactive (callers must gate it) and yields to any route intent through
 // the priority queue. Sequential by design: never monopolizes the main thread
 // with parallel script execution/decode.
+//
+// Correction pass (menu responsiveness):
+//  - NO prefetch-everything: the old boot-time hint of EVERY deferred
+//    runtime is gone; each group's sources are hinted only when that group
+//    actually loads (inside loadDeferredGameRuntimes).
+//  - Only the genuinely likely-next groups warm (see WARMUP_GROUP_SEQUENCE);
+//    legacy modes are route-intent/deep-lazy.
+//  - The loop yields to a real idle slot BETWEEN groups, so evaluation chunks
+//    never run back-to-back; a hard timeout keeps warmup progressing on busy
+//    pages.
+function yieldToIdleBudget() {
+  return new Promise((resolve) => {
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(() => resolve(), { timeout: 1500 });
+    } else {
+      window.setTimeout(resolve, 120);
+    }
+  });
+}
 export async function scheduleDeferredGameRuntimes() {
-  prefetchDeferredRuntimeSources();
   const start = () => {
     markBootPhase('warmup-start');
     (async () => {
-      for (const group of WARMUP_GROUP_SEQUENCE) {
+      for (let i = 0; i < WARMUP_GROUP_SEQUENCE.length; i++) {
         try {
           // Background warmup never preempts an in-flight route intent.
-          await loadDeferredGameRuntimes(group, { priority: false });
+          await loadDeferredGameRuntimes(WARMUP_GROUP_SEQUENCE[i], { priority: false });
         } catch (error) {
-          console.warn(`[asset-loader] Background warmup failed for group ${group}.`, error);
+          console.warn(`[asset-loader] Background warmup failed for group ${WARMUP_GROUP_SEQUENCE[i]}.`, error);
         }
+        if (i < WARMUP_GROUP_SEQUENCE.length - 1) await yieldToIdleBudget();
       }
       markBootPhase('warmup-end');
       window.__apexWarmupComplete = true;
