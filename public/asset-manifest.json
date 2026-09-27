@@ -1,9 +1,5 @@
 {
-<<<<<<< HEAD
-  "generatedAt": "2026-09-27T13:26:01.835Z",
-=======
-  "generatedAt": "2026-09-27T13:37:05.599Z",
->>>>>>> 324af4c (fix(arsenal): CP7 r4 — audioSettled predicate; cp6 mid-flight gate waits for the real decode)
+  "generatedAt": "2026-09-27T13:44:08.029Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
