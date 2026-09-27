@@ -313,6 +313,27 @@
     weaponApi.tickVisuals(dt);
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.tick(dt);
     if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.tick(dt);
+    // B3 floor-lightning contact hazard: the VISIBLE bolt geometry sampled
+    // just above (post-regeneration, pre-draw — the same polylines that
+    // render this frame) is the hit authority. Each discrete bolt↔fighter
+    // contact applies one floorBoltStunSeconds stun — no damage — through
+    // the standard engine status. Both fighters are valid targets: the
+    // floor weapon has no owner. Per-pulse/per-fighter gating lives in the
+    // sampler; an in-flight longer stun is never shortened by a floor hit.
+    if (window.APEX_ARSENAL_STORM && window.APEX_ARSENAL_STORM.floorContacts
+        && CFG.STORMBREAKER && CFG.STORMBREAKER.floorBoltHazard !== false) {
+      const stunSeconds = CFG.STORMBREAKER.floorBoltStunSeconds != null ? CFG.STORMBREAKER.floorBoltStunSeconds : 1.0;
+      for (const c of window.APEX_ARSENAL_STORM.floorContacts(fighters)) {
+        const f = c.fighter;
+        if (!f || f.hp <= 0 || !f.applyStatus) continue;
+        const cur = f.statuses && f.statuses.stun;
+        if (!cur || cur.timer <= 0 || cur.timer < stunSeconds) {
+          f.applyStatus('stun', stunSeconds, {});
+        }
+        window.APEX_ARSENAL_STORM.onFloorContact(c);
+        AQ.log('STORM_FLOOR_STRIKE', `target=${f.name} x=${Math.round(f.x)} y=${Math.round(f.y)}`);
+      }
+    }
     // Presentation decay over the shared engine collections.
     for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.update(dt); if (p.life <= 0) particles.splice(i, 1); }
     // Pass 1: battlefield typography is muted in Arsenal. Native kits may still

@@ -66,6 +66,10 @@
       let best = null, bestD = Infinity;
       for (const s of slots) {
         if (!s || s.phase !== 'REVEALED' || !s.weaponId) continue;
+        // B7: red-tier (T6) pickups are NOT dash targets — no auto
+        // acquisition. The hero can still pick one up PHYSICALLY by
+        // walking over it; the dash simply never seeks it.
+        if (CFG.isHeroManipulablePickup && !CFG.isHeroManipulablePickup(s)) continue;
         const d = Math.hypot(s.x - f.x, s.y - f.y);
         if (d < bestD) { bestD = d; best = s; }
       }
@@ -131,7 +135,9 @@
           // Soft magnet on the pickup in the last few dozen pixels.
           const slots = (window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.slots) || [];
           const slot = slots.find((s) => s && s.id === d.slotId);
-          if (slot && slot.phase === 'REVEALED') {
+          // B7: the magnetic pull must never yank a red-tier (T6) pickup —
+          // hero manipulation can't move it. Physical pickup still works.
+          if (slot && slot.phase === 'REVEALED' && (!CFG.isHeroManipulablePickup || CFG.isHeroManipulablePickup(slot))) {
             const sd = Math.hypot(slot.x - f.x, slot.y - f.y);
             if (sd < spec.magnetRadius * 3) {
               const pull = spec.magnetPull * dt;

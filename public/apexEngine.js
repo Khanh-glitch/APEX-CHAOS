@@ -1587,6 +1587,9 @@ function lineNormal(x1,y1,x2,y2, px, py) {
 }
 function reflectProjectileFromCrystals(p) {
     if (p.type === 'crystal_wall' || p.type === 'gravity_well' || p.type === 'magnet_field' || p.type === 'meteor') return false;
+    // B7/B8: hero-manipulation-immune projectiles (thrown red-tier weapons)
+    // are never reflected or re-owned — hero manipulation can't redirect them.
+    if (p.heroManipulationImmune) return false;
     if (p.vx === undefined || p.vy === undefined || p.x === undefined || p.y === undefined) return false;
     for (const w of projectiles) {
         if (w.type !== 'crystal_wall' || w.owner === p.owner) continue;
@@ -1624,7 +1627,7 @@ function updateProjectiles(dt) {
 
         if (p.x !== undefined && p.y !== undefined && p.vx !== undefined && p.vy !== undefined) {
             for (const mf of fighters) {
-                if (mf && mf.name === 'MAGNET' && mf.data.fieldTimer > 0 && p.owner !== mf && !['meteor','gravity_well','ice_lane','fire_pit','magnet_field','crystal_cage','drum_wave'].includes(p.type)) {
+                if (mf && mf.name === 'MAGNET' && mf.data.fieldTimer > 0 && p.owner !== mf && !p.heroManipulationImmune && !['meteor','gravity_well','ice_lane','fire_pit','magnet_field','crystal_cage','drum_wave'].includes(p.type)) {
                     const shell = 310;
                     const md = dist(p.x,p.y,mf.x,mf.y);
                     if (md <= shell + (p.radius||10)) { const n=norm(p.x-mf.x,p.y-mf.y); p.x=mf.x+n.x*(shell+(p.radius||10)+8); p.y=mf.y+n.y*(shell+(p.radius||10)+8); p.life = 0; emitParticles(p.x,p.y,mf.color,18,280,4,.45,'square'); floatingTexts.push(new FloatingText(mf.x,mf.y-mf.radius-84,'MAGNETIC SHELL','#ffe44e')); }
@@ -1783,6 +1786,9 @@ function updateProjectiles(dt) {
                 for (const q of projectiles) {
                     if (q === p || !q.owner || q.owner === owner || q.x === undefined || q.y === undefined || q.vx === undefined || q.vy === undefined) continue;
                     if (['meteor','ice_lane','toxic_puddle','toxic_trail','fire_pit','gravity_well','crystal_cage','crystal_wall'].includes(q.type)) continue;
+                    // B7/B8: hero-manipulation-immune projectiles are neither
+                    // rerouted nor absorbed by the well.
+                    if (q.heroManipulationImmune) continue;
                     const d = Math.max(35, dist(q.x,q.y,p.x,p.y)); const n = norm(p.x-q.x,p.y-q.y);
                     q.vx += n.x * clamp(360000/(d*d),90,880) * dt; q.vy += n.y * clamp(360000/(d*d),90,880) * dt;
                     if (d < p.core + (q.radius||10)) { p.absorbed=(p.absorbed||0)+1; q.life=0; emitParticles(p.x,p.y,'#22102e',18,220,5,.45,'square'); playFighterSound(owner,'skill'); }

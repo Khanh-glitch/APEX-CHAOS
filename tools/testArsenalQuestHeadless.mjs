@@ -3636,13 +3636,16 @@ report.stormImpact = run(`
   __AQ_TEST.place(400, 500, 600, 500);
   __AQ_TEST.holdSpawns();
   __AQ_TEST.equip('HERO', 'STORMBREAKER');
-  let sawPush = false, sawStun = false, rivalHp = 1000;
+  let sawPush = false, sawStun = false, rivalHp = 1000, stunDur = null, dmg = null;
   for (let n = 0; n < 120; n++) {
     __AQ_TEST.step(1 / 60);
     const f = fighters[1];
     if (f.hasStatus('push')) sawPush = true;
-    if (f.hasStatus('stun')) sawStun = true;
-    if (f.hp < 1000) rivalHp = f.hp;
+    if (f.hasStatus('stun')) {
+      if (!sawStun) stunDur = f.statuses && f.statuses.stun ? f.statuses.stun.timer : null;
+      sawStun = true;
+    }
+    if (f.hp < 1000) { rivalHp = f.hp; if (dmg === null) dmg = 1000 - f.hp; }
     if (sawPush && sawStun && n > 30) break;
   }
   const stormProj = __AQ_TEST.aqProjectiles().filter(p => p.weapon === 'STORMBREAKER');
@@ -3651,6 +3654,8 @@ report.stormImpact = run(`
   return {
     heroHolder: __AQ_TEST.holder('HERO'),
     rivalHp,
+    dmg,
+    stunDur,
     sawPush,
     sawStun,
     stormProjCount: stormProj.length,
@@ -3658,8 +3663,10 @@ report.stormImpact = run(`
     hitLogged,
   };
 `);
-gate('storm-hit-final-authority-446-no-scale-ride', report.stormImpact.rivalHp === 554, report.stormImpact);
-gate('storm-hit-real-stun', report.stormImpact.sawStun, report.stormImpact);
+gate('storm-hit-final-authority-446-no-scale-ride',
+  report.stormImpact.rivalHp === 554 && report.stormImpact.dmg === 446, report.stormImpact);
+gate('storm-hit-real-stun-2s-duration',
+  report.stormImpact.sawStun && report.stormImpact.stunDur !== null && report.stormImpact.stunDur > 1.95, report.stormImpact);
 gate('storm-hit-knockback-status', report.stormImpact.sawPush, report.stormImpact);
 gate('storm-weapon-vanishes-no-pin',
   report.stormImpact.stormProjCount === 0 && report.stormImpact.impactLogged && report.stormImpact.hitLogged && report.stormImpact.heroHolder === null,
@@ -3688,6 +3695,7 @@ report.stormMiss = run(`
   let exitSeen = false, removed = false, exitFrame = null, removedFrame = null;
   let dirChanges = 0, lastVx = null, lastVy = null;
   let vyAtExit = null, vyLater = null, tAfterExit = 0;
+  let cumTurn = 0, lastHeading = null, aimWithin90 = 0, aimSamples = 0;
   for (let n = 0; n < 400; n++) {
     __AQ_TEST.step(1 / 60);
     const p = projectiles.find(q => q.aq && q.weapon === 'STORMBREAKER');
@@ -3699,6 +3707,24 @@ report.stormMiss = run(`
       }
       if (lastVx !== null && (Math.sign(Math.round(p.vx)) !== lastVx || Math.sign(Math.round(p.vy)) !== lastVy)) dirChanges += 1;
       lastVx = Math.sign(Math.round(p.vx)); lastVy = Math.sign(Math.round(p.vy));
+      // Homing-pursuit telemetry: total heading change (a straight+ricochet
+      // bolt caps at ~pi; an actively steering bolt keeps turning after the
+      // teleporting opponent) + how often the heading stays aimed at it.
+      const hd = Math.atan2(p.vy, p.vx);
+      if (lastHeading !== null) {
+        let dh = hd - lastHeading;
+        while (dh > Math.PI) dh -= 2 * Math.PI;
+        while (dh < -Math.PI) dh += 2 * Math.PI;
+        cumTurn += Math.abs(dh);
+      }
+      lastHeading = hd;
+      if (p.state === 'flight') {
+        aimSamples += 1;
+        let err = Math.atan2(fighters[1].y - p.y, fighters[1].x - p.x) - hd;
+        while (err > Math.PI) err -= 2 * Math.PI;
+        while (err < -Math.PI) err += 2 * Math.PI;
+        if (Math.abs(err) < Math.PI / 2) aimWithin90 += 1;
+      }
       if (p.state === 'exit' && !exitSeen) { exitSeen = true; exitFrame = n; vyAtExit = p.vy; }
       if (exitSeen) {
         tAfterExit += 1 / 60;
@@ -3710,7 +3736,7 @@ report.stormMiss = run(`
   return {
     rivalHp: hp.rival, heroHp: hp.hero,
     exitSeen, removed, exitFrame, removedFrame,
-    dirChanges, vyAtExit, vyLater,
+    dirChanges, vyAtExit, vyLater, cumTurn, aimWithin90, aimSamples,
     hitEvents: __AQ_TEST.events().filter(e => e.startsWith('[AQ] HIT') && e.includes('weapon=STORMBREAKER')).length,
     maxFlightLogged: __AQ_TEST.countEvents('THROWN_MAXFLIGHT'),
     ricochetEvents: __AQ_TEST.countEvents('THROWN_RICOCHET'),
@@ -3722,8 +3748,15 @@ gate('storm-miss-teleport-dodge-no-damage',
   report.stormMiss);
 gate('storm-miss-curvature-exit-bounded',
   report.stormMiss.exitSeen === true && report.stormMiss.removed === true
-  // curvature: the path bends — wall ricochet flips direction at least once,
-  // and the exit tumble accelerates downward under gravity (1500 px/s²).
+  // STEERING curvature: total heading change far exceeds a single wall-
+  // ricochet flip (~pi) — the bolt actively turns after the teleporting
+  // opponent (observed ~9.4 rad with only 1 ricochet), and its heading
+  // stays aimed within 90° of the opponent for a solid share of flight
+  // frames. Ricochet/tumble-only curvature cannot satisfy either bound.
+  && report.stormMiss.cumTurn >= 4.0
+  && (report.stormMiss.aimWithin90 / Math.max(1, report.stormMiss.aimSamples)) >= 0.4
+  // physical exit shape: direction flips observed and the exit tumble
+  // accelerates downward under gravity (1500 px/s²).
   && report.stormMiss.dirChanges >= 1
   && (report.stormMiss.vyLater - report.stormMiss.vyAtExit) >= 200
   // bounded: from loop start (release +0.12s) the whole projectile is gone
@@ -3734,6 +3767,9 @@ gate('storm-miss-curvature-exit-bounded',
 // Repeated spawn/use cycles through the REAL pickup path (auto-pickup on
 // touch), three different throw trajectories, state clean every cycle.
 report.stormCycle = run(`
+  // Isolate from the B3 floor-lightning hazard (different feature): random
+  // floor strikes here would only delay the pickup/throw/hit cycle under test.
+  APEX_ARSENAL_CONFIG.STORMBREAKER.floorBoltHazard = false;
   const layouts = [
     { h: [400, 500], r: [600, 500] },  // horizontal throw
     { h: [300, 300], r: [700, 700] },  // diagonal throw
@@ -3804,6 +3840,332 @@ gate('storm-floor-no-global-slow',
 gate('storm-no-slow-status-lingers',
   report.stormSlow.slowHeroAfter === false && report.stormSlow.slowRivalAfter === false,
   report.stormSlow);
+
+// ── B7: red-tier (T6) hero-manipulation immunity ──────────────────────────
+// The unclaimed T6 pickup can't be moved, yanked, or auto-acquired by hero
+// manipulation. The NEWBIE dash never targets it and its magnet pull never
+// moves it; a regular pickup is still fair game; PHYSICAL pickup works.
+// Each subscenario gets a FRESH mode/gate state (a failed NEWBIE activation
+// leaves the skill gate's pulse pending for its ~1s window — re-pressing in
+// the same state would not re-arm, which is gate semantics, not targeting).
+report.stormB7Pickup = run(`
+  const CFG = APEX_ARSENAL_CONFIG;
+  // Isolate from the B3 floor-lightning hazard: random floor strikes would
+  // freeze fighters and corrupt the dash/magnet geometry under test.
+  CFG.STORMBREAKER.floorBoltHazard = false;
+  const out = {};
+  const mk = (wid, x, y) => ({ id: APEX_ARSENAL.state.nextSlotId++, x, y, phase: 'REVEALED', weaponId: wid, revealedFor: 0, pickedBy: null, rejectedFor: {}, spawnTime: APEX_ARSENAL.state.time });
+  const fresh = () => {
+    window.startArsenalQuestMode('NEWBIE', 'ICE');
+    cancelAnimationFrame(reqId); reqId = 0;
+    __AQ_TEST.holdSpawns();
+    const f = fighters[0];
+    f.x = 200; f.y = 500; f.baseSpeed = 0;
+    fighters[1].x = 900; fighters[1].y = 100; fighters[1].baseSpeed = 0;
+    return f;
+  };
+  // Predicate semantics (pure — future pull/teleport/swap/disarm/reroute/
+  // cage systems query the same authority).
+  out.t6Immune = CFG.isHeroManipulablePickup({ weaponId: 'STORMBREAKER' }) === false;
+  out.regularManipulable = CFG.isHeroManipulablePickup({ weaponId: 'PISTOL' }) === true;
+  out.healManipulable = CFG.isHeroManipulablePickup({ weaponId: 'HEAL_SMALL' }) === true;
+
+  // A) T6-only floor: no auto acquisition — the dash must NOT launch and the
+  //    cooldown must NOT be consumed (same as the no-eligible-pickup path).
+  let f = fresh();
+  const t6a = mk('STORMBREAKER', 550, 300);
+  APEX_ARSENAL.state.slots.push(t6a);
+  f.data.nbCd = 0;
+  window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
+  for (let i = 0; i < 3; i++) APEX_ARSENAL.step(1 / 60);
+  out.noDashAtT6 = !f.data.nbDash && f.data.nbCd < 1;
+
+  // B) T6 (nearer) + regular (farther): the dash must target the REGULAR one.
+  f = fresh();
+  const t6b = mk('STORMBREAKER', 550, 300);
+  const regb = mk('PISTOL', 700, 500);
+  APEX_ARSENAL.state.slots.push(t6b, regb);
+  f.data.nbCd = 0;
+  window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
+  for (let i = 0; i < 3; i++) APEX_ARSENAL.step(1 / 60);
+  out.dashTargetsRegular = !!(f.data.nbDash && f.data.nbDash.slotId === regb.id);
+  out.dashNeverTargetsT6 = !f.data.nbDash || f.data.nbDash.slotId !== t6b.id;
+
+  // C) magnetic pull never moves the T6; a regular pickup is still pulled.
+  //    Hero HOLDS a (never-firing) defense weapon so the physical touch
+  //    path stays out of the way; the dash velocity is re-zeroed each frame
+  //    so the magnet window (evaluated after the frame's dash movement)
+  //    genuinely covers the slot for every sampled frame.
+  const pullScenario = (wid) => {
+    const ff = fresh();
+    const slot = mk(wid, 500, 405);
+    APEX_ARSENAL.state.slots.push(slot);
+    __AQ_TEST.equip('HERO', 'TOWER_SHIELD');
+    ff.x = 500; ff.y = 500;
+    ff.data.nbDash = { tx: 900, ty: 500, slotId: slot.id, vx: 0, vy: 0, t: 0, max: 0.3 };
+    for (let i = 0; i < 12; i++) {
+      APEX_ARSENAL.step(1 / 60);
+      ff.x = 500; ff.y = 500;
+      if (ff.data.nbDash) { ff.data.nbDash.vx = 0; ff.data.nbDash.vy = 0; }
+    }
+    const moved = Math.hypot(slot.x - 500, slot.y - 405);
+    return { moved, phase: slot.phase };
+  };
+  const t6res = pullScenario('STORMBREAKER');
+  out.t6NotPulled = t6res.moved === 0 && t6res.phase === 'REVEALED';
+  const regRes = pullScenario('PISTOL');
+  out.regularPulled = regRes.moved > 3;
+  out.t6Moved = t6res.moved; out.regMoved = regRes.moved;
+
+  // D) physical walk-over pickup of the T6 still works normally.
+  f = fresh();
+  const t6d = mk('STORMBREAKER', 560, 500);
+  APEX_ARSENAL.state.slots.push(t6d);
+  f.x = 545; f.y = 500;
+  for (let i = 0; i < 8; i++) APEX_ARSENAL.step(1 / 60);
+  out.physicalPickupWorks = t6d.phase === 'REMOVED' || t6d.phase === 'PICKED_UP'
+    || !!(APEX_ARSENAL.weaponApi.getHolder && APEX_ARSENAL.weaponApi.getHolder(f));
+  return JSON.stringify(out);
+`);
+const b7p = JSON.parse(report.stormB7Pickup);
+gate('storm-b7-t6-pickup-immune-to-hero-manipulation',
+  b7p.t6Immune && b7p.regularManipulable && b7p.healManipulable
+  && b7p.noDashAtT6 && b7p.dashTargetsRegular && b7p.dashNeverTargetsT6
+  && b7p.t6NotPulled && b7p.regularPulled && b7p.physicalPickupWorks,
+  b7p);
+
+// B7 projectile side: the thrown T6 is heroManipulationImmune — crystal
+// walls can't reflect/re-own it, magnet shells can't destroy/reposition it,
+// gravity wells can't reroute/absorb it. Each phase keeps a non-immune
+// CONTROL projectile in the same field to prove the manipulation is live.
+report.stormB7Proj = run(`
+  const out = {};
+  const api = APEX_ARSENAL.weaponApi;
+  // Same shape the real CRYSTAL cast pushes (touchCd/hitIds included).
+  const mkWall = () => ({ type: 'crystal_wall', owner: fighters[1], x1: 550, y1: 200, x2: 550, y2: 700, x: 550, y: 450, life: 5, maxLife: 5, hitIds: {}, touchCd: {}, permanent: false });
+  const mkWell = () => ({ type: 'gravity_well', owner: fighters[1], x: 600, y: 500, core: 100, radius: 200, life: 3.1, maxLife: 3.1, exploded: false, absorbed: 0, absorbedDamage: 0 });
+  const mkBullet = (x, y, vx, vy) => ({ type: 'aq_bullet', aq: true, owner: fighters[0], weapon: 'PISTOL', x, y, px: x, py: y, vx, vy, radius: 4, life: 3, maxLife: 3, color: '#ffe08a' });
+
+  // 1) MAGNET shell (rival renamed MAGNET with a live field): the storm is
+  //    spawned INSIDE the shell and flies through to connect; the control
+  //    bullet dies in the same shell.
+  __AQ_TEST.enterManual();
+  __AQ_TEST.clearEvents();
+  __AQ_TEST.place(400, 500, 650, 300);
+  __AQ_TEST.holdSpawns();
+  fighters[1].name = 'MAGNET';
+  fighters[1].data = fighters[1].data || {};
+  fighters[1].data.fieldTimer = 3;
+  projectiles.length = 0;
+  api.spawnThrownMelee(fighters[0], 'STORMBREAKER', Math.atan2(300 - 500, 650 - 400));
+  projectiles.push(mkBullet(400, 560, 1350, 0));
+  for (let i = 0; i < 12; i++) __AQ_TEST.step(1 / 60);
+  out.magnetControlDestroyed = !projectiles.some(p => p.type === 'aq_bullet');
+  for (let i = 0; i < 60; i++) __AQ_TEST.step(1 / 60);
+  out.magnetBoltConnected = __AQ_TEST.hp().rival < 1000;
+  out.magnetImpactLogged = __AQ_TEST.countEvents('STORM_IMPACT') >= 1;
+
+  // 2) Crystal wall across the flight line: the storm passes through and
+  //    hits the rival (never re-owned — the hero stays untouched); the
+  //    control bullet is reflected and re-owned by the wall's owner.
+  __AQ_TEST.enterManual();
+  __AQ_TEST.clearEvents();
+  __AQ_TEST.place(400, 500, 800, 500);
+  __AQ_TEST.holdSpawns();
+  projectiles.length = 0;
+  projectiles.push(mkWall());
+  api.spawnThrownMelee(fighters[0], 'STORMBREAKER', 0);
+  projectiles.push(mkBullet(400, 680, 1350, 0));
+  for (let i = 0; i < 14; i++) __AQ_TEST.step(1 / 60);
+  const ctl = projectiles.find(p => p.type === 'aq_bullet');
+  out.crystalControlReflected = !ctl || ctl.owner === fighters[1];
+  for (let i = 0; i < 30; i++) __AQ_TEST.step(1 / 60);
+  out.crystalBoltConnected = __AQ_TEST.hp().rival < 1000;
+  out.crystalHeroUntouched = __AQ_TEST.hp().hero === 1000;
+  out.crystalImpactLogged = __AQ_TEST.countEvents('STORM_IMPACT') >= 1;
+
+  // 3) Rage gravity well on the flight line: the storm is neither rerouted
+  //    nor absorbed and still connects; the control bullet is absorbed.
+  __AQ_TEST.enterManual();
+  __AQ_TEST.clearEvents();
+  __AQ_TEST.place(400, 500, 800, 500);
+  __AQ_TEST.holdSpawns();
+  fighters[1].isRage = true;
+  projectiles.length = 0;
+  const well = mkWell();
+  projectiles.push(well);
+  api.spawnThrownMelee(fighters[0], 'STORMBREAKER', 0);
+  projectiles.push(mkBullet(450, 500, 1350, 0));
+  for (let i = 0; i < 40; i++) __AQ_TEST.step(1 / 60);
+  out.wellControlAbsorbed = (well.absorbed || 0) >= 1;
+  out.wellBoltConnected = __AQ_TEST.hp().rival < 1000;
+  out.wellImpactLogged = __AQ_TEST.countEvents('STORM_IMPACT') >= 1;
+  return JSON.stringify(out);
+`);
+const b7j = JSON.parse(report.stormB7Proj);
+gate('storm-b7-thrown-immune-to-hero-manipulation',
+  b7j.magnetControlDestroyed && b7j.magnetBoltConnected && b7j.magnetImpactLogged
+  && b7j.crystalControlReflected && b7j.crystalBoltConnected && b7j.crystalHeroUntouched && b7j.crystalImpactLogged
+  && b7j.wellControlAbsorbed && b7j.wellBoltConnected && b7j.wellImpactLogged,
+  b7j);
+
+// ── B8: homing pursuit ─────────────────────────────────────────────────────
+// Aimed at the living opponent on release, then bounded continuous steering:
+// the bolt curves after a hard-strafing opponent, never snaps (per-frame
+// heading change capped at turnRate/60), never changes speed (1350 exact),
+// and still connects through the swept-segment path.
+report.stormB8Homing = run(`
+  // Deterministic shells: enterManual() would reuse lastShells (the B7
+  // blocks above leave NEWBIE/ICE, and ICE carries a canonical taken:x0.98
+  // tune — 446*0.98=437.08). NEWBIE has no numeric tuning entry (x1).
+  window.startArsenalQuestMode('NEWBIE', 'NEWBIE');
+  cancelAnimationFrame(reqId); reqId = 0;
+  __AQ_TEST.clearEvents();
+  __AQ_TEST.place(150, 500, 620, 500);
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.equip('HERO', 'STORMBREAKER');
+  __AQ_TEST.step(0.85); // release ~0.73s, bolt in flight
+  let maxTurn = 0, cumTurn = 0, spMin = Infinity, spMax = 0, last = null;
+  for (let n = 0; n < 200; n++) {
+    __AQ_TEST.step(1 / 60);
+    const p = projectiles.find(q => q.aq && q.weapon === 'STORMBREAKER');
+    if (!p) break;
+    const sp = Math.hypot(p.vx, p.vy);
+    spMin = Math.min(spMin, sp); spMax = Math.max(spMax, sp);
+    const h = Math.atan2(p.vy, p.vx);
+    if (last !== null) {
+      let d = h - last;
+      while (d > Math.PI) d -= 2 * Math.PI;
+      while (d < -Math.PI) d += 2 * Math.PI;
+      maxTurn = Math.max(maxTurn, Math.abs(d));
+      cumTurn += Math.abs(d);
+    }
+    last = h;
+    // Opponent strafes hard (square wave) — the bolt must curve after it.
+    fighters[1].y += ((n % 40) < 20 ? -1 : 1) * 360 * (1 / 60);
+    fighters[1].x = 620;
+  }
+  return JSON.stringify({
+    rivalHp: __AQ_TEST.hp().rival,
+    spMin, spMax, maxTurn, cumTurn,
+    cap: APEX_ARSENAL_CONFIG.STORMBREAKER.homingTurnRateRadPerSec,
+    impactLogged: __AQ_TEST.countEvents('STORM_IMPACT') >= 1,
+  });
+`);
+const b8 = JSON.parse(report.stormB8Homing);
+gate('storm-b8-homing-pursuit-bounded-curves-connects',
+  b8.rivalHp === 554 && b8.impactLogged
+  && b8.spMin > 1349.99 && b8.spMax < 1350.01
+  && b8.maxTurn <= (b8.cap / 60) + 1e-6
+  && b8.cumTurn >= 0.15,
+  b8);
+
+// ── B3: floor lightning is a real contact hazard ───────────────────────────
+// The VISIBLE floor-bolt geometry is the hit authority: a fighter circle
+// touching a floor bolt's current polyline (mains + branches) takes exactly
+// one 1.0s stun per pulse per fighter — NO damage. Both fighters are valid
+// targets. Deterministic phases use a straight, never-regenerating injected
+// floor bolt with exact endpoints; a live phase proves real random pulses
+// reach the sampler, and a real fighter near a live slot gets struck.
+report.stormFloorHazard = run(`
+  APEX_ARSENAL_CONFIG.STORMBREAKER.floorBoltHazard = true; // explicit: on
+  __AQ_TEST.enterManual();
+  __AQ_TEST.clearEvents();
+  __AQ_TEST.holdSpawns();
+  const S = window.APEX_ARSENAL_STORM;
+  const out = {};
+
+  // --- Phase 1: deterministic geometry. Straight bolt 300→700 @ y=500.
+  // On-path probe at (350,500); off-path probe 100px clear of the end
+  // (800,500 → closest point (700,500), distance 100 > radius 75). Probes
+  // (not the real fighters) keep the per-fighter gates of the real HERO /
+  // RIVAL untouched for the mode-level phases below.
+  // Own lane (y=200) so this long-lived test bolt can never interfere
+  // with the mode-level phases below (y=500).
+  const onProbe = { id: 99902, x: 350, y: 200, radius: 75, hp: 1 };
+  const offProbe = { id: 99903, x: 800, y: 200, radius: 75, hp: 1 };
+  S.testInjectFloorBolt(300, 200, 700, 200);
+  const cs = S.floorContacts([onProbe, offProbe]);
+  out.onPathContacts = cs.filter(c => c.fighter === onProbe).length;
+  out.offPathContacts = cs.filter(c => c.fighter === offProbe).length;
+  // Per-pulse/per-fighter gate: re-sampling the same live bolt never
+  // re-reports an already-hit fighter.
+  out.resampleContacts = S.floorContacts([onProbe, offProbe]).length;
+
+  // --- Phase 2: the mode turns a contact into exactly one stun, no damage.
+  // Fresh bolt — the phase-1 bolt's gates belong to the probes only.
+  __AQ_TEST.place(350, 500, 800, 500);
+  fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+  S.testInjectFloorBolt(300, 500, 700, 500);
+  const hpB = __AQ_TEST.hp();
+  for (let i = 0; i < 5; i++) __AQ_TEST.step(1 / 60);
+  out.stunnedOnPath = fighters[0].hasStatus('stun');
+  out.stunTimer = fighters[0].statuses && fighters[0].statuses.stun ? +fighters[0].statuses.stun.timer.toFixed(3) : null;
+  out.rivalUntouchedOffPath = !fighters[1].hasStatus('stun');
+  out.heroHpDelta = +(hpB.hero - __AQ_TEST.hp().hero).toFixed(6);
+  out.strikesLogged = __AQ_TEST.countEvents('STORM_FLOOR_STRIKE');
+
+  // --- Phase 3: the stun actually expires (~1.0s + margin).
+  for (let i = 0; i < 75; i++) __AQ_TEST.step(1 / 60);
+  out.stunExpired = !fighters[0].hasStatus('stun');
+
+  // --- Phase 4: off the path = no strike. HERO 150px clear of the segment
+  // start (150,500 → closest point (300,500), distance 150 > 75).
+  __AQ_TEST.place(150, 500, 800, 500);
+  fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+  S.testInjectFloorBolt(300, 500, 700, 500);
+  const before = __AQ_TEST.countEvents('STORM_FLOOR_STRIKE');
+  for (let i = 0; i < 5; i++) __AQ_TEST.step(1 / 60);
+  out.offPathNoNewStrikes = __AQ_TEST.countEvents('STORM_FLOOR_STRIKE') === before;
+  out.offPathNotStunned = !fighters[0].hasStatus('stun');
+
+  // --- Phase 5: the RIVAL is an equally valid target.
+  __AQ_TEST.place(150, 500, 650, 500);
+  fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+  S.testInjectFloorBolt(300, 500, 700, 500);
+  for (let i = 0; i < 5; i++) __AQ_TEST.step(1 / 60);
+  out.rivalStruckOnPath = fighters[1].hasStatus('stun');
+  out.rivalHpDelta = +(hpB.rival - __AQ_TEST.hp().rival).toFixed(6);
+
+  // --- Phase 6: LIVE random floor pulses reach the sampler. A synthetic
+  // fighter parked exactly on a real unclaimed slot cannot pick it up, so
+  // the slot keeps pulsing — the first pulse's bolt origins (slot ± 8px)
+  // are guaranteed inside its 75px circle.
+  __AQ_TEST.enterManual();
+  __AQ_TEST.clearEvents();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(150, 150, 850, 850);
+  fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+  __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
+  const probe = { id: 99901, x: 500, y: 500, radius: 75, hp: 1 };
+  let liveContacts = 0;
+  for (let i = 0; i < 90 && liveContacts === 0; i++) {
+    __AQ_TEST.step(1 / 60);
+    if (S.floorContacts([probe]).length) liveContacts += 1;
+  }
+  out.livePulseReachesSampler = liveContacts > 0;
+  // And a REAL fighter parked just outside pickup range (118 > 117) of the
+  // live slot gets struck by the random pulses within a generous window.
+  fighters[0].x = 500 + 118; fighters[0].y = 500;
+  let realStrike = false;
+  for (let i = 0; i < 600 && !realStrike; i++) {
+    __AQ_TEST.step(1 / 60);
+    if (fighters[0].hasStatus('stun')) realStrike = true;
+  }
+  out.realFighterStruckByLivePulses = realStrike;
+  return JSON.stringify(out);
+`);
+const b3 = JSON.parse(report.stormFloorHazard);
+gate('storm-floor-bolt-contact-stun-authority',
+  b3.onPathContacts === 1 && b3.offPathContacts === 0 && b3.resampleContacts === 0
+  && b3.stunnedOnPath === true && b3.stunTimer !== null && b3.stunTimer > 0.85 && b3.stunTimer <= 1.0
+  && b3.rivalUntouchedOffPath === true && b3.heroHpDelta === 0 && b3.strikesLogged === 1
+  && b3.stunExpired === true
+  && b3.offPathNoNewStrikes === true && b3.offPathNotStunned === true
+  && b3.rivalStruckOnPath === true && b3.rivalHpDelta === 0
+  && b3.livePulseReachesSampler === true && b3.realFighterStruckByLivePulses === true,
+  b3);
+
 
 // VFX: bounded pools, zero in-flight trail entities, real-hit-point impact.
 report.stormVfx = run(`

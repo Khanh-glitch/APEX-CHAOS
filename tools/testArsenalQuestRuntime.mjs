@@ -2404,6 +2404,210 @@ try {
     && report.stormFlightOwner.profile?.releaseBoltSeconds === 0.11,
     report.stormFlightOwner);
 
+  // ------------------------------- CP3 supplement: B3 hazard / B7 / B8
+  // B3: the visible floor-bolt geometry strikes who it touches — HERO first.
+  report.stormFloorHero = await evaluate(`(() => {
+    APEX_ARSENAL_CONFIG.STORMBREAKER.floorBoltHazard = true;
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearEvents();
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.place(350, 500, 850, 300);
+    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+    window.APEX_ARSENAL_STORM.testInjectFloorBolt(300, 500, 700, 500);
+    const hpB = __AQ_TEST.hp().hero;
+    for (let i = 0; i < 3; i++) __AQ_TEST.step(1 / 60);
+    __AQ_TEST.redraw();
+    return JSON.stringify({
+      struck: fighters[0].hasStatus('stun'),
+      stunTimer: (fighters[0].statuses && fighters[0].statuses.stun) ? fighters[0].statuses.stun.timer : null,
+      hpDelta: hpB - __AQ_TEST.hp().hero,
+      strikes: __AQ_TEST.countEvents('STORM_FLOOR_STRIKE'),
+    });
+  })()`);
+  const b3h = JSON.parse(report.stormFloorHero);
+  report.evidence.push(await screenshot('10d-storm-floor-strike-hero'));
+  gate('storm-browser-b3-floor-strike-hero',
+    b3h.struck === true && b3h.stunTimer > 0.9 && b3h.stunTimer <= 1.0
+    && b3h.hpDelta === 0 && b3h.strikes === 1,
+    b3h);
+
+  // B3: the RIVAL is an equally valid target.
+  report.stormFloorRival = await evaluate(`(() => {
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearEvents();
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.place(150, 300, 650, 500);
+    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+    window.APEX_ARSENAL_STORM.testInjectFloorBolt(300, 500, 700, 500);
+    const hpB = __AQ_TEST.hp().rival;
+    for (let i = 0; i < 3; i++) __AQ_TEST.step(1 / 60);
+    __AQ_TEST.redraw();
+    return JSON.stringify({
+      struck: fighters[1].hasStatus('stun'),
+      stunTimer: (fighters[1].statuses && fighters[1].statuses.stun) ? fighters[1].statuses.stun.timer : null,
+      hpDelta: hpB - __AQ_TEST.hp().rival,
+      strikes: __AQ_TEST.countEvents('STORM_FLOOR_STRIKE'),
+    });
+  })()`);
+  const b3r = JSON.parse(report.stormFloorRival);
+  report.evidence.push(await screenshot('10e-storm-floor-strike-rival'));
+  gate('storm-browser-b3-floor-strike-rival',
+    b3r.struck === true && b3r.stunTimer > 0.9 && b3r.stunTimer <= 1.0
+    && b3r.hpDelta === 0 && b3r.strikes === 1,
+    b3r);
+
+  // B7: red-tier pickup immunity — predicate, no NEWBIE dash at T6, dash
+  // still targets a regular pickup, physical pickup still works, and the
+  // thrown storm is immune to magnet/crystal/gravity-well manipulation
+  // (with non-immune control projectiles proving each field is live).
+  report.stormB7 = await evaluate(`(() => {
+    APEX_ARSENAL_CONFIG.STORMBREAKER.floorBoltHazard = false; // isolate: no floor strikes here
+    const CFG = APEX_ARSENAL_CONFIG;
+    const out = {};
+    const mk = (wid, x, y) => ({ id: APEX_ARSENAL.state.nextSlotId++, x, y, phase: 'REVEALED', weaponId: wid, revealedFor: 0, pickedBy: null, rejectedFor: {}, spawnTime: APEX_ARSENAL.state.time });
+    const fresh = () => {
+      window.startArsenalQuestMode('NEWBIE', 'ICE');
+      cancelAnimationFrame(reqId); reqId = 0;
+      __AQ_TEST.holdSpawns();
+      const f = fighters[0];
+      f.x = 200; f.y = 500; f.baseSpeed = 0;
+      fighters[1].x = 900; fighters[1].y = 100; fighters[1].baseSpeed = 0;
+      return f;
+    };
+    out.t6Immune = CFG.isHeroManipulablePickup({ weaponId: 'STORMBREAKER' }) === false;
+    out.regularManipulable = CFG.isHeroManipulablePickup({ weaponId: 'PISTOL' }) === true;
+    let f = fresh();
+    const t6a = mk('STORMBREAKER', 550, 300);
+    APEX_ARSENAL.state.slots.push(t6a);
+    f.data.nbCd = 0;
+    window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
+    for (let i = 0; i < 3; i++) __AQ_TEST.step(1 / 60);
+    out.noDashAtT6 = !f.data.nbDash;
+    f = fresh();
+    const t6b = mk('STORMBREAKER', 550, 300);
+    const regb = mk('PISTOL', 700, 500);
+    APEX_ARSENAL.state.slots.push(t6b, regb);
+    f.data.nbCd = 0;
+    window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
+    for (let i = 0; i < 3; i++) __AQ_TEST.step(1 / 60);
+    out.dashTargetsRegular = !!(f.data.nbDash && f.data.nbDash.slotId === regb.id);
+    f = fresh();
+    const t6d = mk('STORMBREAKER', 560, 500);
+    APEX_ARSENAL.state.slots.push(t6d);
+    f.x = 545; f.y = 500;
+    for (let i = 0; i < 8; i++) __AQ_TEST.step(1 / 60);
+    out.physicalPickupWorks = t6d.phase !== 'REVEALED';
+    // Thrown immunity vs the three hero-manipulation surfaces.
+    const api = APEX_ARSENAL.weaponApi;
+    const mkWall = () => ({ type: 'crystal_wall', owner: fighters[1], x1: 550, y1: 200, x2: 550, y2: 700, x: 550, y: 450, life: 5, maxLife: 5, hitIds: {}, touchCd: {}, permanent: false });
+    const mkWell = () => ({ type: 'gravity_well', owner: fighters[1], x: 600, y: 500, core: 100, radius: 200, life: 3.1, maxLife: 3.1, exploded: false, absorbed: 0, absorbedDamage: 0 });
+    const mkBullet = (x, y, vx, vy) => ({ type: 'aq_bullet', aq: true, owner: fighters[0], weapon: 'PISTOL', x, y, px: x, py: y, vx, vy, radius: 4, life: 3, maxLife: 3, color: '#ffe08a' });
+    __AQ_TEST.enterManual(); __AQ_TEST.clearEvents();
+    __AQ_TEST.place(400, 500, 650, 300); __AQ_TEST.holdSpawns();
+    fighters[1].name = 'MAGNET'; fighters[1].data = fighters[1].data || {}; fighters[1].data.fieldTimer = 3;
+    projectiles.length = 0;
+    api.spawnThrownMelee(fighters[0], 'STORMBREAKER', Math.atan2(300 - 500, 650 - 400));
+    projectiles.push(mkBullet(400, 560, 1350, 0));
+    for (let i = 0; i < 12; i++) __AQ_TEST.step(1 / 60);
+    out.magnetControlDestroyed = !projectiles.some(p => p.type === 'aq_bullet');
+    for (let i = 0; i < 60; i++) __AQ_TEST.step(1 / 60);
+    out.magnetBoltConnected = __AQ_TEST.hp().rival < 1000;
+    __AQ_TEST.enterManual(); __AQ_TEST.clearEvents();
+    __AQ_TEST.place(400, 500, 800, 500); __AQ_TEST.holdSpawns();
+    projectiles.length = 0; projectiles.push(mkWall());
+    api.spawnThrownMelee(fighters[0], 'STORMBREAKER', 0);
+    projectiles.push(mkBullet(400, 680, 1350, 0));
+    for (let i = 0; i < 14; i++) __AQ_TEST.step(1 / 60);
+    const ctl = projectiles.find(p => p.type === 'aq_bullet');
+    out.crystalControlReflected = !ctl || ctl.owner === fighters[1];
+    for (let i = 0; i < 30; i++) __AQ_TEST.step(1 / 60);
+    out.crystalBoltConnected = __AQ_TEST.hp().rival < 1000;
+    out.crystalHeroUntouched = __AQ_TEST.hp().hero === 1000;
+    __AQ_TEST.enterManual(); __AQ_TEST.clearEvents();
+    __AQ_TEST.place(400, 500, 800, 500); __AQ_TEST.holdSpawns();
+    fighters[1].isRage = true;
+    projectiles.length = 0;
+    const well = mkWell(); projectiles.push(well);
+    api.spawnThrownMelee(fighters[0], 'STORMBREAKER', 0);
+    projectiles.push(mkBullet(450, 500, 1350, 0));
+    for (let i = 0; i < 40; i++) __AQ_TEST.step(1 / 60);
+    out.wellControlAbsorbed = (well.absorbed || 0) >= 1;
+    out.wellBoltConnected = __AQ_TEST.hp().rival < 1000;
+    APEX_ARSENAL_CONFIG.STORMBREAKER.floorBoltHazard = true; // restore
+    return JSON.stringify(out);
+  })()`);
+  const b7b = JSON.parse(report.stormB7);
+  gate('storm-browser-b7-t6-immune-pickup-and-thrown',
+    b7b.t6Immune && b7b.regularManipulable && b7b.noDashAtT6 && b7b.dashTargetsRegular
+    && b7b.physicalPickupWorks
+    && b7b.magnetControlDestroyed && b7b.magnetBoltConnected
+    && b7b.crystalControlReflected && b7b.crystalBoltConnected && b7b.crystalHeroUntouched
+    && b7b.wellControlAbsorbed && b7b.wellBoltConnected,
+    b7b);
+
+  // B8: bounded homing pursuit — aimed at the living opponent, continuous
+  // steering (curvature vs a hard-strafing opponent), exact speed, capped
+  // per-frame turn, and it connects.
+  report.stormB8 = await evaluate(`(() => {
+    window.startArsenalQuestMode('NEWBIE', 'NEWBIE');
+    cancelAnimationFrame(reqId); reqId = 0;
+    __AQ_TEST.clearEvents();
+    __AQ_TEST.place(150, 500, 620, 500);
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.equip('HERO', 'STORMBREAKER');
+    __AQ_TEST.step(0.85);
+    let maxTurn = 0, cumTurn = 0, spMin = Infinity, spMax = 0, last = null;
+    for (let n = 0; n < 200; n++) {
+      __AQ_TEST.step(1 / 60);
+      const p = projectiles.find(q => q.aq && q.weapon === 'STORMBREAKER');
+      if (!p) break;
+      const sp = Math.hypot(p.vx, p.vy);
+      spMin = Math.min(spMin, sp); spMax = Math.max(spMax, sp);
+      const h = Math.atan2(p.vy, p.vx);
+      if (last !== null) {
+        let d = h - last;
+        while (d > Math.PI) d -= 2 * Math.PI;
+        while (d < -Math.PI) d += 2 * Math.PI;
+        maxTurn = Math.max(maxTurn, Math.abs(d));
+        cumTurn += Math.abs(d);
+      }
+      last = h;
+      fighters[1].y += ((n % 40) < 20 ? -1 : 1) * 360 * (1 / 60);
+      fighters[1].x = 620;
+    }
+    return JSON.stringify({
+      rivalHp: __AQ_TEST.hp().rival,
+      spMin, spMax, maxTurn, cumTurn,
+      cap: APEX_ARSENAL_CONFIG.STORMBREAKER.homingTurnRateRadPerSec,
+      impact: __AQ_TEST.countEvents('STORM_IMPACT') >= 1,
+    });
+  })()`);
+  const b8b = JSON.parse(report.stormB8);
+  gate('storm-browser-b8-homing-bounded-curves-connects',
+    b8b.rivalHp === 554 && b8b.impact
+    && b8b.spMin > 1349.99 && b8b.spMax < 1350.01
+    && b8b.maxTurn <= (b8b.cap / 60) + 1e-6
+    && b8b.cumTurn >= 0.15,
+    b8b);
+
+  // B8 evidence: mid-flight curved pursuit against the strafing opponent.
+  await evaluate(`(() => {
+    window.startArsenalQuestMode('NEWBIE', 'NEWBIE');
+    cancelAnimationFrame(reqId); reqId = 0;
+    __AQ_TEST.place(150, 500, 620, 500);
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.equip('HERO', 'STORMBREAKER');
+    __AQ_TEST.step(0.85);
+    for (let n = 0; n < 34; n++) {
+      __AQ_TEST.step(1 / 60);
+      fighters[1].y += ((n % 40) < 20 ? -1 : 1) * 360 * (1 / 60);
+      fighters[1].x = 620;
+    }
+    __AQ_TEST.redraw();
+    return true;
+  })()`);
+  report.evidence.push(await screenshot('10c-storm-homing-curve'));
+
   // ------------------------------------------------ Arsenal Lab V1 real Chrome
   report.labV1 = await evaluate(`(() => {
     window.exitArsenalQuestMode();

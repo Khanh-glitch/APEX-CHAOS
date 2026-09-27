@@ -274,6 +274,17 @@
     // arsenalWeaponRuntime aq_thrown flight update). A release that connects
     // with nothing exits through the physical tumble — never lingers.
     maxFlightSeconds: 2.2,
+    // B8 homing pursuit: bounded continuous steering (rad/s) toward the
+    // owner's LIVING opponent after release. The cap is the whole identity:
+    // the bolt CURVES after a moving opponent but can never snap/teleport
+    // onto them, and the speed stays exactly throwSpeed (fast/heavy).
+    homingTurnRateRadPerSec: 2.6,
+    // B3 floor-lightning contact hazard: the VISIBLE floor-bolt geometry is
+    // the hit authority. One discrete bolt↔fighter contact = one stun of
+    // floorBoltStunSeconds (no damage), gated per pulse (bolt) per fighter.
+    // floorBoltHazard is the balance kill-switch (default on).
+    floorBoltHazard: true,
+    floorBoltStunSeconds: 1.0,
     spawnLongSide: 261,
     heldLongSide: 224,
     flightLongSide: 209,
@@ -288,6 +299,22 @@
   };
 
   // ── §7 NEWBIE hero tuning ────────────────────────────────────────────────
+  // ── §B7 red-tier (T6) hero-manipulation immunity ─────────────────────────
+  // While a red-tier weapon sits as a floor pickup, hero manipulation must
+  // not move, yank, auto-acquire, deny, or reroute it: no magnetic pull, no
+  // dash-to-weapon auto acquisition, no teleport/swap, no force drop/disarm,
+  // no barrier/cage weapon-deny. PHYSICAL pickup (walk-over touch resolve)
+  // always works, and the HOLDER of the weapon is NOT CC-immune — only the
+  // pickup interaction and the thrown projectile are protected. The thrown
+  // red-tier projectile carries heroManipulationImmune in the engine
+  // (crystal-wall reflect/re-own, magnet shell, gravity-well absorb must all
+  // leave it alone: hero manipulation can't redirect it).
+  CONFIG.isHeroManipulablePickup = function isHeroManipulablePickup(slot) {
+    if (!slot) return true;
+    if (slot.heroInteractionImmune === true) return false;
+    return !(slot.weaponId && CONFIG.tierOf && CONFIG.tierOf(slot.weaponId) === 'T6');
+  };
+
   CONFIG.NEWBIE = {
     cooldown: 10,             // one active skill, 10s cooldown
     dashSpeed: 3400,          // fast — tuned in the real browser

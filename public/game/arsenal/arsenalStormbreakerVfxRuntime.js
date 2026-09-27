@@ -27,6 +27,7 @@
   const SPARK_CAP = 72;
   const MOTE_CAP = 32;
   const bolts = [];
+  const floorVictims = [];   // B3 residual crackle (id + timer per struck fighter)
   const sparks = [];
   const motes = [];
   const shockRings = []; // exact V9 local ring pool; bounded and presentation-only
@@ -507,6 +508,23 @@
       flightHist = []; // weapon resolved (hit/miss) — arcs die with flight
     }
 
+    // B3 residual crackle: a floor-struck fighter stays electrically
+    // readable for a short window while the stun is actually on them.
+    for (let i = floorVictims.length - 1; i >= 0; i--) {
+      const fv = floorVictims[i];
+      fv.t -= dt;
+      const v = fightersAlive().find(f => f && f.id === fv.id);
+      if (fv.t <= 0 || !v || v.hp <= 0) { floorVictims.splice(i, 1); continue; }
+      if (v.hasStatus && v.hasStatus('stun')) {
+        fv.crackleT -= dt;
+        if (fv.crackleT <= 0) {
+          fv.crackleT = rand(0.06, 0.11);
+          makeBolt(v.x + rand(-20, 20), v.y + rand(-16, 16), v.x + rand(-34, 34), v.y + rand(-28, 28),
+            { life: 0.05, width: 0.65, power: 0.6, rough: 0.3, regen: 0.014 });
+        }
+      }
+    }
+
     // Impacts: second flash pulse (V9 @75ms) + residual victim crackle.
     for (let i = impacts.length - 1; i >= 0; i--) {
       const im = impacts[i];
@@ -804,6 +822,69 @@
 
   }
 
+  // ------------------------------------------- B3 floor contact hazard --
+  // The VISIBLE floor-bolt geometry is the contact-hit authority. This
+  // sampler reports discrete contacts between the CURRENT floor-bolt
+  // polylines (mains + branches, exactly as regenerated/drawn this tick)
+  // and fighter circles. It applies no status itself — the mode runtime
+  // owns stun truth. Per-pulse/per-fighter gate: a bolt that already
+  // reported a fighter never reports that fighter again.
+  function polylineCircleHit(pts, cx, cy, r) {
+    let bestD = Infinity;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const L2 = dx * dx + dy * dy || 1;
+      let t = ((cx - a.x) * dx + (cy - a.y) * dy) / L2;
+      t = t < 0 ? 0 : (t > 1 ? 1 : t);
+      const px = a.x + dx * t, py = a.y + dy * t;
+      const d = Math.hypot(cx - px, cy - py);
+      if (d < bestD) bestD = d;
+    }
+    return bestD <= r;
+  }
+  function floorContacts(fighters) {
+    const out = [];
+    if (!fighters || !fighters.length || !bolts.length) return out;
+    for (const f of fighters) {
+      if (!f || f.hp <= 0) continue;
+      const r = f.radius || 75; // strict rule: the fighter circle itself
+      for (const b of bolts) {
+        if (!b.floor || b.life <= 0) continue;
+        if (b.hitFighters && b.hitFighters[f.id]) continue;
+        if (polylineCircleHit(b.points, f.x, f.y, r)
+          || (b.branches || []).some(br => polylineCircleHit(br, f.x, f.y, r))) {
+          (b.hitFighters = b.hitFighters || {})[f.id] = true;
+          out.push({ x: f.x, y: f.y, fighterId: f.id, fighter: f });
+        }
+      }
+    }
+    return out;
+  }
+  // Contact readability: local, brief electrical crawl across the victim
+  // body + a short residual crackle window (driven in tick while the victim
+  // carries the stun). Bounded like every other pool here.
+  function onFloorContact(c) {
+    if (!c) return;
+    const f = c.fighter;
+    stats.floorContacts = (stats.floorContacts || 0) + 1;
+    if (!f) return;
+    const r = f.radius || 75;
+    makeBolt(f.x - r * 0.8, f.y + rand(-r * 0.4, r * 0.4), f.x + r * 0.8, f.y + rand(-r * 0.4, r * 0.4),
+      { life: 0.12, width: 0.9, power: 0.8, rough: 0.26, branchCount: 2, branchScale: 0.2, regen: 0.02 });
+    makeBolt(f.x + rand(-r * 0.5, r * 0.5), f.y - r * 0.85, f.x + rand(-r * 0.5, r * 0.5), f.y + r * 0.85,
+      { life: 0.1, width: 0.75, power: 0.7, rough: 0.28, regen: 0.02 });
+    sparkBurst(f.x, f.y, 8, 0.7);
+    if (typeof cameraShake !== 'undefined') cameraShake = Math.max(cameraShake, 2.2);
+    if (!floorVictims.some(v => v.id === f.id)) floorVictims.push({ id: f.id, t: 0.4, crackleT: 0 });
+  }
+  // Deterministic hazard test hook (B3 gates): straight, never-regenerating
+  // floor bolt with EXACT endpoints so hit/no-hit geometry is known. It is a
+  // first-class floor bolt for the sampler — no special-casing downstream.
+  function testInjectFloorBolt(x1, y1, x2, y2) {
+    return makeBolt(x1, y1, x2, y2, { life: 1.2, width: 1.35, power: 0.82, rough: 0, floor: true, branchCount: 0, regen: 1e9 });
+  }
+
   function clear() {
     bolts.length = 0;
     sparks.length = 0;
@@ -813,6 +894,7 @@
     claims.length = 0;
     spawned.clear();
     flightHist = [];
+    floorVictims.length = 0;
     lastHeldId = null;
     heldCoronaT = 0;
     arenaFlashA = 0;
@@ -829,6 +911,9 @@
     drawFloor,
     clear,
     onImpact,
+    floorContacts,
+    onFloorContact,
+    testInjectFloorBolt,
     boltCount: () => bolts.length,
     sparkCount: () => sparks.length,
     moteCount: () => motes.length,

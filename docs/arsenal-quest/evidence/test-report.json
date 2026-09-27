@@ -10,8 +10,8 @@
         "engineReadyAtLoaderHidden": true,
         "menuButtonsDisabledAtLoaderHidden": false,
         "loaderMaxPercentSeen": 100,
-        "loaderHiddenMs": 828,
-        "interactiveMs": 383.6,
+        "loaderHiddenMs": 878.9,
+        "interactiveMs": 422.6,
         "phases": [
           "metrics-ready",
           "boot-start",
@@ -72,7 +72,7 @@
         "pending": 0,
         "decodeCalls": 50,
         "pcmBytes": 18042584,
-        "warmMs": 714.2999999998137,
+        "warmMs": 720.5,
         "notReadyThrottles": 0
       }
     },
@@ -87,7 +87,7 @@
           "pending": 0,
           "decodeCalls": 50,
           "pcmBytes": 18042584,
-          "warmMs": 714.2999999998137,
+          "warmMs": 720.5,
           "notReadyThrottles": 0
         },
         "after": {
@@ -194,7 +194,7 @@
     },
     "spawn-cadence-3.0s": {
       "pass": true,
-      "detail": "spawnTimes=[0.1,4.6,9.1,13.6,18.1] gaps=[4.5,4.5,4.5,4.5]"
+      "detail": "spawnTimes=[0.1,4.6,9.01,13.58,18.08] gaps=[4.5,4.41,4.57,4.5]"
     },
     "reveal-lead-fixed-2.0": {
       "pass": true,
@@ -233,30 +233,30 @@
     },
     "force-reveal-at-3.0-not-autopickup": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=1 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true"
+      "detail": "[AQ] REVEAL id=1 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true"
     },
     "movement-reveal-lead-2.0": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=DAGGER eta=1.36 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15 eta=1.36 lead=2.00 fighter=HERO force=false"
     },
     "near-miss-outside-circle-stays-hidden": {
       "pass": true,
       "detail": {
         "nearMissStayedHidden": true,
         "edgeOfCircleReveals": true,
-        "edgeLog": "[AQ] REVEAL id=2 weapon=TEC_9 eta=0.80 lead=2.00 fighter=HERO force=false",
+        "edgeLog": "[AQ] REVEAL id=2 weapon=DAGGER eta=0.80 lead=2.00 fighter=HERO force=false",
         "hiddenBeforeBounce": true,
         "revealedAfterBounce": true,
-        "bounceLog": "[AQ] REVEAL id=3 weapon=P90 eta=0.06 lead=2.00 fighter=HERO force=false"
+        "bounceLog": "[AQ] REVEAL id=3 weapon=MBR2 eta=0.06 lead=2.00 fighter=HERO force=false"
       }
     },
     "edge-of-circle-approach-reveals": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=2 weapon=TEC_9 eta=0.80 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=2 weapon=DAGGER eta=0.80 lead=2.00 fighter=HERO force=false"
     },
     "no-reveal-before-bounce": {
       "pass": true,
-      "detail": "[AQ] REVEAL id=3 weapon=P90 eta=0.06 lead=2.00 fighter=HERO force=false"
+      "detail": "[AQ] REVEAL id=3 weapon=MBR2 eta=0.06 lead=2.00 fighter=HERO force=false"
     },
     "aim-never-steers-fighter": {
       "pass": true,
@@ -304,7 +304,7 @@
     },
     "weapon-PISTOL": {
       "pass": true,
-      "detail": "dmg=110.3 holder=null USE=1 HIT=3 CONSUME=1"
+      "detail": "dmg=94.5 holder=null USE=1 HIT=3 CONSUME=1"
     },
     "weapon-SHOTGUN": {
       "pass": true,
@@ -2048,17 +2048,17 @@
     },
     "five-minute-no-uncaught-errors": {
       "pass": true,
-      "detail": "steps=9000 (300s @30Hz) kos=4 restarts=4 spawnedCumulative=99 earlyErrors=0"
+      "detail": "steps=9000 (300s @30Hz) kos=3 restarts=3 spawnedCumulative=95 earlyErrors=0"
     },
     "structured-aq-events": {
       "pass": true,
       "detail": {
-        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=5 x=867 y=529 lead=2.00",
-        "REVEAL": "[AQ] REVEAL id=5 weapon=SMG eta=0.21 lead=2.00 fighter=RIVAL force=false",
-        "PICKUP": "[AQ] PICKUP id=5 fighter=RIVAL weapon=SMG",
-        "USE": "[AQ] USE fighter=RIVAL weapon=SMG",
-        "HIT": "[AQ] HIT source=HERO target=RIVAL weapon=MAC_10 damage=14.0",
-        "CONSUME": "[AQ] CONSUME fighter=HERO weapon=MAC_10 reason=sequence-complete"
+        "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=18 x=456 y=566 lead=2.00",
+        "REVEAL": "[AQ] REVEAL id=16 weapon=MBR eta=null lead=2.00 fighter=TIMEOUT force=true",
+        "PICKUP": "[AQ] PICKUP_HEAL id=17 fighter=HERO restore=70",
+        "USE": "[AQ] USE fighter=RIVAL weapon=M249_SAW",
+        "HIT": "[AQ] HIT source=RIVAL target=HERO weapon=M249_SAW damage=17.5",
+        "CONSUME": "[AQ] CONSUME fighter=RIVAL weapon=M249_SAW reason=sequence-complete"
       }
     },
     "rev2-perf-pass1-api": {
@@ -2067,13 +2067,13 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 208,
+        "drawsA": 202,
         "buildsB": 1,
-        "drawsB": 209,
-        "hitsB": 208,
+        "drawsB": 203,
+        "hitsB": 202,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 13,
+        "skillWrites": 12,
         "debugWrites": 15,
         "winWrites": 3,
         "winWritesBefore": 2,
@@ -2091,11 +2091,11 @@
         ],
         "peaks": {
           "slots": 5,
-          "particles": 420,
-          "shockwaves": 4,
-          "aqProjectiles": 12,
-          "projectiles": 12,
-          "arsenalVfx": 22,
+          "particles": 310,
+          "shockwaves": 3,
+          "aqProjectiles": 11,
+          "projectiles": 11,
+          "arsenalVfx": 21,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -2107,13 +2107,13 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 208,
+        "drawsA": 202,
         "buildsB": 1,
-        "drawsB": 209,
-        "hitsB": 208,
+        "drawsB": 203,
+        "hitsB": 202,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 13,
+        "skillWrites": 12,
         "debugWrites": 15,
         "winWrites": 3,
         "winWritesBefore": 2,
@@ -2131,11 +2131,11 @@
         ],
         "peaks": {
           "slots": 5,
-          "particles": 420,
-          "shockwaves": 4,
-          "aqProjectiles": 12,
-          "projectiles": 12,
-          "arsenalVfx": 22,
+          "particles": 310,
+          "shockwaves": 3,
+          "aqProjectiles": 11,
+          "projectiles": 11,
+          "arsenalVfx": 21,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -2147,13 +2147,13 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 208,
+        "drawsA": 202,
         "buildsB": 1,
-        "drawsB": 209,
-        "hitsB": 208,
+        "drawsB": 203,
+        "hitsB": 202,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 13,
+        "skillWrites": 12,
         "debugWrites": 15,
         "winWrites": 3,
         "winWritesBefore": 2,
@@ -2171,11 +2171,11 @@
         ],
         "peaks": {
           "slots": 5,
-          "particles": 420,
-          "shockwaves": 4,
-          "aqProjectiles": 12,
-          "projectiles": 12,
-          "arsenalVfx": 22,
+          "particles": 310,
+          "shockwaves": 3,
+          "aqProjectiles": 11,
+          "projectiles": 11,
+          "arsenalVfx": 21,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -2187,13 +2187,13 @@
         "api": true,
         "globalApi": true,
         "buildsA": 1,
-        "drawsA": 208,
+        "drawsA": 202,
         "buildsB": 1,
-        "drawsB": 209,
-        "hitsB": 208,
+        "drawsB": 203,
+        "hitsB": 202,
         "usedCache": true,
         "afterSink": 0,
-        "skillWrites": 13,
+        "skillWrites": 12,
         "debugWrites": 15,
         "winWrites": 3,
         "winWritesBefore": 2,
@@ -2211,11 +2211,11 @@
         ],
         "peaks": {
           "slots": 5,
-          "particles": 420,
-          "shockwaves": 4,
-          "aqProjectiles": 12,
-          "projectiles": 12,
-          "arsenalVfx": 22,
+          "particles": 310,
+          "shockwaves": 3,
+          "aqProjectiles": 11,
+          "projectiles": 11,
+          "arsenalVfx": 21,
           "detachedWeapons": 2
         },
         "size": 1000
@@ -2239,7 +2239,7 @@
     "feel-runtime-ready": {
       "pass": true,
       "detail": {
-        "stamps": 59,
+        "stamps": 57,
         "miss": "MISS",
         "sgReady": {
           "weapon": "SHOTGUN",
@@ -2260,14 +2260,14 @@
           385
         ],
         "pal": "#F2382F",
-        "organic": 488,
+        "organic": 472,
         "casingKey": true
       }
     },
     "feel-miss-text-only": {
       "pass": true,
       "detail": {
-        "stamps": 59,
+        "stamps": 57,
         "miss": "MISS",
         "sgReady": {
           "weapon": "SHOTGUN",
@@ -2288,7 +2288,7 @@
           385
         ],
         "pal": "#F2382F",
-        "organic": 488,
+        "organic": 472,
         "casingKey": true
       }
     },
@@ -2311,7 +2311,7 @@
     "feel-heal-values-authorized": {
       "pass": true,
       "detail": {
-        "stamps": 59,
+        "stamps": 57,
         "miss": "MISS",
         "sgReady": {
           "weapon": "SHOTGUN",
@@ -2332,14 +2332,14 @@
           385
         ],
         "pal": "#F2382F",
-        "organic": 488,
+        "organic": 472,
         "casingKey": true
       }
     },
     "feel-splatter-organic-mask": {
       "pass": true,
       "detail": {
-        "stamps": 59,
+        "stamps": 57,
         "miss": "MISS",
         "sgReady": {
           "weapon": "SHOTGUN",
@@ -2360,14 +2360,14 @@
           385
         ],
         "pal": "#F2382F",
-        "organic": 488,
+        "organic": 472,
         "casingKey": true
       }
     },
     "feel-damage-palette-v3-red": {
       "pass": true,
       "detail": {
-        "stamps": 59,
+        "stamps": 57,
         "miss": "MISS",
         "sgReady": {
           "weapon": "SHOTGUN",
@@ -2388,7 +2388,7 @@
           385
         ],
         "pal": "#F2382F",
-        "organic": 488,
+        "organic": 472,
         "casingKey": true
       }
     },
@@ -2446,18 +2446,18 @@
       "pass": true,
       "detail": {
         "samples": 89,
-        "avgMs": 88.7606741573035,
-        "medianMs": 83.30000000000291,
-        "p95Ms": 116.69999999999709,
-        "p99Ms": 200.09999999999127,
-        "maxMs": 200.09999999999127,
+        "avgMs": 114.41460674157314,
+        "medianMs": 116.59999999999127,
+        "p95Ms": 199.89999999999418,
+        "p99Ms": 266.59999999999127,
+        "maxMs": 266.59999999999127,
         "buckets": {
-          "le16_7": 1,
+          "le16_7": 5,
           "gt16_7_20": 2,
           "gt20_25": 0,
           "gt25_33": 0,
           "gt33_50": 0,
-          "gt50": 86
+          "gt50": 82
         },
         "interpolation": false
       }
@@ -2474,8 +2474,8 @@
       "pass": true,
       "detail": {
         "builds": 11,
-        "draws": 15,
-        "hits": 4
+        "draws": 25,
+        "hits": 14
       }
     },
     "both-unarmed-immediate-fresh": {
@@ -2773,8 +2773,8 @@
       "detail": {
         "after": {
           "impacts": 1,
-          "bolts": 11,
-          "sparks": 36,
+          "bolts": 12,
+          "sparks": 38,
           "trail": false
         },
         "cleared": {
@@ -2818,6 +2818,53 @@
           "spawnStrongEvery": 3,
           "longTail": false
         }
+      }
+    },
+    "storm-browser-b3-floor-strike-hero": {
+      "pass": true,
+      "detail": {
+        "struck": true,
+        "stunTimer": 0.9666666666666666,
+        "hpDelta": 0,
+        "strikes": 1
+      }
+    },
+    "storm-browser-b3-floor-strike-rival": {
+      "pass": true,
+      "detail": {
+        "struck": true,
+        "stunTimer": 0.9666666666666666,
+        "hpDelta": 0,
+        "strikes": 1
+      }
+    },
+    "storm-browser-b7-t6-immune-pickup-and-thrown": {
+      "pass": true,
+      "detail": {
+        "t6Immune": true,
+        "regularManipulable": true,
+        "noDashAtT6": true,
+        "dashTargetsRegular": true,
+        "physicalPickupWorks": true,
+        "magnetControlDestroyed": true,
+        "magnetBoltConnected": true,
+        "crystalControlReflected": true,
+        "crystalBoltConnected": true,
+        "crystalHeroUntouched": true,
+        "wellControlAbsorbed": true,
+        "wellBoltConnected": true
+      }
+    },
+    "storm-browser-b8-homing-bounded-curves-connects": {
+      "pass": true,
+      "detail": {
+        "rivalHp": 554,
+        "spMin": 1349.9999999999998,
+        "spMax": 1350,
+        "maxTurn": 0.043333333333333335,
+        "cumTurn": 0.182679403705826,
+        "cap": 2.6,
+        "impact": true
       }
     },
     "lab-browser-hub-and-newbie-panel": {
@@ -2880,7 +2927,6 @@
           "numbers": [
             "32",
             "32",
-            "32",
             "1600"
           ]
         }
@@ -2914,7 +2960,7 @@
         "slotGone": true,
         "flight": {
           "spin": 82,
-          "rot": 1.3722663979221128,
+          "rot": 1.3666666666666667,
           "velocity": 1350
         },
         "expectedSpin": 82,
@@ -2979,12 +3025,12 @@
         ],
         "saved": "FIGHTER COLOR",
         "reload": "FIGHTER COLOR",
-        "credits": 375,
+        "credits": 325,
         "quest": "{\"unlockedThrough\":2,\"completedStages\":[1]}",
         "exit": {
           "hub": "block",
           "gameState": "MENU",
-          "credits": 375,
+          "credits": 325,
           "quest": "{\"unlockedThrough\":2,\"completedStages\":[1]}",
           "panelGone": true
         }
@@ -2995,7 +3041,7 @@
       "detail": {
         "hub": "block",
         "gameState": "MENU",
-        "credits": 375,
+        "credits": 325,
         "quest": "{\"unlockedThrough\":2,\"completedStages\":[1]}",
         "panelGone": true
       }
@@ -3082,6 +3128,9 @@
     "docs/arsenal-quest/evidence/10b-storm-held-windup.png",
     "docs/arsenal-quest/evidence/10c-storm-impact-flash.png",
     "docs/arsenal-quest/evidence/10d-storm-flight-spin-ghosts.png",
+    "docs/arsenal-quest/evidence/10d-storm-floor-strike-hero.png",
+    "docs/arsenal-quest/evidence/10e-storm-floor-strike-rival.png",
+    "docs/arsenal-quest/evidence/10c-storm-homing-curve.png",
     "docs/arsenal-quest/evidence/lab-v1-desktop-empty.png",
     "docs/arsenal-quest/evidence/lab-v1-storm-horizontal-desktop.png",
     "docs/arsenal-quest/evidence/lab-v1-storm-horizontal-mobile.png",
@@ -3093,8 +3142,8 @@
     "engineReadyAtLoaderHidden": true,
     "menuButtonsDisabledAtLoaderHidden": false,
     "loaderMaxPercentSeen": 100,
-    "loaderHiddenMs": 828,
-    "interactiveMs": 383.6,
+    "loaderHiddenMs": 878.9,
+    "interactiveMs": 422.6,
     "phases": [
       "metrics-ready",
       "boot-start",
@@ -3126,7 +3175,7 @@
       "pending": 0,
       "decodeCalls": 50,
       "pcmBytes": 18042584,
-      "warmMs": 714.2999999998137,
+      "warmMs": 720.5,
       "notReadyThrottles": 0
     },
     "after": {
@@ -3218,14 +3267,14 @@
     "spawnTimes": [
       0.1,
       4.6,
-      9.1,
-      13.6,
-      18.1
+      9.01,
+      13.58,
+      18.08
     ],
     "gaps": [
       4.5,
-      4.5,
-      4.5,
+      4.41,
+      4.57,
       4.5
     ],
     "cadenceOk": true,
@@ -3256,18 +3305,18 @@
       "predictedFighter": null
     },
     "forceRevealed": true,
-    "forceLog": "[AQ] REVEAL id=1 weapon=GRENADE eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "forceLog": "[AQ] REVEAL id=1 weapon=PISTOL eta=null lead=2.00 fighter=TIMEOUT force=true",
     "pickupAfterForce": true,
     "revealedOnMovement": true,
-    "moveRevealLog": "[AQ] REVEAL id=2 weapon=DAGGER eta=1.36 lead=2.00 fighter=HERO force=false"
+    "moveRevealLog": "[AQ] REVEAL id=2 weapon=ZBROYAR_Z15 eta=1.36 lead=2.00 fighter=HERO force=false"
   },
   "circleNeg": {
     "nearMissStayedHidden": true,
     "edgeOfCircleReveals": true,
-    "edgeLog": "[AQ] REVEAL id=2 weapon=TEC_9 eta=0.80 lead=2.00 fighter=HERO force=false",
+    "edgeLog": "[AQ] REVEAL id=2 weapon=DAGGER eta=0.80 lead=2.00 fighter=HERO force=false",
     "hiddenBeforeBounce": true,
     "revealedAfterBounce": true,
-    "bounceLog": "[AQ] REVEAL id=3 weapon=P90 eta=0.06 lead=2.00 fighter=HERO force=false"
+    "bounceLog": "[AQ] REVEAL id=3 weapon=MBR2 eta=0.06 lead=2.00 fighter=HERO force=false"
   },
   "aimLaw": {
     "aimDirSame": true,
@@ -3295,8 +3344,8 @@
     "PISTOL": {
       "midPhase": "READY",
       "midPhase2": "FIRING",
-      "rivalHp": 889.75,
-      "damageDealt": 110.3,
+      "rivalHp": 905.5,
+      "damageDealt": 94.5,
       "holderAfter": null,
       "useLogged": 1,
       "hitLogged": 3,
@@ -3960,32 +4009,32 @@
   },
   "fiveMinute": {
     "error": null,
-    "restarts": 4,
-    "koCount": 4,
-    "spawnedTotal": 15,
-    "spawnedCumulative": 99,
+    "restarts": 3,
+    "koCount": 3,
+    "spawnedTotal": 24,
+    "spawnedCumulative": 95,
     "earlyErrors": [],
     "finalState": "ARSENAL"
   },
   "logSample": {
-    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=5 x=867 y=529 lead=2.00",
-    "REVEAL": "[AQ] REVEAL id=5 weapon=SMG eta=0.21 lead=2.00 fighter=RIVAL force=false",
-    "PICKUP": "[AQ] PICKUP id=5 fighter=RIVAL weapon=SMG",
-    "USE": "[AQ] USE fighter=RIVAL weapon=SMG",
-    "HIT": "[AQ] HIT source=HERO target=RIVAL weapon=MAC_10 damage=14.0",
-    "CONSUME": "[AQ] CONSUME fighter=HERO weapon=MAC_10 reason=sequence-complete"
+    "SPAWN_SLOT": "[AQ] SPAWN_SLOT id=18 x=456 y=566 lead=2.00",
+    "REVEAL": "[AQ] REVEAL id=16 weapon=MBR eta=null lead=2.00 fighter=TIMEOUT force=true",
+    "PICKUP": "[AQ] PICKUP_HEAL id=17 fighter=HERO restore=70",
+    "USE": "[AQ] USE fighter=RIVAL weapon=M249_SAW",
+    "HIT": "[AQ] HIT source=RIVAL target=HERO weapon=M249_SAW damage=17.5",
+    "CONSUME": "[AQ] CONSUME fighter=RIVAL weapon=M249_SAW reason=sequence-complete"
   },
   "rev2PerfPass1": {
     "api": true,
     "globalApi": true,
     "buildsA": 1,
-    "drawsA": 208,
+    "drawsA": 202,
     "buildsB": 1,
-    "drawsB": 209,
-    "hitsB": 208,
+    "drawsB": 203,
+    "hitsB": 202,
     "usedCache": true,
     "afterSink": 0,
-    "skillWrites": 13,
+    "skillWrites": 12,
     "debugWrites": 15,
     "winWrites": 3,
     "winWritesBefore": 2,
@@ -4003,17 +4052,17 @@
     ],
     "peaks": {
       "slots": 5,
-      "particles": 420,
-      "shockwaves": 4,
-      "aqProjectiles": 12,
-      "projectiles": 12,
-      "arsenalVfx": 22,
+      "particles": 310,
+      "shockwaves": 3,
+      "aqProjectiles": 11,
+      "projectiles": 11,
+      "arsenalVfx": 21,
       "detachedWeapons": 2
     },
     "size": 1000
   },
   "rev2Feel": {
-    "stamps": 59,
+    "stamps": 57,
     "miss": "MISS",
     "sgReady": {
       "weapon": "SHOTGUN",
@@ -4034,7 +4083,7 @@
       385
     ],
     "pal": "#F2382F",
-    "organic": 488,
+    "organic": 472,
     "casingKey": true
   },
   "healPlay": {
@@ -4070,87 +4119,87 @@
   "rafPlay": {
     "pacing": {
       "samples": 89,
-      "avgMs": 88.7606741573035,
-      "medianMs": 83.30000000000291,
-      "p95Ms": 116.69999999999709,
-      "p99Ms": 200.09999999999127,
-      "maxMs": 200.09999999999127,
+      "avgMs": 114.41460674157314,
+      "medianMs": 116.59999999999127,
+      "p95Ms": 199.89999999999418,
+      "p99Ms": 266.59999999999127,
+      "maxMs": 266.59999999999127,
       "buckets": {
-        "le16_7": 1,
+        "le16_7": 5,
         "gt16_7_20": 2,
         "gt20_25": 0,
         "gt25_33": 0,
         "gt33_50": 0,
-        "gt50": 86
+        "gt50": 82
       },
       "interpolation": false
     },
     "sections": {
       "chamber": {
-        "n": 316,
-        "avgMs": 0.072,
-        "maxMs": 13.2
+        "n": 311,
+        "avgMs": 0.056,
+        "maxMs": 7
       },
       "pickupDraw": {
-        "n": 316,
-        "avgMs": 0.402,
-        "maxMs": 6.9
+        "n": 311,
+        "avgMs": 0.554,
+        "maxMs": 11.9
       },
       "background": {
-        "n": 316,
-        "avgMs": 0.478,
-        "maxMs": 15.1
+        "n": 311,
+        "avgMs": 0.614,
+        "maxMs": 12
       },
       "foreground": {
-        "n": 314,
-        "avgMs": 0.015,
-        "maxMs": 0.8
+        "n": 309,
+        "avgMs": 0.029,
+        "maxMs": 0.6
       },
       "arsenalVfxDraw": {
-        "n": 314,
-        "avgMs": 0.006,
-        "maxMs": 0.4
+        "n": 309,
+        "avgMs": 0.015,
+        "maxMs": 0.2
       },
       "stormVfxDraw": {
-        "n": 314,
-        "avgMs": 0.007,
-        "maxMs": 0.4
+        "n": 309,
+        "avgMs": 0.006,
+        "maxMs": 0.3
       },
       "hud": {
-        "n": 314,
-        "avgMs": 0.053,
-        "maxMs": 3.2
+        "n": 309,
+        "avgMs": 0.054,
+        "maxMs": 2.6
       },
       "foregroundTotal": {
-        "n": 314,
-        "avgMs": 0.139,
-        "maxMs": 3.5
+        "n": 309,
+        "avgMs": 0.298,
+        "maxMs": 3.3
       },
       "arsenalFrame": {
-        "n": 314,
-        "avgMs": 1.364,
-        "maxMs": 21.5
+        "n": 309,
+        "avgMs": 1.883,
+        "maxMs": 16.5
       },
       "simulation": {
-        "n": 19335,
-        "avgMs": 0.23,
-        "maxMs": 89.5
+        "n": 19331,
+        "avgMs": 0.238,
+        "maxMs": 104.5
       }
     },
     "peaks": {
       "slots": 5,
-      "particles": 420,
-      "shockwaves": 4,
-      "aqProjectiles": 12,
-      "projectiles": 12,
-      "arsenalVfx": 22,
+      "particles": 310,
+      "shockwaves": 3,
+      "aqProjectiles": 11,
+      "projectiles": 11,
+      "arsenalVfx": 21,
       "detachedWeapons": 2
     },
     "longTasks": {
-      "count": 37,
+      "count": 39,
       "slowest": {
-        "at": 68112.8,
-        "durationMs": 2717
+        "at": 72204.4,
+        "durationMs": 2798
       }
     },
     "interpolation": false
@@ -4162,8 +4211,8 @@
   },
   "smoothRarity": {
     "builds": 11,
-    "draws": 15,
-    "hits": 4
+    "draws": 25,
+    "hits": 14
   },
   "bothUnarmed": {
     "afterImmediate": 1,
@@ -4220,7 +4269,7 @@
     "slowHeroAfter": false,
     "slowRivalAfter": false
   },
-  "stormVfx": "{\"after\":{\"impacts\":1,\"bolts\":11,\"sparks\":36,\"trail\":false},\"cleared\":{\"bolts\":0,\"impacts\":0}}",
+  "stormVfx": "{\"after\":{\"impacts\":1,\"bolts\":12,\"sparks\":38,\"trail\":false},\"cleared\":{\"bolts\":0,\"impacts\":0}}",
   "stormFlightOwner": {
     "stormOwns": true,
     "genericYields": true,
@@ -4255,6 +4304,10 @@
       "longTail": false
     }
   },
+  "stormFloorHero": "{\"struck\":true,\"stunTimer\":0.9666666666666666,\"hpDelta\":0,\"strikes\":1}",
+  "stormFloorRival": "{\"struck\":true,\"stunTimer\":0.9666666666666666,\"hpDelta\":0,\"strikes\":1}",
+  "stormB7": "{\"t6Immune\":true,\"regularManipulable\":true,\"noDashAtT6\":true,\"dashTargetsRegular\":true,\"physicalPickupWorks\":true,\"magnetControlDestroyed\":true,\"magnetBoltConnected\":true,\"crystalControlReflected\":true,\"crystalBoltConnected\":true,\"crystalHeroUntouched\":true,\"wellControlAbsorbed\":true,\"wellBoltConnected\":true}",
+  "stormB8": "{\"rivalHp\":554,\"spMin\":1349.9999999999998,\"spMax\":1350,\"maxTurn\":0.043333333333333335,\"cumTurn\":0.182679403705826,\"cap\":2.6,\"impact\":true}",
   "labV1": {
     "tiles": [
       "free",
@@ -4337,7 +4390,6 @@
       "numbers": [
         "32",
         "32",
-        "32",
         "1600"
       ]
     }
@@ -4354,7 +4406,7 @@
     "slotGone": true,
     "flight": {
       "spin": 82,
-      "rot": 1.3722663979221128,
+      "rot": 1.3666666666666667,
       "velocity": 1350
     },
     "expectedSpin": 82,
@@ -4428,19 +4480,19 @@
     ],
     "saved": "FIGHTER COLOR",
     "reload": "FIGHTER COLOR",
-    "credits": 375,
+    "credits": 325,
     "quest": "{\"unlockedThrough\":2,\"completedStages\":[1]}",
     "exit": {
       "hub": "block",
       "gameState": "MENU",
-      "credits": 375,
+      "credits": 325,
       "quest": "{\"unlockedThrough\":2,\"completedStages\":[1]}",
       "panelGone": true
     }
   },
   "summary": {
-    "total": 186,
-    "passed": 186,
+    "total": 190,
+    "passed": 190,
     "failed": []
   }
 }

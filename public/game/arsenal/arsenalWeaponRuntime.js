@@ -560,6 +560,29 @@
         // POST-C §5 thrown-melee lifecycle: flight -> pinned -> exit.
         p.grace = Math.max(0, (p.grace || 0) - dt);
         if (p.state === 'flight') {
+          // B8 homing pursuit (STORMBREAKER): bounded continuous steering
+          // toward the owner's LIVING opponent. The per-second turn cap is
+          // the whole identity — the bolt CURVES after a moving opponent but
+          // never snaps onto them, and the speed stays exactly throwSpeed
+          // (fast/heavy). Nothing else can redirect it: the projectile is
+          // heroManipulationImmune (crystal reflect / magnet shell /
+          // gravity well all leave it alone), and the target is ONLY ever
+          // the owner's living opponent.
+          if (p.weapon === 'STORMBREAKER') {
+            const tgt = fighters.find(f => f && f !== p.owner && f.hp > 0);
+            if (tgt) {
+              let cur = Math.atan2(p.vy, p.vx);
+              const want = Math.atan2(tgt.y - p.y, tgt.x - p.x);
+              let dAng = want - cur;
+              while (dAng > Math.PI) dAng -= 2 * Math.PI;
+              while (dAng < -Math.PI) dAng += 2 * Math.PI;
+              const maxTurn = ((CFG.STORMBREAKER && CFG.STORMBREAKER.homingTurnRateRadPerSec) || 2.6) * dt;
+              cur += Math.max(-maxTurn, Math.min(maxTurn, dAng));
+              const sp = Math.hypot(p.vx, p.vy) || (CFG.THROWN_MELEE.speed.STORMBREAKER || 1350);
+              p.vx = Math.cos(cur) * sp;
+              p.vy = Math.sin(cur) * sp;
+            }
+          }
           p.px = p.x; p.py = p.y;
           p.x += p.vx * dt;
           p.y += p.vy * dt;
@@ -982,6 +1005,11 @@
       // (never a silent fade). Regular thrown melees keep the plain 6s life.
       flightTime: 0,
       maxFlight: weaponId === 'STORMBREAKER' ? ((CFG.STORMBREAKER && CFG.STORMBREAKER.maxFlightSeconds) || 2.2) : 0,
+      // B7/B8: the thrown red-tier projectile is immune to hero manipulation
+      // — crystal walls can't reflect/re-own it, magnet shells can't destroy
+      // or reposition it, gravity wells can't pull/absorb it. Hero
+      // manipulation can't redirect the pursuit.
+      heroManipulationImmune: weaponId === 'STORMBREAKER',
     });
     window.avCue('melee_throw', { weapon: weaponId, x: f.x, y: f.y, angle });
     log('THROW', `fighter=${f.name} weapon=${weaponId} ricochets=${t.ricochets}`);
@@ -1464,10 +1492,11 @@
     // STORMBREAKER — first red-tier (T6) fantasy weapon. The attack identity
     // is locked (V1 port, docs/stormbreaker/v1-port): there is no melee
     // strike/throw fork. After a short committed windup the ACTUAL weapon is
-    // thrown straight at the opponent through the standard aq_thrown
-    // lifecycle (swept-segment collision, wall ricochet budget, physical
-    // exit on a miss). On a confirmed hit the weapon vanishes through the
-    // impact flash instead of pinning (see updateArsenalProjectiles).
+    // released at the opponent through the standard aq_thrown lifecycle
+    // (swept-segment collision, wall ricochet budget, bounded homing
+    // pursuit, physical exit on a miss). On a confirmed hit the weapon
+    // vanishes through the impact flash instead of pinning (see
+    // updateArsenalProjectiles).
     STORMBREAKER: (() => {
       const T = CFG.STORMBREAKER || { windupSeconds: 0.28, readyDelaySeconds: 0.45 };
       return {
@@ -1499,8 +1528,10 @@
           if (h.phase !== 'WINDUP') return;
           h.meta.windupLeft -= dt;
           if (h.meta.windupLeft > 0) return;
-          // Committed heavy release: the real sprite flies, aim-locked at the
-          // moment of release (independent weapon aim, never fighter.dir).
+          // Committed heavy release: the real sprite flies, aimed at the
+          // living opponent at the moment of release (independent weapon
+          // aim, never fighter.dir); the bounded homing pursuit then steers
+          // it after the opponent if they move (B8).
           const angle = holderAim(ctx);
           spawnThrownMelee(ctx.fighter, 'STORMBREAKER', angle);
           window.avCue('storm_throw', { weapon: 'STORMBREAKER', x: ctx.fighter.x, y: ctx.fighter.y, angle });
