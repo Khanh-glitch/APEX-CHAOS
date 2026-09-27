@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-27T07:41:25.771Z",
+  "generatedAt": "2026-09-27T08:52:50.846Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -10,7 +10,7 @@
     {
       "path": "/apexEngine.js",
       "type": "script",
-      "bytes": 228698
+      "bytes": 229069
     },
     {
       "path": "/assets/arcade_v1/normalized/battle_idle_reference.webp",
@@ -3285,7 +3285,7 @@
     {
       "path": "/game/fighters/arcadeVisualRuntime.js",
       "type": "script",
-      "bytes": 26443
+      "bytes": 27639
     },
     {
       "path": "/game/fighters/bladeVisualRuntime.js",
@@ -3305,12 +3305,12 @@
     {
       "path": "/game/fighters/galaxyRefinementRuntime.js",
       "type": "script",
-      "bytes": 60527
+      "bytes": 60835
     },
     {
       "path": "/game/fighters/galaxyRuntime.js",
       "type": "script",
-      "bytes": 38701
+      "bytes": 39091
     },
     {
       "path": "/game/fighters/iceVisualRuntime.js",
@@ -3320,12 +3320,12 @@
     {
       "path": "/game/fighters/katanaRuntime.js",
       "type": "script",
-      "bytes": 95994
+      "bytes": 96755
     },
     {
       "path": "/game/fighters/musicianVisualRuntime.js",
       "type": "script",
-      "bytes": 22312
+      "bytes": 23408
     },
     {
       "path": "/game/fighters/ninjaVisualRuntime.js",
@@ -3335,12 +3335,12 @@
     {
       "path": "/game/fighters/puppetVisualRuntime.js",
       "type": "script",
-      "bytes": 25507
+      "bytes": 26390
     },
     {
       "path": "/game/fighters/shotgunRuntime.js",
       "type": "script",
-      "bytes": 53402
+      "bytes": 53711
     },
     {
       "path": "/game/fighters/soccerChampionRuntime.js",

@@ -1,0 +1,111 @@
+{
+  "label": "cp6-cold-press",
+  "menuInteractiveAt": 943.6999999992549,
+  "clickAt": 738.8,
+  "pressedPaintAt": 736.8,
+  "hubFirstPaintAt": 1752.2,
+  "pressToPaintMs": -2,
+  "pressToHubMs": 1013.4,
+  "groupReady": false,
+  "scriptSpans": [],
+  "longTasks": [
+    {
+      "at": 821.8,
+      "dur": 391
+    }
+  ],
+  "inputsDuringLoad": [
+    67.9
+  ],
+  "inputMaxMs": 67.9,
+  "inputOver100": 0,
+  "avWarm": null,
+  "imgResources": 52,
+  "scriptResources": 10,
+  "slowestResources": [
+    {
+      "at": 1879.7,
+      "dur": 292.2,
+      "type": "img",
+      "name": "shotgun_v1/picked.webp"
+    },
+    {
+      "at": 1889.9,
+      "dur": 283.1,
+      "type": "audio",
+      "name": "audio/butt-stroken.mp3"
+    },
+    {
+      "at": 1889.2,
+      "dur": 279.3,
+      "type": "audio",
+      "name": "audio/failed_fire.mp3"
+    },
+    {
+      "at": 1886.7,
+      "dur": 268.8,
+      "type": "audio",
+      "name": "audio/pellet_hit_the_building_of_engineer.mp3"
+    },
+    {
+      "at": 1879.7,
+      "dur": 266.4,
+      "type": "img",
+      "name": "shotgun_v1/pick_button.webp"
+    },
+    {
+      "at": 1885.7,
+      "dur": 263.4,
+      "type": "audio",
+      "name": "audio/7_pellet_hit_in_one_sfx.mp3"
+    },
+    {
+      "at": 1884.9,
+      "dur": 257.6,
+      "type": "audio",
+      "name": "audio/reloading_batch_7s.mp3"
+    },
+    {
+      "at": 1884.1,
+      "dur": 255.2,
+      "type": "audio",
+      "name": "audio/special_reloading_after_use_the_dash_skill.mp3"
+    },
+    {
+      "at": 1883.1,
+      "dur": 237.7,
+      "type": "audio",
+      "name": "audio/shoot_the_hook_the_pull.mp3"
+    },
+    {
+      "at": 1880.9,
+      "dur": 211.1,
+      "type": "script",
+      "name": "fighters/engineerRuntime.js"
+    },
+    {
+      "at": 1882,
+      "dur": 207.2,
+      "type": "audio",
+      "name": "audio/fire_sfx.mp3"
+    },
+    {
+      "at": 1879.7,
+      "dur": 204.1,
+      "type": "img",
+      "name": "shotgun_v1/ring_6.webp"
+    }
+  ],
+  "events": [
+    {
+      "at": 0.1,
+      "type": "instrumented",
+      "detail": null
+    },
+    {
+      "at": 738.8,
+      "type": "cdp-click",
+      "detail": "arsenal-quest button"
+    }
+  ]
+}

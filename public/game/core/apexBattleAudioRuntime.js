@@ -85,6 +85,83 @@ function registerBattleMediaElement(audio) {
     audio.addEventListener('pause', () => activeBattleMediaElements.delete(audio));
     return audio;
 }
+
+// ── Global battle-audio session registry (owner correction pass CP6) ──────
+// Every Web Audio source that produces battle/game SFX registers here, and
+// every session-scoped delayed cue is scheduled through apexBattleAudio-
+// ScheduleCue. Session begin/end TERMINATES all registered sources (stop +
+// disconnect — not just master-gain muting), clears pending cues, and bumps
+// the session token so any delayed callback that somehow survives its timer
+// clear becomes a no-op. Menu BGM (flagged elements) stays outside this
+// lifecycle by design; decoded AudioBuffers/caches are never cleared.
+var battleAudioSessionToken = 0;
+var battleAudioSessionActiveFlag = false;
+var battleAudioSessionSources = new Set();
+var battleAudioSessionTimers = new Set();
+function stopRegisteredBattleAudioSources() {
+    for (const src of Array.from(battleAudioSessionSources)) {
+        battleAudioSessionSources.delete(src);
+        try { if (typeof src.stop === 'function') src.stop(0); } catch (error) {}
+        try { if (typeof src.disconnect === 'function') src.disconnect(); } catch (error) {}
+    }
+}
+function clearBattleAudioSessionTimers() {
+    for (const id of Array.from(battleAudioSessionTimers)) {
+        battleAudioSessionTimers.delete(id);
+        clearTimeout(id);
+    }
+}
+window.apexRegisterBattleAudioSource = function (src) {
+    if (!src) return src;
+    battleAudioSessionSources.add(src);
+    try {
+        src.addEventListener('ended', () => battleAudioSessionSources.delete(src), { once: true });
+    } catch (error) {}
+    return src;
+};
+window.apexBattleAudioScheduleCue = function (fn, delayMs) {
+    const token = battleAudioSessionToken;
+    const id = setTimeout(() => {
+        battleAudioSessionTimers.delete(id);
+        if (token !== battleAudioSessionToken) return; // old session: no-op
+        try { fn(); } catch (error) {}
+    }, Math.max(0, delayMs | 0));
+    battleAudioSessionTimers.add(id);
+    return id;
+};
+window.apexBattleAudioSessionInfo = function () {
+    return {
+        sessionId: battleAudioSessionToken,
+        active: battleAudioSessionActiveFlag,
+        registeredSources: battleAudioSessionSources.size,
+        pendingCues: battleAudioSessionTimers.size,
+    };
+};
+
+// ── Shared idle-task chain (CP6) ──────────────────────────────────────────
+// Defined in this file because it is the one boot-tier classic script that
+// every deferred runtime loads after. Used to chunk heavy visual/asset
+// preprocessing (forced image decode + per-pixel canvas work) so background
+// warmup never monopolizes the main thread: one task per idle slot, yielding
+// to real input/paint between tasks.
+window.apexIdleChain = function (tasks) {
+    return new Promise((resolve) => {
+        const list = tasks.slice();
+        const step = () => {
+            if (!list.length) { resolve(true); return; }
+            const task = list.shift();
+            try { task(); } catch (error) {}
+            if (!list.length) { resolve(true); return; }
+            if (typeof window.requestIdleCallback === 'function') {
+                window.requestIdleCallback(step, { timeout: 200 });
+            } else {
+                window.setTimeout(step, 0);
+            }
+        };
+        if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(step, { timeout: 200 });
+        else window.setTimeout(step, 0);
+    });
+};
 if (typeof HTMLMediaElement !== 'undefined' && !HTMLMediaElement.prototype.__apexBattlePlayPatched) {
     HTMLMediaElement.prototype.__apexBattlePlayPatched = true;
     const nativeMediaPlay = HTMLMediaElement.prototype.play;
@@ -171,9 +248,17 @@ function terminateBattleAudioPlayback() {
     }
     if (typeof window.stopNinjaAudio === 'function') window.stopNinjaAudio();
     stopActiveBattleMediaElements();
+    // CP6 global ownership: kill every registered Web Audio source, cancel
+    // every session-scoped cue, and invalidate the token so surviving delayed
+    // callbacks become no-ops.
+    battleAudioSessionToken += 1;
+    battleAudioSessionActiveFlag = false;
+    stopRegisteredBattleAudioSources();
+    clearBattleAudioSessionTimers();
 }
 function beginBattleAudioSession() {
     terminateBattleAudioPlayback();
+    battleAudioSessionActiveFlag = true;
     // Explicit session start: the master goes live NOW, for THIS session only.
     restoreBattleAudio();
 }
@@ -202,7 +287,8 @@ function apexBattleAudioSessionState() {
     }
     let masterGain = null;
     try { masterGain = battleAudioMaster.gain.value; } catch (error) {}
-    return { masterGain, avLiveSources: avSources, avPendingTimers: avTimers };
+    const session = window.apexBattleAudioSessionInfo ? window.apexBattleAudioSessionInfo() : null;
+    return { masterGain, avLiveSources: avSources, avPendingTimers: avTimers, session };
 }
 window.apexFadeBattleAudio = fadeBattleAudio;
 window.apexStopBattleAudio = stopBattleAudio;

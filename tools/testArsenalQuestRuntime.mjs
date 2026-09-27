@@ -3143,6 +3143,216 @@ try {
     && afterReload.store === 'FIGHTER COLOR', afterReload);
   await evaluate(`APEX_ARSENAL_FEEL.setSplatterMode('BLOOD')`);
 
+  // ── CP6: owner-flow gates (playtest round 3) ────────────────────────────
+  // The three owner complaints: audio leaks across transitions, a multi-second
+  // dead ARSENAL press, and delayed/janky UI while background work runs.
+  // Fresh navigation = the cold-owner path: menu interactive → REAL click on
+  // ARSENAL QUEST → hub paints → background warmup continues behind it.
+  await command('Page.navigate', { url: appUrl });
+  await sleep(800);
+  for (let i = 0; i < 120; i++) {
+    if (await evaluate('Boolean(window.__apexEngineReady && document.documentElement && document.querySelector)')) break;
+    await sleep(250);
+  }
+  await evaluate(`(() => {
+    window.__cp6 = { inputs: [], pressPaintAt: null, hubPaintAt: null, done: false };
+    const t0 = performance.now();
+    const probe = (ev) => {
+      const at = performance.now();
+      requestAnimationFrame(() => window.__cp6.inputs.push(+(performance.now() - at).toFixed(1)));
+    };
+    window.addEventListener('pointermove', probe, { capture: true, passive: true });
+    window.addEventListener('pointerdown', probe, { capture: true, passive: true });
+    window.addEventListener('pointerdown', () => { window.__cp6.pointerdownAt = +performance.now().toFixed(1); }, { capture: true, passive: true });
+    const mo = new MutationObserver(() => {
+      if (window.__cp6.pressPaintAt == null && document.querySelector('.menu-image-button.is-pressed')) {
+        requestAnimationFrame(() => { if (window.__cp6.pressPaintAt == null) window.__cp6.pressPaintAt = +performance.now().toFixed(1); });
+      }
+      const hub = document.getElementById('aq-meta-root');
+      if (window.__cp6.hubPaintAt == null && hub && hub.style.display !== 'none' && hub.getBoundingClientRect().width > 50) {
+        requestAnimationFrame(() => requestAnimationFrame(() => { window.__cp6.hubPaintAt = +performance.now().toFixed(1); }));
+      }
+    });
+    mo.observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['class', 'style'], childList: true });
+    return true;
+  })()`);
+  // Wait until the ARSENAL button is genuinely clickable: enabled AND the
+  // topmost element at its center (entry overlays / boot splash / sweep
+  // animations must have cleared — a dispatch during that window is a no-op).
+  let cp6Clickability = null;
+  for (let i = 0; i < 400; i++) {
+    cp6Clickability = await hitProbe('button[aria-label="ARSENAL QUEST"]').catch(() => null);
+    if (cp6Clickability && cp6Clickability.exists && !cp6Clickability.disabled
+      && cp6Clickability.hitWithin && cp6Clickability.pointerEvents !== 'none'
+      && cp6Clickability.width > 1 && cp6Clickability.height > 1) break;
+    await sleep(100);
+  }
+  const cp6T0 = await evaluate('+performance.now().toFixed(1)');
+  // Drive real pointer traffic while the entry + background warmup run.
+  const cp6InputDriver = (async () => {
+    for (let i = 0; i < 40; i++) {
+      await command('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 260 + (i % 6) * 60, y: 480 + (i % 4) * 40 }).catch(() => {});
+      await sleep(140);
+    }
+  })();
+  await physicalClick('button[aria-label="ARSENAL QUEST"]');
+  for (let i = 0; i < 250; i++) {
+    if (await evaluate('window.__cp6 && window.__cp6.hubPaintAt != null').catch(() => false)) break;
+    await sleep(100);
+  }
+  // Keep sampling through the background warmup window (decode/eval work).
+  await sleep(2200);
+  await cp6InputDriver;
+  const cp6Click = await hitProbe('button[aria-label="ARSENAL QUEST"]');
+  report.cp6Entry = JSON.parse(await evaluate(`JSON.stringify({
+    clickability: { exists: ${JSON.stringify(!!(cp6Click && cp6Click.exists))}, hitWithin: ${JSON.stringify(!!(cp6Click && cp6Click.hitWithin))}, topClass: ${JSON.stringify(cp6Click ? cp6Click.topClass : null)} },
+    pressPaintMs: (window.__cp6.pressPaintAt != null && window.__cp6.pointerdownAt != null) ? +(window.__cp6.pressPaintAt - window.__cp6.pointerdownAt).toFixed(1) : null,
+    hubPaintMs: window.__cp6.hubPaintAt != null ? +(window.__cp6.hubPaintAt - ${cp6T0}).toFixed(1) : null,
+    inputs: window.__cp6.inputs.length,
+    inputsMax: window.__cp6.inputs.length ? Math.max(...window.__cp6.inputs) : null,
+    inputsP95: (() => { const a = window.__cp6.inputs.slice().sort((x, y) => x - y); return a.length ? a[Math.floor(a.length * 0.95)] : null; })(),
+    inputsOver400: window.__cp6.inputs.filter(v => v > 400).length,
+  })`));
+  report.evidence.push(await screenshot('cp6-01-arsenal-hub-entry'));
+  // Bounds: the CP6 regression this guards is the multi-second dead press
+  // (pre-fix: 6357ms press→hub, 1078ms monolithic long task). Post-fix the
+  // residual per-event cost is single script-eval chunks (~150-300ms worst
+  // on a busy CI main thread — see inputsP95 ~2-3ms vs one chunk); a 400ms
+  // pressed-paint bound and 3500ms press→hub stay far below the regression
+  // while tolerating CI variance. The standalone cold-entry evidence
+  // (docs/arsenal-quest/evidence) records the real numbers: ~830ms cold
+  // press→hub, ~170ms warm.
+  gate('owner-cp6-arsenal-entry-immediate',
+    report.cp6Entry.pressPaintMs != null && report.cp6Entry.pressPaintMs < 400
+    && report.cp6Entry.hubPaintMs != null && report.cp6Entry.hubPaintMs < 3500,
+    report.cp6Entry);
+  gate('owner-cp6-input-alive-during-warmup',
+    report.cp6Entry.inputs >= 8 && report.cp6Entry.inputsOver400 === 0
+    && (report.cp6Entry.inputsMax == null || report.cp6Entry.inputsMax < 400)
+    && (report.cp6Entry.inputsP95 == null || report.cp6Entry.inputsP95 < 50),
+    report.cp6Entry);
+
+  // Global battle-audio ownership matrix. Every producer (AV bank, synthesized
+  // tones, direct WebAudio sources, media elements, scheduled cues) must die
+  // at each transition; menu BGM must survive untouched.
+  await evaluate(`window.__apexEnsureDeferredRuntimes('arsenalQuest').then(() => true)`);
+  for (let i = 0; i < 80; i++) {
+    if (await evaluate('Boolean(window.APEX_ARSENAL_STORM && window.startArsenalQuestMode && window.APEX_ARSENAL && window.APEX_ARSENAL_AV)').catch(() => false)) break;
+    await sleep(250);
+  }
+  report.cp6Audio = await evaluate(`(async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const info = () => window.apexBattleAudioSessionInfo();
+    const state = () => window.apexBattleAudioSessionState();
+    const settleSilent = async () => {
+      // Web Audio readback race (CP5 lesson): gain.value lags scheduled
+      // setValueAtTime until the render thread processes it.
+      let st = state();
+      for (let i = 0; i < 12 && st.masterGain > 0.01; i++) { await sleep(50); st = state(); }
+      return st;
+    };
+    const out = {};
+    out.bgmBefore = window.__apexMenuBgmState();
+    // (1) menu → Arsenal match (real path). Session begins; SFX live.
+    window.APEX_ARSENAL_META?.hideMeta?.();
+    window.startArsenalQuestMode('NEWBIE', 'GALAXY');
+    await sleep(150);
+    out.enterSession = info();
+    out.masterInMatch = state().masterGain;
+    // AV hot-bank decode must finish first: playEntry() no-ops (notReady)
+    // on undecoded buffers, which would make the SFX-live evidence racy.
+    for (let i = 0; i < 60 && !APEX_ARSENAL_AV.audioReady(); i++) await sleep(150);
+    // (2) Stormbreaker mid-flight + a registered LOOPING source, then exit
+    //     mid-flight with a scheduled old-session cue still PENDING.
+    const playedAtEquip = window.APEX_ARSENAL_AV.stats.played;
+    APEX_ARSENAL.weaponApi.equip(fighters[0], 'STORMBREAKER');
+    APEX_ARSENAL_AV.cue('storm_windup', { x: 500, y: 300, weapon: 'STORMBREAKER' });
+    APEX_ARSENAL_AV.cue('storm_throw', { x: 520, y: 300, weapon: 'STORMBREAKER' });
+    const loopSrc = audioCtx.createBufferSource();
+    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.05;
+    loopSrc.buffer = buf; loopSrc.loop = true;
+    const lg = audioCtx.createGain(); lg.gain.value = 0.5;
+    loopSrc.connect(lg); lg.connect(battleAudioMaster);
+    window.apexRegisterBattleAudioSource(loopSrc);
+    loopSrc.__probeEnded = false;
+    loopSrc.addEventListener('ended', () => { loopSrc.__probeEnded = true; });
+    loopSrc.start();
+    await sleep(850); // windup + release + flight SFX mid-air
+    // Schedule a cue that is STILL PENDING at the moment of exit: an
+    // old-session cue must never become audible after the transition.
+    let cueFired = false;
+    window.apexBattleAudioScheduleCue(() => { cueFired = true; }, 300);
+    out.midFlight = { session: info(), avPlayed: window.APEX_ARSENAL_AV.stats.played - playedAtEquip,
+      loopRegistered: info().registeredSources >= 1, cuePendingAtExit: info().pendingCues >= 1 };
+    window.exitArsenalQuestMode();
+    out.exitImmediate = { session: info(), master: state().masterGain };
+    await sleep(550); // past the 300ms cue and any settle window
+    const settled = await settleSilent();
+    out.exitSettled = { session: info(), master: settled.masterGain,
+      loopStoppedForReal: loopSrc.__probeEnded === true, oldCueNoop: cueFired === false };
+    // (3) rapid re-enter: clean session, SFX live again.
+    const playedAtReenter = window.APEX_ARSENAL_AV.stats.played;
+    window.startArsenalQuestMode('NEWBIE', 'GALAXY');
+    await sleep(120);
+    APEX_ARSENAL.weaponApi.equip(fighters[0], 'STORMBREAKER');
+    await sleep(350);
+    const stB = await (async () => { let st = state(); for (let i = 0; i < 12 && st.masterGain < 0.5; i++) { await sleep(50); st = state(); } return st; })();
+    out.reenter = { session: info(), master: stB.masterGain,
+      sfxLive: window.APEX_ARSENAL_AV.stats.played > playedAtReenter };
+    window.exitArsenalQuestMode();
+    await sleep(120);
+    // (4) other-mode boundaries: engine match path (classic) begins a session;
+    //     select-screen navigation ends it.
+    startSpecificMatch('NEWBIE', 'NEWBIE', { countdown: false, tournament: false });
+    await sleep(150);
+    out.engineMatch = info();
+    window.goToMenu();
+    await sleep(120);
+    out.afterEngineMenu = info();
+    const settled2 = await settleSilent();
+    out.afterEngineMenuSettled = { session: info(), master: settled2.masterGain };
+    // (5) another mode → Arsenal again.
+    window.startArsenalQuestMode('NEWBIE', 'GALAXY');
+    await sleep(120);
+    out.otherToArsenal = info();
+    window.exitArsenalQuestMode();
+    await sleep(100);
+    out.bgmAfter = window.__apexMenuBgmState();
+    return JSON.stringify(out);
+  })()`);
+  const cp6A = JSON.parse(report.cp6Audio);
+  report.evidence.push(await screenshot('cp6-02-post-audio-matrix-menu'));
+  gate('owner-cp6-session-begins-on-match-enter',
+    cp6A.enterSession.active === true && cp6A.masterInMatch > 0.5, cp6A.enterSession);
+  gate('owner-cp6-exit-terminates-everything',
+    cp6A.exitImmediate.session.active === false
+    && cp6A.exitImmediate.session.registeredSources === 0
+    && cp6A.exitImmediate.session.pendingCues === 0
+    && cp6A.exitSettled.session.registeredSources === 0
+    && cp6A.exitSettled.session.pendingCues === 0
+    && cp6A.exitSettled.master <= 0.01
+    && cp6A.exitSettled.loopStoppedForReal === true
+    && cp6A.exitSettled.oldCueNoop === true
+    && cp6A.midFlight.cuePendingAtExit === true
+    && cp6A.midFlight.avPlayed > 0,
+    { midFlight: cp6A.midFlight, exitImmediate: cp6A.exitImmediate, exitSettled: cp6A.exitSettled });
+  gate('owner-cp6-rapid-reenter-clean-session',
+    cp6A.reenter.session.active === true && cp6A.reenter.session.sessionId > cp6A.enterSession.sessionId
+    && cp6A.reenter.sfxLive === true && cp6A.reenter.master > 0.5,
+    cp6A.reenter);
+  gate('owner-cp6-engine-match-begins-session',
+    cp6A.engineMatch.active === true, cp6A.engineMatch);
+  gate('owner-cp6-cross-mode-boundaries-zero-leak',
+    cp6A.afterEngineMenu.active === false
+    && cp6A.afterEngineMenu.registeredSources === 0
+    && cp6A.afterEngineMenuSettled.master <= 0.01
+    && cp6A.otherToArsenal.active === true
+    && cp6A.bgmAfter && cp6A.bgmAfter.paused === false
+    && cp6A.bgmAfter.readyState >= 2,
+    { afterEngineMenu: cp6A.afterEngineMenu, afterEngineMenuSettled: cp6A.afterEngineMenuSettled, otherToArsenal: cp6A.otherToArsenal, bgm: [cp6A.bgmBefore, cp6A.bgmAfter] });
+
   // ------------------------------------------------------------ summary ----
   report.summary = {
     total: Object.keys(report.gates).length,

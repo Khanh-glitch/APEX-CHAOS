@@ -287,7 +287,17 @@
       const p1 = typeof p1Selection !== 'undefined' ? p1Selection : null;
       const p2 = typeof p2Selection !== 'undefined' ? p2Selection : null;
       if (p1 && p2 && typeof window.startArsenalQuestMode === 'function') {
-        window.startArsenalQuestMode(p1.name, p2.name);
+        // CP6: a full Arsenal match needs the arsenalQuest group. When it is
+        // already warm (normal case after background warmup) the match starts
+        // synchronously; a cold group loads first with the button state
+        // already committed.
+        const launch = () => window.startArsenalQuestMode(p1.name, p2.name);
+        if (window['__apexDeferredRuntimesReady_arsenalQuest']) { launch(); }
+        else {
+          const ensure = window.__apexEnsureDeferredRuntimes;
+          if (typeof ensure === 'function') ensure('arsenalQuest').then(launch).catch(launch);
+          else launch();
+        }
         return;
       }
     }

@@ -1,7 +1,9 @@
 // Cache-bust classic runtime scripts that live under /public and therefore do
 // not receive Vite content hashes. Without this, stable Cloudflare branch
 // aliases can serve a previous Arsenal runtime even when index.html is new.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20260927-prerework-boot-tiers-r1';
+// CP6: hub critical-path split + battle-audio session ownership + chunked
+// asset warmup — cache-bust every runtime that changed in this pass.
+export const APEX_ARSENAL_RUNTIME_REVISION = '20260927-cp6-owner-flow-r1';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by
@@ -182,6 +184,20 @@ export const DEFERRED_GAME_RUNTIMES = [
 export const WARMUP_GROUP_SEQUENCE = [
   'arsenalQuest',
   'select',
+];
+
+// CP6 (owner playtest round 3): the Arsenal HUB's critical path. Pressing
+// ARSENAL must open the hub immediately — the hub is a DOM overlay that needs
+// only its own save/config/shell/meta scripts. The heavy battle-core roster
+// runtimes, weapon/feel/storm presentation, and AV banks stay on the
+// background warmup (arsenalQuest above) and load behind the open hub; match
+// starts (startArsenalQuestMode / lab / pick START) still ensure the FULL
+// arsenalQuest group. Internal order mirrors the arsenalQuest group's order.
+export const ARSENAL_HUB_RUNTIMES = [
+  ['/game/arsenal/arsenalQuestConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestConfig'],
+  ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
+  ['/game/arsenal/arsenalQuestLadder.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestLadder'],
+  ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
 ];
 
 // Back-compat aggregate: the engine-following set the old boot list implied

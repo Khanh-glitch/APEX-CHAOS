@@ -143,8 +143,11 @@
       const gain=audioCtx.createGain();
       src.buffer=buffer;
       gain.gain.value=volume;
-      src.connect(gain); gain.connect(audioCtx.destination);
+      // CP6 session ownership: route through the battle master and register
+      // the source so session transitions stop it (was: direct destination).
+      src.connect(gain); gain.connect(typeof battleAudioMaster !== 'undefined' ? battleAudioMaster : audioCtx.destination);
       if (window.__apexRecordingAudioDestination) gain.connect(window.__apexRecordingAudioDestination);
+      if (window.apexRegisterBattleAudioSource) window.apexRegisterBattleAudioSource(src);
       src.start();
     } catch (error) {}
   }

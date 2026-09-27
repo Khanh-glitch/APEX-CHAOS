@@ -1,4 +1,5 @@
 import {
+  ARSENAL_HUB_RUNTIMES,
   BATTLE_RUNTIMES,
   BATTLE_DEFERRED_RUNTIMES,
   DEFERRED_GAME_RUNTIMES,
@@ -161,6 +162,7 @@ export function loadRequiredGameRuntimes() {
 
 const RUNTIME_GROUPS = {
   all: DEFERRED_GAME_RUNTIMES,
+  arsenalHub: ARSENAL_HUB_RUNTIMES,
   battle: BATTLE_RUNTIMES,
   battleDeferred: BATTLE_DEFERRED_RUNTIMES,
   manualLab: MODE_DEFERRED_RUNTIMES.manualLab,
@@ -235,6 +237,11 @@ function yieldToIdleBudget() {
 export async function scheduleDeferredGameRuntimes() {
   const start = () => {
     markBootPhase('warmup-start');
+    // CP6: prefetch the Arsenal hub critical path bytes immediately (4 small
+    // scripts, no evaluation) so a cold ARSENAL press opens the hub from warm
+    // HTTP cache even when it lands before the background warmup reaches the
+    // arsenalQuest group.
+    try { hintRuntimeSources(ARSENAL_HUB_RUNTIMES, 'prefetch'); } catch (error) {}
     (async () => {
       for (let i = 0; i < WARMUP_GROUP_SEQUENCE.length; i++) {
         try {

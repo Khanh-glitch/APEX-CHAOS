@@ -92,8 +92,12 @@ const DEFERRED_RUNTIME_ACTION_GROUPS = {
   startTrialMode: 'trialBattle',
   startTamChienMode: 'tamChien',
   startArsenalQuestMode: 'arsenalQuest',
-  beginArsenalQuestSelection: 'arsenalQuest',
-  beginArsenalQuestMap: 'arsenalQuest',
+  // CP6 (owner playtest round 3): hub-level navigation opens the hub on its
+  // tiny critical-path group (config + shell select + ladder + meta). The
+  // heavy battle-core/roster/AV work stays on the background warmup and loads
+  // behind the open hub; match starts ensure the full arsenalQuest group.
+  beginArsenalQuestSelection: 'arsenalHub',
+  beginArsenalQuestMap: 'arsenalHub',
 };
 
 function callApexGlobal(name, enabled = true) {
@@ -618,7 +622,7 @@ export default function App() {
       if (options.startsMatch) {
         stopMenuMusic(true);
         window.apexBeginBattleAudioSession?.();
-      } else if (name === 'startMatch' || name === 'startSoloMode' || name === 'startTrialMode' || name === 'startArsenalQuestMode') {
+      } else if (name === 'startMatch' || name === 'startSoloMode' || name === 'startTrialMode' || name === 'startArsenalQuestMode' || name === 'startTamChienMode') {
         stopMenuMusic(true);
         window.apexBeginBattleAudioSession?.();
       } else if (name === 'goToMenu' || name === 'exitAutoBattle') {

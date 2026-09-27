@@ -149,13 +149,21 @@
     lastQuestP1 = p1Name;
     pendingStage = null;
     hideMap();
-    if (typeof window.startArsenalQuestMode === 'function') {
+    const beginQuestStage = () => {
       window.startArsenalQuestMode(p1Name, p2);
       if (window.APEX_ARSENAL && window.APEX_ARSENAL.state) {
         window.APEX_ARSENAL.state.questStage = n;
         window.APEX_ARSENAL.state.questOpponent = row.opponent;
         window.APEX_ARSENAL.state.questP1 = p1Name;
       }
+    };
+    // CP6 belt-and-braces: the map normally opens only after the full
+    // arsenalQuest group loaded (beginArsenalQuestMap ensures it), but a
+    // stage start must never silently no-op if the mode entry is missing.
+    if (typeof window.startArsenalQuestMode === 'function') {
+      beginQuestStage();
+    } else if (typeof window.__apexEnsureDeferredRuntimes === 'function') {
+      window.__apexEnsureDeferredRuntimes('arsenalQuest').then(beginQuestStage).catch(() => {});
     }
     return { ok: true, n, opponent: row.opponent, live: p2, p1: p1Name };
   }

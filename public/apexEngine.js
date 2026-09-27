@@ -2875,7 +2875,12 @@ function startSpecificMatch(ft1, ft2, opts = {}) {
         document.getElementById('game-canvas')?.getBoundingClientRect();
         draw();
     } catch (error) {}
-    restoreBattleAudio();
+    // CP6 session ownership: a real match start begins a NEW battle-audio
+    // session (terminates any previous session's sources/cues) instead of a
+    // bare master restore — classic/tournament/tamChien matches get the same
+    // ownership semantics as React-routed matches.
+    if (window.apexBeginBattleAudioSession) window.apexBeginBattleAudioSession();
+    else restoreBattleAudio();
 }
 function endMatch() {
     if (gameState !== 'PLAYING') return;

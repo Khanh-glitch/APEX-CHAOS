@@ -314,9 +314,20 @@
   }
   function buildTintedAtlas() {
     if (!atlasImg || !atlasImg.complete || !(atlasImg.naturalWidth || atlasImg.width)) return;
+    for (const kind of Object.keys(PALETTE)) {
+      buildTintedAtlasKind(kind);
+    }
+    stats.atlasReady = true;
+  }
+  // CP6: one palette variant per call so the build can be chunked (idle chain)
+  // and so a match-time draw can build exactly the kind it needs instead of
+  // all four at once.
+  function buildTintedAtlasKind(kind) {
+    if (!atlasImg || !atlasImg.complete || !(atlasImg.naturalWidth || atlasImg.width)) return;
+    if (tintedAtlas[kind]) return;
     const w = atlasImg.naturalWidth || atlasImg.width;
     const h = atlasImg.naturalHeight || atlasImg.height;
-    for (const kind of Object.keys(PALETTE)) {
+    {
       const pal = PALETTE[kind];
       const edgeLayer = colorLayer(atlasImg, pal.edge);
       const fillLayer = colorLayer(atlasImg, pal.fill);
@@ -353,8 +364,30 @@
         bandCache[key] = bc;
       }
     }
-    stats.atlasReady = true;
     stats.sizeBands = SIZE_BANDS.map((b) => b.id);
+  }
+  // CP6: the atlas build forces a main-thread decode of the damage atlas and
+  // per-pixel tint work for four palette variants. Building all of it inside
+  // the image onload callback coalesced into one long main-thread stall on
+  // the Arsenal entry path (owner playtest round 3). The build now runs
+  // chunked — one palette variant per idle slot — and match-time draws can
+  // still build a missing kind synchronously (rare, bounded fallback).
+  let atlasIdleBuild = null;
+  function scheduleTintedAtlasIdleBuild() {
+    if (atlasIdleBuild) return atlasIdleBuild;
+    if (typeof window.apexIdleChain !== 'function') { buildTintedAtlas(); return Promise.resolve(true); }
+    const kinds = Object.keys(PALETTE);
+    atlasIdleBuild = window.apexIdleChain(kinds.map((kind) => () => {
+      buildTintedAtlasKind(kind);
+      if (kinds.every((k) => tintedAtlas[k])) stats.atlasReady = true;
+    }));
+    return atlasIdleBuild;
+  }
+  function ensureAtlasKind(kind) {
+    if (tintedAtlas[kind]) return;
+    if (!atlasImg || !atlasImg.complete || !atlasImg.naturalWidth) return;
+    buildTintedAtlasKind(kind);
+    if (Object.keys(PALETTE).every((k) => tintedAtlas[k])) stats.atlasReady = true;
   }
   function nearColor(px, rgb, tol) {
     return Math.abs(px[0] - rgb[0]) <= tol && Math.abs(px[1] - rgb[1]) <= tol && Math.abs(px[2] - rgb[2]) <= tol && px[3] > 40;
@@ -383,13 +416,13 @@
       const sheet = kind === 'miss' ? kanit.miss : (kanit.digits[kind] && kanit.digits[kind][4]);
       if (sheet && sheet.canvas) return sampleCanvasPixels(sheet.canvas, kind);
     }
-    if (!stats.atlasReady) buildTintedAtlas();
+    ensureAtlasKind(kind);
     const cnv = tintedAtlas[kind];
     if (!cnv) return { fillHits: 0, edgeHits: 0 };
     return sampleCanvasPixels(cnv, kind);
   }
-  atlasImg.onload = () => { buildTintedAtlas(); };
-  if (atlasImg.complete) buildTintedAtlas();
+  atlasImg.onload = () => { scheduleTintedAtlasIdleBuild(); };
+  if (atlasImg.complete) scheduleTintedAtlasIdleBuild();
 
   function ensureStain(size) {
     const S = size || (typeof GAME_SIZE !== 'undefined' ? GAME_SIZE : 1000);
@@ -1182,11 +1215,11 @@
         return res;
       }
     }
-    if (!stats.atlasReady) buildTintedAtlas();
+    const palKey = kind === 'heal' ? 'heal' : kind === 'crit' ? 'crit' : kind === 'miss' ? 'miss' : 'dmg';
+    ensureAtlasKind(palKey);
     // Headless canvas backends may not have resolved the font yet — retry the
     // cache build lazily (still bounded: rasterization happens at most once).
     if (!kanit.ready && kanit.fontSource === 'probe-pending (retry on draw)') buildKanitSheets();
-    const palKey = kind === 'heal' ? 'heal' : kind === 'crit' ? 'crit' : kind === 'miss' ? 'miss' : 'dmg';
     const sheet = tintedAtlas[palKey]
       || (atlasImg && atlasImg.complete ? atlasImg : null);
     if (!sheet || (sheet.naturalWidth != null && sheet.naturalWidth < 240 && !tintedAtlas.dmg)) {

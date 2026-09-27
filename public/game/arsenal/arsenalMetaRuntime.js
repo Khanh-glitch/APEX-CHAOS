@@ -365,11 +365,34 @@
     el.querySelectorAll('[data-go]').forEach((b) => {
       b.addEventListener('click', () => {
         const go = b.getAttribute('data-go');
-        if (go === 'free') openFreePick();
+        // CP6: the button's pressed/active state paints immediately (native
+        // CSS) and any group still loading continues in the background —
+        // these handlers only WAIT for the group the next screen actually
+        // needs, never for unrelated warmup.
+        const groupReady = (g) => !!window['__apexDeferredRuntimesReady_' + g];
+        if (go === 'free') {
+          // The select screen needs the roster + pick presentation group.
+          // When that group is already warm (normal case) this stays a plain
+          // synchronous open — no microtask hop, no perceptible latency.
+          if (groupReady('select')) { openFreePick(); }
+          else {
+            const ensure = window.__apexEnsureDeferredRuntimes;
+            if (typeof ensure === 'function') ensure('select').then(() => openFreePick()).catch(() => openFreePick());
+            else openFreePick();
+          }
+        }
         if (go === 'quest') { hideMeta(); if (window.beginArsenalQuestMap) window.beginArsenalQuestMap(); }
         if (go === 'shop') paintShop();
         if (go === 'draw') paintDraw();
-        if (go === 'lab') { hideMeta(); window.startArsenalLab?.(); }
+        if (go === 'lab') {
+          hideMeta();
+          if (groupReady('arsenalQuest') || typeof window.startArsenalLab !== 'function') window.startArsenalLab?.();
+          else {
+            const ensureLab = window.__apexEnsureDeferredRuntimes;
+            if (typeof ensureLab === 'function') ensureLab('arsenalQuest').then(() => window.startArsenalLab?.()).catch(() => window.startArsenalLab?.());
+            else window.startArsenalLab?.();
+          }
+        }
       });
     });
     el.querySelector('#aq-splatter-mode')?.addEventListener('click', () => {

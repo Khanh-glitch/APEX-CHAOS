@@ -83,8 +83,12 @@
     src.buffer = buffer;
     src.loop = !!opts.loop;
     gain.gain.value = opts.volume ?? 0.85;
-    src.connect(gain); gain.connect(audioCtx.destination);
+    // CP6 session ownership: battle SFX route through the battle master (never
+    // straight to the destination) and register so session end stops them for
+    // real — a looping galaxy voice can no longer ring across a transition.
+    src.connect(gain); gain.connect(typeof battleAudioMaster !== 'undefined' ? battleAudioMaster : audioCtx.destination);
     if (window.__apexRecordingAudioDestination) gain.connect(window.__apexRecordingAudioDestination);
+    if (window.apexRegisterBattleAudioSource) window.apexRegisterBattleAudioSource(src);
     src.start();
     const handle = { src, gain, stopped:false };
     G.activeSounds ||= new Set();
