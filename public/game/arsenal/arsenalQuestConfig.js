@@ -285,17 +285,25 @@
     // floorBoltHazard is the balance kill-switch (default on).
     floorBoltHazard: true,
     floorBoltStunSeconds: 1.0,
-    spawnLongSide: 261,
-    heldLongSide: 224,
-    flightLongSide: 209,
+    // B4: body sprite at ~92% of the pre-CP4 size (240/261, 206/224,
+    // 192/209). ONLY the body and body-attached effects shrink with these —
+    // arena-edge lightning reach, floor discharge reach, impact burst, and
+    // scene flash keep their world scale (they are computed from world
+    // anchors, not from the body long side).
+    spawnLongSide: 240,
+    heldLongSide: 206,
+    flightLongSide: 192,
     // Compatibility aliases consumed by older Stormbreaker-only paths.
-    worldLongSide: 209,
-    floorLongSide: 261,
+    worldLongSide: 192,
+    floorLongSide: 240,
     // Owner correction: floor/spawn is flipped 180° from the original port.
     floorAngleRad: Math.PI * 1.5,
-    // Owner correction: thrown presentation is flipped 180° from original.
-    // Physics aim/velocity/collision remain untouched.
-    flightVisualOffsetRad: Math.PI,
+    // B6 owner correction: the held/flight change is a MIRROR REFLECTION of
+    // the visual (local negative scale across the weapon long axis), NOT a
+    // +pi rotation. The old rotation hack is retired (offset 0); world aim,
+    // velocity, collision, and homing are untouched by presentation.
+    flightVisualOffsetRad: 0,
+    mirrorLocal: true,
   };
 
   // ── §7 NEWBIE hero tuning ────────────────────────────────────────────────
@@ -344,9 +352,14 @@
     M249_SAW: 0.10, MBR2: 0.22, SZECSEI_FUCHS: 0.24, SNIPER: 0.32, JACKHAMMER: 0.14,
   };
   CONFIG.FIREARM_DISPLAY_MODE = { equipped: 1, floor: 0.92, exit: 0.96 };
+  // B11: normalized around the accepted rifle baseline (AK-47 / M16 / Z15,
+  // 152-154). Class ladder reads with clear gaps in BOTH directions:
+  // compact pistols (124-130) < heavy pistols (136-138) < SMG family
+  // (140-145) < rifle baseline (152-154); shotguns/LMG/precision larger
+  // where their silhouettes justify it (156-188).
   CONFIG.FIREARM_LONG_SIDE = {
-    PISTOL: 126, GLOCK_17: 124, TEC_9: 132, BERETTA_93R: 130, DESERT_DEAGLE: 138, MAGNUM_500: 142,
-    MAC_10: 136, SMG: 142, P90: 140, AK_47: 154, M16: 154,
+    PISTOL: 126, GLOCK_17: 124, TEC_9: 140, BERETTA_93R: 130, DESERT_DEAGLE: 136, MAGNUM_500: 138,
+    MAC_10: 141, SMG: 145, P90: 143, AK_47: 154, M16: 154,
     ZBROYAR_Z15: 152, ZBROYAR_Z15_S1: 152, ZBROYAR_Z15_S2: 152, ZBROYAR_Z15_S3: 152,
     M249_SAW: 170, MBR: 174, MBR2: 176, SZECSEI_FUCHS: 176, SNIPER: 188,
     MOSSBERG_500: 158, SHOTGUN: 160, SAWED_OFF: 132, JACKHAMMER: 156,

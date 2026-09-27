@@ -2400,7 +2400,11 @@ try {
     report.stormFlightOwner.stormOwns === true
     && report.stormFlightOwner.genericYields === true
     && report.stormFlightOwner.profile?.flightPresentationOwner === 'storm-vfx'
-    && report.stormFlightOwner.profile?.ghostOffsetsSeconds?.join(',') === '0.04,0.02,0'
+    && report.stormFlightOwner.profile?.ghostOffsetsSeconds?.join(',') === '0.12,0.07,0.03'
+    && report.stormFlightOwner.profile?.ghostTint === 'cyan'
+    && report.stormFlightOwner.profile?.ghostSource === 'recorded-trajectory'
+    && report.stormFlightOwner.profile?.mirrorLocal === true
+    && report.stormFlightOwner.profile?.flightVisualOffsetRad === 0
     && report.stormFlightOwner.profile?.releaseBoltSeconds === 0.11,
     report.stormFlightOwner);
 
@@ -2608,6 +2612,83 @@ try {
   })()`);
   report.evidence.push(await screenshot('10c-storm-homing-curve'));
 
+  // ------------------------------- CP4: weapon and heal presentation
+  // B11 evidence: the full staged firearm set rendered on one shared world
+  // reference (HERO parked in-frame), same camera, no perspective difference.
+  report.firearmLineup = await evaluate(`(() => {
+    APEX_ARSENAL_CONFIG.STORMBREAKER.floorBoltHazard = false; // isolate lineup from floor strikes
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearSlots();
+    // HERO + RIVAL parked below the grid = the same-world fighter reference.
+    __AQ_TEST.place(100, 950, 900, 950);
+    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+    __AQ_TEST.holdSpawns(); // no cadence spawns inside the lineup frame
+    const guns = APEX_ARSENAL_CONFIG.GUN_REGISTRY.map(e => e.id);
+    // 5x5 grid, 200px pitch: wider than the longest gun (SNIPER 188px), so
+    // no sprite ever overlaps a neighbor — clean per-gun measurement.
+    const cols = 5, dx = 200, dy = 170, x0 = 100, y0 = 130;
+    guns.forEach((id, i) => {
+      const c = i % cols, r = Math.floor(i / cols);
+      __AQ_TEST.pushSlot({ x: x0 + c * dx, y: y0 + r * dy, weaponId: id, tier: APEX_ARSENAL_CONFIG.tierOf(id) });
+    });
+    __AQ_TEST.step(0.1);
+    __AQ_TEST.redraw();
+    APEX_ARSENAL_CONFIG.STORMBREAKER.floorBoltHazard = true; // restore
+    const L = APEX_ARSENAL_CONFIG.FIREARM_LONG_SIDE;
+    return JSON.stringify({ count: guns.length, guns, longs: guns.map(id => L[id]) });
+  })()`);
+  const lineup = JSON.parse(report.firearmLineup);
+  report.evidence.push(await screenshot('11a-firearm-lineup-post-normalization'));
+  gate('firearm-browser-lineup-full-staged-set',
+    lineup.count === 24 && lineup.guns.every(id => lineup.longs[lineup.guns.indexOf(id)] != null)
+    && lineup.longs.every(v => v >= 124 && v <= 188),
+    lineup);
+
+  // B12 evidence: all five heals with their tier shadows, one frame.
+  report.healLineup = await evaluate(`(() => {
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearSlots();
+    __AQ_TEST.place(500, 915, 500, 60);
+    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+    __AQ_TEST.holdSpawns(); // no cadence spawns inside the lineup frame
+    APEX_ARSENAL_CONFIG.HEAL_IDS.forEach((id, i) => {
+      __AQ_TEST.pushSlot({ x: 180 + i * 160, y: 450, weaponId: id, kind: 'HEAL', tier: 'T' + (i + 1) });
+    });
+    __AQ_TEST.step(0.1);
+    __AQ_TEST.redraw();
+    const SPAWN = APEX_ARSENAL_SPAWN;
+    return JSON.stringify({
+      specs: APEX_ARSENAL_CONFIG.HEAL_IDS.map(id => SPAWN.healShadowSpec(id)),
+    });
+  })()`);
+  const healLineup = JSON.parse(report.healLineup);
+  report.evidence.push(await screenshot('11b-heal-tier-shadows-lineup'));
+  gate('heal-browser-tier-shadow-lineup',
+    healLineup.specs.length === 5
+    && healLineup.specs.every((sp, i) => sp.tier === 'T' + (i + 1) && !!sp.color),
+    healLineup);
+
+  // B6 evidence: static held frame where the mirror reflection is obvious
+  // (hero facing RIGHT), plus the live transform-law probe.
+  report.stormHeldMirror = await evaluate(`(() => {
+    __AQ_TEST.enterManual();
+    __AQ_TEST.clearSlots();
+    __AQ_TEST.place(350, 500, 850, 500); // rival to the RIGHT -> aim right
+    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+    __AQ_TEST.holdSpawns();
+    __AQ_TEST.equip('HERO', 'STORMBREAKER');
+    __AQ_TEST.step(0.55); // inside the windup window — static committed pose
+    const probe = window.APEX_ARSENAL_STORM.heldPresentationProbe();
+    __AQ_TEST.redraw();
+    return JSON.stringify({ probe, aimRight: fighters[0].x < fighters[1].x });
+  })()`);
+  const heldMir = JSON.parse(report.stormHeldMirror);
+  report.evidence.push(await screenshot('10f-storm-held-mirrored'));
+  gate('storm-browser-held-mirror-reflection',
+    heldMir.probe && heldMir.probe.det === -1 && heldMir.probe.mirror === true
+    && heldMir.aimRight === true,
+    heldMir);
+
   // ------------------------------------------------ Arsenal Lab V1 real Chrome
   report.labV1 = await evaluate(`(() => {
     window.exitArsenalQuestMode();
@@ -2726,6 +2807,7 @@ try {
       flight:flight && {spin:flight.spin,rot:flight.rot,velocity:Math.hypot(flight.vx,flight.vy)},
       expectedSpin:T.spinRate,expectedSpeed:T.throwSpeed,
       heldOffset:APEX_ARSENAL_AV.weaponDrawParams('STORMBREAKER','melee',75).drawOffset,
+      heldMirrorParam:APEX_ARSENAL_AV.weaponDrawParams('STORMBREAKER','melee',75).mirrorLocal,
       floorAngle:T.floorAngleRad,flightVisualOffset:T.flightVisualOffsetRad,
       refProfile:window.APEX_ARSENAL_STORM?.referenceProfile?.()};
   })()`);
@@ -2734,14 +2816,16 @@ try {
     && Math.abs(report.labFlight.flight?.velocity-report.labFlight.expectedSpeed)<1e-6
     && report.labFlight.heldOffset===Math.PI/2
     && Math.abs(report.labFlight.floorAngle-Math.PI*1.5)<1e-8
-    && Math.abs(report.labFlight.flightVisualOffset-Math.PI)<1e-8
+    && report.labFlight.flightVisualOffset===0
+    && report.labFlight.refProfile?.mirrorLocal===true
+    && report.labFlight.heldMirrorParam===true
     && report.labFlight.refProfile?.flightLinkCount===10
     && report.labFlight.refProfile?.spawnPairCount===13
     && report.labFlight.refProfile?.rawAnchorCount===9
     && report.labFlight.refProfile?.anchorTransform==='ref-landscape-to-game-portrait-90cw'
-    && report.labFlight.refProfile?.spawnLongSide===261
-    && report.labFlight.refProfile?.heldLongSide===224
-    && report.labFlight.refProfile?.flightLongSide===209
+    && report.labFlight.refProfile?.spawnLongSide===240
+    && report.labFlight.refProfile?.heldLongSide===206
+    && report.labFlight.refProfile?.flightLongSide===192
     && report.labFlight.refProfile?.spinRate===82
     && report.labFlight.refProfile?.motesEnabled===true, report.labFlight);
   report.labPigment = await evaluate(`(() => {

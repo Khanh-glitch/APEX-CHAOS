@@ -44,6 +44,10 @@
   CFG.SHIELD_IDS = SHIELD_IDS;
   CFG.WEAPON_TIER = WEAPON_TIER;
   CFG.TIER_COLORS = TIER_COLORS;
+  // B12: heal floor-shadow rarity language maps onto the SAME tier authority
+  // weapons use (H1..H5 -> T1..T5). Heals are not weapons — this map only
+  // drives presentation (floor shadow/glow tier), never spawn logic.
+  CFG.HEAL_TIER = { HEAL_H1: 'T1', HEAL_H2: 'T2', HEAL_H3: 'T3', HEAL_H4: 'T4', HEAL_H5: 'T5' };
   CFG.TIER_ROLL = TIER_ROLL;
   CFG.BY_TIER = BY_TIER;
   CFG.tierOf = (id) => WEAPON_TIER[id] || null;

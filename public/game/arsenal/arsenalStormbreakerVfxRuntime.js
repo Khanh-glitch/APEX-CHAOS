@@ -52,7 +52,7 @@
   // canvas every frame is far cheaper than scaling the 1086x1448 source.
   const CACHE_LONG = 460;
   const PAD = 34;
-  let weaponCache = null, weaponGlowCache = null;
+  let weaponCache = null, weaponGlowCache = null, weaponGhostCache = null;
   function buildCaches() {
     const av = window.APEX_ARSENAL_AV;
     const w = av && av.weaponImage ? av.weaponImage('STORMBREAKER') : null;
@@ -79,18 +79,36 @@
     };
     weaponCache = mk(false);
     weaponGlowCache = mk(true);
+    // B9: cyan afterimage cache — the sprite silhouette re-tinted toward the
+    // electrical palette (source-atop keeps the weapon's own luminance so
+    // the ghost still reads as the weapon, just electric).
+    const gc = document.createElement('canvas');
+    gc.width = cw; gc.height = ch;
+    const gg = gc.getContext('2d');
+    gg.drawImage(weaponCache, 0, 0);
+    gg.globalCompositeOperation = 'source-atop';
+    gg.fillStyle = 'rgba(64,208,255,0.62)';
+    gg.fillRect(0, 0, cw, ch);
+    gg.globalCompositeOperation = 'source-atop';
+    gg.fillStyle = 'rgba(190,246,255,0.20)';
+    gg.fillRect(0, 0, cw, ch);
+    weaponGhostCache = gc;
     return true;
   }
-  function drawWeaponCached(ctx, x, y, worldRot, long, alpha, glow) {
-    if (!weaponCache || !weaponGlowCache) {
+  function drawWeaponCached(ctx, x, y, worldRot, long, alpha, glow, mirror, ghost) {
+    if (!weaponCache || !weaponGlowCache || !weaponGhostCache) {
       if (!buildCaches()) return;
     }
-    const src = glow ? weaponGlowCache : weaponCache;
+    const src = ghost ? weaponGhostCache : (glow ? weaponGlowCache : weaponCache);
     const s = long / CACHE_LONG;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(worldRot);
+    // B6: local mirror reflection across the weapon long axis (local X) —
+    // presentation only; the world rotation above is the aim/flight truth.
+    if (mirror) ctx.scale(1, -1);
     ctx.globalAlpha = alpha;
+    if (ghost) ctx.globalCompositeOperation = 'lighter';
     ctx.drawImage(src, -src.width * s / 2, -src.height * s / 2, src.width * s, src.height * s);
     ctx.restore();
   }
@@ -116,12 +134,15 @@
   ];
   const SNAP_IDX = [0, 2, 5, 8];
 
-  function anchorWorld(cx, cy, worldRot, long, ai) {
+  function anchorWorld(cx, cy, worldRot, long, ai, mirror) {
     const [px, py] = REF_ANCHORS[ai];
     const scale = long / REF_SOURCE_LONG;
     // reference landscape -> game portrait = 90deg CW
-    const ax = -py * scale;
-    const ay = px * scale;
+    let ax = -py * scale;
+    let ay = px * scale;
+    // B6: weapon-local anchors mirror with the body (reflect across the
+    // weapon long axis = local X) so the lattice never detaches.
+    if (mirror) ay = -ay;
     const c = Math.cos(worldRot), s = Math.sin(worldRot);
     return { x: cx + ax * c - ay * s, y: cy + ax * s + ay * c };
   }
@@ -303,12 +324,12 @@
   // ------------------------------------------------- linked arc drawing --
   // Fixed-cost local electricity: a fixed link set across the whole weapon
   // with rapid midpoint wobble (V9 flight grammar). No spawned objects.
-  function spawnHandleWeb(cx, cy, worldRot, long, intensity = 1, phase = 'spawn') {
+  function spawnHandleWeb(cx, cy, worldRot, long, intensity = 1, phase = 'spawn', mirror) {
     const limit = intensity > 1 ? 8 : 6;
     for (let i = 0; i < limit; i++) {
       const pair = SPAWN_PAIRS[Math.floor(rand(0, SPAWN_PAIRS.length))];
-      const a = anchorWorld(cx, cy, worldRot, long, pair[0]);
-      const b = anchorWorld(cx, cy, worldRot, long, pair[1]);
+      const a = anchorWorld(cx, cy, worldRot, long, pair[0], mirror);
+      const b = anchorWorld(cx, cy, worldRot, long, pair[1], mirror);
       makeBolt(a.x, a.y, b.x, b.y, {
         life: rand(0.04, 0.08),
         width: rand(0.45, 0.85),
@@ -321,7 +342,7 @@
     }
     if (Math.random() < 0.6) {
       const ai = Math.floor(rand(0, REF_ANCHORS.length));
-      const a = anchorWorld(cx, cy, worldRot, long, ai);
+      const a = anchorWorld(cx, cy, worldRot, long, ai, mirror);
       makeBolt(a.x, a.y, a.x + rand(-22, 22), a.y + rand(-20, 20), {
         life: 0.05, width: 0.55, power: 0.55 * intensity, rough: 0.28, regen: 0.016,
       });
@@ -333,13 +354,13 @@
   // Literal V9 flight grammar: fixed 10-link web + four short outward snaps.
   // Widths/wobble/snap distances are intentionally NOT multiplied by weapon
   // scale: the prior port did so and made the final effect visibly weaker.
-  function drawLinkedArcs(g, cx, cy, worldRot, long, t, alphaMul = 1) {
+  function drawLinkedArcs(g, cx, cy, worldRot, long, t, alphaMul = 1, mirror) {
     g.save();
     g.lineCap = 'round'; g.lineJoin = 'round';
     for (let i = 0; i < FLIGHT_LINKS.length; i++) {
       const [ia, ib] = FLIGHT_LINKS[i];
-      const a = anchorWorld(cx, cy, worldRot, long, ia);
-      const b = anchorWorld(cx, cy, worldRot, long, ib);
+      const a = anchorWorld(cx, cy, worldRot, long, ia, mirror);
+      const b = anchorWorld(cx, cy, worldRot, long, ib, mirror);
       const mx = (a.x + b.x) * 0.5 + Math.sin(t * 34 + i * 1.83) * 3.8;
       const my = (a.y + b.y) * 0.5 + Math.cos(t * 29 + i * 2.17) * 3.2;
       const pts = [a, { x: mx, y: my }, b];
@@ -348,7 +369,7 @@
       strokePolyline(g, pts, 0.62, 'rgba(246,253,255,.92)', 0.95 * alphaMul, 0);
     }
     for (let j = 0; j < SNAP_IDX.length; j++) {
-      const a = anchorWorld(cx, cy, worldRot, long, SNAP_IDX[j]);
+      const a = anchorWorld(cx, cy, worldRot, long, SNAP_IDX[j], mirror);
       const phase = t * 26 + j * 2.31;
       const ex = a.x + Math.cos(phase) * (13 + j * 1.7);
       const ey = a.y + Math.sin(phase * 1.11) * (11 + j * 1.4);
@@ -395,6 +416,8 @@
       y: f.y + Math.sin(aim) * offset + Math.sin(aim + Math.PI / 2) * lateral,
       theta,
       long,
+      // B6: held arcs mirror with the held body.
+      mirror: T.mirrorLocal === true,
     };
   }
   // Slot draw bob (SPAWN.drawSlots) — kept in sync so arcs track the sprite.
@@ -468,7 +491,7 @@
       if (heldCoronaT <= 0) {
         heldCoronaT = rand(0.05, 0.1);
         const th = heldTransform(held);
-        spawnHandleWeb(th.x, th.y, th.theta, th.long, 1.2, 'held');
+        spawnHandleWeb(th.x, th.y, th.theta, th.long, 1.2, 'held', th.mirror);
         if (Math.random() < 0.5) {
           makeBolt(
             held.f.x + rand(-12, 12), held.f.y + rand(-14, 14),
@@ -486,8 +509,10 @@
     // Flight: track the REAL projectile transform (gameplay truth).
     const fl = findFlight();
     if (fl) {
-      flightHist.push({ x: fl.x, y: fl.y });
-      if (flightHist.length > 6) flightHist.shift();
+      // B9: ghost history — actual positions/rotations on the real (possibly
+      // curved) pursuit path, time-stamped. Bounded pool.
+      flightHist.push({ x: fl.x, y: fl.y, rot: fl.rot, t: clock });
+      if (flightHist.length > 40) flightHist.shift();
       if (flightHist.length === 1) {
         // Literal V9 release accent: 13 sparks + one short owner-to-weapon
         // electrical snap. This is a bounded 110ms release transient, never a
@@ -728,6 +753,39 @@
   }
 
   // Foreground pass (drawForeground, after equipped weapons + AV VFX):
+  // B9: cyan afterimage sampling — fixed count, time-offset along the REAL
+  // recorded trajectory (interpolated), so homing curvature shows honestly.
+  const GHOST_OFFSETS = [0.12, 0.07, 0.03]; // seconds back (short, no tail)
+  const GHOST_ALPHAS = [0.12, 0.20, 0.30];  // oldest -> newest
+  function ghostSamples(now, fl) {
+    const out = [];
+    for (let k = 0; k < GHOST_OFFSETS.length; k++) {
+      const tTarget = now - GHOST_OFFSETS[k];
+      let a = null, b = null;
+      for (let i = flightHist.length - 1; i >= 0; i--) {
+        if (flightHist[i].t <= tTarget) { a = flightHist[i]; b = flightHist[Math.min(i + 1, flightHist.length - 1)]; break; }
+      }
+      if (!a && flightHist.length) {
+        // requested offset predates history: clamp to the oldest real sample
+        a = flightHist[0]; b = flightHist[Math.min(1, flightHist.length - 1)];
+      }
+      if (a) {
+        const u = b && b.t > a.t ? (tTarget - a.t) / (b.t - a.t) : 0;
+        const cu = Math.max(0, Math.min(1, u));
+        out.push({
+          x: a.x + (b.x - a.x) * cu,
+          y: a.y + (b.y - a.y) * cu,
+          rot: a.rot + (b.rot - a.rot) * cu,
+        });
+      } else {
+        // first frames of flight: straight-line fallback (the path has not
+        // had time to curve yet)
+        out.push({ x: fl.x - (fl.vx || 0) * GHOST_OFFSETS[k], y: fl.y - (fl.vy || 0) * GHOST_OFFSETS[k], rot: fl.rot - 82 * GHOST_OFFSETS[k] });
+      }
+    }
+    return out;
+  }
+
   // flight ghosts + local arcs, held arcs, claims, impact flashes, sparks.
   function draw(ctx) {
     if (!AQ.state) return;
@@ -740,19 +798,20 @@
     const fl = findFlight();
     let flightDraw = null;
     if (fl) {
-      const long = T.flightLongSide || T.worldLongSide || 209;
-      const visualOffset = T.flightVisualOffsetRad || 0;
-      const theta = fl.rot + Math.PI / 2 + visualOffset;
+      const long = T.flightLongSide || T.worldLongSide || 192;
+      // B6: the old +pi visual-offset rotation is retired — the flip is a
+      // local mirror reflection inside the sprite transform. World rotation
+      // below stays the aim/flight truth.
+      const mirror = T.mirrorLocal === true;
+      const theta = fl.rot + Math.PI / 2 + (T.flightVisualOffsetRad || 0);
 
       // Exact fixed-cost 10-link web + four short snaps. No history trail.
-      drawLinkedArcs(g, fl.x, fl.y, theta, long, time, 1.0);
+      // Weapon-local anchors mirror with the body.
+      drawLinkedArcs(g, fl.x, fl.y, theta, long, time, 1.0, mirror);
 
-      // V9 ghosts sample ~20ms and ~40ms behind the current weapon. APEX's
-      // projectile path is linear between collisions, so velocity gives the
-      // exact time-offset positions without frame-rate-dependent history.
-      const back1 = { x: fl.x - (fl.vx || 0) * 0.020, y: fl.y - (fl.vy || 0) * 0.020 };
-      const back2 = { x: fl.x - (fl.vx || 0) * 0.040, y: fl.y - (fl.vy || 0) * 0.040 };
-      flightDraw = { fl, long, visualOffset, theta, back1, back2 };
+      // B9: ghosts are sampled from the RECORDED curved trajectory.
+      const ghosts = ghostSamples(clock, fl);
+      flightDraw = { fl, long, mirror, theta, ghosts };
     }
 
     // --- held: V9 uses the transient handle-web emitted in tick().
@@ -760,11 +819,13 @@
     for (const b of bolts) if (!b.floor) drawBolt(g, b);
 
     if (flightDraw) {
-      const { fl: fp, long, visualOffset, theta, back1, back2 } = flightDraw;
-      drawWeaponCached(g, back2.x, back2.y, (fp.rot - 0.68) + Math.PI / 2 + visualOffset, long, 0.10, true);
-      drawWeaponCached(g, back1.x, back1.y, (fp.rot - 0.34) + Math.PI / 2 + visualOffset, long, 0.18, true);
-      drawWeaponCached(g, fp.x, fp.y, (fp.rot - 0.16) + Math.PI / 2 + visualOffset, long, 0.18, true);
-      drawWeaponCached(g, fp.x, fp.y, theta, long, 1.0, false);
+      const { fl: fp, long, mirror, theta, ghosts } = flightDraw;
+      // B9: short cyan afterimages along the immediate recent trajectory,
+      // then ONE solid weapon body. Fixed ghost count, bounded history.
+      for (let k = 0; k < ghosts.length; k++) {
+        drawWeaponCached(g, ghosts[k].x, ghosts[k].y, ghosts[k].rot + Math.PI / 2, long, GHOST_ALPHAS[k], false, mirror, true);
+      }
+      drawWeaponCached(g, fp.x, fp.y, theta, long, 1.0, false, mirror, false);
     }
 
     // --- claim concentration flash (brief, V9 pickup).
@@ -820,6 +881,28 @@
       g.restore();
     }
 
+  }
+
+  // ------------------------------ presentation probes (B6/B9 evidence) --
+  // Same code paths the draw uses; tests assert the local transform law
+  // (det < 0 = reflection, not rotation) and the ghost trajectory sampling.
+  function flightPresentationProbe() {
+    const fl = findFlight();
+    if (!fl) return null;
+    const long = T.flightLongSide || T.worldLongSide || 192;
+    const mirror = T.mirrorLocal === true;
+    const theta = fl.rot + Math.PI / 2 + (T.flightVisualOffsetRad || 0);
+    const ghosts = ghostSamples(clock, fl).map((gh, k) => ({
+      dt: GHOST_OFFSETS[k],
+      x: +gh.x.toFixed(1), y: +gh.y.toFixed(1), rot: +gh.rot.toFixed(3),
+    }));
+    return { x: +fl.x.toFixed(1), y: +fl.y.toFixed(1), theta, long, mirror, det: mirror ? -1 : 1, ghosts, ghostTint: 'cyan', spinRate: 82 };
+  }
+  function heldPresentationProbe() {
+    const held = findHeld();
+    if (!held) return null;
+    const th = heldTransform(held);
+    return { x: +th.x.toFixed(1), y: +th.y.toFixed(1), theta: th.theta, long: th.long, mirror: th.mirror === true, det: th.mirror ? -1 : 1 };
   }
 
   // ------------------------------------------- B3 floor contact hazard --
@@ -901,6 +984,7 @@
     impactFlashA = 0;
     weaponCache = null;
     weaponGlowCache = null;
+    weaponGhostCache = null;
     stats.frames = 0;
   }
 
@@ -914,6 +998,8 @@
     floorContacts,
     onFloorContact,
     testInjectFloorBolt,
+    flightPresentationProbe,
+    heldPresentationProbe,
     boltCount: () => bolts.length,
     sparkCount: () => sparks.length,
     moteCount: () => motes.length,
@@ -932,6 +1018,7 @@
       anchorTransform: 'ref-landscape-to-game-portrait-90cw',
       floorAngleRad: T.floorAngleRad || 0,
       flightVisualOffsetRad: T.flightVisualOffsetRad || 0,
+      mirrorLocal: T.mirrorLocal === true,
       spawnLongSide: T.spawnLongSide || 261,
       heldLongSide: T.heldLongSide || 224,
       flightLongSide: T.flightLongSide || 209,
@@ -940,7 +1027,9 @@
       ringRenderer: 'v9-local',
       genericShockwaveSubstitution: false,
       flightPresentationOwner: 'storm-vfx',
-      ghostOffsetsSeconds: [0.04, 0.02, 0],
+      ghostOffsetsSeconds: GHOST_OFFSETS,
+    ghostTint: 'cyan',
+    ghostSource: 'recorded-trajectory',
       releaseBoltSeconds: 0.11,
       flightWidths: [4.1, 1.55, 0.62],
       spawnStrongEvery: 3,

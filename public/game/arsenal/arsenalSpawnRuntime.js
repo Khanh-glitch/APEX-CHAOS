@@ -357,6 +357,21 @@
 
   // A revealed floor pickup is collected by the first living UNARMED fighter
   // whose collision volume overlaps it.
+  // Shared tier-color rgba helper (B5/B12): parse CFG.TIER_COLORS hex once.
+  const tierRgbCache = {};
+  function tierRgba(tier, alpha) {
+    const hex = (CFG.TIER_COLORS && CFG.TIER_COLORS[tier]) || '#C9D0D7';
+    let rgb = tierRgbCache[hex];
+    if (!rgb) {
+      const n = parseInt(hex.slice(1), 16);
+      rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      tierRgbCache[hex] = rgb;
+    }
+    return 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + alpha.toFixed(3) + ')';
+  }
+  // B5 evidence counter (gates assert the treatment actually draws).
+  const redTierStats = { draws: 0 };
+
   function resolvePickups() {
     const state = AQ.state;
     if (!state) return;
@@ -537,20 +552,51 @@
       ctx.save();
       ctx.translate(slot.x, slot.y);
 
+      // B5: red-tier floor shadow — soft rarity pool + thin rim under an
+      // exceptional item. Semantic: keyed off slot.tier === 'T6', so any
+      // future red-tier slot inherits the treatment unchanged. Colors come
+      // from the shared CFG.TIER_COLORS authority (no magic hex here).
+      if (slot.phase === 'REVEALED' && slot.tier === 'T6') {
+        redTierStats.draws += 1;
+        const spec = (CFG.TIER_GLOW && CFG.TIER_GLOW.T6) || { rx: 78, ry: 22, a: 0.72 };
+        const pulse = 0.5 + 0.5 * Math.sin(t * 1.9 + slot.id);
+        const rx = spec.rx * (0.94 + 0.06 * pulse);
+        const ry = spec.ry * (0.94 + 0.06 * pulse);
+        ctx.save();
+        ctx.translate(0, 26); // ground plane — does NOT bob with the item
+        ctx.globalAlpha = 0.55 + 0.2 * pulse;
+        ctx.fillStyle = tierRgba('T6', 0.34 + 0.10 * pulse);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rx, ry, 0, 0, TAU);
+        ctx.fill();
+        ctx.globalAlpha = 0.5 + 0.22 * pulse;
+        ctx.strokeStyle = tierRgba('T6', 0.55);
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rx * 0.99, ry * 0.99, 0, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+      }
+
       if (slot.kind === 'HEAL' && slot.phase === 'REVEALED') {
         const bob = slot.weaponId === 'STORMBREAKER'
         ? Math.sin(t * 2.6) * 2
         : Math.sin(t * 3.1 + slot.id) * 4;
         const pulse = 0.5 + 0.5 * Math.sin(t * 2.2 + slot.id);
+        // B12: heal floor shadow/glow reads BY TIER through the shared
+        // tier-color authority (H1..H5 -> T1..T5). The heal item art itself
+        // is NOT recolored — only the floor rarity language.
+        const hTier = (CFG.HEAL_TIER && CFG.HEAL_TIER[slot.weaponId]) || 'T2';
+        const hGlow = (CFG.TIER_GLOW && CFG.TIER_GLOW[hTier]) || CFG.TIER_GLOW.T2;
         const well = contactWell('heal');
         ctx.save();
         ctx.translate(0, bob + 18);
         ctx.globalAlpha = 0.9;
         ctx.drawImage(well.canvas, -well.ox, -well.oy + 6);
-        ctx.globalAlpha = 0.28 + 0.18 * pulse;
-        ctx.fillStyle = 'rgba(56,224,122,0.55)';
+        ctx.globalAlpha = 0.24 + 0.20 * pulse;
+        ctx.fillStyle = tierRgba(hTier, 0.42 + hGlow.a * 0.35);
         ctx.beginPath();
-        ctx.ellipse(0, 8, 28 + pulse * 4, 10, 0, 0, TAU);
+        ctx.ellipse(0, 8, 20 + hGlow.rx * 0.42 + pulse * 3, 8 + hGlow.ry * 0.34, 0, 0, TAU);
         ctx.fill();
         ctx.restore();
         ctx.globalAlpha = 1;
@@ -677,6 +723,12 @@
     weightFor,
     PLACEHOLDER_ART,
     rarityStats,
+    redTierStats,
+    healShadowSpec: (id) => {
+      const tier = (CFG.HEAL_TIER && CFG.HEAL_TIER[id]) || 'T2';
+      const glow = (CFG.TIER_GLOW && CFG.TIER_GLOW[tier]) || CFG.TIER_GLOW.T2;
+      return { id, tier, color: (CFG.TIER_COLORS && CFG.TIER_COLORS[tier]) || null, glow };
+    },
   };
   window.apexArsenalSpawnRuntime = 'ready';
 })();

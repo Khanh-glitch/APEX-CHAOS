@@ -603,6 +603,10 @@
     ctx.translate(x || 0, y || 0);
     if (options.angle) ctx.rotate(options.angle);
     if (options.keepUpright && Math.cos(options.angle || 0) < 0) ctx.scale(1, -1);
+    // B6: local mirror reflection across the weapon's long axis (local X).
+    // Pure presentation: world angle, aim, physics, and collision are set
+    // before this transform and are not affected by it.
+    if (options.mirrorLocal) ctx.scale(1, -1);
     ctx.globalAlpha *= options.alpha == null ? 1 : options.alpha;
     if (options.glow) {
       ctx.shadowColor = options.glow;
@@ -629,8 +633,15 @@
     let drawOffset = Math.PI / 2; // extra rotation for upright-authored sprites
     let targetLongSide = 138;
     let offset = radius * 0.72;
+    let mirrorLocal = false;
     if (category === 'melee') {
-      if (weaponId === 'STORMBREAKER') targetLongSide = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.STORMBREAKER && window.APEX_ARSENAL_CONFIG.STORMBREAKER.heldLongSide) || 224;
+      if (weaponId === 'STORMBREAKER') {
+        const st = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.STORMBREAKER) || {};
+        targetLongSide = st.heldLongSide || 206;
+        // B6: held presentation is a mirror reflection (local negative scale
+        // across the weapon long axis) — never a +pi rotation.
+        mirrorLocal = st.mirrorLocal === true;
+      }
       else targetLongSide = weaponId === 'SPEAR' ? 190 : weaponId === 'BATTLE_AXE' ? 155 : 145;
     } else if (category === 'defense') {
       targetLongSide = weaponId === 'TOWER_SHIELD' ? 145 : 128;
@@ -648,7 +659,7 @@
     }
     const gunTable = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.FIREARM_LONG_SIDE) || {};
     const isGun = !!gunTable[weaponId];
-    return { drawOffset, targetLongSide, offset, useWorld: !isGun && !!(weaponMeta(weaponId) && weaponMeta(weaponId).worldW && category !== 'melee' && category !== 'defense' && weaponId !== 'GRENADE') };
+    return { drawOffset, targetLongSide, offset, mirrorLocal, useWorld: !isGun && !!(weaponMeta(weaponId) && weaponMeta(weaponId).worldW && category !== 'melee' && category !== 'defense' && weaponId !== 'GRENADE') };
   }
 
   // Checkpoint B (B-handoff PART 2): the weapon sprite transform consumes the
@@ -673,6 +684,7 @@
       glow: category === 'defense' ? '#9fe8ff' : null,
       shadowBlur: 10,
       keepUpright: category === 'ranged' && weaponId !== 'GRENADE',
+      mirrorLocal: params.mirrorLocal === true,
     });
   }
 

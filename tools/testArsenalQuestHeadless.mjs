@@ -3567,9 +3567,9 @@ gate('storm-balance-audited-values',
   && stormId.speed === 1350
   && stormId.ricochets === 1
   && stormId.spin === 82
-  && stormId.tuning.spawnLongSide === 261
-  && stormId.tuning.heldLongSide === 224
-  && stormId.tuning.flightLongSide === 209,
+  && stormId.tuning.spawnLongSide === 240
+  && stormId.tuning.heldLongSide === 206
+  && stormId.tuning.flightLongSide === 192,
   { spec: stormId.spec, tuning: stormId.tuning });
 gate('storm-asset-cset-registered',
   !!stormId.cSet && stormId.cSet.file === 'weapons/c/STORMBREAKER.webp' && stormId.cSet.w === 1086 && stormId.cSet.h === 1448,
@@ -4060,6 +4060,160 @@ gate('storm-b8-homing-pursuit-bounded-curves-connects',
   && b8.cumTurn >= 0.15,
   b8);
 
+// ── CP4: weapon and heal presentation ──────────────────────────────────────
+// B4 (body ~92% + world effects keep scale), B5 (red-tier floor shadow),
+// B6 (mirror reflection, not rotation), B9 (cyan recorded-trajectory
+// afterimages), B11 (firearm class ladder around the rifle baseline),
+// B12 (heal floor shadow by tier through the shared tier authority).
+report.cp4Present = run(`
+  const CFG = APEX_ARSENAL_CONFIG;
+  const S = window.APEX_ARSENAL_STORM;
+  const SPAWN = APEX_ARSENAL_SPAWN;
+  const AV = APEX_ARSENAL_AV;
+  const out = {};
+
+  // --- B4: body sprite scale ~ low-90% of pre-CP4 (261/224/209).
+  out.bodyScale = {
+    spawn: CFG.STORMBREAKER.spawnLongSide, held: CFG.STORMBREAKER.heldLongSide, flight: CFG.STORMBREAKER.flightLongSide,
+    ratioSpawn: +(CFG.STORMBREAKER.spawnLongSide / 261).toFixed(4),
+    ratioHeld: +(CFG.STORMBREAKER.heldLongSide / 224).toFixed(4),
+    ratioFlight: +(CFG.STORMBREAKER.flightLongSide / 209).toFixed(4),
+  };
+  out.b4Body = out.bodyScale.ratioSpawn > 0.90 && out.bodyScale.ratioSpawn <= 0.93
+    && out.bodyScale.ratioHeld > 0.90 && out.bodyScale.ratioHeld <= 0.93
+    && out.bodyScale.ratioFlight > 0.90 && out.bodyScale.ratioFlight <= 0.93;
+  // World-scale effects are NOT keyed to the body long side: the impact
+  // flash radius and arena illumination live in the vfx draw at fixed world
+  // radii, and floor discharge bolts span slot -> arena edge (unchanged
+  // spawnGroundPulse). Asserted structurally via the source, not constants
+  // of the body scale.
+  out.drawSrcLen = String(S.draw).length;
+  out.drawHasImpactBlock = String(S.draw).includes('tight hit-point flash');
+out.impactRadiusIsWorldFixed = String(S.draw).includes('g.arc(x, y, 130,');
+
+  // --- B6: mirror reflection, never a rotation.
+  const params = AV.weaponDrawParams('STORMBREAKER', 'melee', 75);
+  out.heldMirror = params.mirrorLocal === true;
+  out.offsetRetired = CFG.STORMBREAKER.flightVisualOffsetRad === 0;
+  out.mirrorLaw = CFG.STORMBREAKER.mirrorLocal === true;
+  // Live proof: equip + flight probes report the local transform law.
+  __AQ_TEST.enterManual();
+  __AQ_TEST.clearEvents();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(400, 500, 800, 500);
+  __AQ_TEST.equip('HERO', 'STORMBREAKER');
+  const heldProbe = S.heldPresentationProbe ? S.heldPresentationProbe() : null;
+  out.heldProbe = heldProbe && { det: heldProbe.det, mirror: heldProbe.mirror, long: heldProbe.long };
+  __AQ_TEST.step(0.85); // release ~0.73s -> flight
+  let flightProbe = null;
+  for (let i = 0; i < 30 && !flightProbe; i++) {
+    __AQ_TEST.step(1 / 60);
+    flightProbe = S.flightPresentationProbe ? S.flightPresentationProbe() : null;
+  }
+  out.flightProbe = flightProbe && {
+    det: flightProbe.det, mirror: flightProbe.mirror, long: flightProbe.long,
+    ghostCount: flightProbe.ghosts.length,
+    ghostDts: flightProbe.ghosts.map(g => g.dt),
+    ghostTint: flightProbe.ghostTint,
+    ghostSpread: +(Math.hypot(flightProbe.ghosts[0].x - flightProbe.x, flightProbe.ghosts[0].y - flightProbe.y)).toFixed(1),
+  };
+  // Physics untouched by the presentation flip: speed stays exactly 1350.
+  out.flightSpeedExact = flightProbe ? true : false;
+  const fp = projectiles.find(q => q.aq && q.weapon === 'STORMBREAKER');
+  out.flightSpeed = fp ? +Math.hypot(fp.vx, fp.vy).toFixed(2) : null;
+
+  // --- B9: afterimages on the RECORDED curved trajectory (bounded pool).
+  out.b9 = out.flightProbe && out.flightProbe.ghostCount === 3
+    && out.flightProbe.ghostDts.join(',') === '0.12,0.07,0.03'
+    && out.flightProbe.ghostTint === 'cyan'
+    && out.flightProbe.ghostSpread > 40; // visibly distributed, still short
+
+  // --- B5: red-tier floor shadow actually draws under a T6 floor slot.
+  __AQ_TEST.enterManual();
+  __AQ_TEST.holdSpawns();
+  __AQ_TEST.place(200, 200, 800, 800);
+  __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER', tier: 'T6' });
+  const noopCtx = new Proxy({}, {
+    get: (t, k) => (k === 'canvas' ? { width: 100, height: 100 } : () => {}),
+    set: (t, k, v) => { t[k] = v; return true; },
+  });
+  const drawsBefore = SPAWN.redTierStats.draws;
+  try { SPAWN.drawSlots(noopCtx); } catch (e) { out.drawSlotsErr = String(e); }
+  out.redTierShadowDraws = SPAWN.redTierStats.draws - drawsBefore;
+  const t6Slot = APEX_ARSENAL.state.slots.find(sl => sl.weaponId === 'STORMBREAKER');
+  out.t6SlotTier = t6Slot && t6Slot.tier;
+
+  // --- B12: heal floor shadow/glow reads by tier via the shared authority.
+  out.healShadows = CFG.HEAL_IDS.map(id => SPAWN.healShadowSpec ? SPAWN.healShadowSpec(id) : null);
+  out.healTiersOk = out.healShadows.every((sp, i) => sp && sp.tier === 'T' + (i + 1)
+    && sp.color === CFG.TIER_COLORS['T' + (i + 1)]);
+  // And the heal DRAW uses the tier color: instrument fillStyle on HEAL_H3.
+  __AQ_TEST.clearSlots();
+  __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'HEAL_H3', kind: 'HEAL', tier: 'T3' });
+  const seenFills = [];
+  const recCtx = new Proxy({}, {
+    get: (t, k) => (k === 'canvas' ? { width: 100, height: 100 } : () => {}),
+    set: (t, k, v) => { if (k === 'fillStyle' && typeof v === 'string') seenFills.push(v); t[k] = v; return true; },
+  });
+  try { SPAWN.drawSlots(recCtx); } catch (e) {}
+  const want = CFG.TIER_COLORS.T3; // #4F9DFF -> rgba(79,157,255,...)
+  out.healH3UsedTierColor = seenFills.some(f => f.startsWith('rgba(79,157,255,'));
+  out.seenFillsSample = seenFills.slice(0, 6);
+
+  // --- B11: firearm class ladder around the accepted rifle baseline.
+  const L = CFG.FIREARM_LONG_SIDE;
+  const cls = {
+    compact: ['PISTOL', 'GLOCK_17', 'BERETTA_93R'],
+    heavyPistol: ['DESERT_DEAGLE', 'MAGNUM_500'],
+    smg: ['TEC_9', 'MAC_10', 'P90', 'SMG'],
+    rifle: ['AK_47', 'M16', 'ZBROYAR_Z15', 'ZBROYAR_Z15_S1', 'ZBROYAR_Z15_S2', 'ZBROYAR_Z15_S3'],
+    big: ['MOSSBERG_500', 'SHOTGUN', 'JACKHAMMER', 'M249_SAW', 'MBR', 'MBR2', 'SZECSEI_FUCHS', 'SNIPER'],
+  };
+  const mx = arr => Math.max.apply(null, arr.map(id => L[id]));
+  const mn = arr => Math.min.apply(null, arr.map(id => L[id]));
+  out.ladder = {
+    compact: [mn(cls.compact), mx(cls.compact)],
+    heavyPistol: [mn(cls.heavyPistol), mx(cls.heavyPistol)],
+    smg: [mn(cls.smg), mx(cls.smg)],
+    rifle: [mn(cls.rifle), mx(cls.rifle)],
+    big: [mn(cls.big), mx(cls.big)],
+    sawedOff: L.SAWED_OFF,
+  };
+  out.ladderOk = mx(cls.compact) < mn(cls.heavyPistol)
+    && mx(cls.heavyPistol) < mn(cls.smg)
+    && mx(cls.smg) < mn(cls.rifle)
+    && mn(cls.rifle) >= 150 && mx(cls.rifle) <= 156
+    && mn(cls.big) >= mx(cls.rifle)
+    && L.SNIPER === 188 && L.AK_47 === 154 && L.M16 === 154;
+  // Floor/equipped/exit all scale from the SAME table (relative consistency).
+  out.displayModes = CFG.FIREARM_DISPLAY_MODE;
+  out.modeConsistent = out.displayModes.equipped === 1 && out.displayModes.floor < 1 && out.displayModes.exit > out.displayModes.floor;
+
+  return JSON.stringify(out);
+`);
+const cp4 = JSON.parse(report.cp4Present);
+gate('storm-cp4-body-scale-and-world-effects',
+  cp4.b4Body === true && cp4.impactRadiusIsWorldFixed === true,
+  cp4.bodyScale);
+gate('storm-cp4-mirror-not-rotation',
+  cp4.heldMirror === true && cp4.offsetRetired === true && cp4.mirrorLaw === true
+  && cp4.heldProbe && cp4.heldProbe.det === -1 && cp4.heldProbe.mirror === true
+  && cp4.flightProbe && cp4.flightProbe.det === -1 && cp4.flightProbe.mirror === true
+  && cp4.flightSpeed === 1350,
+  { held: cp4.heldProbe, flight: cp4.flightProbe, speed: cp4.flightSpeed });
+gate('storm-cp4-cyan-afterimages-recorded-trajectory',
+  cp4.b9 === true,
+  cp4.flightProbe);
+gate('storm-cp4-red-tier-floor-shadow-draws',
+  cp4.redTierShadowDraws >= 1 && cp4.t6SlotTier === 'T6' && !cp4.drawSlotsErr,
+  { draws: cp4.redTierShadowDraws, tier: cp4.t6SlotTier, err: cp4.drawSlotsErr || null });
+gate('heal-cp4-floor-shadow-by-tier',
+  cp4.healTiersOk === true && cp4.healH3UsedTierColor === true,
+  { shadows: cp4.healShadows, seenFillsSample: cp4.seenFillsSample });
+gate('firearm-cp4-class-ladder-rifle-baseline',
+  cp4.ladderOk === true && cp4.modeConsistent === true,
+  { ladder: cp4.ladder, modes: cp4.displayModes });
+
 // ── B3: floor lightning is a real contact hazard ───────────────────────────
 // The VISIBLE floor-bolt geometry is the hit authority: a fighter circle
 // touching a floor bolt's current polyline (mains + branches) takes exactly
@@ -4206,14 +4360,21 @@ gate('storm-v9-reference-structure',
   && stormVfx.profile.snapCount === 4
   && stormVfx.profile.rawAnchorCount === 9
   && stormVfx.profile.anchorTransform === 'ref-landscape-to-game-portrait-90cw'
-  && stormVfx.profile.spawnLongSide === 261
-  && stormVfx.profile.heldLongSide === 224
-  && stormVfx.profile.flightLongSide === 209
+  && stormVfx.profile.spawnLongSide === 240
+  && stormVfx.profile.heldLongSide === 206
+  && stormVfx.profile.flightLongSide === 192
   && stormVfx.profile.slowMult === undefined
   && stormVfx.profile.spinRate === 82
   && stormVfx.profile.motesEnabled === true
   && Math.abs(stormVfx.profile.floorAngleRad - Math.PI * 1.5) < 1e-8
-  && Math.abs(stormVfx.profile.flightVisualOffsetRad - Math.PI) < 1e-8
+  // B6: the +pi visual-offset rotation is RETIRED — the flip is a local
+  // mirror reflection (negative local scale), never a rotation.
+  && stormVfx.profile.flightVisualOffsetRad === 0
+  && stormVfx.profile.mirrorLocal === true
+  // B9: cyan afterimages sampled from the recorded curved trajectory.
+  && stormVfx.profile.ghostOffsetsSeconds.join(',') === '0.12,0.07,0.03'
+  && stormVfx.profile.ghostTint === 'cyan'
+  && stormVfx.profile.ghostSource === 'recorded-trajectory'
   && stormVfx.profile.flightWidths.join(',') === '4.1,1.55,0.62'
   && stormVfx.profile.spawnStrongEvery === 3
   && stormVfx.spawnWebBursts > 0,
