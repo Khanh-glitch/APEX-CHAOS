@@ -906,6 +906,11 @@
     playLater,
     stats,
     audioReady: () => stats.audioLoaded,
+    // CP7: a true predicate — audioReady() returns a COUNT (the headless
+    // harness compares it against the total); callers that need "all clips
+    // settled" must use audioSettled() instead of truthiness, which was
+    // true as soon as ONE clip decoded.
+    audioSettled: () => (stats.audioLoaded + (stats.audioFailed || 0)) >= ALL_AUDIO.length,
     imagesReady: () => stats.imagesLoaded,
     activeVfx: () => vfx.length,
     drawWeaponSprite,

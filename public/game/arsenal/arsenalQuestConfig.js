@@ -438,7 +438,10 @@
         'hub-ready': !!(window.APEX_ARSENAL_META && document.getElementById('aq-meta-root')),
         'arsenal-full-runtime-ready': !!window['__apexDeferredRuntimesReady_arsenalQuest'],
         'av-images-ready': !!(AV && AV.imagesSettled && AV.imagesSettled()),
-        'av-audio-ready': !!(AV && AV.audioReady && AV.audioReady()),
+        // CP7: compare against the TOTAL — audioReady() is a count and its
+        // truthiness was true after a single decode, reporting the audio
+        // tier ready while the bank was still decoding.
+        'av-audio-ready': !!(AV && AV.audioSettled && AV.audioSettled()),
       },
     };
   };

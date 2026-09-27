@@ -3261,9 +3261,11 @@ try {
     out.masterInMatch = state().masterGain;
     // AV hot-bank decode must finish first: playEntry() no-ops (notReady)
     // on undecoded buffers, which would make the SFX-live evidence racy.
-    // 15s budget: cold dev-server runs (module graph recompiling) can push
-    // the 50-clip decode past the old 9s budget.
-    for (let i = 0; i < 100 && !APEX_ARSENAL_AV.audioReady(); i++) await sleep(150);
+    // CP7: wait for the bank to SETTLE — audioReady() returns a count and
+    // its truthiness was true after the first decode, so the old wait
+    // exited immediately and the storm cues raced the decode (avPlayed
+    // read 0/1/2 depending on timing).
+    for (let i = 0; i < 100 && !APEX_ARSENAL_AV.audioSettled(); i++) await sleep(150);
     // (2) Stormbreaker mid-flight + a registered LOOPING source, then exit
     //     mid-flight with a scheduled old-session cue still PENDING.
     const playedAtEquip = window.APEX_ARSENAL_AV.stats.played;
@@ -3287,7 +3289,10 @@ try {
     let cueFired = false;
     window.apexBattleAudioScheduleCue(() => { cueFired = true; }, 300);
     out.midFlight = { session: info(), avPlayed: window.APEX_ARSENAL_AV.stats.played - playedAtEquip,
-      loopRegistered: info().registeredSources >= 1, cuePendingAtExit: info().pendingCues >= 1 };
+      loopRegistered: info().registeredSources >= 1, cuePendingAtExit: info().pendingCues >= 1,
+      // Diagnostics: which guard (if any) skipped the storm cues.
+      throttledAtMidFlight: JSON.parse(JSON.stringify(window.APEX_ARSENAL_AV.stats.throttled || {})),
+      scheduledTail: window.APEX_ARSENAL_AV.stats.scheduled.slice(-3) };
     window.exitArsenalQuestMode();
     out.exitImmediate = { session: info(), master: state().masterGain };
     await sleep(550); // past the 300ms cue and any settle window
@@ -3322,14 +3327,17 @@ try {
     window.exitArsenalQuestMode();
     await sleep(100);
     // Settle-poll: the menu music resume is async — a single read races it.
+    // Poll until BOTH playing and buffered: the restart seek (currentTime=0)
+    // transiently drops readyState to HAVE_METADATA (1) on slow runners even
+    // though the element is already playing.
     let bgmAfter = window.__apexMenuBgmState();
-    for (let i = 0; i < 24 && bgmAfter.paused; i++) { await sleep(75); bgmAfter = window.__apexMenuBgmState(); }
+    for (let i = 0; i < 24 && (bgmAfter.paused || bgmAfter.readyState < 2); i++) { await sleep(75); bgmAfter = window.__apexMenuBgmState(); }
     // CP7: a transient pause at the handoff must heal on the next user
     // interaction (the unlock listener is re-armed) — assert that
     // user-level recovery too, not just the immediate resume.
-    if (bgmAfter.paused) {
+    if (bgmAfter.paused || bgmAfter.readyState < 2) {
       window.dispatchEvent(new Event('pointerdown'));
-      for (let i = 0; i < 12 && bgmAfter.paused; i++) { await sleep(75); bgmAfter = window.__apexMenuBgmState(); }
+      for (let i = 0; i < 12 && (bgmAfter.paused || bgmAfter.readyState < 2); i++) { await sleep(75); bgmAfter = window.__apexMenuBgmState(); }
     }
     out.bgmAfter = bgmAfter;
     return JSON.stringify(out);
