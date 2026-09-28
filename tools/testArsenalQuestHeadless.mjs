@@ -4104,8 +4104,13 @@ gate('storm-b7-thrown-immune-to-hero-manipulation',
 report.stormB8Homing = run(`
   // Deterministic shells: enterManual() would reuse lastShells (the B7
   // blocks above leave NEWBIE/ICE, and ICE carries a canonical taken:x0.98
-  // tune — 446*0.98=437.08). NEWBIE has no numeric tuning entry (x1).
-  window.startArsenalQuestMode('NEWBIE', 'NEWBIE');
+  // tune — 446*0.98=437.08). HERO/RIVAL are the plain engine pair — no
+  // shell-roster entry, no tuning, no rework combat (post-cutover NEWBIE
+  // resolves to the ROBOT rework shell, whose alive P2 cast AI opens
+  // virtual_armor [incomingMult 0.45] during the bolt flight and turns the
+  // 446 into 200.7 — correct product behavior this physics gate must not
+  // measure).
+  window.startArsenalQuestMode('HERO', 'RIVAL');
   cancelAnimationFrame(reqId); reqId = 0;
   __AQ_TEST.clearEvents();
   __AQ_TEST.place(150, 500, 620, 500);
