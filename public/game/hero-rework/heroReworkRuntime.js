@@ -384,6 +384,11 @@
           if (g.owner === ct && !g.endedBy) g.endedBy = 'equipment';
         }
       },
+      // Virtual Armor lifecycle end -> route to the owning hero's PASSIVE
+      // executor hooks (single authority for the /2 gate law).
+      armorEnded(ct) {
+        eachExecutor(ct, (exec, ctx) => { if (exec.onArmorEnded) exec.onArmorEnded(ctx); });
+      },
       spawnShards(ct, x, y, n) {
         for (let i = 0; i < n; i++) {
           const a = rng() * Math.PI * 2;
@@ -510,6 +515,22 @@
       },
       heldWeapon: (ct) => (ct && ct.anchor ? heldWeaponOfBody(ct.anchor) : null),
       isT6Weapon: (weaponId) => weaponId === 'STORMBREAKER' || weaponId === 'T6',
+      // MIRROR A1 copy: a FRESH same-weapon instance with fresh use/ammo
+      // state (equip() always builds a brand-new holder). The opponent
+      // keeps the original. Temporary: the mirror.arsenal executor expires
+      // it after the copy lifetime (only if still held and still the copy).
+      grantWeaponCopy(ct, weaponId, lifetime) {
+        const a = ct && ct.anchor;
+        if (!a || a.hp <= 0) return false;
+        const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+        if (!W || !W.equip) return false;
+        const ok = W.equip(a, weaponId);
+        if (!ok) return false;
+        if (a.data && a.data.arsenal) a.data.arsenal.__hrMirrorCopy = true;
+        ct.store.__mirrorCopy = { weaponId, until: AIL.clock() + (lifetime || 6) };
+        AIL.bus.emit('MirrorCopy', { hero: ct.heroId, weaponId, lifetime: lifetime || 6 });
+        return true;
+      },
       liveProjectiles: () => (globalScope.projectiles || []),
       abilityController,
       note(skillId, kind, data) {
@@ -742,13 +763,45 @@
   function promoteAnchor(ct) {
     const living = livingBodies(ct).filter((b) => b !== ct.anchor);
     if (!living.length) return; // combatant truly dead — engine KO stands
+    // DOC-06 SLIME LAW: child Bodies never enter the legacy fighters[]
+    // array. The retired anchor stays in the slot as a neutralized
+    // representative (still, invisible, untouchable); the promoted anchor
+    // is driven + drawn by the rework runtime instead of the engine.
+    const retired = ct.anchor;
     const next = living[0];
-    const fighters = globalScope.fighters;
-    if (fighters && fighters[ct.idx] === ct.anchor) fighters[ct.idx] = next;
+    retired.baseSpeed = 0;
+    retired.data.positionLocked = true;
+    retired.data.__hrRetiredAnchor = true;
+    retired.draw = function retiredAnchorDraw() {}; // engine draw -> nothing
     ct.anchor = next;
     next.__hrRefHp = next.__hrRefHp || next.maxHp;
     AIL.bus.emit('SlimeAnchorPromoted', { combatant: ct.heroId, newAnchor: next.id });
   }
+
+  /* ------------------------------------------------------------------ *
+   * Combatant-level HP authority (doc 02: logical victory/HUD/save =
+   * Combatant; body-local HP stays the physical damage authority; a
+   * Combatant dies only when no living Body remains). Shared body
+   * queries (KO check, HUD) route through these instead of reading the
+   * current anchor's hp directly.
+   * ------------------------------------------------------------------ */
+  function combatantHp(ct) {
+    const living = livingBodies(ct);
+    let hp = 0, maxHp = 0;
+    for (const b of living) { hp += b.hp; maxHp += (b.__hrRefHp || b.maxHp); }
+    return { hp, maxHp: maxHp || 1, bodies: living.length };
+  }
+  HR.combatantHp = combatantHp;
+  HR.bodyKO = function bodyKO(f) {
+    const ct = combatantOfBody(f);
+    if (!ct || ct.facade) return (f ? f.hp <= 0 : true); // legacy body
+    return livingBodies(ct).length === 0; // rework: Combatant death law
+  };
+  HR.bodyHudHp = function bodyHudHp(f) {
+    const ct = combatantOfBody(f);
+    if (!ct || ct.facade) return { hp: f.hp, maxHp: f.maxHp }; // legacy body
+    return combatantHp(ct); // logical Combatant total living HP
+  };
 
   /* ------------------------------------------------------------------ *
    * Fire hooks (audited call-sites in arsenalWeaponRuntime).
@@ -971,11 +1024,19 @@
       p2CastAI(ct, dt);
       eachExecutor(ct, (exec, ctx) => { if (exec.onTick) exec.onTick(ctx, dt); });
     }
-    // Child bodies: full engine pipeline + holder updates.
+    // Child bodies: full engine pipeline + holder updates. The anchor is
+    // driven by the ENGINE while it is the fighters[] entry; a PROMOTED
+    // anchor (SLIME, doc-06: children never enter fighters[]) is driven
+    // here instead so it keeps moving/fighting after promotion.
     const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+    const engineDrives = (ct) => {
+      const arr = globalScope.fighters;
+      return !!(arr && arr[ct.idx] === ct.anchor);
+    };
     for (const ct of M.combatants) {
       for (const b of ct.bodies) {
-        if (!b || b.hp <= 0 || b === ct.anchor) continue;
+        if (!b || b.hp <= 0) continue;
+        if (b === ct.anchor && engineDrives(ct)) continue;
         childAI(b, dt);
         if (W && W.updateHolder) W.updateHolder(b, dt);
       }
@@ -1986,10 +2047,15 @@
       c.fill();
       c.globalAlpha = 1;
     }
-    // SLIME child bodies (not in fighters[] — engine never draws them).
+    // SLIME child bodies + promoted anchors (not in fighters[] — the
+    // engine never draws them). The CURRENT fighters[] anchor is drawn by
+    // the engine and skipped here.
     for (const ct of M.combatants) {
+      const arr = globalScope.fighters;
+      const engineDrawsAnchor = !!(arr && arr[ct.idx] === ct.anchor);
       for (const b of ct.bodies) {
-        if (!b || b.hp <= 0 || b === ct.anchor) continue;
+        if (!b || b.hp <= 0) continue;
+        if (b === ct.anchor && engineDrawsAnchor) continue;
         if (typeof b.draw === 'function') b.draw(c);
       }
     }

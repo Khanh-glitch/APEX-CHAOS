@@ -345,8 +345,16 @@
     if (arenaFlash.a > 0) arenaFlash.a = Math.max(0, arenaFlash.a - dt * 1.6);
     if (cameraShake > 0) cameraShake = Math.max(0, cameraShake - dt * 22);
     cameraZoom = lerp(cameraZoom, 1, dt * 2);
-    if (!state.labMode && !state.over && fighters[0] && fighters[1] && (fighters[0].hp <= 0 || fighters[1].hp <= 0)) {
-      const winner = fighters[0].hp > fighters[1].hp ? fighters[0] : fighters[1];
+    // HERO REWORK (doc 02/06): KO/victory truth is COMBATANT-level — a
+    // SLIME Combatant lives while any Body lives; the legacy fighters[]
+    // entry may be a retired anchor at 0 HP. Shared-query patch: route
+    // through the rework HP authority when present (legacy behavior
+    // unchanged otherwise).
+    const HRW = window.APEX_HERO_REWORK;
+    const aqKO = (f) => (HRW && HRW.bodyKO) ? HRW.bodyKO(f) : (f.hp <= 0);
+    const aqHp = (f) => (HRW && HRW.bodyHudHp) ? HRW.bodyHudHp(f).hp : f.hp;
+    if (!state.labMode && !state.over && fighters[0] && fighters[1] && (aqKO(fighters[0]) || aqKO(fighters[1]))) {
+      const winner = aqHp(fighters[0]) > aqHp(fighters[1]) ? fighters[0] : fighters[1];
       state.over = winner.name;
       AQ.log('KO', `winner=${winner.name}`);
       if (window.APEX_ARSENAL_QUEST && window.APEX_ARSENAL_QUEST.onMatchOver) {

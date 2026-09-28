@@ -32,26 +32,41 @@
    * tuning slots, monotonic in the "better for the player" direction.
    * Each curve receives the Lv1 base value and the level.
    * ------------------------------------------------------------------ */
-  const CURVES = {
-    // cooldown -12.5% per level above 1 (provisional)
+  /* ------------------------------------------------------------------ *
+   * TEST-ONLY NON-PRODUCTION FIXTURE CURVES.
+   *
+   * Phase 1 froze progression STRUCTURE only (one knobPath per skill,
+   * levels 1..5). Exact Lv2-Lv5 numeric balance is explicitly UNRESOLVED
+   * (doc 04: "Exact Lv2-Lv5 values are not frozen here. What may scale is
+   * frozen."). These fixtures exist ONLY so structural tests can prove the
+   * one-knob law at Lv2-5. They are NOT production balance, are NOT active
+   * by default, and must never be used to resolve live gameplay configs.
+   * ------------------------------------------------------------------ */
+  const TEST_ONLY_FIXTURE_CURVES = {
+    // fixture: cooldown -12.5% per level above 1
     cooldown_step: (base, level) => (level <= 1 ? base : base * Math.pow(0.875, level - 1)),
-    // magnitude +12% per level above 1 (provisional)
+    // fixture: magnitude +12% per level above 1
     magnitude_step: (base, level) => (level <= 1 ? base : base * (1 + 0.12 * (level - 1))),
-    // fraction percentage points +0.04 (4pp) per level above 1 (provisional)
+    // fixture: fraction percentage points +0.04 (4pp) per level above 1
     pp_step: (base, level) => (level <= 1 ? base : base + 0.04 * (level - 1)),
-    // fraction threshold -0.04 (4pp) per level above 1 — triggers sooner (provisional)
+    // fixture: fraction threshold -0.04 (4pp) per level above 1 — triggers sooner
     pp_threshold_step: (base, level) => (level <= 1 ? base : base - 0.04 * (level - 1)),
-    // capacity +1 per level above 1 (provisional)
+    // fixture: capacity +1 per level above 1
     capacity_step: (base, level) => (level <= 1 ? base : base + (level - 1)),
-    // seconds step +0.5s per level above 1 (provisional)
+    // fixture: seconds step +0.5s per level above 1
     seconds_step: (base, level) => (level <= 1 ? base : base + 0.5 * (level - 1)),
-    // multiplicative N (xN / /N) +1 per level above 1 (provisional)
+    // fixture: multiplicative N (xN / /N) +1 per level above 1
     factor_step: (base, level) => (level <= 1 ? base : base + (level - 1)),
-    // spread multiplier toward 0: -15% of remaining per level (provisional)
+    // fixture: spread multiplier toward 0: -15% of remaining per level
     spread_step: (base, level) => (level <= 1 ? base : base * Math.pow(0.85, level - 1)),
-    // threshold (continuous-chill / split) -0.25s or -2pp per level (provisional)
+    // fixture: threshold (continuous-chill / split) -0.25s or -2pp per level
     threshold_step: (base, level) => (level <= 1 ? base : base - 0.25 * (level - 1)),
   };
+  // Production state: NO approved Lv2-5 curves. Fixtures activate only via
+  // the explicit test hook below and are always uninstallable.
+  let testCurveOverride = null;
+  function installTestCurves(map) { testCurveOverride = map || TEST_ONLY_FIXTURE_CURVES; }
+  function uninstallTestCurves() { testCurveOverride = null; }
 
   /* ------------------------------------------------------------------ *
    * Helpers — skill definition factory keeps every entry uniform.
@@ -67,7 +82,12 @@
         minLevel: 1,
         maxLevel: 5,
         knobPath: Object.freeze(knobPath.slice()), // frozen ARRAY (law)
-        curveId,
+        // Lv1 canonical values are authority; Lv2-5 numeric balance is
+        // UNRESOLVED. fixtureCurveRef names a TEST-ONLY fixture for
+        // structural one-knob proofs — never a production balance source.
+        curveRef: null,
+        curveStatus: 'UNRESOLVED',
+        fixtureCurveRef: curveId,
       }),
       activationPolicy: slot === 'PASSIVE' ? 'ALWAYS' : 'MANUAL',
       lifecyclePolicyRef: `${mechanicId}.lifecycle@lv1`,
@@ -100,9 +120,14 @@
           cooldown: 10, duration: 3.0, incomingMult: 0.45, ccImmunity: false,
         }, ['incomingMult'], 'magnitude_step'),
         PASSIVE: skill('robot.damage_milestones', 'PASSIVE', 'robot.damage_milestones', {
-          // Uses the existing visible cumulative damage-dealt milestone ladder.
-          milestoneRefundsSec: [0, 0.5, 1.0, 1.5], // index = milestone # - 1; then +0.5s each
-          stepAfterLadder: 0.5,
+          // Refund sequence is owner authority (doc 02). Damage thresholds
+          // are an EXPLICIT UNRESOLVED TUNING DEPENDENCY: no visible ladder
+          // exists in the engine, so the Passive records credited realized
+          // damage but never fires refunds until the owner resolves this.
+          milestoneThresholds: null, // unresolved — do not invent values
+          milestoneThresholdsStatus: 'UNRESOLVED_OWNER_TUNING_DEPENDENCY',
+          milestoneRefundsSec: [0, 0.5, 1.0, 1.5], // index = milestone # - 1
+          stepAfterLadder: 0.5, // canonical Lv1: subsequent milestones +0.5s each
           oneProcPerMilestone: true,
         }, ['stepAfterLadder'], 'seconds_step'),
       },
@@ -420,9 +445,14 @@
     const lvl = Math.max(1, Math.min(5, level | 0));
     const cfg = deepCopy(def.baseConfig);
     if (lvl === 1) return cfg; // Lv1 exact canonical baseline
+    // Lv2-5: refuse to invent production balance. Only explicitly installed
+    // TEST-ONLY fixtures may resolve above Lv1.
     const knobPath = def.progressionBinding.knobPath; // frozen array
-    const curve = CURVES[def.progressionBinding.curveId];
-    if (!curve) throw new Error(`resolveSkillLevel: unknown curve ${def.progressionBinding.curveId}`);
+    const curve = testCurveOverride && testCurveOverride[def.progressionBinding.fixtureCurveRef];
+    if (!curve) {
+      throw new Error(`resolveSkillLevel: Lv${lvl} of ${heroId}.${slot} is UNRESOLVED — ` +
+        `no approved Lv2-5 curve exists (installTestCurves() fixtures are test-only)`);
+    }
     // Read current knob value from the deep copy.
     let holder = cfg;
     for (let i = 0; i < knobPath.length - 1; i++) {
@@ -445,6 +475,35 @@
       throw new Error(`resolveSkillLevel: knob ${knobPath.join('.')} of ${heroId}.${slot} is not numeric`);
     }
     return cfg;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * deepDiffPaths — list of shallow-deep paths where a !== b (for the
+   * one-knob structural proof). Values are compared by JSON equality.
+   * ------------------------------------------------------------------ */
+  function deepDiffPaths(a, b, prefix, out) {
+    prefix = prefix || ''; out = out || [];
+    const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
+    for (const k of keys) {
+      const key = prefix ? prefix + '.' + k : k;
+      const av = (a || {})[k], bv = (b || {})[k];
+      const bothPlainObjects = av && bv && typeof av === 'object' && typeof bv === 'object'
+        && !Array.isArray(av) && !Array.isArray(bv);
+      const bothArrays = Array.isArray(av) && Array.isArray(bv);
+      if (bothPlainObjects) {
+        deepDiffPaths(av, bv, key, out);
+      } else if (bothArrays) {
+        // Recurse by index so a knobPath like ['markerHorizons','1']
+        // diffs as exactly that element, not the whole array.
+        const len = Math.max(av.length, bv.length);
+        for (let i = 0; i < len; i++) {
+          if (JSON.stringify(av[i]) !== JSON.stringify(bv[i])) out.push(key + '.' + i);
+        }
+      } else if (JSON.stringify(av) !== JSON.stringify(bv)) {
+        out.push(key);
+      }
+    }
+    return out;
   }
 
   /* ------------------------------------------------------------------ *
@@ -483,7 +542,35 @@
         if (s.progressionBinding.minLevel !== 1) errors.push(`${heroId}.${slot} minLevel must be 1`);
         // Lv1 exactness is structural here (returns deep copy of baseConfig).
         try { resolveSkillLevel(heroId, slot, 1); } catch (e) { errors.push(`${heroId}.${slot} Lv1 resolve failed: ${e.message}`); }
-        try { resolveSkillLevel(heroId, slot, 5); } catch (e) { errors.push(`${heroId}.${slot} Lv5 resolve failed: ${e.message}`); }
+        // Lv2-5 balance is UNRESOLVED: resolving above Lv1 without test
+        // fixtures MUST throw (never silently invent production values).
+        for (let lvl = 2; lvl <= 5; lvl++) {
+          let threw = false;
+          try { resolveSkillLevel(heroId, slot, lvl); } catch (e) { threw = true; }
+          if (!threw) errors.push(`${heroId}.${slot} Lv${lvl} resolved without approved curve (must be unresolved)`);
+        }
+        // Structural one-knob law at Lv2-5, proven with TEST-ONLY fixtures:
+        // the resolved config may differ from Lv1 ONLY at the knob path.
+        try {
+          installTestCurves();
+          for (let lvl = 2; lvl <= 5; lvl++) {
+            const base = resolveSkillLevel(heroId, slot, 1);
+            const up = resolveSkillLevel(heroId, slot, lvl);
+            const kp = s.progressionBinding.knobPath;
+            const diff = deepDiffPaths(base, up);
+            const knobKey = kp.join('.');
+            for (const d of diff) {
+              // The knob itself, or any element nested INSIDE a knob array
+              // (e.g. breakpoints.2 under knob 'breakpoints'), is legal.
+              if (d !== knobKey && !d.startsWith(knobKey + '.')) errors.push(`${heroId}.${slot} Lv${lvl} moved non-knob field '${d}' (one-knob law)`);
+            }
+            if (diff.length === 0) errors.push(`${heroId}.${slot} Lv${lvl} fixture produced no knob change`);
+          }
+        } catch (e) {
+          errors.push(`${heroId}.${slot} fixture one-knob proof failed: ${e.message}`);
+        } finally {
+          uninstallTestCurves();
+        }
       }
     }
     if (skillCount !== 36) errors.push(`expected 36 skills, got ${skillCount}`);
@@ -492,10 +579,15 @@
 
   globalScope.apexHeroReworkRegistry = 'ready';
   globalScope.APEX_HERO_REWORK_REGISTRY = {
-    version: '1.0.0-rebuild1',
+    version: '1.0.1-rebuild2',
     HEROES,
     CANONICAL_IDS,
-    CURVES,
+    // TEST-ONLY fixtures (structural one-knob proofs). Production Lv2-5
+    // balance remains UNRESOLVED; resolveSkillLevel throws above Lv1
+    // unless these are explicitly installed by a test.
+    TEST_ONLY_FIXTURE_CURVES,
+    installTestCurves,
+    uninstallTestCurves,
     resolveSkillLevel,
     deepCopy,
     validateRegistry,

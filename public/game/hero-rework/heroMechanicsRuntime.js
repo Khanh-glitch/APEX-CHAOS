@@ -119,17 +119,34 @@
   };
 
   EXECUTORS['robot.damage_milestones'] = {
-    // Lv1 ladder: [no refund, 0.5s, 1.0s, 1.5s], then +0.5s each.
-    // Milestone thresholds: every 250 cumulative credited realized damage
-    // (provisional tuning slot — no pre-existing visible ladder exists in
-    // the 02709c1 engine build; documented here per doc-02 instruction).
+    // Refund SEQUENCE is owner authority (doc 02): milestone #1 = no refund,
+    // #2 = 0.5s, #3 = 1.0s, #4 = 1.5s, subsequent +0.5s each; one proc per
+    // milestone; refunds the currently relevant Active.
+    //
+    // DAMAGE THRESHOLDS — EXPLICIT UNRESOLVED TUNING DEPENDENCY:
+    // doc 02 says "use the existing visible cumulative damage-dealt milestone
+    // ladder already present in game" and "do not invent new milestone
+    // thresholds". A careful search of the engine (apexEngine, arsenal
+    // runtimes, core patches, HUD) found NO such visible ladder — only TIME's
+    // rewind mark and HUD %-of-max-HP meters, which are different mechanics.
+    // Until the owner supplies the authoritative threshold ladder, this
+    // Passive RECORDS credited realized damage and milestone progress but
+    // does NOT fire refunds. It must not silently activate on invented
+    // numbers (e.g. an arbitrary 250 step).
     onRealizedDamage(ctx, ev) {
       if (ev.creditedTo !== ctx.combatant) return; // only credited damage dealt
       const st = ctx.store;
       st.cumulative = (st.cumulative || 0) + ev.amount;
-      const MILESTONE_STEP = 250;
-      const milestone = Math.floor(st.cumulative / MILESTONE_STEP);
+      const thresholds = ctx.cfg.milestoneThresholds; // owner authority: null = unresolved
+      if (!Array.isArray(thresholds) || thresholds.length === 0) {
+        // Thresholds unresolved: accumulate + observe only. Emit a semantic
+        // note so telemetry can see the passive recording without firing.
+        ctx.api.note('robot.damage_milestones', 'recording', { cumulative: st.cumulative, thresholds: 'UNRESOLVED' });
+        return;
+      }
       st.reached = st.reached || 0;
+      let milestone = 0;
+      while (milestone < thresholds.length && st.cumulative >= thresholds[milestone]) milestone += 1;
       while (st.reached < milestone) {
         st.reached += 1;
         const m = st.reached; // milestone #
@@ -405,70 +422,94 @@
   };
 
   EXECUTORS['math.damage_equation'] = {
-    // Counters are always-on; the cast freezes them into a Virtual Armor pool.
+    // Doc-02 Level-1 law (owner-corrected model):
+    //   cast -> BEGIN/RESET MathCounter and OpponentCounter at 0 (arm the
+    //   equation; no armor yet). While armed, credited MATH realized damage
+    //   adds to MathCounter, credited opponent realized damage adds to
+    //   OpponentCounter, neutral damage adds to neither. An opposing
+    //   physical body collision CASHES OUT the equation: Virtual Armor HP =
+    //   MathCounter + OpponentCounter, lasting armorDuration, protecting
+    //   MATH through the shared damage pipeline. A2 creates NO direct
+    //   collision-damage payout — Hero abilities must not become an
+    //   invented primary raw-damage source. If the equation resets before
+    //   cashout (recast/teardown), counters reset with no armor.
+    // No Lv1 armed-window expiry duration is specified in doc 02; the
+    // equation stays armed until cashout, recast, or teardown (we do not
+    // invent a timer).
     onRealizedDamage(ctx, ev) {
       const st = ctx.store;
-      if (st.armed) return; // frozen during the armor window
+      if (!st.armed || st.armed.cashedOut) return; // accumulate only while armed
       if (ev.creditedTo === ctx.combatant) st.mathCounter = (st.mathCounter || 0) + ev.amount;
       else if (ev.creditedTo && ev.creditedTo === ctx.api.enemyOf(ctx.combatant)) st.oppCounter = (st.oppCounter || 0) + ev.amount;
       // neutral damage (MIRROR-neutral) adds to neither.
     },
     cast(ctx) {
       const st = ctx.store;
-      const hp = (st.mathCounter || 0) + (st.oppCounter || 0);
-      st.armed = { hp, until: ctx.clock() + ctx.cfg.armorDuration, math: st.mathCounter || 0, opp: st.oppCounter || 0 };
-      ctx.api.emitEvent('VirtualArmor', { hero: 'MATH_V2', hp, duration: ctx.cfg.armorDuration });
-      ctx.api.note('math.damage_equation', 'cast', { hp });
+      if (st.armed && !st.armed.cashedOut) {
+        // Recast while armed: the previous equation resets without cashout.
+        ctx.api.note('math.damage_equation', 'reset-by-recast', { math: st.mathCounter || 0, opp: st.oppCounter || 0 });
+      }
+      st.armed = { cashedOut: false };
+      st.mathCounter = ctx.cfg.countersStartAt || 0;
+      st.oppCounter = ctx.cfg.countersStartAt || 0;
+      ctx.api.emitEvent('EquationArmed', { hero: 'MATH_V2' });
+      ctx.api.note('math.damage_equation', 'cast', { math: 0, opp: 0 });
       return true;
-    },
-    onTakeDamage(ctx, body, packet) {
-      const st = ctx.store;
-      if (!st.armed || ctx.clock() >= st.armed.until) return packet;
-      const pool = st.armed.hp;
-      const absorbed = Math.min(pool, packet.amount);
-      st.armed.hp = pool - absorbed;
-      ctx.api.note('math.damage_equation', 'absorb', { absorbed, poolLeft: st.armed.hp });
-      if (st.armed.hp <= 0) st.armed.expired = true;
-      return { ...packet, amount: packet.amount - absorbed };
     },
     onBodyCollision(ctx, myBody, otherBody) {
       const st = ctx.store;
-      if (!st.armed || ctx.clock() >= st.armed.until) return;
+      if (!st.armed || st.armed.cashedOut) return;
       const otherCt = ctx.api.combatantOfBody(otherBody);
       if (!otherCt || otherCt === ctx.combatant) return;
-      // Cash out: the remaining pool is dealt to the opponent in one event.
-      const payout = st.armed.hp;
-      st.armed = null;
+      // CASH OUT: create Virtual Armor from the counters. No damage payout.
+      const hp = (st.mathCounter || 0) + (st.oppCounter || 0);
+      st.armed = {
+        cashedOut: true,
+        hp,
+        until: ctx.clock() + ctx.cfg.armorDuration,
+        math: st.mathCounter || 0,
+        opp: st.oppCounter || 0,
+      };
       st.mathCounter = 0;
       st.oppCounter = 0;
-      if (payout > 0) {
-        ctx.api.aqDamageBody(otherBody, payout, ctx.combatant, 'MATH_EQUATION', { knockback: 420, shake: 8 });
-        ctx.api.emitEvent('EquationCashout', { hero: 'MATH_V2', payout });
-        ctx.api.note('math.damage_equation', 'cashout', { payout });
-      }
-      // Armor ending (cashout) produces the /2 gate (multiply/divide law).
-      const passiveCfg = ctx.combatant.skills.PASSIVE.cfg;
-      ctx.api.spawnGate({ kind: 'div2', owner: ctx.combatant, duration: passiveCfg.gateDuration });
+      ctx.api.emitEvent('VirtualArmor', { hero: 'MATH_V2', hp, duration: ctx.cfg.armorDuration });
+      ctx.api.note('math.damage_equation', 'cashout', { hp, noDirectDamagePayout: true });
+    },
+    onTakeDamage(ctx, body, packet) {
+      const st = ctx.store;
+      if (!st.armed || !st.armed.cashedOut || ctx.clock() >= st.armed.until) return packet;
+      // Shared damage pipeline: armor absorbs first, remainder realizes.
+      const pool = st.armed.hp;
+      const absorbed = Math.min(pool, packet.amount);
+      st.armed.hp = pool - absorbed;
+      if (st.armed.hp <= 0) st.armed.depleted = true;
+      ctx.api.note('math.damage_equation', 'absorb', { absorbed, poolLeft: st.armed.hp });
+      return { ...packet, amount: packet.amount - absorbed };
     },
     onTick(ctx) {
       const st = ctx.store;
-      if (st.armed && (ctx.clock() >= st.armed.until || st.armed.expired)) {
-        // Equation expired/reset before cashout -> counters reset, and the
-        // Virtual Armor ending produces the /2 gate (multiply/divide law).
+      if (st.armed && st.armed.cashedOut && (st.armed.depleted || ctx.clock() >= st.armed.until)) {
+        // Virtual Armor ended (timed out or depleted) -> counters already
+        // consumed; the armor ENDING produces the /2 gate (passive law).
         st.armed = null;
-        st.mathCounter = 0;
-        st.oppCounter = 0;
-        const passiveCfg = ctx.combatant.skills.PASSIVE.cfg;
-        ctx.api.spawnGate({ kind: 'div2', owner: ctx.combatant, duration: passiveCfg.gateDuration });
-        ctx.api.note('math.damage_equation', 'expired', {});
+        ctx.api.armorEnded(ctx.combatant);
+        ctx.api.note('math.damage_equation', 'armor-ended', {});
       }
     },
-    onTeardown(ctx) { ctx.store.armed = null; },
+    onTeardown(ctx) {
+      const st = ctx.store;
+      st.armed = null;
+      st.mathCounter = 0;
+      st.oppCounter = 0;
+    },
   };
 
   EXECUTORS['math.multiply_divide'] = {
     // Gates are spawned by the integration runtime when the graph/armor
     // lifecycle ends (passive reacts to lifecycle events).
+    // onArmorEnded is routed via api.armorEnded() — single authority for
+    // the /2 gate law ("Virtual Armor ending produces /2 gate at arena
+    // center for 2s").
     onGraphEnded(ctx) {
       ctx.api.spawnGate({ kind: 'x2', owner: ctx.combatant, duration: ctx.cfg.gateDuration });
       ctx.api.note('math.multiply_divide', 'gate-x2', {});
@@ -704,11 +745,18 @@
   };
 
   EXECUTORS['hunter.killer_instinct'] = {
-    // Dodge roll happens in the projectile pass (earliest-TOI + lockout);
-    // eligibility: this combatant's body is currently ROOTED or WEAK.
+    // Dodge roll happens in the projectile pass (earliest-TOI + lockout).
+    // Doc 02 semantics: the PREY/opponent being Trapped (ROOT, from HUNTER
+    // A1 snare) or Weak (from HUNTER A2 pounce) enables Killer Instinct —
+    // this creates real A1/A2/Passive synergy. HUNTER's own statuses are
+    // irrelevant. T6 exclusion, 28% chance, 95px physical dodge, 0.45s
+    // anti-chain and no-invulnerability live in the projectile pass.
     dodgeEligible(ctx, body) {
       if (!ctx.api.ownsBody(ctx.combatant, body)) return false;
-      return ctx.api.isTrapped(body) || ctx.api.isWeakBody(body);
+      const enemy = ctx.api.enemyOf(ctx.combatant);
+      if (!enemy) return false;
+      return ctx.api.enemyBodies(ctx.combatant).some((b) =>
+        ctx.api.isTrapped(b) || ctx.api.isWeakBody(b));
     },
   };
 
@@ -800,19 +848,40 @@
    * -------------------------------------------------------------------- */
 
   EXECUTORS['mirror.arsenal'] = {
-    canCast(ctx) {
-      const held = ctx.api.heldWeapon(ctx.api.enemyOf(ctx.combatant));
-      if (!held || !held.weaponId) return false;
-      if (ctx.api.isT6Weapon(held.weaponId)) return false;      // T6 cannot be copied
-      if (held.weaponId === 'SWIRL_SHIELD' || held.weaponId === 'TOWER_SHIELD') return false; // shield excluded
-      return true;
-    },
+    // Doc 02: "if opponent unarmed/ineligible, cast may whiff". Bad timing
+    // is allowed to waste the Active — there is NO free no-cooldown retry:
+    // the cast is a valid attempted Active and consumes normal cooldown,
+    // producing no copied weapon; the opponent retains the original.
+    // (T6 cannot be copied; Level-1 shield copy remains excluded.)
     cast(ctx) {
       const held = ctx.api.heldWeapon(ctx.api.enemyOf(ctx.combatant));
-      if (!held || !held.weaponId || ctx.api.isT6Weapon(held.weaponId)) return false;
+      const reason = !held || !held.weaponId ? 'unarmed'
+        : ctx.api.isT6Weapon(held.weaponId) ? 't6'
+        : (held.weaponId === 'SWIRL_SHIELD' || held.weaponId === 'TOWER_SHIELD') ? 'shield-excluded'
+        : null;
+      if (reason) {
+        ctx.api.emitEvent('MirrorWhiff', { hero: 'MIRROR', reason });
+        ctx.api.note('mirror.arsenal', 'whiff', { reason });
+        return true; // whiff: cooldown consumed, no copy
+      }
       const ok = ctx.api.grantWeaponCopy(ctx.combatant, held.weaponId, ctx.cfg.copyLifetime);
       ctx.api.note('mirror.arsenal', ok ? 'copy' : 'whiff', { weapon: held.weaponId });
       return true; // cooldown consumed either way (cast happened)
+    },
+    onTick(ctx) {
+      // Copy lifetime: expire the copy only if the fighter still holds THAT
+      // copy instance (a later real pickup/equip replaces it cleanly).
+      const st = ctx.store;
+      const cp = st.__mirrorCopy;
+      if (!cp || ctx.clock() < cp.until) return;
+      st.__mirrorCopy = null;
+      const a = ctx.combatant.anchor;
+      const holder = a && a.data && a.data.arsenal;
+      if (holder && holder.__hrMirrorCopy && holder.weaponId === cp.weaponId) {
+        const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+        if (W && W.consume) W.consume(a, 'mirror-copy-expired');
+        ctx.api.note('mirror.arsenal', 'copy-expired', { weapon: cp.weaponId });
+      }
     },
   };
 

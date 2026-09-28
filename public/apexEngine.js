@@ -2241,14 +2241,21 @@ function updateHpLossTrail(fill,trail,visiblePct){
 
 function updateHUD() {
     if (!fighters[0] || !fighters[1]) return;
+    // HERO REWORK (doc 02): HUD HP is COMBATANT-level for rework Heroes —
+    // a SLIME shows its total living-Body HP, not whichever Body currently
+    // anchors the legacy array slot. Pure read via the rework authority;
+    // legacy fighters fall through unchanged.
+    const hudHpOf = (f) => (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.bodyHudHp)
+        ? window.APEX_HERO_REWORK.bodyHudHp(f) : { hp: f.hp, maxHp: f.maxHp };
     for (let i=0; i<2; i++) {
         const f = fighters[i];
-        const pct = clamp((f.hp / f.maxHp) * 100, 0, 140);
+        const hudHp = hudHpOf(f);
+        const pct = clamp((hudHp.hp / hudHp.maxHp) * 100, 0, 140);
         const visiblePct=Math.min(100,pct);
         const fill=document.getElementById(`p${i+1}-hp`);
         const trail=document.getElementById(`p${i+1}-hp-loss`);
         updateHpLossTrail(fill,trail,visiblePct);
-        const hpLabel = f.data && f.data.autoBattleInfiniteHp ? `${f.hp.toFixed(1)} / INF` : `${f.hp.toFixed(1)} / ${f.maxHp}`;
+        const hpLabel = f.data && f.data.autoBattleInfiniteHp ? `${hudHp.hp.toFixed(1)} / INF` : `${hudHp.hp.toFixed(1)} / ${hudHp.maxHp}`;
         document.getElementById(`p${i+1}-hp-text`).innerText = hpLabel;
         const rageEl=document.getElementById(`p${i+1}-rage`); rageEl.style.opacity = f.isRage ? 1 : 0; rageEl.style.display = f.isRage ? 'block' : 'none';
     }
