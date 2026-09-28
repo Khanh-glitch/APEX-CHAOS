@@ -378,6 +378,13 @@
         A1: skill('slime.mitosis', 'A1', 'slime.mitosis', {
           cooldown: 14, splitDuration: 6, splitInto: 2,
           hpDividedEvenly: true, areaConserveFormula: true,
+          // "Initial heading divergence target is +/- 25" (doc 10) — the
+          // SEMANTIC/UNIT IS AN EXPLICIT UNRESOLVED TUNING SLOT (not frozen:
+          // degrees/px/px-per-s all plausible). The executor carries a
+          // clearly-labeled PROVISIONAL pilot interpretation, isolated
+          // behind this knob; owner freezes the unit later. It must never
+          // disturb the frozen laws: non-overlap spawn, seeded
+          // reproducibility, independent physical motion.
           divergenceTarget: 25, equipmentDeterministicMerge: true,
         }, ['cooldown'], 'cooldown_step'),
         A2: skill('slime.damage_shedding', 'A2', 'slime.damage_shedding', {

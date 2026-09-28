@@ -424,18 +424,43 @@
       },
 
       /* SLIME bodies (doc 06: never in global fighters[]) ------------- */
+      // Physical split/spawn pose (doc 10): children NEVER spawn overlapping
+      // the source body — placement sits at sourceRadius+childRadius+gap
+      // along the caller's seeded axis and is clamped into the arena
+      // interior (flipping to the opposite axis / arena center if the raw
+      // position would escape the wall).
+      slimeSplitPose(source, radius, axisX, axisY, gap) {
+        const S = globalScope.GAME_SIZE || 1000;
+        const need = (source.radius || 75) + radius + (gap != null ? gap : 8);
+        const place = (sx, sy) => ({
+          x: clamp(source.x + sx * need, radius + 2, S - radius - 2),
+          y: clamp(source.y + sy * need, radius + 2, S - radius - 2),
+        });
+        let pos = place(axisX, axisY);
+        if (dist(pos.x, pos.y, source.x, source.y) < need * 0.7) pos = place(-axisX, -axisY);
+        if (dist(pos.x, pos.y, source.x, source.y) < need * 0.7) {
+          const cx = S / 2 - source.x, cy = S / 2 - source.y;
+          const n = Math.hypot(cx, cy) || 1;
+          pos = place(cx / n, cy / n);
+        }
+        return pos;
+      },
       spawnSlimeChild(ct, o) {
         const anchor = ct.anchor;
         const type = SLIME_CHILD_TYPE;
         const child = new globalScope.Fighter(++childIdSeq, o.x, o.y, type);
-        child.maxHp = o.hp;
+        child.maxHp = o.maxHp != null ? o.maxHp : o.hp;
         child.hp = o.hp;
         child.radius = o.radius || 45;
         child.baseRadius = o.radius || 45;
-        child.baseSpeed = (anchor.baseSpeed || 450) * 0.9;
+        // Speed law (doc 10): split halves / emergency halves are ordinary
+        // hero Bodies at PARENT speed; only A2 shed children move at 90% of
+        // parent speed (speedPct supplied by that executor's config).
+        child.baseSpeed = (anchor.baseSpeed || 450) * (o.speedPct != null ? o.speedPct : 1);
         child.__hrCombatant = ct;
-        child.__hrRefHp = o.hp;
+        child.__hrRefHp = o.maxHp != null ? o.maxHp : o.hp;
         child.__hrChild = { kind: o.kind || 'shed', lifetime: o.lifetime || 0, bornAt: AIL.clock() };
+        if (o.dirX != null && o.dirY != null) child.setDir(o.dirX, o.dirY);
         ct.bodies.push(child);
         AIL.bus.emit('SlimeBodySpawned', { id: child.id, hp: o.hp, kind: o.kind });
         return child;
@@ -452,12 +477,41 @@
           const d = dist(child.x, child.y, s.x, s.y);
           if (d < bestD) { bestD = d; best = s; }
         }
-        const total = Math.min(ct.anchor.maxHp || 1000, best.hp + child.hp);
+        const kind = child.__hrChild && child.__hrChild.kind;
+        const isSplitMerge = kind === 'mitosis' || kind === 'emergency';
+        // Merge law (doc 10 A1): split-half merges restore the HP pool to the
+        // summed split pools (no heal beyond source max). A2 shed children
+        // carved their HP out of the pool already — their expiry returns HP
+        // ONLY, capped at the receiver's pool (never heals past max).
+        if (isSplitMerge) {
+          best.maxHp = (best.maxHp || 0) + (child.maxHp || 0);
+        }
+        const total = Math.min(best.maxHp || ct.anchor.maxHp || 1000, best.hp + child.hp);
         best.hp = total;
-        // Deterministic equipment merge: child's weapon drops as a pickup.
-        if (o && o.dropWeapon) {
-          const held = heldWeaponOfBody(child);
-          if (held) api.dropWeaponSlot(held.weaponId, child.x, child.y);
+        // Footprint law (doc 10 A1 merge): merging SPLIT halves restores the
+        // original physical area — r = sqrt(rA^2 + rB^2). A2 shed children
+        // must NEVER merge their physical area/radius into the receiver
+        // (owner correction: A2 expiry returns HP only).
+        if (isSplitMerge) {
+          const r = Math.sqrt((best.radius || 75) ** 2 + (child.radius || 45) ** 2);
+          best.radius = r;
+          best.baseRadius = r;
+        }
+        // Deterministic equipment merge (doc 10): items NEVER duplicate.
+        // Split-merge: an unarmed survivor takes the child's weapon; a
+        // second armed item is dropped as exactly one pickup slot. A2 child
+        // expiry drops the weapon as a normal pickup (its spec).
+        const held = heldWeaponOfBody(child);
+        if (held && (o && o.equipmentMerge)) {
+          const heldBest = heldWeaponOfBody(best);
+          const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+          if (!heldBest && W && W.equip) {
+            W.equip(best, held.weaponId); // transfer — one item in the world
+          } else {
+            api.dropWeaponSlot(held.weaponId, child.x, child.y); // one slot, no dup
+          }
+        } else if (held && (o && o.dropWeapon)) {
+          api.dropWeaponSlot(held.weaponId, child.x, child.y);
         }
         ct.bodies.splice(idx, 1);
         AIL.bus.emit('SlimeBodyMerged', { id: child.id, into: best.id, hp: total });

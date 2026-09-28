@@ -943,30 +943,63 @@
       const a = ctx.combatant.anchor;
       const half = a.hp / 2;
       a.hp = half;
+      // HP pool law (doc 10 A1 "split evenly and never duplicated"): the
+      // halves also halve maxHp so healing can never recreate a duplicated
+      // pool; the split-merge restores the summed pool.
+      const halfMax = (a.maxHp || 1000) / 2;
+      a.maxHp = halfMax;
       // Area-conserving radii: two bodies of r/sqrt(2) conserve area.
       const r = a.baseRadius || a.radius;
       const newR = r / Math.SQRT2;
       a.radius = newR;
+      a.baseRadius = newR;
+      // Seeded split axis (gameplay RNG law — never Math.random).
+      const ang = ctx.rng() * Math.PI * 2;
+      const ax = Math.cos(ang), ay = Math.sin(ang);
+      // Physical spawn (doc 10): the halves must NOT overlap at spawn.
+      const pos = ctx.api.slimeSplitPose(a, newR, ax, ay);
       const child = ctx.api.spawnSlimeChild(ctx.combatant, {
-        hp: half, radius: newR, x: a.x + 12, y: a.y + 8,
+        hp: half, maxHp: halfMax, radius: newR, x: pos.x, y: pos.y,
         kind: 'mitosis', lifetime: ctx.cfg.splitDuration,
       });
-      // Initial divergence: +/- 25 (tuning slot) along perpendicular axes.
-      const ang = Math.random() * Math.PI * 2;
-      child.setDir(Math.cos(ang + Math.PI / 2), Math.sin(ang + Math.PI / 2));
-      a.setDir(Math.cos(ang - Math.PI / 2), Math.sin(ang - Math.PI / 2));
+      // Initial heading divergence — EXPLICIT UNRESOLVED TUNING SLOT (doc
+      // 10: "target +/- 25", semantic/unit NOT frozen by authority).
+      // PROVISIONAL pilot interpretation (isolated behind cfg, may be
+      // replaced when the owner freezes the unit): each half's heading is
+      // the split-axis perpendicular rotated by +/- divergenceTarget in
+      // degrees, read live from config on every cast. The FROZEN laws it
+      // must never disturb: non-overlap spawn, seeded reproducibility,
+      // independent physical motion.
+      const divDeg = ctx.cfg.divergenceTarget != null ? ctx.cfg.divergenceTarget : 25;
+      const div = divDeg * Math.PI / 180;
+      const perpA = ang + Math.PI / 2;
+      const perpB = ang - Math.PI / 2;
+      a.setDir(Math.cos(perpA + div), Math.sin(perpA + div));
+      child.setDir(Math.cos(perpB - div), Math.sin(perpB - div));
       ctx.store.mergeAt = ctx.clock() + ctx.cfg.splitDuration;
       ctx.store.pendingMergeId = child.id;
-      ctx.api.emitEvent('SlimeMitosis', { hero: 'SLIME', hpEach: half });
-      ctx.api.note('slime.mitosis', 'split', { hpEach: half });
+      ctx.api.emitEvent('SlimeMitosis', { hero: 'SLIME', hpEach: half, divergenceSlot: divDeg });
+      ctx.api.note('slime.mitosis', 'split', { hpEach: half, divergenceSlot: divDeg });
       return true;
     },
     onTick(ctx) {
       const st = ctx.store;
       if (!st.mergeAt) return;
       if (ctx.clock() < st.mergeAt) return;
+      // Merge law (doc 10 A1): "after splitDuration the surviving Bodies
+      // automatically merge WHEN CLOSE" — proximity-gated so a merge never
+      // teleports a distant body across the arena.
+      const child = (ctx.api.slimeChildrenOf(ctx.combatant, 'mitosis') || [])
+        .find((b) => b.id === st.pendingMergeId);
+      const a = ctx.combatant.anchor;
+      if (child && a && dist(a.x, a.y, child.x, child.y) > (a.radius + child.radius) * 2) {
+        ctx.api.note('slime.mitosis', 'merge-waiting', {});
+        return; // still apart at/after mergeAt — merge when they meet
+      }
       st.mergeAt = 0;
-      ctx.api.mergeSlimeChild(ctx.combatant, st.pendingMergeId, { dropWeapon: true });
+      // HP sums (no heal), footprint area restores, equipment merges
+      // deterministically with no duplication.
+      ctx.api.mergeSlimeChild(ctx.combatant, st.pendingMergeId, { equipmentMerge: true });
       ctx.api.note('slime.mitosis', 'merge', {});
     },
     onTeardown(ctx) { ctx.store.mergeAt = 0; },
@@ -986,20 +1019,26 @@
       if (!ctx.api.ownsBody(ctx.combatant, ev.victimBody)) return;
       st.progress = (st.progress || 0) + ev.amount;
       while (st.progress >= ctx.cfg.damagePerChild) {
-        st.progress -= ctx.cfg.damagePerChild;
+        // Progress is consumed ONLY by a successful spawn (doc 10 A2).
+        // A blocked spawn (child cap / would-delete-last-HP) RETAINS the
+        // progress — it must never silently burn accumulated damage.
         const children = ctx.api.slimeChildrenOf(ctx.combatant, 'shed');
         if (children.length >= ctx.cfg.maxChildren) break;
-        const a = ctx.combatant.anchor;
+        const src = ev.victimBody && ev.victimBody.hp > 0 ? ev.victimBody : ctx.combatant.anchor;
         // Child HP is TRANSFERRED from SLIME health, never created free.
-        if (a.hp <= ctx.cfg.childHp + 1) break; // never delete the last living HP
-        a.hp -= ctx.cfg.childHp;
-        const spawnAng = Math.random() * Math.PI * 2;
+        if (src.hp <= ctx.cfg.childHp + 1) break; // never delete the last living HP
+        src.hp -= ctx.cfg.childHp;
+        // Seeded spawn axis (gameplay RNG law) + non-overlapping placement.
+        const spawnAng = ctx.rng() * Math.PI * 2;
+        const pos = ctx.api.slimeSplitPose(src, ctx.cfg.childRadius, Math.cos(spawnAng), Math.sin(spawnAng), 6);
         ctx.api.spawnSlimeChild(ctx.combatant, {
           hp: ctx.cfg.childHp, radius: ctx.cfg.childRadius,
-          x: a.x + Math.cos(spawnAng) * (a.radius + 10),
-          y: a.y + Math.sin(spawnAng) * (a.radius + 10),
+          x: pos.x, y: pos.y,
           kind: 'shed', lifetime: ctx.cfg.childLifetime,
+          // Children move at 90% of parent speed (doc 10 A2) — explicit knob.
+          speedPct: ctx.cfg.childSpeedPct != null ? ctx.cfg.childSpeedPct : 0.9,
         });
+        st.progress -= ctx.cfg.damagePerChild;
         ctx.api.emitEvent('SlimeShed', { hero: 'SLIME', childHp: ctx.cfg.childHp });
         ctx.api.note('slime.damage_shedding', 'shed', { childHp: ctx.cfg.childHp });
       }
@@ -1019,15 +1058,22 @@
       if (body.hp < 2 * ctx.cfg.minSplitShareHp) return; // each share must be >= 100
       const half = body.hp / 2;
       body.hp = half;
-      body.__hrRefHp = half; // new reference self-limits recursion
+      body.__hrRefHp = half; // new reference (creation state) self-limits recursion
+      const halfMax = (body.maxHp || 1000) / 2;
+      body.maxHp = halfMax; // no duplicated heal pool across the halves
       const r = body.radius || 45;
       const newR = r / Math.SQRT2;
       body.radius = newR;
-      const ang = Math.random() * Math.PI * 2;
+      body.baseRadius = newR;
+      // Seeded split axis (gameplay RNG law) + non-overlapping placement;
+      // split halves are ordinary hero Bodies at parent speed.
+      const ang = ctx.rng() * Math.PI * 2;
+      const pos = ctx.api.slimeSplitPose(body, newR, Math.cos(ang), Math.sin(ang), 6);
       ctx.api.spawnSlimeChild(ctx.combatant, {
-        hp: half, radius: newR,
-        x: body.x + Math.cos(ang) * (newR + 6), y: body.y + Math.sin(ang) * (newR + 6),
+        hp: half, maxHp: halfMax, radius: newR,
+        x: pos.x, y: pos.y,
         kind: 'emergency', lifetime: 0, // emergency children persist (no timed expiry)
+        speedPct: 1,
       });
       ctx.api.emitEvent('SlimeEmergencyMitosis', { hero: 'SLIME', hpEach: half });
       ctx.api.note('slime.emergency_mitosis', 'split', { hpEach: half });
