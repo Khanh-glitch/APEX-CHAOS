@@ -370,3 +370,9 @@ if (report.failures.length) {
   process.exitCode = 1;
 }
 fs.writeFileSync(path.join(evidenceDir, 'smoke-hero-rework-report.json'), JSON.stringify(report, null, 2));
+// PASS B harness lifecycle (same law as the headless suite): the production
+// HUD owns window timers, and JSDOM keeps Node alive while they exist —
+// close the test window after the report is fully written, then exit
+// explicitly so a successful run cannot linger.
+try { win.close(); } catch (error) { /* teardown only */ }
+process.exit(report.failures.length ? 1 : 0);
