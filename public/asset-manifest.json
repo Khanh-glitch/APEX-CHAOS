@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-28T10:04:29.908Z",
+  "generatedAt": "2026-09-28T12:04:46.758Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -10,7 +10,7 @@
     {
       "path": "/apexEngine.js",
       "type": "script",
-      "bytes": 229566
+      "bytes": 229914
     },
     {
       "path": "/assets/arcade_v1/normalized/battle_idle_reference.webp",
@@ -3265,7 +3265,7 @@
     {
       "path": "/game/core/apexPrecisionFixes.js",
       "type": "script",
-      "bytes": 29815
+      "bytes": 30217
     },
     {
       "path": "/game/core/apexRosterExtensions.js",
@@ -3385,7 +3385,7 @@
     {
       "path": "/game/guards/apexFreezeDisappearHotfix.js",
       "type": "script",
-      "bytes": 14120
+      "bytes": 14446
     },
     {
       "path": "/game/guards/apexGalaxyGuards.js",
