@@ -510,7 +510,10 @@ var Fighter = class Fighter {
                 label = (label || 'direct') + '-inner-trauma';
             }
         }
-        if (this.name === 'SLIME' && this.data && this.data.gelArmorTimer > 0) {
+        // HERO REWORK separation (docs/hero-rework/phase1/12): legacy SLIME
+        // kit paths never run on rework-shell bodies (type.arsenalShell —
+        // no-double-execution law). Legacy FT('SLIME') keeps them.
+        if (this.name === 'SLIME' && !(this.type && this.type.arsenalShell) && this.data && this.data.gelArmorTimer > 0) {
             const red = clamp(this.data.gelArmorReduction || 0, 0, .65);
             amount *= (1 - red);
             label = (label || 'direct') + '-gel-armor';
@@ -521,7 +524,7 @@ var Fighter = class Fighter {
         }
 
         // SLIME children actively guard normal incoming damage, no slow HP drain / delayed buffer.
-        if (this.name === 'SLIME' && this.data && source && source !== this && !statusDamage) {
+        if (this.name === 'SLIME' && !(this.type && this.type.arsenalShell) && this.data && source && source !== this && !statusDamage) {
             const guards = projectiles.filter(p => p.type === 'slime_child' && p.owner === this && p.hp > 0 && p.life > 0);
             if (guards.length) {
                 const guardBudget = amount * 0.45;
@@ -561,7 +564,7 @@ var Fighter = class Fighter {
         if (this.name === 'NINJA' && this.data && (this.data.ninjaImmuneUntil || 0) > matchClock) return;
         if (this.hasStatus('immune') && !statusDamage) return;
 
-        if (this.name === 'SLIME' && this.data && source && source !== this) {
+        if (this.name === 'SLIME' && !(this.type && this.type.arsenalShell) && this.data && source && source !== this) {
             this.data.slimeDmgWindow ||= [];
             this.data.slimeDmgWindow.push({t: matchClock, amount});
             this.data.shockDmgWindow ||= [];
