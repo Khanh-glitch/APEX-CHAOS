@@ -1928,8 +1928,18 @@ report.gapMuzzle = run(`
   __AQ_TEST.holdSpawns();
   __AQ_TEST.place(300, 500, 700, 500);
   fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+  // Test-only isolation: this gate asserts the MUZZLE METADATA of a fired
+  // GLOCK bullet. Post clock-fix the P2 rework cast AI is alive, and an
+  // inherited rework P2 (e.g. RUBBER) legitimately casts A2 compression
+  // mid-window and STORES the incoming bullet before this inspection.
+  // The producer behavior is correct; the gate only needs an AI-quiet
+  // window, so the rework cast AI is disabled for the duration and
+  // restored afterwards.
+  const __muzzleAiWas = (window.APEX_HERO_REWORK && APEX_HERO_REWORK.aiEnabled) !== false;
+  if (window.APEX_HERO_REWORK) APEX_HERO_REWORK.setAiEnabled(false);
   APEX_ARSENAL.weaponApi.equip(fighters[0], 'GLOCK_17');
   for (let i = 0; i < 40; i++) APEX_ARSENAL.step(1 / 60);
+  if (window.APEX_HERO_REWORK) APEX_HERO_REWORK.setAiEnabled(__muzzleAiWas);
   const b = projectiles.find(p => p.aq && p.weapon === 'GLOCK_17');
   const muz = APEX_ARSENAL.weaponApi.worldAnchor(fighters[0], 'GLOCK_17', 'muzzle', Math.atan2(0, 1));
   return { bx: b && +b.px.toFixed(1), by: b && +b.py.toFixed(1), mx: muz && +muz.x.toFixed(1), my: muz && +muz.y.toFixed(1), usedMeta: muz && muz.usedMeta };

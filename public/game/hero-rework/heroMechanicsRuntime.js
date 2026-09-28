@@ -533,7 +533,9 @@
     onProjectileFired(ctx, p, descriptor) {
       if (!ctx.store.chillShotsUntil || ctx.clock() >= ctx.store.chillShotsUntil) return;
       if (!descriptor || descriptor.kind !== 'bullet') return;
-      p.__hrChill = true; // applies CHILL on hit (projectile pass)
+      // p.__hr IS the fire-tag object carried onto the real projectile;
+      // the projectile pass applies CHILL when __hr.chill is set on hit.
+      p.__hr.chill = true; // applies CHILL on hit (projectile pass)
     },
     onTeardown(ctx) { ctx.store.chillShotsUntil = 0; },
   };

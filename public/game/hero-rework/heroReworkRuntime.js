@@ -207,6 +207,10 @@
    * Install / teardown
    * ------------------------------------------------------------------ */
   function installMatch() {
+    // Rematch/direct re-entry (end-screen REMATCH calls startArsenalQuestMode
+    // again): tear down any live match first so its delayed jobs, executor
+    // teardown hooks and body bookkeeping never leak into the new match.
+    if (M) teardownMatch();
     const fighters = globalScope.fighters;
     if (!fighters || !fighters[0] || !fighters[1]) return;
     const isRework = (f) => !!(f.type && f.type.__hrHero && REG.isCanonicalHero(f.type.__hrHero));
@@ -227,10 +231,12 @@
       world,
       startedAt: AIL.clock(),
       // P2 rework cast AI is ON by default; HR.setAiEnabled() syncs both
-      // switches. (Deterministic scheduling time = global matchClock, which
-      // updateArsenalQuest — the single shared sim step for rAF AND headless
-      // AQ.step — advances exactly once per step.)
-      aiEnabled: true,
+      // switches AND PERSISTS across installs (an operator-set switch must
+      // not be silently reset by the next match). (Deterministic scheduling
+      // time = global matchClock, which updateArsenalQuest — the single
+      // shared sim step for rAF AND headless AQ.step — advances exactly
+      // once per step.)
+      aiEnabled: HR.aiEnabled,
       aiCastPlan: {},
       p1Queue: [],
     };
@@ -242,6 +248,10 @@
 
   function teardownMatch() {
     if (!M) return;
+    // Delayed gameplay callbacks (singularity release, TIME loop replays…)
+    // belong to THIS match — cancel them so they cannot fire into the next
+    // match after a rematch or mode switch.
+    AIL.hrScheduler.clear();
     for (const ct of M.combatants) {
       eachExecutor(ct, (exec, ctx) => { if (exec.onTeardown) exec.onTeardown(ctx); });
       // Restore anchor bookkeeping.
@@ -2113,8 +2123,12 @@
       if (ct.bodies.filter((b) => b && fighters.includes(b)).length > 1) {
         errors.push(`${ct.heroId}: more than one body in global fighters[] (doc-06 law)`);
       }
-      if (fighters && !ct.bodies.includes(fighters[ct.idx])) {
-        errors.push(`${ct.heroId}: fighters[${ct.idx}] is not one of its living bodies`);
+      // The fighters[] slot holds either a living body of this combatant or
+      // the neutralized retired anchor (post SLIME anchor promotion — the
+      // doc-06 law keeps child Bodies out of the array).
+      if (fighters && !ct.bodies.includes(fighters[ct.idx])
+        && !(fighters[ct.idx] && fighters[ct.idx].data && fighters[ct.idx].data.__hrRetiredAnchor)) {
+        errors.push(`${ct.heroId}: fighters[${ct.idx}] is neither a living body nor the retired anchor`);
       }
       // SLIME HP conservation: pool = anchor.hp + sum(other bodies).
       let total = 0;

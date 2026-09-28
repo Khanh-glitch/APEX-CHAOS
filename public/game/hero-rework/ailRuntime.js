@@ -323,6 +323,10 @@
     }
   };
   Scheduler.prototype.pending = function () { return this.next.length; };
+  // Cancel every pending job. Gameplay-delayed callbacks are match-scoped;
+  // match teardown clears the queue so a rematch/mode switch can never fire
+  // the previous match's jobs (cross-match entity leak law).
+  Scheduler.prototype.clear = function () { this.next.length = 0; };
 
   /* ------------------------------------------------------------------ *
    * Root AIL object. `clock` and `bus` are bound by the integration
