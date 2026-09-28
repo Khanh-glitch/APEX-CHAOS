@@ -23,7 +23,8 @@ FS_PART: "#version 300 es\nprecision highp float;\nin vec3 vData; uniform float 
 FS_DOWN: "#version 300 es\nprecision highp float;\nuniform sampler2D uSrc; uniform vec2 uSrcTexel, uDstRes; uniform float uThresh;\nout vec4 o;\nvoid main(){\n  vec2 uv = gl_FragCoord.xy/uDstRes;\n  vec3 c = texture(uSrc, uv + uSrcTexel*vec2(-1.0,-1.0)).rgb + texture(uSrc, uv + uSrcTexel*vec2(1.0,-1.0)).rgb\n         + texture(uSrc, uv + uSrcTexel*vec2(-1.0, 1.0)).rgb + texture(uSrc, uv + uSrcTexel*vec2(1.0, 1.0)).rgb;\n  c *= 0.25;\n  if(uThresh > 0.0){\n    float l = max(c.r, max(c.g, c.b));\n    float knee = 0.5;\n    float soft = clamp(l - uThresh + knee, 0.0, 2.0*knee);\n    soft = soft*soft/(4.0*knee + 1e-5);\n    c *= max(soft, l - uThresh)/max(l, 1e-5);\n  }\n  o = vec4(c, 1.0);\n}",
 FS_BLUR: "#version 300 es\nprecision highp float;\nuniform sampler2D uSrc; uniform vec2 uDir, uDstRes;\nout vec4 o;\nvoid main(){\n  vec2 uv = gl_FragCoord.xy/uDstRes;\n  vec3 c = texture(uSrc, uv).rgb*0.2270270270;\n  c += (texture(uSrc, uv + uDir*1.3846153846).rgb + texture(uSrc, uv - uDir*1.3846153846).rgb)*0.3162162162;\n  c += (texture(uSrc, uv + uDir*3.2307692308).rgb + texture(uSrc, uv - uDir*3.2307692308).rgb)*0.0702702703;\n  o = vec4(c, 1.0);\n}",
 FS_LENS_OV: "#version 300 es\nprecision highp float;\n#define PI 3.14159265359\n#define TAU 6.28318530718\nmat2 rot(float a){ float c=cos(a), s=sin(a); return mat2(c,s,-s,c); }\nfloat hash12(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }\nvec2 hash22(vec2 p){ vec3 p3=fract(vec3(p.xyx)*vec3(.1031,.1030,.0973)); p3+=dot(p3,p3.yzx+33.33); return fract((p3.xx+p3.yz)*p3.zy); }\nfloat gnoise(vec2 p){\n  vec2 i=floor(p), f=fract(p);\n  vec2 u=f*f*f*(f*(f*6.-15.)+10.);\n  float a=dot(hash22(i)*2.-1., f);\n  float b=dot(hash22(i+vec2(1,0))*2.-1., f-vec2(1,0));\n  float c=dot(hash22(i+vec2(0,1))*2.-1., f-vec2(0,1));\n  float d=dot(hash22(i+vec2(1,1))*2.-1., f-vec2(1,1));\n  return a+(b-a)*u.x+(c-a)*u.y+(a-b-c+d)*u.x*u.y;\n}\nfloat pnoise(vec2 p, float P){\n  vec2 i=floor(p), f=fract(p);\n  vec2 u=f*f*f*(f*(f*6.-15.)+10.);\n  float x0=mod(i.x,P), x1=mod(i.x+1.,P);\n  float a=dot(hash22(vec2(x0,i.y))*2.-1., f);\n  float b=dot(hash22(vec2(x1,i.y))*2.-1., f-vec2(1,0));\n  float c=dot(hash22(vec2(x0,i.y+1.))*2.-1., f-vec2(0,1));\n  float d=dot(hash22(vec2(x1,i.y+1.))*2.-1., f-vec2(1,1));\n  return a+(b-a)*u.x+(c-a)*u.y+(a-b-c+d)*u.x*u.y;\n}\nfloat fbm(vec2 p, int oct){\n  float s=0., a=.5;\n  for(int i=0;i<6;i++){ if(i>=oct) break; s+=a*gnoise(p); p=mat2(1.6,1.2,-1.2,1.6)*p+vec2(3.1,1.7); a*=.5; }\n  return s;\n}\nfloat pfbm(vec2 p, float P, int oct){\n  float s=0., a=.5;\n  for(int i=0;i<5;i++){ if(i>=oct) break; s+=a*pnoise(p,P); p=p*2.+vec2(0.,1.37); P*=2.; a*=.5; }\n  return s;\n}\nvec3 L(vec3 c){ return pow(c, vec3(2.2)); }\nfloat sdSeg(vec2 p, vec2 a, vec2 b, out float h){ vec2 pa=p-a, ba=b-a; h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.); return length(pa-ba*h); }\n\nout vec4 o;\nuniform sampler2D uScene;\nuniform vec2 uRes;\nuniform int uNSing;\nuniform vec2 uC[5];\nuniform float uScaleA[5], uRs[5], uK[5], uSpin[5], uSuck[5];\nuniform float uShockR[5], uShockA[5], uFlash[5], uAccP[5], uAccIn[5], uTensionA[5], uHot[5];\nuniform float uTime;\nvec4 sampPx(vec2 px){ return texture(uScene, px/uRes); }\nvoid main(){\n  vec2 frag = gl_FragCoord.xy;\n  vec2 uv = frag;\n  for(int i=0;i<5;i++){\n    if(i >= uNSing) break;\n    vec2 p = (frag - uC[i])/uScaleA[i];\n    float r = length(p) + 1e-6; vec2 dir = p/r;\n    float K2 = uK[i]*abs(uK[i]);\n    float rsrc = sqrt(max(r*r + K2, 0.0));\n    float rs = uRs[i];\n    float drag = uSpin[i]*(max(K2,0.0) + 0.35*rs*rs)/(r*r + 0.35*abs(K2) + 0.25*rs*rs + 1e-4);\n    float x = (r - uShockR[i])/0.07;\n    rsrc += uShockA[i]*x*exp(-x*x)*0.035;\n    uv = uC[i] + rot(drag)*dir*rsrc*uScaleA[i];\n  }\n  vec4 px4 = sampPx(uv);\n  vec3 col = px4.rgb;\n  float A = px4.a;\n  for(int i=0;i<5;i++){\n    if(i >= uNSing) break;\n    vec2 p = (frag - uC[i])/uScaleA[i];\n    float r = length(p) + 1e-6; vec2 dir = p/r;\n    float K2 = uK[i]*abs(uK[i]);\n    float rsrc = sqrt(max(r*r + K2, 0.0));\n    float rs = uRs[i];\n    float PX = 1.0/uScaleA[i];\n    float drag = uSpin[i]*(max(K2,0.0) + 0.35*rs*rs)/(r*r + 0.35*abs(K2) + 0.25*rs*rs + 1e-4);\n    float streak = uSuck[i]*smoothstep(1.05, 0.12, r);\n    if(streak > 0.002){\n      vec3 tr = vec3(0.0), av = col; float ws = 0.0, wa = 1.0;\n      for(int k=1;k<10;k++){\n        float fi = float(k)/9.0;\n        float kk = fi*streak;\n        float ang = drag + kk*0.5*(0.1/(r + 0.06));\n        vec4 s4 = sampPx(uC[i] + rot(ang)*dir*rsrc*(1.0 + kk*0.22)*uScaleA[i]);\n        float w = exp(-fi*2.2);\n        tr += max(s4.rgb - 0.12, 0.0)*w; ws += w;\n        av += s4.rgb*w; wa += w;\n      }\n      col = mix(col, av/wa, 0.3*streak);\n      col += tr/ws*streak*1.1;\n    }\n    if(rs > 0.0008){\n      float lr = log(r/rs);\n      col *= mix(1.0, smoothstep(0.0, 0.55, lr), 0.6);\n      float a = atan(p.y, p.x)/TAU;\n      float su = (a - 0.32*lr + uAccP[i])*6.0;\n      float sv = lr*4.5 + uAccIn[i];\n      float n = pfbm(vec2(su, sv), 6.0, 4);\n      float n2 = pnoise(vec2(su*2.0 + 3.0, sv*2.2), 12.0);\n      float prof = smoothstep(-0.02, 0.18, lr)*exp(-max(lr, 0.0)*1.7);\n      float heat = exp(-max(lr, 0.0)*2.4);\n      vec3 accC = mix(L(vec3(0.45,0.16,0.95)), vec3(1.0,0.9,1.0), heat*0.85);\n      float dens = smoothstep(-0.2, 0.45, n + n2*0.25);\n      float open01 = smoothstep(0.0, 0.5, rs/0.125);\n      float acc = prof*dens*(0.5 + 2.2*heat)*(0.25 + 0.95*uSuck[i])*open01*uHot[i];\n      col += accC*acc;\n      float w1 = rs*0.028 + PX*0.9;\n      float x1 = (r - rs*1.075)/w1;\n      float x2 = (r - rs*1.2)/(rs*0.07);\n      float pr = exp(-x1*x1);\n      float pr2 = exp(-x2*x2);\n      float beam = 0.7 + 0.5*cos(TAU*a + 1.2 - uTime*0.5);\n      col += (vec3(1.0,0.9,1.0)*pr*2.6*beam + L(vec3(0.7,0.4,1.0))*pr2*0.5)*open01*uHot[i];\n      col *= smoothstep(rs - PX*1.2, rs + PX*1.2, r);\n      // overlay adaptation: coverage\n      float inH = 1.0 - smoothstep(rs - PX*1.2, rs + PX*1.2, r);\n      A = max(A, inH);\n      A = max(A, clamp(acc*1.4 + (pr*2.6*beam + pr2*0.5)*open01*uHot[i]*0.8, 0.0, 1.0));\n    }\n    float rr = r*r;\n    float fl = uFlash[i];\n    if(fl > 0.001){\n      col += vec3(1.0,0.9,1.0)*fl*exp(-rr/0.0012)*6.0;\n      col += L(vec3(0.62,0.25,1.0))*fl*exp(-r*7.0)*0.9;\n      A = max(A, clamp(fl*exp(-r*7.0)*1.2, 0.0, 1.0));\n    }\n    float tn = uTensionA[i]*(1.0 - smoothstep(0.0, 0.01, rs));\n    if(tn > 0.001){\n      col += L(vec3(0.8,0.5,1.0))*tn*exp(-rr/0.0005)*2.2;\n      A = max(A, clamp(tn*exp(-rr/0.0005)*2.0, 0.0, 1.0));\n    }\n  }\n  o = vec4(col, A);\n}",
-FS_FINAL_OV: "#version 300 es\nprecision highp float;\nuniform sampler2D uLens, uB0, uB1, uB2, uB3;\nuniform vec2 uRes, uCuv; uniform float uCA, uTime, uBloom, uExposure;\nout vec4 o;\nfloat h12(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }\nvec3 aces(vec3 x){ return clamp((x*(2.51*x + 0.03))/(x*(2.43*x + 0.59) + 0.14), 0.0, 1.0); }\nvoid main(){\n  vec2 uv = gl_FragCoord.xy/uRes;\n  float asp = uRes.x/uRes.y;\n  vec2 dv = uv - uCuv;\n  float dl = length(dv*vec2(asp, 1.0));\n  float ca = 0.0012 + uCA*exp(-dl*5.0)*0.02;\n  vec2 off = dv*ca;\n  vec4 px;\n  px.r = texture(uLens, uv - off).r;\n  px.g = texture(uLens, uv).g;\n  px.b = texture(uLens, uv + off).b;\n  px.a = texture(uLens, uv).a;\n  vec3 b = texture(uB0, uv).rgb*0.55 + texture(uB1, uv).rgb*0.6 + texture(uB2, uv).rgb*0.7 + texture(uB3, uv).rgb*0.8;\n  vec3 col = px.rgb + b*uBloom;\n  float lum = dot(col, vec3(0.30, 0.45, 0.25));\n  float A = clamp(max(px.a, lum), 0.0, 1.0);\n  col *= uExposure;\n  col = aces(col);\n  col = pow(col, vec3(1.0/2.2));\n  col += (h12(gl_FragCoord.xy + fract(uTime*7.13)*97.0) - 0.5)*0.014*A;\n  o = vec4(col, A);\n}",
+FS_FINAL_OV: "#version 300 es\nprecision highp float;\nuniform sampler2D uLens, uB0, uB1, uB2, uB3;\nuniform vec2 uRes, uCuv; uniform float uCA, uTime, uBloom, uExposure;\nout vec4 o;\nfloat h12(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }\nvec3 aces(vec3 x){ return clamp((x*(2.51*x + 0.03))/(x*(2.43*x + 0.59) + 0.14), 0.0, 1.0); }\nvoid main(){\n  vec2 uv = gl_FragCoord.xy/uRes;\n  float asp = uRes.x/uRes.y;\n  vec2 dv = uv - uCuv;\n  float dl = length(dv*vec2(asp, 1.0));\n  float ca = 0.0012 + uCA*exp(-dl*5.0)*0.02;\n  vec2 off = dv*ca;\n  vec4 px;\n  px.r = texture(uLens, uv - off).r;\n  px.g = texture(uLens, uv).g;\n  px.b = texture(uLens, uv + off).b;\n  px.a = texture(uLens, uv).a;\n  vec3 b = texture(uB0, uv).rgb*0.55 + texture(uB1, uv).rgb*0.6 + texture(uB2, uv).rgb*0.7 + texture(uB3, uv).rgb*0.8;\n  vec3 col = px.rgb + b*uBloom;\n  float lum = dot(col, vec3(0.30, 0.45, 0.25));\n  float A = clamp(max(px.a, lum), 0.0, 1.0);\n  col *= uExposure;\n  col = aces(col);\n  vec2 q = (uv - 0.5)*vec2(asp, 1.0);\n  col *= 1.0 - dot(q, q)*0.3;\n  col = pow(col, vec3(1.0/2.2));\n  col += (h12(gl_FragCoord.xy + fract(uTime*7.13)*97.0) - 0.5)*0.014*A;\n  o = vec4(col, A);\n}",
+FS_BLIT: "#version 300 es\nprecision highp float;\nuniform sampler2D uTex;\nuniform vec2 uRes;\nout vec4 o;\nvoid main(){\n  vec2 uv = gl_FragCoord.xy/uRes;\n  o = vec4(texture(uTex, uv).rgb, 1.0);\n}",
 };
 
 (function () {
@@ -39,6 +40,7 @@ FS_FINAL_OV: "#version 300 es\nprecision highp float;\nuniform sampler2D uLens, 
   var FS_PART = GL.FS_PART;
   var FS_DOWN = GL.FS_DOWN;
   var FS_BLUR = GL.FS_BLUR;
+  var FS_BLIT = GL.FS_BLIT;
   var clamp01 = function (x) { return Math.min(1, Math.max(0, x)); };
   var clamp = function (x, a, b) { return Math.min(b, Math.max(a, x)); };
   var ease = function (x) { x = clamp01(x); return x * x * (3 - 2 * x); };
@@ -395,8 +397,10 @@ FS_FINAL_OV: "#version 300 es\nprecision highp float;\nuniform sampler2D uLens, 
       singFlash = new Float32Array(5), singAccP = new Float32Array(5), singAccIn = new Float32Array(5), singTension = new Float32Array(5),
       singHot = new Float32Array(5);
   var singCount = 0;
-  var T = 0, lastNow = 0, perfAcc = 0, perfN = 0, wrapped = false, failed = false;
+  var T = 0, lastNow = 0, lastRenderT = 0, perfAcc = 0, perfN = 0, wrapped = false, failed = false;
   var gameCanvas = null;
+  var texGame = null, texGameW = 0, texGameH = 0, lastGlError = 0;
+  var P_BLIT = null;
 
   function compile(type, srcStr) {
     var s = gl.createShader(type); gl.shaderSource(s, srcStr); gl.compileShader(s);
@@ -461,6 +465,7 @@ FS_FINAL_OV: "#version 300 es\nprecision highp float;\nuniform sampler2D uLens, 
     if (!gl) throw new Error('WebGL2 unavailable');
     hasFloat = !!gl.getExtension('EXT_color_buffer_float');
     gl.getExtension('OES_texture_float_linear');
+    P_BLIT = program(VS_TRI, FS_BLIT);
     P_SCENE = program(VS_TRI, FS_SCENE_HEAD);
     P_LENS = program(VS_TRI, FS_LENS_OV);
     P_DOWN = program(VS_TRI, FS_DOWN);
@@ -474,6 +479,29 @@ FS_FINAL_OV: "#version 300 es\nprecision highp float;\nuniform sampler2D uLens, 
     gl.bindVertexArray(null);
     triVao = vao;
     allocTargets();
+    texGame = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texGame);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    // DOM-source form (6 args): width/height come from the canvas itself
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.SRGB8_ALPHA8, gl.RGBA, gl.UNSIGNED_BYTE, gameCanvas);
+    texGameW = gameCanvas.width || GAME; texGameH = gameCanvas.height || GAME;
+  }
+
+  function uploadGameFrame() {
+    var cw = gameCanvas.width || GAME, ch = gameCanvas.height || GAME;
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.bindTexture(gl.TEXTURE_2D, texGame);
+    if (cw !== texGameW || ch !== texGameH) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.SRGB8_ALPHA8, gl.RGBA, gl.UNSIGNED_BYTE, gameCanvas);
+      texGameW = cw; texGameH = ch;
+    } else {
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, gameCanvas);
+    }
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    lastGlError = gl.getError();
   }
 
   /* overlay placement: match #game-canvas exactly (any layout, any transform) */
@@ -509,8 +537,13 @@ FS_FINAL_OV: "#version 300 es\nprecision highp float;\nuniform sampler2D uLens, 
     singAccP[i] = accP; singAccIn[i] = accIn; singTension[i] = tension; singHot[i] = hot;
   }
 
-  function renderFrame(rawDt) {
+  function renderFrame() {
     if (failed || !gl) return;
+    var now = performance.now();
+    var rawDt = lastRenderT ? (now - lastRenderT) / 1000 : 1 / 60;
+    lastRenderT = now;
+    var gs = window.gameState;
+    var inBattle = gs === 'PLAYING' || gs === 'ARSENAL' || gs === 'COUNTDOWN' || gs === 'TRIAL' || gs === 'END';
     var engineTs = typeof window.timeScale === 'number' ? window.timeScale : 1;
     var dt = Math.min(0.05, rawDt) * engineTs;
     T += dt;
@@ -520,34 +553,30 @@ FS_FINAL_OV: "#version 300 es\nprecision highp float;\nuniform sampler2D uLens, 
 
     // collect BLACK_HOLE fighters (P1, P2, mirrors — any)
     var bhFighters = [];
-    for (var i = 0; i < fighters.length; i++) {
-      var f = fighters[i];
-      if (f && f.name === 'BLACK_HOLE') bhFighters.push(f);
+    if (inBattle) {
+      for (var i = 0; i < fighters.length; i++) {
+        var f = fighters[i];
+        if (f && f.name === 'BLACK_HOLE') bhFighters.push(f);
+      }
     }
-    // drop heads for gone fighters
-    heads.forEach(function (st, f) { if (bhFighters.indexOf(f) < 0) { heads.delete(f); } });
-    if (!bhFighters.length) { wells.clear(); }
+    heads.forEach(function (st, f) { if (bhFighters.indexOf(f) < 0) heads.delete(f); });
+    var projs = window.projectiles || [];
+    wells.forEach(function (w, pr) { if (projs.indexOf(pr) < 0 || w.dead) wells.delete(pr); });
 
-    var anyAlive = false;
+    if (!inBattle || !bhFighters.length) {
+      if (overlay && overlay.style.display !== 'none') overlay.style.display = 'none';
+      return;
+    }
+    if (overlay.style.display === 'none') overlay.style.display = '';
+
     for (var j = 0; j < bhFighters.length; j++) {
       var f2 = bhFighters[j];
-      anyAlive = true;
       var st = heads.get(f2);
       if (!st) { st = new HeadState(f2); heads.set(f2, st); }
       st.update(dt);
     }
-    if (!bhFighters.length) {
-      // nothing to render — keep the overlay fully transparent
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.viewport(0, 0, GAME, GAME);
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      return;
-    }
 
-    // gravity wells from the production kit → golden world singularities
-    var projs = window.projectiles || [];
-    wells.forEach(function (w, p) { if (projs.indexOf(p) < 0 || w.dead) wells.delete(p); });
+    // gravity wells from the production kit -> golden world singularities
     for (var k = 0; k < projs.length; k++) {
       var pr = projs[k];
       if (pr && pr.type === 'gravity_well' && !pr.exploded && pr.life > 0) {
@@ -556,11 +585,16 @@ FS_FINAL_OV: "#version 300 es\nprecision highp float;\nuniform sampler2D uLens, 
       }
     }
 
-    // ---- 1. scene pass: golden heads, scissored, premultiplied over transparent
+    // upload the LIVE 2D game frame — the arena itself becomes golden material
+    uploadGameFrame();
+
+    // ---- 1. scene = the real game frame; golden heads drawn over it
     bindTarget(tScene);
     gl.disable(gl.BLEND);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(P_BLIT.p);
+    tex(P_BLIT, 'uTex', 0, texGame);
+    u2(P_BLIT, 'uRes', tScene.w, tScene.h);
+    drawTri();
     var headOrder = [];
     heads.forEach(function (st) { headOrder.push(st); });
     for (var h = 0; h < headOrder.length; h++) {
@@ -594,7 +628,8 @@ FS_FINAL_OV: "#version 300 es\nprecision highp float;\nuniform sampler2D uLens, 
       gl.disable(gl.BLEND);
     }
 
-    // ---- 2. lens pass: all singularities (head seats + gravity wells)
+    // ---- 2. spacetime lens over the WHOLE game frame (arena bends around
+    // every singularity: head seats + gravity wells)
     singCount = 0;
     for (var m = 0; m < headOrder.length && singCount < 5; m++) {
       var st3 = headOrder[m], f4 = st3.f;
@@ -625,7 +660,7 @@ FS_FINAL_OV: "#version 300 es\nprecision highp float;\nuniform sampler2D uLens, 
     u1(P_LENS, 'uTime', T);
     drawTri();
 
-    // ---- 3. golden head particles (additive, into the lensed frame)
+    // ---- 3. golden head particles (additive, inside the lensed frame)
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE);
     gl.useProgram(P_PART.p);
@@ -656,21 +691,26 @@ FS_FINAL_OV: "#version 300 es\nprecision highp float;\nuniform sampler2D uLens, 
       drawTri();
       gl.useProgram(P_BLUR.p);
       bindTarget(bt[b]); tex(P_BLUR, 'uSrc', 0, bl[b].tex); u2(P_BLUR, 'uDir', 1 / bl[b].w, 0); u2(P_BLUR, 'uDstRes', bt[b].w, bt[b].h); drawTri();
-      bindTarget(bl[b]); tex(P_BLUR, 'uSrc', 0, bt[b].tex); u2(P_BLUR, 'uDir', 0, 1 / bt[b].h); u2(P_BLUR, 'uDstRes', bl[b].w, bl[b].h); drawTri();
+      bindTarget(bl[b]); tex(P_BLUR, 'uSrc', 0, bt[b].tex); u2(P_BLUR, 'uDir', 0, 1 / bl[b].h); u2(P_BLUR, 'uDstRes', bl[b].w, bl[b].h); drawTri();
       srcT = bl[b];
     }
 
-    // ---- 5. final overlay composite (premultiplied, vignette-free)
+    // ---- 5. final composite — the golden grade over the ENTIRE game frame
+    // (radial CA centered on the most active singularity, bloom, ACES,
+    // vignette, grain — exactly the golden final pass)
     bindTarget(null);
     gl.useProgram(P_FINAL.p);
     tex(P_FINAL, 'uLens', 0, tLens.tex); tex(P_FINAL, 'uB0', 1, bl[0].tex); tex(P_FINAL, 'uB1', 2, bl[1].tex);
     tex(P_FINAL, 'uB2', 3, bl[2].tex); tex(P_FINAL, 'uB3', 4, bl[3].tex);
-    var st0 = headOrder[0];
-    var gC = worldToOverlay(st0.f.x, st0.f.y, cam, 1);
-    u2(P_FINAL, 'uRes', GAME, GAME); u2(P_FINAL, 'uCuv', clamp01(gC[0] / GAME), clamp01(gC[1] / GAME));
+    var bi = 0, bestAct = -1;
+    for (var z = 0; z < singCount; z++) {
+      var act = singRs[z] * 4 * singSuck[z] + singFlash[z] * 2 + Math.abs(singK[z]) * 0.5;
+      if (act > bestAct) { bestAct = act; bi = z; }
+    }
     var maxFlash = 0;
-    for (var z = 0; z < singCount; z++) maxFlash = Math.max(maxFlash, singFlash[z]);
-    u1(P_FINAL, 'uCA', 0.3 * Math.max(0, st0.SP.suck.v) + 0.4 * maxFlash);
+    for (var z2 = 0; z2 < singCount; z2++) maxFlash = Math.max(maxFlash, singFlash[z2]);
+    u2(P_FINAL, 'uRes', GAME, GAME); u2(P_FINAL, 'uCuv', clamp01(singC[bi * 2] / tLens.w), clamp01(singC[bi * 2 + 1] / tLens.h));
+    u1(P_FINAL, 'uCA', 0.3 * singSuck[bi] + 0.4 * maxFlash);
     u1(P_FINAL, 'uTime', T); u1(P_FINAL, 'uBloom', hasFloat ? 0.9 : 1.4); u1(P_FINAL, 'uExposure', 1.15);
     drawTri();
   }
@@ -747,7 +787,7 @@ FS_FINAL_OV: "#version 300 es\nprecision highp float;\nuniform sampler2D uLens, 
     if (typeof base !== 'function') return false;
     window.draw = function () {
       var r = base.apply(this, arguments);
-      try { renderFrame(lastNow ? Math.min(0.05, (performance.now() - lastNow) / 1000) : 1 / 60); lastNow = performance.now(); }
+      try { renderFrame(); }
       catch (e) { fail(e); }
       return r;
     };
@@ -785,6 +825,18 @@ FS_FINAL_OV: "#version 300 es\nprecision highp float;\nuniform sampler2D uLens, 
       wellCount: function () { var n = 0; wells.forEach(function () { n++; }); return n; },
       singCount: function () { return singCount; },
       quality: function () { return quality; },
+      glError: function () { return lastGlError; },
+      // read a pixel of an internal target (FBO textures persist between frames)
+      probe: function (which, x, y) {
+        var t = which === 'lens' ? tLens : which === 'scene' ? tScene : null;
+        if (!t) return null;
+        var px = new Float32Array(4);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, t.fb);
+        gl.readPixels(Math.max(0, Math.min(t.w - 1, x | 0)), Math.max(0, Math.min(t.h - 1, y | 0)), 1, 1, gl.RGBA, gl.FLOAT, px, 0);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        return [+px[0].toFixed(3), +px[1].toFixed(3), +px[2].toFixed(3), +px[3].toFixed(3)];
+      },
+      targetSize: function () { return tScene ? [tScene.w, tScene.h] : null; },
       overlayReady: function () { return !!(gl && overlay); }
     };
     console.info('[blackholeGoldenVisual] golden BLACK_HOLE visual active');

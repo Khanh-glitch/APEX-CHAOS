@@ -166,9 +166,24 @@ void main(){
   float A = clamp(max(px.a, lum), 0.0, 1.0);
   col *= uExposure;
   col = aces(col);
+  vec2 q = (uv - 0.5)*vec2(asp, 1.0);
+  col *= 1.0 - dot(q, q)*0.3;
   col = pow(col, vec3(1.0/2.2));
   col += (h12(gl_FragCoord.xy + fract(uTime*7.13)*97.0) - 0.5)*0.014*A;
   o = vec4(col, A);
+}`;
+
+// ---- game-frame upload pass: the live 2D canvas becomes the scene texture.
+// SRGB8_ALPHA8 internal format makes sampling auto-decode to linear, which is
+// what the golden pipeline (bloom knee, ACES) expects.
+const FS_BLIT = `#version 300 es
+precision highp float;
+uniform sampler2D uTex;
+uniform vec2 uRes;
+out vec4 o;
+void main(){
+  vec2 uv = gl_FragCoord.xy/uRes;
+  o = vec4(texture(uTex, uv).rgb, 1.0);
 }`;
 
 const banner = `// BLACK_HOLE golden hero visual — GENERATED FILE, DO NOT EDIT BY HAND.
@@ -547,8 +562,10 @@ const driver = String.raw`
       singFlash = new Float32Array(5), singAccP = new Float32Array(5), singAccIn = new Float32Array(5), singTension = new Float32Array(5),
       singHot = new Float32Array(5);
   var singCount = 0;
-  var T = 0, lastNow = 0, perfAcc = 0, perfN = 0, wrapped = false, failed = false;
+  var T = 0, lastNow = 0, lastRenderT = 0, perfAcc = 0, perfN = 0, wrapped = false, failed = false;
   var gameCanvas = null;
+  var texGame = null, texGameW = 0, texGameH = 0, lastGlError = 0;
+  var P_BLIT = null;
 
   function compile(type, srcStr) {
     var s = gl.createShader(type); gl.shaderSource(s, srcStr); gl.compileShader(s);
@@ -613,6 +630,7 @@ const driver = String.raw`
     if (!gl) throw new Error('WebGL2 unavailable');
     hasFloat = !!gl.getExtension('EXT_color_buffer_float');
     gl.getExtension('OES_texture_float_linear');
+    P_BLIT = program(VS_TRI, FS_BLIT);
     P_SCENE = program(VS_TRI, FS_SCENE_HEAD);
     P_LENS = program(VS_TRI, FS_LENS_OV);
     P_DOWN = program(VS_TRI, FS_DOWN);
@@ -626,6 +644,29 @@ const driver = String.raw`
     gl.bindVertexArray(null);
     triVao = vao;
     allocTargets();
+    texGame = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texGame);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    // DOM-source form (6 args): width/height come from the canvas itself
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.SRGB8_ALPHA8, gl.RGBA, gl.UNSIGNED_BYTE, gameCanvas);
+    texGameW = gameCanvas.width || GAME; texGameH = gameCanvas.height || GAME;
+  }
+
+  function uploadGameFrame() {
+    var cw = gameCanvas.width || GAME, ch = gameCanvas.height || GAME;
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.bindTexture(gl.TEXTURE_2D, texGame);
+    if (cw !== texGameW || ch !== texGameH) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.SRGB8_ALPHA8, gl.RGBA, gl.UNSIGNED_BYTE, gameCanvas);
+      texGameW = cw; texGameH = ch;
+    } else {
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, gameCanvas);
+    }
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    lastGlError = gl.getError();
   }
 
   /* overlay placement: match #game-canvas exactly (any layout, any transform) */
@@ -661,8 +702,13 @@ const driver = String.raw`
     singAccP[i] = accP; singAccIn[i] = accIn; singTension[i] = tension; singHot[i] = hot;
   }
 
-  function renderFrame(rawDt) {
+  function renderFrame() {
     if (failed || !gl) return;
+    var now = performance.now();
+    var rawDt = lastRenderT ? (now - lastRenderT) / 1000 : 1 / 60;
+    lastRenderT = now;
+    var gs = window.gameState;
+    var inBattle = gs === 'PLAYING' || gs === 'ARSENAL' || gs === 'COUNTDOWN' || gs === 'TRIAL' || gs === 'END';
     var engineTs = typeof window.timeScale === 'number' ? window.timeScale : 1;
     var dt = Math.min(0.05, rawDt) * engineTs;
     T += dt;
@@ -672,34 +718,30 @@ const driver = String.raw`
 
     // collect BLACK_HOLE fighters (P1, P2, mirrors — any)
     var bhFighters = [];
-    for (var i = 0; i < fighters.length; i++) {
-      var f = fighters[i];
-      if (f && f.name === 'BLACK_HOLE') bhFighters.push(f);
+    if (inBattle) {
+      for (var i = 0; i < fighters.length; i++) {
+        var f = fighters[i];
+        if (f && f.name === 'BLACK_HOLE') bhFighters.push(f);
+      }
     }
-    // drop heads for gone fighters
-    heads.forEach(function (st, f) { if (bhFighters.indexOf(f) < 0) { heads.delete(f); } });
-    if (!bhFighters.length) { wells.clear(); }
+    heads.forEach(function (st, f) { if (bhFighters.indexOf(f) < 0) heads.delete(f); });
+    var projs = window.projectiles || [];
+    wells.forEach(function (w, pr) { if (projs.indexOf(pr) < 0 || w.dead) wells.delete(pr); });
 
-    var anyAlive = false;
+    if (!inBattle || !bhFighters.length) {
+      if (overlay && overlay.style.display !== 'none') overlay.style.display = 'none';
+      return;
+    }
+    if (overlay.style.display === 'none') overlay.style.display = '';
+
     for (var j = 0; j < bhFighters.length; j++) {
       var f2 = bhFighters[j];
-      anyAlive = true;
       var st = heads.get(f2);
       if (!st) { st = new HeadState(f2); heads.set(f2, st); }
       st.update(dt);
     }
-    if (!bhFighters.length) {
-      // nothing to render — keep the overlay fully transparent
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.viewport(0, 0, GAME, GAME);
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      return;
-    }
 
-    // gravity wells from the production kit → golden world singularities
-    var projs = window.projectiles || [];
-    wells.forEach(function (w, p) { if (projs.indexOf(p) < 0 || w.dead) wells.delete(p); });
+    // gravity wells from the production kit -> golden world singularities
     for (var k = 0; k < projs.length; k++) {
       var pr = projs[k];
       if (pr && pr.type === 'gravity_well' && !pr.exploded && pr.life > 0) {
@@ -708,11 +750,16 @@ const driver = String.raw`
       }
     }
 
-    // ---- 1. scene pass: golden heads, scissored, premultiplied over transparent
+    // upload the LIVE 2D game frame — the arena itself becomes golden material
+    uploadGameFrame();
+
+    // ---- 1. scene = the real game frame; golden heads drawn over it
     bindTarget(tScene);
     gl.disable(gl.BLEND);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(P_BLIT.p);
+    tex(P_BLIT, 'uTex', 0, texGame);
+    u2(P_BLIT, 'uRes', tScene.w, tScene.h);
+    drawTri();
     var headOrder = [];
     heads.forEach(function (st) { headOrder.push(st); });
     for (var h = 0; h < headOrder.length; h++) {
@@ -746,7 +793,8 @@ const driver = String.raw`
       gl.disable(gl.BLEND);
     }
 
-    // ---- 2. lens pass: all singularities (head seats + gravity wells)
+    // ---- 2. spacetime lens over the WHOLE game frame (arena bends around
+    // every singularity: head seats + gravity wells)
     singCount = 0;
     for (var m = 0; m < headOrder.length && singCount < 5; m++) {
       var st3 = headOrder[m], f4 = st3.f;
@@ -777,7 +825,7 @@ const driver = String.raw`
     u1(P_LENS, 'uTime', T);
     drawTri();
 
-    // ---- 3. golden head particles (additive, into the lensed frame)
+    // ---- 3. golden head particles (additive, inside the lensed frame)
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE);
     gl.useProgram(P_PART.p);
@@ -808,21 +856,26 @@ const driver = String.raw`
       drawTri();
       gl.useProgram(P_BLUR.p);
       bindTarget(bt[b]); tex(P_BLUR, 'uSrc', 0, bl[b].tex); u2(P_BLUR, 'uDir', 1 / bl[b].w, 0); u2(P_BLUR, 'uDstRes', bt[b].w, bt[b].h); drawTri();
-      bindTarget(bl[b]); tex(P_BLUR, 'uSrc', 0, bt[b].tex); u2(P_BLUR, 'uDir', 0, 1 / bt[b].h); u2(P_BLUR, 'uDstRes', bl[b].w, bl[b].h); drawTri();
+      bindTarget(bl[b]); tex(P_BLUR, 'uSrc', 0, bt[b].tex); u2(P_BLUR, 'uDir', 0, 1 / bl[b].h); u2(P_BLUR, 'uDstRes', bl[b].w, bl[b].h); drawTri();
       srcT = bl[b];
     }
 
-    // ---- 5. final overlay composite (premultiplied, vignette-free)
+    // ---- 5. final composite — the golden grade over the ENTIRE game frame
+    // (radial CA centered on the most active singularity, bloom, ACES,
+    // vignette, grain — exactly the golden final pass)
     bindTarget(null);
     gl.useProgram(P_FINAL.p);
     tex(P_FINAL, 'uLens', 0, tLens.tex); tex(P_FINAL, 'uB0', 1, bl[0].tex); tex(P_FINAL, 'uB1', 2, bl[1].tex);
     tex(P_FINAL, 'uB2', 3, bl[2].tex); tex(P_FINAL, 'uB3', 4, bl[3].tex);
-    var st0 = headOrder[0];
-    var gC = worldToOverlay(st0.f.x, st0.f.y, cam, 1);
-    u2(P_FINAL, 'uRes', GAME, GAME); u2(P_FINAL, 'uCuv', clamp01(gC[0] / GAME), clamp01(gC[1] / GAME));
+    var bi = 0, bestAct = -1;
+    for (var z = 0; z < singCount; z++) {
+      var act = singRs[z] * 4 * singSuck[z] + singFlash[z] * 2 + Math.abs(singK[z]) * 0.5;
+      if (act > bestAct) { bestAct = act; bi = z; }
+    }
     var maxFlash = 0;
-    for (var z = 0; z < singCount; z++) maxFlash = Math.max(maxFlash, singFlash[z]);
-    u1(P_FINAL, 'uCA', 0.3 * Math.max(0, st0.SP.suck.v) + 0.4 * maxFlash);
+    for (var z2 = 0; z2 < singCount; z2++) maxFlash = Math.max(maxFlash, singFlash[z2]);
+    u2(P_FINAL, 'uRes', GAME, GAME); u2(P_FINAL, 'uCuv', clamp01(singC[bi * 2] / tLens.w), clamp01(singC[bi * 2 + 1] / tLens.h));
+    u1(P_FINAL, 'uCA', 0.3 * singSuck[bi] + 0.4 * maxFlash);
     u1(P_FINAL, 'uTime', T); u1(P_FINAL, 'uBloom', hasFloat ? 0.9 : 1.4); u1(P_FINAL, 'uExposure', 1.15);
     drawTri();
   }
@@ -899,7 +952,7 @@ const driver = String.raw`
     if (typeof base !== 'function') return false;
     window.draw = function () {
       var r = base.apply(this, arguments);
-      try { renderFrame(lastNow ? Math.min(0.05, (performance.now() - lastNow) / 1000) : 1 / 60); lastNow = performance.now(); }
+      try { renderFrame(); }
       catch (e) { fail(e); }
       return r;
     };
@@ -937,6 +990,18 @@ const driver = String.raw`
       wellCount: function () { var n = 0; wells.forEach(function () { n++; }); return n; },
       singCount: function () { return singCount; },
       quality: function () { return quality; },
+      glError: function () { return lastGlError; },
+      // read a pixel of an internal target (FBO textures persist between frames)
+      probe: function (which, x, y) {
+        var t = which === 'lens' ? tLens : which === 'scene' ? tScene : null;
+        if (!t) return null;
+        var px = new Float32Array(4);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, t.fb);
+        gl.readPixels(Math.max(0, Math.min(t.w - 1, x | 0)), Math.max(0, Math.min(t.h - 1, y | 0)), 1, 1, gl.RGBA, gl.FLOAT, px, 0);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        return [+px[0].toFixed(3), +px[1].toFixed(3), +px[2].toFixed(3), +px[3].toFixed(3)];
+      },
+      targetSize: function () { return tScene ? [tScene.w, tScene.h] : null; },
       overlayReady: function () { return !!(gl && overlay); }
     };
     console.info('[blackholeGoldenVisual] golden BLACK_HOLE visual active');
@@ -967,8 +1032,9 @@ FS_DOWN: ${JSON.stringify(FS_DOWN)},
 FS_BLUR: ${JSON.stringify(FS_BLUR)},
 FS_LENS_OV: ${JSON.stringify(FS_LENS_OV)},
 FS_FINAL_OV: ${JSON.stringify(FS_FINAL_OV)},
+FS_BLIT: ${JSON.stringify(FS_BLIT)},
 };
-${driver.replace('/* ---------------- tiny math (golden helpers) ---------------- */', '/* ---------------- tiny math (golden helpers) ---------------- */\n  var GL = window.__BLACKHOLE_GOLDEN_GLSL;\n  var FS_SCENE_HEAD = GL.FS_SCENE_HEAD;\n  var FS_LENS_OV = GL.FS_LENS_OV;\n  var FS_FINAL_OV = GL.FS_FINAL_OV;\n  var VS_TRI = GL.VS_TRI;\n  var VS_PART = GL.VS_PART;\n  var FS_PART = GL.FS_PART;\n  var FS_DOWN = GL.FS_DOWN;\n  var FS_BLUR = GL.FS_BLUR;')}
+${driver.replace('/* ---------------- tiny math (golden helpers) ---------------- */', '/* ---------------- tiny math (golden helpers) ---------------- */\n  var GL = window.__BLACKHOLE_GOLDEN_GLSL;\n  var FS_SCENE_HEAD = GL.FS_SCENE_HEAD;\n  var FS_LENS_OV = GL.FS_LENS_OV;\n  var FS_FINAL_OV = GL.FS_FINAL_OV;\n  var VS_TRI = GL.VS_TRI;\n  var VS_PART = GL.VS_PART;\n  var FS_PART = GL.FS_PART;\n  var FS_DOWN = GL.FS_DOWN;\n  var FS_BLUR = GL.FS_BLUR;\n  var FS_BLIT = GL.FS_BLIT;')}
 `;
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
