@@ -270,9 +270,17 @@
   }
 
   function makeCtx(f) {
-    const enemy = (typeof fighters !== 'undefined' && fighters)
+    let enemy = (typeof fighters !== 'undefined' && fighters)
       ? fighters.find(q => q && q !== f) || null
       : null;
+    // HERO REWORK (doc-06): audited body-aware enemy resolution. With the
+    // rework layer active, resolve the nearest living enemy BODY (SLIME
+    // children are valid auto-targets) and honor SNIPER aim-lost. Returns
+    // undefined when no rework match exists -> base resolution is untouched.
+    if (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.resolveEnemyBody) {
+      const resolved = window.APEX_HERO_REWORK.resolveEnemyBody(f, enemy);
+      if (resolved !== undefined) enemy = resolved;
+    }
     return { fighter: f, enemy, holder: getHolder(f), api: weaponApi };
   }
 
@@ -414,6 +422,13 @@
   }
 
   function fireBullet(spec) {
+    // HERO REWORK (doc-06): single audited hook — the rework layer may retarget
+    // (SNIPER predictive intercept), boost speed (MAGNET passive), roll distance
+    // crit (SNIPER passive) and record the emission (TIME loop) before the push.
+    // Returns a tag object attached to the projectile (null = untouched).
+    const __hrTag = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.onFireBullet)
+      ? window.APEX_HERO_REWORK.onFireBullet(spec)
+      : null;
     const { owner, x, y, angle, speed, damage, weapon } = spec;
     if (!Number.isFinite(angle) || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(speed)) return;
     const wspec = CFG.WEAPONS[weapon] || {};
@@ -437,6 +452,7 @@
       knockback: spec.knockback || 0,
       stun: spec.stun || 0,
       color: spec.color || (owner && owner.color) || '#ffffff',
+      __hr: __hrTag,
     });
   }
 
@@ -468,6 +484,10 @@
   }
 
   function throwGrenade(spec) {
+    // HERO REWORK (doc-06): audited recording hook for TIME loop replay.
+    const __hrTag = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.onGrenade)
+      ? window.APEX_HERO_REWORK.onGrenade(spec)
+      : null;
     const { owner, x, y, angle, speed, weapon } = spec;
     projectiles.push({
       type: 'aq_grenade',
@@ -482,12 +502,20 @@
       life: CFG.WEAPONS.GRENADE.fuse + 0.6,
       maxLife: CFG.WEAPONS.GRENADE.fuse + 0.6,
       color: '#6d8f4e',
+      __hr: __hrTag,
     });
   }
 
   function explodeGrenade(p) {
     const spec = CFG.WEAPONS.GRENADE;
-    for (const f of fighters) {
+    // HERO REWORK (doc-06): audited body-aware splash — SLIME child Bodies
+    // are valid splash targets but never live in the global fighters[].
+    // Without the rework layer this is exactly the base fighters iteration.
+    const splashTargets = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.splashTargets)
+      ? window.APEX_HERO_REWORK.splashTargets(p.owner)
+      : undefined;
+    const splashList = splashTargets || fighters;
+    for (const f of splashList) {
       if (!f || f.hp <= 0 || f === p.owner) continue;
       const d = dist(p.x, p.y, f.x, f.y);
       if (d > spec.blastRadius + f.radius * 0.4) continue;
@@ -961,7 +989,12 @@
     if (weaponId === 'STORMBREAKER') return (CFG.STORMBREAKER && CFG.STORMBREAKER.flightLongSide) || 209;
     return weaponId === 'SPEAR' ? 190 : weaponId === 'BATTLE_AXE' ? 155 : weaponId === 'SPIKED_CLUB' ? 150 : weaponId === 'DAGGER' ? 110 : 145;
   }
-  function spawnThrownMelee(f, weaponId, angle) {
+  function spawnThrownMelee(f, weaponId, angle, extra) {
+    // HERO REWORK (doc-06): audited recording hook for TIME loop replay
+    // (extra.__hrReplay marks a re-emission of a recorded throw).
+    const __hrTag = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.onThrownMelee)
+      ? window.APEX_HERO_REWORK.onThrownMelee(f, weaponId, angle, extra)
+      : null;
     const t = thrownSpec(weaponId);
     const h = getHolder(f);
     const pose = (h && h.meta && h.meta.pose) || {};
@@ -1017,6 +1050,7 @@
       // or reposition it, gravity wells can't pull/absorb it. Hero
       // manipulation can't redirect the pursuit.
       heroManipulationImmune: weaponId === 'STORMBREAKER',
+      __hr: __hrTag,
     });
     window.avCue('melee_throw', { weapon: weaponId, x: f.x, y: f.y, angle });
     log('THROW', `fighter=${f.name} weapon=${weaponId} ricochets=${t.ricochets}`);
@@ -1104,9 +1138,12 @@
       const muz = weaponWorldAnchor(f, id, 'muzzle', base);
       const pellets = spec.pellets > 1 ? spec.pellets : 1;
       const blastCrit = pellets > 1 ? rollFirearmCrit(id) : null;
+      // HERO REWORK (doc-06): audited SNIPER-nest spread multiplier hook.
+      const __hrSpread = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.spreadScaleFor)
+        ? window.APEX_HERO_REWORK.spreadScaleFor(f) : 1;
       for (let i = 0; i < pellets; i++) {
         const t = pellets === 1 ? 0.5 : i / (pellets - 1);
-        const spread = (Math.random() * 2 - 1) * (spec.spread || 0) + (pellets > 1 ? (t - 0.5) * (spec.cone || 0) : 0);
+        const spread = (Math.random() * 2 - 1) * (spec.spread || 0) * __hrSpread + (pellets > 1 ? (t - 0.5) * (spec.cone || 0) : 0);
         const angle = base + spread;
         fireBullet({
           owner: f,
@@ -1281,7 +1318,10 @@
           if (h.meta.aimLeft <= 0) {
             if (p) { p.flourish = 0; p.holdFlourish = false; }
             poseKick(h, recipe);
-            const spread = (Math.random() * 2 - 1) * (spec.spread || 0.02);
+            // HERO REWORK (doc-06): audited SNIPER-nest spread multiplier hook.
+            const __hrSpread = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.spreadScaleFor)
+              ? window.APEX_HERO_REWORK.spreadScaleFor(ctx.fighter) : 1;
+            const spread = (Math.random() * 2 - 1) * (spec.spread || 0.02) * __hrSpread;
             const angle = (enemyAlive(ctx) ? angleToEnemy(ctx) : Math.atan2(f.dir.y, f.dir.x)) + spread;
             const muz = weaponWorldAnchor(f, id, 'muzzle', angle);
             fireBullet({
@@ -1862,6 +1902,9 @@
     poseRecipe,
     advancePoseGhost,
     worldAnchor: weaponWorldAnchor,
+    // HERO REWORK (doc-06): exported so rework world geometry (crystal walls)
+    // applies the exact same equipment-damage scale chain as real hits.
+    scaledDamage: scaleEquipmentDamage,
     POSE_RECIPES,
     FAMILY_POSE,
   };

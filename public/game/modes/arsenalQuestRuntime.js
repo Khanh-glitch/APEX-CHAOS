@@ -546,6 +546,13 @@
     const slots = state.slots || [];
     for (let i = 0; i < slots.length; i++) if (slots[i] && slots[i].phase === 'REVEALED') revealed += 1;
     const lines = [];
+    // HERO REWORK: rework P1 skills read straight from the rework runtime
+    // (J -> A1, K -> A2); the legacy gate snapshot stays untouched.
+    if (window.APEX_HERO_REWORK && f && window.APEX_HERO_REWORK.isReworkFighter
+      && window.APEX_HERO_REWORK.isReworkFighter(f)) {
+      const hrLines = window.APEX_HERO_REWORK.skillHud(f) || [];
+      if (hrLines.length) return hrLines.join('  |  ');
+    }
     if (snap && snap.shell === 'NEWBIE') {
       const cd = f && f.data ? f.data.nbCd : 0;
       let text = 'J · —';
@@ -936,8 +943,8 @@
     try { draw(); } catch (error) { console.warn('[AQ] initial draw failed', error); }
   };
 
-  // Lab entry deliberately reuses the real NEWBIE shell and Arsenal combat
-  // mode. Only spawn cadence, KO/reward and HP persistence are Lab-specific.
+  // Lab entry deliberately reuses the default playable shell (ROBOT after the
+  // HERO REWORK cutover) and the Arsenal combat mode. Only spawn cadence, KO/reward and HP persistence are Lab-specific.
   function mountLabPanel() {
     const host = document.getElementById('aq-dom-hud') || hudRoot();
     document.getElementById('aq-lab-panel')?.remove();
@@ -951,7 +958,7 @@
       return '<button type="button" data-lab-weapon="' + id + '">' + img + id.replace(/_/g, ' ') + '</button>';
     }).join('');
     panel.innerHTML = '<summary>ARSENAL LAB · EQUIPMENT</summary>'
-      + '<div class="aq-lab-intro">Tap a weapon to reveal one pickup. NEWBIE vs NEWBIE · endless HP.</div>'
+      + '<div class="aq-lab-intro">Tap a weapon to reveal one pickup. ROBOT vs ROBOT · endless HP.</div>'
       + '<button type="button" class="aq-lab-exit">← ARSENAL HUB</button>'
       + '<div class="aq-lab-message" role="status" aria-live="polite"></div>'
       + '<div class="aq-lab-grid">' + list + '</div>';
@@ -973,7 +980,7 @@
     state.spawnTimer = Infinity;
     state.unarmedFastConsumed = true;
     mountLabPanel();
-    AQ.log('LAB_ENTER', 'fighters=NEWBIE,NEWBIE');
+    AQ.log('LAB_ENTER', 'fighters=ROBOT,ROBOT'); // HERO REWORK: lab runs the ROBOT rework shell
   };
   window.exitArsenalLab = function exitArsenalLab() {
     window.exitArsenalQuestMode();

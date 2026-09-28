@@ -18,6 +18,48 @@
     'NEWBIE',
   ];
 
+  // HERO REWORK (doc-06 POSTFREEZE ROSTER CORRECTION): the canonical 12 are
+  // the PLAYABLE Hero roster (select/shop/draw/free-pick/progression pools).
+  // ROBOT is the product-facing replacement for legacy NEWBIE. Quest boss
+  // identities outside the 12 stay resolvable through typeFor for encounter
+  // compatibility — they must never leak into the playable pools.
+  const CANONICAL_12 = [
+    'ROBOT', 'CRYSTAL', 'MAGNET', 'BLACK_HOLE', 'MATH_V2', 'ICE', 'RUBBER',
+    'HUNTER', 'TIME', 'MIRROR', 'SLIME', 'SNIPER',
+  ];
+  const REWORK_PRODUCT_CUTOVER = !!(window.APEX_HERO_REWORK_REGISTRY
+    && window.APEX_HERO_REWORK_REGISTRY.productCutover !== false);
+  function playableIds() {
+    return REWORK_PRODUCT_CUTOVER ? CANONICAL_12 : CANONICAL_32;
+  }
+
+  // HERO REWORK: rework shell — runs NO legacy kit (no-double-execution law,
+  // docs/hero-rework/phase1/04). Movement/AI comes from the rework runtime;
+  // visual stays the engine's neutral default (temporary presentation, not
+  // owner visual direction).
+  function makeReworkShell(name) {
+    const base = baseTypeFor(name);
+    return {
+      name,
+      color: (base && base.color) || '#c8c2b4',
+      desc: `Hero Rework — ${name}`,
+      speed: CFG.FIGHTER_SPEED,
+      startDx: (base && base.startDx != null) ? base.startDx : 1,
+      startDy: (base && base.startDy != null) ? base.startDy : 0.55,
+      noRage: true,
+      arsenalShell: true,
+      __hrHero: name,
+      compatKit: 'REWORK',
+      init: (f) => { f.data = f.data || {}; },
+      update: (f, enemy, dt) => {
+        if (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.shellUpdate) {
+          window.APEX_HERO_REWORK.shellUpdate(f, enemy, dt);
+        }
+        // Without the rework runtime the body stays inert (never a legacy kit).
+      },
+    };
+  }
+
   // Three canonical identities were re-keyed by boot-time mainline patches:
   // GALAXY_REPLACES_NOVA_PATCH (NOVA -> GALAXY), apexCanonicalBalance
   // (WIND -> PUPPET, MONK -> KUNGFU) with apexPrecisionFixes re-writing the
@@ -210,6 +252,21 @@
   function shellTypeFor(name) {
     if (!name) return null;
     if (shellCache.has(name)) return shellCache.get(name);
+    // HERO REWORK cutover: canonical-12 playable heroes (and the retired
+    // NEWBIE, replaced by ROBOT) resolve to rework shells — no legacy kit
+    // double-executes. All other legacy names (Quest boss encounters) keep
+    // the audited legacy compatibility path (doc 06 roster classes).
+    if (REWORK_PRODUCT_CUTOVER) {
+      const reworkName = name === 'NEWBIE' ? 'ROBOT' : null;
+      const canonical = (window.APEX_HERO_REWORK_REGISTRY && window.APEX_HERO_REWORK_REGISTRY.isCanonicalHero
+        && window.APEX_HERO_REWORK_REGISTRY.isCanonicalHero(name)) ? name : null;
+      const reworkTarget = reworkName || canonical;
+      if (reworkTarget) {
+        const shell = makeReworkShell(reworkTarget);
+        shellCache.set(name, shell);
+        return shell;
+      }
+    }
     if (name === 'NEWBIE') {
       const newbie = makeNewbieType();
       shellCache.set(name, newbie);
@@ -263,9 +320,14 @@
     return shell;
   }
 
-  function roster() { return CANONICAL_32.map(shellTypeFor); }
+  // HERO REWORK: roster() is the PLAYABLE roster (doc 06) — the canonical 12
+  // after cutover, the legacy 32 before it.
+  function roster() { return playableIds().map(shellTypeFor); }
 
   function ensureNewbieOnRoster() {
+    // HERO REWORK cutover: NEWBIE is retired from the roster — ROBOT is the
+    // product-facing replacement. No-op after cutover (idempotent).
+    if (REWORK_PRODUCT_CUTOVER) return;
     if (typeof FighterTypes === 'undefined' || !FighterTypes) return;
     if (FighterTypes.some((t) => t && t.name === 'NEWBIE')) return;
     FighterTypes.push(shellTypeFor('NEWBIE'));
@@ -331,7 +393,12 @@
   window.beginArsenalQuestSelection = beginSelection;
 
   window.APEX_ARSENAL_SHELLS = {
-    ids: CANONICAL_32,
+    // HERO REWORK (doc 06): `ids` is the PLAYABLE pool (canonical 12 after
+    // cutover). Boss-only Quest identities are NOT in ids; they resolve
+    // through typeFor for encounters only.
+    ids: playableIds(),
+    legacyIds: CANONICAL_32,
+    isPlayable: (name) => playableIds().includes(name),
     typeFor: shellTypeFor,
     roster,
     beginSelection,

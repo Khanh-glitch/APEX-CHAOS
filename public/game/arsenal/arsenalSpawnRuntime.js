@@ -376,6 +376,13 @@
     const state = AQ.state;
     if (!state) return;
     const weaponApi = AQ.weaponApi;
+    // HERO REWORK (doc-06): audited body-aware pickup actors — SLIME child
+    // Bodies may physically collect pickups but never join fighters[].
+    // Without the rework layer this is exactly the base fighters array.
+    const pickupActorList = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.pickupActors)
+      ? window.APEX_HERO_REWORK.pickupActors()
+      : undefined;
+    const actors = pickupActorList || fighters;
 
     for (const slot of state.slots) {
       if (slot.phase !== 'REVEALED' && slot.phase !== 'COUNTER_RESERVED') continue;
@@ -384,7 +391,7 @@
 
       if (slot.kind === 'HEAL') {
         const maxHp = CFG.MATCH_HP || 100;
-        for (const f of fighters) {
+        for (const f of actors) { // HERO REWORK doc-06 body-aware actors
           if (!f || f.hp <= 0) continue;
           const cap = f.maxHp || maxHp;
           if (f.hp >= cap) {
@@ -418,7 +425,7 @@
         continue;
       }
 
-      for (const f of fighters) {
+      for (const f of actors) { // HERO REWORK doc-06 body-aware actors
         if (!f || f.hp <= 0) continue;
         const d = dist(f.x, f.y, slot.x, slot.y);
         if (d > pickupTouchRadius(f)) continue;

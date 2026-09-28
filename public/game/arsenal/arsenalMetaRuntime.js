@@ -5,17 +5,42 @@
   const SHOP_COST = 1000;
   const DRAW_COST = 350;
   const START_CREDITS = 350;
-  const ROSTER = () => (window.APEX_ARSENAL_SHELLS && window.APEX_ARSENAL_SHELLS.ids) || ['NEWBIE'];
+  const ROSTER = () => (window.APEX_ARSENAL_SHELLS && window.APEX_ARSENAL_SHELLS.ids) || ['ROBOT'];
+
+  // HERO REWORK (doc 06): ROBOT replaces legacy NEWBIE as the default-owned
+  // playable hero. Migration is IDEMPOTENT: any persisted NEWBIE ownership/
+  // selection/unlock maps to ROBOT exactly once and never rewrites a state
+  // that has already migrated.
+  function migrateNewbieToRobot(st) {
+    if (!st) return st;
+    if (Array.isArray(st.ownedFighters) && st.ownedFighters.includes('NEWBIE')) {
+      st.ownedFighters = st.ownedFighters.filter((n) => n !== 'NEWBIE' && n !== 'ROBOT');
+      st.ownedFighters.unshift('ROBOT');
+    }
+    if (!st.ownedFighters.includes('ROBOT')) st.ownedFighters.unshift('ROBOT');
+    if (st.lastSelectedP1 === 'NEWBIE' || !st.ownedFighters.includes(st.lastSelectedP1)) st.lastSelectedP1 = 'ROBOT';
+    if (st.lastSelectedP2 === 'NEWBIE' || !st.ownedFighters.includes(st.lastSelectedP2)) st.lastSelectedP2 = 'ROBOT';
+    if (st.unlockedAt) {
+      if (st.unlockedAt.NEWBIE != null) {
+        st.unlockedAt.ROBOT = st.unlockedAt.ROBOT != null
+          ? Math.min(st.unlockedAt.ROBOT, st.unlockedAt.NEWBIE)
+          : st.unlockedAt.NEWBIE;
+        delete st.unlockedAt.NEWBIE;
+      }
+      if (st.unlockedAt.ROBOT == null) st.unlockedAt.ROBOT = 0;
+    }
+    return st;
+  }
 
   function emptyState() {
     return {
       version: 1,
       credits: START_CREDITS,
-      ownedFighters: ['NEWBIE'],
-      lastSelectedP1: 'NEWBIE',
-      lastSelectedP2: 'NEWBIE',
+      ownedFighters: ['ROBOT'],
+      lastSelectedP1: 'ROBOT',
+      lastSelectedP2: 'ROBOT',
       totalSpins: 0,
-      unlockedAt: { NEWBIE: 0 },
+      unlockedAt: { ROBOT: 0 },
     };
   }
   function sanitize(raw) {
@@ -23,13 +48,12 @@
     if (!raw || typeof raw !== 'object') return s;
     s.credits = Math.max(0, raw.credits | 0);
     const owned = Array.isArray(raw.ownedFighters) ? raw.ownedFighters.map(String) : [];
-    s.ownedFighters = Array.from(new Set(['NEWBIE', ...owned]));
-    s.lastSelectedP1 = s.ownedFighters.includes(raw.lastSelectedP1) ? raw.lastSelectedP1 : 'NEWBIE';
-    s.lastSelectedP2 = s.ownedFighters.includes(raw.lastSelectedP2) ? raw.lastSelectedP2 : 'NEWBIE';
+    s.ownedFighters = Array.from(new Set(['ROBOT', ...owned]));
+    s.lastSelectedP1 = s.ownedFighters.includes(raw.lastSelectedP1) ? raw.lastSelectedP1 : 'ROBOT';
+    s.lastSelectedP2 = s.ownedFighters.includes(raw.lastSelectedP2) ? raw.lastSelectedP2 : 'ROBOT';
     s.totalSpins = Math.max(0, raw.totalSpins | 0);
-    s.unlockedAt = raw.unlockedAt && typeof raw.unlockedAt === 'object' ? raw.unlockedAt : { NEWBIE: 0 };
-    s.unlockedAt.NEWBIE = s.unlockedAt.NEWBIE || 0;
-    return s;
+    s.unlockedAt = raw.unlockedAt && typeof raw.unlockedAt === 'object' ? { ...raw.unlockedAt } : { ROBOT: 0 };
+    return migrateNewbieToRobot(s);
   }
   function load() {
     try {
@@ -58,7 +82,9 @@
   }
   function buy(name) {
     const id = String(name || '').toUpperCase();
-    if (!id || id === 'NEWBIE') return { ok: false, reason: 'newbie' };
+    // HERO REWORK (doc 06): boss-only Quest identities must never be
+    // purchasable — the shop pool is exactly the playable roster.
+    if (!id || id === 'NEWBIE' || !ROSTER().includes(id)) return { ok: false, reason: 'not-playable' };
     if (owns(id)) return { ok: false, reason: 'owned' };
     if (state.credits < SHOP_COST) return { ok: false, reason: 'need', need: SHOP_COST - state.credits };
     state.credits -= SHOP_COST;
@@ -96,7 +122,7 @@
     const arr = list || [];
     return arr.filter((ft) => {
       const n = ft && (ft.name || ft);
-      return owns(n) || n === 'NEWBIE';
+      return owns(n) || n === 'ROBOT';
     });
   }
   function setLast(p1, p2) {
@@ -106,7 +132,7 @@
   }
 
   const PICK_ASSETS = '/assets/pick_ui_final/assets/';
-  let shopSelected = state.lastSelectedP1 || 'NEWBIE';
+  let shopSelected = state.lastSelectedP1 || 'ROBOT'; // HERO REWORK: NEWBIE retired
   let lastDrawResult = null;
   let drawBusy = false;
   let drawTimer = 0;
@@ -132,7 +158,7 @@
     NOVA: 'galaxy',
   });
   function fighterInfo(name) {
-    const id = String(name || 'NEWBIE').toUpperCase();
+    const id = String(name || 'ROBOT').toUpperCase();
     const shell = window.APEX_ARSENAL_SHELLS && window.APEX_ARSENAL_SHELLS.typeFor
       ? window.APEX_ARSENAL_SHELLS.typeFor(id) : null;
     const artId = FIGHTER_ART[id] || null;
@@ -330,7 +356,7 @@
     const total = ROSTER().length;
     const quest = window.APEX_ARSENAL_QUEST && window.APEX_ARSENAL_QUEST.loadSave ? window.APEX_ARSENAL_QUEST.loadSave() : { completedStages: [] };
     const cleared = (quest.completedStages || []).length;
-    const info = fighterInfo(state.lastSelectedP1 || 'NEWBIE');
+    const info = fighterInfo(state.lastSelectedP1 || 'ROBOT');
     el.style.display = 'block';
     el.innerHTML = shell(`
       <main class="aq-ui" id="aq-hub">
@@ -358,7 +384,7 @@
             <button type="button" data-go="quest" class="aq-action" style="--aq-tile-accent:#8fb3d2"><span class="aq-action-index">02 · CAMPAIGN</span><span class="aq-action-title">QUEST MAP</span><span class="aq-action-desc">Climb the 20-stage Arsenal ladder against fixed opponents.</span><span class="aq-action-meta">${cleared} / 20 CLEARED</span></button>
             <button type="button" data-go="shop" class="aq-action" style="--aq-tile-accent:#a8bf8b"><span class="aq-action-index">03 · ROSTER</span><span class="aq-action-title">FIGHTER SHOP</span><span class="aq-action-desc">Inspect every fighter and unlock directly with Arsenal Credits.</span><span class="aq-action-meta">1000 AC · FIXED PRICE</span></button>
             <button type="button" data-go="draw" class="aq-action" style="--aq-tile-accent:#d29c74"><span class="aq-action-index">04 · DRAW</span><span class="aq-action-title">LUCKY DRAW</span><span class="aq-action-desc">Randomly unlock one fighter from the remaining unowned pool.</span><span class="aq-action-meta">350 AC · NO DUPLICATES</span></button>
-            <button type="button" data-go="lab" class="aq-action" style="--aq-tile-accent:#91d7e5"><span class="aq-action-index">05 · TESTING</span><span class="aq-action-title">ARSENAL LAB</span><span class="aq-action-desc">NEWBIE vs NEWBIE · endless health. Spawn exact equipment on demand.</span><span class="aq-action-meta">NO RANDOM SPAWNS · NO REWARDS</span></button>
+            <button type="button" data-go="lab" class="aq-action" style="--aq-tile-accent:#91d7e5"><span class="aq-action-index">05 · TESTING</span><span class="aq-action-title">ARSENAL LAB</span><span class="aq-action-desc">ROBOT vs ROBOT · endless health. Spawn exact equipment on demand.</span><span class="aq-action-meta">NO RANDOM SPAWNS · NO REWARDS</span></button>
           </div>
         </section>
       </main>`);
@@ -416,8 +442,8 @@
     cancelDrawSpinAnimation();
     const el = ensureRoot();
     const ids = ROSTER();
-    shopSelected = String(selectedName || state.lastSelectedP1 || shopSelected || 'NEWBIE').toUpperCase();
-    if (!ids.includes(shopSelected)) shopSelected = 'NEWBIE';
+    shopSelected = String(selectedName || state.lastSelectedP1 || shopSelected || 'ROBOT').toUpperCase();
+    if (!ids.includes(shopSelected)) shopSelected = 'ROBOT';
     const selected = fighterInfo(shopSelected);
     const selectedOwned = owns(shopSelected);
     const cards = ids.map((n) => {
