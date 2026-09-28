@@ -1,9 +1,9 @@
-name: Cloudflare Pages Owner Preview
+name: Cloudflare Pages Hero Rework Phase 1 Owner Playtest
 
 on:
   push:
     branches:
-      - arena/01a0dc5e-apex-chaos
+      - owner/hero-rework-phase1-playtest-20260928
     paths:
       - '.github/workflows/cloudflare-pages-owner-preview.yml'
       - 'src/**'
@@ -55,10 +55,13 @@ jobs:
         id: deploy
         shell: bash
         run: |
-          npx --yes wrangler@4 pages deploy dist             --project-name=apex-chaos             --branch=stormbreaker-v9-owner-playtest             --commit-dirty=true 2>&1 | tee /tmp/cf-pages-deploy.log
+          npx --yes wrangler@4 pages deploy dist \
+            --project-name=apex-chaos \
+            --branch=hero-rework-phase1-owner-playtest \
+            --commit-dirty=true 2>&1 | tee /tmp/cf-pages-deploy.log
 
       - name: Print expected branch URL
         if: always()
         run: |
           echo "Expected stable branch URL:"
-          echo "https://stormbreaker-v9-owner-playtest.apex-chaos.pages.dev"
+          echo "https://hero-rework-phase1-owner-playtest.apex-chaos.pages.dev"
