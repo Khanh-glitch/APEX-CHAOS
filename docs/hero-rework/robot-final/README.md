@@ -12,9 +12,9 @@ Date: 2026-09-29
 
 ## Authority split
 
-1. `reference/ROBOT_VISUAL_AUTHORITY.html` is the owner-approved ROBOT presentation authority.
+1. `docs/hero-rework/robot-final/reference/ROBOT_VISUAL_AUTHORITY.html` is the owner-approved ROBOT presentation authority.
 2. Current APEX gameplay/runtime on the baseline is mechanics/environment authority.
-3. `assets/sfx/*` are the final owner-selected Robot SFX authority.
+3. `tools/hero-rework/source/robot-final/source-sfx/*` are the exact owner-source Robot SFX authority; `tools/hero-rework/source/robot-final/sfx/*` are pre-bridged compressed runtime copies.
 4. The prototype's built-in WebAudio synth sounds are timing aids only and MUST NOT ship.
 
 ## Final SFX map
@@ -48,3 +48,6 @@ The HTML is not a vague inspiration. Preserve the Robot's silhouette, segmentati
 Adapt only what the APEX environment requires: coordinate space, body radius/world scale, camera/DPR, real collision timing, actual weapon renderer, actual projectile/hit events, audio bus, runtime lifecycle and performance. Do not port the prototype stage/background/HUD/buttons/demo projectiles/fake gun.
 
 See `SHA256SUMS.txt` before implementation.
+
+## Self-contained repo law
+Arena must not ask for the Robot ZIP or SFX uploads. All visual authority, exact source SFX, runtime copies, provenance, checksums, and implementation prompt are already present on `director/robot-final-integration-20260929`.
