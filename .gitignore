@@ -20,3 +20,6 @@ APEX_ARSENAL_QUEST_PLAYABLE_WINDOWS.zip
 .arsenal-test-profile/
 .menu-resp-profile/
 .menu-probe-profile/
+
+# browser test profile artifacts
+.arsenal-chrome-profile/
