@@ -411,6 +411,280 @@ function spyDraw() {
     { anchorStun: +anchorStun.toFixed(3), anchorNoDamage, longStunKept, childNoDamage, childStun: +childStun.toFixed(3), eligible, huskExcluded, huskNoStun, thrownStormChildHit: childHit, ecHp0, ecHp: enemyChild.hp });
 }
 
+/* =============================================================================
+ * Shared body-state diagnostic recorder (doc 14 R5): kind, x/y, dir,
+ * baseSpeed, effective speed state, hard-CC/statuses, positionLocked,
+ * wall contact/bounce, local HP.
+ * ============================================================================= */
+function sampleBody(b, t) {
+  return {
+    t: +t.toFixed(3), kind: b.__hrChild ? b.__hrChild.kind : 'anchor', id: b.id,
+    x: +b.x.toFixed(1), y: +b.y.toFixed(1),
+    dirx: +b.dir.x.toFixed(3), diry: +b.dir.y.toFixed(3),
+    baseSpeed: b.baseSpeed,
+    speedMult: (typeof b.speedMult === 'function') ? +b.speedMult().toFixed(3) : null,
+    hardCC: !!(b.hardCC && b.hardCC()),
+    stun: (b.statuses && b.statuses.stun && +b.statuses.stun.timer.toFixed(2)) || 0,
+    freeze: !!(b.statuses && b.statuses.freeze),
+    positionLocked: !!b.data.positionLocked,
+    hp: +b.hp.toFixed(1),
+    atXWall: b.x <= b.radius + 0.5 || b.x >= 1000 - b.radius - 0.5,
+    atYWall: b.y <= b.radius + 0.5 || b.y >= 1000 - b.radius - 0.5,
+  };
+}
+function trackBodies(ids, seconds, dt) {
+  const rec = [];
+  const frames = Math.round(seconds / (dt || 1 / 60));
+  const t0 = win.APEX_HERO_REWORK.AIL.clock();
+  for (let i = 0; i < frames; i++) {
+    Q.step(dt || 1 / 60);
+    const all = Q.ct().bodies.concat(win.APEX_HERO_REWORK.extraLivingBodies());
+    for (const b of all) {
+      if (b.hp > 0 && ids.includes(b.id)) rec.push(sampleBody(b, t0 + (i + 1) * (dt || 1 / 60)));
+    }
+  }
+  return rec;
+}
+function analyzeTrack(rec) {
+  // Per-body: longest stationary run under the law's preconditions
+  // (living, positive baseSpeed, no hard CC, no position lock).
+  const byId = {};
+  for (const s of rec) (byId[s.id] = byId[s.id] || []).push(s);
+  const out = [];
+  for (const [id, arr] of Object.entries(byId)) {
+    let run = 0, maxRun = 0, wallHits = 0, cornerHits = 0, bouncesBack = 0, sawCorner = false;
+    let cleanSamples = 0;
+    for (let i = 0; i < arr.length; i++) {
+      const s = arr[i];
+      const clean = s.hp > 0 && !s.hardCC && !s.positionLocked && s.baseSpeed > 0;
+      if (s.atXWall || s.atYWall) wallHits++;
+      if (s.atXWall && s.atYWall) { cornerHits++; sawCorner = true; }
+      if (sawCorner && !s.atXWall && !s.atYWall) bouncesBack++;
+      if (!clean) { run = 0; continue; }
+      cleanSamples++;
+      const d = i > 0 ? Math.hypot(s.x - arr[i - 1].x, s.y - arr[i - 1].y) : 1;
+      if (d < 0.1) { run++; maxRun = Math.max(maxRun, run); } else run = 0;
+    }
+    out.push({ id: +id, kind: arr[0].kind, cleanSamples, maxStationaryRun: maxRun, wallHits, cornerHits, bouncesBack, final: arr[arr.length - 1] });
+  }
+  return out;
+}
+
+/* =============================================================================
+ * G4 — body-local HP readability (doc 14 R3): indicators exist per living
+ * Body when >1, change only for the damaged Body, disappear with the Body,
+ * top HUD stays Combatant-total. (Visual truth: real-Chromium screenshot
+ * set in the C4 evidence pass.)
+ * ============================================================================= */
+{
+  const m = Q.start('SLIME', 'ICE', 4301);
+  Q.placeFree(500, 500, 1, 0, 150, 150, -1, -0.5);
+  const a = win.fighters[0], b = win.fighters[1];
+  const totalBefore = win.APEX_HERO_REWORK.bodyHudHp ? win.APEX_HERO_REWORK.bodyHudHp(a).hp : a.hp;
+  const noneWhenSingle = win.APEX_HERO_REWORK.bodyLocalHpIndicators().length === 0;
+  Q.ctl().tryCast('A1', 'gates');
+  const inds = win.APEX_HERO_REWORK.bodyLocalHpIndicators();
+  const twoIndicators = inds.length === 2;
+  const kinds = inds.map(i => i.kind).sort();
+  const topHudTotal = win.APEX_HERO_REWORK.bodyHudHp
+    ? win.APEX_HERO_REWORK.bodyHudHp(a).hp
+    : inds.reduce((s, i) => s + i.hp, 0);
+  const totalKept = Math.abs(topHudTotal - totalBefore) < 1e-6;
+  // Damage only ONE body -> only its indicator changes.
+  const victim = Q.ct().bodies.find(x => x.__hrChild);
+  const v0 = win.APEX_HERO_REWORK.bodyLocalHpIndicators().find(i => i.id === victim.id);
+  const o0 = win.APEX_HERO_REWORK.bodyLocalHpIndicators().find(i => i.id !== victim.id);
+  W.aqDamage(victim, 60, b, 'STORMBREAKER', {});
+  const v1 = win.APEX_HERO_REWORK.bodyLocalHpIndicators().find(i => i.id === victim.id);
+  const o1 = win.APEX_HERO_REWORK.bodyLocalHpIndicators().find(i => i.id !== victim.id);
+  const onlyVictimChanged = v1.hp < v0.hp && Math.abs(o1.hp - o0.hp) < 1e-6;
+  // Kill the victim -> its indicator disappears; total HUD stays the sum of
+  // living bodies and is not corrupted.
+  W.aqDamage(victim, 5000, b, 'STORMBREAKER', {});
+  const indsAfterKill = win.APEX_HERO_REWORK.bodyLocalHpIndicators();
+  const indicatorGone = !indsAfterKill.some(i => i.id === victim.id);
+  const totalAfter = win.APEX_HERO_REWORK.bodyHudHp
+    ? win.APEX_HERO_REWORK.bodyHudHp(a).hp
+    : indsAfterKill.reduce((s, i) => s + i.hp, 0);
+  const livingSumAfter = +Q.ct().bodies.filter(x => x.hp > 0).reduce((s, x) => s + x.hp, 0).toFixed(3);
+  const indicatorSumAfter = +indsAfterKill.reduce((s, i) => s + i.hp, 0).toFixed(3);
+  const totalSane = Math.abs(totalAfter - livingSumAfter) < 0.01; // top HUD = Combatant living total
+  const ok = !!m && noneWhenSingle && twoIndicators && totalKept
+    && onlyVictimChanged && indicatorGone && totalSane;
+  gate('G4-body-local-hp-readability', ok,
+    { noneWhenSingle, indicators: inds.length, kinds, totalBefore: +totalBefore.toFixed(1), topHudTotal: +topHudTotal.toFixed(1), totalKept, onlyVictimChanged, indicatorGone, totalAfter: +totalAfter.toFixed(3), indicatorSumAfter, livingSumAfter, totalSane });
+}
+
+/* =============================================================================
+ * G5 — A2/passive direction inheritance (doc 14 R4): a large realized hit
+ * legitimately creates 2 shed children (threshold arithmetic); both inherit
+ * the SOURCE BODY's normalized heading at creation (diagonal, not the
+ * constructor default-left), from legal non-overlapping positions. The
+ * passive emergency child inherits the triggering source heading.
+ * ============================================================================= */
+{
+  const m = Q.start('SLIME', 'ICE', 4302);
+  Q.placeFree(500, 500, 0.6, 0.8, 150, 150, -1, -0.5); // diagonal source heading
+  const a = win.fighters[0], b = win.fighters[1];
+  const probeBefore = a.hp;
+  W.aqDamage(a, 10, b, 'STORMBREAKER', {});
+  const scale = (probeBefore - a.hp) / 10;
+  a.hp = probeBefore;
+  const headBefore = { x: a.dir.x, y: a.dir.y };
+  Q.ctl().tryCast('A2', 'gates');
+  const realized = 240; // crosses exactly TWO 100-thresholds -> exactly 2 children (doc 14 E)
+  W.aqDamage(a, realized / scale, b, 'STORMBREAKER', {});
+  const raw = Q.ct().bodies;
+  const kids = raw.filter(x => x.__hrChild && x.__hrChild.kind === 'shed' && x.hp > 0);
+  const twoLegit = kids.length === 2; // E: count arithmetic — two children are legal here
+  const dirsOk = kids.every(k => {
+    const d = Math.hypot(k.dir.x, k.dir.y) || 1;
+    const dot = (k.dir.x / d) * headBefore.x + (k.dir.y / d) * headBefore.y;
+    return dot > 0.999 && k.dir.x > 0.2; // inherits diagonal source heading, NOT default-left
+  });
+  const nonOverlap = kids.every(k => Math.hypot(k.x - a.x, k.y - a.y) >= a.radius + k.radius - 1);
+  // Count arithmetic (doc 14 E): threshold/carry/cap law exact.
+  const st = Q.ct().store['slime.damage_shedding'] || {};
+  const countArith = kids.length === Math.min(3, Math.floor(realized / 100));
+  // Passive emergency child inherits the triggering source heading.
+  const raw2 = win.APEX_HERO_REWORK.byCombatant(win.fighters[0]);
+  const victim = raw2.bodies.find(x => !x.__hrChild);
+  victim.setDir(0.6, 0.8);
+  const vh = { x: victim.dir.x, y: victim.dir.y };
+  const vHpBefore = victim.hp;
+  // TEST-ONLY: freeze shed interference so the passive knife edge is hit
+  // exactly. The passive is authored as an 80%-loss knife edge (halves of
+  // exactly the 100 min share) — see the executor's float-hygiene comment.
+  Q.ct().store['slime.damage_shedding'].shedUntil = 0;
+  W.aqDamage(victim, (victim.hp - 200) / scale, b, 'STORMBREAKER', {}); // to 200 -> passive split
+  const vHpAfter = victim.hp;
+  const em = raw2.bodies.find(x => x.__hrChild && x.__hrChild.kind === 'emergency' && x.hp > 0);
+  const emOk = !!em && (em.dir.x * vh.x + em.dir.y * vh.y) > 0.999 && em.dir.x > 0.2;
+  const ok = !!m && twoLegit && dirsOk && nonOverlap && countArith && emOk;
+  gate('G5-child-direction-inheritance', ok,
+    { scale: +scale.toFixed(4), kids: kids.length, twoLegit, dirs: kids.map(k => [+k.dir.x.toFixed(3), +k.dir.y.toFixed(3)]), dirsOk, nonOverlap, countArith, carry: +(st.progress || 0).toFixed(2), emOk, emDir: em ? [+em.dir.x.toFixed(3), +em.dir.y.toFixed(3)] : null, vHpBefore: +vHpBefore.toFixed(3), vHpAfter: +vHpAfter.toFixed(3), bodyKinds: raw2.bodies.map(x => (x.__hrChild ? x.__hrChild.kind : 'anchor') + ':' + x.hp.toFixed(1)), ref: victim.__hrRefHp });
+}
+
+/* =============================================================================
+ * G6 — no stationary corner child (doc 14 R5): deterministic diagnostic
+ * across A2 double-spawn, passive emergency, edge starts, direct corner
+ * trajectories, multiple seeds. A living, non-hard-CC, non-position-locked
+ * child with positive speed must not remain stationary after wall
+ * resolution. Full per-frame records land in the evidence report.
+ * ============================================================================= */
+{
+  const diagnostic = [];
+  let anyViolation = false;
+  for (const seed of [4311, 4312, 4313, 4314, 4315]) {
+    // (a) A2 two children from one large realized hit (diagonal source)
+    Q.start('SLIME', 'ICE', seed);
+    Q.placeFree(480, 480, 0.6, 0.8, 150, 150, -1, -0.5);
+    const a = win.fighters[0], b = win.fighters[1];
+    const probeBefore = a.hp;
+    W.aqDamage(a, 10, b, 'STORMBREAKER', {});
+    const scale = (probeBefore - a.hp) / 10;
+    a.hp = probeBefore;
+    Q.ctl().tryCast('A2', 'gates');
+    W.aqDamage(a, 280 / scale, b, 'STORMBREAKER', {});
+    const kids = Q.ct().bodies.filter(x => x.__hrChild && x.__hrChild.kind === 'shed' && x.hp > 0);
+    const recA = trackBodies(kids.map(k => k.id), 2.5);
+    const anA = analyzeTrack(recA);
+    diagnostic.push({ seed, scenario: 'a2-double-spawn', analysis: anA, frames: recA.length });
+    for (const s of anA) if (s.maxStationaryRun > 3) anyViolation = true;
+    // (b) passive emergency child
+    Q.start('SLIME', 'ICE', seed + 100);
+    Q.placeFree(480, 480, -0.6, -0.8, 150, 150, -1, -0.5);
+    const a2 = win.fighters[0], b2 = win.fighters[1];
+    const pb2 = a2.hp;
+    W.aqDamage(a2, 10, b2, 'STORMBREAKER', {});
+    const scale2 = (pb2 - a2.hp) / 10;
+    a2.hp = pb2;
+    W.aqDamage(a2, 800 / scale2, b2, 'STORMBREAKER', {}); // 80% knife edge -> emergency split
+    const emKids = Q.ct().bodies.filter(x => x.__hrChild && x.hp > 0);
+    const recB = trackBodies(emKids.map(k => k.id), 2.0);
+    const anB = analyzeTrack(recB);
+    diagnostic.push({ seed, scenario: 'passive-emergency', analysis: anB, frames: recB.length });
+    for (const s of anB) if (s.maxStationaryRun > 3) anyViolation = true;
+    // (c) edge starts: source at each wall -> children spawn clamped inside
+    for (const [ex, ey, name] of [[60, 500, 'left'], [940, 500, 'right'], [500, 60, 'top'], [500, 940, 'bottom']]) {
+      Q.start('SLIME', 'ICE', seed + 200);
+      Q.placeFree(ex, ey, 1, 0, 150, 150, -1, -0.5);
+      const a3 = win.fighters[0], b3 = win.fighters[1];
+      Q.ctl().tryCast('A2', 'gates');
+      W.aqDamage(a3, 220, b3, 'STORMBREAKER', {});
+      const kids3 = Q.ct().bodies.filter(x => x.__hrChild && x.__hrChild.kind === 'shed' && x.hp > 0);
+      const legalSpawn = kids3.every(k => k.x >= k.radius - 1 && k.x <= 1000 - k.radius + 1 && k.y >= k.radius - 1 && k.y <= 1000 - k.radius + 1);
+      const recC = trackBodies(kids3.map(k => k.id), 1.5);
+      const anC = analyzeTrack(recC);
+      diagnostic.push({ seed, scenario: `edge-start-${name}`, legalSpawn, analysis: anC, frames: recC.length });
+      for (const s of anC) if (s.maxStationaryRun > 3) anyViolation = true;
+      if (!legalSpawn) anyViolation = true;
+    }
+    // (d) direct corner trajectory: drive one fresh child straight at the
+    // nearest corner and prove the bounce returns it into legal space.
+    Q.start('SLIME', 'ICE', seed + 300);
+    Q.placeFree(500, 500, 1, 0, 150, 150, -1, -0.5);
+    const a4 = win.fighters[0], b4 = win.fighters[1];
+    Q.ctl().tryCast('A2', 'gates');
+    W.aqDamage(a4, 160, b4, 'STORMBREAKER', {});
+    const kid4 = Q.ct().bodies.find(x => x.__hrChild && x.hp > 0);
+    if (kid4) {
+      kid4.x = 860; kid4.y = 860;
+      kid4.setDir(0.7071, 0.7071); // straight into the bottom-right corner
+      const recD = trackBodies([kid4.id], 2.0);
+      const anD = analyzeTrack(recD);
+      const returned = anD[0] && anD[0].bouncesBack > 0;
+      const keptMoving = anD[0] && anD[0].maxStationaryRun <= 3;
+      if (!returned || !keptMoving) anyViolation = true;
+      diagnostic.push({ seed, scenario: 'corner-drive', analysis: anD, returned, keptMoving, frames: recD.length });
+    }
+  }
+  gate('G6-no-stationary-corner-child', !anyViolation,
+    { scenarios: diagnostic.length, anyViolation, summary: diagnostic.map(d => ({ seed: d.seed, scenario: d.scenario, runs: (d.analysis || []).map(s => s.maxStationaryRun), corners: (d.analysis || []).map(s => s.cornerHits), back: (d.analysis || []).map(s => s.bouncesBack) })) });
+  report.diagnostic = diagnostic;
+}
+
+/* =============================================================================
+ * G7 — survivability audit WITHOUT rebalance (doc 14 G7): measure through
+ * the real production damage path. Diagnostic only — no tuning.
+ * ============================================================================= */
+{
+  Q.start('SLIME', 'ICE', 4401);
+  Q.placeFree(500, 500, 1, 0, 150, 150, -1, -0.5);
+  const a = win.fighters[0], b = win.fighters[1];
+  const totalBefore = a.hp + win.APEX_HERO_REWORK.byCombatant(a).bodies.reduce((s, x) => s + (x === a ? 0 : x.hp), 0);
+  Q.ctl().tryCast('A1', 'gates');
+  const raw = Q.ct().bodies;
+  const halves = raw.map(x => ({ id: x.id, hp: x.hp, maxHp: x.maxHp, ref: x.__hrRefHp }));
+  const totalAfterSplit = raw.reduce((s, x) => s + x.hp, 0);
+  // Representative hits vs an A1 half (500 local HP): normal gun, sniper/
+  // precision, Stormbreaker. Real aqDamage path each time; measure, don't assume.
+  const half = raw[0];
+  const probeScale = (() => { const h0 = half.hp; W.aqDamage(half, 5, b, 'STORMBREAKER', {}); const s = (h0 - half.hp) / 5; half.hp = h0; return s; })();
+  const pistol = (() => { const h0 = half.hp; W.aqDamage(half, 10, b, 'PISTOL', {}); return +(h0 - half.hp).toFixed(3); })();
+  const sniper = (() => { const h0 = half.hp; W.aqDamage(half, 10, b, 'SNIPER', {}); return +(h0 - half.hp).toFixed(3); })();
+  half.hp = 500; // restore the half for the storm measurement
+  // Measure Stormbreaker UNCLAMPED (aqDamage clamps realized to target.hp):
+  // temporarily raise the half's pool so the true realized value is visible.
+  const stormPoolBump = half.maxHp;
+  half.maxHp = 4000; half.hp = 4000;
+  const storm = (() => { const h0 = half.hp; W.aqDamage(half, 446, b, 'STORMBREAKER', {}); return +(h0 - half.hp).toFixed(3); })();
+  half.maxHp = stormPoolBump; half.hp = Math.max(1, 500 - storm); // back to the real half state
+  const halfDiesToOneStorm = storm >= 500;
+  const whyDies = `half local pool 500; STORMBREAKER confirmed-hit 446 realized ${storm} -> ${halfDiesToOneStorm ? 'one hit exceeds the local pool (body dies; the SURVIVOR half and Combatant total keep their own law)' : 'survives one hit'}`;
+  const totalFinal = Q.ct().bodies.reduce((s, x) => s + Math.max(0, x.hp), 0);
+  const sane = [pistol, sniper, storm].every(v => v > 0) && halves.length === 2;
+  gate('G7-survivability-measured-no-tuning', sane,
+    {
+      a1LocalHpBefore: 1000, halves,
+      totalBeforeSplit: +totalBefore.toFixed(1), totalAfterSplit: +totalAfterSplit.toFixed(1),
+      probeScale: +probeScale.toFixed(4),
+      pistolRealized_per10: pistol, sniperRealized_per10: sniper, stormbreakerRealized_per446: storm,
+      halfDiesToOneStorm, whyDies, totalFinal: +totalFinal.toFixed(1),
+      note: 'diagnostic only — no damage/HP tuning applied in this pass',
+    });
+}
+
 /* ------------------------------------------------------------------ summary */
 const total = Object.keys(report.gates).length;
 const passed = Object.values(report.gates).filter(g => g.pass).length;

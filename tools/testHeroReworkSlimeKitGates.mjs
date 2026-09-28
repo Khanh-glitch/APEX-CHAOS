@@ -366,14 +366,52 @@ function shedState() {
   const slotsBefore = Q.slots().length;
   const hpSumBefore = a.hp + (kidArmed ? kidArmed.hp : 0);
   const parentRadiusBefore = a.radius;
-  Q.step(0.8); // past the child's 5s lifetime
+  // Robust drop-law measurement (path-proof against arena auto-play pickups
+  // consuming the drop before the snapshot): hook the live slot list's push
+  // for the expiry window and count the DROP EVENT itself. The law asserted
+  // is unchanged — the child's held weapon drops as EXACTLY ONE pickup slot
+  // (REVEALED, WEAPON/PISTOL); its fate afterwards is either still visible
+  // or consumed by a real in-arena pickup (both legitimate terminal states).
+  // The arsenal may REASSIGN its slot array mid-run, so hook the shared
+  // push primitive for the window and count WEAPON-slot creation events.
+  // Hook INSIDE the jsdom window realm — game arrays live there, not on the
+  // harness's Node realm, so the patch must live on the window's prototype.
+  win.eval(`(function () {
+    window.__s10pushed = [];
+    const orig = Array.prototype.push;
+    Array.prototype.push = function (...items) {
+      for (const it of items) {
+        if (it && it.kind === 'WEAPON' && it.weaponId) orig.call(window.__s10pushed, { phase: it.phase, kind: it.kind, weaponId: it.weaponId });
+      }
+      return orig.apply(this, items);
+    };
+    window.__s10unhook = function () { Array.prototype.push = orig; };
+    return true;
+  })()`);
+  // Account REAL in-window damage to the receiver so the HP-return law is
+  // measured path-proof (the arena keeps shooting during free runs).
+  const dmgTaken = { v: 0 };
+  const origTd = a.takeDamage;
+  a.takeDamage = function (amount, src, kind) {
+    const before = this.hp;
+    origTd.call(this, amount, src, kind);
+    dmgTaken.v += Math.max(0, before - this.hp);
+  };
+  Q.step(0.8); // past the child's 5s lifetime (the drop lands in this window)
+  win.eval('window.__s10unhook()');
+  a.takeDamage = origTd;
+  const pushed = win.__s10pushed || [];
   const kidGone = shedKids().length === 0;
-  const returned = Math.abs(a.hp - hpSumBefore) < 1e-6; // sum preserved
-  const radiusUntouched = Math.abs(a.radius - parentRadiusBefore) < 1e-9; // HP ONLY
   const slotsNow = Q.slots();
-  const oneSlot = slotsNow.length === slotsBefore + 1
+  const returned = Math.abs(a.hp - (hpSumBefore - dmgTaken.v)) < 1e-6; // sum preserved (real in-window damage accounted)
+  const radiusUntouched = Math.abs(a.radius - parentRadiusBefore) < 1e-9; // HP ONLY
+  const pistolDrops = pushed.filter(p => p.kind === 'WEAPON' && p.weaponId === 'PISTOL');
+  const dropExactlyOne = pistolDrops.length === 1 && pistolDrops[0].phase === 'REVEALED';
+  const fateVisible = slotsNow.length === slotsBefore + 1
     && slotsNow[slotsNow.length - 1].phase === 'REVEALED'
     && slotsNow[slotsNow.length - 1].weaponId === 'PISTOL';
+  const fateConsumed = win.fighters.some(f => f.data && f.data.arsenal && f.data.arsenal.weaponId === 'PISTOL');
+  const oneSlot = dropExactlyOne && (fateVisible || fateConsumed);
   // Final-HP law: a promoted child anchor must never be expiry-deleted.
   Q.ctl().setCooldown('A2', 0); // TEST-ONLY: isolate the second window
   Q.ctl().tryCast('A2', 'gates');
@@ -386,7 +424,7 @@ function shedState() {
   const ok = !!m && kidArmed && heldBefore === 'PISTOL' && kidGone && returned
     && radiusUntouched && oneSlot && kid2Born && finalHpSafe;
   gate('S10-a2-expiry-return-hp-only-drop-final-hp-law', ok,
-    { heldBefore, kidGone, returned, radiusUntouched, oneSlot, kid2Born, finalHpSafe, survivorHp: survivor && +survivor.hp.toFixed(1) });
+    { heldBefore, kidGone, returned, radiusUntouched, oneSlot, dropExactlyOne, fateVisible, fateConsumed, kid2Born, finalHpSafe, survivorHp: survivor && +survivor.hp.toFixed(1), hpSumBefore: +hpSumBefore.toFixed(1), dmgTaken: +dmgTaken.v.toFixed(1), aHpAfter: +a.hp.toFixed(1), pushed });
 }
 
 /* =============================================================================

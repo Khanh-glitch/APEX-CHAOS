@@ -39,9 +39,22 @@
         "returned": true,
         "radiusUntouched": true,
         "oneSlot": true,
+        "dropExactlyOne": true,
+        "fateVisible": false,
+        "fateConsumed": true,
         "kid2Born": true,
         "finalHpSafe": true,
-        "survivorHp": 140
+        "survivorHp": 23.1,
+        "hpSumBefore": 855,
+        "dmgTaken": 0,
+        "aHpAfter": 0,
+        "pushed": [
+          {
+            "phase": "REVEALED",
+            "kind": "WEAPON",
+            "weaponId": "PISTOL"
+          }
+        ]
       }
     },
     "S11-a2-child-targetable-pickup-use": {

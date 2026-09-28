@@ -18,14 +18,14 @@
           {
             "f": 21,
             "x": 547,
-            "y": 478,
+            "y": 476,
             "life": 0.47,
             "chill": true
           },
           {
             "f": 22,
-            "x": 503,
-            "y": 453,
+            "x": 505,
+            "y": 450,
             "life": 0,
             "chill": true
           }
@@ -72,8 +72,8 @@
         "traj": [
           {
             "f": 21,
-            "x": 548,
-            "y": 475,
+            "x": 547,
+            "y": 476,
             "life": 0.47
           }
         ],
@@ -124,8 +124,8 @@
         "hitBody": true,
         "combatantAliveAfterChildDeath": true,
         "hudTotal": {
-          "hp": 500,
-          "maxHp": 1000,
+          "hp": 469.8356,
+          "maxHp": 500,
           "bodies": 1
         },
         "runError": null
@@ -194,7 +194,7 @@
       "pass": true,
       "detail": {
         "hpBefore": 1000,
-        "hpAfter": 900.2700000000001,
+        "hpAfter": 874.315,
         "hpConserved": true,
         "noEquipDup": true,
         "oneRealize": true,
@@ -226,8 +226,8 @@
           ],
           "runs": 14,
           "casts": 277,
-          "entitiesPeak": 7,
-          "slimeBodyPeak": 2,
+          "entitiesPeak": 8,
+          "slimeBodyPeak": 3,
           "mathProjectiles": 0
         }
       }
@@ -259,8 +259,8 @@
     ],
     "runs": 14,
     "casts": 277,
-    "entitiesPeak": 7,
-    "slimeBodyPeak": 2,
+    "entitiesPeak": 8,
+    "slimeBodyPeak": 3,
     "mathProjectiles": 0
   },
   "fuzz": {},

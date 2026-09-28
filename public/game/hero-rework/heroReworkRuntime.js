@@ -146,6 +146,27 @@
     for (const f of arr) if (f && f.hp > 0 && !(f.data && f.data.__hrRetiredAnchor)) normal.push(f);
     return normal.concat(extraLivingBodies());
   };
+  // R3 read-model for the temporary body-local HP indicators (drives the
+  // in-canvas bars and lets gates/probes observe the same truth).
+  HR.bodyLocalHpIndicators = function () {
+    if (!M) return [];
+    const out = [];
+    for (const ct of M.combatants) {
+      const living = livingBodies(ct);
+      if (living.length <= 1) continue;
+      for (const b of living) {
+        const pool = b.__hrRefHp || b.maxHp || 1;
+        out.push({
+          id: b.id,
+          kind: b.__hrChild ? b.__hrChild.kind : 'anchor',
+          x: +b.x.toFixed(1), y: +b.y.toFixed(1),
+          hp: +b.hp.toFixed(2), pool: +pool.toFixed(2),
+          frac: +Math.max(0, Math.min(1, b.hp / pool)).toFixed(3),
+        });
+      }
+    }
+    return out;
+  };
 
   function enemyOf(ct) {
     if (!M || !ct) return null;
@@ -491,7 +512,20 @@
         child.__hrCombatant = ct;
         child.__hrRefHp = o.hp; // reference HP = creation state (doc 10 passive)
         child.__hrChild = { kind: o.kind || 'shed', lifetime: o.lifetime || 0, bornAt: AIL.clock() };
-        if (o.dirX != null && o.dirY != null) child.setDir(o.dirX, o.dirY);
+        // R4 heading law (doc 14): an authored heading (A1 divergence) wins.
+        // Otherwise the new child inherits the SPAWNING SOURCE BODY's current
+        // normalized heading. Never the SLIME_CHILD_TYPE constructor fallback
+        // (unrelated default-left), never random steering; normal APEX
+        // movement + wall bounce own the trajectory from the next frame.
+        if (o.dirX != null && o.dirY != null) {
+          child.setDir(o.dirX, o.dirY);
+        } else if (o.sourceBody && o.sourceBody.dir) {
+          const d = o.sourceBody.dir;
+          const n = Math.hypot(d.x, d.y) || 1;
+          child.setDir(d.x / n, d.y / n);
+        } else {
+          child.setDir(1, 0);
+        }
         ct.bodies.push(child);
         AIL.bus.emit('SlimeBodySpawned', { id: child.id, hp: o.hp, kind: o.kind });
         return child;
@@ -2146,6 +2180,31 @@
         if (!b || b.hp <= 0) continue;
         if (b === ct.anchor && engineDrawsAnchor) continue;
         if (typeof b.draw === 'function') b.draw(c);
+      }
+    }
+    // Body-local HP readability (doc 14 R3 — TEMPORARY functional combat
+    // readability for owner playtesting, NOT final art). When a combatant
+    // has more than one living Body, a small local HP bar + count follows
+    // EACH living Body (anchor and children). The top HUD stays
+    // Combatant-total HP (HR.bodyHudHp). Single-body combatants draw
+    // nothing here (no duplicate UI).
+    for (const ct of M.combatants) {
+      const living = livingBodies(ct);
+      if (living.length <= 1) continue;
+      for (const b of living) {
+        const pool = b.__hrRefHp || b.maxHp || 1;
+        const frac = Math.max(0, Math.min(1, (b.hp || 0) / pool));
+        const r = b.radius || 45;
+        const w = r * 1.4, hh = 5;
+        const x = b.x - w / 2, y = b.y - r - 18;
+        c.fillStyle = 'rgba(0,0,0,0.55)';
+        c.fillRect(x - 1, y - 1, w + 2, hh + 2);
+        c.fillStyle = frac > 0.5 ? '#66ff8a' : frac > 0.25 ? '#ffd24a' : '#ff5a4a';
+        c.fillRect(x, y, w * frac, hh);
+        c.fillStyle = '#eafff0';
+        c.font = '700 10px monospace';
+        c.textAlign = 'center';
+        c.fillText(String(Math.max(0, Math.ceil(b.hp || 0))), b.x, y - 3);
       }
     }
     // TIME ghost markers (information-only, faint).

@@ -39,6 +39,631 @@
         "ecHp0": 500,
         "ecHp": 80.76000000000005
       }
+    },
+    "G4-body-local-hp-readability": {
+      "pass": true,
+      "detail": {
+        "noneWhenSingle": true,
+        "indicators": 2,
+        "kinds": [
+          "anchor",
+          "mitosis"
+        ],
+        "totalBefore": 1000,
+        "topHudTotal": 1000,
+        "totalKept": true,
+        "onlyVictimChanged": true,
+        "indicatorGone": true,
+        "totalAfter": 500,
+        "indicatorSumAfter": 0,
+        "livingSumAfter": 500,
+        "totalSane": true
+      }
+    },
+    "G5-child-direction-inheritance": {
+      "pass": true,
+      "detail": {
+        "scale": 1.2084,
+        "kids": 2,
+        "twoLegit": true,
+        "dirs": [
+          [
+            0.6,
+            0.8
+          ],
+          [
+            0.6,
+            0.8
+          ]
+        ],
+        "dirsOk": true,
+        "nonOverlap": true,
+        "countArith": true,
+        "carry": 40,
+        "emOk": true,
+        "emDir": [
+          0.6,
+          0.8
+        ],
+        "vHpBefore": 480,
+        "vHpAfter": 100,
+        "bodyKinds": [
+          "anchor:100.0",
+          "shed:140.0",
+          "shed:140.0",
+          "emergency:100.0"
+        ],
+        "ref": 99.99999999999937
+      }
+    },
+    "G6-no-stationary-corner-child": {
+      "pass": true,
+      "detail": {
+        "scenarios": 35,
+        "anyViolation": false,
+        "summary": [
+          {
+            "seed": 4311,
+            "scenario": "a2-double-spawn",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4311,
+            "scenario": "passive-emergency",
+            "runs": [
+              1
+            ],
+            "corners": [
+              0
+            ],
+            "back": [
+              0
+            ]
+          },
+          {
+            "seed": 4311,
+            "scenario": "edge-start-left",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4311,
+            "scenario": "edge-start-right",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4311,
+            "scenario": "edge-start-top",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              10,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4311,
+            "scenario": "edge-start-bottom",
+            "runs": [
+              3,
+              1
+            ],
+            "corners": [
+              42,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4311,
+            "scenario": "corner-drive",
+            "runs": [
+              1
+            ],
+            "corners": [
+              2
+            ],
+            "back": [
+              204
+            ]
+          },
+          {
+            "seed": 4312,
+            "scenario": "a2-double-spawn",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4312,
+            "scenario": "passive-emergency",
+            "runs": [
+              1
+            ],
+            "corners": [
+              0
+            ],
+            "back": [
+              0
+            ]
+          },
+          {
+            "seed": 4312,
+            "scenario": "edge-start-left",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4312,
+            "scenario": "edge-start-right",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4312,
+            "scenario": "edge-start-top",
+            "runs": [
+              3,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4312,
+            "scenario": "edge-start-bottom",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4312,
+            "scenario": "corner-drive",
+            "runs": [
+              1
+            ],
+            "corners": [
+              2
+            ],
+            "back": [
+              204
+            ]
+          },
+          {
+            "seed": 4313,
+            "scenario": "a2-double-spawn",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4313,
+            "scenario": "passive-emergency",
+            "runs": [
+              1
+            ],
+            "corners": [
+              0
+            ],
+            "back": [
+              0
+            ]
+          },
+          {
+            "seed": 4313,
+            "scenario": "edge-start-left",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4313,
+            "scenario": "edge-start-right",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4313,
+            "scenario": "edge-start-top",
+            "runs": [
+              3,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4313,
+            "scenario": "edge-start-bottom",
+            "runs": [
+              3,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4313,
+            "scenario": "corner-drive",
+            "runs": [
+              1
+            ],
+            "corners": [
+              2
+            ],
+            "back": [
+              204
+            ]
+          },
+          {
+            "seed": 4314,
+            "scenario": "a2-double-spawn",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4314,
+            "scenario": "passive-emergency",
+            "runs": [
+              1
+            ],
+            "corners": [
+              0
+            ],
+            "back": [
+              0
+            ]
+          },
+          {
+            "seed": 4314,
+            "scenario": "edge-start-left",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4314,
+            "scenario": "edge-start-right",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4314,
+            "scenario": "edge-start-top",
+            "runs": [
+              1,
+              3
+            ],
+            "corners": [
+              0,
+              6
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4314,
+            "scenario": "edge-start-bottom",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              14,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4314,
+            "scenario": "corner-drive",
+            "runs": [
+              1
+            ],
+            "corners": [
+              2
+            ],
+            "back": [
+              204
+            ]
+          },
+          {
+            "seed": 4315,
+            "scenario": "a2-double-spawn",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4315,
+            "scenario": "passive-emergency",
+            "runs": [
+              1
+            ],
+            "corners": [
+              0
+            ],
+            "back": [
+              0
+            ]
+          },
+          {
+            "seed": 4315,
+            "scenario": "edge-start-left",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4315,
+            "scenario": "edge-start-right",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4315,
+            "scenario": "edge-start-top",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              0
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4315,
+            "scenario": "edge-start-bottom",
+            "runs": [
+              1,
+              1
+            ],
+            "corners": [
+              0,
+              18
+            ],
+            "back": [
+              0,
+              0
+            ]
+          },
+          {
+            "seed": 4315,
+            "scenario": "corner-drive",
+            "runs": [
+              1
+            ],
+            "corners": [
+              2
+            ],
+            "back": [
+              204
+            ]
+          }
+        ]
+      }
+    },
+    "G7-survivability-measured-no-tuning": {
+      "pass": true,
+      "detail": {
+        "a1LocalHpBefore": 1000,
+        "halves": [
+          {
+            "id": 1,
+            "hp": 500,
+            "maxHp": 500,
+            "ref": 500
+          },
+          {
+            "id": 169,
+            "hp": 500,
+            "maxHp": 500,
+            "ref": 500
+          }
+        ],
+        "totalBeforeSplit": 1000,
+        "totalAfterSplit": 1000,
+        "probeScale": 1.2084,
+        "pistolRealized_per10": 84.588,
+        "sniperRealized_per10": 84.588,
+        "stormbreakerRealized_per446": 538.946,
+        "halfDiesToOneStorm": true,
+        "whyDies": "half local pool 500; STORMBREAKER confirmed-hit 446 realized 538.946 -> one hit exceeds the local pool (body dies; the SURVIVOR half and Combatant total keep their own law)",
+        "totalFinal": 501,
+        "note": "diagnostic only — no damage/HP tuning applied in this pass"
+      }
     }
   },
   "failures": [],
@@ -48,9 +673,1906 @@
       "error": "image.addEventListener is not a function"
     }
   ],
+  "diagnostic": [
+    {
+      "seed": 4311,
+      "scenario": "a2-double-spawn",
+      "analysis": [
+        {
+          "id": 109,
+          "kind": "shed",
+          "cleanSamples": 300,
+          "maxStationaryRun": 1,
+          "wallHits": 10,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 2.5,
+            "kind": "shed",
+            "id": 109,
+            "x": 922.2,
+            "y": 395.4,
+            "dirx": -0.6,
+            "diry": -0.8,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 110,
+          "kind": "shed",
+          "cleanSamples": 300,
+          "maxStationaryRun": 1,
+          "wallHits": 62,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 2.5,
+            "kind": "shed",
+            "id": 110,
+            "x": 828.1,
+            "y": 484.1,
+            "dirx": -0.6,
+            "diry": -0.8,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 600
+    },
+    {
+      "seed": 4311,
+      "scenario": "passive-emergency",
+      "analysis": [
+        {
+          "id": 111,
+          "kind": "emergency",
+          "cleanSamples": 240,
+          "maxStationaryRun": 1,
+          "wallHits": 6,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 2,
+            "kind": "emergency",
+            "id": 111,
+            "x": 344.2,
+            "y": 399.7,
+            "dirx": 0.6,
+            "diry": 0.8,
+            "baseSpeed": 520,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 100,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 240
+    },
+    {
+      "seed": 4311,
+      "scenario": "edge-start-left",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 112,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 0,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 112,
+            "x": 925,
+            "y": 498,
+            "dirx": 1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 113,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 0,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 113,
+            "x": 846,
+            "y": 604.9,
+            "dirx": 1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4311,
+      "scenario": "edge-start-right",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 114,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 114,
+            "x": 526,
+            "y": 545.8,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 115,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 115,
+            "x": 267.6,
+            "y": 627.9,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4311,
+      "scenario": "edge-start-top",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 116,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 100,
+          "cornerHits": 10,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 116,
+            "x": 808.3,
+            "y": 45,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": true
+          }
+        },
+        {
+          "id": 117,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 117,
+            "x": 652.6,
+            "y": 221.2,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4311,
+      "scenario": "edge-start-bottom",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 118,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 3,
+          "wallHits": 100,
+          "cornerHits": 42,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 118,
+            "x": 834.6,
+            "y": 955,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": true
+          }
+        },
+        {
+          "id": 119,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 119,
+            "x": 845,
+            "y": 725.1,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4311,
+      "scenario": "corner-drive",
+      "analysis": [
+        {
+          "id": 120,
+          "kind": "shed",
+          "cleanSamples": 240,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 2,
+          "bouncesBack": 204,
+          "final": {
+            "t": 2,
+            "kind": "shed",
+            "id": 120,
+            "x": 368.4,
+            "y": 504.8,
+            "dirx": -0.707,
+            "diry": -0.707,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "returned": true,
+      "keptMoving": true,
+      "frames": 240
+    },
+    {
+      "seed": 4312,
+      "scenario": "a2-double-spawn",
+      "analysis": [
+        {
+          "id": 121,
+          "kind": "shed",
+          "cleanSamples": 300,
+          "maxStationaryRun": 1,
+          "wallHits": 6,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 2.5,
+            "kind": "shed",
+            "id": 121,
+            "x": 866.1,
+            "y": 425.1,
+            "dirx": -0.6,
+            "diry": -0.8,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 122,
+          "kind": "shed",
+          "cleanSamples": 300,
+          "maxStationaryRun": 1,
+          "wallHits": 44,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 2.5,
+            "kind": "shed",
+            "id": 122,
+            "x": 654,
+            "y": 556.4,
+            "dirx": -0.6,
+            "diry": -0.8,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 600
+    },
+    {
+      "seed": 4312,
+      "scenario": "passive-emergency",
+      "analysis": [
+        {
+          "id": 123,
+          "kind": "emergency",
+          "cleanSamples": 240,
+          "maxStationaryRun": 1,
+          "wallHits": 4,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 2,
+            "kind": "emergency",
+            "id": 123,
+            "x": 276.6,
+            "y": 309.6,
+            "dirx": 0.6,
+            "diry": 0.8,
+            "baseSpeed": 520,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 100,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 240
+    },
+    {
+      "seed": 4312,
+      "scenario": "edge-start-left",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 124,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 0,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 124,
+            "x": 894.4,
+            "y": 585.9,
+            "dirx": 1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 125,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 0,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 125,
+            "x": 840.3,
+            "y": 379.1,
+            "dirx": 1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4312,
+      "scenario": "edge-start-right",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 126,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 126,
+            "x": 455.8,
+            "y": 439.2,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 127,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 127,
+            "x": 323.3,
+            "y": 363.6,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4312,
+      "scenario": "edge-start-top",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 128,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 3,
+          "wallHits": 78,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 128,
+            "x": 827.7,
+            "y": 38.6,
+            "dirx": 1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": true
+          }
+        },
+        {
+          "id": 129,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 129,
+            "x": 801.9,
+            "y": 267.6,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4312,
+      "scenario": "edge-start-bottom",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 130,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 0,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 130,
+            "x": 930.5,
+            "y": 811.6,
+            "dirx": 1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 131,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 131,
+            "x": 695,
+            "y": 725.4,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4312,
+      "scenario": "corner-drive",
+      "analysis": [
+        {
+          "id": 132,
+          "kind": "shed",
+          "cleanSamples": 240,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 2,
+          "bouncesBack": 204,
+          "final": {
+            "t": 2,
+            "kind": "shed",
+            "id": 132,
+            "x": 368.4,
+            "y": 504.8,
+            "dirx": -0.707,
+            "diry": -0.707,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "returned": true,
+      "keptMoving": true,
+      "frames": 240
+    },
+    {
+      "seed": 4313,
+      "scenario": "a2-double-spawn",
+      "analysis": [
+        {
+          "id": 133,
+          "kind": "shed",
+          "cleanSamples": 300,
+          "maxStationaryRun": 1,
+          "wallHits": 4,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 2.5,
+            "kind": "shed",
+            "id": 133,
+            "x": 870.8,
+            "y": 644.9,
+            "dirx": -0.6,
+            "diry": -0.8,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 134,
+          "kind": "shed",
+          "cleanSamples": 300,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 2.5,
+            "kind": "shed",
+            "id": 134,
+            "x": 950.7,
+            "y": 930,
+            "dirx": 0.6,
+            "diry": -0.8,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 600
+    },
+    {
+      "seed": 4313,
+      "scenario": "passive-emergency",
+      "analysis": [
+        {
+          "id": 135,
+          "kind": "emergency",
+          "cleanSamples": 240,
+          "maxStationaryRun": 1,
+          "wallHits": 6,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 2,
+            "kind": "emergency",
+            "id": 135,
+            "x": 318.2,
+            "y": 358.1,
+            "dirx": 0.6,
+            "diry": 0.8,
+            "baseSpeed": 520,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 100,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 240
+    },
+    {
+      "seed": 4313,
+      "scenario": "edge-start-left",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 136,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 0,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 136,
+            "x": 817.7,
+            "y": 381.8,
+            "dirx": 1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 137,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 0,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 137,
+            "x": 804.6,
+            "y": 621.6,
+            "dirx": 1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4313,
+      "scenario": "edge-start-right",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 138,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 138,
+            "x": 261.1,
+            "y": 385.2,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 139,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 139,
+            "x": 260.8,
+            "y": 618.7,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4313,
+      "scenario": "edge-start-top",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 140,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 3,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 140,
+            "x": 939.4,
+            "y": 150,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 141,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 141,
+            "x": 833.4,
+            "y": 240,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4313,
+      "scenario": "edge-start-bottom",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 142,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 3,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 142,
+            "x": 839.9,
+            "y": 851.4,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 143,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 143,
+            "x": 947.2,
+            "y": 761.4,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4313,
+      "scenario": "corner-drive",
+      "analysis": [
+        {
+          "id": 144,
+          "kind": "shed",
+          "cleanSamples": 240,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 2,
+          "bouncesBack": 204,
+          "final": {
+            "t": 2,
+            "kind": "shed",
+            "id": 144,
+            "x": 368.4,
+            "y": 504.8,
+            "dirx": -0.707,
+            "diry": -0.707,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "returned": true,
+      "keptMoving": true,
+      "frames": 240
+    },
+    {
+      "seed": 4314,
+      "scenario": "a2-double-spawn",
+      "analysis": [
+        {
+          "id": 145,
+          "kind": "shed",
+          "cleanSamples": 300,
+          "maxStationaryRun": 1,
+          "wallHits": 4,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 2.5,
+            "kind": "shed",
+            "id": 145,
+            "x": 579.9,
+            "y": 540.5,
+            "dirx": -0.6,
+            "diry": -0.8,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 146,
+          "kind": "shed",
+          "cleanSamples": 300,
+          "maxStationaryRun": 1,
+          "wallHits": 24,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 2.5,
+            "kind": "shed",
+            "id": 146,
+            "x": 717.9,
+            "y": 773.7,
+            "dirx": -0.6,
+            "diry": -0.8,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 600
+    },
+    {
+      "seed": 4314,
+      "scenario": "passive-emergency",
+      "analysis": [
+        {
+          "id": 147,
+          "kind": "emergency",
+          "cleanSamples": 240,
+          "maxStationaryRun": 1,
+          "wallHits": 4,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 2,
+            "kind": "emergency",
+            "id": 147,
+            "x": 141.4,
+            "y": 512.6,
+            "dirx": 0.6,
+            "diry": 0.8,
+            "baseSpeed": 520,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 100,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 240
+    },
+    {
+      "seed": 4314,
+      "scenario": "edge-start-left",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 148,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 0,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 148,
+            "x": 883.9,
+            "y": 595.3,
+            "dirx": 1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 149,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 0,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 149,
+            "x": 864.6,
+            "y": 391,
+            "dirx": 1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4314,
+      "scenario": "edge-start-right",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 150,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 150,
+            "x": 471.4,
+            "y": 445.9,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 151,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 151,
+            "x": 355,
+            "y": 370.9,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4314,
+      "scenario": "edge-start-top",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 152,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 152,
+            "x": 650.5,
+            "y": 197.6,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 153,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 3,
+          "wallHits": 180,
+          "cornerHits": 6,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 153,
+            "x": 867.6,
+            "y": 45,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": true
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4314,
+      "scenario": "edge-start-bottom",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 154,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 180,
+          "cornerHits": 14,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 154,
+            "x": 836,
+            "y": 955,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": true
+          }
+        },
+        {
+          "id": 155,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 155,
+            "x": 649.1,
+            "y": 783.4,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4314,
+      "scenario": "corner-drive",
+      "analysis": [
+        {
+          "id": 156,
+          "kind": "shed",
+          "cleanSamples": 240,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 2,
+          "bouncesBack": 204,
+          "final": {
+            "t": 2,
+            "kind": "shed",
+            "id": 156,
+            "x": 368.4,
+            "y": 504.8,
+            "dirx": -0.707,
+            "diry": -0.707,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "returned": true,
+      "keptMoving": true,
+      "frames": 240
+    },
+    {
+      "seed": 4315,
+      "scenario": "a2-double-spawn",
+      "analysis": [
+        {
+          "id": 157,
+          "kind": "shed",
+          "cleanSamples": 300,
+          "maxStationaryRun": 1,
+          "wallHits": 32,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 2.5,
+            "kind": "shed",
+            "id": 157,
+            "x": 790.1,
+            "y": 898.8,
+            "dirx": -0.6,
+            "diry": -0.8,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 158,
+          "kind": "shed",
+          "cleanSamples": 300,
+          "maxStationaryRun": 1,
+          "wallHits": 52,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 2.5,
+            "kind": "shed",
+            "id": 158,
+            "x": 703.4,
+            "y": 620.7,
+            "dirx": -0.6,
+            "diry": -0.8,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 600
+    },
+    {
+      "seed": 4315,
+      "scenario": "passive-emergency",
+      "analysis": [
+        {
+          "id": 159,
+          "kind": "emergency",
+          "cleanSamples": 240,
+          "maxStationaryRun": 1,
+          "wallHits": 4,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 2,
+            "kind": "emergency",
+            "id": 159,
+            "x": 151.8,
+            "y": 523,
+            "dirx": 0.6,
+            "diry": 0.8,
+            "baseSpeed": 520,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 100,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 240
+    },
+    {
+      "seed": 4315,
+      "scenario": "edge-start-left",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 160,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 0,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 160,
+            "x": 747.5,
+            "y": 610.3,
+            "dirx": 1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 161,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 0,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 161,
+            "x": 912.1,
+            "y": 551.6,
+            "dirx": 1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4315,
+      "scenario": "edge-start-right",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 162,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 162,
+            "x": 350.3,
+            "y": 632.9,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 163,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 163,
+            "x": 471.1,
+            "y": 410.7,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4315,
+      "scenario": "edge-start-top",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 164,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 164,
+            "x": 916,
+            "y": 241.7,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 165,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 28,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 165,
+            "x": 823.7,
+            "y": 151.7,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4315,
+      "scenario": "edge-start-bottom",
+      "legalSpawn": true,
+      "analysis": [
+        {
+          "id": 166,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 0,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 166,
+            "x": 651.5,
+            "y": 766.8,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        },
+        {
+          "id": 167,
+          "kind": "shed",
+          "cleanSamples": 180,
+          "maxStationaryRun": 1,
+          "wallHits": 124,
+          "cornerHits": 18,
+          "bouncesBack": 0,
+          "final": {
+            "t": 1.5,
+            "kind": "shed",
+            "id": 167,
+            "x": 787.2,
+            "y": 955,
+            "dirx": -1,
+            "diry": 0,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": true
+          }
+        }
+      ],
+      "frames": 360
+    },
+    {
+      "seed": 4315,
+      "scenario": "corner-drive",
+      "analysis": [
+        {
+          "id": 168,
+          "kind": "shed",
+          "cleanSamples": 240,
+          "maxStationaryRun": 1,
+          "wallHits": 2,
+          "cornerHits": 2,
+          "bouncesBack": 204,
+          "final": {
+            "t": 2,
+            "kind": "shed",
+            "id": 168,
+            "x": 368.4,
+            "y": 504.8,
+            "dirx": -0.707,
+            "diry": -0.707,
+            "baseSpeed": 468,
+            "speedMult": 1,
+            "hardCC": false,
+            "stun": 0,
+            "freeze": false,
+            "positionLocked": false,
+            "hp": 140,
+            "atXWall": false,
+            "atYWall": false
+          }
+        }
+      ],
+      "returned": true,
+      "keptMoving": true,
+      "frames": 240
+    }
+  ],
   "summary": {
-    "total": 3,
-    "passed": 3,
+    "total": 7,
+    "passed": 7,
     "failed": []
   }
 }

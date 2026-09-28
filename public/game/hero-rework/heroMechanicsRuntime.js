@@ -1035,6 +1035,10 @@
         ctx.api.spawnSlimeChild(ctx.combatant, {
           hp: ctx.cfg.childHp, radius: ctx.cfg.childRadius,
           x: pos.x, y: pos.y,
+          // R4: no authored heading rule for shed children — inherit the
+          // spawning source body's current normalized heading (seeded axis
+          // still drives placement only).
+          sourceBody: src,
           kind: 'shed', lifetime: ctx.cfg.childLifetime,
           // Children move at 90% of parent speed (doc 10 A2) — explicit knob.
           speedPct: ctx.cfg.childSpeedPct != null ? ctx.cfg.childSpeedPct : 0.9,
@@ -1078,6 +1082,8 @@
       ctx.api.spawnSlimeChild(ctx.combatant, {
         hp: half, maxHp: halfMax, radius: newR,
         x: pos.x, y: pos.y,
+        // R4: inherit the triggering source body's normalized heading.
+        sourceBody: body,
         kind: 'emergency', lifetime: 0, // emergency children persist (no timed expiry)
         speedPct: 1,
       });
