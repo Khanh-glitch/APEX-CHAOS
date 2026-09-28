@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROBOT — Visual Prototype</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#07090a;color:#cfc9bc;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow:hidden}
+  canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block}
+  .hud{position:fixed;z-index:3;pointer-events:none;font-size:10px;letter-spacing:.18em;color:#6f6a60}
+  #tl{top:14px;left:18px}
+  #tl b{color:#d8d1c2;font-weight:700;letter-spacing:.3em}
+  #tr{top:14px;right:18px;text-align:right}
+  #tr b{color:#c9a266;font-weight:400}
+  #bar{position:fixed;z-index:4;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:98vw}
+  #bar button{font:inherit;font-size:10px;letter-spacing:.1em;color:#d6d0c3;background:rgba(14,16,17,.86);border:1px solid #33362f;border-radius:3px;padding:8px 10px;cursor:pointer;transition:border-color .15s,background .15s,color .15s}
+  #bar button:hover{border-color:#a07c4a;background:#1f1a12;color:#ffe0ac}
+  #bar button.on{border-color:#b98d55;color:#ffdca4;background:#281f13}
+  #bar kbd{font:inherit;color:#8a806e;margin-right:5px}
+  #bar .sep{width:1px;background:#2a2c29;margin:3px 2px}
+  #drop{position:fixed;inset:0;z-index:9;display:none;align-items:center;justify-content:center;background:rgba(7,9,10,.8);color:#e0b877;font-size:12px;letter-spacing:.25em;border:2px dashed #7d6440}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud" id="tl"><b>ROBOT</b>&nbsp;&nbsp;VISUAL PROTOTYPE<br><span id="src">SOURCE · loading</span></div>
+<div class="hud" id="tr">STATE&nbsp;&nbsp;<b id="phase">IDLE</b></div>
+<div id="bar">
+  <button data-a="a1"><kbd>J</kbd>WEAPON DASH</button>
+  <button data-a="fail">NO TARGET</button>
+  <button data-a="a2"><kbd>K</kbd>VIRTUAL ARMOR</button>
+  <span class="sep"></span>
+  <button data-a="hit">HIT</button>
+  <button data-a="wall">WALL</button>
+  <button data-a="move">MOVE</button>
+  <button data-a="fire">FIRE</button>
+  <button data-a="passive"><kbd>P</kbd>INDEX</button>
+  <span class="sep"></span>
+  <button data-a="view" id="bView">VIEW · STAGE</button>
+  <button data-a="slow" id="bSlow">1×</button>
+  <button data-a="sound" id="bSound" class="on">SOUND</button>
+  <button data-a="load">LOAD REF</button>
+  <button data-a="reset"><kbd>R</kbd>RESET</button>
+</div>
+<div id="drop">DROP THE ROBOT REFERENCE IMAGE</div>
+<input type="file" id="file" accept="image/*" hidden>
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const cv = $('c'), ctx = cv.getContext('2d');
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
+const mix = (a, b, t) => a + (b - a) * t;
+const wrapA = a => { while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU; return a; };
+
+/* ============================================================
+   WORLD / SCALE
+   head is authored in 1280 "head units"; HS = on-stage size
+   ============================================================ */
+const W = 1600, H = 900;
+const HS = 172, HSC = HS / 1280;
+const HOME = { x: 560, y: 470 };
+const WPN = { x: 1190, y: 560 };
+const WALL_X = 120;
+const EM_R = { x: 1548, y: 150 }, EM_L = { x: 64, y: 112 };
+const PIV = [{ x: 191, y: 626 }, { x: 1089, y: 626 }];
+const JAW = { x: 414, y: 1094 };
+const LATCH = { x: 640, y: 470 };
+const GUN_DROP = 5;
+
+/* ============================================================
+   AUDIO — tiny temporary timing aid
+   ============================================================ */
+let AC = null, master = null, soundOn = true;
+function audio() {
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = 0.7; master.connect(AC.destination); } catch (e) { return null; } }
+  if (AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function osc(type, f0, f1, dur, g, delay = 0) {
+  if (!soundOn) return; const c = audio(); if (!c) return;
+  try {
+    const t = c.currentTime + delay, o = c.createOscillator(), v = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    v.gain.setValueAtTime(0.0001, t); v.gain.exponentialRampToValueAtTime(g, t + 0.004); v.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(v); v.connect(master); o.start(t); o.stop(t + dur + 0.03);
+  } catch (e) {}
+}
+function noise(dur, g, f0, f1, q = 1.2, delay = 0) {
+  if (!soundOn) return; const c = audio(); if (!c) return;
+  try {
+    const t = c.currentTime + delay, n = Math.max(1, Math.floor(c.sampleRate * dur));
+    const b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 1.5);
+    const s = c.createBufferSource(); s.buffer = b;
+    const f = c.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = q;
+    f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(40, f1), t + dur);
+    const v = c.createGain(); v.gain.value = g;
+    s.connect(f); f.connect(v); v.connect(master); s.start(t);
+  } catch (e) {}
+}
+const sfx = {
+  tick() { osc('square', 1800, 1400, .025, .025); },
+  index() { osc('square', 1500, 1150, .03, .04); osc('square', 1950, 1500, .03, .035, .05); },
+  servo() { osc('sawtooth', 170, 430, .13, .03); noise(.11, .035, 700, 2600); },
+  lock() { noise(.035, .28, 3600, 2500, 2); osc('sine', 190, 70, .12, .22); osc('square', 950, 620, .02, .05); },
+  whoosh() { noise(.24, .22, 500, 4600, .8); },
+  clamp() { noise(.05, .36, 2900, 1800, 1.6); osc('sine', 140, 46, .26, .32); osc('triangle', 640, 420, .09, .09); },
+  hit() { noise(.06, .24, 1700, 650, 1); osc('sine', 165, 58, .15, .22); },
+  heavy() { noise(.11, .36, 1300, 380, 1); osc('sine', 110, 34, .32, .36); },
+  armorHit() { noise(.05, .26, 2700, 1400, 1.6); osc('sine', 215, 90, .1, .22); osc('triangle', 540, 390, .2, .07, .03); },
+  shot() { noise(.08, .3, 3100, 900, .9); osc('square', 250, 60, .09, .08); },
+  release() { osc('sawtooth', 430, 150, .2, .03); noise(.15, .06, 2100, 600); },
+  deny() { osc('square', 430, 390, .05, .03); osc('square', 300, 280, .08, .03, .08); },
+  pulse() { osc('sine', 720, 1440, .14, .05); }
+};
+window.addEventListener('pointerdown', () => audio(), { passive: true });
+
+/* ============================================================
+   VECTOR REBUILD OF THE REFERENCE (fallback source)
+   Used only when robot.png is not supplied. It is composited
+   into one flat source image and then segmented with exactly
+   the same masks the real raster uses.
+   ============================================================ */
+const DEFS = '<defs>'
+ + '<linearGradient id="cer" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fffdf8"/><stop offset=".48" stop-color="#e9e3d8"/><stop offset=".78" stop-color="#c5bdb3"/><stop offset="1" stop-color="#fff9ed"/></linearGradient>'
+ + '<linearGradient id="brass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff4b8"/><stop offset=".25" stop-color="#efbc61"/><stop offset=".56" stop-color="#a35d12"/><stop offset=".85" stop-color="#e5a741"/><stop offset="1" stop-color="#fff3b0"/></linearGradient>'
+ + '<linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#64646a"/><stop offset=".25" stop-color="#292a30"/><stop offset=".65" stop-color="#111317"/><stop offset="1" stop-color="#55555c"/></linearGradient>'
+ + '<linearGradient id="optic" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#8b3900"/><stop offset=".35" stop-color="#ff9f19"/><stop offset=".7" stop-color="#ffdd68"/><stop offset="1" stop-color="#fff2b4"/></linearGradient>'
+ + '<filter id="glow" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="12"/></filter>'
+ + '</defs>';
+const OUT = 'stroke="#0b0d0e" stroke-width="22" stroke-linejoin="round"';
+const LAYERS = {
+chassis: '<path d="M618 83 Q640 65 663 83 L710 184 762 237 801 353 906 326 1011 417 1112 532 1118 739 1043 909 902 1024 774 1015 716 1090 636 1137 556 1090 503 1017 353 1028 235 925 161 755 169 547 270 399 379 325 474 346 516 239 568 184Z" fill="url(#steel)" stroke="#828487" stroke-width="6"/>'
+ + '<path d="M244 573 325 364 474 347 505 413 431 536 364 704 330 911 228 787Z M1036 573 955 364 806 347 775 413 849 536 916 704 950 911 1052 787Z" fill="#101214" stroke="#323337" stroke-width="15"/>'
+ + '<path d="M333 678 468 595 603 668 600 871 483 955 364 882Z M947 678 812 595 677 668 680 871 797 955 916 882Z" fill="#111316" stroke="#515057" stroke-width="16"/>'
+ + '<path d="M493 855 568 888 640 864 712 888 787 855 815 967 716 1068 640 1107 560 1068 462 967Z" fill="url(#steel)" stroke="#101113" stroke-width="15"/>'
+ + '<path d="M588 116 691 116 724 375 690 541 640 576 590 541 556 375Z" fill="#1c1d21" stroke="#888583" stroke-width="5"/>',
+eyes: '<path d="M373 653 Q465 686 563 741 L586 808 505 833 Q423 800 379 762Z M907 653 Q815 686 717 741 L694 808 775 833 Q857 800 901 762Z" fill="#0a0908" stroke="#3d3026" stroke-width="16"/>'
+ + '<path d="M399 674 555 755 541 801 472 777 417 731Z M881 674 725 755 739 801 808 777 863 731Z" fill="#e27716" opacity=".75" filter="url(#glow)"/>'
+ + '<path d="M404 675 Q475 711 558 752 L540 795 Q476 781 419 732Z M876 675 Q805 711 722 752 L740 795 Q804 781 861 732Z" fill="url(#optic)" stroke="#8e4810" stroke-width="8"/>'
+ + '<path d="M432 697 518 748 522 773 460 755Z M848 697 762 748 758 773 820 755Z" fill="#fff8cf" opacity=".9"/>'
+ + '<path d="M404 677 558 754 543 771 416 711Z M876 677 722 754 737 771 864 711Z" fill="#422415" opacity=".64"/>',
+shell: '<path d="M425 332 503 305 535 383 586 448 640 471 694 448 745 383 777 305 855 332 933 513 854 636 736 716 640 785 544 716 426 636 347 513Z" fill="url(#cer)" ' + OUT + '/>'
+ + '<path d="M444 352 503 326 546 441 601 487 570 620 460 561 390 506Z" fill="#fffdf5" opacity=".73"/>'
+ + '<path d="M836 352 777 326 734 441 679 487 710 620 820 561 890 506Z" fill="#fffdf5" opacity=".44"/>'
+ + '<path d="M431 363 463 530 579 671 544 697 405 609 357 514Z M849 363 817 530 701 671 736 697 875 609 923 514Z" fill="#948e88" opacity=".48"/>'
+ + '<path d="M415 363 446 563 551 680 M865 363 834 563 729 680" fill="none" stroke="#bbb4a9" stroke-width="5" opacity=".7"/>',
+datum: '<path d="M604 77 Q640 56 675 77 L723 183 748 252 723 367 684 421 640 445 596 421 557 367 532 252 557 183Z" fill="url(#cer)" ' + OUT + '/>'
+ + '<path d="M604 91 638 83 638 398 591 365 571 264Z" fill="#fffdf7" opacity=".8"/>'
+ + '<path d="M644 145 658 145 658 300 644 300Z" fill="#121315" stroke="#776b59" stroke-width="5"/>'
+ + '<path d="M622 301 658 301 659 412 621 412Z" fill="url(#brass)" stroke="#141417" stroke-width="11"/>'
+ + '<rect x="603" y="415" width="74" height="103" rx="16" fill="url(#steel)" stroke="#0c0d0e" stroke-width="14"/>'
+ + '<circle cx="640" cy="468" r="25" fill="#d3c9b8" stroke="#08090a" stroke-width="9"/><path d="M622 486 658 450" stroke="#171716" stroke-width="8"/>'
+ + '<path d="M604 505 591 602 587 788 640 847 693 788 689 602 676 505 640 533Z" fill="url(#cer)" ' + OUT + '/>'
+ + '<path d="M640 537 640 796" stroke="#171819" stroke-width="13" stroke-linecap="round"/>'
+ + '<path d="M615 559 665 559 M614 602 666 602 M615 649 665 649" stroke="#323130" stroke-width="7" stroke-linecap="round"/>'
+ + '<path d="M598 523 589 780 640 836" fill="none" stroke="#fffdf6" stroke-width="7" opacity=".9"/>',
+caliper: '<path d="M442 113 Q472 106 469 150 L457 285 367 361 406 390 471 321 497 307 529 339 462 484 358 535 300 656 328 745 417 803 469 895 491 989 447 1018 370 944 332 888 263 882 176 800 126 686 109 559 165 510 129 475 186 372 281 241Z" fill="url(#steel)" stroke="#0b0c0e" stroke-width="25" stroke-linejoin="round"/>'
+ + '<path d="M441 120 289 229 193 331 143 468 182 504 127 554 145 684 209 795 312 888 379 1079 418 1098 414 1016 317 741 337 559 457 320 454 134Z" fill="url(#cer)" stroke="#07090a" stroke-width="19" stroke-linejoin="round"/>'
+ + '<path d="M440 139 292 244 213 335 166 463 190 479 266 490 350 231Z" fill="#fffdf7" opacity=".78"/>'
+ + '<path d="M350 228 441 140 431 244 337 327 271 487 263 498Z" fill="#aaa197" opacity=".57"/>'
+ + '<path d="M271 491 185 512 138 571 162 687 225 771 274 804 314 739 304 570Z" fill="#faf6ec" opacity=".66"/>'
+ + '<path d="M210 312 272 325 243 402 214 393Z" fill="#141518" stroke="#898783" stroke-width="6"/>'
+ + '<path d="M222 393 265 331" stroke="#565455" stroke-width="7"/>'
+ + '<path d="M317 696 335 794 382 886 459 967 468 995 388 1059 321 951 279 806Z" fill="url(#cer)" stroke="#080a0b" stroke-width="17" stroke-linejoin="round"/>'
+ + '<path d="M338 754 377 814 391 950 361 916Z" fill="#fffdf4" opacity=".68"/>'
+ + '<circle cx="191" cy="626" r="91" fill="#111315" stroke="#a6a2a0" stroke-width="13"/>',
+cheek: '<path d="M336 872 470 824 528 892 478 1012 366 992 312 928Z" fill="url(#cer)" stroke="#080a0b" stroke-width="17" stroke-linejoin="round"/>'
+ + '<path d="M352 880 468 840 448 986 372 972Z" fill="#fffdf4" opacity=".6"/>'
+ + '<path d="M470 830 524 894 480 1004 452 962 486 892Z" fill="#a39a90" opacity=".55"/>'
+ + '<path d="M392 890 416 884 410 962 388 966Z" fill="url(#brass)" stroke="#191919" stroke-width="7"/>',
+chin: '<path d="M530 922 639 843 750 922 723 1033 640 1116 555 1033Z" fill="url(#cer)" ' + OUT + '/>'
+ + '<path d="M550 929 641 866 641 1072 583 1026Z" fill="#fffdf5" opacity=".66"/>'
+ + '<path d="M641 866 735 929 698 1026 641 1072Z" fill="#a9a197" opacity=".43"/>'
+ + '<path d="M534 920 640 854 746 920" fill="none" stroke="#fefbf3" stroke-width="8"/>',
+pivot: '<circle cx="191" cy="626" r="72" fill="url(#cer)" stroke="#232323" stroke-width="12"/>'
+ + '<circle cx="191" cy="626" r="53" fill="url(#brass)" stroke="#24190d" stroke-width="11"/>'
+ + '<path d="M151 667 231 586" stroke="#3e250e" stroke-width="14" stroke-linecap="round"/>'
+ + '<circle cx="191" cy="626" r="43" fill="none" stroke="#ffdea0" stroke-width="5" opacity=".6"/>'
+};
+
+/* ============================================================
+   SEGMENTATION MASKS (1280 head units, matching reference)
+   ============================================================ */
+const mir = pts => pts.map(p => [1280 - p[0], p[1]]);
+const M = {};
+M.calL = [[455,92],[490,140],[478,298],[420,366],[476,316],[498,300],[520,326],[472,488],[374,548],[320,652],[346,742],[430,798],[482,890],[510,992],[456,1034],[432,1114],[372,1100],[322,964],[298,902],[256,896],[166,814],[110,694],[92,556],[144,506],[114,470],[174,360],[276,226],[418,104]];
+M.calR = mir(M.calL);
+M.cheekL = [[330,862],[472,814],[538,892],[484,1022],[362,1002],[302,930]];
+M.cheekR = mir(M.cheekL);
+M.chin = [[518,914],[640,830],[762,914],[736,1042],[640,1130],[544,1042]];
+M.crest = [[596,60],[640,46],[684,60],[736,180],[762,252],[734,372],[686,422],[680,432],[680,528],[600,528],[600,432],[594,422],[546,372],[518,252],[544,180]];
+const SLOT = [[300,-200],[980,-200],[980,300],[777,300],[745,383],[694,448],[680,452],[680,540],[600,540],[600,452],[586,448],[535,383],[503,300],[300,300]];
+const SIL = [[640,36],[722,58],[792,108],[1172,300],[1234,560],[1204,722],[1102,904],[900,1124],[640,1152],[380,1124],[178,904],[76,722],[46,560],[108,300],[488,108],[558,58]];
+const HULL = [[596,330],[684,330],[900,390],[1004,490],[1046,626],[1004,806],[900,946],[762,1044],[640,1104],[518,1044],[380,946],[276,806],[234,626],[276,490],[380,390]];
+const EYE = [new Path2D('M404 675 Q475 711 558 752 L540 795 Q476 781 419 732 Z'), new Path2D('M876 675 Q805 711 722 752 L740 795 Q804 781 861 732 Z')];
+const SOCK = [new Path2D('M373 653 Q465 686 563 741 L586 808 505 833 Q423 800 379 762 Z'), new Path2D('M907 653 Q815 686 717 741 L694 808 775 833 Q857 800 901 762 Z')];
+const SEAM = [[474,318],[522,328],[472,488],[372,548],[318,652]];
+
+function poly(g, p) { g.moveTo(p[0][0], p[0][1]); for (let i = 1; i < p.length; i++) g.lineTo(p[i][0], p[i][1]); g.closePath(); }
+function mkCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h || w; return c; }
+
+const SRC = mkCanvas(1280);
+const SR = 820;
+const SPR = { ready: false };
+
+function loadSvg(body) {
+  return new Promise(res => {
+    const im = new Image();
+    im.onload = () => res(im); im.onerror = () => res(null);
+    im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 1280">' + DEFS + body + '</svg>');
+  });
+}
+async function buildVectorSource() {
+  const order = ['chassis', 'eyes', 'shell', 'datum', 'chin', 'caliper', 'cheek', 'pivot'];
+  const mirrored = { caliper: 1, cheek: 1, pivot: 1 };
+  const ims = {};
+  for (const k of order) ims[k] = await loadSvg(LAYERS[k]);
+  const g = SRC.getContext('2d');
+  g.clearRect(0, 0, 1280, 1280);
+  for (const k of order) {
+    const im = ims[k]; if (!im) continue;
+    g.drawImage(im, 0, 0, 1280, 1280);
+    if (mirrored[k]) { g.save(); g.translate(1280, 0); g.scale(-1, 1); g.drawImage(im, 0, 0, 1280, 1280); g.restore(); }
+  }
+}
+function keyBackground() {
+  // flood-fill near-black background from the border, preserving interior outlines
+  try {
+    const g = SRC.getContext('2d'), N = 1280;
+    const id = g.getImageData(0, 0, N, N), d = id.data;
+    const seen = new Uint8Array(N * N), st = new Int32Array(N * N); let sp = 0;
+    const dark = i => { const o = i * 4; return d[o + 3] < 12 || (d[o] < 30 && d[o + 1] < 30 && d[o + 2] < 30); };
+    const push = i => { if (!seen[i] && dark(i)) { seen[i] = 1; st[sp++] = i; } };
+    for (let x = 0; x < N; x++) { push(x); push((N - 1) * N + x); }
+    for (let y = 0; y < N; y++) { push(y * N); push(y * N + N - 1); }
+    while (sp) {
+      const i = st[--sp]; d[i * 4 + 3] = 0;
+      const x = i % N;
+      if (x > 0) push(i - 1); if (x < N - 1) push(i + 1);
+      if (i >= N) push(i - N); if (i < N * N - N) push(i + N);
+    }
+    g.putImageData(id, 0, 0);
+    return true;
+  } catch (e) { return false; }
+}
+function sprite(inc, exc) {
+  const c = mkCanvas(SR), g = c.getContext('2d');
+  g.scale(SR / 1280, SR / 1280);
+  g.drawImage(SRC, 0, 0, 1280, 1280);
+  if (inc) { g.globalCompositeOperation = 'destination-in'; g.beginPath(); inc(g); g.fill(); }
+  if (exc) { g.globalCompositeOperation = 'destination-out'; for (const e of exc) { g.beginPath(); e(g); g.fill(); } }
+  return c;
+}
+function buildBackplate() {
+  const c = mkCanvas(SR), g = c.getContext('2d');
+  g.scale(SR / 1280, SR / 1280);
+  const gr = g.createLinearGradient(0, 300, 0, 1100);
+  gr.addColorStop(0, '#1d1f23'); gr.addColorStop(1, '#0d0e10');
+  g.fillStyle = gr; g.beginPath(); poly(g, HULL); g.fill();
+  g.strokeStyle = '#2a2d32'; g.lineWidth = 6;
+  for (let y = 420; y < 1040; y += 44) { g.beginPath(); g.moveTo(300, y); g.lineTo(980, y); g.stroke(); }
+  g.fillStyle = '#0b0c0e'; g.fillRect(604, 280, 72, 300);
+  g.strokeStyle = '#8a6a3a'; g.lineWidth = 5;
+  g.beginPath(); g.moveTo(612, 290); g.lineTo(612, 570); g.moveTo(668, 290); g.lineTo(668, 570); g.stroke();
+  g.fillStyle = '#3a3c41';
+  for (let y = 300; y < 570; y += 36) { g.fillRect(622, y, 36, 6); }
+  return c;
+}
+function buildSprites() {
+  const P = pts => g => poly(g, pts);
+  SPR.calL = sprite(P(M.calL), [P(M.cheekL)]);
+  SPR.calR = sprite(P(M.calR), [P(M.cheekR)]);
+  SPR.cheekL = sprite(P(M.cheekL));
+  SPR.cheekR = sprite(P(M.cheekR));
+  SPR.chin = sprite(P(M.chin));
+  SPR.crest = sprite(P(M.crest));
+  SPR.core = sprite(null, [P(M.calL), P(M.calR), P(M.cheekL), P(M.cheekR), P(M.chin), P(M.crest)]);
+  SPR.disc = [sprite(g => g.arc(PIV[0].x, PIV[0].y, 57, 0, TAU)), sprite(g => g.arc(PIV[1].x, PIV[1].y, 57, 0, TAU))];
+  SPR.back = buildBackplate();
+  SPR.ready = true;
+}
+function useRaster(im, name) {
+  const g = SRC.getContext('2d');
+  g.globalCompositeOperation = 'source-over';
+  g.clearRect(0, 0, 1280, 1280);
+  g.drawImage(im, 0, 0, 1280, 1280);
+  const keyed = keyBackground();
+  if (!keyed) { g.globalCompositeOperation = 'destination-in'; g.beginPath(); poly(g, SIL); g.fill(); g.globalCompositeOperation = 'source-over'; }
+  buildSprites();
+  $('src').textContent = 'SOURCE · reference raster (' + name + ')' + (keyed ? '' : ' · hull-masked');
+}
+function tryRaster(list) {
+  if (!list.length) return;
+  const im = new Image();
+  im.onload = () => useRaster(im, list[0]);
+  im.onerror = () => tryRaster(list.slice(1));
+  im.src = list[0];
+}
+function loadFile(file) {
+  if (!file || !/^image\//.test(file.type)) return;
+  const fr = new FileReader();
+  fr.onload = () => { const im = new Image(); im.onload = () => useRaster(im, file.name); im.src = fr.result; };
+  fr.readAsDataURL(file);
+}
+
+/* ============================================================
+   SPRINGS — analytic damped harmonic oscillator
+   (after Ryan Juckett's closed-form coefficients)
+   ============================================================ */
+function springCoef(dt, w, z) {
+  const eps = 1e-4;
+  if (w < eps) return [1, 0, 0, 1];
+  if (z > 1 + eps) {
+    const za = -w * z, zb = w * Math.sqrt(z * z - 1), z1 = za - zb, z2 = za + zb;
+    const e1 = Math.exp(z1 * dt), e2 = Math.exp(z2 * dt), inv = 1 / (2 * zb), a = e1 * inv, b = e2 * inv;
+    return [a * z2 - z2 * b + e2, -a + b, (z1 * a - z2 * b + e2) * z2, -z1 * a + z2 * b];
+  } else if (z < 1 - eps) {
+    const wz = w * z, al = w * Math.sqrt(1 - z * z);
+    const e = Math.exp(-wz * dt), c = Math.cos(al * dt), s = Math.sin(al * dt), ia = 1 / al;
+    const es = e * s, ec = e * c, ews = e * wz * s * ia;
+    return [ec + ews, es * ia, -es * al - wz * ews, ec - ews];
+  }
+  const e = Math.exp(-w * dt), te = dt * e, twe = te * w;
+  return [twe + e, te, -w * twe, -twe + e];
+}
+function peakFactor(z) { if (z >= 1) return 1 / Math.E; const s = Math.sqrt(1 - z * z); return Math.exp(-z * Math.atan2(s, z) / s); }
+class Spr {
+  constructor(x, w, z) { this.x = x; this.v = 0; this.g = x; this.w = w; this.z = z; this.w0 = w; this.z0 = z; }
+  step(dt) { const p = springCoef(dt, this.w, this.z), o = this.x - this.g, v = this.v; this.x = o * p[0] + v * p[1] + this.g; this.v = o * p[2] + v * p[3]; }
+  kick(peak) { this.v += peak * this.w / peakFactor(this.z); }   // kick sized by desired peak displacement
+  set(w, z) { this.w = w; this.z = z; }
+  reset() { this.w = this.w0; this.z = this.z0; }
+  snapTo(x) { this.x = this.g = x; this.v = 0; }
+}
+const mk = (w, z, x = 0) => new Spr(x, w, z);
+const R = {
+  calTh: [mk(24, .82), mk(24, .82)], calDx: [mk(24, .85), mk(24, .85)], calDy: [mk(24, .9), mk(24, .9)],
+  spin: [mk(30, .62), mk(30, .62)],
+  crest: mk(28, .72), chin: mk(24, .8), cheekX: mk(24, .85), cheekY: mk(24, .85),
+  lid: mk(38, 1), glow: mk(22, .9, 1), seam: mk(12, 1),
+  coreX: mk(30, .55), coreY: mk(30, .6), rootX: mk(22, .6), rootY: mk(22, .6), tilt: mk(20, .55),
+  lagX: mk(16, .8), lagY: mk(16, .8), gunKick: mk(40, .6), ped: mk(18, .35)
+};
+const POSE_SPR = [...R.calTh, ...R.calDx, ...R.calDy, ...R.spin, R.crest, R.chin, R.cheekX, R.cheekY, R.lid];
+const LOOSE_SPR = [...R.calTh, ...R.calDx, R.crest, R.coreX, R.tilt];
+const BASE = { calTh: 0, calDx: 0, calDy: 0, spin: 0, crest: 0, chin: 0, cheekX: 0, cheekY: 0, lid: 0, glow: 1, seam: 0 };
+let POSE = { ...BASE };
+const setPose = p => { POSE = { ...BASE, ...p }; };
+const P_IDLE = {};
+const P_HELD = { calTh: -.05, calDx: 6 };
+const P_A1_FOCUS = { lid: .3, glow: 1.3, spin: Math.PI / 4, crest: -14, calTh: .06 };
+const P_A1_COMMIT = { calTh: .27, calDx: -8, crest: -54, chin: 12, cheekX: -10, lid: .7, glow: 1.75, spin: Math.PI / 2 };
+const P_A1_CONTACT = { calTh: -.09, calDx: 12, crest: -16, chin: -6, lid: .35, glow: 1.4, spin: Math.PI };
+const P_A2_INDEX = { calTh: .04, calDx: 34, crest: 18, lid: .26, spin: Math.PI / 4 };
+const P_A2_LOCK = { calTh: .13, calDx: 88, calDy: 10, crest: 58, chin: -22, cheekX: 24, cheekY: -20, lid: .62, glow: 1.12, spin: Math.PI / 2, seam: .45 };
+const restPose = () => held ? P_HELD : P_IDLE;
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let T = 0, freeze = 0, trauma = 0, timeScale = 1;
+const camK = { x: mk(30, .5), y: mk(30, .5) };
+const bx = mk(6.5, 1, HOME.x), by = mk(6.5, 1, HOME.y);
+let mode = 'hold', vxw = 0, vyw = 0, ax = 0, ay = 0;
+let held = false, weaponPresent = true, gunFade = 1, gunAttachT = -9, contactT = -9;
+let armor = false, dash = null, trail = [], trailOn = false;
+let brackets = null, measure = null;
+let lockFlash = 0, ticks = [0, 0, 0], stress = [], pulses = [], parts = [], projs = [], flashes = [], muzzle = null;
+let tele = { R: 0, L: 0 }, wallFlash = 0;
+let Q = [], busyUntil = 0, snapUntil = 0, snapW = 60, snapZ = .6, looseUntil = 0, softUntil = 0, strainUntil = 0, bodyUntil = 0;
+let extraTh = [0, 0], extraSpin = [0, 0], idleT = 4.5, lastPos = { x: HOME.x, y: HOME.y };
+let viewMode = 0;
+
+const at = (d, fn) => Q.push({ t: T + d, fn });
+const busy = () => T < busyUntil;
+const phase = s => { $('phase').textContent = s; };
+function addTrauma(a) { trauma = clamp(trauma + a, 0, 1); }
+function camKick(dx, dy) { camK.x.kick(dx); camK.y.kick(dy); }
+function hitStop(d) { freeze = Math.max(freeze, d); }
+function snap(dur, w = 62, z = .58) { snapUntil = T + dur; snapW = w; snapZ = z; }
+
+/* head-space → world, part-space helpers */
+function headToWorld(hx, hy) {
+  const ox = (hx - 640) * HSC, oy = (hy - 600) * HSC, c = Math.cos(R.tilt.x), s = Math.sin(R.tilt.x);
+  return { x: bx.x + R.rootX.x * HSC + ox * c - oy * s, y: by.x + R.rootY.x * HSC + ox * s + oy * c };
+}
+function calPoint(s, hx, hy) {
+  const sg = s ? -1 : 1, P = PIV[s], th = sg * R.calTh[s].x, c = Math.cos(th), sn = Math.sin(th);
+  const px = hx - P.x, py = hy - P.y;
+  return { x: P.x + sg * R.calDx[s].x + R.lagX.x + px * c - py * sn, y: P.y + R.calDy[s].x + R.lagY.x + px * sn + py * c };
+}
+function jawWorld() {
+  const a = calPoint(0, JAW.x, JAW.y), b = calPoint(1, 1280 - JAW.x, JAW.y);
+  return [headToWorld(a.x, a.y), headToWorld(b.x, b.y)];
+}
+function heldGun() {
+  const [a, b] = jawWorld(), ang = Math.atan2(b.y - a.y, b.x - a.x);
+  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, k = R.gunKick.x;
+  let x = mx - Math.sin(ang) * GUN_DROP + Math.cos(ang) * k, y = my + Math.cos(ang) * GUN_DROP + Math.sin(ang) * k;
+  const f = clamp((T - gunAttachT) / 0.06, 0, 1);
+  return { x: mix(WPN.x, x, f), y: mix(WPN.y, y, f), a: ang * f };
+}
+function dashTargetPoint() {
+  // robot centre such that the CLOSED jaws land exactly on the weapon
+  const th = P_A1_CONTACT.calTh, dx = P_A1_CONTACT.calDx;
+  const px = JAW.x - PIV[0].x, py = JAW.y - PIV[0].y;
+  const tipY = PIV[0].y + px * Math.sin(th) + py * Math.cos(th);
+  return { x: WPN.x, y: WPN.y - (tipY - 600) * HSC - GUN_DROP };
+}
+
+/* ============================================================
+   VFX primitives
+   ============================================================ */
+function sparks(x, y, dx, dy, n, spd, spread = 1) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.atan2(dy, dx) + (Math.random() - .5) * spread, v = spd * (.45 + Math.random() * .8);
+    parts.push({ k: 'spark', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: .18 + Math.random() * .2, w: 1.4 + Math.random() * 1.2 });
+  }
+  if (parts.length > 220) parts.splice(0, parts.length - 220);
+}
+function chips(x, y, dx, dy, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.atan2(dy, dx) + (Math.random() - .5) * 1.6, v = 120 + Math.random() * 180;
+    parts.push({ k: 'chip', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 80, t: 0, life: .45 + Math.random() * .25, r: Math.random() * TAU, vr: (Math.random() - .5) * 20, s: 2 + Math.random() * 2 });
+  }
+}
+function dust(x, y, dx, dy, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.atan2(dy, dx) + (Math.random() - .5) * 1.2, v = 60 + Math.random() * 120;
+    parts.push({ k: 'dust', x: x + (Math.random() - .5) * 20, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * .3 - 10, t: 0, life: .5 + Math.random() * .3, s: 6 + Math.random() * 8 });
+  }
+}
+function flash(x, y, big) { flashes.push({ x, y, t: 0, dur: big ? .12 : .08, r: big ? 26 : 16 }); }
+function pulse(pts, dur, w) { pulses.push({ pts, t: 0, dur, w }); }
+function pivotNow(s) { return calPoint(s, PIV[s].x, PIV[s].y); }
+
+/* ============================================================
+   IMPACT — driven by the actual hit point & force direction
+   ============================================================ */
+function impact(s, hx, hy, dir, F, worldPt) {
+  const o = 1 - s, tan = { x: -dir.y, y: dir.x };
+  const above = hy < PIV[s].y ? 1 : -1;
+  flash(worldPt.x, worldPt.y, F > 1.5);
+  stress.push({ x: hx, y: hy, nx: dir.x, ny: dir.y, t: 0, dur: F > 1.5 ? .2 : .14, armored: armor });
+  if (armor) {
+    // hard lock: small travel, force routed pivot → latch → opposite pivot
+    hitStop(F > 1.5 ? .095 : .05); addTrauma(F > 1.5 ? .5 : .26); camKick(dir.x * F * 5, dir.y * F * 5);
+    R.calDx[s].kick(34 * F); R.calTh[s].kick(.07 * F * above); R.spin[s].kick(.85 * F);
+    R.rootX.kick(dir.x * 16 * F); R.rootY.kick(dir.y * 16 * F);
+    R.crest.kick(14 * F); R.chin.kick(-6 * F); R.glow.kick(.3);
+    const ps = pivotNow(s), po = pivotNow(o);
+    pulse([[hx, hy], [ps.x, ps.y], [LATCH.x, LATCH.y], [po.x, po.y]], F > 1.5 ? .26 : .17, F > 1.5 ? 14 : 10);
+    at(F > 1.5 ? .13 : .085, () => { R.calDx[o].kick(22 * F); R.spin[o].kick(.6 * F); R.coreX.kick(-dir.x * 6 * F); lockFlash = Math.max(lockFlash, .5); });
+    sparks(worldPt.x, worldPt.y, tan.x, tan.y, F > 1.5 ? 8 : 5, 340, .6);
+    sparks(worldPt.x, worldPt.y, -tan.x, -tan.y, F > 1.5 ? 8 : 5, 340, .6);
+    if (F > 1.5) {
+      chips(worldPt.x, worldPt.y, -dir.x, -dir.y, 4);
+      strainUntil = T + .22; R.tilt.kick(dir.x * .05);
+      at(.24, () => { strainUntil = 0; snap(.12, 70, .6); lockFlash = 1; sfx.lock(); });
+      sfx.heavy(); sfx.armorHit();
+    } else sfx.armorHit();
+  } else {
+    // free machine: disturbed, loose, then recalibrates
+    hitStop(.06); addTrauma(F > 1.5 ? .55 : .38); camKick(dir.x * 8 * F, dir.y * 8 * F);
+    looseUntil = T + .34;
+    R.rootX.kick(dir.x * 120 * F); R.rootY.kick(dir.y * 90 * F);
+    R.calTh[s].kick(-.17 * F); R.calDx[s].kick(30 * F);
+    R.calDx[o].kick(-40 * F); R.calTh[o].kick(.08 * F);
+    R.coreX.kick(dir.x * 24 * F); R.crest.kick(-22 * F); R.tilt.kick(dir.x * .08 * F);
+    R.glow.kick(-.85); R.lid.kick(.5);
+    sparks(worldPt.x, worldPt.y, -dir.x + tan.x * .6, -dir.y + tan.y * .6, 7, 360, 1.3);
+    sparks(worldPt.x, worldPt.y, -dir.x - tan.x * .6, -dir.y - tan.y * .6, 5, 300, 1.3);
+    chips(worldPt.x, worldPt.y, -dir.x, -dir.y, 3);
+    sfx.hit();
+    at(.34, () => { looseUntil = 0; snap(.12, 68, .62); R.spin[0].kick(.9); R.spin[1].kick(.9); lockFlash = .8; sfx.lock(); });
+  }
+}
+function fireAt(em, hx, hy, heavy, key) {
+  // aim at a point ON the caliper's current (possibly locked) position
+  const s = hx < 640 ? 0 : 1;
+  const cp = calPoint(s, hx, hy);
+  const tw = headToWorld(cp.x, cp.y);
+  const dx = tw.x - em.x, dy = tw.y - em.y, L = Math.hypot(dx, dy);
+  const dir = { x: dx / L, y: dy / L };
+  const sx = em.x + dir.x * 22, sy = em.y + dir.y * 22;
+  projs.push({ x: sx, y: sy, px: sx, py: sy, dir, spd: heavy ? 1350 : 1900, r: heavy ? 7 : 4.5, heavy, tw, hostile: true,
+    onHit: () => { const c2 = calPoint(s, hx, hy); impact(s, c2.x, c2.y, dir, heavy ? 2 : 1, headToWorld(c2.x, c2.y)); } });
+  tele[key] = 1; flash(sx, sy, false);
+  sfx.shot();
+}
+
+/* ============================================================
+   A1 — WEAPON DASH
+   ============================================================ */
+function A1() {
+  if (busy()) { sfx.deny(); return; }
+  if (held) {
+    // re-stage: weapon back on its stand, robot returns home, then run
+    held = false; weaponPresent = true; gunFade = 0; setPose(P_IDLE);
+    bx.g = HOME.x; by.g = HOME.y; busyUntil = T + 1.05; phase('RE-STAGE');
+    at(1.0, () => { busyUntil = 0; A1(); });
+    return;
+  }
+  if (!weaponPresent) return;
+  busyUntil = T + 2.6;
+  phase('A1 · RECOGNIZE');
+  setPose(P_A1_FOCUS); snap(.1, 46, .75);
+  brackets = { t0: T, state: 'in' };
+  measure = { t0: T };
+  sfx.index();
+  at(.13, a1Commit);
+}
+function a1Commit() {
+  phase('A1 · COMMIT / LOCK');
+  setPose(P_A1_COMMIT); snap(.14, 64, .56);
+  lockFlash = 1; addTrauma(.07); sfx.lock();
+  const tg = dashTargetPoint(), dx = tg.x - bx.x, dy = tg.y - by.x, L = Math.hypot(dx, dy);
+  // anticipation: the mass loads backward and down before launch
+  bx.g = bx.x - dx / L * 30; by.g = by.x - dy / L * 30 + 10;
+  bx.set(26, 1); by.set(26, 1); bodyUntil = T + .14;
+  at(.13, a1Launch);
+}
+function buildBezier(P0, P2) {
+  const dx = P2.x - P0.x, dy = P2.y - P0.y, L = Math.hypot(dx, dy);
+  const a = Math.atan2(dy, dx) - .5;
+  const P1 = { x: P0.x + Math.cos(a) * L * .52, y: P0.y + Math.sin(a) * L * .52 };
+  const N = 96, tab = [0]; let len = 0, px = P0.x, py = P0.y;
+  for (let i = 1; i <= N; i++) {
+    const t = i / N, u = 1 - t;
+    const x = u * u * P0.x + 2 * u * t * P1.x + t * t * P2.x, y = u * u * P0.y + 2 * u * t * P1.y + t * t * P2.y;
+    len += Math.hypot(x - px, y - py); tab.push(len); px = x; py = y;
+  }
+  return { P0, P1, P2, tab, len, N };
+}
+function bezAt(b, s) {
+  let i = 1; while (i < b.N && b.tab[i] < s) i++;
+  const f = (s - b.tab[i - 1]) / Math.max(1e-6, b.tab[i] - b.tab[i - 1]);
+  const t = (i - 1 + f) / b.N, u = 1 - t;
+  const x = u * u * b.P0.x + 2 * u * t * b.P1.x + t * t * b.P2.x, y = u * u * b.P0.y + 2 * u * t * b.P1.y + t * t * b.P2.y;
+  const tx = 2 * u * (b.P1.x - b.P0.x) + 2 * t * (b.P2.x - b.P1.x), ty = 2 * u * (b.P1.y - b.P0.y) + 2 * t * (b.P2.y - b.P1.y);
+  const tl = Math.hypot(tx, ty) || 1;
+  return { x, y, tx: tx / tl, ty: ty / tl };
+}
+function a1Launch() {
+  phase('A1 · EXECUTE');
+  bx.reset(); by.reset();
+  const b = buildBezier({ x: bx.x, y: by.x }, dashTargetPoint());
+  const p0 = bezAt(b, 0);
+  dash = { b, s: 0, v: 520, h: Math.atan2(p0.ty, p0.tx), turnN: 0 };
+  mode = 'dash'; contactT = Infinity;
+  trail = [{ x: bx.x, y: by.x, t: T }]; trailOn = true;
+  dust(bx.x, by.x + 96, -p0.tx, 0, 6);
+  sparks(bx.x - p0.tx * 40, by.x + 60, -p0.tx, .3, 4, 260, .8);
+  camKick(p0.tx * 5, p0.ty * 5); addTrauma(.12);
+  sfx.whoosh();
+}
+function dashStep(dt) {
+  const d = dash;
+  d.v = Math.min(2500, d.v + 21000 * dt);
+  d.s += d.v * dt;
+  if (d.s >= d.b.len) { bx.x = d.b.P2.x; by.x = d.b.P2.y; a1Contact(); return; }
+  const p = bezAt(d.b, d.s);
+  bx.x = p.x; by.x = p.y; bx.v = p.tx * d.v; by.v = p.ty * d.v;
+  const h = Math.atan2(p.ty, p.tx), dh = wrapA(h - d.h);
+  d.turnN = mix(d.turnN, clamp(dh / dt / 4, -1, 1), .3); d.h = h;
+  extraTh = [d.turnN * .11, -d.turnN * .11];
+  extraSpin = [d.turnN * .6, -d.turnN * .6];
+}
+function a1Contact() {
+  phase('A1 · CONTACT');
+  const h = dash.h;
+  mode = 'hold'; dash = null; extraTh = [0, 0]; extraSpin = [0, 0];
+  bx.g = bx.x; by.g = by.x;
+  bx.v = Math.cos(h) * 640; by.v = Math.sin(h) * 640;
+  bx.set(13, .5); by.set(13, .5); bodyUntil = T + .5;
+  held = true; weaponPresent = false; gunAttachT = T; contactT = T;
+  setPose(P_A1_CONTACT); snap(.12, 72, .5);
+  hitStop(.085); addTrauma(.36); camKick(Math.cos(h) * 10, Math.sin(h) * 10);
+  lockFlash = 1;
+  if (brackets) { brackets.state = 'out'; brackets.t1 = T; }
+  const [a, b] = jawWorld();
+  sparks(a.x, a.y, -1, -.2, 6, 320, .7); sparks(b.x, b.y, 1, -.2, 6, 320, .7);
+  flash(a.x, a.y, false); flash(b.x, b.y, false);
+  R.ped.kick(.12);
+  sfx.clamp();
+  at(.2, () => { setPose({ ...P_HELD, spin: Math.PI }); phase('A1 · SETTLE'); });
+  at(.55, () => { trailOn = false; });
+  at(1.05, () => { bx.g = HOME.x; by.g = HOME.y; phase('HOLDING'); });
+  at(2.0, () => { normalizeSpin(); busyUntil = 0; phase('IDLE · HOLDING'); });
+}
+function A1Fail() {
+  if (busy()) { sfx.deny(); return; }
+  busyUntil = T + 1.1; phase('A1 · NO SOLUTION');
+  const had = weaponPresent && !held;
+  if (had) { weaponPresent = false; }
+  setPose({ ...restPose(), lid: .3, glow: 1.2, spin: Math.PI / 4, crest: -18, calTh: (held ? -.05 : 0) + .08 });
+  sfx.index();
+  at(.32, () => { setPose(restPose()); sfx.deny(); R.glow.kick(-.25); });
+  at(1.05, () => { if (had) { weaponPresent = true; gunFade = 0; } busyUntil = 0; phase(held ? 'IDLE · HOLDING' : 'IDLE'); });
+}
+function normalizeSpin() {
+  const k = Math.round(POSE.spin / Math.PI) * Math.PI;
+  if (Math.abs(POSE.spin - k) < 1e-6 && k !== 0) {
+    POSE.spin = 0;
+    for (const s of R.spin) { s.x -= k; s.g -= k; }
+  }
+}
+
+/* ============================================================
+   A2 — VIRTUAL ARMOR
+   ============================================================ */
+function A2() {
+  if (busy()) { sfx.deny(); return; }
+  busyUntil = T + 5.4; phase('A2 · INDEX');
+  const hold = held ? { calTh: -.02 } : {};
+  setPose({ ...P_A2_INDEX, ...hold }); sfx.servo();
+  at(.16, () => {
+    phase('A2 · STRUCTURAL LOCK');
+    armor = true;
+    setPose({ ...P_A2_LOCK }); snap(.16, 66, .6);
+    R.seam.snapTo(1);
+    lockFlash = 1; addTrauma(.15); camKick(0, 4);
+    const pl = pivotNow(0), pr = pivotNow(1);
+    pulse([[LATCH.x, LATCH.y], [520, 420], [pl.x, pl.y]], .2, 10);
+    pulse([[LATCH.x, LATCH.y], [760, 420], [pr.x, pr.y]], .2, 10);
+    sfx.lock(); sfx.clamp();
+  });
+  at(.62, () => phase('A2 · ACTIVE'));
+  at(1.3, () => phase('A2 · HIT'));
+  at(1.34, () => fireAt(EM_R, 1046, 470, false, 'R'));
+  at(2.72, () => phase('A2 · HEAVY HIT'));
+  at(2.76, () => fireAt(EM_L, 300, 396, true, 'L'));
+  at(4.35, () => {
+    phase('A2 · RELEASE');
+    armor = false; setPose(restPose()); softUntil = T + .55;
+    const pl = pivotNow(0), pr = pivotNow(1);
+    pulse([[pl.x, pl.y], [520, 420], [LATCH.x, LATCH.y]], .22, 6);
+    pulse([[pr.x, pr.y], [760, 420], [LATCH.x, LATCH.y]], .22, 6);
+    sfx.release();
+  });
+  at(5.3, () => { busyUntil = 0; phase(held ? 'IDLE · HOLDING' : 'IDLE'); });
+}
+
+/* ============================================================
+   SUPPORT DEMOS
+   ============================================================ */
+function demoHit() {
+  if (busy()) { sfx.deny(); return; }
+  busyUntil = T + 1.5; phase('HIT · UNARMORED');
+  at(.08, () => fireAt(EM_R, 1046, 470, false, 'R'));
+  at(1.45, () => { busyUntil = 0; phase(held ? 'IDLE · HOLDING' : 'IDLE'); });
+}
+function demoWall() {
+  if (busy()) { sfx.deny(); return; }
+  busyUntil = T + 2.4; phase('MOVE · CONTACT');
+  mode = 'free'; bx.v = -640; by.v = 0; sfx.servo();
+}
+function wallContact() {
+  bx.x = WALL_X + 80; bx.v = 190;
+  wallFlash = 1;
+  const hp = headToWorld(96, 600);
+  impact(0, 96, 600, { x: 1, y: 0 }, 1.25, { x: WALL_X + 2, y: hp.y });
+  dust(WALL_X + 6, hp.y + 40, 1, 0, 4);
+  at(.7, () => { mode = 'hold'; bx.g = HOME.x; by.g = HOME.y; });
+  at(1.8, () => { busyUntil = 0; phase(held ? 'IDLE · HOLDING' : 'IDLE'); });
+}
+function demoMove() {
+  if (busy()) { sfx.deny(); return; }
+  busyUntil = T + 2.8; phase('MOVE · INERTIAL');
+  bx.g = HOME.x + 280; by.g = HOME.y + 36; sfx.servo();
+  at(1.3, () => { bx.g = HOME.x; by.g = HOME.y; sfx.servo(); });
+  at(2.75, () => { busyUntil = 0; phase(held ? 'IDLE · HOLDING' : 'IDLE'); });
+}
+function demoFire() {
+  if (busy()) { sfx.deny(); return; }
+  if (!held) { R.spin[0].kick(.2); R.spin[1].kick(.2); sfx.deny(); return; }
+  busyUntil = T + .9; phase('FIRE · STABILIZED');
+  [1, .6, .34].forEach((k, i) => at(i * .11, () => shoot(k)));
+  at(.85, () => { busyUntil = 0; phase('IDLE · HOLDING'); });
+}
+function shoot(k) {
+  const g = heldGun(), c = Math.cos(g.a), s = Math.sin(g.a);
+  const mx = g.x + c * 56 - s * -3, my = g.y + s * 56 + c * -3;
+  projs.push({ x: mx, y: my, px: mx, py: my, dir: { x: c, y: s }, spd: 2700, r: 3.5, heavy: false, hostile: false });
+  muzzle = { t: 0, x: mx, y: my, a: g.a };
+  // recoil: gun kicks, chassis takes it, pivots counter-compensate; later shots kick less
+  R.gunKick.kick(-11 * k); R.rootX.kick(-22 * k); R.coreY.kick(7 * k); R.crest.kick(9 * k);
+  R.calTh[1].kick(-.035 * k); R.calTh[0].kick(.022 * k);
+  R.spin[0].kick(.3 * k); R.spin[1].kick(.3 * k); R.glow.kick(.12);
+  addTrauma(.08 * k); camKick(-3 * k, 0);
+  parts.push({ k: 'case', x: g.x - 4, y: g.y - 10, vx: -40 - Math.random() * 60, vy: -240 - Math.random() * 80, t: 0, life: .8, r: 0, vr: 18 });
+  sfx.shot();
+}
+function demoPassive() {
+  if (busy()) { sfx.deny(); return; }
+  busyUntil = T + 1.0; phase('PASSIVE · INDEX');
+  [0, 1, 2].forEach(i => at(i * .06, () => { ticks[i] = 1; sfx.tick(); }));
+  at(.2, () => {
+    R.crest.kick(16); lockFlash = .6; R.glow.kick(.5);
+    pulse([[LATCH.x, LATCH.y], [520, 420], [PIV[0].x, PIV[0].y]], .18, 8);
+    pulse([[LATCH.x, LATCH.y], [760, 420], [PIV[1].x, PIV[1].y]], .18, 8);
+    sfx.pulse();
+  });
+  at(.36, () => { POSE.spin += Math.PI; snap(.18, 60, .55); sfx.lock(); });
+  at(.95, () => { normalizeSpin(); busyUntil = 0; phase(held ? 'IDLE · HOLDING' : 'IDLE'); });
+}
+function resetAll() {
+  Q = []; busyUntil = 0; armor = false; held = false; weaponPresent = true; gunFade = 1; contactT = -9; gunAttachT = -9;
+  mode = 'hold'; dash = null; trail = []; trailOn = false; brackets = null; measure = null;
+  parts = []; projs = []; flashes = []; pulses = []; stress = []; muzzle = null;
+  freeze = 0; trauma = 0; lockFlash = 0; ticks = [0, 0, 0]; extraTh = [0, 0]; extraSpin = [0, 0];
+  snapUntil = looseUntil = softUntil = strainUntil = bodyUntil = 0;
+  setPose(P_IDLE);
+  for (const k in R) { const v = R[k]; (Array.isArray(v) ? v : [v]).forEach(s => { s.reset(); s.snapTo(k === 'glow' ? 1 : 0); }); }
+  bx.reset(); by.reset(); bx.snapTo(HOME.x); by.snapTo(HOME.y);
+  lastPos = { x: HOME.x, y: HOME.y };
+  phase('IDLE');
+}
+
+/* ============================================================
+   SIMULATION STEP (fixed 240 Hz)
+   ============================================================ */
+function applyParams() {
+  for (const s of POSE_SPR) s.reset();
+  R.coreX.reset(); R.tilt.reset();
+  if (T < softUntil) for (const s of POSE_SPR) s.set(15, .8);
+  if (T < snapUntil) for (const s of POSE_SPR) s.set(snapW, snapZ);
+  if (T < strainUntil) for (const s of [...R.calDx, ...R.calTh]) s.set(17, .42);
+  if (T < looseUntil) for (const s of LOOSE_SPR) s.set(14, .3);
+  if (T >= bodyUntil && mode === 'hold') { bx.reset(); by.reset(); }
+}
+function step(dt) {
+  T += dt;
+  for (let i = 0; i < Q.length; i++) if (Q[i].t <= T) { const f = Q[i].fn; Q.splice(i, 1); i--; f(); }
+  applyParams();
+
+  const px = bx.x, py = by.x;
+  if (mode === 'hold') { bx.step(dt); by.step(dt); }
+  else if (mode === 'free') {
+    bx.x += bx.v * dt; by.x += by.v * dt; bx.v *= 1 - .2 * dt;
+    if (bx.x < WALL_X + 80) { mode = 'hold-wait'; wallContact(); }
+  } else if (mode === 'hold-wait') {
+    bx.x += bx.v * dt; bx.v *= 1 - 3.2 * dt;
+  } else if (mode === 'dash') dashStep(dt);
+
+  const nvx = (bx.x - px) / dt, nvy = (by.x - py) / dt;
+  ax = mix(ax, (nvx - vxw) / dt, .2); ay = mix(ay, (nvy - vyw) / dt, .2);
+  vxw = nvx; vyw = nvy;
+  const dashing = mode === 'dash';
+  R.lagX.g = clamp(-ax * .0016 - (dashing ? vxw * .009 : 0), -46, 46);
+  R.lagY.g = clamp(-ay * .0016 - (dashing ? vyw * .009 : 0), -40, 40);
+  R.tilt.g = dashing && dash ? clamp(dash.turnN * .05, -.06, .06) : 0;
+
+  for (let s = 0; s < 2; s++) {
+    R.calTh[s].g = POSE.calTh + extraTh[s]; R.calDx[s].g = POSE.calDx; R.calDy[s].g = POSE.calDy;
+    R.spin[s].g = POSE.spin + extraSpin[s];
+  }
+  R.crest.g = POSE.crest; R.chin.g = POSE.chin; R.cheekX.g = POSE.cheekX; R.cheekY.g = POSE.cheekY;
+  R.lid.g = POSE.lid; R.glow.g = POSE.glow; R.seam.g = POSE.seam;
+  for (const k in R) { const v = R[k]; if (Array.isArray(v)) v.forEach(s => s.step(dt)); else v.step(dt); }
+  camK.x.step(dt); camK.y.step(dt);
+
+  lockFlash *= Math.exp(-dt * 12);
+  for (let i = 0; i < 3; i++) ticks[i] *= Math.exp(-dt * 6);
+  tele.R *= Math.exp(-dt * 9); tele.L *= Math.exp(-dt * 9);
+  wallFlash *= Math.exp(-dt * 7);
+  gunFade = Math.min(1, gunFade + dt * 3.5);
+
+  for (let i = projs.length - 1; i >= 0; i--) {
+    const p = projs[i]; p.px = p.x; p.py = p.y;
+    if (p.hostile) {
+      const dx = p.tw.x - p.x, dy = p.tw.y - p.y, d = Math.hypot(dx, dy);
+      if (d <= p.spd * dt) { p.x = p.tw.x; p.y = p.tw.y; projs.splice(i, 1); p.onHit(); continue; }
+    }
+    p.x += p.dir.x * p.spd * dt; p.y += p.dir.y * p.spd * dt;
+    if (p.heavy && Math.random() < .5) parts.push({ k: 'dust', x: p.x, y: p.y, vx: 0, vy: -10, t: 0, life: .35, s: 4 });
+    if (p.x < -80 || p.x > W + 80 || p.y < -80 || p.y > H + 80) projs.splice(i, 1);
+  }
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const q = parts[i]; q.t += dt;
+    if (q.t >= q.life) { parts.splice(i, 1); continue; }
+    if (q.k === 'spark') { q.vy += 520 * dt; q.vx *= 1 - 2 * dt; }
+    else if (q.k === 'chip' || q.k === 'case') { q.vy += 900 * dt; q.r += q.vr * dt; }
+    else if (q.k === 'dust') { q.vx *= 1 - 3 * dt; q.vy *= 1 - 3 * dt; }
+    q.x += q.vx * dt; q.y += q.vy * dt;
+  }
+  for (let i = flashes.length - 1; i >= 0; i--) { flashes[i].t += dt; if (flashes[i].t >= flashes[i].dur) flashes.splice(i, 1); }
+  for (let i = pulses.length - 1; i >= 0; i--) { pulses[i].t += dt; if (pulses[i].t >= pulses[i].dur) pulses.splice(i, 1); }
+  for (let i = stress.length - 1; i >= 0; i--) { stress[i].t += dt; if (stress[i].t >= stress[i].dur) stress.splice(i, 1); }
+  if (muzzle) { muzzle.t += dt; if (muzzle.t > .06) muzzle = null; }
+
+  if (trailOn) trail.push({ x: bx.x, y: by.x, t: T });
+  if (trail.length > 400) trail.shift();
+
+  // idle: rare micro-calibration separated by stillness
+  idleT -= dt;
+  if (idleT <= 0) {
+    idleT = 3.6 + Math.random() * 3.6;
+    if (!busy() && !armor) {
+      const r = Math.random();
+      if (r < .4) { const d = (Math.random() < .5 ? 1 : -1) * .09; R.spin[0].kick(d); R.spin[1].kick(d); sfx.tick(); }
+      else if (r < .72) { const b = POSE.lid, up = b + .16; POSE.lid = up; at(.17, () => { if (POSE.lid === up) POSE.lid = b; }); }
+      else { R.calDx[Math.random() < .5 ? 0 : 1].kick(5); }
+    }
+  }
+}
+
+/* ============================================================
+   RIG RENDER (into a render texture, head space)
+   ============================================================ */
+let RT = null, RTg = null, GRT = null, GRTg = null, rtSize = 0;
+function ensureRT(px) {
+  px = clamp(Math.ceil(px), 96, 1200);
+  if (!RT || Math.abs(px - rtSize) > 16) {
+    RT = mkCanvas(px); RTg = RT.getContext('2d'); GRT = mkCanvas(px); GRTg = GRT.getContext('2d'); rtSize = px;
+  }
+}
+function partialLine(g, pts, f0, f1) {
+  const seg = []; let total = 0;
+  for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); seg.push(l); total += l; }
+  const a = clamp(f0, 0, 1) * total, b = clamp(f1, 0, 1) * total;
+  if (b <= a) return;
+  let acc = 0, started = false;
+  g.beginPath();
+  for (let i = 1; i < pts.length; i++) {
+    const s0 = acc, s1 = acc + seg[i - 1];
+    const x0 = pts[i - 1][0], y0 = pts[i - 1][1], x1 = pts[i][0], y1 = pts[i][1];
+    if (s1 >= a && s0 <= b) {
+      const ta = clamp((a - s0) / seg[i - 1], 0, 1), tb = clamp((b - s0) / seg[i - 1], 0, 1);
+      if (!started) { g.moveTo(mix(x0, x1, ta), mix(y0, y1, ta)); started = true; }
+      g.lineTo(mix(x0, x1, tb), mix(y0, y1, tb));
+    }
+    acc = s1;
+  }
+  g.stroke();
+}
+function drawEyes(g) {
+  const lid = clamp(R.lid.x, 0, 1), gl = Math.max(0, R.glow.x);
+  for (let s = 0; s < 2; s++) {
+    const cx = s ? 798 : 482;
+    g.save(); g.clip(EYE[s]);
+    if (gl > 1.01) {
+      g.globalCompositeOperation = 'lighter';
+      const rg = g.createRadialGradient(cx, 742, 6, cx, 742, 130);
+      rg.addColorStop(0, 'rgba(255,240,196,' + clamp((gl - 1) * .95, 0, 1) + ')');
+      rg.addColorStop(.55, 'rgba(255,170,60,' + clamp((gl - 1) * .5, 0, 1) + ')');
+      rg.addColorStop(1, 'rgba(255,140,40,0)');
+      g.fillStyle = rg; g.fillRect(cx - 150, 620, 300, 220);
+    } else if (gl < .99) {
+      g.fillStyle = 'rgba(18,10,4,' + clamp((1 - gl) * .9, 0, .92) + ')'; g.fillRect(cx - 150, 620, 300, 220);
+    }
+    g.restore();
+    if (lid > .01) {
+      const sg = s ? -1 : 1, y = mix(688, 792, lid), x0 = cx - 160, x1 = cx + 160;
+      const y0 = y + (x0 - cx) * .5 * sg, y1 = y + (x1 - cx) * .5 * sg;
+      g.save(); g.clip(SOCK[s]);
+      const lg = g.createLinearGradient(0, 600, 0, y + 40);
+      lg.addColorStop(0, '#0c0d0f'); lg.addColorStop(1, '#23262a');
+      g.fillStyle = lg;
+      g.beginPath(); g.moveTo(x0, 560); g.lineTo(x1, 560); g.lineTo(x1, y1); g.lineTo(x0, y0); g.closePath(); g.fill();
+      g.strokeStyle = '#9a968d'; g.lineWidth = 6;
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+      g.restore();
+    }
+  }
+}
+function drawTicks(g) {
+  if (ticks[0] + ticks[1] + ticks[2] < .02) return;
+  g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
+  [559, 602, 649].forEach((y, i) => {
+    if (ticks[i] < .02) return;
+    g.strokeStyle = 'rgba(255,196,110,' + ticks[i] + ')'; g.lineWidth = 12;
+    g.beginPath(); g.moveTo(606, y); g.lineTo(674, y); g.stroke();
+  });
+  g.restore();
+}
+function drawStruts(g) {
+  for (let s = 0; s < 2; s++) {
+    const a = { x: s ? 852 : 428, y: 700 }, p = pivotNow(s);
+    const dx = p.x - a.x, dy = p.y - a.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+    g.lineCap = 'butt';
+    g.strokeStyle = '#1f2226'; g.lineWidth = 34;
+    g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(a.x + ux * L * .55, a.y + uy * L * .55); g.stroke();
+    g.strokeStyle = '#6e7177'; g.lineWidth = 13;
+    g.beginPath(); g.moveTo(a.x + ux * L * .45, a.y + uy * L * .45); g.lineTo(p.x, p.y); g.stroke();
+    g.strokeStyle = '#9c7a44'; g.lineWidth = 4;
+    g.beginPath(); g.moveTo(a.x + ux * L * .55 - uy * 17, a.y + uy * L * .55 + ux * 17); g.lineTo(a.x + ux * L * .55 + uy * 17, a.y + uy * L * .55 - ux * 17); g.stroke();
+  }
+}
+function renderRig(g) {
+  g.drawImage(SPR.back, 0, 0, 1280, 1280);
+  drawStruts(g);
+  // crest: slides in its slot (extends to sight, seats to brace)
+  g.save(); g.beginPath(); poly(g, SLOT); g.clip();
+  g.translate(R.coreX.x * .8, R.crest.x + R.coreY.x * .6);
+  g.drawImage(SPR.crest, 0, 0, 1280, 1280);
+  if (lockFlash > .02) {
+    g.globalCompositeOperation = 'lighter';
+    g.fillStyle = 'rgba(255,214,140,' + lockFlash * .85 + ')'; g.fillRect(620, 298, 41, 116);
+  }
+  g.restore();
+  // core (stable anchor)
+  g.save(); g.translate(R.coreX.x, R.coreY.x);
+  g.drawImage(SPR.core, 0, 0, 1280, 1280);
+  drawEyes(g); drawTicks(g);
+  g.restore();
+  // chin
+  g.save(); g.translate(R.lagX.x * .35, R.chin.x + R.calDy[0].x * .3 + R.lagY.x * .5);
+  g.drawImage(SPR.chin, 0, 0, 1280, 1280); g.restore();
+  // cheeks
+  for (let s = 0; s < 2; s++) {
+    g.save(); g.translate((s ? -1 : 1) * R.cheekX.x + R.lagX.x * .6, R.cheekY.x + R.lagY.x * .6);
+    g.drawImage(s ? SPR.cheekR : SPR.cheekL, 0, 0, 1280, 1280); g.restore();
+  }
+  // calipers + pivot discs (hierarchy: caliper → disc)
+  for (let s = 0; s < 2; s++) {
+    const sg = s ? -1 : 1, P = PIV[s];
+    g.save();
+    g.translate(P.x + sg * R.calDx[s].x + R.lagX.x, P.y + R.calDy[s].x + R.lagY.x);
+    g.rotate(sg * R.calTh[s].x);
+    g.translate(-P.x, -P.y);
+    g.drawImage(s ? SPR.calR : SPR.calL, 0, 0, 1280, 1280);
+    const seam = clamp(R.seam.x, 0, 1);
+    if (seam > .02) {
+      g.save(); g.globalCompositeOperation = 'lighter'; g.lineJoin = 'round';
+      g.strokeStyle = 'rgba(255,178,80,' + seam * .85 + ')'; g.lineWidth = 8;
+      g.beginPath();
+      const pts = s ? mir(SEAM) : SEAM;
+      g.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
+      g.stroke();
+      g.lineWidth = 10; g.beginPath(); g.arc(P.x, P.y, 68, 0, TAU); g.stroke();
+      g.restore();
+    }
+    g.save(); g.translate(P.x, P.y); g.rotate(sg * R.spin[s].x); g.translate(-P.x, -P.y);
+    g.drawImage(SPR.disc[s], 0, 0, 1280, 1280);
+    g.restore();
+    if (lockFlash > .02) {
+      g.save(); g.globalCompositeOperation = 'lighter';
+      const rg = g.createRadialGradient(P.x, P.y, 10, P.x, P.y, 110);
+      rg.addColorStop(0, 'rgba(255,226,160,' + lockFlash * .9 + ')'); rg.addColorStop(1, 'rgba(255,170,60,0)');
+      g.fillStyle = rg; g.fillRect(P.x - 110, P.y - 110, 220, 220);
+      g.restore();
+    }
+    g.restore();
+  }
+  // force-routing pulses
+  if (pulses.length) {
+    g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round'; g.lineJoin = 'round';
+    for (const p of pulses) {
+      const f = p.t / p.dur, e = 1 - Math.pow(1 - f, 2);
+      g.strokeStyle = 'rgba(255,160,60,' + (.35 * (1 - f)) + ')'; g.lineWidth = p.w * 2.2;
+      partialLine(g, p.pts, 0, e);
+      g.strokeStyle = 'rgba(255,236,196,' + (1 - f * .6) + ')'; g.lineWidth = p.w;
+      partialLine(g, p.pts, e - .28, e);
+    }
+    g.restore();
+  }
+  // local stress at the real hit point
+  for (const m of stress) {
+    const f = m.t / m.dur, a = 1 - f;
+    g.save(); g.globalCompositeOperation = 'lighter';
+    const rg = g.createRadialGradient(m.x, m.y, 2, m.x, m.y, 70);
+    rg.addColorStop(0, 'rgba(255,248,226,' + a + ')'); rg.addColorStop(.4, m.armored ? 'rgba(255,176,70,' + a * .7 + ')' : 'rgba(255,220,180,' + a * .5 + ')'); rg.addColorStop(1, 'rgba(255,150,50,0)');
+    g.fillStyle = rg; g.fillRect(m.x - 70, m.y - 70, 140, 140);
+    g.strokeStyle = 'rgba(255,244,220,' + a + ')'; g.lineWidth = 8;
+    g.beginPath(); g.moveTo(m.x - m.ny * 46, m.y + m.nx * 46); g.lineTo(m.x + m.ny * 46, m.y - m.nx * 46); g.stroke();
+    g.restore();
+  }
+}
+
+/* ============================================================
+   WORLD RENDER
+   ============================================================ */
+let camX = W / 2, camY = H / 2, camZ = 1;
+function drawGun(g, x, y, a, alpha) {
+  g.save(); g.translate(x, y); g.rotate(a); g.globalAlpha = alpha;
+  g.lineJoin = 'round';
+  const P = (pts, f, s, w) => { g.beginPath(); poly(g, pts); g.fillStyle = f; g.fill(); if (s) { g.strokeStyle = s; g.lineWidth = w; g.stroke(); } };
+  P([[-52, -7], [-30, -9], [-26, 7], [-50, 10]], '#2a2d31', '#08090a', 2.4);
+  P([[-30, -10], [24, -10], [30, -5], [30, 7], [-30, 8]], '#24272c', '#08090a', 2.4);
+  P([[-25, -15], [13, -15], [19, -10], [-29, -10]], '#ebe5d8', '#08090a', 2);
+  P([[-7, -22], [10, -22], [10, -15], [-7, -15]], '#2c2f34', '#08090a', 1.6);
+  g.fillStyle = '#ffb44a'; g.fillRect(7, -21, 3, 5);
+  P([[30, -4], [54, -4], [54, 2], [30, 2]], '#1b1d20', '#08090a', 1.6);
+  P([[53, -6], [58, -6], [58, 4], [53, 4]], '#34373c', '#08090a', 1.4);
+  P([[-8, 7], [5, 7], [2, 22], [-10, 21]], '#b9853f', '#08090a', 1.8);
+  g.strokeStyle = '#c7985b'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(-22, -1); g.lineTo(22, -1); g.stroke();
+  g.restore();
+}
+function drawStage(g) {
+  const bg = g.createRadialGradient(W * .5, H * .55, 60, W * .5, H * .55, 980);
+  bg.addColorStop(0, '#1b1f1e'); bg.addColorStop(.6, '#121514'); bg.addColorStop(1, '#090b0b');
+  g.fillStyle = bg; g.fillRect(-400, -400, W + 800, H + 800);
+  g.strokeStyle = 'rgba(160,160,150,.035)'; g.lineWidth = 1;
+  for (let x = 0; x <= W; x += 100) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
+  for (let y = 0; y <= H; y += 100) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
