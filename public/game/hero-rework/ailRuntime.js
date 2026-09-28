@@ -329,15 +329,30 @@
    * runtime once the combat world exists; AIL itself stays agnostic.
    * ------------------------------------------------------------------ */
   const bus = new EventBus();
+  // Simulation clock. The integration runtime binds a DETERMINISTIC
+  // resolver (global matchClock — advanced exactly once per simulation
+  // step by updateArsenalQuest, the single shared step for rAF AND
+  // headless AQ.step). PRODUCER LAW: AIL.clock()/StatusResolver.clock()
+  // must always return the RESOLVED NUMBER, never the resolver function —
+  // a function leaking into time arithmetic silently kills every
+  // time-based semantic (cast plans, lifetimes, status expiry).
   let clockNow = 0;
+  let clockResolver = null;
 
-  function bindClock(fn) { clockNow = fn; bus.clock = fn; }
-  function clock() { return clockNow; }
+  function bindClock(fn) {
+    clockResolver = typeof fn === 'function' ? fn : null;
+    clockNow = clockResolver ? clockResolver() : 0;
+    bus.clock = clock;
+  }
+  function clock() {
+    if (clockResolver) clockNow = clockResolver();
+    return clockNow;
+  }
 
-  bus.clock = () => clockNow;
+  bus.clock = clock;
 
   StatusResolver.bus = bus;
-  StatusResolver.clock = () => clockNow;
+  StatusResolver.clock = clock;
 
   globalScope.apexHeroReworkAil = 'ready';
   globalScope.APEX_HERO_REWORK_AIL = {
