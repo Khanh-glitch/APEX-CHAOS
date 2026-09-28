@@ -1,0 +1,277 @@
+{
+  "gates": {
+    "goldens-boot": {
+      "pass": true,
+      "detail": "rework runtimes ready"
+    },
+    "golden-crystal-reflect-ice-payload": {
+      "pass": true,
+      "detail": {
+        "a1": true,
+        "reflectSeen": true,
+        "payloadKept": true,
+        "controllerFlipped": true,
+        "intercepted": true,
+        "chilledIce": true,
+        "creditedCrystal": true,
+        "traj": [
+          {
+            "f": 21,
+            "x": 547,
+            "y": 479,
+            "life": 0.47,
+            "chill": true
+          },
+          {
+            "f": 22,
+            "x": 503,
+            "y": 454,
+            "life": 0,
+            "chill": true
+          }
+        ],
+        "hitLines": [
+          "[AQ] HIT source=CRYSTAL target=ICE weapon=MAGNUM_500 damage=147.0"
+        ],
+        "runError": null
+      }
+    },
+    "golden-mirror-portal-neutral-no-credit": {
+      "pass": true,
+      "detail": {
+        "mirrors": 2,
+        "routed": true,
+        "neutralSeen": true,
+        "neutralHitNoCredit": true,
+        "chilledMirror": true,
+        "runError": null
+      }
+    },
+    "golden-blackhole-stores-reflected": {
+      "pass": true,
+      "detail": {
+        "sing": true,
+        "storedReflected": true,
+        "released": true,
+        "storeFrame": 28,
+        "releaseCount": 1,
+        "storedCount": 1,
+        "schedPending": 0,
+        "singCount": 1,
+        "runError": null
+      }
+    },
+    "golden-rubber-stores-reflected": {
+      "pass": true,
+      "detail": {
+        "a2": true,
+        "storedReflected": true,
+        "held": 1,
+        "reflCount": 1,
+        "intercepted": true,
+        "traj": [
+          {
+            "f": 21,
+            "x": 548,
+            "y": 476,
+            "life": 0.47
+          }
+        ],
+        "hitLines": [],
+        "runError": null
+      }
+    },
+    "golden-time-replay-mirror-portal": {
+      "pass": true,
+      "detail": {
+        "mirrors": 2,
+        "recorded": 4,
+        "loop": true,
+        "replayNeutral": true,
+        "recordsAfter": 0,
+        "runError": null
+      }
+    },
+    "golden-math-graph-hunter-trap": {
+      "pass": true,
+      "detail": {
+        "graph": true,
+        "graphs": 1,
+        "snare": true,
+        "rooted": true,
+        "absorbed": true,
+        "hpBefore": 1000,
+        "hpAfter": 1000,
+        "hpTimeline": [
+          1000,
+          1000,
+          1000,
+          1000,
+          1000
+        ],
+        "hitLines": [],
+        "runError": null
+      }
+    },
+    "golden-slime-bodies-sniper-targeting": {
+      "pass": true,
+      "detail": {
+        "mit": true,
+        "bodies": 2,
+        "notInFighters": true,
+        "relocated": true,
+        "nest": true,
+        "hitBody": true,
+        "combatantAliveAfterChildDeath": true,
+        "hudTotal": {
+          "hp": 469.8356,
+          "maxHp": 500,
+          "bodies": 1
+        },
+        "runError": null
+      }
+    },
+    "golden-t6-no-hero-manipulation": {
+      "pass": true,
+      "detail": {
+        "CRYSTAL": {
+          "t6Transformed": false,
+          "storedT6": false,
+          "t6Tagged": false,
+          "runError": null
+        },
+        "MAGNET": {
+          "t6Transformed": false,
+          "storedT6": false,
+          "t6Tagged": false,
+          "runError": null
+        },
+        "BLACK_HOLE": {
+          "t6Transformed": false,
+          "storedT6": false,
+          "t6Tagged": false,
+          "runError": null
+        },
+        "RUBBER": {
+          "t6Transformed": false,
+          "storedT6": false,
+          "t6Tagged": false,
+          "runError": null
+        },
+        "MIRROR": {
+          "t6Transformed": false,
+          "storedT6": false,
+          "t6Tagged": false,
+          "runError": null
+        },
+        "MATH_V2": {
+          "t6Transformed": false,
+          "storedT6": false,
+          "t6Tagged": false,
+          "runError": null
+        },
+        "TIME": {
+          "t6Transformed": false,
+          "storedT6": false,
+          "t6Tagged": false,
+          "runError": null
+        },
+        "HUNTER": {
+          "t6Transformed": false,
+          "storedT6": false,
+          "t6Tagged": false,
+          "runError": null
+        },
+        "ROBOT": {
+          "t6Transformed": false,
+          "storedT6": false,
+          "t6Tagged": false,
+          "runError": null
+        }
+      }
+    },
+    "goldens-invariants": {
+      "pass": true,
+      "detail": {
+        "hpBefore": 1000,
+        "hpAfter": 892.2700000000001,
+        "hpConserved": true,
+        "noEquipDup": true,
+        "oneRealize": true,
+        "teardownOk": true,
+        "noDoubleKit": true,
+        "invErrors": []
+      }
+    },
+    "goldens-fuzz-deterministic-invariants": {
+      "pass": true,
+      "detail": {
+        "failures": [],
+        "telemetry": {
+          "pairs": [
+            "SLIMEvSNIPER",
+            "CRYSTALvSNIPER",
+            "HUNTERvMAGNET",
+            "CRYSTALvMAGNET",
+            "MATH_V2vTIME",
+            "CRYSTALvRUBBER",
+            "MAGNETvICE",
+            "TIMEvMIRROR",
+            "ICEvCRYSTAL",
+            "MATH_V2vBLACK_HOLE",
+            "HUNTERvSLIME",
+            "HUNTERvSNIPER",
+            "MATH_V2vHUNTER",
+            "MAGNETvICE"
+          ],
+          "runs": 14,
+          "casts": 277,
+          "entitiesPeak": 8,
+          "slimeBodyPeak": 3,
+          "mathProjectiles": 0
+        }
+      }
+    }
+  },
+  "failures": [],
+  "loadErrors": [
+    {
+      "file": "/game/fighters/soccerChampionRuntime.js",
+      "error": "image.addEventListener is not a function"
+    }
+  ],
+  "telemetry": {
+    "pairs": [
+      "SLIMEvSNIPER",
+      "CRYSTALvSNIPER",
+      "HUNTERvMAGNET",
+      "CRYSTALvMAGNET",
+      "MATH_V2vTIME",
+      "CRYSTALvRUBBER",
+      "MAGNETvICE",
+      "TIMEvMIRROR",
+      "ICEvCRYSTAL",
+      "MATH_V2vBLACK_HOLE",
+      "HUNTERvSLIME",
+      "HUNTERvSNIPER",
+      "MATH_V2vHUNTER",
+      "MAGNETvICE"
+    ],
+    "runs": 14,
+    "casts": 277,
+    "entitiesPeak": 8,
+    "slimeBodyPeak": 3,
+    "mathProjectiles": 0
+  },
+  "fuzz": {},
+  "evidence": [
+    "reports/slime-closeout/evidence/golden-crystal-reflect-ice-payload.png",
+    "reports/slime-closeout/evidence/golden-mirror-portal-neutral.png",
+    "reports/slime-closeout/evidence/golden-blackhole-stores-reflected.png",
+    "reports/slime-closeout/evidence/golden-rubber-stores-reflected.png",
+    "reports/slime-closeout/evidence/golden-time-replay-mirror-portal.png",
+    "reports/slime-closeout/evidence/golden-math-graph-hunter-trap.png",
+    "reports/slime-closeout/evidence/golden-slime-bodies-sniper-targeting.png",
+    "reports/slime-closeout/evidence/golden-t6-no-hero-manipulation.png"
+  ]
+}

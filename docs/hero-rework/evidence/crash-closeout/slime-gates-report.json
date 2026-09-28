@@ -1,0 +1,136 @@
+{
+  "suite": "hero-rework-slime-gates",
+  "gates": {
+    "S1-idle-no-pickup-seek": {
+      "pass": true,
+      "detail": {
+        "dir": [
+          1,
+          0
+        ],
+        "dx": 312,
+        "north": 0,
+        "slot": {
+          "id": 1,
+          "phase": "REVEALED",
+          "weaponId": "PISTOL",
+          "x": 350,
+          "y": 450
+        }
+      }
+    },
+    "S2-one-combatant-two-bodies-outside-fighters": {
+      "pass": true,
+      "detail": {
+        "cast": {
+          "ok": true
+        },
+        "bodies": [
+          {
+            "id": 1,
+            "kind": null,
+            "hp": 500,
+            "r": 53.03300858899106
+          },
+          {
+            "id": 101,
+            "kind": "mitosis",
+            "hp": 500,
+            "r": 53.03300858899106
+          }
+        ],
+        "fightersLen": 2,
+        "outside": true
+      }
+    },
+    "S3-hp-split-even-no-duplication": {
+      "pass": true,
+      "detail": {
+        "beforeHp": 1000,
+        "sumHp": 1000,
+        "equal": true,
+        "beforeMax": 1000,
+        "sumMax": 1000
+      }
+    },
+    "S4-no-overlap-at-spawn": {
+      "pass": true,
+      "detail": {
+        "dist": 114.1,
+        "minNeed": 106.1,
+        "inArena": true
+      }
+    },
+    "S5-divergence-slot-live-provisional": {
+      "pass": true,
+      "detail": {
+        "knobLive": true,
+        "provisionalMetricRad": 0.4363,
+        "provisionalRatioMeasured": 1.6,
+        "provisionalRatioExpected": 1.6,
+        "seededReproducibility": true,
+        "note": "semantic/unit of divergenceTarget is UNRESOLVED; degree reading is a provisional pilot interpretation behind cfg, not canonical"
+      }
+    },
+    "S6-halves-move-at-parent-speed-independently": {
+      "pass": true,
+      "detail": {
+        "parentSpeed": 520,
+        "t0": 208,
+        "t1": 208,
+        "expected": 176.8,
+        "gapBefore": 114.1,
+        "gapAfter": 393.9,
+        "speedKept": true
+      }
+    },
+    "S7-wall-bounce-normal-physics": {
+      "pass": true,
+      "detail": {
+        "y0": 160,
+        "yEnd": 304.4,
+        "dir": [
+          0,
+          1
+        ],
+        "inArena": true
+      }
+    },
+    "S8a-merge-equipment-transfer-no-dup": {
+      "pass": true,
+      "detail": {
+        "bornUnarmed": true,
+        "childHeld": "PISTOL",
+        "mergedOk": true,
+        "hpBefore": 1000,
+        "hpAfter": 1000,
+        "areaOk": true,
+        "held": "PISTOL",
+        "noDupSlot": true
+      }
+    },
+    "S8b-merge-keeps-own-drops-one-slot": {
+      "pass": true,
+      "detail": {
+        "parentHeld": "PISTOL",
+        "childHeld": "SHOTGUN",
+        "keptOwn": true,
+        "droppedExactlyOne": true,
+        "hp2Ok": true,
+        "mergedHeld": "PISTOL"
+      }
+    }
+  },
+  "failures": [],
+  "loadErrors": [
+    {
+      "file": "/game/fighters/soccerChampionRuntime.js",
+      "error": "image.addEventListener is not a function"
+    }
+  ],
+  "summary": {
+    "total": 9,
+    "passed": 9,
+    "failed": []
+  }
+}

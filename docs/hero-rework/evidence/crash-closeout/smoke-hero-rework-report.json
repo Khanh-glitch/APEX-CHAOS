@@ -1,0 +1,174 @@
+{
+  "gates": {
+    "smoke-boot": {
+      "pass": true,
+      "detail": "rework runtimes ready"
+    },
+    "smoke-registry": {
+      "pass": true,
+      "detail": {
+        "errors": []
+      }
+    },
+    "smoke-migration-newbie-to-robot": {
+      "pass": true,
+      "detail": "NEWBIE→ROBOT idempotent"
+    },
+    "smoke-newbie-retired": {
+      "pass": true,
+      "detail": "typeFor('NEWBIE') -> ROBOT (REWORK)"
+    },
+    "smoke-ladder-20-bosses-preserved": {
+      "pass": true,
+      "detail": "PAINTER,DRUM,CARD,ICE,MATH,BLADE,TOXIC,ORBIT,FLASH,ELECTRIC,VAMPIRE,SAW,HUNTER,WOLF,CRYSTAL,MAGNET,BLACK_HOLE,WITCH,TIME,MONK"
+    },
+    "smoke-playable-pool-12-no-boss-leak": {
+      "pass": true,
+      "detail": {
+        "ids": [
+          "ROBOT",
+          "CRYSTAL",
+          "MAGNET",
+          "BLACK_HOLE",
+          "MATH_V2",
+          "ICE",
+          "RUBBER",
+          "HUNTER",
+          "TIME",
+          "MIRROR",
+          "SLIME",
+          "SNIPER"
+        ],
+        "buyRejected": true
+      }
+    },
+    "smoke-20s-60fps-healthy": {
+      "pass": true,
+      "detail": {
+        "runError": null,
+        "hpAfter": {
+          "hero": 1000,
+          "rival": 1000
+        }
+      }
+    },
+    "smoke-invariants": {
+      "pass": true,
+      "detail": []
+    },
+    "smoke-a2-cast-cooldown": {
+      "pass": true,
+      "detail": {
+        "castRes": {
+          "ok": true
+        },
+        "cdAfter": 10
+      }
+    },
+    "smoke-a1-fail-cue-no-cd": {
+      "pass": true,
+      "detail": {
+        "failRes": {
+          "ok": false,
+          "reason": "condition",
+          "failCue": true
+        },
+        "cdBefore": 0,
+        "cdAfterFail": 0
+      }
+    },
+    "smoke-robot-dash-moves-to-pickup": {
+      "pass": true,
+      "detail": {
+        "dashRes": {
+          "ok": true
+        },
+        "moved": 344
+      }
+    },
+    "smoke-j-a1-routing": {
+      "pass": true,
+      "detail": {
+        "jRes": true,
+        "busCasts": [
+          "Cast",
+          "P1Press"
+        ]
+      }
+    },
+    "smoke-locomotion-no-pickup-seek": {
+      "pass": true,
+      "detail": {
+        "dir": [
+          1,
+          0
+        ],
+        "dx": 312,
+        "north": 0,
+        "speed": 520
+      }
+    },
+    "smoke-locomotion-no-chase": {
+      "pass": true,
+      "detail": {
+        "dir": [
+          1,
+          0
+        ],
+        "dx": 260,
+        "dist": 710.8
+      }
+    },
+    "smoke-teardown": {
+      "pass": true,
+      "detail": {
+        "active": false
+      }
+    },
+    "smoke-parity-no-transform": {
+      "pass": true,
+      "detail": {
+        "baseRun": {
+          "hp": {
+            "hero": 1000,
+            "rival": 940.1500000000001
+          },
+          "hits": [
+            "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5",
+            "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5",
+            "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5"
+          ],
+          "uses": 1,
+          "projectiles": 0
+        },
+        "reworkRun": {
+          "hp": {
+            "hero": 1000,
+            "rival": 940.1500000000001
+          },
+          "hits": [
+            "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5",
+            "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5",
+            "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5"
+          ],
+          "uses": 1,
+          "projectiles": 0
+        }
+      }
+    },
+    "smoke-debug-state": {
+      "pass": true,
+      "detail": "no-match debug OK"
+    }
+  },
+  "failures": [],
+  "loadErrors": [
+    {
+      "file": "/game/fighters/soccerChampionRuntime.js",
+      "error": "image.addEventListener is not a function"
+    }
+  ],
+  "evidence": [
+    "reports/slime-closeout/evidence/smoke-20s-robot-vs-sniper.png"
+  ]
+}
