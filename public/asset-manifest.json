@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-27T14:03:21.732Z",
+  "generatedAt": "2026-09-28T06:45:27.441Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -10,7 +10,7 @@
     {
       "path": "/apexEngine.js",
       "type": "script",
-      "bytes": 229069
+      "bytes": 229566
     },
     {
       "path": "/assets/arcade_v1/normalized/battle_idle_reference.webp",
