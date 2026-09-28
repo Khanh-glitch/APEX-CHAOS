@@ -515,7 +515,14 @@
   function drawEquippedWeapons(c) {
     const av = window.APEX_ARSENAL_AV;
     if (!av || !av.drawEquippedWeapon) return;
-    for (const f of fighters) {
+    // Doc 14 R1: equipped-weapon presentation enumerates EVERY living
+    // physical body that can legally hold a weapon. Rework SLIME keeps
+    // extra Bodies outside global fighters[] (doc 06) — the generic rework
+    // enumerator supplies exactly those (anchors stay covered by the
+    // fighters[] pass below, so each weapon draws exactly once).
+    const H = window.APEX_HERO_REWORK;
+    const extras = (H && H.extraLivingBodies) ? H.extraLivingBodies() : [];
+    for (const f of fighters.concat(extras)) {
       if (!f) continue;
       const h = weaponApi.getHolder(f);
       if (h) av.drawEquippedWeapon(c, f, h);

@@ -116,6 +116,37 @@
   HR.getTargetableBodies = function (ct) { return livingBodies(ct || { bodies: [] }); };
   HR.getPickupActors = function (ct) { return livingBodies(ct || { bodies: [] }); };
 
+  /* Generic body enumeration (doc 14 R1/R2). Every living physical body
+   * that is NOT already represented in the global fighters[] array — extra
+   * SLIME Bodies (never enter fighters[], doc 06) and any promoted anchor
+   * (the retired husk stays in the slot). Non-rework matches return [].
+   * Consumers merge this with fighters[] to cover the whole eligible set
+   * exactly once. Retired/dead/invisible anchors are never returned. */
+  function extraLivingBodies() {
+    if (!M) return [];
+    const arr = globalScope.fighters;
+    const inList = new Set();
+    if (arr) for (const f of arr) if (f) inList.add(f);
+    const out = [];
+    for (const ct of M.combatants) {
+      for (const b of livingBodies(ct)) {
+        if (!b || (b.data && b.data.__hrRetiredAnchor)) continue;
+        if (inList.has(b)) continue; // anchor already covered via fighters[]
+        out.push(b);
+      }
+    }
+    return out;
+  }
+  HR.extraLivingBodies = extraLivingBodies;
+  // R2: generic environment-target query — normal fighters plus every
+  // eligible living rework body. No SLIME-name conditional anywhere.
+  HR.environmentTargets = function () {
+    const arr = globalScope.fighters || [];
+    const normal = [];
+    for (const f of arr) if (f && f.hp > 0 && !(f.data && f.data.__hrRetiredAnchor)) normal.push(f);
+    return normal.concat(extraLivingBodies());
+  };
+
   function enemyOf(ct) {
     if (!M || !ct) return null;
     return M.combatants[0] === ct ? M.combatants[1] : M.combatants[0];

@@ -1,0 +1,40 @@
+{
+  "suite": "hero-rework-slime-owner-fix-gates",
+  "gates": {
+    "G1-visible-child-weapon": {
+      "pass": true,
+      "detail": {
+        "heldNow": "PISTOL",
+        "holderBodyOk": true,
+        "visible": true,
+        "childCalls": 1,
+        "used": true,
+        "allCallBodies": [
+          101
+        ]
+      }
+    },
+    "G2-no-duplicate-anchor-or-child-draw": {
+      "pass": true,
+      "detail": {
+        "singleHeroCalls": 1,
+        "anchorCalls": 1,
+        "childCalls": 1,
+        "anchorW": "PISTOL",
+        "childW": "SHOTGUN"
+      }
+    }
+  },
+  "failures": [],
+  "loadErrors": [
+    {
+      "file": "/game/fighters/soccerChampionRuntime.js",
+      "error": "image.addEventListener is not a function"
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 2,
+    "failed": []
+  }
+}
