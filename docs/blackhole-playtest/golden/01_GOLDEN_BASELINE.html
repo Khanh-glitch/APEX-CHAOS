@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BLACK_HOLE — Identity Prototype</title>
+<style>
+  :root{
+    --lav:#d9c6ff; --vio:#9b5cff; --dim:rgba(210,190,255,.45); --line:rgba(180,140,255,.22);
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;background:#000;overflow:hidden;color:var(--lav);font-family:var(--mono)}
+  canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block;background:#000}
+  #hud{position:fixed;inset:0;pointer-events:none;transition:opacity .5s ease}
+  #hud.hidden{opacity:0}
+  .title{position:absolute;left:28px;top:24px;letter-spacing:.32em;font-size:13px;font-weight:600;color:#efe6ff;text-shadow:0 0 18px rgba(155,92,255,.55)}
+  .title small{display:block;margin-top:6px;letter-spacing:.2em;font-size:10px;font-weight:400;color:var(--dim)}
+  .state{position:absolute;right:28px;top:22px;text-align:right;min-width:210px}
+  .state .name{font-size:12px;letter-spacing:.34em;color:#f3ecff}
+  .state .name b{color:var(--vio);font-weight:600}
+  .meter{margin-top:10px;font-size:9.5px;letter-spacing:.22em;color:var(--dim)}
+  .bar{margin-top:4px;height:2px;background:rgba(160,120,255,.12);position:relative;overflow:hidden}
+  .bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#6b2cff,#e7d8ff);box-shadow:0 0 10px #9b5cff}
+  .controls{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);display:flex;gap:10px;pointer-events:auto;flex-wrap:wrap;justify-content:center}
+  .controls button{font-family:var(--mono);font-size:10.5px;letter-spacing:.24em;color:var(--lav);background:rgba(20,10,40,.35);
+    border:1px solid var(--line);padding:10px 16px;border-radius:2px;cursor:pointer;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    transition:border-color .25s, box-shadow .25s, color .25s, background .25s}
+  .controls button:hover{border-color:rgba(200,160,255,.6);box-shadow:0 0 22px rgba(155,92,255,.35);color:#fff}
+  .controls button.primary{border-color:rgba(170,110,255,.55);color:#fff;background:rgba(80,30,160,.22)}
+  .controls button.on{background:rgba(120,60,220,.35);color:#fff}
+  .controls kbd{font-family:var(--mono);opacity:.55;margin-right:6px}
+  .hint{position:absolute;left:28px;bottom:30px;font-size:9.5px;letter-spacing:.2em;color:rgba(200,180,255,.32);line-height:1.9}
+  #err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:40px;color:#e9dcff;font-size:12px;white-space:pre-wrap;background:#000;z-index:9}
+  @media (max-width:720px){ .hint{display:none} .state{min-width:150px} .title{font-size:11px} }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div class="title">BLACK_HOLE<small>COSMIC HEAD · IDENTITY / VFX PROTOTYPE</small></div>
+  <div class="state">
+    <div class="name">STATE · <b id="stName">IDLE</b></div>
+    <div class="meter">HORIZON<div class="bar"><i id="mH"></i></div></div>
+    <div class="meter">SUCTION<div class="bar"><i id="mS"></i></div></div>
+    <div class="meter">EDGE STRESS<div class="bar"><i id="mT"></i></div></div>
+  </div>
+  <div class="hint">J · OPEN / CLOSE SINGULARITY<br>B · BLINK TEST &nbsp; R · RESET<br>S · SLOW-MO &nbsp; H · HIDE UI</div>
+  <div class="controls">
+    <button id="bIdle"><kbd>I</kbd>IDLE</button>
+    <button id="bOpen" class="primary"><kbd>J</kbd>OPEN</button>
+    <button id="bBlink"><kbd>B</kbd>BLINK</button>
+    <button id="bReset"><kbd>R</kbd>RESET</button>
+    <button id="bSlow"><kbd>S</kbd>SLOW-MO</button>
+  </div>
+</div>
+<div id="err"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const fail = msg => { const e = $('err'); e.style.display = 'flex'; e.textContent = 'BLACK_HOLE prototype could not start:\n\n' + msg; };
+
+const canvas = $('c');
+const gl = canvas.getContext('webgl2', { antialias:false, alpha:false, depth:false, stencil:false, premultipliedAlpha:false, powerPreference:'high-performance' });
+if (!gl) { fail('WebGL2 is not available in this browser.'); return; }
+let hasFloat = !!gl.getExtension('EXT_color_buffer_float');
+gl.getExtension('OES_texture_float_linear');
+
+/* =====================================================================
+   GLSL — shared noise toolkit
+   gradient noise (quintic), periodic-in-x noise for seamless polar work,
+   hash without sine (Hoskins), fbm with rotated octaves (Quilez style)
+   ===================================================================== */
+const COMMON = `
+precision highp float;
+#define PI 3.14159265359
+#define TAU 6.28318530718
+mat2 rot(float a){ float c=cos(a), s=sin(a); return mat2(c,s,-s,c); }
+float hash12(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
+vec2 hash22(vec2 p){ vec3 p3=fract(vec3(p.xyx)*vec3(.1031,.1030,.0973)); p3+=dot(p3,p3.yzx+33.33); return fract((p3.xx+p3.yz)*p3.zy); }
+float gnoise(vec2 p){
+  vec2 i=floor(p), f=fract(p);
+  vec2 u=f*f*f*(f*(f*6.-15.)+10.);
+  float a=dot(hash22(i)*2.-1., f);
+  float b=dot(hash22(i+vec2(1,0))*2.-1., f-vec2(1,0));
+  float c=dot(hash22(i+vec2(0,1))*2.-1., f-vec2(0,1));
+  float d=dot(hash22(i+vec2(1,1))*2.-1., f-vec2(1,1));
+  return a+(b-a)*u.x+(c-a)*u.y+(a-b-c+d)*u.x*u.y;
+}
+float pnoise(vec2 p, float P){
+  vec2 i=floor(p), f=fract(p);
+  vec2 u=f*f*f*(f*(f*6.-15.)+10.);
+  float x0=mod(i.x,P), x1=mod(i.x+1.,P);
+  float a=dot(hash22(vec2(x0,i.y))*2.-1., f);
+  float b=dot(hash22(vec2(x1,i.y))*2.-1., f-vec2(1,0));
+  float c=dot(hash22(vec2(x0,i.y+1.))*2.-1., f-vec2(0,1));
+  float d=dot(hash22(vec2(x1,i.y+1.))*2.-1., f-vec2(1,1));
+  return a+(b-a)*u.x+(c-a)*u.y+(a-b-c+d)*u.x*u.y;
+}
+float fbm(vec2 p, int oct){
+  float s=0., a=.5;
+  for(int i=0;i<6;i++){ if(i>=oct) break; s+=a*gnoise(p); p=mat2(1.6,1.2,-1.2,1.6)*p+vec2(3.1,1.7); a*=.5; }
+  return s;
+}
+float pfbm(vec2 p, float P, int oct){
+  float s=0., a=.5;
+  for(int i=0;i<5;i++){ if(i>=oct) break; s+=a*pnoise(p,P); p=p*2.+vec2(0.,1.37); P*=2.; a*=.5; }
+  return s;
+}
+vec3 L(vec3 c){ return pow(c, vec3(2.2)); }
+float sdSeg(vec2 p, vec2 a, vec2 b, out float h){ vec2 pa=p-a, ba=b-a; h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.); return length(pa-ba*h); }
+`;
+
+const VS_TRI = `#version 300 es
+layout(location=0) in vec2 aPos;
+void main(){ gl_Position = vec4(aPos,0.,1.); }`;
+
+/* =====================================================================
+   PASS 1 — SCENE: the head itself (cosmic interior, eyes, matter band, shards)
+   ===================================================================== */
+const FS_SCENE = `#version 300 es
+${COMMON}
+out vec4 fragColor;
+uniform vec2 uRes, uCenter, uSway;
+uniform float uScale, uTime, uSwayR, uBreath;
+uniform float uBandPhase, uSwirlPhase, uInflow, uFall, uStarSpin;
+uniform float uSuck, uTension, uStress, uBlink, uEye, uSquint, uTwist;
+uniform vec4 uShardA[16];
+uniform vec4 uShardB[16];
+
+const vec2 SC = vec2(0.0, 0.17);   // forehead singularity seat
+float PX;
+
+// egg metric: wide cranium, tapered chin (face void boundary at E = 0.5)
+float eggE(vec2 p){
+  float sx = 1.0 + 0.30*smoothstep(0.25, -0.85, p.y);
+  float sy = mix(0.73, 0.84, smoothstep(-0.15, 0.15, p.y));
+  return length(vec2(p.x*sx, p.y*sy));
+}
+
+float starLayer(vec2 uv, float pxs, float seed){
+  vec2 id = floor(uv), gv = fract(uv) - 0.5;
+  float n = hash12(id + seed*17.3);
+  if(n < 0.62) return 0.0;
+  vec2 off = (hash22(id + seed*3.1) - 0.5)*0.76;
+  vec2 dd = gv - off;
+  float n2 = fract(n*37.17);
+  float sz = max(pxs*0.75, 1e-4)*(1.0 + 1.3*pow(n2, 8.0));
+  float b = exp(-dot(dd,dd)/(sz*sz));
+  float tw = 0.72 + 0.28*sin(uTime*(0.5 + n2*1.6) + n*60.0);
+  return b*tw*(0.12 + 1.4*pow(n2, 3.0));
+}
+
+vec2 vor2(vec2 x){
+  vec2 i=floor(x), f=fract(x); float f1=8., f2=8.;
+  for(int yy=-1;yy<=1;yy++) for(int xx=-1;xx<=1;xx++){
+    vec2 g=vec2(float(xx),float(yy)); vec2 o=hash22(i+g); vec2 r=g+o-f; float d=dot(r,r);
+    if(d<f1){ f2=f1; f1=d; } else if(d<f2){ f2=d; }
+  }
+  return vec2(sqrt(f1), sqrt(f2));
+}
+
+/* ---------- inner universe ---------- */
+float nebField(vec2 q, float seed){
+  float tt = uTime*0.01;
+  vec2 w = vec2(fbm(q*1.1 + vec2(seed, tt), 3), fbm(q*1.1 + vec2(5.2 - tt, 1.3 + seed), 3));
+  return fbm(q*1.8 + w*1.8 + seed, 5);
+}
+
+vec3 cosmos(vec2 hp, float fE){
+  vec2 d = hp - SC; float r = length(d);
+
+  // nebula volume: two depth slices flowing in scale-space toward/away from the
+  // singularity seat. two-phase crossfade (Vlachos) + variance-preserving blend.
+  float ph = uFall*0.5;
+  float fa = fract(ph), fb = fract(ph + 0.5);
+  float wa = 1.0 - abs(2.0*fa - 1.0), wb = 1.0 - wa;
+  vec2 dn = rot(uStarSpin*0.3)*d;
+  float na = nebField(dn*exp2(fa) + uSway*1.5, floor(ph)*7.31);
+  float nb = nebField(dn*exp2(fb) + uSway*1.5, floor(ph + 0.5)*7.31 + 3.7);
+  float n = (wa*na + wb*nb)/sqrt(wa*wa + wb*wb);
+
+  vec3 col = vec3(0.0);
+  float dens = smoothstep(-0.2, 0.5, n);
+  col += L(vec3(0.15,0.07,0.36))*dens*0.7;
+  col += L(vec3(0.42,0.14,0.72))*pow(smoothstep(0.1, 0.55, n), 2.0)*0.8;
+  col += L(vec3(0.95,0.6,1.0))*pow(smoothstep(0.38, 0.75, n), 4.0)*0.9;
+  float lowC = smoothstep(0.1, -0.55, hp.y)*smoothstep(0.42, 0.05, abs(hp.x));
+  float m = mix(0.22, 0.85, smoothstep(0.35, 1.0, fE))*(1.0 - 0.75*lowC);
+  m *= 1.0 - 0.7*smoothstep(0.28, 0.0, r);
+  col *= m;
+
+  // stars with real depth: 4 layers cycling in depth (BigWings layering), zoom centred on the seat
+  vec3 st = vec3(0.0);
+  for(int i=0;i<4;i++){
+    float fi = float(i);
+    float z = fi*0.25 + uFall*0.5;
+    float dep = fract(z);
+    float sc = 8.0*exp2(dep*2.4);
+    float fade = smoothstep(0.0, 0.18, dep)*smoothstep(1.0, 0.72, dep);
+    vec2 sq = rot(uStarSpin*(0.5 + dep))*d + uSway*(1.0 - dep)*2.5;
+    vec2 uv = sq*sc + vec2(fi*37.7, fi*11.3) + floor(z)*vec2(13.1, 7.7);
+    float s = starLayer(uv, PX*sc, fi + floor(z));
+    vec3 sCol = mix(vec3(0.75,0.8,1.0), vec3(1.0,0.8,1.0), hash12(floor(uv)+3.0));
+    st += sCol*s*fade;
+  }
+  col += st*(0.65 + 0.35*smoothstep(0.2, 0.9, fE));
+
+  // distant galaxies — scale cue that this is a universe, not a texture
+  for(int g=0; g<2; g++){
+    vec2 gp = g==0 ? vec2(-0.26, 0.05) : vec2(0.29, 0.24);
+    vec2 gq = rot(g==0 ? 0.6 : -0.9)*(hp - gp + uSway*1.5);
+    gq.y *= 2.6;
+    float gr = length(gq);
+    float ga = atan(gq.y, gq.x);
+    float arms = 0.6 + 0.4*sin(2.0*ga + log(gr + 1e-3)*6.0 - uTime*0.02);
+    col += L(vec3(0.8,0.65,1.0))*exp(-gr*95.0)*0.8 + L(vec3(0.5,0.3,0.9))*exp(-gr*38.0)*arms*0.1;
+  }
+
+  // forehead vortex: brush-stroke strata in log-polar space (translation in log-polar
+  // = rigid rotation + self-similar inflow, never winds up)
+  float lr = log(max(r, 1e-3));
+  float a = atan(d.y, d.x)/TAU;
+  float tw = 0.14 + 0.2*uTwist;
+  float su = (a - tw*lr + uSwirlPhase)*5.0;
+  float sv = lr*6.5 + uInflow;
+  float s1 = pfbm(vec2(su, sv), 5.0, 4);
+  float s2 = pnoise(vec2(su*4.0, sv*0.6 + 3.0), 20.0);
+  float strokes = smoothstep(-0.02, 0.42, s1 + s2*0.12);
+  float vm = smoothstep(0.66, 0.2, r)*smoothstep(0.03, 0.16, r)*smoothstep(-0.28, 0.05, hp.y);
+  col += mix(L(vec3(0.09,0.06,0.28)), L(vec3(0.3,0.2,0.72)), strokes*strokes)*strokes*vm*(0.9 + 1.8*uSuck + 1.2*uTension);
+  return col;
+}
+
+/* ---------- eyes: ruptures in the shell exposing the hot layer behind ---------- */
+vec3 eyeShade(vec2 hp, float side, out float spill, out float dOut){
+  vec2 q = vec2(hp.x*side, hp.y);
+  const vec2 I = vec2(0.112, -0.372);
+  const vec2 O = vec2(0.36, -0.172);
+  vec2 ax = O - I; float Ln = length(ax); vec2 ad = ax/Ln; vec2 nd = vec2(-ad.y, ad.x);
+  vec2 rel = q - I;
+  float u = dot(rel, ad), v = dot(rel, nd);
+  float un = u/Ln, unc = clamp(un, 0.0, 1.0);
+  v -= 0.016*sin(PI*unc);                                 // slight arch in the hard lid line
+  float prof = pow(unc, 0.45)*pow(1.0 - unc, 1.1)/0.393;  // fat near the bridge, long blade outward
+  float H = 0.074*(1.0 - 0.5*uSquint);
+  float h = H*prof;
+  float top = -h*uBlink*0.97;                             // lid descends from the flat top edge
+  float bot = -h*(1.0 + 0.04*sin(uTime*0.9 + side));
+  float dv = max(v - top, bot - v);
+  float du = max(-u, u - Ln);
+  float d = max(dv, du*0.8);
+  d += gnoise(q*42.0 + vec2(side*7.1, uTime*0.12))*0.0042 + gnoise(q*110.0 + side*3.3)*0.0018; // torn rim
+  dOut = d;
+
+  float Ie = uEye*(0.93 + 0.07*sin(uTime*1.1 + side*0.7));
+  float aa = PX*1.3;
+  float inside = smoothstep(aa, -aa, d);
+  float T = max(top - bot, 1e-4);
+  float depth = clamp(-d/(0.5*T), 0.0, 1.0);
+  float pl = fbm(vec2(u*22.0 - uTime*0.5, v*38.0 + side*4.0), 3);
+  float bias = mix(1.0, 0.5, smoothstep(0.22 + 0.08*sin(uTime*0.31 + side), 1.0, unc));
+  float core = pow(depth, 1.1)*bias + pl*0.3;
+  vec3 cV = L(vec3(0.64,0.2,1.0)), cM = L(vec3(0.86,0.42,1.0));
+  vec3 inC = mix(cV*2.4, vec3(1.0,0.95,1.0)*6.0, smoothstep(0.18, 0.78, core));
+  vec3 col = inC*inside*Ie;
+  float rim = exp(-abs(d)/(PX*1.4 + 0.0011));
+  col += cM*rim*2.2*Ie;
+  float dd = max(d, 0.0);
+  float dirB = 1.0 + 0.9*smoothstep(0.2, 1.3, un);
+  col += cV*(exp(-dd*40.0) + exp(-dd*10.0)*0.3)*dirB*(1.0 - 0.45*uBlink)*Ie*0.9;
+
+  // outer tail: the tear continues as a hairline fracture toward the temple
+  float ut = u - Ln;
+  if(ut > -0.02 && ut < 0.12){
+    float utp = max(ut, 0.0);
+    float vt = v - 2.2*utp*utp;
+    float wdt = 0.0032*(1.0 - utp/0.12) + 0.0004;
+    col += cM*exp(-abs(vt)/wdt)*smoothstep(0.12, 0.02, utp)*step(-0.005, ut)*1.8*Ie;
+  }
+  // inner hook: sharp predatory point dropping toward the bridge
+  {
+    vec2 hd = normalize(vec2(-0.42, -1.0));
+    float hh; float dh = sdSeg(q, I + vec2(0.004, 0.004), I + hd*0.052, hh);
+    float wdt = 0.0036*(1.0 - hh) + 0.0004;
+    col += mix(cM*2.0, vec3(3.0), 0.25)*exp(-dh/wdt)*Ie*(1.0 - 0.6*uBlink);
+  }
+  // fracture veins in the surrounding shell
+  if(dd < 0.085){
+    vec2 f = vor2(q*24.0 + side*5.3);
+    float cr = exp(-(f.y - f.x)*26.0);
+    float cm = smoothstep(0.085, 0.0, dd)*smoothstep(0.1, 0.45, gnoise(q*8.0 + side*2.0) + 0.25);
+    col += cV*cr*cm*0.4*Ie;
+  }
+  spill = exp(-dd*7.0)*0.55*Ie*(1.0 - 0.55*uBlink);
+  return col;
+}
+
+float browRidge(vec2 hp, float fE){
+  vec2 q = vec2(abs(hp.x), hp.y);
+  float ang = atan(q.y, q.x);
+  float m = smoothstep(-0.72, -0.48, ang)*smoothstep(0.62, -0.05, ang);
+  return (exp(-abs(fE - 0.975)*80.0) + exp(-abs(fE - 0.96)*16.0)*0.22)*m;
+}
+
+// eye energy drawn up into the forehead
+vec3 eyeStreams(vec2 hp){
+  if(uSuck < 0.01) return vec3(0.0);
+  vec3 acc = vec3(0.0);
+  for(int e=0;e<2;e++){
+    float sd = e==0 ? 1.0 : -1.0;
+    vec2 P0 = vec2(0.175*sd, -0.3), P1 = vec2(0.25*sd, -0.03), P2 = SC;
+    float best = 1e3, bt = 0.0;
+    vec2 prev = P0;
+    for(int i=1;i<=12;i++){
+      float t1 = float(i)/12.0;
+      vec2 cur = mix(mix(P0,P1,t1), mix(P1,P2,t1), t1);
+      float h; float dd = sdSeg(hp, prev, cur, h);
+      if(dd < best){ best = dd; bt = (float(i-1) + h)/12.0; }
+      prev = cur;
+    }
+    float reach = uSuck*1.25;
+    float grow = smoothstep(reach, reach - 0.15, bt);
+    float wdt = mix(0.010, 0.0025, bt);
+    float core = exp(-pow(best/wdt, 2.0));
+    float glow = exp(-best/0.035)*0.22;
+    float nz = clamp(0.55 + 1.3*fbm(vec2(bt*10.0 - uTime*3.2, sd*4.0 + uTime*0.2), 3), 0.0, 1.6);
+    float fadeEnds = smoothstep(0.0, 0.06, bt)*smoothstep(1.0, 0.82, bt);
+    vec3 c = mix(L(vec3(0.62,0.25,1.0)), vec3(1.0,0.93,1.0), core*0.7);
+    acc += c*(core*2.0 + glow)*nz*grow*fadeEnds;
+  }
+  return acc*uSuck*uEye;
+}
+
+/* ---------- orbiting matter: stacked sheets of torn, perforated substance ---------- */
+float holesF(vec2 x, float P){
+  vec2 i = floor(x), f = fract(x);
+  float res = 0.0;
+  for(int yy=-1; yy<=1; yy++){
+    for(int xx=-1; xx<=1; xx++){
+      vec2 g = vec2(float(xx), float(yy));
+      vec2 id = i + g; id.x = mod(id.x, P);
+      vec2 hh = hash22(id + 17.0);
+      vec2 o = 0.5 + (hh - 0.5)*0.7;
+      vec2 dv = (g + o - f)*vec2(1.0, 1.2);
+      float rad = 0.2 + 0.24*hh.y;
+      float on = step(0.4, fract(hh.x*7.13 + hh.y*3.1));
+      res = max(res, on*smoothstep(rad, rad*0.45, length(dv)));
+    }
+  }
+  return res;
+}
+
+vec4 bandSheet(vec2 bp, float rB, float s, float phase, float swirlK, float freq, float thr,
+               float ridgeW, float seed, bool holes, float bright, vec3 eyeL){
+  // rigid orbit + trailing shear (outer lags, Keplerian feel) + bounded tidal breathing
+  float sw = -swirlK*rB*rB + 0.2*sin(uTime*0.09 + seed*1.7)*(rB - 0.72);
+  vec2 q = rot(phase + sw)*bp;
+  float tt = uTime*0.03;
+  vec2 w = vec2(fbm(q*freq*0.6 + vec2(seed, tt), 3), fbm(q*freq*0.6 + vec2(tt*0.8 + 5.2, seed + 1.3), 3));
+  float n = fbm(q*freq + w*1.25 + seed*2.0, 5);
+  float rdg = ridgeW > 0.0 ? 1.0 - 2.0*abs(fbm(q*freq*1.7 + w*1.8 + seed + 11.0, 3)) : 0.66;
+  float env = smoothstep(-0.02, 0.14, s)*smoothstep(1.06, 0.58, s);
+  float D = n + (rdg - 0.66)*ridgeW + env*0.72 - 0.37 + thr;
+  float aq = atan(q.y, q.x)/TAU + 0.5;
+  if(holes){
+    vec2 cc = vec2(aq*26.0, rB*10.0) + w*vec2(2.0, 0.9);
+    D -= holesF(cc, 26.0)*0.75;
+  }
+  float aa = fwidth(D) + 1e-4;
+  float alpha = smoothstep(-aa, aa*0.6, D);
+  float hgt = smoothstep(0.0, 0.2, D);
+  vec2 g = vec2(dFdx(hgt), dFdy(hgt))/PX;
+  vec3 N = normalize(vec3(-g*0.016, 1.0));
+  vec3 Lk = normalize(vec3(-0.45, 0.62, 0.64));
+  float dif = max(dot(N, Lk), 0.0);
+  float spec = pow(max(dot(N, normalize(Lk + vec3(0.0,0.0,1.0))), 0.0), 26.0);
+  float rim = pow(1.0 - hgt, 2.2);
+  float stri = pnoise(vec2(aq*40.0, rB*70.0), 40.0);
+  float fold = smoothstep(-0.15, 0.5, n*1.4 + stri*0.28 + w.x*0.6);
+  vec3 cDeep = L(vec3(0.075,0.045,0.13)), cMid = L(vec3(0.38,0.26,0.58)), cLav = L(vec3(0.84,0.7,1.0)), cVio = L(vec3(0.62,0.28,1.0));
+  vec3 col = mix(cDeep, cMid, fold*(0.3 + 0.7*dif));
+  col = mix(col, cLav, pow(fold, 3.0)*dif*0.55);
+  col += cLav*rim*(0.3 + 1.1*dif + 0.9*spec);
+  col += vec3(1.0,0.95,1.0)*spec*0.8*(0.25 + rim);
+  float eT = eyeL.z*(0.3 + 1.6*max(dot(N.xy, eyeL.xy), 0.0));
+  col += cVio*eT*(0.4 + 1.6*rim);
+  vec2 toC = SC - bp; float dC = length(toC);
+  float cT = uSuck*exp(-dC*2.4)*(0.25 + 1.8*max(dot(N.xy, toC/max(dC,1e-3)), 0.0));
+  col += mix(cVio, vec3(1.0,0.9,1.0), 0.35)*cT*(0.35 + 1.6*rim);
+  col += cVio*uStress*rim*(0.6 + 1.6*smoothstep(0.35, 0.95, s));
+  float spk = starLayer(q*55.0 + seed*9.0, PX*55.0, seed + 5.0);
+  col += vec3(0.85,0.8,1.0)*spk*hgt*0.6;
+  return vec4(col*bright, alpha);
+}
+
+/* ---------- detached shards (driven by CPU orbital sim, spaghettify when captured) ---------- */
+float sdVesica(vec2 p, float r, float d){
+  p = abs(p); float b = sqrt(r*r - d*d);
+  return ((p.y - b)*d > p.x*b) ? length(p - vec2(0.0, b)) : length(p - vec2(-d, 0.0)) - r;
+}
+vec3 shards(vec2 hp, vec3 col){
+  vec3 cDeep=L(vec3(0.07,0.04,0.12)), cMid=L(vec3(0.42,0.3,0.66)), cLav=L(vec3(0.85,0.72,1.0)), cVio=L(vec3(0.62,0.28,1.0));
+  for(int i=0;i<16;i++){
+    vec4 A = uShardA[i], B = uShardB[i];
+    if(B.y < 0.004) continue;
+    vec2 lp = hp - A.xy;
+    float ext = A.w*B.x*0.75 + 0.02;
+    if(dot(lp,lp) > ext*ext) continue;
+    lp = rot(-A.z)*lp/A.w;
+    lp.y /= B.x; lp.x *= sqrt(B.x);
+    lp.x -= 0.3*lp.y*lp.y - 0.06;
+    float ds = sdVesica(lp, 1.0, 0.8)*A.w;
+    float al = smoothstep(PX, -PX, ds)*B.y;
+    if(al < 0.001) continue;
+    float inr = clamp(-ds/(0.2*A.w), 0.0, 1.0);
+    float side = smoothstep(-0.2, 0.2, lp.x + 0.1*lp.y);
+    vec3 sc = mix(cMid*(0.55 + 0.6*side), cDeep, smoothstep(0.3, 0.85, inr)*step(0.35, B.z));
+    sc += cLav*exp(-(-ds)/(0.03*A.w + PX))*(0.6 + 1.2*side);
+    sc += cVio*B.w*(0.8 + 1.5*(1.0 - inr));
+    col = mix(col, sc, al);
+  }
+  return col;
+}
+
+void main(){
+  PX = 1.0/uScale;
+  vec2 p = (gl_FragCoord.xy - uCenter)/uScale;
+  vec2 hp = rot(uSwayR)*(p - uSway)/uBreath;
+  float rC = length(hp);
+  vec3 col = vec3(0.0);
+  col += vec3(0.7,0.72,1.0)*starLayer(p*22.0 + 91.0, PX*22.0, 9.0)*0.16;
+
+  if(rC < 1.3){
+    float E = eggE(hp); float fE = E/0.5;
+    vec3 cs = cosmos(hp, fE);
+    float faceM = 1.0 - smoothstep(0.97, 1.1, fE);
+    float headM = 1.0 - smoothstep(0.84, 0.97, length(hp*vec2(1.05,0.97)));
+    vec3 inner = cs*mix(0.3, 1.0, faceM);
+    inner *= mix(1.0, 0.55, smoothstep(0.78, 1.0, fE)*faceM);
+    inner += L(vec3(0.3,0.14,0.62))*exp(-abs(fE - 1.0)*14.0)*0.05*faceM;
+    col = mix(col, inner, headM);
+
+    float spR, spL, dR, dL;
+    vec3 eR = eyeShade(hp, 1.0, spR, dR);
+    vec3 eL = eyeShade(hp, -1.0, spL, dL);
+    col += eR + eL;
+    col += cs*(spR + spL)*3.0*faceM;
+    col += L(vec3(0.68,0.28,1.0))*browRidge(hp, fE)*uEye*(1.0 - 0.6*uBlink)*1.3;
+    col += eyeStreams(hp);
+    float dc = length(hp - SC);
+    col += L(vec3(0.55,0.3,1.0))*uTension*exp(-dc*9.0)*0.25;
+
+    if(rC > 0.33){
+      vec2 bp = SC + (hp - SC)*(1.0 + uSuck*0.32*exp(-length(hp - SC)*2.2)); // tidal reach toward the forehead
+      float rB = length(bp);
+      float rI = 0.5*rB/max(eggE(bp), 1e-3);
+      float rO = 0.9*rB/max(length(bp*vec2(1.05,0.97)), 1e-3);
+      float s = (rB - rI)/max(rO - rI, 1e-3);
+      s += 0.025*sin(uTime*0.37 + atan(bp.y, bp.x)*2.0);
+      vec2 E0 = vec2(sign(bp.x)*0.22, -0.29);
+      vec2 te = E0 - bp; float de = length(te);
+      vec3 eyeL = vec3(te/max(de,1e-3), uEye*exp(-de*4.2)*0.9*(1.0 - 0.5*uBlink));
+      vec4 bk = bandSheet(bp, rB, s, uBandPhase*0.62, 0.9 + uSuck*0.8, 2.1, -0.08, 0.0, 3.0, false, 0.34, eyeL);
+      col = mix(col, bk.rgb, bk.a*0.94);
+      vec4 md = bandSheet(bp, rB, s, uBandPhase, 1.4 + uSuck*1.6, 2.7, 0.0, 0.22, 0.0, true, 1.0, eyeL);
+      col = mix(col, md.rgb, md.a);
+      vec4 fr = bandSheet(bp, rB, s + 0.07, uBandPhase*1.45, 2.0 + uSuck*2.2, 3.3, -0.6, 0.38, 7.0, false, 1.15, eyeL);
+      col = mix(col, fr.rgb, fr.a);
+      // edge stress: violet pressure waves travelling up both flanks into the singularity
+      float angTop = abs(atan(hp.x, hp.y));
+      float wave = 0.55 + 0.45*sin(angTop*6.0 + uTime*2.2);
+      float halo = exp(-max(rC - 0.84, 0.0)*7.0)*smoothstep(0.62, 0.86, rC);
+      col += L(vec3(0.6,0.22,1.0))*halo*uStress*wave*0.55;
+    }
+    col += L(vec3(0.6,0.22,1.0))*exp(-abs(fE - 1.0)*26.0)*uStress*0.35;
+    col = shards(hp, col);
+  }
+  fragColor = vec4(col, 1.0);
+}`;
+
+/* =====================================================================
+   PASS 2 — SPACETIME: collapse mapping, frame dragging, spiral motion
+   trails, shock refraction, horizon / photon ring / accretion inflow
+   ===================================================================== */
+const FS_LENS = `#version 300 es
+${COMMON}
+out vec4 o;
+uniform sampler2D uScene;
+uniform vec2 uRes, uCenter, uC;
+uniform float uScale, uRs, uK, uSpin, uSuck, uTime, uShockR, uShockA, uFlash, uAccPhase, uAccIn, uTension;
+vec3 samp(vec2 hp){ return texture(uScene, (hp*uScale + uCenter)/uRes).rgb; }
+void main(){
+  float PX = 1.0/uScale;
+  vec2 p = (gl_FragCoord.xy - uCenter)/uScale;
+  vec2 d = p - uC; float r = length(d) + 1e-6; vec2 dir = d/r;
+  float K2 = uK*abs(uK);                    // signed: negative = elastic rebound bulge
+  float rsrc = sqrt(max(r*r + K2, 0.0));    // face-space collapses into the seat
+  float rs = uRs;
+  float drag = uSpin*(max(K2,0.0) + 0.35*rs*rs)/(r*r + 0.35*abs(K2) + 0.25*rs*rs + 1e-4);
+  float x = (r - uShockR)/0.07;
+  rsrc += uShockA*x*exp(-x*x)*0.035;        // refractive shock front
+  vec3 base = samp(uC + rot(drag)*dir*rsrc);
+  vec3 col = base;
+  float streak = uSuck*smoothstep(1.05, 0.12, r);
+  if(streak > 0.002){
+    vec3 tr = vec3(0.0), av = base; float ws = 0.0, wa = 1.0;
+    for(int i=1;i<10;i++){
+      float fi = float(i)/9.0;
+      float k = fi*streak;
+      float ang = drag + k*0.5*(0.1/(r + 0.06));
+      vec3 s = samp(uC + rot(ang)*dir*rsrc*(1.0 + k*0.22));
+      float w = exp(-fi*2.2);
+      tr += max(s - 0.12, 0.0)*w; ws += w;
+      av += s*w; wa += w;
+    }
+    col = mix(col, av/wa, 0.3*streak);
+    col += tr/ws*streak*1.1;
+  }
+  if(rs > 0.0008){
+    float lr = log(r/rs);
+    col *= mix(1.0, smoothstep(0.0, 0.55, lr), 0.6);
+    float a = atan(d.y, d.x)/TAU;
+    float su = (a - 0.32*lr + uAccPhase)*6.0;
+    float sv = lr*4.5 + uAccIn;
+    float n = pfbm(vec2(su, sv), 6.0, 4);
+    float n2 = pnoise(vec2(su*2.0 + 3.0, sv*2.2), 12.0);
+    float prof = smoothstep(-0.02, 0.18, lr)*exp(-max(lr, 0.0)*1.7);
+    float heat = exp(-max(lr, 0.0)*2.4);
+    vec3 accC = mix(L(vec3(0.45,0.16,0.95)), vec3(1.0,0.9,1.0), heat*0.85);
+    float dens = smoothstep(-0.2, 0.45, n + n2*0.25);
+    float open01 = smoothstep(0.0, 0.5, rs/0.125);
+    col += accC*prof*dens*(0.5 + 2.2*heat)*(0.25 + 0.95*uSuck)*open01;
+    float w1 = rs*0.028 + PX*0.9;
+    float x1 = (r - rs*1.075)/w1;
+    float x2 = (r - rs*1.2)/(rs*0.07);
+    float pr = exp(-x1*x1);
+    float pr2 = exp(-x2*x2);
+    float beam = 0.7 + 0.5*cos(TAU*a + 1.2 - uTime*0.5);
+    col += vec3(1.0,0.9,1.0)*pr*2.6*beam*open01 + L(vec3(0.7,0.4,1.0))*pr2*0.5*open01;
+    col *= smoothstep(rs - PX*1.2, rs + PX*1.2, r);
+  }
+  float rr = r*r;
+  col += vec3(1.0,0.9,1.0)*uFlash*exp(-rr/0.0012)*6.0;
+  col += L(vec3(0.62,0.25,1.0))*uFlash*exp(-r*7.0)*0.9;
+  col += L(vec3(0.8,0.5,1.0))*uTension*(1.0 - smoothstep(0.0, 0.01, rs))*exp(-rr/0.0005)*2.2;
+  o = vec4(col, 1.0);
+}`;
+
+/* particles (orbiting debris + inner motes) */
+const VS_PART = `#version 300 es
+layout(location=0) in vec2 aPos;
+layout(location=1) in vec3 aData;
+uniform vec2 uRes, uCenter, uSway; uniform float uScale, uSwayR, uBreath;
+out vec3 vData;
+void main(){
+  float c = cos(-uSwayR), s = sin(-uSwayR);
+  vec2 hp = aPos*uBreath;
+  vec2 p = vec2(c*hp.x - s*hp.y, s*hp.x + c*hp.y) + uSway;
+  vec2 px = p*uScale + uCenter;
+  gl_Position = vec4(px/uRes*2.0 - 1.0, 0.0, 1.0);
+  gl_PointSize = aData.x;
+  vData = aData;
+}`;
+const FS_PART = `#version 300 es
+precision highp float;
+in vec3 vData; uniform float uPoint; out vec4 o;
+void main(){
+  float a = 1.0;
+  if(uPoint > 0.5){ vec2 c = gl_PointCoord*2.0 - 1.0; float d = dot(c,c); a = exp(-d*3.5)*step(d, 1.0); }
+  vec3 col = mix(vec3(0.42,0.22,1.0), vec3(1.0,0.93,1.0), vData.z);
+  o = vec4(col*vData.y*a, 1.0);
+}`;
+
+/* bloom chain (mip-style, like UnrealBloomPass: blur at several radii then sum) */
+const FS_DOWN = `#version 300 es
+precision highp float;
+uniform sampler2D uSrc; uniform vec2 uSrcTexel, uDstRes; uniform float uThresh;
+out vec4 o;
+void main(){
+  vec2 uv = gl_FragCoord.xy/uDstRes;
+  vec3 c = texture(uSrc, uv + uSrcTexel*vec2(-1.0,-1.0)).rgb + texture(uSrc, uv + uSrcTexel*vec2(1.0,-1.0)).rgb
+         + texture(uSrc, uv + uSrcTexel*vec2(-1.0, 1.0)).rgb + texture(uSrc, uv + uSrcTexel*vec2(1.0, 1.0)).rgb;
+  c *= 0.25;
+  if(uThresh > 0.0){
+    float l = max(c.r, max(c.g, c.b));
+    float knee = 0.5;
+    float soft = clamp(l - uThresh + knee, 0.0, 2.0*knee);
+    soft = soft*soft/(4.0*knee + 1e-5);
+    c *= max(soft, l - uThresh)/max(l, 1e-5);
+  }
+  o = vec4(c, 1.0);
+}`;
+const FS_BLUR = `#version 300 es
+precision highp float;
+uniform sampler2D uSrc; uniform vec2 uDir, uDstRes;
+out vec4 o;
+void main(){
+  vec2 uv = gl_FragCoord.xy/uDstRes;
+  vec3 c = texture(uSrc, uv).rgb*0.2270270270;
+  c += (texture(uSrc, uv + uDir*1.3846153846).rgb + texture(uSrc, uv - uDir*1.3846153846).rgb)*0.3162162162;
+  c += (texture(uSrc, uv + uDir*3.2307692308).rgb + texture(uSrc, uv - uDir*3.2307692308).rgb)*0.0702702703;
+  o = vec4(c, 1.0);
+}`;
+const FS_FINAL = `#version 300 es
+precision highp float;
+uniform sampler2D uLens, uB0, uB1, uB2, uB3;
+uniform vec2 uRes, uCuv; uniform float uCA, uTime, uBloom, uExposure;
+out vec4 o;
+float h12(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
+vec3 aces(vec3 x){ return clamp((x*(2.51*x + 0.03))/(x*(2.43*x + 0.59) + 0.14), 0.0, 1.0); }
+void main(){
+  vec2 uv = gl_FragCoord.xy/uRes;
+  float asp = uRes.x/uRes.y;
+  vec2 dv = uv - uCuv;
+  float dl = length(dv*vec2(asp, 1.0));
+  float ca = 0.0012 + uCA*exp(-dl*5.0)*0.02;
+  vec2 off = dv*ca;
+  vec3 col;
+  col.r = texture(uLens, uv - off).r;
+  col.g = texture(uLens, uv).g;
+  col.b = texture(uLens, uv + off).b;
+  vec3 b = texture(uB0, uv).rgb*0.55 + texture(uB1, uv).rgb*0.6 + texture(uB2, uv).rgb*0.7 + texture(uB3, uv).rgb*0.8;
+  col += b*uBloom;
+  col *= uExposure;
+  col = aces(col);
+  vec2 q = (uv - 0.5)*vec2(asp, 1.0);
+  col *= 1.0 - dot(q, q)*0.3;
+  col = pow(col, vec3(1.0/2.2));
+  col += (h12(gl_FragCoord.xy + fract(uTime*7.13)*97.0) - 0.5)*0.016;
+  o = vec4(col, 1.0);
+}`;
+
+/* =====================================================================
+   GL plumbing
+   ===================================================================== */
+function compile(type, src){
+  const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { const log = gl.getShaderInfoLog(s); fail(log); throw new Error(log); }
+  return s;
+}
+function program(vs, fs){
+  const p = gl.createProgram();
+  gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+  gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) { const log = gl.getProgramInfoLog(p); fail(log); throw new Error(log); }
+  const u = {}; const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < n; i++) { const info = gl.getActiveUniform(p, i); u[info.name.replace(/\[0\]$/, '')] = gl.getUniformLocation(p, info.name); }
+  return { p, u };
+}
+let P_SCENE, P_LENS, P_PART, P_DOWN, P_BLUR, P_FINAL;
+try {
+  P_SCENE = program(VS_TRI, FS_SCENE);
+  P_LENS  = program(VS_TRI, FS_LENS);
+  P_PART  = program(VS_PART, FS_PART);
+  P_DOWN  = program(VS_TRI, FS_DOWN);
+  P_BLUR  = program(VS_TRI, FS_BLUR);
+  P_FINAL = program(VS_TRI, FS_FINAL);
+} catch (e) { console.error(e); return; }
+
+const triVAO = gl.createVertexArray();
+gl.bindVertexArray(triVAO);
+const triBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, triBuf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+gl.bindVertexArray(null);
+const drawTri = () => { gl.bindVertexArray(triVAO); gl.drawArrays(gl.TRIANGLES, 0, 3); };
+
+function makeTarget(w, h){
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  if (hasFloat) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, w, h, 0, gl.RGBA, gl.HALF_FLOAT, null);
+  else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  if (!ok && hasFloat) { gl.deleteTexture(tex); gl.deleteFramebuffer(fb); hasFloat = false; return makeTarget(w, h); }
+  return { tex, fb, w, h };
+}
+function freeTarget(t){ if (!t) return; gl.deleteTexture(t.tex); gl.deleteFramebuffer(t.fb); }
+
+let CW = 0, CH = 0, W = 0, H = 0, quality = 1;
+let tScene, tLens, bl = [], bt = [];
+function buildTargets(){
+  freeTarget(tScene); freeTarget(tLens); bl.forEach(freeTarget); bt.forEach(freeTarget);
+  tScene = makeTarget(W, H); tLens = makeTarget(W, H); bl = []; bt = [];
+  for (let i = 0; i < 4; i++) {
+    const w = Math.max(2, Math.floor(W / Math.pow(2, i + 1))), h = Math.max(2, Math.floor(H / Math.pow(2, i + 1)));
+    bl.push(makeTarget(w, h)); bt.push(makeTarget(w, h));
+  }
+}
+function resize(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  CW = Math.max(2, Math.floor(innerWidth * dpr)); CH = Math.max(2, Math.floor(innerHeight * dpr));
+  canvas.width = CW; canvas.height = CH;
+  let w = CW * quality, h = CH * quality;
+  const maxPix = 1.35e6;
+  if (w * h > maxPix) { const k = Math.sqrt(maxPix / (w * h)); w *= k; h *= k; }
+  W = Math.max(2, Math.floor(w)); H = Math.max(2, Math.floor(h));
+  buildTargets();
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* =====================================================================
+   Motion system: springs (critically / under-damped) driven by a
+   scripted event timeline. Speeds are integrated into phases so that
+   any change of speed never produces a jump.
+   ===================================================================== */
+const clamp01 = x => Math.min(1, Math.max(0, x));
+const ease = x => { x = clamp01(x); return x * x * (3 - 2 * x); };
+const easeOut = x => { x = clamp01(x); return 1 - Math.pow(1 - x, 3); };
+const easeIn = x => { x = clamp01(x); return x * x * x; };
+const lerp = (a, b, t) => a + (b - a) * t;
+const sstep = (e0, e1, x) => ease((x - e0) / (e1 - e0));
+const rnd = (a = 0, b = 1) => a + Math.random() * (b - a);
+
+class Spring {
+  constructor(v, w, z){ this.v = v; this.t = v; this.vel = 0; this.w = w; this.z = z; this.w0 = w; this.z0 = z; }
+  step(dt){ const n = 4, h = dt / n; for (let i = 0; i < n; i++) { const a = this.w * this.w * (this.t - this.v) - 2 * this.z * this.w * this.vel; this.vel += a * h; this.v += this.vel * h; } }
+  snap(v){ this.v = this.t = v; this.vel = 0; }
+}
+const SP = {
+  tension: new Spring(0, 6, 1),
+  K:       new Spring(0.025, 3.2, 1),
+  rs:      new Spring(0, 4.8, 0.52),
+  suck:    new Spring(0, 3.2, 1),
+  stress:  new Spring(0.0, 2.6, 1),
+  band:    new Spring(1, 1.6, 1),
+  swirl:   new Spring(1, 1.8, 1),
+  twist:   new Spring(0, 1.6, 1),
+  eye:     new Spring(1, 7, 0.75),
+  squint:  new Spring(0, 8, 0.85),
+  spin:    new Spring(0, 2.4, 1),
+  fall:    new Spring(-0.006, 1.2, 1),
+};
+const IDLE_T = { tension:0, K:0.025, rs:0, suck:0, stress:0, band:1, swirl:1, twist:0, eye:1, squint:0, spin:0, fall:-0.006 };
+function setTargets(o){ for (const k in o) SP[k].t = o[k]; }
+
+const S = { state:'idle', tau:0, fired:{}, shockT:99, shockAmp:0, flash:0 };
+let T = 0;              // shader time (scaled by slow-mo)
+let timeScale = 1;
+const PH = { band:0, swirl:0, inflow:0, fall:0, starSpin:0, acc:0, accIn:0 };
+
+function setState(s){
+  S.state = s; S.tau = 0; S.fired = {};
+  if (s === 'closing') { SP.rs.w = 9; SP.rs.z = 0.95; SP.K.w = 5.2; SP.K.z = 0.3; SP.band.w = 1.2; }
+  else if (s === 'opening') { SP.rs.w = 4.8; SP.rs.z = 0.52; SP.K.w = 3.2; SP.K.z = 1; SP.band.w = 1.6; }
+  else if (s === 'idle') { SP.rs.w = 4.8; SP.rs.z = 0.52; SP.K.w = 2.2; SP.K.z = 1; SP.band.w = 1.6; }
+  $('stName').textContent = s.toUpperCase();
+  $('bOpen').innerHTML = (s === 'opening' || s === 'active') ? '<kbd>J</kbd>CLOSE' : '<kbd>J</kbd>OPEN';
+}
+function fireShock(a){ S.shockT = 0; S.shockAmp = a; }
+
+function updateTimeline(dt){
+  S.tau += dt;
+  const t = S.tau, st = S.state;
+  if (st === 'idle') {
+    setTargets(IDLE_T);
+  } else if (st === 'opening') {
+    const B = 1.05; // singularity birth
+    setTargets({
+      tension: t < B ? easeIn(t / B) * 0.6 + ease(t / B) * 0.4 : 0.3,
+      squint:  t < B ? 0.5 * ease(t / 0.9) : 0.12,
+      eye:     t < B ? 1 + 0.6 * ease(t / B) : 1.3,
+      K:       t < 0.45 ? 0.025 : t < B ? 0.025 + 0.06 * ease((t - 0.45) / 0.6) : 0.085 + 0.19 * easeOut((t - B) / 1.8),
+      rs:      t < B ? 0 : 1,
+      suck:    t < B ? 0.12 * ease(t / B) : 0.12 + 0.88 * ease((t - B) / 1.5),
+      stress:  t < 0.7 ? 0.1 * ease(t / 0.7) : 0.1 + 0.9 * ease((t - 0.7) / 1.8),
+      band:    t < B ? 1 - 0.7 * ease(t / B) : 2.8,
+      swirl:   t < B ? 1 + 3 * ease(t / B) : 7,
+      twist:   t < B ? 0.8 * ease(t / B) : 1.7,
+      spin:    t < 0.45 ? 0 : t < B ? 0.6 * ease((t - 0.45) / 0.6) : 1.25,
+      fall:    t < B ? 0.0 : 0.22,
+    });
+    if (t >= B && !S.fired.birth) { S.fired.birth = 1; fireShock(1.0); S.flash = 1.0; }
+    if (t > 3.8) setState('active');
+  } else if (st === 'active') {
+    const hb = Math.sin(T * 1.25);
+    setTargets({ tension:0.28, K:0.275 + 0.012 * hb, rs:1 + 0.035 * hb, suck:1, stress:0.86 + 0.14 * Math.sin(T * 1.25 - 0.7),
+                 band:2.8, swirl:7, twist:1.7, eye:1.28, squint:0.14, spin:1.25, fall:0.22 });
+  } else if (st === 'closing') {
+    const C1 = 0.7; // horizon collapse
+    setTargets({
+      suck: 0,
+      rs:   t < C1 ? 1 - easeIn(t / C1) : 0,
+      K:    t < C1 ? 0.275 * (1 - 0.3 * ease(t / C1)) : 0.0,
+      tension: t < C1 ? 0.5 : 0,
+      eye:  t < C1 ? 1.1 : t < C1 + 0.3 ? 1.9 : 1,
+      squint: t < C1 ? 0.3 : 0,
+      stress: 0, band: t < C1 ? 1.5 : 1, swirl: 1, twist: 0,
+      spin: t < C1 ? 1.25 : 0, fall: -0.006,
+    });
+    if (t >= C1 && !S.fired.col) { S.fired.col = 1; fireShock(-0.85); S.flash = 0.85; releaseAll(); }
+    if (t > 3.4) setState('idle');
+  }
+  for (const k in SP) SP[k].step(dt);
+
+  const suck = Math.max(0, SP.suck.v);
+  PH.band += dt * 0.045 * SP.band.v;
+  PH.swirl = (PH.swirl + dt * 0.02 * SP.swirl.v) % 1;
+  PH.inflow += dt * (0.05 + 0.9 * suck);
+  PH.fall += dt * SP.fall.v;
+  PH.starSpin += dt * (0.003 + 0.09 * suck);
+  PH.acc = (PH.acc + dt * (0.18 + 0.35 * suck)) % 1;
+  PH.accIn += dt * (0.25 + 0.6 * suck);
+  S.shockT += dt;
+  S.flash *= Math.exp(-dt * 5);
+}
+
+/* ---------- blink: fast close, brief hold, slower open (eyelid timing) ---------- */
+let blinkT = 99, nextBlink = rnd(3, 6), blinkQueue = 0;
+function startBlink(){ blinkT = 0; }
+function blinkValue(){
+  const t = blinkT;
+  if (t < 0.075) return 1 - Math.pow(1 - t / 0.075, 2);
+  if (t < 0.115) return 1;
+  if (t < 0.33) return 1 - easeOut((t - 0.115) / 0.215);
+  return 0;
+}
+function updateBlink(dt){
+  blinkT += dt;
+  if (blinkQueue > 0 && blinkT > 0.45) { blinkQueue--; startBlink(); }
+  const preBirth = S.state === 'opening' && S.tau < 1.6;
+  nextBlink -= dt;
+  if (nextBlink <= 0 && !preBirth) { startBlink(); if (Math.random() < 0.22) blinkQueue = 1; nextBlink = rnd(3.5, 8.5); }
+}
+
+/* =====================================================================
+   Orbiting debris & inner motes — CPU orbital sim.
+   Idle: Keplerian-ish orbits around the head. Captured: angular speed
+   ~ rho^-1.5 around the forehead seat with decaying radius (spiral infall),
+   heating as they fall. Release: elastic outward kick on collapse.
+   ===================================================================== */
+const SCX = 0, SCY = 0.17;
+function eggE(x, y){ const sx = 1 + 0.30 * sstep(0.25, -0.85, y); const sy = lerp(0.73, 0.84, sstep(-0.15, 0.15, y)); return Math.hypot(x * sx, y * sy); }
+const ND = 1100, NM = 380, NP = ND + NM;
+const parts = [];
+function spawnDust(p, fresh){
+  p.kind = 0; p.mode = 0;
+  p.a = rnd(0, Math.PI * 2);
+  p.rad0 = 0.6 + Math.pow(Math.random(), 0.8) * 0.46; p.rad = p.rad0; p.vr = 0;
+  p.spd = 0.055 * Math.pow(0.8 / p.rad0, 1.5) * rnd(0.75, 1.25);
+  p.size = rnd(1.0, 2.1) * (Math.random() < 0.06 ? 1.8 : 1);
+  p.b = Math.random() < 0.07 ? rnd(0.5, 1.1) : rnd(0.05, 0.28);
+  p.fade = fresh ? 0 : 1; p.heat = 0; p.wob = rnd(0, 6.28);
+  p.x = Math.cos(p.a) * p.rad; p.y = Math.sin(p.a) * p.rad * 0.97; p.px = p.x; p.py = p.y;
+}
+function spawnMote(p, fresh){
+  p.kind = 1; p.mode = 0;
+  do { p.x = rnd(-0.45, 0.45); p.y = rnd(-0.66, 0.6); } while (eggE(p.x, p.y) > 0.45);
+  p.bvx = rnd(-1, 1) * 0.004; p.bvy = rnd(-1, 1) * 0.004; p.vx = p.bvx; p.vy = p.bvy;
+  p.size = rnd(0.8, 1.6); p.b = rnd(0.05, 0.24) * (Math.random() < 0.05 ? 3 : 1);
+  p.fade = fresh ? 0 : 1; p.heat = 0; p.px = p.x; p.py = p.y; p.wob = rnd(0, 6.28);
+}
+for (let i = 0; i < NP; i++) { const p = {}; if (i < ND) spawnDust(p, false); else spawnMote(p, false); parts.push(p); }
+
+const NS = 16, shards = [];
+function spawnShard(s, fresh){
+  s.mode = 0; s.a = rnd(0, Math.PI * 2); s.rad0 = rnd(0.93, 1.12); s.rad = s.rad0; s.vr = 0;
+  s.spd = 0.035 * Math.pow(1 / s.rad0, 1.5) * rnd(0.7, 1.3);
+  s.size = Math.random() < 0.35 ? rnd(0.03, 0.05) : rnd(0.055, 0.1);
+  s.seed = Math.random(); s.alpha = fresh ? 0 : 1; s.stretch = 1; s.heat = 0; s.wob = rnd(0, 6.28); s.tilt = rnd(-0.5, 0.5);
+  s.x = Math.cos(s.a) * s.rad; s.y = Math.sin(s.a) * s.rad * 0.97; s.phi = s.a - Math.PI / 2; s.dead = 0;
+}
+for (let i = 0; i < NS; i++) { const s = {}; spawnShard(s, false); shards.push(s); }
+
+function releaseAll(){
+  for (const p of parts) {
+    if (p.mode !== 1) continue;
+    p.mode = 0;
+    if (p.kind === 0) { p.a = Math.atan2(p.y, p.x); p.rad = Math.hypot(p.x, p.y) / 0.985; p.vr = rnd(0.5, 1.1); }
+    else { const dx = p.x - SCX, dy = p.y - SCY, l = Math.hypot(dx, dy) + 1e-4; const k = rnd(0.15, 0.4); p.vx = dx / l * k; p.vy = dy / l * k; }
+  }
+  for (const s of shards) {
+    if (s.mode !== 1) continue;
+    s.mode = 0; s.a = Math.atan2(s.y, s.x); s.rad = Math.hypot(s.x, s.y); s.vr = rnd(0.4, 0.9);
+  }
+}
+
+function updateParticles(dt){
+  const suck = Math.max(0, SP.suck.v), rs = 0.125 * Math.max(SP.rs.v, 0);
+  const bandK = 0.6 + 0.4 * SP.band.v;
+  for (const p of parts) {
+    p.px = p.x; p.py = p.y;
+    if (p.mode === 0) {
+      if (p.kind === 0) {
+        p.a -= p.spd * dt * bandK;
+        p.vr += ((p.rad0 - p.rad) * 3.0 - p.vr * 1.6) * dt;
+        p.rad += p.vr * dt;
+        const w = 1 + 0.01 * Math.sin(T * 0.7 + p.wob);
+        p.x = Math.cos(p.a) * p.rad * w; p.y = Math.sin(p.a) * p.rad * 0.97 * w;
+      } else {
+        p.vx += (p.bvx - p.vx) * Math.min(1, dt * 1.2); p.vy += (p.bvy - p.vy) * Math.min(1, dt * 1.2);
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        if (eggE(p.x, p.y) > 0.47) { p.x -= p.vx * dt * 2; p.y -= p.vy * dt * 2; p.vx *= -0.6; p.vy *= -0.6; p.bvx *= -1; p.bvy *= -1; }
+      }
+      p.fade = Math.min(1, p.fade + dt * 0.6);
+      if (suck > 0.04) {
+        const dx = p.x - SCX, dy = p.y - SCY, dist = Math.hypot(dx, dy);
+        const rate = suck * (p.kind === 1 ? 0.55 : 0.16) * (0.4 + 1.2 * Math.exp(-dist * 1.5));
+        if (Math.random() < rate * dt) { p.mode = 1; p.rho = dist; p.al = Math.atan2(dy, dx); }
+      }
+    } else {
+      const rho = Math.max(p.rho, 0.02);
+      const om = Math.min(0.34 * Math.pow(rho, -1.5), 14);
+      p.al -= om * dt * (0.35 + 0.65 * Math.min(1, suck * 1.5));
+      p.rho -= (0.07 + 0.022 / rho) * Math.max(suck, 0.05) * dt;
+      p.x = SCX + Math.cos(p.al) * p.rho; p.y = SCY + Math.sin(p.al) * p.rho;
+      p.heat = clamp01((0.32 - p.rho) / 0.22);
+      if (p.rho < rs * 1.04 + 0.004) { if (p.kind === 0) spawnDust(p, true); else spawnMote(p, true); }
+    }
+  }
+  for (const s of shards) {
+    if (s.mode === 2) { s.dead -= dt; if (s.dead <= 0) spawnShard(s, true); continue; }
+    if (s.mode === 0) {
+      s.a -= s.spd * dt * (0.5 + 0.5 * SP.band.v);
+      s.vr += ((s.rad0 - s.rad) * 2.5 - s.vr * 1.4) * dt; s.rad += s.vr * dt;
+      const bob = 1 + 0.012 * Math.sin(T * 0.5 + s.wob);
+      s.x = Math.cos(s.a) * s.rad * bob; s.y = Math.sin(s.a) * s.rad * 0.97 * bob;
+      s.phi = s.a - Math.PI / 2 + s.tilt + 0.25 * Math.sin(T * 0.3 + s.wob);
+      s.alpha = Math.min(1, s.alpha + dt * 0.5); s.stretch += (1 - s.stretch) * Math.min(1, dt * 3); s.heat *= Math.exp(-dt * 2);
+      if (suck > 0.3 && Math.random() < 0.12 * suck * dt) {
+        s.mode = 1; const dx = s.x - SCX, dy = s.y - SCY; s.rho = Math.hypot(dx, dy); s.rho0 = s.rho; s.al = Math.atan2(dy, dx); s.phi0 = s.phi;
+      }
+    } else {
+      const rho = Math.max(s.rho, 0.02);
+      const om = Math.min(0.3 * Math.pow(rho, -1.5), 10);
+      s.al -= om * dt * (0.35 + 0.65 * Math.min(1, suck * 1.5));
+      s.rho -= (0.05 + 0.016 / rho) * Math.max(suck, 0.05) * dt;
+      s.x = SCX + Math.cos(s.al) * s.rho; s.y = SCY + Math.sin(s.al) * s.rho;
+      const prog = ease(1 - s.rho / s.rho0);
+      const tx = Math.cos(s.phi0), ty = Math.sin(s.phi0), rx = Math.cos(s.al), ry = Math.sin(s.al);
+      s.phi = Math.atan2(lerp(ty, ry, prog), lerp(tx, rx, prog));   // align to radial: tidal stretching
+      s.stretch = 1 + 3.0 * prog * prog;
+      s.heat = sstep(0.38, 0.12, s.rho);
+      s.alpha = rs > 0.001 ? sstep(rs * 1.0, rs * 2.2, s.rho) : 1;
+      if (s.rho < rs * 1.05 + 0.004) { s.mode = 2; s.dead = rnd(1.5, 4); s.alpha = 0; }
+    }
+  }
+}
+
+/* particle GPU buffers */
+const ptData = new Float32Array(NP * 5), lnData = new Float32Array(NP * 10);
+function mkVAO(data){
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, data.byteLength, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 20, 0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 20, 8);
+  gl.bindVertexArray(null); return { vao, buf };
+}
+const vPt = mkVAO(ptData), vLn = mkVAO(lnData);
+let lnCount = 0;
+function fillParticleBuffers(dt, pxScale){
+  let li = 0;
+  for (let i = 0; i < NP; i++) {
+    const p = parts[i];
+    const br = p.b * p.fade * (1 + p.heat * 2.5) * (p.mode === 1 ? 1.3 : 1) * (p.kind === 1 ? (0.75 + 0.25 * Math.sin(T * 1.3 + p.wob)) : 1);
+    const o = i * 5;
+    ptData[o] = p.x; ptData[o + 1] = p.y; ptData[o + 2] = p.size * (1 + p.heat * 0.6) * pxScale; ptData[o + 3] = br; ptData[o + 4] = p.heat;
+    if (dt > 0) {
+      let vx = (p.x - p.px) / dt, vy = (p.y - p.py) / dt;
+      let tx = vx * 0.07, ty = vy * 0.07; const l = Math.hypot(tx, ty);
+      if (l > 0.15) { tx *= 0.15 / l; ty *= 0.15 / l; }
+      if (l > 0.003 && l < 1) {
+        const q = li * 10;
+        lnData[q] = p.x; lnData[q + 1] = p.y; lnData[q + 2] = 0; lnData[q + 3] = br * 0.9; lnData[q + 4] = p.heat;
+        lnData[q + 5] = p.x - tx; lnData[q + 6] = p.y - ty; lnData[q + 7] = 0; lnData[q + 8] = 0; lnData[q + 9] = p.heat;
+        li++;
+      }
+    }
+  }
+  lnCount = li * 2;
+  gl.bindBuffer(gl.ARRAY_BUFFER, vPt.buf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, ptData);
+  gl.bindBuffer(gl.ARRAY_BUFFER, vLn.buf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, lnData, 0, li * 10);
+}
+const shA = new Float32Array(NS * 4), shB = new Float32Array(NS * 4);
+function fillShards(){
+  for (let i = 0; i < NS; i++) {
+    const s = shards[i], o = i * 4;
+    const sz = s.mode === 1 ? s.size * (0.6 + 0.4 * s.rho / s.rho0) : s.size;
+    shA[o] = s.x; shA[o + 1] = s.y; shA[o + 2] = s.phi - Math.PI / 2; shA[o + 3] = sz;
+    shB[o] = s.stretch; shB[o + 1] = s.mode === 2 ? 0 : s.alpha; shB[o + 2] = s.seed; shB[o + 3] = s.heat;
+  }
+}
+
+/* =====================================================================
+   Render
+   ===================================================================== */
+function bindTarget(t){ gl.bindFramebuffer(gl.FRAMEBUFFER, t ? t.fb : null); gl.viewport(0, 0, t ? t.w : CW, t ? t.h : CH); }
+function tex(prog, name, unit, t){ gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(prog.u[name], unit); }
+const u1 = (P, n, v) => { if (P.u[n] != null) gl.uniform1f(P.u[n], v); };
+const u2 = (P, n, a, b) => { if (P.u[n] != null) gl.uniform2f(P.u[n], a, b); };
+
+function render(dt){
+  const cx = W * 0.5, cy = H * 0.53, sc = Math.min(W, H) * 0.42;
+  const sway = [Math.sin(T * 0.21) * 0.006 + Math.sin(T * 0.13 + 2) * 0.004, Math.sin(T * 0.17 + 1) * 0.007 + Math.sin(T * 0.29) * 0.003];
+  const swayR = Math.sin(T * 0.11) * 0.014;
+  const jolt = S.shockT < 3 ? Math.exp(-S.shockT * 4) * Math.sin(S.shockT * 18) * 0.012 * Math.sign(S.shockAmp || 1) : 0;
+  const breath = 1 + 0.006 * Math.sin(T * 0.5) - 0.014 * SP.tension.v + jolt;
+  const blink = blinkValue();
+  const flare = blinkT > 0.3 && blinkT < 1.2 ? Math.exp(-(blinkT - 0.3) * 6) * 0.1 : 0;
+  const suck = Math.max(0, SP.suck.v);
+  const rsN = Math.max(0, SP.rs.v);
+  const hb = S.state === 'active' ? 1 : 1;
+
+  // --- 1. scene
+  bindTarget(tScene);
+  let P = P_SCENE; gl.useProgram(P.p);
+  u2(P, 'uRes', W, H); u2(P, 'uCenter', cx, cy); u2(P, 'uSway', sway[0], sway[1]);
+  u1(P, 'uScale', sc); u1(P, 'uTime', T); u1(P, 'uSwayR', swayR); u1(P, 'uBreath', breath);
+  u1(P, 'uBandPhase', PH.band); u1(P, 'uSwirlPhase', PH.swirl); u1(P, 'uInflow', PH.inflow); u1(P, 'uFall', PH.fall); u1(P, 'uStarSpin', PH.starSpin);
+  u1(P, 'uSuck', suck); u1(P, 'uTension', Math.max(0, SP.tension.v)); u1(P, 'uStress', Math.max(0, SP.stress.v) + 0.04);
+  u1(P, 'uBlink', blink); u1(P, 'uEye', Math.max(0, SP.eye.v) + flare); u1(P, 'uSquint', clamp01(SP.squint.v)); u1(P, 'uTwist', SP.twist.v);
+  fillShards();
+  gl.uniform4fv(P.u.uShardA, shA); gl.uniform4fv(P.u.uShardB, shB);
+  drawTri();
+
+  // singularity seat in screen head-space
+  const bx = SCX * breath, by = SCY * breath, c = Math.cos(-swayR), s = Math.sin(-swayR);
+  const Cx = c * bx - s * by + sway[0], Cy = s * bx + c * by + sway[1];
+
+  // --- 2. spacetime / lens
+  bindTarget(tLens);
+  P = P_LENS; gl.useProgram(P.p);
+  tex(P, 'uScene', 0, tScene.tex);
+  u2(P, 'uRes', W, H); u2(P, 'uCenter', cx, cy); u2(P, 'uC', Cx, Cy); u1(P, 'uScale', sc);
+  u1(P, 'uRs', 0.125 * rsN * breath * hb); u1(P, 'uK', SP.K.v); u1(P, 'uSpin', SP.spin.v); u1(P, 'uSuck', suck); u1(P, 'uTime', T);
+  u1(P, 'uShockR', 0.02 + S.shockT * 0.85); u1(P, 'uShockA', S.shockT < 3 ? S.shockAmp * Math.exp(-S.shockT * 1.4) : 0);
+  u1(P, 'uFlash', S.flash); u1(P, 'uAccPhase', PH.acc); u1(P, 'uAccIn', PH.accIn); u1(P, 'uTension', Math.max(0, SP.tension.v));
+  drawTri();
+
+  // particles, additive, inside the lensed frame
+  fillParticleBuffers(dt, sc / 420);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+  P = P_PART; gl.useProgram(P.p);
+  u2(P, 'uRes', W, H); u2(P, 'uCenter', cx, cy); u2(P, 'uSway', sway[0], sway[1]); u1(P, 'uScale', sc); u1(P, 'uSwayR', swayR); u1(P, 'uBreath', breath);
+  u1(P, 'uPoint', 0); gl.bindVertexArray(vLn.vao); if (lnCount) gl.drawArrays(gl.LINES, 0, lnCount);
+  u1(P, 'uPoint', 1); gl.bindVertexArray(vPt.vao); gl.drawArrays(gl.POINTS, 0, NP);
+  gl.disable(gl.BLEND);
+
+  // --- 3. bloom chain
+  let src = tLens;
+  for (let i = 0; i < 4; i++) {
+    bindTarget(bl[i]); P = P_DOWN; gl.useProgram(P.p);
+    tex(P, 'uSrc', 0, src.tex); u2(P, 'uSrcTexel', 0.5 / src.w, 0.5 / src.h); u2(P, 'uDstRes', bl[i].w, bl[i].h); u1(P, 'uThresh', i === 0 ? 0.55 : 0);
+    drawTri();
+    P = P_BLUR; gl.useProgram(P.p);
+    bindTarget(bt[i]); tex(P, 'uSrc', 0, bl[i].tex); u2(P, 'uDir', 1 / bl[i].w, 0); u2(P, 'uDstRes', bt[i].w, bt[i].h); drawTri();
+    bindTarget(bl[i]); tex(P, 'uSrc', 0, bt[i].tex); u2(P, 'uDir', 0, 1 / bl[i].h); u2(P, 'uDstRes', bl[i].w, bl[i].h); drawTri();
+    src = bl[i];
+  }
+
+  // --- 4. composite to screen
+  bindTarget(null);
+  P = P_FINAL; gl.useProgram(P.p);
+  tex(P, 'uLens', 0, tLens.tex); tex(P, 'uB0', 1, bl[0].tex); tex(P, 'uB1', 2, bl[1].tex); tex(P, 'uB2', 3, bl[2].tex); tex(P, 'uB3', 4, bl[3].tex);
+  u2(P, 'uRes', CW, CH); u2(P, 'uCuv', (Cx * sc + cx) / W, (Cy * sc + cy) / H);
+  u1(P, 'uCA', 0.3 * suck + 0.4 * S.flash); u1(P, 'uTime', T); u1(P, 'uBloom', hasFloat ? 0.9 : 1.4); u1(P, 'uExposure', 1.15);
+  drawTri();
+}
+
+/* =====================================================================
+   Loop, adaptive resolution, HUD, input
+   ===================================================================== */
+let last = performance.now(), perfAcc = 0, perfN = 0, perfClock = 0, hudClock = 0;
+function frame(now){
+  const raw = Math.min((now - last) / 1000, 0.05); last = now;
+  const dt = raw * timeScale;
+  T += dt;
+  updateTimeline(dt);
+  updateBlink(dt);
+  updateParticles(dt);
+  render(dt);
+
+  perfAcc += raw; perfN++; perfClock += raw;
+  if (perfClock > 2) {
+    const avg = perfAcc / perfN * 1000;
+    if (avg > 26 && quality > 0.5) { quality = Math.max(0.5, quality * 0.85); resize(); }
+    else if (avg < 15 && quality < 1) { quality = Math.min(1, quality * 1.1); resize(); }
+    perfAcc = 0; perfN = 0; perfClock = 0;
+  }
+  hudClock += raw;
+  if (hudClock > 0.08) {
+    hudClock = 0;
+    $('mH').style.width = (clamp01(SP.rs.v) * 100).toFixed(1) + '%';
+    $('mS').style.width = (clamp01(SP.suck.v) * 100).toFixed(1) + '%';
+    $('mT').style.width = (clamp01(SP.stress.v) * 100).toFixed(1) + '%';
+  }
+  requestAnimationFrame(frame);
+}
+
+function toggleOpen(){ if (S.state === 'idle' || S.state === 'closing') setState('opening'); else setState('closing'); }
+function goIdle(){ if (S.state === 'opening' || S.state === 'active') setState('closing'); }
+function hardReset(){
+  for (const k in SP) { SP[k].snap(IDLE_T[k]); SP[k].w = SP[k].w0; SP[k].z = SP[k].z0; }
+  for (let i = 0; i < NP; i++) { if (i < ND) spawnDust(parts[i], true); else spawnMote(parts[i], true); }
+  for (const s of shards) spawnShard(s, true);
+  S.shockT = 99; S.shockAmp = 0; S.flash = 0; blinkT = 99; blinkQueue = 0;
+  setState('idle');
+}
+function toggleSlow(){ timeScale = timeScale === 1 ? 0.25 : 1; $('bSlow').classList.toggle('on', timeScale !== 1); }
+
+$('bOpen').onclick = toggleOpen;
+$('bIdle').onclick = goIdle;
+$('bBlink').onclick = () => startBlink();
+$('bReset').onclick = hardReset;
+$('bSlow').onclick = toggleSlow;
+window.addEventListener('keydown', e => {
+  if (e.repeat) return;
+  const k = e.key.toLowerCase();
+  if (k === 'j') toggleOpen();
+  else if (k === 'i') goIdle();
+  else if (k === 'b') startBlink();
+  else if (k === 'r') hardReset();
+  else if (k === 's') toggleSlow();
+  else if (k === 'h') $('hud').classList.toggle('hidden');
+});
+
+setState('idle');
+requestAnimationFrame(frame);
+})();
+
+</script>
+</body>
+</html>

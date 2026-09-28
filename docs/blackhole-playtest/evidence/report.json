@@ -1,0 +1,191 @@
+{
+  "results": [
+    {
+      "name": "no page errors on boot",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "sandbox API ready",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no WebGL/shader error overlay",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "canvas allocated",
+      "ok": true,
+      "detail": "800x600"
+    },
+    {
+      "name": "canvas renders (composited pixels non-empty)",
+      "ok": true,
+      "detail": "avg=204.2 max=765"
+    },
+    {
+      "name": "BLACK_HOLE identity present at its position (violet-biased pixels)",
+      "ok": true,
+      "detail": "rgb=157,126,183 max=765"
+    },
+    {
+      "name": "BLACK_HOLE alive at battle scale",
+      "ok": true,
+      "detail": "hp=1000 r=75"
+    },
+    {
+      "name": "opponent renders (alive)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "head enters idle after intro skip (intro plays once at boot)",
+      "ok": true,
+      "detail": "phase=idle"
+    },
+    {
+      "name": "movement works (WASD drives the body)",
+      "ok": true,
+      "detail": "x 300 → 369"
+    },
+    {
+      "name": "incoming damage works (HP drops by burst total)",
+      "ok": true,
+      "detail": "hp=910"
+    },
+    {
+      "name": "passive growth counts realized damage only",
+      "ok": true,
+      "detail": "realized=90 bonus=9"
+    },
+    {
+      "name": "collision footprint grows with passive",
+      "ok": true,
+      "detail": "r=84 bonus=9"
+    },
+    {
+      "name": "heal restores HP without reducing growth",
+      "ok": true,
+      "detail": "bonus=9 hp=1000"
+    },
+    {
+      "name": "forced 100% growth: radius +100",
+      "ok": true,
+      "detail": "r=175"
+    },
+    {
+      "name": "A1 cast on J (off cooldown)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A1 entry singularity born (horizon open)",
+      "ok": true,
+      "detail": "rs=0.55 phase=birth"
+    },
+    {
+      "name": "A1 exit placed with safe margin from fighters",
+      "ok": true,
+      "detail": "d(bot→exit)=385 ≥ 195"
+    },
+    {
+      "name": "A1 pulls and captures enemy rounds",
+      "ok": true,
+      "detail": "stored=0"
+    },
+    {
+      "name": "A1 releases rounds at exit with preserved momentum/ownership",
+      "ok": true,
+      "detail": "owner=RIVAL speed=3324 (fired at 3324)"
+    },
+    {
+      "name": "A1 respects the 8-object capacity",
+      "ok": true,
+      "detail": "max stored observed=0"
+    },
+    {
+      "name": "A1 duration is 2.7s (self-terminates)",
+      "ok": true,
+      "detail": "active=false"
+    },
+    {
+      "name": "T6 round reaches BLACK_HOLE through the open singularity",
+      "ok": true,
+      "detail": "hp=780 (expected 780)"
+    },
+    {
+      "name": "T6 round is never captured by A1",
+      "ok": true,
+      "detail": "stored=0"
+    },
+    {
+      "name": "A2 escrows incoming damage during absorb (HP untouched)",
+      "ok": true,
+      "detail": "hp=1000 escrow=90"
+    },
+    {
+      "name": "A2 returns 65% of escrow as ONE event",
+      "ok": true,
+      "detail": "escrow=90 → returned=58.5 botLost=58.5 (±40 pickup heal)"
+    },
+    {
+      "name": "A2 escrow cap is 300",
+      "ok": true,
+      "detail": "escrow=90"
+    },
+    {
+      "name": "vulnerability doubles incoming damage (30 → 60)",
+      "ok": true,
+      "detail": "hp=940 lost=60"
+    },
+    {
+      "name": "passive counts doubled (realized) damage",
+      "ok": true,
+      "detail": "realized=60"
+    },
+    {
+      "name": "vulnerability expires (3.0s window)",
+      "ok": true,
+      "detail": "phase=idle"
+    },
+    {
+      "name": "A1 cooldown is 14s",
+      "ok": true,
+      "detail": "cd=14.0"
+    },
+    {
+      "name": "A2 cooldown is 18s",
+      "ok": true,
+      "detail": "cd=18.0"
+    },
+    {
+      "name": "reset restores the fight",
+      "ok": true,
+      "detail": "bh=1000 bot=1000 r=75"
+    },
+    {
+      "name": "KO triggers when HP hits zero",
+      "ok": true,
+      "detail": "bh hp=0 over=true"
+    },
+    {
+      "name": "auto reset after KO (3.4s)",
+      "ok": true,
+      "detail": "over=false hp=1000"
+    },
+    {
+      "name": "auto-battle: real projectile damage flows BOTH ways",
+      "ok": true,
+      "detail": "bh=866 bot=998 clock=8.0"
+    },
+    {
+      "name": "no page errors across the whole run",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "errors": [],
+  "at": "2026-09-28T10:45:20.051Z"
+}
