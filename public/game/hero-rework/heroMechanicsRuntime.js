@@ -948,6 +948,7 @@
       // pool; the split-merge restores the summed pool.
       const halfMax = (a.maxHp || 1000) / 2;
       a.maxHp = halfMax;
+      a.__hrRefHp = half; // creation-state reference (symmetric with child)
       // Area-conserving radii: two bodies of r/sqrt(2) conserve area.
       const r = a.baseRadius || a.radius;
       const newR = r / Math.SQRT2;
@@ -1054,8 +1055,13 @@
       // Per-Body trigger: lost 80% of that body's reference/max HP.
       const ref = body.__hrRefHp || body.maxHp || 1000;
       const lostPct = 1 - body.hp / ref;
-      if (lostPct < ctx.cfg.triggerAtLostPct) return;
-      if (body.hp < 2 * ctx.cfg.minSplitShareHp) return; // each share must be >= 100
+      // Float hygiene at the spec's exact knife edge (80% loss at ref 1000
+      // == hp 200 == halves of exactly 100): tolerate IEEE noise (1e-9
+      // ratio / 1e-6 hp) so the boundary point behaves as authored. NOT a
+      // tuning change — gameplay values well off the boundary are
+      // unaffected (hp 199.5 still no-splits, hp 205 still no-triggers).
+      if (lostPct + 1e-9 < ctx.cfg.triggerAtLostPct) return;
+      if (body.hp + 1e-6 < 2 * ctx.cfg.minSplitShareHp) return; // each share must be >= 100
       const half = body.hp / 2;
       body.hp = half;
       body.__hrRefHp = half; // new reference (creation state) self-limits recursion

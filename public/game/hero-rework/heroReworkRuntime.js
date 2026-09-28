@@ -458,7 +458,7 @@
         // parent speed (speedPct supplied by that executor's config).
         child.baseSpeed = (anchor.baseSpeed || 450) * (o.speedPct != null ? o.speedPct : 1);
         child.__hrCombatant = ct;
-        child.__hrRefHp = o.maxHp != null ? o.maxHp : o.hp;
+        child.__hrRefHp = o.hp; // reference HP = creation state (doc 10 passive)
         child.__hrChild = { kind: o.kind || 'shed', lifetime: o.lifetime || 0, bornAt: AIL.clock() };
         if (o.dirX != null && o.dirY != null) child.setDir(o.dirX, o.dirY);
         ct.bodies.push(child);

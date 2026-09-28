@@ -1,0 +1,261 @@
+{
+  "tool": "measureSlimeHeavyHitHitch",
+  "app": "http://127.0.0.1:5173",
+  "chromium": "headless=new (CDP)",
+  "scenarios": {
+    "slime-split": {
+      "reps": 5,
+      "syncDamageCallMs": {
+        "all": [
+          2.6,
+          2.6,
+          3,
+          3.7,
+          4.1
+        ],
+        "median": 3,
+        "min": 2.6,
+        "max": 4.1
+      },
+      "submitted": 662.0324395895367,
+      "scale": 1.2084,
+      "realizedMeasured": 900,
+      "hpAfter": 100,
+      "bodiesBefore": 1,
+      "bodiesImmediatelyAfter": 2,
+      "bodiesEnd": 2,
+      "splitSpawned": true,
+      "fightersCount": 2,
+      "frames": {
+        "pre": {
+          "frames": 4,
+          "maxDtMs": 115.1,
+          "top5Ms": [
+            115.1,
+            86.8,
+            86.2,
+            81.2
+          ],
+          "over50ms": 4,
+          "over100ms": 1,
+          "meanDtMs": 92.32
+        },
+        "post": {
+          "frames": 17,
+          "maxDtMs": 167.7,
+          "top5Ms": [
+            167.7,
+            106.2,
+            105,
+            104.7,
+            103.4
+          ],
+          "over50ms": 16,
+          "over100ms": 5,
+          "meanDtMs": 92.96
+        },
+        "clockRatePre": 0.357,
+        "clockRateFirst300msPost": 0.06,
+        "clockRate400to700msPost": 0.339,
+        "hitStopRequestedMs": 80,
+        "longTaskCount": 1,
+        "longestTaskMs": 114,
+        "longTaskTotalMs": 114,
+        "longTasks": [
+          {
+            "start": 10392.5,
+            "dur": 114
+          }
+        ]
+      }
+    },
+    "slime-nosplit": {
+      "reps": 5,
+      "syncDamageCallMs": {
+        "all": [
+          1.5,
+          1.9,
+          2,
+          2.1,
+          2.6
+        ],
+        "median": 2,
+        "min": 1.5,
+        "max": 2.6
+      },
+      "submitted": 248.26216484607625,
+      "scale": 1.2084,
+      "realizedMeasured": 300,
+      "hpAfter": 700,
+      "bodiesBefore": 1,
+      "bodiesImmediatelyAfter": 1,
+      "bodiesEnd": 1,
+      "splitSpawned": false,
+      "fightersCount": 2,
+      "frames": {
+        "pre": {
+          "frames": 4,
+          "maxDtMs": 85.7,
+          "top5Ms": [
+            85.7,
+            83.4,
+            83.1,
+            80.9
+          ],
+          "over50ms": 4,
+          "over100ms": 0,
+          "meanDtMs": 83.28
+        },
+        "post": {
+          "frames": 16,
+          "maxDtMs": 206.9,
+          "top5Ms": [
+            206.9,
+            100.5,
+            98.5,
+            97.5,
+            96.2
+          ],
+          "over50ms": 16,
+          "over100ms": 2,
+          "meanDtMs": 97.32
+        },
+        "clockRatePre": 0.396,
+        "clockRateFirst300msPost": 0.035,
+        "clockRate400to700msPost": 0.361,
+        "hitStopRequestedMs": 80,
+        "longTaskCount": 0,
+        "longestTaskMs": 0,
+        "longTaskTotalMs": 0,
+        "longTasks": []
+      }
+    },
+    "ice": {
+      "reps": 5,
+      "syncDamageCallMs": {
+        "all": [
+          1.7,
+          2.5,
+          2.8,
+          2.9,
+          4.5
+        ],
+        "median": 2.8,
+        "min": 1.7,
+        "max": 4.5
+      },
+      "submitted": 868.4324793747296,
+      "scale": 0.9212,
+      "realizedMeasured": 800,
+      "hpAfter": 200,
+      "bodiesBefore": 1,
+      "bodiesImmediatelyAfter": 1,
+      "bodiesEnd": 1,
+      "splitSpawned": false,
+      "fightersCount": 2,
+      "frames": {
+        "pre": {
+          "frames": 4,
+          "maxDtMs": 92.3,
+          "top5Ms": [
+            92.3,
+            91.7,
+            90,
+            89.9
+          ],
+          "over50ms": 4,
+          "over100ms": 0,
+          "meanDtMs": 90.98
+        },
+        "post": {
+          "frames": 15,
+          "maxDtMs": 187.4,
+          "top5Ms": [
+            187.4,
+            148.1,
+            108.4,
+            106.9,
+            105.1
+          ],
+          "over50ms": 15,
+          "over100ms": 6,
+          "meanDtMs": 107.55
+        },
+        "clockRatePre": 0.363,
+        "clockRateFirst300msPost": 0.035,
+        "clockRate400to700msPost": 0.176,
+        "hitStopRequestedMs": 80,
+        "longTaskCount": 0,
+        "longestTaskMs": 0,
+        "longTaskTotalMs": 0,
+        "longTasks": []
+      }
+    },
+    "legacy-split": {
+      "reps": 5,
+      "syncDamageCallMs": {
+        "all": [
+          1.7,
+          3,
+          4.4,
+          4.9,
+          7.7
+        ],
+        "median": 4.4,
+        "min": 1.7,
+        "max": 7.7
+      },
+      "submitted": 1203.695344708271,
+      "scale": 0.6646,
+      "realizedMeasured": 1000,
+      "hpAfter": 0,
+      "bodiesBefore": 1,
+      "bodiesImmediatelyAfter": 0,
+      "bodiesEnd": 0,
+      "splitSpawned": false,
+      "fightersCount": 2,
+      "frames": {
+        "pre": {
+          "frames": 3,
+          "maxDtMs": 126.1,
+          "top5Ms": [
+            126.1,
+            123,
+            117.9
+          ],
+          "over50ms": 3,
+          "over100ms": 3,
+          "meanDtMs": 122.33
+        },
+        "post": {
+          "frames": 12,
+          "maxDtMs": 197,
+          "top5Ms": [
+            197,
+            193.5,
+            140.4,
+            138.8,
+            129.4
+          ],
+          "over50ms": 12,
+          "over100ms": 10,
+          "meanDtMs": 130.44
+        },
+        "clockRatePre": 0.27,
+        "clockRateFirst300msPost": 0.006,
+        "clockRate400to700msPost": 0,
+        "hitStopRequestedMs": 80,
+        "longTaskCount": 0,
+        "longestTaskMs": 0,
+        "longTaskTotalMs": 0,
+        "longTasks": []
+      }
+    }
+  },
+  "comparisons": {
+    "splitSyncCostMs": 1,
+    "slimeVsIceSyncMs": 0.2,
+    "legacyDoubleExecSyncCostMs": 1.4,
+    "note": "measured values only — no pass threshold invented. Intentional hit-stop is the requested 0.08s (STORMBREAKER spec 0.03-0.08s) simulated at 10% speed; its measured signature is clockRateFirst300msPost (~10x below the pre-impact headless cadence) — SIM slowdown, not a frame hitch. Frame hitches are the measured pre/post maxDt and long tasks. legacy-split numbers show the PRE-FIX double-execution signature (per-hit guard absorb makes submitted damage unpredictable); its sync cost is the measured legacy spawn/clone work inside takeDamage."
+  }
+}
