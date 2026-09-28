@@ -226,6 +226,11 @@
       ],
       world,
       startedAt: AIL.clock(),
+      // P2 rework cast AI is ON by default; HR.setAiEnabled() syncs both
+      // switches. (Deterministic scheduling time = global matchClock, which
+      // updateArsenalQuest — the single shared sim step for rAF AND headless
+      // AQ.step — advances exactly once per step.)
+      aiEnabled: true,
       aiCastPlan: {},
       p1Queue: [],
     };
@@ -621,6 +626,9 @@
   HR.shellUpdate = function shellUpdate(f, enemy, dt) {
     const ct = combatantOfBody(f);
     if (!M || !ct || ct.facade) return;
+    // Test/freeze hold (weapon-pose laws): never steer a test-pinned body.
+    // Dash executors are unaffected — they integrate x/y directly.
+    if (f.data.__hrHoldBody) return;
     const a = ct.anchor;
     // Dash/pounce/nest states already integrated by executor onTicks; they
     // set positionLocked for the engine movement skip.

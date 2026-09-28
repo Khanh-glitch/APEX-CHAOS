@@ -267,6 +267,10 @@ win.eval(`(() => {
       a.x = fx; a.y = fy; b.x = ex; b.y = ey;
       a.setDir(Math.sign(ex - fx) || 1, 0); b.setDir(-Math.sign(ex - fx) || -1, 0);
       if (freeze !== false) { a.baseSpeed = 0; b.baseSpeed = 0; }
+      // HERO REWORK: pin rework movement AI so weapon-pose laws keep testing
+      // the WEAPON's effect on a body whose trajectory/dir is test-owned.
+      if (a.data) a.data.__hrHoldBody = true;
+      if (b.data) b.data.__hrHoldBody = true;
     },
     hp() { return { hero: fighters[0].hp, rival: fighters[1].hp, heroMax: fighters[0].maxHp, rivalMax: fighters[1].maxHp }; },
     holder(who) {
@@ -1452,18 +1456,28 @@ report.shells = run(`
     APEX_ARSENAL.step(1 / 60);
     nativeProj = Math.max(nativeProj, projectiles.filter(p => !p.aq).length);
   }
+  const legacyIds = shells.legacyIds || [];
   return {
     count: ids.length,
     allResolvable: ids.every(n => !!shells.typeFor(n)),
-    names, shellFlags, speedOk, drawFns, nativeProj,
+    legacyResolvable: legacyIds.length === 33 && legacyIds.every(n => !!shells.typeFor(n)),
+    names, shellFlags, speedOk, drawFns,
+    // HERO REWORK: a rework shell may omit type.draw — the engine default
+    // sketch blob renders it (temporary neutral presentation).
+    drawable: fighters.map(f => typeof f.type.draw === 'function' || !!f.type.__hrHero),
+    nativeProj,
     hp: [fighters[0].hp, fighters[1].hp],
     rage: fighters.some(f => f.isRage),
   };
 `);
-gate('shells-33-canonical', report.shells.count === 33 && report.shells.allResolvable, { count: report.shells.count });
+// HERO REWORK (doc-06): the playable pool is the canonical 12; the legacy 33
+// (incl. boss-only Quest identities) stay resolvable through typeFor.
+gate('shells-12-playable-canonical',
+  report.shells.count === 12 && report.shells.allResolvable && report.shells.legacyResolvable,
+  { count: report.shells.count, legacyResolvable: report.shells.legacyResolvable });
 gate('shells-p1-p2-independent',
   report.shells.names[0] === 'SNIPER' && report.shells.names[1] === 'WITCH'
-    && report.shells.shellFlags.every(Boolean) && report.shells.drawFns.every(Boolean),
+    && report.shells.shellFlags.every(Boolean) && report.shells.drawable.every(Boolean),
   report.shells.names);
 gate('shells-native-kits-active-in-arsenal',
   report.shells.nativeProj >= 1 && !report.shells.rage
@@ -1471,26 +1485,33 @@ gate('shells-native-kits-active-in-arsenal',
   { nativeProj: report.shells.nativeProj, hp: report.shells.hp });
 
 // ------------------------- gates: A-CORR-3 roster compatibility (matrix proof)
+// HERO REWORK (doc 06): playable roster = canonical 12 rework shells; the
+// Quest encounter identities keep the audited legacy KEEP/ADAPT classes.
 report.roster = run(`
   const shells = window.APEX_ARSENAL_SHELLS;
+  const REG = window.APEX_HERO_REWORK_REGISTRY;
   const ids = shells.ids;
+  const bossIds = shells.legacyIds.filter(n => n !== 'NEWBIE' && !REG.isCanonicalHero(n));
   const kits = {};
-  for (const n of ids) kits[n] = (shells.typeFor(n) || {}).compatKit || 'MISSING';
-  const allClassified = ids.every(n => kits[n] === 'KEEP' || kits[n] === 'ADAPT');
-  const adapted = ids.filter(n => kits[n] === 'ADAPT');
+  for (const n of bossIds) kits[n] = (shells.typeFor(n) || {}).compatKit || 'MISSING';
+  const allClassified = bossIds.every(n => kits[n] === 'KEEP' || kits[n] === 'ADAPT');
+  const adapted = bossIds.filter(n => kits[n] === 'ADAPT');
+  const playableRework = ids.length === 12 && ids.every(n => (shells.typeFor(n) || {}).__hrHero === n);
 
-  // KEEP proof: ICE shell natively casts its frost lane inside Arsenal.
-  const ice = shells.typeFor('ICE');
-  projectiles.length = 0;
-  const iceF = {
-    name: 'ICE', id: 101, data: {}, x: 300, y: 300, radius: 75, baseRadius: 75,
-    hp: 100, maxHp: 100, isRage: false, statuses: {},
-    cooldownRate: () => 1,
-    hasStatus: () => false, applyStatus() {}, takeDamage() {}, heal() {}, setDir() {},
-  };
-  ice.init(iceF);
-  ice.update(iceF, { x: 700, y: 700, y2: 0 }, 1.6); // cd 1.5 -> lane fires
-  const iceLaneFired = projectiles.some(p => p.type === 'ice_lane');
+  // REWORK proof (replaces the legacy ICE KEEP-proof): canonical ICE casts
+  // its rework frost lane (A2) inside a real Arsenal match.
+  window.startArsenalQuestMode('ICE', 'WITCH');
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+  const HR = window.APEX_HERO_REWORK;
+  const iceCt = HR.byCombatant(fighters[0]);
+  const iceCtl = HR.abilityController(iceCt);
+  const laneCast = iceCtl.tryCast('A2', 'gate');
+  let iceLaneFired = false;
+  for (let i = 0; i < 40; i++) {
+    APEX_ARSENAL.step(1 / 60);
+    if (HR.match && HR.match.world.lanes.length > 0) iceLaneFired = true;
+  }
 
   // ADAPT proof: VAMPIRE latch shortened to 2.5s for shell fighters.
   const vamp = shells.typeFor('VAMPIRE');
@@ -1534,17 +1555,17 @@ report.roster = run(`
   const holderIntact = !!APEX_ARSENAL.weaponApi.getHolder(fighters[0])
     || __AQ_TEST.countEvents('USE', 'weapon=PISTOL') >= 1;
   return {
-    kits, allClassified, adapted,
-    iceLaneFired, vampLatch, monkRush, monkStun,
+    kits, allClassified, adapted, playableRework,
+    laneCast: laneCast && laneCast.ok, iceLaneFired, vampLatch, monkRush, monkStun,
     nativeSeen, aqSeen, bothFrames, holderIntact,
   };
 `);
-gate('roster-all-33-classified-keep-or-adapt',
-  report.roster.allClassified && Object.keys(report.roster.kits).length === 33
-    && report.roster.adapted.join(',') === 'VAMPIRE,MONK',
-  { adapted: report.roster.adapted, kits: Object.values(report.roster.kits).join('/') });
-gate('roster-keep-native-skill-runs', report.roster.iceLaneFired,
-  { iceLaneFired: report.roster.iceLaneFired });
+gate('roster-encounters-classified-keep-or-adapt',
+  report.roster.allClassified && Object.keys(report.roster.kits).length === 21
+    && report.roster.adapted.join(',') === 'VAMPIRE,MONK' && report.roster.playableRework,
+  { adapted: report.roster.adapted, playableRework: report.roster.playableRework });
+gate('roster-rework-ice-lane-runs', report.roster.laneCast === true && report.roster.iceLaneFired,
+  { laneCast: report.roster.laneCast, iceLaneFired: report.roster.iceLaneFired });
 gate('roster-adapt-vampire-latch-2.5', report.roster.vampLatch === 2.5, `latchTimer=${report.roster.vampLatch}`);
 gate('roster-adapt-monk-rush-2.5',
   report.roster.monkRush === 2.5 && (report.roster.monkStun == null || report.roster.monkStun <= 2.5),
@@ -1753,56 +1774,69 @@ gate('postc-bounce-caps-1-1-2-3-4',
     && report.postCThrow.bounce.DAGGER === 4,
   report.postCThrow.bounce);
 
+// HERO REWORK: ICE/RUBBER are canonical-12 — P1 skills are rework Actives
+// (J -> A1) and P2 auto-casts through the deterministic rework AI. Observe
+// per-combatant telemetry (match-local, never contaminated by the global
+// AIL event ring).
 report.postCJ = run(`
   const gate = window.APEX_ARSENAL_SKILL_GATE;
+  const HR = window.APEX_HERO_REWORK;
   window.startArsenalQuestMode('ICE', 'RUBBER');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
   projectiles.length = 0;
-  fighters[0].data.cd = 0;
-  fighters[1].data.cd = 0;
-  // Without J, ICE should not auto-cast.
+  const p1 = HR.byCombatant(fighters[0]);
+  const p2 = HR.byCombatant(fighters[1]);
+  // Without J, rework P1 never casts (manual-only).
   for (let i = 0; i < 30; i++) APEX_ARSENAL.step(1 / 60);
-  const autoLanes = projectiles.filter(p => p.type === 'ice_lane').length;
+  const autoCasts = p1.telemetry.casts;
   gate.pressJ(fighters[0]);
   for (let i = 0; i < 10; i++) APEX_ARSENAL.step(1 / 60);
-  const afterJ = projectiles.filter(p => p.type === 'ice_lane').length;
-  // P2 rubber still auto-casts (no gate).
-  const p2Active = !!fighters[1].data.active || (fighters[1].data.cd > 1);
-  return { autoLanes, afterJ, p2Active, gated: gate.isGated('ICE') };
+  const afterJ = p1.telemetry.casts;
+  // P2 rework AI auto-casts once a skill is ready (deterministic delay on
+  // the shared simulation clock).
+  for (let i = 0; i < 120; i++) APEX_ARSENAL.step(1 / 60);
+  const p2Casts = p2.telemetry.casts;
+  const ctl2 = HR.abilityController(p2);
+  const p2Active = p2Casts >= 1 || ctl2.cooldownLeft('A1') > 0 || ctl2.cooldownLeft('A2') > 0;
+  return { autoCasts, afterJ, p2Casts, p2Active, p1IsRework: HR.isReworkFighter(fighters[0]) };
 `);
-gate('postc-p1-no-autocast', report.postCJ.autoLanes === 0 && report.postCJ.gated, report.postCJ);
+gate('postc-p1-no-autocast', report.postCJ.autoCasts === 0 && report.postCJ.p1IsRework, report.postCJ);
 gate('postc-p1-j-activates', report.postCJ.afterJ >= 1, report.postCJ);
 gate('postc-p2-still-auto', report.postCJ.p2Active, report.postCJ);
 
+// HERO REWORK: NEWBIE is retired — the product-facing P1 hero is ROBOT
+// (A1 weapon-dash, Lv1 cooldown 10, T6 never auto-targeted).
 report.postCNewbie = run(`
-  window.startArsenalQuestMode('NEWBIE', 'ICE');
+  const HR = window.APEX_HERO_REWORK;
+  window.startArsenalQuestMode('NEWBIE', 'ICE'); // NEWBIE -> ROBOT shell
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
   const f = fighters[0];
-  const cd0 = f.data.nbCd;
-  window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
+  const ct = HR.byCombatant(f);
+  const ctl = HR.abilityController(ct);
+  window.APEX_ARSENAL_SKILL_GATE.pressJ(f); // deliberate press, no pickup
   for (let i = 0; i < 8; i++) APEX_ARSENAL.step(1 / 60);
-  const failedNoPickup = !f.data.nbDash && f.data.nbCd < 1;
+  const failedNoPickup = ctl.cooldownLeft('A1') === 0
+    && !(ct.store['robot.weapon_dash'] && ct.store['robot.weapon_dash'].dash);
   const sid = __AQ_TEST.pushSlot({ x: 700, y: 500, phase: 'REVEALED', weaponId: 'PISTOL', revealedFor: 0 });
   f.x = 200; f.y = 500; f.baseSpeed = 0;
   const x0 = f.x;
-  f.data.nbCd = 0;
   window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
   for (let i = 0; i < 20; i++) APEX_ARSENAL.step(1 / 60);
   return {
     name: f.name,
-    cooldown: APEX_ARSENAL_CONFIG.NEWBIE.cooldown,
+    cooldown: window.APEX_HERO_REWORK_REGISTRY.resolveSkillLevel('ROBOT', 'A1', 1).cooldown,
     failedNoPickup,
-    dashed: !!f.data.nbDash || f.x > x0 + 40,
-    cdAfter: f.data.nbCd,
+    dashed: f.x > x0 + 40,
+    cdAfter: ctl.cooldownLeft('A1'),
     slot: sid,
     x: f.x,
   };
 `);
-gate('postc-newbie-selectable', report.postCNewbie.name === 'NEWBIE' && report.postCNewbie.cooldown === 10, report.postCNewbie);
-gate('postc-newbie-no-consume-without-pickup', report.postCNewbie.failedNoPickup, report.postCNewbie);
-gate('postc-newbie-dash-to-revealed', report.postCNewbie.dashed && report.postCNewbie.cdAfter > 5, report.postCNewbie);
+gate('postc-robot-selectable', report.postCNewbie.name === 'ROBOT' && report.postCNewbie.cooldown === 10, report.postCNewbie);
+gate('postc-robot-no-consume-without-pickup', report.postCNewbie.failedNoPickup, report.postCNewbie);
+gate('postc-robot-dash-to-revealed', report.postCNewbie.dashed && report.postCNewbie.cdAfter > 5, report.postCNewbie);
 
 report.postCText = run(`
   const src = [drawBackground.toString(), (window.APEX_ARSENAL_SPAWN.drawSlots||function(){}).toString()].join('\\n');
@@ -1823,20 +1857,24 @@ report.postCVfx = run(`
 `);
 gate('postc-vfx-uses-sanitized-c-paths', true, report.postCVfx);
 
+// HERO REWORK: canonical ICE/RUBBER route real-keydown J to the rework
+// AbilityController. Observe the P1 combatant's match-local telemetry
+// counter (the global AIL ring intentionally retains cross-match history).
 report.gapKeyJ = run(`
   window.startArsenalQuestMode('ICE', 'RUBBER');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
   projectiles.length = 0;
-  fighters[0].data.cd = 0;
+  const HR = window.APEX_HERO_REWORK;
+  const p1 = HR.byCombatant(fighters[0]);
   for (let i = 0; i < 20; i++) APEX_ARSENAL.step(1 / 60);
-  const before = projectiles.filter(p => p.type === 'ice_lane').length;
+  const before = p1.telemetry.casts;
   window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyJ', bubbles: true, cancelable: true }));
   for (let i = 0; i < 12; i++) APEX_ARSENAL.step(1 / 60);
-  const after = projectiles.filter(p => p.type === 'ice_lane').length;
+  const after = p1.telemetry.casts;
   window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyJ', bubbles: true, cancelable: true, repeat: true }));
   for (let i = 0; i < 6; i++) APEX_ARSENAL.step(1 / 60);
-  const afterRepeat = projectiles.filter(p => p.type === 'ice_lane').length;
+  const afterRepeat = p1.telemetry.casts;
   return { before, after, afterRepeat };
 `);
 gate('gap-real-keyj-keydown', report.gapKeyJ.before === 0 && report.gapKeyJ.after >= 1, report.gapKeyJ);
@@ -2153,18 +2191,27 @@ report.rev2Shotgun = run(`
 `);
 gate('rev2-shotgun-diagonal-ttl', report.rev2Shotgun.ok, report.rev2Shotgun);
 
+// HERO REWORK: ROBOT J with no eligible pickup -> fail-cue only: the
+// cooldown is NOT consumed and no dash is launched (legacy NEWBIE law
+// preserved through the rework AbilityController).
 report.rev2NewbieJ = run(`
   __AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();
-  window.startArsenalQuestMode('NEWBIE', 'PAINTER');
+  window.startArsenalQuestMode('NEWBIE', 'PAINTER'); // NEWBIE -> ROBOT
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.slots = [];
-  fighters[0].data.nbCd = 0;
+  const HR = window.APEX_HERO_REWORK;
+  const f = fighters[0];
+  const ct = HR.byCombatant(f);
+  const ctl = HR.abilityController(ct);
+  const x0 = f.x, y0 = f.y;
   const gate = APEX_ARSENAL_SKILL_GATE;
-  const pulsed = gate.pressJ(fighters[0]);
-  const snap = gate.snapshot(fighters[0]);
-  return { pulsed, buffered: snap.pulseBuffered, cd: fighters[0].data.nbCd, dash: !!fighters[0].data.nbDash };
+  gate.pressJ(f);
+  const cd = ctl.cooldownLeft('A1');
+  const dash = !!(ct.store['robot.weapon_dash'] && ct.store['robot.weapon_dash'].dash)
+    || Math.hypot(f.x - x0, f.y - y0) > 4;
+  return { cd, dash, name: f.name };
 `);
-gate('rev2-newbie-invalid-j-noop', report.rev2NewbieJ.pulsed === false && report.rev2NewbieJ.buffered === false && report.rev2NewbieJ.cd === 0 && !report.rev2NewbieJ.dash, report.rev2NewbieJ);
+gate('rev2-robot-invalid-j-noop', report.rev2NewbieJ.cd === 0 && !report.rev2NewbieJ.dash && report.rev2NewbieJ.name === 'ROBOT', report.rev2NewbieJ);
 
 report.rev2Quest = run(`
   const Q = APEX_ARSENAL_QUEST;
@@ -2850,7 +2897,8 @@ report.v3Meta = run(`
   const emptyPool = M.poolLocked();
   return { credits0: st.credits, owned0: st.ownedFighters, buyNew, poor, ice, ice2, spinOk: spin.ok, spinName: spin.name, credits: M.credits() };
 `);
-gate('v3-meta-fresh-350-newbie', report.v3Meta.credits0 === 350 && report.v3Meta.owned0[0] === 'NEWBIE', report.v3Meta);
+// HERO REWORK: fresh accounts own ROBOT (NEWBIE retired from the pool).
+gate('v3-meta-fresh-350-robot', report.v3Meta.credits0 === 350 && report.v3Meta.owned0[0] === 'ROBOT', report.v3Meta);
 gate('v3-meta-shop-rules', report.v3Meta.buyNew.ok === false && report.v3Meta.poor.ok === false && report.v3Meta.ice.ok === true && report.v3Meta.ice2.ok === false, report.v3Meta);
 gate('v3-meta-spin-no-dup', report.v3Meta.spinOk === true && report.v3Meta.spinName !== 'ICE' && report.v3Meta.spinName !== 'NEWBIE', report.v3Meta);
 
@@ -3864,11 +3912,12 @@ gate('storm-no-slow-status-lingers',
 
 // ── B7: red-tier (T6) hero-manipulation immunity ──────────────────────────
 // The unclaimed T6 pickup can't be moved, yanked, or auto-acquired by hero
-// manipulation. The NEWBIE dash never targets it and its magnet pull never
-// moves it; a regular pickup is still fair game; PHYSICAL pickup works.
-// Each subscenario gets a FRESH mode/gate state (a failed NEWBIE activation
-// leaves the skill gate's pulse pending for its ~1s window — re-pressing in
-// the same state would not re-arm, which is gate semantics, not targeting).
+// manipulation. The ROBOT weapon-dash (NEWBIE's rework successor) never
+// targets it and never moves/claims any floor slot; regular pickups are
+// acquired only by PHYSICAL arrival; PHYSICAL T6 pickup works (section D).
+// Each subscenario gets a FRESH mode/gate state (a failed activation leaves
+// the skill gate's pulse pending for its ~1s window — re-pressing in the
+// same state would not re-arm, which is gate semantics, not targeting).
 report.stormB7Pickup = run(`
   const CFG = APEX_ARSENAL_CONFIG;
   // Isolate from the B3 floor-lightning hazard: random floor strikes would
@@ -3885,6 +3934,16 @@ report.stormB7Pickup = run(`
     fighters[1].x = 900; fighters[1].y = 100; fighters[1].baseSpeed = 0;
     return f;
   };
+  // HERO REWORK: NEWBIE -> ROBOT. The T6 immunity laws carry over through
+  // the rework AbilityController + robot.weapon_dash executor.
+  const HR = window.APEX_HERO_REWORK;
+  const robotCtl = (f) => HR.abilityController(HR.byCombatant(f));
+  const dashState = (f) => {
+    const c = HR.byCombatant(f);
+    const st = c.store['robot.weapon_dash'];
+    return st && st.dash;
+  };
+
   // Predicate semantics (pure — future pull/teleport/swap/disarm/reroute/
   // cage systems query the same authority).
   out.t6Immune = CFG.isHeroManipulablePickup({ weaponId: 'STORMBREAKER' }) === false;
@@ -3892,50 +3951,47 @@ report.stormB7Pickup = run(`
   out.healManipulable = CFG.isHeroManipulablePickup({ weaponId: 'HEAL_SMALL' }) === true;
 
   // A) T6-only floor: no auto acquisition — the dash must NOT launch and the
-  //    cooldown must NOT be consumed (same as the no-eligible-pickup path).
+  //    cooldown must NOT be consumed (fail-cue path, doc 02 ROBOT A1).
   let f = fresh();
   const t6a = mk('STORMBREAKER', 550, 300);
   APEX_ARSENAL.state.slots.push(t6a);
-  f.data.nbCd = 0;
   window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
   for (let i = 0; i < 3; i++) APEX_ARSENAL.step(1 / 60);
-  out.noDashAtT6 = !f.data.nbDash && f.data.nbCd < 1;
+  out.noDashAtT6 = !dashState(f) && robotCtl(f).cooldownLeft('A1') === 0;
 
   // B) T6 (nearer) + regular (farther): the dash must target the REGULAR one.
   f = fresh();
   const t6b = mk('STORMBREAKER', 550, 300);
   const regb = mk('PISTOL', 700, 500);
   APEX_ARSENAL.state.slots.push(t6b, regb);
-  f.data.nbCd = 0;
   window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
   for (let i = 0; i < 3; i++) APEX_ARSENAL.step(1 / 60);
-  out.dashTargetsRegular = !!(f.data.nbDash && f.data.nbDash.slotId === regb.id);
-  out.dashNeverTargetsT6 = !f.data.nbDash || f.data.nbDash.slotId !== t6b.id;
+  out.dashTargetsRegular = !!(dashState(f) && dashState(f).targetSlotId === regb.id);
+  out.dashNeverTargetsT6 = !dashState(f) || dashState(f).targetSlotId !== t6b.id;
 
-  // C) magnetic pull never moves the T6; a regular pickup is still pulled.
-  //    Hero HOLDS a (never-firing) defense weapon so the physical touch
-  //    path stays out of the way; the dash velocity is re-zeroed each frame
-  //    so the magnet window (evaluated after the frame's dash movement)
-  //    genuinely covers the slot for every sampled frame.
+  // C) HERO REWORK law (doc 02): the dash moves the ROBOT body only — it
+  //    never moves, claims, or re-phases a floor slot. The hero HOLDS a
+  //    (never-firing) defense weapon so the LEGAL physical walk-over pickup
+  //    path stays out of the way (manipulation vs physical pickup must not
+  //    be conflated; physical T6 pickup is proven separately in D).
   const pullScenario = (wid) => {
     const ff = fresh();
     const slot = mk(wid, 500, 405);
-    APEX_ARSENAL.state.slots.push(slot);
+    const reg = mk('PISTOL', 820, 500);
+    APEX_ARSENAL.state.slots.push(slot, reg);
     __AQ_TEST.equip('HERO', 'TOWER_SHIELD');
-    ff.x = 500; ff.y = 500;
-    ff.data.nbDash = { tx: 900, ty: 500, slotId: slot.id, vx: 0, vy: 0, t: 0, max: 0.3 };
-    for (let i = 0; i < 12; i++) {
-      APEX_ARSENAL.step(1 / 60);
-      ff.x = 500; ff.y = 500;
-      if (ff.data.nbDash) { ff.data.nbDash.vx = 0; ff.data.nbDash.vy = 0; }
-    }
-    const moved = Math.hypot(slot.x - 500, slot.y - 405);
-    return { moved, phase: slot.phase };
+    const sx = slot.x, sy = slot.y;
+    window.APEX_ARSENAL_SKILL_GATE.pressJ(ff);
+    for (let i = 0; i < 40; i++) APEX_ARSENAL.step(1 / 60);
+    const moved = Math.hypot(slot.x - sx, slot.y - sy);
+    return { moved, phase: slot.phase, pickedBy: slot.pickedBy };
   };
   const t6res = pullScenario('STORMBREAKER');
-  out.t6NotPulled = t6res.moved === 0 && t6res.phase === 'REVEALED';
+  out.t6NotPulled = t6res.moved === 0 && t6res.phase === 'REVEALED' && t6res.pickedBy == null;
   const regRes = pullScenario('PISTOL');
-  out.regularPulled = regRes.moved > 3;
+  // Regular slot: never levitated; may end REVEALED or physically collected.
+  out.regularPhysicalOnly = regRes.moved === 0
+    && (regRes.phase === 'REVEALED' || regRes.phase === 'REMOVED' || regRes.phase === 'PICKED_UP');
   out.t6Moved = t6res.moved; out.regMoved = regRes.moved;
 
   // D) physical walk-over pickup of the T6 still works normally.
@@ -3952,7 +4008,7 @@ const b7p = JSON.parse(report.stormB7Pickup);
 gate('storm-b7-t6-pickup-immune-to-hero-manipulation',
   b7p.t6Immune && b7p.regularManipulable && b7p.healManipulable
   && b7p.noDashAtT6 && b7p.dashTargetsRegular && b7p.dashNeverTargetsT6
-  && b7p.t6NotPulled && b7p.regularPulled && b7p.physicalPickupWorks,
+  && b7p.t6NotPulled && b7p.regularPhysicalOnly && b7p.physicalPickupWorks,
   b7p);
 
 // B7 projectile side: the thrown T6 is heroManipulationImmune — crystal
@@ -4711,8 +4767,9 @@ report.labV1 = run(`
     floorAngle, beforeExit, afterExit };
 `);
 gate('lab-hub-five-entries-setting', report.labV1.tiles.join(',') === 'free,quest,shop,draw,lab' && report.labV1.setting, report.labV1.tiles);
-gate('lab-entry-newbie-newbie-full-panel', report.labV1.entry.labMode && report.labV1.entry.hero.name === 'NEWBIE'
-  && report.labV1.entry.rival.name === 'NEWBIE' && report.labV1.panelIds.join(',') === win.APEX_ARSENAL_CONFIG.P0_WEAPON_IDS.join(','), report.labV1.entry);
+// HERO REWORK: the Lab default hero is ROBOT (NEWBIE retired).
+gate('lab-entry-robot-robot-full-panel', report.labV1.entry.labMode && report.labV1.entry.hero.name === 'ROBOT'
+  && report.labV1.entry.rival.name === 'ROBOT' && report.labV1.panelIds.join(',') === win.APEX_ARSENAL_CONFIG.P0_WEAPON_IDS.join(','), report.labV1.entry);
 gate('lab-no-click-no-spawn-31s', report.labV1.idle.activeSlots === 0 && report.labV1.idle.spawnedTotal === 0
   && report.labV1.noAutomatic.length === 0 && report.labV1.idle.over === null, report.labV1.idle);
 gate('lab-exact-pistol-real-pickup-hit', report.labV1.first.length === 1 && report.labV1.first[0].phase === 'REVEALED'

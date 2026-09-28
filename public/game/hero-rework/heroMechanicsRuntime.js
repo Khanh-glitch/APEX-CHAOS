@@ -515,8 +515,9 @@
 
   EXECUTORS['ice.deep_freeze'] = {
     onTick(ctx, dt) {
+      // ctx.store is always provided by mechCtx (auto-created per mechanic);
+      // never reassign the const binding.
       const st = ctx.store;
-      st = st || {};
       for (const body of ctx.api.ownBodies(ctx.combatant)) {
         const chill = ctx.api.chillRemaining(body);
         if (chill > 0) {
