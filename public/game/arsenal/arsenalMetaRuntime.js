@@ -6,16 +6,20 @@
   const DRAW_COST = 350;
   const START_CREDITS = 350;
   const ROSTER = () => (window.APEX_ARSENAL_SHELLS && window.APEX_ARSENAL_SHELLS.ids) || ['NEWBIE'];
+  // BLACK_HOLE fast-test default (arena sandbox build): the hero is owned from
+  // the start and pre-selected for P1 so it can be tested without grinding AC.
+  const DEFAULT_OWNED = ['NEWBIE', 'BLACK_HOLE'];
+  const DEFAULT_P1 = 'BLACK_HOLE';
 
   function emptyState() {
     return {
       version: 1,
       credits: START_CREDITS,
-      ownedFighters: ['NEWBIE'],
-      lastSelectedP1: 'NEWBIE',
+      ownedFighters: DEFAULT_OWNED.slice(),
+      lastSelectedP1: DEFAULT_P1,
       lastSelectedP2: 'NEWBIE',
       totalSpins: 0,
-      unlockedAt: { NEWBIE: 0 },
+      unlockedAt: { NEWBIE: 0, BLACK_HOLE: 0 },
     };
   }
   function sanitize(raw) {
@@ -23,12 +27,12 @@
     if (!raw || typeof raw !== 'object') return s;
     s.credits = Math.max(0, raw.credits | 0);
     const owned = Array.isArray(raw.ownedFighters) ? raw.ownedFighters.map(String) : [];
-    s.ownedFighters = Array.from(new Set(['NEWBIE', ...owned]));
-    s.lastSelectedP1 = s.ownedFighters.includes(raw.lastSelectedP1) ? raw.lastSelectedP1 : 'NEWBIE';
+    s.ownedFighters = Array.from(new Set([...DEFAULT_OWNED, ...owned]));
+    s.lastSelectedP1 = s.ownedFighters.includes(raw.lastSelectedP1) ? raw.lastSelectedP1 : DEFAULT_P1;
     s.lastSelectedP2 = s.ownedFighters.includes(raw.lastSelectedP2) ? raw.lastSelectedP2 : 'NEWBIE';
     s.totalSpins = Math.max(0, raw.totalSpins | 0);
-    s.unlockedAt = raw.unlockedAt && typeof raw.unlockedAt === 'object' ? raw.unlockedAt : { NEWBIE: 0 };
-    s.unlockedAt.NEWBIE = s.unlockedAt.NEWBIE || 0;
+    s.unlockedAt = raw.unlockedAt && typeof raw.unlockedAt === 'object' ? raw.unlockedAt : {};
+    for (const n of DEFAULT_OWNED) s.unlockedAt[n] = s.unlockedAt[n] || 0;
     return s;
   }
   function load() {
