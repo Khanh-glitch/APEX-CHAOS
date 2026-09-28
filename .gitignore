@@ -11,3 +11,15 @@ replays/
 .DS_Store
 release/arsenal-quest-windows/app/
 APEX_ARSENAL_QUEST_PLAYABLE_WINDOWS.zip
+
+# browser test profile artifacts
+.arsenal-chrome-profile/
+
+# CP6 measurement-run browser profiles (never commit)
+.arsenal-entry-profile/
+.arsenal-test-profile/
+.menu-resp-profile/
+.menu-probe-profile/
+
+# browser test profile artifacts
+.arsenal-chrome-profile/

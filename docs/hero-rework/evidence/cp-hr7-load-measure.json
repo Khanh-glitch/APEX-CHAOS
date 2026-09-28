@@ -1,0 +1,126 @@
+{
+  "runA": {
+    "label": "runA",
+    "appUrl": "http://127.0.0.1:5173",
+    "at": "2026-09-28T07:24:23.724Z",
+    "menuInteractiveMs": 153,
+    "hubOpenMs": 51,
+    "questMapMs": 109,
+    "warmup": {
+      "firstPaintMs": 104,
+      "longTaskCount": 7,
+      "longTaskTotalMs": 650,
+      "longTasks": [
+        {
+          "start": 2451.3,
+          "dur": 84
+        },
+        {
+          "start": 3043.6,
+          "dur": 92
+        },
+        {
+          "start": 3243.5,
+          "dur": 92
+        },
+        {
+          "start": 3443.5,
+          "dur": 95
+        },
+        {
+          "start": 3643.6,
+          "dur": 103
+        },
+        {
+          "start": 3860.4,
+          "dur": 94
+        },
+        {
+          "start": 4060.2,
+          "dur": 90
+        }
+      ],
+      "gameScripts": 63,
+      "gameScriptEvalMs": 2809.4,
+      "gameScriptTransferKB": 1758,
+      "warmupGroupReady": {
+        "arsenalQuest": true,
+        "select": true
+      },
+      "transition": {
+        "state": "idle",
+        "lastDurationMs": null
+      }
+    },
+    "barrier": {
+      "syncBarrier": true,
+      "transition": {
+        "state": "match-ready",
+        "lastDurationMs": 0
+      },
+      "questGroupReady": true
+    }
+  },
+  "runB": {
+    "label": "runB",
+    "appUrl": "http://127.0.0.1:5173",
+    "at": "2026-09-28T07:24:39.284Z",
+    "menuInteractiveMs": 167,
+    "hubOpenMs": 81,
+    "questMapMs": 123,
+    "warmup": {
+      "firstPaintMs": 116,
+      "longTaskCount": 7,
+      "longTaskTotalMs": 652,
+      "longTasks": [
+        {
+          "start": 2626.8,
+          "dur": 90
+        },
+        {
+          "start": 3449.5,
+          "dur": 95
+        },
+        {
+          "start": 3649.4,
+          "dur": 92
+        },
+        {
+          "start": 3849.5,
+          "dur": 95
+        },
+        {
+          "start": 4049.6,
+          "dur": 94
+        },
+        {
+          "start": 4249.3,
+          "dur": 94
+        },
+        {
+          "start": 4449.2,
+          "dur": 92
+        }
+      ],
+      "gameScripts": 63,
+      "gameScriptEvalMs": 3619.3,
+      "gameScriptTransferKB": 1758,
+      "warmupGroupReady": {
+        "arsenalQuest": true,
+        "select": true
+      },
+      "transition": {
+        "state": "idle",
+        "lastDurationMs": null
+      }
+    },
+    "barrier": {
+      "syncBarrier": true,
+      "transition": {
+        "state": "match-ready",
+        "lastDurationMs": 0
+      },
+      "questGroupReady": true
+    }
+  }
+}

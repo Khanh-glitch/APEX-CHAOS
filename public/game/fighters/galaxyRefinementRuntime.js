@@ -42,8 +42,11 @@
     src.loop = !!opts.loop;
     gain.gain.value = volume;
     src.connect(gain);
-    gain.connect(audioCtx.destination);
+    // CP6 session ownership: route through the battle master and register the
+    // source so session transitions stop it (was: direct destination leak).
+    gain.connect(typeof battleAudioMaster !== 'undefined' ? battleAudioMaster : audioCtx.destination);
     if (window.__apexRecordingAudioDestination) gain.connect(window.__apexRecordingAudioDestination);
+    if (window.apexRegisterBattleAudioSource) window.apexRegisterBattleAudioSource(src);
     try { src.start(); } catch (error) {}
     return { src, gain, stop(seconds = 0.18) {
       const now = audioCtx.currentTime;

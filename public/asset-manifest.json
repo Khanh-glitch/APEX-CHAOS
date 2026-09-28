@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-25T15:44:26.290Z",
+  "generatedAt": "2026-09-28T15:08:15.235Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -10,7 +10,7 @@
     {
       "path": "/apexEngine.js",
       "type": "script",
-      "bytes": 226462
+      "bytes": 229914
     },
     {
       "path": "/assets/arcade_v1/normalized/battle_idle_reference.webp",
@@ -53,234 +53,229 @@
       "bytes": 331278
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/BATTLE_AXE/axe_body.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/BATTLE_AXE/axe_body.mp3",
       "type": "audio",
-      "bytes": 47308
+      "bytes": 6765
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/BATTLE_AXE/axe_contact.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/BATTLE_AXE/axe_contact.mp3",
       "type": "audio",
-      "bytes": 110820
+      "bytes": 21069
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/BATTLE_AXE/axe_motion.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/BATTLE_AXE/axe_motion.mp3",
       "type": "audio",
-      "bytes": 108770
+      "bytes": 19149
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/DAGGER/dagger_contact.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/DAGGER/dagger_contact.mp3",
       "type": "audio",
-      "bytes": 36152
+      "bytes": 5997
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/DAGGER/dagger_motion.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/DAGGER/dagger_motion.mp3",
       "type": "audio",
-      "bytes": 27736
+      "bytes": 4701
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/GRENADE/grenade_core.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/GRENADE/grenade_core.mp3",
       "type": "audio",
-      "bytes": 114844
+      "bytes": 14829
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/GRENADE/grenade_low.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/GRENADE/grenade_low.mp3",
       "type": "audio",
-      "bytes": 85712
+      "bytes": 12093
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/PISTOL/pistol_mech_click.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/PISTOL/pistol_mech_click.mp3",
       "type": "audio",
-      "bytes": 17934
+      "bytes": 3117
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/SABRE/sabre_cut.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/SABRE/sabre_cut.mp3",
       "type": "audio",
-      "bytes": 57884
+      "bytes": 9645
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/SABRE/sabre_motion.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/SABRE/sabre_motion.mp3",
       "type": "audio",
-      "bytes": 75346
+      "bytes": 10677
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/SHOTGUN/shotgun_rack_pull.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/SHOTGUN/shotgun_rack_pull.mp3",
       "type": "audio",
-      "bytes": 41926
+      "bytes": 7101
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/SHOTGUN/shotgun_rack_push.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/SHOTGUN/shotgun_rack_push.mp3",
       "type": "audio",
-      "bytes": 84166
+      "bytes": 15549
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/SNIPER/sniper_bolt_lock.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/SNIPER/sniper_bolt_lock.mp3",
       "type": "audio",
-      "bytes": 57856
+      "bytes": 7821
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/SNIPER/sniper_chamber.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/SNIPER/sniper_chamber.mp3",
       "type": "audio",
-      "bytes": 88576
+      "bytes": 12141
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/SPEAR/spear_impact.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/SPEAR/spear_impact.mp3",
       "type": "audio",
-      "bytes": 34844
+      "bytes": 4413
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/SPEAR/spear_motion.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/SPEAR/spear_motion.mp3",
       "type": "audio",
-      "bytes": 98202
+      "bytes": 12765
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/SPIKED_CLUB/club_body.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/SPIKED_CLUB/club_body.mp3",
       "type": "audio",
-      "bytes": 47308
+      "bytes": 6765
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/SPIKED_CLUB/club_swing.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/SPIKED_CLUB/club_swing.mp3",
       "type": "audio",
-      "bytes": 78238
+      "bytes": 10413
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/SWIRL_SHIELD/swirl_shield_block.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/SWIRL_SHIELD/swirl_shield_block.mp3",
       "type": "audio",
-      "bytes": 33222
+      "bytes": 5949
     },
     {
-      "path": "/assets/arsenal/av/sfx/c-final/TOWER_SHIELD/tower_shield_block.wav",
+      "path": "/assets/arsenal/av/sfx/c-final/TOWER_SHIELD/tower_shield_block.mp3",
       "type": "audio",
-      "bytes": 107084
+      "bytes": 15453
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/casing_01.wav",
+      "path": "/assets/arsenal/av/sfx/feel/casing_01.mp3",
       "type": "audio",
-      "bytes": 28268
+      "bytes": 3800
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/casing_02.wav",
+      "path": "/assets/arsenal/av/sfx/feel/casing_02.mp3",
       "type": "audio",
-      "bytes": 28268
+      "bytes": 3305
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/casing_03.wav",
+      "path": "/assets/arsenal/av/sfx/feel/casing_03.mp3",
       "type": "audio",
-      "bytes": 28268
+      "bytes": 3878
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/casing_04.wav",
+      "path": "/assets/arsenal/av/sfx/feel/casing_04.mp3",
       "type": "audio",
-      "bytes": 28268
+      "bytes": 3513
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/casing_05.wav",
+      "path": "/assets/arsenal/av/sfx/feel/casing_05.mp3",
       "type": "audio",
-      "bytes": 28268
+      "bytes": 5994
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/pickup_pistol.wav",
+      "path": "/assets/arsenal/av/sfx/feel/pickup_pistol.mp3",
       "type": "audio",
-      "bytes": 56492
+      "bytes": 11441
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/pickup_shotgun.wav",
+      "path": "/assets/arsenal/av/sfx/feel/pickup_shotgun.mp3",
       "type": "audio",
-      "bytes": 53670
+      "bytes": 10554
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/pickup_sniper.wav",
+      "path": "/assets/arsenal/av/sfx/feel/pickup_sniper.mp3",
       "type": "audio",
-      "bytes": 87774
+      "bytes": 12285
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/rifle_take_01.wav",
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_01.mp3",
       "type": "audio",
-      "bytes": 45464
+      "bytes": 7893
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/rifle_take_02.wav",
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_02.mp3",
       "type": "audio",
-      "bytes": 22410
+      "bytes": 4060
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/rifle_take_03.wav",
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_03.mp3",
       "type": "audio",
-      "bytes": 43082
+      "bytes": 6905
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/rifle_take_04.wav",
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_04.mp3",
       "type": "audio",
-      "bytes": 43964
+      "bytes": 7269
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/rifle_take_05.wav",
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_05.mp3",
       "type": "audio",
-      "bytes": 42188
+      "bytes": 7740
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/rifle_take_06.wav",
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_07.mp3",
       "type": "audio",
-      "bytes": 26208
+      "bytes": 7763
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/rifle_take_07.wav",
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_08.mp3",
       "type": "audio",
-      "bytes": 45182
+      "bytes": 7973
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/rifle_take_08.wav",
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_09.mp3",
       "type": "audio",
-      "bytes": 45428
+      "bytes": 3930
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/rifle_take_09.wav",
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_10.mp3",
       "type": "audio",
-      "bytes": 22450
+      "bytes": 6956
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/rifle_take_10.wav",
+      "path": "/assets/arsenal/av/sfx/feel/rifle_take_11.mp3",
       "type": "audio",
-      "bytes": 43962
+      "bytes": 7634
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/rifle_take_11.wav",
+      "path": "/assets/arsenal/av/sfx/feel/shell_01.mp3",
       "type": "audio",
-      "bytes": 46498
+      "bytes": 3593
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/shell_01.wav",
+      "path": "/assets/arsenal/av/sfx/feel/shell_02.mp3",
       "type": "audio",
-      "bytes": 17156
+      "bytes": 2915
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/shell_02.wav",
+      "path": "/assets/arsenal/av/sfx/feel/shell_03.mp3",
       "type": "audio",
-      "bytes": 12748
+      "bytes": 2862
     },
     {
-      "path": "/assets/arsenal/av/sfx/feel/shell_03.wav",
+      "path": "/assets/arsenal/av/sfx/guns/cz.mp3",
       "type": "audio",
-      "bytes": 13452
+      "bytes": 113949
     },
     {
-      "path": "/assets/arsenal/av/sfx/guns/cz.wav",
+      "path": "/assets/arsenal/av/sfx/guns/mosin.mp3",
       "type": "audio",
-      "bytes": 1312536
+      "bytes": 252957
     },
     {
-      "path": "/assets/arsenal/av/sfx/guns/mosin.wav",
+      "path": "/assets/arsenal/av/sfx/guns/shotty.mp3",
       "type": "audio",
-      "bytes": 2824684
+      "bytes": 13821
     },
     {
-      "path": "/assets/arsenal/av/sfx/guns/shotty.wav",
+      "path": "/assets/arsenal/av/sfx/guns/sks.mp3",
       "type": "audio",
-      "bytes": 134104
-    },
-    {
-      "path": "/assets/arsenal/av/sfx/guns/sks.wav",
-      "type": "audio",
-      "bytes": 2979538
+      "bytes": 277197
     },
     {
       "path": "/assets/arsenal/av/sfx/impact/impactGeneric_light_002.ogg",
@@ -403,24 +398,49 @@
       "bytes": 9408
     },
     {
-      "path": "/assets/arsenal/av/sfx/source/318964__gryffdavid__bouncing-shell-casings-various-sizes.wav",
-      "type": "audio",
-      "bytes": 7275564
+      "path": "/assets/arsenal/av/vfx/c/smoke_01.webp",
+      "type": "image",
+      "bytes": 42252
     },
     {
-      "path": "/assets/arsenal/av/sfx/source/620929__metrolynn__empty-shotgun-shellscasings-hitting-ground-bouncing.wav",
-      "type": "audio",
-      "bytes": 399936
+      "path": "/assets/arsenal/av/vfx/c/smoke_03.webp",
+      "type": "image",
+      "bytes": 27818
     },
     {
-      "path": "/assets/arsenal/av/sfx/source/Rifle%20Reload%20Sound%20Effect.mp3",
-      "type": "audio",
-      "bytes": 614861
+      "path": "/assets/arsenal/av/vfx/c/spark_05.webp",
+      "type": "image",
+      "bytes": 23534
     },
     {
-      "path": "/assets/arsenal/av/sfx/source/sound-effect-recharge-gun.wav",
-      "type": "audio",
-      "bytes": 454506
+      "path": "/assets/arsenal/av/vfx/c/spark_07.webp",
+      "type": "image",
+      "bytes": 17498
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/explosion_pack_2/half/1.webp",
+      "type": "image",
+      "bytes": 838468
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/explosion_pack_2/half/2.webp",
+      "type": "image",
+      "bytes": 979996
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/explosion_pack_2/half/3.webp",
+      "type": "image",
+      "bytes": 659406
+    },
+    {
+      "path": "/assets/arsenal/av/vfx/explosion_pack_2/half/4.webp",
+      "type": "image",
+      "bytes": 592424
+    },
+    {
+      "path": "/assets/arsenal/feel/heals/runtime/heal_t5_trauma_case.webp",
+      "type": "image",
+      "bytes": 35144
     },
     {
       "path": "/assets/arsenal/weapons/arsenal_p0_weapon_atlas.json",
@@ -430,7 +450,12 @@
     {
       "path": "/assets/arsenal/weapons/c/arsenal_c_weapon_set.json",
       "type": "data",
-      "bytes": 10006
+      "bytes": 10140
+    },
+    {
+      "path": "/assets/arsenal/weapons/c/STORMBREAKER.webp",
+      "type": "image",
+      "bytes": 534088
     },
     {
       "path": "/assets/audio/menu_bgm.mp3",
@@ -508,59 +533,59 @@
       "bytes": 145834
     },
     {
-      "path": "/assets/engineer_v1/audio/build_Construction_sound.wav",
+      "path": "/assets/engineer_v1/audio/build_Construction_sound.mp3",
       "type": "audio",
-      "bytes": 315966
+      "bytes": 35726
     },
     {
-      "path": "/assets/engineer_v1/audio/building_completed_sound.wav",
+      "path": "/assets/engineer_v1/audio/building_completed_sound.mp3",
       "type": "audio",
-      "bytes": 441078
+      "bytes": 50291
     },
     {
-      "path": "/assets/engineer_v1/audio/construction_destroyed.wav",
+      "path": "/assets/engineer_v1/audio/construction_destroyed.mp3",
       "type": "audio",
-      "bytes": 352878
+      "bytes": 38238
     },
     {
-      "path": "/assets/engineer_v1/audio/lv_up_and_fushion_completed_sound.wav",
+      "path": "/assets/engineer_v1/audio/lv_up_and_fushion_completed_sound.mp3",
       "type": "audio",
-      "bytes": 508634
+      "bytes": 66624
     },
     {
-      "path": "/assets/engineer_v1/audio/lv_up_or_fushion_on_processing.wav",
+      "path": "/assets/engineer_v1/audio/lv_up_or_fushion_on_processing.mp3",
       "type": "audio",
-      "bytes": 5325946
+      "bytes": 719746
     },
     {
-      "path": "/assets/engineer_v1/audio/mine_and_rocket_explosion.wav",
+      "path": "/assets/engineer_v1/audio/mine_and_rocket_explosion.mp3",
       "type": "audio",
-      "bytes": 1028134
+      "bytes": 76854
     },
     {
-      "path": "/assets/engineer_v1/audio/mine_landing.wav",
+      "path": "/assets/engineer_v1/audio/mine_landing.mp3",
       "type": "audio",
-      "bytes": 176478
+      "bytes": 6711
     },
     {
-      "path": "/assets/engineer_v1/audio/rocket_fire.wav",
+      "path": "/assets/engineer_v1/audio/rocket_fire.mp3",
       "type": "audio",
-      "bytes": 248090
+      "bytes": 26417
     },
     {
-      "path": "/assets/engineer_v1/audio/turret_firing.wav",
+      "path": "/assets/engineer_v1/audio/turret_firing.mp3",
       "type": "audio",
-      "bytes": 948302
+      "bytes": 119729
     },
     {
-      "path": "/assets/engineer_v1/audio/war_machine_normal_and_fushion_fire.wav",
+      "path": "/assets/engineer_v1/audio/war_machine_normal_and_fushion_fire.mp3",
       "type": "audio",
-      "bytes": 176478
+      "bytes": 19925
     },
     {
-      "path": "/assets/engineer_v1/audio/WARMACHINE_FUSHION_WITH_ENGINEER_sfx.wav",
+      "path": "/assets/engineer_v1/audio/WARMACHINE_FUSHION_WITH_ENGINEER_sfx.mp3",
       "type": "audio",
-      "bytes": 341690
+      "bytes": 23936
     },
     {
       "path": "/assets/engineer_v1/Component%201.webp",
@@ -768,14 +793,14 @@
       "bytes": 44218
     },
     {
-      "path": "/assets/fang_v1/audio/collisionBite.wav",
+      "path": "/assets/fang_v1/audio/collisionBite.mp3",
       "type": "audio",
-      "bytes": 280198
+      "bytes": 20719
     },
     {
-      "path": "/assets/fang_v1/audio/heavyImpact.wav",
+      "path": "/assets/fang_v1/audio/heavyImpact.mp3",
       "type": "audio",
-      "bytes": 268334
+      "bytes": 33962
     },
     {
       "path": "/assets/fang_v1/audio/howl.mp3",
@@ -783,34 +808,34 @@
       "bytes": 95212
     },
     {
-      "path": "/assets/fang_v1/audio/huntingPounce.wav",
+      "path": "/assets/fang_v1/audio/huntingPounce.mp3",
       "type": "audio",
-      "bytes": 280662
+      "bytes": 32186
     },
     {
-      "path": "/assets/fang_v1/audio/huntRunStep.wav",
+      "path": "/assets/fang_v1/audio/huntRunStep.mp3",
       "type": "audio",
-      "bytes": 176478
+      "bytes": 16215
     },
     {
-      "path": "/assets/fang_v1/audio/huntStart.wav",
+      "path": "/assets/fang_v1/audio/huntStart.mp3",
       "type": "audio",
-      "bytes": 605442
+      "bytes": 59081
     },
     {
-      "path": "/assets/fang_v1/audio/postCollisionRoar.wav",
+      "path": "/assets/fang_v1/audio/postCollisionRoar.mp3",
       "type": "audio",
-      "bytes": 176478
+      "bytes": 11566
     },
     {
-      "path": "/assets/fang_v1/audio/sniff.wav",
+      "path": "/assets/fang_v1/audio/sniff.mp3",
       "type": "audio",
-      "bytes": 316978
+      "bytes": 30144
     },
     {
-      "path": "/assets/fang_v1/audio/wallRebound.wav",
+      "path": "/assets/fang_v1/audio/wallRebound.mp3",
       "type": "audio",
-      "bytes": 190590
+      "bytes": 14855
     },
     {
       "path": "/assets/fang_v1/biteMark.webp",
@@ -1303,29 +1328,29 @@
       "bytes": 75586
     },
     {
-      "path": "/assets/galaxy_v1/audio/GALAXY_IMPACT.wav",
+      "path": "/assets/galaxy_v1/audio/GALAXY_IMPACT.mp3",
       "type": "audio",
-      "bytes": 2778770
+      "bytes": 349778
     },
     {
-      "path": "/assets/galaxy_v1/audio/galaxy_pressure_contact.wav",
+      "path": "/assets/galaxy_v1/audio/galaxy_pressure_contact.mp3",
       "type": "audio",
-      "bytes": 386074
+      "bytes": 50763
     },
     {
-      "path": "/assets/galaxy_v1/audio/planet_explosion_sound_effect.wav",
+      "path": "/assets/galaxy_v1/audio/planet_explosion_sound_effect.mp3",
       "type": "audio",
-      "bytes": 352878
+      "bytes": 46279
     },
     {
-      "path": "/assets/galaxy_v1/audio/planet_throwing_sound_effect.wav",
+      "path": "/assets/galaxy_v1/audio/planet_throwing_sound_effect.mp3",
       "type": "audio",
-      "bytes": 352878
+      "bytes": 28311
     },
     {
-      "path": "/assets/galaxy_v1/audio/pressure_walking.wav",
+      "path": "/assets/galaxy_v1/audio/pressure_walking.mp3",
       "type": "audio",
-      "bytes": 2395966
+      "bytes": 311300
     },
     {
       "path": "/assets/galaxy_v1/audio/RAGE.mp3",
@@ -1333,9 +1358,9 @@
       "bytes": 70145
     },
     {
-      "path": "/assets/galaxy_v1/audio/Sound_effect_for_galaxy_divine.wav",
+      "path": "/assets/galaxy_v1/audio/Sound_effect_for_galaxy_divine.mp3",
       "type": "audio",
-      "bytes": 2677182
+      "bytes": 338077
     },
     {
       "path": "/assets/galaxy_v1/audio/wall%20touch%20of%20component%20when%20hitted%20by%20pressure.%20ALSO%20for%20bluehole.mp3",
@@ -1468,9 +1493,9 @@
       "bytes": 74021
     },
     {
-      "path": "/assets/ice_v1/audio/freeze_target.wav",
+      "path": "/assets/ice_v1/audio/freeze_target.mp3",
       "type": "audio",
-      "bytes": 192078
+      "bytes": 22701
     },
     {
       "path": "/assets/ice_v1/audio/ice_age_call.mp3",
@@ -1478,14 +1503,14 @@
       "bytes": 67752
     },
     {
-      "path": "/assets/ice_v1/audio/ice_dart_fly.wav",
+      "path": "/assets/ice_v1/audio/ice_dart_fly.mp3",
       "type": "audio",
-      "bytes": 192078
+      "bytes": 14829
     },
     {
-      "path": "/assets/ice_v1/audio/ice_dart_hit.wav",
+      "path": "/assets/ice_v1/audio/ice_dart_hit.mp3",
       "type": "audio",
-      "bytes": 384078
+      "bytes": 55845
     },
     {
       "path": "/assets/ice_v1/normalized/frozenText.webp",
@@ -1533,39 +1558,39 @@
       "bytes": 3056
     },
     {
-      "path": "/assets/katana_v1/audio/attack.wav",
+      "path": "/assets/katana_v1/audio/attack.mp3",
       "type": "audio",
-      "bytes": 356430
+      "bytes": 28984
     },
     {
-      "path": "/assets/katana_v1/audio/directFleshHit.wav",
+      "path": "/assets/katana_v1/audio/directFleshHit.mp3",
       "type": "audio",
-      "bytes": 342058
+      "bytes": 27894
     },
     {
-      "path": "/assets/katana_v1/audio/infiniteSeverStart.wav",
+      "path": "/assets/katana_v1/audio/infiniteSeverStart.mp3",
       "type": "audio",
-      "bytes": 607322
+      "bytes": 61562
     },
     {
-      "path": "/assets/katana_v1/audio/twoSwordImpact.wav",
+      "path": "/assets/katana_v1/audio/twoSwordImpact.mp3",
       "type": "audio",
-      "bytes": 244302
+      "bytes": 32447
     },
     {
-      "path": "/assets/katana_v1/audio/waveHitDefendedObject.wav",
+      "path": "/assets/katana_v1/audio/waveHitDefendedObject.mp3",
       "type": "audio",
-      "bytes": 176478
+      "bytes": 13501
     },
     {
-      "path": "/assets/katana_v1/audio/waveHitEnemy.wav",
+      "path": "/assets/katana_v1/audio/waveHitEnemy.mp3",
       "type": "audio",
-      "bytes": 198170
+      "bytes": 21617
     },
     {
-      "path": "/assets/katana_v1/audio/waveHitHeavyObject.wav",
+      "path": "/assets/katana_v1/audio/waveHitHeavyObject.mp3",
       "type": "audio",
-      "bytes": 268334
+      "bytes": 33962
     },
     {
       "path": "/assets/katana_v1/bladeWave.webp",
@@ -1963,14 +1988,14 @@
       "bytes": 84697
     },
     {
-      "path": "/assets/ninja_v1/audio/kunai_throw_skill.wav",
+      "path": "/assets/ninja_v1/audio/kunai_throw_skill.mp3",
       "type": "audio",
-      "bytes": 201642
+      "bytes": 17306
     },
     {
-      "path": "/assets/ninja_v1/audio/kunai_wall_bounce.wav",
+      "path": "/assets/ninja_v1/audio/kunai_wall_bounce.mp3",
       "type": "audio",
-      "bytes": 384078
+      "bytes": 34413
     },
     {
       "path": "/assets/ninja_v1/audio/rasengan.mp3",
@@ -1988,9 +2013,9 @@
       "bytes": 23040
     },
     {
-      "path": "/assets/ninja_v1/audio/shuriken_throw.wav",
+      "path": "/assets/ninja_v1/audio/shuriken_throw.mp3",
       "type": "audio",
-      "bytes": 1412294
+      "bytes": 37878
     },
     {
       "path": "/assets/ninja_v1/audio/teleport.mp3",
@@ -2633,44 +2658,44 @@
       "bytes": 95980
     },
     {
-      "path": "/assets/shotgun_v1/audio/7_pellet_hit_in_one_sfx.wav",
+      "path": "/assets/shotgun_v1/audio/7_pellet_hit_in_one_sfx.mp3",
       "type": "audio",
-      "bytes": 294990
+      "bytes": 30536
     },
     {
-      "path": "/assets/shotgun_v1/audio/butt-stroken.wav",
+      "path": "/assets/shotgun_v1/audio/butt-stroken.mp3",
       "type": "audio",
-      "bytes": 384078
+      "bytes": 34845
     },
     {
-      "path": "/assets/shotgun_v1/audio/failed_fire.wav",
+      "path": "/assets/shotgun_v1/audio/failed_fire.mp3",
       "type": "audio",
-      "bytes": 176478
+      "bytes": 5692
     },
     {
-      "path": "/assets/shotgun_v1/audio/fire_sfx.wav",
+      "path": "/assets/shotgun_v1/audio/fire_sfx.mp3",
       "type": "audio",
-      "bytes": 353018
+      "bytes": 42518
     },
     {
-      "path": "/assets/shotgun_v1/audio/pellet_hit_the_building_of_engineer.wav",
+      "path": "/assets/shotgun_v1/audio/pellet_hit_the_building_of_engineer.mp3",
       "type": "audio",
-      "bytes": 176478
+      "bytes": 12926
     },
     {
-      "path": "/assets/shotgun_v1/audio/reloading_batch_7s.wav",
+      "path": "/assets/shotgun_v1/audio/reloading_batch_7s.mp3",
       "type": "audio",
-      "bytes": 1234844
+      "bytes": 101754
     },
     {
-      "path": "/assets/shotgun_v1/audio/shoot_the_hook_the_pull.wav",
+      "path": "/assets/shotgun_v1/audio/shoot_the_hook_the_pull.mp3",
       "type": "audio",
-      "bytes": 176478
+      "bytes": 12611
     },
     {
-      "path": "/assets/shotgun_v1/audio/special_reloading_after_use_the_dash_skill.wav",
+      "path": "/assets/shotgun_v1/audio/special_reloading_after_use_the_dash_skill.mp3",
       "type": "audio",
-      "bytes": 428774
+      "bytes": 49975
     },
     {
       "path": "/assets/shotgun_v1/body.webp",
@@ -2768,14 +2793,14 @@
       "bytes": 221444
     },
     {
-      "path": "/assets/soccer_v1/audio/ball-bounce-hit.wav",
+      "path": "/assets/soccer_v1/audio/ball-bounce-hit.mp3",
       "type": "audio",
-      "bytes": 246152
+      "bytes": 12612
     },
     {
-      "path": "/assets/soccer_v1/audio/ball-catch.wav",
+      "path": "/assets/soccer_v1/audio/ball-catch.mp3",
       "type": "audio",
-      "bytes": 377132
+      "bytes": 24852
     },
     {
       "path": "/assets/soccer_v1/audio/chase-down.mp3",
@@ -2783,29 +2808,29 @@
       "bytes": 80640
     },
     {
-      "path": "/assets/soccer_v1/audio/goal-impact.wav",
+      "path": "/assets/soccer_v1/audio/goal-impact.mp3",
       "type": "audio",
-      "bytes": 1584006
+      "bytes": 176479
     },
     {
-      "path": "/assets/soccer_v1/audio/penalty-activation.wav",
+      "path": "/assets/soccer_v1/audio/penalty-activation.mp3",
       "type": "audio",
-      "bytes": 2684074
+      "bytes": 329569
     },
     {
-      "path": "/assets/soccer_v1/audio/penalty-whistle.wav",
+      "path": "/assets/soccer_v1/audio/penalty-whistle.mp3",
       "type": "audio",
-      "bytes": 415446
+      "bytes": 43602
     },
     {
-      "path": "/assets/soccer_v1/audio/possession-ambience.wav",
+      "path": "/assets/soccer_v1/audio/possession-ambience.mp3",
       "type": "audio",
-      "bytes": 2781290
+      "bytes": 386364
     },
     {
-      "path": "/assets/soccer_v1/audio/power-kick.wav",
+      "path": "/assets/soccer_v1/audio/power-kick.mp3",
       "type": "audio",
-      "bytes": 379330
+      "bytes": 42933
     },
     {
       "path": "/assets/soccer_v1/audio/skill-impact.mp3",
@@ -2893,9 +2918,9 @@
       "bytes": 53774
     },
     {
-      "path": "/assets/string_v1/audio/birdcage_sound.wav",
+      "path": "/assets/string_v1/audio/birdcage_sound.mp3",
       "type": "audio",
-      "bytes": 460080
+      "bytes": 56703
     },
     {
       "path": "/assets/string_v1/audio/birdcage_voice.mp3",
@@ -2903,9 +2928,9 @@
       "bytes": 117799
     },
     {
-      "path": "/assets/string_v1/audio/claws.wav",
+      "path": "/assets/string_v1/audio/claws.mp3",
       "type": "audio",
-      "bytes": 220578
+      "bytes": 31847
     },
     {
       "path": "/assets/string_v1/audio/fivecolor_strings_voice.mp3",
@@ -2918,9 +2943,9 @@
       "bytes": 55106
     },
     {
-      "path": "/assets/string_v1/audio/overheat.wav",
+      "path": "/assets/string_v1/audio/overheat.mp3",
       "type": "audio",
-      "bytes": 939934
+      "bytes": 100522
     },
     {
       "path": "/assets/string_v1/audio/stringshot_voice.mp3",
@@ -2928,9 +2953,9 @@
       "bytes": 59285
     },
     {
-      "path": "/assets/string_v1/audio/stringshot.wav",
+      "path": "/assets/string_v1/audio/stringshot.mp3",
       "type": "audio",
-      "bytes": 309334
+      "bytes": 34320
     },
     {
       "path": "/assets/string_v1/audio/thread_break.mp3",
@@ -3240,7 +3265,7 @@
     {
       "path": "/game/core/apexPrecisionFixes.js",
       "type": "script",
-      "bytes": 29815
+      "bytes": 30217
     },
     {
       "path": "/game/core/apexRosterExtensions.js",
@@ -3260,7 +3285,7 @@
     {
       "path": "/game/fighters/arcadeVisualRuntime.js",
       "type": "script",
-      "bytes": 26443
+      "bytes": 27639
     },
     {
       "path": "/game/fighters/bladeVisualRuntime.js",
@@ -3280,12 +3305,12 @@
     {
       "path": "/game/fighters/galaxyRefinementRuntime.js",
       "type": "script",
-      "bytes": 60527
+      "bytes": 60835
     },
     {
       "path": "/game/fighters/galaxyRuntime.js",
       "type": "script",
-      "bytes": 38701
+      "bytes": 39091
     },
     {
       "path": "/game/fighters/iceVisualRuntime.js",
@@ -3295,12 +3320,12 @@
     {
       "path": "/game/fighters/katanaRuntime.js",
       "type": "script",
-      "bytes": 95994
+      "bytes": 96755
     },
     {
       "path": "/game/fighters/musicianVisualRuntime.js",
       "type": "script",
-      "bytes": 22312
+      "bytes": 23408
     },
     {
       "path": "/game/fighters/ninjaVisualRuntime.js",
@@ -3310,12 +3335,12 @@
     {
       "path": "/game/fighters/puppetVisualRuntime.js",
       "type": "script",
-      "bytes": 25507
+      "bytes": 26390
     },
     {
       "path": "/game/fighters/shotgunRuntime.js",
       "type": "script",
-      "bytes": 53402
+      "bytes": 53711
     },
     {
       "path": "/game/fighters/soccerChampionRuntime.js",
@@ -3360,7 +3385,7 @@
     {
       "path": "/game/guards/apexFreezeDisappearHotfix.js",
       "type": "script",
-      "bytes": 14120
+      "bytes": 14446
     },
     {
       "path": "/game/guards/apexGalaxyGuards.js",
@@ -3410,7 +3435,7 @@
     {
       "path": "/game/ui/apexPickRuntime.js",
       "type": "script",
-      "bytes": 43679
+      "bytes": 44732
     },
     {
       "path": "/manualLab.js",

@@ -55,6 +55,7 @@ function playNoise(duration, gainValue, filterFreq = 900, type = 'bandpass') {
     gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
     src.connect(filter); filter.connect(gain); gain.connect(battleAudioMaster);
     src.start(now); src.stop(now + duration);
+    if (window.apexRegisterBattleAudioSource) window.apexRegisterBattleAudioSource(src);
 }
 function playTone(freq, endFreq, dur, wave, gainValue, when = 0) {
     if (window.__apexStatsSilent) return;
@@ -68,6 +69,7 @@ function playTone(freq, endFreq, dur, wave, gainValue, when = 0) {
     gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
     osc.connect(gain); gain.connect(battleAudioMaster);
     osc.start(now); osc.stop(now + dur);
+    if (window.apexRegisterBattleAudioSource) window.apexRegisterBattleAudioSource(osc);
 }
 var ASSET_ONLY_FIGHTER_SFX = new Set(['ICE', 'STRING', 'GALAXY', 'SOCCER', 'NINJA', 'SHOTGUN']);
 function playFighterSound(fighterOrName, action = 'skill') {

@@ -89,15 +89,37 @@
     }
 
     function preloadMusicianAssets() {
+      // CP6: the transparentize preprocessing (decode + full getImageData
+      // pass) used to run inside every img.onload; when a group's images
+      // arrive together the callbacks coalesced into one long main-thread
+      // stall. Each asset now processes in its own idle slot through a
+      // rolling drain that keeps accepting late arrivals.
+      const prepQueue = [];
+      let prepDraining = false;
+      const drainPrep = () => {
+        if (prepDraining) return;
+        prepDraining = true;
+        const step = () => {
+          const task = prepQueue.shift();
+          if (task) { try { task(); } catch (err) {} }
+          if (prepQueue.length) {
+            if (typeof requestIdleCallback === 'function') requestIdleCallback(step, { timeout: 200 });
+            else setTimeout(step, 0);
+          } else prepDraining = false;
+        };
+        if (typeof requestIdleCallback === 'function') requestIdleCallback(step, { timeout: 200 });
+        else setTimeout(step, 0);
+      };
+      const queuePrep = (task) => { prepQueue.push(task); drainPrep(); };
       Object.entries(roleToPath).forEach(([role, src]) => {
         const img = new Image();
         ASSETS[role] = {role, src, img, ready:false, error:null, surface:null, grid:null};
-        img.onload = () => {
+        img.onload = () => queuePrep(() => {
           const a = ASSETS[role];
           a.ready = true;
           a.surface = transparentizeDarkBackground(img, role);
           a.grid = detectGrid(img, role);
-        };
+        });
         img.onerror = () => {
           ASSETS[role].error = `Failed to load ${src}`;
           console.warn('[MUSICIAN visuals] asset load failed', role, src);

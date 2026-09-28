@@ -510,7 +510,10 @@ var Fighter = class Fighter {
                 label = (label || 'direct') + '-inner-trauma';
             }
         }
-        if (this.name === 'SLIME' && this.data && this.data.gelArmorTimer > 0) {
+        // HERO REWORK separation (docs/hero-rework/phase1/12): legacy SLIME
+        // kit paths never run on rework-shell bodies (type.arsenalShell —
+        // no-double-execution law). Legacy FT('SLIME') keeps them.
+        if (this.name === 'SLIME' && !(this.type && this.type.arsenalShell) && this.data && this.data.gelArmorTimer > 0) {
             const red = clamp(this.data.gelArmorReduction || 0, 0, .65);
             amount *= (1 - red);
             label = (label || 'direct') + '-gel-armor';
@@ -521,7 +524,7 @@ var Fighter = class Fighter {
         }
 
         // SLIME children actively guard normal incoming damage, no slow HP drain / delayed buffer.
-        if (this.name === 'SLIME' && this.data && source && source !== this && !statusDamage) {
+        if (this.name === 'SLIME' && !(this.type && this.type.arsenalShell) && this.data && source && source !== this && !statusDamage) {
             const guards = projectiles.filter(p => p.type === 'slime_child' && p.owner === this && p.hp > 0 && p.life > 0);
             if (guards.length) {
                 const guardBudget = amount * 0.45;
@@ -561,15 +564,31 @@ var Fighter = class Fighter {
         if (this.name === 'NINJA' && this.data && (this.data.ninjaImmuneUntil || 0) > matchClock) return;
         if (this.hasStatus('immune') && !statusDamage) return;
 
-        if (this.name === 'SLIME' && this.data && source && source !== this) {
+        if (this.name === 'SLIME' && !(this.type && this.type.arsenalShell) && this.data && source && source !== this) {
             this.data.slimeDmgWindow ||= [];
             this.data.slimeDmgWindow.push({t: matchClock, amount});
             this.data.shockDmgWindow ||= [];
             this.data.shockDmgWindow.push({t: matchClock, amount});
         }
 
+        // PASS B §14: realized-damage transaction point — the engine's central
+        // choke point AFTER all mitigation/defense/early-return resolutions.
+        // The HUD observes actual HP loss only; this never changes the result.
+        const apexCombatHudHpBefore = this.hp;
         this.hp = Math.max(0, this.hp - amount);
         this.damageTaken += amount;
+        if (window.APEX_COMBAT_HUD && window.APEX_COMBAT_HUD.onRealizedDamage) {
+            try {
+                window.APEX_COMBAT_HUD.onRealizedDamage({
+                    attacker: (source && source !== this) ? source : null,
+                    victim: this,
+                    amount: Math.max(0, apexCombatHudHpBefore - this.hp),
+                    critical: !!this.__aqHitCrit,
+                    label: label,
+                    statusDamage: !!statusDamage,
+                });
+            } catch (apexCombatHudErr) { /* HUD failure never breaks combat */ }
+        }
         if (source && source !== this) {
             source.damageDone += amount;
             source.hitsLanded = (source.hitsLanded || 0) + 1;
@@ -1571,6 +1590,9 @@ function lineNormal(x1,y1,x2,y2, px, py) {
 }
 function reflectProjectileFromCrystals(p) {
     if (p.type === 'crystal_wall' || p.type === 'gravity_well' || p.type === 'magnet_field' || p.type === 'meteor') return false;
+    // B7/B8: hero-manipulation-immune projectiles (thrown red-tier weapons)
+    // are never reflected or re-owned — hero manipulation can't redirect them.
+    if (p.heroManipulationImmune) return false;
     if (p.vx === undefined || p.vy === undefined || p.x === undefined || p.y === undefined) return false;
     for (const w of projectiles) {
         if (w.type !== 'crystal_wall' || w.owner === p.owner) continue;
@@ -1608,7 +1630,7 @@ function updateProjectiles(dt) {
 
         if (p.x !== undefined && p.y !== undefined && p.vx !== undefined && p.vy !== undefined) {
             for (const mf of fighters) {
-                if (mf && mf.name === 'MAGNET' && mf.data.fieldTimer > 0 && p.owner !== mf && !['meteor','gravity_well','ice_lane','fire_pit','magnet_field','crystal_cage','drum_wave'].includes(p.type)) {
+                if (mf && mf.name === 'MAGNET' && mf.data.fieldTimer > 0 && p.owner !== mf && !p.heroManipulationImmune && !['meteor','gravity_well','ice_lane','fire_pit','magnet_field','crystal_cage','drum_wave'].includes(p.type)) {
                     const shell = 310;
                     const md = dist(p.x,p.y,mf.x,mf.y);
                     if (md <= shell + (p.radius||10)) { const n=norm(p.x-mf.x,p.y-mf.y); p.x=mf.x+n.x*(shell+(p.radius||10)+8); p.y=mf.y+n.y*(shell+(p.radius||10)+8); p.life = 0; emitParticles(p.x,p.y,mf.color,18,280,4,.45,'square'); floatingTexts.push(new FloatingText(mf.x,mf.y-mf.radius-84,'MAGNETIC SHELL','#ffe44e')); }
@@ -1767,6 +1789,9 @@ function updateProjectiles(dt) {
                 for (const q of projectiles) {
                     if (q === p || !q.owner || q.owner === owner || q.x === undefined || q.y === undefined || q.vx === undefined || q.vy === undefined) continue;
                     if (['meteor','ice_lane','toxic_puddle','toxic_trail','fire_pit','gravity_well','crystal_cage','crystal_wall'].includes(q.type)) continue;
+                    // B7/B8: hero-manipulation-immune projectiles are neither
+                    // rerouted nor absorbed by the well.
+                    if (q.heroManipulationImmune) continue;
                     const d = Math.max(35, dist(q.x,q.y,p.x,p.y)); const n = norm(p.x-q.x,p.y-q.y);
                     q.vx += n.x * clamp(360000/(d*d),90,880) * dt; q.vy += n.y * clamp(360000/(d*d),90,880) * dt;
                     if (d < p.core + (q.radius||10)) { p.absorbed=(p.absorbed||0)+1; q.life=0; emitParticles(p.x,p.y,'#22102e',18,220,5,.45,'square'); playFighterSound(owner,'skill'); }
@@ -2219,14 +2244,21 @@ function updateHpLossTrail(fill,trail,visiblePct){
 
 function updateHUD() {
     if (!fighters[0] || !fighters[1]) return;
+    // HERO REWORK (doc 02): HUD HP is COMBATANT-level for rework Heroes —
+    // a SLIME shows its total living-Body HP, not whichever Body currently
+    // anchors the legacy array slot. Pure read via the rework authority;
+    // legacy fighters fall through unchanged.
+    const hudHpOf = (f) => (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.bodyHudHp)
+        ? window.APEX_HERO_REWORK.bodyHudHp(f) : { hp: f.hp, maxHp: f.maxHp };
     for (let i=0; i<2; i++) {
         const f = fighters[i];
-        const pct = clamp((f.hp / f.maxHp) * 100, 0, 140);
+        const hudHp = hudHpOf(f);
+        const pct = clamp((hudHp.hp / hudHp.maxHp) * 100, 0, 140);
         const visiblePct=Math.min(100,pct);
         const fill=document.getElementById(`p${i+1}-hp`);
         const trail=document.getElementById(`p${i+1}-hp-loss`);
         updateHpLossTrail(fill,trail,visiblePct);
-        const hpLabel = f.data && f.data.autoBattleInfiniteHp ? `${f.hp.toFixed(1)} / INF` : `${f.hp.toFixed(1)} / ${f.maxHp}`;
+        const hpLabel = f.data && f.data.autoBattleInfiniteHp ? `${hudHp.hp.toFixed(1)} / INF` : `${hudHp.hp.toFixed(1)} / ${hudHp.maxHp}`;
         document.getElementById(`p${i+1}-hp-text`).innerText = hpLabel;
         const rageEl=document.getElementById(`p${i+1}-rage`); rageEl.style.opacity = f.isRage ? 1 : 0; rageEl.style.display = f.isRage ? 'block' : 'none';
     }
@@ -2323,7 +2355,7 @@ function startDailyChallenge() {
     const left = fighterTypeByName(challenge.left);
     const right = fighterTypeByName(challenge.right);
     if (!left || !right) return;
-    startSpecificMatch(left, right, { countdown:true, tournament:false, challenge });
+    return apexEnsureBattleRuntimes().then(() => startSpecificMatch(left, right, { countdown:true, tournament:false, challenge }));
 }
 function tournamentFighterStyle(name){ const ft=fighterTypeByName(name); return ft ? ft.color : '#80786c'; }
 function tournamentMakeMatch(branch, round, index, a=null, b=null){ return { id:`${branch}-R${round}-M${index}`, branch, round, index, a, b, winner:null, loser:null, result:null, started:false }; }
@@ -2450,7 +2482,7 @@ function startTournamentMatch(matchId){
     tournamentModeActive = true;
     const a = fighterTypeByName(match.a), b = fighterTypeByName(match.b);
     if(!a || !b) return;
-    startSpecificMatch(a,b,{countdown:true,tournament:true});
+    return apexEnsureBattleRuntimes().then(() => startSpecificMatch(a,b,{countdown:true,tournament:true}));
 }
 function completeTournamentMatch(winner, loser){
     const match = tournamentFindMatch(activeTournamentMatchId);
@@ -2748,7 +2780,7 @@ function restartAutoBattle() {
     if (!autoBattleLastConfig) return;
     autoBattlePaused = false;
     const cfg = autoBattleLastConfig;
-    startSpecificMatch(cfg.ft1, cfg.ft2, Object.assign({}, cfg.opts, { countdown:false, tournament:false, challenge:null, trial:false }));
+    return apexEnsureBattleRuntimes().then(() => startSpecificMatch(cfg.ft1, cfg.ft2, Object.assign({}, cfg.opts, { countdown:false, tournament:false, challenge:null, trial:false })));
 }
 function exitAutoBattle() {
     autoBattlePaused = false;
@@ -2765,9 +2797,19 @@ window.toggleAutoBattlePause = toggleAutoBattlePause;
 window.restartAutoBattle = restartAutoBattle;
 window.exitAutoBattle = exitAutoBattle;
 
+// Tiered runtime loading (§A2/§A3): every engine entry point that creates a
+// match first ensures the battle runtime group. startSpecificMatch itself
+// stays synchronous — mode runtimes (trial/tamChien/quest) already load their
+// full group before they are invoked, and internal callers are gated here.
+function apexEnsureBattleRuntimes() {
+    const ensure = window.__apexEnsureDeferredRuntimes;
+    const ready = ensure ? ensure('battle') : null;
+    return ready && ready.then ? ready : Promise.resolve();
+}
 function startMatch() {
     if (!p1Selection || !p2Selection) return;
-    startSpecificMatch(p1Selection, p2Selection, { countdown:false, tournament:false });
+    const run = () => startSpecificMatch(p1Selection, p2Selection, { countdown:false, tournament:false });
+    return apexEnsureBattleRuntimes().then(run);
 }
 function startSpecificMatch(ft1, ft2, opts = {}) {
     clearNinjaVisualArtifacts();
@@ -2804,6 +2846,9 @@ function startSpecificMatch(ft1, ft2, opts = {}) {
     timeScale = 1.0; cameraZoom = 1.0; cameraShake = 0; hitStop = 0; calcOverlay = null; matchClock = 0; sawWallRage = { timer:0, owner:null, phase:0 };
     arenaFlash = {r:0,g:0,b:0,a:0};
     updateHUD();
+    if (window.APEX_COMBAT_HUD && window.APEX_COMBAT_HUD.onMatchStart) {
+        try { window.APEX_COMBAT_HUD.onMatchStart(); } catch (apexCombatHudErr) { /* HUD failure never breaks match start */ }
+    }
     lastTime = performance.now();
     if (!reqId) reqId = requestAnimationFrame(loop);
     if (opts.countdown) {
@@ -2840,7 +2885,12 @@ function startSpecificMatch(ft1, ft2, opts = {}) {
         document.getElementById('game-canvas')?.getBoundingClientRect();
         draw();
     } catch (error) {}
-    restoreBattleAudio();
+    // CP6 session ownership: a real match start begins a NEW battle-audio
+    // session (terminates any previous session's sources/cues) instead of a
+    // bare master restore — classic/tournament/tamChien matches get the same
+    // ownership semantics as React-routed matches.
+    if (window.apexBeginBattleAudioSession) window.apexBeginBattleAudioSession();
+    else restoreBattleAudio();
 }
 function endMatch() {
     if (gameState !== 'PLAYING') return;

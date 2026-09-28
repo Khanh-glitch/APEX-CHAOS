@@ -21,13 +21,13 @@
     planet4: '129f515e-e273-4a57-bc3b-cc20a1232654.webp'
   };
   const GALAXY_AUDIO_FILES = {
-    throw: 'planet_throwing_sound_effect.wav',
-    explosion: 'planet_explosion_sound_effect.wav',
-    pressureWalk: 'pressure_walking.wav',
-    pressureContact: 'galaxy_pressure_contact.wav',
+    throw: 'planet_throwing_sound_effect.mp3',
+    explosion: 'planet_explosion_sound_effect.mp3',
+    pressureWalk: 'pressure_walking.mp3',
+    pressureContact: 'galaxy_pressure_contact.mp3',
     wall: 'wall touch of component when hitted by pressure. ALSO for bluehole.mp3',
-    divine: 'Sound_effect_for_galaxy_divine.wav',
-    impact: 'GALAXY_IMPACT.wav',
+    divine: 'Sound_effect_for_galaxy_divine.mp3',
+    impact: 'GALAXY_IMPACT.mp3',
     rage: 'RAGE.mp3',
     bluehole: 'BLUEHOLE.mp3'
   };
@@ -83,8 +83,12 @@
     src.buffer = buffer;
     src.loop = !!opts.loop;
     gain.gain.value = opts.volume ?? 0.85;
-    src.connect(gain); gain.connect(audioCtx.destination);
+    // CP6 session ownership: battle SFX route through the battle master (never
+    // straight to the destination) and register so session end stops them for
+    // real — a looping galaxy voice can no longer ring across a transition.
+    src.connect(gain); gain.connect(typeof battleAudioMaster !== 'undefined' ? battleAudioMaster : audioCtx.destination);
     if (window.__apexRecordingAudioDestination) gain.connect(window.__apexRecordingAudioDestination);
+    if (window.apexRegisterBattleAudioSource) window.apexRegisterBattleAudioSource(src);
     src.start();
     const handle = { src, gain, stopped:false };
     G.activeSounds ||= new Set();

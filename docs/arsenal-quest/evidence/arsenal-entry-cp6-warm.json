@@ -1,0 +1,144 @@
+{
+  "label": "cp6-warm-press",
+  "menuInteractiveAt": 772.0999999996275,
+  "clickAt": 9664.1,
+  "pressedPaintAt": 9662.6,
+  "hubFirstPaintAt": 9792.1,
+  "pressToPaintMs": -1.5,
+  "pressToHubMs": 128,
+  "groupReady": true,
+  "scriptSpans": [],
+  "longTasks": [
+    {
+      "at": 3751,
+      "dur": 113
+    },
+    {
+      "at": 4850,
+      "dur": 169
+    },
+    {
+      "at": 5133.3,
+      "dur": 197
+    },
+    {
+      "at": 5449.7,
+      "dur": 221
+    },
+    {
+      "at": 5783.2,
+      "dur": 159
+    },
+    {
+      "at": 6049.7,
+      "dur": 161
+    },
+    {
+      "at": 6316.4,
+      "dur": 168
+    },
+    {
+      "at": 9791.8,
+      "dur": 61
+    }
+  ],
+  "inputsDuringLoad": [
+    9.4
+  ],
+  "inputMaxMs": 9.4,
+  "inputOver100": 0,
+  "avWarm": {
+    "warmStartedAt": null,
+    "warmDecodedAt": null,
+    "decoded": 0,
+    "bankSize": 50
+  },
+  "imgResources": 287,
+  "scriptResources": 38,
+  "slowestResources": [
+    {
+      "at": 2627,
+      "dur": 999.8,
+      "type": "img",
+      "name": "fang_v1/trailMist.webp?v=fog-v4"
+    },
+    {
+      "at": 2626.9,
+      "dur": 999.3,
+      "type": "img",
+      "name": "fang_v1/huntMistFront.webp?v=fog-v4"
+    },
+    {
+      "at": 2626.9,
+      "dur": 998.9,
+      "type": "img",
+      "name": "fang_v1/huntMistMid.webp?v=fog-v4"
+    },
+    {
+      "at": 2662.1,
+      "dur": 967.8,
+      "type": "audio",
+      "name": "audio/collisionBite.mp3"
+    },
+    {
+      "at": 2631.1,
+      "dur": 966.8,
+      "type": "script",
+      "name": "ui/apexCombatHudRuntime.js"
+    },
+    {
+      "at": 2626.7,
+      "dur": 966,
+      "type": "img",
+      "name": "fang_v1/sunIcon.webp"
+    },
+    {
+      "at": 2691.6,
+      "dur": 964.9,
+      "type": "audio",
+      "name": "audio/huntRunStep.mp3"
+    },
+    {
+      "at": 2667.5,
+      "dur": 962.7,
+      "type": "audio",
+      "name": "audio/huntingPounce.mp3"
+    },
+    {
+      "at": 2697.4,
+      "dur": 960.6,
+      "type": "audio",
+      "name": "audio/sniff.mp3"
+    },
+    {
+      "at": 2626.8,
+      "dur": 957,
+      "type": "img",
+      "name": "fang_v1/speckSun.webp"
+    },
+    {
+      "at": 2626.8,
+      "dur": 953.9,
+      "type": "img",
+      "name": "fang_v1/huntMistBack.webp?v=fog-v4"
+    },
+    {
+      "at": 2686.7,
+      "dur": 943.7,
+      "type": "audio",
+      "name": "audio/postCollisionRoar.mp3"
+    }
+  ],
+  "events": [
+    {
+      "at": 0.1,
+      "type": "instrumented",
+      "detail": null
+    },
+    {
+      "at": 9664.1,
+      "type": "cdp-click",
+      "detail": "arsenal-quest button"
+    }
+  ]
+}

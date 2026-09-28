@@ -1,0 +1,16 @@
+{
+  "package": "APEX_STORMBREAKER_V1_PORT_PACKAGE",
+  "visual_reference": "V9 no-long-tail",
+  "locked_decisions": [
+    "first red-tier fantasy weapon",
+    "global slow while unclaimed",
+    "dense floor lightning before pickup",
+    "linked head/handle crackle",
+    "fast spinning throw",
+    "no long throw tail",
+    "local electricity distributed across whole weapon",
+    "impact flash then weapon disappears",
+    "target stun",
+    "arena-wide discharge"
+  ]
+}

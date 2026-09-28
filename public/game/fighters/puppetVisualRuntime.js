@@ -52,16 +52,37 @@
       }
     }
     function loadPuppetAssets(){
+      // CP6: chunked onload preprocessing (see arcade/musician runtimes) —
+      // one asset per idle slot instead of a coalesced main-thread stall.
+      const prepQueue = [];
+      let prepDraining = false;
+      const drainPrep = () => {
+        if (prepDraining) return;
+        prepDraining = true;
+        const step = () => {
+          const task = prepQueue.shift();
+          if (task) { try { task(); } catch (err) {} }
+          if (prepQueue.length) {
+            if (typeof requestIdleCallback === 'function') requestIdleCallback(step, { timeout: 200 });
+            else setTimeout(step, 0);
+          } else prepDraining = false;
+        };
+        if (typeof requestIdleCallback === 'function') requestIdleCallback(step, { timeout: 200 });
+        else setTimeout(step, 0);
+      };
       for (const [role, src] of Object.entries(PUPPET_ASSET_MANIFEST)) {
         if (!src) { ASSETS[role] = {role, src:null, loaded:false, failed:true, ready:false, fallback:true}; continue; }
         const img = new Image();
         const rec = ASSETS[role] = {role, src, img, loaded:false, failed:false, ready:false};
         img.onload = () => {
-          rec.loaded = true;
-          rec.img = transparentizeDarkBackground(img, role);
-          rec.ready = true;
-          rec.w = imageW(rec.img);
-          rec.h = imageH(rec.img);
+          prepQueue.push(() => {
+            rec.loaded = true;
+            rec.img = transparentizeDarkBackground(img, role);
+            rec.ready = true;
+            rec.w = imageW(rec.img);
+            rec.h = imageH(rec.img);
+          });
+          drainPrep();
         };
         img.onerror = () => { rec.failed = true; rec.ready = false; rec.error = 'load failed'; };
         img.src = src;

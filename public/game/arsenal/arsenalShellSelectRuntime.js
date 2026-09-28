@@ -18,6 +18,48 @@
     'NEWBIE',
   ];
 
+  // HERO REWORK (doc-06 POSTFREEZE ROSTER CORRECTION): the canonical 12 are
+  // the PLAYABLE Hero roster (select/shop/draw/free-pick/progression pools).
+  // ROBOT is the product-facing replacement for legacy NEWBIE. Quest boss
+  // identities outside the 12 stay resolvable through typeFor for encounter
+  // compatibility — they must never leak into the playable pools.
+  const CANONICAL_12 = [
+    'ROBOT', 'CRYSTAL', 'MAGNET', 'BLACK_HOLE', 'MATH_V2', 'ICE', 'RUBBER',
+    'HUNTER', 'TIME', 'MIRROR', 'SLIME', 'SNIPER',
+  ];
+  const REWORK_PRODUCT_CUTOVER = !!(window.APEX_HERO_REWORK_REGISTRY
+    && window.APEX_HERO_REWORK_REGISTRY.productCutover !== false);
+  function playableIds() {
+    return REWORK_PRODUCT_CUTOVER ? CANONICAL_12 : CANONICAL_32;
+  }
+
+  // HERO REWORK: rework shell — runs NO legacy kit (no-double-execution law,
+  // docs/hero-rework/phase1/04). Movement/AI comes from the rework runtime;
+  // visual stays the engine's neutral default (temporary presentation, not
+  // owner visual direction).
+  function makeReworkShell(name) {
+    const base = baseTypeFor(name);
+    return {
+      name,
+      color: (base && base.color) || '#c8c2b4',
+      desc: `Hero Rework — ${name}`,
+      speed: CFG.FIGHTER_SPEED,
+      startDx: (base && base.startDx != null) ? base.startDx : 1,
+      startDy: (base && base.startDy != null) ? base.startDy : 0.55,
+      noRage: true,
+      arsenalShell: true,
+      __hrHero: name,
+      compatKit: 'REWORK',
+      init: (f) => { f.data = f.data || {}; },
+      update: (f, enemy, dt) => {
+        if (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.shellUpdate) {
+          window.APEX_HERO_REWORK.shellUpdate(f, enemy, dt);
+        }
+        // Without the rework runtime the body stays inert (never a legacy kit).
+      },
+    };
+  }
+
   // Three canonical identities were re-keyed by boot-time mainline patches:
   // GALAXY_REPLACES_NOVA_PATCH (NOVA -> GALAXY), apexCanonicalBalance
   // (WIND -> PUPPET, MONK -> KUNGFU) with apexPrecisionFixes re-writing the
@@ -66,15 +108,24 @@
       let best = null, bestD = Infinity;
       for (const s of slots) {
         if (!s || s.phase !== 'REVEALED' || !s.weaponId) continue;
+        // B7: red-tier (T6) pickups are NOT dash targets — no auto
+        // acquisition. The hero can still pick one up PHYSICALLY by
+        // walking over it; the dash simply never seeks it.
+        if (CFG.isHeroManipulablePickup && !CFG.isHeroManipulablePickup(s)) continue;
         const d = Math.hypot(s.x - f.x, s.y - f.y);
         if (d < bestD) { bestD = d; best = s; }
       }
       return best;
     }
-    function tryLaunchDash(f) {
+    function tryLaunchDash(f, opts) {
       const slot = nearestRevealedPickup(f);
       if (!slot) {
-        window.avCue && window.avCue('newbie_fail', { x: f.x, y: f.y });
+        // CP7 (owner playtest round 4): fail feedback belongs to DELIBERATE
+        // activation (P1's skill-gate J pulse). The P2 auto-cast polls this
+        // every tick while unarmed with no revealed pickup — cueing here
+        // re-triggered metalClick ~10x/s from match start until the first
+        // pickup ("one sound loops forever"). Auto-cast failures are silent.
+        if (!(opts && opts.auto)) window.avCue && window.avCue('newbie_fail', { x: f.x, y: f.y });
         return false;
       }
       const dx = slot.x - f.x, dy = slot.y - f.y;
@@ -131,7 +182,9 @@
           // Soft magnet on the pickup in the last few dozen pixels.
           const slots = (window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.slots) || [];
           const slot = slots.find((s) => s && s.id === d.slotId);
-          if (slot && slot.phase === 'REVEALED') {
+          // B7: the magnetic pull must never yank a red-tier (T6) pickup —
+          // hero manipulation can't move it. Physical pickup still works.
+          if (slot && slot.phase === 'REVEALED' && (!CFG.isHeroManipulablePickup || CFG.isHeroManipulablePickup(slot))) {
             const sd = Math.hypot(slot.x - f.x, slot.y - f.y);
             if (sd < spec.magnetRadius * 3) {
               const pull = spec.magnetPull * dt;
@@ -154,7 +207,7 @@
           tryLaunchDash(f);
           return;
         }
-        if (!isP1 && f.data.nbCd <= 1e-6) tryLaunchDash(f);
+        if (!isP1 && f.data.nbCd <= 1e-6) tryLaunchDash(f, { auto: true });
       },
       draw: (c, f) => {
         // Glyph-free beginner body: stacked rounded blobs + visor band.
@@ -199,6 +252,21 @@
   function shellTypeFor(name) {
     if (!name) return null;
     if (shellCache.has(name)) return shellCache.get(name);
+    // HERO REWORK cutover: canonical-12 playable heroes (and the retired
+    // NEWBIE, replaced by ROBOT) resolve to rework shells — no legacy kit
+    // double-executes. All other legacy names (Quest boss encounters) keep
+    // the audited legacy compatibility path (doc 06 roster classes).
+    if (REWORK_PRODUCT_CUTOVER) {
+      const reworkName = name === 'NEWBIE' ? 'ROBOT' : null;
+      const canonical = (window.APEX_HERO_REWORK_REGISTRY && window.APEX_HERO_REWORK_REGISTRY.isCanonicalHero
+        && window.APEX_HERO_REWORK_REGISTRY.isCanonicalHero(name)) ? name : null;
+      const reworkTarget = reworkName || canonical;
+      if (reworkTarget) {
+        const shell = makeReworkShell(reworkTarget);
+        shellCache.set(name, shell);
+        return shell;
+      }
+    }
     if (name === 'NEWBIE') {
       const newbie = makeNewbieType();
       shellCache.set(name, newbie);
@@ -252,9 +320,14 @@
     return shell;
   }
 
-  function roster() { return CANONICAL_32.map(shellTypeFor); }
+  // HERO REWORK: roster() is the PLAYABLE roster (doc 06) — the canonical 12
+  // after cutover, the legacy 32 before it.
+  function roster() { return playableIds().map(shellTypeFor); }
 
   function ensureNewbieOnRoster() {
+    // HERO REWORK cutover: NEWBIE is retired from the roster — ROBOT is the
+    // product-facing replacement. No-op after cutover (idempotent).
+    if (REWORK_PRODUCT_CUTOVER) return;
     if (typeof FighterTypes === 'undefined' || !FighterTypes) return;
     if (FighterTypes.some((t) => t && t.name === 'NEWBIE')) return;
     FighterTypes.push(shellTypeFor('NEWBIE'));
@@ -280,10 +353,32 @@
       window.__apexArsenalSelectPending = false;
       const p1 = typeof p1Selection !== 'undefined' ? p1Selection : null;
       const p2 = typeof p2Selection !== 'undefined' ? p2Selection : null;
-      if (p1 && p2 && typeof window.startArsenalQuestMode === 'function') {
-        window.startArsenalQuestMode(p1.name, p2.name);
+      // CP7: while an Arsenal selection is pending, the shared START must
+      // NEVER fall through to the classic match engine. The old fall-through
+      // (startArsenalQuestMode not yet defined → baseStartMatch) opened a
+      // CLASSIC match with the picked shells on cold/slow machines — exactly
+      // the half-initialized gameplay the ready barrier exists to prevent.
+      // No resolvable selection → back to the Arsenal picker, never classic.
+      if (!p1 || !p2) { window.beginArsenalQuestSelection(); return; }
+      const launch = () => {
+        if (typeof window.startArsenalQuestMode === 'function') window.startArsenalQuestMode(p1.name, p2.name);
+        else window.beginArsenalQuestSelection();
+      };
+      // CP7: hard gameplay-ready barrier — the match shell must not mount
+      // until the full arsenalQuest tier is loaded AND the presentation
+      // images have settled (script evaluation alone is not readiness).
+      // Warm re-entry launches synchronously; cold START waits here (the
+      // barrier itself ensures the arsenalQuest group that defines
+      // startArsenalQuestMode, then settles the presentation images).
+      if (window.apexArsenalGameplayBarrierSync && window.apexArsenalGameplayBarrierSync('match')) { launch(); return; }
+      if (window.apexArsenalGameplayBarrier) {
+        window.apexArsenalGameplayBarrier('match').then((ok) => { if (ok) launch(); });
         return;
       }
+      const ensure = window.__apexEnsureDeferredRuntimes;
+      if (typeof ensure === 'function') ensure('arsenalQuest').then(launch).catch(() => {});
+      else launch();
+      return;
     }
     return baseStartMatch ? baseStartMatch.apply(this, args) : undefined;
   };
@@ -298,7 +393,12 @@
   window.beginArsenalQuestSelection = beginSelection;
 
   window.APEX_ARSENAL_SHELLS = {
-    ids: CANONICAL_32,
+    // HERO REWORK (doc 06): `ids` is the PLAYABLE pool (canonical 12 after
+    // cutover). Boss-only Quest identities are NOT in ids; they resolve
+    // through typeFor for encounters only.
+    ids: playableIds(),
+    legacyIds: CANONICAL_32,
+    isPlayable: (name) => playableIds().includes(name),
     typeFor: shellTypeFor,
     roster,
     beginSelection,

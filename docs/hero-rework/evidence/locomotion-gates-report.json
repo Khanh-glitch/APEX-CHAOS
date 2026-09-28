@@ -1,0 +1,87 @@
+{
+  "suite": "hero-rework-locomotion-gates",
+  "gates": {
+    "L1-unarmed-no-pickup-seek": {
+      "pass": true,
+      "detail": {
+        "heroFree": true,
+        "dir0": [
+          1,
+          0
+        ],
+        "dir1": [
+          1,
+          0
+        ],
+        "dx": 312,
+        "northDrift": 0,
+        "slot": {
+          "phase": "REVEALED",
+          "pickedBy": null,
+          "x": 350,
+          "y": 450
+        }
+      }
+    },
+    "L2-armed-no-chase": {
+      "pass": true,
+      "detail": {
+        "armed": true,
+        "holder": {
+          "weapon": "PISTOL",
+          "phase": "READY"
+        },
+        "dir0": [
+          1,
+          0
+        ],
+        "dir1": [
+          1,
+          0
+        ],
+        "dx": 260,
+        "dist1": 710.8
+      }
+    },
+    "L3-armed-no-kite": {
+      "pass": true,
+      "detail": {
+        "dir0": [
+          1,
+          0
+        ],
+        "dir1": [
+          1,
+          0
+        ],
+        "dx": 260
+      }
+    },
+    "L4-wall-bounce": {
+      "pass": true,
+      "detail": {
+        "dir0": [
+          1,
+          0
+        ],
+        "dir1": [
+          -1,
+          0
+        ],
+        "x1": 413.7
+      }
+    }
+  },
+  "failures": [],
+  "loadErrors": [
+    {
+      "file": "/game/fighters/soccerChampionRuntime.js",
+      "error": "image.addEventListener is not a function"
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "passed": 4,
+    "failed": []
+  }
+}
