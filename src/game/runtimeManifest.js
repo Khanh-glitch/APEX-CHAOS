@@ -23,6 +23,9 @@ export const BOOT_GAME_RUNTIMES = [
   ['/game/fighters/katanaRuntime.js', 'apexKatanaRuntime'],
   ['/game/fighters/fangRuntime.js', 'apexFangRuntime'],
   ['/game/ui/apexPickRuntime.js', 'apexPickRuntime'],
+  // BLACK_HOLE golden hero visual (transparent WebGL2 overlay over the 2D game;
+  // self-disables on any failure, restoring the stock visual)
+  ['/game/fighters/blackholeGoldenVisualRuntime.js', 'apexBlackholeGoldenVisualRuntime'],
 ];
 
 export const BATTLE_DEFERRED_RUNTIMES = [
