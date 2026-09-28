@@ -483,7 +483,9 @@
         if (!st || !st.slots) return out;
         for (const slot of st.slots) {
           if (!slot || slot.phase !== 'REVEALED' || slot.kind === 'HEAL' || !slot.weaponId) continue;
-          const isT6 = slot.weaponId === 'STORMBREAKER';
+          // T6/Stormbreaker is NEVER an auto-target (ROBOT A1 law) — same id
+          // authority as api.isT6Weapon.
+          const isT6 = slot.weaponId === 'STORMBREAKER' || slot.weaponId === 'T6';
           if (opts && opts.excludeT6 && isT6) continue;
           out.push({ slot, id: slot.id, x: slot.x, y: slot.y, weaponId: slot.weaponId, isT6 });
         }

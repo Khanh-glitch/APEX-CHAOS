@@ -1,0 +1,157 @@
+{
+  "suite": "hero-rework-robot-gates",
+  "gates": {
+    "R1-idle-no-pickup-seek": {
+      "pass": true,
+      "detail": {
+        "dir": [
+          1,
+          0
+        ],
+        "dx": 312,
+        "north": 0,
+        "slot": {
+          "phase": "REVEALED",
+          "pickedBy": null,
+          "x": 350,
+          "y": 450
+        }
+      }
+    },
+    "R2-a1-turns-and-dashes": {
+      "pass": true,
+      "detail": {
+        "cast": {
+          "ok": true
+        },
+        "dist0": 750,
+        "distEnd": 131.5,
+        "arrivedAt": 0.233,
+        "maxJump": 56.7
+      }
+    },
+    "R3-a1-t6-not-auto-targeted": {
+      "pass": true,
+      "detail": {
+        "fail": {
+          "ok": false,
+          "reason": "condition",
+          "failCue": true
+        },
+        "cdBefore": 0,
+        "cdAfterFail": 0,
+        "cast": {
+          "ok": true
+        },
+        "targetedSlot": 2,
+        "pistolSlotId": 2
+      }
+    },
+    "R4-pickup-requires-physical-contact": {
+      "pass": true,
+      "detail": {
+        "cast": {
+          "ok": true
+        },
+        "earlyHolder": null,
+        "collectedAt": 0.183,
+        "collectedDist": 76.7,
+        "held": {
+          "weapon": "PISTOL",
+          "phase": "READY"
+        }
+      }
+    },
+    "R5-a2-exact-55pct-dr": {
+      "pass": true,
+      "detail": {
+        "raw": 14.84,
+        "armored": 6.678,
+        "ratio": 0.45,
+        "stillArmoredRatio": 0.45,
+        "afterRatio": 1
+      }
+    },
+    "R6-a2-no-cc-immunity": {
+      "pass": true,
+      "detail": {
+        "cast": {
+          "ok": true
+        },
+        "hardCCDuringArmor": true,
+        "statuses": [
+          "stun"
+        ]
+      }
+    },
+    "R7-passive-records-credited-dealt-only": {
+      "pass": true,
+      "detail": {
+        "realizedDealt": 13.720000000000027,
+        "afterDealt": 13.720000000000027,
+        "realizedTaken": 14.840000000000032,
+        "afterTaken": 13.720000000000027
+      }
+    },
+    "R8-passive-explicit-blocker-no-invented-thresholds": {
+      "pass": true,
+      "detail": {
+        "thresholds": null,
+        "status": "UNRESOLVED_OWNER_TUNING_DEPENDENCY",
+        "cumulative": 205.8000000000004,
+        "refunds": 0,
+        "cdA1": 8,
+        "cdA2": 8
+      }
+    },
+    "R9-passive-refund-sequence-law": {
+      "pass": true,
+      "detail": {
+        "events": [
+          {
+            "m": 2,
+            "slot": "A1",
+            "refund": 0.5
+          },
+          {
+            "m": 3,
+            "slot": "A1",
+            "refund": 1
+          },
+          {
+            "m": 4,
+            "slot": "A1",
+            "refund": 1.5
+          },
+          {
+            "m": 5,
+            "slot": "A1",
+            "refund": 2
+          }
+        ],
+        "cdA1": 3,
+        "cdA2": 8,
+        "ev6": [
+          {
+            "m": 6,
+            "slot": "A2",
+            "refund": 2.5
+          }
+        ],
+        "cdA2After": 3.5
+      }
+    }
+  },
+  "failures": [],
+  "loadErrors": [
+    {
+      "file": "/game/fighters/soccerChampionRuntime.js",
+      "error": "image.addEventListener is not a function"
+    }
+  ],
+  "summary": {
+    "total": 9,
+    "passed": 9,
+    "failed": []
+  }
+}

@@ -121,9 +121,15 @@
         }, ['incomingMult'], 'magnitude_step'),
         PASSIVE: skill('robot.damage_milestones', 'PASSIVE', 'robot.damage_milestones', {
           // Refund sequence is owner authority (doc 02). Damage thresholds
-          // are an EXPLICIT UNRESOLVED TUNING DEPENDENCY: no visible ladder
-          // exists in the engine, so the Passive records credited realized
-          // damage but never fires refunds until the owner resolves this.
+          // are an EXPLICIT BLOCKER: an exhaustive source audit found NO
+          // authoritative visible cumulative damage-dealt milestone ladder
+          // in the game (see
+          // docs/hero-rework/phase1/11_ROBOT_PASSIVE_THRESHOLD_SOURCE_AUDIT_2026-09-28.md
+          // — the burst commentary tiers and the ENERGY meter are NOT
+          // milestone/refund ladders). The Passive records credited realized
+          // damage but never fires refunds on invented numbers. It is NOT
+          // complete until the owner supplies the threshold ladder; set
+          // milestoneThresholds then and the frozen refund law below binds.
           milestoneThresholds: null, // unresolved — do not invent values
           milestoneThresholdsStatus: 'UNRESOLVED_OWNER_TUNING_DEPENDENCY',
           milestoneRefundsSec: [0, 0.5, 1.0, 1.5], // index = milestone # - 1
