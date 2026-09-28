@@ -4869,6 +4869,142 @@ run(`
 snapshot('lab-v1-splatter-fighter-color');
 run(`APEX_ARSENAL_FEEL.setSplatterMode('BLOOD'); window.exitArsenalLab(); return true;`);
 
+// ------------------------------------- gates: CP-HR6 — Quest roster cutover
+// Every one of the 20 ladder stages must RESOLVE through the production
+// quest path: startStage (readiness barrier + typeFor opponent resolution),
+// real AI-vs-AI play with spawning weapons, the KO/over machinery, quest
+// result actions, and recordWin persistence for P1 wins. The canonical-6
+// bosses (ICE, HUNTER, CRYSTAL, MAGNET, BLACK_HOLE, TIME) run REWORK
+// mechanics under the encounter layer — rework fighters with ZERO legacy
+// native-kit execution; the other 14 keep their legacy encounter
+// identities (doc 06 roster classes).
+const HR6_CANON = ['ICE', 'HUNTER', 'CRYSTAL', 'MAGNET', 'BLACK_HOLE', 'TIME'];
+const hr6Stages = JSON.parse(run(`return JSON.stringify(window.APEX_ARSENAL_QUEST.STAGES)`));
+// Test save seed: all 20 stages unlocked (progression gating is the ladder's
+// own concern; this block gates RESOLUTION, not progression).
+run(`localStorage.setItem(window.APEX_ARSENAL_QUEST.STORAGE_KEY,
+  JSON.stringify({ unlockedThrough: 20, completedStages: [] })); return true;`);
+const hr6rows = [];
+for (const s of hr6Stages) {
+  let row = null;
+  // The ladder's readiness barrier may take the ASYNC path (cold entry):
+  // startStage returns before beginQuestStage fires. Poll until the stage's
+  // match is actually mounted — the ladder starts it on its own.
+  for (let attempt = 0; attempt < 60; attempt++) {
+    row = JSON.parse(run(`
+      const Q = window.APEX_ARSENAL_QUEST;
+      const res = Q.startStage(${s.n}, 'ROBOT');
+      cancelAnimationFrame(reqId); reqId = 0;
+      const st = APEX_ARSENAL.state;
+      if (!st || !st.active || st.questStage !== ${s.n}) return JSON.stringify({ deferred: true });
+      return JSON.stringify({
+        ok: !!(res && res.ok),
+        live: res && res.live,
+        p1Name: fighters[0] && fighters[0].name,
+        oppName: fighters[1] && fighters[1].name,
+        oppIsRework: !!(window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.isReworkFighter
+          && fighters[1] && window.APEX_HERO_REWORK.isReworkFighter(fighters[1])),
+      });
+    `));
+    if (!row.deferred) break;
+    await new Promise(r => setTimeout(r, 50));
+  }
+  if (row && !row.deferred) {
+    Object.assign(row, JSON.parse(run(`
+      const Q = window.APEX_ARSENAL_QUEST;
+      // Natural AI-vs-AI play: weapons spawn on cadence, both sides collect
+      // and fire, rework cast AI runs. 60s budget.
+      let t = 0, nativeFromOpp = 0;
+      for (; t < 60 && !APEX_ARSENAL.state.over; t += 1/60) {
+        APEX_ARSENAL.step(1/60);
+        nativeFromOpp = Math.max(nativeFromOpp,
+          projectiles.filter(p => p.aq !== true && p.owner === fighters[1]).length);
+      }
+      const natural = !!APEX_ARSENAL.state.over;
+      if (!APEX_ARSENAL.state.over) {
+        // Resolution driver: natural KO speed is an UNRESOLVED BALANCE
+        // question (weapon damage vs 1000hp pools). Drive the OPPONENT to
+        // KO through the REAL engine damage entry — the KO check, over
+        // state, result actions, and recordWin all run for real. The loop
+        // iterates because the engine's canonical numeric tuning applies a
+        // per-hero damage-TAKEN multiplier (e.g. CRYSTAL ~0.686), so a
+        // single full-hp packet can never zero a tuned hero.
+        const HRr = window.APEX_HERO_REWORK;
+        for (let round = 0; round < 3 && !HRr.bodyKO(fighters[1]); round++) {
+          const ct = HRr.byCombatant(fighters[1]);
+          const targets = (ct && !ct.facade) ? HRr.getTargetableBodies(ct) : [fighters[1]];
+          for (const b of targets) {
+            for (let k = 0; k < 80 && b.hp > 0; k++) {
+              b.takeDamage(Math.max(1, b.hp), fighters[0], 'quest-stage-resolve-driver');
+            }
+          }
+        }
+        for (let k = 0; k < 300 && !APEX_ARSENAL.state.over; k++) APEX_ARSENAL.step(1/60);
+      }
+      const st = APEX_ARSENAL.state;
+      return JSON.stringify({
+        natural,
+        naturalT: +t.toFixed(2),
+        over: st.over || null,
+        quest: { stage: st.questStage, opponent: st.questOpponent, p1: st.questP1 },
+        actions: Q.resultActions(st),
+        nativeFromOpp,
+        saveHasWin: Q.loadSave().completedStages.includes(${s.n}),
+        p1HpEnd: fighters[0] ? +fighters[0].hp.toFixed(1) : null,
+        oppHpEnd: fighters[1] ? +fighters[1].hp.toFixed(1) : null,
+      });
+    `)));
+  }
+  row.n = s.n;
+  row.opponent = s.opponent;
+  hr6rows.push(row);
+}
+const hr6 = {
+  rows: hr6rows,
+  get allOk() {
+    return this.rows.length === 20 && this.rows.every(r => r.ok && !r.error && r.deferred !== true
+      && r.over && r.quest && r.quest.stage === r.n && r.quest.opponent === r.opponent
+      && r.quest.p1 === 'ROBOT');
+  },
+  get canonOk() {
+    const c = this.rows.filter(r => HR6_CANON.includes(r.opponent));
+    return c.length === 6 && c.every(r => r.oppIsRework === true && r.nativeFromOpp === 0 && r.live === r.opponent);
+  },
+  get legacyOk() {
+    const l = this.rows.filter(r => !HR6_CANON.includes(r.opponent));
+    return l.length === 14 && l.every(r => r.oppIsRework === false);
+  },
+  get wins() { return this.rows.filter(r => r.over === r.p1Name).length; },
+  get naturalWins() { return this.rows.filter(r => r.over === r.p1Name && r.natural).length; },
+  get winSaved() { return this.rows.filter(r => r.over === r.p1Name && r.saveHasWin).length; },
+  get actionsOk() {
+    return this.rows.every(r => r.over && r.actions
+      && (r.actions.mode === 'quest-win' || r.actions.mode === 'quest-loss')
+      && r.actions.stage === r.n && r.actions.actions.length >= 2);
+  },
+};
+gate('quest-every-stage-resolves',
+  hr6.allOk === true,
+  { rows: hr6rows.map(r => ({ n: r.n, opp: r.opponent, live: r.live, over: r.over, natural: r.natural, deferred: r.deferred, err: r.error })) });
+gate('quest-canonical-bosses-run-rework-encounters',
+  hr6.canonOk === true,
+  hr6rows.filter(r => HR6_CANON.includes(r.opponent))
+    .map(r => ({ n: r.n, opp: r.opponent, rework: r.oppIsRework, nativeFromOpp: r.nativeFromOpp })));
+gate('quest-legacy-bosses-keep-encounter-identities',
+  hr6.legacyOk === true,
+  hr6rows.filter(r => !HR6_CANON.includes(r.opponent))
+    .map(r => ({ n: r.n, opp: r.opponent, live: r.live, rework: r.oppIsRework })));
+gate('quest-stage-result-actions-correct',
+  hr6.actionsOk === true,
+  hr6rows.map(r => ({ n: r.n, mode: r.actions && r.actions.mode, actions: r.actions && r.actions.actions })));
+gate('quest-p1-wins-recorded-to-save',
+  hr6.winSaved === hr6.wins && hr6.wins >= 1,
+  { wins: hr6.wins, naturalWins: hr6.naturalWins, saved: hr6.winSaved });
+
+// Evidence: the final stage's result state through the real engine canvas.
+run(`__AQ_TEST.redraw(); return true;`);
+snapshot('cp-hr6-quest-final-stage-result');
+
 // ------------------------------------------------------------------- summary
 report.summary = {
   total: Object.keys(report.gates).length,
