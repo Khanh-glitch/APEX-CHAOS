@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-28T15:08:15.235Z",
+  "generatedAt": "2026-09-28T20:53:26.070Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -1466,6 +1466,46 @@
       "path": "/assets/galaxy_v1/images/VISUAL%20FOR%20THE%20ZONE%20OF%20GALAXY%20DIVINE.webp",
       "type": "image",
       "bytes": 724620
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_a1_dash.mp3",
+      "type": "audio",
+      "bytes": 41591
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_a1_lock.mp3",
+      "type": "audio",
+      "bytes": 81493
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_a1_no_weapon.mp3",
+      "type": "audio",
+      "bytes": 24044
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_a2_activate.mp3",
+      "type": "audio",
+      "bytes": 35084
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_a2_armor_hit.mp3",
+      "type": "audio",
+      "bytes": 41591
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_a2_end.mp3",
+      "type": "audio",
+      "bytes": 51673
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_passive_milestone.mp3",
+      "type": "audio",
+      "bytes": 26444
+    },
+    {
+      "path": "/assets/hero-rework/robot-final/sfx/robot_passive_upgrade.mp3",
+      "type": "audio",
+      "bytes": 36044
     },
     {
       "path": "/assets/ice_v1/audio/ambient_freeze_crack.mp3",

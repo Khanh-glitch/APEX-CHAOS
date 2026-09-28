@@ -164,6 +164,9 @@ export const MODE_DEFERRED_RUNTIMES = {
     // they wrap its step/entry/exit hooks (never inside ARSENAL_HUB_RUNTIMES).
     ['/game/hero-rework/heroMechanicsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkMechanics'],
     ['/game/hero-rework/heroReworkRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRuntime'],
+    // ROBOT final presentation (2026-09-29): articulated 1280 head-space, springs,
+    // jaw socket, wall/hit/fire, A1/A2/passive SFX, semantic events, teardown.
+    ['/game/hero-rework/robotPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexRobotPresentationRuntime'],
   ],
   select: SELECT_RUNTIMES,
   battle: BATTLE_RUNTIMES,
