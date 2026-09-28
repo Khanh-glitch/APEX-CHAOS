@@ -330,6 +330,87 @@ function spyDraw() {
     { singleHeroCalls: aCalls.length, anchorCalls: anchorCalls.length, childCalls: childCalls2.length, anchorW: anchorCalls[0] && anchorCalls[0].weaponId, childW: childCalls2[0] && childCalls2[0].weaponId });
 }
 
+/* =============================================================================
+ * G3 — Storm floor lightning hits extra SLIME Bodies (doc 14 R2/C2).
+ * Controlled REAL visible bolt geometry (testInjectFloorBolt = the same
+ * polylines the sampler treats as contact authority) crossing real bodies.
+ * Frozen floor law: damage = 0, stun = 1.0s, longer stun never shortened,
+ * dead/retired excluded. Direct thrown Stormbreaker collides with an extra
+ * Body through the body-aware living-body TOI path.
+ * ============================================================================= */
+{
+  const m = Q.start('SLIME', 'ICE', 4201);
+  Q.placeFree(300, 500, 1, 0, 700, 500, -1, 0);
+  Q.ctl().tryCast('A1', 'gates');
+  Q.step(0.05);
+  const STORM = win.APEX_ARSENAL_STORM;
+  const raw = Q.ct().bodies;
+  const anchor = raw.find(b => !b.__hrChild);
+  const child = raw.find(b => b.__hrChild);
+  const stunned = (body) => (body.statuses && body.statuses.stun && body.statuses.stun.timer) || 0;
+  // Re-pin positions right before each controlled contact (bodies move).
+  anchor.x = 300; anchor.y = 500;
+  child.x = 700; child.y = 500;
+  // (a) anchor floor contact -> standard 1.0s stun, zero damage
+  const aHp0 = anchor.hp;
+  STORM.testInjectFloorBolt(300, 250, 300, 750);
+  Q.step(0.03);
+  const anchorStun = stunned(anchor);
+  const anchorNoDamage = Math.abs(anchor.hp - aHp0) < 1e-9;
+  // (b) existing LONGER stun is never shortened by a floor hit
+  child.x = 700; child.y = 500;
+  child.applyStatus('stun', 2.5, {});
+  const cHp0 = child.hp;
+  STORM.testInjectFloorBolt(700, 250, 700, 750);
+  Q.step(0.03);
+  const longStunKept = stunned(child) > 1.5;
+  const childNoDamage = Math.abs(child.hp - cHp0) < 1e-9;
+  // (c) fresh child floor contact -> standard 1.0s stun (NOT immune)
+  child.statuses.stun.timer = 0;
+  child.x = 700; child.y = 500;
+  STORM.testInjectFloorBolt(700, 250, 700, 750);
+  Q.step(0.03);
+  const childStun = stunned(child);
+  const eligible = STORM.floorContacts(win.APEX_HERO_REWORK.environmentTargets())
+    .length >= 0; // query exists and runs
+  // (d) dead/retired excluded: kill the anchor -> retired husk stays in
+  //     fighters[] but is NOT an environment target and gets no stun.
+  anchor.x = 300; anchor.y = 500;
+  W.aqDamage(anchor, 5000, win.fighters[1], 'STORMBREAKER', {});
+  const husk = win.fighters[0]; // retired representative (promotion moved the anchor)
+  const targets = win.APEX_HERO_REWORK.environmentTargets();
+  const huskExcluded = !targets.some(t => t === husk) && !!husk.data.__hrRetiredAnchor;
+  // The husk IS the body that was legitimately stunned in (a) — a residual
+  // body-local stun timer may still be draining. The law under test: the
+  // post-kill bolt must add NO NEW stun (timer never increases).
+  const huskStunBefore = stunned(husk);
+  STORM.testInjectFloorBolt(300, 250, 300, 750);
+  Q.step(0.03);
+  const huskNoStun = stunned(husk) <= huskStunBefore + 1e-9 && stunned(husk) <= 1.05;
+  // (e) direct thrown Stormbreaker collides with an extra Body through the
+  //     body-aware TOI path (enemy child intercepts the flight line).
+  const m2 = Q.start('SLIME', 'SLIME', 4202);
+  const ctl2 = win.APEX_HERO_REWORK.abilityController(win.APEX_HERO_REWORK.byCombatant(win.fighters[1]));
+  ctl2.tryCast('A1', 'gates');
+  Q.step(0.05);
+  const enemyChild = win.APEX_HERO_REWORK.byCombatant(win.fighters[1]).bodies.find(b => b.__hrChild);
+  const thrower = win.fighters[0];
+  thrower.x = 150; thrower.y = 500;
+  win.fighters[1].x = 850; win.fighters[1].y = 500;
+  enemyChild.x = 500; enemyChild.y = 500; // directly on the flight line
+  const ecHp0 = enemyChild.hp;
+  const angle = Math.atan2(500 - 500, 850 - 150);
+  W.spawnThrownMelee(thrower, 'STORMBREAKER', angle);
+  Q.step(0.6); // flight + homing window
+  const childHit = enemyChild.hp < ecHp0;
+  const ok = !!m && anchorStun > 0.8 && anchorStun <= 1.05 && anchorNoDamage
+    && longStunKept && childNoDamage
+    && childStun > 0.8 && childStun <= 1.05 && eligible
+    && huskExcluded && huskNoStun && !!m2 && childHit;
+  gate('G3-storm-floor-hits-child-bodies', ok,
+    { anchorStun: +anchorStun.toFixed(3), anchorNoDamage, longStunKept, childNoDamage, childStun: +childStun.toFixed(3), eligible, huskExcluded, huskNoStun, thrownStormChildHit: childHit, ecHp0, ecHp: enemyChild.hp });
+}
+
 /* ------------------------------------------------------------------ summary */
 const total = Object.keys(report.gates).length;
 const passed = Object.values(report.gates).filter(g => g.pass).length;

@@ -323,7 +323,17 @@
     if (window.APEX_ARSENAL_STORM && window.APEX_ARSENAL_STORM.floorContacts
         && CFG.STORMBREAKER && CFG.STORMBREAKER.floorBoltHazard !== false) {
       const stunSeconds = CFG.STORMBREAKER.floorBoltStunSeconds != null ? CFG.STORMBREAKER.floorBoltStunSeconds : 1.0;
-      for (const c of window.APEX_ARSENAL_STORM.floorContacts(fighters)) {
+      // Doc 14 R2: the floor-lightning sampler enumerates ALL eligible
+      // living bodies — normal fighters plus every living rework body
+      // (extra SLIME Bodies / promoted anchors; retired/dead/invisible
+      // anchors excluded). Generic query, no SLIME-name conditional.
+      // Extra SLIME Bodies are NOT electrically immune (no such frozen
+      // mechanic). Frozen floor law preserved: visible bolt geometry is
+      // the contact authority, damage = 0, stun = 1.0s, a shorter floor
+      // stun never shortens a longer one, per-pulse/per-body gating.
+      const H = window.APEX_HERO_REWORK;
+      const stormTargets = (H && H.environmentTargets) ? H.environmentTargets() : fighters;
+      for (const c of window.APEX_ARSENAL_STORM.floorContacts(stormTargets)) {
         const f = c.fighter;
         if (!f || f.hp <= 0 || !f.applyStatus) continue;
         const cur = f.statuses && f.statuses.stun;
