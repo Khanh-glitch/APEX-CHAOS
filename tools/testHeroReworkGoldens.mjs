@@ -32,46 +32,188 @@ const REPO = process.cwd();
 const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules');
 const requireTool = createRequire(path.join(TOOLING_DIR, 'noop.js'));
 const { JSDOM } = requireTool('jsdom');
-const { createCanvas, GlobalFonts } = requireTool('@napi-rs/canvas');
+const { createCanvas, loadImage, GlobalFonts } = requireTool('@napi-rs/canvas');
 GlobalFonts.registerFromPath(path.join(REPO, 'public', 'assets', 'fonts', 'kanit', 'Kanit-BlackItalic.ttf'), 'ApcKanit');
 
 const evidenceDir = process.env.AQ_EVIDENCE_DIR || path.join(REPO, 'docs', 'hero-rework', 'evidence');
 const loadErrors = [];
 
+// Mirrors the production shell (suite harness boot): PASS B side panels
+// carry the engine-owned p1/p2 identity + HP ids; #hud keeps mode overlays.
 const dom = new JSDOM(`<!doctype html><html><body>
   <div id="battle-shell">
-    <aside id="p1-combat-panel" class="combat-panel"><div class="cp-identity"><span id="p1-cp-chip"></span><div id="p1-name">P1</div><div class="hp-bar-bg"><div id="p1-hp-loss"></div><div id="p1-hp"></div><div id="p1-hp-text"></div></div><div id="p1-rage"></div></div></aside>
-    <div id="game-wrapper"><canvas id="game-canvas" width="1000" height="1000"></canvas>
+    <aside id="p1-combat-panel" class="combat-panel">
+      <div class="cp-identity">
+        <span id="p1-cp-chip"></span>
+        <div id="p1-name">P1</div>
+        <div class="hp-bar-bg"><div id="p1-hp-loss"></div><div id="p1-hp"></div><div id="p1-hp-text"></div></div>
+        <div id="p1-rage"></div>
+      </div>
+      <div id="p1-burst"><div id="p1-burst-label"></div><div id="p1-burst-total">0</div><span id="p1-burst-hits">0 HITS</span><span id="p1-burst-crits">0 CRIT</span></div>
+      <div id="p1-loadout"><canvas id="p1-loadout-canvas" width="480" height="240"></canvas><div id="p1-loadout-fallback"><span id="p1-cp-glyph"></span><span id="p1-loadout-fallback-label">UNARMED</span></div><div id="p1-loadout-name">—</div><span id="p1-loadout-family"></span><span id="p1-loadout-tier"></span></div>
+      <div id="p1-energy"><span id="p1-energy-val">0</span><div id="p1-energy-fill"></div><div id="p1-energy-state"></div></div>
+      <div id="p1-mode-slot"></div>
+    </aside>
+  <div id="game-wrapper">
+    <canvas id="game-canvas" width="1000" height="1000"></canvas>
     <div id="countdown-overlay" style="display:none"><div id="countdown-num">3</div><div id="countdown-sub"></div></div>
-    <div class="ui-layer" id="hud"></div><div id="battle-controls" class="hidden"></div>
-    <div id="menu-screen" class="screen"></div><div id="select-screen" class="screen hidden"><div id="select-title"></div><button id="start-btn" class="hidden"></button></div>
-    <div id="end-screen" class="screen hidden"><div id="winner-text"></div><div id="stats-panel"></div></div>
-    <div id="roster-grid"></div></div>
-    <aside id="p2-combat-panel" class="combat-panel"><div class="cp-identity"><span id="p2-cp-chip"></span><div id="p2-name">P2</div><div class="hp-bar-bg"><div id="p2-hp-loss"></div><div id="p2-hp"></div><div id="p2-hp-text"></div></div><div id="p2-rage"></div></div></aside>
-  </div></body></html>`, { pretendToBeVisual: true, runScripts: 'dangerously', url: 'http://localhost/' });
+    <div class="ui-layer" id="hud">
+      <div id="manual-lab-hud" class="hidden"></div>
+    </div>
+    <div id="battle-controls" class="hidden"></div>
+    <div id="menu-screen" class="screen"></div>
+    <div id="select-screen" class="screen hidden"><div id="select-title"></div><button id="start-btn" class="hidden"></button><div id="apex-pick-runtime-root"></div></div>
+    <div id="manual-room-screen" class="screen hidden"></div>
+    <div id="tournament-screen" class="screen hidden"></div>
+    <div id="end-screen" class="screen hidden"><div id="winner-text"></div><div id="stats-panel"></div><button id="tournament-return-btn" class="hidden"></button><button id="challenge-retry-btn" class="hidden"></button></div>
+    <div id="solo-screen" class="screen hidden"><div id="solo-hud"></div></div>
+    <div id="trial-screen" class="screen hidden"></div>
+    <div id="tam-chien-screen" class="screen hidden"></div>
+    <div id="roster-grid"></div>
+  </div>
+    <aside id="p2-combat-panel" class="combat-panel">
+      <div class="cp-identity">
+        <span id="p2-cp-chip"></span>
+        <div id="p2-name">P2</div>
+        <div class="hp-bar-bg"><div id="p2-hp-loss"></div><div id="p2-hp"></div><div id="p2-hp-text"></div></div>
+        <div id="p2-rage"></div>
+      </div>
+      <div id="p2-burst"><div id="p2-burst-label"></div><div id="p2-burst-total">0</div><span id="p2-burst-hits">0 HITS</span><span id="p2-burst-crits">0 CRIT</span></div>
+      <div id="p2-loadout"><canvas id="p2-loadout-canvas" width="480" height="240"></canvas><div id="p2-loadout-fallback"><span id="p2-cp-glyph"></span><span id="p2-loadout-fallback-label">UNARMED</span></div><div id="p2-loadout-name">—</div><span id="p2-loadout-family"></span><span id="p2-loadout-tier"></span></div>
+      <div id="p2-energy"><span id="p2-energy-val">0</span><div id="p2-energy-fill"></div><div id="p2-energy-state"></div></div>
+      <div id="p2-mode-slot"></div>
+    </aside>
+  </div>
+</body></html>`, { pretendToBeVisual: true, runScripts: 'dangerously', url: 'http://localhost/' });
+
 const win = dom.window;
-win.__apexStatsSilent = true;
+win.__apexStatsSilent = true; // silence synthesized battle SFX in the harness
 win.localStorage.setItem('apexChaos.arsenalMeta.v1', JSON.stringify({ version: 1, credits: 350, ownedFighters: ['ROBOT'], lastSelectedP1: 'ROBOT', lastSelectedP2: 'SNIPER', totalSpins: 0, unlockedAt: { ROBOT: 1 } }));
+
+// Real canvas backing for every jsdom <canvas>. @napi-rs/canvas drawImage only
+// accepts its own Canvas objects, so translate jsdom elements to their backing
+// canvas in a proxy around the 2D context.
 const realCanvases = new WeakMap();
 function realCanvasFor(el) {
-  let rc = realCanvases.get(el); const w = el.width || 300, h = el.height || 150;
-  if (!rc || rc.width !== w || rc.height !== h) { rc = createCanvas(w, h); realCanvases.set(el, rc); }
+  let rc = realCanvases.get(el);
+  const w = el.width || 300;
+  const h = el.height || 150;
+  if (!rc || rc.width !== w || rc.height !== h) {
+    rc = createCanvas(w, h);
+    realCanvases.set(el, rc);
+  }
   return rc;
 }
-const gameCanvasReal = realCanvasFor(win.document.getElementById('game-canvas'));
 win.HTMLCanvasElement.prototype.getContext = function (type) {
   if (type && type !== '2d') return null;
-  const el = this; const realCtx = realCanvasFor(el).getContext('2d');
-  return new Proxy(realCtx, { get(t, p) { const v = Reflect.get(t, p, t); if (typeof v === 'function') return v.bind(t); return v; }, set(t, p, v) { return Reflect.set(t, p, v, t); } });
+  const el = this;
+  const realCtx = realCanvasFor(el).getContext('2d');
+  return new Proxy(realCtx, {
+    get(target, prop) {
+      // @napi-rs/canvas accessors require the native context itself as receiver;
+      // using the Proxy as receiver causes "Failed to unwrap exclusive reference".
+      const value = Reflect.get(target, prop, target);
+      if (prop === 'drawImage' && typeof value === 'function') {
+        return function (img, ...args) {
+          const mapped = img && (img.__realImage || realCanvases.get(img) || (img instanceof win.HTMLCanvasElement ? realCanvasFor(img) : null));
+          return value.call(target, mapped || img, ...args);
+        };
+      }
+      if (typeof value === 'function') return value.bind(target);
+      return value;
+    },
+    set(target, prop, value) {
+      return Reflect.set(target, prop, value, target);
+    },
+  });
 };
-class ParamStub { constructor() { this.value = 0; } setValueAtTime() { return this; } exponentialRampToValueAtTime() { return this; } linearRampToValueAtTime() { return this; } setTargetAtTime() { return this; } cancelScheduledValues() { return this; } }
-class AudioNodeStub { constructor() { this.gain = new ParamStub(); this.frequency = new ParamStub(); this.Q = new ParamStub(); this.detune = new ParamStub(); this.pan = new ParamStub(); } connect() { return this; } disconnect() {} start() {} stop() {} }
-class AudioContextStub { constructor() { this.currentTime = 0; this.state = 'running'; this.sampleRate = 48000; this.destination = new AudioNodeStub(); } decodeAudioData(buf) { return Promise.resolve({ duration: 0.5, sampleRate: 48000, length: 24000 }); } createGain() { return new AudioNodeStub(); } createOscillator() { return new AudioNodeStub(); } createBufferSource() { return new AudioNodeStub(); } createBiquadFilter() { return new AudioNodeStub(); } createStereoPanner() { return new AudioNodeStub(); } createDynamicsCompressor() { return new AudioNodeStub(); } createBuffer(ch, len, rate) { return { length: len, sampleRate: rate, getChannelData: () => new Float32Array(len) }; } resume() { return Promise.resolve(); } }
-win.AudioContext = AudioContextStub; win.webkitAudioContext = AudioContextStub;
-win.fetch = () => new Promise(() => {});
-class HarnessImage { constructor() { this.complete = true; this.width = 10; this.height = 10; this.onload = null; this.onerror = null; } set src(v) { if (this.onload) this.onload(); } }
+const gameCanvasEl = win.document.getElementById('game-canvas');
+const gameCanvasReal = gameCanvasEl.getContext('2d').canvas;
+
+// Minimal WebAudio stub (SFX code paths are silenced by __apexStatsSilent).
+class ParamStub {
+  constructor() { this.value = 0; }
+  setValueAtTime() { return this; }
+  exponentialRampToValueAtTime() { return this; }
+  linearRampToValueAtTime() { return this; }
+  setTargetAtTime() { return this; }
+  cancelScheduledValues() { return this; }
+}
+class AudioNodeStub {
+  constructor() {
+    this.gain = new ParamStub(); this.frequency = new ParamStub();
+    this.Q = new ParamStub(); this.detune = new ParamStub(); this.pan = new ParamStub();
+    this.buffer = null; this.loop = false; this.type = 'sine';
+  }
+  connect() { return this; }
+  disconnect() {}
+  start() {}
+  stop() {}
+}
+class AudioContextStub {
+  constructor() { this.currentTime = 0; this.state = 'running'; this.sampleRate = 48000; this.destination = new AudioNodeStub(); }
+  decodeAudioData(buf) {
+    // Fake decoded buffer; duration derived from byte length (16-bit mono).
+    const seconds = Math.max(0.05, (buf && buf.byteLength ? buf.byteLength / 2 / 48000 : 0.5));
+    return Promise.resolve({ duration: seconds, sampleRate: 48000, length: Math.floor(seconds * 48000) });
+  }
+  createGain() { return new AudioNodeStub(); }
+  createOscillator() { return new AudioNodeStub(); }
+  createBufferSource() { return new AudioNodeStub(); }
+  createBiquadFilter() { return new AudioNodeStub(); }
+  createStereoPanner() { return new AudioNodeStub(); }
+  createDynamicsCompressor() { return new AudioNodeStub(); }
+  createMediaElementSource() { return new AudioNodeStub(); }
+  createBuffer(ch, len, rate) { return { length: len, sampleRate: rate, getChannelData: () => new Float32Array(len) }; }
+  resume() { return Promise.resolve(); }
+}
+win.AudioContext = AudioContextStub;
+win.webkitAudioContext = AudioContextStub;
+
+// jsdom has no fetch; UI runtimes (pick layout JSON) park on a pending promise.
+// AV presentation audio fetches ARE served from the repo so preload/decode and
+// the bounded-voice playback path run for real (sound itself stays stubbed).
+win.fetch = (url) => {
+  const u = String(url);
+  if (u.includes('/assets/arsenal/av/')) {
+    const rel = u.slice(u.indexOf('/assets/') + 1);
+    try {
+      const data = fs.readFileSync(path.join(REPO, 'public', rel));
+      const copy = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+      return Promise.resolve({ ok: true, arrayBuffer: () => Promise.resolve(copy) });
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+  return new Promise(() => {});
+};
+
+// jsdom Image cannot decode PNGs; back every Image with a real @napi-rs image
+// loaded from public/ so curated VFX actually render into evidence frames.
+class HarnessImage {
+  constructor() { this.complete = false; this.width = 0; this.height = 0; this.__realImage = null; this.onload = null; this.onerror = null; }
+  set src(v) {
+    this._src = v;
+    const rel = String(v).replace(/^\//, '');
+    loadImage(path.join(REPO, 'public', rel))
+      .then((im) => {
+        this.__realImage = im;
+        this.width = im.width;
+        this.height = im.height;
+        this.naturalWidth = im.width;
+        this.naturalHeight = im.height;
+        this.complete = true;
+        if (this.onload) this.onload();
+      })
+      .catch(() => { if (this.onerror) this.onerror(); });
+  }
+  get src() { return this._src; }
+}
 win.Image = HarnessImage;
-win.requestAnimationFrame = () => 0; win.cancelAnimationFrame = () => {};
+
+// Harness owns time: no automatic frames; tests step deterministically.
+win.requestAnimationFrame = () => 0;
+win.cancelAnimationFrame = () => {};
 function loadScript(relPath, required) {
   const file = path.join(REPO, 'public', String(relPath).split(/[?#]/, 1)[0].replace(/^\//, ''));
   try { win.eval(fs.readFileSync(file, 'utf8')); return true; } catch (error) {
@@ -150,29 +292,59 @@ try {
   HR.setAiEnabled(false);
   T.start('ICE', 'CRYSTAL');
   T.holdSpawns();
-  // Close range: circle-reflection amplifies small aim offsets (a grazing
-  // hit reflects ~20 degrees off); at 150px the return shot still connects.
-  T.place(350, 500, 500, 500);
+  // ~280px: bodies (r=75) must not touch (the muzzle would spawn inside
+  // CRYSTAL's circle). The muzzle art anchor sits ~24px off the aim line,
+  // so every auto-fired shot grazes the circle and reflects ~34 degrees
+  // off the reverse path — the return can never reach a shooter at legal
+  // separation (0.56*D drift vs the 81.5px hit circle). The golden instead
+  // INTERCEPTS deterministically: the moment the reflected projectile
+  // appears, the shooter is moved onto its measured path via the production
+  // relocate API (the same call SNIPER farthest-corner makes).
+  T.place(350, 500, 630, 500);
   const ice = T.ctl(0);
   const a1 = ice.tryCast('A1', 'goldens'); // Ice Bullets: own shots apply CHILL
-  T.equip(0, 'GLOCK_17');
+  T.equip(0, 'MAGNUM_500'); // range 1276px — survives the full round trip
   const mark = T.busMark();
   let reflectSeen = false, chilledIce = false, creditedCrystal = false, runError = null;
+  let payloadKept = false, controllerFlipped = false, intercepted = false;
+  const traj = [];
+  win.APEX_ARSENAL.events.length = 0;
+  const crystalBody = win.fighters[1];
+  const api = HR.match.api;
   try {
     for (let f = 0; f < 420 && !(reflectSeen && chilledIce && creditedCrystal); f++) {
       T.step(1 / 60);
       reflectSeen = reflectSeen || T.busSince(mark, 'CrystalReflect') > 0;
+      if (reflectSeen && !intercepted) {
+        const p = win.projectiles.find(q => q && q.aq && q.owner === crystalBody);
+        if (p) {
+          payloadKept = !!(p.__hr && p.__hr.chill); // ICE payload survives reflection
+          controllerFlipped = true; // reflect rewrote the controller to CRYSTAL
+          const sp = Math.hypot(p.vx, p.vy) || 1;
+          const tx = p.x + (p.vx / sp) * 110, ty = p.y + (p.vy / sp) * 110;
+          api.relocate(win.fighters[0], tx, ty, 'goldens.reflect-intercept');
+          intercepted = true;
+        }
+      }
+      if (intercepted && traj.length < 8) {
+        const p = win.projectiles.find(q => q && q.aq && q.owner === crystalBody);
+        if (p) traj.push({ f, x: +p.x.toFixed(0), y: +p.y.toFixed(0), life: +p.life.toFixed(2), chill: !!(p.__hr && p.__hr.chill) });
+      }
       const c2 = HR.byCombatant(win.fighters[1]);
       creditedCrystal = c2 && c2.telemetry && c2.telemetry.damageDealt > 0;
       const c1 = HR.byCombatant(win.fighters[0]);
       chilledIce = !!(c1 && HR.AIL.StatusResolver.has(win.fighters[0], 'CHILL'));
     }
   } catch (e) { runError = String(e && e.message); }
-  // The reflected projectile must retain the ICE chill payload (applies to
-  // ICE when it connects) and credit CRYSTAL for the reflected damage.
+  const hitLines = win.APEX_ARSENAL.events.filter(e => e.includes('HIT')).slice(0, 6);
+  // Laws: reflect fires; the payload + controller flip survive in flight;
+  // and when the reflected projectile connects, CHILL lands on the victim
+  // and the damage credits CRYSTAL (the reflecting combatant).
   gate('golden-crystal-reflect-ice-payload',
-    a1 && a1.ok && reflectSeen && chilledIce && creditedCrystal && !runError,
-    { a1: a1 && a1.ok, reflectSeen, chilledIce, creditedCrystal, runError });
+    a1 && a1.ok && reflectSeen && payloadKept && controllerFlipped
+    && chilledIce && creditedCrystal && !runError,
+    { a1: a1 && a1.ok, reflectSeen, payloadKept, controllerFlipped, intercepted,
+      chilledIce, creditedCrystal, traj, hitLines, runError });
   snapshot('golden-crystal-reflect-ice-payload');
 } catch (e) { gate('golden-crystal-reflect-ice-payload', false, String(e && e.message)); }
 
@@ -226,21 +398,32 @@ try {
   T.start('BLACK_HOLE', 'CRYSTAL');
   T.holdSpawns();
   T.place(200, 500, 780, 500);
-  // P1 fires at CRYSTAL; the A1 singularity is cast only AFTER the outgoing
-  // bullet clears the midpoint zone, so it is the REFLECTED return shot that
-  // gets stored (the release guard blocks re-storing released projectiles).
+  // P1 fires at CRYSTAL; the reflection returns on a measured path (the
+  // muzzle art anchor grazes the circle, so the return is ~34 degrees off
+  // the reverse line). The A1 singularity spawns at the ANCHOR MIDPOINT,
+  // so the moment the reflected projectile appears, CRYSTAL is relocated
+  // (production API) such that the midpoint lands ON the measured return
+  // path ahead of the bullet — the REFLECTED projectile is what gets stored
+  // (the release guard would block re-storing a released projectile).
   const bh = T.ctl(0);
   T.equip(0, 'MAGNUM_500'); // range 1276px — survives the full round trip
   const crystalBody = win.fighters[1];
+  const bhBody = win.fighters[0];
   const mark = T.busMark();
-  let sing = { ok: false }, storedReflected = false, released = false, releases0 = 0, runError = null;
+  let sing = { ok: false }, storedReflected = false, released = false, releases0 = -1, storeFrame = -1, runError = null;
   try {
     for (let f = 0; f < 600; f++) {
       T.step(1 / 60);
-      // Outgoing bullet past x>640 (zone edge is 610): cast now.
-      if (!sing.ok) {
-        const out = win.projectiles.find(pp => pp && pp.aq && pp.vx > 0 && pp.x > 640);
-        if (out) sing = bh.tryCast('A1', 'goldens');
+      if (!sing.ok && T.busSince(mark, 'CrystalReflect') > 0) {
+        const p = win.projectiles.find(q => q && q.aq && q.owner === crystalBody);
+        if (p) {
+          const sp = Math.hypot(p.vx, p.vy) || 1;
+          const mx = p.x + (p.vx / sp) * 80, my = p.y + (p.vy / sp) * 80;
+          // Singularity spawns at the anchor midpoint: place CRYSTAL so the
+          // midpoint equals the intercept point on the return path.
+          HR.match.api.relocate(crystalBody, 2 * mx - bhBody.x, 2 * my - bhBody.y, 'goldens.singularity-intercept');
+          sing = bh.tryCast('A1', 'goldens');
+        }
       }
       // A REFLECTED projectile stored: the stored entry's controller is the
       // CRYSTAL body (reflect rewrites p.owner to the reflecting body).
@@ -248,14 +431,18 @@ try {
         const sings = W().singularities || [];
         storedReflected = sings.some(sg => sg.stored.some(d => d.owner === crystalBody));
       }
-      if (!releases0 && storedReflected) releases0 = T.busSince(mark, 'SingularityRelease');
-      if (storedReflected && T.busSince(mark, 'SingularityRelease') > releases0) released = true;
+      if (releases0 < 0 && storedReflected) { releases0 = T.busSince(mark, 'SingularityRelease'); storeFrame = f; }
+      if (storedReflected && releases0 >= 0 && T.busSince(mark, 'SingularityRelease') > releases0) released = true;
       if (released) break;
     }
   } catch (e) { runError = String(e && e.message); }
+  const singCount = (W() && W().singularities || []).length;
+  const schedPending = HR.AIL.hrScheduler.pending();
+  const releaseCount = T.busSince(mark, 'SingularityRelease');
+  const storedCount = T.busSince(mark, 'SingularityStored');
   gate('golden-blackhole-stores-reflected',
     sing && sing.ok && storedReflected && released && !runError,
-    { sing: sing && sing.ok, storedReflected, released, runError });
+    { sing: sing && sing.ok, storedReflected, released, storeFrame, releaseCount, storedCount, schedPending, singCount, runError });
   snapshot('golden-blackhole-stores-reflected');
 } catch (e) { gate('golden-blackhole-stores-reflected', false, String(e && e.message)); }
 
@@ -267,17 +454,37 @@ try {
   HR.setAiEnabled(false);
   T.start('RUBBER', 'CRYSTAL');
   T.holdSpawns();
-  // Close range: the reflected return shot must reach the RUBBER body
-  // (at long range spread-deflected reflections miss by ~200px).
-  T.place(350, 500, 500, 500);
+  // ~280px separation (bodies must not touch). The muzzle art anchor
+  // grazes CRYSTAL's circle (~24px off-line), so the reflected return
+  // misses any static shooter at legal range — the golden INTERCEPTS:
+  // the moment the reflected projectile appears, RUBBER is relocated onto
+  // its measured path via the production relocate API, and the compression
+  // window (2.5s) must STORE the returning projectile.
+  T.place(350, 500, 630, 500);
   const rub = T.ctl(0);
   const a2 = rub.tryCast('A2', 'goldens'); // compression store window (2.5s)
-  T.equip(0, 'GLOCK_17');
+  T.equip(0, 'MAGNUM_500'); // range 1276px — survives the full round trip
   const mark = T.busMark();
-  let storedReflected = false, held = 0, runError = null;
+  let storedReflected = false, held = 0, intercepted = false, runError = null;
+  const crystalBody = win.fighters[1];
+  const api = HR.match.api;
+  const traj = [];
+  win.APEX_ARSENAL.events.length = 0;
   try {
     for (let f = 0; f < 420; f++) {
       T.step(1 / 60);
+      if (!intercepted && T.busSince(mark, 'CrystalReflect') > 0) {
+        const p = win.projectiles.find(q => q && q.aq && q.owner === crystalBody);
+        if (p) {
+          const sp = Math.hypot(p.vx, p.vy) || 1;
+          api.relocate(win.fighters[0], p.x + (p.vx / sp) * 110, p.y + (p.vy / sp) * 110, 'goldens.rubber-intercept');
+          intercepted = true;
+        }
+      }
+      if (intercepted && traj.length < 8) {
+        const p = win.projectiles.find(q => q && q.aq && q.owner === crystalBody);
+        if (p) traj.push({ f, x: +p.x.toFixed(0), y: +p.y.toFixed(0), life: +p.life.toFixed(2) });
+      }
       // RubberStored can only fire for a RETURNING (reflected) bullet —
       // outgoing shots reach CRYSTAL first.
       if (T.busSince(mark, 'CrystalReflect') > 0 && T.busSince(mark, 'RubberStored') > 0) storedReflected = true;
@@ -286,9 +493,11 @@ try {
     const rs = T.ct(0).store['rubber.compression'];
     held = rs && rs.held ? rs.held.length : 0;
   } catch (e) { runError = String(e && e.message); }
+  const hitLines = win.APEX_ARSENAL.events.filter(e => e.includes('HIT')).slice(0, 6);
+  const reflCount = T.busSince(mark, 'CrystalReflect');
   gate('golden-rubber-stores-reflected',
     a2 && a2.ok && storedReflected && held >= 1 && !runError,
-    { a2: a2 && a2.ok, storedReflected, held, runError });
+    { a2: a2 && a2.ok, storedReflected, held, reflCount, intercepted, traj, hitLines, runError });
   snapshot('golden-rubber-stores-reflected');
 } catch (e) { gate('golden-rubber-stores-reflected', false, String(e && e.message)); }
 
@@ -598,3 +807,4 @@ if (report.failures.length) {
   console.log('FAILED: ' + report.failures.join(', '));
   process.exit(1);
 }
+process.exit(0); // harness keeps jsdom/canvas handles alive — exit explicitly
