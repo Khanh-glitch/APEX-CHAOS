@@ -83,7 +83,7 @@
         "dashRes": {
           "ok": true
         },
-        "moved": 392
+        "moved": 248
       }
     },
     "smoke-j-a1-routing": {
@@ -94,6 +94,29 @@
           "Cast",
           "P1Press"
         ]
+      }
+    },
+    "smoke-locomotion-no-pickup-seek": {
+      "pass": true,
+      "detail": {
+        "dir": [
+          1,
+          0
+        ],
+        "dx": 312,
+        "north": 0,
+        "speed": 520
+      }
+    },
+    "smoke-locomotion-no-chase": {
+      "pass": true,
+      "detail": {
+        "dir": [
+          1,
+          0
+        ],
+        "dx": 260,
+        "dist": 710.8
       }
     },
     "smoke-teardown": {

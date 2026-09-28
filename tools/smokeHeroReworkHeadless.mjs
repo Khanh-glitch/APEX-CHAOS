@@ -318,6 +318,37 @@ T.step(0.1);
 const busCasts = HR.AIL.bus.ring.slice(busBefore).filter((e) => e.type === 'Cast' || e.type === 'CastFailCue' || e.type === 'P1Press');
 gate('smoke-j-a1-routing', jRes === true && busCasts.length >= 2, { jRes, busCasts: busCasts.map((e) => e.type) });
 
+/* Gate 12b — LOCOMOTION LAW with REAL moving fighters (owner-failure root
+ * cause S1/S2 + test-mask S6): no baseSpeed=0, no __hrHoldBody, no disabled
+ * behavior. An unarmed rework Hero must NOT turn toward an off-heading
+ * pickup; an armed one must NOT chase/kite an off-heading opponent. */
+{
+  T.start('ICE', 'ICE');
+  T.holdSpawns();
+  const [a, b] = T.fighters();
+  a.x = 350; a.y = 800; a.setDir(1, 0);
+  b.x = 200; b.y = 150; b.setDir(-1, 0);
+  T.pushSlot({ x: 350, y: 450, weaponId: 'PISTOL' }); // due NORTH of P1
+  const s0 = { x: a.x, y: a.y };
+  T.step(0.6);
+  const noSeek = a.dir.x > 0.9 && Math.abs(a.dir.y) < 0.1 && (a.x - s0.x) > 250 && (s0.y - a.y) < 100;
+  gate('smoke-locomotion-no-pickup-seek', noSeek && a.baseSpeed > 0 && !a.data.__hrHoldBody,
+    { dir: [a.dir.x, a.dir.y], dx: +(a.x - s0.x).toFixed(1), north: +(s0.y - a.y).toFixed(1), speed: a.baseSpeed });
+  // Armed no-chase: opponent far south off-heading; real equip; 0.5s window.
+  T.start('ICE', 'ICE');
+  T.holdSpawns();
+  const [c, d] = T.fighters();
+  c.x = 300; c.y = 300; c.setDir(1, 0);
+  d.x = 300; d.y = 850; d.setDir(-1, 0);
+  win.APEX_ARSENAL.weaponApi.equip(c, 'PISTOL');
+  const c0 = { x: c.x, y: c.y };
+  T.step(0.5);
+  const dist = Math.hypot(c.x - d.x, c.y - d.y);
+  const noChase = c.dir.x > 0.9 && Math.abs(c.dir.y) < 0.1 && (c.x - c0.x) > 200 && dist > 380;
+  gate('smoke-locomotion-no-chase', noChase && c.baseSpeed > 0 && !c.data.__hrHoldBody,
+    { dir: [c.dir.x, c.dir.y], dx: +(c.x - c0.x).toFixed(1), dist: +dist.toFixed(1) });
+}
+
 /* Gate 13 — teardown */
 win.exitArsenalQuestMode();
 const tornDown = HR.match == null;

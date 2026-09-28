@@ -1,9 +1,11 @@
 /* =============================================================================
  * APEX CHAOS — Hero Rework integration runtime.
  *
- * Owns: match installation, combatant graph, AbilityController, rework
- * movement AI, damage adapter, projectile pass (parity-preserving), world
- * entities, SLIME body collections, P2 cast AI, telemetry, public API.
+ * Owns: match installation, combatant graph, AbilityController, the shared
+ * locomotion law latch (heading/bounce = original APEX physics; no pickup
+ * seek, no chase/kite, no ideal-distance steering — explicit mechanics only),
+ * damage adapter, projectile pass (parity-preserving), world entities, SLIME
+ * body collections, P2 cast AI, telemetry, public API.
  *
  * Authority: docs/hero-rework/phase1/00..05 + 06_POSTFREEZE_ROSTER_CORRECTION.
  *
@@ -652,48 +654,38 @@
   };
 
   /* ------------------------------------------------------------------ *
-   * Movement AI — rework shells and SLIME children.
+   * Movement law — rework shells and SLIME children.
+   *
+   * HARD LOCOMOTION LAW (docs 02 / 09 §S1 / 10): ordinary reworked body
+   * movement is ORIGINAL APEX locomotion — the body preserves its heading,
+   * the engine integrates it at baseSpeed, and wall/body interactions change
+   * motion only through normal physics. There is NO automatic pickup
+   * seeking, NO chase/kite steering and NO ideal-distance controller. The
+   * previous shellUpdate pickup-seek + hold-band steer was an illegal global
+   * autopilot that contaminated every Hero (owner-failure root cause S1/S2).
+   *
+   * The ONLY steering allowed is an explicit Hero mechanic active window
+   * (ROBOT A1 Weapon Dash, HUNTER A2 Pounce) — those executors integrate
+   * their own motion and latch positionLocked themselves.
+   *
+   * This hook therefore only latches mechanic-driven movement locks (the
+   * engine resets data.positionLocked every frame) and otherwise leaves
+   * heading untouched.
    * ------------------------------------------------------------------ */
   HR.shellUpdate = function shellUpdate(f, enemy, dt) {
     const ct = combatantOfBody(f);
     if (!M || !ct || ct.facade) return;
-    // Test/freeze hold (weapon-pose laws): never steer a test-pinned body.
-    // Dash executors are unaffected — they integrate x/y directly.
+    // Test/freeze hold (weapon-pose laws): never move a test-pinned body.
+    // Explicit-mechanic integrators (dash/pounce) are unaffected.
     if (f.data.__hrHoldBody) return;
-    const a = ct.anchor;
-    // Dash/pounce/nest states already integrated by executor onTicks; they
-    // set positionLocked for the engine movement skip.
+    // Explicit-mechanic motion states (dash/pounce/nest) already integrated
+    // by executor onTicks; they set positionLocked for the engine skip.
     if (f.data.positionLocked) return;
-    if (AIL.StatusResolver.has(f, 'ROOT')) { f.data.positionLocked = true; return; }
-    const enemyBodies = livingBodies(enemyOf(ct));
-    const target = enemyBodies[0] || null;
-    const held = heldWeaponOfBody(f);
-    if (!held) {
-      // Seek the nearest revealed weapon pickup (prefer non-T6).
-      let pick = null;
-      const picks = M.api.revealedPickups({});
-      const nonT6 = picks.filter((p) => !p.isT6);
-      const list = nonT6.length ? nonT6 : picks;
-      let bestD = Infinity;
-      for (const p of list) {
-        const d = dist(f.x, f.y, p.x, p.y);
-        if (d < bestD) { bestD = d; pick = p; }
-      }
-      if (pick) {
-        f.setDir(Math.cos(angleTo(f.x, f.y, pick.x, pick.y)), Math.sin(angleTo(f.x, f.y, pick.x, pick.y)));
-        return;
-      }
-    }
-    if (target) {
-      const d = dist(f.x, f.y, target.x, target.y);
-      const holdBand = f === a ? [260, 380] : [200, 320];
-      if (d > holdBand[1]) {
-        f.setDir(Math.cos(angleTo(f.x, f.y, target.x, target.y)), Math.sin(angleTo(f.x, f.y, target.x, target.y)));
-      } else if (d < holdBand[0]) {
-        f.setDir(-Math.cos(angleTo(f.x, f.y, target.x, target.y)), -Math.sin(angleTo(f.x, f.y, target.x, target.y)));
-      }
-      // else hold heading (strafe-free deterministic hold)
-    }
+    // ROOT (HUNTER A1 snare / explicit mechanic status): re-latch the engine
+    // movement lock every frame while rooted. Nothing else may steer here.
+    if (AIL.StatusResolver.has(f, 'ROOT')) { f.data.positionLocked = true; }
+    // Otherwise: original APEX law — preserve heading; engine movement +
+    // wall/body bounce own the trajectory.
   };
 
   function childAI(child, dt) {
