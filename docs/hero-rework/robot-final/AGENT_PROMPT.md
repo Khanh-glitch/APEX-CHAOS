@@ -21,8 +21,10 @@ Read in full before coding:
 - `docs/agent-authority/VIBECODE_SKILL.md`
 - current Hero Rework authority/registry/mechanics/runtime docs and code
 - `docs/hero-rework/phase1/15_SLIME_OWNER_CORRECTION_FINAL_REPORT_2026-09-28.md`
-- the supplied `ROBOT_VISUAL_AUTHORITY.html`
-- supplied `SHA256SUMS.txt`
+- `docs/hero-rework/robot-final/00_ROBOT_FINAL_INTEGRATION_LOCK_2026-09-29.md`
+- `docs/hero-rework/robot-final/01_REPO_ASSET_MAP.md`
+- `docs/hero-rework/robot-final/reference/ROBOT_VISUAL_AUTHORITY.html`
+- `docs/hero-rework/robot-final/SHA256SUMS.txt`
 - this task
 
 First report the exact HEAD and verify the reference/SFX SHA-256 values. Then inspect current Robot mechanics, shell/render path, Arsenal weapon drawing, semantic AV/audio pipeline, hit/collision hooks, runtime manifest and existing Robot gates. After that, implement. This task is intended to finish in one run; do not stop after merely proposing architecture.
@@ -33,7 +35,7 @@ There are TWO authorities and they own different things:
 
 ### A. Owner-approved HTML owns ROBOT presentation
 
-`ROBOT_VISUAL_AUTHORITY.html` is the visual/motion authority for the Robot itself. It owns:
+`docs/hero-rework/robot-final/reference/ROBOT_VISUAL_AUTHORITY.html` is the visual/motion authority for the Robot itself. It owns:
 
 - silhouette and proportions;
 - layer segmentation and draw order;
@@ -282,7 +284,7 @@ The implementation should be READY: when thresholds are later supplied, no prese
 
 ## 9. Final SFX inventory — exactly eight Robot files
 
-Use these semantic names in runtime/materialization (extension may be converted according to existing delivery policy, but sound content must remain the owner-selected source):
+The repo is already self-contained. DO NOT ask the owner for a ZIP or external asset upload. Exact source masters and runtime copies are already present. Use these semantic names in runtime/materialization (extension may be converted according to existing delivery policy, but sound content must remain the owner-selected source):
 
 1. `robot_a1_lock` <- `mixkit-sci-fi-positive-notification-266.wav`
 2. `robot_a1_no_weapon` <- `universfield-error-notification-05-199276.mp3`
@@ -293,7 +295,7 @@ Use these semantic names in runtime/materialization (extension may be converted 
 7. `robot_passive_milestone` <- `daviddumaisaudio-steampunk-mechanical-gadget-188052.mp3`
 8. `robot_passive_upgrade` <- `rescopicsound-sci-fi-weapon-recharge-reload-compact-01-233839.mp3`
 
-Use `SHA256SUMS.txt` as the identity gate. Do not substitute a similar sound. Do not resurrect prototype synth audio. Do not add clamp or heavy-hit files.
+Use `docs/hero-rework/robot-final/SHA256SUMS.txt` as the identity gate. Exact owner-source masters are already in `tools/hero-rework/source/robot-final/source-sfx/`; pre-bridged compressed copies are in `tools/hero-rework/source/robot-final/sfx/`. Do not substitute a similar sound. Do not resurrect prototype synth audio. Do not add clamp or heavy-hit files.
 
 Integrate through the existing Arsenal AV runtime on `audioCtx` / `battleAudioMaster`. Do not create another AudioContext. Preserve mobile unlock/session behavior. Follow the project's existing source-master/runtime-delivery/materialization policy rather than dumping an ad-hoc sound library into public assets.
 
@@ -398,7 +400,7 @@ Capture at useful scale at least:
 
 Also provide a short playable preview/build for owner feel-test. Screenshots are evidence, not owner acceptance.
 
-Use the supplied HTML side-by-side as the visual authority. The Robot must retain the same identity, material split, silhouette, articulation grammar and skill choreography. Environment adaptation is allowed; aesthetic reinterpretation is not.
+Use `docs/hero-rework/robot-final/reference/ROBOT_VISUAL_AUTHORITY.html` side-by-side as the visual authority. The Robot must retain the same identity, material split, silhouette, articulation grammar and skill choreography. Environment adaptation is allowed; aesthetic reinterpretation is not.
 
 ## 15. Completion report
 
@@ -433,3 +435,7 @@ If a hard visual blocker makes exact reconstruction impossible, preserve the acc
 - no gameplay rebalance.
 - no Slime regression.
 - implement the whole Robot, not just VFX or SFX.
+
+## REPO SELF-CONTAINMENT CHECK
+
+Before implementation, prove these paths exist and SHA-check them. If they exist, you are forbidden to ask the owner for any Robot ZIP/audio/reference upload. All required Robot authority is already in this branch.
