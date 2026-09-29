@@ -48,6 +48,16 @@ Charge truth must be visible in the existing skill/cooldown HUD or mode slot. Do
 
 Each active production trap must own an independent copy of the gold trap presentation/lifecycle. Do not visually collapse three logical traps into one shared mutable trap state. A new cast must never reset, hide, or mutate an older still-active trap.
 
+A1 event authority:
+- ability activation begins the Hunter body deploy choreography;
+- consume one charge only on a successful accepted cast;
+- spawn/arm the logical trap at the authored PLANT moment, not immediately at button-down while the visual is still deploying;
+- the logical trap center uses Hunter's authoritative production position at plant time;
+- real opponent body entry into the armed trigger is the ONLY authority for captured/rooted state;
+- trap snap/pin/capture presentation must follow that real trigger;
+- an untriggered trap expiry must never fake a capture;
+- release/cleanup follows real root/expiry lifecycle.
+
 ### A2 POUNCE
 
 - cooldown 12s
@@ -138,6 +148,14 @@ Therefore:
 - continuous steering must not spam a correction burst every frame: use the gold correction effect as a meaningful presentation beat while physics may steer continuously underneath.
 
 Do not revert mechanics to the old one-vector or one-correction-only miss behavior merely to copy demo plumbing.
+
+A2 event authority:
+- launch presentation begins from the accepted cast after the 0.16s prelaunch;
+- continuous steering controls the authoritative body path;
+- a SWEPT REAL BODY COLLISION is the ONLY authority for a successful catch;
+- apply WEAK and enter the gold CATCH/close presentation from that same real contact event;
+- do not show a successful catch merely because an authored path endpoint/distance was reached;
+- if the chase genuinely times out after an exceptional escape/relocation, recover without fake contact, Weak, or catch-close.
 
 ## SOFT adaptation authority — what APEX owns
 
