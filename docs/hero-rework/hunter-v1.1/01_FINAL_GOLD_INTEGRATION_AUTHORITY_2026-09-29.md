@@ -195,6 +195,15 @@ Allowed to adapt only as necessary:
 
 These adaptations must preserve the visible gold identity rather than redesign it.
 
+Production asset/runtime law:
+- store the exact HTML in-repo as immutable authority/reference only;
+- do NOT execute or parse the 3.66 MB authority HTML as part of normal production gameplay;
+- extract/bridge the required source art into stable production assets/runtime structures as needed;
+- decode/cache immutable Hunter/trap art once;
+- three active traps share immutable source assets/caches but own independent small mutable animation/lifecycle state;
+- do not create three redundant copies of decoded source imagery or large offscreen atlases merely because three traps exist;
+- any optimization must be visually checked against the gold at normal game scale.
+
 Precedence when there is a real conflict:
 1. explicit owner-approved Hunter V1.1 gameplay/usability law;
 2. gold HTML presentation/choreography;
@@ -233,6 +242,7 @@ Real-browser production evidence must include at minimum:
 10. passive does not trigger when prey state is absent;
 11. T6 exclusion;
 12. interaction with real Arsenal weapon/projectile environment;
-13. no runtime errors / leaks after repeated skill use.
+13. no runtime errors / leaks after repeated skill use;
+14. three simultaneous traps + normal Hunter rendering do not cause a material frame-time/memory regression or repeated source-art decode.
 
 This is a gold-port task, not a new art-direction task.
