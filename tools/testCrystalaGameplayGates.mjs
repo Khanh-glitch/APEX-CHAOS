@@ -767,6 +767,239 @@ await gate('C50-enemy-projectiles-damage-the-real-construct-through-one-transact
   return { ok: out.plain.ok && out.crit.ok && out.crit.delta > out.plain.delta, detail: out };
 });
 
+/* =========================================================================
+ * §4 MOVEMENT / GEOMETRY — G01..G08
+ * ========================================================================= */
+const CAPR = 19.5, BODY_R = 75;
+
+await gate('G01-no-invisible-collision-before-visible-grown-material', () => {
+  const w = wallFresh();
+  const rc = rigOf(w.cta).constructs.find((x) => x.kind === 'wall');
+  const early = CRY.capsules().length;                          // just cast: nothing is visible yet
+  // a bullet that is a predicted MISS for K but crosses the future wall line (x~480, y~553) while nothing has grown
+  const p = fire(w.b, 850, 500, 150, 600, 'SLOW');
+  let bad = 0, samples = 0, crossedAt = null;
+  for (let k = 0; k < 90; k++) {
+    step(DT);
+    if (crossedAt == null && p.x < 470) crossedAt = k;
+    if (rc.geom) {
+      // every capsule run covers ONLY cells whose material has actually grown (>= 0.5), and every grown cell is covered
+      const grown = rc.geom.segs.map((s) => s.grow >= 0.5 - 1e-6);
+      const covered = new Array(grown.length).fill(false);
+      for (const r of rigOf(w.cta).wallRuns(rc)) for (let i = r.from; i <= r.to; i++) covered[i] = true;
+      samples++;
+      if (covered.some((c, i) => c !== grown[i])) bad++;
+    }
+  }
+  const passed = crossedAt != null && !(p.__hr && p.__hr.crystalReflected) && telem(w.cta).constructReflects === 0;
+  // control: the identical shot AFTER the material locked is stopped and reflected
+  waitLock(w);
+  const q = fire(w.b, 850, 500, 150, 600, 'SLOW');
+  step(0.7);
+  const stopped = telem(w.cta).constructReflects === 1 && !!(q.__hr && q.__hr.crystalReflected);
+  return { ok: early === 0 && bad === 0 && samples > 20 && passed && stopped,
+    detail: { capsulesAtCast: early, mismatchTicks: bad, samples, earlyShotCrossedAtTick: crossedAt, earlyShotPassed: passed, lockedShotStopped: stopped } };
+});
+
+await gate('G02-normal-locomotion-cannot-cross-solid-wall', () => {
+  const w = wallFresh();
+  waitLock(w);
+  w.b.x = 850; w.b.y = 500; w.b.baseSpeed = 520; w.b.setDir(-1, 0);
+  let minX = 1e9, contact = false, bounced = false;
+  for (let k = 0; k < 150; k++) {
+    step(DT);
+    minX = Math.min(minX, w.b.x);
+    if (w.b.x < 600) contact = true;
+    if (contact && w.b.dir.x > 0) bounced = true;
+  }
+  const face = 480 + CAPR + BODY_R;                              // body centre can never be nearer than this
+  return { ok: minX >= face - 0.6 && contact && bounced && w.cons().state === 'LIVE', detail: { minX: fmt(minX), face, contact, bounced } };
+});
+
+await gate('G03-normal-locomotion-cannot-cross-live-prison-facet', () => {
+  const w = prisonFresh();
+  waitLock(w);
+  const P = rigOf(w.cta).constructs.find((x) => x.kind === 'prison').prison;
+  w.b.baseSpeed = 520; w.b.setDir(Math.cos(0.3), Math.sin(0.3));
+  let maxOut = 0, n = 0;
+  const inradius = 135 * Math.cos(Math.PI / 6);
+  for (let k = 0; k < 120; k++) {
+    step(DT);
+    if (w.cons().state !== 'LIVE') break;
+    n++;
+    maxOut = Math.max(maxOut, Math.hypot(w.b.x - P.cx, w.b.y - P.cy));
+  }
+  // the body centre is confined to the hexagon shrunk by (body radius + material half thickness)
+  return { ok: n > 60 && maxOut <= inradius - (BODY_R + CAPR) + 0.8 + 8, detail: { maxDistFromCentre: fmt(maxOut), limit: fmt(inradius - (BODY_R + CAPR)), ticks: n } };
+});
+
+await gate('G04-destroyed-prison-facet-opens-a-real-gap', () => {
+  const out = {};
+  {   // one facet: collision gone at once, projectile passes; a 150 px body still cannot pass a 135 px chord
+    const w = prisonFresh(); waitLock(w);
+    const P = rigOf(w.cta).constructs.find((x) => x.kind === 'prison').prison;
+    const mid = (i) => ({ x: (P.edges[i].a.x + P.edges[i].b.x) / 2, y: (P.edges[i].a.y + P.edges[i].b.y) / 2 });
+    const m = mid(3);
+    fire(w.b, P.cx, P.cy, m.x, m.y, 'SNIPER'); step(0.2);
+    const c = w.cons();
+    const capsOf3 = CRY.capsules().filter((q) => q.cons && q.idx === 3).length;
+    const hpB = hpOf(w.b);
+    // a shot from the centre through the gap now reaches the far side of the arena (no facet stops it)
+    const q = fire(w.b, P.cx, P.cy, m.x, m.y, 'SLOW');
+    step(0.5);
+    const reflected = !!(q.__hr && q.__hr.crystalReflected);
+    w.b.baseSpeed = 520; w.b.setDir((m.x - P.cx), (m.y - P.cy));
+    let maxOut = 0; for (let k = 0; k < 90; k++) { step(DT); maxOut = Math.max(maxOut, Math.hypot(w.b.x - P.cx, w.b.y - P.cy)); }
+    out.one = { facetDead: c.facetsDead[3], capsulesOfFacet: capsOf3, projectilePasses: !reflected, bodyEscapes: maxOut > 135 + 40, maxOut: fmt(maxOut) };
+  }
+  {   // two ADJACENT facets: the opening is wide enough for the body
+    const w = prisonFresh(); waitLock(w);
+    const P = rigOf(w.cta).constructs.find((x) => x.kind === 'prison').prison;
+    const mid = (i) => ({ x: (P.edges[i].a.x + P.edges[i].b.x) / 2, y: (P.edges[i].a.y + P.edges[i].b.y) / 2 });
+    for (const i of [3, 4]) { const m = mid(i); fire(w.b, P.cx, P.cy, m.x, m.y, 'SNIPER'); step(0.2); }
+    const m3 = mid(3), m4 = mid(4); const gx = (m3.x + m4.x) / 2 - P.cx, gy = (m3.y + m4.y) / 2 - P.cy;
+    w.b.baseSpeed = 520; w.b.setDir(gx, gy);
+    let maxOut = 0; for (let k = 0; k < 90; k++) { step(DT); maxOut = Math.max(maxOut, Math.hypot(w.b.x - P.cx, w.b.y - P.cy)); }
+    out.two = { dead: w.cons().facetsDead.join(','), bodyEscapes: maxOut > 135 + 40, maxOut: fmt(maxOut) };
+  }
+  return { ok: out.one.facetDead && out.one.capsulesOfFacet === 0 && out.one.projectilePasses && !out.one.bodyEscapes && out.two.bodyEscapes, detail: out };
+});
+
+await gate('G05-Robot-A1-high-speed-dash-cannot-tunnel-through-solid-crystal-geometry', () => {
+  const run = (withWall) => {
+    const w = withWall ? wallFresh() : fresh({ ax: 150, ay: 500, bx: 850, by: 500 });
+    if (withWall) waitLock(w);
+    T.holdSpawns();
+    T.pushSlot({ x: 300, y: 500, weaponId: 'PISTOL' });
+    w.b.baseSpeed = 0;
+    const r = HR.abilityController(w.ctb).tryCast('A1', 'test');
+    let minX = 1e9, dashed = false;
+    for (let k = 0; k < 60; k++) { step(DT); minX = Math.min(minX, w.b.x); }
+    return { r: r.ok, minX, stoodOnOtherSide: minX < 420 };
+  };
+  const control = run(false), walled = run(true);
+  const face = 480 + CAPR + BODY_R;
+  return { ok: control.r && control.stoodOnOtherSide && walled.r && walled.minX >= face - 0.6 && !walled.stoodOnOtherSide,
+    detail: { control: { minX: fmt(control.minX) }, walled: { minX: fmt(walled.minX), face } } };
+});
+
+await gate('G05b-large-step-anti-tunnelling-is-swept-not-sampled', () => {
+  // a body teleported 400 px through the wall in ONE step (far beyond any per-frame dash) is still stopped
+  const w = wallFresh(); waitLock(w);
+  w.b.x = 700; w.b.y = 500; step(DT);                           // register previous position
+  w.b.x = 300; w.b.y = 500;                                     // jump across the wall line in a single step
+  step(DT);
+  return { ok: w.b.x >= 480 + CAPR + BODY_R - 0.6 && w.b.x < 700, detail: { x: fmt(w.b.x) } };
+});
+
+await gate('G06-Hunter-pounce-authored-displacement-cannot-tunnel', async () => {
+  const ready = await H.hunterReady(20000);
+  if (!ready) return { ok: false, detail: 'Hunter art not ready in the headless harness (known baseline condition)' };
+  const w = fresh({ p1: 'CRYSTAL', p2: 'HUNTER', ax: 150, ay: 500, bx: 850, by: 500 });
+  press(w.a, 'A2'); fire(w.b, w.a.x, 900, w.a.x, w.a.y, 'SLOW'); stepUntil(() => ins(w.cta).jobs.length >= 1, 1.5);
+  press(w.a, 'A1');
+  waitLock({ cta: w.cta, cons: () => ins(w.cta).constructs.find((c) => c.kind === 'wall') });
+  w.b.x = 850; w.b.y = 500; w.b.baseSpeed = 0;
+  const r = HR.abilityController(w.ctb).tryCast('A2', 'test');
+  let minX = 1e9;
+  for (let k = 0; k < 80; k++) { step(DT); minX = Math.min(minX, w.b.x); }
+  return { ok: r.ok && minX >= 480 + CAPR + BODY_R - 0.6, detail: { cast: r.ok, minX: fmt(minX), face: 480 + CAPR + BODY_R } };
+});
+
+await gate('G07-anti-tunnelling-is-shared-geometry-not-robot-hunter-rewrites', () => {
+  const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
+  const read = (f) => fs.readFileSync(f, 'utf8');
+  const PROTECTED = {   // byte-identical to the Hunter owner-fix / prep baseline 12613d89 (protected semantics)
+    'public/game/arsenal/arsenalChamberPaletteRuntime.js': '547ed50a88dbf1a10e8eb3f2fcdf69e3930ad10547302f8e6b48cc8b29425978',
+    'public/game/arsenal/arsenalMetaRuntime.js': 'c7bca2c76d954a2887f311d4c00515e2c6350fc707fd98bf0f9d02c37280021d',
+    'public/game/hero-rework/hunterPresentationRuntime.js': '18c67a8a8315fa66adff4e8bd046ff389a893ecd6ab590e78b83fa32e7eb8146',
+    'public/game/hero-rework/robotPresentationRuntime.js': '27856fca5ccda11674a825948a0f98ea48a62e9fe23b27e49200570f09e1c24c',
+    'public/game/hero-rework/hunterGoldV10.js': '3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1',
+    'public/game/arsenal/arsenalWeaponRuntime.js': '70f26c3fa049e572fe9e9d045adc3a8d0b46f569b22e0b990f1a073b2d16c9b3',
+    'public/game/modes/arsenalQuestRuntime.js': 'c82047c13559e550a541dd7fbc5179d5c8b9765871e544d885dc685c95e3a8de',
+    'public/game/hero-rework/ailRuntime.js': 'dbc5e1e22a52639fbf8a0cc609ee9be03ca2538903d8c13788188b73d4e2f0b0',
+  };
+  const bad = Object.entries(PROTECTED).filter(([f, h]) => sha(read(f)) !== h).map(([f]) => f);
+  const mech = read('public/game/hero-rework/heroMechanicsRuntime.js');
+  const slice = (a, b) => mech.slice(mech.indexOf(a), mech.indexOf(b));
+  const robot = sha(slice('   * 1. ROBOT', '   * 2. CRYSTAL')) === 'e3f0ee8cd974403a27ac53bbb739629b2e550b1f548a42a19c3e58b5d73f983b';
+  const hunter = sha(slice('   * 8. HUNTER', '   * 9. TIME')) === '479cce6f8088ed0705fe34ce1c1427450803935437820b32b591f5f23f5d1885';
+  const geom = HR.geom && typeof HR.geom.capsuleToi === 'function' && typeof HR.geom.wallsBlockPoint === 'function' && typeof HR.geom.solidCapsules === 'function';
+  const grant = /OWNER_TEST_CREDITS\s*=\s*12000/.test(read('public/game/arsenal/arsenalMetaRuntime.js')) && /OWNER_TEST_GRANT_KEY/.test(read('public/game/arsenal/arsenalMetaRuntime.js'));
+  return { ok: bad.length === 0 && robot && hunter && geom && grant, detail: { changedProtectedFiles: bad, robotBlockIdentical: robot, hunterBlockIdentical: hunter, sharedGeom: geom, grant12000: grant } };
+});
+
+await gate('G08-cage-stops-tracking-the-target-after-NUCLEATE', () => {
+  const w = fresh({ ax: 150, ay: 500, bx: 700, by: 500 });
+  press(w.a, 'A2'); step(0.1);
+  w.b.baseSpeed = 380; w.b.setDir(0, 1);                          // the target keeps moving while the cage forms
+  press(w.a, 'A1');
+  const rc = rigOf(w.cta).constructs.find((x) => x.kind === 'prison');
+  const P = rc.prison;
+  let followedBefore = 0, movedAfter = 0, frozenAt = null, c0 = null, nFollow = 0;
+  for (let k = 0; k < 90; k++) {
+    step(DT);
+    if (!P.frozen) { nFollow++; if (Math.hypot(P.cx - w.b.x, P.cy - w.b.y) < 25) followedBefore++; }
+    else { if (frozenAt == null) { frozenAt = k; c0 = { x: P.cx, y: P.cy }; } movedAfter = Math.max(movedAfter, Math.hypot(P.cx - c0.x, P.cy - c0.y)); }
+  }
+  const targetDrift = Math.hypot(w.b.x - c0.x, w.b.y - c0.y);
+  return { ok: frozenAt != null && nFollow > 10 && followedBefore >= nFollow - 2 && movedAfter === 0 && ins(w.cta).constructs[0].frozen === true,
+    detail: { trackedTicksBeforeFreeze: `${followedBefore}/${nFollow}`, freezeTick: frozenAt, centreMovedAfterFreeze: movedAfter, targetNowFromCentre: fmt(targetDrift) } };
+});
+
+/* =========================================================================
+ * §5 INTEGRITY — R07 and static law
+ * ========================================================================= */
+await gate('R07-runtime-revision-cache-bust-gate-green', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const r = spawnSync(process.execPath, ['tools/testRuntimeRevisionGate.mjs'], { encoding: 'utf8' });
+  return { ok: r.status === 0, detail: (r.stdout || '').trim().split('\n').pop() };
+});
+
+await gate('L01-no-duplicate-KeyK-listener-and-no-input-buffer-in-Crystal-code', () => {
+  const src = ['public/game/hero-rework/crystalGameplayRuntime.js', 'public/game/hero-rework/crystalaGoldV6.js'].map((f) => fs.readFileSync(f, 'utf8')).join('\n');
+  const listeners = (src.match(/addEventListener\s*\(\s*['"]key/g) || []).length;
+  const buffer = /pressK|bufferedJ|jBuffer|inputBuffer\s*[:=]\s*true/.test(src);
+  const reg = fs.readFileSync('public/game/hero-rework/heroRegistry.js', 'utf8');
+  return { ok: listeners === 0 && !buffer && /inputBuffer: false/.test(reg), detail: { keyListeners: listeners, buffer } };
+});
+
+await gate('L02-registry-frozen-numbers-and-one-knob-per-skill', () => {
+  const R = win.APEX_HERO_REWORK_REGISTRY;
+  const c = R.HEROES.CRYSTAL.skills;
+  const a1 = R.resolveSkillLevel('CRYSTAL', 'A1', 1), a2 = R.resolveSkillLevel('CRYSTAL', 'A2', 1), ps = R.resolveSkillLevel('CRYSTAL', 'PASSIVE', 1);
+  const knobs = [c.A1, c.A2, c.PASSIVE].map((s) => s.progressionBinding.knobPath.join('.'));
+  const v = R.validateRegistry();
+  return { ok: v.ok && a1.cooldown === 1.5 && a1.wall.width === 220 && a1.wall.hp === 120 && a1.wall.solidLifetime === 4 && a1.prison.radius === 135 && a1.prison.facetHp === 75 && a1.prison.solidLifetime === 3
+    && a2.cooldown === 8 && a2.active === 2.4 && a2.scanRadius === 1000 && a2.interceptBand === 180 && a2.minAnticipation === 0.12 && a2.contactToDock === 1.2
+    && ps.reflectedDamagePct === 0.5 && knobs.join() === 'constructHpMult,cooldown,reflectedDamagePct',
+    detail: { knobs, registryOk: v.ok, errors: v.errors } };
+});
+
+await gate('M01-contact-to-dock-is-1.20s-and-dock-flips-availability-exactly', () => {
+  const w = crystalK();
+  fire(w.b, 850, 500, w.a.x, w.a.y, 'SLOW');
+  stepUntil(() => evOf(w.ev, 'CrystalDock').length > 0, 3.0);
+  const ic = evOf(w.ev, 'CrystalIntercept')[0].payload, dk = evOf(w.ev, 'CrystalDock')[0].payload;
+  const total = dk.at - ic.contactAt;
+  const rl = evOf(w.ev, 'CrystalRelease')[0].payload.at - ic.contactAt;
+  return { ok: near(total, 1.20, 0.04) && near(rl, 0.16, 0.02) && ins(w.cta).available === 6, detail: { contactToDock: fmt(total), refractBeat: fmt(rl) } };
+});
+
+await gate('A01-P2-Crystal-AI-healthy-no-fail-cue-spam', () => {
+  HR.setSeed(7);
+  HR.setAiEnabled(true);
+  const m = T.start('ROBOT', 'CRYSTAL'); T.holdSpawns();
+  const ev = []; AIL.bus.on('*', (e) => ev.push(e));
+  let err = null;
+  try { step(25); } catch (e) { err = String(e && e.stack || e).split('\n').slice(0, 2).join(' | '); }
+  const ct = m.combatants[1];
+  const fails = ev.filter((e) => e.type === 'CastFailCue' && e.payload.hero === 'CRYSTAL').length;
+  const casts = ev.filter((e) => e.type === 'Cast' && e.payload.hero === 'CRYSTAL').map((e) => e.payload.slot);
+  HR.setAiEnabled(false);
+  return { ok: !err && HR.invariants().ok && casts.includes('A2') && fails <= 2 && ct.anchor.hp > 0, detail: { err, fails, casts: casts.join(','), invariants: HR.invariants().errors } };
+});
+
 // @@GATES_CONTINUE@@
 const failed = results.filter((r) => !r.ok);
 console.log(`\n[CRYSTALA GAMEPLAY GATES] ${results.length - failed.length}/${results.length}`);
