@@ -29,12 +29,14 @@ If the previous Arena task is fully pushed and the local worktree is clean, fast
 
 ## Required Hunter attachment
 
-The task must be accompanied by the exact owner HTML:
+The task must be accompanied by the exact owner V10 HTML:
 
-`HUNTER_ALT_FINAL_V9_ROOT_TRAP_SAFE_P(1).html`
+`HUNTER_ALT_FINAL_V10_EXACT_ROOT_TRAP(1).html`
 
 Verify:
-SHA-256 = `c8cde28f346bbbd99de0c448ccfb396eae210e4928436850ef82b488d765fc88`
+SHA-256 = `447cf549cceb955459eda4b74ef5a561c77fc2f574252783bc7921663578ae65`
+
+The previous V9 hash `c8cde28f346bbbd99de0c448ccfb396eae210e4928436850ef82b488d765fc88` is superseded and must not be used.
 
 If the attached source hash does not match, STOP rather than implementing from memory or an older Hunter prototype.
 
@@ -47,8 +49,9 @@ After verification, copy/bridge the exact gold HTML into a stable repo authority
 3. `docs/hero-rework/robot-visual-cleanup-diagnostic/README.md`
 4. `docs/hero-rework/hunter-v1.1/00_GAMEPLAY_CHECKPOINT_2026-09-29.md`
 5. `docs/hero-rework/hunter-v1.1/01_FINAL_GOLD_INTEGRATION_AUTHORITY_2026-09-29.md`
-6. exact attached Hunter HTML in full
-7. current production:
+6. `docs/hero-rework/hunter-v1.1/03_GOLD_V10_SUPERSESSION_AUDIT_2026-09-29.md`
+7. exact attached Hunter V10 HTML in full
+8. current production:
    - `public/game/hero-rework/heroRegistry.js`
    - `public/game/hero-rework/heroMechanicsRuntime.js`
    - `public/game/hero-rework/heroReworkRuntime.js`
@@ -113,7 +116,7 @@ Do not stop or wait for owner after this checkpoint unless a blocker exists. Con
 
 # PHASE 2 — HUNTER FINAL V1.1 + GOLD PORT
 
-The attached HTML is the visual/motion golden master.
+The attached V10 HTML is the visual/motion golden master. V10 supersedes V9 wherever presentation differs.
 
 ## Core integration law
 
