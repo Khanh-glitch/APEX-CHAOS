@@ -293,7 +293,7 @@ class Stone {
 function createRig(opt) {
   opt = opt || {};
   const seed = (opt.seed >>> 0) || 1;
-  const visual = !!opt.visual;
+  let visual = !!opt.visual;
   const rngG = mulberry32(seed);                            // motion-affecting randomness
   const rngV = mulberry32((seed ^ 0x9E3779B9) >>> 0);       // visual-only randomness
   const R = { seed, visual, DT, RETIME, time: 0, acc: 0, constructSeq: 0,
@@ -1260,6 +1260,7 @@ function createRig(opt) {
     }
     bodyNext.x = x; bodyNext.y = y; bodyNext.vx = vx || 0; bodyNext.vy = vy || 0;
   }
+  function setVisual(v){ visual = !!v; R.visual = visual; if (visual) ensureFx(); }
   function awaken(v, flash){
     hero.awakeT = Math.max(hero.awakeT, v);
     if (flash){ hero.eyeFlash = Math.max(hero.eyeFlash, flash); hero.pendantPulse = Math.max(hero.pendantPulse, flash * 0.8); }
@@ -1268,7 +1269,7 @@ function createRig(opt) {
   Object.assign(R, {
     hero, orbit, stones, attractors,
     get fx() { return fx; }, ensureFx,
-    setBody, advance, awaken, stoneSlot, scoreStone, indexFacet, facetNormal,
+    setBody, advance, awaken, setVisual, stoneSlot, scoreStone, indexFacet, facetNormal,
     reserve, beginIntercept, refract, recoilKick, returnHome,
     abortReturn: (i, T) => rejoinStone(stones[i], T != null ? T : 0.5),
     planWall, castWall, wallHit, collapseWall, detachWall, wallRuns,
