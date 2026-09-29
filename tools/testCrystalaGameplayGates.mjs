@@ -580,6 +580,193 @@ await gate('C36-selected-shard-is-physically-reachable-no-far-side-teleport', ()
   return { ok: rec.length >= 2 && fits && maxJump < 70, detail: { n: rec.length, fits, maxJump: fmt(maxJump), travel: rec.map((r) => fmt(r.travel)) } };
 });
 
+/* =========================================================================
+ * §3 REFLECTION / PROJECTILE TRUTH — C37..C50
+ * ========================================================================= */
+// Control = a Crystal-owned bullet of the identical spec into the Robot (no K). The reflected leg of the same
+// spec must then realise exactly pct x the control damage on the same victim: one multiplier, nothing else.
+function reflectRun(o = {}) {
+  const w = fresh({ ax: 150, ay: 500, bx: 850, by: 500 });
+  const spec = { critical: !!o.critical };
+  const hp0 = hpOf(w.b);
+  fire(w.a, 150, 500, 850, 500, 'SLOW', spec);
+  step(0.8);
+  const dControl = hp0 - hpOf(w.b);
+  press(w.a, 'A2');
+  if (o.armor) HR.abilityController(w.ctb).tryCast('A2', 'test');
+  const hpA = hpOf(w.a), hp1 = hpOf(w.b);
+  const dealt0 = w.cta.telemetry.damageDealt;
+  const rawBefore = PRESET.SLOW.damage;
+  const p = fire(w.b, 990, 500, 150, 500, 'SLOW', spec);
+  if (o.tags) p.__hr = Object.assign(p.__hr || {}, o.tags);
+  if (o.mutate) o.mutate(p);
+  // K's exit direction is pure facet geometry (the shard's rotation lags the ray by a few degrees), so it does not
+  // always return to the shooter. To measure the DAMAGE law in isolation, stand the victim on the real exit ray.
+  const released = stepUntil(() => p.__hr && p.__hr.crystalReflected && !p.__hr.cryHold && (p.vx || p.vy), 3.0);
+  if (released != null) {
+    const sp = Math.hypot(p.vx, p.vy);
+    w.b.x = Math.min(930, Math.max(70, p.x + (p.vx / sp) * 320)); w.b.y = Math.min(930, Math.max(70, p.y + (p.vy / sp) * 320));
+  }
+  step(1.6);
+  return { w, p, dControl, dReflect: hp1 - hpOf(w.b), hpLossCrystal: hpA - hpOf(w.a), rawBefore, dealt: w.cta.telemetry.damageDealt - dealt0 };
+}
+
+await gate('C37-shard-contact-cancels-the-incoming-hit', () => {
+  const r = reflectRun();
+  const ic = evOf(r.w.ev, 'CrystalIntercept');
+  return { ok: ic.length === 1 && r.hpLossCrystal === 0 && r.p.owner === r.w.a, detail: { intercepts: ic.length, crystalHpLoss: r.hpLossCrystal } };
+});
+
+await gate('C38-reflected-damage-is-current-damage-x0.50-exactly-once', () => {
+  const r = reflectRun();
+  const hold = r.w.ev.filter((e) => e.type === 'CrystalRelease').length === 1;
+  const ratio = r.dReflect / r.dControl;
+  return { ok: hold && r.dControl > 0 && near(ratio, 0.5, 1e-9) && near(r.p.damage, r.rawBefore * 0.5, 1e-12),
+    detail: { control: fmt(r.dControl), reflected: fmt(r.dReflect), ratio, rawNow: r.p.damage } };
+});
+
+await gate('C39-no-second-Arsenal-x7', () => {
+  const r = reflectRun();
+  const ratio = r.dReflect / r.dControl;
+  // x7 applied twice would make the ratio 3.5; one x7 (at the hit) and one pct gives exactly 0.5
+  return { ok: near(ratio, 0.5, 1e-9) && r.dReflect < r.dControl, detail: { ratio } };
+});
+
+await gate('C40-no-new-firearm-crit-roll', () => {
+  const calls = { n: 0 };
+  const AQ = win.APEX_ARSENAL, prev = AQ.combatRng;
+  AQ.combatRng = () => { calls.n++; return 0; };           // would ALWAYS crit if the reflect path rolled
+  let r;
+  try { r = reflectRun({ critical: false }); } finally { AQ.combatRng = prev; }
+  return { ok: calls.n === 0 && r.p.critical === false && near(r.dReflect / r.dControl, 0.5, 1e-9), detail: { rngCalls: calls.n, critical: r.p.critical } };
+});
+
+await gate('C41-valid-crit-and-provenance-survive', () => {
+  const r = reflectRun({ critical: true, tags: { chill: true } });
+  const ratio = r.dReflect / r.dControl;
+  return { ok: r.p.critical === true && r.p.weapon === 'PISTOL' && r.p.__hr.chill === true && r.p.family === 'SEMI' && near(ratio, 0.5, 1e-9) && r.dControl > 0,
+    detail: { critical: r.p.critical, weapon: r.p.weapon, chill: r.p.__hr.chill, ratio } };
+});
+
+await gate('C42-owner-controller-becomes-Crystal-and-damage-is-credited-to-Crystal', () => {
+  const r = reflectRun();
+  return { ok: r.p.owner === r.w.a && r.p.__hr.crystalReflected === true && r.dealt > 0 && near(r.dealt, r.dReflect, 1e-9),
+    detail: { ownerIsCrystal: r.p.owner === r.w.a, credited: fmt(r.dealt), realised: fmt(r.dReflect) } };
+});
+
+await gate('C43-a-projectile-is-Crystal-reflected-at-most-once', () => {
+  // K-reflected bullet is turned back at the Crystal and the shards: never reflected again, never reserved again.
+  const r = reflectRun({ mutate: () => {} });
+  const t = telem(r.w.cta);
+  const before = { refl: t.reflectedProjectiles, res: t.reservations };
+  const q = r.p;
+  q.life = 2; q.px = q.x = 500; q.py = q.y = 500; q.vx = -1500; q.vy = 0;       // same bullet, flung back through the orbit
+  step(0.6);
+  // and through a construct: still only the one reflection
+  press(r.w.a, 'A2');                                                              // (cooldown: fails, K stays as is)
+  const after = { refl: t.reflectedProjectiles, res: t.reservations };
+  return { ok: before.refl === 1 && after.refl === 1 && after.res === before.res && q.__hr.crystalReflected === true,
+    detail: { before, after } };
+});
+
+await gate('C44-reflected-and-Crystal-owned-projectiles-ignore-own-constructs', () => {
+  const w = wallFresh();
+  waitLock(w);
+  const hp0 = w.cons().hp;
+  // Crystal-owned shot across its own wall into the Robot, and a Robot-owned bullet already Crystal-reflected
+  const hpB = hpOf(w.b);
+  const own = fire(w.a, 150, 500, 850, 500, 'SLOW');
+  const refl = fire(w.b, 850, 500, 150, 500, 'SLOW');
+  refl.__hr = Object.assign(refl.__hr || {}, { crystalReflected: true });
+  step(1.2);
+  const c = w.cons();
+  return { ok: c.hp === hp0 && c.state === 'LIVE' && hpOf(w.b) < hpB && telem(w.cta).constructReflects === 0 && own.owner === w.a,
+    detail: { wallHp: c.hp, robotLoss: fmt(hpB - hpOf(w.b)), constructReflects: telem(w.cta).constructReflects } };
+});
+
+await gate('C45-Robot-A2-mitigation-still-applies-to-the-reflected-projectile', () => {
+  const free = reflectRun({});
+  const armed = reflectRun({ armor: true });
+  const mult = CFG.__robotA2 || 0.45;
+  const ratio = armed.dReflect / armed.dControl;
+  return { ok: armed.dControl > 0 && armed.dReflect > 0 && near(ratio, 0.5 * 0.45, 1e-9) && near(free.dReflect / free.dControl, 0.5, 1e-9),
+    detail: { armedRatio: ratio, expected: 0.5 * 0.45, freeRatio: free.dReflect / free.dControl } };
+});
+
+await gate('C46-K-reflection-is-pure-facet-geometry-no-homing-correction', () => {
+  // oblique shot from a point that is NOT the enemy: any pull toward the enemy would be visible
+  const w = crystalK({ ax: 150, ay: 500, bx: 850, by: 500 });
+  fire(w.b, 990, 280, w.a.x, w.a.y, 'SLOW');
+  stepUntil(() => telem(w.cta).intercepts > 0, 2.0);
+  const ic = evOf(w.ev, 'CrystalIntercept')[0].payload;
+  const d = ic.inV.x * ic.n.x + ic.inV.y * ic.n.y;
+  const pure = { x: ic.inV.x - 2 * d * ic.n.x, y: ic.inV.y - 2 * d * ic.n.y };
+  const dirErr = Math.hypot(ic.exitV.x - pure.x, ic.exitV.y - pure.y);
+  const toFoe = Math.atan2(w.b.y - ic.y, w.b.x - ic.x), exitAng = Math.atan2(ic.exitV.y, ic.exitV.x);
+  let diff = Math.abs(exitAng - toFoe); if (diff > Math.PI) diff = 2 * Math.PI - diff;
+  return { ok: dirErr < 1e-9 && diff > 0.05 && near(Math.hypot(ic.exitV.x, ic.exitV.y), Math.hypot(ic.inV.x, ic.inV.y), 1e-6),
+    detail: { dirErr, angleToFoe: fmt(diff), speedKept: true } };
+});
+
+await gate('C47-fixed-wall-reflection-obeys-the-surface-plane', () => {
+  const w = wallFresh();
+  waitLock(w);
+  const rc = rigOf(w.cta).constructs.find((x) => x.kind === 'wall');
+  const n = { x: rc.geom.nx, y: rc.geom.ny };
+  const p = fire(w.b, 850, 400, w.a.x, w.a.y, 'SLOW');         // oblique onto the flat side
+  const v0 = { x: p.vx, y: p.vy };
+  stepUntil(() => p.__hr && p.__hr.crystalReflected, 1.0);
+  const d = v0.x * n.x + v0.y * n.y;
+  const expect = { x: v0.x - 2 * d * n.x, y: v0.y - 2 * d * n.y };
+  const err = Math.hypot(p.vx - expect.x, p.vy - expect.y);
+  return { ok: !!(p.__hr && p.__hr.crystalReflected) && err < 1e-6 && p.owner === w.a, detail: { err, normal: { x: fmt(n.x), y: fmt(n.y) } } };
+});
+
+await gate('C48-final-killing-hit-is-reflected-before-the-structure-is-removed', () => {
+  const w = wallFresh();
+  waitLock(w);
+  const shots = [];
+  for (let k = 0; k < 4; k++) { shots.push(fire(w.b, 850, 500, w.a.x, w.a.y, 'SLOW', { damage: 4.5 + k * 0.001 })); step(0.6); }
+  const c = w.cons();
+  const last = shots[3];
+  const hps = evOf(w.ev, 'CrystalConstructHit').map((e) => e.payload.damage);
+  return { ok: c.state === 'ENDED' && c.reason === 'destroyed' && shots.every((p) => p.__hr && p.__hr.crystalReflected && p.owner === w.a) && last.vx > 0,
+    detail: { state: c.state, reason: c.reason, reflected: shots.map((p) => !!(p.__hr && p.__hr.crystalReflected)), hits: hps.map(fmt) } };
+});
+
+await gate('C49-T6-keeps-final-authority-and-is-never-reflected', () => {
+  const w = wallFresh();
+  waitLock(w);
+  const hpB = hpOf(w.b);
+  const t6 = fire(w.b, 850, 500, w.a.x, w.a.y, 'SLOW', { weapon: 'STORMBREAKER', damage: 446 });
+  step(1.0);
+  const c = w.cons();
+  const a1 = { wallEnded: c.state === 'ENDED' && c.reason === 'destroyed', notReflected: !(t6.__hr && t6.__hr.crystalReflected), crystalLoss: fmt(hpOf(w.a)) };
+  // thrown T6 (aq_thrown) through a fresh wall
+  const v = wallFresh();
+  waitLock(v);
+  W.spawnThrownMelee(v.b, 'STORMBREAKER', Math.PI);
+  step(1.2);
+  const cv = v.cons();
+  return { ok: a1.wallEnded && a1.notReflected && cv.state === 'ENDED' && cv.reason === 'destroyed' && !win.projectiles.some((q) => q && q.weapon === 'STORMBREAKER' && q.__hr && q.__hr.crystalReflected),
+    detail: { bullet: a1, thrownWall: { state: cv.state, reason: cv.reason } } };
+});
+
+await gate('C50-enemy-projectiles-damage-the-real-construct-through-one-transaction', () => {
+  const out = {};
+  for (const crit of [false, true]) {
+    const w = wallFresh();
+    waitLock(w);
+    const c0 = w.cons().hp;
+    const p = fire(w.b, 850, 500, w.a.x, w.a.y, 'SLOW', { critical: crit });
+    const expect = W.scaledDamage(p.damage, 'PISTOL', crit);      // the ONE damage law (x7, crit x1.5)
+    step(0.6);
+    const c1 = w.cons().hp;
+    out[crit ? 'crit' : 'plain'] = { delta: fmt(c0 - c1), expect: fmt(expect), tele: fmt(telem(w.cta).constructDamage), ok: near(c0 - c1, expect, 1e-9) && near(telem(w.cta).constructDamage, expect, 1e-9) };
+  }
+  return { ok: out.plain.ok && out.crit.ok && out.crit.delta > out.plain.delta, detail: out };
+});
+
 // @@GATES_CONTINUE@@
 const failed = results.filter((r) => !r.ok);
 console.log(`\n[CRYSTALA GAMEPLAY GATES] ${results.length - failed.length}/${results.length}`);
