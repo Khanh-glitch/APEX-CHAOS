@@ -998,3 +998,285 @@ function drawStage(g) {
   g.strokeStyle = 'rgba(160,160,150,.035)'; g.lineWidth = 1;
   for (let x = 0; x <= W; x += 100) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
   for (let y = 0; y <= H; y += 100) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+  // wall
+  g.fillStyle = '#15181a'; g.fillRect(WALL_X - 26, 250, 26, 520);
+  g.strokeStyle = 'rgba(214,190,150,' + (.28 + wallFlash * .6) + ')'; g.lineWidth = 3;
+  g.beginPath(); g.moveTo(WALL_X, 250); g.lineTo(WALL_X, 770); g.stroke();
+  g.strokeStyle = 'rgba(214,190,150,.1)'; g.lineWidth = 1;
+  for (let y = 280; y < 770; y += 60) { g.beginPath(); g.moveTo(WALL_X - 26, y); g.lineTo(WALL_X, y); g.stroke(); }
+  // emitters
+  for (const [em, key] of [[EM_R, 'R'], [EM_L, 'L']]) {
+    const a = Math.atan2(HOME.y - em.y, HOME.x - em.x);
+    g.save(); g.translate(em.x, em.y); g.rotate(a);
+    g.fillStyle = '#1b1e21'; g.strokeStyle = '#3d4044'; g.lineWidth = 2;
+    g.beginPath(); g.arc(0, 0, 15, 0, TAU); g.fill(); g.stroke();
+    g.fillStyle = '#26292d'; g.fillRect(6, -5, 20, 10); g.strokeRect(6, -5, 20, 10);
+    const t = tele[key];
+    if (t > .02) { g.globalCompositeOperation = 'lighter'; g.fillStyle = 'rgba(255,190,100,' + t + ')'; g.beginPath(); g.arc(26, 0, 5 + t * 5, 0, TAU); g.fill(); }
+    g.restore();
+  }
+  // pedestal
+  const pt = R.ped.x;
+  g.save(); g.translate(WPN.x, WPN.y + 90); g.rotate(pt * .5);
+  g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(0, 6, 48, 9, 0, 0, TAU); g.fill();
+  g.fillStyle = '#16191b'; g.strokeStyle = '#34372f'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(-40, 4); g.lineTo(40, 4); g.lineTo(26, -14); g.lineTo(-26, -14); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = '#1f2225'; g.fillRect(-7, -70, 14, 58); g.strokeRect(-7, -70, 14, 58);
+  g.fillStyle = '#d9d2c2'; g.strokeStyle = '#08090a';
+  g.beginPath(); g.moveTo(-30, -70); g.lineTo(30, -70); g.lineTo(24, -78); g.lineTo(-24, -78); g.closePath(); g.fill(); g.stroke();
+  g.strokeStyle = '#a57c43'; g.beginPath(); g.moveTo(-22, -74); g.lineTo(22, -74); g.stroke();
+  g.restore();
+}
+function drawBrackets(g) {
+  if (!brackets) return;
+  let gap, alpha;
+  const t = T - brackets.t0;
+  if (brackets.state === 'in') {
+    const f = clamp(t / .12, 0, 1), s = 1.7, e = 1 + (s + 1) * Math.pow(f - 1, 3) + s * Math.pow(f - 1, 2);
+    gap = mix(88, 62, e); alpha = clamp(t / .05, 0, 1);
+  } else {
+    const f = clamp((T - brackets.t1) / .1, 0, 1);
+    gap = mix(62, 26, f); alpha = 1 - f;
+    if (f >= 1) { brackets = null; return; }
+  }
+  g.save(); g.globalAlpha = alpha; g.lineJoin = 'round'; g.lineCap = 'round';
+  for (const sg of [-1, 1]) {
+    const x = WPN.x + sg * gap, y = WPN.y;
+    const pts = [[x - sg * 12, y - 20], [x, y - 20], [x + sg * 6, y - 12], [x + sg * 6, y + 12], [x, y + 20], [x - sg * 12, y + 20]];
+    g.strokeStyle = '#08090a'; g.lineWidth = 8;
+    g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (const p of pts) g.lineTo(p[0], p[1]); g.stroke();
+    g.strokeStyle = '#ece6d8'; g.lineWidth = 4;
+    g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (const p of pts) g.lineTo(p[0], p[1]); g.stroke();
+    g.fillStyle = '#ffb64e';
+    g.beginPath(); g.arc(x - sg * 12, y - 20, 2.6, 0, TAU); g.arc(x - sg * 12, y + 20, 2.6, 0, TAU); g.fill();
+  }
+  g.restore();
+}
+function drawMeasure(g) {
+  if (!measure || held) return;
+  const t = T - measure.t0;
+  if (t > .34) { measure = null; return; }
+  const p = clamp(t / .08, 0, 1), a = t < .16 ? 1 : 1 - (t - .16) / .18;
+  const s = headToWorld(640, 58), e = { x: WPN.x, y: WPN.y };
+  const ex = mix(s.x, e.x, p), ey = mix(s.y, e.y, p);
+  g.save(); g.globalAlpha = a * .8;
+  g.strokeStyle = '#e1a852'; g.lineWidth = 1.5; g.setLineDash([7, 5]);
+  g.beginPath(); g.moveTo(s.x, s.y); g.lineTo(ex, ey); g.stroke(); g.setLineDash([]);
+  const dx = e.x - s.x, dy = e.y - s.y, L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L;
+  g.strokeStyle = '#efe7d6'; g.lineWidth = 1.5;
+  for (const f of [.25, .5, .75]) { if (f > p) continue; const x = mix(s.x, e.x, f), y = mix(s.y, e.y, f); g.beginPath(); g.moveTo(x - nx * 5, y - ny * 5); g.lineTo(x + nx * 5, y + ny * 5); g.stroke(); }
+  g.restore();
+}
+function drawTrail(g) {
+  if (trail.length < 2) return;
+  const fade = trailOn ? (isFinite(contactT) && T > contactT ? clamp(1 - (T - contactT) / .5, 0, 1) : 1) : 0;
+  if (fade <= 0) { if (!trailOn) trail = []; return; }
+  g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+  const n = trail.length;
+  for (let i = 1; i < n; i++) {
+    const a = trail[i - 1], b = trail[i], k = i / n;
+    const w = mix(1, 6, k);
+    g.strokeStyle = 'rgba(224,160,70,' + (.22 * fade) + ')'; g.lineWidth = w * 2.6;
+    g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
+  }
+  for (let i = 1; i < n; i++) {
+    const a = trail[i - 1], b = trail[i], k = i / n;
+    g.strokeStyle = 'rgba(246,222,176,' + (.85 * fade) + ')'; g.lineWidth = mix(.8, 2.6, k);
+    g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
+  }
+  // measured trajectory: calibration ticks spaced along the real path
+  let acc = 0, next = 40;
+  g.strokeStyle = 'rgba(236,230,216,' + (.6 * fade) + ')'; g.lineWidth = 1.6;
+  for (let i = 1; i < n; i++) {
+    const a = trail[i - 1], b = trail[i], l = Math.hypot(b.x - a.x, b.y - a.y);
+    while (l > 0 && acc + l >= next) {
+      const f = (next - acc) / l, x = mix(a.x, b.x, f), y = mix(a.y, b.y, f), nx = -(b.y - a.y) / l, ny = (b.x - a.x) / l;
+      g.beginPath(); g.moveTo(x - nx * 6, y - ny * 6); g.lineTo(x + nx * 6, y + ny * 6); g.stroke();
+      next += 40;
+    }
+    acc += l;
+  }
+  g.restore();
+}
+function histAt(age) {
+  const t = T - age;
+  for (let i = trail.length - 1; i >= 0; i--) if (trail[i].t <= t) return trail[i];
+  return null;
+}
+function blitRobot(g, x, y, img, alpha) {
+  const S = 1600 * HSC;
+  g.save(); g.globalAlpha = alpha; g.translate(x, y); g.rotate(R.tilt.x);
+  g.drawImage(img, -S / 2, -S / 2, S, S); g.restore();
+}
+function render() {
+  const dpr = Math.min(devicePixelRatio || 1, 2), cw = innerWidth, ch = innerHeight;
+  if (cv.width !== Math.round(cw * dpr) || cv.height !== Math.round(ch * dpr)) { cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#07090a'; ctx.fillRect(0, 0, cv.width, cv.height);
+  if (!SPR.ready) return;
+
+  const zT = [1, .58, 2.1][viewMode];
+  const cxT = viewMode === 2 ? bx.x : W / 2, cyT = viewMode === 2 ? by.x + 10 : H / 2 - 20;
+  camZ += (zT - camZ) * .1; camX += (cxT - camX) * .12; camY += (cyT - camY) * .12;
+  const fit = Math.min(cw / W, (ch - 50) / H), sc = fit * camZ;
+  const tr = trauma * trauma;
+  const shx = (Math.sin(T * 91.3) + Math.sin(T * 213.7) * .5) * 6 * tr + camK.x.x;
+  const shy = (Math.sin(T * 77.1 + 1) + Math.sin(T * 187.3) * .5) * 6 * tr + camK.y.x;
+  const k = dpr * sc;
+  ctx.setTransform(k, 0, 0, k, dpr * cw / 2 - (camX - shx) * k, dpr * (ch - 40) / 2 - (camY - shy) * k);
+
+  drawStage(ctx);
+  if (weaponPresent && !held) drawGun(ctx, WPN.x, WPN.y, 0, gunFade);
+  drawBrackets(ctx);
+  drawTrail(ctx);
+
+  // render the rig once into a texture; reuse for body, samples and blur
+  ensureRT(HS * sc * dpr * 1600 / 1280);
+  const q = rtSize / 1600;
+  RTg.setTransform(1, 0, 0, 1, 0, 0); RTg.clearRect(0, 0, rtSize, rtSize);
+  RTg.setTransform(q, 0, 0, q, 160 * q, 200 * q);
+  renderRig(RTg);
+
+  const rx = bx.x + R.rootX.x * HSC, ry = by.x + R.rootY.x * HSC;
+  ctx.fillStyle = 'rgba(0,0,0,.42)';
+  ctx.beginPath(); ctx.ellipse(bx.x, by.x + 98, 74, 12, 0, 0, TAU); ctx.fill();
+
+  const speed = Math.hypot(vxw, vyw);
+  if (trail.length && (mode === 'dash' || (isFinite(contactT) && T - contactT < .12 && T >= contactT && speed > 200))) {
+    GRTg.setTransform(1, 0, 0, 1, 0, 0); GRTg.globalCompositeOperation = 'source-over';
+    GRTg.clearRect(0, 0, rtSize, rtSize); GRTg.drawImage(RT, 0, 0);
+    GRTg.globalCompositeOperation = 'source-atop'; GRTg.fillStyle = 'rgba(52,38,20,.6)'; GRTg.fillRect(0, 0, rtSize, rtSize);
+    GRTg.globalCompositeOperation = 'source-over';
+    [[.032, .42], [.064, .26], [.096, .13]].forEach(([age, al]) => { const h = histAt(age); if (h && h.t >= trail[0].t) blitRobot(ctx, h.x, h.y, GRT, al); });
+  }
+  if (held) { const gp = heldGun(); drawGun(ctx, gp.x, gp.y, gp.a, 1); }
+  const dmove = Math.hypot(rx - lastPos.x, ry - lastPos.y);
+  if (mode === 'dash' && dmove > 7) for (let i = 1; i <= 3; i++) { const f = i / 4; blitRobot(ctx, mix(lastPos.x, rx, f), mix(lastPos.y, ry, f), RT, .16); }
+  blitRobot(ctx, rx, ry, RT, 1);
+  lastPos = { x: rx, y: ry };
+
+  // eye bloom (restrained, world-space)
+  const lid = clamp(R.lid.x, 0, 1), gl = Math.max(0, R.glow.x);
+  const bl = clamp((gl - .7) * .22 * (1 - lid * .6), 0, .5);
+  if (bl > .01) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (const ex of [482, 798]) {
+      const p = headToWorld(ex, 742), rg = ctx.createRadialGradient(p.x, p.y, 1, p.x, p.y, 20);
+      rg.addColorStop(0, 'rgba(255,190,90,' + bl + ')'); rg.addColorStop(1, 'rgba(255,140,40,0)');
+      ctx.fillStyle = rg; ctx.fillRect(p.x - 20, p.y - 20, 40, 40);
+    }
+    ctx.restore();
+  }
+  drawMeasure(ctx);
+
+  // projectiles
+  for (const p of projs) {
+    const len = p.heavy ? 34 : p.hostile ? 26 : 22;
+    const tx = p.x - p.dir.x * len, ty = p.y - p.dir.y * len;
+    const lg = ctx.createLinearGradient(tx, ty, p.x, p.y);
+    lg.addColorStop(0, 'rgba(255,190,110,0)'); lg.addColorStop(1, p.heavy ? 'rgba(255,196,110,1)' : 'rgba(250,236,206,1)');
+    ctx.strokeStyle = lg; ctx.lineWidth = p.heavy ? 5 : 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(p.x, p.y); ctx.stroke();
+    ctx.fillStyle = p.heavy ? '#ffe2a6' : '#fff4dc'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * .7, 0, TAU); ctx.fill();
+  }
+  if (muzzle) {
+    const a = 1 - muzzle.t / .06;
+    ctx.save(); ctx.translate(muzzle.x, muzzle.y); ctx.rotate(muzzle.a); ctx.globalAlpha = a; ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = '#ffcf7e'; ctx.beginPath(); ctx.moveTo(0, -7); ctx.lineTo(26, 0); ctx.lineTo(0, 7); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#fff4d8'; ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(14, 0); ctx.lineTo(0, 3); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  for (const f of flashes) {
+    const a = 1 - f.t / f.dur;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a;
+    const rg = ctx.createRadialGradient(f.x, f.y, 1, f.x, f.y, f.r);
+    rg.addColorStop(0, 'rgba(255,250,232,1)'); rg.addColorStop(.35, 'rgba(255,200,120,.6)'); rg.addColorStop(1, 'rgba(255,150,60,0)');
+    ctx.fillStyle = rg; ctx.fillRect(f.x - f.r, f.y - f.r, f.r * 2, f.r * 2);
+    ctx.restore();
+  }
+  for (const q2 of parts) {
+    const a = 1 - q2.t / q2.life;
+    if (q2.k === 'spark') {
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = 'rgba(255,' + (190 + (a * 60 | 0)) + ',120,' + a + ')'; ctx.lineWidth = q2.w; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(q2.x - q2.vx * .02, q2.y - q2.vy * .02); ctx.lineTo(q2.x, q2.y); ctx.stroke(); ctx.restore();
+    } else if (q2.k === 'chip') {
+      ctx.save(); ctx.translate(q2.x, q2.y); ctx.rotate(q2.r); ctx.globalAlpha = a;
+      ctx.fillStyle = '#d9d2c3'; ctx.fillRect(-q2.s / 2, -q2.s / 2, q2.s, q2.s * .6); ctx.restore();
+    } else if (q2.k === 'case') {
+      ctx.save(); ctx.translate(q2.x, q2.y); ctx.rotate(q2.r); ctx.globalAlpha = a;
+      ctx.fillStyle = '#d6a052'; ctx.fillRect(-3, -1.5, 6, 3); ctx.restore();
+    } else if (q2.k === 'dust') {
+      ctx.fillStyle = 'rgba(120,118,110,' + a * .28 + ')'; ctx.beginPath(); ctx.arc(q2.x, q2.y, q2.s * (1 + q2.t * 2), 0, TAU); ctx.fill();
+    }
+  }
+  // vignette
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const vg = ctx.createRadialGradient(cv.width / 2, cv.height / 2, Math.min(cv.width, cv.height) * .35, cv.width / 2, cv.height / 2, Math.max(cv.width, cv.height) * .75);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.5)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, cv.width, cv.height);
+}
+
+/* ============================================================
+   LOOP — fixed timestep accumulator (Fiedler), hit-stop in real time
+   ============================================================ */
+const DT = 1 / 240;
+let acc = 0, last = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const real = Math.min((now - last) / 1000, .05); last = now;
+  let scale = timeScale;
+  if (freeze > 0) { freeze -= real; scale *= .04; }
+  trauma = Math.max(0, trauma - real * 2.4);
+  acc += real * scale;
+  let n = 0;
+  while (acc >= DT && n < 24) { step(DT); acc -= DT; n++; }
+  if (n >= 24) acc = 0;
+  render();
+}
+
+/* ============================================================
+   CONTROLS
+   ============================================================ */
+function act(a) {
+  audio();
+  switch (a) {
+    case 'a1': A1(); break;
+    case 'fail': A1Fail(); break;
+    case 'a2': A2(); break;
+    case 'hit': demoHit(); break;
+    case 'wall': demoWall(); break;
+    case 'move': demoMove(); break;
+    case 'fire': demoFire(); break;
+    case 'passive': demoPassive(); break;
+    case 'reset': resetAll(); break;
+    case 'view': viewMode = (viewMode + 1) % 3; $('bView').textContent = 'VIEW · ' + ['STAGE', 'BATTLE', 'CLOSE'][viewMode]; break;
+    case 'slow': timeScale = timeScale === 1 ? .25 : 1; $('bSlow').textContent = timeScale === 1 ? '1×' : '0.25×'; $('bSlow').classList.toggle('on', timeScale !== 1); break;
+    case 'sound': soundOn = !soundOn; $('bSound').classList.toggle('on', soundOn); break;
+    case 'load': $('file').click(); break;
+  }
+}
+document.querySelectorAll('#bar button').forEach(b => b.addEventListener('click', () => { act(b.dataset.a); b.blur(); }));
+window.addEventListener('keydown', e => {
+  if (e.repeat) return;
+  const k = e.code;
+  if (k === 'KeyJ') act('a1'); else if (k === 'KeyK') act('a2'); else if (k === 'KeyR') act('reset'); else if (k === 'KeyP') act('passive');
+});
+$('file').addEventListener('change', e => loadFile(e.target.files[0]));
+let dragDepth = 0;
+window.addEventListener('dragenter', e => { e.preventDefault(); dragDepth++; $('drop').style.display = 'flex'; });
+window.addEventListener('dragleave', e => { e.preventDefault(); if (--dragDepth <= 0) { dragDepth = 0; $('drop').style.display = 'none'; } });
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; $('drop').style.display = 'none'; loadFile(e.dataTransfer.files[0]); });
+
+(async () => {
+  await buildVectorSource();
+  buildSprites();
+  $('src').textContent = 'SOURCE · vector rebuild · drop robot.png to use the reference';
+  tryRaster(['robot.png', 'ROBOT.png', 'robot.webp', 'robot.jpg', 'reference.png']);
+})();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
