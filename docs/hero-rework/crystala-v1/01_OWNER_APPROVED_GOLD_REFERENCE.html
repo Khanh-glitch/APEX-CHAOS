@@ -997,7 +997,8 @@ function buildWallGeometry(a, b, seed){
   const N = 13;
   const segs = [];
   for (let i = 0; i < N; i++){
-    const u = (i + 0.5) / N;    const w = span / N;
+    const u = (i + 0.5) / N;
+    const w = span / N;
     const h = (17 + 5 * Math.sin(u * Math.PI)) * (0.87 + rnd() * 0.24);
     const j=()=> (rnd()-.5)*3.2;
     // Faceted paving-stone cross-section, NOT a side-view rock/spike.
@@ -1996,7 +1997,8 @@ function drawPrisonBuildHead(c, e, u){
   const hx = lerp(e.a.x, e.b.x, u), hy = lerp(e.a.y, e.b.y, u);
   c.save(); c.globalCompositeOperation='lighter'; c.globalAlpha=.82;
   c.drawImage(SPR_GLOW, hx-31, hy-34, 62, 68);
-  c.strokeStyle='rgba(255,240,255,.95)'; c.lineWidth=2;  const ang = Math.atan2(e.b.y-e.a.y, e.b.x-e.a.x);
+  c.strokeStyle='rgba(255,240,255,.95)'; c.lineWidth=2;
+  const ang = Math.atan2(e.b.y-e.a.y, e.b.x-e.a.x);
   c.translate(hx, hy); c.rotate(ang);
   c.beginPath(); c.moveTo(-3,-18); c.lineTo(3,0); c.lineTo(-2,18); c.stroke();
   c.restore();
