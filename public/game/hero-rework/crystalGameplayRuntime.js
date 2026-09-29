@@ -240,27 +240,39 @@ function predictorStep(st, now, dt) {
   const free = availableIds(st);
   const taken = new Set();
   for (const c of cands) {
-    // Shards that can PHYSICALLY still make this intercept (Gold travel grammar;
-    // never a far-side teleport). Reserve only when the chosen shard's own
-    // deadline arrives: just in time, earlier only if its travel requires it.
-    let best = null, bestScore = -Infinity, bestLead = 0;
-    for (const id of free) {
-      if (taken.has(id)) continue;
-      const lead = leadFor(st, id, c.ip);
-      if (c.tBand - dt < lead - JIT_SLACK) continue;
-      const sc = st.rig.scoreStone(st.rig.stones[id], c.p.vx, c.p.vy, c.ip);
-      if (sc > bestScore + 1e-9) { bestScore = sc; best = id; bestLead = lead; }
-    }
-    if (best == null) {
-      if (c.tBand - dt < MIN_LEAD - JIT_SLACK) {             // nobody can make it any more
-        c.hr.cryLost = free.length ? 'unreachable' : 'busy';
-        if (!free.length && st.shards.some((s) => s.state !== STATE.ORBIT)) { st.tele.overflowThreats += 1; c.hr.cryOverflow = true; }
-        else st.tele.ignoredUnreachable += 1;
+    // STICKY PLAN: a threat claims its shard the first tick it is seen (in the
+    // priority order above) and keeps it, so a lower-priority threat whose own
+    // shard deadline happens to come first can never steal it. A plan is dropped
+    // only if that shard stops being available or can no longer physically make it.
+    let plan = c.hr.cryPlan;
+    let lead = plan != null ? leadFor(st, plan, c.ip) : 0;
+    if (plan != null && (!free.includes(plan) || taken.has(plan) || c.tBand - dt < lead - JIT_SLACK)) plan = null;
+    if (plan == null) {
+      // Shards that can PHYSICALLY make this intercept (Gold travel grammar;
+      // never a far-side teleport), best Gold score first.
+      let bestScore = -Infinity, anyFree = false;
+      for (const id of free) {
+        if (taken.has(id)) continue;
+        anyFree = true;
+        const l = leadFor(st, id, c.ip);
+        if (c.tBand - dt < l - JIT_SLACK) continue;
+        const sc = st.rig.scoreStone(st.rig.stones[id], c.p.vx, c.p.vy, c.ip);
+        if (sc > bestScore + 1e-9) { bestScore = sc; plan = id; lead = l; }
       }
-      continue;                                               // else wait: a shard may still dock in time
+      c.hr.cryPlan = plan;
+      if (plan == null) {
+        if (c.tBand - dt < MIN_LEAD - JIT_SLACK) {           // nobody can make it any more
+          c.hr.cryLost = anyFree ? 'unreachable' : 'busy';
+          if (!anyFree) { st.tele.overflowThreats += 1; c.hr.cryOverflow = true; } else st.tele.ignoredUnreachable += 1;
+        }
+        continue;                                             // else wait: a shard may still dock in time
+      }
     }
-    taken.add(best);
-    if (c.tBand - dt <= bestLead + JIT_SLACK) reserve(st, c, best, now);
+    taken.add(plan);
+    // just in time: reserve when the planned shard's own deadline arrives
+    // (earlier than the nearest shard's only if ITS travel requires it)
+    // (the trigger is at least one tick wide so a feasible plan always gets a reservable tick)
+    if (c.tBand - dt <= lead + Math.max(JIT_SLACK, dt)) reserve(st, c, plan, now);
   }
 }
 
