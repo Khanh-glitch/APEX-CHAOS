@@ -1,0 +1,46 @@
+{
+  "package": "CRYSTALA_V1_PRELOAD",
+  "date": "2026-09-30",
+  "repository": "Khanh-glitch/APEX-CHAOS",
+  "audited_branch": "arena/01a0ead6-apex-chaos",
+  "audited_head_before_preload": "148ab872e0f8ba31eb0cedc658bdfac715f846d3",
+  "gold": {
+    "source_name": "CRYSTALA_TRUE_FUSION_V6_A2_J_DENSITY_BREAK.html",
+    "repo_name": "01_OWNER_APPROVED_GOLD_REFERENCE.html",
+    "sha256": "e5b90f78304cb8cf1fcdd0fd3e8c94069279040e2d3667050aee833446d65d30",
+    "bytes": 103048,
+    "visual_authority": true,
+    "gameplay_authority": false
+  },
+  "frozen_numbers": {
+    "shards": 6,
+    "k_cooldown_sec": 8,
+    "k_active_sec": 2.4,
+    "j_cooldown_sec": 1.5,
+    "intercept_return_total_sec": 1.2,
+    "threat_scan_radius_px": 1000,
+    "intercept_radius_px": 180,
+    "minimum_prepare_lead_sec": 0.12,
+    "wall_width_px": 220,
+    "wall_hp": 120,
+    "wall_solid_lifetime_sec": 4,
+    "prison_radius_px": 135,
+    "prison_facet_hp": 75,
+    "prison_solid_lifetime_sec": 3,
+    "passive_reflected_damage_pct_lv1": 0.5,
+    "construct_target_solid_time_sec": 0.75
+  },
+  "preload_scope": {
+    "production_files_modified": false,
+    "docs_only": true
+  },
+  "read_order": [
+    "README_PRELOAD.md",
+    "00_CRYSTALA_IMPLEMENTATION_AUTHORITY.md",
+    "01_OWNER_APPROVED_GOLD_REFERENCE.html",
+    "02_GOLD_TO_GAME_ADAPTATION_MAP.md",
+    "03_IMPLEMENTATION_TEST_MATRIX.md",
+    "04_ZERO_CONTEXT_HANDOFF.md",
+    "05_PRELOAD_MANIFEST.json"
+  ]
+}
