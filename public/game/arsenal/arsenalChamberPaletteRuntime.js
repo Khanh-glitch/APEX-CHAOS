@@ -214,28 +214,52 @@
   function actorRender(c, key, wx, wy, renderFn, kind) {
     if (!isActive()) { renderFn(c); return; }
     const pr = current().profile;
-    let oc = sils.get(key);
-    if (!oc) { oc = document.createElement('canvas'); oc.width = oc.height = SIL; sils.set(key, oc); rstats.actorAllocs += 1; }
-    const o = oc.getContext('2d');
-    o.setTransform(1, 0, 0, 1, 0, 0);
-    o.clearRect(0, 0, SIL, SIL);
-    o.setTransform(1, 0, 0, 1, SIL / 2 - wx, SIL / 2 - wy);
+    let pair = sils.get(key);
+    if (!pair) {
+      const source = document.createElement('canvas');
+      const mask = document.createElement('canvas');
+      source.width = source.height = SIL;
+      mask.width = mask.height = SIL;
+      pair = { source, mask };
+      sils.set(key, pair);
+      rstats.actorAllocs += 2;
+    }
+
+    // SOURCE: authoritative full-color actor/weapon pixels. Render expensive
+    // presentation exactly once and never mutate these pixels afterwards.
+    const sourceCtx = pair.source.getContext('2d');
+    sourceCtx.setTransform(1, 0, 0, 1, 0, 0);
+    sourceCtx.globalAlpha = 1;
+    sourceCtx.globalCompositeOperation = 'source-over';
+    sourceCtx.clearRect(0, 0, SIL, SIL);
+    sourceCtx.setTransform(1, 0, 0, 1, SIL / 2 - wx, SIL / 2 - wy);
     rstats.inActor = true;
     if (kind === 'weapon') rstats.weaponRenders += 1; else rstats.actorRenders += 1;
-    try { renderFn(o); } finally { rstats.inActor = false; }
-    o.setTransform(1, 0, 0, 1, 0, 0);
-    o.globalCompositeOperation = 'source-in';
-    o.fillStyle = pr.sil;
-    o.fillRect(0, 0, SIL, SIL);
-    o.globalCompositeOperation = 'source-over';
+    try { renderFn(sourceCtx); } finally { rstats.inActor = false; }
+    sourceCtx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // MASK: cheap copy of SOURCE used only for neutral readability treatment.
+    // The source-in tint is deliberately isolated here so palette changes can
+    // never recolor the actual hero/weapon appearance.
+    const maskCtx = pair.mask.getContext('2d');
+    maskCtx.setTransform(1, 0, 0, 1, 0, 0);
+    maskCtx.globalAlpha = 1;
+    maskCtx.globalCompositeOperation = 'source-over';
+    maskCtx.clearRect(0, 0, SIL, SIL);
+    maskCtx.drawImage(pair.source, 0, 0);
+    maskCtx.globalCompositeOperation = 'source-in';
+    maskCtx.fillStyle = pr.sil;
+    maskCtx.fillRect(0, 0, SIL, SIL);
+    maskCtx.globalCompositeOperation = 'source-over';
+
     const dx = wx - SIL / 2, dy = wy - SIL / 2;
     c.save();
     c.shadowColor = pr.shadow; c.shadowBlur = pr.blur; c.shadowOffsetY = pr.offset;
-    c.drawImage(oc, dx, dy);
+    c.drawImage(pair.mask, dx, dy);
     c.shadowColor = pr.keyline; c.shadowBlur = 2; c.shadowOffsetY = 0;
-    c.drawImage(oc, dx, dy);
+    c.drawImage(pair.mask, dx, dy);
     c.restore();
-    c.drawImage(oc, dx, dy); // normal appearance reuses the single source render
+    c.drawImage(pair.source, dx, dy); // preserve original full-color appearance
   }
   let wrapped = false;
   function installWrappers() {

@@ -1,5 +1,5 @@
 {
-  "revision": "20260929-postplaytest-E-r1",
+  "revision": "20260929-postplaytest-E-r2",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "a0d10025cde29ee55d6eb95a06aee2cbebe2a56e01adcdb1154f8366e3128712",
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
@@ -15,7 +15,7 @@
     "public/game/hero-rework/heroRegistry.js": "e17f3fc17a22110f4663a36f54d1af6c166ebabb154238f4c92664bec436d1fb",
     "public/game/arsenal/arsenalShellSelectRuntime.js": "f19b83e23c28822ed9ca384eea7bb709adae18f974b3c9abff776133da11d620",
     "public/game/arsenal/arsenalQuestLadder.js": "c2c07031dd4d4a4e24c9857998ab34bad42830489591e370b8b8dc74ee4e118c",
-    "public/game/arsenal/arsenalChamberPaletteRuntime.js": "c40b19f86cc5a24bd653907c3197d02b7cef3c2240d8027eb8f09d4023b157a2",
+    "public/game/arsenal/arsenalChamberPaletteRuntime.js": "547ed50a88dbf1a10e8eb3f2fcdf69e3930ad10547302f8e6b48cc8b29425978",
     "public/game/arsenal/arsenalMetaRuntime.js": "3866a04e8ca00e74b79ec98a5eee8ac595bb8c239d27d63d532b7ceeb5f3c98c",
     "public/game/modes/arsenalQuestRuntime.js": "c82047c13559e550a541dd7fbc5179d5c8b9765871e544d885dc685c95e3a8de",
     "public/game/hero-rework/heroMechanicsRuntime.js": "183744b31e77c53bb123ed3b722ae5b6e9ef23a29524b8380cd726e62ee7a772",

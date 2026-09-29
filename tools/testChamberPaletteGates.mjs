@@ -27,7 +27,7 @@ const check = (name, pass, data) => { results[name] = { pass: !!pass, data: data
 
 // --- E-urls: production resource URLs carry the NEW runtime revision --------
 const urls = await page.evaluate(() => {
-  const rev = '20260929-postplaytest-E-r1';
+  const rev = '20260929-postplaytest-E-r2';
   const want = ['game/arsenal/arsenalChamberPaletteRuntime.js', 'game/arsenal/arsenalMetaRuntime.js', 'game/modes/arsenalQuestRuntime.js', 'game/arsenal/arsenalPresentationRuntime.js', 'game/hero-rework/hunterGoldV10.js'];
   const res = performance.getEntriesByType('resource').map(r => r.name);
   return want.map(w => ({ w, loaded: res.some(u => u.includes(w) && u.includes('v=' + rev)) }));
@@ -45,7 +45,7 @@ check('D-profiles-neutral', list.every(p => {
 
 // --- E-no-palette-filter: static + attributed runtime proof ------------------
 const filt = await page.evaluate(async () => {
-  const rawSrc = await (await fetch('/game/arsenal/arsenalChamberPaletteRuntime.js?v=20260929-postplaytest-E-r1')).text();
+  const rawSrc = await (await fetch('/game/arsenal/arsenalChamberPaletteRuntime.js?v=20260929-postplaytest-E-r2')).text();
   const src = rawSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
   const staticClean = !/\.filter\s*=/.test(src) && !/ctx\.filter/.test(src);
   let attributed = 0, total = 0;
@@ -191,6 +191,29 @@ const robot = await page.evaluate(() => {
   return { d: r1.actorRenders - r0.actorRenders };
 });
 check('E-robot-single-render', robot.d === 60, robot);
+
+// --- owner-playtest regression: palette must NEVER recolor actor source -------
+const colorPreserve = await page.evaluate(() => {
+  const P = window.APEX_CHAMBER_PALETTE;
+  P.select('graphite-dark');
+  const out = document.createElement('canvas');
+  out.width = out.height = 256;
+  const c = out.getContext('2d');
+  const key = {};
+  P.actorRender(c, key, 128, 128, (oc) => {
+    oc.fillStyle = '#ff0000';
+    oc.fillRect(96, 112, 24, 24);
+    oc.fillStyle = '#0066ff';
+    oc.fillRect(136, 112, 24, 24);
+  }, 'probe');
+  const left = [...c.getImageData(100, 116, 1, 1).data];
+  const right = [...c.getImageData(140, 116, 1, 1).data];
+  return { left, right, palette: P.current() };
+});
+check('E2-full-color-source-preserved',
+  colorPreserve.left[0] > 220 && colorPreserve.left[1] < 40 && colorPreserve.left[2] < 40 &&
+  colorPreserve.right[0] < 40 && colorPreserve.right[1] > 70 && colorPreserve.right[2] > 220,
+  colorPreserve);
 
 // --- gameplay untouched --------------------------------------------------------
 const law = await page.evaluate(() => ({ fighters: window.fighters.length, speed: typeof window.APEX_ARSENAL_CONFIG.FIGHTER_SPEED }));
