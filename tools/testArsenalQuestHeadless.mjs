@@ -2892,6 +2892,20 @@ gate('v3-popup-palette', report.v3Visual.pal.dmg.fill === '#F2382F' && report.v3
 gate('v3-size-bands', report.v3Visual.bands.join(',') === 'XS,S,M,L,XL,XXL', report.v3Visual);
 gate('v3-no-blanket-text-mute', report.v3Visual.muted === false, report.v3Visual);
 
+report.ownerTestCredits = run(`
+  const M = window.APEX_ARSENAL_META;
+  try { localStorage.removeItem(M.KEY); localStorage.removeItem(M.OWNER_TEST_GRANT_KEY); } catch (e) {}
+  const first = M.load();
+  M.save({ ...first, credits: 11000 });
+  const second = M.load();
+  return { first: first.credits, second: second.credits, marker: localStorage.getItem(M.OWNER_TEST_GRANT_KEY) };
+`);
+gate('owner-test-credit-grant-12000-once',
+  report.ownerTestCredits.first === 12000
+  && report.ownerTestCredits.second === 11000
+  && report.ownerTestCredits.marker === '1',
+  report.ownerTestCredits);
+
 report.v3Meta = run(`
   const M = window.APEX_ARSENAL_META;
   try { localStorage.removeItem(M.KEY); } catch (e) {}

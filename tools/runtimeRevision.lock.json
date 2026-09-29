@@ -1,5 +1,5 @@
 {
-  "revision": "20260930-hunter-ownerfix-r1",
+  "revision": "20260930-crystala-prep-r1",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "a0d10025cde29ee55d6eb95a06aee2cbebe2a56e01adcdb1154f8366e3128712",
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
@@ -16,7 +16,7 @@
     "public/game/arsenal/arsenalShellSelectRuntime.js": "f19b83e23c28822ed9ca384eea7bb709adae18f974b3c9abff776133da11d620",
     "public/game/arsenal/arsenalQuestLadder.js": "c2c07031dd4d4a4e24c9857998ab34bad42830489591e370b8b8dc74ee4e118c",
     "public/game/arsenal/arsenalChamberPaletteRuntime.js": "547ed50a88dbf1a10e8eb3f2fcdf69e3930ad10547302f8e6b48cc8b29425978",
-    "public/game/arsenal/arsenalMetaRuntime.js": "3866a04e8ca00e74b79ec98a5eee8ac595bb8c239d27d63d532b7ceeb5f3c98c",
+    "public/game/arsenal/arsenalMetaRuntime.js": "c7bca2c76d954a2887f311d4c00515e2c6350fc707fd98bf0f9d02c37280021d",
     "public/game/modes/arsenalQuestRuntime.js": "c82047c13559e550a541dd7fbc5179d5c8b9765871e544d885dc685c95e3a8de",
     "public/game/hero-rework/heroMechanicsRuntime.js": "8f9d60d9a7dc4d1969508e2bf7c085b3cc59258d35d977a3e7bb40cbc9795b3d",
     "public/game/hero-rework/heroReworkRuntime.js": "9bc57e606e5b1f69d9746ae8d56bc8b7026667a9a068e84fd079466359af4e18",

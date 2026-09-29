@@ -27,7 +27,7 @@ const check = (name, pass, data) => { results[name] = { pass: !!pass, data: data
 
 // --- E-urls: production resource URLs carry the NEW runtime revision --------
 const urls = await page.evaluate(() => {
-  const rev = '20260930-hunter-ownerfix-r1';
+  const rev = '20260930-crystala-prep-r1';
   const want = ['game/arsenal/arsenalChamberPaletteRuntime.js', 'game/arsenal/arsenalMetaRuntime.js', 'game/modes/arsenalQuestRuntime.js', 'game/arsenal/arsenalPresentationRuntime.js', 'game/hero-rework/hunterGoldV10.js'];
   const res = performance.getEntriesByType('resource').map(r => r.name);
   return want.map(w => ({ w, loaded: res.some(u => u.includes(w) && u.includes('v=' + rev)) }));

@@ -5,6 +5,11 @@
   const SHOP_COST = 1000;
   const DRAW_COST = 350;
   const START_CREDITS = 350;
+  // OWNER TEST PREP 2026-09-30: one-time top-up for roster testing.
+  // Existing and fresh browser profiles receive at least 12,000 AC once;
+  // after that, purchases/rewards persist normally without automatic refill.
+  const OWNER_TEST_CREDITS = 12000;
+  const OWNER_TEST_GRANT_KEY = 'apexChaos.ownerTestCredits.20260930.v1';
   const ROSTER = () => (window.APEX_ARSENAL_SHELLS && window.APEX_ARSENAL_SHELLS.ids) || ['ROBOT'];
 
   // HERO REWORK (doc 06): ROBOT replaces legacy NEWBIE as the default-owned
@@ -64,13 +69,24 @@
     s.arenaPaletteId = (typeof raw.arenaPaletteId === 'string' && P && P.isKnown(raw.arenaPaletteId)) ? raw.arenaPaletteId : null;
     return migrateNewbieToRobot(s);
   }
+  function applyOwnerTestCreditGrant(st) {
+    if (!st) return st;
+    try {
+      if (typeof localStorage !== 'undefined' && localStorage.getItem(OWNER_TEST_GRANT_KEY) !== '1') {
+        st.credits = Math.max(st.credits, OWNER_TEST_CREDITS);
+        // Persist the granted balance before marking the one-time migration done.
+        localStorage.setItem(KEY, JSON.stringify(st));
+        localStorage.setItem(OWNER_TEST_GRANT_KEY, '1');
+      }
+    } catch (e) {}
+    return st;
+  }
   function load() {
     try {
       const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null;
-      if (!raw) return emptyState();
-      return sanitize(JSON.parse(raw));
+      return applyOwnerTestCreditGrant(raw ? sanitize(JSON.parse(raw)) : emptyState());
     } catch (e) {
-      return emptyState();
+      return applyOwnerTestCreditGrant(emptyState());
     }
   }
   function save(st) {
@@ -646,7 +662,7 @@
   }
 
   window.APEX_ARSENAL_META = {
-    KEY, SHOP_COST, DRAW_COST,
+    KEY, SHOP_COST, DRAW_COST, OWNER_TEST_CREDITS, OWNER_TEST_GRANT_KEY,
     getState, credits, owns, buy, spin, award, filterOwned, setLast,
     palette, setPalette,
     load, save, emptyState, sanitize, poolLocked, lastAward: () => lastAward,
