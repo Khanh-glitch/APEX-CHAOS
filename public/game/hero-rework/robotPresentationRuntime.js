@@ -260,13 +260,24 @@
     const g = c.getContext('2d');
     g.scale(SR / 1280, SR / 1280);
     g.drawImage(srcCanvas, 0, 0, 1280, 1280);
+    const applyMask = (fn) => {
+      if (!fn.padding) { g.beginPath(); fn(g); g.fill(); return; }
+      // Coverage only, not an artwork outline: include the source's clipped
+      // caliper stroke in BOTH the moving piece and the core subtraction.
+      // One composite operation avoids intersecting fill and stroke masks.
+      const mask = mkCanvas(SR, SR), m = mask.getContext('2d');
+      m.scale(SR / 1280, SR / 1280);
+      m.beginPath(); fn(m); m.fill();
+      m.lineJoin = 'round'; m.lineWidth = fn.padding * 2; m.stroke();
+      g.drawImage(mask, 0, 0, 1280, 1280);
+    };
     if (incFn) {
       g.globalCompositeOperation = 'destination-in';
-      g.beginPath(); incFn(g); g.fill();
+      applyMask(incFn);
     }
     if (excFns) {
       g.globalCompositeOperation = 'destination-out';
-      for (const ef of excFns) { g.beginPath(); ef(g); g.fill(); }
+      for (const ef of excFns) applyMask(ef);
     }
     return c;
   }
@@ -277,6 +288,7 @@
     const gr = g.createLinearGradient(0, 300, 0, 1100);
     gr.addColorStop(0, '#1d1f23'); gr.addColorStop(1, '#0d0e10');
     g.fillStyle = gr; g.beginPath(); poly(g, HULL); g.fill();
+    g.clip(); // Interior hatching must not extend beyond the backplate hull.
     g.strokeStyle = '#2a2d32'; g.lineWidth = 6;
     for (let y = 420; y < 1040; y += 44) { g.beginPath(); g.moveTo(300, y); g.lineTo(980, y); g.stroke(); }
     g.fillStyle = '#0b0c0e'; g.fillRect(604, 280, 72, 300);
@@ -292,7 +304,13 @@
     if (!hasPath2D) { SPR.ready = false; return; }
     try {
       SRC = buildVectorSource();
-      const P = (pts) => (g) => poly(g, pts);
+      const P = (pts) => {
+        const fn = (g) => poly(g, pts);
+        // Diagnostic pad6 left residual slivers; pad12 covers the existing
+        // source stroke (1.6125 world px) without changing SR or source art.
+        fn.padding = pts === M.calL || pts === M.calR ? 12 : 0;
+        return fn;
+      };
       SPR.calL = spriteFromSrc(SRC, P(M.calL), [P(M.cheekL)]);
       SPR.calR = spriteFromSrc(SRC, P(M.calR), [P(M.cheekR)]);
       SPR.cheekL = spriteFromSrc(SRC, P(M.cheekL), null);

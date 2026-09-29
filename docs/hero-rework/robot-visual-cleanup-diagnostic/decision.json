@@ -1,0 +1,91 @@
+{
+  "status": "DIAGNOSTIC_CHECKPOINT_AWAITING_OWNER_REVIEW_NOT_FINAL",
+  "session_branch": "arena/01a0ead6-apex-chaos",
+  "starting_authority_sha": "bdf29a75770e2013e08bd2b005b8c4eae371b229",
+  "golden_html_sha256": "bd0cc64fbeea94969fbef0b4bc4de690a19e85fafe93cb4a12c9b3accf095f75",
+  "artifact_defect_proven": true,
+  "sharpness_defect_proven": true,
+  "production_fix_applied": true,
+  "artifact_fix_applied": true,
+  "sharpness_fix_applied": false,
+  "exact_causes": [
+    {
+      "id": "mask-ownership",
+      "taxonomy": "MASK_CUT",
+      "inherited_from_html": true,
+      "cause": "Original caliper inclusion/core exclusion polygons cut inside existing exterior source strokes. Static core retains disconnected thin caliper and pivot-rim pixels that separate when calipers move.",
+      "proof": "edge-crops/prod-core-islands.json and html-core-islands.json; lock-white and particle-hidden impact comparisons",
+      "fix": "12 source-head-unit caliper mask coverage margin, used identically for moving caliper inclusion and stationary core exclusion. This strokes ONLY an offscreen alpha mask, never artwork. Six-unit trial leaves strips; twelve-unit trial removes them. Source remains 1280, segment cache 820, HSC unchanged."
+    },
+    {
+      "id": "backplate-hatch",
+      "taxonomy": "MASK_CUT",
+      "inherited_from_html": true,
+      "cause": "Backplate horizontal hatching is not clipped to HULL, so thin bars extend into transparent space below/alongside the face.",
+      "fix": "Clip existing backplate detail painting to its existing HULL."
+    },
+    {
+      "id": "high-dpr-undercoverage",
+      "taxonomy": "RESAMPLE_SOFTNESS",
+      "cause": "APEX fixed 1000x1000 backing shown at 953 CSS px has only 172 samples over a 327.832-physical-pixel nominal head at DPR2. HTML DPR-aware RT/canvas supply about 328.",
+      "fix": null,
+      "rejection": "B renders Robot at 2x but immediately downsamples to the same final backing; modest edge-AA differences, no meaningful normal-scale recovery. No global canvas changes authorized or made."
+    }
+  ],
+  "not_defects_or_not_proven": {
+    "AUTHORED_PARTICLE": "Mechanical sparks/chips/impact flash; retain.",
+    "WORLD_EFFECT": "A1/world mechanical effects are legitimate. Hiding is harness-only.",
+    "MASK_GAP": "Intended moving plate gaps and lower chassis remnants retained. Do not erase all disconnected pixels.",
+    "ALPHA_FRINGE": "No separate matte/premultiplied-alpha defect proven; ordinary antialiasing is not a removal target.",
+    "SUBPIXEL_SOFTNESS": "Expected narrow-feature filtering; DPR1 is not consistently softer than HTML.",
+    "NO_DEFECT": "Dark crest slot, socket shadow and authored plate geometry retained."
+  },
+  "why_production_changed": "Reproducible normal-scale detached edges/hatch bars survive particle isolation; candidate removes those specific causes across all three backgrounds without geometry/material/spring/gameplay changes. These defects are inherited in HTML, not production-only regressions.",
+  "rejected": {
+    "blanket_mask_cleanup": "Would remove legitimate chassis fragments and plate gaps.",
+    "six_unit_mask_margin": "Residual upper slivers visible in the lock test.",
+    "supersampling_B": "No meaningful normal-scale sharpness gain at unchanged final backing.",
+    "adaptive_C": "No useful evidence beyond B at DPR2.",
+    "global_dpr_or_sr_changes": "Out of scope; no global renderer or SR change.",
+    "contrast_filters_heavier_artwork_outlines_or_particle_suppression": "Not valid corrections and not applied."
+  },
+  "changed_production_files": [
+    "public/game/hero-rework/robotPresentationRuntime.js"
+  ],
+  "changed_diagnostic_files": "All newly generated evidence, scripts and reports are under docs/hero-rework/robot-visual-cleanup-diagnostic/. See changed-files.txt for exact paths.",
+  "preserved": [
+    "Golden HTML byte-for-byte",
+    "Fixed-world-facing body and existing springs/internal tilt",
+    "A1 choreography/trail/equip behavior",
+    "Real weapon socket and existing recoil path",
+    "A2 directional routing",
+    "Gameplay values and other heroes including PAINTER lanes",
+    "Robot blood suppression and non-Robot blood",
+    "One AudioContext and all eight approved SFX mappings",
+    "Source artwork, material paints, SR, world scale and game renderer",
+    "Legitimate production particles"
+  ],
+  "focused_validation": "focused-validation.json and robot-gates-report.json: build PASS, R1-R9 9/9, all requested focused browser invariants PASS, runtime errors empty.",
+  "movement": "movement-stability.webm: actual production game draw/physics, directional movement then A2; no new temporal rendering path, transforms or layer registration changes. Existing subpixel AA remains. The software readback benchmark is not a player FPS guarantee.",
+  "performance": {
+    "baseline": {
+      "samples": 150,
+      "meanMs": 18.83399999999907,
+      "p50Ms": 22.199999999953434,
+      "p95Ms": 24.700000000186265
+    },
+    "final": {
+      "samples": 150,
+      "meanMs": 19.36066666666729,
+      "p50Ms": 22.5,
+      "p95Ms": 25.899999999906868
+    },
+    "meanDeltaPercent": 2.7963611907626973
+  },
+  "limitations": [
+    "Owner visual review remains required; this is not Robot final.",
+    "HTML comparison is rig-only, without HTML stage/vignette/extra bloom/world FX. Production baseline and normal-impact effects are preserved; isolated-particle B is explicitly labeled.",
+    "Sharpness at DPR2 remains unresolved within the tested Robot-only path.",
+    "Timing is a bounded software-browser microbenchmark, not broad device performance certification."
+  ]
+}

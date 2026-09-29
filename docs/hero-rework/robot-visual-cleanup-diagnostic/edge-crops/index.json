@@ -1,0 +1,2450 @@
+[
+  {
+    "file": "idle-black-left-caliper-4x.png",
+    "source": "dpr1-idle-black.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "idle-black-right-caliper-4x.png",
+    "source": "dpr1-idle-black.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "idle-black-cheek-chin-4x.png",
+    "source": "dpr1-idle-black.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "idle-black-left-pivot-4x.png",
+    "source": "dpr1-idle-black.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "idle-black-right-pivot-4x.png",
+    "source": "dpr1-idle-black.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "idle-black-crest-core-slot-4x.png",
+    "source": "dpr1-idle-black.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "idle-black-eye-socket-4x.png",
+    "source": "dpr1-idle-black.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "idle-black-impact-side-4x.png",
+    "source": "dpr1-idle-black.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "idle-gray-left-caliper-4x.png",
+    "source": "dpr1-idle-gray.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "idle-gray-right-caliper-4x.png",
+    "source": "dpr1-idle-gray.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "idle-gray-cheek-chin-4x.png",
+    "source": "dpr1-idle-gray.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "idle-gray-left-pivot-4x.png",
+    "source": "dpr1-idle-gray.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "idle-gray-right-pivot-4x.png",
+    "source": "dpr1-idle-gray.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "idle-gray-crest-core-slot-4x.png",
+    "source": "dpr1-idle-gray.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "idle-gray-eye-socket-4x.png",
+    "source": "dpr1-idle-gray.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "idle-gray-impact-side-4x.png",
+    "source": "dpr1-idle-gray.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "idle-white-left-caliper-4x.png",
+    "source": "dpr1-idle-white.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "idle-white-right-caliper-4x.png",
+    "source": "dpr1-idle-white.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "idle-white-cheek-chin-4x.png",
+    "source": "dpr1-idle-white.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "idle-white-left-pivot-4x.png",
+    "source": "dpr1-idle-white.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "idle-white-right-pivot-4x.png",
+    "source": "dpr1-idle-white.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "idle-white-crest-core-slot-4x.png",
+    "source": "dpr1-idle-white.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "idle-white-eye-socket-4x.png",
+    "source": "dpr1-idle-white.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "idle-white-impact-side-4x.png",
+    "source": "dpr1-idle-white.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "lock-black-left-caliper-4x.png",
+    "source": "dpr1-lock-black.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "lock-black-right-caliper-4x.png",
+    "source": "dpr1-lock-black.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "lock-black-cheek-chin-4x.png",
+    "source": "dpr1-lock-black.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "lock-black-left-pivot-4x.png",
+    "source": "dpr1-lock-black.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "lock-black-right-pivot-4x.png",
+    "source": "dpr1-lock-black.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "lock-black-crest-core-slot-4x.png",
+    "source": "dpr1-lock-black.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "lock-black-eye-socket-4x.png",
+    "source": "dpr1-lock-black.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "lock-black-impact-side-4x.png",
+    "source": "dpr1-lock-black.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "lock-gray-left-caliper-4x.png",
+    "source": "dpr1-lock-gray.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "lock-gray-right-caliper-4x.png",
+    "source": "dpr1-lock-gray.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "lock-gray-cheek-chin-4x.png",
+    "source": "dpr1-lock-gray.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "lock-gray-left-pivot-4x.png",
+    "source": "dpr1-lock-gray.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "lock-gray-right-pivot-4x.png",
+    "source": "dpr1-lock-gray.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "lock-gray-crest-core-slot-4x.png",
+    "source": "dpr1-lock-gray.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "lock-gray-eye-socket-4x.png",
+    "source": "dpr1-lock-gray.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "lock-gray-impact-side-4x.png",
+    "source": "dpr1-lock-gray.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "lock-white-left-caliper-4x.png",
+    "source": "dpr1-lock-white.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "lock-white-right-caliper-4x.png",
+    "source": "dpr1-lock-white.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "lock-white-cheek-chin-4x.png",
+    "source": "dpr1-lock-white.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "lock-white-left-pivot-4x.png",
+    "source": "dpr1-lock-white.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "lock-white-right-pivot-4x.png",
+    "source": "dpr1-lock-white.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "lock-white-crest-core-slot-4x.png",
+    "source": "dpr1-lock-white.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "lock-white-eye-socket-4x.png",
+    "source": "dpr1-lock-white.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "lock-white-impact-side-4x.png",
+    "source": "dpr1-lock-white.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "impact-black-left-caliper-4x.png",
+    "source": "dpr1-impact-black.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "impact-black-right-caliper-4x.png",
+    "source": "dpr1-impact-black.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "impact-black-cheek-chin-4x.png",
+    "source": "dpr1-impact-black.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "impact-black-left-pivot-4x.png",
+    "source": "dpr1-impact-black.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "impact-black-right-pivot-4x.png",
+    "source": "dpr1-impact-black.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "impact-black-crest-core-slot-4x.png",
+    "source": "dpr1-impact-black.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "impact-black-eye-socket-4x.png",
+    "source": "dpr1-impact-black.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "impact-black-impact-side-4x.png",
+    "source": "dpr1-impact-black.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "impact-gray-left-caliper-4x.png",
+    "source": "dpr1-impact-gray.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "impact-gray-right-caliper-4x.png",
+    "source": "dpr1-impact-gray.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "impact-gray-cheek-chin-4x.png",
+    "source": "dpr1-impact-gray.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "impact-gray-left-pivot-4x.png",
+    "source": "dpr1-impact-gray.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "impact-gray-right-pivot-4x.png",
+    "source": "dpr1-impact-gray.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "impact-gray-crest-core-slot-4x.png",
+    "source": "dpr1-impact-gray.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "impact-gray-eye-socket-4x.png",
+    "source": "dpr1-impact-gray.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "impact-gray-impact-side-4x.png",
+    "source": "dpr1-impact-gray.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "impact-white-left-caliper-4x.png",
+    "source": "dpr1-impact-white.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "impact-white-right-caliper-4x.png",
+    "source": "dpr1-impact-white.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "impact-white-cheek-chin-4x.png",
+    "source": "dpr1-impact-white.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "impact-white-left-pivot-4x.png",
+    "source": "dpr1-impact-white.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "impact-white-right-pivot-4x.png",
+    "source": "dpr1-impact-white.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "impact-white-crest-core-slot-4x.png",
+    "source": "dpr1-impact-white.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "impact-white-eye-socket-4x.png",
+    "source": "dpr1-impact-white.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "impact-white-impact-side-4x.png",
+    "source": "dpr1-impact-white.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "idle-black-left-caliper-FIX-4x.png",
+    "source": "dpr1-idle-black-FIX.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "idle-black-right-caliper-FIX-4x.png",
+    "source": "dpr1-idle-black-FIX.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "idle-black-cheek-chin-FIX-4x.png",
+    "source": "dpr1-idle-black-FIX.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "idle-black-left-pivot-FIX-4x.png",
+    "source": "dpr1-idle-black-FIX.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "idle-black-right-pivot-FIX-4x.png",
+    "source": "dpr1-idle-black-FIX.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "idle-black-crest-core-slot-FIX-4x.png",
+    "source": "dpr1-idle-black-FIX.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "idle-black-eye-socket-FIX-4x.png",
+    "source": "dpr1-idle-black-FIX.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "idle-black-impact-side-FIX-4x.png",
+    "source": "dpr1-idle-black-FIX.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "idle-gray-left-caliper-FIX-4x.png",
+    "source": "dpr1-idle-gray-FIX.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "idle-gray-right-caliper-FIX-4x.png",
+    "source": "dpr1-idle-gray-FIX.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "idle-gray-cheek-chin-FIX-4x.png",
+    "source": "dpr1-idle-gray-FIX.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "idle-gray-left-pivot-FIX-4x.png",
+    "source": "dpr1-idle-gray-FIX.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "idle-gray-right-pivot-FIX-4x.png",
+    "source": "dpr1-idle-gray-FIX.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "idle-gray-crest-core-slot-FIX-4x.png",
+    "source": "dpr1-idle-gray-FIX.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "idle-gray-eye-socket-FIX-4x.png",
+    "source": "dpr1-idle-gray-FIX.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "idle-gray-impact-side-FIX-4x.png",
+    "source": "dpr1-idle-gray-FIX.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "idle-white-left-caliper-FIX-4x.png",
+    "source": "dpr1-idle-white-FIX.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "idle-white-right-caliper-FIX-4x.png",
+    "source": "dpr1-idle-white-FIX.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "idle-white-cheek-chin-FIX-4x.png",
+    "source": "dpr1-idle-white-FIX.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "idle-white-left-pivot-FIX-4x.png",
+    "source": "dpr1-idle-white-FIX.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "idle-white-right-pivot-FIX-4x.png",
+    "source": "dpr1-idle-white-FIX.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "idle-white-crest-core-slot-FIX-4x.png",
+    "source": "dpr1-idle-white-FIX.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "idle-white-eye-socket-FIX-4x.png",
+    "source": "dpr1-idle-white-FIX.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "idle-white-impact-side-FIX-4x.png",
+    "source": "dpr1-idle-white-FIX.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "lock-black-left-caliper-FIX-4x.png",
+    "source": "dpr1-lock-black-FIX.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "lock-black-right-caliper-FIX-4x.png",
+    "source": "dpr1-lock-black-FIX.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "lock-black-cheek-chin-FIX-4x.png",
+    "source": "dpr1-lock-black-FIX.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "lock-black-left-pivot-FIX-4x.png",
+    "source": "dpr1-lock-black-FIX.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "lock-black-right-pivot-FIX-4x.png",
+    "source": "dpr1-lock-black-FIX.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "lock-black-crest-core-slot-FIX-4x.png",
+    "source": "dpr1-lock-black-FIX.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "lock-black-eye-socket-FIX-4x.png",
+    "source": "dpr1-lock-black-FIX.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "lock-black-impact-side-FIX-4x.png",
+    "source": "dpr1-lock-black-FIX.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "lock-gray-left-caliper-FIX-4x.png",
+    "source": "dpr1-lock-gray-FIX.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "lock-gray-right-caliper-FIX-4x.png",
+    "source": "dpr1-lock-gray-FIX.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "lock-gray-cheek-chin-FIX-4x.png",
+    "source": "dpr1-lock-gray-FIX.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "lock-gray-left-pivot-FIX-4x.png",
+    "source": "dpr1-lock-gray-FIX.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "lock-gray-right-pivot-FIX-4x.png",
+    "source": "dpr1-lock-gray-FIX.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "lock-gray-crest-core-slot-FIX-4x.png",
+    "source": "dpr1-lock-gray-FIX.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "lock-gray-eye-socket-FIX-4x.png",
+    "source": "dpr1-lock-gray-FIX.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "lock-gray-impact-side-FIX-4x.png",
+    "source": "dpr1-lock-gray-FIX.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "lock-white-left-caliper-FIX-4x.png",
+    "source": "dpr1-lock-white-FIX.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "lock-white-right-caliper-FIX-4x.png",
+    "source": "dpr1-lock-white-FIX.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "lock-white-cheek-chin-FIX-4x.png",
+    "source": "dpr1-lock-white-FIX.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "lock-white-left-pivot-FIX-4x.png",
+    "source": "dpr1-lock-white-FIX.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "lock-white-right-pivot-FIX-4x.png",
+    "source": "dpr1-lock-white-FIX.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "lock-white-crest-core-slot-FIX-4x.png",
+    "source": "dpr1-lock-white-FIX.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "lock-white-eye-socket-FIX-4x.png",
+    "source": "dpr1-lock-white-FIX.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "lock-white-impact-side-FIX-4x.png",
+    "source": "dpr1-lock-white-FIX.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "impact-black-left-caliper-FIX-4x.png",
+    "source": "dpr1-impact-black-FIX.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "impact-black-right-caliper-FIX-4x.png",
+    "source": "dpr1-impact-black-FIX.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "impact-black-cheek-chin-FIX-4x.png",
+    "source": "dpr1-impact-black-FIX.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "impact-black-left-pivot-FIX-4x.png",
+    "source": "dpr1-impact-black-FIX.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "impact-black-right-pivot-FIX-4x.png",
+    "source": "dpr1-impact-black-FIX.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "impact-black-crest-core-slot-FIX-4x.png",
+    "source": "dpr1-impact-black-FIX.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "impact-black-eye-socket-FIX-4x.png",
+    "source": "dpr1-impact-black-FIX.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "impact-black-impact-side-FIX-4x.png",
+    "source": "dpr1-impact-black-FIX.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "impact-gray-left-caliper-FIX-4x.png",
+    "source": "dpr1-impact-gray-FIX.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "impact-gray-right-caliper-FIX-4x.png",
+    "source": "dpr1-impact-gray-FIX.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "impact-gray-cheek-chin-FIX-4x.png",
+    "source": "dpr1-impact-gray-FIX.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "impact-gray-left-pivot-FIX-4x.png",
+    "source": "dpr1-impact-gray-FIX.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "impact-gray-right-pivot-FIX-4x.png",
+    "source": "dpr1-impact-gray-FIX.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "impact-gray-crest-core-slot-FIX-4x.png",
+    "source": "dpr1-impact-gray-FIX.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "impact-gray-eye-socket-FIX-4x.png",
+    "source": "dpr1-impact-gray-FIX.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "impact-gray-impact-side-FIX-4x.png",
+    "source": "dpr1-impact-gray-FIX.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  },
+  {
+    "file": "impact-white-left-caliper-FIX-4x.png",
+    "source": "dpr1-impact-white-FIX.png",
+    "zone": "left-caliper",
+    "sourcePixels": [
+      84,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Stationary outer source-outline strip retained by the original core cut; most apparent when A2 moves the caliper inward. Fixed ownership. Ordinary AA remains."
+  },
+  {
+    "file": "impact-white-right-caliper-FIX-4x.png",
+    "source": "dpr1-impact-white-FIX.png",
+    "zone": "right-caliper",
+    "sourcePixels": [
+      181,
+      90,
+      61,
+      103
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Mirror of left outer-outline ownership defect. Fixed without redrawing source art."
+  },
+  {
+    "file": "impact-white-cheek-chin-FIX-4x.png",
+    "source": "dpr1-impact-white-FIX.png",
+    "zone": "cheek-chin",
+    "sourcePixels": [
+      115,
+      186,
+      90,
+      47
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "MASK_GAP",
+      "NO_DEFECT"
+    ],
+    "assessment": "Backplate hatch escapes HULL: fixed by clipping. Motion-exposed plate gaps and source lower chassis pieces are legitimate and retained, not deleted as disconnected islands."
+  },
+  {
+    "file": "impact-white-left-pivot-FIX-4x.png",
+    "source": "dpr1-impact-white-FIX.png",
+    "zone": "left-pivot",
+    "sourcePixels": [
+      85,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Narrow source pivot-rim island remains in stationary core while pivot moves. Included in caliper coverage and removed from core."
+  },
+  {
+    "file": "impact-white-right-pivot-FIX-4x.png",
+    "source": "dpr1-impact-white-FIX.png",
+    "zone": "right-pivot",
+    "sourcePixels": [
+      197,
+      146,
+      37,
+      36
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT"
+    ],
+    "assessment": "Mirror of left pivot ownership defect."
+  },
+  {
+    "file": "impact-white-crest-core-slot-FIX-4x.png",
+    "source": "dpr1-impact-white-FIX.png",
+    "zone": "crest-core-slot",
+    "sourcePixels": [
+      142,
+      117,
+      35,
+      45
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "SUBPIXEL_SOFTNESS"
+    ],
+    "assessment": "Authored dark channel, narrow moving crest and mechanical layering; no independent slot-mask defect proven."
+  },
+  {
+    "file": "impact-white-eye-socket-FIX-4x.png",
+    "source": "dpr1-impact-white-FIX.png",
+    "zone": "eye-socket",
+    "sourcePixels": [
+      124,
+      165,
+      72,
+      27
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "NO_DEFECT",
+      "RESAMPLE_SOFTNESS"
+    ],
+    "assessment": "Authored glow and socket shading retained. At DPR2 final game backing under-resolves details. SVG/Canvas material differences are a separate confound."
+  },
+  {
+    "file": "impact-white-impact-side-FIX-4x.png",
+    "source": "dpr1-impact-white-FIX.png",
+    "zone": "impact-side",
+    "sourcePixels": [
+      196,
+      126,
+      42,
+      46
+    ],
+    "magnification": 4,
+    "taxonomy": [
+      "MASK_CUT",
+      "AUTHORED_PARTICLE",
+      "WORLD_EFFECT"
+    ],
+    "assessment": "Original outer-edge sliver persists when particles hidden. Spark/chip/flash effects are legitimate; only core ownership corrected. Local stress and flash remain in isolation B."
+  }
+]
