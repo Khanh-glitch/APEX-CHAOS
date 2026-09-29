@@ -5,24 +5,28 @@ Status: OWNER-APPROVED GOLD PRESENTATION + GAMEPLAY V1.1 integration authority.
 ## Required source file
 
 Owner gold HTML filename:
-`HUNTER_ALT_FINAL_V9_ROOT_TRAP_SAFE_P(1).html`
+`HUNTER_ALT_FINAL_V10_EXACT_ROOT_TRAP(1).html`
 
 Exact owner-source properties:
-- SHA-256: `c8cde28f346bbbd99de0c448ccfb396eae210e4928436850ef82b488d765fc88`
-- bytes: 3,664,135
-- file lines: 3,176 newline-delimited lines / 3,177 logical lines
+- SHA-256: `447cf549cceb955459eda4b74ef5a561c77fc2f574252783bc7921663578ae65`
+- bytes: 3,671,159
+- logical lines: 3,209
 
-The Arena task must receive this exact HTML as an attachment/source and verify the SHA-256 before implementation.
+This exact V10 source supersedes:
+- `HUNTER_ALT_FINAL_V9_ROOT_TRAP_SAFE_P(1).html`
+- SHA-256 `c8cde28f346bbbd99de0c448ccfb396eae210e4928436850ef82b488d765fc88`
 
-The HTML identifies itself as:
-`HUNTER FINAL V9 ROOT TRAP`
+Read:
+`docs/hero-rework/hunter-v1.1/03_GOLD_V10_SUPERSESSION_AUDIT_2026-09-29.md`
 
-Its visible skill grammar includes:
+The V10 file still contains historical embedded labels such as `HUNTER FINAL V9 ROOT TRAP` / `FINAL V9`. Source identity is the V10 filename + SHA-256 above; do not reject it because of stale internal labels.
+
+The visible skill grammar remains:
 - A2: `read -> coil -> snap -> correct -> catch`
 - A1: `deploy -> unfold -> snap -> pin -> release`
 - Passive: `incoming shot -> foreleg slip`
 
-Do not substitute an older Hunter prototype.
+Do not substitute V9 or any older Hunter prototype.
 
 ## Gameplay authority
 
@@ -114,7 +118,10 @@ Preserve as faithfully as technically possible:
 - anticipation and recovery;
 - A1 body deploy motion;
 - A1 authored post-plant snap/retreat/recover motion;
+- V10 exact ROOT trap presentation and material/state renderer;
 - trap unfolding, root-like mechanical tension, snap, pin, hold/release language;
+- V10 segmented color/edge/glow/shadow material treatment;
+- V10 late additive trap FX pass and depth layering;
 - A2 read/coil/snap/correction/catch choreography;
 - visual timing and rhythm;
 - distortion/refractive language where safe;
@@ -196,11 +203,14 @@ Allowed to adapt only as necessary:
 These adaptations must preserve the visible gold identity rather than redesign it.
 
 Production asset/runtime law:
-- store the exact HTML in-repo as immutable authority/reference only;
+- store the exact V10 HTML in-repo as immutable authority/reference only;
 - do NOT execute or parse the 3.66 MB authority HTML as part of normal production gameplay;
 - extract/bridge the required source art into stable production assets/runtime structures as needed;
 - decode/cache immutable Hunter/trap art once;
-- three active traps share immutable source assets/caches but own independent small mutable animation/lifecycle state;
+- generate V10-derived trap color/edge/glow/shadow material layers once per immutable source part;
+- never rerun V10 image-data derivation independently for each active trap;
+- three active traps share immutable source/material caches but own independent small mutable animation/lifecycle state;
+- preserve V10's articulated per-root/per-blade/core spring behavior rather than restoring old whole-trap global squash/grow;
 - do not create three redundant copies of decoded source imagery or large offscreen atlases merely because three traps exist;
 - any optimization must be visually checked against the gold at normal game scale.
 
@@ -232,17 +242,20 @@ Real-browser production evidence must include at minimum:
 
 1. idle + normal locomotion;
 2. A1 full body deploy -> plant -> authored snap/recover while moving in at least two opposite directions, proving the recoil maps against movement rather than always world-left;
-3. three separate A1 trap placements visible/owned independently plus truthful A1 charge/recharge HUD;
-4. one trap root on real opponent body;
-5. trap expiry/release cleanup;
-6. A2 coil -> high-speed continuous chase -> real body contact;
-7. A2 target changes direction during chase and Hunter follows;
-8. A2 WEAK applied with zero direct skill damage;
-9. passive projectile collision-course dodge while prey is Trapped/Weak;
-10. passive does not trigger when prey state is absent;
-11. T6 exclusion;
-12. interaction with real Arsenal weapon/projectile environment;
-13. no runtime errors / leaks after repeated skill use;
-14. three simultaneous traps + normal Hunter rendering do not cause a material frame-time/memory regression or repeated source-art decode.
+3. one V10 trap full lifecycle clearly showing unfold -> armed -> tension -> snap -> pin -> release at normal game scale;
+4. three separate A1 trap placements visible/owned independently plus truthful A1 charge/recharge HUD;
+5. one trap root on real opponent body, with V10 snap/pin beginning from that real trigger;
+6. clean ARMED trap with no permanent generic orb;
+7. PIN mechanical pull/tension life without excessive visual noise;
+8. trap expiry/release cleanup with V10 retract/fade;
+9. A2 coil -> high-speed continuous chase -> real body contact;
+10. A2 target changes direction during chase and Hunter follows;
+11. A2 WEAK applied with zero direct skill damage;
+12. passive projectile collision-course dodge while prey is Trapped/Weak;
+13. passive does not trigger when prey state is absent;
+14. T6 exclusion;
+15. interaction with real Arsenal weapon/projectile environment;
+16. no runtime errors / leaks after repeated skill use;
+17. three simultaneous traps + normal Hunter rendering do not cause a material frame-time/memory regression, repeated source-art decode, or repeated V10 material derivation.
 
 This is a gold-port task, not a new art-direction task.
