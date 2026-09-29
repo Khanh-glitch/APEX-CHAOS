@@ -1,0 +1,74 @@
+[
+  {
+    "event": "robot_a1_lock",
+    "requested": 3,
+    "decoded": true,
+    "sourceStarted": 3,
+    "file": "hero-rework/robot-final/sfx/robot_a1_lock.mp3",
+    "errors": [],
+    "contextState": "running"
+  },
+  {
+    "event": "robot_a1_no_weapon",
+    "requested": 1,
+    "decoded": true,
+    "sourceStarted": 1,
+    "file": "hero-rework/robot-final/sfx/robot_a1_no_weapon.mp3",
+    "errors": [],
+    "contextState": "running"
+  },
+  {
+    "event": "robot_a1_dash",
+    "requested": 3,
+    "decoded": true,
+    "sourceStarted": 3,
+    "file": "hero-rework/robot-final/sfx/robot_a1_dash.mp3",
+    "errors": [],
+    "contextState": "running"
+  },
+  {
+    "event": "robot_a2_activate",
+    "requested": 2,
+    "decoded": true,
+    "sourceStarted": 2,
+    "file": "hero-rework/robot-final/sfx/robot_a2_activate.mp3",
+    "errors": [],
+    "contextState": "running"
+  },
+  {
+    "event": "robot_a2_armor_hit",
+    "requested": 2,
+    "decoded": true,
+    "sourceStarted": 2,
+    "file": "hero-rework/robot-final/sfx/robot_a2_armor_hit.mp3",
+    "errors": [],
+    "contextState": "running"
+  },
+  {
+    "event": "robot_a2_end",
+    "requested": 2,
+    "decoded": true,
+    "sourceStarted": 2,
+    "file": "hero-rework/robot-final/sfx/robot_a2_end.mp3",
+    "errors": [],
+    "contextState": "running"
+  },
+  {
+    "event": "robot_passive_milestone",
+    "requested": 1,
+    "decoded": true,
+    "sourceStarted": 1,
+    "file": "hero-rework/robot-final/sfx/robot_passive_milestone.mp3",
+    "errors": [],
+    "contextState": "running"
+  },
+  {
+    "event": "robot_passive_upgrade",
+    "requested": 1,
+    "decoded": true,
+    "sourceStarted": 1,
+    "file": "hero-rework/robot-final/sfx/robot_passive_upgrade.mp3",
+    "errors": [],
+    "contextState": "running"
+  }
+]

@@ -73,6 +73,7 @@
         targetSlotId: pick.slot && pick.slot.id,
         heading: angleTo(a.x, a.y, pick.x, pick.y),
         elapsed: 0,
+        windup: 0,
         launched: false,
         // for contact authority: track whether we have already emitted contact via real equip
         contactEmitted: false,
@@ -90,6 +91,10 @@
       const a = ctx.combatant.anchor;
       const cfg = ctx.cfg;
       if (!d.launched) {
+        // HTML recognize (.13) → commit (.13) precedes physical launch.
+        a.data.positionLocked = true;
+        d.windup += dt;
+        if (d.windup < .26) return;
         d.launched = true;
         // SINGLE authoritative dash launch event
         try { ctx.api.emitEvent('RobotA1DashLaunch', { hero: 'ROBOT', slotId: d.targetSlotId }); } catch (e) {}
@@ -118,6 +123,7 @@
       // Even if dash is already cleared (arrived), we still want to emit contact once
       if (ctx.store._contactEmitted) return;
       ctx.store._contactEmitted = true;
+      ctx.store.dash = null;
       try { ctx.api.emitEvent('RobotA1Contact', { hero: 'ROBOT', weaponId, slotId: d ? d.targetSlotId : null }); } catch (e) {}
       ctx.api.note('robot.weapon_dash', 'contact-equip', { weaponId });
       // reset flag after a short window so future dashes can emit again
@@ -150,7 +156,15 @@
           amount: packet.amount,
           reduced: out.amount,
           bodyId: body.id,
-          point: { x: body.x, y: body.y },
+          // Real firearm velocity takes precedence over source position.
+          direction: (() => {
+            const impact = body.__aqImpact;
+            const dx = impact && Number.isFinite(impact.vx) ? impact.vx : packet.source ? body.x - packet.source.x : 0;
+            const dy = impact && Number.isFinite(impact.vy) ? impact.vy : packet.source ? body.y - packet.source.y : 0;
+            const length = Math.hypot(dx, dy);
+            return length > 0 ? { x: dx / length, y: dy / length } : null;
+          })(),
+          point: body.__aqImpact ? { x: body.__aqImpact.x, y: body.__aqImpact.y } : null,
         });
         // Alias — presentation must NOT replay SFX on this
         ctx.api.emitEvent('RobotA2ArmorHit', {

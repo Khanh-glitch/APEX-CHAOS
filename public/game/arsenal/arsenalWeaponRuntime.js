@@ -903,8 +903,12 @@
     const targetLong = gunWorldLong(weaponId);
     const offset = r * 0.78 + (pose.localX || 0) - (pose.recoil || 0);
     const lateral = pose.localY || 0;
-    const cx = f.x + Math.cos(aim) * offset + Math.cos(aim + Math.PI / 2) * lateral;
-    const cy = f.y + Math.sin(aim) * offset + Math.sin(aim + Math.PI / 2) * lateral;
+    // Robot's real muzzle/ejection anchors share its fixed jaw frame with
+    // the equipped sprite. All other heroes retain the Arsenal pose frame.
+    const robot = window.APEX_ROBOT_PRESENTATION;
+    const socket = robot?.isRobotFighter(f) ? robot.getRobotWeaponSocketWorld(f) : null;
+    const cx = socket ? socket.x : f.x + Math.cos(aim) * offset + Math.cos(aim + Math.PI / 2) * lateral;
+    const cy = socket ? socket.y : f.y + Math.sin(aim) * offset + Math.sin(aim + Math.PI / 2) * lateral;
     const set = window.APEX_ARSENAL_C_SET && window.APEX_ARSENAL_C_SET.weapons && window.APEX_ARSENAL_C_SET.weapons[weaponId];
     const uv = set && set[kind];
     if (!uv || !set) {

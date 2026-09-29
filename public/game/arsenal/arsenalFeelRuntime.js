@@ -926,17 +926,22 @@
     const v1Firearm = !!(impact
       && Number.isFinite(impact.x) && Number.isFinite(impact.y)
       && Number.isFinite(impact.vx) && Number.isFinite(impact.vy));
-    stats.splatters += 1;
-    if (v1Firearm) {
-      emitV1Blood(impact.x, impact.y, impact.vx, impact.vy, crit, colors.v1);
-    } else {
-      const dx = victim && source ? victim.x - source.x : 1;
-      const dy = victim && source ? victim.y - source.y : 0;
-      const len = Math.hypot(dx, dy) || 1;
-      const dirx = dx / len;
-      const diry = dy / len;
-      stampStain(victim.x, victim.y, dealt, rgb, dirx, diry, fam, crit);
-      emitSpray(victim.x, victim.y, dealt, rgb, dirx, diry, crit);
+    // Robot owns mechanical victim material; preserve all opponent blood,
+    // damage popups, impact timing and other feel contributions.
+    const mechanicalVictim = victim && (victim.type?.__hrHero === 'ROBOT' || victim.name === 'ROBOT');
+    if (!mechanicalVictim) {
+      stats.splatters += 1;
+      if (v1Firearm) {
+        emitV1Blood(impact.x, impact.y, impact.vx, impact.vy, crit, colors.v1);
+      } else {
+        const dx = victim && source ? victim.x - source.x : 1;
+        const dy = victim && source ? victim.y - source.y : 0;
+        const len = Math.hypot(dx, dy) || 1;
+        const dirx = dx / len;
+        const diry = dy / len;
+        stampStain(victim.x, victim.y, dealt, rgb, dirx, diry, fam, crit);
+        emitSpray(victim.x, victim.y, dealt, rgb, dirx, diry, crit);
+      }
     }
 
     const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();

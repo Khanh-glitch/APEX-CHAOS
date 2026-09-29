@@ -1,5 +1,5 @@
 /* =============================================================================
- * APEX CHAOS — ROBOT Final Presentation Runtime (2026-09-29) — REPAIRED PASS
+ * APEX CHAOS — ROBOT owner visual correction checkpoint (2026-09-29)
  *
  * Authority: docs/hero-rework/robot-final/reference/ROBOT_VISUAL_AUTHORITY.html
  * Complete HTML now 1282 lines, SHA bd0cc64fbeea94969fbef0b4bc4de690a19e85fafe93cb4a12c9b3accf095f75
@@ -466,62 +466,77 @@
     robot_passive_upgrade: 2,
   };
   function audioCtxOf() { return typeof audioCtx !== 'undefined' ? audioCtx : (globalScope.audioCtx || null); }
+  const robotAudioLoading = new Map();
+  const robotAudioEvidence = Object.fromEntries(Object.entries(ROBOT_AUDIO_REL).map(([event, file]) =>
+    [event, { event, requested: 0, decoded: false, sourceStarted: 0, file, errors: [] }]));
+  let robotAudioSession = 0;
   function loadRobotAudio() {
     const ctx = audioCtxOf();
     if (!ctx || !ctx.decodeAudioData) return Promise.resolve();
-    const promises = [];
-    for (const [key, rel] of Object.entries(ROBOT_AUDIO_REL)) {
-      if (robotAudioBuffers.has(rel)) continue;
-      const url = '/assets/' + rel;
-      const p = fetch(url).then(r => r.arrayBuffer()).then(buf => new Promise((res, rej) => {
-        let settled = false;
-        const ok = d => { if (!settled) { settled = true; res(d); } };
-        const fail = e => { if (!settled) { settled = true; rej(e); } };
-        try {
-          const maybe = ctx.decodeAudioData(buf, ok, fail);
-          if (maybe && maybe.then) maybe.then(ok, fail);
-        } catch (e) { fail(e); }
-      })).then(decoded => { robotAudioBuffers.set(rel, decoded); }).catch(() => {});
-      promises.push(p);
-    }
-    return Promise.all(promises);
+    return Promise.all(Object.entries(ROBOT_AUDIO_REL).map(([key, rel]) => {
+      if (robotAudioBuffers.has(rel)) return Promise.resolve();
+      if (robotAudioLoading.has(rel)) return robotAudioLoading.get(rel);
+      const promise = fetch('/assets/' + rel).then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.arrayBuffer();
+      }).then(buf => ctx.decodeAudioData(buf)).then(buffer => {
+        robotAudioBuffers.set(rel, buffer);
+        robotAudioEvidence[key].decoded = true;
+      }).catch(error => {
+        robotAudioEvidence[key].errors.push(String(error));
+      }).finally(() => robotAudioLoading.delete(rel));
+      robotAudioLoading.set(rel, promise);
+      return promise;
+    }));
   }
   function playRobotSfx(key, opts) {
-    // Global hook for headless presentation gates
-    try { if (globalScope.__robotSfxCounts) { globalScope.__robotSfxCounts[key] = (globalScope.__robotSfxCounts[key] || 0) + 1; } } catch (e) {}
     const rel = ROBOT_AUDIO_REL[key];
     if (!rel) return;
-    const ctx = audioCtxOf();
-    const buffer = robotAudioBuffers.get(rel);
-    if (!ctx || !buffer) return;
-    const active = robotActiveVoices.get(rel) || 0;
-    const cap = ROBOT_MAX_VOICES[key] || 2;
-    if (active >= cap) return;
-    robotActiveVoices.set(rel, active + 1);
-    const release = () => robotActiveVoices.set(rel, Math.max(0, (robotActiveVoices.get(rel) || 1) - 1));
-    const dur = buffer.duration || 0.5;
-    if (typeof setTimeout === 'function') {
-      const id = setTimeout(() => { robotPendingTimers.delete(id); release(); }, Math.ceil(dur * 1000) + 60);
-      robotPendingTimers.add(id);
-    }
+    const evidence = robotAudioEvidence[key];
+    evidence.requested++;
+    // Retained as semantic-only compatibility telemetry, NEVER playback proof.
+    if (globalScope.__robotSfxCounts) globalScope.__robotSfxCounts[key] = (globalScope.__robotSfxCounts[key] || 0) + 1;
     if (globalScope.__apexStatsSilent) return;
-    try {
-      if (typeof ensureBattleAudioReady === 'function') ensureBattleAudioReady();
-      const src = ctx.createBufferSource();
-      src.buffer = buffer;
-      const gain = ctx.createGain();
-      const vol = (opts && opts.vol != null) ? opts.vol : 0.7;
-      gain.gain.setValueAtTime(vol, ctx.currentTime);
-      src.connect(gain);
-      const master = typeof battleAudioMaster !== 'undefined' ? battleAudioMaster : ctx.destination;
-      gain.connect(master);
-      src.onended = () => { robotLiveSources.delete(src); release(); };
-      src.start();
-      robotLiveSources.add(src);
-      if (globalScope.apexRegisterBattleAudioSource) globalScope.apexRegisterBattleAudioSource(src);
-    } catch (e) { release(); }
+    const session = robotAudioSession;
+    const requestedAt = Date.now();
+    const start = () => {
+      if (session !== robotAudioSession || Date.now() - requestedAt > 500) return;
+      const ctx = audioCtxOf(), buffer = robotAudioBuffers.get(rel);
+      if (!ctx || ctx.state !== 'running' || !buffer) return;
+      const active = robotActiveVoices.get(rel) || 0;
+      if (active >= (ROBOT_MAX_VOICES[key] || 2)) return;
+      let src, gain;
+      try {
+        src = ctx.createBufferSource(); src.buffer = buffer;
+        gain = ctx.createGain();
+        gain.gain.setValueAtTime(opts?.vol ?? .7, ctx.currentTime);
+        src.connect(gain);
+        const master = (typeof battleAudioMaster !== 'undefined' && battleAudioMaster) || ctx.destination;
+        gain.connect(master);
+        src.onended = () => {
+          robotLiveSources.delete(src);
+          robotActiveVoices.set(rel, Math.max(0, (robotActiveVoices.get(rel) || 1) - 1));
+          src.disconnect(); gain.disconnect();
+        };
+        src.start();
+        evidence.sourceStarted++;
+        evidence.contextState = ctx.state;
+        robotActiveVoices.set(rel, active + 1);
+        robotLiveSources.add(src);
+        if (globalScope.apexRegisterBattleAudioSource) globalScope.apexRegisterBattleAudioSource(src);
+      } catch (error) {
+        evidence.errors.push(String(error));
+        try { src?.disconnect(); gain?.disconnect(); } catch (_) {}
+      }
+    };
+    if (typeof ensureBattleAudioReady === 'function') ensureBattleAudioReady();
+    const ctx = audioCtxOf();
+    if (!ctx) return;
+    if (ctx.state === 'running' && robotAudioBuffers.has(rel)) start();
+    else Promise.all([loadRobotAudio(), ctx.state === 'suspended' ? ctx.resume() : Promise.resolve()]).then(start).catch(error => evidence.errors.push(String(error)));
   }
   function resetRobotAudioSession() {
+    robotAudioSession++;
     for (const id of Array.from(robotPendingTimers)) { robotPendingTimers.delete(id); try { clearTimeout(id); } catch (e) {} }
     for (const src of Array.from(robotLiveSources)) {
       robotLiveSources.delete(src);
@@ -569,8 +584,8 @@
     const ox = (hx - 640) * HSC, oy = (hy - 600) * HSC;
     const c = Math.cos(st.R.tilt.x), s = Math.sin(st.R.tilt.x);
     return {
-      x: st.R.rootX.x * HSC + st.R.lagX.x * 0.35 + ox * c - oy * s,
-      y: st.R.rootY.x * HSC + st.R.lagY.x * 0.5 + ox * s + oy * c + st.R.chin.x * 0.3
+      x: st.R.rootX.x * HSC + ox * c - oy * s,
+      y: st.R.rootY.x * HSC + ox * s + oy * c
     };
   }
   function jawWorldLocal(st) {
@@ -591,13 +606,7 @@
     const st = getRobotState(fighter);
     if (!st) return null;
     const local = heldGunLocal(st);
-    const dir = fighter.dir || { x: 1, y: 0 };
-    const dirAng = Math.atan2(dir.y, dir.x);
-    const cosD = Math.cos(dirAng), sinD = Math.sin(dirAng);
-    const wx = fighter.x + local.x * cosD - local.y * sinD;
-    const wy = fighter.y + local.x * sinD + local.y * cosD;
-    const wa = dirAng + local.a;
-    return { x: wx, y: wy, angle: wa, local };
+    return { x: fighter.x + local.x, y: fighter.y + local.y, angle: local.a, local };
   }
 
   function impactLocal(st, s, hx, hy, dir, F, worldPt) {
@@ -691,15 +700,15 @@
     try {
       const ct = globalScope.APEX_HERO_REWORK && globalScope.APEX_HERO_REWORK.byCombatant ? globalScope.APEX_HERO_REWORK.byCombatant(fighter) : null;
       if (ct && ct.store && ct.store['robot.weapon_dash'] && ct.store['robot.weapon_dash'].dash) {
-        dashing = true;
+        dashing = !!ct.store['robot.weapon_dash'].dash.launched;
         dashStore = ct.store['robot.weapon_dash'].dash;
       }
     } catch (e) {}
     if (dashing && dashStore) {
       st.mode = 'dash';
-      st.trailOn = true;
-      const heading = dashStore.heading || Math.atan2(fighter.dir.y, fighter.dir.x);
-      const curH = Math.atan2(fighter.dir.y, fighter.dir.x);
+      const heading = dashStore.heading;
+      const curH = st.lastDashHeading == null ? heading : st.lastDashHeading;
+      st.lastDashHeading = heading;
       const dh = wrapA(heading - curH);
       const turnN = clamp(dh / dt / 4, -1, 1);
       st.extraTh = [turnN * .11, -turnN * .11];
@@ -714,7 +723,7 @@
 
     st.R.lagX.g = clamp(-st.ax * .0016 - (dashing ? st.vxw * .009 : 0), -46, 46);
     st.R.lagY.g = clamp(-st.ay * .0016 - (dashing ? st.vyw * .009 : 0), -40, 40);
-    st.R.tilt.g = dashing ? clamp(st.extraTh[0] * .05, -.06, .06) : 0;
+    st.R.tilt.g = dashing ? clamp(st.extraTh[0] / .11 * .05, -.06, .06) : 0;
 
     for (let s = 0; s < 2; s++) {
       st.R.calTh[s].g = (st.POSE.calTh || 0) + st.extraTh[s];
@@ -756,7 +765,7 @@
     for (let i = st.pulses.length - 1; i >= 0; i--) { st.pulses[i].t += dt; if (st.pulses[i].t >= st.pulses[i].dur) st.pulses.splice(i, 1); }
     for (let i = st.stress.length - 1; i >= 0; i--) { st.stress[i].t += dt; if (st.stress[i].t >= st.stress[i].dur) st.stress.splice(i, 1); }
 
-    if (st.trailOn) st.trail.push({ x: fighter.x, y: fighter.y, t: st.T });
+    if (st.trailOn && dashing) st.trail.push({ x: fighter.x, y: fighter.y, t: st.T });
     if (st.trail.length > 400) st.trail.shift();
     if (!st.trailOn && st.trail.length) {
       if (st.T - (st.trail[st.trail.length - 1]?.t || 0) > 0.6) st.trail.shift();
@@ -775,298 +784,204 @@
     // NOTE: A2 expiry is authoritative in mechanics (RobotA2End). Presentation does NOT emit its own end.
   }
 
+  // Golden-master rig: head-local geometry, stress and routing pulses.
+  // The sole head→fighter transform is below; particles remain world-owned.
   function renderRobotLocal(ctx, fighter, st) {
     ensureSprites();
-    const hasPath2D = typeof Path2D !== 'undefined' || typeof globalScope.Path2D !== 'undefined';
-    if (!SPR.ready || !hasPath2D) {
-      try {
-        if (typeof drawSketchBlob === 'function') drawSketchBlob(ctx, fighter.radius, fighter.color, 14);
-        else { ctx.fillStyle = fighter.color; ctx.beginPath(); ctx.arc(0, 0, fighter.radius, 0, TAU); ctx.fill(); }
-        ctx.fillStyle = '#ff9f19';
-        ctx.beginPath(); ctx.ellipse(0, -6, fighter.radius * 0.5, fighter.radius * 0.22, 0, 0, TAU); ctx.fill();
-        ctx.fillStyle = '#fff8cf';
-        ctx.beginPath(); ctx.ellipse(0, -8, fighter.radius * 0.3, fighter.radius * 0.12, 0, 0, TAU); ctx.fill();
-      } catch (e) {}
-      return;
+    if (!SPR.ready) return;
+    const { R, ticks, lockFlash, pulses, stress } = st;
+    const pivotNow = side => calPointLocal(st, side, PIV[side].x, PIV[side].y);
+    const EYE = [new Path2D('M404 675 Q475 711 558 752 L540 795 Q476 781 419 732 Z'), new Path2D('M876 675 Q805 711 722 752 L740 795 Q804 781 861 732 Z')];
+    const SOCK = [new Path2D('M373 653 Q465 686 563 741 L586 808 505 833 Q423 800 379 762 Z'), new Path2D('M907 653 Q815 686 717 741 L694 808 775 833 Q857 800 901 762 Z')];
+function partialLine(g, pts, f0, f1) {
+  const seg = []; let total = 0;
+  for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); seg.push(l); total += l; }
+  const a = clamp(f0, 0, 1) * total, b = clamp(f1, 0, 1) * total;
+  if (b <= a) return;
+  let acc = 0, started = false;
+  g.beginPath();
+  for (let i = 1; i < pts.length; i++) {
+    const s0 = acc, s1 = acc + seg[i - 1];
+    const x0 = pts[i - 1][0], y0 = pts[i - 1][1], x1 = pts[i][0], y1 = pts[i][1];
+    if (s1 >= a && s0 <= b) {
+      const ta = clamp((a - s0) / seg[i - 1], 0, 1), tb = clamp((b - s0) / seg[i - 1], 0, 1);
+      if (!started) { g.moveTo(mix(x0, x1, ta), mix(y0, y1, ta)); started = true; }
+      g.lineTo(mix(x0, x1, tb), mix(y0, y1, tb));
     }
+    acc = s1;
+  }
+  g.stroke();
+}
+function drawEyes(g) {
+  const lid = clamp(R.lid.x, 0, 1), gl = Math.max(0, R.glow.x);
+  for (let s = 0; s < 2; s++) {
+    const cx = s ? 798 : 482;
+    g.save(); g.clip(EYE[s]);
+    if (gl > 1.01) {
+      g.globalCompositeOperation = 'lighter';
+      const rg = g.createRadialGradient(cx, 742, 6, cx, 742, 130);
+      rg.addColorStop(0, 'rgba(255,240,196,' + clamp((gl - 1) * .95, 0, 1) + ')');
+      rg.addColorStop(.55, 'rgba(255,170,60,' + clamp((gl - 1) * .5, 0, 1) + ')');
+      rg.addColorStop(1, 'rgba(255,140,40,0)');
+      g.fillStyle = rg; g.fillRect(cx - 150, 620, 300, 220);
+    } else if (gl < .99) {
+      g.fillStyle = 'rgba(18,10,4,' + clamp((1 - gl) * .9, 0, .92) + ')'; g.fillRect(cx - 150, 620, 300, 220);
+    }
+    g.restore();
+    if (lid > .01) {
+      const sg = s ? -1 : 1, y = mix(688, 792, lid), x0 = cx - 160, x1 = cx + 160;
+      const y0 = y + (x0 - cx) * .5 * sg, y1 = y + (x1 - cx) * .5 * sg;
+      g.save(); g.clip(SOCK[s]);
+      const lg = g.createLinearGradient(0, 600, 0, y + 40);
+      lg.addColorStop(0, '#0c0d0f'); lg.addColorStop(1, '#23262a');
+      g.fillStyle = lg;
+      g.beginPath(); g.moveTo(x0, 560); g.lineTo(x1, 560); g.lineTo(x1, y1); g.lineTo(x0, y0); g.closePath(); g.fill();
+      g.strokeStyle = '#9a968d'; g.lineWidth = 6;
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+      g.restore();
+    }
+  }
+}
+function drawTicks(g) {
+  if (ticks[0] + ticks[1] + ticks[2] < .02) return;
+  g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
+  [559, 602, 649].forEach((y, i) => {
+    if (ticks[i] < .02) return;
+    g.strokeStyle = 'rgba(255,196,110,' + ticks[i] + ')'; g.lineWidth = 12;
+    g.beginPath(); g.moveTo(606, y); g.lineTo(674, y); g.stroke();
+  });
+  g.restore();
+}
+function drawStruts(g) {
+  for (let s = 0; s < 2; s++) {
+    const a = { x: s ? 852 : 428, y: 700 }, p = pivotNow(s);
+    const dx = p.x - a.x, dy = p.y - a.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+    g.lineCap = 'butt';
+    g.strokeStyle = '#1f2226'; g.lineWidth = 34;
+    g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(a.x + ux * L * .55, a.y + uy * L * .55); g.stroke();
+    g.strokeStyle = '#6e7177'; g.lineWidth = 13;
+    g.beginPath(); g.moveTo(a.x + ux * L * .45, a.y + uy * L * .45); g.lineTo(p.x, p.y); g.stroke();
+    g.strokeStyle = '#9c7a44'; g.lineWidth = 4;
+    g.beginPath(); g.moveTo(a.x + ux * L * .55 - uy * 17, a.y + uy * L * .55 + ux * 17); g.lineTo(a.x + ux * L * .55 + uy * 17, a.y + uy * L * .55 - ux * 17); g.stroke();
+  }
+}
+function renderRig(g) {
+  g.drawImage(SPR.back, 0, 0, 1280, 1280);
+  drawStruts(g);
+  // crest: slides in its slot (extends to sight, seats to brace)
+  g.save(); g.beginPath(); poly(g, SLOT); g.clip();
+  g.translate(R.coreX.x * .8, R.crest.x + R.coreY.x * .6);
+  g.drawImage(SPR.crest, 0, 0, 1280, 1280);
+  if (lockFlash > .02) {
+    g.globalCompositeOperation = 'lighter';
+    g.fillStyle = 'rgba(255,214,140,' + lockFlash * .85 + ')'; g.fillRect(620, 298, 41, 116);
+  }
+  g.restore();
+  // core (stable anchor)
+  g.save(); g.translate(R.coreX.x, R.coreY.x);
+  g.drawImage(SPR.core, 0, 0, 1280, 1280);
+  drawEyes(g); drawTicks(g);
+  g.restore();
+  // chin
+  g.save(); g.translate(R.lagX.x * .35, R.chin.x + R.calDy[0].x * .3 + R.lagY.x * .5);
+  g.drawImage(SPR.chin, 0, 0, 1280, 1280); g.restore();
+  // cheeks
+  for (let s = 0; s < 2; s++) {
+    g.save(); g.translate((s ? -1 : 1) * R.cheekX.x + R.lagX.x * .6, R.cheekY.x + R.lagY.x * .6);
+    g.drawImage(s ? SPR.cheekR : SPR.cheekL, 0, 0, 1280, 1280); g.restore();
+  }
+  // calipers + pivot discs (hierarchy: caliper → disc)
+  for (let s = 0; s < 2; s++) {
+    const sg = s ? -1 : 1, P = PIV[s];
+    g.save();
+    g.translate(P.x + sg * R.calDx[s].x + R.lagX.x, P.y + R.calDy[s].x + R.lagY.x);
+    g.rotate(sg * R.calTh[s].x);
+    g.translate(-P.x, -P.y);
+    g.drawImage(s ? SPR.calR : SPR.calL, 0, 0, 1280, 1280);
+    const seam = clamp(R.seam.x, 0, 1);
+    if (seam > .02) {
+      g.save(); g.globalCompositeOperation = 'lighter'; g.lineJoin = 'round';
+      g.strokeStyle = 'rgba(255,178,80,' + seam * .85 + ')'; g.lineWidth = 8;
+      g.beginPath();
+      const pts = s ? mir(SEAM) : SEAM;
+      g.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
+      g.stroke();
+      g.lineWidth = 10; g.beginPath(); g.arc(P.x, P.y, 68, 0, TAU); g.stroke();
+      g.restore();
+    }
+    g.save(); g.translate(P.x, P.y); g.rotate(sg * R.spin[s].x); g.translate(-P.x, -P.y);
+    g.drawImage(SPR.disc[s], 0, 0, 1280, 1280);
+    g.restore();
+    if (lockFlash > .02) {
+      g.save(); g.globalCompositeOperation = 'lighter';
+      const rg = g.createRadialGradient(P.x, P.y, 10, P.x, P.y, 110);
+      rg.addColorStop(0, 'rgba(255,226,160,' + lockFlash * .9 + ')'); rg.addColorStop(1, 'rgba(255,170,60,0)');
+      g.fillStyle = rg; g.fillRect(P.x - 110, P.y - 110, 220, 220);
+      g.restore();
+    }
+    g.restore();
+  }
+  // force-routing pulses
+  if (pulses.length) {
+    g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round'; g.lineJoin = 'round';
+    for (const p of pulses) {
+      const f = p.t / p.dur, e = 1 - Math.pow(1 - f, 2);
+      g.strokeStyle = 'rgba(255,160,60,' + (.35 * (1 - f)) + ')'; g.lineWidth = p.w * 2.2;
+      partialLine(g, p.pts, 0, e);
+      g.strokeStyle = 'rgba(255,236,196,' + (1 - f * .6) + ')'; g.lineWidth = p.w;
+      partialLine(g, p.pts, e - .28, e);
+    }
+    g.restore();
+  }
+  // local stress at the real hit point
+  for (const m of stress) {
+    const f = m.t / m.dur, a = 1 - f;
+    g.save(); g.globalCompositeOperation = 'lighter';
+    const rg = g.createRadialGradient(m.x, m.y, 2, m.x, m.y, 70);
+    rg.addColorStop(0, 'rgba(255,248,226,' + a + ')'); rg.addColorStop(.4, m.armored ? 'rgba(255,176,70,' + a * .7 + ')' : 'rgba(255,220,180,' + a * .5 + ')'); rg.addColorStop(1, 'rgba(255,150,50,0)');
+    g.fillStyle = rg; g.fillRect(m.x - 70, m.y - 70, 140, 140);
+    g.strokeStyle = 'rgba(255,244,220,' + a + ')'; g.lineWidth = 8;
+    g.beginPath(); g.moveTo(m.x - m.ny * 46, m.y + m.nx * 46); g.lineTo(m.x + m.ny * 46, m.y - m.nx * 46); g.stroke();
+    g.restore();
+  }
+}
+
 
     ctx.save();
-    ctx.translate(st.R.coreX.x * HSC * 0.8, st.R.coreY.x * HSC * 0.6);
-    {
-      const s = HSC * (1280 / SR);
-      ctx.save(); ctx.scale(s, s); ctx.drawImage(SPR.back, -640, -600); ctx.restore();
-    }
+    ctx.translate(R.rootX.x * HSC, R.rootY.x * HSC);
+    ctx.rotate(R.tilt.x); // HTML internal tilt only, never fighter heading
+    ctx.scale(HSC, HSC);
+    ctx.translate(-640, -600);
+    renderRig(ctx);
     ctx.restore();
-
-    const drawStrutsLocal = () => {
-      for (let s = 0; s < 2; s++) {
-        const a = { x: s ? 852 : 428, y: 700 };
-        const p = calPointLocal(st, s, PIV[s].x, PIV[s].y);
-        const aW = headToLocal(st, a.x, a.y);
-        const pW = headToLocal(st, p.x, p.y);
-        const dx = pW.x - aW.x, dy = pW.y - aW.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
-        ctx.save();
-        ctx.lineCap = 'butt';
-        ctx.strokeStyle = '#1f2226'; ctx.lineWidth = 34 * HSC;
-        ctx.beginPath(); ctx.moveTo(aW.x, aW.y); ctx.lineTo(aW.x + ux * L * .55, aW.y + uy * L * .55); ctx.stroke();
-        ctx.strokeStyle = '#6e7177'; ctx.lineWidth = 13 * HSC;
-        ctx.beginPath(); ctx.moveTo(aW.x + ux * L * .45, aW.y + uy * L * .45); ctx.lineTo(pW.x, pW.y); ctx.stroke();
-        ctx.strokeStyle = '#9c7a44'; ctx.lineWidth = 4 * HSC;
-        ctx.beginPath(); ctx.moveTo(aW.x + ux * L * .55 - uy * 17 * HSC, aW.y + uy * L * .55 + ux * 17 * HSC); ctx.lineTo(aW.x + ux * L * .55 + uy * 17 * HSC, aW.y + uy * L * .55 - ux * 17 * HSC); ctx.stroke();
-        ctx.restore();
-      }
-    };
-    drawStrutsLocal();
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(SLOT[0][0] * HSC, SLOT[0][1] * HSC);
-    for (let i = 1; i < SLOT.length; i++) ctx.lineTo(SLOT[i][0] * HSC, SLOT[i][1] * HSC);
-    ctx.closePath();
-    ctx.clip();
-    ctx.translate(st.R.coreX.x * HSC * .8, (st.R.crest.x + st.R.coreY.x * .6) * HSC);
-    {
-      const s = HSC * (1280 / SR);
-      ctx.save(); ctx.scale(s, s); ctx.drawImage(SPR.crest, -640, -600); ctx.restore();
-    }
-    if (st.lockFlash > .02) {
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.fillStyle = 'rgba(255,214,140,' + st.lockFlash * .85 + ')';
-      ctx.fillRect(620 * HSC, 298 * HSC, 41 * HSC, 116 * HSC);
-    }
-    ctx.restore();
-
-    ctx.save();
-    ctx.translate(st.R.coreX.x * HSC, st.R.coreY.x * HSC);
-    {
-      const s = HSC * (1280 / SR);
-      ctx.save(); ctx.scale(s, s); ctx.drawImage(SPR.core, -640, -600); ctx.restore();
-    }
-    const drawEyesLocal = () => {
-      const lid = clamp(st.R.lid.x, 0, 1), gl = Math.max(0, st.R.glow.x);
-      for (let s = 0; s < 2; s++) {
-        const cx = (s ? 798 : 482) * HSC;
-        if (gl > 1.01) {
-          ctx.save();
-          ctx.globalCompositeOperation = 'lighter';
-          const rg = ctx.createRadialGradient(cx, 742 * HSC, 6 * HSC, cx, 742 * HSC, 130 * HSC);
-          rg.addColorStop(0, 'rgba(255,240,196,' + clamp((gl - 1) * .95, 0, 1) + ')');
-          rg.addColorStop(.55, 'rgba(255,170,60,' + clamp((gl - 1) * .5, 0, 1) + ')');
-          rg.addColorStop(1, 'rgba(255,140,40,0)');
-          ctx.fillStyle = rg;
-          ctx.fillRect(cx - 150 * HSC, 620 * HSC, 300 * HSC, 220 * HSC);
-          ctx.restore();
-        } else if (gl < .99) {
-          ctx.save();
-          ctx.fillStyle = 'rgba(18,10,4,' + clamp((1 - gl) * .9, 0, .92) + ')';
-          ctx.fillRect(cx - 150 * HSC, 620 * HSC, 300 * HSC, 220 * HSC);
-          ctx.restore();
-        }
-        if (lid > .01) {
-          const sg = s ? -1 : 1;
-          const y = mix(688, 792, lid) * HSC;
-          const x0 = (482 - 160) * HSC, x1 = (482 + 160) * HSC;
-          const cxBase = (s ? 798 : 482) * HSC;
-          const y0 = y + (x0 - cxBase) * .5 * sg;
-          const y1 = y + (x1 - cxBase) * .5 * sg;
-          ctx.save();
-          const lg = ctx.createLinearGradient(0, 600 * HSC, 0, y + 40 * HSC);
-          lg.addColorStop(0, '#0c0d0f'); lg.addColorStop(1, '#23262a');
-          ctx.fillStyle = lg;
-          ctx.beginPath();
-          ctx.moveTo(x0, 560 * HSC); ctx.lineTo(x1, 560 * HSC); ctx.lineTo(x1, y1); ctx.lineTo(x0, y0); ctx.closePath(); ctx.fill();
-          ctx.strokeStyle = '#9a968d'; ctx.lineWidth = 6 * HSC;
-          ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-          ctx.restore();
-        }
-      }
-    };
-    drawEyesLocal();
-
-    if (st.ticks[0] + st.ticks[1] + st.ticks[2] > .02) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.lineCap = 'round';
-      [559, 602, 649].forEach((y, i) => {
-        if (st.ticks[i] < .02) return;
-        ctx.strokeStyle = 'rgba(255,196,110,' + st.ticks[i] + ')';
-        ctx.lineWidth = 12 * HSC;
-        ctx.beginPath(); ctx.moveTo(606 * HSC, y * HSC); ctx.lineTo(674 * HSC, y * HSC); ctx.stroke();
-      });
-      ctx.restore();
-    }
-    ctx.restore();
-
-    ctx.save();
-    ctx.translate(st.R.lagX.x * HSC * .35, (st.R.chin.x + st.R.calDy[0].x * .3 + st.R.lagY.x * .5) * HSC);
-    {
-      const s = HSC * (1280 / SR);
-      ctx.save(); ctx.scale(s, s); ctx.drawImage(SPR.chin, -640, -600); ctx.restore();
-    }
-    ctx.restore();
-
-    for (let s = 0; s < 2; s++) {
-      ctx.save();
-      ctx.translate((s ? -1 : 1) * st.R.cheekX.x * HSC + st.R.lagX.x * HSC * .6, (st.R.cheekY.x + st.R.lagY.x * .6) * HSC);
-      {
-        const sc = HSC * (1280 / SR);
-        ctx.save(); ctx.scale(sc, sc); ctx.drawImage(s ? SPR.cheekR : SPR.cheekL, -640, -600); ctx.restore();
-      }
-      ctx.restore();
-    }
-
-    for (let s = 0; s < 2; s++) {
-      const sg = s ? -1 : 1;
-      const P = PIV[s];
-      ctx.save();
-      ctx.translate(P.x * HSC + sg * st.R.calDx[s].x * HSC + st.R.lagX.x * HSC, P.y * HSC + st.R.calDy[s].x * HSC + st.R.lagY.x * HSC);
-      ctx.rotate(sg * st.R.calTh[s].x);
-      ctx.translate(-P.x * HSC, -P.y * HSC);
-      {
-        const sc = HSC * (1280 / SR);
-        ctx.save(); ctx.scale(sc, sc); ctx.drawImage(s ? SPR.calR : SPR.calL, -640, -600); ctx.restore();
-      }
-      const seam = clamp(st.R.seam.x, 0, 1);
-      if (seam > .02) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = 'rgba(255,178,80,' + seam * .85 + ')';
-        ctx.lineWidth = 8 * HSC;
-        ctx.beginPath();
-        const pts = s ? mir(SEAM) : SEAM;
-        ctx.moveTo(pts[0][0] * HSC, pts[0][1] * HSC);
-        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0] * HSC, pts[i][1] * HSC);
-        ctx.stroke();
-        ctx.lineWidth = 10 * HSC;
-        ctx.beginPath(); ctx.arc(P.x * HSC, P.y * HSC, 68 * HSC, 0, TAU); ctx.stroke();
-        ctx.restore();
-      }
-      ctx.save();
-      ctx.translate(P.x * HSC, P.y * HSC);
-      ctx.rotate(sg * st.R.spin[s].x);
-      ctx.translate(-P.x * HSC, -P.y * HSC);
-      {
-        const sc = HSC * (1280 / SR);
-        ctx.save(); ctx.scale(sc, sc); ctx.drawImage(SPR.disc[s], -640, -600); ctx.restore();
-      }
-      ctx.restore();
-      if (st.lockFlash > .02) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        const rg = ctx.createRadialGradient(P.x * HSC, P.y * HSC, 10 * HSC, P.x * HSC, P.y * HSC, 110 * HSC);
-        rg.addColorStop(0, 'rgba(255,226,160,' + st.lockFlash * .9 + ')');
-        rg.addColorStop(1, 'rgba(255,170,60,0)');
-        ctx.fillStyle = rg;
-        ctx.fillRect(P.x * HSC - 110 * HSC, P.y * HSC - 110 * HSC, 220 * HSC, 220 * HSC);
-        ctx.restore();
-      }
-      ctx.restore();
-    }
-
-    if (st.pulses.length) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      for (const p of st.pulses) {
-        const f = p.t / p.dur, e = 1 - Math.pow(1 - f, 2);
-        let total = 0;
-        const seg = [];
-        for (let i = 1; i < p.pts.length; i++) {
-          const l = Math.hypot(p.pts[i][0] - p.pts[i - 1][0], p.pts[i][1] - p.pts[i - 1][1]) * HSC;
-          seg.push(l); total += l;
-        }
-        const b = e * total;
-        const drawPartial = (from, to, style, width) => {
-          let acc = 0, started = false;
-          ctx.strokeStyle = style; ctx.lineWidth = width * HSC;
-          ctx.beginPath();
-          for (let i = 1; i < p.pts.length; i++) {
-            const s0 = acc, s1 = acc + seg[i - 1];
-            const x0 = p.pts[i - 1][0] * HSC, y0 = p.pts[i - 1][1] * HSC, x1 = p.pts[i][0] * HSC, y1 = p.pts[i][1] * HSC;
-            if (s1 >= from && s0 <= to) {
-              const ta = clamp((from - s0) / seg[i - 1], 0, 1), tb = clamp((to - s0) / seg[i - 1], 0, 1);
-              if (!started) { ctx.moveTo(mix(x0, x1, ta), mix(y0, y1, ta)); started = true; }
-              ctx.lineTo(mix(x0, x1, tb), mix(y0, y1, tb));
-            }
-            acc = s1;
-          }
-          ctx.stroke();
-        };
-        drawPartial(0, b, 'rgba(255,160,60,' + (.35 * (1 - f)) + ')', p.w * 2.2);
-        drawPartial(Math.max(0, b - .28 * total), b, 'rgba(255,236,196,' + (1 - f * .6) + ')', p.w);
-      }
-      ctx.restore();
-    }
-
-    for (const m of st.stress) {
-      const f = m.t / m.dur, a = 1 - f;
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      const rg = ctx.createRadialGradient(m.x * HSC, m.y * HSC, 2 * HSC, m.x * HSC, m.y * HSC, 70 * HSC);
-      rg.addColorStop(0, 'rgba(255,248,226,' + a + ')');
-      rg.addColorStop(.4, m.armored ? 'rgba(255,176,70,' + a * .7 + ')' : 'rgba(255,220,180,' + a * .5 + ')');
-      rg.addColorStop(1, 'rgba(255,150,50,0)');
-      ctx.fillStyle = rg;
-      ctx.fillRect(m.x * HSC - 70 * HSC, m.y * HSC - 70 * HSC, 140 * HSC, 140 * HSC);
-      ctx.strokeStyle = 'rgba(255,244,220,' + a + ')';
-      ctx.lineWidth = 8 * HSC;
-      ctx.beginPath();
-      ctx.moveTo(m.x * HSC - m.ny * 46 * HSC, m.y * HSC + m.nx * 46 * HSC);
-      ctx.lineTo(m.x * HSC + m.ny * 46 * HSC, m.y * HSC - m.nx * 46 * HSC);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    for (const fl of st.flashes) {
-      const a = 1 - fl.t / fl.dur;
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      const rg = ctx.createRadialGradient(fl.x * HSC, fl.y * HSC, 2 * HSC, fl.x * HSC, fl.y * HSC, fl.r * HSC);
-      rg.addColorStop(0, 'rgba(255,255,220,' + a + ')');
-      rg.addColorStop(1, 'rgba(255,200,100,0)');
-      ctx.fillStyle = rg;
-      ctx.beginPath(); ctx.arc(fl.x * HSC, fl.y * HSC, fl.r * HSC, 0, TAU); ctx.fill();
-      ctx.restore();
-    }
-
-    for (const p of st.parts) {
-      const a = 1 - p.t / p.life;
-      if (p.k === 'spark') {
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.strokeStyle = 'rgba(255,220,150,' + a + ')';
-        ctx.lineWidth = p.w * HSC;
-        ctx.beginPath(); ctx.moveTo(p.x * HSC, p.y * HSC); ctx.lineTo(p.x * HSC - p.vx * .02 * HSC, p.y * HSC - p.vy * .02 * HSC); ctx.stroke();
-        ctx.restore();
-      } else if (p.k === 'chip') {
-        ctx.save();
-        ctx.translate(p.x * HSC, p.y * HSC);
-        ctx.rotate(p.r);
-        ctx.globalAlpha = a;
-        ctx.fillStyle = '#c9b8a0';
-        ctx.fillRect(-p.s * HSC, -p.s * HSC, p.s * 2 * HSC, p.s * 2 * HSC);
-        ctx.restore();
-      } else if (p.k === 'dust') {
-        ctx.save();
-        ctx.globalAlpha = a * .3;
-        ctx.fillStyle = '#8a7f6f';
-        ctx.beginPath(); ctx.arc(p.x * HSC, p.y * HSC, p.s * HSC, 0, TAU); ctx.fill();
-        ctx.restore();
-      }
-    }
-
-    if (st.wallFlash > .02) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.fillStyle = 'rgba(255,220,160,' + st.wallFlash * .3 + ')';
-      ctx.beginPath(); ctx.arc(0, 0, fighter.radius * 1.6, 0, TAU); ctx.fill();
-      ctx.restore();
-    }
   }
 
   // World-space: brackets, measure, trail with calibration ticks (authority)
   function renderRobotWorld(ctx, fighter, st) {
+  for (const f of st.flashes) {
+    const a = 1 - f.t / f.dur;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a;
+    const rg = ctx.createRadialGradient(f.x, f.y, 1, f.x, f.y, f.r);
+    rg.addColorStop(0, 'rgba(255,250,232,1)'); rg.addColorStop(.35, 'rgba(255,200,120,.6)'); rg.addColorStop(1, 'rgba(255,150,60,0)');
+    ctx.fillStyle = rg; ctx.fillRect(f.x - f.r, f.y - f.r, f.r * 2, f.r * 2);
+    ctx.restore();
+  }
+  for (const q2 of st.parts) {
+    const a = 1 - q2.t / q2.life;
+    if (q2.k === 'spark') {
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = 'rgba(255,' + (190 + (a * 60 | 0)) + ',120,' + a + ')'; ctx.lineWidth = q2.w; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(q2.x - q2.vx * .02, q2.y - q2.vy * .02); ctx.lineTo(q2.x, q2.y); ctx.stroke(); ctx.restore();
+    } else if (q2.k === 'chip') {
+      ctx.save(); ctx.translate(q2.x, q2.y); ctx.rotate(q2.r); ctx.globalAlpha = a;
+      ctx.fillStyle = '#d9d2c3'; ctx.fillRect(-q2.s / 2, -q2.s / 2, q2.s, q2.s * .6); ctx.restore();
+    } else if (q2.k === 'case') {
+      ctx.save(); ctx.translate(q2.x, q2.y); ctx.rotate(q2.r); ctx.globalAlpha = a;
+      ctx.fillStyle = '#d6a052'; ctx.fillRect(-3, -1.5, 6, 3); ctx.restore();
+    } else if (q2.k === 'dust') {
+      ctx.fillStyle = 'rgba(120,118,110,' + a * .28 + ')'; ctx.beginPath(); ctx.arc(q2.x, q2.y, q2.s * (1 + q2.t * 2), 0, TAU); ctx.fill();
+    }
+  }
     // Brackets — elastic easing from HTML authority, adapted to target pickup
     if (st.brackets) {
       let gap, alpha;
@@ -1246,10 +1161,11 @@
             }
           }
         } catch (e) {}
-        const hitHx = 640 + dir.x * 200;
-        const hitHy = 600 + dir.y * 200;
-        const worldPt = { x: f.x + dir.x * f.radius, y: f.y + dir.y * f.radius };
-        const s = dir.x < 0 ? 0 : 1;
+        const hitHx = 640 - dir.x * 406;
+        const hitHy = 600 - dir.y * 200;
+        const local = headToLocal(st, hitHx, hitHy);
+        const worldPt = { x: f.x + local.x, y: f.y + local.y };
+        const s = dir.x > 0 ? 0 : 1;
         impactLocal(st, s, hitHx, hitHy, dir, F, worldPt);
       }
     } else if (type === 'RobotA1Lock') {
@@ -1321,7 +1237,20 @@
         if (st.T - st._lastDashAt < 0.15) continue;
         st._lastDashAt = st.T;
         playRobotSfx('robot_a1_dash', { vol: 0.78 });
+        st.trail = [{ x: f.x, y: f.y, t: st.T }];
+        st.contactT = Infinity;
         st.trailOn = true;
+        st.lastDashHeading = null;
+        const cast = st._lastLockAt;
+        // Miss/timeout cleanup does not manufacture equip/contact truth.
+        atState(st, .55 + .55, () => {
+          if (st._lastLockAt !== cast) return;
+          st.trailOn = false; st.trail = [];
+          if (!Number.isFinite(st.contactT)) {
+            setPoseState(st, st.armor ? P_A2_LOCK : st.held ? P_HELD : P_IDLE);
+            st.brackets = null;
+          }
+        });
       }
     } else if (type === 'RobotA1Dash') {
       // alias — no SFX
@@ -1336,14 +1265,30 @@
         if (!st) continue;
         // Only after real equip truth — held becomes true here
         st.held = true;
-        setPoseState(st, P_HELD);
+        setPoseState(st, P_A1_CONTACT);
+        st.snapUntil = st.T + .12; st.snapW = 72; st.snapZ = .5;
+        const cast = st._lastLockAt;
+        atState(st, .2, () => {
+          if (st._lastLockAt === cast && !st.armor) setPoseState(st, { ...P_HELD, spin: Math.PI });
+        });
+        atState(st, .55, () => {
+          if (st._lastLockAt === cast) { st.trailOn = false; st.trail = []; }
+        });
+        atState(st, 2, () => {
+          if (st._lastLockAt !== cast || st.armor || st.POSE.spin !== Math.PI) return;
+          st.POSE.spin = 0;
+          for (const spring of st.R.spin) { spring.x -= Math.PI; spring.g -= Math.PI; }
+        });
         st.gunFade = 0;
         st.gunAttachT = st.T;
         st.contactT = st.T;
         st.R.gunKick.kick(-14);
         st.R.rootX.kick(-18);
         st.lockFlash = 1;
-        flashState(st, 640, 600, true);
+        for (const [i, jaw] of jawWorldLocal(st).entries()) {
+          sparksState(st, f.x + jaw.x, f.y + jaw.y, i ? 1 : -1, -.2, 6, 320, .7);
+          flashState(st, f.x + jaw.x, f.y + jaw.y, false);
+        }
         if (st.brackets) { st.brackets.state = 'out'; st.brackets.t1 = st.T; }
       }
     } else if (type === 'RobotA2Start') {
@@ -1355,7 +1300,7 @@
         const st = getRobotState(f);
         if (!st) continue;
         playRobotSfx('robot_a2_activate', { vol: 0.78 });
-        setPoseState(st, P_A2_INDEX);
+        setPoseState(st, { ...P_A2_INDEX, ...(st.held ? { calTh: -.02 } : {}) });
         atState(st, .16, () => {
           st.armor = true;
           setPoseState(st, P_A2_LOCK);
@@ -1375,13 +1320,8 @@
       if (isAlias) return;
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
-        if (payload.fighterId && f.id !== payload.fighterId && payload.bodyId !== f.id) {
-          // also check bodyId? payload has bodyId
-          if (payload.bodyId && f.id !== payload.bodyId) {
-            // need to check if fighter owns bodyId via extra bodies? For simplicity, allow if fighter is robot and armor true
-            if (!isRobotFighter(f)) continue;
-          }
-        }
+        if (payload.bodyId && payload.bodyId !== f.id) continue;
+        if (payload.fighterId && payload.fighterId !== f.id) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
@@ -1393,14 +1333,14 @@
         // Visual impact for armor hit
         const amount = payload.amount || 20;
         const F = amount > 80 ? 2 : 1;
-        const pt = payload.point || { x: f.x, y: f.y };
-        const dir = { x: (f.x - pt.x) || 1, y: (f.y - pt.y) || 0 };
-        const mag = Math.hypot(dir.x, dir.y) || 1;
-        dir.x /= mag; dir.y /= mag;
-        const hx = 640 + dir.x * 200;
-        const hy = 600 + dir.y * 200;
-        const worldPt = { x: f.x + dir.x * f.radius, y: f.y + dir.y * f.radius };
-        const s = dir.x < 0 ? 0 : 1;
+        const dir = payload.direction;
+        if (!dir || !Number.isFinite(dir.x) || !Number.isFinite(dir.y)) continue;
+        // Force travels INTO the victim; the entry side is opposite that vector.
+        const s = dir.x > 0 ? 0 : 1;
+        const cp = calPointLocal(st, s, s ? 1046 : 234, 470);
+        const hx = cp.x, hy = cp.y;
+        const local = headToLocal(st, hx, hy);
+        const worldPt = { x: f.x + local.x, y: f.y + local.y };
         impactLocal(st, s, hx, hy, dir, F, worldPt);
       }
     } else if (type === 'RobotA2ArmorHit') {
@@ -1467,6 +1407,11 @@
   function install() {
     ensureSprites();
     loadRobotAudio();
+    // Reuse the engine's user-gesture unlock; never construct another context.
+    globalScope.addEventListener?.('pointerdown', () => {
+      if (typeof ensureBattleAudioReady === 'function') ensureBattleAudioReady();
+      loadRobotAudio();
+    }, { passive: true });
 
     const AIL = globalScope.APEX_HERO_REWORK_AIL;
     if (AIL && AIL.bus && !AIL.bus.__robotPresentationHooked) {
@@ -1489,7 +1434,7 @@
           ctx.save();
           ctx.globalAlpha = this.hasStatus('immune') ? 0.55 : 1;
           ctx.translate(this.x, this.y);
-          ctx.rotate(Math.atan2(this.dir.y, this.dir.x));
+          // Fixed HTML-facing world orientation.
           if (this.isRage) {
             const glow = this.color || '#ffffff';
             try { ctx.filter = `drop-shadow(0 0 5px ${glow}) drop-shadow(0 0 11px ${glow})`; } catch (e) {}
@@ -1501,7 +1446,7 @@
           }
           if (this.hasStatus('stun')) {
             ctx.save();
-            ctx.rotate(-Math.atan2(this.dir.y, this.dir.x));
+            // Status art shares the fixed world frame.
             if (typeof drawStunAsset === 'function') drawStunAsset(ctx, this.radius);
             ctx.restore();
           }
@@ -1554,9 +1499,10 @@
             const dir = side === 'left' ? { x: 1, y: 0 } : side === 'right' ? { x: -1, y: 0 } : side === 'top' ? { x: 0, y: 1 } : { x: 0, y: -1 };
             const hx = side === 'left' ? 96 : side === 'right' ? 1184 : 640;
             const hy = side === 'top' ? 96 : side === 'bottom' ? 1184 : 600;
-            const worldPt = { x: this.x + dir.x * this.radius, y: this.y + dir.y * this.radius };
-            impactLocal(st, 0, hx, hy, dir, 1.25, worldPt);
-            dustState(st, worldPt.x, worldPt.y + 40 * HSC, dir.x, dir.y, 4);
+            const local = headToLocal(st, hx, hy);
+            const worldPt = { x: this.x + local.x, y: this.y + local.y };
+            impactLocal(st, side === 'right' ? 1 : 0, hx, hy, dir, 1.25, worldPt);
+            dustState(st, worldPt.x, worldPt.y + 40, dir.x, dir.y, 4);
           }
         }
         return side;
@@ -1575,9 +1521,9 @@
             const socket = getRobotWeaponSocketWorld(fighter);
             if (st && socket && holder && holder.weaponId) {
               const aim = (holder.meta && holder.meta.aimAngle != null) ? holder.meta.aimAngle : Math.atan2(fighter.dir.y, fighter.dir.x);
-              const kick = st.R.gunKick.x;
-              const offX = socket.x + Math.cos(aim) * kick;
-              const offY = socket.y + Math.sin(aim) * kick;
+              // heldGunLocal already applies the authored positional recoil once.
+              const offX = socket.x;
+              const offY = socket.y;
               const meta = av.weaponMeta ? av.weaponMeta(holder.weaponId) : null;
               if (meta && av.drawWeaponSprite) {
                 const params = av.weaponDrawParams ? av.weaponDrawParams(holder.weaponId, holder.def?.category || '', fighter.radius) : { drawOffset: 0, targetLongSide: 120, offset: 0 };
@@ -1670,9 +1616,10 @@
     playRobotSfx,
     loadRobotAudio,
     resetRobotAudioSession,
+    audioEvidence: () => JSON.parse(JSON.stringify(Object.values(robotAudioEvidence))),
     SPR: () => SPR,
     isRobotFighter,
-    version: '1.0.0-final-repaired-20260929'
+    version: '1.1.0-owner-visual-checkpoint-20260929'
   };
   globalScope.apexRobotPresentationRuntime = 'ready';
 
