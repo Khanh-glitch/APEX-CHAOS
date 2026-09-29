@@ -16,18 +16,50 @@ const results=await page.evaluate(()=>{
  check('V10-independent-state-shared-materials',world().snares.every((s,i,a)=>a.every((t,j)=>i===j||s.visual._rt!==t.visual._rt))&&APEX_HUNTER_PRESENTATION.cacheStats.derivations===7,APEX_HUNTER_PRESENTATION.cacheStats);
  const next=Q.ct.skills.A1.rechargeLeft;Q.step(Math.ceil((next+.02)*60));const one=Q.ct.skills.A1.charges;Q.step(390);const two=Q.ct.skills.A1.charges;Q.step(390);const full=Q.ct.skills.A1.charges;
  check('A1-sequential-recharge-cleanup',one===1&&two===2&&full===3&&Q.ct.skills.A1.rechargeLeft===0&&world().snares.length===0,{next,one,two,full,traps:world().snares.length});
- Q.setup();Q.cast('A1');Q.step(60);const trap=world().snares[0],phases=[trap.phase];Q.b.x=trap.x;Q.b.y=trap.y-90;Q.b.setDir(0,1);for(let i=0;i<180;i++){Q.step();if(world().snares.includes(trap)&&phases.at(-1)!==trap.phase)phases.push(trap.phase);}
+ Q.setup();Q.cast('A1');Q.step(60);const trap=world().snares[0],phases=[trap.phase];let weakAtTrigger=0;Q.b.x=trap.x;Q.b.y=trap.y-90;Q.b.setDir(0,1);for(let i=0;i<180;i++){Q.step();if(world().snares.includes(trap)&&phases.at(-1)!==trap.phase){phases.push(trap.phase);if(trap.phase==='tension')weakAtTrigger=hr.match.api.weakRemaining(hr.byCombatant(Q.b));}}
  check('V10-trigger-root-lifecycle',phases.join(',')==='armed,tension,snap,pin,release'&&trap.consumed&&trap.triggeredAt!=null&&world().snares.length===0,{phases,root:trap.rootDuration});
+ check('A1-trigger-applies-root+weak',trap.rootDuration===1.25&&weakAtTrigger>0.9&&weakAtTrigger<=1,{weakAtTrigger,root:trap.rootDuration});
  Q.setup();Q.a.x=200;Q.a.y=500;Q.b.x=800;Q.b.y=500;Q.b.setDir(0,1);const hp=Q.b.hp;Q.cast('A2');Q.step(9);const held=Q.a.x===200;const path=[];let turned=false;
  for(let i=0;i<35;i++){if(i===5){Q.b.setDir(0,-1);turned=true;}const x=Q.a.x,y=Q.a.y;Q.step();path.push({x:Q.a.x,y:Q.a.y,step:Math.hypot(Q.a.x-x,Q.a.y-y)});if(hr.AIL.StatusResolver.has(Q.b,'WEAK'))break;}
- const weak=hr.AIL.StatusResolver.remaining(Q.b,'WEAK'),hit=hr.AIL.bus.ring.filter(e=>e.type==='PounceWeak').at(-1);
- check('A2-prelaunch-live-chase-swept-zero-damage',held&&turned&&weak>2.9&&weak<=3&&Q.b.hp===hp&&hit?.payload.swept&&path.every(p=>p.step<45),{held,path,weak,hpBefore:hp,hpAfter:Q.b.hp,event:hit});
- check('WEAK-law',hr.AIL.STATUS_LAWS.WEAK.duration===3&&hr.AIL.StatusResolver.incomingMult(Q.b)===1.25,hr.AIL.STATUS_LAWS.WEAK);
- let seed=1;while(hr.AIL.makeSeededRng(seed)()>=.24)seed++;
- function incoming(weapon='PISTOL'){const mark=hr.AIL.bus.seq,old=hr.AIL.bus.ring.filter(e=>e.type==='HunterDodge').length;Q.a.x=400;Q.a.y=500;Q.a.setDir(1,0);APEX_ARSENAL.weaponApi.fireBullet({owner:Q.b,x:Q.a.x-100,y:Q.a.y,angle:0,speed:6000,damage:1,weapon});Q.step();return hr.AIL.bus.ring.filter(e=>e.type==='HunterDodge').length-old;}
- hr.setSeed(seed);const dodge=incoming();hr.setSeed(seed);const lock=incoming();Q.step(30);hr.setSeed(seed);const t6=incoming('STORMBREAKER');hr.setSeed(1);const rejected=incoming();
- check('passive-valid-proc-lockout-T6',dodge===1&&lock===0&&t6===0&&rejected===0&&Q.ct.skills.PASSIVE.cfg.dodgeChance===.24,{seed,dodge,lock,t6,rejected,config:Q.ct.skills.PASSIVE.cfg});
- Q.setup();hr.setSeed(seed);const invalid=incoming();check('passive-no-prey-no-proc',invalid===0,{invalid});
+ const stun=hr.AIL.StatusResolver.remaining(Q.b,'STUN'),weakCt=hr.match.api.weakRemaining(hr.byCombatant(Q.b)),hit=hr.AIL.bus.ring.filter(e=>e.type==='PounceWeak').at(-1);
+ check('A2-prelaunch-live-chase-swept-zero-damage',held&&turned&&stun>1.9&&stun<=2&&weakCt>0.9&&weakCt<=1&&Q.b.hp===hp&&hit?.payload.swept&&path.every(p=>p.step<45),{held,path,stun,weakCt,hpBefore:hp,hpAfter:Q.b.hp,event:hit});
+ check('WEAK-law',hr.AIL.STATUS_LAWS.WEAK.duration===1.0&&hr.AIL.STATUS_LAWS.WEAK.mirrorOnly===true&&!hr.AIL.StatusResolver.incomingMult,hr.AIL.STATUS_LAWS.WEAK);
+ Q.setup();Q.a.x=400;Q.a.y=500;Q.b.x=600;Q.b.y=500;
+ const en=hr.byCombatant(Q.b);
+ const dealt=(victim,src,amt)=>{const h0=victim.hp;victim.takeDamage(amt,src,'arsenal-PISTOL');return h0-victim.hp;};
+ const base=dealt(Q.b,Q.a,100);
+ const neutralBefore=dealt(Q.b,null,100);
+ hr.match.api.applyWeakCombatant(en,1.0);
+ const weakIn=dealt(Q.b,Q.a,100);
+ const neutralDuring=dealt(Q.b,null,100);
+ hr.match.api.applyWeakCombatant(en,1.0);
+ const refreshed=dealt(Q.b,Q.a,100);
+ check('weak-hunter-x125-refresh-not-stack',Math.abs(weakIn/base-1.25)<1e-6&&Math.abs(refreshed/base-1.25)<1e-6,{base,weakIn,refreshed});
+ check('weak-neutral-not-amplified',Math.abs(neutralDuring-neutralBefore)<1e-6&&Math.abs(neutralDuring-100)<1e-6,{neutralBefore,neutralDuring});
+ Q.step(90); // > 1.0s: weak fully expired
+ const baseOut=dealt(Q.a,Q.b,100);
+ hr.match.api.applyWeakCombatant(en,1.0);
+ const weakOut=dealt(Q.a,Q.b,100);
+ check('weak-outgoing-x075-once',Math.abs(weakOut/baseOut-0.75)<1e-6,{baseOut,weakOut});
+ Q.step(90);
+ Q.setup();Q.cast('A1');Q.step(60);const tr=world().snares[0];Q.b.x=tr.x;Q.b.y=tr.y-90;Q.b.setDir(0,1);Q.step(30);
+ const hx=Q.a.x;APEX_ARSENAL.weaponApi.fireBullet({owner:Q.b,x:Q.a.x-100,y:Q.a.y,angle:0,speed:6000,damage:1,weapon:'PISTOL'});Q.step();
+ check('no-old-passive-dodge',Math.abs(Q.a.x-hx)<50&&hr.AIL.bus.ring.filter(e=>e.type==='HunterDodge').length===0,{x:Q.a.x,hx,delta:Q.a.x-hx});
+ Q.setup();
+ if(APEX_ARSENAL.state?.active)exitArsenalQuestMode();startArsenalQuestMode('HUNTER','SLIME');const ss=APEX_ARSENAL.state;ss.slots=[];ss.spawnHeld=true;ss.spawnTimer=1e6;ss.unarmedFastConsumed=true;
+ const sa=fighters[0],sb=fighters[1];sa.x=300;sa.y=500;sb.x=700;sb.y=500;Q.a=sa;Q.b=sb;Q.ct=hr.byCombatant(sa);Q.ctl=hr.abilityController(Q.ct);
+ for(let i=0;i<5;i++)APEX_ARSENAL.step(1/60);
+ hr.match.api.applyWeakCombatant(hr.byCombatant(sb),1.0);
+ const sCtl=hr.abilityController(hr.byCombatant(sb));const splitCast=sCtl.tryCast('A1','gates');
+ for(let i=0;i<10;i++)APEX_ARSENAL.step(1/60);
+ const slimeCt=hr.byCombatant(sb),child=slimeCt.bodies.find(x=>x&&x!==sb&&x.hp>0);
+ const childWeak=child?hr.AIL.StatusResolver.remaining(child,'WEAK'):0;
+ const ctWeak=hr.match.api.weakRemaining(slimeCt);
+ const childBase=child?dealt(child,sa,50):0;
+ for(let i=0;i<90;i++)APEX_ARSENAL.step(1/60); // weak expires on the child too
+ const childAfter=child&&child.hp>0?dealt(child,sa,50):0;
+ check('weak-slime-combatant-inheritance',!!splitCast&&!!child&&childWeak>0&&childWeak<=ctWeak&&childAfter>0&&Math.abs(childBase/childAfter-1.25)<1e-6,{splitCast:!!splitCast,childWeak,ctWeak,childBase,childAfter});
+ Q.setup();
  Q.setup();Q.a.x=150;Q.a.y=150;Q.b.x=850;Q.b.y=850;Q.cast('A2');Q.step(11);for(let i=0;i<35;i++){Q.b.x=Q.a.x<500?900:100;Q.b.y=Q.a.y<500?900:100;Q.step();}const missed=!hr.AIL.StatusResolver.has(Q.b,'WEAK')&&!Q.ct.store['hunter.pounce_weak'].pounce;
  check('A2-exceptional-escape-no-fake-catch',missed&&APEX_HUNTER_PRESENTATION.inspect(Q.a).phase!=='CATCH',{pose:APEX_HUNTER_PRESENTATION.inspect(Q.a),weak:hr.AIL.StatusResolver.remaining(Q.b,'WEAK')});
  Q.setup();check('match-reset',Q.ct.skills.A1.charges===3&&world().snares.length===0,{charges:Q.ct.skills.A1.charges,traps:world().snares.length});

@@ -822,27 +822,26 @@
       let hit=null,toi=Infinity;
       for(const b of bodies){const t=ctx.api.sweptHunterContact(ox,oy,a.x,a.y,b.x,b.y,a.radius+b.radius);if(t!=null&&t<toi){toi=t;hit=b;}}
       globalScope.APEX_HUNTER_PRESENTATION.travel(a,heading,moveDt);
-      if(hit){a.x=ox+(a.x-ox)*toi;a.y=oy+(a.y-oy)*toi;ctx.api.applyWeakTo(ctx.api.combatantOfBody(hit),ctx.cfg.weakDuration);
-        ctx.api.emitEvent('PounceWeak',{hero:'HUNTER',target:hit.id,directDamage:0,swept:true});
+      if(hit){a.x=ox+(a.x-ox)*toi;a.y=oy+(a.y-oy)*toi;
+        ctx.api.applyStunTo(hit,ctx.cfg.stunDuration??2.0);
+        ctx.api.applyWeakCombatant(ctx.api.combatantOfBody(hit),ctx.cfg.weakDuration??1.0);
+        ctx.api.emitEvent('PounceWeak',{hero:'HUNTER',target:hit.id,directDamage:0,swept:true,stun:ctx.cfg.stunDuration??2.0,weak:ctx.cfg.weakDuration??1.0});
         ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;globalScope.APEX_HUNTER_PRESENTATION.catch(a);
       }else if(p.elapsed>=ctx.cfg.maxMoveTime-1e-9){ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;globalScope.APEX_HUNTER_PRESENTATION.miss(a);}
     },
     onTeardown(ctx){ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;},
   };
 
-  EXECUTORS['hunter.killer_instinct'] = {
-    // Dodge roll happens in the projectile pass (earliest-TOI + lockout).
-    // Doc 02 semantics: the PREY/opponent being Trapped (ROOT, from HUNTER
-    // A1 snare) or Weak (from HUNTER A2 pounce) enables Killer Instinct —
-    // this creates real A1/A2/Passive synergy. HUNTER's own statuses are
-    // irrelevant. T6 exclusion, 24% chance, 95px physical dodge, 0.45s
-    // anti-chain and no-invulnerability live in the projectile pass.
-    dodgeEligible(ctx, body) {
-      if (!ctx.api.ownsBody(ctx.combatant, body)) return false;
-      const enemy = ctx.api.enemyOf(ctx.combatant);
-      if (!enemy) return false;
-      return ctx.api.enemyBodies(ctx.combatant).some((b) =>
-        ctx.api.isTrapped(b) || ctx.api.isWeakBody(b));
+  // POST-PLAYTEST 2026-09-29: the projectile auto-dodge passive is fully
+  // superseded. The passive now owns WEAK amplification progression through a
+  // single profile knob; Lv1 resolves exactly to 1.0s / x1.25 Hunter-source
+  // incoming / x0.75 outgoing (enforced in the damage adapter). Lv2+ numbers
+  // remain owner-unresolved.
+  EXECUTORS['hunter.weak_law'] = {
+    resolveProfile(ctx) {
+      const tier = ctx.cfg.weakProfileTier || 1;
+      if (tier === 1) return { duration: 1.0, hunterIncomingMult: 1.25, outgoingMult: 0.75 };
+      return null; // above-Lv1 production resolution unresolved
     },
   };
 

@@ -104,7 +104,11 @@
    * ------------------------------------------------------------------ */
   const STATUS_LAWS = {
     CHILL: { refresh: 'duration', slowPct: 0.30, duration: 2.5 },
-    WEAK: { refresh: 'duration', incomingMult: 1.25, duration: 3.0 },
+    // POST-PLAYTEST 2026-09-29: body-level WEAK is a presentation/query mirror
+    // of the combatant-owned debuff. Damage multipliers live exactly once in
+    // the provenance-aware damage adapter (Hunter-source x1.25 incoming,
+    // WEAK dealer x0.75 outgoing); no generic incomingMult authority remains.
+    WEAK: { refresh: 'duration', duration: 1.0, mirrorOnly: true },
     ROOT: { refresh: 'duration' },
     STUN: { refresh: 'duration' },
     GEL: { refresh: 'value' },
@@ -159,9 +163,7 @@
     slowPct(holder) {
       return this.has(holder, 'CHILL') ? STATUS_LAWS.CHILL.slowPct : 0;
     },
-    incomingMult(holder) {
-      return this.has(holder, 'WEAK') ? STATUS_LAWS.WEAK.incomingMult : 1;
-    },
+
   };
 
   /* ------------------------------------------------------------------ *

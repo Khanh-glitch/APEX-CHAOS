@@ -90,6 +90,7 @@
         };
       }
     }
+    ct.weakUntil = 0; // combatant-owned WEAK debuff (owner law 2026-09-29)
     anchor.__hrCombatant = ct;
     anchor.__hrRefHp = anchor.maxHp;
     return ct;
@@ -357,13 +358,21 @@
         AIL.bus.emit('ChillApplied', { target: body.id, duration: dur });
       },
       chillRemaining: (body) => AIL.StatusResolver.remaining(body, 'CHILL'),
-      applyWeakTo(ct, duration) {
+      applyWeakTo(ct, duration) { return M.api.applyWeakCombatant(ct, duration); },
+      applyWeakCombatant(ct, duration) {
         if (!ct) return;
+        const now = AIL.clock();
+        const dur = duration == null ? 1.0 : duration;
+        // Refresh, never stack: the multipliers are constants of the law.
+        ct.weakUntil = Math.max(ct.weakUntil || 0, now + dur);
+        const remaining = ct.weakUntil - now;
         for (const b of livingBodies(ct)) {
-          AIL.StatusResolver.apply(b, 'WEAK', duration == null ? 3 : duration);
+          AIL.StatusResolver.apply(b, 'WEAK', remaining); // presentation/query mirror only
         }
-        AIL.bus.emit('WeakApplied', { combatant: ct.heroId, duration });
+        AIL.bus.emit('WeakApplied', { combatant: ct.heroId, duration: dur, remaining });
       },
+      weakRemaining: (ct) => ct && ct.weakUntil ? Math.max(0, ct.weakUntil - AIL.clock()) : 0,
+      isWeak: (ct) => !!ct && (ct.weakUntil || 0) > AIL.clock(),
       isWeakBody: (body) => AIL.StatusResolver.has(body, 'WEAK'),
       isTrapped: (body) => AIL.StatusResolver.has(body, 'ROOT') || AIL.StatusResolver.has(body, 'STUN'),
       applyRootTo(body, duration) {
@@ -546,6 +555,8 @@
           child.setDir(1, 0);
         }
         ct.bodies.push(child);
+        const weakLeft = M.api.weakRemaining(ct);
+        if (weakLeft > 0) AIL.StatusResolver.apply(child, 'WEAK', weakLeft); // combatant law owns the window
         AIL.bus.emit('SlimeBodySpawned', { id: child.id, hp: o.hp, kind: o.kind });
         return child;
       },
@@ -864,6 +875,17 @@
           const out = exec.onTakeDamageLate(ctx, this, packet);
           if (out) packet = out;
         });
+      }
+      // POST-PLAYTEST 2026-09-29 WEAK law, exactly once, before realized HP
+      // loss: Hunter-controlled damage into a WEAK combatant x1.25; positive
+      // damage dealt BY a WEAK combatant x0.75. Neutral/self/unrelated
+      // sources never receive the Hunter vulnerability.
+      const srcCt = packet.source ? combatantOfBody(packet.source) : null;
+      if (srcCt && srcCt !== ct) {
+        if ((srcCt.weakUntil || 0) > AIL.clock()) packet = { ...packet, amount: packet.amount * 0.75 };
+        if (srcCt.heroId === 'HUNTER' && (ct.weakUntil || 0) > AIL.clock()) {
+          packet = { ...packet, amount: packet.amount * 1.25 };
+        }
       }
       if (!(packet.amount > 0)) {
         AIL.bus.emit('DamageFullyAbsorbed', { victim: this.id, original: amount });
@@ -1271,7 +1293,8 @@
       else if(s.phase==='snap' && s.phaseTime>=.34) phase('pin');
       if(!s.consumed && (s.phase==='armed'||s.phase==='unfold')) {
         for(const b of livingBodies(enemyOf(s.owner)||{})) if(dist(b.x,b.y,s.x,s.y)<=s.radius+b.radius*.4) {
-          s.consumed=true;s.prey=b;s.triggeredAt=now;M.api.applyRootTo(b,s.rootDuration);phase('tension');
+          s.consumed=true;s.prey=b;s.triggeredAt=now;M.api.applyRootTo(b,s.rootDuration);
+          M.api.applyWeakCombatant(combatantOfBody(b), (s.owner.skills.A1.cfg.weakDuration ?? 1.0));phase('tension');
           AIL.bus.emit('SnareTriggered',{id:s.id,target:b.id,root:s.rootDuration});break;
         }
       }
@@ -1473,8 +1496,6 @@
         // ---- Stage B: body interactions (earliest TOI winner) ----------
         const target = earliestToiBody(p, BULLET_HIT_SCALE, i);
         if (target) {
-          // HUNTER dodge (projectile continues; T6 excluded).
-          if (tryDodge(p, target)) continue;
           // CRYSTAL refraction (reflect; T6 never reflected).
           if (tryReflect(p, target, BULLET_HIT_SCALE)) continue;
           // RUBBER compression storage (enemy projectile into RUBBER).
@@ -1871,33 +1892,6 @@
       if (bodies.length) return bodies[0];
     }
     return null;
-  }
-
-  function tryDodge(p, target) {
-    if (!M || p.__hr?.rubberDebt) return false; // ordinary untransformed bullets are eligible too
-    if (p.weapon === 'STORMBREAKER') return false; // T6 excluded from evasion
-    const ct = combatantOfBody(target);
-    if (!ct || ct.facade) return false;
-    const exec = ct.def && MECH.EXECUTORS[ct.def.skills.PASSIVE.mechanicId];
-    if (!exec || !exec.dodgeEligible) return false;
-    const ctx = mechCtx(ct, 'PASSIVE');
-    if (!exec.dodgeEligible(ctx, target)) return false;
-    const st = (ct.store.__dodge = ct.store.__dodge || {});
-    const now = AIL.clock();
-    if (st.lockedUntil && now < st.lockedUntil) return false;
-    const cfg = ct.skills.PASSIVE.cfg;
-    if (!(rng() < cfg.dodgeChance)) return false;
-    // Physical sidestep perpendicular to the projectile's travel.
-    const sp = Math.hypot(p.vx, p.vy) || 1;
-    const nx = -p.vy / sp, ny = p.vx / sp;
-    const side = rng() < 0.5 ? 1 : -1;
-    const d = cfg.dodgeDistance * side;
-    M.api.relocate(target, clamp(target.x + nx * d, 40, (globalScope.GAME_SIZE || 1000) - 40),
-      clamp(target.y + ny * d, 40, (globalScope.GAME_SIZE || 1000) - 40), 'hunter.killer_instinct');
-    st.lockedUntil = now + cfg.antiChainLockout;
-    globalScope.APEX_HUNTER_PRESENTATION?.dodge(target, nx*side, ny*side);
-    AIL.bus.emit('HunterDodge', { target: target.id, dist: Math.abs(d) });
-    return true; // projectile continues
   }
 
   function tryReflect(p, target, BULLET_HIT_SCALE) {

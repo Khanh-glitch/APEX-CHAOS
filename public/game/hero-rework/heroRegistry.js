@@ -287,17 +287,20 @@
       skills: {
         A1: skill('hunter.snare', 'A1', 'hunter.snare', {
           cooldown: 6.5, maxCharges: 3, trapLifetime: 6, maxActiveTraps: 3, rootDuration: 1.25,
+          weakDuration: 1.0, // POST-PLAYTEST 2026-09-29: real trigger applies WEAK 1.0
           placedAtCaster: true, bulletsPickupsVfxDoNotTrigger: true,
         }, ['cooldown'], 'cooldown_step'),
         A2: skill('hunter.pounce_weak', 'A2', 'hunter.pounce_weak', {
           cooldown: 12, windup: 0.16, moveSpeed: 2200, maxMoveTime: 0.50,
-          directDamage: 0, weakDuration: 3, weakIncomingMult: 1.25,
+          directDamage: 0, stunDuration: 2.0, weakDuration: 1.0,
           canMiss: true, weakScope: 'combatant',
-        }, ['weakIncomingMult'], 'magnitude_step'),
-        PASSIVE: skill('hunter.killer_instinct', 'PASSIVE', 'hunter.killer_instinct', {
-          dodgeChance: 0.24, dodgeDistance: 95, antiChainLockout: 0.45,
-          requiresTrappedOrWeak: true, invulnerability: false, t6Excluded: true,
-        }, ['dodgeChance'], 'pp_step'),
+        }, ['weakDuration'], 'seconds_step'),
+        // POST-PLAYTEST 2026-09-29: passive owns WEAK amplification progression.
+        // One-knob profile selector; Lv2-Lv5 numbers unresolved until owner balance.
+        PASSIVE: skill('hunter.weak_law', 'PASSIVE', 'hunter.weak_law', {
+          weakProfileTier: 1,
+          weakDuration: 1.0, hunterIncomingMult: 1.25, outgoingMult: 0.75,
+        }, ['weakProfileTier'], 'pp_step'),
       },
     },
 
