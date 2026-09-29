@@ -225,43 +225,42 @@ function predictorStep(st, now, dt) {
     if (notAThreat(st, p)) continue;
     const hr = p.__hr;
     if (hr && hr.cryTid) continue;                            // already reserved
-    if (hr && hr.cryLost) continue;                           // decided: overflow / unreachable
+    if (hr && hr.cryLost) continue;                           // decided once: overflow / unreachable
     const c = classify(st, p, now, dt);
-    if (!c || c.drop) { if (c && c.drop && c.drop !== 'miss') { /* may re-evaluate only if it changes */ } continue; }
+    if (!c || c.drop) continue;
     cands.push(c);
   }
   if (!cands.length) return;
-  const pool = availableIds(st);
-  // Threats whose JIT moment has arrived (best-reachable shard can only just make it).
-  const due = [];
-  for (const c of cands) {
-    let minLead = Infinity;
-    for (const id of pool) { const l = leadFor(st, id, c.ip); if (l < minLead) minLead = l; }
-    if (pool.length && c.tBand - dt <= minLead + JIT_SLACK) due.push(c);
-    else if (!pool.length && c.tBand - dt <= MIN_LEAD + JIT_SLACK) due.push(c);   // nobody free at the deadline
-  }
-  if (!due.length) return;
-  // earliest time-to-hit, then higher current damage, then stable projectile id
-  due.sort((a, b) =>
+  // simultaneous threats: earliest predicted time-to-hit, then higher current
+  // damage, then stable projectile id; each gets at most ONE distinct shard.
+  cands.sort((a, b) =>
     (Math.round(a.tHit / TTI_QUANT) - Math.round(b.tHit / TTI_QUANT))
     || ((b.p.damage || 0) - (a.p.damage || 0))
     || (a.hr.cryPid - b.hr.cryPid));
-  for (const c of due) {
-    const free = availableIds(st);
-    let best = null, bestScore = -Infinity;
+  const free = availableIds(st);
+  const taken = new Set();
+  for (const c of cands) {
+    // Shards that can PHYSICALLY still make this intercept (Gold travel grammar;
+    // never a far-side teleport). Reserve only when the chosen shard's own
+    // deadline arrives: just in time, earlier only if its travel requires it.
+    let best = null, bestScore = -Infinity, bestLead = 0;
     for (const id of free) {
-      if (c.tBand - dt < leadFor(st, id, c.ip) - JIT_SLACK) continue;      // physically unreachable in time
+      if (taken.has(id)) continue;
+      const lead = leadFor(st, id, c.ip);
+      if (c.tBand - dt < lead - JIT_SLACK) continue;
       const sc = st.rig.scoreStone(st.rig.stones[id], c.p.vx, c.p.vy, c.ip);
-      if (sc > bestScore + 1e-9) { bestScore = sc; best = id; }
+      if (sc > bestScore + 1e-9) { bestScore = sc; best = id; bestLead = lead; }
     }
     if (best == null) {
-      c.hr.cryLost = free.length ? 'unreachable' : 'busy';
-      if (free.length === 0 && st.shards.some((s) => s.state !== STATE.ORBIT)) {
-        st.tele.overflowThreats += 1; c.hr.cryOverflow = true;
-      } else st.tele.ignoredUnreachable += 1;
-      continue;
+      if (c.tBand - dt < MIN_LEAD - JIT_SLACK) {             // nobody can make it any more
+        c.hr.cryLost = free.length ? 'unreachable' : 'busy';
+        if (!free.length && st.shards.some((s) => s.state !== STATE.ORBIT)) { st.tele.overflowThreats += 1; c.hr.cryOverflow = true; }
+        else st.tele.ignoredUnreachable += 1;
+      }
+      continue;                                               // else wait: a shard may still dock in time
     }
-    reserve(st, c, best, now);
+    taken.add(best);
+    if (c.tBand - dt <= bestLead + JIT_SLACK) reserve(st, c, best, now);
   }
 }
 
@@ -452,6 +451,7 @@ function shardContact(best, p, dt) {
     const rx = cx - sx, ry = cy - sy, rm = Math.hypot(rx, ry) || 1;
     n = { x: rx / rm, y: ry / rm };
   }
+  const inV = { x: p.vx, y: p.vy };
   const exitV = reflectVec(p.vx, p.vy, n.x, n.y);
   const incoming = scaledDamageOf(p);
   const pct = applyPassive(st, p);
@@ -467,7 +467,8 @@ function shardContact(best, p, dt) {
   st.tele.preventedDamage += incoming;
   st.k.hits[job.shard] += 1;
   if (st.k.hits[job.shard] === 2) st.tele.repeatIntercepts += 1;
-  emit('CrystalIntercept', { shard: job.shard, tid: job.id, at: now, x: cx, y: cy, damage: p.damage, prevented: incoming });
+  emit('CrystalIntercept', { shard: job.shard, tid: job.id, at: now, x: cx, y: cy, damage: p.damage, prevented: incoming,
+    n, inV, exitV, contactAt });
   emit('CrystalReflect', { body: st.ct.anchor.id, damage: p.damage, shard: job.shard, pct });
   return { consumed: true, kind: 'shard' };
 }
