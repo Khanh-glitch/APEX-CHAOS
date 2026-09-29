@@ -160,6 +160,13 @@ Expose truthful A1 charge/recharge state through the EXISTING skill/cooldown HUD
 
 Each logical trap owns an independent gold-derived visual state and lifecycle. A new cast must never reset an older still-active trap.
 
+Event authority:
+- accepted cast starts deploy;
+- consume one charge only for a successful cast;
+- logical trap spawns/arms at the gold PLANT moment, not instantly on button-down;
+- real opponent-body trigger drives snap/pin/root presentation;
+- expiry without trigger must not fake capture.
+
 ### A2
 
 Production:
@@ -186,6 +193,13 @@ Instead:
 
 No teleport.
 
+Event authority:
+- launch after the approved 0.16s prelaunch;
+- swept REAL body collision is the only successful-contact authority;
+- the same event applies WEAK and starts gold CATCH/close presentation;
+- path completion alone must not fake a catch;
+- genuine timeout/exceptional escape recovers without WEAK or catch-close.
+
 ### Passive
 
 - active only while opponent is Trapped OR Weak;
@@ -197,6 +211,8 @@ No teleport.
 - T6 excluded.
 
 Presentation follows gold incoming-shot -> foreleg-slip language.
+
+Resolve prey-state eligibility + T6 + lockout + deterministic 24% proc FIRST. Only a successful gameplay proc may start the visible foreleg slip. Keep renderer and physical 95px body dodge aligned.
 
 ## Hunter safety constraints
 
