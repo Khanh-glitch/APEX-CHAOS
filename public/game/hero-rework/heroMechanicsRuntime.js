@@ -197,32 +197,39 @@
   };
 
   EXECUTORS['robot.damage_milestones'] = {
-    // Refund SEQUENCE is owner authority (doc 02): milestone #1 = no refund,
-    // #2 = 0.5s, #3 = 1.0s, #4 = 1.5s, subsequent +0.5s each; one proc per
-    // milestone; refunds the currently relevant Active.
-    //
-    // Production thresholds are frozen by the passive completion authority.
-    // This store is match-owned; rolling HUD burst state never owns progress.
+    // POST-PLAYTEST 2026-09-29 OWNER CORRECTION: rolling 1.2s damage-burst
+    // passive. Only positive realized damage credited to Robot counts; each
+    // hit resets the gameplay deadline to now+1.2s; silence >=1.2s resets the
+    // burst and the milestone index. Thresholds 150 -> +50 each, ascending,
+    // each crossed exactly once per burst. Refund ladder/slot semantics are
+    // preserved from the previous owner law; refunds mutate only the CURRENT
+    // remaining cooldown, never the base cooldown, and report the actual
+    // clamped seconds removed.
+    burstThreshold(ctx, m) {
+      return (ctx.cfg.firstThreshold ?? 150) + (m - 1) * (ctx.cfg.thresholdStep ?? 50);
+    },
+    resetBurst(ctx, st, reason) {
+      st.burst = 0; st.next = 1; st.burstDeadline = 0;
+      try { ctx.api.emitEvent('RobotBurstReset', { hero: 'ROBOT', reason }); } catch (e) {}
+      ctx.api.note('robot.damage_milestones', 'reset', { reason });
+    },
     onRealizedDamage(ctx, ev) {
       if (ev.creditedTo !== ctx.combatant || !(ev.amount > 0)) return; // credited positive realized damage only
       const st = ctx.store;
-      st.cumulative = (st.cumulative || 0) + ev.amount;
-      const thresholds = ctx.cfg.milestoneThresholds;
-      if (!Array.isArray(thresholds) || thresholds.length === 0) {
-        ctx.api.note('robot.damage_milestones', 'recording', { cumulative: st.cumulative, thresholds: 'UNRESOLVED' });
-        return;
-      }
-      st.reached = st.reached || 0;
-      let milestone = 0;
-      while (milestone < thresholds.length && st.cumulative >= thresholds[milestone]) milestone += 1;
-      while (st.reached < milestone) {
-        st.reached += 1;
-        const m = st.reached;
-        st.crossedAt = ctx.api.clock();
+      const now = ctx.api.clock();
+      st.next = st.next || 1;
+      if (st.burstDeadline && now > st.burstDeadline) this.resetBurst(ctx, st, 'silence');
+      st.burst = (st.burst || 0) + ev.amount;
+      st.burstDeadline = now + (ctx.cfg.burstWindowSec ?? 1.2);
+      // A single large hit may cross several thresholds: process each once,
+      // ascending.
+      while (st.burst >= this.burstThreshold(ctx, st.next)) {
+        const m = st.next;
+        st.next += 1;
+        st.crossedAt = now;
         st.lastRefund = null;
         const identity = { fighterId: ctx.combatant.anchor.id, combatantIndex: ctx.combatant.idx };
-        // SINGLE authoritative milestone crossing
-        try { ctx.api.emitEvent('RobotPassiveMilestone', { ...identity, hero: 'ROBOT', milestone: m, cumulative: st.cumulative }); } catch (e) {}
+        try { ctx.api.emitEvent('RobotPassiveMilestone', { ...identity, hero: 'ROBOT', milestone: m, burst: st.burst }); } catch (e) {}
         const refunds = ctx.cfg.milestoneRefundsSec || [0, 0.5, 1.0, 1.5];
         const refund = m <= refunds.length
           ? refunds[m - 1]
@@ -238,17 +245,19 @@
             if (appliedRefund > 0) {
               const payload = { ...identity, hero: 'ROBOT', milestone: m, slot: target,
                 refund: appliedRefund, requestedRefund: refund, before, after: ctl.cooldownLeft(target) };
-              st.lastRefund = { ...payload, at: ctx.api.clock() };
+              st.lastRefund = { ...payload, at: now };
               ctx.api.emitEvent('RobotPassiveUpgrade', payload);
-              // Alias is telemetry only, never another presentation dispatch.
               ctx.api.emitEvent('MilestoneRefund', { ...payload, alias: true });
               ctx.api.note('robot.damage_milestones', 'refund', payload);
             }
           }
         }
-
-        // milestone #1 has refund 0 → only milestone event, no upgrade (per owner law)
+        // milestone #1 has refund 0 -> only milestone event, no upgrade.
       }
+    },
+    onTick(ctx) {
+      const st = ctx.store;
+      if (st.burstDeadline && ctx.api.clock() > st.burstDeadline) this.resetBurst(ctx, st, 'silence');
     },
   };
 

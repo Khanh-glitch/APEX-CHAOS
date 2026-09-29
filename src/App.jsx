@@ -405,8 +405,8 @@ function CombatPanelSide({ side }) {
         </div>
       </section>
 
-      <section className="cp-robot-passive" id={`${p}-robot-passive`} hidden aria-label="Robot cumulative milestones">
-        <div className="cp-robot-head"><span>MILESTONES</span><strong id={`${p}-robot-count`}>0/6</strong></div>
+      <section className="cp-robot-passive" id={`${p}-robot-passive`} hidden aria-label="Robot rolling burst milestones">
+        <div className="cp-robot-head"><span>BURST 1.2S</span><strong id={`${p}-robot-count`}>0 / 150</strong></div>
         <div className="cp-robot-rail">{[0,1,2,3,4,5].map(i => <span key={i} id={`${p}-robot-step-${i}`} />)}</div>
         <div id={`${p}-robot-progress`} />
         <div className="cp-robot-refund" id={`${p}-robot-refund`} aria-live="polite" />

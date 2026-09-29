@@ -475,14 +475,15 @@
     panel.hidden = !state;
     if (!state) return;
     const write = (key, text) => { const el = $(prefix + key); if (el && el.textContent !== text) el.textContent = text; };
-    write('count', `${state.reached}/${state.total}`);
-    write('progress', state.next === null ? 'ALL MILESTONES REACHED' : `${Math.floor(state.cumulative)} DMG · NEXT ${state.next}`);
+    write('count', `${Math.floor(state.burst)} / ${state.next}`);
+    write('progress', state.active ? `BURST ${Math.floor(state.burst)} DMG · NEXT ${state.next}` : 'BURST IDLE · RESET 1.2S');
     const refund = state.refund;
     // Never round UP to a larger claimed reduction; preserve small refunds.
     const amount = refund ? Math.floor((refund.refund + 1e-9) * 1000) / 1000 : 0;
-    write('refund', refund ? `${refund.slot} −${amount}s` : (state.crossing ? `MILESTONE ${state.reached}` : ''));
+    write('refund', refund ? `${refund.slot} −${amount}s` : (state.crossing ? `MILESTONE ${state.reached + 1}` : ''));
     panel.classList.toggle('is-punch', state.crossing);
-    for (let k = 0; k < state.total; k++) {
+    // Rail = progress inside the CURRENT burst only; silence empties it.
+    for (let k = 0; k < 6; k++) {
       const segment = $(prefix + 'step-' + k);
       if (segment) segment.style.setProperty('--progress', `${(k < state.reached ? 1 : k === state.reached ? state.fraction : 0) * 100}%`);
     }

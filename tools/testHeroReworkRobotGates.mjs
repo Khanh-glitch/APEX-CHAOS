@@ -406,8 +406,20 @@ const Q = win.__HR_Q;
     { cast, hardCCDuringArmor: ccDuringArmor, statuses: Object.keys(a.statuses).filter(k => a.statuses[k] && a.statuses[k].timer > 0) });
 }
 
+/* Shared rolling-passive test helpers. */
+function burstStore() { return Q.ct().store['robot.damage_milestones'] || {}; }
+function collector() {
+  const arr = [];
+  const bus = Q.hr().AIL.bus, emit = bus.emit;
+  bus.emit = function (t, payload) {
+    if (/^(RobotPassiveMilestone|RobotPassiveUpgrade|MilestoneRefund|RobotBurstReset)/.test(t)) arr.push({ type: t, payload });
+    return emit.call(this, t, payload);
+  };
+  return { arr, stop() { bus.emit = emit; } };
+}
+
 /* =============================================================================
- * R7 — Passive records credited realized damage dealt only.
+ * R7 — Passive records credited realized damage dealt only (rolling burst).
  * ============================================================================= */
 {
   const m = Q.start('ROBOT', 'ICE', 2007);
@@ -417,11 +429,11 @@ const Q = win.__HR_Q;
   const bBefore = b.hp;
   Q.aqDamage(b, 2, a, 'PISTOL'); // ROBOT deals (credited to ROBOT)
   const realizedDealt = bBefore - b.hp;
-  const afterDealt = st().cumulative || 0;
+  const afterDealt = st().burst || 0;
   const aBefore = a.hp;
   Q.aqDamage(a, 2, b, 'PISTOL'); // ROBOT takes (credited to ICE)
   const realizedTaken = aBefore - a.hp;
-  const afterTaken = st().cumulative || 0;
+  const afterTaken = st().burst || 0;
   gate('R7-passive-records-credited-dealt-only',
     !!m && realizedDealt > 0 && realizedTaken > 0
     && Math.abs(afterDealt - realizedDealt) < 1e-9 && afterTaken === afterDealt,
@@ -429,7 +441,8 @@ const Q = win.__HR_Q;
 }
 
 /* =============================================================================
- * R8 — Owner-approved production thresholds, milestone #1 is refund-free.
+ * R8 — Rolling 1.2s burst law: production window/thresholds, milestone #1
+ *      refund-free, deadline extension, silence reset.
  * ============================================================================= */
 {
   const m = Q.start('ROBOT', 'ICE', 2008);
@@ -438,27 +451,59 @@ const Q = win.__HR_Q;
   const cfg = Q.ct().skills.PASSIVE.cfg;
   const ctl = Q.ctl();
   ctl.setCooldown('A1', 8); ctl.setCooldown('A2', 8);
-  const busMark = Q.hr().AIL.bus.ring.length;
-  for (let i = 0; i < 10; i++) Q.aqDamage(b, 3, a, 'PISTOL'); // ~210 cumulative realized
-  const refunds = Q.hr().AIL.bus.ring.slice(busMark).filter(e => e.type === 'MilestoneRefund');
-  const st = Q.ct().store['robot.damage_milestones'] || {};
-  const ok = !!m
-    && JSON.stringify(cfg.milestoneThresholds) === '[150,300,450,600,750,900]'
-    && st.reached === 1
-    && (st.cumulative || 0) > 200
-    && refunds.length === 0
-    && ctl.cooldownLeft('A1') === 8 && ctl.cooldownLeft('A2') === 8;
-  gate('R8-production-thresholds-first-milestone-no-refund', ok,
-    { thresholds: cfg.milestoneThresholds, status: cfg.milestoneThresholdsStatus, cumulative: st.cumulative, refunds: refunds.length, cdA1: ctl.cooldownLeft('A1'), cdA2: ctl.cooldownLeft('A2') });
+  const c = collector();
+  let guard = 0;
+  while ((burstStore().burst || 0) < 160 && guard++ < 40) b.takeDamage(13.72, a, 'arsenal-PISTOL');
+  const milestones8 = c.arr.filter(e => e.type === 'RobotPassiveMilestone').map(e => e.payload.milestone);
+  const refunds = c.arr.filter(e => e.type === 'MilestoneRefund');
+  const lawShape = cfg.burstWindowSec === 1.2 && cfg.firstThreshold === 150 && cfg.thresholdStep === 50;
+  const nextAfterHits = burstStore().next || 1;
+  const cdUntouched = ctl.cooldownLeft('A1') === 8 && ctl.cooldownLeft('A2') === 8; // milestone #1 is refund-free
+  Q.step(1.0); // inside the 1.2s window: no reset
+  const midBurst = burstStore().burst || 0;
+  const stillActive = (burstStore().burstDeadline || 0) > 0 && midBurst >= 150 && midBurst < 200;
+  b.takeDamage(13.72, a, 'arsenal-PISTOL'); // extends the deadline
+  Q.step(1.0);
+  const extended = (burstStore().burst || 0) > midBurst && (burstStore().burst || 0) < 200;
+  Q.step(0.3); // >= 1.2s silence
+  const stAfter = burstStore();
+  const resets = c.arr.filter(e => e.type === 'RobotBurstReset');
+  c.stop();
+  const ok = !!m && lawShape && JSON.stringify(milestones8) === '[1]' && nextAfterHits === 2
+    && refunds.length === 0 && stillActive && extended && cdUntouched
+    && (stAfter.burst || 0) === 0 && (stAfter.next || 1) === 1 && resets.length >= 1;
+  gate('R8-rolling-burst-law-and-reset', ok,
+    { cfg: { w: cfg.burstWindowSec, f: cfg.firstThreshold, s: cfg.thresholdStep }, milestones8, refunds: refunds.length, midBurst, stillActive, extended, cdUntouched, lawShape, after: stAfter, resets: resets.length });
 }
 
+/* =============================================================================
+/* =============================================================================
+ * R8b — A single large hit crosses multiple thresholds, each exactly once.
+ * ============================================================================= */
+{
+  const m = Q.start('ROBOT', 'ICE', 2012);
+  Q.placeFree(300, 500, 1, 0, 700, 500, -1, 0);
+  const a = win.fighters[0], b = win.fighters[1];
+  let g2 = 0;
+  while ((burstStore().burst || 0) < 140 && g2++ < 40) b.takeDamage(13.72, a, 'arsenal-PISTOL');
+  const c = collector();
+  b.takeDamage(460, a, 'arsenal-PISTOL'); // one large hit crosses several thresholds
+  const ev = c.arr.filter(e => e.type === 'RobotPassiveMilestone').map(e => e.payload.milestone);
+  c.stop();
+  const ascendingOnce = ev.length >= 3 && ev.every((v, i) => i === 0 || v === ev[i - 1] + 1);
+  const ok = !!m && ascendingOnce;
+  gate('R8b-single-hit-multi-cross-once', ok, { milestones: ev });
+}
+
+/* =============================================================================
 /* =============================================================================
  * R9 — Passive refund SEQUENCE law (TEST-ONLY threshold fixture).
  *
  * The fixture thresholds below are NOT production values and NOT an
  * authority claim — they exist only to prove the frozen refund sequence
- * (doc 02: #1 none, #2 0.5s, #3 1.0s, #4 1.5s, subsequent +0.5s) and the
- * "refund the currently relevant Active" targeting. Production thresholds are covered independently by R8 and R10.
+ * (#1 none, #2 0.5s, #3 1.0s, #4 1.5s, subsequent +0.5s) and the
+ * "refund the currently relevant Active" targeting inside ONE rolling
+ * burst. Production thresholds are covered independently by R8/R8b/R10.
  * ============================================================================= */
 {
   const m = Q.start('ROBOT', 'ICE', 2009);
@@ -466,15 +511,13 @@ const Q = win.__HR_Q;
   const a = win.fighters[0], b = win.fighters[1];
   const pCt = Q.ct();
   // TEST-ONLY FIXTURE (see header) — runtime config copy, never the registry.
-  pCt.skills.PASSIVE.cfg = { ...pCt.skills.PASSIVE.cfg, milestoneThresholds: [10, 20, 30, 40, 50] };
+  pCt.skills.PASSIVE.cfg = { ...pCt.skills.PASSIVE.cfg, firstThreshold: 12, thresholdStep: 12 };
   const ctl = Q.ctl();
   ctl.setCooldown('A1', 8); ctl.setCooldown('A2', 8);
-  const busMark = Q.hr().AIL.bus.ring.length;
-  for (let i = 0; i < 5; i++) Q.aqDamage(b, 12, a, 'PISTOL'); // cumulative 12/24/36/48/60
-  const events = Q.hr().AIL.bus.ring.slice(busMark)
-    .filter(e => e.type === 'MilestoneRefund')
+  const c = collector();
+  for (let i = 0; i < 5; i++) b.takeDamage(13.72, a, 'arsenal-PISTOL'); // burst 12/24/36/48/60
+  const events = c.arr.filter(e => e.type === 'MilestoneRefund')
     .map(e => ({ m: e.payload.milestone, slot: e.payload.slot, refund: e.payload.refund }));
-  const refunds = events.map(e => e.refund);
   const expected = [0.5, 1.0, 1.5, 2.0]; // #1 (refund 0) is an idle proc
   const oneProcEach = events.length === 4 && events.every((e, i) => e.m === i + 2 && e.slot === 'A1' && Math.abs(e.refund - expected[i]) < 1e-9);
   const cdA1 = ctl.cooldownLeft('A1');
@@ -482,18 +525,17 @@ const Q = win.__HR_Q;
   const cdOk = Math.abs(cdA1 - (8 - 5.0)) < 1e-9 && cdA2 === 8; // 0.5+1+1.5+2 = 5.0 to A1
   // Second phase: only A2 cooling -> the refund targets A2 ("relevant Active").
   ctl.setCooldown('A1', 0); ctl.setCooldown('A2', 6);
-  const busMark2 = Q.hr().AIL.bus.ring.length;
-  pCt.skills.PASSIVE.cfg = { ...pCt.skills.PASSIVE.cfg, milestoneThresholds: [10, 20, 30, 40, 50, 70] };
-  Q.aqDamage(b, 12, a, 'PISTOL'); // cumulative 72 -> milestone 6 (70)
-  const ev6 = Q.hr().AIL.bus.ring.slice(busMark2).filter(e => e.type === 'MilestoneRefund');
-  const refund6 = ev6.length === 1 && ev6[0].payload.milestone === 6 && ev6[0].payload.slot === 'A2' && Math.abs(ev6[0].payload.refund - 2.5) < 1e-9;
+  b.takeDamage(13.72, a, 'arsenal-PISTOL'); // burst 72 -> milestone 6 (72)
+  const ev6 = c.arr.filter(e => e.type === 'MilestoneRefund' && e.payload.milestone === 6);
+  c.stop();
+  const refund6 = ev6.length === 1 && ev6[0].payload.slot === 'A2' && Math.abs(ev6[0].payload.refund - 2.5) < 1e-9;
   const cdA2After = ctl.cooldownLeft('A2');
   const ok = !!m && oneProcEach && cdOk && refund6 && Math.abs(cdA2After - (6 - 2.5)) < 1e-9;
   gate('R9-passive-refund-sequence-law', ok,
     { events, cdA1, cdA2, ev6: ev6.map(e => ({ m: e.payload.milestone, slot: e.payload.slot, refund: e.payload.refund })), cdA2After });
 }
 
-/* Production thresholds + truthful clamped refund + READY silence + reset. */
+/* Production rolling thresholds + truthful clamped refund + READY silence + reset. */
 {
   Q.start('ROBOT', 'ICE', 2010);
   const a = win.fighters[0], b = win.fighters[1], ctl = Q.ctl();
@@ -501,24 +543,27 @@ const Q = win.__HR_Q;
   let st = ct.store['robot.damage_milestones'] || {};
   const events = [], emit = Q.hr().AIL.bus.emit;
   Q.hr().AIL.bus.emit = function(type, payload) { if(type.startsWith('RobotPassive')) events.push({type,payload}); return emit.call(this,type,payload); };
-  const hitTo = value => { let guard=0; while((st.cumulative || 0) < value - 1e-7 && guard++<1000) { Q.aqDamage(b, Math.min(10, value - (st.cumulative || 0)), a, 'PISTOL'); st = ct.store['robot.damage_milestones'] || {}; } };
-  hitTo(100); const before = st.reached || 0;
+  const hitTo = value => { let guard=0; while((st.burst || 0) < value - 1e-7 && guard++<24) { b.takeDamage(Math.max(1,(value - (st.burst || 0)) * 1.2), a, 'arsenal-PISTOL'); st = ct.store['robot.damage_milestones'] || {}; } };
+  hitTo(100); const before = st.next || 1;
   hitTo(150); const first = events.filter(e => e.type==='RobotPassiveUpgrade').length;
-  ctl.setCooldown('A1',8); hitTo(300);
-  ctl.setCooldown('A1',0.2); hitTo(450);
-  ctl.setCooldown('A1',0); ctl.setCooldown('A2',6); hitTo(600);
-  ctl.setCooldown('A1',0); ctl.setCooldown('A2',0); hitTo(900);
+  ctl.setCooldown('A1',8); hitTo(200);
+  ctl.setCooldown('A1',0.2); hitTo(250);
+  ctl.setCooldown('A1',0); ctl.setCooldown('A2',6); hitTo(300);
+  ctl.setCooldown('A1',0); ctl.setCooldown('A2',0); hitTo(400);
   const upgrades=events.filter(e=>e.type==='RobotPassiveUpgrade').map(e=>e.payload);
   const milestones=events.filter(e=>e.type==='RobotPassiveMilestone');
   const state=Q.hr().robotPassiveHud(a);
-  const ok=before===0&&first===0&&st.reached===6&&milestones.length===6&&upgrades.length===3
+  const baseUntouched = ct.skills.A1.cfg.cooldown === 10 && ct.skills.A2.cfg.cooldown === 10;
+  const ok=before===1&&first===0&&(st.next||1)===7&&milestones.length===6&&upgrades.length===3
     &&upgrades[0].slot==='A1'&&Math.abs(upgrades[0].refund-.5)<1e-9
     &&upgrades[1].slot==='A1'&&Math.abs(upgrades[1].refund-.2)<1e-9
-    &&upgrades[2].slot==='A2'&&Math.abs(upgrades[2].refund-1.5)<1e-9&&state.refund===null;
+    &&upgrades[2].slot==='A2'&&Math.abs(upgrades[2].refund-1.5)<1e-9&&state.refund===null&&baseUntouched;
   Q.hr().AIL.bus.emit=emit;
+  Q.step(1.3); // silence window must fully clear the burst
+  const reset=Q.hr().robotPassiveHud(a);
   Q.start('ROBOT','ICE',2011);
-  const reset=Q.hr().robotPassiveHud(win.fighters[0]);
-  gate('R10-production-truthful-refund-and-reset',ok&&reset.reached===0&&reset.cumulative===0,{milestones:milestones.length,upgrades,state,reset});
+  const fresh=Q.hr().robotPassiveHud(win.fighters[0]);
+  gate('R10-production-truthful-refund-and-reset',ok&&reset.reached===0&&reset.burst===0&&fresh.reached===0&&fresh.burst===0,{milestones:milestones.length,upgrades,state,reset,fresh});
 }
 
 /* ------------------------------------------------------------------ summary */

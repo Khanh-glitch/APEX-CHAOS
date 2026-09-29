@@ -120,9 +120,10 @@
           cooldown: 10, duration: 3.0, incomingMult: 0.45, ccImmunity: false,
         }, ['incomingMult'], 'magnitude_step'),
         PASSIVE: skill('robot.damage_milestones', 'PASSIVE', 'robot.damage_milestones', {
-          // Owner-approved cumulative credited realized damage (2026-09-29).
-          milestoneThresholds: [150, 300, 450, 600, 750, 900],
-          milestoneThresholdsStatus: 'OWNER_APPROVED_2026_09_29',
+          // POST-PLAYTEST 2026-09-29 owner correction: rolling 1.2s damage
+          // burst window. Thresholds 150 -> +50 each, one crossing per
+          // threshold per burst. No permanent match-wide ladder.
+          burstWindowSec: 1.2, firstThreshold: 150, thresholdStep: 50,
           milestoneRefundsSec: [0, 0.5, 1.0, 1.5], // index = milestone # - 1
           stepAfterLadder: 0.5, // canonical Lv1: subsequent milestones +0.5s each
           oneProcPerMilestone: true,

@@ -2269,14 +2269,18 @@
     const ct = combatantOfBody(f);
     if (!ct || ct.heroId !== 'ROBOT') return null;
     const st = ct.store['robot.damage_milestones'] || {};
-    const thresholds = ct.skills.PASSIVE.cfg.milestoneThresholds;
-    const reached = st.reached || 0, cumulative = st.cumulative || 0;
-    const previous = reached ? thresholds[reached - 1] : 0;
-    const next = thresholds[reached] ?? null;
-    return { reached, total: thresholds.length, cumulative, next,
-      fraction: next === null ? 1 : clamp((cumulative - previous) / (next - previous), 0, 1),
-      crossing: st.crossedAt != null && AIL.clock() - st.crossedAt < 0.8,
-      refund: st.lastRefund && AIL.clock() - st.lastRefund.at < 1.8 ? { ...st.lastRefund } : null };
+    const cfg = ct.skills.PASSIVE.cfg;
+    const now = AIL.clock();
+    const active = !!st.burstDeadline && now <= st.burstDeadline;
+    const burst = active ? (st.burst || 0) : 0;
+    const nextM = active ? (st.next || 1) : 1;
+    const first = cfg.firstThreshold ?? 150, step = cfg.thresholdStep ?? 50;
+    const next = first + (nextM - 1) * step;
+    const previous = nextM > 1 ? first + (nextM - 2) * step : 0;
+    return { reached: active ? nextM - 1 : 0, burst, next, active,
+      fraction: clamp((burst - previous) / (next - previous), 0, 1),
+      crossing: st.crossedAt != null && now - st.crossedAt < 0.8,
+      refund: st.lastRefund && now - st.lastRefund.at < 1.8 ? { ...st.lastRefund } : null };
   };
   HR.skillHud = function (f) {
     const ct = combatantOfBody(f);
