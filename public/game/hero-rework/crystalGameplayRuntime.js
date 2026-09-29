@@ -334,6 +334,8 @@ function jobsStep(st, now, dt) {
       }
     } else if (job.phase === STATE.OUTBOUND) {
       if (!projectileAlive(job.p)) { abortJob(st, job, 'threat-gone', now); continue; }
+      // the threat was turned (Wall/facet reflection) or held by something else: nothing left to meet
+      if (job.p.__hr && (job.p.__hr.crystalReflected || job.p.__hr.cryHold)) { abortJob(st, job, 'blocked', now); continue; }
       if (now > job.tContact + 0.30) { abortJob(st, job, 'missed', now); continue; }
     } else if (job.phase === STATE.REFRACT) {
       if (now >= job.releaseAt - 1e-9) releaseLeg(st, job, now);
