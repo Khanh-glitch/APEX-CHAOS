@@ -500,17 +500,27 @@
     const S = GAME_SIZE;
     const t0 = performance.now();
     let usedCache = true;
-    if (!chamberCache || chamberCacheSize !== S) {
+    const P = window.APEX_CHAMBER_PALETTE;
+    if (P && P.surface) {
+      // §D: surface cache is keyed (GAME_SIZE, paletteId) inside the palette
+      // runtime; rebuilt exactly once per key change; one drawImage per frame.
+      if (P.installWrappers) P.installWrappers();
+      const surf = P.surface(S);
+      usedCache = !surf.rebuilt;
+      c.drawImage(surf.canvas, 0, 0);
+    } else if (!chamberCache || chamberCacheSize !== S) {
       const surface = makeChamberSurface(S);
       const sc = surface.getContext('2d');
       paintChamber01(sc, S);
       chamberCache = surface;
       chamberCacheSize = S;
-      AQ_PERF.chamber.builds += 1;
-      AQ_PERF.chamber.size = S;
       usedCache = false;
+      c.drawImage(chamberCache, 0, 0);
+    } else {
+      c.drawImage(chamberCache, 0, 0);
     }
-    c.drawImage(chamberCache, 0, 0);
+    AQ_PERF.chamber.builds += usedCache ? 0 : 1;
+    AQ_PERF.chamber.size = S;
     AQ_PERF.chamber.draws += 1;
     if (usedCache) AQ_PERF.chamber.hits += 1;
     AQ_PERF.chamber.usedCacheLast = usedCache;

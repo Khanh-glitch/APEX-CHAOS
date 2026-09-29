@@ -1,0 +1,159 @@
+{
+  "results": {
+    "D-palette-list": {
+      "pass": true,
+      "data": {
+        "ids": [
+          "graphite-mid",
+          "graphite-dark",
+          "navy-steel",
+          "teal-deep",
+          "oxide-warm",
+          "violet-slate",
+          "bone-light"
+        ]
+      }
+    },
+    "D-profiles-neutral": {
+      "pass": true,
+      "data": [
+        {
+          "id": "graphite-mid",
+          "L": 0.412,
+          "C": 0.071
+        },
+        {
+          "id": "graphite-dark",
+          "L": 0.252,
+          "C": 0.059
+        },
+        {
+          "id": "navy-steel",
+          "L": 0.251,
+          "C": 0.161
+        },
+        {
+          "id": "teal-deep",
+          "L": 0.27,
+          "C": 0.114
+        },
+        {
+          "id": "oxide-warm",
+          "L": 0.287,
+          "C": 0.141
+        },
+        {
+          "id": "violet-slate",
+          "L": 0.244,
+          "C": 0.133
+        },
+        {
+          "id": "bone-light",
+          "L": 0.735,
+          "C": 0.051
+        }
+      ]
+    },
+    "D-default-metadata": {
+      "pass": true,
+      "data": {
+        "id": "graphite-mid",
+        "label": "GRAPHITE · MID",
+        "profile": {
+          "luminance": 0.412,
+          "chroma": 0.071,
+          "floorLift": 0,
+          "floorContrastSat": 1.06,
+          "shadow": "rgba(8,8,8,0.35)",
+          "blur": 8,
+          "offset": 3,
+          "keyline": "rgba(240,244,250,0.35)",
+          "sil": "#101318"
+        }
+      }
+    },
+    "D-persist": {
+      "pass": true,
+      "data": {
+        "stored": "navy-steel",
+        "afterReload": "navy-steel"
+      }
+    },
+    "D-hub-selector": {
+      "pass": true,
+      "data": {
+        "ok": true,
+        "n": 7,
+        "activeBefore": "navy-steel",
+        "activeAfter": "teal-deep",
+        "current": "teal-deep"
+      }
+    },
+    "D-cache-no-per-frame-repaint": {
+      "pass": true,
+      "data": {
+        "b0": {
+          "builds": 1,
+          "hits": 0,
+          "draws": 1,
+          "lastKey": "1000|teal-deep"
+        },
+        "b1": {
+          "builds": 1,
+          "hits": 60,
+          "draws": 61,
+          "lastKey": "1000|teal-deep"
+        },
+        "b2": {
+          "builds": 2,
+          "hits": 60,
+          "draws": 62,
+          "lastKey": "1000|oxide-warm"
+        },
+        "b3": {
+          "builds": 2,
+          "hits": 179,
+          "draws": 181,
+          "lastKey": "1000|oxide-warm"
+        },
+        "b4": {
+          "builds": 3,
+          "hits": 238,
+          "draws": 241,
+          "lastKey": "1000|graphite-mid"
+        },
+        "chamber": {
+          "builds": 3,
+          "draws": 241,
+          "hits": 238,
+          "size": 1000,
+          "usedCacheLast": true
+        }
+      }
+    },
+    "D-no-global-filter": {
+      "pass": true,
+      "data": {
+        "filterA60": 240,
+        "filterB120": 480,
+        "filterC60": 240,
+        "samples": 1440
+      }
+    },
+    "D-readability-wrapper-live": {
+      "pass": true,
+      "data": {
+        "shadowSeen": 9
+      }
+    },
+    "D-presentation-only": {
+      "pass": true,
+      "data": {
+        "slots": 0,
+        "fighters": 2,
+        "geom": "number"
+      }
+    }
+  },
+  "errors": []
+}

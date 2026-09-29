@@ -41,6 +41,9 @@
       lastSelectedP2: 'ROBOT',
       totalSpins: 0,
       unlockedAt: { ROBOT: 0 },
+      // §D: Chamber-01 arena palette lives in THIS authority — no second
+      // storage island. Null means the curated default.
+      arenaPaletteId: null,
     };
   }
   function sanitize(raw) {
@@ -53,6 +56,7 @@
     s.lastSelectedP2 = s.ownedFighters.includes(raw.lastSelectedP2) ? raw.lastSelectedP2 : 'ROBOT';
     s.totalSpins = Math.max(0, raw.totalSpins | 0);
     s.unlockedAt = raw.unlockedAt && typeof raw.unlockedAt === 'object' ? { ...raw.unlockedAt } : { ROBOT: 0 };
+    s.arenaPaletteId = typeof raw.arenaPaletteId === 'string' ? raw.arenaPaletteId : null;
     return migrateNewbieToRobot(s);
   }
   function load() {
@@ -74,6 +78,16 @@
   let state = load();
   const lastAward = { reasons: [], amount: 0, balance: state.credits };
 
+  // §D palette persistence (sanitized again by the palette runtime against
+  // its curated list — unknown ids simply resolve to the default there).
+  function palette() { return state.arenaPaletteId || null; }
+  function setPalette(id) {
+    state.arenaPaletteId = id == null ? null : String(id);
+    save(state);
+    const P = window.APEX_CHAMBER_PALETTE;
+    if (P && P.refreshSelector) P.refreshSelector();
+    return state.arenaPaletteId;
+  }
   function getState() { return JSON.parse(JSON.stringify(state)); }
   function credits() { return state.credits; }
   function owns(name) { return state.ownedFighters.includes(String(name).toUpperCase()); }
@@ -371,6 +385,10 @@
             <button type="button" id="aq-splatter-mode" aria-label="Arsenal splatter mode">SPLATTER<br><b>${window.APEX_ARSENAL_FEEL?.getSplatterMode?.() || 'BLOOD'}</b></button>
           </div>
         </header>
+        <section class="aq-palette" aria-label="Chamber 01 arena palette">
+          <div class="aq-palette-label">CHAMBER 01 · ARENA PALETTE <span>(presentation only · persists)</span></div>
+          <div id="aq-palette-row" class="aq-palette-row"></div>
+        </section>
         <section class="aq-hub-layout">
           <article class="aq-ident" style="--fighter-accent:${esc(info.color)}">
             <div class="aq-ident-label">ACTIVE FIGHTER</div>
@@ -388,6 +406,7 @@
           </div>
         </section>
       </main>`);
+    if (window.APEX_CHAMBER_PALETTE && window.APEX_CHAMBER_PALETTE.refreshSelector) window.APEX_CHAMBER_PALETTE.refreshSelector();
     el.querySelectorAll('[data-go]').forEach((b) => {
       b.addEventListener('click', () => {
         const go = b.getAttribute('data-go');
@@ -623,6 +642,7 @@
   window.APEX_ARSENAL_META = {
     KEY, SHOP_COST, DRAW_COST,
     getState, credits, owns, buy, spin, award, filterOwned, setLast,
+    palette, setPalette,
     load, save, emptyState, sanitize, poolLocked, lastAward: () => lastAward,
     openHub, hideMeta, paintShop, paintDraw, openFreePick, openFighterPick,
   };

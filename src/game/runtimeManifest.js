@@ -158,6 +158,7 @@ export const MODE_DEFERRED_RUNTIMES = {
     ['/game/hero-rework/heroRegistry.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRegistry'],
     ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
     ['/game/arsenal/arsenalQuestLadder.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestLadder'],
+    ['/game/arsenal/arsenalChamberPaletteRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalChamberPaletteRuntime'],
     ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
     ['/game/modes/arsenalQuestRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestRuntime'],
     // HERO REWORK: mechanics + integration load AFTER the quest runtime so
@@ -215,6 +216,7 @@ export const ARSENAL_HUB_RUNTIMES = [
   ['/game/hero-rework/heroRegistry.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRegistry'],
   ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
   ['/game/arsenal/arsenalQuestLadder.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestLadder'],
+  ['/game/arsenal/arsenalChamberPaletteRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalChamberPaletteRuntime'],
   ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
 ];
 
