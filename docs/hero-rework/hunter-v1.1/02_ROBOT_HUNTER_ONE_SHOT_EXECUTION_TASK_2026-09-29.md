@@ -30,24 +30,25 @@ The Arena self-mutating QA workflow has now been corrected: current QA should up
 
 If the previous Arena task is fully pushed and the local worktree is clean, fast-forward/reset the local disposable session worktree to the current remote tip of the SAME Arena branch before beginning.
 
-## Required Hunter attachment
+## Required Hunter source
 
-The task must be accompanied by the exact owner V10 HTML:
-
-`HUNTER_ALT_FINAL_V10_EXACT_ROOT_TRAP(1).html`
-
-Verify:
-SHA-256 = `447cf549cceb955459eda4b74ef5a561c77fc2f574252783bc7921663578ae65`
-
-The previous V9 hash `c8cde28f346bbbd99de0c448ccfb396eae210e4928436850ef82b488d765fc88` is superseded and must not be used.
-
-If the attached source hash does not match, STOP rather than implementing from memory or an older Hunter prototype.
-
-After verification, copy/bridge the exact gold HTML bytes to this exact stable repo authority path:
+The exact owner V10 Gold is already bridged into Git at:
 
 `docs/hero-rework/hunter-v1.1/reference/HUNTER_GOLD_V10_EXACT_ROOT_TRAP.html`
 
-Preserve the exact bytes. After bridging, verify the repo copy has the same SHA-256 `447cf549cceb955459eda4b74ef5a561c77fc2f574252783bc7921663578ae65`. Future Agent sessions must use this in-repo copy rather than depending on the chat attachment.
+Verify this canonical repo file BEFORE Hunter work:
+
+- SHA-256 = `447cf549cceb955459eda4b74ef5a561c77fc2f574252783bc7921663578ae65`
+- bytes = `3,671,159`
+- Git blob SHA = `edf339b04303772d13581d04daef4c82d36e4806`
+
+The previous V9 hash `c8cde28f346bbbd99de0c448ccfb396eae210e4928436850ef82b488d765fc88` is superseded and must not be used.
+
+NO Arena/chat attachment is required or expected.
+Do not search upload/attachment directories.
+Do not ask the owner to upload the Gold again.
+
+If the canonical repo file is missing or its hash differs, STOP rather than implementing from memory or an older Hunter prototype.
 
 ## Read before editing
 
@@ -57,7 +58,7 @@ Preserve the exact bytes. After bridging, verify the repo copy has the same SHA-
 4. `docs/hero-rework/hunter-v1.1/00_GAMEPLAY_CHECKPOINT_2026-09-29.md`
 5. `docs/hero-rework/hunter-v1.1/01_FINAL_GOLD_INTEGRATION_AUTHORITY_2026-09-29.md`
 6. `docs/hero-rework/hunter-v1.1/03_GOLD_V10_SUPERSESSION_AUDIT_2026-09-29.md`
-7. exact attached Hunter V10 HTML in full
+7. `docs/hero-rework/hunter-v1.1/reference/HUNTER_GOLD_V10_EXACT_ROOT_TRAP.html` in full
 8. current production:
    - `public/game/hero-rework/heroRegistry.js`
    - `public/game/hero-rework/heroMechanicsRuntime.js`
@@ -123,7 +124,7 @@ Do not stop or wait for owner after this checkpoint unless a blocker exists. Con
 
 # PHASE 2 — HUNTER FINAL V1.1 + GOLD PORT
 
-The attached V10 HTML is the visual/motion golden master. V10 supersedes V9 wherever presentation differs.
+The canonical in-repo V10 HTML is the visual/motion golden master. V10 supersedes V9 wherever presentation differs.
 
 ## Core integration law
 
