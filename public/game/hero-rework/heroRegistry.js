@@ -138,18 +138,26 @@
       id: 'CRYSTAL',
       name: 'CRYSTAL',
       classRef: 'rework.crystal',
+      // CRYSTALA V1 (docs/hero-rework/crystala-v1/00_CRYSTALA_IMPLEMENTATION_AUTHORITY.md
+      // §4). Six immortal shards; K awakens a 2.4 s smart-guardian window; J is a
+      // context construct usable only during K; the passive scales reflected
+      // damage only (no automatic body block/reflect). Lv1 numbers are FROZEN.
       skills: {
-        A1: skill('crystal.wall', 'A1', 'crystal.wall', {
-          cooldown: 11, wallHp: 120, lifetime: 4, width: 220,
-        }, ['wallHp'], 'magnitude_step'),
-        A2: skill('crystal.prison', 'A2', 'crystal.prison', {
-          cooldown: 20, walls: 6, wallHpPer: 75, cageRadius: 135, maxLifetime: 3,
-        }, ['wallHpPer'], 'magnitude_step'),
+        A1: skill('crystal.context_construct', 'A1', 'crystal.context_construct', {
+          cooldown: 1.5, requiresAwakening: true, minShards: 2, prisonShards: 6,
+          inputBuffer: false, failConsumesCooldown: false,
+          constructHpMult: 1,
+          wall: { width: 220, hp: 120, solidLifetime: 4.0 },
+          prison: { radius: 135, facets: 6, facetHp: 75, solidLifetime: 3.0 },
+          preSolidTarget: 0.75,
+        }, ['constructHpMult'], 'magnitude_step'),
+        A2: skill('crystal.awakening', 'A2', 'crystal.awakening', {
+          cooldown: 8.0, active: 2.4, shards: 6, scanRadius: 1000, interceptBand: 180,
+          minAnticipation: 0.12, contactToDock: 1.2,
+        }, ['cooldown'], 'cooldown_step'),
         PASSIVE: skill('crystal.refraction', 'PASSIVE', 'crystal.refraction', {
-          reflectedDamagePct: 0.50, controllerChange: 'CRYSTAL',
-          provenanceRetained: true, multiReflection: true,
-          loopSuppression: 'same-surface-zero-progress',
-          t6Reflect: false,
+          reflectedDamagePct: 0.50, controllerChange: 'CRYSTAL', provenanceRetained: true,
+          maxReflectionsPerProjectile: 1, autoBodyReflect: false, t6Reflect: false,
         }, ['reflectedDamagePct'], 'pp_step'),
       },
     },

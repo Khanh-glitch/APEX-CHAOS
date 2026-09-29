@@ -8,6 +8,8 @@ import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
 import chromium, { inflate } from '@sparticuz/chromium';
 import { createRequire } from 'node:module';
+// The cache-bust gate follows the CURRENT runtime revision (single source of truth).
+import { APEX_ARSENAL_RUNTIME_REVISION } from '../src/game/runtimeManifest.js';
 const require = createRequire(import.meta.url);
 await inflate(path.join(path.dirname(path.dirname(require.resolve('@sparticuz/chromium'))), 'bin', 'al2023.tar.br'));
 process.env.LD_LIBRARY_PATH = '/tmp/al2023/lib:' + (process.env.LD_LIBRARY_PATH || '');
@@ -26,12 +28,11 @@ const results = {};
 const check = (name, pass, data) => { results[name] = { pass: !!pass, data: data ?? null }; };
 
 // --- E-urls: production resource URLs carry the NEW runtime revision --------
-const urls = await page.evaluate(() => {
-  const rev = '20260930-crystala-prep-r1';
+const urls = await page.evaluate((rev) => {
   const want = ['game/arsenal/arsenalChamberPaletteRuntime.js', 'game/arsenal/arsenalMetaRuntime.js', 'game/modes/arsenalQuestRuntime.js', 'game/arsenal/arsenalPresentationRuntime.js', 'game/hero-rework/hunterGoldV10.js'];
   const res = performance.getEntriesByType('resource').map(r => r.name);
   return want.map(w => ({ w, loaded: res.some(u => u.includes(w) && u.includes('v=' + rev)) }));
-});
+}, APEX_ARSENAL_RUNTIME_REVISION);
 check('E-cachebust-urls-new-revision', urls.every(u => u.loaded), urls);
 
 // --- D-palette-list -----------------------------------------------------------

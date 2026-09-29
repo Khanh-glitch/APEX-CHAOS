@@ -439,7 +439,7 @@
         x=clamp(x,r,size-r);y=clamp(y,r,size-r);
         const steps=Math.max(1,Math.ceil(Math.hypot(x-from.x,y-from.y)/4));
         for(let k=1;k<=steps;k++) { const nx=from.x+(x-from.x)*k/steps,ny=from.y+(y-from.y)*k/steps;
-          if(M.world.walls.some(w=>w.hp>0 && pointToSegmentDist(nx,ny,w.x-Math.cos(w.angle)*w.len/2,w.y-Math.sin(w.angle)*w.len/2,w.x+Math.cos(w.angle)*w.len/2,w.y+Math.sin(w.angle)*w.len/2)<r+w.thickness/2)) break;
+          if(wallsBlockPoint(nx,ny,r)) break;
           body.x=nx;body.y=ny;
         }
         return from;
@@ -1164,6 +1164,11 @@
         // Deterministic post-ready delay (tuning slot).
         plan.at = AIL.clock() + 0.4 + rng() * 0.6;
       } else if (AIL.clock() >= plan.at) {
+        const exec = MECH.EXECUTORS[ct.skills[slot].def.mechanicId];
+        if (exec && exec.aiCanAttempt && !exec.aiCanAttempt(mechCtx(ct, slot))) {
+          plan.at = AIL.clock() + 0.25; // executor says the cast cannot succeed now
+          continue;
+        }
         const res = ctl.tryCast(slot, 'p2-ai');
         if (res.ok || res.reason === 'cooldown' || res.reason === 'cc') {
           plan.at = null; // re-plan after cooldown returns
@@ -1330,6 +1335,118 @@
     return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
   }
 
+  /* ------------------------------------------------------------------ *
+   * SHARED GEOMETRY AUTHORITY (CRYSTALA anti-tunnelling).
+   * Swept point-vs-capsule time of impact + the provider of every SOLID
+   * world capsule (Crystal material that has actually grown/locked, and any
+   * legacy world wall). Bodies, authored displacement (Robot A1 dash, Hunter
+   * pounce) and bullets all consult the same authority, so nothing tunnels and
+   * no hero's semantics had to be rewritten for it.
+   * ------------------------------------------------------------------ */
+  function segCircleT(x0, y0, dx, dy, cx, cy, r) {
+    const fx = x0 - cx, fy = y0 - cy;
+    const a = dx * dx + dy * dy;
+    if (a < 1e-12) return null;
+    const b = 2 * (fx * dx + fy * dy);
+    const c = fx * fx + fy * fy - r * r;
+    const disc = b * b - 4 * a * c;
+    if (disc < 0) return null;
+    const t1 = (-b - Math.sqrt(disc)) / (2 * a);
+    return t1 >= 0 && t1 <= 1 ? t1 : null;
+  }
+  // Earliest t in [0,1] at which the point moving (x0,y0)->(x1,y1) is within r
+  // of segment AB. Normal points from the capsule toward the mover.
+  function capsuleToi(x0, y0, x1, y1, ax, ay, bx, by, r) {
+    const dx = x1 - x0, dy = y1 - y0;
+    const abx = bx - ax, aby = by - ay, L2 = abx * abx + aby * aby;
+    const s0 = L2 > 0 ? clamp(((x0 - ax) * abx + (y0 - ay) * aby) / L2, 0, 1) : 0;
+    const cx = ax + abx * s0, cy = ay + aby * s0;
+    const ox = x0 - cx, oy = y0 - cy, od = Math.hypot(ox, oy);
+    if (od <= r) { // already overlapping: push out along the closest-point normal
+      let nx, ny;
+      if (od > 1e-6) { nx = ox / od; ny = oy / od; }
+      else { const L = Math.sqrt(L2) || 1; nx = -aby / L; ny = abx / L; if (nx * dx + ny * dy > 0) { nx = -nx; ny = -ny; } }
+      return { t: 0, nx, ny };
+    }
+    let best = null;
+    const consider = (t, nx, ny) => { if (t >= 0 && t <= 1 && (!best || t < best.t)) best = { t, nx, ny }; };
+    for (const e of [[ax, ay], [bx, by]]) {
+      const t = segCircleT(x0, y0, dx, dy, e[0], e[1], r);
+      if (t != null) {
+        const px = x0 + dx * t - e[0], py = y0 + dy * t - e[1], m = Math.hypot(px, py) || 1;
+        consider(t, px / m, py / m);
+      }
+    }
+    if (L2 > 0) {
+      const L = Math.sqrt(L2), ux = abx / L, uy = aby / L, nx0 = -uy, ny0 = ux;
+      const sd0 = (x0 - ax) * nx0 + (y0 - ay) * ny0, sdv = dx * nx0 + dy * ny0;
+      for (const side of [1, -1]) {
+        const den = side * sdv;
+        if (den >= 0) continue;
+        const t = (r - side * sd0) / den;
+        if (t < 0 || t > 1) continue;
+        const along = (x0 + dx * t - ax) * ux + (y0 + dy * t - ay) * uy;
+        if (along < 0 || along > L) continue;
+        consider(t, nx0 * side, ny0 * side);
+      }
+    }
+    return best;
+  }
+  function solidCapsules() {
+    const out = [];
+    if (!M) return out;
+    for (const w of M.world.walls) {
+      if (!(w.hp > 0)) continue;
+      const c = Math.cos(w.angle), s = Math.sin(w.angle), h = w.len / 2;
+      out.push({ ax: w.x - c * h, ay: w.y - s * h, bx: w.x + c * h, by: w.y + s * h, r: w.thickness / 2, owner: w.owner, legacy: w });
+    }
+    const CRY = globalScope.APEX_CRYSTAL;
+    if (CRY) for (const c of CRY.capsules()) out.push(c);
+    return out;
+  }
+  function wallsBlockPoint(x, y, r) {
+    for (const c of solidCapsules()) if (pointToSegmentDist(x, y, c.ax, c.ay, c.bx, c.by) < r + c.r) return true;
+    return false;
+  }
+  // Runs after the engine's body separation each step: sweeps every living body
+  // from where it was to where it is against all solid capsules and stands it on
+  // the surface it would have crossed (bounce heading like an arena wall).
+  function resolveWorldWalls() {
+    if (!M) return;
+    const caps = solidCapsules();
+    const bodies = M.api.allBodies();
+    const S = globalScope.GAME_SIZE || 1000;
+    for (const b of bodies) {
+      if (!b || b.hp <= 0) continue;
+      const prev = b.__hrWallPos;
+      if (caps.length && prev) {
+        let px = prev.x, py = prev.y;
+        for (let pass = 0; pass < 3; pass++) {
+          let best = null;
+          for (const c of caps) {
+            const hit = capsuleToi(px, py, b.x, b.y, c.ax, c.ay, c.bx, c.by, (b.radius || 75) + c.r);
+            if (hit && (!best || hit.t < best.hit.t)) best = { hit, c };
+          }
+          if (!best) break;
+          const { hit, c } = best;
+          const qx = px + (b.x - px) * hit.t, qy = py + (b.y - py) * hit.t;
+          const abx = c.bx - c.ax, aby = c.by - c.ay, L2 = abx * abx + aby * aby;
+          const s = L2 > 0 ? clamp(((qx - c.ax) * abx + (qy - c.ay) * aby) / L2, 0, 1) : 0;
+          const rr = (b.radius || 75) + c.r + 0.5;
+          b.x = clamp(c.ax + abx * s + hit.nx * rr, (b.radius || 75), S - (b.radius || 75));
+          b.y = clamp(c.ay + aby * s + hit.ny * rr, (b.radius || 75), S - (b.radius || 75));
+          px = b.x; py = b.y;
+          if (b.dir && typeof globalScope.reflectDir === 'function' && (b.dir.x * hit.nx + b.dir.y * hit.ny) < 0) {
+            b.dir = globalScope.reflectDir(b.dir, hit.nx, hit.ny);
+          }
+        }
+      }
+      b.__hrWallPos = { x: b.x, y: b.y };
+    }
+  }
+  HR.geom = { capsuleToi, solidCapsules, wallsBlockPoint, pointToSegmentDist, segmentToPointToi: (...a) => segmentToPointToi(...a) };
+
+
   function releaseFromSingularity(s, d) {
     // Safe exit ~exitDistance px away from the nearest living body.
     const bodies = M.api.allBodies();
@@ -1459,12 +1576,17 @@
     const projectiles = globalScope.projectiles;
     const GAME_SIZE = globalScope.GAME_SIZE || 1000;
     const BULLET_HIT_SCALE = (CFG && CFG.BULLET_HIT_RADIUS_SCALE) || 0.78;
+    // CRYSTALA: shard jobs / K window / construct lifetimes / Gold rig advance.
+    const CRY = globalScope.APEX_CRYSTAL;
+    if (CRY) CRY.tick(dt);
 
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const p = projectiles[i];
       if (!p || !p.aq) continue;
 
       if (p.type === 'aq_bullet') {
+        // A bullet held inside a Crystal shard's gem during the refraction beat.
+        if (CRY && CRY.holdStep(p)) continue;
         p.px = p.x; p.py = p.y;
         p.x += p.vx * dt;
         p.y += p.vy * dt;
@@ -1495,10 +1617,16 @@
         mirrorRoute(p);
 
         // ---- Stage B: body interactions (earliest TOI winner) ----------
-        const target = earliestToiBody(p, BULLET_HIT_SCALE, i);
+        const bodyHit = earliestToiBodyT(p, BULLET_HIT_SCALE);
+        // CRYSTALA (K shard contact / J solid material): the earliest of shard
+        // contact, construct surface and body wins. There is NO automatic body
+        // reflect any more (docs/hero-rework/crystala-v1 authority).
+        if (CRY) {
+          const cr = CRY.resolveBullet(p, bodyHit ? bodyHit.t : 2, dt);
+          if (cr && cr.consumed) continue;
+        }
+        const target = bodyHit ? bodyHit.body : null;
         if (target) {
-          // CRYSTAL refraction (reflect; T6 never reflected).
-          if (tryReflect(p, target, BULLET_HIT_SCALE)) continue;
           // RUBBER compression storage (enemy projectile into RUBBER).
           if (tryRubberStore(p, target)) { projectiles.splice(i, 1); continue; }
 
@@ -1506,6 +1634,7 @@
           const hit = sweptHit(p.px, p.py, p.x, p.y, target.x, target.y, hitR) || { x: p.x, y: p.y };
           const neutral = p.__hr && p.__hr.neutral;
           const W2 = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+          const hpBeforeHit = target.hp;
           if (W2 && W2.aqDamage) {
             W2.aqDamage(target, p.damage, neutral ? null : p.owner, p.weapon, {
               knockback: p.knockback, stun: p.stun, hitStop: p.heavy ? 0.05 : 0,
@@ -1513,6 +1642,7 @@
               impact: { x: hit.x, y: hit.y, vx: p.vx, vy: p.vy },
             });
           }
+          if (CRY) { CRY.noteBodyHit(p, target); CRY.afterBodyHit(p, target, hpBeforeHit - target.hp); }
           // ICE payload (survives transforms unless stripped).
           if (p.__hr && p.__hr.chill) M.api.applyChillTo(target);
           // RUBBER debt erase (released projectile hit the opponent).
@@ -1570,11 +1700,14 @@
           p.y += p.vy * dt;
           p.rot += p.spin * dt;
           // Walls: T6 shatters through; others consume ricochet budget.
-          const tw = sweepThrownWall(p);
+          const tw = (CRY && CRY.thrownSurface(p)) || sweepThrownWall(p);
           if (tw) {
             const isT6 = p.weapon === 'STORMBREAKER';
-            tw.wall.hp -= isT6 ? ((CFG.WEAPONS.STORMBREAKER && CFG.WEAPONS.STORMBREAKER.confirmedHitDamage) || 446) : scaledProjectileDamage(p);
-            if (isT6) tw.wall.__shatteredBy = 'STORMBREAKER';
+            if (tw.crystal) CRY.thrownHit(p, tw);   // real structural damage + ricochet stand-off
+            else {
+              tw.wall.hp -= isT6 ? ((CFG.WEAPONS.STORMBREAKER && CFG.WEAPONS.STORMBREAKER.confirmedHitDamage) || 446) : scaledProjectileDamage(p);
+              if (isT6) tw.wall.__shatteredBy = 'STORMBREAKER';
+            }
             if (!isT6) {
               // Reflect about the wall normal; budget or exit.
               const n = tw.normal;
@@ -1847,6 +1980,10 @@
   }
 
   function earliestToiBody(p, BULLET_HIT_SCALE, index) {
+    const r = earliestToiBodyT(p, BULLET_HIT_SCALE);
+    return r ? r.body : null;
+  }
+  function earliestToiBodyT(p, BULLET_HIT_SCALE) {
     if (!M) return null;
     const shooterCt = combatantOfBody(p.owner);
     const neutral = p.__hr && p.__hr.neutral;
@@ -1861,7 +1998,7 @@
         if (t < bestToi) { bestToi = t; best = b; }
       }
     }
-    return best;
+    return best ? { body: best, t: bestToi } : null;
   }
 
   function segmentToPointToi(x0, y0, x1, y1, cx, cy, r) {
@@ -1893,35 +2030,6 @@
       if (bodies.length) return bodies[0];
     }
     return null;
-  }
-
-  function tryReflect(p, target, BULLET_HIT_SCALE) {
-    if (p.weapon === 'STORMBREAKER') return false; // T6 never reflected
-    const ct = combatantOfBody(target);
-    if (!ct || ct.facade || ct.heroId !== 'CRYSTAL') return false;
-    const cfg = ct.skills.PASSIVE.cfg;
-    // Same-surface zero-progress loop suppression only.
-    const last = p.__hr && p.__hr.lastReflect;
-    if (last && last.bodyId === target.id && dist(last.x, last.y, p.x, p.y) < 30) return false;
-    // Reflect about the body surface normal at the approach side.
-    const ang = Math.atan2(p.y - target.y, p.x - target.x);
-    const cur = Math.atan2(p.vy, p.vx);
-    let dAng = (2 * ang - Math.PI) - cur;
-    while (dAng > Math.PI) dAng -= 2 * Math.PI;
-    while (dAng < -Math.PI) dAng += 2 * Math.PI;
-    const newAng = cur + dAng;
-    const sp = Math.hypot(p.vx, p.vy);
-    p.vx = Math.cos(newAng) * sp;
-    p.vy = Math.sin(newAng) * sp;
-    p.x = target.x + Math.cos(ang) * (target.radius + p.radius + 2);
-    p.y = target.y + Math.sin(ang) * (target.radius + p.radius + 2);
-    p.px = p.x; p.py = p.y;
-    // Reflected damage 50%; controller becomes CRYSTAL; payload survives.
-    p.damage *= cfg.reflectedDamagePct;
-    p.owner = target;
-    (p.__hr = p.__hr || {}).lastReflect = { bodyId: target.id, x: p.x, y: p.y };
-    AIL.bus.emit('CrystalReflect', { body: target.id, damage: p.damage });
-    return true; // projectile continues, reflected
   }
 
   function tryRubberStore(p, target) {
@@ -2084,7 +2192,11 @@
       const baseHC = globalScope.handleCollisions;
       globalScope.handleCollisions = function handleCollisionsHR(dt) {
         try { HR.noteAnchorContacts(); } catch (e) { /* never break physics */ }
-        return baseHC(dt);
+        const out = baseHC(dt);
+        // Shared geometry authority: solid world material (Crystal constructs,
+        // legacy walls) stops EVERY body however it moved this step.
+        resolveWorldWalls();
+        return out;
       };
       globalScope.handleCollisions.__hrWrapped = true;
     }
@@ -2320,7 +2432,7 @@
     }
     const projectiles = globalScope.projectiles || [];
     for (const p of projectiles) {
-      if (p && p.weapon === 'STORMBREAKER' && p.__hr && (p.__hr.neutral || p.__hr.lastPortalId || p.__hr.lastReflect)) {
+      if (p && p.weapon === 'STORMBREAKER' && p.__hr && (p.__hr.neutral || p.__hr.lastPortalId || p.__hr.lastReflect || p.__hr.crystalReflected)) {
         errors.push('T6 flagged as manipulated (law violation)');
       }
     }

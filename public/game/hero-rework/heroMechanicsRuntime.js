@@ -262,53 +262,35 @@
   };
 
   /* -------------------------------------------------------------------- *
-   * 2. CRYSTAL
+   * 2. CRYSTAL — CRYSTALA V1 (docs/hero-rework/crystala-v1/).
+   *    K/A2 awakening, J/A1 context construct, refraction passive. All truth
+   *    (shards, predictor, contact, constructs, HP, lifetimes, geometry) lives
+   *    in crystalGameplayRuntime.js (APEX_CRYSTAL); the executors are the thin,
+   *    data-driven entry points the AbilityController dispatches to.
+   *    No input buffering: a failed J never replays (canCast false = fail cue,
+   *    cooldown untouched).
    * -------------------------------------------------------------------- */
+  const CRY = () => globalScope.APEX_CRYSTAL;
 
-  EXECUTORS['crystal.wall'] = {
-    cast(ctx) {
-      const a = ctx.combatant.anchor;
-      const enemy = ctx.api.enemyOf(ctx.combatant);
-      const ea = enemy && enemy.anchor;
-      // Placement (tuning slot): midpoint between caster and enemy anchor,
-      // perpendicular to the line between them.
-      const mx = ea ? (a.x + ea.x) / 2 : a.x;
-      const my = ea ? (a.y + ea.y) / 2 : a.y;
-      const ang = ea ? angleTo(a.x, a.y, ea.x, ea.y) : a.dir.x >= 0 ? 0 : Math.PI;
-      const wall = ctx.api.spawnWall({
-        owner: ctx.combatant, x: mx, y: my, angle: ang + Math.PI / 2,
-        len: ctx.cfg.width, hp: ctx.cfg.wallHp, lifetime: ctx.cfg.lifetime,
-      });
-      ctx.api.note('crystal.wall', 'cast', { wallId: wall.id, hp: wall.hp });
-      return true;
-    },
+  EXECUTORS['crystal.awakening'] = {
+    cast(ctx) { const c = CRY(); return !!(c && c.castAwakening(ctx)); },
+    onTick() {},   // driven from the rework projectile pass (APEX_CRYSTAL.tick)
+    onTeardown(ctx) { const c = CRY(); if (c) c.teardown(ctx.combatant); },
   };
 
-  EXECUTORS['crystal.prison'] = {
-    cast(ctx) {
-      const enemy = ctx.api.enemyOf(ctx.combatant);
-      const ea = enemy && enemy.anchor;
-      if (!ea) return false;
-      const R = ctx.cfg.cageRadius;
-      for (let i = 0; i < ctx.cfg.walls; i++) {
-        const ang = (i / ctx.cfg.walls) * Math.PI * 2;
-        const wx = ea.x + Math.cos(ang) * R;
-        const wy = ea.y + Math.sin(ang) * R;
-        ctx.api.spawnWall({
-          owner: ctx.combatant, x: wx, y: wy, angle: ang + Math.PI / 2,
-          len: 2 * R * Math.tan(Math.PI / ctx.cfg.walls), hp: ctx.cfg.wallHpPer,
-          lifetime: ctx.cfg.maxLifetime,
-        });
-      }
-      ctx.api.note('crystal.prison', 'cast', { around: ea.name, walls: ctx.cfg.walls });
-      return true;
-    },
+  EXECUTORS['crystal.context_construct'] = {
+    // Snapshot of truly ORBIT shards at the INPUT EDGE: needs K active and >= 2.
+    canCast(ctx) { const c = CRY(); return !!(c && c.canCastConstruct(ctx)); },
+    // P2 AI only attempts when the cast can succeed (no fail-cue spam).
+    aiCanAttempt(ctx) { const c = CRY(); return !!(c && c.aiCanAttemptConstruct(ctx)); },
+    cast(ctx) { const c = CRY(); return !!(c && c.castConstruct(ctx)); },
   };
 
   EXECUTORS['crystal.refraction'] = {
-    // Reflection itself is executed by the rework projectile pass, which
-    // consults this executor's live config through the combatant.
-    onTick() {}, // config-only at Lv1; pass reads cfg via api
+    // NO automatic body block/reflect. The passive only supplies the reflected
+    // damage multiplier (cfg.reflectedDamagePct) to the K/J reflection
+    // transaction inside APEX_CRYSTAL.
+    onTick() {},
     onTeardown() {},
   };
 

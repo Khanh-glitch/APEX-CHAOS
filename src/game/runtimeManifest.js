@@ -4,7 +4,7 @@
 // CP7: gameplay-ready barriers + start-of-match fail-cue fix — cache-bust
 // every runtime that changed in this pass (config/presentation/meta/
 // shellSelect/ladder).
-export const APEX_ARSENAL_RUNTIME_REVISION = '20260930-crystala-prep-r1';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20260930-crystala-a-r1';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by
@@ -161,6 +161,11 @@ export const MODE_DEFERRED_RUNTIMES = {
     ['/game/arsenal/arsenalChamberPaletteRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalChamberPaletteRuntime'],
     ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
     ['/game/modes/arsenalQuestRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestRuntime'],
+    // CRYSTALA V1: gameplay-neutral Gold rig (authored motion/material) and the
+    // real gameplay truth module. Both load BEFORE the mechanics/integration
+    // runtimes that dispatch into them.
+    ['/game/hero-rework/crystalaGoldV6.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalaGoldV6'],
+    ['/game/hero-rework/crystalGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalGameplayRuntime'],
     // HERO REWORK: mechanics + integration load AFTER the quest runtime so
     // they wrap its step/entry/exit hooks (never inside ARSENAL_HUB_RUNTIMES).
     ['/game/hero-rework/heroMechanicsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkMechanics'],
