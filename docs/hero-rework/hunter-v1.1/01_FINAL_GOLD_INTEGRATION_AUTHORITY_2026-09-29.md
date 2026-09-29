@@ -38,13 +38,30 @@ That checkpoint supersedes old Hunter gameplay where conflicting.
 - recharge 6.5s per charge
 - recharge sequentially
 - max active traps 3
+- the old single-cast 11s A1 cooldown is SUPERSEDED and must not remain as an additional cast lock
 - trap trigger radius 46
 - lifetime 6.0s
 - root duration 1.25s
 
 Three charges mean three available casts; they do NOT authorize skipping/compressing the gold body-placement choreography. A subsequent cast may occur when the signature cast animation is ready under normal ability-control rules.
 
-Charge truth must be visible in the existing skill/cooldown HUD or mode slot. Do not create a new Hunter-only HUD panel. At minimum the player must be able to read current A1 charges and whether the next charge is recharging.
+Charge law:
+- one successful accepted A1 cast consumes exactly one charge;
+- if at least one charge remains, Hunter may cast A1 again after the authored cast/recovery is ready even while another charge is recharging;
+- the old 11s `cdLeft` must not block these remaining-charge casts;
+- when going from full to one missing charge, start one 6.5s recharge timer;
+- spending another charge while that timer is already running does NOT reset the current recharge progress;
+- when the timer completes, restore exactly one charge; if still below 3, immediately begin the next 6.5s sequential recharge;
+- at 3/3, recharge stops;
+- failed casts (dead/CC/condition/max-active-trap blocker) do not consume a charge and do not reset recharge progress;
+- new match/rematch starts at 3/3;
+- recharge should follow the same global cooldown-pause semantics as other ability recharge where applicable.
+
+Registry/progression law:
+- remove/supersede obsolete A1 `cooldown: 11` production gating;
+- the cooldown-like progression knob for A1 should bind to the approved recharge interval, not an obsolete single-cast cooldown, while preserving the one-progression-knob structural law.
+
+Charge truth must be visible in the existing skill/cooldown HUD or mode slot. Do not create a new Hunter-only HUD panel. At minimum the player must be able to read current A1 charges and the next-charge recharge state/time.
 
 Each active production trap must own an independent copy of the gold trap presentation/lifecycle. Do not visually collapse three logical traps into one shared mutable trap state. A new cast must never reset, hide, or mutate an older still-active trap.
 
