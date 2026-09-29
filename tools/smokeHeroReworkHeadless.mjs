@@ -66,6 +66,9 @@ win.localStorage.setItem('apexChaos.arsenalMeta.v1', JSON.stringify({
   lastSelectedP1: 'NEWBIE', lastSelectedP2: 'ICE', totalSpins: 2,
   unlockedAt: { NEWBIE: 123, ICE: 456 },
 }));
+// The one-time 12,000 AC owner-test grant is its own law (arsenalMetaRuntime, protected). This harness asserts the
+// NEWBIE->ROBOT migration preserves credits, so it marks the grant as already consumed to keep that gate isolated.
+win.localStorage.setItem('apexChaos.ownerTestCredits.20260930.v1', '1');
 
 const realCanvases = new WeakMap();
 function realCanvasFor(el) {

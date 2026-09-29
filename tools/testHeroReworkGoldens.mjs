@@ -32,7 +32,7 @@ const REPO = process.cwd();
 const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules');
 const requireTool = createRequire(path.join(TOOLING_DIR, 'noop.js'));
 const { JSDOM } = requireTool('jsdom');
-const { createCanvas, loadImage, GlobalFonts } = requireTool('@napi-rs/canvas');
+const { createCanvas, loadImage, GlobalFonts, ImageData: NapiImageData, Path2D: NapiPath2D } = requireTool('@napi-rs/canvas');
 GlobalFonts.registerFromPath(path.join(REPO, 'public', 'assets', 'fonts', 'kanit', 'Kanit-BlackItalic.ttf'), 'ApcKanit');
 
 const evidenceDir = process.env.AQ_EVIDENCE_DIR || path.join(REPO, 'docs', 'hero-rework', 'evidence');
@@ -210,6 +210,11 @@ class HarnessImage {
   get src() { return this._src; }
 }
 win.Image = HarnessImage;
+// Generic jsdom compatibility (test harness only): jsdom has no ImageData/Path2D, which the Hunter V10 art
+// derivation needs. Without this the Hunter asset path throws and Hunter never becomes ready (known baseline
+// harness condition, GitHub Actions run 36614313983) — it is NOT a gameplay change.
+if (!win.ImageData) win.ImageData = NapiImageData;
+if (!win.Path2D) win.Path2D = NapiPath2D;
 
 // Harness owns time: no automatic frames; tests step deterministically.
 win.requestAnimationFrame = () => 0;
@@ -287,6 +292,19 @@ const W = () => HR.match ? HR.match.world : null;
 /* ================================================================== *
  * G1 — CRYSTAL reflection x ICE payload (chill survives reflection)
  * ================================================================== */
+// CRYSTALA V1: the old always-on body reflect is gone. A Crystal reflects through its REAL construct (the J Wall)
+// or a K shard, so the reflect goldens now build a real Wall first: K, then a sacrificial 0-damage hostile decoy keeps
+// one shard busy so J (2..5 shards) builds a WALL, then wait for the material to lock.
+function crystalWall(ci) {
+  const cb = win.fighters[ci], eb = win.fighters[1 - ci], ctl = T.ctl(ci);
+  const k = ctl.tryCast('A2', 'goldens');
+  win.APEX_ARSENAL.weaponApi.fireBullet({ owner: eb, x: cb.x, y: 985, angle: -Math.PI / 2, speed: 900, damage: 0, weapon: 'PISTOL', radius: 7, life: 2 });
+  for (let f = 0; f < 120; f++) { T.step(1 / 60); if (win.APEX_CRYSTAL.inspect(T.ct(ci)).jobs.length) break; }
+  const j = ctl.tryCast('A1', 'goldens');
+  for (let f = 0; f < 70; f++) T.step(1 / 60);   // the material locks (~0.8 s)
+  const cons = win.APEX_CRYSTAL.inspect(T.ct(ci)).constructs.find((c) => c.kind === 'wall');
+  return { k: k.ok, j: j.ok, wall: !!cons && cons.solid };
+}
 try {
   HR.setSeed(101);
   HR.setAiEnabled(false);
@@ -301,6 +319,7 @@ try {
   // appears, the shooter is moved onto its measured path via the production
   // relocate API (the same call SNIPER farthest-corner makes).
   T.place(350, 500, 630, 500);
+  const wallA = crystalWall(1);
   const ice = T.ctl(0);
   const a1 = ice.tryCast('A1', 'goldens'); // Ice Bullets: own shots apply CHILL
   T.equip(0, 'MAGNUM_500'); // range 1276px — survives the full round trip
@@ -341,9 +360,9 @@ try {
   // and when the reflected projectile connects, CHILL lands on the victim
   // and the damage credits CRYSTAL (the reflecting combatant).
   gate('golden-crystal-reflect-ice-payload',
-    a1 && a1.ok && reflectSeen && payloadKept && controllerFlipped
+    wallA.wall && a1 && a1.ok && reflectSeen && payloadKept && controllerFlipped
     && chilledIce && creditedCrystal && !runError,
-    { a1: a1 && a1.ok, reflectSeen, payloadKept, controllerFlipped, intercepted,
+    { wall: wallA, a1: a1 && a1.ok, reflectSeen, payloadKept, controllerFlipped, intercepted,
       chilledIce, creditedCrystal, traj, hitLines, runError });
   snapshot('golden-crystal-reflect-ice-payload');
 } catch (e) { gate('golden-crystal-reflect-ice-payload', false, String(e && e.message)); }
@@ -398,6 +417,7 @@ try {
   T.start('BLACK_HOLE', 'CRYSTAL');
   T.holdSpawns();
   T.place(200, 500, 780, 500);
+  const wallG3 = crystalWall(1);
   // P1 fires at CRYSTAL; the reflection returns on a measured path (the
   // muzzle art anchor grazes the circle, so the return is ~34 degrees off
   // the reverse line). The A1 singularity spawns at the ANCHOR MIDPOINT,
@@ -441,8 +461,8 @@ try {
   const releaseCount = T.busSince(mark, 'SingularityRelease');
   const storedCount = T.busSince(mark, 'SingularityStored');
   gate('golden-blackhole-stores-reflected',
-    sing && sing.ok && storedReflected && released && !runError,
-    { sing: sing && sing.ok, storedReflected, released, storeFrame, releaseCount, storedCount, schedPending, singCount, runError });
+    wallG3.wall && sing && sing.ok && storedReflected && released && !runError,
+    { wall: wallG3, sing: sing && sing.ok, storedReflected, released, storeFrame, releaseCount, storedCount, schedPending, singCount, runError });
   snapshot('golden-blackhole-stores-reflected');
 } catch (e) { gate('golden-blackhole-stores-reflected', false, String(e && e.message)); }
 
@@ -461,6 +481,7 @@ try {
   // its measured path via the production relocate API, and the compression
   // window (2.5s) must STORE the returning projectile.
   T.place(350, 500, 630, 500);
+  const wallG4 = crystalWall(1);
   const rub = T.ctl(0);
   const a2 = rub.tryCast('A2', 'goldens'); // compression store window (2.5s)
   T.equip(0, 'MAGNUM_500'); // range 1276px — survives the full round trip
@@ -496,8 +517,8 @@ try {
   const hitLines = win.APEX_ARSENAL.events.filter(e => e.includes('HIT')).slice(0, 6);
   const reflCount = T.busSince(mark, 'CrystalReflect');
   gate('golden-rubber-stores-reflected',
-    a2 && a2.ok && storedReflected && held >= 1 && !runError,
-    { a2: a2 && a2.ok, storedReflected, held, reflCount, intercepted, traj, hitLines, runError });
+    wallG4.wall && a2 && a2.ok && storedReflected && held >= 1 && !runError,
+    { wall: wallG4, a2: a2 && a2.ok, storedReflected, held, reflCount, intercepted, traj, hitLines, runError });
   snapshot('golden-rubber-stores-reflected');
 } catch (e) { gate('golden-rubber-stores-reflected', false, String(e && e.message)); }
 
@@ -550,6 +571,8 @@ try {
  * G6 — MATH geometry x HUNTER trap (graph absorbs the shot; the snare
  *      roots; rooted body still protected by the graph)
  * ================================================================== */
+// Hunter presentation gates every Hunter cast on its V10 art being ready (assets load asynchronously).
+for (let i = 0; i < 400 && !(win.APEX_HUNTER_PRESENTATION && win.APEX_HUNTER_PRESENTATION.ready); i++) await new Promise((r) => setTimeout(r, 50));
 try {
   HR.setSeed(106);
   HR.setAiEnabled(false);

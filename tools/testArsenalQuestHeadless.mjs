@@ -19,7 +19,7 @@ const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules'
 const evidenceDir = process.env.AQ_EVIDENCE_DIR || 'docs/arsenal-quest/evidence';
 const requireTool = createRequire(path.join(TOOLING_DIR, 'noop.js'));
 const { JSDOM } = requireTool('jsdom');
-const { createCanvas, loadImage, GlobalFonts } = requireTool('@napi-rs/canvas');
+const { createCanvas, loadImage, GlobalFonts, ImageData: NapiImageData, Path2D: NapiPath2D } = requireTool('@napi-rs/canvas');
 
 // PASS B: the locally vendored Kanit Black Italic must be registered with the
 // canvas backend BEFORE the runtimes load, so the damage-number glyph cache
@@ -198,6 +198,10 @@ class HarnessImage {
   get src() { return this._src; }
 }
 win.Image = HarnessImage;
+// Generic jsdom compatibility (test harness only): jsdom has no ImageData/Path2D, which the Hunter V10 art
+// derivation needs ("Hunter V10 art failed", GitHub Actions run 36614313983). Not a gameplay change.
+if (!win.ImageData) win.ImageData = NapiImageData;
+if (!win.Path2D) win.Path2D = NapiPath2D;
 
 // Harness owns time: no automatic frames; tests step deterministically.
 win.requestAnimationFrame = () => 0;

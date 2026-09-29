@@ -505,6 +505,7 @@ function constructHit(best, p, dt) {
     reflected = true;
     st.tele.constructReflects += 1;
     emit('CrystalConstructReflect', { cons: cons.id, kind: cap.kind, facet: cap.idx, x: hx, y: hy, damage: p.damage });
+    emit('CrystalReflect', { body: st.ct.anchor.id, damage: p.damage, cons: cons.id });   // compat observers
   } else {
     (hr.cryPassed || (hr.cryPassed = {}))[cons.id + ':' + cap.idx] = true;
   }
