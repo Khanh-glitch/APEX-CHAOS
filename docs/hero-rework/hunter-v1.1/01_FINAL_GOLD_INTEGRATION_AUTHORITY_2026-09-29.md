@@ -44,7 +44,9 @@ That checkpoint supersedes old Hunter gameplay where conflicting.
 
 Three charges mean three available casts; they do NOT authorize skipping/compressing the gold body-placement choreography. A subsequent cast may occur when the signature cast animation is ready under normal ability-control rules.
 
-Each active production trap must own an independent copy of the gold trap presentation/lifecycle. Do not visually collapse three logical traps into one shared mutable trap state.
+Charge truth must be visible in the existing skill/cooldown HUD or mode slot. Do not create a new Hunter-only HUD panel. At minimum the player must be able to read current A1 charges and whether the next charge is recharging.
+
+Each active production trap must own an independent copy of the gold trap presentation/lifecycle. Do not visually collapse three logical traps into one shared mutable trap state. A new cast must never reset, hide, or mutate an older still-active trap.
 
 ### A2 POUNCE
 
@@ -95,9 +97,47 @@ Preserve as faithfully as technically possible:
 - authored relative scale/hierarchy;
 - hit-stop / dilation / camera handshake translated into APEX without taking over global camera authority.
 
-For A1 specifically: do NOT invent new recoil duration, distance or easing. Follow the gold HTML implementation. The source itself owns those values.
+### A1 gold-motion mapping
 
-For A2: production gameplay now continuously chases under the hood. Preserve the gold visible `read -> coil -> snap -> correct -> catch` presentation, including a readable correction beat, while world-path steering follows gameplay authority. Do not revert mechanics to the old one-vector or one-correction-only miss behavior merely to copy demo plumbing.
+For A1 specifically: do NOT invent new recoil duration or easing. Follow the gold HTML implementation.
+
+The standalone HTML stages Hunter on one side of a horizontal demo and therefore uses fixed world-X offsets such as:
+- trap presentation staged slightly forward from Hunter;
+- RECOVER pulling `h.x` toward `h.px - 55`.
+
+Those fixed left/right coordinates are DEMO staging, not permission to make production Hunter always recoil left.
+
+Production mapping law:
+- capture Hunter's last meaningful pre-cast movement direction;
+- map the gold forward/retreat axis onto that direction;
+- the post-plant yank must travel opposite the pre-cast movement direction;
+- if pre-cast speed is effectively zero, use the last meaningful locomotion/facing direction as fallback;
+- preserve the gold temporal profile, articulation, spring response and perceptual strength;
+- the logical trap placement/collision center follows the production gameplay authority, not a demo-only fixed world offset.
+
+The snap-back is GAMEPLAY PHYSICAL MOVEMENT:
+- authoritative Hunter body/hitbox and rendered rig remain aligned;
+- it is not a renderer-only offset;
+- resolve/clamp against arena/world collision rather than passing through geometry;
+- if geometry blocks the full retreat, shorten the physical displacement instead of visually separating the actor from its hitbox;
+- after the gold recovery completes, hand control back to normal APEX locomotion cleanly without a stale forced velocity.
+
+### A2 gold-motion mapping
+
+There is an explicit owner-approved conflict between the standalone demo timing and Hunter V1.1 usability.
+
+The gold HTML standalone prelaunch contains a long READ + COIL + HOLD sequence (approximately 0.665s total), while production V1.1 explicitly requires a short 0.16s prelaunch/coil for easier play.
+
+Therefore:
+- production TOTAL prelaunch is 0.16s;
+- do NOT restore the standalone ~0.665s delay;
+- preserve the gold ordering, poses, compression, anticipation, energy convergence, silhouette transformation and snap language;
+- proportionally compress/re-time those prelaunch sub-beats into the approved 0.16s envelope rather than inventing a different anticipation;
+- once launched, world movement uses continuous live-target chase and ~2200 px/s production authority;
+- preserve the gold travel pose, ribbons/echoes, catch language and a readable correction accent;
+- continuous steering must not spam a correction burst every frame: use the gold correction effect as a meaningful presentation beat while physics may steer continuously underneath.
+
+Do not revert mechanics to the old one-vector or one-correction-only miss behavior merely to copy demo plumbing.
 
 ## SOFT adaptation authority — what APEX owns
 
@@ -118,7 +158,14 @@ Allowed to adapt only as necessary:
 - camera integration so existing APEX camera remains authoritative;
 - replacing demo prey/fake projectile with real opponent/projectile truth.
 
-These adaptations must preserve the visible gold output rather than redesign it.
+These adaptations must preserve the visible gold identity rather than redesign it.
+
+Precedence when there is a real conflict:
+1. explicit owner-approved Hunter V1.1 gameplay/usability law;
+2. gold HTML presentation/choreography;
+3. APEX plumbing constraints.
+
+This means A1 authored timing/easing is hard, while its fixed demo world-axis must be remapped to production movement direction. It also means A2's gold choreography is hard in identity/order, but the old long standalone prelaunch duration is superseded by the approved 0.16s production envelope.
 
 ## Forbidden shortcuts
 
@@ -128,7 +175,8 @@ Do not:
 - lock A2 to one initial heading;
 - teleport A2;
 - make a single mutable trap represent all three charges;
-- invent new visual timing because production gameplay numbers differ;
+- invent new A1 visual timing/easing;
+- restore the old long A2 standalone prelaunch delay in conflict with the approved 0.16s production usability law;
 - use demo prey/fake bullets as production truth;
 - rotate/redesign the entire actor based on convenience;
 - weaken APEX locomotion globally to make the prototype fit;
@@ -139,8 +187,8 @@ Do not:
 Real-browser production evidence must include at minimum:
 
 1. idle + normal locomotion;
-2. A1 full body deploy -> plant -> authored snap/recover;
-3. three separate A1 trap placements visible/owned independently;
+2. A1 full body deploy -> plant -> authored snap/recover while moving in at least two opposite directions, proving the recoil maps against movement rather than always world-left;
+3. three separate A1 trap placements visible/owned independently plus truthful A1 charge/recharge HUD;
 4. one trap root on real opponent body;
 5. trap expiry/release cleanup;
 6. A2 coil -> high-speed continuous chase -> real body contact;
