@@ -285,16 +285,16 @@
       classRef: 'rework.hunter',
       skills: {
         A1: skill('hunter.snare', 'A1', 'hunter.snare', {
-          cooldown: 11, trapLifetime: 8, maxActiveTraps: 1, rootDuration: 1.6,
+          cooldown: 6.5, maxCharges: 3, trapLifetime: 6, maxActiveTraps: 3, rootDuration: 1.25,
           placedAtCaster: true, bulletsPickupsVfxDoNotTrigger: true,
         }, ['cooldown'], 'cooldown_step'),
         A2: skill('hunter.pounce_weak', 'A2', 'hunter.pounce_weak', {
-          cooldown: 12, windup: 0.18, moveSpeed: 1500, maxMoveTime: 0.45,
+          cooldown: 12, windup: 0.16, moveSpeed: 2200, maxMoveTime: 0.50,
           directDamage: 0, weakDuration: 3, weakIncomingMult: 1.25,
           canMiss: true, weakScope: 'combatant',
         }, ['weakIncomingMult'], 'magnitude_step'),
         PASSIVE: skill('hunter.killer_instinct', 'PASSIVE', 'hunter.killer_instinct', {
-          dodgeChance: 0.28, dodgeDistance: 95, antiChainLockout: 0.45,
+          dodgeChance: 0.24, dodgeDistance: 95, antiChainLockout: 0.45,
           requiresTrappedOrWeak: true, invulnerability: false, t6Excluded: true,
         }, ['dodgeChance'], 'pp_step'),
       },

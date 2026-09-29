@@ -167,6 +167,8 @@ export const MODE_DEFERRED_RUNTIMES = {
     // ROBOT final presentation (2026-09-29): articulated 1280 head-space, springs,
     // jaw socket, wall/hit/fire, A1/A2/passive SFX, semantic events, teardown.
     ['/game/hero-rework/robotPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexRobotPresentationRuntime'],
+    ['/game/hero-rework/hunterGoldV10.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHunterGoldV10'],
+    ['/game/hero-rework/hunterPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHunterPresentationRuntime'],
   ],
   select: SELECT_RUNTIMES,
   battle: BATTLE_RUNTIMES,

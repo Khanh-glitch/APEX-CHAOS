@@ -768,63 +768,57 @@
    * 8. HUNTER
    * -------------------------------------------------------------------- */
 
+  function hunterReady(ctx) {
+    const p=globalScope.APEX_HUNTER_PRESENTATION;
+    return !!p?.ready && !ctx.combatant.store.__hunterAction && p.idle(ctx.combatant.anchor);
+  }
   EXECUTORS['hunter.snare'] = {
-    cast(ctx) {
-      const a = ctx.combatant.anchor;
-      if (!ctx.api.canPlaceSnare(ctx.combatant, ctx.cfg.maxActiveTraps)) return false;
-      ctx.api.spawnSnare({
-        owner: ctx.combatant, x: a.x, y: a.y, radius: 46, // radius = tuning slot
-        lifetime: ctx.cfg.trapLifetime, rootDuration: ctx.cfg.rootDuration,
-      });
-      ctx.api.note('hunter.snare', 'cast', {});
-      return true;
+    canCast(ctx){return hunterReady(ctx)&&ctx.api.canPlaceSnare(ctx.combatant,ctx.cfg.maxActiveTraps);},
+    cast(ctx){
+      if(!this.canCast(ctx))return false;
+      const a=ctx.combatant.anchor, measured=a.__hrVel;
+      const speed=measured?Math.hypot(measured.x,measured.y):0;
+      const v=speed>1&&speed<(a.baseSpeed||520)*2?measured:a.dir;
+      const n=Math.hypot(v.x,v.y)||1;
+      ctx.combatant.store.__hunterAction='a1';
+      ctx.store.cast={axis:{x:v.x/n||(!v.y?1:0),y:v.y/n},planted:false};
+      globalScope.APEX_HUNTER_PRESENTATION.begin(a,'a1');return true;
     },
+    onTick(ctx,dt){const c=ctx.store.cast;if(!c)return;const a=ctx.combatant.anchor;
+      a.data.positionLocked=true;
+      const motion=globalScope.APEX_HUNTER_PRESENTATION.advanceA1(a,dt);
+      ctx.api.moveHunterBody(a,a.x+c.axis.x*motion.dx,a.y+c.axis.y*motion.dx);
+      if(motion.plant&&!c.planted){c.planted=true;ctx.api.spawnSnare({owner:ctx.combatant,x:a.x,y:a.y,radius:46,lifetime:ctx.cfg.trapLifetime,rootDuration:ctx.cfg.rootDuration});}
+      if(motion.done){ctx.store.cast=null;ctx.combatant.store.__hunterAction=null;}
+    },
+    onTeardown(ctx){ctx.store.cast=null;ctx.combatant.store.__hunterAction=null;},
   };
-
   EXECUTORS['hunter.pounce_weak'] = {
-    cast(ctx) {
-      const a = ctx.combatant.anchor;
-      const enemy = ctx.api.enemyOf(ctx.combatant);
-      const ea = enemy && enemy.anchor;
-      if (!ea) return false;
-      ctx.store.pounce = {
-        windupLeft: ctx.cfg.windup,
-        heading: angleTo(a.x, a.y, ea.x, ea.y),
-        elapsed: 0,
-      };
-      ctx.api.note('hunter.pounce_weak', 'cast', {});
-      return true;
+    canCast: hunterReady,
+    cast(ctx){if(!hunterReady(ctx)||!ctx.api.enemyBodies(ctx.combatant).length)return false;
+      ctx.store.pounce={windupLeft:ctx.cfg.windup,elapsed:0};ctx.combatant.store.__hunterAction='a2';
+      globalScope.APEX_HUNTER_PRESENTATION.begin(ctx.combatant.anchor,'a2');return true;
     },
-    onTick(ctx, dt) {
-      const p = ctx.store.pounce;
-      if (!p) return;
-      const a = ctx.combatant.anchor;
-      if (p.windupLeft > 0) {
-        p.windupLeft -= dt;
-        a.data.positionLocked = true; // windup hold
-        return;
-      }
-      p.elapsed += dt;
-      a.data.positionLocked = true;
-      a.setDir(Math.cos(p.heading), Math.sin(p.heading));
-      a.x += Math.cos(p.heading) * ctx.cfg.moveSpeed * dt;
-      a.y += Math.sin(p.heading) * ctx.cfg.moveSpeed * dt;
-      // Valid body hit applies Weak (combatant-level) and ends the pounce.
-      for (const body of ctx.api.enemyBodies(ctx.combatant)) {
-        if (dist(a.x, a.y, body.x, body.y) <= a.radius + body.radius) {
-          ctx.api.applyWeakTo(ctx.api.combatantOfBody(body), ctx.cfg.weakDuration);
-          ctx.api.emitEvent('PounceWeak', { hero: 'HUNTER', target: body.name });
-          ctx.api.note('hunter.pounce_weak', 'hit', {});
-          ctx.store.pounce = null;
-          return;
-        }
-      }
-      if (p.elapsed >= ctx.cfg.maxMoveTime) {
-        ctx.store.pounce = null; // can miss
-        ctx.api.note('hunter.pounce_weak', 'miss', {});
-      }
+    onTick(ctx,dt){
+      const p=ctx.store.pounce;if(!p)return;const a=ctx.combatant.anchor;a.data.positionLocked=true;
+      let moveDt=dt;
+      if(p.windupLeft>0){const used=Math.min(dt,p.windupLeft);globalScope.APEX_HUNTER_PRESENTATION.prelaunch(a,used);p.windupLeft-=used;moveDt-=used;if(p.windupLeft>1e-9)return;}
+      if(!(moveDt>0))return;
+      moveDt=Math.min(moveDt,ctx.cfg.maxMoveTime-p.elapsed);p.elapsed+=moveDt;
+      const bodies=ctx.api.enemyBodies(ctx.combatant),target=bodies.reduce((best,b)=>!best||dist(a.x,a.y,b.x,b.y)<dist(a.x,a.y,best.x,best.y)?b:best,null);
+      if(!target){ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;globalScope.APEX_HUNTER_PRESENTATION.miss(a);return;}
+      const heading=angleTo(a.x,a.y,target.x,target.y),ox=a.x,oy=a.y;
+      a.setDir(Math.cos(heading),Math.sin(heading));
+      ctx.api.moveHunterBody(a,a.x+Math.cos(heading)*ctx.cfg.moveSpeed*moveDt,a.y+Math.sin(heading)*ctx.cfg.moveSpeed*moveDt);
+      let hit=null,toi=Infinity;
+      for(const b of bodies){const t=ctx.api.sweptHunterContact(ox,oy,a.x,a.y,b.x,b.y,a.radius+b.radius);if(t!=null&&t<toi){toi=t;hit=b;}}
+      globalScope.APEX_HUNTER_PRESENTATION.travel(a,heading,moveDt);
+      if(hit){a.x=ox+(a.x-ox)*toi;a.y=oy+(a.y-oy)*toi;ctx.api.applyWeakTo(ctx.api.combatantOfBody(hit),ctx.cfg.weakDuration);
+        ctx.api.emitEvent('PounceWeak',{hero:'HUNTER',target:hit.id,directDamage:0,swept:true});
+        ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;globalScope.APEX_HUNTER_PRESENTATION.catch(a);
+      }else if(p.elapsed>=ctx.cfg.maxMoveTime-1e-9){ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;globalScope.APEX_HUNTER_PRESENTATION.miss(a);}
     },
-    onTeardown(ctx) { ctx.store.pounce = null; },
+    onTeardown(ctx){ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;},
   };
 
   EXECUTORS['hunter.killer_instinct'] = {
@@ -832,7 +826,7 @@
     // Doc 02 semantics: the PREY/opponent being Trapped (ROOT, from HUNTER
     // A1 snare) or Weak (from HUNTER A2 pounce) enables Killer Instinct —
     // this creates real A1/A2/Passive synergy. HUNTER's own statuses are
-    // irrelevant. T6 exclusion, 28% chance, 95px physical dodge, 0.45s
+    // irrelevant. T6 exclusion, 24% chance, 95px physical dodge, 0.45s
     // anti-chain and no-invulnerability live in the projectile pass.
     dodgeEligible(ctx, body) {
       if (!ctx.api.ownsBody(ctx.combatant, body)) return false;

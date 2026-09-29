@@ -86,6 +86,7 @@
           level: 1,
           cfg: REG.resolveSkillLevel(heroId, slot, 1),
           cdLeft: 0,
+          charges: REG.resolveSkillLevel(heroId, slot, 1).maxCharges, rechargeLeft: 0,
         };
       }
     }
@@ -182,7 +183,7 @@
   }
   function makeAbilityController(ct) {
     return {
-      cooldownLeft(slot) { const s = ct.skills[slot]; return s ? Math.max(0, s.cdLeft) : 0; },
+      cooldownLeft(slot) { const s = ct.skills[slot]; return s ? (s.cfg.maxCharges ? (s.charges > 0 ? 0 : s.rechargeLeft) : Math.max(0, s.cdLeft)) : 0; },
       refundCooldown(slot, sec) {
         const s = ct.skills[slot];
         if (s && sec > 0) { s.cdLeft = Math.max(0, s.cdLeft - sec); }
@@ -194,6 +195,11 @@
         if (paused) return;
         for (const slot of ['A1', 'A2']) {
           const s = ct.skills[slot];
+          if (s && s.cfg.maxCharges && s.charges < s.cfg.maxCharges) {
+            s.rechargeLeft -= dt;
+            while(s.rechargeLeft <= 1e-9 && s.charges < s.cfg.maxCharges) { s.charges++; s.rechargeLeft += s.cfg.cooldown; }
+            if(s.charges === s.cfg.maxCharges) s.rechargeLeft = 0;
+          }
           if (s && s.cdLeft > 0) s.cdLeft = Math.max(0, s.cdLeft - dt);
         }
       },
@@ -203,7 +209,7 @@
         const a = ct.anchor;
         if (!a || a.hp <= 0) return { ok: false, reason: 'dead' };
         if (typeof a.hardCC === 'function' && a.hardCC()) return { ok: false, reason: 'cc' };
-        if (s.cdLeft > 0) return { ok: false, reason: 'cooldown' };
+        if (s.cfg.maxCharges ? s.charges <= 0 : s.cdLeft > 0) return { ok: false, reason: 'cooldown' };
         const exec = MECH.EXECUTORS[s.def.mechanicId];
         const ctx = mechCtx(ct, slot);
         if (exec && exec.canCast && !exec.canCast(ctx)) {
@@ -217,7 +223,8 @@
           AIL.bus.emit('CastFailCue', { hero: ct.heroId, slot, reason: 'whiff', source });
           return { ok: false, reason: 'whiff', failCue: true };
         }
-        s.cdLeft = s.cfg.cooldown;
+        if(s.cfg.maxCharges) { if(s.charges === s.cfg.maxCharges) s.rechargeLeft = s.cfg.cooldown; s.charges--; }
+        else s.cdLeft = s.cfg.cooldown;
         ct.telemetry.casts += 1;
         ct.telemetry.bySkill[slot] = (ct.telemetry.bySkill[slot] || 0) + 1;
         if (ct.telemetry.firstSkillCastAt == null) ct.telemetry.firstSkillCastAt = AIL.clock();
@@ -273,7 +280,7 @@
     if (!r1 && !r2) { M = null; return; } // pure legacy match: no rework layer
 
     const world = {
-      walls: [], gates: [], singularities: [], lanes: [], snares: [],
+      walls: [], gates: [], singularities: [], lanes: [], snares: [], snareSeq: 0,
       graphs: [], mirrors: [], shards: [],
       wallSeq: 0, gateSeq: 0, mirrorSeq: 0,
     };
@@ -418,14 +425,26 @@
         M.world.lanes.push(l);
         return l;
       },
+      moveHunterBody(body, x, y) {
+        const from={x:body.x,y:body.y},r=body.radius||40,size=globalScope.GAME_SIZE||1000;
+        x=clamp(x,r,size-r);y=clamp(y,r,size-r);
+        const steps=Math.max(1,Math.ceil(Math.hypot(x-from.x,y-from.y)/4));
+        for(let k=1;k<=steps;k++) { const nx=from.x+(x-from.x)*k/steps,ny=from.y+(y-from.y)*k/steps;
+          if(M.world.walls.some(w=>w.hp>0 && pointToSegmentDist(nx,ny,w.x-Math.cos(w.angle)*w.len/2,w.y-Math.sin(w.angle)*w.len/2,w.x+Math.cos(w.angle)*w.len/2,w.y+Math.sin(w.angle)*w.len/2)<r+w.thickness/2)) break;
+          body.x=nx;body.y=ny;
+        }
+        return from;
+      },
+      sweptHunterContact: segmentToPointToi,
       spawnSnare(o) {
         const s = {
-          id: M.world.snares.length + 1, owner: o.owner, x: o.x, y: o.y,
+          id: ++M.world.snareSeq, owner: o.owner, x: o.x, y: o.y,
           radius: o.radius || 46, bornAt: AIL.clock(), lifetime: o.lifetime || 8,
-          rootDuration: o.rootDuration || 1.6, consumed: false,
+          rootDuration: o.rootDuration || 1.25, consumed: false, phase: 'unfold', phaseTime: 0,
         };
         M.world.snares.push(s);
-        AIL.bus.emit('SnarePlaced', { x: s.x, y: s.y });
+        globalScope.APEX_HUNTER_PRESENTATION?.trapCreated(s);
+        AIL.bus.emit('SnarePlaced', { id:s.id, x: s.x, y: s.y });
         return s;
       },
       canPlaceSnare(ct, maxActive) {
@@ -1179,6 +1198,7 @@
   function hrPostTick(dt) {
     if (!M) return;
     tickWorld(dt);
+    globalScope.APEX_HUNTER_PRESENTATION?.tick(dt);
     separateExtraBodies(dt);
     // SLIME child lifecycle.
     for (const ct of M.combatants) {
@@ -1239,20 +1259,23 @@
         w.lanes.splice(i, 1);
       }
     }
-    // Snares
-    for (let i = w.snares.length - 1; i >= 0; i--) {
-      const s = w.snares[i];
-      if (s.consumed || now - s.bornAt >= s.lifetime) { w.snares.splice(i, 1); continue; }
-      const enemy = enemyOf(s.owner);
-      for (const b of livingBodies(enemy || {})) {
-        if (dist(b.x, b.y, s.x, s.y) <= s.radius + b.radius * 0.4) {
-          M.api.applyRootTo(b, s.rootDuration);
-          s.consumed = true;
-          AIL.bus.emit('SnareTriggered', { target: b.id, root: s.rootDuration });
-          w.snares.splice(i, 1);
-          break;
+    // Logical snare lifecycle. Presentation never decides trigger/root success.
+    for (let i=w.snares.length-1;i>=0;i--) {
+      const s=w.snares[i]; s.phaseTime+=dt;
+      const phase=p=>{s.phase=p;s.phaseTime=0;AIL.bus.emit('HunterTrapPhase',{id:s.id,phase:p});};
+      if(s.phase==='release'){if(s.phaseTime>=.92){w.snares.splice(i,1);continue;}}
+      else if(s.triggeredAt!=null && (now-s.triggeredAt>=s.rootDuration || !s.prey || s.prey.hp<=0)) phase('release');
+      else if(!s.consumed && now-s.bornAt>=s.lifetime) {s.consumed=true;phase('release');}
+      else if(s.phase==='unfold' && s.phaseTime>=.62) phase('armed');
+      else if(s.phase==='tension' && s.phaseTime>=.1) phase('snap');
+      else if(s.phase==='snap' && s.phaseTime>=.34) phase('pin');
+      if(!s.consumed && (s.phase==='armed'||s.phase==='unfold')) {
+        for(const b of livingBodies(enemyOf(s.owner)||{})) if(dist(b.x,b.y,s.x,s.y)<=s.radius+b.radius*.4) {
+          s.consumed=true;s.prey=b;s.triggeredAt=now;M.api.applyRootTo(b,s.rootDuration);phase('tension');
+          AIL.bus.emit('SnareTriggered',{id:s.id,target:b.id,root:s.rootDuration});break;
         }
       }
+      globalScope.APEX_HUNTER_PRESENTATION?.trapTick(s,dt);
     }
     // Graphs
     for (let i = w.graphs.length - 1; i >= 0; i--) {
@@ -1851,7 +1874,7 @@
   }
 
   function tryDodge(p, target) {
-    if (!M || !p.__hr || p.__hr.rubberDebt) return false;
+    if (!M || p.__hr?.rubberDebt) return false; // ordinary untransformed bullets are eligible too
     if (p.weapon === 'STORMBREAKER') return false; // T6 excluded from evasion
     const ct = combatantOfBody(target);
     if (!ct || ct.facade) return false;
@@ -1872,6 +1895,7 @@
     M.api.relocate(target, clamp(target.x + nx * d, 40, (globalScope.GAME_SIZE || 1000) - 40),
       clamp(target.y + ny * d, 40, (globalScope.GAME_SIZE || 1000) - 40), 'hunter.killer_instinct');
     st.lockedUntil = now + cfg.antiChainLockout;
+    globalScope.APEX_HUNTER_PRESENTATION?.dodge(target, nx*side, ny*side);
     AIL.bus.emit('HunterDodge', { target: target.id, dist: Math.abs(d) });
     return true; // projectile continues
   }
@@ -2134,7 +2158,7 @@
       c.globalAlpha = 1;
     }
     // Snares
-    for (const s of w.snares) {
+    for (const s of w.snares.filter(s=>s.owner.heroId!=='HUNTER')) {
       c.strokeStyle = '#c8a24a';
       c.lineWidth = 3;
       c.beginPath(); c.arc(s.x, s.y, s.radius, 0, Math.PI * 2); c.stroke();
@@ -2262,6 +2286,8 @@
     for (const slot of ['A1', 'A2']) {
       const key = slot === 'A1' ? 'J' : 'K';
       const cd = ctl.cooldownLeft(slot);
+      const skill=ct.skills[slot];
+      if(skill.cfg.maxCharges){lines.push(`${key} · HUNTER.a1 ${skill.charges}/${skill.cfg.maxCharges}${skill.rechargeLeft>0 ? ' +1 '+skill.rechargeLeft.toFixed(1)+'s' : ''}`);continue;}
       lines.push(`${key} · ${ct.heroId}.${slot.toLowerCase()} ${cd > 0.05 ? cd.toFixed(1) + 's' : 'READY'}`);
     }
     return lines;
