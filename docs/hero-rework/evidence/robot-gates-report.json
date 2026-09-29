@@ -25,8 +25,8 @@
           "ok": true
         },
         "dist0": 750,
-        "distEnd": 131.5,
-        "arrivedAt": 0.233,
+        "distEnd": 86,
+        "arrivedAt": 0.483,
         "maxJump": 56.7
       }
     },
@@ -54,7 +54,7 @@
           "ok": true
         },
         "earlyHolder": null,
-        "collectedAt": 0.183,
+        "collectedAt": 0.433,
         "collectedDist": 76.7,
         "held": {
           "weapon": "PISTOL",
@@ -93,15 +93,47 @@
         "afterTaken": 13.720000000000027
       }
     },
-    "R8-passive-explicit-blocker-no-invented-thresholds": {
+    "R8-rolling-burst-law-and-reset": {
       "pass": true,
       "detail": {
-        "thresholds": null,
-        "status": "UNRESOLVED_OWNER_TUNING_DEPENDENCY",
-        "cumulative": 205.8000000000004,
+        "cfg": {
+          "w": 1.2,
+          "f": 150,
+          "s": 50
+        },
+        "milestones8": [
+          1
+        ],
         "refunds": 0,
-        "cdA1": 8,
-        "cdA2": 8
+        "midBurst": 161.34720000000016,
+        "stillActive": true,
+        "extended": true,
+        "cdUntouched": true,
+        "lawShape": true,
+        "after": {
+          "next": 1,
+          "burst": 0,
+          "burstDeadline": 0,
+          "crossedAt": 0,
+          "lastRefund": null
+        },
+        "resets": 1
+      }
+    },
+    "R8b-single-hit-multi-cross-once": {
+      "pass": true,
+      "detail": {
+        "milestones": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ]
       }
     },
     "R9-passive-refund-sequence-law": {
@@ -140,6 +172,74 @@
         ],
         "cdA2After": 3.5
       }
+    },
+    "R10-production-truthful-refund-and-reset": {
+      "pass": true,
+      "detail": {
+        "milestones": 6,
+        "upgrades": [
+          {
+            "fighterId": 1,
+            "combatantIndex": 0,
+            "hero": "ROBOT",
+            "milestone": 2,
+            "slot": "A1",
+            "refund": 0.5,
+            "requestedRefund": 0.5,
+            "before": 8,
+            "after": 7.5
+          },
+          {
+            "fighterId": 1,
+            "combatantIndex": 0,
+            "hero": "ROBOT",
+            "milestone": 3,
+            "slot": "A1",
+            "refund": 0.2,
+            "requestedRefund": 1,
+            "before": 0.2,
+            "after": 0
+          },
+          {
+            "fighterId": 1,
+            "combatantIndex": 0,
+            "hero": "ROBOT",
+            "milestone": 4,
+            "slot": "A2",
+            "refund": 1.5,
+            "requestedRefund": 1.5,
+            "before": 6,
+            "after": 4.5
+          }
+        ],
+        "state": {
+          "reached": 6,
+          "burst": 416.28128469571334,
+          "next": 450,
+          "active": true,
+          "fraction": 0.32562569391426677,
+          "crossing": true,
+          "refund": null
+        },
+        "reset": {
+          "reached": 0,
+          "burst": 0,
+          "next": 150,
+          "active": false,
+          "fraction": 0,
+          "crossing": false,
+          "refund": null
+        },
+        "fresh": {
+          "reached": 0,
+          "burst": 0,
+          "next": 150,
+          "active": false,
+          "fraction": 0,
+          "crossing": false,
+          "refund": null
+        }
+      }
     }
   },
   "failures": [],
@@ -150,8 +250,8 @@
     }
   ],
   "summary": {
-    "total": 9,
-    "passed": 9,
+    "total": 11,
+    "passed": 11,
     "failed": []
   }
 }

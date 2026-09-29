@@ -1125,8 +1125,8 @@ class Stage {
         (0, core_1.springTo)(h.sx, 1, 0.3, dt);
         (0, core_1.springTo)(h.sy, 1, 0.3, dt);
         // subtle inertia streak while moving (never a combat dash)
-        if (sp > 55) {
-            this.pushEcho(0.16);
+        if (sp > 240) {
+            this.pushEcho(0.11);
             if ((0, core_1.rnd)() < dt * 5)
                 this.fx.dust(h.px + (0, core_1.rrange)(-30, 30), this.ground, (0, core_1.rrange)(-3.4, -2.9), (0, core_1.rrange)(6, 18), 0.5, 10);
         }
@@ -1172,7 +1172,7 @@ class Stage {
     }
     pushEcho(life, k = 1) {
         this.echoes.push({ p: copyPose(this.pose), t: life, k });
-        if (this.echoes.length > 13)
+        if (this.echoes.length > 16)
             this.echoes.shift();
     }
     convergeTick(x, y, n, life, r) {
@@ -1695,7 +1695,7 @@ class Stage {
         const n = this.echoes.length;
         for (let i = 0; i < n; i++) {
             const e = this.echoes[i];
-            const age = (0, core_1.clamp01)(e.t / 0.24);
+            const age = (0, core_1.clamp01)(e.t / 0.14);
             const a = age * age * 0.46 * e.k * (0.28 + 0.72 * (i / n));
             if (a < 0.014)
                 continue;
@@ -1849,7 +1849,55 @@ class Stage {
     }
 
     /** WEAK — three-point convergence bound to prey space */
-
+    drawWeak(ctx) {
+        const p = this.p;
+        const cx = p.x + p.kx.x, cy = this.coreY() + p.ky.x;
+        const fade = (0, core_1.clamp01)(p.weak / 0.8) * (0, core_1.clamp01)((8.6 - p.weak) / 0.25);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        for (const m of this.marks) {
+            const r = 118 * m.r.x;
+            const a = m.a + Math.sin(this.time * 0.7) * 0.03;
+            const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r * 0.82;
+            const pulse = 0.55 + 0.25 * Math.sin(this.time * 3.4 - m.a) + m.fl * 0.9;
+            ctx.globalAlpha = fade * (0, core_1.clamp01)(pulse);
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(a + Math.PI);
+            const sc = 1 + m.fl * 0.45;
+            ctx.scale(sc, sc);
+            // sharp inward chevron
+            ctx.fillStyle = m.fl > 0.2 ? 'rgba(250,255,225,0.95)' : 'rgba(196,255,96,0.9)';
+            ctx.beginPath();
+            ctx.moveTo(-26, 0);
+            ctx.lineTo(4, -16);
+            ctx.lineTo(-6, 0);
+            ctx.lineTo(4, 16);
+            ctx.closePath();
+            ctx.fill();
+            ctx.globalAlpha = fade * 0.4 * (0, core_1.clamp01)(pulse);
+            ctx.beginPath();
+            ctx.moveTo(-46, 0);
+            ctx.lineTo(-24, -9);
+            ctx.lineTo(-28, 0);
+            ctx.lineTo(-24, 9);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+        // local material stress at the vulnerable point
+        ctx.globalAlpha = fade * (0.10 + 0.05 * Math.sin(this.time * 4));
+        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 78);
+        g.addColorStop(0, 'rgba(200,255,120,0.8)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 78, 0, 6.2832);
+        ctx.fill();
+        ctx.restore();
+        if ((0, core_1.rnd)() < 0.02 * fade)
+            this.convergeTick(cx, cy, 1, 0.4, 96);
+    }
 
 
 
@@ -1867,7 +1915,7 @@ const { Stage } = __require('hunter/sim');
 // The previous passes only imitated the ROOT trap. This patch actually uses
 // the ROOT trap's segmented source-art parts and its two-joint root/blade pose law.
 // ============================================================================
-const ROOT_TRAP_ART = {"core": "/assets/hero-rework/hunter-v10/part-10.png", "root0": "/assets/hero-rework/hunter-v10/part-11.png", "root1": "/assets/hero-rework/hunter-v10/part-12.png", "root2": "/assets/hero-rework/hunter-v10/part-13.png", "blade0": "/assets/hero-rework/hunter-v10/part-14.png", "blade1": "/assets/hero-rework/hunter-v10/part-15.png", "blade2": "/assets/hero-rework/hunter-v10/part-16.png"};
+const ROOT_TRAP_ART = {"core": "/assets/hero-rework/hunter-v10/clean/part-10.png", "root0": "/assets/hero-rework/hunter-v10/clean/part-11.png", "root1": "/assets/hero-rework/hunter-v10/clean/part-12.png", "root2": "/assets/hero-rework/hunter-v10/clean/part-13.png", "blade0": "/assets/hero-rework/hunter-v10/clean/part-14.png", "blade1": "/assets/hero-rework/hunter-v10/clean/part-15.png", "blade2": "/assets/hero-rework/hunter-v10/clean/part-16.png"};
 const RT_DEF = {
   center:{x:704,y:410},
   arms:[
@@ -1902,15 +1950,15 @@ function rtDeriveLayers(im){
   const ld=new Uint8Array(N).fill(9);for(let i=0;i<N;i++)if(alpha[i]<128)ld[i]=0;
   for(let it=0;it<4;it++)for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x;if(!ld[i])continue;const m=Math.min(ld[i-1],ld[i+1],ld[i-w],ld[i+w])+1;if(m<ld[i])ld[i]=m;}
   const dil=new Uint8Array(N);for(let i=0;i<N;i++)if(alpha[i]>100)dil[i]=1;
-  for(let it=0;it<3;it++){const nd=dil.slice();for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x;if(dil[i])continue;if(dil[i-1]||dil[i+1]||dil[i-w]||dil[i+w])nd[i]=1;}dil.set(nd);}
+  for(let it=0;it<1;it++){const nd=dil.slice();for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x;if(dil[i])continue;if(dil[i-1]||dil[i+1]||dil[i-w]||dil[i+w])nd[i]=1;}dil.set(nd);}
   const edge=rtCanvas(w,h),glow=rtCanvas(w,h),shadow=rtCanvas(w,h),ed=new ImageData(w,h),gd=new ImageData(w,h),hd=new ImageData(w,h);
   for(let i=0;i<N;i++){
     const o=i*4,a=alpha[i],r=data[o],g=data[o+1],b=data[o+2];
-    if(dil[i]){hd.data[o]=5;hd.data[o+1]=9;hd.data[o+2]=4;hd.data[o+3]=255;}
+    if(dil[i]){hd.data[o]=5;hd.data[o+1]=9;hd.data[o+2]=4;hd.data[o+3]=150;}
     if(!a)continue;
     const ev=ld[i]<=4?1-(ld[i]-1)/4:0;
     if(ev>0){ed.data[o]=205;ed.data[o+1]=255;ed.data[o+2]=130;ed.data[o+3]=a*Math.min(1,ev);}
-    const L=r*.3+g*.59+b*.11,gl=Math.min(1,Math.max(0,(L-70)/140));
+    const L=r*.3+g*.59+b*.11,gl=Math.min(1,Math.max(0,(L-95)/140));
     if(gl>0){gd.data[o]=Math.min(255,r*1.4+40);gd.data[o+1]=Math.min(255,g*1.3+40);gd.data[o+2]=Math.min(255,b*1.1+20);gd.data[o+3]=a*gl;}
   }
   edge.getContext('2d').putImageData(ed,0,0);glow.getContext('2d').putImageData(gd,0,0);shadow.getContext('2d').putImageData(hd,0,0);
@@ -1941,7 +1989,7 @@ function rtPhaseEnter(st,R,phase){
   if(phase==='unfold'){
     rtSnapPose(R,RT_POSE.compact);R.coreS.snap(.78);R.coreTarget=.78;R.coreDy.snap(0);R.coreDy.kick(90);R.alpha=1;R.closed=false;R.edge=0;R.tension=0;R.slot=.2;R.slotTarget=.2;R.sweepT=-1;R.boltLight=[1,1,1,0,0,0];R.lockLit=[false,false,false];
   }else if(phase==='armed'){
-    rtSetPose(R,RT_POSE.open);R.coreTarget=1;R.slotTarget=.4;R.edge=.08;R.tension=0;R.sweepAmt=.35;R.sweepDir=1;R.sweepT=0;R.armedT=0;
+    rtSetPose(R,RT_POSE.open);R.coreTarget=1;R.slotTarget=0;R.edge=0;R.tension=0;R.sweepAmt=0;R.sweepDir=1;R.sweepT=-1;R.armedT=0;
   }else if(phase==='tension'){
     rtSetPose(R,RT_POSE.tense);rtTuneAll(R,15,.7,0);R.slotTarget=1.2;R.boltLight=R.boltLight.map(()=>.7);R.sweepT=-1;
   }else if(phase==='snap'){
@@ -1969,9 +2017,7 @@ function rtUpdate(st,dt){
       if(T.t>=.37+d&&!R.lockLit[k]){R.lockLit[k]=true;R.boltLight[3+k]=1;R.jitter[k]=.03;}
     }
   }else if(phase==='armed'){
-    R.armedT+=dt;R.slotTarget=.34+.08*Math.sin(R.armedT*2.2);R.edge=.08;R.tension=0;
-    if(R.sweepT>=0){R.sweepT+=dt/.9;if(R.sweepT>1)R.sweepT=-1;}
-    if(R.armedT>1.8&&R.sweepT<0){R.sweepT=0;R.armedT=.96;R.sweepDir=1;R.sweepAmt=.35;}
+    R.armedT+=dt;R.slotTarget=0;R.edge=0;R.tension=0;R.sweepT=-1;
   }else if(phase==='tension'){
     R.slotTarget=1.2;
   }else if(phase==='snap'){
@@ -1988,7 +2034,7 @@ function rtUpdate(st,dt){
   for(let k=0;k<3;k++){const a=R.arms[k],q=a.target;a.root.update(dt,q.root+R.jitter[k]);a.blade.update(dt,q.blade+R.jitter[k]*1.6);a.rootS.update(dt,q.rootS);}
   R.coreS.update(dt,R.coreTarget);R.coreDy.update(dt,0);
 }
-function rtScale(st){return .43;}
+function rtScale(st){return .172;}
 function rtApplyBase(ctx,st,R){const T=st.tr,sc=rtScale(st);ctx.translate(T.x,T.y+(T.lift?.x||0));ctx.scale(sc,sc);ctx.translate(-RT_DEF.center.x,-RT_DEF.center.y);ctx.translate(RT_DEF.center.x,RT_DEF.center.y+R.coreDy.y);ctx.scale(R.coreS.y,R.coreS.y);ctx.translate(-RT_DEF.center.x,-RT_DEF.center.y);}
 function rtArmTransform(ctx,R,i,blade){const A=RT_DEF.arms[i],a=R.arms[i],sign=-1;ctx.translate(A.core.x,A.core.y);ctx.rotate(a.root.y*sign);ctx.scale(a.rootS.y,a.rootS.y);ctx.translate(-A.core.x,-A.core.y);if(blade){ctx.translate(A.mid.x,A.mid.y);ctx.rotate(a.blade.y*sign);ctx.translate(-A.mid.x,-A.mid.y);}}
 function rtTransformPoint(st,R,i,x,y,blade=false){
@@ -2059,6 +2105,9 @@ const rig=__require('hunter/rig'),core=__require('hunter/core');
 let bodyPromise,rootPromise,visualSeed=0x7a118;const cacheStats={derivations:0,rootLoads:0,bodyLoads:0};
 function visualRandom(){visualSeed=(Math.imul(1664525,visualSeed)+1013904223)>>>0;return visualSeed/4294967296;}
 async function load(){if(!bodyPromise){cacheStats.bodyLoads++;bodyPromise=rig.loadArt().then(art=>({art,glow:Object.fromEntries(Object.entries(art).map(([k,v])=>[k,rig.makeGlow(v,'rgba(190,255,110,1)',7)]))}));}const [body,root]=await Promise.all([bodyPromise,rtLoadImages()]);return {...body,root};}
-window.APEX_HUNTER_GOLD={Stage,rig,core,load,rtUpdate,rtDraw,cacheStats};window.apexHunterGoldV10='ready';
+// POST-PLAYTEST 2026-09-29: the persistent aura clone is removed; motion
+// truth is the high-speed echo history only.
+Stage.prototype.drawAura=function(){};Stage.prototype.updateAura=function(){};
+window.APEX_HUNTER_GOLD={Stage,rig,core,load,rtUpdate,rtDraw,rtScale,cacheStats};window.apexHunterGoldV10='ready';
 
 })();

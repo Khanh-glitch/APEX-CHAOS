@@ -1,40 +1,80 @@
 /* V10 presentation adapter. Gameplay owns casts, contact, statuses and expiry.
- * No standalone Stage.step/render/prey/projectile loop is installed. */
+ * No standalone Stage.step/render/prey/projectile loop is installed.
+ * POST-PLAYTEST 2026-09-29: cast-local finite A1 recoil (no frame feedback
+ * loop), Gold WEAK convergence visual bound to the real combatant debuff,
+ * persistent aura clone removed (echoes only at high speed), trap footprint
+ * measured from the rendered 40%-scale object, owner SFX event dispatch. */
 (function(g){
 'use strict';if(g.APEX_HUNTER_PRESENTATION)return;
 const G=g.APEX_HUNTER_GOLD,HR=g.APEX_HERO_REWORK,states=new WeakMap();let assets=null;
-const api=g.APEX_HUNTER_PRESENTATION={ready:false};
-G.load().then(a=>{assets=a;api.ready=true;}).catch(e=>{api.error=String(e);console.error('[Hunter V10 assets]',e);});
+const api=g.APEX_HUNTER_PRESENTATION={ready:false,trapWorldRadius:0};
+// Finite retreat budget: owner feel target ~1/3 arena diagonal for center casts;
+// walls clamp. Not a per-frame feedback displacement.
+api.recoilBudget=()=>0.33*Math.SQRT2*(g.GAME_SIZE||1000);
+G.load().then(a=>{assets=a;api.ready=true;measure();}).catch(e=>{api.error=String(e);console.error('[Hunter V10 assets]',e);});
 const scale=f=>2*(f.radius||75)/(555*.335),offset=98*.335;
 function hunter(f){return HR.byCombatant(f)?.heroId==='HUNTER';}
-function state(f){if(states.has(f))return states.get(f);const cv=document.createElement('canvas');cv.width=cv.height=1;const s=new G.Stage(cv);s.auto=false;s.art=assets?.art||{};s.glow=assets?.glow||{};s.ready=!!assets;s.fighter=f;s.scale=scale(f);s.plantTrap=function(){G.Stage.prototype.plantTrap.call(this);this.pendingPlant=true;};states.set(f,s);sync(s);s.integrateHunter(0);return s;}
-function sync(s){const f=s.fighter,k=s.scale=scale(f);s.h.x.x=s.h.px=f.x/k;s.h.y.x=s.h.py=f.y/k+offset;s.ground=s.h.py+(609-430)*.335;const ct=HR.byCombatant(f),enemy=HR.match?.combatants.find(c=>c!==ct)?.anchor;
- if(enemy){s.p.x=enemy.x/k;s.p.y=enemy.y/k;s.p.hy=enemy.y/k+offset-s.ground+665*.33*.55;s.p.vx=(enemy.__hrVel?.x||0)/k;s.p.rooted=HR.AIL.StatusResolver.has(enemy,'ROOT');s.p.weak=HR.AIL.StatusResolver.remaining(enemy,'WEAK');}
+function state(f){if(states.has(f))return states.get(f);const cv=document.createElement('canvas');cv.width=cv.height=1;const s=new G.Stage(cv);s.auto=false;s.art=assets?.art||{};s.glow=assets?.glow||{};s.ready=!!assets;s.fighter=f;s.scale=scale(f);s.prevQ=0;s.castBaseX=0;s.plantTrap=function(){G.Stage.prototype.plantTrap.call(this);this.pendingPlant=true;};states.set(f,s);sync(s);s.integrateHunter(0);return s;}
+function sync(s,rigPos=true){const f=s.fighter,k=s.scale=scale(f);if(rigPos){s.h.x.x=s.h.px=f.x/k;s.h.y.x=s.h.py=f.y/k+offset;}s.ground=s.h.py+(609-430)*.335;const ct=HR.byCombatant(f),enemy=HR.match?.combatants.find(c=>c!==ct)?.anchor;
+ if(enemy){s.p.x=enemy.x/k;s.p.y=enemy.y/k;s.p.hy=enemy.y/k+offset-s.ground+665*.33*.55;s.p.vx=(enemy.__hrVel?.x||0)/k;s.p.rooted=HR.AIL.StatusResolver.has(enemy,'ROOT');}
  s.coreY=()=>enemy?enemy.y/k:s.h.py;s.solveIntercept=()=>({x:s.p.x,y:s.coreY(),t:0});
 }
+// Measured visible world footprint of the rendered trap (horizontal extent),
+// used to calibrate the gameplay trigger envelope to the visible object.
+function measure(){if(!assets?.root)return;const k=scale({radius:75});const cv=document.createElement('canvas');cv.width=cv.height=640;const c=cv.getContext('2d');
+ const st={tr:{on:true,x:0,y:0,phase:'unfold',t:0,lift:{x:0}},_rtImgs:assets.root};
+ for(let i=0;i<50;i++){st.tr.t+=1/60;st.tr.phase=st.tr.t<.62?'unfold':'armed';G.rtUpdate(st,1/60);}
+ c.save();c.translate(320,320);c.scale(k,k);G.rtDraw(st,c,null,'back');G.rtDraw(st,c,null,'front');c.restore();
+ const d=c.getImageData(0,0,640,640).data;let maxX=0,maxY=0;
+ for(let y=0;y<640;y++)for(let x=0;x<640;x++){if(d[(y*640+x)*4+3]>10){maxX=Math.max(maxX,Math.abs(x-320));maxY=Math.max(maxY,Math.abs(y-320));}}
+ api.trapWorldRadius=Math.max(24,maxX/k* k); // world px at k scale == canvas px here
+ api.trapMeasure={maxX,maxY,k};}
 api.idle=f=>api.ready&&state(f).h.mode==='idle';
-api.begin=(f,kind)=>{const s=state(f);sync(s);s.h.x.v=s.h.y.v=0;s.pendingPlant=false;if(kind==='a1')s.startA1();else s.startA2();};
-api.advanceA1=(f,dt)=>{const s=state(f);sync(s);const x=s.h.x.x;s.updA1(dt);const dx=(s.h.x.x-x)*s.scale,plant=s.pendingPlant;s.pendingPlant=false;return{dx,plant,done:s.h.mode==='idle'};};
+api.begin=(f,kind)=>{const s=state(f);sync(s);s.h.x.v=s.h.y.v=0;s.pendingPlant=false;s.castBaseX=s.h.x.x;s.prevQ=0;if(kind==='a1')s.startA1();else s.startA2();};
+// Cast-local finite recoil: Gold defines the normalized retreat curve; only
+// progress deltas leave this function, never absolute rig positions.
+api.advanceA1=(f,dt)=>{const s=state(f);sync(s,false);s.updA1(dt);
+ const q=Math.min(1,Math.abs(s.h.x.x-s.castBaseX)/150);
+ const dq=Math.max(0,q-(s.prevQ||0));s.prevQ=Math.max(s.prevQ||0,q);
+ const plant=s.pendingPlant;s.pendingPlant=false;return{dq,plant,done:s.h.mode==='idle'};};
 api.prelaunch=(f,dt)=>{const s=state(f);sync(s);s.updA2(dt*(.665/.16));};
 api.travel=(f,heading,dt)=>{const s=state(f);sync(s);const A=s.a2;if(!A.dist){A.dist=1;A.total=Infinity;A.speed=0;A.dir=heading;A.oldDir=heading;s.launchBurst(heading);}if(!A.corrected&&Math.abs(G.core.angWrap(heading-A.oldDir))>.08){s.correctionBurst(G.core.angWrap(heading-A.oldDir));A.corrected=true;}A.dir=heading;s.updA2(dt);};
 api.catch=f=>{const s=state(f);sync(s);s.h.phase='CATCH';s.h.t=0;s.catchImpact();};
 api.miss=f=>{const s=state(f);s.h.phase='RECOVER';s.h.t=0;s.a2.dist=1;s.recSet=false;};
-api.dodge=(f,nx,ny)=>{const s=state(f);sync(s);s.pr.vx=-nx;s.startDodge();s.dodgeDir=nx<0?-1:1;};
 api.trapCreated=t=>{t.visual={tr:{on:true,x:t.x,y:t.y,phase:t.phase,t:0,lift:{x:0}},_rtImgs:assets?.root};};
 api.trapTick=(t,dt)=>{if(!t.visual)api.trapCreated(t);const v=t.visual;v._rtImgs=assets?.root;v.tr.phase=t.phase;v.tr.t=t.phaseTime;G.rtUpdate(v,dt);};
-api.tick=dt=>{if(!api.ready)return;for(const ct of HR.match?.combatants||[]){if(ct.heroId!=='HUNTER')continue;const s=state(ct.anchor);sync(s);s.time+=dt;
+api.tick=dt=>{if(!api.ready||!HR.match)return;for(const ct of HR.match.combatants){if(ct.heroId!=='HUNTER')continue;const s=state(ct.anchor);sync(s,s.h.mode!=='a1');s.time+=dt;
+ // Gold WEAK visual consumes the REAL combatant debuff; no private timer.
+ const enemy=HR.match.combatants.find(c=>c!==ct);
+ const rem=enemy?HR.match.api.weakRemaining(enemy):0;
+ if(rem>0){if((s.p.weak||0)<=0){s.p.weak=8.6;s.p.weakPulse=1.2;for(const m of s.marks){m.r.x=2.6;m.r.v=-4.5;m.fl=1;}}else s.p.weak=Math.min(s.p.weak,rem*8.6);}
+ else s.p.weak=0;
  const mode=s.h.mode;
  if(mode==='idle'){s.h.vx=(ct.anchor.__hrVel?.x||0)/s.scale;s.updIdle(dt);}
- else if(mode==='dodge')s.updDodge(dt);
  else if(mode==='a2'&&!ct.store.__hunterAction)s.updA2(dt);
- // Authoritative body is always the render anchor, including wall-shortened recoil.
- sync(s);s.integrateHunter(0);s.updateAura(dt);s.fx.update(dt);s.ribL.prune(s.time);s.ribR.prune(s.time);s.ribC.prune(s.time);
+ sync(s,s.h.mode!=='a1');s.integrateHunter(0);s.updateMarks&&s.updateMarks(dt);s.fx.update(dt);s.ribL.prune(s.time);s.ribR.prune(s.time);s.ribC.prune(s.time);
  for(const e of s.echoes)e.t-=dt;s.echoes=s.echoes.filter(e=>e.t>0);
- }};
-function body(c,f){const s=state(f);sync(s);s.integrateHunter(0);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);const m=c.getTransform(),v=new G.rig.Xf().set(m.a,m.b,m.c,m.d,m.e,m.f);s.drawEchoes(c,v);s.drawAura(c,v);s.drawHunter(c,v,s.pose,1);s.ribL.draw(c,s.time);s.ribR.draw(c,s.time);c.restore();const holder=g.APEX_ARSENAL.weaponApi.getHolder(f);if(holder)g.APEX_ARSENAL_AV?.drawEquippedWeapon(c,f,holder);}
+}};
+function body(c,f){const s=state(f);sync(s);s.integrateHunter(0);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);const m=c.getTransform(),v=new G.rig.Xf().set(m.a,m.b,m.c,m.d,m.e,m.f);s.drawEchoes(c,v);s.drawHunter(c,v,s.pose,1);s.ribL.draw(c,s.time);s.ribR.draw(c,s.time);c.restore();const holder=g.APEX_ARSENAL.weaponApi.getHolder(f);if(holder)g.APEX_ARSENAL_AV?.drawEquippedWeapon(c,f,holder);}
 function layer(c,which){if(!api.ready||!HR.match)return;for(const t of HR.match.world.snares){if(!t.visual)continue;const k=scale(t.owner.anchor),v=t.visual;v.tr.x=t.x/k;v.tr.y=t.y/k;c.save();c.scale(k,k);G.rtDraw(v,c,null,which);c.restore();}}
+function weakLayer(c){if(!api.ready||!HR.match)return;for(const ct of HR.match.combatants){if(ct.heroId!=='HUNTER')continue;const s=states.get(ct.anchor);if(!s||(s.p.weak||0)<=0)continue;c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.drawWeak(c);c.restore();}}
 const baseProjectiles=g.drawProjectiles;g.drawProjectiles=function(c){baseProjectiles(c);layer(c,'back');for(const ct of HR.match?.combatants||[])if(ct.heroId==='HUNTER'&&api.ready){const s=state(ct.anchor);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.fx.draw(c,false);c.restore();}};
-const baseDraw=g.Fighter.prototype.draw;g.Fighter.prototype.draw=function(c){if(hunter(this)){if(api.ready&&this.hp>0)body(c,this);else if(!api.ready){c.save();c.fillStyle='#c8ff5e';c.font='12px monospace';c.fillText(api.error?'HUNTER ASSET ERROR':'LOADING HUNTER',this.x-65,this.y);c.restore();}}else baseDraw.call(this,c);if(this===g.fighters?.[1]){layer(c,'front');for(const ct of HR.match?.combatants||[])if(ct.heroId==='HUNTER'&&api.ready){const s=state(ct.anchor);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.fx.draw(c,true);c.restore();}layer(c,'fx');}};
-api.inspect=f=>{const s=state(f);return{mode:s.h.mode,phase:s.h.phase,scale:s.scale,pose:{...s.pose}};};api.cacheStats=G.cacheStats;
+const baseDraw=g.Fighter.prototype.draw;g.Fighter.prototype.draw=function(c){if(hunter(this)){if(api.ready&&this.hp>0)body(c,this);else if(!api.ready){c.save();c.fillStyle='#c8ff5e';c.font='12px monospace';c.fillText(api.error?'HUNTER ASSET ERROR':'LOADING HUNTER',this.x-65,this.y);c.restore();}}else baseDraw.call(this,c);if(this===g.fighters?.[1]){layer(c,'front');weakLayer(c);for(const ct of HR.match?.combatants||[])if(ct.heroId==='HUNTER'&&api.ready){const s=state(ct.anchor);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.fx.draw(c,true);c.restore();}layer(c,'fx');}};
+// Owner SFX semantics: event edges own playback; single dispatch layer.
+(function(){const bus=HR.AIL.bus,emit=bus.emit;
+ bus.emit=function(type,payload){
+  const AV=g.APEX_ARSENAL_AV;
+  if(AV&&AV.playHunter){switch(type){
+   case 'Cast':if(payload&&payload.hero==='HUNTER'&&payload.slot==='A1')AV.playHunter('/assets/hero-rework/hunter-v10/sfx/hunter_a1_charge_personal.mp3',{vol:.45});break; // personal controller cue
+   case 'SnarePlaced':AV.playHunter('/assets/hero-rework/hunter-v10/sfx/hunter_a1_deploy_mechanism.mp3',{vol:.7});break;
+   case 'HunterTrapPhase':if(payload&&payload.phase==='armed')AV.playHunter('/assets/hero-rework/hunter-v10/sfx/hunter_a1_unfold_blade.mp3',{vol:.7});break;
+   case 'SnareTriggered':AV.playHunter('/assets/hero-rework/hunter-v10/sfx/hunter_a1_clamp.mp3',{vol:.85});break;
+   case 'PounceLaunch':AV.playHunter('/assets/hero-rework/hunter-v10/sfx/hunter_a2_pounce_sweep.mp3',{vol:.75});break;
+   case 'PounceWeak':if(payload&&payload.swept)AV.playHunter('/assets/hero-rework/hunter-v10/sfx/hunter_a2_catch_flesh.mp3',{vol:.85});break;
+  }}
+  return emit.apply(this,arguments);};
+})();
+api.inspect=f=>{const s=state(f);return{mode:s.h.mode,phase:s.h.phase,scale:s.scale,pose:{...s.pose},aura:s.auraAlpha?.x||0,echoes:s.echoes.length,weak:s.p.weak||0};};
+api.cacheStats=G.cacheStats;
 g.apexHunterPresentationRuntime='ready';
 })(window);

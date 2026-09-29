@@ -53,7 +53,10 @@
                 -0.025407742656758256,
                 2.942212535559062
               ]
-            }
+            },
+            "aura": 0,
+            "echoes": 0,
+            "weak": 0
           },
           "traps": [
             {
@@ -149,6 +152,13 @@
         "root": 1.25
       }
     },
+    "A1-trigger-applies-root+weak": {
+      "pass": true,
+      "data": {
+        "weakAtTrigger": 1,
+        "root": 1.25
+      }
+    },
     "A2-prelaunch-live-chase-swept-zero-damage": {
       "pass": true,
       "data": {
@@ -225,18 +235,21 @@
             "step": 0.6097190715122633
           }
         ],
-        "weak": 2.9833333333333334,
+        "stun": 1.9833333333333334,
+        "weakCt": 0.9833333333333334,
         "hpBefore": 1000,
         "hpAfter": 1000,
         "event": {
-          "seq": 57,
+          "seq": 61,
           "t": 0.36666666666666664,
           "type": "PounceWeak",
           "payload": {
             "hero": "HUNTER",
             "target": 2,
             "directDamage": 0,
-            "swept": true
+            "swept": true,
+            "stun": 2,
+            "weak": 1
           }
         }
       }
@@ -245,32 +258,48 @@
       "pass": true,
       "data": {
         "refresh": "duration",
-        "incomingMult": 1.25,
-        "duration": 3
+        "duration": 1,
+        "mirrorOnly": true
       }
     },
-    "passive-valid-proc-lockout-T6": {
+    "weak-hunter-x125-refresh-not-stack": {
       "pass": true,
       "data": {
-        "seed": 7,
-        "dodge": 1,
-        "lock": 0,
-        "t6": 0,
-        "rejected": 0,
-        "config": {
-          "dodgeChance": 0.24,
-          "dodgeDistance": 95,
-          "antiChainLockout": 0.45,
-          "requiresTrappedOrWeak": true,
-          "invulnerability": false,
-          "t6Excluded": true
-        }
+        "base": 105.84000000000003,
+        "weakIn": 132.30000000000007,
+        "refreshed": 132.3
       }
     },
-    "passive-no-prey-no-proc": {
+    "weak-neutral-not-amplified": {
       "pass": true,
       "data": {
-        "invalid": 0
+        "neutralBefore": 100,
+        "neutralDuring": 100
+      }
+    },
+    "weak-outgoing-x075-once": {
+      "pass": true,
+      "data": {
+        "baseOut": 101.75999999999999,
+        "weakOut": 76.31999999999994
+      }
+    },
+    "no-old-passive-dodge": {
+      "pass": true,
+      "data": {
+        "x": 199.66429399485855,
+        "hx": 203.21377456907817,
+        "delta": -3.549480574219615
+      }
+    },
+    "weak-slime-combatant-inheritance": {
+      "pass": true,
+      "data": {
+        "splitCast": true,
+        "childWeak": 0.8333333333333333,
+        "ctWeak": 0.8333333333333333,
+        "childBase": 67.5,
+        "childAfter": 54
       }
     },
     "A2-exceptional-escape-no-fake-catch": {
@@ -304,7 +333,10 @@
               -0.029536075111696695,
               12.701535873818669
             ]
-          }
+          },
+          "aura": 0,
+          "echoes": 6,
+          "weak": 0
         },
         "weak": 0
       }
@@ -314,6 +346,96 @@
       "data": {
         "charges": 3,
         "traps": 0
+      }
+    },
+    "C-trap-40pct-anchor": {
+      "pass": true,
+      "data": {
+        "rt": 0.172,
+        "r": 103,
+        "measure": {
+          "maxX": 103,
+          "maxY": 73,
+          "k": 0.8067769261799113
+        }
+      }
+    },
+    "C-footprint-trigger-match": {
+      "pass": true,
+      "data": {
+        "R": 103,
+        "outTriggered": false,
+        "inTriggered": true,
+        "trapR": 103
+      }
+    },
+    "C-armed-energy-silent": {
+      "pass": true,
+      "data": {
+        "edge": 0,
+        "slot": 0,
+        "sweep": -1
+      }
+    },
+    "C-recoil-finite-all-directions": {
+      "pass": true,
+      "data": {
+        "B": 466.69047558312144,
+        "d1": 425,
+        "d2": 75,
+        "d3": 343.1138134465591,
+        "d4": 466.6904755831214
+      }
+    },
+    "C-no-persistent-aura": {
+      "pass": true,
+      "data": {
+        "holdAura": 0,
+        "holdEcho": 0
+      }
+    },
+    "C-echoes-highspeed-only": {
+      "pass": true,
+      "data": {
+        "echoMax": 14
+      }
+    },
+    "C-weak-visual-bound-to-status": {
+      "pass": true,
+      "data": {
+        "sawWeak": 8.6,
+        "weakGone": 0
+      }
+    },
+    "C-sfx-no-clamp-on-expiry": {
+      "pass": true,
+      "data": {
+        "logExp": [
+          "hunter_a1_charge_personal.mp3",
+          "hunter_a1_deploy_mechanism.mp3",
+          "hunter_a1_unfold_blade.mp3"
+        ]
+      }
+    },
+    "C-sfx-no-catch-on-miss": {
+      "pass": true,
+      "data": {
+        "logMiss": [
+          "hunter_a2_pounce_sweep.mp3"
+        ]
+      }
+    },
+    "C-sfx-semantic-chain": {
+      "pass": true,
+      "data": {
+        "logHit": [
+          "hunter_a1_charge_personal.mp3",
+          "hunter_a1_deploy_mechanism.mp3",
+          "hunter_a1_unfold_blade.mp3",
+          "hunter_a1_clamp.mp3",
+          "hunter_a2_pounce_sweep.mp3",
+          "hunter_a2_catch_flesh.mp3"
+        ]
       }
     }
   },

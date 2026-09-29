@@ -796,8 +796,13 @@
     onTick(ctx,dt){const c=ctx.store.cast;if(!c)return;const a=ctx.combatant.anchor;
       a.data.positionLocked=true;
       const motion=globalScope.APEX_HUNTER_PRESENTATION.advanceA1(a,dt);
-      ctx.api.moveHunterBody(a,a.x+c.axis.x*motion.dx,a.y+c.axis.y*motion.dx);
-      if(motion.plant&&!c.planted){c.planted=true;ctx.api.spawnSnare({owner:ctx.combatant,x:a.x,y:a.y,radius:46,lifetime:ctx.cfg.trapLifetime,rootDuration:ctx.cfg.rootDuration});}
+      // POST-PLAYTEST 2026-09-29: cast-local finite recoil. The presentation
+      // returns only normalized progress deltas; mechanics applies them
+      // OPPOSITE the cast axis with production wall authority.
+      const B=(globalScope.APEX_HUNTER_PRESENTATION&&globalScope.APEX_HUNTER_PRESENTATION.recoilBudget&&globalScope.APEX_HUNTER_PRESENTATION.recoilBudget())||466;
+      const dq=motion.dq||0;
+      ctx.api.moveHunterBody(a,a.x-c.axis.x*dq*B,a.y-c.axis.y*dq*B);
+      if(motion.plant&&!c.planted){c.planted=true;ctx.api.spawnSnare({owner:ctx.combatant,x:a.x,y:a.y,radius:(globalScope.APEX_HUNTER_PRESENTATION&&globalScope.APEX_HUNTER_PRESENTATION.trapWorldRadius)||46,lifetime:ctx.cfg.trapLifetime,rootDuration:ctx.cfg.rootDuration});}
       if(motion.done){ctx.store.cast=null;ctx.combatant.store.__hunterAction=null;}
     },
     onTeardown(ctx){ctx.store.cast=null;ctx.combatant.store.__hunterAction=null;},
@@ -813,6 +818,7 @@
       let moveDt=dt;
       if(p.windupLeft>0){const used=Math.min(dt,p.windupLeft);globalScope.APEX_HUNTER_PRESENTATION.prelaunch(a,used);p.windupLeft-=used;moveDt-=used;if(p.windupLeft>1e-9)return;}
       if(!(moveDt>0))return;
+      if(!p.launched){p.launched=true;ctx.api.emitEvent('PounceLaunch',{hero:'HUNTER'});} // sweep cue starts at real locomotion
       moveDt=Math.min(moveDt,ctx.cfg.maxMoveTime-p.elapsed);p.elapsed+=moveDt;
       const bodies=ctx.api.enemyBodies(ctx.combatant),target=bodies.reduce((best,b)=>!best||dist(a.x,a.y,b.x,b.y)<dist(a.x,a.y,best.x,best.y)?b:best,null);
       if(!target){ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;globalScope.APEX_HUNTER_PRESENTATION.miss(a);return;}

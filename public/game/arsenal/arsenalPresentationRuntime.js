@@ -208,7 +208,7 @@
     if (!ctx || typeof fetch !== 'function' || !ctx.decodeAudioData) return Promise.resolve(false);
     if (!stats.warmStartedAt) stats.warmStartedAt = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     stats.decodeCalls += 1;
-    const promise = fetch(AV_ROOT + rel)
+    const promise = fetch(rel.startsWith('/') ? rel : AV_ROOT + rel)
       .then((res) => res.arrayBuffer())
       .then((buf) => new Promise((resolve, reject) => {
         // Support both promise-form and callback-form decodeAudioData
@@ -240,6 +240,13 @@
     ...(AUDIO ? Object.values(AUDIO).flat().map((a) => a.rel) : []),
     ...CASING_VARS.map((a) => a.rel),
     ...SHELL_VARS.map((a) => a.rel),
+    // POST-PLAYTEST 2026-09-29: Hunter owner SFX (hash-verified material).
+    '/assets/hero-rework/hunter-v10/sfx/hunter_a1_charge_personal.mp3',
+    '/assets/hero-rework/hunter-v10/sfx/hunter_a1_deploy_mechanism.mp3',
+    '/assets/hero-rework/hunter-v10/sfx/hunter_a1_unfold_blade.mp3',
+    '/assets/hero-rework/hunter-v10/sfx/hunter_a1_clamp.mp3',
+    '/assets/hero-rework/hunter-v10/sfx/hunter_a2_pounce_sweep.mp3',
+    '/assets/hero-rework/hunter-v10/sfx/hunter_a2_catch_flesh.mp3',
   ]));
 
   function preload(opts) {
@@ -890,6 +897,26 @@
     }
   }
 
+  // POST-PLAYTEST 2026-09-29: Hunter owner SFX through the existing battle-audio
+  // bank (no second AudioContext). Event edges in the presentation runtime own
+  // the semantic dispatch; this layer only loads/plays with bounded polyphony.
+  const hunterSfxLog = [];
+  function playHunter(rel, opts) {
+    if (typeof rel !== 'string' || !rel.startsWith('/assets/hero-rework/hunter-v10/sfx/')) return false;
+    hunterSfxLog.push({ rel, t: (typeof performance !== 'undefined' ? performance.now() : Date.now()) });
+    if (hunterSfxLog.length > 120) hunterSfxLog.shift();
+    if (audioBuffers.has(rel)) {
+      playEntry(Object.assign({ rel, maxVoices: 3 }, opts || {}));
+    } else {
+      // Deferred first decode stays session-scoped: the cue token invalidates
+      // it if the battle session ends before the buffer arrives.
+      loadAudio(rel);
+      const e = Object.assign({ rel, maxVoices: 3 }, opts || {});
+      if (typeof window.apexBattleAudioScheduleCue === 'function') window.apexBattleAudioScheduleCue(() => playEntry(e), 0);
+    }
+    return true;
+  }
+
   window.APEX_ARSENAL_AV = {
     cue,
     tick,
@@ -904,6 +931,8 @@
     resetAudioSession,
     audioSessionProbe,
     playLater,
+    playHunter,
+    hunterSfxLog,
     stats,
     audioReady: () => stats.audioLoaded,
     // CP7: a true predicate — audioReady() returns a COUNT (the headless

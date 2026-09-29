@@ -1,7 +1,7 @@
 import fs from'node:fs';import path from'node:path';import{createRequire}from'node:module';import puppeteer from'puppeteer-core';import chromium,{inflate}from'@sparticuz/chromium';
 const require=createRequire(import.meta.url);await inflate(path.join(path.dirname(path.dirname(require.resolve('@sparticuz/chromium'))),'bin/al2023.tar.br'));process.env.LD_LIBRARY_PATH='/tmp/al2023/lib:'+(process.env.LD_LIBRARY_PATH||'');
 const OUT='docs/hero-rework/hunter-v1.1/evidence';const browser=await puppeteer.launch({executablePath:await chromium.executablePath(),args:chromium.args,headless:true});const errors=[];
-try{const page=await browser.newPage();await page.setViewport({width:1440,height:1000});page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')console.log('BROWSER',m.text());});await page.goto('http://127.0.0.1:4173',{waitUntil:'networkidle0'});await page.waitForFunction(()=>window.APEX_HUNTER_PRESENTATION?.ready,{timeout:60000});
+try{const page=await browser.newPage();await page.setViewport({width:1440,height:1000});page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')console.log('BROWSER',m.text());});await page.goto('http://127.0.0.1:4173',{waitUntil:'load',timeout:120000});await page.waitForFunction(()=>window.APEX_HUNTER_PRESENTATION?.ready,{timeout:60000});await page.evaluate(()=>window.APEX_ARSENAL_AV&&window.APEX_ARSENAL_AV.warmAudio());
 await page.evaluate(()=>{
  const draw=window.draw;window.draw=()=>{};window.update=()=>{};
  window.Q={draw,setup(){if(APEX_ARSENAL.state?.active)exitArsenalQuestMode();APEX_HERO_REWORK.setAiEnabled(false);startArsenalQuestMode('HUNTER','ICE');const s=APEX_ARSENAL.state;s.slots=[];s.spawnHeld=true;s.spawnTimer=1e6;s.unarmedFastConsumed=true;this.a=fighters[0];this.b=fighters[1];this.a.x=400;this.a.y=500;this.b.x=850;this.b.y=200;this.a.setDir(1,0);this.b.setDir(0,1);this.ct=APEX_HERO_REWORK.byCombatant(this.a);this.ctl=APEX_HERO_REWORK.abilityController(this.ct);},step(n=1){for(let i=0;i<n;i++)APEX_ARSENAL.step(1/60);APEX_COMBAT_HUD.sync();cameraShake=0;this.draw();},cast(slot){return this.ctl.tryCast(slot,'p1');},snap(){return{body:{x:this.a.x,y:this.a.y},skills:structuredClone(Object.fromEntries(['A1','A2'].map(k=>[k,{charges:this.ct.skills[k].charges,rechargeLeft:this.ct.skills[k].rechargeLeft,cd:this.ctl.cooldownLeft(k)}]))),rig:APEX_HUNTER_PRESENTATION.inspect(this.a),traps:APEX_HERO_REWORK.match.world.snares.map(t=>({id:t.id,x:t.x,y:t.y,phase:t.phase,t:t.phaseTime,pose:t.visual?._rt?.arms.map(a=>a.root.y)})),cache:{...APEX_HUNTER_PRESENTATION.cacheStats}}}};Q.setup();Q.step();
@@ -63,6 +63,37 @@ const results=await page.evaluate(()=>{
  Q.setup();Q.a.x=150;Q.a.y=150;Q.b.x=850;Q.b.y=850;Q.cast('A2');Q.step(11);for(let i=0;i<35;i++){Q.b.x=Q.a.x<500?900:100;Q.b.y=Q.a.y<500?900:100;Q.step();}const missed=!hr.AIL.StatusResolver.has(Q.b,'WEAK')&&!Q.ct.store['hunter.pounce_weak'].pounce;
  check('A2-exceptional-escape-no-fake-catch',missed&&APEX_HUNTER_PRESENTATION.inspect(Q.a).phase!=='CATCH',{pose:APEX_HUNTER_PRESENTATION.inspect(Q.a),weak:hr.AIL.StatusResolver.remaining(Q.b,'WEAK')});
  Q.setup();check('match-reset',Q.ct.skills.A1.charges===3&&world().snares.length===0,{charges:Q.ct.skills.A1.charges,traps:world().snares.length});
+ // ---- CHECKPOINT C gates ----
+ check('C-trap-40pct-anchor',Math.abs(APEX_HUNTER_GOLD.rtScale()/.43-0.4)<1e-9&&APEX_HUNTER_PRESENTATION.trapWorldRadius>=24&&APEX_HUNTER_PRESENTATION.trapWorldRadius<=110,{rt:APEX_HUNTER_GOLD.rtScale(),r:APEX_HUNTER_PRESENTATION.trapWorldRadius,measure:APEX_HUNTER_PRESENTATION.trapMeasure});
+ Q.setup();Q.a.x=500;Q.a.y=500;Q.a.setDir(1,0);Q.cast('A1');Q.step(48);const trC=world().snares[0];const R=APEX_HUNTER_PRESENTATION.trapWorldRadius;
+ Q.b.x=trC.x;Q.b.y=trC.y-R-Q.b.radius*.4-14;Q.b.setDir(0,1);let outTriggered=false;for(let i=0;i<90;i++){Q.b.x=trC.x;Q.b.y=trC.y-R-Q.b.radius*.4-14;Q.step();if(trC.triggeredAt!=null)outTriggered=true;}
+ Q.b.x=trC.x;Q.b.y=trC.y-R*.5;Q.b.setDir(0,1);let inTriggered=false;for(let i=0;i<90;i++){Q.b.x=trC.x;Q.b.y=trC.y-R*.5;Q.step();if(trC.triggeredAt!=null)inTriggered=true;}
+ check('C-footprint-trigger-match',!outTriggered&&inTriggered,{R,outTriggered,inTriggered,trapR:trC.radius});
+ Q.setup();Q.cast('A1');Q.step(72);const trA=world().snares[0];const rtA=trA.visual&&trA.visual._rt;
+ check('C-armed-energy-silent',rtA&&rtA.edge===0&&rtA.slotTarget===0&&rtA.sweepT<0,{edge:rtA&&rtA.edge,slot:rtA&&rtA.slotTarget,sweep:rtA&&rtA.sweepT});
+ const B=APEX_HUNTER_PRESENTATION.recoilBudget();
+ function recoilCast(px,py,dx,dy){Q.setup();Q.a.x=px;Q.a.y=py;Q.a.setDir(dx,dy);const ox=Q.a.x,oy=Q.a.y;Q.cast('A1');let mnx=1e9,mny=1e9,mxx=-1e9,mxy=-1e9;for(let i=0;i<120;i++){Q.step();mnx=Math.min(mnx,Q.a.x);mxx=Math.max(mxx,Q.a.x);mny=Math.min(mny,Q.a.y);mxy=Math.max(mxy,Q.a.y);const mm=APEX_HUNTER_PRESENTATION.inspect(Q.a).mode;if(mm==='idle'&&i>20)break;}return{ox,oy,mnx,mxx,mny,mxy,x:Q.a.x,y:Q.a.y};}
+ const r1=recoilCast(500,500,1,0),r2=recoilCast(850,500,-1,0),r3=recoilCast(500,500,0,1),r4=recoilCast(500,500,0.7071,0.7071);
+ const d1=r1.ox-r1.mnx,d2=r2.mxx-r2.ox,d3=r3.oy-r3.mny,d4=Math.hypot(r4.ox-r4.mnx,r4.oy-r4.mny);
+ check('C-recoil-finite-all-directions',d1>0.4*B&&d1<=B*1.05&&d2>0&&d2<=B*1.05&&r2.x<=960&&d3>0.4*B&&d3<=B*1.05&&d4>0.3*B&&d4<=B*1.5&&[r1,r2,r3,r4].every(r=>r.x>=40&&r.x<=960&&r.y>=40&&r.y<=960),{B,d1,d2,d3,d4});
+ Q.setup();Q.a.x=200;Q.a.y=500;Q.b.x=800;Q.b.y=500;Q.b.setDir(0,1);Q.cast('A2');let holdEcho=0,holdAura=0;for(let i=0;i<6;i++){Q.step();const pr=APEX_HUNTER_PRESENTATION.inspect(Q.a);holdEcho=Math.max(holdEcho,pr.echoes);holdAura=Math.max(holdAura,pr.aura);}
+ check('C-no-persistent-aura',holdAura===0&&holdEcho===0,{holdAura,holdEcho});
+ Q.setup();Q.a.x=200;Q.a.y=500;Q.b.x=800;Q.b.y=500;Q.b.setDir(0,1);Q.cast('A2');Q.step(12);let echoMax=0;for(let i=0;i<20;i++){Q.step();echoMax=Math.max(echoMax,APEX_HUNTER_PRESENTATION.inspect(Q.a).echoes);}
+ check('C-echoes-highspeed-only',echoMax>0,{echoMax});
+ Q.setup();Q.a.x=200;Q.a.y=500;Q.b.x=800;Q.b.y=500;Q.b.setDir(0,1);Q.cast('A2');let sawWeak=0;for(let i=0;i<40;i++){Q.step();sawWeak=Math.max(sawWeak,APEX_HUNTER_PRESENTATION.inspect(Q.a).weak);}Q.step(90);const weakGone=APEX_HUNTER_PRESENTATION.inspect(Q.a).weak;
+ check('C-weak-visual-bound-to-status',sawWeak>0&&weakGone===0,{sawWeak,weakGone});
+ Q.setup();const mE=window.APEX_ARSENAL_AV.hunterSfxLog.length;Q.a.x=200;Q.a.y=200;Q.b.x=850;Q.b.y=800;Q.cast('A1');let trS=null;for(let i=0;i<410;i++){Q.a.x=200;Q.a.y=200;Q.b.x=850;Q.b.y=800;Q.step();if(i===48)trS=world().snares[0];} // expiry without trigger, bodies pinned away
+ const logExp=window.APEX_ARSENAL_AV.hunterSfxLog.slice(mE).map(e=>e.rel.split('/').pop());
+ check('C-sfx-no-clamp-on-expiry',trS.triggeredAt==null&&!logExp.includes('hunter_a1_clamp.mp3')&&logExp.includes('hunter_a1_deploy_mechanism.mp3'),{logExp});
+ Q.setup();const m0=window.APEX_ARSENAL_AV.hunterSfxLog.length;Q.a.x=150;Q.a.y=150;Q.b.x=850;Q.b.y=850;Q.cast('A2');Q.step(11);for(let i=0;i<35;i++){Q.b.x=Q.a.x<500?900:100;Q.b.y=Q.a.y<500?900:100;Q.step();}
+ const logMiss=window.APEX_ARSENAL_AV.hunterSfxLog.slice(m0).map(e=>e.rel.split('/').pop());
+ check('C-sfx-no-catch-on-miss',!logMiss.includes('hunter_a2_catch_flesh.mp3')&&logMiss.includes('hunter_a2_pounce_sweep.mp3'),{logMiss});
+ Q.setup();const m1=window.APEX_ARSENAL_AV.hunterSfxLog.length;Q.a.x=400;Q.a.y=500;Q.cast('A1');
+ for(let i=0;i<72;i++){Q.b.x=900;Q.b.y=900;Q.step();} // hold prey away until ARMED so the unfold cue is legal
+ const trF=world().snares[0];Q.b.x=trF.x;Q.b.y=trF.y-40;Q.b.setDir(0,1);for(let i=0;i<120;i++){Q.b.x=trF.x;Q.b.y=trF.y-40;Q.step();if(trF.triggeredAt!=null)break;}
+ Q.step(18);Q.b.x=trF.x;Q.b.y=trF.y-60;Q.b.setDir(0,1);Q.cast('A2');Q.step(60);
+ const logHit=window.APEX_ARSENAL_AV.hunterSfxLog.slice(m1).map(e=>e.rel.split('/').pop());
+ check('C-sfx-semantic-chain',logHit.includes('hunter_a1_charge_personal.mp3')&&logHit.includes('hunter_a1_deploy_mechanism.mp3')&&logHit.includes('hunter_a1_unfold_blade.mp3')&&logHit.includes('hunter_a1_clamp.mp3')&&logHit.includes('hunter_a2_pounce_sweep.mp3')&&logHit.includes('hunter_a2_catch_flesh.mp3'),{logHit});
  return results;
 });
 console.log(JSON.stringify(results,null,2));

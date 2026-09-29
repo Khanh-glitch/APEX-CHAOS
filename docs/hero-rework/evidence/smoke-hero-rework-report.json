@@ -78,12 +78,12 @@
       }
     },
     "smoke-robot-dash-moves-to-pickup": {
-      "pass": true,
+      "pass": false,
       "detail": {
         "dashRes": {
           "ok": true
         },
-        "moved": 152
+        "moved": 0
       }
     },
     "smoke-j-a1-routing": {
@@ -131,10 +131,9 @@
         "baseRun": {
           "hp": {
             "hero": 1000,
-            "rival": 940.1500000000001
+            "rival": 971.6500000000001
           },
           "hits": [
-            "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5",
             "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5",
             "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5"
           ],
@@ -144,10 +143,9 @@
         "reworkRun": {
           "hp": {
             "hero": 1000,
-            "rival": 940.1500000000001
+            "rival": 971.6500000000001
           },
           "hits": [
-            "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5",
             "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5",
             "[AQ] HIT source=ROBOT target=ROBOT weapon=PISTOL damage=31.5"
           ],
@@ -161,7 +159,9 @@
       "detail": "no-match debug OK"
     }
   },
-  "failures": [],
+  "failures": [
+    "smoke-robot-dash-moves-to-pickup"
+  ],
   "loadErrors": [
     {
       "file": "/game/fighters/soccerChampionRuntime.js",
