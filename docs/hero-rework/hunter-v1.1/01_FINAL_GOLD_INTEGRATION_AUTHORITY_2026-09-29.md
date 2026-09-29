@@ -22,7 +22,7 @@ This exact V10 source supersedes:
 Read:
 `docs/hero-rework/hunter-v1.1/03_GOLD_V10_SUPERSESSION_AUDIT_2026-09-29.md`
 
-The V10 file still contains historical embedded labels such as `HUNTER FINAL V9 ROOT TRAP` / `FINAL V9`. Source identity is the V10 filename + SHA-256 above; do not reject it because of stale internal labels.
+The V10 file still contains historical embedded labels such as `HUNTER FINAL V9 ROOT TRAP` / `FINAL V9`. Source identity is the canonical repo path + SHA-256 above; do not reject it because of stale internal labels.
 
 The visible skill grammar remains:
 - A2: `read -> coil -> snap -> correct -> catch`
