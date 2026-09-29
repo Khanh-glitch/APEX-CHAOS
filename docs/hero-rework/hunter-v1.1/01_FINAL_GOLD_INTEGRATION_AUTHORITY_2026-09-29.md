@@ -204,7 +204,7 @@ These adaptations must preserve the visible gold identity rather than redesign i
 
 Production asset/runtime law:
 - store the exact V10 HTML in-repo as immutable authority/reference only;
-- do NOT execute or parse the 3.66 MB authority HTML as part of normal production gameplay;
+- do NOT execute or parse the 3.67 MB authority HTML as part of normal production gameplay;
 - extract/bridge the required source art into stable production assets/runtime structures as needed;
 - decode/cache immutable Hunter/trap art once;
 - generate V10-derived trap color/edge/glow/shadow material layers once per immutable source part;
