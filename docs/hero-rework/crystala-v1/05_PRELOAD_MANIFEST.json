@@ -35,6 +35,7 @@
   },
   "read_order": [
     "README_PRELOAD.md",
+    "06_ONE_SHOT_RUNBOOK.md",
     "00_CRYSTALA_IMPLEMENTATION_AUTHORITY.md",
     "01_OWNER_APPROVED_GOLD_REFERENCE.html",
     "02_GOLD_TO_GAME_ADAPTATION_MAP.md",
@@ -53,5 +54,13 @@
     "runtime_revision": "20260930-crystala-prep-r1",
     "owner_test_credit_grant": 12000,
     "gameplay_baseline_unchanged": true
+  },
+  "one_shot": {
+    "unattended": true,
+    "canonical_source_branch": "arena/01a0ead6-apex-chaos",
+    "preflight": "node tools/preflightCrystalaOneShot.mjs --anchor --push-anchor",
+    "durability": "push every coherent module OR ~300-500 meaningful LOC OR ~10-15 minutes, whichever comes first",
+    "known_baseline_ci_run": 36614313983,
+    "known_baseline_issue": "Hunter V10 Gold broad-headless asset/harness failure predates CRYSTALA implementation"
   }
 }

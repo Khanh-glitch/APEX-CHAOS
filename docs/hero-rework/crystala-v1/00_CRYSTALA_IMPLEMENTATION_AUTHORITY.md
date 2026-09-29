@@ -388,10 +388,9 @@ Then:
 
 Do not record an expensive long owner reel before A/B are durable.
 
-## 20. Stop conditions
-Stop/report instead of guessing only if:
-- required baseline `00d83e76d248c49ca65d8e546c67819d07a0d758` is not ancestral to the current remote branch and reconciliation would require destructive history;
-- implementation truly requires direct Robot/Hunter/Chamber semantic edits rather than a generic shared hook;
-- current live architecture has materially changed so a required owner choice exists.
+## 20. Unattended blocker policy
+This implementation is expected to run one-shot while the owner may be absent. Do not pause the whole task for a question.
 
-Ordinary complexity, writing tests, or needing a Crystal-specific adapter is not a stop condition.
+If the required baseline is not in canonical-source ancestry, do not invent history: preserve the session branch, complete no destructive reconciliation, and treat that as a final blocker. If a Crystal requirement appears to demand direct Robot/Hunter/Chamber semantic edits, preserve those protected semantics, exhaust Crystal-specific and minimal generic shared-hook options, then finish every other independent part and report only the residual item at the end. If current architecture invalidates one owner decision, isolate that item and continue all unrelated work.
+
+Ordinary complexity, test writing, a known pre-existing harness failure, or needing a Crystal-specific adapter is never a reason to stop the one-shot run. Operational details are authoritative in `06_ONE_SHOT_RUNBOOK.md`.

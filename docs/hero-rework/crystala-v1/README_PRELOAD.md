@@ -12,12 +12,13 @@ Before CRYSTALA implementation, fetch/fast-forward from remote and verify this o
 Do **not** go back to the preload SHA and do not rebase/cherry-pick the preload again. If the remote branch contains newer preparation commits, continue from the newest remote descendant; never move backward.
 
 ## Read order
-1. `00_CRYSTALA_IMPLEMENTATION_AUTHORITY.md`
-2. `01_OWNER_APPROVED_GOLD_REFERENCE.html` — run/read it in full
-3. `02_GOLD_TO_GAME_ADAPTATION_MAP.md`
-4. `03_IMPLEMENTATION_TEST_MATRIX.md`
-5. `04_ZERO_CONTEXT_HANDOFF.md`
-6. `05_PRELOAD_MANIFEST.json`
+1. `06_ONE_SHOT_RUNBOOK.md` — operational authority for unattended Arena execution
+2. `00_CRYSTALA_IMPLEMENTATION_AUTHORITY.md`
+3. `01_OWNER_APPROVED_GOLD_REFERENCE.html` — run/read it in full
+4. `02_GOLD_TO_GAME_ADAPTATION_MAP.md`
+5. `03_IMPLEMENTATION_TEST_MATRIX.md`
+6. `04_ZERO_CONTEXT_HANDOFF.md`
+7. `05_PRELOAD_MANIFEST.json`
 
 ## Critical interpretation
 - The Gold is executable **visual / asset / VFX / motion authority**. Do not redraw, simplify, or reinterpret it.
@@ -30,7 +31,7 @@ Do **not** go back to the preload SHA and do not rebase/cherry-pick the preload 
 ## Preload-stage safety
 This preload commit is docs/reference only. It must not modify production files.
 
-The implementation task that starts after the owner sends the active prompt may change the minimum Crystal/shared integration surface required by this authority. Direct Robot/Hunter/Chamber semantic edits remain a stop/report condition.
+The implementation task may change the minimum Crystal/shared integration surface required by this authority. Direct Robot/Hunter/Chamber semantic edits remain protected; under unattended one-shot execution, do not make them without authority, but do NOT stop the whole task — finish all independent work and report any residual blocker only in the final report. See `06_ONE_SHOT_RUNBOOK.md`.
 
 ## Gold hash
 Expected SHA-256 of `01_OWNER_APPROVED_GOLD_REFERENCE.html`:

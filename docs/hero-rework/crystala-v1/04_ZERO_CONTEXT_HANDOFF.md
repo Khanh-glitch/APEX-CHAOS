@@ -3,14 +3,15 @@
 Read this AFTER the README, authority, Gold, adaptation map and test matrix.
 
 ## Mission
-Implement the approved Crystala Gold into real CRYSTAL and replace the old Crystal gameplay with the K-Awakening / J-context-construct law. Complete the task in one Arena conversation if possible, but checkpoint/push aggressively so a crash loses little.
+Implement the approved Crystala Gold into real CRYSTAL and replace the old Crystal gameplay with the K-Awakening / J-context-construct law. This is an unattended ONE-SHOT task: do not pause for owner approval or return an intermediate report. Follow `06_ONE_SHOT_RUNBOOK.md`, push every meaningful slice, and continue through A/B/C until all independently completable work is exhausted.
 
 ## Working model / Arena lessons
 - Every new Arena chat may be a different model. Never trust previous local state.
 - First inspect branch/status/HEAD and fetch remote.
 - Do not switch branches simply to match an old handoff. Arena may pin the session branch.
 - Git remote checkpoints are durability; local progress is not.
-- Implement -> focused gates -> diff audit -> commit -> push -> remote verify BEFORE expensive evidence capture.
+- Strong durability law: no more than one coherent module, ~300–500 meaningful LOC, or ~10–15 minutes of substantive work may remain unpushed.
+- Implement slice -> smallest relevant gate -> diff audit -> commit -> push -> remote verify BEFORE another large slice, long test, browser capture or investigation.
 - Do not rerun/rebuild already-pushed checkpoints after a crash unless a gate proves it necessary.
 - Do not modify unrelated systems just because they are nearby.
 - If a Gold visual exists, port it faithfully; do not use a generic substitute and call it parity.
@@ -81,12 +82,10 @@ Then diff-review, commit, push, remote-verify SHA.
 ## Checkpoint C — real integration
 Run required Crystal-vs-Robot matrix, regression suites, build/cache gates, telemetry/evidence. Fix real bugs only; do not casually retune authority numbers. Final diff audit, commit, push, remote verify.
 
-## Stop/report only if
-- package ancestry is incompatible and would require destructive history;
-- a required fix truly demands direct Robot/Hunter/Chamber semantic edits instead of a generic shared hook;
-- current architecture materially invalidates an owner decision.
+## Unattended blocker policy
+Do not stop for an owner response. If one protected/unrelated semantic edit is genuinely required, leave that protected behavior unchanged, finish every other independent part, and list the exact blocker only in the final report. If one harness/regression path is broken by a documented pre-existing baseline condition, continue all other independent validation. Ordinary complexity is never a stop condition.
 
-Ordinary complexity is not a stop condition.
+Known baseline condition: GitHub Actions run `36614313983` on prep commit `c1db7add515cae4c0ebcc3f8ce2618f5cf12634f` already failed in broad headless testing on Hunter V10 Gold art loading before any CRYSTALA implementation. Do not spend the task rewriting Hunter to cure this baseline harness failure; see `06_ONE_SHOT_RUNBOOK.md`.
 
 ## Final report
 Give owner:
