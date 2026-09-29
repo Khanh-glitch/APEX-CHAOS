@@ -23,7 +23,7 @@
  *   R5  A2 Virtual Armor: exact 55% DR (incoming x0.45) for exactly 3.0s
  *   R6  A2 grants NO CC immunity (stun applies during armor)
  *   R7  Passive records credited realized damage dealt only
- *   R8  Passive explicit blocker: no invented thresholds, no refunds
+ *   R8  Owner-approved production thresholds; milestone #1 has no refund
  *   R9  Passive refund SEQUENCE law (TEST-ONLY threshold fixture):
  *       #1 none, #2 0.5s, #3 1.0s, #4 1.5s, #5 2.0s (+0.5 step), one proc
  *       each, refunding the currently relevant Active (A1 while cooling).
@@ -429,7 +429,7 @@ const Q = win.__HR_Q;
 }
 
 /* =============================================================================
- * R8 — Passive explicit blocker: production config invents nothing.
+ * R8 — Owner-approved production thresholds, milestone #1 is refund-free.
  * ============================================================================= */
 {
   const m = Q.start('ROBOT', 'ICE', 2008);
@@ -443,12 +443,12 @@ const Q = win.__HR_Q;
   const refunds = Q.hr().AIL.bus.ring.slice(busMark).filter(e => e.type === 'MilestoneRefund');
   const st = Q.ct().store['robot.damage_milestones'] || {};
   const ok = !!m
-    && cfg.milestoneThresholds === null
-    && cfg.milestoneThresholdsStatus === 'UNRESOLVED_OWNER_TUNING_DEPENDENCY'
+    && JSON.stringify(cfg.milestoneThresholds) === '[150,300,450,600,750,900]'
+    && st.reached === 1
     && (st.cumulative || 0) > 200
     && refunds.length === 0
     && ctl.cooldownLeft('A1') === 8 && ctl.cooldownLeft('A2') === 8;
-  gate('R8-passive-explicit-blocker-no-invented-thresholds', ok,
+  gate('R8-production-thresholds-first-milestone-no-refund', ok,
     { thresholds: cfg.milestoneThresholds, status: cfg.milestoneThresholdsStatus, cumulative: st.cumulative, refunds: refunds.length, cdA1: ctl.cooldownLeft('A1'), cdA2: ctl.cooldownLeft('A2') });
 }
 
@@ -458,8 +458,7 @@ const Q = win.__HR_Q;
  * The fixture thresholds below are NOT production values and NOT an
  * authority claim — they exist only to prove the frozen refund sequence
  * (doc 02: #1 none, #2 0.5s, #3 1.0s, #4 1.5s, subsequent +0.5s) and the
- * "refund the currently relevant Active" targeting. Production keeps
- * milestoneThresholds: null until the owner resolves the ladder (doc 11).
+ * "refund the currently relevant Active" targeting. Production thresholds are covered independently by R8 and R10.
  * ============================================================================= */
 {
   const m = Q.start('ROBOT', 'ICE', 2009);
@@ -492,6 +491,34 @@ const Q = win.__HR_Q;
   const ok = !!m && oneProcEach && cdOk && refund6 && Math.abs(cdA2After - (6 - 2.5)) < 1e-9;
   gate('R9-passive-refund-sequence-law', ok,
     { events, cdA1, cdA2, ev6: ev6.map(e => ({ m: e.payload.milestone, slot: e.payload.slot, refund: e.payload.refund })), cdA2After });
+}
+
+/* Production thresholds + truthful clamped refund + READY silence + reset. */
+{
+  Q.start('ROBOT', 'ICE', 2010);
+  const a = win.fighters[0], b = win.fighters[1], ctl = Q.ctl();
+  const ct = Q.ct();
+  let st = ct.store['robot.damage_milestones'] || {};
+  const events = [], emit = Q.hr().AIL.bus.emit;
+  Q.hr().AIL.bus.emit = function(type, payload) { if(type.startsWith('RobotPassive')) events.push({type,payload}); return emit.call(this,type,payload); };
+  const hitTo = value => { let guard=0; while((st.cumulative || 0) < value - 1e-7 && guard++<1000) { Q.aqDamage(b, Math.min(10, value - (st.cumulative || 0)), a, 'PISTOL'); st = ct.store['robot.damage_milestones'] || {}; } };
+  hitTo(100); const before = st.reached || 0;
+  hitTo(150); const first = events.filter(e => e.type==='RobotPassiveUpgrade').length;
+  ctl.setCooldown('A1',8); hitTo(300);
+  ctl.setCooldown('A1',0.2); hitTo(450);
+  ctl.setCooldown('A1',0); ctl.setCooldown('A2',6); hitTo(600);
+  ctl.setCooldown('A1',0); ctl.setCooldown('A2',0); hitTo(900);
+  const upgrades=events.filter(e=>e.type==='RobotPassiveUpgrade').map(e=>e.payload);
+  const milestones=events.filter(e=>e.type==='RobotPassiveMilestone');
+  const state=Q.hr().robotPassiveHud(a);
+  const ok=before===0&&first===0&&st.reached===6&&milestones.length===6&&upgrades.length===3
+    &&upgrades[0].slot==='A1'&&Math.abs(upgrades[0].refund-.5)<1e-9
+    &&upgrades[1].slot==='A1'&&Math.abs(upgrades[1].refund-.2)<1e-9
+    &&upgrades[2].slot==='A2'&&Math.abs(upgrades[2].refund-1.5)<1e-9&&state.refund===null;
+  Q.hr().AIL.bus.emit=emit;
+  Q.start('ROBOT','ICE',2011);
+  const reset=Q.hr().robotPassiveHud(win.fighters[0]);
+  gate('R10-production-truthful-refund-and-reset',ok&&reset.reached===0&&reset.cumulative===0,{milestones:milestones.length,upgrades,state,reset});
 }
 
 /* ------------------------------------------------------------------ summary */

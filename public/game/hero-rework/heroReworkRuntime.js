@@ -2240,6 +2240,20 @@
     s.cfg = REG.resolveSkillLevel(ct.heroId, slot, s.level);
     return true;
   };
+  // Read-only HUD projection of the executor's match-owned state. No HUD counter.
+  HR.robotPassiveHud = function (f) {
+    const ct = combatantOfBody(f);
+    if (!ct || ct.heroId !== 'ROBOT') return null;
+    const st = ct.store['robot.damage_milestones'] || {};
+    const thresholds = ct.skills.PASSIVE.cfg.milestoneThresholds;
+    const reached = st.reached || 0, cumulative = st.cumulative || 0;
+    const previous = reached ? thresholds[reached - 1] : 0;
+    const next = thresholds[reached] ?? null;
+    return { reached, total: thresholds.length, cumulative, next,
+      fraction: next === null ? 1 : clamp((cumulative - previous) / (next - previous), 0, 1),
+      crossing: st.crossedAt != null && AIL.clock() - st.crossedAt < 0.8,
+      refund: st.lastRefund && AIL.clock() - st.lastRefund.at < 1.8 ? { ...st.lastRefund } : null };
+  };
   HR.skillHud = function (f) {
     const ct = combatantOfBody(f);
     if (!ct || ct.facade) return [];

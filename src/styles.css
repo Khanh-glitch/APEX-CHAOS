@@ -6396,3 +6396,12 @@ body.apex-battle #battle-controls{
     }
     body.apex-battle .cp-mode{display:none!important}
 }
+
+/* Robot's authoritative cumulative milestones, inside the existing side panel. */
+.cp-robot-passive[hidden]{display:none!important}
+.cp-robot-passive{padding:8px 12px;border:1px solid #566047;background:rgba(16,22,24,.85);color:#c8cfc7;font:10px/1.5 monospace;transition:border-color .12s,box-shadow .12s,transform .12s}
+.cp-robot-head{display:flex;justify-content:space-between;letter-spacing:.12em}
+.cp-robot-rail{display:flex;gap:4px;margin:5px 0}
+.cp-robot-rail span{flex:1;height:4px;background:linear-gradient(to right,#f2cf55 var(--progress,0%),#303a40 var(--progress,0%))}
+.cp-robot-refund{min-height:15px;color:#f2cf55}
+.cp-robot-passive.is-punch{border-color:#f2cf55;box-shadow:inset 0 0 12px #f2cf5520;transform:translateY(-1px)}

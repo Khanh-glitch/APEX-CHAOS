@@ -201,21 +201,13 @@
     // #2 = 0.5s, #3 = 1.0s, #4 = 1.5s, subsequent +0.5s each; one proc per
     // milestone; refunds the currently relevant Active.
     //
-    // DAMAGE THRESHOLDS — EXPLICIT UNRESOLVED TUNING DEPENDENCY:
-    // doc 02 says "use the existing visible cumulative damage-dealt milestone
-    // ladder already present in game" and "do not invent new milestone
-    // thresholds". A careful search of the engine (apexEngine, arsenal
-    // runtimes, core patches, HUD) found NO such visible ladder — only TIME's
-    // rewind mark and HUD %-of-max-HP meters, which are different mechanics.
-    // Until the owner supplies the authoritative threshold ladder, this
-    // Passive RECORDS credited realized damage and milestone progress but
-    // does NOT fire refunds. It must not silently activate on invented
-    // numbers (e.g. an arbitrary 250 step).
+    // Production thresholds are frozen by the passive completion authority.
+    // This store is match-owned; rolling HUD burst state never owns progress.
     onRealizedDamage(ctx, ev) {
-      if (ev.creditedTo !== ctx.combatant) return; // only credited damage dealt
+      if (ev.creditedTo !== ctx.combatant || !(ev.amount > 0)) return; // credited positive realized damage only
       const st = ctx.store;
       st.cumulative = (st.cumulative || 0) + ev.amount;
-      const thresholds = ctx.cfg.milestoneThresholds; // owner authority: null = unresolved
+      const thresholds = ctx.cfg.milestoneThresholds;
       if (!Array.isArray(thresholds) || thresholds.length === 0) {
         ctx.api.note('robot.damage_milestones', 'recording', { cumulative: st.cumulative, thresholds: 'UNRESOLVED' });
         return;
@@ -226,8 +218,11 @@
       while (st.reached < milestone) {
         st.reached += 1;
         const m = st.reached;
+        st.crossedAt = ctx.api.clock();
+        st.lastRefund = null;
+        const identity = { fighterId: ctx.combatant.anchor.id, combatantIndex: ctx.combatant.idx };
         // SINGLE authoritative milestone crossing
-        try { ctx.api.emitEvent('RobotPassiveMilestone', { hero: 'ROBOT', milestone: m, cumulative: st.cumulative }); } catch (e) {}
+        try { ctx.api.emitEvent('RobotPassiveMilestone', { ...identity, hero: 'ROBOT', milestone: m, cumulative: st.cumulative }); } catch (e) {}
         const refunds = ctx.cfg.milestoneRefundsSec || [0, 0.5, 1.0, 1.5];
         const refund = m <= refunds.length
           ? refunds[m - 1]
@@ -237,17 +232,21 @@
           const target = (ctl && ctl.cooldownLeft('A1') > 0) ? 'A1'
             : (ctl && ctl.cooldownLeft('A2') > 0) ? 'A2' : null;
           if (target && ctl) {
+            const before = ctl.cooldownLeft(target);
             ctl.refundCooldown(target, refund);
-            // SINGLE authoritative upgrade/refund event
-            try { ctx.api.emitEvent('RobotPassiveUpgrade', { hero: 'ROBOT', milestone: m, slot: target, refund }); } catch (e) {}
-            // MilestoneRefund is alias for telemetry — presentation must NOT replay SFX on this
-            try { ctx.api.emitEvent('MilestoneRefund', { hero: 'ROBOT', milestone: m, slot: target, refund, alias: true }); } catch (e) {}
-            ctx.api.note('robot.damage_milestones', 'refund', { milestone: m, slot: target, refund, cumulative: st.cumulative });
-          } else {
-            ctx.api.note('robot.damage_milestones', 'milestone', { milestone: m, refund, idle: true, cumulative: st.cumulative });
-            try { ctx.api.emitEvent('RobotPassiveUpgrade', { hero: 'ROBOT', milestone: m, refund, idle: true }); } catch (e) {}
+            const appliedRefund = before - ctl.cooldownLeft(target);
+            if (appliedRefund > 0) {
+              const payload = { ...identity, hero: 'ROBOT', milestone: m, slot: target,
+                refund: appliedRefund, requestedRefund: refund, before, after: ctl.cooldownLeft(target) };
+              st.lastRefund = { ...payload, at: ctx.api.clock() };
+              ctx.api.emitEvent('RobotPassiveUpgrade', payload);
+              // Alias is telemetry only, never another presentation dispatch.
+              ctx.api.emitEvent('MilestoneRefund', { ...payload, alias: true });
+              ctx.api.note('robot.damage_milestones', 'refund', payload);
+            }
           }
         }
+
         // milestone #1 has refund 0 → only milestone event, no upgrade (per owner law)
       }
     },

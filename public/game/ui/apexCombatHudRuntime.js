@@ -466,6 +466,27 @@
     if (r.modeSlot.textContent !== text) { r.modeSlot.textContent = text; stats.panelWrites += 1; }
   }
 
+  function renderRobotPassive(i) {
+    const fs = fighterList(), hr = window.APEX_HERO_REWORK;
+    const state = hr && hr.robotPassiveHud && fs ? hr.robotPassiveHud(fs[i]) : null;
+    const prefix = `p${i + 1}-robot-`, panel = $(prefix + 'passive');
+    if (!panel) return;
+    panel.hidden = !state;
+    if (!state) return;
+    const write = (key, text) => { const el = $(prefix + key); if (el && el.textContent !== text) el.textContent = text; };
+    write('count', `${state.reached}/${state.total}`);
+    write('progress', state.next === null ? 'ALL MILESTONES REACHED' : `${Math.floor(state.cumulative)} DMG · NEXT ${state.next}`);
+    const refund = state.refund;
+    // Never round UP to a larger claimed reduction; preserve small refunds.
+    const amount = refund ? Math.floor((refund.refund + 1e-9) * 1000) / 1000 : 0;
+    write('refund', refund ? `${refund.slot} −${amount}s` : (state.crossing ? `MILESTONE ${state.reached}` : ''));
+    panel.classList.toggle('is-punch', state.crossing);
+    for (let k = 0; k < state.total; k++) {
+      const segment = $(prefix + 'step-' + k);
+      if (segment) segment.style.setProperty('--progress', `${(k < state.reached ? 1 : k === state.reached ? state.fraction : 0) * 100}%`);
+    }
+  }
+
   // ------------------------------------------------------------ sync -----
   function sync() {
     if (!cacheRefs()) return;
@@ -505,6 +526,7 @@
       renderLoadout(i);
       renderEnergy(i);
       renderModeSlot(i);
+      renderRobotPassive(i);
     }
   }
 

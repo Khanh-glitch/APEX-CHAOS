@@ -1391,8 +1391,8 @@ function renderRig(g) {
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
-        if (st.T - st._lastMilestoneAt < 0.02) continue;
-        st._lastMilestoneAt = st.T;
+        if (payload.milestone <= (st._lastMilestoneNumber || 0)) continue;
+        st._lastMilestoneNumber = payload.milestone;
         playRobotSfx('robot_passive_milestone', { vol: 0.68 });
         for (let i = 0; i < 3; i++) atState(st, i * .06, () => { st.ticks[i] = 1; });
         atState(st, .2, () => {
@@ -1412,8 +1412,8 @@ function renderRig(g) {
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
-        if (st.T - st._lastUpgradeAt < 0.02) continue;
-        st._lastUpgradeAt = st.T;
+        if (!(payload.refund > 0) || payload.milestone <= (st._lastUpgradeNumber || 0)) continue;
+        st._lastUpgradeNumber = payload.milestone;
         playRobotSfx('robot_passive_upgrade', { vol: 0.72 });
       }
     } else if (type === 'MilestoneRefund') {
