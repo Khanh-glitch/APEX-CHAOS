@@ -46,6 +46,8 @@ Do NOT reinterpret V10 as a gameplay rebalance.
 
 V10 materially replaces the ROOT trap PRESENTATION renderer/state layer.
 
+The embedded `ROOT_TRAP_ART` source-art payload itself is byte-identical to V9. The visual change comes from how that same segmented art is transformed, layered, lit and animated — not from a new trap image set.
+
 ### 1. Late additive trap material pass
 
 The stage now draws a dedicated trap `fx` pass after the normal additive particle pass and before local distortion/bloom/grade.
