@@ -1292,7 +1292,8 @@
       else if(s.phase==='tension' && s.phaseTime>=.1) phase('snap');
       else if(s.phase==='snap' && s.phaseTime>=.34) phase('pin');
       if(!s.consumed && (s.phase==='armed'||s.phase==='unfold')) {
-        for(const b of livingBodies(enemyOf(s.owner)||{})) if(dist(b.x,b.y,s.x,s.y)<=s.radius+b.radius*.4) {
+        // Owner playtest: gameplay footprint must not exceed the rendered trap.
+        for(const b of livingBodies(enemyOf(s.owner)||{})) if(dist(b.x,b.y,s.x,s.y)<=s.radius) {
           s.consumed=true;s.prey=b;s.triggeredAt=now;M.api.applyRootTo(b,s.rootDuration);
           M.api.applyWeakCombatant(combatantOfBody(b), (s.owner.skills.A1.cfg.weakDuration ?? 1.0));phase('tension');
           AIL.bus.emit('SnareTriggered',{id:s.id,target:b.id,root:s.rootDuration});break;

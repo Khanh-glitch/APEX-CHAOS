@@ -27,7 +27,7 @@ const check = (name, pass, data) => { results[name] = { pass: !!pass, data: data
 
 // --- E-urls: production resource URLs carry the NEW runtime revision --------
 const urls = await page.evaluate(() => {
-  const rev = '20260929-postplaytest-E-r2';
+  const rev = '20260930-hunter-ownerfix-r1';
   const want = ['game/arsenal/arsenalChamberPaletteRuntime.js', 'game/arsenal/arsenalMetaRuntime.js', 'game/modes/arsenalQuestRuntime.js', 'game/arsenal/arsenalPresentationRuntime.js', 'game/hero-rework/hunterGoldV10.js'];
   const res = performance.getEntriesByType('resource').map(r => r.name);
   return want.map(w => ({ w, loaded: res.some(u => u.includes(w) && u.includes('v=' + rev)) }));
@@ -45,7 +45,7 @@ check('D-profiles-neutral', list.every(p => {
 
 // --- E-no-palette-filter: static + attributed runtime proof ------------------
 const filt = await page.evaluate(async () => {
-  const rawSrc = await (await fetch('/game/arsenal/arsenalChamberPaletteRuntime.js?v=20260929-postplaytest-E-r2')).text();
+  const rawSrc = await (await fetch('/game/arsenal/arsenalChamberPaletteRuntime.js?v=20260930-hunter-ownerfix-r1')).text();
   const src = rawSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
   const staticClean = !/\.filter\s*=/.test(src) && !/ctx\.filter/.test(src);
   let attributed = 0, total = 0;

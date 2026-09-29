@@ -789,9 +789,15 @@
       const speed=measured?Math.hypot(measured.x,measured.y):0;
       const v=speed>1&&speed<(a.baseSpeed||520)*2?measured:a.dir;
       const n=Math.hypot(v.x,v.y)||1;
+      const axis={x:v.x/n||(!v.y?1:0),y:v.y/n};
       ctx.combatant.store.__hunterAction='a1';
-      ctx.store.cast={axis:{x:v.x/n||(!v.y?1:0),y:v.y/n},planted:false};
-      globalScope.APEX_HUNTER_PRESENTATION.begin(a,'a1');return true;
+      // OWNER PLAYTEST 2026-09-30: logical trap placement is immediate and
+      // locked to the exact cast origin. Gold still owns deploy/recoil motion.
+      ctx.store.cast={axis,planted:false,origin:{x:a.x,y:a.y},trapId:null};
+      globalScope.APEX_HUNTER_PRESENTATION.begin(a,'a1');
+      const snare=ctx.api.spawnSnare({owner:ctx.combatant,x:a.x,y:a.y,radius:(globalScope.APEX_HUNTER_PRESENTATION&&globalScope.APEX_HUNTER_PRESENTATION.trapWorldRadius)||46,lifetime:ctx.cfg.trapLifetime,rootDuration:ctx.cfg.rootDuration});
+      if(snare){ctx.store.cast.planted=true;ctx.store.cast.trapId=snare.id;}
+      return true;
     },
     onTick(ctx,dt){const c=ctx.store.cast;if(!c)return;const a=ctx.combatant.anchor;
       a.data.positionLocked=true;
@@ -803,7 +809,13 @@
       const dq=motion.dq||0;
       ctx.api.moveHunterBody(a,a.x-c.axis.x*dq*B,a.y-c.axis.y*dq*B);
       if(motion.plant&&!c.planted){c.planted=true;ctx.api.spawnSnare({owner:ctx.combatant,x:a.x,y:a.y,radius:(globalScope.APEX_HUNTER_PRESENTATION&&globalScope.APEX_HUNTER_PRESENTATION.trapWorldRadius)||46,lifetime:ctx.cfg.trapLifetime,rootDuration:ctx.cfg.rootDuration});}
-      if(motion.done){ctx.store.cast=null;ctx.combatant.store.__hunterAction=null;}
+      if(motion.done){
+        // Original Apex locomotion preserves heading after the mechanic unlocks.
+        // Keep that heading AWAY from the cast axis so Hunter does not recoil
+        // and then immediately surge forward through its own trap.
+        a.setDir(-c.axis.x,-c.axis.y);
+        ctx.store.cast=null;ctx.combatant.store.__hunterAction=null;
+      }
     },
     onTeardown(ctx){ctx.store.cast=null;ctx.combatant.store.__hunterAction=null;},
   };
@@ -831,7 +843,18 @@
       if(hit){a.x=ox+(a.x-ox)*toi;a.y=oy+(a.y-oy)*toi;
         ctx.api.applyStunTo(hit,ctx.cfg.stunDuration??2.0);
         ctx.api.applyWeakCombatant(ctx.api.combatantOfBody(hit),ctx.cfg.weakDuration??1.0);
-        ctx.api.emitEvent('PounceWeak',{hero:'HUNTER',target:hit.id,directDamage:0,swept:true,stun:ctx.cfg.stunDuration??2.0,weak:ctx.cfg.weakDuration??1.0});
+        // Successful A2 contact forcibly discards an equipped firearm. The
+        // canonical consume path owns the visible gun-flick/throw exit and
+        // prevents a duplicate floor pickup from being invented.
+        const W=globalScope.APEX_ARSENAL&&globalScope.APEX_ARSENAL.weaponApi;
+        const held=W&&W.getHolder?W.getHolder(hit):null;
+        let disarmedWeapon=null;
+        if(held&&held.def&&held.def.category==='ranged'&&W&&W.consume){
+          disarmedWeapon=held.weaponId;
+          W.consume(hit,'hunter-a2-disarm');
+          ctx.api.emitEvent('HunterA2Disarm',{hero:'HUNTER',target:hit.id,weaponId:disarmedWeapon});
+        }
+        ctx.api.emitEvent('PounceWeak',{hero:'HUNTER',target:hit.id,directDamage:0,swept:true,stun:ctx.cfg.stunDuration??2.0,weak:ctx.cfg.weakDuration??1.0,disarmedWeapon});
         ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;globalScope.APEX_HUNTER_PRESENTATION.catch(a);
       }else if(p.elapsed>=ctx.cfg.maxMoveTime-1e-9){ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;globalScope.APEX_HUNTER_PRESENTATION.miss(a);}
     },

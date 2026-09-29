@@ -4,7 +4,7 @@
 // CP7: gameplay-ready barriers + start-of-match fail-cue fix — cache-bust
 // every runtime that changed in this pass (config/presentation/meta/
 // shellSelect/ladder).
-export const APEX_ARSENAL_RUNTIME_REVISION = '20260929-postplaytest-E-r2';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20260930-hunter-ownerfix-r1';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by

@@ -1710,21 +1710,9 @@ class Stage {
             }
         }
         ctx.restore();
-        // directional smear along the true velocity
-        const sp = Math.hypot(this.h.vx, this.h.vy);
-        if (sp > 500 && this.h.mode !== 'dodge') {
-            const a = Math.atan2(this.h.vy, this.h.vx);
-            ctx.save();
-            ctx.globalCompositeOperation = 'lighter';
-            for (let i = 1; i <= 3; i++) {
-                const p = copyPose(this.pose);
-                p.x -= Math.cos(a) * i * 13;
-                p.y -= Math.sin(a) * i * 13;
-                ctx.globalAlpha = 0.17 / i;
-                this.drawHunterParts(ctx, V, p, true, true);
-            }
-            ctx.restore();
-        }
+        // Owner playtest: remove the intermittent directional glow smear that
+        // read as an extra bright layer under/behind Hunter. The accepted
+        // high-speed echo history above remains the sole movement afterimage.
     }
     drawAura(ctx, V) {
         if (!this.auraReady)
