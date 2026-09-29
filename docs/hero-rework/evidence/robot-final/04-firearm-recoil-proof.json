@@ -1,0 +1,12 @@
+{
+  "weapon": "PISTOL",
+  "holderAcquiredAt": 0.18333333333333332,
+  "fireCount": 1,
+  "recoilCount": 1,
+  "lastGunKick": 0.011243838918751541,
+  "holderAfter": {
+    "weaponId": "PISTOL",
+    "phase": "FIRING"
+  },
+  "stepsToFire": 20
+}

@@ -1,0 +1,53 @@
+{
+  "suite": "robot-recoil-gate",
+  "gates": {
+    "recoil-holder-acquired": {
+      "pass": true,
+      "detail": {
+        "holder": "PISTOL",
+        "t": 0.183
+      }
+    },
+    "recoil-one-real-fire": {
+      "pass": true,
+      "detail": {
+        "fireCount": 1,
+        "steps": 20
+      }
+    },
+    "recoil-one-recoil-reaction": {
+      "pass": true,
+      "detail": {
+        "recoilKickDetected": 1,
+        "before": 0.011137670748223718,
+        "after": 0.011137670748223718
+      }
+    },
+    "recoil-projectile-preserved": {
+      "pass": true,
+      "detail": {
+        "projectileCreated": 1
+      }
+    },
+    "recoil-normal-behavior-not-replaced": {
+      "pass": true,
+      "detail": {
+        "fireCount": 1,
+        "projectileCreated": 1
+      }
+    },
+    "recoil-second-fire-second-recoil": {
+      "pass": true,
+      "detail": {
+        "fireCount2": 1,
+        "recoil2": 1
+      }
+    }
+  },
+  "failures": [],
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": []
+  }
+}

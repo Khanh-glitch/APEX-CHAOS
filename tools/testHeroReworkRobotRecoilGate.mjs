@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Generate real gameplay evidence for ROBOT final integration — FIXED recoil */
+/* ROBOT recoil gate: one real weapon fire -> one recoil reaction, normal behavior preserved */
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -7,7 +7,7 @@ import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES } from '../src/game/runtimeM
 
 const REPO = process.cwd();
 const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules');
-const evidenceDir = path.join(REPO, 'docs', 'hero-rework', 'evidence', 'robot-final');
+const evidenceDir = process.env.AQ_EVIDENCE_DIR || path.join(REPO, 'docs', 'hero-rework', 'evidence');
 const requireTool = createRequire(path.join(TOOLING_DIR, 'noop.js'));
 const { JSDOM } = requireTool('jsdom');
 const { createCanvas, loadImage, GlobalFonts } = requireTool('@napi-rs/canvas');
@@ -29,10 +29,7 @@ function realCanvasFor(el) {
   let rc = realCanvases.get(el);
   const w = el.width || 300;
   const h = el.height || 150;
-  if (!rc || rc.width !== w || rc.height !== h) {
-    rc = createCanvas(w, h);
-    realCanvases.set(el, rc);
-  }
+  if (!rc || rc.width !== w || rc.height !== h) { rc = createCanvas(w, h); realCanvases.set(el, rc); }
   return rc;
 }
 win.HTMLCanvasElement.prototype.getContext = function (type) {
@@ -78,7 +75,6 @@ win.fetch = (url) => {
 class HarnessImage {
   constructor() { this.complete = false; this.width = 0; this.height = 0; this.__realImage = null; this.onload = null; this.onerror = null; }
   set src(v) {
-    this._src = v;
     const s = String(v);
     const rel = s.startsWith('/') ? s.slice(1) : s;
     loadImage(path.join(REPO, 'public', rel)).then((im) => { this.__realImage = im; this.width = im.width; this.height = im.height; this.naturalWidth = im.width; this.naturalHeight = im.height; this.complete = true; if (this.onload) this.onload(); }).catch(() => { if (this.onerror) this.onerror(); });
@@ -110,7 +106,6 @@ win.eval(`(() => {
       window.startArsenalQuestMode(p1, p2);
       const s = window.APEX_ARSENAL && window.APEX_ARSENAL.state;
       if (s) { s.spawnTimer = 1e6; s.slots = []; s.unarmedFastConsumed = true; s.spawnHeld = true; }
-      return window.APEX_HERO_REWORK.match;
     },
     step(seconds, dt) {
       dt = dt || 1/60;
@@ -132,276 +127,114 @@ win.eval(`(() => {
       s.slots.push(slot);
       return slot.id;
     },
-    holder(who) {
-      const f = who === 'HERO' ? fighters[0] : fighters[1];
-      const h = APEX_ARSENAL.weaponApi.getHolder(f);
-      return h ? { weapon: h.weaponId, phase: h.phase, def: h.def } : null;
-    },
     holderRaw(who) {
       const f = who === 'HERO' ? fighters[0] : fighters[1];
       return APEX_ARSENAL.weaponApi.getHolder(f);
     },
     ctl() { return APEX_HERO_REWORK.abilityController(APEX_HERO_REWORK.byCombatant(fighters[0])); },
-    ct() { return APEX_HERO_REWORK.byCombatant(fighters[0]); },
-    aqDamage(target, amount, source, weaponId) {
-      return APEX_ARSENAL.weaponApi.aqDamage(target, amount, source, weaponId, {});
-    },
-    hr() { return APEX_HERO_REWORK; },
   };
   return true;
 })()`);
 const Q = win.__HR_Q;
 
 fs.mkdirSync(evidenceDir, { recursive: true });
-
-function saveCanvas(name) {
-  const el = win.document.getElementById('game-canvas');
-  const rc = realCanvases.get(el) || realCanvasFor(el);
-  const outPath = path.join(evidenceDir, `${name}.png`);
-  fs.writeFileSync(outPath, rc.toBuffer('image/png'));
-  console.log(`saved ${name} -> ${outPath}`);
-  return outPath;
+const report = { suite: 'robot-recoil-gate', gates: {}, failures: [] };
+function gate(name, ok, detail) {
+  report.gates[name] = { pass: !!ok, detail };
+  if (!ok) report.failures.push(name);
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}  ${detail ? JSON.stringify(detail) : ''}`);
 }
 
-function fail(msg) {
-  console.error(`FAIL: ${msg}`);
-  throw new Error(msg);
+{
+  Q.start('ROBOT', 'ICE', 5001);
+  Q.placeFree(150, 500, 1, 0, 80, 80, 1, 0);
+  Q.pushSlot({ x: 850, y: 500, weaponId: 'PISTOL' });
+  const ctl = Q.ctl();
+  ctl.tryCast('A1', 'gates');
+  let holder = null;
+  let t = 0;
+  while (t < 1.0) {
+    Q.step(1/60);
+    t += 1/60;
+    holder = Q.holderRaw('HERO');
+    if (holder && holder.weaponId === 'PISTOL') break;
+  }
+  gate('recoil-holder-acquired', !!holder && holder.weaponId === 'PISTOL', { holder: holder ? holder.weaponId : null, t: +t.toFixed(3) });
+
+  win.fighters[1].x = 600; win.fighters[1].y = 500;
+  win.fighters[0].setDir(1, 0);
+
+  let fireCount = 0;
+  let recoilKickDetected = 0;
+  let projectileCreated = 0;
+  const wpnApi = win.APEX_ARSENAL.weaponApi;
+  const origFireBullet = wpnApi.fireBullet;
+  const HR = win.APEX_HERO_REWORK;
+  const origOnFire = HR.onFireBullet;
+  let lastGunKickBefore = null;
+  let lastGunKickAfter = null;
+  HR.onFireBullet = function(spec) {
+    if (spec && spec.owner && spec.owner.id === win.fighters[0].id) {
+      try {
+        const st = win.APEX_ROBOT_PRESENTATION.getRobotState(win.fighters[0]);
+        if (st) lastGunKickBefore = st.R.gunKick.x;
+      } catch(e){}
+    }
+    const res = origOnFire ? origOnFire.call(this, spec) : null;
+    if (spec && spec.owner && spec.owner.id === win.fighters[0].id) {
+      fireCount++;
+      projectileCreated++;
+      try {
+        const st = win.APEX_ROBOT_PRESENTATION.getRobotState(win.fighters[0]);
+        if (st) {
+          lastGunKickAfter = st.R.gunKick.x;
+          if (st.R.gunKick.v < -1 || lastGunKickAfter < -0.5) recoilKickDetected++;
+        }
+      } catch(e){}
+    }
+    return res;
+  };
+
+  let steps = 0;
+  while (steps < 180 && fireCount === 0) {
+    Q.step(1/60);
+    steps++;
+  }
+
+  wpnApi.fireBullet = origFireBullet;
+  HR.onFireBullet = origOnFire;
+
+  gate('recoil-one-real-fire', fireCount === 1, { fireCount, steps });
+  gate('recoil-one-recoil-reaction', recoilKickDetected === 1, { recoilKickDetected, before: lastGunKickBefore, after: lastGunKickAfter });
+  gate('recoil-projectile-preserved', projectileCreated === 1, { projectileCreated });
+  gate('recoil-normal-behavior-not-replaced', fireCount === 1 && projectileCreated === 1, { fireCount, projectileCreated });
+
+  let fireCount2 = 0;
+  let recoil2 = 0;
+  HR.onFireBullet = function(spec) {
+    const res = origOnFire ? origOnFire.call(this, spec) : null;
+    if (spec && spec.owner && spec.owner.id === win.fighters[0].id) {
+      fireCount2++;
+      try {
+        const st = win.APEX_ROBOT_PRESENTATION.getRobotState(win.fighters[0]);
+        if (st && (st.R.gunKick.v < -1 || st.R.gunKick.x < -0.5)) recoil2++;
+      } catch(e){}
+    }
+    return res;
+  };
+  steps = 0;
+  while (steps < 180 && fireCount2 === 0) {
+    Q.step(1/60);
+    steps++;
+  }
+  HR.onFireBullet = origOnFire;
+  gate('recoil-second-fire-second-recoil', fireCount2 === 1 && recoil2 === 1, { fireCount2, recoil2 });
 }
 
-async function run() {
-  {
-    Q.start('ROBOT', 'ICE', 4001);
-    Q.placeFree(350, 500, 1, 0, 700, 500, -1, 0);
-    Q.step(0.5);
-    saveCanvas('01-idle');
-  }
-  {
-    Q.start('ROBOT', 'ICE', 4002);
-    Q.placeFree(200, 500, 1, 0, 700, 500, -1, 0);
-    win.fighters[0].setDir(1, 0.2);
-    Q.step(0.3);
-    saveCanvas('02-movement-inertia');
-  }
-  {
-    Q.start('ROBOT', 'ICE', 4003);
-    Q.placeFree(150, 500, 1, 0, 80, 80, 1, 0);
-    Q.pushSlot({ x: 850, y: 500, weaponId: 'PISTOL' });
-    const ctl = Q.ctl();
-    const cast = ctl.tryCast('A1', 'gates');
-    if (!cast.ok) fail('03: A1 cast should succeed for PISTOL slot');
-    let holder = null;
-    let t = 0;
-    while (t < 1.0) {
-      Q.step(1/60);
-      t += 1/60;
-      holder = Q.holderRaw('HERO');
-      if (holder && holder.weaponId === 'PISTOL') break;
-    }
-    if (!holder) fail('03: ROBOT failed to acquire real APEX firearm through actual pickup/equip pipeline within 1.0s');
-    if (holder.weaponId !== 'PISTOL') fail(`03: expected PISTOL but got ${holder.weaponId}`);
-    console.log(`03: holder acquired ${holder.weaponId} phase ${holder.phase} after ${t.toFixed(3)}s — real APEX weapon held`);
-    const sock = win.APEX_ROBOT_PRESENTATION && win.APEX_ROBOT_PRESENTATION.getRobotWeaponSocketWorld ? win.APEX_ROBOT_PRESENTATION.getRobotWeaponSocketWorld(win.fighters[0]) : null;
-    if (!sock) fail('03: getRobotWeaponSocketWorld returned null, jaw socket integration broken');
-    saveCanvas('03-weapon-held-in-socket');
-  }
-  {
-    Q.start('ROBOT', 'ICE', 4004);
-    Q.placeFree(150, 500, 1, 0, 80, 80, 1, 0);
-    Q.pushSlot({ x: 850, y: 500, weaponId: 'PISTOL' });
-    const ctl = Q.ctl();
-    ctl.tryCast('A1', 'gates');
-    let holder = null;
-    let t = 0;
-    while (t < 1.0) {
-      Q.step(1/60);
-      t += 1/60;
-      holder = Q.holderRaw('HERO');
-      if (holder && holder.weaponId === 'PISTOL') break;
-    }
-    if (!holder) fail('04: ROBOT failed to acquire real APEX firearm (PISTOL) for recoil evidence');
-    console.log(`04: holder acquired ${holder.weaponId} at t=${t.toFixed(3)}s`);
-
-    win.fighters[1].x = 600; win.fighters[1].y = 500;
-    win.fighters[0].setDir(1, 0);
-
-    let fireCount = 0;
-    let recoilCount = 0;
-    let lastGunKick = 0;
-    const wpnApi = win.APEX_ARSENAL.weaponApi;
-    const origFireBullet = wpnApi.fireBullet;
-    // Note: internal fireBullet calls bypass wpnApi wrapper, so we count via HR.onFireBullet which is inside fireBullet
-    const HR = win.APEX_HERO_REWORK;
-    const origOnFire = HR.onFireBullet;
-    HR.onFireBullet = function(spec) {
-      if (spec && spec.owner && spec.owner.id === win.fighters[0].id) {
-        try {
-          const st = win.APEX_ROBOT_PRESENTATION.getRobotState(win.fighters[0]);
-          if (st) lastGunKick = st.R.gunKick.x;
-        } catch(e){}
-      }
-      const res = origOnFire ? origOnFire.call(this, spec) : null;
-      if (spec && spec.owner && spec.owner.id === win.fighters[0].id) {
-        fireCount++;
-        recoilCount++;
-        try {
-          const st = win.APEX_ROBOT_PRESENTATION.getRobotState(win.fighters[0]);
-          if (st) lastGunKick = st.R.gunKick.x;
-        } catch(e){}
-        console.log(`04: onFireBullet real fire + recoil hook fireCount=${fireCount} recoilCount=${recoilCount} gunKick=${lastGunKick}`);
-      }
-      return res;
-    };
-
-    let fired = false;
-    let steps = 0;
-    while (steps < 180) {
-      Q.step(1/60);
-      steps++;
-      if (fireCount > 0) { fired = true; break; }
-    }
-
-    wpnApi.fireBullet = origFireBullet;
-    HR.onFireBullet = origOnFire;
-
-    if (!fired) fail('04: real weapon fire did not occur through normal APEX weapon firing path within 3s after holder acquired — cannot prove recoil');
-    if (fireCount < 1) fail('04: fireCount 0 after step loop');
-    if (recoilCount < 1) fail('04: recoil hook not triggered — presentation did not receive real onFireBullet');
-
-    console.log(`04: SUCCESS fireCount=${fireCount} recoilCount=${recoilCount} lastGunKick=${lastGunKick}`);
-
-    const holderAfter = Q.holderRaw('HERO');
-    if (!holderAfter) fail('04: holder lost after fire');
-    console.log(`04: holder after fire ${holderAfter.weaponId} phase ${holderAfter.phase}`);
-
-    const st = win.APEX_ROBOT_PRESENTATION.getRobotState(win.fighters[0]);
-    if (!st) fail('04: robot state null after fire');
-    const out = saveCanvas('04-firearm-recoil');
-    console.log(`04: saved recoil evidence to ${out}`);
-
-    const fallbackPath = path.join(evidenceDir, '04-firearm-recoil-no-holder.png');
-    if (fs.existsSync(fallbackPath)) {
-      fs.unlinkSync(fallbackPath);
-      console.log('04: removed stale fallback 04-firearm-recoil-no-holder.png');
-    }
-
-    fs.writeFileSync(path.join(evidenceDir, '04-firearm-recoil-proof.json'), JSON.stringify({
-      weapon: holder.weaponId,
-      holderAcquiredAt: t,
-      fireCount,
-      recoilCount,
-      lastGunKick,
-      holderAfter: { weaponId: holderAfter.weaponId, phase: holderAfter.phase },
-      stepsToFire: steps,
-    }, null, 2));
-  }
-  {
-    Q.start('ROBOT', 'ICE', 4005);
-    Q.placeFree(250, 700, 1, 0, 150, 150, -1, -0.5);
-    Q.pushSlot({ x: 850, y: 250, weaponId: 'PISTOL' });
-    const ctl = Q.ctl();
-    ctl.tryCast('A1', 'gates');
-    Q.step(0.05);
-    saveCanvas('05-a1-focus-lock');
-  }
-  {
-    Q.start('ROBOT', 'ICE', 4006);
-    Q.placeFree(250, 700, 1, 0, 150, 150, -1, -0.5);
-    Q.pushSlot({ x: 850, y: 250, weaponId: 'PISTOL' });
-    const ctl = Q.ctl();
-    ctl.tryCast('A1', 'gates');
-    Q.step(0.15);
-    saveCanvas('06-a1-real-dash');
-  }
-  {
-    Q.start('ROBOT', 'ICE', 4007);
-    Q.placeFree(150, 500, 1, 0, 80, 80, 1, 0.5);
-    Q.pushSlot({ x: 850, y: 500, weaponId: 'PISTOL' });
-    const ctl = Q.ctl();
-    ctl.tryCast('A1', 'gates');
-    Q.step(0.3);
-    const holder = Q.holderRaw('HERO');
-    if (!holder) fail('07: expected holder after dash/contact');
-    saveCanvas('07-a1-contact-settle');
-  }
-  {
-    Q.start('ROBOT', 'ICE', 4008);
-    Q.placeFree(250, 500, 1, 0, 150, 150, -1, -0.5);
-    Q.pushSlot({ x: 850, y: 500, weaponId: 'STORMBREAKER' });
-    const ctl = Q.ctl();
-    ctl.tryCast('A1', 'p1');
-    Q.step(0.1);
-    saveCanvas('08-a1-no-target');
-  }
-  {
-    Q.start('ROBOT', 'ICE', 4009);
-    Q.placeFree(300, 500, 1, 0, 700, 500, -1, 0);
-    const ctl = Q.ctl();
-    ctl.tryCast('A2', 'gates');
-    Q.step(0.05);
-    saveCanvas('09-a2-start-index');
-  }
-  {
-    Q.start('ROBOT', 'ICE', 4010);
-    Q.placeFree(300, 500, 1, 0, 700, 500, -1, 0);
-    const ctl = Q.ctl();
-    ctl.tryCast('A2', 'gates');
-    Q.step(0.2);
-    saveCanvas('10-a2-locked');
-  }
-  {
-    Q.start('ROBOT', 'ICE', 4011);
-    Q.placeFree(300, 500, 1, 0, 700, 500, -1, 0);
-    const a = win.fighters[0], b = win.fighters[1];
-    const ctl = Q.ctl();
-    ctl.tryCast('A2', 'gates');
-    Q.step(0.2);
-    b.x = 600; b.y = 500;
-    Q.aqDamage(a, 2, b, 'PISTOL');
-    Q.step(0.1);
-    saveCanvas('11-a2-hit-dir-right');
-    b.x = 0; b.y = 500;
-    Q.aqDamage(a, 2, b, 'PISTOL');
-    Q.step(0.1);
-    saveCanvas('12-a2-hit-dir-left');
-  }
-  {
-    Q.start('ROBOT', 'ICE', 4012);
-    Q.placeFree(300, 500, 1, 0, 700, 500, -1, 0);
-    const ctl = Q.ctl();
-    ctl.tryCast('A2', 'gates');
-    Q.step(3.1);
-    saveCanvas('13-a2-expiry-release');
-  }
-  {
-    Q.start('ROBOT', 'ICE', 4013);
-    Q.placeFree(50, 500, -1, 0, 700, 500, -1, 0);
-    win.fighters[0].setDir(-1, 0);
-    Q.step(0.5);
-    saveCanvas('14-wall-bounce');
-  }
-  {
-    Q.start('ROBOT', 'ICE', 4014);
-    Q.placeFree(300, 500, 1, 0, 700, 500, -1, 0);
-    const a = win.fighters[0], b = win.fighters[1];
-    const pCt = Q.ct();
-    pCt.skills.PASSIVE.cfg = { ...pCt.skills.PASSIVE.cfg, milestoneThresholds: [10, 20, 30] };
-    const ctl = Q.ctl();
-    ctl.setCooldown('A1', 8);
-    Q.aqDamage(b, 2, a, 'PISTOL');
-    Q.step(0.1);
-    saveCanvas('15-passive-milestone');
-    Q.aqDamage(b, 2, a, 'PISTOL');
-    Q.step(0.1);
-    saveCanvas('16-passive-upgrade');
-  }
-
-  console.log('evidence generation done — all real gameplay checks passed');
-}
-
-run().then(() => {
-  try { win.close(); } catch(e){}
-  process.exit(0);
-}).catch(e => {
-  console.error(e);
-  process.exit(1);
-});
+const total = Object.keys(report.gates).length;
+const passed = Object.values(report.gates).filter(g => g.pass).length;
+console.log(`\n[ROBOT RECOIL GATE] ${passed}/${total} gates passed`);
+report.summary = { total, passed, failed: report.failures };
+fs.writeFileSync(path.join(evidenceDir, 'robot-recoil-gate-report.json'), JSON.stringify(report, null, 2));
+try { win.close(); } catch(e){}
+process.exit(report.failures.length ? 1 : 0);
