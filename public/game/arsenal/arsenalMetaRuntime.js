@@ -56,7 +56,12 @@
     s.lastSelectedP2 = s.ownedFighters.includes(raw.lastSelectedP2) ? raw.lastSelectedP2 : 'ROBOT';
     s.totalSpins = Math.max(0, raw.totalSpins | 0);
     s.unlockedAt = raw.unlockedAt && typeof raw.unlockedAt === 'object' ? { ...raw.unlockedAt } : { ROBOT: 0 };
-    s.arenaPaletteId = typeof raw.arenaPaletteId === 'string' ? raw.arenaPaletteId : null;
+    // AUDIT-E: state truth must match rendered truth — unknown/stale palette
+    // ids sanitize to the canonical default representation (null => graphite-mid
+    // in the palette runtime). Validated against the curated list when the
+    // palette runtime is present; absent (partial boot) means default too.
+    const P = window.APEX_CHAMBER_PALETTE;
+    s.arenaPaletteId = (typeof raw.arenaPaletteId === 'string' && P && P.isKnown(raw.arenaPaletteId)) ? raw.arenaPaletteId : null;
     return migrateNewbieToRobot(s);
   }
   function load() {
@@ -82,10 +87,11 @@
   // its curated list — unknown ids simply resolve to the default there).
   function palette() { return state.arenaPaletteId || null; }
   function setPalette(id) {
-    state.arenaPaletteId = id == null ? null : String(id);
+    const PR = window.APEX_CHAMBER_PALETTE;
+    const v = id == null ? null : String(id);
+    state.arenaPaletteId = (v && PR && PR.isKnown(v)) ? v : null;
     save(state);
-    const P = window.APEX_CHAMBER_PALETTE;
-    if (P && P.refreshSelector) P.refreshSelector();
+    if (PR && PR.refreshSelector) PR.refreshSelector();
     return state.arenaPaletteId;
   }
   function getState() { return JSON.parse(JSON.stringify(state)); }

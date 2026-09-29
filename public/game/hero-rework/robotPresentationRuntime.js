@@ -1449,16 +1449,27 @@ function renderRig(g) {
         if (isRobotFighter(this)) {
           const st = getRobotState(this);
           if (!st) { return prevDraw.call(this, ctx); }
+          // AUDIT-E: single authoritative actor render; readability separation
+          // reuses the same offscreen pixels. Status rings stay on the main
+          // ctx afterwards and never enter the silhouette.
+          const P = globalScope.APEX_CHAMBER_PALETTE;
+          const renderActor = (tc) => {
+            tc.save();
+            tc.globalAlpha = this.hasStatus('immune') ? 0.55 : 1;
+            tc.translate(this.x, this.y);
+            // Fixed HTML-facing world orientation.
+            if (this.isRage) {
+              const glow = this.color || '#ffffff';
+              try { tc.filter = `drop-shadow(0 0 5px ${glow}) drop-shadow(0 0 11px ${glow})`; } catch (e) {}
+            }
+            try { renderRobotLocal(tc, this, st); } catch (e) { console.warn('[robot-presentation] render failed', e); }
+            if (this.isRage) { try { tc.filter = 'none'; } catch (e) {} }
+            tc.restore();
+          };
+          if (P && P.actorRender && P.isActive()) P.actorRender(ctx, this, this.x, this.y, renderActor);
+          else renderActor(ctx);
           ctx.save();
-          ctx.globalAlpha = this.hasStatus('immune') ? 0.55 : 1;
           ctx.translate(this.x, this.y);
-          // Fixed HTML-facing world orientation.
-          if (this.isRage) {
-            const glow = this.color || '#ffffff';
-            try { ctx.filter = `drop-shadow(0 0 5px ${glow}) drop-shadow(0 0 11px ${glow})`; } catch (e) {}
-          }
-          try { renderRobotLocal(ctx, this, st); } catch (e) { console.warn('[robot-presentation] render failed', e); }
-          if (this.isRage) { try { ctx.filter = 'none'; } catch (e) {} }
           if (this.hasStatus('freeze')) {
             if (typeof drawStatusRing === 'function') drawStatusRing(ctx, this.radius + 18, '#a6f4ff', 'FREEZE');
           }

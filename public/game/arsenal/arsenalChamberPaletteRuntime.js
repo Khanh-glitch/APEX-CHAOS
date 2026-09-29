@@ -197,51 +197,80 @@
     c.restore();
   }
 
-  // ---- stable combat readability wrappers (neutral, hue-preserving) ---------
-  let wrapped = false;
-  function active() {
+  // ---- stable combat readability wrappers (neutral, hue-preserving) --------
+  // AUDIT-E: the actor source is rendered EXACTLY ONCE per frame into a small
+  // stable offscreen; the same offscreen supplies (a) the neutral separation
+  // shadows and (b) the normal appearance blit. Status rings, WEAK chevrons,
+  // trap/front/fx layers and combat VFX are never rendered into the offscreen
+  // (they draw straight to the main ctx, outside actorRender). Base fighters
+  // get a zero-extra-render geometric separation instead.
+  const SIL = 256;
+  const sils = new WeakMap();
+  const rstats = { actorRenders: 0, weaponRenders: 0, actorAllocs: 0, inActor: false };
+  function isActive() {
     const AQ = window.APEX_ARSENAL;
     return !!(AQ && AQ.state && AQ.state.active);
   }
+  function actorRender(c, key, wx, wy, renderFn, kind) {
+    if (!isActive()) { renderFn(c); return; }
+    const pr = current().profile;
+    let oc = sils.get(key);
+    if (!oc) { oc = document.createElement('canvas'); oc.width = oc.height = SIL; sils.set(key, oc); rstats.actorAllocs += 1; }
+    const o = oc.getContext('2d');
+    o.setTransform(1, 0, 0, 1, 0, 0);
+    o.clearRect(0, 0, SIL, SIL);
+    o.setTransform(1, 0, 0, 1, SIL / 2 - wx, SIL / 2 - wy);
+    rstats.inActor = true;
+    if (kind === 'weapon') rstats.weaponRenders += 1; else rstats.actorRenders += 1;
+    try { renderFn(o); } finally { rstats.inActor = false; }
+    o.setTransform(1, 0, 0, 1, 0, 0);
+    o.globalCompositeOperation = 'source-in';
+    o.fillStyle = pr.sil;
+    o.fillRect(0, 0, SIL, SIL);
+    o.globalCompositeOperation = 'source-over';
+    const dx = wx - SIL / 2, dy = wy - SIL / 2;
+    c.save();
+    c.shadowColor = pr.shadow; c.shadowBlur = pr.blur; c.shadowOffsetY = pr.offset;
+    c.drawImage(oc, dx, dy);
+    c.shadowColor = pr.keyline; c.shadowBlur = 2; c.shadowOffsetY = 0;
+    c.drawImage(oc, dx, dy);
+    c.restore();
+    c.drawImage(oc, dx, dy); // normal appearance reuses the single source render
+  }
+  let wrapped = false;
   function installWrappers() {
     if (wrapped) return;
-    // Resolve the Fighter class from a live body (the engine exposes it as a
-    // lexical global in some builds and on window in others).
     const F = (window.fighters && window.fighters[0] && window.fighters[0].constructor)
       || window.Fighter
       || (typeof Fighter !== 'undefined' ? Fighter : null);
     if (!F || !F.prototype || !F.prototype.draw) return;
     wrapped = true;
-    if (F && F.prototype && F.prototype.draw) {
+    if (F.prototype.draw && !F.prototype.__paletteGeoWrapped) {
       const base = F.prototype.draw;
-      // The engine resets ctx shadows inside its own draw, so readability
-      // is applied as a silhouette pre-pass: the body is rendered once into a
-      // small shared offscreen (monochrome via composite), then blitted under
-      // the real draw with the palette's neutral shadow/keyline. One extra
-      // small blit per fighter per frame; no filters, no hue shifts.
-      const SIL = 256;
-      const sils = new WeakMap();
+      F.prototype.__paletteGeoWrapped = true;
+      // Geometric separation for fighters WITHOUT a presentation actor hook:
+      // one neutral grounding shadow + faint rim, zero extra renders, and it
+      // cannot capture status/VFX layers (it adds, never re-draws).
       F.prototype.draw = function (c) {
-        if (!active()) return base.call(this, c);
-        const pr = current().profile;
-        let oc = sils.get(this);
-        if (!oc) { oc = document.createElement('canvas'); oc.width = oc.height = SIL; sils.set(this, oc); }
-        const o = oc.getContext('2d');
-        o.setTransform(1, 0, 0, 1, 0, 0);
-        o.clearRect(0, 0, SIL, SIL);
-        o.setTransform(1, 0, 0, 1, SIL / 2 - this.x, SIL / 2 - this.y);
-        base.call(this, o);
-        o.setTransform(1, 0, 0, 1, 0, 0);
-        o.globalCompositeOperation = 'source-in';
-        o.fillStyle = pr.sil;
-        o.fillRect(0, 0, SIL, SIL);
-        o.globalCompositeOperation = 'source-over';
-        c.save();
-        c.shadowColor = pr.shadow; c.shadowBlur = pr.blur; c.shadowOffsetY = pr.offset;
-        c.drawImage(oc, this.x - SIL / 2, this.y - SIL / 2);
-        c.shadowColor = pr.keyline; c.shadowBlur = 2; c.shadowOffsetY = 0;
-        c.drawImage(oc, this.x - SIL / 2, this.y - SIL / 2);
-        c.restore();
+        if (isActive()) {
+          const HR = window.APEX_HERO_REWORK;
+          const hero = HR && HR.byCombatant ? (HR.byCombatant(this) || {}).heroId : null;
+          if (hero !== 'HUNTER' && hero !== 'ROBOT') {
+            const pr = current().profile;
+            const r = this.radius || 60;
+            c.save();
+            c.fillStyle = pr.shadow;
+            c.beginPath();
+            c.ellipse(this.x, this.y + r * 0.72, r * 0.92, r * 0.34, 0, 0, Math.PI * 2);
+            c.fill();
+            c.strokeStyle = pr.keyline;
+            c.lineWidth = 2;
+            c.beginPath();
+            c.arc(this.x, this.y, r * 0.98, 0, Math.PI * 2);
+            c.stroke();
+            c.restore();
+          }
+        }
         return base.call(this, c);
       };
     }
@@ -249,13 +278,10 @@
     if (AV && AV.drawEquippedWeapon && !AV.__paletteWrapped) {
       const bw = AV.drawEquippedWeapon.bind(AV);
       AV.drawEquippedWeapon = function (c, f, h) {
-        if (!active()) return bw(c, f, h);
-        const pr = current().profile;
-        c.save();
-        c.shadowColor = pr.shadow; c.shadowBlur = pr.blur * 0.8; c.shadowOffsetY = pr.offset;
-        const r = bw(c, f, h);
-        c.restore();
-        return r;
+        if (!isActive()) return bw(c, f, h);
+        // ONE weapon render dispatch per call; separation reuses its pixels.
+        actorRender(c, f, f.x, f.y, (oc) => bw(oc, f, h), 'weapon');
+        return undefined;
       };
       AV.__paletteWrapped = true;
     }
@@ -284,9 +310,14 @@
   window.APEX_CHAMBER_PALETTE = {
     list: () => PALETTES.map((p) => ({ id: p.id, label: p.label, profile: p.profile })),
     current: currentId,
+    isKnown: (id) => PALETTES.some((p) => p.id === id),
     select,
     surface,
     stats: statsSnapshot,
+    renderStats: () => Object.assign({}, rstats),
+    inActor: () => rstats.inActor,
+    isActive,
+    actorRender,
     installWrappers,
     refreshSelector,
     paintForTests: paint,

@@ -55,7 +55,17 @@ api.tick=dt=>{if(!api.ready||!HR.match)return;for(const ct of HR.match.combatant
  sync(s,s.h.mode!=='a1');s.integrateHunter(0);s.updateMarks&&s.updateMarks(dt);s.fx.update(dt);s.ribL.prune(s.time);s.ribR.prune(s.time);s.ribC.prune(s.time);
  for(const e of s.echoes)e.t-=dt;s.echoes=s.echoes.filter(e=>e.t>0);
 }};
-function body(c,f){const s=state(f);sync(s);s.integrateHunter(0);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);const m=c.getTransform(),v=new G.rig.Xf().set(m.a,m.b,m.c,m.d,m.e,m.f);s.drawEchoes(c,v);s.drawHunter(c,v,s.pose,1);s.ribL.draw(c,s.time);s.ribR.draw(c,s.time);c.restore();const holder=g.APEX_ARSENAL.weaponApi.getHolder(f);if(holder)g.APEX_ARSENAL_AV?.drawEquippedWeapon(c,f,holder);}
+function xfOf(c){const m=c.getTransform();return new G.rig.Xf().set(m.a,m.b,m.c,m.d,m.e,m.f);}
+// AUDIT-E: the expensive actor source (drawHunter) renders exactly once per
+// frame — into the palette offscreen when readability is active, straight to
+// the main ctx otherwise. Echoes/ribbons/weapon are fx layers drawn to the
+// main ctx only; they never feed the readability silhouette.
+function echoesBefore(c,f){const s=state(f);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.drawEchoes(c,xfOf(c));c.restore();}
+function actorCore(c,f){const s=state(f);sync(s);s.integrateHunter(0);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.drawHunter(c,xfOf(c),s.pose,1);c.restore();}
+function fxAfter(c,f){const s=state(f);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.ribL.draw(c,s.time);s.ribR.draw(c,s.time);c.restore();}
+// Equipped-weapon dispatch lives ONLY in the Arsenal quest weapon pass (single
+// dispatch law); body() never draws the weapon a second time.
+function body(c,f){const P=g.APEX_CHAMBER_PALETTE;echoesBefore(c,f);if(P&&P.actorRender&&P.isActive())P.actorRender(c,f,f.x,f.y,oc=>actorCore(oc,f));else actorCore(c,f);fxAfter(c,f);}
 function layer(c,which){if(!api.ready||!HR.match)return;for(const t of HR.match.world.snares){if(!t.visual)continue;const k=scale(t.owner.anchor),v=t.visual;v.tr.x=t.x/k;v.tr.y=t.y/k;c.save();c.scale(k,k);G.rtDraw(v,c,null,which);c.restore();}}
 function weakLayer(c){if(!api.ready||!HR.match)return;for(const ct of HR.match.combatants){if(ct.heroId!=='HUNTER')continue;const s=states.get(ct.anchor);if(!s||(s.p.weak||0)<=0)continue;c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.drawWeak(c);c.restore();}}
 const baseProjectiles=g.drawProjectiles;g.drawProjectiles=function(c){baseProjectiles(c);layer(c,'back');for(const ct of HR.match?.combatants||[])if(ct.heroId==='HUNTER'&&api.ready){const s=state(ct.anchor);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.fx.draw(c,false);c.restore();}};
