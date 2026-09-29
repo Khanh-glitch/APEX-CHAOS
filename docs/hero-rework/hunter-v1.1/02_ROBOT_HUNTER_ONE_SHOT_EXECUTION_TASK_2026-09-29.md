@@ -149,12 +149,17 @@ Three charges do not mean skipping the signature gold cast animation.
 
 The current AbilityController has no native charge model, so implement the smallest safe charge extension/state required for Hunter A1:
 - start/max 3;
+- the old single-cast 11s cooldown is superseded and must NOT remain as an extra cast lock;
 - successful cast consumes exactly 1;
+- if another charge remains, A1 may cast again after the gold recovery even while recharge is running;
 - failed/blocked cast does not consume a charge;
 - recharge is sequential, one charge every 6.5s;
+- spending another charge while recharge is already running must NOT reset the current recharge progress;
+- after one charge returns, immediately continue the next 6.5s recharge if still below 3;
 - reaching full charges stops recharge cleanly;
 - rematch/new match resets to 3;
-- active-trap cap failure must not consume a charge.
+- active-trap cap failure must not consume a charge;
+- preserve the one-knob registry law by binding A1 progression to recharge interval rather than obsolete 11s cooldown gating.
 
 Expose truthful A1 charge/recharge state through the EXISTING skill/cooldown HUD or mode slot. Do not add a separate Hunter HUD.
 
