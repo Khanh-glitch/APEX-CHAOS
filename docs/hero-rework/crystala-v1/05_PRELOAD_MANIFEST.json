@@ -3,7 +3,6 @@
   "date": "2026-09-30",
   "repository": "Khanh-glitch/APEX-CHAOS",
   "audited_branch": "arena/01a0ead6-apex-chaos",
-  "audited_head_before_preload": "148ab872e0f8ba31eb0cedc658bdfac715f846d3",
   "gold": {
     "source_name": "CRYSTALA_TRUE_FUSION_V6_A2_J_DENSITY_BREAK.html",
     "repo_name": "01_OWNER_APPROVED_GOLD_REFERENCE.html",
@@ -42,5 +41,17 @@
     "03_IMPLEMENTATION_TEST_MATRIX.md",
     "04_ZERO_CONTEXT_HANDOFF.md",
     "05_PRELOAD_MANIFEST.json"
-  ]
+  ],
+  "historical_preload_parent": "148ab872e0f8ba31eb0cedc658bdfac715f846d3",
+  "implementation_baseline": {
+    "branch": "arena/01a0ead6-apex-chaos",
+    "commit": "00d83e76d248c49ca65d8e546c67819d07a0d758",
+    "runtime_revision": "20260930-hunter-ownerfix-r1",
+    "history_law": "fetch/fast-forward forward only; never reset/rebase/cherry-pick the preload"
+  },
+  "post_baseline_prep": {
+    "runtime_revision": "20260930-crystala-prep-r1",
+    "owner_test_credit_grant": 12000,
+    "gameplay_baseline_unchanged": true
+  }
 }

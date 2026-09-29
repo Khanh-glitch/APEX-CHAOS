@@ -2,6 +2,15 @@
 
 This directory is the complete zero-attachment preload for the next Arena implementation pass.
 
+## Mandatory implementation baseline
+Before CRYSTALA implementation, fetch/fast-forward from remote and verify this owner-approved baseline is in ancestry:
+
+- branch: `arena/01a0ead6-apex-chaos`
+- baseline commit: `00d83e76d248c49ca65d8e546c67819d07a0d758`
+- baseline runtime revision: `20260930-hunter-ownerfix-r1`
+
+Do **not** go back to the preload SHA and do not rebase/cherry-pick the preload again. If the remote branch contains newer preparation commits, continue from the newest remote descendant; never move backward.
+
 ## Read order
 1. `00_CRYSTALA_IMPLEMENTATION_AUTHORITY.md`
 2. `01_OWNER_APPROVED_GOLD_REFERENCE.html` — run/read it in full

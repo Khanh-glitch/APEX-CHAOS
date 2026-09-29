@@ -15,10 +15,20 @@ Implement the approved Crystala Gold into real CRYSTAL and replace the old Cryst
 - Do not modify unrelated systems just because they are nearby.
 - If a Gold visual exists, port it faithfully; do not use a generic substitute and call it parity.
 
-## Live facts audited before preload
-At preload audit, HEAD was `148ab872e0f8ba31eb0cedc658bdfac715f846d3`; re-audit fresh HEAD because it may advance.
+## Mandatory implementation baseline
+CRYSTALA must start from the Hunter-ownerfix lineage:
 
-Important live facts:
+- branch: `arena/01a0ead6-apex-chaos`
+- gameplay baseline: `00d83e76d248c49ca65d8e546c67819d07a0d758`
+- baseline runtime revision: `20260930-hunter-ownerfix-r1`
+
+At the start of a new Arena chat, fetch remote and fast-forward forward to the newest `origin/arena/01a0ead6-apex-chaos` descendant containing `00d83e76d248c49ca65d8e546c67819d07a0d758`. Verify the baseline is an ancestor before implementing.
+
+Never checkout/reset back to the preload SHA, never rebase onto it, and never cherry-pick the preload package again.
+
+If handoff/docs or owner-test-credit prep have advanced the branch beyond `00d83e76d248c49ca65d8e546c67819d07a0d758`, continue from the newest remote descendant. The baseline remains the Hunter owner-fix commit, not the older preload history.
+
+Important live facts at the baseline:
 - old Crystal kit still exists in registry/mechanics/body-reflect path;
 - J for rework fighters already direct-casts A1 and bypasses legacy gate buffering;
 - K direct input already exists in the rework runtime;

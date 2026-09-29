@@ -11,14 +11,29 @@ This is NOT a redesign. The Gold remains the appearance/choreography authority; 
 
 The standalone Gold still demonstrates old semantics (`J=wall`, `K=prison`, `P=intercept`). Those controls and demo combat are rejected as production gameplay truth. The approved visual algorithms, shapes, timing grammar, material behavior and motion remain authoritative.
 
-## 1. Audited live continuity
+## 1. Mandatory CRYSTALA implementation baseline
 Repository: `Khanh-glitch/APEX-CHAOS`
-Audited Arena branch at preload start: `arena/01a0ead6-apex-chaos`
-Audited live HEAD before preload: `148ab872e0f8ba31eb0cedc658bdfac715f846d3`
+Required branch: `arena/01a0ead6-apex-chaos`
+Required gameplay baseline commit: `00d83e76d248c49ca65d8e546c67819d07a0d758`
+Baseline runtime revision: `20260930-hunter-ownerfix-r1`
 
-Fresh implementation sessions MUST fetch/re-audit their own current HEAD before writing. Never assume local Arena state survives a new chat/model. Never switch/create branches to chase an older SHA; continue on the session-pinned branch if ancestry is clean.
+This commit is the owner-approved baseline **after the latest Hunter owner-playtest fixes**. CRYSTALA implementation must inherit those fixes.
 
-At the audited live code:
+Before writing any CRYSTALA implementation:
+1. inspect `git status --short`, current branch and HEAD;
+2. `git fetch` the remote branch;
+3. fast-forward forward so `00d83e76d248c49ca65d8e546c67819d07a0d758` is in the current branch ancestry, then continue from the latest remote descendant;
+4. verify ancestry rather than copying files between histories.
+
+Hard history law:
+- do **not** reset/checkout back to the old preload SHA;
+- do **not** rebase or cherry-pick the preload again;
+- old preload construction SHAs are historical package provenance only, never the implementation start point;
+- if current remote HEAD is already a descendant of `00d83e76d248c49ca65d8e546c67819d07a0d758`, continue forward from that HEAD and never move backward.
+
+A later prep descendant may carry cache-bust revision `20260930-crystala-prep-r1` only because owner-test currency was added; that does not redefine the gameplay baseline above.
+
+At the audited baseline code:
 - registry still contains old Crystal Wall 11s / Prison 20s / always-on 50% body-reflect;
 - `heroMechanicsRuntime.js` still executes old Crystal wall/prison;
 - `heroReworkRuntime.js` still contains old body `tryReflect`;
@@ -375,7 +390,7 @@ Do not record an expensive long owner reel before A/B are durable.
 
 ## 20. Stop conditions
 Stop/report instead of guessing only if:
-- preload package is not ancestral to the current branch and reconciliation would require destructive history;
+- required baseline `00d83e76d248c49ca65d8e546c67819d07a0d758` is not ancestral to the current remote branch and reconciliation would require destructive history;
 - implementation truly requires direct Robot/Hunter/Chamber semantic edits rather than a generic shared hook;
 - current live architecture has materially changed so a required owner choice exists.
 

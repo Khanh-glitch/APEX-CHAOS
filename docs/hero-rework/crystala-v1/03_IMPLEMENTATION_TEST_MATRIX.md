@@ -134,6 +134,8 @@ Record, do not self-balance before correctness:
 - seeded Crystal-vs-Robot winner/match duration.
 
 ## 9. Regression floor
+Before running the suite, verify `00d83e76d248c49ca65d8e546c67819d07a0d758` is an ancestor of implementation HEAD on `arena/01a0ead6-apex-chaos`. Record `20260930-hunter-ownerfix-r1` as the gameplay-baseline runtime revision and never substitute an older preload SHA.
+
 Discover exact current scripts at fresh HEAD, then keep green:
 - Arsenal headless;
 - Arsenal browser/runtime;
