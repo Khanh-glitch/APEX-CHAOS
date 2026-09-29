@@ -18,6 +18,9 @@ The following authority commits MUST be ancestors of the working HEAD before edi
 - QA non-mutating workflow correction: `4845b5c9024965e7cd0818afc96c26586382b898`
 - Robot truthful-refund authority correction: `a4d8838c0fe61da47827e356ac2527231e76128c`
 - Hunter gold/gameplay mapping correction: `ef7323bdf3860523112538787359ee33e9064252`
+- Hunter V10 supersession audit: `4767c57f6122da492aaeff4f5026f757bc6efbed`
+- Hunter V10 presentation authority update: `47a6547e15cbb7e82e8f920034e17ebd20db14a9`
+- Hunter V10 execution-task update: `cd8697dd4f86eb8eb058a21141ee5381e8c40512`
 
 Historical automated commits named like:
 `chore(arsenal): refresh real-browser evidence [skip ci]`
@@ -237,19 +240,23 @@ Resolve prey-state eligibility + T6 + lockout + deterministic 24% proc FIRST. On
 Produce a concise owner-review package, not a huge evidence project:
 
 1. idle + normal locomotion;
-2. A1 full sequence at normal speed while moving one direction, then again from the opposite direction, proving the recoil maps against movement and is physical;
-3. three consecutive valid A1 casts showing independent traps plus truthful 3/3 -> 2/3 -> 1/3 -> 0/3 charge HUD and sequential recharge;
-4. real opponent root;
-5. trap release/expiry;
-6. A2 against a target that changes direction during chase;
-7. A2 real contact -> zero direct damage + WEAK;
-8. passive dodge under valid prey state;
-9. passive no-proc condition without prey state;
-10. T6 exclusion;
-11. real weapon/projectile environment interaction;
-12. short 60–90s owner acceptance reel covering the above at normal game scale.
+2. A1 full sequence at normal speed while moving one direction, then again from the opposite direction, proving recoil maps against movement and the rendered rig stays aligned with the physical body;
+3. one V10 trap full lifecycle at normal speed: unfold -> armed -> tension -> snap -> pin -> release;
+4. three consecutive valid A1 casts showing three visually/logically independent traps plus truthful 3/3 -> 2/3 -> 1/3 -> 0/3 charge HUD and sequential recharge;
+5. real opponent triggering one trap, with V10 snap/pin beginning from that real trigger;
+6. clean V10 ARMED state with no permanent generic orb;
+7. V10 PIN pull/tension behavior without excessive visual noise;
+8. untriggered expiry plus triggered V10 retract/fade cleanup, with no fake capture;
+9. A2 against an opponent that changes direction during chase;
+10. A2 real swept body contact -> zero direct skill damage + WEAK;
+11. passive dodge under valid prey state;
+12. passive no-proc condition without prey state;
+13. T6 exclusion;
+14. real weapon/projectile environment interaction;
+15. three simultaneous traps without repeated V10 material derivation/source decode or material frame-time/memory regression;
+16. short 60–90s owner acceptance reel covering the above at normal game scale.
 
-Screenshots may supplement; motion proof is primary because Hunter gold is motion-heavy.
+Screenshots may supplement; motion proof is primary because Hunter Gold is motion-heavy.
 
 ## Focused validation
 
