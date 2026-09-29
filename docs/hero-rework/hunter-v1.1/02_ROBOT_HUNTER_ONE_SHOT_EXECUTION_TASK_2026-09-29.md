@@ -43,7 +43,11 @@ The previous V9 hash `c8cde28f346bbbd99de0c448ccfb396eae210e4928436850ef82b488d7
 
 If the attached source hash does not match, STOP rather than implementing from memory or an older Hunter prototype.
 
-After verification, copy/bridge the exact gold HTML into a stable repo authority path so future Agent sessions do not depend on the chat attachment. Preserve the exact bytes and record the SHA.
+After verification, copy/bridge the exact gold HTML bytes to this exact stable repo authority path:
+
+`docs/hero-rework/hunter-v1.1/reference/HUNTER_GOLD_V10_EXACT_ROOT_TRAP.html`
+
+Preserve the exact bytes. After bridging, verify the repo copy has the same SHA-256 `447cf549cceb955459eda4b74ef5a561c77fc2f574252783bc7921663578ae65`. Future Agent sessions must use this in-repo copy rather than depending on the chat attachment.
 
 ## Read before editing
 
