@@ -4,8 +4,11 @@ Status: OWNER-SUPPLIED GOLD UPDATE. This document supersedes the V9 source ident
 
 ## Exact source identity
 
-New owner Gold attachment:
+Canonical repo Gold:
 
+`docs/hero-rework/hunter-v1.1/reference/HUNTER_GOLD_V10_EXACT_ROOT_TRAP.html`
+
+Originally supplied by the owner as:
 `HUNTER_ALT_FINAL_V10_EXACT_ROOT_TRAP(1).html`
 
 Verified properties:
@@ -17,7 +20,7 @@ Previous V9 source (SUPERSEDED):
 - `HUNTER_ALT_FINAL_V9_ROOT_TRAP_SAFE_P(1).html`
 - SHA-256: `c8cde28f346bbbd99de0c448ccfb396eae210e4928436850ef82b488d765fc88`
 
-The new file still contains stale embedded labels such as `HUNTER FINAL V9 ROOT TRAP`, `FINAL V9`, and a patch comment named `FINAL V7 PATCH`. Those embedded labels are historical text inside the prototype. They DO NOT downgrade or invalidate the V10 attachment. The exact filename + SHA-256 above is the authority identity.
+The file still contains stale embedded labels such as `HUNTER FINAL V9 ROOT TRAP`, `FINAL V9`, and a patch comment named `FINAL V7 PATCH`. Those embedded labels are historical text inside the prototype. They DO NOT downgrade or invalidate V10. The canonical repo path + SHA-256 above define the authority identity.
 
 ## Byte-level semantic audit against V9
 
