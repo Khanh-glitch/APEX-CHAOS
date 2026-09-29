@@ -31,7 +31,11 @@
   },
   "preload_scope": {
     "production_files_modified": false,
-    "docs_only": true
+    "docs_only": false,
+    "support_tool_only": true,
+    "support_tools": [
+      "tools/preflightCrystalaOneShot.mjs"
+    ]
   },
   "read_order": [
     "README_PRELOAD.md",

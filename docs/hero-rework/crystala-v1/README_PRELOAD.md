@@ -29,7 +29,7 @@ Do **not** go back to the preload SHA and do not rebase/cherry-pick the preload 
 - Preserve latest Chamber laws: one actor source render, FX outside silhouette source, equipped weapon single dispatch, no hue filter rewrite.
 
 ## Preload-stage safety
-This preload commit is docs/reference only. It must not modify production files.
+This preload package contains docs/reference authority plus a test-only one-shot preflight helper. It does not modify production runtime/gameplay files.
 
 The implementation task may change the minimum Crystal/shared integration surface required by this authority. Direct Robot/Hunter/Chamber semantic edits remain protected; under unattended one-shot execution, do not make them without authority, but do NOT stop the whole task — finish all independent work and report any residual blocker only in the final report. See `06_ONE_SHOT_RUNBOOK.md`.
 

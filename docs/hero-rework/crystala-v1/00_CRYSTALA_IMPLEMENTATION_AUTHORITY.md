@@ -64,7 +64,7 @@ Preserve current proven laws:
 - no full-actor hue/filter rewrite;
 - runtime-revision/cache-bust discipline remains green.
 
-Direct edits to Robot/Hunter/Chamber runtime semantics are a stop/report condition. Prefer Crystal-specific adapters and the smallest generic shared hook.
+Direct edits to Robot/Hunter/Chamber runtime semantics are protected. Prefer Crystal-specific adapters and the smallest generic shared hook. Under unattended one-shot execution, a protected blocker does not stop the whole task; preserve the protected behavior, finish all independent work, and report only the residual blocker at the end.
 
 ## 4. Frozen V1 numbers
 Do not self-tune these during the first implementation.
