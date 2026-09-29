@@ -4,7 +4,10 @@ Status: OWNER-APPROVED GOLD PRESENTATION + GAMEPLAY V1.1 integration authority.
 
 ## Required source file
 
-Owner gold HTML filename:
+Canonical in-repo Gold authority:
+`docs/hero-rework/hunter-v1.1/reference/HUNTER_GOLD_V10_EXACT_ROOT_TRAP.html`
+
+This canonical repo file was bridged byte-for-byte from the owner-provided:
 `HUNTER_ALT_FINAL_V10_EXACT_ROOT_TRAP(1).html`
 
 Exact owner-source properties:
@@ -27,6 +30,8 @@ The visible skill grammar remains:
 - Passive: `incoming shot -> foreleg slip`
 
 Do not substitute V9 or any older Hunter prototype.
+
+No Arena/chat attachment is required for implementation. The canonical in-repo file above is the source of truth and MUST be verified from Git before Hunter work.
 
 ## Gameplay authority
 
