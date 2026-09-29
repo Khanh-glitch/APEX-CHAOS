@@ -17,15 +17,15 @@
         "traj": [
           {
             "f": 21,
-            "x": 547,
-            "y": 476,
+            "x": 548,
+            "y": 474,
             "life": 0.47,
             "chill": true
           },
           {
             "f": 22,
-            "x": 505,
-            "y": 450,
+            "x": 507,
+            "y": 445,
             "life": 0,
             "chill": true
           }
@@ -73,7 +73,7 @@
           {
             "f": 21,
             "x": 547,
-            "y": 476,
+            "y": 478,
             "life": 0.47
           }
         ],
@@ -226,8 +226,8 @@
           ],
           "runs": 14,
           "casts": 277,
-          "entitiesPeak": 8,
-          "slimeBodyPeak": 3,
+          "entitiesPeak": 7,
+          "slimeBodyPeak": 2,
           "mathProjectiles": 0
         }
       }
@@ -259,8 +259,8 @@
     ],
     "runs": 14,
     "casts": 277,
-    "entitiesPeak": 8,
-    "slimeBodyPeak": 3,
+    "entitiesPeak": 7,
+    "slimeBodyPeak": 2,
     "mathProjectiles": 0
   },
   "fuzz": {},

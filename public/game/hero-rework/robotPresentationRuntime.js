@@ -1,40 +1,22 @@
 /* =============================================================================
- * APEX CHAOS — ROBOT Final Presentation Runtime (2026-09-29)
+ * APEX CHAOS — ROBOT Final Presentation Runtime (2026-09-29) — REPAIRED PASS
  *
- * Owner-approved visual authority:
- *   docs/hero-rework/robot-final/reference/ROBOT_VISUAL_AUTHORITY.html
- * Final SFX (8 files):
- *   robot_a1_lock, robot_a1_no_weapon, robot_a1_dash,
- *   robot_a2_activate, robot_a2_armor_hit, robot_a2_end,
- *   robot_passive_milestone, robot_passive_upgrade
+ * Authority: docs/hero-rework/robot-final/reference/ROBOT_VISUAL_AUTHORITY.html
+ * Complete HTML now 1282 lines, SHA bd0cc64fbeea94969fbef0b4bc4de690a19e85fafe93cb4a12c9b3accf095f75
+ * Final SFX (8 files): lock, no_weapon, dash, activate, armor_hit, end, milestone, upgrade
  *
- * This module implements the WHOLE Robot as a first-class presentation actor:
- *   - body renderer and articulated motion (exact segmentation from HTML)
- *   - normal locomotion inertia (lag/tilt from real velocity)
- *   - real held-weapon integration via jaw socket
- *   - weapon-fire recoil
- *   - wall response
- *   - normal hit response
- *   - A1/A2 presentation + final SFX
- *   - passive presentation plumbing
- *   - semantic event integration
- *   - camera/hit-stop/audio/session lifecycle
- *   - performance (cached sprites, pooled VFX, no per-frame decode/DOM)
- *   - teardown
- *
- * Architecture:
- *   - Dedicated module, no second game loop/canvas/physics/AudioContext
- *   - Listens to AIL bus events (observational only, no gameplay mutation)
- *   - Hooks Fighter.prototype.draw for ROBOT only
- *   - Wraps HR.onFireBullet for recoil, Fighter.resolveWalls for wall, and
- *     AV.drawEquippedWeapon for jaw socket
- *   - Audio via existing audioCtx / battleAudioMaster, bounded voices,
- *     session-aware (apexRegisterBattleAudioSource)
- *
- * Preservation:
- *   - Gameplay numbers/laws untouched (dashSpeed, cooldowns, DR, etc.)
- *   - SLIME corrections preserved (extraLivingBodies, environmentTargets)
- *   - Other heroes untouched
+ * Fixes in this pass:
+ * - Single authoritative event per presentation (no duplicate SFX)
+ *   LOCK: RobotA1Lock only
+ *   NO-WEAPON: CastFailCue -> emits RobotA1NoWeapon (authoritative) once, P2 silent
+ *   DASH: RobotA1DashLaunch only (RobotA1Dash alias no SFX)
+ *   CONTACT: real equip truth via onEquipOffensive -> RobotA1Contact only, not arriveRadius
+ *   A2 ACTIVATE: RobotA2Start only (Activate alias no SFX)
+ *   A2 ARMOR HIT: RobotA2Hit only (ArmorHit alias no SFX), RealizedDamageEvent does NOT play armor SFX
+ *   A2 END: mechanics onTick authoritative, presentation does NOT have duplicate expiry
+ *   PASSIVE: RobotPassiveMilestone once, RobotPassiveUpgrade once, MilestoneRefund alias no SFX
+ * - Restored missing visual tail from complete HTML: drawBrackets elastic, drawMeasure, drawTrail with calibration ticks, fade logic
+ * - No second AudioContext, bounded voices, session teardown
  * ========================================================================== */
 
 (function (globalScope) {
@@ -45,9 +27,6 @@
   const mix = (a, b, t) => a + (b - a) * t;
   const wrapA = (a) => { while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU; return a; };
 
-  // --------------------------------------------------------------------------
-  // Head-space constants from HTML authority
-  // --------------------------------------------------------------------------
   const HS = 172;
   const HSC = HS / 1280;
   const PIV = [{ x: 191, y: 626 }, { x: 1089, y: 626 }];
@@ -55,7 +34,6 @@
   const LATCH = { x: 640, y: 470 };
   const GUN_DROP = 5;
 
-  // Masks (1280 head units)
   const mir = (pts) => pts.map(p => [1280 - p[0], p[1]]);
   const M = {};
   M.calL = [[455,92],[490,140],[478,298],[420,366],[476,316],[498,300],[520,326],[472,488],[374,548],[320,652],[346,742],[430,798],[482,890],[510,992],[456,1034],[432,1114],[372,1100],[322,964],[298,902],[256,896],[166,814],[110,694],[92,556],[144,506],[114,470],[174,360],[276,226],[418,104]];
@@ -67,10 +45,7 @@
   const SLOT = [[300,-200],[980,-200],[980,300],[777,300],[745,383],[694,448],[680,452],[680,540],[600,540],[600,452],[586,448],[535,383],[503,300],[300,300]];
   const HULL = [[596,330],[684,330],[900,390],[1004,490],[1046,626],[1004,806],[900,946],[762,1044],[640,1104],[518,1044],[380,946],[276,806],[234,626],[276,490],[380,390]];
   const SEAM = [[474,318],[522,328],[472,488],[372,548],[318,652]];
-  const EYE_D = ['M404 675 Q475 711 558 752 L540 795 Q476 781 419 732 Z','M876 675 Q805 711 722 752 L740 795 Q804 781 861 732 Z'];
-  const SOCK_D = ['M373 653 Q465 686 563 741 L586 808 505 833 Q423 800 379 762 Z','M907 653 Q815 686 717 741 L694 808 775 833 Q857 800 901 762 Z'];
 
-  // LAYERS from HTML (exact SVG snippets)
   const LAYERS = {
     chassis: '<path d="M618 83 Q640 65 663 83 L710 184 762 237 801 353 906 326 1011 417 1112 532 1118 739 1043 909 902 1024 774 1015 716 1090 636 1137 556 1090 503 1017 353 1028 235 925 161 755 169 547 270 399 379 325 474 346 516 239 568 184Z" fill="url(#steel)" stroke="#828487" stroke-width="6"/>' +
       '<path d="M244 573 325 364 474 347 505 413 431 536 364 704 330 911 228 787Z M1036 573 955 364 806 347 775 413 849 536 916 704 950 911 1052 787Z" fill="#101214" stroke="#323337" stroke-width="15"/>' +
@@ -121,9 +96,6 @@
       '<circle cx="191" cy="626" r="43" fill="none" stroke="#ffdea0" stroke-width="5" opacity=".6"/>'
   };
 
-  // --------------------------------------------------------------------------
-  // Canvas helpers
-  // --------------------------------------------------------------------------
   function poly(g, pts) {
     if (!pts || !pts.length) return;
     g.moveTo(pts[0][0], pts[0][1]);
@@ -132,8 +104,7 @@
   }
   function mkCanvas(w, h) {
     const c = document.createElement('canvas');
-    c.width = w;
-    c.height = h || w;
+    c.width = w; c.height = h || w;
     return c;
   }
   function createGradients(ctx) {
@@ -161,7 +132,6 @@
       if (m) {
         const id = m[1];
         if (grads[id]) return grads[id];
-        // glow filter ignored
         return null;
       }
     }
@@ -260,9 +230,6 @@
     }
   }
 
-  // --------------------------------------------------------------------------
-  // Sprite building (cached, once)
-  // --------------------------------------------------------------------------
   const SR = 820;
   let SPR = { ready: false };
   let SRC = null;
@@ -340,15 +307,11 @@
       SPR.back = buildBackplate();
       SPR.ready = true;
     } catch (e) {
-      // fallback: if sprite building fails, mark ready false and use simple blob
       console.warn('[robot-presentation] sprite build failed', e);
       SPR.ready = false;
     }
   }
 
-  // --------------------------------------------------------------------------
-  // Springs — analytic damped harmonic oscillator (from HTML authority)
-  // --------------------------------------------------------------------------
   function springCoef(dt, w, z) {
     const eps = 1e-4;
     if (w < eps) return [1, 0, 0, 1];
@@ -408,10 +371,7 @@
   const P_A2_INDEX = { calTh: .04, calDx: 34, crest: 18, lid: .26, spin: Math.PI / 4 };
   const P_A2_LOCK = { calTh: .13, calDx: 88, calDy: 10, crest: 58, chin: -22, cheekX: 24, cheekY: -20, lid: .62, glow: 1.12, spin: Math.PI / 2, seam: .45 };
 
-  // --------------------------------------------------------------------------
-  // Per-fighter presentation state
-  // --------------------------------------------------------------------------
-  const robotStates = new Map(); // fighter.id -> state
+  const robotStates = new Map();
   function getRobotState(fighter) {
     if (!fighter) return null;
     let st = robotStates.get(fighter.id);
@@ -458,12 +418,17 @@
       strainUntil: 0,
       bodyUntil: 0,
       camK: { x: mkSpr(30, .5, 0), y: mkSpr(30, .5, 0) },
-      // for weapon socket
       lastAim: 0,
-      // for audio dedup
-      lastSfx: {}
+      lastSfx: {},
+      // dedup guards
+      _lastLockAt: -9,
+      _lastNoWeaponAt: -9,
+      _lastDashAt: -9,
+      _lastArmorHitAt: -9,
+      _lastEndAt: -9,
+      _lastMilestoneAt: -9,
+      _lastUpgradeAt: -9,
     };
-    // init springs to base
     for (const k in R) {
       const v = R[k];
       if (Array.isArray(v)) v.forEach(s => s.snapTo(k === 'glow' ? 1 : 0));
@@ -473,13 +438,9 @@
     return st;
   }
   function clearRobotStates() { robotStates.clear(); }
-
   function atState(st, d, fn) { st.Q.push({ t: st.T + d, fn }); }
   function setPoseState(st, p) { st.POSE = { ...BASE, ...p }; }
 
-  // --------------------------------------------------------------------------
-  // Audio — 8 final SFX via existing audioCtx / battleAudioMaster
-  // --------------------------------------------------------------------------
   const ROBOT_AUDIO_REL = {
     robot_a1_lock: 'hero-rework/robot-final/sfx/robot_a1_lock.mp3',
     robot_a1_no_weapon: 'hero-rework/robot-final/sfx/robot_a1_no_weapon.mp3',
@@ -526,6 +487,8 @@
     return Promise.all(promises);
   }
   function playRobotSfx(key, opts) {
+    // Global hook for headless presentation gates
+    try { if (globalScope.__robotSfxCounts) { globalScope.__robotSfxCounts[key] = (globalScope.__robotSfxCounts[key] || 0) + 1; } } catch (e) {}
     const rel = ROBOT_AUDIO_REL[key];
     if (!rel) return;
     const ctx = audioCtxOf();
@@ -569,9 +532,6 @@
     robotActiveVoices.clear();
   }
 
-  // --------------------------------------------------------------------------
-  // VFX helpers (sparks, chips, dust, flash, pulse, etc.)
-  // --------------------------------------------------------------------------
   function sparksState(st, x, y, dx, dy, n, spd, spread = 1) {
     for (let i = 0; i < n; i++) {
       const a = Math.atan2(dy, dx) + (Math.random() - .5) * spread, v = spd * (.45 + Math.random() * .8);
@@ -594,9 +554,6 @@
   function flashState(st, x, y, big) { st.flashes.push({ x, y, t: 0, dur: big ? .12 : .08, r: big ? 26 : 16 }); }
   function pulseState(st, pts, dur, w) { st.pulses.push({ pts, t: 0, dur, w }); }
 
-  // --------------------------------------------------------------------------
-  // Head-space → local helpers (fighter local space, 0,0 = fighter center)
-  // --------------------------------------------------------------------------
   function calPointLocal(st, s, hx, hy) {
     const sg = s ? -1 : 1;
     const P = PIV[s];
@@ -630,8 +587,6 @@
     const y = my + Math.cos(ang) * GUN_DROP + Math.sin(ang) * k;
     return { x, y, a: ang };
   }
-
-  // For world-space weapon socket (for AV override)
   function getRobotWeaponSocketWorld(fighter) {
     const st = getRobotState(fighter);
     if (!st) return null;
@@ -645,9 +600,6 @@
     return { x: wx, y: wy, angle: wa, local };
   }
 
-  // --------------------------------------------------------------------------
-  // Impact handling (hit, wall, armor)
-  // --------------------------------------------------------------------------
   function impactLocal(st, s, hx, hy, dir, F, worldPt) {
     const o = 1 - s;
     const tan = { x: -dir.y, y: dir.x };
@@ -665,9 +617,6 @@
       st.R.glow.kick(.3);
       const ps = calPointLocal(st, s, PIV[s].x, PIV[s].y);
       const po = calPointLocal(st, o, PIV[o].x, PIV[o].y);
-      const psW = headToLocal(st, ps.x, ps.y);
-      const poW = headToLocal(st, po.x, po.y);
-      const latchW = headToLocal(st, LATCH.x, LATCH.y);
       pulseState(st, [[hx, hy], [ps.x, ps.y], [LATCH.x, LATCH.y], [po.x, po.y]], F > 1.5 ? .26 : .17, F > 1.5 ? 14 : 10);
       atState(st, F > 1.5 ? .13 : .085, () => {
         st.R.calDx[o].kick(22 * F);
@@ -707,9 +656,6 @@
     }
   }
 
-  // --------------------------------------------------------------------------
-  // Spring params update
-  // --------------------------------------------------------------------------
   function applyParamsState(st) {
     const R = st.R;
     const poseSpr = [...R.calTh, ...R.calDx, ...R.calDy, ...R.spin, R.crest, R.chin, R.cheekX, R.cheekY, R.lid];
@@ -723,20 +669,15 @@
     if (st.T >= st.bodyUntil && st.mode === 'hold') { R.rootX.reset(); R.rootY.reset(); }
   }
 
-  // --------------------------------------------------------------------------
-  // Per-frame update for a robot fighter
-  // --------------------------------------------------------------------------
   function updateRobotState(fighter, dt) {
     const st = getRobotState(fighter);
     if (!st) return;
     st.T += dt;
-    // process scheduled Q
     for (let i = 0; i < st.Q.length; i++) {
       if (st.Q[i].t <= st.T) { const fn = st.Q[i].fn; st.Q.splice(i, 1); i--; try { fn(); } catch (e) {} }
     }
     applyParamsState(st);
 
-    // velocity / acceleration tracking
     const px = st.lastPos.x, py = st.lastPos.y;
     const nvx = (fighter.x - px) / dt;
     const nvy = (fighter.y - py) / dt;
@@ -745,7 +686,6 @@
     st.vxw = nvx; st.vyw = nvy;
     st.lastPos.x = fighter.x; st.lastPos.y = fighter.y;
 
-    // check if dashing (from mechanics store)
     let dashing = false;
     let dashStore = null;
     try {
@@ -755,13 +695,9 @@
         dashStore = ct.store['robot.weapon_dash'].dash;
       }
     } catch (e) {}
-    // also check fighter.data.nbDash (legacy) or newbie? but robot uses dash store
-    // For presentation, if dash exists, enable trail and extraTh based on turn
     if (dashing && dashStore) {
       st.mode = 'dash';
       st.trailOn = true;
-      // turn compensation: estimate heading change from ax,ay?
-      // Use dir change as proxy
       const heading = dashStore.heading || Math.atan2(fighter.dir.y, fighter.dir.x);
       const curH = Math.atan2(fighter.dir.y, fighter.dir.x);
       const dh = wrapA(heading - curH);
@@ -770,7 +706,6 @@
       st.extraSpin = [turnN * .6, -turnN * .6];
     } else {
       st.mode = 'hold';
-      // decay extraTh
       st.extraTh[0] = mix(st.extraTh[0], 0, .2);
       st.extraTh[1] = mix(st.extraTh[1], 0, .2);
       st.extraSpin[0] = mix(st.extraSpin[0], 0, .2);
@@ -781,7 +716,6 @@
     st.R.lagY.g = clamp(-st.ay * .0016 - (dashing ? st.vyw * .009 : 0), -40, 40);
     st.R.tilt.g = dashing ? clamp(st.extraTh[0] * .05, -.06, .06) : 0;
 
-    // pose goals
     for (let s = 0; s < 2; s++) {
       st.R.calTh[s].g = (st.POSE.calTh || 0) + st.extraTh[s];
       st.R.calDx[s].g = st.POSE.calDx || 0;
@@ -796,7 +730,6 @@
     st.R.glow.g = st.POSE.glow != null ? st.POSE.glow : 1;
     st.R.seam.g = st.POSE.seam || 0;
 
-    // step springs
     for (const k in st.R) {
       const v = st.R[k];
       if (Array.isArray(v)) v.forEach(s => s.step(dt));
@@ -811,7 +744,6 @@
     st.wallFlash *= Math.exp(-dt * 7);
     st.gunFade = Math.min(1, st.gunFade + dt * 3.5);
 
-    // VFX
     for (let i = st.parts.length - 1; i >= 0; i--) {
       const q = st.parts[i]; q.t += dt;
       if (q.t >= q.life) { st.parts.splice(i, 1); continue; }
@@ -825,66 +757,31 @@
     for (let i = st.stress.length - 1; i >= 0; i--) { st.stress[i].t += dt; if (st.stress[i].t >= st.stress[i].dur) st.stress.splice(i, 1); }
 
     if (st.trailOn) st.trail.push({ x: fighter.x, y: fighter.y, t: st.T });
-    if (st.trail.length > 60) st.trail.shift();
+    if (st.trail.length > 400) st.trail.shift();
     if (!st.trailOn && st.trail.length) {
-      // fade trail quickly when not dashing
       if (st.T - (st.trail[st.trail.length - 1]?.t || 0) > 0.6) st.trail.shift();
     }
 
-    // idle micro-calibration
     st.idleT -= dt;
     if (st.idleT <= 0) {
       st.idleT = 3.6 + Math.random() * 3.6;
-      const ct = globalScope.APEX_HERO_REWORK && globalScope.APEX_HERO_REWORK.byCombatant ? globalScope.APEX_HERO_REWORK.byCombatant(fighter) : null;
-      const busy = ct ? false : false; // simplified: not busy if no dash and no armor
-      const armor = st.armor;
-      if (!armor && st.mode === 'hold') {
+      if (!st.armor && st.mode === 'hold') {
         const r = Math.random();
         if (r < .4) { const d = (Math.random() < .5 ? 1 : -1) * .09; st.R.spin[0].kick(d); st.R.spin[1].kick(d); }
         else if (r < .72) { const b = st.POSE.lid, up = b + .16; st.POSE.lid = up; atState(st, .17, () => { if (st.POSE.lid === up) st.POSE.lid = b; }); }
         else { st.R.calDx[Math.random() < .5 ? 0 : 1].kick(5); }
       }
     }
-
-    // check armor expiry (3.0s)
-    if (st.armor) {
-      try {
-        const ct = globalScope.APEX_HERO_REWORK && globalScope.APEX_HERO_REWORK.byCombatant ? globalScope.APEX_HERO_REWORK.byCombatant(fighter) : null;
-        if (ct && ct.store && ct.store['robot.virtual_armor'] && ct.store['robot.virtual_armor'].armorUntil) {
-          const until = ct.store['robot.virtual_armor'].armorUntil;
-          const now = (globalScope.APEX_HERO_REWORK && globalScope.APEX_HERO_REWORK.AIL && globalScope.APEX_HERO_REWORK.AIL.clock) ? globalScope.APEX_HERO_REWORK.AIL.clock() : 0;
-          if (now >= until) {
-            // armor ended
-            st.armor = false;
-            setPoseState(st, st.held ? P_HELD : P_IDLE);
-            st.softUntil = st.T + .55;
-            playRobotSfx('robot_a2_end', { vol: 0.75 });
-            // pulse retract
-            const ps = calPointLocal(st, 0, PIV[0].x, PIV[0].y);
-            const po = calPointLocal(st, 1, PIV[1].x, PIV[1].y);
-            pulseState(st, [[ps.x, ps.y], [520, 420], [LATCH.x, LATCH.y]], .22, 6);
-            pulseState(st, [[po.x, po.y], [760, 420], [LATCH.x, LATCH.y]], .22, 6);
-            if (globalScope.APEX_HERO_REWORK && globalScope.APEX_HERO_REWORK.AIL && globalScope.APEX_HERO_REWORK.AIL.bus) {
-              globalScope.APEX_HERO_REWORK.AIL.bus.emit('RobotA2End', { hero: 'ROBOT', fighterId: fighter.id });
-            }
-          }
-        }
-      } catch (e) {}
-    }
+    // NOTE: A2 expiry is authoritative in mechanics (RobotA2End). Presentation does NOT emit its own end.
   }
 
-  // --------------------------------------------------------------------------
-  // Rendering — local space (fighter already translated/rotated)
-  // --------------------------------------------------------------------------
   function renderRobotLocal(ctx, fighter, st) {
     ensureSprites();
     const hasPath2D = typeof Path2D !== 'undefined' || typeof globalScope.Path2D !== 'undefined';
     if (!SPR.ready || !hasPath2D) {
-      // fallback: simple blob + visor (for headless or when sprites not ready)
       try {
         if (typeof drawSketchBlob === 'function') drawSketchBlob(ctx, fighter.radius, fighter.color, 14);
         else { ctx.fillStyle = fighter.color; ctx.beginPath(); ctx.arc(0, 0, fighter.radius, 0, TAU); ctx.fill(); }
-        // simple visor
         ctx.fillStyle = '#ff9f19';
         ctx.beginPath(); ctx.ellipse(0, -6, fighter.radius * 0.5, fighter.radius * 0.22, 0, 0, TAU); ctx.fill();
         ctx.fillStyle = '#fff8cf';
@@ -892,51 +789,15 @@
       } catch (e) {}
       return;
     }
-    // Helper to draw sprite with transform
-    const drawSprite = (spr, x, y, rot, scale) => {
-      if (!spr) return;
-      ctx.save();
-      ctx.translate(x, y);
-      if (rot) ctx.rotate(rot);
-      if (scale && scale !== 1) ctx.scale(scale, scale);
-      // sprites are 820 sized, head space 1280, so we need to scale from head to local
-      // headToLocal already includes HSC, but sprites are drawn at head coords
-      // For simplicity, draw sprite centered at its head origin?
-      // SPR sprites are built from SRC which is 1280, but canvas is SR=820 scaled.
-      // We need to draw them at - (640,600) offset scaled by HSC
-      const s = HSC * (1280 / SR);
-      // Actually sprite canvas already contains the masked part at correct head position
-      // When we draw it at 0,0 with size SR, we need to translate by - (640,600)*HSC?
-      // Let's use direct drawImage with transform: we have headToLocal for positioning
-      // Instead, we draw sprite at its head-space position transformed to local
-      // For caliper, its pivot is at PIV, so we already handle via calPointLocal + headToLocal
-      // So we should draw sprite with its top-left at - (PIV) etc.
-      // Simpler: draw sprite at 0,0 scaled by HSC * (1280/SR) and let previous transforms handle position
-      ctx.scale(s, s);
-      ctx.drawImage(spr, -640, -600);
-      ctx.restore();
-    };
 
-    // Draw order: back, struts, crest, core, chin, cheeks, calipers+discs, VFX
-    // For performance, we cache static layers? We'll draw each with transforms
-
-    // Trail (afterimages) — drawn in world space? Here we are in local, so skip trail for now, draw in world wrapper
-
-    // Backplate
     ctx.save();
     ctx.translate(st.R.coreX.x * HSC * 0.8, st.R.coreY.x * HSC * 0.6);
-    // backplate is HULL centered, we need to offset
-    // Draw backplate sprite
     {
       const s = HSC * (1280 / SR);
-      ctx.save();
-      ctx.scale(s, s);
-      ctx.drawImage(SPR.back, -640, -600);
-      ctx.restore();
+      ctx.save(); ctx.scale(s, s); ctx.drawImage(SPR.back, -640, -600); ctx.restore();
     }
     ctx.restore();
 
-    // Struts (lines from cheek to pivot)
     const drawStrutsLocal = () => {
       for (let s = 0; s < 2; s++) {
         const a = { x: s ? 852 : 428, y: 700 };
@@ -957,10 +818,8 @@
     };
     drawStrutsLocal();
 
-    // Crest (slides in slot)
     ctx.save();
     ctx.beginPath();
-    // clip to SLOT (manual poly, no Path2D)
     ctx.moveTo(SLOT[0][0] * HSC, SLOT[0][1] * HSC);
     for (let i = 1; i < SLOT.length; i++) ctx.lineTo(SLOT[i][0] * HSC, SLOT[i][1] * HSC);
     ctx.closePath();
@@ -977,19 +836,16 @@
     }
     ctx.restore();
 
-    // Core
     ctx.save();
     ctx.translate(st.R.coreX.x * HSC, st.R.coreY.x * HSC);
     {
       const s = HSC * (1280 / SR);
       ctx.save(); ctx.scale(s, s); ctx.drawImage(SPR.core, -640, -600); ctx.restore();
     }
-    // eyes
     const drawEyesLocal = () => {
       const lid = clamp(st.R.lid.x, 0, 1), gl = Math.max(0, st.R.glow.x);
       for (let s = 0; s < 2; s++) {
         const cx = (s ? 798 : 482) * HSC;
-        // Simplified eye rendering: draw optic glow (no Path2D clip for compat)
         if (gl > 1.01) {
           ctx.save();
           ctx.globalCompositeOperation = 'lighter';
@@ -1027,7 +883,6 @@
     };
     drawEyesLocal();
 
-    // ticks (passive)
     if (st.ticks[0] + st.ticks[1] + st.ticks[2] > .02) {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
@@ -1040,10 +895,8 @@
       });
       ctx.restore();
     }
-
     ctx.restore();
 
-    // chin
     ctx.save();
     ctx.translate(st.R.lagX.x * HSC * .35, (st.R.chin.x + st.R.calDy[0].x * .3 + st.R.lagY.x * .5) * HSC);
     {
@@ -1052,7 +905,6 @@
     }
     ctx.restore();
 
-    // cheeks
     for (let s = 0; s < 2; s++) {
       ctx.save();
       ctx.translate((s ? -1 : 1) * st.R.cheekX.x * HSC + st.R.lagX.x * HSC * .6, (st.R.cheekY.x + st.R.lagY.x * .6) * HSC);
@@ -1063,7 +915,6 @@
       ctx.restore();
     }
 
-    // calipers + pivot discs
     for (let s = 0; s < 2; s++) {
       const sg = s ? -1 : 1;
       const P = PIV[s];
@@ -1113,30 +964,26 @@
       ctx.restore();
     }
 
-    // force-routing pulses
     if (st.pulses.length) {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       for (const p of st.pulses) {
         const f = p.t / p.dur, e = 1 - Math.pow(1 - f, 2);
-        // partial line
-        const pts = p.pts;
-        // compute total length
         let total = 0;
         const seg = [];
-        for (let i = 1; i < pts.length; i++) {
-          const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]) * HSC;
+        for (let i = 1; i < p.pts.length; i++) {
+          const l = Math.hypot(p.pts[i][0] - p.pts[i - 1][0], p.pts[i][1] - p.pts[i - 1][1]) * HSC;
           seg.push(l); total += l;
         }
-        const a = 0, b = e * total;
+        const b = e * total;
         const drawPartial = (from, to, style, width) => {
           let acc = 0, started = false;
           ctx.strokeStyle = style; ctx.lineWidth = width * HSC;
           ctx.beginPath();
-          for (let i = 1; i < pts.length; i++) {
+          for (let i = 1; i < p.pts.length; i++) {
             const s0 = acc, s1 = acc + seg[i - 1];
-            const x0 = pts[i - 1][0] * HSC, y0 = pts[i - 1][1] * HSC, x1 = pts[i][0] * HSC, y1 = pts[i][1] * HSC;
+            const x0 = p.pts[i - 1][0] * HSC, y0 = p.pts[i - 1][1] * HSC, x1 = p.pts[i][0] * HSC, y1 = p.pts[i][1] * HSC;
             if (s1 >= from && s0 <= to) {
               const ta = clamp((from - s0) / seg[i - 1], 0, 1), tb = clamp((to - s0) / seg[i - 1], 0, 1);
               if (!started) { ctx.moveTo(mix(x0, x1, ta), mix(y0, y1, ta)); started = true; }
@@ -1152,7 +999,6 @@
       ctx.restore();
     }
 
-    // stress
     for (const m of st.stress) {
       const f = m.t / m.dur, a = 1 - f;
       ctx.save();
@@ -1172,7 +1018,6 @@
       ctx.restore();
     }
 
-    // flashes
     for (const fl of st.flashes) {
       const a = 1 - fl.t / fl.dur;
       ctx.save();
@@ -1185,7 +1030,6 @@
       ctx.restore();
     }
 
-    // sparks, chips, dust
     for (const p of st.parts) {
       const a = 1 - p.t / p.life;
       if (p.k === 'spark') {
@@ -1212,34 +1056,6 @@
       }
     }
 
-    // brackets (A1 focus)
-    if (st.brackets) {
-      const b = st.brackets;
-      const t = st.T - b.t0;
-      let prog = 0;
-      if (b.state === 'in') prog = clamp(t / .18, 0, 1);
-      else if (b.state === 'out') prog = 1 - clamp((st.T - b.t1) / .18, 0, 1);
-      if (prog > .01) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.strokeStyle = 'rgba(255,220,160,' + prog * .8 + ')';
-        ctx.lineWidth = 3 * HSC;
-        // draw simple brackets around target direction
-        // target is stored in brackets.target {x,y} world? For local we need direction
-        // We'll draw brackets at a fixed offset in front of robot
-        const bx = 120 * HSC, by = 0;
-        const sz = 24 * HSC * prog;
-        ctx.beginPath();
-        ctx.moveTo(bx - sz, by - sz); ctx.lineTo(bx - sz * .4, by - sz); ctx.moveTo(bx - sz, by - sz); ctx.lineTo(bx - sz, by - sz * .4);
-        ctx.moveTo(bx + sz, by - sz); ctx.lineTo(bx + sz * .4, by - sz); ctx.moveTo(bx + sz, by - sz); ctx.lineTo(bx + sz, by - sz * .4);
-        ctx.moveTo(bx - sz, by + sz); ctx.lineTo(bx - sz * .4, by + sz); ctx.moveTo(bx - sz, by + sz); ctx.lineTo(bx - sz, by + sz * .4);
-        ctx.moveTo(bx + sz, by + sz); ctx.lineTo(bx + sz * .4, by + sz); ctx.moveTo(bx + sz, by + sz); ctx.lineTo(bx + sz, by + sz * .4);
-        ctx.stroke();
-        ctx.restore();
-      }
-    }
-
-    // wall flash
     if (st.wallFlash > .02) {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
@@ -1249,30 +1065,105 @@
     }
   }
 
-  // --------------------------------------------------------------------------
-  // World-space wrappers (trail, etc.)
-  // --------------------------------------------------------------------------
+  // World-space: brackets, measure, trail with calibration ticks (authority)
   function renderRobotWorld(ctx, fighter, st) {
-    // trail (world space)
-    if (st.trail.length > 1) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      for (let i = 0; i < st.trail.length - 1; i++) {
-        const a = st.trail[i], b = st.trail[i + 1];
-        const t = a.t, age = st.T - t;
-        const alpha = Math.max(0, 1 - age / 0.6) * 0.25;
-        if (alpha <= 0) continue;
-        ctx.strokeStyle = 'rgba(200,190,170,' + alpha + ')';
-        ctx.lineWidth = (fighter.radius * 0.3) * (1 - age / 0.6);
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    // Brackets — elastic easing from HTML authority, adapted to target pickup
+    if (st.brackets) {
+      let gap, alpha;
+      const t = st.T - st.brackets.t0;
+      if (st.brackets.state === 'in') {
+        const f = clamp(t / .12, 0, 1), s = 1.7, e = 1 + (s + 1) * Math.pow(f - 1, 3) + s * Math.pow(f - 1, 2);
+        gap = mix(88, 62, e); alpha = clamp(t / .05, 0, 1);
+      } else {
+        const f = clamp((st.T - st.brackets.t1) / .1, 0, 1);
+        gap = mix(62, 26, f); alpha = 1 - f;
+        if (f >= 1) { st.brackets = null; }
       }
-      ctx.restore();
+      if (st.brackets && alpha > .01) {
+        const target = st.brackets.target || { x: fighter.x + Math.cos(fighter.dir ? Math.atan2(fighter.dir.y, fighter.dir.x) : 0) * 120, y: fighter.y };
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        for (const sg of [-1, 1]) {
+          // For vertical brackets in game, we use gap as horizontal offset from target
+          // But to preserve authority look, we draw brackets around target in world space
+          // Authority: x = WPN.x + sg*gap, y = WPN.y
+          // Adapted: target.x + sg*gap, target.y
+          const x = target.x + sg * gap * 0.6;
+          const y = target.y;
+          const pts = [[x - sg * 12, y - 20], [x, y - 20], [x + sg * 6, y - 12], [x + sg * 6, y + 12], [x, y + 20], [x - sg * 12, y + 20]];
+          ctx.strokeStyle = '#08090a'; ctx.lineWidth = 8;
+          ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (const p of pts) ctx.lineTo(p[0], p[1]); ctx.stroke();
+          ctx.strokeStyle = '#ece6d8'; ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (const p of pts) ctx.lineTo(p[0], p[1]); ctx.stroke();
+          ctx.fillStyle = '#ffb64e';
+          ctx.beginPath(); ctx.arc(x - sg * 12, y - 20, 2.6, 0, TAU); ctx.arc(x - sg * 12, y + 20, 2.6, 0, TAU); ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    // Measure — line from robot latch/head to target
+    if (st.measure && !st.held) {
+      const t = st.T - st.measure.t0;
+      if (t > .34) { st.measure = null; }
+      else {
+        const p = clamp(t / .08, 0, 1), a = t < .16 ? 1 : 1 - (t - .16) / .18;
+        const s = { x: fighter.x, y: fighter.y - fighter.radius * 0.8 };
+        const e = st.brackets && st.brackets.target ? st.brackets.target : { x: fighter.x + 120, y: fighter.y };
+        const ex = mix(s.x, e.x, p), ey = mix(s.y, e.y, p);
+        ctx.save();
+        ctx.globalAlpha = a * .8;
+        ctx.strokeStyle = '#e1a852'; ctx.lineWidth = 1.5;
+        if (ctx.setLineDash) ctx.setLineDash([7, 5]);
+        ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(ex, ey); ctx.stroke();
+        if (ctx.setLineDash) ctx.setLineDash([]);
+        const dx = e.x - s.x, dy = e.y - s.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+        ctx.strokeStyle = '#efe7d6'; ctx.lineWidth = 1.5;
+        for (const f of [.25, .5, .75]) {
+          if (f > p) continue;
+          const x = mix(s.x, e.x, f), y = mix(s.y, e.y, f);
+          ctx.beginPath(); ctx.moveTo(x - nx * 5, y - ny * 5); ctx.lineTo(x + nx * 5, y + ny * 5); ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+
+    // Trail with calibration ticks — authority logic
+    if (st.trail.length >= 2) {
+      const fade = st.trailOn ? (isFinite(st.contactT) && st.T > st.contactT ? clamp(1 - (st.T - st.contactT) / .5, 0, 1) : 1) : 0;
+      if (fade <= 0) { if (!st.trailOn) st.trail = []; }
+      else {
+        ctx.save();
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        const n = st.trail.length;
+        for (let i = 1; i < n; i++) {
+          const a = st.trail[i - 1], b = st.trail[i], k = i / n;
+          const w = mix(1, 6, k);
+          ctx.strokeStyle = 'rgba(224,160,70,' + (.22 * fade) + ')'; ctx.lineWidth = w * 2.6;
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        }
+        for (let i = 1; i < n; i++) {
+          const a = st.trail[i - 1], b = st.trail[i], k = i / n;
+          ctx.strokeStyle = 'rgba(246,222,176,' + (.85 * fade) + ')'; ctx.lineWidth = mix(.8, 2.6, k);
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        }
+        let acc = 0, next = 40;
+        ctx.strokeStyle = 'rgba(236,230,216,' + (.6 * fade) + ')'; ctx.lineWidth = 1.6;
+        for (let i = 1; i < n; i++) {
+          const a = st.trail[i - 1], b = st.trail[i], l = Math.hypot(b.x - a.x, b.y - a.y);
+          while (l > 0 && acc + l >= next) {
+            const f = (next - acc) / l, x = mix(a.x, b.x, f), y = mix(a.y, b.y, f), nx = -(b.y - a.y) / l, ny = (b.x - a.x) / l;
+            ctx.beginPath(); ctx.moveTo(x - nx * 6, y - ny * 6); ctx.lineTo(x + nx * 6, y + ny * 6); ctx.stroke();
+            next += 40;
+          }
+          acc += l;
+        }
+        ctx.restore();
+      }
     }
   }
 
-  // --------------------------------------------------------------------------
-  // Event handling
-  // --------------------------------------------------------------------------
   function isRobotFighter(f) {
     if (!f) return false;
     if (f.type && f.type.__hrHero === 'ROBOT') return true;
@@ -1284,104 +1175,51 @@
     return false;
   }
 
+  // Single-dispatch bus handler
   function handleBusEvent(e) {
     if (!e) return;
     const type = e.type;
     const payload = e.payload || {};
-    // Cast events
+    const isAlias = payload && payload.alias === true;
+
     if (type === 'Cast') {
+      // Cast is NOT authoritative for presentation SFX — authoritative is RobotA1Lock / RobotA2Start
+      // We only use Cast for pose fallback if needed, but do NOT play SFX here to avoid duplicate
       if (payload.hero === 'ROBOT' && payload.slot === 'A1') {
-        // valid A1 cast
+        // No SFX here; lock will be handled by RobotA1Lock
         const fighters = globalScope.fighters || [];
         for (const f of fighters) {
           if (!isRobotFighter(f)) continue;
-          const ct = globalScope.APEX_HERO_REWORK && globalScope.APEX_HERO_REWORK.byCombatant ? globalScope.APEX_HERO_REWORK.byCombatant(f) : null;
-          if (!ct || ct.heroId !== 'ROBOT') continue;
-          // check if this fighter's ability controller just cast A1
           const st = getRobotState(f);
           if (!st) continue;
-          // play lock SFX once
-          playRobotSfx('robot_a1_lock', { vol: 0.75 });
-          setPoseState(st, P_A1_FOCUS);
-          st.snapUntil = st.T + .1; st.snapW = 46; st.snapZ = .75;
-          st.brackets = { t0: st.T, state: 'in' };
-          st.measure = { t0: st.T };
-          // find target slot
-          try {
-            const dash = ct.store['robot.weapon_dash'] && ct.store['robot.weapon_dash'].dash;
-            if (dash && dash.targetSlotId != null) {
-              const api = globalScope.APEX_HERO_REWORK && globalScope.APEX_HERO_REWORK.match && globalScope.APEX_HERO_REWORK.match.api;
-              const slot = api && api.revealedSlotById ? api.revealedSlotById(dash.targetSlotId) : null;
-              if (slot) {
-                st.brackets.target = { x: slot.x, y: slot.y };
-              }
-            }
-          } catch (ex) {}
-          atState(st, .13, () => {
-            setPoseState(st, P_A1_COMMIT);
-            st.snapUntil = st.T + .14; st.snapW = 64; st.snapZ = .56;
-            st.lockFlash = 1;
-          });
-          if (globalScope.APEX_HERO_REWORK && globalScope.APEX_HERO_REWORK.AIL && globalScope.APEX_HERO_REWORK.AIL.bus) {
-            globalScope.APEX_HERO_REWORK.AIL.bus.emit('RobotA1Lock', { hero: 'ROBOT', fighterId: f.id });
-          }
+          // Avoid double if lock already handled
+          if (st.T - st._lastLockAt < 0.1) continue;
         }
       } else if (payload.hero === 'ROBOT' && payload.slot === 'A2') {
-        const fighters = globalScope.fighters || [];
-        for (const f of fighters) {
-          if (!isRobotFighter(f)) continue;
-          const st = getRobotState(f);
-          if (!st) continue;
-          playRobotSfx('robot_a2_activate', { vol: 0.78 });
-          setPoseState(st, P_A2_INDEX);
-          atState(st, .16, () => {
-            st.armor = true;
-            setPoseState(st, P_A2_LOCK);
-            st.snapUntil = st.T + .16; st.snapW = 66; st.snapZ = .6;
-            st.R.seam.snapTo(1);
-            st.lockFlash = 1;
-            const ps = calPointLocal(st, 0, PIV[0].x, PIV[0].y);
-            const po = calPointLocal(st, 1, PIV[1].x, PIV[1].y);
-            pulseState(st, [[LATCH.x, LATCH.y], [520, 420], [ps.x, ps.y]], .2, 10);
-            pulseState(st, [[LATCH.x, LATCH.y], [760, 420], [po.x, po.y]], .2, 10);
-          });
-          if (globalScope.APEX_HERO_REWORK && globalScope.APEX_HERO_REWORK.AIL && globalScope.APEX_HERO_REWORK.AIL.bus) {
-            globalScope.APEX_HERO_REWORK.AIL.bus.emit('RobotA2Activate', { hero: 'ROBOT', fighterId: f.id });
-          }
-        }
+        // No SFX here; activate handled by RobotA2Start
       }
     } else if (type === 'CastFailCue') {
       if (payload.hero === 'ROBOT' && payload.slot === 'A1') {
         const src = payload.source;
-        // P2 auto retry must NOT spam sound: only deliberate P1
-        if (src === 'p2-ai') return;
+        if (src === 'p2-ai') return; // P2 silent
         const fighters = globalScope.fighters || [];
         for (const f of fighters) {
           if (!isRobotFighter(f)) continue;
-          // only P1 should trigger fail cue? Check if source is p1 or gates
           if (src && src !== 'p1' && src !== 'gates' && src !== 'p1-presentation-test') {
             if (f !== fighters[0]) continue;
           }
           const st = getRobotState(f);
           if (!st) continue;
-          const now = st.T;
-          if (st.lastSfx.robot_a1_no_weapon && now - st.lastSfx.robot_a1_no_weapon < 0.35) continue;
-          st.lastSfx.robot_a1_no_weapon = now;
-          playRobotSfx('robot_a1_no_weapon', { vol: 0.65 });
-          setPoseState(st, { ... (st.held ? P_HELD : P_IDLE), lid: .3, glow: 1.2, spin: Math.PI / 4, crest: -18, calTh: (st.held ? -.05 : 0) + .08 });
-          atState(st, .32, () => { setPoseState(st, st.held ? P_HELD : P_IDLE); st.R.glow.kick(-.25); });
+          if (st.T - st._lastNoWeaponAt < 0.35) continue;
+          // Do NOT play SFX here — emit authoritative NoWeapon event once
           const bus = globalScope.APEX_HERO_REWORK && globalScope.APEX_HERO_REWORK.AIL && globalScope.APEX_HERO_REWORK.AIL.bus;
           if (bus) {
             bus.emit('RobotA1NoWeapon', { hero: 'ROBOT', fighterId: f.id });
-            bus.emit('RobotA1NoTarget', { hero: 'ROBOT', fighterId: f.id, source: src });
+            bus.emit('RobotA1NoTarget', { hero: 'ROBOT', fighterId: f.id, source: src, alias: true });
           }
         }
       }
-    } else if (type === 'HeroArmorUp') {
-      // already handled via Cast, but keep for safety
     } else if (type === 'RealizedDamageEvent') {
-      // payload: victim, amount, creditedTo, weaponId
-      // Find victim fighter
       const fighters = globalScope.fighters || [];
       const H = globalScope.APEX_HERO_REWORK;
       const extra = H && H.extraLivingBodies ? H.extraLivingBodies() : [];
@@ -1391,17 +1229,15 @@
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
-        const isArmored = st.armor;
+        if (st.armor) {
+          // Armor hit SFX is authoritative via RobotA2Hit only — do NOT play here
+          continue;
+        }
         const amount = payload.amount || 0;
-        const F = amount > 80 ? 2 : 1; // strong hit threshold
-        // determine hit direction: from attacker to victim if available
+        const F = amount > 80 ? 2 : 1;
         let dir = { x: 1, y: 0 };
         try {
-          // try to find attacker position from creditedTo? Not available, use random for now
-          // For presentation, we can use direction from center to fighter? Actually incoming direction
-          // Use vector from attacker if we can find attacker fighter
           if (payload.creditedTo) {
-            // creditedTo is heroId string, not body, so we need to find enemy fighter
             const enemy = fighters.find(ff => ff.id !== f.id);
             if (enemy) {
               const dx = f.x - enemy.x, dy = f.y - enemy.y;
@@ -1410,89 +1246,95 @@
             }
           }
         } catch (e) {}
-        // hit point: approximate at fighter edge in dir
-        const hitHx = 640 + dir.x * 200; // head space approx
+        const hitHx = 640 + dir.x * 200;
         const hitHy = 600 + dir.y * 200;
         const worldPt = { x: f.x + dir.x * f.radius, y: f.y + dir.y * f.radius };
-        // choose side based on dir.x
         const s = dir.x < 0 ? 0 : 1;
         impactLocal(st, s, hitHx, hitHy, dir, F, worldPt);
-        if (isArmored) {
-          playRobotSfx('robot_a2_armor_hit', { vol: 0.72 });
-          if (H && H.AIL && H.AIL.bus) {
-            H.AIL.bus.emit('RobotA2ArmorHit', { hero: 'ROBOT', fighterId: f.id, amount, dir });
-          }
-        } else {
-          // normal hit: no special SFX (preserve existing body-impact? but task says do not add new unapproved normal-hit SFX family)
-          // We keep existing engine particles etc, but our visual already handled
-        }
       }
-    } else if (type === 'MilestoneRefund') {
-      if (payload.hero === 'ROBOT') {
-        const fighters = globalScope.fighters || [];
-        const HR = globalScope.APEX_HERO_REWORK;
-        for (const f of fighters) {
-          if (!isRobotFighter(f)) continue;
-          const st = getRobotState(f);
-          if (!st) continue;
-          playRobotSfx('robot_passive_milestone', { vol: 0.68 });
-          atState(st, 0.08, () => playRobotSfx('robot_passive_upgrade', { vol: 0.72 }));
-          for (let i = 0; i < 3; i++) atState(st, i * .06, () => { st.ticks[i] = 1; });
-          atState(st, .2, () => {
-            st.R.crest.kick(16); st.lockFlash = .6; st.R.glow.kick(.5);
-            const ps = calPointLocal(st, 0, PIV[0].x, PIV[0].y);
-            const po = calPointLocal(st, 1, PIV[1].x, PIV[1].y);
-            pulseState(st, [[LATCH.x, LATCH.y], [520, 420], [ps.x, ps.y]], .18, 8);
-            pulseState(st, [[LATCH.x, LATCH.y], [760, 420], [po.x, po.y]], .18, 8);
-          });
-          atState(st, .36, () => { st.POSE.spin += Math.PI; st.snapUntil = st.T + .18; st.snapW = 60; st.snapZ = .55; });
-          if (HR && HR.AIL && HR.AIL.bus) {
-            HR.AIL.bus.emit('RobotPassiveMilestone', { hero: 'ROBOT', fighterId: f.id, milestone: payload.milestone });
-            HR.AIL.bus.emit('RobotPassiveUpgrade', { hero: 'ROBOT', fighterId: f.id, milestone: payload.milestone, refund: payload.refund });
-          }
-        }
-      }
-    } else if (type === 'RobotA1Acquire' || type === 'RobotA1Lock') {
+    } else if (type === 'RobotA1Lock') {
+      if (isAlias) return; // alias no SFX
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
+        if (payload.fighterId && f.id !== payload.fighterId) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
+        if (st.T - st._lastLockAt < 0.15) continue; // dedup
+        st._lastLockAt = st.T;
         playRobotSfx('robot_a1_lock', { vol: 0.75 });
+        setPoseState(st, P_A1_FOCUS);
+        st.snapUntil = st.T + .1; st.snapW = 46; st.snapZ = .75;
+        st.brackets = { t0: st.T, state: 'in' };
+        st.measure = { t0: st.T };
+        try {
+          const ct = globalScope.APEX_HERO_REWORK && globalScope.APEX_HERO_REWORK.byCombatant ? globalScope.APEX_HERO_REWORK.byCombatant(f) : null;
+          if (ct && ct.store && ct.store['robot.weapon_dash'] && ct.store['robot.weapon_dash'].dash) {
+            const dash = ct.store['robot.weapon_dash'].dash;
+            const api = globalScope.APEX_HERO_REWORK && globalScope.APEX_HERO_REWORK.match && globalScope.APEX_HERO_REWORK.match.api;
+            const slot = api && api.revealedSlotById ? api.revealedSlotById(dash.targetSlotId) : null;
+            if (slot) st.brackets.target = { x: slot.x, y: slot.y };
+          } else if (payload.slotId != null) {
+            const api = globalScope.APEX_HERO_REWORK && globalScope.APEX_HERO_REWORK.match && globalScope.APEX_HERO_REWORK.match.api;
+            const slot = api && api.revealedSlotById ? api.revealedSlotById(payload.slotId) : null;
+            if (slot) st.brackets.target = { x: slot.x, y: slot.y };
+          }
+        } catch (ex) {}
+        atState(st, .13, () => {
+          setPoseState(st, P_A1_COMMIT);
+          st.snapUntil = st.T + .14; st.snapW = 64; st.snapZ = .56;
+          st.lockFlash = 1;
+        });
       }
-    } else if (type === 'RobotA1NoWeapon' || type === 'RobotA1NoTarget') {
+    } else if (type === 'RobotA1Acquire') {
+      // alias — no SFX
+      return;
+    } else if (type === 'RobotA1NoWeapon') {
+      if (isAlias) {
+        // still authoritative? No, RobotA1NoWeapon is authoritative, but check alias flag
+        // In our case, we emit without alias, so allow
+      }
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
+        if (payload.fighterId && f.id !== payload.fighterId) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
-        // SFX already played in CastFailCue, but ensure for direct events
-        if (type === 'RobotA1NoWeapon') playRobotSfx('robot_a1_no_weapon', { vol: 0.65 });
+        if (st.T - st._lastNoWeaponAt < 0.35) continue;
+        st._lastNoWeaponAt = st.T;
+        st.lastSfx.robot_a1_no_weapon = st.T;
+        playRobotSfx('robot_a1_no_weapon', { vol: 0.65 });
+        setPoseState(st, { ... (st.held ? P_HELD : P_IDLE), lid: .3, glow: 1.2, spin: Math.PI / 4, crest: -18, calTh: (st.held ? -.05 : 0) + .08 });
+        atState(st, .32, () => { setPoseState(st, st.held ? P_HELD : P_IDLE); st.R.glow.kick(-.25); });
       }
-    } else if (type === 'RobotPassiveMilestone' || type === 'RobotPassiveUpgrade') {
+    } else if (type === 'RobotA1NoTarget') {
+      // alias for telemetry — no SFX (already handled by NoWeapon)
+      return;
+    } else if (type === 'RobotA1DashLaunch') {
+      if (isAlias) return;
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
+        if (payload.fighterId && f.id !== payload.fighterId) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
-        if (type === 'RobotPassiveMilestone') playRobotSfx('robot_passive_milestone', { vol: 0.68 });
-        else playRobotSfx('robot_passive_upgrade', { vol: 0.72 });
-      }
-    } else if (type === 'RobotA1DashLaunch' || type === 'RobotA1Dash') {
-      const fighters = globalScope.fighters || [];
-      for (const f of fighters) {
-        if (!isRobotFighter(f)) continue;
-        const st = getRobotState(f);
-        if (!st) continue;
+        if (st.T - st._lastDashAt < 0.15) continue;
+        st._lastDashAt = st.T;
         playRobotSfx('robot_a1_dash', { vol: 0.78 });
         st.trailOn = true;
       }
+    } else if (type === 'RobotA1Dash') {
+      // alias — no SFX
+      return;
     } else if (type === 'RobotA1Contact') {
+      if (isAlias) return;
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
+        if (payload.fighterId && f.id !== payload.fighterId) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
+        // Only after real equip truth — held becomes true here
         st.held = true;
         setPoseState(st, P_HELD);
         st.gunFade = 0;
@@ -1502,56 +1344,140 @@
         st.R.rootX.kick(-18);
         st.lockFlash = 1;
         flashState(st, 640, 600, true);
+        if (st.brackets) { st.brackets.state = 'out'; st.brackets.t1 = st.T; }
       }
-    } else if (type === 'RobotA2Start' || type === 'RobotA2Activate') {
-      // handled in Cast, but ensure armor flag
+    } else if (type === 'RobotA2Start') {
+      if (isAlias) return;
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
-        if (!isRobotFighter(f)) continue;
-        const st = getRobotState(f);
-        if (st) st.armor = true;
-      }
-    } else if (type === 'RobotA2Hit' || type === 'RobotA2ArmorHit') {
-      const fighters = globalScope.fighters || [];
-      for (const f of fighters) {
+        if (payload.fighterId && f.id !== payload.fighterId) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
-        // SFX already played in RealizedDamageEvent handler, but ensure
-        if (type === 'RobotA2ArmorHit') playRobotSfx('robot_a2_armor_hit', { vol: 0.72 });
+        playRobotSfx('robot_a2_activate', { vol: 0.78 });
+        setPoseState(st, P_A2_INDEX);
+        atState(st, .16, () => {
+          st.armor = true;
+          setPoseState(st, P_A2_LOCK);
+          st.snapUntil = st.T + .16; st.snapW = 66; st.snapZ = .6;
+          st.R.seam.snapTo(1);
+          st.lockFlash = 1;
+          const ps = calPointLocal(st, 0, PIV[0].x, PIV[0].y);
+          const po = calPointLocal(st, 1, PIV[1].x, PIV[1].y);
+          pulseState(st, [[LATCH.x, LATCH.y], [520, 420], [ps.x, ps.y]], .2, 10);
+          pulseState(st, [[LATCH.x, LATCH.y], [760, 420], [po.x, po.y]], .2, 10);
+        });
       }
+    } else if (type === 'RobotA2Activate') {
+      // alias — no SFX
+      return;
+    } else if (type === 'RobotA2Hit') {
+      if (isAlias) return;
+      const fighters = globalScope.fighters || [];
+      for (const f of fighters) {
+        if (payload.fighterId && f.id !== payload.fighterId && payload.bodyId !== f.id) {
+          // also check bodyId? payload has bodyId
+          if (payload.bodyId && f.id !== payload.bodyId) {
+            // need to check if fighter owns bodyId via extra bodies? For simplicity, allow if fighter is robot and armor true
+            if (!isRobotFighter(f)) continue;
+          }
+        }
+        if (!isRobotFighter(f)) continue;
+        const st = getRobotState(f);
+        if (!st) continue;
+        if (!st.armor) continue;
+        // Dedup per actual damage event — use timestamp
+        if (st.T - st._lastArmorHitAt < 0.05) continue; // allow rapid automatic hits but not duplicate dispatch from same event
+        st._lastArmorHitAt = st.T;
+        playRobotSfx('robot_a2_armor_hit', { vol: 0.72 });
+        // Visual impact for armor hit
+        const amount = payload.amount || 20;
+        const F = amount > 80 ? 2 : 1;
+        const pt = payload.point || { x: f.x, y: f.y };
+        const dir = { x: (f.x - pt.x) || 1, y: (f.y - pt.y) || 0 };
+        const mag = Math.hypot(dir.x, dir.y) || 1;
+        dir.x /= mag; dir.y /= mag;
+        const hx = 640 + dir.x * 200;
+        const hy = 600 + dir.y * 200;
+        const worldPt = { x: f.x + dir.x * f.radius, y: f.y + dir.y * f.radius };
+        const s = dir.x < 0 ? 0 : 1;
+        impactLocal(st, s, hx, hy, dir, F, worldPt);
+      }
+    } else if (type === 'RobotA2ArmorHit') {
+      // alias — no SFX
+      return;
     } else if (type === 'RobotA2End') {
+      if (isAlias) return;
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
+        if (payload.fighterId && f.id !== payload.fighterId) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
+        if (st.T - st._lastEndAt < 0.2) continue;
+        st._lastEndAt = st.T;
         st.armor = false;
         setPoseState(st, st.held ? P_HELD : P_IDLE);
+        st.softUntil = st.T + .55;
         playRobotSfx('robot_a2_end', { vol: 0.75 });
+        const ps = calPointLocal(st, 0, PIV[0].x, PIV[0].y);
+        const po = calPointLocal(st, 1, PIV[1].x, PIV[1].y);
+        pulseState(st, [[ps.x, ps.y], [520, 420], [LATCH.x, LATCH.y]], .22, 6);
+        pulseState(st, [[po.x, po.y], [760, 420], [LATCH.x, LATCH.y]], .22, 6);
       }
+    } else if (type === 'RobotPassiveMilestone') {
+      if (isAlias) return;
+      const fighters = globalScope.fighters || [];
+      for (const f of fighters) {
+        if (payload.fighterId && f.id !== payload.fighterId) continue;
+        if (!isRobotFighter(f)) continue;
+        const st = getRobotState(f);
+        if (!st) continue;
+        if (st.T - st._lastMilestoneAt < 0.02) continue;
+        st._lastMilestoneAt = st.T;
+        playRobotSfx('robot_passive_milestone', { vol: 0.68 });
+        for (let i = 0; i < 3; i++) atState(st, i * .06, () => { st.ticks[i] = 1; });
+        atState(st, .2, () => {
+          st.R.crest.kick(16); st.lockFlash = .6; st.R.glow.kick(.5);
+          const ps = calPointLocal(st, 0, PIV[0].x, PIV[0].y);
+          const po = calPointLocal(st, 1, PIV[1].x, PIV[1].y);
+          pulseState(st, [[LATCH.x, LATCH.y], [520, 420], [ps.x, ps.y]], .18, 8);
+          pulseState(st, [[LATCH.x, LATCH.y], [760, 420], [po.x, po.y]], .18, 8);
+        });
+        atState(st, .36, () => { st.POSE.spin += Math.PI; st.snapUntil = st.T + .18; st.snapW = 60; st.snapZ = .55; });
+      }
+    } else if (type === 'RobotPassiveUpgrade') {
+      if (isAlias) return;
+      const fighters = globalScope.fighters || [];
+      for (const f of fighters) {
+        if (payload.fighterId && f.id !== payload.fighterId) continue;
+        if (!isRobotFighter(f)) continue;
+        const st = getRobotState(f);
+        if (!st) continue;
+        if (st.T - st._lastUpgradeAt < 0.02) continue;
+        st._lastUpgradeAt = st.T;
+        playRobotSfx('robot_passive_upgrade', { vol: 0.72 });
+      }
+    } else if (type === 'MilestoneRefund') {
+      // alias — no SFX (handled by PassiveUpgrade)
+      return;
     }
   }
 
-  // --------------------------------------------------------------------------
-  // Hook installations
-  // --------------------------------------------------------------------------
   function install() {
     ensureSprites();
     loadRobotAudio();
 
-    // Bus listener
     const AIL = globalScope.APEX_HERO_REWORK_AIL;
     if (AIL && AIL.bus && !AIL.bus.__robotPresentationHooked) {
       AIL.bus.__robotPresentationHooked = true;
       const origEmit = AIL.bus.emit;
       AIL.bus.emit = function (type, payload) {
-        try { handleBusEvent({ type, payload }); } catch (e) {}
+        try { handleBusEvent({ type, payload }); } catch (e) { console.warn('[robot-presentation] bus handler error', e); }
         return origEmit.call(this, type, payload);
       };
     }
 
-    // Fighter draw wrap
     const Fighter = globalScope.Fighter;
     if (Fighter && Fighter.prototype && !Fighter.prototype.__robotPresentationWrapped) {
       const prevDraw = Fighter.prototype.draw;
@@ -1560,7 +1486,6 @@
         if (isRobotFighter(this)) {
           const st = getRobotState(this);
           if (!st) { return prevDraw.call(this, ctx); }
-          // update state if not yet updated this frame? We'll update in preTick
           ctx.save();
           ctx.globalAlpha = this.hasStatus('immune') ? 0.55 : 1;
           ctx.translate(this.x, this.y);
@@ -1569,11 +1494,8 @@
             const glow = this.color || '#ffffff';
             try { ctx.filter = `drop-shadow(0 0 5px ${glow}) drop-shadow(0 0 11px ${glow})`; } catch (e) {}
           }
-          // draw world-space trail before local? trail is world, so need to draw outside local?
-          // We'll draw local first, then restore and draw world trail via separate wrapper
           try { renderRobotLocal(ctx, this, st); } catch (e) { console.warn('[robot-presentation] render failed', e); }
           if (this.isRage) { try { ctx.filter = 'none'; } catch (e) {} }
-          // status rings (reuse existing logic)
           if (this.hasStatus('freeze')) {
             if (typeof drawStatusRing === 'function') drawStatusRing(ctx, this.radius + 18, '#a6f4ff', 'FREEZE');
           }
@@ -1585,15 +1507,13 @@
           }
           ctx.restore();
           ctx.globalAlpha = 1;
-          // world trail
-          try { renderRobotWorld(ctx, this, st); } catch (e) {}
+          try { renderRobotWorld(ctx, this, st); } catch (e) { console.warn('[robot-presentation] world render failed', e); }
           return;
         }
         return prevDraw.call(this, ctx);
       };
     }
 
-    // onFireBullet wrap for recoil
     const HR = globalScope.APEX_HERO_REWORK;
     if (HR && !HR.__robotFireWrapped) {
       HR.__robotFireWrapped = true;
@@ -1622,7 +1542,6 @@
       };
     }
 
-    // Wall bounce hook
     if (Fighter && Fighter.prototype && Fighter.prototype.resolveWalls && !Fighter.prototype.__robotWallWrapped) {
       const prevResolve = Fighter.prototype.resolveWalls;
       Fighter.prototype.__robotWallWrapped = true;
@@ -1632,7 +1551,6 @@
           const st = getRobotState(this);
           if (st) {
             st.wallFlash = 1;
-            // impact at wall side
             const dir = side === 'left' ? { x: 1, y: 0 } : side === 'right' ? { x: -1, y: 0 } : side === 'top' ? { x: 0, y: 1 } : { x: 0, y: -1 };
             const hx = side === 'left' ? 96 : side === 'right' ? 1184 : 640;
             const hy = side === 'top' ? 96 : side === 'bottom' ? 1184 : 600;
@@ -1645,7 +1563,6 @@
       };
     }
 
-    // AV equipped weapon override for jaw socket
     const installAvOverride = () => {
       const av = globalScope.APEX_ARSENAL_AV;
       if (!av || !av.drawEquippedWeapon || av.__robotSocketWrapped) return;
@@ -1658,12 +1575,9 @@
             const socket = getRobotWeaponSocketWorld(fighter);
             if (st && socket && holder && holder.weaponId) {
               const aim = (holder.meta && holder.meta.aimAngle != null) ? holder.meta.aimAngle : Math.atan2(fighter.dir.y, fighter.dir.x);
-              // recoil offset
               const kick = st.R.gunKick.x;
               const offX = socket.x + Math.cos(aim) * kick;
               const offY = socket.y + Math.sin(aim) * kick;
-              // Use original draw but with custom position: we need to call weapon drawing directly
-              // Instead of using fighter.x offset, we draw weapon at socket
               const meta = av.weaponMeta ? av.weaponMeta(holder.weaponId) : null;
               if (meta && av.drawWeaponSprite) {
                 const params = av.weaponDrawParams ? av.weaponDrawParams(holder.weaponId, holder.def?.category || '', fighter.radius) : { drawOffset: 0, targetLongSide: 120, offset: 0 };
@@ -1684,7 +1598,6 @@
         return prevDrawEq.call(this, ctx, fighter, holder);
       };
     };
-    // Try now and also after AV ready
     installAvOverride();
     if (globalScope.setInterval) {
       let tries = 0;
@@ -1694,7 +1607,6 @@
       }, 200);
     }
 
-    // Pre-tick update hook (similar to heroReworkRuntime)
     const AQ = globalScope.APEX_ARSENAL;
     if (AQ && AQ.step && !AQ.step.__robotPreTickWrapped) {
       const baseStep = AQ.step;
@@ -1727,14 +1639,9 @@
       globalScope.update = wrappedU;
     }
 
-    // Teardown hook
     const HR2 = globalScope.APEX_HERO_REWORK;
     if (HR2 && HR2.installMatch && !HR2.__robotTeardownWrapped) {
       HR2.__robotTeardownWrapped = true;
-      const origInstall = HR2.installMatch;
-      const origTeardown = globalScope.APEX_HERO_REWORK ? globalScope.APEX_HERO_REWORK.match : null;
-      // Wrap install to clear states
-      // Actually installMatch is function, we wrap it
       const prevInstall = HR2.installMatch;
       HR2.installMatch = function () {
         clearRobotStates();
@@ -1742,7 +1649,6 @@
         loadRobotAudio();
         return prevInstall.apply(this, arguments);
       };
-      // Also hook exit
       const baseExit = globalScope.exitArsenalQuestMode;
       if (baseExit && !baseExit.__robotExitWrapped) {
         const wrappedExit = function () {
@@ -1757,9 +1663,6 @@
     }
   }
 
-  // --------------------------------------------------------------------------
-  // Public API
-  // --------------------------------------------------------------------------
   globalScope.APEX_ROBOT_PRESENTATION = {
     ensureSprites,
     getRobotState,
@@ -1769,11 +1672,10 @@
     resetRobotAudioSession,
     SPR: () => SPR,
     isRobotFighter,
-    version: '1.0.0-final-20260929'
+    version: '1.0.0-final-repaired-20260929'
   };
   globalScope.apexRobotPresentationRuntime = 'ready';
 
-  // Auto-install when DOM ready or immediately if engine already loaded
   if (globalScope.Fighter) install();
   else {
     const iv = setInterval(() => {

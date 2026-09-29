@@ -74,11 +74,14 @@
         heading: angleTo(a.x, a.y, pick.x, pick.y),
         elapsed: 0,
         launched: false,
+        // for contact authority: track whether we have already emitted contact via real equip
+        contactEmitted: false,
       };
       ctx.api.note('robot.weapon_dash', 'cast', { target: pick.weaponId });
-      // Semantic presentation events (observational only)
-      try { ctx.api.emitEvent('RobotA1Acquire', { hero: 'ROBOT', target: pick.weaponId, slotId: pick.slot && pick.slot.id }); } catch (e) {}
+      // SINGLE authoritative lock event per valid A1 activation
+      // RobotA1Lock is the presentation authority; RobotA1Acquire is telemetry alias (no SFX)
       try { ctx.api.emitEvent('RobotA1Lock', { hero: 'ROBOT', target: pick.weaponId, slotId: pick.slot && pick.slot.id }); } catch (e) {}
+      try { ctx.api.emitEvent('RobotA1Acquire', { hero: 'ROBOT', target: pick.weaponId, slotId: pick.slot && pick.slot.id, alias: true }); } catch (e) {}
       return true;
     },
     onTick(ctx, dt) {
@@ -88,37 +91,50 @@
       const cfg = ctx.cfg;
       if (!d.launched) {
         d.launched = true;
+        // SINGLE authoritative dash launch event
         try { ctx.api.emitEvent('RobotA1DashLaunch', { hero: 'ROBOT', slotId: d.targetSlotId }); } catch (e) {}
-        try { ctx.api.emitEvent('RobotA1Dash', { hero: 'ROBOT', slotId: d.targetSlotId }); } catch (e) {}
+        // Alias for telemetry only — presentation must NOT replay SFX on this
+        try { ctx.api.emitEvent('RobotA1Dash', { hero: 'ROBOT', slotId: d.targetSlotId, alias: true }); } catch (e) {}
       }
       d.elapsed += dt;
-      // Re-resolve the live slot each tick (it may be collected/removed).
       const slot = ctx.api.revealedSlotById(d.targetSlotId);
       if (!slot) { ctx.store.dash = null; return; }
       d.heading = turnToward(d.heading, angleTo(a.x, a.y, slot.x, slot.y), cfg.turnRate * dt);
-      // Manual integration at dashSpeed; engine movement suppressed this tick.
       a.setDir(Math.cos(d.heading), Math.sin(d.heading));
       a.data.positionLocked = true;
       a.x += Math.cos(d.heading) * cfg.dashSpeed * dt;
       a.y += Math.sin(d.heading) * cfg.dashSpeed * dt;
       const arrived = dist(a.x, a.y, slot.x, slot.y) <= (cfg.arriveRadius || 34);
       if (arrived || d.elapsed >= (cfg.maxDashTime || 0.55)) {
-        if (arrived) {
-          try { ctx.api.emitEvent('RobotA1Contact', { hero: 'ROBOT', slotId: d.targetSlotId, weaponId: slot.weaponId }); } catch (e) {}
-        }
+        // Do NOT emit RobotA1Contact here — contact authority is REAL equip resolution (onEquipOffensive)
         ctx.store.dash = null;
         ctx.api.note('robot.weapon_dash', arrived ? 'arrived' : 'timeout', { elapsed: d.elapsed });
       }
     },
-    onTeardown(ctx) { ctx.store.dash = null; },
+    onEquipOffensive(ctx, weaponId) {
+      // REAL pickup/equip truth — this is the ONLY authoritative contact transition
+      const d = ctx.store.dash;
+      // If we are still dashing or just finished dash, and we equip, that's a contact
+      // Even if dash is already cleared (arrived), we still want to emit contact once
+      if (ctx.store._contactEmitted) return;
+      ctx.store._contactEmitted = true;
+      try { ctx.api.emitEvent('RobotA1Contact', { hero: 'ROBOT', weaponId, slotId: d ? d.targetSlotId : null }); } catch (e) {}
+      ctx.api.note('robot.weapon_dash', 'contact-equip', { weaponId });
+      // reset flag after a short window so future dashes can emit again
+      ctx.api.after(0.6, () => { ctx.store._contactEmitted = false; }, 'robot.contact-reset');
+    },
+    onTeardown(ctx) { ctx.store.dash = null; ctx.store._contactEmitted = false; },
   };
 
   EXECUTORS['robot.virtual_armor'] = {
     cast(ctx) {
       ctx.store.armorUntil = ctx.clock() + ctx.cfg.duration;
+      ctx.store._endEmitted = false;
       ctx.api.emitEvent('HeroArmorUp', { hero: 'ROBOT', duration: ctx.cfg.duration });
+      // SINGLE authoritative activate event
       try { ctx.api.emitEvent('RobotA2Start', { hero: 'ROBOT', duration: ctx.cfg.duration, armorUntil: ctx.store.armorUntil }); } catch (e) {}
-      try { ctx.api.emitEvent('RobotA2Activate', { hero: 'ROBOT', duration: ctx.cfg.duration }); } catch (e) {}
+      // Alias for telemetry — presentation must NOT replay SFX on this
+      try { ctx.api.emitEvent('RobotA2Activate', { hero: 'ROBOT', duration: ctx.cfg.duration, alias: true }); } catch (e) {}
       ctx.api.note('robot.virtual_armor', 'cast', { duration: ctx.cfg.duration });
       return true;
     },
@@ -127,6 +143,7 @@
       if (body !== ctx.combatant.anchor && !ctx.api.ownsBody(ctx.combatant, body)) return packet;
       const out = { ...packet, amount: packet.amount * ctx.cfg.incomingMult };
       ctx.api.note('robot.virtual_armor', 'absorb', { from: packet.amount, to: out.amount });
+      // SINGLE authoritative armored-hit event per actual damage
       try {
         ctx.api.emitEvent('RobotA2Hit', {
           hero: 'ROBOT',
@@ -135,28 +152,33 @@
           bodyId: body.id,
           point: { x: body.x, y: body.y },
         });
+        // Alias — presentation must NOT replay SFX on this
         ctx.api.emitEvent('RobotA2ArmorHit', {
           hero: 'ROBOT',
           amount: packet.amount,
           reduced: out.amount,
           bodyId: body.id,
+          alias: true,
         });
       } catch (e) {}
       return out;
     },
     onTick(ctx) {
       if (!ctx.store.armorUntil) return;
+      if (ctx.store._endEmitted) return;
       if (ctx.clock() >= ctx.store.armorUntil) {
-        // expiry handled by presentation tick, but emit semantic end here as well
+        ctx.store._endEmitted = true;
+        // SINGLE authoritative expiry transition
         try { ctx.api.emitEvent('RobotA2End', { hero: 'ROBOT' }); } catch (e) {}
         ctx.store.armorUntil = 0;
       }
     },
     onTeardown(ctx) {
-      if (ctx.store.armorUntil) {
+      if (ctx.store.armorUntil && !ctx.store._endEmitted) {
         try { ctx.api.emitEvent('RobotA2End', { hero: 'ROBOT', teardown: true }); } catch (e) {}
       }
       ctx.store.armorUntil = 0;
+      ctx.store._endEmitted = false;
     },
   };
 
@@ -181,8 +203,6 @@
       st.cumulative = (st.cumulative || 0) + ev.amount;
       const thresholds = ctx.cfg.milestoneThresholds; // owner authority: null = unresolved
       if (!Array.isArray(thresholds) || thresholds.length === 0) {
-        // Thresholds unresolved: accumulate + observe only. Emit a semantic
-        // note so telemetry can see the passive recording without firing.
         ctx.api.note('robot.damage_milestones', 'recording', { cumulative: st.cumulative, thresholds: 'UNRESOLVED' });
         return;
       }
@@ -191,30 +211,30 @@
       while (milestone < thresholds.length && st.cumulative >= thresholds[milestone]) milestone += 1;
       while (st.reached < milestone) {
         st.reached += 1;
-        const m = st.reached; // milestone #
+        const m = st.reached;
+        // SINGLE authoritative milestone crossing
         try { ctx.api.emitEvent('RobotPassiveMilestone', { hero: 'ROBOT', milestone: m, cumulative: st.cumulative }); } catch (e) {}
         const refunds = ctx.cfg.milestoneRefundsSec || [0, 0.5, 1.0, 1.5];
         const refund = m <= refunds.length
           ? refunds[m - 1]
           : refunds[refunds.length - 1] + (m - refunds.length) * (ctx.cfg.stepAfterLadder || 0.5);
         if (refund > 0) {
-          // Refund the currently relevant Active: A1 if cooling, else A2.
           const ctl = ctx.api.abilityController(ctx.combatant);
           const target = (ctl && ctl.cooldownLeft('A1') > 0) ? 'A1'
             : (ctl && ctl.cooldownLeft('A2') > 0) ? 'A2' : null;
           if (target && ctl) {
             ctl.refundCooldown(target, refund);
-            ctx.api.emitEvent('MilestoneRefund', { hero: 'ROBOT', milestone: m, slot: target, refund });
+            // SINGLE authoritative upgrade/refund event
             try { ctx.api.emitEvent('RobotPassiveUpgrade', { hero: 'ROBOT', milestone: m, slot: target, refund }); } catch (e) {}
+            // MilestoneRefund is alias for telemetry — presentation must NOT replay SFX on this
+            try { ctx.api.emitEvent('MilestoneRefund', { hero: 'ROBOT', milestone: m, slot: target, refund, alias: true }); } catch (e) {}
             ctx.api.note('robot.damage_milestones', 'refund', { milestone: m, slot: target, refund, cumulative: st.cumulative });
           } else {
             ctx.api.note('robot.damage_milestones', 'milestone', { milestone: m, refund, idle: true, cumulative: st.cumulative });
             try { ctx.api.emitEvent('RobotPassiveUpgrade', { hero: 'ROBOT', milestone: m, refund, idle: true }); } catch (e) {}
           }
-        } else {
-          // milestone #1 = no refund, still emit upgrade as no-op? Spec says milestone once, upgrade once
-          try { ctx.api.emitEvent('RobotPassiveUpgrade', { hero: 'ROBOT', milestone: m, refund: 0, idle: true }); } catch (e) {}
         }
+        // milestone #1 has refund 0 → only milestone event, no upgrade (per owner law)
       }
     },
   };
