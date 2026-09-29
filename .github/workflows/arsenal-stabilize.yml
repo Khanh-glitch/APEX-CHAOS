@@ -7,7 +7,7 @@ on:
       - 'arena/**'
 
 permissions:
-  contents: write
+  contents: read
   issues: write
 
 jobs:
@@ -35,9 +35,6 @@ jobs:
 
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Add reproducible headless QA dependencies
-        run: pnpm add -D --save-exact jsdom @napi-rs/canvas
 
       - name: Run headless acceptance suite
         run: |
@@ -134,42 +131,18 @@ jobs:
           cat /tmp/browser.log
           exit $RC
 
-      - name: Upload browser evidence
+      - name: Upload QA evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: arsenal-quest-browser-evidence
+          name: arsenal-quest-qa-evidence
           path: |
             docs/arsenal-quest/browser-evidence/
+            docs/arsenal-quest/evidence/headless-test-report.json
+            /tmp/headless.log
+            /tmp/browser.log
             /tmp/apex-vite.log
           if-no-files-found: warn
-
-      - name: Commit browser evidence and CI logs for in-repo review
-        if: always()
-        shell: bash
-        run: |
-          mkdir -p docs/arsenal-quest/ci-logs
-          cp /tmp/headless.log /tmp/browser.log /tmp/apex-vite.log docs/arsenal-quest/ci-logs/ 2>/dev/null || true
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # add each path separately: --ignore-missing is NOT a "skip missing" flag
-          # (it requires --dry-run and aborts the whole add), which is why earlier
-          # evidence commits silently staged nothing.
-          git add docs/arsenal-quest/ci-logs 2>/dev/null || true
-          git add docs/arsenal-quest/browser-evidence 2>/dev/null || true
-          git add docs/arsenal-quest/evidence/headless-test-report.json 2>/dev/null || true
-          # Persist the recovered owner-approved final-lock WAVs so future
-          # checkouts no longer depend on ChatGPT Library materialization.
-          git add public/assets/arsenal/av/sfx/c-final 2>/dev/null || true
-          git add public/assets/arsenal/av/MANIFEST.csv 2>/dev/null || true
-          git add public/asset-manifest.json 2>/dev/null || true
-          git status --short | head -40 || true
-          if git diff --cached --quiet; then
-            echo "No browser evidence changes."
-          else
-            git commit -m "chore(arsenal): refresh real-browser evidence [skip ci]"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-          fi
 
       - name: Publish diagnosis to issue 4
         if: always()
@@ -186,15 +159,3 @@ jobs:
           } > /tmp/diag.md || true
           gh issue comment 4 --repo Khanh-glitch/APEX-CHAOS --body-file /tmp/diag.md || echo "issue comment failed"
 
-      - name: Commit reproducible QA dependencies
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json pnpm-lock.yaml
-          if git diff --cached --quiet; then
-            echo "No dependency metadata changes required."
-          else
-            git commit -m "test: make Arsenal headless QA reproducible [skip ci]"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-          fi
