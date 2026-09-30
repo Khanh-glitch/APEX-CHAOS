@@ -11,7 +11,7 @@ const api=g.APEX_HUNTER_PRESENTATION={ready:false,trapWorldRadius:0};
 G.load().then(a=>{assets=a;api.ready=true;measure();}).catch(e=>{api.error=String(e);console.error('[Hunter V10 assets]',e);});
 const scale=f=>2*(f.radius||75)/(555*.335),offset=98*.335;
 function hunter(f){return HR.byCombatant(f)?.heroId==='HUNTER';}
-function state(f){if(states.has(f))return states.get(f);const cv=document.createElement('canvas');cv.width=cv.height=1;const s=new G.Stage(cv);s.auto=false;s.art=assets?.art||{};s.glow=assets?.glow||{};s.ready=!!assets;s.fighter=f;s.scale=scale(f);s.prevQ=0;s.castBaseX=0;s.plantTrap=function(){G.Stage.prototype.plantTrap.call(this);this.pendingPlant=true;};states.set(f,s);sync(s);s.integrateHunter(0);return s;}
+function state(f){if(states.has(f))return states.get(f);const cv=document.createElement('canvas');cv.width=cv.height=1;const s=new G.Stage(cv);s.auto=false;s.art=assets?.art||{};s.glow=assets?.glow||{};s.ready=!!assets;s.fighter=f;s.scale=scale(f);s.a1Motion=null;s.plantTrap=function(){G.Stage.prototype.plantTrap.call(this);this.pendingPlant=true;};states.set(f,s);sync(s);s.integrateHunter(0);return s;}
 function sync(s,rigPos=true){const f=s.fighter,k=s.scale=scale(f);if(rigPos){s.h.x.x=s.h.px=f.x/k;s.h.y.x=s.h.py=f.y/k+offset;}s.ground=s.h.py+(609-430)*.335;const ct=HR.byCombatant(f),enemy=HR.match?.combatants.find(c=>c!==ct)?.anchor;
  if(enemy){s.p.x=enemy.x/k;s.p.y=enemy.y/k;s.p.hy=enemy.y/k+offset-s.ground+665*.33*.55;s.p.vx=(enemy.__hrVel?.x||0)/k;s.p.rooted=HR.AIL.StatusResolver.has(enemy,'ROOT');}
  s.coreY=()=>enemy?enemy.y/k:s.h.py;s.solveIntercept=()=>({x:s.p.x,y:s.coreY(),t:0});
@@ -27,14 +27,30 @@ function measure(){if(!assets?.root)return;const k=scale({radius:75});const cv=d
  api.trapWorldRadius=Math.max(24,maxX/k* k); // world px at k scale == canvas px here
  api.trapMeasure={maxX,maxY,k};}
 api.idle=f=>api.ready&&state(f).h.mode==='idle';
-api.begin=(f,kind)=>{const s=state(f);sync(s);s.h.x.v=s.h.y.v=0;s.pendingPlant=false;s.castBaseX=s.h.x.x;if(kind==='a1')s.startA1();else s.startA2();};
-// Preserve the executable Gold A1 spring exactly. Gold moves h.x with
-// springRatio toward h.px-55 during RECOVER; production maps that authored
-// displacement onto the cast axis instead of converting it into a monotonic
-// progress/budget impulse.
-api.advanceA1=(f,dt)=>{const s=state(f);sync(s,false);s.updA1(dt);
- const offset=(s.castBaseX-s.h.x.x)*s.scale;
- const plant=s.pendingPlant;s.pendingPlant=false;return{offset,plant,done:s.h.mode==='idle'};};
+api.begin=(f,kind)=>{const s=state(f);sync(s);s.h.x.v=s.h.y.v=0;s.pendingPlant=false;
+ if(kind==='a1'){
+  // Independent Gold motion reference: never feed production body coordinates
+  // back into the recoil spring.
+  s.a1Motion={x:G.core.spring(340),px:340,offset:0,goldT:0,timeScale:1,dilate:0};
+  s.timeScale=1;s.dilate=0;s.tsTarget=1;
+  s.startA1();
+ }else s.startA2();};
+api.advanceA1=(f,rdt)=>{const s=state(f);sync(s,false),m=s.a1Motion;
+ // Canonical Gold Stage.step timing: the trap's plant burst can temporarily
+ // set timeScale=.22/dilate=.035 via the real Gold plantTrap implementation.
+ s.dilate=Math.max(0,(s.dilate||0)-rdt);
+ s.tsTarget=s.dilate>0?.3:1;
+ s.timeScale=G.core.decayTo(s.timeScale==null?1:s.timeScale,s.tsTarget,s.dilate>0?.012:.06,rdt);
+ const dt=Math.min(.05,rdt)*s.timeScale;
+ s.updA1(dt);
+ if(m&&s.h.t>=.30){
+  // Exact V10 executable law:
+  // springRatio(h.x, clamp(h.px - 55, 130, WW - 130), .6, .34, dt)
+  G.core.springRatio(m.x,G.core.clamp(m.px-55,130,1150),.6,.34,dt);
+  m.px=m.x.x;m.offset=(340-m.x.x)*s.scale;m.goldT=s.h.t;
+ }
+ const plant=s.pendingPlant;s.pendingPlant=false;
+ return{offset:m?m.offset:0,goldT:s.h.t,plant,done:s.h.mode==='idle'};};
 api.prelaunch=(f,dt)=>{const s=state(f);sync(s);s.updA2(dt*(.665/.16));};
 api.travel=(f,heading,dt)=>{const s=state(f);sync(s);const A=s.a2;if(!A.dist){A.dist=1;A.total=Infinity;A.speed=0;A.dir=heading;A.oldDir=heading;s.launchBurst(heading);}if(!A.corrected&&Math.abs(G.core.angWrap(heading-A.oldDir))>.08){s.correctionBurst(G.core.angWrap(heading-A.oldDir));A.corrected=true;}A.dir=heading;s.updA2(dt);};
 api.catch=f=>{const s=state(f);sync(s);s.h.phase='CATCH';s.h.t=0;s.catchImpact();};
@@ -84,7 +100,8 @@ const baseDraw=g.Fighter.prototype.draw;g.Fighter.prototype.draw=function(c){if(
   }}
   return emit.apply(this,arguments);};
 })();
-api.inspect=f=>{const s=state(f);return{mode:s.h.mode,phase:s.h.phase,scale:s.scale,pose:{...s.pose},aura:s.auraAlpha?.x||0,echoes:s.echoes.length,weak:s.p.weak||0};};
+api.inspect=f=>{const s=state(f),m=s.a1Motion;return{mode:s.h.mode,phase:s.h.phase,scale:s.scale,pose:{...s.pose},aura:s.auraAlpha?.x||0,echoes:s.echoes.length,weak:s.p.weak||0,
+ a1:m?{offset:m.offset,goldT:m.goldT,refX:m.x.x,refPx:m.px,timeScale:s.timeScale}:null};};
 api.cacheStats=G.cacheStats;
 g.apexHunterPresentationRuntime='ready';
 })(window);
