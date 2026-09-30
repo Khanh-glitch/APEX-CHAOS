@@ -38,7 +38,7 @@ const result=await page.evaluate(()=>{
     const a=G.fighters[0],b=G.fighters[1];
     a.baseSpeed=0;b.baseSpeed=0;a.x=180;a.y=500;a.setDir(1,0);b.x=820;b.y=500;b.setDir(-1,0);
     for(let i=0;i<3;i++)G.APEX_ARSENAL.step(DT);
-    return {a,b,ct:HR.byCombatant(a),t0:G.matchClock||0};
+    return {a,b,ct:HR.byCombatant(a),ctb:HR.byCombatant(b),t0:G.matchClock||0};
   }
   function step(n=1){for(let i=0;i<n;i++)G.APEX_ARSENAL.step(DT);}
   function stepUntil(fn,maxSec){for(let i=0;i<Math.ceil(maxSec/DT);i++){if(fn())return i*DT;step(1);}return null;}
@@ -59,6 +59,7 @@ const result=await page.evaluate(()=>{
     if(seen==null)throw new Error('could not create 5-shard Wall threshold');
   }
   function prepare(mm,mode){
+    if(mode==='DORMANT') return G.matchClock||0;
     const castK=HR.pressAbility(mm.a,'A2');
     if(!castK.ok)throw new Error('K cast failed');
     const ks=CRY.inspect(mm.ct).k.startedAt;
@@ -88,7 +89,9 @@ const result=await page.evaluate(()=>{
     }
   }
   function one(mode,kind){
-    const mm=fresh(),hpA0=mm.a.hp,hpB0=mm.b.hp,ks=prepare(mm,mode);
+    const mm=fresh();
+    const takenA0=mm.ct.telemetry.damageTaken||0, takenB0=mm.ctb.telemetry.damageTaken||0;
+    const ks=prepare(mm,mode);
     // Live-window scripts start after normal Gold construct closure; POST_K
     // intentionally starts after Awakening has ended to expose free conversion.
     const start=kind==='POST_K'?ks+3.0:ks+1.0;
@@ -101,8 +104,8 @@ const result=await page.evaluate(()=>{
     const ins=CRY.inspect(mm.ct),tele=clone(ins.telemetry);
     return {
       mode,pressure:kind,
-      hpLossCrystal:Math.max(0,hpA0-mm.a.hp),
-      hpLossOpponent:Math.max(0,hpB0-mm.b.hp),
+      hpLossCrystal:Math.max(0,(mm.ct.telemetry.damageTaken||0)-takenA0),
+      hpLossOpponent:Math.max(0,(mm.ctb.telemetry.damageTaken||0)-takenB0),
       k:ins.k,available:ins.available,
       constructs:ins.constructs,
       summary:{
@@ -115,7 +118,7 @@ const result=await page.evaluate(()=>{
     };
   }
 
-  const modes=['K_ONLY','PRISON_EARLY','WALL_EARLY','WALL_LATE'];
+  const modes=['DORMANT','K_ONLY','PRISON_EARLY','WALL_EARLY','WALL_LATE'];
   const pressures=['PRECISION','BURST','RAPID','POST_K'];
   const rows=[];
   for(const pressure of pressures)for(const mode of modes)rows.push(one(mode,pressure));
