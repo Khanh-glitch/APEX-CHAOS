@@ -72,7 +72,8 @@
   "preload_scope": {
     "production_files_modified": false,
     "support_tools": [
-      "tools/preflightFrostOneShot.mjs"
+      "tools/preflightFrostOneShot.mjs",
+      "tools/frostGitDurabilityCheckpoint.mjs"
     ]
   }
 }

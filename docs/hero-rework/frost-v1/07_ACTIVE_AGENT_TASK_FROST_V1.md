@@ -58,4 +58,6 @@ Do not regress/rewrite CRYSTALA V2, ROBOT, HUNTER, Chamber, Arsenal damage/crit/
 
 Do not stop at analysis. Implement, test, produce browser/parity evidence where environment permits, audit, push, and report one final result.
 
+Treat Arena local state as disposable. Follow the runbook's Git-token-expiry law: keep unverified work to roughly 5 minutes / 150–250 meaningful LOC, use `tools/frostGitDurabilityCheckpoint.mjs`, and STOP substantive coding immediately if remote auth/push/verification fails until exact local HEAD is remote-verified again.
+
 Use 03_IMPLEMENTATION_TEST_MATRIX.md as the acceptance checklist.

@@ -122,3 +122,18 @@ A full re-audit after the initial preload found and corrected five prep-level ri
 5. **A2 steal must follow the live equipment-carrier law.** For a multi-body opponent, the implementation must query the current authoritative one-holder/BodyProfile carrier rather than assuming the colliding Body owns the gun.
 
 These corrections do not change the selected Gold, Playtest V0 numbers, CRYSTALA/ROBOT/HUNTER semantics, Arsenal damage/crit law, or the no-SFX/no-Lv2-5 scope.
+
+## Git-token expiry hardening
+
+A third durability audit found that the earlier 10–15 minute / 300–500 LOC push cadence reduced loss but did not fully address the specific failure where a Git credential expires immediately before a checkpoint and the Arena workspace is later recycled.
+
+The preload now requires:
+- remote authentication probe before implementation;
+- ~5 minute / 150–250 LOC maximum unverified work window;
+- remote SHA verification after every checkpoint;
+- auth heartbeat before long tests and large shared-runtime edits;
+- immediate stop-work on auth/push/verification failure;
+- local WIP commit + recovery bundle/patch generation as a secondary fallback;
+- no resumption until the exact local HEAD is remote-verified again.
+
+The local recovery bundle is explicitly NOT equivalent to remote durability because it can be lost with the Arena workspace. The primary protection is frequent verified remote checkpoints.

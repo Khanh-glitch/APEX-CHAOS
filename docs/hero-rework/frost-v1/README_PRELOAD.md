@@ -67,4 +67,8 @@ The later FROST_GOLD_SIGNATURE prototype is NOT the selected Gold for this imple
 This preload branch must contain authority/reference/support tooling only.
 It must not change production gameplay/runtime files relative to 6b83fc6502eb8e23e4bd122074fc7fdfb47441ae.
 
+Git durability helpers:
+- `tools/preflightFrostOneShot.mjs` — safe ancestry/Gold/auth preflight + optional anchor.
+- `tools/frostGitDurabilityCheckpoint.mjs` — remote-auth heartbeat, session-branch push + remote SHA verification, and local recovery bundle/patch generation if remote persistence fails.
+
 The implementation session may make the minimum narrow production changes required by the authority, with regression tests. Direct semantic rewrites of CRYSTALA, ROBOT, HUNTER, Chamber, unrelated Arsenal systems, or unrelated shared runtime are prohibited.

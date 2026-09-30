@@ -10,6 +10,9 @@ F00.2 preload-only commit changes no production runtime vs baseline.
 F00.3 final implementation diff is audited for unrelated CRYSTALA/ROBOT/HUNTER/Chamber regressions.
 F00.4 runtime revision/hash lock is intentionally updated only after implementation.
 F00.5 preflight/anchoring refuses destructive reset when the Arena session HEAD contains unique committed history not already represented by the preload or a clean disposable mainline ancestor.
+F00.6 remote Git authentication is successfully probed before implementation begins.
+F00.7 each durability checkpoint proves remote session-branch SHA == local HEAD before substantive work continues.
+F00.8 remote-auth/push/verification failure never continues silently; if local commits exist beyond the last verified remote SHA, local recovery artifacts are emitted and implementation stops.
 
 ## F01 — Identity / migration
 

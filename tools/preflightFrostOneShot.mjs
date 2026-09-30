@@ -33,6 +33,15 @@ run('git',['fetch','origin',
   'refs/heads/main:refs/remotes/origin/main'
 ], {stdio:['ignore','inherit','inherit']});
 
+// Explicit auth heartbeat before any destructive anchor.
+let authHead='';
+try {
+  authHead=textRun('git',['ls-remote','origin','refs/heads/'+PRELOAD]).split(/\s+/)[0] || '';
+} catch {
+  fail('Remote Git authentication/read check failed before anchor. Do not continue locally.');
+}
+if(!authHead) fail('Remote preload ref is not readable; do not continue locally.');
+
 const preloadRef='refs/remotes/origin/'+PRELOAD;
 const preloadTip=textRun('git',['rev-parse',preloadRef]);
 const mainTip=textRun('git',['rev-parse','refs/remotes/origin/main']);

@@ -33,9 +33,10 @@ At start:
 6. verify Gold hash;
 7. before any hard anchor, prove current HEAD is already represented by preload ancestry OR is a clean disposable ancestor of fetched origin/main; otherwise REFUSE destructive reset and preserve/reconcile the branch first;
 8. anchor only a proven-safe clean Arena session branch forward to the preload tip;
-9. push that session branch and remote-verify before implementation.
+9. push that session branch and remote-verify before implementation;
+10. run an explicit remote-auth heartbeat on the Arena session branch before the first production edit.
 
-The support preflight script can perform the read-only checks and optional clean anchoring.
+The support preflight script performs the source/auth checks and optional safe anchoring. After anchoring, use `tools/frostGitDurabilityCheckpoint.mjs --push` for durable checkpoints.
 
 ## 2. Read fully before coding
 
@@ -130,23 +131,58 @@ Expected legitimate narrow hooks:
 
 Do not use this list as permission to rewrite shared runtime.
 
-## 6. Durability
+## 6. Durability / Git-token expiry law
 
-Remote Git is durable memory.
+Remote Git is durable memory. Arena local disk is NOT durable memory.
 
-Maximum unpushed substantive work:
-- one coherent module; OR
-- roughly 300–500 meaningful LOC; OR
-- roughly 10–15 minutes,
-whichever comes first.
+The historical failure being prevented is:
+local implementation -> Git credential/token expires -> work continues locally -> Arena workspace is recycled -> unpushed history disappears.
 
-Before long browser/test/toolchain work:
-- inspect diff;
-- smallest relevant sanity;
-- commit;
-- push;
-- verify remote SHA;
-- continue.
+### 6.1 Bound the unpushed window
+
+Maximum substantive work without a remote-verified checkpoint is the FIRST of:
+- one small coherent file/slice;
+- about 150–250 meaningful LOC;
+- about 5 minutes.
+
+Do not accumulate an entire feature/module before pushing.
+
+Before every long browser/test/toolchain run, and before starting the next implementation slice:
+1. inspect diff;
+2. run the smallest relevant sanity;
+3. commit current coherent work;
+4. run `node tools/frostGitDurabilityCheckpoint.mjs --push`;
+5. continue only after it reports local HEAD == remote session-branch SHA.
+
+The helper records the last verified remote SHA under `.git/` for recovery bookkeeping.
+
+### 6.2 Authentication heartbeat
+
+A successful push earlier in the run is not proof that the token is still valid.
+
+Use `node tools/frostGitDurabilityCheckpoint.mjs --probe`:
+- before a long test/browser/perf phase when no new commit needs pushing;
+- after any suspicious Git/auth/network error;
+- before beginning a large shared-runtime edit.
+
+### 6.3 Auth/push failure protocol
+
+If fetch/ls-remote/push/remote verification fails:
+1. STOP substantive implementation immediately. Do not keep coding "until auth comes back".
+2. Do not reset, rebase, amend away, or discard local history.
+3. If there is coherent uncommitted work, make a local WIP commit if possible.
+4. Run `node tools/frostGitDurabilityCheckpoint.mjs --recover`.
+5. Record local HEAD, last known remote-verified SHA, and emitted recovery bundle/patch paths.
+6. Attempt only Arena-supported credential/session refresh/recovery.
+7. Resume implementation ONLY after `--push` succeeds and remote SHA exactly matches local HEAD.
+
+A local recovery bundle/patch is a SECONDARY safety net only. If the Arena workspace itself disappears, local recovery files can disappear with it. Therefore the primary protection is the ~5 minute remote-checkpoint cadence.
+
+### 6.4 No false durability claims
+
+A local commit is NOT called durable.
+A successful `git push` without remote SHA verification is NOT called durable.
+Only a remote-verified session-branch SHA is a durability checkpoint.
 
 WIP durability commits are expected and are not owner approval gates.
 
