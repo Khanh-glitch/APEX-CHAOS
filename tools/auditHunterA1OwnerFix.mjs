@@ -23,20 +23,18 @@ const goldPath=path.resolve('docs/hero-rework/hunter-v1.1/reference/HUNTER_GOLD_
 await goldPage.goto(pathToFileURL(goldPath).href,{waitUntil:'load',timeout:60000});
 await goldPage.waitForFunction(()=>window.__hunterStage?.ready===true,{timeout:60000});
 const gold=await goldPage.evaluate(async()=>{
-  const st=window.__hunterStage;
-  st.auto=false;st.slowmo=false;st.closeUp=false;st.reset();st.startA1();
+  // Isolated exact 60 Hz Gold Stage: no RAF cadence, no production bridge.
+  const Ctor=window.__hunterStage.constructor;
+  const cv=document.createElement('canvas');cv.width=1200;cv.height=760;
+  const st=new Ctor(cv);st.auto=false;st.slowmo=false;st.closeUp=false;
+  await st.init();st.reset();st.startA1();
   const rows=[];
-  await new Promise(resolve=>{
-    let n=0;
-    const tick=()=>{
-      rows.push({frame:n,t:+st.h.t.toFixed(5),x:+st.h.px.toFixed(4),mode:st.h.mode,phase:st.h.phase,timeScale:+st.timeScale.toFixed(5)});
-      n++;
-      if((st.h.mode==='idle'&&n>10)||n>160)return resolve();
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
-  const x0=rows[0]?.x??340;
+  for(let n=0;n<180;n++){
+    st.step(1/60);
+    rows.push({frame:n+1,t:+st.h.t.toFixed(5),x:+st.h.px.toFixed(4),mode:st.h.mode,phase:st.h.phase,timeScale:+st.timeScale.toFixed(5),trap:st.tr.phase});
+    if(st.h.mode==='idle'&&n>10)break;
+  }
+  const x0=340;
   const steps=rows.slice(1).map((r,i)=>Math.abs(r.x-rows[i].x));
   const moving=steps.filter(v=>v>.05);
   return {
