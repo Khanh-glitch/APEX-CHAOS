@@ -1,5 +1,5 @@
 {
-  "revision": "20260930-crystala-perf-decision-r6",
+  "revision": "20260930-crystala-bloomfast-r7",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "a0d10025cde29ee55d6eb95a06aee2cbebe2a56e01adcdb1154f8366e3128712",
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
@@ -18,13 +18,13 @@
     "public/game/arsenal/arsenalChamberPaletteRuntime.js": "547ed50a88dbf1a10e8eb3f2fcdf69e3930ad10547302f8e6b48cc8b29425978",
     "public/game/arsenal/arsenalMetaRuntime.js": "c7bca2c76d954a2887f311d4c00515e2c6350fc707fd98bf0f9d02c37280021d",
     "public/game/modes/arsenalQuestRuntime.js": "c82047c13559e550a541dd7fbc5179d5c8b9765871e544d885dc685c95e3a8de",
-    "public/game/hero-rework/crystalaGoldV6.js": "16c6a6019773be2888d89760995fee915e1fc0f6f6fa3107af76ffb8feec97e1",
+    "public/game/hero-rework/crystalaGoldV6.js": "6ec0597545325231985ae298e24e2e8f9efb18200b72156c41c3bef65ecba704",
     "public/game/hero-rework/crystalGameplayRuntime.js": "f4674c7165b5c63dd46f60d23cdffa1f778f0365164b94cee78fa79dcaeb8dfd",
     "public/game/hero-rework/heroMechanicsRuntime.js": "6bd4ec340c73a6ecef5fbc1efb878ad3ebc68e875bc9f277b884ffb2be769983",
     "public/game/hero-rework/heroReworkRuntime.js": "45dd844bddbf69bbdf8b60814d1c9128015ac815d2a429701e91476f7cc06c0d",
     "public/game/hero-rework/robotPresentationRuntime.js": "27856fca5ccda11674a825948a0f98ea48a62e9fe23b27e49200570f09e1c24c",
     "public/game/hero-rework/hunterGoldV10.js": "3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1",
     "public/game/hero-rework/hunterPresentationRuntime.js": "a5e414a61a25ce5595d129a712785b59fa68f996febb29cdf361b36302c645e2",
-    "public/game/hero-rework/crystalaPresentationRuntime.js": "466f95cb856f6072aa6ba4d0ef0b772c7154f73a86e706cab9ed6432eb695ab5"
+    "public/game/hero-rework/crystalaPresentationRuntime.js": "8aed7a55d863601c8789ea1bc1ae200ef9055ba2e10ed4853ad8f33954ba592a"
   }
 }
