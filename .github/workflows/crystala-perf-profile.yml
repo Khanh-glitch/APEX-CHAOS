@@ -79,6 +79,12 @@ jobs:
           APEX_APP_URL: http://127.0.0.1:4173
         run: node tools/profileCrystalaPerformance.mjs
 
+      - name: Analyze CRYSTALA K-J decision tradeoffs
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:4173
+        run: node tools/analyzeCrystalaDecisionTradeoffs.mjs
+
       - name: Run Hunter A1 production-browser proof
         env:
           CHROME_PATH: ${{ steps.chrome.outputs.path }}
@@ -92,6 +98,7 @@ jobs:
           name: crystala-performance-profile
           path: |
             docs/hero-rework/crystala-v1/perf/crystala-performance-profile.json
+            docs/hero-rework/crystala-v1/perf/crystala-decision-tradeoffs.json
             /tmp/crystala-perf-vite.log
             docs/hero-rework/hunter-v1.1/evidence-ownerfix/
           if-no-files-found: warn
