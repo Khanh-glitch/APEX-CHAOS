@@ -1,0 +1,188 @@
+{
+  "timestamp": "2026-09-30T03:40:45.085Z",
+  "environment": {
+    "node": "v22.22.3",
+    "revision": "20260930-crystala-b-r1"
+  },
+  "matrix": [
+    {
+      "id": "M01",
+      "name": "dormant-robot-firearm-hit-no-reflect",
+      "pass": true,
+      "data": {
+        "reflected": false,
+        "hpLoss": 30.870000000000005,
+        "available": 6
+      }
+    },
+    {
+      "id": "M02",
+      "name": "k-sniper-clean-intercept",
+      "pass": true,
+      "data": {
+        "reflected": true,
+        "intercepts": 1,
+        "crystalDamageTaken": 0
+      }
+    },
+    {
+      "id": "M03",
+      "name": "k-rapid-fire-sequential-and-overflow",
+      "pass": true,
+      "data": {
+        "intercepts": 5,
+        "overflowHits": 0,
+        "ignoredUnreachable": 3
+      }
+    },
+    {
+      "id": "M04",
+      "name": "k-shotgun-real-hit-pellets-only",
+      "pass": true,
+      "data": {
+        "reserved": 1,
+        "ignoredMiss": 1
+      }
+    },
+    {
+      "id": "M05",
+      "name": "k-jackhammer-sustained-overwhelm",
+      "pass": true,
+      "data": {
+        "intercepts": 5,
+        "overflowHits": 0,
+        "ignoredUnreachable": 2
+      }
+    },
+    {
+      "id": "M06",
+      "name": "k-immediate-j-6-builds-prison",
+      "pass": true,
+      "data": {
+        "okJ": {
+          "ok": true
+        },
+        "hasPrison": true,
+        "shardsUsed": 6,
+        "availableAfter": 0
+      }
+    },
+    {
+      "id": "M07",
+      "name": "k-one-out-j-builds-wall",
+      "pass": true,
+      "data": {
+        "availBefore": 5,
+        "hasWall": true,
+        "hasPrison": false
+      }
+    },
+    {
+      "id": "M08",
+      "name": "wall-hit-to-break-hp120-cascade",
+      "pass": true,
+      "data": {
+        "maxHp": 120,
+        "finalState": "ENDED",
+        "endReason": "destroyed"
+      }
+    },
+    {
+      "id": "M09",
+      "name": "prison-facet-broken-opens-gap",
+      "pass": true,
+      "data": {
+        "deadFacets": 1,
+        "totalFacets": 6
+      }
+    },
+    {
+      "id": "M10",
+      "name": "robot-a1-dash-no-tunnelling",
+      "pass": true,
+      "data": {
+        "robotMinX": 575,
+        "face": 574.5,
+        "tunneled": false
+      }
+    },
+    {
+      "id": "M11",
+      "name": "robot-a2-mitigation-on-reflected-projectile",
+      "pass": true,
+      "data": {
+        "reflected": true,
+        "damageDealtToRobot": 7.512749999999983,
+        "robotArmored": true
+      }
+    },
+    {
+      "id": "M12",
+      "name": "t6-stormbreaker-never-reflected",
+      "pass": true,
+      "data": {
+        "reflected": false,
+        "intercepts": 0
+      }
+    },
+    {
+      "id": "M13",
+      "name": "k-expiry-committed-job-finishes",
+      "pass": true,
+      "data": {
+        "kActiveAtEnd": false,
+        "intercepts": 1
+      }
+    },
+    {
+      "id": "M14",
+      "name": "shard-dock-and-re-intercept-in-same-k",
+      "pass": true,
+      "data": {
+        "intercepts": 7,
+        "repeatIntercepts": 1
+      }
+    },
+    {
+      "id": "M15",
+      "name": "chamber-palette-profiles-spot-check",
+      "pass": true,
+      "data": {
+        "palettesFound": [
+          "graphite-mid",
+          "graphite-dark",
+          "navy-steel",
+          "teal-deep",
+          "oxide-warm",
+          "violet-slate",
+          "bone-light"
+        ],
+        "activePalette": "teal-deep"
+      }
+    }
+  ],
+  "match": {
+    "seed": 20260930,
+    "durationSeconds": 45.02,
+    "winner": "CRYSTAL",
+    "finalHp": {
+      "crystal": 750.56,
+      "robot": 99.32
+    },
+    "telemetry": {
+      "kCasts": 5,
+      "jCasts": 5,
+      "prisonCasts": 5,
+      "wallCasts": 0,
+      "threatsSeen": 4,
+      "intercepts": 0,
+      "overflowHits": 4,
+      "constructDamageAbsorbed": 0,
+      "reflectedDamageDealt": 0,
+      "ignoredMisses": 0,
+      "ignoredExpired": 0,
+      "facetBreaks": 0,
+      "wallBreaks": 0
+    }
+  }
+}
