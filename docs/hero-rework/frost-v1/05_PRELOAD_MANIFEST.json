@@ -1,0 +1,77 @@
+{
+  "package": "FROST_V1_PRELOAD",
+  "date": "2026-09-30",
+  "repository": "Khanh-glitch/APEX-CHAOS",
+  "baseline": {
+    "reference_branch": "arena/01a0f1e7-apex-chaos",
+    "exact_sha": "6b83fc6502eb8e23e4bd122074fc7fdfb47441ae",
+    "law": "reference truth only; implementation stays on Arena-assigned session branch"
+  },
+  "preload_branch": "director/frost-v1-preload-20260930",
+  "gold": {
+    "source_name": "FROST_GOLD_FUSION_FINAL.html",
+    "repo_name": "01_OWNER_APPROVED_GOLD_REFERENCE.html",
+    "sha256": "59201be3d33bdfbeb8459656d3ef37caf922382a06852bd7a609472fdce2da43",
+    "bytes": 975616,
+    "visual_authority": true,
+    "gameplay_authority": false,
+    "supersedes_signature_for_this_implementation": true
+  },
+  "gameplay": {
+    "storage_id": "ICE",
+    "product_id": "FROST",
+    "mechanic_namespace": "frost",
+    "sfx": "DEFERRED",
+    "progression_lv2_lv5": "DEFERRED",
+    "lv1_playtest_v0": {
+      "a1": {
+        "cooldown": 10.5,
+        "cast": 0.25,
+        "length": 650,
+        "width": 160,
+        "floor_life": 4.5,
+        "frost_speed": 2.35,
+        "enemy_speed": 0.6,
+        "chill_linger": 0.35,
+        "thaw": 0.3,
+        "direct_damage": 0
+      },
+      "a2": {
+        "cooldown": 12.5,
+        "active": 3,
+        "trail_width": 120,
+        "segment_life": 3.5,
+        "frost_speed": 2.35,
+        "enemy_speed": 0.6,
+        "cold_shock_mult": 0.5,
+        "cold_shock_duration": 1,
+        "direct_damage": 0
+      },
+      "passive": {
+        "base_proc": 0.04,
+        "lv1_bonus_pp": 0.04,
+        "total_proc": 0.08,
+        "freeze": 0.9,
+        "refresh_to": 0.9,
+        "post_thaw_lock": 0.5
+      }
+    }
+  },
+  "read_order": [
+    "README_PRELOAD.md",
+    "06_ONE_SHOT_RUNBOOK.md",
+    "00_FROST_IMPLEMENTATION_AUTHORITY.md",
+    "01_OWNER_APPROVED_GOLD_REFERENCE.html",
+    "02_GOLD_TO_GAME_ADAPTATION_MAP.md",
+    "03_IMPLEMENTATION_TEST_MATRIX.md",
+    "04_ZERO_CONTEXT_HANDOFF.md",
+    "05_PRELOAD_MANIFEST.json",
+    "07_ACTIVE_AGENT_TASK_FROST_V1.md"
+  ],
+  "preload_scope": {
+    "production_files_modified": false,
+    "support_tools": [
+      "tools/preflightFrostOneShot.mjs"
+    ]
+  }
+}

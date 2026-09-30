@@ -1,0 +1,77 @@
+#!/usr/bin/env node
+/**
+ * FROST V1 one-shot preflight.
+ * Read-only by default. With --anchor it moves ONLY the current local Arena
+ * branch to the fetched preload tip if the tree is clean. With --push-anchor
+ * it also pushes ONLY the current Arena branch.
+ */
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+
+const BASELINE = '6b83fc6502eb8e23e4bd122074fc7fdfb47441ae';
+const PRELOAD = 'director/frost-v1-preload-20260930';
+const GOLD = 'docs/hero-rework/frost-v1/01_OWNER_APPROVED_GOLD_REFERENCE.html';
+const GOLD_SHA = '59201be3d33bdfbeb8459656d3ef37caf922382a06852bd7a609472fdce2da43';
+
+const args = new Set(process.argv.slice(2));
+const run = (cmd, a = [], opts = {}) =>
+  execFileSync(cmd, a, { encoding: opts.encoding === null ? null : 'utf8', stdio: opts.stdio || ['ignore','pipe','pipe'] });
+
+function textRun(cmd,a=[]) { return String(run(cmd,a)).trim(); }
+function fail(msg) { console.error('[FROST PREFLIGHT] FAIL:', msg); process.exit(1); }
+function sha256(buf) { return createHash('sha256').update(buf).digest('hex'); }
+
+const branch = textRun('git',['branch','--show-current']);
+if (!branch.startsWith('arena/')) fail('Current branch must be Arena-assigned arena/*, got '+branch);
+
+const dirty = textRun('git',['status','--porcelain']);
+if (dirty) fail('Working tree is dirty; preserve work before anchoring.');
+
+run('git',['fetch','origin',
+  'refs/heads/'+PRELOAD+':refs/remotes/origin/'+PRELOAD
+], {stdio:['ignore','inherit','inherit']});
+
+const preloadRef='refs/remotes/origin/'+PRELOAD;
+const preloadTip=textRun('git',['rev-parse',preloadRef]);
+try { run('git',['merge-base','--is-ancestor',BASELINE,preloadTip]); }
+catch { fail('Required baseline is not an ancestor of preload tip.'); }
+
+const changed=textRun('git',['diff','--name-only',BASELINE+'..'+preloadTip])
+  .split(/\r?\n/).filter(Boolean);
+const illegal=changed.filter(p=>!p.startsWith('docs/hero-rework/frost-v1/')&&p!=='tools/preflightFrostOneShot.mjs');
+if(illegal.length) fail('Preload modifies production/unexpected files: '+illegal.join(', '));
+
+// Verify the canonical Gold directly from the fetched preload ref BEFORE any reset.
+let goldFromRef;
+try {
+  goldFromRef=run('git',['show',preloadRef+':'+GOLD],{encoding:null});
+} catch {
+  fail('Cannot read Gold from fetched preload ref.');
+}
+const refSha=sha256(goldFromRef);
+if(refSha!==GOLD_SHA) fail('Gold SHA mismatch in fetched preload ref: '+refSha);
+
+console.log('[FROST PREFLIGHT] baseline:',BASELINE);
+console.log('[FROST PREFLIGHT] preload tip:',preloadTip);
+console.log('[FROST PREFLIGHT] preload files:',changed.length);
+console.log('[FROST PREFLIGHT] Gold SHA OK in fetched ref:',refSha);
+
+if(args.has('--anchor')){
+  run('git',['reset','--hard',preloadTip],{stdio:['ignore','inherit','inherit']});
+  console.log('[FROST PREFLIGHT] anchored current session branch:',branch);
+  const localSha=sha256(readFileSync(GOLD));
+  if(localSha!==GOLD_SHA) fail('Anchored working-tree Gold SHA mismatch: '+localSha);
+  console.log('[FROST PREFLIGHT] anchored Gold SHA OK:',localSha);
+}
+
+if(args.has('--push-anchor')){
+  if(!args.has('--anchor')) fail('--push-anchor requires --anchor');
+  run('git',['push','origin','HEAD:refs/heads/'+branch],{stdio:['ignore','inherit','inherit']});
+  const remote=textRun('git',['ls-remote','origin','refs/heads/'+branch]).split(/\s+/)[0];
+  const local=textRun('git',['rev-parse','HEAD']);
+  if(remote!==local) fail('Remote verification mismatch.');
+  console.log('[FROST PREFLIGHT] remote anchor verified:',remote);
+}
+
+console.log('[FROST PREFLIGHT] PASS');
