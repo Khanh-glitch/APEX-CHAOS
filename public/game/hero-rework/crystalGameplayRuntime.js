@@ -138,8 +138,9 @@ function castAwakening(ctx) {
   const cfg = ctx.cfg;
   const until = now + (cfg.active != null ? cfg.active : 2.4);
   const windowId = st.tele.kCasts + 1;
+  const jDecisionWindow = ct.skills.A1.cfg.decisionWindow != null ? ct.skills.A1.cfg.decisionWindow : 1.2;
   const decisionWindow = {
-    id: windowId, startedAt: now, until, endedAt: null, j: [],
+    id: windowId, startedAt: now, until, decisionDeadline: now + jDecisionWindow, endedAt: null, j: [],
     start: {
       reservations: st.tele.reservations, intercepts: st.tele.intercepts,
       preventedDamage: st.tele.preventedDamage, reflectedDamage: st.tele.reflectedDamage,
@@ -734,17 +735,24 @@ function thrownHit(p, tw) {
 }
 
 /* =================================================================== J — CONSTRUCT */
+function constructDecisionOpen(st) {
+  if (!kActive(st)) return false;
+  const cfg = st.ct.skills.A1.cfg;
+  const maxCasts = cfg.maxCastsPerAwakening != null ? cfg.maxCastsPerAwakening : 1;
+  const window = cfg.decisionWindow != null ? cfg.decisionWindow : 1.2;
+  return st.k.jCasts < maxCasts && AIL.clock() <= st.k.startedAt + window + 1e-9;
+}
 function canCastConstruct(ctx) {
   const st = ensure(ctx.combatant);
-  return kActive(st) && availableIds(st).length >= 2 && !!enemyAnchorOf(ctx.combatant);
+  return constructDecisionOpen(st) && availableIds(st).length >= 2 && !!enemyAnchorOf(ctx.combatant);
 }
 function aiCanAttemptConstruct(ctx) {
   const st = ensure(ctx.combatant);
-  return kActive(st) && availableIds(st).length >= 2 && !!enemyAnchorOf(ctx.combatant);
+  return constructDecisionOpen(st) && availableIds(st).length >= 2 && !!enemyAnchorOf(ctx.combatant);
 }
 function castConstruct(ctx) {
   const ct = ctx.combatant, st = ensure(ct), now = AIL.clock();
-  if (!kActive(st)) return false;
+  if (!constructDecisionOpen(st)) return false;
   const ids = availableIds(st);                               // snapshot at the INPUT EDGE
   if (ids.length < 2) return false;
   const ea = enemyAnchorOf(ct), me = ct.anchor;
@@ -928,7 +936,11 @@ Object.assign(CR, {
   inspect(ct) {
     const st = states.get(ct); if (!st) return null;
     return {
-      k: { active: kActive(st), until: st.k.until, startedAt: st.k.startedAt, jCasts: st.k.jCasts },
+      k: {
+        active: kActive(st), until: st.k.until, startedAt: st.k.startedAt, jCasts: st.k.jCasts,
+        decisionDeadline: st.k.startedAt + (st.ct.skills.A1.cfg.decisionWindow != null ? st.ct.skills.A1.cfg.decisionWindow : 1.2),
+        constructDecisionOpen: constructDecisionOpen(st),
+      },
       shards: st.shards.map((s) => ({ id: s.id, state: s.state, available: s.state === STATE.ORBIT, jobPhase: s.job ? s.job.phase : null })),
       available: availableIds(st).length,
       jobs: st.jobs.map((j) => ({ id: j.id, shard: j.shard, phase: j.phase, pid: j.pid, tContact: j.tContact })),
