@@ -1,4 +1,6 @@
-// Generated from hash-verified Frost Gold Fusion by tools/bridgeFrostGoldV1.mjs.
+// Generated from the hash-verified canonical Frost Gold by tools/bridgeFrostGoldV1.mjs.
+// Source: docs/hero-rework/frost-v1/gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html
+// sha256: 940fc9a8a181cc40d965ebf2c4309d1b4816d3016fc191b0d3df8a1a65be2475 (981597 bytes)
 (function(){
 // ===== MATH =====
 // Core math: exact spring-dampers (after Daniel Holden, "Spring-It-On"),
@@ -101,6 +103,11 @@ function angDiff(a, b) {
     return d;
 }
 const len = (x, y) => Math.hypot(x, y);
+// APEX-style normalized movement direction helper used by the mechanics harness.
+const norm = (x, y) => {
+    const l = Math.hypot(x, y);
+    return l > 1e-9 ? { x: x / l, y: y / l } : { x: 1, y: 0 };
+};
 
 
 // ===== ASSET =====
@@ -729,6 +736,7 @@ class IceField {
             spurPos: rng.range(-0.5, 0.5), spurLen: rng.range(0.45, 0.9),
             cracks: [], crackAt: [], flow: rng.next(), released: false, dead: false,
             rimK: rng.range(0.85, 1.2),
+            gameplay: opt.gameplay !== false, activeUntil: opt.activeUntil ?? Infinity,
         };
         this.nodes.push(n);
         return n;
@@ -750,16 +758,21 @@ class IceField {
     }
     /** coverage test for on-ice locomotion */
     iceAt(x, y, t) {
+        return !!this.nodeAt(x, y, t);
+    }
+    nodeAt(x, y, t, kind = null) {
         for (const n of this.nodes) {
-            if (n.dead || t < n.born + 0.03)
+            if (!n.gameplay || n.dead || t < n.born + 0.03 || t > n.activeUntil)
+                continue;
+            if (kind && n.kind !== kind)
                 continue;
             const dx = x - n.x, dy = y - n.y;
             const a = dx * n.ca + dy * n.sa, c = -dx * n.sa + dy * n.ca;
             const w = n.W * this.widthF(n, t);
             if ((a * a) / ((n.L + 4) * (n.L + 4)) + (c * c) / ((w + 4) * (w + 4)) < 1)
-                return true;
+                return n;
         }
-        return false;
+        return null;
     }
     growF(n, t) {
         const age = t - n.born;
@@ -1050,6 +1063,27 @@ class IceField {
 // ============================================================ CONSTANTS
 const K = 0.132; // layer px -> world units (Frost silhouette ≈ 74 × 93 world units)
 const M = FROST_META;
+// Gold-authored battle-scale reference (see GOLD_REF export): the Gold
+// actor art is drawn against a fighter radius of FROST_R world units.
+const FROST_R = 34, ENEMY_R = 41;
+// Gameplay-authority tuning from the current FROST rework brief.
+// Visual recipes below remain the approved Gold HTML recipes; these values only drive mechanics/state.
+const FROST_TUNE = Object.freeze({
+    A1_CD: 10.5, A1_CAST: 0.25, A1_LEN: 650, A1_WIDTH: 160, A1_FLOOR_LIFE: 4.5, GUN_THAW: 0.30,
+    A2_CD: 12.5, A2_ACTIVE: 3.0, A2_WIDTH: 120, A2_SEGMENT_LIFE: 3.5,
+    FROST_ICE_MULT: 2.35, ENEMY_ICE_MULT: 0.60, ICE_LINGER: 0.35,
+    COLD_SHOCK_MULT: 0.50, COLD_SHOCK_TIME: 1.0,
+    FROZEN_BULLET_BASE: 0.04, DEEP_FROST_BONUS: 0.04, FREEZE_TIME: 0.90, REPROC_LOCK: 0.50,
+    FROST_BASE_SPEED: 215, ENEMY_BASE_SPEED: 190,
+});
+const DEMO_WEAPONS = Object.freeze({
+    SHOTGUN: { family:'SHOTGUN', shotsTotal:4, pellets:6, triggerShots:1, cadence:0.72, spread:0.24 },
+    M249: { family:'AUTO', shotsTotal:12, pellets:1, triggerShots:6, cadence:0.12, spread:0.025 },
+    SEMI: { family:'SEMI', shotsTotal:8, pellets:1, triggerShots:1, cadence:0.32, spread:0.018 },
+    BURST: { family:'BURST', shotsTotal:9, pellets:1, triggerShots:3, cadence:0.11, spread:0.022 },
+    PRECISION: { family:'PRECISION', shotsTotal:5, pellets:1, triggerShots:1, cadence:0.65, spread:0.006 },
+    JACKHAMMER: { family:'AUTOSHOT', shotsTotal:5, pellets:5, triggerShots:3, cadence:0.24, spread:0.20 },
+});
 const LAYERS = ["base", "crest", "browL", "browR", "jaw", "eyes", "crack", "cavity", "sil"];
 function mkCanvas(w, h) {
     const c = document.createElement("canvas");
@@ -1087,6 +1121,19 @@ class FrostEngine {
         this.shadowCanvas = null;
         this.ready = false;
         this.ice = new IceField(2000, 2000); // facet/sheen pattern covers the 1000x1000 world
+        // Production body scale (F12.22): Gold art is authored against
+        // GOLD_REF.FROST_R; the adapter sets bodyK = fighter.radius / FROST_R
+        // so body-frame world offsets (vent -> lane origin) scale with the
+        // drawn silhouette instead of staying at demo size.
+        this.bodyK = 1;
+        // Gameplay-owned lifetimes (presentation overrides the Gold defaults
+        // with real cfg truth; defaults keep the Gold standalone-correct).
+        this.a1FloorLife = FROST_TUNE.A1_FLOOR_LIFE;
+        this.a2SegLife = FROST_TUNE.A2_SEGMENT_LIFE;
+        this.a2Active = FROST_TUNE.A2_ACTIVE;
+        this.a1Len = FROST_TUNE.A1_LEN;
+        this.a1Travel = 0.45;
+        this.a1Origin = null;
         this.t = 0;
         this.dpr = 1;
         this.scale = 1;
@@ -1096,11 +1143,18 @@ class FrostEngine {
         this.fy = 70;
         this.fvx = 0;
         this.fvy = 0;
+        // APEX locomotion law: persistent unit direction, not homing velocity.
+        // Display velocities below are derived each frame from dir × speed multiplier.
         this.fax = 0;
         this.fay = 0;
+        this.moveFacing = 0;
         this.mode = "free";
         this.modeT = 0;
         this.onIce = false;
+        this.coldShockUntil = -9;
+        this.freezeReprocAt = -9;
+        this.a1ReadyAt = 0;
+        this.a2ReadyAt = 0;
         // rig springs (layer px unless noted)
         this.lagX = new Spring(0, 2.6, 0.38);
         this.lagY = new Spring(0, 2.6, 0.38); // world units
@@ -1125,7 +1179,7 @@ class FrostEngine {
         this.a1 = { ang: 0, ox: 0, oy: 0, len: 0, front: 0, frontPrev: 0, nodes: [], released: false, bite: false, ended: false, tStart: 0, endT: 0, rowAcc: 0, lobeAcc: 0, chipAcc: 0 };
         this.breath = { t0: 0, on: false };
         // A2
-        this.a2 = { lastNode: { x: 0, y: 0 }, trail: [], hist: [], histT: 0, lastCarve: -9, contact: false, kicked: false, crustAcc: 0, side: 1 };
+        this.a2 = { lastNode: { x: 0, y: 0 }, trail: [], hist: [], histT: 0, lastCarve: -9, overlap: false, contactT: -9, impactUntil: -9, kicked: false, activeStart: -9, crustAcc: 0, side: 1 };
         // on-ice free movement carve cooldown
         this.freeCarveT = -9;
         this.freeHist = [];
@@ -1136,9 +1190,20 @@ class FrostEngine {
         this.iceCanvas = mkCanvas(2, 2);
         this.iceCtx = this.iceCanvas.getContext("2d");
         this.ventCanvas = mkCanvas(2, 2);
+        // M249 starts 5/12 shots spent so A2 can prove that transfer preserves the remaining 7.
     }
-    mkGun(x, y, a, owner) {
-        return { x, y, a, owner, frost: 0, frostStart: -1, snapAt: -1, thawAt: Infinity, kick: new Spring(0, 7, 0.4), seed: rnd(0, 100), tx0: 0, ty0: 0, tStart: 0, tDur: 0.42, spin: 0, lastWisp: 0, lastVapor: 0 };
+    mkGun(x, y, a, owner, weaponId = "SEMI", shotsFired = 0) {
+        const spec = DEMO_WEAPONS[weaponId] || DEMO_WEAPONS.SEMI;
+        return {
+            x, y, a, owner, weaponId, family: spec.family, shotsTotal: spec.shotsTotal, shotsFired: clamp(shotsFired, 0, spec.shotsTotal),
+            nextReadyAt: 0, sequencePhase: clamp(shotsFired, 0, spec.shotsTotal),
+            frozenState: 'normal', frozenPersistent: false, frost: 0, frostStart: -1, snapAt: -1, thawAt: Infinity, thawEndAt: Infinity,
+            kick: new Spring(0, 7, 0.4), seed: rnd(0, 100), tx0: 0, ty0: 0, tStart: 0, tDur: 0.42, spin: 0, lastWisp: 0, lastVapor: 0
+        };
+    }
+    movementHeading() {
+        const sp = Math.hypot(this.fvx, this.fvy);
+        return sp > 24 ? Math.atan2(this.fvy, this.fvx) : this.moveFacing;
     }
     async load() {
         if (loadPromise) return loadPromise;
@@ -1190,44 +1255,57 @@ class FrostEngine {
         this.crestLift.goal = 5;
     }
     ventWorld() {
-        const vx = (M.vent[0] - M.center[0]) * K * this.sx.x;
-        const vy = (M.vent[1] - M.center[1]) * K * this.sy.x;
-        return { x: this.fx + this.lagX.x * 0.8 + vx, y: this.fy + this.lagY.x * 0.8 + vy };
+        const bk = this.bodyK || 1;
+        const vx = (M.vent[0] - M.center[0]) * K * this.sx.x * bk;
+        const vy = (M.vent[1] - M.center[1]) * K * this.sy.x * bk;
+        return { x: this.fx + this.lagX.x * 0.8 * bk + vx, y: this.fy + this.lagY.x * 0.8 * bk + vy };
     }
     buildLane(t0, len, travel) {
         const A = this.a1;
-        len = len || 440;
         const v = this.ventWorld();
         const ca = Math.cos(A.ang), sa = Math.sin(A.ang);
-        A.ox = v.x + ca * 22;
-        A.oy = v.y + sa * 22 + 4;
+        // Lane POSITION is gameplay truth when production supplies it
+        // (a1Origin = the authoritative release origin), so the rendered
+        // lane covers the mechanic envelope exactly. Without it the Gold's
+        // own authored vent emergence is used, scaled with the body.
+        const bk = this.bodyK || 1;
+        const O = this.a1Origin;
+        A.ox = O ? O.x : v.x + ca * 22 * bk;
+        A.oy = O ? O.y : v.y + sa * 22 * bk + 4 * bk;
         // Production lane length is gameplay truth (passed in).
-        A.len = len;
+        const L = (typeof len === 'number' && len > 0) ? len : FROST_TUNE.A1_LEN;
+        A.len = L;
         A.tStart = t0;
-        travel = (typeof travel === 'number' ? travel : 0.62 * Math.sqrt(len / 440));
+        travel = (typeof travel === 'number' && travel > 0) ? travel : 0.62 * Math.sqrt(L / FROST_TUNE.A1_LEN);
         A.endT = t0 + travel;
         const step = 10;
-        for (let d = 0; d <= len; d += step) {
-            const s = d / len;
+        for (let d = 0; d <= L; d += step) {
+            const s = d / L;
             // freeze-front arrival time (inverse of an ease-out front curve)
             const u = 1 - Math.pow(1 - s, 1 / 2.2);
             const born = t0 + u * travel;
             const wob = (noise1(d * 0.021 + 3) - 0.5) * 10 * smooth(0, 0.3, s);
-            const W = (9 + 19 * smooth(0, 0.22, s) + 5 * (noise1(d * 0.05) - 0.5)) * (1 - 0.42 * smooth(0.8, 1, s));
+            const halfW = FROST_TUNE.A1_WIDTH * 0.5;
+            const W = (halfW * (0.72 + 0.28 * smooth(0, 0.22, s)) + 4 * (noise1(d * 0.05) - 0.5)) * (1 - 0.18 * smooth(0.86, 1, s));
             const x = A.ox + ca * d - sa * wob, y = A.oy + sa * d + ca * wob;
             const n = this.ice.add(x, y, A.ang + (noise1(d * 0.03) - 0.5) * 0.15, this.rng.range(14, 18), W, born, "lane", {
                 lockDur: 0.5, spurChance: s > 0.84 ? 0.34 : 0.08, jag: 0.11,
             });
+            n.activeUntil = A.endT + this.a1FloorLife;
             A.nodes.push({ n, s });
             // satellite plates: larger-scale irregular perimeter (designed, not bead-chain)
             if (s > 0.1 && this.rng.next() < 0.18) {
                 const side = this.rng.sign();
                 const off = W * this.rng.range(0.62, 0.85);
                 const sn = this.ice.add(x - sa * off * side + ca * this.rng.range(-4, 4), y + ca * off * side + sa * this.rng.range(-4, 4), A.ang + this.rng.range(-0.5, 0.5), this.rng.range(10, 14), W * this.rng.range(0.34, 0.5), born + 0.025, "lane", { lockDur: 0.5, spurChance: 0.12, jag: 0.15 });
+                sn.activeUntil = A.endT + this.a1FloorLife;
                 A.nodes.push({ n: sn, s });
             }
         }
-        // Production: presentation schedules lane decay from real gameplay expiry.
+        this.ice.scheduleDecay((n) => n.kind === "lane" && A.nodes.some((q) => q.n === n), A.endT + this.a1FloorLife, 0.18, (n) => {
+            const q = A.nodes.find((k) => k.n === n);
+            return 1 - q.s;
+        });
     }
     updateA1(dt) {
         const A = this.a1;
@@ -1248,7 +1326,7 @@ class FrostEngine {
             spawnRibbon(v.x, v.y, A.ang, 20, 3.4, rnd(-4, 4), 0.26, { grow: 0.5, vx: ca * 60, vy: sa * 60 });
         }
         // RELEASE ~0.20 : cold core + shredded sheath + leading chips + floor bite
-        if (!A.released && T >= 0.2) {
+        if (!A.released && T >= FROST_TUNE.A1_CAST) {
             A.released = true;
             this.breath = { t0: this.t, on: true };
             this.jaw.goal = 24;
@@ -1291,7 +1369,7 @@ class FrostEngine {
             const adv = A.front - A.frontPrev;
             const spd = adv / dt;
             const s = A.front / Math.max(1, A.len);
-            const W = (9 + 19 * smooth(0, 0.22, s)) * (1 - 0.42 * smooth(0.8, 1, s));
+            const W = (FROST_TUNE.A1_WIDTH * 0.5 * (0.72 + 0.28 * smooth(0, 0.22, s))) * (1 - 0.18 * smooth(0.86, 1, s));
             const wob = (noise1(A.front * 0.021 + 3) - 0.5) * 10 * smooth(0, 0.3, s);
             const fxp = A.ox + ca * A.front - sa * wob, fyp = A.oy + sa * A.front + ca * wob;
             A.rowAcc += adv;
@@ -1352,46 +1430,35 @@ class FrostEngine {
     }
     // ------------------------------------------------------------ A2 FROST HUNT
     castA2() {
-        if (this.mode === "a2" || this.mode === "a1")
-            return;
+        if (this.mode === "a2" || this.mode === "a1") return;
         this.mode = "a2";
         this.modeT = 0;
-        Object.assign(this.a2, { lastNode: { x: this.fx, y: this.fy }, trail: [], hist: [], histT: 0, lastCarve: -9, contact: false, kicked: false, crustAcc: 0 });
-        // HUNT IGNITION: brows open, eyes flare, crack wakes, body compresses
+        Object.assign(this.a2, { lastNode:{x:this.fx,y:this.fy}, trail:[], hist:[], histT:0, lastCarve:-9, overlap:false, contactT:-9, impactUntil:-9, kicked:false, activeStart:-9, crustAcc:0, side:1 });
+        // HUNT IGNITION — untouched Gold pose/VFX recipe.
         this.huntGoal = 1;
-        this.bLiftL.goal = 16;
-        this.bLiftR.goal = 17;
-        this.bRotL.goal = 0.05;
-        this.bRotR.goal = -0.05;
-        this.eye.goal = 2.3;
-        this.eye.kick(20);
-        this.crack.goal = 2.3;
-        this.crestLift.goal = 8;
-        this.crestLift.kick(-60);
-        this.sx.goal = 1.07;
-        this.sy.goal = 0.92;
+        this.bLiftL.goal = 16; this.bLiftR.goal = 17; this.bRotL.goal = 0.05; this.bRotR.goal = -0.05;
+        this.eye.goal = 2.3; this.eye.kick(20); this.crack.goal = 2.3; this.crestLift.goal = 8; this.crestLift.kick(-60);
+        this.sx.goal = 1.07; this.sy.goal = 0.92;
+        // Gold ignition pose only: gameplay locomotion keeps APEX's existing direction/speed.
     }
     kickOff() {
         const A = this.a2;
-        const a = Math.atan2(this.fvy, this.fvx);
+        // APEX law: Hunt does NOT acquire/steer toward the opponent. It rides Frost's current
+        // persistent movement direction; wall/body impacts are what naturally redirect the path.
+        const a = this.movementHeading();
         const ca = Math.cos(a), sa = Math.sin(a);
         A.kicked = true;
-        this.sx.goal = 1;
-        this.sy.goal = 1;
-        this.sx.kick(-1.6);
-        this.sy.kick(1.8);
-        this.lagX.kick(-ca * 160);
-        this.lagY.kick(-sa * 160);
-        // UNDERFOOT BITE: Frost grabbed the floor and turned it to ice
-        const pad = this.ice.add(this.fx, this.fy + 6, a, 24, 22, this.t, "pad", { lockDur: 0.5, jag: 0.24 });
+        A.activeStart = this.t;
+        this.sx.goal = 1; this.sy.goal = 1; this.sx.kick(-1.6); this.sy.kick(1.8);
+        this.lagX.kick(-ca * 160); this.lagY.kick(-sa * 160);
+        // Original underfoot-bite VFX, now with the same 3.5 s gameplay lifetime as A2 trail segments.
+        const pad = this.ice.add(this.fx, this.fy + 6, a, 24, FROST_TUNE.A2_WIDTH * 0.5, this.t, "pad", { lockDur:0.5, jag:0.24, activeUntil:this.t + this.a2SegLife });
+        pad.decayAt = pad.activeUntil;
         A.trail.push(pad);
-        for (let i = 0; i < 3; i++) {
-            const aa = a + Math.PI + (i - 1) * 0.9;
-            spawnLobe(this.fx + Math.cos(aa) * 14, this.fy + 6 + Math.sin(aa) * 14, aa, 7, 5, 0.5, i * 0.02, Math.cos(aa) * 30, Math.sin(aa) * 30);
-        }
-        spawnWedge(this.fx - ca * 10, this.fy + 6 - sa * 10, a + Math.PI, 50, 0.46, 0.7);
-        chipCluster(this.fx - ca * 12, this.fy + 6 - sa * 12, a + Math.PI, 0.5, 5, 250, 6.5);
-        spawnRibbon(this.fx - ca * 6, this.fy + 8 - sa * 6, a + Math.PI, 36, 5, rnd(-8, 8), 0.4, { grow: 0.25, vx: -ca * 50, vy: -sa * 50 });
+        for (let i=0;i<3;i++) { const aa=a+Math.PI+(i-1)*0.9; spawnLobe(this.fx+Math.cos(aa)*14,this.fy+6+Math.sin(aa)*14,aa,7,5,0.5,i*0.02,Math.cos(aa)*30,Math.sin(aa)*30); }
+        spawnWedge(this.fx-ca*10,this.fy+6-sa*10,a+Math.PI,50,0.46,0.7);
+        chipCluster(this.fx-ca*12,this.fy+6-sa*12,a+Math.PI,0.5,5,250,6.5);
+        spawnRibbon(this.fx-ca*6,this.fy+8-sa*6,a+Math.PI,36,5,rnd(-8,8),0.4,{grow:0.25,vx:-ca*50,vy:-sa*50});
     }
     carve(ax, ay, head, dAng, strength, hunt) {
         const s = Math.sign(dAng) || 1;
@@ -1426,117 +1493,63 @@ class FrostEngine {
         const A = this.a2;
         const T = this.modeT;
         if (!A.kicked) {
-            if (T >= 0.13)
-                this.kickOff();
+            // Ignition choreography must not freeze/steer locomotion.
+                if (T >= 0.13) this.kickOff();
             return;
         }
-        const sp = Math.hypot(this.fvx, this.fvy);
-        // PATH CRYSTALLIZATION from actual motion history (distance-resampled)
-        const ndx = this.fx - A.lastNode.x, ndy = this.fy - A.lastNode.y;
-        const nd = Math.hypot(ndx, ndy);
-        if (nd >= 9 && !A.contact) {
-            const h = Math.atan2(ndy, ndx);
-            const spn = sat(sp / 520);
-            const W = 11 + 6 * (1 - spn) + this.rng.range(-1.2, 1.2);
-            const n = this.ice.add(this.fx - Math.cos(h) * 3, this.fy + 6 - Math.sin(h) * 3, h, this.rng.range(12, 16), W * 1.04, this.t, "trail", { lockDur: 0.45, spurChance: 0.015, jag: 0.09 });
-            A.trail.push(n);
-            A.lastNode.x = this.fx;
-            A.lastNode.y = this.fy;
-            A.crustAcc += nd;
-            if (A.crustAcc > 26) {
-                A.crustAcc = 0;
-                A.side = -A.side;
-                const ox = -Math.sin(h) * A.side, oy = Math.cos(h) * A.side;
-                spawnLobe(this.fx + ox * W * 0.85, this.fy + 6 + oy * W * 0.85, h, 5, 3.4, 0.45, 0, ox * 26, oy * 26);
-                if (this.rng.next() < 0.6)
-                    spawnShard(this.fx + ox * W, this.fy + 6 + oy * W, Math.atan2(oy, ox) + Math.PI * 0.25 * -A.side, 6, 2.2, 0.4);
-            }
+        // Actual APEX locomotion: persistent direction + shared-ice speed multiplier.
+        // No homing, no predictive lead, no chase damping.
+        const sp = Math.hypot(this.fvx,this.fvy);
+
+        // Actual-motion trail: every segment is gameplay-active for exactly 3.5 s.
+        const ndx=this.fx-A.lastNode.x, ndy=this.fy-A.lastNode.y, nd=Math.hypot(ndx,ndy);
+        if (nd >= 9) {
+            const h=Math.atan2(ndy,ndx);
+            const W=FROST_TUNE.A2_WIDTH*0.5 + this.rng.range(-2,2);
+            const n=this.ice.add(this.fx-Math.cos(h)*3,this.fy+6-Math.sin(h)*3,h,this.rng.range(12,16),W,this.t,"trail",{lockDur:0.45,spurChance:0.015,jag:0.09,activeUntil:this.t+this.a2SegLife});
+            n.decayAt=n.activeUntil; A.trail.push(n); A.lastNode.x=this.fx; A.lastNode.y=this.fy; A.crustAcc+=nd;
+            if (A.crustAcc>26) { A.crustAcc=0; A.side=-A.side; const ox=-Math.sin(h)*A.side,oy=Math.cos(h)*A.side; spawnLobe(this.fx+ox*W*0.85,this.fy+6+oy*W*0.85,h,5,3.4,0.45,0,ox*26,oy*26); if(this.rng.next()<0.6)spawnShard(this.fx+ox*W,this.fy+6+oy*W,Math.atan2(oy,ox)+Math.PI*0.25*-A.side,6,2.2,0.4); }
         }
-        // sparse glide wisps (only at full commit speed)
-        if (sp > 400 && !A.contact && Math.floor(this.t / 0.16) !== Math.floor((this.t - dt) / 0.16)) {
-            const h = Math.atan2(this.fvy, this.fvx);
-            spawnRibbon(this.fx - Math.cos(h) * 16 + rnd(-4, 4), this.fy + 8 - Math.sin(h) * 16, h + Math.PI + rnd(-0.12, 0.12), 30, 3.6, rnd(-6, 6), 0.32, {
-                grow: 0.15, vx: this.fvx * 0.15, vy: this.fvy * 0.15, core: 0.5,
-            });
-        }
-        // TURN SIGNATURE: heading change over a short window of real motion
-        A.histT += dt;
-        if (A.histT >= 1 / 60) {
-            A.histT = 0;
-            A.hist.push(Math.atan2(this.fvy, this.fvx));
-            if (A.hist.length > 10)
-                A.hist.shift();
-        }
-        if (A.hist.length >= 9 && sp > 220 && this.t - A.lastCarve > 0.3 && !A.contact) {
-            const dA = angDiff(A.hist[0], A.hist[A.hist.length - 1]);
-            if (Math.abs(dA) > 0.62) {
-                A.lastCarve = this.t;
-                this.carve(this.fx, this.fy, A.hist[A.hist.length - 1], dA, sat((Math.abs(dA) - 0.5) / 1.0), true);
-            }
-        }
+        if (sp > 400 && Math.floor(this.t/0.16)!==Math.floor((this.t-dt)/0.16)) { const h=Math.atan2(this.fvy,this.fvx); spawnRibbon(this.fx-Math.cos(h)*16+rnd(-4,4),this.fy+8-Math.sin(h)*16,h+Math.PI+rnd(-0.12,0.12),30,3.6,rnd(-6,6),0.32,{grow:0.15,vx:this.fvx*0.15,vy:this.fvy*0.15,core:0.5}); }
+        A.histT+=dt; if(A.histT>=1/60){A.histT=0;A.hist.push(Math.atan2(this.fvy,this.fvx));if(A.hist.length>10)A.hist.shift();}
+        if(A.hist.length>=9&&sp>220&&this.t-A.lastCarve>0.3){const dA=angDiff(A.hist[0],A.hist[A.hist.length-1]);if(Math.abs(dA)>0.62){A.lastCarve=this.t;this.carve(this.fx,this.fy,A.hist[A.hist.length-1],dA,sat((Math.abs(dA)-0.5)/1.0),true);}}
+
+        if(A.activeStart >= 0 && this.t - A.activeStart >= this.a2Active) this.endA2();
     }
     contact(nx, ny, px, py, proxy) {
-        const A = this.a2;
-        A.contact = true;
-        this.lagX.kick(nx * 220);
-        this.lagY.kick(ny * 220);
-        if (Math.abs(nx) > Math.abs(ny)) {
-            this.sx.kick(-2.2);
-            this.sy.kick(1.6);
-        }
-        else {
-            this.sy.kick(-2.2);
-            this.sx.kick(1.6);
-        }
-        const ang = Math.atan2(-ny, -nx);
-        for (let i = 0; i < 5; i++)
-            this.crusts.push({ ang: ang + (i - 2) * 0.28 + rnd(-0.08, 0.08), size: rnd(5, 8), born: this.t + i * 0.02, life: 2.6, seed: rnd(0, 99) });
-        // compact packed-frost burst + directional chip cluster (control, not explosion)
-        for (let i = 0; i < 4; i++) {
-            const o = (i - 1.5) * 0.55;
-            const a = Math.atan2(ny, nx) + Math.PI + o * 1.6;
-            spawnLobe(px + Math.cos(a) * 6, py + Math.sin(a) * 6, a, 8, 6, 0.5, i * 0.015, Math.cos(a) * 40, Math.sin(a) * 40);
-        }
-        chipCluster(px, py, Math.atan2(ny, nx) + Math.PI * 0.5 * (rnd(0, 1) < 0.5 ? 1 : -1) * 0.6, 0.7, 6, 290, 6.5);
-        const patch = this.ice.add(px, py + 8, Math.atan2(ny, nx), 26, 24, this.t, "patch", { lockDur: 0.35, jag: 0.28 });
-        patch.decayAt = this.t + 2.6;
-        // GUN STEAL: the same gun leaves the enemy, gets frozen in transit, arrives with Frost
-        if (proxy && !this.gunSlot) {
-            const g = proxy;
-            g.owner = "transfer";
-            g.a0 = g.a;
-            g.tx0 = g.x;
-            g.ty0 = g.y;
-            g.tStart = this.t;
-            g.tDur = 0.44;
-            g.spin = (rnd(0, 1) < 0.5 ? -1 : 1) * TAU * 1.25;
-            g.frostStart = this.t;
-            g.snapAt = this.t + 0.3;
-            g.thawAt = Infinity;
-            spawnChip(g.x, g.y, Math.atan2(ny, nx), 120, 3.5, { vz: 90 });
+        const A=this.a2; A.overlap=true; A.contactT=this.t; A.impactUntil=this.t+0.18;
+        // Gameplay bounce/separation has already been resolved by resolveBodyCollision(),
+        // exactly like APEX handleCollisions(). Keep only the approved Gold impact response here.
+        this.lagX.kick(nx*220); this.lagY.kick(ny*220);
+        if(Math.abs(nx)>Math.abs(ny)){this.sx.kick(-2.2);this.sy.kick(1.6);}else{this.sy.kick(-2.2);this.sx.kick(1.6);}
+        // Cold Shock: zero damage, stronger non-stacking slow for exactly 1.0 s.
+        this.coldShockUntil=Math.max(this.coldShockUntil,this.t+FROST_TUNE.COLD_SHOCK_TIME);
+        const ang=Math.atan2(-ny,-nx);
+        for(let i=0;i<5;i++)this.crusts.push({ang:ang+(i-2)*0.28+rnd(-0.08,0.08),size:rnd(5,8),born:this.t+i*0.02,life:2.6,seed:rnd(0,99)});
+        for(let i=0;i<4;i++){const o=(i-1.5)*0.55,a=Math.atan2(ny,nx)+Math.PI+o*1.6;spawnLobe(px+Math.cos(a)*6,py+Math.sin(a)*6,a,8,6,0.5,i*0.015,Math.cos(a)*40,Math.sin(a)*40);}
+        chipCluster(px,py,Math.atan2(ny,nx)+Math.PI*0.5*(rnd(0,1)<0.5?1:-1)*0.6,0.7,6,290,6.5);
+        const patch=this.ice.add(px,py+8,Math.atan2(ny,nx),26,24,this.t,"patch",{lockDur:0.35,jag:0.28,gameplay:false}); patch.decayAt=this.t+2.6;
+        // Same-object ownership transfer. No equip(), no fresh holder, no state reset.
+        const g=proxy;
+        if(g&&!this.gunSlot){
+            g.a0=g.a;
+            g.owner='transfer'; g.tx0=g.x; g.ty0=g.y; g.tStart=this.t; g.tDur=0.44; g.spin=(rnd(0,1)<0.5?-1:1)*TAU*1.25;
+            g.frozenState='frozen'; g.frozenPersistent=true; g.frostStart=this.t; g.snapAt=this.t+0.3; g.thawAt=Infinity; g.thawEndAt=Infinity;
+            spawnChip(g.x,g.y,Math.atan2(ny,nx),120,3.5,{vz:90});
         }
     }
     endA2() {
-        const A = this.a2;
-        this.mode = "free";
-        this.huntGoal = 0;
-        this.bLiftL.goal = 0;
-        this.bLiftR.goal = 0;
-        this.bRotL.goal = 0;
-        this.bRotR.goal = 0;
-        this.eye.goal = 1;
-        this.crack.goal = 1;
-        this.crestLift.goal = 0;
-        const sp = Math.hypot(this.fvx, this.fvy);
-        if (sp > 60)
-            spawnWedge(this.fx, this.fy + 6, Math.atan2(this.fvy, this.fvx), 34, 0.4, 0.6);
+        const A=this.a2; if(this.mode!=="a2")return;
+        this.mode="free"; this.huntGoal=0; this.bLiftL.goal=0; this.bLiftR.goal=0; this.bRotL.goal=0; this.bRotR.goal=0; this.eye.goal=1; this.crack.goal=1; this.crestLift.goal=0;
+        const sp=Math.hypot(this.fvx,this.fvy); if(sp>60)spawnWedge(this.fx,this.fy+6,Math.atan2(this.fvy,this.fvx),34,0.4,0.6);
+        // Each trail node already owns its independent 3.5 s lifetime; ending A2 does not collapse the whole trail.
+        for(const c of this.ice.carves) if(c.decayAt===Infinity)c.decayAt=this.t+Math.max(0.25,this.a2SegLife*0.55);
     }
     // ------------------------------------------------------------ L : FROZEN GUN + FREEZE PROC
     muzzle(g, mx, my) {
-        // Gold fireShot 1747-1770 minus demo bullet spawn: cold muzzle visual.
+        // Gold fireShot minus demo bullet spawn: cold muzzle visual only.
         const a = g.a;
         g.kick.kick(-70);
-        // cold muzzle: short tapered vapour + one fleck (no glowing snowball)
         spawnRibbon(mx, my, a + rnd(-0.2, 0.2), 22, 3.5, rnd(-6, 6), 0.35, { grow: 0.2, vx: Math.cos(a) * 40, vy: Math.sin(a) * 40, core: 0.7 });
         spawnChip(mx, my, a + rnd(-0.6, 0.6), 90, 2.4, { outline: false, vz: 40, life: 0.5 });
         g.snapAt = Math.max(g.snapAt, this.t - 0.05); // frost plates flicker on recoil
@@ -1544,9 +1557,8 @@ class FrostEngine {
         this.lagY.kick(-Math.sin(a) * 30);
     }
     hitPatch(cx, cy, R, ang) {
-        // Gold bulletHit 1771-1788 minus demo enemy physics + forced freeze.
+        // Gold bulletHit minus demo enemy physics + forced freeze.
         const hx = cx + Math.cos(ang) * R, hy = cy + Math.sin(ang) * R;
-        // distinct cold hit patch
         for (let i = 0; i < 3; i++) {
             const a = ang + (i - 1) * 0.5;
             spawnLobe(hx + Math.cos(a) * 3, hy + Math.sin(a) * 3, a, 4.5, 3.4, 0.45, i * 0.02, Math.cos(a) * 30, Math.sin(a) * 30);
@@ -1626,7 +1638,7 @@ class FrostEngine {
             plates.push({ poly, cx, cy, appear: dist, anchorX: poly[best * 2], anchorY: poly[best * 2 + 1], released: 0, x: 0, y: 0, vx: 0, vy: 0, rot: 0, vr: 0, z: 0, vz: 0, hl: Math.floor(rnd(0, n)) });
         }
         for (const p of plates)
-            p.appear = this.t + 0.03 + (p.appear / maxD) * 0.3;
+            p.appear = this.t + 0.02 + (p.appear / maxD) * 0.18;
         // strong cracks (few): first from the hit point, second a stress branch
         const c1 = [];
         for (let i = 0; i <= 6; i++) {
@@ -1640,13 +1652,16 @@ class FrostEngine {
         const ba = hitAng + Math.PI / 2 * (rnd(0, 1) < 0.5 ? 1 : -1) + rnd(-0.3, 0.3);
         for (let i = 1; i <= 4; i++)
             c2.push(c1[mid * 2] + Math.cos(ba) * i * R * 0.26 + rnd(-4, 4), c1[mid * 2 + 1] + Math.sin(ba) * i * R * 0.26 + rnd(-4, 4));
-        const patch = this.ice.add(tx, ty + 6, hitAng, R * 1.28, R * 1.22, this.t + 0.05, "patch", { lockDur: 0.4, jag: 0.2 });
+        const patch = this.ice.add(tx, ty + 6, hitAng, R * 1.28, R * 1.22, this.t + 0.05, "patch", { lockDur: 0.4, jag: 0.2, gameplay:false });
+        const FT = (typeof dur === 'number' && dur > 0) ? dur : FROST_TUNE.FREEZE_TIME;
+        const lockUntil=this.t+FT;
         this.shell = {
-            t0: this.t, hitAng, plates,
-            cracks: [{ pts: c1, at: this.t + dur * (2.05 / 2.6), w: 1.7 }, { pts: c2, at: this.t + dur * (2.35 / 2.6), w: 1.3 }],
-            thawT: this.t + dur, done: false, patch, released: false, x: tx, y: ty, R,
+            t0:this.t, hitAng, plates, lockUntil,
+            cracks:[{pts:c1,at:this.t+FT*(0.62/0.90),w:1.7},{pts:c2,at:this.t+FT*(0.78/0.90),w:1.3}],
+            thawT:lockUntil, done:false, patch, released:false, x:tx, y:ty, R,
         };
-        patch.decayAt = this.t + dur * (3.4 / 2.6);
+        this.freezeReprocAt=lockUntil+FROST_TUNE.REPROC_LOCK;
+        patch.decayAt=this.t+FT*(1.55/0.90);
         for (let i = 0; i < 4; i++) {
             const a = hitAng + (i - 1.5) * 0.4;
             spawnLobe(tx + Math.cos(a) * R, ty + Math.sin(a) * R, a, 6, 4.5, 0.5, i * 0.02);
@@ -1731,9 +1746,9 @@ class FrostEngine {
         }
     }
     updateGunVisual(g, dt, target) {
-        // Gold updateGuns 2078-2152: transfer flight + frost grow/thaw laws.
-        // Demo enemy-follow + lane-scan trigger cut; presentation feeds target
-        // (real holder anchor) and frostStart/thawAt (real slot/holder state).
+        // Gold updateGuns transfer-flight + frost grow/thaw laws. Demo
+        // enemy-follow and lane-scan trigger cut: production feeds target
+        // (real holder anchor) and frostStart/thawAt (real slot/holder truth).
         const t = this.t;
         if (!g)
             return;
@@ -1771,8 +1786,8 @@ class FrostEngine {
         }
         if (g.frostStart >= 0) {
             const grow = smooth(0, 0.5, t - g.frostStart);
-            const thaw = g.owner === "floor" && g.thawAt < Infinity ? smooth(0, 0.9, t - g.thawAt) : 0;
-            g.frost = grow * (1 - thaw);
+            const thaw = g.owner === "floor" && g.thawAt < Infinity ? smooth(0, FROST_TUNE.GUN_THAW, t - g.thawAt) : 0;
+            g.frost = g.frozenPersistent ? grow : grow * (1 - thaw);
             if (thaw >= 1) {
                 g.frostStart = -1;
                 g.frost = 0;
@@ -1783,7 +1798,7 @@ class FrostEngine {
         }
     }
     updateCrusts(x, y, R, dt) {
-        // Gold updateEnemy crust-expiry filter 2166-2174 (demo locomotion cut).
+        // Gold updateEnemy crust-expiry filter (demo locomotion cut).
         void dt;
         this.crusts = this.crusts.filter((c) => {
             if (this.t - c.born > c.life) {
@@ -2071,15 +2086,14 @@ class FrostEngine {
     }
     // ------------------------------------------------------------ ENEMY / SHELL
     drawTargetFrost(ctx, x, y, R, px, seizeT) {
-        // Gold drawEnemy 2611-2684: seize tint + rim crusts + shell call.
-        // Demo enemy art cut; (x, y, R) is the real target.
+        // Gold drawEnemy: seize tint + rim crusts + shell call. Demo enemy art
+        // cut; (x, y, R) is the REAL production target body.
         const t = this.t;
         const S = this.shell;
         const frozen = !!S && !S.done;
         const seize = 1 - smooth(0, 0.35, t - seizeT);
         const jx = seize * Math.sin(t * 90) * 1.6 + (S && t > S.cracks[0].at && !S.released ? Math.sin(t * 110) * 0.8 : 0);
         const dx = x + jx, dy = y;
-        // cold seize tint
         const chill = Math.max(frozen ? 1 : 0, seize * 0.6);
         if (chill > 0.01) {
             ctx.beginPath();
@@ -2087,7 +2101,6 @@ class FrostEngine {
             ctx.fillStyle = `rgba(150,205,240,${0.38 * chill})`;
             ctx.fill();
         }
-        // crusts on the rim (contact / hit side)
         for (const c of this.crusts) {
             const age = t - c.born;
             if (age < 0)
@@ -2211,9 +2224,9 @@ class FrostEngine {
     }
     // ------------------------------------------------------------ GUN
     drawGunFrost(ctx, g, px, clipFn) {
-        // Gold drawGun 2787-2906 frost overlay (demo gun base cut; production
-        // draws the real Arsenal sprite underneath). clipFn traces the real
-        // gun silhouette for tint/clip; default is the Gold demo silhouette.
+        // Gold drawGun frost overlay (demo gun base cut; production draws the
+        // real Arsenal sprite underneath). clipFn traces the real gun
+        // silhouette for tint/clip; default is the Gold demo silhouette.
         const t = this.t;
         const body = () => {
             ctx.beginPath();
@@ -2240,11 +2253,9 @@ class FrostEngine {
         ctx.translate(g.kick.x * 0.08, 0);
         const f = g.frost;
         if (f > 0.01) {
-            // cold tint on the metal
             trace();
             ctx.fillStyle = `rgba(165,215,245,${0.3 * f})`;
             ctx.fill();
-            // thin cold plates on selected edges
             ctx.globalAlpha = sat(f * 1.4 - 0.3);
             const plates = [
                 [-15, -5, -6, -7.5, -2, -5, -9, -2.5],
@@ -2265,7 +2276,6 @@ class FrostEngine {
                 ctx.stroke();
             }
             ctx.globalAlpha = 1;
-            // packed frost crawling up from the lower silhouette (bottom-rear first)
             const spots = [[-12, 12.5, 4.2], [-6, 6.5, 3.4], [1.5, 11.5, 3.6], [6, 6, 3], [-15, 1, 3.4], [11, 5, 2.8], [22, 2.6, 2.4]];
             spots.forEach(([sx, sy, r], i) => {
                 const th = i / spots.length;
@@ -2283,7 +2293,6 @@ class FrostEngine {
                 ctx.stroke();
                 ctx.restore();
             });
-            // cold snap sweep across the weapon + one crack
             const snap = t - g.snapAt;
             if (snap > 0 && snap < 0.2) {
                 const sx = lerp(-18, 30, snap / 0.2);
@@ -2315,13 +2324,12 @@ class FrostEngine {
         ctx.restore();
     }
     drawBulletFrost(ctx, x, y, a, px) {
-        // Gold drawBullets 2907-2955 wake + cold leading edge (demo brass cut;
-        // production draws the real projectile underneath). lineWidth for the
-        // cold edge was inherited from the cut brass block: set explicitly.
+        // Gold drawBullets wake + cold leading edge (demo brass cut; production
+        // draws the real projectile underneath). lineWidth for the cold edge
+        // was inherited from the cut brass block: set explicitly.
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(a);
-        // chill wake: short tapered filled wisp
         ctx.beginPath();
         ctx.moveTo(-3, -2.6);
         ctx.quadraticCurveTo(-16, -1.8, -30, 0);
@@ -2336,7 +2344,6 @@ class FrostEngine {
         ctx.closePath();
         ctx.fillStyle = "#ffffff";
         ctx.fill();
-        // colder leading edge on the real projectile body
         ctx.beginPath();
         ctx.moveTo(1, -2.4);
         ctx.lineTo(4.5, -2);
@@ -2358,7 +2365,7 @@ class FrostEngine {
 
 let loadPromise = null;
 const cacheStats = { loadCalls: 0 };
-// Gold updateBullets fleck law 2180-2185 (demo integration/collision cut).
+// Gold updateBullets fleck law (demo integration/collision cut).
 function frostBulletFleck(b, dt) {
     b.age += dt;
     if (b.age - b.lastFleck > 0.05) {
@@ -2366,9 +2373,21 @@ function frostBulletFleck(b, dt) {
         spawnChip(b.x, b.y, Math.atan2(-b.vy, -b.vx) + rnd(-0.5, 0.5), 60, 2, { outline: false, vz: 10, life: 0.35 });
     }
 }
+// Authored reference geometry the production adapter derives its scale from.
+// FROST_R/ENEMY_R are the Gold's own fighter radii; ART/K give the source-art
+// silhouette in Gold world units. No production magic numbers.
+const GOLD_REF = Object.freeze({
+    FROST_R, ENEMY_R, K,
+    ART_W: FROST_META.w, ART_H: FROST_META.h,
+    BODY_W: +(FROST_META.w * K).toFixed(3), BODY_H: +(FROST_META.h * K).toFixed(3),
+    A1_LEN: FROST_TUNE.A1_LEN, A1_WIDTH: FROST_TUNE.A1_WIDTH, A1_CAST: FROST_TUNE.A1_CAST,
+    A2_WIDTH: FROST_TUNE.A2_WIDTH, A2_SEGMENT_LIFE: FROST_TUNE.A2_SEGMENT_LIFE,
+    A1_FLOOR_LIFE: FROST_TUNE.A1_FLOOR_LIFE, FREEZE_TIME: FROST_TUNE.FREEZE_TIME,
+    TRAIL_STEP: 9, TRAIL_LEN_MIN: 12, TRAIL_LEN_MAX: 16, TRAIL_FOOT_Y: 6,
+});
 window.APEX_FROST_GOLD = {
     FrostEngine, IceField, Rng, Crit, Spring, R, rng, rnd, PAL, FROST_META,
-    FROST_LAYERS, K, M, LAYERS, mkCanvas, mipChain, pick,
+    FROST_LAYERS, K, M, LAYERS, mkCanvas, mipChain, pick, GOLD_REF, FROST_TUNE,
     TAU, clamp, lerp, sat, smooth, easeOutCubic, easeOutQuart, easeInCubic,
     easeOutBack, damp, angDiff, hash1, noise1,
     updateShapes, drawFloorShapes, drawAirShapes, drawRibbonLayer, clearShapes,

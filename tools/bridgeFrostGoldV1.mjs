@@ -1,12 +1,26 @@
 #!/usr/bin/env node
 // Build-time bridge only. Never load or parse authority HTML during gameplay.
 //
-// FROST V1 Gold bridge: extracts the hash-verified Fusion Gold engine into a
-// production module (public/game/hero-rework/frostGoldV1.js) + layer PNGs.
-// Keeps: math/RNG, shape systems, IceField, Frost actor rig + all skill/floor/
-// shell/gun/bullet material renderers. Cuts: demo loop, camera, input, fake
-// enemy/guns/bullets, showcase UI/timings. Production gameplay (frostGameplay-
-// Runtime) owns all timers/truth; frostPresentationRuntime drives this module.
+// FROST V1 Gold bridge (FINAL REBUILD, 09_FINAL_GOLD_REBUILD_AUTHORITY).
+// Extracts the hash-verified CANONICAL Gold engine
+//   docs/hero-rework/frost-v1/gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html
+//   981,597 bytes / sha256 940fc9a8...be2475
+// into a production module (public/game/hero-rework/frostGoldV1.js) + layer PNGs.
+//
+// Keeps: math/RNG, shape systems, IceField (incl. gameplay/activeUntil/nodeAt),
+// FROST_TUNE authored constants, the Frost actor rig and every skill/floor/
+// shell/gun/bullet material renderer, and the authored A1/A2 choreography
+// VERBATIM. Cuts: demo loop, camera/zoom, input, demo locomotion/walls/pickups/
+// body collision, fake enemy/guns/bullets/weapon specs, showcase UI.
+//
+// Production gameplay (frostGameplayRuntime) owns all timers/truth;
+// frostPresentationRuntime drives this module and feeds it real state.
+//
+// Scale law (F12.22): the Gold authors its actor against its OWN fighter
+// radius (FROST_R = 34, silhouette ~74x93 world units at K = 0.132). Those
+// reference numbers are exported as GOLD_REF so production derives
+// kBody = fighter.radius / GOLD_REF.FROST_R instead of guessing a multiplier.
+// Body-frame world offsets (vent -> lane origin) scale with engine.bodyK.
 //
 // Sections mirror the Hunter V10 bridge pattern (tools/bridgeHunterGoldV10.mjs).
 import fs from 'node:fs';
@@ -16,19 +30,21 @@ import path from 'node:path';
 const fail = (m) => { throw new Error('[frost-bridge] ' + m); };
 const ROOT = process.cwd();
 
-// ---------- S0: Gold identity (authority 00 section 9) ----------
+// ---------- S0: Gold identity (09_FINAL_GOLD_REBUILD_AUTHORITY section 1) ----------
 const GOLD = 'docs/hero-rework/frost-v1/gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html';
-const GOLD_BYTES = 975616;
+const GOLD_BYTES = 981597;
 const GOLD_SHA = '940fc9a8a181cc40d965ebf2c4309d1b4816d3016fc191b0d3df8a1a65be2475';
 const bytes = fs.readFileSync(path.join(ROOT, GOLD));
 if (bytes.length !== GOLD_BYTES) fail(`Gold byte length ${bytes.length} !== ${GOLD_BYTES}`);
 if (crypto.createHash('sha256').update(bytes).digest('hex') !== GOLD_SHA) fail('Gold SHA-256 mismatch');
+if (!bytes.toString().includes('FROST — Gold Fusion · Mechanics + APEX Physics Accurate')) fail('Gold title mismatch');
 
 // ---------- S1: isolate the engine script (extract FIRST, then cut) ----------
 const blocks = bytes.toString().split('<script>');
 if (blocks.length !== 3) fail(`expected 2 script blocks, saw ${blocks.length - 1}`);
 let s = blocks[2].split('</script>')[0];
 if (!s.includes('class FrostEngine') || !s.includes('class IceField')) fail('engine script isolate failed');
+if (!s.includes('const FROST_TUNE = Object.freeze({')) fail('FROST_TUNE block not found');
 
 // ---------- S2: source-art layers -> files (Hunter pattern) ----------
 const assetDir = 'public/assets/hero-rework/frost-v1';
@@ -101,20 +117,22 @@ function repCount(needle, repl, want, what) {
 }
 
 // ---------- S4: cut demo-only methods (class-scoped; IceField.render etc kept) ----------
+// Demo gameplay authority (locomotion, walls, pickups, collision, weapons, AI,
+// projectiles), demo camera/canvas plumbing and showcase controls.
 for (const m of ['reset', 'toggleSlow', 'toggleClose', 'toggleFloor', 'toggleEnemyArmed',
-  'manualFire', 'emitState', 'defaultAim', 'castL', 'updateFetch', 'inputDir', 'step',
-  'gunAim', 'gunSlotPos', 'updateEnemy', 'updateBullets', 'start', 'stop', 'resize',
+  'manualFire', 'emitState', 'defaultAim', 'castL', 'updateFetch', 'inputDir', 'reflectDir',
+  'updateApexFrostMotion', 'resolveFrostWalls', 'handlePickups', 'resolveBodyCollision',
+  'weaponSpec', 'remainingShots', 'eligibleFirearm', 'isEnemyFrozen',
+  'step', 'gunAim', 'gunSlotPos', 'updateEnemy', 'updateBullets', 'start', 'stop', 'resize',
   'screenToWorld', 'render', 'drawFloor']) cutMethod(m);
 // NOTE: drawEnemy/drawGun/drawBullets/fireShot/bulletHit/updateGuns are SPLITS
 // in S5, not cuts. Every method below must appear in exactly one op.
 
 // ---------- S5: splits (demo method -> production entry, Gold-verbatim core) ----------
-// Gold line numbers cited per replacement for audit (script-file lines).
 splitMethod('fireShot', `    muzzle(g, mx, my) {
-        // Gold fireShot 1747-1770 minus demo bullet spawn: cold muzzle visual.
+        // Gold fireShot minus demo bullet spawn: cold muzzle visual only.
         const a = g.a;
         g.kick.kick(-70);
-        // cold muzzle: short tapered vapour + one fleck (no glowing snowball)
         spawnRibbon(mx, my, a + rnd(-0.2, 0.2), 22, 3.5, rnd(-6, 6), 0.35, { grow: 0.2, vx: Math.cos(a) * 40, vy: Math.sin(a) * 40, core: 0.7 });
         spawnChip(mx, my, a + rnd(-0.6, 0.6), 90, 2.4, { outline: false, vz: 40, life: 0.5 });
         g.snapAt = Math.max(g.snapAt, this.t - 0.05); // frost plates flicker on recoil
@@ -123,9 +141,8 @@ splitMethod('fireShot', `    muzzle(g, mx, my) {
     }
 `);
 splitMethod('bulletHit', `    hitPatch(cx, cy, R, ang) {
-        // Gold bulletHit 1771-1788 minus demo enemy physics + forced freeze.
+        // Gold bulletHit minus demo enemy physics + forced freeze.
         const hx = cx + Math.cos(ang) * R, hy = cy + Math.sin(ang) * R;
-        // distinct cold hit patch
         for (let i = 0; i < 3; i++) {
             const a = ang + (i - 1) * 0.5;
             spawnLobe(hx + Math.cos(a) * 3, hy + Math.sin(a) * 3, a, 4.5, 3.4, 0.45, i * 0.02, Math.cos(a) * 30, Math.sin(a) * 30);
@@ -134,12 +151,12 @@ splitMethod('bulletHit', `    hitPatch(cx, cy, R, ang) {
         this.crusts.push({ ang: ang + rnd(-0.1, 0.1), size: rnd(4.5, 6.5), born: this.t, life: 3.2, seed: rnd(0, 99) });
     }
 `);
-// NOTE: updateEnemy is cut in S4; updateCrusts is inserted at the updateGuns
-// site below alongside updateGunVisual (both derive from updateGuns/updateEnemy).
+// updateEnemy is cut in S4; updateCrusts is inserted here alongside
+// updateGunVisual (both derive from the Gold updateGuns/updateEnemy laws).
 splitMethod('updateGuns', `    updateGunVisual(g, dt, target) {
-        // Gold updateGuns 2078-2152: transfer flight + frost grow/thaw laws.
-        // Demo enemy-follow + lane-scan trigger cut; presentation feeds target
-        // (real holder anchor) and frostStart/thawAt (real slot/holder state).
+        // Gold updateGuns transfer-flight + frost grow/thaw laws. Demo
+        // enemy-follow and lane-scan trigger cut: production feeds target
+        // (real holder anchor) and frostStart/thawAt (real slot/holder truth).
         const t = this.t;
         if (!g)
             return;
@@ -177,8 +194,8 @@ splitMethod('updateGuns', `    updateGunVisual(g, dt, target) {
         }
         if (g.frostStart >= 0) {
             const grow = smooth(0, 0.5, t - g.frostStart);
-            const thaw = g.owner === "floor" && g.thawAt < Infinity ? smooth(0, 0.9, t - g.thawAt) : 0;
-            g.frost = grow * (1 - thaw);
+            const thaw = g.owner === "floor" && g.thawAt < Infinity ? smooth(0, FROST_TUNE.GUN_THAW, t - g.thawAt) : 0;
+            g.frost = g.frozenPersistent ? grow : grow * (1 - thaw);
             if (thaw >= 1) {
                 g.frostStart = -1;
                 g.frost = 0;
@@ -189,7 +206,7 @@ splitMethod('updateGuns', `    updateGunVisual(g, dt, target) {
         }
     }
     updateCrusts(x, y, R, dt) {
-        // Gold updateEnemy crust-expiry filter 2166-2174 (demo locomotion cut).
+        // Gold updateEnemy crust-expiry filter (demo locomotion cut).
         void dt;
         this.crusts = this.crusts.filter((c) => {
             if (this.t - c.born > c.life) {
@@ -201,15 +218,14 @@ splitMethod('updateGuns', `    updateGunVisual(g, dt, target) {
     }
 `);
 splitMethod('drawEnemy', `    drawTargetFrost(ctx, x, y, R, px, seizeT) {
-        // Gold drawEnemy 2611-2684: seize tint + rim crusts + shell call.
-        // Demo enemy art cut; (x, y, R) is the real target.
+        // Gold drawEnemy: seize tint + rim crusts + shell call. Demo enemy art
+        // cut; (x, y, R) is the REAL production target body.
         const t = this.t;
         const S = this.shell;
         const frozen = !!S && !S.done;
         const seize = 1 - smooth(0, 0.35, t - seizeT);
         const jx = seize * Math.sin(t * 90) * 1.6 + (S && t > S.cracks[0].at && !S.released ? Math.sin(t * 110) * 0.8 : 0);
         const dx = x + jx, dy = y;
-        // cold seize tint
         const chill = Math.max(frozen ? 1 : 0, seize * 0.6);
         if (chill > 0.01) {
             ctx.beginPath();
@@ -217,7 +233,6 @@ splitMethod('drawEnemy', `    drawTargetFrost(ctx, x, y, R, px, seizeT) {
             ctx.fillStyle = \`rgba(150,205,240,\${0.38 * chill})\`;
             ctx.fill();
         }
-        // crusts on the rim (contact / hit side)
         for (const c of this.crusts) {
             const age = t - c.born;
             if (age < 0)
@@ -240,9 +255,9 @@ splitMethod('drawEnemy', `    drawTargetFrost(ctx, x, y, R, px, seizeT) {
     }
 `);
 splitMethod('drawGun', `    drawGunFrost(ctx, g, px, clipFn) {
-        // Gold drawGun 2787-2906 frost overlay (demo gun base cut; production
-        // draws the real Arsenal sprite underneath). clipFn traces the real
-        // gun silhouette for tint/clip; default is the Gold demo silhouette.
+        // Gold drawGun frost overlay (demo gun base cut; production draws the
+        // real Arsenal sprite underneath). clipFn traces the real gun
+        // silhouette for tint/clip; default is the Gold demo silhouette.
         const t = this.t;
         const body = () => {
             ctx.beginPath();
@@ -269,11 +284,9 @@ splitMethod('drawGun', `    drawGunFrost(ctx, g, px, clipFn) {
         ctx.translate(g.kick.x * 0.08, 0);
         const f = g.frost;
         if (f > 0.01) {
-            // cold tint on the metal
             trace();
             ctx.fillStyle = \`rgba(165,215,245,\${0.3 * f})\`;
             ctx.fill();
-            // thin cold plates on selected edges
             ctx.globalAlpha = sat(f * 1.4 - 0.3);
             const plates = [
                 [-15, -5, -6, -7.5, -2, -5, -9, -2.5],
@@ -294,7 +307,6 @@ splitMethod('drawGun', `    drawGunFrost(ctx, g, px, clipFn) {
                 ctx.stroke();
             }
             ctx.globalAlpha = 1;
-            // packed frost crawling up from the lower silhouette (bottom-rear first)
             const spots = [[-12, 12.5, 4.2], [-6, 6.5, 3.4], [1.5, 11.5, 3.6], [6, 6, 3], [-15, 1, 3.4], [11, 5, 2.8], [22, 2.6, 2.4]];
             spots.forEach(([sx, sy, r], i) => {
                 const th = i / spots.length;
@@ -312,7 +324,6 @@ splitMethod('drawGun', `    drawGunFrost(ctx, g, px, clipFn) {
                 ctx.stroke();
                 ctx.restore();
             });
-            // cold snap sweep across the weapon + one crack
             const snap = t - g.snapAt;
             if (snap > 0 && snap < 0.2) {
                 const sx = lerp(-18, 30, snap / 0.2);
@@ -345,13 +356,12 @@ splitMethod('drawGun', `    drawGunFrost(ctx, g, px, clipFn) {
     }
 `);
 splitMethod('drawBullets', `    drawBulletFrost(ctx, x, y, a, px) {
-        // Gold drawBullets 2907-2955 wake + cold leading edge (demo brass cut;
-        // production draws the real projectile underneath). lineWidth for the
-        // cold edge was inherited from the cut brass block: set explicitly.
+        // Gold drawBullets wake + cold leading edge (demo brass cut; production
+        // draws the real projectile underneath). lineWidth for the cold edge
+        // was inherited from the cut brass block: set explicitly.
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(a);
-        // chill wake: short tapered filled wisp
         ctx.beginPath();
         ctx.moveTo(-3, -2.6);
         ctx.quadraticCurveTo(-16, -1.8, -30, 0);
@@ -366,7 +376,6 @@ splitMethod('drawBullets', `    drawBulletFrost(ctx, x, y, a, px) {
         ctx.closePath();
         ctx.fillStyle = "#ffffff";
         ctx.fill();
-        // colder leading edge on the real projectile body
         ctx.beginPath();
         ctx.moveTo(1, -2.4);
         ctx.lineTo(4.5, -2);
@@ -383,44 +392,78 @@ splitMethod('drawBullets', `    drawBulletFrost(ctx, x, y, a, px) {
     }
 `);
 applyOps();
+
 // ---------- S6: trims (exact, fail-loud) ----------
-// -- constructor: drop demo canvas param, demo fields, dead keys; production ice coverage
+// -- constructor: drop demo canvas param, demo fields, dead keys; production
+//    ice coverage + body scale hook.
 repOnce('    constructor(canvas) {', '    constructor() {', 'ctor header');
 repOnce('        this.ice = new IceField(ARENA_W, ARENA_H);',
-  '        this.ice = new IceField(2000, 2000); // facet/sheen pattern covers the 1000x1000 world',
+  `        this.ice = new IceField(2000, 2000); // facet/sheen pattern covers the 1000x1000 world
+        // Production body scale (F12.22): Gold art is authored against
+        // GOLD_REF.FROST_R; the adapter sets bodyK = fighter.radius / FROST_R
+        // so body-frame world offsets (vent -> lane origin) scale with the
+        // drawn silhouette instead of staying at demo size.
+        this.bodyK = 1;
+        // Gameplay-owned lifetimes (presentation overrides the Gold defaults
+        // with real cfg truth; defaults keep the Gold standalone-correct).
+        this.a1FloorLife = FROST_TUNE.A1_FLOOR_LIFE;
+        this.a2SegLife = FROST_TUNE.A2_SEGMENT_LIFE;
+        this.a2Active = FROST_TUNE.A2_ACTIVE;
+        this.a1Len = FROST_TUNE.A1_LEN;
+        this.a1Travel = 0.45;
+        this.a1Origin = null;`,
   'ice coverage');
 {
   const dead = ['acc', 'last', 'raf', 'keys', 'mouse', 'timeScale', 'timeScaleGoal',
     'closeUp', 'darkProof', 'zoomBlend', 'camX', 'camY', 'vw', 'vh', 'aim',
-    'ex', 'ey', 'evx', 'evy', 'ehomeX', 'ehomeY', 'eFace', 'eSeize', 'eChill',
+    'debugDirSig', 'fDir', 'lastUiAt', 'forceNextProc', 'lastProcRoll', 'procRng',
+    'blastSeq', 'blastRolls', 'enemyOnIce', 'enemyIceSlowUntil',
+    'ex', 'ey', 'evx', 'evy', 'eDir', 'ehomeX', 'ehomeY', 'eFace', 'eSeize', 'eChill',
     'bullets', 'fire', 'canvas', 'ctx', 'floorGun', 'enemyGun'];
   const re = new RegExp(`^        this\\.(${dead.join('|')}) = .*$\\n`, 'gm');
   const [ctor0, ctor1] = methodRange(s, 'constructor');
   const ctorSlice = s.slice(ctor0, ctor1);
   const found = (ctorSlice.match(re) || []).map((l) => l.trim().slice(0, 70));
-  if (found.length !== 30) fail(`ctor dead-field lines: expected 30, saw ${found.length}`);
+  if (found.length !== dead.length) fail(`ctor dead-field lines: expected ${dead.length}, saw ${found.length}`);
   s = s.slice(0, ctor0) + ctorSlice.replace(re, '') + s.slice(ctor1);
 }
 repOnce('        this.eCrusts = [];', '        this.crusts = [];', 'crust field');
-repCount('wps: [], ', '', 1, 'wps key');
-repCount('wi: 0, ', '', 2, 'wi key');
-repCount('dist: 0, ', '', 2, 'dist key');
-repCount('endAt: 0, ', '', 2, 'endAt key');
-repCount('contactT: 0, ', '', 1, 'contactT key');
-repCount(', manual: false', '', 2, 'manual key');
-// -- castA1: production passes the snapshotted cast angle
+// -- ventWorld: body-frame offsets scale with the production body.
+repOnce(`        const vx = (M.vent[0] - M.center[0]) * K * this.sx.x;
+        const vy = (M.vent[1] - M.center[1]) * K * this.sy.x;
+        return { x: this.fx + this.lagX.x * 0.8 + vx, y: this.fy + this.lagY.x * 0.8 + vy };`,
+  `        const bk = this.bodyK || 1;
+        const vx = (M.vent[0] - M.center[0]) * K * this.sx.x * bk;
+        const vy = (M.vent[1] - M.center[1]) * K * this.sy.x * bk;
+        return { x: this.fx + this.lagX.x * 0.8 * bk + vx, y: this.fy + this.lagY.x * 0.8 * bk + vy };`,
+  'ventWorld body scale');
+// -- castA1/castA2: production cooldowns are gameplay truth (the presentation
+//    only asks for a visual when the real ability fired). The Gold's own
+//    cooldown gate would silently drop an authorised visual.
 repOnce('    castA1() {', '    castA1(ang) {', 'castA1 header');
+repOnce(`        if (this.t < this.a1ReadyAt) return;
+        this.a1ReadyAt = this.t + FROST_TUNE.A1_CD;
+`, '', 'castA1 cooldown');
 repOnce('        const a = this.defaultAim();', '        const a = ang;', 'castA1 aim');
-// -- buildLane: gameplay owns len/travel/expiry
+repOnce(`        if (this.mode === "a2" || this.mode === "a1" || this.t < this.a2ReadyAt) return;
+        this.a2ReadyAt = this.t + FROST_TUNE.A2_CD;`,
+  '        if (this.mode === "a2" || this.mode === "a1") return;', 'castA2 cooldown');
+// -- buildLane: gameplay owns lane length/front travel/floor lifetime; the
+//    Gold's authored node construction + staggered melt order stay verbatim.
 repOnce('    buildLane(t0) {', '    buildLane(t0, len, travel) {', 'buildLane header');
-repOnce(`        const A = this.a1;
-        const v = this.ventWorld();`,
-  `        const A = this.a1;
-        len = len || 440;
-        const v = this.ventWorld();`, 'buildLane default');
+repOnce(`        A.ox = v.x + ca * 22;
+        A.oy = v.y + sa * 22 + 4;`,
+  `        // Lane POSITION is gameplay truth when production supplies it
+        // (a1Origin = the authoritative release origin), so the rendered
+        // lane covers the mechanic envelope exactly. Without it the Gold's
+        // own authored vent emergence is used, scaled with the body.
+        const bk = this.bodyK || 1;
+        const O = this.a1Origin;
+        A.ox = O ? O.x : v.x + ca * 22 * bk;
+        A.oy = O ? O.y : v.y + sa * 22 * bk + 4 * bk;`, 'buildLane origin scale');
 repOnce(`        // lane length clamped by arena bounds
-        let L = 440;
-        for (let d = 0; d < 440; d += 10) {
+        let L = FROST_TUNE.A1_LEN;
+        for (let d = 0; d < FROST_TUNE.A1_LEN; d += 10) {
             const x = A.ox + ca * d, y = A.oy + sa * d;
             if (Math.abs(x) > ARENA_W / 2 - 30 || Math.abs(y) > ARENA_H / 2 - 30) {
                 L = d;
@@ -429,165 +472,74 @@ repOnce(`        // lane length clamped by arena bounds
         }
         A.len = L;`,
   `        // Production lane length is gameplay truth (passed in).
-        A.len = len;`, 'buildLane clamp');
-repOnce('        const travel = 0.62 * Math.sqrt(L / 440);',
-  '        travel = (typeof travel === \'number\' ? travel : 0.62 * Math.sqrt(len / 440));', 'buildLane travel');
-repOnce('        for (let d = 0; d <= L; d += step) {',
-  '        for (let d = 0; d <= len; d += step) {', 'buildLane loop');
-repOnce('            const s = d / L;', '            const s = d / len;', 'buildLane s');
-repOnce(`        this.ice.scheduleDecay((n) => n.kind === "lane" && A.nodes.some((q) => q.n === n), A.endT + 3.6, 1.0, (n) => {
-            const q = A.nodes.find((k) => k.n === n);
-            return 1 - q.s;
-        });`,
-  `        // Production: presentation schedules lane decay from real gameplay expiry.`, 'buildLane decay');
-// -- updateA1: no demo body kick; production lane dims
+        const L = (typeof len === 'number' && len > 0) ? len : FROST_TUNE.A1_LEN;
+        A.len = L;`, 'buildLane clamp');
+repOnce('        const travel = 0.62 * Math.sqrt(L / FROST_TUNE.A1_LEN);',
+  "        travel = (typeof travel === 'number' && travel > 0) ? travel : 0.62 * Math.sqrt(L / FROST_TUNE.A1_LEN);",
+  'buildLane travel');
+repCount('            n.activeUntil = A.endT + FROST_TUNE.A1_FLOOR_LIFE;',
+  '            n.activeUntil = A.endT + this.a1FloorLife;', 1, 'lane activeUntil');
+repCount('                sn.activeUntil = A.endT + FROST_TUNE.A1_FLOOR_LIFE;',
+  '                sn.activeUntil = A.endT + this.a1FloorLife;', 1, 'lane satellite activeUntil');
+repOnce('        this.ice.scheduleDecay((n) => n.kind === "lane" && A.nodes.some((q) => q.n === n), A.endT + FROST_TUNE.A1_FLOOR_LIFE, 0.18, (n) => {',
+  '        this.ice.scheduleDecay((n) => n.kind === "lane" && A.nodes.some((q) => q.n === n), A.endT + this.a1FloorLife, 0.18, (n) => {',
+  'buildLane decay lifetime');
+// -- updateA1: no demo body kick (production owns movement); real lane dims.
 repOnce(`            this.fvx -= ca * 70;
             this.fvy -= sa * 70;
 `, '', 'updateA1 body kick');
 repOnce('            this.buildLane(this.t + 0.03);',
   '            this.buildLane(this.t + 0.03, this.a1Len, this.a1Travel);', 'updateA1 build call');
-// -- castA2: cut the demo homing route (method-scoped)
-{
-  const [cb0, cb1] = classBodyRange(s);
-  const body = s.slice(cb0, cb1);
-  const m = body.match(/^    castA2\(\) \{$/m);
-  if (!m || m.index === undefined) fail('castA2 not found');
-  const mAbs = cb0 + m.index;
-  const mOpen = s.indexOf('{', mAbs);
-  const mEnd = braceEnd(s, mOpen);
-  const start = s.indexOf('        const P = { x: this.fx, y: this.fy };\n', mAbs);
-  const stop = s.indexOf('        ];\n', start);
-  if (start < 0 || stop < 0 || stop > mEnd) fail('castA2 route block not found');
-  s = s.slice(0, start) + s.slice(stop + '        ];\n'.length);
-}
-repOnce(`        this.fvx *= 0.3;
-        this.fvy *= 0.3;
-`, '', 'castA2 velocity damp');
-// -- kickOff: angle from real mirrored velocity; no demo launch impulse
-repOnce(`        const A = this.a2;
-        const w = A.wps[0];
-        const a = Math.atan2(w.y - this.fy, w.x - this.fx);
-        const ca = Math.cos(a), sa = Math.sin(a);
-        A.kicked = true;
-        this.sx.goal = 1;
-        this.sy.goal = 1;
-        this.sx.kick(-1.6);
-        this.sy.kick(1.8);
-        this.fvx = ca * 400;
-        this.fvy = sa * 400;
-        this.lagX.kick(-ca * 160);`,
-  `        const A = this.a2;
-        const a = Math.atan2(this.fvy, this.fvx);
-        const ca = Math.cos(a), sa = Math.sin(a);
-        A.kicked = true;
-        this.sx.goal = 1;
-        this.sy.goal = 1;
-        this.sx.kick(-1.6);
-        this.sy.kick(1.8);
-        this.lagX.kick(-ca * 160);`, 'kickOff head');
-// -- updateA2: cut pre-kick damp, steering, demo contact detect, demo end
-repOnce(`        if (!A.kicked) {
-            this.fvx *= Math.exp(-12 * dt);
-            this.fvy *= Math.exp(-12 * dt);
-            if (T >= 0.13)
-                this.kickOff();
-            return;
-        }`,
-  `        if (!A.kicked) {
-            if (T >= 0.13)
-                this.kickOff();
-            return;
-        }`, 'updateA2 pre-kick');
-{
-  const [cb0, cb1] = classBodyRange(s);
-  const body = s.slice(cb0, cb1);
-  const m = body.match(/^    updateA2\(dt\) \{$/m);
-  if (!m || m.index === undefined) fail('updateA2 not found');
-  const mAbs = cb0 + m.index;
-  const mOpen = s.indexOf('{', mAbs);
-  const mEnd = braceEnd(s, mOpen);
-  const start = s.indexOf('        // steering: manual arrows override the authored route; motion is fully simulated\n', mAbs);
-  const stop = s.indexOf('        const sp = Math.hypot(this.fvx, this.fvy);\n', mAbs);
-  if (start < 0 || stop < 0 || stop > mEnd || stop < start) fail('updateA2 steering block not found');
-  s = s.slice(0, start) + s.slice(stop);
-}
-repOnce(`        const cosA = sp > 1 ? (dx * this.fvx + dy * this.fvy) / sp : 1;
-        const brake = cosA < 0.3 ? 0.72 : 1; // loading the edge through a hard turn
-        this.fvx = damp(this.fvx, dx * maxS * brake, A.contact ? 0.25 : 0.11, dt);
-        this.fvy = damp(this.fvy, dy * maxS * brake, A.contact ? 0.25 : 0.11, dt);
-`, '', 'updateA2 velocity drive');
-repOnce(`        // CONTACT
-        const cdx = this.ex - this.fx, cdy = this.ey - this.fy;
-        const cd = Math.hypot(cdx, cdy);
-        if (!A.contact && cd < FROST_R + ENEMY_R)
-            this.contact(cdx / cd, cdy / cd);
-        const endNow = (A.contact && this.t - A.contactT > 0.42) || T > (A.manual ? 3.0 : 3.8);
-        if (endNow)
-            this.endA2();
-`, '', 'updateA2 demo contact/end');
-// -- contact: real normal/point/proxy; no demo physics
+// -- kickOff / updateA2: production owns locomotion; gameplay owns lifetimes.
+//    The authored trail node law (spacing, width, jag, crust lobes, carve) is
+//    untouched — that IS the A2 material identity (F12.19).
+repCount('        this.updateApexFrostMotion();\n', '', 3, 'demo locomotion calls');
+repCount('activeUntil:this.t + FROST_TUNE.A2_SEGMENT_LIFE', 'activeUntil:this.t + this.a2SegLife', 1, 'pad segment life');
+repCount('activeUntil:this.t+FROST_TUNE.A2_SEGMENT_LIFE', 'activeUntil:this.t+this.a2SegLife', 1, 'trail segment life');
+repOnce('        if(A.activeStart >= 0 && this.t - A.activeStart >= FROST_TUNE.A2_ACTIVE) this.endA2();',
+  '        if(A.activeStart >= 0 && this.t - A.activeStart >= this.a2Active) this.endA2();', 'a2 window');
+repOnce('        for(const c of this.ice.carves) if(c.decayAt===Infinity)c.decayAt=this.t+Math.max(0.25,FROST_TUNE.A2_SEGMENT_LIFE*0.55);',
+  '        for(const c of this.ice.carves) if(c.decayAt===Infinity)c.decayAt=this.t+Math.max(0.25,this.a2SegLife*0.55);', 'endA2 carve decay');
+// -- contact: real normal/point/holder proxy; demo enemy shove + demo steal
+//    eligibility are gameplay truth and are cut.
 repOnce('    contact(nx, ny) {', '    contact(nx, ny, px, py, proxy) {', 'contact header');
-repOnce(`        A.contact = true;
-        A.contactT = this.t;
-        const px = this.ex - nx * ENEMY_R, py = this.ey - ny * ENEMY_R;
-`, `        A.contact = true;
-`, 'contact head');
-repOnce(`        this.fvx = -nx * 90 + -ny * tang * 0.2;
-        this.fvy = -ny * 90 + nx * tang * 0.2;
-`, '', 'contact body response');
-repOnce(`        const tang = -nx * this.fvy + ny * this.fvx;
-`, '', 'contact tang');
-repOnce(`        this.evx += nx * 170;
-        this.evy += ny * 170;
-        this.eSeize = this.t;
-`, '', 'contact enemy shove');
-repOnce('        if (this.enemyGun && this.enemyGun.owner === "enemy" && !this.gunSlot) {',
-  '        if (proxy && !this.gunSlot) {', 'contact steal guard');
-repOnce(`            const g = this.enemyGun;
-            g.owner = "transfer";`,
-  `            const g = proxy;
-            g.owner = "transfer";
-            g.a0 = g.a;`, 'contact steal proxy');
-// -- endA2: presentation schedules decay from real segment lifetimes
-repOnce(`        const trail = A.trail.slice();
-        const N = trail.length;
-        const idx = new Map();
-        trail.forEach((n, i) => idx.set(n, i / Math.max(1, N - 1)));
-        this.ice.scheduleDecay((n) => idx.has(n), this.t + 2.3, 1.3, (n) => idx.get(n));
-        for (const c of this.ice.carves)
-            if (c.decayAt === Infinity)
-                c.decayAt = this.t + 2.3 + 0.9;
-`, '', 'endA2 decay');
-// -- freezeEnemy: real target (R, x, y) + real freeze duration (Gold ratios kept)
+repOnce('        const px=this.ex-nx*ENEMY_R, py=this.ey-ny*ENEMY_R;\n', '', 'contact point');
+repOnce('        this.eSeize=this.t;\n', '', 'contact enemy seize');
+repCount('this.eCrusts.push', 'this.crusts.push', 1, 'contact crusts');
+repOnce(`        const g=this.enemyGun;
+        if(g&&g.owner==='enemy'&&!this.gunSlot&&this.eligibleFirearm(g)){`,
+  `        const g=proxy;
+        if(g&&!this.gunSlot){
+            g.a0=g.a;`, 'contact steal proxy');
+// -- freezeEnemy: real target (R, x, y) + real freeze duration; Gold fracture
+//    geometry and crack/thaw ratios preserved.
 repOnce('    freezeEnemy(hitAng) {', '    freezeEnemy(hitAng, R, tx, ty, dur) {', 'freezeEnemy header');
 repOnce('        const R = ENEMY_R;\n', '', 'freezeEnemy R');
-repOnce('        const patch = this.ice.add(this.ex, this.ey + 6, hitAng, R * 1.28, R * 1.22, this.t + 0.05, "patch", { lockDur: 0.4, jag: 0.2 });',
-  '        const patch = this.ice.add(tx, ty + 6, hitAng, R * 1.28, R * 1.22, this.t + 0.05, "patch", { lockDur: 0.4, jag: 0.2 });', 'freezeEnemy patch');
-repOnce('            cracks: [{ pts: c1, at: this.t + 2.05, w: 1.7 }, { pts: c2, at: this.t + 2.35, w: 1.3 }],',
-  '            cracks: [{ pts: c1, at: this.t + dur * (2.05 / 2.6), w: 1.7 }, { pts: c2, at: this.t + dur * (2.35 / 2.6), w: 1.3 }],', 'freezeEnemy cracks');
-repOnce('            thawT: this.t + 2.6, done: false, patch, released: false,',
-  '            thawT: this.t + dur, done: false, patch, released: false, x: tx, y: ty, R,', 'freezeEnemy shell');
-repOnce('        patch.decayAt = this.t + 3.4;', '        patch.decayAt = this.t + dur * (3.4 / 2.6);', 'freezeEnemy patch decay');
+repOnce('        const patch = this.ice.add(this.ex, this.ey + 6, hitAng, R * 1.28, R * 1.22, this.t + 0.05, "patch", { lockDur: 0.4, jag: 0.2, gameplay:false });',
+  '        const patch = this.ice.add(tx, ty + 6, hitAng, R * 1.28, R * 1.22, this.t + 0.05, "patch", { lockDur: 0.4, jag: 0.2, gameplay:false });',
+  'freezeEnemy patch');
+repOnce('        const lockUntil=this.t+FROST_TUNE.FREEZE_TIME;',
+  '        const FT = (typeof dur === \'number\' && dur > 0) ? dur : FROST_TUNE.FREEZE_TIME;\n        const lockUntil=this.t+FT;', 'freezeEnemy lock');
+repOnce('            cracks:[{pts:c1,at:this.t+0.62,w:1.7},{pts:c2,at:this.t+0.78,w:1.3}],',
+  '            cracks:[{pts:c1,at:this.t+FT*(0.62/0.90),w:1.7},{pts:c2,at:this.t+FT*(0.78/0.90),w:1.3}],',
+  'freezeEnemy cracks');
+repOnce('            thawT:lockUntil, done:false, patch, released:false,',
+  '            thawT:lockUntil, done:false, patch, released:false, x:tx, y:ty, R,', 'freezeEnemy shell target');
+repOnce('        patch.decayAt=this.t+1.55;', '        patch.decayAt=this.t+FT*(1.55/0.90);', 'freezeEnemy patch decay');
 repOnce('            spawnLobe(this.ex + Math.cos(a) * R, this.ey + Math.sin(a) * R, a, 6, 4.5, 0.5, i * 0.02);',
   '            spawnLobe(tx + Math.cos(a) * R, ty + Math.sin(a) * R, a, 6, 4.5, 0.5, i * 0.02);', 'freezeEnemy lobes');
-// -- updateShell: track the real target; no demo enemy response
+// -- updateShell: track the real target; no demo enemy response.
 repOnce('            chipCluster(this.ex + c[0], this.ey + c[1], S.hitAng, 0.8, 3, 110, 3.6);',
   '            chipCluster(S.x + c[0], S.y + c[1], S.hitAng, 0.8, 3, 110, 3.6);', 'updateShell crack chips');
 repOnce('                        chipCluster(this.ex + p.cx, this.ey + p.cy, Math.atan2(p.cy, p.cx), 0.6, 2, 150, 3.5);',
   '                        chipCluster(S.x + p.cx, S.y + p.cy, Math.atan2(p.cy, p.cx), 0.6, 2, 150, 3.5);', 'updateShell plate chips');
-repOnce(`        if (S.released && !S.done && S.plates.every((p) => p.released && t > p.released)) {
-            S.done = true;
+repOnce(`            S.done = true;
             this.eSeize = t; // target returns with a shake
             this.evx += rnd(-30, 30);
             this.evy += rnd(-30, 30);
-            this.eChill = 0;
-        }`,
-  `        if (S.released && !S.done && S.plates.every((p) => p.released && t > p.released)) {
-            S.done = true;
-        }`, 'updateShell done');
-// -- drawShell: real shell radius (exact lines; the demo const dies in S7)
-repOnce('if (Math.hypot(ax, ay) > ENEMY_R * 1.02 && Math.hypot(bx2, by2) > ENEMY_R * 1.02) {',
-  'if (Math.hypot(ax, ay) > S.R * 1.02 && Math.hypot(bx2, by2) > S.R * 1.02) {', 'drawShell rim');
+            this.eChill = 0;`, '            S.done = true;', 'updateShell done');
+// -- drawShell: real shell radius.
+repCount('ENEMY_R * 1.02', 'S.R * 1.02', 2, 'drawShell rim');
 repOnce('ctx.arc(0, 0, ENEMY_R * 1.17, S.hitAng', 'ctx.arc(0, 0, S.R * 1.17, S.hitAng', 'drawShell ring');
 // -- load: cache immutable decode work (Hunter pattern: single-flight + stats)
 repOnce(`    async load() {
@@ -604,16 +556,19 @@ repOnce(`        this.shadowCanvas = sh;
         this.ready = true;
         })());
     }`, 'load close');
-// -- eCrusts -> crusts (cut regions already gone; contact site remains)
-repCount('this.eCrusts', 'this.crusts', 1, 'crust rename');
 
-// ---------- S7: cut demo-only module consts ----------
-for (const line of ['const ARENA_W = 1480, ARENA_H = 820;\n',
-  'const FROST_R = 34, ENEMY_R = 41;\n', 'const DT = 1 / 120;\n']) repOnce(line, '', `const cut ${line.slice(6, 16)}`);
+// ---------- S7: demo-only module consts ----------
+repOnce('const ARENA_W = 1480, ARENA_H = 820;\n', '', 'const cut ARENA');
+repOnce('const DT = 1 / 120;\n', '', 'const cut DT');
+// FROST_R / ENEMY_R stay as the exported authored scale reference (GOLD_REF);
+// every demo USE of them is gone by this point (asserted in S8).
+repOnce('const FROST_R = 34, ENEMY_R = 41;\n',
+  `// Gold-authored battle-scale reference (see GOLD_REF export): the Gold
+// actor art is drawn against a fighter radius of FROST_R world units.
+const FROST_R = 34, ENEMY_R = 41;
+`, 'scale reference');
 
 // ---------- S8: residue checks (word-bound; no false positives) ----------
-// Strip comments first: split-insert comments cite Gold lineage (e.g. the
-// updateGuns law) as documentation. Residue means remaining demo CODE.
 function stripComments(text) {
   let out = '', i = 0, q = null;
   while (i < text.length) {
@@ -640,34 +595,46 @@ const residue = ['requestAnimationFrame', 'getElementById', 'querySelector',
   'drawEnemy', 'drawFloor', 'screenToWorld', 'runAuto', 'stopAuto', 'updateUi',
   'toggleUI', 'autoTimers', 'floorGun', 'enemyGun', 'closeUp', 'darkProof',
   'zoomBlend', 'camX', 'camY', 'timeScale', 'ehome', 'eFace', 'eSeize', 'eChill',
-  'eCrusts', 'ENEMY_R', 'FROST_R', 'ARENA_W', 'ARENA_H', 'actions',
+  'eCrusts', 'ARENA_W', 'ARENA_H', 'actions', 'updateApexFrostMotion',
+  'resolveFrostWalls', 'handlePickups', 'resolveBodyCollision', 'reflectDir',
+  'weaponSpec', 'remainingShots', 'eligibleFirearm', 'isEnemyFrozen', 'DEMO_WEAPONS_DEAD',
   'this\\.ex\\b', 'this\\.ey\\b', 'this\\.evx\\b', 'this\\.evy\\b', 'this\\.bullets\\b',
   'this\\.fire\\b', 'this\\.keys\\b', 'this\\.mouse\\b', 'this\\.acc\\b', 'this\\.last\\b',
-  'this\\.raf\\b', 'this\\.vw\\b', 'this\\.vh\\b', 'this\\.aim\\b', 'this\\.canvas\\b',
-  'this\\.ctx\\b', '\\bwps\\b', '\\bmanual\\b', '\\bendAt\\b', '\\bDT\\b', '\\blater\\b'];
+  'this\\.raf\\b', 'this\\.vw\\b', 'this\\.vh\\b', 'this\\.canvas\\b',
+  'this\\.ctx\\b', 'this\\.fDir\\b', 'this\\.procRng\\b', 'this\\.blastRolls\\b',
+  '\\bwps\\b', '\\bDT\\b'];
 for (const r of residue) {
   const m = code.match(new RegExp(r.indexOf('\\') === 0 || r.startsWith('this') ? r : `\\b${r}\\b`));
   if (m) fail(`demo residue: ${r} (near: ${JSON.stringify(code.slice(Math.max(0, m.index - 60), m.index + 60))})`);
+}
+// FROST_R/ENEMY_R may appear ONLY in their declaration at this point; the
+// GOLD_REF export (S9 footer) is the single production consumer.
+for (const name of ['FROST_R', 'ENEMY_R']) {
+  const hits = (code.match(new RegExp(`\\b${name}\\b`, 'g')) || []).length;
+  if (hits !== 1) fail(`${name}: expected 1 declaration reference, saw ${hits}`);
 }
 // Positive checks: every kept entry must exist.
 for (const name of ['constructor', 'mkGun', 'load', 'castA1', 'ventWorld',
   'buildLane', 'updateA1', 'castA2', 'kickOff', 'carve', 'updateA2', 'contact',
   'endA2', 'muzzle', 'hitPatch', 'freezeEnemy', 'updateShell', 'updateIdle',
-  'updateGunVisual', 'updateCrusts', 'drawA1MacroFront', 'drawFrostShadow',
-  'drawFrost', 'drawVentGlow', 'drawPreCore', 'drawBreathCore', 'drawTargetFrost',
-  'drawShell', 'drawGunFrost', 'drawBulletFrost']) methodRange(s, name);
+  'movementHeading', 'updateGunVisual', 'updateCrusts', 'drawA1MacroFront',
+  'drawFrostShadow', 'drawFrost', 'drawVentGlow', 'drawPreCore', 'drawBreathCore',
+  'drawTargetFrost', 'drawShell', 'drawGunFrost', 'drawBulletFrost']) methodRange(s, name);
 for (const fn of ['const rnd =', 'const rng', 'const R = new Rng',
   'class IceField', 'function updateShapes', 'function drawFloorShapes',
   'function drawAirShapes', 'function drawRibbonLayer', 'function clearShapes',
-  'function mkCanvas', 'function mipChain', 'function pick']) {
+  'function mkCanvas', 'function mipChain', 'function pick', 'nodeAt(']) {
   if (!s.includes(fn)) fail(`missing kept module entry: ${fn}`);
 }
+// The authored A2 trail law must survive verbatim (F12.19 anti-regression).
+if (!s.includes('const W=FROST_TUNE.A2_WIDTH*0.5 + this.rng.range(-2,2);')) fail('A2 authored width law missing');
+if (!s.includes('if (nd >= 9) {')) fail('A2 authored 9px resample law missing');
 
 // ---------- S9: footer, compile check, write ----------
 s += `
 let loadPromise = null;
 const cacheStats = { loadCalls: 0 };
-// Gold updateBullets fleck law 2180-2185 (demo integration/collision cut).
+// Gold updateBullets fleck law (demo integration/collision cut).
 function frostBulletFleck(b, dt) {
     b.age += dt;
     if (b.age - b.lastFleck > 0.05) {
@@ -675,9 +642,21 @@ function frostBulletFleck(b, dt) {
         spawnChip(b.x, b.y, Math.atan2(-b.vy, -b.vx) + rnd(-0.5, 0.5), 60, 2, { outline: false, vz: 10, life: 0.35 });
     }
 }
+// Authored reference geometry the production adapter derives its scale from.
+// FROST_R/ENEMY_R are the Gold's own fighter radii; ART/K give the source-art
+// silhouette in Gold world units. No production magic numbers.
+const GOLD_REF = Object.freeze({
+    FROST_R, ENEMY_R, K,
+    ART_W: FROST_META.w, ART_H: FROST_META.h,
+    BODY_W: +(FROST_META.w * K).toFixed(3), BODY_H: +(FROST_META.h * K).toFixed(3),
+    A1_LEN: FROST_TUNE.A1_LEN, A1_WIDTH: FROST_TUNE.A1_WIDTH, A1_CAST: FROST_TUNE.A1_CAST,
+    A2_WIDTH: FROST_TUNE.A2_WIDTH, A2_SEGMENT_LIFE: FROST_TUNE.A2_SEGMENT_LIFE,
+    A1_FLOOR_LIFE: FROST_TUNE.A1_FLOOR_LIFE, FREEZE_TIME: FROST_TUNE.FREEZE_TIME,
+    TRAIL_STEP: 9, TRAIL_LEN_MIN: 12, TRAIL_LEN_MAX: 16, TRAIL_FOOT_Y: 6,
+});
 window.APEX_FROST_GOLD = {
     FrostEngine, IceField, Rng, Crit, Spring, R, rng, rnd, PAL, FROST_META,
-    FROST_LAYERS, K, M, LAYERS, mkCanvas, mipChain, pick,
+    FROST_LAYERS, K, M, LAYERS, mkCanvas, mipChain, pick, GOLD_REF, FROST_TUNE,
     TAU, clamp, lerp, sat, smooth, easeOutCubic, easeOutQuart, easeInCubic,
     easeOutBack, damp, angDiff, hash1, noise1,
     updateShapes, drawFloorShapes, drawAirShapes, drawRibbonLayer, clearShapes,
@@ -692,5 +671,8 @@ try {
 }
 s = s.replace(/^[ \t]+$/gm, '');
 fs.writeFileSync(path.join(ROOT, 'public/game/hero-rework/frostGoldV1.js'),
-  '// Generated from hash-verified Frost Gold Fusion by tools/bridgeFrostGoldV1.mjs.\n(function(){\n' + s + '\n})();\n');
+  '// Generated from the hash-verified canonical Frost Gold by tools/bridgeFrostGoldV1.mjs.\n'
+  + '// Source: ' + GOLD + '\n'
+  + '// sha256: ' + GOLD_SHA + ' (' + GOLD_BYTES + ' bytes)\n'
+  + '(function(){\n' + s + '\n})();\n');
 console.log(`[frost-bridge] OK: 9 layers, ${s.length} module chars -> public/game/hero-rework/frostGoldV1.js`);

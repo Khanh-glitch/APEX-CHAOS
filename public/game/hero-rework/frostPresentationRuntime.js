@@ -19,16 +19,25 @@
  *   truth (a1cfg.length, LAW.frontSeconds).
  * - A2 trail follows REAL positions (synced fx/fy feed Gold updateA2, which
  *   resamples every 9px vs gameplay nodeSpacing 10 — same path).
- * - Width calibration (documented deviation from showcase pixels): Gold lane/
- *   trail node widths are showcase-authored; the RENDERED ice MUST cover the
- *   mechanic envelope (Hunter precedent: visible == mechanic). ice.add is
- *   wrapped per-engine so lane/trail/pad widths scale to gameplay truth
- *   (a1cfg.width, a2cfg.trailWidth); internal detail (cracks/spurs/facets)
- *   generates at the scaled size through the untouched Gold path.
- * - Body scale: Gold Frost art (~74x93 units) scales about the fighter by
- *   kBody = 2*radius/93 (Hunter radius-adaptive precedent). Ice/shapes stay
- *   1:1 world. Breath/preCore/shadow ride the body frame; the lane origin
- *   (vent, near-center) stays under the body silhouette — correct emergence.
+ * - Width calibration: the canonical Gold is APEX-accurate, so its authored
+ *   ice widths ARE the gameplay widths (A1_WIDTH 160 == a1cfg.width,
+ *   A2_WIDTH 120 == a2cfg.trailWidth): laneK/trailK derive from
+ *   cfg / GOLD_REF and land on 1.0 for stock Level-1 truth. No showcase
+ *   rescaling of authored material, and the rendered ice still covers the
+ *   mechanic envelope exactly (Hunter precedent: visible == mechanic).
+ * - Body scale (F12.22): the Gold authors its actor against its OWN fighter
+ *   radius GOLD_REF.FROST_R (34 world units; silhouette ~74x93). Production
+ *   therefore uses kBody = fighter.radius / GOLD_REF.FROST_R, which restores
+ *   the authored body-to-fighter proportion at real battle scale instead of
+ *   the old 2*radius/93 guess (which drew Frost at 73% of authored size).
+ *   engine.bodyK carries the same factor into Gold body-frame world offsets
+ *   (vent -> lane origin) so the breath still emerges from the vent. Ice and
+ *   shapes stay 1:1 world.
+ * - Render isolation (F12.20/F12.23): EVERY Frost draw entry runs inside
+ *   isolated(ctx, fn): save/restore plus an unconditional re-assert of
+ *   transform/alpha/composite/filter/shadow/smoothing/line state, so a throw
+ *   inside Gold material can never leak canvas state into the rest of the
+ *   scene (that leak is what scaled the opponent and flickered the arena).
  * - Clock mapping: engine.t advances with presentation dt in the same frame
  *   loop as the game clock, so engineT = clock + C with C captured at first
  *   tick (drift-guarded). All gameplay-anchored visual expiry (lane expire,
@@ -66,13 +75,18 @@ function warnOnce(e) {
   if (warned < 6) { warned++; try { console.warn('[frost-presentation]', e); } catch (_) {} }
 }
 
-// Gold-authored reference half-widths (max of the internal W laws) used to
-// calibrate rendered ice to the mechanic envelope.
-const GOLD_LANE_HALF_W = 28;
-const GOLD_TRAIL_HALF_W = 14.6;
-const GOLD_BODY_REF_H = 93;
+// Authored Gold reference geometry (exported by the bridge from the canonical
+// Gold; the fallback mirrors those exact numbers for a partial boot).
+const REF = (G && G.GOLD_REF) || {
+  FROST_R: 34, ENEMY_R: 41, K: 0.132, ART_W: 622, ART_H: 767,
+  A1_WIDTH: 160, A1_CAST: 0.25, A2_WIDTH: 120, A2_SEGMENT_LIFE: 3.5, A1_FLOOR_LIFE: 4.5,
+  TRAIL_STEP: 9, TRAIL_LEN_MIN: 12, TRAIL_LEN_MAX: 16, TRAIL_FOOT_Y: 6,
+};
 const GUN_OVERLAY_REF = 33;
-const A1_RELEASE_BEAT = 0.20; // Gold modeT of pressure->release
+// Gold modeT at which the authored pressure->release beat fires. Taken from
+// the canonical Gold (FROST_TUNE.A1_CAST) so the visual release lands exactly
+// on the gameplay release instead of drifting behind it.
+const A1_RELEASE_BEAT = +((G && G.GOLD_REF && G.GOLD_REF.A1_CAST) || 0.25);
 const A1_GHOST_FADE = 0.35;   // lane melt after mechanic expiry
 const A2_SEG_FADE = 0.40;     // trail segment melt after segLife
 
@@ -116,6 +130,59 @@ function pxFromCtx(c) {
   } catch (e) { return 1; }
 }
 function angTo(ax, ay, bx, by) { return Math.atan2(by - ay, bx - ax); }
+
+// ------------------------------------------------------- render isolation
+// F12.20 / F12.23: after a Frost draw pass the host renderer must be in the
+// SAME state it was in before. ctx.save()/restore() alone is not enough: an
+// exception inside Gold material (or an unbalanced restore in third-party
+// code) can leave the transform, alpha, composite or filter changed, and a
+// lost transform makes EVERY later draw in the frame (opponent, floor, HUD)
+// render at the wrong scale — the corruption the owner playtested.
+const CTX_PROPS = ['globalAlpha', 'globalCompositeOperation', 'filter',
+  'shadowBlur', 'shadowColor', 'shadowOffsetX', 'shadowOffsetY',
+  'lineWidth', 'lineCap', 'lineJoin', 'miterLimit', 'lineDashOffset',
+  'strokeStyle', 'fillStyle', 'font', 'textAlign', 'textBaseline',
+  'imageSmoothingEnabled', 'imageSmoothingQuality'];
+let stateLeaks = 0;
+function snapshotCtx(ctx) {
+  const snap = { m: null, p: {}, dash: null };
+  try { snap.m = typeof ctx.getTransform === 'function' ? ctx.getTransform() : null; } catch (e) {}
+  for (const k of CTX_PROPS) { try { snap.p[k] = ctx[k]; } catch (e) {} }
+  try { if (typeof ctx.getLineDash === 'function') snap.dash = ctx.getLineDash(); } catch (e) {}
+  return snap;
+}
+function restoreCtx(ctx, snap) {
+  let leaked = false;
+  try {
+    if (snap.m && typeof ctx.setTransform === 'function') {
+      let cur = null;
+      try { cur = typeof ctx.getTransform === 'function' ? ctx.getTransform() : null; } catch (e) {}
+      if (cur && (Math.abs(cur.a - snap.m.a) > 1e-6 || Math.abs(cur.b - snap.m.b) > 1e-6
+        || Math.abs(cur.c - snap.m.c) > 1e-6 || Math.abs(cur.d - snap.m.d) > 1e-6
+        || Math.abs(cur.e - snap.m.e) > 1e-4 || Math.abs(cur.f - snap.m.f) > 1e-4)) leaked = true;
+      ctx.setTransform(snap.m);
+    }
+  } catch (e) {}
+  for (const k of CTX_PROPS) {
+    try { if (ctx[k] !== snap.p[k]) { if (k === 'globalAlpha' || k === 'globalCompositeOperation' || k === 'filter') leaked = true; ctx[k] = snap.p[k]; } } catch (e) {}
+  }
+  try { if (snap.dash && typeof ctx.setLineDash === 'function') ctx.setLineDash(snap.dash); } catch (e) {}
+  if (leaked) stateLeaks++;
+  return leaked;
+}
+// Every Frost draw entry goes through this. Nothing Frost draws may escape it.
+function isolated(ctx, fn) {
+  if (!ctx) return;
+  const snap = snapshotCtx(ctx);
+  let saved = false;
+  try { ctx.save(); saved = true; } catch (e) {}
+  try { fn(); }
+  catch (err) { warnOnce(err); }
+  finally {
+    if (saved) { try { ctx.restore(); } catch (e) {} }
+    restoreCtx(ctx, snap);
+  }
+}
 
 // ---------------------------------------------------------------- states
 // Map (iterable) keyed by anchor; swept every tick against live combatants.
@@ -163,9 +230,11 @@ function createState(ct) {
   const S = {
     ct, fighter: f, engine: e, cfg,
     tOff: null, // engine.t - clock()
-    kBody: (2 * ((f && f.radius) || 75)) / GOLD_BODY_REF_H,
-    laneK: ((+cfg.a1.width || 160) / 2) / GOLD_LANE_HALF_W,
-    trailK: ((+cfg.a2.trailWidth || 120) / 2) / GOLD_TRAIL_HALF_W,
+    // Gold-authored body reference -> real APEX fighter radius (F12.22).
+    kBody: ((f && f.radius) || 75) / REF.FROST_R,
+    // Authored ice width -> gameplay mechanic width (1.0 on stock Lv1 truth).
+    laneK: (+cfg.a1.width || REF.A1_WIDTH) / REF.A1_WIDTH,
+    trailK: (+cfg.a2.trailWidth || REF.A2_WIDTH) / REF.A2_WIDTH,
     a1: { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0 },
     a2: { live: false, started: false, hydrated: 0 },
     castQ: [],       // deferred Gold cast admissions (FIFO, truth-checked)
@@ -184,12 +253,20 @@ function createState(ct) {
   const ice = e.ice;
   const baseAdd = ice.add.bind(ice);
   ice.add = function (x, y, ang, L, W, born, kind, opt) {
+    // Authored material, mechanic envelope: only the width law is mapped
+    // from Gold truth to gameplay truth (both are 160/120 at Level 1, so
+    // this is the identity in stock play). Node LENGTH, spacing, jag, spur
+    // and every other authored property stay exactly as the Gold wrote them.
     if (kind === 'lane') W = W * S.laneK;
-    else if (kind === 'trail') W = W * S.trailK;
-    else if (kind === 'pad') { L = L * 2; W = W * 2; }
+    else if (kind === 'trail' || kind === 'pad') W = W * S.trailK;
     return baseAdd(x, y, ang, L, W, born, kind, opt);
   };
   e.aim = 0;
+  // Gold engine truth hooks: body scale + gameplay-owned lifetimes.
+  e.bodyK = S.kBody;
+  e.a1FloorLife = +cfg.a1.floorLifetime || REF.A1_FLOOR_LIFE;
+  e.a2SegLife = +cfg.a2.segmentLifetime || REF.A2_SEGMENT_LIFE;
+  e.a2Active = +cfg.a2.activeWindow || 3.0;
   liveStates.set(f, S);
   return S;
 }
@@ -309,10 +386,10 @@ function onColdShock(ev) {
     const px = (f.x + victim.x) / 2, py = (f.y + victim.y) / 2;
     setVictim(S, victim.id, e.t);
     try { e.contact(nx, ny, px, py, null); } catch (err) { warnOnce(err); }
-    // Production hunts CONTINUE after contact (re-contact re-procs); the
-    // Gold A.contact latch is demo-flow state (the demo ended the hunt on
-    // contact), so release it and the trail resumes from real motion.
-    try { e.a2.contact = false; } catch (err) {}
+    // Production hunts CONTINUE after contact (re-contact re-procs). The
+    // canonical Gold no longer gates the trail on contact at all; clear the
+    // overlap marker so nothing latches and the trail keeps laying material.
+    try { e.a2.overlap = false; } catch (err) {}
     // Contact crusts belong to the victim rim: refresh rim anchors.
     try { e.updateCrusts(victim.x, victim.y, victim.radius || 75, 0); } catch (err) {}
   }
@@ -455,19 +532,19 @@ function replayA1Lane(S, q, now) {
   const e = S.engine, L = q.lane;
   const off = S.tOff || 0;
   const ang = Math.atan2(L.dy, L.dx);
-  const sfx = e.fx, sfy = e.fy, slx = e.lagX.x, sly = e.lagY.x;
   e.a1Len = L.len;
   e.a1Travel = Math.max(0.05, L.frontDoneAt - L.frontStartAt);
   Object.assign(e.a1, {
     ang, released: false, bite: true, ended: true, front: L.len, frontPrev: L.len,
     nodes: [], rowAcc: 0, lobeAcc: 0, chipAcc: 0,
   });
-  // Gold derives the lane origin from the actor's vent: park the actor frame
-  // at the authoritative release position for the build only.
-  e.fx = L.ox; e.fy = L.oy; e.lagX.x = 0; e.lagY.x = 0;
+  // The lane is rebuilt at the AUTHORITATIVE release origin (gameplay truth),
+  // not at Frost's current position: a deferred visual must not drag the
+  // floor to wherever Frost has since walked.
+  e.a1Origin = { x: L.ox, y: L.oy };
   try { e.buildLane(L.frontStartAt + off, L.len, e.a1Travel); }
   catch (err) { warnOnce(err); }
-  finally { e.fx = sfx; e.fy = sfy; e.lagX.x = slx; e.lagY.x = sly; }
+  finally { e.a1Origin = null; }
   e.a1.released = true;
   // Lifetime stays the ORIGINAL gameplay lane expiry (never a fresh floor
   // from admission time).
@@ -481,43 +558,83 @@ function replayA1Lane(S, q, now) {
 }
 
 // A2: the hunt has been running (and turning/bouncing) while Gold was busy.
-// The Gold trail is hydrated from the gameplay trail nodes that already
-// exist — same positions, same born times, laid through Gold's own trail
-// node call — then live motion continues from the real path end.
+// The Gold trail is reconstructed from the authoritative gameplay movement
+// history through GOLD'S OWN trail constructor and GOLD'S OWN node law
+// (F12.19): the history polyline is resampled at the Gold's authored
+// TRAIL_STEP (9 px of real travel — the same resample the live path uses),
+// each node gets the authored width/length/jag/spur/lock recipe and its real
+// historical birth time, so the hydrated section is materially identical to
+// the section the live path would have laid. No island chunks, no second
+// trail algorithm, no smoothing, no synthetic geometry.
 function hydrateA2Trail(S, insp, now) {
   const e = S.engine, A = e.a2;
   const hist = (insp && insp.trailNodes) || [];
   if (hist.length < 2) return 0;
   const off = S.tOff || 0;
-  const segLife = +((S.cfg.a2 && S.cfg.a2.segmentLifetime) || 3.5);
-  let prev = null, laid = 0, last = null;
-  for (const h of hist) {
-    const p = prev; prev = h;
-    if (!p) continue;                                // heading needs a segment
-    if (now - h.bornAt >= segLife) continue;         // that segment is already gone
-    const dx = h.x - p.x, dy = h.y - p.y;
+  const segLife = +((S.cfg.a2 && S.cfg.a2.segmentLifetime) || REF.A2_SEGMENT_LIFE);
+  const STEP = REF.TRAIL_STEP || 9;
+  const FOOT = REF.TRAIL_FOOT_Y || 6;
+  const HALF = (REF.A2_WIDTH || 120) * 0.5;
+  let laid = 0, first = true;
+  // Walk the real path; emit one Gold node every STEP px, interpolating the
+  // birth time along the segment so the melt order matches what the player
+  // already saw.
+  let carry = 0, last = hist[0];
+  for (let k = 1; k < hist.length; k++) {
+    const a = hist[k - 1], b = hist[k];
+    const dx = b.x - a.x, dy = b.y - a.y;
     const d = Math.hypot(dx, dy);
     if (d < 1e-3) continue;
     const ang = Math.atan2(dy, dx);
-    const sp = d / Math.max(1e-3, h.bornAt - p.bornAt);   // real historical speed
-    const spn = Math.max(0, Math.min(1, sp / 520));
-    const W = 11 + 6 * (1 - spn) + e.rng.range(-1.2, 1.2);
-    const n = e.ice.add(h.x - Math.cos(ang) * 3, h.y + 6 - Math.sin(ang) * 3, ang,
-      e.rng.range(12, 16), W * 1.04, h.bornAt + off, 'trail',
-      { lockDur: 0.45, spurChance: 0.015, jag: 0.09 });
-    A.trail.push(n);
-    laid++; last = h;
+    const dt = Math.max(0, b.bornAt - a.bornAt);
+    let travelled = STEP - carry;
+    while (travelled <= d) {
+      const u = travelled / d;
+      const x = a.x + dx * u, y = a.y + dy * u;
+      const born = a.bornAt + dt * u;
+      if (now - born < segLife) {
+        if (first) {
+          // The ignition bite belongs to where the hunt really started.
+          first = false;
+          const pad = e.ice.add(hist[0].x, hist[0].y + FOOT, ang, 24, HALF, hist[0].bornAt + off,
+            'pad', { lockDur: 0.5, jag: 0.24, activeUntil: hist[0].bornAt + off + segLife });
+          pad.decayAt = pad.activeUntil;
+          A.trail.push(pad);
+        }
+        const W = HALF + e.rng.range(-2, 2);
+        const n = e.ice.add(x - Math.cos(ang) * 3, y + FOOT - Math.sin(ang) * 3, ang,
+          e.rng.range(REF.TRAIL_LEN_MIN || 12, REF.TRAIL_LEN_MAX || 16), W, born + off, 'trail',
+          { lockDur: 0.45, spurChance: 0.015, jag: 0.09, activeUntil: born + off + segLife });
+        n.decayAt = n.activeUntil;
+        A.trail.push(n);
+        laid++;
+        A.crustAcc += STEP;
+        if (A.crustAcc > 26) { A.crustAcc = 0; A.side = -A.side; }
+      }
+      last = { x, y, bornAt: born };
+      travelled += STEP;
+    }
+    carry = (d - (travelled - STEP));
+    if (!(carry >= 0)) carry = 0;
+    if (k === hist.length - 1 && (d - (travelled - STEP)) >= 0) last = last;
   }
-  if (last) {
-    // Continue the live path from where the real path actually is: no jump
-    // node, no steering — the next Gold node is the next real 9px of travel.
+  if (laid) {
+    // Continue the live path from the real path end: the next Gold node is
+    // the next authored STEP of real travel, so there is no jump node, no
+    // duplicated section and no restart at the admission point.
     A.lastNode.x = last.x; A.lastNode.y = last.y;
-    A.kicked = true;  // the hunt ignition beat already happened historically
+    A.kicked = true;              // the ignition beat already happened
+    if (A.activeStart < 0) A.activeStart = (hist[0].bornAt + off);
+    // Seed the turn-history window from the real path so the first live
+    // carve decision uses real motion, not a cold start.
+    A.hist.length = 0;
+    for (let k = Math.max(1, hist.length - 10); k < hist.length; k++) {
+      A.hist.push(Math.atan2(hist[k].y - hist[k - 1].y, hist[k].x - hist[k - 1].x));
+    }
   }
   S.a2.hydrated = (S.a2.hydrated || 0) + laid;
   return laid;
 }
-
 function startCast(S, q, now, insp) {
   const e = S.engine;
   if (q.kind === 'a1') {
@@ -606,6 +723,13 @@ function tickA1(S, ct, insp, now, dt) {
   if (insp && !insp.pending && S.a1.pending) {
     S.a1.pending = false;
     S.a1.releaseClock = now;
+    // The gameplay release is the authority for the beat: land the Gold
+    // pressure->release on the SAME frame (float dt accumulation otherwise
+    // leaves modeT a hair under A1_CAST and the whole visual runs a frame
+    // behind the mechanic lane).
+    if (e.mode === 'a1' && e.a1 && !e.a1.released && e.modeT < A1_RELEASE_BEAT) {
+      e.modeT = A1_RELEASE_BEAT;
+    }
     S.a1.expireClock = now + frontSeconds + (+cfg1.floorLifetime || 4.5);
     // Released while Gold is still busy: the visual can no longer be started
     // "here, now". Bind the queued cast to the authoritative lane record so
@@ -619,6 +743,18 @@ function tickA1(S, ct, insp, now, dt) {
           frontStartAt: L.frontStartAt, frontDoneAt: L.frontDoneAt, expireAt: L.expireAt };
       }
     }
+  }
+  // Bind the Gold lane build to the authoritative gameplay origin: the
+  // mechanic lane starts at the release position, so the rendered lane must
+  // start there too (visible == mechanic). Gold still owns the front travel,
+  // node construction, irregularity and melt order.
+  if (e.mode === 'a1' && !(e.a1 && e.a1.released)) {
+    const lanes = (insp && insp.lanes) || [];
+    const Lr = lanes.filter((l) => l.castId === S.a1.startedId).pop() || lanes[lanes.length - 1];
+    e.a1Origin = (Lr && Lr.frontStartAt != null && now - Lr.frontStartAt < 1.0)
+      ? { x: Lr.ox, y: Lr.oy } : null;
+  } else if (e.a1 && e.a1.released) {
+    e.a1Origin = null;
   }
   // Capture the released cast's nodes for exact gameplay-anchored decay.
   if (e.a1 && e.a1.released && !S.a1.releasedSeen) {
@@ -848,6 +984,11 @@ function driveEngine(S, ct, dt) {
   e.fx = f.x; e.fy = f.y;
   e.fvx = (f.__hrVel && f.__hrVel.x) || 0;
   e.fvy = (f.__hrVel && f.__hrVel.y) || 0;
+  // Gold movementHeading() falls back to moveFacing when nearly stopped:
+  // feed it the REAL committed direction (never a demo heading).
+  try { e.moveFacing = Math.atan2((f.dir && f.dir.y) || 0, (f.dir && f.dir.x) || 1); } catch (err) {}
+  // Body scale follows the live fighter radius (rage/size effects included).
+  e.bodyK = S.kBody = ((f && f.radius) || 75) / REF.FROST_R;
   try {
     const vw = g.__apexCameraView;
     e.scale = (vw && vw.zoom) || 1;
@@ -950,18 +1091,10 @@ function ensureDrawWraps() {
       if (isFrostBody(this) && this.hp > 0 && api.ready) {
         const S = liveStates.get(this);
         if (S) {
-          ctx.save();
-          try {
-            drawFrostBody(ctx, this, S);
-            bypassed = true;
-          } catch (err) {
-            warnOnce(err);
-            try { prevDraw.call(this, ctx); } catch (e2) {}
-            bypassed = false;
-          } finally {
-            try { ctx.restore(); } catch (e3) {}
-          }
-          try { ctx.globalAlpha = 1; } catch (e4) {}
+          let drew = false;
+          isolated(ctx, () => { drawFrostBody(ctx, this, S); drew = true; });
+          bypassed = drew;
+          if (!drew) { try { prevDraw.call(this, ctx); } catch (e2) {} }
         } else {
           try { prevDraw.call(this, ctx); } catch (err) { warnOnce(err); }
         }
@@ -973,17 +1106,19 @@ function ensureDrawWraps() {
         if (this === (fl && fl[fl.length - 1]) || this === (fl && fl[1])) {
           if (bypassed) {
             // Bypass debt (Crystala law): the inner post-world hooks never
-            // ran for this fighter, so re-run them explicitly, then Frost.
-            try { if (g.APEX_HUNTER_PRESENTATION && g.APEX_HUNTER_PRESENTATION.renderPostWorld) g.APEX_HUNTER_PRESENTATION.renderPostWorld(ctx); } catch (e5) {}
+            // ran for this fighter, so re-run them explicitly — ONCE, and
+            // each inside its own state guard so a foreign pass can never
+            // leave the canvas dirty for the rest of the frame.
+            try { if (g.APEX_HUNTER_PRESENTATION && g.APEX_HUNTER_PRESENTATION.renderPostWorld) isolated(ctx, () => g.APEX_HUNTER_PRESENTATION.renderPostWorld(ctx)); } catch (e5) {}
             try {
               const C = g.APEX_CRYSTALA_PRESENTATION;
               if (C) {
-                if (typeof C.renderWorldConstructsAndFx === 'function') C.renderWorldConstructsAndFx(ctx, false, true);
-                if (typeof C.runBloomPass === 'function') C.runBloomPass(ctx);
+                if (typeof C.renderWorldConstructsAndFx === 'function') isolated(ctx, () => C.renderWorldConstructsAndFx(ctx, false, true));
+                if (typeof C.runBloomPass === 'function') isolated(ctx, () => C.runBloomPass(ctx));
               }
             } catch (e6) {}
           }
-          try { postWorld(ctx); } catch (e7) { warnOnce(e7); }
+          isolated(ctx, () => postWorld(ctx));
         }
       } catch (err) { warnOnce(err); }
     };
@@ -993,25 +1128,24 @@ function ensureDrawWraps() {
     const wrapped = function (ctx) {
       // UNDER (Gold law order): wet -> ice composite -> floor shapes -> macro
       // front -> slot frost. Production projectiles/fighters draw above.
-      try {
-        if (api.ready && liveStates.size) {
-          const px = pxFromCtx(ctx);
-          for (const [, S] of liveStates) {
-            try {
-              drawIceComposite(S, ctx, px);
-              S.engine.ice.drawWet(ctx, S.engine.t);
-              S.engine.drawA1MacroFront(ctx, px);
-              drawSlotOverlays(S, ctx, px);
-            } catch (err) { warnOnce(err); }
-          }
-          try { G.drawFloorShapes(ctx, px); } catch (err) {}
+      if (api.ready && liveStates.size) {
+        const px = pxFromCtx(ctx);
+        for (const [, S] of liveStates) {
+          isolated(ctx, () => {
+            drawIceComposite(S, ctx, px);
+            S.engine.ice.drawWet(ctx, S.engine.t);
+            S.engine.drawA1MacroFront(ctx, px);
+            drawSlotOverlays(S, ctx, px);
+          });
         }
-      } catch (err) { warnOnce(err); }
+        isolated(ctx, () => { G.drawFloorShapes(ctx, px); });
+      }
       try { prevDP.call(this, ctx); } catch (err) { warnOnce(err); }
       // OVER the production projectiles: frozen-bullet frost rides its bullet.
-      try {
-        if (api.ready && liveStates.size) bulletFrostPass(ctx, pxFromCtx(ctx));
-      } catch (err) { warnOnce(err); }
+      if (api.ready && liveStates.size) {
+        const px2 = pxFromCtx(ctx);
+        isolated(ctx, () => bulletFrostPass(ctx, px2));
+      }
     };
     wrapped.__frostWrapped = true;
     g.drawProjectiles = wrapped;
@@ -1106,30 +1240,42 @@ function drawIceComposite(S, ctx, px) {
   const e = S.engine;
   if (!e.ice.nodes.length && !e.ice.carves.length) return;
   const cv = ctx && ctx.canvas;
-  try {
-    if (cv && e.iceCanvas && typeof ctx.getTransform === 'function') {
-      if (e.iceCanvas.width !== cv.width || e.iceCanvas.height !== cv.height) {
-        e.iceCanvas.width = cv.width; e.iceCanvas.height = cv.height;
+  const w = (cv && cv.width) | 0, h = (cv && cv.height) | 0;
+  // Composite only when the target canvas has a usable backing store AND the
+  // transform is readable. Anything else falls back to the direct Gold draw:
+  // a zero-size or unreadable offscreen used to throw mid-blit and strand the
+  // host transform, which is what corrupted the whole battle render.
+  if (w > 1 && h > 1 && e.iceCanvas && typeof ctx.getTransform === 'function') {
+    try {
+      if (e.iceCanvas.width !== w || e.iceCanvas.height !== h) {
+        e.iceCanvas.width = w; e.iceCanvas.height = h;
         // Rebind: headless canvas proxies capture the backing store at
         // getContext time, so a resize orphans the old ctx (browsers return
         // the same ctx here — harmless).
         try { e.iceCtx = e.iceCanvas.getContext('2d'); } catch (err) {}
       }
       const ic = e.iceCtx;
-      const m = ctx.getTransform();
-      ic.setTransform(1, 0, 0, 1, 0, 0);
-      ic.clearRect(0, 0, e.iceCanvas.width, e.iceCanvas.height);
-      ic.setTransform(m);
-      if (e.ice.render(ic, e.t, px)) {
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.globalAlpha = 0.97;
-        ctx.drawImage(e.iceCanvas, 0, 0);
-        ctx.globalAlpha = 1;
-        ctx.setTransform(m);
+      if (ic) {
+        const m = ctx.getTransform();
+        ic.setTransform(1, 0, 0, 1, 0, 0);
+        ic.clearRect(0, 0, e.iceCanvas.width, e.iceCanvas.height);
+        ic.setTransform(m);
+        const painted = e.ice.render(ic, e.t, px);
+        ic.setTransform(1, 0, 0, 1, 0, 0);
+        if (painted) {
+          // Blit inside its own save/restore: transform + alpha are restored
+          // unconditionally, even if drawImage throws.
+          ctx.save();
+          try {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.globalAlpha = 0.97;
+            ctx.drawImage(e.iceCanvas, 0, 0);
+          } finally { ctx.restore(); }
+        }
+        return;
       }
-      return;
-    }
-  } catch (err) { warnOnce(err); }
+    } catch (err) { warnOnce(err); }
+  }
   try { e.ice.render(ctx, e.t, px); } catch (err) { warnOnce(err); }
 }
 
@@ -1186,13 +1332,13 @@ function wrapArsenalAV() {
     AV.drawEquippedWeapon = function (c, f, h) {
       try { if (holderSuppressed(h)) return false; } catch (err) { warnOnce(err); }
       const r = base(c, f, h);
-      try {
-        if (h && h.__frostFrozen && f) {
+      if (h && h.__frostFrozen && f) {
+        isolated(c, () => {
           const ct = ctOfBody(f);
           const S = isFrostCt(ct) ? liveStates.get(ct.anchor) : firstState();
           if (S) drawHeldOverlay(S, c, h);
-        }
-      } catch (err) { warnOnce(err); }
+        });
+      }
       return r;
     };
   } catch (e) { warnOnce(e); }
@@ -1278,6 +1424,11 @@ api.inspect = function (f) {
     // Historical reconstruction proof surface (deferred admissions).
     a1Replays: S.a1.replays || 0, a2Hydrated: S.a2.hydrated || 0,
     kBody: +S.kBody.toFixed(3), laneK: +S.laneK.toFixed(3), trailK: +S.trailK.toFixed(3),
+    // Canvas-state integrity counter (F12.23): any Frost draw pass that had
+    // to have host state re-asserted increments this. Must stay 0.
+    stateLeaks,
+    bodyK: +(S.engine.bodyK || 0).toFixed(3),
+    trailStep: REF.TRAIL_STEP, goldA2Width: REF.A2_WIDTH, goldFrostR: REF.FROST_R,
   };
 };
 
