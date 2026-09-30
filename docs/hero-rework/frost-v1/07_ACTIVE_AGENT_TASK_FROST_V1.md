@@ -22,6 +22,18 @@ This is a CLEAN implementation attempt. Rejected SHA `7b7efa298abb8e02bebbea6bce
 
 Then read the entire frost-v1 package in the mandated order and audit the listed live source.
 
+## FINAL REBUILD OVERRIDE
+
+Read `docs/hero-rework/frost-v1/09_FINAL_GOLD_REBUILD_AUTHORITY.md` before any edit. The current implementation has already been owner-playtested and its presentation is NOT accepted. Do not merely patch the current bridge. Audit the exact canonical Gold, salvage proven gameplay truth, and rebuild/replace the presentation bridge as necessary.
+
+Owner-observed release blockers:
+- A2 ice is visually disconnected/detached and differs from Gold.
+- A1/A2 can make the whole arena flicker, lose ice detail, and make the opponent repeatedly scale large/small.
+- Frost's battle-scale visual is smaller than peer fighters.
+- More unlisted visual defects are expected; perform a complete Gold-vs-production lifecycle audit.
+
+The final result must be visually faithful to the canonical Gold, not merely test-green.
+
 ## Objective
 
 Replace the obsolete product ICE rework with FROST while preserving storage/save compatibility.
@@ -31,7 +43,7 @@ FROST:
 - A2 native-inertia Hunt -> actual-path ice -> real-contact Cold Shock -> exact live-holder firearm steal when Frost is unarmed.
 - Passive Frozen Gun -> Frozen Bullet -> 8% Level-1 Freeze with correct blast grouping and refresh law.
 
-Port the selected Fusion Gold faithfully as presentation.
+Port the exact canonical Gold faithfully as presentation. Do not use the obsolete 975,616-byte Gold or any prior generated Frost Gold artifact as visual authority.
 
 ## Non-negotiable corrections
 
@@ -63,7 +75,7 @@ Prefer Frost-local code.
 Use minimal audited shared hooks only where the baseline lacks the semantic capability.
 Do not regress/rewrite CRYSTALA V2, ROBOT, HUNTER, Chamber, Arsenal damage/crit/spawn laws, existing Gold/presentation, blood/splatter or damage-number systems.
 
-Do not stop at analysis. Implement, test, produce browser/parity evidence where environment permits, audit, push, and report one final result.
+Do not stop at analysis. Implement the final rebuild, add release-blocking presentation integrity gates, produce real-browser battle-scale evidence, audit all listed and unlisted visual failure classes, push, remote-verify, and report one final result. Do not declare completion from headless green alone.
 
 Treat Arena local state as disposable. Follow the runbook's Git-token-expiry law: keep unverified work to roughly 5 minutes / 150–250 meaningful LOC, use `tools/frostGitDurabilityCheckpoint.mjs`, and STOP substantive coding immediately if remote auth/push/verification fails until exact local HEAD is remote-verified again.
 
