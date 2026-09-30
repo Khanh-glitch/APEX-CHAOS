@@ -2159,30 +2159,37 @@ function createBloomSystem(opts = {}) {
 
   ensure(w, h, dpr);
 
-  function begin(worldTransform) {
-    ensure();
+  function begin(worldTransform, region) {
+    // Region is expressed in destination-canvas pixels. Cropping changes only
+    // the amount of transparent canvas processed by the blur; authored
+    // emissive geometry, blur radii and blend weights remain identical.
+    if (region && region.w > 0 && region.h > 0) ensure(region.w, region.h);
+    else ensure();
     if (!gx) return null;
     gx.setTransform(1, 0, 0, 1, 0, 0);
     gx.clearRect(0, 0, glowCv.width, glowCv.height);
+    const ox = region ? region.x : 0, oy = region ? region.y : 0;
     if (worldTransform) {
       gx.setTransform(
         worldTransform.a * GS * dpr,
         worldTransform.b * GS * dpr,
         worldTransform.c * GS * dpr,
         worldTransform.d * GS * dpr,
-        worldTransform.e * GS * dpr,
-        worldTransform.f * GS * dpr
+        (worldTransform.e - ox) * GS * dpr,
+        (worldTransform.f - oy) * GS * dpr
       );
     } else {
-      gx.setTransform(GS * dpr, 0, 0, GS * dpr, 0, 0);
+      gx.setTransform(GS * dpr, 0, 0, GS * dpr, -ox * GS * dpr, -oy * GS * dpr);
     }
     return gx;
   }
 
-  function composite(targetCtx, destW, destH) {
+  function composite(targetCtx, destW, destH, region) {
     if (!glowCv || !gx) return;
-    const dw = destW || w;
-    const dh = destH || h;
+    const dw = region ? region.w : (destW || w);
+    const dh = region ? region.h : (destH || h);
+    const dx = region ? region.x : 0;
+    const dy = region ? region.y : 0;
     targetCtx.save();
     targetCtx.setTransform(1, 0, 0, 1, 0, 0);
     if (filterOk && gbx && gcx) {
@@ -2200,13 +2207,13 @@ function createBloomSystem(opts = {}) {
 
       targetCtx.globalCompositeOperation = 'lighter';
       targetCtx.globalAlpha = 0.56;
-      targetCtx.drawImage(glowB, 0, 0, dw, dh);
+      targetCtx.drawImage(glowB, dx, dy, dw, dh);
       targetCtx.globalAlpha = 0.25;
-      targetCtx.drawImage(glowC, 0, 0, dw, dh);
+      targetCtx.drawImage(glowC, dx, dy, dw, dh);
     } else {
       targetCtx.globalCompositeOperation = 'lighter';
       targetCtx.globalAlpha = 0.38;
-      targetCtx.drawImage(glowCv, 0, 0, dw, dh);
+      targetCtx.drawImage(glowCv, dx, dy, dw, dh);
     }
     targetCtx.restore();
   }

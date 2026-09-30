@@ -241,45 +241,104 @@
     }
   }
 
+  function transformedRegion(m, bounds, cw, ch, pad = 40) {
+    if (!bounds) return null;
+    const pts = [
+      [bounds.minX, bounds.minY], [bounds.maxX, bounds.minY],
+      [bounds.minX, bounds.maxY], [bounds.maxX, bounds.maxY],
+    ].map(([x, y]) => m
+      ? { x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f }
+      : { x, y });
+    let minX = Math.min(...pts.map(p => p.x)) - pad;
+    let maxX = Math.max(...pts.map(p => p.x)) + pad;
+    let minY = Math.min(...pts.map(p => p.y)) - pad;
+    let maxY = Math.max(...pts.map(p => p.y)) + pad;
+    minX = Math.max(0, Math.floor(minX)); minY = Math.max(0, Math.floor(minY));
+    maxX = Math.min(cw, Math.ceil(maxX)); maxY = Math.min(ch, Math.ceil(maxY));
+    if (maxX <= minX || maxY <= minY) return null;
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  }
+
+  function bodyBloomBounds(rig) {
+    const h = rig.hero;
+    let minX = Math.min(h.x, h.px ?? h.x) - 145, maxX = Math.max(h.x, h.px ?? h.x) + 145;
+    let minY = Math.min(h.y, h.py ?? h.y) - 165, maxY = Math.max(h.y, h.py ?? h.y) + 165;
+    for (const s of rig.stones) {
+      const r = Math.max(54, ((s.gem && s.gem.r) || 22) * 2.45);
+      minX = Math.min(minX, s.x - r, (s.px ?? s.x) - r);
+      maxX = Math.max(maxX, s.x + r, (s.px ?? s.x) + r);
+      minY = Math.min(minY, s.y - r, (s.py ?? s.y) - r);
+      maxY = Math.max(maxY, s.y + r, (s.py ?? s.y) + r);
+    }
+    return { minX, minY, maxX, maxY };
+  }
+
+  function constructBloomBounds(cons) {
+    if (cons.kind === 'wall' && cons.geom && Array.isArray(cons.geom.segs) && cons.geom.segs.length) {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const s of cons.geom.segs) {
+        if (!s) continue;
+        const x = s.x + (s.driftX || 0), y = s.y + (s.driftY || 0);
+        minX = Math.min(minX, x - 54); maxX = Math.max(maxX, x + 54);
+        minY = Math.min(minY, y - 54); maxY = Math.max(maxY, y + 54);
+      }
+      if (Number.isFinite(minX)) return { minX, minY, maxX, maxY };
+    }
+    if (cons.kind === 'prison' && cons.prison) {
+      const p = cons.prison, r = (p.R || p.radius || 135) + 72;
+      if (Number.isFinite(p.cx) && Number.isFinite(p.cy)) return { minX:p.cx-r, minY:p.cy-r, maxX:p.cx+r, maxY:p.cy+r };
+    }
+    return null;
+  }
+
+  function renderBloomRegion(ctx, bloom, worldTransform, cw, ch, bounds, draw) {
+    const region = transformedRegion(worldTransform, bounds, cw, ch, 44);
+    if (!region) return;
+    const gx = bloom.begin(worldTransform, region);
+    if (!gx) return;
+    draw(gx);
+    bloom.composite(ctx, cw, ch, region);
+  }
+
   function runBloomPass(ctx) {
     const M = HR && HR.match;
     if (!M || !GOLD) return;
-    const hasCrystal = M.combatants.some(ct => ct.heroId === 'CRYSTAL');
-    if (!hasCrystal) return;
+    const crystals = M.combatants.filter(ct => ct.heroId === 'CRYSTAL');
+    if (!crystals.length) return;
 
     const gameCanvas = ctx.canvas || (typeof document !== 'undefined' ? document.getElementById('game-canvas') : null);
     const cw = gameCanvas ? gameCanvas.width : (g.GAME_SIZE || 1000);
     const ch = gameCanvas ? gameCanvas.height : (g.GAME_SIZE || 1000);
     const bloom = getBloom(cw, ch);
     if (!bloom) return;
-    // The main ctx is already under Apex's current camera transform here.
-    // Feed that exact matrix into the half-res emissive buffer so shake/zoom
-    // cannot detach bloom from the body, shards, or constructs.
+    // Keep the exact production camera matrix. Only transparent acreage outside
+    // each emitter group is cropped before the same two Gold blur passes.
     const worldTransform = typeof ctx.getTransform === 'function' ? ctx.getTransform() : null;
-    const gx = bloom.begin(worldTransform);
-    if (!gx) return;
 
-    for (const ct of M.combatants) {
-      if (ct.heroId !== 'CRYSTAL') continue;
+    for (const ct of crystals) {
       const crySt = CRY ? CRY.stateOf(ct) : null;
       const rig = crySt ? crySt.rig : null;
       if (!rig) continue;
 
-      for (const cons of rig.constructs) {
-        if (cons.kind === 'wall' && cons.geom) {
-          GOLD.drawWall(gx, cons.geom, true);
-        } else if (cons.kind === 'prison' && cons.prison) {
-          GOLD.drawPrison(gx, cons.prison, true, false);
-          GOLD.drawPrison(gx, cons.prison, true, true);
-        }
-      }
-      for (const s of rig.stones) {
-        GOLD.drawStone(gx, s, 1, true);
-      }
-      GOLD.drawCrystala(gx, rig.hero, true, 1);
-    }
+      renderBloomRegion(ctx, bloom, worldTransform, cw, ch, bodyBloomBounds(rig), gx => {
+        for (const s of rig.stones) GOLD.drawStone(gx, s, 1, true);
+        GOLD.drawCrystala(gx, rig.hero, true, 1);
+      });
 
-    bloom.composite(ctx, cw, ch);
+      // Constructs can be far from Crystal. Blur them in their own tight region
+      // instead of forcing the body-to-construct union to become arena-sized.
+      for (const cons of rig.constructs) {
+        const bounds = constructBloomBounds(cons);
+        if (!bounds) continue;
+        renderBloomRegion(ctx, bloom, worldTransform, cw, ch, bounds, gx => {
+          if (cons.kind === 'wall' && cons.geom) GOLD.drawWall(gx, cons.geom, true);
+          else if (cons.kind === 'prison' && cons.prison) {
+            GOLD.drawPrison(gx, cons.prison, true, false);
+            GOLD.drawPrison(gx, cons.prison, true, true);
+          }
+        });
+      }
+    }
   }
 
   const Fighter = g.Fighter;

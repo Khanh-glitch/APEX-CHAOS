@@ -410,10 +410,26 @@ check('P20-presentation-adapter-registers-and-integrates-chamber', presReady,
     { createRigCalls: creates, inspected });
 }
 
-// P24: Single weapon render dispatch law (no duplicate drawEquippedWeapon in presentation)
+// P24: Cropped bloom preserves authored blur pipeline while limiting transparent acreage.
+{
+  const cv = createCanvas(1000, 1000), cx = cv.getContext('2d');
+  const bloom = GOLD.createBloomSystem({ width:1000, height:1000, scale:.5, createCanvas });
+  const region = { x:200, y:180, w:320, h:280 };
+  const m = { a:1.1,b:0,c:0,d:1.1,e:20,f:-10 };
+  const gx = bloom.begin(m, region);
+  const tr = gx.getTransform ? gx.getTransform() : null;
+  gx.fillStyle = '#fff'; gx.fillRect(300,300,20,20);
+  bloom.composite(cx,1000,1000,region);
+  check('P24-cropped-bloom-region-keeps-camera-transform-and-half-res-size',
+    bloom.glowCanvas.width === 160 && bloom.glowCanvas.height === 140 &&
+    (!tr || (Math.abs(tr.a-.55)<1e-6 && Math.abs(tr.e-(20-200)*.5)<1e-6)),
+    { width:bloom.glowCanvas.width, height:bloom.glowCanvas.height, transform:tr&&{a:tr.a,e:tr.e,f:tr.f} });
+}
+
+// P25: Single weapon render dispatch law (no duplicate drawEquippedWeapon in presentation)
 const presDrawsWeapon = /drawEquippedWeapon/.test(presCode);
 const presHasWeaponPass = /AV\.drawEquippedWeapon/.test(presCode) || /weaponApi\.equip/.test(presCode);
-check('P24-single-weapon-pass-no-double-render', !presDrawsWeapon && !presHasWeaponPass,
+check('P25-single-weapon-pass-no-double-render', !presDrawsWeapon && !presHasWeaponPass,
   { doubleDrawFree: !presDrawsWeapon, weaponPassIsolated: !presHasWeaponPass });
 
 const failed = results.filter(r => !r.pass);
