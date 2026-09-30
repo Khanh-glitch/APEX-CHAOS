@@ -9,10 +9,10 @@
   },
   "preload_branch": "director/frost-v1-preload-20260930",
   "gold": {
-    "source_name": "FROST_GOLD_FUSION_FINAL.html",
-    "repo_name": "01_OWNER_APPROVED_GOLD_REFERENCE.html",
-    "sha256": "59201be3d33bdfbeb8459656d3ef37caf922382a06852bd7a609472fdce2da43",
-    "bytes": 975616,
+    "source_name": "FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html",
+    "repo_name": "gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html",
+    "sha256": "940fc9a8a181cc40d965ebf2c4309d1b4816d3016fc191b0d3df8a1a65be2475",
+    "bytes": 981597,
     "visual_authority": true,
     "gameplay_authority": false,
     "supersedes_signature_for_this_implementation": true
@@ -61,10 +61,10 @@
     "README_PRELOAD.md",
     "06_ONE_SHOT_RUNBOOK.md",
     "00_FROST_IMPLEMENTATION_AUTHORITY.md",
-    "01_OWNER_APPROVED_GOLD_REFERENCE.html",
     "02_GOLD_TO_GAME_ADAPTATION_MAP.md",
     "03_IMPLEMENTATION_TEST_MATRIX.md",
     "04_ZERO_CONTEXT_HANDOFF.md",
+    "09_FINAL_GOLD_REBUILD_AUTHORITY.md",
     "05_PRELOAD_MANIFEST.json",
     "08_PRELOAD_HOSTILE_AUDIT.md",
     "07_ACTIVE_AGENT_TASK_FROST_V1.md"
@@ -75,5 +75,19 @@
       "tools/preflightFrostOneShot.mjs",
       "tools/frostGitDurabilityCheckpoint.mjs"
     ]
+  },
+  "final_rebuild": {
+    "status": "OWNER-LOCKED",
+    "canonical_gold_path": "docs/hero-rework/frost-v1/gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html",
+    "canonical_gold_sha256": "940fc9a8a181cc40d965ebf2c4309d1b4816d3016fc191b0d3df8a1a65be2475",
+    "canonical_gold_bytes": 981597,
+    "owner_playtest_release_blockers": [
+      "A2 trail visibly disconnected/different from Gold",
+      "A1/A2 can corrupt whole-scene rendering with flicker/detail loss",
+      "opponent can repeatedly scale large/small during A1/A2",
+      "Frost battle-scale visual is smaller than peer fighters",
+      "additional unlisted presentation defects must be found by full Gold-vs-production audit"
+    ],
+    "final_authority": "docs/hero-rework/frost-v1/09_FINAL_GOLD_REBUILD_AUTHORITY.md"
   }
 }
