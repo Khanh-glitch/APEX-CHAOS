@@ -84,10 +84,13 @@ Do not self-tune these during the first implementation.
 ### J / A1 — CONTEXT CONSTRUCT
 - usable only during active K
 - cooldown: **1.5s**
+- **commitment window: first 1.2s of the 2.4s Awakening only**
+- **maximum 1 successful J per Awakening**
 - snapshot only truly ORBIT/AVAILABLE shards at the J input edge
 - 6 available -> PRISON
 - 2–5 available -> WALL using 2 shards
 - 0–1 -> immediate fail; no cooldown
+- after the 1.2s decision deadline, J fails immediately with no cooldown consumption
 - NO input buffering: failed J never auto-fires when shards later return
 
 ### WALL
@@ -229,14 +232,23 @@ Frozen first-pass target:
 - the 180px contact band keeps the return distance visually coherent
 
 ## 10. J construct decision and same-frame law
-J snapshots available ORBIT shards at the INPUT edge, before new threat assignments of that same frame:
+J is an **early commitment branch**, not an end-of-K conversion:
+- the decision window is the first **1.2s** of K's 2.4s active duration;
+- at most **one successful J** may occur in a K;
+- if the player crosses the 1.2s deadline without J, that Awakening is committed to K-only;
+- this prevents consuming almost the entire guardian window and then converting otherwise-dormant shards into a full-duration construct for free.
+
+Within that decision window, J snapshots available ORBIT shards at the INPUT edge, before new threat assignments of that same frame:
 - 6 -> Prison
 - 2–5 -> Wall
 - 0–1 -> fail
 
-This removes nondeterministic J-vs-threat races.
+This preserves the intended three-way decision:
+1. keep all six shards as K guardians;
+2. commit immediately to Prison;
+3. let one or more shards answer an early threat, then commit remaining availability to Wall.
 
-J cooldown begins only on successful construct cast.
+J cooldown begins only on successful construct cast. Failed late/insufficient-shard attempts consume no cooldown and never buffer.
 
 ## 11. Gold Wall adaptation
 Port the Gold Wall appearance/motion/material algorithm, not its demo HP/lifetime/gameplay.
