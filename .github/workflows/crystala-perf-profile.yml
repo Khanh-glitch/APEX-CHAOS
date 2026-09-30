@@ -32,7 +32,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install QA-only browser driver
-        run: npm install --no-save --package-lock=false puppeteer-core@24
+        run: pnpm add -D puppeteer-core@24 --ignore-workspace-root-check
 
       - name: Build production
         run: pnpm build
