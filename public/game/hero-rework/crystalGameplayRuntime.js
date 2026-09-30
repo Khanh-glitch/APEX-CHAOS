@@ -85,6 +85,9 @@ function newTele() {
     repeatIntercepts: 0, reflectedDamage: 0, preventedDamage: 0, shardBusySeconds: 0,
     constructDamage: 0, wallBreaks: 0, facetBreaks: 0, constructEnds: [], jPerK: [],
     constructReflects: 0, reflectedProjectiles: 0, urgentReservations: 0,
+    // Decision telemetry: measures the actual trade between K-only, early J
+    // Prison, and delayed-J Wall without changing any gameplay law.
+    decisionWindows: [], constructDecisions: [],
   };
 }
 
@@ -133,8 +136,19 @@ function castAwakening(ctx) {
   const ct = ctx.combatant, st = ensure(ct), now = AIL.clock();
   if (kActive(st)) return false;
   const cfg = ctx.cfg;
-  st.k = { active: true, startedAt: now, until: now + (cfg.active != null ? cfg.active : 2.4), jCasts: 0, hits: new Array(SHARDS).fill(0) };
+  const until = now + (cfg.active != null ? cfg.active : 2.4);
+  const windowId = st.tele.kCasts + 1;
+  const decisionWindow = {
+    id: windowId, startedAt: now, until, endedAt: null, j: [],
+    start: {
+      reservations: st.tele.reservations, intercepts: st.tele.intercepts,
+      preventedDamage: st.tele.preventedDamage, reflectedDamage: st.tele.reflectedDamage,
+      constructReflects: st.tele.constructReflects,
+    },
+  };
+  st.k = { active: true, startedAt: now, until, jCasts: 0, hits: new Array(SHARDS).fill(0), windowId, decisionWindow };
   st.tele.kCasts += 1;
+  st.tele.decisionWindows.push(decisionWindow);
   st.rig.awaken(1.0, 0.85);
   emit('CrystalAwaken', { combatant: ct.heroId, at: now, until: st.k.until });
   return true;
@@ -143,6 +157,18 @@ function endAwakening(st, now) {
   if (!st.k.active) return;
   st.k.active = false;
   st.tele.jPerK.push(st.k.jCasts);
+  const w = st.k.decisionWindow;
+  if (w && w.endedAt == null) {
+    w.endedAt = now;
+    w.result = {
+      reservations: st.tele.reservations - w.start.reservations,
+      intercepts: st.tele.intercepts - w.start.intercepts,
+      preventedDamage: st.tele.preventedDamage - w.start.preventedDamage,
+      reflectedDamage: st.tele.reflectedDamage - w.start.reflectedDamage,
+      constructReflectsDuringK: st.tele.constructReflects - w.start.constructReflects,
+      jCasts: st.k.jCasts,
+    };
+  }
   emit('CrystalAwakenEnd', { at: now, jCasts: st.k.jCasts });
 }
 
@@ -581,7 +607,13 @@ function constructHit(best, p, dt) {
   let reflected = false;
   if (!t6) {
     const v = reflectVec(p.vx, p.vy, n.x, n.y);
+    if (cons.decision) cons.decision.blockedProjectileDamage += dmg;
     applyPassive(st, p);
+    if (cons.decision) {
+      cons.decision.reflectCount += 1;
+      cons.decision.reflectedDamageIssued += p.damage;
+      hr.crySourceConsDecision = cons.decision.id;
+    }
     p.vx = v.x; p.vy = v.y;
     p.x = hx + n.x * ((p.radius || 7) + 1.5); p.y = hy + n.y * ((p.radius || 7) + 1.5);
     p.px = p.x; p.py = p.y;
@@ -617,8 +649,16 @@ function damageConstruct(st, cons, cap, dmg, hx, hy, vx, vy, why) {
 
 function constructEnded(st, cons, reason) {
   cons.state = 'ENDED'; cons.endReason = reason; cons.endedAt = AIL.clock();
-  st.tele.constructEnds.push({ kind: cons.kind, reason, at: cons.endedAt, hp: cons.kind === 'wall' ? Math.max(0, cons.hp) : cons.facets.map((f) => Math.max(0, f.hp)) });
-  emit('CrystalConstructEnd', { cons: cons.id, kind: cons.kind, reason });
+  const hpRemain = cons.kind === 'wall' ? Math.max(0, cons.hp) : cons.facets.map((f) => Math.max(0, f.hp));
+  st.tele.constructEnds.push({ kind: cons.kind, reason, at: cons.endedAt, hp: hpRemain });
+  if (cons.decision) {
+    cons.decision.endedAt = cons.endedAt;
+    cons.decision.endReason = reason;
+    cons.decision.lifeFromCast = Math.max(0, cons.endedAt - cons.castAt);
+    cons.decision.solidLifeRealized = cons.lockedAt == null ? 0 : Math.max(0, cons.endedAt - cons.lockedAt);
+    cons.decision.hpRemaining = hpRemain;
+  }
+  emit('CrystalConstructEnd', { cons: cons.id, kind: cons.kind, reason, decisionId: cons.decisionId || null });
   invalidate();
 }
 function breakWall(st, cons, reason, hitIdx) {
@@ -738,10 +778,35 @@ function castConstruct(ctx) {
     st.tele.wallCasts += 1;
   }
   for (const id of cons.shardIds) { const s = st.shards[id]; s.state = STATE.CONSTRUCT_TRAVEL; s.consId = cons.id; }
+  const window = st.k.decisionWindow || null;
+  const decision = {
+    id: st.tele.constructDecisions.length + 1,
+    kWindow: st.k.windowId || null,
+    at: now,
+    sinceKStart: Math.max(0, now - st.k.startedAt),
+    kRemaining: Math.max(0, st.k.until - now),
+    availableAtInput: ids.length,
+    kind: cons.kind,
+    shardsSpent: cons.shardIds.length,
+    interceptsBeforeJ: window ? st.tele.intercepts - window.start.intercepts : 0,
+    preventedBeforeJ: window ? st.tele.preventedDamage - window.start.preventedDamage : 0,
+    blockedProjectileDamage: 0,
+    reflectedDamageIssued: 0,
+    reflectedDamageRealized: 0,
+    reflectCount: 0,
+    endedAt: null,
+    endReason: null,
+  };
+  cons.decisionId = decision.id;
+  cons.decision = decision;
+  st.tele.constructDecisions.push(decision);
+  if (window) window.j.push(decision.id);
+
   st.constructs.push(cons);
   st.k.jCasts += 1; st.tele.jCasts += 1;
   invalidate();
-  emit('CrystalConstructCast', { cons: cons.id, kind: cons.kind, shards: cons.shardIds.slice(), at: now });
+  emit('CrystalConstructCast', { cons: cons.id, kind: cons.kind, shards: cons.shardIds.slice(), at: now,
+    decisionId: decision.id, kWindow: decision.kWindow, kRemaining: decision.kRemaining, availableAtInput: ids.length });
   return true;
 }
 
@@ -838,7 +903,14 @@ function afterBodyHit(p, target, realized) {
   if (!hr || !hr.crystalReflected || !(realized > 0)) return;
   const ct = HR().byCombatant(p.owner);
   const st = ct && states.get(ct);
-  if (st) st.tele.reflectedDamage += realized;
+  if (st) {
+    st.tele.reflectedDamage += realized;
+    const did = hr.crySourceConsDecision;
+    if (did) {
+      const d = st.tele.constructDecisions.find((x) => x.id === did);
+      if (d) d.reflectedDamageRealized += realized;
+    }
+  }
 }
 
 /* ================================================================== PUBLIC API */
