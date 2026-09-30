@@ -335,12 +335,12 @@ Do not globally delete old ICE support if it is still needed outside the product
 
 FROST Gold presentation is the only FROST-specific freeze-shell authority in the reworked product path.
 
-## 9. Presentation authority
+## 9. Presentation authority (superseded by §9.1 canonical Gold override)
 
 Canonical Gold:
-01_OWNER_APPROVED_GOLD_REFERENCE.html
+gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html
 SHA-256:
-59201be3d33bdfbeb8459656d3ef37caf922382a06852bd7a609472fdce2da43
+940fc9a8a181cc40d965ebf2c4309d1b4816d3016fc191b0d3df8a1a65be2475
 
 Preserve:
 - Frost source-art segmentation / anti-fringe rig.
@@ -363,6 +363,18 @@ The production presentation bridge must actually consume real Frost gameplay eve
 Do not let presentation offsets modify gameplay locomotion or collision.
 Do not derive gameplay footprint from sprite dimensions.
 Do not execute/parse the full standalone HTML every production frame; bridge/extract/cache the authored algorithms/assets like Hunter/Crystala.
+
+## 9.1 FINAL CANONICAL GOLD OVERRIDE
+
+The prior Gold reference in this document is obsolete. Final presentation authority is:
+`docs/hero-rework/frost-v1/gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html`
+
+SHA-256: `940fc9a8a181cc40d965ebf2c4309d1b4816d3016fc191b0d3df8a1a65be2475`
+Bytes: 981,597
+
+The owner has directly playtested the current implementation and found release-blocking presentation failures: A2 ice appears as disconnected/detached chunks instead of the Gold's continuous authored trail; A1/A2 can cause whole-arena ice flicker/detail loss; the opponent can repeatedly scale large/small; Frost's battle-scale visual is smaller than peer fighters; and additional unlisted visual defects may exist. These are acceptance blockers. The final rebuild must be based on the exact Gold above and must include render-state isolation and real-browser battle-scale evidence.
+
+The previous 975,616-byte reference must not be used for extraction, bridge generation, parity, or acceptance.
 
 ## 10. Explicit non-authority from Gold/demo
 
