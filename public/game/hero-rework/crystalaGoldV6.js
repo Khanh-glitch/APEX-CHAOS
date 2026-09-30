@@ -2150,6 +2150,7 @@ function drawDebris(c, list, alpha = 1) {
 
 function createBloomSystem(opts = {}) {
   const GS = opts.scale || 0.5;
+  const forceLegacyWide = !!opts.forceLegacyWide;
   let dpr = opts.dpr || 1;
   let w = opts.width || 1000;
   let h = opts.height || 1000;
@@ -2249,7 +2250,7 @@ function createBloomSystem(opts = {}) {
       // This preserves the two authored blur radii and blend weights while
       // removing one full offscreen filter/copy pass.
       let directWide = false;
-      try { directWide = typeof targetCtx.filter === 'string'; } catch (e) { directWide = false; }
+      try { directWide = !forceLegacyWide && typeof targetCtx.filter === 'string'; } catch (e) { directWide = false; }
       if (directWide) {
         targetCtx.filter = 'blur(' + (9 * dpr).toFixed(2) + 'px)';
         targetCtx.globalAlpha = 0.25;
