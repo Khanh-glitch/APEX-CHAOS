@@ -38,7 +38,22 @@ const result=await page.evaluate(()=>{
     const a=G.fighters[0],b=G.fighters[1];
     a.baseSpeed=0;b.baseSpeed=0;a.x=180;a.y=500;a.setDir(1,0);b.x=820;b.y=500;b.setDir(-1,0);
     for(let i=0;i<3;i++)G.APEX_ARSENAL.step(DT);
-    return {a,b,ct:HR.byCombatant(a),ctb:HR.byCombatant(b),t0:G.matchClock||0};
+    const mm={a,b,ct:HR.byCombatant(a),ctb:HR.byCombatant(b),t0:G.matchClock||0,damage:{a:0,b:0}};
+    // Lab mode restores HP after each real transaction, so combatant damageTaken
+    // intentionally reads 0. Measure the authoritative AQ labDamage delta around
+    // each target's synchronous takeDamage call instead; mitigation/status/
+    // reflection have already resolved by the time the inner wrapper increments it.
+    for(const [fighter,key] of [[a,'a'],[b,'b']]){
+      const prev=fighter.takeDamage;
+      fighter.takeDamage=function(...args){
+        const st=G.APEX_ARSENAL?.state, before=st?.labDamage||0;
+        const out=prev.apply(this,args);
+        const after=st?.labDamage||0;
+        mm.damage[key]+=Math.max(0,after-before);
+        return out;
+      };
+    }
+    return mm;
   }
   function step(n=1){for(let i=0;i<n;i++)G.APEX_ARSENAL.step(DT);}
   function stepUntil(fn,maxSec){for(let i=0;i<Math.ceil(maxSec/DT);i++){if(fn())return i*DT;step(1);}return null;}
@@ -90,7 +105,6 @@ const result=await page.evaluate(()=>{
   }
   function one(mode,kind){
     const mm=fresh();
-    const takenA0=mm.ct.telemetry.damageTaken||0, takenB0=mm.ctb.telemetry.damageTaken||0;
     const ks=prepare(mm,mode);
     // Live-window scripts start after normal Gold construct closure; POST_K
     // intentionally starts after Awakening has ended to expose free conversion.
@@ -104,8 +118,8 @@ const result=await page.evaluate(()=>{
     const ins=CRY.inspect(mm.ct),tele=clone(ins.telemetry);
     return {
       mode,pressure:kind,
-      hpLossCrystal:Math.max(0,(mm.ct.telemetry.damageTaken||0)-takenA0),
-      hpLossOpponent:Math.max(0,(mm.ctb.telemetry.damageTaken||0)-takenB0),
+      hpLossCrystal:mm.damage.a,
+      hpLossOpponent:mm.damage.b,
       k:ins.k,available:ins.available,
       constructs:ins.constructs,
       summary:{
@@ -122,6 +136,13 @@ const result=await page.evaluate(()=>{
   const pressures=['PRECISION','BURST','RAPID','POST_K'];
   const rows=[];
   for(const pressure of pressures)for(const mode of modes)rows.push(one(mode,pressure));
+  // A broken control silently makes every defensive branch look perfect. Make
+  // the probe self-validating: each scripted hostile pressure must damage a
+  // dormant Crystal under the exact same real projectile path.
+  for(const pressure of pressures){
+    const control=rows.find(r=>r.pressure===pressure&&r.mode==='DORMANT');
+    if(!control || !(control.hpLossCrystal>0)) throw new Error('invalid dormant damage control for '+pressure);
+  }
   return {rows,revision:G.APEX_ARSENAL_RUNTIME_REVISION||null};
 });
 
