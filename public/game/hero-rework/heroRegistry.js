@@ -146,6 +146,9 @@
         A1: skill('crystal.context_construct', 'A1', 'crystal.context_construct', {
           cooldown: 1.5, requiresAwakening: true, minShards: 2, prisonShards: 6,
           inputBuffer: false, failConsumesCooldown: false,
+          // Commitment law: J is a first-half Awakening choice, not a free
+          // end-of-K conversion. One successful construct maximum per K.
+          decisionWindow: 1.2, maxCastsPerAwakening: 1,
           constructHpMult: 1,
           wall: { width: 220, hp: 120, solidLifetime: 4.0 },
           prison: { radius: 135, facets: 6, facetHp: 75, solidLifetime: 3.0 },
