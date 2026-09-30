@@ -134,7 +134,10 @@ audit.pass=!!audit.snare && audit.counts.back>0 && audit.counts.front>0 && audit
   && audit.goldDelta.maxDisp<=goldTol
   && audit.goldDelta.maxStep<=Math.max(4,goldScaled.maxStep*0.14)
   && audit.goldDelta.finalDisp<=Math.max(4,goldScaled.finalDisp*0.08)
-  && audit.goldDelta.movingFrames<=3
+  // OWNER PLAYTEST 2026-09-30: recoil amplitude/step stays Gold-exact, but the
+  // final RECOVER standstill is intentionally cut at h.t=.62. Browser proof
+  // must therefore show materially fewer motion-locked frames than raw Gold.
+  && audit.goldDelta.movingFrames>=5 && audit.goldDelta.movingFrames<=14
   && audit.maxMapError<0.25
   && errors.length===0;
 fs.writeFileSync(path.join(OUT,'hunter-a1-ownerfix-browser.json'),JSON.stringify(audit,null,2)+'\n');
