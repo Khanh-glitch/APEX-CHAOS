@@ -291,10 +291,129 @@ const presReady = !!(Pres && Pres.ready && typeof Pres.renderBody === 'function'
 check('P20-presentation-adapter-registers-and-integrates-chamber', presReady,
   { ready: Pres?.ready, hasRenderBody: typeof Pres?.renderBody === 'function' });
 
-// P21: Single weapon render dispatch law (no duplicate drawEquippedWeapon in presentation)
+// P21: Production adapter draw-order regression — Wall/FX render once while Prison stays split.
+{
+  const calls = { wall: 0, prisonBack: 0, prisonFront: 0, debris: 0, dust: 0, bloomArg: null, createRig: 0 };
+  const fakeRig = {
+    hero: { x: 100, y: 100, awake: 1 },
+    stones: [],
+    constructs: [
+      { kind: 'wall', geom: {} },
+      { kind: 'prison', prison: {} },
+    ],
+    fx: { debris: [], dust: [] },
+    setBody() {},
+  };
+  class FakeFighter {
+    constructor(id) {
+      this.id = id; this.x = 100; this.y = 100; this.radius = 75; this.hp = 1000;
+      this.dir = { x: 1, y: 0 }; this.statuses = {};
+    }
+    hasStatus(name) { return !!(this.statuses[name] && this.statuses[name].timer > 0); }
+    draw() {}
+  }
+  const crystalF = new FakeFighter(1), otherF = new FakeFighter(2);
+  const ct = { heroId: 'CRYSTAL', anchor: crystalF };
+  const scope = {
+    console, Math, Date, Fighter: FakeFighter, fighters: [crystalF, otherF],
+    drawProjectiles() {},
+    APEX_HERO_REWORK: { match: { combatants: [ct] }, byCombatant: (f) => f === crystalF ? ct : null },
+    APEX_CRYSTAL: { setPresentation() {}, stateOf: () => ({ rig: fakeRig }) },
+    APEX_CRYSTALA_GOLD: {
+      createRig() { calls.createRig++; return fakeRig; },
+      drawTrail() {}, drawStone() {}, drawCrystala() {}, drawEyeAccent() {},
+      drawWall(_ctx, _geom, emissive) { if (!emissive) calls.wall++; },
+      drawPrison(_ctx, _prison, emissive, front) {
+        if (!emissive) (front ? calls.prisonFront++ : calls.prisonBack++);
+      },
+      drawDebris() { calls.debris++; },
+      drawDust() { calls.dust++; },
+      createBloomSystem() {
+        return {
+          begin(arg) { calls.bloomArg = arg; return createCanvas(500, 500).getContext('2d'); },
+          composite() {},
+        };
+      },
+    },
+  };
+  scope.window = scope; scope.globalThis = scope;
+  const fnPres = new Function('window', 'globalThis', presCode);
+  fnPres(scope, scope);
+  const cv = createCanvas(1000, 1000), cx = cv.getContext('2d');
+  cx.setTransform(1.1, 0, 0, 1.1, 20, -10);
+  scope.drawProjectiles(cx);
+  crystalF.draw(cx);
+  otherF.draw(cx);
+  const m = calls.bloomArg;
+  check('P21-production-layering-and-camera-bound-bloom',
+    calls.wall === 1 && calls.prisonBack === 1 && calls.prisonFront === 1 &&
+    calls.debris === 1 && calls.dust === 1 &&
+    m && Math.abs(m.a - 1.1) < 1e-9 && Math.abs(m.d - 1.1) < 1e-9 &&
+    Math.abs(m.e - 20) < 1e-9 && Math.abs(m.f + 10) < 1e-9,
+    calls);
+}
+
+// P22: Crystal keeps generic engine status readability outside Chamber actor source.
+{
+  class FakeStatusFighter {
+    constructor() {
+      this.id = 1; this.x = 150; this.y = 150; this.radius = 75; this.hp = 1000;
+      this.dir = { x: 1, y: 0 };
+      this.statuses = { freeze: { timer: 1 } };
+      this.virusParasites = [];
+    }
+    hasStatus(name) { return !!(this.statuses[name] && this.statuses[name].timer > 0); }
+    draw() {}
+  }
+  const f = new FakeStatusFighter();
+  const ct = { heroId: 'CRYSTAL', anchor: f };
+  const fakeRig = { hero: { x: 150, y: 150, awake: 0 }, stones: [], constructs: [], fx: { debris: [], dust: [] }, setBody() {} };
+  const scope = {
+    console, Math, Date, Fighter: FakeStatusFighter, fighters: [f], drawProjectiles() {},
+    APEX_HERO_REWORK: { match: { combatants: [ct] }, byCombatant: () => ct },
+    APEX_CRYSTAL: { setPresentation() {}, stateOf: () => ({ rig: fakeRig }) },
+    APEX_CRYSTALA_GOLD: {
+      drawTrail() {}, drawStone() {}, drawCrystala() {}, drawEyeAccent() {},
+      drawWall() {}, drawPrison() {}, drawDebris() {}, drawDust() {},
+      createBloomSystem() { return { begin: () => null, composite() {} }; },
+    },
+  };
+  scope.window = scope; scope.globalThis = scope;
+  new Function('window', 'globalThis', presCode)(scope, scope);
+  const cv = createCanvas(300, 300), cx = cv.getContext('2d');
+  f.draw(cx);
+  const px = cx.getImageData(0, 0, 300, 300).data;
+  let visible = 0;
+  for (let i = 3; i < px.length; i += 4) if (px[i] > 0) { visible++; if (visible > 20) break; }
+  check('P22-crystal-generic-status-vfx-remain-visible-outside-actor-source', visible > 20, { visiblePixelsSampled: visible });
+}
+
+// P23: Presentation never creates a parallel fake six-shard rig.
+{
+  let creates = 0;
+  class FakeFighter {
+    constructor(){ this.id=1; this.x=0; this.y=0; this.hp=1000; this.radius=75; this.dir={x:1,y:0}; this.statuses={}; }
+    hasStatus(){ return false; }
+    draw(){}
+  }
+  const f = new FakeFighter(), ct = { heroId: 'CRYSTAL', anchor: f };
+  const scope = {
+    console, Math, Date, Fighter: FakeFighter, fighters: [f], drawProjectiles() {},
+    APEX_HERO_REWORK: { match: { combatants: [ct] }, byCombatant: () => ct },
+    APEX_CRYSTAL: { setPresentation() {}, stateOf: () => null },
+    APEX_CRYSTALA_GOLD: { createRig(){ creates++; return {}; } },
+  };
+  scope.window=scope; scope.globalThis=scope;
+  new Function('window','globalThis',presCode)(scope,scope);
+  const inspected = scope.APEX_CRYSTALA_PRESENTATION.inspect(f);
+  check('P23-no-presentation-only-fallback-rig', creates === 0 && inspected.stones.length === 0,
+    { createRigCalls: creates, inspected });
+}
+
+// P24: Single weapon render dispatch law (no duplicate drawEquippedWeapon in presentation)
 const presDrawsWeapon = /drawEquippedWeapon/.test(presCode);
 const presHasWeaponPass = /AV\.drawEquippedWeapon/.test(presCode) || /weaponApi\.equip/.test(presCode);
-check('P21-single-weapon-pass-no-double-render', !presDrawsWeapon && !presHasWeaponPass,
+check('P24-single-weapon-pass-no-double-render', !presDrawsWeapon && !presHasWeaponPass,
   { doubleDrawFree: !presDrawsWeapon, weaponPassIsolated: !presHasWeaponPass });
 
 const failed = results.filter(r => !r.pass);

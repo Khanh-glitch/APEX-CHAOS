@@ -1,5 +1,5 @@
 {
-  "revision": "20260930-crystala-b-r1",
+  "revision": "20260930-crystala-presentationfix-r1",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "a0d10025cde29ee55d6eb95a06aee2cbebe2a56e01adcdb1154f8366e3128712",
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
@@ -25,6 +25,6 @@
     "public/game/hero-rework/robotPresentationRuntime.js": "27856fca5ccda11674a825948a0f98ea48a62e9fe23b27e49200570f09e1c24c",
     "public/game/hero-rework/hunterGoldV10.js": "3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1",
     "public/game/hero-rework/hunterPresentationRuntime.js": "18c67a8a8315fa66adff4e8bd046ff389a893ecd6ab590e78b83fa32e7eb8146",
-    "public/game/hero-rework/crystalaPresentationRuntime.js": "1fbd094a6c434b4cdbfc6e656f8943a3da46f6c5ee1e835ef834238c3ed2eb4e"
+    "public/game/hero-rework/crystalaPresentationRuntime.js": "dfb981282a679b82abf568d74d670318138af611b810222c2822d6db9d3df2bf"
   }
 }

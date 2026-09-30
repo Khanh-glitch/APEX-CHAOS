@@ -35,18 +35,19 @@
   }
 
   function getPresentationState(f) {
-    let st = states.get(f);
-    if (st) return st;
     const ct = HR && typeof HR.byCombatant === 'function' ? HR.byCombatant(f) : null;
     const crySt = ct && CRY ? CRY.stateOf(ct) : null;
-    const rig = (crySt && crySt.rig) || (GOLD ? GOLD.createRig({ seed: 20260930, visual: true }) : null);
-    st = {
-      fighter: f,
-      combatant: ct,
-      cryState: crySt,
-      rig,
-    };
-    states.set(f, st);
+    let st = states.get(f);
+    if (!st) {
+      st = { fighter: f, combatant: ct, cryState: crySt, rig: crySt ? crySt.rig : null };
+      states.set(f, st);
+    } else {
+      // There is exactly ONE six-shard rig: the gameplay-owned rig. Never
+      // cache a presentation-only fallback if the first draw races match setup.
+      st.combatant = ct;
+      st.cryState = crySt;
+      st.rig = crySt ? crySt.rig : null;
+    }
     return st;
   }
 
@@ -92,6 +93,110 @@
 
     // Eye accent drawn to main context above silhouette
     GOLD.drawEyeAccent(ctx, hero, 1);
+
+    // Generic engine status cues stay OUTSIDE Chamber's actor source, matching
+    // the normal Fighter.draw contract without re-rendering the base fighter.
+    drawGenericStatusVfx(ctx, f);
+  }
+
+  function poisonLevel(exposure = 0) {
+    if (exposure >= 10) return 5;
+    if (exposure >= 7.5) return 4;
+    if (exposure >= 5) return 3;
+    if (exposure >= 3) return 2;
+    if (exposure >= 1.5) return 1;
+    return 0;
+  }
+
+  function virusDamageOut(f) {
+    let reduction = 0;
+    for (const v of (f.virusParasites || [])) reduction += v.level === 1 ? 0.01 : 0.05;
+    return Math.max(0.25, 1 - reduction);
+  }
+
+  function statusRing(ctx, r, color, label) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.setLineDash([6, 10]);
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = color;
+    ctx.font = "700 15px 'Segoe UI'";
+    ctx.textAlign = 'center';
+    ctx.fillText(label, 0, -r - 8);
+    ctx.restore();
+  }
+
+  function drawGenericStatusVfx(ctx, f) {
+    if (!f || !f.statuses) return;
+    const has = (name) => typeof f.hasStatus === 'function'
+      ? f.hasStatus(name)
+      : !!(f.statuses[name] && f.statuses[name].timer > 0);
+    const r = f.radius || 75;
+    const dir = f.dir || { x: 1, y: 0 };
+
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.rotate(Math.atan2(dir.y || 0, dir.x || 1));
+
+    if (has('freeze')) statusRing(ctx, r + 18, '#a6f4ff', 'FREEZE');
+    if (has('stun')) {
+      if (typeof g.drawStunAsset === 'function') g.drawStunAsset(ctx, r);
+      else statusRing(ctx, r + 22, '#4fe8ff', 'STUN');
+    }
+    if (has('poison')) {
+      const lvl = poisonLevel(f.statuses.poison.exposure || 0);
+      statusRing(ctx, r + 26, '#88ff00', 'POISON ' + lvl);
+      if (lvl > 0) {
+        ctx.save();
+        ctx.rotate(-Math.atan2(dir.y || 0, dir.x || 1));
+        ctx.fillStyle = '#b6ff4a';
+        ctx.strokeStyle = '#0b1702';
+        ctx.lineWidth = 6;
+        ctx.font = "900 54px 'Segoe UI'";
+        ctx.textAlign = 'center';
+        ctx.strokeText(String(lvl), 0, -r - 50);
+        ctx.fillText(String(lvl), 0, -r - 50);
+        ctx.restore();
+      }
+    }
+    if (has('disease')) {
+      const mult = f.statuses.disease.mult ?? 1;
+      statusRing(ctx, r + 30, '#b9ff55', 'VIRUS -' + Math.round((1 - mult) * 100) + '%');
+    }
+    if (has('weak') && !(f.statuses.weak && f.statuses.weak.source && f.statuses.weak.source.name === 'BLADE')) {
+      statusRing(ctx, r + 34, '#ff3030', 'WEAK');
+    }
+    if (f.virusParasites && f.virusParasites.length) {
+      const now = Date.now() / 600;
+      const damageOut = virusDamageOut(f);
+      ctx.save();
+      ctx.rotate(-Math.atan2(dir.y || 0, dir.x || 1));
+      ctx.fillStyle = '#b9ff55';
+      ctx.strokeStyle = '#102006';
+      ctx.lineWidth = 5;
+      ctx.font = '900 20px monospace';
+      ctx.textAlign = 'center';
+      const label = 'VIRUS -' + Math.round((1 - damageOut) * 100) + '% DMG';
+      ctx.strokeText(label, 0, -r - 82);
+      ctx.fillText(label, 0, -r - 82);
+      ctx.restore();
+      f.virusParasites.slice(0, 18).forEach((v, i) => {
+        const rr = r + 44 + (i % 3) * 10;
+        const a = (v.angle || 0) + now * (0.35 + v.level * 0.08);
+        ctx.fillStyle = v.level === 1 ? '#b8ff63' : v.level === 2 ? '#78cf3d' : '#ff7070';
+        ctx.strokeStyle = '#102006';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * rr, Math.sin(a) * rr, v.level === 1 ? 7 : v.level === 2 ? 10 : 14, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+    }
+    ctx.restore();
   }
 
   let bloomSystem = null;
@@ -105,23 +210,33 @@
   function renderWorldConstructsAndFx(ctx, emissive = false, front = null) {
     const M = HR && HR.match;
     if (!M || !GOLD) return;
+    const drawBack = front !== true;
+    const drawFront = front !== false;
     for (const ct of M.combatants) {
       if (ct.heroId !== 'CRYSTAL') continue;
       const crySt = CRY ? CRY.stateOf(ct) : null;
       const rig = crySt ? crySt.rig : null;
       if (!rig) continue;
       for (const cons of rig.constructs) {
+        // Gold draws Wall once behind the actor. Prison alone is split into
+        // back/front edges. This prevents Wall/FX from being doubled by the
+        // engine's pre-actor drawProjectiles pass plus post-actor front pass.
         if (cons.kind === 'wall' && cons.geom) {
-          GOLD.drawWall(ctx, cons.geom, emissive);
+          if (drawBack) GOLD.drawWall(ctx, cons.geom, emissive);
         } else if (cons.kind === 'prison' && cons.prison) {
-          GOLD.drawPrison(ctx, cons.prison, emissive, front);
+          if (front == null) {
+            GOLD.drawPrison(ctx, cons.prison, emissive, false);
+            GOLD.drawPrison(ctx, cons.prison, emissive, true);
+          } else {
+            GOLD.drawPrison(ctx, cons.prison, emissive, front);
+          }
         }
       }
-      if (!emissive) {
-        if (rig.fx) {
-          GOLD.drawDebris(ctx, rig.fx.debris, 1);
-          GOLD.drawDust(ctx, rig.fx.dust, 1);
-        }
+      // Gold reference draws debris/dust after the actor/shards: exactly once
+      // in the front world-FX pass, never once per layer.
+      if (!emissive && drawFront && rig.fx) {
+        GOLD.drawDebris(ctx, rig.fx.debris, 1);
+        GOLD.drawDust(ctx, rig.fx.dust, 1);
       }
     }
   }
@@ -137,7 +252,11 @@
     const ch = gameCanvas ? gameCanvas.height : (g.GAME_SIZE || 1000);
     const bloom = getBloom(cw, ch);
     if (!bloom) return;
-    const gx = bloom.begin();
+    // The main ctx is already under Apex's current camera transform here.
+    // Feed that exact matrix into the half-res emissive buffer so shake/zoom
+    // cannot detach bloom from the body, shards, or constructs.
+    const worldTransform = typeof ctx.getTransform === 'function' ? ctx.getTransform() : null;
+    const gx = bloom.begin(worldTransform);
     if (!gx) return;
 
     for (const ct of M.combatants) {
@@ -202,6 +321,7 @@
     },
     getBloom,
     renderBody: body,
+    renderStatusVfx: drawGenericStatusVfx,
     renderWorldConstructsAndFx,
     runBloomPass,
   };
