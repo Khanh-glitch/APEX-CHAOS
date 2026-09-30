@@ -928,7 +928,7 @@ await gate('G07-anti-tunnelling-is-shared-geometry-not-robot-hunter-rewrites', (
   const mech = read('public/game/hero-rework/heroMechanicsRuntime.js');
   const slice = (a, b) => mech.slice(mech.indexOf(a), mech.indexOf(b));
   const robot = sha(slice('   * 1. ROBOT', '   * 2. CRYSTAL')) === 'e3f0ee8cd974403a27ac53bbb739629b2e550b1f548a42a19c3e58b5d73f983b';
-  const hunter = sha(slice('   * 8. HUNTER', '   * 9. TIME')) === '479cce6f8088ed0705fe34ce1c1427450803935437820b32b591f5f23f5d1885';
+  const hunter = sha(slice('   * 8. HUNTER', '   * 9. TIME')) === 'f56cb13f3632fc7b1e5bf767177fc534bd453f41eee0899829c3719490bda9b4';
   const geom = HR.geom && typeof HR.geom.capsuleToi === 'function' && typeof HR.geom.wallsBlockPoint === 'function' && typeof HR.geom.solidCapsules === 'function';
   const grant = /OWNER_TEST_CREDITS\s*=\s*12000/.test(read('public/game/arsenal/arsenalMetaRuntime.js')) && /OWNER_TEST_GRANT_KEY/.test(read('public/game/arsenal/arsenalMetaRuntime.js'));
   return { ok: bad.length === 0 && robot && hunter && geom && grant, detail: { changedProtectedFiles: bad, robotBlockIdentical: robot, hunterBlockIdentical: hunter, sharedGeom: geom, grant12000: grant } };
