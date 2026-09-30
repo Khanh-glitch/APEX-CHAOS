@@ -3,7 +3,7 @@
 ## A. Precedence
 
 Gameplay truth: 00_FROST_IMPLEMENTATION_AUTHORITY.md.
-Presentation truth: 01_OWNER_APPROVED_GOLD_REFERENCE.html.
+Presentation truth: gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html.
 Production plumbing/physics truth: exact APEX baseline 6b83fc6502eb8e23e4bd122074fc7fdfb47441ae.
 
 When they conflict:
@@ -182,3 +182,12 @@ No per-frame canvas/image creation in steady state.
 Bound trail/floor nodes by lifecycle.
 Pool/cache repeatable presentation data where appropriate.
 Do not cut Gold quality as the first performance response; profile first.
+
+
+## N. Final production presentation isolation
+
+The final Gold bridge must be visually isolated from the rest of the arena. A1/A2 activation must not leak canvas transform/scale/translate/rotate, globalAlpha, globalCompositeOperation, filter, shadow, clipping/path state, camera transform, fighter scale/radius, or shared Gold singleton state into unrelated rendering. The opponent and other fighters must remain at their normal battle scale. Every Gold draw pass must be state-safe with unconditional save/restore where applicable.
+
+A2 must preserve continuous authored Gold trail material rather than disconnected islands. Historical/deferred admission must hydrate from real production movement history without losing Gold's spacing, continuity, carve language, or detail hierarchy.
+
+Battle-scale parity is mandatory: compare the correct Gold and production at the same neutral light-gray arena scale, not only isolated close-up snapshots.
