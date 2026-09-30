@@ -226,6 +226,35 @@ await gate('C13-J-success-consumes-1.5s-cooldown', () => {
   return { ok: r.ok && near(cd, 1.5, 1e-6) && telem(cta).jCasts === 1, detail: { cd } };
 });
 
+await gate('C13a-J-decision-window-closes-at-1.2s-no-cooldown', () => {
+  const { a, cta } = fresh();
+  press(a, 'A2'); step(1.21);
+  const before = ins(cta);
+  const r = press(a, 'A1');
+  return { ok: before.available === 6 && before.k.active && before.k.constructDecisionOpen === false
+      && !r.ok && r.reason === 'condition' && HR.abilityController(cta).cooldownLeft('A1') === 0
+      && telem(cta).jCasts === 0 && ins(cta).constructs.length === 0,
+    detail: { available: before.available, active: before.k.active, decisionOpen: before.k.constructDecisionOpen,
+      r, cd: HR.abilityController(cta).cooldownLeft('A1') } };
+});
+
+await gate('C13b-only-one-successful-J-per-Awakening-even-if-cooldown-is-forced-ready', () => {
+  const { a, b, cta } = fresh({ ax:130, ay:500, bx:990, by:500 });
+  press(a, 'A2');
+  fire(b, 990, 500, a.x, a.y, 'SLOW', { damage:4.5 });
+  stepUntil(() => ins(cta).available === 5, 0.35);
+  const first = press(a, 'A1');
+  // QA-only forced-ready proves the per-Awakening law independently from the
+  // ordinary 1.5s A1 cooldown.
+  cta.skills.A1.cdLeft = 0;
+  const avail = ins(cta).available;
+  const second = press(a, 'A1');
+  return { ok: first.ok && avail >= 2 && ins(cta).k.constructDecisionOpen === false
+      && !second.ok && second.reason === 'condition' && telem(cta).jCasts === 1
+      && ins(cta).constructs.length === 1,
+    detail: { first, second, avail, jCasts:telem(cta).jCasts, constructs:ins(cta).constructs.length } };
+});
+
 await gate('C14-J-with-6-ORBIT-builds-PRISON', () => {
   const { a, cta } = fresh();
   press(a, 'A2'); step(0.1);
@@ -1038,7 +1067,8 @@ await gate('L02-registry-frozen-numbers-and-one-knob-per-skill', () => {
   const a1 = R.resolveSkillLevel('CRYSTAL', 'A1', 1), a2 = R.resolveSkillLevel('CRYSTAL', 'A2', 1), ps = R.resolveSkillLevel('CRYSTAL', 'PASSIVE', 1);
   const knobs = [c.A1, c.A2, c.PASSIVE].map((s) => s.progressionBinding.knobPath.join('.'));
   const v = R.validateRegistry();
-  return { ok: v.ok && a1.cooldown === 1.5 && a1.wall.width === 220 && a1.wall.hp === 120 && a1.wall.solidLifetime === 4 && a1.prison.radius === 135 && a1.prison.facetHp === 75 && a1.prison.solidLifetime === 3
+  return { ok: v.ok && a1.cooldown === 1.5 && a1.decisionWindow === 1.2 && a1.maxCastsPerAwakening === 1
+    && a1.wall.width === 220 && a1.wall.hp === 120 && a1.wall.solidLifetime === 4 && a1.prison.radius === 135 && a1.prison.facetHp === 75 && a1.prison.solidLifetime === 3
     && a2.cooldown === 8 && a2.active === 2.4 && a2.scanRadius === 1000 && a2.interceptBand === 180 && a2.minAnticipation === 0.12 && a2.contactToDock === 1.2
     && ps.reflectedDamagePct === 0.5 && knobs.join() === 'constructHpMult,cooldown,reflectedDamagePct',
     detail: { knobs, registryOk: v.ok, errors: v.errors } };
