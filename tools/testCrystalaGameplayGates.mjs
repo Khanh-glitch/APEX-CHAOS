@@ -152,12 +152,14 @@ await gate('C08-RESERVED-shard-unavailable-to-J-immediately', () => {
   // step one tick at a time until the reservation event, then press J at once
   let reserved = false;
   for (let k = 0; k < 120 && !reserved; k++) { step(DT); reserved = evOf(ev, 'CrystalReserve').length > 0; }
-  const stateAtReserve = ins(cta).shards.filter((s) => s.state === 'RESERVED').length;
-  const availNow = ins(cta).available;
+  const i0 = ins(cta);
+  const unavailableAtReserve = i0.shards.filter((s) => !s.available).length;
+  const stateAtReserve = i0.shards.find((s) => !s.available)?.state;
+  const availNow = i0.available;
   const r = press(a, 'A1');
   const c = ins(cta).constructs[0];
-  return { ok: reserved && stateAtReserve === 1 && availNow === 5 && r.ok && c && c.kind === 'wall' && c.shardIds.length === 2,
-    detail: { stateAtReserve, availNow, kind: c && c.kind } };
+  return { ok: reserved && unavailableAtReserve === 1 && availNow === 5 && r.ok && c && c.kind === 'wall' && c.shardIds.length === 2,
+    detail: { stateAtReserve, unavailableAtReserve, availNow, kind: c && c.kind } };
 });
 
 await gate('C09-RETURN-shard-unavailable-until-exact-dock-frame', () => {
@@ -186,12 +188,14 @@ await gate('C10-docked-shard-can-be-selected-again-in-same-K', async () => {
   const seq = () => { fire(b, 990, 500, a.x, a.y, 'SLOW', { damage: 4.5 + n * 0.01 }); n += 1; };
   seq();
   for (let k = 0; k < 5; k++) { step(0.16); seq(); }
-  step(0.75);                                      // t ~ 1.6: shard of threat #1 docked (~1.55), K ends at 2.4
+  const reopened = stepUntil(() => ins(cta).available >= 1, 1.7);
+  const activeWhenReopened = ins(cta).k.active;
   const hit0 = telem(cta).intercepts;
-  seq();                                           // a 7th threat while K still active
-  step(0.9);
+  seq();                                           // 7th threat: only a docked shard may take it
+  step(0.75);
   const t = telem(cta);
-  return { ok: t.repeatIntercepts >= 1 && t.intercepts >= 6, detail: { intercepts: t.intercepts, repeat: t.repeatIntercepts, hit0 } };
+  return { ok: reopened != null && activeWhenReopened && t.repeatIntercepts >= 1 && t.intercepts >= 7,
+    detail: { reopened: fmt(reopened), activeWhenReopened, intercepts: t.intercepts, repeat: t.repeatIntercepts, hit0 } };
 });
 
 await gate('C11-J-outside-K-fails-immediately-no-cooldown', () => {
@@ -544,22 +548,58 @@ await gate('C34-shotgun-pellets-are-independent-threats', () => {
   }
   step(0.4);
   const vr = evOf(v.ev, 'CrystalReserve');
+  const vShards = vr.map((e) => e.payload.shard);
   return { ok: res === wouldHit && res >= 1 && new Set(pids).size === res && miss === 8 - wouldHit
-      && telem(v.cta).reservations >= 1 && vr.some((e) => e.payload.rescue && e.payload.band < 180),
+      && telem(v.cta).reservations >= 1 && telem(v.cta).reservations <= 6
+      && new Set(vShards).size === vShards.length && vr.some((e) => e.payload.urgent),
     detail: { slowFan: { wouldHit, reserved: res, miss }, realShotgunReserved: telem(v.cta).reservations,
-      realShotgunUnreachable: telem(v.cta).ignoredUnreachable, rescueBands: vr.map((e) => e.payload.band) } };
+      realShotgunUnreachable: telem(v.cta).ignoredUnreachable, bands: vr.map((e) => e.payload.band),
+      urgent: vr.map((e) => !!e.payload.urgent) } };
 });
 
-await gate('C34b-real-sniper-800px-uses-physical-rescue-intercept', () => {
+await gate('C34b-real-sniper-800px-keeps-Gold-180px-contact-under-urgency', () => {
   const w = crystalK({ ax: 100, ay: 500, bx: 900, by: 500 });
   fire(w.b, 900, 500, 100, 500, 'SNIPER');
   step(0.55);
   const rs = evOf(w.ev, 'CrystalReserve');
   const hit = evOf(w.ev, 'CrystalIntercept');
-  return { ok: rs.length === 1 && hit.length === 1 && rs[0].payload.rescue === true
-      && rs[0].payload.band < 180 && telem(w.cta).ignoredUnreachable === 0,
+  return { ok: rs.length === 1 && hit.length === 1 && rs[0].payload.band === 180
+      && rs[0].payload.urgent === true && telem(w.cta).ignoredUnreachable === 0,
     detail: { reservations: rs.length, intercepts: hit.length, band: rs[0]?.payload?.band,
+      urgent: rs[0]?.payload?.urgent, accelerated: rs[0]?.payload?.accelerated,
       unreachable: telem(w.cta).ignoredUnreachable } };
+});
+
+await gate('C34c-six-close-threats-use-six-independent-shards-seventh-waits', () => {
+  const w = crystalK({ ax: 150, ay: 500, bx: 430, by: 500 });
+  const hp0 = hpOf(w.a);
+  for (let k = 0; k < 6; k++) {
+    fire(w.b, 430, 500 + (k - 2.5) * 5, w.a.x, w.a.y, 'SMG', { damage: 2.4 + k * 0.001 });
+  }
+  step(0.22);
+  const rs = evOf(w.ev, 'CrystalReserve');
+  const ic = evOf(w.ev, 'CrystalIntercept');
+  const sixDistinct = rs.length === 6 && new Set(rs.map((e) => e.payload.shard)).size === 6;
+  const sixBlocked = ic.length === 6 && hpOf(w.a) === hp0 && ins(w.cta).available === 0;
+
+  // All six are now independently busy. A seventh close threat cannot borrow a
+  // globally reset K slot; it must wait for one actual shard to dock.
+  const hp6 = hpOf(w.a);
+  fire(w.b, 430, 500, w.a.x, w.a.y, 'SMG', { damage: 2.7 });
+  step(0.16);
+  const seventhPassed = hpOf(w.a) < hp6 && telem(w.cta).overflowThreats >= 1;
+
+  const docked = stepUntil(() => ins(w.cta).available >= 1, 1.4);
+  const activeAfterDock = ins(w.cta).k.active;
+  const before8 = telem(w.cta).intercepts;
+  if (activeAfterDock) {
+    fire(w.b, 430, 500, w.a.x, w.a.y, 'SMG', { damage: 2.8 });
+    step(0.22);
+  }
+  const reusedAfterOwnDock = activeAfterDock && telem(w.cta).intercepts > before8;
+  return { ok: sixDistinct && sixBlocked && seventhPassed && docked != null && reusedAfterOwnDock,
+    detail: { reservations: rs.length, intercepts: ic.length, sixDistinct, sixBlocked, seventhPassed,
+      overflow: telem(w.cta).overflowThreats, docked: fmt(docked), activeAfterDock, reusedAfterOwnDock } };
 });
 
 await gate('C35-vanished-outbound-target-aborts-with-curved-return-no-teleport', () => {
@@ -585,16 +625,22 @@ await gate('C35-vanished-outbound-target-aborts-with-curved-return-no-teleport',
 await gate('C36-selected-shard-is-physically-reachable-no-far-side-teleport', () => {
   const w = crystalK({ ax: 150, ay: 500, bx: 990, by: 500 });
   const rec = [];
-  AIL.bus.on('CrystalReserve', (e) => { const st = rigOf(w.cta).stones[e.payload.shard]; rec.push({ tBand: e.payload.tBand, travel: Math.hypot(st.x - e.payload.ip.x, st.y - e.payload.ip.y) }); });
+  AIL.bus.on('CrystalReserve', (e) => { const st = rigOf(w.cta).stones[e.payload.shard]; rec.push({
+    tBand: e.payload.tBand, travel: Math.hypot(st.x - e.payload.ip.x, st.y - e.payload.ip.y),
+    accelerated: !!e.payload.accelerated, band: e.payload.band
+  }); });
   for (let k = 0; k < 3; k++) fire(w.b, 990, 500 + (k - 1) * 50, w.a.x, w.a.y + (k - 1) * 25, 'SLOW', { damage: 4.5 + k * 0.01 });
   let maxJump = 0; const prev = new Map();
   for (let k = 0; k < 150; k++) {
     step(DT);
     for (const s of rigOf(w.cta).stones) { const q = prev.get(s.uid); if (q) maxJump = Math.max(maxJump, Math.hypot(s.x - q.x, s.y - q.y)); prev.set(s.uid, { x: s.x, y: s.y }); }
   }
-  // lead the chosen shard needed (Gold travel model) must fit inside the time to the band
-  const fits = rec.every((r) => Math.max(0.12, r.travel * 1.12 / 1000 + 0.02) <= r.tBand + 0.011);
-  return { ok: rec.length >= 2 && fits && maxJump < 70, detail: { n: rec.length, fits, maxJump: fmt(maxJump), travel: rec.map((r) => fmt(r.travel)) } };
+  // Normal assignments still obey the authored travel model. Urgent assignments
+  // may compress that same Hermite path, but must remain continuous (no teleport).
+  const fitsOrExplicitlyAccelerated = rec.every((r) => r.accelerated || (r.travel * 1.12 / 1000 + 0.02) <= r.tBand + 0.011);
+  return { ok: rec.length >= 2 && fitsOrExplicitlyAccelerated && maxJump < 70,
+    detail: { n: rec.length, fitsOrExplicitlyAccelerated, maxJump: fmt(maxJump),
+      travel: rec.map((r) => fmt(r.travel)), accelerated: rec.map((r) => r.accelerated), bands: rec.map((r) => r.band) } };
 });
 
 /* =========================================================================
