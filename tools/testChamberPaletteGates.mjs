@@ -21,6 +21,7 @@ const errors = [];
 page.on('pageerror', (e) => { const t = String(e); if (!t.includes('net::ERR_')) errors.push(t); });
 page.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('net::ERR_')) errors.push('console: ' + m.text()); });
 await page.goto('http://127.0.0.1:4173', { waitUntil: 'load', timeout: 120000 });
+await page.waitForFunction(() => typeof window.__apexEnsureDeferredRuntimes === 'function', { timeout: 60000 });
 await page.evaluate(async () => { const e = window.__apexEnsureDeferredRuntimes; if (e) await e('arsenalQuest'); });
 await page.waitForFunction(() => window.APEX_CHAMBER_PALETTE, { timeout: 60000 });
 
@@ -45,8 +46,8 @@ check('D-profiles-neutral', list.every(p => {
 }), list.map(p => ({ id: p.id, L: p.profile.luminance, C: p.profile.chroma })));
 
 // --- E-no-palette-filter: static + attributed runtime proof ------------------
-const filt = await page.evaluate(async () => {
-  const rawSrc = await (await fetch('/game/arsenal/arsenalChamberPaletteRuntime.js?v=20260930-hunter-ownerfix-r1')).text();
+const filt = await page.evaluate(async (rev) => {
+  const rawSrc = await (await fetch('/game/arsenal/arsenalChamberPaletteRuntime.js?v=' + rev)).text();
   const src = rawSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
   const staticClean = !/\.filter\s*=/.test(src) && !/ctx\.filter/.test(src);
   let attributed = 0, total = 0;
@@ -63,12 +64,13 @@ const filt = await page.evaluate(async () => {
   });
   if (window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.active) window.exitArsenalQuestMode();
   window.startArsenalQuestMode('HUNTER', 'ICE');
+  if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
   const s = window.APEX_ARSENAL.state; s.slots = []; s.spawnHeld = true; s.spawnTimer = 1e6; s.unarmedFastConsumed = true;
   const draw = window.draw; window.draw = () => {}; window.update = () => {};
   for (let i = 0; i < 60; i++) { window.APEX_ARSENAL.step(1 / 60); draw(); }
   Object.defineProperty(CanvasRenderingContext2D.prototype, 'filter', desc);
   return { staticClean, attributed, total };
-});
+}, APEX_ARSENAL_RUNTIME_REVISION);
 check('E-no-palette-filter', filt.staticClean && filt.attributed === 0 && filt.total > 0, filt);
 
 // --- E-sanitize: state truth == rendered truth (Finding 4) -------------------
@@ -76,6 +78,7 @@ await page.evaluate(() => {
   localStorage.setItem('apexChaos.arsenalMeta.v1', JSON.stringify({ version: 1, credits: 500, ownedFighters: ['ROBOT'], lastSelectedP1: 'ROBOT', lastSelectedP2: 'ROBOT', totalSpins: 0, unlockedAt: { ROBOT: 0 }, arenaPaletteId: 'neon-9999' }));
 });
 await page.reload({ waitUntil: 'load', timeout: 120000 });
+await page.waitForFunction(() => typeof window.__apexEnsureDeferredRuntimes === 'function', { timeout: 60000 });
 await page.evaluate(async () => { const e = window.__apexEnsureDeferredRuntimes; if (e) await e('arsenalQuest'); });
 await page.waitForFunction(() => window.APEX_CHAMBER_PALETTE && window.APEX_ARSENAL_META, { timeout: 60000 });
 const stale = await page.evaluate(() => ({ state: window.APEX_ARSENAL_META.getState().arenaPaletteId, rendered: window.APEX_CHAMBER_PALETTE.current(), keys: Object.keys(localStorage).filter(k => /palette/i.test(k)) }));
@@ -85,6 +88,7 @@ await page.evaluate(() => {
   localStorage.setItem('apexChaos.arsenalMeta.v1', JSON.stringify(st));
 });
 await page.reload({ waitUntil: 'load', timeout: 120000 });
+await page.waitForFunction(() => typeof window.__apexEnsureDeferredRuntimes === 'function', { timeout: 60000 });
 await page.evaluate(async () => { const e = window.__apexEnsureDeferredRuntimes; if (e) await e('arsenalQuest'); });
 await page.waitForFunction(() => window.APEX_CHAMBER_PALETTE && window.APEX_ARSENAL_META, { timeout: 60000 });
 await page.waitForFunction(() => window.APEX_HUNTER_GOLD && window.APEX_HUNTER_PRESENTATION && window.APEX_ARSENAL_AV, { timeout: 60000 });
@@ -113,6 +117,7 @@ const battle = await page.evaluate(() => {
   const P = window.APEX_CHAMBER_PALETTE;
   if (window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.active) window.exitArsenalQuestMode();
   window.startArsenalQuestMode('HUNTER', 'ICE');
+  if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
   const s = window.APEX_ARSENAL.state; s.slots = []; s.spawnHeld = true; s.spawnTimer = 1e6; s.unarmedFastConsumed = true;
   window.APEX_ARSENAL.weaponApi.equip(fighters[0], 'PISTOL');
   window.__realDraw = window.draw; const draw = window.draw; window.draw = () => {}; window.update = () => {};

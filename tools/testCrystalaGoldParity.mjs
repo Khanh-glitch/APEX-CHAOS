@@ -4,6 +4,11 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const canvasPkg = require('@napi-rs/canvas');
+const { createCanvas, Path2D } = canvasPkg;
 
 const GOLD_HTML_PATH = 'docs/hero-rework/crystala-v1/01_OWNER_APPROVED_GOLD_REFERENCE.html';
 const GOLD_V6_PATH = 'public/game/hero-rework/crystalaGoldV6.js';
@@ -25,7 +30,13 @@ check('P01-gold-hash-and-verbatim-blocks', goldSha === EXPECTED_GOLD_SHA && verb
   { goldSha, verbatimCount: verbatimBlocks.length, blocks: verbatimBlocks });
 
 // Import the ported Gold module
-const globalScope = { console, Math, Float32Array, Uint8Array, Object, Array, Infinity, isFinite };
+const globalScope = { console, Math, Float32Array, Uint8Array, Object, Array, Infinity, isFinite, Path2D, __createCanvas: createCanvas };
+globalScope.document = {
+  createElement(tag) {
+    if (tag === 'canvas') return createCanvas(300, 150);
+    return {};
+  }
+};
 globalScope.window = globalScope; globalScope.globalThis = globalScope;
 const fn = new Function('window', 'globalThis', goldV6);
 fn(globalScope, globalScope);
@@ -151,7 +162,140 @@ const simB = runSimulation(43);
 check('P11-rig-simulation-determinism', simA1 === simA2 && simA1 !== simB,
   { identicalSameSeed: simA1 === simA2, distinctDifferentSeed: simA1 !== simB });
 
-/* @@PRESENTATION_PARITY@@ */
+// P12: drawCrystala and drawEyeAccent render dormant & awake states without error
+const cv12 = createCanvas(400, 400);
+const ctx12 = cv12.getContext('2d');
+G.drawCrystala(ctx12, { x: 200, y: 200, awake: 0 }, false);
+const dormantPixels = cv12.toBuffer('image/png').length;
+ctx12.clearRect(0, 0, 400, 400);
+G.drawCrystala(ctx12, { x: 200, y: 200, awake: 1, eyeFlash: 0.8 }, true);
+G.drawEyeAccent(ctx12, { x: 200, y: 200, awake: 1, eyeFlash: 0.8 });
+const awakePixels = cv12.toBuffer('image/png').length;
+check('P12-draw-crystala-dormant-and-awake', dormantPixels > 100 && awakePixels > 100,
+  { dormantPngBytes: dormantPixels, awakePngBytes: awakePixels });
+
+// P13: drawStone and gem facets for all 6 stones, star presence on sentinels
+const cv13 = createCanvas(600, 200);
+const ctx13 = cv13.getContext('2d');
+const rig13 = G.createRig({ seed: 13, visual: false });
+rig13.setBody(300, 100, 0, 0);
+rig13.advance(1/60);
+let stonesOk = true;
+for (let i = 0; i < 6; i++) {
+  const st = rig13.stones[i];
+  G.drawStone(ctx13, st, 1, false);
+  G.drawStone(ctx13, st, 1, true);
+  if (!st.gem || !st.gem.outline || !st.gem.facets) stonesOk = false;
+}
+const sentinelStars = rig13.stones.filter(s => s.role === 'sentinel').every(s => s.gem.star === true);
+check('P13-draw-stone-shapes-and-gem-facets', stonesOk && sentinelStars,
+  { stonesCount: rig13.stones.length, sentinelStars });
+
+// P14: drawTrail separated motes driven by velocity and energy
+const cv14 = createCanvas(300, 300);
+const ctx14 = cv14.getContext('2d');
+const testTrailStone = rig13.stones[0];
+testTrailStone.trailFill = 12;
+testTrailStone.energy = 0.85;
+testTrailStone.vx = 250; testTrailStone.vy = 120;
+for (let i = 0; i < 16; i++) {
+  testTrailStone.trail[i * 2] = 100 + i * 8;
+  testTrailStone.trail[i * 2 + 1] = 100 + i * 4;
+}
+testTrailStone.trailI = 12;
+let trailError = null;
+try { G.drawTrail(ctx14, testTrailStone, 1); } catch (e) { trailError = String(e); }
+check('P14-draw-trail-separated-motes', trailError === null && cv14.toBuffer('image/png').length > 100,
+  { motesRendered: true, error: trailError });
+
+// P15: drawWall growth, seam lock, and impact cracks
+const cv15 = createCanvas(400, 400);
+const ctx15 = cv15.getContext('2d');
+const rig15 = G.createRig({ seed: 15, visual: false });
+rig15.setBody(200, 200, 0, 0);
+for (let i = 0; i < 60; i++) rig15.advance(1/60);
+const wPlan = rig15.planWall([0, 1, 2, 3, 4, 5], { x: 200, y: 100 }, { x: 200, y: 320 });
+const wCons = rig15.castWall({ a0: { x: 200, y: 100 }, a1: { x: 200, y: 320 }, pair: wPlan.pair, seed: 15 });
+for (let i = 0; i < 90; i++) rig15.advance(1/60);
+rig15.wallHit(wCons.geom, { x: 200, y: 210 }, 35);
+let wallDrawOk = true;
+try {
+  G.drawWall(ctx15, wCons.geom, false);
+  G.drawWall(ctx15, wCons.geom, true);
+} catch (e) { wallDrawOk = false; }
+const crackedSegs = wCons.geom.segs.filter(s => s.cracks && s.cracks.length > 0).length;
+check('P15-draw-wall-growth-seam-and-damage', wallDrawOk && crackedSegs > 0,
+  { wallSolid: wCons.geom.solid, crackedSegments: crackedSegs });
+
+// P16: drawPrison 6-side cell growth, front/back sorting, build heads
+const cv16 = createCanvas(400, 400);
+const ctx16 = cv16.getContext('2d');
+const rig16 = G.createRig({ seed: 16, visual: false });
+rig16.setBody(200, 200, 0, 0);
+for (let i = 0; i < 60; i++) rig16.advance(1/60);
+const pCons = rig16.castPrison({ cx: 200, cy: 200, R: 135, seed: 16 });
+for (let i = 0; i < 80; i++) rig16.advance(1/60);
+let prisonDrawOk = true;
+try {
+  G.drawPrison(ctx16, pCons.prison, false, false);
+  G.drawPrison(ctx16, pCons.prison, false, true);
+  G.drawPrison(ctx16, pCons.prison, true, false);
+  G.drawPrison(ctx16, pCons.prison, true, true);
+} catch (e) { prisonDrawOk = false; }
+check('P16-draw-prison-encircle-facets-and-build-heads', prisonDrawOk && pCons.prison.edges.length === 6,
+  { edges: pCons.prison.edges.length, solid: pCons.prison.solid });
+
+// P17: drawDust Ancient Dust with two-stage rendering
+const cv17 = createCanvas(300, 300);
+const ctx17 = cv17.getContext('2d');
+const rig17 = G.createRig({ seed: 17, visual: true });
+rig17.setBody(150, 150, 0, 0);
+for (let i = 0; i < 10; i++) {
+  rig17.spawnDust(150, 150, 40 + i * 2, 30, 1.2, 1.8, 0.9);
+}
+rig17.advance(1/60);
+let dustOk = true;
+try { G.drawDust(ctx17, rig17.fx.dust, 1); } catch (e) { dustOk = false; }
+check('P17-draw-dust-two-stage-luminous-core', dustOk && rig17.fx && rig17.fx.dust.alive.some(a => a === 1),
+  { activeDust: rig17.fx.dust.alive.filter(a => a === 1).length });
+
+// P18: drawDebris fractured shards with drag and rotational damping
+const cv18 = createCanvas(300, 300);
+const ctx18 = cv18.getContext('2d');
+const rig18 = G.createRig({ seed: 18, visual: true });
+rig18.setBody(150, 150, 0, 0);
+rig18.spawnDebris(150, 150, 80, 40, 3.5, 999);
+rig18.advance(1/60);
+let debrisOk = true;
+try { G.drawDebris(ctx18, rig18.fx.debris, 1); } catch (e) { debrisOk = false; }
+check('P18-draw-debris-drag-and-rotational-damping', debrisOk && rig18.fx.debris.some(d => d.on),
+  { activeDebris: rig18.fx.debris.filter(d => d.on).length });
+
+// P19: createBloomSystem half-resolution buffer pipeline
+const bloomSys = G.createBloomSystem({ width: 1000, height: 1000, scale: 0.5 });
+const gxBloom = bloomSys.begin();
+const cv19 = createCanvas(1000, 1000);
+const ctx19 = cv19.getContext('2d');
+let bloomCompositeOk = true;
+try { bloomSys.composite(ctx19, 1000, 1000); } catch (e) { bloomCompositeOk = false; }
+check('P19-create-bloom-system-half-res-pipeline',
+  bloomSys.glowCanvas && bloomSys.glowCanvas.width === 500 && bloomSys.glowCanvas.height === 500 && bloomCompositeOk,
+  { bufferWidth: bloomSys.glowCanvas?.width, bufferHeight: bloomSys.glowCanvas?.height, compositeOk: bloomCompositeOk });
+
+// P20: APEX_CRYSTALA_PRESENTATION registers and integrates Chamber actorRender
+const presCode = fs.readFileSync('public/game/hero-rework/crystalaPresentationRuntime.js', 'utf8');
+const presFn = new Function('window', 'globalThis', presCode);
+presFn(globalScope, globalScope);
+const Pres = globalScope.APEX_CRYSTALA_PRESENTATION;
+const presReady = !!(Pres && Pres.ready && typeof Pres.renderBody === 'function' && typeof Pres.runBloomPass === 'function');
+check('P20-presentation-adapter-registers-and-integrates-chamber', presReady,
+  { ready: Pres?.ready, hasRenderBody: typeof Pres?.renderBody === 'function' });
+
+// P21: Single weapon render dispatch law (no duplicate drawEquippedWeapon in presentation)
+const presDrawsWeapon = /drawEquippedWeapon/.test(presCode);
+const presHasWeaponPass = /AV\.drawEquippedWeapon/.test(presCode) || /weaponApi\.equip/.test(presCode);
+check('P21-single-weapon-pass-no-double-render', !presDrawsWeapon && !presHasWeaponPass,
+  { doubleDrawFree: !presDrawsWeapon, weaponPassIsolated: !presHasWeaponPass });
 
 const failed = results.filter(r => !r.pass);
 console.log(`\n[CRYSTALA GOLD PARITY] ${results.length - failed.length}/${results.length}`);

@@ -4,7 +4,7 @@
 // CP7: gameplay-ready barriers + start-of-match fail-cue fix — cache-bust
 // every runtime that changed in this pass (config/presentation/meta/
 // shellSelect/ladder).
-export const APEX_ARSENAL_RUNTIME_REVISION = '20260930-crystala-a-r1';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20260930-crystala-b-r1';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by
@@ -175,6 +175,7 @@ export const MODE_DEFERRED_RUNTIMES = {
     ['/game/hero-rework/robotPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexRobotPresentationRuntime'],
     ['/game/hero-rework/hunterGoldV10.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHunterGoldV10'],
     ['/game/hero-rework/hunterPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHunterPresentationRuntime'],
+    ['/game/hero-rework/crystalaPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalaPresentationRuntime'],
   ],
   select: SELECT_RUNTIMES,
   battle: BATTLE_RUNTIMES,

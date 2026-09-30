@@ -325,6 +325,7 @@ function createRig(opt) {
     for (let i = 0; i < DEB_MAX; i++) fx.debris.push({ on:false, x:0,y:0,px:0,py:0,vx:0,vy:0,r:0,rv:0,s:1,life:0,max:1,poly:null,lit:0 });
     return fx;
   }
+  if (visual) ensureFx();
   const _fv = { x:0, y:0 };
   // Gold L807-822 (Math.random -> rngV)
   function spawnDust(x, y, vx, vy, life, sz, hue){
@@ -811,15 +812,19 @@ function createRig(opt) {
   // per-cell HP is never decremented and never decides gameplay.
   function wallHit(geom, hx, hy, frac, vx, vy, segOwner){
     if (!geom) return null;
-    const dmg = clamp(frac, 0, 1) * 120;           // Gold-unit impact strength
+    let px = hx, py = hy, f = frac;
+    if (typeof hx === 'object' && hx !== null) {
+      px = hx.x; py = hx.y; f = (hy != null ? hy : 0.25);
+    }
+    const dmg = clamp(f, 0, 1) * 120;           // Gold-unit impact strength
     let sg = null, bd = Infinity;
-    for (const q of geom.segs){ if (q.dead) continue; const d = Math.hypot(q.x - hx, q.y - hy); if (d < bd){ bd = d; sg = q; } }
+    for (const q of geom.segs){ if (q.dead) continue; const d = Math.hypot(q.x - px, q.y - py); if (d < bd){ bd = d; sg = q; } }
     if (!sg) return null;
     sg.stress = Math.min(1.6, sg.stress + dmg / 55);
     sg.lit = Math.max(sg.lit, 0.85);
     shake(dmg > 40 ? 0.28 : 0.13);
-    const rnd = mulberry32((sg.seed + (hx|0) * 7) | 0);
-    const dx = hx-sg.x, dy=hy-sg.y;
+    const rnd = mulberry32((sg.seed + (px|0) * 7) | 0);
+    const dx = px-sg.x, dy=py-sg.y;
     const lx=clamp(dx*geom.tx+dy*geom.ty,-sg.w*.56,sg.w*.56);
     const ly=clamp(dx*geom.nx+dy*geom.ny,-sg.h*.85,sg.h*.85);
     const pts = [{ x: lx, y: ly }];
@@ -1278,15 +1283,955 @@ function createRig(opt) {
     prisonSegGrow,
     // Gold L1166 semantics for hosts that need the raw launch (presentation tests)
     launch,
+    renderBody: (c, emissive, alpha) => drawCrystala(c, hero, emissive, alpha),
+    renderEyeAccent: (c, alpha) => drawEyeAccent(c, hero, alpha),
+    renderStones: (c, alpha, emissive, filterFn) => {
+      for (const s of stones) {
+        if (filterFn && !filterFn(s)) continue;
+        if (!emissive) drawTrail(c, s, alpha);
+        drawStone(c, s, alpha, emissive);
+      }
+    },
+    renderConstructs: (c, emissive, front = null) => {
+      for (const cons of R.constructs) {
+        if (cons.kind === 'wall' && cons.geom) drawWall(c, cons.geom, emissive);
+        else if (cons.kind === 'prison' && cons.prison) drawPrison(c, cons.prison, emissive, front);
+      }
+    },
+    renderDust: (c, alpha) => fx && drawDust(c, fx.dust, alpha),
+    renderDebris: (c, alpha) => fx && drawDebris(c, fx.debris, alpha),
   });
   return R;
+}
+
+/* ========================================================== VISUAL / DRAWING */
+/* Ported from Gold L326-550, L861-890, L1766-2060, L2125-2165                  */
+const ART_INK = '#140d22';
+
+let _Path2DClass = null;
+function getPath2DFn() {
+  if (_Path2DClass) return _Path2DClass;
+  if (typeof Path2D !== 'undefined') _Path2DClass = Path2D;
+  else if (typeof window !== 'undefined' && window.Path2D) _Path2DClass = window.Path2D;
+  else if (typeof globalThis !== 'undefined' && globalThis.Path2D) _Path2DClass = globalThis.Path2D;
+  return _Path2DClass;
+}
+
+let ART = null;
+let ART_EYE = null;
+let ART_MOUTH = null;
+let ART_EYE_LIGHT = null;
+
+function referencePath(encoded) {
+  const s = encoded.replace(/(\d{3})(\d{3,4})/g, '$1 $2');
+  const P2D = getPath2DFn();
+  return P2D ? new P2D(s) : { _svg: s };
+}
+
+function artPart(d, base, faces = [], edge = '') {
+  return {
+    path: referencePath(d),
+    base,
+    faces: faces.map(f => ({ color: f[0], path: referencePath(f[1]) })),
+    edge: edge ? referencePath(edge) : null
+  };
+}
+
+function ensureArt() {
+  if (ART) return ART;
+  ART = {
+    fan: artPart('M405694 C420752 389792 341819 Q285849 243810 Q257865 329893 L383861 Q425798 427742 Z', '#39205f', [
+      ['#8742cf', 'M405694 L361824 L329893 L383861Z'],
+      ['#c789ed', 'M243810 L361824 L292861Z'],
+      ['#eee0fa', 'M243810 L311837 L292861Z'],
+      ['#5924a3', 'M311837 L329893 L361824Z']
+    ]),
+    backTip: artPart('M393870 Q305934 217915 Q262959 338961 L380930Z', '#512682', [
+      ['#e5c7f5', 'M217915 L327930 L280948Z'],
+      ['#a560df', 'M327930 L338961 L393870Z']
+    ]),
+    tail: artPart('M461864 C437916 440960 4681003 L5191107 C4581081 4221042 4141001 C407950 432910 461864Z', '#25143f', [
+      ['#432176', 'M461864 L4141001 L454970Z'],
+      ['#7432ba', 'M4141001 L4681003 L5191107Z'],
+      ['#c28de7', 'M454970 L4681003 L5191107 L4841048Z'],
+      ['#e9d7fa', 'M4841048 L5191107 L4811079Z']
+    ]),
+    lock: artPart('M421756 C433815 407863 361905 C326938 305973 3481047 C3481008 387985 414946 C459900 461832 421756Z', '#442277', [
+      ['#25143f', 'M421756 L361905 L406884Z'],
+      ['#6228b3', 'M361905 L319964 L377963 L406884Z'],
+      ['#984cdd', 'M421756 L406884 L414946 L442869Z'],
+      ['#aa63e5', 'M319964 L3481047 L354988 L377963Z'],
+      ['#e9cdf9', 'M319964 L3481047 L339994Z'],
+      ['#cf99f0', 'M377963 L414946 L354988Z']
+    ], 'M421761 Q424826 392866 M323963 Q3161002 3451034'),
+    cheek: artPart('M450724 L498781 Q541849 474926 Q508863 455825 L426787Z', '#49237f', [
+      ['#261440', 'M450724 L453806 L498781Z'],
+      ['#8740c7', 'M498781 L453806 L511850Z'],
+      ['#eebdfa', 'M453806 L493864 L474926 L511850Z'],
+      ['#f9f1ff', 'M493864 L474926 L496894Z']
+    ]),
+    shell: artPart('M434574 L514496 L571435 L628394 L685435 L742496 L822574 L834700 L783805 L708877 L681840 L628871 L575840 L548877 L473805 L422700Z', '#170e28', [
+      ['#2d194b', 'M434574 L532711 L473805 L422700Z'],
+      ['#432567', 'M473805 L532711 L548877Z'],
+      ['#301a4e', 'M822574 L724711 L783805 L834700Z'],
+      ['#4d2b77', 'M724711 L783805 L708877Z'],
+      ['#27113f', 'M548815 L628871 L708815 L628784Z'],
+      ['#26133e', 'M514496 L628394 L582578 L532711Z'],
+      ['#201032', 'M742496 L628394 L674578 L724711Z']
+    ]),
+    face: artPart('M530711 Q628729 726711 L713772 Q701807 628838 Q555807 543772Z', '#f2e6fa', [
+      ['#d8bceb', 'M530711 L562765 L574808 L543772Z'],
+      ['#fff5ff', 'M562765 L628786 L692765 L670819 L628838 L586819Z'],
+      ['#e3caee', 'M726711 L692765 L670819 L713772Z']
+    ]),
+    crest: artPart('M628372 L690430 L741492 L719548 L686574 L628512 L568574 L539548 L513492 L567431Z', '#502093', [
+      ['#d292eb', 'M628372 L567431 L550526 L589458Z'],
+      ['#fff0ff', 'M628391 L576465 L565521 L596477Z'],
+      ['#8424cb', 'M589458 L568574 L628512 L628392Z'],
+      ['#3c146b', 'M628392 L628512 L686574 L665461Z'],
+      ['#9e5cd7', 'M628372 L690430 L719510 L665461Z'],
+      ['#5f26a0', 'M665461 L686574 L719548 L719510Z'],
+      ['#261344', 'M513492 L539548 L568574 L550526Z'],
+      ['#381759', 'M741492 L719548 L686574 L719510Z']
+    ], 'M515491 L628376 L738491'),
+    temple: artPart('M382438 Q345520 376591 L462715 L374653 L342567 Q366514 382438Z', '#522980', [
+      ['#b17fdc', 'M382438 L362562 L399598Z'],
+      ['#e9d5fa', 'M342567 L399598 L462715 L390659Z'],
+      ['#8750b8', 'M362562 L376591 L399598Z'],
+      ['#64329a', 'M399598 L462715 L390659Z']
+    ]),
+    crown: artPart('M628755 L443608 L419520 L442338 L500270 L468449 L505523 L550543 L580630Z', '#8253bb', [
+      ['#faf4ff', 'M500270 L442338 L468449Z'],
+      ['#d5adef', 'M442338 L419520 L451461Z'],
+      ['#f2deff', 'M442338 L451461 L468449Z'],
+      ['#9970cb', 'M451461 L419520 L505523Z'],
+      ['#fff6ff', 'M419520 L550543 L576618Z'],
+      ['#d3b0ee', 'M550543 L580630 L628755 L576618Z'],
+      ['#65409d', 'M419520 L443608 L628755 L504600Z'],
+      ['#a16ccd', 'M504600 L576618 L628755Z'],
+      ['#e7cff8', 'M451461 L505523 L468449Z']
+    ], 'M500270 L442338 L419520 L443608 M550545 L626751'),
+    brow: artPart('M452642 L493693 L557718 L628738 L699718 L763693 L804642 L779714 L733746 L676759 L628779 L580759 L523746 L477714Z', '#221036', [
+      ['#542381', 'M452642 L557718 L580759 L492716Z'],
+      ['#8c2bc4', 'M492716 L580759 L552738Z'],
+      ['#c95ce6', 'M492716 L552738 L535739Z'],
+      ['#ead4fa', 'M495719 L552738 L571744 L521733Z'],
+      ['#40166a', 'M804642 L699718 L676759 L764716Z'],
+      ['#9e33d1', 'M764716 L676759 L704738Z'],
+      ['#f0caff', 'M759719 L704738 L685744 L735733Z'],
+      ['#45205f', 'M557718 L628738 L699718 L628779Z']
+    ], 'M478713 Q550750 602756 M778713 Q706750 654756'),
+    jewel: artPart('M628535 L679610 L628695 L577610Z', '#ac36d7', [
+      ['#fae9ff', 'M628535 L577610 L599606Z'],
+      ['#db8bec', 'M628535 L599606 L628610Z'],
+      ['#602093', 'M628535 L679610 L653605Z'],
+      ['#8831c0', 'M628535 L653605 L628610Z'],
+      ['#e973f0', 'M577610 L628610 L628695Z'],
+      ['#532080', 'M679610 L628610 L628695Z'],
+      ['#f9ebff', 'M628561 L632605 L654610 L632615 L628673 L623616 L601610 L623604Z']
+    ], 'M628537 L579610 L628693')
+  };
+  ART_EYE = referencePath('M540730 L613740 L602752 L559746Z');
+  ART_MOUTH = referencePath('M613796 Q627786 643797 Q628792 613796Z');
+  ART_EYE_LIGHT = referencePath('M554735 L605742 L593747 L566742Z M702735 L651742 L663747 L690742Z');
+  return ART;
+}
+
+function paintPart(c, part, shade = 0) {
+  if (!part || !part.path) return;
+  c.save();
+  c.lineJoin = 'round';
+  c.lineCap = 'round';
+  c.strokeStyle = ART_INK;
+  c.lineWidth = 15;
+  c.stroke(part.path);
+  c.fillStyle = part.base;
+  c.fill(part.path);
+  c.save();
+  c.clip(part.path);
+  for (const f of part.faces) {
+    c.fillStyle = f.color;
+    c.fill(f.path);
+    c.strokeStyle = f.color;
+    c.lineWidth = 0.65;
+    c.stroke(f.path);
+  }
+  if (shade) {
+    c.globalAlpha *= shade;
+    c.fillStyle = '#1a0730';
+    c.fill(part.path);
+  }
+  c.restore();
+  if (part.edge) {
+    c.save();
+    c.clip(part.path);
+    c.strokeStyle = '#f6ecff';
+    c.lineWidth = 4;
+    c.stroke(part.edge);
+    c.restore();
+  }
+  c.strokeStyle = ART_INK;
+  c.lineWidth = 4;
+  c.stroke(part.path);
+  c.restore();
+}
+
+function paintPair(c, part, shade = 0.06) {
+  paintPart(c, part);
+  c.save();
+  c.translate(1256, 0);
+  c.scale(-1, 1);
+  paintPart(c, part, shade);
+  c.restore();
+}
+
+function heroTransform(c, hero, drawAlpha = 1) {
+  const px = hero && hero.px !== undefined ? hero.px : (hero ? hero.x : 0);
+  const py = hero && hero.py !== undefined ? hero.py : (hero ? hero.y : 0);
+  const x = hero ? hero.x : 0, y = hero ? hero.y : 0;
+  c.translate(lerp(px, x, drawAlpha), lerp(py, y, drawAlpha));
+  c.scale(0.205, 0.205);
+  c.translate(-628, -650);
+}
+
+function drawCrystala(c, hero, emissive = false, drawAlpha = 1) {
+  ensureArt();
+  const aw = smooth(clamp(hero ? hero.awake : 0, 0, 1));
+  const lift = 54 * aw;
+  const eyeFlash = hero ? (hero.eyeFlash || 0) : 0;
+  c.save();
+  heroTransform(c, hero, drawAlpha);
+  if (emissive) {
+    c.globalCompositeOperation = 'lighter';
+    c.save();
+    c.translate(0, -lift);
+    c.globalAlpha = 0.08 + aw * 0.42 + eyeFlash * 0.18;
+    c.fillStyle = '#b853ef';
+    c.fill(ART.jewel.path);
+    c.strokeStyle = '#e6b6ff';
+    c.lineWidth = 8;
+    c.stroke(ART.jewel.path);
+    c.restore();
+    if (aw > 0.08) {
+      c.globalAlpha = 0.14 + aw * 0.52 + eyeFlash * 0.26;
+      c.fillStyle = '#df9cff';
+      c.fill(ART_EYE_LIGHT);
+    }
+    c.globalCompositeOperation = 'source-over';
+    c.restore();
+    return;
+  }
+  paintPair(c, ART.fan);
+  paintPair(c, ART.backTip);
+  paintPair(c, ART.tail);
+  paintPair(c, ART.lock);
+  paintPart(c, ART.shell);
+  paintPair(c, ART.cheek);
+  paintPair(c, ART.temple);
+  paintPart(c, ART.face);
+  c.fillStyle = '#442060';
+  c.fill(ART_MOUTH);
+  c.save();
+  c.clip(ART.face.path);
+  c.fillStyle = '#ad77dd';
+  c.strokeStyle = '#2b123e';
+  c.lineWidth = 8;
+  c.stroke(ART_EYE);
+  c.fill(ART_EYE);
+  c.save();
+  c.translate(1256, 0);
+  c.scale(-1, 1);
+  c.stroke(ART_EYE);
+  c.fill(ART_EYE);
+  c.restore();
+  c.fillStyle = '#fff7ff';
+  c.globalAlpha = 0.3 + 0.7 * aw;
+  c.fill(ART_EYE_LIGHT);
+  c.restore();
+  c.save();
+  c.translate(0, -lift * 0.42);
+  paintPart(c, ART.crest);
+  c.restore();
+  c.save();
+  c.translate(0, -lift);
+  paintPair(c, ART.crown, 0.04);
+  paintPart(c, ART.brow);
+  paintPart(c, ART.jewel);
+  c.restore();
+  c.restore();
+}
+
+function drawEyeAccent(c, hero, drawAlpha = 1) {
+  ensureArt();
+  const aw = smooth(clamp(hero ? hero.awake : 0, 0, 1));
+  if (aw < 0.08) return;
+  const eyeFlash = hero ? (hero.eyeFlash || 0) : 0;
+  c.save();
+  heroTransform(c, hero, drawAlpha);
+  c.globalCompositeOperation = 'lighter';
+  c.globalAlpha = 0.16 + aw * 0.54 + eyeFlash * 0.34;
+  c.fillStyle = '#fff7ff';
+  c.fill(ART_EYE_LIGHT);
+  c.globalCompositeOperation = 'source-over';
+  c.globalAlpha = 1;
+  c.restore();
+}
+
+let cachedSprites = null;
+function getSprites() {
+  if (cachedSprites) return cachedSprites;
+  let createCanvasFn = null;
+  if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
+    createCanvasFn = (w, h) => {
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      return cv;
+    };
+  } else if (typeof globalThis !== 'undefined' && globalThis.__createCanvas) {
+    createCanvasFn = globalThis.__createCanvas;
+  }
+  if (!createCanvasFn) return null;
+  function makeSprite(size, stops) {
+    const cv = createCanvasFn(size, size);
+    const g = cv.getContext('2d');
+    if (!g) return cv;
+    const gr = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    for (const s of stops) gr.addColorStop(s[0], s[1]);
+    g.fillStyle = gr;
+    g.fillRect(0, 0, size, size);
+    return cv;
+  }
+  const dust = makeSprite(32, [
+    [0, 'rgba(255,240,255,1)'],
+    [0.22, 'rgba(214,150,255,0.85)'],
+    [0.55, 'rgba(140,70,220,0.28)'],
+    [1, 'rgba(90,40,180,0)']
+  ]);
+  const glow = makeSprite(64, [
+    [0, 'rgba(255,255,255,0.95)'],
+    [0.25, 'rgba(224,140,255,0.55)'],
+    [0.6, 'rgba(130,60,210,0.18)'],
+    [1, 'rgba(80,30,160,0)']
+  ]);
+  cachedSprites = { dust, glow };
+  return cachedSprites;
+}
+
+function makeSprite(size, stops) {
+  let createCanvasFn = null;
+  if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
+    createCanvasFn = (w, h) => { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; return cv; };
+  } else if (typeof globalThis !== 'undefined' && globalThis.__createCanvas) {
+    createCanvasFn = globalThis.__createCanvas;
+  }
+  if (!createCanvasFn) return null;
+  const cv = createCanvasFn(size, size);
+  const g = cv.getContext('2d');
+  if (!g) return cv;
+  const gr = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  for (const s of stops) gr.addColorStop(s[0], s[1]);
+  g.fillStyle = gr;
+  g.fillRect(0, 0, size, size);
+  return cv;
+}
+
+function drawStar4(c, cx, cy, size, rot = 0, color = '#ffffff') {
+  const s = size, s2 = size * 0.20;
+  c.save();
+  c.translate(cx, cy);
+  c.rotate(rot || 0);
+  c.beginPath();
+  c.moveTo(0, -s);
+  c.lineTo(s2, -s2);
+  c.lineTo(s, 0);
+  c.lineTo(s2, s2);
+  c.lineTo(0, s);
+  c.lineTo(-s2, s2);
+  c.lineTo(-s, 0);
+  c.lineTo(-s2, -s2);
+  c.closePath();
+  c.fillStyle = color || '#ffffff';
+  c.fill();
+  c.restore();
+}
+
+function drawGem(c, gem, o = {}) {
+  if (!gem || !gem.outline) return;
+  c.save();
+  const a = c.globalAlpha * (o.alpha != null ? o.alpha : 1);
+  c.globalAlpha = a;
+  c.beginPath();
+  tracePoly(c, gem.outline);
+  c.fillStyle = (gem.ramp && gem.ramp[1]) || '#58309d';
+  c.fill();
+  c.save();
+  c.clip();
+  if (gem.facets) {
+    for (const f of gem.facets) {
+      c.beginPath();
+      tracePoly(c, f.pts);
+      c.fillStyle = f.color;
+      c.fill();
+    }
+  }
+  if (o.tint) {
+    c.globalAlpha = a * (o.tintA != null ? o.tintA : 1);
+    c.beginPath();
+    tracePoly(c, gem.outline);
+    c.fillStyle = o.tint;
+    c.fill();
+    c.globalAlpha = a;
+  }
+  if (o.rim !== false && gem.rim && gem.rim.length) {
+    c.lineWidth = (o.lw || 2.6) * 1.2;
+    c.strokeStyle = o.rimColor || '#eee0fb';
+    c.beginPath();
+    for (const e of gem.rim) {
+      c.moveTo(e[0].x, e[0].y);
+      c.lineTo(e[1].x, e[1].y);
+    }
+    c.stroke();
+  }
+  if (gem.star) {
+    const s = gem.r * (gem.starSize || 0.31);
+    drawStar4(c, gem.c.x, gem.c.y, s, o.starRot || 0, '#ffffff');
+    drawStar4(c, gem.c.x, gem.c.y, s * 0.42, (o.starRot || 0) + Math.PI / 4, '#f0d8ff');
+  }
+  c.restore();
+  if (o.outline !== false) {
+    c.lineWidth = o.lw || 2.8;
+    c.strokeStyle = o.stroke || '#190d2a';
+    c.lineJoin = 'round';
+    c.beginPath();
+    tracePoly(c, gem.outline);
+    c.stroke();
+  }
+  c.restore();
+}
+
+function drawTrail(c, s, alpha = 1, sprites = null) {
+  if (!s || s.trailFill < 5) return;
+  const spd = typeof s.speed === 'function' ? s.speed() : Math.hypot(s.vx, s.vy);
+  const strength = clamp((spd - 18) / 320, 0, 1) * (0.28 + (s.energy || 0) * 0.62);
+  if (strength < 0.025) return;
+  const spr = sprites || getSprites();
+  c.save();
+  for (let sample = 3; sample <= 11; sample += 4) {
+    if (sample >= s.trailFill) break;
+    const idx = (s.trailI - 1 - sample + TRAIL_N * 2) % TRAIL_N;
+    const next = (s.trailI - 1 - Math.max(0, sample - 2) + TRAIL_N * 2) % TRAIL_N;
+    const x = s.trail[idx * 2], y = s.trail[idx * 2 + 1];
+    const nx = s.trail[next * 2], ny = s.trail[next * 2 + 1];
+    const dx = nx - x, dy = ny - y;
+    const fade = 1 - sample / 14;
+    const size = (2.4 + strength * 3.6) * fade;
+    const stretch = clamp(1 + Math.hypot(dx, dy) * 0.05, 1, 2.4);
+    c.save();
+    c.translate(x, y);
+    if (Math.abs(dx) + Math.abs(dy) > 0.1) c.rotate(Math.atan2(dy, dx));
+    c.globalCompositeOperation = 'source-over';
+    c.globalAlpha = strength * fade * 0.16;
+    c.fillStyle = '#7d40ac';
+    c.beginPath();
+    c.ellipse(0, 0, size * stretch * 1.7, size * 0.95, 0, 0, TAU);
+    c.fill();
+    if (spr && spr.dust) {
+      c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = strength * fade * 0.52;
+      c.drawImage(spr.dust, -size * stretch * 3, -size * 3, size * stretch * 6, size * 6);
+    }
+    c.restore();
+  }
+  c.restore();
+}
+
+function drawStone(c, s, alpha = 1, emissive = false, sprites = null) {
+  if (!s || !s.gem) return;
+  const px = s.px !== undefined ? s.px : s.x;
+  const py = s.py !== undefined ? s.py : s.y;
+  const prot = s.prot !== undefined ? s.prot : s.rot;
+  const x = lerp(px, s.x, alpha), y = lerp(py, s.y, alpha);
+  const r = lerp(prot, s.rot, alpha);
+  const dScale = 1 + (s.depth || 0) * 0.055;
+  const spr = sprites || getSprites();
+  c.save();
+  c.translate(x, y);
+  c.rotate(r);
+  c.scale(dScale, dScale);
+  if (emissive) {
+    c.globalCompositeOperation = 'lighter';
+    c.globalAlpha = 0.09 + (s.energy || 0) * 0.42 + (s.recoil || 0) * 0.25;
+    c.beginPath();
+    tracePoly(c, s.gem.outline);
+    c.fillStyle = '#9b55ee';
+    c.fill();
+    if (spr && spr.glow) {
+      if ((s.energy || 0) > 0.5) {
+        c.globalAlpha = (s.energy - 0.5) * 0.7;
+        c.drawImage(spr.glow, -s.gem.r * 1.8, -s.gem.r * 1.8, s.gem.r * 3.6, s.gem.r * 3.6);
+      }
+      if (s.internal && s.internal.T > 0) {
+        const k = s.internal.t / s.internal.T;
+        c.globalAlpha = Math.sin(k * Math.PI) * 0.9;
+        c.drawImage(spr.glow, -s.gem.r * 2.2, -s.gem.r * 2.2, s.gem.r * 4.4, s.gem.r * 4.4);
+      }
+    }
+    c.globalCompositeOperation = 'source-over';
+    c.restore();
+    return;
+  }
+  drawGem(c, s.gem, {
+    lw: 2.3,
+    tint: (s.energy || 0) > 0.02 ? '#dfa8ff' : null,
+    tintA: (s.energy || 0) * 0.20 + (s.recoil || 0) * 0.18
+  });
+  // INTERNAL LIGHT PATH — clipped to the material (never a laser in open air)
+  if (s.internal && s.internal.T > 0) {
+    const it = s.internal, k = clamp(it.t / it.T, 0, 1);
+    c.save();
+    c.beginPath();
+    tracePoly(c, s.gem.outline);
+    c.clip();
+    c.globalCompositeOperation = 'lighter';
+    const steps = 18;
+    c.lineCap = 'round';
+    for (let pass = 0; pass < 2; pass++) {
+      c.beginPath();
+      const head = clamp(k * 1.35, 0, 1), tail = clamp(k * 1.35 - 0.45, 0, 1);
+      for (let i = 0; i <= steps; i++) {
+        const u = tail + (head - tail) * (i / steps);
+        const mx = (1 - u) * (1 - u) * it.a.x + 2 * (1 - u) * u * it.m.x + u * u * it.b.x;
+        const my = (1 - u) * (1 - u) * it.a.y + 2 * (1 - u) * u * it.m.y + u * u * it.b.y;
+        if (i === 0) c.moveTo(mx, my); else c.lineTo(mx, my);
+      }
+      c.strokeStyle = pass === 0 ? 'rgba(180,110,255,0.75)' : 'rgba(255,245,255,0.95)';
+      c.lineWidth = pass === 0 ? 8 : 2.6;
+      c.stroke();
+    }
+    c.restore();
+  }
+  c.restore();
+}
+
+function drawWall(c, w, emissive = false, sprites = null) {
+  if (!w || !w.segs) return;
+  const spr = sprites || getSprites();
+  const fade = w.collapsed ? clamp(1 - (w.fading || 0) / 1.6, 0, 1) : 1;
+  for (const sg of w.segs) {
+    if (!sg || sg.grow <= 0.001) continue;
+    const g = easeOutBack(clamp(sg.grow, 0, 1), 0.45);
+    c.save();
+    c.translate(sg.x + (sg.driftX || 0), sg.y + (sg.driftY || 0));
+    c.rotate((w.angle || 0) + (sg.dead ? (sg.fallR || 0) * Math.min(1, (sg.failT || 0) * 2) : 0));
+    c.globalAlpha = fade * (sg.dead ? clamp(1 - (sg.failT || 0) / 1.1, 0, 1) : 1);
+    c.scale(clamp(g, 0.02, 1.08), 0.61 + 0.39 * clamp(g, 0, 1.08));
+    if (emissive) {
+      c.globalCompositeOperation = 'lighter';
+      const e = 0.055 + (sg.lit || 0) * 0.62 + (sg.stress || 0) * 0.42 + (1 - clamp(sg.grow, 0, 1)) * 0.65;
+      c.globalAlpha = clamp(e, 0, 0.88) * fade;
+      c.beginPath();
+      tracePoly(c, sg.gem.outline);
+      c.fillStyle = '#a45cf0';
+      c.fill();
+      c.globalCompositeOperation = 'source-over';
+      c.restore();
+      continue;
+    }
+    const heavy = clamp(sg.grow, 0, 1);
+    drawGem(c, sg.gem, {
+      lw: 2.15,
+      stroke: '#05030b',
+      tint: '#e8b9ff',
+      tintA: (1 - heavy) * 0.68 + (sg.lit || 0) * 0.30,
+      rimColor: `rgba(222,184,255,${0.35 + (sg.lit || 0) * 0.45})`
+    });
+    if (heavy > 0.99 && w.solid) {
+      c.globalAlpha *= 0.34;
+      c.beginPath();
+      tracePoly(c, sg.gem.outline);
+      c.fillStyle = '#100820';
+      c.fill();
+    }
+    if ((sg.chip || 0) > 0.08) {
+      c.globalAlpha = fade;
+      c.beginPath();
+      c.moveTo(sg.w * 0.59, -sg.h * 0.64);
+      c.lineTo(sg.w * (0.59 - 0.34 * sg.chip), -sg.h * 0.57);
+      c.lineTo(sg.w * 0.57, -sg.h * (0.64 - 0.39 * sg.chip));
+      c.closePath();
+      c.fillStyle = '#090713';
+      c.fill();
+    }
+    if (sg.cracks) {
+      for (const cr of sg.cracks) {
+        c.beginPath();
+        for (let i = 0; i < cr.pts.length; i++) {
+          const p = cr.pts[i];
+          if (i === 0) c.moveTo(p.x, p.y); else c.lineTo(p.x, p.y);
+        }
+        c.strokeStyle = '#04020a';
+        c.lineWidth = 1.8;
+        c.stroke();
+        if (cr.glow > 0.01) {
+          c.globalCompositeOperation = 'lighter';
+          c.strokeStyle = `rgba(255,190,255,${cr.glow * 0.8})`;
+          c.lineWidth = 1;
+          c.stroke();
+          c.globalCompositeOperation = 'source-over';
+        }
+      }
+    }
+    if ((sg.stress || 0) > 0.25) {
+      c.globalAlpha = clamp(sg.stress - 0.2, 0, 0.6) * fade;
+      c.strokeStyle = '#ffd0ff';
+      c.lineWidth = 1;
+      c.beginPath();
+      tracePoly(c, sg.gem.outline);
+      c.stroke();
+    }
+    c.restore();
+  }
+  if (emissive) return;
+  if (w.seamT !== undefined && w.seamT >= 0) {
+    const k = clamp(w.seamT / 0.6, 0, 1), reach = k * w.span * 0.5;
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    for (const dir of [-1, 1]) {
+      const x = w.cx + dir * w.tx * reach, y = w.cy + dir * w.ty * reach;
+      c.save();
+      c.translate(x, y);
+      c.rotate(w.angle || 0);
+      c.globalAlpha = (1 - k) * 0.72;
+      c.strokeStyle = '#fff4ff';
+      c.lineWidth = 2.2;
+      c.beginPath();
+      c.moveTo(-4, -18);
+      c.lineTo(3, 18);
+      c.stroke();
+      if (spr && spr.glow) c.drawImage(spr.glow, -26, -30, 52, 60);
+      c.restore();
+    }
+    c.restore();
+  }
+  if (!w.solid && w.a && w.b && w.frontL !== undefined && w.frontR !== undefined) {
+    const fl = { x: w.a.x + w.tx * w.span * 0.5 * w.frontL, y: w.a.y + w.ty * w.span * 0.5 * w.frontL };
+    const fr = { x: w.b.x - w.tx * w.span * 0.5 * w.frontR, y: w.b.y - w.ty * w.span * 0.5 * w.frontR };
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    for (const front of [fl, fr]) {
+      c.save();
+      c.translate(front.x, front.y);
+      c.rotate(w.angle || 0);
+      c.globalAlpha = 0.78;
+      if (spr && spr.glow) c.drawImage(spr.glow, -31, -34, 62, 68);
+      c.strokeStyle = 'rgba(255,240,255,0.95)';
+      c.lineWidth = 2;
+      c.beginPath();
+      c.moveTo(-3, -18);
+      c.lineTo(3, 0);
+      c.lineTo(-2, 18);
+      c.stroke();
+      c.restore();
+    }
+    c.restore();
+  }
+}
+
+function prisonSegGrow(e, sg) {
+  if (!e || !e.wallGeom || !e.wallGeom.segs) return 0;
+  const N = e.wallGeom.segs.length;
+  const half = 0.5 / N;
+  const fromA = clamp((e.gA - (sg.u - half)) * N, 0, 1);
+  if (!e.both) return fromA;
+  const fromB = clamp((e.gB - ((1 - sg.u) - half)) * N, 0, 1);
+  return Math.max(fromA, fromB);
+}
+
+function drawPrisonWallCell(c, p, e, sg, grow, emissive = false, fade = 1) {
+  if (!sg || !sg.gem || !e || !e.wallGeom) return;
+  const g = easeOutBack(clamp(grow, 0, 1), 0.45);
+  c.save();
+  c.translate(sg.x + (sg.driftX || 0), sg.y + (sg.driftY || 0));
+  c.rotate(e.wallGeom.angle + ((sg.dead && sg.failT >= 0) ? (sg.fallR || 0) * Math.min(1, sg.failT * 2) : 0));
+  c.globalAlpha = fade * (sg.dead ? clamp(1 - (sg.failT || 0) / 1.1, 0, 1) : 1);
+  c.scale(clamp(g, 0.02, 1.08), 0.61 + 0.39 * clamp(g, 0, 1.08));
+  if (emissive) {
+    c.globalCompositeOperation = 'lighter';
+    const ee = 0.055 + (e.lit || 0) * 0.62 + (1 - clamp(grow, 0, 1)) * 0.65;
+    c.globalAlpha = clamp(ee, 0, 0.88) * fade;
+    c.beginPath();
+    tracePoly(c, sg.gem.outline);
+    c.fillStyle = '#a45cf0';
+    c.fill();
+    c.globalCompositeOperation = 'source-over';
+    c.restore();
+    return;
+  }
+  const heavy = clamp(grow, 0, 1);
+  drawGem(c, sg.gem, {
+    lw: 2.15,
+    stroke: '#05030b',
+    tint: '#e8b9ff',
+    tintA: (1 - heavy) * 0.68 + (e.lit || 0) * 0.30,
+    rimColor: `rgba(222,184,255,${0.35 + (e.lit || 0) * 0.45})`
+  });
+  if (heavy > 0.99 && p && p.solid) {
+    c.globalAlpha *= 0.34;
+    c.beginPath();
+    tracePoly(c, sg.gem.outline);
+    c.fillStyle = '#100820';
+    c.fill();
+  }
+  c.restore();
+}
+
+function drawPrisonBuildHead(c, e, u, sprites = null) {
+  if (!e || !e.a || !e.b) return;
+  const spr = sprites || getSprites();
+  const hx = lerp(e.a.x, e.b.x, u), hy = lerp(e.a.y, e.b.y, u);
+  c.save();
+  c.globalCompositeOperation = 'lighter';
+  c.globalAlpha = 0.82;
+  if (spr && spr.glow) c.drawImage(spr.glow, hx - 31, hy - 34, 62, 68);
+  c.strokeStyle = 'rgba(255,240,255,0.95)';
+  c.lineWidth = 2;
+  const ang = Math.atan2(e.b.y - e.a.y, e.b.x - e.a.x);
+  c.translate(hx, hy);
+  c.rotate(ang);
+  c.beginPath();
+  c.moveTo(-3, -18);
+  c.lineTo(3, 0);
+  c.lineTo(-2, 18);
+  c.stroke();
+  c.restore();
+}
+
+function drawPrison(c, p, emissive = false, front = null, sprites = null) {
+  if (!p || !p.edges) return;
+  const spr = sprites || getSprites();
+  const fade = p.collapsed ? clamp(1 - (p.fading || 0) / 1.5, 0, 1) : 1;
+  for (const e of p.edges) {
+    if (!e || !e.wallGeom || !e.wallGeom.segs) continue;
+    const mid = { x: (e.a.x + e.b.x) / 2, y: (e.a.y + e.b.y) / 2 };
+    const isFront = mid.y > (p.cy || 0) - 6;
+    if (front !== null && isFront !== front) continue;
+    for (const sg of e.wallGeom.segs) {
+      const grow = prisonSegGrow(e, sg);
+      if (grow <= 0.001) continue;
+      drawPrisonWallCell(c, p, e, sg, grow, emissive, fade);
+    }
+    if (!emissive && !e.grown) {
+      if (e.both) {
+        if (e.gA > 0.002) drawPrisonBuildHead(c, e, e.gA, spr);
+        if (e.gB > 0.002) drawPrisonBuildHead(c, e, 1 - e.gB, spr);
+      } else if (e.gA > 0.002) drawPrisonBuildHead(c, e, e.gA, spr);
+    }
+  }
+  if (emissive) return;
+  if (p.pulse !== undefined && p.pulse >= 0) {
+    const k = p.pulse;
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    const total = 6;
+    const pos = (k % 1) * total;
+    const ei = Math.floor(pos) % 6;
+    const eu = pos - Math.floor(pos);
+    const e = p.edges[ei];
+    if (e && e.a && e.b) {
+      const px = lerp(e.a.x, e.b.x, eu), py = lerp(e.a.y, e.b.y, eu);
+      c.globalAlpha = clamp(1 - k / 2.2, 0, 1);
+      if (spr && spr.glow) c.drawImage(spr.glow, px - 40, py - 40, 80, 80);
+    }
+    c.restore();
+  }
+}
+
+function drawDust(c, pool, alpha = 1, sprites = null) {
+  if (!pool || !pool.alive) return;
+  const spr = sprites || getSprites();
+  const n = pool.alive.length;
+  for (let i = 0; i < n; i++) {
+    if (!pool.alive[i]) continue;
+    const k = pool.life[i] / (pool.max[i] || 1);
+    const pulse = Math.sin(clamp(k, 0, 1) * Math.PI);
+    const a = pulse * (0.18 + (pool.hue ? pool.hue[i] : 0.5) * 0.34);
+    if (a < 0.012) continue;
+    const px = pool.px ? pool.px[i] : pool.x[i];
+    const py = pool.py ? pool.py[i] : pool.y[i];
+    const x = lerp(px, pool.x[i], alpha), y = lerp(py, pool.y[i], alpha);
+    const sp = Math.hypot(pool.vx[i], pool.vy[i]);
+    const st = clamp(1 + sp * 0.0105, 1, 3.1);
+    const s = pool.sz[i] * (0.56 + k * 0.72);
+    c.save();
+    c.translate(x, y);
+    if (st > 1.10) c.rotate(Math.atan2(pool.vy[i], pool.vx[i]));
+    c.globalCompositeOperation = 'source-over';
+    c.globalAlpha = a * 0.34;
+    c.fillStyle = '#7d3db0';
+    c.beginPath();
+    c.ellipse(0, 0, s * st * 2.0, s * 1.15, 0, 0, TAU);
+    c.fill();
+    if (spr && spr.dust) {
+      c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = a * 0.72;
+      c.drawImage(spr.dust, -s * st * 3.1, -s * 3.1, s * st * 6.2, s * 6.2);
+    }
+    if (spr && spr.glow && pool.hue && pool.hue[i] > 0.70) {
+      c.globalAlpha = a * 0.24;
+      c.drawImage(spr.glow, -s * st * 2.2, -s * 2.2, s * st * 4.4, s * 4.4);
+    }
+    c.restore();
+  }
+  c.globalAlpha = 1;
+  c.globalCompositeOperation = 'source-over';
+}
+
+function drawDebris(c, list, alpha = 1) {
+  if (!list || !Array.isArray(list)) return;
+  for (const d of list) {
+    if (!d.on || !d.poly) continue;
+    const px = d.px !== undefined ? d.px : d.x;
+    const py = d.py !== undefined ? d.py : d.y;
+    const x = lerp(px, d.x, alpha), y = lerp(py, d.y, alpha);
+    c.save();
+    c.translate(x, y);
+    c.rotate(d.r || 0);
+    c.globalAlpha = clamp(d.life / (d.max || 1), 0, 1);
+    c.beginPath();
+    tracePoly(c, d.poly);
+    c.fillStyle = (d.lit || 0) > 0.2 ? '#b177e8' : '#2c1750';
+    c.fill();
+    c.strokeStyle = '#06030e';
+    c.lineWidth = 1.1;
+    c.stroke();
+    c.globalAlpha = 1;
+    c.restore();
+  }
+}
+
+function createBloomSystem(opts = {}) {
+  const GS = opts.scale || 0.5;
+  let dpr = opts.dpr || 1;
+  let w = opts.width || 1000;
+  let h = opts.height || 1000;
+  let glowCv = null, glowB = null, glowC = null;
+  let gx = null, gbx = null, gcx = null;
+  let filterOk = false;
+
+  function ensure(targetW, targetH, targetDpr) {
+    if (targetW) w = targetW;
+    if (targetH) h = targetH;
+    if (targetDpr) dpr = targetDpr;
+    const bw = Math.max(1, Math.round(w * dpr * GS));
+    const bh = Math.max(1, Math.round(h * dpr * GS));
+    if (!glowCv) {
+      let createCanvasFn = null;
+      if (typeof document !== 'undefined' && document.createElement) {
+        createCanvasFn = (cw, ch) => { const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; return cv; };
+      } else if (opts.createCanvas) {
+        createCanvasFn = opts.createCanvas;
+      } else if (typeof globalThis !== 'undefined' && globalThis.__createCanvas) {
+        createCanvasFn = globalThis.__createCanvas;
+      }
+      if (createCanvasFn) {
+        glowCv = createCanvasFn(bw, bh);
+        glowB = createCanvasFn(bw, bh);
+        glowC = createCanvasFn(bw, bh);
+      }
+      if (glowCv) {
+        gx = glowCv.getContext('2d');
+        gbx = glowB.getContext('2d');
+        gcx = glowC.getContext('2d');
+        try {
+          if (gx && typeof gx.filter === 'string') {
+            gx.filter = 'blur(2px)';
+            filterOk = (gx.filter || '').includes('blur');
+            gx.filter = 'none';
+          }
+        } catch (e) { filterOk = false; }
+      }
+    }
+    if (glowCv && (glowCv.width !== bw || glowCv.height !== bh)) {
+      glowCv.width = glowB.width = glowC.width = bw;
+      glowCv.height = glowB.height = glowC.height = bh;
+    }
+  }
+
+  ensure(w, h, dpr);
+
+  function begin(worldTransform) {
+    ensure();
+    if (!gx) return null;
+    gx.setTransform(1, 0, 0, 1, 0, 0);
+    gx.clearRect(0, 0, glowCv.width, glowCv.height);
+    if (worldTransform) {
+      gx.setTransform(
+        worldTransform.a * GS * dpr,
+        worldTransform.b * GS * dpr,
+        worldTransform.c * GS * dpr,
+        worldTransform.d * GS * dpr,
+        worldTransform.e * GS * dpr,
+        worldTransform.f * GS * dpr
+      );
+    } else {
+      gx.setTransform(GS * dpr, 0, 0, GS * dpr, 0, 0);
+    }
+    return gx;
+  }
+
+  function composite(targetCtx, destW, destH) {
+    if (!glowCv || !gx) return;
+    const dw = destW || w;
+    const dh = destH || h;
+    targetCtx.save();
+    targetCtx.setTransform(1, 0, 0, 1, 0, 0);
+    if (filterOk && gbx && gcx) {
+      gbx.setTransform(1, 0, 0, 1, 0, 0);
+      gbx.globalCompositeOperation = 'copy';
+      gbx.filter = 'blur(' + (2.6 * dpr * GS).toFixed(2) + 'px)';
+      gbx.drawImage(glowCv, 0, 0);
+      gbx.filter = 'none';
+
+      gcx.setTransform(1, 0, 0, 1, 0, 0);
+      gcx.globalCompositeOperation = 'copy';
+      gcx.filter = 'blur(' + (9 * dpr * GS).toFixed(2) + 'px)';
+      gcx.drawImage(glowB, 0, 0);
+      gcx.filter = 'none';
+
+      targetCtx.globalCompositeOperation = 'lighter';
+      targetCtx.globalAlpha = 0.56;
+      targetCtx.drawImage(glowB, 0, 0, dw, dh);
+      targetCtx.globalAlpha = 0.25;
+      targetCtx.drawImage(glowC, 0, 0, dw, dh);
+    } else {
+      targetCtx.globalCompositeOperation = 'lighter';
+      targetCtx.globalAlpha = 0.38;
+      targetCtx.drawImage(glowCv, 0, 0, dw, dh);
+    }
+    targetCtx.restore();
+  }
+
+  return {
+    ensure,
+    begin,
+    composite,
+    get glowCanvas() { return glowCv; },
+    get glowCtx() { return gx; },
+    get isFilterSupported() { return filterOk; }
+  };
 }
 
 g.APEX_CRYSTALA_GOLD = {
   version: 'V6-rig-1',
   createRig, DT, RETIME, GROW_RATE, STONE_CFG, TRAIL_N,
+  drawCrystala, drawEyeAccent, drawStone, drawTrail, drawWall,
+  drawPrison, drawPrisonWallCell, drawPrisonBuildHead,
+  drawDust, drawDebris, drawGem, drawStar4,
+  createBloomSystem, getSprites, makeSprite, ensureArt,
+  get ART() { return ensureArt(); },
   util: { TAU, clamp, lerp, smooth, smoother, ss, easeOutCubic, easeOutQuint, easeOutBack, wrapPI, dist,
-    mulberry32, hermite, flow, buildGem, buildWallGeometry, prisonSegGrow, tracePoly, P, centroid },
+    mulberry32, hermite, flow, buildGem, buildWallGeometry, prisonSegGrow, tracePoly, P, centroid,
+    referencePath, heroTransform },
 };
 g.apexCrystalaGoldV6 = 'ready';
 })(typeof window !== 'undefined' ? window : globalThis);
