@@ -997,7 +997,8 @@ class IceField {
                 continue;
             const off = (n.flow * 6 - 1) * n.W * 0.45;
             const l = n.L * (0.9 + n.flow);
-            ctx.moveTo(n.x - n.ca * l - n.sa * off, n.y - n.sa * l + n.ca * off);            ctx.lineTo(n.x + n.ca * l - n.sa * off, n.y + n.sa * l + n.ca * off);
+            ctx.moveTo(n.x - n.ca * l - n.sa * off, n.y - n.sa * l + n.ca * off);
+            ctx.lineTo(n.x + n.ca * l - n.sa * off, n.y + n.sa * l + n.ca * off);
         }
         ctx.stroke();
         // cracks: dark cut + white bevel, revealed along their length
@@ -1996,7 +1997,8 @@ class FrostEngine {
             if (this.onIce && this.freeHist.length >= 9 && sp > 190 && t - this.freeCarveT > 0.4) {
                 const dA = angDiff(this.freeHist[0], this.freeHist[this.freeHist.length - 1]);
                 if (Math.abs(dA) > 0.9) {
-                    this.freeCarveT = t;                    this.carve(this.fx, this.fy, this.freeHist[this.freeHist.length - 1], dA, 0.25, false);
+                    this.freeCarveT = t;
+                    this.carve(this.fx, this.fy, this.freeHist[this.freeHist.length - 1], dA, 0.25, false);
                 }
             }
             this.updateIdle(dt);
