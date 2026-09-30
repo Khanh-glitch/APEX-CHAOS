@@ -292,6 +292,7 @@ const result = await page.evaluate(async () => {
     profiles:perf.rows,
     kProbe,
     bloomParity,
+    constructCacheStats: G.APEX_CRYSTALA_PRESENTATION?.constructCacheStats ? {...G.APEX_CRYSTALA_PRESENTATION.constructCacheStats} : null,
   };
 });
 
@@ -328,6 +329,7 @@ for (const p of result.profiles) {
 }
 console.log('K_PROBE '+JSON.stringify(result.kProbe));
 console.log('BLOOM_PARITY '+JSON.stringify(result.bloomParity));
+console.log('CONSTRUCT_CACHE '+JSON.stringify(result.constructCacheStats));
 console.log('PAGE_ERRORS '+JSON.stringify(errors));
 
 await browser.close();
