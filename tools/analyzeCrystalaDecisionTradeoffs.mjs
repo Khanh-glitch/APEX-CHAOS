@@ -83,10 +83,10 @@ const result=await page.evaluate(()=>{
     }else if(mode==='WALL_EARLY'){
       forceWallThreshold(mm);
       const j=HR.pressAbility(mm.a,'A1'); if(!j.ok)throw new Error('early Wall failed');
-    }else if(mode==='WALL_LATE'){
-      atTime(ks+1.95);
+    }else if(mode==='WALL_DELAYED'){
+      atTime(ks+0.72);
       forceWallThreshold(mm);
-      const j=HR.pressAbility(mm.a,'A1'); if(!j.ok)throw new Error('late Wall failed');
+      const j=HR.pressAbility(mm.a,'A1'); if(!j.ok)throw new Error('delayed Wall failed');
     }
     return ks;
   }
@@ -132,7 +132,7 @@ const result=await page.evaluate(()=>{
     };
   }
 
-  const modes=['DORMANT','K_ONLY','PRISON_EARLY','WALL_EARLY','WALL_LATE'];
+  const modes=['DORMANT','K_ONLY','PRISON_EARLY','WALL_EARLY','WALL_DELAYED'];
   const pressures=['PRECISION','BURST','RAPID','POST_K'];
   const rows=[];
   for(const pressure of pressures)for(const mode of modes)rows.push(one(mode,pressure));
@@ -143,7 +143,28 @@ const result=await page.evaluate(()=>{
     const control=rows.find(r=>r.pressure===pressure&&r.mode==='DORMANT');
     if(!control || !(control.hpLossCrystal>0)) throw new Error('invalid dormant damage control for '+pressure);
   }
-  return {rows,revision:G.APEX_ARSENAL_RUNTIME_REVISION||null};
+
+  // Explicitly prove the removed dominant pattern: J after the first-half
+  // commitment deadline must fail while K itself remains active.
+  const late=fresh();
+  const lateKs=prepare(late,'K_ONLY');
+  atTime(lateKs+1.25);
+  forceWallThreshold(late);
+  const lateBefore=CRY.inspect(late.ct);
+  const lateAttempt=HR.pressAbility(late.a,'A1');
+  const lateProbe={
+    at:(G.matchClock||0)-lateKs,
+    kActive:lateBefore.k.active,
+    decisionOpen:lateBefore.k.constructDecisionOpen,
+    available:lateBefore.available,
+    ok:!!lateAttempt.ok, reason:lateAttempt.reason||null,
+    cd:HR.abilityController(late.ct).cooldownLeft('A1'),
+    jCasts:CRY.inspect(late.ct).k.jCasts,
+  };
+  if(!lateProbe.kActive || lateProbe.decisionOpen || lateProbe.ok || lateProbe.cd!==0 || lateProbe.jCasts!==0)
+    throw new Error('late J commitment gate failed: '+JSON.stringify(lateProbe));
+
+  return {rows,lateProbe,revision:G.APEX_ARSENAL_RUNTIME_REVISION||null};
 });
 
 result.pageErrors=errors;result.generatedAt=new Date().toISOString();
@@ -160,6 +181,7 @@ for(const r of result.rows){
     endReason:d?.endReason||null,solidLife:d?.solidLifeRealized?+d.solidLifeRealized.toFixed(3):0,
   }));
 }
+console.log('LATE_J_PROBE '+JSON.stringify(result.lateProbe));
 console.log('PAGE_ERRORS '+JSON.stringify(errors));
 await browser.close();
 if(errors.length)process.exitCode=2;
