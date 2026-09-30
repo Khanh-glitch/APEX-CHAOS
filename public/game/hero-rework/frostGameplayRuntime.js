@@ -531,9 +531,15 @@ const FR = {
         ? { dx: st.a1pending.dx, dy: st.a1pending.dy, id: st.a1pending.id,
             castAt: st.a1pending.castAt, releaseAt: st.a1pending.releaseAt }
         : null,
+      // Lane truth is the replay source for a presentation cast that Gold
+      // could not accept yet: origin, committed direction, the real front
+      // window and the one shared expiry (never re-derived from Frost's
+      // later position or from admission time).
       lanes: st.a1lanes.map((l) => ({
         ox: +l.ox.toFixed(1), oy: +l.oy.toFixed(1),
+        dx: l.dx, dy: l.dy, castId: l.castId,
         front: +frontLen(l, now).toFixed(1), len: l.len,
+        frontStartAt: l.frontStartAt, frontDoneAt: l.frontDoneAt, expireAt: l.expireAt,
         active: now < l.expireAt,
       })),
       a2live: !!(st.a2 && now < st.a2.until),

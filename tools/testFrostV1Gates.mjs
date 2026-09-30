@@ -2493,6 +2493,80 @@ try {
       atDock: [docked.transfers, docked.guns, docked.suppressed, dockedSprite, dockedBaseDraws] });
 } catch (e) { gate('F12.20-transfer-no-duplicate-draw', false, String(e && e.message)); }
 
+// F12.21 — a deferred A2 must not begin at the admission point: the hunt
+// path that gameplay already walked (turns and all) is hydrated from the
+// authoritative trailNodes, so the START of the real path is on screen.
+try {
+  const o = stillPair(300, 300, 1, 1200, 900);
+  const ct = HR.byCombatant(o.a);
+  const AIL = win.APEX_HERO_REWORK_AIL;
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);       // A1 owns Gold
+  T.step(2 / 60);
+  HR.pressAbility(o.a, 'A2');                     // A2 truth starts, visual queued
+  for (let k = 0; k < 14; k++) { o.a.x += 18; T.step(2 / 60); }   // real path: leg 1
+  for (let k = 0; k < 10; k++) { o.a.y += 18; T.step(2 / 60); }   // real path: turn
+  const gpHist = FR().inspect(ct).trailNodes;
+  const pre = P().inspect(o.a);
+  const deferred = pre.queued === 1 && pre.queuedKinds[0] === 'a2' && pre.a2.trail === 0 && gpHist.length >= 15;
+  let admitted = false;
+  for (let k = 0; k < 40 && !admitted; k++) { T.step(2 / 60); admitted = P().inspect(o.a).a2Started; }
+  const i = P().inspect(o.a);
+  const e = P().engineFor(o.a);
+  const tr = e.ice.nodes.filter((n) => n.kind === 'trail');
+  const covered = (pt) => tr.some((n) => Math.hypot(n.x - pt.x, n.y - (pt.y + 6)) < 18);
+  const early = gpHist.slice(0, 8).filter(covered).length;   // the BEGINNING of the path
+  const all = gpHist.filter(covered).length;
+  // born times are the real ones (historical), not "all born at admission"
+  const off = e.t - AIL.clock();
+  const minBorn = Math.min(...tr.map((n) => n.born));
+  const bornTruth = Math.abs(minBorn - (gpHist[1].bornAt + off)) < 0.15 && minBorn < e.t - 0.4;
+  const before = tr.length;
+  for (let k = 0; k < 8; k++) { o.a.x += 18; T.step(2 / 60); }   // live motion continues
+  const grew = e.ice.nodes.filter((n) => n.kind === 'trail').length > before;
+  gate('F12.21-deferred-a2-hydrates-history',
+    deferred && admitted && i.a2Hydrated >= 15 && early === 8 && all >= Math.ceil(gpHist.length * 0.9) &&
+    bornTruth && grew,
+    { gpNodes: gpHist.length, hydrated: i.a2Hydrated, early8: early, covered: all, bornTruth, grew });
+} catch (e) { gate('F12.21-deferred-a2-hydrates-history', false, String(e && e.message)); }
+
+// F12.22 — a deferred A1 must replay the lane gameplay actually built: real
+// release origin + committed direction + real front window + the ORIGINAL
+// lane expiry, even when Frost has walked far away before Gold admits it.
+try {
+  const o = stillPair(300, 500, 1, 1200, 900);
+  const ct = HR.byCombatant(o.a);
+  const AIL = win.APEX_HERO_REWORK_AIL;
+  HR.pressAbility(o.a, 'A2');                     // A2 owns Gold
+  T.step(2 / 60);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);        // A1 queued
+  T.step(0.4);                                     // gameplay releases the lane
+  const lane = FR().inspect(ct).lanes[0];
+  const qd = P().inspect(o.a).queued === 1;
+  for (let k = 0; k < 30; k++) { o.a.x += 14; T.step(2 / 60); }   // Frost leaves
+  const farX = o.a.x;
+  let rel = false;
+  for (let k = 0; k < 60 && !rel; k++) { T.step(0.1); rel = P().inspect(o.a).a1.released; }
+  const i = P().inspect(o.a);
+  const e = P().engineFor(o.a);
+  const off = e.t - AIL.clock();
+  const nodes = e.ice.nodes.filter((n) => n.kind === 'lane');
+  const dOrigin = Math.hypot(i.a1.ox - lane.ox, i.a1.oy - lane.oy);        // vs gameplay truth
+  const dFrost = Math.hypot(i.a1.ox - o.a.x, i.a1.oy - o.a.y);             // vs where Frost is now
+  const angOk = Math.abs(i.a1.ang - Math.atan2(lane.dy, lane.dx)) < 0.01;
+  const decays = nodes.map((n) => n.decayAt).filter((d) => d !== Infinity && d < Infinity);
+  const expiry = decays.length ? Math.min(...decays) : NaN;
+  const expiryTruth = Math.abs(expiry - (lane.expireAt + off)) < 0.2;       // gameplay lane expiry
+  const notRestarted = expiry < e.t + (ct.skills.A1.cfg.floorLifetime || 4.5) - 1.0; // not a fresh floor
+  const bornMin = Math.min(...nodes.map((n) => n.born)), bornMax = Math.max(...nodes.map((n) => n.born));
+  const frontTruth = Math.abs(bornMin - (lane.frontStartAt + off)) < 0.15 &&
+    Math.abs(bornMax - (lane.frontDoneAt + off)) < 0.15;
+  gate('F12.22-deferred-a1-historical-origin',
+    qd && rel && i.a1Replays === 1 && nodes.length >= 40 && dOrigin < 45 && dFrost > 300 &&
+    angOk && expiryTruth && notRestarted && frontTruth,
+    { originGap: +dOrigin.toFixed(1), frostGap: +dFrost.toFixed(1), frostX: Math.round(farX),
+      ang: i.a1.ang, expiryTruth, notRestarted, frontTruth, nodes: nodes.length });
+} catch (e) { gate('F12.22-deferred-a1-historical-origin', false, String(e && e.message)); }
+
 /* ================= F13 — Lifecycle / performance ===================== */
 try {
   const o = stillPair(200, 700, 1, 900, 100);

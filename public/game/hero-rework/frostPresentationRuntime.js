@@ -166,8 +166,8 @@ function createState(ct) {
     kBody: (2 * ((f && f.radius) || 75)) / GOLD_BODY_REF_H,
     laneK: ((+cfg.a1.width || 160) / 2) / GOLD_LANE_HALF_W,
     trailK: ((+cfg.a2.trailWidth || 120) / 2) / GOLD_TRAIL_HALF_W,
-    a1: { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99 },
-    a2: { live: false, started: false },
+    a1: { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0 },
+    a2: { live: false, started: false, hydrated: 0 },
     castQ: [],       // deferred Gold cast admissions (FIFO, truth-checked)
     castSeq: 0, castStarts: 0, castDeferred: 0, castDropped: 0,
     victim: null, // { id, seizeE }
@@ -221,8 +221,8 @@ function resetEngineVisuals(S, m) {
     e.huntGoal = 0;
   } catch (err) { warnOnce(err); }
   S.tOff = null;
-  S.a1 = { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99 };
-  S.a2 = { live: false, started: false };
+  S.a1 = { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0 };
+  S.a2 = { live: false, started: false, hydrated: 0 };
   S.castQ.length = 0;
   S.castSeq = 0; S.castStarts = 0; S.castDeferred = 0; S.castDropped = 0;
   S.victim = null;
@@ -440,17 +440,100 @@ function canAcceptCast(S) {
   try { return S.engine.mode === 'free'; } catch (e) { return false; }
 }
 
-function startCast(S, q, now) {
+// ---- deferred admission: replay from authoritative gameplay history -------
+// A queued cast is admitted after gameplay has already moved on. Starting it
+// "here, now" would put the lane under Frost's CURRENT feet and cut the hunt
+// path off at the admission point. Both are reconstructed from gameplay truth
+// instead, through Gold's own buildLane / ice.add — no second mechanic, no
+// approximated effect, no steering or teleport.
+
+// A1: gameplay released while Gold was busy. The lane is rebuilt at the real
+// release origin, along the committed direction, with the real front window
+// back-dated (born times in the past = the front the player already saw) and
+// the one shared gameplay expiry.
+function replayA1Lane(S, q, now) {
+  const e = S.engine, L = q.lane;
+  const off = S.tOff || 0;
+  const ang = Math.atan2(L.dy, L.dx);
+  const sfx = e.fx, sfy = e.fy, slx = e.lagX.x, sly = e.lagY.x;
+  e.a1Len = L.len;
+  e.a1Travel = Math.max(0.05, L.frontDoneAt - L.frontStartAt);
+  Object.assign(e.a1, {
+    ang, released: false, bite: true, ended: true, front: L.len, frontPrev: L.len,
+    nodes: [], rowAcc: 0, lobeAcc: 0, chipAcc: 0,
+  });
+  // Gold derives the lane origin from the actor's vent: park the actor frame
+  // at the authoritative release position for the build only.
+  e.fx = L.ox; e.fy = L.oy; e.lagX.x = 0; e.lagY.x = 0;
+  try { e.buildLane(L.frontStartAt + off, L.len, e.a1Travel); }
+  catch (err) { warnOnce(err); }
+  finally { e.fx = sfx; e.fy = sfy; e.lagX.x = slx; e.lagY.x = sly; }
+  e.a1.released = true;
+  // Lifetime stays the ORIGINAL gameplay lane expiry (never a fresh floor
+  // from admission time).
+  S.a1.casts.push({
+    nodes: (e.a1.nodes || []).map((w) => w && w.n).filter(Boolean),
+    expireE: L.expireAt + off,
+  });
+  if (S.a1.casts.length > 4) S.a1.casts.shift();
+  S.a1.releasedSeen = true;   // the generic capture must not re-anchor it
+  S.a1.replays = (S.a1.replays || 0) + 1;
+}
+
+// A2: the hunt has been running (and turning/bouncing) while Gold was busy.
+// The Gold trail is hydrated from the gameplay trail nodes that already
+// exist — same positions, same born times, laid through Gold's own trail
+// node call — then live motion continues from the real path end.
+function hydrateA2Trail(S, insp, now) {
+  const e = S.engine, A = e.a2;
+  const hist = (insp && insp.trailNodes) || [];
+  if (hist.length < 2) return 0;
+  const off = S.tOff || 0;
+  const segLife = +((S.cfg.a2 && S.cfg.a2.segmentLifetime) || 3.5);
+  let prev = null, laid = 0, last = null;
+  for (const h of hist) {
+    const p = prev; prev = h;
+    if (!p) continue;                                // heading needs a segment
+    if (now - h.bornAt >= segLife) continue;         // that segment is already gone
+    const dx = h.x - p.x, dy = h.y - p.y;
+    const d = Math.hypot(dx, dy);
+    if (d < 1e-3) continue;
+    const ang = Math.atan2(dy, dx);
+    const sp = d / Math.max(1e-3, h.bornAt - p.bornAt);   // real historical speed
+    const spn = Math.max(0, Math.min(1, sp / 520));
+    const W = 11 + 6 * (1 - spn) + e.rng.range(-1.2, 1.2);
+    const n = e.ice.add(h.x - Math.cos(ang) * 3, h.y + 6 - Math.sin(ang) * 3, ang,
+      e.rng.range(12, 16), W * 1.04, h.bornAt + off, 'trail',
+      { lockDur: 0.45, spurChance: 0.015, jag: 0.09 });
+    A.trail.push(n);
+    laid++; last = h;
+  }
+  if (last) {
+    // Continue the live path from where the real path actually is: no jump
+    // node, no steering — the next Gold node is the next real 9px of travel.
+    A.lastNode.x = last.x; A.lastNode.y = last.y;
+    A.kicked = true;  // the hunt ignition beat already happened historically
+  }
+  S.a2.hydrated = (S.a2.hydrated || 0) + laid;
+  return laid;
+}
+
+function startCast(S, q, now, insp) {
   const e = S.engine;
   if (q.kind === 'a1') {
-    e.a1Len = q.len;
-    e.a1Travel = q.travel;
-    try { e.castA1(q.ang); } catch (err) { warnOnce(err); }
+    if (q.lane) { replayA1Lane(S, q, now); }
+    else {
+      e.a1Len = q.len;
+      e.a1Travel = q.travel;
+      try { e.castA1(q.ang); } catch (err) { warnOnce(err); }
+    }
     S.a1.startedId = q.castId;
     S.a1.startClock = now;
   } else {
     try { e.castA2(); } catch (err) { warnOnce(err); }
     S.a2.started = true;
+    // No-ops on an immediate start (the window has a single origin node).
+    try { hydrateA2Trail(S, insp, now); } catch (err) { warnOnce(err); }
   }
   S.castStarts = (S.castStarts || 0) + 1;
 }
@@ -459,12 +542,14 @@ function startCast(S, q, now) {
 // expired, or an A2 whose gameplay window has closed, has no truth left to
 // present and is retired instead of being started late.
 function castStillTrue(S, q, now) {
-  if (q.kind === 'a1') return now <= q.validUntil;
+  // A replayable A1 knows its real gameplay expiry; otherwise the cast-time
+  // bound applies. A2 is true while its gameplay window is live.
+  if (q.kind === 'a1') return q.lane ? now < q.lane.expireAt : now <= q.validUntil;
   return !!S.a2.live;
 }
 
-function requestCast(S, q, now) {
-  if (canAcceptCast(S) && !S.castQ.length) { startCast(S, q, now); return; }
+function requestCast(S, q, now, insp) {
+  if (canAcceptCast(S) && !S.castQ.length) { startCast(S, q, now, insp); return; }
   // Same-kind supersede: a newer cast of the same ability replaces the older
   // queued one (the older visual's truth is already being overwritten).
   const i = S.castQ.findIndex((o) => o.kind === q.kind);
@@ -475,11 +560,11 @@ function requestCast(S, q, now) {
 
 // Called once per frame AFTER the mode update, so a mode that ended this
 // frame admits its queued successor on the very same frame.
-function pumpCastQueue(S, now) {
+function pumpCastQueue(S, now, insp) {
   while (S.castQ.length && canAcceptCast(S)) {
     const q = S.castQ.shift();
     if (!castStillTrue(S, q, now)) { S.castDropped = (S.castDropped || 0) + 1; continue; }
-    startCast(S, q, now);
+    startCast(S, q, now, insp);
   }
 }
 
@@ -515,13 +600,25 @@ function tickA1(S, ct, insp, now, dt) {
       castId: (cast && cast.id) || ++S.castSeq,
       // A1 truth ends with its gameplay lane (front + floor lifetime).
       validUntil: now + commit + frontSeconds + (+cfg1.floorLifetime || 4.5),
-    }, now);
+    }, now, insp);
     S.a1.holdUntil = now + commit - A1_RELEASE_BEAT;
   }
   if (insp && !insp.pending && S.a1.pending) {
     S.a1.pending = false;
     S.a1.releaseClock = now;
     S.a1.expireClock = now + frontSeconds + (+cfg1.floorLifetime || 4.5);
+    // Released while Gold is still busy: the visual can no longer be started
+    // "here, now". Bind the queued cast to the authoritative lane record so
+    // admission replays the real origin/direction/front window/expiry.
+    const q = S.castQ.find((o) => o.kind === 'a1');
+    if (q) {
+      const lanes = insp.lanes || [];
+      const L = lanes.filter((l) => l.castId === q.castId).pop() || lanes[lanes.length - 1];
+      if (L && L.frontStartAt != null) {
+        q.lane = { ox: L.ox, oy: L.oy, dx: L.dx, dy: L.dy, len: L.len,
+          frontStartAt: L.frontStartAt, frontDoneAt: L.frontDoneAt, expireAt: L.expireAt };
+      }
+    }
   }
   // Capture the released cast's nodes for exact gameplay-anchored decay.
   if (e.a1 && e.a1.released && !S.a1.releasedSeen) {
@@ -549,7 +646,7 @@ function tickA2(S, insp, now) {
   const live = !!(insp && insp.a2live);
   if (live && !S.a2.live) {
     S.a2.live = true;
-    requestCast(S, { kind: 'a2' }, now);
+    requestCast(S, { kind: 'a2' }, now, insp);
   } else if (!live && S.a2.live) {
     S.a2.live = false;
     // If the hunt visual never got its Gold slot, retire the queued start
@@ -813,8 +910,9 @@ function driveEngine(S, ct, dt) {
   } catch (err) {}
   tickA2(S, insp, now);
   // Admit deferred casts: the mode branch above may have freed Gold this
-  // very frame (A1 auto-ends at 0.8s; endA2 on window close).
-  pumpCastQueue(S, now);
+  // very frame (A1 auto-ends at 0.8s; endA2 on window close). Admission
+  // reads LIVE gameplay truth so a deferred visual replays real history.
+  pumpCastQueue(S, now, insp);
   tickVictims(S, ct, now, dt);
   tickGuns(S, now, dt);
   tickFlecks(S, dt);
@@ -1177,6 +1275,8 @@ api.inspect = function (f) {
     queued: S.castQ.length, queuedKinds: S.castQ.map((q) => q.kind),
     castStarts: S.castStarts, castDeferred: S.castDeferred, castDropped: S.castDropped,
     a1Started: S.a1.startedId, a1CastAng: +S.a1.castAng.toFixed(4), a2Started: !!S.a2.started,
+    // Historical reconstruction proof surface (deferred admissions).
+    a1Replays: S.a1.replays || 0, a2Hydrated: S.a2.hydrated || 0,
     kBody: +S.kBody.toFixed(3), laneK: +S.laneK.toFixed(3), trailK: +S.trailK.toFixed(3),
   };
 };
