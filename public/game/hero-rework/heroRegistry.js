@@ -465,7 +465,8 @@
   }
 
   function resolveSkillLevel(heroId, slot, level) {
-    const hero = HEROES[heroId];
+    const canonicalHeroId = heroId === 'FROST' ? 'ICE' : heroId;
+    const hero = HEROES[canonicalHeroId];
     if (!hero) throw new Error(`resolveSkillLevel: unknown hero ${heroId}`);
     const def = hero.skills[slot];
     if (!def) throw new Error(`resolveSkillLevel: unknown slot ${slot} for ${heroId}`);
