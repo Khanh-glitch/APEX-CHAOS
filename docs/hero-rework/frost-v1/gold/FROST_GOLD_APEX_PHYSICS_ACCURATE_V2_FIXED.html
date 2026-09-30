@@ -997,7 +997,8 @@ class IceField {
         ctx.restore();
         // directional flow marks (sparse, stable ice only)
         ctx.lineCap = "round";
-        ctx.strokeStyle = "rgba(255,255,255,0.58)";        ctx.lineWidth = Math.max(px, 1);
+        ctx.strokeStyle = "rgba(255,255,255,0.58)";
+        ctx.lineWidth = Math.max(px, 1);
         ctx.beginPath();
         for (const n of live) {
             if (n.kind === "patch" || n.kind === "pad" || n.flow > 0.34)
@@ -1996,7 +1997,8 @@ class FrostEngine {
         }
         else if(this.mode==='a2'){this.updateA2(dt);}
         else if(this.mode==='fetch'){this.updateFetch(dt);}
-        else{            this.updateApexFrostMotion();
+        else{
+            this.updateApexFrostMotion();
             if(this.mode==='free'&&this.breath.on&&this.t-this.breath.t0>0.45)this.breath.on=false;
             this.freeHistT+=dt;if(this.freeHistT>=1/60){this.freeHistT=0;this.freeHist.push(Math.atan2(this.fvy,this.fvx));if(this.freeHist.length>10)this.freeHist.shift();}
             const sp=Math.hypot(this.fvx,this.fvy);if(this.onIce&&this.freeHist.length>=9&&sp>190&&t-this.freeCarveT>0.4){const dA=angDiff(this.freeHist[0],this.freeHist[this.freeHist.length-1]);if(Math.abs(dA)>0.9){this.freeCarveT=t;this.carve(this.fx,this.fy,this.freeHist[this.freeHist.length-1],dA,0.25,false);}}
