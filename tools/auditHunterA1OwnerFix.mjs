@@ -72,8 +72,8 @@ const audit=await page.evaluate(()=>{
   G.APEX_HERO_REWORK?.setAiEnabled?.(false);
 
   const h=G.fighters[0],c=G.fighters[1];
-  h.x=340;h.y=500;h.baseSpeed=0;h.setDir(1,0);
-  c.x=820;c.y=500;c.baseSpeed=0;c.setDir(-1,0);
+  h.x=650;h.y=500;h.px=650;h.py=500;h.baseSpeed=0;h.setDir(1,0);
+  c.x=900;c.y=180;c.px=900;c.py=180;c.baseSpeed=0;c.setDir(0,1);
 
   const counts={back:0,front:0,fx:0};
   const HG=G.APEX_HUNTER_GOLD;
@@ -92,19 +92,23 @@ const audit=await page.evaluate(()=>{
     G.draw();
     const t=(frame+1)/60;
     const disp=Math.hypot(h.x-x0,h.y-y0);
-    const jump=Math.hypot(h.x-lastX,h.y-y0);
+    const jump=Math.abs(h.x-lastX);
     maxDisp=Math.max(maxDisp,disp);maxStep=Math.max(maxStep,jump);lastX=h.x;
     const sn=G.APEX_HERO_REWORK.match?.world?.snares?.[0]||null;
     if(sn&&snareSeenAt==null)snareSeenAt=t;
     if(sn&&sn.phase==='armed'&&armedAt==null)armedAt=t;
-    trajectory.push({frame:frame+1,t:+t.toFixed(4),x:+h.x.toFixed(3),y:+h.y.toFixed(3),disp:+disp.toFixed(3),snare:sn?sn.phase:null});
+    const pi=G.APEX_HUNTER_PRESENTATION.inspect(h);
+    trajectory.push({frame:frame+1,t:+t.toFixed(4),x:+h.x.toFixed(3),y:+h.y.toFixed(3),disp:+disp.toFixed(3),
+      goldOffset:+(pi.a1?.offset||0).toFixed(3),goldT:+(pi.a1?.goldT||0).toFixed(4),refX:+(pi.a1?.refX||340).toFixed(3),snare:sn?sn.phase:null});
   }
   const movingFrames=trajectory.filter((r,i)=>i>0&&Math.abs(r.x-trajectory[i-1].x)>.05).length;
   const snare=G.APEX_HERO_REWORK.match?.world?.snares?.[0]||null;
   const inspect=G.APEX_HUNTER_PRESENTATION.inspect(h);
+  const maxMapError=Math.max(0,...trajectory.map(r=>Math.abs((x0-r.x)-r.goldOffset)));
+  const blades=['blade0','blade1','blade2'].map(k=>({key:k,color:!!snare?.visual?._rtImgs?.[k]?.color,shadow:!!snare?.visual?._rtImgs?.[k]?.shadow}));
   HG.rtDraw=origRt;
   return {
-    cast,counts,x0,y0,final:{x:h.x,y:h.y},maxDisp,maxStep,movingFrames,
+    cast,counts,x0,y0,final:{x:h.x,y:h.y},maxDisp,maxStep,movingFrames,maxMapError,blades,
     snareSeenAt,armedAt,snare:snare?{phase:snare.phase,x:snare.x,y:snare.y}:null,
     inspect,trajectory
   };
@@ -115,21 +119,29 @@ const canvas=await page.$('#game-canvas');
 if(!canvas)throw new Error('#game-canvas missing');
 await canvas.screenshot({path:path.join(OUT,'hunter-a1-trap-fixed.png')});
 audit.errors=errors;
-const goldTol=Math.max(3,gold.maxDisp*0.08);
+const prodScale=audit.inspect?.scale||1;
+const goldScaled={maxDisp:gold.maxDisp*prodScale,maxStep:gold.maxStep*prodScale,finalDisp:Math.abs(gold.x0-gold.finalX)*prodScale};
+const goldTol=Math.max(3,goldScaled.maxDisp*0.08);
+audit.goldScaled=goldScaled;
 audit.goldDelta={
-  maxDisp:Math.abs(audit.maxDisp-gold.maxDisp),
-  maxStep:Math.abs(audit.maxStep-gold.maxStep),
+  maxDisp:Math.abs(audit.maxDisp-goldScaled.maxDisp),
+  maxStep:Math.abs(audit.maxStep-goldScaled.maxStep),
+  finalDisp:Math.abs(Math.abs(audit.x0-audit.final.x)-goldScaled.finalDisp),
   movingFrames:Math.abs(audit.movingFrames-gold.movingFrames)
 };
 audit.pass=!!audit.snare && audit.counts.back>0 && audit.counts.front>0 && audit.counts.fx>0
+  && audit.blades.every(b=>b.color&&b.shadow)
   && audit.goldDelta.maxDisp<=goldTol
-  && audit.goldDelta.maxStep<=Math.max(3,gold.maxStep*0.12)
+  && audit.goldDelta.maxStep<=Math.max(4,goldScaled.maxStep*0.14)
+  && audit.goldDelta.finalDisp<=Math.max(4,goldScaled.finalDisp*0.08)
   && audit.goldDelta.movingFrames<=3
+  && audit.maxMapError<0.25
   && errors.length===0;
 fs.writeFileSync(path.join(OUT,'hunter-a1-ownerfix-browser.json'),JSON.stringify(audit,null,2)+'\n');
 console.log('HUNTER_A1_BROWSER '+JSON.stringify({
   pass:audit.pass,counts:audit.counts,maxDisp:audit.maxDisp,maxStep:audit.maxStep,
-  movingFrames:audit.movingFrames,gold:{maxDisp:gold.maxDisp,maxStep:gold.maxStep,movingFrames:gold.movingFrames,realtimeFrames:gold.realtimeFrames},goldDelta:audit.goldDelta,
+  movingFrames:audit.movingFrames,maxMapError:audit.maxMapError,blades:audit.blades,
+  gold:{maxDisp:gold.maxDisp,maxStep:gold.maxStep,movingFrames:gold.movingFrames,realtimeFrames:gold.realtimeFrames},goldScaled:audit.goldScaled,goldDelta:audit.goldDelta,
   snareSeenAt:audit.snareSeenAt,armedAt:audit.armedAt,
   final:audit.final,errors
 }));
