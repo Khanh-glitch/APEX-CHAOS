@@ -413,7 +413,7 @@ check('P20-presentation-adapter-registers-and-integrates-chamber', presReady,
 // P24: Cropped bloom preserves authored blur pipeline while limiting transparent acreage.
 {
   const cv = createCanvas(1000, 1000), cx = cv.getContext('2d');
-  const bloom = GOLD.createBloomSystem({ width:1000, height:1000, scale:.5, createCanvas });
+  const bloom = G.createBloomSystem({ width:1000, height:1000, scale:.5, createCanvas });
   const region = { x:200, y:180, w:320, h:280 };
   const m = { a:1.1,b:0,c:0,d:1.1,e:20,f:-10 };
   const gx = bloom.begin(m, region);
