@@ -872,6 +872,7 @@
       const qx=f.x-fl.x,qy=f.y-fl.y,along=qx*fl.dx+qy*fl.dy,side=Math.abs(qx*(-fl.dy)+qy*fl.dx);
       if (along>=0 && along<=fl.activeLength && side<=fl.width/2) frostMult = ct.heroId === 'ICE' ? Math.max(frostMult,2.35) : Math.min(frostMult,0.60);
     }
+    for (const tr of (M.world.frostTrails || [])) if (pointToSegmentDist(f.x,f.y,tr.x1,tr.y1,tr.x2,tr.y2) <= tr.width/2 + (f.radius||0)) frostMult = ct.heroId === 'ICE' ? Math.max(frostMult,2.35) : Math.min(frostMult,0.60);
     if ((f.data.__frostColdShockUntil||0) > AIL.clock()) frostMult = Math.min(frostMult, f.data.__frostColdShockMult || 0.50);
     f.data.__frostSpeedMult = frostMult;
     // Explicit-mechanic motion states (dash/pounce/nest) already integrated
