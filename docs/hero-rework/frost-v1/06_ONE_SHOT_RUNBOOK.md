@@ -46,12 +46,13 @@ Read in package order:
 - README_PRELOAD.md
 - this runbook
 - 00_FROST_IMPLEMENTATION_AUTHORITY.md
-- 01_OWNER_APPROVED_GOLD_REFERENCE.html
+- gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html
 - 02_GOLD_TO_GAME_ADAPTATION_MAP.md
 - 03_IMPLEMENTATION_TEST_MATRIX.md
 - 04_ZERO_CONTEXT_HANDOFF.md
 - 05_PRELOAD_MANIFEST.json
 - 08_PRELOAD_HOSTILE_AUDIT.md
+- 09_FINAL_GOLD_REBUILD_AUTHORITY.md
 - 07_ACTIVE_AGENT_TASK_FROST_V1.md
 
 Then inspect current live source at the anchored tip:
@@ -74,7 +75,7 @@ Do not port Gold demo controls/AI.
 Do not invent progression/SFX.
 
 Gameplay doc owns gameplay.
-Gold owns presentation.
+Gold owns presentation. The canonical Gold is the exact 981,597-byte file recorded in 09_FINAL_GOLD_REBUILD_AUTHORITY.md.
 APEX baseline owns physics/inventory/damage.
 
 ## 4. Implementation strategy
@@ -199,11 +200,11 @@ Do not edit Hunter/Robot/Crystala semantics to make a broad harness green.
 
 ## 8. Gold bridge
 
-Keep exact Gold reference immutable.
+Keep the exact canonical Gold reference immutable. The obsolete 975,616-byte reference is not an authority and must not be used.
 Do not load/parse the whole reference HTML during normal gameplay.
 Extract/bridge actual authored assets/algorithms into production runtime.
 Cache immutable data.
-Gold parity must be observed at normal battle scale on light-gray/real arena.
+Gold parity must be observed at normal battle scale on light-gray/real arena, including whole-scene stability. A1/A2 flicker, missing ice detail, opponent scale flicker, detached A2 segments, or undersized Frost presentation are release blockers.
 A face/head asset bridge alone is insufficient. A1/A2/Frozen Gun/Frozen Bullet/steal/freeze-shell/crack/thaw must all be mapped to real gameplay state/events. Generic fill/stroke geometry is not an acceptable Gold substitute.
 
 ## 9. No SFX pass
