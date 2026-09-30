@@ -929,7 +929,7 @@ await gate('G07-anti-tunnelling-is-shared-geometry-not-robot-hunter-rewrites', (
   const PROTECTED = {   // byte-identical to the Hunter owner-fix / prep baseline 12613d89 (protected semantics)
     'public/game/arsenal/arsenalChamberPaletteRuntime.js': '547ed50a88dbf1a10e8eb3f2fcdf69e3930ad10547302f8e6b48cc8b29425978',
     'public/game/arsenal/arsenalMetaRuntime.js': 'c7bca2c76d954a2887f311d4c00515e2c6350fc707fd98bf0f9d02c37280021d',
-    'public/game/hero-rework/hunterPresentationRuntime.js': '0766e066e7154c548ce9406f46b59eebd2245f6a8b8045b998febe13a7907608',
+    'public/game/hero-rework/hunterPresentationRuntime.js': '4f836341ee81a046e7345434ca68229b09b2e416a11ca3507b13b5279c077880',
     'public/game/hero-rework/robotPresentationRuntime.js': '27856fca5ccda11674a825948a0f98ea48a62e9fe23b27e49200570f09e1c24c',
     'public/game/hero-rework/hunterGoldV10.js': '3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1',
     'public/game/arsenal/arsenalWeaponRuntime.js': '70f26c3fa049e572fe9e9d045adc3a8d0b46f569b22e0b990f1a073b2d16c9b3',
