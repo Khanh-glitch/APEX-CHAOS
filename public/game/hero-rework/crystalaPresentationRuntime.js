@@ -301,6 +301,86 @@
     else if (typeof g.setTimeout === 'function') g.setTimeout(one, 0);
   })();
 
+  // Stable construct raster cache. Gold remains the source renderer: a cache is
+  // created only after all visible build/pulse/hit animation has settled, at 2x
+  // supersampling. Any new lit/stress/crack/break/collapse state immediately
+  // invalidates it and resumes procedural Gold rendering.
+  const constructRasterCache = new WeakMap();
+  const constructCacheStats = { builds:0, hits:0, invalidations:0 };
+  const CACHE_SS = 2;
+
+  function cacheCanvas(w, h) {
+    let cv = null;
+    if (typeof OffscreenCanvas !== 'undefined') {
+      try { cv = new OffscreenCanvas(w, h); } catch (e) { cv = null; }
+    }
+    if (!cv && typeof document !== 'undefined' && document.createElement) {
+      cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    }
+    return cv;
+  }
+
+  function wallRasterStable(w) {
+    if (!w || !w.solid || w.collapsed || w.collapsing || !Array.isArray(w.segs)) return false;
+    if (w.seamT != null && w.seamT >= 0 && w.seamT < 0.62) return false;
+    for (const sg of w.segs) {
+      if (!sg || sg.dead || (sg.grow || 0) < 0.999) return false;
+      if ((sg.lit || 0) > 0.012 || (sg.stress || 0) > 0.012) return false;
+      if (sg.cracks && sg.cracks.some(cr => (cr.glow || 0) > 0.012)) return false;
+    }
+    return true;
+  }
+
+  function prisonRasterStable(p) {
+    if (!p || !p.solid || p.collapsed || (p.pulse != null && p.pulse >= 0) || !Array.isArray(p.edges)) return false;
+    for (const e of p.edges) {
+      if (!e || e.dead || e.collapsing || !e.grown || (e.lit || 0) > 0.012 || !e.wallGeom) return false;
+      for (const sg of (e.wallGeom.segs || [])) {
+        if (!sg || sg.dead || (sg.lit || 0) > 0.012 || (sg.stress || 0) > 0.012) return false;
+      }
+    }
+    return true;
+  }
+
+  function constructRasterStable(cons) {
+    return cons && (cons.kind === 'wall' ? wallRasterStable(cons.geom)
+      : cons.kind === 'prison' ? prisonRasterStable(cons.prison) : false);
+  }
+
+  function cachedConstructLayer(ctx, cons, front) {
+    if (!constructRasterStable(cons)) {
+      if (constructRasterCache.has(cons)) {
+        constructRasterCache.delete(cons); constructCacheStats.invalidations += 1;
+      }
+      return false;
+    }
+    let entry = constructRasterCache.get(cons);
+    if (!entry) {
+      const b = constructBloomBounds(cons);
+      if (!b) return false;
+      const pad = 8;
+      const minX=b.minX-pad, minY=b.minY-pad, maxX=b.maxX+pad, maxY=b.maxY+pad;
+      const ww=maxX-minX, wh=maxY-minY;
+      entry={ minX,minY,ww,wh,layers:{} };
+      constructRasterCache.set(cons,entry);
+    }
+    const key = cons.kind === 'wall' ? 'wall' : (front ? 'front' : 'back');
+    let cv = entry.layers[key];
+    if (!cv) {
+      cv = cacheCanvas(Math.max(1,Math.ceil(entry.ww*CACHE_SS)),Math.max(1,Math.ceil(entry.wh*CACHE_SS)));
+      if (!cv) return false;
+      const cc=cv.getContext('2d');
+      cc.setTransform(CACHE_SS,0,0,CACHE_SS,-entry.minX*CACHE_SS,-entry.minY*CACHE_SS);
+      cc.clearRect(entry.minX,entry.minY,entry.ww,entry.wh);
+      if (cons.kind === 'wall') GOLD.drawWall(cc,cons.geom,false);
+      else GOLD.drawPrison(cc,cons.prison,false,!!front);
+      entry.layers[key]=cv; constructCacheStats.builds += 1;
+    }
+    ctx.drawImage(cv,entry.minX,entry.minY,entry.ww,entry.wh);
+    constructCacheStats.hits += 1;
+    return true;
+  }
+
   function renderWorldConstructsAndFx(ctx, emissive = false, front = null) {
     const M = HR && HR.match;
     if (!M || !GOLD) return;
@@ -316,13 +396,13 @@
         // back/front edges. This prevents Wall/FX from being doubled by the
         // engine's pre-actor drawProjectiles pass plus post-actor front pass.
         if (cons.kind === 'wall' && cons.geom) {
-          if (drawBack) GOLD.drawWall(ctx, cons.geom, emissive);
+          if (drawBack && (emissive || !cachedConstructLayer(ctx,cons,false))) GOLD.drawWall(ctx, cons.geom, emissive);
         } else if (cons.kind === 'prison' && cons.prison) {
           if (front == null) {
-            GOLD.drawPrison(ctx, cons.prison, emissive, false);
-            GOLD.drawPrison(ctx, cons.prison, emissive, true);
+            if (emissive || !cachedConstructLayer(ctx,cons,false)) GOLD.drawPrison(ctx, cons.prison, emissive, false);
+            if (emissive || !cachedConstructLayer(ctx,cons,true)) GOLD.drawPrison(ctx, cons.prison, emissive, true);
           } else {
-            GOLD.drawPrison(ctx, cons.prison, emissive, front);
+            if (emissive || !cachedConstructLayer(ctx,cons,front)) GOLD.drawPrison(ctx, cons.prison, emissive, front);
           }
         }
       }
@@ -484,6 +564,7 @@
     renderStatusVfx: drawGenericStatusVfx,
     renderWorldConstructsAndFx,
     runBloomPass,
+    constructCacheStats,
   };
 
   g.APEX_CRYSTALA_PRESENTATION = api;
