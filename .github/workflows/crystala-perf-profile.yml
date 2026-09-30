@@ -6,6 +6,7 @@ on:
       - arena/01a0ee80-apex-chaos
     paths:
       - 'tools/profileCrystalaPerformance.mjs'
+      - 'tools/analyzeCrystalaDecisionTradeoffs.mjs'
       - '.github/workflows/crystala-perf-profile.yml'
       - 'public/game/hero-rework/crystalGameplayRuntime.js'
       - 'public/game/hero-rework/crystalaGoldV6.js'
