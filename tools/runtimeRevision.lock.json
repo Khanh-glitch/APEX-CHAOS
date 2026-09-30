@@ -1,5 +1,5 @@
 {
-  "revision": "20260930-crystala-v2-r11-frost-v1-d1",
+  "revision": "20260930-crystala-v2-r11-frost-v1-d2",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "a0d10025cde29ee55d6eb95a06aee2cbebe2a56e01adcdb1154f8366e3128712",
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
@@ -20,7 +20,7 @@
     "public/game/modes/arsenalQuestRuntime.js": "c82047c13559e550a541dd7fbc5179d5c8b9765871e544d885dc685c95e3a8de",
     "public/game/hero-rework/crystalaGoldV6.js": "cea96dc2b58f5c41fb482e196ec0cf9a2b9c25bb21f2b7df37afc2787b67ab2f",
     "public/game/hero-rework/crystalGameplayRuntime.js": "cc49b83d4f41e8f913bb95d32c731d45daf144588c2f528c6e95613eb503db93",
-    "public/game/hero-rework/frostGameplayRuntime.js": "f429102d57f93ee30fe170d3bd0ab19190d985b9942e54c290e4cf0b136cd141",
+    "public/game/hero-rework/frostGameplayRuntime.js": "b1445f0004e04ec6910879540739dda35033c48941841b181c1557ca38b115c7",
     "public/game/hero-rework/heroMechanicsRuntime.js": "d693115daea51f0a548ea6847c9bfafcde55e5e94f1920c00b0765efd00c1d86",
     "public/game/hero-rework/heroReworkRuntime.js": "fe4cbd76a9e5e8780e097c2d691ad15915eeef07d6565b892f5a9c8c9a2ba590",
     "public/game/hero-rework/robotPresentationRuntime.js": "27856fca5ccda11674a825948a0f98ea48a62e9fe23b27e49200570f09e1c24c",
@@ -28,6 +28,6 @@
     "public/game/hero-rework/hunterPresentationRuntime.js": "a5e414a61a25ce5595d129a712785b59fa68f996febb29cdf361b36302c645e2",
     "public/game/hero-rework/crystalaPresentationRuntime.js": "f50ec334fff37debc4e8b4c7647deed331e32eb926ea64234eb1b26f53819432",
     "public/game/hero-rework/frostGoldV1.js": "e7513271079212c618f56507bc6fd150d272b44bbe2a0a9b36319ff68a2b1eb6",
-    "public/game/hero-rework/frostPresentationRuntime.js": "d7aed0cba6f91a5f28b14f2e6ac4dca2274b3193838d171b29d437f5d382ba3f"
+    "public/game/hero-rework/frostPresentationRuntime.js": "b4b7896f80a5bcdd3e9c7c6539eb348d978b9da42b924d65d37f9f57684ab9d6"
   }
 }

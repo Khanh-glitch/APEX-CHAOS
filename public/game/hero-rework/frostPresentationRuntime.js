@@ -166,8 +166,10 @@ function createState(ct) {
     kBody: (2 * ((f && f.radius) || 75)) / GOLD_BODY_REF_H,
     laneK: ((+cfg.a1.width || 160) / 2) / GOLD_LANE_HALF_W,
     trailK: ((+cfg.a2.trailWidth || 120) / 2) / GOLD_TRAIL_HALF_W,
-    a1: { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [] },
-    a2: { live: false },
+    a1: { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99 },
+    a2: { live: false, started: false },
+    castQ: [],       // deferred Gold cast admissions (FIFO, truth-checked)
+    castSeq: 0, castStarts: 0, castDeferred: 0, castDropped: 0,
     victim: null, // { id, seizeE }
     froze: new Map(), // bodyId -> { timer, startE }
     shocks: new Map(), // bodyId -> { atE, until }
@@ -219,8 +221,10 @@ function resetEngineVisuals(S, m) {
     e.huntGoal = 0;
   } catch (err) { warnOnce(err); }
   S.tOff = null;
-  S.a1 = { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [] };
-  S.a2 = { live: false };
+  S.a1 = { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99 };
+  S.a2 = { live: false, started: false };
+  S.castQ.length = 0;
+  S.castSeq = 0; S.castStarts = 0; S.castDeferred = 0; S.castDropped = 0;
   S.victim = null;
   S.froze.clear(); S.shocks.clear(); S.guns.clear(); S.flecks.clear();
   S.heldVg = null; S.suppressHolder = null; S.match = m || null;
@@ -331,13 +335,20 @@ function onSteal(ev) {
   const sx = carrier ? carrier.x : f.x, sy = carrier ? carrier.y : f.y;
   const vg = e.mkGun(sx, sy, 0, 'transfer');
   vg.a0 = 0; vg.tx0 = sx; vg.ty0 = sy;
-  vg.tStart = e.t; vg.tDur = 0.44;
+  const dockDur = (FR && FR.LAW && +FR.LAW.stealDockSeconds) || 0.44;
+  vg.tStart = e.t; vg.tDur = dockDur;
   let spin = 1;
   try { spin = (G.rnd(0, 1) < 0.5 ? -1 : 1) * G.TAU * 1.25; } catch (err) {}
   vg.spin = spin;
   vg.frostStart = e.t; vg.snapAt = e.t + 0.3; vg.thawAt = Infinity;
   const holder = f && f.data ? f.data.arsenal : null;
-  S.guns.set('steal:' + e.t.toFixed(3), { vg, kind: 'transfer', weapon: p.weapon, holder, longSide: gunLongSide(p.weapon, holder && holder.def) });
+  S.guns.set('steal:' + e.t.toFixed(3), {
+    vg, kind: 'transfer', weapon: p.weapon, holder,
+    dockAt: (p.dockAt != null ? p.dockAt : clock() + dockDur),
+    longSide: gunLongSide(p.weapon, holder && holder.def),
+  });
+  // In flight: the base equipped draw for this exact holder is suppressed
+  // (holderSuppressed) so the weapon exists in exactly one place on screen.
   S.suppressHolder = holder || null;
 }
 
@@ -416,6 +427,69 @@ function syncClock(S, now) {
   return S.tOff;
 }
 
+// ------------------------------------------------- Gold cast admission queue
+// Gameplay may run A1 and A2 independently (both are live truth at once);
+// Gold serializes them through a single `mode` and REJECTS castA1/castA2
+// while the other mode owns the actor. A rejected call used to drop that
+// visual lifecycle forever. Presentation is truth-driven, so instead of
+// dropping it we DEFER it: the cast waits in a FIFO queue and starts the
+// moment Gold can accept it. Nothing here touches gameplay timing or state
+// — the gameplay ability already ran; only the visual start is deferred,
+// and a deferred cast is retired only when its own gameplay truth is gone.
+function canAcceptCast(S) {
+  try { return S.engine.mode === 'free'; } catch (e) { return false; }
+}
+
+function startCast(S, q, now) {
+  const e = S.engine;
+  if (q.kind === 'a1') {
+    e.a1Len = q.len;
+    e.a1Travel = q.travel;
+    try { e.castA1(q.ang); } catch (err) { warnOnce(err); }
+    S.a1.startedId = q.castId;
+    S.a1.startClock = now;
+  } else {
+    try { e.castA2(); } catch (err) { warnOnce(err); }
+    S.a2.started = true;
+  }
+  S.castStarts = (S.castStarts || 0) + 1;
+}
+
+// Truth check for a still-queued cast: an A1 whose gameplay lane has already
+// expired, or an A2 whose gameplay window has closed, has no truth left to
+// present and is retired instead of being started late.
+function castStillTrue(S, q, now) {
+  if (q.kind === 'a1') return now <= q.validUntil;
+  return !!S.a2.live;
+}
+
+function requestCast(S, q, now) {
+  if (canAcceptCast(S) && !S.castQ.length) { startCast(S, q, now); return; }
+  // Same-kind supersede: a newer cast of the same ability replaces the older
+  // queued one (the older visual's truth is already being overwritten).
+  const i = S.castQ.findIndex((o) => o.kind === q.kind);
+  if (i >= 0) S.castQ.splice(i, 1);
+  S.castQ.push(q);
+  S.castDeferred = (S.castDeferred || 0) + 1;
+}
+
+// Called once per frame AFTER the mode update, so a mode that ended this
+// frame admits its queued successor on the very same frame.
+function pumpCastQueue(S, now) {
+  while (S.castQ.length && canAcceptCast(S)) {
+    const q = S.castQ.shift();
+    if (!castStillTrue(S, q, now)) { S.castDropped = (S.castDropped || 0) + 1; continue; }
+    startCast(S, q, now);
+  }
+}
+
+function dropQueued(S, kind) {
+  const i = S.castQ.findIndex((o) => o.kind === kind);
+  if (i < 0) return false;
+  S.castQ.splice(i, 1);
+  return true;
+}
+
 function tickA1(S, ct, insp, now, dt) {
   const e = S.engine, f = S.fighter;
   const cfg1 = S.cfg.a1;
@@ -424,11 +498,24 @@ function tickA1(S, ct, insp, now, dt) {
     S.a1.pending = true;
     S.a1.castClock = now;
     S.a1.releasedSeen = false;
-    const ang = Math.atan2((f.dir && f.dir.y) || 0, (f.dir && f.dir.x) || 1);
-    e.a1Len = +cfg1.length || 650;
-    e.a1Travel = frontSeconds;
-    try { e.castA1(ang); } catch (err) { warnOnce(err); }
+    // Direction is the gameplay CAST-ACCEPTANCE snapshot, never live f.dir:
+    // a wall/body bounce during commitment turns the body, but the breath
+    // and the front must stay on the lane gameplay committed to. Live dir is
+    // only a fallback for a truth surface that predates the snapshot.
+    const cast = insp.a1cast;
+    const ang = cast
+      ? Math.atan2(+cast.dy || 0, (+cast.dx === 0 && +cast.dy === 0) ? 1 : +cast.dx)
+      : Math.atan2((f.dir && f.dir.y) || 0, (f.dir && f.dir.x) || 1);
+    S.a1.castAng = ang;
     const commit = +cfg1.castCommit || 0.25;
+    requestCast(S, {
+      kind: 'a1', ang,
+      len: +cfg1.length || 650,
+      travel: frontSeconds,
+      castId: (cast && cast.id) || ++S.castSeq,
+      // A1 truth ends with its gameplay lane (front + floor lifetime).
+      validUntil: now + commit + frontSeconds + (+cfg1.floorLifetime || 4.5),
+    }, now);
     S.a1.holdUntil = now + commit - A1_RELEASE_BEAT;
   }
   if (insp && !insp.pending && S.a1.pending) {
@@ -457,15 +544,18 @@ function tickA1(S, ct, insp, now, dt) {
   }
 }
 
-function tickA2(S, insp) {
+function tickA2(S, insp, now) {
   const e = S.engine;
   const live = !!(insp && insp.a2live);
   if (live && !S.a2.live) {
     S.a2.live = true;
-    try { e.castA2(); } catch (err) { warnOnce(err); }
+    requestCast(S, { kind: 'a2' }, now);
   } else if (!live && S.a2.live) {
     S.a2.live = false;
-    try { e.endA2(); } catch (err) { warnOnce(err); }
+    // If the hunt visual never got its Gold slot, retire the queued start
+    // (its truth is gone) — endA2 belongs only to a hunt that really began.
+    if (dropQueued(S, 'a2') && !S.a2.started) S.castDropped = (S.castDropped || 0) + 1;
+    else if (S.a2.started) { S.a2.started = false; try { e.endA2(); } catch (err) { warnOnce(err); } }
   }
   const segLife = +((S.cfg.a2 && S.cfg.a2.segmentLifetime) || 3.5);
   for (const n of e.ice.nodes) {
@@ -607,9 +697,14 @@ function tickGuns(S, now, dt) {
     } catch (err) {}
     try { e.updateGunVisual(rec.vg, dt, target); } catch (err) { warnOnce(err); }
     if (rec.vg.owner !== 'transfer') {
-      S.guns.delete(key); // arrived: the held visual takes over next tick
+      S.guns.delete(key); // docked: the held visual takes over next tick
       if (S.suppressHolder && rec.holder && S.suppressHolder === rec.holder) S.suppressHolder = null;
       else if (S.suppressHolder && !rec.holder) S.suppressHolder = null;
+    } else if (rec.dockAt != null && now > rec.dockAt + 0.5) {
+      // Safety: a transfer whose holder vanished mid-flight (consumed) must
+      // never leave the base draw suppressed.
+      S.guns.delete(key);
+      if (S.suppressHolder === rec.holder) S.suppressHolder = null;
     }
   }
   // Sweep consumed holders / picked-up slots.
@@ -716,7 +811,10 @@ function driveEngine(S, ct, dt) {
     const en = foes && foes[0];
     if (en) e.aim = damp(e.aim, e.aim + angDiff(e.aim, angTo(e.fx, e.fy, en.x, en.y)), 0.08, dt);
   } catch (err) {}
-  tickA2(S, insp);
+  tickA2(S, insp, now);
+  // Admit deferred casts: the mode branch above may have freed Gold this
+  // very frame (A1 auto-ends at 0.8s; endA2 on window close).
+  pumpCastQueue(S, now);
   tickVictims(S, ct, now, dt);
   tickGuns(S, now, dt);
   tickFlecks(S, dt);
@@ -966,6 +1064,19 @@ function drawHeldOverlay(S, ctx, h) {
   });
 }
 
+// A stolen holder is ONE object in ONE place: while it is in Gold transfer
+// flight it is drawn by drawTransferGuns at the flight position, so the base
+// equipped-weapon draw (and its frost overlay) must be suppressed until dock
+// — otherwise the same weapon renders twice, in Frost's hand and mid-air.
+// Truth order: the gameplay dock stamp first (authoritative), the per-state
+// suppressHolder latch second (transfer record still in flight).
+function holderSuppressed(h) {
+  if (!h) return false;
+  try { if (FR && typeof FR.holderInTransfer === 'function' && FR.holderInTransfer(h)) return true; } catch (e) {}
+  for (const [, S] of liveStates) if (S.suppressHolder === h) return true;
+  return false;
+}
+
 function wrapArsenalAV() {
   if (wrapArsenalAV.done) return;
   try {
@@ -975,6 +1086,7 @@ function wrapArsenalAV() {
     AV.__frostWrapped = true;
     const base = AV.drawEquippedWeapon.bind(AV);
     AV.drawEquippedWeapon = function (c, f, h) {
+      try { if (holderSuppressed(h)) return false; } catch (err) { warnOnce(err); }
       const r = base(c, f, h);
       try {
         if (h && h.__frostFrozen && f) {
@@ -1060,6 +1172,11 @@ api.inspect = function (f) {
     iceNodes: e.ice.nodes.length, carves: e.ice.carves.length,
     guns: S.guns.size, victim: S.victim ? S.victim.id : null, shocks: S.shocks.size,
     transfers: Array.from(S.guns.values()).filter((r) => r && r.kind === 'transfer').length,
+    suppressed: !!S.suppressHolder,
+    // Deferred-cast bookkeeping (lossless A1/A2 concurrency).
+    queued: S.castQ.length, queuedKinds: S.castQ.map((q) => q.kind),
+    castStarts: S.castStarts, castDeferred: S.castDeferred, castDropped: S.castDropped,
+    a1Started: S.a1.startedId, a1CastAng: +S.a1.castAng.toFixed(4), a2Started: !!S.a2.started,
     kBody: +S.kBody.toFixed(3), laneK: +S.laneK.toFixed(3), trailK: +S.trailK.toFixed(3),
   };
 };

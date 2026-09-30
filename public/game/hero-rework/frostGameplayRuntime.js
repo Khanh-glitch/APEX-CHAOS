@@ -50,6 +50,13 @@ const FROST_LAW = Object.freeze({
   frontSeconds: 0.45,     // A1 near->far crystallization front duration
   nodeSpacing: 10,        // A2 trail node spacing (px of real travel)
   speedRefresh: 0.12,     // status refresh cadence (RUBBER precedent)
+  // A2 steal: ownership moves IMMEDIATELY (authority §7.5 — the holder is
+  // Frost's the instant contact resolves), but the stolen weapon is in
+  // transfer flight until it docks in Frost's hand. Gold's transfer arc is
+  // 0.44s; that same number is the operational dock eligibility point, so
+  // the remaining firing sequence cannot resume mid-flight. Single shared
+  // constant: gameplay gates the driver with it, presentation flies with it.
+  stealDockSeconds: 0.44,
 });
 
 function pointSegDist(px, py, ax, ay, bx, by) {
@@ -130,6 +137,51 @@ function holderUid(h) {
   return u;
 }
 
+/* ------------------------------------------------------------------ *
+ * A2 steal transfer window (authority §7.5).
+ *
+ * Ownership is immediate (the pointer move in noteBodyContact), but the
+ * stolen holder is physically in flight for FROST_LAW.stealDockSeconds and
+ * must NOT resume its remaining firing sequence before it docks: no elapsed
+ * advance, no canActivate/activate, no def.update -> no shot, no cadence
+ * drift. The EXACT holder object and every field on it (shotsFired, phase,
+ * meta/pose, elapsed) is preserved untouched — this is a driver gate, never
+ * a re-equip or reset.
+ *
+ * Implementation: one idempotent pass-through wrapper on weaponApi's own
+ * updateHolder (both call sites — arsenalQuestRuntime and heroReworkRuntime
+ * — go through this property). During the window the holder is detached for
+ * the duration of the base call only, so the base driver sees UNARMED and
+ * still advances that fighter's pose ghosts; everything else in the game is
+ * untouched.
+ * ------------------------------------------------------------------ */
+function holderInTransfer(h, now) {
+  const fz = h && h.__frostFrozen;
+  if (!fz || !fz.stolen || !(fz.dockAt > 0)) return false;
+  return (now == null ? clock() : now) < fz.dockAt;
+}
+
+function ensureTransferDockGate() {
+  if (ensureTransferDockGate.done) return;
+  const WAPI = g.APEX_ARSENAL && g.APEX_ARSENAL.weaponApi;
+  if (!WAPI || typeof WAPI.updateHolder !== 'function') return;
+  ensureTransferDockGate.done = true;
+  if (WAPI.__frostTransferDockGate) return;
+  WAPI.__frostTransferDockGate = true;
+  const base = WAPI.updateHolder;
+  WAPI.updateHolder = function (f, dt) {
+    let held = null;
+    try {
+      const h = f && f.data ? f.data.arsenal : null;
+      if (holderInTransfer(h)) held = h;
+    } catch (e) { held = null; }
+    if (!held) return base.call(this, f, dt);
+    f.data.arsenal = null;            // in flight: invisible to the driver
+    try { return base.call(this, f, dt); }
+    finally { f.data.arsenal = held; } // exact same object back, untouched
+  };
+}
+
 function isFreezableFirearm(slot) {
   if (!slot || slot.kind === 'HEAL') return false;
   const id = slot.weaponId;
@@ -208,6 +260,7 @@ const FR = {
     const ct = ctx.combatant;
     const api = ctx.api;
     if (!ct || !api) return;
+    ensureTransferDockGate(); // idempotent; no-op once installed
     const st = stateOf(ct);
     const now = clock();
     const a1cfg = ct.skills.A1 && ct.skills.A1.cfg;
@@ -452,10 +505,13 @@ const FR = {
     const h = WAPI.getHolder(carrier);
     if (!h || !h.weaponId) return true;
     if (!isFreezableFirearm({ weaponId: h.weaponId, tier: h.meta && h.meta.tier })) return true;
+    ensureTransferDockGate();
     carrier.data.arsenal = null;
     anchor.data.arsenal = h;
-    h.__frostFrozen = { weaponId: h.weaponId, at: now, stolen: true };
-    busEmit('FrostSteal', { weapon: h.weaponId, shotsFired: h.shotsFired, from: carrier.id });
+    // Ownership is immediate; the firing sequence resumes only at dockAt.
+    const dockAt = now + FROST_LAW.stealDockSeconds;
+    h.__frostFrozen = { weaponId: h.weaponId, at: now, stolen: true, dockAt, from: carrier.id };
+    busEmit('FrostSteal', { weapon: h.weaponId, shotsFired: h.shotsFired, from: carrier.id, dockAt });
     return true;
   },
 
@@ -468,6 +524,13 @@ const FR = {
     const now = clock();
     return {
       pending: !!st.a1pending,
+      // Exact cast-acceptance direction snapshot (never re-read live dir):
+      // presentation must aim breath down the SAME lane gameplay committed
+      // to, even if a wall/body bounce turns Frost during commitment.
+      a1cast: st.a1pending
+        ? { dx: st.a1pending.dx, dy: st.a1pending.dy, id: st.a1pending.id,
+            castAt: st.a1pending.castAt, releaseAt: st.a1pending.releaseAt }
+        : null,
       lanes: st.a1lanes.map((l) => ({
         ox: +l.ox.toFixed(1), oy: +l.oy.toFixed(1),
         front: +frontLen(l, now).toFixed(1), len: l.len,
@@ -485,6 +548,7 @@ const FR = {
     };
   },
   isFreezableFirearm,
+  holderInTransfer,   // stolen holder still in Gold transfer flight (pre-dock)
 };
 
 g.APEX_FROST = FR;

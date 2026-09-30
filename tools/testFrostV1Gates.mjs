@@ -2358,6 +2358,141 @@ try {
     { coreEW, coreES, allEW, allES, bytes: cE.length });
 } catch (e) { gate('F12.17-frontal-identity', false, String(e && e.message)); }
 
+/* ---- F12.18-20: audited presentation corrections (pre-playtest) ------- */
+
+// F12.18 — A1 and A2 are independent gameplay truth, but Gold serializes
+// them through one `mode` and rejects the second cast. The visual must be
+// DEFERRED (queued) and started when Gold can accept it, never dropped,
+// and gameplay timing must not move at all.
+try {
+  // Leg A: A1 first, A2 pressed during the A1 mode.
+  const oA = stillPair(300, 500, 1, 850, 850);
+  const ctA = HR.byCombatant(oA.a);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(oA.a);
+  T.step(2 / 60);
+  HR.pressAbility(oA.a, 'A2');
+  T.step(2 / 60);
+  const qA = P().inspect(oA.a);
+  const gA = FR().inspect(ctA);
+  // Gameplay ran immediately (window live, trail already growing) while the
+  // Gold visual sits in the queue: deferral is presentation-only.
+  const deferredA = qA.mode === 'a1' && qA.queued === 1 && qA.queuedKinds[0] === 'a2' && gA.a2live;
+  let startedA = false, aTrail = 0;
+  for (let k = 0; k < 20 && !startedA; k++) {
+    T.step(0.1);
+    const i = P().inspect(oA.a);
+    startedA = i.a2Started && i.queued === 0;
+    aTrail = i.a2.trail;
+  }
+  for (let k = 0; k < 6; k++) { oA.a.x += 14; T.step(3 / 60); }
+  const iA = P().inspect(oA.a);
+  const bothA = iA.a1.released && iA.a1.nodes >= 40 && iA.a2Started && iA.a2.trail >= 1 &&
+    iA.castStarts === 2 && iA.castDropped === 0;
+
+  // Leg B: A2 first, A1 pressed during the hunt.
+  const oB = stillPair(300, 500, 1, 850, 850);
+  const ctB = HR.byCombatant(oB.a);
+  HR.pressAbility(oB.a, 'A2');
+  T.step(2 / 60);
+  const castOk = win.APEX_ARSENAL_SKILL_GATE.pressJ(oB.a);
+  T.step(2 / 60);
+  const qB = P().inspect(oB.a);
+  const deferredB = qB.mode === 'a2' && qB.queued === 1 && qB.queuedKinds[0] === 'a1';
+  // Gameplay A1 keeps its own schedule while the visual waits.
+  T.step(0.5);
+  const gLane = FR().inspect(ctB).lanes.length === 1;
+  let releasedB = false, nodesB = 0;
+  for (let k = 0; k < 60 && !releasedB; k++) {
+    T.step(0.1);
+    const i = P().inspect(oB.a);
+    releasedB = i.a1.released;
+    nodesB = i.a1.nodes;
+  }
+  const iB = P().inspect(oB.a);
+  const bothB = releasedB && nodesB >= 40 && iB.castStarts === 2 && iB.castDropped === 0 && iB.queued === 0;
+  gate('F12.18-concurrent-cast-lossless',
+    deferredA && startedA && bothA && castOk && deferredB && gLane && bothB,
+    { legA: { deferred: deferredA, started: startedA, nodes: iA.a1.nodes, trail: iA.a2.trail, starts: iA.castStarts, dropped: iA.castDropped },
+      legB: { deferred: deferredB, gameplayLane: gLane, released: releasedB, nodes: nodesB, starts: iB.castStarts, dropped: iB.castDropped } });
+} catch (e) { gate('F12.18-concurrent-cast-lossless', false, String(e && e.message)); }
+
+// F12.19 — A1 direction is the gameplay CAST-ACCEPTANCE snapshot. A real
+// body bounce during the commitment window reverses the live body dir; the
+// breath/front must still point down the lane gameplay committed to.
+try {
+  const o = withCtl(frostPair());
+  const ct = HR.byCombatant(o.a);
+  o.a.x = 400; o.a.y = 500; o.a.setDir(1, 0);
+  o.b.x = 520; o.b.y = 500; o.b.setDir(-1, 0); o.b.baseSpeed = 0;
+  T.step(1 / 60);
+  o.a.x = 400; o.a.y = 500; o.a.setDir(1, 0); o.b.x = 520; o.b.y = 500;
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  const cast = FR().inspect(ct).a1cast;      // snapshot at acceptance
+  T.step(16 / 60);                            // bounce happens inside the commit
+  const bounced = o.a.dir.x < -0.5;           // live dir really reversed
+  const gi = FR().inspect(ct);
+  const pi = P().inspect(o.a);
+  const e = P().engineFor(o.a);
+  const nodes = (e.a1.nodes || []).map((w) => w && w.n).filter(Boolean);
+  const ahead = nodes.filter((n) => n.x > e.a1.ox).length;
+  const snapAng = Math.atan2(cast.dy, cast.dx);
+  const angOk = Math.abs(Math.atan2(Math.sin(pi.a1.ang - snapAng), Math.cos(pi.a1.ang - snapAng))) < 0.01;
+  const laneOk = gi.lanes.length === 1 && nodes.length >= 40 && ahead >= nodes.length - 2;
+  gate('F12.19-a1-dir-snapshot',
+    !!cast && cast.dx === 1 && bounced && angOk && laneOk,
+    { snapshot: cast && [cast.dx, cast.dy], liveDir: +o.a.dir.x.toFixed(2), presAng: pi.a1.ang, nodes: nodes.length, ahead });
+} catch (e) { gate('F12.19-a1-dir-snapshot', false, String(e && e.message)); }
+
+// F12.20 — one stolen holder is ONE object in ONE place: during the Gold
+// transfer the base equipped-weapon draw is suppressed, so the weapon is
+// rendered only along the flight arc — never in Frost's hand at the same
+// time — and the hand takes over exactly at dock.
+try {
+  const o = contactDuel();
+  W().equip(o.b, 'PISTOL');
+  const h0 = W().getHolder(o.b);
+  const AV = win.APEX_ARSENAL_AV;
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.2);
+  touchBodies(o);
+  T.step(3 / 60);
+  const owned = W().getHolder(o.a) === h0 && W().getHolder(o.b) === null;
+  // Spy the real draw path (no direct base calls: the base draw needs loaded
+  // sprite images that only exist in a browser).
+  const spSprite = spyMethod(AV, 'drawWeaponSprite');
+  const origEq = AV.drawEquippedWeapon;
+  let eqRet = [];
+  AV.drawEquippedWeapon = function (...a) { const r = origEq.apply(this, a); if (a[2] === h0) eqRet.push(r); return r; };
+  T.redraw();
+  const flight1 = spSprite.calls;
+  const pos1 = spSprite.args.length ? [spSprite.args[0][2], spSprite.args[0][3]] : null;
+  const baseSkipped = eqRet.length === 1 && eqRet[0] === false; // wrapper returned before base
+  const iFly = P().inspect(o.a);
+  spSprite.calls = 0; spSprite.args.length = 0; eqRet = [];
+  T.step(4 / 60);
+  T.redraw();
+  const flight2 = spSprite.calls;
+  const pos2 = spSprite.args.length ? [spSprite.args[0][2], spSprite.args[0][3]] : null;
+  // Exactly one weapon rendering per frame, and it MOVES along the arc while
+  // Frost stands still: it is the transfer, not a second in-hand copy.
+  const flew = !!pos1 && !!pos2 && Math.hypot(pos2[0] - pos1[0], pos2[1] - pos1[1]) > 3;
+  spSprite.calls = 0; spSprite.args.length = 0; eqRet = [];
+  T.step(0.6);
+  T.redraw();
+  const docked = P().inspect(o.a);
+  const dockedSprite = spSprite.calls;            // no flight sprite after dock
+  const dockedBaseDraws = eqRet.length === 1 && eqRet[0] !== false; // hand draw restored
+  AV.drawEquippedWeapon = origEq;
+  spSprite.release();
+  gate('F12.20-transfer-no-duplicate-draw',
+    owned && flight1 === 1 && flight2 === 1 && flew && baseSkipped &&
+    iFly.transfers === 1 && iFly.guns === 1 && iFly.suppressed === true &&
+    docked.transfers === 0 && docked.guns === 1 && docked.suppressed === false &&
+    dockedSprite === 0 && dockedBaseDraws,
+    { flight: [flight1, flight2], flew, baseSkipped, inFlight: [iFly.transfers, iFly.guns, iFly.suppressed],
+      atDock: [docked.transfers, docked.guns, docked.suppressed, dockedSprite, dockedBaseDraws] });
+} catch (e) { gate('F12.20-transfer-no-duplicate-draw', false, String(e && e.message)); }
+
 /* ================= F13 — Lifecycle / performance ===================== */
 try {
   const o = stillPair(200, 700, 1, 900, 100);
@@ -2463,6 +2598,49 @@ try {
   if (!chrome) console.log('F13.6 BLOCKED: no Chrome/Chromium binary — real-browser profile cannot run here');
   gate('F13.6-browser-perf', true, chrome ? { chrome, headless30redrawMs: ms } : { status: 'BLOCKED-no-chrome-binary', headless30redrawMs: ms });
 } catch (e) { gate('F13.6-browser-perf', false, String(e && e.message)); }
+
+// F13.7 — authority §7.5: ownership changes IMMEDIATELY, but the stolen
+// holder may not resume its remaining firing sequence before the Gold
+// transfer/dock point. The exact holder object and all of its metadata
+// survive untouched (pointer move, never a fresh equip/reset).
+try {
+  const o = contactDuel();
+  W().equip(o.b, 'SMG');            // 8-shot sequence: dock window covers ~5 shots
+  const h0 = W().getHolder(o.b);
+  const meta0 = h0.meta;
+  h0.__gateMark = 'keep-me';
+  const spEquip = spyMethod(W(), 'equip');
+  T.step(0.6);                       // enemy starts its real firing sequence
+  const shotsBefore = h0.shotsFired;
+  const elapsedBefore = h0.elapsed;
+  HR.pressAbility(o.a, 'A2');
+  T.step(2 / 60);
+  touchBodies(o);
+  T.step(2 / 60);
+  const stolen = W().getHolder(o.a) === h0 && W().getHolder(o.b) === null;   // ownership immediate
+  const inFlight = !!FR().holderInTransfer(h0);
+  const shotsAtSteal = h0.shotsFired;
+  const elapsedAtSteal = h0.elapsed;
+  const projBefore = win.projectiles.filter((p) => p && p.owner === o.a).length;
+  T.step(0.25);                      // still mid-flight (dock = 0.44s)
+  const midFlight = !!FR().holderInTransfer(h0);
+  const frozenSeq = h0.shotsFired === shotsAtSteal && Math.abs(h0.elapsed - elapsedAtSteal) < 1e-9 &&
+    win.projectiles.filter((p) => p && p.owner === o.a).length === projBefore;
+  T.step(0.2);                       // just past dock (0.44s)
+  const dockedNow = !FR().holderInTransfer(h0);
+  const elapsedAtDock = h0.elapsed;
+  T.step(0.12);                      // sequence resumes from where it stopped
+  const resumed = h0.shotsFired > shotsAtSteal && h0.elapsed > elapsedAtDock;
+  const intact = W().getHolder(o.a) === h0 && h0.meta === meta0 && h0.__gateMark === 'keep-me' &&
+    h0.weaponId === 'SMG' && h0.shotsFired >= shotsBefore && h0.__frostFrozen.stolen === true &&
+    h0.__frostFrozen.weaponId === 'SMG' && spEquip.calls === 0;
+  spEquip.release();
+  gate('F13.7-transfer-predock-no-fire',
+    stolen && inFlight && midFlight && frozenSeq && dockedNow && resumed && intact &&
+    shotsBefore >= 1 && elapsedBefore > 0,
+    { shots: [shotsBefore, shotsAtSteal, h0.shotsFired], frozenSeq, midFlight, dockedNow, resumed,
+      sameObject: W().getHolder(o.a) === h0, equipCalls: spEquip.calls });
+} catch (e) { gate('F13.7-transfer-predock-no-fire', false, String(e && e.message)); }
 
 /* ================= summary ============================================ */
 const names = Object.keys(report.gates);
