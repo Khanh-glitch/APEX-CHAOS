@@ -17,6 +17,7 @@ on:
       - 'tools/testHeroReworkHunterOwnerFixGates.mjs'
       - 'tools/testCrystalaGameplayGates.mjs'
       - 'tools/testCrystalaGoldParity.mjs'
+      - 'tools/auditHunterA1OwnerFix.mjs'
   workflow_dispatch:
 
 permissions:
@@ -78,6 +79,12 @@ jobs:
           APEX_APP_URL: http://127.0.0.1:4173
         run: node tools/profileCrystalaPerformance.mjs
 
+      - name: Run Hunter A1 production-browser proof
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:4173
+        run: node tools/auditHunterA1OwnerFix.mjs
+
       - name: Upload profile
         if: always()
         uses: actions/upload-artifact@v4
@@ -86,4 +93,5 @@ jobs:
           path: |
             docs/hero-rework/crystala-v1/perf/crystala-performance-profile.json
             /tmp/crystala-perf-vite.log
+            docs/hero-rework/hunter-v1.1/evidence-ownerfix/
           if-no-files-found: warn
