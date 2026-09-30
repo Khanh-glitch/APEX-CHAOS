@@ -1,7 +1,7 @@
 # FROST V1 — PRELOAD HOSTILE AUDIT
 
 Date: 2026-09-30
-Status: PRELOAD READY / NO PRODUCTION IMPLEMENTATION YET
+Status: PRELOAD + FINAL REBUILD PACKAGE / OWNER PLAYTEST PRESENTATION FAILURE RECORDED
 
 ## Reference truth
 
@@ -63,15 +63,15 @@ At baseline:
 ## Gold selection audit
 
 Selected authority:
-`FROST_GOLD_FUSION_FINAL.html`
+`FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html`
 
 Repo path:
-`docs/hero-rework/frost-v1/01_OWNER_APPROVED_GOLD_REFERENCE.html`
+`docs/hero-rework/frost-v1/gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html`
 
 Owner-source:
-- bytes: 975,616
+- bytes: 981,597
 - logical lines: 2,969
-- SHA-256: `59201be3d33bdfbeb8459656d3ef37caf922382a06852bd7a609472fdce2da43`
+- SHA-256: `940fc9a8a181cc40d965ebf2c4309d1b4816d3016fc191b0d3df8a1a65be2475`
 
 The later Signature prototype is NOT selected for this implementation.
 
@@ -79,7 +79,7 @@ During preload construction an initial text-chunk assembly produced a two-byte-s
 - lines 1–1000: exact chars/checksum/boundaries;
 - lines 1001–2000: exact chars/checksum/boundaries;
 - lines 2001–2969: exact chars/checksum/boundaries;
-- final Git file byte count: 975,616.
+- final Git file byte count: 981,597.
 
 The preflight script independently hashes the fetched Git Gold before anchoring and fails if it does not equal the owner SHA above.
 
@@ -156,3 +156,19 @@ Concrete shortcut failures converted into new preload law:
 9. **Browser unavailable was treated too softly.** If real browser/Gold parity is blocked, the result cannot be called visually complete/accepted.
 
 The rejected attempt contained some useful architectural direction (ICE storage -> FROST display alias, Frost-local floor state, exact-holder intent), but none of its implementation code is authority. Re-derive the implementation cleanly from this preload and the exact live baseline.
+
+
+## Fifth hostile audit — owner-playtest presentation failure
+
+The first production Frost implementation was green in deterministic gates but failed direct owner playtest. This is negative evidence against the presentation bridge, not against the underlying Frost gameplay laws.
+
+Observed failures:
+1. A2 trail breaks into disconnected/detached ice masses and visibly differs from the canonical Gold.
+2. Activating A1/A2 can corrupt the entire battle render: ice flickers, authored details disappear/reappear, and unrelated rendering is affected.
+3. The opponent can repeatedly scale large/small during A1/A2.
+4. Frost's battle-scale visual is smaller than peer fighters.
+5. Additional visual defects exist beyond the owner's enumerated list.
+
+Required response: stop symptom patching; verify the exact 981,597-byte canonical Gold; audit render-state isolation, transform/scale leakage, shared Gold actor state, double-render paths and asynchronous asset/cache lifecycle; rebuild the presentation adapter around the correct Gold; add explicit release gates for whole-scene stability and A2 continuity; prove the result in a real browser at battle scale.
+
+The old 975,616-byte Gold and any generated presentation artifacts derived from it are not presentation authority.
