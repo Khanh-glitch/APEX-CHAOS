@@ -26,11 +26,13 @@ Stable storage/canonical roster key remains ICE for compatibility.
 Product/display identity is FROST.
 
 Required semantic identity:
-- storageId = ICE
-- productId = FROST
-- aliases include ICE and FROST
-- class/mechanic identity is rework.frost / frost.*
+- canonical registry/storage/save key remains ICE;
+- product/display identity is FROST;
+- external lookup may accept ICE and FROST as aliases to that same definition;
+- class/mechanic identity is rework.frost / frost.*;
 - there must be only one playable hero definition, never a duplicate ICE + FROST roster entry.
+
+These are semantic requirements, not permission to invent unnecessary schema fields. Preserve the live registry key/id and rework shell identity `ICE` where the engine contract expects them; add only the smallest tested display/alias layer required for FROST.
 
 Both ICE and FROST external lookups must resolve to the same FROST product hero where alias resolution is appropriate.
 UI/shop/pick/HUD/product copy must display FROST.
@@ -87,8 +89,9 @@ Playtest V0:
 At accepted cast, snapshot Frost's current meaningful locomotion/orientation direction.
 A1 does NOT aim at the opponent and does NOT retarget toward weapon aim.
 
-Only the cast commitment may stop/lock locomotion.
-After the cast commitment ends, normal APEX locomotion resumes even if the visual crystallization front is still completing.
+A1 itself MUST NOT stop, brake, zero, steer, or `positionLocked` Frost. The ~0.25s cast commitment is ability/presentation timing only. Frost continues normal APEX locomotion and normal wall/body bounce throughout it unless an unrelated authoritative external CC/status already locks movement.
+
+At the ~0.25s release/floor-build moment, use Frost's authoritative production world position at that moment as the lane origin, while keeping the direction snapshotted at cast acceptance. Renderer lag/offset is never gameplay position authority.
 
 ### 4.2 Floor formation
 
@@ -96,9 +99,9 @@ A1 freezes the floor near -> far.
 Playtest V0:
 - total length: 650px
 - width: 160px
-- stable floor lifetime: 4.5s
+- stable floor lifetime: 4.5s after the near->far crystallization front completes.
 
-The authoritative active floor grows with the crystallization progression; do not activate an invisible full 650px rectangle before the front reaches it.
+The authoritative active floor grows with the crystallization progression; do not activate an invisible full 650px rectangle before the front reaches it. The A1 cast shares one lane expiry after front completion; do not make the near end disappear early merely because it materialized first.
 
 Gold owns the visible breath/front/material formation.
 Gameplay owns exact world support and timers.
@@ -115,7 +118,8 @@ Eligible object:
 - not T6 / Stormbreaker.
 
 When an eligible revealed firearm lies on active A1 floor:
-- it remains the same pickup slot/object;
+- it remains the same pickup slot/object and remains phase REVEALED;
+- it continues to count exactly as the same revealed firearm for Arsenal active-cap/emergency-spawn truth;
 - mark that exact slot as Frozen;
 - opponent cannot collect it;
 - Frost can collect it only through ordinary physical pickup contact and ordinary one-holder eligibility;
@@ -133,7 +137,7 @@ Playtest V0 thaw:
 - about 0.30s.
 - if A1 support returns during thaw, cancel thaw and keep Frozen.
 
-If the Frozen firearm remains on the floor until thaw completes, it returns to normal pickup law.
+If the Frozen firearm remains on the floor until thaw completes, it returns to normal pickup law immediately. Frozen denial must be dynamic state, not a permanent rejected/blacklisted pickup condition.
 
 If Frost physically picks it up before thaw completes:
 - create/equip the normal real holder exactly once through the existing pickup path;
@@ -271,9 +275,11 @@ If target is also on Frozen Floor x0.60, x0.50 wins; they do not multiply.
 On a valid new body contact during A2:
 IF:
 - Frost is unarmed;
-- contacted enemy body holds an eligible ranged firearm;
+- the contacted opponent currently owns an eligible ranged firearm according to the live APEX one-holder / BodyProfile equipment-carrier authority;
 THEN:
-- transfer the exact existing holder object/state from that body to Frost;
+- transfer that exact existing holder object/state from the opponent's authoritative current equipment carrier to Frost;
+
+Do not assume a multi-body opponent's colliding Body is automatically the equipment carrier. Do not invent a second holder or a new multi-body equipment rule for Frost.
 - enemy immediately stops owning it;
 - do not call the normal fresh equip() constructor;
 - do not call consume() as part of transfer;

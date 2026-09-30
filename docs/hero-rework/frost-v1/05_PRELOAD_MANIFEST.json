@@ -66,6 +66,7 @@
     "03_IMPLEMENTATION_TEST_MATRIX.md",
     "04_ZERO_CONTEXT_HANDOFF.md",
     "05_PRELOAD_MANIFEST.json",
+    "08_PRELOAD_HOSTILE_AUDIT.md",
     "07_ACTIVE_AGENT_TASK_FROST_V1.md"
   ],
   "preload_scope": {

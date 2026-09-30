@@ -110,3 +110,15 @@ The package is sufficient for a new zero-context Arena agent to:
 6. preserve current CRYSTALA/ROBOT/HUNTER/Arsenal behavior.
 
 Implementation remains subject to owner playtest after automated/browser evidence.
+
+## Second hostile audit corrections
+
+A full re-audit after the initial preload found and corrected five prep-level risks before implementation:
+
+1. **A1 cast-lock wording was too permissive.** The earlier preload allowed the ~0.25s A1 cast to position-lock Frost. This contradicted the latest corrected APEX-physics Frost harness and the base locomotion law. The authority/tests now require native locomotion to continue throughout A1; only direction is snapshotted at cast acceptance, and floor origin is taken from Frost's real release-time position.
+2. **Mandatory read order omitted this audit file.** README, manifest and runbook now all include `08_PRELOAD_HOSTILE_AUDIT.md` before the active task.
+3. **Preflight protected only dirty working trees, not unique committed history.** Anchoring now refuses destructive reset unless current HEAD is already in preload ancestry or is a clean disposable ancestor of fetched `origin/main`.
+4. **Frozen floor firearm must preserve global spawn truth.** It stays the same `REVEALED` slot and continues to count for offensive cap/emergency-firearm presence; temporary Frozen denial cannot permanently blacklist the opponent after thaw.
+5. **A2 steal must follow the live equipment-carrier law.** For a multi-body opponent, the implementation must query the current authoritative one-holder/BodyProfile carrier rather than assuming the colliding Body owns the gun.
+
+These corrections do not change the selected Gold, Playtest V0 numbers, CRYSTALA/ROBOT/HUNTER semantics, Arsenal damage/crit law, or the no-SFX/no-Lv2-5 scope.

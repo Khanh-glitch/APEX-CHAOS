@@ -27,12 +27,13 @@ Never push implementation commits to the reference or preload branch.
 At start:
 1. record current Arena branch and HEAD;
 2. verify working tree clean or preserve local work;
-3. fetch director/frost-v1-preload-20260930 explicitly;
+3. fetch director/frost-v1-preload-20260930 and origin/main explicitly;
 4. verify 6b83fc6502eb8e23e4bd122074fc7fdfb47441ae is an ancestor of preload tip;
 5. verify the preload differs from baseline only by Frost docs/reference/support tooling;
 6. verify Gold hash;
-7. anchor the current clean Arena session branch forward to the preload tip using Arena-permitted workflow;
-8. push that session branch and remote-verify before implementation.
+7. before any hard anchor, prove current HEAD is already represented by preload ancestry OR is a clean disposable ancestor of fetched origin/main; otherwise REFUSE destructive reset and preserve/reconcile the branch first;
+8. anchor only a proven-safe clean Arena session branch forward to the preload tip;
+9. push that session branch and remote-verify before implementation.
 
 The support preflight script can perform the read-only checks and optional clean anchoring.
 
@@ -47,6 +48,7 @@ Read in package order:
 - 03_IMPLEMENTATION_TEST_MATRIX.md
 - 04_ZERO_CONTEXT_HANDOFF.md
 - 05_PRELOAD_MANIFEST.json
+- 08_PRELOAD_HOSTILE_AUDIT.md
 - 07_ACTIVE_AGENT_TASK_FROST_V1.md
 
 Then inspect current live source at the anchored tip:

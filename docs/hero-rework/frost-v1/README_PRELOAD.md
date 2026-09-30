@@ -27,7 +27,8 @@ A new Arena chat must remain on its Arena-assigned session branch. It may fetch 
 5. 03_IMPLEMENTATION_TEST_MATRIX.md
 6. 04_ZERO_CONTEXT_HANDOFF.md
 7. 05_PRELOAD_MANIFEST.json
-8. 07_ACTIVE_AGENT_TASK_FROST_V1.md
+8. 08_PRELOAD_HOSTILE_AUDIT.md
+9. 07_ACTIVE_AGENT_TASK_FROST_V1.md
 
 Also read the baseline source files and protected-system authorities named by the runbook before editing.
 

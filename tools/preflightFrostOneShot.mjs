@@ -29,11 +29,14 @@ const dirty = textRun('git',['status','--porcelain']);
 if (dirty) fail('Working tree is dirty; preserve work before anchoring.');
 
 run('git',['fetch','origin',
-  'refs/heads/'+PRELOAD+':refs/remotes/origin/'+PRELOAD
+  'refs/heads/'+PRELOAD+':refs/remotes/origin/'+PRELOAD,
+  'refs/heads/main:refs/remotes/origin/main'
 ], {stdio:['ignore','inherit','inherit']});
 
 const preloadRef='refs/remotes/origin/'+PRELOAD;
 const preloadTip=textRun('git',['rev-parse',preloadRef]);
+const mainTip=textRun('git',['rev-parse','refs/remotes/origin/main']);
+const currentHead=textRun('git',['rev-parse','HEAD']);
 try { run('git',['merge-base','--is-ancestor',BASELINE,preloadTip]); }
 catch { fail('Required baseline is not an ancestor of preload tip.'); }
 
@@ -53,13 +56,22 @@ const refSha=sha256(goldFromRef);
 if(refSha!==GOLD_SHA) fail('Gold SHA mismatch in fetched preload ref: '+refSha);
 
 console.log('[FROST PREFLIGHT] baseline:',BASELINE);
+console.log('[FROST PREFLIGHT] current HEAD:',currentHead);
+console.log('[FROST PREFLIGHT] origin/main:',mainTip);
 console.log('[FROST PREFLIGHT] preload tip:',preloadTip);
 console.log('[FROST PREFLIGHT] preload files:',changed.length);
 console.log('[FROST PREFLIGHT] Gold SHA OK in fetched ref:',refSha);
 
 if(args.has('--anchor')){
+  const isAncestorOf=(a,b)=>{try{run('git',['merge-base','--is-ancestor',a,b]);return true;}catch{return false;}};
+  const representedByPreload=isAncestorOf(currentHead,preloadTip);
+  const disposableMainline=isAncestorOf(currentHead,mainTip);
+  if(!representedByPreload && !disposableMainline){
+    fail('Refusing destructive anchor: current HEAD has committed history not represented by preload/main. Preserve and reconcile it first.');
+  }
   run('git',['reset','--hard',preloadTip],{stdio:['ignore','inherit','inherit']});
-  console.log('[FROST PREFLIGHT] anchored current session branch:',branch);
+  console.log('[FROST PREFLIGHT] anchored current session branch:',branch,
+    representedByPreload?'(HEAD already represented by preload)':'(clean disposable mainline ancestor)');
   const localSha=sha256(readFileSync(GOLD));
   if(localSha!==GOLD_SHA) fail('Anchored working-tree Gold SHA mismatch: '+localSha);
   console.log('[FROST PREFLIGHT] anchored Gold SHA OK:',localSha);

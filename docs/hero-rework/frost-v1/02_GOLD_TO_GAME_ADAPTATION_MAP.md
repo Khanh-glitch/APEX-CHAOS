@@ -68,10 +68,13 @@ Gold:
 - final material settling.
 
 Production:
-- ~0.25 cast commitment only;
+- ~0.25 cast commitment is presentation/ability timing, NOT a movement lock;
+- native APEX locomotion, wall bounce and body bounce continue through the cast;
+- direction is snapshotted when the cast is accepted;
+- lane origin is Frost's real world position at release/build time, not the renderer's lagged pose;
 - authoritative materialized floor grows near -> far to 650x160;
-- support/lifetime data owns speed and pickup rules;
-- normal locomotion resumes after cast commitment even if the front continues visually.
+- after the front completes, the shared A1 lane stays active for 4.5s;
+- support/lifetime data owns speed and pickup rules.
 
 A1 frozen pickup presentation reads the real slot state.
 It never teleports/copies a gun.
@@ -121,7 +124,7 @@ Overlap may refresh/extend support but never multiplies movement modifiers.
 ## I. Frozen firearm mapping
 
 Floor pickup:
-- same slot stays at same world position.
+- same slot stays REVEALED at the same world position and therefore keeps the same Arsenal cap/emergency-spawn meaning.
 - presentation overlays physical frost material around/on the real gun sprite.
 - no generic replacement ice-gun sprite.
 

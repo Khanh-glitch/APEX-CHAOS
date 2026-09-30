@@ -33,6 +33,7 @@ Port the selected Fusion Gold faithfully as presentation.
 
 ## Non-negotiable corrections
 
+- A1 ~0.25s cast does NOT stop/brake/position-lock native locomotion;
 - no generic/homing A2 steering;
 - preserve original APEX heading/inertia/wall/body bounce;
 - no sticky contact;

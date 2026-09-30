@@ -9,6 +9,7 @@ F00.1 exact implementation ancestry contains 6b83fc6502eb8e23e4bd122074fc7fdfb47
 F00.2 preload-only commit changes no production runtime vs baseline.
 F00.3 final implementation diff is audited for unrelated CRYSTALA/ROBOT/HUNTER/Chamber regressions.
 F00.4 runtime revision/hash lock is intentionally updated only after implementation.
+F00.5 preflight/anchoring refuses destructive reset when the Arena session HEAD contains unique committed history not already represented by the preload or a clean disposable mainline ancestor.
 
 ## F01 — Identity / migration
 
@@ -35,15 +36,16 @@ F02.5 independent weapon aim does not rewrite fighter dir.
 F03.1 valid cast consumes cooldown exactly once.
 F03.2 direction snapshots current meaningful locomotion/orientation, not enemy bearing and not weapon aimAngle.
 F03.3 opposite movement directions produce opposite world lanes.
-F03.4 cast commitment ~0.25s may lock position, then native locomotion resumes while front can still be visible.
-F03.5 direct skill damage remains 0.
-F03.6 cooldown is 10.5s.
+F03.4 A1 never sets positionLocked, zeroes speed, brakes, or steers Frost; native movement/bounce continues throughout the ~0.25s cast unless an unrelated external CC is authoritative.
+F03.5 if Frost moves during the cast, release/build origin follows Frost's real position at release while lane direction remains the direction snapshotted at cast acceptance.
+F03.6 direct skill damage remains 0.
+F03.7 cooldown is 10.5s.
 
 ## F04 — A1 Frozen Floor
 
 F04.1 final world footprint is 650x160.
 F04.2 gameplay floor materializes near -> far; far edge is not active before front reaches it.
-F04.3 stable lifetime is 4.5s under the authority's lifecycle definition.
+F04.3 A1 lane support expires 4.5s after the crystallization front completes; the near end does not decay early solely because it was born first.
 F04.4 Frost on floor receives x2.35.
 F04.5 enemy on floor receives x0.60.
 F04.6 leaving A1 floor applies only approved ~0.35s linger where applicable.
@@ -65,6 +67,8 @@ F05.10 thaw begins only after final support ends; completes ~0.30s later.
 F05.11 renewed support during thaw cancels thaw.
 F05.12 when thaw completes on floor, opponent normal pickup becomes legal.
 F05.13 if Frost picks up before thaw, resulting holder remains Frozen after floor expires.
+F05.14 Frozen floor firearm stays the SAME REVEALED slot and continues to count once for offensive active-cap and both-unarmed emergency-spawn truth.
+F05.15 opponent denial while Frozen does not create a permanent pickup rejection; after thaw the same opponent is immediately eligible under ordinary pickup law.
 
 ## F06 — Frozen Gun
 
@@ -126,7 +130,7 @@ F10.6 unrelated non-Frost slow/speed semantics are unchanged.
 
 ## F11 — A2 exact-holder steal
 
-F11.1 Frost unarmed + active A2 + real contact + enemy ranged firearm => exact holder object transfers.
+F11.1 Frost unarmed + active A2 + real contact + opponent owns an eligible ranged firearm under live APEX one-holder/BodyProfile law => exact holder object transfers from the authoritative equipment carrier.
 F11.2 enemy holder becomes null; Frost holder is the exact pre-contact object reference.
 F11.3 transfer does not call fresh equip(), consume(), cleanup(), or create a destruction pose ghost.
 F11.4 no floor slot/duplicate holder is created.
@@ -138,6 +142,7 @@ F11.9 Frost already armed -> no transfer/swap/storage; enemy keeps firearm; Cold
 F11.10 melee/grenade/shield/T6 never transfer.
 F11.11 repeated same overlap cannot steal/proc again without separation.
 F11.12 owner/provenance/damage/crit law after transfer uses Frost as real holder/owner for subsequent shots through normal weapon runtime.
+F11.13 multi-body opponent handling follows the existing equipment-carrier authority; Frost does not assume every colliding Body owns a holder and does not create any new second-slot rule.
 
 ## F12 — Gold parity / event truth
 

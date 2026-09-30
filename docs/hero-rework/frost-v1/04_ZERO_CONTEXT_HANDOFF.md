@@ -37,15 +37,16 @@ Gold Fusion is selected. Do not substitute the later Signature prototype.
 ## Most dangerous historical mistakes
 
 1. Do not invent global steering. APEX heading/inertia/bounce is a product law.
-2. Do not let Gold renderer motion feed back into production body movement.
-3. Do not fake contact from an animation endpoint; real physics contact is truth.
-4. Do not call equip() for A2 steal: it resets holder state.
-5. Do not roll shotgun Freeze per pellet.
-6. Do not layer Frost onto old ice.* mechanics.
-7. Do not let legacy iceVisualRuntime render old ICE block/text/audio over Frost Gold.
-8. Do not make a test pass by pinning/zero-speeding the body when the test claims to prove locomotion.
-9. Do not treat CI green as visual/feel acceptance.
-10. Do not keep large unpushed local work; Arena workspaces can disappear.
+2. Do not turn A1's ~0.25s cast into a movement stop/position lock; corrected Frost keeps native locomotion running.
+3. Do not let Gold renderer motion feed back into production body movement.
+4. Do not fake contact from an animation endpoint; real physics contact is truth.
+5. Do not call equip() for A2 steal: it resets holder state.
+6. Do not roll shotgun Freeze per pellet.
+7. Do not layer Frost onto old ice.* mechanics.
+8. Do not let legacy iceVisualRuntime render old ICE block/text/audio over Frost Gold.
+9. Do not make a test pass by pinning/zero-speeding the body when the test claims to prove locomotion.
+10. Do not treat CI green as visual/feel acceptance.
+11. Do not keep large unpushed local work; Arena workspaces can disappear.
 
 ## Baseline facts already audited
 
@@ -53,7 +54,7 @@ Gold Fusion is selected. Do not substitute the later Signature prototype.
 - HR.shellUpdate is already corrected to native inertia; preserve it.
 - engine anchor collision already separates 50/50 and reflects dirs; reuse it.
 - weapon equip() creates a fresh holder with READY / elapsed 0 / shotsFired 0; forbidden for steal.
-- holder lives at fighter.data.arsenal and is suitable for an exact transfer primitive.
+- holder lives at fighter.data.arsenal and is suitable for an exact transfer primitive; for multi-body opponents, query the current authoritative equipment carrier instead of assuming the colliding Body owns it.
 - shotgun/autoshot pellet emission lacks a shared semantic blast id; add the narrowest grouping hook.
 - spawn pickup resolver has no Frozen-slot eligibility rule; add the narrowest slot eligibility/metadata hook.
 - iceVisualRuntime keys old freeze visuals/audio to ICE source identity; Frost needs semantic suppression.
