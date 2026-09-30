@@ -84,7 +84,7 @@ function newTele() {
     overflowThreats: 0, overflowHits: 0, reservations: 0, intercepts: 0, aborts: 0,
     repeatIntercepts: 0, reflectedDamage: 0, preventedDamage: 0, shardBusySeconds: 0,
     constructDamage: 0, wallBreaks: 0, facetBreaks: 0, constructEnds: [], jPerK: [],
-    constructReflects: 0, reflectedProjectiles: 0,
+    constructReflects: 0, reflectedProjectiles: 0, urgentReservations: 0,
   };
 }
 
@@ -204,7 +204,7 @@ function classify(st, p, now, dt) {
   if (tHit >= p.life) { if (first) st.tele.ignoredExpired += 1; return { drop: 'expired' }; }
   const blockT = firstBlock(p, Math.min(tHit, p.life));
   if (blockT != null && blockT < tHit) { if (first) st.tele.ignoredBlocked += 1; return { drop: 'blocked' }; }
-  return { p, hr, tHit, d0x, d0y, wx, wy, RH };
+  return { p, hr, tHit, d0x, d0y, wx, wy, RH, dist0 };
 }
 
 function stonePos(st, id) { const s = st.rig.stones[id]; return s; }
@@ -214,30 +214,62 @@ function physicalLeadFor(st, id, ip) {
   return travel * TRAVEL_K + TRAVEL_BASE;
 }
 function rescueBandsFor(c) {
-  // Keep a real safety gap outside the body hit radius. The final dynamic band
-  // is only used for extreme fast shots (SNIPER-class) that still have the
-  // authored 0.12 s anticipation from first sight to real contact.
-  const finalBand = Math.ceil(c.RH + 16);
-  return [...new Set([...RESCUE_BANDS, finalBand])]
-    .filter(b => b > c.RH + 12 && b <= BAND)
+  // 180 px remains the authored Gold-preferred contact. Inward bands are
+  // progressively later opportunities before the real body hit.
+  const finalBand = Math.ceil(c.RH + 12);
+  const emergencyBand = c.dist0 > c.RH + 2
+    ? Math.max(c.RH + 2, Math.min(finalBand, c.dist0 - 1))
+    : null;
+  return [...new Set([...RESCUE_BANDS, finalBand, emergencyBand].filter(Number.isFinite))]
+    .filter(b => b > c.RH + 1 && b <= BAND && b < c.dist0)
     .sort((a, b) => b - a);
 }
 function interceptOption(st, c, id, band, dt) {
-  // Preferred authored contact is 180 px. For fast/close real shots, move the
-  // meeting point inward only as far as needed to preserve the 0.12 s visible
-  // anticipation beat. Contact remains a real moving-shard TOI before body hit.
   const tBand = firstWithin(c.d0x, c.d0y, c.wx, c.wy, band);
   if (tBand == null || tBand <= 0 || tBand >= c.tHit || tBand >= c.p.life) return null;
   const ip = { x: c.p.x + c.p.vx * tBand, y: c.p.y + c.p.vy * tBand };
   const physicalLead = physicalLeadFor(st, id, ip);
   const rescue = band < BAND;
-  // Rescue reservations launch immediately in this same Crystal tick, so they
-  // retain the full remaining flight time. Preferred 180px JIT plans keep the
-  // historical one-tick scheduling allowance.
   const physicalWindow = rescue ? tBand : Math.max(0, tBand - dt);
-  if (tBand < MIN_LEAD - JIT_SLACK || physicalWindow < physicalLead - JIT_SLACK) return null;
-  const lead = Math.max(MIN_LEAD, physicalLead);
-  return { id, band, tBand, ip, lead, rescue };
+  return {
+    id, band, tBand, ip, physicalLead, rescue,
+    visualLeadOk: tBand >= MIN_LEAD - JIT_SLACK,
+    physicalOk: physicalWindow >= physicalLead - JIT_SLACK,
+  };
+}
+function chooseIntercept(st, c, free, taken, dt) {
+  const bands = rescueBandsFor(c);
+  const all = [];
+  for (const band of bands) {
+    for (const id of free) {
+      if (taken.has(id)) continue;
+      const o = interceptOption(st, c, id, band, dt);
+      if (!o) continue;
+      o.score = st.rig.scoreStone(st.rig.stones[id], c.p.vx, c.p.vy, o.ip);
+      all.push(o);
+    }
+  }
+  if (!all.length) return null;
+
+  // Tier 0: Gold-preferred readable interception (>=0.12 s and normal travel).
+  // Tier 1: still physically reachable, but too urgent for the full anticipation beat.
+  // Tier 2: last-chance guardian dash. The shard uses the SAME Gold Hermite
+  // trajectory/contact/refract/recoil/return grammar, simply compressed into
+  // the actual remaining time. This is the hero fantasy: an AVAILABLE shard
+  // defends independently instead of the whole K system declining the shot.
+  const tier = (o) => o.physicalOk && o.visualLeadOk ? 0 : o.physicalOk ? 1 : 2;
+  all.sort((a, b) => {
+    const ta = tier(a), tb = tier(b);
+    if (ta !== tb) return ta - tb;
+    if (ta === 2 && Math.abs(a.tBand - b.tBand) > 1e-9) return b.tBand - a.tBand; // latest safe contact = most travel time
+    if (Math.abs(a.band - b.band) > 1e-9) return b.band - a.band;                 // otherwise preserve 180px preference
+    return b.score - a.score;
+  });
+  const best = all[0];
+  best.urgent = tier(best) > 0;
+  best.accelerated = tier(best) === 2;
+  best.lead = Math.max(1 / 120, best.physicalOk ? best.physicalLead : best.tBand);
+  return best;
 }
 
 function predictorStep(st, now, dt) {
@@ -275,38 +307,45 @@ function predictorStep(st, now, dt) {
     }
 
     if (!plan) {
-      let anyFree = false;
-      for (const band of rescueBandsFor(c)) {
-        let best = null, bestScore = -Infinity;
-        for (const id of free) {
-          if (taken.has(id)) continue;
-          anyFree = true;
-          const candidate = interceptOption(st, c, id, band, dt);
-          if (!candidate) continue;
-          const sc = st.rig.scoreStone(st.rig.stones[id], c.p.vx, c.p.vy, candidate.ip);
-          if (sc > bestScore + 1e-9) { bestScore = sc; best = candidate; }
-        }
-        if (best) { opt = best; plan = { id: best.id, band: best.band }; break; }
-      }
+      opt = chooseIntercept(st, c, free, taken, dt);
+      if (opt) plan = { id: opt.id, band: opt.band };
       c.hr.cryPlan = plan;
       if (!plan) {
-        // Once even the latest admissible real contact cannot preserve the
-        // anticipation beat, this projectile is honestly unreachable.
-        if (c.tHit - dt < MIN_LEAD - JIT_SLACK) {
-          c.hr.cryLost = anyFree ? 'unreachable' : 'busy';
-          if (!anyFree) { st.tele.overflowThreats += 1; c.hr.cryOverflow = true; }
-          else st.tele.ignoredUnreachable += 1;
+        const anyFree = free.some((id) => !taken.has(id));
+        // Capacity is per-shard, never global. A real incoming hit is dropped
+        // only when no distinct AVAILABLE shard remains to own this threat.
+        if (!anyFree) {
+          c.hr.cryLost = 'busy';
+          st.tele.overflowThreats += 1;
+          c.hr.cryOverflow = true;
+        } else if (c.tHit <= Math.max(dt, 1 / 120)) {
+          // Extremely late discovery with a free shard: record honestly, but
+          // this means the projectile is already at the body inside this tick.
+          c.hr.cryLost = 'unreachable';
+          st.tele.ignoredUnreachable += 1;
         }
         continue;
+      }
+    } else if (!opt) {
+      opt = interceptOption(st, c, plan.id, plan.band, dt);
+      if (!opt) {
+        opt = chooseIntercept(st, c, free, taken, dt);
+        plan = opt ? { id: opt.id, band: opt.band } : null;
+        c.hr.cryPlan = plan;
+        if (!plan) continue;
+      } else {
+        opt.urgent = !opt.visualLeadOk || !opt.physicalOk;
+        opt.accelerated = !opt.physicalOk;
+        opt.lead = Math.max(1 / 120, opt.physicalOk ? opt.physicalLead : opt.tBand);
       }
     }
 
     taken.add(plan.id);
-    // Rescue plans reserve immediately: the visible reserved/awake beat is the
-    // missing anticipation time that made the 180-px meeting impossible. The
-    // shard still launches and must physically contact the live bullet.
-    if (opt.rescue || opt.tBand - dt <= opt.lead + Math.max(JIT_SLACK, dt)) {
-      reserve(st, { ...c, tBand: opt.tBand, ip: opt.ip, band: opt.band, rescue: opt.rescue }, plan.id, now);
+    // Any rescue/urgent assignment launches immediately. Only a healthy 180px
+    // plan waits just-in-time; this keeps maximum independent shard capacity.
+    if (opt.rescue || opt.urgent || opt.tBand - dt <= opt.lead + Math.max(JIT_SLACK, dt)) {
+      reserve(st, { ...c, tBand: opt.tBand, ip: opt.ip, band: opt.band, rescue: opt.rescue,
+        urgent: !!opt.urgent, accelerated: !!opt.accelerated }, plan.id, now);
     }
   }
 }
@@ -325,15 +364,17 @@ function reserve(st, c, id, now) {
   const facet = st.rig.reserve(id, pv);
   const job = {
     id: ++st.jobSeq, shard: id, p, pid: hr.cryPid, ip: c.ip, pv, facet, tContact: now + c.tBand,
-    band: c.band || BAND, rescue: !!c.rescue,
+    band: c.band || BAND, rescue: !!c.rescue, urgent: !!c.urgent, accelerated: !!c.accelerated,
     reservedAt: now, phase: STATE.RESERVED, incoming: scaledDamageOf(p),
   };
   s.state = STATE.RESERVED; s.job = job; s.busyAt = now;
   hr.cryTid = job.id;
   st.jobs.push(job);
   st.tele.reservations += 1;
-  emit('CrystalReserve', { shard: id, tid: job.id, pid: hr.cryPid, tBand: c.tBand, band: job.band, rescue: job.rescue, ip: c.ip });
-  if (job.rescue) launchReservedJob(st, job, now);
+  if (job.urgent) st.tele.urgentReservations += 1;
+  emit('CrystalReserve', { shard: id, tid: job.id, pid: hr.cryPid, tBand: c.tBand, band: job.band, rescue: job.rescue,
+    urgent: job.urgent, accelerated: job.accelerated, ip: c.ip });
+  if (job.rescue || job.urgent) launchReservedJob(st, job, now);
 }
 
 function scaledDamageOf(p) {
