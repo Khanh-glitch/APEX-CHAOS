@@ -11,8 +11,8 @@ import { readFileSync } from 'node:fs';
 
 const BASELINE = '6b83fc6502eb8e23e4bd122074fc7fdfb47441ae';
 const PRELOAD = 'director/frost-v1-preload-20260930';
-const GOLD = 'docs/hero-rework/frost-v1/01_OWNER_APPROVED_GOLD_REFERENCE.html';
-const GOLD_SHA = '59201be3d33bdfbeb8459656d3ef37caf922382a06852bd7a609472fdce2da43';
+const GOLD = 'docs/hero-rework/frost-v1/gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html';
+const GOLD_SHA = '940fc9a8a181cc40d965ebf2c4309d1b4816d3016fc191b0d3df8a1a65be2475';
 
 const args = new Set(process.argv.slice(2));
 const run = (cmd, a = [], opts = {}) =>
