@@ -17,9 +17,9 @@ const fail = (m) => { throw new Error('[frost-bridge] ' + m); };
 const ROOT = process.cwd();
 
 // ---------- S0: Gold identity (authority 00 section 9) ----------
-const GOLD = 'docs/hero-rework/frost-v1/01_OWNER_APPROVED_GOLD_REFERENCE.html';
+const GOLD = 'docs/hero-rework/frost-v1/gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html';
 const GOLD_BYTES = 975616;
-const GOLD_SHA = '59201be3d33bdfbeb8459656d3ef37caf922382a06852bd7a609472fdce2da43';
+const GOLD_SHA = '940fc9a8a181cc40d965ebf2c4309d1b4816d3016fc191b0d3df8a1a65be2475';
 const bytes = fs.readFileSync(path.join(ROOT, GOLD));
 if (bytes.length !== GOLD_BYTES) fail(`Gold byte length ${bytes.length} !== ${GOLD_BYTES}`);
 if (crypto.createHash('sha256').update(bytes).digest('hex') !== GOLD_SHA) fail('Gold SHA-256 mismatch');
