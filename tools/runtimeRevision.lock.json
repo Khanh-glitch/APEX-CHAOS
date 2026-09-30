@@ -24,7 +24,7 @@
     "public/game/hero-rework/heroReworkRuntime.js": "45dd844bddbf69bbdf8b60814d1c9128015ac815d2a429701e91476f7cc06c0d",
     "public/game/hero-rework/robotPresentationRuntime.js": "27856fca5ccda11674a825948a0f98ea48a62e9fe23b27e49200570f09e1c24c",
     "public/game/hero-rework/hunterGoldV10.js": "3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1",
-    "public/game/hero-rework/hunterPresentationRuntime.js": "4f836341ee81a046e7345434ca68229b09b2e416a11ca3507b13b5279c077880",
+    "public/game/hero-rework/hunterPresentationRuntime.js": "c78fb4b41dd164dd762482251040e75f5fd3b2142e77c58c613dbe5ba5fc4099",
     "public/game/hero-rework/crystalaPresentationRuntime.js": "e6986f3ba69ded6100e1d0bcee2245193638bb4907188313d2ce487cce349971"
   }
 }
