@@ -12,6 +12,7 @@ const checks={
   'A1-visible-radius-only':/dist\(b\.x,b\.y,s\.x,s\.y\)<=s\.radius\)/.test(world)&&!/s\.radius\+b\.radius\*\.4/.test(world),
   'A1-exit-away':/a\.setDir\(-c\.axis\.x,-c\.axis\.y\)/.test(mech),
   'A1-gold-spring-world-displacement':/s\.a1Motion=\{x:G\.core\.spring\(340\),px:340,offset:0,goldT:0,timeScale:1,dilate:0\}/.test(pres)&&/G\.core\.springRatio\(m\.x,G\.core\.clamp\(m\.px-55,130,1150\),\.6,\.34,dt\)/.test(pres)&&/m\.offset=\(340-m\.x\.x\)\*s\.scale/.test(pres)&&/const off=motion\.offset\|\|0/.test(mech)&&/c\.origin\.x-c\.axis\.x\*off/.test(mech)&&!/castBaseX/.test(pres),
+  'A1-shorter-post-recoil-lock':/s\.h\.mode==='a1'&&s\.h\.t>=\.62/.test(pres),
   'trap-front-pass-survives-crystal-wrapper':/api\.renderPostWorld=postWorld/.test(pres)&&/bypassedPrevDraw\s*&&\s*g\.APEX_HUNTER_PRESENTATION\?\.renderPostWorld/.test(crystalPres),
   'A2-firearm-disarm':/held\.def\.category==='ranged'/.test(mech)&&/W\.consume\(hit,'hunter-a2-disarm'\)/.test(mech)&&/HunterA2Disarm/.test(mech),
   'A2-zero-direct-damage':/directDamage:0,swept:true/.test(mech),
