@@ -1,0 +1,202 @@
+{
+  "timestamp": "2026-09-30T05:03:27.572Z",
+  "targetBranch": "arena/01a0ee80-apex-chaos",
+  "expectedRevision": "20260930-crystala-presentationfix-r1",
+  "loadedRevision": "20260930-crystala-presentationfix-r1",
+  "browser": "HeadlessChrome/153.0.8010.0",
+  "assertions": {
+    "runtimeRevision": "20260930-crystala-presentationfix-r1",
+    "presReady": true,
+    "hasCrystalCombatant": true,
+    "inspectMatchesGameplayRig": true,
+    "noFallbackRig": true,
+    "kAwakensRig": true,
+    "cameraMatrixReachesBloom": true,
+    "bloomMatrix": {
+      "a": 1.100000023841858,
+      "e": 20,
+      "f": -10
+    },
+    "statusCueDrawn": true
+  },
+  "scenarios": {
+    "RB01": {
+      "pass": true,
+      "data": {
+        "heroId": "CRYSTAL",
+        "awake": 0,
+        "shardsTotal": 6,
+        "shardsOrbit": 6,
+        "inspectAwake": 0,
+        "inspectStonesCount": 6,
+        "weaponEquipped": "PISTOL",
+        "kActive": false,
+        "hp": 1000
+      },
+      "shot": {
+        "path": "/home/user/APEX-CHAOS/docs/hero-rework/crystala-v1/evidence-browser/01-dormant-real-game.png",
+        "size": 405286
+      }
+    },
+    "RB02": {
+      "pass": true,
+      "data": {
+        "castOk": true,
+        "kActive": true,
+        "rigAwake": 0.9400031119054653,
+        "awakeT": 0.9908333333333332,
+        "eyeFlash": 0.21000000000000058,
+        "pendantPulse": 0.2799999999999996,
+        "shardsCount": 6,
+        "inspectAwake": 0.9400031119054653,
+        "inspectStones": [
+          {},
+          {},
+          {},
+          {},
+          {},
+          {}
+        ]
+      },
+      "shot": {
+        "path": "/home/user/APEX-CHAOS/docs/hero-rework/crystala-v1/evidence-browser/02-awake-k-real-game.png",
+        "size": 408645
+      }
+    },
+    "RB03": {
+      "pass": true,
+      "data": {
+        "refractTick": 7,
+        "bulletAtRefract": {
+          "x": 470,
+          "y": 500,
+          "reflected": true
+        },
+        "shardAtRefract": {
+          "id": 1,
+          "state": "REFRACT"
+        },
+        "intercepts": 1,
+        "preventedDamage": 175,
+        "weapon": "PISTOL",
+        "bulletSpeed": 2600
+      },
+      "shot": {
+        "path": "/home/user/APEX-CHAOS/docs/hero-rework/crystala-v1/evidence-browser/03-real-projectile-intercept.png",
+        "size": 234061
+      }
+    },
+    "RB04": {
+      "pass": true,
+      "data": {
+        "returnShardState": "RECOIL",
+        "returnShardPos": {
+          "x": 435,
+          "y": 500
+        },
+        "shards": [
+          {
+            "id": 0,
+            "state": "ORBIT"
+          },
+          {
+            "id": 1,
+            "state": "RECOIL"
+          },
+          {
+            "id": 2,
+            "state": "ORBIT"
+          },
+          {
+            "id": 3,
+            "state": "ORBIT"
+          },
+          {
+            "id": 4,
+            "state": "ORBIT"
+          },
+          {
+            "id": 5,
+            "state": "ORBIT"
+          }
+        ]
+      },
+      "shot": {
+        "path": "/home/user/APEX-CHAOS/docs/hero-rework/crystala-v1/evidence-browser/04-refraction-return.png",
+        "size": 223384
+      }
+    },
+    "RB05": {
+      "pass": true,
+      "data": {
+        "jOk": true,
+        "constructKind": "wall",
+        "shardsCommitted": 0,
+        "wallExists": true,
+        "wallSpan": 220,
+        "debrisCount": 220
+      },
+      "shot": {
+        "path": "/home/user/APEX-CHAOS/docs/hero-rework/crystala-v1/evidence-browser/05-wall-real-game.png",
+        "size": 248999
+      }
+    },
+    "RB06": {
+      "pass": true,
+      "data": {
+        "jOk": true,
+        "constructKind": "prison",
+        "shardsCommitted": 0,
+        "edgesCount": 6,
+        "radius": 135,
+        "targetX": 750,
+        "targetY": 500
+      },
+      "shot": {
+        "path": "/home/user/APEX-CHAOS/docs/hero-rework/crystala-v1/evidence-browser/06-prison-real-game.png",
+        "size": 505987
+      }
+    },
+    "RB07": {
+      "pass": true,
+      "data": {
+        "shakeX": 18,
+        "shakeY": -14,
+        "zoom": 1.06,
+        "rigAwake": 0.9858791750896506,
+        "shardsCount": 6,
+        "kActive": true
+      },
+      "shot": {
+        "path": "/home/user/APEX-CHAOS/docs/hero-rework/crystala-v1/evidence-browser/07-camera-shake-bloom.png",
+        "size": 409845
+      }
+    },
+    "RB08": {
+      "pass": true,
+      "data": {
+        "freeze": true,
+        "stun": true,
+        "weak": true,
+        "heroId": "CRYSTAL"
+      },
+      "shot": {
+        "path": "/home/user/APEX-CHAOS/docs/hero-rework/crystala-v1/evidence-browser/08-status-vfx.png",
+        "size": 423163
+      }
+    },
+    "RB09": {
+      "pass": true,
+      "data": {
+        "currentPalette": "oxide-warm",
+        "actorRenderDiff": 2,
+        "inActorNow": false,
+        "weaponDrawnOnce": true
+      },
+      "shot": {
+        "path": "/home/user/APEX-CHAOS/docs/hero-rework/crystala-v1/evidence-browser/09-chamber-readability.png",
+        "size": 462269
+      }
+    }
+  }
+}

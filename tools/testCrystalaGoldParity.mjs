@@ -348,8 +348,8 @@ check('P20-presentation-adapter-registers-and-integrates-chamber', presReady,
   check('P21-production-layering-and-camera-bound-bloom',
     calls.wall === 1 && calls.prisonBack === 1 && calls.prisonFront === 1 &&
     calls.debris === 1 && calls.dust === 1 &&
-    m && Math.abs(m.a - 1.1) < 1e-9 && Math.abs(m.d - 1.1) < 1e-9 &&
-    Math.abs(m.e - 20) < 1e-9 && Math.abs(m.f + 10) < 1e-9,
+    m && Math.abs(m.a - 1.1) < 1e-6 && Math.abs(m.d - 1.1) < 1e-6 &&
+    Math.abs(m.e - 20) < 1e-6 && Math.abs(m.f + 10) < 1e-6,
     calls);
 }
 
