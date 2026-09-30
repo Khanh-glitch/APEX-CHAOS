@@ -221,3 +221,18 @@ Final report must distinguish:
 Never convert CI green into an owner-acceptance claim.
 All final PASS counts must come from the exact reported final implementation SHA. Results from an earlier commit cannot be carried forward after later runtime/shared edits.
 If required real-browser/Gold-parity evidence is environment-blocked, report the result as mechanically prepared but visually UNACCEPTED/blocked; do not call FROST complete.
+
+
+## F12.18–F12.26 — FINAL OWNER PLAYTEST PRESENTATION INTEGRITY
+
+F12.18 correct-Gold-identity: final production bridge hashes/derives from the exact canonical 981,597-byte Gold above; obsolete 975,616-byte Gold is absent from authority references.
+F12.19 A2-continuity: A2 production trail remains visually connected and follows the Gold's authored segment/material language through straight movement, turns and wall/body bounces; no detached island chunks caused by adapter admission.
+F12.20 A1/A2-scene-isolation: activating either ability leaves unrelated arena, floor, HUD and other fighter rendering unchanged except for the intended Frost effects.
+F12.21 opponent-scale-stability: during A1/A2 the opponent's rendered scale/radius/size remains stable and identical to the same fighter's non-Frost baseline; no repeated large/small flicker.
+F12.22 Frost-battle-scale: Frost's production body/core/shell is proportionate to peer fighters at the same real arena/camera scale and follows the correct Gold-authored reference dimensions; no arbitrary compensating scale multiplier.
+F12.23 canvas-state-integrity: after every Frost draw pass, canvas transform, alpha, composite, filter, shadow, clipping/path and smoothing state are identical to the pre-pass state unless the host renderer explicitly owns that state.
+F12.24 no-render-double-path: Frost is not simultaneously rendered by new Frost Gold presentation plus legacy ICE presentation or two Gold engine instances; no duplicate shell/trail/body material appears.
+F12.25 no-frame-flicker: repeated A1/A2 frames at stable input do not alternately lose/recreate authored ice details, actor layers or scene transforms; intended animation changes remain the only pixel changes outside moving gameplay.
+F12.26 full-lifecycle-Gold-parity: idle, A1, A2, Frozen Gun, Frozen Bullet, Freeze shell/refresh/thaw, steal transfer, rematch and concurrent A1/A2 presentation are all inspected against the exact Gold at battle scale.
+
+These are release gates, not optional visual polish. A failure in F12.19–F12.26 blocks owner-playtest readiness even if all gameplay gates are green.
