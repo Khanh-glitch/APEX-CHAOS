@@ -38,7 +38,8 @@ if (!AIL || !GOLD) throw new Error('crystalGameplayRuntime requires ailRuntime +
 /* ------------------------------------------------------------ frozen V1 law */
 const BAND = 180;              // intercept/contact band radius from the Crystal centre
 const SCAN = 1000;             // prediction radius (never an instant reservation)
-const MIN_LEAD = 0.12;         // minimum anticipation beat (s)
+const MIN_LEAD = 0.12;         // minimum visible anticipation beat (s)
+const RESCUE_BANDS = Object.freeze([180, 150, 120, 90]); // 180 preferred; inward only when a real fast shot cannot satisfy the beat there
 const REFRACT = 0.16;          // Gold internal-light beat
 const RECOIL = 0.16;           // free drift after the exit impulse
 const RETURN_T = 0.88;         // REFRACT + RECOIL + RETURN_T = 1.20 s contact -> dock
@@ -200,22 +201,31 @@ function classify(st, p, now, dt) {
   const RH = b.radius * ((CFG() && CFG().BULLET_HIT_RADIUS_SCALE) || 0.78) + (p.radius || 7);
   const tHit = firstWithin(d0x, d0y, wx, wy, RH);
   if (tHit == null) { if (first) st.tele.ignoredMiss += 1; return { drop: 'miss' }; }
-  const tBand = firstWithin(d0x, d0y, wx, wy, BAND);
   if (tHit >= p.life) { if (first) st.tele.ignoredExpired += 1; return { drop: 'expired' }; }
   const blockT = firstBlock(p, Math.min(tHit, p.life));
   if (blockT != null && blockT < tHit) { if (first) st.tele.ignoredBlocked += 1; return { drop: 'blocked' }; }
-  if (tBand == null || tBand <= 0 || tBand >= p.life) {
-    if (first) st.tele.ignoredUnreachable += 1;               // already inside the band / expires first
-    return { drop: 'unreachable' };
-  }
-  return { p, hr, tHit, tBand, ip: { x: p.x + p.vx * tBand, y: p.y + p.vy * tBand } };
+  return { p, hr, tHit, d0x, d0y, wx, wy, RH };
 }
 
 function stonePos(st, id) { const s = st.rig.stones[id]; return s; }
-function leadFor(st, id, ip) {
+function physicalLeadFor(st, id, ip) {
   const s = stonePos(st, id);
   const travel = Math.hypot(s.x - ip.x, s.y - ip.y);
-  return Math.max(MIN_LEAD, travel * TRAVEL_K + TRAVEL_BASE);
+  return travel * TRAVEL_K + TRAVEL_BASE;
+}
+function interceptOption(st, c, id, band, dt) {
+  // Preferred authored contact is 180 px. For fast/close real shots, move the
+  // meeting point inward only as far as needed to preserve the 0.12 s visible
+  // anticipation beat. Contact remains a real moving-shard TOI before body hit.
+  const minBand = c.RH + 12;
+  if (band <= minBand) return null;
+  const tBand = firstWithin(c.d0x, c.d0y, c.wx, c.wy, band);
+  if (tBand == null || tBand <= 0 || tBand >= c.tHit || tBand >= c.p.life) return null;
+  const ip = { x: c.p.x + c.p.vx * tBand, y: c.p.y + c.p.vy * tBand };
+  const physicalLead = physicalLeadFor(st, id, ip);
+  const lead = Math.max(MIN_LEAD, physicalLead);
+  if (tBand - dt < lead - JIT_SLACK) return null;
+  return { id, band, tBand, ip, lead, rescue: band < BAND };
 }
 
 function predictorStep(st, now, dt) {
@@ -240,39 +250,52 @@ function predictorStep(st, now, dt) {
   const free = availableIds(st);
   const taken = new Set();
   for (const c of cands) {
-    // STICKY PLAN: a threat claims its shard the first tick it is seen (in the
-    // priority order above) and keeps it, so a lower-priority threat whose own
-    // shard deadline happens to come first can never steal it. A plan is dropped
-    // only if that shard stops being available or can no longer physically make it.
+    // STICKY PLAN: keep both the shard and its chosen contact band. 180 px is
+    // always tried first; inward rescue bands are considered only when NO free
+    // shard can satisfy the authored anticipation/reachability law at 180.
     let plan = c.hr.cryPlan;
-    let lead = plan != null ? leadFor(st, plan, c.ip) : 0;
-    if (plan != null && (!free.includes(plan) || taken.has(plan) || c.tBand - dt < lead - JIT_SLACK)) plan = null;
-    if (plan == null) {
-      // Shards that can PHYSICALLY make this intercept (Gold travel grammar;
-      // never a far-side teleport), best Gold score first.
-      let bestScore = -Infinity, anyFree = false;
-      for (const id of free) {
-        if (taken.has(id)) continue;
-        anyFree = true;
-        const l = leadFor(st, id, c.ip);
-        if (c.tBand - dt < l - JIT_SLACK) continue;
-        const sc = st.rig.scoreStone(st.rig.stones[id], c.p.vx, c.p.vy, c.ip);
-        if (sc > bestScore + 1e-9) { bestScore = sc; plan = id; lead = l; }
+    let opt = null;
+    if (plan && free.includes(plan.id) && !taken.has(plan.id)) {
+      opt = interceptOption(st, c, plan.id, plan.band, dt);
+      if (!opt) plan = null;
+    } else if (plan) {
+      plan = null;
+    }
+
+    if (!plan) {
+      let anyFree = false;
+      for (const band of RESCUE_BANDS) {
+        let best = null, bestScore = -Infinity;
+        for (const id of free) {
+          if (taken.has(id)) continue;
+          anyFree = true;
+          const candidate = interceptOption(st, c, id, band, dt);
+          if (!candidate) continue;
+          const sc = st.rig.scoreStone(st.rig.stones[id], c.p.vx, c.p.vy, candidate.ip);
+          if (sc > bestScore + 1e-9) { bestScore = sc; best = candidate; }
+        }
+        if (best) { opt = best; plan = { id: best.id, band: best.band }; break; }
       }
       c.hr.cryPlan = plan;
-      if (plan == null) {
-        if (c.tBand - dt < MIN_LEAD - JIT_SLACK) {           // nobody can make it any more
+      if (!plan) {
+        // Once even the latest admissible real contact cannot preserve the
+        // anticipation beat, this projectile is honestly unreachable.
+        if (c.tHit - dt < MIN_LEAD - JIT_SLACK) {
           c.hr.cryLost = anyFree ? 'unreachable' : 'busy';
-          if (!anyFree) { st.tele.overflowThreats += 1; c.hr.cryOverflow = true; } else st.tele.ignoredUnreachable += 1;
+          if (!anyFree) { st.tele.overflowThreats += 1; c.hr.cryOverflow = true; }
+          else st.tele.ignoredUnreachable += 1;
         }
-        continue;                                             // else wait: a shard may still dock in time
+        continue;
       }
     }
-    taken.add(plan);
-    // just in time: reserve when the planned shard's own deadline arrives
-    // (earlier than the nearest shard's only if ITS travel requires it)
-    // (the trigger is at least one tick wide so a feasible plan always gets a reservable tick)
-    if (c.tBand - dt <= lead + Math.max(JIT_SLACK, dt)) reserve(st, c, plan, now);
+
+    taken.add(plan.id);
+    // Rescue plans reserve immediately: the visible reserved/awake beat is the
+    // missing anticipation time that made the 180-px meeting impossible. The
+    // shard still launches and must physically contact the live bullet.
+    if (opt.rescue || opt.tBand - dt <= opt.lead + Math.max(JIT_SLACK, dt)) {
+      reserve(st, { ...c, tBand: opt.tBand, ip: opt.ip, band: opt.band, rescue: opt.rescue }, plan.id, now);
+    }
   }
 }
 
@@ -282,13 +305,14 @@ function reserve(st, c, id, now) {
   const facet = st.rig.reserve(id, pv);
   const job = {
     id: ++st.jobSeq, shard: id, p, pid: hr.cryPid, ip: c.ip, pv, facet, tContact: now + c.tBand,
+    band: c.band || BAND, rescue: !!c.rescue,
     reservedAt: now, phase: STATE.RESERVED, incoming: scaledDamageOf(p),
   };
   s.state = STATE.RESERVED; s.job = job; s.busyAt = now;
   hr.cryTid = job.id;
   st.jobs.push(job);
   st.tele.reservations += 1;
-  emit('CrystalReserve', { shard: id, tid: job.id, pid: hr.cryPid, tBand: c.tBand, ip: c.ip });
+  emit('CrystalReserve', { shard: id, tid: job.id, pid: hr.cryPid, tBand: c.tBand, band: job.band, rescue: job.rescue, ip: c.ip });
 }
 
 function scaledDamageOf(p) {
@@ -328,7 +352,10 @@ function jobsStep(st, now, dt) {
     if (job.phase === STATE.RESERVED) {
       if (!projectileAlive(job.p)) { abortJob(st, job, 'threat-gone', now); continue; }
       if (now > job.reservedAt + 1e-9) {
-        const T = Math.max(MIN_LEAD, job.tContact - now);
+        // Anticipation already happened in RESERVED. Preserve the real
+        // remaining time-to-contact instead of re-imposing 0.12 s and arriving
+        // late on a rescue intercept.
+        const T = Math.max(1 / 120, job.tContact - now);
         rig.beginIntercept(job.shard, job.ip, T, job.pv, job.facet);
         s.state = STATE.OUTBOUND; job.phase = STATE.OUTBOUND; job.T = T; job.launchedAt = now;
       }

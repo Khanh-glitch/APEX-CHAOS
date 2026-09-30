@@ -534,15 +534,20 @@ await gate('C34-shotgun-pellets-are-independent-threats', () => {
   step(2.5);
   const res = telem(w.cta).reservations, miss = telem(w.cta).ignoredMiss;
   const pids = evOf(w.ev, 'CrystalReserve').map((e) => e.payload.pid);
-  // (b) honesty: REAL shotgun pellets (2500 px/s, 0.17 s life) are unreachable under the frozen 0.12 s minimum anticipation
+  // (b) real shotgun pellets: 180 px is too early for the 0.12 s beat at this
+  // range, so the predictor must choose a later inward rescue band and still
+  // assign pellets independently.
   const v = crystalK({ ax: 150, ay: 500, bx: 560, by: 500 });
   for (let k = 0; k < 8; k++) {
     const ang = Math.PI + (k - 3.5) * 0.05;
     fire(v.b, 560, 500, 560 + Math.cos(ang) * 500, 500 + Math.sin(ang) * 500, 'SHOTGUN');
   }
   step(0.4);
-  return { ok: res === wouldHit && res >= 1 && new Set(pids).size === res && miss === 8 - wouldHit && telem(v.cta).reservations === 0,
-    detail: { slowFan: { wouldHit, reserved: res, miss }, realShotgunReserved: telem(v.cta).reservations, realShotgunUnreachable: telem(v.cta).ignoredUnreachable } };
+  const vr = evOf(v.ev, 'CrystalReserve');
+  return { ok: res === wouldHit && res >= 1 && new Set(pids).size === res && miss === 8 - wouldHit
+      && telem(v.cta).reservations >= 1 && vr.some((e) => e.payload.rescue && e.payload.band < 180),
+    detail: { slowFan: { wouldHit, reserved: res, miss }, realShotgunReserved: telem(v.cta).reservations,
+      realShotgunUnreachable: telem(v.cta).ignoredUnreachable, rescueBands: vr.map((e) => e.payload.band) } };
 });
 
 await gate('C35-vanished-outbound-target-aborts-with-curved-return-no-teleport', () => {
