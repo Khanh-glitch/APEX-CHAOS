@@ -251,20 +251,22 @@
      * ---------------------------------------------------------------- */
     ICE: {
       id: 'ICE',
-      name: 'ICE',
-      classRef: 'rework.ice',
+      name: 'FROST',
+      displayName: 'FROST',
+      aliases: Object.freeze(['ICE', 'FROST']),
+      classRef: 'rework.frost',
       skills: {
-        A1: skill('ice.bullets', 'A1', 'ice.bullets', {
-          cooldown: 11, duration: 4, appliesChill: true,
-        }, ['cooldown'], 'cooldown_step'),
-        A2: skill('ice.lane', 'A2', 'ice.lane', {
-          cooldown: 10, windup: 0.25, width: 120, speed: 1800,
-          traversesArena: true, directDamage: 0, appliesChill: true, homing: false,
-        }, ['cooldown'], 'cooldown_step'),
-        PASSIVE: skill('ice.deep_freeze', 'PASSIVE', 'ice.deep_freeze', {
-          continuousChillThreshold: 3.0, freezeDuration: 1.1,
-          resetAfterFreeze: true, isolatedChillCannotFreeze: true,
-        }, ['continuousChillThreshold'], 'threshold_step'),
+        A1: skill('frost.breath', 'A1', 'frost.breath', {
+          cooldown: 10.5, progressionAnchor: 0, castCommitment: 0.25, length: 650, width: 160, stableLifetime: 4.5,
+          frostSpeed: 2.35, enemySpeed: 0.60, leaveLinger: 0.35, thaw: 0.30, directDamage: 0,
+        }, ['progressionAnchor'], 'seconds_step'),
+        A2: skill('frost.hunt', 'A2', 'frost.hunt', {
+          cooldown: 12.5, progressionAnchor: 0, activeWindow: 3.0, trailWidth: 120, segmentLifetime: 3.5,
+          frostSpeed: 2.35, enemySpeed: 0.60, coldShock: 0.50, coldShockDuration: 1.0, directDamage: 0,
+        }, ['progressionAnchor'], 'seconds_step'),
+        PASSIVE: skill('frost.deep_frost', 'PASSIVE', 'frost.deep_frost', {
+          progressionAnchor: 0, innateProcChance: 0.04, bonusProcChance: 0.04, procChance: 0.08, freezeDuration: 0.90, postThawLock: 0.50,
+        }, ['progressionAnchor'], 'seconds_step'),
       },
     },
 
@@ -616,6 +618,7 @@
     resolveSkillLevel,
     deepCopy,
     validateRegistry,
-    isCanonicalHero(id) { return Object.prototype.hasOwnProperty.call(HEROES, id); },
+    isCanonicalHero(id) { return Object.prototype.hasOwnProperty.call(HEROES, id === 'FROST' ? 'ICE' : id); },
+    resolveHeroAlias(id) { return (id === 'FROST' || id === 'ICE') ? 'ICE' : id; },
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -240,7 +240,7 @@
       return null;
     }
     function activeIceAgeField() {
-      return (projectiles||[]).find(p=>p && p.type==='ice_age_field' && p.owner && p.owner.name==='ICE' && p.life>0) || null;
+      return (projectiles||[]).find(p=>p && p.type==='ice_age_field' && p.owner && p.owner.name==='ICE' && !(owner.type&&owner.type.__hrHero==='ICE') && p.life>0) || null;
     }
     function drawFullArenaFrozenOverlay(ctx) {
       const ev=activeIceAgeEvent();
@@ -319,7 +319,7 @@
     function finishIceAgeWindup() {
       if (!iceAgeWindup) return;
       const windup=iceAgeWindup;
-      const owner=(fighters||[]).find(f=>f && f.id===windup.ownerId && f.name==='ICE');
+      const owner=(fighters||[]).find(f=>f && f.id===windup.ownerId && f.name==='ICE' && !(f.type&&f.type.__hrHero==='ICE'));
       iceAgeWindup=null;
       timeScale=Number.isFinite(windup.previousTimeScale)?windup.previousTimeScale:1;
       if (!owner || owner.hp<=0 || gameState!=='PLAYING') return;
@@ -543,7 +543,7 @@
       Fighter.prototype.applyStatus=function(name,duration,data={}) {
         const wasFrozen=name==='freeze' && this.hasStatus && this.hasStatus('freeze');
         const result=oldApplyStatusIceVisual.call(this,name,duration,data);
-        if (name==='freeze' && data && data.source && data.source.name==='ICE' && this.hasStatus('freeze') && !wasFrozen) {
+        if (name==='freeze' && data && data.source && data.source.name==='ICE' && !(this.type&&this.type.__hrHero==='ICE') && this.hasStatus('freeze') && !wasFrozen) {
           const v=iceFreezeVisual(this); v.active=true; v.start=iceNow(); v.end=-999; v.sourceId=data.source.id;
           playIceAudio('freezeTarget',.62,false);
         }
@@ -554,7 +554,7 @@
     if (!Fighter.prototype.__iceAgeGuardDamagePatched) {
       const oldTakeDamageIceAgeGuard=Fighter.prototype.takeDamage;
       Fighter.prototype.takeDamage=function(amount,source=null,label='',statusDamage=false) {
-        if (this.name==='ICE' && source && source!==this && amount>0) {
+        if (this.name==='ICE' && !(this.type&&this.type.__hrHero==='ICE') && source && source!==this && amount>0) {
           const field=activeIceAgeField();
           if ((this.data?.iceAgeWindup || (field && field.owner===this)) && !statusDamage) {
             amount*=.29;
@@ -601,18 +601,18 @@
     if (!window.__apexIceProjectileDrawPatched) {
       const oldDrawProjectilesIceVisual=drawProjectiles;
       drawProjectiles=function(ctx) {
-        for (const p of projectiles) if (p && p.type==='ice_lane' && p.owner && p.owner.name==='ICE' && iceAssetReady('laneStartSegment')) drawIceLane(ctx,p);
+        for (const p of projectiles) if (p && p.type==='ice_lane' && p.owner && p.owner.name==='ICE' && !(owner.type&&owner.type.__hrHero==='ICE') && iceAssetReady('laneStartSegment')) drawIceLane(ctx,p);
         const hidden=[];
         for (const p of projectiles) {
           const laneReady=p && p.type==='ice_lane' && iceAssetReady('laneStartSegment');
           const dartReady=p && p.type==='ice_dart' && iceAssetReady('shardProjectile');
-          if (p && p.owner && p.owner.name==='ICE' && (laneReady||dartReady)) {
+          if (p && p.owner && p.owner.name==='ICE' && !(owner.type&&owner.type.__hrHero==='ICE') && (laneReady||dartReady)) {
             hidden.push([p,p.type]); p.type='__ice_asset_draw';
           }
         }
         oldDrawProjectilesIceVisual(ctx);
         for (const [p,type] of hidden) p.type=type;
-        for (const p of projectiles) if (p && p.type==='ice_dart' && p.owner && p.owner.name==='ICE' && iceAssetReady('shardProjectile')) drawIceShardProjectile(ctx,p);
+        for (const p of projectiles) if (p && p.type==='ice_dart' && p.owner && p.owner.name==='ICE' && !(owner.type&&owner.type.__hrHero==='ICE') && iceAssetReady('shardProjectile')) drawIceShardProjectile(ctx,p);
       };
       window.drawProjectiles=drawProjectiles;
       window.__apexIceProjectileDrawPatched=true;

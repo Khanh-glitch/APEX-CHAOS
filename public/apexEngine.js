@@ -341,6 +341,9 @@ var Fighter = class Fighter {
         let mult = 1;
         if (this.hasStatus('slow')) mult *= clamp(this.statuses.slow.mult ?? 1, 0, 1);
         if (this.hasStatus('speed')) mult *= Math.max(0, this.statuses.speed.mult ?? 1);
+        // Narrow Frost resolver hook. Frost owns this value; absent means the
+        // baseline multiplier is exactly one and all legacy fighters are unchanged.
+        if (this.data && Number.isFinite(this.data.__frostSpeedMult)) mult *= Math.max(0, this.data.__frostSpeedMult);
         if (this.type.speedModifier) mult *= this.type.speedModifier(this);
         return Math.max(0, mult);
     }

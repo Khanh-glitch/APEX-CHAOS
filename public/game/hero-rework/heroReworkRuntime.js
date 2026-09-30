@@ -281,7 +281,7 @@
     if (!r1 && !r2) { M = null; return; } // pure legacy match: no rework layer
 
     const world = {
-      walls: [], gates: [], singularities: [], lanes: [], snares: [], snareSeq: 0,
+      walls: [], gates: [], singularities: [], lanes: [], frostFloors: [], frostTrails: [], snares: [], snareSeq: 0,
       graphs: [], mirrors: [], shards: [],
       wallSeq: 0, gateSeq: 0, mirrorSeq: 0,
     };
@@ -391,6 +391,44 @@
         if (!body || body.hp <= 0) return;
         AIL.StatusResolver.apply(body, 'STUN', duration);
         body.applyStatus('stun', duration, {});
+      },
+      applyColdShock(body, multiplier, duration) {
+        if (!body || body.hp <= 0) return;
+        body.data.__frostColdShockUntil = AIL.clock() + duration;
+        body.data.__frostColdShockMult = multiplier;
+        AIL.bus.emit('FrostColdShock', { target: body.id, multiplier, duration });
+      },
+      applyFrostFreeze(body, duration, source) {
+        if (!body || body.hp <= 0) return false;
+        const now = AIL.clock();
+        if (now < (body.data.__frostPostThawUntil || 0)) return false;
+        const was = body.data.__frostFrozenUntil > now;
+        body.data.__frostFrozenUntil = now + duration;
+        body.applyStatus('freeze', duration, { source });
+        AIL.StatusResolver.apply(body, 'STUN', duration);
+        AIL.bus.emit('FrostFreeze', { target: body.id, duration, refreshed: was });
+        return true;
+      },
+      spawnFrostFloor(o) {
+        const floor = { id: M.world.frostFloors.length + 1, owner: o.owner, x: o.x, y: o.y,
+          dx: o.dx, dy: o.dy, length: o.length || 650, width: o.width || 160,
+          bornAt: AIL.clock(), frontTime: o.crystallization || 0.42, stable: o.lifetime || 4.5, source: o.source || 'A1' };
+        M.world.frostFloors.push(floor); return floor;
+      },
+      appendFrostTrail(o) { M.world.frostTrails.push({ ...o, bornAt: AIL.clock() }); },
+      heldWeapon: (ct) => (ct && ct.anchor ? heldWeaponOfBody(ct.anchor) : null),
+      isRangedWeapon(weaponId) {
+        const d = globalScope.APEX_ARSENAL_CONFIG?.WEAPONS?.[weaponId];
+        return !!d && !['MELEE', 'GRENADE', 'SHIELD'].includes(d.family) && weaponId !== 'STORMBREAKER';
+      },
+      transferHolder(fromBody, toBody) {
+        const W = globalScope.APEX_ARSENAL?.weaponApi;
+        if (!W || !fromBody || !toBody || W.getHolder(toBody)) return null;
+        const holder = W.getHolder(fromBody); if (!holder) return null;
+        fromBody.data.arsenal = null; toBody.data.arsenal = holder;
+        holder.meta = holder.meta || {}; holder.meta.frostFrozen = true;
+        AIL.bus.emit('FrostHolderTransferred', { weaponId: holder.weaponId, from: fromBody.id, to: toBody.id });
+        return { weaponId: holder.weaponId, holder };
       },
 
       /* world entities ------------------------------------------------ */
@@ -829,6 +867,13 @@
     // Test/freeze hold (weapon-pose laws): never move a test-pinned body.
     // Explicit-mechanic integrators (dash/pounce) are unaffected.
     if (f.data.__hrHoldBody) return;
+    let frostMult = 1;
+    for (const fl of (M.world.frostFloors || [])) {
+      const qx=f.x-fl.x,qy=f.y-fl.y,along=qx*fl.dx+qy*fl.dy,side=Math.abs(qx*(-fl.dy)+qy*fl.dx);
+      if (along>=0 && along<=fl.activeLength && side<=fl.width/2) frostMult = ct.heroId === 'ICE' ? Math.max(frostMult,2.35) : Math.min(frostMult,0.60);
+    }
+    if ((f.data.__frostColdShockUntil||0) > AIL.clock()) frostMult = Math.min(frostMult, f.data.__frostColdShockMult || 0.50);
+    f.data.__frostSpeedMult = frostMult;
     // Explicit-mechanic motion states (dash/pounce/nest) already integrated
     // by executor onTicks; they set positionLocked for the engine skip.
     if (f.data.positionLocked) return;
@@ -1001,7 +1046,7 @@
       get() { return !!spec.critical; },
       set(v) { spec.critical = !!v; },
     });
-    const descriptor = { kind: 'bullet', params: { ...spec, owner } };
+    const descriptor = { kind: 'bullet', params: { ...spec, owner, family: globalScope.APEX_ARSENAL_CONFIG?.WEAPONS?.[spec.weapon]?.family, blastGroupId: spec.blastGroupId || spec.shotGroupId } };
     for (const slot of ['A1', 'A2', 'PASSIVE']) {
       const s = ct.skills[slot];
       if (!s) continue;
@@ -1188,6 +1233,7 @@
     AIL.bindClock(() => globalScope.matchClock || 0);
     AIL.hrScheduler.tick();
     for (const ct of M.combatants) {
+      for (const b of ct.bodies || []) if (b && b.data && b.data.__frostFrozenUntil && AIL.clock() >= b.data.__frostFrozenUntil && !b.hasStatus('freeze')) { b.data.__frostPostThawUntil = AIL.clock() + 0.50; b.data.__frostFrozenUntil = 0; }
       if (ct.facade) continue;
       abilityController(ct).tick(dt);
       p2CastAI(ct, dt);
@@ -1266,6 +1312,20 @@
         w.singularities.splice(i, 1);
       }
     }
+    // Frost floors/trails are bounded gameplay entities; their state, not
+    // presentation, controls pickup denial and movement modifiers.
+    for (let i=w.frostFloors.length-1;i>=0;i--) { const f=w.frostFloors[i]; const age=now-f.bornAt; f.activeLength=f.length*clamp(age/f.frontTime,0,1); if(age>=f.frontTime+f.stable) w.frostFloors.splice(i,1); }
+    const frostSlots=globalScope.APEX_ARSENAL?.state?.slots||[];
+    for (const slot of frostSlots) if(slot && slot.phase==='REVEALED' && slot.weaponId && slot.weaponId!=='STORMBREAKER' && slot.weaponId!=='T6') {
+      const wd=globalScope.APEX_ARSENAL_CONFIG?.WEAPONS?.[slot.weaponId]; if(wd && !['MELEE','GRENADE','SHIELD'].includes(wd.family)) {
+        let supported=false; for(const f of w.frostFloors){const qx=slot.x-f.x,qy=slot.y-f.y,al=qx*f.dx+qy*f.dy,si=Math.abs(qx*(-f.dy)+qy*f.dx);if(f.source==='A1'&&al>=0&&al<=f.activeLength&&si<=f.width/2){supported=true;break;}}
+        if(supported){slot.frostFrozen=true;slot.frostThawAt=0;} else if(slot.frostFrozen&&!slot.frostThawAt) slot.frostThawAt=now+0.30;
+      }
+    }
+    for (let i=w.frostTrails.length-1;i>=0;i--) if(now-w.frostTrails[i].bornAt>=w.frostTrails[i].lifetime) w.frostTrails.splice(i,1);
+    // Dynamic thaw: denial returns immediately after the last support and thaw delay.
+    const slots=globalScope.APEX_ARSENAL?.state?.slots||[];
+    for(const slot of slots) if(slot?.frostFrozen&&slot.phase==='REVEALED') { let supported=false; for(const f of w.frostFloors) { const qx=slot.x-f.x,qy=slot.y-f.y,al=qx*f.dx+qy*f.dy,si=Math.abs(qx*(-f.dy)+qy*f.dx); if(f.source==='A1'&&al>=0&&al<=f.activeLength&&si<=f.width/2){supported=true;break;} } if(!supported&&!slot.frostThawAt) slot.frostThawAt=now+0.30; if(supported) slot.frostThawAt=0; if(!supported&&slot.frostThawAt&&now>=slot.frostThawAt) slot.frostFrozen=false; }
     // Lanes
     for (let i = w.lanes.length - 1; i >= 0; i--) {
       const l = w.lanes[i];
@@ -1643,8 +1703,9 @@
             });
           }
           if (CRY) { CRY.noteBodyHit(p, target); CRY.afterBodyHit(p, target, hpBeforeHit - target.hp); }
-          // ICE payload (survives transforms unless stripped).
+          // Legacy Chill remains quarantined; Frost Bullet is the only new freeze authority.
           if (p.__hr && p.__hr.chill) M.api.applyChillTo(target);
+          if (p.__hr && p.__hr.frostBullet) M.api.applyFrostFreeze(target, p.__hr.frostBullet.duration, p.owner);
           // RUBBER debt erase (released projectile hit the opponent).
           if (p.__hr && p.__hr.rubberDebt) {
             AIL.bus.emit('RubberDebtErased', { amount: p.__hr.rubberDebt });
@@ -2252,6 +2313,10 @@
       c.lineWidth = 3;
       c.beginPath(); c.arc(s.x, s.y, s.radius, 0, Math.PI * 2); c.stroke();
     }
+    // Gold bridge surface: the authored material adapter follows gameplay
+    // floor/trail entities without becoming collision or movement authority.
+    for(const f of w.frostFloors){c.save();c.translate(f.x,f.y);c.rotate(Math.atan2(f.dy,f.dx));c.globalAlpha=.34;c.fillStyle='#d8f7ff';c.strokeStyle='#8ed9e9';c.lineWidth=3;c.fillRect(0,-f.width/2,f.activeLength||0,f.width);c.strokeRect(0,-f.width/2,f.activeLength||0,f.width);c.restore();}
+    c.globalAlpha=.3;c.strokeStyle='#c8f4ff';for(const t of w.frostTrails){c.lineWidth=t.width;c.beginPath();c.moveTo(t.x1,t.y1);c.lineTo(t.x2,t.y2);c.stroke();}c.globalAlpha=1;
     // Lanes
     for (const l of w.lanes) {
       if (l.windupLeft > 0) continue;

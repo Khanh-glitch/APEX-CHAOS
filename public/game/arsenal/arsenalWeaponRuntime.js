@@ -421,7 +421,14 @@
     return t === null ? null : { x: x1 + dx * t, y: y1 + dy * t };
   }
 
+  let frostShotGroupSeq = 0;
   function fireBullet(spec) {
+    const preDef = CFG.WEAPONS[spec.weapon] || {};
+    const preFamily = preDef.family || (spec.weapon === 'SHOTGUN' ? 'SHOTGUN' : 'SEMI');
+    // Firing executors see the real semantic group, not a time-window guess.
+    if (!spec.blastGroupId && !spec.shotGroupId) spec.blastGroupId = (preFamily === 'SHOTGUN' || preFamily === 'AUTOSHOT')
+      ? `blast:${spec.owner?.id || 0}:${spec.weapon}:${Math.floor((typeof matchClock === 'number' ? matchClock : 0) * 1000)}`
+      : `shot:${++frostShotGroupSeq}`;
     // HERO REWORK (doc-06): single audited hook — the rework layer may retarget
     // (SNIPER predictive intercept), boost speed (MAGNET passive), roll distance
     // crit (SNIPER passive) and record the emission (TIME loop) before the push.
@@ -433,6 +440,7 @@
     if (!Number.isFinite(angle) || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(speed)) return;
     const wspec = CFG.WEAPONS[weapon] || {};
     const family = wspec.family || (weapon === 'SNIPER' ? 'PRECISION' : weapon === 'SHOTGUN' ? 'SHOTGUN' : weapon === 'SMG' ? 'AUTO' : 'SEMI');
+    const blastGroupId = spec.blastGroupId || spec.shotGroupId || ((family === 'SHOTGUN' || family === 'AUTOSHOT') ? `blast:${spec.owner?.id || 0}:${weapon}:${Math.floor((typeof matchClock === 'number' ? matchClock : 0) * 1000)}` : `shot:${++frostShotGroupSeq}`);
     projectiles.push({
       type: 'aq_bullet',
       aq: true,
@@ -440,6 +448,7 @@
       weapon,
       critical: !!spec.critical,
       family,
+      blastGroupId,
       heavy: family === 'PRECISION',
       x, y,
       px: x, py: y,

@@ -427,6 +427,9 @@
 
       for (const f of actors) { // HERO REWORK doc-06 body-aware actors
         if (!f || f.hp <= 0) continue;
+        // A Frozen firearm stays REVEALED and cap-counted, but is collectible
+        // only by Frost through ordinary body contact.
+        if (slot.frostFrozen && !(f.type && f.type.__hrHero === 'ICE')) continue;
         const d = dist(f.x, f.y, slot.x, slot.y);
         if (d > pickupTouchRadius(f)) continue;
         if (slot.phase === 'COUNTER_RESERVED' && slot.reservedFor !== f.id) {
@@ -452,6 +455,7 @@
       weaponApi.equip(closest, slot.weaponId);
       const hold = weaponApi.getHolder(closest);
       if (hold && hold.meta) {
+        if (slot.frostFrozen) hold.meta.frostFrozen = true;
         if (slot.boundWeaponId) hold.meta.boundWeaponId = slot.boundWeaponId;
         if (slot.boundOwnerId != null) hold.meta.boundOwnerId = slot.boundOwnerId;
         if (slot.tier) hold.meta.tier = slot.tier;

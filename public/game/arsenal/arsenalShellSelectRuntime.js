@@ -42,7 +42,8 @@
     return {
       name,
       color: (base && base.color) || '#c8c2b4',
-      desc: `Hero Rework — ${name}`,
+      displayName: name === 'ICE' ? 'FROST' : name,
+      desc: name === 'ICE' ? 'Directional frozen floor, hunt, and frozen firearms' : `Hero Rework — ${name}`,
       speed: CFG.FIGHTER_SPEED,
       startDx: (base && base.startDx != null) ? base.startDx : 1,
       startDy: (base && base.startDy != null) ? base.startDy : 0.55,

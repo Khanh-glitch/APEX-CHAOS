@@ -1,0 +1,15 @@
+{
+  "source": "01_OWNER_APPROVED_GOLD_REFERENCE.html",
+  "sha256": "59201be3d33bdfbeb8459656d3ef37caf922382a06852bd7a609472fdce2da43",
+  "layers": {
+    "base": "assets/frost_v1/base.png",
+    "crest": "assets/frost_v1/crest.png",
+    "browL": "assets/frost_v1/browL.png",
+    "browR": "assets/frost_v1/browR.png",
+    "jaw": "assets/frost_v1/jaw.png",
+    "eyes": "assets/frost_v1/eyes.png",
+    "crack": "assets/frost_v1/crack.png",
+    "cavity": "assets/frost_v1/cavity.png",
+    "sil": "assets/frost_v1/sil.png"
+  }
+}

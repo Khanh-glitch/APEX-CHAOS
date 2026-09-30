@@ -595,61 +595,91 @@
   };
 
   /* -------------------------------------------------------------------- *
-   * 6. ICE
+   * 6. FROST V1 — ICE storage identity, FROST product mechanics.
    * -------------------------------------------------------------------- */
 
-  EXECUTORS['ice.bullets'] = {
-    cast(ctx) {
-      ctx.store.chillShotsUntil = ctx.clock() + ctx.cfg.duration;
-      ctx.api.note('ice.bullets', 'cast', { duration: ctx.cfg.duration });
-      return true;
-    },
-    onProjectileFired(ctx, p, descriptor) {
-      if (!ctx.store.chillShotsUntil || ctx.clock() >= ctx.store.chillShotsUntil) return;
-      if (!descriptor || descriptor.kind !== 'bullet') return;
-      // p.__hr IS the fire-tag object carried onto the real projectile;
-      // the projectile pass applies CHILL when __hr.chill is set on hit.
-      p.__hr.chill = true; // applies CHILL on hit (projectile pass)
-    },
-    onTeardown(ctx) { ctx.store.chillShotsUntil = 0; },
-  };
-
-  EXECUTORS['ice.lane'] = {
+  EXECUTORS['frost.breath'] = {
     cast(ctx) {
       const a = ctx.combatant.anchor;
-      const enemy = ctx.api.enemyOf(ctx.combatant);
-      const ea = enemy && enemy.anchor;
-      const ang = ea ? angleTo(a.x, a.y, ea.x, ea.y) : (a.dir.x >= 0 ? 0 : Math.PI);
-      ctx.api.spawnLane({
-        owner: ctx.combatant, x: a.x, y: a.y, angle: ang,
-        width: ctx.cfg.width, speed: ctx.cfg.speed,
-        windup: ctx.cfg.windup,
-      });
-      ctx.api.note('ice.lane', 'cast', {});
+      const d = a.dir || { x: 1, y: 0 };
+      const n = Math.hypot(d.x, d.y) || 1;
+      ctx.store.cast = { until: ctx.clock() + ctx.cfg.castCommitment, dx: d.x / n, dy: d.y / n };
+      ctx.api.emitEvent('FrostA1Accepted', { hero: 'FROST', direction: { x: ctx.store.cast.dx, y: ctx.store.cast.dy } });
       return true;
     },
+    onTick(ctx) {
+      const st = ctx.store;
+      if (!st.cast || ctx.clock() < st.cast.until) return;
+      const a = ctx.combatant.anchor;
+      // Release uses authoritative current body position; only the acceptance
+      // direction is retained. This deliberately never sets positionLocked.
+      ctx.api.spawnFrostFloor({ owner: ctx.combatant, x: a.x, y: a.y, dx: st.cast.dx, dy: st.cast.dy,
+        length: ctx.cfg.length, width: ctx.cfg.width, lifetime: ctx.cfg.stableLifetime,
+        crystallization: 0.42, source: 'A1' });
+      ctx.api.emitEvent('FrostA1Release', { hero: 'FROST', x: a.x, y: a.y });
+      st.cast = null;
+    },
+    onTeardown(ctx) { ctx.store.cast = null; },
   };
 
-  EXECUTORS['ice.deep_freeze'] = {
-    onTick(ctx, dt) {
-      // ctx.store is always provided by mechCtx (auto-created per mechanic);
-      // never reassign the const binding.
+  EXECUTORS['frost.hunt'] = {
+    cast(ctx) {
+      const a = ctx.combatant.anchor;
+      ctx.store.until = ctx.clock() + ctx.cfg.activeWindow;
+      ctx.store.last = { x: a.x, y: a.y };
+      ctx.store.contact = {};
+      ctx.api.emitEvent('FrostA2Start', { hero: 'FROST', duration: ctx.cfg.activeWindow });
+      return true;
+    },
+    onTick(ctx) {
+      const st = ctx.store, a = ctx.combatant.anchor;
+      if (!st.until || ctx.clock() >= st.until) { st.until = 0; return; }
+      // History is sampled from the actual body after each native movement
+      // step; no target bearing or steering is ever written here.
+      const prev = st.last || { x: a.x, y: a.y };
+      const d = Math.hypot(a.x - prev.x, a.y - prev.y);
+      if (d > 0.5) ctx.api.appendFrostTrail({ owner: ctx.combatant, x1: prev.x, y1: prev.y, x2: a.x, y2: a.y, width: ctx.cfg.trailWidth, lifetime: ctx.cfg.segmentLifetime });
+      st.last = { x: a.x, y: a.y };
+    },
+    onBodyCollision(ctx, myBody, otherBody) {
       const st = ctx.store;
-      for (const body of ctx.api.ownBodies(ctx.combatant)) {
-        const chill = ctx.api.chillRemaining(body);
-        if (chill > 0) {
-          body.__hrChillAccum = (body.__hrChillAccum || 0) + dt;
-          if (body.__hrChillAccum >= ctx.cfg.continuousChillThreshold) {
-            body.__hrChillAccum = 0; // accumulation resets after Freeze
-            ctx.api.applyFreezeTo(body, ctx.cfg.freezeDuration);
-            ctx.api.emitEvent('DeepFreeze', { hero: 'ICE', duration: ctx.cfg.freezeDuration });
-            ctx.api.note('ice.deep_freeze', 'freeze', {});
-          }
-        }
-        // An isolated Chill shorter than the threshold never freezes on its
-        // own — accumulation naturally persists only while Chill is active.
+      if (!st.until || ctx.clock() >= st.until) return;
+      const other = ctx.api.combatantOfBody(otherBody);
+      if (!other || other === ctx.combatant) return;
+      const key = `${myBody.id}:${otherBody.id}`;
+      if (st.contact[key]) return;
+      st.contact[key] = true;
+      ctx.api.applyColdShock(otherBody, ctx.cfg.coldShock, ctx.cfg.coldShockDuration);
+      const enemyHolder = ctx.api.heldWeapon(other);
+      const ownHolder = ctx.api.heldWeapon(ctx.combatant);
+      const eligible = enemyHolder && !ownHolder && !ctx.api.isT6Weapon(enemyHolder.holder.weaponId)
+        && ctx.api.isRangedWeapon(enemyHolder.holder.weaponId);
+      if (eligible) {
+        const moved = ctx.api.transferHolder(otherBody, ctx.combatant.anchor);
+        if (moved) ctx.api.emitEvent('FrostGunStolen', { hero: 'FROST', weaponId: moved.weaponId, preserved: true });
       }
     },
+    onTeardown(ctx) { ctx.store.until = 0; ctx.store.contact = {}; },
+  };
+
+  EXECUTORS['frost.deep_frost'] = {
+    onProjectileFired(ctx, p, descriptor) {
+      if (!descriptor || descriptor.kind !== 'bullet' || !p.__hr) return;
+      const holder = ctx.api.heldWeapon(ctx.combatant);
+      if (!holder || holder.holder.meta?.frostFrozen !== true) return;
+      const fam = descriptor.params?.family || descriptor.params?.weaponFamily || '';
+      const group = descriptor.params?.blastGroupId || descriptor.params?.shotGroupId || `shot:${ctx.combatant.idx}:${ctx.clock()}:${(ctx.store._seq = (ctx.store._seq || 0) + 1)}`;
+      if (!group) return;
+      // One opportunity per semantic shot/blast group. SHOTGUN/AUTOSHOT /
+      // JACKHAMMER callers share blastGroupId; ordinary rounds do not.
+      ctx.store.groups = ctx.store.groups || Object.create(null);
+      if (ctx.store.groups[group]) return;
+      ctx.store.groups[group] = true;
+      if (ctx.api.rollChance(ctx.cfg.procChance)) {
+        p.__hr.frostBullet = { source: ctx.combatant, duration: ctx.cfg.freezeDuration, group };
+      }
+    },
+    onTeardown(ctx) { ctx.store.groups = Object.create(null); },
   };
 
   /* -------------------------------------------------------------------- *
