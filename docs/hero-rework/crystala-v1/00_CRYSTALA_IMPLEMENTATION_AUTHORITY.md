@@ -168,12 +168,24 @@ Prediction must account for projectile velocity + Crystal current movement.
 Reason for 1000: audited fastest firearm is about 5800px/s. 1000->180 gives about 0.14s for a stationary Crystal; the older 800 candidate gave about 0.107s and was too thin for the desired anticipation.
 
 ### Reservation / reachability
-`0.12s` is a minimum anticipation beat, NOT a blind fixed timer.
-- predict time/point at 180px crossing;
-- choose an ORBIT shard that can physically reach it using Gold travel grammar;
-- reserve just in time;
-- reserve earlier only if actual shard travel requires it;
-- never teleport a far-side shard;
+**OWNER PLAYTEST CORRECTION — 2026-09-30**
+
+K is a **six independent guardian-slot** system, not one serialized defense state.
+- each ORBIT shard is one independent defensive slot;
+- one projectile may occupy one shard from reservation until that shard visibly docks;
+- the other five AVAILABLE shards remain eligible immediately and do NOT wait for the first shard;
+- with six AVAILABLE shards, up to six eligible incoming projectiles may be committed concurrently;
+- a seventh eligible projectile is unserved only while all six shards are genuinely non-AVAILABLE;
+- as soon as any one shard docks, that shard alone becomes reusable immediately; never wait for the other five.
+
+`0.12s` is now a **preferred visual anticipation target**, not a gameplay eligibility veto.
+- preserve the authored 180px contact band whenever that crossing is still in the future;
+- choose a distinct ORBIT shard for every eligible threat while capacity exists;
+- if normal Gold travel cannot reach 180px in time, compress that shard's SAME Gold Hermite travel into the real remaining time;
+- keep the real moving-shard contact, Gold internal refraction, recoil, return and visible docking;
+- use an inward contact band only when the projectile is already inside the 180px band at detection;
+- do not reject a real would-hit firearm merely because less than 0.12s remains while an AVAILABLE shard exists;
+- never introduce a global K recovery/cooldown between interceptions;
 - never leave a visually idle shard locked for an arbitrary long interval.
 
 ### Assignment
