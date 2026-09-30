@@ -276,20 +276,13 @@
     ctx.restore();
   }
 
-  // Independent persistent bloom workspaces per emitter class. The previous
-  // single buffer alternated body -> construct -> body dimensions every frame,
-  // forcing backing-store resize/reinitialisation before the same Gold blur.
-  // No authored geometry, blur radius, blend weight, or resolution is changed.
-  const bloomSystems = new Map();
-  function getBloomFor(kind = 'body', w = 1000, h = 1000) {
-    let bloom = bloomSystems.get(kind);
-    if (!bloom && GOLD && typeof GOLD.createBloomSystem === 'function') {
-      bloom = GOLD.createBloomSystem({ width: w, height: h, scale: 0.5 });
-      bloomSystems.set(kind, bloom);
+  let bloomSystem = null;
+  function getBloom(w = 1000, h = 1000) {
+    if (!bloomSystem && GOLD && typeof GOLD.createBloomSystem === 'function') {
+      bloomSystem = GOLD.createBloomSystem({ width: w, height: h, scale: 0.5 });
     }
-    return bloom || null;
+    return bloomSystem;
   }
-  function getBloom(w = 1000, h = 1000) { return getBloomFor('body', w, h); }
 
   // Hexa/Wall used to pay seeded cell-mesh derivation on the cast frame.
   // Warm likely early construct seeds opportunistically while the browser is
@@ -342,7 +335,7 @@
     }
   }
 
-  function transformedRegion(m, bounds, cw, ch, pad = 40, bucket = 64) {
+  function transformedRegion(m, bounds, cw, ch, pad = 40) {
     if (!bounds) return null;
     const pts = [
       [bounds.minX, bounds.minY], [bounds.maxX, bounds.minY],
@@ -354,13 +347,8 @@
     let maxX = Math.max(...pts.map(p => p.x)) + pad;
     let minY = Math.min(...pts.map(p => p.y)) - pad;
     let maxY = Math.max(...pts.map(p => p.y)) + pad;
-    // Quantise OUTWARD only. The Gold emitter remains at identical coordinates;
-    // only surrounding transparent acreage is made stable across nearby frames.
-    const q = Math.max(1, bucket | 0);
-    minX = Math.floor(minX / q) * q; minY = Math.floor(minY / q) * q;
-    maxX = Math.ceil(maxX / q) * q; maxY = Math.ceil(maxY / q) * q;
-    minX = Math.max(0, minX); minY = Math.max(0, minY);
-    maxX = Math.min(cw, maxX); maxY = Math.min(ch, maxY);
+    minX = Math.max(0, Math.floor(minX)); minY = Math.max(0, Math.floor(minY));
+    maxX = Math.min(cw, Math.ceil(maxX)); maxY = Math.min(ch, Math.ceil(maxY));
     if (maxX <= minX || maxY <= minY) return null;
     return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
   }
@@ -397,11 +385,9 @@
     return null;
   }
 
-  function renderBloomRegion(ctx, kind, worldTransform, cw, ch, bounds, draw) {
-    const region = transformedRegion(worldTransform, bounds, cw, ch, 44, 64);
+  function renderBloomRegion(ctx, bloom, worldTransform, cw, ch, bounds, draw) {
+    const region = transformedRegion(worldTransform, bounds, cw, ch, 44);
     if (!region) return;
-    const bloom = getBloomFor(kind, cw, ch);
-    if (!bloom) return;
     const gx = bloom.begin(worldTransform, region);
     if (!gx) return;
     draw(gx);
@@ -417,6 +403,8 @@
     const gameCanvas = ctx.canvas || (typeof document !== 'undefined' ? document.getElementById('game-canvas') : null);
     const cw = gameCanvas ? gameCanvas.width : (g.GAME_SIZE || 1000);
     const ch = gameCanvas ? gameCanvas.height : (g.GAME_SIZE || 1000);
+    const bloom = getBloom(cw, ch);
+    if (!bloom) return;
     // Keep the exact production camera matrix. Only transparent acreage outside
     // each emitter group is cropped before the same two Gold blur passes.
     const worldTransform = typeof ctx.getTransform === 'function' ? ctx.getTransform() : null;
@@ -426,7 +414,7 @@
       const rig = crySt ? crySt.rig : null;
       if (!rig) continue;
 
-      renderBloomRegion(ctx, 'body', worldTransform, cw, ch, bodyBloomBounds(rig), gx => {
+      renderBloomRegion(ctx, bloom, worldTransform, cw, ch, bodyBloomBounds(rig), gx => {
         for (const s of rig.stones) GOLD.drawStone(gx, s, 1, true);
         GOLD.drawCrystala(gx, rig.hero, true, 1);
       });
@@ -436,7 +424,7 @@
       for (const cons of rig.constructs) {
         const bounds = constructBloomBounds(cons);
         if (!bounds) continue;
-        renderBloomRegion(ctx, cons.kind === 'wall' ? 'wall' : 'prison', worldTransform, cw, ch, bounds, gx => {
+        renderBloomRegion(ctx, bloom, worldTransform, cw, ch, bounds, gx => {
           if (cons.kind === 'wall' && cons.geom) GOLD.drawWall(gx, cons.geom, true);
           else if (cons.kind === 'prison' && cons.prison) {
             GOLD.drawPrison(gx, cons.prison, true, false);
@@ -492,7 +480,6 @@
       };
     },
     getBloom,
-    getBloomFor,
     renderBody: body,
     renderStatusVfx: drawGenericStatusVfx,
     renderWorldConstructsAndFx,
