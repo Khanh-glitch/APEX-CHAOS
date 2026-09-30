@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import puppeteer from 'puppeteer-core';
+import { pathToFileURL } from 'node:url';
 
 const APP=process.env.APEX_APP_URL||'http://127.0.0.1:4173';
 const CHROME=process.env.CHROME_PATH;
@@ -16,6 +17,44 @@ const browser=await puppeteer.launch({
   args:['--headless=new','--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--window-size=1440,1080'],
   headless:true,defaultViewport:{width:1440,height:1080}
 });
+const goldPage=await browser.newPage();
+await goldPage.setViewport({width:1440,height:1000});
+const goldPath=path.resolve('docs/hero-rework/hunter-v1.1/reference/HUNTER_GOLD_V10_EXACT_ROOT_TRAP.html');
+await goldPage.goto(pathToFileURL(goldPath).href,{waitUntil:'load',timeout:60000});
+await goldPage.waitForFunction(()=>window.__hunterStage?.ready===true,{timeout:60000});
+const gold=await goldPage.evaluate(async()=>{
+  const st=window.__hunterStage;
+  st.auto=false;st.slowmo=false;st.closeUp=false;st.reset();st.startA1();
+  const rows=[];
+  await new Promise(resolve=>{
+    let n=0;
+    const tick=()=>{
+      rows.push({frame:n,t:+st.h.t.toFixed(5),x:+st.h.px.toFixed(4),mode:st.h.mode,phase:st.h.phase,timeScale:+st.timeScale.toFixed(5)});
+      n++;
+      if((st.h.mode==='idle'&&n>10)||n>160)return resolve();
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  const x0=rows[0]?.x??340;
+  const steps=rows.slice(1).map((r,i)=>Math.abs(r.x-rows[i].x));
+  const moving=steps.filter(v=>v>.05);
+  return {
+    rows,
+    x0,
+    finalX:rows.at(-1)?.x,
+    maxDisp:Math.max(...rows.map(r=>Math.abs(r.x-x0))),
+    maxStep:Math.max(0,...steps),
+    movingFrames:moving.length,
+    realtimeFrames:rows.length
+  };
+});
+console.log('HUNTER_GOLD_A1_TRAJECTORY '+JSON.stringify({
+  maxDisp:gold.maxDisp,maxStep:gold.maxStep,movingFrames:gold.movingFrames,realtimeFrames:gold.realtimeFrames,
+  sample:gold.rows.filter((_,i)=>i<8||i%4===0||i>=gold.rows.length-8)
+}));
+await goldPage.close();
+
 const page=await browser.newPage();
 const errors=[];
 page.on('pageerror',e=>errors.push(String(e)));
@@ -73,17 +112,27 @@ const audit=await page.evaluate(()=>{
   };
 });
 
+audit.gold=gold;
 const canvas=await page.$('#game-canvas');
 if(!canvas)throw new Error('#game-canvas missing');
 await canvas.screenshot({path:path.join(OUT,'hunter-a1-trap-fixed.png')});
 audit.errors=errors;
+const goldTol=Math.max(3,gold.maxDisp*0.08);
+audit.goldDelta={
+  maxDisp:Math.abs(audit.maxDisp-gold.maxDisp),
+  maxStep:Math.abs(audit.maxStep-gold.maxStep),
+  movingFrames:Math.abs(audit.movingFrames-gold.movingFrames)
+};
 audit.pass=!!audit.snare && audit.counts.back>0 && audit.counts.front>0 && audit.counts.fx>0
-  && audit.maxDisp>20 && audit.maxDisp<100 && audit.maxStep<20 && audit.movingFrames>=8
+  && audit.goldDelta.maxDisp<=goldTol
+  && audit.goldDelta.maxStep<=Math.max(3,gold.maxStep*0.12)
+  && audit.goldDelta.movingFrames<=3
   && errors.length===0;
 fs.writeFileSync(path.join(OUT,'hunter-a1-ownerfix-browser.json'),JSON.stringify(audit,null,2)+'\n');
 console.log('HUNTER_A1_BROWSER '+JSON.stringify({
   pass:audit.pass,counts:audit.counts,maxDisp:audit.maxDisp,maxStep:audit.maxStep,
-  movingFrames:audit.movingFrames,snareSeenAt:audit.snareSeenAt,armedAt:audit.armedAt,
+  movingFrames:audit.movingFrames,gold:{maxDisp:gold.maxDisp,maxStep:gold.maxStep,movingFrames:gold.movingFrames,realtimeFrames:gold.realtimeFrames},goldDelta:audit.goldDelta,
+  snareSeenAt:audit.snareSeenAt,armedAt:audit.armedAt,
   final:audit.final,errors
 }));
 await browser.close();
