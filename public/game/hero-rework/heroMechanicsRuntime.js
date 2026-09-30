@@ -784,12 +784,11 @@
     onTick(ctx,dt){const c=ctx.store.cast;if(!c)return;const a=ctx.combatant.anchor;
       a.data.positionLocked=true;
       const motion=globalScope.APEX_HUNTER_PRESENTATION.advanceA1(a,dt);
-      // POST-PLAYTEST 2026-09-29: cast-local finite recoil. The presentation
-      // returns only normalized progress deltas; mechanics applies them
-      // OPPOSITE the cast axis with production wall authority.
-      const B=(globalScope.APEX_HUNTER_PRESENTATION&&globalScope.APEX_HUNTER_PRESENTATION.recoilBudget&&globalScope.APEX_HUNTER_PRESENTATION.recoilBudget())||466;
-      const dq=motion.dq||0;
-      ctx.api.moveHunterBody(a,a.x-c.axis.x*dq*B,a.y-c.axis.y*dq*B);
+      // Gold-authored A1 movement: presentation returns the actual spring
+      // displacement in world pixels. Map it opposite the pre-cast movement
+      // axis from the fixed cast origin; moveHunterBody remains wall authority.
+      const off=motion.offset||0;
+      ctx.api.moveHunterBody(a,c.origin.x-c.axis.x*off,c.origin.y-c.axis.y*off);
       if(motion.plant&&!c.planted){c.planted=true;ctx.api.spawnSnare({owner:ctx.combatant,x:a.x,y:a.y,radius:(globalScope.APEX_HUNTER_PRESENTATION&&globalScope.APEX_HUNTER_PRESENTATION.trapWorldRadius)||46,lifetime:ctx.cfg.trapLifetime,rootDuration:ctx.cfg.rootDuration});}
       if(motion.done){
         // Original Apex locomotion preserves heading after the mechanic unlocks.

@@ -8,9 +8,6 @@
 'use strict';if(g.APEX_HUNTER_PRESENTATION)return;
 const G=g.APEX_HUNTER_GOLD,HR=g.APEX_HERO_REWORK,states=new WeakMap();let assets=null;
 const api=g.APEX_HUNTER_PRESENTATION={ready:false,trapWorldRadius:0};
-// Finite retreat budget: owner feel target ~1/3 arena diagonal for center casts;
-// walls clamp. Not a per-frame feedback displacement.
-api.recoilBudget=()=>0.33*Math.SQRT2*(g.GAME_SIZE||1000);
 G.load().then(a=>{assets=a;api.ready=true;measure();}).catch(e=>{api.error=String(e);console.error('[Hunter V10 assets]',e);});
 const scale=f=>2*(f.radius||75)/(555*.335),offset=98*.335;
 function hunter(f){return HR.byCombatant(f)?.heroId==='HUNTER';}
@@ -30,13 +27,14 @@ function measure(){if(!assets?.root)return;const k=scale({radius:75});const cv=d
  api.trapWorldRadius=Math.max(24,maxX/k* k); // world px at k scale == canvas px here
  api.trapMeasure={maxX,maxY,k};}
 api.idle=f=>api.ready&&state(f).h.mode==='idle';
-api.begin=(f,kind)=>{const s=state(f);sync(s);s.h.x.v=s.h.y.v=0;s.pendingPlant=false;s.castBaseX=s.h.x.x;s.prevQ=0;if(kind==='a1')s.startA1();else s.startA2();};
-// Cast-local finite recoil: Gold defines the normalized retreat curve; only
-// progress deltas leave this function, never absolute rig positions.
+api.begin=(f,kind)=>{const s=state(f);sync(s);s.h.x.v=s.h.y.v=0;s.pendingPlant=false;s.castBaseX=s.h.x.x;if(kind==='a1')s.startA1();else s.startA2();};
+// Preserve the executable Gold A1 spring exactly. Gold moves h.x with
+// springRatio toward h.px-55 during RECOVER; production maps that authored
+// displacement onto the cast axis instead of converting it into a monotonic
+// progress/budget impulse.
 api.advanceA1=(f,dt)=>{const s=state(f);sync(s,false);s.updA1(dt);
- const q=Math.min(1,Math.abs(s.h.x.x-s.castBaseX)/150);
- const dq=Math.max(0,q-(s.prevQ||0));s.prevQ=Math.max(s.prevQ||0,q);
- const plant=s.pendingPlant;s.pendingPlant=false;return{dq,plant,done:s.h.mode==='idle'};};
+ const offset=(s.castBaseX-s.h.x.x)*s.scale;
+ const plant=s.pendingPlant;s.pendingPlant=false;return{offset,plant,done:s.h.mode==='idle'};};
 api.prelaunch=(f,dt)=>{const s=state(f);sync(s);s.updA2(dt*(.665/.16));};
 api.travel=(f,heading,dt)=>{const s=state(f);sync(s);const A=s.a2;if(!A.dist){A.dist=1;A.total=Infinity;A.speed=0;A.dir=heading;A.oldDir=heading;s.launchBurst(heading);}if(!A.corrected&&Math.abs(G.core.angWrap(heading-A.oldDir))>.08){s.correctionBurst(G.core.angWrap(heading-A.oldDir));A.corrected=true;}A.dir=heading;s.updA2(dt);};
 api.catch=f=>{const s=state(f);sync(s);s.h.phase='CATCH';s.h.t=0;s.catchImpact();};
@@ -69,7 +67,9 @@ function body(c,f){const P=g.APEX_CHAMBER_PALETTE;echoesBefore(c,f);if(P&&P.acto
 function layer(c,which){if(!api.ready||!HR.match)return;for(const t of HR.match.world.snares){if(!t.visual)continue;const k=scale(t.owner.anchor),v=t.visual;v.tr.x=t.x/k;v.tr.y=t.y/k;c.save();c.scale(k,k);G.rtDraw(v,c,null,which);c.restore();}}
 function weakLayer(c){if(!api.ready||!HR.match)return;for(const ct of HR.match.combatants){if(ct.heroId!=='HUNTER')continue;const s=states.get(ct.anchor);if(!s||(s.p.weak||0)<=0)continue;c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.drawWeak(c);c.restore();}}
 const baseProjectiles=g.drawProjectiles;g.drawProjectiles=function(c){baseProjectiles(c);layer(c,'back');for(const ct of HR.match?.combatants||[])if(ct.heroId==='HUNTER'&&api.ready){const s=state(ct.anchor);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.fx.draw(c,false);c.restore();}};
-const baseDraw=g.Fighter.prototype.draw;g.Fighter.prototype.draw=function(c){if(hunter(this)){if(api.ready&&this.hp>0)body(c,this);else if(!api.ready){c.save();c.fillStyle='#c8ff5e';c.font='12px monospace';c.fillText(api.error?'HUNTER ASSET ERROR':'LOADING HUNTER',this.x-65,this.y);c.restore();}}else baseDraw.call(this,c);if(this===g.fighters?.[1]){layer(c,'front');weakLayer(c);for(const ct of HR.match?.combatants||[])if(ct.heroId==='HUNTER'&&api.ready){const s=state(ct.anchor);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.fx.draw(c,true);c.restore();}layer(c,'fx');}};
+function postWorld(c){layer(c,'front');weakLayer(c);for(const ct of HR.match?.combatants||[])if(ct.heroId==='HUNTER'&&api.ready){const s=state(ct.anchor);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.fx.draw(c,true);c.restore();}layer(c,'fx');}
+api.renderPostWorld=postWorld;
+const baseDraw=g.Fighter.prototype.draw;g.Fighter.prototype.draw=function(c){if(hunter(this)){if(api.ready&&this.hp>0)body(c,this);else if(!api.ready){c.save();c.fillStyle='#c8ff5e';c.font='12px monospace';c.fillText(api.error?'HUNTER ASSET ERROR':'LOADING HUNTER',this.x-65,this.y);c.restore();}}else baseDraw.call(this,c);if(this===g.fighters?.[g.fighters.length-1]||this===g.fighters?.[1])postWorld(c);};
 // Owner SFX semantics: event edges own playback; single dispatch layer.
 (function(){const bus=HR.AIL.bus,emit=bus.emit;
  bus.emit=function(type,payload){

@@ -287,14 +287,21 @@
     const prevDraw = Fighter.prototype.draw;
     Fighter.prototype.__crystalaPresentationWrapped = true;
     Fighter.prototype.draw = function (ctx) {
+      let bypassedPrevDraw = false;
       if (isCrystal(this)) {
-        if (this.hp > 0) body(ctx, this);
+        if (this.hp > 0) { body(ctx, this); bypassedPrevDraw = true; }
         else prevDraw.call(this, ctx);
       } else {
         prevDraw.call(this, ctx);
       }
 
       if (this === g.fighters?.[g.fighters.length - 1] || this === g.fighters?.[1]) {
+        // Hunter's ROOT trap front blades/fx historically live in the previous
+        // Fighter.draw wrapper. A living Crystal bypasses that wrapper for its
+        // custom body, so explicitly run Hunter's shared post-world hook once.
+        if (bypassedPrevDraw && g.APEX_HUNTER_PRESENTATION?.renderPostWorld) {
+          g.APEX_HUNTER_PRESENTATION.renderPostWorld(ctx);
+        }
         renderWorldConstructsAndFx(ctx, false, true);
         runBloomPass(ctx);
       }
