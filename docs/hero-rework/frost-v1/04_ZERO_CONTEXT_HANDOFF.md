@@ -29,10 +29,10 @@ Gameplay:
 00_FROST_IMPLEMENTATION_AUTHORITY.md
 
 Presentation:
-01_OWNER_APPROVED_GOLD_REFERENCE.html
-SHA-256 59201be3d33bdfbeb8459656d3ef37caf922382a06852bd7a609472fdce2da43
+gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html
+SHA-256 940fc9a8a181cc40d965ebf2c4309d1b4816d3016fc191b0d3df8a1a65be2475
 
-Gold Fusion is selected. Do not substitute the later Signature prototype.
+The exact 981,597-byte Gold at the path above is selected. Do not substitute the obsolete 975,616-byte Gold, the later Signature prototype, or any prior generated Frost Gold JS.
 
 ## Most dangerous historical mistakes
 
@@ -76,3 +76,8 @@ Lv2-Lv5 progression design.
 Final post-playtest balance.
 
 No agent discretion to fill these gaps.
+
+
+## Final owner-playtest blockers
+
+The current production playtest exposed release-blocking presentation failures: A2 ice is visibly disconnected from itself and differs from Gold; activating A1/A2 can make ice flicker/disappear and can make the opponent repeatedly scale up/down; Frost's battle-scale visual is smaller than peer fighters; additional visual defects may exist. These are presentation/isolation failures, not permission to retune gameplay. Read 09_FINAL_GOLD_REBUILD_AUTHORITY.md and rebuild the presentation from the exact canonical Gold.
