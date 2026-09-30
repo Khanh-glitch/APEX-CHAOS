@@ -220,6 +220,41 @@ const result = await page.evaluate(async () => {
 
   perf.disableBloom=false; perf.disableChamber=false;
 
+  // Pixel A/B: production direct-wide bloom versus the previous Gold
+  // three-surface pipeline, using the exact same emissive Crystala geometry.
+  function bloomParityProbe() {
+    const W=420,H=420;
+    const cvA=document.createElement('canvas'), cvB=document.createElement('canvas');
+    cvA.width=cvB.width=W; cvA.height=cvB.height=H;
+    const ca=cvA.getContext('2d'), cb=cvB.getContext('2d');
+    const ba=GOLD.createBloomSystem({width:W,height:H,scale:0.5});
+    const bb=GOLD.createBloomSystem({width:W,height:H,scale:0.5,forceLegacyWide:true});
+    const rig=GOLD.createRig({seed:20260930,visual:true});
+    rig.bound=1000; rig.setBody(210,220,0,0); rig.awaken(1.0,0.85);
+    for(let i=0;i<18;i++) rig.advance(1/60);
+    const render=(bloom,ctx)=>{
+      const region={x:0,y:0,w:W,h:H};
+      const gx=bloom.begin(null,region);
+      for(const st of rig.stones) GOLD.drawStone(gx,st,1,true);
+      GOLD.drawCrystala(gx,rig.hero,true,1);
+      bloom.composite(ctx,W,H,region);
+    };
+    render(ba,ca); render(bb,cb);
+    const a=ca.getImageData(0,0,W,H).data, b=cb.getImageData(0,0,W,H).data;
+    let sum=0,max=0,changed=0,alphaSum=0;
+    for(let i=0;i<a.length;i++){
+      const d=Math.abs(a[i]-b[i]); sum+=d; if(d>max)max=d; if(d)changed++;
+      if((i&3)===3) alphaSum+=d;
+    }
+    return {
+      meanAbs:sum/a.length,
+      maxAbs:max,
+      changedPct:changed/a.length,
+      meanAlphaAbs:alphaSum/(W*H),
+    };
+  }
+  const bloomParity=bloomParityProbe();
+
   // K reachability probe using the real Arsenal bullet object and real CRYSTALA predictor.
   const cfg=G.APEX_ARSENAL_CONFIG;
   async function probe(id, dist) {
@@ -256,6 +291,7 @@ const result = await page.evaluate(async () => {
     revision:(document.querySelector('script[src*="crystalaPresentationRuntime.js"]')?.src||''),
     profiles:perf.rows,
     kProbe,
+    bloomParity,
   };
 });
 
@@ -291,6 +327,7 @@ for (const p of result.profiles) {
   }));
 }
 console.log('K_PROBE '+JSON.stringify(result.kProbe));
+console.log('BLOOM_PARITY '+JSON.stringify(result.bloomParity));
 console.log('PAGE_ERRORS '+JSON.stringify(errors));
 
 await browser.close();
