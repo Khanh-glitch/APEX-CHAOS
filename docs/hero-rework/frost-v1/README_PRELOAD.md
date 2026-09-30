@@ -24,13 +24,14 @@ Rejected Frost implementation SHA `7b7efa298abb8e02bebbea6bced365b7b12dd29c` is 
 
 1. 06_ONE_SHOT_RUNBOOK.md
 2. 00_FROST_IMPLEMENTATION_AUTHORITY.md
-3. 01_OWNER_APPROVED_GOLD_REFERENCE.html — read/run it in full
+3. gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html — read/run it in full
 4. 02_GOLD_TO_GAME_ADAPTATION_MAP.md
 5. 03_IMPLEMENTATION_TEST_MATRIX.md
 6. 04_ZERO_CONTEXT_HANDOFF.md
 7. 05_PRELOAD_MANIFEST.json
 8. 08_PRELOAD_HOSTILE_AUDIT.md
-9. 07_ACTIVE_AGENT_TASK_FROST_V1.md
+9. 09_FINAL_GOLD_REBUILD_AUTHORITY.md
+10. 07_ACTIVE_AGENT_TASK_FROST_V1.md
 
 Also read the baseline source files and protected-system authorities named by the runbook before editing.
 
@@ -38,7 +39,7 @@ Also read the baseline source files and protected-system authorities named by th
 
 1. Latest explicit owner instruction after this package.
 2. 00_FROST_IMPLEMENTATION_AUTHORITY.md.
-3. 01_OWNER_APPROVED_GOLD_REFERENCE.html for presentation only.
+3. gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html for presentation only.
 4. 02_GOLD_TO_GAME_ADAPTATION_MAP.md.
 5. The exact live baseline at 6b83fc6502eb8e23e4bd122074fc7fdfb47441ae.
 6. Older ICE documents/runtime comments and historical prototypes.
@@ -48,15 +49,15 @@ Old ICE gameplay does NOT override this package.
 ## Gold identity
 
 Canonical owner-approved Gold:
-01_OWNER_APPROVED_GOLD_REFERENCE.html
+gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html
 
 Expected SHA-256:
-59201be3d33bdfbeb8459656d3ef37caf922382a06852bd7a609472fdce2da43
+940fc9a8a181cc40d965ebf2c4309d1b4816d3016fc191b0d3df8a1a65be2475
 
 The Gold is visual / asset / VFX / motion authority.
 It is NOT production gameplay, input, physics, inventory, AI, balance, collision, or save authority.
 
-The later FROST_GOLD_SIGNATURE prototype is NOT the selected Gold for this implementation. The selected authority is the Fusion file above.
+The later FROST_GOLD_SIGNATURE prototype and the obsolete 975,616-byte Gold are NOT selected. The selected authority is the exact 981,597-byte Gold above. Read 09_FINAL_GOLD_REBUILD_AUTHORITY.md for the owner-playtest release blockers and final rebuild contract.
 
 ## Deliberately deferred
 
