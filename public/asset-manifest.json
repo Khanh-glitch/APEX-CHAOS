@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-29T00:57:31.584Z",
+  "generatedAt": "2026-09-30T14:57:45.611Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -10,7 +10,7 @@
     {
       "path": "/apexEngine.js",
       "type": "script",
-      "bytes": 229914
+      "bytes": 230197
     },
     {
       "path": "/assets/arcade_v1/normalized/battle_idle_reference.webp",
@@ -1323,6 +1323,11 @@
       "bytes": 10534
     },
     {
+      "path": "/assets/frost_v1/manifest.json",
+      "type": "data",
+      "bytes": 522
+    },
+    {
       "path": "/assets/galaxy_v1/audio/BLUEHOLE.mp3",
       "type": "audio",
       "bytes": 75586
@@ -1466,6 +1471,36 @@
       "path": "/assets/galaxy_v1/images/VISUAL%20FOR%20THE%20ZONE%20OF%20GALAXY%20DIVINE.webp",
       "type": "image",
       "bytes": 724620
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a1_charge_personal.mp3",
+      "type": "audio",
+      "bytes": 28882
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a1_clamp.mp3",
+      "type": "audio",
+      "bytes": 26374
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a1_deploy_mechanism.mp3",
+      "type": "audio",
+      "bytes": 47852
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a1_unfold_blade.mp3",
+      "type": "audio",
+      "bytes": 31390
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a2_catch_flesh.mp3",
+      "type": "audio",
+      "bytes": 31148
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a2_pounce_sweep.mp3",
+      "type": "audio",
+      "bytes": 24493
     },
     {
       "path": "/assets/hero-rework/robot-final/sfx/robot_a1_dash.mp3",
@@ -3355,7 +3390,7 @@
     {
       "path": "/game/fighters/iceVisualRuntime.js",
       "type": "script",
-      "bytes": 29885
+      "bytes": 30195
     },
     {
       "path": "/game/fighters/katanaRuntime.js",
