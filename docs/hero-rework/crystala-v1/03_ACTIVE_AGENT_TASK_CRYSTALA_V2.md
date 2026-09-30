@@ -1,147 +1,120 @@
-# ACTIVE AGENT TASK — IMPLEMENT CRYSTALA V2 SIX-SHARD RESOURCE MODEL
-
-You are implementing a high-risk gameplay/state rewrite in APEX CHAOS.
+# ACTIVE AGENT TASK — CRYSTALA MINIMAL DELTA PATCH
 
 Repository: Khanh-glitch/APEX-CHAOS
 Target branch: arena/01a0ee80-apex-chaos
 
-## FIRST: establish truth
+## Read first
 
-1. Treat every Arena chat/local workspace as potentially stale.
-2. Fetch/audit the LIVE target branch before editing.
-3. Read completely:
-   - docs/hero-rework/crystala-v1/02_CRYSTALA_V2_SIX_SHARD_RESOURCE_AUTHORITY.md
-   - docs/hero-rework/crystala-v1/00_CRYSTALA_IMPLEMENTATION_AUTHORITY.md
-   - public/game/hero-rework/crystalGameplayRuntime.js
-   - public/game/hero-rework/crystalaGoldV6.js
-   - public/game/hero-rework/heroRegistry.js
-   - public/game/hero-rework/crystalaPresentationRuntime.js
-   - tools/testCrystalaGameplayGates.mjs
-   - tools/analyzeCrystalaDecisionTradeoffs.mjs
-   - tools/profileCrystalaPerformance.mjs
-4. Where V1 authority conflicts with 02_CRYSTALA_V2..., the V2 document is authoritative.
-5. Audit the current performance work before changing presentation. Preserve construct raster cache, Gold visual fidelity, and no-quality-cut bloom optimizations.
+Audit LIVE branch state, then read completely:
 
-## IMPLEMENT THE V2 AUTHORITY END-TO-END
+- docs/hero-rework/crystala-v1/02_CRYSTALA_V2_SIX_SHARD_RESOURCE_AUTHORITY.md
+- docs/hero-rework/crystala-v1/00_CRYSTALA_IMPLEMENTATION_AUTHORITY.md
+- public/game/hero-rework/crystalGameplayRuntime.js
+- public/game/hero-rework/heroRegistry.js
+- public/game/hero-rework/crystalaGoldV6.js
+- public/game/hero-rework/crystalaPresentationRuntime.js
+- tools/testCrystalaGameplayGates.mjs
 
-This is not a tuning-only task. The required behavioral rewrite is fully specified in:
-docs/hero-rework/crystala-v1/02_CRYSTALA_V2_SIX_SHARD_RESOURCE_AUTHORITY.md
+The 02 document is a MINIMAL-DELTA override. Do not treat it as permission to redesign CRYSTALA.
 
-Critical frozen highlights:
-- Fighter radius is 75; K successful contact ring = 300 px center radius.
-- K = reactive 600 px guardian perimeter, not omniscient would-hit predictor.
-- K CD 12.0 s, active 2.4 s, contact->dock 1.60 s.
-- Six shards remain independent physical slots.
-- J CD 8.0 s.
-- J does NOT universally require K.
-- K active + all 6 exactly ORBIT/free -> HEXA.
-- Otherwise J attempts WALL with fixed Blade ids 0 and 1 only.
-- Wall: 220 width, 80 total HP, 4.0 s max solid.
-- Wall breaking projectile does NOT reflect; it passes with full current damage/provenance and must not be immediately rescued by K.
-- Hexa: K active + all six free only; radius 135; 6 facets; 60 HP/facet; ~0.75 s Gold closure; 3.0 s solid.
-- Hexa breaking facet shot IS reflected first, then facet opens.
-- Remove the temporary V1 decisionWindow=1.2 / maxCastsPerAwakening=1 architecture.
-- Preserve Passive 50%, max-one-Crystal-reflection, T6 immunity.
+## Scope
 
-## ENGINEERING CONSTRAINTS
+Change ONLY:
 
-### Preserve Gold
-Do not redesign Crystal visuals. Continue using the approved Gold:
-- Hermite shard travel
-- facet orientation
-- internal-light refraction
-- recoil
-- return/dock
-- Wall/Prison construction and material
-- current production caches/performance optimizations
+### WALL
+- Wall can be attempted without K when existing live HEXA path is not eligible.
+- Wall always uses BLADE L/R, shard ids [0,1].
+- Both must be ORBIT/free.
+- Wall HP = 80.
+- Successful J cooldown = 8.0 s.
+- Breaking projectile (damage >= remaining Wall HP) breaks Wall and passes through with full current damage/provenance WITHOUT Wall reflection.
 
-Timing/path retiming required by V2 is allowed. Visual language replacement is not.
+### K
+- Remove omniscient would-hit/body prediction from shard acquisition.
+- Eligible hostile projectile entering 450 px read radius can claim a free shard.
+- Successful intercept target ring = 300 px from Crystal center.
+- Remove inward rescue bands 180/150/120/90.
+- Keep real swept moving-shard contact and Gold Hermite/facet/refraction/recoil grammar.
+- Contact->visible dock total = 1.60 s.
+- K cooldown = 12.0 s.
+- K active duration remains 2.4 s.
+- six independent shard slots remain exactly independent.
 
-### Locality
-Prefer implementing in Crystal-specific runtime/registry/tests.
-Do NOT casually alter Robot/Hunter/Black Hole/Magnet/Mirror or shared engine semantics.
-If a shared runtime edit is genuinely required for same-frame Wall breakthrough, keep it minimal, Crystal-tagged, deterministic, and add an explicit regression gate.
+## Explicit NON-SCOPE
 
-### No fake success
-Do not satisfy K by deleting/consuming a projectile at reservation time.
-A successful K block requires real swept moving-shard/projectile contact.
+HEXA MUST REMAIN LIVE-CURRENT.
 
-Do not hide a Wall breaker by marking it consumed.
-The breaker must survive the Wall transaction and continue.
+Do not change any HEXA:
+- eligibility semantics/path;
+- K relationship;
+- six-free requirement;
+- radius;
+- facet count;
+- facet HP (keep 75);
+- build/closure;
+- lifetime;
+- reflection/break ordering;
+- physical gap;
+- visuals;
+- T6;
+- own-projectile law.
 
-### Determinism
-Shotgun pellets and simultaneous bullets must remain independent projectiles.
-Stable ordering is required.
-No frame-order roulette.
+Also do not change Passive, other heroes, or current visual-performance optimizations.
 
-## TEST-FIRST REQUIREMENT
+Do not add:
+- new Hexa mechanics;
+- new two-facet escape laws;
+- new point-blank K rules;
+- new breakthrough-to-K immunity unless absolutely required by existing collision ordering to make the single breaking Wall projectile physically continue as specified;
+- new HUD/resource systems;
+- new statuses;
+- new global recovery state.
 
-Before declaring success, add/modify deterministic gates that directly prove every item in Authority §11.
+## Engineering rule
 
-Especially prove:
-1. K-off J -> Wall with shardIds exactly [0,1].
-2. Blade busy -> Wall fail/no cooldown.
-3. K-on six free -> Hexa.
-4. K-on one shard busy -> NOT Hexa; Wall only if both Blades are free.
-5. A near-miss/grazing hostile projectile entering 600 still consumes a guardian shard even though old body-hit predictor would have ignored it.
-6. A projectile first appearing <=300 is a point-blank breach and is not magically rescued.
-7. Six simultaneous perimeter entries use six distinct shards; seventh waits.
-8. Successful K contact occurs around 300 px, never inward rescue bands.
-9. realistic SNIPER path is blocked when eligible.
-10. contact-to-dock is ~1.60 s.
-11. Wall 80 HP + SNIPER: Wall dies, shot is not reflected, shot continues with full current damage, K does not rescue that same breakthrough shot.
-12. spray sequence: early bullets reflect, breaking bullet passes, post-break bullets pass.
-13. Hexa 60 HP facet + high-caliber shot: shot reflects, facet dies, physical gap opens.
-14. T6 unchanged.
-15. own/reflected projectile anti-loop laws unchanged.
+Prefer local Crystal edits. Shared runtime edits are allowed only if same-frame Wall-break pass-through cannot be implemented locally; if unavoidable, keep them Crystal-specific and add a regression gate.
 
-## PRODUCTION EVIDENCE
+Do not fake K success by consuming a projectile at assignment. Real moving-shard collision remains mandatory.
+
+## Mandatory tests
+
+Implement the 24 acceptance gates in Authority §5, with special focus on:
+- live HEXA behavior before/after patch is unchanged;
+- K-off Wall [0,1];
+- Blade busy fail/no cooldown;
+- Wall HP 80;
+- J CD 8;
+- Wall breaking shot passes unreflected at full current damage;
+- K read 450/contact 300;
+- near-miss that enters radius can consume one shard;
+- six independent K jobs still work;
+- dock independence;
+- 1.60 s return;
+- K CD 12 / active 2.4;
+- no old inward rescue bands;
+- T6/Passive/Gold/performance regressions absent.
+
+## Evidence before finish
 
 Run:
-- focused CRYSTALA correctness gates
-- runtime revision/hash gate
-- production build
-- CRYSTALA production-browser profile
-- decision-tradeoff probe updated for the V2 choices
-- Gold parity/readability checks
-- relevant Arsenal stabilization tests
+- focused Crystala correctness gates;
+- runtime revision/hash gate;
+- production build;
+- Crystala production-browser performance profile;
+- Gold parity/readability checks;
+- relevant Arsenal stabilization suite.
 
-Update decision analysis scenarios to represent the actual V2:
-- Wall-only, K off
-- K-only versus precision
-- K-only versus rapid/spray
-- K -> immediate Hexa
-- Wall active -> K with only remaining free shards
-- breakthrough high-caliber Wall case
+Performance must not materially regress from current cached-construct baseline. Do NOT reduce visual quality to recover performance.
 
-Do not retain old WALL_EARLY/WALL_DELAYED timing conclusions as authority after the architecture is removed.
+## Finish
 
-## PERFORMANCE GUARD
-
-Do not regress the current no-quality-cut performance work.
-Profile at least:
-- dormant Crystal
-- K with six shards
-- K under six simultaneous guardian jobs
-- Wall
-- K while Wall shards are unavailable
-- Hexa
-- Hexa facet break
-
-If the new gameplay logic is cheap but draw remains the bottleneck, report it honestly rather than degrading visuals.
-
-## FINISHING / REPO HYGIENE
-
-After implementation:
-1. re-read the V2 authority and audit code against it line-by-line;
-2. inspect git diff for unrelated edits;
-3. update V1 authority only where necessary to clearly state V2 supersession—do not leave contradictory live docs;
+Then:
+1. audit final diff against 02 line-by-line;
+2. verify no accidental HEXA change;
+3. verify no unrelated hero/shared-system edits;
 4. bump runtime revision;
-5. relock SHA256 runtime hashes;
-6. ensure live target branch contains the finished commits;
-7. report exact final HEAD SHA;
-8. report all changed files;
-9. report pass/fail counts and any known unrelated pre-existing CI failures;
-10. summarize the final state machine and the measured matchup/tradeoff evidence.
+5. relock hashes;
+6. leave target branch playtest-ready;
+7. report exact HEAD, changed files, tests/profile, and any known pre-existing unrelated failures.
 
-Do not stop at an analysis report. Implement, test, audit, and leave the branch playtest-ready.
+Do not stop at analysis; implement and prove the minimal patch.
