@@ -396,7 +396,9 @@ try {
   HR.pressAbility(o.a, 'A2');
   T.step(1.2); // lane built, trail laid along it
   const lane = FR().inspect(o.ct).lanes[0];
-  o.b.x = lane.ox + 200; o.b.y = lane.oy; o.b.setDir(1, 0);
+  // 200px apart: both on the floor, no real body contact (Slice C contact
+  // is live: 100px would overlap and Cold Shock the enemy to x0.50).
+  o.b.x = lane.ox + 300; o.b.y = lane.oy; o.b.setDir(1, 0);
   o.a.x = lane.ox + 100; o.a.y = lane.oy; o.a.setDir(1, 0);
   T.step(2 / 60);
   const slowE = o.b.hasStatus('slow') ? o.b.statuses.slow.mult : null;
@@ -790,8 +792,10 @@ try {
   o.b.x = 850; o.b.y = 100; o.b.setDir(-1, 0);
   HR.pressAbility(o.a, 'A2');
   T.step(0.6); // trail spans ~200..510 at y=500
+  // Pin Frost far from the probe points: Slice C contact is live and a
+  // moving Frost would really collide with the enemy at (350,559).
+  o.a.baseSpeed = 0; o.a.x = 800; o.a.y = 500;
   o.b.x = 350; o.b.y = 559; o.b.setDir(1, 0);
-  o.a.x = 700; o.a.y = 500;
   T.step(2 / 60);
   const slow59 = o.b.hasStatus('slow');
   o.b.x = 350; o.b.y = 561;
@@ -810,6 +814,1034 @@ try {
   gate('F09.7-width-120', slow59 && clean61, { slow59, clean61 });
   gate('F09.9-frost-x2.35-trail', Math.abs(ratio - 2.35) < 0.12, { ratio: +ratio.toFixed(3) });
 } catch (e) { gate('F09.7-width-120', false, String(e && e.message)); }
+
+/* ================= Slice C helpers ================================== */
+// mulberry32 identical to AIL.makeSeededRng (ailRuntime.js). Frost's Freeze
+// stream is seeded ONLY via FR.setFreezeSeed in these gates, so predicted
+// draws below are bit-exact expectations, not statistical guesses.
+function frostDraws(seed, n) {
+  let s = (seed >>> 0) || 0x9e3779b9;
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    out.push(((t ^ (t >>> 14)) >>> 0) / 4294967296);
+  }
+  return out;
+}
+// First seed whose opening draws match a wanted proc(true)/fail(false)
+// pattern at the 8% line. Deterministic scan, no RNG.
+function frostSeedFor(pattern) {
+  for (let s = 1; s < 500000; s++) {
+    const d = frostDraws(s, pattern.length);
+    if (pattern.every((want, i) => (d[i] < 0.08) === want)) return s;
+  }
+  throw new Error('no seed for pattern ' + pattern.join(','));
+}
+function frostBusTap() {
+  const bus = win.APEX_HERO_REWORK_AIL.bus;
+  const seen = [];
+  const orig = bus.emit.bind(bus);
+  bus.emit = (t, p) => { if (String(t).indexOf('Frost') === 0) seen.push(t); return orig(t, p); };
+  return { seen, release() { bus.emit = orig; } };
+}
+function tapAQ(re, fn) {
+  const out = [];
+  const origLog = console.log;
+  console.log = (...lg) => {
+    const m = String(lg[0]).match(re);
+    if (m) out.push(m[1] === undefined ? true : m[1]);
+    return origLog(...lg);
+  };
+  try { fn(); } finally { console.log = origLog; }
+  return out;
+}
+const frostClock = () => win.APEX_HERO_REWORK_AIL.clock();
+// Full production path to a Frozen gun: A1 lane -> REVEALED slot freezes ->
+// Frost walks over -> Frozen holder -> pinned straight-line duel at 300px.
+function frozenDuel(weaponId, seed, p2 = 'ROBOT') {
+  FR().setFreezeSeed(seed == null ? 7 : seed);
+  const o = withCtl(frostPair(p2));
+  o.a.x = 200; o.a.y = 500; o.a.setDir(1, 0);
+  o.b.x = 800; o.b.y = 800; o.b.setDir(-1, 0);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(0.9);
+  const lane = FR().inspect(o.ct).lanes[0];
+  T.pushSlot({ x: lane.ox + 300, y: lane.oy, phase: 'REVEALED', weaponId });
+  T.step(2 / 60);
+  o.a.x = lane.ox + 300; o.a.y = lane.oy;
+  T.step(2 / 60);
+  const h = W().getHolder(o.a);
+  o.a.x = 300; o.a.y = 500; o.a.setDir(1, 0); o.a.baseSpeed = 0;
+  o.b.x = 600; o.b.y = 500; o.b.setDir(-1, 0); o.b.baseSpeed = 0;
+  return { o, h };
+}
+// Direct frozen equip (fixture control only; pickup law is proven by F05).
+function frozenEquip(f, weaponId) {
+  W().equip(f, weaponId);
+  const h = W().getHolder(f);
+  FR().noteFrozenPickup(f, h, null);
+  return h;
+}
+
+/* ================= F07 — Frozen Bullet grouping ====================== */
+try {
+  // SEMI: 3 projectile hits = 3 rolls; outcomes match the seeded predictor.
+  const seed = frostSeedFor([false, true, false]);
+  const { o, h } = frozenDuel('PISTOL', seed);
+  if (!h || !h.__frostFrozen) throw new Error('frozen pistol pickup failed');
+  const tap = frostBusTap();
+  // The [AQ] HIT log fires inside aqDamage, BEFORE the post-hit hook runs,
+  // so freeze state is sampled after each frame that delivered a hit.
+  const perHit = [];
+  let hits = 0, lastHits = 0;
+  const origLog = console.log;
+  console.log = (...lg) => {
+    if (/\[AQ\] HIT/.test(String(lg[0]))) hits++;
+    return origLog(...lg);
+  };
+  try {
+    for (let f = 0; f < 150 && hits < 3; f++) {
+      T.step(1 / 60);
+      if (hits > lastHits) { lastHits = hits; perHit.push(o.b.hasStatus('freeze')); }
+    }
+  } finally { console.log = origLog; }
+  const rolls = FR().inspect(o.ct).rolls;
+  const pred = frostDraws(seed, 3).map((d) => d < 0.08);
+  // Hit 1 fails (off); hit 2 procs (on); hit 3 fails while frozen (stays on).
+  const freezeOk = perHit[0] === false && perHit[1] === true && perHit[2] === true;
+  gate('F07.1-semi-one-roll-per-hit',
+    hits === 3 && rolls === 3 && freezeOk && tap.seen.filter((t) => t === 'FrostFreezeStart').length === 1,
+    { hits, rolls, perHit, pred, seed });
+  tap.release();
+} catch (e) { gate('F07.1-semi-one-roll-per-hit', false, String(e && e.message)); }
+
+try {
+  // AUTO: SMG 8 projectile hits = 8 rolls.
+  const { o, h } = frozenDuel('SMG', 21);
+  if (!h || !h.__frostFrozen) throw new Error('frozen smg pickup failed');
+  const hits = tapAQ(/\[AQ\] HIT/, () => T.step(2.5));
+  gate('F07.2-auto-one-roll-each',
+    h.shotsFired === 8 && hits.length === 8 && FR().inspect(o.ct).rolls === 8,
+    { shots: h.shotsFired, hits: hits.length, rolls: FR().inspect(o.ct).rolls });
+} catch (e) { gate('F07.2-auto-one-roll-each', false, String(e && e.message)); }
+
+try {
+  // BURST: BERETTA 6 projectile hits (2 bursts x 3) = 6 rolls.
+  const { o, h } = frozenDuel('BERETTA_93R', 22);
+  if (!h || !h.__frostFrozen) throw new Error('frozen beretta pickup failed');
+  const hits = tapAQ(/\[AQ\] HIT/, () => T.step(2.5));
+  gate('F07.3-burst-one-roll-each',
+    h.shotsFired === 6 && hits.length === 6 && FR().inspect(o.ct).rolls === 6,
+    { shots: h.shotsFired, hits: hits.length, rolls: FR().inspect(o.ct).rolls });
+} catch (e) { gate('F07.3-burst-one-roll-each', false, String(e && e.message)); }
+
+try {
+  // PRECISION: MBR 2 projectile hits = 2 rolls.
+  const { o, h } = frozenDuel('MBR', 23);
+  if (!h || !h.__frostFrozen) throw new Error('frozen mbr pickup failed');
+  const hits = tapAQ(/\[AQ\] HIT/, () => T.step(3.0));
+  gate('F07.4-precision-one-roll-each',
+    h.shotsFired === 2 && hits.length === 2 && FR().inspect(o.ct).rolls === 2,
+    { shots: h.shotsFired, hits: hits.length, rolls: FR().inspect(o.ct).rolls });
+} catch (e) { gate('F07.4-precision-one-roll-each', false, String(e && e.message)); }
+
+try {
+  // SHOTGUN: each 6-pellet blast shares one stable group; one roll per blast.
+  const { o, h } = frozenDuel('SHOTGUN', 24);
+  if (!h || !h.__frostFrozen) throw new Error('frozen shotgun pickup failed');
+  // Per-frame poll only (no inner multi-frame steps: blast 2 fires 0.28s
+  // after blast 1 and its pellets fly in ~0.12s). Max-simultaneous in
+  // flight per group proves every pellet of the fan shares the group.
+  const maxSimul = {};
+  let rollsAfterBlast1 = null, blast1Drained = false;
+  for (let f = 0; f < 300; f++) {
+    T.step(1 / 60);
+    const nowCount = {};
+    for (const p of win.projectiles || []) {
+      if (p && p.type === 'aq_bullet' && p.__hr && p.__hr.frost) {
+        const g = p.__hr.frost.group;
+        nowCount[g] = (nowCount[g] || 0) + 1;
+      }
+    }
+    for (const g of Object.keys(nowCount)) {
+      maxSimul[g] = Math.max(maxSimul[g] || 0, nowCount[g]);
+    }
+    if (rollsAfterBlast1 === null && h.shotsFired >= 1 && Object.keys(nowCount).length === 0) {
+      blast1Drained = true;
+      rollsAfterBlast1 = FR().inspect(o.ct).rolls;
+    }
+    if (h.shotsFired >= 2 && Object.keys(nowCount).length === 0 && f > 60) break;
+  }
+  const keys = Object.keys(maxSimul);
+  const insp = FR().inspect(o.ct);
+  gate('F07.5-shotgun-one-group-one-roll',
+    h.shotsFired === 2 && keys.length === 2 && keys.every((g) => maxSimul[g] === 6)
+    && blast1Drained && rollsAfterBlast1 === 1 && insp.rolls === 2,
+    { shots: h.shotsFired, maxSimul, rollsAfterBlast1, rolls: insp.rolls });
+} catch (e) { gate('F07.5-shotgun-one-group-one-roll', false, String(e && e.message)); }
+
+try {
+  // JACKHAMMER: 3 blasts x 5 pellets; one group per blast, new group each.
+  const { o, h } = frozenDuel('JACKHAMMER', 25);
+  if (!h || !h.__frostFrozen) throw new Error('frozen jackhammer pickup failed');
+  const blastOf = {};
+  const rollMarks = [];
+  let lastShots = 0;
+  for (let f = 0; f < 200; f++) {
+    T.step(1 / 60);
+    for (const p of win.projectiles || []) {
+      if (p && p.type === 'aq_bullet' && p.__hr && p.__hr.frost) blastOf[p.__hr.frost.group] = (blastOf[p.__hr.frost.group] || 0) + 1;
+    }
+    if (h.shotsFired !== lastShots) { lastShots = h.shotsFired; rollMarks.push(FR().inspect(o.ct).rolls); }
+  }
+  T.step(0.5);
+  const keys = Object.keys(blastOf);
+  gate('F07.6-jackhammer-blast-groups',
+    h.shotsFired === 3 && keys.length === 3 && FR().inspect(o.ct).rolls === 3,
+    { shots: h.shotsFired, groups: keys, rolls: FR().inspect(o.ct).rolls, rollMarks });
+} catch (e) { gate('F07.6-jackhammer-blast-groups', false, String(e && e.message)); }
+
+try {
+  // Structural: grouping is holderUid:shotsFired at fire time; no clocks.
+  const frostSrc = fs.readFileSync('public/game/hero-rework/frostGameplayRuntime.js', 'utf8');
+  // Exact method slices (the header comment mentions these names first).
+  const tagBody = frostSrc.slice(frostSrc.indexOf('tagFrozenBullet(ctx, p, owner)'), frostSrc.indexOf('setFreezeSeed(n)'));
+  const hitBody = frostSrc.slice(frostSrc.indexOf('noteBodyHit(p, target)'), frostSrc.indexOf('noteBodyContact(frostCt'));
+  const groupOk = /holderUid\(hold\) \+ ':' \+ \(hold\.shotsFired/.test(tagBody);
+  // Group CREATION uses no clock at all; the hit path reads the carried
+  // tag.group and uses clock() only for lock/freeze DURATIONS (never to
+  // reconstruct grouping).
+  const noClock = !/clock\(\)|Date\.|setTimeout|performance\.now/.test(tagBody)
+    && /tag\.group/.test(hitBody) && !/Date\.|setTimeout|performance\.now/.test(hitBody);
+  gate('F07.7-no-time-window', groupOk && noClock, { groupOk, noClock });
+} catch (e) { gate('F07.7-no-time-window', false, String(e && e.message)); }
+
+try {
+  // Miss: fired frozen bullet hits nothing -> no roll, no events.
+  FR().setFreezeSeed(26);
+  const o = withCtl(frostPair());
+  o.a.x = 300; o.a.y = 500; o.a.setDir(1, 0); o.a.baseSpeed = 0;
+  o.b.x = 600; o.b.y = 500; o.b.setDir(-1, 0); o.b.baseSpeed = 0;
+  const h = frozenEquip(o.a, 'PISTOL');
+  const tap = frostBusTap();
+  // Real misses: the enemy orbits faster than in-flight bullets can follow
+  // (the holder re-aims every frame with no lead, but fired bullets never
+  // retarget). Orbit stays clear of Frost (no contact).
+  let hitCount = 0;
+  const mazeLog = console.log;
+  console.log = (...lg) => {
+    if (/\[AQ\] HIT/.test(String(lg[0]))) hitCount++;
+    return mazeLog(...lg);
+  };
+  try {
+    for (let f = 0; f < 300; f++) {
+      const t = f * 0.35;
+      o.b.x = 700 + Math.cos(t) * 200;
+      o.b.y = 500 + Math.sin(t) * 200;
+      T.step(1 / 60);
+      if (!W().getHolder(o.a)) break; // consumed: all 3 shots away
+    }
+    for (let f = 0; f < 180; f++) { // drain in-flight bullets
+      const t = (300 + f) * 0.35;
+      o.b.x = 700 + Math.cos(t) * 200;
+      o.b.y = 500 + Math.sin(t) * 200;
+      T.step(1 / 60);
+    }
+  } finally { console.log = mazeLog; }
+  const rolls = FR().inspect(o.ct).rolls;
+  const missed = !(win.projectiles || []).some((p) => p && p.type === 'aq_bullet');
+  gate('F07.8-miss-no-roll', h.shotsFired === 3 && hitCount === 0 && missed && rolls === 0 && tap.seen.length === 0,
+    { shots: h.shotsFired, hitCount, missed, rolls, events: tap.seen });
+  // F07.11: the miss did not advance the RNG sequence: the next real hit
+  // draws draw #1 of the pinned seed.
+  o.b.x = 600; o.b.y = 500;
+  const h2 = frozenEquip(o.a, 'PISTOL');
+  void h2;
+  const hits = tapAQ(/\[AQ\] HIT/, () => {
+    for (let f = 0; f < 200 && FR().inspect(o.ct).rolls < 1; f++) T.step(1 / 60);
+  });
+  const expectProc = frostDraws(26, 1)[0] < 0.08;
+  gate('F07.11-miss-no-advance',
+    hits.length === 1 && FR().inspect(o.ct).rolls === 1 && o.b.hasStatus('freeze') === expectProc,
+    { hits: hits.length, rolls: FR().inspect(o.ct).rolls, frozen: o.b.hasStatus('freeze'), expectProc });
+  tap.release();
+} catch (e) { gate('F07.8-miss-no-roll', false, String(e && e.message)); }
+
+try {
+  // Multi-body: one JACKHAMMER blast hits anchor + child -> exactly one roll.
+  FR().setFreezeSeed(27);
+  const o = withCtl(frostPair('SLIME'));
+  o.a.x = 200; o.a.y = 500; o.a.setDir(1, 0);
+  o.b.x = 800; o.b.y = 800; o.b.setDir(-1, 0);
+  const ectl = HR.abilityController(HR.byCombatant(o.b));
+  const mit = ectl.tryCast('A1', 'frost');
+  T.step(0.1);
+  const eBodies = HR.getTargetableBodies(HR.byCombatant(o.b));
+  if (!mit || !mit.ok || eBodies.length < 2) throw new Error('slime split failed');
+  const anchor = o.b, child = eBodies.find((b) => b !== o.b);
+  const h = frozenEquip(o.a, 'JACKHAMMER');
+  // Pin: Frost west; anchor level; child on the FREE bottom-fan pellet ray
+  // (fixed even fan; the t=0 ray clears the anchor and flies to the wall).
+  // Anchor/child are 136px apart: physically clear (r+r=106), same side.
+  o.a.x = 300; o.a.y = 500; o.a.setDir(1, 0); o.a.baseSpeed = 0;
+  anchor.x = 600; anchor.y = 500; anchor.setDir(-1, 0); anchor.baseSpeed = 0;
+  child.x = 700; child.y = 408; child.setDir(-1, 0); child.baseSpeed = 0;
+  const hpA0 = anchor.hp, hpC0 = child.hp;
+  for (let f = 0; f < 200 && h.shotsFired < 1; f++) T.step(1 / 60);
+  o.a.data.arsenal = null; // isolate blast 1 (fixture timing; rolls untouched)
+  for (let f = 0; f < 40; f++) T.step(1 / 60); // drain blast 1
+  const rolls = FR().inspect(o.ct).rolls;
+  gate('F07.9-multibody-one-blast-one-roll',
+    anchor.hp < hpA0 - 1 && child.hp < hpC0 - 1 && rolls === 1,
+    { dAnchor: +(hpA0 - anchor.hp).toFixed(1), dChild: +(hpC0 - child.hp).toFixed(1), rolls });
+} catch (e) { gate('F07.9-multibody-one-blast-one-roll', false, String(e && e.message)); }
+
+try {
+  // Seeded reproducibility: same seed + same script = same per-hit outcomes.
+  const runSeq = (seed) => {
+    const { o } = frozenDuel('PISTOL', seed);
+    const perHit = [];
+    let hits = 0, lastHits = 0;
+    const origLog = console.log;
+    console.log = (...lg) => {
+      if (/\[AQ\] HIT/.test(String(lg[0]))) hits++;
+      return origLog(...lg);
+    };
+    try {
+      for (let f = 0; f < 150 && hits < 3; f++) {
+        T.step(1 / 60);
+        if (hits > lastHits) { lastHits = hits; perHit.push(o.b.hasStatus('freeze')); }
+      }
+    } finally { console.log = origLog; }
+    return { perHit, rolls: FR().inspect(o.ct).rolls };
+  };
+  const r1 = runSeq(28), r2 = runSeq(28);
+  gate('F07.10-seeded-reproducible',
+    JSON.stringify(r1) === JSON.stringify(r2) && r1.rolls === 3,
+    { r1, r2 });
+} catch (e) { gate('F07.10-seeded-reproducible', false, String(e && e.message)); }
+
+try {
+  // Structural: the group is created at the real fire source (fireBullet ->
+  // HR.onFireBullet -> executor onProjectileFired -> tagFrozenBullet) and
+  // the exact tag object rides the real projectile (no reconstruction).
+  const mechSrc = fs.readFileSync('public/game/hero-rework/heroMechanicsRuntime.js', 'utf8');
+  const rwSrc = fs.readFileSync('public/game/hero-rework/heroReworkRuntime.js', 'utf8');
+  const wSrc = fs.readFileSync('public/game/arsenal/arsenalWeaponRuntime.js', 'utf8');
+  const c1 = /FR\.tagFrozenBullet\(ctx, p, descriptor\.params && descriptor\.params\.owner\)/.test(mechSrc);
+  const c2 = /exec\.onProjectileFired\(mechCtx\(ct, slot\), standin, descriptor\)/.test(rwSrc)
+    && /const descriptor = \{ kind: 'bullet'/.test(rwSrc);
+  const c3 = /window\.APEX_HERO_REWORK\.onFireBullet\)/.test(wSrc)
+    && /window\.APEX_HERO_REWORK\.onFireBullet\(spec\)/.test(wSrc)
+    && /__hr: __hrTag/.test(wSrc);
+  gate('F07.12-group-at-real-source', c1 && c2 && c3, { c1, c2, c3 });
+} catch (e) { gate('F07.12-group-at-real-source', false, String(e && e.message)); }
+
+/* ================= F08 — Freeze / refresh ============================ */
+try {
+  // F08.1: Lv1 total is base 4% + bonus 4pp = 8%; the roll compares
+  // draw < chance; both outcomes are reachable through real hits.
+  const pcfg = REG.resolveSkillLevel('ICE', 'PASSIVE', 1);
+  const total = pcfg.baseProcPct + pcfg.bonusProcPct;
+  const frostSrc = fs.readFileSync('public/game/hero-rework/frostGameplayRuntime.js', 'utf8');
+  const cmpOk = /const chance = \(\(pcfg && pcfg\.baseProcPct\)/.test(frostSrc)
+    && /if \(!\(roll < chance\)\)/.test(frostSrc);
+  const sProc = frostSeedFor([true]), sFail = frostSeedFor([false]);
+  const bothOk = frostDraws(sProc, 1)[0] < total && frostDraws(sFail, 1)[0] >= total;
+  gate('F08.1-lv1-8pct', total === 0.08 && cmpOk && bothOk,
+    { base: pcfg.baseProcPct, bonus: pcfg.bonusProcPct, total, cmpOk, bothOk });
+} catch (e) { gate('F08.1-lv1-8pct', false, String(e && e.message)); }
+
+try {
+  // F08.2: proc on unfrozen body = exactly 0.90s hard Freeze, zero damage.
+  // Enemy walks INTO the bullets (unpinned); after the proc it must stop.
+  const seed = frostSeedFor([true, false, false]);
+  FR().setFreezeSeed(seed);
+  const o = withCtl(frostPair());
+  const h = frozenEquip(o.a, 'PISTOL');
+  o.a.x = 300; o.a.y = 500; o.a.setDir(1, 0); o.a.baseSpeed = 0;
+  o.b.x = 620; o.b.y = 500; o.b.setDir(-1, 0); // walking west, into fire
+  let hitClock = -1, timerAtProc = -1;
+  const origLog = console.log;
+  console.log = (...lg) => {
+    if (/\[AQ\] HIT/.test(String(lg[0])) && hitClock < 0) hitClock = frostClock();
+    return origLog(...lg);
+  };
+  try {
+    for (let f = 0; f < 150 && hitClock < 0; f++) T.step(1 / 60);
+  } finally { console.log = origLog; }
+  timerAtProc = o.b.statuses.freeze ? o.b.statuses.freeze.timer : -1;
+  const hpAfterHit1 = o.b.hp;
+  // Hard lock: unpinned enemy must not move while frozen.
+  const fx = o.b.x, fy = o.b.y;
+  T.step(0.5);
+  const drift = Math.hypot(o.b.x - fx, o.b.y - fy);
+  const stillFrozen = o.b.hasStatus('freeze');
+  T.step(0.6); // thaw (0.90) + margin
+  const thawed = !o.b.hasStatus('freeze');
+  gate('F08.2-proc-0.90-zero-dmg-lock',
+    h.shotsFired >= 1 && hitClock > 0 && Math.abs(timerAtProc - 0.90) < 0.06
+    && drift < 2 && stillFrozen && thawed,
+    { timer: +timerAtProc.toFixed(3), drift: +drift.toFixed(2), stillFrozen, thawed, hp: +hpAfterHit1.toFixed(1) });
+  // Zero direct Freeze damage: frozen-hit damage == control-hit damage.
+  const dmgF = tapAQ(/\[AQ\] HIT .* damage=([\d.]+)/, () => {});
+  void dmgF;
+} catch (e) { gate('F08.2-proc-0.90-zero-dmg-lock', false, String(e && e.message)); }
+
+try {
+  // F08.2b: frozen-hit damage bit-equals ordinary-hit damage (A/B).
+  const runDmg = (frozen) => {
+    const o = withCtl(frostPair());
+    if (frozen) { FR().setFreezeSeed(frostSeedFor([true])); frozenEquip(o.a, 'PISTOL'); }
+    else W().equip(o.a, 'PISTOL');
+    o.a.x = 300; o.a.y = 500; o.a.setDir(1, 0); o.a.baseSpeed = 0;
+    o.b.x = 600; o.b.y = 500; o.b.setDir(-1, 0); o.b.baseSpeed = 0;
+    const hp0 = o.b.hp;
+    const hits = tapAQ(/\[AQ\] HIT .* damage=([\d.]+)/, () => {
+      for (let f = 0; f < 120; f++) { T.step(1 / 60); if (o.b.hp < hp0) break; }
+    });
+    return { dmg: hits[0], delta: +(hp0 - o.b.hp).toFixed(2), frozen: o.b.hasStatus('freeze') };
+  };
+  const fz = runDmg(true), ct = runDmg(false);
+  gate('F08.2b-freeze-adds-no-damage',
+    fz.frozen === true && ct.frozen === false && fz.dmg === ct.dmg && fz.delta === ct.delta,
+    { fz, ct });
+} catch (e) { gate('F08.2b-freeze-adds-no-damage', false, String(e && e.message)); }
+
+try {
+  // F08.3: proc while frozen RESETS remaining to 0.90 (never adds).
+  const seed = frostSeedFor([true, true]);
+  const { o, h } = frozenDuel('PISTOL', seed);
+  void h;
+  let hits = 0, preTimer = -1, postTimer = -1;
+  const origLog = console.log;
+  console.log = (...lg) => {
+    if (/\[AQ\] HIT/.test(String(lg[0]))) {
+      hits++;
+      if (hits === 2 && !o.b.hasStatus('freeze')) preTimer = -2; // would break the fixture
+    }
+    return origLog(...lg);
+  };
+  try {
+    for (let f = 0; f < 150 && hits < 2; f++) {
+      T.step(1 / 60);
+      if (hits === 1 && preTimer === -1 && o.b.hasStatus('freeze')) {
+        // hit 1 procced; sample the decaying timer just before hit 2 lands.
+        preTimer = null; // armed; overwritten below each frame until hit 2
+      }
+      if (hits === 1 && preTimer !== -1) preTimer = o.b.statuses.freeze.timer;
+    }
+  } finally { console.log = origLog; }
+  postTimer = o.b.statuses.freeze ? o.b.statuses.freeze.timer : -1;
+  gate('F08.3-refresh-resets-0.90',
+    hits === 2 && preTimer > 0 && preTimer < 0.75 && Math.abs(postTimer - 0.90) < 0.06,
+    { pre: preTimer === null ? null : +preTimer.toFixed(3), post: +postTimer.toFixed(3) });
+} catch (e) { gate('F08.3-refresh-resets-0.90', false, String(e && e.message)); }
+
+try {
+  // F08.4: failed proc while frozen leaves the timer to natural passage.
+  const seed = frostSeedFor([true, false]);
+  const { o } = frozenDuel('PISTOL', seed);
+  let hits = 0;
+  let preT = -1, preC = -1, postT = -1, postC = -1;
+  const origLog = console.log;
+  console.log = (...lg) => {
+    if (/\[AQ\] HIT/.test(String(lg[0]))) {
+      hits++;
+      if (hits === 2) { postT = o.b.statuses.freeze.timer; postC = frostClock(); }
+    }
+    return origLog(...lg);
+  };
+  try {
+    for (let f = 0; f < 150 && hits < 2; f++) {
+      T.step(1 / 60);
+      if (hits === 1) { preT = o.b.statuses.freeze.timer; preC = frostClock(); }
+    }
+  } finally { console.log = origLog; }
+  const passage = (preT - postT) - (postC - preC);
+  gate('F08.4-fail-while-frozen-no-touch',
+    hits === 2 && preT > 0.1 && postT > 0 && postT < 0.75 && Math.abs(passage) < 0.04,
+    { preT: +preT.toFixed(3), postT: +postT.toFixed(3), passage: +passage.toFixed(4) });
+} catch (e) { gate('F08.4-fail-while-frozen-no-touch', false, String(e && e.message)); }
+
+try {
+  // F08.5/6/7/8 lock suite. Seed [T,F,T,T]: hit1 procs, hit2 fails while
+  // frozen (rolls while frozen => no lock active), hit3 refreshes; after
+  // true thaw a locked hit rolls nothing, and post-lock the draw resumes.
+  const seed = frostSeedFor([true, false, true, true]);
+  const { o } = frozenDuel('PISTOL', seed);
+  const tap = frostBusTap();
+  let hits = 0;
+  const rollAtHit = [], frozeAtHit = [];
+  const origLog = console.log;
+  console.log = (...lg) => {
+    if (/\[AQ\] HIT/.test(String(lg[0]))) {
+      hits++;
+      rollAtHit.push(FR().inspect(o.ct).rolls);
+      frozeAtHit.push(o.b.hasStatus('freeze'));
+    }
+    return origLog(...lg);
+  };
+  try {
+    for (let f = 0; f < 200 && hits < 3; f++) T.step(1 / 60);
+  } finally { console.log = origLog; }
+  // F08.5: hit 2 arrived while frozen (log-time state, pre-hook) and still
+  // rolled (rolls 1->2 by hit 3's log); no lock field is set while frozen.
+  const f085 = hits === 3 && rollAtHit[0] === 0 && rollAtHit[1] === 1 && rollAtHit[2] === 2
+    && frozeAtHit[0] === false && frozeAtHit[1] === true
+    && (o.b.__frostLockedUntil || 0) <= frostClock();
+  // F08.6: true thaw starts the 0.50 lock (poll the transition, then let
+  // the per-tick thaw poll observe it). h2 is equipped while the last 0.2s
+  // of freeze remains so its ready-delay elapses pre-thaw and shot 1 lands
+  // mid-lock (timing asserted fail-loud in F08.7).
+  let h2 = null;
+  for (let f = 0; f < 200 && o.b.hasStatus('freeze'); f++) {
+    T.step(1 / 60);
+    if (!h2 && o.b.statuses.freeze && o.b.statuses.freeze.timer < 0.2) h2 = frozenEquip(o.a, 'PISTOL');
+  }
+  const thawAt = frostClock();
+  T.step(3 / 60);
+  const lockUntil = o.b.__frostLockedUntil || 0;
+  const f086 = !o.b.hasStatus('freeze') && Math.abs(lockUntil - (thawAt + 0.50)) < 0.06
+    && tap.seen.includes('FrostThaw');
+  // F08.7: a hit during (thaw, thaw+0.50) rolls nothing and freezes nothing.
+  let lockedHits = 0, lockedClock = -1;
+  const olog2 = console.log;
+  console.log = (...lg) => {
+    if (/\[AQ\] HIT/.test(String(lg[0])) && lockedHits === 0) { lockedHits++; lockedClock = frostClock(); }
+    return olog2(...lg);
+  };
+  try {
+    for (let f = 0; f < 120 && lockedHits < 1; f++) T.step(1 / 60);
+  } finally { console.log = olog2; }
+  const rollsAfterLocked = FR().inspect(o.ct).rolls;
+  const f087 = lockedHits === 1 && lockedClock > thawAt + 0.08 && lockedClock < thawAt + 0.45
+    && rollsAfterLocked === 3 && !o.b.hasStatus('freeze');
+  // F08.8: after the lock, the NEXT hit consumes draw #4 (proc): the locked
+  // hit consumed nothing, so the sequence resumes mid-pattern.
+  o.a.data.arsenal = null; // hold fire until the lock expires (fixture only)
+  void h2;
+  for (let f = 0; f < 200 && frostClock() < lockUntil + 0.05; f++) T.step(1 / 60);
+  frozenEquip(o.a, 'PISTOL');
+  let lateHits = 0;
+  const olog3 = console.log;
+  console.log = (...lg) => {
+    if (/\[AQ\] HIT/.test(String(lg[0]))) lateHits++;
+    return olog3(...lg);
+  };
+  try {
+    for (let f = 0; f < 150 && lateHits < 1; f++) T.step(1 / 60);
+  } finally { console.log = olog3; }
+  const f088 = lateHits === 1 && FR().inspect(o.ct).rolls === 4 && o.b.hasStatus('freeze');
+  gate('F08.5-no-lock-while-frozen', f085, { rollAtHit });
+  gate('F08.6-thaw-starts-lock', f086, { thawAt: +thawAt.toFixed(3), lockUntil: +lockUntil.toFixed(3) });
+  gate('F08.7-locked-hit-no-roll', f087, { lockedClock: +lockedClock.toFixed(3), rolls: rollsAfterLocked });
+  gate('F08.8-post-lock-resumes', f088, { rolls: FR().inspect(o.ct).rolls, frozen: o.b.hasStatus('freeze') });
+  tap.release();
+} catch (e) { gate('F08.5-no-lock-while-frozen', false, String(e && e.message)); }
+
+try {
+  // F08.9: SLIME freeze is body-local, both directions.
+  const runDir = (freezeChild) => {
+    FR().setFreezeSeed(frostSeedFor([true]));
+    const o = withCtl(frostPair('SLIME'));
+    o.a.x = 200; o.a.y = 500; o.a.setDir(1, 0);
+    o.b.x = 800; o.b.y = 800; o.b.setDir(-1, 0);
+    const ectl = HR.abilityController(HR.byCombatant(o.b));
+    const mit = ectl.tryCast('A1', 'frost');
+    T.step(0.1);
+    const bodies = HR.getTargetableBodies(HR.byCombatant(o.b));
+    if (!mit || !mit.ok || bodies.length < 2) throw new Error('split failed');
+    const anchor = o.b, child = bodies.find((b) => b !== o.b);
+    frozenEquip(o.a, 'PISTOL');
+    o.a.x = 300; o.a.y = 500; o.a.setDir(1, 0); o.a.baseSpeed = 0;
+    if (freezeChild) {
+      // Child dead-center on the aim ray in front of the anchor: the first
+      // bullet meets the child (earlier TOI) and never reaches the anchor.
+      child.x = 450; child.y = 500; child.setDir(-1, 0); child.baseSpeed = 0;
+      anchor.x = 600; anchor.y = 500; anchor.setDir(-1, 0); anchor.baseSpeed = 0;
+    } else {
+      anchor.x = 600; anchor.y = 500; anchor.setDir(-1, 0); anchor.baseSpeed = 0;
+      child.x = 700; child.y = 850; child.setDir(-1, 0); child.baseSpeed = 0;
+    }
+    for (let f = 0; f < 150 && FR().inspect(o.ct).rolls < 1; f++) T.step(1 / 60);
+    T.step(2 / 60);
+    return { childF: child.hasStatus('freeze'), anchorF: anchor.hasStatus('freeze') };
+  };
+  const rc = runDir(true), ra = runDir(false);
+  gate('F08.9-body-local-freeze',
+    rc.childF === true && rc.anchorF === false && ra.anchorF === true && ra.childF === false,
+    { freezeChild: rc, freezeAnchor: ra });
+} catch (e) { gate('F08.9-body-local-freeze', false, String(e && e.message)); }
+
+try {
+  // F01.8/F01.10/F08.11: legacy iceVisual freeze overlay/audio never trigger
+  // for Frost rework Freeze — on ROBOT and HUNTER victims (source-keyed
+  // suppression, never target-keyed). Legacy-source control must still fire.
+  const runVictim = (p2) => {
+    FR().setFreezeSeed(frostSeedFor([true]));
+    const o = withCtl(frostPair(p2));
+    frozenEquip(o.a, 'PISTOL');
+    o.a.x = 300; o.a.y = 500; o.a.setDir(1, 0); o.a.baseSpeed = 0;
+    o.b.x = 600; o.b.y = 500; o.b.setDir(-1, 0); o.b.baseSpeed = 0;
+    T.step(1 / 60); // prime: Frost state is created by the first tick
+    for (let f = 0; f < 150 && FR().inspect(o.ct).rolls < 1; f++) T.step(1 / 60);
+    const froze = o.b.hasStatus('freeze');
+    // Thaw fully, then re-apply FRESH through the real status path while
+    // armed (a refresh on an already-frozen body would skip the legacy
+    // apply branch via wasFrozen and weaken the gate).
+    for (let f = 0; f < 120 && o.b.hasStatus('freeze'); f++) T.step(1 / 60);
+    win.__apexIceVisualTestArmed = true;
+    win.__apexIceVisualTestEvents = [];
+    o.b.applyStatus('freeze', 0.90, { source: o.a });
+    let drew = false;
+    try { T.redraw(); drew = true; } catch (e) { drew = false; }
+    const evts = (win.__apexIceVisualTestEvents || []).slice();
+    const vActive = !!(o.b.visual && o.b.visual.iceFrozen && o.b.visual.iceFrozen.active);
+    win.__apexIceVisualTestArmed = false;
+    return { froze, drew, evts, vActive, marker: o.b.__frostFreezeSource || null };
+  };
+  const rR = runVictim('ROBOT'), rH = runVictim('HUNTER'), rM = runVictim('MAGNET');
+  // ROBOT/HUNTER presentation rigs bypass the legacy overlay draw entirely
+  // (pre-existing architecture: their custom draw never chains into the
+  // iceVisual link), so their proof is sim-side (apply/vActive/marker).
+  // MAGNET chains through the legacy overlay draw: its clean redraw is the
+  // real draw-suppression proof.
+  const frostClean = [rR, rH, rM].every((r) => r.froze && r.evts.length === 0 && !r.vActive && r.marker === 'frost')
+    && rM.drew === true;
+  // Legacy control on a chain-through hero: apply AND draw must both fire.
+  const legacyType = win.FighterTypes.find((t) => t && t.name === 'ICE' && !t.__hrHero);
+  const c = withCtl(frostPair('MAGNET'));
+  c.a.x = 300; c.a.y = 500; c.b.x = 600; c.b.y = 500;
+  const legacySrc = new win.Fighter(9991, 100, 100, legacyType);
+  win.__apexIceVisualTestArmed = true;
+  win.__apexIceVisualTestEvents = [];
+  c.b.applyStatus('freeze', 1.0, { source: legacySrc });
+  let drewC = false;
+  try { T.redraw(); drewC = true; } catch (e) { drewC = false; }
+  const evtsC = (win.__apexIceVisualTestEvents || []).slice();
+  const vActiveC = !!(c.b.visual && c.b.visual.iceFrozen && c.b.visual.iceFrozen.active);
+  win.__apexIceVisualTestArmed = false;
+  const controlFires = drewC && evtsC.some((e) => e.kind === 'legacy-freeze-apply')
+    && evtsC.some((e) => e.kind === 'legacy-freeze-draw') && vActiveC === true;
+  gate('F01.8-no-legacy-overlay-audio', frostClean,
+    { robot: rR.evts, hunter: rH.evts, magnet: { evts: rM.evts, drew: rM.drew } });
+  gate('F01.10-source-keyed-suppression', frostClean && controlFires,
+    { frostClean, control: evtsC.map((e) => e.kind), drewC });
+  gate('F08.11-no-old-frozen-text-block-audio', frostClean, { n: [rR, rH, rM].map((r) => r.evts.length) });
+} catch (e) { gate('F01.8-no-legacy-overlay-audio', false, String(e && e.message)); }
+
+try {
+  // F01.11: the suppression patch introduces no undefined-scope predicate.
+  // The predicate reads window.APEX_HERO_REWORK through window scope (never
+  // a bare owner/source free variable); the file parses; and F01.10 passing
+  // proves no ReferenceError path (the predicate's try/catch returns false
+  // on ANY fault, which would have disabled suppression and failed F01.10).
+  const out = execSync('node --check public/game/fighters/iceVisualRuntime.js && echo PARSE_OK', { cwd: process.cwd() }).toString();
+  const src = fs.readFileSync('public/game/fighters/iceVisualRuntime.js', 'utf8');
+  const pred = src.slice(src.indexOf('function isFrostReworkSource'), src.indexOf('function iceRealNowMs'));
+  const scopedOk = /window\.APEX_HERO_REWORK/.test(pred) && !/[^.a-zA-Z]owner[^a-zA-Z]/.test(pred)
+    && !/[^.a-zA-Z]source[^a-zA-Z]/.test(pred.replace(/isFrostReworkSource/g, ''));
+  gate('F01.11-no-undefined-scope-predicate', out.includes('PARSE_OK') && scopedOk && pred.length > 100,
+    { parse: out.includes('PARSE_OK'), scopedOk });
+} catch (e) { gate('F01.11-no-undefined-scope-predicate', false, String(e && e.message)); }
+
+/* ================= F10 — A2 contact / Cold Shock ===================== */
+function contactDuel(p2 = 'ROBOT') {
+  const o = withCtl(frostPair(p2));
+  o.a.x = 400; o.a.y = 500; o.a.setDir(1, 0); o.a.baseSpeed = 0;
+  o.b.x = 700; o.b.y = 500; o.b.setDir(-1, 0); o.b.baseSpeed = 0;
+  return o;
+}
+function touchBodies(o) { o.a.x = o.b.x - 10; o.a.y = o.b.y; } // d=10: firm overlap
+function partBodies(o) { o.a.x = o.b.x - 400; o.a.y = o.b.y; } // d=400: true separation
+
+try {
+  // F10.1: head-on while A2 live: engine separates + reflects AND the
+  // callback fires (unpinned: real locomotion, real bounce).
+  const o = withCtl(frostPair());
+  o.a.x = 300; o.a.y = 500; o.a.setDir(1, 0);
+  o.b.x = 700; o.b.y = 500; o.b.setDir(-1, 0);
+  const r = HR.pressAbility(o.a, 'A2');
+  const tap = frostBusTap();
+  // Post-step sampling always sees post-separation bodies, so the contact
+  // threshold matches the engine hook (+4), and the window ends 12 frames
+  // after contact (long before any wall is reachable).
+  let contactAt = -1;
+  for (let f = 0; f < 200; f++) {
+    T.step(1 / 60);
+    const d = Math.hypot(o.a.x - o.b.x, o.a.y - o.b.y);
+    if (contactAt < 0 && d < o.a.radius + o.b.radius + 4) contactAt = f;
+    if (contactAt >= 0 && f > contactAt + 12) break;
+  }
+  const dEnd = Math.hypot(o.a.x - o.b.x, o.a.y - o.b.y);
+  const reflected = o.a.dir.x < -0.5 && o.b.dir.x > 0.5;
+  const shocked = tap.seen.includes('FrostColdShock');
+  gate('F10.1-separate-reflect-callback',
+    r.ok === true && contactAt > 0 && dEnd > 160 && reflected && shocked,
+    { contactAt, dEnd: +dEnd.toFixed(1), reflected, shocked });
+  tap.release();
+} catch (e) { gate('F10.1-separate-reflect-callback', false, String(e && e.message)); }
+
+try {
+  // F10.2: first new contact during A2: Cold Shock x0.50 for 1.0s, 0 damage.
+  const o = contactDuel();
+  const tap = frostBusTap();
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.2);
+  const hp0 = o.b.hp;
+  touchBodies(o);
+  T.step(3 / 60);
+  const c0 = frostClock();
+  const m0 = o.b.hasStatus('slow') ? o.b.statuses.slow.mult : null;
+  T.step(0.4);
+  const m4 = o.b.hasStatus('slow') ? o.b.statuses.slow.mult : null;
+  T.step(0.4);
+  const m8 = o.b.hasStatus('slow') ? o.b.statuses.slow.mult : null;
+  T.step(0.6); // c0 + ~1.45: shock (1.0) + refresh decay gone
+  const gone = !o.b.hasStatus('slow');
+  gate('F10.2-cold-shock-0.50-1.0s',
+    tap.seen.filter((t) => t === 'FrostColdShock').length === 1
+    && m0 === 0.50 && m4 === 0.50 && m8 === 0.50 && gone && o.b.hp === hp0,
+    { m0, m4, m8, gone, hpSame: o.b.hp === hp0, c0: +c0.toFixed(2) });
+  tap.release();
+} catch (e) { gate('F10.2-cold-shock-0.50-1.0s', false, String(e && e.message)); }
+
+try {
+  // F10.3/4/7: hold overlap (no re-proc) -> separate -> re-contact (re-proc
+  // in the SAME window: no permanent latch).
+  const o = contactDuel();
+  const tap = frostBusTap();
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.2);
+  touchBodies(o);
+  for (let f = 0; f < 30; f++) { T.step(1 / 60); touchBodies(o); } // held overlap
+  const oneProc = tap.seen.filter((t) => t === 'FrostColdShock').length === 1;
+  partBodies(o);
+  T.step(3 / 60); // real separation clears the engine contact flag
+  touchBodies(o);
+  T.step(3 / 60);
+  const twoProcs = tap.seen.filter((t) => t === 'FrostColdShock').length === 2;
+  const sameWindow = FR().inspect(o.ct).a2live === true;
+  gate('F10.3-no-frame-reproc', oneProc, { shocks: tap.seen.length });
+  gate('F10.4-separation-clears-reproc', oneProc && twoProcs, { twoProcs });
+  gate('F10.7-same-window-recontact', twoProcs && sameWindow, { sameWindow });
+  tap.release();
+} catch (e) { gate('F10.3-no-frame-reproc', false, String(e && e.message)); }
+
+try {
+  // F10.5: floor x0.60 + Cold Shock x0.50 resolves to x0.50.
+  const { o, lane } = buildLane();
+  const tap = frostBusTap();
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.2);
+  o.a.x = lane.ox + 210; o.a.y = lane.oy; o.a.baseSpeed = 0;
+  o.b.x = lane.ox + 200; o.b.y = lane.oy; o.b.baseSpeed = 0; // d=10: contact + floor, no d=0
+  T.step(3 / 60);
+  const m = o.b.hasStatus('slow') ? o.b.statuses.slow.mult : null;
+  gate('F10.5-floor-shock-min', tap.seen.includes('FrostColdShock') && m === 0.50, { mult: m });
+  tap.release();
+} catch (e) { gate('F10.5-floor-shock-min', false, String(e && e.message)); }
+
+try {
+  // F10.6: unrelated slows/speeds are never weakened (mult AND timer kept).
+  const o = contactDuel();
+  o.b.applyStatus('slow', 5.0, { mult: 0.30 }); // unrelated stronger slow
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.2);
+  touchBodies(o);
+  T.step(3 / 60);
+  const mStrong = o.b.statuses.slow.mult, tStrong = o.b.statuses.slow.timer;
+  // Unrelated weaker slow: Frost's 0.50 wins (documented min-law).
+  const p = contactDuel();
+  p.b.applyStatus('slow', 5.0, { mult: 0.80 });
+  HR.pressAbility(p.a, 'A2');
+  T.step(0.2);
+  touchBodies(p);
+  T.step(3 / 60);
+  const mWeak = p.b.statuses.slow.mult;
+  // Unrelated stronger Frost-side speed survives the floor.
+  const { o: q, lane } = buildLane();
+  q.a.applyStatus('speed', 5.0, { mult: 3.0 });
+  q.a.x = lane.ox + 100; q.a.y = lane.oy;
+  q.b.x = 100; q.b.y = 900;
+  T.step(2 / 60);
+  const mSpd = q.a.statuses.speed.mult, tSpd = q.a.statuses.speed.timer;
+  gate('F10.6-unrelated-untouched',
+    mStrong === 0.30 && tStrong > 4.5 && mWeak === 0.50 && mSpd === 3.0 && tSpd > 4.5,
+    { mStrong, tStrong: +tStrong.toFixed(2), mWeak, mSpd, tSpd: +tSpd.toFixed(2) });
+} catch (e) { gate('F10.6-unrelated-untouched', false, String(e && e.message)); }
+
+/* ================= F11 — A2 exact-holder steal ======================== */
+try {
+  // F11.1/2/4/7: exact holder object transfers; enemy null; no dup; Frozen.
+  const o = contactDuel();
+  W().equip(o.b, 'PISTOL');
+  const h0 = W().getHolder(o.b);
+  const slots0 = win.APEX_ARSENAL.state.slots.length;
+  const tap = frostBusTap();
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.2);
+  touchBodies(o);
+  T.step(3 / 60);
+  const hf = W().getHolder(o.a), he = W().getHolder(o.b);
+  const slots1 = win.APEX_ARSENAL.state.slots.length;
+  gate('F11.1-exact-holder-transfers', hf === h0, { sameRef: hf === h0 });
+  gate('F11.2-enemy-null', he === null, { enemyHolder: he });
+  gate('F11.4-no-dup-slot', slots0 === 0 && slots1 === 0, { slots0, slots1 });
+  gate('F11.7-immediately-frozen',
+    !!(hf && hf.__frostFrozen && hf.__frostFrozen.stolen === true)
+    && tap.seen.includes('FrostSteal'), { frozen: !!(hf && hf.__frostFrozen) });
+  tap.release();
+} catch (e) { gate('F11.1-exact-holder-transfers', false, String(e && e.message)); }
+
+try {
+  // F11.3: no fresh equip()/consume()/cleanup(); no destruction pose ghost.
+  const o = contactDuel();
+  W().equip(o.b, 'PISTOL');
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.2);
+  let equips = 0, consumes = 0;
+  const oe = W().equip, oc = W().consume;
+  W().equip = (...a) => { equips++; return oe(...a); };
+  W().consume = (...a) => { consumes++; return oc(...a); };
+  const hfBefore = W().getHolder(o.b);
+  try {
+    touchBodies(o);
+    T.step(3 / 60);
+  } finally { W().equip = oe; W().consume = oc; }
+  const hf = W().getHolder(o.a);
+  gate('F11.3-no-equip-consume-ghost',
+    equips === 0 && consumes === 0 && hf === hfBefore
+    && !o.a.data.arsenalFade && !o.b.data.arsenalFade,
+    { equips, consumes, sameRef: hf === hfBefore });
+} catch (e) { gate('F11.3-no-equip-consume-ghost', false, String(e && e.message)); }
+
+try {
+  // F11.5: weaponId/def/phase/elapsed/shotsFired/meta/aim state preserved.
+  // Timing/progress metadata rides along on the SAME object (a fresh
+  // equip() would reset elapsed/shots/nextShot to defaults; natural
+  // per-frame advance allowed). aimAngle is owner-relative and MUST
+  // re-target to the new owner (F11.12 proves the re-targeted weapon
+  // fires correctly), so it is excluded by design, not by omission.
+  const o = contactDuel();
+  W().equip(o.b, 'PISTOL');
+  const h0 = W().getHolder(o.b);
+  // Gate for post-shot-1 (live FIRING phase) BEFORE arming: Frost is
+  // pinned/static until A2, so no premature contact is possible here.
+  for (let f = 0; f < 120; f++) {
+    T.step(1 / 60);
+    if (h0.shotsFired === 1) break;
+  }
+  if (h0.shotsFired !== 1) throw new Error('enemy did not fire shot 1');
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.1);
+  touchBodies(o); // teleport, no step yet: snapshot is pre-transfer
+  const snap = {
+    weaponId: h0.weaponId, def: h0.def, phase: h0.phase, elapsed: h0.elapsed,
+    shotsFired: h0.shotsFired,
+    metaKeys: Object.keys(h0.meta).sort().join(','),
+  };
+  T.step(1 / 60); // transfer happens on this contact frame
+  const hf = W().getHolder(o.a);
+  // A fresh equip() would reset shots to 0, phase to READY and elapsed
+  // to 0; the carried values prove the live state rode along.
+  const ok = hf === h0 && hf.weaponId === snap.weaponId && hf.def === snap.def
+    && (hf.shotsFired === snap.shotsFired || hf.shotsFired === snap.shotsFired + 1)
+    && hf.elapsed >= snap.elapsed && hf.elapsed - snap.elapsed < 0.5
+    && Object.keys(hf.meta).sort().join(',') === snap.metaKeys
+    && hf.phase === 'FIRING';
+  gate('F11.5-metadata-preserved', ok,
+    {
+      shots: hf && hf.shotsFired, phase: hf && hf.phase,
+      sameRef: hf === h0, sameDef: !!(hf && hf.def === snap.def),
+      dEl: +((hf && hf.elapsed) - snap.elapsed).toFixed(3),
+    });
+} catch (e) { gate('F11.5-metadata-preserved', false, String(e && e.message)); }
+
+try {
+  // F11.6: M249 12-shot: 5 fired pre-contact -> 7 remain, sequence completes.
+  const o = contactDuel();
+  W().equip(o.b, 'M249_SAW');
+  const h0 = W().getHolder(o.b);
+  HR.pressAbility(o.a, 'A2'); // window live well before the transfer
+  // Transfer exactly at 5 with no shot in flight this frame (nextShot gate).
+  for (let f = 0; f < 400; f++) {
+    T.step(1 / 60);
+    if (h0.shotsFired === 5 && h0.meta.nextShot > 0.03) break;
+  }
+  if (h0.shotsFired !== 5) throw new Error('enemy did not hold 5 shots');
+  touchBodies(o);
+  T.step(1 / 60);
+  const hf = W().getHolder(o.a);
+  const atSteal = hf === h0 && hf.shotsFired === 5;
+  // F11.8: the remaining sequence continues while A2 is still live.
+  let sawAdvance = false;
+  for (let f = 0; f < 300; f++) {
+    T.step(1 / 60);
+    if (hf.shotsFired > 5) { sawAdvance = FR().inspect(o.ct).a2live === true; break; }
+  }
+  for (let f = 0; f < 600 && W().getHolder(o.a); f++) T.step(1 / 60);
+  gate('F11.6-m249-5-to-7', atSteal && hf.shotsFired === 12 && !W().getHolder(o.a),
+    { atSteal, finalShots: hf.shotsFired });
+  gate('F11.8-continues-during-a2', sawAdvance, { sawAdvance });
+} catch (e) { gate('F11.6-m249-5-to-7', false, String(e && e.message)); }
+
+try {
+  // F11.9: Frost armed -> no transfer/swap/storage; shock still applies.
+  const o = contactDuel();
+  W().equip(o.a, 'PISTOL');
+  W().equip(o.b, 'SMG');
+  const own = W().getHolder(o.a), foe = W().getHolder(o.b);
+  const tap = frostBusTap();
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.2);
+  touchBodies(o);
+  T.step(3 / 60);
+  gate('F11.9-armed-no-steal-shock-anyway',
+    W().getHolder(o.a) === own && W().getHolder(o.b) === foe
+    && !tap.seen.includes('FrostSteal') && tap.seen.includes('FrostColdShock'),
+    { events: tap.seen });
+  tap.release();
+} catch (e) { gate('F11.9-armed-no-steal-shock-anyway', false, String(e && e.message)); }
+
+try {
+  // F11.10: melee/grenade/shield/T6 never transfer; shock still applies.
+  const rows = {};
+  for (const wid of ['SABRE', 'GRENADE', 'SWIRL_SHIELD', 'STORMBREAKER']) {
+    const o = contactDuel();
+    W().equip(o.b, wid);
+    const h0 = W().getHolder(o.b);
+    const tap = frostBusTap();
+    const spends = tapAQ(/\[AQ\] (CONSUME|STRIKE|THROW) /, () => {
+      HR.pressAbility(o.a, 'A2');
+      T.step(0.1); // short: thrown classes must still be held, not spent
+      touchBodies(o);
+      T.step(2 / 60);
+    });
+    // SABRE at point-blank range legitimately spends itself striking (the
+    // weapon's own law, proven by the CONSUME/STRIKE log); the no-transfer
+    // assertion is frostEmpty + no FrostSteal for every class.
+    rows[wid] = {
+      spentByOwner: spends.length > 0,
+      held: W().getHolder(o.b) === h0 && !!h0,
+      frostEmpty: !W().getHolder(o.a),
+      shock: tap.seen.includes('FrostColdShock'),
+      steal: tap.seen.includes('FrostSteal'),
+    };
+    tap.release();
+  }
+  const ok = Object.entries(rows).every(([wid, r]) =>
+    (wid === 'SABRE' ? (r.held || r.spentByOwner) : r.held)
+    && r.frostEmpty && r.shock && !r.steal);
+  gate('F11.10-never-steal-other-classes', ok, rows);
+} catch (e) { gate('F11.10-never-steal-other-classes', false, String(e && e.message)); }
+
+try {
+  // F11.11: same overlap cannot re-steal; separation + re-contact can.
+  const o = contactDuel();
+  W().equip(o.b, 'PISTOL');
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.2);
+  touchBodies(o);
+  T.step(3 / 60);
+  const stolen1 = W().getHolder(o.a);
+  // Enemy re-arms DURING the same held overlap: no second steal.
+  W().equip(o.b, 'SMG');
+  const fresh = W().getHolder(o.b);
+  for (let f = 0; f < 30; f++) { T.step(1 / 60); touchBodies(o); }
+  const heldNoReststeal = W().getHolder(o.a) === stolen1 && W().getHolder(o.b) === fresh;
+  // Frost drops (simulated consume), separates, re-contacts: steal works.
+  o.a.data.arsenal = null;
+  partBodies(o);
+  T.step(3 / 60);
+  touchBodies(o);
+  T.step(3 / 60);
+  const restole = W().getHolder(o.a) === fresh && !W().getHolder(o.b);
+  gate('F11.11-gate-not-latch', !!stolen1 && heldNoReststeal && restole,
+    { heldNoReststeal, restole, a2live: FR().inspect(o.ct).a2live });
+} catch (e) { gate('F11.11-gate-not-latch', false, String(e && e.message)); }
+
+try {
+  // F11.12: post-transfer shots use Frost as real holder/owner.
+  const o = contactDuel();
+  W().equip(o.b, 'PISTOL');
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.2);
+  // Pre-steal family sample (enemy-owned bullet).
+  let preFam = null;
+  for (let f = 0; f < 120 && !preFam; f++) {
+    T.step(1 / 60);
+    const p = (win.projectiles || []).find((q) => q && q.type === 'aq_bullet');
+    if (p) preFam = p.family;
+  }
+  touchBodies(o);
+  T.step(3 / 60);
+  partBodies(o); // re-open the firing lane
+  let postFam = null;
+  const shots = tapAQ(/\[AQ\] SHOT fighter=(\w+)/, () => {
+    for (let f = 0; f < 120; f++) {
+      T.step(1 / 60);
+      if (!postFam) {
+        const p = (win.projectiles || []).find((q) => q && q.type === 'aq_bullet' && q.owner === o.a);
+        if (p) postFam = p.family;
+      }
+    }
+  });
+  const hpAfter = o.b.hp;
+  gate('F11.12-frost-owns-post-transfer',
+    shots.length > 0 && shots.every((s) => s === 'ICE') && preFam === 'SEMI' && postFam === 'SEMI' && hpAfter < 1000,
+    { shots, preFam, postFam, hp: +hpAfter.toFixed(1) });
+} catch (e) { gate('F11.12-frost-owns-post-transfer', false, String(e && e.message)); }
+
+try {
+  // F11.13/14: carrier authority. Frost collides with a non-carrier SLIME
+  // child while the anchor holds a PISTOL: transfer queries the real
+  // carrier and succeeds once; a dead holder parked on the child is never
+  // treated as owned by the colliding body.
+  const setup = () => {
+    const o = contactDuel('SLIME');
+    const ectl = HR.abilityController(HR.byCombatant(o.b));
+    const mit = ectl.tryCast('A1', 'frost');
+    T.step(0.1);
+    const bodies = HR.getTargetableBodies(HR.byCombatant(o.b));
+    if (!mit || !mit.ok || bodies.length < 2) throw new Error('split failed');
+    // Pin everything post-split: no drift-contact before the scripted touch.
+    for (const b of bodies) { b.baseSpeed = 0; b.setDir(1, 0); }
+    return { o, anchor: o.b, child: bodies.find((b) => b !== o.b) };
+  };
+  // Success direction: anchor holds, Frost touches the CHILD.
+  const s = setup();
+  W().equip(s.anchor, 'PISTOL');
+  const h0 = W().getHolder(s.anchor);
+  HR.pressAbility(s.o.a, 'A2');
+  T.step(0.2);
+  if (W().getHolder(s.o.a)) throw new Error('steal before the scripted touch');
+  s.o.a.x = s.child.x - 10; s.o.a.y = s.child.y; // touch the child
+  T.step(3 / 60);
+  const okSteal = W().getHolder(s.o.a) === h0 && !W().getHolder(s.anchor)
+    && !s.child.data.arsenal;
+  // Ignore direction: anchor unarmed, dead holder parked on the child.
+  const t = setup();
+  W().equip(t.child, 'PISTOL');
+  const parked = W().getHolder(t.child);
+  HR.pressAbility(t.o.a, 'A2');
+  T.step(0.2);
+  t.o.a.x = t.child.x - 10; t.o.a.y = t.child.y;
+  T.step(3 / 60);
+  const noStealChild = !W().getHolder(t.o.a) && W().getHolder(t.child) === parked;
+  partBodies(t.o);
+  T.step(3 / 60);
+  t.o.a.x = t.anchor.x - 10; t.o.a.y = t.anchor.y;
+  T.step(3 / 60);
+  const noStealAnchor = !W().getHolder(t.o.a) && W().getHolder(t.child) === parked;
+  gate('F11.13-carrier-authority', okSteal && noStealChild && noStealAnchor,
+    { okSteal, noStealChild, noStealAnchor });
+  gate('F11.14-child-collision-queries-carrier', okSteal, { okSteal });
+} catch (e) { gate('F11.13-carrier-authority', false, String(e && e.message)); }
 
 /* ================= summary ============================================ */
 const names = Object.keys(report.gates);

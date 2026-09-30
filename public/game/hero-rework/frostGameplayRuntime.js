@@ -24,7 +24,7 @@
  *   FR.noteBodyHit(p, target)   post-hit Freeze roll (rework pass Stage B)
  *   FR.deniesPickup(slot, f)    frozen-slot collector gate (spawn resolvePickups)
  *   FR.noteFrozenPickup(f, h, s) carry Frozen state onto the real holder
- *   FR.noteBodyContact(a, b)    A2 Cold Shock + steal (rework contact hook)
+ *   FR.noteBodyContact(ct,a,b)  A2 Cold Shock + steal (rework contact hook)
  *   FR.releaseCombatant(ct)     teardown (executor onTeardown)
  * ========================================================================== */
 (function (g) {
@@ -71,7 +71,10 @@ function stateOf(ct) {
       a2: null,                 // { until, trail: [{x,y,bornAt}], segLife, halfW, endEmitted }
       cold: Object.create(null),   // bodyId -> Cold Shock expiry (clock)
       linger: Object.create(null), // bodyId -> A1 linger expiry (clock)
-      freeze: Object.create(null), // bodyId -> { until, lockedUntil } (Slice C)
+      freeze: Object.create(null), // bodyId -> { until } tracked Freeze (thaw poll; lock is body-global)
+      rolledBlasts: Object.create(null), // blast group -> true (one roll opportunity each)
+      rollsUsed: 0,                // Freeze RNG draws consumed (F07 audit)
+      freezeRng: null,             // dedicated per-combatant seeded stream (lazy)
       castSeq: 0,
     };
     states.set(ct, st);
@@ -135,6 +138,35 @@ function isFreezableFirearm(slot) {
   const W = g.APEX_ARSENAL_WEAPONS;
   const def = W && W[id];
   return !!def && def.category === 'ranged';
+}
+
+/* ------------------------------------------------------------------ *
+ * Freeze RNG (authority §6.1/§6.2). Dedicated per-combatant seeded
+ * stream (AIL.makeSeededRng, never Math.random). Draws happen ONLY in
+ * noteBodyHit after a confirmed eligible body hit with all no-roll
+ * gates passed. Production seeds from the match clock at first draw
+ * (mixed with the combatant index); setFreezeSeed pins a fixed base
+ * for deterministic gates — pin before match start.
+ * ------------------------------------------------------------------ */
+let freezeSeedPin = null;
+function freezeRngFor(ct, st) {
+  if (!st.freezeRng) {
+    let seed = freezeSeedPin;
+    if (seed == null) seed = (((clock() * 1000) | 0) ^ (((ct && ct.idx) | 0) * 0x9E3779B9) ^ 0xF2057) >>> 0;
+    const A = AIL();
+    st.freezeRng = (A && A.makeSeededRng) ? A.makeSeededRng(seed >>> 0) : null;
+    if (!st.freezeRng) { // unreachable while AIL loads; total fallback
+      let s = (seed >>> 0) || 0x9e3779b9;
+      st.freezeRng = function () {
+        s = (s + 0x6d2b79f5) >>> 0;
+        let t = s;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+  }
+  return st.freezeRng;
 }
 
 const FR = {
@@ -222,11 +254,17 @@ const FR = {
       if (w.endEmitted && !w.trail.length) st.a2 = null;
     }
 
-    // Speed law (strongest Frost effect wins, never multiplied).
+    // Speed law (strongest Frost effect wins, never multiplied). Unrelated
+    // non-Frost slows/speeds are never weakened (F10.6): a strictly
+    // stronger existing status is left untouched (timer included).
     const rf = FROST_LAW.speedRefresh;
     for (const b of api.ownBodies(ct)) {
       if (!b || b.hp <= 0) continue;
-      if (onAnyFloor(st, b.x, b.y, now)) b.applyStatus('speed', rf, { mult: FROST_LAW.frostFloorMult });
+      if (!onAnyFloor(st, b.x, b.y, now)) continue;
+      const ex = b.statuses.speed;
+      if (!ex || ex.timer <= 0 || ex.mult <= FROST_LAW.frostFloorMult) {
+        b.applyStatus('speed', rf, { mult: FROST_LAW.frostFloorMult });
+      }
     }
     const foes = api.enemyBodies(ct);
     for (const b of foes) {
@@ -241,7 +279,38 @@ const FR = {
       }
       if ((st.cold[b.id] || 0) > now && a2cfg) cands.push(a2cfg.coldShockMult);
       if ((st.linger[b.id] || 0) > now) cands.push(FROST_LAW.enemyFloorMult);
-      if (cands.length) b.applyStatus('slow', rf, { mult: Math.min(...cands) });
+      if (cands.length) {
+        const want = Math.min(...cands);
+        const ex = b.statuses.slow;
+        if (!ex || ex.timer <= 0 || ex.mult >= want) b.applyStatus('slow', rf, { mult: want });
+      }
+    }
+
+    // Post-thaw reproc lock (authority §6.3): a tracked body observed truly
+    // thawed starts its body-global 0.50s lock. Continuous freeze (incl.
+    // refresh) never locks; the lock is keyed on the body so mirrors agree.
+    // Own bodies are polled too: a reflected Frozen Bullet may freeze Frost.
+    const watched = st.freeze;
+    if (Object.keys(watched).length) {
+      const seenIds = {};
+      const seen = api.ownBodies(ct).concat(api.enemyBodies(ct) || []);
+      const lockSecs = (ct.skills.PASSIVE && ct.skills.PASSIVE.cfg && ct.skills.PASSIVE.cfg.postThawLock) || 0.50;
+      for (const b of seen) {
+        if (!b) continue;
+        seenIds[b.id] = true;
+        if (!watched[b.id]) continue;
+        if (b.hp <= 0) { delete watched[b.id]; continue; }
+        if (b.hasStatus('freeze')) {
+          watched[b.id].until = now + (b.statuses.freeze.timer || 0);
+          continue;
+        }
+        if ((b.__frostLockedUntil || 0) <= now) {
+          b.__frostLockedUntil = now + lockSecs;
+          busEmit('FrostThaw', { body: b.id });
+        }
+        delete watched[b.id];
+      }
+      for (const id of Object.keys(watched)) if (!seenIds[id]) delete watched[id]; // merged/vanished: untrack, no lock
     }
 
     // Battlefield firearm freeze/thaw/support.
@@ -303,13 +372,92 @@ const FR = {
     // Semantic blast group: holder identity + sequence position at fire time.
     // All pellets of one fireOneShot share both; sequential shots differ in
     // shotsFired (incremented after each shot); re-equips differ in holder.
-    p.__hr.frost = { group: holderUid(hold) + ':' + (hold.shotsFired | 0), holder: holderUid(hold) };
+    // The shooter ref travels with the tag so provenance survives legal
+    // transforms that reassign p.owner (authority §6.3); bullet-lifetime only.
+    p.__hr.frost = { group: holderUid(hold) + ':' + (hold.shotsFired | 0), holder: holderUid(hold), shooter: owner || null };
     return true;
   },
 
-  /* -------- post-hit Freeze roll (Slice C) -------- */
-  noteBodyHit(p, target) { return false; },
-  noteBodyContact(myBody, otherBody) { return false; },
+  /* -------- post-hit Freeze roll (authority §6.2/§6.3) -------- */
+  setFreezeSeed(n) { freezeSeedPin = (n == null ? null : (n >>> 0)); },
+  noteBodyHit(p, target) {
+    const tag = p && p.__hr && p.__hr.frost;
+    if (!tag || !tag.group) return false;
+    if (!target || target.hp <= 0) return false;
+    const hr = HR();
+    // Provenance shooter first (survives legal owner transforms), live
+    // p.owner second. Either way the shooter must be a Frost combatant.
+    const ownerRef = tag.shooter || (p && p.owner);
+    const shooter = ownerRef && hr && hr.byCombatant ? hr.byCombatant(ownerRef) : null;
+    if (!shooter || shooter.facade || shooter.heroId !== 'ICE') return false;
+    const now = clock();
+    // Post-thaw reproc lock is body-global: a locked hit never rolls and
+    // never consumes the blast opportunity (the draw happens only after all
+    // no-roll gates pass).
+    if ((target.__frostLockedUntil || 0) > now) return false;
+    const st = stateOf(shooter);
+    if (st.rolledBlasts[tag.group]) return false; // blast already consumed
+    st.rolledBlasts[tag.group] = true;             // first eligible hit consumes
+    st.rollsUsed++;
+    const pcfg = shooter.skills && shooter.skills.PASSIVE && shooter.skills.PASSIVE.cfg;
+    const chance = ((pcfg && pcfg.baseProcPct) || 0.04) + ((pcfg && pcfg.bonusProcPct) || 0.04);
+    const roll = freezeRngFor(shooter, st)();
+    if (!(roll < chance)) {
+      busEmit('FrostRollFailed', { group: tag.group, roll: +roll.toFixed(4) });
+      return false;
+    }
+    // Successful proc: hard Freeze through the existing authoritative
+    // status path (applyStatus refreshes: newest owner resets to 0.90s,
+    // never stacks). Zero direct Freeze damage — bullet damage is untouched.
+    const freezeSecs = (pcfg && pcfg.freezeDuration) || 0.90;
+    const wasFrozen = target.hasStatus('freeze');
+    target.__frostFreezeSource = 'frost';
+    target.applyStatus('freeze', freezeSecs, { source: shooter.anchor });
+    st.freeze[target.id] = { until: now + freezeSecs };
+    busEmit(wasFrozen ? 'FrostFreezeRefresh' : 'FrostFreezeStart', {
+      body: target.id, group: tag.group, roll: +roll.toFixed(4),
+    });
+    return true;
+  },
+
+  /* -------- A2 contact: Cold Shock + exact steal (authority §7.4/§7.5) --- */
+  // Called ONLY on engine edge-fired new contact (separation-cleared by the
+  // real contact authority). No Frost-side pair latch exists by design, so a
+  // genuine re-contact during the same window always re-procs (§7.3/F10.7).
+  noteBodyContact(frostCt, myBody, otherBody) {
+    if (!frostCt || frostCt.facade || frostCt.heroId !== 'ICE') return false;
+    const st = states.get(frostCt);
+    const now = clock();
+    if (!st || !st.a2 || now >= st.a2.until) return false; // A2 window only
+    if (!otherBody || otherBody.hp <= 0) return false;
+    const hr = HR();
+    const otherCt = hr && hr.byCombatant ? hr.byCombatant(otherBody) : null;
+    if (!otherCt || otherCt === frostCt) return false; // enemy bodies only
+    const a2cfg = frostCt.skills.A2 && frostCt.skills.A2.cfg;
+    // Cold Shock: always, on every valid new contact. Zero direct damage;
+    // the x0.50 joins the shared min-law in tickCombatant (floor overlap
+    // resolves to x0.50, never x0.30).
+    st.cold[otherBody.id] = now + ((a2cfg && a2cfg.coldShockDuration) || 1.0);
+    busEmit('FrostColdShock', { body: otherBody.id, mult: (a2cfg && a2cfg.coldShockMult) || 0.50 });
+    // Exact holder steal. Carrier authority = the live APEX one-holder law:
+    // the opponent's ANCHOR is the authoritative equipment carrier (the only
+    // body the weapon runtime drives); the colliding body is never assumed
+    // to own anything. Pointer move only: no equip(), no consume(), no
+    // floor copy, no ghost, no second holder.
+    const anchor = frostCt.anchor;
+    const WAPI = g.APEX_ARSENAL && g.APEX_ARSENAL.weaponApi;
+    if (!anchor || !WAPI || WAPI.getHolder(anchor)) return true; // armed: shock only
+    const carrier = otherCt.anchor;
+    if (!carrier || carrier.hp <= 0) return true;
+    const h = WAPI.getHolder(carrier);
+    if (!h || !h.weaponId) return true;
+    if (!isFreezableFirearm({ weaponId: h.weaponId, tier: h.meta && h.meta.tier })) return true;
+    carrier.data.arsenal = null;
+    anchor.data.arsenal = h;
+    h.__frostFrozen = { weaponId: h.weaponId, at: now, stolen: true };
+    busEmit('FrostSteal', { weapon: h.weaponId, shotsFired: h.shotsFired, from: carrier.id });
+    return true;
+  },
 
   releaseCombatant(ct) { states.delete(ct); },
 
@@ -331,6 +479,9 @@ const FR = {
       trailNodes: st.a2 ? st.a2.trail.map((n) => ({ x: +n.x.toFixed(1), y: +n.y.toFixed(1), bornAt: +n.bornAt.toFixed(3) })) : [],
       cold: Object.keys(st.cold).filter((k) => st.cold[k] > now).length,
       linger: Object.keys(st.linger).filter((k) => st.linger[k] > now).length,
+      rolls: st.rollsUsed,
+      rolled: Object.keys(st.rolledBlasts).length,
+      frozen: Object.keys(st.freeze).length,
     };
   },
   isFreezableFirearm,

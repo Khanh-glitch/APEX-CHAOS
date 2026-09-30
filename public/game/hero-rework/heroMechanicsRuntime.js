@@ -628,6 +628,19 @@
       ctx.api.note('frost.hunt', 'cast', {});
       return FR.castHunt(ctx);
     },
+    // Engine edge-fired onBodyCollision (heroReworkRuntime fireCollision):
+    // called once per genuine new contact, cleared only by real separation
+    // (world.__contact hysteresis). No executor-local pair latch exists by
+    // design — a genuine re-contact during the same A2 window re-procs
+    // (authority §7.3). The A2-window + enemy checks live in truth.
+    onBodyCollision(ctx, myBody, otherBody) {
+      const FR = frostTruth();
+      if (!FR) return;
+      const ct = ctx && ctx.combatant;
+      if (!ct || ct.facade || ct.heroId !== 'ICE') return;
+      if (!myBody || myBody.hp <= 0 || !otherBody || otherBody.hp <= 0) return;
+      FR.noteBodyContact(ct, myBody, otherBody);
+    },
     onTeardown(ctx) {
       const FR = frostTruth();
       if (FR) FR.releaseCombatant(ctx.combatant);

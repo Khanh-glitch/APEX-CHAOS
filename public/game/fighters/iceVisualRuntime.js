@@ -418,7 +418,17 @@
     }
     function isIceFreeze(target) {
       const s=target && target.statuses && target.statuses.freeze;
-      return !!(s && s.timer>0 && s.source && s.source.name==='ICE');
+      // FROST V1 (§8/F01.8): the legacy ice-block overlay keys off the
+      // semantic SOURCE, never the target. A Frost rework body keeps the
+      // physical name ICE, so source.name alone cannot discriminate.
+      return !!(s && s.timer>0 && s.source && s.source.name==='ICE' && !isFrostReworkSource(s.source));
+    }
+    // Guarded test log for F01.8/F01.10/F08.11 (never allocated in prod).
+    function iceTestLog(kind,body) {
+      try {
+        if (!window.__apexIceVisualTestArmed) return;
+        (window.__apexIceVisualTestEvents || (window.__apexIceVisualTestEvents = [])).push({ kind, body: body && body.id, at: iceNow() });
+      } catch (e) { /* test log never breaks the game */ }
     }
     function drawFrozenTargetOverlay(ctx,target) {
       const v=iceFreezeVisual(target);
@@ -426,6 +436,7 @@
       const active=isIceFreeze(target);
       const ending=!active && now-v.end<.24;
       if (!active && !ending) return;
+      iceTestLog('legacy-freeze-draw', target);
       const age=active?now-v.start:now-v.end;
       const pop=active?lerp(.65,1,iceEase(age/.16)):1+iceEase(age/.24)*.10;
       const alpha=active?(.78+.05*Math.sin(now*5+target.id)):(1-iceEase(age/.24))*.78;
@@ -561,6 +572,7 @@
         const result=oldApplyStatusIceVisual.call(this,name,duration,data);
         if (name==='freeze' && data && data.source && data.source.name==='ICE' && !isFrostReworkSource(data.source) && this.hasStatus('freeze') && !wasFrozen) {
           const v=iceFreezeVisual(this); v.active=true; v.start=iceNow(); v.end=-999; v.sourceId=data.source.id;
+          iceTestLog('legacy-freeze-apply', this);
           playIceAudio('freezeTarget',.62,false);
         }
         return result;

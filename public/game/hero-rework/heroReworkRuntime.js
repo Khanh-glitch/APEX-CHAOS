@@ -1599,6 +1599,10 @@
     // CRYSTALA: shard jobs / K window / construct lifetimes / Gold rig advance.
     const CRY = globalScope.APEX_CRYSTAL;
     if (CRY) CRY.tick(dt);
+    // FROST V1: post-hit Freeze roll (authority §6.2). Hooked beside the
+    // live chill line: Stage B hands (p, target) for every confirmed exact
+    // body hit incl. multi-body children. Optional/lazy like CRY.
+    const FR = globalScope.APEX_FROST;
 
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const p = projectiles[i];
@@ -1665,6 +1669,8 @@
           if (CRY) { CRY.noteBodyHit(p, target); CRY.afterBodyHit(p, target, hpBeforeHit - target.hp); }
           // ICE payload (survives transforms unless stripped).
           if (p.__hr && p.__hr.chill) M.api.applyChillTo(target);
+          // FROST V1: Frozen Bullet post-hit Freeze roll (no-op unless tagged).
+          if (FR && p.__hr && p.__hr.frost) FR.noteBodyHit(p, target);
           // RUBBER debt erase (released projectile hit the opponent).
           if (p.__hr && p.__hr.rubberDebt) {
             AIL.bus.emit('RubberDebtErased', { amount: p.__hr.rubberDebt });
