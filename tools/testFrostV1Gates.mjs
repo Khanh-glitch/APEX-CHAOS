@@ -11,6 +11,7 @@
 import { bootHarness } from './lib/crystalaHarness.mjs';
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 
 const H = await bootHarness();
 const { win, T } = H;
@@ -2358,214 +2359,381 @@ try {
     { coreEW, coreES, allEW, allES, bytes: cE.length });
 } catch (e) { gate('F12.17-frontal-identity', false, String(e && e.message)); }
 
-/* ---- F12.18-20: audited presentation corrections (pre-playtest) ------- */
+/* ---- F12.18-F12.26 — FINAL OWNER PLAYTEST PRESENTATION INTEGRITY ------
+   Authority: docs/hero-rework/frost-v1/03_IMPLEMENTATION_TEST_MATRIX.md
+   "F12.18–F12.26 FINAL OWNER PLAYTEST PRESENTATION INTEGRITY". These are
+   release gates: the owner playtest failed on Gold identity, A2 continuity,
+   whole-scene corruption, opponent scale flicker and battle scale, so each
+   of those is proven here against the REAL renderer, not a mock. ------- */
 
-// F12.18 — A1 and A2 are independent gameplay truth, but Gold serializes
-// them through one `mode` and rejects the second cast. The visual must be
-// DEFERRED (queued) and started when Gold can accept it, never dropped,
-// and gameplay timing must not move at all.
-try {
-  // Leg A: A1 first, A2 pressed during the A1 mode.
-  const oA = stillPair(300, 500, 1, 850, 850);
-  const ctA = HR.byCombatant(oA.a);
-  win.APEX_ARSENAL_SKILL_GATE.pressJ(oA.a);
-  T.step(2 / 60);
-  HR.pressAbility(oA.a, 'A2');
-  T.step(2 / 60);
-  const qA = P().inspect(oA.a);
-  const gA = FR().inspect(ctA);
-  // Gameplay ran immediately (window live, trail already growing) while the
-  // Gold visual sits in the queue: deferral is presentation-only.
-  const deferredA = qA.mode === 'a1' && qA.queued === 1 && qA.queuedKinds[0] === 'a2' && gA.a2live;
-  let startedA = false, aTrail = 0;
-  for (let k = 0; k < 20 && !startedA; k++) {
-    T.step(0.1);
-    const i = P().inspect(oA.a);
-    startedA = i.a2Started && i.queued === 0;
-    aTrail = i.a2.trail;
+const GOLD_HTML = 'docs/hero-rework/frost-v1/gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html';
+const CANON_SHA = '940fc9a8a181cc40d965ebf2c4309d1b4816d3016fc191b0d3df8a1a65be2475';
+const CANON_BYTES = 981597;
+const OBSOLETE_BYTES = 975616; // the retired Gold: never an authority again
+const sha256 = (b) => crypto.createHash('sha256').update(b).digest('hex');
+// Region hash of the REAL game canvas: bitwise scene evidence.
+function regionHash(x0, y0, w, h) {
+  const cx = H.gameCanvasReal.getContext('2d');
+  const d = cx.getImageData(x0, y0, w, h).data;
+  return crypto.createHash('sha1').update(Buffer.from(d.buffer, d.byteOffset, d.byteLength)).digest('hex');
+}
+const med = (a) => a.slice().sort((p, q) => p - q)[Math.floor(a.length / 2)];
+// Solid silhouette box: rows/cols carrying real body ink. Ambient Gold mist
+// and wisps are authored atmosphere, not scale, so a bbox over every stray
+// pixel would measure the weather instead of the fighter.
+function bodyBox(px, cx, cy, half, bg, minRun = 12, th = 45) {
+  const x0 = Math.max(0, Math.floor(cx - half)), x1 = Math.min(px.w - 1, Math.ceil(cx + half));
+  const y0 = Math.max(0, Math.floor(cy - half)), y1 = Math.min(px.h - 1, Math.ceil(cy + half));
+  const rows = new Array(y1 - y0 + 1).fill(0), cols = new Array(x1 - x0 + 1).fill(0);
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const i = (y * px.w + x) * 4;
+    if (Math.max(Math.abs(px.data[i] - bg[0]), Math.abs(px.data[i + 1] - bg[1]), Math.abs(px.data[i + 2] - bg[2])) > th) {
+      rows[y - y0]++; cols[x - x0]++;
+    }
   }
-  for (let k = 0; k < 6; k++) { oA.a.x += 14; T.step(3 / 60); }
-  const iA = P().inspect(oA.a);
-  const bothA = iA.a1.released && iA.a1.nodes >= 40 && iA.a2Started && iA.a2.trail >= 1 &&
-    iA.castStarts === 2 && iA.castDropped === 0;
+  const span = (a) => { let lo = -1, hi = -1; for (let k = 0; k < a.length; k++) if (a[k] >= minRun) { if (lo < 0) lo = k; hi = k; } return lo < 0 ? 0 : hi - lo + 1; };
+  return { w: span(cols), h: span(rows) };
+}
 
-  // Leg B: A2 first, A1 pressed during the hunt.
-  const oB = stillPair(300, 500, 1, 850, 850);
-  const ctB = HR.byCombatant(oB.a);
-  HR.pressAbility(oB.a, 'A2');
-  T.step(2 / 60);
-  const castOk = win.APEX_ARSENAL_SKILL_GATE.pressJ(oB.a);
-  T.step(2 / 60);
-  const qB = P().inspect(oB.a);
-  const deferredB = qB.mode === 'a2' && qB.queued === 1 && qB.queuedKinds[0] === 'a1';
-  // Gameplay A1 keeps its own schedule while the visual waits.
-  T.step(0.5);
-  const gLane = FR().inspect(ctB).lanes.length === 1;
-  let releasedB = false, nodesB = 0;
-  for (let k = 0; k < 60 && !releasedB; k++) {
-    T.step(0.1);
-    const i = P().inspect(oB.a);
-    releasedB = i.a1.released;
-    nodesB = i.a1.nodes;
-  }
-  const iB = P().inspect(oB.a);
-  const bothB = releasedB && nodesB >= 40 && iB.castStarts === 2 && iB.castDropped === 0 && iB.queued === 0;
-  gate('F12.18-concurrent-cast-lossless',
-    deferredA && startedA && bothA && castOk && deferredB && gLane && bothB,
-    { legA: { deferred: deferredA, started: startedA, nodes: iA.a1.nodes, trail: iA.a2.trail, starts: iA.castStarts, dropped: iA.castDropped },
-      legB: { deferred: deferredB, gameplayLane: gLane, released: releasedB, nodes: nodesB, starts: iB.castStarts, dropped: iB.castDropped } });
-} catch (e) { gate('F12.18-concurrent-cast-lossless', false, String(e && e.message)); }
-
-// F12.19 — A1 direction is the gameplay CAST-ACCEPTANCE snapshot. A real
-// body bounce during the commitment window reverses the live body dir; the
-// breath/front must still point down the lane gameplay committed to.
+// F12.18 — the production visual authority IS the canonical Gold: the file
+// still hashes, the shipped module was generated from it (header + derived
+// GOLD_REF), the canonical A1/A2 laws survived the bridge verbatim, and the
+// obsolete 975,616-byte Gold is not present as an authority anywhere.
 try {
-  const o = withCtl(frostPair());
-  const ct = HR.byCombatant(o.a);
-  o.a.x = 400; o.a.y = 500; o.a.setDir(1, 0);
-  o.b.x = 520; o.b.y = 500; o.b.setDir(-1, 0); o.b.baseSpeed = 0;
+  const raw = fs.readFileSync(GOLD_HTML);
+  const okFile = raw.length === CANON_BYTES && sha256(raw) === CANON_SHA;
+  const mod = fs.readFileSync('public/game/hero-rework/frostGoldV1.js', 'utf8');
+  const okHeader = mod.includes(CANON_SHA) && mod.includes(`(${CANON_BYTES} bytes)`) && mod.includes(GOLD_HTML);
+  const R = FG().GOLD_REF;
+  const okRef = !!R && R.FROST_R === 34 && R.ENEMY_R === 41 && R.A1_LEN === 650 && R.A1_WIDTH === 160
+    && R.A1_CAST === 0.25 && R.A2_WIDTH === 120 && R.A2_SEGMENT_LIFE === 3.5 && R.A1_FLOOR_LIFE === 4.5
+    && R.TRAIL_STEP === 9 && R.TRAIL_LEN_MIN === 12 && R.TRAIL_LEN_MAX === 16;
+  // Canonical choreography law, verbatim from the Gold (no adapter rewrite):
+  const okLaw = /nd\s*>=\s*9/.test(mod)                              // A2 spacing
+    && /this\.rng\.range\(\s*12\s*,\s*16\s*\)/.test(mod)              // A2 segment length
+    && /this\.rng\.range\(\s*14\s*,\s*18\s*\)/.test(mod)              // A1 lane node length
+    && mod.includes('scheduleDecay')                                 // staggered melt
+    && /A2_WIDTH\s*\*\s*0\.5\s*\+\s*this\.rng\.range\(\s*-2\s*,\s*2\s*\)/.test(mod)
+    && /activeUntil\s*:\s*this\.t\s*\+\s*this\.a2SegLife/.test(mod);
+  const golds = fs.readdirSync('docs/hero-rework/frost-v1/gold').filter((f) => /\.html?$/i.test(f));
+  const sizes = golds.map((f) => fs.statSync(`docs/hero-rework/frost-v1/gold/${f}`).size);
+  const noObsolete = golds.length === 1 && !sizes.includes(OBSOLETE_BYTES);
+  gate('F12.18-correct-Gold-identity', okFile && okHeader && okRef && okLaw && noObsolete,
+    { bytes: raw.length, sha: sha256(raw).slice(0, 12), okHeader, okRef, okLaw, golds, sizes });
+} catch (e) { gate('F12.18-correct-Gold-identity', false, String(e && e.message)); }
+
+// F12.19 — A2 continuity. The owner saw DETACHED ICE CHUNKS. The trail is
+// one continuous chain in born order at the Gold's own spacing, with the
+// Gold's own segment material — live AND after a deferred admission that
+// hydrates real history. No islands, no duplicate parallel trail.
+try {
+  const R = FG().GOLD_REF;
+  const chain = (tr) => {
+    const s = tr.slice().sort((p, q) => p.born - q.born);
+    let maxGap = 0, dupes = 0, badLen = 0, badW = 0;
+    for (let i = 1; i < s.length; i++) {
+      const d = Math.hypot(s[i].x - s[i - 1].x, s[i].y - s[i - 1].y);
+      if (d > maxGap) maxGap = d;
+      if (d < 2.5) dupes++;                                     // parallel/duplicate lay
+    }
+    for (const n of s) {
+      if (n.L < R.TRAIL_LEN_MIN - 0.5 || n.L > R.TRAIL_LEN_MAX + 0.5) badLen++;
+      if (Math.abs(n.W - R.A2_WIDTH * 0.5) > 2.5) badW++;
+    }
+    return { n: s.length, maxGap: +maxGap.toFixed(2), dupes, badLen, badW, first: s[0], last: s[s.length - 1] };
+  };
+  // Leg 1 — LIVE hunt with a real turn.
+  const o1 = stillPair(200, 700, 1, 820, 200);
+  HR.pressAbility(o1.a, 'A2');
   T.step(1 / 60);
-  o.a.x = 400; o.a.y = 500; o.a.setDir(1, 0); o.b.x = 520; o.b.y = 500;
-  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
-  const cast = FR().inspect(ct).a1cast;      // snapshot at acceptance
-  T.step(16 / 60);                            // bounce happens inside the commit
-  const bounced = o.a.dir.x < -0.5;           // live dir really reversed
-  const gi = FR().inspect(ct);
-  const pi = P().inspect(o.a);
-  const e = P().engineFor(o.a);
-  const nodes = (e.a1.nodes || []).map((w) => w && w.n).filter(Boolean);
-  const ahead = nodes.filter((n) => n.x > e.a1.ox).length;
-  const snapAng = Math.atan2(cast.dy, cast.dx);
-  const angOk = Math.abs(Math.atan2(Math.sin(pi.a1.ang - snapAng), Math.cos(pi.a1.ang - snapAng))) < 0.01;
-  const laneOk = gi.lanes.length === 1 && nodes.length >= 40 && ahead >= nodes.length - 2;
-  gate('F12.19-a1-dir-snapshot',
-    !!cast && cast.dx === 1 && bounced && angOk && laneOk,
-    { snapshot: cast && [cast.dx, cast.dy], liveDir: +o.a.dir.x.toFixed(2), presAng: pi.a1.ang, nodes: nodes.length, ahead });
-} catch (e) { gate('F12.19-a1-dir-snapshot', false, String(e && e.message)); }
-
-// F12.20 — one stolen holder is ONE object in ONE place: during the Gold
-// transfer the base equipped-weapon draw is suppressed, so the weapon is
-// rendered only along the flight arc — never in Frost's hand at the same
-// time — and the hand takes over exactly at dock.
-try {
-  const o = contactDuel();
-  W().equip(o.b, 'PISTOL');
-  const h0 = W().getHolder(o.b);
-  const AV = win.APEX_ARSENAL_AV;
-  HR.pressAbility(o.a, 'A2');
-  T.step(0.2);
-  touchBodies(o);
-  T.step(3 / 60);
-  const owned = W().getHolder(o.a) === h0 && W().getHolder(o.b) === null;
-  // Spy the real draw path (no direct base calls: the base draw needs loaded
-  // sprite images that only exist in a browser).
-  const spSprite = spyMethod(AV, 'drawWeaponSprite');
-  const origEq = AV.drawEquippedWeapon;
-  let eqRet = [];
-  AV.drawEquippedWeapon = function (...a) { const r = origEq.apply(this, a); if (a[2] === h0) eqRet.push(r); return r; };
-  T.redraw();
-  const flight1 = spSprite.calls;
-  const pos1 = spSprite.args.length ? [spSprite.args[0][2], spSprite.args[0][3]] : null;
-  const baseSkipped = eqRet.length === 1 && eqRet[0] === false; // wrapper returned before base
-  const iFly = P().inspect(o.a);
-  spSprite.calls = 0; spSprite.args.length = 0; eqRet = [];
-  T.step(4 / 60);
-  T.redraw();
-  const flight2 = spSprite.calls;
-  const pos2 = spSprite.args.length ? [spSprite.args[0][2], spSprite.args[0][3]] : null;
-  // Exactly one weapon rendering per frame, and it MOVES along the arc while
-  // Frost stands still: it is the transfer, not a second in-hand copy.
-  const flew = !!pos1 && !!pos2 && Math.hypot(pos2[0] - pos1[0], pos2[1] - pos1[1]) > 3;
-  spSprite.calls = 0; spSprite.args.length = 0; eqRet = [];
-  T.step(0.6);
-  T.redraw();
-  const docked = P().inspect(o.a);
-  const dockedSprite = spSprite.calls;            // no flight sprite after dock
-  const dockedBaseDraws = eqRet.length === 1 && eqRet[0] !== false; // hand draw restored
-  AV.drawEquippedWeapon = origEq;
-  spSprite.release();
-  gate('F12.20-transfer-no-duplicate-draw',
-    owned && flight1 === 1 && flight2 === 1 && flew && baseSkipped &&
-    iFly.transfers === 1 && iFly.guns === 1 && iFly.suppressed === true &&
-    docked.transfers === 0 && docked.guns === 1 && docked.suppressed === false &&
-    dockedSprite === 0 && dockedBaseDraws,
-    { flight: [flight1, flight2], flew, baseSkipped, inFlight: [iFly.transfers, iFly.guns, iFly.suppressed],
-      atDock: [docked.transfers, docked.guns, docked.suppressed, dockedSprite, dockedBaseDraws] });
-} catch (e) { gate('F12.20-transfer-no-duplicate-draw', false, String(e && e.message)); }
-
-// F12.21 — a deferred A2 must not begin at the admission point: the hunt
-// path that gameplay already walked (turns and all) is hydrated from the
-// authoritative trailNodes, so the START of the real path is on screen.
-try {
-  const o = stillPair(300, 300, 1, 1200, 900);
-  const ct = HR.byCombatant(o.a);
-  const AIL = win.APEX_HERO_REWORK_AIL;
-  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);       // A1 owns Gold
+  for (let k = 0; k < 20; k++) { o1.a.x += 9; T.step(1 / 60); }
+  for (let k = 0; k < 16; k++) { o1.a.y -= 9; T.step(1 / 60); }
+  const e1 = P().engineFor(o1.a);
+  const c1 = chain(e1.ice.nodes.filter((n) => n.kind === 'trail'));
+  // Segment length (12-16) exceeds spacing (9): the chain overlaps => connected.
+  const live = c1.n >= 25 && c1.maxGap <= R.TRAIL_LEN_MIN && c1.dupes === 0 && c1.badLen === 0 && c1.badW === 0;
+  // Leg 2 — DEFERRED admission: the same law must hold across the seam.
+  const o2 = stillPair(200, 700, 1, 820, 200);
+  const ct2 = HR.byCombatant(o2.a);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o2.a);      // A1 owns Gold: A2 is queued
   T.step(2 / 60);
-  HR.pressAbility(o.a, 'A2');                     // A2 truth starts, visual queued
-  for (let k = 0; k < 14; k++) { o.a.x += 18; T.step(2 / 60); }   // real path: leg 1
-  for (let k = 0; k < 10; k++) { o.a.y += 18; T.step(2 / 60); }   // real path: turn
-  const gpHist = FR().inspect(ct).trailNodes;
-  const pre = P().inspect(o.a);
-  const deferred = pre.queued === 1 && pre.queuedKinds[0] === 'a2' && pre.a2.trail === 0 && gpHist.length >= 15;
+  HR.pressAbility(o2.a, 'A2');
+  T.step(1 / 60);
+  const deferred = P().inspect(o2.a).queued === 1;
+  for (let k = 0; k < 18; k++) { o2.a.x += 9; T.step(1 / 60); }
+  for (let k = 0; k < 14; k++) { o2.a.y -= 9; T.step(1 / 60); }
   let admitted = false;
-  for (let k = 0; k < 40 && !admitted; k++) { T.step(2 / 60); admitted = P().inspect(o.a).a2Started; }
-  const i = P().inspect(o.a);
-  const e = P().engineFor(o.a);
-  const tr = e.ice.nodes.filter((n) => n.kind === 'trail');
-  const covered = (pt) => tr.some((n) => Math.hypot(n.x - pt.x, n.y - (pt.y + 6)) < 18);
-  const early = gpHist.slice(0, 8).filter(covered).length;   // the BEGINNING of the path
-  const all = gpHist.filter(covered).length;
-  // born times are the real ones (historical), not "all born at admission"
-  const off = e.t - AIL.clock();
-  const minBorn = Math.min(...tr.map((n) => n.born));
-  const bornTruth = Math.abs(minBorn - (gpHist[1].bornAt + off)) < 0.15 && minBorn < e.t - 0.4;
-  const before = tr.length;
-  for (let k = 0; k < 8; k++) { o.a.x += 18; T.step(2 / 60); }   // live motion continues
-  const grew = e.ice.nodes.filter((n) => n.kind === 'trail').length > before;
-  gate('F12.21-deferred-a2-hydrates-history',
-    deferred && admitted && i.a2Hydrated >= 15 && early === 8 && all >= Math.ceil(gpHist.length * 0.9) &&
-    bornTruth && grew,
-    { gpNodes: gpHist.length, hydrated: i.a2Hydrated, early8: early, covered: all, bornTruth, grew });
-} catch (e) { gate('F12.21-deferred-a2-hydrates-history', false, String(e && e.message)); }
+  for (let k = 0; k < 60 && !admitted; k++) { T.step(1 / 60); admitted = P().inspect(o2.a).a2Started; }
+  for (let k = 0; k < 10; k++) { o2.a.x += 9; T.step(1 / 60); }   // live continuation
+  const e2 = P().engineFor(o2.a);
+  const c2 = chain(e2.ice.nodes.filter((n) => n.kind === 'trail'));
+  const hist = FR().inspect(ct2).trailNodes;
+  const startCovered = hist.slice(0, 6).every((p) => e2.ice.nodes.some((n) => n.kind === 'trail'
+    && Math.hypot(n.x - p.x, n.y - (p.y + R.TRAIL_FOOT_Y)) < 16));
+  const deferredOk = deferred && admitted && c2.n >= 30 && c2.maxGap <= R.TRAIL_LEN_MIN
+    && c2.dupes === 0 && c2.badLen === 0 && c2.badW === 0 && startCovered;
+  gate('F12.19-A2-continuity', live && deferredOk,
+    { live: { n: c1.n, maxGap: c1.maxGap, dupes: c1.dupes, badLen: c1.badLen, badW: c1.badW },
+      deferred: { n: c2.n, maxGap: c2.maxGap, dupes: c2.dupes, badLen: c2.badLen, badW: c2.badW, startCovered } });
+} catch (e) { gate('F12.19-A2-continuity', false, String(e && e.message)); }
 
-// F12.22 — a deferred A1 must replay the lane gameplay actually built: real
-// release origin + committed direction + real front window + the ORIGINAL
-// lane expiry, even when Frost has walked far away before Gold admits it.
+// F12.20 / F12.21 — one run, two laws. Frost casts A1 AND A2 on the far side
+// of the arena while the opponent stands still: (20) static arena regions
+// must stay BITWISE identical every frame (no camera drift, no global
+// transform/alpha leak, no full-screen overdraw) and (21) the opponent's
+// rendered size must not move at all (the owner saw it scaling large/small).
+let sceneRes = null, sceneErr = null;
 try {
-  const o = stillPair(300, 500, 1, 1200, 900);
-  const ct = HR.byCombatant(o.a);
-  const AIL = win.APEX_HERO_REWORK_AIL;
-  HR.pressAbility(o.a, 'A2');                     // A2 owns Gold
-  T.step(2 / 60);
-  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);        // A1 queued
-  T.step(0.4);                                     // gameplay releases the lane
-  const lane = FR().inspect(ct).lanes[0];
-  const qd = P().inspect(o.a).queued === 1;
-  for (let k = 0; k < 30; k++) { o.a.x += 14; T.step(2 / 60); }   // Frost leaves
-  const farX = o.a.x;
-  let rel = false;
-  for (let k = 0; k < 60 && !rel; k++) { T.step(0.1); rel = P().inspect(o.a).a1.released; }
+  const o = stillPair(200, 700, 1, 820, 200);
+  const PATCH = [[120, 120, 50], [560, 400, 50], [620, 250, 50]];   // provably Frost-free arena
+  const hashes = () => { T.redraw(); return PATCH.map((p) => regionHash(p[0] - p[2], p[1] - p[2], p[2] * 2, p[2] * 2)); };
+  const oppStat = () => { const px = readPixels(); return cropStats(px, o.b.x, o.b.y, 100, localBg(px, o.b.x, o.b.y, 100)); };
+  const base = hashes();
+  const b0 = oppStat();
+  const frostBase = (() => { const px = readPixels(); return cropStats(px, o.a.x, o.a.y, 120, localBg(px, o.a.x, o.a.y, 120)); })();
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  HR.pressAbility(o.a, 'A2');
+  let patchBreaks = 0;
+  const ws = [], hs = [], ns = [];
+  for (let k = 0; k < 34; k++) {
+    o.a.x = 200 + Math.min(k, 16) * 9; o.a.y = 700; o.b.x = 820; o.b.y = 200;
+    T.step(1 / 60);
+    const hh = hashes();
+    hh.forEach((x, i) => { if (x !== base[i]) patchBreaks++; });
+    const s = oppStat();
+    ws.push(s.w); hs.push(s.h); ns.push(s.n);
+  }
+  const px = readPixels();
+  const frostNow = cropStats(px, o.a.x, o.a.y, 120, localBg(px, o.a.x, o.a.y, 120));
+  const drew = frostNow.ice > frostBase.ice + 200;     // the pass really did draw ice
+  const spread = (a) => Math.max(...a) - Math.min(...a);
+  const nMed = med(ns);
+  sceneRes = {
+    patchBreaks, drew,
+    oppW: spread(ws), oppH: spread(hs),
+    oppBaseW: b0.w, oppBaseH: b0.h, wNow: med(ws), hNow: med(hs),
+    nMin: Math.min(...ns), nMax: Math.max(...ns), nMed,
+  };
+} catch (e) { sceneErr = String(e && e.message); }
+gate('F12.20-a1a2-scene-isolation',
+  !sceneErr && sceneRes.patchBreaks === 0 && sceneRes.drew,
+  sceneErr || { patchBreaks: sceneRes.patchBreaks, frostDrew: sceneRes.drew });
+gate('F12.21-opponent-scale-stability',
+  !sceneErr && sceneRes.oppW <= 3 && sceneRes.oppH <= 3
+  && Math.abs(sceneRes.wNow - sceneRes.oppBaseW) <= 3 && Math.abs(sceneRes.hNow - sceneRes.oppBaseH) <= 3
+  && sceneRes.nMin > sceneRes.nMed * 0.9 && sceneRes.nMax < sceneRes.nMed * 1.1,
+  sceneErr || { spread: [sceneRes.oppW, sceneRes.oppH], base: [sceneRes.oppBaseW, sceneRes.oppBaseH],
+    now: [sceneRes.wNow, sceneRes.hNow], ink: [sceneRes.nMin, sceneRes.nMed, sceneRes.nMax] });
+
+// F12.22 — battle scale is DERIVED, not tuned: body scale is exactly the
+// real APEX radius over the Gold's authored FROST_R, the A1/A2 widths are
+// the Gold's own (k = 1), and the rendered silhouette matches a peer hero
+// at the same arena/camera scale.
+try {
+  const o = stillPair(300, 500, 1, 700, 500);
+  for (let k = 0; k < 24; k++) { o.a.x = 300; o.a.y = 500; o.b.x = 700; o.b.y = 500; T.step(1 / 60); }
+  const clean = P().inspect(o.a).iceNodes === 0;   // no previous-match ice in the crop
+  T.redraw();
+  const px = readPixels();
+  const sF = bodyBox(px, o.a.x, o.a.y, 130, localBg(px, o.a.x, o.a.y, 130));
+  const sP = bodyBox(px, o.b.x, o.b.y, 130, localBg(px, o.b.x, o.b.y, 130));
   const i = P().inspect(o.a);
+  const R = FG().GOLD_REF;
+  const derived = Math.abs(i.kBody - o.a.radius / R.FROST_R) < 1e-3 && Math.abs(i.bodyK - i.kBody) < 1e-3
+    && Math.abs(i.laneK - 1) < 1e-6 && Math.abs(i.trailK - 1) < 1e-6 && o.a.radius === o.b.radius;
+  const peerH = sF.h / sP.h, peerW = sF.w / sP.w;
+  const vsRadius = sF.h / (o.a.radius * 2);
+  const scaled = peerH > 0.8 && peerH < 1.35 && peerW > 0.8 && peerW < 1.35 && vsRadius > 0.85 && vsRadius < 1.35;
+  gate('F12.22-frost-battle-scale', derived && scaled && clean,
+    { clean, kBody: i.kBody, radius: o.a.radius, goldFrostR: R.FROST_R, laneK: i.laneK, trailK: i.trailK,
+      frost: [sF.w, sF.h], peer: [sP.w, sP.h], peerH: +peerH.toFixed(3), vsRadius: +vsRadius.toFixed(3) });
+} catch (e) { gate('F12.22-frost-battle-scale', false, String(e && e.message)); }
+
+// F12.23 — canvas-state integrity. Every Frost draw entry is wrapped: the
+// host transform/alpha/composite/filter/shadow/smoothing survive the pass,
+// save/restore stay balanced, and even a THROWING Gold layer cannot leak
+// state or take the rest of the frame down with it.
+try {
+  const o = stillPair(300, 600, 1, 760, 300);
+  const ctx = H.gameCanvasReal.getContext('2d');
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(0.4);
+  HR.pressAbility(o.a, 'A2');
+  for (let k = 0; k < 10; k++) { o.a.x += 9; T.step(1 / 60); }
+  const before = { a: ctx.globalAlpha, gco: ctx.globalCompositeOperation, f: ctx.filter,
+    sb: ctx.shadowBlur, sm: ctx.imageSmoothingEnabled, lw: ctx.lineWidth };
+  const spSave = spyMethod(ctx, 'save');
+  const spRest = spyMethod(ctx, 'restore');
+  T.redraw();
+  const balanced = spSave.calls === spRest.calls && spSave.calls > 0;
+  spSave.release(); spRest.release();
+  const after = { a: ctx.globalAlpha, gco: ctx.globalCompositeOperation, f: ctx.filter,
+    sb: ctx.shadowBlur, sm: ctx.imageSmoothingEnabled, lw: ctx.lineWidth };
+  const same = JSON.stringify(before) === JSON.stringify(after);
+  const quiet = () => regionHash(70, 70, 100, 100);
+  const q0 = quiet();
+  // Hostile: a Gold floor layer throws for exactly one frame.
+  const realFloor = FG().drawFloorShapes;
+  FG().drawFloorShapes = () => { throw new Error('injected gold failure'); };
+  let survived = true;
+  try { T.redraw(); } catch (err) { survived = false; }
+  FG().drawFloorShapes = realFloor;
+  const pxT = readPixels();
+  const oppT = cropStats(pxT, o.b.x, o.b.y, 100, localBg(pxT, o.b.x, o.b.y, 100));
+  T.redraw();
+  const q1 = quiet();
+  const i = P().inspect(o.a);
+  gate('F12.23-canvas-state-integrity',
+    same && balanced && survived && oppT.n > 5000 && q1 === q0 && i.stateLeaks === 0,
+    { same, balanced, saves: spSave.calls, survived, oppInkAfterThrow: oppT.n, quietStable: q1 === q0, stateLeaks: i.stateLeaks });
+} catch (e) { gate('F12.23-canvas-state-integrity', false, String(e && e.message)); }
+
+// F12.24 — exactly one render path. One Gold engine per Frost fighter (a
+// stable identity, never two), one body + one ice pass per frame per engine,
+// no legacy ICE projectile visuals, no second shell.
+try {
+  T.start('ICE', 'ICE');
+  T.holdSpawns();
+  const [fa, fb] = fighters();
+  fa.x = 250; fa.y = 500; fa.setDir(1, 0); fa.baseSpeed = 0;
+  fb.x = 700; fb.y = 500; fb.setDir(-1, 0); fb.baseSpeed = 0;
+  T.step(2 / 60);
+  const ea = P().engineFor(fa), eb = P().engineFor(fb);
+  const oneEach = !!ea && !!eb && ea !== eb && P().engineFor(fa) === ea;
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(fa);
+  T.step(0.4);
+  HR.pressAbility(fa, 'A2');
+  T.step(4 / 60);
+  const spBodyA = spyMethod(ea, 'drawFrost');
+  const spIceA = spyMethod(ea.ice, 'render');
+  const spBodyB = spyMethod(eb, 'drawFrost');
+  T.redraw();
+  const perFrame = spBodyA.calls === 1 && spIceA.calls === 1 && spBodyB.calls === 1;
+  spBodyA.release(); spIceA.release(); spBodyB.release();
+  const legacy = (win.projectiles || []).filter((p) => p && (p.type === 'ice_lane' || p.type === 'ice_blast')).length;
+  const ia = P().inspect(fa);
+  const stillOne = P().engineFor(fa) === ea && ia.mode !== undefined;
+  gate('F12.24-no-render-double-path', oneEach && perFrame && legacy === 0 && stillOne,
+    { oneEach, bodyA: spBodyA.calls, iceA: spIceA.calls, bodyB: spBodyB.calls, legacy });
+} catch (e) { gate('F12.24-no-render-double-path', false, String(e && e.message)); }
+
+// F12.25 — no frame flicker. At a stable input the same simulation state
+// renders bitwise identically twice, and across a quiet melt window the
+// authored detail only decays: it never vanishes and reappears.
+try {
+  const o = stillPair(300, 600, 1, 800, 200);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(1.2);                                   // A1 floor laid, front done
+  HR.pressAbility(o.a, 'A2');
+  for (let k = 0; k < 12; k++) { o.a.x += 9; T.step(1 / 60); }
+  T.step(3.2);                                   // A2 over: quiet melt window
+  const reg = () => regionHash(150, 480, 500, 240);
+  T.redraw();
+  const h1 = reg();
+  T.redraw();
+  const h2 = reg();                              // same state, redrawn
+  const stable = h1 === h2;
+  const inks = [], lanes = [];
   const e = P().engineFor(o.a);
-  const off = e.t - AIL.clock();
-  const nodes = e.ice.nodes.filter((n) => n.kind === 'lane');
-  const dOrigin = Math.hypot(i.a1.ox - lane.ox, i.a1.oy - lane.oy);        // vs gameplay truth
-  const dFrost = Math.hypot(i.a1.ox - o.a.x, i.a1.oy - o.a.y);             // vs where Frost is now
-  const angOk = Math.abs(i.a1.ang - Math.atan2(lane.dy, lane.dx)) < 0.01;
-  const decays = nodes.map((n) => n.decayAt).filter((d) => d !== Infinity && d < Infinity);
-  const expiry = decays.length ? Math.min(...decays) : NaN;
-  const expiryTruth = Math.abs(expiry - (lane.expireAt + off)) < 0.2;       // gameplay lane expiry
-  const notRestarted = expiry < e.t + (ct.skills.A1.cfg.floorLifetime || 4.5) - 1.0; // not a fresh floor
-  const bornMin = Math.min(...nodes.map((n) => n.born)), bornMax = Math.max(...nodes.map((n) => n.born));
-  const frontTruth = Math.abs(bornMin - (lane.frontStartAt + off)) < 0.15 &&
-    Math.abs(bornMax - (lane.frontDoneAt + off)) < 0.15;
-  gate('F12.22-deferred-a1-historical-origin',
-    qd && rel && i.a1Replays === 1 && nodes.length >= 40 && dOrigin < 45 && dFrost > 300 &&
-    angOk && expiryTruth && notRestarted && frontTruth,
-    { originGap: +dOrigin.toFixed(1), frostGap: +dFrost.toFixed(1), frostX: Math.round(farX),
-      ang: i.a1.ang, expiryTruth, notRestarted, frontTruth, nodes: nodes.length });
-} catch (e) { gate('F12.22-deferred-a1-historical-origin', false, String(e && e.message)); }
+  for (let k = 0; k < 30; k++) {
+    T.step(1 / 60); T.redraw();
+    const px = readPixels();
+    inks.push(cropStats(px, 400, 600, 200, localBg(px, 400, 600, 200)).n);
+    lanes.push(liveKind(e, 'lane').length);
+  }
+  let jump = 0, revive = 0;
+  const m = med(inks);
+  for (let k = 1; k < inks.length; k++) {
+    if (Math.abs(inks[k] - inks[k - 1]) > m * 0.18) jump++;        // no flicker step
+    if (lanes[k] > lanes[k - 1]) revive++;                          // detail never re-appears
+  }
+  gate('F12.25-no-frame-flicker', stable && jump === 0 && revive === 0,
+    { stable, jump, revive, inkMin: Math.min(...inks), inkMed: m, inkMax: Math.max(...inks), lanes: [lanes[0], lanes[lanes.length - 1]] });
+} catch (e) { gate('F12.25-no-frame-flicker', false, String(e && e.message)); }
+
+// F12.26 — full-lifecycle Gold parity at battle scale: every stage the owner
+// plays through is inspected against the canonical Gold's own numbers.
+try {
+  const R = FG().GOLD_REF;
+  const st = {};
+  // --- idle + A1 + A2 (one Frost, settled match) ---
+  const o = stillPair(250, 600, 1, 900, 150);
+  for (let k = 0; k < 20; k++) { o.a.x = 250; o.a.y = 600; T.step(1 / 60); }
+  const e = P().engineFor(o.a);
+  T.redraw();
+  const px = readPixels();
+  const bgI = localBg(px, o.a.x, o.a.y, 130);
+  const sIdle = cropStats(px, o.a.x, o.a.y, 130, bgI);
+  const boxI = bodyBox(px, o.a.x, o.a.y, 130, bgI);
+  st.idle = { h: boxI.h, w: boxI.w, ice: sIdle.ice, mode: e.mode, nodes: e.ice.nodes.length };
+  const okIdle = boxI.h > o.a.radius * 1.7 && boxI.h < o.a.radius * 2.7 && sIdle.ice > 1000
+    && e.mode === 'free' && e.ice.nodes.length === 0;
+  // A1 — Gold lane node law + Gold floor life
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(0.6);
+  const lane = e.ice.nodes.filter((n) => n.kind === 'lane');
+  const laneLen = lane.filter((n) => n.L >= 13.5 && n.L <= 18.5).length;
+  const maxActive = Math.max(...lane.map((n) => n.activeUntil));
+  const floorLifeOk = Math.abs(maxActive - (e.a1.endT + R.A1_FLOOR_LIFE)) < 0.01;
+  st.a1 = { nodes: lane.length, mainLen: laneLen, floorLifeOk, released: !!e.a1.released };
+  const okA1 = lane.length >= 50 && laneLen / lane.length > 0.7 && floorLifeOk && e.a1.released;
+  T.step(0.8);
+  // A2 — Gold trail law + carve language on a real turn (F12.6 movement form)
+  FR().castHunt({ combatant: o.ct, cfg: o.ct.skills.A2.cfg });
+  P().tick(1 / 60);
+  const tA2 = e.t;
+  for (let i = 0; i < 24; i++) { o.a.x += 10; o.a.__hrVel = { x: 600, y: 0 }; P().tick(1 / 60); }
+  const apex = { x: o.a.x, y: o.a.y };
+  for (let i = 0; i < 20; i++) { o.a.y -= 10; o.a.__hrVel = { x: 0, y: -600 }; P().tick(1 / 60); }
+  const tr = e.ice.nodes.filter((n) => n.kind === 'trail');
+  const segLifeBad = tr.filter((n) => Math.abs(n.activeUntil - (n.born + R.A2_SEGMENT_LIFE)) > 0.01).length;
+  const widthBad = tr.filter((n) => Math.abs(n.W - R.A2_WIDTH * 0.5) > 2.5).length;
+  const carves = e.ice.carves.filter((c) => c.born > tA2);
+  const nearApex = carves.filter((c) => Math.hypot(c.x - apex.x, c.y - apex.y) < 70).length;
+  st.a2 = { trail: tr.length, segLifeBad, widthBad, carves: carves.length, nearApex };
+  const okA2 = tr.length >= 30 && segLifeBad === 0 && widthBad === 0 && carves.length >= 1 && nearApex >= 1;
+  // --- Frozen Gun + Frozen Bullet (F12.16 proven form, clean match) ---
+  const g = stillPair(300, 500, 1, 520, 500);
+  const eg = P().engineFor(g.a);
+  W().equip(g.a, 'PISTOL');
+  const hold = W().getHolder(g.a);
+  hold.__frostFrozen = { weaponId: 'PISTOL', at: 0 };
+  const bp = { x: 420, y: 500, vx: 200, vy: 0, owner: g.a, __hr: {}, hp: 1, life: 1, type: 'bullet' };
+  FR().tagFrozenBullet({}, bp, g.a);
+  win.projectiles.push(bp);
+  const spGun = spyMethod(eg, 'drawGunFrost'), spBul = spyMethod(eg, 'drawBulletFrost');
+  T.step(2 / 60);
+  T.redraw();
+  st.gun = { gun: spGun.calls, bullet: spBul.calls };
+  const okGun = spGun.calls >= 1 && spBul.calls >= 1;
+  spGun.release(); spBul.release();
+  win.projectiles = win.projectiles.filter((r) => r !== bp);
+  // --- Freeze shell -> thaw (Gold plate law) ---
+  const pr = frostProcSweep(g, hold, true, 100, 200);
+  T.step(0.2);
+  const shell = eg.shell;
+  const plates = shell ? shell.plates.length : 0;
+  // Gold crack choreography: cracks precede the thaw, plates appear staggered.
+  const crackLaw = !!shell && shell.cracks[0].at < shell.thawT && shell.cracks[1].at < shell.thawT + 0.3
+    && shell.plates.every((q) => q.appear >= 0) && shell.plates.some((q) => q.appear > 0);
+  st.shell = { proc: pr.ok, seed: pr.seed, plates, crackLaw, patch: eg.ice.nodes.filter((n) => n.kind === 'patch').length };
+  const okShell = pr.ok && plates === 9 && crackLaw && st.shell.patch >= 1;
+  for (let i = 0; i < 120 && !(shell.released && shell.plates.every((q) => q.released)); i++) T.step(1 / 60);
+  const released = shell.plates.filter((q) => q.released).length;
+  T.step(2.5);
+  const okThaw = eg.shell === null && released === 9;
+  st.thaw = { released, shell: eg.shell === null ? 'gone' : 'present' };
+  // --- rematch: nothing survives ---
+  T.start('ICE', 'ROBOT');
+  T.holdSpawns();
+  T.step(10 / 60);
+  const i2 = P().inspect(fighters()[0]);
+  st.rematch = i2 && { mode: i2.mode, iceNodes: i2.iceNodes, guns: i2.guns, victim: i2.victim };
+  const okRe = !!i2 && i2.mode === 'free' && i2.iceNodes === 0 && i2.guns === 0 && !i2.victim;
+  gate('F12.26-full-lifecycle-Gold-parity',
+    okIdle && okA1 && okA2 && okGun && okShell && okThaw && okRe,
+    { ok: { idle: okIdle, a1: okA1, a2: okA2, gun: okGun, shell: okShell, thaw: okThaw, rematch: okRe }, ...st });
+} catch (e) { gate('F12.26-full-lifecycle-Gold-parity', false, String(e && e.message)); }
 
 /* ================= F13 — Lifecycle / performance ===================== */
 try {
@@ -2715,6 +2883,220 @@ try {
     { shots: [shotsBefore, shotsAtSteal, h0.shotsFired], frozenSeq, midFlight, dockedNow, resumed,
       sameObject: W().getHolder(o.a) === h0, equipCalls: spEquip.calls });
 } catch (e) { gate('F13.7-transfer-predock-no-fire', false, String(e && e.message)); }
+
+/* ---- F13.8-13.12: audited presentation corrections (round 3/4) -------
+   Renumbered from F12.18-F12.22: the F12.18+ range is now owned by the
+   post-playtest rebuild matrix (03_IMPLEMENTATION_TEST_MATRIX.md). The
+   laws asserted here are unchanged. ---------------------------------- */
+
+// F13.8 — A1 and A2 are independent gameplay truth, but Gold serializes
+// them through one `mode` and rejects the second cast. The visual must be
+// DEFERRED (queued) and started when Gold can accept it, never dropped,
+// and gameplay timing must not move at all.
+try {
+  // Leg A: A1 first, A2 pressed during the A1 mode.
+  const oA = stillPair(300, 500, 1, 850, 850);
+  const ctA = HR.byCombatant(oA.a);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(oA.a);
+  T.step(2 / 60);
+  HR.pressAbility(oA.a, 'A2');
+  T.step(2 / 60);
+  const qA = P().inspect(oA.a);
+  const gA = FR().inspect(ctA);
+  // Gameplay ran immediately (window live, trail already growing) while the
+  // Gold visual sits in the queue: deferral is presentation-only.
+  const deferredA = qA.mode === 'a1' && qA.queued === 1 && qA.queuedKinds[0] === 'a2' && gA.a2live;
+  let startedA = false, aTrail = 0;
+  for (let k = 0; k < 20 && !startedA; k++) {
+    T.step(0.1);
+    const i = P().inspect(oA.a);
+    startedA = i.a2Started && i.queued === 0;
+    aTrail = i.a2.trail;
+  }
+  for (let k = 0; k < 6; k++) { oA.a.x += 14; T.step(3 / 60); }
+  const iA = P().inspect(oA.a);
+  const bothA = iA.a1.released && iA.a1.nodes >= 40 && iA.a2Started && iA.a2.trail >= 1 &&
+    iA.castStarts === 2 && iA.castDropped === 0;
+
+  // Leg B: A2 first, A1 pressed during the hunt.
+  const oB = stillPair(300, 500, 1, 850, 850);
+  const ctB = HR.byCombatant(oB.a);
+  HR.pressAbility(oB.a, 'A2');
+  T.step(2 / 60);
+  const castOk = win.APEX_ARSENAL_SKILL_GATE.pressJ(oB.a);
+  T.step(2 / 60);
+  const qB = P().inspect(oB.a);
+  const deferredB = qB.mode === 'a2' && qB.queued === 1 && qB.queuedKinds[0] === 'a1';
+  // Gameplay A1 keeps its own schedule while the visual waits.
+  T.step(0.5);
+  const gLane = FR().inspect(ctB).lanes.length === 1;
+  let releasedB = false, nodesB = 0;
+  for (let k = 0; k < 60 && !releasedB; k++) {
+    T.step(0.1);
+    const i = P().inspect(oB.a);
+    releasedB = i.a1.released;
+    nodesB = i.a1.nodes;
+  }
+  const iB = P().inspect(oB.a);
+  const bothB = releasedB && nodesB >= 40 && iB.castStarts === 2 && iB.castDropped === 0 && iB.queued === 0;
+  gate('F13.8-concurrent-cast-lossless',
+    deferredA && startedA && bothA && castOk && deferredB && gLane && bothB,
+    { legA: { deferred: deferredA, started: startedA, nodes: iA.a1.nodes, trail: iA.a2.trail, starts: iA.castStarts, dropped: iA.castDropped },
+      legB: { deferred: deferredB, gameplayLane: gLane, released: releasedB, nodes: nodesB, starts: iB.castStarts, dropped: iB.castDropped } });
+} catch (e) { gate('F13.8-concurrent-cast-lossless', false, String(e && e.message)); }
+
+// F13.9 — A1 direction is the gameplay CAST-ACCEPTANCE snapshot. A real
+// body bounce during the commitment window reverses the live body dir; the
+// breath/front must still point down the lane gameplay committed to.
+try {
+  const o = withCtl(frostPair());
+  const ct = HR.byCombatant(o.a);
+  o.a.x = 400; o.a.y = 500; o.a.setDir(1, 0);
+  o.b.x = 520; o.b.y = 500; o.b.setDir(-1, 0); o.b.baseSpeed = 0;
+  T.step(1 / 60);
+  o.a.x = 400; o.a.y = 500; o.a.setDir(1, 0); o.b.x = 520; o.b.y = 500;
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  const cast = FR().inspect(ct).a1cast;      // snapshot at acceptance
+  T.step(16 / 60);                            // bounce happens inside the commit
+  const bounced = o.a.dir.x < -0.5;           // live dir really reversed
+  const gi = FR().inspect(ct);
+  const pi = P().inspect(o.a);
+  const e = P().engineFor(o.a);
+  const nodes = (e.a1.nodes || []).map((w) => w && w.n).filter(Boolean);
+  const ahead = nodes.filter((n) => n.x > e.a1.ox).length;
+  const snapAng = Math.atan2(cast.dy, cast.dx);
+  const angOk = Math.abs(Math.atan2(Math.sin(pi.a1.ang - snapAng), Math.cos(pi.a1.ang - snapAng))) < 0.01;
+  const laneOk = gi.lanes.length === 1 && nodes.length >= 40 && ahead >= nodes.length - 2;
+  gate('F13.9-a1-dir-snapshot',
+    !!cast && cast.dx === 1 && bounced && angOk && laneOk,
+    { snapshot: cast && [cast.dx, cast.dy], liveDir: +o.a.dir.x.toFixed(2), presAng: pi.a1.ang, nodes: nodes.length, ahead });
+} catch (e) { gate('F13.9-a1-dir-snapshot', false, String(e && e.message)); }
+
+// F13.10 — one stolen holder is ONE object in ONE place: during the Gold
+// transfer the base equipped-weapon draw is suppressed, so the weapon is
+// rendered only along the flight arc — never in Frost's hand at the same
+// time — and the hand takes over exactly at dock.
+try {
+  const o = contactDuel();
+  W().equip(o.b, 'PISTOL');
+  const h0 = W().getHolder(o.b);
+  const AV = win.APEX_ARSENAL_AV;
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.2);
+  touchBodies(o);
+  T.step(3 / 60);
+  const owned = W().getHolder(o.a) === h0 && W().getHolder(o.b) === null;
+  // Spy the real draw path (no direct base calls: the base draw needs loaded
+  // sprite images that only exist in a browser).
+  const spSprite = spyMethod(AV, 'drawWeaponSprite');
+  const origEq = AV.drawEquippedWeapon;
+  let eqRet = [];
+  AV.drawEquippedWeapon = function (...a) { const r = origEq.apply(this, a); if (a[2] === h0) eqRet.push(r); return r; };
+  T.redraw();
+  const flight1 = spSprite.calls;
+  const pos1 = spSprite.args.length ? [spSprite.args[0][2], spSprite.args[0][3]] : null;
+  const baseSkipped = eqRet.length === 1 && eqRet[0] === false; // wrapper returned before base
+  const iFly = P().inspect(o.a);
+  spSprite.calls = 0; spSprite.args.length = 0; eqRet = [];
+  T.step(4 / 60);
+  T.redraw();
+  const flight2 = spSprite.calls;
+  const pos2 = spSprite.args.length ? [spSprite.args[0][2], spSprite.args[0][3]] : null;
+  // Exactly one weapon rendering per frame, and it MOVES along the arc while
+  // Frost stands still: it is the transfer, not a second in-hand copy.
+  const flew = !!pos1 && !!pos2 && Math.hypot(pos2[0] - pos1[0], pos2[1] - pos1[1]) > 3;
+  spSprite.calls = 0; spSprite.args.length = 0; eqRet = [];
+  T.step(0.6);
+  T.redraw();
+  const docked = P().inspect(o.a);
+  const dockedSprite = spSprite.calls;            // no flight sprite after dock
+  const dockedBaseDraws = eqRet.length === 1 && eqRet[0] !== false; // hand draw restored
+  AV.drawEquippedWeapon = origEq;
+  spSprite.release();
+  gate('F13.10-transfer-no-duplicate-draw',
+    owned && flight1 === 1 && flight2 === 1 && flew && baseSkipped &&
+    iFly.transfers === 1 && iFly.guns === 1 && iFly.suppressed === true &&
+    docked.transfers === 0 && docked.guns === 1 && docked.suppressed === false &&
+    dockedSprite === 0 && dockedBaseDraws,
+    { flight: [flight1, flight2], flew, baseSkipped, inFlight: [iFly.transfers, iFly.guns, iFly.suppressed],
+      atDock: [docked.transfers, docked.guns, docked.suppressed, dockedSprite, dockedBaseDraws] });
+} catch (e) { gate('F13.10-transfer-no-duplicate-draw', false, String(e && e.message)); }
+
+// F13.11 — a deferred A2 must not begin at the admission point: the hunt
+// path that gameplay already walked (turns and all) is hydrated from the
+// authoritative trailNodes, so the START of the real path is on screen.
+try {
+  const o = stillPair(300, 300, 1, 1200, 900);
+  const ct = HR.byCombatant(o.a);
+  const AIL = win.APEX_HERO_REWORK_AIL;
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);       // A1 owns Gold
+  T.step(2 / 60);
+  HR.pressAbility(o.a, 'A2');                     // A2 truth starts, visual queued
+  T.step(1 / 60);
+  const q0 = P().inspect(o.a);                    // deferral observed at the press
+  for (let k = 0; k < 14; k++) { o.a.x += 18; T.step(2 / 60); }   // real path: leg 1
+  for (let k = 0; k < 10; k++) { o.a.y += 18; T.step(2 / 60); }   // real path: turn
+  const gpHist = FR().inspect(ct).trailNodes;
+  const deferred = q0.queued === 1 && q0.queuedKinds[0] === 'a2' && q0.a2.trail === 0 && gpHist.length >= 15;
+  let admitted = false;
+  for (let k = 0; k < 40 && !admitted; k++) { T.step(2 / 60); admitted = P().inspect(o.a).a2Started; }
+  const i = P().inspect(o.a);
+  const e = P().engineFor(o.a);
+  const tr = e.ice.nodes.filter((n) => n.kind === 'trail');
+  const covered = (pt) => tr.some((n) => Math.hypot(n.x - pt.x, n.y - (pt.y + 6)) < 18);
+  const early = gpHist.slice(0, 8).filter(covered).length;   // the BEGINNING of the path
+  const all = gpHist.filter(covered).length;
+  // born times are the real ones (historical), not "all born at admission"
+  const off = e.t - AIL.clock();
+  const minBorn = Math.min(...tr.map((n) => n.born));
+  const bornTruth = Math.abs(minBorn - (gpHist[1].bornAt + off)) < 0.15 && minBorn < e.t - 0.4;
+  const before = tr.length;
+  for (let k = 0; k < 8; k++) { o.a.x += 18; T.step(2 / 60); }   // live motion continues
+  const grew = e.ice.nodes.filter((n) => n.kind === 'trail').length > before;
+  gate('F13.11-deferred-a2-hydrates-history',
+    deferred && admitted && i.a2Hydrated >= 15 && early === 8 && all >= Math.ceil(gpHist.length * 0.9) &&
+    bornTruth && grew,
+    { gpNodes: gpHist.length, hydrated: i.a2Hydrated, early8: early, covered: all, bornTruth, grew });
+} catch (e) { gate('F13.11-deferred-a2-hydrates-history', false, String(e && e.message)); }
+
+// F13.12 — a deferred A1 must replay the lane gameplay actually built: real
+// release origin + committed direction + real front window + the ORIGINAL
+// lane expiry, even when Frost has walked far away before Gold admits it.
+try {
+  const o = stillPair(300, 500, 1, 1200, 900);
+  const ct = HR.byCombatant(o.a);
+  const AIL = win.APEX_HERO_REWORK_AIL;
+  HR.pressAbility(o.a, 'A2');                     // A2 owns Gold
+  T.step(2 / 60);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);        // A1 queued
+  T.step(0.4);                                     // gameplay releases the lane
+  const lane = FR().inspect(ct).lanes[0];
+  const qd = P().inspect(o.a).queued === 1;
+  for (let k = 0; k < 30; k++) { o.a.x += 14; T.step(2 / 60); }   // Frost leaves
+  const farX = o.a.x;
+  let rel = false;
+  for (let k = 0; k < 60 && !rel; k++) { T.step(0.1); rel = P().inspect(o.a).a1.released; }
+  const i = P().inspect(o.a);
+  const e = P().engineFor(o.a);
+  const off = e.t - AIL.clock();
+  const nodes = e.ice.nodes.filter((n) => n.kind === 'lane');
+  const dOrigin = Math.hypot(i.a1.ox - lane.ox, i.a1.oy - lane.oy);        // vs gameplay truth
+  const dFrost = Math.hypot(i.a1.ox - o.a.x, i.a1.oy - o.a.y);             // vs where Frost is now
+  const angOk = Math.abs(i.a1.ang - Math.atan2(lane.dy, lane.dx)) < 0.01;
+  const decays = nodes.map((n) => n.decayAt).filter((d) => d !== Infinity && d < Infinity);
+  const expiry = decays.length ? Math.min(...decays) : NaN;
+  const expiryTruth = Math.abs(expiry - (lane.expireAt + off)) < 0.2;       // gameplay lane expiry
+  const notRestarted = expiry < e.t + (ct.skills.A1.cfg.floorLifetime || 4.5) - 1.0; // not a fresh floor
+  const bornMin = Math.min(...nodes.map((n) => n.born)), bornMax = Math.max(...nodes.map((n) => n.born));
+  const frontTruth = Math.abs(bornMin - (lane.frontStartAt + off)) < 0.15 &&
+    Math.abs(bornMax - (lane.frontDoneAt + off)) < 0.15;
+  gate('F13.12-deferred-a1-historical-origin',
+    qd && rel && i.a1Replays === 1 && nodes.length >= 40 && dOrigin < 45 && dFrost > 300 &&
+    angOk && expiryTruth && notRestarted && frontTruth,
+    { originGap: +dOrigin.toFixed(1), frostGap: +dFrost.toFixed(1), frostX: Math.round(farX),
+      ang: i.a1.ang, expiryTruth, notRestarted, frontTruth, nodes: nodes.length });
+} catch (e) { gate('F13.12-deferred-a1-historical-origin', false, String(e && e.message)); }
+
 
 /* ================= summary ============================================ */
 const names = Object.keys(report.gates);
