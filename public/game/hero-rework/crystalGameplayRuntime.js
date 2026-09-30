@@ -231,10 +231,15 @@ function interceptOption(st, c, id, band, dt) {
   const physicalLead = physicalLeadFor(st, id, ip);
   const rescue = band < BAND;
   const physicalWindow = rescue ? tBand : Math.max(0, tBand - dt);
+  const visualLeadOk = tBand >= MIN_LEAD - JIT_SLACK;
+  const physicalOk = physicalWindow >= physicalLead - JIT_SLACK;
   return {
-    id, band, tBand, ip, physicalLead, rescue,
-    visualLeadOk: tBand >= MIN_LEAD - JIT_SLACK,
-    physicalOk: physicalWindow >= physicalLead - JIT_SLACK,
+    id, band, tBand, ip, physicalLead, rescue, visualLeadOk, physicalOk,
+    urgent: !visualLeadOk || !physicalOk,
+    accelerated: !physicalOk,
+    // Healthy jobs use the authored physical travel lead. Accelerated guardian
+    // jobs consume all remaining time to the real contact point.
+    lead: Math.max(1 / 120, physicalOk ? physicalLead : tBand),
   };
 }
 function chooseIntercept(st, c, free, taken, dt) {
@@ -259,17 +264,15 @@ function chooseIntercept(st, c, free, taken, dt) {
   // defends independently instead of the whole K system declining the shot.
   const tier = (o) => o.physicalOk && o.visualLeadOk ? 0 : o.physicalOk ? 1 : 2;
   all.sort((a, b) => {
+    // Gold contact language wins first: take the OUTERMOST still-future band
+    // (normally 180 px). If that shard must move faster, accelerate THAT shard
+    // instead of dragging the block point inward toward Crystal.
+    if (Math.abs(a.band - b.band) > 1e-9) return b.band - a.band;
     const ta = tier(a), tb = tier(b);
     if (ta !== tb) return ta - tb;
-    if (ta === 2 && Math.abs(a.tBand - b.tBand) > 1e-9) return b.tBand - a.tBand; // latest safe contact = most travel time
-    if (Math.abs(a.band - b.band) > 1e-9) return b.band - a.band;                 // otherwise preserve 180px preference
     return b.score - a.score;
   });
-  const best = all[0];
-  best.urgent = tier(best) > 0;
-  best.accelerated = tier(best) === 2;
-  best.lead = Math.max(1 / 120, best.physicalOk ? best.physicalLead : best.tBand);
-  return best;
+  return all[0];
 }
 
 function predictorStep(st, now, dt) {
@@ -333,10 +336,6 @@ function predictorStep(st, now, dt) {
         plan = opt ? { id: opt.id, band: opt.band } : null;
         c.hr.cryPlan = plan;
         if (!plan) continue;
-      } else {
-        opt.urgent = !opt.visualLeadOk || !opt.physicalOk;
-        opt.accelerated = !opt.physicalOk;
-        opt.lead = Math.max(1 / 120, opt.physicalOk ? opt.physicalLead : opt.tBand);
       }
     }
 
