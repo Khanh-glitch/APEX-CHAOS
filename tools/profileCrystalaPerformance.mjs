@@ -241,16 +241,25 @@ const result = await page.evaluate(async () => {
     };
     render(ba,ca); render(bb,cb);
     const a=ca.getImageData(0,0,W,H).data, b=cb.getImageData(0,0,W,H).data;
-    let sum=0,max=0,changed=0,alphaSum=0;
+    let sum=0,max=0,changed=0,alphaSum=0,premulSum=0,premulMax=0;
     for(let i=0;i<a.length;i++){
       const d=Math.abs(a[i]-b[i]); sum+=d; if(d>max)max=d; if(d)changed++;
       if((i&3)===3) alphaSum+=d;
+    }
+    for(let p=0;p<W*H;p++){
+      const i=p*4, aa=a[i+3]/255, ba=b[i+3]/255;
+      for(let c=0;c<3;c++){
+        const d=Math.abs(a[i+c]*aa-b[i+c]*ba);
+        premulSum+=d; if(d>premulMax)premulMax=d;
+      }
     }
     return {
       meanAbs:sum/a.length,
       maxAbs:max,
       changedPct:changed/a.length,
       meanAlphaAbs:alphaSum/(W*H),
+      premulMeanAbs:premulSum/(W*H*3),
+      premulMaxAbs:premulMax,
     };
   }
   const bloomParity=bloomParityProbe();
