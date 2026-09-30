@@ -199,6 +199,45 @@ function buildWallGeometry(a, b, seed){
 }
 /* END VERBATIM Gold L991-1020 */
 
+/* ------------------------------------------------ wall geometry warm cache
+ * The Gold wall cells are static local meshes; only their world placement and
+ * mutable hit/growth state differ per cast. Cache the expensive seeded mesh
+ * derivation, then clone fresh mutable segment state for each real wall. This
+ * preserves the exact Gold geometry while removing the one-frame build spike. */
+const WALL_GEOM_TEMPLATE_CACHE = new Map();
+function wallGeomKey(span, seed){ return Math.round(span * 1000) + ':' + (seed | 0); }
+function wallGeomTemplate(span, seed){
+  const key = wallGeomKey(span, seed);
+  let tpl = WALL_GEOM_TEMPLATE_CACHE.get(key);
+  if (!tpl){
+    tpl = buildWallGeometry({ x:0, y:0 }, { x:span, y:0 }, seed);
+    WALL_GEOM_TEMPLATE_CACHE.set(key, tpl);
+  }
+  return tpl;
+}
+function buildWallGeometryCached(a, b, seed){
+  const dx = b.x-a.x, dy = b.y-a.y;
+  const span = Math.hypot(dx,dy) || 1;
+  const tx = dx/span, ty = dy/span, nx = -ty, ny = tx;
+  const angle = Math.atan2(dy,dx);
+  const tpl = wallGeomTemplate(span, seed);
+  const segs = tpl.segs.map(src => ({
+    ...src,
+    x: a.x + tx * span * src.u,
+    y: a.y + ty * span * src.u,
+    // Mutable gameplay/presentation state must never leak between casts.
+    grow:0, lit:0, hp:100, stress:0, cracks:[], chip:0, dead:false,
+    failT:-1, driftX:0, driftY:0, fallVX:0, fallVY:0, fallR:0, _noSup:0
+  }));
+  return { a,b,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2,span,tx,ty,nx,ny,angle,
+    segs,solid:false,frontL:0,frontR:0,lock:-1,seamT:-1,life:9,
+    fading:0,collapsed:false,collapsing:false,seed };
+}
+function prewarmWallGeometry(seed, width = 220){
+  wallGeomTemplate(width, seed);
+  return WALL_GEOM_TEMPLATE_CACHE.size;
+}
+
 /* VERBATIM Gold L1156-1174 */
 class Timeline {
   constructor(phases){ this.phases = phases; this.i = -1; this.t = 0; this.active = false; }
@@ -765,7 +804,7 @@ function createRig(opt) {
                 (rngV()-.5)*150,(rngV()-.5)*150,
                 2+rngV()*3,(rngV()*1e6)|0);
           }
-          c.geom = buildWallGeometry(anchors[0],anchors[1],c.seed);
+          c.geom = buildWallGeometryCached(anchors[0],anchors[1],c.seed);
           attractors.push(c._atL={x:c.geom.a.x,y:c.geom.a.y,r:70,s:240});
           attractors.push(c._atR={x:c.geom.b.x,y:c.geom.b.y,r:70,s:240});
         } },
@@ -2234,7 +2273,7 @@ g.APEX_CRYSTALA_GOLD = {
   drawCrystala, drawEyeAccent, drawStone, drawTrail, drawWall,
   drawPrison, drawPrisonWallCell, drawPrisonBuildHead,
   drawDust, drawDebris, drawGem, drawStar4,
-  createBloomSystem, getSprites, makeSprite, ensureArt,
+  createBloomSystem, getSprites, makeSprite, ensureArt, prewarmWallGeometry,
   get ART() { return ensureArt(); },
   util: { TAU, clamp, lerp, smooth, smoother, ss, easeOutCubic, easeOutQuint, easeOutBack, wrapPI, dist,
     mulberry32, hermite, flow, buildGem, buildWallGeometry, prisonSegGrow, tracePoly, P, centroid,
