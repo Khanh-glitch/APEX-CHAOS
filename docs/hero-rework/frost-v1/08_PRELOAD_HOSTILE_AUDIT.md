@@ -137,3 +137,22 @@ The preload now requires:
 - no resumption until the exact local HEAD is remote-verified again.
 
 The local recovery bundle is explicitly NOT equivalent to remote durability because it can be lost with the Arena workspace. The primary protection is frequent verified remote checkpoints.
+
+
+## Fourth hostile audit — rejected first implementation attempt
+
+A first implementation attempt ending at `7b7efa298abb8e02bebbea6bced365b7b12dd29c` was audited and REJECTED. It is not an implementation baseline and must not be cherry-picked. Its only value is negative evidence.
+
+Concrete shortcut failures converted into new preload law:
+
+1. **Gold bridge shortcut.** The attempt extracted head PNG layers but rendered A1/A2 as generic cyan rectangle/line geometry. It emitted Frost events without a presentation consumer and rotated the entire Frost head with movement direction. This does not satisfy the Fusion Gold. F12/runbook/authority now explicitly reject head-only + generic geometry ports and preserve the direct-frontal identity.
+2. **RNG at fire time.** Deep Frost consumed the 8% RNG in `onProjectileFired`, so misses advanced RNG. Authority/F07 now explicitly require the RNG draw only after confirmed eligible body hit.
+3. **Fake blast grouping.** The Frost executor reconstructed blast identity from clock/time while the weapon source supplied no stable blast ID. F07 now requires group creation at the real weapon firing source and propagation to every pellet.
+4. **Permanent A2 contact latch.** An executor-local pair map never cleared after separation, preventing valid re-contact in the same A2. F10 now explicitly tests contact -> separation -> re-contact.
+5. **Wrong multi-body steal source.** Eligibility queried the opponent anchor while transfer read the colliding Body. F11 now includes a fixture where collision Body != authoritative equipment carrier.
+6. **Legacy ICE suppression keyed to target.** The attempt checked the frozen target's `__hrHero` instead of the semantic Frost source and also introduced undefined-scope `owner` predicates. F01/authority now require source-semantic suppression and no undefined source variables.
+7. **Declared config without runtime law.** A1 `leaveLinger: 0.35` existed in registry but was unused. F04.6 remains mandatory and must have real runtime evidence.
+8. **Earlier-commit regression counts were reported after later edits.** F14/F15 now require every claimed PASS count from the exact final SHA.
+9. **Browser unavailable was treated too softly.** If real browser/Gold parity is blocked, the result cannot be called visually complete/accepted.
+
+The rejected attempt contained some useful architectural direction (ICE storage -> FROST display alias, Frost-local floor state, exact-holder intent), but none of its implementation code is authority. Re-derive the implementation cleanly from this preload and the exact live baseline.

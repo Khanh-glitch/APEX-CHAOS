@@ -24,6 +24,8 @@ director/frost-v1-preload-20260930
 The implementation chat must stay on its Arena-assigned session branch.
 Never push implementation commits to the reference or preload branch.
 
+Rejected attempt `7b7efa298abb8e02bebbea6bced365b7b12dd29c` is NEGATIVE EVIDENCE ONLY. Do not cherry-pick, merge, copy implementation code from, or use that SHA/branch as an implementation baseline. Its failure lessons are recorded in 08_PRELOAD_HOSTILE_AUDIT.md; the new implementation starts clean from the current preload tip.
+
 At start:
 1. record current Arena branch and HEAD;
 2. verify working tree clean or preserve local work;
@@ -94,17 +96,17 @@ B. shared Frozen Floor + A1
 
 C. Frozen Gun + projectile semantics + passive
 - holder frozen metadata
-- semantic shot/blast group ids
-- deterministic 8% hit roll
+- semantic shot/blast group ids created at the real fire source and propagated to pellets
+- deterministic 8% RNG consumed only on confirmed eligible body hit, never at fire time/miss
 - 0.90 Freeze / refresh / thaw lock
 - Gold bullet/shell adapter
-- legacy ICE visual suppression.
+- source-semantic legacy ICE visual/audio suppression.
 
 D. A2
 - native-inertia Hunt state
 - actual-path trail
-- contact Cold Shock
-- exact holder transfer
+- contact Cold Shock with separation-cleared new-contact gate
+- authoritative equipment-carrier query + exact holder transfer
 - transfer presentation.
 
 E. evidence/hardening
@@ -202,6 +204,7 @@ Do not load/parse the whole reference HTML during normal gameplay.
 Extract/bridge actual authored assets/algorithms into production runtime.
 Cache immutable data.
 Gold parity must be observed at normal battle scale on light-gray/real arena.
+A face/head asset bridge alone is insufficient. A1/A2/Frozen Gun/Frozen Bullet/steal/freeze-shell/crack/thaw must all be mapped to real gameplay state/events. Generic fill/stroke geometry is not an acceptable Gold substitute.
 
 ## 9. No SFX pass
 
@@ -215,7 +218,9 @@ Before final:
 - inspect final diff for protected-system drift;
 - run focused/regression/build/browser/parity/perf evidence;
 - bump runtime revision and relock hashes only once the implementation tree is final;
+- run every claimed focused/protected gate on that exact final tree; never reuse an earlier commit's PASS count after later edits;
 - push final commit and verify remote tip.
+If browser/Gold-parity proof is blocked by the environment, do not claim full completion; report the visual acceptance block explicitly.
 
 Report:
 - Arena session branch;

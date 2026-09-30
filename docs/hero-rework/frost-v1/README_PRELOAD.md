@@ -18,6 +18,8 @@ This SHA is immutable reference truth for this task. Do not push implementation 
 
 A new Arena chat must remain on its Arena-assigned session branch. It may fetch this preload branch and anchor its own clean session branch forward to the preload tip, but it must push implementation commits only to the Arena-assigned session branch.
 
+Rejected Frost implementation SHA `7b7efa298abb8e02bebbea6bced365b7b12dd29c` is negative evidence only. Do not merge, cherry-pick, or copy it into the fresh implementation attempt.
+
 ## Read order
 
 1. 06_ONE_SHOT_RUNBOOK.md

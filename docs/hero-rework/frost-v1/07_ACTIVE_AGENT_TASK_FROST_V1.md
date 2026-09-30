@@ -18,6 +18,8 @@ Before editing, verify:
 - Gold SHA matches manifest;
 - your session branch is anchored to the preload tip without mutating the reference/preload branch.
 
+This is a CLEAN implementation attempt. Rejected SHA `7b7efa298abb8e02bebbea6bced365b7b12dd29c` is negative evidence only: DO NOT cherry-pick, merge, or copy its implementation code, and do not use it as a starting tree.
+
 Then read the entire frost-v1 package in the mandated order and audit the listed live source.
 
 ## Objective
@@ -37,15 +39,20 @@ Port the selected Fusion Gold faithfully as presentation.
 - no generic/homing A2 steering;
 - preserve original APEX heading/inertia/wall/body bounce;
 - no sticky contact;
+- A2 separation must clear new-contact eligibility so genuine re-contact in the same cast can proc again;
 - A1 direction is movement/orientation, not enemy/weapon aim;
+- A2 must query the opponent's authoritative equipment carrier; colliding body is not assumed to be holder;
 - no fresh equip() for A2 steal;
 - no holder state reset;
+- semantic shot/blast IDs originate at the real weapon fire source and propagate to pellets;
+- Freeze RNG is consumed ONLY on confirmed eligible body hit, never on projectile fire or miss;
 - shotgun one Freeze roll per blast, not per pellet;
 - JACKHAMMER one roll per blast;
 - successful proc while already Frozen resets remaining to 0.90s;
 - 0.50 reproc lock begins only after actual thaw;
 - no old ice.* mechanics double-run;
-- no legacy ICE overlay/audio over Frost Gold;
+- no legacy ICE overlay/audio over Frost Gold; suppress by semantic Frost source/event, never by target identity;
+- no head-only/generic-geometry fake Gold port: the real A1/A2/gun/bullet/steal/freeze lifecycle must consume production Frost state/events and preserve the direct-frontal Frost identity;
 - no Frost-specific SFX work;
 - no Lv2-Lv5 production progression invention;
 - no self-retuning of Playtest V0 numbers.

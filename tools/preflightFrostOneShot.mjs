@@ -51,7 +51,11 @@ catch { fail('Required baseline is not an ancestor of preload tip.'); }
 
 const changed=textRun('git',['diff','--name-only',BASELINE+'..'+preloadTip])
   .split(/\r?\n/).filter(Boolean);
-const illegal=changed.filter(p=>!p.startsWith('docs/hero-rework/frost-v1/')&&p!=='tools/preflightFrostOneShot.mjs');
+const PRELOAD_SUPPORT_TOOLS = new Set([
+  'tools/preflightFrostOneShot.mjs',
+  'tools/frostGitDurabilityCheckpoint.mjs',
+]);
+const illegal=changed.filter(p=>!p.startsWith('docs/hero-rework/frost-v1/')&&!PRELOAD_SUPPORT_TOOLS.has(p));
 if(illegal.length) fail('Preload modifies production/unexpected files: '+illegal.join(', '));
 
 // Verify the canonical Gold directly from the fetched preload ref BEFORE any reset.

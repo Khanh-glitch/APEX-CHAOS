@@ -13,6 +13,7 @@ F00.5 preflight/anchoring refuses destructive reset when the Arena session HEAD 
 F00.6 remote Git authentication is successfully probed before implementation begins.
 F00.7 each durability checkpoint proves remote session-branch SHA == local HEAD before substantive work continues.
 F00.8 remote-auth/push/verification failure never continues silently; if local commits exist beyond the last verified remote SHA, local recovery artifacts are emitted and implementation stops.
+F00.9 preload preflight accepts every declared support tool in this package, including frostGitDurabilityCheckpoint.mjs, while still rejecting production/unexpected preload files.
 
 ## F01 — Identity / migration
 
@@ -25,6 +26,8 @@ F01.6 save/select/reload round-trip does not lose ownership/progression data.
 F01.7 active mechanic IDs are frost.*; old ice.bullets, ice.lane, ice.deep_freeze do not execute.
 F01.8 old iceVisualRuntime freeze overlay/audio does not trigger for Frost rework Freeze.
 F01.9 legacy ICE path outside rework is not globally destroyed if still used.
+F01.10 legacy ICE suppression keys off the semantic Frost REWORK source/event, not the target hero identity; Frost freezing Hunter/Robot/etc. cannot trigger old ICE overlay/audio.
+F01.11 the Frost suppression patch introduces no undefined-scope owner/source predicate into legacy ICE runtime.
 
 ## F02 — Base locomotion
 
@@ -94,6 +97,8 @@ F07.7 no time-window inference is used for grouping.
 F07.8 no roll occurs on miss/no body hit.
 F07.9 multi-body target cannot create multiple rolls from different pellets of one shotgun blast.
 F07.10 deterministic seeded run reproduces the same roll sequence.
+F07.11 firing or completely missing an eligible Frozen projectile/blast does not advance the Freeze RNG sequence.
+F07.12 semantic shot/blast group ID is created at the real weapon firing source and propagated unchanged to every pellet/projectile of that blast; Frost does not reconstruct grouping from clock/time.
 
 ## F08 — Freeze / refresh
 
@@ -130,6 +135,7 @@ F10.3 continuous overlap does not re-proc every frame.
 F10.4 separation clears contact gate; later genuine contact may re-proc.
 F10.5 floor x0.60 + Cold Shock x0.50 resolves to x0.50, never x0.30.
 F10.6 unrelated non-Frost slow/speed semantics are unchanged.
+F10.7 within one A2 cast: contact -> separation -> genuine re-contact produces a second valid Cold Shock opportunity; no executor-local permanent pair latch may suppress it.
 
 ## F11 — A2 exact-holder steal
 
@@ -146,6 +152,7 @@ F11.10 melee/grenade/shield/T6 never transfer.
 F11.11 repeated same overlap cannot steal/proc again without separation.
 F11.12 owner/provenance/damage/crit law after transfer uses Frost as real holder/owner for subsequent shots through normal weapon runtime.
 F11.13 multi-body opponent handling follows the existing equipment-carrier authority; Frost does not assume every colliding Body owns a holder and does not create any new second-slot rule.
+F11.14 explicit carrier fixture: Frost collides with a non-carrier child while the opponent's authoritative carrier holds an eligible firearm; transfer queries the real carrier and succeeds exactly once without treating the colliding child as the holder.
 
 ## F12 — Gold parity / event truth
 
@@ -163,6 +170,9 @@ F12.11 refresh uses same shell lifecycle, not stacked cages.
 F12.12 thaw is physical crack/release, not simple alpha fade.
 F12.13 light-gray battle floor proof remains readable with bloom not acting as a crutch.
 F12.14 no renderer offset feeds back into fighter physics.
+F12.15 the production Frost presentation bridge consumes real Frost gameplay state/events for A1, A2, Frozen Gun, Frozen Bullet, steal transfer and Freeze lifecycle; emitting events without a consumer does not pass.
+F12.16 generic rectangles/lines/flat cyan substitutes do not count as accepted Frost skill presentation where Gold-derived presentation is required.
+F12.17 Frost's approved direct-frontal head/core identity remains frontal across locomotion heading changes; the entire identity asset is not rotated to movement direction.
 
 ## F13 — Lifecycle / performance
 
@@ -209,3 +219,5 @@ Final report must distinguish:
 - still requires owner feel/balance playtest.
 
 Never convert CI green into an owner-acceptance claim.
+All final PASS counts must come from the exact reported final implementation SHA. Results from an earlier commit cannot be carried forward after later runtime/shared edits.
+If required real-browser/Gold-parity evidence is environment-blocked, report the result as mechanically prepared but visually UNACCEPTED/blocked; do not call FROST complete.

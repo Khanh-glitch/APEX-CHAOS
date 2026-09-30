@@ -191,9 +191,11 @@ Eligible hit rolls:
 - AUTOSHOT/JACKHAMMER: one roll per blast, shared by pellets of that blast.
 
 Do not approximate blast grouping by a time window.
-Attach a stable semantic shot/blast group ID when the real weapon fires.
+Attach a stable semantic shot/blast group ID at the REAL weapon firing source and propagate that exact group ID to every pellet/projectile produced by that semantic shot/blast.
 
-For a blast, the first eligible body hit consumes the blast's single Freeze roll opportunity; later pellets from the same blast cannot roll again.
+Creating/firing a Frozen Bullet may tag provenance/group identity, but MUST NOT consume the 8% RNG roll. The deterministic RNG draw happens only after a real eligible body hit has been confirmed and all no-roll gates (including post-thaw lock) have passed.
+
+For a blast, the first eligible body hit consumes the blast's single Freeze roll opportunity; later pellets from the same blast cannot roll again. A completely missed blast consumes no Freeze RNG roll.
 
 ### 6.3 Freeze
 
@@ -259,7 +261,8 @@ A2 contact mechanic is a callback from real contact, never a replacement for phy
 New-contact law:
 - first contact after separation may proc;
 - continuous overlap must not repeatedly proc every frame;
-- bodies must separate before another contact can proc.
+- bodies must separate before another contact can proc;
+- the contact gate must be cleared by the real separation/contact authority. Do not keep a permanent per-cast pair latch that prevents a later genuine re-contact during the same A2 window.
 
 ### 7.4 Cold Shock
 
@@ -327,6 +330,7 @@ FROST implementation must intentionally supersede old ICE rework mechanics:
 
 Legacy ICE presentation code currently keys some effects/audio off source.name == ICE.
 Because FROST may retain physical/storage name ICE, add a narrow semantic distinction so legacy ICE renderer/audio ignores FROST rework status/events.
+The suppression predicate must identify the semantic SOURCE/event as FROST rework. Do not infer suppression from the TARGET body's hero/type, and do not introduce undefined-scope owner/source variables.
 Do not globally delete old ICE support if it is still needed outside the product rework path.
 
 FROST Gold presentation is the only FROST-specific freeze-shell authority in the reworked product path.
@@ -353,6 +357,9 @@ Visual hierarchy:
 MACRO SHAPE -> MATERIAL STRUCTURE -> SUPPORT SHAPES -> SMALL ACCENTS.
 
 Do not replace Gold with generic particles/shapes.
+A head-layer extraction plus generic cyan fillRect/strokeRect/line rendering for A1/A2/Frozen Gun/Frozen Bullet/Freeze shell is NOT a Gold port and must fail acceptance.
+The approved Frost battle identity is compact/direct-frontal: do not rotate the entire head/core asset to fighter movement direction merely because locomotion heading changes. Any directional skill choreography must be expressed by the skill effect/pose logic while preserving the selected frontal identity.
+The production presentation bridge must actually consume real Frost gameplay events/state for A1 breath/front, A2 trail/turn-carves, Frozen Gun, Frozen Bullet, steal transfer, Freeze shell/refresh, crack and thaw.
 Do not let presentation offsets modify gameplay locomotion or collision.
 Do not derive gameplay footprint from sprite dimensions.
 Do not execute/parse the full standalone HTML every production frame; bridge/extract/cache the authored algorithms/assets like Hunter/Crystala.
