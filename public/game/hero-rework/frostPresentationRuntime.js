@@ -61,6 +61,7 @@ const HR = g.APEX_HERO_REWORK || null;
 
 const api = g.APEX_FROST_PRESENTATION = { ready: false };
 let warned = 0;
+let sharedArt = null; // { mips, shadow } once the first engine load resolves
 function warnOnce(e) {
   if (warned < 6) { warned++; try { console.warn('[frost-presentation]', e); } catch (_) {} }
 }
@@ -134,11 +135,29 @@ function createState(ct) {
   const f = ct.anchor;
   const cfg = frostCfg(ct);
   const e = new G.FrostEngine();
-  // Art load is per-engine with a module-shared promise (first engine wins).
-  if (!api.ready && !createState.loadStarted && typeof e.load === 'function') {
+  // Art load is per-engine with a module-shared promise (first engine wins),
+  // but mips live ON the engine: every later engine backfills from the
+  // shared art cache so rematches/mirrors render (mips are read-only after
+  // load, safe to share).
+  if (sharedArt) {
+    e.mips = sharedArt.mips;
+    e.shadowCanvas = sharedArt.shadow;
+    e.ready = true;
+    api.ready = true;
+  } else if (!createState.loadStarted && typeof e.load === 'function') {
     createState.loadStarted = true;
     try {
-      e.load().then(() => { api.ready = true; }).catch((err) => { api.error = String(err); });
+      e.load().then(() => {
+        sharedArt = { mips: e.mips, shadow: e.shadowCanvas };
+        for (const [, other] of liveStates) {
+          if (other.engine !== e) {
+            other.engine.mips = e.mips;
+            other.engine.shadowCanvas = e.shadowCanvas;
+            other.engine.ready = true;
+          }
+        }
+        api.ready = true;
+      }).catch((err) => { api.error = String(err); });
     } catch (err) { api.error = String(err); }
   }
   const S = {
@@ -460,7 +479,7 @@ function tickA2(S, insp) {
   }
 }
 
-function tickVictims(S, ct, now) {
+function tickVictims(S, ct, now, dt) {
   const e = S.engine;
   const seen = bodiesOf(ct, true).concat(bodiesOf(ct, false));
   const frostFrozen = [];
@@ -490,7 +509,11 @@ function tickVictims(S, ct, now) {
       prev.timer = timer;
     }
   }
-  for (const id of Array.from(S.froze.keys())) if (!liveIds.has(id)) S.froze.delete(id);
+  // Prune per-victim freeze records the moment the Frost freeze is gone: no
+  // stale freeze timers survive (F13.1). Refresh re-cage still works because
+  // a refreshed body stays frost-frozen across the re-proc tick.
+  const stillFrost = new Set(frostFrozen.map((b) => b.id));
+  for (const id of Array.from(S.froze.keys())) if (!stillFrost.has(id)) S.froze.delete(id);
   for (const [id, sh] of S.shocks) if (now > sh.until) S.shocks.delete(id);
   // Victim priority: latest frozen, else latest live shock.
   if (frostFrozen.length) {
@@ -511,16 +534,16 @@ function tickVictims(S, ct, now) {
   // Crusts ALWAYS age (even with no live victim) so contact/hit rims can
   // never go stale; expiry chips fall at the last-known rim.
   if (e.crusts.length && S.lastVPos) {
-    try { e.updateCrusts(S.lastVPos.x, S.lastVPos.y, S.lastVPos.R, 0); } catch (err) { warnOnce(err); }
+    try { e.updateCrusts(S.lastVPos.x, S.lastVPos.y, S.lastVPos.R, dt); } catch (err) { warnOnce(err); }
   }
-  try { e.updateShell(0); } catch (err) { warnOnce(err); }
+  try { e.updateShell(dt); } catch (err) { warnOnce(err); }
 }
 
 function weaponApi() {
   try { return (g.APEX_ARSENAL && g.APEX_ARSENAL.weaponApi) || null; } catch (e) { return null; }
 }
 
-function tickGuns(S, now) {
+function tickGuns(S, now, dt) {
   const e = S.engine;
   const WAPI = weaponApi();
   const seenHolders = new Set();
@@ -548,7 +571,7 @@ function tickGuns(S, now) {
         rec.body = b; rec.holder = h;
         const pose = heldGunPose(b, h);
         rec.longSide = pose.longSide;
-        try { e.updateGunVisual(rec.vg, 0, pose); } catch (err) { warnOnce(err); }
+        try { e.updateGunVisual(rec.vg, dt, pose); } catch (err) { warnOnce(err); }
         rec.vg.x = pose.x; rec.vg.y = pose.y;
       }
     }
@@ -571,7 +594,7 @@ function tickGuns(S, now) {
     rec.vg.x = pose.x; rec.vg.y = pose.y; rec.vg.a = pose.a;
     rec.longSide = pose.longSide;
     if (slot.__frostThawUntil && rec.vg.thawAt === Infinity) rec.vg.thawAt = slot.__frostThawUntil + (S.tOff || 0);
-    try { e.updateGunVisual(rec.vg, 0, pose); } catch (err) { warnOnce(err); }
+    try { e.updateGunVisual(rec.vg, dt, pose); } catch (err) { warnOnce(err); }
   }
   // Steal transfers ride to the live Frost gun anchor.
   for (const [key, rec] of S.guns) {
@@ -582,7 +605,7 @@ function tickGuns(S, now) {
       const h = f && f.data ? f.data.arsenal : null;
       if (h) target = heldGunPose(f, h);
     } catch (err) {}
-    try { e.updateGunVisual(rec.vg, 0, target); } catch (err) { warnOnce(err); }
+    try { e.updateGunVisual(rec.vg, dt, target); } catch (err) { warnOnce(err); }
     if (rec.vg.owner !== 'transfer') {
       S.guns.delete(key); // arrived: the held visual takes over next tick
       if (S.suppressHolder && rec.holder && S.suppressHolder === rec.holder) S.suppressHolder = null;
@@ -602,7 +625,7 @@ function tickGuns(S, now) {
       const h = f.data ? f.data.arsenal : null;
       const pose = h ? heldGunPose(f, h)
         : { x: f.x, y: f.y, a: Math.atan2((f.dir && f.dir.y) || 0, (f.dir && f.dir.x) || 1) };
-      e.updateGunVisual(S.heldVg, 0, pose);
+      e.updateGunVisual(S.heldVg, dt, pose);
     }
   } catch (err) { warnOnce(err); }
 }
@@ -694,8 +717,8 @@ function driveEngine(S, ct, dt) {
     if (en) e.aim = damp(e.aim, e.aim + angDiff(e.aim, angTo(e.fx, e.fy, en.x, en.y)), 0.08, dt);
   } catch (err) {}
   tickA2(S, insp);
-  tickVictims(S, ct, now);
-  tickGuns(S, now);
+  tickVictims(S, ct, now, dt);
+  tickGuns(S, now, dt);
   tickFlecks(S, dt);
   try { e.ice.update(t); } catch (err) { warnOnce(err); }
 }
@@ -1019,17 +1042,24 @@ function drawTransferGuns(S, ctx, px) {
 }
 
 // ------------------------------------------------------- inspection + boot
+api.engineFor = function (f) {
+  const S = f ? liveStates.get(f) : firstState();
+  return S ? S.engine : null;
+};
+
 api.inspect = function (f) {
   const S = f ? liveStates.get(f) : firstState();
   if (!S) return null;
   const e = S.engine;
   return {
     mode: e.mode, t: +e.t.toFixed(3),
-    a1: { released: !!e.a1.released, front: +((e.a1.front) || 0).toFixed(1), len: e.a1.len || 0, nodes: (e.a1.nodes || []).length },
+    a1: { released: !!e.a1.released, front: +((e.a1.front) || 0).toFixed(1), len: e.a1.len || 0, nodes: (e.a1.nodes || []).length,
+      ang: +((e.a1.ang) || 0).toFixed(4), ox: +((e.a1.ox) || 0).toFixed(1), oy: +((e.a1.oy) || 0).toFixed(1) },
     a2: { kicked: !!e.a2.kicked, trail: (e.a2.trail || []).length },
     shell: !!e.shell, crusts: e.crusts.length,
     iceNodes: e.ice.nodes.length, carves: e.ice.carves.length,
     guns: S.guns.size, victim: S.victim ? S.victim.id : null, shocks: S.shocks.size,
+    transfers: Array.from(S.guns.values()).filter((r) => r && r.kind === 'transfer').length,
     kBody: +S.kBody.toFixed(3), laneK: +S.laneK.toFixed(3), trailK: +S.trailK.toFixed(3),
   };
 };

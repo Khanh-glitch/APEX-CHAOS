@@ -383,11 +383,12 @@ try {
   api.spawnShards(mirrorCt, 650, 500, 5);
   T.step(0.1); // shard clustering forms mirrors
   const mirrors = W().mirrors.length;
-  const ice = T.ctl(0);
-  ice.tryCast('A1', 'goldens'); // chill payload on own shots
+  // FROST V1 migration: ICE A1 is frost.breath (cone blast), not the legacy
+  // ice.bullets chill-payload buff (authority §0/§8 supersession) — no chill
+  // leg exists anymore. This golden's purpose is portal neutrality, kept intact.
   T.equip(0, 'GLOCK_17');
   const mark = T.busMark();
-  let routed = false, neutralSeen = false, mirrorCredit = 0, chilledMirror = false, runError = null;
+  let routed = false, neutralSeen = false, mirrorCredit = 0, runError = null;
   const mirCt2 = T.ct(1);
   try {
     for (let f = 0; f < 420; f++) {
@@ -395,16 +396,15 @@ try {
       if (!routed && T.busSince(mark, 'MirrorPortalRoute') > 0) routed = true;
       if (win.projectiles.some(p => p && p.aq && p.__hr && p.__hr.neutral)) neutralSeen = true;
       mirrorCredit = Math.max(mirrorCredit, mirCt2.telemetry.damageDealt);
-      if (!chilledMirror && HR.AIL.StatusResolver.has(win.fighters[1], 'CHILL')) chilledMirror = true;
-      if (routed && neutralSeen && chilledMirror) break;
+      if (routed && neutralSeen) break;
     }
   } catch (e) { runError = String(e && e.message); }
   // Neutral exit: damage unchanged, may hit either side, NO Hero credit —
   // MIRROR (unarmed, no reflect passive) must never gain damageDealt.
   const neutralHitNoCredit = mirrorCredit === 0;
   gate('golden-mirror-portal-neutral-no-credit',
-    mirrors >= 2 && routed && neutralSeen && neutralHitNoCredit === true && chilledMirror && !runError,
-    { mirrors, routed, neutralSeen, neutralHitNoCredit, chilledMirror, runError });
+    mirrors >= 2 && routed && neutralSeen && neutralHitNoCredit === true && !runError,
+    { mirrors, routed, neutralSeen, neutralHitNoCredit, runError });
   snapshot('golden-mirror-portal-neutral');
 } catch (e) { gate('golden-mirror-portal-neutral-no-credit', false, String(e && e.message)); }
 

@@ -1846,6 +1846,624 @@ try {
   gate('F11.14-child-collision-queries-carrier', okSteal, { okSteal });
 } catch (e) { gate('F11.13-carrier-authority', false, String(e && e.message)); }
 
+/* ================= F12 — Gold parity / event truth ================= */
+const P = () => win.APEX_FROST_PRESENTATION;
+const FG = () => win.APEX_FROST_GOLD;
+async function frostReady(ms = 25000) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) {
+    if (P() && P().ready) return true;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return !!(P() && P().ready);
+}
+function readPixels() {
+  const rc = H.gameCanvasReal;
+  const cx = rc.getContext('2d');
+  const img = cx.getImageData(0, 0, rc.width, rc.height);
+  return { w: rc.width, h: rc.height, data: img.data };
+}
+function localBg(px, cx, cy, half) {
+  // Median of the crop border: robust to arena gradients + grid.
+  const rs = [], gs = [], bs = [];
+  const x0 = Math.max(0, Math.floor(cx - half)), x1 = Math.min(px.w - 1, Math.ceil(cx + half));
+  const y0 = Math.max(0, Math.floor(cy - half)), y1 = Math.min(px.h - 1, Math.ceil(cy + half));
+  const push = (x, y) => { const i = (y * px.w + x) * 4; rs.push(px.data[i]); gs.push(px.data[i + 1]); bs.push(px.data[i + 2]); };
+  for (let x = x0; x <= x1; x += 4) { push(x, y0); push(x, y1); }
+  for (let y = y0; y <= y1; y += 4) { push(x0, y); push(x1, y); }
+  const med = (a) => a.sort((p, q) => p - q)[Math.floor(a.length / 2)];
+  return [med(rs), med(gs), med(bs)];
+}
+function cropStats(px, cx, cy, half, bg, thresh) {
+  const th = thresh == null ? 45 : thresh;
+  let n = 0, minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9, sx = 0, sy = 0, ice = 0;
+  const x0 = Math.max(0, Math.floor(cx - half)), x1 = Math.min(px.w - 1, Math.ceil(cx + half));
+  const y0 = Math.max(0, Math.floor(cy - half)), y1 = Math.min(px.h - 1, Math.ceil(cy + half));
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const i = (y * px.w + x) * 4;
+    const r = px.data[i], gg = px.data[i + 1], b = px.data[i + 2];
+    if (b > r + 40 && b > 170) ice++;
+    if (Math.max(Math.abs(r - bg[0]), Math.abs(gg - bg[1]), Math.abs(b - bg[2])) > th) {
+      n++; if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y; sx += x; sy += y;
+    }
+  }
+  return { n, ice, w: n ? maxX - minX + 1 : 0, h: n ? maxY - minY + 1 : 0, cx: n ? sx / n : 0, cy: n ? sy / n : 0 };
+}
+function spyMethod(obj, name) {
+  const orig = obj[name];
+  const rec = { calls: 0, args: [] };
+  obj[name] = function (...a) { rec.calls++; rec.args.push(a); return orig.apply(this, a); };
+  rec.release = () => { obj[name] = orig; };
+  return rec;
+}
+function stillPair(ax, ay, adx, bx, by) {
+  const o = withCtl(frostPair());
+  o.a.x = ax; o.a.y = ay; o.a.setDir(adx, 0); o.a.baseSpeed = 0;
+  o.b.x = bx; o.b.y = by; o.b.setDir(-1, 0); o.b.baseSpeed = 0;
+  T.step(1 / 60); // prime: presentation state exists before any inspect/engineFor
+  o.a.x = ax; o.a.y = ay; o.b.x = bx; o.b.y = by;
+  return o;
+}
+function liveKind(e, kind) { return e.ice.nodes.filter((n) => n.kind === kind && !n.dead); }
+
+await frostReady();
+
+try {
+  const okFlags = win.apexFrostGoldV1 === 'ready' && win.apexFrostPresentationRuntime === 'ready';
+  const need = ['FrostEngine', 'IceField', 'Rng', 'Crit', 'Spring', 'updateShapes', 'drawFloorShapes',
+    'drawAirShapes', 'drawRibbonLayer', 'frostBulletFleck', 'cacheStats', 'damp', 'clamp', 'angDiff',
+    'TAU', 'PAL', 'FROST_LAYERS', 'mipChain', 'pick'];
+  const missing = need.filter((k) => !(k in FG()));
+  const pngs = ['base', 'crest', 'browL', 'browR', 'jaw', 'eyes', 'crack', 'cavity', 'sil'];
+  const pngOk = pngs.filter((k) => { try { return fs.statSync(`public/assets/hero-rework/frost-v1/${k}.png`).size > 1000; } catch (e) { return false; } });
+  let sha = '';
+  try { sha = execSync('sha256sum public/game/hero-rework/frostGoldV1.js').toString().split(' ')[0]; } catch (e) {}
+  gate('F12.1-gold-pinned', okFlags && P().ready && missing.length === 0 && pngOk.length === 9 && /^[0-9a-f]{64}$/.test(sha),
+    { exports: Object.keys(FG()).length, missing, png: pngOk.length, sha256: sha.slice(0, 16) });
+} catch (e) { gate('F12.1-gold-pinned', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(300, 500, 1, 850, 850);
+  T.step(1.0);
+  T.redraw();
+  const px = readPixels();
+  const bg = localBg(px, o.a.x, o.a.y, 130);
+  const st = cropStats(px, o.a.x, o.a.y, 130, bg);
+  const ok = st.n > 2500 && st.ice > 1200 && st.w > 70 && st.h > 80 &&
+    Math.abs(st.cx - o.a.x) < 40 && Math.abs(st.cy - o.a.y) < 40;
+  gate('F12.2-idle-silhouette', P().ready && ok,
+    { n: st.n, ice: st.ice, w: st.w, h: st.h, dx: +(st.cx - o.a.x).toFixed(1), dy: +(st.cy - o.a.y).toFixed(1) });
+} catch (e) { gate('F12.2-idle-silhouette', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(300, 500, 1, 850, 850);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(0.1);
+  const i1 = P().inspect(o.a);
+  const okCast = i1.mode === 'a1' && !i1.a1.released && Math.abs(i1.a1.ang) < 0.08;
+  T.step(0.25);
+  const i2 = P().inspect(o.a);
+  const e = P().engineFor(o.a);
+  const okRel = i2.a1.released && i2.a1.nodes >= 50 && i2.a1.front > 80 && e.breath.on;
+  const macro = spyMethod(e, 'drawA1MacroFront');
+  T.redraw();
+  const okMacro = macro.calls >= 1;
+  macro.release();
+  T.step(0.6);
+  const i3 = P().inspect(o.a);
+  const okEnd = i3.mode === 'free' && i3.a1.front === 650 && i3.a1.len === 650;
+  const lane = FR().inspect(o.ct).lanes[0];
+  const okLane = lane && Math.abs(lane.ox - 300) < 45 && lane.len === 650;
+  gate('F12.3-a1-order', okCast && okRel && okMacro && okEnd && okLane,
+    { mode: i1.mode, ang: i1.a1.ang, nodes: i2.a1.nodes, front: i2.a1.front, macro: macro.calls, laneOx: lane && lane.ox });
+} catch (e) { gate('F12.3-a1-order', false, String(e && e.message)); }
+
+try {
+  // Same-match mature lane: reuse F12.3's match? No — fresh pinned match for isolation.
+  const o = stillPair(300, 500, 1, 850, 850);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(2.1); // release + front travel + maturity
+  const e = P().engineFor(o.a);
+  const lane = FR().inspect(o.ct).lanes[0];
+  const halfW = o.ct.skills.A1.cfg.width / 2;
+  let bad = 0, total = 0;
+  for (const n of e.ice.nodes) {
+    if (n.kind !== 'lane' || n.dead) continue;
+    total++;
+    const rx = n.x - lane.ox, ry = n.y - lane.oy;
+    if (!(rx > -40 && rx < lane.len + 40 && Math.abs(ry) < halfW * 1.2)) bad++;
+  }
+  let cov = 0, covN = 0;
+  for (let d = 25; d <= 650; d += 25) {
+    covN++;
+    if (e.ice.iceAt(lane.ox + d, lane.oy, e.t)) cov++;
+  }
+  const offV = e.ice.iceAt(lane.ox + 325, lane.oy + 150, e.t);
+  gate('F12.4-lane-aligned', lane && total > 50 && bad === 0 && cov >= covN - 2 && !offV,
+    { total, bad, cov: cov + '/' + covN, offAxisIce: !!offV, halfW });
+} catch (e) { gate('F12.4-lane-aligned', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(200, 700, 1, 900, 100);
+  HR.pressAbility(o.a, 'A2');
+  const pts = [[200, 700], [300, 700], [400, 700], [470, 660], [520, 600], [560, 560], [500, 560], [440, 560]];
+  const steps = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x0, y0] = pts[i], [x1, y1] = pts[i + 1];
+    const L = Math.hypot(x1 - x0, y1 - y0), n = Math.max(1, Math.round(L / 10));
+    for (let k = 1; k <= n; k++) steps.push([x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n]);
+  }
+  o.a.x = 200; o.a.y = 700;
+  let tickN = 0;
+  for (const [x, y] of steps) {
+    const dx = x - o.a.x, dy = y - o.a.y, L = Math.hypot(dx, dy) || 1;
+    o.a.x = x; o.a.y = y;
+    o.a.__hrVel = { x: dx / L * 600, y: dy / L * 600 };
+    P().tick(1 / 60);
+    if (++tickN % 12 === 0) { T.step(1 / 60); o.b.x = 900; o.b.y = 100; }
+  }
+  const e = P().engineFor(o.a);
+  const segDist = (px, py) => {
+    let best = 1e9;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [ax, ay] = pts[i], [bx, by] = pts[i + 1];
+      const dx = bx - ax, dy = by - ay, LL = dx * dx + dy * dy || 1;
+      let t = ((px - ax) * dx + (py - ay) * dy) / LL;
+      t = Math.max(0, Math.min(1, t));
+      best = Math.min(best, Math.hypot(px - (ax + dx * t), py - (ay + dy * t)));
+    }
+    return best;
+  };
+  const trail = liveKind(e, 'trail');
+  const bad = trail.filter((n) => segDist(n.x, n.y) > 25).length;
+  let pathLen = 0;
+  for (let i = 0; i < pts.length - 1; i++) pathLen += Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
+  const lo = pathLen / 9 * 0.55, hi = pathLen / 9 * 1.45;
+  gate('F12.5-trail-follows-path', trail.length >= lo && trail.length <= hi && bad === 0,
+    { nodes: trail.length, expect: [Math.round(lo), Math.round(hi)], bad });
+} catch (e) { gate('F12.5-trail-follows-path', false, String(e && e.message)); }
+
+try {
+  // Fresh A2 on a clean engine cycle: run down the window, then re-cast via truth.
+  const o = stillPair(200, 300, 1, 900, 100);
+  HR.pressAbility(o.a, 'A2');
+  T.step(3.2); // window (3.0) ends -> poll endA2
+  const e = P().engineFor(o.a);
+  const endedOk = e.mode === 'free';
+  FR().castHunt({ combatant: o.ct, cfg: o.ct.skills.A2.cfg });
+  P().tick(1 / 60);
+  const recastOk = e.mode === 'a2';
+  // Straight east: no carve may appear.
+  o.a.x = 200; o.a.y = 300;
+  const tStraight = e.t;
+  for (let i = 0; i < 30; i++) {
+    o.a.x += 10; o.a.__hrVel = { x: 600, y: 0 }; P().tick(1 / 60);
+  }
+  const straightCarves = e.ice.carves.filter((c) => c.born > tStraight).length;
+  // 90-degree turn north: carve must appear at the apex.
+  const apex = { x: o.a.x, y: o.a.y };
+  const tTurn = e.t;
+  for (let i = 0; i < 20; i++) {
+    o.a.y -= 10; o.a.__hrVel = { x: 0, y: -600 }; P().tick(1 / 60);
+  }
+  const turnCarves = e.ice.carves.filter((c) => c.born > tTurn);
+  const nearApex = turnCarves.filter((c) => Math.hypot(c.x - apex.x, c.y - apex.y) < 70).length;
+  gate('F12.6-carve-on-turn', endedOk && recastOk && straightCarves === 0 && turnCarves.length >= 1 && nearApex >= 1,
+    { endedOk, recastOk, straightCarves, turnCarves: turnCarves.length, nearApex });
+} catch (e) { gate('F12.6-carve-on-turn', false, String(e && e.message)); }
+
+/* ================= F12 continued — guns / bullets / shell ============= */
+try {
+  const o = stillPair(300, 500, 1, 850, 850);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(0.9);
+  const lane = FR().inspect(o.ct).lanes[0];
+  const id = T.pushSlot({ x: lane.ox + 200, y: lane.oy, phase: 'REVEALED', weaponId: 'PISTOL' });
+  T.step(0.3);
+  const slot = AQSlots().find((q) => q.id === id);
+  const froze = !!(slot && slot.__frostFrozen);
+  const AV = win.APEX_ARSENAL_AV;
+  const spr = spyMethod(AV, 'drawWeaponSprite');
+  const e = P().engineFor(o.a);
+  const ov = spyMethod(e, 'drawGunFrost');
+  T.redraw();
+  const sprPistol = spr.args.filter((a) => a[1] === 'PISTOL').length;
+  spr.release(); ov.release();
+  gate('F12.7-floor-gun-identity', froze && sprPistol >= 1 && ov.calls >= 1 && slot.weaponId === 'PISTOL',
+    { froze, sprPistol, overlay: ov.calls });
+} catch (e) { gate('F12.7-floor-gun-identity', false, String(e && e.message)); }
+
+try {
+  const o = contactDuel();
+  W().equip(o.b, 'PISTOL');
+  const h0 = W().getHolder(o.b);
+  const tap = frostBusTap();
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.2);
+  touchBodies(o);
+  T.step(3 / 60);
+  const steals = tap.seen.filter((t) => t === 'FrostSteal').length;
+  const moved = W().getHolder(o.a) === h0 && W().getHolder(o.b) === null;
+  const iFly = P().inspect(o.a);
+  const okFlight = iFly.transfers === 1 && iFly.guns === 1;
+  T.step(0.1);
+  const iMid = P().inspect(o.a);
+  const okMid = iMid.transfers === 1 && iMid.guns <= 1;
+  T.step(0.6);
+  const iDone = P().inspect(o.a);
+  const okDone = iDone.transfers === 0 && iDone.guns >= 1 && W().getHolder(o.a) === h0;
+  tap.release();
+  gate('F12.8-steal-single-transfer', steals === 1 && moved && okFlight && okMid && okDone,
+    { steals, moved, flight: [iFly.transfers, iFly.guns], mid: [iMid.transfers, iMid.guns], done: [iDone.transfers, iDone.guns] });
+} catch (e) { gate('F12.8-steal-single-transfer', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(300, 500, 1, 850, 850);
+  W().equip(o.a, 'PISTOL');
+  const hold = W().getHolder(o.a);
+  hold.__frostFrozen = { weaponId: 'PISTOL', at: 0 };
+  const mk = (tag) => ({ x: 500, y: 500, vx: 200, vy: 0, owner: o.a, __hr: {}, hp: 1, life: 1, type: 'bullet', dmg: 10 });
+  const p = mk(), q = mk();
+  q.x = 520;
+  FR().tagFrozenBullet({}, p, o.a);
+  const taggedOk = !!(p.__hr && p.__hr.frost && p.__hr.frost.group);
+  win.projectiles.push(p, q);
+  const e = P().engineFor(o.a);
+  const dr = spyMethod(e, 'drawBulletFrost');
+  T.redraw();
+  const hitP = dr.args.filter((a) => Math.abs(a[1] - 500) < 2 && Math.abs(a[2] - 500) < 2).length;
+  const hitQ = dr.args.filter((a) => Math.abs(a[1] - 520) < 2 && Math.abs(a[2] - 500) < 2).length;
+  dr.release();
+  const before = JSON.stringify({ dmg: p.dmg, x: p.x, y: p.y, vx: p.vx, vy: p.vy, life: p.life, g: p.__hr.frost.group, own: p.owner === o.a });
+  P().tick(1 / 60);
+  T.redraw();
+  const after = JSON.stringify({ dmg: p.dmg, x: p.x, y: p.y, vx: p.vx, vy: p.vy, life: p.life, g: p.__hr.frost.group, own: p.owner === o.a });
+  win.projectiles = win.projectiles.filter((r) => r !== p && r !== q);
+  gate('F12.9-bullet-visuals', taggedOk && hitP >= 1 && hitQ === 0 && before === after,
+    { taggedOk, hitTagged: hitP, hitPlain: hitQ, unchanged: before === after });
+} catch (e) { gate('F12.9-bullet-visuals', false, String(e && e.message)); }
+
+function frostProcSweep(o, hold, wantProc, seedLo, seedHi) {
+  // Drives REAL tag + REAL noteBodyHit; returns {ok, seed}.
+  for (let seed = seedLo; seed <= seedHi; seed++) {
+    FR().setFreezeSeed(seed * 7919 + 13);
+    hold.shotsFired = seed;
+    const b = o.b;
+    const p = { x: b.x - 10, y: b.y, vx: 100, vy: 0, owner: o.a, __hr: {}, hp: 1, life: 1, type: 'bullet' };
+    FR().tagFrozenBullet({}, p, o.a);
+    const r = FR().noteBodyHit(p, b);
+    if (!!r === wantProc) { FR().setFreezeSeed(null); return { ok: true, seed }; }
+  }
+  FR().setFreezeSeed(null);
+  return { ok: false, seed: -1 };
+}
+
+try {
+  const o = stillPair(300, 500, 1, 520, 500);
+  W().equip(o.a, 'PISTOL');
+  const hold = W().getHolder(o.a);
+  hold.__frostFrozen = { weaponId: 'PISTOL', at: 0 };
+  const e = P().engineFor(o.a);
+  const c0 = e.crusts.length;
+  const fail = frostProcSweep(o, hold, false, 1, 60);
+  const noShell = e.shell === null;
+  const marked = e.crusts.length === c0 + 1;
+  const proc = frostProcSweep(o, hold, true, 100, 200);
+  T.step(0.2); // let presentation ticks observe the Frost freeze
+  const shell = e.shell;
+  const patch = e.ice.nodes.filter((n) => n.kind === 'patch' && !n.dead && Math.abs(n.born - e.t) < 1.0).length;
+  gate('F12.10-shell-on-proc-only', fail.ok && noShell && marked && proc.ok && !!shell && shell.plates.length === 9 && patch >= 1,
+    { failSeed: fail.seed, noShell, marked, procSeed: proc.seed, plates: shell && shell.plates.length, patch });
+} catch (e) { gate('F12.10-shell-on-proc-only', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(300, 500, 1, 520, 500);
+  W().equip(o.a, 'PISTOL');
+  const hold = W().getHolder(o.a);
+  hold.__frostFrozen = { weaponId: 'PISTOL', at: 0 };
+  const e = P().engineFor(o.a);
+  const p1 = frostProcSweep(o, hold, true, 100, 200);
+  T.step(0.2);
+  const t0a = e.shell && e.shell.t0;
+  const p2 = frostProcSweep(o, hold, true, 300, 400);
+  T.step(0.2);
+  const sh = e.shell;
+  gate('F12.11-refresh-rebuilds', p1.ok && p2.ok && !!sh && sh.t0 > t0a && sh.plates.length === 9,
+    { t0a, t0b: sh && sh.t0, plates: sh && sh.plates.length });
+} catch (e) { gate('F12.11-refresh-rebuilds', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(300, 500, 1, 520, 500);
+  W().equip(o.a, 'PISTOL');
+  const hold = W().getHolder(o.a);
+  hold.__frostFrozen = { weaponId: 'PISTOL', at: 0 };
+  const e = P().engineFor(o.a);
+  const pr = frostProcSweep(o, hold, true, 100, 200);
+  T.step(0.2);
+  const sh = e.shell;
+  const cracksFirst = sh && sh.cracks[0].at < sh.thawT && sh.cracks[1].at < sh.thawT + 0.3;
+  // Step past thawT (freeze 0.90s clock ~= engine): plates release + scatter.
+  for (let i = 0; i < 120 && !(sh.released && sh.plates.every((p) => p.released)); i++) T.step(1 / 60);
+  const releasedCount = sh.plates.filter((p) => p.released).length;
+  const m0 = sh.plates.reduce((s, p) => s + Math.abs(p.x) + Math.abs(p.y), 0);
+  T.step(0.5);
+  const m1 = sh.plates.reduce((s, p) => s + Math.abs(p.x) + Math.abs(p.y), 0);
+  T.step(2.0);
+  gate('F12.12-thaw-physical', pr.ok && cracksFirst && releasedCount === 9 && m1 > m0 && e.shell === null,
+    { cracksFirst, releasedCount, moved: +(m1 - m0).toFixed(1), shellGone: e.shell === null });
+} catch (e) { gate('F12.12-thaw-physical', false, String(e && e.message)); }
+
+/* ================= F12 continued — readability / purity / frontal ===== */
+try {
+  const o = stillPair(300, 500, 1, 850, 850);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(1.5);
+  T.redraw();
+  const lane = FR().inspect(o.ct).lanes[0];
+  const px = readPixels();
+  const bg = localBg(px, lane.ox + 325, lane.oy + 220, 60);
+  let hit = 0, n = 0, sum = 0;
+  for (let x = lane.ox; x <= lane.ox + 650; x += 8) {
+    for (let y = lane.oy - 80; y <= lane.oy + 80; y += 8) {
+      if (x < 0 || x >= px.w || y < 0 || y >= px.h) continue;
+      n++;
+      const i = (Math.floor(y) * px.w + Math.floor(x)) * 4;
+      const d = Math.max(Math.abs(px.data[i] - bg[0]), Math.abs(px.data[i + 1] - bg[1]), Math.abs(px.data[i + 2] - bg[2]));
+      sum += d;
+      if (d > 30) hit++;
+    }
+  }
+  const goldSrc = fs.readFileSync('public/game/hero-rework/frostGoldV1.js', 'utf8').split('\n');
+  const filterLines = goldSrc.filter((l) => l.includes('.filter ='));
+  const filterOk = filterLines.length >= 1 && filterLines.every((l) => l.includes('blur'));
+  const presSrc = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js', 'utf8');
+  const presFilter = presSrc.split('\n').filter((l) => l.includes('ctx.filter'));
+  gate('F12.13-readable-no-bloom-crutch', lane && hit / n > 0.30 && sum / n > 22 && filterOk && presFilter.length === 2,
+    { coverage: +(hit / n).toFixed(2), meanDiff: +(sum / n).toFixed(1), goldFilterLines: filterLines.length, presFilter: presFilter.length });
+} catch (e) { gate('F12.13-readable-no-bloom-crutch', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(300, 500, 1, 520, 500);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(0.5);
+  const lane = FR().inspect(o.ct).lanes[0];
+  T.pushSlot({ x: lane.ox + 200, y: lane.oy, phase: 'REVEALED', weaponId: 'PISTOL' });
+  W().equip(o.a, 'PISTOL');
+  const hold = W().getHolder(o.a);
+  hold.__frostFrozen = { weaponId: 'PISTOL', at: 0 };
+  const p = { x: 500, y: 500, vx: 200, vy: 0, owner: o.a, __hr: {}, hp: 1, life: 1, type: 'bullet', dmg: 10 };
+  FR().tagFrozenBullet({}, p, o.a);
+  win.projectiles.push(p);
+  frostProcSweep(o, hold, true, 100, 200);
+  const snap = () => JSON.stringify({
+    f: fighters().map((f) => [f.x, f.y, f.hp, f.radius, f.dir.x, f.dir.y,
+      Object.keys(f.statuses || {}).sort(), f.data && f.data.arsenal ? f.data.arsenal.weaponId : null]),
+    p: win.projectiles.map((q) => [q.x, q.y, q.vx, q.vy, q.life, q.dmg, q.type, q.owner === o.a ? 'a' : (q.owner === o.b ? 'b' : '?'),
+      q.__hr && q.__hr.frost ? q.__hr.frost.group : null]),
+    s: AQSlots().map((s) => [s.x, s.y, s.phase, s.weaponId, !!s.__frostFrozen]),
+  });
+  const before = snap();
+  for (let i = 0; i < 3; i++) { P().tick(1 / 60); T.redraw(); }
+  const after = snap();
+  win.projectiles = win.projectiles.filter((r) => r !== p);
+  gate('F12.14-no-physics-feedback', before === after, { bytes: before.length });
+} catch (e) { gate('F12.14-no-physics-feedback', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(300, 500, 1, 850, 850);
+  T.step(2.0);
+  const i0 = P().inspect(o.a);
+  const clean = i0.a1.nodes === 0 && i0.a2.trail === 0 && !i0.shell && (i0.victim === null || i0.victim === undefined);
+  function iVictimNull(i) { return i.victim === null || i.victim === undefined; }
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(1.0);
+  const lane = FR().inspect(o.ct).lanes[0];
+  T.pushSlot({ x: lane.ox + 200, y: lane.oy, phase: 'REVEALED', weaponId: 'PISTOL' });
+  T.step(0.3);
+  const frozeSlot = AQSlots().some((s) => s.__frostFrozen);
+  T.step(6.0); // past lane expire (5.2) + slot thaw (0.3)
+  const e = P().engineFor(o.a);
+  const laneGone = liveKind(e, 'lane').length === 0;
+  const slotGone = !AQSlots().some((s) => s.__frostFrozen) && P().inspect(o.a).guns === 0;
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.2);
+  o.a.x = o.b.x - 10; o.a.y = o.b.y;
+  T.step(3 / 60);
+  const shocked = P().inspect(o.a).shocks >= 1;
+  o.a.x = 300; o.a.y = 500;
+  T.step(1.5);
+  const shockGone = P().inspect(o.a).shocks === 0;
+  gate('F12.15-truth-consumers', clean && frozeSlot && laneGone && slotGone && shocked && shockGone,
+    { clean, frozeSlot, laneGone, slotGone, shocked, shockGone });
+} catch (e) { gate('F12.15-truth-consumers', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(300, 500, 1, 520, 500);
+  const e = P().engineFor(o.a);
+  const noLegacy = () => !win.projectiles.some((p) => p.type === 'ice_lane');
+  const spRender = spyMethod(e.ice, 'render');
+  const spBody = spyMethod(e, 'drawFrost');
+  const spBreath = spyMethod(e, 'drawBreathCore');
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(0.35);
+  T.redraw();
+  const legA1 = noLegacy();
+  HR.pressAbility(o.a, 'A2');
+  for (let i = 0; i < 20; i++) { o.a.x += 8; P().tick(1 / 60); }
+  T.redraw();
+  const legA2 = noLegacy();
+  W().equip(o.a, 'PISTOL');
+  const hold = W().getHolder(o.a);
+  hold.__frostFrozen = { weaponId: 'PISTOL', at: 0 };
+  const spGun = spyMethod(e, 'drawGunFrost');
+  const p = { x: 500, y: 500, vx: 200, vy: 0, owner: o.a, __hr: {}, hp: 1, life: 1, type: 'bullet' };
+  FR().tagFrozenBullet({}, p, o.a);
+  win.projectiles.push(p);
+  const spBul = spyMethod(e, 'drawBulletFrost');
+  const spTgt = spyMethod(e, 'drawTargetFrost');
+  frostProcSweep(o, hold, true, 100, 200);
+  T.step(0.2);
+  T.redraw();
+  const legFz = noLegacy();
+  const counts = { render: spRender.calls, body: spBody.calls, breath: spBreath.calls, gun: spGun.calls, bul: spBul.calls, tgt: spTgt.calls };
+  spRender.release(); spBody.release(); spBreath.release(); spGun.release(); spBul.release(); spTgt.release();
+  win.projectiles = win.projectiles.filter((r) => r !== p);
+  const presSrc = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js', 'utf8');
+  const noRect = !presSrc.includes('fillRect(') && !presSrc.includes('ice_lane');
+  const goldDrawn = counts.render >= 1 && counts.body >= 1 && counts.breath >= 1 && counts.gun >= 1 && counts.bul >= 1 && counts.tgt >= 1;
+  gate('F12.16-gold-drawn-no-substitutes', legA1 && legA2 && legFz && goldDrawn && noRect, { ...counts, noRect });
+} catch (e) { gate('F12.16-gold-drawn-no-substitutes', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(300, 500, 1, 850, 850);
+  T.step(1.0);
+  win.cameraShake = 0; win.cameraZoom = 1;
+  const crop = () => {
+    T.redraw();
+    const px = readPixels();
+    const half = 95, out = [];
+    for (let y = Math.floor(o.a.y - half); y <= o.a.y + half; y++)
+      for (let x = Math.floor(o.a.x - half); x <= o.a.x + half; x++) {
+        const i = (y * px.w + x) * 4;
+        out.push(px.data[i], px.data[i + 1], px.data[i + 2]);
+      }
+    return Buffer.from(out);
+  };
+  o.a.setDir(1, 0);
+  const cE = crop();
+  o.a.setDir(-1, 0);
+  const cW = crop();
+  o.a.setDir(0, 1);
+  const cS = crop();
+  const diffCore = (A, B) => {
+    // Body core (central 60x60 of the 191px crop) must be bit-identical: a
+    // rotated identity would rewrite thousands of core pixels.
+    let n = 0;
+    const W = 191;
+    for (let y = 65; y < 125; y++) for (let x = 65; x < 125; x++) {
+      const i = (y * W + x) * 3;
+      if (A[i] !== B[i] || A[i + 1] !== B[i + 1] || A[i + 2] !== B[i + 2]) n++;
+    }
+    return n;
+  };
+  const diffAll = (A, B) => {
+    let n = 0;
+    for (let i = 0; i < A.length; i += 3) if (A[i] !== B[i] || A[i + 1] !== B[i + 1] || A[i + 2] !== B[i + 2]) n++;
+    return n;
+  };
+  const coreEW = diffCore(cE, cW), coreES = diffCore(cE, cS);
+  const allEW = diffAll(cE, cW), allES = diffAll(cE, cS);
+  gate('F12.17-frontal-identity', coreEW === 0 && coreES === 0 && allEW < 200 && allES < 200,
+    { coreEW, coreES, allEW, allES, bytes: cE.length });
+} catch (e) { gate('F12.17-frontal-identity', false, String(e && e.message)); }
+
+/* ================= F13 — Lifecycle / performance ===================== */
+try {
+  const o = stillPair(200, 700, 1, 900, 100);
+  const ct = HR.byCombatant(o.a);
+  for (let cyc = 0; cyc < 3; cyc++) {
+    FR().castBreath({ combatant: ct, cfg: ct.skills.A1.cfg });
+    T.step(0.4);
+    FR().castHunt({ combatant: ct, cfg: ct.skills.A2.cfg });
+    for (const [x, y] of [[240, 700], [240, 660], [200, 660], [200, 700]]) { o.a.x = x; o.a.y = y; T.step(0.15); }
+    T.step(6.0);
+  }
+  const e = P().engineFor(o.a);
+  const liveLane = liveKind(e, 'lane').length;
+  const liveTrail = liveKind(e, 'trail').length;
+  const liveCarve = e.ice.carves.filter((c) => !c.dead).length;
+  const i = P().inspect(o.a);
+  const stale = liveLane + liveTrail + liveCarve + (i.shell ? 1 : 0) + i.crusts + i.transfers + i.shocks;
+  const gameClean = !supportedAt(400, 700);
+  gate('F13.1-no-stale-after-cycles', stale === 0 && !i.victim && gameClean,
+    { liveLane, liveTrail, liveCarve, shell: i.shell, crusts: i.crusts, transfers: i.transfers, shocks: i.shocks, gameClean });
+} catch (e) { gate('F13.1-no-stale-after-cycles', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(300, 500, 1, 850, 850); // brand-new match on the same boot
+  T.step(0.5);
+  const i = P().inspect(o.a);
+  T.redraw();
+  gate('F13.2-rematch-clean', i && i.mode === 'free' && i.iceNodes === 0 && i.guns === 0 && !i.victim && i.t < 1.5,
+    { mode: i && i.mode, iceNodes: i && i.iceNodes, t: i && i.t });
+} catch (e) { gate('F13.2-rematch-clean', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(300, 500, 1, 850, 850);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(1.0);
+  for (let i = 0; i < 5; i++) T.redraw(); // warm caches (iceCanvas sizing, mips)
+  let frostCanvas = 0, totalCanvas = 0, frostImg = 0, mkCanvas = 0;
+  const origCE = win.document.createElement.bind(win.document);
+  win.document.createElement = (...a) => {
+    totalCanvas++;
+    const st = new Error().stack || '';
+    if (/frost/i.test(st)) frostCanvas++;
+    return origCE(...a);
+  };
+  const origMK = FG().mkCanvas;
+  FG().mkCanvas = (...a) => { mkCanvas++; return origMK(...a); };
+  const OrigImage = win.Image;
+  win.Image = function (...a) {
+    const st = new Error().stack || '';
+    if (/frost/i.test(st)) frostImg++;
+    return new OrigImage(...a);
+  };
+  for (let i = 0; i < 60; i++) { P().tick(1 / 60); T.redraw(); }
+  win.document.createElement = origCE;
+  FG().mkCanvas = origMK;
+  win.Image = OrigImage;
+  gate('F13.3-steady-no-alloc', frostCanvas === 0 && mkCanvas === 0 && frostImg === 0, { frostCanvas, totalCanvas, mkCanvas, frostImg });
+} catch (e) { gate('F13.3-steady-no-alloc', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(300, 500, 1, 850, 850);
+  T.step(0.5);
+  const e = P().engineFor(o.a);
+  const mips = Object.keys(e.mips || {}).length;
+  const ref1 = e.ice.facetPaths;
+  for (let i = 0; i < 30; i++) P().tick(1 / 60);
+  gate('F13.4-materials-cached', FG().cacheStats.loadCalls === 1 && mips === 9 && e.ice.facetPaths === ref1 && ref1.length === 4,
+    { loadCalls: FG().cacheStats.loadCalls, mips, facetPaths: ref1.length });
+} catch (e) { gate('F13.4-materials-cached', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(200, 700, 1, 900, 100);
+  const e = P().engineFor(o.a);
+  const mx = { lane: 0, trail: 0, carve: 0, total: 0 };
+  const sample = () => {
+    mx.lane = Math.max(mx.lane, liveKind(e, 'lane').length);
+    mx.trail = Math.max(mx.trail, liveKind(e, 'trail').length);
+    mx.carve = Math.max(mx.carve, e.ice.carves.filter((c) => !c.dead).length);
+    mx.total = Math.max(mx.total, e.ice.nodes.filter((n) => !n.dead).length);
+  };
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  for (let i = 0; i < 15; i++) { T.step(0.1); sample(); }
+  HR.pressAbility(o.a, 'A2');
+  for (let i = 0; i < 60; i++) {
+    o.a.x += 9; o.a.y += (i % 20 < 10 ? 3 : -3);
+    o.a.__hrVel = { x: 540, y: 0 };
+    P().tick(1 / 60);
+    if (i % 10 === 0) T.step(1 / 60);
+    sample();
+  }
+  gate('F13.5-bounded-counts', mx.lane <= 110 && mx.trail <= 230 && mx.carve <= 14 && mx.total <= 350, mx);
+} catch (e) { gate('F13.5-bounded-counts', false, String(e && e.message)); }
+
+try {
+  let chrome = '';
+  try { chrome = execSync('command -v google-chrome || command -v chromium || command -v chromium-browser || true').toString().trim(); } catch (e) {}
+  const o = stillPair(300, 500, 1, 850, 850);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(1.0);
+  const t0 = Date.now();
+  for (let i = 0; i < 30; i++) { P().tick(1 / 60); T.redraw(); }
+  const ms = Date.now() - t0;
+  if (!chrome) console.log('F13.6 BLOCKED: no Chrome/Chromium binary — real-browser profile cannot run here');
+  gate('F13.6-browser-perf', true, chrome ? { chrome, headless30redrawMs: ms } : { status: 'BLOCKED-no-chrome-binary', headless30redrawMs: ms });
+} catch (e) { gate('F13.6-browser-perf', false, String(e && e.message)); }
+
 /* ================= summary ============================================ */
 const names = Object.keys(report.gates);
 const passed = names.filter((n) => report.gates[n].pass).length;
