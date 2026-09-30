@@ -146,6 +146,29 @@ const result = await page.evaluate(async () => {
     return summary;
   }
 
+  function stepDraw(n=1) { for(let i=0;i<n;i++){ G.APEX_ARSENAL.step(1/60); G.draw(); } }
+  function fireAtCrystal(mm, id='PISTOL') {
+    const cfg=G.APEX_ARSENAL_CONFIG, spec=cfg.WEAPONS[id] || {};
+    const speed=spec.bulletSpeed || ({PISTOL:2600,SMG:3100,SNIPER:5800}[id]||2600);
+    const damage=spec.damagePerShot || spec.damage || spec.damagePerPellet || 4.5;
+    G.APEX_ARSENAL.weaponApi.fireBullet({
+      owner:mm.f1,x:mm.f1.x,y:mm.f1.y,angle:Math.atan2(mm.f0.y-mm.f1.y,mm.f0.x-mm.f1.x),
+      speed,damage,radius:spec.bulletRadius||7,life:spec.bulletLife||1,weapon:id,color:'#fff'
+    });
+  }
+  function buildRealWall(mm) {
+    G.APEX_HERO_REWORK.pressAbility(mm.f0,'A2');
+    mm.f1.x=430; mm.f1.y=500;
+    fireAtCrystal(mm,'PISTOL');
+    for(let i=0;i<12;i++){
+      stepDraw(1);
+      if ((G.APEX_CRYSTAL.inspect(mm.ct)?.available ?? 6) < 6) break;
+    }
+    const cast=G.APEX_HERO_REWORK.pressAbility(mm.f0,'A1');
+    if(!cast.ok) throw new Error('performance wall setup failed');
+    return cast;
+  }
+
   // Real production profiles.
   perf.disableBloom=false; perf.disableChamber=false;
   newMatch('ROBOT','HUNTER');
@@ -164,6 +187,20 @@ const result = await page.evaluate(async () => {
   G.APEX_HERO_REWORK.pressAbility(m.f0,'A1');
   for(let i=0;i<55;i++){G.APEX_ARSENAL.step(1/60);G.draw();}
   runFrames('crystal-prison-full',120,5);
+
+  m=newMatch('CRYSTAL','ROBOT');
+  buildRealWall(m);
+  stepDraw(50); // through the same Gold build/lock path
+  runFrames('crystal-k-wall-full',120,5);
+
+  m=newMatch('CRYSTAL','ROBOT');
+  buildRealWall(m);
+  // Let J recharge while K is still alive; the first intercepted shard docks
+  // independently, then the current live law may permit a second Wall.
+  stepDraw(92);
+  const second=G.APEX_HERO_REWORK.pressAbility(m.f0,'A1');
+  if(second.ok) stepDraw(50);
+  runFrames(second.ok ? 'crystal-double-wall-full' : 'crystal-double-wall-unavailable',120,5);
 
   // Diagnostic A/B only: same production code, runtime layer bypasses; never committed to source behavior.
   perf.disableBloom=true; perf.disableChamber=false;
@@ -230,15 +267,25 @@ fs.writeFileSync(outPath, JSON.stringify(result,null,2)+'\n');
 console.log('=== CRYSTALA PERF PROFILE ===');
 for (const p of result.profiles) {
   const f=p.summary['frame.total'], d=p.summary['draw.total'], s=p.summary['step.total'];
-  const bloom=p.summary['bloom.composite']||{};
+  const bloom=p.summary['bloom.composite']||{}, bloomBegin=p.summary['bloom.begin']||{};
   const rig=p.summary['gold.rig.advance']||{};
   const chamber=p.summary['chamber.actorRender']||{};
+  const body=p.summary['gold.body.normal']||{}, stone=p.summary['gold.stone.normal']||{};
+  const wall=p.summary['gold.wall.normal']||{}, wallE=p.summary['gold.wall.emissive']||{};
+  const prison=p.summary['gold.prison.normal']||{}, prisonE=p.summary['gold.prison.emissive']||{};
   console.log(JSON.stringify({
     label:p.label,
     frame:{p50:f?.p50,p95:f?.p95,max:f?.max},
     draw:{p50:d?.p50,p95:d?.p95},
     step:{p50:s?.p50,p95:s?.p95},
+    bloomBegin:{p50:bloomBegin.p50||0,p95:bloomBegin.p95||0},
     bloomComposite:{p50:bloom.p50||0,p95:bloom.p95||0},
+    bodyNormal:{p50:body.p50||0,p95:body.p95||0},
+    stoneNormal:{p50:stone.p50||0,p95:stone.p95||0},
+    wallNormal:{p50:wall.p50||0,p95:wall.p95||0},
+    wallEmissive:{p50:wallE.p50||0,p95:wallE.p95||0},
+    prisonNormal:{p50:prison.p50||0,p95:prison.p95||0},
+    prisonEmissive:{p50:prisonE.p50||0,p95:prisonE.p95||0},
     rigAdvance:{p50:rig.p50||0,p95:rig.p95||0},
     chamberActor:{p50:chamber.p50||0,p95:chamber.p95||0},
   }));
