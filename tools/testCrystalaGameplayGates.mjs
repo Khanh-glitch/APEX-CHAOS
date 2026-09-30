@@ -550,6 +550,18 @@ await gate('C34-shotgun-pellets-are-independent-threats', () => {
       realShotgunUnreachable: telem(v.cta).ignoredUnreachable, rescueBands: vr.map((e) => e.payload.band) } };
 });
 
+await gate('C34b-real-sniper-800px-uses-physical-rescue-intercept', () => {
+  const w = crystalK({ ax: 100, ay: 500, bx: 900, by: 500 });
+  fire(w.b, 900, 500, 100, 500, 'SNIPER');
+  step(0.55);
+  const rs = evOf(w.ev, 'CrystalReserve');
+  const hit = evOf(w.ev, 'CrystalIntercept');
+  return { ok: rs.length === 1 && hit.length === 1 && rs[0].payload.rescue === true
+      && rs[0].payload.band < 180 && telem(w.cta).ignoredUnreachable === 0,
+    detail: { reservations: rs.length, intercepts: hit.length, band: rs[0]?.payload?.band,
+      unreachable: telem(w.cta).ignoredUnreachable } };
+});
+
 await gate('C35-vanished-outbound-target-aborts-with-curved-return-no-teleport', () => {
   const w = crystalK();
   const p = fire(w.b, 850, 500, w.a.x, w.a.y, 'SLOW');

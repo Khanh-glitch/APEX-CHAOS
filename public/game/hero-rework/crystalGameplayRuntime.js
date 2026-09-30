@@ -213,19 +213,31 @@ function physicalLeadFor(st, id, ip) {
   const travel = Math.hypot(s.x - ip.x, s.y - ip.y);
   return travel * TRAVEL_K + TRAVEL_BASE;
 }
+function rescueBandsFor(c) {
+  // Keep a real safety gap outside the body hit radius. The final dynamic band
+  // is only used for extreme fast shots (SNIPER-class) that still have the
+  // authored 0.12 s anticipation from first sight to real contact.
+  const finalBand = Math.ceil(c.RH + 16);
+  return [...new Set([...RESCUE_BANDS, finalBand])]
+    .filter(b => b > c.RH + 12 && b <= BAND)
+    .sort((a, b) => b - a);
+}
 function interceptOption(st, c, id, band, dt) {
   // Preferred authored contact is 180 px. For fast/close real shots, move the
   // meeting point inward only as far as needed to preserve the 0.12 s visible
   // anticipation beat. Contact remains a real moving-shard TOI before body hit.
-  const minBand = c.RH + 12;
-  if (band <= minBand) return null;
   const tBand = firstWithin(c.d0x, c.d0y, c.wx, c.wy, band);
   if (tBand == null || tBand <= 0 || tBand >= c.tHit || tBand >= c.p.life) return null;
   const ip = { x: c.p.x + c.p.vx * tBand, y: c.p.y + c.p.vy * tBand };
   const physicalLead = physicalLeadFor(st, id, ip);
+  const rescue = band < BAND;
+  // Rescue reservations launch immediately in this same Crystal tick, so they
+  // retain the full remaining flight time. Preferred 180px JIT plans keep the
+  // historical one-tick scheduling allowance.
+  const physicalWindow = rescue ? tBand : Math.max(0, tBand - dt);
+  if (tBand < MIN_LEAD - JIT_SLACK || physicalWindow < physicalLead - JIT_SLACK) return null;
   const lead = Math.max(MIN_LEAD, physicalLead);
-  if (tBand - dt < lead - JIT_SLACK) return null;
-  return { id, band, tBand, ip, lead, rescue: band < BAND };
+  return { id, band, tBand, ip, lead, rescue };
 }
 
 function predictorStep(st, now, dt) {
@@ -264,7 +276,7 @@ function predictorStep(st, now, dt) {
 
     if (!plan) {
       let anyFree = false;
-      for (const band of RESCUE_BANDS) {
+      for (const band of rescueBandsFor(c)) {
         let best = null, bestScore = -Infinity;
         for (const id of free) {
           if (taken.has(id)) continue;
@@ -299,6 +311,14 @@ function predictorStep(st, now, dt) {
   }
 }
 
+function launchReservedJob(st, job, now) {
+  const s = st.shards[job.shard], rig = st.rig;
+  if (!job || job.phase !== STATE.RESERVED) return;
+  const T = Math.max(1 / 120, job.tContact - now);
+  rig.beginIntercept(job.shard, job.ip, T, job.pv, job.facet);
+  s.state = STATE.OUTBOUND; job.phase = STATE.OUTBOUND; job.T = T; job.launchedAt = now;
+}
+
 function reserve(st, c, id, now) {
   const p = c.p, hr = c.hr, s = st.shards[id];
   const pv = { x: p.vx, y: p.vy };
@@ -313,6 +333,7 @@ function reserve(st, c, id, now) {
   st.jobs.push(job);
   st.tele.reservations += 1;
   emit('CrystalReserve', { shard: id, tid: job.id, pid: hr.cryPid, tBand: c.tBand, band: job.band, rescue: job.rescue, ip: c.ip });
+  if (job.rescue) launchReservedJob(st, job, now);
 }
 
 function scaledDamageOf(p) {
@@ -351,14 +372,7 @@ function jobsStep(st, now, dt) {
     const s = st.shards[job.shard], rig = st.rig;
     if (job.phase === STATE.RESERVED) {
       if (!projectileAlive(job.p)) { abortJob(st, job, 'threat-gone', now); continue; }
-      if (now > job.reservedAt + 1e-9) {
-        // Anticipation already happened in RESERVED. Preserve the real
-        // remaining time-to-contact instead of re-imposing 0.12 s and arriving
-        // late on a rescue intercept.
-        const T = Math.max(1 / 120, job.tContact - now);
-        rig.beginIntercept(job.shard, job.ip, T, job.pv, job.facet);
-        s.state = STATE.OUTBOUND; job.phase = STATE.OUTBOUND; job.T = T; job.launchedAt = now;
-      }
+      if (now > job.reservedAt + 1e-9) launchReservedJob(st, job, now);
     } else if (job.phase === STATE.OUTBOUND) {
       if (!projectileAlive(job.p)) { abortJob(st, job, 'threat-gone', now); continue; }
       // the threat was turned (Wall/facet reflection) or held by something else: nothing left to meet
