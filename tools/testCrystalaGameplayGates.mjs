@@ -239,20 +239,24 @@ await gate('C13a-J-decision-window-closes-at-1.2s-no-cooldown', () => {
 });
 
 await gate('C13b-only-one-successful-J-per-Awakening-even-if-cooldown-is-forced-ready', () => {
-  const { a, b, cta } = fresh({ ax:130, ay:500, bx:990, by:500 });
+  const { a, b, cta, ev } = fresh({ ax:130, ay:500, bx:850, by:500 });
   press(a, 'A2');
-  fire(b, 990, 500, a.x, a.y, 'SLOW', { damage:4.5 });
-  stepUntil(() => ins(cta).available === 5, 0.35);
+  fire(b, 850, 500, a.x, a.y, 'SLOW', { damage:4.5 });
+  let reserved=false;
+  for(let k=0;k<60&&!reserved;k++){ step(DT); reserved=evOf(ev,'CrystalReserve').length>0; }
+  const before=ins(cta);
   const first = press(a, 'A1');
   // QA-only forced-ready proves the per-Awakening law independently from the
   // ordinary 1.5s A1 cooldown.
   cta.skills.A1.cdLeft = 0;
   const avail = ins(cta).available;
   const second = press(a, 'A1');
-  return { ok: first.ok && avail >= 2 && ins(cta).k.constructDecisionOpen === false
+  return { ok: reserved && before.available===5 && first.ok && ins(cta).constructs[0]?.kind==='wall'
+      && avail >= 2 && ins(cta).k.constructDecisionOpen === false
       && !second.ok && second.reason === 'condition' && telem(cta).jCasts === 1
       && ins(cta).constructs.length === 1,
-    detail: { first, second, avail, jCasts:telem(cta).jCasts, constructs:ins(cta).constructs.length } };
+    detail: { reserved, beforeAvail:before.available, first, second, avail,
+      kind:ins(cta).constructs[0]?.kind, jCasts:telem(cta).jCasts, constructs:ins(cta).constructs.length } };
 });
 
 await gate('C14-J-with-6-ORBIT-builds-PRISON', () => {
