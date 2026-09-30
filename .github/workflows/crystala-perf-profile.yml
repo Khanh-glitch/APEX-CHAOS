@@ -1,0 +1,73 @@
+name: CRYSTALA Performance Profile
+
+on:
+  push:
+    branches:
+      - arena/01a0ee80-apex-chaos
+    paths:
+      - 'tools/profileCrystalaPerformance.mjs'
+      - '.github/workflows/crystala-perf-profile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.9 --activate
+
+      - name: Install project
+        run: pnpm install --frozen-lockfile
+
+      - name: Install QA-only browser driver
+        run: npm install --no-save --package-lock=false puppeteer-core@24
+
+      - name: Build production
+        run: pnpm build
+
+      - name: Start production preview
+        run: |
+          npx vite preview --host 127.0.0.1 --port 4173 >/tmp/crystala-perf-vite.log 2>&1 &
+          echo $! >/tmp/crystala-perf-vite.pid
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/crystala-perf-vite.log
+          exit 1
+
+      - name: Locate Chrome
+        id: chrome
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          echo "path=$CHROME" >> "$GITHUB_OUTPUT"
+          "$CHROME" --version
+
+      - name: Profile CRYSTALA production path
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:4173
+        run: node tools/profileCrystalaPerformance.mjs
+
+      - name: Upload profile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crystala-performance-profile
+          path: |
+            docs/hero-rework/crystala-v1/perf/crystala-performance-profile.json
+            /tmp/crystala-perf-vite.log
+          if-no-files-found: warn
