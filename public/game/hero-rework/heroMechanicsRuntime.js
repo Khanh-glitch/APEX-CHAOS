@@ -262,9 +262,9 @@
   };
 
   /* -------------------------------------------------------------------- *
-   * 2. CRYSTAL — CRYSTALA V1 (docs/hero-rework/crystala-v1/).
+   * 2. CRYSTAL — CRYSTALA V1 + V2 minimal delta (docs/hero-rework/crystala-v1/).
    *    K/A2 awakening, J/A1 context construct, refraction passive. All truth
-   *    (shards, predictor, contact, constructs, HP, lifetimes, geometry) lives
+   *    (shards, acquisition, contact, constructs, HP, lifetimes, geometry) lives
    *    in crystalGameplayRuntime.js (APEX_CRYSTAL); the executors are the thin,
    *    data-driven entry points the AbilityController dispatches to.
    *    No input buffering: a failed J never replays (canCast false = fail cue,
@@ -279,7 +279,9 @@
   };
 
   EXECUTORS['crystal.context_construct'] = {
-    // Snapshot of truly ORBIT shards at the INPUT EDGE: needs K active and >= 2.
+    // V2 §1.1 routing (resolved in crystalGameplayRuntime): the live HEXA path
+    // (K decision window + 6 ORBIT snapshot at the INPUT EDGE) first; otherwise
+    // the Wall fallback on BLADE L/R [0,1], which may also fire with K off.
     canCast(ctx) { const c = CRY(); return !!(c && c.canCastConstruct(ctx)); },
     // P2 AI only attempts when the cast can succeed (no fail-cue spam).
     aiCanAttempt(ctx) { const c = CRY(); return !!(c && c.aiCanAttemptConstruct(ctx)); },

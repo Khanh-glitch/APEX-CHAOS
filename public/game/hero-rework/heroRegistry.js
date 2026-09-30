@@ -139,24 +139,30 @@
       name: 'CRYSTAL',
       classRef: 'rework.crystal',
       // CRYSTALA V1 (docs/hero-rework/crystala-v1/00_CRYSTALA_IMPLEMENTATION_AUTHORITY.md
-      // §4). Six immortal shards; K awakens a 2.4 s smart-guardian window; J is a
-      // context construct usable only during K; the passive scales reflected
-      // damage only (no automatic body block/reflect). Lv1 numbers are FROZEN.
+      // §4) with the V2 minimal-delta override
+      // (02_CRYSTALA_V2_SIX_SHARD_RESOURCE_AUTHORITY.md §1-§2): Wall HP 80,
+      // J cooldown 8.0 s, Wall fallback on BLADE L/R [0,1] does NOT require K
+      // (the live HEXA path still does — resolved in crystalGameplayRuntime),
+      // K cooldown 12.0 s, read radius 450 / contact ring 300, contact->dock
+      // 1.60 s. Six immortal shards; the passive scales reflected damage only
+      // (no automatic body block/reflect). Lv1 numbers are FROZEN.
       skills: {
         A1: skill('crystal.context_construct', 'A1', 'crystal.context_construct', {
-          cooldown: 1.5, requiresAwakening: true, minShards: 2, prisonShards: 6,
+          // V2 §1.1: WALL may be cast without K; the HEXA (six-facet) path is
+          // still an Awakening-only commitment (decisionWindow/maxCasts stay).
+          cooldown: 8.0, requiresAwakening: false, minShards: 2, prisonShards: 6,
           inputBuffer: false, failConsumesCooldown: false,
-          // Commitment law: J is a first-half Awakening choice, not a free
+          // Commitment law: HEXA is a first-half Awakening choice, not a free
           // end-of-K conversion. One successful construct maximum per K.
           decisionWindow: 1.2, maxCastsPerAwakening: 1,
           constructHpMult: 1,
-          wall: { width: 220, hp: 120, solidLifetime: 4.0 },
+          wall: { width: 220, hp: 80, solidLifetime: 4.0 },
           prison: { radius: 135, facets: 6, facetHp: 75, solidLifetime: 3.0 },
           preSolidTarget: 0.75,
         }, ['constructHpMult'], 'magnitude_step'),
         A2: skill('crystal.awakening', 'A2', 'crystal.awakening', {
-          cooldown: 8.0, active: 2.4, shards: 6, scanRadius: 1000, interceptBand: 180,
-          minAnticipation: 0.12, contactToDock: 1.2,
+          cooldown: 12.0, active: 2.4, shards: 6, scanRadius: 450, interceptBand: 300,
+          minAnticipation: 0.12, contactToDock: 1.6,
         }, ['cooldown'], 'cooldown_step'),
         PASSIVE: skill('crystal.refraction', 'PASSIVE', 'crystal.refraction', {
           reflectedDamagePct: 0.50, controllerChange: 'CRYSTAL', provenanceRetained: true,

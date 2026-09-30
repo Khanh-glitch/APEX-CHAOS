@@ -1,5 +1,7 @@
-// CRYSTALA V1 — deterministic gameplay gates (docs/hero-rework/crystala-v1/03_IMPLEMENTATION_TEST_MATRIX.md
-// §1-§4 + R07). Boots the REAL engine/runtimes headlessly (tools/lib/crystalaHarness.mjs) and drives
+// CRYSTALA V1+V2 — deterministic gameplay gates (docs/hero-rework/crystala-v1/03_IMPLEMENTATION_TEST_MATRIX.md
+// §1-§4 + R07, retargeted to the V2 minimal-delta acceptance gates in
+// docs/hero-rework/crystala-v1/02_CRYSTALA_V2_SIX_SHARD_RESOURCE_AUTHORITY.md §5).
+// Boots the REAL engine/runtimes headlessly (tools/lib/crystalaHarness.mjs) and drives
 // real casts, real bullets through the real fireBullet path and the real shared step.
 //
 //   node tools/testCrystalaGameplayGates.mjs            # all gates
@@ -83,7 +85,7 @@ await gate('C01-dormant-no-body-auto-reflect', () => {
     detail: { reflected, hpLoss: fmt(hp0 - hpOf(a)), available: ins(cta).available } };
 });
 
-await gate('C02-K-valid-press-2.4s-awakening-8s-cooldown', () => {
+await gate('C02-K-valid-press-2.4s-awakening-12s-cooldown', () => {
   const { a, cta } = fresh();
   const t0 = clock();
   const r = press(a, 'A2');
@@ -92,7 +94,8 @@ await gate('C02-K-valid-press-2.4s-awakening-8s-cooldown', () => {
   const activeAt23 = ins(cta).k.active;
   step(0.2);
   const activeAt25 = ins(cta).k.active;
-  return { ok: r.ok && near(cd, 8.0, 1e-6) && activeAt23 && !activeAt25 && telem(cta).kCasts === 1,
+  // V2 §2.4: K cooldown exactly 12.0 s; active duration remains 2.4 s.
+  return { ok: r.ok && near(cd, 12.0, 1e-6) && activeAt23 && !activeAt25 && telem(cta).kCasts === 1,
     detail: { r: r.ok, cd, activeAt23, activeAt25, dur: fmt(ins(cta).k.until - t0) } };
 });
 
@@ -108,7 +111,8 @@ await gate('C04-K-expiry-stops-new-assignments', () => {
   const { a, b, cta } = fresh({ ax: 120, ay: 500, bx: 900, by: 500 });
   press(a, 'A2');
   step(2.30 - 0.0);                               // K ends at 2.40
-  // reservation moment for this bullet falls at ~+0.15 s => after expiry
+  // V2 acquisition claims on 450 px read-radius entry (~+0.13 s for this
+  // bullet) => after expiry, so nothing may be assigned.
   const p = fire(b, 900, 500, a.x, a.y, 'PISTOL');
   step(0.7);
   return { ok: telem(cta).reservations === 0 && !ins(cta).k.active,
@@ -118,12 +122,16 @@ await gate('C04-K-expiry-stops-new-assignments', () => {
 await gate('C05-committed-job-completes-after-K-expiry', () => {
   const { a, b, cta, ev } = fresh({ ax: 120, ay: 500, bx: 975, by: 500 });
   press(a, 'A2');
-  step(2.0);
-  const p = fire(b, 975, 500, a.x, a.y, 'SLOW');   // reservation ~2.2, contact ~2.45 (after K ends)
+  step(1.9333);
+  // 1000 px/s test bullet: read-radius entry claim happens at ~2.667 (the
+  // acquisition loop sees the previous frame's positions — one frame of lag),
+  // still inside K; the real swept contact lands at ~2.74 — AFTER K ends at
+  // 2.70. The committed job must complete on its own physics regardless.
+  const p = fire(b, 975, 500, a.x, a.y, 'SLOW', { speed: 1000 });
   const kEnd = ins(cta).k.until;
   step(2.0);
   const ic = evOf(ev, 'CrystalIntercept')[0];
-  return { ok: !!ic && ic.payload.contactAt > kEnd && telem(cta).intercepts === 1 && !p.__hr.cryTid === false,
+  return { ok: !!ic && ic.payload.contactAt > kEnd && telem(cta).intercepts === 1 && telem(cta).reservations === 1 && !!(p.__hr && p.__hr.cryTid),
     detail: { kEnd: fmt(kEnd), contactAt: ic && fmt(ic.payload.contactAt), reservations: telem(cta).reservations } };
 });
 
@@ -156,10 +164,21 @@ await gate('C08-RESERVED-shard-unavailable-to-J-immediately', () => {
   const unavailableAtReserve = i0.shards.filter((s) => !s.available).length;
   const stateAtReserve = i0.shards.find((s) => !s.available)?.state;
   const availNow = i0.available;
+  const busyId = i0.shards.find((s) => !s.available)?.id;
+  // V2 §1.1: the Wall fallback needs BLADE L/R [0,1] BOTH ORBIT. If the
+  // intercept reserved a blade the wall must fail with no cooldown; otherwise
+  // it succeeds on exactly [0,1]. The LAW is asserted in whichever branch the
+  // deterministic reservation takes.
   const r = press(a, 'A1');
   const c = ins(cta).constructs[0];
-  return { ok: reserved && unavailableAtReserve === 1 && availNow === 5 && r.ok && c && c.kind === 'wall' && c.shardIds.length === 2,
-    detail: { stateAtReserve, unavailableAtReserve, availNow, kind: c && c.kind } };
+  const bladeBusy = busyId === 0 || busyId === 1;
+  const cd = HR.abilityController(cta).cooldownLeft('A1');
+  const ok = reserved && unavailableAtReserve === 1 && availNow === 5 && stateAtReserve !== 'ORBIT'
+    && (bladeBusy
+      ? (!r.ok && cd === 0 && !c)
+      : (r.ok && !!c && c.kind === 'wall' && c.shardIds.join() === '0,1' && near(cd, 8.0, 1e-6)));
+  return { ok, detail: { stateAtReserve, busyId, bladeBusy, unavailableAtReserve, availNow, r: r.ok, cd,
+    kind: c && c.kind, shardIds: c && c.shardIds } };
 });
 
 await gate('C09-RETURN-shard-unavailable-until-exact-dock-frame', () => {
@@ -191,7 +210,7 @@ await gate('C10-docked-shard-can-be-selected-again-in-same-K', async () => {
   const filled = stepUntil(() => ins(cta).available === 0 && telem(cta).reservations === 6, 0.25);
   const allHit = stepUntil(() => telem(cta).intercepts === 6, 0.35);
   const busyAfterSix = ins(cta).available === 0;
-  const reopened = stepUntil(() => ins(cta).available >= 1, 1.35);
+  const reopened = stepUntil(() => ins(cta).available >= 1, 2.0);
   const activeWhenReopened = ins(cta).k.active;
   const hit0 = telem(cta).intercepts;
   fire(b, 430, 500, a.x, a.y, 'SMG', { damage: 2.9 });
@@ -203,60 +222,77 @@ await gate('C10-docked-shard-can-be-selected-again-in-same-K', async () => {
       activeWhenReopened, intercepts: t.intercepts, repeat: t.repeatIntercepts, hit0 } };
 });
 
-await gate('C11-J-outside-K-fails-immediately-no-cooldown', () => {
+await gate('C11-J-outside-K-builds-wall-8s-cooldown', () => {
+  // V2 §1.1 gate 2/4/5/6: K off + BLADE 0/1 ORBIT + J ready -> Wall succeeds
+  // on exactly shardIds [0,1], HP 80, consuming the 8.0 s J cooldown.
   const { a, cta } = fresh();
   const r = press(a, 'A1');
-  return { ok: !r.ok && r.failCue === true && HR.abilityController(cta).cooldownLeft('A1') === 0 && telem(cta).jCasts === 0,
-    detail: { r, cd: HR.abilityController(cta).cooldownLeft('A1') } };
+  const cd = HR.abilityController(cta).cooldownLeft('A1');
+  const c = ins(cta).constructs[0];
+  return { ok: r.ok && near(cd, 8.0, 1e-6) && telem(cta).jCasts === 1 && !!c && c.kind === 'wall'
+      && c.shardIds.join() === '0,1' && c.maxHp === 80 && ins(cta).available === 4,
+    detail: { r: r.ok, cd, kind: c && c.kind, shardIds: c && c.shardIds, maxHp: c && c.maxHp, available: ins(cta).available } };
 });
 
 await gate('C12-failed-J-no-latent-replay', () => {
   const { a, cta } = fresh();
-  press(a, 'A1');                                  // fails: K not active
-  press(a, 'A2'); step(1.0);                       // K now active and six shards return/orbit
-  return { ok: ins(cta).constructs.length === 0 && telem(cta).jCasts === 0,
-    detail: { constructs: ins(cta).constructs.length } };
+  press(a, 'A1');                                  // Wall #1 (K off) consumes BLADE L/R
+  cta.skills.A1.cdLeft = 0;                        // isolate the availability law from the 8 s cooldown
+  const r2 = press(a, 'A1');                       // blades anchored -> fails 'condition', no cooldown
+  const ctaCd = HR.abilityController(cta).cooldownLeft('A1');
+  const failOk = !r2.ok && r2.reason === 'condition' && r2.failCue === true && ctaCd === 0;
+  // let the wall expire + blades dock: the failed press must never replay as a
+  // latent cast and the forced-ready cooldown must survive unconsumed.
+  stepUntil(() => ins(cta).available === 6, 8.0);
+  step(0.5);
+  return { ok: failOk && ins(cta).constructs.filter((c) => c.kind === 'wall').length === 1
+      && telem(cta).jCasts === 1,
+    detail: { failOk, reason: r2.reason, cdAfterFail: fmt(ctaCd), walls: ins(cta).constructs.filter((c) => c.kind === 'wall').length,
+      jCasts: telem(cta).jCasts, available: ins(cta).available } };
 });
 
-await gate('C13-J-success-consumes-1.5s-cooldown', () => {
+await gate('C13-J-success-consumes-8s-cooldown', () => {
   const { a, cta } = fresh();
   press(a, 'A2'); step(0.1);
   const r = press(a, 'A1');
   const cd = HR.abilityController(cta).cooldownLeft('A1');
-  return { ok: r.ok && near(cd, 1.5, 1e-6) && telem(cta).jCasts === 1, detail: { cd } };
+  return { ok: r.ok && near(cd, 8.0, 1e-6) && telem(cta).jCasts === 1, detail: { cd } };
 });
 
-await gate('C13a-J-decision-window-closes-at-1.2s-no-cooldown', () => {
+await gate('C13a-late-J-after-Hexa-window-falls-back-to-wall-while-K-active', () => {
+  // V2 §1.1 routing clause 6: after the live HEXA decision window closes the
+  // HEXA path is not eligible, and J may attempt WALL while K is still on.
   const { a, cta } = fresh();
   press(a, 'A2'); step(1.21);
   const before = ins(cta);
   const r = press(a, 'A1');
+  const cd = HR.abilityController(cta).cooldownLeft('A1');
+  const c = ins(cta).constructs[0];
   return { ok: before.available === 6 && before.k.active && before.k.constructDecisionOpen === false
-      && !r.ok && r.reason === 'condition' && HR.abilityController(cta).cooldownLeft('A1') === 0
-      && telem(cta).jCasts === 0 && ins(cta).constructs.length === 0,
+      && r.ok && near(cd, 8.0, 1e-6) && !!c && c.kind === 'wall' && c.shardIds.join() === '0,1'
+      && telem(cta).jCasts === 1,
     detail: { available: before.available, active: before.k.active, decisionOpen: before.k.constructDecisionOpen,
-      r, cd: HR.abilityController(cta).cooldownLeft('A1') } };
+      r: r.ok, cd, kind: c && c.kind, shardIds: c && c.shardIds } };
 });
 
 await gate('C13b-only-one-successful-J-per-Awakening-even-if-cooldown-is-forced-ready', () => {
-  const { a, b, cta, ev } = fresh({ ax:130, ay:500, bx:850, by:500 });
+  // The HEXA commitment law (00 §10) is live-current: one successful J per
+  // Awakening. Prove it against a forced-ready cooldown so the 8.0 s ordinary
+  // A1 cooldown cannot mask it.
+  const { a, cta } = fresh();
   press(a, 'A2');
-  fire(b, 850, 500, a.x, a.y, 'SLOW', { damage:4.5 });
-  let reserved=false;
-  for(let k=0;k<60&&!reserved;k++){ step(DT); reserved=evOf(ev,'CrystalReserve').length>0; }
-  const before=ins(cta);
-  const first = press(a, 'A1');
-  // QA-only forced-ready proves the per-Awakening law independently from the
-  // ordinary 1.5s A1 cooldown.
-  cta.skills.A1.cdLeft = 0;
+  step(0.1);
+  const before = ins(cta);
+  const first = press(a, 'A1');                    // HEXA -> Prison (6 ORBIT)
+  cta.skills.A1.cdLeft = 0;                        // QA-only forced-ready
   const avail = ins(cta).available;
-  const second = press(a, 'A1');
-  return { ok: reserved && before.available===5 && first.ok && ins(cta).constructs[0]?.kind==='wall'
-      && avail >= 2 && ins(cta).k.constructDecisionOpen === false
+  const second = press(a, 'A1');                   // blades anchored to the prison -> fail
+  return { ok: before.available === 6 && first.ok && ins(cta).constructs[0]?.kind === 'prison'
+      && avail === 0 && ins(cta).k.constructDecisionOpen === false
       && !second.ok && second.reason === 'condition' && telem(cta).jCasts === 1
       && ins(cta).constructs.length === 1,
-    detail: { reserved, beforeAvail:before.available, first, second, avail,
-      kind:ins(cta).constructs[0]?.kind, jCasts:telem(cta).jCasts, constructs:ins(cta).constructs.length } };
+    detail: { beforeAvail: before.available, first: first.ok, second, avail,
+      kind: ins(cta).constructs[0]?.kind, jCasts: telem(cta).jCasts, constructs: ins(cta).constructs.length } };
 });
 
 await gate('C14-J-with-6-ORBIT-builds-PRISON', () => {
@@ -268,41 +304,51 @@ await gate('C14-J-with-6-ORBIT-builds-PRISON', () => {
     detail: { kind: c && c.kind, shards: c && c.shardIds.length } };
 });
 
-await gate('C15-J-with-2to5-ORBIT-builds-WALL-with-exactly-2', () => {
+await gate('C15-wall-always-uses-BLADE-LR-shardIds-0-1', () => {
+  // V2 §1.1 gates 3/4: Wall shardIds are exactly [0,1]; the wall succeeds iff
+  // BOTH blades are ORBIT, regardless of how many other shards are busy.
   const out = {};
-  for (const busy of [1, 2, 3, 4]) {
+  for (const busy of [0, 1, 2, 3]) {
     const { a, b, cta } = fresh({ ax: 130, ay: 500, bx: 990, by: 500 });
     press(a, 'A2');
     for (let k = 0; k < busy; k++) { fire(b, 990, 500, a.x, a.y, 'SLOW', { damage: 4.5 + k * 0.01 }); step(0.02); }
-    stepUntil(() => ins(cta).jobs.length >= busy, 1.2);
-    const avail = ins(cta).available;
+    if (busy) stepUntil(() => ins(cta).jobs.length >= busy, 1.2);
+    else step(1.25);   // busy=0: close the HEXA decision window so this exercises the WALL path
+    const s = ins(cta).shards;
+    const bladesOrbit = s[0].state === 'ORBIT' && s[1].state === 'ORBIT';
     const r = press(a, 'A1');
     const c = ins(cta).constructs[0];
-    out[busy] = { avail, ok: r.ok, kind: c && c.kind, n: c && c.shardIds.length };
+    out[busy] = { bladesOrbit, avail: ins(cta).available, ok: r.ok, kind: c && c.kind,
+      ids: c && c.shardIds.join(), cd: HR.abilityController(cta).cooldownLeft('A1') };
   }
-  const ok = Object.values(out).every((x) => x.ok && x.kind === 'wall' && x.n === 2 && x.avail >= 2 && x.avail <= 5);
+  const ok = Object.values(out).every((x) => x.bladesOrbit
+    ? (x.ok && x.kind === 'wall' && x.ids === '0,1' && near(x.cd, 8.0, 1e-6))
+    : (!x.ok && x.cd === 0 && !x.kind));
   return { ok, detail: out };
 });
 
-await gate('C16-J-with-0or1-available-fails-no-cooldown', () => {
+await gate('C16-J-fails-no-cooldown-when-blades-not-ORBIT', () => {
   const out = {};
-  {   // 0 available: a Prison consumed all six, J again after its cooldown elapsed
+  {   // 0 available: a Prison consumed all six (blades anchored) -> J fails, no cooldown
     const { a, cta } = fresh();
     press(a, 'A2'); step(0.1); press(a, 'A1');
-    step(1.6);
+    cta.skills.A1.cdLeft = 0;                    // QA-only forced-ready: isolate the availability law
     const r = press(a, 'A1');
-    out.zero = { ok: r.ok, reason: r.reason, cd: HR.abilityController(cta).cooldownLeft('A1'), avail: ins(cta).available };
+    out.zero = { ok: r.ok, reason: r.reason, failCue: r.failCue, cd: HR.abilityController(cta).cooldownLeft('A1'),
+      avail: ins(cta).available };
   }
-  {   // 1 available: five shards busy with real intercepts
+  {   // 1 available: five shards busy with real intercepts -> blades cannot both be ORBIT
     const { a, b, cta } = fresh({ ax: 130, ay: 500, bx: 990, by: 500 });
     press(a, 'A2');
     for (let k = 0; k < 5; k++) { fire(b, 990, 500, a.x, a.y, 'SLOW', { damage: 4.5 + k * 0.01 }); step(0.02); }
     stepUntil(() => ins(cta).jobs.length >= 5, 1.2);
     const avail = ins(cta).available;
     const r = press(a, 'A1');
-    out.one = { ok: r.ok, reason: r.reason, avail, cd: HR.abilityController(cta).cooldownLeft('A1') };
+    out.one = { ok: r.ok, reason: r.reason, failCue: r.failCue, avail,
+      cd: HR.abilityController(cta).cooldownLeft('A1') };
   }
-  const ok = !out.zero.ok && out.zero.cd === 0 && out.zero.avail === 0 && !out.one.ok && out.one.cd === 0 && out.one.avail === 1;
+  const ok = !out.zero.ok && out.zero.reason === 'condition' && out.zero.failCue && out.zero.cd === 0 && out.zero.avail === 0
+    && !out.one.ok && out.one.reason === 'condition' && out.one.failCue && out.one.cd === 0 && out.one.avail === 1;
   return { ok, detail: out };
 });
 
@@ -330,12 +376,19 @@ await gate('C17-same-frame-J-snapshot-resolves-before-threat-reservation', () =>
 });
 
 /* ---- construct scenarios ------------------------------------------------- */
-// Wall: one shard is made busy by a real vertical intercept (away from the wall line), then J (2..5 -> Wall).
+// Wall: V2 §1.1 — WALL is castable with K OFF. Blades [0,1] ORBIT + J ready is
+// the whole gate, so this helper is fully deterministic (no shard busywork).
 function wallFresh(o = {}) {
   const w = fresh(Object.assign({ ax: 150, ay: 500, bx: 850, by: 500 }, o));
+  w.r = press(w.a, 'A1');
+  w.cons = () => ins(w.cta).constructs.find((c) => c.kind === 'wall');
+  return w;
+}
+// Wall via the K-on fallback (HEXA decision window already closed).
+function wallFreshK(o = {}) {
+  const w = fresh(Object.assign({ ax: 150, ay: 500, bx: 850, by: 500 }, o));
   press(w.a, 'A2');
-  fire(w.b, w.a.x, 900, w.a.x, w.a.y, 'SLOW');
-  stepUntil(() => ins(w.cta).jobs.length >= 1, 1.5);
+  step(1.25);
   w.r = press(w.a, 'A1');
   w.cons = () => ins(w.cta).constructs.find((c) => c.kind === 'wall');
   return w;
@@ -350,7 +403,7 @@ function prisonFresh(o = {}) {
 const lockedAt = (w) => { const c = w.cons(); return c && c.lockedAt; };
 const waitLock = (w) => stepUntil(() => lockedAt(w) != null, 3.0);
 
-await gate('C18-wall-HP120-width220-solid-4s-from-material-lock', () => {
+await gate('C18-wall-HP80-width220-solid-4s-from-material-lock', () => {
   const w = wallFresh();
   const castAt = clock();
   waitLock(w);
@@ -363,7 +416,8 @@ await gate('C18-wall-HP120-width220-solid-4s-from-material-lock', () => {
   const t = stepUntil(() => w.cons().state === 'ENDED', 6.0);
   const c2 = w.cons();
   const endedAt = c2.state === 'ENDED' ? clock() : null;
-  return { ok: w.r.ok && c.maxHp === 120 && near(span, 220, 1e-6) && near(life, 4.0, 1e-9) && lockDelay > 0.6 && lockDelay < 0.9 && c2.reason === 'expire' && endedAt != null && endedAt - c.endAt < 2 * DT + 1e-6 && endedAt - c.endAt >= -1e-6,
+  // V2 §1.2: HP exactly 80; width 220 / 4.0 s solid life / Gold build timing unchanged.
+  return { ok: w.r.ok && c.maxHp === 80 && near(span, 220, 1e-6) && near(life, 4.0, 1e-9) && lockDelay > 0.6 && lockDelay < 0.9 && c2.reason === 'expire' && endedAt != null && endedAt - c.endAt < 2 * DT + 1e-6 && endedAt - c.endAt >= -1e-6,
     detail: { maxHp: c.maxHp, span: fmt(span), lockDelay: fmt(lockDelay), life, reason: c2.reason, lateBy: endedAt && fmt(endedAt - c.endAt) } };
 });
 
@@ -407,30 +461,54 @@ await gate('C20-shards-never-lose-HP-die-or-reconstruct', () => {
  * ========================================================================= */
 const crystalK = (o) => { const w = fresh(o); press(w.a, 'A2'); return w; };
 
-await gate('C21-predicted-miss-does-not-reserve', () => {
+await gate('C21-near-miss-entering-450-claims-a-shard-even-though-it-would-miss', () => {
+  // V2 §2.1 gate 14: the old body-hit predictor classified this as a miss; the
+  // simple radius rule intentionally spends shard capacity on it.
   const w = crystalK();
   const hp0 = hpOf(w.a);
-  fire(w.b, 850, 500, 150, 800, 'SLOW');                 // passes ~300 px beside the Crystal
+  fire(w.b, 850, 500, 150, 800, 'SLOW');                 // closest approach ~276 px: never hits the body
   step(1.5);
-  return { ok: telem(w.cta).reservations === 0 && telem(w.cta).ignoredMiss === 1 && hpOf(w.a) === hp0 && ins(w.cta).available === 6,
-    detail: { miss: telem(w.cta).ignoredMiss, res: telem(w.cta).reservations } };
+  const claimed = telem(w.cta).reservations === 1 && telem(w.cta).ignoredMiss === 0;
+  const ic = evOf(w.ev, 'CrystalIntercept')[0];
+  const cD = ic ? Math.hypot(ic.payload.x - w.a.x, ic.payload.y - w.a.y) : null;
+  // and a projectile that never enters the 450 px read radius claims nothing (gate 11)
+  const v = crystalK();
+  fire(v.b, 850, 500, 150, 1200, 'SLOW');                // closest approach ~495 px: outside the read radius
+  step(1.5);
+  const outside = telem(v.cta).reservations === 0 && telem(v.cta).threatsSeen === 0;
+  return { ok: claimed && !!ic && near(cD, 300, 60) && hpOf(w.a) === hp0 && outside,
+    detail: { claimed, interceptDist: cD && fmt(cD), outside450: outside,
+      res: telem(w.cta).reservations, outsideRes: telem(v.cta).reservations } };
 });
 
-await gate('C22-projectile-that-would-expire-does-not-reserve', () => {
+await gate('C22-short-lived-projectile-also-claims-no-lifetime-prediction', () => {
+  // V2 §2.1: lifetime prediction is not a kept exclusion. A bullet that will
+  // expire inside the ring still claims a free shard (intended capacity waste);
+  // the job then aborts honestly when the threat disappears.
   const w = crystalK();
-  fire(w.b, 850, 500, w.a.x, w.a.y, 'SLOW', { life: 0.1 });   // range 150 px, target 700 px away
-  step(0.8);
-  return { ok: telem(w.cta).reservations === 0 && telem(w.cta).ignoredExpired === 1, detail: { expired: telem(w.cta).ignoredExpired } };
+  fire(w.b, 570, 500, w.a.x, w.a.y, 'SLOW', { life: 0.05 });   // spawned 420 px away, dies at ~345 px
+  step(0.35);
+  const reserved = telem(w.cta).reservations === 1 && telem(w.cta).ignoredExpired === 0;
+  const ab = evOf(w.ev, 'CrystalAbort')[0];
+  stepUntil(() => ins(w.cta).available === 6, 2.5);
+  return { ok: reserved && !!ab && ab.payload.reason === 'threat-gone' && ins(w.cta).available === 6,
+    detail: { reserved, abort: ab && ab.payload.reason, available: ins(w.cta).available } };
 });
 
-await gate('C23-projectile-hitting-solid-construct-first-does-not-reserve', () => {
+await gate('C23-blocked-first-projectile-also-claims-no-blocker-prediction', () => {
+  // V2 §2.1: the blocker-first prerequisite is REMOVED. A projectile that will
+  // hit a solid Wall first still claims a free shard (capacity waste is
+  // intended); the Wall reflects it and the shard job aborts 'blocked'.
   const w = wallFresh();
   waitLock(w);
-  const res0 = telem(w.cta).reservations;
-  fire(w.b, 850, 500, w.a.x, w.a.y, 'SLOW');            // crosses the wall line x~480 before the Crystal
-  step(0.5);
-  return { ok: ins(w.cta).k.active && telem(w.cta).reservations === res0 && telem(w.cta).ignoredBlocked === 1 && telem(w.cta).constructReflects === 1,
-    detail: { blocked: telem(w.cta).ignoredBlocked, reflects: telem(w.cta).constructReflects, res: telem(w.cta).reservations, kActive: ins(w.cta).k.active } };
+  press(w.a, 'A2');                                   // K on so the acquisition runs
+  fire(w.b, 850, 500, w.a.x, w.a.y, 'SLOW');           // crosses the wall line x~480 first
+  step(0.6);
+  const ab = evOf(w.ev, 'CrystalAbort')[0];
+  return { ok: ins(w.cta).k.active && telem(w.cta).reservations === 1 && telem(w.cta).ignoredBlocked === 0
+      && telem(w.cta).constructReflects === 1 && !!ab && ab.payload.reason === 'blocked',
+    detail: { res: telem(w.cta).reservations, blocked: telem(w.cta).ignoredBlocked,
+      reflects: telem(w.cta).constructReflects, abort: ab && ab.payload.reason } };
 });
 
 await gate('C24-non-hostile-projectile-does-not-reserve', () => {
@@ -471,19 +549,22 @@ await gate('C27-melee-contact-blast-beam-field-DoT-never-wake-K', () => {
     detail: { seen: telem(w.cta).threatsSeen, res: telem(w.cta).reservations } };
 });
 
-await gate('C28-scan-1000-detects-but-never-reserves-early-by-distance', () => {
+await gate('C28-read-radius-450-claims-on-entry-not-at-spawn', () => {
   const w = crystalK({ ax: 100, ay: 500, bx: 990, by: 500 });
   const t0 = clock();
-  fire(w.b, 990, 500, w.a.x, w.a.y, 'SLOW');            // ~890 px away at spawn, tBand ~0.47 s
+  fire(w.b, 990, 500, w.a.x, w.a.y, 'SLOW');            // ~890 px away at spawn: OUTSIDE 450
   step(DT, DT); step(DT, DT);
   const early = { seen: telem(w.cta).threatsSeen, res: telem(w.cta).reservations };
   stepUntil(() => telem(w.cta).reservations > 0, 1.0);
   const rv = evOf(w.ev, 'CrystalReserve')[0];
-  return { ok: early.seen === 1 && early.res === 0 && !!rv && rv.payload.tBand < 0.5 && rv.t - t0 > 0.05,
+  // V2 §2.2 gate 11: nothing exists for K before the 450 px entry; the claim
+  // happens exactly at entry (~0.29 s), with the 300 px ring as contact target.
+  return { ok: early.seen === 0 && early.res === 0 && !!rv && rv.payload.band === 300
+      && (rv.t - t0) > 0.25 && (rv.t - t0) < 0.35 && near(rv.payload.tBand, 0.10, 0.03),
     detail: { early, tBandAtReserve: rv && fmt(rv.payload.tBand), after: rv && fmt(rv.t - t0) } };
 });
 
-await gate('C29-predicted-intercept-is-the-real-180px-band', () => {
+await gate('C29-intercept-target-is-the-real-300px-ring', () => {
   const w = crystalK();
   fire(w.b, 850, 500, w.a.x, w.a.y, 'SLOW');
   stepUntil(() => telem(w.cta).intercepts > 0, 2.0);
@@ -491,10 +572,11 @@ await gate('C29-predicted-intercept-is-the-real-180px-band', () => {
   const ic = evOf(w.ev, 'CrystalIntercept')[0].payload;
   const ipD = Math.hypot(rv.ip.x - w.a.x, rv.ip.y - w.a.y);
   const cD = Math.hypot(ic.x - w.a.x, ic.y - w.a.y);
-  return { ok: near(ipD, 180, 0.5) && near(cD, 180, 60), detail: { ipDist: fmt(ipD), contactDist: fmt(cD) } };
+  return { ok: rv.band === 300 && near(ipD, 300, 0.5) && near(cD, 300, 60),
+    detail: { ipDist: fmt(ipD), contactDist: fmt(cD), band: rv.band } };
 });
 
-await gate('C30-predictor-accounts-for-Crystal-current-movement', () => {
+await gate('C30-ring-geometry-still-accounts-for-Crystal-current-movement', () => {
   const w = fresh({ ax: 200, ay: 200, bx: 850, by: 700 });
   w.a.baseSpeed = 400; w.a.setDir(0, 1);                     // Crystal walking down at 400 px/s
   press(w.a, 'A2');
@@ -513,31 +595,30 @@ await gate('C30-predictor-accounts-for-Crystal-current-movement', () => {
   step(1.6);
   const s0 = snap[0];
   let ipErr = null;
-  if (s0) { const pr = s0.ev.payload; const cx = s0.cx + s0.v.x * pr.tBand, cy = s0.cy + s0.v.y * pr.tBand; ipErr = Math.abs(Math.hypot(pr.ip.x - cx, pr.ip.y - cy) - 180); }
+  if (s0) { const pr = s0.ev.payload; const cx = s0.cx + s0.v.x * pr.tBand, cy = s0.cy + s0.v.y * pr.tBand; ipErr = Math.abs(Math.hypot(pr.ip.x - cx, pr.ip.y - cy) - 300); }
+  // V2: even a bullet the old predictor called a miss claims capacity; the 300
+  // px contact ring is still computed against the MOVING Crystal centre.
   return { ok: dd > 65.5 && !!s0 && ipErr < 2.0 && telem(w.cta).intercepts === 1 && hpOf(w.a) === hp0,
     detail: { stationaryMiss: fmt(dd), ipErr: ipErr && fmt(ipErr), intercepts: telem(w.cta).intercepts } };
 });
 
-await gate('C31-simultaneous-threats-TTI-then-damage-then-stable-id', () => {
-  // Seven simultaneous real threats, six shards: the assignment order decides exactly who is left unserved.
-  const round = (specs, ax) => {
-    ax = ax || 150;
-    const w = crystalK({ ax, ay: 500, bx: 850, by: 500 });
-    const ps = specs.map((s) => fire(w.b, ax + s.R * Math.cos(s.th), 500 + s.R * Math.sin(s.th), w.a.x, w.a.y, 'SLOW',
-      { speed: 900, life: 3, damage: s.dmg }));
+await gate('C31-simultaneous-threats-stable-first-seen-order-no-damage-priority', () => {
+  // V2 §2.1: time-to-hit and damage priority prediction are GONE. Seven
+  // simultaneous eligible projectiles, six shards: the stable first-seen order
+  // decides — the LAST spawned is unserved, even when it carries the heaviest shot.
+  const round = (dmgFn) => {
+    const w = crystalK({ ax: 150, ay: 500, bx: 850, by: 500 });
+    const ths = [-0.25, -0.17, -0.08, 0, 0.08, 0.17, 0.25];
+    const ps = ths.map((th, i) => fire(w.b, 150 + 850 * Math.cos(th), 500 + 850 * Math.sin(th), w.a.x, w.a.y, 'SLOW',
+      { speed: 900, life: 3, damage: dmgFn(i) }));
     step(2.6);
     return ps.map((p) => !!(p.__hr && p.__hr.cryTid));
   };
-  const ths = [-0.25, -0.17, -0.08, 0, 0.08, 0.17, 0.25];
-  // (a) nearer projectile = earlier time-to-hit: the FARTHEST one (index 0) loses
-  const a = round(ths.map((th, i) => ({ th, R: 900 - i * 20, dmg: 4.5 })), 100);
-  // (b) equal TTI: the LOWEST damage (index 6) loses
-  const b = round(ths.map((th, i) => ({ th, R: 850, dmg: i === 6 ? 4.4 : 4.5 + i * 0.1 })));
-  // (c) equal TTI and damage: the stable id (spawn order) decides; the LAST spawned loses
-  const c = round(ths.map((th) => ({ th, R: 850, dmg: 4.5 })));
   const lost = (r) => r.map((x, i) => (x ? -1 : i)).filter((i) => i >= 0);
-  return { ok: lost(a).join() === '0' && lost(b).join() === '6' && lost(c).join() === '6',
-    detail: { unservedByTTI: lost(a), unservedByDamage: lost(b), unservedById: lost(c) } };
+  const a = round(() => 4.5);
+  const b = round((i) => (i === 6 ? 9.0 : 4.5));
+  return { ok: lost(a).join() === '6' && lost(b).join() === '6',
+    detail: { unservedEqualDamage: lost(a), unservedHeaviestLast: lost(b) } };
 });
 
 await gate('C32-each-projectile-gets-at-most-one-shard', () => {
@@ -561,24 +642,23 @@ await gate('C33-each-shard-handles-at-most-one-current-assignment', () => {
   return { ok: violations === 0 && maxJobs >= 2, detail: { violations, maxJobs } };
 });
 
-await gate('C34-shotgun-pellets-are-independent-threats', () => {
-  // (a) independence: a fan of 8 slow pellets; only the ones whose own path hits reserve, each by its own shard
+await gate('C34-spray-and-spread-waste-shard-capacity-by-design', () => {
+  // V2 §2.1: every pellet entering 450 claims a free shard — spray/spread
+  // waste is the INTENDED consequence of the simple acquisition rule. The
+  // shotgun-blast independence law is preserved: one shard per pellet, and the
+  // 8-pellet fan saturates exactly six shards with two unserved.
   const w = crystalK({ ax: 150, ay: 500, bx: 850, by: 500 });
-  const base = Math.PI;                                   // aimed at the Crystal
-  let wouldHit = 0;
   for (let k = 0; k < 8; k++) {
-    const ang = base + (k - 3.5) * 0.06;
+    const ang = Math.PI + (k - 3.5) * 0.06;
     const tx = 850 + Math.cos(ang) * 700, ty = 500 + Math.sin(ang) * 700;
-    const d = Math.abs((150 - 850) * Math.sin(ang) - (500 - 500) * Math.cos(ang));   // perpendicular miss of a stationary Crystal
-    if (d <= 58.5 + 6) wouldHit++;
     fire(w.b, 850, 500, tx, ty, 'SLOW', { radius: 6, life: 2 });
   }
   step(2.5);
-  const res = telem(w.cta).reservations, miss = telem(w.cta).ignoredMiss;
+  const res = telem(w.cta).reservations;
   const pids = evOf(w.ev, 'CrystalReserve').map((e) => e.payload.pid);
-  // (b) real shotgun pellets: 180 px is too early for the 0.12 s beat at this
-  // range, so the predictor must choose a later inward rescue band and still
-  // assign pellets independently.
+  const bands = evOf(w.ev, 'CrystalReserve').map((e) => e.payload.band);
+  // (b) real shotgun pellets at close range: all eight enter 450 at once, six
+  // claim distinct shards instantly, the rest overflow — no rescue bands exist.
   const v = crystalK({ ax: 150, ay: 500, bx: 560, by: 500 });
   for (let k = 0; k < 8; k++) {
     const ang = Math.PI + (k - 3.5) * 0.05;
@@ -587,25 +667,36 @@ await gate('C34-shotgun-pellets-are-independent-threats', () => {
   step(0.4);
   const vr = evOf(v.ev, 'CrystalReserve');
   const vShards = vr.map((e) => e.payload.shard);
-  return { ok: res === wouldHit && res >= 1 && new Set(pids).size === res && miss === 8 - wouldHit
-      && telem(v.cta).reservations >= 1 && telem(v.cta).reservations <= 6
-      && new Set(vShards).size === vShards.length && vr.some((e) => e.payload.urgent),
-    detail: { slowFan: { wouldHit, reserved: res, miss }, realShotgunReserved: telem(v.cta).reservations,
-      realShotgunUnreachable: telem(v.cta).ignoredUnreachable, bands: vr.map((e) => e.payload.band),
-      urgent: vr.map((e) => !!e.payload.urgent) } };
+  return { ok: res === 6 && new Set(pids).size === 6 && telem(w.cta).overflowThreats === 2
+      && bands.every((b) => b === 300)
+      && telem(v.cta).reservations === 6 && telem(v.cta).overflowThreats === 2
+      && new Set(vShards).size === 6 && vr.every((e) => e.payload.band === 300),
+    detail: { slowFan: { reserved: res, overflow: telem(w.cta).overflowThreats }, bands,
+      realShotgunReserved: telem(v.cta).reservations, realShotgunOverflow: telem(v.cta).overflowThreats,
+      shotgunBands: vr.map((e) => e.payload.band) } };
 });
 
-await gate('C34b-real-sniper-800px-keeps-Gold-180px-contact-under-urgency', () => {
+await gate('C34b-real-sniper-800px-met-on-the-300-ring-assignment-never-consumes', () => {
   const w = crystalK({ ax: 100, ay: 500, bx: 900, by: 500 });
-  fire(w.b, 900, 500, 100, 500, 'SNIPER');
+  const p = fire(w.b, 900, 500, 100, 500, 'SNIPER');
+  let aliveAtReserve = null;
+  AIL.bus.on('CrystalReserve', () => {
+    aliveAtReserve = win.projectiles.includes(p) && p.life > 0
+      && !(p.__hr && p.__hr.crystalReflected) && (p.damage === 26);
+  });
   step(0.55);
   const rs = evOf(w.ev, 'CrystalReserve');
   const hit = evOf(w.ev, 'CrystalIntercept');
-  return { ok: rs.length === 1 && hit.length === 1 && rs[0].payload.band === 180
-      && rs[0].payload.urgent === true && telem(w.cta).ignoredUnreachable === 0,
+  const cD = hit[0] ? Math.hypot(hit[0].payload.x - w.a.x, hit[0].payload.y - w.a.y) : null;
+  // V2 §2.2 gates 12/18: the shard may travel faster to the 300 px contact
+  // ring, real swept contact is what reflects, and assignment never consumes
+  // or re-damages the projectile.
+  return { ok: rs.length === 1 && hit.length === 1 && rs[0].payload.band === 300
+      && rs[0].payload.urgent === true && aliveAtReserve === true && near(cD, 300, 70)
+      && telem(w.cta).ignoredUnreachable === 0,
     detail: { reservations: rs.length, intercepts: hit.length, band: rs[0]?.payload?.band,
       urgent: rs[0]?.payload?.urgent, accelerated: rs[0]?.payload?.accelerated,
-      unreachable: telem(w.cta).ignoredUnreachable } };
+      contactDist: cD && fmt(cD), aliveAtReserve, unreachable: telem(w.cta).ignoredUnreachable } };
 });
 
 await gate('C34c-six-close-threats-use-six-independent-shards-seventh-waits', () => {
@@ -627,7 +718,7 @@ await gate('C34c-six-close-threats-use-six-independent-shards-seventh-waits', ()
   step(0.16);
   const seventhPassed = hpOf(w.a) < hp6 && telem(w.cta).overflowThreats >= 1;
 
-  const docked = stepUntil(() => ins(w.cta).available >= 1, 1.4);
+  const docked = stepUntil(() => ins(w.cta).available >= 1, 2.0);
   const activeAfterDock = ins(w.cta).k.active;
   const before8 = telem(w.cta).intercepts;
   if (activeAfterDock) {
@@ -660,25 +751,35 @@ await gate('C35-vanished-outbound-target-aborts-with-curved-return-no-teleport',
     detail: { reason: ab && ab.payload.reason, maxJump: fmt(maxJump), dockAfter: docked && fmt(docked) } };
 });
 
-await gate('C36-selected-shard-is-physically-reachable-no-far-side-teleport', () => {
+await gate('C36-shard-travel-is-continuous-no-far-side-teleport', () => {
   const w = crystalK({ ax: 150, ay: 500, bx: 990, by: 500 });
   const rec = [];
   AIL.bus.on('CrystalReserve', (e) => { const st = rigOf(w.cta).stones[e.payload.shard]; rec.push({
+    shard: e.payload.shard,
     tBand: e.payload.tBand, travel: Math.hypot(st.x - e.payload.ip.x, st.y - e.payload.ip.y),
     accelerated: !!e.payload.accelerated, band: e.payload.band
   }); });
   for (let k = 0; k < 3; k++) fire(w.b, 990, 500 + (k - 1) * 50, w.a.x, w.a.y + (k - 1) * 25, 'SLOW', { damage: 4.5 + k * 0.01 });
-  let maxJump = 0; const prev = new Map();
+  const maxJump = new Map();
+  const prev = new Map();
   for (let k = 0; k < 150; k++) {
     step(DT);
-    for (const s of rigOf(w.cta).stones) { const q = prev.get(s.uid); if (q) maxJump = Math.max(maxJump, Math.hypot(s.x - q.x, s.y - q.y)); prev.set(s.uid, { x: s.x, y: s.y }); }
+    for (const s of rigOf(w.cta).stones) {
+      const q = prev.get(s.uid);
+      if (q) maxJump.set(s.uid, Math.max(maxJump.get(s.uid) || 0, Math.hypot(s.x - q.x, s.y - q.y)));
+      prev.set(s.uid, { x: s.x, y: s.y });
+    }
   }
-  // Normal assignments still obey the authored travel model. Urgent assignments
-  // may compress that same Hermite path, but must remain continuous (no teleport).
-  const fitsOrExplicitlyAccelerated = rec.every((r) => r.accelerated || (r.travel * 1.12 / 1000 + 0.02) <= r.tBand + 0.011);
-  return { ok: rec.length >= 2 && fitsOrExplicitlyAccelerated && maxJump < 70,
-    detail: { n: rec.length, fitsOrExplicitlyAccelerated, maxJump: fmt(maxJump),
-      travel: rec.map((r) => fmt(r.travel)), accelerated: rec.map((r) => r.accelerated), bands: rec.map((r) => r.band) } };
+  // V2 §2.2: the shard may travel faster to the 300 px contact point — but it
+  // is ALWAYS the same continuous Gold Hermite motion (never a teleport: no
+  // tick may relocate a stone across a major part of ITS OWN travel) and the
+  // contact target is always the 300 px ring.
+  const fitsOrExplicitlyAccelerated = rec.every((r) => r.band === 300 && (r.accelerated || (r.travel * 1.12 / 1000 + 0.02) <= r.tBand + 0.011));
+  const continuous = rec.every((r) => (maxJump.get(r.shard) || 0) < 0.6 * r.travel);
+  return { ok: rec.length >= 2 && fitsOrExplicitlyAccelerated && continuous,
+    detail: { n: rec.length, fitsOrExplicitlyAccelerated, continuous,
+      jumps: rec.map((r) => fmt(maxJump.get(r.shard) || 0)), travel: rec.map((r) => fmt(r.travel)),
+      accelerated: rec.map((r) => r.accelerated), bands: rec.map((r) => r.band) } };
 });
 
 /* =========================================================================
@@ -823,16 +924,32 @@ await gate('C47-fixed-wall-reflection-obeys-the-surface-plane', () => {
   return { ok: !!(p.__hr && p.__hr.crystalReflected) && err < 1e-6 && p.owner === w.a, detail: { err, normal: { x: fmt(n.x), y: fmt(n.y) } } };
 });
 
-await gate('C48-final-killing-hit-is-reflected-before-the-structure-is-removed', () => {
+await gate('C48-three-shot-breaking-law-killer-passes-through-unreflected', () => {
+  // V2 §1.2: structural damage BELOW remaining Wall HP reflects; the shot that
+  // DEALS the remaining HP is the breaking shot: hit applied, Wall destroyed,
+  // same projectile NOT reflected and untouched (owner / velocity / crit /
+  // provenance / full damage), it simply continues through. SLOW effective
+  // damage 31.5 kills an HP 80 Wall on the THIRD shot.
   const w = wallFresh();
   waitLock(w);
   const shots = [];
-  for (let k = 0; k < 4; k++) { shots.push(fire(w.b, 850, 500, w.a.x, w.a.y, 'SLOW', { damage: 4.5 + k * 0.001 })); step(0.6); }
+  for (let k = 0; k < 3; k++) { shots.push(fire(w.b, 850, 500, w.a.x, w.a.y, 'SLOW', { damage: 4.5 + k * 0.001 })); step(0.6); }
   const c = w.cons();
-  const last = shots[3];
-  const hps = evOf(w.ev, 'CrystalConstructHit').map((e) => e.payload.damage);
-  return { ok: c.state === 'ENDED' && c.reason === 'destroyed' && shots.every((p) => p.__hr && p.__hr.crystalReflected && p.owner === w.a) && last.vx > 0,
-    detail: { state: c.state, reason: c.reason, reflected: shots.map((p) => !!(p.__hr && p.__hr.crystalReflected)), hits: hps.map(fmt) } };
+  const last = shots[2];
+  const hps = evOf(w.ev, 'CrystalConstructHit');
+  const refs = evOf(w.ev, 'CrystalConstructReflect');
+  const pass = last.__hr && last.__hr.cryPassed;
+  return { ok: c.state === 'ENDED' && c.reason === 'destroyed'
+      && shots[0].__hr && shots[0].__hr.crystalReflected
+      && shots[1].__hr && shots[1].__hr.crystalReflected
+      && !(last.__hr && last.__hr.crystalReflected) && !!pass
+      && last.owner === w.b && last.vx < 0 && near(last.damage, 4.5 + 0.002, 1e-9)
+      && hps.length === 3 && refs.length === 2
+      && hps[0].payload.why === 'hit' && hps[1].payload.why === 'hit' && hps[2].payload.why === 'break-through',
+    detail: { state: c.state, reason: c.reason,
+      reflected: shots.map((p) => !!(p.__hr && p.__hr.crystalReflected)), breakThrough: pass,
+      lastVx: fmt(last.vx), lastDamage: last.damage, lastOwner: last.owner === w.b ? 'B' : last.owner === w.a ? 'A' : '?',
+      hits: hps.map((e) => `${fmt(e.payload.damage)}:${e.payload.why}`), reflectEvents: refs.length } };
 });
 
 await gate('C49-T6-keeps-final-authority-and-is-never-reflected', () => {
@@ -1071,21 +1188,23 @@ await gate('L02-registry-frozen-numbers-and-one-knob-per-skill', () => {
   const a1 = R.resolveSkillLevel('CRYSTAL', 'A1', 1), a2 = R.resolveSkillLevel('CRYSTAL', 'A2', 1), ps = R.resolveSkillLevel('CRYSTAL', 'PASSIVE', 1);
   const knobs = [c.A1, c.A2, c.PASSIVE].map((s) => s.progressionBinding.knobPath.join('.'));
   const v = R.validateRegistry();
-  return { ok: v.ok && a1.cooldown === 1.5 && a1.decisionWindow === 1.2 && a1.maxCastsPerAwakening === 1
-    && a1.wall.width === 220 && a1.wall.hp === 120 && a1.wall.solidLifetime === 4 && a1.prison.radius === 135 && a1.prison.facetHp === 75 && a1.prison.solidLifetime === 3
-    && a2.cooldown === 8 && a2.active === 2.4 && a2.scanRadius === 1000 && a2.interceptBand === 180 && a2.minAnticipation === 0.12 && a2.contactToDock === 1.2
+  return { ok: v.ok && a1.cooldown === 8 && a1.decisionWindow === 1.2 && a1.maxCastsPerAwakening === 1
+    && a1.wall.width === 220 && a1.wall.hp === 80 && a1.wall.solidLifetime === 4 && a1.prison.radius === 135 && a1.prison.facetHp === 75 && a1.prison.solidLifetime === 3
+    && a2.cooldown === 12 && a2.active === 2.4 && a2.scanRadius === 450 && a2.interceptBand === 300 && a2.minAnticipation === 0.12 && a2.contactToDock === 1.6
     && ps.reflectedDamagePct === 0.5 && knobs.join() === 'constructHpMult,cooldown,reflectedDamagePct',
     detail: { knobs, registryOk: v.ok, errors: v.errors } };
 });
 
-await gate('M01-contact-to-dock-is-1.20s-and-dock-flips-availability-exactly', () => {
+await gate('M01-contact-to-dock-is-1.60s-and-dock-flips-availability-exactly', () => {
   const w = crystalK();
   fire(w.b, 850, 500, w.a.x, w.a.y, 'SLOW');
   stepUntil(() => evOf(w.ev, 'CrystalDock').length > 0, 3.0);
   const ic = evOf(w.ev, 'CrystalIntercept')[0].payload, dk = evOf(w.ev, 'CrystalDock')[0].payload;
   const total = dk.at - ic.contactAt;
   const rl = evOf(w.ev, 'CrystalRelease')[0].payload.at - ic.contactAt;
-  return { ok: near(total, 1.20, 0.04) && near(rl, 0.16, 0.02) && ins(w.cta).available === 6, detail: { contactToDock: fmt(total), refractBeat: fmt(rl) } };
+  // V2 §2.2: contact-to-visible-dock retuned to 1.60 s total (refract/recoil
+  // beats 0.16 s each are unchanged; only the return leg was retuned).
+  return { ok: near(total, 1.60, 0.04) && near(rl, 0.16, 0.02) && ins(w.cta).available === 6, detail: { contactToDock: fmt(total), refractBeat: fmt(rl) } };
 });
 
 await gate('A01-P2-Crystal-AI-healthy-no-fail-cue-spam', () => {
@@ -1103,6 +1222,137 @@ await gate('A01-P2-Crystal-AI-healthy-no-fail-cue-spam', () => {
 });
 
 // @@GATES_CONTINUE@@
+
+/* ============================ V2 law gates ============================== */
+
+await gate('V02-single-heavy-shot-breaks-wall-and-passes-through-completely', () => {
+  // V2 §1.2: a single shot whose structural damage >= remaining Wall HP applies
+  // its hit, destroys the Wall and passes through UNCHANGED — same owner,
+  // velocity, crit, provenance and FULL damage — then lands on the victim.
+  const w = wallFresh();
+  waitLock(w);
+  const hpA = hpOf(w.a);
+  const p = fire(w.b, 850, 500, w.a.x, w.a.y, 'SLOW', { damage: 13 });   // 13 x 7 = 91 >= 80
+  step(1.2);
+  const c = w.cons();
+  const hps = evOf(w.ev, 'CrystalConstructHit');
+  return { ok: c.state === 'ENDED' && c.reason === 'destroyed'
+      && !(p.__hr && p.__hr.crystalReflected) && !!(p.__hr && p.__hr.cryPassed)
+      && p.owner === w.b && hpOf(w.a) < hpA && hps.length === 1
+      && evOf(w.ev, 'CrystalConstructReflect').length === 0
+      && hps[0].payload.why === 'break-through' && hps[0].payload.kind === 'wall'
+      && near(p.damage, 13, 1e-9) && near(hps[0].payload.damage, 13 * 7, 1e-6),
+    detail: { state: c.state, reason: c.reason, reflected: !!(p.__hr && p.__hr.crystalReflected),
+      passed: !!(p.__hr && p.__hr.cryPassed), crystalHpLoss: fmt(hpA - hpOf(w.a)),
+      hits: hps.map((e) => ({ dmg: fmt(e.payload.damage), why: e.payload.why })) } };
+});
+
+await gate('V04-wall-fails-with-no-cooldown-when-a-blade-is-busy', () => {
+  // V2 §1.1: Wall needs BOTH blades free — shard identity [0,1], not count.
+  // With the blades anchored to an existing Wall (4 shards still free) and K
+  // just turned on (HEXA window OPEN), J must refuse: HEXA (only 4 of 6) and
+  // Wall (blades busy) both decline, so the cast fails 'condition' with NO
+  // cooldown consumed and no second construct appears.
+  const w = fresh();
+  press(w.a, 'A1');                                          // Wall #1 (K off) anchors blades [0,1]
+  const s = ins(w.cta).shards;
+  const bladesBusy = s[0].state !== 'ORBIT' && s[1].state !== 'ORBIT';
+  press(w.a, 'A2');                                          // K on: HEXA decision window now OPEN
+  const before = ins(w.cta);
+  w.cta.skills.A1.cdLeft = 0;                                // isolate the availability law
+  const r = press(w.a, 'A1');
+  const after = w.cta.skills.A1.cdLeft;
+  return { ok: bladesBusy && before.available === 4 && before.k.constructDecisionOpen === true
+      && r && r.ok === false && r.reason === 'condition' && r.failCue === true && after === 0
+      && ins(w.cta).constructs.filter((c) => c.kind === 'wall').length === 1 && ins(w.cta).constructs.length === 1,
+    detail: { bladesBusy, available: before.available, decisionOpen: before.k.constructDecisionOpen,
+      reason: r && r.reason, cdLeftAfter: after, constructs: ins(w.cta).constructs.length } };
+});
+
+await gate('V05-hexa-facet-numbers-and-reflect-first-removal-are-unchanged', () => {
+  // V2 §1.3 NON-CHANGE: facet HP stays 75 and HEXA keeps its own reflect-first
+  // law — even the shot that removes the last facet HP is still reflected
+  // (the Wall's new breaking-shot law does NOT leak into HEXA). The prism
+  // holds all six shards, so the test shots can never be claimed and fly
+  // straight to the facets: three effective-31.5 shots land 75 -> 43.5 ->
+  // 12 -> removed on one facet, every one of them reflected.
+  const w = crystalK();
+  press(w.a, 'A2');
+  step(0.05);
+  const r = press(w.a, 'A1');                                   // HEXA while the window is open
+  const pr = () => ins(w.cta).constructs.find((c) => c.kind === 'prison');
+  const rc = () => rigOf(w.cta).constructs.find((x) => x.kind === 'prison');
+  const built = pr();
+  step(0.85);                                                    // test shots land after the prism locks
+  const shots = [];
+  for (let k = 0; k < 3; k++) { shots.push(fire(w.b, 850, 500, w.a.x, w.a.y, 'SLOW', { damage: 4.5 })); step(0.55); }
+  const hps = evOf(w.ev, 'CrystalConstructHit');
+  const refs = evOf(w.ev, 'CrystalConstructReflect');
+  const g = rc() && rc().prison;
+  const end = pr();
+  const deadFacets = end.facetsDead.filter(Boolean).length;
+  return { ok: r && r.ok === true && built && built.kind === 'prison' && built.maxHp.length === 6 && built.maxHp.every((m) => m === 75)
+      && g && near(g.R, 135, 1e-6) && g.edges.length === 6
+      && end.lockedAt != null && near(end.endAt - end.lockedAt, 3.0, 1e-9)
+      && hps.length === 3 && refs.length === 3 && hps.every((e) => e.payload.kind === 'prison' && e.payload.why === 'hit')
+      && shots.every((p) => p.__hr && p.__hr.crystalReflected && p.owner === w.a)
+      && deadFacets === 1 && end.state === 'LIVE',
+    detail: { r: r && r.ok, facetMax: built && built.maxHp,
+      radius: g && fmt(g.R), edges: g && g.edges.length, life: end.lockedAt != null ? (end.endAt - end.lockedAt) : null,
+      hits: hps.map((e) => `${fmt(e.payload.damage)}:${e.payload.why}`), reflectEvents: refs.length,
+      killingReflected: shots[2] && !!(shots[2].__hr && shots[2].__hr.crystalReflected),
+      deadFacets, state: end.state } };
+});
+
+await gate('V06-every-contact-ring-is-the-300px-ring', () => {
+  // V2 §2.2 gates 3/10: all contact estimates land on 300 px (75 + 1.5 x 150);
+  // no 180/150/120/90 rescue bands exist in any scenario.
+  const bands = new Set();
+  const add = (w) => { for (const e of evOf(w.ev, 'CrystalReserve')) bands.add(e.payload.band); };
+  const a = crystalK({ ax: 150, ay: 500, bx: 850, by: 500 });
+  fire(a.b, 850, 500, 150, 500, 'SLOW'); step(1.2); add(a);
+  const b = crystalK({ ax: 150, ay: 500, bx: 850, by: 500 });
+  fire(b.b, 850, 500, 150, 500, 'SNIPER'); step(0.6); add(b);
+  const c = crystalK({ ax: 150, ay: 500, bx: 850, by: 500 });
+  for (let k = 0; k < 4; k++) fire(c.b, 850, 500 + (k - 1.5) * 20, 150, 500, 'SMG');
+  step(1.2); add(c);
+  const d = crystalK({ ax: 150, ay: 500, bx: 560, by: 500 });
+  for (let k = 0; k < 8; k++) { const ang = Math.PI + (k - 3.5) * 0.05; fire(d.b, 560, 500, 560 + Math.cos(ang) * 500, 500 + Math.sin(ang) * 500, 'SHOTGUN'); }
+  step(0.5); add(d);
+  return { ok: bands.size === 1 && bands.has(300), detail: { bands: [...bands] } };
+});
+
+await gate('V07-assignment-never-consumes-a-projectile-even-at-contact-distance', () => {
+  // V2 §2.2 gates 8/12/18: claiming, selection and travel never teleport or
+  // consume the projectile. A threat spawned 5 px from the Crystal surface is
+  // claimed on its first sight (it is already inside the 450 ring) — at the
+  // RESERVE moment it is still fully intact, and the cancellation happens only
+  // at a real swept contact strictly LATER than the assignment frame.
+  const w = crystalK();
+  const hp0 = hpOf(w.a);
+  const p = fire(w.b, 150 + 58.5 + 5, 500, w.a.x, w.a.y, 'SLOW', { damage: 4.5 });
+  const before = { damage: p.damage, ownerIsB: p.owner === w.b, vx: p.vx, vy: p.vy };
+  let atReserve = null, tReserve = null;
+  AIL.bus.on('CrystalReserve', (e) => {
+    atReserve = { inList: win.projectiles.includes(p), damage: p.damage, ownerIsB: p.owner === w.b,
+      vx: p.vx, vy: p.vy, reflected: !!(p.__hr && p.__hr.crystalReflected) };
+    tReserve = e.payload.at;
+  });
+  step(0.5);
+  const ic = evOf(w.ev, 'CrystalIntercept')[0];
+  // At point-blank range the body may win the race before any shard can
+  // physically arrive (shards never teleport) — that is ordinary physics.
+  // The LAW is that the assignment itself consumed nothing: any cancellation
+  // is a strictly later physical event (shard contact or body hit).
+  const fate = ic ? 'intercept' : (hpOf(w.a) < hp0 ? 'body' : 'none');
+  return { ok: telem(w.cta).reservations === 1 && !!atReserve
+      && atReserve.inList && atReserve.damage === before.damage && atReserve.ownerIsB === before.ownerIsB
+      && near(atReserve.vx, before.vx, 1e-9) && near(atReserve.vy, before.vy, 1e-9)
+      && atReserve.reflected === false && fate !== 'none'
+      && (ic == null || ic.payload.at - tReserve >= DT - 1e-9),
+    detail: { atReserve, fate, contactAt: ic && ic.payload.at, reserveAt: tReserve,
+      assignToContact: ic && fmt(ic.payload.at - tReserve), crystalHpLoss: fmt(hp0 - hpOf(w.a)) } };
+});
 const failed = results.filter((r) => !r.ok);
 console.log(`\n[CRYSTALA GAMEPLAY GATES] ${results.length - failed.length}/${results.length}`);
 process.exit(failed.length ? 1 : 0);

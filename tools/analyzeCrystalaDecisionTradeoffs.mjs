@@ -68,25 +68,28 @@ const result=await page.evaluate(()=>{
       speed,damage,radius:spec.bulletRadius||7,life:opts.life||spec.bulletLife||1,weapon:id,color:'#fff'
     });
   }
-  function forceWallThreshold(mm){
-    fire(mm,'PISTOL',{damage:0.001});
-    const seen=stepUntil(()=>CRY.inspect(mm.ct)?.available<6,0.25);
-    if(seen==null)throw new Error('could not create 5-shard Wall threshold');
-  }
+  // V2 §1.1: WALL is castable with K off (HEXA path is not eligible without an
+  // open Awakening decision window), and its only shard cost is BLADE L/R [0,1].
+  // The old 5-shard threshold trick is gone — no shard busywork is needed.
   function prepare(mm,mode){
     if(mode==='DORMANT') return G.matchClock||0;
+    if(mode==='WALL_EARLY'){
+      // V2 gate 2: the early Wall — cast immediately with K OFF.
+      const j=HR.pressAbility(mm.a,'A1'); if(!j.ok)throw new Error('early K-off Wall failed');
+      return G.matchClock||0;
+    }
     const castK=HR.pressAbility(mm.a,'A2');
     if(!castK.ok)throw new Error('K cast failed');
     const ks=CRY.inspect(mm.ct).k.startedAt;
     if(mode==='PRISON_EARLY'){
       const j=HR.pressAbility(mm.a,'A1'); if(!j.ok)throw new Error('early Prison failed');
-    }else if(mode==='WALL_EARLY'){
-      forceWallThreshold(mm);
-      const j=HR.pressAbility(mm.a,'A1'); if(!j.ok)throw new Error('early Wall failed');
     }else if(mode==='WALL_DELAYED'){
-      atTime(ks+0.72);
-      forceWallThreshold(mm);
+      // V2 routing clause 6: after the HEXA decision window closes the HEXA
+      // path is not eligible and J falls back to the WALL while K is still on.
+      atTime(ks+1.25);
       const j=HR.pressAbility(mm.a,'A1'); if(!j.ok)throw new Error('delayed Wall failed');
+      const c=CRY.inspect(mm.ct).constructs[0];
+      if(!c||c.kind!=='wall'||c.shardIds.join()!=='0,1')throw new Error('delayed Wall is not blades [0,1]: '+JSON.stringify(c));
     }
     return ks;
   }
@@ -144,25 +147,31 @@ const result=await page.evaluate(()=>{
     if(!control || !(control.hpLossCrystal>0)) throw new Error('invalid dormant damage control for '+pressure);
   }
 
-  // Explicitly prove the removed dominant pattern: J after the first-half
-  // commitment deadline must fail while K itself remains active.
+  // V2 §1.1 routing clause 6 — the removed V1 pattern is replaced by a defined
+  // fallback: J after the HEXA decision-window deadline must FALL BACK TO WALL
+  // (blades [0,1]) while K itself remains active — succeed with the 8.0 s
+  // cooldown, never fail-and-replay.
   const late=fresh();
   const lateKs=prepare(late,'K_ONLY');
   atTime(lateKs+1.25);
-  forceWallThreshold(late);
   const lateBefore=CRY.inspect(late.ct);
   const lateAttempt=HR.pressAbility(late.a,'A1');
+  const lateAfter=CRY.inspect(late.ct);
+  const lateWall=lateAfter.constructs[0];
   const lateProbe={
     at:(G.matchClock||0)-lateKs,
     kActive:lateBefore.k.active,
     decisionOpen:lateBefore.k.constructDecisionOpen,
     available:lateBefore.available,
     ok:!!lateAttempt.ok, reason:lateAttempt.reason||null,
+    kind:lateWall?lateWall.kind:null,
+    shardIds:lateWall?lateWall.shardIds:null,
     cd:HR.abilityController(late.ct).cooldownLeft('A1'),
-    jCasts:CRY.inspect(late.ct).k.jCasts,
+    jCasts:lateAfter.k.jCasts,
   };
-  if(!lateProbe.kActive || lateProbe.decisionOpen || lateProbe.ok || lateProbe.cd!==0 || lateProbe.jCasts!==0)
-    throw new Error('late J commitment gate failed: '+JSON.stringify(lateProbe));
+  if(!lateProbe.kActive || lateProbe.decisionOpen || !lateProbe.ok || lateProbe.kind!=='wall'
+    || String(lateProbe.shardIds)!=='0,1' || lateProbe.cd<7.99 || lateProbe.jCasts!==1)
+    throw new Error('late J wall-fallback gate failed: '+JSON.stringify(lateProbe));
 
   return {rows,lateProbe,revision:G.APEX_ARSENAL_RUNTIME_REVISION||null};
 });

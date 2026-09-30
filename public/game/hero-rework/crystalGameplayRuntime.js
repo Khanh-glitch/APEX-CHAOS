@@ -2,17 +2,23 @@
  * CRYSTALA V1 — gameplay truth (APEX_CRYSTAL).
  *
  * Authority: docs/hero-rework/crystala-v1/00_CRYSTALA_IMPLEMENTATION_AUTHORITY.md
+ *            docs/hero-rework/crystala-v1/02_CRYSTALA_V2_SIX_SHARD_RESOURCE_AUTHORITY.md
+ *            (V2 minimal delta: Wall routing/HP/breaking-shot + K acquisition,
+ *            radii, return timing, cooldown. HEXA/prison, Passive, T6 and the
+ *            Gold visual language are EXPLICIT non-change.)
  *
  * Owns (real APEX truth): six immortal shard semantic records, K/A2 awakening
- * (8.0 s cooldown via the AbilityController, 2.4 s active), the smart threat
- * predictor with just-in-time reachable-shard reservation and independent
- * per-shard jobs, real shard/projectile contact, the intercept/reflection
+ * (12.0 s cooldown via the AbilityController, 2.4 s active), the radius-entry
+ * threat acquisition (450 px read radius -> one free shard per eligible hostile
+ * projectile; no hit prediction) with independent per-shard jobs, real
+ * shard/projectile contact at the 300 px ring, the intercept/reflection
  * transaction (passive scales CURRENT damage once; crit/provenance kept; owner
  * -> Crystal; one reflection per projectile; T6 never), J/A1 context construct
- * (6 ORBIT -> Prison, 2..5 -> Wall, 0..1 -> fail, no buffering), real Wall
- * (W220/HP120/4.0 s from material lock) and Prison (R135/6 x HP75/3.0 s from
- * closure) HP + lifetimes, physical capsule geometry of the visibly grown
- * material, and first-pass telemetry.
+ * routing (live HEXA path first: 6 ORBIT -> Prison; otherwise Wall fallback on
+ * BLADE L/R shards [0,1] which works even with K off), real Wall
+ * (W220/HP80/4.0 s from material lock; breaking shot passes through unreflected)
+ * and Prison (R135/6 x HP75/3.0 s from closure) HP + lifetimes, physical
+ * capsule geometry of the visibly grown material, and first-pass telemetry.
  *
  * Does NOT own appearance: crystalaGoldV6.js (gameplay-neutral Gold rig) moves
  * the six stones and builds the material; this module only DRIVES it through
@@ -36,20 +42,22 @@ const GOLD = g.APEX_CRYSTALA_GOLD;
 if (!AIL || !GOLD) throw new Error('crystalGameplayRuntime requires ailRuntime + crystalaGoldV6');
 
 /* ------------------------------------------------------------ frozen V1 law */
-const BAND = 180;              // intercept/contact band radius from the Crystal centre
-const SCAN = 1000;             // prediction radius (never an instant reservation)
-const MIN_LEAD = 0.12;         // minimum visible anticipation beat (s)
-const RESCUE_BANDS = Object.freeze([180, 150, 120, 90]); // 180 preferred; inward only when a real fast shot cannot satisfy the beat there
-const REFRACT = 0.16;          // Gold internal-light beat
-const RECOIL = 0.16;           // free drift after the exit impulse
-const RETURN_T = 0.88;         // REFRACT + RECOIL + RETURN_T = 1.20 s contact -> dock
+/* V2 minimal-delta retiming (02_CRYSTALA_V2_SIX_SHARD_RESOURCE_AUTHORITY §2):
+ * BAND is the successful-interception contact ring (300 px = body radius 75 +
+ * 1.5 fighter diameters); SCAN is the projectile read radius (450 px). The old
+ * inward rescue sequence 180/150/120/90 is REMOVED from gameplay assignment. */
+const BAND = 300;              // successful interception/contact ring from the Crystal centre
+const SCAN = 450;              // projectile read radius (entry is enough to request a shard)
+const MIN_LEAD = 0.12;         // preferred visual anticipation beat (s) — never an eligibility veto
+const REFRACT = 0.16;          // Gold internal-light beat (unchanged)
+const RECOIL = 0.16;           // free drift after the exit impulse (unchanged)
+const RETURN_T = 1.28;         // REFRACT + RECOIL + RETURN_T = 1.60 s contact -> dock (V2 §2.3)
 const ABORT_T = 0.5;           // Gold-style banking return for an aborted job
-const JIT_SLACK = 0.010;       // reserve when tBand - dt <= lead + slack
 const TRAVEL_K = 1.12 / 1000;  // shard travel-time model (Hermite arc, s per px)
 const TRAVEL_BASE = 0.02;
 const CAP_R = 19.5;            // half thickness of the grown material capsule (mean cell height)
-const TTI_QUANT = 0.0005;      // deterministic tie grid for simultaneous threats
 const SHARDS = 6;
+const BLADE_L = 0, BLADE_R = 1; // V2 §1.1: WALL always uses the two largest Gold shards
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const HR = () => g.APEX_HERO_REWORK;
@@ -80,6 +88,9 @@ function isT6(p) { return p.weapon === 'STORMBREAKER' || p.weapon === 'T6'; }
 function newTele() {
   return {
     kCasts: 0, jCasts: 0, wallCasts: 0, prisonCasts: 0,
+    // ignoredMiss/Expired/Blocked/Unreachable are legacy prediction-drop
+    // counters: V2 acquisition has no hit prediction, so they stay at zero and
+    // remain only so old telemetry readers keep their shape.
     threatsSeen: 0, ignoredMiss: 0, ignoredBlocked: 0, ignoredExpired: 0, ignoredUnreachable: 0,
     overflowThreats: 0, overflowHits: 0, reservations: 0, intercepts: 0, aborts: 0,
     repeatIntercepts: 0, reflectedDamage: 0, preventedDamage: 0, shardBusySeconds: 0,
@@ -201,178 +212,78 @@ function notAThreat(st, p) {
   return false;
 }
 
-// Earliest time the straight path hits a blocking solid construct (before tMax).
-function firstBlock(p, tMax) {
-  const G = GEOM(); if (!G) return null;
-  const x1 = p.x + p.vx * tMax, y1 = p.y + p.vy * tMax;
-  let best = null;
-  for (const cap of capsules()) {
-    if (!interacts(p, cap)) continue;
-    const r = G.capsuleToi(p.x, p.y, x1, y1, cap.ax, cap.ay, cap.bx, cap.by, cap.r + (p.radius || 7));
-    if (r && (best == null || r.t < best)) best = r.t;
-  }
-  return best == null ? null : best * tMax;
-}
-
-function classify(st, p, now, dt) {
-  const b = st.ct.anchor;
-  const hr = hrOf(p);
-  if (hr.cryPid == null) hr.cryPid = ++st.pidSeq;
-  const d0x = p.x - b.x, d0y = p.y - b.y;
-  const dist0 = Math.hypot(d0x, d0y);
-  if (dist0 > SCAN) return null;                              // outside the prediction radius
-  const first = !st.seen.has(p);
-  if (first) { st.seen.add(p); st.tele.threatsSeen += 1; }
-  const v = b.__hrVel || { x: 0, y: 0 };
-  const wx = p.vx - v.x, wy = p.vy - v.y;
-  const RH = b.radius * ((CFG() && CFG().BULLET_HIT_RADIUS_SCALE) || 0.78) + (p.radius || 7);
-  const tHit = firstWithin(d0x, d0y, wx, wy, RH);
-  if (tHit == null) { if (first) st.tele.ignoredMiss += 1; return { drop: 'miss' }; }
-  if (tHit >= p.life) { if (first) st.tele.ignoredExpired += 1; return { drop: 'expired' }; }
-  const blockT = firstBlock(p, Math.min(tHit, p.life));
-  if (blockT != null && blockT < tHit) { if (first) st.tele.ignoredBlocked += 1; return { drop: 'blocked' }; }
-  return { p, hr, tHit, d0x, d0y, wx, wy, RH, dist0 };
-}
-
 function stonePos(st, id) { const s = st.rig.stones[id]; return s; }
 function physicalLeadFor(st, id, ip) {
   const s = stonePos(st, id);
   const travel = Math.hypot(s.x - ip.x, s.y - ip.y);
   return travel * TRAVEL_K + TRAVEL_BASE;
 }
-function rescueBandsFor(c) {
-  // 180 px remains the authored Gold-preferred contact. Inward bands are
-  // progressively later opportunities before the real body hit.
-  const finalBand = Math.ceil(c.RH + 12);
-  const emergencyBand = c.dist0 > c.RH + 2
-    ? Math.max(c.RH + 2, Math.min(finalBand, c.dist0 - 1))
-    : null;
-  return [...new Set([...RESCUE_BANDS, finalBand, emergencyBand].filter(Number.isFinite))]
-    .filter(b => b > c.RH + 1 && b <= BAND && b < c.dist0)
-    .sort((a, b) => b - a);
-}
-function interceptOption(st, c, id, band, dt) {
-  const tBand = firstWithin(c.d0x, c.d0y, c.wx, c.wy, band);
-  if (tBand == null || tBand <= 0 || tBand >= c.tHit || tBand >= c.p.life) return null;
-  const ip = { x: c.p.x + c.p.vx * tBand, y: c.p.y + c.p.vy * tBand };
-  const physicalLead = physicalLeadFor(st, id, ip);
-  const rescue = band < BAND;
-  const physicalWindow = rescue ? tBand : Math.max(0, tBand - dt);
-  const visualLeadOk = tBand >= MIN_LEAD - JIT_SLACK;
-  const physicalOk = physicalWindow >= physicalLead - JIT_SLACK;
-  return {
-    id, band, tBand, ip, physicalLead, rescue, visualLeadOk, physicalOk,
-    urgent: !visualLeadOk || !physicalOk,
-    accelerated: !physicalOk,
-    // Healthy jobs use the authored physical travel lead. Accelerated guardian
-    // jobs consume all remaining time to the real contact point.
-    lead: Math.max(1 / 120, physicalOk ? physicalLead : tBand),
-  };
-}
-function chooseIntercept(st, c, free, taken, dt) {
-  const bands = rescueBandsFor(c);
-  const all = [];
-  for (const band of bands) {
-    for (const id of free) {
-      if (taken.has(id)) continue;
-      const o = interceptOption(st, c, id, band, dt);
-      if (!o) continue;
-      o.score = st.rig.scoreStone(st.rig.stones[id], c.p.vx, c.p.vy, o.ip);
-      all.push(o);
-    }
-  }
-  if (!all.length) return null;
 
-  // Tier 0: Gold-preferred readable interception (>=0.12 s and normal travel).
-  // Tier 1: still physically reachable, but too urgent for the full anticipation beat.
-  // Tier 2: last-chance guardian dash. The shard uses the SAME Gold Hermite
-  // trajectory/contact/refract/recoil/return grammar, simply compressed into
-  // the actual remaining time. This is the hero fantasy: an AVAILABLE shard
-  // defends independently instead of the whole K system declining the shot.
-  const tier = (o) => o.physicalOk && o.visualLeadOk ? 0 : o.physicalOk ? 1 : 2;
-  all.sort((a, b) => {
-    // Gold contact language wins first: take the OUTERMOST still-future band
-    // (normally 180 px). If that shard must move faster, accelerate THAT shard
-    // instead of dragging the block point inward toward Crystal.
-    if (Math.abs(a.band - b.band) > 1e-9) return b.band - a.band;
-    const ta = tier(a), tb = tier(b);
-    if (ta !== tb) return ta - tb;
-    return b.score - a.score;
-  });
-  return all[0];
+// V2 §2.1/§2.2 acquisition is deliberately simple: NO hit prediction, NO
+// body-hit/damage-priority ranking, NO blocker-first prerequisite. An eligible
+// hostile projectile entering the 450 px read radius is enough to request one
+// free shard. The contact target is the real 300 px ring crossing of the
+// Crystal-centred ring; a projectile already inside the ring is met where it
+// is, and one that never crosses the ring is met at its closest approach to it.
+// Never teleport, never consume the projectile at assignment.
+function contactPlan(st, c) {
+  const b = st.ct.anchor;
+  const v = b.__hrVel || { x: 0, y: 0 };
+  const wx = c.p.vx - v.x, wy = c.p.vy - v.y;
+  let tBand = firstWithin(c.d0x, c.d0y, wx, wy, BAND);
+  if (tBand == null) {
+    // never reaches the ring: closest approach to the ring centre (~the ring)
+    const a = wx * wx + wy * wy;
+    tBand = a < 1e-9 ? 0 : Math.max(0, -(c.d0x * wx + c.d0y * wy) / a);
+  } else if (tBand < 0) {
+    tBand = 0;
+  }
+  const ip = { x: c.p.x + c.p.vx * tBand, y: c.p.y + c.p.vy * tBand };
+  return { tBand, ip, band: BAND };
 }
 
 function predictorStep(st, now, dt) {
   const list = (g.projectiles || []);
+  const b = st.ct.anchor;
   const cands = [];
   for (const p of list) {
     if (notAThreat(st, p)) continue;
-    const hr = p.__hr;
-    if (hr && hr.cryTid) continue;                            // already reserved
-    if (hr && hr.cryLost) continue;                           // decided once: overflow / unreachable
-    const c = classify(st, p, now, dt);
-    if (!c || c.drop) continue;
-    cands.push(c);
+    const hr = hrOf(p);
+    if (hr.cryTid) continue;                                  // one shard job per projectile, ever
+    if (hr.cryLost) continue;                                 // decided once: capacity overflow
+    const d0x = p.x - b.x, d0y = p.y - b.y;
+    const dist0 = Math.hypot(d0x, d0y);
+    if (dist0 > SCAN) continue;                               // outside the 450 px read radius
+    if (hr.cryPid == null) hr.cryPid = ++st.pidSeq;
+    const first = !st.seen.has(p);
+    if (first) { st.seen.add(p); st.tele.threatsSeen += 1; }
+    cands.push({ p, hr, d0x, d0y, dist0 });
   }
   if (!cands.length) return;
-  // simultaneous threats: earliest predicted time-to-hit, then higher current
-  // damage, then stable projectile id; each gets at most ONE distinct shard.
-  cands.sort((a, b) =>
-    (Math.round(a.tHit / TTI_QUANT) - Math.round(b.tHit / TTI_QUANT))
-    || ((b.p.damage || 0) - (a.p.damage || 0))
-    || (a.hr.cryPid - b.hr.cryPid));
+  // V2 §2.1: hit prediction and damage priority are gone. Stable first-seen
+  // order decides who gets the last free shard; each candidate gets at most
+  // ONE distinct shard and one shard owns at most one job.
+  cands.sort((a, c) => a.hr.cryPid - c.hr.cryPid);
   const free = availableIds(st);
   const taken = new Set();
   for (const c of cands) {
-    // STICKY PLAN: keep both the shard and its chosen contact band. 180 px is
-    // always tried first; inward rescue bands are considered only when NO free
-    // shard can satisfy the authored anticipation/reachability law at 180.
-    let plan = c.hr.cryPlan;
-    let opt = null;
-    if (plan && free.includes(plan.id) && !taken.has(plan.id)) {
-      opt = interceptOption(st, c, plan.id, plan.band, dt);
-      if (!opt) plan = null;
-    } else if (plan) {
-      plan = null;
+    const plan = contactPlan(st, c);
+    let best = null;
+    for (const id of free) {
+      if (taken.has(id)) continue;
+      const score = st.rig.scoreStone(st.rig.stones[id], c.p.vx, c.p.vy, plan.ip);
+      if (!best || score > best.score) best = { id, score };
     }
-
-    if (!plan) {
-      opt = chooseIntercept(st, c, free, taken, dt);
-      if (opt) plan = { id: opt.id, band: opt.band };
-      c.hr.cryPlan = plan;
-      if (!plan) {
-        const anyFree = free.some((id) => !taken.has(id));
-        // Capacity is per-shard, never global. A real incoming hit is dropped
-        // only when no distinct AVAILABLE shard remains to own this threat.
-        if (!anyFree) {
-          c.hr.cryLost = 'busy';
-          st.tele.overflowThreats += 1;
-          c.hr.cryOverflow = true;
-        } else if (c.tHit <= Math.max(dt, 1 / 120)) {
-          // Extremely late discovery with a free shard: record honestly, but
-          // this means the projectile is already at the body inside this tick.
-          c.hr.cryLost = 'unreachable';
-          st.tele.ignoredUnreachable += 1;
-        }
-        continue;
-      }
-    } else if (!opt) {
-      opt = interceptOption(st, c, plan.id, plan.band, dt);
-      if (!opt) {
-        opt = chooseIntercept(st, c, free, taken, dt);
-        plan = opt ? { id: opt.id, band: opt.band } : null;
-        c.hr.cryPlan = plan;
-        if (!plan) continue;
-      }
+    if (!best) {
+      // Capacity is per-shard, never global. Spray/spread/near-miss waste is
+      // the intended cost of the simple acquisition rule (V2 §2.1).
+      c.hr.cryLost = 'busy';
+      st.tele.overflowThreats += 1;
+      c.hr.cryOverflow = true;
+      continue;
     }
-
-    taken.add(plan.id);
-    // Any rescue/urgent assignment launches immediately. Only a healthy 180px
-    // plan waits just-in-time; this keeps maximum independent shard capacity.
-    if (opt.rescue || opt.urgent || opt.tBand - dt <= opt.lead + Math.max(JIT_SLACK, dt)) {
-      reserve(st, { ...c, tBand: opt.tBand, ip: opt.ip, band: opt.band, rescue: opt.rescue,
-        urgent: !!opt.urgent, accelerated: !!opt.accelerated }, plan.id, now);
-    }
+    taken.add(best.id);
+    reserve(st, c, plan, best.id, now);
   }
 }
 
@@ -384,13 +295,19 @@ function launchReservedJob(st, job, now) {
   s.state = STATE.OUTBOUND; job.phase = STATE.OUTBOUND; job.T = T; job.launchedAt = now;
 }
 
-function reserve(st, c, id, now) {
+function reserve(st, c, plan, id, now) {
   const p = c.p, hr = c.hr, s = st.shards[id];
   const pv = { x: p.vx, y: p.vy };
   const facet = st.rig.reserve(id, pv);
+  const physicalLead = physicalLeadFor(st, id, plan.ip);
   const job = {
-    id: ++st.jobSeq, shard: id, p, pid: hr.cryPid, ip: c.ip, pv, facet, tContact: now + c.tBand,
-    band: c.band || BAND, rescue: !!c.rescue, urgent: !!c.urgent, accelerated: !!c.accelerated,
+    id: ++st.jobSeq, shard: id, p, pid: hr.cryPid, ip: plan.ip, pv, facet, tContact: now + plan.tBand,
+    band: BAND,
+    // Truthful readability telemetry: the SAME Gold Hermite motion is simply
+    // compressed into the real contact time when the ring is reached sooner
+    // than the authored travel lead (V2 §2.2: "the shard may travel faster").
+    urgent: plan.tBand < MIN_LEAD,
+    accelerated: plan.tBand < physicalLead - 1e-9,
     reservedAt: now, phase: STATE.RESERVED, incoming: scaledDamageOf(p),
   };
   s.state = STATE.RESERVED; s.job = job; s.busyAt = now;
@@ -398,9 +315,12 @@ function reserve(st, c, id, now) {
   st.jobs.push(job);
   st.tele.reservations += 1;
   if (job.urgent) st.tele.urgentReservations += 1;
-  emit('CrystalReserve', { shard: id, tid: job.id, pid: hr.cryPid, tBand: c.tBand, band: job.band, rescue: job.rescue,
-    urgent: job.urgent, accelerated: job.accelerated, ip: c.ip });
-  if (job.rescue || job.urgent) launchReservedJob(st, job, now);
+  emit('CrystalReserve', { shard: id, tid: job.id, pid: hr.cryPid, tBand: plan.tBand, band: BAND,
+    urgent: job.urgent, accelerated: job.accelerated, ip: plan.ip });
+  // Launch immediately: the shard is timed to arrive at the real contact point
+  // exactly when the projectile reaches it. Real swept contact is what
+  // reflects — assignment NEVER consumes the projectile.
+  launchReservedJob(st, job, now);
 }
 
 function scaledDamageOf(p) {
@@ -606,7 +526,13 @@ function constructHit(best, p, dt) {
   const dmg = structDamage(p);
   const hr = hrOf(p);
   let reflected = false;
-  if (!t6) {
+  // V2 §1.3 breaking-shot law — WALL ONLY (HEXA keeps live reflect-first
+  // ordering unchanged). Structural damage >= remaining Wall HP: apply the
+  // structural hit (which destroys the Wall), do NOT reflect, and let the SAME
+  // projectile continue through the broken Wall with its full current
+  // damage/owner/velocity/crit/provenance. No residual-damage arithmetic.
+  const breaking = !t6 && cons.kind === 'wall' && dmg >= cons.hp;
+  if (!t6 && !breaking) {
     const v = reflectVec(p.vx, p.vy, n.x, n.y);
     if (cons.decision) cons.decision.blockedProjectileDamage += dmg;
     applyPassive(st, p);
@@ -625,7 +551,7 @@ function constructHit(best, p, dt) {
   } else {
     (hr.cryPassed || (hr.cryPassed = {}))[cons.id + ':' + cap.idx] = true;
   }
-  damageConstruct(st, cons, cap, dmg, hx, hy, p.vx, p.vy, t6 ? 'T6' : 'hit');
+  damageConstruct(st, cons, cap, dmg, hx, hy, p.vx, p.vy, t6 ? 'T6' : breaking ? 'break-through' : 'hit');
   return { consumed: reflected, kind: 'construct', reflected };
 }
 
@@ -742,25 +668,37 @@ function constructDecisionOpen(st) {
   const window = cfg.decisionWindow != null ? cfg.decisionWindow : 1.2;
   return st.k.jCasts < maxCasts && AIL.clock() <= st.k.startedAt + window + 1e-9;
 }
+// V2 §1.1 routing — the EXISTING live HEXA (six-facet) path, resolved exactly
+// as live code resolves it today: K decision window open AND six ORBIT shards
+// at the input edge AND a real placement anchor. Nothing here may change.
+function hexaPathAvailable(st) {
+  return constructDecisionOpen(st) && availableIds(st).length >= SHARDS && !!enemyAnchorOf(st.ct);
+}
+// V2 §1.1 wall fallback: WALL always uses BLADE L/R (shard ids 0/1). Both must
+// be ORBIT; if either is busy/returning/anchored the attempt fails with no
+// cooldown. WALL may be cast while K is off, or while K is on but the live
+// HEXA path is not eligible.
+function wallPathAvailable(st) {
+  return st.shards[BLADE_L].state === STATE.ORBIT && st.shards[BLADE_R].state === STATE.ORBIT
+    && !!enemyAnchorOf(st.ct);
+}
 function canCastConstruct(ctx) {
   const st = ensure(ctx.combatant);
-  return constructDecisionOpen(st) && availableIds(st).length >= 2 && !!enemyAnchorOf(ctx.combatant);
+  return hexaPathAvailable(st) || wallPathAvailable(st);
 }
 function aiCanAttemptConstruct(ctx) {
-  const st = ensure(ctx.combatant);
-  return constructDecisionOpen(st) && availableIds(st).length >= 2 && !!enemyAnchorOf(ctx.combatant);
+  return canCastConstruct(ctx);
 }
 function castConstruct(ctx) {
   const ct = ctx.combatant, st = ensure(ct), now = AIL.clock();
-  if (!constructDecisionOpen(st)) return false;
-  const ids = availableIds(st);                               // snapshot at the INPUT EDGE
-  if (ids.length < 2) return false;
   const ea = enemyAnchorOf(ct), me = ct.anchor;
   if (!ea) return false;
+  const ids = availableIds(st);                               // snapshot at the INPUT EDGE
   const cfg = ctx.cfg;
   const mult = cfg.constructHpMult != null ? cfg.constructHpMult : 1;
   const cons = { id: ++st.consSeq, st, ct, state: 'LIVE', castAt: now, lockedAt: null, endAt: null, endReason: null };
-  if (ids.length >= SHARDS) {
+  if (constructDecisionOpen(st) && ids.length >= SHARDS) {
+    // ---- HEXA path: live behavior, zero semantic change (V2 §3) ----
     const R = cfg.prison.radius;
     cons.kind = 'prison';
     cons.rc = st.rig.castPrison({ cx: ea.x, cy: ea.y, R, seed: 31 + st.consSeq });
@@ -769,7 +707,8 @@ function castConstruct(ctx) {
     cons.assign = cons.rc.assign.map(([s, , vi]) => ({ id: s.uid, vIdx: vi }));
     cons.shardIds = cons.assign.map((a) => a.id);
     st.tele.prisonCasts += 1;
-  } else {
+  } else if (st.shards[BLADE_L].state === STATE.ORBIT && st.shards[BLADE_R].state === STATE.ORBIT) {
+    // ---- Wall fallback (V2 §1.1): BLADE L/R only, shard ids exactly [0,1] ----
     const S = gameSize();
     let ux = ea.x - me.x, uy = ea.y - me.y;
     const d = Math.hypot(ux, uy);
@@ -777,13 +716,15 @@ function castConstruct(ctx) {
     const tx = -uy, ty = ux, half = cfg.wall.width / 2, off = Math.min(330, d * 0.48);
     const mx = clamp(me.x + ux * off, 130, S - 130), my = clamp(me.y + uy * off, 130, S - 130);
     const a0 = { x: mx - tx * half, y: my - ty * half }, a1 = { x: mx + tx * half, y: my + ty * half };
-    const plan = st.rig.planWall(ids, a0, a1);
+    const plan = st.rig.planWall([BLADE_L, BLADE_R], a0, a1);
     cons.kind = 'wall';
     cons.rc = st.rig.castWall({ a0, a1, pair: plan.pair, seed: 7 + st.consSeq });
     cons.hp = cons.maxHp = cfg.wall.hp * mult;
     cons.solidLife = cfg.wall.solidLifetime;
-    cons.shardIds = plan.pair.map((p) => p[0]);
+    cons.shardIds = plan.pair.map((p) => p[0]);               // always exactly [0,1]
     st.tele.wallCasts += 1;
+  } else {
+    return false;                                             // blades busy -> fail, no cooldown
   }
   for (const id of cons.shardIds) { const s = st.shards[id]; s.state = STATE.CONSTRUCT_TRAVEL; s.consId = cons.id; }
   const window = st.k.decisionWindow || null;

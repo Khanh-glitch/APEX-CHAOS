@@ -157,15 +157,14 @@ const result = await page.evaluate(async () => {
     });
   }
   function buildRealWall(mm) {
-    G.APEX_HERO_REWORK.pressAbility(mm.f0,'A2');
-    mm.f1.x=430; mm.f1.y=500;
-    fireAtCrystal(mm,'PISTOL');
-    for(let i=0;i<12;i++){
-      stepDraw(1);
-      if ((G.APEX_CRYSTAL.inspect(mm.ct)?.available ?? 6) < 6) break;
-    }
+    // V2 §1.1: WALL costs BLADE L/R [0,1] and is castable with K off. With K
+    // on, the HEXA decision window owns the first 1.2 s — a K-on wall must
+    // wait for that window to close (routing clause 6). The old 5-shard
+    // busywork trick is gone (and was never deterministic about blade ids).
+    const k=G.APEX_HERO_REWORK.pressAbility(mm.f0,'A2');
+    if(k.ok){ for(let i=0;i<80;i++) stepDraw(1); }   // past the 1.2 s HEXA decision window
     const cast=G.APEX_HERO_REWORK.pressAbility(mm.f0,'A1');
-    if(!cast.ok) throw new Error('performance wall setup failed');
+    if(!cast.ok) throw new Error('performance wall setup failed: '+(cast.reason||'?'));
     return cast;
   }
 
