@@ -200,7 +200,6 @@
     const artId = FIGHTER_ART[id] || null;
     return {
       id,
-      displayName: id === 'ICE' ? 'FROST' : id,
       color: (shell && shell.color) || '#d7bd72',
       desc: (shell && shell.desc) || 'Arsenal fighter',
       mark: (typeof window.fighterGlyph === 'function' && window.fighterGlyph(id)) || id.slice(0, 2),
@@ -492,7 +491,7 @@
       const owned = owns(n);
       const info = fighterInfo(n);
       const label = n === 'NEWBIE' ? 'DEFAULT / OWNED' : owned ? 'OWNED' : '1000 AC';
-      return `<button type="button" data-shop-card="${esc(n)}" class="aq-fighter-card ${owned ? '' : 'is-locked'} ${n === shopSelected ? 'is-selected' : ''}" style="--fighter-accent:${esc(info.color)}"><span class="aq-fighter-mark">${info.icon ? `<img src="${esc(info.icon)}" alt=""/>` : esc(info.mark)}</span><span class="aq-fighter-name">${esc(n === 'ICE' ? 'FROST' : n)}</span><span class="aq-fighter-state">${label}</span></button>`;
+      return `<button type="button" data-shop-card="${esc(n)}" class="aq-fighter-card ${owned ? '' : 'is-locked'} ${n === shopSelected ? 'is-selected' : ''}" style="--fighter-accent:${esc(info.color)}"><span class="aq-fighter-mark">${info.icon ? `<img src="${esc(info.icon)}" alt=""/>` : esc(info.mark)}</span><span class="aq-fighter-name">${esc(n)}</span><span class="aq-fighter-state">${label}</span></button>`;
     }).join('');
     el.style.display = 'block';
     el.innerHTML = shell(`

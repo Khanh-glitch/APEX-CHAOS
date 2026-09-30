@@ -667,8 +667,10 @@
       if (!descriptor || descriptor.kind !== 'bullet' || !p.__hr) return;
       const holder = ctx.api.heldWeapon(ctx.combatant);
       if (!holder || holder.holder.meta?.frostFrozen !== true) return;
-      const fam = descriptor.params?.family || descriptor.params?.weaponFamily || '';
-      const group = descriptor.params?.blastGroupId || descriptor.params?.shotGroupId || `shot:${ctx.combatant.idx}:${ctx.clock()}:${(ctx.store._seq = (ctx.store._seq || 0) + 1)}`;
+      const fam = descriptor.params?.family || globalScope.APEX_ARSENAL_CONFIG?.WEAPONS?.[p.weapon]?.family || '';
+      const group = (fam === 'SHOTGUN' || fam === 'AUTOSHOT')
+        ? `blast:${ctx.combatant.idx}:${p.weapon}:${ctx.clock()}`
+        : `shot:${ctx.combatant.idx}:${ctx.clock()}:${(ctx.store._seq = (ctx.store._seq || 0) + 1)}`;
       if (!group) return;
       // One opportunity per semantic shot/blast group. SHOTGUN/AUTOSHOT /
       // JACKHAMMER callers share blastGroupId; ordinary rounds do not.
