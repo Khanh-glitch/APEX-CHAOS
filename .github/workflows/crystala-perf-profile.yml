@@ -14,6 +14,9 @@ on:
       - 'public/game/hero-rework/heroMechanicsRuntime.js'
       - 'src/game/runtimeManifest.js'
       - 'tools/runtimeRevision.lock.json'
+      - 'tools/testHeroReworkHunterOwnerFixGates.mjs'
+      - 'tools/testCrystalaGameplayGates.mjs'
+      - 'tools/testCrystalaGoldParity.mjs'
   workflow_dispatch:
 
 permissions:
