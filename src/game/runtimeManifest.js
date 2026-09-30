@@ -4,7 +4,7 @@
 // CP7: gameplay-ready barriers + start-of-match fail-cue fix — cache-bust
 // every runtime that changed in this pass (config/presentation/meta/
 // shellSelect/ladder).
-export const APEX_ARSENAL_RUNTIME_REVISION = '20260930-crystala-v2-r11-frost-v1-a1';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20260930-crystala-v2-r11-frost-v1-b1';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by
@@ -166,6 +166,8 @@ export const MODE_DEFERRED_RUNTIMES = {
     // runtimes that dispatch into them.
     ['/game/hero-rework/crystalaGoldV6.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalaGoldV6'],
     ['/game/hero-rework/crystalGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalGameplayRuntime'],
+    // FROST V1: gameplay truth module (same placement law as CRYSTAL).
+    ['/game/hero-rework/frostGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostGameplayRuntime'],
     // HERO REWORK: mechanics + integration load AFTER the quest runtime so
     // they wrap its step/entry/exit hooks (never inside ARSENAL_HUB_RUNTIMES).
     ['/game/hero-rework/heroMechanicsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkMechanics'],

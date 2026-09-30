@@ -429,6 +429,12 @@
         if (!f || f.hp <= 0) continue;
         const d = dist(f.x, f.y, slot.x, slot.y);
         if (d > pickupTouchRadius(f)) continue;
+        // FROST V1 (authority §4.3): a Frozen firearm denies non-Frost
+        // collectors. Dynamic denial only — never a rejected/blacklist mark.
+        if (slot.__frostFrozen) {
+          const FR = window.APEX_FROST;
+          if (FR && FR.deniesPickup && FR.deniesPickup(slot, f)) continue;
+        }
         if (slot.phase === 'COUNTER_RESERVED' && slot.reservedFor !== f.id) {
           if (!slot.rejectedFor[f.id]) {
             slot.rejectedFor[f.id] = true;
@@ -451,6 +457,12 @@
       slot.pickedBy = closest.name;
       weaponApi.equip(closest, slot.weaponId);
       const hold = weaponApi.getHolder(closest);
+      // FROST V1 (authority §4.3/§5): Frozen state carries onto the real
+      // holder and persists until that holder is consumed.
+      if (slot.__frostFrozen && hold) {
+        const FR = window.APEX_FROST;
+        if (FR && FR.noteFrozenPickup) FR.noteFrozenPickup(closest, hold, slot);
+      }
       if (hold && hold.meta) {
         if (slot.boundWeaponId) hold.meta.boundWeaponId = slot.boundWeaponId;
         if (slot.boundOwnerId != null) hold.meta.boundOwnerId = slot.boundOwnerId;

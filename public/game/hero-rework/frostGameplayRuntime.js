@@ -1,0 +1,341 @@
+/* =============================================================================
+ * FROST V1 — gameplay truth (APEX_FROST).
+ *
+ * Authority: docs/hero-rework/frost-v1/00_FROST_IMPLEMENTATION_AUTHORITY.md
+ * (Playtest V0: A1 CD 10.5 / 650x160 lane / 4.5s floor / thaw 0.30 / linger
+ * 0.35; A2 CD 12.5 / 3.0s window / 120 trail / 3.5s segments / Cold Shock
+ * x0.50 1.0s; Passive 8% / Freeze 0.90 / post-thaw lock 0.50; floor law
+ * Frost x2.35 / enemy x0.60, strongest-wins, never multiplied.)
+ *
+ * Owns (real APEX truth): A1 breath commitment + near->far crystallization
+ * front + lane geometry/lifecycle, A2 hunt window + actual-path trail, the
+ * shared Frozen Floor speed law, battlefield firearm freeze/thaw/support,
+ * Frozen Gun holder tags, Frozen Bullet provenance/group tags, Freeze
+ * timers/refresh/post-thaw lock, and A2 exact holder steal.
+ *
+ * Does NOT own: firing/cadence/damage (Arsenal executors), locomotion
+ * (engine), appearance (frost presentation + Gold bridge consume the bus
+ * events and inspect() snapshots emitted here).
+ *
+ * Integration surface (all optional/lazy):
+ *   executors frost.* (heroMechanicsRuntime) drive casts + per-tick truth
+ *   FR.tickCombatant(ctx, dt)   full per-combatant truth advance (passive onTick)
+ *   FR.tagFrozenBullet(ctx, p)  Frozen Bullet provenance (passive onProjectileFired)
+ *   FR.noteBodyHit(p, target)   post-hit Freeze roll (rework pass Stage B)
+ *   FR.deniesPickup(slot, f)    frozen-slot collector gate (spawn resolvePickups)
+ *   FR.noteFrozenPickup(f, h, s) carry Frozen state onto the real holder
+ *   FR.noteBodyContact(a, b)    A2 Cold Shock + steal (rework contact hook)
+ *   FR.releaseCombatant(ct)     teardown (executor onTeardown)
+ * ========================================================================== */
+(function (g) {
+'use strict';
+if (g.APEX_FROST) return;
+
+const AIL = () => g.APEX_HERO_REWORK_AIL;
+const HR = () => g.APEX_HERO_REWORK;
+const clock = () => (AIL() && AIL().clock ? AIL().clock() : 0);
+const busEmit = (type, payload) => { try { AIL().bus.emit(type, payload); } catch (e) { /* truth never breaks on telemetry */ } };
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+
+/* ------------------------------------------------------------------ *
+ * Shared Frozen Floor law (authority §3). Single source of truth.
+ * frontSeconds fills an authority gap (no front duration specified):
+ * the near->far crystallization front crosses 650px in 0.45s; whatever
+ * the value, the LAW is tested (no invisible full rect before the front;
+ * one shared lane expiry after front completion).
+ * ------------------------------------------------------------------ */
+const FROST_LAW = Object.freeze({
+  frostFloorMult: 2.35,   // Frost body on Frozen Floor
+  enemyFloorMult: 0.60,   // enemy body on Frozen Floor (also A1 linger)
+  frontSeconds: 0.45,     // A1 near->far crystallization front duration
+  nodeSpacing: 10,        // A2 trail node spacing (px of real travel)
+  speedRefresh: 0.12,     // status refresh cadence (RUBBER precedent)
+});
+
+function pointSegDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  let t = lenSq > 0 ? ((px - ax) * dx + (py - ay) * dy) / lenSq : 0;
+  t = clamp(t, 0, 1);
+  const cx = ax + dx * t, cy = ay + dy * t;
+  return Math.hypot(px - cx, py - cy);
+}
+
+const states = new WeakMap();
+function stateOf(ct) {
+  let st = states.get(ct);
+  if (!st) {
+    st = {
+      a1pending: null,          // { dx, dy, releaseAt }
+      a1lanes: [],              // [{ ox, oy, dx, dy, len, halfW, frontStartAt, frontDoneAt, expireAt }]
+      a2: null,                 // { until, trail: [{x,y,bornAt}], segLife, halfW, endEmitted }
+      cold: Object.create(null),   // bodyId -> Cold Shock expiry (clock)
+      linger: Object.create(null), // bodyId -> A1 linger expiry (clock)
+      freeze: Object.create(null), // bodyId -> { until, lockedUntil } (Slice C)
+      castSeq: 0,
+    };
+    states.set(ct, st);
+  }
+  return st;
+}
+
+function frontLen(lane, now) {
+  if (now <= lane.frontStartAt) return 0;
+  if (now >= lane.frontDoneAt) return lane.len;
+  return lane.len * ((now - lane.frontStartAt) / Math.max(1e-6, lane.frontDoneAt - lane.frontStartAt));
+}
+
+function laneSupports(lane, x, y, now) {
+  if (now >= lane.expireAt) return false;
+  const fl = frontLen(lane, now);
+  if (fl <= 0) return false;
+  const rx = x - lane.ox, ry = y - lane.oy;
+  const s = rx * lane.dx + ry * lane.dy;
+  if (s < 0 || s > fl) return false;
+  const perp = Math.abs(rx * lane.dy - ry * lane.dx);
+  return perp <= lane.halfW;
+}
+
+function trailSupports(trail, halfW, x, y, now, segLife) {
+  const live = [];
+  for (const n of trail) if (now - n.bornAt < segLife) live.push(n);
+  if (!live.length) return false;
+  if (live.length === 1) return Math.hypot(x - live[0].x, y - live[0].y) <= halfW;
+  for (let i = 1; i < live.length; i++) {
+    if (pointSegDist(x, y, live[i - 1].x, live[i - 1].y, live[i].x, live[i].y) <= halfW) return true;
+  }
+  return false;
+}
+
+function onA1Floor(st, x, y, now) {
+  for (const lane of st.a1lanes) if (laneSupports(lane, x, y, now)) return true;
+  return false;
+}
+
+function onAnyFloor(st, x, y, now) {
+  if (onA1Floor(st, x, y, now)) return true;
+  if (st.a2 && trailSupports(st.a2.trail, st.a2.halfW, x, y, now, st.a2.segLife)) return true;
+  return false;
+}
+
+/* ------------------------------------------------------------------ */
+const holderUids = new WeakMap();
+let holderSeq = 0;
+function holderUid(h) {
+  let u = holderUids.get(h);
+  if (!u) { u = ++holderSeq; holderUids.set(h, u); }
+  return u;
+}
+
+function isFreezableFirearm(slot) {
+  if (!slot || slot.kind === 'HEAL') return false;
+  const id = slot.weaponId;
+  if (!id || id === 'GRENADE' || id === 'STORMBREAKER' || id === 'T6') return false;
+  if (slot.tier === 'T6') return false;
+  const W = g.APEX_ARSENAL_WEAPONS;
+  const def = W && W[id];
+  return !!def && def.category === 'ranged';
+}
+
+const FR = {
+  version: 'frost-v1',
+  LAW: FROST_LAW,
+
+  /* ---------------- A1 ---------------- */
+  castBreath(ctx) {
+    const ct = ctx.combatant;
+    const a = ct.anchor;
+    const st = stateOf(ct);
+    const dx = (a && a.dir && a.dir.x) || 1, dy = (a && a.dir && a.dir.y) || 0;
+    const now = clock();
+    st.a1pending = { dx, dy, releaseAt: now + ctx.cfg.castCommit, castAt: now, id: ++st.castSeq };
+    busEmit('FrostBreathCast', { hero: ct.heroId, dir: [dx, dy], releaseAt: st.a1pending.releaseAt });
+    return true;
+  },
+
+  /* ---------------- A2 ---------------- */
+  castHunt(ctx) {
+    const ct = ctx.combatant;
+    const a = ct.anchor;
+    const st = stateOf(ct);
+    const now = clock();
+    st.a2 = {
+      until: now + ctx.cfg.activeWindow,
+      trail: [{ x: a.x, y: a.y, bornAt: now }],
+      segLife: ctx.cfg.segmentLifetime,
+      halfW: ctx.cfg.trailWidth / 2,
+      endEmitted: false,
+    };
+    // Trail starts under Frost only if Frost is really there (it is).
+    busEmit('FrostHuntStart', { hero: ct.heroId, until: st.a2.until });
+    return true;
+  },
+
+  /* ---------------- per-tick truth ---------------- */
+  tickCombatant(ctx, dt) {
+    const ct = ctx.combatant;
+    const api = ctx.api;
+    if (!ct || !api) return;
+    const st = stateOf(ct);
+    const now = clock();
+    const a1cfg = ct.skills.A1 && ct.skills.A1.cfg;
+    const a2cfg = ct.skills.A2 && ct.skills.A2.cfg;
+
+    // A1 release: live position at release, snapshotted direction.
+    if (st.a1pending && now >= st.a1pending.releaseAt && a1cfg) {
+      const p = st.a1pending;
+      st.a1pending = null;
+      const a = ct.anchor;
+      const frontStartAt = now;
+      const frontDoneAt = now + FROST_LAW.frontSeconds;
+      st.a1lanes.push({
+        ox: a.x, oy: a.y, dx: p.dx, dy: p.dy,
+        len: a1cfg.length, halfW: a1cfg.width / 2,
+        frontStartAt, frontDoneAt,
+        expireAt: frontDoneAt + a1cfg.floorLifetime,
+        castId: p.id,
+      });
+      busEmit('FrostFloorBuilt', { hero: ct.heroId, x: a.x, y: a.y, dir: [p.dx, p.dy] });
+    }
+    // Prune expired lanes (single shared expiry each; no early near-end loss).
+    for (let i = st.a1lanes.length - 1; i >= 0; i--) {
+      if (now >= st.a1lanes[i].expireAt) st.a1lanes.splice(i, 1);
+    }
+
+    // A2 trail from REAL movement history (turns/bounces included).
+    if (st.a2) {
+      const w = st.a2;
+      const a = ct.anchor;
+      if (a && a.hp > 0 && now < w.until) {
+        const last = w.trail[w.trail.length - 1];
+        if (!last || Math.hypot(a.x - last.x, a.y - last.y) >= FROST_LAW.nodeSpacing) {
+          w.trail.push({ x: a.x, y: a.y, bornAt: now });
+        }
+      }
+      for (let i = w.trail.length - 1; i >= 0; i--) {
+        if (now - w.trail[i].bornAt >= w.segLife) w.trail.splice(i, 1);
+      }
+      if (!w.endEmitted && now >= w.until) {
+        w.endEmitted = true;
+        busEmit('FrostHuntEnd', { hero: ct.heroId });
+      }
+      if (w.endEmitted && !w.trail.length) st.a2 = null;
+    }
+
+    // Speed law (strongest Frost effect wins, never multiplied).
+    const rf = FROST_LAW.speedRefresh;
+    for (const b of api.ownBodies(ct)) {
+      if (!b || b.hp <= 0) continue;
+      if (onAnyFloor(st, b.x, b.y, now)) b.applyStatus('speed', rf, { mult: FROST_LAW.frostFloorMult });
+    }
+    const foes = api.enemyBodies(ct);
+    for (const b of foes) {
+      if (!b || b.hp <= 0) continue;
+      const cands = [];
+      const onA1 = onA1Floor(st, b.x, b.y, now);
+      if (onA1) {
+        cands.push(FROST_LAW.enemyFloorMult);
+        if (a1cfg) st.linger[b.id] = now + a1cfg.lingerSeconds;
+      } else if (st.a2 && trailSupports(st.a2.trail, st.a2.halfW, b.x, b.y, now, st.a2.segLife)) {
+        cands.push(FROST_LAW.enemyFloorMult);
+      }
+      if ((st.cold[b.id] || 0) > now && a2cfg) cands.push(a2cfg.coldShockMult);
+      if ((st.linger[b.id] || 0) > now) cands.push(FROST_LAW.enemyFloorMult);
+      if (cands.length) b.applyStatus('slow', rf, { mult: Math.min(...cands) });
+    }
+
+    // Battlefield firearm freeze/thaw/support.
+    this.tickSlots(ct, st, now, a1cfg);
+  },
+
+  tickSlots(ct, st, now, a1cfg) {
+    const AQ = g.APEX_ARSENAL;
+    const slots = (AQ && AQ.state && AQ.state.slots) || [];
+    for (const slot of slots) {
+      if (!slot || slot.phase !== 'REVEALED') {
+        if (slot && (slot.__frostFrozen || slot.__frostThawUntil)) {
+          delete slot.__frostFrozen; delete slot.__frostThawUntil;
+        }
+        continue;
+      }
+      if (!isFreezableFirearm(slot)) continue;
+      const supported = onA1Floor(st, slot.x, slot.y, now);
+      if (supported) {
+        if (slot.__frostThawUntil) delete slot.__frostThawUntil; // support returns: cancel thaw
+        if (!slot.__frostFrozen) {
+          slot.__frostFrozen = true;
+          busEmit('FrostSlotFrozen', { slotId: slot.id, weapon: slot.weaponId });
+        }
+      } else if (slot.__frostFrozen) {
+        const thaw = (a1cfg && a1cfg.thawSeconds) || 0.30;
+        if (!slot.__frostThawUntil) {
+          slot.__frostThawUntil = now + thaw;
+          busEmit('FrostSlotThawing', { slotId: slot.id });
+        } else if (now >= slot.__frostThawUntil) {
+          delete slot.__frostFrozen; delete slot.__frostThawUntil;
+          busEmit('FrostSlotThawed', { slotId: slot.id });
+        }
+      }
+    }
+  },
+
+  deniesPickup(slot, f) {
+    if (!slot || !slot.__frostFrozen) return false;
+    const hr = HR();
+    if (!hr || !hr.byCombatant) return false;
+    const ct = hr.byCombatant(f);
+    return !(ct && !ct.facade && ct.heroId === 'ICE');
+  },
+
+  noteFrozenPickup(f, hold, slot) {
+    if (!hold) return;
+    hold.__frostFrozen = { weaponId: hold.weaponId || (slot && slot.weaponId) || null, at: clock() };
+    busEmit('FrostGunFrozen', {
+      fighter: f && f.name, weapon: hold.__frostFrozen.weaponId,
+      holder: holderUid(hold),
+    });
+  },
+
+  /* -------- Frozen Bullet provenance (fire time; zero RNG) -------- */
+  tagFrozenBullet(ctx, p, owner) {
+    const hold = owner && owner.data && owner.data.arsenal;
+    if (!hold || !hold.__frostFrozen || !p || !p.__hr) return false;
+    // Semantic blast group: holder identity + sequence position at fire time.
+    // All pellets of one fireOneShot share both; sequential shots differ in
+    // shotsFired (incremented after each shot); re-equips differ in holder.
+    p.__hr.frost = { group: holderUid(hold) + ':' + (hold.shotsFired | 0), holder: holderUid(hold) };
+    return true;
+  },
+
+  /* -------- post-hit Freeze roll (Slice C) -------- */
+  noteBodyHit(p, target) { return false; },
+  noteBodyContact(myBody, otherBody) { return false; },
+
+  releaseCombatant(ct) { states.delete(ct); },
+
+  /* -------- deterministic test/inspection surface -------- */
+  inspect(ct) {
+    const st = states.get(ct);
+    if (!st) return null;
+    const now = clock();
+    return {
+      pending: !!st.a1pending,
+      lanes: st.a1lanes.map((l) => ({
+        ox: +l.ox.toFixed(1), oy: +l.oy.toFixed(1),
+        front: +frontLen(l, now).toFixed(1), len: l.len,
+        active: now < l.expireAt,
+      })),
+      a2live: !!(st.a2 && now < st.a2.until),
+      trail: st.a2 ? st.a2.trail.length : 0,
+      // Node copies for the Slice D presentation bridge + F09 gates.
+      trailNodes: st.a2 ? st.a2.trail.map((n) => ({ x: +n.x.toFixed(1), y: +n.y.toFixed(1), bornAt: +n.bornAt.toFixed(3) })) : [],
+      cold: Object.keys(st.cold).filter((k) => st.cold[k] > now).length,
+      linger: Object.keys(st.linger).filter((k) => st.linger[k] > now).length,
+    };
+  },
+  isFreezableFirearm,
+};
+
+g.APEX_FROST = FR;
+g.apexFrostGameplayRuntime = 'ready';
+})(typeof window !== 'undefined' ? window : globalThis);

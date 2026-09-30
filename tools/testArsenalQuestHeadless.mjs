@@ -1503,7 +1503,10 @@ report.roster = run(`
   const playableRework = ids.length === 12 && ids.every(n => (shells.typeFor(n) || {}).__hrHero === n);
 
   // REWORK proof (replaces the legacy ICE KEEP-proof): canonical ICE casts
-  // its rework frost lane (A2) inside a real Arsenal match.
+  // its rework skill (A2) inside a real Arsenal match.
+  // FROST V1 migration: A2 is now the Frost HUNT (live window + real-path
+  // trail in Frost truth state), not the old world.lanes frost lane, so the
+  // gate proves the Frost A2 cast took effect instead of world.lanes.
   window.startArsenalQuestMode('ICE', 'WITCH');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
@@ -1514,7 +1517,9 @@ report.roster = run(`
   let iceLaneFired = false;
   for (let i = 0; i < 40; i++) {
     APEX_ARSENAL.step(1 / 60);
-    if (HR.match && HR.match.world.lanes.length > 0) iceLaneFired = true;
+    const FR = window.APEX_FROST;
+    const insp = FR && FR.inspect ? FR.inspect(iceCt) : null;
+    if (insp && (insp.a2live || insp.trail > 0)) iceLaneFired = true;
   }
 
   // ADAPT proof: VAMPIRE latch shortened to 2.5s for shell fighters.

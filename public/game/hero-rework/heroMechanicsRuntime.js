@@ -595,60 +595,62 @@
   };
 
   /* -------------------------------------------------------------------- *
-   * 6. ICE
+   * 6. ICE — FROST V1 (frost.* supersedes ice.* per authority \u00a70/\u00a78)
    * -------------------------------------------------------------------- */
 
-  EXECUTORS['ice.bullets'] = {
+  function frostTruth() {
+    const scope = (typeof window !== 'undefined' ? window : globalThis);
+    return scope.APEX_FROST || null;
+  }
+
+  EXECUTORS['frost.breath'] = {
+    // A1 never aims: no target, range, or facing precondition.
+    canCast() { return true; },
+    aiCanAttempt() { return true; },
     cast(ctx) {
-      ctx.store.chillShotsUntil = ctx.clock() + ctx.cfg.duration;
-      ctx.api.note('ice.bullets', 'cast', { duration: ctx.cfg.duration });
-      return true;
+      const FR = frostTruth();
+      if (!FR) return false;
+      ctx.api.note('frost.breath', 'cast', {});
+      return FR.castBreath(ctx);
+    },
+    onTeardown(ctx) {
+      const FR = frostTruth();
+      if (FR) FR.releaseCombatant(ctx.combatant);
+    },
+  };
+
+  EXECUTORS['frost.hunt'] = {
+    canCast() { return true; },
+    aiCanAttempt() { return true; },
+    cast(ctx) {
+      const FR = frostTruth();
+      if (!FR) return false;
+      ctx.api.note('frost.hunt', 'cast', {});
+      return FR.castHunt(ctx);
+    },
+    onTeardown(ctx) {
+      const FR = frostTruth();
+      if (FR) FR.releaseCombatant(ctx.combatant);
+    },
+  };
+
+  EXECUTORS['frost.deep_frost'] = {
+    onTick(ctx, dt) {
+      const FR = frostTruth();
+      if (FR) FR.tickCombatant(ctx, dt);
     },
     onProjectileFired(ctx, p, descriptor) {
-      if (!ctx.store.chillShotsUntil || ctx.clock() >= ctx.store.chillShotsUntil) return;
       if (!descriptor || descriptor.kind !== 'bullet') return;
-      // p.__hr IS the fire-tag object carried onto the real projectile;
-      // the projectile pass applies CHILL when __hr.chill is set on hit.
-      p.__hr.chill = true; // applies CHILL on hit (projectile pass)
+      const FR = frostTruth();
+      if (!FR) return;
+      // p.__hr IS the fire-tag object carried onto the real projectile.
+      // Frozen provenance tags here; ZERO RNG at fire time (Slice C rolls
+      // once per blast only after a confirmed eligible body hit).
+      FR.tagFrozenBullet(ctx, p, descriptor.params && descriptor.params.owner);
     },
-    onTeardown(ctx) { ctx.store.chillShotsUntil = 0; },
-  };
-
-  EXECUTORS['ice.lane'] = {
-    cast(ctx) {
-      const a = ctx.combatant.anchor;
-      const enemy = ctx.api.enemyOf(ctx.combatant);
-      const ea = enemy && enemy.anchor;
-      const ang = ea ? angleTo(a.x, a.y, ea.x, ea.y) : (a.dir.x >= 0 ? 0 : Math.PI);
-      ctx.api.spawnLane({
-        owner: ctx.combatant, x: a.x, y: a.y, angle: ang,
-        width: ctx.cfg.width, speed: ctx.cfg.speed,
-        windup: ctx.cfg.windup,
-      });
-      ctx.api.note('ice.lane', 'cast', {});
-      return true;
-    },
-  };
-
-  EXECUTORS['ice.deep_freeze'] = {
-    onTick(ctx, dt) {
-      // ctx.store is always provided by mechCtx (auto-created per mechanic);
-      // never reassign the const binding.
-      const st = ctx.store;
-      for (const body of ctx.api.ownBodies(ctx.combatant)) {
-        const chill = ctx.api.chillRemaining(body);
-        if (chill > 0) {
-          body.__hrChillAccum = (body.__hrChillAccum || 0) + dt;
-          if (body.__hrChillAccum >= ctx.cfg.continuousChillThreshold) {
-            body.__hrChillAccum = 0; // accumulation resets after Freeze
-            ctx.api.applyFreezeTo(body, ctx.cfg.freezeDuration);
-            ctx.api.emitEvent('DeepFreeze', { hero: 'ICE', duration: ctx.cfg.freezeDuration });
-            ctx.api.note('ice.deep_freeze', 'freeze', {});
-          }
-        }
-        // An isolated Chill shorter than the threshold never freezes on its
-        // own — accumulation naturally persists only while Chill is active.
-      }
+    onTeardown(ctx) {
+      const FR = frostTruth();
+      if (FR) FR.releaseCombatant(ctx.combatant);
     },
   };
 

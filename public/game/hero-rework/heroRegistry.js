@@ -247,7 +247,13 @@
     },
 
     /* ---------------------------------------------------------------- *
-     * 6. ICE
+     * 6. ICE (FROST V1 product identity — authority §1/§12).
+     * Storage key stays ICE; class/mechanic identity is rework.frost /
+     * frost.*. The old ice.bullets / ice.lane / ice.deep_freeze design is
+     * intentionally superseded (authority §0/§8) and must not return.
+     * Per-skill numbers below are the owner-locked Playtest V0 values.
+     * Shared Frozen Floor law (Frost x2.35 / enemy x0.60) lives once in
+     * APEX_FROST.FROST_LAW, never triplicated across skills.
      * ---------------------------------------------------------------- */
     ICE: {
       id: 'ICE',
@@ -255,19 +261,23 @@
       // FROST V1 (authority §1): stable storage/canonical key stays ICE;
       // product/display identity is FROST. No duplicate roster entry.
       displayName: 'FROST',
-      classRef: 'rework.ice',
+      classRef: 'rework.frost',
       skills: {
-        A1: skill('ice.bullets', 'A1', 'ice.bullets', {
-          cooldown: 11, duration: 4, appliesChill: true,
-        }, ['cooldown'], 'cooldown_step'),
-        A2: skill('ice.lane', 'A2', 'ice.lane', {
-          cooldown: 10, windup: 0.25, width: 120, speed: 1800,
-          traversesArena: true, directDamage: 0, appliesChill: true, homing: false,
-        }, ['cooldown'], 'cooldown_step'),
-        PASSIVE: skill('ice.deep_freeze', 'PASSIVE', 'ice.deep_freeze', {
-          continuousChillThreshold: 3.0, freezeDuration: 1.1,
-          resetAfterFreeze: true, isolatedChillCannotFreeze: true,
-        }, ['continuousChillThreshold'], 'threshold_step'),
+        A1: skill('frost.breath', 'A1', 'frost.breath', {
+          cooldown: 10.5, castCommit: 0.25, length: 650, width: 160,
+          floorLifetime: 4.5, thawSeconds: 0.30, lingerSeconds: 0.35,
+          directDamage: 0, progressionAnchor: 1,
+        }, ['progressionAnchor'], 'cooldown_step'),
+        A2: skill('frost.hunt', 'A2', 'frost.hunt', {
+          cooldown: 12.5, activeWindow: 3.0, trailWidth: 120,
+          segmentLifetime: 3.5, coldShockMult: 0.50,
+          coldShockDuration: 1.0, directDamage: 0, progressionAnchor: 1,
+        }, ['progressionAnchor'], 'cooldown_step'),
+        PASSIVE: skill('frost.deep_frost', 'PASSIVE', 'frost.deep_frost', {
+          baseProcPct: 0.04, bonusProcPct: 0.04,
+          freezeDuration: 0.90, postThawLock: 0.50,
+          directDamage: 0, progressionAnchor: 1,
+        }, ['progressionAnchor'], 'cooldown_step'),
       },
     },
 
