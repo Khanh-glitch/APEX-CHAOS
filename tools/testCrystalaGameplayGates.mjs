@@ -181,21 +181,26 @@ await gate('C09-RETURN-shard-unavailable-until-exact-dock-frame', () => {
 });
 
 await gate('C10-docked-shard-can-be-selected-again-in-same-K', async () => {
-  // six sequential intercepts occupy every shard, then the first shard(s) dock and serve a later threat
-  const { a, b, cta, ev } = fresh({ ax: 130, ay: 500, bx: 990, by: 500 });
+  // Freeze the owner fantasy directly: fill all six independent guardian slots,
+  // then ONLY the first shard that docks may serve the next threat.
+  const { a, b, cta } = fresh({ ax: 150, ay: 500, bx: 430, by: 500 });
   press(a, 'A2');
-  let n = 0;
-  const seq = () => { fire(b, 990, 500, a.x, a.y, 'SLOW', { damage: 4.5 + n * 0.01 }); n += 1; };
-  seq();
-  for (let k = 0; k < 5; k++) { step(0.16); seq(); }
-  const reopened = stepUntil(() => ins(cta).available >= 1, 1.7);
+  for (let k = 0; k < 6; k++) {
+    fire(b, 430, 500 + (k - 2.5) * 5, a.x, a.y, 'SMG', { damage: 2.4 + k * 0.001 });
+  }
+  const filled = stepUntil(() => ins(cta).available === 0 && telem(cta).reservations === 6, 0.25);
+  const allHit = stepUntil(() => telem(cta).intercepts === 6, 0.35);
+  const busyAfterSix = ins(cta).available === 0;
+  const reopened = stepUntil(() => ins(cta).available >= 1, 1.35);
   const activeWhenReopened = ins(cta).k.active;
   const hit0 = telem(cta).intercepts;
-  seq();                                           // 7th threat: only a docked shard may take it
-  step(0.75);
+  fire(b, 430, 500, a.x, a.y, 'SMG', { damage: 2.9 });
+  step(0.25);
   const t = telem(cta);
-  return { ok: reopened != null && activeWhenReopened && t.repeatIntercepts >= 1 && t.intercepts >= 7,
-    detail: { reopened: fmt(reopened), activeWhenReopened, intercepts: t.intercepts, repeat: t.repeatIntercepts, hit0 } };
+  return { ok: filled != null && allHit != null && busyAfterSix && reopened != null && activeWhenReopened
+      && t.repeatIntercepts >= 1 && t.intercepts >= 7,
+    detail: { filled: fmt(filled), allHit: fmt(allHit), busyAfterSix, reopened: fmt(reopened),
+      activeWhenReopened, intercepts: t.intercepts, repeat: t.repeatIntercepts, hit0 } };
 });
 
 await gate('C11-J-outside-K-fails-immediately-no-cooldown', () => {
