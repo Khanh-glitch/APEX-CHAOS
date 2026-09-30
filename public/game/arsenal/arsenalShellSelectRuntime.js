@@ -39,10 +39,14 @@
   // owner visual direction).
   function makeReworkShell(name) {
     const base = baseTypeFor(name);
+    // FROST V1 (authority §1): product copy shows the display identity;
+    // the shell name/storage key stays canonical.
+    const REG = window.APEX_HERO_REWORK_REGISTRY;
+    const label = (REG && REG.displayNameFor) ? REG.displayNameFor(name) : name;
     return {
       name,
       color: (base && base.color) || '#c8c2b4',
-      desc: `Hero Rework — ${name}`,
+      desc: `Hero Rework — ${label}`,
       speed: CFG.FIGHTER_SPEED,
       startDx: (base && base.startDx != null) ? base.startDx : 1,
       startDy: (base && base.startDy != null) ? base.startDy : 0.55,
@@ -251,6 +255,9 @@
   const shellCache = new Map();
   function shellTypeFor(name) {
     if (!name) return null;
+    // FROST V1 (authority §1): FROST is an external alias for the canonical
+    // ICE storage hero — same rework shell, never a duplicate roster entry.
+    if (name === 'FROST') return shellTypeFor('ICE');
     if (shellCache.has(name)) return shellCache.get(name);
     // HERO REWORK cutover: canonical-12 playable heroes (and the retired
     // NEWBIE, replaced by ROBOT) resolve to rework shells — no legacy kit

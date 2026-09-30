@@ -699,7 +699,9 @@
       note(skillId, kind, data) {
         const parts = String(skillId).split('.');
         const prefix = parts[0].toUpperCase();
-        const heroId = prefix === 'MATH' ? 'MATH_V2' : prefix;
+        // FROST V1 (authority §1): frost.* telemetry attributes to the
+        // canonical ICE storage hero. Dormant until frost.* mechanics exist.
+        const heroId = prefix === 'MATH' ? 'MATH_V2' : prefix === 'FROST' ? 'ICE' : prefix;
         for (const ct of M ? M.combatants : []) {
           if (ct.heroId === heroId) {
             ct.telemetry.bySkill[`${skillId}:${kind}`] = (ct.telemetry.bySkill[`${skillId}:${kind}`] || 0) + 1;
@@ -2394,12 +2396,15 @@
     if (!ct || ct.facade) return [];
     const lines = [];
     const ctl = abilityController(ct);
+    // FROST V1 (authority §1): HUD product copy shows the display identity.
+    const REG = globalScope.APEX_HERO_REWORK_REGISTRY;
+    const heroLabel = (REG && REG.displayNameFor) ? REG.displayNameFor(ct.heroId) : ct.heroId;
     for (const slot of ['A1', 'A2']) {
       const key = slot === 'A1' ? 'J' : 'K';
       const cd = ctl.cooldownLeft(slot);
       const skill=ct.skills[slot];
       if(skill.cfg.maxCharges){lines.push(`${key} · HUNTER.a1 ${skill.charges}/${skill.cfg.maxCharges}${skill.rechargeLeft>0 ? ' +1 '+skill.rechargeLeft.toFixed(1)+'s' : ''}`);continue;}
-      lines.push(`${key} · ${ct.heroId}.${slot.toLowerCase()} ${cd > 0.05 ? cd.toFixed(1) + 's' : 'READY'}`);
+      lines.push(`${key} · ${heroLabel}.${slot.toLowerCase()} ${cd > 0.05 ? cd.toFixed(1) + 's' : 'READY'}`);
     }
     return lines;
   };

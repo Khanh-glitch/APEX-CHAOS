@@ -252,6 +252,9 @@
     ICE: {
       id: 'ICE',
       name: 'ICE',
+      // FROST V1 (authority §1): stable storage/canonical key stays ICE;
+      // product/display identity is FROST. No duplicate roster entry.
+      displayName: 'FROST',
       classRef: 'rework.ice',
       skills: {
         A1: skill('ice.bullets', 'A1', 'ice.bullets', {
@@ -617,5 +620,19 @@
     deepCopy,
     validateRegistry,
     isCanonicalHero(id) { return Object.prototype.hasOwnProperty.call(HEROES, id); },
+    // FROST V1 (authority §1): external alias + product-display layer.
+    // resolveHeroId maps an external lookup (ICE or FROST) to the single
+    // canonical storage key. displayNameFor maps a canonical key to the
+    // product copy shown in UI/shop/pick/HUD. Storage keys never change.
+    resolveHeroId(id) {
+      const k = String(id == null ? '' : id).toUpperCase();
+      if (k === 'FROST') return 'ICE';
+      return Object.prototype.hasOwnProperty.call(HEROES, k) ? k : id;
+    },
+    displayNameFor(id) {
+      const k = String(id == null ? '' : id).toUpperCase();
+      const hero = HEROES[k === 'FROST' ? 'ICE' : k];
+      return (hero && hero.displayName) || id;
+    },
   };
 })(typeof window !== 'undefined' ? window : globalThis);

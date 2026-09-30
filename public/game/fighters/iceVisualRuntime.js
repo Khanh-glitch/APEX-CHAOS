@@ -34,6 +34,22 @@
     let lastIceClock = 0;
     let iceAgeWindup = null;
 
+    // FROST V1 (authority §8): narrow semantic suppression — legacy ICE
+    // renderer/audio ignores FROST rework status/events. The predicate
+    // identifies the semantic SOURCE (a rework body whose combatant runs
+    // frost.* mechanics), never the target. Dormant while ICE runs ice.*.
+    function isFrostReworkSource(s) {
+      try {
+        const HR = window.APEX_HERO_REWORK;
+        if (!s || !HR || !HR.isReworkFighter || !HR.byCombatant) return false;
+        if (!HR.isReworkFighter(s)) return false;
+        const ct = HR.byCombatant(s);
+        if (!ct || ct.heroId !== 'ICE' || !ct.skills) return false;
+        const mech = (slot) => ct.skills[slot] && ct.skills[slot].def && ct.skills[slot].def.mechanicId;
+        return [mech('A1'), mech('A2'), mech('PASSIVE')].some((m) => typeof m === 'string' && m.indexOf('frost.') === 0);
+      } catch (e) { return false; }
+    }
+
     function iceRealNowMs() {
       if (Number.isFinite(window.__apexIceTestNowMs)) return window.__apexIceTestNowMs;
       if (typeof navigator!=='undefined' && /html-tournament-harness/i.test(navigator.userAgent||'')) return iceNow()*1000;
@@ -543,7 +559,7 @@
       Fighter.prototype.applyStatus=function(name,duration,data={}) {
         const wasFrozen=name==='freeze' && this.hasStatus && this.hasStatus('freeze');
         const result=oldApplyStatusIceVisual.call(this,name,duration,data);
-        if (name==='freeze' && data && data.source && data.source.name==='ICE' && this.hasStatus('freeze') && !wasFrozen) {
+        if (name==='freeze' && data && data.source && data.source.name==='ICE' && !isFrostReworkSource(data.source) && this.hasStatus('freeze') && !wasFrozen) {
           const v=iceFreezeVisual(this); v.active=true; v.start=iceNow(); v.end=-999; v.sourceId=data.source.id;
           playIceAudio('freezeTarget',.62,false);
         }
