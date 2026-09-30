@@ -35,7 +35,7 @@ api.begin=(f,kind)=>{const s=state(f);sync(s);s.h.x.v=s.h.y.v=0;s.pendingPlant=f
   s.timeScale=1;s.dilate=0;s.tsTarget=1;
   s.startA1();
  }else s.startA2();};
-api.advanceA1=(f,rdt)=>{const s=state(f);sync(s,false),m=s.a1Motion;
+api.advanceA1=(f,rdt)=>{const s=state(f),m=s.a1Motion;sync(s,false);
  // Canonical Gold Stage.step timing: the trap's plant burst can temporarily
  // set timeScale=.22/dilate=.035 via the real Gold plantTrap implementation.
  s.dilate=Math.max(0,(s.dilate||0)-rdt);
