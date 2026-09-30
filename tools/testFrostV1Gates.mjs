@@ -80,6 +80,33 @@ try {
 } catch (e) { gate('F00-display-frost', false, String(e && e.message)); }
 
 try {
+  // Display: shop grid/detail, quest map, pick grid show FROST (storage ids stay).
+  const META = win.APEX_ARSENAL_META;
+  META.paintShop('ICE');
+  const cardName = win.document.querySelector('[data-shop-card="ICE"] .aq-fighter-name');
+  const detailH2 = win.document.querySelector('#aq-shop-detail h2');
+  const shopOk = !!cardName && cardName.textContent === 'FROST'
+    && !!detailH2 && detailH2.textContent === 'FROST'
+    && cardName.closest('[data-shop-card]').getAttribute('data-shop-card') === 'ICE';
+  win.beginArsenalQuestMap();
+  const stage4 = [...win.document.querySelectorAll('#aq-quest-map .aq-stage-name')][3];
+  const mapOk = !!stage4 && stage4.textContent === 'FROST';
+  // Pick-grid patch mechanism on synthetic roster DOM (the live roster grid
+  // renders 0 cards headless — engine wrapper chain needs browser boot;
+  // real-grid proof moves to browser slice F14).
+  const synth = win.document.createElement('div');
+  synth.innerHTML = '<span class="aq-fighter-name">ICE</span><div id="roster-grid"><div class="f-name">ICE</div></div>'
+    + '<span class="aq-fighter-name">ROBOT</span><span class="aq-stage-name">SERVICE</span><div class="f-name">ICE</div>';
+  win.document.body.appendChild(synth);
+  const patched = HR.patchFrostProductCopy(synth);
+  const synthNames = [...synth.querySelectorAll('.aq-fighter-name,.f-name,.aq-stage-name')].map((el) => el.textContent);
+  const patchOk = patched === 2 && synthNames.join('|') === 'FROST|FROST|ROBOT|SERVICE|ICE';
+  synth.remove();
+  gate('F00-display-shop-map-pick', shopOk && mapOk && patchOk,
+    { card: cardName && cardName.textContent, detail: detailH2 && detailH2.textContent, stage4: stage4 && stage4.textContent, patchOk });
+} catch (e) { gate('F00-display-shop-map-pick', false, String(e && e.message)); }
+
+try {
   // Alias match entry: 'FROST' starts the same canonical ICE rework match.
   T.start('FROST', 'ROBOT');
   T.holdSpawns();

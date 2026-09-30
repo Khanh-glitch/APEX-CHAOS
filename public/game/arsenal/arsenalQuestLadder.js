@@ -256,11 +256,14 @@
     const save = loadSave();
     const cleared = save.completedStages.length;
     el.style.display = 'block';
+    // FROST V1 (authority §1): map cells show product display copy.
+    const __fr = window.APEX_HERO_REWORK_REGISTRY;
+    const __fl = (n) => (__fr && __fr.displayNameFor) ? __fr.displayNameFor(n) : n;
     const cells = STAGES.map((s) => {
       const done = save.completedStages.includes(s.n);
       const open = canPlay(s.n, save);
       const st = done ? 'DONE' : open ? 'OPEN' : 'LOCK';
-      return `<button type="button" class="aq-stage" data-n="${s.n}" data-state="${st}" ${open ? '' : 'disabled'}><span class="aq-stage-num">STAGE ${String(s.n).padStart(2,'0')}</span><span class="aq-stage-name">${s.opponent}</span><span class="aq-stage-state">${st}</span></button>`;
+      return `<button type="button" class="aq-stage" data-n="${s.n}" data-state="${st}" ${open ? '' : 'disabled'}><span class="aq-stage-num">STAGE ${String(s.n).padStart(2,'0')}</span><span class="aq-stage-name">${__fl(s.opponent)}</span><span class="aq-stage-state">${st}</span></button>`;
     }).join('');
     el.innerHTML = `<style>${QUEST_CSS}</style><img class="aq-map-bg" alt="" src="/assets/pick_ui_final/assets/01-select-screen-background.webp"/><div class="aq-map-veil"></div>
       <main class="aq-map-ui">

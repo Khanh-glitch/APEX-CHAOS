@@ -306,6 +306,24 @@
     AIL.bus.emit('ReworkMatchInstall', {
       p1: M.combatants[0].heroId, p2: M.combatants[1].heroId,
     });
+    syncFrostBattleHud();
+  }
+
+  // FROST V1 (authority §1): battle HUD shows the product display identity
+  // for rework combatants. installMatch runs after base quest start wrote
+  // storage names, so this overwrite is correctly ordered; the G07-pinned
+  // quest/engine files are untouched. Legacy (facade) sides keep classic copy.
+  function syncFrostBattleHud() {
+    try {
+      if (typeof document === 'undefined' || !M) return;
+      if (!REG || !REG.displayNameFor) return;
+      for (let i = 0; i < 2; i++) {
+        const ct = M.combatants && M.combatants[i];
+        if (!ct || ct.facade || !ct.heroId) continue;
+        const el = document.getElementById(i === 0 ? 'p1-name' : 'p2-name');
+        if (el) el.innerText = REG.displayNameFor(ct.heroId);
+      }
+    } catch (e) { /* HUD copy never breaks match install */ }
   }
 
   function teardownMatch() {
@@ -2216,6 +2234,73 @@
     installDamageAdapter();
     AIL.hrScheduler = new AIL.Scheduler(() => globalScope.matchClock || 0);
     AIL.bindClock(() => globalScope.matchClock || 0);
+    installFrostProductCopy();
+  }
+
+  // FROST V1 (authority §1): shop/hub/draw/pick product copy shows FROST.
+  // Implemented as wrappers on EXPOSED meta entry points plus a scoped DOM
+  // text patch — the G07-pinned meta file is never edited. Storage ids,
+  // data attributes and selection logic are untouched (text nodes only).
+  const FROST_COPY_SELECTORS = [
+    '.aq-fighter-name', '#aq-shop-detail h2', '.aq-sel',
+    '.aq-wheel-label', '#roster-grid .f-name', '.aq-draw-result strong',
+  ];
+  function patchFrostProductCopy(root) {
+    try {
+      if (!REG || !REG.displayNameFor || REG.productCutover === false) return 0;
+      const scope = root || (typeof document !== 'undefined' ? document : null);
+      if (!scope || !scope.querySelectorAll) return 0;
+      let patched = 0;
+      for (const sel of FROST_COPY_SELECTORS) {
+        const nodes = scope.querySelectorAll(sel);
+        for (const el of nodes) {
+          if (el.textContent === 'ICE') { el.textContent = 'FROST'; patched += 1; }
+        }
+      }
+      return patched;
+    } catch (e) { return 0; }
+  }
+  HR.patchFrostProductCopy = patchFrostProductCopy;
+  function installFrostProductCopy() {
+    if (HR.__frostCopyInstalled) return;
+    HR.__frostCopyInstalled = true;
+    try {
+      const META = globalScope.APEX_ARSENAL_META;
+      if (META) {
+        for (const key of ['paintShop', 'paintDraw', 'openHub', 'paintHub']) {
+          const base = META[key];
+          if (typeof base === 'function' && !base.__frostCopyWrapped) {
+            const wrapped = function (...args) {
+              const out = base.apply(META, args);
+              patchFrostProductCopy();
+              return out;
+            };
+            wrapped.__frostCopyWrapped = true;
+            META[key] = wrapped;
+          }
+        }
+      }
+      // The pick select-title is click-driven (engine selectFighter); keep
+      // it mapped with a mutation observer scoped to that one node.
+      if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
+        const title = document.getElementById('select-title');
+        if (title && !title.__frostCopyObserved) {
+          title.__frostCopyObserved = true;
+          const mapTitle = () => {
+            try {
+              if (!REG || !REG.displayNameFor || REG.productCutover === false) return;
+              const t = title.textContent;
+              if (t && t.indexOf('ICE') >= 0) {
+                const mapped = t.replace(/\bICE\b/g, 'FROST');
+                if (mapped !== t) title.textContent = mapped;
+              }
+            } catch (e) { /* copy never breaks selection */ }
+          };
+          new MutationObserver(mapTitle).observe(title, { characterData: true, childList: true, subtree: true });
+          mapTitle();
+        }
+      }
+    } catch (e) { /* copy integration never breaks boot */ }
   }
 
   /* ------------------------------------------------------------------ *

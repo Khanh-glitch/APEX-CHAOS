@@ -350,6 +350,11 @@
     ensureNewbieOnRoster();
     if (typeof goToSelect === 'function') goToSelect();
     else if (typeof window.goToSelect === 'function') window.goToSelect();
+    // FROST V1 (authority §1): pick-grid product copy shows FROST.
+    try {
+      const HR = window.APEX_HERO_REWORK;
+      if (HR && HR.patchFrostProductCopy) HR.patchFrostProductCopy();
+    } catch (e) { /* copy never breaks selection */ }
   }
 
   // Route the shared select screen's START into Arsenal mode with the picked
