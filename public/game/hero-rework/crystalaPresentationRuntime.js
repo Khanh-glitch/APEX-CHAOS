@@ -26,6 +26,79 @@
   }
 
   const states = new WeakMap();
+  let guardianSprites = null;
+
+  // K is mechanically fast by design (0.12 s minimum anticipation), so the
+  // production camera needs a crisp Gold-language readability layer rather
+  // than a longer fake gameplay window. Every cue below is driven by the real
+  // shard job/contact state; it never invents a block or changes collision.
+  function drawGuardianReadability(ctx, crySt, rig) {
+    if (!ctx || !crySt || !rig || !GOLD) return;
+    const now = HR && HR.AIL && typeof HR.AIL.clock === 'function' ? HR.AIL.clock() : 0;
+    if (!guardianSprites && typeof GOLD.getSprites === 'function') guardianSprites = GOLD.getSprites();
+    const glow = guardianSprites && guardianSprites.glow;
+    const S = CRY && CRY.STATE ? CRY.STATE : {};
+    for (const job of crySt.jobs || []) {
+      const stone = rig.stones && rig.stones[job.shard];
+      if (!stone) continue;
+      const preparing = job.phase === S.RESERVED || job.phase === S.OUTBOUND || job.phase === 'RESERVED' || job.phase === 'OUTBOUND';
+      const contactAge = Number.isFinite(job.contactAt) ? now - job.contactAt : Infinity;
+      const contactVisible = job.contact && contactAge >= 0 && contactAge < 0.34;
+      if (!preparing && !contactVisible) continue;
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      if (preparing) {
+        const pulse = 0.72 + 0.28 * Math.sin((now - (job.reservedAt || now)) * Math.PI * 16);
+        const r = Math.max(18, ((stone.gem && stone.gem.r) || 18) * 2.7);
+        if (glow) {
+          ctx.globalAlpha = 0.30 + pulse * 0.24;
+          ctx.drawImage(glow, stone.x - r, stone.y - r, r * 2, r * 2);
+        }
+        ctx.globalAlpha = 0.72 + pulse * 0.20;
+        if (typeof GOLD.drawStar4 === 'function') {
+          GOLD.drawStar4(ctx, stone.x, stone.y, Math.max(8, r * 0.34), now * 5.5 + job.shard * 0.7, '#fff7ff');
+        }
+        const dx = stone.x - (stone.px != null ? stone.px : stone.x);
+        const dy = stone.y - (stone.py != null ? stone.py : stone.y);
+        const dm = Math.hypot(dx, dy);
+        if (dm > 0.25) {
+          const ux = dx / dm, uy = dy / dm;
+          ctx.beginPath(); ctx.moveTo(stone.x - ux * 50, stone.y - uy * 50); ctx.lineTo(stone.x, stone.y);
+          ctx.strokeStyle = 'rgba(202,142,255,0.70)'; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(stone.x - ux * 34, stone.y - uy * 34); ctx.lineTo(stone.x, stone.y);
+          ctx.strokeStyle = 'rgba(255,248,255,0.94)'; ctx.lineWidth = 2; ctx.stroke();
+        }
+      }
+
+      if (contactVisible) {
+        const u = Math.max(0, Math.min(1, contactAge / 0.34));
+        const fade = 1 - u;
+        const x = job.contact.x, y = job.contact.y;
+        ctx.globalAlpha = 0.22 + fade * 0.78;
+        if (glow) {
+          const gr = 34 + u * 18;
+          ctx.drawImage(glow, x - gr, y - gr, gr * 2, gr * 2);
+        }
+        ctx.beginPath(); ctx.arc(x, y, 10 + u * 30, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(239,208,255,0.95)'; ctx.lineWidth = 1.2 + fade * 3.8; ctx.stroke();
+        if (typeof GOLD.drawStar4 === 'function') {
+          GOLD.drawStar4(ctx, x, y, 10 + fade * 16, -now * 8, '#ffffff');
+        }
+        if (job.exitV) {
+          const em = Math.hypot(job.exitV.x, job.exitV.y) || 1;
+          const ex = job.exitV.x / em, ey = job.exitV.y / em;
+          const len = 34 + (1 - fade) * 42;
+          ctx.globalAlpha = fade * 0.78;
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + ex * len, y + ey * len);
+          ctx.strokeStyle = 'rgba(218,160,255,0.94)'; ctx.lineWidth = 4.2; ctx.lineCap = 'round'; ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + ex * len * 0.78, y + ey * len * 0.78);
+          ctx.strokeStyle = 'rgba(255,255,255,0.96)'; ctx.lineWidth = 1.5; ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+  }
 
   function isCrystal(f) {
     if (!f) return false;
@@ -90,6 +163,10 @@
         GOLD.drawStone(ctx, s, 1, false);
       }
     }
+
+    // The K guard cue is deliberately above the shard art so a successful
+    // intercept reads at full battle zoom, while remaining tied to real truth.
+    drawGuardianReadability(ctx, st.cryState, rig);
 
     // Eye accent drawn to main context above silhouette
     GOLD.drawEyeAccent(ctx, hero, 1);
@@ -206,6 +283,23 @@
     }
     return bloomSystem;
   }
+
+  // Hexa/Wall used to pay seeded cell-mesh derivation on the cast frame.
+  // Warm likely early construct seeds opportunistically while the browser is
+  // idle; Gold keeps a template cache and clones fresh mutable state on cast.
+  (function scheduleWallGeometryPrewarm(){
+    if (!GOLD || typeof GOLD.prewarmWallGeometry !== 'function') return;
+    let seed = 8;
+    const one = () => {
+      try { GOLD.prewarmWallGeometry(seed, 220); } catch (e) { return; }
+      seed += 1;
+      if (seed > 16) return;
+      if (typeof g.requestIdleCallback === 'function') g.requestIdleCallback(one, { timeout: 700 });
+      else if (typeof g.setTimeout === 'function') g.setTimeout(one, 32);
+    };
+    if (typeof g.requestIdleCallback === 'function') g.requestIdleCallback(one, { timeout: 700 });
+    else if (typeof g.setTimeout === 'function') g.setTimeout(one, 0);
+  })();
 
   function renderWorldConstructsAndFx(ctx, emissive = false, front = null) {
     const M = HR && HR.match;
