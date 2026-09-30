@@ -389,9 +389,12 @@ try {
 
 try {
   // Overlap: A1 lane + A2 trail under the same bodies, still single effect.
+  // The enemy is pinned far off-lane during the pre-roll: Slice C contact
+  // is live, so a free-roaming enemy could incidentally touch the A2-run
+  // and carry a x0.50 Cold Shock into the sample (flaky 0.5 vs 0.6).
   const o = withCtl(frostPair());
   o.a.x = 200; o.a.y = 500; o.a.setDir(1, 0);
-  o.b.x = 800; o.b.y = 800;
+  o.b.x = 900; o.b.y = 900; o.b.baseSpeed = 0;
   win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
   HR.pressAbility(o.a, 'A2');
   T.step(1.2); // lane built, trail laid along it
@@ -399,7 +402,7 @@ try {
   // 200px apart: both on the floor, no real body contact (Slice C contact
   // is live: 100px would overlap and Cold Shock the enemy to x0.50).
   o.b.x = lane.ox + 300; o.b.y = lane.oy; o.b.setDir(1, 0);
-  o.a.x = lane.ox + 100; o.a.y = lane.oy; o.a.setDir(1, 0);
+  o.a.x = lane.ox + 100; o.a.y = lane.oy; o.a.setDir(1, 0); o.a.baseSpeed = 0;
   T.step(2 / 60);
   const slowE = o.b.hasStatus('slow') ? o.b.statuses.slow.mult : null;
   const speedF = o.a.hasStatus('speed') ? o.a.statuses.speed.mult : null;
