@@ -43,6 +43,11 @@ api.advanceA1=(f,rdt)=>{const s=state(f),m=s.a1Motion;sync(s,false);
  s.timeScale=G.core.decayTo(s.timeScale==null?1:s.timeScale,s.tsTarget,s.dilate>0?.012:.06,rdt);
  const dt=Math.min(.05,rdt)*s.timeScale;
  s.updA1(dt);
+ // OWNER PLAYTEST 2026-09-30: keep the authored deploy + recoil body motion,
+ // but return control before the last static tail of Gold RECOVER. The visible
+ // kick is already established by this point; only the post-kick standstill is
+ // shortened so Hunter resumes normal locomotion sooner.
+ if(s.h.mode==='a1'&&s.h.t>=.62)s.h.mode='idle';
  if(m&&s.h.t>=.30){
   // Exact V10 executable law:
   // springRatio(h.x, clamp(h.px - 55, 130, WW - 130), .6, .34, dt)
