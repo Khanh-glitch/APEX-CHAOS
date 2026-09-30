@@ -1246,6 +1246,7 @@
     if (!M) return;
     tickWorld(dt);
     globalScope.APEX_HUNTER_PRESENTATION?.tick(dt);
+    globalScope.APEX_FROST_PRESENTATION?.tick(dt);
     separateExtraBodies(dt);
     // SLIME child lifecycle.
     for (const ct of M.combatants) {
