@@ -379,16 +379,14 @@ function drawFloorDistortion(ctx,s){
   // Deform pixels the arena already rendered. Small overlapping local lenses
   // sample the donor displacement field; no replacement grid or global floor
   // overlay is introduced.
-  const radius=f2>.02?Math.min(190,225*(.58+.22*f2)):Math.min(150,110+45*f1),count=f2>.02?8:6;
-  for(let i=0;i<count;i++){
-    const angle=i*TAU/count+s.simTime*.035,px=s.root.x+Math.cos(angle)*radius*.58,py=s.root.y+Math.sin(angle)*radius*.58;
-    const delta=displacement(s,px,py),power=Math.max(f1,f2);
-    lens(ctx,px,py,22+power*12,1.012+power*.016,delta[0]*.22,delta[1]*.22,.13+power*.17);
-  }
-  for(const bump of s.bumps){
+  const radius=f2>.02?Math.min(190,225*(.58+.22*f2)):Math.min(150,110+45*f1);
+  const angle=s.simTime*.38,px=s.root.x+Math.cos(angle)*radius*.58,py=s.root.y+Math.sin(angle)*radius*.58;
+  const delta=displacement(s,px,py),power=Math.max(f1,f2);
+  lens(ctx,px,py,32+power*14,1.018+power*.018,delta[0]*.3,delta[1]*.3,.18+power*.2);
+  for(const bump of s.bumps.slice(-2)){
     const k=1-bump.age/bump.d;if(k<=0)continue;
-    const delta=displacement(s,bump.x,bump.y);
-    lens(ctx,bump.x,bump.y,Math.min(46,bump.sigma*1.35),1.025,delta[0]*.35,delta[1]*.35,.24*k);
+    const offset=displacement(s,bump.x,bump.y);
+    lens(ctx,bump.x,bump.y,Math.min(46,bump.sigma*1.35),1.025,offset[0]*.35,offset[1]*.35,.24*k);
   }
 }
 function drawHistories(ctx,s){

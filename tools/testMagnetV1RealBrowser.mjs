@@ -1,31 +1,51 @@
 #!/usr/bin/env node
-// MAGNET V1 R4 — real Chromium / real requestAnimationFrame scheduler proof.
+// MAGNET V1 — real Chromium / real requestAnimationFrame production proof.
+// This gate uses the shipping page, Fighter.update, firearm holder emission,
+// projectile loop, collision solve and canvas. It does not inject projectiles
+// or call the Gold engine as a substitute for production inputs.
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import puppeteer from 'puppeteer-core';
-import chromium, { inflate } from '@sparticuz/chromium';
 
-const require=createRequire(import.meta.url),pkgRoot=path.dirname(path.dirname(require.resolve('@sparticuz/chromium')));
-await inflate(path.join(pkgRoot,'bin','al2023.tar.br'));
+const localRequire=createRequire(import.meta.url);
+let requireBrowser=localRequire;
+try{localRequire.resolve('puppeteer-core');localRequire.resolve('@sparticuz/chromium');}
+catch(error){requireBrowser=createRequire('/tmp/magnet-browser-deps/noop.js');}
+const puppeteer=requireBrowser('puppeteer-core');
+const chromiumModule=requireBrowser('@sparticuz/chromium'),chromium=chromiumModule.default;
+const pkgRoot=path.dirname(path.dirname(requireBrowser.resolve('@sparticuz/chromium')));
+await chromiumModule.inflate(path.join(pkgRoot,'bin','al2023.tar.br'));
 process.env.LD_LIBRARY_PATH='/tmp/al2023/lib:'+(process.env.LD_LIBRARY_PATH||'');
-const url=process.env.APEX_APP_URL||'http://127.0.0.1:4173',browser=await puppeteer.launch({executablePath:await chromium.executablePath(),args:[...chromium.args,'--autoplay-policy=no-user-gesture-required'],headless:true});
+
+const url=process.env.APEX_APP_URL||'http://127.0.0.1:4173';
+const browser=await puppeteer.launch({executablePath:await chromium.executablePath(),args:[...chromium.args,'--autoplay-policy=no-user-gesture-required'],headless:true,protocolTimeout:600000});
 const page=await browser.newPage();await page.setViewport({width:1280,height:1100,deviceScaleFactor:1});
 const errors=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error'&&!/ERR_|favicon|Failed to load resource/.test(m.text()))errors.push(`console: ${m.text()}`);});
 let telemetry;
 try{
-  await page.goto(url,{waitUntil:'load',timeout:120000});
+  await page.goto(url,{waitUntil:'domcontentloaded',timeout:120000});
   await page.waitForFunction(()=>typeof window.__apexEnsureDeferredRuntimes==='function',{timeout:60000});
   telemetry=await page.evaluate(async()=>{
     await window.__apexEnsureDeferredRuntimes('arsenalQuest');
+    const IDS=['core','spine','polL','polR','lobeL','lobeR'];
     const waitFrames=n=>new Promise(resolve=>{let count=0;const next=()=>{if(++count>=n)resolve();else requestAnimationFrame(next);};requestAnimationFrame(next);});
     const waitUntil=async(predicate,frames=300)=>{for(let i=0;i<frames;i++){if(predicate())return true;await waitFrames(1);}return false;};
-    window.APEX_HERO_REWORK.setAiEnabled(false);
-    window.startArsenalQuestMode('MAGNET','MIRROR');
-    const state=window.APEX_ARSENAL.state;state.spawnTimer=1e6;state.slots=[];state.unarmedFastConsumed=true;state.spawnHeld=true;
-    const fighter=window.fighters[0],opponent=window.fighters[1],ct=window.APEX_HERO_REWORK.byCombatant(fighter),gold=window.APEX_MAGNET_GOLD,pres=window.APEX_MAGNET_PRESENTATION;
-    fighter.baseSpeed=0;opponent.baseSpeed=0;fighter.x=500;fighter.y=500;opponent.x=900;opponent.y=900;
-    const ready=await waitUntil(()=>gold.ready,600);
+    const configureWorld=()=>{const state=window.APEX_ARSENAL.state;state.spawnTimer=1e6;state.slots=[];state.unarmedFastConsumed=true;state.spawnHeld=true;return state;};
+    const restart=async(enemy='ROBOT')=>{
+      if(window.APEX_HERO_REWORK.match)window.exitArsenalQuestMode();
+      window.startArsenalQuestMode('MAGNET',enemy);window.APEX_HERO_REWORK.setAiEnabled(false);configureWorld();await waitFrames(3);
+      const [fighter,opponent]=window.fighters,ct=window.APEX_HERO_REWORK.byCombatant(fighter);
+      fighter.baseSpeed=0;opponent.baseSpeed=0;fighter.x=500;fighter.y=500;opponent.x=900;opponent.y=900;
+      return{fighter,opponent,ct,state:window.APEX_ARSENAL.state};
+    };
+    const gold=window.APEX_MAGNET_GOLD,pres=window.APEX_MAGNET_PRESENTATION,HR=window.APEX_HERO_REWORK,MAG=window.APEX_MAGNET;
+    const pose=ct=>{const rig=gold.inspect(ct).state.rig;return Object.fromEntries(IDS.map(id=>[id,{x:rig[id].x,y:rig[id].y,r:rig[id].r,sx:rig[id].sx,sy:rig[id].sy}]));};
+    const delta=(a,b,id)=>Math.hypot(b[id].x-a[id].x,b[id].y-a[id].y,(b[id].r-a[id].r)*80,(b[id].sx-a[id].sx)*80,(b[id].sy-a[id].sy)*80);
+    const maxFrom=(origin,samples,id)=>Math.max(0,...samples.map(sample=>delta(origin,sample,id)));
+    const angle=(vx,vy)=>Math.atan2(vy,vx),normAngle=value=>{while(value>Math.PI)value-=Math.PI*2;while(value<-Math.PI)value+=Math.PI*2;return value;};
+
+    let scene=await restart('MIRROR');
+    const ready=await waitUntil(()=>gold.ready,600),{fighter,opponent,ct,state}=scene;
     let actorDraws=0,beforeDraws=0,afterDraws=0;
     const actor=gold.drawActor,beforeFx=gold.drawBefore,afterFx=gold.drawAfter;
     gold.drawActor=function(){actorDraws++;return actor.apply(this,arguments);};
@@ -36,24 +56,87 @@ try{
     await waitFrames(36);
     const after={clock:Number(window.matchClock)||0,scheduler:{...pres.inspect(ct).scheduler},gold:gold.inspect(ct).state,sample:pres.inspect(ct).state.frameSample,body:{x:fighter.x,y:fighter.y}};
     const slot={id:state.nextSlotId++,x:100,y:500,phase:'REVEALED',weaponId:'PISTOL',revealLeadSeconds:1.5,revealedFor:0,pickedBy:null,rejectedFor:{},spawnTime:state.time,predictedHeroETA:null,predictedRivalETA:null,earliestETA:null,predictedFighter:null};state.slots.push(slot);
-    const cast=window.APEX_HERO_REWORK.pressAbility(fighter,'A1'),a1WallStart=performance.now();await waitFrames(24);const a1WallMs=performance.now()-a1WallStart,a1=gold.inspect(ct).state;
-    const canvas=document.getElementById('game-canvas'),pixel=Array.from(canvas.getContext('2d').getImageData(Math.max(0,Math.floor(fighter.x)),Math.max(0,Math.floor(fighter.y)),1,1).data);
+    const cast=HR.pressAbility(fighter,'A1'),a1WallStart=performance.now();await waitFrames(24);const a1WallMs=performance.now()-a1WallStart,a1=gold.inspect(ct).state;
     const goldResource=performance.getEntriesByType('resource').find(entry=>entry.name.includes('/game/hero-rework/magnetGoldV1.js'));
-    const report={ready,revision:{runtime:goldResource?new URL(goldResource.name).searchParams.get('v'):null,gold:gold.version,adapter:pres.version},before:{clock:before.clock,scheduler:before.scheduler,fixedSteps:before.gold.fixedSteps},after:{clock:after.clock,scheduler:after.scheduler,fixedSteps:after.gold.fixedSteps,frameCount:after.gold.frameCount,sample:after.sample,body:after.body},draws:{actor:actorDraws,before:beforeDraws,after:afterDraws},a1:{accepted:!!cast.ok,target:a1.a1Target,desired:a1.desiredA1Target,objects:a1.objects,rings:a1.effects.rings,wallMs:a1WallMs,meanFrameMs:a1WallMs/24},pixel};
-    window.exitArsenalQuestMode();return report;
+    const scheduler={revision:{runtime:goldResource?new URL(goldResource.name).searchParams.get('v'):null,gold:gold.version,adapter:pres.version},before:{clock:before.clock,scheduler:before.scheduler,fixedSteps:before.gold.fixedSteps},after:{clock:after.clock,scheduler:after.scheduler,fixedSteps:after.gold.fixedSteps,frameCount:after.gold.frameCount,sample:after.sample,body:after.body},draws:{actor:actorDraws,before:beforeDraws,after:afterDraws},a1:{accepted:!!cast.ok,target:a1.a1Target,desired:a1.desiredA1Target,objects:a1.objects,rings:a1.effects.rings,wallMs:a1WallMs,meanFrameMs:a1WallMs/24}};
+
+    // Actual production locomotion -> stop -> hard reverse articulation.
+    scene=await restart('ROBOT');
+    scene.fighter.x=250;scene.fighter.y=500;scene.opponent.x=850;scene.opponent.y=850;scene.fighter.baseSpeed=450;scene.fighter.dir.x=1;scene.fighter.dir.y=0;
+    const locomotionStart=pose(scene.ct),forward=[],reverse=[],stop=[];
+    for(let i=0;i<36;i++){await waitFrames(1);forward.push(pose(scene.ct));}
+    const xAfterForward=scene.fighter.x,reverseStart=pose(scene.ct);scene.fighter.dir.x=-1;scene.fighter.dir.y=0;
+    for(let i=0;i<36;i++){await waitFrames(1);reverse.push(pose(scene.ct));}
+    const xAfterReverse=scene.fighter.x,stopStartX=scene.fighter.x,stopStart=pose(scene.ct);scene.fighter.baseSpeed=0;
+    for(let i=0;i<30;i++){await waitFrames(1);stop.push(pose(scene.ct));}
+    const locomotion={root:{start:250,afterForward:xAfterForward,afterReverse:xAfterReverse,stopDrift:scene.fighter.x-stopStartX},sustained:Object.fromEntries(IDS.map(id=>[id,maxFrom(locomotionStart,forward,id)])),hardReverse:Object.fromEntries(IDS.map(id=>[id,maxFrom(reverseStart,reverse,id)])),stop:Object.fromEntries(IDS.map(id=>[id,maxFrom(stopStart,stop,id)]))};
+
+    // Actual Fighter wall solve drives the donor wall sequence.
+    scene=await restart('ROBOT');scene.fighter.x=310;scene.fighter.y=500;scene.opponent.x=900;scene.opponent.y=900;scene.fighter.baseSpeed=450;scene.fighter.dir.x=-1;scene.fighter.dir.y=0;
+    const wallStart=pose(scene.ct),wallSamples=[];let wallEchoes=0,wallBumps=0,minWallX=Infinity;
+    for(let i=0;i<90;i++){await waitFrames(1);wallSamples.push(pose(scene.ct));const s=gold.inspect(scene.ct).state;wallEchoes=Math.max(wallEchoes,s.effects.echoes);wallBumps=Math.max(wallBumps,s.effects.bumps);minWallX=Math.min(minWallX,scene.fighter.x);}
+    const wall={minX:minWallX,radius:scene.fighter.radius,echoes:wallEchoes,bumps:wallBumps,parts:Object.fromEntries(IDS.map(id=>[id,maxFrom(wallStart,wallSamples,id)])),sample:pres.inspect(scene.ct).state.frameSample};
+
+    // Actual holder emission and actual aq_bullet updates through active A2.
+    // Moving Magnet after emission makes the field crossing off-axis without
+    // replacing or mutating the emitted projectile identity.
+    scene=await restart('ROBOT');scene.opponent.x=100;scene.opponent.y=500;scene.fighter.x=500;scene.fighter.y=500;
+    const canvas=document.getElementById('game-canvas'),ctx=canvas.getContext('2d'),originalDrawImage=ctx.drawImage,localCopies=[];
+    ctx.drawImage=function(){const args=Array.from(arguments);if(args[0]===canvas&&args.length>=9)localCopies.push({sx:args[1],sy:args[2],sw:args[3],sh:args[4],dx:args[5],dy:args[6],dw:args[7],dh:args[8]});return originalDrawImage.apply(this,args);};
+    const weaponApi=window.APEX_ARSENAL.weaponApi;weaponApi.equip(scene.opponent,'PISTOL');
+    const a2Cast=HR.pressAbility(scene.fighter,'A2');let bullet=null,initial=null,lastInfluenced=null,influencedTicks=0,historiesMax=0,identityStable=true,lifeDecreased=false;
+    for(let i=0;i<220;i++){
+      await waitFrames(1);
+      if(!bullet){bullet=window.projectiles.find(p=>p?.aq&&p.type==='aq_bullet'&&p.owner===scene.opponent)||null;if(bullet){initial={x:bullet.x,y:bullet.y,vx:bullet.vx,vy:bullet.vy,speed:Math.hypot(bullet.vx,bullet.vy),life:bullet.life,weapon:bullet.weapon,ownerId:bullet.owner?.id,type:bullet.type};scene.fighter.y=620;}}
+      if(bullet){const influence=MAG.inspect(window.matchClock).projectileInfluence.find(item=>item.projectile===bullet);if(influence){influencedTicks++;lastInfluenced={x:bullet.x,y:bullet.y,vx:bullet.vx,vy:bullet.vy,life:bullet.life};}historiesMax=Math.max(historiesMax,gold.inspect(scene.ct).state.effects.projectileHistories);lifeDecreased=lifeDecreased||bullet.life<initial.life;identityStable=identityStable&&bullet.owner===scene.opponent&&bullet.type==='aq_bullet'&&bullet.weapon==='PISTOL';if(!window.projectiles.includes(bullet)&&lastInfluenced)break;}
+      if(i>180&&bullet)break;
+    }
+    ctx.drawImage=originalDrawImage;
+    const a2Bullet={cast:!!a2Cast.ok,emitted:!!bullet,initial,lastInfluenced,influencedTicks,historiesMax,identityStable,lifeDecreased,angleDelta:initial&&lastInfluenced?normAngle(angle(lastInfluenced.vx,lastInfluenced.vy)-angle(initial.vx,initial.vy)):null};
+    const floor={copyCount:localCopies.length,maxWidth:Math.max(0,...localCopies.map(item=>item.dw)),maxHeight:Math.max(0,...localCopies.map(item=>item.dh)),canvasWidth:canvas.width,canvasHeight:canvas.height};
+
+    // Repeated Magnet-vs-ROBOT exact contact with legitimate A2 momentum.
+    scene=await restart('ROBOT');scene.fighter.x=500;scene.fighter.y=500;scene.opponent.x=670;scene.opponent.y=500;
+    const contactCast=HR.pressAbility(scene.fighter,'A2');
+    for(let i=0;i<72;i++){await waitFrames(1);scene.fighter.x=scene.opponent.x-170;scene.fighter.y=scene.opponent.y;}
+    let bodyCollisionEvents=0;
+    const unsubscribeContact=window.APEX_HERO_REWORK_AIL.bus.on('BodyCollision',event=>{if(event.payload?.combatantIndex===scene.ct.idx)bodyCollisionEvents++;});
+    scene.fighter.x=700;scene.fighter.y=500;scene.opponent.x=550;scene.opponent.y=500;
+    let maxPenetration=0,penetratingFrames=0,contactBumps=0;
+    for(let i=0;i<24;i++){await waitFrames(1);const penetration=Math.max(0,scene.fighter.radius+scene.opponent.radius-Math.hypot(scene.opponent.x-scene.fighter.x,scene.opponent.y-scene.fighter.y));maxPenetration=Math.max(maxPenetration,penetration);if(penetration>1e-6)penetratingFrames++;contactBumps=Math.max(contactBumps,gold.inspect(scene.ct).state.effects.bumps);}
+    unsubscribeContact();
+    const contact={cast:!!contactCast.ok,maxPenetration,penetratingFrames,bodyCollisionEvents,contactBumps};
+
+    window.exitArsenalQuestMode();
+    return{ready,scheduler,locomotion,wall,a2Bullet,floor,contact};
   });
 }finally{await browser.close();}
-const delta={clock:telemetry.after.clock-telemetry.before.clock,tickCalls:telemetry.after.scheduler.tickCalls-telemetry.before.scheduler.tickCalls,advancedFrames:telemetry.after.scheduler.advancedFrames-telemetry.before.scheduler.advancedFrames,duplicateCalls:telemetry.after.scheduler.duplicateCalls-telemetry.before.scheduler.duplicateCalls,fixedSteps:telemetry.after.fixedSteps-telemetry.before.fixedSteps};telemetry.delta=delta;telemetry.errors=errors;
+
+const before=telemetry.scheduler.before,after=telemetry.scheduler.after;
+const delta={clock:after.clock-before.clock,tickCalls:after.scheduler.tickCalls-before.scheduler.tickCalls,advancedFrames:after.scheduler.advancedFrames-before.scheduler.advancedFrames,duplicateCalls:after.scheduler.duplicateCalls-before.scheduler.duplicateCalls,fixedSteps:after.fixedSteps-before.fixedSteps};telemetry.scheduler.delta=delta;telemetry.errors=errors;
+const movingParts=Object.values(telemetry.locomotion.sustained).filter(value=>value>0.45).length;
+const reverseParts=Object.values(telemetry.locomotion.hardReverse).filter(value=>value>0.55).length;
+const stopParts=Object.values(telemetry.locomotion.stop).filter(value=>value>0.35).length;
+const goldSource=fs.readFileSync('public/game/hero-rework/magnetGoldV1.js','utf8'),floorSource=goldSource.slice(goldSource.indexOf('function drawFloorDistortion('),goldSource.indexOf('function drawHistories('));
 const checks={
-  'browser-assets-ready':telemetry.ready&&telemetry.revision.runtime==='20261001-magnet-v1-r3'&&telemetry.revision.gold==='2.0.0-canonical-engine'&&telemetry.revision.adapter==='2.0.0-thin-semantic-adapter',
+  'browser-assets-ready':telemetry.ready&&telemetry.scheduler.revision.runtime==='20261001-magnet-v1-r4'&&telemetry.scheduler.revision.gold==='2.0.0-canonical-engine'&&telemetry.scheduler.revision.adapter==='2.0.0-thin-semantic-adapter',
   'real-raf-exactly-one-frame-owner':delta.tickCalls>=30&&delta.tickCalls===delta.advancedFrames&&delta.duplicateCalls===0,
   'real-raf-fixed-120-mapping':delta.clock>0&&Math.abs(delta.fixedSteps-delta.clock*120)<=3,
-  'post-movement-sample-is-drawn-root':Math.hypot(telemetry.after.sample.after.x-telemetry.after.body.x,telemetry.after.sample.after.y-telemetry.after.body.y)<1e-9,
-  'three-phase-render-called':telemetry.draws.actor>=30&&telemetry.draws.before===telemetry.draws.actor&&telemetry.draws.after===telemetry.draws.actor,
-  'real-raf-a1-production-object-direction':telemetry.a1.accepted&&telemetry.a1.objects.a1===1&&telemetry.a1.target.x<-.5&&telemetry.a1.desired.x<-.99,
-  'a1-field-render-frame-budget-measured':telemetry.a1.meanFrameMs>0&&telemetry.a1.meanFrameMs<40,
+  'post-movement-sample-is-drawn-root':Math.hypot(after.sample.after.x-after.body.x,after.sample.after.y-after.body.y)<1e-9,
+  'three-phase-render-called':telemetry.scheduler.draws.actor>=30&&telemetry.scheduler.draws.before===telemetry.scheduler.draws.actor&&telemetry.scheduler.draws.after===telemetry.scheduler.draws.actor,
+  'a1-positive-control-real-object':telemetry.scheduler.a1.accepted&&telemetry.scheduler.a1.objects.a1===1&&telemetry.scheduler.a1.target.x<-.5&&telemetry.scheduler.a1.desired.x<-.99,
+  'a1-field-render-frame-budget-measured':telemetry.scheduler.a1.meanFrameMs>0&&telemetry.scheduler.a1.meanFrameMs<40,
+  'production-locomotion-six-part-articulation':telemetry.locomotion.root.afterForward>telemetry.locomotion.root.start&&movingParts>=5&&telemetry.locomotion.sustained.polL>1&&telemetry.locomotion.sustained.lobeL>.6,
+  'production-hard-reverse-six-part-articulation':telemetry.locomotion.root.afterReverse<telemetry.locomotion.root.afterForward&&reverseParts>=5&&telemetry.locomotion.hardReverse.polL>1,
+  'production-stop-six-part-articulation':Math.abs(telemetry.locomotion.root.stopDrift)<1e-6&&stopParts>=4,
+  'actual-wall-interaction-structural':telemetry.wall.minX>=telemetry.wall.radius-1e-6&&telemetry.wall.echoes>0&&telemetry.wall.bumps>0&&Object.values(telemetry.wall.parts).filter(value=>value>.5).length>=5,
+  'actual-firearm-a2-projectile-curves':telemetry.a2Bullet.cast&&telemetry.a2Bullet.emitted&&telemetry.a2Bullet.initial?.type==='aq_bullet'&&telemetry.a2Bullet.initial?.weapon==='PISTOL'&&telemetry.a2Bullet.identityStable&&telemetry.a2Bullet.lifeDecreased&&telemetry.a2Bullet.influencedTicks>=2&&Math.abs(telemetry.a2Bullet.angleDelta||0)>.002,
+  'a2-true-projectile-history-rendered':telemetry.a2Bullet.historiesMax>0,
+  'real-arena-local-pixel-deformation':telemetry.floor.copyCount>0&&telemetry.floor.maxWidth<telemetry.floor.canvasWidth*.5&&telemetry.floor.maxHeight<telemetry.floor.canvasHeight*.5,
+  'no-synthetic-global-grid':/drawImage\(canvas/.test(goldSource)&&!/lineTo|stroke\(/.test(floorSource),
+  'magnet-robot-contact-no-overlap-or-sticking':telemetry.contact.cast&&telemetry.contact.maxPenetration<1e-4&&telemetry.contact.penetratingFrames===0&&telemetry.contact.bodyCollisionEvents>0&&telemetry.contact.contactBumps>0,
   'no-browser-runtime-errors':errors.length===0,
 };
 for(const[name,pass]of Object.entries(checks))console.log(`${pass?'PASS':'FAIL'}  ${name}`);console.log(JSON.stringify(telemetry,null,2));
-if(process.env.MAGNET_BROWSER_REPORT)fs.writeFileSync(process.env.MAGNET_BROWSER_REPORT,JSON.stringify({generatedAt:new Date().toISOString(),url,checks,telemetry},null,2)+'\n');
-const failed=Object.entries(checks).filter(([,v])=>!v).map(([k])=>k);console.log(`\n[MAGNET REAL BROWSER] ${failed.length?'FAIL':'PASS'}`);if(failed.length)console.error(`FAILURES: ${failed.join(', ')}`);process.exit(failed.length?1:0);
+const reportPath=process.env.MAGNET_BROWSER_REPORT;if(reportPath){fs.mkdirSync(path.dirname(reportPath),{recursive:true});fs.writeFileSync(reportPath,JSON.stringify({generatedAt:new Date().toISOString(),url,checks,telemetry},null,2)+'\n');}
+const failed=Object.entries(checks).filter(([,value])=>!value).map(([name])=>name);console.log(`\n[MAGNET REAL BROWSER] ${failed.length?'FAIL':'PASS'}`);if(failed.length)console.error(`FAILURES: ${failed.join(', ')}`);process.exit(failed.length?1:0);

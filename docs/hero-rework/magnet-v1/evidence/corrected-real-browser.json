@@ -1,0 +1,221 @@
+{
+  "generatedAt": "2026-10-01T15:16:09.527Z",
+  "url": "http://127.0.0.1:4173",
+  "checks": {
+    "browser-assets-ready": true,
+    "real-raf-exactly-one-frame-owner": true,
+    "real-raf-fixed-120-mapping": true,
+    "post-movement-sample-is-drawn-root": true,
+    "three-phase-render-called": true,
+    "a1-positive-control-real-object": true,
+    "a1-field-render-frame-budget-measured": true,
+    "production-locomotion-six-part-articulation": true,
+    "production-hard-reverse-six-part-articulation": true,
+    "production-stop-six-part-articulation": true,
+    "actual-wall-interaction-structural": true,
+    "actual-firearm-a2-projectile-curves": true,
+    "a2-true-projectile-history-rendered": true,
+    "real-arena-local-pixel-deformation": true,
+    "magnet-robot-contact-no-overlap-or-sticking": true,
+    "no-browser-runtime-errors": true,
+    "no-synthetic-global-grid": true
+  },
+  "telemetry": {
+    "ready": true,
+    "scheduler": {
+      "revision": {
+        "runtime": "20261001-magnet-v1-r4",
+        "gold": "2.0.0-canonical-engine",
+        "adapter": "2.0.0-thin-semantic-adapter"
+      },
+      "before": {
+        "clock": 0.1572000000002772,
+        "scheduler": {
+          "tickCalls": 7,
+          "advancedFrames": 7,
+          "duplicateCalls": 0
+        },
+        "fixedSteps": 21
+      },
+      "after": {
+        "clock": 0.8060000000002834,
+        "scheduler": {
+          "tickCalls": 43,
+          "advancedFrames": 43,
+          "duplicateCalls": 0
+        },
+        "fixedSteps": 99,
+        "frameCount": 42,
+        "sample": {
+          "before": {
+            "x": 500,
+            "y": 500
+          },
+          "after": {
+            "x": 500,
+            "y": 500
+          },
+          "motion": {
+            "x": 0,
+            "y": 0,
+            "active": false,
+            "contactVx": 0,
+            "contactVy": 0
+          },
+          "dt": 0.016700000000000728,
+          "clock": 0.8060000000002834
+        },
+        "body": {
+          "x": 500,
+          "y": 500
+        }
+      },
+      "draws": {
+        "actor": 64,
+        "before": 64,
+        "after": 64
+      },
+      "a1": {
+        "accepted": true,
+        "target": {
+          "x": -0.9643260066527475,
+          "y": 0
+        },
+        "desired": {
+          "x": -1,
+          "y": 0
+        },
+        "objects": {
+          "a1": 1,
+          "a2": 0,
+          "a1Kinds": [
+            "gun"
+          ],
+          "a2Kinds": [],
+          "a2Items": []
+        },
+        "rings": 1,
+        "wallMs": 451.5,
+        "meanFrameMs": 18.8125
+      },
+      "delta": {
+        "clock": 0.6488000000000061,
+        "tickCalls": 36,
+        "advancedFrames": 36,
+        "duplicateCalls": 0,
+        "fixedSteps": 78
+      }
+    },
+    "locomotion": {
+      "root": {
+        "start": 250,
+        "afterForward": 527.3800000000007,
+        "afterReverse": 257.3800000000007,
+        "stopDrift": 0
+      },
+      "sustained": {
+        "core": 2.3889099054782514,
+        "spine": 3.8020199853345473,
+        "polL": 5.571698884160859,
+        "polR": 3.947449738210251,
+        "lobeL": 3.618098707424525,
+        "lobeR": 3.6548942801660895
+      },
+      "hardReverse": {
+        "core": 4.046903969142561,
+        "spine": 3.936923288425918,
+        "polL": 5.145558245552218,
+        "polR": 5.033605715663871,
+        "lobeL": 3.5145811033294465,
+        "lobeR": 3.5765090714792573
+      },
+      "stop": {
+        "core": 2.2144176800366515,
+        "spine": 8.992607751348983,
+        "polL": 10.478056445399622,
+        "polR": 15.695719406901972,
+        "lobeL": 7.672705191267937,
+        "lobeR": 7.6725205211145
+      }
+    },
+    "wall": {
+      "minX": 75,
+      "radius": 75,
+      "echoes": 1,
+      "bumps": 1,
+      "parts": {
+        "core": 4.543722105357613,
+        "spine": 4.3623759469321985,
+        "polL": 6.149287438142492,
+        "polR": 7.158657909201561,
+        "lobeL": 5.924005517889935,
+        "lobeR": 4.515198859187604
+      },
+      "sample": {
+        "before": {
+          "x": 790.5899999999993,
+          "y": 500
+        },
+        "after": {
+          "x": 798.1049999999981,
+          "y": 500
+        },
+        "motion": {
+          "x": 1,
+          "y": 0,
+          "active": true,
+          "contactVx": 450,
+          "contactVy": 0
+        },
+        "dt": 0.01669999999999709,
+        "clock": 2.2231000000001893
+      }
+    },
+    "a2Bullet": {
+      "cast": true,
+      "emitted": true,
+      "initial": {
+        "x": 242.8677676540219,
+        "y": 544.7329607465604,
+        "vx": 2599.236879702688,
+        "vy": -62.989230773476244,
+        "speed": 2599.9999999999995,
+        "life": 0.967,
+        "weapon": "PISTOL",
+        "ownerId": 2,
+        "type": "aq_bullet"
+      },
+      "lastInfluenced": {
+        "x": 745.1119128492594,
+        "y": 488.5679231986344,
+        "vx": 2531.954512326867,
+        "vy": -493.4342551517666,
+        "life": 0.7686000000000057
+      },
+      "influencedTicks": 6,
+      "historiesMax": 2,
+      "identityStable": true,
+      "lifeDecreased": true,
+      "angleDelta": -0.16824132117446752
+    },
+    "floor": {
+      "copyCount": 60,
+      "maxWidth": 92,
+      "maxHeight": 92,
+      "canvasWidth": 1000,
+      "canvasHeight": 1000
+    },
+    "contact": {
+      "cast": true,
+      "maxPenetration": 0,
+      "penetratingFrames": 0,
+      "bodyCollisionEvents": 1,
+      "contactBumps": 1
+    },
+    "errors": []
+  },
+  "sourceAudit": {
+    "floorFunctionUsesRenderedCanvas": true,
+    "floorFunctionContainsGridStroke": false
+  }
+}
