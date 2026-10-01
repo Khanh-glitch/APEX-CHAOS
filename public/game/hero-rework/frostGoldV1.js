@@ -812,7 +812,6 @@ class IceField {
             }
             if (d >= 1) {
                 n.dead = true;
-                this.wets.push({ x: n.x, y: n.y, r: Math.max(n.W, n.L) * 1.05, born: t });
             }
         }
         for (const c of this.carves)
@@ -891,19 +890,9 @@ class IceField {
         ctx.closePath();
         return true;
     }
-    /** floor-level wet marks left by thawed ice (drawn on floor before ice) */
+    /** Owner polish: thaw ends with the ice itself; no soft circular wet decal remains. */
     drawWet(ctx, t) {
-        for (const w of this.wets) {
-            const a = 1 - (t - w.born) / 1.6;
-            if (a <= 0)
-                continue;
-            ctx.globalAlpha = 0.1 * a;
-            ctx.fillStyle = "#5d7890";
-            ctx.beginPath();
-            ctx.ellipse(w.x, w.y, w.r * (1 - 0.3 * (1 - a)), w.r * 0.8 * (1 - 0.3 * (1 - a)), 0, 0, TAU);
-            ctx.fill();
-        }
-        ctx.globalAlpha = 1;
+        void ctx; void t;
     }
     render(ctx, t, px) {
         const live = this.nodes.filter((n) => !n.dead && t > n.born);
@@ -1075,8 +1064,8 @@ const FROST_R = 34, ENEMY_R = 41;
 // Visual recipes below remain the approved Gold HTML recipes; these values only drive mechanics/state.
 const FROST_TUNE = Object.freeze({
     A1_CD: 10.5, A1_CAST: 0.25, A1_LEN: 650, A1_WIDTH: 160, A1_FLOOR_LIFE: 4.5, GUN_THAW: 0.30,
-    A2_CD: 12.5, A2_ACTIVE: 3.0, A2_WIDTH: 120, A2_SEGMENT_LIFE: 3.5,
-    FROST_ICE_MULT: 2.35, ENEMY_ICE_MULT: 0.60, ICE_LINGER: 0.35,
+    A2_CD: 12.5, A2_ACTIVE: 2.0, A2_WIDTH: 120, A2_SEGMENT_LIFE: 3.5,
+    FROST_ICE_MULT: 1.50, ENEMY_ICE_MULT: 0.50, ICE_LINGER: 0.35,
     COLD_SHOCK_MULT: 0.50, COLD_SHOCK_TIME: 1.0,
     FROZEN_BULLET_BASE: 0.04, DEEP_FROST_BONUS: 0.04, FREEZE_TIME: 0.90, REPROC_LOCK: 0.50,
     FROST_BASE_SPEED: 215, ENEMY_BASE_SPEED: 190,
@@ -2073,7 +2062,12 @@ class FrostEngine {
             ctx.save();
             ctx.translate(bx, by);
             ctx.globalCompositeOperation = "lighter";
-            ctx.globalAlpha = 0.38 + skillEnergy * 0.62;
+            ctx.shadowColor = `rgba(55,235,255,${0.42 + skillEnergy * 0.50})`;
+            ctx.shadowBlur = 8 + skillEnergy * 16;
+            ctx.globalAlpha = 0.34 + skillEnergy * 0.58;
+            draw("crack");
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 0.58 + skillEnergy * 0.42;
             draw("crack");
             ctx.globalAlpha = 1;
             ctx.globalCompositeOperation = "source-over";
@@ -2082,8 +2076,14 @@ class FrostEngine {
         // Vent energy is clipped to the canonical cavity alpha before the jaw
         // is drawn, so the broad charge physically lives inside the opening.
         const vI = Math.max(this.vent.x, sat(this.jaw.x / 30) * 0.6, h * 0.25);
-        if (vI > 0.02)
-            this.drawVentGlow(ctx, L("cavity"), vI, bx, by);
+        if (vI > 0.02) {
+            // Battle rendering selects smaller actor mips, while ventCanvas is
+            // pre-sized to the canonical cavity backing store. Always feed the
+            // matching full-resolution cavity mask so Gold's internal light
+            // cannot silently early-return in production.
+            const cavityMask = (this.mips.cavity && this.mips.cavity[0]) || L("cavity");
+            this.drawVentGlow(ctx, cavityMask, vI, bx, by);
+        }
         // jaw / vent lower plate: opens downward, no teeth added
         ctx.save();
         ctx.translate(lx * 0.75 * iK, ly * 0.75 * iK + Math.max(-2, this.jaw.x));
@@ -2111,7 +2111,12 @@ class FrostEngine {
             ctx.save();
             ctx.translate(bx, by);
             ctx.globalCompositeOperation = "lighter";
-            ctx.globalAlpha = eyeI;
+            ctx.shadowColor = `rgba(70,235,255,${0.50 + eyeI * 0.45})`;
+            ctx.shadowBlur = 9 + eyeI * 18;
+            ctx.globalAlpha = 0.42 + eyeI * 0.52;
+            draw("eyes");
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = Math.min(1, 0.72 + eyeI * 0.28);
             draw("eyes");
             for (const [ep, sgn] of [[M.eyeL, -1], [M.eyeR, 1]]) {
                 const ew = 12 + 13 * eyeI, eh = 3.5 + 3.5 * eyeI;
@@ -2172,39 +2177,39 @@ class FrostEngine {
         };
         brow("browL", M.browLPivot, this.bLiftL.x, this.bRotL.x);
         brow("browR", M.browRPivot, this.bLiftR.x, this.bRotR.x);
-        // Eye-connected energy wakes: longer, faceted, and rooted directly at
-        // each canonical eye pivot. The short secondary sliver makes motion
-        // direction readable without becoming an arbitrary full-body trail.
-        const fl = Math.max(h, clamp((this.eye.x - 1.28) * 1.28, 0, 1) * 0.88, skillEnergy * 0.72);
-        if (fl > 0.03) {
+        // One inertial eye-energy ribbon: a single flexible wake, not two tears.
+        const sp = Math.hypot(this.fvx, this.fvy);
+        const lagMag = Math.hypot(lx, ly);
+        const motionK = smooth(35, 430, sp);
+        const lagK = clamp(lagMag / 5.5, 0, 1);
+        const trailEnergy = clamp(skillEnergy * Math.max(motionK, lagK * 0.72), 0, 1);
+        if (trailEnergy > 0.025) {
+            let tx = -1, ty = 0;
+            if (sp > 8) { tx = -this.fvx / sp; ty = -this.fvy / sp; }
+            else if (lagMag > 0.05) { tx = -lx / lagMag; ty = -ly / lagMag; }
+            const nx = -ty, ny = tx;
+            const accelSide = clamp((this.fax * nx + this.fay * ny) * 0.00055, -1, 1);
+            const lagSide = clamp((lx * nx + ly * ny) / 5.5, -1, 1);
+            const bend = (accelSide * 0.62 + lagSide * 0.52) * (18 + 30 * trailEnergy);
+            const len = 58 + 158 * motionK + 42 * lagK;
+            const ax = (M.eyeL[0] + M.eyeR[0]) * 0.5;
+            const ay = (M.eyeL[1] + M.eyeR[1]) * 0.5 + 1.5;
+            const x1 = ax + tx * len * 0.28 + nx * bend * 0.22;
+            const y1 = ay + ty * len * 0.28 + ny * bend * 0.22;
+            const x2 = ax + tx * len * 0.72 + nx * bend;
+            const y2 = ay + ty * len * 0.72 + ny * bend;
+            const ex = ax + tx * len + nx * bend * 0.48;
+            const ey = ay + ty * len + ny * bend * 0.48;
             ctx.save();
             ctx.translate(bx, by);
             ctx.globalCompositeOperation = "lighter";
-            for (const [e, sgn] of [[M.eyeL, -1], [M.eyeR, 1]]) {
-                const len = 176 * fl, w = 13 * fl;
-                ctx.beginPath();
-                ctx.moveTo(e[0] - sgn * 9, e[1] + 2);
-                ctx.lineTo(e[0] + sgn * len * 0.46, e[1] - w * 1.25);
-                ctx.lineTo(e[0] + sgn * len, e[1] - 18 * fl);
-                ctx.lineTo(e[0] + sgn * len * 0.35, e[1] + w * 0.34);
-                ctx.closePath();
-                ctx.fillStyle = `rgba(42,210,248,${0.38 + 0.5 * fl})`;
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(e[0], e[1]);
-                ctx.lineTo(e[0] + sgn * len * 0.68, e[1] - 10 * fl);
-                ctx.lineTo(e[0] + sgn * len * 0.22, e[1] + 2.2 * fl);
-                ctx.closePath();
-                ctx.fillStyle = `rgba(223,255,255,${0.48 + 0.48 * fl})`;
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(e[0] - sgn * 4, e[1] + 4 * fl);
-                ctx.lineTo(e[0] + sgn * len * 0.48, e[1] + 7 * fl);
-                ctx.lineTo(e[0] + sgn * len * 0.16, e[1] + 1.5 * fl);
-                ctx.closePath();
-                ctx.fillStyle = `rgba(75,205,245,${0.22 + 0.34 * fl})`;
-                ctx.fill();
-            }
+            ctx.lineCap = "round"; ctx.lineJoin = "round";
+            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.bezierCurveTo(x1, y1, x2, y2, ex, ey);
+            ctx.strokeStyle = `rgba(42,218,250,${0.30 + 0.58 * trailEnergy})`;
+            ctx.lineWidth = 5 + 4.5 * trailEnergy; ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.bezierCurveTo(x1, y1, x2, y2, ex, ey);
+            ctx.strokeStyle = `rgba(230,255,255,${0.48 + 0.48 * trailEnergy})`;
+            ctx.lineWidth = 1.4 + 1.8 * trailEnergy; ctx.stroke();
             ctx.restore();
         }
         ctx.restore();
@@ -2212,35 +2217,24 @@ class FrostEngine {
     }
     drawVentGlow(ctx, cav, I, ox, oy) {
         const vc = this.ventCanvas;
-        // Asset readiness prepares this surface. Never resize in a render pass:
-        // HTMLCanvasElement resize clears state/backing pixels mid-frame.
-        if (vc.width !== cav.width || vc.height !== cav.height) return;
+        if (!cav || vc.width !== cav.width || vc.height !== cav.height) return;
         const c = this.ventCtx || vc.getContext("2d");
         const k = cav.width / M.w;
-        const T = this.mode === "a1" ? this.modeT : -1;
-        const castCharge = T >= 0
-            ? (T <= FROST_TUNE.A1_CAST ? smooth(0.055, 0.22, T) : 1 - smooth(0.30, 0.42, T))
-            : 0;
-        // Preserve the Gold reference language: authored cavity alpha mask,
-        // internal cyan radial illumination, then its white cold-core slit.
-        // No dark bed, polygon, slab, or inserted mouth object remains.
-        const glowI = clamp(Math.max(castCharge, this.hunt.x * 0.78, sat(I * 0.5)), 0, 1);
         c.globalCompositeOperation = "source-over";
         c.clearRect(0, 0, vc.width, vc.height);
         c.drawImage(cav, 0, 0);
         c.globalCompositeOperation = "source-in";
         const vx = M.vent[0] * k, vy = (M.vent[1] + this.jaw.x * 0.35) * k;
-        const g = c.createRadialGradient(vx, vy, 0, vx, vy, 170 * k);
-        g.addColorStop(0, `rgba(245,255,255,${glowI})`);
-        g.addColorStop(0.32, `rgba(72,235,255,${0.96 * glowI})`);
-        g.addColorStop(1, `rgba(18,105,190,${0.42 * glowI})`);
+        const g = c.createRadialGradient(vx, vy, 0, vx, vy, 150 * k);
+        g.addColorStop(0, `rgba(235,255,255,${I})`);
+        g.addColorStop(0.35, `rgba(90,230,250,${0.9 * I})`);
+        g.addColorStop(1, `rgba(20,90,170,${0.35 * I})`);
         c.fillStyle = g;
         c.fillRect(0, 0, vc.width, vc.height);
         c.globalCompositeOperation = "source-atop";
         c.beginPath();
-        c.ellipse(vx, vy + 4 * k, 82 * k * glowI,
-            (7 + this.jaw.x * 0.32) * k, 0, 0, TAU);
-        c.fillStyle = `rgba(255,255,255,${0.98 * glowI})`;
+        c.ellipse(vx, vy + 4 * k, 70 * k * I, (6 + this.jaw.x * 0.3) * k, 0, 0, TAU);
+        c.fillStyle = `rgba(255,255,255,${0.95 * I})`;
         c.fill();
         ctx.drawImage(vc, ox, oy, M.w, M.h);
     }

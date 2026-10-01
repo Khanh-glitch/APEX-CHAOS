@@ -4,9 +4,9 @@
 // CP7: gameplay-ready barriers + start-of-match fail-cue fix — cache-bust
 // every runtime that changed in this pass (config/presentation/meta/
 // shellSelect/ladder).
-// Frost final owner inspection: preserve accepted mechanics/motion/projectile;
-// restore Gold cavity light, deepen ambience, and harden A1 presentation admission.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261001-frost-v1-motion-energy-reliability-r1';
+// Frost micro-polish/balance: inertial eye energy, canonical Gold cavity light,
+// stronger authored-line bloom, smaller visual body, and owner balance trims.
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261001-frost-v1-micro-polish-balance-r1';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by

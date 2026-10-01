@@ -316,12 +316,12 @@ try {
   const s325 = supportedAt(lane.ox + 325, lane.oy);
   const s649 = supportedAt(lane.ox + 649, lane.oy);
   const s651 = supportedAt(lane.ox + 651, lane.oy);
-  const p179 = supportedAt(lane.ox + 325, lane.oy + 179);
-  const p181 = supportedAt(lane.ox + 325, lane.oy + 181);
+  const p154 = supportedAt(lane.ox + 325, lane.oy + 154);
+  const p156 = supportedAt(lane.ox + 325, lane.oy + 156);
   const behind = supportedAt(lane.ox - 5, lane.oy);
-  gate('F04.1-footprint-650x360', s325 && s649 && !s651 && p179 && !p181 && !behind,
-    { s325, s649, s651, p179, p181, behind });
-} catch (e) { gate('F04.1-footprint-650x360', false, String(e && e.message)); }
+  gate('F04.1-footprint-650x310', s325 && s649 && !s651 && p154 && !p156 && !behind,
+    { s325, s649, s651, p154, p156, behind });
+} catch (e) { gate('F04.1-footprint-650x310', false, String(e && e.message)); }
 
 try {
   // Near->far: front reaches near ground before far ground.
@@ -362,7 +362,7 @@ try {
 
 try {
   const { o, lane } = buildLane();
-  // Frost x1.8 on stable active floor.
+  // Frost x1.5 on stable active floor.
   o.a.x = lane.ox + 50; o.a.y = lane.oy; o.a.setDir(1, 0);
   o.b.x = 100; o.b.y = 900;
   const x0 = o.a.x;
@@ -376,9 +376,9 @@ try {
   T.step(0.3);
   const ratioE = (o.b.x - bx0) / (520 * 0.3);
   const slowMult = o.b.hasStatus('slow') ? o.b.statuses.slow.mult : null;
-  gate('F04.4-frost-x1.8', Math.abs(ratioF - 1.8) < 0.08 && speedMult === 1.8, { ratio: +ratioF.toFixed(3), speedMult });
+  gate('F04.4-frost-x1.5', Math.abs(ratioF - 1.5) < 0.08 && speedMult === 1.5, { ratio: +ratioF.toFixed(3), speedMult });
   gate('F04.5-enemy-x0.5', Math.abs(ratioE - 0.50) < 0.05 && slowMult === 0.50, { ratio: +ratioE.toFixed(3), slowMult });
-} catch (e) { gate('F04.4-frost-x1.8', false, String(e && e.message)); }
+} catch (e) { gate('F04.4-frost-x1.5', false, String(e && e.message)); }
 
 try {
   const { o, lane } = buildLane();
@@ -410,7 +410,7 @@ try {
   T.step(2 / 60);
   const slowE = o.b.hasStatus('slow') ? o.b.statuses.slow.mult : null;
   const speedF = o.a.hasStatus('speed') ? o.a.statuses.speed.mult : null;
-  gate('F04.7-overlap-no-multiply', slowE === 0.50 && speedF === 1.8, { slowE, speedF });
+  gate('F04.7-overlap-no-multiply', slowE === 0.50 && speedF === 1.5, { slowE, speedF });
 } catch (e) { gate('F04.7-overlap-no-multiply', false, String(e && e.message)); }
 
 try {
@@ -746,10 +746,10 @@ try {
   T.step(2 / 60);
   const live0 = FR().inspect(o.ct).a2live;
   const cd = o.ctl.cooldownLeft('A2');
-  for (let i = 0; i < 30; i++) T.step(0.1); // 3.0s
-  const live3 = FR().inspect(o.ct).a2live;
+  for (let i = 0; i < 20; i++) T.step(0.1); // 2.0s
+  const live2 = FR().inspect(o.ct).a2live;
   gate('F09.1-cooldown-12-5', r.ok === true && cd > 12 && cd <= 12.5, { cd: +cd.toFixed(2) });
-  gate('F09.2-window-3-0', live0 === true && live3 === false, { live0, live3 });
+  gate('F09.2-window-2-0', live0 === true && live2 === false, { live0, live2 });
 } catch (e) { gate('F09.1-cooldown-12-5', false, String(e && e.message)); }
 
 try {
@@ -783,7 +783,7 @@ try {
   const v1 = { x: mid.x - nodes[0].x, y: mid.y - nodes[0].y };
   const v2 = { x: nodes[nodes.length - 1].x - mid.x, y: nodes[nodes.length - 1].y - mid.y };
   const turned = (v1.x * v2.x + v1.y * v2.y) < 0;
-  T.step(7.0); // window (3.0) + segment lifetime (3.5) + margin
+  T.step(6.0); // window (2.0) + segment lifetime (3.5) + margin
   const gone = FR().inspect(o.ct).trail === 0;
   gate('F09.4-native-bounce', bounced, { dirx: +o.a.dir.x.toFixed(2) });
   gate('F09.5-trail-samples-path', nodes.length >= 6 && span > 200, { n: nodes.length, span: +span.toFixed(0) });
@@ -793,7 +793,7 @@ try {
 } catch (e) { gate('F09.4-native-bounce', false, String(e && e.message)); }
 
 try {
-  // Width 120 plus body support radius; Frost x1.8 on trail.
+  // Width 120 plus body support radius; Frost x1.5 on trail.
   const o = withCtl(frostPair());
   o.a.x = 200; o.a.y = 500; o.a.setDir(1, 0);
   o.b.x = 850; o.b.y = 100; o.b.setDir(-1, 0);
@@ -819,7 +819,7 @@ try {
   T.step(0.25);
   const ratio = (p.a.x - x0) / (520 * 0.25);
   gate('F09.7-width-120', slow59 && clean61, { slow59, clean61 });
-  gate('F09.9-frost-x1.8-trail', Math.abs(ratio - 1.8) < 0.08, { ratio: +ratio.toFixed(3) });
+  gate('F09.9-frost-x1.5-trail', Math.abs(ratio - 1.5) < 0.08, { ratio: +ratio.toFixed(3) });
 } catch (e) { gate('F09.7-width-120', false, String(e && e.message)); }
 
 /* ================= Slice C helpers ================================== */
@@ -2033,7 +2033,7 @@ try {
   // Fresh A2 on a clean engine cycle: run down the window, then re-cast via truth.
   const o = stillPair(200, 300, 1, 900, 100);
   HR.pressAbility(o.a, 'A2');
-  T.step(3.2); // window (3.0) ends -> poll endA2
+  T.step(2.2); // window (2.0) ends -> poll endA2
   const e = P().engineFor(o.a);
   const endedOk = e.mode === 'free';
   FR().castHunt({ combatant: o.ct, cfg: o.ct.skills.A2.cfg });
@@ -2547,8 +2547,8 @@ try {
   const sP = bodyBox(px, o.b.x, o.b.y, 130, localBg(px, o.b.x, o.b.y, 130));
   const i = P().inspect(o.a);
   const R = FG().GOLD_REF;
-  const derived = Math.abs(i.kBody - o.a.radius / R.FROST_R) < 1e-3 && Math.abs(i.bodyK - i.kBody) < 1e-3
-    && Math.abs(i.laneK - 2.25) < 1e-6 && Math.abs(i.trailK - 1) < 1e-6 && o.a.radius === o.b.radius;
+  const derived = Math.abs(i.kBody - (o.a.radius / R.FROST_R) * 0.90) < 1e-3 && Math.abs(i.bodyK - i.kBody) < 1e-3
+    && Math.abs(i.laneK - 1.9375) < 1e-6 && Math.abs(i.trailK - 1) < 1e-6 && o.a.radius === o.b.radius;
   const peerH = sF.h / sP.h, peerW = sF.w / sP.w;
   const vsRadius = sF.h / (o.a.radius * 2);
   const scaled = peerH > 0.8 && peerH < 1.35 && peerW > 0.8 && peerW < 1.35 && vsRadius > 0.85 && vsRadius < 1.35;
@@ -2693,14 +2693,14 @@ try {
   const tA2 = e.t;
   // Real production integration at Level-1 speed (215 * Frozen Floor 2.35
   // = 505.25px/s, about 8.42px/frame), not the old 9/10px teleport harness.
-  const realStep = 215 * 1.8 / 60;
+  const realStep = 215 * 1.5 / 60;
   for (let i = 0; i < 24; i++) {
-    o.a.x += realStep; o.a.__hrVel = { x: 215 * 1.8, y: 0 }; T.step(1 / 60);
+    o.a.x += realStep; o.a.__hrVel = { x: 215 * 1.5, y: 0 }; T.step(1 / 60);
   }
   const apex = { x: o.a.x, y: o.a.y };
   o.a.setDir(0, -1);
   for (let i = 0; i < 20; i++) {
-    o.a.y -= realStep; o.a.__hrVel = { x: 0, y: -215 * 1.8 }; T.step(1 / 60);
+    o.a.y -= realStep; o.a.__hrVel = { x: 0, y: -215 * 1.5 }; T.step(1 / 60);
   }
   const tr = e.ice.nodes.filter((n) => n.kind === 'trail');
   const segLifeBad = tr.filter((n) => Math.abs(n.activeUntil - (n.born + R.A2_SEGMENT_LIFE)) > 0.01).length;
@@ -3138,10 +3138,10 @@ try {
     const rows = [];
     if (kind === 'A1') win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
     else HR.pressAbility(o.a, 'A2');
-    const step = 215 * 1.8 / 60;
+    const step = 215 * 1.5 / 60;
     for (let k = 0; k < 45; k++) {
       if (kind === 'A2' && k > 0) {
-        o.a.x += step; o.a.__hrVel = { x: 215 * 1.8, y: 0 };
+        o.a.x += step; o.a.__hrVel = { x: 215 * 1.5, y: 0 };
       }
       T.step(1 / 60); T.redraw();
       const px = readPixels();
@@ -3181,16 +3181,16 @@ try {
     const o = stillPair(200, 700, 1, 850, 180);
     if (deferred) { win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a); T.step(2 / 60); }
     HR.pressAbility(o.a, 'A2'); T.step(1 / 60);
-    const step = 215 * 1.8 / 60;
+    const step = 215 * 1.5 / 60;
     for (let k = 0; k < 55; k++) {
       // Exact real-speed production history, including a hard heading change.
-      if (k < 30) { o.a.x += step; o.a.__hrVel = { x: 215 * 1.8, y: 0 }; }
-      else { o.a.y -= step; o.a.__hrVel = { x: 0, y: -215 * 1.8 }; }
+      if (k < 30) { o.a.x += step; o.a.__hrVel = { x: 215 * 1.5, y: 0 }; }
+      else { o.a.y -= step; o.a.__hrVel = { x: 0, y: -215 * 1.5 }; }
       T.step(1 / 60);
     }
     // Ensure a queued Gold admission has happened, then append live history.
     for (let k = 0; k < 20 && !P().inspect(o.a).a2Started; k++) T.step(1 / 60);
-    for (let k = 0; k < 8; k++) { o.a.y -= step; o.a.__hrVel = { x: 0, y: -215 * 1.8 }; T.step(1 / 60); }
+    for (let k = 0; k < 8; k++) { o.a.y -= step; o.a.__hrVel = { x: 0, y: -215 * 1.5 }; T.step(1 / 60); }
     const e = P().engineFor(o.a), i = P().inspect(o.a), gp = FR().inspect(HR.byCombatant(o.a));
     const nodes = e.ice.nodes.filter((n) => n.kind === 'trail').sort((a, b) => a.born - b.born);
     return { i, gp, nodes, sig: nodes.map((n) => [n.L.toFixed(5), n.W.toFixed(5), n.seed.toFixed(5)]).join('|') };
@@ -3353,10 +3353,11 @@ try {
   const peak = P().inspect(o.a).choreography;
   const goldSrc = fs.readFileSync('public/game/hero-rework/frostGoldV1.js', 'utf8');
   const presSrc = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js', 'utf8');
-  const layeredInside = goldSrc.indexOf('this.drawVentGlow(ctx, L("cavity")')
+  const layeredInside = goldSrc.indexOf('this.drawVentGlow(ctx, cavityMask, vI, bx, by)')
     < goldSrc.indexOf('// jaw / vent lower plate')
-    && goldSrc.includes('internal cyan radial illumination')
-    && goldSrc.includes('createRadialGradient(vx, vy, 0, vx, vy, 170 * k)')
+    && goldSrc.includes('this.mips.cavity[0]')
+    && goldSrc.includes('createRadialGradient(vx, vy, 0, vx, vy, 150 * k)')
+    && goldSrc.includes('70 * k * I')
     && !goldSrc.includes('Broad faceted cyan core')
     && !presSrc.includes('drawA1MouthCharge');
   gate('F17.1-a1-cavity-charge-ramp',
@@ -3469,6 +3470,21 @@ try {
       loaded: { elapsed: loaded.choreography.elapsed, jawGoal: loaded.choreography.jawGoal },
       release: { released: released.a1.released, lanes: e.ice.nodes.filter((n) => n.kind === 'lane').length } });
 } catch (e) { gate('F17.5-a1-hitch-never-skips-cast-beat', false, String(e && e.message)); }
+
+/* ================= F18 — owner micro-polish + balance ================= */
+try {
+  const goldSrc = fs.readFileSync('public/game/hero-rework/frostGoldV1.js', 'utf8');
+  const presSrc = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js', 'utf8');
+  const regSrc = fs.readFileSync('public/game/hero-rework/heroRegistry.js', 'utf8');
+  const gameSrc = fs.readFileSync('public/game/hero-rework/frostGameplayRuntime.js', 'utf8');
+  gate('F18.1-balance-and-visual-scale', gameSrc.includes('frostFloorMult: 1.50') && regSrc.includes('width: 310') && regSrc.includes('activeWindow: 2.0') && presSrc.includes('FROST_VISUAL_SCALE = 0.90'), {});
+  gate('F18.2-single-inertial-eye-ribbon', goldSrc.includes('One inertial eye-energy ribbon') && goldSrc.includes('ctx.bezierCurveTo') && !goldSrc.includes('const len = 176 * fl'), {});
+  gate('F18.3-canonical-mouth-and-no-wet-circles', goldSrc.includes('this.mips.cavity[0]') && goldSrc.includes('150 * k') && goldSrc.includes('70 * k * I') && !goldSrc.includes('this.wets.push('), {});
+} catch (e) {
+  gate('F18.1-balance-and-visual-scale', false, String(e && e.message));
+  gate('F18.2-single-inertial-eye-ribbon', false, String(e && e.message));
+  gate('F18.3-canonical-mouth-and-no-wet-circles', false, String(e && e.message));
+}
 
 /* ================= summary ============================================ */
 const names = Object.keys(report.gates);

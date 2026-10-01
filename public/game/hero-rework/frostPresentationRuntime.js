@@ -21,14 +21,15 @@
  *   resamples every 9px vs gameplay nodeSpacing 10 — same path).
  * - Width calibration: laneK/trailK derive from live gameplay config over
  *   canonical Gold reference geometry. Slice 1 raises A1 gameplay width from
- *   160 to 360, so laneK is 2.25; A2 remains 120/120 = 1.0. The authored
+ *   160 to 310, so laneK is 1.9375; A2 remains 120/120 = 1.0. The authored
  *   material therefore expands with the mechanic envelope instead of drifting
  *   away from collision truth (Hunter precedent: visible == mechanic).
  * - Body scale (F12.22): the Gold authors its actor against its OWN fighter
  *   radius GOLD_REF.FROST_R (34 world units; silhouette ~74x93). Production
- *   therefore uses kBody = fighter.radius / GOLD_REF.FROST_R, which restores
- *   the authored body-to-fighter proportion at real battle scale instead of
- *   the old 2*radius/93 guess (which drew Frost at 73% of authored size).
+ *   therefore derives from fighter.radius / GOLD_REF.FROST_R, then applies
+ *   the owner-requested 0.90 presentation scale. Gameplay radius/hitbox stays
+ *   untouched; engine.bodyK follows the same visual factor so vent offsets
+ *   remain attached to the smaller rendered body.
  *   engine.bodyK carries the same factor into Gold body-frame world offsets
  *   (vent -> lane origin) so the breath still emerges from the vent. Ice and
  *   shapes stay 1:1 world.
@@ -82,6 +83,7 @@ const REF = (G && G.GOLD_REF) || {
   TRAIL_STEP: 9, TRAIL_LEN_MIN: 12, TRAIL_LEN_MAX: 16, TRAIL_FOOT_Y: 6,
 };
 const GUN_OVERLAY_REF = 33;
+const FROST_VISUAL_SCALE = 0.90; // presentation only; gameplay radius/hitbox untouched
 // Gold modeT at which the authored pressure->release beat fires. Taken from
 // the canonical Gold (FROST_TUNE.A1_CAST) so the visual release lands exactly
 // on the gameplay release instead of drifting behind it.
@@ -394,7 +396,7 @@ function createState(ct) {
     ct, fighter: f, engine: e, cfg,
     tOff: null, // engine.t - clock()
     // Gold-authored body reference -> real APEX fighter radius (F12.22).
-    kBody: ((f && f.radius) || 75) / REF.FROST_R,
+    kBody: (((f && f.radius) || 75) / REF.FROST_R) * FROST_VISUAL_SCALE,
     // Authored ice width -> gameplay mechanic width (1.0 on stock Lv1 truth).
     laneK: (+cfg.a1.width || REF.A1_WIDTH) / REF.A1_WIDTH,
     trailK: (+cfg.a2.trailWidth || REF.A2_WIDTH) / REF.A2_WIDTH,
@@ -431,7 +433,7 @@ function createState(ct) {
   e.bodyK = S.kBody;
   e.a1FloorLife = +cfg.a1.floorLifetime || REF.A1_FLOOR_LIFE;
   e.a2SegLife = +cfg.a2.segmentLifetime || REF.A2_SEGMENT_LIFE;
-  e.a2Active = +cfg.a2.activeWindow || 3.0;
+  e.a2Active = +cfg.a2.activeWindow || 2.0;
   liveStates.set(f, S);
   return S;
 }
@@ -1405,7 +1407,7 @@ function driveEngine(S, ct, dt) {
   // feed it the REAL committed direction (never a demo heading).
   try { e.moveFacing = Math.atan2((f.dir && f.dir.y) || 0, (f.dir && f.dir.x) || 1); } catch (err) {}
   // Body scale follows the live fighter radius (rage/size effects included).
-  e.bodyK = S.kBody = ((f && f.radius) || 75) / REF.FROST_R;
+  e.bodyK = S.kBody = (((f && f.radius) || 75) / REF.FROST_R) * FROST_VISUAL_SCALE;
   try {
     const host = (g.ctx && g.ctx.canvas) || g.canvas;
     const materialActive = e.ice.nodes.length || e.ice.carves.length || e.mode !== 'free';

@@ -2,10 +2,10 @@
  * FROST V1 — gameplay truth (APEX_FROST).
  *
  * Authority: docs/hero-rework/frost-v1/00_FROST_IMPLEMENTATION_AUTHORITY.md
- * (Owner Slice 1: A1 CD 10.5 / 650x360 lane / 4.5s floor / thaw 0.30;
- * A2 CD 12.5 / 3.0s window / 120 trail / 3.5s segments / Cold Shock x0.50
+ * (Owner Slice 1: A1 CD 10.5 / 650x310 lane / 4.5s floor / thaw 0.30;
+ * A2 CD 12.5 / 2.0s window / 120 trail / 3.5s segments / Cold Shock x0.50
  * 1.0s; Passive 8% / Freeze 0.90 / post-thaw lock 0.50; active-surface law
- * Frost x1.8 / enemy x0.5, strongest unrelated status preserved.)
+ * Frost x1.5 / enemy x0.5, strongest unrelated status preserved.)
  *
  * Owns (real APEX truth): A1 breath commitment + near->far crystallization
  * front + lane geometry/lifecycle, A2 hunt window + actual-path trail, the
@@ -45,7 +45,7 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
  * one shared lane expiry after front completion).
  * ------------------------------------------------------------------ */
 const FROST_LAW = Object.freeze({
-  frostFloorMult: 1.80,   // owner Slice 1: Frost locomotion on active ice
+  frostFloorMult: 1.50,   // owner balance pass: Frost locomotion on active ice
   enemyFloorMult: 0.50,   // owner Slice 1: opponent locomotion on active ice
   frontSeconds: 0.45,     // A1 near->far crystallization front duration
   a1MotionSeconds: 0.80,  // canonical Gold updateA1 authored motion end (T > 0.8)
@@ -395,7 +395,7 @@ const FR = {
       const onSurface = activeFrostSurfaceAt(b.x, b.y, now);
       const ex = b.statuses.speed;
       if (onSurface) {
-        // Frost owns exactly x1.8 in the existing locomotion `speed` channel.
+        // Frost owns exactly x1.5 in the existing locomotion `speed` channel.
         // A stronger unrelated speed is preserved rather than weakened.
         if (!ex || ex.timer <= 0 || ex.__frostSurface || ex.mult <= FROST_LAW.frostFloorMult) {
           if (ex && ex.timer > 0 && !ex.__frostSurface) b.__frostSurfaceSpeedPrev = { status: { ...ex }, at: now };
