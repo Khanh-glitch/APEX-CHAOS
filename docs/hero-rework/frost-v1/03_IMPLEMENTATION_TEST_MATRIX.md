@@ -236,3 +236,30 @@ F12.25 no-frame-flicker: repeated A1/A2 frames at stable input do not alternatel
 F12.26 full-lifecycle-Gold-parity: idle, A1, A2, Frozen Gun, Frozen Bullet, Freeze shell/refresh/thaw, steal transfer, rematch and concurrent A1/A2 presentation are all inspected against the exact Gold at battle scale.
 
 These are release gates, not optional visual polish. A failure in F12.19–F12.26 blocks owner-playtest readiness even if all gameplay gates are green.
+
+### Implementation of F12.18–F12.26 (final rebuild)
+
+Implemented in `tools/testFrostV1Gates.mjs` with those exact gate names, on the
+real engine + real renderer (native 2D canvas, 1000x1000 game canvas):
+
+| gate | how it is proven |
+|---|---|
+| F12.18-correct-Gold-identity | canonical Gold re-hashed on disk (981,597 B / `940fc9a8…`), shipped module header + derived `GOLD_REF` match it, canonical A1/A2 law text (`nd >= 9`, `range(12,16)`, `range(14,18)`, `A2_WIDTH*0.5 + range(-2,2)`, `scheduleDecay`, `activeUntil: t + a2SegLife`) survives the bridge verbatim, and the retired 975,616-byte Gold is absent from the gold directory. |
+| F12.19-A2-continuity | live hunt with a real turn AND a deferred admission that hydrates real history: trail sorted by birth must form one chain (max neighbour gap ≤ `TRAIL_LEN_MIN`, i.e. segments overlap), zero duplicate/parallel nodes, every node inside the Gold's own length (12–16) and width (`A2_WIDTH*0.5 ± 2`) law, and the START of the real path covered after admission. |
+| F12.20-a1a2-scene-isolation | Frost-free arena regions hashed bitwise every frame while A1+A2 run; zero breaks, and the Frost region must really have drawn (non-vacuous). |
+| F12.21-opponent-scale-stability | opponent solid-silhouette box + ink tracked every frame during A1/A2: spread ≤ 3 px and equal to its own pre-cast baseline. |
+| F12.22-frost-battle-scale | `kBody == radius / GOLD_REF.FROST_R` exactly, `laneK == trailK == 1`, and the rendered solid silhouette within 0.8–1.35× a peer hero at the same camera/arena scale. |
+| F12.23-canvas-state-integrity | host ctx props + transform identical across a full redraw, `save`/`restore` balanced, `stateLeaks == 0`, and a deliberately THROWING Gold layer neither leaks state nor takes the frame down (opponent still rendered, static region unchanged). |
+| F12.24-no-render-double-path | one stable Gold engine per Frost fighter (distinct in Frost-vs-Frost), exactly one body draw + one ice pass per engine per frame, zero legacy `ice_*` projectile visuals. |
+| F12.25-no-frame-flicker | same simulation state redrawn twice is bitwise identical; across a 30-frame melt window no ink step > 18 % of median and authored lane detail never re-appears. |
+| F12.26-full-lifecycle-Gold-parity | idle → A1 (lane node length law + `endT + A1_FLOOR_LIFE`) → A2 (`born + A2_SEGMENT_LIFE`, width law, carve at the apex) → Frozen Gun + Frozen Bullet → Freeze shell (9 plates, cracks before thaw) → thaw (all plates released, shell gone) → rematch clean. |
+
+Whole-screen scenario evidence (isolation matrix, every frame inspected, each
+scenario run as two control legs + the Frost leg):
+`tools/generateFrostFinalEvidence.mjs` → `docs/hero-rework/frost-v1/evidence/FROST_V1_FINAL_EVIDENCE.md`.
+
+**Renumbering (deliberate, no gate weakened):** the round-3/4 gates that used to
+occupy F12.18–F12.22 moved to **F13.8 concurrent-cast-lossless, F13.9
+a1-dir-snapshot, F13.10 transfer-no-duplicate-draw, F13.11
+deferred-a2-hydrates-history, F13.12 deferred-a1-historical-origin** with their
+assertions unchanged, because this matrix owns the F12.18+ range.
