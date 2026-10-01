@@ -1,0 +1,45 @@
+{
+  "package": "mirror-v1-preload",
+  "status": "preload-only-not-active",
+  "createdDate": "2026-10-01",
+  "stagingBranch": "mirror-v1-preload-20261001",
+  "auditSnapshotSha": "df3f9fbaaadef80c5c276c47dd96fc8d55857173",
+  "activeBranchAtStart": "arena/01a0f736-apex-chaos",
+  "doNotWriteActiveBranch": true,
+  "canonicalGold": {
+    "path": "docs/hero-rework/mirror-v1/gold/MIRROR_GOLD_FUSION_12.html",
+    "sha256": "c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205",
+    "bytes": 107480,
+    "lines": 1403,
+    "externalDependencies": false
+  },
+  "authorityOrder": [
+    "08_GOLD_FIRST_MECHANIC_LOCK.md",
+    "gold/MIRROR_GOLD_FUSION_12.html",
+    "approved APEX balance/data laws only where Gold is incomplete",
+    "current runtime as migration baseline only"
+  ],
+  "implementationActivated": false,
+  "activePromptIncluded": false,
+  "transplantRequiredBeforeActivation": true,
+  "allowedPreloadDiffPrefix": "docs/hero-rework/mirror-v1/",
+  "auditPassesCompleted": 5,
+  "auditStatus": "clean-after-corrections",
+  "knownUnresolvedPreloadIssues": [],
+  "packageFiles": [
+    "00_MIRROR_IMPLEMENTATION_AUTHORITY.md",
+    "01_GOLD_TO_GAME_ADAPTATION_MAP.md",
+    "02_IMPLEMENTATION_TEST_MATRIX.md",
+    "03_ZERO_CONTEXT_HANDOFF.md",
+    "04_PRELOAD_MANIFEST.json",
+    "05_ONE_SHOT_RUNBOOK.md",
+    "06_PROCESS_LESSONS_ROBOT_TO_MAGNET.md",
+    "07_PRELOAD_HOSTILE_AUDIT.md",
+    "08_GOLD_FIRST_MECHANIC_LOCK.md",
+    "09_TRANSPLANT_AND_ACTIVATION_CHECKLIST.md",
+    "README_PRELOAD.md",
+    "gold/MIRROR_GOLD_FUSION_12.html"
+  ],
+  "portableSingleCommitRequired": true,
+  "finalRemoteVerificationRequired": true
+}
