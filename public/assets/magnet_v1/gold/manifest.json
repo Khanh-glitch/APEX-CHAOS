@@ -1,0 +1,446 @@
+{
+  "schema": 1,
+  "source": "docs/hero-rework/magnet-v1/gold/MAGNET_FINAL_DONOR_MAX.html",
+  "sourceSha256": "468f7b2aa34588c2c52bf23fb5202c507ff5d584d423ea9f1a9232d751247d8b",
+  "sourceBytes": 3095049,
+  "derivation": "canonical-buildAssets-seeded-inpaint",
+  "seed": "0x4d41474e",
+  "sourceSize": 1254,
+  "origin": {
+    "x": 627,
+    "y": 610
+  },
+  "worldScale": 0.16666666666666666,
+  "levels": [
+    0.5,
+    0.25
+  ],
+  "parts": {
+    "core": {
+      "ox": 234,
+      "oy": 47,
+      "width": 786,
+      "height": 1125,
+      "pivot": [
+        627,
+        640
+      ],
+      "levels": [
+        {
+          "scale": 0.5,
+          "base": {
+            "file": "core-half-base.png",
+            "bytes": 159766,
+            "sha256": "1986788faa96b2c87d0fca2648a1c099397afb1231b40751ec43afded7be3814"
+          },
+          "channels": {
+            "main": {
+              "gold": {
+                "file": "core-half-main-gold.png",
+                "bytes": 6066,
+                "sha256": "4ceece736d31dceca98aff6e8ce45cd144f5209b9e1f754df84b68ff60884b5e"
+              },
+              "dim": {
+                "file": "core-half-main-dim.png",
+                "bytes": 11605,
+                "sha256": "f78fbb02df1278ee2d484ee98ea8b41304878b21d52e63f3654760e7c48e0f11"
+              },
+              "glow": {
+                "file": "core-half-main-glow.png",
+                "bytes": 18957,
+                "sha256": "f8021cdff1ea7884a3843888893fca01f1a0872445fef3c1454da33f3fe26dbf"
+              }
+            },
+            "eyes": {
+              "gold": {
+                "file": "core-half-eyes-gold.png",
+                "bytes": 4278,
+                "sha256": "93642857c513eb5f4bc7b6350ecf10af5a959fac468ec7b7cf66208a3e0484f7"
+              },
+              "dim": {
+                "file": "core-half-eyes-dim.png",
+                "bytes": 6191,
+                "sha256": "f34b1855aa146f4091de5d1dae6910d85f0d07cf6ed8d68e1506d0622e674e26"
+              },
+              "glow": {
+                "file": "core-half-eyes-glow.png",
+                "bytes": 8635,
+                "sha256": "271f1b35f1b0226e4679fe89ef36d1a2e3c9d44267fbc554c683ba077596af7d"
+              }
+            }
+          }
+        },
+        {
+          "scale": 0.25,
+          "base": {
+            "file": "core-quarter-base.png",
+            "bytes": 49767,
+            "sha256": "b2f6b96ea5e67e7882926ecb431108a8f570c1e27e68e9768a6602da48dd9cc9"
+          },
+          "channels": {
+            "main": {
+              "gold": {
+                "file": "core-quarter-main-gold.png",
+                "bytes": 2349,
+                "sha256": "6384e0f0cc535f10fe553867e547208a0cbe0b2835326dd6facbdab2560fbc80"
+              },
+              "dim": {
+                "file": "core-quarter-main-dim.png",
+                "bytes": 3994,
+                "sha256": "3b5612d0adf10135c7b1457605390f8114d048ce22362cfccd8d09bff3ecaa5b"
+              },
+              "glow": {
+                "file": "core-quarter-main-glow.png",
+                "bytes": 7010,
+                "sha256": "fd69a48b94127c6a5e1475427e4010efe771e58d6eb60ce68aa58f5a4e81e5e9"
+              }
+            },
+            "eyes": {
+              "gold": {
+                "file": "core-quarter-eyes-gold.png",
+                "bytes": 1514,
+                "sha256": "bbda8dc1864c6ccc7787ba9a1300a848010f6eaaaae12c15ab37d815feadf8c0"
+              },
+              "dim": {
+                "file": "core-quarter-eyes-dim.png",
+                "bytes": 2079,
+                "sha256": "a2984ea84ca85dee0327143add1047a60adc2607b78bbec096f861d37648fdab"
+              },
+              "glow": {
+                "file": "core-quarter-eyes-glow.png",
+                "bytes": 3161,
+                "sha256": "f1b71c2750ca70ddac1f8294a0f06c38eb0c1eeb94c2d4300639548abd1883be"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "spine": {
+      "ox": 411,
+      "oy": 165,
+      "width": 432,
+      "height": 577,
+      "pivot": [
+        627,
+        660
+      ],
+      "levels": [
+        {
+          "scale": 0.5,
+          "base": {
+            "file": "spine-half-base.png",
+            "bytes": 38680,
+            "sha256": "2e8f72abd902874cd76eed72a4813683d79540cfe4cf2c6f176007f57e45fc95"
+          },
+          "channels": {
+            "main": {
+              "gold": {
+                "file": "spine-half-main-gold.png",
+                "bytes": 6550,
+                "sha256": "8f2af57db8fbb806909bd33b6be64c2fb4f89a854afaf58c1ec81c53e086a54b"
+              },
+              "dim": {
+                "file": "spine-half-main-dim.png",
+                "bytes": 11058,
+                "sha256": "1fcb84b1079f558e4adb65175819662efb450a5fefef309d831d92642875cd8c"
+              },
+              "glow": {
+                "file": "spine-half-main-glow.png",
+                "bytes": 12669,
+                "sha256": "5777c69a5265254ccfa362efd03b80a4ddd9cdbca10adcb0c0a061cb87b29324"
+              }
+            }
+          }
+        },
+        {
+          "scale": 0.25,
+          "base": {
+            "file": "spine-quarter-base.png",
+            "bytes": 11988,
+            "sha256": "03511aa9260b0a2d753399047a6c3cd503415d1fd9b2dd141bf47ceccad193a3"
+          },
+          "channels": {
+            "main": {
+              "gold": {
+                "file": "spine-quarter-main-gold.png",
+                "bytes": 2361,
+                "sha256": "98ec8c162937e93279b1faae6208ed0c119062a2b24763f02633053a64bdc92c"
+              },
+              "dim": {
+                "file": "spine-quarter-main-dim.png",
+                "bytes": 3678,
+                "sha256": "bf057e378ac05e71d44789fe2fe4da72fcc39ff56b2ee78725631fa19af20571"
+              },
+              "glow": {
+                "file": "spine-quarter-main-glow.png",
+                "bytes": 4700,
+                "sha256": "4409981a3173e4b1ab99612c71c43f9c646f3c75b95a46b22bb2206ca2e248f4"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "polL": {
+      "ox": -19,
+      "oy": 50,
+      "width": 591,
+      "height": 1123,
+      "pivot": [
+        470,
+        820
+      ],
+      "levels": [
+        {
+          "scale": 0.5,
+          "base": {
+            "file": "polL-half-base.png",
+            "bytes": 121560,
+            "sha256": "7945fe4bc9adf8bdc35578986a0bb568d2d1ec640cfa1c2c16236e5f3eee3b20"
+          },
+          "channels": {
+            "in": {
+              "gold": {
+                "file": "polL-half-in-gold.png",
+                "bytes": 2978,
+                "sha256": "e6620c87f55fb1b55ecedc6a2c91aeaf1096c73bdd8ecc6c58a9a9126049fb1d"
+              },
+              "dim": {
+                "file": "polL-half-in-dim.png",
+                "bytes": 4532,
+                "sha256": "6c9c26f433686139d2f5bfa4bdd323ea91069828bcba3f17ead10dd51d85c742"
+              },
+              "glow": {
+                "file": "polL-half-in-glow.png",
+                "bytes": 6535,
+                "sha256": "8ebba95a27602e9df5d219ff6610acac0adff21818a1b26d774606576418af58"
+              }
+            },
+            "out": {
+              "gold": {
+                "file": "polL-half-out-gold.png",
+                "bytes": 6518,
+                "sha256": "144922883ccb863d0a12f3891c28ff442c80e8c938f0671a67ddc5695305fbb7"
+              },
+              "dim": {
+                "file": "polL-half-out-dim.png",
+                "bytes": 10694,
+                "sha256": "a37642013b0d435baeaf85fb6729fbce52f78b294b5470c2db3eae652f2faa4d"
+              },
+              "glow": {
+                "file": "polL-half-out-glow.png",
+                "bytes": 13691,
+                "sha256": "49d5802012bb78ef8b4f2f94b03f2e8f6b4170cc2865b0090568485b0561008c"
+              }
+            }
+          }
+        },
+        {
+          "scale": 0.25,
+          "base": {
+            "file": "polL-quarter-base.png",
+            "bytes": 36106,
+            "sha256": "952dcd8b45b96a1a26748640f1fe5b512b364fb592ca0a45908949191702f33d"
+          },
+          "channels": {
+            "in": {
+              "gold": {
+                "file": "polL-quarter-in-gold.png",
+                "bytes": 1154,
+                "sha256": "45970c149d57ff401d24a652a917379e3ee104ae28dc4880e96480abbf64bf7a"
+              },
+              "dim": {
+                "file": "polL-quarter-in-dim.png",
+                "bytes": 1632,
+                "sha256": "98defac0b85d33161da62148cf87001ab5c673c5b38e2507e18eb0d9d81792d7"
+              },
+              "glow": {
+                "file": "polL-quarter-in-glow.png",
+                "bytes": 2498,
+                "sha256": "c1d88612a146bb550003a4e46f6dcb0d57b16794c36fe8eeb48482978ee3a433"
+              }
+            },
+            "out": {
+              "gold": {
+                "file": "polL-quarter-out-gold.png",
+                "bytes": 2389,
+                "sha256": "fcb0f8e62ed7e13f0e9dcd4aa0971549c53a03080c3b2d7dfd89bdfb2507a74c"
+              },
+              "dim": {
+                "file": "polL-quarter-out-dim.png",
+                "bytes": 3671,
+                "sha256": "31dce341935ec23b0ff8b27633e5b5921cc3127011ae20ba7d082c8d50a326f0"
+              },
+              "glow": {
+                "file": "polL-quarter-out-glow.png",
+                "bytes": 5138,
+                "sha256": "e88b1fd36b279e068b1eea401d240116edd8b57e055886eba5f31663d63e9d37"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "polR": {
+      "ox": 682,
+      "oy": 50,
+      "width": 591,
+      "height": 1123,
+      "pivot": [
+        784,
+        820
+      ],
+      "levels": [
+        {
+          "scale": 0.5,
+          "base": {
+            "file": "polR-half-base.png",
+            "bytes": 119807,
+            "sha256": "d352ed51f700f26ea4a06a4765cd97a04e75bf8e5da68ef758ba4c6a4fdff31c"
+          },
+          "channels": {
+            "in": {
+              "gold": {
+                "file": "polR-half-in-gold.png",
+                "bytes": 3094,
+                "sha256": "cd7120568149b84b54e7ed944f9b71d65b85dedec012edede607ed297c1bd1b3"
+              },
+              "dim": {
+                "file": "polR-half-in-dim.png",
+                "bytes": 4804,
+                "sha256": "abd459067a46492bc3b504c9f26e12d9374dabe5e50b0a99a53dd3b2f5bccfe8"
+              },
+              "glow": {
+                "file": "polR-half-in-glow.png",
+                "bytes": 6973,
+                "sha256": "04e0db012acf7de1f965f357fdc79ad48b828f5189df1c759ea88482f4d2ea9c"
+              }
+            },
+            "out": {
+              "gold": {
+                "file": "polR-half-out-gold.png",
+                "bytes": 6602,
+                "sha256": "210d843291992c1bde6855a07618757b79f5635254a7abb17e94c2d69f42ec34"
+              },
+              "dim": {
+                "file": "polR-half-out-dim.png",
+                "bytes": 10718,
+                "sha256": "f6cc0d1fbc590ed47a2b47812b726f88d98bd8fe4562415ec07143afdeb5f82c"
+              },
+              "glow": {
+                "file": "polR-half-out-glow.png",
+                "bytes": 13615,
+                "sha256": "1c1fb9d7f256a762f89e4a9b89af6c02117f71263c69993d31838f77152e8304"
+              }
+            }
+          }
+        },
+        {
+          "scale": 0.25,
+          "base": {
+            "file": "polR-quarter-base.png",
+            "bytes": 35833,
+            "sha256": "e4e29dd11cb4bf8658536b09b19dfb0453819c131dc6d2f96868235752824158"
+          },
+          "channels": {
+            "in": {
+              "gold": {
+                "file": "polR-quarter-in-gold.png",
+                "bytes": 1194,
+                "sha256": "16828a0f9937ba5b5c934cd9da60858c8527ad47545269e9f3776ef404197882"
+              },
+              "dim": {
+                "file": "polR-quarter-in-dim.png",
+                "bytes": 1787,
+                "sha256": "497a3b831d9481d3f2a6d8bfdf0f685c5449a1f9faeee31f8d02033ef84c9731"
+              },
+              "glow": {
+                "file": "polR-quarter-in-glow.png",
+                "bytes": 2724,
+                "sha256": "fe732245a07aa852d997cbc4bd3394ff2ab62afd96fa9e9f20f5227fca9aecf3"
+              }
+            },
+            "out": {
+              "gold": {
+                "file": "polR-quarter-out-gold.png",
+                "bytes": 2398,
+                "sha256": "40c74a850696f0b0f571967e13655833479ef5d30ae0783c70ecc34fa68b49bb"
+              },
+              "dim": {
+                "file": "polR-quarter-out-dim.png",
+                "bytes": 3638,
+                "sha256": "15605d08831b37d86bea43f393dee8b58d4cce8b594fe80db42cd821c39810c0"
+              },
+              "glow": {
+                "file": "polR-quarter-out-glow.png",
+                "bytes": 5177,
+                "sha256": "042f3c579b29b8e7501228b28cd62a6a404c1e2f0eb97d7e9628128eefb2dde1"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "lobeL": {
+      "ox": 72,
+      "oy": 730,
+      "width": 329,
+      "height": 371,
+      "pivot": [
+        250,
+        830
+      ],
+      "levels": [
+        {
+          "scale": 0.5,
+          "base": {
+            "file": "lobeL-half-base.png",
+            "bytes": 15012,
+            "sha256": "02b8896d51dfb35dcdca37319de18a25c1258a0bfdf26bd7789c876a40e157ba"
+          },
+          "channels": {}
+        },
+        {
+          "scale": 0.25,
+          "base": {
+            "file": "lobeL-quarter-base.png",
+            "bytes": 5124,
+            "sha256": "68ce794ecfc927cba2b6327d79c6c06585bf7a1e354cedcbf1240836f400c8ba"
+          },
+          "channels": {}
+        }
+      ]
+    },
+    "lobeR": {
+      "ox": 852,
+      "oy": 730,
+      "width": 330,
+      "height": 371,
+      "pivot": [
+        1004,
+        830
+      ],
+      "levels": [
+        {
+          "scale": 0.5,
+          "base": {
+            "file": "lobeR-half-base.png",
+            "bytes": 14633,
+            "sha256": "cf5926c25222a2370d0eb91df5d6336540e83583a6a22072ef85b3b6a3f7de76"
+          },
+          "channels": {}
+        },
+        {
+          "scale": 0.25,
+          "base": {
+            "file": "lobeR-quarter-base.png",
+            "bytes": 4859,
+            "sha256": "97e94a99459da4672521c30039be6e100571b35b0f6fef5326f6f8e40af56f94"
+          },
+          "channels": {}
+        }
+      ]
+    }
+  }
+}
