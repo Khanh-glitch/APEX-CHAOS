@@ -90,10 +90,22 @@ try {
             vrPost: +((dx * b.vx + dy * b.vy) / d).toFixed(1),
             sp: +Math.hypot(b.vx, b.vy).toFixed(1),
             influenced: !!infl,
+            capture: infl && infl.captures && infl.captures[0]
+              ? { u: +infl.captures[0].u.toFixed(3), want: +infl.captures[0].want.toFixed(1),
+                  r: +infl.captures[0].radius.toFixed(1), tan: +infl.captures[0].tangential.toFixed(1) }
+              : null,
             entry: infl && infl.entries && infl.entries[0]
-              ? { x: +infl.entries[0].x.toFixed(1), y: +infl.entries[0].y.toFixed(1), t: +infl.entries[0].t.toFixed(4),
+              ? { x: +infl.entries[0].x.toFixed(3), y: +infl.entries[0].y.toFixed(3), t: +infl.entries[0].t.toFixed(5),
                   radialBefore: +infl.entries[0].radialBefore.toFixed(1), radialAfter: +infl.entries[0].radialAfter.toFixed(1),
-                  tangential: +infl.entries[0].tangential.toFixed(1) }
+                  radialTarget: +(infl.entries[0].radialTarget || 0).toFixed(1),
+                  tangential: +infl.entries[0].tangential.toFixed(1),
+                  // Proof the response happens AT R=225. Measured against the
+                  // field centre the runtime ACTUALLY solved against: this
+                  // probe deliberately displaces the hero mid-flight to create
+                  // an off-axis incidence, so the anchor's position later in
+                  // the tick is not the centre the crossing was solved with.
+                  cx: +infl.entries[0].cx.toFixed(3), cy: +infl.entries[0].cy.toFixed(3),
+                  radiusAtResponse: +Math.hypot(infl.entries[0].x - infl.entries[0].cx, infl.entries[0].y - infl.entries[0].cy).toFixed(4) }
               : null,
             identityOk: b.owner === recorder.identity.owner && b.type === 'aq_bullet' && b.weapon === recorder.identity.weapon
               && b.damage === recorder.identity.damage && !!b.critical === recorder.identity.critical,
@@ -147,6 +159,11 @@ try {
         radialVelocityBeforeInfluence: entryTick ? entryTick.vrPre : null,
         radialVelocityAfterEntryResponse: entryTick ? entryTick.vrPost : null,
         maxOutwardRadialVelocity: ticks.length ? Math.max(...ticks.map((t) => t.vrPost)) : null,
+        toiRadiusAtResponse: (() => { const e = ticks.find((t) => t.entry); return e ? e.entry.radiusAtResponse : null; })(),
+        toiRadiusError: (() => { const e = ticks.find((t) => t.entry); return e ? +Math.abs(e.entry.radiusAtResponse - 225).toFixed(4) : null; })(),
+        captureSamples: ticks.filter((t) => t.capture).map((t) => t.capture),
+        captureFrames: ticks.filter((t) => t.capture).length,
+        minRadiusDuringCapture: (() => { const c = ticks.filter((t) => t.capture).map((t) => t.capture.r); return c.length ? Math.min(...c) : null; })(),
         minSweptDistanceToMagnet: minDist === Infinity ? null : +minDist.toFixed(1),
         damagingEnvelope: +envelope.toFixed(1),
         enteredDamagingEnvelope: minDist <= envelope,
@@ -176,7 +193,10 @@ try {
 
 const { results, controls } = out;
 const repelled = (r) => r.emitted && r.a2Active && !r.enteredDamagingEnvelope && !r.magnetDamaged
-  && r.fieldEntry && r.fieldEntry.radialBefore < 0 && r.fieldEntry.radialAfter > 0
+  && r.fieldEntry && r.fieldEntry.radialBefore < 0
+  && r.fieldEntry.radialAfter === 0 && r.fieldEntry.radialTarget > 0
+  && r.toiRadiusError != null && r.toiRadiusError <= 0.01
+  && (r.minRadiusDuringCapture == null || r.minRadiusDuringCapture >= r.damagingEnvelope)
   && r.entryResponses === 1 && r.identityStable && r.maxOutwardRadialVelocity > 0;
 const failures = results.filter((r) => !repelled(r)).map((r) => `${r.weapon}${r.offAxis ? ' off-axis' : ' head-on'}`);
 // Negative control: without A2 the SAME shot must reach Magnet's surface
@@ -200,7 +220,7 @@ fs.writeFileSync(dest, JSON.stringify(report, null, 2));
 for (const r of results) {
   console.log(`${repelled(r) ? 'PASS' : 'FAIL'}  ${(r.weapon + (r.offAxis ? ' off-axis' : ' head-on')).padEnd(18)}` +
     ` launch=${r.launchSpeed} entry=${r.fieldEntry ? `(${r.fieldEntry.x},${r.fieldEntry.y}) vr ${r.fieldEntry.radialBefore}->${r.fieldEntry.radialAfter} tan=${r.fieldEntry.tangential}` : 'none'}` +
-    ` minSwept=${r.minSweptDistanceToMagnet}/${r.damagingEnvelope} penetrated=${r.enteredDamagingEnvelope} identity=${r.identityStable} ticks=${r.authoritativeTicks} infl=${r.influencedTicks} entries=${r.entryResponses} dmg=${r.magnetDamaged}`);
+    ` R@resp=${r.toiRadiusAtResponse}(err ${r.toiRadiusError}) capF=${r.captureFrames} minRcap=${r.minRadiusDuringCapture} minSwept=${r.minSweptDistanceToMagnet}/${r.damagingEnvelope} penetrated=${r.enteredDamagingEnvelope} identity=${r.identityStable} ticks=${r.authoritativeTicks} infl=${r.influencedTicks} entries=${r.entryResponses} dmg=${r.magnetDamaged}`);
 }
 for (const c of controls) console.log(`CTRL ${c.weapon.padEnd(8)} A2 off -> minSwept=${c.minSweptDistanceToMagnet}/${c.damagingEnvelope} reached=${controlReached(c)} damaged=${c.magnetDamaged}`);
 console.log(report.pass ? '\nA2 ARSENAL BULLET PROBE: PASS' : `\nA2 ARSENAL BULLET PROBE: FAIL -> ${report.failures.join(', ')} ${errors.slice(0,2).join(' | ')}`);

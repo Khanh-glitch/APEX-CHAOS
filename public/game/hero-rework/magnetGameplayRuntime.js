@@ -260,6 +260,10 @@
           };
           report.entry = {
             x: ex, y: ey, nx, ny, t,
+            // Field centre actually used to solve this crossing. Consumers
+            // must measure the response radius against THIS, not against a
+            // later anchor position -- the anchor is free to move afterwards.
+            cx, cy,
             radialBefore: vr,
             radialAfter: 0,          // neutralized AT the boundary
             radialTarget: target,    // ramped in over the capture envelope
