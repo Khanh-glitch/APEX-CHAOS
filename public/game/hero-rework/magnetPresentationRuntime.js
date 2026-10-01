@@ -95,16 +95,33 @@
       .filter((record) => record.slot && record.slot.phase === 'REVEALED')
       .map(floorDescriptor).filter(Boolean);
   }
+  function influencedBy(record, ct, kind) {
+    return !!record && Array.isArray(record.fields)
+      && record.fields.some((field) => field.owner === ct && field.kind === kind);
+  }
   function projectileTruth(snapshot, ct, kind) {
     return snapshot.projectileInfluence
-      .filter((record) => record.fields.some((field) => field.owner === ct && field.kind === kind))
+      .filter((record) => influencedBy(record, ct, kind))
       .map((record) => projectileDescriptor(record.projectile)).filter(Boolean);
   }
+  function a2FloorTruth(snapshot, ct) {
+    return (snapshot.floorInfluence || [])
+      .filter((record) => influencedBy(record, ct, 'a2'))
+      .map(floorDescriptor).filter(Boolean);
+  }
+  function a2BodyTruth(snapshot, ct) {
+    return (snapshot.bodyInfluence || [])
+      .filter((record) => influencedBy(record, ct, 'a2'))
+      .map(bodyDescriptor).filter(Boolean);
+  }
   function objectTruth(snapshot, ct, activeA1, activeA2) {
-    const floor = realFloor(snapshot);
-    const a1Objects = activeA1 ? floor.concat(projectileTruth(snapshot, ct, 'a1')) : [];
+    const a1Objects = activeA1
+      ? realFloor(snapshot).concat(projectileTruth(snapshot, ct, 'a1'))
+      : [];
+    // Unlike persistent floor/body momentum state, these records are emitted
+    // only by gameplay branches that applied THIS Magnet's A2 force this tick.
     const a2Objects = activeA2
-      ? floor.concat(snapshot.bodies.map(bodyDescriptor).filter(Boolean), projectileTruth(snapshot, ct, 'a2'))
+      ? a2FloorTruth(snapshot, ct).concat(a2BodyTruth(snapshot, ct), projectileTruth(snapshot, ct, 'a2'))
       : [];
     return { a1Objects, a2Objects };
   }

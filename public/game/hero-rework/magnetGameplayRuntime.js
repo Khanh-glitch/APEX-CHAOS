@@ -26,6 +26,11 @@
   const floorStates = new Map();
   const bodyStates = new Map();
   let projectileState = new WeakMap();
+  // Per-world-step semantic truth for presentation consumers. These records
+  // are emitted from the exact branches that applied force; persistent
+  // floor/body momentum state is deliberately not equivalent to influence.
+  let lastFloorInfluence = [];
+  let lastBodyInfluence = [];
   let lastProjectileInfluence = [];
   let worldStepCount = 0;
 
@@ -262,9 +267,11 @@
     const size = opts.gameSize || Number(globalScope.GAME_SIZE) || 1000;
     const pickupEligible = opts.pickupEligible || defaultPickupEligible;
     const present = new Set(slots);
+    const influenced = [];
     for (const slot of slots) {
       if (!isEligibleFloorFirearm(slot)) continue;
       let ax = 0, ay = 0, cap = 0, forced = false;
+      const by = [];
       for (const field of live) {
         const cx = field.owner.anchor.x, cy = field.owner.anchor.y;
         let dx = cx - slot.x, dy = cy - slot.y;
@@ -276,7 +283,8 @@
           const accel = accel0 + (accel1 - accel0) * clamp(d / (field.cfg.gunDistanceSpan ?? 700), 0, 1);
           ax += dx / d * accel; ay += dy / d * accel;
           cap = Math.max(cap, field.cfg.gunSpeedCap ?? 900);
-          forced = true; acknowledgeLateReveal(field, slot);
+          forced = true; by.push({ kind: 'a1', owner: field.owner });
+          acknowledgeLateReveal(field, slot);
         } else {
           const radius = field.cfg.radius ?? CONSTANTS.A2_RADIUS;
           if (d >= radius) continue;
@@ -285,7 +293,7 @@
           const accel = (field.cfg.gunAcceleration ?? 3000) * u * u;
           ax += dx / d * accel; ay += dy / d * accel;
           cap = Math.max(cap, field.cfg.gunSpeedCap ?? 950);
-          forced = true;
+          forced = true; by.push({ kind: 'a2', owner: field.owner });
         }
       }
       const existing = floorStates.get(slot);
@@ -306,18 +314,24 @@
       st.history.push({ x: slot.x, y: slot.y });
       if (st.history.length > 24) st.history.shift();
       st.integrations += 1;
+      if (by.length) influenced.push({
+        slot, fields: by, vx: st.vx, vy: st.vy, rotation: st.rotation,
+      });
     }
     for (const slot of floorStates.keys()) if (!present.has(slot) || slot.phase !== 'REVEALED') floorStates.delete(slot);
+    return influenced;
   }
   function integrateBodies(dt, live, opts) {
     const bodies = opts.bodies || [];
     const combatantOfBody = opts.combatantOfBody || (() => null);
     const size = opts.gameSize || Number(globalScope.GAME_SIZE) || 1000;
     const present = new Set(bodies);
+    const influenced = [];
     for (const body of bodies) {
       if (!body || !(body.hp > 0)) continue;
       const targetCt = combatantOfBody(body);
       let ax = 0, ay = 0, forced = false;
+      const by = [];
       for (const field of live) {
         if (field.state.kind !== 'a2') continue;
         if (targetCt ? targetCt === field.owner : field.owner.bodies && field.owner.bodies.includes(body)) continue;
@@ -327,6 +341,7 @@
         const u = clamp(1 - d / radius, 0, 1);
         const accel = (field.cfg.bodyAcceleration ?? 2200) * u * u;
         ax += dx / d * accel; ay += dy / d * accel; forced = true;
+        by.push({ kind: 'a2', owner: field.owner });
       }
       const existing = bodyStates.get(body);
       if (!forced && !existing) continue;
@@ -343,8 +358,10 @@
       if (body.y < r) { body.y = r; st.vy = Math.abs(st.vy); }
       else if (body.y > size - r) { body.y = size - r; st.vy = -Math.abs(st.vy); }
       st.integrations += 1;
+      if (by.length) influenced.push({ body, fields: by, vx: st.vx, vy: st.vy });
     }
     for (const body of bodyStates.keys()) if (!present.has(body) || !(body.hp > 0)) bodyStates.delete(body);
+    return influenced;
   }
 
   // Exactly one call per authoritative world tick. All active Magnet forces
@@ -353,8 +370,8 @@
     const opts = options || {};
     const now = opts.now == null ? Number(globalScope.matchClock) || 0 : opts.now;
     const live = activeFields(now);
-    integrateFloorFirearms(dt, live, opts);
-    integrateBodies(dt, live, opts);
+    lastFloorInfluence = integrateFloorFirearms(dt, live, opts);
+    lastBodyInfluence = integrateBodies(dt, live, opts);
     worldStepCount += 1;
   }
 
@@ -379,6 +396,8 @@
   function teardown(combatant) {
     if (combatant) fields.delete(combatant);
     else fields.clear();
+    lastFloorInfluence = [];
+    lastBodyInfluence = [];
     lastProjectileInfluence = [];
     if (!combatant || fields.size === 0) {
       floorStates.clear(); bodyStates.clear();
@@ -400,6 +419,8 @@
         integrations: st.integrations, history: st.history.slice(),
       })),
       bodies: Array.from(bodyStates.entries()).map(([body, st]) => ({ body, ...st })),
+      floorInfluence: lastFloorInfluence.slice(),
+      bodyInfluence: lastBodyInfluence.slice(),
       projectileInfluence: lastProjectileInfluence.slice(),
       worldStepCount,
     };
