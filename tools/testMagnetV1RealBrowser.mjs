@@ -122,7 +122,7 @@ try{
     for(let i=0;i<220;i++){
       await waitFrames(1);
       if(!bullet){bullet=window.projectiles.find(p=>p?.aq&&p.type==='aq_bullet'&&p.owner===scene.opponent)||null;if(bullet){initial={x:bullet.x,y:bullet.y,vx:bullet.vx,vy:bullet.vy,speed:Math.hypot(bullet.vx,bullet.vy),life:bullet.life,weapon:bullet.weapon,ownerId:bullet.owner?.id,type:bullet.type};scene.fighter.y=620;}}
-      if(bullet){const influence=MAG.inspect(window.matchClock).projectileInfluence.find(item=>item.projectile===bullet);if(influence){influencedTicks++;lastInfluenced={x:bullet.x,y:bullet.y,vx:bullet.vx,vy:bullet.vy,life:bullet.life};if(influence.entries?.length)entryRecords=influence.entries.map(e=>({radialBefore:e.radialBefore,radialAfter:e.radialAfter,tangential:e.tangential,x:e.x,y:e.y}));}minDistance=Math.min(minDistance,Math.hypot(bullet.x-scene.fighter.x,bullet.y-scene.fighter.y));historiesMax=Math.max(historiesMax,gold.inspect(scene.ct).state.effects.projectileHistories);lifeDecreased=lifeDecreased||bullet.life<initial.life;identityStable=identityStable&&bullet.owner===scene.opponent&&bullet.type==='aq_bullet'&&bullet.weapon==='PISTOL';if(!window.projectiles.includes(bullet)&&lastInfluenced)break;}
+      if(bullet){const influence=MAG.inspect(window.matchClock).projectileInfluence.find(item=>item.projectile===bullet);if(influence){influencedTicks++;lastInfluenced={x:bullet.x,y:bullet.y,vx:bullet.vx,vy:bullet.vy,life:bullet.life};if(influence.entries?.length)entryRecords=influence.entries.map(e=>({radialBefore:e.radialBefore,radialAfter:e.radialAfter,radialTarget:e.radialTarget,tangential:e.tangential,x:e.x,y:e.y,cx:e.cx,cy:e.cy,radiusAtResponse:Math.hypot(e.x-e.cx,e.y-e.cy)}));}minDistance=Math.min(minDistance,Math.hypot(bullet.x-scene.fighter.x,bullet.y-scene.fighter.y));historiesMax=Math.max(historiesMax,gold.inspect(scene.ct).state.effects.projectileHistories);lifeDecreased=lifeDecreased||bullet.life<initial.life;identityStable=identityStable&&bullet.owner===scene.opponent&&bullet.type==='aq_bullet'&&bullet.weapon==='PISTOL';if(!window.projectiles.includes(bullet)&&lastInfluenced)break;}
       if(i>180&&bullet)break;
     }
     ctx.drawImage=originalDrawImage;
@@ -207,10 +207,14 @@ const checks={
   // Owner authority: the acceptance criterion for an A2 firearm bullet is that
   // it is REPULSED and never reaches Magnet -- explicitly NOT `angleDelta>.002`,
   // which is satisfied by the rejected "bend a few degrees and penetrate"
-  // behaviour. Proven from the authoritative entry record (inward radial
-  // velocity converted outward exactly once, tangential preserved) plus the
-  // closest approach the bullet ever achieves versus the damaging envelope.
-  'actual-firearm-a2-projectile-repulsion':telemetry.a2Bullet.cast&&telemetry.a2Bullet.emitted&&telemetry.a2Bullet.initial?.type==='aq_bullet'&&telemetry.a2Bullet.initial?.weapon==='PISTOL'&&telemetry.a2Bullet.identityStable&&telemetry.a2Bullet.lifeDecreased&&telemetry.a2Bullet.influencedTicks>=1&&telemetry.a2Bullet.entryResponses===1&&telemetry.a2Bullet.entryRecords[0].radialBefore<0&&telemetry.a2Bullet.entryRecords[0].radialAfter>0&&!telemetry.a2Bullet.penetrated&&!telemetry.a2Bullet.damaged,
+  // behaviour. Proven from the authoritative entry record plus the closest
+  // approach the bullet ever achieves versus the damaging envelope.
+  // The response must land ON the real R=225 boundary (measured against the
+  // centre the runtime solved the crossing against, since the anchor may move
+  // later in the tick), the inward radial component must be neutralized to
+  // exactly 0 there so safety is never deferred, and a meaningful outward
+  // response must be queued for the magnetic-capture ramp.
+  'actual-firearm-a2-projectile-repulsion':telemetry.a2Bullet.cast&&telemetry.a2Bullet.emitted&&telemetry.a2Bullet.initial?.type==='aq_bullet'&&telemetry.a2Bullet.initial?.weapon==='PISTOL'&&telemetry.a2Bullet.identityStable&&telemetry.a2Bullet.lifeDecreased&&telemetry.a2Bullet.influencedTicks>=1&&telemetry.a2Bullet.entryResponses===1&&telemetry.a2Bullet.entryRecords[0].radialBefore<0&&telemetry.a2Bullet.entryRecords[0].radialAfter===0&&telemetry.a2Bullet.entryRecords[0].radialTarget>0&&Math.abs(telemetry.a2Bullet.entryRecords[0].radiusAtResponse-225)<=0.01&&!telemetry.a2Bullet.penetrated&&!telemetry.a2Bullet.damaged,
   'a2-true-projectile-history-rendered':telemetry.a2Bullet.historiesMax>0,
   'real-arena-local-pixel-deformation':telemetry.floor.copyCount>0&&telemetry.floor.maxWidth<telemetry.floor.canvasWidth*.5&&telemetry.floor.maxHeight<telemetry.floor.canvasHeight*.5,
   'arena-p1-pre-fighter-layer-provenance':telemetry.arenaLayers.p1.length===3&&telemetry.arenaLayers.p1.every(record=>validLayerRecord(record,[0]))&&sampledSlots(telemetry.arenaLayers.p1,[0]),

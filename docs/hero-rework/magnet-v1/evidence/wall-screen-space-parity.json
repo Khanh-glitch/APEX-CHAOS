@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T18:21:00.970Z",
+  "generatedAt": "2026-10-01T19:42:52.689Z",
   "impactSpeed": 420,
   "donorErrors": [],
   "productionErrors": [],
@@ -41,11 +41,11 @@
     },
     {
       "t": 0.12,
-      "donorNormalTravel": 3.5,
+      "donorNormalTravel": 3.39,
       "productionGameplayRoot": 0,
       "productionVisualRoot": 2.4,
-      "gameplayErrVsDonor": -3.5,
-      "visualErrVsDonor": -1.1
+      "gameplayErrVsDonor": -3.39,
+      "visualErrVsDonor": -0.99
     },
     {
       "t": 0.17,
@@ -80,10 +80,10 @@
       "visualErrVsDonor": -1.1
     }
   ],
-  "rmseGameplayRootVsDonor": 3.059,
-  "rmseVisualRootVsDonor": 1.473,
+  "rmseGameplayRootVsDonor": 3.046,
+  "rmseVisualRootVsDonor": 1.464,
   "peakVisualOffsetPx": 6.93,
-  "settleSecondsWallClock": 18.752,
+  "settleSecondsWallClock": 19.086,
   "settleBoundedBySimSeconds": 0.45,
   "settleNote": "headless rAF is heavily throttled, so wall-clock settle is not representative; the episode is hard-capped at 0.45 SIM seconds by WALL_VISUAL_MAX_AGE.",
   "residualOffsetAfterEpisodePx": 0,
