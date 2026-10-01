@@ -1145,6 +1145,7 @@ class FrostEngine {
         this.mode = "free";
         this.modeT = 0;
         this.onIce = false;
+        this.surfaceEyeBoost = 0; // presentation-only: brighter eyes while standing/moving on own active ice
         this.coldShockUntil = -9;
         this.freezeReprocAt = -9;
         this.a1ReadyAt = 0;
@@ -2104,16 +2105,17 @@ class FrostEngine {
             ctx.globalCompositeOperation = "source-over";
         }
         ctx.restore();
-        // Eyes stay under the brows, but gain a crisp white-cyan facet and a
-        // stronger source-art pass during skills. No blur/filter is used.
-        if (this.eye.x > 1.02) {
-            const eyeI = clamp((this.eye.x - 1) * 1.08 + skillEnergy * 0.28, 0, 1);
+        // Eyes stay under the brows. Own-ice contact adds a presentation-only
+        // emissive boost to the EXISTING eye asset: no beam, wake, or trail.
+        const iceEyeBoost = clamp(this.surfaceEyeBoost || 0, 0, 1);
+        if (this.eye.x > 1.02 || iceEyeBoost > 0.02) {
+            const eyeI = clamp((this.eye.x - 1) * 1.08 + skillEnergy * 0.28 + iceEyeBoost * 0.82, 0, 1);
             ctx.save();
             ctx.translate(bx, by);
             ctx.globalCompositeOperation = "lighter";
             ctx.shadowColor = `rgba(70,235,255,${0.50 + eyeI * 0.45})`;
-            ctx.shadowBlur = 9 + eyeI * 18;
-            ctx.globalAlpha = 0.42 + eyeI * 0.52;
+            ctx.shadowBlur = 9 + eyeI * 18 + iceEyeBoost * 8;
+            ctx.globalAlpha = Math.min(1, 0.42 + eyeI * 0.52 + iceEyeBoost * 0.10);
             draw("eyes");
             ctx.shadowBlur = 0;
             ctx.globalAlpha = Math.min(1, 0.72 + eyeI * 0.28);
@@ -2177,41 +2179,6 @@ class FrostEngine {
         };
         brow("browL", M.browLPivot, this.bLiftL.x, this.bRotL.x);
         brow("browR", M.browRPivot, this.bLiftR.x, this.bRotR.x);
-        // One inertial eye-energy ribbon: a single flexible wake, not two tears.
-        const sp = Math.hypot(this.fvx, this.fvy);
-        const lagMag = Math.hypot(lx, ly);
-        const motionK = smooth(35, 430, sp);
-        const lagK = clamp(lagMag / 5.5, 0, 1);
-        const trailEnergy = clamp(skillEnergy * Math.max(motionK, lagK * 0.72), 0, 1);
-        if (trailEnergy > 0.025) {
-            let tx = -1, ty = 0;
-            if (sp > 8) { tx = -this.fvx / sp; ty = -this.fvy / sp; }
-            else if (lagMag > 0.05) { tx = -lx / lagMag; ty = -ly / lagMag; }
-            const nx = -ty, ny = tx;
-            const accelSide = clamp((this.fax * nx + this.fay * ny) * 0.00055, -1, 1);
-            const lagSide = clamp((lx * nx + ly * ny) / 5.5, -1, 1);
-            const bend = (accelSide * 0.62 + lagSide * 0.52) * (18 + 30 * trailEnergy);
-            const len = 58 + 158 * motionK + 42 * lagK;
-            const ax = (M.eyeL[0] + M.eyeR[0]) * 0.5;
-            const ay = (M.eyeL[1] + M.eyeR[1]) * 0.5 + 1.5;
-            const x1 = ax + tx * len * 0.28 + nx * bend * 0.22;
-            const y1 = ay + ty * len * 0.28 + ny * bend * 0.22;
-            const x2 = ax + tx * len * 0.72 + nx * bend;
-            const y2 = ay + ty * len * 0.72 + ny * bend;
-            const ex = ax + tx * len + nx * bend * 0.48;
-            const ey = ay + ty * len + ny * bend * 0.48;
-            ctx.save();
-            ctx.translate(bx, by);
-            ctx.globalCompositeOperation = "lighter";
-            ctx.lineCap = "round"; ctx.lineJoin = "round";
-            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.bezierCurveTo(x1, y1, x2, y2, ex, ey);
-            ctx.strokeStyle = `rgba(42,218,250,${0.30 + 0.58 * trailEnergy})`;
-            ctx.lineWidth = 5 + 4.5 * trailEnergy; ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.bezierCurveTo(x1, y1, x2, y2, ex, ey);
-            ctx.strokeStyle = `rgba(230,255,255,${0.48 + 0.48 * trailEnergy})`;
-            ctx.lineWidth = 1.4 + 1.8 * trailEnergy; ctx.stroke();
-            ctx.restore();
-        }
         ctx.restore();
         void px;
     }

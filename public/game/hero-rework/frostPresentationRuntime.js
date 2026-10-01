@@ -1432,6 +1432,9 @@ function driveEngine(S, ct, dt) {
   try { e.onIce = e.ice.iceAt(e.fx, e.fy + 6, t); } catch (err) { e.onIce = false; }
   const pvx = e.fvx, pvy = e.fvy;
   const damp = G.damp, clamp = G.clamp, angDiff = G.angDiff;
+  // Reuse the same own-ice truth already driving Frost's carve/movement presentation.
+  // This is visual only: enter quickly, settle out cleanly when leaving the surface.
+  e.surfaceEyeBoost = damp(e.surfaceEyeBoost || 0, e.onIce ? 1 : 0, e.onIce ? 0.045 : 0.085, dt);
   if (e.mode === 'a1') {
     e.fvx = damp(e.fvx, 0, 0.06, dt);
     e.fvy = damp(e.fvy, 0, 0.06, dt);
@@ -1924,7 +1927,7 @@ api.inspect = function (f) {
   if (!S) return null;
   const e = S.engine;
   return {
-    mode: e.mode, t: +e.t.toFixed(3),
+    mode: e.mode, t: +e.t.toFixed(3), onIce: !!e.onIce, surfaceEyeBoost: +((e.surfaceEyeBoost || 0).toFixed(3)),
     a1: { released: !!e.a1.released, front: +((e.a1.front) || 0).toFixed(1), len: e.a1.len || 0, nodes: (e.a1.nodes || []).length,
       ang: +((e.a1.ang) || 0).toFixed(4), ox: +((e.a1.ox) || 0).toFixed(1), oy: +((e.a1.oy) || 0).toFixed(1) },
     a2: { kicked: !!e.a2.kicked, trail: (e.a2.trail || []).length },

@@ -1,5 +1,5 @@
 {
-  "revision": "20261001-frost-v1-micro-polish-balance-r1",
+  "revision": "20261001-frost-v1-ice-eye-boost-r1",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "a0d10025cde29ee55d6eb95a06aee2cbebe2a56e01adcdb1154f8366e3128712",
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
@@ -27,7 +27,7 @@
     "public/game/hero-rework/hunterGoldV10.js": "3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1",
     "public/game/hero-rework/hunterPresentationRuntime.js": "a5e414a61a25ce5595d129a712785b59fa68f996febb29cdf361b36302c645e2",
     "public/game/hero-rework/crystalaPresentationRuntime.js": "f50ec334fff37debc4e8b4c7647deed331e32eb926ea64234eb1b26f53819432",
-    "public/game/hero-rework/frostGoldV1.js": "80c5108a89acc0a5a6ebcb2f13ac17a3e6c2ddedce25409a8c2c1971e4c8ecb9",
-    "public/game/hero-rework/frostPresentationRuntime.js": "1c35f70cdd92b406a8a1b2a19fc899c0b272b48809e6f8e7bc815ae9f2eb640d"
+    "public/game/hero-rework/frostGoldV1.js": "0d97e857df605a3ac2a5a95099b27fa4037533844142e21e49fbca4667976f1a",
+    "public/game/hero-rework/frostPresentationRuntime.js": "3cfaf7af1b099723687c1a25f3bec23b299603f9fe00f8c8f2dca5368f85acc6"
   }
 }

@@ -4,9 +4,9 @@
 // CP7: gameplay-ready barriers + start-of-match fail-cue fix — cache-bust
 // every runtime that changed in this pass (config/presentation/meta/
 // shellSelect/ladder).
-// Frost micro-polish/balance: inertial eye energy, canonical Gold cavity light,
-// stronger authored-line bloom, smaller visual body, and owner balance trims.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261001-frost-v1-micro-polish-balance-r1';
+// Frost eye cleanup: remove trailing eye ribbon; boost only the existing eye
+// asset while Frost overlaps its own active ice surface.
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261001-frost-v1-ice-eye-boost-r1';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by

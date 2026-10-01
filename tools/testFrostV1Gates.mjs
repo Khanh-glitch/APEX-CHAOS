@@ -3478,11 +3478,17 @@ try {
   const regSrc = fs.readFileSync('public/game/hero-rework/heroRegistry.js', 'utf8');
   const gameSrc = fs.readFileSync('public/game/hero-rework/frostGameplayRuntime.js', 'utf8');
   gate('F18.1-balance-and-visual-scale', gameSrc.includes('frostFloorMult: 1.50') && regSrc.includes('width: 310') && regSrc.includes('activeWindow: 2.0') && presSrc.includes('FROST_VISUAL_SCALE = 0.90'), {});
-  gate('F18.2-single-inertial-eye-ribbon', goldSrc.includes('One inertial eye-energy ribbon') && goldSrc.includes('ctx.bezierCurveTo') && !goldSrc.includes('const len = 176 * fl'), {});
+  gate('F18.2-no-eye-trail-on-ice-eye-boost',
+    !goldSrc.includes('One inertial eye-energy ribbon')
+    && !goldSrc.includes('const len = 176 * fl')
+    && goldSrc.includes('surfaceEyeBoost')
+    && presSrc.includes('e.surfaceEyeBoost = damp')
+    && presSrc.includes('e.onIce ? 1 : 0'),
+    {});
   gate('F18.3-canonical-mouth-and-no-wet-circles', goldSrc.includes('this.mips.cavity[0]') && goldSrc.includes('150 * k') && goldSrc.includes('70 * k * I') && !goldSrc.includes('this.wets.push('), {});
 } catch (e) {
   gate('F18.1-balance-and-visual-scale', false, String(e && e.message));
-  gate('F18.2-single-inertial-eye-ribbon', false, String(e && e.message));
+  gate('F18.2-no-eye-trail-on-ice-eye-boost', false, String(e && e.message));
   gate('F18.3-canonical-mouth-and-no-wet-circles', false, String(e && e.message));
 }
 
