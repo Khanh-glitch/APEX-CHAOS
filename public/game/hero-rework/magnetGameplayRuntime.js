@@ -49,6 +49,11 @@
     // shot reads as "magnetic catch -> curve -> release" instead of a mirror
     // ricochet. ~0.07s is 4 frames at 60fps.
     A2_BULLET_CAPTURE_SECONDS: 0.07,
+    // Donor A2 body law (MAGNET_FINAL_DONOR_MAX.html L815-817) is a radial
+    // VELOCITY TARGET, not an acceleration: push = 1050 * fall * f2 with a
+    // LINEAR falloff, approached at k = min(1, dt*10).
+    A2_BODY_PUSH_SPEED: 1050,
+    A2_BODY_PUSH_APPROACH: 10,
     BULLET_SPEED_CAP_MULT: 1.10,
     PASSIVE_SPEED_MULT: 1.18,
   });
@@ -590,6 +595,7 @@
     return { dx: move.dx, dy: move.dy, vx: st.vx, vy: st.vy };
   }
   function prepareBodies(dt, live, opts) {
+    const now = opts.now == null ? Number(globalScope.matchClock) || 0 : opts.now;
     const bodies = opts.bodies || [];
     const combatantOfBody = opts.combatantOfBody || (() => null);
     const size = opts.gameSize || Number(globalScope.GAME_SIZE) || 1000;
@@ -600,15 +606,37 @@
       const targetCt = combatantOfBody(body);
       let ax = 0, ay = 0, forced = false;
       const by = [];
+      const radialTargets = [];
+      let field0Cap = 650;
       for (const field of live) {
         if (field.state.kind !== 'a2') continue;
+        field0Cap = field.cfg.bodyRadialSpeedCap ?? 650;
         if (targetCt ? targetCt === field.owner : field.owner.bodies && field.owner.bodies.includes(body)) continue;
         const dx = body.x - field.owner.anchor.x, dy = body.y - field.owner.anchor.y;
         const d = Math.hypot(dx, dy), radius = field.cfg.radius ?? CONSTANTS.A2_RADIUS;
         if (!(d > EPS) || d >= radius) continue;
-        const u = clamp(1 - d / radius, 0, 1);
-        const accel = (field.cfg.bodyAcceleration ?? 2200) * u * u;
-        ax += dx / d * accel; ay += dy / d * accel; forced = true;
+        // ---- Canonical donor body law -----------------------------------
+        // The rejected production mapping used `bodyAcceleration * u * u`:
+        // the same non-donor quadratic falloff that was already removed from
+        // the bullet law, applied as an ACCELERATION. Across the only legal
+        // fighter spacing (d >= 150, because 75+75 collision radii forbid
+        // closer) u never exceeds 0.333, so u*u never exceeded 0.111 and the
+        // push peaked near 69 px/s against 300-400 px/s of ordinary
+        // locomotion -- the owner-reported "A2 does not push the fighter".
+        //
+        // The donor instead commands a radial SPEED with a LINEAR falloff and
+        // converges onto it, which is what makes the shove read physically.
+        const fall = clamp(1 - d / radius, 0, 1);
+        // NOTE: the donor additionally scales this by f2 = smoothstep(.14,.26)
+        // of field age. That ramp is deliberately NOT adopted here: the owner
+        // defect is magnitude, not onset, and adopting it would suppress all
+        // body force for the first 0.14s and change an existing, legitimate
+        // timing invariant. Only the falloff shape and the controller -- the
+        // proven defect source -- are corrected.
+        const target = (field.cfg.bodyPushSpeed ?? CONSTANTS.A2_BODY_PUSH_SPEED) * fall;
+        const ux = dx / d, uy = dy / d;
+        radialTargets.push({ ux, uy, target, accel: field.cfg.bodyAcceleration ?? 2200 });
+        forced = true;
         by.push({ kind: 'a2', owner: field.owner });
       }
       const existing = bodyStates.get(body);
@@ -616,8 +644,18 @@
       const st = existing || { vx: 0, vy: 0, integrations: 0, pending: null };
       bodyStates.set(body, st);
       if (forced) {
-        st.vx += ax * dt; st.vy += ay * dt;
-        capVelocity(st, 650);
+        // Donor: if the body's current radial speed is below the commanded
+        // push, drive it toward the push at k = min(1, dt*approach). The
+        // per-frame change is additionally bounded by the configured
+        // bodyAcceleration authority so that value still governs.
+        for (const rt of radialTargets) {
+          const al = st.vx * rt.ux + st.vy * rt.uy;      // current radial speed
+          if (al >= rt.target) continue;                  // already leaving fast enough
+          const k = Math.min(1, dt * CONSTANTS.A2_BODY_PUSH_APPROACH);
+          const step = Math.min((rt.target - al) * k, rt.accel * dt);
+          st.vx += rt.ux * step; st.vy += rt.uy * step;
+        }
+        capVelocity(st, field0Cap);
       } else {
         // Donor opponent momentum and Apex push both recover; the rejected
         // bridge accidentally created a perpetual second position integrator.

@@ -150,6 +150,32 @@ try{
     unsubscribeContact();
     const contact={cast:!!contactCast.ok,maxPenetration,penetratingFrames,bodyCollisionEvents,contactBumps,separationStart,separationEnd};
 
+    // OWNER REGRESSION: A2 must create a CLEAR physical outward push on a
+    // living enemy fighter at LEGAL spacing (75+75 collision radii forbid
+    // anything closer than 150). Driven through the real shipping pipeline
+    // and the real Fighter.update, measuring actual displacement -- not a
+    // value in MAG.inspect().
+    const pushCases=[];
+    for(const distance of [150,170,200]){
+      scene=await restart('ROBOT');
+      scene.fighter.x=500;scene.fighter.y=500;scene.fighter.baseSpeed=0;scene.fighter.dir.x=0;scene.fighter.dir.y=0;
+      scene.opponent.baseSpeed=0;scene.opponent.dir.x=0;scene.opponent.dir.y=0;
+      await waitFrames(3);
+      scene.opponent.x=500+distance;scene.opponent.y=500;
+      const d0=Math.hypot(scene.opponent.x-scene.fighter.x,scene.opponent.y-scene.fighter.y);
+      const cast=HR.pressAbility(scene.fighter,'A2');
+      let peak=0,maxExt=0;
+      for(let i=0;i<110;i++){
+        await waitFrames(1);
+        peak=Math.max(peak,Math.hypot(scene.opponent.x-scene.fighter.x,scene.opponent.y-scene.fighter.y)-d0);
+        const e=scene.opponent.__hrExternalVelocity||{x:0,y:0};
+        maxExt=Math.max(maxExt,Math.hypot(e.x||0,e.y||0));
+      }
+      pushCases.push({distance,cast:!!(cast&&cast.ok),d0,peakRadialDisplacement:peak,maxExternalVelocity:maxExt,
+        donorTarget:1050*Math.max(0,1-d0/225)});
+    }
+    const fighterPush={cases:pushCases};
+
     // Instrument the shipping world seam itself, not drawImage counts alone.
     // The event trace proves distortion source sampling happens after the
     // declared completed world layers and before either Fighter.draw.
@@ -175,7 +201,7 @@ try{
     const arenaLayers={p1:await layerProbe('MAGNET','ROBOT'),p2:await layerProbe('ROBOT','MAGNET'),mirror:await layerProbe('MAGNET','MAGNET')};
 
     window.exitArsenalQuestMode();
-    return{ready,scheduler,locomotion,wall,a2Bullet,floor,contact,arenaLayers};
+    return{ready,scheduler,locomotion,wall,a2Bullet,floor,contact,fighterPush,arenaLayers};
   });
 }finally{await browser.close();}
 
@@ -216,6 +242,13 @@ const checks={
   // response must be queued for the magnetic-capture ramp.
   'actual-firearm-a2-projectile-repulsion':telemetry.a2Bullet.cast&&telemetry.a2Bullet.emitted&&telemetry.a2Bullet.initial?.type==='aq_bullet'&&telemetry.a2Bullet.initial?.weapon==='PISTOL'&&telemetry.a2Bullet.identityStable&&telemetry.a2Bullet.lifeDecreased&&telemetry.a2Bullet.influencedTicks>=1&&telemetry.a2Bullet.entryResponses===1&&telemetry.a2Bullet.entryRecords[0].radialBefore<0&&telemetry.a2Bullet.entryRecords[0].radialAfter===0&&telemetry.a2Bullet.entryRecords[0].radialTarget>0&&Math.abs(telemetry.a2Bullet.entryRecords[0].radiusAtResponse-225)<=0.01&&!telemetry.a2Bullet.penetrated&&!telemetry.a2Bullet.damaged,
   'a2-true-projectile-history-rendered':telemetry.a2Bullet.historiesMax>0,
+  // OWNER REGRESSION (playtest: "A2 does not visibly push the enemy fighter").
+  // Donor law is a radial-velocity TARGET push=1050*(1-d/225); production must
+  // track it at legal spacing AND the fighter must really move.
+  'a2-pushes-enemy-fighter-at-legal-spacing':telemetry.fighterPush.cases.length===3
+    &&telemetry.fighterPush.cases.every((c)=>c.cast)
+    &&telemetry.fighterPush.cases.every((c)=>c.maxExternalVelocity>=0.55*c.donorTarget)
+    &&telemetry.fighterPush.cases.filter((c)=>c.donorTarget>=100).every((c)=>c.peakRadialDisplacement>=24),
   'real-arena-local-pixel-deformation':telemetry.floor.copyCount>0&&telemetry.floor.maxWidth<telemetry.floor.canvasWidth*.5&&telemetry.floor.maxHeight<telemetry.floor.canvasHeight*.5,
   'arena-p1-pre-fighter-layer-provenance':telemetry.arenaLayers.p1.length===3&&telemetry.arenaLayers.p1.every(record=>validLayerRecord(record,[0]))&&sampledSlots(telemetry.arenaLayers.p1,[0]),
   'arena-p2-pre-fighter-layer-provenance':telemetry.arenaLayers.p2.length===3&&telemetry.arenaLayers.p2.every(record=>validLayerRecord(record,[1]))&&sampledSlots(telemetry.arenaLayers.p2,[1]),
