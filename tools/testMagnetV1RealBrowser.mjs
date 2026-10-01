@@ -45,7 +45,7 @@ try{
 }finally{await browser.close();}
 const delta={clock:telemetry.after.clock-telemetry.before.clock,tickCalls:telemetry.after.scheduler.tickCalls-telemetry.before.scheduler.tickCalls,advancedFrames:telemetry.after.scheduler.advancedFrames-telemetry.before.scheduler.advancedFrames,duplicateCalls:telemetry.after.scheduler.duplicateCalls-telemetry.before.scheduler.duplicateCalls,fixedSteps:telemetry.after.fixedSteps-telemetry.before.fixedSteps};telemetry.delta=delta;telemetry.errors=errors;
 const checks={
-  'browser-assets-ready':telemetry.ready&&telemetry.revision.runtime==='20261001-magnet-v1-r2'&&telemetry.revision.gold==='2.0.0-canonical-engine'&&telemetry.revision.adapter==='2.0.0-thin-semantic-adapter',
+  'browser-assets-ready':telemetry.ready&&telemetry.revision.runtime==='20261001-magnet-v1-r3'&&telemetry.revision.gold==='2.0.0-canonical-engine'&&telemetry.revision.adapter==='2.0.0-thin-semantic-adapter',
   'real-raf-exactly-one-frame-owner':delta.tickCalls>=30&&delta.tickCalls===delta.advancedFrames&&delta.duplicateCalls===0,
   'real-raf-fixed-120-mapping':delta.clock>0&&Math.abs(delta.fixedSteps-delta.clock*120)<=3,
   'post-movement-sample-is-drawn-root':Math.hypot(telemetry.after.sample.after.x-telemetry.after.body.x,telemetry.after.sample.after.y-telemetry.after.body.y)<1e-9,

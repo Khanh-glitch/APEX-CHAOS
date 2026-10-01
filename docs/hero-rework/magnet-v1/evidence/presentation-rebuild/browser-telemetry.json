@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T13:18:01.440Z",
+  "generatedAt": "2026-10-01T13:47:15.791Z",
   "url": "http://127.0.0.1:4173",
   "checks": {
     "browser-assets-ready": true,
@@ -14,27 +14,27 @@
   "telemetry": {
     "ready": true,
     "revision": {
-      "runtime": "20261001-magnet-v1-r2",
+      "runtime": "20261001-magnet-v1-r3",
       "gold": "2.0.0-canonical-engine",
       "adapter": "2.0.0-thin-semantic-adapter"
     },
     "before": {
-      "clock": 0.07959999999999855,
+      "clock": 0.07240000000000146,
       "scheduler": {
         "tickCalls": 4,
         "advancedFrames": 4,
         "duplicateCalls": 0
       },
-      "fixedSteps": 11
+      "fixedSteps": 9
     },
     "after": {
-      "clock": 0.7937999999999992,
+      "clock": 0.7542000000000004,
       "scheduler": {
         "tickCalls": 40,
         "advancedFrames": 40,
         "duplicateCalls": 0
       },
-      "fixedSteps": 97,
+      "fixedSteps": 91,
       "frameCount": 39,
       "sample": {
         "before": {
@@ -45,8 +45,8 @@
           "x": 500,
           "y": 500
         },
-        "dt": 0.016700000000000728,
-        "clock": 0.7937999999999992
+        "dt": 0.016600000000002182,
+        "clock": 0.7542000000000004
       },
       "body": {
         "x": 500,
@@ -61,7 +61,7 @@
     "a1": {
       "accepted": true,
       "target": {
-        "x": -0.9726762775527072,
+        "x": -0.9643260066527475,
         "y": 0
       },
       "desired": {
@@ -74,11 +74,12 @@
         "a1Kinds": [
           "gun"
         ],
-        "a2Kinds": []
+        "a2Kinds": [],
+        "a2Items": []
       },
       "rings": 1,
-      "wallMs": 584.6000000000931,
-      "meanFrameMs": 24.358333333337214
+      "wallMs": 450.29999999981374,
+      "meanFrameMs": 18.76249999999224
     },
     "pixel": [
       38,
@@ -87,11 +88,11 @@
       255
     ],
     "delta": {
-      "clock": 0.7142000000000006,
+      "clock": 0.681799999999999,
       "tickCalls": 36,
       "advancedFrames": 36,
       "duplicateCalls": 0,
-      "fixedSteps": 86
+      "fixedSteps": 82
     },
     "errors": []
   }
