@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-29T00:57:31.584Z",
+  "generatedAt": "2026-10-01T13:09:29.558Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -1468,6 +1468,36 @@
       "bytes": 724620
     },
     {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a1_charge_personal.mp3",
+      "type": "audio",
+      "bytes": 28882
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a1_clamp.mp3",
+      "type": "audio",
+      "bytes": 26374
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a1_deploy_mechanism.mp3",
+      "type": "audio",
+      "bytes": 47852
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a1_unfold_blade.mp3",
+      "type": "audio",
+      "bytes": 31390
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a2_catch_flesh.mp3",
+      "type": "audio",
+      "bytes": 31148
+    },
+    {
+      "path": "/assets/hero-rework/hunter-v10/sfx/hunter_a2_pounce_sweep.mp3",
+      "type": "audio",
+      "bytes": 24493
+    },
+    {
       "path": "/assets/hero-rework/robot-final/sfx/robot_a1_dash.mp3",
       "type": "audio",
       "bytes": 41591
@@ -1926,6 +1956,11 @@
       "path": "/assets/loading/loading-bg-portrait.webp",
       "type": "image",
       "bytes": 289600
+    },
+    {
+      "path": "/assets/magnet_v1/gold/manifest.json",
+      "type": "data",
+      "bytes": 14311
     },
     {
       "path": "/assets/musician_v2/normalized/battle_idle_reference.webp",
@@ -3355,7 +3390,7 @@
     {
       "path": "/game/fighters/iceVisualRuntime.js",
       "type": "script",
-      "bytes": 29885
+      "bytes": 31550
     },
     {
       "path": "/game/fighters/katanaRuntime.js",

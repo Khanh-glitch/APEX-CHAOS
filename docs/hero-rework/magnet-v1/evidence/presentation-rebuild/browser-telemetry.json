@@ -1,0 +1,94 @@
+{
+  "generatedAt": "2026-10-01T13:11:24.433Z",
+  "url": "http://127.0.0.1:4173",
+  "checks": {
+    "browser-assets-ready": true,
+    "real-raf-exactly-one-frame-owner": true,
+    "real-raf-fixed-120-mapping": true,
+    "post-movement-sample-is-drawn-root": true,
+    "three-phase-render-called": true,
+    "real-raf-a1-production-object-direction": true,
+    "no-browser-runtime-errors": true
+  },
+  "telemetry": {
+    "ready": true,
+    "revision": {
+      "gold": "2.0.0-canonical-engine",
+      "adapter": "2.0.0-thin-semantic-adapter"
+    },
+    "before": {
+      "clock": 0.08799999999985994,
+      "scheduler": {
+        "tickCalls": 4,
+        "advancedFrames": 4,
+        "duplicateCalls": 0
+      },
+      "fixedSteps": 11
+    },
+    "after": {
+      "clock": 0.7531999999998591,
+      "scheduler": {
+        "tickCalls": 40,
+        "advancedFrames": 40,
+        "duplicateCalls": 0
+      },
+      "fixedSteps": 91,
+      "frameCount": 39,
+      "sample": {
+        "before": {
+          "x": 500,
+          "y": 500
+        },
+        "after": {
+          "x": 500,
+          "y": 500
+        },
+        "dt": 0.016700000000000728,
+        "clock": 0.7531999999998591
+      },
+      "body": {
+        "x": 500,
+        "y": 500
+      }
+    },
+    "draws": {
+      "actor": 64,
+      "before": 64,
+      "after": 64
+    },
+    "a1": {
+      "accepted": true,
+      "target": {
+        "x": -0.9643260066527475,
+        "y": 0
+      },
+      "desired": {
+        "x": -1,
+        "y": 0
+      },
+      "objects": {
+        "a1": 1,
+        "a2": 0,
+        "a1Kinds": [
+          "gun"
+        ],
+        "a2Kinds": []
+      },
+      "rings": 1
+    },
+    "pixel": [
+      38,
+      37,
+      37,
+      255
+    ],
+    "delta": {
+      "clock": 0.6651999999999991,
+      "tickCalls": 36,
+      "advancedFrames": 36,
+      "duplicateCalls": 0,
+      "fixedSteps": 80
+    },
+    "errors": []
+  }
+}
