@@ -58,6 +58,10 @@
     SWIRL_SHIELD: { idleSettle: 0.05, reflectPop: 16, reflectRot: 0.22, returnTau: 0.10 },
     // B12 Tower Shield: forward guard pose; block = shield-only pushback/tilt.
     TOWER_SHIELD: { guardForward: 12, blockPop: 12, blockRot: 0.14, returnTau: 0.12 },
+    // B13 Stormbreaker (red tier): heavy raised windup, then the weapon
+    // LEAVES the hand along the aim (grenade-style forward throw) and scales
+    // out — no axe lingers in the hand after the release.
+    STORMBREAKER: { windupRot: -1.35, windupLift: 16, throwFwd: 46, throwTime: 0.22, throwRot: 0.6, returnTau: 0.14 },
   };
   // POST-C §3: registry guns have no hand-authored recipe — derive one from
   // the firing family so every staged gun gets sensible weapon-only motion.
@@ -213,6 +217,15 @@
       const u = Math.min(1, ghost.t / (r.throwTime || 0.34));
       p.localX = -(r.drawBack || 18) + ((r.drawBack || 18) + (r.throwFwd || 30)) * u * u;
       p.rotKick = -(r.throwRot || 0.5) * (1 - u);
+    } else if (ghost.weaponId === 'STORMBREAKER') {
+      // Heavy release: the red-tier body visibly leaves the hand along the
+      // aim and scales out as the real thrown projectile takes over — no
+      // second axe remains in the hand (locked impact/vanish identity).
+      const u = Math.min(1, ghost.t / (r.throwTime || 0.22));
+      p.localX = (r.throwFwd || 46) * u * u;
+      p.rotKick = (r.throwRot || 0.6) * (1 - u);
+      p.scaleX = Math.max(0, 1 - u);
+      p.scaleY = p.scaleX;
     } else if (ghost.weaponId === 'SPEAR' || ghost.weaponId === 'DAGGER') {
       // Thrust out-and-return: extension peaks at thrustPx then retracts.
       const u = Math.min(1, ghost.t / 0.30);
@@ -230,6 +243,8 @@
       const u = Math.min(1, ghost.t / (r.throwTime || 0.34));
       p.scaleX = Math.max(0.2, 1 - u * 0.8);
       p.scaleY = p.scaleX;
+    } else if (ghost.weaponId === 'STORMBREAKER') {
+      // Release is a forward scale-out, never a gravity drop.
     } else if (ghost.category === 'defense') {
       const u = Math.min(1, ghost.t / ghost.maxLife);
       p.scaleX = Math.max(0.5, 1 - u * 0.6);
@@ -255,9 +270,17 @@
   }
 
   function makeCtx(f) {
-    const enemy = (typeof fighters !== 'undefined' && fighters)
+    let enemy = (typeof fighters !== 'undefined' && fighters)
       ? fighters.find(q => q && q !== f) || null
       : null;
+    // HERO REWORK (doc-06): audited body-aware enemy resolution. With the
+    // rework layer active, resolve the nearest living enemy BODY (SLIME
+    // children are valid auto-targets) and honor SNIPER aim-lost. Returns
+    // undefined when no rework match exists -> base resolution is untouched.
+    if (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.resolveEnemyBody) {
+      const resolved = window.APEX_HERO_REWORK.resolveEnemyBody(f, enemy);
+      if (resolved !== undefined) enemy = resolved;
+    }
     return { fighter: f, enemy, holder: getHolder(f), api: weaponApi };
   }
 
@@ -280,6 +303,7 @@
       PISTOL: [10, -0.10], SMG: [10, -0.06], SHOTGUN: [16, -0.20], SNIPER: [18, -0.10],
       SABRE: [8, -0.30], BATTLE_AXE: [10, -0.50], DAGGER: [6, -0.20],
       SPEAR: [8, -0.20], SPIKED_CLUB: [10, -0.40],
+      STORMBREAKER: [16, -0.55],
     };
     const FAMILY_ANTICIPATION = {
       SEMI: [10, -0.10], AUTO: [10, -0.06], BURST: [10, -0.08],
@@ -323,7 +347,15 @@
     let dmg = amount;
     const gun = CFG.isGun && CFG.isGun(weaponId);
     const melee = CFG.isMelee && CFG.isMelee(weaponId);
-    if (gun || melee || weaponId === 'GRENADE') dmg *= (CFG.ARSENAL_DAMAGE_SCALE || 1);
+    // B1 final-authority values: weapons with an explicit audited
+    // confirmedHitDamage (red-tier STORMBREAKER: 446) define the FINAL
+    // per-hit damage on a 1000 HP match directly — they ride the ONE damage
+    // path (CFG.meleeDamage -> aqDamage -> takeDamage) but are explicitly
+    // exempt from the x7 Arsenal equipment scale. Regular STORMBREAKER is
+    // still equipment (red-tier, deliberately not a MELEE_IDS entry), so the
+    // scale applies to every weapon EXCEPT the final-authority set.
+    const finalAuthority = !!(CFG.WEAPONS[weaponId] && CFG.WEAPONS[weaponId].confirmedHitDamage != null);
+    if (!finalAuthority && (gun || melee || weaponId === 'GRENADE' || weaponId === 'STORMBREAKER')) dmg *= (CFG.ARSENAL_DAMAGE_SCALE || 1);
     if (critical && gun) dmg *= (CFG.CRIT_DAMAGE_MULTIPLIER || 1.5);
     return dmg;
   }
@@ -390,6 +422,13 @@
   }
 
   function fireBullet(spec) {
+    // HERO REWORK (doc-06): single audited hook — the rework layer may retarget
+    // (SNIPER predictive intercept), boost speed (MAGNET passive), roll distance
+    // crit (SNIPER passive) and record the emission (TIME loop) before the push.
+    // Returns a tag object attached to the projectile (null = untouched).
+    const __hrTag = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.onFireBullet)
+      ? window.APEX_HERO_REWORK.onFireBullet(spec)
+      : null;
     const { owner, x, y, angle, speed, damage, weapon } = spec;
     if (!Number.isFinite(angle) || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(speed)) return;
     const wspec = CFG.WEAPONS[weapon] || {};
@@ -413,6 +452,7 @@
       knockback: spec.knockback || 0,
       stun: spec.stun || 0,
       color: spec.color || (owner && owner.color) || '#ffffff',
+      __hr: __hrTag,
     });
   }
 
@@ -444,6 +484,10 @@
   }
 
   function throwGrenade(spec) {
+    // HERO REWORK (doc-06): audited recording hook for TIME loop replay.
+    const __hrTag = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.onGrenade)
+      ? window.APEX_HERO_REWORK.onGrenade(spec)
+      : null;
     const { owner, x, y, angle, speed, weapon } = spec;
     projectiles.push({
       type: 'aq_grenade',
@@ -458,12 +502,20 @@
       life: CFG.WEAPONS.GRENADE.fuse + 0.6,
       maxLife: CFG.WEAPONS.GRENADE.fuse + 0.6,
       color: '#6d8f4e',
+      __hr: __hrTag,
     });
   }
 
   function explodeGrenade(p) {
     const spec = CFG.WEAPONS.GRENADE;
-    for (const f of fighters) {
+    // HERO REWORK (doc-06): audited body-aware splash — SLIME child Bodies
+    // are valid splash targets but never live in the global fighters[].
+    // Without the rework layer this is exactly the base fighters iteration.
+    const splashTargets = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.splashTargets)
+      ? window.APEX_HERO_REWORK.splashTargets(p.owner)
+      : undefined;
+    const splashList = splashTargets || fighters;
+    for (const f of splashList) {
       if (!f || f.hp <= 0 || f === p.owner) continue;
       const d = dist(p.x, p.y, f.x, f.y);
       if (d > spec.blastRadius + f.radius * 0.4) continue;
@@ -536,6 +588,29 @@
         // POST-C §5 thrown-melee lifecycle: flight -> pinned -> exit.
         p.grace = Math.max(0, (p.grace || 0) - dt);
         if (p.state === 'flight') {
+          // B8 homing pursuit (STORMBREAKER): bounded continuous steering
+          // toward the owner's LIVING opponent. The per-second turn cap is
+          // the whole identity — the bolt CURVES after a moving opponent but
+          // never snaps onto them, and the speed stays exactly throwSpeed
+          // (fast/heavy). Nothing else can redirect it: the projectile is
+          // heroManipulationImmune (crystal reflect / magnet shell /
+          // gravity well all leave it alone), and the target is ONLY ever
+          // the owner's living opponent.
+          if (p.weapon === 'STORMBREAKER') {
+            const tgt = fighters.find(f => f && f !== p.owner && f.hp > 0);
+            if (tgt) {
+              let cur = Math.atan2(p.vy, p.vx);
+              const want = Math.atan2(tgt.y - p.y, tgt.x - p.x);
+              let dAng = want - cur;
+              while (dAng > Math.PI) dAng -= 2 * Math.PI;
+              while (dAng < -Math.PI) dAng += 2 * Math.PI;
+              const maxTurn = ((CFG.STORMBREAKER && CFG.STORMBREAKER.homingTurnRateRadPerSec) || 2.6) * dt;
+              cur += Math.max(-maxTurn, Math.min(maxTurn, dAng));
+              const sp = Math.hypot(p.vx, p.vy) || (CFG.THROWN_MELEE.speed.STORMBREAKER || 1350);
+              p.vx = Math.cos(cur) * sp;
+              p.vy = Math.sin(cur) * sp;
+            }
+          }
           p.px = p.x; p.py = p.y;
           p.x += p.vx * dt;
           p.y += p.vy * dt;
@@ -546,6 +621,27 @@
             const hitR = target.radius * CFG.BULLET_HIT_RADIUS_SCALE + p.radius;
             if (distPointToSegment(target.x, target.y, p.px, p.py, p.x, p.y) < hitR) {
               const spec = CFG.WEAPONS[p.weapon] || {};
+              // STORMBREAKER: confirmed hit resolves damage through the ONE
+              // melee authority (x1.5) + x7 scale, real engine stun, then the
+              // weapon vanishes through the impact flash — it does NOT pin
+              // into the victim (locked owner decision: no axe left standing
+              // in the opponent). The VFX consumer gets the REAL swept
+              // collision point (visual only — damage is already resolved).
+              if (p.weapon === 'STORMBREAKER') {
+                const hit = sweptSegmentCircleHit(p.px, p.py, p.x, p.y, target.x, target.y, hitR) || { x: p.x, y: p.y };
+                aqDamage(target, CFG.meleeDamage('STORMBREAKER'), p.owner, 'STORMBREAKER', {
+                  knockback: spec.knockback, stun: spec.stun,
+                  shake: spec.shake != null ? spec.shake : 15,
+                  hitStop: spec.hitStop != null ? spec.hitStop : 0.08,
+                });
+                if (window.APEX_ARSENAL_STORM && window.APEX_ARSENAL_STORM.onImpact) {
+                  window.APEX_ARSENAL_STORM.onImpact(hit.x, hit.y, target);
+                }
+                window.avCue('storm_impact', { weapon: 'STORMBREAKER', x: hit.x, y: hit.y });
+                log('STORM_IMPACT', `target=${target.name} x=${Math.round(hit.x)} y=${Math.round(hit.y)}`);
+                projectiles.splice(i, 1);
+                continue;
+              }
               p.pinAngle = Math.atan2(p.vy, p.vx);
               // ONE melee damage authority: thrown hits read the same x1.5.
               aqDamage(target, CFG.meleeDamage(p.weapon), p.owner, p.weapon, {
@@ -574,6 +670,16 @@
               window.avCue('ricochet', { weapon: p.weapon, x: p.x, y: p.y, angle: Math.atan2(p.vy, p.vx) });
               emitParticles(p.x, p.y, '#ffe6a8', 10, 320, 4, 0.3, 'square');
               log('THROWN_RICOCHET', `weapon=${p.weapon} left=${p.ricochetsLeft}`);
+            }
+          }
+          // Missed-storm failsafe: bounded flight lifetime ends in the
+          // physical exit (tumble), same as ricochet exhaustion — the
+          // projectile is never silently spliced out of flight.
+          if (p.state === 'flight' && p.maxFlight > 0) {
+            p.flightTime += dt;
+            if (p.flightTime >= p.maxFlight) {
+              thrownExit(p);
+              log('THROWN_MAXFLIGHT', `weapon=${p.weapon} flight=${p.flightTime.toFixed(2)}s`);
             }
           }
         } else if (p.state === 'pinned') {
@@ -662,6 +768,13 @@
         ctx.arc(p.x, p.y, t.head, 0, TAU);
         ctx.fill();
       } else if (p.type === 'aq_thrown') {
+        // Stormbreaker V9 presentation is owned by APEX_ARSENAL_STORM so its
+        // draw order can match the executable ref exactly. Physics/collision
+        // remain here; only the duplicate generic sprite draw is skipped.
+        if (p.weapon === 'STORMBREAKER' && window.APEX_ARSENAL_STORM && window.APEX_ARSENAL_STORM.ownsFlightSprite) {
+          ctx.restore();
+          continue;
+        }
         // POST-C §5: the ACTUAL weapon sprite flies — same authored art as the
         // pickup/equipped reads, oriented along its travel (tip-first).
         const av = window.APEX_ARSENAL_AV;
@@ -672,7 +785,10 @@
         if (w) {
           // Melee sprites are authored upright (long axis -Y): rotate the long
           // axis onto the flight/pin direction.
-          ctx.rotate(p.rot + Math.PI / 2);
+          const stormVisualOffset = p.weapon === 'STORMBREAKER'
+            ? ((CFG.STORMBREAKER && CFG.STORMBREAKER.flightVisualOffsetRad) || 0)
+            : 0;
+          ctx.rotate(p.rot + Math.PI / 2 + stormVisualOffset);
           const s = meleeDrawLong(p.weapon) / Math.max(w.w, w.h);
           ctx.drawImage(w.img, 0, 0, w.w, w.h, (-w.w * s) / 2, (-w.h * s) / 2, w.w * s, w.h * s);
         } else {
@@ -787,8 +903,12 @@
     const targetLong = gunWorldLong(weaponId);
     const offset = r * 0.78 + (pose.localX || 0) - (pose.recoil || 0);
     const lateral = pose.localY || 0;
-    const cx = f.x + Math.cos(aim) * offset + Math.cos(aim + Math.PI / 2) * lateral;
-    const cy = f.y + Math.sin(aim) * offset + Math.sin(aim + Math.PI / 2) * lateral;
+    // Robot's real muzzle/ejection anchors share its fixed jaw frame with
+    // the equipped sprite. All other heroes retain the Arsenal pose frame.
+    const robot = window.APEX_ROBOT_PRESENTATION;
+    const socket = robot?.isRobotFighter(f) ? robot.getRobotWeaponSocketWorld(f) : null;
+    const cx = socket ? socket.x : f.x + Math.cos(aim) * offset + Math.cos(aim + Math.PI / 2) * lateral;
+    const cy = socket ? socket.y : f.y + Math.sin(aim) * offset + Math.sin(aim + Math.PI / 2) * lateral;
     const set = window.APEX_ARSENAL_C_SET && window.APEX_ARSENAL_C_SET.weapons && window.APEX_ARSENAL_C_SET.weapons[weaponId];
     const uv = set && set[kind];
     if (!uv || !set) {
@@ -870,9 +990,15 @@
     };
   }
   function meleeDrawLong(weaponId) {
+    if (weaponId === 'STORMBREAKER') return (CFG.STORMBREAKER && CFG.STORMBREAKER.flightLongSide) || 209;
     return weaponId === 'SPEAR' ? 190 : weaponId === 'BATTLE_AXE' ? 155 : weaponId === 'SPIKED_CLUB' ? 150 : weaponId === 'DAGGER' ? 110 : 145;
   }
-  function spawnThrownMelee(f, weaponId, angle) {
+  function spawnThrownMelee(f, weaponId, angle, extra) {
+    // HERO REWORK (doc-06): audited recording hook for TIME loop replay
+    // (extra.__hrReplay marks a re-emission of a recorded throw).
+    const __hrTag = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.onThrownMelee)
+      ? window.APEX_HERO_REWORK.onThrownMelee(f, weaponId, angle, extra)
+      : null;
     const t = thrownSpec(weaponId);
     const h = getHolder(f);
     const pose = (h && h.meta && h.meta.pose) || {};
@@ -882,6 +1008,13 @@
     const x = f.x + Math.cos(angle) * ox + Math.cos(angle + Math.PI / 2) * oy;
     const y = f.y + Math.sin(angle) * ox + Math.sin(angle + Math.PI / 2) * oy;
     const long = meleeDrawLong(weaponId);
+    // Correction pass: STORMBREAKER collision radius is the explicit
+    // gameplay authority in arsenalQuestConfig (THROWN_MELEE-free) — it must
+    // not move when the presentation long side shrinks. Other thrown melee
+    // keep the historical formula.
+    const radius = weaponId === 'STORMBREAKER'
+      ? ((CFG.STORMBREAKER && CFG.STORMBREAKER.thrownRadius) || Math.max(10, long * 0.14))
+      : Math.max(10, long * 0.14);
     projectiles.push({
       type: 'aq_thrown',
       aq: true,
@@ -891,7 +1024,7 @@
       px: x, py: y,
       vx: Math.cos(angle) * t.speed,
       vy: Math.sin(angle) * t.speed,
-      radius: Math.max(10, long * 0.14),
+      radius,
       ricochetsLeft: t.ricochets,
       state: 'flight',
       pinnedTo: null,
@@ -899,9 +1032,29 @@
       pinAngle: angle,
       rot: angle,
       spin: t.spin,
-      grace: CFG.THROWN_MELEE.pickupDelay || 0,
+      // STORMBREAKER exception: the red-tier release has no collision-grace
+      // window. At 1350 px/s the 0.35s grace would tunnel ~470px — a
+      // point-blank throw would pass THROUGH the opponent and only connect
+      // off a wall bounce, breaking the committed-release identity. Its own
+      // 0.45s ready + 0.28s windup already gates the release (no accidental
+      // instant throw), and a missed storm simply exits — it never
+      // re-enters the floor pickup pool, so the original re-collect concern
+      // the grace encoded does not apply.
+      grace: weaponId === 'STORMBREAKER' ? 0 : (CFG.THROWN_MELEE.pickupDelay || 0),
       life: 6.0,
       maxLife: 6.0,
+      // B1 missed-storm failsafe: a red-tier release that connects with
+      // nothing must never linger as a live projectile — after maxFlight it
+      // exits through the same physical tumble as ricochet exhaustion
+      // (never a silent fade). Regular thrown melees keep the plain 6s life.
+      flightTime: 0,
+      maxFlight: weaponId === 'STORMBREAKER' ? ((CFG.STORMBREAKER && CFG.STORMBREAKER.maxFlightSeconds) || 2.2) : 0,
+      // B7/B8: the thrown red-tier projectile is immune to hero manipulation
+      // — crystal walls can't reflect/re-own it, magnet shells can't destroy
+      // or reposition it, gravity wells can't pull/absorb it. Hero
+      // manipulation can't redirect the pursuit.
+      heroManipulationImmune: weaponId === 'STORMBREAKER',
+      __hr: __hrTag,
     });
     window.avCue('melee_throw', { weapon: weaponId, x: f.x, y: f.y, angle });
     log('THROW', `fighter=${f.name} weapon=${weaponId} ricochets=${t.ricochets}`);
@@ -989,9 +1142,12 @@
       const muz = weaponWorldAnchor(f, id, 'muzzle', base);
       const pellets = spec.pellets > 1 ? spec.pellets : 1;
       const blastCrit = pellets > 1 ? rollFirearmCrit(id) : null;
+      // HERO REWORK (doc-06): audited SNIPER-nest spread multiplier hook.
+      const __hrSpread = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.spreadScaleFor)
+        ? window.APEX_HERO_REWORK.spreadScaleFor(f) : 1;
       for (let i = 0; i < pellets; i++) {
         const t = pellets === 1 ? 0.5 : i / (pellets - 1);
-        const spread = (Math.random() * 2 - 1) * (spec.spread || 0) + (pellets > 1 ? (t - 0.5) * (spec.cone || 0) : 0);
+        const spread = (Math.random() * 2 - 1) * (spec.spread || 0) * __hrSpread + (pellets > 1 ? (t - 0.5) * (spec.cone || 0) : 0);
         const angle = base + spread;
         fireBullet({
           owner: f,
@@ -1166,7 +1322,10 @@
           if (h.meta.aimLeft <= 0) {
             if (p) { p.flourish = 0; p.holdFlourish = false; }
             poseKick(h, recipe);
-            const spread = (Math.random() * 2 - 1) * (spec.spread || 0.02);
+            // HERO REWORK (doc-06): audited SNIPER-nest spread multiplier hook.
+            const __hrSpread = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.spreadScaleFor)
+              ? window.APEX_HERO_REWORK.spreadScaleFor(ctx.fighter) : 1;
+            const spread = (Math.random() * 2 - 1) * (spec.spread || 0.02) * __hrSpread;
             const angle = (enemyAlive(ctx) ? angleToEnemy(ctx) : Math.atan2(f.dir.y, f.dir.x)) + spread;
             const muz = weaponWorldAnchor(f, id, 'muzzle', angle);
             fireBullet({
@@ -1380,6 +1539,57 @@
 
     SABRE: makeMelee('SABRE', 'M01_sabre', '#c9e6ff'),
     BATTLE_AXE: makeMelee('BATTLE_AXE', 'M04_battle_axe', '#ffb3a0'),
+
+    // STORMBREAKER — first red-tier (T6) fantasy weapon. The attack identity
+    // is locked (V1 port, docs/stormbreaker/v1-port): there is no melee
+    // strike/throw fork. After a short committed windup the ACTUAL weapon is
+    // released at the opponent through the standard aq_thrown lifecycle
+    // (swept-segment collision, wall ricochet budget, bounded homing
+    // pursuit, physical exit on a miss). On a confirmed hit the weapon
+    // vanishes through the impact flash instead of pinning (see
+    // updateArsenalProjectiles).
+    STORMBREAKER: (() => {
+      const T = CFG.STORMBREAKER || { windupSeconds: 0.28, readyDelaySeconds: 0.45 };
+      return {
+        id: 'STORMBREAKER',
+        category: 'melee',
+        spriteKey: 'STORMBREAKER',
+        exit: 'stormRelease',
+        onEquip(ctx) {
+          ctx.holder.phase = 'READY';
+          ctx.holder.meta.decision = 'throw';
+          log('MELEE_DECIDE', `fighter=${ctx.fighter.name} weapon=STORMBREAKER decision=throw`);
+        },
+        canActivate(ctx) {
+          return ctx.holder.phase === 'READY'
+            && enemyAlive(ctx)
+            && ctx.holder.elapsed >= T.readyDelaySeconds;
+        },
+        activate(ctx) {
+          const h = ctx.holder;
+          h.phase = 'WINDUP';
+          h.meta.windupLeft = T.windupSeconds;
+          aimAtHolder(ctx);
+          window.avCue('storm_windup', { weapon: 'STORMBREAKER', x: ctx.fighter.x, y: ctx.fighter.y });
+          pushVisual({ kind: 'windup', x: ctx.fighter.x, y: ctx.fighter.y, owner: ctx.fighter, life: T.windupSeconds, maxLife: T.windupSeconds, color: '#7fd4ff' });
+          log('USE', `fighter=${ctx.fighter.name} weapon=STORMBREAKER`);
+        },
+        update(ctx, dt) {
+          const h = ctx.holder;
+          if (h.phase !== 'WINDUP') return;
+          h.meta.windupLeft -= dt;
+          if (h.meta.windupLeft > 0) return;
+          // Committed heavy release: the real sprite flies, aimed at the
+          // living opponent at the moment of release (independent weapon
+          // aim, never fighter.dir); the bounded homing pursuit then steers
+          // it after the opponent if they move (B8).
+          const angle = holderAim(ctx);
+          spawnThrownMelee(ctx.fighter, 'STORMBREAKER', angle);
+          window.avCue('storm_throw', { weapon: 'STORMBREAKER', x: ctx.fighter.x, y: ctx.fighter.y, angle });
+          consume(ctx.fighter, 'thrown');
+        },
+      };
+    })(),
 
     DAGGER: (() => {
       const spec = CFG.WEAPONS.DAGGER;
@@ -1696,6 +1906,9 @@
     poseRecipe,
     advancePoseGhost,
     worldAnchor: weaponWorldAnchor,
+    // HERO REWORK (doc-06): exported so rework world geometry (crystal walls)
+    // applies the exact same equipment-damage scale chain as real hits.
+    scaledDamage: scaleEquipmentDamage,
     POSE_RECIPES,
     FAMILY_POSE,
   };

@@ -20,6 +20,19 @@ referenced by any runtime.
   Snipex Alligator → SNIPER. Remaining Senko SVGs stay staged as fallbacks
   only and are not shipped.
 
+## STORMBREAKER (owner-approved art — exact derivative)
+
+- Owner-locked source: `docs/owner-locks/stormbreaker-v1/01_STORMBREAKER_APPROVED_ASSET.png`
+  (SHA256 `b413a028…30a6782d657`, see `docs/owner-locks/stormbreaker-v1/09_SHA256SUMS.md`).
+- The runtime PNG `STORMBREAKER.png` is an **exact derivative**: the approved
+  pixels rotated 90° clockwise (identity-preserving — no redraw, recolor,
+  filter, or crop). The approved art is authored with the long axis
+  horizontal (blade left / hammer right); the runtime melee convention is
+  upright (long axis vertical, head up — same as BATTLE_AXE), hence the
+  rotation. Step: `tools/buildArsenalCAssets.mjs → buildStormbreaker()`.
+- Red-tier (T6) fantasy weapon, first red-tier weapon in the arsenal
+  (V1 port — `docs/stormbreaker/v1-port/`).
+
 ## Bespoke authored sprites (repo-original, authored by the build script)
 
 GRENADE, CASING, SABRE, BATTLE_AXE, DAGGER, SPEAR, SPIKED_CLUB,

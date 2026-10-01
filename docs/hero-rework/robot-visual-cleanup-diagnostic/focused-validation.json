@@ -1,0 +1,92 @@
+{
+  "performanceFinal": {
+    "samples": 150,
+    "meanMs": 19.36066666666729,
+    "p50Ms": 22.5,
+    "p95Ms": 25.899999999906868
+  },
+  "fixedOrientation": true,
+  "orientationHashes": [
+    1183887543,
+    1183887543,
+    1183887543,
+    1183887543
+  ],
+  "realPistolPickup": true,
+  "pistolSocketAttached": true,
+  "socketAnchors": [
+    {
+      "x": 649.4233306769486,
+      "y": 577.1012844195071
+    },
+    {
+      "x": 649.4233306769486,
+      "y": 577.1012844195071
+    },
+    {
+      "x": 649.4233306769486,
+      "y": 577.1012844195071
+    },
+    {
+      "x": 649.4233306769486,
+      "y": 577.1012844195071
+    }
+  ],
+  "trailOff": true,
+  "freshTrail": true,
+  "hits": [
+    {
+      "hpLost": 15.025499999999965,
+      "direction": {
+        "x": 0.9999514898941283,
+        "y": 0.009849764388712986
+      },
+      "stress": [
+        {
+          "x": 341.86008827597504,
+          "y": 486.89061277957046,
+          "nx": 0.9999514898941283,
+          "ny": 0.009849764388712986,
+          "t": 0,
+          "dur": 0.14,
+          "armored": true
+        }
+      ]
+    },
+    {
+      "hpLost": 15.025499999999965,
+      "direction": {
+        "x": -0.9999959164892576,
+        "y": -0.0028577971953831823
+      },
+      "stress": [
+        {
+          "x": 938.2582048308938,
+          "y": 486.89061271313915,
+          "nx": -0.9999959164892576,
+          "ny": -0.0028577971953831823,
+          "t": 0,
+          "dur": 0.14,
+          "armored": true
+        }
+      ]
+    }
+  ],
+  "robotBloodSuppressed": true,
+  "nonRobotBloodPreserved": true,
+  "realFire": true,
+  "audioContexts": 1,
+  "performanceBaseline": {
+    "samples": 150,
+    "meanMs": 18.83399999999907,
+    "p50Ms": 22.199999999953434,
+    "p95Ms": 24.700000000186265
+  },
+  "runtimeErrors": [],
+  "robotGates": {
+    "total": 9,
+    "passed": 9,
+    "failed": []
+  },
+  "productionBuild": "PASS"
+}

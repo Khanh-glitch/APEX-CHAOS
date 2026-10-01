@@ -24,9 +24,9 @@
   // kenney sources are 100%-opaque black-matte PNGs and must never be drawn
   // directly. The explosion atlas already carries real alpha.
   // ---------------------------------------------------------------------------
-  const SMOKE = (n) => `vfx/c/smoke_${n}.png`;
-  const SPARK = (n) => `vfx/c/spark_${n}.png`;
-  const ATLAS = { file: 'vfx/explosion_pack_2/half/1.png', cell: 256, frames: 64 };
+  const SMOKE = (n) => `vfx/c/smoke_${n}.webp`;
+  const SPARK = (n) => `vfx/c/spark_${n}.webp`;
+  const ATLAS = { file: 'vfx/explosion_pack_2/half/1.webp', cell: 256, frames: 64 };
 
   // Trim windows measured from the source envelopes (onset analysis):
   // cz shot @0.14s, sks repeated shots from 0.34s, mosin crack @0.43s.
@@ -37,55 +37,55 @@
       { rel: 'sfx/impact/impactGeneric_light_002.ogg', vol: 0.12, maxVoices: 3 },
     ],
     pickup: [{ rel: 'sfx/rpg/metalLatch.ogg', vol: 0.42, maxVoices: 3 }],
-    pickup_pistol: [{ rel: 'sfx/feel/pickup_pistol.wav', vol: 0.62, maxVoices: 2 }],
-    pickup_smg_mac10: [{ rel: 'sfx/feel/rifle_take_05.wav', vol: 0.58, maxVoices: 2 }],
-    pickup_smg_mp5: [{ rel: 'sfx/feel/rifle_take_02.wav', vol: 0.58, maxVoices: 2 }],
-    pickup_smg_p90: [{ rel: 'sfx/feel/rifle_take_09.wav', vol: 0.58, maxVoices: 2 }],
-    pickup_rifle_ak: [{ rel: 'sfx/feel/rifle_take_01.wav', vol: 0.62, maxVoices: 2 }],
-    pickup_rifle_m16: [{ rel: 'sfx/feel/rifle_take_03.wav', vol: 0.62, maxVoices: 2 }],
-    pickup_rifle_z15: [{ rel: 'sfx/feel/rifle_take_04.wav', vol: 0.62, maxVoices: 2 }],
-    pickup_rifle_mbr: [{ rel: 'sfx/feel/rifle_take_07.wav', vol: 0.68, maxVoices: 2 }],
-    pickup_rifle_mbr2: [{ rel: 'sfx/feel/rifle_take_08.wav', vol: 0.68, maxVoices: 2 }],
-    pickup_rifle_m249: [{ rel: 'sfx/feel/rifle_take_10.wav', vol: 0.70, maxVoices: 2 }],
-    pickup_rifle_szecsei: [{ rel: 'sfx/feel/rifle_take_11.wav', vol: 0.68, maxVoices: 2 }],
-    pickup_shotgun: [{ rel: 'sfx/feel/pickup_shotgun.wav', vol: 0.72, maxVoices: 2 }],
-    pickup_sniper: [{ rel: 'sfx/feel/pickup_sniper.wav', vol: 0.63, maxVoices: 1 }],
-    pickup_sniper_lock: [{ rel: 'sfx/c-final/SNIPER/sniper_bolt_lock.wav', vol: 0.42, maxVoices: 1 }],
+    pickup_pistol: [{ rel: 'sfx/feel/pickup_pistol.mp3', vol: 0.62, maxVoices: 2 }],
+    pickup_smg_mac10: [{ rel: 'sfx/feel/rifle_take_05.mp3', vol: 0.58, maxVoices: 2 }],
+    pickup_smg_mp5: [{ rel: 'sfx/feel/rifle_take_02.mp3', vol: 0.58, maxVoices: 2 }],
+    pickup_smg_p90: [{ rel: 'sfx/feel/rifle_take_09.mp3', vol: 0.58, maxVoices: 2 }],
+    pickup_rifle_ak: [{ rel: 'sfx/feel/rifle_take_01.mp3', vol: 0.62, maxVoices: 2 }],
+    pickup_rifle_m16: [{ rel: 'sfx/feel/rifle_take_03.mp3', vol: 0.62, maxVoices: 2 }],
+    pickup_rifle_z15: [{ rel: 'sfx/feel/rifle_take_04.mp3', vol: 0.62, maxVoices: 2 }],
+    pickup_rifle_mbr: [{ rel: 'sfx/feel/rifle_take_07.mp3', vol: 0.68, maxVoices: 2 }],
+    pickup_rifle_mbr2: [{ rel: 'sfx/feel/rifle_take_08.mp3', vol: 0.68, maxVoices: 2 }],
+    pickup_rifle_m249: [{ rel: 'sfx/feel/rifle_take_10.mp3', vol: 0.70, maxVoices: 2 }],
+    pickup_rifle_szecsei: [{ rel: 'sfx/feel/rifle_take_11.mp3', vol: 0.68, maxVoices: 2 }],
+    pickup_shotgun: [{ rel: 'sfx/feel/pickup_shotgun.mp3', vol: 0.72, maxVoices: 2 }],
+    pickup_sniper: [{ rel: 'sfx/feel/pickup_sniper.mp3', vol: 0.63, maxVoices: 1 }],
+    pickup_sniper_lock: [{ rel: 'sfx/c-final/SNIPER/sniper_bolt_lock.mp3', vol: 0.42, maxVoices: 1 }],
 
     // Approved gun-fire baseline retained.
-    pistol_shot: [{ rel: 'sfx/guns/cz.wav', offset: 0.10, dur: 0.85, vol: 0.75, maxVoices: 4, fadeTail: 0.075, attack: 0.003 }],
-    smg_shot: [{ rel: 'sfx/guns/sks.wav', slices: [0.32, 2.27, 3.31, 5.98, 7.25, 9.69, 11.43, 12.70], dur: 0.24, vol: 0.5, maxVoices: 3, fadeTail: 0.035, attack: 0.002 }],
-    shotgun_shot: [{ rel: 'sfx/guns/shotty.wav', offset: 0.0, dur: 0.7, vol: 0.95, maxVoices: 2, fadeTail: 0.125, attack: 0.003 }],
-    sniper_shot: [{ rel: 'sfx/guns/mosin.wav', offset: 0.40, dur: 1.7, vol: 0.95, maxVoices: 2, fadeTail: 0.18, attack: 0.004 }],
+    pistol_shot: [{ rel: 'sfx/guns/cz.mp3', offset: 0.10, dur: 0.85, vol: 0.75, maxVoices: 4, fadeTail: 0.075, attack: 0.003 }],
+    smg_shot: [{ rel: 'sfx/guns/sks.mp3', slices: [0.32, 2.27, 3.31, 5.98, 7.25, 9.69, 11.43, 12.70], dur: 0.24, vol: 0.5, maxVoices: 3, fadeTail: 0.035, attack: 0.002 }],
+    shotgun_shot: [{ rel: 'sfx/guns/shotty.mp3', offset: 0.0, dur: 0.7, vol: 0.95, maxVoices: 2, fadeTail: 0.125, attack: 0.003 }],
+    sniper_shot: [{ rel: 'sfx/guns/mosin.mp3', offset: 0.40, dur: 1.7, vol: 0.95, maxVoices: 2, fadeTail: 0.18, attack: 0.004 }],
 
     // Owner-approved C1 FINAL SFX LOCK.
-    pistol_mech: [{ rel: 'sfx/c-final/PISTOL/pistol_mech_click.wav', vol: 0.50, maxVoices: 2 }],
-    shotgun_rack_pull: [{ rel: 'sfx/c-final/SHOTGUN/shotgun_rack_pull.wav', vol: 0.71, maxVoices: 2 }],
-    shotgun_rack_push: [{ rel: 'sfx/c-final/SHOTGUN/shotgun_rack_push.wav', vol: 0.71, maxVoices: 2 }],
-    sniper_chamber: [{ rel: 'sfx/c-final/SNIPER/sniper_chamber.wav', vol: 0.63, maxVoices: 1 }],
-    sniper_bolt_lock: [{ rel: 'sfx/c-final/SNIPER/sniper_bolt_lock.wav', vol: 0.50, maxVoices: 1 }],
+    pistol_mech: [{ rel: 'sfx/c-final/PISTOL/pistol_mech_click.mp3', vol: 0.50, maxVoices: 2 }],
+    shotgun_rack_pull: [{ rel: 'sfx/c-final/SHOTGUN/shotgun_rack_pull.mp3', vol: 0.71, maxVoices: 2 }],
+    shotgun_rack_push: [{ rel: 'sfx/c-final/SHOTGUN/shotgun_rack_push.mp3', vol: 0.71, maxVoices: 2 }],
+    sniper_chamber: [{ rel: 'sfx/c-final/SNIPER/sniper_chamber.mp3', vol: 0.63, maxVoices: 1 }],
+    sniper_bolt_lock: [{ rel: 'sfx/c-final/SNIPER/sniper_bolt_lock.mp3', vol: 0.50, maxVoices: 1 }],
 
-    axe_swing: [{ rel: 'sfx/c-final/BATTLE_AXE/axe_motion.wav', vol: 0.63, maxVoices: 2 }],
+    axe_swing: [{ rel: 'sfx/c-final/BATTLE_AXE/axe_motion.mp3', vol: 0.63, maxVoices: 2 }],
     axe_hit: [
-      { rel: 'sfx/c-final/BATTLE_AXE/axe_contact.wav', vol: 1.00, maxVoices: 3 },
-      { rel: 'sfx/c-final/BATTLE_AXE/axe_body.wav', vol: 0.40, maxVoices: 3 },
+      { rel: 'sfx/c-final/BATTLE_AXE/axe_contact.mp3', vol: 1.00, maxVoices: 3 },
+      { rel: 'sfx/c-final/BATTLE_AXE/axe_body.mp3', vol: 0.40, maxVoices: 3 },
     ],
-    club_swing: [{ rel: 'sfx/c-final/SPIKED_CLUB/club_swing.wav', vol: 0.79, maxVoices: 2 }],
-    club_hit: [{ rel: 'sfx/c-final/SPIKED_CLUB/club_body.wav', vol: 1.00, maxVoices: 3 }],
-    dagger_swing: [{ rel: 'sfx/c-final/DAGGER/dagger_motion.wav', vol: 0.71, maxVoices: 3 }],
-    dagger_hit: [{ rel: 'sfx/c-final/DAGGER/dagger_contact.wav', vol: 0.71, maxVoices: 3 }],
-    sabre_swing: [{ rel: 'sfx/c-final/SABRE/sabre_motion.wav', vol: 0.63, maxVoices: 3 }],
-    sabre_hit: [{ rel: 'sfx/c-final/SABRE/sabre_cut.wav', vol: 1.00, maxVoices: 3 }],
-    spear_swing: [{ rel: 'sfx/c-final/SPEAR/spear_motion.wav', vol: 0.56, maxVoices: 3 }],
-    spear_hit: [{ rel: 'sfx/c-final/SPEAR/spear_impact.wav', vol: 1.00, maxVoices: 3 }],
-    swirl_block: [{ rel: 'sfx/c-final/SWIRL_SHIELD/swirl_shield_block.wav', vol: 1.00, maxVoices: 3 }],
-    tower_block: [{ rel: 'sfx/c-final/TOWER_SHIELD/tower_shield_block.wav', vol: 1.00, maxVoices: 3 }],
+    club_swing: [{ rel: 'sfx/c-final/SPIKED_CLUB/club_swing.mp3', vol: 0.79, maxVoices: 2 }],
+    club_hit: [{ rel: 'sfx/c-final/SPIKED_CLUB/club_body.mp3', vol: 1.00, maxVoices: 3 }],
+    dagger_swing: [{ rel: 'sfx/c-final/DAGGER/dagger_motion.mp3', vol: 0.71, maxVoices: 3 }],
+    dagger_hit: [{ rel: 'sfx/c-final/DAGGER/dagger_contact.mp3', vol: 0.71, maxVoices: 3 }],
+    sabre_swing: [{ rel: 'sfx/c-final/SABRE/sabre_motion.mp3', vol: 0.63, maxVoices: 3 }],
+    sabre_hit: [{ rel: 'sfx/c-final/SABRE/sabre_cut.mp3', vol: 1.00, maxVoices: 3 }],
+    spear_swing: [{ rel: 'sfx/c-final/SPEAR/spear_motion.mp3', vol: 0.56, maxVoices: 3 }],
+    spear_hit: [{ rel: 'sfx/c-final/SPEAR/spear_impact.mp3', vol: 1.00, maxVoices: 3 }],
+    swirl_block: [{ rel: 'sfx/c-final/SWIRL_SHIELD/swirl_shield_block.mp3', vol: 1.00, maxVoices: 3 }],
+    tower_block: [{ rel: 'sfx/c-final/TOWER_SHIELD/tower_shield_block.mp3', vol: 1.00, maxVoices: 3 }],
     explosion: [
-      { rel: 'sfx/c-final/GRENADE/grenade_core.wav', vol: 1.00, maxVoices: 2 },
-      { rel: 'sfx/c-final/GRENADE/grenade_low.wav', vol: 0.40, maxVoices: 2 },
+      { rel: 'sfx/c-final/GRENADE/grenade_core.mp3', vol: 1.00, maxVoices: 2 },
+      { rel: 'sfx/c-final/GRENADE/grenade_low.mp3', vol: 0.40, maxVoices: 2 },
     ],
-    casing_land: [{ rel: 'sfx/feel/casing_01.wav', vol: 0.22, maxVoices: 4 }],
-    shotgun_shell_land: [{ rel: 'sfx/feel/shell_01.wav', vol: 0.26, maxVoices: 3 }],
+    casing_land: [{ rel: 'sfx/feel/casing_01.mp3', vol: 0.22, maxVoices: 4 }],
+    shotgun_shell_land: [{ rel: 'sfx/feel/shell_01.mp3', vol: 0.26, maxVoices: 3 }],
 
     // POST-C additions — reuse the approved baseline files ONLY (no new
     // audio sourcing): ricochet = plate tick, NEWBIE dash = force field
@@ -93,6 +93,11 @@
     ricochet: [{ rel: 'sfx/impact/impactPlate_light_001.ogg', vol: 0.34, maxVoices: 3 }],
     newbie_dash: [{ rel: 'sfx/scifi/forceField_001.ogg', vol: 0.30, maxVoices: 2 }],
     newbie_fail: [{ rel: 'sfx/rpg/metalClick.ogg', vol: 0.28, maxVoices: 2 }],
+
+    // STORMBREAKER (red tier) — approved baseline files only, no new sourcing:
+    // charge = the existing force-field bed, release = the heavy axe whoosh,
+    // impact = the heavy axe contact pair (divine-weapon body strike).
+    storm_windup: [{ rel: 'sfx/scifi/forceField_001.ogg', vol: 0.30, maxVoices: 1 }],
   };
 
   const PISTOL_READY = { PISTOL: 1, GLOCK_17: 1, TEC_9: 1, BERETTA_93R: 1, DESERT_DEAGLE: 1, MAGNUM_500: 1 };
@@ -110,16 +115,16 @@
     SNIPER: 'pickup_sniper',
   };
   const CASING_VARS = [
-    { rel: 'sfx/feel/casing_01.wav', vol: 0.22, maxVoices: 4 },
-    { rel: 'sfx/feel/casing_02.wav', vol: 0.22, maxVoices: 4 },
-    { rel: 'sfx/feel/casing_03.wav', vol: 0.20, maxVoices: 4 },
-    { rel: 'sfx/feel/casing_04.wav', vol: 0.20, maxVoices: 4 },
-    { rel: 'sfx/feel/casing_05.wav', vol: 0.20, maxVoices: 4 },
+    { rel: 'sfx/feel/casing_01.mp3', vol: 0.22, maxVoices: 4 },
+    { rel: 'sfx/feel/casing_02.mp3', vol: 0.22, maxVoices: 4 },
+    { rel: 'sfx/feel/casing_03.mp3', vol: 0.20, maxVoices: 4 },
+    { rel: 'sfx/feel/casing_04.mp3', vol: 0.20, maxVoices: 4 },
+    { rel: 'sfx/feel/casing_05.mp3', vol: 0.20, maxVoices: 4 },
   ];
   const SHELL_VARS = [
-    { rel: 'sfx/feel/shell_01.wav', vol: 0.26, maxVoices: 3 },
-    { rel: 'sfx/feel/shell_02.wav', vol: 0.24, maxVoices: 3 },
-    { rel: 'sfx/feel/shell_03.wav', vol: 0.24, maxVoices: 3 },
+    { rel: 'sfx/feel/shell_01.mp3', vol: 0.26, maxVoices: 3 },
+    { rel: 'sfx/feel/shell_02.mp3', vol: 0.24, maxVoices: 3 },
+    { rel: 'sfx/feel/shell_03.mp3', vol: 0.24, maxVoices: 3 },
   ];
   let casingCursor = 0;
   let shellCursor = 0;
@@ -160,6 +165,9 @@
     imagesFailed: 0,
     audioLoaded: 0,
     audioFailed: 0,
+    decodeCalls: 0, // total decodeAudioData invocations (warmup only — a
+                    // trigger-time increase means a latency regression)
+    lastVoice: null, // {rel, vol, offset, dur, viaBufferSource} of last sound
     vfxPeak: 0,
     vfxDropped: 0,
     seqAnimsPushed: 0,
@@ -192,17 +200,34 @@
     return img;
   }
   function audioCtxOf() { return typeof audioCtx !== 'undefined' ? audioCtx : null; }
+  const audioPromises = new Map();
   function loadAudio(rel) {
-    if (audioBuffers.has(rel) || audioLoading.has(rel) || audioFailed.has(rel)) return;
+    if (audioPromises.has(rel)) return audioPromises.get(rel);
+    if (audioFailed.has(rel)) return Promise.resolve(false);
     const ctx = audioCtxOf();
-    if (!ctx || typeof fetch !== 'function' || !ctx.decodeAudioData) return;
-    audioLoading.add(rel);
-    fetch(AV_ROOT + rel)
+    if (!ctx || typeof fetch !== 'function' || !ctx.decodeAudioData) return Promise.resolve(false);
+    if (!stats.warmStartedAt) stats.warmStartedAt = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    stats.decodeCalls += 1;
+    const promise = fetch(rel.startsWith('/') ? rel : AV_ROOT + rel)
       .then((res) => res.arrayBuffer())
-      .then((buf) => ctx.decodeAudioData(buf))
-      .then((decoded) => { audioBuffers.set(rel, decoded); stats.audioLoaded += 1; })
-      .catch(() => { audioFailed.add(rel); stats.audioFailed += 1; avLog('SFX_FAIL', `file=${rel}`); })
-      .finally(() => audioLoading.delete(rel));
+      .then((buf) => new Promise((resolve, reject) => {
+        // Support both promise-form and callback-form decodeAudioData
+        // (older Safari and test harness stubs use either).
+        let settled = false;
+        const ok = (d) => { if (!settled) { settled = true; resolve(d); } };
+        const fail = (e) => { if (!settled) { settled = true; reject(e); } };
+        try {
+          const maybePromise = ctx.decodeAudioData(buf, ok, fail);
+          if (maybePromise && typeof maybePromise.then === 'function') maybePromise.then(ok, fail);
+        } catch (error) {
+          fail(error);
+        }
+      }))
+      .then((decoded) => { audioBuffers.set(rel, decoded); stats.audioLoaded += 1; return true; })
+      .catch(() => { audioFailed.add(rel); stats.audioFailed += 1; avLog('SFX_FAIL', `file=${rel}`); return false; })
+      .finally(() => { if (audioBuffers.size + audioFailed.size >= ALL_AUDIO.length) stats.warmDecodedAt = (typeof performance !== 'undefined' ? performance.now() : Date.now()); });
+    audioPromises.set(rel, promise);
+    return promise;
   }
 
   const ALL_IMAGES = [
@@ -215,15 +240,109 @@
     ...(AUDIO ? Object.values(AUDIO).flat().map((a) => a.rel) : []),
     ...CASING_VARS.map((a) => a.rel),
     ...SHELL_VARS.map((a) => a.rel),
+    // POST-PLAYTEST 2026-09-29: Hunter owner SFX (hash-verified material).
+    '/assets/hero-rework/hunter-v10/sfx/hunter_a1_charge_personal.mp3',
+    '/assets/hero-rework/hunter-v10/sfx/hunter_a1_deploy_mechanism.mp3',
+    '/assets/hero-rework/hunter-v10/sfx/hunter_a1_unfold_blade.mp3',
+    '/assets/hero-rework/hunter-v10/sfx/hunter_a1_clamp.mp3',
+    '/assets/hero-rework/hunter-v10/sfx/hunter_a2_pounce_sweep.mp3',
+    '/assets/hero-rework/hunter-v10/sfx/hunter_a2_catch_flesh.mp3',
   ]));
 
-  function preload() {
-    for (const rel of ALL_IMAGES) getImg(rel);
-    for (const rel of ALL_AUDIO) loadAudio(rel);
+  function preload(opts) {
+    const noImages = !!(opts && opts.images === false);
+    const noAudio = !!(opts && opts.audio === false);
+    if (!noImages) for (const rel of ALL_IMAGES) getImg(rel);
+    if (!noAudio) for (const rel of ALL_AUDIO) loadAudio(rel);
+  }
+  // CP7 (owner playtest round 4): the combat shell used to mount while this
+  // runtime's async init (image fetch/decode) was still at zero — the arena
+  // looked broken until loading finished. These readiness probes back the
+  // gameplay-ready barrier in arsenalQuestConfig.js.
+  function imagesTotal() { return ALL_IMAGES.length; }
+  function imagesSettled() { return stats.imagesLoaded + stats.imagesFailed >= ALL_IMAGES.length; }
+  function whenImagesReady(timeoutMs = 8000) {
+    return new Promise((resolve) => {
+      const startedAt = Date.now();
+      const poll = () => {
+        if (imagesSettled() || Date.now() - startedAt > timeoutMs) resolve(imagesSettled());
+        else setTimeout(poll, 50);
+      };
+      poll();
+    });
+  }
+  // Audio 2B: promise form — resolves once every HOT-bank clip has decoded
+  // (or failed). Idempotent; used by warmup integration and browser gates.
+  function warmAudio() {
+    preload();
+    return Promise.all(ALL_AUDIO.map((rel) => loadAudio(rel)));
+  }
+  function audioStatus() {
+    let pcmBytes = 0;
+    for (const b of audioBuffers.values()) {
+      pcmBytes += (b.length || 0) * (b.numberOfChannels || 1) * 4;
+    }
+    return {
+      bankSize: ALL_AUDIO.length,
+      decoded: audioBuffers.size,
+      failed: audioFailed.size,
+      pending: Math.max(0, ALL_AUDIO.length - audioBuffers.size - audioFailed.size),
+      decodeCalls: stats.decodeCalls,
+      played: stats.played,
+      notReadyThrottles: stats.throttled.notReady || 0,
+      pcmBytes,
+      warmStartedAt: stats.warmStartedAt || null,
+      warmDecodedAt: stats.warmDecodedAt || null,
+      warmMs: (stats.warmStartedAt && stats.warmDecodedAt) ? stats.warmDecodedAt - stats.warmStartedAt : null,
+      lastVoice: stats.lastVoice,
+    };
   }
   function clear() {
     vfx.length = 0;
+    resetAudioSession();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Audio session lifecycle (owner correction pass): every AudioBufferSourceNode
+  // this runtime starts and every raw setTimeout it schedules (playLater cues,
+  // voice-count releases) is tracked so a session reset can TERMINATE sound
+  // for real — stop()+disconnect live sources, cancel pending cues. Decoded
+  // AudioBuffers (the HOT bank) are never cleared: the cache stays warm across
+  // sessions; only playback state resets.
+  // ---------------------------------------------------------------------------
+  const liveSources = new Set();
+  const pendingTimers = new Set();
+  function trackTimer(id) {
+    if (id == null) return id;
+    pendingTimers.add(id);
+    return id;
+  }
+  function untrackTimer(id) {
+    pendingTimers.delete(id);
+  }
+  function resetAudioSession() {
+    for (const id of Array.from(pendingTimers)) {
+      pendingTimers.delete(id);
+      if (typeof clearTimeout === 'function') { try { clearTimeout(id); } catch (e) {} }
+    }
+    for (const src of Array.from(liveSources)) {
+      liveSources.delete(src);
+      try { src.onended = null; } catch (e) {}
+      try { src.stop(); } catch (e) {} // already-ended sources throw — fine
+      try { src.disconnect(); } catch (e) {}
+    }
     activeVoices.clear();
+    smgSliceCursor = 0; // per-session slice cursor
+  }
+  function audioSessionProbe() {
+    let voices = 0;
+    for (const v of activeVoices.values()) voices += v || 0;
+    return {
+      liveSources: liveSources.size,
+      pendingTimers: pendingTimers.size,
+      activeVoices: voices,
+      decodedBuffers: audioBuffers.size,
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -244,7 +363,10 @@
     // when the clip would have ended.
     activeVoices.set(entry.rel, active + 1);
     const release = () => activeVoices.set(entry.rel, Math.max(0, (activeVoices.get(entry.rel) || 1) - 1));
-    if (typeof setTimeout === 'function') setTimeout(release, Math.ceil(dur * 1000) + 40);
+    if (typeof setTimeout === 'function') {
+      const relId = setTimeout(() => { untrackTimer(relId); release(); }, Math.ceil(dur * 1000) + 40);
+      trackTimer(relId);
+    }
     if (entry.fadeTail) {
       stats.fadeEnvelopes = (stats.fadeEnvelopes || 0) + 1;
       stats.lastFade = { fadeTail: entry.fadeTail, attack: entry.attack || 0, playDur: dur, stopAfterGain: true };
@@ -273,11 +395,13 @@
       gain.gain.setValueAtTime(vol, tailStart);
       gain.gain.exponentialRampToValueAtTime(0.001, now + playDur);
     }
+    stats.lastVoice = { rel: entry.rel, vol, offset, dur: playDur, viaBufferSource: true };
     src.connect(gain);
     gain.connect(typeof battleAudioMaster !== 'undefined' ? battleAudioMaster : ctx.destination);
-    src.onended = release;
+    src.onended = () => { liveSources.delete(src); release(); };
     try {
       src.start(now, offset, playDur);
+      liveSources.add(src);
       stats.played += 1;
       if (fadeTail > 0) {
         stats.fadeEnvelopes = (stats.fadeEnvelopes || 0) + 1;
@@ -302,7 +426,10 @@
   }
   function playLater(listName, delayMs) {
     if (typeof setTimeout !== 'function') return;
-    setTimeout(() => playAll(listName), Math.max(0, delayMs | 0));
+    // Session lifecycle: the raw timeout is tracked so resetAudioSession()
+    // can cancel cues that are still pending when a battle session ends.
+    const id = setTimeout(() => { untrackTimer(id); playAll(listName); }, Math.max(0, delayMs | 0));
+    trackTimer(id);
   }
 
   // ---------------------------------------------------------------------------
@@ -442,6 +569,21 @@
         pushVfx({ kind: 'atlas', x: o.x, y: o.y, life: 64 / 34, fps: 34, size: 400 });
         break;
       }
+      case 'storm_windup': {
+        // Red-tier charge: existing force-field bed (no new audio sourcing).
+        playAll('storm_windup');
+        break;
+      }
+      case 'storm_throw': {
+        // Heavy committed release — approved heavy whoosh.
+        playAll('axe_swing');
+        break;
+      }
+      case 'storm_impact': {
+        // Confirmed red-tier impact — approved heavy contact pair.
+        playAll('axe_hit');
+        break;
+      }
       case 'melee_swing': {
         // V2 §A4: imported slash/swipe sequences are disabled in normal
         // gameplay. The weapon sprite's own motion communicates the attack;
@@ -536,6 +678,15 @@
     ctx.translate(x || 0, y || 0);
     if (options.angle) ctx.rotate(options.angle);
     if (options.keepUpright && Math.cos(options.angle || 0) < 0) ctx.scale(1, -1);
+    // B6/correction: the STORMBREAKER asset is portrait — its LONG axis is
+    // local Y (image top = blade/head, confirmed by pixel mass analysis of
+    // the real webp: top 30% carries the head, the rest is the shaft).
+    // A mirror ACROSS the long axis therefore flips the WIDTH axis only:
+    // scale(-1, 1). scale(1, -1) would flip the long axis itself, swapping
+    // blade and handle ends so the blade faces AWAY from the target.
+    // Pure presentation: world angle, aim, physics, and collision are set
+    // before this transform and are not affected by it.
+    if (options.mirrorLocal) ctx.scale(-1, 1);
     ctx.globalAlpha *= options.alpha == null ? 1 : options.alpha;
     if (options.glow) {
       ctx.shadowColor = options.glow;
@@ -562,8 +713,16 @@
     let drawOffset = Math.PI / 2; // extra rotation for upright-authored sprites
     let targetLongSide = 138;
     let offset = radius * 0.72;
+    let mirrorLocal = false;
     if (category === 'melee') {
-      targetLongSide = weaponId === 'SPEAR' ? 190 : weaponId === 'BATTLE_AXE' ? 155 : 145;
+      if (weaponId === 'STORMBREAKER') {
+        const st = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.STORMBREAKER) || {};
+        targetLongSide = st.heldLongSide || 206;
+        // B6: held presentation is a mirror reflection (local negative scale
+        // across the weapon long axis) — never a +pi rotation.
+        mirrorLocal = st.mirrorLocal === true;
+      }
+      else targetLongSide = weaponId === 'SPEAR' ? 190 : weaponId === 'BATTLE_AXE' ? 155 : 145;
     } else if (category === 'defense') {
       targetLongSide = weaponId === 'TOWER_SHIELD' ? 145 : 128;
       offset = radius * 0.82;
@@ -580,7 +739,7 @@
     }
     const gunTable = (window.APEX_ARSENAL_CONFIG && window.APEX_ARSENAL_CONFIG.FIREARM_LONG_SIDE) || {};
     const isGun = !!gunTable[weaponId];
-    return { drawOffset, targetLongSide, offset, useWorld: !isGun && !!(weaponMeta(weaponId) && weaponMeta(weaponId).worldW && category !== 'melee' && category !== 'defense' && weaponId !== 'GRENADE') };
+    return { drawOffset, targetLongSide, offset, mirrorLocal, useWorld: !isGun && !!(weaponMeta(weaponId) && weaponMeta(weaponId).worldW && category !== 'melee' && category !== 'defense' && weaponId !== 'GRENADE') };
   }
 
   // Checkpoint B (B-handoff PART 2): the weapon sprite transform consumes the
@@ -605,6 +764,7 @@
       glow: category === 'defense' ? '#9fe8ff' : null,
       shadowBlur: 10,
       keepUpright: category === 'ranged' && weaponId !== 'GRENADE',
+      mirrorLocal: params.mirrorLocal === true,
     });
   }
 
@@ -737,14 +897,49 @@
     }
   }
 
+  // POST-PLAYTEST 2026-09-29: Hunter owner SFX through the existing battle-audio
+  // bank (no second AudioContext). Event edges in the presentation runtime own
+  // the semantic dispatch; this layer only loads/plays with bounded polyphony.
+  const hunterSfxLog = [];
+  function playHunter(rel, opts) {
+    if (typeof rel !== 'string' || !rel.startsWith('/assets/hero-rework/hunter-v10/sfx/')) return false;
+    hunterSfxLog.push({ rel, t: (typeof performance !== 'undefined' ? performance.now() : Date.now()) });
+    if (hunterSfxLog.length > 120) hunterSfxLog.shift();
+    if (audioBuffers.has(rel)) {
+      playEntry(Object.assign({ rel, maxVoices: 3 }, opts || {}));
+    } else {
+      // Deferred first decode stays session-scoped: the cue token invalidates
+      // it if the battle session ends before the buffer arrives.
+      loadAudio(rel);
+      const e = Object.assign({ rel, maxVoices: 3 }, opts || {});
+      if (typeof window.apexBattleAudioScheduleCue === 'function') window.apexBattleAudioScheduleCue(() => playEntry(e), 0);
+    }
+    return true;
+  }
+
   window.APEX_ARSENAL_AV = {
     cue,
     tick,
     draw,
     preload,
+    imagesTotal,
+    imagesSettled,
+    whenImagesReady,
+    warmAudio,
+    audioStatus,
     clear,
+    resetAudioSession,
+    audioSessionProbe,
+    playLater,
+    playHunter,
+    hunterSfxLog,
     stats,
     audioReady: () => stats.audioLoaded,
+    // CP7: a true predicate — audioReady() returns a COUNT (the headless
+    // harness compares it against the total); callers that need "all clips
+    // settled" must use audioSettled() instead of truthiness, which was
+    // true as soon as ONE clip decoded.
+    audioSettled: () => (stats.audioLoaded + (stats.audioFailed || 0)) >= ALL_AUDIO.length,
     imagesReady: () => stats.imagesLoaded,
     activeVfx: () => vfx.length,
     drawWeaponSprite,

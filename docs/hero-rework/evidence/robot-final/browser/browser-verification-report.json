@@ -1,0 +1,217 @@
+{
+  "appUrl": "http://127.0.0.1:4173",
+  "title": "Apex Chaos",
+  "consoleErrors": [
+    "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+  ],
+  "filteredErrors": [],
+  "consoleLogs": [
+    "Failed to load resource: net::ERR_CONNECTION_CLOSED",
+    "[Apex Chaos] SHOTGUN champion integrated JSHandle@object",
+    "[Apex Chaos] ENGINEER champion integrated JSHandle@object",
+    "[Apex Final] canonical identity + balance merge loaded JSHandle@array",
+    "[Apex Chaos] roster replacement loaded JSHandle@object",
+    "[Apex Chaos] text hygiene enabled",
+    "[Apex Chaos] ICE visual, audio, and Rage ICE AGE integrated JSHandle@object JSHandle@object",
+    "[Apex Chaos] KATANA champion integrated JSHandle@object",
+    "[Apex Chaos] FANG V7 integrated JSHandle@object",
+    "[AQ] MODE_ENTER mode=ARSENAL_QUEST",
+    "[AQ] SPAWN_SLOT id=1 x=759 y=370 lead=2.00",
+    "[AQ] REVEAL id=1 weapon=BERETTA_93R eta=0.18 lead=2.00 fighter=ICE force=false",
+    "[AQ] PICKUP id=2 fighter=ROBOT weapon=PISTOL",
+    "[AQ] USE fighter=ROBOT weapon=PISTOL",
+    "[AQ] SHOT fighter=ROBOT weapon=PISTOL t=0.548",
+    "[AQ] HIT source=ROBOT target=ICE weapon=PISTOL damage=47.3",
+    "[AQ] MODE_ENTER mode=ARSENAL_QUEST",
+    "[AQ] SPAWN_SLOT id=1 x=342 y=217 lead=2.00",
+    "[AQ] PICKUP id=2 fighter=ROBOT weapon=PISTOL",
+    "[AQ] MODE_ENTER mode=ARSENAL_QUEST"
+  ],
+  "robotRuntime": {
+    "presentation": "1.0.0-final-repaired-20260929",
+    "apexRobot": "ready",
+    "hasRobotPresentation": true
+  },
+  "visualCheck": {
+    "sprReady": true,
+    "hasCalL": true,
+    "hasCore": true
+  },
+  "audioCheck": [
+    {
+      "rel": "hero-rework/robot-final/sfx/robot_a1_lock.mp3",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "rel": "hero-rework/robot-final/sfx/robot_a1_no_weapon.mp3",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "rel": "hero-rework/robot-final/sfx/robot_a1_dash.mp3",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "rel": "hero-rework/robot-final/sfx/robot_a2_activate.mp3",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "rel": "hero-rework/robot-final/sfx/robot_a2_armor_hit.mp3",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "rel": "hero-rework/robot-final/sfx/robot_a2_end.mp3",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "rel": "hero-rework/robot-final/sfx/robot_passive_milestone.mp3",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "rel": "hero-rework/robot-final/sfx/robot_passive_upgrade.mp3",
+      "ok": true,
+      "status": 200
+    }
+  ],
+  "startResult": {
+    "fighters": 2,
+    "p1": {
+      "x": 215.78227964657572,
+      "y": 507.768940405242,
+      "type": "ROBOT"
+    }
+  },
+  "pickupResult": {
+    "castOk": true,
+    "holder": {
+      "weaponId": "PISTOL",
+      "phase": "READY"
+    },
+    "socket": true,
+    "t": 0.18333333333333332
+  },
+  "fireResult": {
+    "fireCount": 1,
+    "recoilCount": 1,
+    "holderAfter": {
+      "weaponId": "PISTOL",
+      "phase": "FIRING"
+    },
+    "gunKick": 0.00835048189560882,
+    "gunKickV": -882.2800899308628,
+    "steps": 5
+  },
+  "a1Result": {
+    "locks": 1,
+    "dashes": 1,
+    "contacts": 1,
+    "holder": true,
+    "allTypes": [
+      "RobotA1Lock",
+      "RobotA1Acquire:alias",
+      "Cast",
+      "RobotA1DashLaunch",
+      "RobotA1Dash:alias",
+      "RobotA1Contact",
+      "ReworkEquip"
+    ],
+    "busFinal": [
+      {
+        "t": "RobotA1Lock",
+        "p": {
+          "hero": "ROBOT",
+          "target": "PISTOL",
+          "slotId": 2
+        }
+      },
+      {
+        "t": "RobotA1Acquire",
+        "p": {
+          "hero": "ROBOT",
+          "target": "PISTOL",
+          "slotId": 2,
+          "alias": true
+        }
+      },
+      {
+        "t": "Cast",
+        "p": {
+          "hero": "ROBOT",
+          "slot": "A1",
+          "mechanic": "robot.weapon_dash",
+          "source": "gates"
+        }
+      },
+      {
+        "t": "RobotA1DashLaunch",
+        "p": {
+          "hero": "ROBOT",
+          "slotId": 2
+        }
+      },
+      {
+        "t": "RobotA1Dash",
+        "p": {
+          "hero": "ROBOT",
+          "slotId": 2,
+          "alias": true
+        }
+      },
+      {
+        "t": "RobotA1Contact",
+        "p": {
+          "hero": "ROBOT",
+          "weaponId": "PISTOL",
+          "slotId": 2
+        }
+      },
+      {
+        "t": "ReworkEquip",
+        "p": {
+          "combatant": "ROBOT",
+          "weaponId": "PISTOL"
+        }
+      }
+    ]
+  },
+  "noTargetResult": {
+    "failOk": true,
+    "cdBefore": 0,
+    "cdAfter": 0,
+    "noWeapons": 1
+  },
+  "a2Result": {
+    "activates": 1,
+    "hits": 1,
+    "ends": 1
+  },
+  "teardownResult": {
+    "before": true,
+    "after": true,
+    "hadExit": true
+  },
+  "browser": "Chromium 153.0.8010.0 via puppeteer-core + @sparticuz/chromium (npm registry, github.com accessible, LD_LIBRARY_PATH /tmp/chromium-libs/lib)",
+  "buildTarget": "dist (vite 5.4.21 production) served via vite preview 4173",
+  "command": "vite preview --host 0.0.0.0 --port 4173 --config vite.preview.config.js + NODE_PATH=/tmp/test/node_modules node tools/verifyRobotProductionBrowser.mjs",
+  "previewExternal": "https://4173-izhxpldi3rz6i86ru7vtd.e2b.app (E2B preview proxy)",
+  "pass": true,
+  "checks": {
+    "noConsoleErrors": true,
+    "robotRuntimeLoads": true,
+    "visualAuthority": true,
+    "audioAssetsAllOk": true,
+    "weaponPickupSocket": true,
+    "weaponFireRecoil": true,
+    "a1Valid": true,
+    "a1NoTarget": true,
+    "a2": true,
+    "teardown": true,
+    "allGreen": true
+  }
+}

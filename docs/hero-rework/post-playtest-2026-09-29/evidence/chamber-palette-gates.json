@@ -1,0 +1,199 @@
+{
+  "results": {
+    "E-cachebust-urls-new-revision": {
+      "pass": true,
+      "data": [
+        {
+          "w": "game/arsenal/arsenalChamberPaletteRuntime.js",
+          "loaded": true
+        },
+        {
+          "w": "game/arsenal/arsenalMetaRuntime.js",
+          "loaded": true
+        },
+        {
+          "w": "game/modes/arsenalQuestRuntime.js",
+          "loaded": true
+        },
+        {
+          "w": "game/arsenal/arsenalPresentationRuntime.js",
+          "loaded": true
+        },
+        {
+          "w": "game/hero-rework/hunterGoldV10.js",
+          "loaded": true
+        }
+      ]
+    },
+    "D-palette-list": {
+      "pass": true,
+      "data": {
+        "ids": [
+          "graphite-mid",
+          "graphite-dark",
+          "navy-steel",
+          "teal-deep",
+          "oxide-warm",
+          "violet-slate",
+          "bone-light"
+        ]
+      }
+    },
+    "D-profiles-neutral": {
+      "pass": true,
+      "data": [
+        {
+          "id": "graphite-mid",
+          "L": 0.412,
+          "C": 0.071
+        },
+        {
+          "id": "graphite-dark",
+          "L": 0.252,
+          "C": 0.059
+        },
+        {
+          "id": "navy-steel",
+          "L": 0.251,
+          "C": 0.161
+        },
+        {
+          "id": "teal-deep",
+          "L": 0.27,
+          "C": 0.114
+        },
+        {
+          "id": "oxide-warm",
+          "L": 0.287,
+          "C": 0.141
+        },
+        {
+          "id": "violet-slate",
+          "L": 0.244,
+          "C": 0.133
+        },
+        {
+          "id": "bone-light",
+          "L": 0.735,
+          "C": 0.051
+        }
+      ]
+    },
+    "E-no-palette-filter": {
+      "pass": true,
+      "data": {
+        "staticClean": true,
+        "attributed": 0,
+        "total": 427
+      }
+    },
+    "E-sanitize-stale-to-default": {
+      "pass": true,
+      "data": {
+        "state": null,
+        "rendered": "graphite-mid",
+        "keys": []
+      }
+    },
+    "E-sanitize-valid-survives": {
+      "pass": true,
+      "data": {
+        "valid": {
+          "state": "teal-deep",
+          "rendered": "teal-deep"
+        },
+        "nokey": "apexChaos.arsenalMeta.v1"
+      }
+    },
+    "D-hub-selector": {
+      "pass": true,
+      "data": {
+        "ok": true,
+        "n": 7,
+        "activeBefore": "teal-deep",
+        "activeAfter": "oxide-warm",
+        "current": "oxide-warm"
+      }
+    },
+    "E-actor-single-render": {
+      "pass": true,
+      "data": {
+        "fighterDraws": 360,
+        "actorRenders": 180,
+        "note": "360 full-draw dispatches (2 fighters x 180 frames), exactly 180 hunter actor source renders — one per hunter frame, zero for geometric ICE"
+      }
+    },
+    "E-weapon-single-dispatch": {
+      "pass": true,
+      "data": {
+        "weaponCalls": 59,
+        "weaponRenders": 59,
+        "note": "every weapon dispatch renders exactly once"
+      }
+    },
+    "E-status-not-in-silhouette": {
+      "pass": true,
+      "data": {
+        "spy": {
+          "weakInActor": 0,
+          "echoInActor": 0,
+          "weak": 180,
+          "echo": 180
+        },
+        "rings": 0
+      }
+    },
+    "D-cache-no-per-frame-repaint": {
+      "pass": true,
+      "data": {
+        "b0": {
+          "builds": 1,
+          "hits": 0,
+          "draws": 1,
+          "lastKey": "1000|oxide-warm"
+        },
+        "b1": {
+          "builds": 1,
+          "hits": 60,
+          "draws": 61,
+          "lastKey": "1000|oxide-warm"
+        },
+        "b2": {
+          "builds": 2,
+          "hits": 179,
+          "draws": 181,
+          "lastKey": "1000|graphite-dark"
+        },
+        "chamber": {
+          "builds": 2,
+          "draws": 181,
+          "hits": 179,
+          "size": 1000,
+          "usedCacheLast": true
+        }
+      }
+    },
+    "E-no-per-frame-growth": {
+      "pass": true,
+      "data": {
+        "actorAllocs": 1,
+        "deriv0": 7,
+        "deriv1": 7
+      }
+    },
+    "E-robot-single-render": {
+      "pass": true,
+      "data": {
+        "d": 60
+      }
+    },
+    "D-presentation-only": {
+      "pass": true,
+      "data": {
+        "fighters": 2,
+        "speed": "number"
+      }
+    }
+  },
+  "errors": []
+}

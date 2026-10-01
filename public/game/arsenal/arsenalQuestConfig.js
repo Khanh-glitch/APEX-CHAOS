@@ -30,7 +30,12 @@
 
     // --- Safety valves (must NOT restore one-at-a-time spawning) ---
     PICKUP_LIFETIME_SECONDS: 20,         // revealed pickups expire
-    MAX_ACTIVE_SLOTS: 5,                 // V3 offensive cap
+    MAX_ACTIVE_SLOTS: 5,                 // V3 offensive cap (production law — unchanged)
+    // Arsenal Lab (V1): the Lab suppresses ALL automatic spawning; equipment
+    // exists ONLY when the owner taps it. Manual lab slots get their OWN
+    // bounded cap so the Lab can never out-run rendering/pickup budgets —
+    // this is separate from MAX_ACTIVE_SLOTS on purpose.
+    LAB_MANUAL_SLOT_CAP: 6,
 
     // --- Fighters ---
     MATCH_HP: 1000,
@@ -58,6 +63,16 @@
       DAGGER:      { triggerRange: 210, dashSpeed: 1300, dashTime: 0.17, hitBonus: 34, damage: 9 },
       SPEAR:       { triggerRange: 345, windup: 0.18, reach: 360, halfAngle: 0.30, damage: 15, knockback: 1100 },
       SPIKED_CLUB: { triggerRange: 245, windup: 0.22, reach: 255, halfAngle: 1.00, damage: 18, knockback: 850, stun: 0.8 },
+      // STORMBREAKER — first red-tier (T6) fantasy weapon. B1: the confirmed-hit
+      // damage is an EXPLICIT production-audited final value (446) — it does
+      // NOT ride the x1.5 melee authority + x7 Arsenal equipment scale chain
+      // (the old 52 x 1.5 x 7 = 546). The value flows through the ONE damage
+      // path (CFG.meleeDamage -> aqDamage -> takeDamage) with the equipment
+      // scale explicitly exempt for final-authority weapons — no hidden
+      // post-subtraction anywhere. Balance values are production-audited
+      // (docs/stormbreaker/v1-port): the V9 demo numbers are effect/feel
+      // authority only, not balance authority.
+      STORMBREAKER:  { confirmedHitDamage: 446, knockback: 900, stun: 2.0, shake: 15, hitStop: 0.08, exit: 'stormRelease' },
       SWIRL_SHIELD:  { reflectRadius: 150, duration: 8 },
       TOWER_SHIELD:  { duration: 2.8, damageTakenMult: 0.25, speedMult: 0.55 },
     },
@@ -224,8 +239,11 @@
   // (SABRE 12→18, BATTLE_AXE 26→39, DAGGER 9→13.5, SPEAR 15→22.5, CLUB 18→27).
   CONFIG.MELEE_DAMAGE_MULT = 1.5;
   CONFIG.meleeDamage = function meleeDamage(id) {
-    const base = (CONFIG.WEAPONS[id] && CONFIG.WEAPONS[id].damage) || 0;
-    return base * CONFIG.MELEE_DAMAGE_MULT;
+    const w = CONFIG.WEAPONS[id] || {};
+    // B1: red-tier confirmed-hit damage is an explicit audited FINAL value —
+    // it is not derived through the melee +50% authority.
+    if (w.confirmedHitDamage != null) return w.confirmedHitDamage;
+    return (w.damage || 0) * CONFIG.MELEE_DAMAGE_MULT;
   };
 
   // Thrown-melee tuning (owner: the throw must feel intentional — the actual
@@ -233,13 +251,86 @@
   CONFIG.THROWN_MELEE = {
     pinSeconds: 1.0,          // pinned into the struck opponent, following it
     pinDepth: 12,             // how deep the sprite sits into the target
-    speed: { SABRE: 900, BATTLE_AXE: 820, DAGGER: 1080, SPEAR: 950, SPIKED_CLUB: 860 },
-    ricochets: { BATTLE_AXE: 1, SPIKED_CLUB: 1, SPEAR: 2, SABRE: 3, DAGGER: 4 },
+    speed: { SABRE: 900, BATTLE_AXE: 820, DAGGER: 1080, SPEAR: 950, SPIKED_CLUB: 860, STORMBREAKER: 1350 },
+    ricochets: { BATTLE_AXE: 1, SPIKED_CLUB: 1, SPEAR: 2, SABRE: 3, DAGGER: 4, STORMBREAKER: 1 },
     pickupDelay: 0.35,        // owner grace before the thrower can re-collect
-    spinRate: { SABRE: 9, BATTLE_AXE: 7, DAGGER: 12, SPEAR: 5, SPIKED_CLUB: 8 },
+    spinRate: { SABRE: 9, BATTLE_AXE: 7, DAGGER: 12, SPEAR: 5, SPIKED_CLUB: 8, STORMBREAKER: 82 },
+  };
+
+  // STORMBREAKER V9 executable-reference parity.
+  // The HTML reference is the visual/feel authority; the live engine remains
+  // physics/collision/damage authority. These visual dimensions are derived
+  // literally from the reference PNG (1448px long side * scale):
+  // spawn .18 = 260.64px, held .18*.86 = 224.15px, flight .18*.80 = 208.51px.
+  CONFIG.STORMBREAKER = {
+    windupSeconds: 0.28,
+    readyDelaySeconds: 0.45,
+    throwSpeed: 1350,
+    spinRate: 82,
+    // Confirmed-hit stun (matches WEAPONS.STORMBREAKER.stun). The floor
+    // lightning hazard keeps its own distinct (shorter) pulse cadence.
+    stunSeconds: 2.0,
+    // B1 missed-storm failsafe: bounded flight lifetime (see
+    // arsenalWeaponRuntime aq_thrown flight update). A release that connects
+    // with nothing exits through the physical tumble — never lingers.
+    maxFlightSeconds: 2.2,
+    // B8 homing pursuit: bounded continuous steering (rad/s) toward the
+    // owner's LIVING opponent after release. The cap is the whole identity:
+    // the bolt CURVES after a moving opponent but can never snap/teleport
+    // onto them, and the speed stays exactly throwSpeed (fast/heavy).
+    homingTurnRateRadPerSec: 2.6,
+    // B3 floor-lightning contact hazard: the VISIBLE floor-bolt geometry is
+    // the hit authority. One discrete bolt↔fighter contact = one stun of
+    // floorBoltStunSeconds (no damage), gated per pulse (bolt) per fighter.
+    // floorBoltHazard is the balance kill-switch (default on).
+    floorBoltHazard: true,
+    floorBoltStunSeconds: 1.0,
+    // B4/correction pass: body presentation shrank again (~86% of CP4) —
+    // held 178 / flight 164 vs the 150px-diameter (radius 75) fighters.
+    // ONLY the body and body-attached effects follow these — arena-edge
+    // lightning reach, floor discharge reach, impact burst, and scene flash
+    // keep their world scale (they are computed from world anchors, not from
+    // the body long side).
+    spawnLongSide: 240,
+    heldLongSide: 178,
+    flightLongSide: 164,
+    // Compatibility aliases consumed by older Stormbreaker-only paths.
+    worldLongSide: 164,
+    floorLongSide: 240,
+    // Correction pass: PROJECTILE COLLISION AUTHORITY, decoupled from every
+    // presentation long side. Value = the pre-CP4 accepted behavior:
+    // meleeDrawLong 209 * 0.14 = 29.26, i.e. swept hitR vs a 75-radius
+    // fighter = 75*0.78 + 29.26 = 87.76 (B7/B8 acceptance campaign values).
+    // spawnThrownMelee reads THIS, never a draw long side — shrinking the
+    // body sprite can no longer change gameplay collision.
+    thrownRadius: 29.26,
+    // Owner correction: floor/spawn is flipped 180° from the original port.
+    floorAngleRad: Math.PI * 1.5,
+    // B6 owner correction: the held/flight change is a MIRROR REFLECTION of
+    // the visual (local negative scale across the weapon long axis), NOT a
+    // +pi rotation. The old rotation hack is retired (offset 0); world aim,
+    // velocity, collision, and homing are untouched by presentation.
+    flightVisualOffsetRad: 0,
+    mirrorLocal: true,
   };
 
   // ── §7 NEWBIE hero tuning ────────────────────────────────────────────────
+  // ── §B7 red-tier (T6) hero-manipulation immunity ─────────────────────────
+  // While a red-tier weapon sits as a floor pickup, hero manipulation must
+  // not move, yank, auto-acquire, deny, or reroute it: no magnetic pull, no
+  // dash-to-weapon auto acquisition, no teleport/swap, no force drop/disarm,
+  // no barrier/cage weapon-deny. PHYSICAL pickup (walk-over touch resolve)
+  // always works, and the HOLDER of the weapon is NOT CC-immune — only the
+  // pickup interaction and the thrown projectile are protected. The thrown
+  // red-tier projectile carries heroManipulationImmune in the engine
+  // (crystal-wall reflect/re-own, magnet shell, gravity-well absorb must all
+  // leave it alone: hero manipulation can't redirect it).
+  CONFIG.isHeroManipulablePickup = function isHeroManipulablePickup(slot) {
+    if (!slot) return true;
+    if (slot.heroInteractionImmune === true) return false;
+    return !(slot.weaponId && CONFIG.tierOf && CONFIG.tierOf(slot.weaponId) === 'T6');
+  };
+
   CONFIG.NEWBIE = {
     cooldown: 10,             // one active skill, 10s cooldown
     dashSpeed: 3400,          // fast — tuned in the real browser
@@ -269,12 +360,18 @@
     M249_SAW: 0.10, MBR2: 0.22, SZECSEI_FUCHS: 0.24, SNIPER: 0.32, JACKHAMMER: 0.14,
   };
   CONFIG.FIREARM_DISPLAY_MODE = { equipped: 1, floor: 0.92, exit: 0.96 };
+  // B11: normalized around the accepted rifle baseline (AK-47 / M16 / Z15,
+  // 152-154). Class ladder reads with clear gaps in BOTH directions:
+  // compact pistols (124-130) < heavy pistols (136-138) < SMG family
+  // (140-145) < rifle baseline (152-154); shotguns/LMG/precision larger
+  // where their silhouettes justify it (156-188).
   CONFIG.FIREARM_LONG_SIDE = {
-    PISTOL: 126, GLOCK_17: 124, TEC_9: 132, BERETTA_93R: 130, DESERT_DEAGLE: 138, MAGNUM_500: 142,
-    MAC_10: 136, SMG: 142, P90: 140, AK_47: 154, M16: 154,
+    PISTOL: 126, GLOCK_17: 124, TEC_9: 140, BERETTA_93R: 130, DESERT_DEAGLE: 136, MAGNUM_500: 138,
+    MAC_10: 141, SMG: 145, P90: 143, AK_47: 154, M16: 154,
     ZBROYAR_Z15: 152, ZBROYAR_Z15_S1: 152, ZBROYAR_Z15_S2: 152, ZBROYAR_Z15_S3: 152,
     M249_SAW: 170, MBR: 174, MBR2: 176, SZECSEI_FUCHS: 176, SNIPER: 188,
     MOSSBERG_500: 158, SHOTGUN: 160, SAWED_OFF: 132, JACKHAMMER: 156,
+    STORMBREAKER: 150, // red-tier floor read (x0.92 display mode ≈ 138px)
   };
   CONFIG.HEAL_WEIGHTS = {
     HEAL_H1: 7, HEAL_H2: 5, HEAL_H3: 3, HEAL_H4: 2, HEAL_H5: 1,
@@ -287,6 +384,7 @@
   CONFIG.P0_WEAPON_IDS = [
     ...GUN_REGISTRY.map((e) => e.id),
     'GRENADE', 'SABRE', 'BATTLE_AXE', 'DAGGER', 'SPEAR', 'SPIKED_CLUB',
+    'STORMBREAKER',
     'SWIRL_SHIELD', 'TOWER_SHIELD',
   ];
 
@@ -312,5 +410,163 @@
   window.avCue = function avCue(name, opts) {
     if (window.APEX_ARSENAL_AV && window.APEX_ARSENAL_AV.cue) window.APEX_ARSENAL_AV.cue(name, opts);
   };
+
+  // ── CP7 (owner playtest round 4) — gameplay-ready barrier ──────────────
+  // The Arsenal HUB opens fast on its small critical-path group (CP6), but
+  // every transition from the hub INTO gameplay (Lab, Free Battle START,
+  // Quest stage, re-entry) is a HARD barrier: the combat shell, fighters,
+  // battle controls and Lab controls must not exist until the full
+  // arsenalQuest tier has loaded AND its presentation init (image atlas
+  // fetch/decode) has settled. Script evaluation alone is not readiness.
+  //
+  // State machine (window.apexArsenalTransitionState()):
+  //   idle → lab-loading | match-loading → lab-ready | match-ready
+  // Readiness probes: 'hub-ready', 'arsenal-full-runtime-ready',
+  // 'av-images-ready', 'av-audio-ready'.
+  window.__apexArsenalTransition = {
+    state: 'idle', destination: null, since: 0, lastDurationMs: null, error: null, _pending: null,
+  };
+  window.apexArsenalTransitionState = function () {
+    const t = window.__apexArsenalTransition;
+    const AV = window.APEX_ARSENAL_AV;
+    return {
+      state: t.state,
+      destination: t.destination,
+      lastDurationMs: t.lastDurationMs,
+      error: t.error,
+      readiness: {
+        'hub-ready': !!(window.APEX_ARSENAL_META && document.getElementById('aq-meta-root')),
+        'arsenal-full-runtime-ready': !!window['__apexDeferredRuntimesReady_arsenalQuest'],
+        'av-images-ready': !!(AV && AV.imagesSettled && AV.imagesSettled()),
+        // CP7: compare against the TOTAL — audioReady() is a count and its
+        // truthiness was true after a single decode, reporting the audio
+        // tier ready while the bank was still decoding.
+        'av-audio-ready': !!(AV && AV.audioSettled && AV.audioSettled()),
+      },
+    };
+  };
+  window.apexArsenalBarrierSatisfied = function () {
+    // Warm fast path: the full tier is loaded and images are settled — the
+    // destination may open synchronously (zero added latency on re-entry).
+    return !!(window['__apexDeferredRuntimesReady_arsenalQuest']
+      && window.APEX_ARSENAL_AV
+      && window.APEX_ARSENAL_AV.imagesSettled
+      && window.APEX_ARSENAL_AV.imagesSettled());
+  };
+  function showTransitionBadge(destination) {
+    try {
+      // Host the badge where it is actually VISIBLE: on the select screen the
+      // hub root is hidden, so a cold START that waits on the barrier must
+      // show the hint on the body instead of inside the hidden hub.
+      const hub = document.getElementById('aq-meta-root');
+      const hubVisible = !!(hub && hub.style.display !== 'none' && hub.getBoundingClientRect().width > 50);
+      const host = hubVisible ? hub : document.body;
+      let badge = document.getElementById('aq-transition-badge');
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.id = 'aq-transition-badge';
+        badge.setAttribute('role', 'status');
+        badge.style.cssText = 'position:absolute;left:50%;bottom:18px;transform:translateX(-50%);'
+          + 'z-index:60;padding:8px 18px;border-radius:999px;background:rgba(20,22,28,0.92);'
+          + 'color:#e8d9a0;font:600 13px system-ui,sans-serif;letter-spacing:0.08em;'
+          + 'border:1px solid rgba(232,217,160,0.4);pointer-events:none;';
+        host.appendChild(badge);
+      }
+      badge.textContent = (destination === 'lab' ? 'ARSENAL LAB' : 'ARSENAL MATCH') + ' · PREPARING…';
+    } catch (error) { /* the badge is cosmetic; never block the barrier */ }
+  }
+  function hideTransitionBadge() {
+    try { document.getElementById('aq-transition-badge')?.remove(); } catch (error) {}
+  }
+  window.apexArsenalGameplayBarrierSync = function apexArsenalGameplayBarrierSync(destination) {
+    // Synchronous fast path for warm destinations: records the ready state
+    // (the state machine must reflect EVERY entry, sync or awaited) and
+    // returns true so the caller can open the destination in the same task —
+    // zero added latency for re-entry. Returns false when the async barrier
+    // must be used instead.
+    if (window.apexArsenalBarrierSatisfied()) {
+      const t = window.__apexArsenalTransition;
+      t.state = destination === 'lab' ? 'lab-ready' : 'match-ready';
+      t.destination = destination;
+      t.lastDurationMs = 0;
+      t.error = null;
+      return true;
+    }
+    return false;
+  };
+  window.apexArsenalGameplayBarrier = async function apexArsenalGameplayBarrier(destination) {
+    const t = window.__apexArsenalTransition;
+    const readyState = destination === 'lab' ? 'lab-ready' : 'match-ready';
+    const loadingState = destination === 'lab' ? 'lab-loading' : 'match-loading';
+    if (window.apexArsenalBarrierSatisfied()) {
+      t.state = readyState;
+      t.destination = destination;
+      t.lastDurationMs = 0;
+      t.error = null;
+      return true;
+    }
+    if (t._pending && t.state === loadingState && t.destination === destination) return t._pending;
+    t.state = loadingState;
+    t.destination = destination;
+    t.since = performance.now();
+    t.error = null;
+    showTransitionBadge(destination);
+    t._pending = (async () => {
+      try {
+        const ensure = window.__apexEnsureDeferredRuntimes;
+        if (typeof ensure === 'function') await ensure('arsenalQuest');
+        if (!window['__apexDeferredRuntimesReady_arsenalQuest']) {
+          throw new Error('arsenalQuest runtime group did not finish loading');
+        }
+        const AV = window.APEX_ARSENAL_AV;
+        if (AV && AV.preload) {
+          // Route intent: full preload (images + audio head start). The
+          // images are the blocking dependency; audio decodes in parallel
+          // and clips no-op safely until ready.
+          AV.preload();
+          if (AV.whenImagesReady) {
+            const ok = await AV.whenImagesReady(8000);
+            if (!ok) throw new Error('Arsenal presentation images did not finish loading');
+          }
+        }
+        t.state = readyState;
+        t.lastDurationMs = Math.round(performance.now() - t.since);
+        return true;
+      } catch (error) {
+        t.state = 'idle';
+        t.error = String((error && error.message) || error);
+        return false;
+      } finally {
+        hideTransitionBadge();
+        t._pending = null;
+      }
+    })();
+    return t._pending;
+  };
+  // When the background warmup finishes the arsenalQuest group, start the
+  // image-side preload early (NO audio decode — that stays route-intent
+  // only, per CP5). This makes the barrier resolve instantly in the common
+  // case where the user browses the hub for a moment before entering.
+  (function watchArsenalFullRuntime() {
+    const tick = () => {
+      try {
+        if (window['__apexDeferredRuntimesReady_arsenalQuest']) {
+          const AV = window.APEX_ARSENAL_AV;
+          if (AV && AV.preload) AV.preload({ audio: false });
+          return;
+        }
+        const gate = window['__apexDeferredRuntimesPromise_arsenalQuest'];
+        if (gate && gate.then) {
+          gate.then(() => {
+            const AV2 = window.APEX_ARSENAL_AV;
+            if (AV2 && AV2.preload) AV2.preload({ audio: false });
+          }).catch(() => {});
+          return;
+        }
+      } catch (error) { /* retry below */ }
+      setTimeout(tick, 500);
+    };
+    tick();
+  })();
   window.apexArsenalQuestConfig = 'ready';
 })();

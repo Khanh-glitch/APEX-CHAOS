@@ -60,14 +60,14 @@
     ring6:ROOT+'ring_6.webp', pickButton:ROOT+'pick_button.webp', picked:ROOT+'picked.webp'
   });
   const AUDIO_FILES = Object.freeze({
-    fire:ROOT+'audio/fire_sfx.wav',
-    hook:ROOT+'audio/shoot_the_hook_the_pull.wav',
-    specialReload:ROOT+'audio/special_reloading_after_use_the_dash_skill.wav',
-    reloadBatch:ROOT+'audio/reloading_batch_7s.wav',
-    sevenHit:ROOT+'audio/7_pellet_hit_in_one_sfx.wav',
-    buildingHit:ROOT+'audio/pellet_hit_the_building_of_engineer.wav',
-    failedFire:ROOT+'audio/failed_fire.wav',
-    buttStroke:ROOT+'audio/butt-stroken.wav'
+    fire:ROOT+'audio/fire_sfx.mp3',
+    hook:ROOT+'audio/shoot_the_hook_the_pull.mp3',
+    specialReload:ROOT+'audio/special_reloading_after_use_the_dash_skill.mp3',
+    reloadBatch:ROOT+'audio/reloading_batch_7s.mp3',
+    sevenHit:ROOT+'audio/7_pellet_hit_in_one_sfx.mp3',
+    buildingHit:ROOT+'audio/pellet_hit_the_building_of_engineer.mp3',
+    failedFire:ROOT+'audio/failed_fire.mp3',
+    buttStroke:ROOT+'audio/butt-stroken.mp3'
   });
   const images = {};
   for (const [key,src] of Object.entries(FILES)) {
@@ -143,8 +143,11 @@
       const gain=audioCtx.createGain();
       src.buffer=buffer;
       gain.gain.value=volume;
-      src.connect(gain); gain.connect(audioCtx.destination);
+      // CP6 session ownership: route through the battle master and register
+      // the source so session transitions stop it (was: direct destination).
+      src.connect(gain); gain.connect(typeof battleAudioMaster !== 'undefined' ? battleAudioMaster : audioCtx.destination);
       if (window.__apexRecordingAudioDestination) gain.connect(window.__apexRecordingAudioDestination);
+      if (window.apexRegisterBattleAudioSource) window.apexRegisterBattleAudioSource(src);
       src.start();
     } catch (error) {}
   }

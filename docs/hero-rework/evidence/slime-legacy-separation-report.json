@@ -1,0 +1,80 @@
+{
+  "suite": "hero-rework-slime-legacy-separation",
+  "gates": {
+    "L1-rework-no-legacy-entities-no-clones": {
+      "pass": true,
+      "detail": {
+        "entities": 0,
+        "fightersBefore": 2,
+        "fightersAfter": 2
+      }
+    },
+    "L2-rework-damage-exact-no-legacy-modifiers": {
+      "pass": true,
+      "detail": {
+        "dealtSum": 640,
+        "realizedSum": 773.376,
+        "expectedRatio": 1.2084,
+        "ratios": [
+          1.2084,
+          1.2084,
+          1.2084,
+          1.2084,
+          1.2084,
+          1.2084
+        ],
+        "ratioStable": true,
+        "noLegacyLabels": true
+      }
+    },
+    "L3-rework-no-legacy-bookkeeping": {
+      "pass": true,
+      "detail": {
+        "slimeDmgWindow": null,
+        "childCounter": null,
+        "shockCounter": null
+      }
+    },
+    "L6-rework-combatant-live": {
+      "pass": true,
+      "detail": {
+        "match": true,
+        "bodies": 1,
+        "type": "SLIME",
+        "arsenalShell": true,
+        "hrHero": "SLIME"
+      }
+    },
+    "L4-legacy-child-spawn-preserved": {
+      "pass": true,
+      "detail": {
+        "started": {
+          "t1": true,
+          "t2": true
+        },
+        "isLegacy": true,
+        "childSpawned": true,
+        "childSpawnCd": 0.049999999999998934
+      }
+    },
+    "L5-legacy-fighters-clones-preserved": {
+      "pass": true,
+      "detail": {
+        "fightersBefore": 2,
+        "fightersAfter": 4
+      }
+    }
+  },
+  "failures": [],
+  "loadErrors": [
+    {
+      "file": "/game/fighters/soccerChampionRuntime.js",
+      "error": "image.addEventListener is not a function"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": []
+  }
+}

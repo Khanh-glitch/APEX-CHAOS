@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   loadDeferredGameRuntimes,
-  loadRequiredGameRuntimes,
+  loadMenuInteractiveRuntimes,
+  scheduleDeferredGameRuntimes,
 } from './game/runtimeLoader.js';
-import { preloadRuntimeSources } from './game/runtimeManifest.js';
+import { APEX_ARSENAL_RUNTIME_REVISION, preloadRuntimeSources } from './game/runtimeManifest.js';
 import {
   beginPerfSpan,
   markBootInteractive,
@@ -72,7 +73,7 @@ const MENU_BUTTONS = [
   { id: 'trial', label: 'Test Battle With Saitama', asset: '/assets/ui_2026/menu-saitama-test.webp', action: 'goToTrialSelect' },
   { id: 'giai', label: 'Tournament', asset: '/assets/ui_2026/menu-tournament.webp', action: 'goToTournament' },
   { id: 'solo', label: 'Solo 1v1 Local', asset: '/assets/ui_2026/menu-solo.webp', action: 'goToSoloSelect' },
-  { id: 'arsenal-quest', label: 'ARSENAL QUEST PROTOTYPE', text: 'ARSENAL QUEST PROTOTYPE', action: 'beginArsenalQuestMap' },
+  { id: 'arsenal-quest', label: 'ARSENAL QUEST', text: 'ARSENAL QUEST', action: 'beginArsenalQuestSelection' },
 ];
 
 const LOADING_LABELS = ['LOADING ASSETS', 'PREPARING ARENA', 'SYNCHRONIZING VFX'];
@@ -81,30 +82,27 @@ const LOADER_READY_HOLD_MS = 160;
 const LOADER_FADE_MS = 280;
 
 const DEFERRED_RUNTIME_ACTION_GROUPS = {
+  goToSelect: 'select',
   startMatch: 'battle',
-  goToTournament: 'battle',
+  goToTournament: 'select',
   goToManualLabSelect: 'manualLab',
-  goToSoloSelect: 'solo',
+  goToSoloSelect: 'soloBattle',
   startSoloMode: 'soloBattle',
-  goToTrialSelect: 'trial',
+  goToTrialSelect: 'trialBattle',
   startTrialMode: 'trialBattle',
   startTamChienMode: 'tamChien',
   startArsenalQuestMode: 'arsenalQuest',
-  beginArsenalQuestSelection: 'arsenalQuest',
-  beginArsenalQuestMap: 'arsenalQuest',
+  // CP6 (owner playtest round 3): hub-level navigation opens the hub on its
+  // tiny critical-path group (config + shell select + ladder + meta). The
+  // heavy battle-core/roster/AV work stays on the background warmup and loads
+  // behind the open hub; match starts ensure the full arsenalQuest group.
+  beginArsenalQuestSelection: 'arsenalHub',
+  beginArsenalQuestMap: 'arsenalHub',
 };
 
 function callApexGlobal(name, enabled = true) {
   if (!enabled) return;
   window[name]?.();
-}
-
-function warmBattleRuntimesInBackground(reason = 'select', delayMs = 0) {
-  window.setTimeout(() => {
-    loadDeferredGameRuntimes('battle').catch((error) => {
-      console.warn(`[asset-loader] Failed background battle runtime warmup: ${reason}.`, error);
-    });
-  }, delayMs);
 }
 
 function wait(ms) {
@@ -272,14 +270,7 @@ function injectApexEngine(scriptRef, engineSrc) {
         try { window.goToSelect = goToSelect; } catch (error) {}
         try { window.goToTournament = goToTournament; } catch (error) {}
         try { window.resetTournament = resetTournament; } catch (error) {}
-        try {
-          const apexOriginalStartMatch = startMatch;
-          window.startMatch = function(...args) {
-            const run = () => apexOriginalStartMatch(...args);
-            const ready = window.__apexEnsureDeferredRuntimes?.('battle');
-            return ready?.then ? ready.then(run) : run();
-          };
-        } catch (error) {}
+        try { window.startMatch = startMatch; } catch (error) {}
         try { window.startSoloMode = startSoloMode; } catch (error) {}
         try { window.goToSoloSelect = goToSoloSelect; } catch (error) {}
         try { window.goToTrialSelect = goToTrialSelect; } catch (error) {}
@@ -299,12 +290,16 @@ function injectApexEngine(scriptRef, engineSrc) {
     };
     script.onload = async () => {
       try {
-        await loadRequiredGameRuntimes();
+        markBootPhase('engine-ready');
+        // Tier 1 — only the menu-interactive runtime chain (§A2). Everything
+        // else loads as background warmup or route intent.
+        await loadMenuInteractiveRuntimes();
+        markBootPhase('menu-runtime-ready');
         window.APEX_MANUAL_ROOM_WS_URL = MANUAL_ROOM_WS_URL;
         window.__apexEnsureDeferredRuntimes = loadDeferredGameRuntimes;
         finishRuntimeLoad();
       } catch (error) {
-        console.warn('[asset-loader] Failed required game runtime.', error);
+        console.warn('[asset-loader] Failed menu-interactive game runtime.', error);
         window.__apexEngineLoadPromise = null;
         endEngineTiming({ ok: false, error: String(error?.message || error) });
         reject(error);
@@ -320,6 +315,105 @@ function injectApexEngine(scriptRef, engineSrc) {
     scriptRef.current = script;
   });
   return window.__apexEngineLoadPromise;
+}
+
+// PASS B — universal combat HUD side panel (authority §3/§6).
+// React owns this markup; the engine + APEX_COMBAT_HUD only WRITE into these
+// ids (cached refs, change-only). Engine-owned ids (p1/p2-name, -hp,
+// -hp-loss, -hp-text, -rage) are MOVED here from the legacy top header —
+// the engine keeps writing them exactly as before.
+function CombatPanelSide({ side }) {
+  const p = `p${side}`;
+  const isP1 = side === 1;
+  return (
+    <aside id={`${p}-combat-panel`} className={`combat-panel cp-side-p${side}`} aria-label={`Player ${side} combat panel`}>
+      <section className="cp-identity">
+        <div className="cp-fighter-head">
+          <div className="cp-fighter-copy">
+            <div className="cp-eyebrow">{isP1 ? 'P1 · PLAYER SIDE' : 'P2 · RIVAL SIDE'}</div>
+            <div className="name" id={`${p}-name`}>P{side}</div>
+          </div>
+          <span className="cp-chip" id={`${p}-cp-chip`} />
+        </div>
+        <div className="cp-hp-wrap">
+          <div className="cp-hp-label">
+            <span>HP</span>
+            <span className="hp-text" id={`${p}-hp-text`}>1000 / 1000</span>
+          </div>
+          <div className="hp-bar-bg">
+            <div className="hp-loss-trail" id={`${p}-hp-loss`} />
+            <div className="hp-bar-fill" id={`${p}-hp`} />
+            <div className="cp-hp-ticks" />
+          </div>
+          <div className="rage-indicator" id={`${p}-rage`}>RAGE ACTIVE</div>
+        </div>
+      </section>
+
+      <div className="cp-section-title cp-pressure-title">RECENT PRESSURE</div>
+      <section className="cp-burst" id={`${p}-burst`}>
+        <div className="cp-burst-top">
+          <div className="cp-burst-stack">
+            <div className="cp-burst-kicker">ROLLING 1.2S</div>
+            <div className="cp-burst-readout">
+              <span className="cp-burst-total" id={`${p}-burst-total`}>0</span>
+              <span className="cp-burst-unit">DMG</span>
+            </div>
+            <div className="cp-burst-meta">
+              <span className="cp-burst-hits" id={`${p}-burst-hits`}>0 HITS</span>
+              <span className="cp-burst-crits" id={`${p}-burst-crits`}>0 CRIT</span>
+            </div>
+          </div>
+          <div className="cp-burst-label" id={`${p}-burst-label`} />
+        </div>
+        <div className="cp-burst-track">
+          <div className="cp-burst-fill" id={`${p}-burst-fill`} />
+        </div>
+      </section>
+
+      <section className="cp-combat-stage">
+        <div className="cp-loadout-shell" id={`${p}-loadout`}>
+          <div className="cp-loadout-kicker">CURRENT LOADOUT</div>
+          <div className="cp-loadout-top">
+            <div className="cp-loadout-copy">
+              <div className="cp-loadout-name" id={`${p}-loadout-name`}>—</div>
+              <div className="cp-loadout-line">
+                <span className="cp-loadout-family" id={`${p}-loadout-family`} />
+                <span className="cp-loadout-tier" id={`${p}-loadout-tier`} />
+              </div>
+              <div className="cp-loadout-state" id={`${p}-loadout-state`}>UNARMED</div>
+            </div>
+            <div className="cp-loadout-art">
+              <canvas id={`${p}-loadout-canvas`} className="cp-loadout-canvas" width="480" height="240" />
+              <div className="cp-loadout-fallback" id={`${p}-loadout-fallback`}>
+                <span className="cp-glyph" id={`${p}-cp-glyph`}>—</span>
+                <span className="cp-fallback-label" id={`${p}-loadout-fallback-label`}>UNARMED</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="cp-section-title cp-energy-title-row">ENERGY</div>
+      <section className="cp-energy" id={`${p}-energy`}>
+        <div className="cp-energy-head">
+          <span className="cp-energy-kicker">COMBAT RESOURCE</span>
+          <span className="cp-energy-val" id={`${p}-energy-val`}>0</span>
+        </div>
+        <div className="cp-energy-track">
+          <div className="cp-energy-fill" id={`${p}-energy-fill`} />
+          <span className="cp-energy-ready" id={`${p}-energy-state`} />
+        </div>
+      </section>
+
+      <section className="cp-robot-passive" id={`${p}-robot-passive`} hidden aria-label="Robot rolling burst milestones">
+        <div className="cp-robot-head"><span>BURST 1.2S</span><strong id={`${p}-robot-count`}>0 / 150</strong></div>
+        <div className="cp-robot-rail">{[0,1,2,3,4,5].map(i => <span key={i} id={`${p}-robot-step-${i}`} />)}</div>
+        <div id={`${p}-robot-progress`} />
+        <div className="cp-robot-refund" id={`${p}-robot-refund`} aria-live="polite" />
+      </section>
+      <section className="cp-mode" id={`${p}-mode-slot`} />
+    </aside>
+  );
 }
 
 export default function App() {
@@ -341,7 +435,9 @@ export default function App() {
   useEffect(() => {
     if (once.loaded) return undefined;
     let cancelled = false;
-    const engineSrc = '/apexEngine.js';
+    // Cache-bust the classic engine the same way as the other public
+    // runtimes so a stable Cloudflare alias can never serve stale bytes.
+    const engineSrc = `/apexEngine.js?v=${APEX_ARSENAL_RUNTIME_REVISION}`;
 
     wakeManualRoomRelay();
 
@@ -350,30 +446,45 @@ export default function App() {
       preloadRuntimeSources();
       const enginePromise = injectApexEngine(scriptRef, engineSrc);
       enginePromise.catch(() => {});
+      // Loading truth (§A1): progress counts EVERY menu-interactive unit —
+      // critical shell assets (which include the engine bytes) plus the
+      // engine + Tier-1 runtime execution unit. The percentage can therefore
+      // never read 100%/READY while a menu dependency is still pending.
+      let progressTotalUnits = 0;
       const preloadResult = await preloadGameAssets(engineSrc, (progress) => {
         if (cancelled) return;
+        if (!progressTotalUnits) progressTotalUnits = progress.totalCount + 1; // + engine/tier-1 unit
         setLoader((current) => ({
           ...current,
-          percent: Math.min(progress.percent, 99),
+          percent: Math.min(99, Math.floor((progress.loadedCount / progressTotalUnits) * 100)),
           status: progress.label,
           loadedCount: progress.loadedCount,
           totalCount: progress.totalCount,
         }));
       });
-      markBootPhase('critical-assets-ready', { assets: preloadResult.loadedCount });
+      markBootPhase('critical-shell-ready', { assets: preloadResult.loadedCount });
       if (cancelled) return;
-      setLoader((current) => ({ ...current, percent: 99, status: 'STARTING ENGINE' }));
+      setLoader((current) => ({
+        ...current,
+        // All shell assets in; the engine execution unit is still pending.
+        percent: Math.min(99, Math.floor((preloadResult.totalCount / (preloadResult.totalCount + 1)) * 100)),
+        status: 'STARTING ENGINE',
+      }));
       await enginePromise;
-      markBootPhase('engine-ready');
       if (cancelled) return;
       once.loaded = true;
       setGameReady(true);
-      markBootPhase('game-ready');
+      // The menu is genuinely usable from this tick onward (buttons enabled,
+      // engine nav globals bound, Tier-1 audio bridge live).
+      markBootInteractive();
+      markBootPhase('menu-interactive');
       setLoader((current) => ({ ...current, active: true, fading: false, percent: 100, status: 'READY' }));
+      // Tier 2 — background warmup of likely-next groups. Never blocks the
+      // menu; yields to any route intent through the priority queue.
+      scheduleDeferredGameRuntimes();
       await wait(LOADER_READY_HOLD_MS);
       if (cancelled) return;
       setLoader((current) => ({ ...current, fading: true }));
-      markBootInteractive();
       await wait(LOADER_FADE_MS);
       if (cancelled) return;
       setLoader((current) => ({ ...current, active: false, fading: false }));
@@ -420,11 +531,20 @@ export default function App() {
     }
   };
 
-  const playMenuMusic = (restart = false) => {
+  const playMenuMusic = (restart = false, attempts = 0) => {
     const audio = menuAudioRef.current;
     if (!audio) return;
     if (!menuMusicAllowed()) {
       audio.pause();
+      // CP7 self-healing resume: the exit-to-menu handoff is fire-once — if
+      // the menu screen was not yet visible at that instant (screen swap,
+      // transient blur/hidden state on slow machines) the menu stayed silent
+      // with no retry. Retry briefly; never fight a real background-tab
+      // pause (document.hidden) or the battle-audio session (independent
+      // element, CP6).
+      if (attempts < 8 && !document.hidden) {
+        setTimeout(() => playMenuMusic(restart, attempts + 1), 250);
+      }
       return;
     }
     if (restart) {
@@ -438,14 +558,37 @@ export default function App() {
   useEffect(() => {
     const audio = new Audio();
     audio.loop = true;
-    audio.preload = 'none';
+    // §A4 — warm the menu BGM in the background before the first user
+    // gesture. Preload never blocks menu interactivity, and playback still
+    // respects autoplay policy (no forced audible autoplay); the first
+    // allowed play starts from already-warmed data.
+    audio.preload = 'auto';
     audio.volume = 0.48;
     audio.src = MENU_AUDIO;
     audio.__apexMenuMusic = true;
+    audio.load();
     menuAudioRef.current = audio;
+    // Evidence probe (§A4): read-only BGM readiness without exposing the
+    // element itself (it is deliberately never attached to the DOM).
+    window.__apexMenuBgmState = () => {
+      const a = menuAudioRef.current;
+      if (!a) return null;
+      return {
+        preload: a.preload,
+        readyState: a.readyState,
+        networkState: a.networkState,
+        paused: a.paused,
+        src: a.currentSrc || a.src,
+      };
+    };
     window.apexStopMenuMusic = (reset = false) => stopMenuMusic(reset);
     window.apexPlayMenuMusic = (restart = false) => playMenuMusic(restart);
 
+    // CP7: re-armed on every interaction (NOT once) — if a resume was ever
+    // missed (transient blur/hidden state at the exit-to-menu handoff), the
+    // next click/keypress heals the menu music instead of leaving the menu
+    // silent for the rest of the session. playMenuMusic no-ops when already
+    // playing or when no menu screen is visible.
     const unlock = () => playMenuMusic(false);
     const pauseForHiddenTab = () => {
       const current = menuAudioRef.current;
@@ -467,8 +610,8 @@ export default function App() {
       if (document.hidden) pauseForHiddenTab();
       else resumeForVisibleTab();
     };
-    window.addEventListener('pointerdown', unlock, { once: true });
-    window.addEventListener('keydown', unlock, { once: true });
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('blur', pauseForHiddenTab);
     window.addEventListener('focus', resumeForVisibleTab);
@@ -483,6 +626,7 @@ export default function App() {
       menuAudioRef.current = null;
       if (window.apexStopMenuMusic) delete window.apexStopMenuMusic;
       if (window.apexPlayMenuMusic) delete window.apexPlayMenuMusic;
+      if (window.__apexMenuBgmState) delete window.__apexMenuBgmState;
     };
   }, []);
 
@@ -491,23 +635,24 @@ export default function App() {
     try {
       const deferredGroup = options.deferredGroup || (options.startsMatch ? 'battle' : DEFERRED_RUNTIME_ACTION_GROUPS[name]);
       if (deferredGroup) await loadDeferredGameRuntimes(deferredGroup);
+      // Battle-audio session lifecycle (correction pass): entering a match =
+      // terminate the previous session for real (old voices/cues die), then
+      // unmute the master for the new session. Menu/select navigation ends
+      // the session — battle SFX stay silent until the next match begins.
       if (options.startsMatch) {
         stopMenuMusic(true);
-        window.apexStopBattleAudio?.();
-      } else if (name === 'startMatch' || name === 'startSoloMode' || name === 'startTrialMode' || name === 'startArsenalQuestMode') {
+        window.apexBeginBattleAudioSession?.();
+      } else if (name === 'startMatch' || name === 'startSoloMode' || name === 'startTrialMode' || name === 'startArsenalQuestMode' || name === 'startTamChienMode') {
         stopMenuMusic(true);
-        window.apexStopBattleAudio?.();
+        window.apexBeginBattleAudioSession?.();
       } else if (name === 'goToMenu' || name === 'exitAutoBattle') {
-        window.apexStopBattleAudio?.();
+        window.apexEndBattleAudioSession?.();
         playMenuMusic(true);
       } else if (name === 'goToSelect' || name === 'goToManualLabSelect' || name === 'goToTournament' || name === 'goToSoloSelect' || name === 'beginArsenalQuestSelection' || name === 'beginArsenalQuestMap') {
-        window.apexStopBattleAudio?.();
+        window.apexEndBattleAudioSession?.();
         playMenuMusic(false);
       }
       callApexGlobal(name, true);
-      if (name === 'goToSelect') {
-        warmBattleRuntimesInBackground('goToSelect');
-      }
       if (options.startsMatch || name === 'startMatch' || name === 'startSoloMode' || name === 'startTrialMode') {
         stopMenuMusic(true);
       }
@@ -520,12 +665,18 @@ export default function App() {
     if (!gameReady || pendingActionRef.current) return;
     pendingActionRef.current = button.action;
     setPressedMenuButton(button.id);
-    window.setTimeout(() => {
+    // Correction 3A: no artificial 105ms hold. The pressed visual state is
+    // committed first (React renders it), then the action starts on the very
+    // next animation frame — the button stays visually pressed until the
+    // navigation/match flow finishes.
+    const run = () => {
       runApex(button.action, { startsMatch: button.startsMatch }).finally(() => {
         setPressedMenuButton(null);
         pendingActionRef.current = null;
       });
-    }, 105);
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+    else run();
   };
 
   return (
@@ -549,6 +700,12 @@ export default function App() {
         </div>
       </div>
     )}
+    {/* PASS B: P1 SIDE PANEL | SQUARE ARENA | P2 SIDE PANEL (authority §3).
+        Side panels are hidden outside battle (CSS .is-battle); the arena
+        column keeps its exact legacy box so absolute screens/overlays
+        behave as before. Engine-owned p1/p2 ids now live in the panels. */}
+    <div id="battle-shell">
+      <CombatPanelSide side={1} />
     <div id="game-wrapper">
       <canvas id="game-canvas" width="1000" height="1000" />
 
@@ -558,27 +715,6 @@ export default function App() {
       </div>
 
       <div className="ui-layer" id="hud" style={{ opacity: 0 }}>
-        <div className="header">
-          <div className="player-info p1-info">
-            <div className="name" id="p1-name">P1</div>
-            <div className="hp-bar-bg">
-              <div className="hp-loss-trail" id="p1-hp-loss" />
-              <div className="hp-bar-fill" id="p1-hp" />
-              <div className="hp-text" id="p1-hp-text">100.0 / 100</div>
-            </div>
-            <div className="rage-indicator" id="p1-rage">RAGE ACTIVE</div>
-          </div>
-
-          <div className="player-info p2-info">
-            <div className="name" id="p2-name">P2</div>
-            <div className="hp-bar-bg">
-              <div className="hp-loss-trail" id="p2-hp-loss" />
-              <div className="hp-bar-fill" id="p2-hp" />
-              <div className="hp-text" id="p2-hp-text">100.0 / 100</div>
-            </div>
-            <div className="rage-indicator" id="p2-rage">RAGE ACTIVE</div>
-          </div>
-        </div>
         <div id="manual-lab-hud" className="manual-lab-hud hidden" aria-live="polite">
           <div className="manual-lab-title">APEX CONTROL · TERRITORY MODE</div>
           <div className="manual-engineer-hud">
@@ -918,6 +1054,8 @@ export default function App() {
       <div id="tam-chien-screen" className="screen hidden">
         <div id="tam-chien-root" className="tam-chien-root" />
       </div>
+    </div>
+      <CombatPanelSide side={2} />
     </div>
 
     <div id="combat-inspector" aria-hidden="true">

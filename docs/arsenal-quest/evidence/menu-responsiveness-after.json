@@ -1,0 +1,184 @@
+{
+  "label": "after",
+  "appUrl": "http://127.0.0.1:4173",
+  "sampledForMs": 10000,
+  "startedAtPageMs": 789,
+  "frames": {
+    "samples": 397,
+    "avgMs": 17.42,
+    "medianMs": 16.7,
+    "p95Ms": 16.7,
+    "p99Ms": 16.8,
+    "maxMs": 200.1,
+    "fps": 57.4,
+    "slowFrames": 2,
+    "buckets": {
+      "le16_7": 378,
+      "gt16_7_20": 17,
+      "gt20_25": 0,
+      "gt25_33": 0,
+      "gt33_50": 0,
+      "gt50": 2
+    },
+    "bucketPct": {
+      "le16_7": 95.2,
+      "gt16_7_20": 4.3,
+      "gt20_25": 0,
+      "gt25_33": 0,
+      "gt33_50": 0,
+      "gt50": 0.5
+    }
+  },
+  "longTasks": {
+    "count": 3,
+    "totalMs": 1200,
+    "longestMs": 954,
+    "withOverlap": [
+      {
+        "atMs": 941.6,
+        "durationMs": 131,
+        "overlappingRuntimes": []
+      },
+      {
+        "atMs": 2927.5,
+        "durationMs": 115,
+        "overlappingRuntimes": [
+          "arsenalStormbreakerVfxRuntime.js"
+        ]
+      },
+      {
+        "atMs": 3303.5,
+        "durationMs": 954,
+        "overlappingRuntimes": []
+      }
+    ]
+  },
+  "inputLatency": {
+    "pointermove": {
+      "samples": 50,
+      "median": 0.1,
+      "p95": 0.4,
+      "max": 0.5,
+      "over50ms": 0
+    },
+    "pointerdown": {
+      "samples": 26,
+      "median": 14.7,
+      "p95": 15.4,
+      "max": 1204.9,
+      "over50ms": 1
+    },
+    "wheelOrKey": {
+      "samples": 16,
+      "median": 0.1,
+      "p95": 0.3,
+      "max": 0.3,
+      "over50ms": 0
+    }
+  },
+  "menuButtonActionMs": 5,
+  "warmupGroupsReadyAtPageMs": {
+    "arsenalQuest": 5121,
+    "select": 5877
+  },
+  "bootPhases": [
+    {
+      "name": "metrics-ready",
+      "atMs": 1
+    },
+    {
+      "name": "boot-start",
+      "atMs": 104.9
+    },
+    {
+      "name": "engine-ready",
+      "atMs": 163.9
+    },
+    {
+      "name": "menu-runtime-ready",
+      "atMs": 208.7
+    },
+    {
+      "name": "critical-shell-ready",
+      "atMs": 492.8
+    },
+    {
+      "name": "interactive",
+      "atMs": 492.9
+    },
+    {
+      "name": "menu-interactive",
+      "atMs": 493
+    },
+    {
+      "name": "loader-hidden",
+      "atMs": 1040.6
+    },
+    {
+      "name": "warmup-start",
+      "atMs": 1043.1
+    },
+    {
+      "name": "warmup-end",
+      "atMs": 4231
+    }
+  ],
+  "interactiveMs": 492.9,
+  "loaderHiddenMs": 1040.6,
+  "gates": {
+    "menu-longtask-count": {
+      "pass": true,
+      "value": 3,
+      "baseline": 15,
+      "limit": 5
+    },
+    "menu-longtask-total-ms": {
+      "pass": true,
+      "value": 1200,
+      "baseline": 1695,
+      "limit": 1300
+    },
+    "menu-pointerdown-median-ms": {
+      "pass": true,
+      "value": 14.7,
+      "baseline": 14.5,
+      "limit": 30
+    },
+    "menu-pointerdown-p95-ms": {
+      "pass": true,
+      "value": 15.4,
+      "baseline": 328.3,
+      "limit": 500
+    },
+    "menu-pointerdown-over-50ms": {
+      "pass": true,
+      "value": 1,
+      "baseline": 2,
+      "limit": 5
+    },
+    "menu-frame-p95-ms": {
+      "pass": true,
+      "value": 16.7,
+      "baseline": 50,
+      "limit": 40
+    },
+    "menu-frame-samples": {
+      "pass": true,
+      "value": 397,
+      "baseline": 292,
+      "limit": 350
+    },
+    "menu-legacy-groups-not-warm": {
+      "pass": true,
+      "value": {
+        "arsenalQuest": 5121,
+        "select": 5877
+      }
+    }
+  },
+  "summary": {
+    "total": 8,
+    "passed": 8,
+    "failed": []
+  }
+}

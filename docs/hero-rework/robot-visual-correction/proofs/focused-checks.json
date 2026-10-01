@@ -1,0 +1,1465 @@
+{
+  "productionBrowser": "HeadlessChrome/153.0.8010.0",
+  "authorityHead": "2026fbbf70687d0ecb682774ef3bb03b96b8478d",
+  "audioContexts": 1,
+  "nonRobotBlood": true,
+  "hits": {
+    "hits": [
+      {
+        "payload": {
+          "hero": "ROBOT",
+          "amount": 31.5,
+          "reduced": 14.175,
+          "bodyId": 1,
+          "direction": {
+            "x": 0.9992724195900844,
+            "y": 0.03813963091822016
+          },
+          "point": {
+            "x": 449.515414546711,
+            "y": 481.9813939905028
+          }
+        },
+        "stress": [
+          {
+            "x": 341.860088646527,
+            "y": 486.89061176046937,
+            "nx": 0.9992724195900844,
+            "ny": 0.03813963091822016,
+            "t": 0,
+            "dur": 0.14,
+            "armored": true
+          }
+        ],
+        "blood": 5
+      },
+      {
+        "payload": {
+          "hero": "ROBOT",
+          "amount": 31.5,
+          "reduced": 14.175,
+          "bodyId": 1,
+          "direction": {
+            "x": -0.9999230148176994,
+            "y": -0.012408240724720599
+          },
+          "point": {
+            "x": 550.4000080736989,
+            "y": 475.4061609614563
+          }
+        },
+        "stress": [
+          {
+            "x": 938.2078410308256,
+            "y": 486.8906127131976,
+            "nx": -0.9999230148176994,
+            "ny": -0.012408240724720599,
+            "t": 0,
+            "dur": 0.14,
+            "armored": true
+          }
+        ],
+        "blood": 5
+      }
+    ],
+    "before": 5,
+    "after": 5
+  },
+  "errors": [],
+  "groups": [
+    {
+      "name": "01-idle-move-fixed-orientation",
+      "dir": "docs/hero-rework/robot-visual-correction/proofs/01-idle-move-fixed-orientation",
+      "frames": [
+        {
+          "label": "idle",
+          "x": 400,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 0,
+          "pose": {
+            "calTh": 0,
+            "calDx": 0,
+            "calDy": 0,
+            "spin": 0,
+            "crest": 0,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 0,
+          "socket": {
+            "x": 400,
+            "y": 571.38125,
+            "angle": 0,
+            "local": {
+              "x": 0,
+              "y": 71.38125,
+              "a": 0
+            }
+          }
+        },
+        {
+          "label": "right",
+          "x": 607.9999999999998,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": -0.37245762019358275,
+          "pose": {
+            "calTh": 0,
+            "calDx": 0,
+            "calDy": 0,
+            "spin": 0,
+            "crest": 0,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 0.39999999999999997,
+          "socket": {
+            "x": 607.9499510072862,
+            "y": 571.38125,
+            "angle": 0,
+            "local": {
+              "x": -0.05004899271350638,
+              "y": 71.38125,
+              "a": 0
+            }
+          }
+        },
+        {
+          "label": "down",
+          "x": 607.9999999999998,
+          "y": 707.9999999999992,
+          "dir": {
+            "x": 0,
+            "y": 1
+          },
+          "tilt": 0,
+          "lag": 0.3719678821668102,
+          "pose": {
+            "calTh": 0,
+            "calDx": 0,
+            "calDy": 0,
+            "spin": 0,
+            "crest": 0,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 0.8000000000000008,
+          "socket": {
+            "x": 608.049983184166,
+            "y": 779.3312010072857,
+            "angle": 0,
+            "local": {
+              "x": 0.04998318416615888,
+              "y": 71.3312010072865,
+              "a": 0
+            }
+          }
+        },
+        {
+          "label": "left",
+          "x": 399.99999999999994,
+          "y": 707.9999999999992,
+          "dir": {
+            "x": -1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 0.3729466434972043,
+          "pose": {
+            "calTh": 0,
+            "calDx": 0,
+            "calDy": 0,
+            "spin": 0,
+            "crest": 0,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 1.2000000000000006,
+          "socket": {
+            "x": 400.05011470521987,
+            "y": 779.4312331841653,
+            "angle": 0,
+            "local": {
+              "x": 0.050114705219943545,
+              "y": 71.43123318416615,
+              "a": 0
+            }
+          }
+        },
+        {
+          "label": "up",
+          "x": 399.99999999999994,
+          "y": 500,
+          "dir": {
+            "x": 0,
+            "y": -1
+          },
+          "tilt": 0,
+          "lag": -0.3719672307710874,
+          "pose": {
+            "calTh": 0,
+            "calDx": 0,
+            "calDy": 0,
+            "spin": 0,
+            "crest": 0,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 1.5999999999999992,
+          "socket": {
+            "x": 399.95001690336505,
+            "y": 571.43136470522,
+            "angle": 0,
+            "local": {
+              "x": -0.04998309663486822,
+              "y": 71.4313647052199,
+              "a": 0
+            }
+          }
+        }
+      ],
+      "events": []
+    },
+    {
+      "name": "02-real-weapon-socket",
+      "dir": "docs/hero-rework/robot-visual-correction/proofs/02-real-weapon-socket",
+      "frames": [
+        {
+          "label": "real-a1-pickup",
+          "x": 651.3333333333333,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": -18.5803619017609,
+          "pose": {
+            "calTh": -0.09,
+            "calDx": 12,
+            "calDy": 0,
+            "spin": 3.141592653589793,
+            "crest": -16,
+            "chin": -6,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0.35,
+            "glow": 1.4,
+            "seam": 0
+          },
+          "trail": 7,
+          "trailOn": true,
+          "contactT": 0.36666666666666664,
+          "time": 0.4333333333333333,
+          "socket": {
+            "x": 640.5272029396347,
+            "y": 567.2188643917156,
+            "angle": 0,
+            "local": {
+              "x": -10.806130393698592,
+              "y": 67.21886439171558,
+              "a": 0
+            }
+          },
+          "weapon": "PISTOL"
+        },
+        {
+          "label": "aim-right",
+          "x": 667.3333333333333,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 12.569192814492276,
+          "pose": {
+            "calTh": -0.05,
+            "calDx": 6,
+            "calDy": 0,
+            "spin": 3.141592653589793,
+            "crest": 0,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 7,
+          "trailOn": true,
+          "contactT": 0.36666666666666664,
+          "time": 0.5666666666666668,
+          "socket": {
+            "x": 669.1484589471897,
+            "y": 568.4188069342357,
+            "angle": 0,
+            "local": {
+              "x": 1.8151256138564615,
+              "y": 68.4188069342357,
+              "a": 0
+            }
+          },
+          "weapon": "PISTOL"
+        },
+        {
+          "label": "aim-down",
+          "x": 667.3333333333333,
+          "y": 516,
+          "dir": {
+            "x": 0,
+            "y": 1
+          },
+          "tilt": 0,
+          "lag": 6.969393090582214,
+          "pose": {
+            "calTh": -0.05,
+            "calDx": 6,
+            "calDy": 0,
+            "spin": 3.141592653589793,
+            "crest": 0,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 7,
+          "trailOn": true,
+          "contactT": 0.36666666666666664,
+          "time": 0.7000000000000005,
+          "socket": {
+            "x": 668.3110888653683,
+            "y": 585.6273175980123,
+            "angle": 0,
+            "local": {
+              "x": 0.9777555320350712,
+              "y": 69.62731759801233,
+              "a": 0
+            }
+          },
+          "weapon": "PISTOL"
+        },
+        {
+          "label": "aim-left",
+          "x": 651.3333333333333,
+          "y": 516,
+          "dir": {
+            "x": -1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 2.2813361668999237,
+          "pose": {
+            "calTh": -0.05,
+            "calDx": 6,
+            "calDy": 0,
+            "spin": 3.141592653589793,
+            "crest": 0,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 7,
+          "trailOn": true,
+          "contactT": 0.36666666666666664,
+          "time": 0.8333333333333343,
+          "socket": {
+            "x": 651.6275678378622,
+            "y": 585.8687453743211,
+            "angle": 0,
+            "local": {
+              "x": 0.2942345045290133,
+              "y": 69.86874537432102,
+              "a": 0
+            }
+          },
+          "weapon": "PISTOL"
+        },
+        {
+          "label": "aim-up",
+          "x": 651.3333333333333,
+          "y": 500,
+          "dir": {
+            "x": 0,
+            "y": -1
+          },
+          "tilt": 0,
+          "lag": -0.3067584920768696,
+          "pose": {
+            "calTh": -0.05,
+            "calDx": 6,
+            "calDy": 0,
+            "spin": 3.141592653589793,
+            "crest": 0,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": 0.36666666666666664,
+          "time": 0.966666666666668,
+          "socket": {
+            "x": 651.2941028516683,
+            "y": 569.9762673665459,
+            "angle": 0,
+            "local": {
+              "x": -0.03923048166491995,
+              "y": 69.9762673665459,
+              "a": 0
+            }
+          },
+          "weapon": "PISTOL"
+        },
+        {
+          "label": "real-fire",
+          "x": 653.3333333333333,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": -0.4325093594607671,
+          "pose": {
+            "calTh": -0.05,
+            "calDx": 6,
+            "calDy": 0,
+            "spin": 3.141592653589793,
+            "crest": 0,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": 0.36666666666666664,
+          "time": 0.9833333333333347,
+          "socket": {
+            "x": 653.2769545001416,
+            "y": 569.9714312750475,
+            "angle": 0,
+            "local": {
+              "x": -0.056378833191636966,
+              "y": 69.97143127504754,
+              "a": 0
+            }
+          },
+          "weapon": "PISTOL"
+        }
+      ],
+      "events": [
+        {
+          "type": "RobotA1Lock",
+          "payload": {
+            "hero": "ROBOT",
+            "target": "PISTOL",
+            "slotId": 1
+          },
+          "time": 0
+        },
+        {
+          "type": "RobotA1Acquire",
+          "payload": {
+            "hero": "ROBOT",
+            "target": "PISTOL",
+            "slotId": 1,
+            "alias": true
+          },
+          "time": 0
+        },
+        {
+          "type": "RobotA1DashLaunch",
+          "payload": {
+            "hero": "ROBOT",
+            "slotId": 1
+          },
+          "time": 0.26666666666666666
+        },
+        {
+          "type": "RobotA1Dash",
+          "payload": {
+            "hero": "ROBOT",
+            "slotId": 1,
+            "alias": true
+          },
+          "time": 0.26666666666666666
+        },
+        {
+          "type": "RobotA1Contact",
+          "payload": {
+            "hero": "ROBOT",
+            "weaponId": "PISTOL",
+            "slotId": 1
+          },
+          "time": 0.36666666666666664
+        }
+      ]
+    },
+    {
+      "name": "03-a1-sequence",
+      "dir": "docs/hero-rework/robot-visual-correction/proofs/03-a1-sequence",
+      "frames": [
+        {
+          "label": "recognize",
+          "x": 200,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 0,
+          "pose": {
+            "calTh": 0.06,
+            "calDx": 0,
+            "calDy": 0,
+            "spin": 0.7853981633974483,
+            "crest": -14,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0.3,
+            "glow": 1.3,
+            "seam": 0
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 0.08333333333333333,
+          "socket": {
+            "x": 200,
+            "y": 573.080504144859,
+            "angle": 0,
+            "local": {
+              "x": 0,
+              "y": 73.080504144859,
+              "a": 0
+            }
+          }
+        },
+        {
+          "label": "commit",
+          "x": 200,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 0,
+          "pose": {
+            "calTh": 0.27,
+            "calDx": -8,
+            "calDy": 0,
+            "spin": 1.5707963267948966,
+            "crest": -54,
+            "chin": 12,
+            "cheekX": -10,
+            "cheekY": 0,
+            "lid": 0.7,
+            "glow": 1.75,
+            "seam": 0
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 0.18333333333333332,
+          "socket": {
+            "x": 200,
+            "y": 577.3516003785859,
+            "angle": 0,
+            "local": {
+              "x": 0,
+              "y": 77.35160037858586,
+              "a": 0
+            }
+          }
+        },
+        {
+          "label": "launch-fresh-trail",
+          "x": 370.00000000000006,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": -4.908344922419111,
+          "pose": {
+            "calTh": 0.27,
+            "calDx": -8,
+            "calDy": 0,
+            "spin": 1.5707963267948966,
+            "crest": -54,
+            "chin": 12,
+            "cheekX": -10,
+            "cheekY": 0,
+            "lid": 0.7,
+            "glow": 1.75,
+            "seam": 0
+          },
+          "trail": 3,
+          "trailOn": true,
+          "contactT": null,
+          "time": 0.3,
+          "socket": {
+            "x": 369.34044115105,
+            "y": 577.1053070515079,
+            "angle": 0,
+            "local": {
+              "x": -0.6595588489500557,
+              "y": 77.10530705150786,
+              "a": 0
+            }
+          }
+        },
+        {
+          "label": "real-contact",
+          "x": 766.6666666666666,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": -35.93852551634795,
+          "pose": {
+            "calTh": -0.09,
+            "calDx": 12,
+            "calDy": 0,
+            "spin": 3.141592653589793,
+            "crest": -16,
+            "chin": -6,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0.35,
+            "glow": 1.4,
+            "seam": 0
+          },
+          "trail": 10,
+          "trailOn": true,
+          "contactT": 0.41666666666666663,
+          "time": 0.41666666666666663,
+          "socket": {
+            "x": 761.8374273004074,
+            "y": 577.0983966483858,
+            "angle": 0,
+            "local": {
+              "x": -4.829239366259262,
+              "y": 77.09839664838579,
+              "a": 0
+            }
+          },
+          "weapon": "PISTOL"
+        },
+        {
+          "label": "settle",
+          "x": 879.3333333333328,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 12.126033937303308,
+          "pose": {
+            "calTh": -0.05,
+            "calDx": 6,
+            "calDy": 0,
+            "spin": 3.141592653589793,
+            "crest": 0,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 10,
+          "trailOn": true,
+          "contactT": 0.41666666666666663,
+          "time": 0.6333333333333336,
+          "socket": {
+            "x": 881.0616444532974,
+            "y": 568.6359334327551,
+            "angle": 0,
+            "local": {
+              "x": 1.728311119964582,
+              "y": 68.63593343275505,
+              "a": 0
+            }
+          },
+          "weapon": "PISTOL"
+        },
+        {
+          "label": "trail-off",
+          "x": 769.0000000000007,
+          "y": 500,
+          "dir": {
+            "x": -1,
+            "y": 0
+          },
+          "tilt": 0.0619853149135705,
+          "lag": 2.7315601840192074,
+          "pose": {
+            "calTh": -0.05,
+            "calDx": 6,
+            "calDy": 0,
+            "spin": 3.141592653589793,
+            "crest": 0,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": 0.41666666666666663,
+          "time": 1.0333333333333345,
+          "socket": {
+            "x": 771.3646026361264,
+            "y": 570.5159340045411,
+            "angle": 0.1939465984478492,
+            "local": {
+              "x": 2.3646026361257215,
+              "y": 70.51593400454111,
+              "a": 0.1939465984478492
+            }
+          },
+          "weapon": "PISTOL"
+        },
+        {
+          "label": "second-cast-fresh-trail",
+          "x": 615.5814585749405,
+          "y": 573.2308073627971,
+          "dir": {
+            "x": -0.9024620083827068,
+            "y": 0.43076945507527736
+          },
+          "tilt": -0.003113480374315811,
+          "lag": 3.4718689820478943,
+          "pose": {
+            "calTh": 0.27,
+            "calDx": -8,
+            "calDy": 0,
+            "spin": 1.5707963267948966,
+            "crest": -54,
+            "chin": 12,
+            "cheekX": -10,
+            "cheekY": 0,
+            "lid": 0.7,
+            "glow": 1.75,
+            "seam": 0
+          },
+          "trail": 3,
+          "trailOn": true,
+          "contactT": null,
+          "time": 1.3333333333333335,
+          "socket": {
+            "x": 616.5002150733444,
+            "y": 649.7739114724351,
+            "angle": -0.0033229997607365624,
+            "local": {
+              "x": 0.918756498403873,
+              "y": 76.54310410963801,
+              "a": -0.0033229997607365624
+            }
+          },
+          "weapon": "PISTOL"
+        }
+      ],
+      "events": [
+        {
+          "type": "RobotA1Lock",
+          "payload": {
+            "hero": "ROBOT",
+            "target": "PISTOL",
+            "slotId": 1
+          },
+          "time": 0
+        },
+        {
+          "type": "RobotA1Acquire",
+          "payload": {
+            "hero": "ROBOT",
+            "target": "PISTOL",
+            "slotId": 1,
+            "alias": true
+          },
+          "time": 0
+        },
+        {
+          "type": "RobotA1DashLaunch",
+          "payload": {
+            "hero": "ROBOT",
+            "slotId": 1
+          },
+          "time": 0.26666666666666666
+        },
+        {
+          "type": "RobotA1Dash",
+          "payload": {
+            "hero": "ROBOT",
+            "slotId": 1,
+            "alias": true
+          },
+          "time": 0.26666666666666666
+        },
+        {
+          "type": "RobotA1Contact",
+          "payload": {
+            "hero": "ROBOT",
+            "weaponId": "PISTOL",
+            "slotId": 1
+          },
+          "time": 0.41666666666666663
+        },
+        {
+          "type": "RobotA1Lock",
+          "payload": {
+            "hero": "ROBOT",
+            "target": "PISTOL",
+            "slotId": 2
+          },
+          "time": 1.0333333333333345
+        },
+        {
+          "type": "RobotA1Acquire",
+          "payload": {
+            "hero": "ROBOT",
+            "target": "PISTOL",
+            "slotId": 2,
+            "alias": true
+          },
+          "time": 1.0333333333333345
+        },
+        {
+          "type": "RobotA1DashLaunch",
+          "payload": {
+            "hero": "ROBOT",
+            "slotId": 2
+          },
+          "time": 1.3000000000000003
+        },
+        {
+          "type": "RobotA1Dash",
+          "payload": {
+            "hero": "ROBOT",
+            "slotId": 2,
+            "alias": true
+          },
+          "time": 1.3000000000000003
+        },
+        {
+          "type": "RobotA1Contact",
+          "payload": {
+            "hero": "ROBOT",
+            "weaponId": "PISTOL",
+            "slotId": null
+          },
+          "time": 1.4166666666666665
+        }
+      ]
+    },
+    {
+      "name": "04-a2-sequence",
+      "dir": "docs/hero-rework/robot-visual-correction/proofs/04-a2-sequence",
+      "frames": [
+        {
+          "label": "index",
+          "x": 400,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 0,
+          "pose": {
+            "calTh": 0.04,
+            "calDx": 34,
+            "calDy": 0,
+            "spin": 0.7853981633974483,
+            "crest": 18,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0.26,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 0.08333333333333333,
+          "socket": {
+            "x": 400,
+            "y": 572.1579945918561,
+            "angle": 0,
+            "local": {
+              "x": 0,
+              "y": 72.15799459185607,
+              "a": 0
+            }
+          }
+        },
+        {
+          "label": "structural-lock",
+          "x": 400,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 0,
+          "pose": {
+            "calTh": 0.13,
+            "calDx": 88,
+            "calDy": 10,
+            "spin": 1.5707963267948966,
+            "crest": 58,
+            "chin": -22,
+            "cheekX": 24,
+            "cheekY": -20,
+            "lid": 0.62,
+            "glow": 1.12,
+            "seam": 0.45
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 0.2333333333333333,
+          "socket": {
+            "x": 400,
+            "y": 576.202451481046,
+            "angle": 0,
+            "local": {
+              "x": 7.105427357601002e-15,
+              "y": 76.20245148104597,
+              "a": 0
+            }
+          }
+        },
+        {
+          "label": "active",
+          "x": 400,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 0,
+          "pose": {
+            "calTh": 0.13,
+            "calDx": 88,
+            "calDy": 10,
+            "spin": 1.5707963267948966,
+            "crest": 58,
+            "chin": -22,
+            "cheekX": 24,
+            "cheekY": -20,
+            "lid": 0.62,
+            "glow": 1.12,
+            "seam": 0.45
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 0.9000000000000011,
+          "socket": {
+            "x": 400,
+            "y": 576.0789167998078,
+            "angle": 0,
+            "local": {
+              "x": 0,
+              "y": 76.0789167998078,
+              "a": 0
+            }
+          }
+        },
+        {
+          "label": "release",
+          "x": 400,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 0,
+          "pose": {
+            "calTh": 0,
+            "calDx": 0,
+            "calDy": 0,
+            "spin": 0,
+            "crest": 0,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 3.049999999999994,
+          "socket": {
+            "x": 400,
+            "y": 575.9651724656621,
+            "angle": 0,
+            "local": {
+              "x": 7.105427357601002e-15,
+              "y": 75.96517246566209,
+              "a": 0
+            }
+          }
+        },
+        {
+          "label": "settled",
+          "x": 400,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 0,
+          "pose": {
+            "calTh": 0,
+            "calDx": 0,
+            "calDy": 0,
+            "spin": 0,
+            "crest": 0,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 3.649999999999992,
+          "socket": {
+            "x": 400,
+            "y": 571.3802953783345,
+            "angle": 0,
+            "local": {
+              "x": -3.552713678800501e-15,
+              "y": 71.38029537833447,
+              "a": 0
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "type": "RobotA2Start",
+          "payload": {
+            "hero": "ROBOT",
+            "duration": 3,
+            "armorUntil": 3
+          },
+          "time": 0
+        },
+        {
+          "type": "RobotA2Activate",
+          "payload": {
+            "hero": "ROBOT",
+            "duration": 3,
+            "alias": true
+          },
+          "time": 0
+        },
+        {
+          "type": "RobotA2End",
+          "payload": {
+            "hero": "ROBOT"
+          },
+          "time": 3.0333333333333274
+        }
+      ]
+    },
+    {
+      "name": "05-a2-controlled-gunfire",
+      "dir": "docs/hero-rework/robot-visual-correction/proofs/05-a2-controlled-gunfire",
+      "frames": [
+        {
+          "label": "left-impact",
+          "x": 500,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 0,
+          "pose": {
+            "calTh": 0.13,
+            "calDx": 88,
+            "calDy": 10,
+            "spin": 1.5707963267948966,
+            "crest": 58,
+            "chin": -22,
+            "cheekX": 24,
+            "cheekY": -20,
+            "lid": 0.62,
+            "glow": 1.12,
+            "seam": 0.45
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 0.8000000000000008,
+          "socket": {
+            "x": 500,
+            "y": 576.0789167791635,
+            "angle": 0,
+            "local": {
+              "x": 3.552713678800501e-15,
+              "y": 76.07891677916346,
+              "a": 0
+            }
+          }
+        },
+        {
+          "label": "left-force-route",
+          "x": 509.33333333333337,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": -0.535636853043409,
+          "pose": {
+            "calTh": 0.13,
+            "calDx": 88,
+            "calDy": 10,
+            "spin": 1.5707963267948966,
+            "crest": 58,
+            "chin": -22,
+            "cheekX": 24,
+            "cheekY": -20,
+            "lid": 0.62,
+            "glow": 1.12,
+            "seam": 0.45
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 0.9333333333333346,
+          "socket": {
+            "x": 508.514059625685,
+            "y": 576.3181383550701,
+            "angle": -0.008407459089866476,
+            "local": {
+              "x": -0.8192737076484069,
+              "y": 76.31813835507008,
+              "a": -0.008407459089866476
+            }
+          }
+        },
+        {
+          "label": "right-impact",
+          "x": 509.81481481481484,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 0.057260178572535674,
+          "pose": {
+            "calTh": 0.13,
+            "calDx": 88,
+            "calDy": 10,
+            "spin": 1.5707963267948966,
+            "crest": 58,
+            "chin": -22,
+            "cheekX": 24,
+            "cheekY": -20,
+            "lid": 0.62,
+            "glow": 1.12,
+            "seam": 0.45
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 1.3166666666666669,
+          "socket": {
+            "x": 509.82495339116855,
+            "y": 576.0790777788363,
+            "angle": -0.0000032685009989441255,
+            "local": {
+              "x": 0.0101385763536995,
+              "y": 76.07907777883638,
+              "a": -0.0000032685009989441255
+            }
+          }
+        },
+        {
+          "label": "right-force-route",
+          "x": 500.48148148148147,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 0.539695926168122,
+          "pose": {
+            "calTh": 0.13,
+            "calDx": 88,
+            "calDy": 10,
+            "spin": 1.5707963267948966,
+            "crest": 58,
+            "chin": -22,
+            "cheekX": 24,
+            "cheekY": -20,
+            "lid": 0.62,
+            "glow": 1.12,
+            "seam": 0.45
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 1.4499999999999997,
+          "socket": {
+            "x": 501.2999118580755,
+            "y": 576.2846638083481,
+            "angle": 0.008407313206333015,
+            "local": {
+              "x": 0.8184303765940527,
+              "y": 76.28466380834816,
+              "a": 0.008407313206333015
+            }
+          }
+        },
+        {
+          "label": "release",
+          "x": 500,
+          "y": 500,
+          "dir": {
+            "x": 1,
+            "y": 0
+          },
+          "tilt": 0,
+          "lag": 4.958933748304307e-11,
+          "pose": {
+            "calTh": 0,
+            "calDx": 0,
+            "calDy": 0,
+            "spin": 0,
+            "crest": 0,
+            "chin": 0,
+            "cheekX": 0,
+            "cheekY": 0,
+            "lid": 0,
+            "glow": 1,
+            "seam": 0
+          },
+          "trail": 0,
+          "trailOn": false,
+          "contactT": -9,
+          "time": 3.3666666666666596,
+          "socket": {
+            "x": 500.0000000000162,
+            "y": 571.3041909486525,
+            "angle": 0,
+            "local": {
+              "x": 1.6196821661651484e-11,
+              "y": 71.30419094865253,
+              "a": 0
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "type": "RobotA2Start",
+          "payload": {
+            "hero": "ROBOT",
+            "duration": 3,
+            "armorUntil": 3
+          },
+          "time": 0
+        },
+        {
+          "type": "RobotA2Activate",
+          "payload": {
+            "hero": "ROBOT",
+            "duration": 3,
+            "alias": true
+          },
+          "time": 0
+        },
+        {
+          "type": "RobotA2Hit",
+          "payload": {
+            "hero": "ROBOT",
+            "amount": 31.5,
+            "reduced": 14.175,
+            "bodyId": 1,
+            "direction": {
+              "x": 0.9992724195900844,
+              "y": 0.03813963091822016
+            },
+            "point": {
+              "x": 449.515414546711,
+              "y": 481.9813939905028
+            }
+          },
+          "time": 0.8000000000000008
+        },
+        {
+          "type": "RobotA2ArmorHit",
+          "payload": {
+            "hero": "ROBOT",
+            "amount": 31.5,
+            "reduced": 14.175,
+            "bodyId": 1,
+            "alias": true
+          },
+          "time": 0.8000000000000008
+        },
+        {
+          "type": "RobotA2Hit",
+          "payload": {
+            "hero": "ROBOT",
+            "amount": 31.5,
+            "reduced": 14.175,
+            "bodyId": 1,
+            "direction": {
+              "x": -0.9999230148176994,
+              "y": -0.012408240724720599
+            },
+            "point": {
+              "x": 550.4000080736989,
+              "y": 475.4061609614563
+            }
+          },
+          "time": 1.3166666666666669
+        },
+        {
+          "type": "RobotA2ArmorHit",
+          "payload": {
+            "hero": "ROBOT",
+            "amount": 31.5,
+            "reduced": 14.175,
+            "bodyId": 1,
+            "alias": true
+          },
+          "time": 1.3166666666666669
+        },
+        {
+          "type": "RobotA2End",
+          "payload": {
+            "hero": "ROBOT"
+          },
+          "time": 3.0333333333333274
+        }
+      ]
+    }
+  ],
+  "recordedAudio": [
+    {
+      "file": "02-real-weapon-socket/sequence.webm",
+      "mean": "-33.8 dB",
+      "peak": "-4.7 dB"
+    },
+    {
+      "file": "03-a1-sequence/sequence.webm",
+      "mean": "-29.4 dB",
+      "peak": "-4.4 dB"
+    },
+    {
+      "file": "04-a2-sequence/sequence.webm",
+      "mean": "-41.0 dB",
+      "peak": "-3.1 dB"
+    },
+    {
+      "file": "05-a2-controlled-gunfire/sequence.webm",
+      "mean": "-31.7 dB",
+      "peak": "-2.9 dB"
+    },
+    {
+      "file": "sfx-no-target-passive.webm",
+      "mean": "-19.3 dB",
+      "peak": "-2.0 dB"
+    }
+  ],
+  "focusedSafety": {
+    "productionBuild": "PASS",
+    "robotR1R9": {
+      "total": 9,
+      "passed": 9,
+      "failed": []
+    },
+    "realPickupAndFire": "PASS",
+    "nonRobotBlood": "PASS",
+    "singleAudioContext": true
+  }
+}

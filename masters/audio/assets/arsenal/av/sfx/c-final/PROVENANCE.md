@@ -8,5 +8,7 @@ Recovered from the owner-approved APEX_C1_SFX_FINAL_LOCK bundle.
 - Bundle SHA-256: `cd1181a6c2957cd93dfbb32f41ad540a6918ec7eee03d34218434c0a4604ffac`
 - Gun-fire baseline remains the previously approved `cz / sks / shotty / mosin` set.
 - These files replace the old Kenney/RPG/scifi fallback layers for the weapon events covered by the final lock.
-- Full source masters stay outside Git. Only the approved trimmed runtime WAVs are materialized here.
+- Delivery format: the game ships MP3 conversions from public/assets/arsenal/av/sfx/c-final/;
+  these PCM WAV masters live under masters/audio/ and are never served to players.
+- Full source masters stay outside Git. Only the approved trimmed WAV masters are materialized here.
 - Preserve the original source/Sonniss licensing records; do not treat these runtime extracts as a standalone sound library.

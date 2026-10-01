@@ -430,7 +430,30 @@
         startMatch();
       }
     });
-    if (layer.id === 'exit-button') btn.addEventListener('click', () => goToMenu());
+    if (layer.id === 'exit-button') btn.addEventListener('click', () => {
+      // PASS A §4.2: inside Arsenal the Hub is the navigation root — the
+      // Free Battle picker must visibly return there, the Quest P1 picker
+      // returns to the Quest Map it came from. Normal (non-Arsenal) picks
+      // keep exiting to the global Main Menu exactly as before.
+      const arsenalFree = window.__apexArsenalFreeBattle === true;
+      const arsenalQuest = window.__apexArsenalQuestPick === true;
+      if (!arsenalFree && !arsenalQuest) { goToMenu(); return; }
+      window.__apexArsenalSelectPending = false;
+      window.__apexArsenalFreeBattle = false;
+      window.__apexArsenalQuestPick = false;
+      goToMenu();
+      if (arsenalFree) {
+        const M = window.APEX_ARSENAL_META;
+        if (M && typeof M.openHub === 'function') M.openHub();
+      } else {
+        const Q = window.APEX_ARSENAL_QUEST;
+        if (Q && typeof Q.returnToMap === 'function') Q.returnToMap();
+        else {
+          const M = window.APEX_ARSENAL_META;
+          if (M && typeof M.openHub === 'function') M.openHub();
+        }
+      }
+    });
     if (layer.id === 'music-button') btn.addEventListener('click', () => togglePickMusic());
     if (layer.id === 'fullscreen-button') btn.addEventListener('click', () => toggleFullscreen());
     refs.set(layer.id, btn);

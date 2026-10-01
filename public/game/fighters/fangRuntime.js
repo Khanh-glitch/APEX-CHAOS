@@ -21,10 +21,10 @@
   const imageNames=['selectionVisual','selectionButton','howlRing','biteMark','moonIcon','sunIcon','speckBlood','speckMoon','speckSun','huntMistBack','huntMistMid','huntMistFront','trailMist'];
   const images=Object.fromEntries(imageNames.map(k=>{const img=new Image();img.decoding='async';const mist=/^(huntMist|trailMist)/.test(k)?'?v=fog-v4':'';img.src=ROOT+k+'.webp'+mist;return [k,img];}));
   const audioFiles={
-    collisionBite:ROOT+'audio/collisionBite.wav', huntingPounce:ROOT+'audio/huntingPounce.wav',
-    postCollisionRoar:ROOT+'audio/postCollisionRoar.wav', huntRunStep:ROOT+'audio/huntRunStep.wav',
-    sniff:ROOT+'audio/sniff.wav', huntStart:ROOT+'audio/huntStart.wav', wallRebound:ROOT+'audio/wallRebound.wav',
-    howl:ROOT+'audio/howl.mp3', heavyImpact:ROOT+'audio/heavyImpact.wav'
+    collisionBite:ROOT+'audio/collisionBite.mp3', huntingPounce:ROOT+'audio/huntingPounce.mp3',
+    postCollisionRoar:ROOT+'audio/postCollisionRoar.mp3', huntRunStep:ROOT+'audio/huntRunStep.mp3',
+    sniff:ROOT+'audio/sniff.mp3', huntStart:ROOT+'audio/huntStart.mp3', wallRebound:ROOT+'audio/wallRebound.mp3',
+    howl:ROOT+'audio/howl.mp3', heavyImpact:ROOT+'audio/heavyImpact.mp3'
   };
   const sounds={},soundPools={};
   const state={afterimages:[],marks:[],rings:[],particles:[],seed:0x46a91d2b,lastHeavyBlock:null,huntMist:null};

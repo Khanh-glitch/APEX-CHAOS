@@ -5,7 +5,12 @@ import { inflateRawSync } from 'node:zlib';
 
 const ROOT = process.cwd();
 const ZIP_PATH = path.join(ROOT, 'tools/arsenal-assets/source/sfx/final-lock/APEX_C1_SFX_FINAL_LOCK.zip');
-const OUT_ROOT = path.join(ROOT, 'public/assets/arsenal/av/sfx/c-final');
+// The final-lock WAVs are PCM masters, not runtime delivery assets (the game
+// ships the lossy c-final MP3 conversions from public/assets/arsenal/av/sfx/).
+// They are materialized into masters/audio/ so chained scripts (dev/build/test)
+// can never re-inflate WAV masters into public/ (audio delivery policy:
+// tools/audioDeliveryPolicy.mjs SOURCE_MASTER).
+const OUT_ROOT = path.join(ROOT, 'masters/audio/assets/arsenal/av/sfx/c-final');
 const AV_MANIFEST = path.join(ROOT, 'public/assets/arsenal/av/MANIFEST.csv');
 const EXPECTED_ZIP_SHA256 = 'cd1181a6c2957cd93dfbb32f41ad540a6918ec7eee03d34218434c0a4604ffac';
 
@@ -108,7 +113,9 @@ const provenance = [
   '- Bundle SHA-256: `' + EXPECTED_ZIP_SHA256 + '`',
   '- Gun-fire baseline remains the previously approved `cz / sks / shotty / mosin` set.',
   '- These files replace the old Kenney/RPG/scifi fallback layers for the weapon events covered by the final lock.',
-  '- Full source masters stay outside Git. Only the approved trimmed runtime WAVs are materialized here.',
+  '- Delivery format: the game ships MP3 conversions from public/assets/arsenal/av/sfx/c-final/;',
+  '  these PCM WAV masters live under masters/audio/ and are never served to players.',
+  '- Full source masters stay outside Git. Only the approved trimmed WAV masters are materialized here.',
   '- Preserve the original source/Sonniss licensing records; do not treat these runtime extracts as a standalone sound library.',
   ''
 ].join('\n');
@@ -117,10 +124,13 @@ fs.writeFileSync(path.join(OUT_ROOT, 'PROVENANCE.md'), provenance);
 let rows = fs.existsSync(AV_MANIFEST)
   ? fs.readFileSync(AV_MANIFEST, 'utf8').trimEnd().split(/\r?\n/)
   : ['path,bytes,sha256'];
+// public/ ships the c-final MP3 conversions only; keep WAV-master rows out of
+// the public AV manifest and record them in the masters/ inventory instead.
 rows = rows.filter((line, i) => i === 0 || !line.includes('/sfx/c-final/'));
-for (const x of generated.sort((a,b) => a.rel.localeCompare(b.rel))) {
-  const repoPath = path.relative(ROOT, x.out).split(path.sep).join('/');
-  rows.push(repoPath + ',' + x.bytes + ',' + x.sha);
-}
 fs.writeFileSync(AV_MANIFEST, rows.join('\n') + '\n');
-console.log('Materialized ' + generated.length + ' owner-approved final-lock SFX files.');
+const mastersManifest = ['path,bytes,sha256'];
+for (const x of generated.sort((a,b) => a.rel.localeCompare(b.rel))) {
+  mastersManifest.push('masters/audio/assets/arsenal/av/sfx/c-final/' + x.rel + ',' + x.bytes + ',' + x.sha);
+}
+fs.writeFileSync(path.join(OUT_ROOT, 'MANIFEST.csv'), mastersManifest.join('\n') + '\n');
+console.log('Materialized ' + generated.length + ' owner-approved final-lock SFX files (masters/audio, outside public/).');

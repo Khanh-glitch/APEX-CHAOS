@@ -58,17 +58,17 @@
   for (const [key, file] of Object.entries(FILES)) load(key, file);
   const AUDIO_ROOT = ROOT + 'audio/';
   const AUDIO_FILES = {
-    buildStart:'build_Construction_sound.wav',
-    buildDone:'building_completed_sound.wav',
-    destroyed:'construction_destroyed.wav',
-    mergeStart:'lv_up_or_fushion_on_processing.wav',
-    mergeDone:'lv_up_and_fushion_completed_sound.wav',
-    warMerge:'WARMACHINE_FUSHION_WITH_ENGINEER_sfx.wav',
-    turretFire:'turret_firing.wav',
-    rocketFire:'rocket_fire.wav',
-    mineLand:'mine_landing.wav',
-    explosion:'mine_and_rocket_explosion.wav',
-    warLaser:'war_machine_normal_and_fushion_fire.wav'
+    buildStart:'build_Construction_sound.mp3',
+    buildDone:'building_completed_sound.mp3',
+    destroyed:'construction_destroyed.mp3',
+    mergeStart:'lv_up_or_fushion_on_processing.mp3',
+    mergeDone:'lv_up_and_fushion_completed_sound.mp3',
+    warMerge:'WARMACHINE_FUSHION_WITH_ENGINEER_sfx.mp3',
+    turretFire:'turret_firing.mp3',
+    rocketFire:'rocket_fire.mp3',
+    mineLand:'mine_landing.mp3',
+    explosion:'mine_and_rocket_explosion.mp3',
+    warLaser:'war_machine_normal_and_fushion_fire.mp3'
   };
   const engineerAudio = {};
   const engineerAudioPools = {};

@@ -23,6 +23,7 @@
     SPIKED_CLUB:  { tag: 'CLB', color: '#e6c9ff' },
     SWIRL_SHIELD: { tag: 'SWL', color: '#9fe8ff' },
     TOWER_SHIELD: { tag: 'TWR', color: '#9fd8ff' },
+    STORMBREAKER: { tag: 'STB', color: '#8fd8ff' },
   };
 
   function pickSpawnPoint(slots) {
@@ -117,7 +118,7 @@
 
   function trySpawnSlot(opts) {
     const state = AQ.state;
-    if (!state) return null;
+    if (!state || state.labMode) return null; // Lab requests use spawnLabWeapon only.
     const active = state.slots.filter(s => s.phase !== 'REMOVED' && s.kind !== 'HEAL');
     if (active.length >= CFG.MAX_ACTIVE_SLOTS) {
       state.suppressedSpawns += 1;
@@ -148,6 +149,33 @@
     state.spawnedTotal += 1;
     log('SPAWN_SLOT', `id=${slot.id} x=${Math.round(slot.x)} y=${Math.round(slot.y)} lead=${slot.revealLeadSeconds.toFixed(2)}`);
     window.avCue('telegraph', { x: slot.x, y: slot.y });
+    return slot;
+  }
+
+  // Lab-only exact-ID request. All normal pickup/equip/attack handling below
+  // remains unchanged; this bypasses only the random/telegraph creation path.
+  function spawnLabWeapon(weaponId) {
+    const state = AQ.state;
+    if (!state || !state.active || !state.labMode || !(CFG.P0_WEAPON_IDS || []).includes(weaponId)) return null;
+    const active = state.slots.filter((s) => s.phase !== 'REMOVED');
+    if (active.length >= CFG.LAB_MANUAL_SLOT_CAP) return null;
+    // Reuse the existing arena-margin/spacing sampler, treating live fighters
+    // as occupied points as well: tapping a weapon must not auto-vacuum it on
+    // the same frame before the owner can see the revealed pickup.
+    const occupied = active.concat((typeof fighters !== 'undefined' ? fighters : [])
+      .filter((f) => f && f.hp > 0).map((f) => ({ x: f.x, y: f.y })));
+    const point = pickSpawnPoint(occupied);
+    const slot = {
+      id: state.nextSlotId++, x: point.x, y: point.y,
+      phase: 'REVEALED', weaponId,
+      tier: CFG.tierOf ? CFG.tierOf(weaponId) : null,
+      revealedFor: 0, pickedBy: null, rejectedFor: {},
+      spawnTime: state.time,
+    };
+    state.slots.push(slot);
+    state.spawnedTotal += 1;
+    state.maxActiveSlots = Math.max(state.maxActiveSlots || 0, state.slots.length);
+    log('LAB_SPAWN', `id=${slot.id} weapon=${weaponId} x=${Math.round(slot.x)} y=${Math.round(slot.y)}`);
     return slot;
   }
 
@@ -203,10 +231,14 @@
     return ids[ids.length - 1];
   }
 
+  // ARSENAL LAB V1 — owner law: in the Lab there is NO automatic spawning at
+  // all (no offensive cadence, no emergency firearm, NO heal). Equipment
+  // exists on the floor only after the owner taps a weapon in the lab panel.
   function trySpawnHealSupport() {
     const state = AQ.state;
     const feel = window.APEX_ARSENAL_FEEL;
     if (!state || !feel || !feel.healGameplayEnabled) return null;
+    if (state.labMode) return null;
     if (state.spawnHeld) return null;
     if ((state.healCooldown || 0) > 0) return null;
     const activeHeal = state.slots.filter((s) => s.kind === 'HEAL' && s.phase !== 'REMOVED');
@@ -325,10 +357,32 @@
 
   // A revealed floor pickup is collected by the first living UNARMED fighter
   // whose collision volume overlaps it.
+  // Shared tier-color rgba helper (B5/B12): parse CFG.TIER_COLORS hex once.
+  const tierRgbCache = {};
+  function tierRgba(tier, alpha) {
+    const hex = (CFG.TIER_COLORS && CFG.TIER_COLORS[tier]) || '#C9D0D7';
+    let rgb = tierRgbCache[hex];
+    if (!rgb) {
+      const n = parseInt(hex.slice(1), 16);
+      rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      tierRgbCache[hex] = rgb;
+    }
+    return 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + alpha.toFixed(3) + ')';
+  }
+  // B5 evidence counter (gates assert the treatment actually draws).
+  const redTierStats = { draws: 0 };
+
   function resolvePickups() {
     const state = AQ.state;
     if (!state) return;
     const weaponApi = AQ.weaponApi;
+    // HERO REWORK (doc-06): audited body-aware pickup actors — SLIME child
+    // Bodies may physically collect pickups but never join fighters[].
+    // Without the rework layer this is exactly the base fighters array.
+    const pickupActorList = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.pickupActors)
+      ? window.APEX_HERO_REWORK.pickupActors()
+      : undefined;
+    const actors = pickupActorList || fighters;
 
     for (const slot of state.slots) {
       if (slot.phase !== 'REVEALED' && slot.phase !== 'COUNTER_RESERVED') continue;
@@ -337,7 +391,7 @@
 
       if (slot.kind === 'HEAL') {
         const maxHp = CFG.MATCH_HP || 100;
-        for (const f of fighters) {
+        for (const f of actors) { // HERO REWORK doc-06 body-aware actors
           if (!f || f.hp <= 0) continue;
           const cap = f.maxHp || maxHp;
           if (f.hp >= cap) {
@@ -371,10 +425,16 @@
         continue;
       }
 
-      for (const f of fighters) {
+      for (const f of actors) { // HERO REWORK doc-06 body-aware actors
         if (!f || f.hp <= 0) continue;
         const d = dist(f.x, f.y, slot.x, slot.y);
         if (d > pickupTouchRadius(f)) continue;
+        // FROST V1 (authority §4.3): a Frozen firearm denies non-Frost
+        // collectors. Dynamic denial only — never a rejected/blacklist mark.
+        if (slot.__frostFrozen) {
+          const FR = window.APEX_FROST;
+          if (FR && FR.deniesPickup && FR.deniesPickup(slot, f)) continue;
+        }
         if (slot.phase === 'COUNTER_RESERVED' && slot.reservedFor !== f.id) {
           if (!slot.rejectedFor[f.id]) {
             slot.rejectedFor[f.id] = true;
@@ -397,6 +457,12 @@
       slot.pickedBy = closest.name;
       weaponApi.equip(closest, slot.weaponId);
       const hold = weaponApi.getHolder(closest);
+      // FROST V1 (authority §4.3/§5): Frozen state carries onto the real
+      // holder and persists until that holder is consumed.
+      if (slot.__frostFrozen && hold) {
+        const FR = window.APEX_FROST;
+        if (FR && FR.noteFrozenPickup) FR.noteFrozenPickup(closest, hold, slot);
+      }
       if (hold && hold.meta) {
         if (slot.boundWeaponId) hold.meta.boundWeaponId = slot.boundWeaponId;
         if (slot.boundOwnerId != null) hold.meta.boundOwnerId = slot.boundOwnerId;
@@ -505,18 +571,51 @@
       ctx.save();
       ctx.translate(slot.x, slot.y);
 
+      // B5: red-tier floor shadow — soft rarity pool + thin rim under an
+      // exceptional item. Semantic: keyed off slot.tier === 'T6', so any
+      // future red-tier slot inherits the treatment unchanged. Colors come
+      // from the shared CFG.TIER_COLORS authority (no magic hex here).
+      if (slot.phase === 'REVEALED' && slot.tier === 'T6') {
+        redTierStats.draws += 1;
+        const spec = (CFG.TIER_GLOW && CFG.TIER_GLOW.T6) || { rx: 78, ry: 22, a: 0.72 };
+        const pulse = 0.5 + 0.5 * Math.sin(t * 1.9 + slot.id);
+        const rx = spec.rx * (0.94 + 0.06 * pulse);
+        const ry = spec.ry * (0.94 + 0.06 * pulse);
+        ctx.save();
+        ctx.translate(0, 26); // ground plane — does NOT bob with the item
+        ctx.globalAlpha = 0.55 + 0.2 * pulse;
+        ctx.fillStyle = tierRgba('T6', 0.34 + 0.10 * pulse);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rx, ry, 0, 0, TAU);
+        ctx.fill();
+        ctx.globalAlpha = 0.5 + 0.22 * pulse;
+        ctx.strokeStyle = tierRgba('T6', 0.55);
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rx * 0.99, ry * 0.99, 0, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+      }
+
       if (slot.kind === 'HEAL' && slot.phase === 'REVEALED') {
-        const bob = Math.sin(t * 3.1 + slot.id) * 4;
+        const bob = slot.weaponId === 'STORMBREAKER'
+        ? Math.sin(t * 2.6) * 2
+        : Math.sin(t * 3.1 + slot.id) * 4;
         const pulse = 0.5 + 0.5 * Math.sin(t * 2.2 + slot.id);
+        // B12: heal floor shadow/glow reads BY TIER through the shared
+        // tier-color authority (H1..H5 -> T1..T5). The heal item art itself
+        // is NOT recolored — only the floor rarity language.
+        const hTier = (CFG.HEAL_TIER && CFG.HEAL_TIER[slot.weaponId]) || 'T2';
+        const hGlow = (CFG.TIER_GLOW && CFG.TIER_GLOW[hTier]) || CFG.TIER_GLOW.T2;
         const well = contactWell('heal');
         ctx.save();
         ctx.translate(0, bob + 18);
         ctx.globalAlpha = 0.9;
         ctx.drawImage(well.canvas, -well.ox, -well.oy + 6);
-        ctx.globalAlpha = 0.28 + 0.18 * pulse;
-        ctx.fillStyle = 'rgba(56,224,122,0.55)';
+        ctx.globalAlpha = 0.24 + 0.20 * pulse;
+        ctx.fillStyle = tierRgba(hTier, 0.42 + hGlow.a * 0.35);
         ctx.beginPath();
-        ctx.ellipse(0, 8, 28 + pulse * 4, 10, 0, 0, TAU);
+        ctx.ellipse(0, 8, 20 + hGlow.rx * 0.42 + pulse * 3, 8 + hGlow.ry * 0.34, 0, 0, TAU);
         ctx.fill();
         ctx.restore();
         ctx.globalAlpha = 1;
@@ -583,12 +682,16 @@
         const bob = Math.sin(t * 3.1 + slot.id) * 4;
         const glow = (CFG.TIER_COLORS && slot.tier && CFG.TIER_COLORS[slot.tier]) || null;
         const glowSpec = (CFG.TIER_GLOW && slot.tier && CFG.TIER_GLOW[slot.tier]) || { rx: 34, ry: 10, a: 0.35, pulse: 0 };
-        const well = contactWell('gun');
-        ctx.save();
-        ctx.translate(0, bob + 22);
-        ctx.drawImage(well.canvas, -well.ox, -well.oy + 4);
-        ctx.restore();
-        if (glow) {
+        // Stormbreaker V9 owns its floor aura/rings. The generic contact well
+        // and tier halo were not present in the approved executable reference.
+        if (slot.weaponId !== 'STORMBREAKER') {
+          const well = contactWell('gun');
+          ctx.save();
+          ctx.translate(0, bob + 22);
+          ctx.drawImage(well.canvas, -well.ox, -well.oy + 4);
+          ctx.restore();
+        }
+        if (glow && slot.weaponId !== 'STORMBREAKER') {
           const pulse = 0.5 + 0.5 * Math.sin(t * (1.4 + glowSpec.pulse * 4) + slot.id);
           const q = Math.max(0, Math.min(7, pulse * 7 + 0.5 | 0));
           const sprite = raritySprite(slot.tier, glow, glowSpec, q);
@@ -607,10 +710,14 @@
         const table = (CFG.FIREARM_LONG_SIDE) || {};
         const mul = (CFG.FIREARM_DISPLAY_MODE && CFG.FIREARM_DISPLAY_MODE.floor) || 0.92;
         const gunLong = table[slot.weaponId] ? table[slot.weaponId] * mul : 118;
+        const stormLong = slot.weaponId === 'STORMBREAKER'
+          ? ((CFG.STORMBREAKER && CFG.STORMBREAKER.spawnLongSide) || 261)
+          : null;
         const drawn = !!(av && av.drawWeaponSprite && av.drawWeaponSprite(ctx, slot.weaponId, 0, 0, {
           mode: 'floor',
           useWorld: false,
-          targetLongSide: slot.weaponId === 'GRENADE' ? 56 : gunLong,
+          angle: slot.weaponId === 'STORMBREAKER' ? CFG.STORMBREAKER.floorAngleRad : 0,
+          targetLongSide: slot.weaponId === 'GRENADE' ? 56 : (stormLong || gunLong),
           alpha: 1,
         }));
         if (!drawn) drawDebugMissingWeapon(ctx, slot.weaponId);
@@ -622,6 +729,7 @@
 
   window.APEX_ARSENAL_SPAWN = {
     trySpawnSlot,
+    spawnLabWeapon,
     selectFirearmWeapon,
     trySpawnHealSupport,
     selectHealId,
@@ -634,6 +742,12 @@
     weightFor,
     PLACEHOLDER_ART,
     rarityStats,
+    redTierStats,
+    healShadowSpec: (id) => {
+      const tier = (CFG.HEAL_TIER && CFG.HEAL_TIER[id]) || 'T2';
+      const glow = (CFG.TIER_GLOW && CFG.TIER_GLOW[tier]) || CFG.TIER_GLOW.T2;
+      return { id, tier, color: (CFG.TIER_COLORS && CFG.TIER_COLORS[tier]) || null, glow };
+    },
   };
   window.apexArsenalSpawnRuntime = 'ready';
 })();

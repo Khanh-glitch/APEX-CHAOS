@@ -1,0 +1,210 @@
+{
+  "label": "run",
+  "appUrl": "http://127.0.0.1:4173",
+  "sampledForMs": 10000,
+  "startedAtPageMs": 810,
+  "frames": {
+    "samples": 433,
+    "avgMs": 18.51,
+    "medianMs": 16.7,
+    "p95Ms": 16.8,
+    "p99Ms": 100,
+    "maxMs": 166.7,
+    "fps": 54,
+    "slowFrames": 9,
+    "buckets": {
+      "le16_7": 407,
+      "gt16_7_20": 17,
+      "gt20_25": 0,
+      "gt25_33": 0,
+      "gt33_50": 0,
+      "gt50": 9
+    },
+    "bucketPct": {
+      "le16_7": 94,
+      "gt16_7_20": 3.9,
+      "gt20_25": 0,
+      "gt25_33": 0,
+      "gt33_50": 0,
+      "gt50": 2.1
+    }
+  },
+  "longTasks": {
+    "count": 7,
+    "totalMs": 769,
+    "longestMs": 134,
+    "withOverlap": [
+      {
+        "atMs": 2376.7,
+        "durationMs": 66,
+        "overlappingRuntimes": [
+          "arsenalStormbreakerVfxRuntime.js"
+        ]
+      },
+      {
+        "atMs": 3346.1,
+        "durationMs": 91,
+        "overlappingRuntimes": []
+      },
+      {
+        "atMs": 3562.6,
+        "durationMs": 119,
+        "overlappingRuntimes": []
+      },
+      {
+        "atMs": 3813.6,
+        "durationMs": 131,
+        "overlappingRuntimes": []
+      },
+      {
+        "atMs": 4064.5,
+        "durationMs": 113,
+        "overlappingRuntimes": []
+      },
+      {
+        "atMs": 4295.6,
+        "durationMs": 134,
+        "overlappingRuntimes": []
+      },
+      {
+        "atMs": 4545.5,
+        "durationMs": 115,
+        "overlappingRuntimes": []
+      }
+    ]
+  },
+  "inputLatency": {
+    "pointermove": {
+      "samples": 50,
+      "median": 0.1,
+      "p95": 1.1,
+      "max": 1.2,
+      "over50ms": 0
+    },
+    "pointerdown": {
+      "samples": 25,
+      "median": 14.7,
+      "p95": 20.8,
+      "max": 411,
+      "over50ms": 1
+    },
+    "wheelOrKey": {
+      "samples": 16,
+      "median": 0.1,
+      "p95": 390.3,
+      "max": 390.3,
+      "over50ms": 1
+    }
+  },
+  "menuButtonActionMs": 6,
+  "warmupGroupsReadyAtPageMs": {
+    "arsenalQuest": 4189,
+    "select": 4999
+  },
+  "bootPhases": [
+    {
+      "name": "metrics-ready",
+      "atMs": 0
+    },
+    {
+      "name": "boot-start",
+      "atMs": 62.3
+    },
+    {
+      "name": "engine-ready",
+      "atMs": 120.2
+    },
+    {
+      "name": "menu-runtime-ready",
+      "atMs": 163.9
+    },
+    {
+      "name": "critical-shell-ready",
+      "atMs": 538.4
+    },
+    {
+      "name": "interactive",
+      "atMs": 538.5
+    },
+    {
+      "name": "menu-interactive",
+      "atMs": 538.5
+    },
+    {
+      "name": "warmup-start",
+      "atMs": 969.6
+    },
+    {
+      "name": "loader-hidden",
+      "atMs": 982.7
+    },
+    {
+      "name": "warmup-end",
+      "atMs": 3039.4
+    }
+  ],
+  "interactiveMs": 538.5,
+  "loaderHiddenMs": 982.6,
+  "gates": {
+    "menu-longtask-count": {
+      "pass": true,
+      "value": 7,
+      "baseline": 15,
+      "limit": 10
+    },
+    "menu-longtask-longest-ms": {
+      "pass": true,
+      "value": 134,
+      "baseline": 1078,
+      "limit": 250
+    },
+    "menu-longtask-total-ms": {
+      "pass": true,
+      "value": 769,
+      "baseline": 1695,
+      "limit": 1300
+    },
+    "menu-pointerdown-median-ms": {
+      "pass": true,
+      "value": 14.7,
+      "baseline": 14.5,
+      "limit": 30
+    },
+    "menu-pointerdown-p95-ms": {
+      "pass": true,
+      "value": 20.8,
+      "baseline": 328.3,
+      "limit": 500
+    },
+    "menu-pointerdown-over-50ms": {
+      "pass": true,
+      "value": 1,
+      "baseline": 2,
+      "limit": 5
+    },
+    "menu-frame-p95-ms": {
+      "pass": true,
+      "value": 16.8,
+      "baseline": 50,
+      "limit": 40
+    },
+    "menu-frame-samples": {
+      "pass": true,
+      "value": 433,
+      "baseline": 292,
+      "limit": 300
+    },
+    "menu-legacy-groups-not-warm": {
+      "pass": true,
+      "value": {
+        "arsenalQuest": 4189,
+        "select": 4999
+      }
+    }
+  },
+  "summary": {
+    "total": 9,
+    "passed": 9,
+    "failed": []
+  }
+}

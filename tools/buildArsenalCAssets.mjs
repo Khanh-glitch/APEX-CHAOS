@@ -354,6 +354,29 @@ const BESPOKE = [
 ];
 
 // ---------------------------------------------------------------------------
+// STORMBREAKER (first red-tier weapon) — owner-approved art is an EXACT
+// derivative, never redrawn. The approved asset is authored with the long
+// axis horizontal (axe/hammer head left, pommel right); the canonical
+// runtime convention for melee sprites is upright (long axis -Y, head up —
+// same as BATTLE_AXE). This step rotates the approved PNG 90° clockwise
+// (identity-preserving: same pixels, new orientation) into the portrait
+// runtime derivative. Source of truth: docs/owner-locks/stormbreaker-v1/
+// 01_STORMBREAKER_APPROVED_ASSET.png (SHA256 b413a028…30a6782d657).
+// ---------------------------------------------------------------------------
+const STORMBREAKER_SOURCE = path.join(REPO, 'docs/owner-locks/stormbreaker-v1/01_STORMBREAKER_APPROVED_ASSET.png');
+async function buildStormbreaker() {
+  const img = await loadImage(STORMBREAKER_SOURCE);
+  const w = img.width, h = img.height;
+  const c = createCanvas(h, w); // 90° clockwise: new W = old H
+  const x = c.getContext('2d');
+  x.translate(h, 0);
+  x.rotate(Math.PI / 2);
+  x.drawImage(img, 0, 0);
+  fs.writeFileSync(path.join(OUT_WEAPONS, 'STORMBREAKER.png'), c.toBuffer('image/png'));
+  return { id: 'STORMBREAKER', file: `weapons/c/STORMBREAKER.png`, w: h, h: w };
+}
+
+// ---------------------------------------------------------------------------
 // Muzzle flash recolor — red/orange/yellow toon family -> rust/amber/warm-white.
 // ---------------------------------------------------------------------------
 function recolorFlash(srcFile, outName) {
@@ -420,6 +443,7 @@ async function main() {
     fs.writeFileSync(path.join(OUT_WEAPONS, `${b.id}.png`), buf);
     manifest.weapons[b.id] = { id: b.id, file: `weapons/c/${b.id}.png`, w: b.w, h: b.h };
   }
+  manifest.weapons.STORMBREAKER = await buildStormbreaker();
   // Kenney (CC0) smoke/spark support layers, served from the AV root.
   const KENNEY_OUT = path.join(REPO, 'public/assets/arsenal/av/vfx/kenney');
   fs.mkdirSync(KENNEY_OUT, { recursive: true });

@@ -1,0 +1,1590 @@
+{
+  "events": [
+    {
+      "frame": 96,
+      "type": "Cast",
+      "payload": {
+        "hero": "HUNTER",
+        "slot": "A1",
+        "mechanic": "hunter.snare",
+        "source": "p1"
+      }
+    },
+    {
+      "frame": 104,
+      "type": "SnarePlaced",
+      "payload": {
+        "id": 1,
+        "x": 554,
+        "y": 300
+      }
+    },
+    {
+      "frame": 122,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "armed"
+      }
+    },
+    {
+      "frame": 132,
+      "type": "Cast",
+      "payload": {
+        "hero": "HUNTER",
+        "slot": "A1",
+        "mechanic": "hunter.snare",
+        "source": "p1"
+      }
+    },
+    {
+      "frame": 140,
+      "type": "SnarePlaced",
+      "payload": {
+        "id": 2,
+        "x": 496.00000000000034,
+        "y": 500
+      }
+    },
+    {
+      "frame": 158,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 2,
+        "phase": "armed"
+      }
+    },
+    {
+      "frame": 168,
+      "type": "Cast",
+      "payload": {
+        "hero": "HUNTER",
+        "slot": "A1",
+        "mechanic": "hunter.snare",
+        "source": "p1"
+      }
+    },
+    {
+      "frame": 176,
+      "type": "SnarePlaced",
+      "payload": {
+        "id": 3,
+        "x": 400,
+        "y": 616.0000000000005
+      }
+    },
+    {
+      "frame": 194,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 3,
+        "phase": "armed"
+      }
+    },
+    {
+      "frame": 204,
+      "type": "WeakApplied",
+      "payload": {
+        "combatant": "ICE",
+        "duration": 1,
+        "remaining": 1
+      }
+    },
+    {
+      "frame": 204,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "tension"
+      }
+    },
+    {
+      "frame": 204,
+      "type": "SnareTriggered",
+      "payload": {
+        "id": 1,
+        "target": 2,
+        "root": 1.25
+      }
+    },
+    {
+      "frame": 207,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "snap"
+      }
+    },
+    {
+      "frame": 218,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "pin"
+      }
+    },
+    {
+      "frame": 242,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "release"
+      }
+    },
+    {
+      "frame": 253,
+      "type": "WeakApplied",
+      "payload": {
+        "combatant": "ICE",
+        "duration": 1,
+        "remaining": 1
+      }
+    },
+    {
+      "frame": 253,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 2,
+        "phase": "tension"
+      }
+    },
+    {
+      "frame": 253,
+      "type": "SnareTriggered",
+      "payload": {
+        "id": 2,
+        "target": 2,
+        "root": 1.25
+      }
+    },
+    {
+      "frame": 256,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 2,
+        "phase": "snap"
+      }
+    },
+    {
+      "frame": 267,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 2,
+        "phase": "pin"
+      }
+    },
+    {
+      "frame": 290,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 2,
+        "phase": "release"
+      }
+    },
+    {
+      "frame": 355,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 3,
+        "phase": "release"
+      }
+    },
+    {
+      "frame": 780,
+      "type": "Cast",
+      "payload": {
+        "hero": "HUNTER",
+        "slot": "A2",
+        "mechanic": "hunter.pounce_weak",
+        "source": "p1"
+      }
+    },
+    {
+      "frame": 789,
+      "type": "WeakApplied",
+      "payload": {
+        "combatant": "ICE",
+        "duration": 1,
+        "remaining": 1
+      }
+    },
+    {
+      "frame": 789,
+      "type": "PounceWeak",
+      "payload": {
+        "hero": "HUNTER",
+        "target": 2,
+        "directDamage": 0,
+        "swept": true,
+        "stun": 2,
+        "weak": 1
+      }
+    },
+    {
+      "frame": 1140,
+      "type": "Cast",
+      "payload": {
+        "hero": "HUNTER",
+        "slot": "A2",
+        "mechanic": "hunter.pounce_weak",
+        "source": "p1"
+      }
+    },
+    {
+      "frame": 1149,
+      "type": "WeakApplied",
+      "payload": {
+        "combatant": "ICE",
+        "duration": 1,
+        "remaining": 1
+      }
+    },
+    {
+      "frame": 1149,
+      "type": "PounceWeak",
+      "payload": {
+        "hero": "HUNTER",
+        "target": 2,
+        "directDamage": 0,
+        "swept": true,
+        "stun": 2,
+        "weak": 1
+      }
+    },
+    {
+      "frame": 1440,
+      "type": "Cast",
+      "payload": {
+        "hero": "HUNTER",
+        "slot": "A1",
+        "mechanic": "hunter.snare",
+        "source": "p1"
+      }
+    },
+    {
+      "frame": 1448,
+      "type": "SnarePlaced",
+      "payload": {
+        "id": 1,
+        "x": 314.56185982828055,
+        "y": 882.6066439937281
+      }
+    },
+    {
+      "frame": 1466,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "armed"
+      }
+    },
+    {
+      "frame": 1500,
+      "type": "Cast",
+      "payload": {
+        "hero": "HUNTER",
+        "slot": "A1",
+        "mechanic": "hunter.snare",
+        "source": "p1"
+      }
+    },
+    {
+      "frame": 1508,
+      "type": "SnarePlaced",
+      "payload": {
+        "id": 2,
+        "x": 155.36811689712985,
+        "y": 922.5478065275994
+      }
+    },
+    {
+      "frame": 1514,
+      "type": "WeakApplied",
+      "payload": {
+        "combatant": "ICE",
+        "duration": 1,
+        "remaining": 1
+      }
+    },
+    {
+      "frame": 1514,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 2,
+        "phase": "tension"
+      }
+    },
+    {
+      "frame": 1514,
+      "type": "SnareTriggered",
+      "payload": {
+        "id": 2,
+        "target": 2,
+        "root": 1.25
+      }
+    },
+    {
+      "frame": 1518,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 2,
+        "phase": "snap"
+      }
+    },
+    {
+      "frame": 1528,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 2,
+        "phase": "pin"
+      }
+    },
+    {
+      "frame": 1552,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 2,
+        "phase": "release"
+      }
+    },
+    {
+      "frame": 1560,
+      "type": "Cast",
+      "payload": {
+        "hero": "HUNTER",
+        "slot": "A2",
+        "mechanic": "hunter.pounce_weak",
+        "source": "p1"
+      }
+    },
+    {
+      "frame": 1563,
+      "type": "WeakApplied",
+      "payload": {
+        "combatant": "ICE",
+        "duration": 1,
+        "remaining": 1
+      }
+    },
+    {
+      "frame": 1563,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "tension"
+      }
+    },
+    {
+      "frame": 1563,
+      "type": "SnareTriggered",
+      "payload": {
+        "id": 1,
+        "target": 2,
+        "root": 1.25
+      }
+    },
+    {
+      "frame": 1567,
+      "type": "WeakApplied",
+      "payload": {
+        "combatant": "ICE",
+        "duration": 1,
+        "remaining": 1
+      }
+    },
+    {
+      "frame": 1567,
+      "type": "PounceWeak",
+      "payload": {
+        "hero": "HUNTER",
+        "target": 2,
+        "directDamage": 0,
+        "swept": true,
+        "stun": 2,
+        "weak": 1
+      }
+    },
+    {
+      "frame": 1567,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "snap"
+      }
+    },
+    {
+      "frame": 1577,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "pin"
+      }
+    },
+    {
+      "frame": 1601,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "release"
+      }
+    },
+    {
+      "frame": 1680,
+      "type": "Cast",
+      "payload": {
+        "hero": "HUNTER",
+        "slot": "A2",
+        "mechanic": "hunter.pounce_weak",
+        "source": "p1"
+      }
+    },
+    {
+      "frame": 1920,
+      "type": "Cast",
+      "payload": {
+        "hero": "HUNTER",
+        "slot": "A1",
+        "mechanic": "hunter.snare",
+        "source": "p1"
+      }
+    },
+    {
+      "frame": 1928,
+      "type": "SnarePlaced",
+      "payload": {
+        "id": 1,
+        "x": 314.56185982828055,
+        "y": 882.6066439937281
+      }
+    },
+    {
+      "frame": 1946,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "armed"
+      }
+    },
+    {
+      "frame": 1965,
+      "type": "WeakApplied",
+      "payload": {
+        "combatant": "ICE",
+        "duration": 1,
+        "remaining": 0.9999999999999996
+      }
+    },
+    {
+      "frame": 1965,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "tension"
+      }
+    },
+    {
+      "frame": 1965,
+      "type": "SnareTriggered",
+      "payload": {
+        "id": 1,
+        "target": 2,
+        "root": 1.25
+      }
+    },
+    {
+      "frame": 1968,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "snap"
+      }
+    },
+    {
+      "frame": 1979,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "pin"
+      }
+    },
+    {
+      "frame": 2003,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "release"
+      }
+    },
+    {
+      "frame": 2106,
+      "type": "Cast",
+      "payload": {
+        "hero": "HUNTER",
+        "slot": "A1",
+        "mechanic": "hunter.snare",
+        "source": "p1"
+      }
+    },
+    {
+      "frame": 2115,
+      "type": "SnarePlaced",
+      "payload": {
+        "id": 1,
+        "x": 452.0000000000001,
+        "y": 250
+      }
+    },
+    {
+      "frame": 2133,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 1,
+        "phase": "armed"
+      }
+    },
+    {
+      "frame": 2139,
+      "type": "Cast",
+      "payload": {
+        "hero": "HUNTER",
+        "slot": "A1",
+        "mechanic": "hunter.snare",
+        "source": "p1"
+      }
+    },
+    {
+      "frame": 2148,
+      "type": "SnarePlaced",
+      "payload": {
+        "id": 2,
+        "x": 548.0000000000002,
+        "y": 500
+      }
+    },
+    {
+      "frame": 2166,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 2,
+        "phase": "armed"
+      }
+    },
+    {
+      "frame": 2175,
+      "type": "Cast",
+      "payload": {
+        "hero": "HUNTER",
+        "slot": "A1",
+        "mechanic": "hunter.snare",
+        "source": "p1"
+      }
+    },
+    {
+      "frame": 2184,
+      "type": "SnarePlaced",
+      "payload": {
+        "id": 3,
+        "x": 452.0000000000001,
+        "y": 750
+      }
+    },
+    {
+      "frame": 2202,
+      "type": "HunterTrapPhase",
+      "payload": {
+        "id": 3,
+        "phase": "armed"
+      }
+    }
+  ],
+  "phases": [
+    {
+      "t": 0,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 1,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 2,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 3,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 4,
+      "charges": 2,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "unfold"
+        }
+      ],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 5,
+      "charges": 1,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "armed"
+        },
+        {
+          "id": 2,
+          "phase": "unfold"
+        }
+      ],
+      "hunter": "RECOVER",
+      "weak": 0
+    },
+    {
+      "t": 6,
+      "charges": 0,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "armed"
+        },
+        {
+          "id": 2,
+          "phase": "armed"
+        },
+        {
+          "id": 3,
+          "phase": "unfold"
+        }
+      ],
+      "hunter": "RECOVER",
+      "weak": 0
+    },
+    {
+      "t": 7,
+      "charges": 0,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "snap"
+        },
+        {
+          "id": 2,
+          "phase": "armed"
+        },
+        {
+          "id": 3,
+          "phase": "armed"
+        }
+      ],
+      "hunter": "KILLER INSTINCT",
+      "weak": 0.7833333333333341
+    },
+    {
+      "t": 8,
+      "charges": 0,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "pin"
+        },
+        {
+          "id": 2,
+          "phase": "armed"
+        },
+        {
+          "id": 3,
+          "phase": "armed"
+        }
+      ],
+      "hunter": "KILLER INSTINCT",
+      "weak": 0
+    },
+    {
+      "t": 9,
+      "charges": 0,
+      "traps": [
+        {
+          "id": 2,
+          "phase": "pin"
+        },
+        {
+          "id": 3,
+          "phase": "armed"
+        }
+      ],
+      "hunter": "KILLER INSTINCT",
+      "weak": 0.41666666666663765
+    },
+    {
+      "t": 10,
+      "charges": 1,
+      "traps": [
+        {
+          "id": 2,
+          "phase": "release"
+        },
+        {
+          "id": 3,
+          "phase": "armed"
+        }
+      ],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 11,
+      "charges": 1,
+      "traps": [
+        {
+          "id": 3,
+          "phase": "armed"
+        }
+      ],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 12,
+      "charges": 1,
+      "traps": [
+        {
+          "id": 3,
+          "phase": "release"
+        }
+      ],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 13,
+      "charges": 1,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 14,
+      "charges": 1,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 15,
+      "charges": 1,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 16,
+      "charges": 1,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 17,
+      "charges": 2,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 18,
+      "charges": 2,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 19,
+      "charges": 2,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 20,
+      "charges": 2,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 21,
+      "charges": 2,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 22,
+      "charges": 2,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 23,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 24,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 25,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 26,
+      "charges": 3,
+      "traps": [],
+      "hunter": "READ",
+      "weak": 0
+    },
+    {
+      "t": 27,
+      "charges": 3,
+      "traps": [],
+      "hunter": "RECOVER",
+      "weak": 0.2833333333333359
+    },
+    {
+      "t": 28,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 29,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 30,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 31,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 32,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 33,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 34,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 35,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 36,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 37,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 38,
+      "charges": 3,
+      "traps": [],
+      "hunter": "READ",
+      "weak": 0
+    },
+    {
+      "t": 39,
+      "charges": 3,
+      "traps": [],
+      "hunter": "RECOVER",
+      "weak": 0.2833333333333359
+    },
+    {
+      "t": 40,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 41,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 42,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 43,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 44,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 45,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 46,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 47,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 48,
+      "charges": 2,
+      "traps": [],
+      "hunter": "DEPLOY",
+      "weak": 0
+    },
+    {
+      "t": 49,
+      "charges": 2,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "armed"
+        }
+      ],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 50,
+      "charges": 1,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "armed"
+        }
+      ],
+      "hunter": "DEPLOY",
+      "weak": 0
+    },
+    {
+      "t": 51,
+      "charges": 1,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "armed"
+        },
+        {
+          "id": 2,
+          "phase": "pin"
+        }
+      ],
+      "hunter": "KILLER INSTINCT",
+      "weak": 0.46666666666666856
+    },
+    {
+      "t": 52,
+      "charges": 1,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "armed"
+        },
+        {
+          "id": 2,
+          "phase": "release"
+        }
+      ],
+      "hunter": "READ",
+      "weak": 0
+    },
+    {
+      "t": 53,
+      "charges": 1,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "pin"
+        }
+      ],
+      "hunter": "RECOVER",
+      "weak": 0.20000000000000284
+    },
+    {
+      "t": 54,
+      "charges": 1,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "release"
+        }
+      ],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 55,
+      "charges": 2,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 56,
+      "charges": 3,
+      "traps": [],
+      "hunter": "READ",
+      "weak": 0
+    },
+    {
+      "t": 57,
+      "charges": 3,
+      "traps": [],
+      "hunter": "RECOVER",
+      "weak": 0
+    },
+    {
+      "t": 58,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 59,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 60,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 61,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 62,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 63,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 64,
+      "charges": 2,
+      "traps": [],
+      "hunter": "DEPLOY",
+      "weak": 0
+    },
+    {
+      "t": 65,
+      "charges": 2,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "armed"
+        }
+      ],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 66,
+      "charges": 2,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "pin"
+        }
+      ],
+      "hunter": "KILLER INSTINCT",
+      "weak": 0.4833333333333343
+    },
+    {
+      "t": 67,
+      "charges": 2,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "release"
+        }
+      ],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 68,
+      "charges": 2,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 69,
+      "charges": 2,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 70,
+      "charges": 3,
+      "traps": [],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 71,
+      "charges": 2,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "unfold"
+        }
+      ],
+      "hunter": "IDLE",
+      "weak": 0
+    },
+    {
+      "t": 72,
+      "charges": 1,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "armed"
+        },
+        {
+          "id": 2,
+          "phase": "unfold"
+        }
+      ],
+      "hunter": "RECOVER",
+      "weak": 0
+    },
+    {
+      "t": 73,
+      "charges": 0,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "armed"
+        },
+        {
+          "id": 2,
+          "phase": "armed"
+        },
+        {
+          "id": 3,
+          "phase": "unfold"
+        }
+      ],
+      "hunter": "RECOVER",
+      "weak": 0
+    },
+    {
+      "t": 74,
+      "charges": 0,
+      "traps": [
+        {
+          "id": 1,
+          "phase": "armed"
+        },
+        {
+          "id": 2,
+          "phase": "armed"
+        },
+        {
+          "id": 3,
+          "phase": "armed"
+        }
+      ],
+      "hunter": "IDLE",
+      "weak": 0
+    }
+  ],
+  "three": {
+    "body": {
+      "x": 400,
+      "y": 847.0000000000003
+    },
+    "skills": {
+      "A1": {
+        "charges": 0,
+        "rechargeLeft": 3.1666666666666785,
+        "cd": 3.1666666666666785
+      },
+      "A2": {
+        "rechargeLeft": 0,
+        "cd": 0
+      }
+    },
+    "rig": {
+      "mode": "idle",
+      "phase": "IDLE",
+      "scale": 0.8067769261799113,
+      "pose": {
+        "x": 495.8,
+        "y": 1082.6865000000003,
+        "rot": 0.00909903932032755,
+        "sx": 1.0000993367461055,
+        "sy": 0.9998307353863523,
+        "head": -0.042418833417466856,
+        "headY": 0.21811704303674878,
+        "antL": -0.04950162658403234,
+        "antR": -0.013909697190434705,
+        "antLb": -0.008966843128133178,
+        "antRb": -0.007411135401812453,
+        "aL": [
+          -0.022364173535682718,
+          0.004997946336094168,
+          -0.0034812972309852773,
+          1.445811312185352
+        ],
+        "aR": [
+          -0.021685699745338394,
+          0.005813588569197474,
+          -0.003483639132959935,
+          1.445811312185352
+        ]
+      },
+      "aura": 0,
+      "echoes": 0,
+      "weak": 0
+    },
+    "traps": [
+      {
+        "id": 1,
+        "x": 554,
+        "y": 300,
+        "phase": "armed",
+        "t": 2.4333333333333296,
+        "pose": [
+          2.743880862548779e-20,
+          2.0563386398715666e-20,
+          -1.1999462506054966e-19
+        ]
+      },
+      {
+        "id": 2,
+        "x": 496.00000000000034,
+        "y": 500,
+        "phase": "armed",
+        "t": 1.2333333333333338,
+        "pose": [
+          -3.3281180034145178e-12,
+          1.8976732119686578e-12,
+          1.7599578663391343e-11
+        ]
+      },
+      {
+        "id": 3,
+        "x": 400,
+        "y": 616.0000000000005,
+        "phase": "armed",
+        "t": 0.03333333333333333,
+        "pose": [
+          0.0005314044925315966,
+          -0.0001217306163666054,
+          -0.0003177564814078695
+        ]
+      }
+    ],
+    "cache": {
+      "derivations": 7,
+      "rootLoads": 1,
+      "bodyLoads": 1
+    }
+  },
+  "finalThree": {
+    "body": {
+      "x": 707.6666666666663,
+      "y": 750
+    },
+    "skills": {
+      "A1": {
+        "charges": 0,
+        "rechargeLeft": 2.2000000000000153,
+        "cd": 2.2000000000000153
+      },
+      "A2": {
+        "rechargeLeft": 0,
+        "cd": 0
+      }
+    },
+    "rig": {
+      "mode": "idle",
+      "phase": "IDLE",
+      "scale": 0.8067769261799113,
+      "pose": {
+        "x": 877.1528333333329,
+        "y": 962.455,
+        "rot": -0.03394725911231992,
+        "sx": 0.9999768963508324,
+        "sy": 1.000039076826885,
+        "head": 0.05711712310133672,
+        "headY": -0.003982176723815999,
+        "antL": 0.1504900652247933,
+        "antR": 0.19486340613590997,
+        "antLb": 0.25444806583619567,
+        "antRb": 0.26346514605932086,
+        "aL": [
+          -0.10249943327183932,
+          -0.10881966108976972,
+          -0.17510986946080487,
+          0.004488646546473144
+        ],
+        "aR": [
+          0.05715160853807591,
+          0.12567641764382356,
+          0.1648044949005682,
+          0.004488646546473144
+        ]
+      },
+      "aura": 0,
+      "echoes": 6,
+      "weak": 0
+    },
+    "traps": [
+      {
+        "id": 1,
+        "x": 452.0000000000001,
+        "y": 250,
+        "phase": "armed",
+        "t": 3.399999999999993,
+        "pose": [
+          -8.042146530307824e-27,
+          -6.1732952716436594e-27,
+          3.5226552223922734e-26
+        ]
+      },
+      {
+        "id": 2,
+        "x": 548.0000000000002,
+        "y": 500,
+        "phase": "armed",
+        "t": 2.2999999999999967,
+        "pose": [
+          -1.9324598113971185e-19,
+          1.9964967981543643e-19,
+          1.0136040116024939e-18
+        ]
+      },
+      {
+        "id": 3,
+        "x": 452.0000000000001,
+        "y": 750,
+        "phase": "armed",
+        "t": 1.100000000000001,
+        "pose": [
+          1.4613977199366373e-11,
+          -4.901884141221125e-11,
+          -8.186884057774462e-11
+        ]
+      }
+    ],
+    "cache": {
+      "derivations": 7,
+      "rootLoads": 1,
+      "bodyLoads": 1
+    }
+  },
+  "cache": {
+    "derivations": 7,
+    "rootLoads": 1,
+    "bodyLoads": 1
+  },
+  "final": {
+    "body": {
+      "x": 907.6666666666667,
+      "y": 750
+    },
+    "skills": {
+      "A1": {
+        "charges": 0,
+        "rechargeLeft": 1.7333333333333503,
+        "cd": 1.7333333333333503
+      },
+      "A2": {
+        "rechargeLeft": 0,
+        "cd": 0
+      }
+    },
+    "rig": {
+      "mode": "idle",
+      "phase": "IDLE",
+      "scale": 0.8067769261799113,
+      "pose": {
+        "x": 1125.0528333333334,
+        "y": 962.455,
+        "rot": -0.034458624356823814,
+        "sx": 0.9999961104759078,
+        "sy": 1.0000065790868562,
+        "head": 0.030002350305486664,
+        "headY": -0.000744596155374991,
+        "antL": -0.3298008178211077,
+        "antR": -0.2945489641974616,
+        "antLb": -0.4716802155707528,
+        "antRb": -0.4690126011323854,
+        "aL": [
+          -0.09388160366710842,
+          -0.0925781830298862,
+          -0.1609487714884432,
+          0.00033223707364168133
+        ],
+        "aR": [
+          -0.15807250454280036,
+          -0.18159376696302593,
+          -0.29283194484209807,
+          0.00033223707364168133
+        ]
+      },
+      "aura": 0,
+      "echoes": 1,
+      "weak": 0
+    },
+    "traps": [
+      {
+        "id": 1,
+        "x": 452.0000000000001,
+        "y": 250,
+        "phase": "armed",
+        "t": 3.866666666666658,
+        "pose": [
+          -1.3917639495928416e-30,
+          -1.2563538695886915e-29,
+          7.0939523160634085e-31
+        ]
+      },
+      {
+        "id": 2,
+        "x": 548.0000000000002,
+        "y": 500,
+        "phase": "armed",
+        "t": 2.7666666666666617,
+        "pose": [
+          -1.3331744545138054e-22,
+          -2.1232550450836298e-22,
+          5.3320374926956655e-22
+        ]
+      },
+      {
+        "id": 3,
+        "x": 452.0000000000001,
+        "y": 750,
+        "phase": "armed",
+        "t": 1.566666666666666,
+        "pose": [
+          2.0436263545051354e-14,
+          5.662619563876715e-15,
+          -9.185788108315699e-14
+        ]
+      }
+    ],
+    "cache": {
+      "derivations": 7,
+      "rootLoads": 1,
+      "bodyLoads": 1
+    }
+  },
+  "errors": [],
+  "frames": 2250,
+  "fps": 30,
+  "durationSeconds": 75,
+  "capture": "Deterministic production frame-step: two real 1/60-second Arsenal steps per full-viewport output frame. No interpolation, no gameplay speedup, no demo actor/projectile loop. Captions are fixture annotations; HUD is production DOM. Scene arrangements and exceptional escape are controlled fixtures. Silent video."
+}

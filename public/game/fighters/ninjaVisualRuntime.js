@@ -13,12 +13,12 @@
     const NINJA_AUDIO_MANIFEST = {
       teleport: 'assets/ninja_v1/audio/teleport.mp3',
       skill: 'assets/ninja_v1/audio/rasengan.mp3',
-      shurikenThrow: 'assets/ninja_v1/audio/shuriken_throw.wav',
+      shurikenThrow: 'assets/ninja_v1/audio/shuriken_throw.mp3',
       shurikenHitBody: 'assets/ninja_v1/audio/shuriken_hit_body.mp3',
       shurikenHitWall: 'assets/ninja_v1/audio/shuriken_hit_wall.mp3',
-      kunaiThrowSkill: 'assets/ninja_v1/audio/kunai_throw_skill.wav',
+      kunaiThrowSkill: 'assets/ninja_v1/audio/kunai_throw_skill.mp3',
       kunaiCatch: 'assets/ninja_v1/audio/kunai_catch.mp3',
-      kunaiWallBounce: 'assets/ninja_v1/audio/kunai_wall_bounce.wav'
+      kunaiWallBounce: 'assets/ninja_v1/audio/kunai_wall_bounce.mp3'
     };
     const ASSETS = {};
     const NINJA_EVENTS = [];

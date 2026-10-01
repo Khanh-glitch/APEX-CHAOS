@@ -1,0 +1,193 @@
+# FROST V1 — GOLD TO REAL GAME ADAPTATION MAP
+
+## A. Precedence
+
+Gameplay truth: 00_FROST_IMPLEMENTATION_AUTHORITY.md.
+Presentation truth: gold/FROST_GOLD_APEX_PHYSICS_ACCURATE_V2_FIXED.html.
+Production plumbing/physics truth: exact APEX baseline 6b83fc6502eb8e23e4bd122074fc7fdfb47441ae.
+
+When they conflict:
+1. latest owner gameplay law;
+2. selected Gold visible identity/choreography;
+3. implementation convenience.
+
+## B. Gold is copied/bridged, not imitated
+
+Port actual authored source/algorithms/assets from the selected Fusion Gold where practical.
+Do not screenshot it into a flat sprite.
+Do not replace it with look-alike circles, cyan polygons, generic snow particles, or a simplified ice shader.
+
+Preserve:
+- source-art segmentation and anti-fringe behavior;
+- front-facing Frost battle asset;
+- A1 macro crystallization front and material transition;
+- stable floor plate/material language;
+- A2 movement-history trail and turn carve;
+- Frozen Gun readable source identity;
+- Frozen Bullet visual;
+- target shell closure/cracks/thaw.
+
+Cache immutable art/material work. Do not redo expensive source derivation per frame or per floor segment.
+
+## C. Demo systems that must not cross into production
+
+Reject:
+- standalone Arrow/mouse controls;
+- fake prey;
+- fake gun inventory;
+- fake projectile/damage;
+- manual showcase toggles;
+- demo body speed values;
+- fixed demo collision assumptions;
+- forced Freeze showcase logic;
+- any demo homing/path controller;
+- any demo input timing as gameplay authority.
+
+Real APEX owns movement, wall/body collision, weapon aim, inventory, holder state, projectiles, damage, crit, status, cooldown, pickup, camera and lifecycle.
+
+## D. Frost actor
+
+Gold actor source enters the production actor render path once.
+Equipped Arsenal weapon remains owned/drawn by Arsenal, not duplicated by Frost actor art.
+
+Frost stays direct-frontal while moving across XY.
+Do not rotate it into side-profile walking locomotion.
+
+Presentation may use inertia/lag internally but cannot write back into fighter x/y/dir unless 00 explicitly authorizes physical movement. FROST has no Gold-authored physical recoil mechanic comparable to Hunter A1.
+
+## E. A1 mapping
+
+Production accepted cast snapshots native locomotion/orientation axis.
+
+Gold:
+- breath anticipation/release;
+- cold core/sheath;
+- floor bite;
+- near-to-far macro crystallization;
+- calmer stable material;
+- final material settling.
+
+Production:
+- ~0.25 cast commitment is presentation/ability timing, NOT a movement lock;
+- native APEX locomotion, wall bounce and body bounce continue through the cast;
+- direction is snapshotted when the cast is accepted;
+- lane origin is Frost's real world position at release/build time, not the renderer's lagged pose;
+- authoritative materialized floor grows near -> far to 650x160;
+- after the front completes, the shared A1 lane stays active for 4.5s;
+- support/lifetime data owns speed and pickup rules.
+
+A1 frozen pickup presentation reads the real slot state.
+It never teleports/copies a gun.
+
+## F. A2 mapping
+
+Gold trail/carve consumes real production movement history.
+
+Production A2 does NOT steer toward opponent.
+Native APEX persistent heading + wall/body bounce is mandatory.
+
+Gold can render:
+- Hunt activation beat;
+- floor wake;
+- segment material;
+- larger carve/gouge on meaningful heading change;
+- real collision frost/contact accent;
+- exact stolen-gun transfer/dock presentation.
+
+Gameplay must not alter direction simply to make a Gold path easier to reproduce.
+
+## G. Collision mapping
+
+Engine resolves anchor-body overlap separation and reflect/bounce.
+Hero Rework contact hook observes the real new-contact event.
+
+Gold contact FX begins from that real event.
+No authored endpoint/distance is allowed to fake collision success.
+Continuous overlap cannot repeatedly retrigger Cold Shock/steal presentation.
+
+## H. Frozen Floor mapping
+
+Gameplay floor entities/segments are world truth.
+Gold material is a renderer over those entities.
+
+A1:
+- bounded 650x160 progression.
+- 4.5s stable support.
+
+A2:
+- actual-path segments.
+- width 120.
+- each segment lifetime 3.5 from its creation.
+
+Overlap may refresh/extend support but never multiplies movement modifiers.
+
+## I. Frozen firearm mapping
+
+Floor pickup:
+- same slot stays REVEALED at the same world position and therefore keeps the same Arsenal cap/emergency-spawn meaning.
+- presentation overlays physical frost material around/on the real gun sprite.
+- no generic replacement ice-gun sprite.
+
+On Frost pickup:
+- ordinary Arsenal pickup creates real holder.
+- Frozen metadata transfers from slot to holder.
+- presentation uses real holder/weapon anchor.
+
+On A2 steal:
+- real holder object changes owner once.
+- Gold transfer animation follows that ownership event.
+- do not create a second visible/real gun during the transfer.
+- if a transitional presentation ghost is needed, it must be presentation-only and must not be mistaken for inventory truth.
+
+## J. Frozen Bullet / blast grouping
+
+Frozen state begins at real firearm emission.
+Use a semantic shotGroupId/blastGroupId generated by the real firing executor.
+
+For SHOTGUN all pellets share one blast group.
+For each AUTOSHOT/JACKHAMMER blast, that blast's pellets share one group; the next blast gets a new group.
+For non-pellet guns, each projectile can be its own group.
+
+The Gold projectile overlay must not alter projectile collision/damage/crit.
+
+## K. Freeze shell
+
+A successful gameplay proc is the only authority for shell lock/refresh.
+
+Initial Freeze:
+- start Gold shell closure/lock.
+- 0.90s gameplay timer.
+
+Refresh while already Frozen:
+- gameplay resets remaining to 0.90.
+- presentation reinforces/re-energizes existing shell without spawning an opaque duplicate shell.
+- do not stack multiple independent cages.
+
+Thaw:
+- triggered when gameplay Freeze actually ends.
+- physical crack/release lifecycle, not simple alpha fade.
+
+Legacy ICE overlay/text/audio must be suppressed for Frost rework Freeze.
+
+## L. Light-gray proof and battle scale
+
+The selected Gold was judged on a neutral light-gray APEX-like floor.
+Production parity must be checked at real battle scale, not only close-up.
+
+A visual that only works on dark background fails parity.
+
+## M. Performance
+
+No per-frame canvas/image creation in steady state.
+Bound trail/floor nodes by lifecycle.
+Pool/cache repeatable presentation data where appropriate.
+Do not cut Gold quality as the first performance response; profile first.
+
+
+## N. Final production presentation isolation
+
+The final Gold bridge must be visually isolated from the rest of the arena. A1/A2 activation must not leak canvas transform/scale/translate/rotate, globalAlpha, globalCompositeOperation, filter, shadow, clipping/path state, camera transform, fighter scale/radius, or shared Gold singleton state into unrelated rendering. The opponent and other fighters must remain at their normal battle scale. Every Gold draw pass must be state-safe with unconditional save/restore where applicable.
+
+A2 must preserve continuous authored Gold trail material rather than disconnected islands. Historical/deferred admission must hydrate from real production movement history without losing Gold's spacing, continuity, carve language, or detail hierarchy.
+
+Battle-scale parity is mandatory: compare the correct Gold and production at the same neutral light-gray arena scale, not only isolated close-up snapshots.

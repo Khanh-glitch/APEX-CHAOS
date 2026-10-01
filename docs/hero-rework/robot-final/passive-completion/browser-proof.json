@@ -1,0 +1,427 @@
+{
+  "browser": "HeadlessChrome/153.0.8010.0",
+  "method": "Real fireBullet projectiles through Arsenal step and damage adapters. Real A1/A2 casts and naturally elapsed cooldowns; no milestone, HP, cooldown or HUD state injection. Actor positions/directions reset between controlled shots. AI/spawns disabled.",
+  "shots": [
+    {
+      "name": "01-before-150",
+      "state": {
+        "reached": 0,
+        "total": 6,
+        "cumulative": 109.76000000000022,
+        "next": 150,
+        "fraction": 0.7317333333333348,
+        "crossing": false,
+        "refund": null
+      },
+      "burst": {
+        "total": 109.76000000000022,
+        "hits": 8,
+        "crits": 0,
+        "bigHit": 13.720000000000027
+      },
+      "hud": "MILESTONES\n0/6\n109 DMG · NEXT 150",
+      "cooldowns": {
+        "A1": 0,
+        "A2": 0
+      }
+    },
+    {
+      "name": "02-first-milestone",
+      "state": {
+        "reached": 1,
+        "total": 6,
+        "cumulative": 150.9200000000003,
+        "next": 300,
+        "fraction": 0.0061333333333353345,
+        "crossing": true,
+        "refund": null
+      },
+      "burst": {
+        "total": 41.16000000000008,
+        "hits": 3,
+        "crits": 0,
+        "bigHit": 13.720000000000027
+      },
+      "hud": "MILESTONES\n1/6\n150 DMG · NEXT 300\nMILESTONE 1",
+      "cooldowns": {
+        "A1": 0,
+        "A2": 0
+      }
+    },
+    {
+      "name": "03-A1-refund",
+      "state": {
+        "reached": 2,
+        "total": 6,
+        "cumulative": 301.8400000000006,
+        "next": 450,
+        "fraction": 0.012266666666670669,
+        "crossing": true,
+        "refund": {
+          "fighterId": 1,
+          "combatantIndex": 0,
+          "hero": "ROBOT",
+          "milestone": 2,
+          "slot": "A1",
+          "refund": 0.5,
+          "requestedRefund": 0.5,
+          "before": 7.333333333333414,
+          "after": 6.833333333333414,
+          "at": 4.500000000000013
+        }
+      },
+      "burst": {
+        "total": 150.9200000000003,
+        "hits": 11,
+        "crits": 0,
+        "bigHit": 13.720000000000027
+      },
+      "hud": "MILESTONES\n2/6\n301 DMG · NEXT 450\nA1 −0.5s",
+      "cooldowns": {
+        "A1": 6.833333333333414,
+        "A2": 0
+      }
+    },
+    {
+      "name": "04-clamped-refund",
+      "state": {
+        "reached": 3,
+        "total": 6,
+        "cumulative": 452.7600000000009,
+        "next": 600,
+        "fraction": 0.018400000000006002,
+        "crossing": true,
+        "refund": {
+          "fighterId": 1,
+          "combatantIndex": 0,
+          "hero": "ROBOT",
+          "milestone": 3,
+          "slot": "A1",
+          "refund": 0.18333333333328503,
+          "requestedRefund": 1,
+          "before": 0.18333333333328503,
+          "after": 0,
+          "at": 11.150000000000007
+        }
+      },
+      "burst": {
+        "total": 150.9200000000003,
+        "hits": 11,
+        "crits": 0,
+        "bigHit": 13.720000000000027
+      },
+      "hud": "MILESTONES\n3/6\n452 DMG · NEXT 600\nA1 −0.183s",
+      "cooldowns": {
+        "A1": 0,
+        "A2": 0
+      }
+    },
+    {
+      "name": "05-A2-refund",
+      "state": {
+        "reached": 4,
+        "total": 6,
+        "cumulative": 603.6800000000012,
+        "next": 750,
+        "fraction": 0.024533333333341338,
+        "crossing": true,
+        "refund": {
+          "fighterId": 1,
+          "combatantIndex": 0,
+          "hero": "ROBOT",
+          "milestone": 4,
+          "slot": "A2",
+          "refund": 1.5,
+          "requestedRefund": 1.5,
+          "before": 8.16666666666677,
+          "after": 6.666666666666771,
+          "at": 12.983333333333237
+        }
+      },
+      "burst": {
+        "total": 150.9200000000003,
+        "hits": 11,
+        "crits": 0,
+        "bigHit": 13.720000000000027
+      },
+      "hud": "MILESTONES\n4/6\n603 DMG · NEXT 750\nA2 −1.5s",
+      "cooldowns": {
+        "A1": 0,
+        "A2": 6.666666666666771
+      }
+    },
+    {
+      "name": "06-ready-no-refund",
+      "state": {
+        "reached": 6,
+        "total": 6,
+        "cumulative": 905.5200000000018,
+        "next": null,
+        "fraction": 1,
+        "crossing": true,
+        "refund": null
+      },
+      "burst": {
+        "total": 301.8400000000004,
+        "hits": 22,
+        "crits": 0,
+        "bigHit": 13.720000000000027
+      },
+      "hud": "MILESTONES\n6/6\nALL MILESTONES REACHED\nMILESTONE 6",
+      "cooldowns": {
+        "A1": 0,
+        "A2": 0
+      }
+    },
+    {
+      "name": "07-burst-expired-progress-persists",
+      "state": {
+        "reached": 6,
+        "total": 6,
+        "cumulative": 905.5200000000018,
+        "next": null,
+        "fraction": 1,
+        "crossing": true,
+        "refund": null
+      },
+      "burst": null,
+      "hud": "MILESTONES\n6/6\nALL MILESTONES REACHED\nMILESTONE 6",
+      "cooldowns": {
+        "A1": 0,
+        "A2": 0
+      }
+    }
+  ],
+  "events": [
+    {
+      "type": "RobotPassiveMilestone",
+      "payload": {
+        "fighterId": 1,
+        "combatantIndex": 0,
+        "hero": "ROBOT",
+        "milestone": 1,
+        "cumulative": 150.9200000000003
+      }
+    },
+    {
+      "type": "RobotPassiveMilestone",
+      "payload": {
+        "fighterId": 1,
+        "combatantIndex": 0,
+        "hero": "ROBOT",
+        "milestone": 2,
+        "cumulative": 301.8400000000006
+      }
+    },
+    {
+      "type": "RobotPassiveUpgrade",
+      "payload": {
+        "fighterId": 1,
+        "combatantIndex": 0,
+        "hero": "ROBOT",
+        "milestone": 2,
+        "slot": "A1",
+        "refund": 0.5,
+        "requestedRefund": 0.5,
+        "before": 7.333333333333414,
+        "after": 6.833333333333414
+      }
+    },
+    {
+      "type": "MilestoneRefund",
+      "payload": {
+        "fighterId": 1,
+        "combatantIndex": 0,
+        "hero": "ROBOT",
+        "milestone": 2,
+        "slot": "A1",
+        "refund": 0.5,
+        "requestedRefund": 0.5,
+        "before": 7.333333333333414,
+        "after": 6.833333333333414,
+        "alias": true
+      }
+    },
+    {
+      "type": "RobotPassiveMilestone",
+      "payload": {
+        "fighterId": 1,
+        "combatantIndex": 0,
+        "hero": "ROBOT",
+        "milestone": 3,
+        "cumulative": 452.7600000000009
+      }
+    },
+    {
+      "type": "RobotPassiveUpgrade",
+      "payload": {
+        "fighterId": 1,
+        "combatantIndex": 0,
+        "hero": "ROBOT",
+        "milestone": 3,
+        "slot": "A1",
+        "refund": 0.18333333333328503,
+        "requestedRefund": 1,
+        "before": 0.18333333333328503,
+        "after": 0
+      }
+    },
+    {
+      "type": "MilestoneRefund",
+      "payload": {
+        "fighterId": 1,
+        "combatantIndex": 0,
+        "hero": "ROBOT",
+        "milestone": 3,
+        "slot": "A1",
+        "refund": 0.18333333333328503,
+        "requestedRefund": 1,
+        "before": 0.18333333333328503,
+        "after": 0,
+        "alias": true
+      }
+    },
+    {
+      "type": "RobotPassiveMilestone",
+      "payload": {
+        "fighterId": 1,
+        "combatantIndex": 0,
+        "hero": "ROBOT",
+        "milestone": 4,
+        "cumulative": 603.6800000000012
+      }
+    },
+    {
+      "type": "RobotPassiveUpgrade",
+      "payload": {
+        "fighterId": 1,
+        "combatantIndex": 0,
+        "hero": "ROBOT",
+        "milestone": 4,
+        "slot": "A2",
+        "refund": 1.5,
+        "requestedRefund": 1.5,
+        "before": 8.16666666666677,
+        "after": 6.666666666666771
+      }
+    },
+    {
+      "type": "MilestoneRefund",
+      "payload": {
+        "fighterId": 1,
+        "combatantIndex": 0,
+        "hero": "ROBOT",
+        "milestone": 4,
+        "slot": "A2",
+        "refund": 1.5,
+        "requestedRefund": 1.5,
+        "before": 8.16666666666677,
+        "after": 6.666666666666771,
+        "alias": true
+      }
+    },
+    {
+      "type": "RobotPassiveMilestone",
+      "payload": {
+        "fighterId": 1,
+        "combatantIndex": 0,
+        "hero": "ROBOT",
+        "milestone": 5,
+        "cumulative": 754.6000000000015
+      }
+    },
+    {
+      "type": "RobotPassiveMilestone",
+      "payload": {
+        "fighterId": 1,
+        "combatantIndex": 0,
+        "hero": "ROBOT",
+        "milestone": 6,
+        "cumulative": 905.5200000000018
+      }
+    }
+  ],
+  "audio": [
+    {
+      "event": "robot_a1_lock",
+      "requested": 1,
+      "decoded": true,
+      "sourceStarted": 1,
+      "file": "hero-rework/robot-final/sfx/robot_a1_lock.mp3",
+      "errors": [],
+      "contextState": "running"
+    },
+    {
+      "event": "robot_a1_no_weapon",
+      "requested": 0,
+      "decoded": true,
+      "sourceStarted": 0,
+      "file": "hero-rework/robot-final/sfx/robot_a1_no_weapon.mp3",
+      "errors": []
+    },
+    {
+      "event": "robot_a1_dash",
+      "requested": 1,
+      "decoded": true,
+      "sourceStarted": 1,
+      "file": "hero-rework/robot-final/sfx/robot_a1_dash.mp3",
+      "errors": [],
+      "contextState": "running"
+    },
+    {
+      "event": "robot_a2_activate",
+      "requested": 1,
+      "decoded": true,
+      "sourceStarted": 1,
+      "file": "hero-rework/robot-final/sfx/robot_a2_activate.mp3",
+      "errors": [],
+      "contextState": "running"
+    },
+    {
+      "event": "robot_a2_armor_hit",
+      "requested": 0,
+      "decoded": true,
+      "sourceStarted": 0,
+      "file": "hero-rework/robot-final/sfx/robot_a2_armor_hit.mp3",
+      "errors": []
+    },
+    {
+      "event": "robot_a2_end",
+      "requested": 1,
+      "decoded": true,
+      "sourceStarted": 1,
+      "file": "hero-rework/robot-final/sfx/robot_a2_end.mp3",
+      "errors": [],
+      "contextState": "running"
+    },
+    {
+      "event": "robot_passive_milestone",
+      "requested": 6,
+      "decoded": true,
+      "sourceStarted": 6,
+      "file": "hero-rework/robot-final/sfx/robot_passive_milestone.mp3",
+      "errors": [],
+      "contextState": "running"
+    },
+    {
+      "event": "robot_passive_upgrade",
+      "requested": 3,
+      "decoded": true,
+      "sourceStarted": 3,
+      "file": "hero-rework/robot-final/sfx/robot_passive_upgrade.mp3",
+      "errors": [],
+      "contextState": "running"
+    }
+  ],
+  "reset": {
+    "reached": 0,
+    "total": 6,
+    "cumulative": 0,
+    "next": 150,
+    "fraction": 0,
+    "crossing": false,
+    "refund": null
+  },
+  "runtimeErrors": [],
+  "pass": true
+}

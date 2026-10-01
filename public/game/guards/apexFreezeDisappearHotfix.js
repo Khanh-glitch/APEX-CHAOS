@@ -196,7 +196,11 @@
   const oldTD = Fighter.prototype.takeDamage;
   Fighter.prototype.takeDamage=function(amount,source=null,label='',statusDamage=false){
     if(!Number.isFinite(amount) || amount<=0) return;
-    if(this.name==='SLIME' && source && source!==this && !statusDamage){
+    // HERO REWORK separation (docs/hero-rework/phase1/12): legacy SLIME
+    // damage-window bookkeeping feeds the legacy spawn/clone kit — it must
+    // never run on rework-shell bodies (type.arsenalShell, no-double-
+    // execution law). Legacy FT('SLIME') encounters keep it.
+    if(this.name==='SLIME' && !(this.type && this.type.arsenalShell) && source && source!==this && !statusDamage){
       this.data ||= {}; this.data.slimeDmgWindow ||= []; this.data.shockDmgWindow ||= [];
       this.data.slimeDmgWindow.push({t:matchClock,amount}); this.data.shockDmgWindow.push({t:matchClock,amount});
     }

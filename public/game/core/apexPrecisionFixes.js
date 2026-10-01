@@ -69,7 +69,12 @@
     }
 
     // SLIME: child spawn counter and shock-split counter. Only true incoming damage, not status ticks.
-    if (this.name === 'SLIME' && this.data && source && source !== this && !statusDamage) {
+    // HERO REWORK separation (docs/hero-rework/phase1/12): canonical playable
+    // REWORK SLIME runs the rework shell (type.arsenalShell — no-double-
+    // execution law). Legacy child spawns / fighters[] clone splits must
+    // NEVER execute on shell bodies; legacy Quest/boss SLIME (FT('SLIME'),
+    // no arsenalShell flag) keeps this kit unchanged.
+    if (this.name === 'SLIME' && !(this.type && this.type.arsenalShell) && this.data && source && source !== this && !statusDamage) {
       this.data.childCounter ||= [];
       this.data.childCounter.push({t:matchClock, amount});
       this.data.childCounter = this.data.childCounter.filter(x => matchClock - x.t <= 5);

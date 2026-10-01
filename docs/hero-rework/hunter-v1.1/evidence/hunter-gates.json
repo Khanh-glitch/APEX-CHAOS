@@ -1,0 +1,444 @@
+{
+  "results": {
+    "A1-three-charges-no-extra-lock": {
+      "pass": true,
+      "data": {
+        "charge": [
+          3,
+          2,
+          1,
+          0
+        ],
+        "three": {
+          "body": {
+            "x": 83.66666666666667,
+            "y": 710
+          },
+          "skills": {
+            "A1": {
+              "charges": 0,
+              "rechargeLeft": 4.033333333333342,
+              "cd": 4.033333333333342
+            },
+            "A2": {
+              "rechargeLeft": 0,
+              "cd": 0
+            }
+          },
+          "rig": {
+            "mode": "idle",
+            "phase": "IDLE",
+            "scale": 0.8067769261799113,
+            "pose": {
+              "x": 103.70483333333334,
+              "y": 912.875,
+              "rot": -0.0008982200451690712,
+              "sx": 1.0009409761146295,
+              "sy": 0.9984049023203647,
+              "head": 0.010616472560638919,
+              "headY": 0.5803188733198525,
+              "antL": -0.3127603219974717,
+              "antR": -0.26581051314426835,
+              "antLb": -0.4480575256709705,
+              "antRb": -0.43746298828089725,
+              "aL": [
+                -0.03315464747315152,
+                0.0021133439577866384,
+                -0.02540662575440117,
+                2.942212535559062
+              ],
+              "aR": [
+                -0.03156585190335965,
+                0.0021740003469110872,
+                -0.025407742656758256,
+                2.942212535559062
+              ]
+            },
+            "aura": 0,
+            "echoes": 0,
+            "weak": 0
+          },
+          "traps": [
+            {
+              "id": 1,
+              "x": 417.33333333333337,
+              "y": 250,
+              "phase": "armed",
+              "t": 1.566666666666666,
+              "pose": [
+                2.0436263545051354e-14,
+                5.662619563876715e-15,
+                -9.185788108315699e-14
+              ]
+            },
+            {
+              "id": 2,
+              "x": 582.6666666666667,
+              "y": 480,
+              "phase": "armed",
+              "t": 0.733333333333334,
+              "pose": [
+                7.0521221862897586e-9,
+                1.6242890678265752e-8,
+                -1.8192919491434553e-8
+              ]
+            },
+            {
+              "id": 3,
+              "x": 417.33333333333337,
+              "y": 710,
+              "phase": "unfold",
+              "t": 0.5333333333333333,
+              "pose": [
+                0.002811645507290737,
+                0.014360225002653009,
+                0.01829087895405938
+              ]
+            }
+          ],
+          "cache": {
+            "derivations": 7,
+            "rootLoads": 1,
+            "bodyLoads": 1
+          }
+        }
+      }
+    },
+    "A1-opposite-physical-recoil": {
+      "pass": true,
+      "data": [
+        {
+          "dir": 1,
+          "dx": -333.6666666666667
+        },
+        {
+          "dir": -1,
+          "dx": 334.16041505248916
+        },
+        {
+          "dir": 1,
+          "dx": -333.6666666666667
+        }
+      ]
+    },
+    "V10-independent-state-shared-materials": {
+      "pass": true,
+      "data": {
+        "derivations": 7,
+        "rootLoads": 1,
+        "bodyLoads": 1
+      }
+    },
+    "A1-sequential-recharge-cleanup": {
+      "pass": true,
+      "data": {
+        "next": 4.033333333333342,
+        "one": 1,
+        "two": 2,
+        "full": 3,
+        "traps": 0
+      }
+    },
+    "V10-trigger-root-lifecycle": {
+      "pass": true,
+      "data": {
+        "phases": [
+          "armed",
+          "tension",
+          "snap",
+          "pin",
+          "release"
+        ],
+        "root": 1.25
+      }
+    },
+    "A1-trigger-applies-root+weak": {
+      "pass": true,
+      "data": {
+        "weakAtTrigger": 1,
+        "root": 1.25
+      }
+    },
+    "A2-prelaunch-live-chase-swept-zero-damage": {
+      "pass": true,
+      "data": {
+        "held": true,
+        "path": [
+          {
+            "x": 214.54428238770075,
+            "y": 501.8907567104011,
+            "step": 14.666666666666591
+          },
+          {
+            "x": 250.83247744010254,
+            "y": 507.1454064878161,
+            "step": 36.66666666666668
+          },
+          {
+            "x": 287.035325493337,
+            "y": 512.9590316287125,
+            "step": 36.666666666666664
+          },
+          {
+            "x": 323.13780194945195,
+            "y": 519.36649900515,
+            "step": 36.66666666666669
+          },
+          {
+            "x": 359.12218447790394,
+            "y": 526.4070003005469,
+            "step": 36.666666666666686
+          },
+          {
+            "x": 394.9673846572215,
+            "y": 534.1249060105888,
+            "step": 36.666666666666664
+          },
+          {
+            "x": 430.9635172773177,
+            "y": 541.1050837189923,
+            "step": 36.66666666666671
+          },
+          {
+            "x": 467.10899335079387,
+            "y": 547.2653600006379,
+            "step": 36.66666666666666
+          },
+          {
+            "x": 503.39928422591805,
+            "y": 552.5055157848986,
+            "step": 36.66666666666665
+          },
+          {
+            "x": 539.8251449150496,
+            "y": 556.7008843623214,
+            "step": 36.66666666666666
+          },
+          {
+            "x": 576.3695590981955,
+            "y": 559.692578941507,
+            "step": 36.666666666666686
+          },
+          {
+            "x": 613.0022008694735,
+            "y": 561.2718196773232,
+            "step": 36.66666666666668
+          },
+          {
+            "x": 649.6686755387038,
+            "y": 561.1531614490476,
+            "step": 36.666666666666664
+          },
+          {
+            "x": 650.2772675746947,
+            "y": 561.1161063563583,
+            "step": 0.6097190715122633
+          }
+        ],
+        "stun": 1.9833333333333334,
+        "weakCt": 0.9833333333333334,
+        "hpBefore": 1000,
+        "hpAfter": 1000,
+        "event": {
+          "seq": 61,
+          "t": 0.36666666666666664,
+          "type": "PounceWeak",
+          "payload": {
+            "hero": "HUNTER",
+            "target": 2,
+            "directDamage": 0,
+            "swept": true,
+            "stun": 2,
+            "weak": 1
+          }
+        }
+      }
+    },
+    "WEAK-law": {
+      "pass": true,
+      "data": {
+        "refresh": "duration",
+        "duration": 1,
+        "mirrorOnly": true
+      }
+    },
+    "weak-hunter-x125-refresh-not-stack": {
+      "pass": true,
+      "data": {
+        "base": 105.84000000000003,
+        "weakIn": 132.30000000000007,
+        "refreshed": 132.3
+      }
+    },
+    "weak-neutral-not-amplified": {
+      "pass": true,
+      "data": {
+        "neutralBefore": 100,
+        "neutralDuring": 100
+      }
+    },
+    "weak-outgoing-x075-once": {
+      "pass": true,
+      "data": {
+        "baseOut": 101.75999999999999,
+        "weakOut": 76.31999999999994
+      }
+    },
+    "no-old-passive-dodge": {
+      "pass": true,
+      "data": {
+        "x": 199.66429399485855,
+        "hx": 203.21377456907817,
+        "delta": -3.549480574219615
+      }
+    },
+    "weak-slime-combatant-inheritance": {
+      "pass": true,
+      "data": {
+        "splitCast": true,
+        "childWeak": 0.8333333333333333,
+        "ctWeak": 0.8333333333333333,
+        "childBase": 67.5,
+        "childAfter": 54
+      }
+    },
+    "A2-exceptional-escape-no-fake-catch": {
+      "pass": true,
+      "data": {
+        "pose": {
+          "mode": "a2",
+          "phase": "RECOVER",
+          "scale": 0.8067769261799113,
+          "pose": {
+            "x": 681.0005239766997,
+            "y": 714.5613162434228,
+            "rot": 0.013747960492560487,
+            "sx": 1.0732839115417576,
+            "sy": 0.9560304742288434,
+            "head": -0.0012269065418132469,
+            "headY": 1.0300042955182804,
+            "antL": -0.13893861264758112,
+            "antR": -0.12489616331177289,
+            "antLb": 0,
+            "antRb": 0,
+            "aL": [
+              0.011484338194504083,
+              -0.0027146277454214466,
+              -0.03003713897331564,
+              12.701535873818669
+            ],
+            "aR": [
+              0.011454386921222047,
+              -0.003767784724355597,
+              -0.029536075111696695,
+              12.701535873818669
+            ]
+          },
+          "aura": 0,
+          "echoes": 6,
+          "weak": 0
+        },
+        "weak": 0
+      }
+    },
+    "match-reset": {
+      "pass": true,
+      "data": {
+        "charges": 3,
+        "traps": 0
+      }
+    },
+    "C-trap-40pct-anchor": {
+      "pass": true,
+      "data": {
+        "rt": 0.172,
+        "r": 103,
+        "measure": {
+          "maxX": 103,
+          "maxY": 73,
+          "k": 0.8067769261799113
+        }
+      }
+    },
+    "C-footprint-trigger-match": {
+      "pass": true,
+      "data": {
+        "R": 103,
+        "outTriggered": false,
+        "inTriggered": true,
+        "trapR": 103
+      }
+    },
+    "C-armed-energy-silent": {
+      "pass": true,
+      "data": {
+        "edge": 0,
+        "slot": 0,
+        "sweep": -1
+      }
+    },
+    "C-recoil-finite-all-directions": {
+      "pass": true,
+      "data": {
+        "B": 466.69047558312144,
+        "d1": 425,
+        "d2": 75,
+        "d3": 343.1138134465591,
+        "d4": 466.6904755831214
+      }
+    },
+    "C-no-persistent-aura": {
+      "pass": true,
+      "data": {
+        "holdAura": 0,
+        "holdEcho": 0
+      }
+    },
+    "C-echoes-highspeed-only": {
+      "pass": true,
+      "data": {
+        "echoMax": 14
+      }
+    },
+    "C-weak-visual-bound-to-status": {
+      "pass": true,
+      "data": {
+        "sawWeak": 8.6,
+        "weakGone": 0
+      }
+    },
+    "C-sfx-no-clamp-on-expiry": {
+      "pass": true,
+      "data": {
+        "logExp": [
+          "hunter_a1_charge_personal.mp3",
+          "hunter_a1_deploy_mechanism.mp3",
+          "hunter_a1_unfold_blade.mp3"
+        ]
+      }
+    },
+    "C-sfx-no-catch-on-miss": {
+      "pass": true,
+      "data": {
+        "logMiss": [
+          "hunter_a2_pounce_sweep.mp3"
+        ]
+      }
+    },
+    "C-sfx-semantic-chain": {
+      "pass": true,
+      "data": {
+        "logHit": [
+          "hunter_a1_charge_personal.mp3",
+          "hunter_a1_deploy_mechanism.mp3",
+          "hunter_a1_unfold_blade.mp3",
+          "hunter_a1_clamp.mp3",
+          "hunter_a2_pounce_sweep.mp3",
+          "hunter_a2_catch_flesh.mp3"
+        ]
+      }
+    }
+  },
+  "errors": [],
+  "browser": "HeadlessChrome/153.0.8010.0"
+}

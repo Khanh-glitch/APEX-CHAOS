@@ -63,13 +63,13 @@
     picked:loadImage('picked.webp')
   };
   const audioFiles = {
-    attack:`${ROOT}audio/attack.wav`,
-    infiniteSeverStart:`${ROOT}audio/infiniteSeverStart.wav`,
-    directFleshHit:`${ROOT}audio/directFleshHit.wav`,
-    twoSwordImpact:`${ROOT}audio/twoSwordImpact.wav`,
-    waveHitEnemy:`${ROOT}audio/waveHitEnemy.wav`,
-    waveHitDefendedObject:`${ROOT}audio/waveHitDefendedObject.wav`,
-    waveHitHeavyObject:`${ROOT}audio/waveHitHeavyObject.wav`,
+    attack:`${ROOT}audio/attack.mp3`,
+    infiniteSeverStart:`${ROOT}audio/infiniteSeverStart.mp3`,
+    directFleshHit:`${ROOT}audio/directFleshHit.mp3`,
+    twoSwordImpact:`${ROOT}audio/twoSwordImpact.mp3`,
+    waveHitEnemy:`${ROOT}audio/waveHitEnemy.mp3`,
+    waveHitDefendedObject:`${ROOT}audio/waveHitDefendedObject.mp3`,
+    waveHitHeavyObject:`${ROOT}audio/waveHitHeavyObject.mp3`,
     cloneTeleport:'/assets/ninja_v1/audio/teleport.mp3'
   };
   const audio = {};
@@ -146,13 +146,29 @@
     state.visualWarmup = {
       started:true,
       ready:false,
+      // CP6: this warmup forces decodes (warmDrawImage), bakes filtered frame
+      // variants, and builds the 1535x1024 blade mask (full getImageData
+      // readback). Doing all of it inside one .then() produced a ~1s
+      // main-thread stall on the Arsenal entry path. Chunked now: one asset
+      // per idle slot, yielding to input/paint between them; ensureBladeMask
+      // also stays available as the lazy in-match fallback.
       promise:Promise.all(hotImages.map(whenImageReady)).then(() => {
-        for (const img of hotImages) warmDrawImage(warmCtx, img, img === images.sakuraPetal ? .08 : .35);
-        for (const img of hotFrames) { bakeFilteredFrame(img,'clone'); bakeFilteredFrame(img,'afterimage'); }
-        ensureBladeMask();
-        state.visualWarmup.bladeMaskReady = !!bladeMask.data;
-        state.visualWarmup.ready = true;
-        state.visualWarmup.finishedAt = performance.now();
+        const tasks = [];
+        for (const img of hotImages) {
+          tasks.push(() => warmDrawImage(warmCtx, img, img === images.sakuraPetal ? .08 : .35));
+        }
+        for (const img of hotFrames) {
+          tasks.push(() => bakeFilteredFrame(img,'clone'));
+          tasks.push(() => bakeFilteredFrame(img,'afterimage'));
+        }
+        tasks.push(() => {
+          ensureBladeMask();
+          state.visualWarmup.bladeMaskReady = !!bladeMask.data;
+          state.visualWarmup.ready = true;
+          state.visualWarmup.finishedAt = performance.now();
+        });
+        if (typeof window.apexIdleChain === 'function') return window.apexIdleChain(tasks).then(() => true);
+        for (const t of tasks) t();
         return true;
       }).catch(error => {
         state.visualWarmup.error = String(error?.message || error);

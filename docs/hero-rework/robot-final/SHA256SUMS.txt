@@ -1,0 +1,21 @@
+# ROBOT FINAL INTEGRATION — SHA-256
+# Owner-source authority (exact uploaded bytes)
+bd0cc64fbeea94969fbef0b4bc4de690a19e85fafe93cb4a12c9b3accf095f75  docs/hero-rework/robot-final/reference/ROBOT_VISUAL_AUTHORITY.html
+4cfa96268f56cb9be09406750d45fa3e8b2336319e469f8f66af1cbf55989561  tools/hero-rework/source/robot-final/source-sfx/robot_a1_lock.wav
+2754c5b2353b20d5573c17b2e5511fbbcf5dad4b61ba6c60caf6038c0612742e  tools/hero-rework/source/robot-final/source-sfx/robot_a1_no_weapon.mp3
+cf0e6f0aa39b4d9cf217c67c722070880be0bf6faf8eca19b3d38155a2bc444b  tools/hero-rework/source/robot-final/source-sfx/robot_a1_dash.wav
+c62e90c96d6f12822b077871d1961a54db06fba67cafafe18260f50d36c93cb0  tools/hero-rework/source/robot-final/source-sfx/robot_a2_activate.wav
+0ba775924355676895fe591a0704a1b609f9cfaab0f9a7866135dd553bd28ee8  tools/hero-rework/source/robot-final/source-sfx/robot_a2_armor_hit.wav
+7b28af8c95e33c7097445ab040a43b04325f64ce989f992ca4ec5fb3ef2b4dd1  tools/hero-rework/source/robot-final/source-sfx/robot_a2_end.wav
+8a588c7dbdf1a2cc44860c07da045453cac306425afdaf2ba54cf91c3fe30ca1  tools/hero-rework/source/robot-final/source-sfx/robot_passive_milestone.mp3
+c498ced028f40998fd55fe17f5bdd51b2cf4d91a805a5091840b905e01e06a13  tools/hero-rework/source/robot-final/source-sfx/robot_passive_upgrade.mp3
+
+# Repo-bridged runtime delivery copies (mono 48 kHz, 160 kbps MP3; no mixing/layering/redesign)
+6afdd7c5621d505cb485a9e299f615c25df8fa3742af1d1ee778f68d40d9b51e  tools/hero-rework/source/robot-final/sfx/robot_a1_lock.mp3
+1ced108d46e94588f29ebf927c2e795f55dc443a65a049bb9fe2657649e1255c  tools/hero-rework/source/robot-final/sfx/robot_a1_no_weapon.mp3
+9e88303e7c51f9f20211f2114448679e0545bb4b294068ec46f128f799ca10e2  tools/hero-rework/source/robot-final/sfx/robot_a1_dash.mp3
+b4f1312dde642df191dc676a93d7696de391deb8830b04ded9f0036037358a62  tools/hero-rework/source/robot-final/sfx/robot_a2_activate.mp3
+86920bee77bfca054353752bfa9ec1e53b312064445c71068d633ee4c13d3577  tools/hero-rework/source/robot-final/sfx/robot_a2_armor_hit.mp3
+c96510e850758135e3fdc345b10cd3d711aa121b4dc8cc488d718833dda8e8cc  tools/hero-rework/source/robot-final/sfx/robot_a2_end.mp3
+aa6cf138c8deda62dd48a75ebe37dfa2c7d4510269a37aec88705f7f30508a6b  tools/hero-rework/source/robot-final/sfx/robot_passive_milestone.mp3
+d80cffb13b35a4542768019b378c80e093a8d1d990ca9e5ab36c60c6bff1413d  tools/hero-rework/source/robot-final/sfx/robot_passive_upgrade.mp3

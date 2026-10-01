@@ -73,6 +73,11 @@
     aqPerfPeak('shockwaves', (typeof shockwaves !== 'undefined' && shockwaves.length) || 0);
     aqPerfPeak('arsenalVfx', av && av.activeVfx ? av.activeVfx() : 0);
     aqPerfPeak('detachedWeapons', (AQ.state && AQ.state.detachedWeapons && AQ.state.detachedWeapons.length) || 0);
+    const storm = window.APEX_ARSENAL_STORM;
+    if (storm) {
+      aqPerfPeak('stormBolts', storm.boltCount());
+      aqPerfPeak('stormSparks', storm.sparkCount());
+    }
   }
   function aqPerfSectionSummary() {
     const out = {};
@@ -150,6 +155,9 @@
       unarmedFastConsumed: false,
       unarmedFastPending: false,
       spawnHeld: false,
+      labMode: false,
+      labDamage: 0,
+      labHits: 0,
       healCooldown: 0,
       forceHealId: null,
       slots: [],
@@ -198,9 +206,20 @@
         const mult = CFG.NATIVE_ARSENAL_MULT[mech] != null ? CFG.NATIVE_ARSENAL_MULT[mech] : CFG.NATIVE_ARSENAL_MULT.default;
         scaled = amount * mult;
       }
+      // Lab: temporary HP headroom lets the unmodified engine resolve the
+      // ENTIRE real hit (including lethal-equivalent damage, HUD, VFX and
+      // callbacks), without ever reaching zero/KO. Restore only AFTER the
+      // transaction; do not short-circuit the damage path.
+      if (st.labMode) this.hp += scaled + 1;
       const before = this.hp;
       const out = baseTakeDamage.call(this, scaled, source, label, statusDamage);
       const dealt = Math.max(0, before - this.hp);
+      if (st.labMode) {
+        st.labDamage += dealt;
+        st.labHits += dealt > 0 ? 1 : 0;
+        this.hp = this.maxHp;
+        if (typeof updateHUD === 'function') updateHUD();
+      }
       st.dmg = st.dmg || { weapon: 0, native: 0, byMechanic: {} };
       if (isWeapon) st.dmg.weapon += dealt;
       else {
@@ -240,7 +259,7 @@
         return !!(h && CFG.isGun && CFG.isGun(h.weaponId));
       };
       const revealedGuns = (state.slots || []).filter((s) => s.phase === 'REVEALED' && s.kind !== 'HEAL' && CFG.isGun && CFG.isGun(s.weaponId)).length;
-      const emergencyGunNeeded = living.length >= 2 && living.every((f) => !holdsGun(f)) && revealedGuns === 0;
+      const emergencyGunNeeded = !state.labMode && living.length >= 2 && living.every((f) => !holdsGun(f)) && revealedGuns === 0;
       let emergencySpawned = false;
       if (!emergencyGunNeeded) {
         state.unarmedFastConsumed = false;
@@ -263,14 +282,18 @@
         }
       }
       // Fixed spawn cadence — independent of collection state (handoff §5).
-      state.spawnTimer -= dt;
+      if (!state.labMode) state.spawnTimer -= dt;
       let guard = 0;
-      while (state.spawnTimer <= 0 && guard++ < 4) {
+      while (!state.labMode && state.spawnTimer <= 0 && guard++ < 4) {
         state.spawnTimer += CFG.SPAWN_CADENCE_SECONDS;
         if (emergencySpawned) continue;
         SPAWN.trySpawnSlot();
       }
       SPAWN.updateSlots(dt);
+      // B1 owner correction: the unclaimed STORMBREAKER no longer applies a
+      // GLOBAL slow to both fighters while it sits on the floor. The danger
+      // read is local (floor lightning VFX around the slot itself) and the
+      // threat is the committed release — not an arena-wide movement debuff.
       // POST-C §6: P1 cooldown-only skills wait for J. Gate wraps P1 update
       // only; P2 keeps automatic kit behavior.
       const gate = window.APEX_ARSENAL_SKILL_GATE;
@@ -289,6 +312,38 @@
     }
     weaponApi.tickVisuals(dt);
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.tick(dt);
+    if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.tick(dt);
+    // B3 floor-lightning contact hazard: the VISIBLE bolt geometry sampled
+    // just above (post-regeneration, pre-draw — the same polylines that
+    // render this frame) is the hit authority. Each discrete bolt↔fighter
+    // contact applies one floorBoltStunSeconds stun — no damage — through
+    // the standard engine status. Both fighters are valid targets: the
+    // floor weapon has no owner. Per-pulse/per-fighter gating lives in the
+    // sampler; an in-flight longer stun is never shortened by a floor hit.
+    if (window.APEX_ARSENAL_STORM && window.APEX_ARSENAL_STORM.floorContacts
+        && CFG.STORMBREAKER && CFG.STORMBREAKER.floorBoltHazard !== false) {
+      const stunSeconds = CFG.STORMBREAKER.floorBoltStunSeconds != null ? CFG.STORMBREAKER.floorBoltStunSeconds : 1.0;
+      // Doc 14 R2: the floor-lightning sampler enumerates ALL eligible
+      // living bodies — normal fighters plus every living rework body
+      // (extra SLIME Bodies / promoted anchors; retired/dead/invisible
+      // anchors excluded). Generic query, no SLIME-name conditional.
+      // Extra SLIME Bodies are NOT electrically immune (no such frozen
+      // mechanic). Frozen floor law preserved: visible bolt geometry is
+      // the contact authority, damage = 0, stun = 1.0s, a shorter floor
+      // stun never shortens a longer one, per-pulse/per-body gating.
+      const H = window.APEX_HERO_REWORK;
+      const stormTargets = (H && H.environmentTargets) ? H.environmentTargets() : fighters;
+      for (const c of window.APEX_ARSENAL_STORM.floorContacts(stormTargets)) {
+        const f = c.fighter;
+        if (!f || f.hp <= 0 || !f.applyStatus) continue;
+        const cur = f.statuses && f.statuses.stun;
+        if (!cur || cur.timer <= 0 || cur.timer < stunSeconds) {
+          f.applyStatus('stun', stunSeconds, {});
+        }
+        window.APEX_ARSENAL_STORM.onFloorContact(c);
+        AQ.log('STORM_FLOOR_STRIKE', `target=${f.name} x=${Math.round(f.x)} y=${Math.round(f.y)}`);
+      }
+    }
     // Presentation decay over the shared engine collections.
     for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.update(dt); if (p.life <= 0) particles.splice(i, 1); }
     // Pass 1: battlefield typography is muted in Arsenal. Native kits may still
@@ -300,8 +355,16 @@
     if (arenaFlash.a > 0) arenaFlash.a = Math.max(0, arenaFlash.a - dt * 1.6);
     if (cameraShake > 0) cameraShake = Math.max(0, cameraShake - dt * 22);
     cameraZoom = lerp(cameraZoom, 1, dt * 2);
-    if (!state.over && fighters[0] && fighters[1] && (fighters[0].hp <= 0 || fighters[1].hp <= 0)) {
-      const winner = fighters[0].hp > fighters[1].hp ? fighters[0] : fighters[1];
+    // HERO REWORK (doc 02/06): KO/victory truth is COMBATANT-level — a
+    // SLIME Combatant lives while any Body lives; the legacy fighters[]
+    // entry may be a retired anchor at 0 HP. Shared-query patch: route
+    // through the rework HP authority when present (legacy behavior
+    // unchanged otherwise).
+    const HRW = window.APEX_HERO_REWORK;
+    const aqKO = (f) => (HRW && HRW.bodyKO) ? HRW.bodyKO(f) : (f.hp <= 0);
+    const aqHp = (f) => (HRW && HRW.bodyHudHp) ? HRW.bodyHudHp(f).hp : f.hp;
+    if (!state.labMode && !state.over && fighters[0] && fighters[1] && (aqKO(fighters[0]) || aqKO(fighters[1]))) {
+      const winner = aqHp(fighters[0]) > aqHp(fighters[1]) ? fighters[0] : fighters[1];
       state.over = winner.name;
       AQ.log('KO', `winner=${winner.name}`);
       if (window.APEX_ARSENAL_QUEST && window.APEX_ARSENAL_QUEST.onMatchOver) {
@@ -339,6 +402,8 @@
       drawChamber01(c); // Arsenal-only arena; global Apex background untouched
       const t1 = performance.now();
       if (AQ.feel && AQ.feel.drawStain) AQ.feel.drawStain(c);
+      // Stormbreaker floor lightning sits UNDER the actors (V9 layering).
+      if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.drawFloor(c);
       SPAWN.drawSlots(c);
       aqPerfMark('pickupDraw', performance.now() - t1);
       aqPerfMark('background', performance.now() - t0);
@@ -435,17 +500,27 @@
     const S = GAME_SIZE;
     const t0 = performance.now();
     let usedCache = true;
-    if (!chamberCache || chamberCacheSize !== S) {
+    const P = window.APEX_CHAMBER_PALETTE;
+    if (P && P.surface) {
+      // §D: surface cache is keyed (GAME_SIZE, paletteId) inside the palette
+      // runtime; rebuilt exactly once per key change; one drawImage per frame.
+      if (P.installWrappers) P.installWrappers();
+      const surf = P.surface(S);
+      usedCache = !surf.rebuilt;
+      c.drawImage(surf.canvas, 0, 0);
+    } else if (!chamberCache || chamberCacheSize !== S) {
       const surface = makeChamberSurface(S);
       const sc = surface.getContext('2d');
       paintChamber01(sc, S);
       chamberCache = surface;
       chamberCacheSize = S;
-      AQ_PERF.chamber.builds += 1;
-      AQ_PERF.chamber.size = S;
       usedCache = false;
+      c.drawImage(chamberCache, 0, 0);
+    } else {
+      c.drawImage(chamberCache, 0, 0);
     }
-    c.drawImage(chamberCache, 0, 0);
+    AQ_PERF.chamber.builds += usedCache ? 0 : 1;
+    AQ_PERF.chamber.size = S;
     AQ_PERF.chamber.draws += 1;
     if (usedCache) AQ_PERF.chamber.hits += 1;
     AQ_PERF.chamber.usedCacheLast = usedCache;
@@ -460,7 +535,14 @@
   function drawEquippedWeapons(c) {
     const av = window.APEX_ARSENAL_AV;
     if (!av || !av.drawEquippedWeapon) return;
-    for (const f of fighters) {
+    // Doc 14 R1: equipped-weapon presentation enumerates EVERY living
+    // physical body that can legally hold a weapon. Rework SLIME keeps
+    // extra Bodies outside global fighters[] (doc 06) — the generic rework
+    // enumerator supplies exactly those (anchors stay covered by the
+    // fighters[] pass below, so each weapon draws exactly once).
+    const H = window.APEX_HERO_REWORK;
+    const extras = (H && H.extraLivingBodies) ? H.extraLivingBodies() : [];
+    for (const f of fighters.concat(extras)) {
       if (!f) continue;
       const h = weaponApi.getHolder(f);
       if (h) av.drawEquippedWeapon(c, f, h);
@@ -499,6 +581,13 @@
     const slots = state.slots || [];
     for (let i = 0; i < slots.length; i++) if (slots[i] && slots[i].phase === 'REVEALED') revealed += 1;
     const lines = [];
+    // HERO REWORK: rework P1 skills read straight from the rework runtime
+    // (J -> A1, K -> A2); the legacy gate snapshot stays untouched.
+    if (window.APEX_HERO_REWORK && f && window.APEX_HERO_REWORK.isReworkFighter
+      && window.APEX_HERO_REWORK.isReworkFighter(f)) {
+      const hrLines = window.APEX_HERO_REWORK.skillHud(f) || [];
+      if (hrLines.length) return hrLines.join('  |  ');
+    }
     if (snap && snap.shell === 'NEWBIE') {
       const cd = f && f.data ? f.data.nbCd : 0;
       let text = 'J · —';
@@ -554,13 +643,57 @@
       el = document.createElement('div');
       el.id = 'aq-dom-hud';
       el.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:40;font-family:monospace;';
-      (document.getElementById('game-wrap') || document.body).appendChild(el);
+      (document.getElementById('game-wrapper') || document.getElementById('game-wrap') || document.body).appendChild(el);
     }
     hudRefs.root = el;
     return el;
   }
+  function ensureArsenalBattleUiStyle() {
+    if (document.getElementById('aq-battle-ui-style')) return;
+    const style = document.createElement('style');
+    style.id = 'aq-battle-ui-style';
+    style.textContent = `
+      #aq-dom-hud{font-family:"ApcKanit","Segoe UI",sans-serif!important;pointer-events:none!important}
+      #aq-dom-hud #aq-hint,#aq-dom-hud #aq-skill-hud,#aq-dom-hud #aq-debug{pointer-events:none!important}
+      #aq-dom-hud #aq-battle-exit,#aq-dom-hud #aq-win,#aq-dom-hud #aq-win *{pointer-events:auto!important}
+      #aq-dom-hud button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+      #aq-dom-hud button:focus-visible{outline:2px solid #f3d477;outline-offset:2px}
+      #aq-hint{position:absolute!important;left:50%!important;right:auto!important;bottom:12px!important;z-index:40;transform:translateX(-50%);padding:7px 10px;border:1px solid rgba(255,255,255,.1);background:rgba(8,11,15,.72);color:rgba(224,219,205,.62)!important;font:800 9px/1 ui-monospace,monospace!important;letter-spacing:.12em}
+      #aq-battle-exit.aq-battle-exit-btn{position:absolute;right:14px;bottom:12px;z-index:41;pointer-events:auto;min-width:92px;min-height:44px;padding:0 12px;border:1px solid #444d56;background:linear-gradient(180deg,rgba(32,38,45,.95),rgba(13,18,23,.95));color:#e8e2d3;cursor:pointer;font:900 10px/1 "Segoe UI",sans-serif;letter-spacing:.08em;clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+      #aq-win.aq-result-layer{position:absolute!important;inset:0!important;z-index:80!important;display:grid!important;place-items:center!important;padding:20px;background:rgba(4,7,10,.58);backdrop-filter:blur(3px);text-align:left!important;color:#f4f0e6!important}
+      .aq-result-card{pointer-events:auto;width:min(560px,92%);padding:28px;border:1px solid #454f59;background:linear-gradient(180deg,rgba(23,29,36,.98),rgba(10,14,18,.98));box-shadow:0 24px 70px rgba(0,0,0,.48);clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
+      .aq-result-kicker{color:#d7bd72;font:800 9px/1 ui-monospace,monospace;letter-spacing:.18em}
+      .aq-result-title{margin-top:8px;font-size:clamp(36px,5vw,64px);font-style:italic;font-weight:900;line-height:.86}
+      .aq-result-reward{margin-top:16px;padding:10px 12px;border:1px solid #3b4338;background:#11160f;color:#d8c982;font:800 11px/1.35 ui-monospace,monospace}
+      .aq-result-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:20px}
+      .aq-result-actions button{min-height:44px;border:1px solid #424b55;background:#171d24;color:#f1ece1;cursor:pointer;font:900 11px/1 "Segoe UI",sans-serif;letter-spacing:.06em}
+      .aq-result-actions button:first-child{border-color:#62583b;background:#3c341f;color:#f4df9a}
+      @media(max-width:520px){.aq-result-actions{grid-template-columns:1fr}}
+      /* Arsenal Lab: compact scrollable dock, never an opaque full-screen layer. */
+      #aq-lab-panel{position:absolute;top:12px;right:12px;z-index:45;pointer-events:auto;
+        width:min(230px,28%);max-height:min(68vh,570px);overflow:auto;overscroll-behavior:contain;
+        color:#ede9df;background:rgba(11,17,23,.94);border:1px solid #627080;
+        box-shadow:0 10px 32px #0008;font:700 11px/1.3 "ApcKanit","Segoe UI",sans-serif}
+      #aq-lab-panel summary{cursor:pointer;padding:12px;color:#d7bd72;font-size:13px;letter-spacing:.09em}
+      #aq-lab-panel .aq-lab-intro{margin:0 10px 8px;color:#adb9c2}
+      #aq-lab-panel .aq-lab-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:6px}
+      #aq-lab-panel button{cursor:pointer;color:#f4f0e6;background:#1d2832;border:1px solid #45525e;
+        min-width:0;min-height:62px;padding:3px;font:700 10px/1.15 "Segoe UI",sans-serif;overflow-wrap:anywhere}
+      #aq-lab-panel button:hover{background:#344754}
+      #aq-lab-panel button img{display:block;margin:auto;width:70%;height:36px;object-fit:contain}
+      #aq-lab-panel .aq-lab-exit{display:block;width:calc(100% - 12px);margin:6px;min-height:44px;color:#f7d79b}
+      #aq-lab-panel .aq-lab-message{min-height:22px;padding:4px 10px;color:#d7bd72}
+      @media(max-width:600px){#aq-lab-panel{top:auto;bottom:6px;right:6px;left:6px;width:auto;max-height:min(24vh,160px)}
+        #aq-lab-panel:not([open]){max-height:none;width:max-content;left:auto}
+        #aq-lab-panel .aq-lab-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+    `;
+    document.head.appendChild(style);
+  }
+
   function syncDomHud(force) {
     const t0 = performance.now();
+    ensureArsenalBattleUiStyle();
     const state = AQ.state;
     const el = hudRoot();
     const now = t0;
@@ -569,8 +702,7 @@
       if (!hint) {
         hint = document.createElement('div');
         hint.id = 'aq-hint';
-        hint.style.cssText = 'position:absolute;left:0;right:0;bottom:12px;text-align:center;color:rgba(232,224,200,0.9);font-weight:800;font-size:14px;';
-        hint.textContent = 'ARSENAL QUEST — F3 debug · T rematch · B/ESC menu';
+        hint.textContent = 'B / ESC · EXIT';
         el.appendChild(hint);
       }
       hudRefs.hint = hint;
@@ -580,48 +712,74 @@
       hudRefs.hint.style.display = hintDisplay;
       hudLast.hintDisplay = hintDisplay;
     }
+    // PASS A §4.2: a discoverable visible way out of an active battle — the
+    // button mirrors the accepted B/ESC behavior exactly (Quest battle →
+    // Quest Map; Free battle → global Main Menu). Keyboard-only exit is not
+    // sufficient for the owner.
+    if (!hudRefs.exitBtn) {
+      let btn = document.getElementById('aq-battle-exit');
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'aq-battle-exit';
+        btn.type = 'button';
+        btn.textContent = 'EXIT';
+        btn.className = 'aq-battle-exit-btn';
+        btn.addEventListener('click', () => {
+          const Q = window.APEX_ARSENAL_QUEST;
+          if (AQ.state && AQ.state.labMode) window.exitArsenalLab();
+          else if (AQ.state && AQ.state.questStage && Q && Q.returnToMap) Q.returnToMap();
+          else window.exitArsenalQuestMode();
+        });
+        el.appendChild(btn);
+      }
+      hudRefs.exitBtn = btn;
+    }
+    const exitDisplay = (state && state.active) ? 'block' : 'none';
+    // Compare against the element's real style: exitArsenalQuestMode hides the
+    // button directly (outside this sync), so a cached flag can go stale.
+    if (hudRefs.exitBtn.style.display !== exitDisplay) {
+      hudRefs.exitBtn.style.display = exitDisplay;
+      hudLast.exitDisplay = exitDisplay;
+    }
     syncSkillHud(el, state, now, !!force || !!(state && state.over && hudLast.winKey == null));
     let win = hudRefs.win || document.getElementById('aq-win');
     if (state && state.over) {
       const Q = window.APEX_ARSENAL_QUEST;
-      const spec = Q && Q.resultActions ? Q.resultActions(state) : { mode: 'freeplay', actions: ['REMATCH', 'MENU'] };
+      const spec = Q && Q.resultActions ? Q.resultActions(state) : { mode: 'freeplay', actions: ['REMATCH', 'HUB'] };
       const winKey = state.over + '|' + spec.mode + '|' + (spec.actions || []).join(',');
       if (hudLast.winKey !== winKey) {
         if (!win) {
           win = document.createElement('div');
           win.id = 'aq-win';
-          win.style.cssText = 'position:absolute;left:0;right:0;top:32%;text-align:center;color:#efe6c8;pointer-events:auto;z-index:50;';
           el.appendChild(win);
         }
+        win.className = 'aq-result-layer';
         hudRefs.win = win;
-        const title = '<div style="font:900 56px Segoe UI">' + state.over + ' WINS</div>';
-        const btn = (id, label) => '<button data-aq-act="' + id + '" style="margin:8px;padding:10px 16px;font:800 16px monospace;pointer-events:auto;cursor:pointer;">' + label + '</button>';
+        const M = window.APEX_ARSENAL_META;
+        const aw = M && M.lastAward ? M.lastAward() : null;
+        const reward = aw && aw.amount
+          ? '<div class="aq-result-reward">+' + aw.amount + ' AC · BALANCE ' + aw.balance + '</div>'
+          : '';
+        let actions = [];
         if (spec.mode === 'quest-win' || spec.mode === 'quest-loss') {
-          win.innerHTML = title + '<div id="aq-quest-actions" style="margin-top:12px">' + spec.actions.map((a) => btn(a, a)).join('') + '</div>';
-          win.onclick = (e) => {
-            const act = e.target && e.target.getAttribute && e.target.getAttribute('data-aq-act');
-            if (!act) return;
-            if (act === 'NEXT' && Q.nextStage) Q.nextStage();
-            else if ((act === 'REPLAY' || act === 'RETRY') && Q.replay) Q.replay();
-            else if (act === 'QUEST MAP' && Q.returnToMap) Q.returnToMap();
-          };
+          actions = (spec.actions || []).slice();
+          if (!actions.includes('HUB')) actions.push('HUB');
         } else {
-          const M = window.APEX_ARSENAL_META;
-          const aw = M && M.lastAward ? M.lastAward() : null;
-          const reward = aw && aw.amount ? '<div style="font:700 16px monospace;margin-top:8px">+' + aw.amount + ' AC · balance ' + aw.balance + '</div>' : '';
-          win.innerHTML = title + reward
-            + '<div style="margin-top:12px">'
-            + '<button data-aq-act="REMATCH" style="margin:8px;padding:10px 16px;font:800 16px monospace;pointer-events:auto;cursor:pointer;">REMATCH</button>'
-            + '<button data-aq-act="PICK AGAIN" style="margin:8px;padding:10px 16px;font:800 16px monospace;pointer-events:auto;cursor:pointer;">PICK AGAIN</button>'
-            + '<button data-aq-act="HUB" style="margin:8px;padding:10px 16px;font:800 16px monospace;pointer-events:auto;cursor:pointer;">HUB</button>'
-            + '</div>';
-          win.onclick = (e) => {
-            const act = e.target && e.target.getAttribute && e.target.getAttribute('data-aq-act');
-            if (act === 'REMATCH') window.startArsenalQuestMode();
-            else if (act === 'PICK AGAIN' && window.APEX_ARSENAL_META) window.APEX_ARSENAL_META.openFreePick();
-            else if (act === 'HUB' && window.APEX_ARSENAL_META) window.APEX_ARSENAL_META.openHub();
-          };
+          actions = ['REMATCH', 'PICK AGAIN', 'HUB'];
         }
+        win.innerHTML = '<div class="aq-result-card"><div class="aq-result-kicker">ARSENAL RESULT</div><div class="aq-result-title">' + state.over + ' WINS</div>' + reward
+          + '<div id="aq-quest-actions" class="aq-result-actions">' + actions.map((a) => '<button type="button" data-aq-act="' + a + '">' + a + '</button>').join('') + '</div></div>';
+        win.onclick = (e) => {
+          const btn = e.target && e.target.closest ? e.target.closest('[data-aq-act]') : null;
+          const act = btn && btn.getAttribute('data-aq-act');
+          if (!act) return;
+          if (act === 'NEXT' && Q && Q.nextStage) Q.nextStage();
+          else if ((act === 'REPLAY' || act === 'RETRY') && Q && Q.replay) Q.replay();
+          else if (act === 'QUEST MAP' && Q && Q.returnToMap) Q.returnToMap();
+          else if (act === 'REMATCH') window.startArsenalQuestMode();
+          else if (act === 'PICK AGAIN' && M) M.openFreePick();
+          else if (act === 'HUB' && M) { window.exitArsenalQuestMode(); M.openHub(); }
+        };
         hudLast.winKey = winKey;
         AQ_PERF.hud.winWrites += 1;
       }
@@ -686,6 +844,10 @@
     const tVfx = performance.now();
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.draw(ctx);
     aqPerfMark('arsenalVfxDraw', performance.now() - tVfx);
+    // Red-tier presentation (fixed cost; zero in-flight bolt objects).
+    const tStorm = performance.now();
+    if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.draw(ctx);
+    aqPerfMark('stormVfxDraw', performance.now() - tStorm);
     drawHolderTags(ctx);
     if (AQ.feel && AQ.feel.drawForeground) AQ.feel.drawForeground(ctx);
     ctx.restore();
@@ -737,7 +899,8 @@
     }
     if (e.code === 'KeyB' || e.code === 'Escape') {
       const Q = window.APEX_ARSENAL_QUEST;
-      if (AQ.state && AQ.state.questStage && Q && Q.returnToMap) Q.returnToMap();
+      if (AQ.state && AQ.state.labMode) window.exitArsenalLab();
+      else if (AQ.state && AQ.state.questStage && Q && Q.returnToMap) Q.returnToMap();
       else window.exitArsenalQuestMode();
     }
   }
@@ -793,9 +956,17 @@
     if (p1hp) p1hp.style.backgroundColor = fighters[0].color;
     if (p2hp) p2hp.style.backgroundColor = fighters[1].color;
     updateHUD();
+    // PASS B §11: ENERGY B1 is match state — reset on every match start.
+    if (window.APEX_COMBAT_HUD && window.APEX_COMBAT_HUD.onMatchStart) {
+      try { window.APEX_COMBAT_HUD.onMatchStart(); } catch (apexCombatHudErr) { /* HUD failure never breaks match start */ }
+    }
 
-    window.apexStopBattleAudio?.();
+    // Correction pass: match start = begin a NEW battle-audio session (the
+    // previous session's live sources/cues are terminated inside), then the
+    // AV runtime re-arms its HOT bank (buffers stay decoded across sessions).
+    window.apexBeginBattleAudioSession?.();
     if (window.APEX_ARSENAL_AV) { window.APEX_ARSENAL_AV.clear(); window.APEX_ARSENAL_AV.preload(); }
+    if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.clear();
     gameState = 'ARSENAL';
     lastTime = performance.now();
     if (!reqId) reqId = requestAnimationFrame(loop);
@@ -805,6 +976,50 @@
     }
     AQ.log('MODE_ENTER', 'mode=ARSENAL_QUEST');
     try { draw(); } catch (error) { console.warn('[AQ] initial draw failed', error); }
+  };
+
+  // Lab entry deliberately reuses the default playable shell (ROBOT after the
+  // HERO REWORK cutover) and the Arsenal combat mode. Only spawn cadence, KO/reward and HP persistence are Lab-specific.
+  function mountLabPanel() {
+    const host = document.getElementById('aq-dom-hud') || hudRoot();
+    document.getElementById('aq-lab-panel')?.remove();
+    const panel = document.createElement('details');
+    panel.id = 'aq-lab-panel';
+    if (window.innerWidth > 600) panel.open = true;
+    const set = window.APEX_ARSENAL_C_SET && window.APEX_ARSENAL_C_SET.weapons || {};
+    const list = (CFG.P0_WEAPON_IDS || []).map((id) => {
+      const meta = set[id];
+      const img = meta && meta.file ? '<img alt="" src="/assets/arsenal/' + meta.file + '">' : '';
+      return '<button type="button" data-lab-weapon="' + id + '">' + img + id.replace(/_/g, ' ') + '</button>';
+    }).join('');
+    panel.innerHTML = '<summary>ARSENAL LAB · EQUIPMENT</summary>'
+      + '<div class="aq-lab-intro">Tap a weapon to reveal one pickup. ROBOT vs ROBOT · endless HP.</div>'
+      + '<button type="button" class="aq-lab-exit">← ARSENAL HUB</button>'
+      + '<div class="aq-lab-message" role="status" aria-live="polite"></div>'
+      + '<div class="aq-lab-grid">' + list + '</div>';
+    panel.querySelector('.aq-lab-exit').addEventListener('click', () => window.exitArsenalLab());
+    panel.querySelectorAll('[data-lab-weapon]').forEach((btn) => btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-lab-weapon');
+      const slot = SPAWN.spawnLabWeapon(id);
+      panel.querySelector('.aq-lab-message').textContent = slot
+        ? id.replace(/_/g, ' ') + ' · READY' : 'LAB FULL — collect a pickup first';
+    }));
+    host.appendChild(panel);
+  }
+
+  window.startArsenalLab = function startArsenalLab() {
+    window.startArsenalQuestMode('NEWBIE', 'NEWBIE');
+    const state = AQ.state;
+    state.labMode = true;
+    state.spawnHeld = true;
+    state.spawnTimer = Infinity;
+    state.unarmedFastConsumed = true;
+    mountLabPanel();
+    AQ.log('LAB_ENTER', 'fighters=ROBOT,ROBOT'); // HERO REWORK: lab runs the ROBOT rework shell
+  };
+  window.exitArsenalLab = function exitArsenalLab() {
+    window.exitArsenalQuestMode();
+    window.APEX_ARSENAL_META?.openHub();
   };
 
   window.exitArsenalQuestMode = function exitArsenalQuestMode() {
@@ -820,7 +1035,16 @@
     particles.length = 0;
     floatingTexts.length = 0;
     shockwaves.length = 0;
+    const labPanel = document.getElementById('aq-lab-panel');
+    if (labPanel) labPanel.remove();
+    const battleExitBtn = document.getElementById('aq-battle-exit');
+    if (battleExitBtn) battleExitBtn.style.display = 'none'; // PASS A: no menu-screen leak
+    // Correction pass: exiting the mode ends the battle-audio session — the
+    // master stays silent (no auto-restore), pending AV cues are cancelled,
+    // and menu BGM (independent element) is untouched.
+    window.apexEndBattleAudioSession?.();
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.clear();
+    if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.clear();
     if (keyListener) {
       window.removeEventListener('keydown', keyListener);
       keyListener = null; // no leaked listeners
@@ -857,6 +1081,9 @@
       active: state.active,
       gameState,
       over: state.over,
+      labMode: !!state.labMode,
+      labDamage: state.labDamage || 0,
+      labHits: state.labHits || 0,
       time: Math.round(state.time * 100) / 100,
       spawnIn: Math.max(0, Math.round(state.spawnTimer * 100) / 100),
       activeSlots: state.slots.length,
