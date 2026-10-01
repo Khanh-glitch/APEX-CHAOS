@@ -1217,6 +1217,10 @@
   function hrPreTick(dt) {
     if (!M) return;
     HR._magnetStepPendingDt = dt;
+    // Presentation root sampling starts before canonical fighter movement.
+    // The matching post-movement sample is consumed exactly once in
+    // hrPostTick for both AQ.step (headless) and global update (real rAF).
+    globalScope.APEX_MAGNET_PRESENTATION?.capturePreMovement?.();
     AIL.bindClock(() => globalScope.matchClock || 0);
     AIL.hrScheduler.tick();
     for (const ct of M.combatants) {
@@ -1280,6 +1284,9 @@
     }
     globalScope.APEX_HUNTER_PRESENTATION?.tick(dt);
     globalScope.APEX_FROST_PRESENTATION?.tick(dt);
+    // Sole MAGNET presentation clock. Both production frame paths enter this
+    // seam, so neither an AQ.step-only wrapper nor a second rAF clock exists.
+    globalScope.APEX_MAGNET_PRESENTATION?.tick(dt);
     separateExtraBodies(dt);
     // SLIME child lifecycle.
     for (const ct of M.combatants) {

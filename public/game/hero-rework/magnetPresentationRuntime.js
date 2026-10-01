@@ -11,6 +11,7 @@
   const TAU = Math.PI * 2;
   const states = new Map();
   let unsubscribers = [], lastTickClock = -Infinity;
+  const scheduler = { tickCalls:0, advancedFrames:0, duplicateCalls:0 };
   const clamp = (v,a,b) => v<a?a:(v>b?b:v);
   const smooth = (a,b,x) => { const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t); };
 
@@ -20,8 +21,15 @@
   }
   function stateFor(ct) {
     let s=states.get(ct);
-    if(!s){s={ct,a1Age:-1,a2Age:-1,hot:new Float32Array(24),late:[],corridors:[],projectileHistory:new Map(),lastGameplayA1:false,lastGameplayA2:false};states.set(ct,s);}
+    if(!s){s={ct,a1Age:-1,a2Age:-1,hot:new Float32Array(24),late:[],corridors:[],projectileHistory:new Map(),lastGameplayA1:false,lastGameplayA2:false,preRoot:null,frameSample:null};states.set(ct,s);}
     return s;
+  }
+  function capturePreMovement() {
+    const clock=AIL&&AIL.clock?AIL.clock():Number(g.matchClock)||0;
+    for(const ct of magnets()){
+      const a=ct.anchor;if(!a)continue;
+      stateFor(ct).preRoot={x:a.x,y:a.y,clock};
+    }
   }
   function byIndex(index) { return magnets().find((ct) => ct.idx === index) || null; }
   function onEvent(ev) {
@@ -54,11 +62,16 @@
     for(const [p,h] of s.projectileHistory){if(!seen.has(p))h.stale++;if(h.stale>45||p.life<=0)s.projectileHistory.delete(p);}
   }
   function tick(dt) {
+    scheduler.tickCalls++;
     const clock=AIL&&AIL.clock?AIL.clock():Number(g.matchClock)||0;
-    if(clock===lastTickClock)return;lastTickClock=clock;
+    if(clock===lastTickClock){scheduler.duplicateCalls++;return;}
+    lastTickClock=clock;scheduler.advancedFrames++;
     const snapshot=MAG.inspect(clock);
     const live=new Set(magnets());
-    for(const ct of live){const s=stateFor(ct),field=snapshot.fields.find((f)=>f.combatant===ct);
+    for(const ct of live){const s=stateFor(ct),field=snapshot.fields.find((f)=>f.combatant===ct),a=ct.anchor;
+      const pre=s.preRoot||{x:a.x,y:a.y,clock};
+      s.frameSample={before:{x:pre.x,y:pre.y},after:{x:a.x,y:a.y},dt,clock};
+      s.preRoot=null;
       const activeA1=!!(field&&field.a1Active),activeA2=!!(field&&field.a2Active);
       // Edge fallback protects casts accepted before this adapter subscribed.
       if(activeA1&&!s.lastGameplayA1){s.a1Age=0;GOLD.cue(ct,'a1',{x:0,y:0});}
@@ -120,8 +133,8 @@
       if(this===g.fighters?.[g.fighters.length-1]||this===g.fighters?.[1]){try{g.APEX_HUNTER_PRESENTATION?.renderPostWorld?.(ctx);}catch(e){}try{g.APEX_CRYSTALA_PRESENTATION?.renderWorldConstructsAndFx?.(ctx,false,true);g.APEX_CRYSTALA_PRESENTATION?.runBloomPass?.(ctx);}catch(e){}try{g.APEX_FROST_PRESENTATION?.renderPostWorld?.(ctx);}catch(e){}}return;}
     return previous.call(this,ctx);};}
   function teardown(){for(const ct of states.keys())GOLD.teardown(ct);states.clear();lastTickClock=-Infinity;}
-  function installLifecycle(){const AQ=g.APEX_ARSENAL;if(AQ?.step&&!AQ.step.__magnetPresentationWrapped){const base=AQ.step;const wrapped=function(dt){const out=base.call(this,dt);tick(dt);return out;};wrapped.__hrWrapped=base.__hrWrapped;wrapped.__magnetPresentationWrapped=true;AQ.step=wrapped;}const exit=g.exitArsenalQuestMode;if(exit&&!exit.__magnetPresentationWrapped){const wrapped=function(){teardown();return exit.apply(this,arguments);};wrapped.__hrWrapped=exit.__hrWrapped;wrapped.__magnetPresentationWrapped=true;g.exitArsenalQuestMode=wrapped;}}
+  function installLifecycle(){const exit=g.exitArsenalQuestMode;if(exit&&!exit.__magnetPresentationWrapped){const wrapped=function(){teardown();return exit.apply(this,arguments);};wrapped.__hrWrapped=exit.__hrWrapped;wrapped.__magnetPresentationWrapped=true;g.exitArsenalQuestMode=wrapped;}}
   subscribe();installDraw();installLifecycle();
-  g.APEX_MAGNET_PRESENTATION={version:'1.0.0',tick,drawEffects,teardown,inspect(ct){const s=states.get(ct);return{ready:GOLD.ready,stateCount:states.size,state:s&&{a1Age:s.a1Age,a2Age:s.a2Age,late:s.late.length,corridors:s.corridors.length,projectileHistories:s.projectileHistory.size,hot:[...s.hot]}};}};
+  g.APEX_MAGNET_PRESENTATION={version:'1.1.0-r1-clock',capturePreMovement,tick,drawEffects,teardown,inspect(ct){const s=states.get(ct);return{ready:GOLD.ready,stateCount:states.size,scheduler:{...scheduler},state:s&&{a1Age:s.a1Age,a2Age:s.a2Age,late:s.late.length,corridors:s.corridors.length,projectileHistories:s.projectileHistory.size,hot:[...s.hot],frameSample:s.frameSample}};}};
   g.apexMagnetPresentationRuntime='ready';
 })(typeof window!=='undefined'?window:globalThis);
