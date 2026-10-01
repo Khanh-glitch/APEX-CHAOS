@@ -23,8 +23,11 @@
   });
 
   const fields = new Map();
+  const floorStates = new Map();
+  const bodyStates = new Map();
   let projectileState = new WeakMap();
   let lastProjectileInfluence = [];
+  let worldStepCount = 0;
 
   function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
   function capVelocity(o, cap) {
@@ -82,6 +85,9 @@
       duration,
       initialFloorIds: kind === 'a1' ? snapshotFloorIds() : new Set(),
       acknowledgedFloorIds: new Set(),
+      notify: ctx.api && typeof ctx.api.emitEvent === 'function'
+        ? (type, payload) => ctx.api.emitEvent(type, payload)
+        : null,
     };
     st[kind] = field;
     st.casts[kind] += 1;
@@ -176,6 +182,182 @@
     return influenced.length;
   }
 
+  function defaultPickupEligible(slot, body) {
+    if (!body || !(body.hp > 0)) return false;
+    if (slot.phase === 'COUNTER_RESERVED' && slot.reservedFor !== body.id) return false;
+    const weaponApi = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+    if (weaponApi && weaponApi.getHolder && weaponApi.getHolder(body)) return false;
+    const frost = globalScope.APEX_FROST;
+    if (slot.__frostFrozen && frost && frost.deniesPickup && frost.deniesPickup(slot, body)) return false;
+    return true;
+  }
+  function floorStateFor(slot) {
+    let st = floorStates.get(slot);
+    if (!st) {
+      st = { vx: 0, vy: 0, rotation: 0, wallContacts: new Set(), bodyContacts: new Set(), history: [], integrations: 0 };
+      floorStates.set(slot, st);
+    }
+    return st;
+  }
+  function resolveFloorWalls(slot, st, size) {
+    const r = 16;
+    const next = new Set();
+    const hit = (key, penetration, nx, ny) => {
+      if (!(penetration > 0)) return;
+      next.add(key);
+      slot.x += nx * penetration; slot.y += ny * penetration;
+      const vn = st.vx * nx + st.vy * ny;
+      if (vn >= 0) return;
+      if (!st.wallContacts.has(key)) {
+        const tx = st.vx - vn * nx, ty = st.vy - vn * ny;
+        st.vx = tx * 0.82 - vn * 0.45 * nx;
+        st.vy = ty * 0.82 - vn * 0.45 * ny;
+      } else {
+        st.vx -= vn * nx; st.vy -= vn * ny;
+      }
+    };
+    hit('L', r - slot.x, 1, 0);
+    hit('R', slot.x - (size - r), -1, 0);
+    hit('T', r - slot.y, 0, 1);
+    hit('B', slot.y - (size - r), 0, -1);
+    st.wallContacts = next;
+  }
+  function resolveFloorBodies(slot, st, bodies, pickupEligible) {
+    const next = new Set();
+    for (const body of bodies || []) {
+      if (!body || !(body.hp > 0)) continue;
+      const dx = slot.x - body.x, dy = slot.y - body.y;
+      const d = Math.hypot(dx, dy), minD = 16 + (body.radius || 75);
+      if (!(d < minD)) continue;
+      if (pickupEligible(slot, body)) continue; // canonical Arsenal pickup wins later this tick
+      const key = String(body.id);
+      next.add(key);
+      const nx = d > EPS ? dx / d : 1, ny = d > EPS ? dy / d : 0;
+      slot.x = body.x + nx * minD; slot.y = body.y + ny * minD;
+      const bv = body.__hrVel || { x: 0, y: 0 };
+      const rvx = st.vx - (bv.x || 0), rvy = st.vy - (bv.y || 0);
+      const vn = rvx * nx + rvy * ny;
+      if (vn < 0) {
+        if (!st.bodyContacts.has(key)) {
+          st.vx -= (1 + 0.33) * vn * nx;
+          st.vy -= (1 + 0.33) * vn * ny;
+        } else {
+          st.vx -= vn * nx; st.vy -= vn * ny;
+        }
+      }
+    }
+    st.bodyContacts = next;
+  }
+  function acknowledgeLateReveal(field, slot) {
+    if (field.state.kind !== 'a1' || field.state.initialFloorIds.has(slot.id)
+      || field.state.acknowledgedFloorIds.has(slot.id)) return;
+    field.state.acknowledgedFloorIds.add(slot.id);
+    if (field.state.notify) field.state.notify('MagnetLateReveal', {
+      hero: 'MAGNET', combatantIndex: field.owner.idx, slotId: slot.id,
+    });
+  }
+  function integrateFloorFirearms(dt, live, opts) {
+    const slots = opts.slots || [];
+    const bodies = opts.bodies || [];
+    const size = opts.gameSize || Number(globalScope.GAME_SIZE) || 1000;
+    const pickupEligible = opts.pickupEligible || defaultPickupEligible;
+    const present = new Set(slots);
+    for (const slot of slots) {
+      if (!isEligibleFloorFirearm(slot)) continue;
+      let ax = 0, ay = 0, cap = 0, forced = false;
+      for (const field of live) {
+        const cx = field.owner.anchor.x, cy = field.owner.anchor.y;
+        let dx = cx - slot.x, dy = cy - slot.y;
+        const d = Math.hypot(dx, dy);
+        if (!(d > EPS)) continue;
+        if (field.state.kind === 'a1') {
+          const accel0 = field.cfg.gunAccelerationMin ?? 1400;
+          const accel1 = field.cfg.gunAccelerationMax ?? 2400;
+          const accel = accel0 + (accel1 - accel0) * clamp(d / (field.cfg.gunDistanceSpan ?? 700), 0, 1);
+          ax += dx / d * accel; ay += dy / d * accel;
+          cap = Math.max(cap, field.cfg.gunSpeedCap ?? 900);
+          forced = true; acknowledgeLateReveal(field, slot);
+        } else {
+          const radius = field.cfg.radius ?? CONSTANTS.A2_RADIUS;
+          if (d >= radius) continue;
+          const u = clamp(1 - d / radius, 0, 1);
+          dx = -dx; dy = -dy;
+          const accel = (field.cfg.gunAcceleration ?? 3000) * u * u;
+          ax += dx / d * accel; ay += dy / d * accel;
+          cap = Math.max(cap, field.cfg.gunSpeedCap ?? 950);
+          forced = true;
+        }
+      }
+      const existing = floorStates.get(slot);
+      if (!forced && !existing) continue;
+      const st = existing || floorStateFor(slot);
+      if (forced) {
+        st.vx += ax * dt; st.vy += ay * dt;
+        capVelocity(st, cap);
+      } else {
+        const drag = Math.exp(-1.8 * dt);
+        st.vx *= drag; st.vy *= drag;
+      }
+      slot.x += st.vx * dt; slot.y += st.vy * dt;
+      resolveFloorWalls(slot, st, size);
+      resolveFloorBodies(slot, st, bodies, pickupEligible);
+      const speed = Math.hypot(st.vx, st.vy);
+      if (speed > 1) st.rotation = Math.atan2(st.vy, st.vx);
+      st.history.push({ x: slot.x, y: slot.y });
+      if (st.history.length > 24) st.history.shift();
+      st.integrations += 1;
+    }
+    for (const slot of floorStates.keys()) if (!present.has(slot) || slot.phase !== 'REVEALED') floorStates.delete(slot);
+  }
+  function integrateBodies(dt, live, opts) {
+    const bodies = opts.bodies || [];
+    const combatantOfBody = opts.combatantOfBody || (() => null);
+    const size = opts.gameSize || Number(globalScope.GAME_SIZE) || 1000;
+    const present = new Set(bodies);
+    for (const body of bodies) {
+      if (!body || !(body.hp > 0)) continue;
+      const targetCt = combatantOfBody(body);
+      let ax = 0, ay = 0, forced = false;
+      for (const field of live) {
+        if (field.state.kind !== 'a2') continue;
+        if (targetCt ? targetCt === field.owner : field.owner.bodies && field.owner.bodies.includes(body)) continue;
+        const dx = body.x - field.owner.anchor.x, dy = body.y - field.owner.anchor.y;
+        const d = Math.hypot(dx, dy), radius = field.cfg.radius ?? CONSTANTS.A2_RADIUS;
+        if (!(d > EPS) || d >= radius) continue;
+        const u = clamp(1 - d / radius, 0, 1);
+        const accel = (field.cfg.bodyAcceleration ?? 2200) * u * u;
+        ax += dx / d * accel; ay += dy / d * accel; forced = true;
+      }
+      const existing = bodyStates.get(body);
+      if (!forced && !existing) continue;
+      const st = existing || { vx: 0, vy: 0, integrations: 0 };
+      bodyStates.set(body, st);
+      if (forced) {
+        st.vx += ax * dt; st.vy += ay * dt;
+        capVelocity(st, 650);
+      }
+      body.x += st.vx * dt; body.y += st.vy * dt;
+      const r = body.radius || 75;
+      if (body.x < r) { body.x = r; st.vx = Math.abs(st.vx); }
+      else if (body.x > size - r) { body.x = size - r; st.vx = -Math.abs(st.vx); }
+      if (body.y < r) { body.y = r; st.vy = Math.abs(st.vy); }
+      else if (body.y > size - r) { body.y = size - r; st.vy = -Math.abs(st.vy); }
+      st.integrations += 1;
+    }
+    for (const body of bodyStates.keys()) if (!present.has(body) || !(body.hp > 0)) bodyStates.delete(body);
+  }
+
+  // Exactly one call per authoritative world tick. All active Magnet forces
+  // are collected first; every real slot/body is then integrated once.
+  function stepWorld(dt, options) {
+    const opts = options || {};
+    const now = opts.now == null ? Number(globalScope.matchClock) || 0 : opts.now;
+    const live = activeFields(now);
+    integrateFloorFirearms(dt, live, opts);
+    integrateBodies(dt, live, opts);
+    worldStepCount += 1;
+  }
+
   // Real emission hook: only a Magnet-fired firearm bullet is multiplied,
   // once, before the Arsenal projectile object is created.
   function modifyFirearmEmission(ctx, standin, descriptor) {
@@ -197,7 +379,11 @@
     if (combatant) fields.delete(combatant);
     else fields.clear();
     lastProjectileInfluence = [];
-    if (!combatant) projectileState = new WeakMap();
+    if (!combatant || fields.size === 0) {
+      floorStates.clear(); bodyStates.clear();
+      projectileState = new WeakMap();
+      worldStepCount = 0;
+    }
   }
   function inspect(now) {
     const t = now == null ? Number(globalScope.matchClock) || 0 : now;
@@ -208,7 +394,13 @@
         a1Until: st.a1 ? st.a1.until : 0, a2Until: st.a2 ? st.a2.until : 0,
         casts: { ...st.casts },
       })),
+      floorFirearms: Array.from(floorStates.entries()).map(([slot, st]) => ({
+        slot, vx: st.vx, vy: st.vy, rotation: st.rotation,
+        integrations: st.integrations, history: st.history.slice(),
+      })),
+      bodies: Array.from(bodyStates.entries()).map(([body, st]) => ({ body, ...st })),
       projectileInfluence: lastProjectileInfluence.slice(),
+      worldStepCount,
     };
   }
 
@@ -216,7 +408,7 @@
     version: '1.0.0', CONSTANTS,
     canCast, castA1, castA2, activeFor, activeFields,
     isEligibleFloorFirearm, isEligibleBullet,
-    stepProjectiles, modifyFirearmEmission,
+    stepWorld, stepProjectiles, modifyFirearmEmission,
     teardown, inspect,
   };
   globalScope.apexMagnetGameplayRuntime = 'ready';
