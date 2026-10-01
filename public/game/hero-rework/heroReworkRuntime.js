@@ -848,7 +848,7 @@
     if (!M || !ct || ct.facade) return;
     // Test/freeze hold (weapon-pose laws): never move a test-pinned body.
     // Explicit-mechanic integrators (dash/pounce) are unaffected.
-    if (f.data.__hrHoldBody) return;
+    if (f.data.__hrHoldBody) { f.data.positionLocked = true; return; }
     // Explicit-mechanic motion states (dash/pounce/nest) already integrated
     // by executor onTicks; they set positionLocked for the engine skip.
     if (f.data.positionLocked) return;
@@ -1222,6 +1222,10 @@
       ? { x: motion.vx, y: motion.vy }
       : { x: 0, y: 0 };
     return motion;
+  };
+  HR.renderArenaWorldEffects = function renderArenaWorldEffects(ctx, provenance) {
+    if (!M || provenance?.stage !== 'after-world-before-fighters') return;
+    globalScope.APEX_MAGNET_PRESENTATION?.renderArenaDistortion?.(ctx, provenance);
   };
 
   function hrPreTick(dt) {

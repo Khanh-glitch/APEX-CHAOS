@@ -42,26 +42,38 @@
     return state;
   }
   function movementIntent(body) {
-    const dx = Number(body?.dir?.x) || 0;
-    const dy = Number(body?.dir?.y) || 0;
-    const length = Math.hypot(dx, dy);
+    const frame = body?.__hrFrameMotion;
+    if (frame) {
+      const vx = Number(frame.locomotionVx) || 0, vy = Number(frame.locomotionVy) || 0;
+      const speed = Math.hypot(vx, vy);
+      const active = !!(body.hp > 0 && frame.ordinaryAllowed && !body.data?.__hrHoldBody && speed > 1);
+      return {
+        x: active ? vx / speed : 0,
+        y: active ? vy / speed : 0,
+        active,
+        physicalVx: vx + (Number(frame.engineForceVx) || 0),
+        physicalVy: vy + (Number(frame.engineForceVy) || 0),
+        ordinaryAllowed: !!frame.ordinaryAllowed,
+      };
+    }
+    // Initialization fallback only; live production frames use the exact
+    // locomotion decision recorded inside Fighter.update().
+    const dx = Number(body?.dir?.x) || 0, dy = Number(body?.dir?.y) || 0, length = Math.hypot(dx, dy);
     let speedScale = 1;
     try { if (typeof body?.speedMult === 'function') speedScale = Number(body.speedMult()) || 0; } catch (error) {}
     const physicalSpeed = (Number(body?.baseSpeed) || 0) * speedScale;
-    const active = !!(body && body.hp > 0 && length > 1e-6 && physicalSpeed > 1 && !(body.hardCC > 0));
-    const x = active ? dx / length : 0;
-    const y = active ? dy / length : 0;
-    return {
-      x, y, active,
-      physicalVx: x * physicalSpeed,
-      physicalVy: y * physicalSpeed,
-    };
+    const active = !!(body && body.hp > 0 && length > 1e-6 && physicalSpeed > 1
+      && !body.data?.positionLocked && !body.data?.__hrHoldBody && !(body.hardCC?.()));
+    return { x: active ? dx / length : 0, y: active ? dy / length : 0, active,
+      physicalVx: active ? dx / length * physicalSpeed : 0,
+      physicalVy: active ? dy / length * physicalSpeed : 0,
+      ordinaryAllowed: active };
   }
   function capturePreMovement() {
     const now = clock();
     for (const ct of magnets()) {
       const body = ct.anchor;
-      if (body) stateFor(ct).preRoot = { x: body.x, y: body.y, clock: now, motion: movementIntent(body) };
+      if (body) stateFor(ct).preRoot = { x: body.x, y: body.y, clock: now };
     }
   }
 
@@ -252,15 +264,22 @@
       state.lastGameplayA1 = activeA1;
       state.lastGameplayA2 = activeA2;
 
-      const pre = state.preRoot || { x: body.x, y: body.y, clock: now, motion: movementIntent(body) };
-      const motion = pre.motion || movementIntent(body);
+      const pre = state.preRoot || { x: body.x, y: body.y, clock: now };
+      // Read the decision made by this frame's canonical Fighter.update(), not
+      // a pre-update guess. ROOT/mechanic locks are latched inside type.update.
+      const motion = movementIntent(body);
       const external = body.__hrExternalVelocity || { x: 0, y: 0 };
       motion.contactVx = motion.physicalVx + (Number(external.x) || 0);
       motion.contactVy = motion.physicalVy + (Number(external.y) || 0);
       state.frameSample = {
         before: { x: pre.x, y: pre.y },
         after: { x: body.x, y: body.y },
-        motion: { x: motion.x, y: motion.y, active: motion.active, contactVx: motion.contactVx, contactVy: motion.contactVy },
+        motion: {
+          x: motion.x, y: motion.y, active: motion.active,
+          ordinaryAllowed: motion.ordinaryAllowed,
+          externalVx: Number(external.x) || 0, externalVy: Number(external.y) || 0,
+          contactVx: motion.contactVx, contactVy: motion.contactVy,
+        },
         dt,
         clock: now,
       };
@@ -307,6 +326,14 @@
   function combatantForMagnet(fighter) {
     const ct = HR && HR.byCombatant ? HR.byCombatant(fighter) : null;
     return ct && ct.heroId === 'MAGNET' ? ct : null;
+  }
+  function renderArenaDistortion(ctx, provenance) {
+    if (!ctx || provenance?.stage !== 'after-world-before-fighters') return;
+    // Stable combatant order makes Magnet-vs-Magnet composition deterministic;
+    // every pass sees the same completed world layer and no fighter actors.
+    for (const ct of magnets().slice().sort((a, b) => a.idx - b.idx)) {
+      GOLD.drawArenaDistortion?.(ctx, ct);
+    }
   }
   function renderPostWorldInterop(ctx, fighter) {
     if (fighter !== g.fighters?.[g.fighters.length - 1] && fighter !== g.fighters?.[1]) return;
@@ -382,6 +409,7 @@
     version: '2.0.0-thin-semantic-adapter',
     capturePreMovement,
     tick,
+    renderArenaDistortion,
     teardown,
     inspect,
   };

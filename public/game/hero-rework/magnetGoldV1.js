@@ -410,7 +410,8 @@ function drawEchoes(ctx,s){if(!ready)return;for(const e of s.echoes){const alpha
 function drawParticles(ctx,s){ctx.save();ctx.globalCompositeOperation='lighter';for(const p of s.particles){const a=1-p.age/p.d;if(p.kind==='mote'){ctx.fillStyle=`rgba(255,210,90,${a})`;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,TAU);ctx.fill();}}ctx.restore();}
 function lens(ctx,x,y,r,mag,sx,sy,alpha){try{const m=ctx.getTransform(),scale=Math.max(Math.hypot(m.a,m.b),Math.hypot(m.c,m.d)),cx=m.a*x+m.c*y+m.e,cy=m.b*x+m.d*y+m.f,rd=r*scale,canvas=ctx.canvas;if(!(rd>4)||!canvas)return;ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.beginPath();ctx.arc(cx,cy,rd,0,TAU);ctx.clip();ctx.globalAlpha=alpha;const sr=rd/mag;ctx.drawImage(canvas,cx-sr+sx*scale,cy-sr+sy*scale,sr*2,sr*2,cx-rd,cy-rd,rd*2,rd*2);ctx.restore();}catch(error){}}
 function drawLenses(ctx,s){const f1=a1Intensity(s),f2=a2Intensity(s);if(f1>.05){const sockets=socketsFor(s),a=f1*.55*(1-smooth(.95,1.12,s.a1));lens(ctx,(sockets.leftPoleTip.x+s.root.x)/2,(sockets.leftPoleTip.y+s.root.y)/2,26,1.12,1.2,0,a);lens(ctx,(sockets.rightPoleTip.x+s.root.x)/2,(sockets.rightPoleTip.y+s.root.y)/2,26,1.12,-1.2,0,a);}let n=0;for(const b of s.bumps){if(n++>4)break;lens(ctx,b.x,b.y,b.sigma,1.15,b.nx*1.8,b.ny*1.8,.42*(1-b.age/b.d));}if(f2>.25){n=0;for(const o of s.objects.a2){if(n++>5)break;const vx=o.vx||0,vy=o.vy||0,sp=Math.hypot(vx,vy)||1;lens(ctx,o.x,o.y,(o.radius||5)+14,1.22,vx/sp*2,vy/sp*2,.6*f2*(1-smooth(1.75,1.9,s.a2)));}}}
-function drawBefore(ctx,combatant){const s=states.get(combatant);if(!s||!ctx)return;ctx.save();try{drawFloorDistortion(ctx,s);drawHistories(ctx,s);drawRings(ctx,s);drawReactiveField(ctx,s);drawArcs(ctx,s);drawEchoes(ctx,s);}finally{ctx.restore();}}
+function drawArenaDistortion(ctx,combatant){const s=states.get(combatant);if(!s||!ctx)return;ctx.save();try{drawFloorDistortion(ctx,s);}finally{ctx.restore();}}
+function drawBefore(ctx,combatant){const s=states.get(combatant);if(!s||!ctx)return;ctx.save();try{drawHistories(ctx,s);drawRings(ctx,s);drawReactiveField(ctx,s);drawArcs(ctx,s);drawEchoes(ctx,s);}finally{ctx.restore();}}
 function drawAfter(ctx,combatant){const s=states.get(combatant);if(!s||!ctx)return;ctx.save();try{drawA1Filaments(ctx,s);drawPressureFronts(ctx,s);drawObjectPressure(ctx,s);drawCorridors(ctx,s);drawParticles(ctx,s);drawLenses(ctx,s);}finally{ctx.restore();}}
 
 function draw(ctx,combatant){
@@ -424,7 +425,7 @@ function setRandomSeed(combatant,value){stateFor(combatant).rng.seed=(Number(val
 
 g.APEX_MAGNET_GOLD={
   version:'2.0.0-canonical-engine',DT,META,BODY_REF,BODY_VISUAL_CALIBRATION,
-  updateFrame,tick,cue,drawBefore,draw,drawActor:draw,drawAfter,getSockets,teardown,inspect,setRandomSeed,
+  updateFrame,tick,cue,drawArenaDistortion,drawBefore,draw,drawActor:draw,drawAfter,getSockets,teardown,inspect,setRandomSeed,
   get ready(){return ready;},
 };
 g.apexMagnetGoldV1='ready';

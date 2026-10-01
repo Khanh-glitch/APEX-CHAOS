@@ -176,6 +176,17 @@
             ctx.translate(GAME_SIZE/2+shakeX,GAME_SIZE/2+shakeY); ctx.scale(cameraZoom,cameraZoom); ctx.translate(-GAME_SIZE/2,-GAME_SIZE/2);
             drawBackground(ctx); drawProjectiles(ctx);
             for (const f of fighters) if (f && f.hasStatus && f.hasStatus('scent')) { const lost=(f.maxHp-f.hp)/f.maxHp; const rr=Math.max(120,1000*lost); ctx.save(); ctx.globalAlpha=.18; ctx.fillStyle='#ff2020'; ctx.strokeStyle='#ff4d4d'; ctx.lineWidth=5; ctx.setLineDash([20,14]); ctx.beginPath(); ctx.arc(f.x,f.y,rr,0,TAU); ctx.fill(); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='#ffd0d0'; ctx.font='900 18px monospace'; ctx.textAlign='center'; ctx.fillText('BLOOD SCENT',f.x,f.y-rr-12); ctx.restore(); }
+            // Effective production renderer: the Full Roster QA draw replaces
+            // the original engine draw. Keep arena deformation at its narrow
+            // world seam without moving this renderer's established top-layer
+            // particle/shockwave phases.
+            if (window.APEX_HERO_REWORK?.renderArenaWorldEffects) {
+                window.APEX_HERO_REWORK.renderArenaWorldEffects(ctx, {
+                    stage: 'after-world-before-fighters',
+                    background: true, projectiles: true, scent: true,
+                    particles: false, fighters: false,
+                });
+            }
             for (const f of fighters) if (live(f)) f.draw(ctx);
             for (const f of fighters) if (f && f.name==='SNIPER' && f.data && f.data.aim>0) { const enemy=enemyOf(f); if(enemy){ctx.save(); ctx.globalAlpha=.9; ctx.strokeStyle='rgba(255,45,45,.95)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(enemy.x,enemy.y); ctx.stroke(); ctx.restore();}}
             for(const p of particles){ if(p && typeof p.draw === 'function') p.draw(ctx); }

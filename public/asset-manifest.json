@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T15:17:43.266Z",
+  "generatedAt": "2026-10-01T16:02:41.487Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -10,7 +10,7 @@
     {
       "path": "/apexEngine.js",
       "type": "script",
-      "bytes": 230390
+      "bytes": 231492
     },
     {
       "path": "/assets/arcade_v1/normalized/battle_idle_reference.webp",
@@ -3325,7 +3325,7 @@
     {
       "path": "/game/core/apexFullRosterQa.js",
       "type": "script",
-      "bytes": 13085
+      "bytes": 13719
     },
     {
       "path": "/game/core/apexMajorMechanicVisuals.js",

@@ -104,11 +104,43 @@ try{
     scene.fighter.x=700;scene.fighter.y=500;scene.opponent.x=550;scene.opponent.y=500;
     let maxPenetration=0,penetratingFrames=0,contactBumps=0;
     for(let i=0;i<24;i++){await waitFrames(1);const penetration=Math.max(0,scene.fighter.radius+scene.opponent.radius-Math.hypot(scene.opponent.x-scene.fighter.x,scene.opponent.y-scene.fighter.y));maxPenetration=Math.max(maxPenetration,penetration);if(penetration>1e-6)penetratingFrames++;contactBumps=Math.max(contactBumps,gold.inspect(scene.ct).state.effects.bumps);}
+    // Let the A2 field fully expire, then command both live bodies away from
+    // contact. Increasing distance plus independent displacement is the
+    // liveness/separation proof that zero penetration alone cannot provide.
+    for(let i=0;i<30;i++)await waitFrames(1);
+    const separationStart={magnet:{x:scene.fighter.x,y:scene.fighter.y},robot:{x:scene.opponent.x,y:scene.opponent.y},distance:Math.hypot(scene.opponent.x-scene.fighter.x,scene.opponent.y-scene.fighter.y)};
+    scene.fighter.baseSpeed=450;scene.opponent.baseSpeed=450;scene.fighter.dir.x=1;scene.fighter.dir.y=0;scene.opponent.dir.x=-1;scene.opponent.dir.y=0;
+    for(let i=0;i<24;i++)await waitFrames(1);
+    const separationEnd={magnet:{x:scene.fighter.x,y:scene.fighter.y},robot:{x:scene.opponent.x,y:scene.opponent.y},distance:Math.hypot(scene.opponent.x-scene.fighter.x,scene.opponent.y-scene.fighter.y)};
     unsubscribeContact();
-    const contact={cast:!!contactCast.ok,maxPenetration,penetratingFrames,bodyCollisionEvents,contactBumps};
+    const contact={cast:!!contactCast.ok,maxPenetration,penetratingFrames,bodyCollisionEvents,contactBumps,separationStart,separationEnd};
+
+    // Instrument the shipping world seam itself, not drawImage counts alone.
+    // The event trace proves distortion source sampling happens after the
+    // declared completed world layers and before either Fighter.draw.
+    const layerProbe=async(p1,p2)=>{
+      if(HR.match)window.exitArsenalQuestMode();window.startArsenalQuestMode(p1,p2);HR.setAiEnabled(false);configureWorld();await waitFrames(3);
+      const bodies=window.fighters;bodies[0].baseSpeed=0;bodies[1].baseSpeed=0;bodies[0].x=400;bodies[0].y=500;bodies[1].x=650;bodies[1].y=500;
+      for(const body of bodies)if(HR.byCombatant(body)?.heroId==='MAGNET')HR.pressAbility(body,'A2');
+      await waitFrames(12);
+      const canvas=document.getElementById('game-canvas'),probeCtx=canvas.getContext('2d'),records=[];
+      const originalSeam=HR.renderArenaWorldEffects,originalArena=gold.drawArenaDistortion,originalImage=probeCtx.drawImage;
+      const proto=Object.getPrototypeOf(bodies[0]),originalFighter=proto.draw;let current=null,lastRecord=null;
+      HR.renderArenaWorldEffects=function(context,provenance){
+        const record={provenance:{...provenance},sequence:['seam:start'],calls:[],fighterInsideSeam:0};records.push(record);current=record;lastRecord=record;
+        try{return originalSeam.apply(this,arguments);}finally{record.sequence.push('seam:end');current=null;}
+      };
+      gold.drawArenaDistortion=function(context,combatant){if(current){current.calls.push(combatant.idx);current.sequence.push(`distortion:${combatant.idx}`);}return originalArena.apply(this,arguments);};
+      probeCtx.drawImage=function(){const args=Array.from(arguments);if(current&&args[0]===canvas&&args.length>=9)current.sequence.push(`sample:${current.calls[current.calls.length-1]}:${args[3]}x${args[4]}`);return originalImage.apply(this,args);};
+      proto.draw=function(){const idx=window.fighters.indexOf(this);if(current)current.fighterInsideSeam++;if(lastRecord)lastRecord.sequence.push(`fighter:${idx}`);return originalFighter.apply(this,arguments);};
+      await waitFrames(5);
+      HR.renderArenaWorldEffects=originalSeam;gold.drawArenaDistortion=originalArena;probeCtx.drawImage=originalImage;proto.draw=originalFighter;
+      return records.slice(-3);
+    };
+    const arenaLayers={p1:await layerProbe('MAGNET','ROBOT'),p2:await layerProbe('ROBOT','MAGNET'),mirror:await layerProbe('MAGNET','MAGNET')};
 
     window.exitArsenalQuestMode();
-    return{ready,scheduler,locomotion,wall,a2Bullet,floor,contact};
+    return{ready,scheduler,locomotion,wall,a2Bullet,floor,contact,arenaLayers};
   });
 }finally{await browser.close();}
 
@@ -118,8 +150,11 @@ const movingParts=Object.values(telemetry.locomotion.sustained).filter(value=>va
 const reverseParts=Object.values(telemetry.locomotion.hardReverse).filter(value=>value>0.55).length;
 const stopParts=Object.values(telemetry.locomotion.stop).filter(value=>value>0.35).length;
 const goldSource=fs.readFileSync('public/game/hero-rework/magnetGoldV1.js','utf8'),floorSource=goldSource.slice(goldSource.indexOf('function drawFloorDistortion('),goldSource.indexOf('function drawHistories('));
+const validLayerRecord=(record,expected)=>record.provenance?.stage==='after-world-before-fighters'&&record.provenance.background&&record.provenance.projectiles&&record.provenance.scent&&record.provenance.particles===false&&!record.provenance.fighters&&record.fighterInsideSeam===0&&JSON.stringify(record.calls)===JSON.stringify(expected)&&record.sequence.indexOf('seam:end')<record.sequence.indexOf('fighter:0');
+const sampledSlots=(records,expected)=>expected.every(idx=>records.some(record=>record.sequence.some(event=>event.startsWith(`sample:${idx}:`))));
 const checks={
-  'browser-assets-ready':telemetry.ready&&telemetry.scheduler.revision.runtime==='20261001-magnet-v1-r4'&&telemetry.scheduler.revision.gold==='2.0.0-canonical-engine'&&telemetry.scheduler.revision.adapter==='2.0.0-thin-semantic-adapter',
+
+  'browser-assets-ready':telemetry.ready&&telemetry.scheduler.revision.runtime==='20261001-magnet-v1-r5'&&telemetry.scheduler.revision.gold==='2.0.0-canonical-engine'&&telemetry.scheduler.revision.adapter==='2.0.0-thin-semantic-adapter',
   'real-raf-exactly-one-frame-owner':delta.tickCalls>=30&&delta.tickCalls===delta.advancedFrames&&delta.duplicateCalls===0,
   'real-raf-fixed-120-mapping':delta.clock>0&&Math.abs(delta.fixedSteps-delta.clock*120)<=3,
   'post-movement-sample-is-drawn-root':Math.hypot(after.sample.after.x-after.body.x,after.sample.after.y-after.body.y)<1e-9,
@@ -133,8 +168,12 @@ const checks={
   'actual-firearm-a2-projectile-curves':telemetry.a2Bullet.cast&&telemetry.a2Bullet.emitted&&telemetry.a2Bullet.initial?.type==='aq_bullet'&&telemetry.a2Bullet.initial?.weapon==='PISTOL'&&telemetry.a2Bullet.identityStable&&telemetry.a2Bullet.lifeDecreased&&telemetry.a2Bullet.influencedTicks>=2&&Math.abs(telemetry.a2Bullet.angleDelta||0)>.002,
   'a2-true-projectile-history-rendered':telemetry.a2Bullet.historiesMax>0,
   'real-arena-local-pixel-deformation':telemetry.floor.copyCount>0&&telemetry.floor.maxWidth<telemetry.floor.canvasWidth*.5&&telemetry.floor.maxHeight<telemetry.floor.canvasHeight*.5,
-  'no-synthetic-global-grid':/drawImage\(canvas/.test(goldSource)&&!/lineTo|stroke\(/.test(floorSource),
-  'magnet-robot-contact-no-overlap-or-sticking':telemetry.contact.cast&&telemetry.contact.maxPenetration<1e-4&&telemetry.contact.penetratingFrames===0&&telemetry.contact.bodyCollisionEvents>0&&telemetry.contact.contactBumps>0,
+  'arena-p1-pre-fighter-layer-provenance':telemetry.arenaLayers.p1.length===3&&telemetry.arenaLayers.p1.every(record=>validLayerRecord(record,[0]))&&sampledSlots(telemetry.arenaLayers.p1,[0]),
+  'arena-p2-pre-fighter-layer-provenance':telemetry.arenaLayers.p2.length===3&&telemetry.arenaLayers.p2.every(record=>validLayerRecord(record,[1]))&&sampledSlots(telemetry.arenaLayers.p2,[1]),
+  'arena-mirror-stable-index-composition':telemetry.arenaLayers.mirror.length===3&&telemetry.arenaLayers.mirror.every(record=>validLayerRecord(record,[0,1]))&&sampledSlots(telemetry.arenaLayers.mirror,[0,1]),
+  'no-synthetic-global-grid':/drawImage\(canvas,/.test(goldSource)&&!/lineTo|stroke\(/.test(floorSource),
+  'magnet-robot-contact-no-overlap':telemetry.contact.cast&&telemetry.contact.maxPenetration<1e-4&&telemetry.contact.penetratingFrames===0&&telemetry.contact.bodyCollisionEvents>0&&telemetry.contact.contactBumps>0,
+  'magnet-robot-post-contact-separation-liveness':telemetry.contact.separationEnd.distance>telemetry.contact.separationStart.distance+80&&telemetry.contact.separationEnd.magnet.x>telemetry.contact.separationStart.magnet.x+30&&telemetry.contact.separationEnd.robot.x<telemetry.contact.separationStart.robot.x-30,
   'no-browser-runtime-errors':errors.length===0,
 };
 for(const[name,pass]of Object.entries(checks))console.log(`${pass?'PASS':'FAIL'}  ${name}`);console.log(JSON.stringify(telemetry,null,2));

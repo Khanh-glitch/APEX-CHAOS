@@ -645,18 +645,25 @@ var Fighter = class Fighter {
         if (canAct && this.type.update) this.type.update(this, enemy, dt);
         updateMirrorStolen(this, enemy, dt);
 
-        if (!this.hardCC() && !this.data.positionLocked) {
+        const ordinaryAllowed = !this.hardCC() && !this.data.positionLocked;
+        const frameMotion = this.__hrFrameMotion = {
+            ordinaryAllowed,
+            locomotionVx: 0, locomotionVy: 0,
+            engineForceVx: 0, engineForceVy: 0,
+            positionLocked: !!this.data.positionLocked,
+        };
+        if (ordinaryAllowed) {
             const mod = this.speedMult();
-            let mvx = this.dir.x * this.baseSpeed * mod;
-            let mvy = this.dir.y * this.baseSpeed * mod;
+            frameMotion.locomotionVx = this.dir.x * this.baseSpeed * mod;
+            frameMotion.locomotionVy = this.dir.y * this.baseSpeed * mod;
             if (this.hasStatus('push')) {
                 const p = this.statuses.push;
                 const t = clamp(p.timer / p.max, 0, 1);
-                mvx += p.x * p.strength * t;
-                mvy += p.y * p.strength * t;
+                frameMotion.engineForceVx = p.x * p.strength * t;
+                frameMotion.engineForceVy = p.y * p.strength * t;
             }
-            this.x += mvx * dt;
-            this.y += mvy * dt;
+            this.x += (frameMotion.locomotionVx + frameMotion.engineForceVx) * dt;
+            this.y += (frameMotion.locomotionVy + frameMotion.engineForceVy) * dt;
         }
         // Optional hero-rework external-motion seam. The force is prepared
         // before Fighter.update, consumed here after locomotion, and therefore
@@ -2201,6 +2208,16 @@ function draw() {
         }
         for (const s of shockwaves) { ctx.save(); ctx.globalAlpha=s.alpha; ctx.strokeStyle=s.color; ctx.lineWidth=7; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,TAU); ctx.stroke(); ctx.restore(); }
         for (const p of particles) p.draw(ctx);
+        // Optional world/arena presentation seam. It runs after the arena,
+        // projectiles, shockwaves and particles are complete, but before any
+        // fighter actor is drawn, so world deformation cannot depend on slot
+        // draw order or accidentally sample a previously rendered fighter.
+        if (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.renderArenaWorldEffects) {
+            window.APEX_HERO_REWORK.renderArenaWorldEffects(ctx, {
+                stage: 'after-world-before-fighters',
+                background: true, projectiles: true, particles: true, fighters: false,
+            });
+        }
         if (fighters[0]) fighters[0].draw(ctx); if (fighters[1]) fighters[1].draw(ctx);
         for (const f of fighters) { if (f && f.name==='SNIPER' && f.data && f.data.aim>0) { const enemy = fighters.find(q=>q.id!==f.id); if(enemy){ ctx.save(); ctx.globalAlpha=.9; ctx.strokeStyle='rgba(255,45,45,.95)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(f.x,f.y); ctx.lineTo(enemy.x,enemy.y); ctx.stroke(); ctx.strokeStyle='rgba(255,45,45,.95)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.radius+16, 0, TAU); ctx.moveTo(enemy.x-(enemy.radius+28), enemy.y); ctx.lineTo(enemy.x+(enemy.radius+28), enemy.y); ctx.moveTo(enemy.x, enemy.y-(enemy.radius+28)); ctx.lineTo(enemy.x, enemy.y+(enemy.radius+28)); ctx.stroke(); ctx.restore(); }} }
         for (const t of floatingTexts) t.draw(ctx);
