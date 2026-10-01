@@ -12,13 +12,21 @@ let requireBrowser=localRequire;
 try{localRequire.resolve('puppeteer-core');localRequire.resolve('@sparticuz/chromium');}
 catch(error){requireBrowser=createRequire('/tmp/magnet-browser-deps/noop.js');}
 const puppeteer=requireBrowser('puppeteer-core');
-const chromiumModule=requireBrowser('@sparticuz/chromium'),chromium=chromiumModule.default;
+const chromiumModule=requireBrowser('@sparticuz/chromium'),chromium=chromiumModule.default||chromiumModule;
 const pkgRoot=path.dirname(path.dirname(requireBrowser.resolve('@sparticuz/chromium')));
-await chromiumModule.inflate(path.join(pkgRoot,'bin','al2023.tar.br'));
-process.env.LD_LIBRARY_PATH='/tmp/al2023/lib:'+(process.env.LD_LIBRARY_PATH||'');
+// Environment compatibility: @sparticuz/chromium >= 121 inflates its own
+// payload inside executablePath() and no longer exports inflate(). The shared
+// library bundle still has to be on LD_LIBRARY_PATH either way.
+if(typeof chromiumModule.inflate==='function')await chromiumModule.inflate(path.join(pkgRoot,'bin','al2023.tar.br'));
+process.env.LD_LIBRARY_PATH=['/tmp/al2023','/tmp/al2023/lib',process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
 
 const url=process.env.APEX_APP_URL||'http://127.0.0.1:4173';
-const browser=await puppeteer.launch({executablePath:await chromium.executablePath(),args:[...chromium.args,'--autoplay-policy=no-user-gesture-required'],headless:true,protocolTimeout:600000});
+const browser=await puppeteer.launch({executablePath:await chromium.executablePath(),args:[...chromium.args,'--autoplay-policy=no-user-gesture-required',
+  // Headless Chromium throttles rAF for backgrounded/occluded renderers, which
+  // stretches this rAF-driven suite far beyond its protocol budget on CI-like
+  // hosts. These flags only affect scheduling, never game logic.
+  '--disable-background-timer-throttling','--disable-renderer-backgrounding','--disable-backgrounding-occluded-windows'],
+  headless:true,protocolTimeout:Number(process.env.APEX_PROTOCOL_TIMEOUT_MS)||2400000});
 const page=await browser.newPage();await page.setViewport({width:1280,height:1100,deviceScaleFactor:1});
 const errors=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error'&&!/ERR_|favicon|Failed to load resource/.test(m.text()))errors.push(`console: ${m.text()}`);});
 let telemetry;

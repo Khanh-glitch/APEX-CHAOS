@@ -6,13 +6,18 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
-import chromium, { inflate } from '@sparticuz/chromium';
+import * as chromiumModule from '@sparticuz/chromium';
+const chromium = chromiumModule.default || chromiumModule;
+const inflate = chromiumModule.inflate;
 import { createRequire } from 'node:module';
 // The cache-bust gate follows the CURRENT runtime revision (single source of truth).
 import { APEX_ARSENAL_RUNTIME_REVISION } from '../src/game/runtimeManifest.js';
 const require = createRequire(import.meta.url);
-await inflate(path.join(path.dirname(path.dirname(require.resolve('@sparticuz/chromium'))), 'bin', 'al2023.tar.br'));
-process.env.LD_LIBRARY_PATH = '/tmp/al2023/lib:' + (process.env.LD_LIBRARY_PATH || '');
+// Environment compatibility: @sparticuz/chromium >= 121 inflates its own
+// payload inside executablePath() and no longer exports inflate(). The shared
+// library bundle still has to be on LD_LIBRARY_PATH either way.
+if (typeof inflate === 'function') await inflate(path.join(path.dirname(path.dirname(require.resolve('@sparticuz/chromium'))), 'bin', 'al2023.tar.br'));
+process.env.LD_LIBRARY_PATH = ['/tmp/al2023', '/tmp/al2023/lib', process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
 
 const browser = await puppeteer.launch({ executablePath: await chromium.executablePath(), args: chromium.args, headless: true });
 const page = await browser.newPage();

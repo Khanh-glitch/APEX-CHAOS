@@ -1,0 +1,20 @@
+{
+  "errors": [],
+  "totalCalls": 0,
+  "fighters": [
+    {
+      "name": "MAGNET",
+      "x": 380,
+      "y": 520,
+      "radius": 75
+    },
+    {
+      "name": "MIRROR",
+      "x": 700,
+      "y": 520,
+      "radius": 75
+    }
+  ],
+  "allGroups": [],
+  "underlayCandidates": []
+}

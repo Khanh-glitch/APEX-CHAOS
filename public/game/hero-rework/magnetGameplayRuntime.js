@@ -18,6 +18,30 @@
     A2_DURATION: 1.80,
     A2_RADIUS: 225,
     A2_BULLET_ACCEL: 18000,
+    // Owner-authority A2 firearm-bullet repulsion (supersedes the former
+    // production quadratic radial falloff for A2 BULLETS ONLY).
+    //
+    // Canonical donor law (MAGNET_FINAL_DONOR_MAX.html, world(), bullets):
+    //   if(d<225){ const ddv=18000*f2*dt; b.vx+=dx/d*ddv; ... capV(b,launch*1.1) }
+    // i.e. a FLAT 18000 outward acceleration gated only by d<225 — there is no
+    // u^2 term in the donor. Donor hostile bullets are 640/900/1300 px/s, so a
+    // donor bullet spends 0.12..0.5s inside the field and is fully reversed.
+    //
+    // Production firearm bullets are 2500..5800 px/s and the damaging envelope
+    // is radius*0.78+bulletRadius (~63..67px), so an incoming production bullet
+    // only traverses 225 -> ~65 px: 1.6 (SNIPER) .. 3.6 (PISTOL) authoritative
+    // ticks. Pure acceleration — donor or otherwise — cannot reverse that in
+    // the time available, which is exactly the owner-rejected penetration.
+    //
+    // Therefore A2 firearm bullets now receive an ENTRY RESPONSE at the real
+    // (swept) field boundary crossing: the inward radial component is
+    // neutralized and converted outward, tangential velocity is preserved, and
+    // the donor flat 18000 outward force then continues for as long as the
+    // bullet remains inside. Applied at most once per field-entry episode.
+    A2_BULLET_ENTRY_RESTITUTION: 1.0,
+    // Hysteresis before a bullet may earn a NEW entry response. Without it a
+    // bullet loitering on the boundary would be re-snapped every frame.
+    A2_BULLET_REARM_RADIUS_MULT: 1.12,
     BULLET_SPEED_CAP_MULT: 1.10,
     PASSIVE_SPEED_MULT: 1.18,
   });
@@ -140,10 +164,91 @@
   function projectileRecord(p) {
     let rec = projectileState.get(p);
     if (!rec) {
-      rec = { launchSpeed: Math.hypot(p.vx || 0, p.vy || 0) };
+      rec = { launchSpeed: Math.hypot(p.vx || 0, p.vy || 0), a2: null };
       projectileState.set(p, rec);
     }
+    if (!rec.a2) rec.a2 = new Map();
     return rec;
+  }
+
+  // Earliest parameter t in (0, 1] at which the segment P0 -> P0+D first
+  // reaches distance `radius` from C while closing on it. Returns -1 when the
+  // segment never crosses inward. Used so a 2500..5800 px/s production bullet
+  // cannot step across the A2 boundary between two authoritative positions.
+  function sweptEntry(px, py, dx, dy, cx, cy, radius) {
+    const ox = px - cx, oy = py - cy;
+    const a = dx * dx + dy * dy;
+    if (!(a > EPS)) return -1;
+    const b = 2 * (ox * dx + oy * dy);
+    if (b >= 0) return -1; // moving away from the field centre
+    const c = ox * ox + oy * oy - radius * radius;
+    if (c <= 0) return 0; // already inside at the authoritative position
+    const disc = b * b - 4 * a * c;
+    if (disc < 0) return -1;
+    const t = (-b - Math.sqrt(disc)) / (2 * a);
+    return t >= 0 && t <= 1 ? t : -1;
+  }
+
+  // A2 firearm-bullet repulsion. Trajectory only: identity, owner, damage,
+  // crit, payload and lifetime are never touched, and the bullet is never
+  // moved here — canonical integration still owns position.
+  function applyA2BulletRepulsion(p, rec, field, dt) {
+    const cx = field.owner.anchor.x, cy = field.owner.anchor.y;
+    const radius = field.cfg.radius ?? CONSTANTS.A2_RADIUS;
+    const maxAccel = field.cfg.bulletAcceleration ?? CONSTANTS.A2_BULLET_ACCEL;
+    const rearm = radius * CONSTANTS.A2_BULLET_REARM_RADIUS_MULT;
+
+    let ep = rec.a2.get(field.state);
+    if (!ep) { ep = { entered: false }; rec.a2.set(field.state, ep); }
+
+    const d0 = Math.hypot(p.x - cx, p.y - cy);
+    // Re-arm only after the bullet has genuinely left the field again.
+    if (ep.entered && d0 > rearm) ep.entered = false;
+
+    const t = sweptEntry(p.x, p.y, p.vx * dt, p.vy * dt, cx, cy, radius);
+    const insideNow = d0 < radius;
+    const crossing = t >= 0;
+    if (!insideNow && !crossing) return null;
+
+    const report = { radius, entry: null, accel: 0 };
+
+    // ---- 1. Field-entry response (once per entry episode) ------------------
+    if (!ep.entered && crossing) {
+      // Real crossing point of this movement segment with the live A2 radius.
+      const ex = p.x + p.vx * dt * t, ey = p.y + p.vy * dt * t;
+      let nx = ex - cx, ny = ey - cy;
+      const nd = Math.hypot(nx, ny);
+      if (nd > EPS) {
+        nx /= nd; ny /= nd;
+        const vr = p.vx * nx + p.vy * ny; // < 0 == inbound
+        if (vr < 0) {
+          const tx = p.vx - vr * nx, ty = p.vy - vr * ny; // tangential preserved
+          const outward = -vr * CONSTANTS.A2_BULLET_ENTRY_RESTITUTION;
+          report.entry = {
+            x: ex, y: ey, nx, ny, t,
+            radialBefore: vr,
+            radialAfter: outward,
+            tangential: Math.hypot(tx, ty),
+          };
+          p.vx = tx + nx * outward;
+          p.vy = ty + ny * outward;
+        }
+      }
+      ep.entered = true;
+    } else if (insideNow) {
+      ep.entered = true;
+    }
+
+    // ---- 2. Donor continued outward force (flat 18000, no u^2 falloff) -----
+    let rx = p.x - cx, ry = p.y - cy;
+    let rd = Math.hypot(rx, ry);
+    if (!(rd > EPS) && report.entry) { rx = report.entry.nx; ry = report.entry.ny; rd = 1; }
+    if (rd > EPS && (insideNow || report.entry)) {
+      report.accel = maxAccel;
+      report.ax = rx / rd * maxAccel;
+      report.ay = ry / rd * maxAccel;
+    }
+    return report;
   }
 
   // Called once immediately before the canonical projectile movement pass.
@@ -156,32 +261,36 @@
       const rec = projectileRecord(p); // authored emission speed, captured before force
       let ax = 0, ay = 0;
       const by = [];
+      const entries = [];
       for (const f of live) {
         if (!hostileTo(p, f.owner, combatantOfBody)) continue;
-        const cx = f.owner.anchor.x, cy = f.owner.anchor.y;
-        let dx, dy, radius, maxAccel;
         if (f.state.kind === 'a1') {
-          dx = cx - p.x; dy = cy - p.y;
-          radius = f.cfg.bulletRadius ?? CONSTANTS.A1_BULLET_RADIUS;
-          maxAccel = f.cfg.bulletAcceleration ?? CONSTANTS.A1_BULLET_ACCEL;
+          // A1 acquisition is UNCHANGED (owner: "A1 is very good and fun").
+          const cx = f.owner.anchor.x, cy = f.owner.anchor.y;
+          const dx = cx - p.x, dy = cy - p.y;
+          const radius = f.cfg.bulletRadius ?? CONSTANTS.A1_BULLET_RADIUS;
+          const maxAccel = f.cfg.bulletAcceleration ?? CONSTANTS.A1_BULLET_ACCEL;
+          const d = Math.hypot(dx, dy);
+          if (!(d > EPS) || d >= radius) continue;
+          const u = clamp(1 - d / radius, 0, 1);
+          const accel = maxAccel * u * u;
+          ax += dx / d * accel;
+          ay += dy / d * accel;
+          by.push({ kind: 'a1', owner: f.owner });
         } else {
-          dx = p.x - cx; dy = p.y - cy;
-          radius = f.cfg.radius ?? CONSTANTS.A2_RADIUS;
-          maxAccel = f.cfg.bulletAcceleration ?? CONSTANTS.A2_BULLET_ACCEL;
+          const report = applyA2BulletRepulsion(p, rec, f, dt);
+          if (!report) continue;
+          ax += report.ax || 0;
+          ay += report.ay || 0;
+          by.push({ kind: 'a2', owner: f.owner });
+          if (report.entry) entries.push({ owner: f.owner, ...report.entry });
         }
-        const d = Math.hypot(dx, dy);
-        if (!(d > EPS) || d >= radius) continue;
-        const u = clamp(1 - d / radius, 0, 1);
-        const accel = maxAccel * u * u;
-        ax += dx / d * accel;
-        ay += dy / d * accel;
-        by.push({ kind: f.state.kind, owner: f.owner });
       }
       if (!by.length) continue;
       p.vx += ax * dt;
       p.vy += ay * dt;
       capVelocity(p, rec.launchSpeed * CONSTANTS.BULLET_SPEED_CAP_MULT);
-      influenced.push({ projectile: p, fields: by, ax, ay });
+      influenced.push({ projectile: p, fields: by, ax, ay, entries });
     }
     lastProjectileInfluence = influenced;
     return influenced.length;

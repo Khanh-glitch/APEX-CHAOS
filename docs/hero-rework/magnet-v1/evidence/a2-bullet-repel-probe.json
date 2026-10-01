@@ -1,0 +1,688 @@
+{
+  "generatedAt": "2026-10-01T17:01:09.590Z",
+  "law": {
+    "donor": "18000 * f2 * dt outward, gate d<225, no u^2 falloff (MAGNET_FINAL_DONOR_MAX.html world())",
+    "rejectedProduction": "accel = 18000 * clamp(1-d/225,0,1)^2",
+    "newProduction": "swept boundary entry -> neutralize inward radial + outward restitution (tangential preserved), then flat 18000 outward while inside; once per entry episode; cap launch*1.10"
+  },
+  "results": [
+    {
+      "label": "PISTOL head-on @60Hz",
+      "weapon": "PISTOL",
+      "offsetDeg": 0,
+      "dt": 0.016666666666666666,
+      "launchSpeed": 2600,
+      "damagingEnvelope": 65.5,
+      "sweptEntryUsed": true,
+      "entry": {
+        "t": 0.5,
+        "x": 275,
+        "y": 500,
+        "radialBefore": -2600,
+        "radialAfter": 2600,
+        "tangentialPreserved": 0
+      },
+      "minDistanceToMagnet": 246.7,
+      "penetratedDamagingEnvelope": false,
+      "finalDistance": 580.3,
+      "finalSpeed": 2860,
+      "speedCapRespected": true,
+      "identityPreserved": true,
+      "trace": [
+        {
+          "t": 0,
+          "x": 123.3,
+          "y": 500,
+          "d": 376.7,
+          "sp": 2600
+        },
+        {
+          "t": 0.0333,
+          "x": 210,
+          "y": 500,
+          "d": 290,
+          "sp": 2600
+        },
+        {
+          "t": 0.0667,
+          "x": 205.7,
+          "y": 500,
+          "d": 294.3,
+          "sp": 2860
+        },
+        {
+          "t": 0.1,
+          "x": 110.3,
+          "y": 500,
+          "d": 389.7,
+          "sp": 2860
+        },
+        {
+          "t": 0.1333,
+          "x": 15,
+          "y": 500,
+          "d": 485,
+          "sp": 2860
+        },
+        {
+          "t": 0.1667,
+          "x": -80.3,
+          "y": 500,
+          "d": 580.3,
+          "sp": 2860
+        }
+      ]
+    },
+    {
+      "label": "PISTOL head-on @30Hz",
+      "weapon": "PISTOL",
+      "offsetDeg": 0,
+      "dt": 0.03333333333333333,
+      "launchSpeed": 2600,
+      "damagingEnvelope": 65.5,
+      "sweptEntryUsed": true,
+      "entry": {
+        "t": 0.25,
+        "x": 275,
+        "y": 500,
+        "radialBefore": -2600,
+        "radialAfter": 2600,
+        "tangentialPreserved": 0
+      },
+      "minDistanceToMagnet": 246.7,
+      "penetratedDamagingEnvelope": false,
+      "finalDistance": 628,
+      "finalSpeed": 2860,
+      "speedCapRespected": true,
+      "identityPreserved": true,
+      "trace": [
+        {
+          "t": 0,
+          "x": 166.7,
+          "y": 500,
+          "d": 333.3,
+          "sp": 2600
+        },
+        {
+          "t": 0.0667,
+          "x": 158,
+          "y": 500,
+          "d": 342,
+          "sp": 2860
+        },
+        {
+          "t": 0.1333,
+          "x": -32.7,
+          "y": 500,
+          "d": 532.7,
+          "sp": 2860
+        }
+      ]
+    },
+    {
+      "label": "PISTOL off-axis 18deg @60Hz",
+      "weapon": "PISTOL",
+      "offsetDeg": 18,
+      "dt": 0.016666666666666666,
+      "launchSpeed": 2600,
+      "damagingEnvelope": 65.5,
+      "sweptEntryUsed": true,
+      "entry": {
+        "t": 0.9765,
+        "x": 285.1,
+        "y": 566.6,
+        "radialBefore": -2123.8,
+        "radialAfter": 2123.8,
+        "tangentialPreserved": 1499.8
+      },
+      "minDistanceToMagnet": 260.7,
+      "penetratedDamagingEnvelope": false,
+      "finalDistance": 699.1,
+      "finalSpeed": 2834.5,
+      "speedCapRespected": true,
+      "identityPreserved": true,
+      "trace": [
+        {
+          "t": 0,
+          "x": 121.2,
+          "y": 513.4,
+          "d": 379,
+          "sp": 2600
+        },
+        {
+          "t": 0.0333,
+          "x": 203.6,
+          "y": 540.2,
+          "d": 299.1,
+          "sp": 2600
+        },
+        {
+          "t": 0.0667,
+          "x": 213.6,
+          "y": 588.9,
+          "d": 299.9,
+          "sp": 2834.5
+        },
+        {
+          "t": 0.1,
+          "x": 151,
+          "y": 659.7,
+          "d": 383.9,
+          "sp": 2834.5
+        },
+        {
+          "t": 0.1333,
+          "x": 88.4,
+          "y": 730.5,
+          "d": 471.8,
+          "sp": 2834.5
+        },
+        {
+          "t": 0.1667,
+          "x": 25.8,
+          "y": 801.3,
+          "d": 561.8,
+          "sp": 2834.5
+        },
+        {
+          "t": 0.2,
+          "x": -36.8,
+          "y": 872,
+          "d": 653.2,
+          "sp": 2834.5
+        }
+      ]
+    },
+    {
+      "label": "PISTOL off-axis 18deg @30Hz",
+      "weapon": "PISTOL",
+      "offsetDeg": 18,
+      "dt": 0.03333333333333333,
+      "launchSpeed": 2600,
+      "damagingEnvelope": 65.5,
+      "sweptEntryUsed": true,
+      "entry": {
+        "t": 0.4883,
+        "x": 285.1,
+        "y": 566.6,
+        "radialBefore": -2123.8,
+        "radialAfter": 2123.8,
+        "tangentialPreserved": 1499.8
+      },
+      "minDistanceToMagnet": 260.7,
+      "penetratedDamagingEnvelope": false,
+      "finalDistance": 709.1,
+      "finalSpeed": 2860,
+      "speedCapRespected": true,
+      "identityPreserved": true,
+      "trace": [
+        {
+          "t": 0,
+          "x": 162.4,
+          "y": 526.8,
+          "d": 338.6,
+          "sp": 2600
+        },
+        {
+          "t": 0.0667,
+          "x": 177.6,
+          "y": 621.2,
+          "d": 344.4,
+          "sp": 2860
+        },
+        {
+          "t": 0.1333,
+          "x": 43.2,
+          "y": 756.4,
+          "d": 523.8,
+          "sp": 2860
+        },
+        {
+          "t": 0.2,
+          "x": -91.2,
+          "y": 891.6,
+          "d": 709.1,
+          "sp": 2860
+        }
+      ]
+    },
+    {
+      "label": "SMG head-on @60Hz",
+      "weapon": "SMG",
+      "offsetDeg": 0,
+      "dt": 0.016666666666666666,
+      "launchSpeed": 3100,
+      "damagingEnvelope": 64.5,
+      "sweptEntryUsed": true,
+      "entry": {
+        "t": 0.7742,
+        "x": 275,
+        "y": 500,
+        "radialBefore": -3100,
+        "radialAfter": 3100,
+        "tangentialPreserved": 0
+      },
+      "minDistanceToMagnet": 265,
+      "penetratedDamagingEnvelope": false,
+      "finalDistance": 605,
+      "finalSpeed": 3400,
+      "speedCapRespected": true,
+      "identityPreserved": true,
+      "trace": [
+        {
+          "t": 0,
+          "x": 131.7,
+          "y": 500,
+          "d": 368.3,
+          "sp": 3100
+        },
+        {
+          "t": 0.0333,
+          "x": 235,
+          "y": 500,
+          "d": 265,
+          "sp": 3100
+        },
+        {
+          "t": 0.0667,
+          "x": 121.7,
+          "y": 500,
+          "d": 378.3,
+          "sp": 3400
+        },
+        {
+          "t": 0.1,
+          "x": 8.3,
+          "y": 500,
+          "d": 491.7,
+          "sp": 3400
+        },
+        {
+          "t": 0.1333,
+          "x": -105,
+          "y": 500,
+          "d": 605,
+          "sp": 3400
+        }
+      ]
+    },
+    {
+      "label": "SMG head-on @30Hz",
+      "weapon": "SMG",
+      "offsetDeg": 0,
+      "dt": 0.03333333333333333,
+      "launchSpeed": 3100,
+      "damagingEnvelope": 64.5,
+      "sweptEntryUsed": true,
+      "entry": {
+        "t": 0.8871,
+        "x": 275,
+        "y": 500,
+        "radialBefore": -3100,
+        "radialAfter": 3100,
+        "tangentialPreserved": 0
+      },
+      "minDistanceToMagnet": 316.7,
+      "penetratedDamagingEnvelope": false,
+      "finalDistance": 657.7,
+      "finalSpeed": 3410,
+      "speedCapRespected": true,
+      "identityPreserved": true,
+      "trace": [
+        {
+          "t": 0,
+          "x": 183.3,
+          "y": 500,
+          "d": 316.7,
+          "sp": 3100
+        },
+        {
+          "t": 0.0667,
+          "x": -44,
+          "y": 500,
+          "d": 544,
+          "sp": 3410
+        }
+      ]
+    },
+    {
+      "label": "SMG off-axis 18deg @60Hz",
+      "weapon": "SMG",
+      "offsetDeg": 18,
+      "dt": 0.016666666666666666,
+      "launchSpeed": 3100,
+      "damagingEnvelope": 64.5,
+      "sweptEntryUsed": true,
+      "entry": {
+        "t": 0.1739,
+        "x": 285.1,
+        "y": 566.6,
+        "radialBefore": -2532.3,
+        "radialAfter": 2532.3,
+        "tangentialPreserved": 1788.2
+      },
+      "minDistanceToMagnet": 232.4,
+      "penetratedDamagingEnvelope": false,
+      "finalDistance": 707.5,
+      "finalSpeed": 3345.9,
+      "speedCapRespected": true,
+      "identityPreserved": true,
+      "trace": [
+        {
+          "t": 0,
+          "x": 129.1,
+          "y": 516,
+          "d": 371.2,
+          "sp": 3100
+        },
+        {
+          "t": 0.0333,
+          "x": 227.4,
+          "y": 547.9,
+          "d": 276.8,
+          "sp": 3100
+        },
+        {
+          "t": 0.0667,
+          "x": 240.3,
+          "y": 606.2,
+          "d": 280.6,
+          "sp": 3345.9
+        },
+        {
+          "t": 0.1,
+          "x": 167.7,
+          "y": 690.9,
+          "d": 383.2,
+          "sp": 3345.9
+        },
+        {
+          "t": 0.1333,
+          "x": 95.1,
+          "y": 775.6,
+          "d": 489.8,
+          "sp": 3345.9
+        },
+        {
+          "t": 0.1667,
+          "x": 22.5,
+          "y": 860.2,
+          "d": 598.1,
+          "sp": 3345.9
+        },
+        {
+          "t": 0.2,
+          "x": -50.1,
+          "y": 944.9,
+          "d": 707.5,
+          "sp": 3345.9
+        }
+      ]
+    },
+    {
+      "label": "SMG off-axis 18deg @30Hz",
+      "weapon": "SMG",
+      "offsetDeg": 18,
+      "dt": 0.03333333333333333,
+      "launchSpeed": 3100,
+      "damagingEnvelope": 64.5,
+      "sweptEntryUsed": true,
+      "entry": {
+        "t": 0.0869,
+        "x": 285.1,
+        "y": 566.6,
+        "radialBefore": -2532.3,
+        "radialAfter": 2532.3,
+        "tangentialPreserved": 1788.2
+      },
+      "minDistanceToMagnet": 232.4,
+      "penetratedDamagingEnvelope": false,
+      "finalDistance": 777.1,
+      "finalSpeed": 3410,
+      "speedCapRespected": true,
+      "identityPreserved": true,
+      "trace": [
+        {
+          "t": 0,
+          "x": 178.3,
+          "y": 531.9,
+          "d": 323.3,
+          "sp": 3100
+        },
+        {
+          "t": 0.0667,
+          "x": 198.7,
+          "y": 646.7,
+          "d": 335.1,
+          "sp": 3410
+        },
+        {
+          "t": 0.1333,
+          "x": 43,
+          "y": 812.3,
+          "d": 553.5,
+          "sp": 3410
+        },
+        {
+          "t": 0.2,
+          "x": -112.7,
+          "y": 977.9,
+          "d": 777.1,
+          "sp": 3410
+        }
+      ]
+    },
+    {
+      "label": "SNIPER head-on @60Hz",
+      "weapon": "SNIPER",
+      "offsetDeg": 0,
+      "dt": 0.016666666666666666,
+      "launchSpeed": 5800,
+      "damagingEnvelope": 66.5,
+      "sweptEntryUsed": true,
+      "entry": {
+        "t": 0.0172,
+        "x": 275,
+        "y": 500,
+        "radialBefore": -5800,
+        "radialAfter": 5800,
+        "tangentialPreserved": 0
+      },
+      "minDistanceToMagnet": 226.7,
+      "penetratedDamagingEnvelope": false,
+      "finalDistance": 633.3,
+      "finalSpeed": 6100,
+      "speedCapRespected": true,
+      "identityPreserved": true,
+      "trace": [
+        {
+          "t": 0,
+          "x": 176.7,
+          "y": 500,
+          "d": 323.3,
+          "sp": 5800
+        },
+        {
+          "t": 0.0333,
+          "x": 171.7,
+          "y": 500,
+          "d": 328.3,
+          "sp": 6100
+        },
+        {
+          "t": 0.0667,
+          "x": -31.7,
+          "y": 500,
+          "d": 531.7,
+          "sp": 6100
+        }
+      ]
+    },
+    {
+      "label": "SNIPER head-on @30Hz",
+      "weapon": "SNIPER",
+      "offsetDeg": 0,
+      "dt": 0.03333333333333333,
+      "launchSpeed": 5800,
+      "damagingEnvelope": 66.5,
+      "sweptEntryUsed": true,
+      "entry": {
+        "t": 0.0086,
+        "x": 275,
+        "y": 500,
+        "radialBefore": -5800,
+        "radialAfter": 5800,
+        "tangentialPreserved": 0
+      },
+      "minDistanceToMagnet": 226.7,
+      "penetratedDamagingEnvelope": false,
+      "finalDistance": 652,
+      "finalSpeed": 6380,
+      "speedCapRespected": true,
+      "identityPreserved": true,
+      "trace": [
+        {
+          "t": 0,
+          "x": 273.3,
+          "y": 500,
+          "d": 226.7,
+          "sp": 5800
+        },
+        {
+          "t": 0.0667,
+          "x": -152,
+          "y": 500,
+          "d": 652,
+          "sp": 6380
+        }
+      ]
+    },
+    {
+      "label": "SNIPER off-axis 18deg @60Hz",
+      "weapon": "SNIPER",
+      "offsetDeg": 18,
+      "dt": 0.016666666666666666,
+      "launchSpeed": 5800,
+      "damagingEnvelope": 66.5,
+      "sweptEntryUsed": true,
+      "entry": {
+        "t": 0.2309,
+        "x": 285.1,
+        "y": 566.6,
+        "radialBefore": -4737.8,
+        "radialAfter": 4737.8,
+        "tangentialPreserved": 3345.6
+      },
+      "minDistanceToMagnet": 243.6,
+      "penetratedDamagingEnvelope": false,
+      "finalDistance": 713.9,
+      "finalSpeed": 6038.4,
+      "speedCapRespected": true,
+      "identityPreserved": true,
+      "trace": [
+        {
+          "t": 0,
+          "x": 171.9,
+          "y": 529.9,
+          "d": 329.4,
+          "sp": 5800
+        },
+        {
+          "t": 0.0333,
+          "x": 200.1,
+          "y": 637.6,
+          "d": 330,
+          "sp": 6038.4
+        },
+        {
+          "t": 0.0667,
+          "x": 72.6,
+          "y": 793.4,
+          "d": 518.4,
+          "sp": 6038.4
+        },
+        {
+          "t": 0.1,
+          "x": -54.9,
+          "y": 949.1,
+          "d": 713.9,
+          "sp": 6038.4
+        }
+      ]
+    },
+    {
+      "label": "SNIPER off-axis 18deg @30Hz",
+      "weapon": "SNIPER",
+      "offsetDeg": 18,
+      "dt": 0.03333333333333333,
+      "launchSpeed": 5800,
+      "damagingEnvelope": 66.5,
+      "sweptEntryUsed": true,
+      "entry": {
+        "t": 0.1154,
+        "x": 285.1,
+        "y": 566.6,
+        "radialBefore": -4737.8,
+        "radialAfter": 4737.8,
+        "tangentialPreserved": 3345.6
+      },
+      "minDistanceToMagnet": 243.6,
+      "penetratedDamagingEnvelope": false,
+      "finalDistance": 839.7,
+      "finalSpeed": 6282.1,
+      "speedCapRespected": true,
+      "identityPreserved": true,
+      "trace": [
+        {
+          "t": 0,
+          "x": 263.9,
+          "y": 559.7,
+          "d": 243.6,
+          "sp": 5800
+        },
+        {
+          "t": 0.0667,
+          "x": -10.5,
+          "y": 876.1,
+          "d": 634.1,
+          "sp": 6282.1
+        }
+      ]
+    }
+  ],
+  "insideAtCast": [
+    {
+      "label": "PISTOL already-inside-at-cast",
+      "entryResponses": 1,
+      "perFrameSnapsBeyondDonorForce": 1,
+      "pushedOutward": true,
+      "finalRadialVelocity": 2860,
+      "pass": true
+    },
+    {
+      "label": "SMG already-inside-at-cast",
+      "entryResponses": 1,
+      "perFrameSnapsBeyondDonorForce": 1,
+      "pushedOutward": true,
+      "finalRadialVelocity": 3410,
+      "pass": true
+    },
+    {
+      "label": "SNIPER already-inside-at-cast",
+      "entryResponses": 1,
+      "perFrameSnapsBeyondDonorForce": 1,
+      "pushedOutward": true,
+      "finalRadialVelocity": 6100,
+      "pass": true
+    }
+  ],
+  "a1Oracle": {
+    "label": "A1 acquisition oracle (unchanged law)",
+    "startDistance": 494,
+    "minDistance": 251.2,
+    "totalInwardDeltaV": 495.5,
+    "pass": true
+  },
+  "pass": true,
+  "failures": []
+}

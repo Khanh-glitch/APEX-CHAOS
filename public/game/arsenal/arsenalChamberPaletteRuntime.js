@@ -269,35 +269,21 @@
       || (typeof Fighter !== 'undefined' ? Fighter : null);
     if (!F || !F.prototype || !F.prototype.draw) return;
     wrapped = true;
-    if (F.prototype.draw && !F.prototype.__paletteGeoWrapped) {
-      const base = F.prototype.draw;
-      F.prototype.__paletteGeoWrapped = true;
-      // Geometric separation for fighters WITHOUT a presentation actor hook:
-      // one neutral grounding shadow + faint rim, zero extra renders, and it
-      // cannot capture status/VFX layers (it adds, never re-draws).
-      F.prototype.draw = function (c) {
-        if (isActive()) {
-          const HR = window.APEX_HERO_REWORK;
-          const hero = HR && HR.byCombatant ? (HR.byCombatant(this) || {}).heroId : null;
-          if (hero !== 'HUNTER' && hero !== 'ROBOT') {
-            const pr = current().profile;
-            const r = this.radius || 60;
-            c.save();
-            c.fillStyle = pr.shadow;
-            c.beginPath();
-            c.ellipse(this.x, this.y + r * 0.72, r * 0.92, r * 0.34, 0, 0, Math.PI * 2);
-            c.fill();
-            c.strokeStyle = pr.keyline;
-            c.lineWidth = 2;
-            c.beginPath();
-            c.arc(this.x, this.y, r * 0.98, 0, Math.PI * 2);
-            c.stroke();
-            c.restore();
-          }
-        }
-        return base.call(this, c);
-      };
-    }
+    // OWNER REJECTION (Magnet V1 playtest): this wrapper used to add a
+    // decorative fighter-underlay pair to every fighter whose heroId was not
+    // HUNTER/ROBOT —
+    //     c.ellipse(this.x, this.y + r*0.72, r*0.92, r*0.34, ...)  // grounding shadow
+    //     c.arc(this.x, this.y, r*0.98, ...)                        // faint rim ring
+    // Instrumenting Canvas arc/ellipse in the real preview proved these are
+    // the circle/ring graphics the owner sees under Magnet and under the
+    // other champion (reproduced on MAGNET + MIRROR; evidence:
+    // docs/hero-rework/magnet-v1/evidence/ground-circle-provenance.json).
+    //
+    // They are purely decorative chamber-palette separation: not a projectile
+    // ring, not an A1 object acknowledgement ring, not a Gold skill arc and
+    // not a status visual. Removed. The chamber palette's actual recolour /
+    // actorRender separation path below is untouched.
+    F.prototype.__paletteGeoWrapped = true;
     const AV = window.APEX_ARSENAL_AV;
     if (AV && AV.drawEquippedWeapon && !AV.__paletteWrapped) {
       const bw = AV.drawEquippedWeapon.bind(AV);

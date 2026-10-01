@@ -14,6 +14,21 @@
 if (g.APEX_MAGNET_GOLD) return;
 
 const DT=1/120,TAU=Math.PI*2,DEG=Math.PI/180;
+/* --- Donor wall rebound constants (MAGNET_FINAL_DONOR_MAX.html heroStep) ----
+ * Donor: on penetration the hero is clamped to the wall and the NORMAL
+ * velocity is reflected as  hero.vn = n * ap * e,  e = ap>140 ? .4 : .05,
+ * tangent preserved; the rebound is then braked by the no-input locomotion
+ * rate 1850 u/s^2. Apex instead clamps the gameplay body and reverses heading,
+ * so the authoritative root leaves the wall on a different curve. The six
+ * local part transforms can match while the whole rendered Magnet does not.
+ * These drive a SHORT BOUNDED visual-root offset = donorNormalTravel minus
+ * authoritativeNormalTravel, measured from the true contact. */
+const WALL_REBOUND_E_HI=.4,WALL_REBOUND_E_LO=.05,WALL_REBOUND_E_SPLIT=140;
+const WALL_REBOUND_BRAKE=1850;          // donor no-input deceleration
+const WALL_MIN_CONTACT_SPEED=25;        // donor wallImpact gate
+const WALL_VISUAL_MAX_OFFSET=28;        // hard bound, px (donor peak ~35 @ 900 u/s)
+const WALL_VISUAL_MAX_AGE=.45;          // episode cap, s
+const WALL_VISUAL_FOLLOW=40;            // offset convergence rate (1/s)
 const SOURCE_SCALE=170/1020;
 const BODY_REF=Object.freeze({HX:96,HY:80});
 // One production-only calibration. It maps the Gold demo's widest authored
@@ -78,6 +93,10 @@ function createState(combatant){
     hax:new Float32Array(128),hay:new Float32Array(128),hi:0,leadSide:1,
     wall:{L:false,R:false,T:false,B:false},pendingWall:null,
     wallProxy:{active:false,nx:0,ny:0,x:0,y:0,touch:false,lastCue:-Infinity},slide:0,slideNormal:{x:0,y:0},
+    // PRESENTATION-ONLY wall rebound root. Gameplay root/hitbox/collision stay
+    // authoritative; this is a short bounded render offset so the WHOLE
+    // rendered Magnet reproduces the donor impact/rebound trajectory.
+    vwall:{active:false,nx:0,ny:0,baseN:0,donorN:0,donorV:0,age:0,target:0,ox:0,oy:0,peak:0,lastImpact:null},
     a1:-1,a2:-1,a1Lead:1,a2Lead:1,a1Target:{x:0,y:0},desiredA1Target:{x:0,y:0},passive:0,lastAct:0,
     idle:{next:2.2,t0:-99,side:0,amp:2,rot:.8,dir:1,dy:0,w:1},
     objects:{a1:[],a2:[]},histories:new Map(),hot:new Float32Array(24),a1Seen:new Set(),a2Seen:new Set(),
@@ -98,7 +117,7 @@ function addBump(s,x,y,nx,ny,amp,sigma,d=.42){boundedPush(s.bumps,{x,y,nx,ny,amp
 function addRing(s,object,d=.58,alpha=.72){if(object)boundedPush(s.rings,{key:object.key,object,age:0,d,alpha},8);}
 function addCorridor(s,x,y,angle,len=170,width=14,d=.42,alpha=.85){boundedPush(s.corridors,{x,y,angle,len,width,age:0,d,alpha},8);}
 function rigSnapshot(s){return Object.fromEntries(IDS.map(id=>[id,{x:s.rig[id].x,y:s.rig[id].y,r:s.rig[id].r,sx:s.rig[id].sx,sy:s.rig[id].sy}]));}
-function addEcho(s,kind,dx,dy,alpha,d){boundedPush(s.echoes,{kind,x:s.root.x,y:s.root.y,dx,dy,alpha,age:0,d,bodyK:bodyK(s),rig:rigSnapshot(s)},10);}
+function addEcho(s,kind,dx,dy,alpha,d){const vr=visualRoot(s);boundedPush(s.echoes,{kind,x:vr.x,y:vr.y,dx,dy,alpha,age:0,d,bodyK:bodyK(s),rig:rigSnapshot(s)},10);}
 function addParticle(s,p){boundedPush(s.particles,p,80);}
 function addMotes(s,x,y,count){for(let i=0;i<count;i++){const a=s.random()*TAU,sp=20+s.random()*50;addParticle(s,{kind:'mote',x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,age:0,d:.25+s.random()*.2,size:1+s.random()*.8});}}
 function objectKey(o,index){return o&&((o.key!=null&&o.key)||(o.ref)||(o.object))||`${o?.kind||'object'}:${o?.id??index}`;}
@@ -226,6 +245,40 @@ function movementStop(s,dx,dy){
   after(s,90,()=>{kick(s,'lobeL',dx,dy);kick(s,'lobeR',dx,dy);});
   after(s,120,()=>{s.rig.spine.vsy-=.1;s.rig.spine.vsx+=.05;});
 }
+/* Visual-root wall rebound. Originates from the TRUE collision (the frame the
+ * authoritative root first reaches the wall threshold) and uses the ACTUAL
+ * pre-resolution contact velocity supplied by the production adapter, not the
+ * Gold locomotion proxy. Gameplay is never touched here. */
+function startVisualWallRebound(s,nx,ny,cvx,cvy){
+  const inward=-(cvx*nx+cvy*ny);                 // pre-resolution closing speed
+  if(!(inward>WALL_MIN_CONTACT_SPEED))return;
+  const e=inward>WALL_REBOUND_E_SPLIT?WALL_REBOUND_E_HI:WALL_REBOUND_E_LO;
+  const w=s.vwall;
+  w.active=true;w.nx=nx;w.ny=ny;w.age=0;w.donorN=0;w.donorV=inward*e;w.peak=0;
+  w.baseN=s.root.x*nx+s.root.y*ny;               // authoritative root at contact
+  w.lastImpact={clock:s.simTime,nx,ny,inward,reboundSpeed:w.donorV};
+}
+function stepVisualWallRebound(s){
+  const w=s.vwall;
+  let target=0;
+  if(w.active){
+    w.age+=DT;
+    w.donorV=Math.max(0,w.donorV-WALL_REBOUND_BRAKE*DT);
+    w.donorN+=w.donorV*DT;                                     // donor travel off the wall
+    const gameplayN=(s.root.x*w.nx+s.root.y*w.ny)-w.baseN;     // Apex travel off the wall
+    target=clamp(w.donorN-gameplayN,-WALL_VISUAL_MAX_OFFSET,WALL_VISUAL_MAX_OFFSET);
+    w.peak=Math.max(w.peak,Math.abs(target));
+    // Converge cleanly back to the authoritative root; never persist.
+    if(w.age>=WALL_VISUAL_MAX_AGE||(w.donorV<=0&&Math.abs(target)<.25)){w.active=false;target=0;}
+  }
+  w.target=target;
+  const k=1-Math.exp(-DT*WALL_VISUAL_FOLLOW);
+  w.ox+=(w.nx*target-w.ox)*k;w.oy+=(w.ny*target-w.oy)*k;
+  if(!w.active&&Math.abs(w.ox)<.01&&Math.abs(w.oy)<.01){w.ox=0;w.oy=0;}
+}
+// Rendered root = authoritative gameplay root + bounded wall rebound offset.
+function visualRoot(s){return{x:s.root.x+s.vwall.ox,y:s.root.y+s.vwall.oy};}
+
 function sampleRoot(s,input,dt){
   const root=input?.root||input||{},a=s.combatant?.anchor||{};
   const before=root.before||s.lastRoot||{x:a.x||0,y:a.y||0},after=root.after||{x:a.x||0,y:a.y||0};
@@ -246,7 +299,7 @@ function sampleRoot(s,input,dt){
   const normals={L:[1,0],R:[-1,0],T:[0,1],B:[0,-1]};let sliding=null;
   for(const key of Object.keys(contacts)){
     const n=normals[key],tangent=(key==='L'||key==='R')?Math.abs(cvy):Math.abs(cvx);
-    if(contacts[key]&&!s.wall[key])s.pendingWall={nx:n[0],ny:n[1]};
+    if(contacts[key]&&!s.wall[key]){s.pendingWall={nx:n[0],ny:n[1]};startVisualWallRebound(s,n[0],n[1],cvx,cvy);}
     s.wall[key]=contacts[key];if(contacts[key]&&tangent>110)sliding=n;
   }
   if(sliding){s.slideNormal.x=sliding[0];s.slideNormal.y=sliding[1];}
@@ -323,6 +376,7 @@ function fixedStep(s){
   if(s.a1>=0){const t=s.a1;for(let side=0;side<2;side++){const lead=side===s.a1Lead,on=t>=(lead?.10:.13)&&t<(lead?1.08:1.16),p=s.target[POLES[side]];if(on){p.x+=INWARD[side]*12.5;p.y-=2.4;p.r+=INWARD[side]*4.6*DEG;p.sx*=.964;p.sy*=1.013;}if(t>=.06&&t<(lead?1.12:1.16)){const l=s.target[LOBES[side]];l.x+=INWARD[side]*3.8;l.y-=2.1;l.r+=INWARD[side]*2.25*DEG;}}if(t>=.06&&t<1.05){s.target.core.sy*=1.02;s.target.core.sx*=.97;s.target.core.y-=1.4;}if(t>=.06&&t<1.08){s.target.spine.y-=3.5;s.target.spine.sy*=1.046;}s.rig.core.kM=t>.22&&t<1.05?2.6:1;if(t>.22&&t<1.05){const side=s.a1Target.x<0?0:1,p=s.target[POLES[side]];p.x+=s.a1Target.x*1.6;p.y+=s.a1Target.y*1.2;p.r+=s.a1Target.y*INWARD[side]*.5*DEG;}}
   if(s.a2>=0){const t=s.a2;for(let side=0;side<2;side++){const lead=side===s.a2Lead,on=t>=(lead?.08:.10)&&t<(lead?1.84:1.92),p=s.target[POLES[side]];if(on){p.x+=-INWARD[side]*24;p.y+=1.8;p.r+=-INWARD[side]*7.8*DEG;p.sx*=1.03;p.sy*=.992;}if(t>=.06&&t<1.95){const l=s.target[LOBES[side]];l.x+=INWARD[side]*5.4;l.y+=4;l.r+=-INWARD[side]*2.45*DEG;l.x-=INWARD[side]*(s.rig[POLES[side]].x*INWARD[side])*.075;}}if(t<.08){s.target.core.sy*=1.028;s.target.core.sx*=.987;}s.rig.core.kM=t<1.95?3:1;s.rig.spine.kM=t>=.06&&t<2?4.8:1;if(t>=.06&&t<2){s.target.spine.y-=2.4;s.target.spine.sy*=1.03;}}
   for(const id of IDS){const p=s.rig[id],t=s.target[id],w2=p.k*p.kM,c=2*p.z*Math.sqrt(w2);p.vx+=(w2*(t.x-p.x)-c*p.vx)*DT;p.x+=p.vx*DT;p.vy+=(w2*(t.y-p.y)-c*p.vy)*DT;p.y+=p.vy*DT;p.vr+=(w2*(t.r-p.r)-c*p.vr)*DT;p.r+=p.vr*DT;p.vsx+=(w2*(t.sx-p.sx)-c*p.vsx)*DT;p.sx+=p.vsx*DT;p.vsy+=(w2*(t.sy-p.sy)-c*p.vsy)*DT;p.sy+=p.vsy*DT;}
+  stepVisualWallRebound(s);
   ageEffects(s);s.fixedSteps++;
 }
 function updateFrame(combatant,dt,input={}){
@@ -339,15 +393,15 @@ function tick(combatant,dt){const s=stateFor(combatant),a=combatant?.anchor;if(!
 function bodyK(s){return((s.root.radius||75)/BODY_REF.HX)*BODY_VISUAL_CALIBRATION;}
 function transformPoint(s,id,sx,sy){
   const p=s.rig[id],pivot=META[id].pivot,k=bodyK(s),qx=sx-ORIGIN.x,qy=sy-ORIGIN.y,px=pivot[0]-ORIGIN.x,py=pivot[1]-ORIGIN.y;
-  const lx=(qx-px)*p.sx,ly=(qy-py)*p.sy,c=Math.cos(p.r),sn=Math.sin(p.r);
-  return{x:s.root.x+k*(p.x+SOURCE_SCALE*(px+lx*c-ly*sn)),y:s.root.y+k*(p.y+SOURCE_SCALE*(py+lx*sn+ly*c))};
+  const lx=(qx-px)*p.sx,ly=(qy-py)*p.sy,c=Math.cos(p.r),sn=Math.sin(p.r),vr=visualRoot(s);
+  return{x:vr.x+k*(p.x+SOURCE_SCALE*(px+lx*c-ly*sn)),y:vr.y+k*(p.y+SOURCE_SCALE*(py+lx*sn+ly*c))};
 }
 function socketsFor(s){return{leftPoleTip:transformPoint(s,'polL',412,100),rightPoleTip:transformPoint(s,'polR',842,100),core:transformPoint(s,'core',627,610)};}
 function getSockets(combatant){const s=states.get(combatant);return s?socketsFor(s):null;}
 function effectiveSourceScale(ctx,s){let host=1;try{const m=ctx.getTransform();host=Math.max(Math.hypot(m.a,m.b),Math.hypot(m.c,m.d));}catch(e){}return SOURCE_SCALE*bodyK(s)*host;}
 function drawPart(ctx,s,id,level,bloom){
-  const m=META[id],L=images[id][level],p=s.rig[id],pivot=m.pivot,k=bodyK(s);
-  ctx.save();ctx.translate(s.root.x,s.root.y);ctx.scale(k,k);ctx.translate(p.x,p.y);ctx.scale(SOURCE_SCALE,SOURCE_SCALE);
+  const m=META[id],L=images[id][level],p=s.rig[id],pivot=m.pivot,k=bodyK(s),vr=visualRoot(s);
+  ctx.save();ctx.translate(vr.x,vr.y);ctx.scale(k,k);ctx.translate(p.x,p.y);ctx.scale(SOURCE_SCALE,SOURCE_SCALE);
   const px=pivot[0]-ORIGIN.x,py=pivot[1]-ORIGIN.y;ctx.translate(px,py);ctx.rotate(p.r);ctx.scale(p.sx,p.sy);ctx.translate(-px,-py);
   const dx=m.ox-ORIGIN.x,dy=m.oy-ORIGIN.y;
   if(!bloom){
@@ -419,7 +473,7 @@ function draw(ctx,combatant){
   ctx.save();try{for(const id of IDS)drawPart(ctx,s,id,level,false);for(const id of IDS)drawPart(ctx,s,id,level,true);s.sockets=socketsFor(s);}finally{ctx.restore();}return true;
 }
 function teardown(combatant){if(combatant)states.delete(combatant);else states.clear();}
-function stateSnapshot(s){return s&&{fixedSteps:s.fixedSteps,droppedTime:s.droppedTime,accumulator:s.accumulator,simTime:s.simTime,frameCount:s.frameCount,a1:s.a1,a2:s.a2,passive:s.passive,bodyScale:SOURCE_SCALE*bodyK(s),bodyCalibration:BODY_VISUAL_CALIBRATION,root:{...s.root},velocity:{...s.velocity},acceleration:{...s.acceleration},a1Target:{...s.a1Target},desiredA1Target:{...s.desiredA1Target},rig:s.rig,gold:s.gold,sockets:socketsFor(s),objects:{a1:s.objects.a1.length,a2:s.objects.a2.length,a1Kinds:s.objects.a1.map(o=>o.kind),a2Kinds:s.objects.a2.map(o=>o.kind),a2Items:s.objects.a2.map(o=>({kind:o.kind,id:o.id??null,x:o.x,y:o.y}))},effects:{histories:s.histories.size,projectileHistories:[...s.histories.values()].filter(h=>h.kind==='bullet').length,arcs:s.arcs.length,bumps:s.bumps.length,echoes:s.echoes.length,corridors:s.corridors.length,rings:s.rings.length,particles:s.particles.length,hot:[...s.hot]}};}
+function stateSnapshot(s){return s&&{fixedSteps:s.fixedSteps,droppedTime:s.droppedTime,accumulator:s.accumulator,simTime:s.simTime,frameCount:s.frameCount,a1:s.a1,a2:s.a2,passive:s.passive,bodyScale:SOURCE_SCALE*bodyK(s),bodyCalibration:BODY_VISUAL_CALIBRATION,root:{...s.root},visualRoot:visualRoot(s),wallRebound:{active:s.vwall.active,nx:s.vwall.nx,ny:s.vwall.ny,offsetX:s.vwall.ox,offsetY:s.vwall.oy,target:s.vwall.target,age:s.vwall.age,peak:s.vwall.peak,donorN:s.vwall.donorN,donorV:s.vwall.donorV,lastImpact:s.vwall.lastImpact},velocity:{...s.velocity},acceleration:{...s.acceleration},a1Target:{...s.a1Target},desiredA1Target:{...s.desiredA1Target},rig:s.rig,gold:s.gold,sockets:socketsFor(s),objects:{a1:s.objects.a1.length,a2:s.objects.a2.length,a1Kinds:s.objects.a1.map(o=>o.kind),a2Kinds:s.objects.a2.map(o=>o.kind),a2Items:s.objects.a2.map(o=>({kind:o.kind,id:o.id??null,x:o.x,y:o.y}))},effects:{histories:s.histories.size,projectileHistories:[...s.histories.values()].filter(h=>h.kind==='bullet').length,arcs:s.arcs.length,bumps:s.bumps.length,echoes:s.echoes.length,corridors:s.corridors.length,rings:s.rings.length,particles:s.particles.length,hot:[...s.hot]}};}
 function inspect(combatant){const s=combatant?states.get(combatant):null;return{ready,loadError:loadError&&String(loadError),stateCount:states.size,state:stateSnapshot(s)};}
 function setRandomSeed(combatant,value){stateFor(combatant).rng.seed=(Number(value)>>>0);}
 

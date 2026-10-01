@@ -84,7 +84,7 @@
       "data": {
         "staticClean": true,
         "attributed": 0,
-        "total": 427
+        "total": 367
       }
     },
     "E-sanitize-stale-to-default": {
@@ -176,7 +176,7 @@
     "E-no-per-frame-growth": {
       "pass": true,
       "data": {
-        "actorAllocs": 1,
+        "actorAllocs": 2,
         "deriv0": 7,
         "deriv1": 7
       }
@@ -185,6 +185,24 @@
       "pass": true,
       "data": {
         "d": 60
+      }
+    },
+    "E2-full-color-source-preserved": {
+      "pass": true,
+      "data": {
+        "left": [
+          255,
+          0,
+          0,
+          255
+        ],
+        "right": [
+          0,
+          102,
+          255,
+          255
+        ],
+        "palette": "graphite-dark"
       }
     },
     "D-presentation-only": {

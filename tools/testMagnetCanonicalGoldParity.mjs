@@ -15,10 +15,13 @@ if(donorSha!=='468f7b2aa34588c2c52bf23fb5202c507ff5d584d423ea9f1a9232d751247d8b'
 
 const requireBrowser=createRequire('/tmp/magnet-browser-deps/noop.js');
 const puppeteer=requireBrowser('puppeteer-core');
-const chromiumModule=requireBrowser('@sparticuz/chromium'),chromium=chromiumModule.default;
+const chromiumModule=requireBrowser('@sparticuz/chromium'),chromium=chromiumModule.default||chromiumModule;
 const chromiumRoot=path.dirname(path.dirname(requireBrowser.resolve('@sparticuz/chromium')));
-await chromiumModule.inflate(path.join(chromiumRoot,'bin','al2023.tar.br'));
-process.env.LD_LIBRARY_PATH='/tmp/al2023/lib:'+(process.env.LD_LIBRARY_PATH||'');
+// Environment compatibility: @sparticuz/chromium >= 121 inflates its own
+// payload inside executablePath() and no longer exports inflate(). The shared
+// library bundle still has to be on LD_LIBRARY_PATH either way.
+if(typeof chromiumModule.inflate==='function')await chromiumModule.inflate(path.join(chromiumRoot,'bin','al2023.tar.br'));
+process.env.LD_LIBRARY_PATH=['/tmp/al2023','/tmp/al2023/lib',process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
 let html=donor;
 const marker="'use strict';\nconst TAU=";
 if(!html.includes(marker))throw new Error('canonical main-script marker missing');

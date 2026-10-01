@@ -1,0 +1,667 @@
+{
+  "generatedAt": "2026-10-01T18:04:53.399Z",
+  "errors": [],
+  "acceptance": "eligible incoming bullet is REPULSED and does not penetrate Magnet while A2 protects that approach",
+  "results": [
+    {
+      "weapon": "PISTOL",
+      "offAxis": false,
+      "a2Active": true,
+      "emitted": true,
+      "launchSpeed": 2600,
+      "launchVelocity": {
+        "vx": 2599.5,
+        "vy": 53.1
+      },
+      "authoritativeTicks": 5,
+      "fieldEntry": {
+        "x": 280.4,
+        "y": 548.8,
+        "t": 0.1657,
+        "radialBefore": -2526,
+        "radialAfter": 2526,
+        "tangential": 615.9
+      },
+      "radialVelocityBeforeInfluence": -2534.4,
+      "radialVelocityAfterEntryResponse": 2799.3,
+      "maxOutwardRadialVelocity": 2847.3,
+      "minSweptDistanceToMagnet": 238.9,
+      "damagingEnvelope": 65.5,
+      "enteredDamagingEnvelope": false,
+      "magnetDamaged": false,
+      "influencedTicks": 1,
+      "entryResponses": 1,
+      "identityStable": true,
+      "lifetimeContinuous": true,
+      "trace": [
+        {
+          "dt": 0.033,
+          "x": 180.4,
+          "y": 546.8,
+          "d": 323,
+          "vrPre": -2564.4,
+          "vrPost": -2564.4,
+          "sp": 2600,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.967
+        },
+        {
+          "dt": 0.033,
+          "x": 266.1,
+          "y": 548.5,
+          "d": 238.8,
+          "vrPre": -2534.4,
+          "vrPost": 2799.3,
+          "sp": 2860,
+          "influenced": true,
+          "entry": {
+            "x": 280.4,
+            "y": 548.8,
+            "t": 0.1657,
+            "radialBefore": -2526,
+            "radialAfter": 2526,
+            "tangential": 615.9
+          },
+          "identityOk": true,
+          "life": 0.9339999999999999
+        },
+        {
+          "dt": 0.033,
+          "x": 179.6,
+          "y": 586.2,
+          "d": 331.8,
+          "vrPre": 2828.7,
+          "vrPost": 2828.7,
+          "sp": 2860,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.9009999999999999
+        },
+        {
+          "dt": 0.033,
+          "x": 93.1,
+          "y": 623.9,
+          "d": 425.4,
+          "vrPre": 2841,
+          "vrPost": 2841,
+          "sp": 2860,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.8679999999999999
+        },
+        {
+          "dt": 0.033,
+          "x": 6.6,
+          "y": 661.7,
+          "d": 519.2,
+          "vrPre": 2847.3,
+          "vrPost": 2847.3,
+          "sp": 2860,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.8349999999999999
+        }
+      ]
+    },
+    {
+      "weapon": "PISTOL",
+      "offAxis": true,
+      "a2Active": true,
+      "emitted": true,
+      "launchSpeed": 2600,
+      "launchVelocity": {
+        "vx": 2598.1,
+        "vy": 99.2
+      },
+      "authoritativeTicks": 5,
+      "fieldEntry": {
+        "x": 283,
+        "y": 550.7,
+        "t": 0.1962,
+        "radialBefore": -2532.4,
+        "radialAfter": 2532.4,
+        "tangential": 589.2
+      },
+      "radialVelocityBeforeInfluence": -2541.4,
+      "radialVelocityAfterEntryResponse": 2803.5,
+      "maxOutwardRadialVelocity": 2848,
+      "minSweptDistanceToMagnet": 241.4,
+      "damagingEnvelope": 65.5,
+      "enteredDamagingEnvelope": false,
+      "magnetDamaged": false,
+      "influencedTicks": 1,
+      "entryResponses": 1,
+      "identityStable": true,
+      "lifetimeContinuous": true,
+      "trace": [
+        {
+          "dt": 0.033,
+          "x": 180.4,
+          "y": 546.8,
+          "d": 325.8,
+          "vrPre": -2568,
+          "vrPost": -2568,
+          "sp": 2600,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.967
+        },
+        {
+          "dt": 0.033,
+          "x": 266.1,
+          "y": 550.1,
+          "d": 241.4,
+          "vrPre": -2541.4,
+          "vrPost": 2803.5,
+          "sp": 2860,
+          "influenced": true,
+          "entry": {
+            "x": 283,
+            "y": 550.7,
+            "t": 0.1962,
+            "radialBefore": -2532.4,
+            "radialAfter": 2532.4,
+            "tangential": 589.2
+          },
+          "identityOk": true,
+          "life": 0.9339999999999999
+        },
+        {
+          "dt": 0.033,
+          "x": 181.2,
+          "y": 509,
+          "d": 334.5,
+          "vrPre": 2830.7,
+          "vrPost": 2830.7,
+          "sp": 2860,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.9009999999999999
+        },
+        {
+          "dt": 0.033,
+          "x": 96.2,
+          "y": 467.9,
+          "d": 428.1,
+          "vrPre": 2842.1,
+          "vrPost": 2842.1,
+          "sp": 2860,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.8679999999999999
+        },
+        {
+          "dt": 0.033,
+          "x": 11.2,
+          "y": 426.9,
+          "d": 522,
+          "vrPre": 2848,
+          "vrPost": 2848,
+          "sp": 2860,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.8349999999999999
+        }
+      ]
+    },
+    {
+      "weapon": "SMG",
+      "offAxis": false,
+      "a2Active": true,
+      "emitted": true,
+      "launchSpeed": 3410,
+      "launchVelocity": {
+        "vx": -3206.9,
+        "vy": 1159.3
+      },
+      "authoritativeTicks": 2,
+      "fieldEntry": {
+        "x": 280.3,
+        "y": 548.5,
+        "t": 0.8877,
+        "radialBefore": -3058.7,
+        "radialAfter": 3058.7,
+        "tangential": 504.3
+      },
+      "radialVelocityBeforeInfluence": 3356.9,
+      "radialVelocityAfterEntryResponse": 3356.9,
+      "maxOutwardRadialVelocity": 3381.1,
+      "minSweptDistanceToMagnet": 315,
+      "damagingEnvelope": 64.5,
+      "enteredDamagingEnvelope": false,
+      "magnetDamaged": false,
+      "influencedTicks": 1,
+      "entryResponses": 1,
+      "identityStable": true,
+      "lifetimeContinuous": true,
+      "trace": [
+        {
+          "dt": 0.033,
+          "x": 189.6,
+          "y": 553.4,
+          "d": 315,
+          "vrPre": 3356.9,
+          "vrPost": 3356.9,
+          "sp": 3410,
+          "influenced": true,
+          "entry": {
+            "x": 280.3,
+            "y": 548.5,
+            "t": 0.8877,
+            "radialBefore": -3058.7,
+            "radialAfter": 3058.7,
+            "tangential": 504.3
+          },
+          "identityOk": true,
+          "life": 0.867
+        },
+        {
+          "dt": 0.033,
+          "x": 83.8,
+          "y": 591.6,
+          "d": 426.2,
+          "vrPre": 3381.1,
+          "vrPost": 3381.1,
+          "sp": 3410,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.834
+        }
+      ]
+    },
+    {
+      "weapon": "SMG",
+      "offAxis": true,
+      "a2Active": true,
+      "emitted": true,
+      "launchSpeed": 3410,
+      "launchVelocity": {
+        "vx": -2976.5,
+        "vy": 1663.9
+      },
+      "authoritativeTicks": 3,
+      "fieldEntry": {
+        "x": 282.6,
+        "y": 558.1,
+        "t": 0.9106,
+        "radialBefore": -2950,
+        "radialAfter": 2950,
+        "tangential": 952.6
+      },
+      "radialVelocityBeforeInfluence": 2629.5,
+      "radialVelocityAfterEntryResponse": 2629.5,
+      "maxOutwardRadialVelocity": 3133.9,
+      "minSweptDistanceToMagnet": 315.5,
+      "damagingEnvelope": 64.5,
+      "enteredDamagingEnvelope": false,
+      "magnetDamaged": false,
+      "influencedTicks": 1,
+      "entryResponses": 1,
+      "identityStable": true,
+      "lifetimeContinuous": true,
+      "trace": [
+        {
+          "dt": 0.033,
+          "x": 189.6,
+          "y": 553.4,
+          "d": 315.5,
+          "vrPre": 2629.5,
+          "vrPost": 2629.5,
+          "sp": 3410,
+          "influenced": true,
+          "entry": {
+            "x": 282.6,
+            "y": 558.1,
+            "t": 0.9106,
+            "radialBefore": -2950,
+            "radialAfter": 2950,
+            "tangential": 952.6
+          },
+          "identityOk": true,
+          "life": 0.867
+        },
+        {
+          "dt": 0.033,
+          "x": 91.4,
+          "y": 608.3,
+          "d": 408.6,
+          "vrPre": 2969.4,
+          "vrPost": 2969.4,
+          "sp": 3410,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.834
+        },
+        {
+          "dt": 0.033,
+          "x": -6.8,
+          "y": 663.2,
+          "d": 509.6,
+          "vrPre": 3133.9,
+          "vrPost": 3133.9,
+          "sp": 3410,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.8009999999999999
+        }
+      ]
+    },
+    {
+      "weapon": "SNIPER",
+      "offAxis": false,
+      "a2Active": true,
+      "emitted": true,
+      "launchSpeed": 6355.7,
+      "launchVelocity": {
+        "vx": -5331.8,
+        "vy": 3459.4
+      },
+      "authoritativeTicks": 2,
+      "fieldEntry": {
+        "x": 285.4,
+        "y": 567.6,
+        "t": 0.3779,
+        "radialBefore": -5532.2,
+        "radialAfter": 5532.2,
+        "tangential": 1742
+      },
+      "radialVelocityBeforeInfluence": 5982.8,
+      "radialVelocityAfterEntryResponse": 5982.8,
+      "maxOutwardRadialVelocity": 6227.2,
+      "minSweptDistanceToMagnet": 294.8,
+      "damagingEnvelope": 66.5,
+      "enteredDamagingEnvelope": false,
+      "magnetDamaged": false,
+      "influencedTicks": 1,
+      "entryResponses": 1,
+      "identityStable": true,
+      "lifetimeContinuous": true,
+      "trace": [
+        {
+          "dt": 0.033,
+          "x": 213.1,
+          "y": 567.6,
+          "d": 294.8,
+          "vrPre": 5982.8,
+          "vrPost": 5982.8,
+          "sp": 6355.7,
+          "influenced": true,
+          "entry": {
+            "x": 285.4,
+            "y": 567.6,
+            "t": 0.3779,
+            "radialBefore": -5532.2,
+            "radialAfter": 5532.2,
+            "tangential": 1742
+          },
+          "identityOk": true,
+          "life": 0.967
+        },
+        {
+          "dt": 0.033,
+          "x": 37.1,
+          "y": 681.7,
+          "d": 497.3,
+          "vrPre": 6227.2,
+          "vrPost": 6227.2,
+          "sp": 6355.7,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.9339999999999999
+        }
+      ]
+    },
+    {
+      "weapon": "SNIPER",
+      "offAxis": true,
+      "a2Active": true,
+      "emitted": true,
+      "launchSpeed": 6355.7,
+      "launchVelocity": {
+        "vx": -5331.7,
+        "vy": 3459.4
+      },
+      "authoritativeTicks": 2,
+      "fieldEntry": {
+        "x": 285.4,
+        "y": 567.6,
+        "t": 0.3779,
+        "radialBefore": -5532.2,
+        "radialAfter": 5532.2,
+        "tangential": 1742
+      },
+      "radialVelocityBeforeInfluence": 4768.5,
+      "radialVelocityAfterEntryResponse": 4768.5,
+      "maxOutwardRadialVelocity": 5798.6,
+      "minSweptDistanceToMagnet": 290,
+      "damagingEnvelope": 66.5,
+      "enteredDamagingEnvelope": false,
+      "magnetDamaged": false,
+      "influencedTicks": 1,
+      "entryResponses": 1,
+      "identityStable": true,
+      "lifetimeContinuous": true,
+      "trace": [
+        {
+          "dt": 0.033,
+          "x": 213.1,
+          "y": 567.6,
+          "d": 290.1,
+          "vrPre": 4768.5,
+          "vrPost": 4768.5,
+          "sp": 6355.7,
+          "influenced": true,
+          "entry": {
+            "x": 285.4,
+            "y": 567.6,
+            "t": 0.3779,
+            "radialBefore": -5532.2,
+            "radialAfter": 5532.2,
+            "tangential": 1742
+          },
+          "identityOk": true,
+          "life": 0.967
+        },
+        {
+          "dt": 0.033,
+          "x": 37.1,
+          "y": 681.7,
+          "d": 468.4,
+          "vrPre": 5798.6,
+          "vrPost": 5798.6,
+          "sp": 6355.7,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.9339999999999999
+        }
+      ]
+    }
+  ],
+  "negativeControls": [
+    {
+      "weapon": "PISTOL",
+      "offAxis": false,
+      "a2Active": false,
+      "emitted": true,
+      "launchSpeed": 2600,
+      "launchVelocity": {
+        "vx": 2597.2,
+        "vy": 120.5
+      },
+      "authoritativeTicks": 4,
+      "fieldEntry": null,
+      "radialVelocityBeforeInfluence": null,
+      "radialVelocityAfterEntryResponse": null,
+      "maxOutwardRadialVelocity": -1809.3,
+      "minSweptDistanceToMagnet": 85.8,
+      "damagingEnvelope": 65.5,
+      "enteredDamagingEnvelope": false,
+      "magnetDamaged": true,
+      "influencedTicks": 0,
+      "entryResponses": 0,
+      "identityStable": true,
+      "lifetimeContinuous": true,
+      "trace": [
+        {
+          "dt": 0.033,
+          "x": 180.4,
+          "y": 546.8,
+          "d": 323,
+          "vrPre": -2552.3,
+          "vrPost": -2552.3,
+          "sp": 2600,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.967
+        },
+        {
+          "dt": 0.033,
+          "x": 266.1,
+          "y": 550.8,
+          "d": 239.3,
+          "vrPre": -2512.4,
+          "vrPost": -2512.4,
+          "sp": 2600,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.9339999999999999
+        },
+        {
+          "dt": 0.033,
+          "x": 351.8,
+          "y": 554.8,
+          "d": 158,
+          "vrPre": -2394.3,
+          "vrPost": -2394.3,
+          "sp": 2600,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.9009999999999999
+        },
+        {
+          "dt": 0.033,
+          "x": 437.5,
+          "y": 558.8,
+          "d": 85.8,
+          "vrPre": -1809.3,
+          "vrPost": -1809.3,
+          "sp": 2600,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.8679999999999999
+        }
+      ]
+    },
+    {
+      "weapon": "SNIPER",
+      "offAxis": false,
+      "a2Active": false,
+      "emitted": true,
+      "launchSpeed": 5800,
+      "launchVelocity": {
+        "vx": 5800,
+        "vy": 0
+      },
+      "authoritativeTicks": 5,
+      "fieldEntry": null,
+      "radialVelocityBeforeInfluence": null,
+      "radialVelocityAfterEntryResponse": null,
+      "maxOutwardRadialVelocity": 5743,
+      "minSweptDistanceToMagnet": 67.6,
+      "damagingEnvelope": 66.5,
+      "enteredDamagingEnvelope": false,
+      "magnetDamaged": false,
+      "influencedTicks": 0,
+      "entryResponses": 0,
+      "identityStable": true,
+      "lifetimeContinuous": true,
+      "trace": [
+        {
+          "dt": 0.033,
+          "x": 213.1,
+          "y": 567.6,
+          "d": 294.8,
+          "vrPre": -5645.5,
+          "vrPost": -5645.5,
+          "sp": 5800,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.967
+        },
+        {
+          "dt": 0.033,
+          "x": 404.5,
+          "y": 567.6,
+          "d": 117,
+          "vrPre": -4735.2,
+          "vrPost": -4735.2,
+          "sp": 5800,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.9339999999999999
+        },
+        {
+          "dt": 0.033,
+          "x": 595.9,
+          "y": 567.6,
+          "d": 117.3,
+          "vrPre": 4740.4,
+          "vrPost": 4740.4,
+          "sp": 5800,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.9009999999999999
+        },
+        {
+          "dt": 0.033,
+          "x": 787.3,
+          "y": 567.6,
+          "d": 295.1,
+          "vrPre": 5645.9,
+          "vrPost": 5645.9,
+          "sp": 5800,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.8679999999999999
+        },
+        {
+          "dt": 0.033,
+          "x": 978.7,
+          "y": 567.6,
+          "d": 483.4,
+          "vrPre": 5743,
+          "vrPost": 5743,
+          "sp": 5800,
+          "influenced": false,
+          "entry": null,
+          "identityOk": true,
+          "life": 0.8349999999999999
+        }
+      ]
+    }
+  ],
+  "pass": true,
+  "failures": []
+}

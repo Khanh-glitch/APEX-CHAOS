@@ -1,0 +1,105 @@
+{
+  "generatedAt": "2026-10-01T18:21:00.970Z",
+  "impactSpeed": 420,
+  "donorErrors": [],
+  "productionErrors": [],
+  "rootCause": "Local six-part parity is measured in the rig's own frame and is blind to the ROOT the rendered Magnet is attached to. Donor heroStep reflects the normal velocity off the wall (n*ap*e, e=.4 above 140 u/s, tangent kept) and brakes at 1850 u/s^2, so the donor root leaves the wall with an impulse spike. Apex clamps the gameplay body and re-drives it by locomotion, which leaves the wall linearly. Production previously rendered directly on the authoritative Apex root, so the whole Magnet travelled away from the wall on the wrong curve while the six local transforms still matched.",
+  "correction": "Presentation-only bounded visual-root offset = donorNormalTravel - authoritativeNormalTravel, seeded at the TRUE collision from the real pre-resolution contact velocity, clamped to 28px, capped at 0.45s, converging back to the authoritative root. Gameplay root, hitbox, collision and wall authority are untouched.",
+  "localSixPartRmseAroundImpact": 2.268,
+  "screenSpaceNormalTravel": [
+    {
+      "t": 0.016,
+      "donorNormalTravel": 0,
+      "productionGameplayRoot": 0,
+      "productionVisualRoot": 2.4,
+      "gameplayErrVsDonor": 0,
+      "visualErrVsDonor": 2.4
+    },
+    {
+      "t": 0.033,
+      "donorNormalTravel": 0,
+      "productionGameplayRoot": 0,
+      "productionVisualRoot": 2.4,
+      "gameplayErrVsDonor": 0,
+      "visualErrVsDonor": 2.4
+    },
+    {
+      "t": 0.05,
+      "donorNormalTravel": 3.39,
+      "productionGameplayRoot": 0,
+      "productionVisualRoot": 2.4,
+      "gameplayErrVsDonor": -3.39,
+      "visualErrVsDonor": -0.99
+    },
+    {
+      "t": 0.083,
+      "donorNormalTravel": 3.39,
+      "productionGameplayRoot": 0,
+      "productionVisualRoot": 2.4,
+      "gameplayErrVsDonor": -3.39,
+      "visualErrVsDonor": -0.99
+    },
+    {
+      "t": 0.12,
+      "donorNormalTravel": 3.5,
+      "productionGameplayRoot": 0,
+      "productionVisualRoot": 2.4,
+      "gameplayErrVsDonor": -3.5,
+      "visualErrVsDonor": -1.1
+    },
+    {
+      "t": 0.17,
+      "donorNormalTravel": 3.5,
+      "productionGameplayRoot": 0,
+      "productionVisualRoot": 2.4,
+      "gameplayErrVsDonor": -3.5,
+      "visualErrVsDonor": -1.1
+    },
+    {
+      "t": 0.25,
+      "donorNormalTravel": 3.5,
+      "productionGameplayRoot": 0,
+      "productionVisualRoot": 2.4,
+      "gameplayErrVsDonor": -3.5,
+      "visualErrVsDonor": -1.1
+    },
+    {
+      "t": 0.35,
+      "donorNormalTravel": 3.5,
+      "productionGameplayRoot": 0,
+      "productionVisualRoot": 2.4,
+      "gameplayErrVsDonor": -3.5,
+      "visualErrVsDonor": -1.1
+    },
+    {
+      "t": 0.45,
+      "donorNormalTravel": 3.5,
+      "productionGameplayRoot": 0,
+      "productionVisualRoot": 2.4,
+      "gameplayErrVsDonor": -3.5,
+      "visualErrVsDonor": -1.1
+    }
+  ],
+  "rmseGameplayRootVsDonor": 3.059,
+  "rmseVisualRootVsDonor": 1.473,
+  "peakVisualOffsetPx": 6.93,
+  "settleSecondsWallClock": 18.752,
+  "settleBoundedBySimSeconds": 0.45,
+  "settleNote": "headless rAF is heavily throttled, so wall-clock settle is not representative; the episode is hard-capped at 0.45 SIM seconds by WALL_VISUAL_MAX_AGE.",
+  "residualOffsetAfterEpisodePx": 0,
+  "lastImpact": {
+    "clock": 2.2749999999999946,
+    "nx": 1,
+    "ny": 0,
+    "inward": 420,
+    "reboundSpeed": 168
+  },
+  "hitboxNeverDiverges": true,
+  "bounded": true,
+  "converges": true,
+  "donorReboundPx": 3.5,
+  "visualReboundPx": 6.93,
+  "reproducesDonorRebound": true,
+  "improved": true,
+  "pass": true
+}
