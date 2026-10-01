@@ -1216,6 +1216,7 @@
    * ------------------------------------------------------------------ */
   function hrPreTick(dt) {
     if (!M) return;
+    HR._magnetStepPendingDt = dt;
     AIL.bindClock(() => globalScope.matchClock || 0);
     AIL.hrScheduler.tick();
     for (const ct of M.combatants) {
@@ -1258,7 +1259,8 @@
   HR.stepMagnetWorld = function stepMagnetWorld(dt) {
     const magnet = globalScope.APEX_MAGNET;
     const arsenal = globalScope.APEX_ARSENAL;
-    if (!M || !magnet || !arsenal || !arsenal.state) return;
+    if (!M || !magnet || !arsenal || !arsenal.state
+      || !M.combatants.some((ct) => !ct.facade && ct.heroId === 'MAGNET')) return;
     const bodies = HR.pickupActors ? HR.pickupActors() : (globalScope.fighters || []);
     magnet.stepWorld(dt, {
       now: AIL.clock(), slots: arsenal.state.slots || [], bodies,
@@ -2205,6 +2207,21 @@
       };
       wrappedUpdate.__hrWrapped = true;
       globalScope.update = wrappedUpdate;
+    }
+
+    // The spawn transaction already runs at the exact canonical seam after
+    // fighter collisions and before pickup resolution. Wrap that seam locally
+    // instead of changing the shared Arsenal mode loop.
+    const spawn = globalScope.APEX_ARSENAL_SPAWN;
+    if (spawn && spawn.resolvePickups && !spawn.resolvePickups.__hrMagnetWrapped) {
+      const baseResolvePickups = spawn.resolvePickups;
+      spawn.resolvePickups = function resolvePickupsHR() {
+        const dt = HR._magnetStepPendingDt;
+        HR._magnetStepPendingDt = null;
+        if (Number.isFinite(dt) && dt > 0) HR.stepMagnetWorld(dt);
+        return baseResolvePickups.apply(this, arguments);
+      };
+      spawn.resolvePickups.__hrMagnetWrapped = true;
     }
 
     // Projectile pass replacement (keep base for parity delegation).
