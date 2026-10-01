@@ -170,8 +170,10 @@ export const MODE_DEFERRED_RUNTIMES = {
     ['/game/hero-rework/crystalGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalGameplayRuntime'],
     // FROST V1: gameplay truth module (same placement law as CRYSTAL).
     ['/game/hero-rework/frostGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostGameplayRuntime'],
-    // MAGNET V1: authoritative field/physics truth before thin executors.
+    // MAGNET V1: authoritative field/physics truth + canonical Gold rig before
+    // thin executors; its presentation adapter loads last below.
     ['/game/hero-rework/magnetGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetGameplayRuntime'],
+    ['/game/hero-rework/magnetGoldV1.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetGoldV1'],
     // HERO REWORK: mechanics + integration load AFTER the quest runtime so
     // they wrap its step/entry/exit hooks (never inside ARSENAL_HUB_RUNTIMES).
     ['/game/hero-rework/heroMechanicsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkMechanics'],
@@ -185,6 +187,8 @@ export const MODE_DEFERRED_RUNTIMES = {
     // FROST V1: Fusion Gold rig + presentation adapter (outermost draw chain).
     ['/game/hero-rework/frostGoldV1.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostGoldV1'],
     ['/game/hero-rework/frostPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostPresentationRuntime'],
+    // MAGNET V1 outermost actor/effect adapter (preserves prior post-world debts).
+    ['/game/hero-rework/magnetPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetPresentationRuntime'],
   ],
   select: SELECT_RUNTIMES,
   battle: BATTLE_RUNTIMES,

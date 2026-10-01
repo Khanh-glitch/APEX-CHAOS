@@ -368,7 +368,8 @@
     descriptor.params.speed *= CONSTANTS.PASSIVE_SPEED_MULT;
     if (standin && standin.__hr) standin.__hr.magnetBoosted = true;
     emit(ctx, 'MagnetPassiveEmission', {
-      hero: 'MAGNET', x: descriptor.params.x, y: descriptor.params.y,
+      hero: 'MAGNET', combatantIndex: ctx.combatant.idx,
+      x: descriptor.params.x, y: descriptor.params.y,
       angle: descriptor.params.angle, weapon: descriptor.params.weapon,
       speed: descriptor.params.speed,
     });
