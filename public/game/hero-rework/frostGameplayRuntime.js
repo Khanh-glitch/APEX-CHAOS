@@ -596,7 +596,21 @@ const FR = {
     // the x0.50 joins the shared min-law in tickCombatant (floor overlap
     // resolves to x0.50, never x0.30).
     st.cold[otherBody.id] = now + ((a2cfg && a2cfg.coldShockDuration) || 1.0);
-    busEmit('FrostColdShock', { body: otherBody.id, mult: (a2cfg && a2cfg.coldShockMult) || 0.50 });
+    // Presentation telemetry only: resolved centres define the physical
+    // Frost->opponent contact normal; relative velocity is a fallback for a
+    // degenerate centre overlap. No collision or status law reads this data.
+    const cdx = otherBody.x - myBody.x, cdy = otherBody.y - myBody.y;
+    const cd = Math.hypot(cdx, cdy) || 1;
+    const mv = myBody.__hrVel || { x: 0, y: 0 };
+    const ov = otherBody.__hrVel || { x: 0, y: 0 };
+    busEmit('FrostColdShock', {
+      body: otherBody.id, frostBody: myBody.id,
+      mult: (a2cfg && a2cfg.coldShockMult) || 0.50,
+      contactNormalX: cdx / cd, contactNormalY: cdy / cd,
+      relativeImpactX: (+mv.x || 0) - (+ov.x || 0),
+      relativeImpactY: (+mv.y || 0) - (+ov.y || 0),
+      frostX: myBody.x, frostY: myBody.y, bodyX: otherBody.x, bodyY: otherBody.y,
+    });
     // Exact holder steal. Carrier authority = the live APEX one-holder law:
     // the opponent's ANCHOR is the authoritative equipment carrier (the only
     // body the weapon runtime drives); the colliding body is never assumed

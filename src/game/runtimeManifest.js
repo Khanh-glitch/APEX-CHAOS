@@ -4,9 +4,9 @@
 // CP7: gameplay-ready barriers + start-of-match fail-cue fix — cache-bust
 // every runtime that changed in this pass (config/presentation/meta/
 // shellSelect/ladder).
-// Frost Slice 1 durable checkpoint: gameplay law, gun surface authority,
-// authored A1 lock, and Frost surface/floor-weapon layering.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261001-frost-v1-slice1-r1';
+// Frost final owner inspection: preserve accepted mechanics/motion/projectile;
+// restore Gold cavity light, deepen ambience, and harden A1 presentation admission.
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261001-frost-v1-motion-energy-reliability-r1';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by

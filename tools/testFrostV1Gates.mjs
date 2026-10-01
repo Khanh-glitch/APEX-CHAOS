@@ -70,7 +70,7 @@ try {
   const lock = JSON.parse(fs.readFileSync('tools/runtimeRevision.lock.json', 'utf8'));
   const m = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION = '([^']+)'/);
   gate('F00.4-revision-lineage',
-    !!m && m[1] === '20261001-frost-v1-slice1-r1' && lock.revision === m[1],
+    !!m && m[1] === '20261001-frost-v1-motion-energy-reliability-r1' && lock.revision === m[1],
     { revision: m && m[1], lock: lock.revision });
 } catch (e) { gate('F00.4-revision-lineage', false, String(e && e.message)); }
 
@@ -2482,10 +2482,10 @@ try {
 } catch (e) { gate('F12.19-A2-continuity', false, String(e && e.message)); }
 
 // F12.20 / F12.21 — one run, two laws. Frost casts A1 AND A2 on the far side
-// of the arena while the opponent stands still: (20) static arena regions
-// must stay BITWISE identical every frame (no camera drift, no global
-// transform/alpha leak, no full-screen overdraw) and (21) the opponent's
-// rendered size must not move at all (the owner saw it scaling large/small).
+// of the arena while the opponent stands still: (20) Slice 3's intentional
+// chamber-only mood grade must affect every quiet world patch, while canvas
+// state remains isolated; and (21) the opponent's rendered size must not move
+// at all (the owner previously saw it scaling large/small).
 let sceneRes = null, sceneErr = null;
 try {
   const o = stillPair(200, 700, 1, 820, 200);
@@ -2513,15 +2513,19 @@ try {
   const spread = (a) => Math.max(...a) - Math.min(...a);
   const nMed = med(ns);
   sceneRes = {
-    patchBreaks, drew,
+    patchBreaks, drew, ambience: P().ambienceState(), stateLeaks: P().inspect(o.a).stateLeaks,
     oppW: spread(ws), oppH: spread(hs),
     oppBaseW: b0.w, oppBaseH: b0.h, wNow: med(ws), hNow: med(hs),
     nMin: Math.min(...ns), nMax: Math.max(...ns), nMed,
   };
 } catch (e) { sceneErr = String(e && e.message); }
 gate('F12.20-a1a2-scene-isolation',
-  !sceneErr && sceneRes.patchBreaks === 0 && sceneRes.drew,
-  sceneErr || { patchBreaks: sceneRes.patchBreaks, frostDrew: sceneRes.drew });
+  // Slice 3 intentionally grades all three chamber patches while active;
+  // every patch must change on every frame (34*3), with no canvas-state leak.
+  !sceneErr && sceneRes.patchBreaks === 34 * 3 && sceneRes.drew
+    && sceneRes.ambience.level > 0 && sceneRes.stateLeaks === 0,
+  sceneErr || { patchBreaks: sceneRes.patchBreaks, frostDrew: sceneRes.drew,
+    ambience: sceneRes.ambience, stateLeaks: sceneRes.stateLeaks });
 gate('F12.21-opponent-scale-stability',
   !sceneErr && sceneRes.oppW <= 3 && sceneRes.oppH <= 3
   && Math.abs(sceneRes.wNow - sceneRes.oppBaseW) <= 3 && Math.abs(sceneRes.hNow - sceneRes.oppBaseH) <= 3
@@ -3072,9 +3076,9 @@ try {
     { gpNodes: gpHist.length, hydrated: i.a2Hydrated, early8: early, covered: all, bornTruth, grew });
 } catch (e) { gate('F13.11-deferred-a2-hydrates-history', false, String(e && e.message)); }
 
-// F13.12 — a deferred A1 must replay the lane gameplay actually built: real
-// release origin + committed direction + real front window + the ORIGINAL
-// lane expiry, even when Frost has walked far away before Gold admits it.
+// F13.12 — a deferred A1 must ALWAYS play its cast beat before the lane:
+// authoritative origin/direction/original expiry are retained, but no direct
+// historical floor replay may bypass anticipation/open/release.
 try {
   const o = stillPair(300, 500, 1, 1200, 900);
   const ct = HR.byCombatant(o.a);
@@ -3087,10 +3091,20 @@ try {
   const qd = P().inspect(o.a).queued === 1;
   for (let k = 0; k < 30; k++) { o.a.x += 14; T.step(2 / 60); }   // Frost leaves
   const farX = o.a.x;
-  let rel = false;
-  for (let k = 0; k < 60 && !rel; k++) { T.step(0.1); rel = P().inspect(o.a).a1.released; }
-  const i = P().inspect(o.a);
+  let admitted = false;
+  for (let k = 0; k < 60 && !admitted; k++) { T.step(0.05); admitted = P().inspect(o.a).mode === 'a1'; }
   const e = P().engineFor(o.a);
+  const atAdmission = P().inspect(o.a);
+  const noDirectLane = e.ice.nodes.filter((n) => n.kind === 'lane').length === 0
+    && !atAdmission.a1.released;
+  T.step(0.12);
+  const loaded = P().inspect(o.a);
+  const beatLoaded = loaded.mode === 'a1' && !loaded.a1.released
+    && loaded.choreography.jawGoal >= 14
+    && e.ice.nodes.filter((n) => n.kind === 'lane').length === 0;
+  let rel = false;
+  for (let k = 0; k < 20 && !rel; k++) { T.step(0.025); rel = P().inspect(o.a).a1.released; }
+  const i = P().inspect(o.a);
   const off = e.t - AIL.clock();
   const nodes = e.ice.nodes.filter((n) => n.kind === 'lane');
   const dOrigin = Math.hypot(i.a1.ox - lane.ox, i.a1.oy - lane.oy);        // vs gameplay truth
@@ -3100,14 +3114,14 @@ try {
   const expiry = decays.length ? Math.min(...decays) : NaN;
   const expiryTruth = Math.abs(expiry - (lane.expireAt + off)) < 0.2;       // gameplay lane expiry
   const notRestarted = expiry < e.t + (ct.skills.A1.cfg.floorLifetime || 4.5) - 1.0; // not a fresh floor
-  const bornMin = Math.min(...nodes.map((n) => n.born)), bornMax = Math.max(...nodes.map((n) => n.born));
-  const frontTruth = Math.abs(bornMin - (lane.frontStartAt + off)) < 0.15 &&
-    Math.abs(bornMax - (lane.frontDoneAt + off)) < 0.15;
+  const bornAfterBeat = nodes.length > 0 && Math.min(...nodes.map((n) => n.born)) >= atAdmission.t - 0.05;
   gate('F13.12-deferred-a1-historical-origin',
-    qd && rel && i.a1Replays === 1 && nodes.length >= 40 && dOrigin < 45 && dFrost > 300 &&
-    angOk && expiryTruth && notRestarted && frontTruth,
-    { originGap: +dOrigin.toFixed(1), frostGap: +dFrost.toFixed(1), frostX: Math.round(farX),
-      ang: i.a1.ang, expiryTruth, notRestarted, frontTruth, nodes: nodes.length });
+    qd && admitted && noDirectLane && beatLoaded && rel && i.a1Replays === 1
+    && nodes.length >= 40 && dOrigin < 45 && dFrost > 300
+    && angOk && expiryTruth && notRestarted && bornAfterBeat,
+    { admitted, noDirectLane, beatLoaded, originGap: +dOrigin.toFixed(1),
+      frostGap: +dFrost.toFixed(1), frostX: Math.round(farX), ang: i.a1.ang,
+      expiryTruth, notRestarted, bornAfterBeat, nodes: nodes.length });
 } catch (e) { gate('F13.12-deferred-a1-historical-origin', false, String(e && e.message)); }
 
 
@@ -3248,6 +3262,213 @@ try {
   const candidates = spawnSrc.indexOf('for (const f of actors)', convert);
   gate('F15.3-pickup-transaction-converts-first', convert >= 0 && candidates > convert, { convert, candidates });
 } catch (e) { gate('F15.3-pickup-transaction-converts-first', false, String(e && e.message)); }
+
+/* ================= F16 — Slice 2 physical choreography ================= */
+try {
+  const o = stillPair(300, 500, 1, 820, 820);
+  P().setReactionParticlesEnabled(false);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(0.08);
+  const anticipate = P().inspect(o.a);
+  T.step(0.12);
+  const open = P().inspect(o.a);
+  T.step(0.06);
+  const release = P().inspect(o.a);
+  T.step(0.28);
+  const recovery = P().inspect(o.a);
+  T.step(0.29);
+  const resumed = P().inspect(o.a);
+  P().setReactionParticlesEnabled(true);
+  gate('F16.1-a1-authored-visible-beat',
+    anticipate.mode === 'a1' && anticipate.choreography.jawGoal >= 9
+    && open.choreography.jawGoal >= 39 && open.choreography.eye > anticipate.choreography.eye
+    && release.a1.released && release.choreography.vent > 0.4
+    && recovery.choreography.jawGoal < open.choreography.jawGoal
+    && resumed.mode === 'free',
+    { anticipate: anticipate.choreography, open: open.choreography,
+      release: release.choreography, recovery: recovery.choreography, resumed: resumed.mode });
+} catch (e) {
+  try { P().setReactionParticlesEnabled(true); } catch (_) {}
+  gate('F16.1-a1-authored-visible-beat', false, String(e && e.message));
+}
+
+try {
+  const o = stillPair(300, 500, 1, 820, 820);
+  P().setReactionParticlesEnabled(false);
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.11);
+  const load = P().inspect(o.a), e = P().engineFor(o.a);
+  const loadGoals = { eye: e.eye.goal, crest: e.crestLift.goal, sy: e.sy.goal };
+  const charged = loadGoals.eye >= 2.7 && loadGoals.crest >= 11 && loadGoals.sy < 0.96;
+  T.step(0.08);
+  const launch = P().inspect(o.a);
+  P().setReactionParticlesEnabled(true);
+  gate('F16.2-a2-load-convert-launch', load.mode === 'a2' && charged && !load.a2.kicked && launch.a2.kicked,
+    { load: { kicked: load.a2.kicked, ...loadGoals }, launch: launch.a2 });
+} catch (e) {
+  try { P().setReactionParticlesEnabled(true); } catch (_) {}
+  gate('F16.2-a2-load-convert-launch', false, String(e && e.message));
+}
+
+try {
+  const o = stillPair(300, 500, 1, 800, 500);
+  T.step(2 / 60); // install production event/wall hooks
+  P().setReactionParticlesEnabled(false); // required silhouette-only diagnostic
+  o.a.takeDamage(5, o.b, 'arsenal-PISTOL');
+  T.step(1 / 60);
+  const bullet = P().inspect(o.a).reactions;
+  o.a.x = 924; o.a.y = 300; o.a.baseSpeed = 520; o.a.setDir(1, 0);
+  o.b.x = 200; o.b.y = 800;
+  T.step(0.08);
+  const wall = P().inspect(o.a).reactions;
+  o.a.baseSpeed = 0; o.b.baseSpeed = 0;
+  o.a.x = 490; o.a.y = 500; o.b.x = 510; o.b.y = 500;
+  o.a.setDir(1, 0); o.b.setDir(-1, 0);
+  T.step(2 / 60);
+  const body = P().inspect(o.a).reactions;
+  const mag = (r) => Math.hypot(r.rootX, r.rootY) + Math.hypot(r.headLagX, r.headLagY);
+  const primaryReadable = mag(bullet) > 2.5 && mag(wall) > mag(bullet) && mag(body) > mag(bullet);
+  const particlesOff = bullet.particlesEnabled === false && wall.particlesEnabled === false && body.particlesEnabled === false;
+  P().setReactionParticlesEnabled(true);
+  gate('F16.3-distinct-live-impact-hooks',
+    bullet.bulletCount === 1 && bullet.lastNormal.kind === 'bullet'
+    && wall.wallCount >= 1 && wall.lastNormal.kind === 'wall'
+    && body.opponentCount >= 1 && body.lastNormal.kind === 'opponent'
+    && primaryReadable && particlesOff,
+    { bullet, wall, body, primaryReadable, particlesOff });
+} catch (e) {
+  try { P().setReactionParticlesEnabled(true); } catch (_) {}
+  gate('F16.3-distinct-live-impact-hooks', false, String(e && e.message));
+}
+
+/* ================= F17 — Slice 3 energy / ambience / contact polish === */
+try {
+  const o = stillPair(300, 500, 1, 820, 820);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(0.08);
+  const anticipate = P().inspect(o.a).choreography;
+  T.step(0.12);
+  const charged = P().inspect(o.a).choreography;
+  T.step(0.06);
+  const peak = P().inspect(o.a).choreography;
+  const goldSrc = fs.readFileSync('public/game/hero-rework/frostGoldV1.js', 'utf8');
+  const presSrc = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js', 'utf8');
+  const layeredInside = goldSrc.indexOf('this.drawVentGlow(ctx, L("cavity")')
+    < goldSrc.indexOf('// jaw / vent lower plate')
+    && goldSrc.includes('internal cyan radial illumination')
+    && goldSrc.includes('createRadialGradient(vx, vy, 0, vx, vy, 170 * k)')
+    && !goldSrc.includes('Broad faceted cyan core')
+    && !presSrc.includes('drawA1MouthCharge');
+  gate('F17.1-a1-cavity-charge-ramp',
+    anticipate.mouthCharge < 0.1 && charged.mouthCharge > 0.8 && peak.mouthCharge >= charged.mouthCharge
+    && charged.jawGoal === 66 && layeredInside,
+    { anticipate: anticipate.mouthCharge, charged: charged.mouthCharge, peak: peak.mouthCharge,
+      jawGoal: charged.jawGoal, layeredInside });
+} catch (e) { gate('F17.1-a1-cavity-charge-ramp', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(260, 500, 1, 850, 850);
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(0.05);
+  const attack = P().ambienceState();
+  // A concurrent qualifying activation refreshes the shared scalar; it never
+  // adds another darkness layer or exceeds one.
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.08);
+  const refreshed = P().ambienceState();
+  T.step(3.6);
+  const thawing = P().ambienceState();
+  T.step(3.0);
+  const baseline = P().ambienceState();
+  // Immediate death cleanup is independently checked on a fresh lifecycle.
+  const d = stillPair(260, 500, 1, 850, 850);
+  HR.pressAbility(d.a, 'A2'); T.step(0.05);
+  d.a.hp = 0; T.step(1 / 60);
+  const dead = P().ambienceState();
+  const questSrc = fs.readFileSync('public/game/modes/arsenalQuestRuntime.js', 'utf8');
+  const presSrc = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js', 'utf8');
+  const moodHook = questSrc.indexOf('renderArenaAmbience(c)');
+  const iceHook = questSrc.indexOf('renderSurfaceUnderWeapons(c)');
+  const slots = questSrc.indexOf('SPAWN.drawSlots(c)');
+  gate('F17.2-shared-ambience-lifecycle-cleanup',
+    attack.level >= 0.8 && refreshed.level <= 1 && refreshed.target <= 1
+    && thawing.level > 0 && thawing.level < refreshed.level
+    && baseline.level === 0 && baseline.target === 0 && dead.level === 0
+    && presSrc.includes('(0.70 * ambience.level)')
+    && moodHook >= 0 && moodHook < iceHook && iceHook < slots,
+    { attack, refreshed, thawing, baseline, dead, order: [moodHook, iceHook, slots] });
+} catch (e) { gate('F17.2-shared-ambience-lifecycle-cleanup', false, String(e && e.message)); }
+
+try {
+  const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 0]];
+  const rows = [];
+  for (let i = 0; i < dirs.length; i++) {
+    const [dx, dy] = dirs[i];
+    const o = stillPair(120, 120, 1, 850, 850);
+    HR.pressAbility(o.a, 'A2'); T.step(0.2);
+    o.a.baseSpeed = 0; o.b.baseSpeed = 0;
+    o.b.x = 500; o.b.y = 500;
+    o.a.x = 500 + dx * 130; o.a.y = 500 + dy * 130;
+    // Final case deliberately faces away from the physical contact side,
+    // emulating a redirected/bounced approach. Facing must be irrelevant.
+    o.a.setDir(i === 4 ? -dx : dx, i === 4 ? -dy : dy);
+    T.step(2 / 60);
+    const ins = P().inspect(o.a), e = P().engineFor(o.a);
+    const cs = e.crusts.slice(0, 5);
+    const sx = cs.reduce((n, c) => n + Math.cos(c.ang), 0);
+    const sy = cs.reduce((n, c) => n + Math.sin(c.ang), 0);
+    const sd = Math.hypot(sx, sy) || 1;
+    const normalDot = ins.reactions.lastNormal
+      ? ins.reactions.lastNormal.x * dx + ins.reactions.lastNormal.y * dy : -1;
+    rows.push({ dir: [dx, dy], facingRedirected: i === 4, crusts: cs.length,
+      normalDot: +normalDot.toFixed(3), crustDot: +((sx / sd) * dx + (sy / sd) * dy).toFixed(3),
+      source: ins.reactions.lastNormal && ins.reactions.lastNormal.snowSideSource });
+  }
+  gate('F17.3-opponent-snow-physical-side',
+    rows.every((r) => r.crusts === 5 && r.normalDot > 0.9 && r.crustDot > 0.85 && r.source === 'contact-normal'), rows);
+} catch (e) { gate('F17.3-opponent-snow-physical-side', false, String(e && e.message)); }
+
+try {
+  const o = stillPair(300, 500, 1, 820, 820);
+  const e = P().engineFor(o.a), ctx = H.gameCanvasReal.getContext('2d');
+  const spy = spyMethod(ctx, 'lineTo');
+  e.drawBulletFrost(ctx, 500, 500, 0, 1);
+  const minX = Math.min(...spy.args.map((a) => +a[0] || 0));
+  spy.release();
+  const src = fs.readFileSync('public/game/hero-rework/frostGoldV1.js', 'utf8');
+  gate('F17.4-frozen-bullet-energy-identity',
+    minX <= -43 && src.includes('#42ddfa') && src.includes('Two deterministic ice glints/flecks'),
+    { minTrailX: minX, cyanCore: src.includes('#42ddfa'), deterministicGlints: true });
+} catch (e) { gate('F17.4-frozen-bullet-energy-identity', false, String(e && e.message)); }
+
+try {
+  // One coarse frame crosses the entire 0.25 pending window. Presentation
+  // must recover from lane history, begin at anticipation, and withhold the
+  // visible lane until its own release beat.
+  const o = stillPair(300, 500, 1, 850, 850);
+  const realPresentationTick = P().tick;
+  P().tick = function skippedPresentationFrame() {};
+  win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+  T.step(0.30);
+  P().tick = realPresentationTick;
+  T.step(1 / 60);
+  const recovered = P().inspect(o.a), e = P().engineFor(o.a);
+  const noImmediateFloor = recovered.mode === 'a1' && !recovered.a1.released
+    && recovered.choreography.lateRecoveries === 1
+    && e.ice.nodes.filter((n) => n.kind === 'lane').length === 0;
+  T.step(0.12);
+  const loaded = P().inspect(o.a);
+  T.step(0.15);
+  const released = P().inspect(o.a);
+  gate('F17.5-a1-hitch-never-skips-cast-beat',
+    noImmediateFloor && loaded.mode === 'a1' && !loaded.a1.released
+    && loaded.choreography.jawGoal >= 14
+    && released.a1.released && e.ice.nodes.some((n) => n.kind === 'lane'),
+    { recovered: { mode: recovered.mode, released: recovered.a1.released,
+      lateRecoveries: recovered.choreography.lateRecoveries },
+      loaded: { elapsed: loaded.choreography.elapsed, jawGoal: loaded.choreography.jawGoal },
+      release: { released: released.a1.released, lanes: e.ice.nodes.filter((n) => n.kind === 'lane').length } });
+} catch (e) { gate('F17.5-a1-hitch-never-skips-cast-beat', false, String(e && e.message)); }
 
 /* ================= summary ============================================ */
 const names = Object.keys(report.gates);

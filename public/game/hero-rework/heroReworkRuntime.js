@@ -918,7 +918,8 @@
         const sourceCt = combatantOfBody(packet.source);
         onRealized({
           victimBody: this, victimCombatant: ct, amount: dealt,
-          creditedTo: sourceCt || null, weaponId,
+          creditedTo: sourceCt || null, sourceBody: packet.source || null,
+          weaponId, label,
         });
         // Immediate anchor promotion when the anchor body died (SLIME law:
         // the combatant lives while any body lives; the array keeps exactly
@@ -938,6 +939,13 @@
       victim: ev.victimBody.id, amount: ev.amount,
       creditedTo: ev.creditedTo ? ev.creditedTo.heroId : null,
       weaponId: ev.weaponId,
+      // Presentation-only impact provenance. Existing damage law is complete
+      // before emission; consumers may read the real source point/direction
+      // without changing damage, push, or collision resolution.
+      sourceBody: ev.sourceBody && ev.sourceBody.id,
+      sourceX: ev.sourceBody && ev.sourceBody.x,
+      sourceY: ev.sourceBody && ev.sourceBody.y,
+      label: ev.label || null,
     });
     for (const ct of M.combatants) eachExecutor(ct, (exec, ctx) => {
       if (exec.onRealizedDamage) exec.onRealizedDamage(ctx, ev);
@@ -1467,6 +1475,14 @@
           if (b.dir && typeof globalScope.reflectDir === 'function' && (b.dir.x * hit.nx + b.dir.y * hit.ny) < 0) {
             b.dir = globalScope.reflectDir(b.dir, hit.nx, hit.ny);
           }
+          // Presentation telemetry after authoritative swept resolution. This
+          // exposes the real capsule normal/contact point without adding any
+          // force, damage, or alternate collision response.
+          AIL.bus.emit('WorldWallCollision', {
+            body: b.id, nx: hit.nx, ny: hit.ny,
+            x: b.x - hit.nx * (b.radius || 75),
+            y: b.y - hit.ny * (b.radius || 75),
+          });
         }
       }
       b.__hrWallPos = { x: b.x, y: b.y };

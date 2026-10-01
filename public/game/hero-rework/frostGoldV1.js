@@ -1176,6 +1176,17 @@ class FrostEngine {
         this.eye = new Spring(1, 6, 0.65);
         this.crack = new Spring(1, 5, 0.6);
         this.vent = new Spring(0, 7, 0.7);
+        // Production impact articulation. The face/head reacts first through
+        // lagX/lagY; this lower-frequency rear mass follows a fraction later,
+        // keeping Frost connected as one heavy ice body rather than plates.
+        this.rearX = new Spring(0, 3.6, 0.42);
+        this.rearY = new Spring(0, 3.6, 0.42);
+        // Whole connected silhouette displacement. Large enough to read at
+        // arena scale; it never alters the gameplay fighter/root position.
+        this.rootX = new Spring(0, 5.5, 0.42);
+        this.rootY = new Spring(0, 5.5, 0.42);
+        this.impactStress = new Spring(0, 8.5, 0.5);
+        this.reactionParticlesEnabled = true;
         this.hunt = new Crit(0);
         this.huntGoal = 0;
         this.idleNext = 2.2;
@@ -1287,7 +1298,8 @@ class FrostEngine {
         const bk = this.bodyK || 1;
         const vx = (M.vent[0] - M.center[0]) * K * this.sx.x * bk;
         const vy = (M.vent[1] - M.center[1]) * K * this.sy.x * bk;
-        return { x: this.fx + this.lagX.x * 0.8 * bk + vx, y: this.fy + this.lagY.x * 0.8 * bk + vy };
+        return { x: this.fx + this.rootX.x + this.lagX.x * 0.8 * bk + vx,
+            y: this.fy + this.rootY.x + this.lagY.x * 0.8 * bk + vy };
     }
     buildLane(t0, len, travel) {
         const A = this.a1;
@@ -1583,15 +1595,23 @@ class FrostEngine {
         const A=this.a2; A.overlap=true; A.contactT=this.t; A.impactUntil=this.t+0.18;
         // Gameplay bounce/separation has already been resolved by resolveBodyCollision(),
         // exactly like APEX handleCollisions(). Keep only the approved Gold impact response here.
-        this.lagX.kick(nx*220); this.lagY.kick(ny*220);
-        if(Math.abs(nx)>Math.abs(ny)){this.sx.kick(-2.2);this.sy.kick(1.6);}else{this.sy.kick(-2.2);this.sx.kick(1.6);}
+        this.rootX.kick(nx*350); this.rootY.kick(ny*350);
+        this.lagX.kick(nx*310); this.lagY.kick(ny*310);
+        this.rearX.kick(nx*145); this.rearY.kick(ny*145);
+        this.impactStress.kick(34); this.crack.kick(10);
+        if(Math.abs(nx)>Math.abs(ny)){this.sx.kick(-4.2);this.sy.kick(2.7);}else{this.sy.kick(-4.2);this.sx.kick(2.7);}
         // Cold Shock: zero damage, stronger non-stacking slow for exactly 1.0 s.
         this.coldShockUntil=Math.max(this.coldShockUntil,this.t+FROST_TUNE.COLD_SHOCK_TIME);
-        const ang=Math.atan2(-ny,-nx);
+        // nx/ny point from the opponent toward Frost (the physical impact
+        // side on the opponent). Anchor snow on that same side; the previous
+        // negation mirrored every contact decal to the far rim.
+        const ang=Math.atan2(ny,nx);
         for(let i=0;i<5;i++)this.crusts.push({ang:ang+(i-2)*0.28+rnd(-0.08,0.08),size:rnd(5,8),born:this.t+i*0.02,life:2.6,seed:rnd(0,99)});
-        for(let i=0;i<4;i++){const o=(i-1.5)*0.55,a=Math.atan2(ny,nx)+Math.PI+o*1.6;spawnLobe(px+Math.cos(a)*6,py+Math.sin(a)*6,a,8,6,0.5,i*0.015,Math.cos(a)*40,Math.sin(a)*40);}
-        chipCluster(px,py,Math.atan2(ny,nx)+Math.PI*0.5*(rnd(0,1)<0.5?1:-1)*0.6,0.7,6,290,6.5);
-        const patch=this.ice.add(px,py+8,Math.atan2(ny,nx),26,24,this.t,"patch",{lockDur:0.35,jag:0.28,gameplay:false}); patch.decayAt=this.t+2.6;
+        if (this.reactionParticlesEnabled) {
+            for(let i=0;i<3;i++){const o=(i-1)*0.58,a=Math.atan2(ny,nx)+Math.PI+o*1.5;spawnLobe(px+Math.cos(a)*6,py+Math.sin(a)*6,a,7,5,0.42,i*0.016,Math.cos(a)*34,Math.sin(a)*34);}
+            chipCluster(px,py,Math.atan2(ny,nx)+Math.PI*0.5*(rnd(0,1)<0.5?1:-1)*0.6,0.52,4,235,5);
+            const patch=this.ice.add(px,py+8,Math.atan2(ny,nx),26,24,this.t,"patch",{lockDur:0.35,jag:0.28,gameplay:false}); patch.decayAt=this.t+2.6;
+        }
         // Same-object ownership transfer. No equip(), no fresh holder, no state reset.
         const g=proxy;
         if(g&&!this.gunSlot){
@@ -1599,6 +1619,55 @@ class FrostEngine {
             g.owner='transfer'; g.tx0=g.x; g.ty0=g.y; g.tStart=this.t; g.tDur=0.44; g.spin=(rnd(0,1)<0.5?-1:1)*TAU*1.25;
             g.frozenState='frozen'; g.frozenPersistent=true; g.frostStart=this.t; g.snapAt=this.t+0.3; g.thawAt=Infinity; g.thawEndAt=Infinity;
             spawnChip(g.x,g.y,Math.atan2(ny,nx),120,3.5,{vz:90});
+        }
+    }
+    // Presentation-only physical response, fed by real production collision
+    // normals/impact sources. It changes no position, direction, damage, or
+    // gameplay state; all connected-part springs are advanced by production's
+    // canonical fixed 1/120 rig loop.
+    reactImpact(kind, nx, ny, px, py, strength = 1) {
+        const d = Math.hypot(nx, ny) || 1;
+        nx /= d; ny /= d;
+        const F = clamp(strength, 0.45, 1.8);
+        // Silhouette motion is intentionally dominant over debris. Bullet is
+        // shortest; wall has the hardest planar compression; body contact has
+        // a rounder connected-mass wave.
+        const headKick = kind === "bullet" ? 235 : kind === "wall" ? 330 : 285;
+        const rootKick = kind === "bullet" ? 285 : kind === "wall" ? 430 : 350;
+        const rearKick = kind === "bullet" ? 70 : kind === "wall" ? 175 : 145;
+        this.rootX.kick(nx * rootKick * F);
+        this.rootY.kick(ny * rootKick * F);
+        this.lagX.kick(nx * headKick * F);
+        this.lagY.kick(ny * headKick * F);
+        this.rearX.kick(nx * rearKick * F);
+        this.rearY.kick(ny * rearKick * F);
+        this.tilt.kick((nx * 0.35 - ny * 0.55) * (kind === "bullet" ? 1.1 : kind === "wall" ? 2.0 : 1.6) * F);
+        const squash = kind === "bullet" ? 2.3 : kind === "wall" ? 5.2 : 4.1;
+        if (Math.abs(nx) >= Math.abs(ny)) {
+            this.sx.kick(-squash * F);
+            this.sy.kick(squash * 0.62 * F);
+        } else {
+            this.sy.kick(-squash * F);
+            this.sx.kick(squash * 0.62 * F);
+        }
+        this.impactStress.kick((kind === "bullet" ? 20 : 34) * F);
+        this.crack.kick((kind === "bullet" ? 5.5 : 10) * F);
+        if (!this.reactionParticlesEnabled) return;
+        const out = Math.atan2(ny, nx);
+        if (kind === "bullet") {
+            // Debris is deliberately subordinate to the silhouette jerk.
+            chipCluster(px, py, out, 0.2, 1, 130 + 30 * F, 2.8);
+        } else if (kind === "wall") {
+            chipCluster(px, py, out, 0.38, 3, 210 + 40 * F, 4.5);
+            for (let i = -1; i <= 0; i++)
+                spawnShard(px, py, out + i * 0.38, 7 + (i + 1) * 2, 2.4, 0.38, (i + 1) * 0.014);
+        } else {
+            chipCluster(px, py, out, 0.48, 4, 225 + 45 * F, 4.8);
+            for (let i = -1; i <= 1; i++) {
+                const a = out + i * 0.27;
+                spawnLobe(px + Math.cos(a) * 4, py + Math.sin(a) * 4, a, 6, 4.3, 0.34, (i + 1) * 0.014,
+                    Math.cos(a) * 30, Math.sin(a) * 30);
+            }
         }
     }
     endA2() {
@@ -1968,19 +2037,50 @@ class FrostEngine {
         const pxW = M.w * K * this.scale * this.dpr * Math.max(this.sx.x, 1);
         const L = (k) => pick(this.mips[k], pxW);
         const h = this.hunt.x;
+        // Ability energy is presentation-only and derived from authored mode
+        // clocks/springs. Idle remains at zero; A1 peaks at the exact release
+        // stamp and A2 intensifies through load/launch.
+        const a1Energy = this.mode === "a1"
+            ? (this.modeT <= FROST_TUNE.A1_CAST
+                ? smooth(0.055, 0.22, this.modeT)
+                : 1 - smooth(0.31, 0.46, this.modeT)) : 0;
+        const skillEnergy = clamp(Math.max(a1Energy, h * 0.92,
+            this.mode === "a2" ? (this.eye.x - 1) * 0.42 : 0), 0, 1);
         const breathe = 1 + 0.0035 * Math.sin(this.t * 1.25);
         const lx = this.lagX.x, ly = this.lagY.x;
         ctx.save();
-        ctx.translate(this.fx, this.fy);
+        ctx.translate(this.fx + this.rootX.x, this.fy + this.rootY.x);
         ctx.rotate(this.tilt.x);
         ctx.scale(K * this.sx.x, K * this.sy.x * breathe);
         ctx.translate(-M.center[0], -M.center[1]);
         const iK = 1 / K;
         const draw = (k, ox = 0, oy = 0) => ctx.drawImage(L(k), ox, oy, M.w, M.h);
-        // outer plate mass lags the core
-        const bx = lx * 0.55 * iK, by = ly * 0.55 * iK;
+        // The connected rear ice mass follows head recoil a fraction later.
+        // impactStress adds a tiny brittle flex without separating child art.
+        const stressFlex = clamp(this.impactStress.x, 0, 1.5);
+        const bx = (lx * 0.38 + this.rearX.x) * iK;
+        const by = (ly * 0.38 + this.rearY.x) * iK;
+        ctx.save();
+        ctx.translate(M.center[0], M.center[1]);
+        ctx.scale(1 - stressFlex * 0.008, 1 + stressFlex * 0.006);
+        ctx.translate(-M.center[0], -M.center[1]);
         draw("base", bx, by);
-        // vent glow on hidden connector cavity (masked by the real cavity shape)
+        ctx.restore();
+        // Source-art crack energy inside the ice: a sharp internal conductor,
+        // not an added particle cloud. It is quiet at idle and pulses harder
+        // during A1/A2 while remaining behind the facial assembly.
+        if (skillEnergy > 0.025) {
+            ctx.save();
+            ctx.translate(bx, by);
+            ctx.globalCompositeOperation = "lighter";
+            ctx.globalAlpha = 0.38 + skillEnergy * 0.62;
+            draw("crack");
+            ctx.globalAlpha = 1;
+            ctx.globalCompositeOperation = "source-over";
+            ctx.restore();
+        }
+        // Vent energy is clipped to the canonical cavity alpha before the jaw
+        // is drawn, so the broad charge physically lives inside the opening.
         const vI = Math.max(this.vent.x, sat(this.jaw.x / 30) * 0.6, h * 0.25);
         if (vI > 0.02)
             this.drawVentGlow(ctx, L("cavity"), vI, bx, by);
@@ -1995,23 +2095,70 @@ class FrostEngine {
         ctx.rotate(this.crestRot.x - this.tilt.x * 0.3);
         ctx.translate(-M.crestPivot[0], -M.crestPivot[1]);
         draw("crest");
-        if (this.crack.x > 1.02) {
+        const crackLight = Math.max(this.crack.x - 1, this.impactStress.x * 0.9);
+        if (crackLight > 0.02) {
             ctx.globalCompositeOperation = "lighter";
-            ctx.globalAlpha = clamp((this.crack.x - 1) * 0.75, 0, 1);
+            ctx.globalAlpha = clamp(crackLight * 0.75, 0, 1);
             draw("crack");
             ctx.globalAlpha = 1;
             ctx.globalCompositeOperation = "source-over";
         }
         ctx.restore();
-        // eyes (under brows): intensity + sharpening
+        // Eyes stay under the brows, but gain a crisp white-cyan facet and a
+        // stronger source-art pass during skills. No blur/filter is used.
         if (this.eye.x > 1.02) {
+            const eyeI = clamp((this.eye.x - 1) * 1.08 + skillEnergy * 0.28, 0, 1);
             ctx.save();
             ctx.translate(bx, by);
             ctx.globalCompositeOperation = "lighter";
-            ctx.globalAlpha = clamp((this.eye.x - 1) * 0.8, 0, 1);
+            ctx.globalAlpha = eyeI;
             draw("eyes");
+            for (const [ep, sgn] of [[M.eyeL, -1], [M.eyeR, 1]]) {
+                const ew = 12 + 13 * eyeI, eh = 3.5 + 3.5 * eyeI;
+                ctx.beginPath();
+                ctx.moveTo(ep[0] - ew, ep[1]);
+                ctx.lineTo(ep[0] - sgn * 2, ep[1] - eh);
+                ctx.lineTo(ep[0] + ew, ep[1]);
+                ctx.lineTo(ep[0] + sgn * 2, ep[1] + eh);
+                ctx.closePath();
+                ctx.fillStyle = `rgba(218,255,255,${0.62 + eyeI * 0.38})`;
+                ctx.fill();
+            }
             ctx.globalAlpha = 1;
             ctx.globalCompositeOperation = "source-over";
+            ctx.restore();
+        }
+        // Sharp head-energy halos survive the deep arena grade without blur.
+        // They are ability-gated and centred on the authored head assembly;
+        // brows still render above them so facial attachment stays authoritative.
+        if (skillEnergy > 0.04) {
+            ctx.save();
+            ctx.translate(bx, by);
+            ctx.globalCompositeOperation = "lighter";
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.ellipse(M.center[0], M.eyeL[1] - 18, 178, 94, -0.08,
+                Math.PI * 1.08, Math.PI * 1.92);
+            ctx.strokeStyle = `rgba(32,226,255,${0.48 + skillEnergy * 0.48})`;
+            ctx.lineWidth = 5.5 + skillEnergy * 3;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.ellipse(M.center[0], M.eyeL[1] - 31, 132, 67, 0.09,
+                Math.PI * 1.12, Math.PI * 1.88);
+            ctx.strokeStyle = `rgba(225,255,255,${0.58 + skillEnergy * 0.42})`;
+            ctx.lineWidth = 2.8 + skillEnergy * 2;
+            ctx.stroke();
+            // Crownward energy ticks keep the halo faceted/cold rather than soft.
+            for (const x of [-82, -42, 0, 44, 84]) {
+                const y = M.eyeL[1] - 96 - (1 - Math.abs(x) / 100) * 13;
+                ctx.beginPath();
+                ctx.moveTo(M.center[0] + x - 6, y + 8);
+                ctx.lineTo(M.center[0] + x, y - 5 - skillEnergy * 7);
+                ctx.lineTo(M.center[0] + x + 6, y + 8);
+                ctx.strokeStyle = `rgba(77,225,255,${0.52 + skillEnergy * 0.42})`;
+                ctx.lineWidth = 3.2;
+                ctx.stroke();
+            }
             ctx.restore();
         }
         // brow plates: inner-end pivots, asymmetric springs, compensate against lag
@@ -2025,23 +2172,37 @@ class FrostEngine {
         };
         brow("browL", M.browLPivot, this.bLiftL.x, this.bRotL.x);
         brow("browR", M.browRPivot, this.bLiftR.x, this.bRotR.x);
-        // hunt eye flares: tapered filled slivers (read at battle scale)
-        const fl = Math.max(h, clamp((this.eye.x - 1.4) * 1.2, 0, 1) * 0.6);
+        // Eye-connected energy wakes: longer, faceted, and rooted directly at
+        // each canonical eye pivot. The short secondary sliver makes motion
+        // direction readable without becoming an arbitrary full-body trail.
+        const fl = Math.max(h, clamp((this.eye.x - 1.28) * 1.28, 0, 1) * 0.88, skillEnergy * 0.72);
         if (fl > 0.03) {
             ctx.save();
             ctx.translate(bx, by);
             ctx.globalCompositeOperation = "lighter";
             for (const [e, sgn] of [[M.eyeL, -1], [M.eyeR, 1]]) {
-                const len = 70 * fl, w = 9 * fl;
+                const len = 176 * fl, w = 13 * fl;
                 ctx.beginPath();
-                ctx.moveTo(e[0] - sgn * 22, e[1] + 4);
-                ctx.quadraticCurveTo(e[0] + sgn * len * 0.4, e[1] - w * 1.4, e[0] + sgn * len, e[1] - 16 * fl);
-                ctx.quadraticCurveTo(e[0] + sgn * len * 0.4, e[1] + w * 0.4, e[0] - sgn * 22, e[1] + 4);
-                ctx.fillStyle = `rgba(70,215,245,${0.75 * fl})`;
+                ctx.moveTo(e[0] - sgn * 9, e[1] + 2);
+                ctx.lineTo(e[0] + sgn * len * 0.46, e[1] - w * 1.25);
+                ctx.lineTo(e[0] + sgn * len, e[1] - 18 * fl);
+                ctx.lineTo(e[0] + sgn * len * 0.35, e[1] + w * 0.34);
+                ctx.closePath();
+                ctx.fillStyle = `rgba(42,210,248,${0.38 + 0.5 * fl})`;
                 ctx.fill();
                 ctx.beginPath();
-                ctx.ellipse(e[0], e[1], 26 * fl + 6, 7 * fl + 2, sgn * -0.25, 0, TAU);
-                ctx.fillStyle = `rgba(190,255,255,${0.55 * fl})`;
+                ctx.moveTo(e[0], e[1]);
+                ctx.lineTo(e[0] + sgn * len * 0.68, e[1] - 10 * fl);
+                ctx.lineTo(e[0] + sgn * len * 0.22, e[1] + 2.2 * fl);
+                ctx.closePath();
+                ctx.fillStyle = `rgba(223,255,255,${0.48 + 0.48 * fl})`;
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(e[0] - sgn * 4, e[1] + 4 * fl);
+                ctx.lineTo(e[0] + sgn * len * 0.48, e[1] + 7 * fl);
+                ctx.lineTo(e[0] + sgn * len * 0.16, e[1] + 1.5 * fl);
+                ctx.closePath();
+                ctx.fillStyle = `rgba(75,205,245,${0.22 + 0.34 * fl})`;
                 ctx.fill();
             }
             ctx.restore();
@@ -2056,22 +2217,30 @@ class FrostEngine {
         if (vc.width !== cav.width || vc.height !== cav.height) return;
         const c = this.ventCtx || vc.getContext("2d");
         const k = cav.width / M.w;
+        const T = this.mode === "a1" ? this.modeT : -1;
+        const castCharge = T >= 0
+            ? (T <= FROST_TUNE.A1_CAST ? smooth(0.055, 0.22, T) : 1 - smooth(0.30, 0.42, T))
+            : 0;
+        // Preserve the Gold reference language: authored cavity alpha mask,
+        // internal cyan radial illumination, then its white cold-core slit.
+        // No dark bed, polygon, slab, or inserted mouth object remains.
+        const glowI = clamp(Math.max(castCharge, this.hunt.x * 0.78, sat(I * 0.5)), 0, 1);
         c.globalCompositeOperation = "source-over";
         c.clearRect(0, 0, vc.width, vc.height);
         c.drawImage(cav, 0, 0);
         c.globalCompositeOperation = "source-in";
         const vx = M.vent[0] * k, vy = (M.vent[1] + this.jaw.x * 0.35) * k;
-        const g = c.createRadialGradient(vx, vy, 0, vx, vy, 150 * k);
-        g.addColorStop(0, `rgba(235,255,255,${I})`);
-        g.addColorStop(0.35, `rgba(90,230,250,${0.9 * I})`);
-        g.addColorStop(1, `rgba(20,90,170,${0.35 * I})`);
+        const g = c.createRadialGradient(vx, vy, 0, vx, vy, 170 * k);
+        g.addColorStop(0, `rgba(245,255,255,${glowI})`);
+        g.addColorStop(0.32, `rgba(72,235,255,${0.96 * glowI})`);
+        g.addColorStop(1, `rgba(18,105,190,${0.42 * glowI})`);
         c.fillStyle = g;
         c.fillRect(0, 0, vc.width, vc.height);
-        // cold core slit (shape, not puff)
         c.globalCompositeOperation = "source-atop";
         c.beginPath();
-        c.ellipse(vx, vy + 4 * k, 70 * k * I, (6 + this.jaw.x * 0.3) * k, 0, 0, TAU);
-        c.fillStyle = `rgba(255,255,255,${0.95 * I})`;
+        c.ellipse(vx, vy + 4 * k, 82 * k * glowI,
+            (7 + this.jaw.x * 0.32) * k, 0, 0, TAU);
+        c.fillStyle = `rgba(255,255,255,${0.98 * glowI})`;
         c.fill();
         ctx.drawImage(vc, ox, oy, M.w, M.h);
     }
@@ -2386,38 +2555,66 @@ class FrostEngine {
         ctx.restore();
     }
     drawBulletFrost(ctx, x, y, a, px) {
-        // Gold drawBullets wake + cold leading edge (demo brass cut; production
-        // draws the real projectile underneath). lineWidth for the cold edge
-        // was inherited from the cut brass block: set explicitly.
+        // Presentation-only cold identity over the unchanged production
+        // projectile: longer faceted wake, luminous cyan spine and sharp glint.
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(a);
+        // Outer cold streak (hard polygonal silhouette, never blurred).
         ctx.beginPath();
-        ctx.moveTo(-3, -2.6);
-        ctx.quadraticCurveTo(-16, -1.8, -30, 0);
-        ctx.quadraticCurveTo(-16, 1.8, -3, 2.6);
+        ctx.moveTo(-1, -3.8);
+        ctx.lineTo(-18, -3.0);
+        ctx.lineTo(-43, 0);
+        ctx.lineTo(-18, 3.0);
+        ctx.lineTo(-1, 3.8);
         ctx.closePath();
-        ctx.fillStyle = "rgba(190,232,250,0.85)";
+        ctx.fillStyle = "rgba(40,190,235,0.72)";
         ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(-3, -1.1);
-        ctx.quadraticCurveTo(-12, -0.6, -20, 0);
-        ctx.quadraticCurveTo(-12, 0.6, -3, 1.1);
-        ctx.closePath();
-        ctx.fillStyle = "#ffffff";
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(1, -2.4);
-        ctx.lineTo(4.5, -2);
-        ctx.lineTo(8, 0);
-        ctx.lineTo(4.5, 2);
-        ctx.lineTo(1, 2.4);
-        ctx.closePath();
-        ctx.fillStyle = "#e9fbff";
-        ctx.fill();
-        ctx.lineWidth = Math.max(px, 0.9);
-        ctx.strokeStyle = "#2b5f95";
+        ctx.lineWidth = Math.max(px, 0.8);
+        ctx.strokeStyle = "rgba(26,91,156,0.88)";
         ctx.stroke();
+        // Bright inner energy spine holds against busy combat backgrounds.
+        ctx.beginPath();
+        ctx.moveTo(-2, -1.65);
+        ctx.lineTo(-16, -1.15);
+        ctx.lineTo(-34, 0);
+        ctx.lineTo(-16, 1.15);
+        ctx.lineTo(-2, 1.65);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(218,255,255,0.96)";
+        ctx.fill();
+        // Cyan faceted projectile core over the real bullet sprite.
+        ctx.beginPath();
+        ctx.moveTo(-2, -3.4);
+        ctx.lineTo(5, -3.1);
+        ctx.lineTo(10, 0);
+        ctx.lineTo(5, 3.1);
+        ctx.lineTo(-2, 3.4);
+        ctx.lineTo(1, 0);
+        ctx.closePath();
+        ctx.fillStyle = "#42ddfa";
+        ctx.fill();
+        ctx.lineWidth = Math.max(px * 1.1, 1);
+        ctx.strokeStyle = "#164f91";
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(1, -1.15);
+        ctx.lineTo(7.2, 0);
+        ctx.lineTo(1, 1.15);
+        ctx.closePath();
+        ctx.fillStyle = "#f3ffff";
+        ctx.fill();
+        // Two deterministic ice glints/flecks travel with the projectile.
+        for (const [gx, gy, s] of [[-12, -4.5, 1.8], [-25, 3.5, 1.35]]) {
+            ctx.beginPath();
+            ctx.moveTo(gx, gy - s);
+            ctx.lineTo(gx + s, gy);
+            ctx.lineTo(gx, gy + s);
+            ctx.lineTo(gx - s, gy);
+            ctx.closePath();
+            ctx.fillStyle = "rgba(238,255,255,0.88)";
+            ctx.fill();
+        }
         ctx.restore();
     }
 }

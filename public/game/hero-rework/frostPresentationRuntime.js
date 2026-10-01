@@ -255,6 +255,91 @@ function isolated(ctx, fn) {
 // Map (iterable) keyed by anchor; swept every tick against live combatants.
 const liveStates = new Map();
 let lastMatch = null;
+// TEMP Slice 2 motion-readability diagnostic. Toggle from the console with
+// APEX_FROST_PRESENTATION.setReactionParticlesEnabled(false); primary body
+// motion remains active while bullet/wall/body debris is suppressed.
+let reactionParticlesEnabled = true;
+api.setReactionParticlesEnabled = function (enabled) {
+  reactionParticlesEnabled = enabled !== false;
+  for (const [, S] of liveStates) S.engine.reactionParticlesEnabled = reactionParticlesEnabled;
+  return reactionParticlesEnabled;
+};
+api.reactionParticlesEnabled = function () { return reactionParticlesEnabled; };
+
+// Slice 3 shared arena mood. One scalar is shared by every Frost instance, so
+// overlapping A1/A2 lifecycles refresh/extend but can never stack darker.
+// `level === 0` is an exact no-pass baseline (no persistent canvas filter).
+const ambience = { level: 0, target: 0, activeIce: false, refreshUntil: -99 };
+function resetAmbience() {
+  ambience.level = 0;
+  ambience.target = 0;
+  ambience.activeIce = false;
+  ambience.refreshUntil = -99;
+}
+function refreshAmbience(now) {
+  ambience.refreshUntil = Math.max(ambience.refreshUntil, now + 0.35);
+  ambience.target = 1;
+  // Activation must register immediately even on the first observed frame.
+  ambience.level = Math.max(ambience.level, 0.88);
+}
+function ambienceContribution(S, now) {
+  const e = S.engine;
+  if (!S.fighter || S.fighter.hp <= 0) return 0;
+  let k = (now < ambience.refreshUntil || S.a1.pending || S.a2.live) ? 1 : 0;
+  for (const n of e.ice.nodes || []) {
+    if (!n || n.dead || (n.kind !== 'lane' && n.kind !== 'trail' && n.kind !== 'pad')) continue;
+    const end = Number.isFinite(n.activeUntil) ? n.activeUntil : n.decayAt;
+    if (!Number.isFinite(end) || e.t >= end) continue;
+    const life = Math.max(0.01, end - n.born);
+    // Hold the cold mood near activation, then visibly thaw toward baseline.
+    const remain = G.clamp((end - e.t) / life, 0, 1);
+    k = Math.max(k, Math.sqrt(remain));
+  }
+  return k;
+}
+function tickAmbience(now, dt) {
+  let target = 0;
+  let livingFrost = false;
+  for (const [, S] of liveStates) {
+    if (S.fighter && S.fighter.hp > 0) livingFrost = true;
+    target = Math.max(target, ambienceContribution(S, now));
+  }
+  // Death, teardown, mode exit, or the final qualifying ice expiry restores
+  // the exact baseline immediately. The gradual return happens while the
+  // active ice's remaining lifetime decreases, not after truth has gone.
+  if (!livingFrost || !HR || !HR.match || target <= 0) {
+    resetAmbience();
+    return;
+  }
+  ambience.activeIce = true;
+  ambience.target = G.clamp(target, 0, 1);
+  const tau = ambience.target > ambience.level ? 0.055 : 0.24;
+  ambience.level += (ambience.target - ambience.level) * (1 - Math.exp(-dt / tau));
+  ambience.level = G.clamp(ambience.level, 0, 1);
+}
+
+api.renderArenaAmbience = function (ctx) {
+  if (!ctx || ambience.level <= 0) return;
+  isolated(ctx, () => {
+    const cv = ctx.canvas;
+    const w = (cv && cv.width) || g.GAME_SIZE || 1000;
+    const h = (cv && cv.height) || g.GAME_SIZE || 1000;
+    // A dramatic uniform cold takeover: 70% at full strength. This chamber-
+    // only hook runs before gameplay entities and HUD, preserving their readability.
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = `rgba(1,8,20,${(0.70 * ambience.level).toFixed(4)})`;
+    ctx.beginPath();
+    ctx.rect(0, 0, w, h);
+    ctx.fill();
+    ctx.restore();
+  });
+};
+api.ambienceState = function () {
+  return { level: +ambience.level.toFixed(4), target: +ambience.target.toFixed(4), activeIce: ambience.activeIce };
+};
 
 function frostCfg(ct) {
   const sk = (ct && ct.skills) || {};
@@ -270,6 +355,7 @@ function createState(ct) {
   const cfg = frostCfg(ct);
   const e = new G.FrostEngine();
   e.externalA2Path = true;
+  e.reactionParticlesEnabled = reactionParticlesEnabled;
   // Pre-size the full-screen composite before any cast can activate. A later
   // viewport change is handled during tick only while no Frost material is
   // active; drawIceComposite never resizes a canvas.
@@ -312,7 +398,7 @@ function createState(ct) {
     // Authored ice width -> gameplay mechanic width (1.0 on stock Lv1 truth).
     laneK: (+cfg.a1.width || REF.A1_WIDTH) / REF.A1_WIDTH,
     trailK: (+cfg.a2.trailWidth || REF.A2_WIDTH) / REF.A2_WIDTH,
-    a1: { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0 },
+    a1: { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0, seenIds: new Set(), lateRecoveries: 0 },
     a2: { live: false, started: false, hydrated: 0, path: null },
     castQ: [],       // deferred Gold cast admissions (FIFO, truth-checked)
     castSeq: 0, castStarts: 0, castDeferred: 0, castDropped: 0,
@@ -323,6 +409,8 @@ function createState(ct) {
     flecks: new Map(), // projectile -> { b }
     heldVg: null,
     suppressHolder: null,
+    reactions: { lastBulletE: -99, lastWallE: -99, lastOpponentE: -99, lastPair: null,
+      bulletCount: 0, wallCount: 0, opponentCount: 0, lastNormal: null },
     match: HR ? HR.match : null,
   };
   // Width calibration wrapper: Gold internal detail generates at the scaled
@@ -359,6 +447,7 @@ function sweepStates() {
   const m = HR ? HR.match : null;
   if (m !== lastMatch) {
     lastMatch = m;
+    resetAmbience();
     try { if (G && typeof G.clearShapes === 'function') G.clearShapes(); } catch (e) {}
     for (const [, S] of liveStates) resetEngineVisuals(S, m);
   }
@@ -375,13 +464,18 @@ function resetEngineVisuals(S, m) {
     e.huntGoal = 0;
   } catch (err) { warnOnce(err); }
   S.tOff = null;
-  S.a1 = { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0 };
+  S.a1 = { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0, seenIds: new Set(), lateRecoveries: 0 };
   S.a2 = { live: false, started: false, hydrated: 0, path: null };
   S.castQ.length = 0;
   S.castSeq = 0; S.castStarts = 0; S.castDeferred = 0; S.castDropped = 0;
   S.victim = null;
   S.froze.clear(); S.shocks.clear(); S.guns.clear(); S.flecks.clear();
   S.heldVg = null; S.suppressHolder = null; S.match = m || null;
+  S.reactions = { lastBulletE: -99, lastWallE: -99, lastOpponentE: -99, lastPair: null,
+    bulletCount: 0, wallCount: 0, opponentCount: 0, lastNormal: null };
+  for (const spring of [e.rootX, e.rootY, e.rearX, e.rearY, e.impactStress]) {
+    if (spring) { spring.x = 0; spring.v = 0; spring.goal = 0; }
+  }
   S.integrityActiveIds = new Set(); S.integrityRetired = 0;
 }
 
@@ -456,14 +550,35 @@ function onColdShock(ev) {
   const now = clock();
   const dur = +((S.cfg.a2 && S.cfg.a2.coldShockDuration) || 1.0);
   S.shocks.set(p.body, { atE: e.t, until: now + dur });
-  // A2 contact burst at the midpoint; normal points Frost-ward (recoil dir).
+  // A2 contact burst at the midpoint. Derive the opponent's impact side from
+  // physical contact telemetry, not Frost facing. The runtime supplies a
+  // Frost->opponent contact normal after separation; invert it so nx/ny point
+  // from the opponent rim toward Frost. Resolved centres and relative impact
+  // direction are robust fallbacks for redirected/bounced approaches.
   if (victim && f) {
-    const dx = f.x - victim.x, dy = f.y - victim.y;
-    const d = Math.hypot(dx, dy) || 1;
-    const nx = dx / d, ny = dy / d;
+    let nx = -(+p.contactNormalX || 0), ny = -(+p.contactNormalY || 0);
+    let sideSource = 'contact-normal';
+    let d = Math.hypot(nx, ny);
+    if (d < 0.5) {
+      nx = (+p.frostX || f.x) - (+p.bodyX || victim.x);
+      ny = (+p.frostY || f.y) - (+p.bodyY || victim.y);
+      d = Math.hypot(nx, ny);
+      sideSource = 'resolved-positions';
+    }
+    if (d < 0.5) {
+      nx = -(+p.relativeImpactX || 0);
+      ny = -(+p.relativeImpactY || 0);
+      d = Math.hypot(nx, ny);
+      sideSource = 'relative-impact';
+    }
+    if (d < 1e-6) { nx = f.x - victim.x; ny = f.y - victim.y; d = Math.hypot(nx, ny) || 1; sideSource = 'live-positions'; }
+    nx /= d; ny /= d;
     const px = (f.x + victim.x) / 2, py = (f.y + victim.y) / 2;
     setVictim(S, victim.id, e.t);
     try { e.contact(nx, ny, px, py, null); } catch (err) { warnOnce(err); }
+    S.reactions.lastOpponentE = e.t; // dedupe the BodyCollision event emitted immediately after Cold Shock
+    S.reactions.opponentCount++;
+    S.reactions.lastNormal = { kind: 'opponent', x: nx, y: ny, strength: 1, snowSideSource: sideSource };
     // Production hunts CONTINUE after contact (re-contact re-procs). The
     // canonical Gold no longer gates the trail on contact at all; clear the
     // overlap marker so nothing latches and the trail keeps laying material.
@@ -507,6 +622,66 @@ function onSteal(ev) {
   S.suppressHolder = holder || null;
 }
 
+function onDamageReaction(ev) {
+  const p = (ev && ev.payload) || {};
+  if (p.victim == null || !p.weaponId) return; // incoming Arsenal shot/weapon impact only
+  const body = allBodies().find((b) => b && b.id === p.victim) || null;
+  const ct = body && ctOfBody(body);
+  if (!body || !isFrostCt(ct)) return;
+  const S = liveStates.get(ct.anchor) || null;
+  if (!S || S.engine.t - S.reactions.lastBulletE < 0.035) return;
+  let sx = Number(p.sourceX), sy = Number(p.sourceY);
+  if (!Number.isFinite(sx) || !Number.isFinite(sy)) {
+    const foe = bodiesOf(ct, false).find((b) => b && b.hp > 0);
+    sx = foe ? foe.x : body.x - ((body.dir && body.dir.x) || 1) * 100;
+    sy = foe ? foe.y : body.y - ((body.dir && body.dir.y) || 0) * 100;
+  }
+  const dx = body.x - sx, dy = body.y - sy, d = Math.hypot(dx, dy) || 1;
+  const nx = dx / d, ny = dy / d; // recoil direction, away from actual source
+  const px = body.x - nx * (body.radius || 75) * 0.72;
+  const py = body.y - ny * (body.radius || 75) * 0.72;
+  const strength = G.clamp(0.65 + (+p.amount || 0) / 45, 0.65, 1.45);
+  try { S.engine.reactImpact('bullet', nx, ny, px, py, strength); } catch (err) { warnOnce(err); }
+  S.reactions.lastBulletE = S.engine.t;
+  S.reactions.bulletCount++;
+  S.reactions.lastNormal = { kind: 'bullet', x: nx, y: ny, strength };
+}
+
+function onBodyCollisionReaction(ev) {
+  const p = (ev && ev.payload) || {};
+  const a = allBodies().find((b) => b && b.id === p.a) || null;
+  const b = allBodies().find((q) => q && q.id === p.b) || null;
+  const ct = a && ctOfBody(a);
+  if (!a || !b || !isFrostCt(ct)) return;
+  const S = liveStates.get(ct.anchor) || null;
+  if (!S || S.engine.t - S.reactions.lastOpponentE < 0.06) return;
+  const dx = a.x - b.x, dy = a.y - b.y, d = Math.hypot(dx, dy) || 1;
+  const nx = dx / d, ny = dy / d;
+  const px = (a.x + b.x) * 0.5, py = (a.y + b.y) * 0.5;
+  const strength = G.clamp(0.75 + (+p.closingSpeed || 0) / 1000, 0.75, 1.5);
+  try { S.engine.reactImpact('opponent', nx, ny, px, py, strength); } catch (err) { warnOnce(err); }
+  S.reactions.lastOpponentE = S.engine.t;
+  S.reactions.lastPair = `${p.a}:${p.b}`;
+  S.reactions.opponentCount++;
+  S.reactions.lastNormal = { kind: 'opponent', x: nx, y: ny, strength };
+}
+
+function onWorldWallReaction(ev) {
+  const p = (ev && ev.payload) || {};
+  const body = allBodies().find((b) => b && b.id === p.body) || null;
+  const ct = body && ctOfBody(body);
+  if (!body || !isFrostCt(ct)) return;
+  const S = liveStates.get(ct.anchor) || null;
+  if (!S || S.engine.t - S.reactions.lastWallE < 0.045) return;
+  const nx = +p.nx || 0, ny = +p.ny || 0;
+  const speed = Math.hypot((body.__hrVel && body.__hrVel.x) || 0, (body.__hrVel && body.__hrVel.y) || 0);
+  const strength = G.clamp(0.8 + speed / 900, 0.8, 1.55);
+  try { S.engine.reactImpact('wall', nx, ny, +p.x || body.x, +p.y || body.y, strength); } catch (err) { warnOnce(err); }
+  S.reactions.lastWallE = S.engine.t;
+  S.reactions.wallCount++;
+  S.reactions.lastNormal = { kind: 'wall', x: nx, y: ny, strength, side: 'world-capsule' };
+}
+
 function subscribe() {
   try {
     const bus = HR && HR.AIL && HR.AIL.bus;
@@ -514,7 +689,42 @@ function subscribe() {
     subscribe.done = true;
     bus.on('FrostColdShock', onColdShock);
     bus.on('FrostSteal', onSteal);
+    bus.on('RealizedDamageEvent', onDamageReaction);
+    bus.on('BodyCollision', onBodyCollisionReaction);
+    bus.on('WorldWallCollision', onWorldWallReaction);
+    bus.on('ReworkMatchTeardown', resetAmbience);
   } catch (e) { warnOnce(e); }
+}
+
+function wrapWallReactions() {
+  if (wrapWallReactions.done) return;
+  const Fighter = g.Fighter;
+  if (!Fighter || !Fighter.prototype || typeof Fighter.prototype.resolveWalls !== 'function') return;
+  wrapWallReactions.done = true;
+  const base = Fighter.prototype.resolveWalls;
+  Fighter.prototype.resolveWalls = function frostWallReaction() {
+    const side = base.call(this);
+    if (!side) return side;
+    const ct = ctOfBody(this);
+    if (!isFrostCt(ct)) return side;
+    const S = liveStates.get(ct.anchor) || null;
+    if (!S || S.engine.t - S.reactions.lastWallE < 0.045) return side;
+    let nx = 0, ny = 0, px = this.x, py = this.y;
+    if (side === 'left') { nx = 1; px = this.x - this.radius; }
+    else if (side === 'right') { nx = -1; px = this.x + this.radius; }
+    else if (side === 'top') { ny = 1; py = this.y - this.radius; }
+    else if (side === 'bottom') { ny = -1; py = this.y + this.radius; }
+    else { // custom walls expose no normal through Fighter; use reflected heading as fallback
+      nx = -((this.dir && this.dir.x) || 0); ny = -((this.dir && this.dir.y) || 0);
+    }
+    const speed = Math.hypot((this.__hrVel && this.__hrVel.x) || 0, (this.__hrVel && this.__hrVel.y) || 0);
+    const strength = G.clamp(0.8 + speed / 900, 0.8, 1.55);
+    try { S.engine.reactImpact('wall', nx, ny, px, py, strength); } catch (err) { warnOnce(err); }
+    S.reactions.lastWallE = S.engine.t;
+    S.reactions.wallCount++;
+    S.reactions.lastNormal = { kind: 'wall', x: nx, y: ny, strength, side };
+    return side;
+  };
 }
 
 // ------------------------------------------------- transparent fire/hit taps
@@ -693,16 +903,36 @@ function syncA2Path(S, insp, now) {
 function startCast(S, q, now, insp) {
   const e = S.engine;
   if (q.kind === 'a1') {
-    if (q.lane) { replayA1Lane(S, q, now); }
-    else {
-      e.a1Len = q.len;
-      e.a1Travel = q.travel;
-      try { e.castA1(q.ang); } catch (err) { warnOnce(err); }
-    }
+    // Always admit the authored cast first. The previous deferred path called
+    // replayA1Lane() here, which materialized the floor immediately and
+    // skipped anticipation/open/release whenever A2 owned Gold or the pending
+    // window was missed by a hitch. A historical lane now supplies only its
+    // authoritative origin/length/expiry; Gold still plays the full beat and
+    // creates the visible floor at its own 0.25 release.
+    e.a1Len = q.lane ? q.lane.len : q.len;
+    e.a1Travel = q.lane
+      ? Math.max(0.05, q.lane.frontDoneAt - q.lane.frontStartAt)
+      : q.travel;
+    try { e.castA1(q.ang); } catch (err) { warnOnce(err); }
     S.a1.startedId = q.castId;
-    S.a1.startClock = now;
+    S.a1.startClock = q.lane || now - (q.castAt || now) > 0.05 ? now : (q.castAt || now);
+    S.a1.forceExpiryId = q.lane ? q.castId : null;
+    if (q.lane) {
+      S.a1.expireClock = q.lane.expireAt;
+      S.a1.replays = (S.a1.replays || 0) + 1;
+    }
   } else {
-    try { e.castA2(); } catch (err) { warnOnce(err); }
+    try {
+      e.castA2();
+      // Presentation-only load against the real persistent movement heading.
+      // Gameplay begins on its existing frame; connected ice mass visually
+      // compresses behind it before Gold's authored 0.13s kickOff conversion.
+      const a = e.movementHeading();
+      e.lagX.kick(-Math.cos(a) * 58); e.lagY.kick(-Math.sin(a) * 58);
+      if (e.rearX) e.rearX.kick(-Math.cos(a) * 20);
+      if (e.rearY) e.rearY.kick(-Math.sin(a) * 20);
+      e.sx.kick(0.65); e.sy.kick(-0.85);
+    } catch (err) { warnOnce(err); }
     S.a2.started = true;
     S.a2.castId = q.castId || (insp && insp.a2castId) || 0;
     // No-ops on an immediate start (the window has a single origin node).
@@ -722,6 +952,9 @@ function castStillTrue(S, q, now) {
 }
 
 function requestCast(S, q, now, insp) {
+  // Gameplay has accepted a qualifying Frost activation. Refresh the one
+  // shared arena mood now, even if Gold presentation admission is deferred.
+  refreshAmbience(now);
   if (canAcceptCast(S) && !S.castQ.length) { startCast(S, q, now, insp); return; }
   // Same-kind supersede: a newer cast of the same ability replaces the older
   // queued one (the older visual's truth is already being overwritten).
@@ -752,29 +985,60 @@ function tickA1(S, ct, insp, now, dt) {
   const e = S.engine, f = S.fighter;
   const cfg1 = S.cfg.a1;
   const frontSeconds = (FR && FR.LAW && +FR.LAW.frontSeconds) || 0.45;
-  if (insp && insp.pending && !S.a1.pending) {
+  const cast = insp && insp.a1cast;
+  const incomingId = cast && cast.id;
+  if (insp && insp.pending && (!S.a1.pending || (incomingId && !S.a1.seenIds.has(incomingId)))) {
     S.a1.pending = true;
-    S.a1.castClock = now;
+    // Use gameplay's exact activation/release stamps, not the adapter's first
+    // observation frame. This keeps immediate casts phase-locked while a
+    // deferred cast receives its own complete presentation clock on admission.
+    S.a1.castClock = cast && Number.isFinite(cast.castAt) ? cast.castAt : now;
     S.a1.releasedSeen = false;
     // Direction is the gameplay CAST-ACCEPTANCE snapshot, never live f.dir:
     // a wall/body bounce during commitment turns the body, but the breath
     // and the front must stay on the lane gameplay committed to. Live dir is
     // only a fallback for a truth surface that predates the snapshot.
-    const cast = insp.a1cast;
     const ang = cast
       ? Math.atan2(+cast.dy || 0, (+cast.dx === 0 && +cast.dy === 0) ? 1 : +cast.dx)
       : Math.atan2((f.dir && f.dir.y) || 0, (f.dir && f.dir.x) || 1);
     S.a1.castAng = ang;
     const commit = +cfg1.castCommit || 0.25;
+    const castId = incomingId || ++S.castSeq;
+    S.a1.seenIds.add(castId);
     requestCast(S, {
-      kind: 'a1', ang,
+      kind: 'a1', ang, castAt: S.a1.castClock,
       len: +cfg1.length || 650,
       travel: frontSeconds,
-      castId: (cast && cast.id) || ++S.castSeq,
+      castId,
       // A1 truth ends with its gameplay lane (front + floor lifetime).
-      validUntil: now + commit + frontSeconds + (+cfg1.floorLifetime || 4.5),
+      validUntil: S.a1.castClock + commit + frontSeconds + (+cfg1.floorLifetime || 4.5),
     }, now, insp);
-    S.a1.holdUntil = now + commit - A1_RELEASE_BEAT;
+    const gameplayRelease = cast && Number.isFinite(cast.releaseAt) ? cast.releaseAt : S.a1.castClock + commit;
+    S.a1.holdUntil = gameplayRelease - A1_RELEASE_BEAT;
+  }
+  // Hitch/re-entry recovery: gameplay may advance pending->lane before this
+  // presentation tick observes a pending frame. Detect each unseen cast id
+  // from authoritative lane history and enqueue the SAME full cast beat.
+  // Never paint the lane directly; it appears only after Gold reaches 0.25.
+  if (insp && !insp.pending) {
+    const lanes = insp.lanes || [];
+    for (const L of lanes) {
+      const id = L.castId;
+      if (id == null || S.a1.seenIds.has(id) || now >= L.expireAt) continue;
+      S.a1.seenIds.add(id);
+      S.a1.castClock = now;
+      S.a1.castAng = Math.atan2(L.dy, L.dx);
+      S.a1.expireClock = L.expireAt;
+      S.a1.releasedSeen = false;
+      S.a1.lateRecoveries++;
+      requestCast(S, {
+        kind: 'a1', ang: S.a1.castAng, castAt: now, castId: id,
+        len: L.len, travel: Math.max(0.05, L.frontDoneAt - L.frontStartAt),
+        validUntil: L.expireAt,
+        lane: { ox: L.ox, oy: L.oy, dx: L.dx, dy: L.dy, len: L.len,
+          frontStartAt: L.frontStartAt, frontDoneAt: L.frontDoneAt, expireAt: L.expireAt },
+      }, now, insp);
+    }
   }
   if (insp && !insp.pending && S.a1.pending) {
     S.a1.pending = false;
@@ -807,7 +1071,7 @@ function tickA1(S, ct, insp, now, dt) {
   if (e.mode === 'a1' && !(e.a1 && e.a1.released)) {
     const lanes = (insp && insp.lanes) || [];
     const Lr = lanes.filter((l) => l.castId === S.a1.startedId).pop() || lanes[lanes.length - 1];
-    e.a1Origin = (Lr && Lr.frontStartAt != null && now - Lr.frontStartAt < 1.0)
+    e.a1Origin = (Lr && Lr.frontStartAt != null && now < Lr.expireAt)
       ? { x: Lr.ox, y: Lr.oy } : null;
   } else if (e.a1 && e.a1.released) {
     e.a1Origin = null;
@@ -818,6 +1082,7 @@ function tickA1(S, ct, insp, now, dt) {
     S.a1.casts.push({
       nodes: (e.a1.nodes || []).map((w) => w && w.n).filter(Boolean),
       expireE: S.a1.expireClock + (S.tOff || 0),
+      forceExpiry: S.a1.forceExpiryId === S.a1.startedId,
     });
     if (S.a1.casts.length > 4) S.a1.casts.shift();
   }
@@ -826,9 +1091,18 @@ function tickA1(S, ct, insp, now, dt) {
     if (c.applied) continue;
     c.applied = true;
     for (const n of c.nodes) {
-      if (!n || n.decayAt !== Infinity) continue;
-      n.decayAt = c.expireE;
-      n.decayDur = A1_GHOST_FADE;
+      if (!n) continue;
+      // Only a delayed/hitch-recovered cast needs clamping: immediate Gold
+      // already matches the mechanic lifecycle exactly. A deferred visual may
+      // not gain a fresh floor lifetime merely because its beat played late.
+      if (c.forceExpiry) {
+        n.activeUntil = c.expireE;
+        n.decayAt = c.expireE;
+        n.decayDur = A1_GHOST_FADE;
+      } else if (n.decayAt === Infinity) {
+        n.decayAt = c.expireE;
+        n.decayDur = A1_GHOST_FADE;
+      }
     }
   }
 }
@@ -1037,6 +1311,87 @@ function tickFlecks(S, dt) {
   for (const p of Array.from(S.flecks.keys())) if (!live.has(p)) S.flecks.delete(p);
 }
 
+// Slice 2 adapts Gold's existing goals to normal arena scale while preserving
+// the gameplay clocks. No position, movement vector, collision, or cooldown is
+// touched here; these are fixed-step rig goals only.
+function applyCastChoreography(S, now) {
+  const e = S.engine;
+  if (e.mode === 'a1' && S.a1.startClock > -90) {
+    // Presentation clock: immediate casts use the authoritative cast stamp;
+    // deferred/hitch-recovered casts start at admission so no frame can jump
+    // directly to release/recovery. Gameplay's 0.8s lock remains untouched.
+    const T = Math.max(0, now - S.a1.startClock);
+    const ca = Math.cos(e.a1.ang), sa = Math.sin(e.a1.ang);
+    if (T < 0.10) { // unmistakable backward anticipation/load
+      const u = G.smooth(0, 0.10, T);
+      e.rootX.goal = -ca * G.lerp(2, 8, u); e.rootY.goal = -sa * G.lerp(2, 8, u);
+      e.lagX.goal = -ca * G.lerp(4, 10, u); e.lagY.goal = -sa * G.lerp(4, 10, u);
+      e.sx.goal = 1.085; e.sy.goal = 0.84;
+      e.jaw.goal = Math.max(e.jaw.goal, 14);
+      e.eye.goal = Math.max(e.eye.goal, 2.05);
+      e.crestLift.goal = Math.max(e.crestLift.goal, 9);
+      e.vent.goal = Math.max(e.vent.goal, 0.65);
+    } else if (T < 0.25) { // held open mouth + exposed cyan cavity
+      e.rootX.goal = -ca * 8; e.rootY.goal = -sa * 8;
+      e.lagX.goal = -ca * 11; e.lagY.goal = -sa * 11;
+      e.sx.goal = 1.10; e.sy.goal = 0.79;
+      e.jaw.goal = Math.max(e.jaw.goal, 66);
+      e.eye.goal = Math.max(e.eye.goal, 3.0);
+      e.crestLift.goal = Math.max(e.crestLift.goal, 15);
+      e.crack.goal = Math.max(e.crack.goal, 2.65);
+      e.vent.goal = Math.max(e.vent.goal, 2.15);
+    } else if (T < 0.44) { // hard blow/recoil then connected forward follow-through
+      const u = G.sat((T - 0.25) / 0.19);
+      e.rootX.goal = ca * G.lerp(7, 3, u); e.rootY.goal = sa * G.lerp(7, 3, u);
+      e.lagX.goal = ca * G.lerp(9, 4, u); e.lagY.goal = sa * G.lerp(9, 4, u);
+      e.jaw.goal = Math.max(e.jaw.goal, G.lerp(64, 44, u));
+      e.eye.goal = Math.max(e.eye.goal, G.lerp(2.8, 1.8, u));
+      e.vent.goal = Math.max(e.vent.goal, G.lerp(2.1, 0.95, u));
+      e.sx.goal = G.lerp(0.90, 1.035, u);
+      e.sy.goal = G.lerp(1.13, 0.99, u);
+    } else { // readable settle/recovery inside the same approved lock
+      const u = G.smooth(0.44, 0.80, T);
+      e.rootX.goal = ca * G.lerp(3, 0, u); e.rootY.goal = sa * G.lerp(3, 0, u);
+      e.lagX.goal = ca * G.lerp(4, 0, u); e.lagY.goal = sa * G.lerp(4, 0, u);
+      e.jaw.goal = G.lerp(22, 0, u);
+      e.vent.goal = G.lerp(0.75, 0, u);
+      e.eye.goal = G.lerp(1.5, 1, u);
+      e.crestLift.goal = G.lerp(5, 0, u);
+      e.sx.goal = G.lerp(1.03, 1, u);
+      e.sy.goal = G.lerp(0.97, 1, u);
+      if (T >= 0.80) e.mode = 'free';
+    }
+  } else if (e.mode === 'a2' && e.a2 && !e.a2.kicked) {
+    // Gold's ignition is 0.13s. Amplify its connected compression/eye/crest
+    // goals so conversion reads before locomotion carries the body away.
+    const u = G.sat(e.modeT / 0.13);
+    const a = e.movementHeading(), ca = Math.cos(a), sa = Math.sin(a);
+    e.rootX.goal = -ca * G.lerp(3, 9, u); e.rootY.goal = -sa * G.lerp(3, 9, u);
+    e.lagX.goal = -ca * G.lerp(5, 12, u); e.lagY.goal = -sa * G.lerp(5, 12, u);
+    e.sx.goal = G.lerp(1.07, 1.14, u);
+    e.sy.goal = G.lerp(0.88, 0.74, u);
+    e.eye.goal = Math.max(e.eye.goal, G.lerp(2.55, 3.5, u));
+    e.crack.goal = Math.max(e.crack.goal, G.lerp(2.45, 3.1, u));
+    e.crestLift.goal = Math.max(e.crestLift.goal, G.lerp(10, 19, u));
+    e.jaw.goal = Math.max(e.jaw.goal, 8 * u);
+  } else if (e.mode === 'a2' && e.a2 && e.a2.kicked) {
+    const age = Math.max(0, e.t - e.a2.activeStart);
+    const u = G.smooth(0, 0.18, age);
+    const a = e.movementHeading(), ca = Math.cos(a), sa = Math.sin(a);
+    // Release stored compression forward, then settle into travel.
+    e.rootX.goal = ca * G.lerp(7, 0, u); e.rootY.goal = sa * G.lerp(7, 0, u);
+    e.lagX.goal = ca * G.lerp(8, 0, u); e.lagY.goal = sa * G.lerp(8, 0, u);
+    if (age < 0.18) {
+      e.sx.goal = G.lerp(0.90, 1, u); e.sy.goal = G.lerp(1.12, 1, u);
+      e.eye.goal = Math.max(e.eye.goal, G.lerp(3.1, 2.3, u));
+      e.crestLift.goal = Math.max(e.crestLift.goal, G.lerp(16, 8, u));
+    }
+  } else {
+    // Reaction/cast root offsets always return to the gameplay root.
+    e.rootX.goal = 0; e.rootY.goal = 0;
+  }
+}
+
 // Gold SIM STEP law (demo locomotion/input/enemy/bullets cut; production owns
 // position; everything else replays verbatim through Gold methods).
 function driveEngine(S, ct, dt) {
@@ -1107,14 +1462,16 @@ function driveEngine(S, ct, dt) {
   e.lagX.goal = clamp(-e.fax * lagK, -4, 4);
   e.lagY.goal = clamp(-e.fay * lagK, -4, 4);
   e.tilt.goal = clamp(e.fvx * 0.00016 + -e.fax * 0.00003, -0.07, 0.07);
+  applyCastChoreography(S, now);
   // Canonical Gold advances this articulated rig at fixed DT=1/120 inside
   // its accumulator. Passing a browser frame/hitch dt directly into these
   // semi-implicit springs makes brow/crest/jaw transforms overshoot or become
   // unstable (a 50ms activation frame can move a brow several times its
   // authored lift). Preserve the Gold assembly by substepping only the rig;
   // gameplay and Gold choreography remain owned by their existing paths.
-  const rigSprings = [e.lagX, e.lagY, e.tilt, e.sx, e.sy, e.bLiftL,
-    e.bLiftR, e.bRotL, e.bRotR, e.jaw, e.crestLift, e.crestRot, e.eye, e.crack, e.vent];
+  const rigSprings = [e.rootX, e.rootY, e.lagX, e.lagY, e.rearX, e.rearY, e.impactStress,
+    e.tilt, e.sx, e.sy, e.bLiftL, e.bLiftR, e.bRotL, e.bRotR,
+    e.jaw, e.crestLift, e.crestRot, e.eye, e.crack, e.vent].filter(Boolean);
   const GOLD_DT = 1 / 120;
   let rigRemain = dt;
   while (rigRemain > 1e-8) {
@@ -1149,7 +1506,7 @@ api.tick = function (dt) {
   if (!HR.match) return;
   if (typeof dt !== 'number' || !(dt >= 0)) dt = 1 / 60;
   dt = Math.min(dt, 0.05);
-  subscribe(); tapFirePath(); wrapArsenalAV(); ensureDrawWraps();
+  subscribe(); tapFirePath(); wrapWallReactions(); wrapArsenalAV(); ensureDrawWraps();
   sweepStates();
   for (const ct of combatants()) {
     if (!isFrostCt(ct) || !ct.anchor) continue;
@@ -1158,6 +1515,7 @@ api.tick = function (dt) {
       if (S) driveEngine(S, ct, dt);
     } catch (err) { warnOnce(err); }
   }
+  tickAmbience(clock(), dt);
   // Module-global shape pools advance ONCE per frame (shared by engines).
   try { if (typeof G.updateShapes === 'function') G.updateShapes(dt); } catch (err) { warnOnce(err); }
   const auditT1 = (g.performance && typeof g.performance.now === 'function') ? g.performance.now() : Date.now();
@@ -1179,7 +1537,7 @@ function renderSurfaceUnderWeapons(ctx) {
       S.engine.drawA1MacroFront(ctx, px);
     });
   }
-  isolated(ctx, () => { G.drawFloorShapes(ctx, px); });
+  if (reactionParticlesEnabled) isolated(ctx, () => { G.drawFloorShapes(ctx, px); });
 }
 api.renderSurfaceUnderWeapons = renderSurfaceUnderWeapons;
 
@@ -1298,8 +1656,11 @@ function drawFrostHeadTraced(ctx, S, px) {
   rec.componentDrawCounts = rec.components.reduce((o, c) => { o[c.name] = (o[c.name] || 0) + 1; return o; }, {});
 }
 
-// Gold actor law: shadow -> breath-behind? -> body -> breath-front? -> preCore,
-// all in the radius-adaptive body frame about the live fighter position.
+// Gold actor law: shadow -> breath-behind? -> body (including the canonical
+// cavity-masked internal light) -> breath-front? -> preCore. Slice 3's added
+// post-face faceted mouth slab was intentionally removed: no separate object
+// is inserted at the mouth.
+
 function drawFrostBody(ctx, f, S) {
   renderAudit.bodyDraws++;
   noteRenderSource(S, 'frost-gold-body');
@@ -1527,8 +1888,10 @@ function postWorld(ctx) {
     // Steal transfer guns: production sprite in flight + Gold frost.
     try { drawTransferGuns(S, ctx, px); } catch (err) { warnOnce(err); }
   }
-  try { G.drawRibbonLayer(ctx); } catch (err) {}
-  try { G.drawAirShapes(ctx, px); } catch (err) {}
+  if (reactionParticlesEnabled) {
+    try { G.drawRibbonLayer(ctx); } catch (err) {}
+    try { G.drawAirShapes(ctx, px); } catch (err) {}
+  }
 }
 api.renderPostWorld = postWorld;
 
@@ -1586,6 +1949,24 @@ api.inspect = function (f) {
     surfaceResizes: e.surfaceResizeCount || 0,
     surfaceResizeDuringDraw: e.surfaceResizeDuringDraw || 0,
     renderAudit: { ...renderAudit },
+    choreography: {
+      castClock: S.a1.castClock, startClock: S.a1.startClock,
+      elapsed: S.a1.startClock > -90 ? +(clock() - S.a1.startClock).toFixed(3) : null,
+      gameplayElapsed: S.a1.castClock > -90 ? +(clock() - S.a1.castClock).toFixed(3) : null,
+      lateRecoveries: S.a1.lateRecoveries || 0,
+      jaw: +e.jaw.x.toFixed(3), jawGoal: +e.jaw.goal.toFixed(3), eye: +e.eye.x.toFixed(3),
+      vent: +e.vent.x.toFixed(3), crest: +e.crestLift.x.toFixed(3),
+      mouthCharge: e.mode === 'a1' ? +(e.modeT <= A1_RELEASE_BEAT
+        ? G.smooth(0.055, 0.22, e.modeT)
+        : 1 - G.smooth(0.30, 0.42, e.modeT)).toFixed(3) : 0,
+    },
+    ambience: api.ambienceState(),
+    reactions: { ...S.reactions,
+      rootX: e.rootX ? +e.rootX.x.toFixed(3) : 0, rootY: e.rootY ? +e.rootY.x.toFixed(3) : 0,
+      headLagX: +e.lagX.x.toFixed(3), headLagY: +e.lagY.x.toFixed(3),
+      rearX: e.rearX ? +e.rearX.x.toFixed(3) : 0, rearY: e.rearY ? +e.rearY.x.toFixed(3) : 0,
+      stress: e.impactStress ? +e.impactStress.x.toFixed(3) : 0,
+      particlesEnabled: reactionParticlesEnabled },
     path: S.a2.path ? { castId: S.a2.path.castId, consumed: S.a2.path.next,
       laid: S.a2.path.laid, carry: +S.a2.path.carry.toFixed(3),
       endpoint: [S.a2.path.x, S.a2.path.y] } : null,

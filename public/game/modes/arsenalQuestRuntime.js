@@ -400,6 +400,13 @@
     if (gameState === 'ARSENAL') {
       const t0 = performance.now();
       drawChamber01(c); // Arsenal-only arena; global Apex background untouched
+      // Frost ambience belongs to the battle world, not the final canvas:
+      // paint it directly over Chamber 01 before ice, pickups, actors,
+      // projectiles, damage numbers and HUD. The Frost pass is fully isolated
+      // and becomes an exact no-op at baseline.
+      if (window.APEX_FROST_PRESENTATION?.renderArenaAmbience) {
+        window.APEX_FROST_PRESENTATION.renderArenaAmbience(c);
+      }
       const t1 = performance.now();
       if (AQ.feel && AQ.feel.drawStain) AQ.feel.drawStain(c);
       // Stormbreaker floor lightning sits UNDER the actors (V9 layering).
