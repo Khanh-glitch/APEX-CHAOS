@@ -15,7 +15,7 @@ const partIds=['core','spine','polL','polR','lobeL','lobeR'];
 function pose(){const rig=GOLD.inspect(ct).state.rig;return Object.fromEntries(partIds.map(id=>[id,{x:rig[id].x,y:rig[id].y,r:rig[id].r,sx:rig[id].sx,sy:rig[id].sy}]));}
 function distance(a,b,id){const x=a[id],y=b[id];return Math.hypot(y.x-x.x,y.y-x.y,(y.r-x.r)*80,(y.sx-x.sx)*80,(y.sy-x.sy)*80);}
 function reset(x=500,y=500){GOLD.teardown(ct);fighter.x=x;fighter.y=y;GOLD.updateFrame(ct,DT,{root:{before:{x,y},after:{x,y},radius:fighter.radius}});}
-function frame(vx=0,vy=0,extra={}){const before={x:fighter.x,y:fighter.y},after={x:before.x+vx*DT,y:before.y+vy*DT};fighter.x=after.x;fighter.y=after.y;GOLD.updateFrame(ct,DT,{...extra,root:{before,after,radius:fighter.radius}});}
+function frame(vx=0,vy=0,extra={}){const before={x:fighter.x,y:fighter.y},after={x:Math.max(fighter.radius,Math.min(1000-fighter.radius,before.x+vx*DT)),y:Math.max(fighter.radius,Math.min(1000-fighter.radius,before.y+vy*DT))},speed=Math.hypot(vx,vy);fighter.x=after.x;fighter.y=after.y;GOLD.updateFrame(ct,DT,{...extra,motion:{x:speed?vx/speed:0,y:speed?vy/speed:0,active:speed>0,contactVx:vx,contactVy:vy},root:{before,after,radius:fighter.radius}});}
 function frames(n,vx=0,vy=0,extra={}){for(let i=0;i<n;i++)frame(vx,vy,extra);return pose();}
 
 try{
@@ -34,7 +34,7 @@ try{
   const turnTrace={now:Object.fromEntries(partIds.map(id=>[id,distance(turn0,turnNow,id)])),secondary:Object.fromEntries(partIds.map(id=>[id,distance(turn0,turnSecondary,id)])),lobes:Object.fromEntries(partIds.map(id=>[id,distance(turn0,turnLobes,id)]))};
   gate('hard-turn-hierarchy',turnTrace.now.core>0&&turnTrace.now.polL>turnTrace.now.polR&&turnTrace.secondary.spine>turnTrace.now.spine&&turnTrace.secondary.polR>turnTrace.now.polR&&turnTrace.lobes.lobeL>turnTrace.secondary.lobeL,turnTrace);
 
-  reset(76,500);const wall0=pose();frame(-240,0);const wallContact=pose();frames(9,0,0);const wallTransfer=pose();frames(12,0,0);const wallSettle=pose();
+  reset(303.75,500);frames(60,-450,0);const wall0=pose();frame(-450,0);const wallContact=pose();frames(9,-450,0);const wallTransfer=pose();frames(12,-450,0);const wallSettle=pose();
   const wallTrace={contact:Object.fromEntries(partIds.map(id=>[id,distance(wall0,wallContact,id)])),transfer:Object.fromEntries(partIds.map(id=>[id,distance(wall0,wallTransfer,id)])),settle:Object.fromEntries(partIds.map(id=>[id,distance(wall0,wallSettle,id)]))};
   gate('wall-six-beat-structural-transfer',wallTrace.contact.polL>wallTrace.contact.core&&wallTrace.transfer.core>wallTrace.contact.core&&wallTrace.transfer.spine>wallTrace.contact.spine&&wallTrace.settle.lobeL>wallTrace.contact.lobeL,wallTrace);
 

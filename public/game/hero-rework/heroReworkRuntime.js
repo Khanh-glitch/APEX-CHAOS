@@ -1217,7 +1217,11 @@
   HR.applyExternalBodyMotion = function applyExternalBodyMotion(body) {
     const magnet = globalScope.APEX_MAGNET;
     if (!M || !magnet || !magnet.consumeBodyMotion || !body) return null;
-    return magnet.consumeBodyMotion(body);
+    const motion = magnet.consumeBodyMotion(body);
+    body.__hrExternalVelocity = motion
+      ? { x: motion.vx, y: motion.vy }
+      : { x: 0, y: 0 };
+    return motion;
   };
 
   function hrPreTick(dt) {
@@ -1629,7 +1633,8 @@
       if (exec.onBodyCollision) exec.onBodyCollision(ctx, myBody, otherBody, closingSpeed);
     });
     AIL.bus.emit('BodyCollision', {
-      combatant: ct.heroId, a: myBody.id, b: otherBody.id, closingSpeed,
+      combatant: ct.heroId, combatantIndex: ct.idx,
+      a: myBody.id, b: otherBody.id, closingSpeed,
     });
   }
 

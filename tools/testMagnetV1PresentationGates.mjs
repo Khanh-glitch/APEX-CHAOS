@@ -23,7 +23,7 @@ try{
   const a2=source.slice(source.indexOf('function drawReactiveField('),source.indexOf('function drawA1Filaments('));
   gate('M11.3-no-demo-hitboxes-or-fallback-redraw',!/segCircle|const HC=|demo hit/i.test(source)&&!/strokeRect\([^)]*RASTER|fallback redraw/i.test(source),'runtime consumes only pre-baked six-part raster');
   gate('M11.4-gold-owned-a2-angular-never-filled-shield',/ctx\.arc\(/.test(a2)&&/ctx\.stroke\(/.test(a2)&&!/ctx\.fill\(/.test(a2)&&!/(fillStyle|radialGradient)/.test(a2)&&!/function drawReactiveField\(/.test(adapter),'Gold owns stroke-only A2 sectors; adapter owns no A2 drawing');
-  gate('M11.5-local-seeded-presentation-rng',/let seed = .*0x4d41474e/.test(source)&&!/Math\.random\(/.test(source),'no gameplay/global RNG consumption');
+  gate('M11.5-local-seeded-presentation-rng',/const rng=\{seed:.*0x4d41474e/.test(source)&&/rng\.seed\^=rng\.seed<</.test(source)&&!/Math\.random\(/.test(source),'no gameplay/global RNG consumption');
 }catch(e){gate('M11.3-no-demo-hitboxes-or-fallback-redraw',false,String(e));}
 
 const deadline=Date.now()+12000;

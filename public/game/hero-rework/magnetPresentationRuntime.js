@@ -41,11 +41,27 @@
     }
     return state;
   }
+  function movementIntent(body) {
+    const dx = Number(body?.dir?.x) || 0;
+    const dy = Number(body?.dir?.y) || 0;
+    const length = Math.hypot(dx, dy);
+    let speedScale = 1;
+    try { if (typeof body?.speedMult === 'function') speedScale = Number(body.speedMult()) || 0; } catch (error) {}
+    const physicalSpeed = (Number(body?.baseSpeed) || 0) * speedScale;
+    const active = !!(body && body.hp > 0 && length > 1e-6 && physicalSpeed > 1 && !(body.hardCC > 0));
+    const x = active ? dx / length : 0;
+    const y = active ? dy / length : 0;
+    return {
+      x, y, active,
+      physicalVx: x * physicalSpeed,
+      physicalVy: y * physicalSpeed,
+    };
+  }
   function capturePreMovement() {
     const now = clock();
     for (const ct of magnets()) {
       const body = ct.anchor;
-      if (body) stateFor(ct).preRoot = { x: body.x, y: body.y, clock: now };
+      if (body) stateFor(ct).preRoot = { x: body.x, y: body.y, clock: now, motion: movementIntent(body) };
     }
   }
 
@@ -141,6 +157,14 @@
     for (const ct of magnets()) if (ct.bodies && ct.bodies.some((body) => body && body.id === id)) return ct;
     return null;
   }
+  function bodyById(id) {
+    const combatants = HR?.match?.combatants || [];
+    for (const ct of combatants) {
+      const body = ct.bodies && ct.bodies.find((item) => item && item.id === id);
+      if (body) return body;
+    }
+    return null;
+  }
   function onEvent(event) {
     const payload = event && event.payload || {};
     const ct = event.type === 'RealizedDamageEvent'
@@ -178,11 +202,26 @@
         x: body.x - dx * (body.radius || 75),
         y: body.y - dy * (body.radius || 75),
       });
+    } else if (event.type === 'BodyCollision') {
+      const body = bodyById(payload.a) || ct.anchor;
+      const other = bodyById(payload.b);
+      let dx = body.x - (other ? other.x : body.x - 1);
+      let dy = body.y - (other ? other.y : body.y);
+      const length = Math.hypot(dx, dy) || 1;
+      dx /= length; dy /= length;
+      GOLD.cue(ct, 'impact', {
+        dx, dy,
+        // Structural contact reuses the donor impact impulse law but does not
+        // invent damage. Closing speed is the canonical body-contact input.
+        amount: Math.max(0, Number(payload.closingSpeed) || 0) * 0.1,
+        x: body.x - dx * (body.radius || 75),
+        y: body.y - dy * (body.radius || 75),
+      });
     }
   }
   function subscribe() {
     if (!AIL || !AIL.bus) return;
-    for (const type of ['MagnetA1Start', 'MagnetA2Start', 'MagnetLateReveal', 'MagnetPassiveEmission', 'RealizedDamageEvent']) {
+    for (const type of ['MagnetA1Start', 'MagnetA2Start', 'MagnetLateReveal', 'MagnetPassiveEmission', 'RealizedDamageEvent', 'BodyCollision']) {
       unsubscribers.push(AIL.bus.on(type, onEvent));
     }
   }
@@ -213,10 +252,15 @@
       state.lastGameplayA1 = activeA1;
       state.lastGameplayA2 = activeA2;
 
-      const pre = state.preRoot || { x: body.x, y: body.y, clock: now };
+      const pre = state.preRoot || { x: body.x, y: body.y, clock: now, motion: movementIntent(body) };
+      const motion = pre.motion || movementIntent(body);
+      const external = body.__hrExternalVelocity || { x: 0, y: 0 };
+      motion.contactVx = motion.physicalVx + (Number(external.x) || 0);
+      motion.contactVy = motion.physicalVy + (Number(external.y) || 0);
       state.frameSample = {
         before: { x: pre.x, y: pre.y },
         after: { x: body.x, y: body.y },
+        motion: { x: motion.x, y: motion.y, active: motion.active, contactVx: motion.contactVx, contactVy: motion.contactVy },
         dt,
         clock: now,
       };
@@ -228,6 +272,7 @@
           after: state.frameSample.after,
           radius: body.radius,
         },
+        motion: state.frameSample.motion,
         a1Objects: objects.a1Objects,
         a2Objects: objects.a2Objects,
       });

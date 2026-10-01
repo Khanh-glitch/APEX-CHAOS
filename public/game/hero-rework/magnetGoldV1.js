@@ -68,17 +68,19 @@ function createState(combatant){
     target[id]={x:0,y:0,r:0,sx:1,sy:1};
   }
   for(const key of CHANNELS)gold[key]={env:1,pulse:0,tau:.12,dip:0,hold:0,rec:.2,v:1};
-  let seed = (0x4d41474e^(((combatant&&combatant.idx||0)+1)*0x9e3779b9))>>>0;
-  const random=()=>{seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return(seed>>>0)/0x100000000;};
+  const rng={seed:(0x4d41474e^(((combatant&&combatant.idx||0)+1)*0x9e3779b9))>>>0};
+  const random=()=>{rng.seed^=rng.seed<<13;rng.seed^=rng.seed>>>17;rng.seed^=rng.seed<<5;return(rng.seed>>>0)/0x100000000;};
   return{
-    combatant,rig,target,gold,random,queue:[],accumulator:0,fixedSteps:0,droppedTime:0,simTime:0,frameCount:0,
+    combatant,rig,target,gold,rng,random,queue:[],accumulator:0,fixedSteps:0,droppedTime:0,simTime:0,frameCount:0,
     root:{x:combatant?.anchor?.x||0,y:combatant?.anchor?.y||0,radius:combatant?.anchor?.radius||75},
-    lastRoot:null,velocity:{x:0,y:0},acceleration:{x:0,y:0},lastDir:{x:1,y:0},lastMoving:false,turnCooldown:0,
+    lastRoot:null,resolvedVelocity:{x:0,y:0},velocity:{x:0,y:0},acceleration:{x:0,y:0},lastDir:{x:1,y:0},
+    motionIntent:{x:0,y:0,active:false,contactVx:0,contactVy:0},intentActive:false,stopping:false,turnCooldown:0,
     hax:new Float32Array(128),hay:new Float32Array(128),hi:0,leadSide:1,
-    wall:{L:false,R:false,T:false,B:false},slide:0,slideNormal:{x:0,y:0},
+    wall:{L:false,R:false,T:false,B:false},pendingWall:null,
+    wallProxy:{active:false,nx:0,ny:0,x:0,y:0,touch:false,lastCue:-Infinity},slide:0,slideNormal:{x:0,y:0},
     a1:-1,a2:-1,a1Lead:1,a2Lead:1,a1Target:{x:0,y:0},desiredA1Target:{x:0,y:0},passive:0,lastAct:0,
     idle:{next:2.2,t0:-99,side:0,amp:2,rot:.8,dir:1,dy:0,w:1},
-    objects:{a1:[],a2:[]},histories:new Map(),hot:new Float32Array(24),a2Seen:new Set(),
+    objects:{a1:[],a2:[]},histories:new Map(),hot:new Float32Array(24),a1Seen:new Set(),a2Seen:new Set(),
     arcs:[],bumps:[],echoes:[],corridors:[],rings:[],particles:[],sockets:null,
   };
 }
@@ -107,9 +109,15 @@ function updateObjectTruth(s,input,dt){
   active.forEach((o,index)=>{if(!o||!Number.isFinite(o.x)||!Number.isFinite(o.y))return;const key=objectKey(o,index);o.key=key;seen.add(key);let h=s.histories.get(key);if(!h){h={kind:o.kind||'object',hostile:!!o.hostile,points:[],stale:0,object:o};s.histories.set(key,h);}h.object=o;h.hostile=!!o.hostile;h.stale=0;const last=h.points[h.points.length-1];if(!last||Math.hypot(o.x-last.x,o.y-last.y)>.25)h.points.push({x:o.x,y:o.y});if(h.points.length>20)h.points.shift();});
   for(const[key,h]of s.histories){if(!seen.has(key))h.stale+=dt;if(h.stale>.75)s.histories.delete(key);}
   const targets=s.objects.a1.filter(o=>o&&Number.isFinite(o.x)&&Number.isFinite(o.y)).sort((a,b)=>Math.hypot(a.x-s.root.x,a.y-s.root.y)-Math.hypot(b.x-s.root.x,b.y-s.root.y));
-  if(targets.length){const o=targets[0],x=o.x-s.root.x,y=o.y-s.root.y,d=Math.hypot(x,y);s.desiredA1Target.x=d?x/d:0;s.desiredA1Target.y=d?y/d:0;s.a1Lead=x<0?0:1;}
-  else if(input.a1Target){const x=Number(input.a1Target.x)||0,y=Number(input.a1Target.y)||0,d=Math.hypot(x,y);s.desiredA1Target.x=d?x/d:0;s.desiredA1Target.y=d?y/d:0;if(d)s.a1Lead=x<0?0:1;}
+  if(targets.length){const o=targets[0],x=o.x-s.root.x,y=o.y-s.root.y,d=Math.hypot(x,y);s.desiredA1Target.x=d?x/d:0;s.desiredA1Target.y=d?y/d:0;}
+  else if(input.a1Target){const x=Number(input.a1Target.x)||0,y=Number(input.a1Target.y)||0,d=Math.hypot(x,y);s.desiredA1Target.x=d?x/d:0;s.desiredA1Target.y=d?y/d:0;}
   else{s.desiredA1Target.x=0;s.desiredA1Target.y=0;}
+  if(s.a1>=0&&s.a1<=1){
+    for(let index=0;index<s.objects.a1.length;index++){
+      const object=s.objects.a1[index],d=Math.hypot(object.x-s.root.x,object.y-s.root.y),key=objectKey(object,index);
+      if(object.kind==='gun'&&d<100&&!s.a1Seen.has(key)){s.a1Seen.add(key);proximityReact(s,object,true);}
+    }
+  }
   if(s.a2>=0&&s.a2<=1.8){for(let index=0;index<s.objects.a2.length;index++){const o=s.objects.a2[index],dx=o.x-s.root.x,dy=o.y-s.root.y,d=Math.hypot(dx,dy);if(!(d>0&&d<225))continue;const bin=(((Math.atan2(dy,dx)/TAU)%1+1)%1*24)|0,u=1-d/225;s.hot[bin]=Math.max(s.hot[bin],u*u);s.hot[(bin+1)%24]=Math.max(s.hot[(bin+1)%24],u*u*.7);s.hot[(bin+23)%24]=Math.max(s.hot[(bin+23)%24],u*u*.7);const key=objectKey(o,index);if(!s.a2Seen.has(key)){s.a2Seen.add(key);const side=dx<0?0:1;after(s,50,()=>kick(s,POLES[side],INWARD[side]*2,0,INWARD[side]*.65*DEG));addBump(s,o.x,o.y,dx/d,dy/d,4.2,o.radius?o.radius+12:28,.38);}}}
 }
 function ageEffects(s){
@@ -158,16 +166,25 @@ function impact(s,data={}){
   addBump(s,Number(data.x)||s.root.x,Number(data.y)||s.root.y,-dx,-dy,4.2+level*2.4,24+level*6,.38);
 }
 
+function proximityReact(s,object,strong){
+  const dx=object.x-s.root.x,dy=object.y-s.root.y,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d,side=dx<0?0:1;
+  kick(s,'core',ux*(strong?1.2:.7),uy*(strong?1.2:.7));
+  kick(s,POLES[side],ux*(strong?2.2:1),uy*(strong?1.6:.8),ux*(strong?1.2:.5)*DEG*-INWARD[side]);
+  pulse(s,'core.eyes',strong?.4:.15,.14);if(strong)pulse(s,'core.main',.25,.14);s.lastAct=s.simTime;
+}
 function startA1(s,data={}){
-  s.a1=0;s.lastAct=s.simTime;
-  const x=Number(data.x)||0,y=Number(data.y)||0,d=Math.hypot(x,y);
+  s.a1=0;s.lastAct=s.simTime;s.a1Seen.clear();
+  let x=Number(data.x)||0,y=Number(data.y)||0;
+  const objects=Array.isArray(data.objects)?data.objects.filter(o=>o&&Number.isFinite(o.x)&&Number.isFinite(o.y)):[];
+  if(objects.length){objects.sort((a,b)=>Math.hypot(a.x-s.root.x,a.y-s.root.y)-Math.hypot(b.x-s.root.x,b.y-s.root.y));x=objects[0].x-s.root.x;y=objects[0].y-s.root.y;}
+  const d=Math.hypot(x,y);
   s.desiredA1Target.x=d?x/d:0;s.desiredA1Target.y=d?y/d:0;s.a1Lead=x<0?0:1;
   goldRouteA1(s);addEcho(s,'a1',0,4,.07,.22);
   addArc(s,s.root.x,s.root.y,68,150,Math.PI,.56,.48,1.7,'a1');addArc(s,s.root.x,s.root.y,68,150,0,.56,.48,1.7,'a1');
   for(const object of(data.objects||[]))addRing(s,object);
 }
-function startA2(s){
-  s.a2=0;s.a2Lead=s.random()<.5?0:1;s.lastAct=s.simTime;s.a2Seen.clear();
+function startA2(s,data={}){
+  s.a2=0;s.a2Lead=data.lead===0||data.lead===1?data.lead:(s.random()<.5?0:1);s.lastAct=s.simTime;s.a2Seen.clear();
   after(s,70,()=>{pulse(s,'core.main',.75,.15);pulse(s,'core.eyes',.48,.14);});
   after(s,155,()=>{pulse(s,'polL.out',.72,.18);pulse(s,'polR.out',.72,.18);});
   s.rig.core.vsy+=-.03*14;s.rig.core.vsx+=.03*14;addEcho(s,'a2',0,-3,.07,.24);
@@ -186,7 +203,7 @@ function passiveEmission(s,data={}){
   after(s,110,()=>goldRecover(s,side,0));
   addCorridor(s,Number(data.x)||s.root.x,Number(data.y)||s.root.y,angle);addEcho(s,'passive',-ax*5,-ay*5,.055,.14);
 }
-function cue(combatant,type,data){const s=stateFor(combatant);if(type==='a1')startA1(s,data);else if(type==='a2')startA2(s);else if(type==='passive')passiveEmission(s,data);else if(type==='impact')impact(s,data);else if(type==='wall')wallImpact(s,data?.nx||0,data?.ny||0,data?.speed||0);else if(type==='lateReveal'){addRing(s,data?.object);if(data?.object){addMotes(s,data.object.x,data.object.y,2);pulse(s,'core.eyes',.2,.14);}}}
+function cue(combatant,type,data){const s=stateFor(combatant);if(type==='a1')startA1(s,data);else if(type==='a2')startA2(s,data);else if(type==='passive')passiveEmission(s,data);else if(type==='impact')impact(s,data);else if(type==='wall')wallImpact(s,data?.nx||0,data?.ny||0,data?.speed||0);else if(type==='lateReveal'){addRing(s,data?.object);if(data?.object){addMotes(s,data.object.x,data.object.y,2);pulse(s,'core.eyes',.2,.14);}}}
 
 function movementStart(s,dx,dy){
   const side=dx>=0?1:0,other=1-side;s.lastAct=s.simTime;
@@ -210,24 +227,26 @@ function movementStop(s,dx,dy){
   after(s,120,()=>{s.rig.spine.vsy-=.1;s.rig.spine.vsx+=.05;});
 }
 function sampleRoot(s,input,dt){
-  const a=s.combatant?.anchor||{},before=input?.before||s.lastRoot||{x:a.x||0,y:a.y||0},after=input?.after||{x:a.x||0,y:a.y||0};
-  const h=Math.max(dt,1e-4),vx=(after.x-before.x)/h,vy=(after.y-before.y)/h;
-  const oldX=s.velocity.x,oldY=s.velocity.y,speed=Math.hypot(vx,vy),oldSpeed=Math.hypot(oldX,oldY);
-  const ax=clamp((vx-oldX)/h,-2400,2400),ay=clamp((vy-oldY)/h,-2400,2400),f=1-Math.exp(-h/.03);
-  s.acceleration.x+=(ax-s.acceleration.x)*f;s.acceleration.y+=(ay-s.acceleration.y)*f;
-  if(speed>140&&oldSpeed>140&&(vx*oldX+vy*oldY)/(speed*oldSpeed)<-.25&&s.simTime>s.turnCooldown){s.turnCooldown=s.simTime+.4;hardTurn(s,vx/speed,vy/speed,oldX/oldSpeed,oldY/oldSpeed);}
-  if(speed>25&&!s.lastMoving&&oldSpeed<90)movementStart(s,vx/(speed||1),vy/(speed||1));
-  if(speed<35&&s.lastMoving&&oldSpeed>150)movementStop(s,s.lastDir.x,s.lastDir.y);
-  if(speed>25){s.lastDir.x=vx/speed;s.lastDir.y=vy/speed;}
-  s.lastMoving=speed>35;s.velocity.x=vx;s.velocity.y=vy;
-  s.root.x=after.x;s.root.y=after.y;s.root.radius=a.radius||input?.radius||75;s.lastRoot={x:after.x,y:after.y};s.frameCount++;
+  const root=input?.root||input||{},a=s.combatant?.anchor||{};
+  const before=root.before||s.lastRoot||{x:a.x||0,y:a.y||0},after=root.after||{x:a.x||0,y:a.y||0};
+  const h=Math.max(dt,1e-4),measuredVx=(after.x-before.x)/h,measuredVy=(after.y-before.y)/h;
+  s.resolvedVelocity.x=measuredVx;s.resolvedVelocity.y=measuredVy;
+  const motion=input?.motion;
+  let ix=motion&&Number.isFinite(motion.x)?motion.x:measuredVx;
+  let iy=motion&&Number.isFinite(motion.y)?motion.y:measuredVy;
+  const ilen=Math.hypot(ix,iy),active=motion?!!motion.active:ilen>12;
+  if(active&&ilen>1e-6){ix/=ilen;iy/=ilen;}else{ix=0;iy=0;}
+  s.motionIntent.x=ix;s.motionIntent.y=iy;s.motionIntent.active=active;
+  s.motionIntent.contactVx=motion&&Number.isFinite(motion.contactVx)?motion.contactVx:measuredVx;
+  s.motionIntent.contactVy=motion&&Number.isFinite(motion.contactVy)?motion.contactVy:measuredVy;
+  s.root.x=after.x;s.root.y=after.y;s.root.radius=a.radius||root.radius||75;s.lastRoot={x:after.x,y:after.y};s.frameCount++;
 
-  const size=Number(g.GAME_SIZE)||1000,r=s.root.radius;
+  const size=Number(g.GAME_SIZE)||1000,r=s.root.radius,cvx=s.motionIntent.contactVx,cvy=s.motionIntent.contactVy;
   const contacts={L:after.x<=r+.5,R:after.x>=size-r-.5,T:after.y<=r+.5,B:after.y>=size-r-.5};
   const normals={L:[1,0],R:[-1,0],T:[0,1],B:[0,-1]};let sliding=null;
   for(const key of Object.keys(contacts)){
-    const n=normals[key],tangent=(key==='L'||key==='R')?Math.abs(vy):Math.abs(vx);
-    if(contacts[key]&&!s.wall[key]){const inward=Math.max(0,-(vx*n[0]+vy*n[1]));if(inward>25)wallImpact(s,n[0],n[1],inward);}
+    const n=normals[key],tangent=(key==='L'||key==='R')?Math.abs(cvy):Math.abs(cvx);
+    if(contacts[key]&&!s.wall[key])s.pendingWall={nx:n[0],ny:n[1]};
     s.wall[key]=contacts[key];if(contacts[key]&&tangent>110)sliding=n;
   }
   if(sliding){s.slideNormal.x=sliding[0];s.slideNormal.y=sliding[1];}
@@ -252,6 +271,43 @@ function fixedStep(s){
   s.simTime+=DT;runQueue(s);
   if(s.a1>=0){s.a1+=DT;if(s.a1>1.6)s.a1=-1;}if(s.a2>=0){s.a2+=DT;if(s.a2>2.3)s.a2=-1;}if(s.passive>0)s.passive=Math.max(0,s.passive-DT);
   const track=1-Math.exp(-DT*8);s.a1Target.x+=(s.desiredA1Target.x-s.a1Target.x)*track;s.a1Target.y+=(s.desiredA1Target.y-s.a1Target.y)*track;
+  // Mechanical translation of the donor's locomotion block. Apex keeps the
+  // authoritative root; this private velocity/acceleration proxy exists only
+  // to drive the unchanged Gold history buffers, lag and spring targets.
+  const mi=s.motionIntent,ix=mi.active?mi.x:0,iy=mi.active?mi.y:0,inputLen=mi.active?1:0;
+  const ovx=s.velocity.x,ovy=s.velocity.y,sp0=Math.hypot(ovx,ovy);
+  if(inputLen&&sp0>140&&(ix*ovx+iy*ovy)/sp0<-.25&&s.simTime>s.turnCooldown){s.turnCooldown=s.simTime+.4;hardTurn(s,ix,iy,ovx/sp0,ovy/sp0);}
+  if(inputLen&&!s.intentActive&&sp0<90)movementStart(s,ix,iy);
+  if(!inputLen&&s.intentActive&&sp0>150){s.stopping=true;s.lastDir.x=ovx/sp0;s.lastDir.y=ovy/sp0;}
+  if(inputLen){s.lastDir.x=ix;s.lastDir.y=iy;}
+  s.intentActive=!!inputLen;
+  const tvx=ix*420,tvy=iy*420,rate=inputLen?1450:1850,ex=tvx-s.velocity.x,ey=tvy-s.velocity.y,el=Math.hypot(ex,ey),step=rate*DT;
+  if(el<=step){s.velocity.x=tvx;s.velocity.y=tvy;}else{s.velocity.x+=ex/el*step;s.velocity.y+=ey/el*step;}
+  const axr=clamp((s.velocity.x-ovx)/DT,-2400,2400),ayr=clamp((s.velocity.y-ovy)/DT,-2400,2400),af=1-Math.exp(-DT/.03);
+  s.acceleration.x+=(axr-s.acceleration.x)*af;s.acceleration.y+=(ayr-s.acceleration.y)*af;
+  if(s.stopping&&!inputLen&&Math.hypot(s.velocity.x,s.velocity.y)<35){s.stopping=false;movementStop(s,s.lastDir.x,s.lastDir.y);}
+  const resolveProxyWall=(proxy,enter)=>{
+    const inward=Math.max(0,-(s.velocity.x*proxy.nx+s.velocity.y*proxy.ny));
+    if(inward>0){
+      if(enter&&inward>25&&s.simTime>proxy.lastCue){wallImpact(s,proxy.nx,proxy.ny,inward);proxy.lastCue=s.simTime+.22;}
+      const bounce=inward*(inward>140?.4:.05);
+      s.velocity.x+=proxy.nx*(inward+bounce);s.velocity.y+=proxy.ny*(inward+bounce);
+    }
+    proxy.touch=true;
+  };
+  if(s.pendingWall){
+    const n=s.pendingWall,p=s.wallProxy;s.pendingWall=null;
+    p.active=true;p.nx=n.nx;p.ny=n.ny;p.touch=false;
+    p.x=n.nx>0?96:n.nx<0?904:s.root.x;p.y=n.ny>0?80:n.ny<0?920:s.root.y;
+    resolveProxyWall(p,true);
+  }else if(s.wallProxy.active){
+    const p=s.wallProxy;p.x+=s.velocity.x*DT;p.y+=s.velocity.y*DT;
+    const distance=p.nx>0?p.x-96:p.nx<0?904-p.x:p.ny>0?p.y-80:920-p.y;
+    if(distance<=0){
+      if(p.nx>0)p.x=96;else if(p.nx<0)p.x=904;else if(p.ny>0)p.y=80;else p.y=920;
+      resolveProxyWall(p,!p.touch);
+    }else if(distance>3)p.touch=false;
+  }
   for(const key of CHANNELS){const q=s.gold[key];q.env+=(goldTarget(s,key)-q.env)*(1-Math.exp(-DT*15));q.pulse*=Math.exp(-DT/q.tau);if(q.hold>0)q.hold-=DT;else q.dip=Math.max(0,q.dip-DT/q.rec);q.v=clamp((q.env+q.pulse)*(1-q.dip),0,2.2);}
   s.hax[s.hi]=s.acceleration.x;s.hay[s.hi]=s.acceleration.y;s.hi=(s.hi+1)&127;
   for(const id of IDS){Object.assign(s.target[id],{x:0,y:0,r:0,sx:1,sy:1});s.rig[id].kM=1;}
@@ -271,7 +327,7 @@ function fixedStep(s){
 }
 function updateFrame(combatant,dt,input={}){
   if(!combatant||!combatant.anchor)return;const s=stateFor(combatant),frameDt=clamp(Number(dt)||0,0,.1);
-  if(frameDt>0)sampleRoot(s,input.root||input,frameDt);
+  if(frameDt>0)sampleRoot(s,input,frameDt);
   updateObjectTruth(s,input,frameDt);
   s.accumulator+=frameDt;let n=0;while(s.accumulator>=DT&&n<6){fixedStep(s);s.accumulator-=DT;n++;}
   if(n>=6&&s.accumulator>=DT){s.droppedTime+=s.accumulator;s.accumulator=0;}
@@ -318,8 +374,32 @@ function displacement(s,x,y){
   for(const b of s.bumps){const ex=x-b.x,ey=y-b.y,d2=ex*ex+ey*ey,sig=b.sigma*b.sigma;if(d2<sig*7){const k=1-b.age/b.d,p=Math.exp(-d2/sig)*b.amp*k;dx+=b.nx*p;dy+=b.ny*p;}}
   return[dx,dy];
 }
-function drawFloorDistortion(ctx,s){if(a1Intensity(s)<.02&&a2Intensity(s)<.02&&!s.bumps.length)return;ctx.save();ctx.lineWidth=.78;ctx.strokeStyle=a2Intensity(s)>.02?'rgba(214,222,226,.11)':'rgba(214,222,226,.075)';ctx.beginPath();for(let line=50;line<1000;line+=50){for(let p=0;p<=1000;p+=12.5){const o=displacement(s,line,p);if(!p)ctx.moveTo(line+o[0],p+o[1]);else ctx.lineTo(line+o[0],p+o[1]);}for(let p=0;p<=1000;p+=12.5){const o=displacement(s,p,line);if(!p)ctx.moveTo(p+o[0],line+o[1]);else ctx.lineTo(p+o[0],line+o[1]);}}ctx.stroke();ctx.restore();}
-function drawHistories(ctx,s){const f=a1Intensity(s);if(f<.03)return;const active=new Set(s.objects.a1.map((o,i)=>objectKey(o,i)));for(const[key,h]of s.histories)if(active.has(key))drawTrail(ctx,h.points,h.hostile,h.object?.kind==='gun'?.8:1,f);}
+function drawFloorDistortion(ctx,s){
+  const f1=a1Intensity(s),f2=a2Intensity(s);if(f1<.02&&f2<.02&&!s.bumps.length)return;
+  // Deform pixels the arena already rendered. Small overlapping local lenses
+  // sample the donor displacement field; no replacement grid or global floor
+  // overlay is introduced.
+  const radius=f2>.02?Math.min(190,225*(.58+.22*f2)):Math.min(150,110+45*f1),count=f2>.02?8:6;
+  for(let i=0;i<count;i++){
+    const angle=i*TAU/count+s.simTime*.035,px=s.root.x+Math.cos(angle)*radius*.58,py=s.root.y+Math.sin(angle)*radius*.58;
+    const delta=displacement(s,px,py),power=Math.max(f1,f2);
+    lens(ctx,px,py,22+power*12,1.012+power*.016,delta[0]*.22,delta[1]*.22,.13+power*.17);
+  }
+  for(const bump of s.bumps){
+    const k=1-bump.age/bump.d;if(k<=0)continue;
+    const delta=displacement(s,bump.x,bump.y);
+    lens(ctx,bump.x,bump.y,Math.min(46,bump.sigma*1.35),1.025,delta[0]*.35,delta[1]*.35,.24*k);
+  }
+}
+function drawHistories(ctx,s){
+  const f1=a1Intensity(s),f2=a2Intensity(s);if(f1<.03&&f2<.03)return;
+  const a1=new Set(s.objects.a1.map((o,i)=>objectKey(o,i)));
+  const a2=new Set(s.objects.a2.map((o,i)=>o.kind==='bullet'?objectKey(o,i):null).filter(Boolean));
+  for(const[key,h]of s.histories){
+    const intensity=Math.max(a1.has(key)?f1:0,a2.has(key)?f2:0);
+    if(intensity>.03)drawTrail(ctx,h.points,h.hostile,h.object?.kind==='gun'?.8:1,intensity);
+  }
+}
 function drawArcs(ctx,s){if(!s.arcs.length)return;ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';for(const a of s.arcs){const k=a.age/a.d,env=(1-k)*Math.min(1,a.age/.055),base=a.color==='impact'?'255,224,176':a.color==='a1'?'234,174,42':'255,205,70';for(const q of [[1,.22,3],[.68,.48,1.75],[.34,.92,.82]]){ctx.strokeStyle=`rgba(${base},${env*q[1]})`;ctx.lineWidth=a.w*q[2];ctx.beginPath();ctx.arc(a.x,a.y,Math.max(2,a.r),a.a-a.span*q[0],a.a+a.span*q[0]);ctx.stroke();}}ctx.restore();}
 function currentObject(s,ring){return[...s.objects.a1,...s.objects.a2].find((o,i)=>objectKey(o,i)===ring.key)||ring.object;}
 function drawRings(ctx,s){ctx.save();ctx.globalCompositeOperation='lighter';for(const ring of s.rings){const o=currentObject(s,ring);if(!o)continue;const k=ring.age/ring.d,r=20+34*k,a=(1-k)*Math.min(1,ring.age/.06)*ring.alpha;ctx.strokeStyle=`rgba(255,205,72,${a*.42})`;ctx.lineWidth=2.3;ctx.beginPath();ctx.arc(o.x,o.y,r,0,TAU);ctx.stroke();ctx.strokeStyle=`rgba(255,239,176,${a})`;ctx.lineWidth=.8;ctx.beginPath();ctx.arc(o.x,o.y,r-3,0,TAU);ctx.stroke();}ctx.restore();}
@@ -342,10 +422,11 @@ function draw(ctx,combatant){
 function teardown(combatant){if(combatant)states.delete(combatant);else states.clear();}
 function stateSnapshot(s){return s&&{fixedSteps:s.fixedSteps,droppedTime:s.droppedTime,accumulator:s.accumulator,simTime:s.simTime,frameCount:s.frameCount,a1:s.a1,a2:s.a2,passive:s.passive,bodyScale:SOURCE_SCALE*bodyK(s),bodyCalibration:BODY_VISUAL_CALIBRATION,root:{...s.root},velocity:{...s.velocity},acceleration:{...s.acceleration},a1Target:{...s.a1Target},desiredA1Target:{...s.desiredA1Target},rig:s.rig,gold:s.gold,sockets:socketsFor(s),objects:{a1:s.objects.a1.length,a2:s.objects.a2.length,a1Kinds:s.objects.a1.map(o=>o.kind),a2Kinds:s.objects.a2.map(o=>o.kind),a2Items:s.objects.a2.map(o=>({kind:o.kind,id:o.id??null,x:o.x,y:o.y}))},effects:{histories:s.histories.size,projectileHistories:[...s.histories.values()].filter(h=>h.kind==='bullet').length,arcs:s.arcs.length,bumps:s.bumps.length,echoes:s.echoes.length,corridors:s.corridors.length,rings:s.rings.length,particles:s.particles.length,hot:[...s.hot]}};}
 function inspect(combatant){const s=combatant?states.get(combatant):null;return{ready,loadError:loadError&&String(loadError),stateCount:states.size,state:stateSnapshot(s)};}
+function setRandomSeed(combatant,value){stateFor(combatant).rng.seed=(Number(value)>>>0);}
 
 g.APEX_MAGNET_GOLD={
   version:'2.0.0-canonical-engine',DT,META,BODY_REF,BODY_VISUAL_CALIBRATION,
-  updateFrame,tick,cue,drawBefore,draw,drawActor:draw,drawAfter,getSockets,teardown,inspect,
+  updateFrame,tick,cue,drawBefore,draw,drawActor:draw,drawAfter,getSockets,teardown,inspect,setRandomSeed,
   get ready(){return ready;},
 };
 g.apexMagnetGoldV1='ready';
