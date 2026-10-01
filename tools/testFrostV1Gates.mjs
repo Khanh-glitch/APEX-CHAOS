@@ -69,8 +69,11 @@ try {
   const manifest = fs.readFileSync('src/game/runtimeManifest.js', 'utf8');
   const lock = JSON.parse(fs.readFileSync('tools/runtimeRevision.lock.json', 'utf8'));
   const m = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION = '([^']+)'/);
+  // Lineage law: the cache-bust revision stays in the crystala-v2-r11-frost
+  // line and the lock is re-cut on the same string. The date stamp moves with
+  // each relock, so it is matched as a date, not pinned to one day.
   gate('F00.4-revision-lineage',
-    !!m && m[1].indexOf('20260930-crystala-v2-r11-frost-') === 0 && lock.revision === m[1],
+    !!m && /^\d{8}-crystala-v2-r11-frost-/.test(m[1]) && lock.revision === m[1],
     { revision: m && m[1], lock: lock.revision });
 } catch (e) { gate('F00.4-revision-lineage', false, String(e && e.message)); }
 

@@ -4,7 +4,7 @@
 // CP7: gameplay-ready barriers + start-of-match fail-cue fix — cache-bust
 // every runtime that changed in this pass (config/presentation/meta/
 // shellSelect/ladder).
-export const APEX_ARSENAL_RUNTIME_REVISION = '20260930-crystala-v2-r11-frost-v1-d3';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261001-crystala-v2-r11-frost-v1-final';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by

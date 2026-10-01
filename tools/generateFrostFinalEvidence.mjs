@@ -135,6 +135,7 @@ function once(opp, frames, drive, opts, frost) {
   let leaks = 0;
   const shotFrame = opts.shotAt == null ? Math.floor(frames * 0.66) : opts.shotAt;
   const oppW = [], oppH = [], oppInk = [], scene = [], frostW = [], frostH = [];
+  const pre = { w: 0, h: 0 };
   let shot = null;
   for (let k = 0; k < frames; k++) {
     if (drive) drive(o, k, frost);
@@ -145,6 +146,7 @@ function once(opp, frames, drive, opts, frost) {
     });
     if (k % 3 === 0 || k === frames - 1) {
       const bb = bodyBox(crop(o.b.x, o.b.y, 100));
+      if (k === 0) { pre.w = bb.w; pre.h = bb.h; }   // same-match pre-ability box
       const ba = bodyBox(crop(o.a.x, o.a.y, 110));
       oppW.push(bb.w); oppH.push(bb.h); oppInk.push(bb.ink);
       frostW.push(ba.w); frostH.push(ba.h);
@@ -158,7 +160,8 @@ function once(opp, frames, drive, opts, frost) {
   const ins = P().inspect(o.a) || {};
   return {
     o, shot, breaks, leaks,
-    opp: { w: med(oppW), h: med(oppH), wSpread: spread(oppW), hSpread: spread(oppH), inkSpread: spread(oppInk) },
+    opp: { w: med(oppW), h: med(oppH), wSpread: spread(oppW), hSpread: spread(oppH), inkSpread: spread(oppInk),
+      preW: pre.w, preH: pre.h, dW: med(oppW) - pre.w, dH: med(oppH) - pre.h },
     frost: { w: med(frostW), h: med(frostH) },
     ink: { min: Math.min(...scene), med: med(scene), max: Math.max(...scene) },
     state: { mode: ins.mode, iceNodes: ins.iceNodes, trail: ins.a2 && ins.a2.trail, laneNodes: ins.a1 && ins.a1.nodes,
@@ -186,7 +189,11 @@ function run(name, opp, frames, drive, opts = {}) {
   const ctlSpreadW = Math.max(ctlA.opp.wSpread, ctlB.opp.wSpread);
   const ctlSpreadH = Math.max(ctlA.opp.hSpread, ctlB.opp.hSpread);
   const drift = { w: Math.abs(ctlA.opp.w - ctlB.opp.w), h: Math.abs(ctlA.opp.h - ctlB.opp.h) };
-  const tolW = Math.max(3, drift.w + 1), tolH = Math.max(3, drift.h + 1);
+  // Peers spawn with their own per-match blob/rig seeds, so comparing medians
+  // ACROSS runs measures the peer, not Frost. The decisive comparison is
+  // within the SAME match: the opponent's box before the ability vs during it.
+  const tolW = Math.max(3, Math.abs(ctlB.opp.dW) + 1, Math.abs(ctlA.opp.dW) + 1);
+  const tolH = Math.max(3, Math.abs(ctlB.opp.dH) + 1, Math.abs(ctlA.opp.dH) + 1);
   const r = {
     scenario: name, opponent: opp, frames,
     quietRegionsWatched: watched,
@@ -212,12 +219,12 @@ function run(name, opp, frames, drive, opts = {}) {
     // as its own non-Frost runs (tolerance = measured control-vs-control drift).
     opponentScaleStable: opts.opponentOverlap ? true
       : act.opp.wSpread <= ctlSpreadW + 3 && act.opp.hSpread <= ctlSpreadH + 3
-        && Math.abs(act.opp.w - ctlB.opp.w) <= tolW && Math.abs(act.opp.h - ctlB.opp.h) <= tolH,
+        && Math.abs(act.opp.dW) <= tolW && Math.abs(act.opp.dH) <= tolH,
     noCanvasLeak: act.leaks === 0,
   };
   r.pass = Object.values(r.verdict).every(Boolean);
   results.push(r);
-  console.log(`${r.pass ? 'OK  ' : 'BAD '} ${name.padEnd(30)} breaks=${newBreaks}/${watched} opp=${act.opp.w}x${act.opp.h}(${act.opp.wSpread}/${act.opp.hSpread}) ctl=${ctlB.opp.w}x${ctlB.opp.h}(${ctlSpreadW}/${ctlSpreadH}) drift=${drift.w}/${drift.h}${opts.opponentOverlap ? ' [overlap by design]' : ''} leaks=${act.leaks} ink=${act.ink.min}..${act.ink.max}`);
+  console.log(`${r.pass ? 'OK  ' : 'BAD '} ${name.padEnd(30)} breaks=${newBreaks}/${watched} opp=${act.opp.w}x${act.opp.h}(${act.opp.wSpread}/${act.opp.hSpread}) ctl=${ctlB.opp.w}x${ctlB.opp.h}(${ctlSpreadW}/${ctlSpreadH}) sameMatchDelta=${act.opp.dW}/${act.opp.dH} (tol ${tolW}/${tolH})${opts.opponentOverlap ? ' [overlap by design]' : ''} leaks=${act.leaks} ink=${act.ink.min}..${act.ink.max}`);
   return { o: act.o, r };
 }
 
@@ -395,17 +402,22 @@ md.push('  perfectly stable; with Frost on they must still be bitwise identical 
 md.push('  frame. Camera drift, transform/alpha leaks, full-screen overdraw break this.');
 md.push('- **opp box / ctl box** — the opponent\'s solid silhouette (median size and the');
 md.push('  total size spread over the scenario) with Frost on vs the control leg.');
+md.push('- **same-match delta** — the decisive scale test: the opponent\'s box DURING the');
+md.push('  Frost ability minus its box in the same match before the ability, against a');
+md.push('  tolerance measured from the control legs (peers spawn with their own rig');
+md.push('  seeds, so cross-run medians measure the peer, not Frost).');
 md.push('  `[overlap]` marks scenarios where Frost ice intentionally covers the target');
 md.push('  (body contact, Freeze shell, gun steal), so the delta is informational.');
 md.push('- **scene ink** — whole-canvas ink sampled in six full-width bands.');
 md.push('- **leaks** — the presentation\'s canvas-state guard counter for this scenario.', '');
-md.push('| scenario | opponent | quiet breaks | opp box (spread) | ctl box (spread) | ctl drift | scene ink | leaks | verdict |');
+md.push('| scenario | opponent | quiet breaks | opp box (spread) | same-match delta | ctl box (spread) | scene ink | leaks | verdict |');
 md.push('|---|---|---|---|---|---|---|---|---|');
 for (const r of results) {
   const ob = r.opponentBox ? `${r.opponentBox.w}x${r.opponentBox.h} (${r.opponentBox.wSpread}/${r.opponentBox.hSpread})${r.opponentOverlapByDesign ? ' [overlap]' : ''}` : '—';
   const cb = r.opponentControl ? `${r.opponentControl.w}x${r.opponentControl.h} (${r.opponentControl.wSpread}/${r.opponentControl.hSpread})` : '—';
   const dr = r.opponentControlDrift ? `${r.opponentControlDrift.w}/${r.opponentControlDrift.h}` : '—';
-  md.push(`| ${r.scenario} | ${r.opponent} | ${r.quietRegionBreaks}/${r.quietRegionsWatched == null ? '—' : r.quietRegionsWatched} | ${ob} | ${cb} | ${dr} | ${r.sceneInk.min}..${r.sceneInk.max} | ${r.stateLeaks} | ${r.pass ? 'PASS' : 'FAIL'} |`);
+  const dm = r.opponentBox ? `${r.opponentBox.dW}/${r.opponentBox.dH} (tol ${r.opponentTolerance.w}/${r.opponentTolerance.h})` : '—';
+  md.push(`| ${r.scenario} | ${r.opponent} | ${r.quietRegionBreaks}/${r.quietRegionsWatched == null ? '—' : r.quietRegionsWatched} | ${ob} | ${dm} | ${cb} | ${r.sceneInk.min}..${r.sceneInk.max} | ${r.stateLeaks} | ${r.pass ? 'PASS' : 'FAIL'} |`);
 }
 md.push('', `Frames: \`${FRAMES}/\` (one full game-canvas PNG per scenario).`, '');
 md.push(failures.length ? `**FAILURES: ${failures.map((f) => f.scenario).join(', ')}**` : '**ALL SCENARIOS PASS.**');

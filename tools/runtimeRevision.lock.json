@@ -1,5 +1,5 @@
 {
-  "revision": "20260930-crystala-v2-r11-frost-v1-d3",
+  "revision": "20261001-crystala-v2-r11-frost-v1-final",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "a0d10025cde29ee55d6eb95a06aee2cbebe2a56e01adcdb1154f8366e3128712",
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
@@ -27,7 +27,7 @@
     "public/game/hero-rework/hunterGoldV10.js": "3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1",
     "public/game/hero-rework/hunterPresentationRuntime.js": "a5e414a61a25ce5595d129a712785b59fa68f996febb29cdf361b36302c645e2",
     "public/game/hero-rework/crystalaPresentationRuntime.js": "f50ec334fff37debc4e8b4c7647deed331e32eb926ea64234eb1b26f53819432",
-    "public/game/hero-rework/frostGoldV1.js": "e7513271079212c618f56507bc6fd150d272b44bbe2a0a9b36319ff68a2b1eb6",
-    "public/game/hero-rework/frostPresentationRuntime.js": "f8dc7aa864d050211f09d3c70056ff3e71444e810f51b842278f9d4c10ab33b7"
+    "public/game/hero-rework/frostGoldV1.js": "916fcfaa16081ae38ce754db7447aaaf8c95621fcac121cd2376f10c39696198",
+    "public/game/hero-rework/frostPresentationRuntime.js": "ec05adb34f9bac956e382d23c8cdb0ca6879b5d03d84128bd54fc47a039a7991"
   }
 }

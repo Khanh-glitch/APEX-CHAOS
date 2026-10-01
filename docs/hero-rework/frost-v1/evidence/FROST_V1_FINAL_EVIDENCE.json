@@ -1,0 +1,2017 @@
+{
+  "generatedAt": "2026-10-01T03:11:52.841Z",
+  "renderer": "@napi-rs/canvas (real 2D backend) + real APEX runtimes, 1000x1000 game canvas",
+  "scenarios": 25,
+  "failures": [],
+  "results": [
+    {
+      "scenario": "01-idle-vs-ROBOT",
+      "opponent": "ROBOT",
+      "frames": 24,
+      "quietRegionsWatched": 3,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 146,
+        "h": 140,
+        "wSpread": 0,
+        "hSpread": 0,
+        "inkSpread": 39,
+        "preW": 146,
+        "preH": 140,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControl": {
+        "w": 146,
+        "h": 140,
+        "wSpread": 0,
+        "hSpread": 0,
+        "inkSpread": 40,
+        "preW": 146,
+        "preH": 140,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControlDrift": {
+        "w": 1,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 147,
+        "h": 186
+      },
+      "sceneInk": {
+        "min": 7336,
+        "med": 7340,
+        "max": 7345
+      },
+      "sceneInkControl": {
+        "min": 7336,
+        "med": 7340,
+        "max": 7345
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "free",
+        "iceNodes": 0,
+        "trail": 0,
+        "laneNodes": 0,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/01-idle-vs-ROBOT.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "01-idle-vs-ICE",
+      "opponent": "ICE",
+      "frames": 24,
+      "quietRegionsWatched": 3,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 147,
+        "h": 185,
+        "wSpread": 1,
+        "hSpread": 2,
+        "inkSpread": 98,
+        "preW": 146,
+        "preH": 185,
+        "dW": 1,
+        "dH": 0
+      },
+      "opponentControl": {
+        "w": 147,
+        "h": 185,
+        "wSpread": 1,
+        "hSpread": 2,
+        "inkSpread": 98,
+        "preW": 146,
+        "preH": 185,
+        "dW": 1,
+        "dH": 0
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 147,
+        "h": 186
+      },
+      "sceneInk": {
+        "min": 7346,
+        "med": 7351,
+        "max": 7357
+      },
+      "sceneInkControl": {
+        "min": 7346,
+        "med": 7351,
+        "max": 7357
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "free",
+        "iceNodes": 0,
+        "trail": 0,
+        "laneNodes": 0,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/01-idle-vs-ICE.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "01-idle-vs-HUNTER",
+      "opponent": "HUNTER",
+      "frames": 24,
+      "quietRegionsWatched": 3,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 156,
+        "h": 151,
+        "wSpread": 3,
+        "hSpread": 7,
+        "inkSpread": 967,
+        "preW": 159,
+        "preH": 156,
+        "dW": -3,
+        "dH": -5
+      },
+      "opponentControl": {
+        "w": 156,
+        "h": 151,
+        "wSpread": 3,
+        "hSpread": 7,
+        "inkSpread": 967,
+        "preW": 159,
+        "preH": 156,
+        "dW": -3,
+        "dH": -5
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 4,
+        "h": 6
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 147,
+        "h": 186
+      },
+      "sceneInk": {
+        "min": 7393,
+        "med": 7406,
+        "max": 7418
+      },
+      "sceneInkControl": {
+        "min": 7393,
+        "med": 7406,
+        "max": 7418
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "free",
+        "iceNodes": 0,
+        "trail": 0,
+        "laneNodes": 0,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/01-idle-vs-HUNTER.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "01-idle-vs-CRYSTAL",
+      "opponent": "CRYSTAL",
+      "frames": 24,
+      "quietRegionsWatched": 2,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          8,
+          0
+        ],
+        [
+          0,
+          8,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        8,
+        0
+      ],
+      "opponentBox": {
+        "w": 175,
+        "h": 171,
+        "wSpread": 31,
+        "hSpread": 30,
+        "inkSpread": 1381,
+        "preW": 160,
+        "preH": 170,
+        "dW": 15,
+        "dH": 1
+      },
+      "opponentControl": {
+        "w": 175,
+        "h": 171,
+        "wSpread": 31,
+        "hSpread": 30,
+        "inkSpread": 1381,
+        "preW": 160,
+        "preH": 170,
+        "dW": 15,
+        "dH": 1
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 16,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 147,
+        "h": 186
+      },
+      "sceneInk": {
+        "min": 7242,
+        "med": 7307,
+        "max": 7454
+      },
+      "sceneInkControl": {
+        "min": 7242,
+        "med": 7307,
+        "max": 7454
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "free",
+        "iceNodes": 0,
+        "trail": 0,
+        "laneNodes": 0,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/01-idle-vs-CRYSTAL.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "01-idle-vs-SLIME",
+      "opponent": "SLIME",
+      "frames": 24,
+      "quietRegionsWatched": 3,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 151,
+        "h": 151,
+        "wSpread": 0,
+        "hSpread": 0,
+        "inkSpread": 0,
+        "preW": 151,
+        "preH": 151,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControl": {
+        "w": 148,
+        "h": 151,
+        "wSpread": 0,
+        "hSpread": 0,
+        "inkSpread": 0,
+        "preW": 148,
+        "preH": 151,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControlDrift": {
+        "w": 1,
+        "h": 1
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 147,
+        "h": 186
+      },
+      "sceneInk": {
+        "min": 7389,
+        "med": 7393,
+        "max": 7398
+      },
+      "sceneInkControl": {
+        "min": 7386,
+        "med": 7390,
+        "max": 7395
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "free",
+        "iceNodes": 0,
+        "trail": 0,
+        "laneNodes": 0,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/01-idle-vs-SLIME.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "02-a1-vs-ROBOT",
+      "opponent": "ROBOT",
+      "frames": 60,
+      "quietRegionsWatched": 3,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 146,
+        "h": 140,
+        "wSpread": 1,
+        "hSpread": 0,
+        "inkSpread": 65,
+        "preW": 146,
+        "preH": 140,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControl": {
+        "w": 146,
+        "h": 140,
+        "wSpread": 0,
+        "hSpread": 0,
+        "inkSpread": 40,
+        "preW": 146,
+        "preH": 140,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 183,
+        "h": 195
+      },
+      "sceneInk": {
+        "min": 7337,
+        "med": 7413,
+        "max": 7734
+      },
+      "sceneInkControl": {
+        "min": 7336,
+        "med": 7339,
+        "max": 7345
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "free",
+        "iceNodes": 73,
+        "trail": 0,
+        "laneNodes": 73,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/02-a1-vs-ROBOT.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "02-a1-vs-ICE",
+      "opponent": "ICE",
+      "frames": 60,
+      "quietRegionsWatched": 3,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 147,
+        "h": 186,
+        "wSpread": 1,
+        "hSpread": 2,
+        "inkSpread": 126,
+        "preW": 146,
+        "preH": 185,
+        "dW": 1,
+        "dH": 1
+      },
+      "opponentControl": {
+        "w": 147,
+        "h": 186,
+        "wSpread": 1,
+        "hSpread": 2,
+        "inkSpread": 126,
+        "preW": 146,
+        "preH": 185,
+        "dW": 1,
+        "dH": 1
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 183,
+        "h": 185
+      },
+      "sceneInk": {
+        "min": 7351,
+        "med": 7418,
+        "max": 7753
+      },
+      "sceneInkControl": {
+        "min": 7346,
+        "med": 7349,
+        "max": 7357
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "free",
+        "iceNodes": 73,
+        "trail": 0,
+        "laneNodes": 73,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/02-a1-vs-ICE.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "02-a1-vs-HUNTER",
+      "opponent": "HUNTER",
+      "frames": 60,
+      "quietRegionsWatched": 3,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 156,
+        "h": 149,
+        "wSpread": 4,
+        "hSpread": 8,
+        "inkSpread": 962,
+        "preW": 159,
+        "preH": 156,
+        "dW": -3,
+        "dH": -7
+      },
+      "opponentControl": {
+        "w": 156,
+        "h": 149,
+        "wSpread": 4,
+        "hSpread": 8,
+        "inkSpread": 962,
+        "preW": 159,
+        "preH": 156,
+        "dW": -3,
+        "dH": -7
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 4,
+        "h": 8
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 183,
+        "h": 190
+      },
+      "sceneInk": {
+        "min": 7406,
+        "med": 7473,
+        "max": 7783
+      },
+      "sceneInkControl": {
+        "min": 7377,
+        "med": 7400,
+        "max": 7418
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "free",
+        "iceNodes": 73,
+        "trail": 0,
+        "laneNodes": 73,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/02-a1-vs-HUNTER.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "02-a1-vs-CRYSTAL",
+      "opponent": "CRYSTAL",
+      "frames": 60,
+      "quietRegionsWatched": 2,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          44,
+          0
+        ],
+        [
+          0,
+          44,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        44,
+        0
+      ],
+      "opponentBox": {
+        "w": 180,
+        "h": 170,
+        "wSpread": 31,
+        "hSpread": 30,
+        "inkSpread": 1381,
+        "preW": 160,
+        "preH": 170,
+        "dW": 20,
+        "dH": 0
+      },
+      "opponentControl": {
+        "w": 180,
+        "h": 170,
+        "wSpread": 31,
+        "hSpread": 30,
+        "inkSpread": 1381,
+        "preW": 160,
+        "preH": 170,
+        "dW": 20,
+        "dH": 0
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 21,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 183,
+        "h": 200
+      },
+      "sceneInk": {
+        "min": 7256,
+        "med": 7404,
+        "max": 7727
+      },
+      "sceneInkControl": {
+        "min": 7242,
+        "med": 7320,
+        "max": 7454
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "free",
+        "iceNodes": 73,
+        "trail": 0,
+        "laneNodes": 73,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/02-a1-vs-CRYSTAL.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "02-a1-vs-SLIME",
+      "opponent": "SLIME",
+      "frames": 60,
+      "quietRegionsWatched": 3,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 148,
+        "h": 150,
+        "wSpread": 0,
+        "hSpread": 0,
+        "inkSpread": 4,
+        "preW": 148,
+        "preH": 150,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControl": {
+        "w": 151,
+        "h": 150,
+        "wSpread": 0,
+        "hSpread": 0,
+        "inkSpread": 0,
+        "preW": 151,
+        "preH": 150,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControlDrift": {
+        "w": 3,
+        "h": 2
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 183,
+        "h": 185
+      },
+      "sceneInk": {
+        "min": 7398,
+        "med": 7470,
+        "max": 7792
+      },
+      "sceneInkControl": {
+        "min": 7398,
+        "med": 7400,
+        "max": 7407
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "free",
+        "iceNodes": 73,
+        "trail": 0,
+        "laneNodes": 73,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/02-a1-vs-SLIME.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "03-a2-vs-ROBOT",
+      "opponent": "ROBOT",
+      "frames": 60,
+      "quietRegionsWatched": 3,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 146,
+        "h": 140,
+        "wSpread": 0,
+        "hSpread": 0,
+        "inkSpread": 51,
+        "preW": 146,
+        "preH": 140,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControl": {
+        "w": 146,
+        "h": 140,
+        "wSpread": 0,
+        "hSpread": 0,
+        "inkSpread": 51,
+        "preW": 146,
+        "preH": 140,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 160,
+        "h": 207
+      },
+      "sceneInk": {
+        "min": 7386,
+        "med": 7531,
+        "max": 7770
+      },
+      "sceneInkControl": {
+        "min": 7390,
+        "med": 7521,
+        "max": 7778
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "a2",
+        "iceNodes": 38,
+        "trail": 38,
+        "laneNodes": 0,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/03-a2-vs-ROBOT.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "03-a2-vs-ICE",
+      "opponent": "ICE",
+      "frames": 60,
+      "quietRegionsWatched": 3,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 147,
+        "h": 186,
+        "wSpread": 0,
+        "hSpread": 2,
+        "inkSpread": 81,
+        "preW": 147,
+        "preH": 184,
+        "dW": 0,
+        "dH": 2
+      },
+      "opponentControl": {
+        "w": 147,
+        "h": 186,
+        "wSpread": 0,
+        "hSpread": 2,
+        "inkSpread": 81,
+        "preW": 147,
+        "preH": 184,
+        "dW": 0,
+        "dH": 2
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 160,
+        "h": 207
+      },
+      "sceneInk": {
+        "min": 7340,
+        "med": 7496,
+        "max": 7720
+      },
+      "sceneInkControl": {
+        "min": 7346,
+        "med": 7478,
+        "max": 7728
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "a2",
+        "iceNodes": 38,
+        "trail": 38,
+        "laneNodes": 0,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/03-a2-vs-ICE.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "03-a2-vs-HUNTER",
+      "opponent": "HUNTER",
+      "frames": 60,
+      "quietRegionsWatched": 3,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 155,
+        "h": 148,
+        "wSpread": 1,
+        "hSpread": 1,
+        "inkSpread": 162,
+        "preW": 156,
+        "preH": 149,
+        "dW": -1,
+        "dH": -1
+      },
+      "opponentControl": {
+        "w": 155,
+        "h": 148,
+        "wSpread": 1,
+        "hSpread": 1,
+        "inkSpread": 162,
+        "preW": 156,
+        "preH": 149,
+        "dW": -1,
+        "dH": -1
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 160,
+        "h": 207
+      },
+      "sceneInk": {
+        "min": 7371,
+        "med": 7519,
+        "max": 7759
+      },
+      "sceneInkControl": {
+        "min": 7371,
+        "med": 7504,
+        "max": 7767
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "a2",
+        "iceNodes": 38,
+        "trail": 38,
+        "laneNodes": 0,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/03-a2-vs-HUNTER.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "03-a2-vs-CRYSTAL",
+      "opponent": "CRYSTAL",
+      "frames": 60,
+      "quietRegionsWatched": 2,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          47,
+          0
+        ],
+        [
+          0,
+          47,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        47,
+        0
+      ],
+      "opponentBox": {
+        "w": 180,
+        "h": 170,
+        "wSpread": 26,
+        "hSpread": 30,
+        "inkSpread": 1343,
+        "preW": 160,
+        "preH": 176,
+        "dW": 20,
+        "dH": -6
+      },
+      "opponentControl": {
+        "w": 180,
+        "h": 170,
+        "wSpread": 26,
+        "hSpread": 30,
+        "inkSpread": 1357,
+        "preW": 160,
+        "preH": 176,
+        "dW": 20,
+        "dH": -6
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 21,
+        "h": 7
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 160,
+        "h": 207
+      },
+      "sceneInk": {
+        "min": 7364,
+        "med": 7631,
+        "max": 7836
+      },
+      "sceneInkControl": {
+        "min": 7398,
+        "med": 7611,
+        "max": 7741
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "a2",
+        "iceNodes": 38,
+        "trail": 38,
+        "laneNodes": 0,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/03-a2-vs-CRYSTAL.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "03-a2-vs-SLIME",
+      "opponent": "SLIME",
+      "frames": 60,
+      "quietRegionsWatched": 3,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 148,
+        "h": 142,
+        "wSpread": 0,
+        "hSpread": 0,
+        "inkSpread": 7,
+        "preW": 148,
+        "preH": 142,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControl": {
+        "w": 150,
+        "h": 147,
+        "wSpread": 0,
+        "hSpread": 0,
+        "inkSpread": 5,
+        "preW": 150,
+        "preH": 147,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControlDrift": {
+        "w": 2,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 160,
+        "h": 207
+      },
+      "sceneInk": {
+        "min": 7436,
+        "med": 7572,
+        "max": 7807
+      },
+      "sceneInkControl": {
+        "min": 7416,
+        "med": 7548,
+        "max": 7797
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "a2",
+        "iceNodes": 38,
+        "trail": 38,
+        "laneNodes": 0,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/03-a2-vs-SLIME.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "04-both-moving",
+      "opponent": "ROBOT",
+      "frames": 70,
+      "quietRegionsWatched": 2,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 146,
+        "h": 140,
+        "wSpread": 2,
+        "hSpread": 1,
+        "inkSpread": 167,
+        "preW": 145,
+        "preH": 140,
+        "dW": 1,
+        "dH": 0
+      },
+      "opponentControl": {
+        "w": 146,
+        "h": 140,
+        "wSpread": 1,
+        "hSpread": 1,
+        "inkSpread": 174,
+        "preW": 145,
+        "preH": 140,
+        "dW": 1,
+        "dH": 0
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 185,
+        "h": 189
+      },
+      "sceneInk": {
+        "min": 6994,
+        "med": 7072,
+        "max": 7209
+      },
+      "sceneInkControl": {
+        "min": 6990,
+        "med": 7070,
+        "max": 7212
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "a2",
+        "iceNodes": 60,
+        "trail": 60,
+        "laneNodes": 0,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/04-both-moving.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "05-a2-wall-bounce",
+      "opponent": "ROBOT",
+      "frames": 80,
+      "quietRegionsWatched": 2,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 146,
+        "h": 140,
+        "wSpread": 1,
+        "hSpread": 1,
+        "inkSpread": 42,
+        "preW": 145,
+        "preH": 140,
+        "dW": 1,
+        "dH": 0
+      },
+      "opponentControl": {
+        "w": 146,
+        "h": 140,
+        "wSpread": 1,
+        "hSpread": 1,
+        "inkSpread": 42,
+        "preW": 145,
+        "preH": 140,
+        "dW": 1,
+        "dH": 0
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 185,
+        "h": 196
+      },
+      "sceneInk": {
+        "min": 7019,
+        "med": 7620,
+        "max": 7634
+      },
+      "sceneInkControl": {
+        "min": 7019,
+        "med": 7588,
+        "max": 7594
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "a2",
+        "iceNodes": 18,
+        "trail": 18,
+        "laneNodes": 0,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/05-a2-wall-bounce.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "06-a2-body-contact",
+      "opponent": "ROBOT",
+      "frames": 70,
+      "quietRegionsWatched": 2,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 177,
+        "h": 140,
+        "wSpread": 32,
+        "hSpread": 1,
+        "inkSpread": 3702,
+        "preW": 145,
+        "preH": 140,
+        "dW": 32,
+        "dH": 0
+      },
+      "opponentControl": {
+        "w": 173,
+        "h": 140,
+        "wSpread": 28,
+        "hSpread": 0,
+        "inkSpread": 1491,
+        "preW": 145,
+        "preH": 140,
+        "dW": 28,
+        "dH": 0
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 29,
+        "h": 3
+      },
+      "opponentOverlapByDesign": true,
+      "frostBox": {
+        "w": 220,
+        "h": 190
+      },
+      "sceneInk": {
+        "min": 6936,
+        "med": 7110,
+        "max": 7248
+      },
+      "sceneInkControl": {
+        "min": 7115,
+        "med": 7246,
+        "max": 7256
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "a2",
+        "iceNodes": 13,
+        "trail": 12,
+        "laneNodes": 0,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/06-a2-body-contact.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "07-concurrent-a1-a2",
+      "opponent": "ROBOT",
+      "frames": 110,
+      "quietRegionsWatched": 2,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 146,
+        "h": 140,
+        "wSpread": 0,
+        "hSpread": 1,
+        "inkSpread": 42,
+        "preW": 146,
+        "preH": 140,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControl": {
+        "w": 146,
+        "h": 140,
+        "wSpread": 0,
+        "hSpread": 1,
+        "inkSpread": 74,
+        "preW": 146,
+        "preH": 140,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 220,
+        "h": 192
+      },
+      "sceneInk": {
+        "min": 7379,
+        "med": 7987,
+        "max": 8176
+      },
+      "sceneInkControl": {
+        "min": 7379,
+        "med": 7518,
+        "max": 7822
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "a2",
+        "iceNodes": 107,
+        "trail": 34,
+        "laneNodes": 73,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/07-concurrent-a1-a2.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "08-frozen-gun-bullet",
+      "opponent": "ROBOT",
+      "frames": 60,
+      "quietRegionsWatched": 2,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 146,
+        "h": 140,
+        "wSpread": 0,
+        "hSpread": 0,
+        "inkSpread": 51,
+        "preW": 146,
+        "preH": 140,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControl": {
+        "w": 146,
+        "h": 140,
+        "wSpread": 0,
+        "hSpread": 0,
+        "inkSpread": 51,
+        "preW": 146,
+        "preH": 140,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 3
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 184,
+        "h": 187
+      },
+      "sceneInk": {
+        "min": 7515,
+        "med": 7587,
+        "max": 7904
+      },
+      "sceneInkControl": {
+        "min": 7410,
+        "med": 7507,
+        "max": 7526
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "free",
+        "iceNodes": 73,
+        "trail": 0,
+        "laneNodes": 73,
+        "guns": 1,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/08-frozen-gun-bullet.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "09-freeze-shell",
+      "opponent": "ROBOT",
+      "frames": 40,
+      "quietRegionsWatched": 0,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          12,
+          13,
+          12
+        ],
+        [
+          13,
+          13,
+          13
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 195,
+        "h": 191,
+        "wSpread": 47,
+        "hSpread": 57,
+        "inkSpread": 17410,
+        "preW": 148,
+        "preH": 137,
+        "dW": 47,
+        "dH": 54
+      },
+      "opponentControl": {
+        "w": 157,
+        "h": 140,
+        "wSpread": 55,
+        "hSpread": 32,
+        "inkSpread": 1317,
+        "preW": 155,
+        "preH": 139,
+        "dW": 2,
+        "dH": 1
+      },
+      "opponentControlDrift": {
+        "w": 11,
+        "h": 1
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 3
+      },
+      "opponentOverlapByDesign": true,
+      "frostBox": {
+        "w": 184,
+        "h": 185
+      },
+      "sceneInk": {
+        "min": 7133,
+        "med": 7271,
+        "max": 7289
+      },
+      "sceneInkControl": {
+        "min": 7137,
+        "med": 7257,
+        "max": 17762
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "free",
+        "iceNodes": 1,
+        "trail": 0,
+        "laneNodes": 0,
+        "guns": 0,
+        "shell": true,
+        "kBody": 2.206,
+        "shellPlates": 9
+      },
+      "png": "frames/09-freeze-shell.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "10-thaw-complete",
+      "opponent": "ROBOT",
+      "frames": 150,
+      "quietRegionBreaks": 0,
+      "thaw": {
+        "shellGone": true,
+        "victim": null,
+        "iceNodes": 1
+      },
+      "sceneInk": {
+        "min": 7208,
+        "med": 7278,
+        "max": 7308
+      },
+      "stateLeaks": 0,
+      "png": "frames/10-thaw-complete.png",
+      "verdict": {
+        "shellReleased": true,
+        "noVictimLeft": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "11-a2-gun-steal",
+      "opponent": "ROBOT",
+      "frames": 80,
+      "quietRegionsWatched": 0,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          43,
+          43
+        ],
+        [
+          43,
+          43
+        ]
+      ],
+      "quietRegionsFrost": [
+        31,
+        31
+      ],
+      "opponentBox": {
+        "w": 176,
+        "h": 168,
+        "wSpread": 57,
+        "hSpread": 62,
+        "inkSpread": 16185,
+        "preW": 144,
+        "preH": 139,
+        "dW": 32,
+        "dH": 29
+      },
+      "opponentControl": {
+        "w": 170,
+        "h": 172,
+        "wSpread": 30,
+        "hSpread": 35,
+        "inkSpread": 3699,
+        "preW": 144,
+        "preH": 139,
+        "dW": 26,
+        "dH": 33
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 27,
+        "h": 34
+      },
+      "opponentOverlapByDesign": true,
+      "frostBox": {
+        "w": 220,
+        "h": 198
+      },
+      "sceneInk": {
+        "min": 7061,
+        "med": 7277,
+        "max": 17960
+      },
+      "sceneInkControl": {
+        "min": 7061,
+        "med": 7258,
+        "max": 17857
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "a2",
+        "iceNodes": 16,
+        "trail": 14,
+        "laneNodes": 0,
+        "guns": 1,
+        "shell": true,
+        "kBody": 2.206
+      },
+      "png": "frames/11-a2-gun-steal.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "12-cast-then-rematch",
+      "opponent": "ROBOT",
+      "frames": 40,
+      "quietRegionsWatched": 3,
+      "quietRegionBreaks": 0,
+      "quietRegionsControl": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "quietRegionsFrost": [
+        0,
+        0,
+        0
+      ],
+      "opponentBox": {
+        "w": 144,
+        "h": 139,
+        "wSpread": 0,
+        "hSpread": 0,
+        "inkSpread": 25,
+        "preW": 144,
+        "preH": 139,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControl": {
+        "w": 144,
+        "h": 139,
+        "wSpread": 1,
+        "hSpread": 0,
+        "inkSpread": 44,
+        "preW": 144,
+        "preH": 139,
+        "dW": 0,
+        "dH": 0
+      },
+      "opponentControlDrift": {
+        "w": 0,
+        "h": 0
+      },
+      "opponentTolerance": {
+        "w": 3,
+        "h": 5
+      },
+      "opponentOverlapByDesign": false,
+      "frostBox": {
+        "w": 182,
+        "h": 192
+      },
+      "sceneInk": {
+        "min": 7336,
+        "med": 7356,
+        "max": 7614
+      },
+      "sceneInkControl": {
+        "min": 7331,
+        "med": 7338,
+        "max": 7341
+      },
+      "stateLeaks": 0,
+      "frost": {
+        "mode": "a1",
+        "iceNodes": 73,
+        "trail": 0,
+        "laneNodes": 73,
+        "guns": 0,
+        "shell": false,
+        "kBody": 2.206
+      },
+      "png": "frames/12-cast-then-rematch.png",
+      "verdict": {
+        "sceneIsolation": true,
+        "opponentScaleStable": true,
+        "noCanvasLeak": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "13-rematch-fresh",
+      "opponent": "ROBOT",
+      "frames": 10,
+      "quietRegionBreaks": 0,
+      "rematch": {
+        "mode": "free",
+        "iceNodes": 0,
+        "guns": 0,
+        "victim": null,
+        "queued": 0,
+        "t": 0.167
+      },
+      "sceneInk": {
+        "min": 7230,
+        "med": 7230,
+        "max": 7230
+      },
+      "stateLeaks": 0,
+      "png": "frames/13-rematch-fresh.png",
+      "verdict": {
+        "nothingSurvives": true
+      },
+      "pass": true
+    }
+  ]
+}
