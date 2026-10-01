@@ -120,9 +120,15 @@
     return slot ? floorDescriptor(slot) : null;
   }
 
+  function combatantByBodyId(id) {
+    for (const ct of magnets()) if (ct.bodies && ct.bodies.some((body) => body && body.id === id)) return ct;
+    return null;
+  }
   function onEvent(event) {
     const payload = event && event.payload || {};
-    const ct = byIndex(payload.combatantIndex);
+    const ct = event.type === 'RealizedDamageEvent'
+      ? combatantByBodyId(payload.victim)
+      : byIndex(payload.combatantIndex);
     if (!ct) return;
     const state = stateFor(ct);
     if (event.type === 'MagnetA1Start') {
@@ -141,11 +147,25 @@
         speed: payload.speed,
         weapon: payload.weapon,
       });
+    } else if (event.type === 'RealizedDamageEvent') {
+      const body = ct.bodies.find((item) => item && item.id === payload.victim) || ct.anchor;
+      let dx = body.x - Number(payload.sourceX);
+      let dy = body.y - Number(payload.sourceY);
+      const length = Math.hypot(dx, dy);
+      if (length > 1e-6) { dx /= length; dy /= length; }
+      else { dx = -(body.dir && body.dir.x || 1); dy = -(body.dir && body.dir.y || 0); }
+      GOLD.cue(ct, 'impact', {
+        dx,
+        dy,
+        amount: Number(payload.amount) || 0,
+        x: body.x - dx * (body.radius || 75),
+        y: body.y - dy * (body.radius || 75),
+      });
     }
   }
   function subscribe() {
     if (!AIL || !AIL.bus) return;
-    for (const type of ['MagnetA1Start', 'MagnetA2Start', 'MagnetLateReveal', 'MagnetPassiveEmission']) {
+    for (const type of ['MagnetA1Start', 'MagnetA2Start', 'MagnetLateReveal', 'MagnetPassiveEmission', 'RealizedDamageEvent']) {
       unsubscribers.push(AIL.bus.on(type, onEvent));
     }
   }

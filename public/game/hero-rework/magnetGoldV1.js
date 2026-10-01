@@ -151,7 +151,7 @@ function wallImpact(s,nx,ny,speed){
   if(level>=1){addEcho(s,'wall',-nx*(5+level*2),-ny*(5+level*2),level===2?.11:.07,level===2?.26:.18);addBump(s,s.root.x-nx*s.root.radius,s.root.y-ny*s.root.radius,nx,ny,4.5+level*2.2,28+level*6,.42);addArc(s,s.root.x-nx*s.root.radius,s.root.y-ny*s.root.radius,10,45,Math.atan2(ny,nx),.44,.34,1.5,'impact');}
 }
 function impact(s,data={}){
-  const dx=Number(data.dx)||0,dy=Number(data.dy)||0,mag=clamp(Number(data.magnitude)||5,2,14),level=mag<4.5?0:mag<8?1:2;
+  const dx=Number(data.dx)||0,dy=Number(data.dy)||0,raw=Number(data.magnitude)||(Number(data.amount)>0?2+Math.sqrt(Number(data.amount))*1.6:5),mag=clamp(raw,2,14),level=mag<4.5?0:mag<8?1:2;
   structural(s,dx,dy,mag,data.side==null?(dx<0?0:1):data.side,level);
   pulse(s,'core.eyes',.4,.08);goldRecover(s,dx<0?0:1,level);
   addEcho(s,'hit',-dx*(level===2?9:6),-dy*(level===2?9:6),level===2?.12:.075,level===2?.24:.17);

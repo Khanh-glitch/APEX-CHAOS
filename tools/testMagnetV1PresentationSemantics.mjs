@@ -27,6 +27,9 @@ try{
   m=start();m.opponent.x=630;m.opponent.y=500;T.pushSlot({x:500,y:330});H.projectiles().push({type:'aq_bullet',aq:true,owner:m.opponent,weapon:'PISTOL',x:570,y:470,px:570,py:470,vx:0,vy:240,radius:5,damage:1,life:2,maxLife:2,__hr:{}});gate('a2-real-object-cast-accepted',HR.pressAbility(m.fighter,'A2').ok,{});T.step(.12,1/120);state=GOLD.inspect(m.ct).state;
   const kinds=new Set(state.objects.a2Kinds);gate('a2-real-body-floor-gun-hostile-bullet-fed',kinds.has('body')&&kinds.has('gun')&&kinds.has('bullet')&&state.effects.hot.some(v=>v>0),{objects:state.objects,hotMax:Math.max(...state.effects.hot)});
 
+  m=start();T.step(.02,1/120);const fxBefore=GOLD.inspect(m.ct).state.effects;m.fighter.takeDamage(16,m.opponent,'semantic-contact-test');const fxImpact=GOLD.inspect(m.ct).state.effects;T.step(.08,1/120);
+  gate('real-damage-event-drives-gold-contact-recovery',fxImpact.echoes===fxBefore.echoes+1&&fxImpact.bumps===fxBefore.bumps+1&&finitePose(GOLD.inspect(m.ct).state.rig),{before:{echoes:fxBefore.echoes,bumps:fxBefore.bumps},after:{echoes:fxImpact.echoes,bumps:fxImpact.bumps}});
+
   const spec={owner:m.fighter,x:m.fighter.x,y:m.fighter.y,angle:Math.PI/3,speed:1000,damage:10,weapon:'PISTOL'},tag=HR.onFireBullet(spec);state=GOLD.inspect(m.ct).state;
   gate('passive-real-emission-timing-and-once-only-speed',tag.magnetBoosted===true&&spec.speed===1180&&PRES.inspect(m.ct).state.corridors===1,{speed:spec.speed,tag,corridors:PRES.inspect(m.ct).state.corridors});
 
