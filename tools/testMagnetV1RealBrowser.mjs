@@ -36,9 +36,9 @@ try{
     await waitFrames(36);
     const after={clock:Number(window.matchClock)||0,scheduler:{...pres.inspect(ct).scheduler},gold:gold.inspect(ct).state,sample:pres.inspect(ct).state.frameSample,body:{x:fighter.x,y:fighter.y}};
     const slot={id:state.nextSlotId++,x:100,y:500,phase:'REVEALED',weaponId:'PISTOL',revealLeadSeconds:1.5,revealedFor:0,pickedBy:null,rejectedFor:{},spawnTime:state.time,predictedHeroETA:null,predictedRivalETA:null,earliestETA:null,predictedFighter:null};state.slots.push(slot);
-    const cast=window.APEX_HERO_REWORK.pressAbility(fighter,'A1');await waitFrames(24);const a1=gold.inspect(ct).state;
+    const cast=window.APEX_HERO_REWORK.pressAbility(fighter,'A1'),a1WallStart=performance.now();await waitFrames(24);const a1WallMs=performance.now()-a1WallStart,a1=gold.inspect(ct).state;
     const canvas=document.getElementById('game-canvas'),pixel=Array.from(canvas.getContext('2d').getImageData(Math.max(0,Math.floor(fighter.x)),Math.max(0,Math.floor(fighter.y)),1,1).data);
-    const report={ready,revision:{gold:gold.version,adapter:pres.version},before:{clock:before.clock,scheduler:before.scheduler,fixedSteps:before.gold.fixedSteps},after:{clock:after.clock,scheduler:after.scheduler,fixedSteps:after.gold.fixedSteps,frameCount:after.gold.frameCount,sample:after.sample,body:after.body},draws:{actor:actorDraws,before:beforeDraws,after:afterDraws},a1:{accepted:!!cast.ok,target:a1.a1Target,desired:a1.desiredA1Target,objects:a1.objects,rings:a1.effects.rings},pixel};
+    const report={ready,revision:{gold:gold.version,adapter:pres.version},before:{clock:before.clock,scheduler:before.scheduler,fixedSteps:before.gold.fixedSteps},after:{clock:after.clock,scheduler:after.scheduler,fixedSteps:after.gold.fixedSteps,frameCount:after.gold.frameCount,sample:after.sample,body:after.body},draws:{actor:actorDraws,before:beforeDraws,after:afterDraws},a1:{accepted:!!cast.ok,target:a1.a1Target,desired:a1.desiredA1Target,objects:a1.objects,rings:a1.effects.rings,wallMs:a1WallMs,meanFrameMs:a1WallMs/24},pixel};
     window.exitArsenalQuestMode();return report;
   });
 }finally{await browser.close();}
@@ -50,6 +50,7 @@ const checks={
   'post-movement-sample-is-drawn-root':Math.hypot(telemetry.after.sample.after.x-telemetry.after.body.x,telemetry.after.sample.after.y-telemetry.after.body.y)<1e-9,
   'three-phase-render-called':telemetry.draws.actor>=30&&telemetry.draws.before===telemetry.draws.actor&&telemetry.draws.after===telemetry.draws.actor,
   'real-raf-a1-production-object-direction':telemetry.a1.accepted&&telemetry.a1.objects.a1===1&&telemetry.a1.target.x<-.5&&telemetry.a1.desired.x<-.99,
+  'a1-field-render-frame-budget-measured':telemetry.a1.meanFrameMs>0&&telemetry.a1.meanFrameMs<40,
   'no-browser-runtime-errors':errors.length===0,
 };
 for(const[name,pass]of Object.entries(checks))console.log(`${pass?'PASS':'FAIL'}  ${name}`);console.log(JSON.stringify(telemetry,null,2));
