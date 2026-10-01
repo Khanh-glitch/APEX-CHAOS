@@ -38,13 +38,14 @@ try{
     const slot={id:state.nextSlotId++,x:100,y:500,phase:'REVEALED',weaponId:'PISTOL',revealLeadSeconds:1.5,revealedFor:0,pickedBy:null,rejectedFor:{},spawnTime:state.time,predictedHeroETA:null,predictedRivalETA:null,earliestETA:null,predictedFighter:null};state.slots.push(slot);
     const cast=window.APEX_HERO_REWORK.pressAbility(fighter,'A1'),a1WallStart=performance.now();await waitFrames(24);const a1WallMs=performance.now()-a1WallStart,a1=gold.inspect(ct).state;
     const canvas=document.getElementById('game-canvas'),pixel=Array.from(canvas.getContext('2d').getImageData(Math.max(0,Math.floor(fighter.x)),Math.max(0,Math.floor(fighter.y)),1,1).data);
-    const report={ready,revision:{gold:gold.version,adapter:pres.version},before:{clock:before.clock,scheduler:before.scheduler,fixedSteps:before.gold.fixedSteps},after:{clock:after.clock,scheduler:after.scheduler,fixedSteps:after.gold.fixedSteps,frameCount:after.gold.frameCount,sample:after.sample,body:after.body},draws:{actor:actorDraws,before:beforeDraws,after:afterDraws},a1:{accepted:!!cast.ok,target:a1.a1Target,desired:a1.desiredA1Target,objects:a1.objects,rings:a1.effects.rings,wallMs:a1WallMs,meanFrameMs:a1WallMs/24},pixel};
+    const goldResource=performance.getEntriesByType('resource').find(entry=>entry.name.includes('/game/hero-rework/magnetGoldV1.js'));
+    const report={ready,revision:{runtime:goldResource?new URL(goldResource.name).searchParams.get('v'):null,gold:gold.version,adapter:pres.version},before:{clock:before.clock,scheduler:before.scheduler,fixedSteps:before.gold.fixedSteps},after:{clock:after.clock,scheduler:after.scheduler,fixedSteps:after.gold.fixedSteps,frameCount:after.gold.frameCount,sample:after.sample,body:after.body},draws:{actor:actorDraws,before:beforeDraws,after:afterDraws},a1:{accepted:!!cast.ok,target:a1.a1Target,desired:a1.desiredA1Target,objects:a1.objects,rings:a1.effects.rings,wallMs:a1WallMs,meanFrameMs:a1WallMs/24},pixel};
     window.exitArsenalQuestMode();return report;
   });
 }finally{await browser.close();}
 const delta={clock:telemetry.after.clock-telemetry.before.clock,tickCalls:telemetry.after.scheduler.tickCalls-telemetry.before.scheduler.tickCalls,advancedFrames:telemetry.after.scheduler.advancedFrames-telemetry.before.scheduler.advancedFrames,duplicateCalls:telemetry.after.scheduler.duplicateCalls-telemetry.before.scheduler.duplicateCalls,fixedSteps:telemetry.after.fixedSteps-telemetry.before.fixedSteps};telemetry.delta=delta;telemetry.errors=errors;
 const checks={
-  'browser-assets-ready':telemetry.ready&&telemetry.revision.gold==='2.0.0-canonical-engine'&&telemetry.revision.adapter==='2.0.0-thin-semantic-adapter',
+  'browser-assets-ready':telemetry.ready&&telemetry.revision.runtime==='20261001-magnet-v1-r2'&&telemetry.revision.gold==='2.0.0-canonical-engine'&&telemetry.revision.adapter==='2.0.0-thin-semantic-adapter',
   'real-raf-exactly-one-frame-owner':delta.tickCalls>=30&&delta.tickCalls===delta.advancedFrames&&delta.duplicateCalls===0,
   'real-raf-fixed-120-mapping':delta.clock>0&&Math.abs(delta.fixedSteps-delta.clock*120)<=3,
   'post-movement-sample-is-drawn-root':Math.hypot(telemetry.after.sample.after.x-telemetry.after.body.x,telemetry.after.sample.after.y-telemetry.after.body.y)<1e-9,

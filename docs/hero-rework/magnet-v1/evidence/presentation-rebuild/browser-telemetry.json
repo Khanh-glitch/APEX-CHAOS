@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T13:11:24.433Z",
+  "generatedAt": "2026-10-01T13:18:01.440Z",
   "url": "http://127.0.0.1:4173",
   "checks": {
     "browser-assets-ready": true,
@@ -8,16 +8,18 @@
     "post-movement-sample-is-drawn-root": true,
     "three-phase-render-called": true,
     "real-raf-a1-production-object-direction": true,
+    "a1-field-render-frame-budget-measured": true,
     "no-browser-runtime-errors": true
   },
   "telemetry": {
     "ready": true,
     "revision": {
+      "runtime": "20261001-magnet-v1-r2",
       "gold": "2.0.0-canonical-engine",
       "adapter": "2.0.0-thin-semantic-adapter"
     },
     "before": {
-      "clock": 0.08799999999985994,
+      "clock": 0.07959999999999855,
       "scheduler": {
         "tickCalls": 4,
         "advancedFrames": 4,
@@ -26,13 +28,13 @@
       "fixedSteps": 11
     },
     "after": {
-      "clock": 0.7531999999998591,
+      "clock": 0.7937999999999992,
       "scheduler": {
         "tickCalls": 40,
         "advancedFrames": 40,
         "duplicateCalls": 0
       },
-      "fixedSteps": 91,
+      "fixedSteps": 97,
       "frameCount": 39,
       "sample": {
         "before": {
@@ -44,7 +46,7 @@
           "y": 500
         },
         "dt": 0.016700000000000728,
-        "clock": 0.7531999999998591
+        "clock": 0.7937999999999992
       },
       "body": {
         "x": 500,
@@ -59,7 +61,7 @@
     "a1": {
       "accepted": true,
       "target": {
-        "x": -0.9643260066527475,
+        "x": -0.9726762775527072,
         "y": 0
       },
       "desired": {
@@ -74,7 +76,9 @@
         ],
         "a2Kinds": []
       },
-      "rings": 1
+      "rings": 1,
+      "wallMs": 584.6000000000931,
+      "meanFrameMs": 24.358333333337214
     },
     "pixel": [
       38,
@@ -83,11 +87,11 @@
       255
     ],
     "delta": {
-      "clock": 0.6651999999999991,
+      "clock": 0.7142000000000006,
       "tickCalls": 36,
       "advancedFrames": 36,
       "duplicateCalls": 0,
-      "fixedSteps": 80
+      "fixedSteps": 86
     },
     "errors": []
   }
