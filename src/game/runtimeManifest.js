@@ -4,7 +4,9 @@
 // CP7: gameplay-ready barriers + start-of-match fail-cue fix — cache-bust
 // every runtime that changed in this pass (config/presentation/meta/
 // shellSelect/ladder).
-export const APEX_ARSENAL_RUNTIME_REVISION = '20260930-crystala-v2-r11-frost-v1-d3';
+// Frost Slice 1 durable checkpoint: gameplay law, gun surface authority,
+// authored A1 lock, and Frost surface/floor-weapon layering.
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261001-frost-v1-slice1-r1';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by

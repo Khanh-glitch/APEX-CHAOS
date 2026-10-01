@@ -425,6 +425,12 @@
         continue;
       }
 
+      // Frost Slice 1: resolve surface conversion in the authoritative pickup
+      // transaction before collector eligibility. This covers a newly spawned
+      // or newly entered gun without one unfrozen/collectible frame.
+      const frostRuntime = window.APEX_FROST;
+      if (frostRuntime && frostRuntime.ensureSurfaceFrozen) frostRuntime.ensureSurfaceFrozen(slot);
+
       for (const f of actors) { // HERO REWORK doc-06 body-aware actors
         if (!f || f.hp <= 0) continue;
         const d = dist(f.x, f.y, slot.x, slot.y);

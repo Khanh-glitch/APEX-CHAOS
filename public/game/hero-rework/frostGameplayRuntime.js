@@ -2,10 +2,10 @@
  * FROST V1 — gameplay truth (APEX_FROST).
  *
  * Authority: docs/hero-rework/frost-v1/00_FROST_IMPLEMENTATION_AUTHORITY.md
- * (Playtest V0: A1 CD 10.5 / 650x160 lane / 4.5s floor / thaw 0.30 / linger
- * 0.35; A2 CD 12.5 / 3.0s window / 120 trail / 3.5s segments / Cold Shock
- * x0.50 1.0s; Passive 8% / Freeze 0.90 / post-thaw lock 0.50; floor law
- * Frost x2.35 / enemy x0.60, strongest-wins, never multiplied.)
+ * (Owner Slice 1: A1 CD 10.5 / 650x360 lane / 4.5s floor / thaw 0.30;
+ * A2 CD 12.5 / 3.0s window / 120 trail / 3.5s segments / Cold Shock x0.50
+ * 1.0s; Passive 8% / Freeze 0.90 / post-thaw lock 0.50; active-surface law
+ * Frost x1.8 / enemy x0.5, strongest unrelated status preserved.)
  *
  * Owns (real APEX truth): A1 breath commitment + near->far crystallization
  * front + lane geometry/lifecycle, A2 hunt window + actual-path trail, the
@@ -45,9 +45,10 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
  * one shared lane expiry after front completion).
  * ------------------------------------------------------------------ */
 const FROST_LAW = Object.freeze({
-  frostFloorMult: 2.35,   // Frost body on Frozen Floor
-  enemyFloorMult: 0.60,   // enemy body on Frozen Floor (also A1 linger)
+  frostFloorMult: 1.80,   // owner Slice 1: Frost locomotion on active ice
+  enemyFloorMult: 0.50,   // owner Slice 1: opponent locomotion on active ice
   frontSeconds: 0.45,     // A1 near->far crystallization front duration
+  a1MotionSeconds: 0.80,  // canonical Gold updateA1 authored motion end (T > 0.8)
   nodeSpacing: 10,        // A2 trail node spacing (px of real travel)
   speedRefresh: 0.12,     // status refresh cadence (RUBBER precedent)
   // A2 steal: ownership moves IMMEDIATELY (authority §7.5 — the holder is
@@ -74,8 +75,9 @@ function stateOf(ct) {
   if (!st) {
     st = {
       a1pending: null,          // { dx, dy, releaseAt }
+      a1lock: null,             // { dx,dy,until,invalidated } authored-motion locomotion lock
       a1lanes: [],              // [{ ox, oy, dx, dy, len, halfW, frontStartAt, frontDoneAt, expireAt }]
-      a2: null,                 // { until, trail: [{x,y,bornAt}], segLife, halfW, endEmitted }
+      a2: null,                 // { until, trail (mechanics), path (exact per-frame presentation history), ... }
       cold: Object.create(null),   // bodyId -> Cold Shock expiry (clock)
       linger: Object.create(null), // bodyId -> A1 linger expiry (clock)
       freeze: Object.create(null), // bodyId -> { until } tracked Freeze (thaw poll; lock is body-global)
@@ -125,6 +127,18 @@ function onA1Floor(st, x, y, now) {
 function onAnyFloor(st, x, y, now) {
   if (onA1Floor(st, x, y, now)) return true;
   if (st.a2 && trailSupports(st.a2.trail, st.a2.halfW, x, y, now, st.a2.segLife)) return true;
+  return false;
+}
+
+// Single semantic authority for gun conversion: any active A1 lane or A2
+// trail from any live Frost combatant supports the gun at this world point.
+function activeFrostSurfaceAt(x, y, now = clock()) {
+  const match = HR() && HR().match;
+  for (const ct of (match && match.combatants) || []) {
+    if (!ct || ct.facade || ct.heroId !== 'ICE') continue;
+    const st = states.get(ct);
+    if (st && onAnyFloor(st, x, y, now)) return true;
+  }
   return false;
 }
 
@@ -192,6 +206,17 @@ function isFreezableFirearm(slot) {
   return !!def && def.category === 'ranged';
 }
 
+function freezeSlotFromSurface(slot, now = clock()) {
+  if (!slot || slot.phase !== 'REVEALED' || !isFreezableFirearm(slot)) return false;
+  if (!activeFrostSurfaceAt(slot.x, slot.y, now)) return false;
+  if (slot.__frostThawUntil) delete slot.__frostThawUntil;
+  if (!slot.__frostFrozen) {
+    slot.__frostFrozen = true;
+    busEmit('FrostSlotFrozen', { slotId: slot.id, weapon: slot.weaponId, source: 'active-surface' });
+  }
+  return true;
+}
+
 /* ------------------------------------------------------------------ *
  * Freeze RNG (authority §6.1/§6.2). Dedicated per-combatant seeded
  * stream (AIL.makeSeededRng, never Math.random). Draws happen ONLY in
@@ -233,7 +258,12 @@ const FR = {
     const dx = (a && a.dir && a.dir.x) || 1, dy = (a && a.dir && a.dir.y) || 0;
     const now = clock();
     st.a1pending = { dx, dy, releaseAt: now + ctx.cfg.castCommit, castAt: now, id: ++st.castSeq };
-    busEmit('FrostBreathCast', { hero: ct.heroId, dir: [dx, dy], releaseAt: st.a1pending.releaseAt });
+    // The Gold's authored A1 assembly remains in its blow/follow-through mode
+    // until T > 0.8. Save the locomotion vector and lock only for that exact
+    // authored interval; presentation timing, not an arbitrary new timer,
+    // defines when movement resumes.
+    st.a1lock = { dx, dy, until: now + FROST_LAW.a1MotionSeconds, invalidated: false };
+    busEmit('FrostBreathCast', { hero: ct.heroId, dir: [dx, dy], releaseAt: st.a1pending.releaseAt, motionEndAt: st.a1lock.until });
     return true;
   },
 
@@ -244,8 +274,15 @@ const FR = {
     const st = stateOf(ct);
     const now = clock();
     st.a2 = {
+      id: ++st.castSeq,
       until: now + ctx.cfg.activeWindow,
       trail: [{ x: a.x, y: a.y, bornAt: now }],
+      // Presentation consumes this exact production movement polyline. Keep it
+      // separate from the 10px mechanics support samples: visual resampling at
+      // Gold's 9px cadence must retain sub-threshold movement and bounce/turn
+      // endpoints instead of reconstructing a second path from coarse nodes.
+      path: [{ x: a.x, y: a.y, bornAt: now }],
+      contacts: Object.create(null), // physical edge latch; engine callback remains primary
       segLife: ctx.cfg.segmentLifetime,
       halfW: ctx.cfg.trailWidth / 2,
       endEmitted: false,
@@ -265,6 +302,25 @@ const FR = {
     const now = clock();
     const a1cfg = ct.skills.A1 && ct.skills.A1.cfg;
     const a2cfg = ct.skills.A2 && ct.skills.A2.cfg;
+
+    // A1 authored-motion lock. Fighter.update consumes positionLocked during
+    // the same engine frame and resets it afterward, so this is refreshed
+    // without mutating baseSpeed or collision/knockback velocity.
+    if (st.a1lock) {
+      const L = st.a1lock;
+      if (now < L.until) {
+        if (ct.anchor && ct.anchor.data) {
+          // A reflected/redirected heading is collision authority. Remember it
+          // and never force the pre-cast vector back at release.
+          const d = ct.anchor.dir;
+          if (d && Math.hypot(d.x - L.dx, d.y - L.dy) > 1e-4) L.invalidated = true;
+          ct.anchor.data.positionLocked = true;
+        }
+      } else {
+        if (!L.invalidated && ct.anchor && typeof ct.anchor.setDir === 'function') ct.anchor.setDir(L.dx, L.dy);
+        st.a1lock = null;
+      }
+    }
 
     // A1 release: live position at release, snapshotted direction.
     if (st.a1pending && now >= st.a1pending.releaseAt && a1cfg) {
@@ -292,6 +348,29 @@ const FR = {
       const w = st.a2;
       const a = ct.anchor;
       if (a && a.hp > 0 && now < w.until) {
+        // The engine collision callback is primary. This physical-overlap edge
+        // latch closes its known swept-contact gap: a fast anchor pair may be
+        // reflected/separated wholly inside one engine step before that hook
+        // observes it. It uses resolved body positions and never pushes.
+        for (const other of api.enemyBodies(ct)) {
+          if (!other || other.hp <= 0) continue;
+          const d = Math.hypot(a.x - other.x, a.y - other.y);
+          const key = other.id;
+          if (d < a.radius + other.radius + 4) {
+            // Only synthesize the missed swept edge after engine reflection:
+            // both headings now point away from the opposing body. Ordinary
+            // overlap/re-contact remains exclusively engine-callback driven.
+            const nx = (other.x - a.x) / (d || 1), ny = (other.y - a.y) / (d || 1);
+            const separating = (a.dir.x * nx + a.dir.y * ny) < -0.1
+              && (other.dir.x * -nx + other.dir.y * -ny) < -0.1;
+            if (!w.contacts[key] && separating) FR.noteBodyContact(ct, a, other);
+          } else if (d >= a.radius + other.radius + 8) {
+            delete w.contacts[key];
+          }
+        }
+        // Exact presentation history is captured after the engine integrates
+        // movement/collisions (capturePostMovement). Sampling it here occurs
+        // before Fighter.update and leaves the visual body one frame behind.
         const last = w.trail[w.trail.length - 1];
         if (!last || Math.hypot(a.x - last.x, a.y - last.y) >= FROST_LAW.nodeSpacing) {
           w.trail.push({ x: a.x, y: a.y, bornAt: now });
@@ -313,29 +392,51 @@ const FR = {
     const rf = FROST_LAW.speedRefresh;
     for (const b of api.ownBodies(ct)) {
       if (!b || b.hp <= 0) continue;
-      if (!onAnyFloor(st, b.x, b.y, now)) continue;
+      const onSurface = activeFrostSurfaceAt(b.x, b.y, now);
       const ex = b.statuses.speed;
-      if (!ex || ex.timer <= 0 || ex.mult <= FROST_LAW.frostFloorMult) {
-        b.applyStatus('speed', rf, { mult: FROST_LAW.frostFloorMult });
+      if (onSurface) {
+        // Frost owns exactly x1.8 in the existing locomotion `speed` channel.
+        // A stronger unrelated speed is preserved rather than weakened.
+        if (!ex || ex.timer <= 0 || ex.__frostSurface || ex.mult <= FROST_LAW.frostFloorMult) {
+          if (ex && ex.timer > 0 && !ex.__frostSurface) b.__frostSurfaceSpeedPrev = { status: { ...ex }, at: now };
+          b.applyStatus('speed', rf, { mult: FROST_LAW.frostFloorMult });
+          if (b.statuses.speed) b.statuses.speed.__frostSurface = true;
+        }
+      } else if (ex && ex.__frostSurface) {
+        delete b.statuses.speed; // immediate surface exit; baseSpeed is untouched
+        const saved = b.__frostSurfaceSpeedPrev;
+        if (saved) {
+          saved.status.timer -= now - saved.at;
+          if (saved.status.timer > 0) b.statuses.speed = saved.status;
+          delete b.__frostSurfaceSpeedPrev;
+        }
       }
     }
     const foes = api.enemyBodies(ct);
     for (const b of foes) {
       if (!b || b.hp <= 0) continue;
+      const onSurface = activeFrostSurfaceAt(b.x, b.y, now);
       const cands = [];
-      const onA1 = onA1Floor(st, b.x, b.y, now);
-      if (onA1) {
-        cands.push(FROST_LAW.enemyFloorMult);
-        if (a1cfg) st.linger[b.id] = now + a1cfg.lingerSeconds;
-      } else if (st.a2 && trailSupports(st.a2.trail, st.a2.halfW, b.x, b.y, now, st.a2.segLife)) {
-        cands.push(FROST_LAW.enemyFloorMult);
-      }
+      if (onSurface) cands.push(FROST_LAW.enemyFloorMult);
       if ((st.cold[b.id] || 0) > now && a2cfg) cands.push(a2cfg.coldShockMult);
-      if ((st.linger[b.id] || 0) > now) cands.push(FROST_LAW.enemyFloorMult);
+      const ex = b.statuses.slow;
       if (cands.length) {
         const want = Math.min(...cands);
-        const ex = b.statuses.slow;
-        if (!ex || ex.timer <= 0 || ex.mult >= want) b.applyStatus('slow', rf, { mult: want });
+        // Frost owns exactly x0.5 while its surface/contact law controls this
+        // channel. Preserve a stronger unrelated slow instead of weakening it.
+        if (!ex || ex.timer <= 0 || ex.__frostSurface || ex.mult >= want) {
+          if (ex && ex.timer > 0 && !ex.__frostSurface) b.__frostSurfaceSlowPrev = { status: { ...ex }, at: now };
+          b.applyStatus('slow', rf, { mult: want });
+          if (b.statuses.slow) b.statuses.slow.__frostSurface = true;
+        }
+      } else if (ex && ex.__frostSurface) {
+        delete b.statuses.slow;
+        const saved = b.__frostSurfaceSlowPrev;
+        if (saved) {
+          saved.status.timer -= now - saved.at;
+          if (saved.status.timer > 0) b.statuses.slow = saved.status;
+          delete b.__frostSurfaceSlowPrev;
+        }
       }
     }
 
@@ -381,13 +482,9 @@ const FR = {
         continue;
       }
       if (!isFreezableFirearm(slot)) continue;
-      const supported = onA1Floor(st, slot.x, slot.y, now);
+      const supported = activeFrostSurfaceAt(slot.x, slot.y, now);
       if (supported) {
-        if (slot.__frostThawUntil) delete slot.__frostThawUntil; // support returns: cancel thaw
-        if (!slot.__frostFrozen) {
-          slot.__frostFrozen = true;
-          busEmit('FrostSlotFrozen', { slotId: slot.id, weapon: slot.weaponId });
-        }
+        freezeSlotFromSurface(slot, now); // idempotent; also cancels thaw
       } else if (slot.__frostFrozen) {
         const thaw = (a1cfg && a1cfg.thawSeconds) || 0.30;
         if (!slot.__frostThawUntil) {
@@ -399,6 +496,10 @@ const FR = {
         }
       }
     }
+  },
+
+  ensureSurfaceFrozen(slot) {
+    return freezeSlotFromSurface(slot, clock());
   },
 
   deniesPickup(slot, f) {
@@ -481,8 +582,12 @@ const FR = {
     if (!frostCt || frostCt.facade || frostCt.heroId !== 'ICE') return false;
     const st = states.get(frostCt);
     const now = clock();
+    // A real contact edge during the A1 lock invalidates forced restoration of
+    // the pre-cast heading. Existing collision reflection remains authority.
+    if (st && st.a1lock && now < st.a1lock.until) st.a1lock.invalidated = true;
     if (!st || !st.a2 || now >= st.a2.until) return false; // A2 window only
     if (!otherBody || otherBody.hp <= 0) return false;
+    if (st.a2.contacts) st.a2.contacts[otherBody.id] = true;
     const hr = HR();
     const otherCt = hr && hr.byCombatant ? hr.byCombatant(otherBody) : null;
     if (!otherCt || otherCt === frostCt) return false; // enemy bodies only
@@ -517,6 +622,21 @@ const FR = {
 
   releaseCombatant(ct) { states.delete(ct); },
 
+  /* -------- post-integration presentation history -------------------- */
+  capturePostMovement(ct) {
+    const st = states.get(ct);
+    const a = ct && ct.anchor;
+    const now = clock();
+    if (!st || !st.a2 || !a || a.hp <= 0 || now >= st.a2.until) return false;
+    const path = st.a2.path;
+    const last = path[path.length - 1];
+    if (!last || Math.hypot(a.x - last.x, a.y - last.y) > 1e-4) {
+      path.push({ x: a.x, y: a.y, bornAt: now });
+      return true;
+    }
+    return false;
+  },
+
   /* -------- deterministic test/inspection surface -------- */
   inspect(ct) {
     const st = states.get(ct);
@@ -543,9 +663,13 @@ const FR = {
         active: now < l.expireAt,
       })),
       a2live: !!(st.a2 && now < st.a2.until),
+      a2castId: st.a2 ? st.a2.id : 0,
       trail: st.a2 ? st.a2.trail.length : 0,
-      // Node copies for the Slice D presentation bridge + F09 gates.
+      // Mechanics support samples remain available for gameplay gates.
       trailNodes: st.a2 ? st.a2.trail.map((n) => ({ x: +n.x.toFixed(1), y: +n.y.toFixed(1), bornAt: +n.bornAt.toFixed(3) })) : [],
+      // Exact, unrounded real APEX integration history is the sole input to
+      // the Gold presentation adapter (not a second visual trail mechanic).
+      movementHistory: st.a2 ? st.a2.path.map((n) => ({ x: n.x, y: n.y, bornAt: n.bornAt })) : [],
       cold: Object.keys(st.cold).filter((k) => st.cold[k] > now).length,
       linger: Object.keys(st.linger).filter((k) => st.linger[k] > now).length,
       rolls: st.rollsUsed,

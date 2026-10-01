@@ -404,6 +404,13 @@
       if (AQ.feel && AQ.feel.drawStain) AQ.feel.drawStain(c);
       // Stormbreaker floor lightning sits UNDER the actors (V9 layering).
       if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.drawFloor(c);
+      // Frost Slice 1 ordering: active ice is a world surface, so it belongs
+      // above the chamber floor but below actual pickup sprites. The Frost
+      // actor/head remains in the normal Fighter pass and held guns remain in
+      // Arsenal foreground; this hook moves only the surface material.
+      if (window.APEX_FROST_PRESENTATION?.renderSurfaceUnderWeapons) {
+        window.APEX_FROST_PRESENTATION.renderSurfaceUnderWeapons(c);
+      }
       SPAWN.drawSlots(c);
       aqPerfMark('pickupDraw', performance.now() - t1);
       aqPerfMark('background', performance.now() - t0);

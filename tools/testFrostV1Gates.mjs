@@ -70,7 +70,7 @@ try {
   const lock = JSON.parse(fs.readFileSync('tools/runtimeRevision.lock.json', 'utf8'));
   const m = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION = '([^']+)'/);
   gate('F00.4-revision-lineage',
-    !!m && m[1].indexOf('20260930-crystala-v2-r11-frost-') === 0 && lock.revision === m[1],
+    !!m && m[1] === '20261001-frost-v1-slice1-r1' && lock.revision === m[1],
     { revision: m && m[1], lock: lock.revision });
 } catch (e) { gate('F00.4-revision-lineage', false, String(e && e.message)); }
 
@@ -271,13 +271,13 @@ try {
   const lw = FR().inspect(west.ct).lanes[0];
   park(west.a, west.b);
   const oppWest = supportedAt(lw.ox - 300, lw.oy) && !supportedAt(lw.ox + 60, lw.oy);
-  // Release origin: 200 + 520*0.25 = 330 (live pos at release).
+  // Authored lock keeps the release origin at the activation point.
   gate('F03.3-opposite-lanes', oppEast && oppWest, { leOx: le.ox, lwOx: lw.ox });
-  gate('F03.5-origin-follows-release', Math.abs(le.ox - 330) < 20 && Math.abs(le.oy - 500) < 5, { ox: le.ox });
+  gate('F03.5-origin-holds-through-authored-cast', Math.abs(le.ox - 200) < 5 && Math.abs(le.oy - 500) < 5, { ox: le.ox });
 } catch (e) { gate('F03.3-opposite-lanes', false, String(e && e.message)); }
 
 try {
-  // No lock/brake/steer during the ~0.25s commitment.
+  // Authored A1 motion locks locomotion through 0.8s, then restores heading.
   const o = withCtl(frostPair());
   o.a.x = 200; o.a.y = 500; o.a.setDir(1, 0);
   o.b.x = 800; o.b.y = 800;
@@ -285,15 +285,20 @@ try {
   const speeds = [];
   for (let i = 0; i < 15; i++) { T.step(1 / 60); speeds.push(o.a.baseSpeed); }
   const moved = o.a.x - 200;
+  const cdAtCommit = o.ctl.cooldownLeft('A1');
+  T.step(0.52);
+  const stillLocked = Math.abs(o.a.x - 200) < 1;
+  T.step(4 / 60);
+  const resumed = o.a.x > 205 && o.a.dir.x > 0.99;
   const hpB = o.b.hp;
-  gate('F03.4-no-commit-lock',
-    speeds.every((s) => s === 520) && moved > 110 && moved < 150
-    && o.a.dir.x > 0.99 && !o.a.data.positionLocked,
+  gate('F03.4-authored-motion-lock-resume',
+    speeds.every((s) => s === 520) && Math.abs(moved) < 1 && stillLocked && resumed
+    && !o.a.data.positionLocked,
     { moved: +moved.toFixed(1) });
   gate('F03.6-zero-direct-damage', hpB === 1000, { hp: hpB });
-  gate('F03.7-cooldown-10-5', Math.abs(o.ctl.cooldownLeft('A1') - (10.5 - 0.25)) < 0.15,
-    { cd: +o.ctl.cooldownLeft('A1').toFixed(2) });
-} catch (e) { gate('F03.4-no-commit-lock', false, String(e && e.message)); }
+  gate('F03.7-cooldown-10-5', Math.abs(cdAtCommit - (10.5 - 0.25)) < 0.15,
+    { cd: +cdAtCommit.toFixed(2) });
+} catch (e) { gate('F03.4-authored-motion-lock-resume', false, String(e && e.message)); }
 
 /* ================= F04 — A1 Frozen Floor ================================ */
 function buildLane() {
@@ -311,12 +316,12 @@ try {
   const s325 = supportedAt(lane.ox + 325, lane.oy);
   const s649 = supportedAt(lane.ox + 649, lane.oy);
   const s651 = supportedAt(lane.ox + 651, lane.oy);
-  const p79 = supportedAt(lane.ox + 325, lane.oy + 79);
-  const p81 = supportedAt(lane.ox + 325, lane.oy + 81);
+  const p179 = supportedAt(lane.ox + 325, lane.oy + 179);
+  const p181 = supportedAt(lane.ox + 325, lane.oy + 181);
   const behind = supportedAt(lane.ox - 5, lane.oy);
-  gate('F04.1-footprint-650x160', s325 && s649 && !s651 && p79 && !p81 && !behind,
-    { s325, s649, s651, p79, p81, behind });
-} catch (e) { gate('F04.1-footprint-650x160', false, String(e && e.message)); }
+  gate('F04.1-footprint-650x360', s325 && s649 && !s651 && p179 && !p181 && !behind,
+    { s325, s649, s651, p179, p181, behind });
+} catch (e) { gate('F04.1-footprint-650x360', false, String(e && e.message)); }
 
 try {
   // Near->far: front reaches near ground before far ground.
@@ -357,23 +362,23 @@ try {
 
 try {
   const { o, lane } = buildLane();
-  // Frost x2.35 on stable floor.
+  // Frost x1.8 on stable active floor.
   o.a.x = lane.ox + 50; o.a.y = lane.oy; o.a.setDir(1, 0);
   o.b.x = 100; o.b.y = 900;
   const x0 = o.a.x;
   T.step(0.3);
   const ratioF = (o.a.x - x0) / (520 * 0.3);
   const speedMult = o.a.hasStatus('speed') ? o.a.statuses.speed.mult : null;
-  // Enemy x0.60.
+  // Enemy x0.5.
   o.b.x = lane.ox + 50; o.b.y = lane.oy; o.b.setDir(1, 0);
   o.a.x = 100; o.a.y = 100;
   const bx0 = o.b.x;
   T.step(0.3);
   const ratioE = (o.b.x - bx0) / (520 * 0.3);
   const slowMult = o.b.hasStatus('slow') ? o.b.statuses.slow.mult : null;
-  gate('F04.4-frost-x2.35', Math.abs(ratioF - 2.35) < 0.12 && speedMult === 2.35, { ratio: +ratioF.toFixed(3), speedMult });
-  gate('F04.5-enemy-x0.60', Math.abs(ratioE - 0.60) < 0.06 && slowMult === 0.60, { ratio: +ratioE.toFixed(3), slowMult });
-} catch (e) { gate('F04.4-frost-x2.35', false, String(e && e.message)); }
+  gate('F04.4-frost-x1.8', Math.abs(ratioF - 1.8) < 0.08 && speedMult === 1.8, { ratio: +ratioF.toFixed(3), speedMult });
+  gate('F04.5-enemy-x0.5', Math.abs(ratioE - 0.50) < 0.05 && slowMult === 0.50, { ratio: +ratioE.toFixed(3), slowMult });
+} catch (e) { gate('F04.4-frost-x1.8', false, String(e && e.message)); }
 
 try {
   const { o, lane } = buildLane();
@@ -381,12 +386,10 @@ try {
   o.a.x = 100; o.a.y = 100;
   T.step(0.2); // enemy on floor
   o.b.x = lane.ox + 300; o.b.y = lane.oy + 400; // leave floor (north)
-  T.step(0.2); // linger (0.35) still active
-  const lingerOn = o.b.hasStatus('slow') && o.b.statuses.slow.mult === 0.60;
-  T.step(0.4); // linger + refresh decay gone
-  const lingerOff = !o.b.hasStatus('slow');
-  gate('F04.6-linger-0.35', lingerOn && lingerOff, { lingerOn, lingerOff });
-} catch (e) { gate('F04.6-linger-0.35', false, String(e && e.message)); }
+  T.step(2 / 60); // active-surface authority clears on physical exit
+  const exitClear = !o.b.hasStatus('slow');
+  gate('F04.6-immediate-surface-exit', exitClear, { exitClear });
+} catch (e) { gate('F04.6-immediate-surface-exit', false, String(e && e.message)); }
 
 try {
   // Overlap: A1 lane + A2 trail under the same bodies, still single effect.
@@ -407,7 +410,7 @@ try {
   T.step(2 / 60);
   const slowE = o.b.hasStatus('slow') ? o.b.statuses.slow.mult : null;
   const speedF = o.a.hasStatus('speed') ? o.a.statuses.speed.mult : null;
-  gate('F04.7-overlap-no-multiply', slowE === 0.60 && speedF === 2.35, { slowE, speedF });
+  gate('F04.7-overlap-no-multiply', slowE === 0.50 && speedF === 1.8, { slowE, speedF });
 } catch (e) { gate('F04.7-overlap-no-multiply', false, String(e && e.message)); }
 
 try {
@@ -499,7 +502,7 @@ try {
 } catch (e) { gate('F05.7-non-firearms-untouched', false, String(e && e.message)); }
 
 try {
-  // A2 trail alone never freezes a floor firearm.
+  // A2 trail is part of the continuous active-surface gun authority.
   const o = withCtl(frostPair());
   o.a.x = 200; o.a.y = 500; o.a.setDir(1, 0);
   o.b.x = 800; o.b.y = 800;
@@ -512,9 +515,9 @@ try {
   const s = AQSlots().find((q) => q.id === id);
   const trailLive = FR().inspect(o.ct).trail > 0;
   win.APEX_ARSENAL.state.slots = AQSlots().filter((q) => q.id !== id);
-  gate('F05.8-trail-never-freezes', r.ok === true && trailLive && !!s && !s.__frostFrozen,
+  gate('F05.8-trail-freezes', r.ok === true && trailLive && !!s && !!s.__frostFrozen,
     { trail: trailLive, frozen: !!(s && s.__frostFrozen) });
-} catch (e) { gate('F05.8-trail-never-freezes', false, String(e && e.message)); }
+} catch (e) { gate('F05.8-trail-freezes', false, String(e && e.message)); }
 
 function iceVersusIce() {
   // Two Frosts, PINNED and UNARMED 300px+ from the test slot: slot support is
@@ -754,7 +757,7 @@ try {
   const frostSrc = fs.readFileSync('public/game/hero-rework/frostGameplayRuntime.js', 'utf8');
   const mechSrc = fs.readFileSync('public/game/hero-rework/heroMechanicsRuntime.js', 'utf8');
   const frostBlock = mechSrc.slice(mechSrc.indexOf('frost.breath'), mechSrc.indexOf('frostTruth'));
-  const staticOk = !/\.dir\s*=/.test(frostSrc) && !/setDir/.test(frostSrc) && !/\.dir\s*=|setDir/.test(frostBlock);
+  const staticOk = !/\.dir\s*=/.test(frostSrc) && !/setDir\([^)]*enemy/i.test(frostSrc) && !/\.dir\s*=|setDir/.test(frostBlock);
   const o = withCtl(frostPair());
   o.a.x = 200; o.a.y = 500; o.a.setDir(1, 0);
   o.b.x = 200; o.b.y = 100; // enemy north, Frost heading east
@@ -790,7 +793,7 @@ try {
 } catch (e) { gate('F09.4-native-bounce', false, String(e && e.message)); }
 
 try {
-  // Width 120: slowed at |perp| 59, clean at 61. Frost x2.35 on trail.
+  // Width 120 plus body support radius; Frost x1.8 on trail.
   const o = withCtl(frostPair());
   o.a.x = 200; o.a.y = 500; o.a.setDir(1, 0);
   o.b.x = 850; o.b.y = 100; o.b.setDir(-1, 0);
@@ -802,7 +805,7 @@ try {
   o.b.x = 350; o.b.y = 559; o.b.setDir(1, 0);
   T.step(2 / 60);
   const slow59 = o.b.hasStatus('slow');
-  o.b.x = 350; o.b.y = 561;
+  o.b.x = 350; o.b.y = 600;
   T.step(2 / 60);
   T.step(0.6); // let linger + refresh decay
   const clean61 = !o.b.hasStatus('slow');
@@ -816,7 +819,7 @@ try {
   T.step(0.25);
   const ratio = (p.a.x - x0) / (520 * 0.25);
   gate('F09.7-width-120', slow59 && clean61, { slow59, clean61 });
-  gate('F09.9-frost-x2.35-trail', Math.abs(ratio - 2.35) < 0.12, { ratio: +ratio.toFixed(3) });
+  gate('F09.9-frost-x1.8-trail', Math.abs(ratio - 1.8) < 0.08, { ratio: +ratio.toFixed(3) });
 } catch (e) { gate('F09.7-width-120', false, String(e && e.message)); }
 
 /* ================= Slice C helpers ================================== */
@@ -1486,7 +1489,8 @@ try {
   const shocked = tap.seen.includes('FrostColdShock');
   gate('F10.1-separate-reflect-callback',
     r.ok === true && contactAt > 0 && dEnd > 160 && reflected && shocked,
-    { contactAt, dEnd: +dEnd.toFixed(1), reflected, shocked });
+    { contactAt, dEnd: +dEnd.toFixed(1), reflected, shocked, cold: FR().inspect(o.ct).cold,
+      contactLatch: { ...(HR.match && HR.match.world && HR.match.world.__contact) } });
   tap.release();
 } catch (e) { gate('F10.1-separate-reflect-callback', false, String(e && e.message)); }
 
@@ -1980,7 +1984,7 @@ try {
     covN++;
     if (e.ice.iceAt(lane.ox + d, lane.oy, e.t)) cov++;
   }
-  const offV = e.ice.iceAt(lane.ox + 325, lane.oy + 150, e.t);
+  const offV = e.ice.iceAt(lane.ox + 325, lane.oy + 210, e.t);
   gate('F12.4-lane-aligned', lane && total > 50 && bad === 0 && cov >= covN - 2 && !offV,
     { total, bad, cov: cov + '/' + covN, offAxisIce: !!offV, halfW });
 } catch (e) { gate('F12.4-lane-aligned', false, String(e && e.message)); }
@@ -2410,11 +2414,11 @@ try {
     && R.TRAIL_STEP === 9 && R.TRAIL_LEN_MIN === 12 && R.TRAIL_LEN_MAX === 16;
   // Canonical choreography law, verbatim from the Gold (no adapter rewrite):
   const okLaw = /nd\s*>=\s*9/.test(mod)                              // A2 spacing
-    && /this\.rng\.range\(\s*12\s*,\s*16\s*\)/.test(mod)              // A2 segment length
+    && /(?:this\.rng|ar)\.range\(\s*12\s*,\s*16\s*\)/.test(mod)        // A2 segment length
     && /this\.rng\.range\(\s*14\s*,\s*18\s*\)/.test(mod)              // A1 lane node length
     && mod.includes('scheduleDecay')                                 // staggered melt
-    && /A2_WIDTH\s*\*\s*0\.5\s*\+\s*this\.rng\.range\(\s*-2\s*,\s*2\s*\)/.test(mod)
-    && /activeUntil\s*:\s*this\.t\s*\+\s*this\.a2SegLife/.test(mod);
+    && /A2_WIDTH\s*\*\s*0\.5\s*\+\s*(?:this\.rng|ar)\.range\(\s*-2\s*,\s*2\s*\)/.test(mod)
+    && /activeUntil\s*:\s*(?:this\.t|born)\s*\+\s*this\.a2SegLife/.test(mod);
   const golds = fs.readdirSync('docs/hero-rework/frost-v1/gold').filter((f) => /\.html?$/i.test(f));
   const sizes = golds.map((f) => fs.statSync(`docs/hero-rework/frost-v1/gold/${f}`).size);
   const noObsolete = golds.length === 1 && !sizes.includes(OBSOLETE_BYTES);
@@ -2540,7 +2544,7 @@ try {
   const i = P().inspect(o.a);
   const R = FG().GOLD_REF;
   const derived = Math.abs(i.kBody - o.a.radius / R.FROST_R) < 1e-3 && Math.abs(i.bodyK - i.kBody) < 1e-3
-    && Math.abs(i.laneK - 1) < 1e-6 && Math.abs(i.trailK - 1) < 1e-6 && o.a.radius === o.b.radius;
+    && Math.abs(i.laneK - 2.25) < 1e-6 && Math.abs(i.trailK - 1) < 1e-6 && o.a.radius === o.b.radius;
   const peerH = sF.h / sP.h, peerW = sF.w / sP.w;
   const vsRadius = sF.h / (o.a.radius * 2);
   const scaled = peerH > 0.8 && peerH < 1.35 && peerW > 0.8 && peerW < 1.35 && vsRadius > 0.85 && vsRadius < 1.35;
@@ -2680,11 +2684,20 @@ try {
   T.step(0.8);
   // A2 — Gold trail law + carve language on a real turn (F12.6 movement form)
   FR().castHunt({ combatant: o.ct, cfg: o.ct.skills.A2.cfg });
-  P().tick(1 / 60);
+  o.a.setDir(1, 0);
+  T.step(1 / 60);
   const tA2 = e.t;
-  for (let i = 0; i < 24; i++) { o.a.x += 10; o.a.__hrVel = { x: 600, y: 0 }; P().tick(1 / 60); }
+  // Real production integration at Level-1 speed (215 * Frozen Floor 2.35
+  // = 505.25px/s, about 8.42px/frame), not the old 9/10px teleport harness.
+  const realStep = 215 * 1.8 / 60;
+  for (let i = 0; i < 24; i++) {
+    o.a.x += realStep; o.a.__hrVel = { x: 215 * 1.8, y: 0 }; T.step(1 / 60);
+  }
   const apex = { x: o.a.x, y: o.a.y };
-  for (let i = 0; i < 20; i++) { o.a.y -= 10; o.a.__hrVel = { x: 0, y: -600 }; P().tick(1 / 60); }
+  o.a.setDir(0, -1);
+  for (let i = 0; i < 20; i++) {
+    o.a.y -= realStep; o.a.__hrVel = { x: 0, y: -215 * 1.8 }; T.step(1 / 60);
+  }
   const tr = e.ice.nodes.filter((n) => n.kind === 'trail');
   const segLifeBad = tr.filter((n) => Math.abs(n.activeUntil - (n.born + R.A2_SEGMENT_LIFE)) > 0.01).length;
   const widthBad = tr.filter((n) => Math.abs(n.W - R.A2_WIDTH * 0.5) > 2.5).length;
@@ -3097,6 +3110,144 @@ try {
       ang: i.a1.ang, expiryTruth, notRestarted, frontTruth, nodes: nodes.length });
 } catch (e) { gate('F13.12-deferred-a1-historical-origin', false, String(e && e.message)); }
 
+
+/* ================= F14 — owner activation-window regressions ========== */
+// These gates inspect every activation frame rather than redrawing one frozen
+// simulation state. They fail the old lazy-resize / coarse-history / split
+// hydration implementation.
+try {
+  const run = (kind) => {
+    const o = stillPair(220, 700, 1, 820, 180);
+    const e = P().engineFor(o.a);
+    T.step(0.2); T.redraw(); // assets/surfaces ready before the cast
+    const before = P().inspect(o.a);
+    const rows = [];
+    if (kind === 'A1') win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a);
+    else HR.pressAbility(o.a, 'A2');
+    const step = 215 * 1.8 / 60;
+    for (let k = 0; k < 45; k++) {
+      if (kind === 'A2' && k > 0) {
+        o.a.x += step; o.a.__hrVel = { x: 215 * 1.8, y: 0 };
+      }
+      T.step(1 / 60); T.redraw();
+      const px = readPixels();
+      const fb = bodyBox(px, o.a.x, o.a.y, 130, localBg(px, o.a.x, o.a.y, 130));
+      const ob = bodyBox(px, o.b.x, o.b.y, 130, localBg(px, o.b.x, o.b.y, 130));
+      const fs = cropStats(px, o.a.x, o.a.y, 130, localBg(px, o.a.x, o.a.y, 130));
+      const os = cropStats(px, o.b.x, o.b.y, 130, localBg(px, o.b.x, o.b.y, 130));
+      const i = P().inspect(o.a);
+      rows.push({ fb, ob, fi: fs.n, oi: os.n, ice: i.iceNodes, ready: i.ready,
+        size: i.iceCanvas.join('x'), resize: i.surfaceResizes, draw: i.renderAudit.bodyDraws,
+        leak: i.stateLeaks, exceptions: i.renderAudit.drawExceptions });
+    }
+    const after = P().inspect(o.a);
+    return { rows, before, after, engine: e };
+  };
+  const a1 = run('A1'), a2 = run('A2');
+  const stable = (r) => r.rows.every((q) => q.fb.w > 80 && q.fb.h > 100 && q.ob.w > 65 && q.ob.h > 65
+    && q.fi > 2500 && q.oi > 1800 && q.ready
+    && q.leak === r.before.stateLeaks && q.exceptions === r.before.renderAudit.drawExceptions);
+  const noResize = (r) => r.rows.every((q) => q.resize === r.before.surfaceResizes && q.size === '1000x1000')
+    && r.after.surfaceResizeDuringDraw === 0;
+  const activeNeverVanishes = a1.rows.slice(16).every((q) => q.ice > 0)
+    && a2.rows.slice(3).every((q) => q.ice > 0);
+  gate('F14.1-activation-temporal-stability', stable(a1) && stable(a2) && activeNeverVanishes,
+    { a1MinBodyInk: Math.min(...a1.rows.map((q) => q.fi)), a2MinBodyInk: Math.min(...a2.rows.map((q) => q.fi)),
+      opponentMinInk: Math.min(...a1.rows.concat(a2.rows).map((q) => q.oi)), activeNeverVanishes });
+  gate('F14.2-no-active-frame-canvas-resize', noResize(a1) && noResize(a2),
+    { a1: [a1.before.surfaceResizes, a1.after.surfaceResizes], a2: [a2.before.surfaceResizes, a2.after.surfaceResizes],
+      canvas: a2.after.iceCanvas, duringDraw: a1.after.surfaceResizeDuringDraw + a2.after.surfaceResizeDuringDraw });
+} catch (e) {
+  gate('F14.1-activation-temporal-stability', false, String(e && e.message));
+  gate('F14.2-no-active-frame-canvas-resize', false, String(e && e.message));
+}
+
+try {
+  const leg = (deferred) => {
+    const o = stillPair(200, 700, 1, 850, 180);
+    if (deferred) { win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a); T.step(2 / 60); }
+    HR.pressAbility(o.a, 'A2'); T.step(1 / 60);
+    const step = 215 * 1.8 / 60;
+    for (let k = 0; k < 55; k++) {
+      // Exact real-speed production history, including a hard heading change.
+      if (k < 30) { o.a.x += step; o.a.__hrVel = { x: 215 * 1.8, y: 0 }; }
+      else { o.a.y -= step; o.a.__hrVel = { x: 0, y: -215 * 1.8 }; }
+      T.step(1 / 60);
+    }
+    // Ensure a queued Gold admission has happened, then append live history.
+    for (let k = 0; k < 20 && !P().inspect(o.a).a2Started; k++) T.step(1 / 60);
+    for (let k = 0; k < 8; k++) { o.a.y -= step; o.a.__hrVel = { x: 0, y: -215 * 1.8 }; T.step(1 / 60); }
+    const e = P().engineFor(o.a), i = P().inspect(o.a), gp = FR().inspect(HR.byCombatant(o.a));
+    const nodes = e.ice.nodes.filter((n) => n.kind === 'trail').sort((a, b) => a.born - b.born);
+    return { i, gp, nodes, sig: nodes.map((n) => [n.L.toFixed(5), n.W.toFixed(5), n.seed.toFixed(5)]).join('|') };
+  };
+  const live = leg(false), deferred = leg(true);
+  const gaps = (ns) => ns.slice(1).map((n, i) => Math.hypot(n.x - ns[i].x, n.y - ns[i].y));
+  const lg = gaps(live.nodes), dg = gaps(deferred.nodes);
+  const historyTruth = live.gp.movementHistory.length > live.gp.trailNodes.length
+    && live.i.path && live.i.path.consumed === live.gp.movementHistory.length
+    && Math.hypot(live.i.path.endpoint[0] - live.gp.movementHistory.at(-1).x,
+      live.i.path.endpoint[1] - live.gp.movementHistory.at(-1).y) < 1e-6;
+  gate('F14.3-real-speed-history-seam-continuity', historyTruth && Math.max(...lg) <= 9.01 && Math.max(...dg) <= 9.01
+    && live.i.path.carry >= 0 && live.i.path.carry < 9 && deferred.i.path.carry >= 0 && deferred.i.path.carry < 9,
+    { movement: live.gp.movementHistory.length, mechanics: live.gp.trailNodes.length,
+      maxGap: [Math.max(...lg), Math.max(...dg)], carry: [live.i.path.carry, deferred.i.path.carry] });
+  gate('F14.4-immediate-deferred-material-equivalence', live.nodes.length === deferred.nodes.length && live.sig === deferred.sig,
+    { nodes: [live.nodes.length, deferred.nodes.length], sameMaterialSequence: live.sig === deferred.sig });
+} catch (e) {
+  gate('F14.3-real-speed-history-seam-continuity', false, String(e && e.message));
+  gate('F14.4-immediate-deferred-material-equivalence', false, String(e && e.message));
+}
+
+/* ================= F15 — Slice 1 owner law ============================ */
+try {
+  // The shared render stack moves only Frost's world-surface layer into the
+  // chamber background, immediately before real floor weapon sprites.
+  const questSrc = fs.readFileSync('public/game/modes/arsenalQuestRuntime.js', 'utf8');
+  const presSrc = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js', 'utf8');
+  const hook = questSrc.indexOf('APEX_FROST_PRESENTATION?.renderSurfaceUnderWeapons');
+  const slotsAfter = questSrc.indexOf('SPAWN.drawSlots(c)', hook);
+  const actorSeparate = presSrc.includes('if (!arsenalActive) renderSurfaceUnderWeapons(ctx)')
+    && presSrc.includes('drawFrostBody(ctx, f, S)');
+  gate('F15.1-surface-below-floor-guns-only', hook >= 0 && slotsAfter > hook && actorSeparate,
+    { hook, slotsAfter, actorSeparate });
+} catch (e) { gate('F15.1-surface-below-floor-guns-only', false, String(e && e.message)); }
+
+try {
+  // A gun newly spawned on A2 ice freezes; a gun entering later freezes; and
+  // a Frost pickup is converted before the transaction equips that same gun.
+  const o = withCtl(frostPair());
+  o.a.x = 200; o.a.y = 500; o.a.setDir(1, 0);
+  o.b.x = 100; o.b.y = 900;
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.45);
+  o.a.baseSpeed = 0;
+  const path = FR().inspect(o.ct).trailNodes;
+  const point = path[Math.max(0, Math.floor(path.length / 2))];
+  const spawnedId = T.pushSlot({ x: point.x, y: point.y, phase: 'REVEALED', weaponId: 'PISTOL' });
+  T.step(1 / 60);
+  const spawned = AQSlots().find((q) => q.id === spawnedId);
+  const spawnedFrozen = !!(spawned && spawned.__frostFrozen);
+  const enteredId = T.pushSlot({ x: 100, y: 100, phase: 'REVEALED', weaponId: 'PISTOL' });
+  T.step(1 / 60);
+  const entered = AQSlots().find((q) => q.id === enteredId);
+  entered.x = point.x; entered.y = point.y;
+  T.step(1 / 60);
+  const enteredFrozen = !!entered.__frostFrozen;
+  const pickupId = T.pushSlot({ x: o.a.x, y: o.a.y, phase: 'REVEALED', weaponId: 'PISTOL' });
+  T.step(1 / 60);
+  const held = W().getHolder(o.a);
+  const transactionFrozen = !!(held && held.weaponId === 'PISTOL' && held.__frostFrozen);
+  gate('F15.2-continuous-surface-gun-authority', spawnedFrozen && enteredFrozen && transactionFrozen,
+    { spawnedFrozen, enteredFrozen, transactionFrozen, pickupStillOnFloor: AQSlots().some((q) => q.id === pickupId) });
+} catch (e) { gate('F15.2-continuous-surface-gun-authority', false, String(e && e.message)); }
+
+try {
+  const spawnSrc = fs.readFileSync('public/game/arsenal/arsenalSpawnRuntime.js', 'utf8');
+  const convert = spawnSrc.indexOf('ensureSurfaceFrozen(slot)');
+  const candidates = spawnSrc.indexOf('for (const f of actors)', convert);
+  gate('F15.3-pickup-transaction-converts-first', convert >= 0 && candidates > convert, { convert, candidates });
+} catch (e) { gate('F15.3-pickup-transaction-converts-first', false, String(e && e.message)); }
 
 /* ================= summary ============================================ */
 const names = Object.keys(report.gates);

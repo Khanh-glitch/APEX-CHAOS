@@ -663,6 +663,10 @@ const NV = 8;
 const rng = new Rng(4242);
 class IceField {
     constructor(w, h) {
+        // Standalone Gold has one field, but production may host mirrors and
+        // deferred casts. A field-local stream preserves the exact authored
+        // sequence without unrelated engines/lanes consuming its material RNG.
+        this.rng = new Rng(4242);
         this.nodes = [];
         this.carves = [];
         this.wets = [];
@@ -721,21 +725,22 @@ class IceField {
     add(x, y, ang, L, W, born, kind, opt = {}) {
         const ua = new Float32Array(NV), uc = new Float32Array(NV), er = new Float32Array(NV);
         const jag = opt.jag ?? 0.2;
+        const materialRng = opt.rng || this.rng;
         for (let k = 0; k < NV; k++) {
-            const a = (k / NV) * TAU + rng.range(-0.22, 0.22);
-            const rr = 1 + rng.range(-jag, jag);
+            const a = (k / NV) * TAU + materialRng.range(-0.22, 0.22);
+            const rr = 1 + materialRng.range(-jag, jag);
             ua[k] = Math.cos(a) * rr;
             uc[k] = Math.sin(a) * rr * (k % 2 ? 1 : 1.08); // angular, slightly faceted
-            er[k] = rng.next();
+            er[k] = materialRng.next();
         }
         const n = {
             x, y, ca: Math.cos(ang), sa: Math.sin(ang), L, W, born,
             lockDur: opt.lockDur ?? 0.55, decayAt: Infinity, decayDur: 1.15,
-            seed: rng.range(0, 1000), kind, ua, uc, er,
-            spur: rng.next() < (opt.spurChance ?? 0) ? rng.sign() : 0,
-            spurPos: rng.range(-0.5, 0.5), spurLen: rng.range(0.45, 0.9),
-            cracks: [], crackAt: [], flow: rng.next(), released: false, dead: false,
-            rimK: rng.range(0.85, 1.2),
+            seed: materialRng.range(0, 1000), kind, ua, uc, er,
+            spur: materialRng.next() < (opt.spurChance ?? 0) ? materialRng.sign() : 0,
+            spurPos: materialRng.range(-0.5, 0.5), spurLen: materialRng.range(0.45, 0.9),
+            cracks: [], crackAt: [], flow: materialRng.next(), released: false, dead: false,
+            rimK: materialRng.range(0.85, 1.2),
             gameplay: opt.gameplay !== false, activeUntil: opt.activeUntil ?? Infinity,
         };
         this.nodes.push(n);
@@ -1190,6 +1195,10 @@ class FrostEngine {
         this.iceCanvas = mkCanvas(2, 2);
         this.iceCtx = this.iceCanvas.getContext("2d");
         this.ventCanvas = mkCanvas(2, 2);
+        this.ventCtx = this.ventCanvas.getContext("2d");
+        this.surfaceResizeCount = 0;
+        this.surfaceResizeDuringDraw = 0;
+        this.externalA2Path = false;
         // M249 starts 5/12 shots spent so A2 can prove that transfer preserves the remaining 7.
     }
     mkGun(x, y, a, owner, weaponId = "SEMI", shotsFired = 0) {
@@ -1205,6 +1214,23 @@ class FrostEngine {
         const sp = Math.hypot(this.fvx, this.fvy);
         return sp > 24 ? Math.atan2(this.fvy, this.fvx) : this.moveFacing;
     }
+    // Allocate backing stores before an ability frame. Resizing a canvas
+    // clears it and resets its context, so draw methods are deliberately
+    // forbidden from doing this lazily.
+    prepareSurfaces(w, h) {
+        w = Math.max(2, w | 0); h = Math.max(2, h | 0);
+        if (this.iceCanvas.width !== w || this.iceCanvas.height !== h) {
+            this.iceCanvas.width = w; this.iceCanvas.height = h;
+            this.iceCtx = this.iceCanvas.getContext("2d");
+            this.surfaceResizeCount++;
+        }
+        const cav = this.mips && this.mips.cavity && this.mips.cavity[0];
+        if (cav && (this.ventCanvas.width !== cav.width || this.ventCanvas.height !== cav.height)) {
+            this.ventCanvas.width = cav.width; this.ventCanvas.height = cav.height;
+            this.ventCtx = this.ventCanvas.getContext("2d");
+            this.surfaceResizeCount++;
+        }
+    }
     async load() {
         if (loadPromise) return loadPromise;
         cacheStats.loadCalls++;
@@ -1215,6 +1241,9 @@ class FrostEngine {
             img.onerror = rej;
             img.src = FROST_LAYERS[k];
         })));
+        // Pre-size the vent mask while assets are loading, never on the first
+        // A1/A2 body draw.
+        this.prepareSurfaces(this.iceCanvas.width, this.iceCanvas.height);
         // soft contact shadow from the real silhouette
         const s = pick(this.mips.sil, 150);
         const tint = mkCanvas(s.width, s.height);
@@ -1433,7 +1462,10 @@ class FrostEngine {
         if (this.mode === "a2" || this.mode === "a1") return;
         this.mode = "a2";
         this.modeT = 0;
-        Object.assign(this.a2, { lastNode:{x:this.fx,y:this.fy}, trail:[], hist:[], histT:0, lastCarve:-9, overlap:false, contactT:-9, impactUntil:-9, kicked:false, activeStart:-9, crustAcc:0, side:1 });
+        Object.assign(this.a2, { lastNode:{x:this.fx,y:this.fy}, trail:[], hist:[], histT:0, lastCarve:-9, overlap:false, contactT:-9, impactUntil:-9, kicked:false, activeStart:-9, crustAcc:0, side:1,
+            // Dedicated authored A2 stream: omitted demo/idle systems and a
+            // deferred admission cannot perturb trail material identity.
+            rng:new Rng(7007), materialRng:new Rng(424207) });
         // HUNT IGNITION — untouched Gold pose/VFX recipe.
         this.huntGoal = 1;
         this.bLiftL.goal = 16; this.bLiftR.goal = 17; this.bRotL.goal = 0.05; this.bRotR.goal = -0.05;
@@ -1459,6 +1491,39 @@ class FrostEngine {
         spawnWedge(this.fx-ca*10,this.fy+6-sa*10,a+Math.PI,50,0.46,0.7);
         chipCluster(this.fx-ca*12,this.fy+6-sa*12,a+Math.PI,0.5,5,250,6.5);
         spawnRibbon(this.fx-ca*6,this.fy+8-sa*6,a+Math.PI,36,5,rnd(-8,8),0.4,{grow:0.25,vx:-ca*50,vy:-sa*50});
+    }
+    // One canonical A2 segment constructor used by both live and deferred
+    // production history. The adapter supplies only real path samples/time;
+    // all material and support-detail law stays here in Gold.
+    emitA2TrailNode(x, y, h, born, historical = false) {
+        const A = this.a2;
+        const ar = A.rng || this.rng;
+        const W = FROST_TUNE.A2_WIDTH * 0.5 + ar.range(-2, 2);
+        const n = this.ice.add(x - Math.cos(h) * 3, y + 6 - Math.sin(h) * 3, h,
+            ar.range(12, 16), W, born, "trail", {
+                lockDur:0.45, spurChance:0.015, jag:0.09,
+                activeUntil:born + this.a2SegLife,
+                rng:A.materialRng
+            });
+        n.decayAt = n.activeUntil; A.trail.push(n);
+        A.lastNode.x = x; A.lastNode.y = y;
+        A.crustAcc += 9;
+        if (A.crustAcc > 26) {
+            A.crustAcc = 0; A.side = -A.side;
+            // Historical transient supports have already lived and must not
+            // all pop on the admission frame. Recent/live samples retain the
+            // exact authored support choreography.
+            if (!historical || this.t - born < 0.45) {
+                const ox=-Math.sin(h)*A.side, oy=Math.cos(h)*A.side;
+                spawnLobe(x+ox*W*0.85,y+6+oy*W*0.85,h,5,3.4,0.45,0,ox*26,oy*26);
+                if(ar.next()<0.6) spawnShard(x+ox*W,y+6+oy*W,Math.atan2(oy,ox)+Math.PI*0.25*-A.side,6,2.2,0.4);
+            } else {
+                // Consume the same support decision so later live material is
+                // byte-equivalent to an immediate presentation.
+                ar.next();
+            }
+        }
+        return n;
     }
     carve(ax, ay, head, dAng, strength, hunt) {
         const s = Math.sign(dAng) || 1;
@@ -1501,14 +1566,12 @@ class FrostEngine {
         // No homing, no predictive lead, no chase damping.
         const sp = Math.hypot(this.fvx,this.fvy);
 
-        // Actual-motion trail: every segment is gameplay-active for exactly 3.5 s.
-        const ndx=this.fx-A.lastNode.x, ndy=this.fy-A.lastNode.y, nd=Math.hypot(ndx,ndy);
-        if (nd >= 9) {
-            const h=Math.atan2(ndy,ndx);
-            const W=FROST_TUNE.A2_WIDTH*0.5 + this.rng.range(-2,2);
-            const n=this.ice.add(this.fx-Math.cos(h)*3,this.fy+6-Math.sin(h)*3,h,this.rng.range(12,16),W,this.t,"trail",{lockDur:0.45,spurChance:0.015,jag:0.09,activeUntil:this.t+this.a2SegLife});
-            n.decayAt=n.activeUntil; A.trail.push(n); A.lastNode.x=this.fx; A.lastNode.y=this.fy; A.crustAcc+=nd;
-            if (A.crustAcc>26) { A.crustAcc=0; A.side=-A.side; const ox=-Math.sin(h)*A.side,oy=Math.cos(h)*A.side; spawnLobe(this.fx+ox*W*0.85,this.fy+6+oy*W*0.85,h,5,3.4,0.45,0,ox*26,oy*26); if(this.rng.next()<0.6)spawnShard(this.fx+ox*W,this.fy+6+oy*W,Math.atan2(oy,ox)+Math.PI*0.25*-A.side,6,2.2,0.4); }
+        // Standalone Gold retains its direct actual-motion path. Production
+        // sets externalA2Path and feeds the exact APEX history through the
+        // same emitA2TrailNode constructor (one path, not live + hydration).
+        if (!this.externalA2Path) {
+            const ndx=this.fx-A.lastNode.x, ndy=this.fy-A.lastNode.y, nd=Math.hypot(ndx,ndy);
+            if (nd >= 9) this.emitA2TrailNode(this.fx, this.fy, Math.atan2(ndy,ndx), this.t, false);
         }
         if (sp > 400 && Math.floor(this.t/0.16)!==Math.floor((this.t-dt)/0.16)) { const h=Math.atan2(this.fvy,this.fvx); spawnRibbon(this.fx-Math.cos(h)*16+rnd(-4,4),this.fy+8-Math.sin(h)*16,h+Math.PI+rnd(-0.12,0.12),30,3.6,rnd(-6,6),0.32,{grow:0.15,vx:this.fvx*0.15,vy:this.fvy*0.15,core:0.5}); }
         A.histT+=dt; if(A.histT>=1/60){A.histT=0;A.hist.push(Math.atan2(this.fvy,this.fvx));if(A.hist.length>10)A.hist.shift();}
@@ -1988,11 +2051,10 @@ class FrostEngine {
     }
     drawVentGlow(ctx, cav, I, ox, oy) {
         const vc = this.ventCanvas;
-        if (vc.width !== cav.width || vc.height !== cav.height) {
-            vc.width = cav.width;
-            vc.height = cav.height;
-        }
-        const c = vc.getContext("2d");
+        // Asset readiness prepares this surface. Never resize in a render pass:
+        // HTMLCanvasElement resize clears state/backing pixels mid-frame.
+        if (vc.width !== cav.width || vc.height !== cav.height) return;
+        const c = this.ventCtx || vc.getContext("2d");
         const k = cav.width / M.w;
         c.globalCompositeOperation = "source-over";
         c.clearRect(0, 0, vc.width, vc.height);

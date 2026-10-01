@@ -1245,6 +1245,13 @@
   function hrPostTick(dt) {
     if (!M) return;
     tickWorld(dt);
+    // Frost A2 presentation history must observe the post-Fighter.update,
+    // post-wall/body-collision position consumed by the body renderer below.
+    // Capturing during executor onTick is one integration frame stale.
+    const frostRuntime = globalScope.APEX_FROST;
+    if (frostRuntime?.capturePostMovement) {
+      for (const ct of M.combatants) if (!ct.facade && ct.heroId === 'ICE') frostRuntime.capturePostMovement(ct);
+    }
     globalScope.APEX_HUNTER_PRESENTATION?.tick(dt);
     globalScope.APEX_FROST_PRESENTATION?.tick(dt);
     separateExtraBodies(dt);

@@ -19,12 +19,11 @@
  *   truth (a1cfg.length, LAW.frontSeconds).
  * - A2 trail follows REAL positions (synced fx/fy feed Gold updateA2, which
  *   resamples every 9px vs gameplay nodeSpacing 10 — same path).
- * - Width calibration: the canonical Gold is APEX-accurate, so its authored
- *   ice widths ARE the gameplay widths (A1_WIDTH 160 == a1cfg.width,
- *   A2_WIDTH 120 == a2cfg.trailWidth): laneK/trailK derive from
- *   cfg / GOLD_REF and land on 1.0 for stock Level-1 truth. No showcase
- *   rescaling of authored material, and the rendered ice still covers the
- *   mechanic envelope exactly (Hunter precedent: visible == mechanic).
+ * - Width calibration: laneK/trailK derive from live gameplay config over
+ *   canonical Gold reference geometry. Slice 1 raises A1 gameplay width from
+ *   160 to 360, so laneK is 2.25; A2 remains 120/120 = 1.0. The authored
+ *   material therefore expands with the mechanic envelope instead of drifting
+ *   away from collision truth (Hunter precedent: visible == mechanic).
  * - Body scale (F12.22): the Gold authors its actor against its OWN fighter
  *   radius GOLD_REF.FROST_R (34 world units; silhouette ~74x93). Production
  *   therefore uses kBody = fighter.radius / GOLD_REF.FROST_R, which restores
@@ -144,6 +143,74 @@ const CTX_PROPS = ['globalAlpha', 'globalCompositeOperation', 'filter',
   'strokeStyle', 'fillStyle', 'font', 'textAlign', 'textBaseline',
   'imageSmoothingEnabled', 'imageSmoothingQuality'];
 let stateLeaks = 0;
+const renderAudit = { frame: 0, bodyDraws: 0, iceRenders: 0, drawExceptions: 0, lastFrameMs: 0, maxFrameMs: 0 };
+// Live entity-integrity trace. This records state ownership and render sources,
+// not pixels, and is intentionally bounded so owner-browser diagnosis can read
+// the exact first divergent frame without changing Gold choreography.
+const integrityFrames = [];
+const segmentMeta = new WeakMap();
+let nextSegmentId = 1;
+function segmentInfo(n, fallbackCastId) {
+  let m = segmentMeta.get(n);
+  if (!m) {
+    m = { id: nextSegmentId++, castId: fallbackCastId || 0, kind: n.kind || 'unknown' };
+    segmentMeta.set(n, m);
+  } else if (!m.castId && fallbackCastId) m.castId = fallbackCastId;
+  return m;
+}
+function currentIntegrity(S) {
+  for (let i = integrityFrames.length - 1; i >= 0; i--) {
+    if (integrityFrames[i].fighterId === (S.fighter && S.fighter.id)) return integrityFrames[i];
+  }
+  return null;
+}
+function noteRenderSource(S, source) {
+  const r = currentIntegrity(S);
+  if (!r || r.simFrame !== renderAudit.frame) return;
+  r.renderSources.push(source);
+  r.renderSourceCounts[source] = (r.renderSourceCounts[source] || 0) + 1;
+}
+function captureIntegrity(S, insp, now) {
+  const e = S.engine, castId = (insp && insp.a2castId) || S.a2.castId || 0;
+  // kickOff's authored pad is created inside Gold; assign it to the same cast
+  // here without changing Gold itself.
+  for (const n of (e.a2.trail || [])) segmentInfo(n, castId);
+  const active = [], dead = [];
+  for (const n of e.ice.nodes) {
+    const m = segmentInfo(n, (n.kind === 'trail' || n.kind === 'pad') ? castId : 0);
+    const row = { id: m.id, castId: m.castId, kind: m.kind, x: +n.x.toFixed(3), y: +n.y.toFixed(3), born: +n.born.toFixed(4) };
+    if (!n.dead && e.t > n.born) active.push(row); else if (n.dead) dead.push(row);
+  }
+  const prev = S.integrityActiveIds || new Set();
+  const ids = new Set(active.map((n) => n.id));
+  const retiredThisFrame = [];
+  for (const id of prev) if (!ids.has(id)) retiredThisFrame.push(id);
+  S.integrityActiveIds = ids;
+  S.integrityRetired = (S.integrityRetired || 0) + retiredThisFrame.length;
+  const endpoint = S.a2.path ? { x: S.a2.path.x, y: S.a2.path.y } : null;
+  const root = { x: e.fx, y: e.fy }, head = { x: S.fighter.x, y: S.fighter.y };
+  const rec = {
+    simFrame: renderAudit.frame, clock: +now.toFixed(4), fighterId: S.fighter && S.fighter.id,
+    castId, mode: e.mode, visualInstances: liveStates.size,
+    activeSegments: active.length, deadSegmentsRetained: dead.length,
+    retiredThisFrame, retiredTotal: S.integrityRetired || 0,
+    segmentOwners: active.reduce((o, n) => { const k = String(n.castId); o[k] = (o[k] || 0) + 1; return o; }, {}),
+    segments: active, head, bodyRoot: root, pathEndpoint: endpoint,
+    headRootGap: +Math.hypot(head.x - root.x, head.y - root.y).toFixed(4),
+    headPathGap: endpoint ? +Math.hypot(head.x - endpoint.x, head.y - endpoint.y).toFixed(4) : null,
+    liveAndHistorySimultaneous: !!(e.externalA2Path && e.mode === 'a2' && !S.a2.path),
+    renderSources: [], renderSourceCounts: {}, components: [], componentDrawCounts: {}, componentSaveDepthAfter: 0,
+    facialState: {
+      browL: { lift: e.bLiftL.x, rotation: e.bRotL.x }, browR: { lift: e.bLiftR.x, rotation: e.bRotR.x },
+      crest: { lift: e.crestLift.x, rotation: e.crestRot.x }, jaw: e.jaw.x,
+      eye: e.eye.x, lag: { x: e.lagX.x, y: e.lagY.x }, scale: { x: e.sx.x, y: e.sy.x }, tilt: e.tilt.x,
+    },
+    canvas: { width: e.iceCanvas.width, height: e.iceCanvas.height, cleared: false, painted: false },
+  };
+  integrityFrames.push(rec);
+  if (integrityFrames.length > 900) integrityFrames.splice(0, integrityFrames.length - 900);
+  return rec;
+}
 function snapshotCtx(ctx) {
   const snap = { m: null, p: {}, dash: null };
   try { snap.m = typeof ctx.getTransform === 'function' ? ctx.getTransform() : null; } catch (e) {}
@@ -177,7 +244,7 @@ function isolated(ctx, fn) {
   let saved = false;
   try { ctx.save(); saved = true; } catch (e) {}
   try { fn(); }
-  catch (err) { warnOnce(err); }
+  catch (err) { renderAudit.drawExceptions++; warnOnce(err); }
   finally {
     if (saved) { try { ctx.restore(); } catch (e) {} }
     restoreCtx(ctx, snap);
@@ -202,6 +269,14 @@ function createState(ct) {
   const f = ct.anchor;
   const cfg = frostCfg(ct);
   const e = new G.FrostEngine();
+  e.externalA2Path = true;
+  // Pre-size the full-screen composite before any cast can activate. A later
+  // viewport change is handled during tick only while no Frost material is
+  // active; drawIceComposite never resizes a canvas.
+  try {
+    const host = (g.ctx && g.ctx.canvas) || g.canvas || (g.document && g.document.getElementById && g.document.getElementById('gameCanvas'));
+    if (host && typeof e.prepareSurfaces === 'function') e.prepareSurfaces(host.width, host.height);
+  } catch (err) { warnOnce(err); }
   // Art load is per-engine with a module-shared promise (first engine wins),
   // but mips live ON the engine: every later engine backfills from the
   // shared art cache so rematches/mirrors render (mips are read-only after
@@ -209,6 +284,7 @@ function createState(ct) {
   if (sharedArt) {
     e.mips = sharedArt.mips;
     e.shadowCanvas = sharedArt.shadow;
+    try { e.prepareSurfaces(e.iceCanvas.width, e.iceCanvas.height); } catch (err) { warnOnce(err); }
     e.ready = true;
     api.ready = true;
   } else if (!createState.loadStarted && typeof e.load === 'function') {
@@ -220,6 +296,7 @@ function createState(ct) {
           if (other.engine !== e) {
             other.engine.mips = e.mips;
             other.engine.shadowCanvas = e.shadowCanvas;
+            try { other.engine.prepareSurfaces(other.engine.iceCanvas.width, other.engine.iceCanvas.height); } catch (prepErr) { warnOnce(prepErr); }
             other.engine.ready = true;
           }
         }
@@ -236,7 +313,7 @@ function createState(ct) {
     laneK: (+cfg.a1.width || REF.A1_WIDTH) / REF.A1_WIDTH,
     trailK: (+cfg.a2.trailWidth || REF.A2_WIDTH) / REF.A2_WIDTH,
     a1: { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0 },
-    a2: { live: false, started: false, hydrated: 0 },
+    a2: { live: false, started: false, hydrated: 0, path: null },
     castQ: [],       // deferred Gold cast admissions (FIFO, truth-checked)
     castSeq: 0, castStarts: 0, castDeferred: 0, castDropped: 0,
     victim: null, // { id, seizeE }
@@ -299,12 +376,13 @@ function resetEngineVisuals(S, m) {
   } catch (err) { warnOnce(err); }
   S.tOff = null;
   S.a1 = { pending: false, castClock: 0, holdUntil: 0, releaseClock: -99, expireClock: -99, releasedSeen: false, casts: [], castAng: 0, startedId: 0, startClock: -99, replays: 0 };
-  S.a2 = { live: false, started: false, hydrated: 0 };
+  S.a2 = { live: false, started: false, hydrated: 0, path: null };
   S.castQ.length = 0;
   S.castSeq = 0; S.castStarts = 0; S.castDeferred = 0; S.castDropped = 0;
   S.victim = null;
   S.froze.clear(); S.shocks.clear(); S.guns.clear(); S.flecks.clear();
   S.heldVg = null; S.suppressHolder = null; S.match = m || null;
+  S.integrityActiveIds = new Set(); S.integrityRetired = 0;
 }
 
 function stateFor(ct) {
@@ -566,73 +644,50 @@ function replayA1Lane(S, q, now) {
 // historical birth time, so the hydrated section is materially identical to
 // the section the live path would have laid. No island chunks, no second
 // trail algorithm, no smoothing, no synthetic geometry.
-function hydrateA2Trail(S, insp, now) {
+function syncA2Path(S, insp, now) {
   const e = S.engine, A = e.a2;
-  const hist = (insp && insp.trailNodes) || [];
-  if (hist.length < 2) return 0;
-  const off = S.tOff || 0;
-  const segLife = +((S.cfg.a2 && S.cfg.a2.segmentLifetime) || REF.A2_SEGMENT_LIFE);
+  const hist = (insp && insp.movementHistory) || [];
+  if (!hist.length) return 0;
+  const castId = (insp && insp.a2castId) || 0;
   const STEP = REF.TRAIL_STEP || 9;
-  const FOOT = REF.TRAIL_FOOT_Y || 6;
-  const HALF = (REF.A2_WIDTH || 120) * 0.5;
-  let laid = 0, first = true;
-  // Walk the real path; emit one Gold node every STEP px, interpolating the
-  // birth time along the segment so the melt order matches what the player
-  // already saw.
-  let carry = 0, last = hist[0];
-  for (let k = 1; k < hist.length; k++) {
-    const a = hist[k - 1], b = hist[k];
-    const dx = b.x - a.x, dy = b.y - a.y;
-    const d = Math.hypot(dx, dy);
-    if (d < 1e-3) continue;
-    const ang = Math.atan2(dy, dx);
-    const dt = Math.max(0, b.bornAt - a.bornAt);
-    let travelled = STEP - carry;
-    while (travelled <= d) {
-      const u = travelled / d;
-      const x = a.x + dx * u, y = a.y + dy * u;
-      const born = a.bornAt + dt * u;
-      if (now - born < segLife) {
-        if (first) {
-          // The ignition bite belongs to where the hunt really started.
-          first = false;
-          const pad = e.ice.add(hist[0].x, hist[0].y + FOOT, ang, 24, HALF, hist[0].bornAt + off,
-            'pad', { lockDur: 0.5, jag: 0.24, activeUntil: hist[0].bornAt + off + segLife });
-          pad.decayAt = pad.activeUntil;
-          A.trail.push(pad);
-        }
-        const W = HALF + e.rng.range(-2, 2);
-        const n = e.ice.add(x - Math.cos(ang) * 3, y + FOOT - Math.sin(ang) * 3, ang,
-          e.rng.range(REF.TRAIL_LEN_MIN || 12, REF.TRAIL_LEN_MAX || 16), W, born + off, 'trail',
-          { lockDur: 0.45, spurChance: 0.015, jag: 0.09, activeUntil: born + off + segLife });
-        n.decayAt = n.activeUntil;
-        A.trail.push(n);
-        laid++;
-        A.crustAcc += STEP;
-        if (A.crustAcc > 26) { A.crustAcc = 0; A.side = -A.side; }
-      }
-      last = { x, y, bornAt: born };
-      travelled += STEP;
-    }
-    carry = (d - (travelled - STEP));
-    if (!(carry >= 0)) carry = 0;
-    if (k === hist.length - 1 && (d - (travelled - STEP)) >= 0) last = last;
+  const off = S.tOff || 0;
+  let P = S.a2.path;
+  if (!P || P.castId !== castId) {
+    P = S.a2.path = {
+      castId, next: 1, x: hist[0].x, y: hist[0].y,
+      bornAt: hist[0].bornAt, carry: 0, laid: 0, lastHeading: null,
+    };
+    A.lastNode.x = hist[0].x; A.lastNode.y = hist[0].y;
+    A.activeStart = hist[0].bornAt + off;
   }
-  if (laid) {
-    // Continue the live path from the real path end: the next Gold node is
-    // the next authored STEP of real travel, so there is no jump node, no
-    // duplicated section and no restart at the admission point.
-    A.lastNode.x = last.x; A.lastNode.y = last.y;
-    A.kicked = true;              // the ignition beat already happened
-    if (A.activeStart < 0) A.activeStart = (hist[0].bornAt + off);
-    // Seed the turn-history window from the real path so the first live
-    // carve decision uses real motion, not a cold start.
-    A.hist.length = 0;
-    for (let k = Math.max(1, hist.length - 10); k < hist.length; k++) {
-      A.hist.push(Math.atan2(hist[k].y - hist[k - 1].y, hist[k].x - hist[k - 1].x));
+  let laid = 0;
+  for (; P.next < hist.length; P.next++) {
+    const b = hist[P.next];
+    let sx = P.x, sy = P.y, st = P.bornAt;
+    let dx = b.x - sx, dy = b.y - sy, d = Math.hypot(dx, dy);
+    if (d < 1e-6) { P.x = b.x; P.y = b.y; P.bornAt = b.bornAt; continue; }
+    const h = Math.atan2(dy, dx);
+    let need = STEP - P.carry;
+    while (need <= d + 1e-7) {
+      const u = need / d;
+      const x = sx + dx * u, y = sy + dy * u;
+      const bornClock = st + (b.bornAt - st) * u;
+      const born = bornClock + off;
+      const node = e.emitA2TrailNode(x, y, h, born, now - bornClock > 2 / 60);
+      segmentInfo(node, castId);
+      laid++; P.laid++; P.carry = 0;
+      sx = x; sy = y; st = bornClock;
+      dx = b.x - sx; dy = b.y - sy; d = Math.hypot(dx, dy);
+      need = STEP;
     }
+    P.carry += d;
+    // Crucial seam law: preserve the exact real endpoint and accumulated
+    // along-path remainder. Never resume from the last emitted 9px sample.
+    P.x = b.x; P.y = b.y; P.bornAt = b.bornAt;
+    A.lastNode.x = b.x; A.lastNode.y = b.y;
+    P.lastHeading = h;
   }
-  S.a2.hydrated = (S.a2.hydrated || 0) + laid;
+  S.a2.hydrated = P.laid;
   return laid;
 }
 function startCast(S, q, now, insp) {
@@ -649,8 +704,9 @@ function startCast(S, q, now, insp) {
   } else {
     try { e.castA2(); } catch (err) { warnOnce(err); }
     S.a2.started = true;
+    S.a2.castId = q.castId || (insp && insp.a2castId) || 0;
     // No-ops on an immediate start (the window has a single origin node).
-    try { hydrateA2Trail(S, insp, now); } catch (err) { warnOnce(err); }
+    try { syncA2Path(S, insp, now); } catch (err) { warnOnce(err); }
   }
   S.castStarts = (S.castStarts || 0) + 1;
 }
@@ -782,13 +838,19 @@ function tickA2(S, insp, now) {
   const live = !!(insp && insp.a2live);
   if (live && !S.a2.live) {
     S.a2.live = true;
-    requestCast(S, { kind: 'a2' }, now, insp);
+    S.a2.path = null;
+    requestCast(S, { kind: 'a2', castId: (insp && insp.a2castId) || 0 }, now, insp);
   } else if (!live && S.a2.live) {
     S.a2.live = false;
     // If the hunt visual never got its Gold slot, retire the queued start
     // (its truth is gone) — endA2 belongs only to a hunt that really began.
     if (dropQueued(S, 'a2') && !S.a2.started) S.castDropped = (S.castDropped || 0) + 1;
     else if (S.a2.started) { S.a2.started = false; try { e.endA2(); } catch (err) { warnOnce(err); } }
+  }
+  // Immediate and deferred casts both consume the same exact movement-history
+  // adapter on every frame. There is no second live fx/fy trail pipeline.
+  if (live && S.a2.started) {
+    try { syncA2Path(S, insp, now); } catch (err) { warnOnce(err); }
   }
   const segLife = +((S.cfg.a2 && S.cfg.a2.segmentLifetime) || 3.5);
   for (const n of e.ice.nodes) {
@@ -990,6 +1052,14 @@ function driveEngine(S, ct, dt) {
   // Body scale follows the live fighter radius (rage/size effects included).
   e.bodyK = S.kBody = ((f && f.radius) || 75) / REF.FROST_R;
   try {
+    const host = (g.ctx && g.ctx.canvas) || g.canvas;
+    const materialActive = e.ice.nodes.length || e.ice.carves.length || e.mode !== 'free';
+    if (host && !materialActive && typeof e.prepareSurfaces === 'function'
+      && (e.iceCanvas.width !== host.width || e.iceCanvas.height !== host.height)) {
+      e.prepareSurfaces(host.width, host.height);
+    }
+  } catch (err) { warnOnce(err); }
+  try {
     const vw = g.__apexCameraView;
     e.scale = (vw && vw.zoom) || 1;
     e.dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
@@ -1037,12 +1107,23 @@ function driveEngine(S, ct, dt) {
   e.lagX.goal = clamp(-e.fax * lagK, -4, 4);
   e.lagY.goal = clamp(-e.fay * lagK, -4, 4);
   e.tilt.goal = clamp(e.fvx * 0.00016 + -e.fax * 0.00003, -0.07, 0.07);
-  try { e.hunt.step(e.huntGoal, 0.08, dt); } catch (err) {}
-  for (const s of [e.lagX, e.lagY, e.tilt, e.sx, e.sy, e.bLiftL,
-    e.bLiftR, e.bRotL, e.bRotR, e.jaw, e.crestLift, e.crestRot, e.eye, e.crack, e.vent]) {
-    try { s.step(dt); } catch (err) {}
+  // Canonical Gold advances this articulated rig at fixed DT=1/120 inside
+  // its accumulator. Passing a browser frame/hitch dt directly into these
+  // semi-implicit springs makes brow/crest/jaw transforms overshoot or become
+  // unstable (a 50ms activation frame can move a brow several times its
+  // authored lift). Preserve the Gold assembly by substepping only the rig;
+  // gameplay and Gold choreography remain owned by their existing paths.
+  const rigSprings = [e.lagX, e.lagY, e.tilt, e.sx, e.sy, e.bLiftL,
+    e.bLiftR, e.bRotL, e.bRotR, e.jaw, e.crestLift, e.crestRot, e.eye, e.crack, e.vent];
+  const GOLD_DT = 1 / 120;
+  let rigRemain = dt;
+  while (rigRemain > 1e-8) {
+    const h = Math.min(GOLD_DT, rigRemain);
+    try { e.hunt.step(e.huntGoal, 0.08, h); } catch (err) {}
+    for (const s of rigSprings) { try { s.step(h); } catch (err) {} }
+    e.crestRot.goal = clamp(-e.fvx * 0.00008, -0.03, 0.03);
+    rigRemain -= h;
   }
-  e.crestRot.goal = clamp(-e.fvx * 0.00008, -0.03, 0.03);
   // Aim damps toward the live enemy anchor (Gold gunAim law, real target).
   try {
     const foes = bodiesOf(ct, false);
@@ -1058,9 +1139,12 @@ function driveEngine(S, ct, dt) {
   tickGuns(S, now, dt);
   tickFlecks(S, dt);
   try { e.ice.update(t); } catch (err) { warnOnce(err); }
+  captureIntegrity(S, insp, now);
 }
 
 api.tick = function (dt) {
+  const auditT0 = (g.performance && typeof g.performance.now === 'function') ? g.performance.now() : Date.now();
+  renderAudit.frame++;
   if (!G || !FR || !HR) return;
   if (!HR.match) return;
   if (typeof dt !== 'number' || !(dt >= 0)) dt = 1 / 60;
@@ -1076,9 +1160,29 @@ api.tick = function (dt) {
   }
   // Module-global shape pools advance ONCE per frame (shared by engines).
   try { if (typeof G.updateShapes === 'function') G.updateShapes(dt); } catch (err) { warnOnce(err); }
+  const auditT1 = (g.performance && typeof g.performance.now === 'function') ? g.performance.now() : Date.now();
+  renderAudit.lastFrameMs = auditT1 - auditT0;
+  renderAudit.maxFrameMs = Math.max(renderAudit.maxFrameMs, renderAudit.lastFrameMs);
 };
 
 // ------------------------------------------------------------------ draws
+// World-surface layer only: ice/wet/front/floor support. Arsenal invokes this
+// after the chamber floor but before pickup sprites, guaranteeing guns remain
+// readable without moving the Frost actor/head out of its normal body order.
+function renderSurfaceUnderWeapons(ctx) {
+  if (!api.ready || !liveStates.size || !ctx) return;
+  const px = pxFromCtx(ctx);
+  for (const [, S] of liveStates) {
+    isolated(ctx, () => {
+      S.engine.ice.drawWet(ctx, S.engine.t);
+      drawIceComposite(S, ctx, px);
+      S.engine.drawA1MacroFront(ctx, px);
+    });
+  }
+  isolated(ctx, () => { G.drawFloorShapes(ctx, px); });
+}
+api.renderSurfaceUnderWeapons = renderSurfaceUnderWeapons;
+
 function ensureDrawWraps() {
   if (ensureDrawWraps.done) return;
   ensureDrawWraps.done = true;
@@ -1094,11 +1198,13 @@ function ensureDrawWraps() {
           let drew = false;
           isolated(ctx, () => { drawFrostBody(ctx, this, S); drew = true; });
           bypassed = drew;
-          if (!drew) { try { prevDraw.call(this, ctx); } catch (e2) {} }
+          if (!drew) { noteRenderSource(S, 'inner-fighter-fallback'); try { prevDraw.call(this, ctx); } catch (e2) {} }
         } else {
           try { prevDraw.call(this, ctx); } catch (err) { warnOnce(err); }
         }
       } else {
+        const legacyS = isFrostBody(this) ? liveStates.get(this) : null;
+        if (legacyS) noteRenderSource(legacyS, 'inner-fighter-chain');
         try { prevDraw.call(this, ctx); } catch (err) { warnOnce(err); }
       }
       try {
@@ -1126,19 +1232,15 @@ function ensureDrawWraps() {
   if (typeof g.drawProjectiles === 'function' && !g.drawProjectiles.__frostWrapped) {
     const prevDP = g.drawProjectiles;
     const wrapped = function (ctx) {
-      // UNDER (Gold law order): wet -> ice composite -> floor shapes -> macro
-      // front -> slot frost. Production projectiles/fighters draw above.
+      // In Arsenal, the chamber background explicitly places the Frost
+      // surface before pickup sprites. Other modes retain the historical
+      // projectile-underpass. Slot frost overlays remain here, after the real
+      // pickup sprite, while actors/held guns keep their normal ordering.
       if (api.ready && liveStates.size) {
+        const arsenalActive = !!(g.APEX_ARSENAL && g.APEX_ARSENAL.state && g.APEX_ARSENAL.state.active);
+        if (!arsenalActive) renderSurfaceUnderWeapons(ctx);
         const px = pxFromCtx(ctx);
-        for (const [, S] of liveStates) {
-          isolated(ctx, () => {
-            drawIceComposite(S, ctx, px);
-            S.engine.ice.drawWet(ctx, S.engine.t);
-            S.engine.drawA1MacroFront(ctx, px);
-            drawSlotOverlays(S, ctx, px);
-          });
-        }
-        isolated(ctx, () => { G.drawFloorShapes(ctx, px); });
+        for (const [, S] of liveStates) isolated(ctx, () => drawSlotOverlays(S, ctx, px));
       }
       try { prevDP.call(this, ctx); } catch (err) { warnOnce(err); }
       // OVER the production projectiles: frozen-bullet frost rides its bullet.
@@ -1152,9 +1254,55 @@ function ensureDrawWraps() {
   }
 }
 
+// Guarded per-part transform trace for browser/Gold assembly comparison. It
+// observes the exact drawImage calls without changing Gold or canvas state.
+function drawFrostHeadTraced(ctx, S, px) {
+  const e = S.engine, rec = currentIntegrity(S);
+  if (!g.__apexFrostPartTrace || !rec || rec.simFrame !== renderAudit.frame) {
+    e.drawFrost(ctx, px);
+    return;
+  }
+  const names = new Map();
+  for (const [name, levels] of Object.entries(e.mips || {})) for (const img of levels || []) names.set(img, name);
+  let depth = 0;
+  const proxy = new Proxy(ctx, {
+    get(target, prop) {
+      if (prop === 'save') return () => { depth++; return target.save(); };
+      if (prop === 'restore') return () => { const out = target.restore(); depth--; return out; };
+      if (prop === 'drawImage') return (img, ...args) => {
+        const name = names.get(img) || 'unknown-image';
+        const before = target.getTransform();
+        const alpha = target.globalAlpha, composite = target.globalCompositeOperation;
+        const x = Number(args[0]) || 0, y = Number(args[1]) || 0;
+        const wx = before.a * x + before.c * y + before.e;
+        const wy = before.b * x + before.d * y + before.f;
+        const out = target.drawImage(img, ...args);
+        const after = target.getTransform();
+        rec.components.push({
+          name, expectedLocal: { x, y }, actualLocal: { x, y }, finalWorld: { x: wx, y: wy },
+          before: { a: before.a, b: before.b, c: before.c, d: before.d, e: before.e, f: before.f },
+          after: { a: after.a, b: after.b, c: after.c, d: after.d, e: after.e, f: after.f },
+          alpha, composite, rotation: Math.atan2(before.b, before.a),
+          scale: { x: Math.hypot(before.a, before.b), y: Math.hypot(before.c, before.d) },
+          saveDepth: depth,
+        });
+        return out;
+      };
+      const value = target[prop];
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+    set(target, prop, value) { target[prop] = value; return true; },
+  });
+  e.drawFrost(proxy, px);
+  rec.componentSaveDepthAfter = depth;
+  rec.componentDrawCounts = rec.components.reduce((o, c) => { o[c.name] = (o[c.name] || 0) + 1; return o; }, {});
+}
+
 // Gold actor law: shadow -> breath-behind? -> body -> breath-front? -> preCore,
 // all in the radius-adaptive body frame about the live fighter position.
 function drawFrostBody(ctx, f, S) {
+  renderAudit.bodyDraws++;
+  noteRenderSource(S, 'frost-gold-body');
   const e = S.engine;
   const px = pxFromCtx(ctx);
   if (f.hasStatus && f.hasStatus('immune')) ctx.globalAlpha = 0.55;
@@ -1169,7 +1317,7 @@ function drawFrostBody(ctx, f, S) {
   e.drawFrostShadow(ctx);
   const behind = e.breath.on && Math.sin(e.a1.ang) < -0.35;
   if (behind) e.drawBreathCore(ctx, px);
-  e.drawFrost(ctx, px);
+  drawFrostHeadTraced(ctx, S, px);
   if (e.breath.on && !behind) e.drawBreathCore(ctx, px);
   if (e.mode === 'a1' && e.modeT > 0.08 && e.modeT < 0.23) e.drawPreCore(ctx, px);
   ctx.restore();
@@ -1239,6 +1387,8 @@ function drawStatusRings(ctx, f) {
 function drawIceComposite(S, ctx, px) {
   const e = S.engine;
   if (!e.ice.nodes.length && !e.ice.carves.length) return;
+  renderAudit.iceRenders++;
+  noteRenderSource(S, 'frost-ice-pass');
   const cv = ctx && ctx.canvas;
   const w = (cv && cv.width) | 0, h = (cv && cv.height) | 0;
   // Composite only when the target canvas has a usable backing store AND the
@@ -1247,20 +1397,20 @@ function drawIceComposite(S, ctx, px) {
   // host transform, which is what corrupted the whole battle render.
   if (w > 1 && h > 1 && e.iceCanvas && typeof ctx.getTransform === 'function') {
     try {
-      if (e.iceCanvas.width !== w || e.iceCanvas.height !== h) {
-        e.iceCanvas.width = w; e.iceCanvas.height = h;
-        // Rebind: headless canvas proxies capture the backing store at
-        // getContext time, so a resize orphans the old ctx (browsers return
-        // the same ctx here — harmless).
-        try { e.iceCtx = e.iceCanvas.getContext('2d'); } catch (err) {}
-      }
-      const ic = e.iceCtx;
+      // Never resize in a draw. A mismatch (for example a viewport change on
+      // the same frame) uses direct Gold rendering for this frame; tick will
+      // prepare the backing store only once the material is inactive.
+      const sized = e.iceCanvas.width === w && e.iceCanvas.height === h;
+      const ic = sized ? e.iceCtx : null;
       if (ic) {
         const m = ctx.getTransform();
         ic.setTransform(1, 0, 0, 1, 0, 0);
         ic.clearRect(0, 0, e.iceCanvas.width, e.iceCanvas.height);
+        const trace = currentIntegrity(S);
+        if (trace && trace.simFrame === renderAudit.frame) trace.canvas.cleared = true;
         ic.setTransform(m);
         const painted = e.ice.render(ic, e.t, px);
+        if (trace && trace.simFrame === renderAudit.frame) trace.canvas.painted = !!painted;
         ic.setTransform(1, 0, 0, 1, 0, 0);
         if (painted) {
           // Blit inside its own save/restore: transform + alpha are restored
@@ -1276,6 +1426,7 @@ function drawIceComposite(S, ctx, px) {
       }
     } catch (err) { warnOnce(err); }
   }
+  noteRenderSource(S, 'frost-ice-direct-fallback');
   try { e.ice.render(ctx, e.t, px); } catch (err) { warnOnce(err); }
 }
 
@@ -1429,7 +1580,21 @@ api.inspect = function (f) {
     stateLeaks,
     bodyK: +(S.engine.bodyK || 0).toFixed(3),
     trailStep: REF.TRAIL_STEP, goldA2Width: REF.A2_WIDTH, goldFrostR: REF.FROST_R,
+    ready: !!api.ready, engineReady: !!e.ready, engineCount: liveStates.size,
+    iceCanvas: [e.iceCanvas.width, e.iceCanvas.height],
+    ventCanvas: [e.ventCanvas.width, e.ventCanvas.height],
+    surfaceResizes: e.surfaceResizeCount || 0,
+    surfaceResizeDuringDraw: e.surfaceResizeDuringDraw || 0,
+    renderAudit: { ...renderAudit },
+    path: S.a2.path ? { castId: S.a2.path.castId, consumed: S.a2.path.next,
+      laid: S.a2.path.laid, carry: +S.a2.path.carry.toFixed(3),
+      endpoint: [S.a2.path.x, S.a2.path.y] } : null,
   };
+};
+api.integrityTrace = function () { return integrityFrames.map((r) => ({ ...r, renderSources: r.renderSources.slice(), segments: r.segments.map((n) => ({ ...n })) })); };
+api.clearIntegrityTrace = function () {
+  integrityFrames.length = 0;
+  for (const [, S] of liveStates) { S.integrityActiveIds = new Set(); S.integrityRetired = 0; }
 };
 
 if (G && typeof G.load === 'function' && !api.ready) {

@@ -252,7 +252,7 @@
      * frost.*. The old ice.bullets / ice.lane / ice.deep_freeze design is
      * intentionally superseded (authority §0/§8) and must not return.
      * Per-skill numbers below are the owner-locked Playtest V0 values.
-     * Shared Frozen Floor law (Frost x2.35 / enemy x0.60) lives once in
+     * Shared Frozen Floor law (Frost x1.8 / enemy x0.5) lives once in
      * APEX_FROST.FROST_LAW, never triplicated across skills.
      * ---------------------------------------------------------------- */
     ICE: {
@@ -264,7 +264,10 @@
       classRef: 'rework.frost',
       skills: {
         A1: skill('frost.breath', 'A1', 'frost.breath', {
-          cooldown: 10.5, castCommit: 0.25, length: 650, width: 160,
+          // Gameplay stores full lane width. Owner Slice 1 increases the
+          // effective radial extent/half-width from 80 to 180 (+100), hence
+          // canonical full width 160 -> 360.
+          cooldown: 10.5, castCommit: 0.25, length: 650, width: 360,
           floorLifetime: 4.5, thawSeconds: 0.30, lingerSeconds: 0.35,
           directDamage: 0, progressionAnchor: 1,
         }, ['progressionAnchor'], 'cooldown_step'),

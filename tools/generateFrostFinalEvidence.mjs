@@ -46,6 +46,8 @@ const P = () => win.APEX_FROST_PRESENTATION;
 const W = () => win.APEX_ARSENAL.weaponApi;
 const RC = H.gameCanvasReal;
 const CTX = RC.getContext('2d');
+const realFrostSpeed = (o) => o.a.baseSpeed * FR().LAW.frostFloorMult;
+const realFrostStep = (o) => realFrostSpeed(o) / 60;
 
 // The Frost runtimes are mode-deferred: a real ICE match has to start once
 // before the presentation exists.
@@ -240,14 +242,14 @@ for (const p of PEERS) {
   run(`03-a2-vs-${p}`, p, 60, (o, k, frost) => {
     o.b.x = 780; o.b.y = 250;
     if (k === 2) { o.a.x = 200; o.a.y = 700; if (frost) HR.pressAbility(o.a, 'A2'); }
-    else if (k > 2 && k < 26) { o.a.x += 9; o.a.__hrVel = { x: 540, y: 0 }; }
-    else if (k >= 26 && k < 48) { o.a.y -= 9; o.a.__hrVel = { x: 0, y: -540 }; }
+    else if (k > 2 && k < 26) { o.a.x += realFrostStep(o); o.a.__hrVel = { x: realFrostSpeed(o), y: 0 }; }
+    else if (k >= 26 && k < 48) { o.a.y -= realFrostStep(o); o.a.__hrVel = { x: 0, y: -realFrostSpeed(o) }; }
   });
 }
 /* 4 — both fighters moving */
 run('04-both-moving', 'ROBOT', 70, (o, k, frost) => {
   if (k === 2) { o.a.x = 180; o.a.y = 640; if (frost) HR.pressAbility(o.a, 'A2'); }
-  else if (k > 2) { o.a.x = Math.min(880, o.a.x + 9); o.a.__hrVel = { x: 540, y: 0 }; }
+  else if (k > 2) { o.a.x = Math.min(880, o.a.x + realFrostStep(o)); o.a.__hrVel = { x: realFrostSpeed(o), y: 0 }; }
   o.b.x = 700 - Math.min(k, 40) * 6; o.b.y = 250 + Math.min(k, 40) * 3;
 }, { quiet: [[110, 110, 40], [500, 110, 40]] });
 
@@ -255,14 +257,14 @@ run('04-both-moving', 'ROBOT', 70, (o, k, frost) => {
 run('05-a2-wall-bounce', 'ROBOT', 80, (o, k, frost) => {
   o.b.x = 300; o.b.y = 180;
   if (k === 2) { o.a.x = 700; o.a.y = 700; o.a.setDir(1, 0); if (frost) HR.pressAbility(o.a, 'A2'); }
-  else if (k > 2) { o.a.x = Math.min(960, o.a.x + 9); o.a.__hrVel = { x: 540, y: 0 }; }
+  else if (k > 2) { o.a.x = Math.min(960, o.a.x + realFrostStep(o)); o.a.__hrVel = { x: realFrostSpeed(o), y: 0 }; }
 }, { quiet: [[110, 110, 40], [110, 880, 40]] });
 
 /* 6 — A2 real body contact */
 run('06-a2-body-contact', 'ROBOT', 70, (o, k, frost) => {
   o.b.x = 620; o.b.y = 700;
   if (k === 2) { o.a.x = 300; o.a.y = 700; o.a.setDir(1, 0); if (frost) HR.pressAbility(o.a, 'A2'); }
-  else if (k > 2) { o.a.x = Math.min(600, o.a.x + 9); o.a.__hrVel = { x: 540, y: 0 }; }
+  else if (k > 2) { o.a.x = Math.min(600, o.a.x + realFrostStep(o)); o.a.__hrVel = { x: realFrostSpeed(o), y: 0 }; }
 }, { quiet: [[110, 110, 40], [500, 110, 40]], opponentOverlap: true });
 
 /* 7 — concurrent A1 + A2 (queued visual, both truths alive) */
@@ -270,7 +272,7 @@ run('07-concurrent-a1-a2', 'ROBOT', 110, (o, k, frost) => {
   o.b.x = 800; o.b.y = 200;
   if (k === 2) { o.a.x = 180; o.a.y = 700; o.a.setDir(1, 0); if (frost) win.APEX_ARSENAL_SKILL_GATE.pressJ(o.a); }
   else if (k === 6 && frost) HR.pressAbility(o.a, 'A2');
-  else if (k > 6 && k < 40) { o.a.x += 9; o.a.__hrVel = { x: 540, y: 0 }; }
+  else if (k > 6 && k < 40) { o.a.x += realFrostStep(o); o.a.__hrVel = { x: realFrostSpeed(o), y: 0 }; }
 }, { quiet: [[110, 110, 40], [500, 110, 40]] });
 
 /* 8 — Frozen Gun (floor gun frozen by the A1 lane) + Frozen Bullet in flight.
@@ -336,7 +338,7 @@ run('11-a2-gun-steal', 'ROBOT', 80, (o, k, frost) => {
     o.a.x = 300; o.a.y = 600; o.b.x = 560; o.b.y = 600;
     W().equip(o.b, 'SMG');
     if (frost) HR.pressAbility(o.a, 'A2');
-  } else if (k > 2 && k < 34) { o.a.x = Math.min(540, o.a.x + 9); o.a.__hrVel = { x: 540, y: 0 }; }
+  } else if (k > 2 && k < 34) { o.a.x = Math.min(540, o.a.x + realFrostStep(o)); o.a.__hrVel = { x: realFrostSpeed(o), y: 0 }; }
 }, { quiet: [[110, 110, 40], [500, 110, 40]], opponentOverlap: true });
 
 /* 12 — both abilities, pinned facing (an un-pinned Frost aims at the enemy and
