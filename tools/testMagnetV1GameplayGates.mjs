@@ -271,6 +271,20 @@ try {
 } catch(e){gate('M08.1-t6-holder-body-still-pushable',false,String(e));}
 
 try {
+  // Regression for the owner-observed Magnet/Robot tangle: build legitimate
+  // A2 body momentum, relocate the field across Robot, then stress exact
+  // anchor contact. External motion must enter before canonical collision, so
+  // no post-solve sidecar integration can recreate overlap.
+  const o=start();o.a.x=500;o.a.y=500;o.b.x=600;o.b.y=500;
+  HR.pressAbility(o.a,'A2');
+  for(let i=0;i<168;i++){T.step(1/120,1/120);o.a.x=o.b.x-150;o.a.y=o.b.y;}
+  o.a.x=700;o.a.y=500;o.b.x=550;o.b.y=500;
+  let maxPenetration=0;
+  for(let i=0;i<60;i++){T.step(1/120,1/120);maxPenetration=Math.max(maxPenetration,Math.max(0,o.a.radius+o.b.radius-Math.hypot(o.b.x-o.a.x,o.b.y-o.a.y)));}
+  gate('M06.4-a2-body-motion-enters-canonical-collision-solve',maxPenetration<1e-6,{maxPenetration});
+} catch(e){gate('M06.4-a2-body-motion-enters-canonical-collision-solve',false,String(e));}
+
+try {
   const source = fs.readFileSync('public/game/hero-rework/magnetGameplayRuntime.js', 'utf8');
   gate('M07.1-trajectory-only-source-law',
     !/applyStatus\s*\(|aqDamage\s*\(|\.damage\s*[+*/-]?=(?!=)|\.owner\s*=(?!=)/.test(source),

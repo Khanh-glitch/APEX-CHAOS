@@ -321,7 +321,23 @@
     for (const slot of floorStates.keys()) if (!present.has(slot) || slot.phase !== 'REVEALED') floorStates.delete(slot);
     return influenced;
   }
-  function integrateBodies(dt, live, opts) {
+  function applyPreparedBodyMotion(body, st, size) {
+    if (!st || !st.pending || st.pending.consumed) return null;
+    const move = st.pending;
+    move.consumed = true;
+    body.x += move.dx; body.y += move.dy;
+    // Direct/unit callers do not have Fighter.resolveWalls(). Production
+    // consumes this motion inside Fighter.update() and canonical walls own it.
+    if (size) {
+      const r = body.radius || 75;
+      if (body.x < r) { body.x = r; st.vx = Math.abs(st.vx); }
+      else if (body.x > size - r) { body.x = size - r; st.vx = -Math.abs(st.vx); }
+      if (body.y < r) { body.y = r; st.vy = Math.abs(st.vy); }
+      else if (body.y > size - r) { body.y = size - r; st.vy = -Math.abs(st.vy); }
+    }
+    return { dx: move.dx, dy: move.dy, vx: st.vx, vy: st.vy };
+  }
+  function prepareBodies(dt, live, opts) {
     const bodies = opts.bodies || [];
     const combatantOfBody = opts.combatantOfBody || (() => null);
     const size = opts.gameSize || Number(globalScope.GAME_SIZE) || 1000;
@@ -345,33 +361,48 @@
       }
       const existing = bodyStates.get(body);
       if (!forced && !existing) continue;
-      const st = existing || { vx: 0, vy: 0, integrations: 0 };
+      const st = existing || { vx: 0, vy: 0, integrations: 0, pending: null };
       bodyStates.set(body, st);
       if (forced) {
         st.vx += ax * dt; st.vy += ay * dt;
         capVelocity(st, 650);
+      } else {
+        // Donor opponent momentum and Apex push both recover; the rejected
+        // bridge accidentally created a perpetual second position integrator.
+        const drag = Math.exp(-5 * dt);
+        st.vx *= drag; st.vy *= drag;
       }
-      body.x += st.vx * dt; body.y += st.vy * dt;
-      const r = body.radius || 75;
-      if (body.x < r) { body.x = r; st.vx = Math.abs(st.vx); }
-      else if (body.x > size - r) { body.x = size - r; st.vx = -Math.abs(st.vx); }
-      if (body.y < r) { body.y = r; st.vy = Math.abs(st.vy); }
-      else if (body.y > size - r) { body.y = size - r; st.vy = -Math.abs(st.vy); }
+      st.pending = { dx: st.vx * dt, dy: st.vy * dt, consumed: false };
       st.integrations += 1;
+      if (!opts.deferBodyMotion) applyPreparedBodyMotion(body, st, size);
       if (by.length) influenced.push({ body, fields: by, vx: st.vx, vy: st.vy });
     }
-    for (const body of bodyStates.keys()) if (!present.has(body) || !(body.hp > 0)) bodyStates.delete(body);
+    for (const [body, st] of bodyStates) {
+      const speed = Math.hypot(st.vx || 0, st.vy || 0);
+      if (!present.has(body) || !(body.hp > 0) || (!live.some((field) => field.state.kind === 'a2') && speed < 0.05)) bodyStates.delete(body);
+    }
     return influenced;
   }
+  function prepareBodyForces(dt, options) {
+    const opts = options || {};
+    const now = opts.now == null ? Number(globalScope.matchClock) || 0 : opts.now;
+    lastBodyInfluence = prepareBodies(dt, activeFields(now), { ...opts, deferBodyMotion: true });
+    return lastBodyInfluence.length;
+  }
+  function consumeBodyMotion(body) {
+    return applyPreparedBodyMotion(body, bodyStates.get(body), 0);
+  }
 
-  // Exactly one call per authoritative world tick. All active Magnet forces
-  // are collected first; every real slot/body is then integrated once.
+  // Floor objects keep their canonical pickup-seam transaction. Body force is
+  // prepared before Fighter.update in production, then consumed inside the
+  // engine before its wall/collision solve. Direct callers retain immediate
+  // unit compatibility unless they explicitly defer body motion.
   function stepWorld(dt, options) {
     const opts = options || {};
     const now = opts.now == null ? Number(globalScope.matchClock) || 0 : opts.now;
     const live = activeFields(now);
     lastFloorInfluence = integrateFloorFirearms(dt, live, opts);
-    lastBodyInfluence = integrateBodies(dt, live, opts);
+    if (!opts.skipBodyForces) lastBodyInfluence = prepareBodies(dt, live, opts);
     worldStepCount += 1;
   }
 
@@ -430,7 +461,8 @@
     version: '1.0.0', CONSTANTS,
     canCast, castA1, castA2, activeFor, activeFields,
     isEligibleFloorFirearm, isEligibleBullet,
-    stepWorld, stepProjectiles, modifyFirearmEmission,
+    stepWorld, prepareBodyForces, consumeBodyMotion,
+    stepProjectiles, modifyFirearmEmission,
     teardown, inspect,
   };
   globalScope.apexMagnetGameplayRuntime = 'ready';

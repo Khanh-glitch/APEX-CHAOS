@@ -1214,6 +1214,12 @@
   /* ------------------------------------------------------------------ *
    * Step wrapping — AQ.step (headless) and global update (rAF).
    * ------------------------------------------------------------------ */
+  HR.applyExternalBodyMotion = function applyExternalBodyMotion(body) {
+    const magnet = globalScope.APEX_MAGNET;
+    if (!M || !magnet || !magnet.consumeBodyMotion || !body) return null;
+    return magnet.consumeBodyMotion(body);
+  };
+
   function hrPreTick(dt) {
     if (!M) return;
     HR._magnetStepPendingDt = dt;
@@ -1238,6 +1244,17 @@
       const arr = globalScope.fighters;
       return !!(arr && arr[ct.idx] === ct.anchor);
     };
+    // Prepare summed A2 body velocity before any Fighter.update. Each body
+    // consumes its own displacement inside Fighter.update, before canonical
+    // walls and anchor collision. This replaces the rejected post-collision
+    // sidecar position integration.
+    const magnet = globalScope.APEX_MAGNET;
+    if (magnet?.prepareBodyForces) {
+      magnet.prepareBodyForces(dt, {
+        now: AIL.clock(), bodies: HR.pickupActors ? HR.pickupActors() : (globalScope.fighters || []),
+        combatantOfBody, gameSize: globalScope.GAME_SIZE || 1000,
+      });
+    }
     for (const ct of M.combatants) {
       for (const b of ct.bodies) {
         if (!b || b.hp <= 0) continue;
@@ -1269,6 +1286,9 @@
     magnet.stepWorld(dt, {
       now: AIL.clock(), slots: arsenal.state.slots || [], bodies,
       combatantOfBody, gameSize: globalScope.GAME_SIZE || 1000,
+      // Body motion was prepared pre-Fighter.update and already consumed at
+      // the canonical physics seam. The pickup seam owns floor objects only.
+      skipBodyForces: true,
     });
   };
 

@@ -658,6 +658,13 @@ var Fighter = class Fighter {
             this.x += mvx * dt;
             this.y += mvy * dt;
         }
+        // Optional hero-rework external-motion seam. The force is prepared
+        // before Fighter.update, consumed here after locomotion, and therefore
+        // reaches canonical walls and anchor collision in this same frame.
+        // With no prepared force this is a strict no-op for every hero.
+        if (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.applyExternalBodyMotion) {
+            window.APEX_HERO_REWORK.applyExternalBodyMotion(this, dt);
+        }
         this.data.positionLocked = false;
 
         this.trail.length = 0;
