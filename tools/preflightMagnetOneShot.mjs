@@ -15,7 +15,13 @@ const GOLD_SHA = '468f7b2aa34588c2c52bf23fb5202c507ff5d584d423ea9f1a9232d751247d
 const GOLD_BYTES = 3095049;
 
 const args = new Set(process.argv.slice(2));
-const run = (cmd,a=[],opts={}) => execFileSync(cmd,a,{encoding:opts.encoding===null?null:'utf8',stdio:opts.stdio||['ignore','pipe','pipe']});
+// The canonical Gold is ~3 MiB; Node's execFileSync default maxBuffer is 1 MiB.
+// Keep preflight read-only while allowing the exact blob to be hashed in memory.
+const run = (cmd,a=[],opts={}) => execFileSync(cmd,a,{
+  encoding:opts.encoding===null?null:'utf8',
+  stdio:opts.stdio||['ignore','pipe','pipe'],
+  maxBuffer:8*1024*1024,
+});
 const textRun = (cmd,a=[]) => String(run(cmd,a)).trim();
 const fail = (m) => { console.error('[MAGNET PREFLIGHT] FAIL:',m); process.exit(1); };
 const sha256 = (b) => createHash('sha256').update(b).digest('hex');
