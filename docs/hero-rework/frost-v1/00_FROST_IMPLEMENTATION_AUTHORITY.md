@@ -447,3 +447,10 @@ Before completion:
 6. owner gameplay playtest readiness.
 
 Never declare FROST complete solely because headless/CI is green.
+
+> **Final rebuild status (2026-10-01):** the post-playtest one-shot rebuild is
+> implemented and verified — see `10_FINAL_REBUILD_REPORT.md` (Frost gates
+> 148/148, whole-screen evidence 25/25, protected suites green or proven
+> pre-existing, build green, revision relocked). The only outstanding
+> acceptance condition is the owner's real-browser playtest: no Chrome binary
+> exists in the implementation environment.
