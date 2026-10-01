@@ -1694,8 +1694,28 @@
         // A bullet held inside a Crystal shard's gem during the refraction beat.
         if (CRY && CRY.holdStep(p)) continue;
         p.px = p.x; p.py = p.y;
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
+        // MAGNET V1 time-of-impact seam. When an A2 field reports a real
+        // boundary crossing this frame, the movement is integrated as two
+        // ordered physical segments instead of one: frameStart -> R=225
+        // boundary with the ORIGINAL velocity, the entry response applied
+        // exactly at that boundary, then the remaining (1-t)*dt with the
+        // post-response velocity. The corner is published as p.__hr.pathVia so
+        // the swept wall/body consumers below see the real inbound path and
+        // not a straight chord across it.
+        const magnetPlan = magnet && magnet.consumeMovementPlan ? magnet.consumeMovementPlan(p) : null;
+        if (magnetPlan) {
+          const ex = p.x + magnetPlan.preVx * dt * magnetPlan.entryT;
+          const ey = p.y + magnetPlan.preVy * dt * magnetPlan.entryT;
+          p.vx = magnetPlan.postVx; p.vy = magnetPlan.postVy;
+          p.x = ex + p.vx * dt * (1 - magnetPlan.entryT);
+          p.y = ey + p.vy * dt * (1 - magnetPlan.entryT);
+          if (!p.__hr) p.__hr = {};
+          p.__hr.pathVia = { x: ex, y: ey, t: magnetPlan.entryT };
+        } else {
+          if (p.__hr) p.__hr.pathVia = null;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+        }
         if (p.x < -20 || p.x > GAME_SIZE + 20 || p.y < -20 || p.y > GAME_SIZE + 20) { p.life = 0; continue; }
 
         // ---- Stage W: walls (absorb non-T6; T6 shatters) ---------------
@@ -1737,7 +1757,12 @@
           if (tryRubberStore(p, target)) { projectiles.splice(i, 1); continue; }
 
           const hitR = target.radius * BULLET_HIT_SCALE + p.radius;
-          const hit = sweptHit(p.px, p.py, p.x, p.y, target.x, target.y, hitR) || { x: p.x, y: p.y };
+          let hit = null;
+          for (const g of pathSegments(p)) {
+            hit = sweptHit(g.x0, g.y0, g.x1, g.y1, target.x, target.y, hitR);
+            if (hit) break;
+          }
+          if (!hit) hit = { x: p.x, y: p.y };
           const neutral = p.__hr && p.__hr.neutral;
           const W2 = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
           const hpBeforeHit = target.hp;
@@ -1931,6 +1956,30 @@
     return dmg;
   }
 
+  // Ordered physical sub-segments of a projectile's path this frame. Normally
+  // one straight segment; a MAGNET A2 time-of-impact frame has a real corner
+  // at the field boundary, and collapsing that into a chord would both hide
+  // collisions on the inbound leg and invent ones across the corner.
+  // `tEnd` is the cumulative TIME fraction at the end of each sub-segment, so
+  // earliest-TOI ordering across sub-segments stays physically correct.
+  function pathSegments(p) {
+    const via = p.__hr && p.__hr.pathVia;
+    if (via && Number.isFinite(via.x) && Number.isFinite(via.y)) {
+      return [
+        { x0: p.px, y0: p.py, x1: via.x, y1: via.y, t0: 0, tEnd: via.t },
+        { x0: via.x, y0: via.y, x1: p.x, y1: p.y, t0: via.t, tEnd: 1 },
+      ];
+    }
+    return [{ x0: p.px, y0: p.py, x1: p.x, y1: p.y, t0: 0, tEnd: 1 }];
+  }
+
+  // Shortest distance from (cx,cy) to the real (possibly cornered) path.
+  function pathToPointDist(p, cx, cy) {
+    let best = Infinity;
+    for (const g of pathSegments(p)) best = Math.min(best, pointToSegmentDist(cx, cy, g.x0, g.y0, g.x1, g.y1));
+    return best;
+  }
+
   function sweptHit(x0, y0, x1, y1, cx, cy, r) {
     const d = pointToSegmentDist(cx, cy, x0, y0, x1, y1);
     if (d >= r) return null;
@@ -1958,9 +2007,17 @@
     for (const w of M.world.walls) {
       const e = wallEndpoints(w);
       const d = pointToSegmentDist(p.x, p.y, e.ax, e.ay, e.bx, e.by);
-      if (d > p.radius + w.thickness / 2 + 4) continue;
-      const toi = segmentCrossT(p.px, p.py, p.x, p.y, e.ax, e.ay, e.bx, e.by, p.radius + w.thickness / 2);
-      if (toi != null && toi < bestT) { bestT = toi; best = { wall: w, normal: { x: e.nx, y: e.ny } }; }
+      const near = d <= p.radius + w.thickness / 2 + 4;
+      // On a MAGNET time-of-impact frame the endpoint test alone can miss a
+      // wall that only the inbound leg reached, so fall back to the real path.
+      if (!near && pathToPointDist(p, w.x, w.y) > p.radius + w.thickness / 2 + w.len / 2 + 4) continue;
+      for (const g of pathSegments(p)) {
+        const local = segmentCrossT(g.x0, g.y0, g.x1, g.y1, e.ax, e.ay, e.bx, e.by, p.radius + w.thickness / 2);
+        if (local == null) continue;
+        const toi = g.t0 + local * (g.tEnd - g.t0);
+        if (toi < bestT) { bestT = toi; best = { wall: w, normal: { x: e.nx, y: e.ny } }; }
+        break; // sub-segments are in travel order
+      }
     }
     return best;
   }
@@ -2100,8 +2157,14 @@
       if (!neutral && ct === shooterCt) continue;
       for (const b of livingBodies(ct)) {
         const hitR = b.radius * BULLET_HIT_SCALE + p.radius;
-        if (pointToSegmentDist(b.x, b.y, p.px, p.py, p.x, p.y) >= hitR) continue;
-        const t = segmentToPointToi(p.px, p.py, p.x, p.y, b.x, b.y, hitR);
+        if (pathToPointDist(p, b.x, b.y) >= hitR) continue;
+        let t = null;
+        for (const g of pathSegments(p)) {
+          const local = segmentToPointToi(g.x0, g.y0, g.x1, g.y1, b.x, b.y, hitR);
+          if (local == null) continue;
+          t = g.t0 + local * (g.tEnd - g.t0); // global time fraction
+          break; // sub-segments are already in travel order
+        }
         if (t == null) continue;
         if (t < bestToi) { bestToi = t; best = b; }
       }

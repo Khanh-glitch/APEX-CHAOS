@@ -42,6 +42,13 @@
     // Hysteresis before a bullet may earn a NEW entry response. Without it a
     // bullet loitering on the boundary would be re-snapped every frame.
     A2_BULLET_REARM_RADIUS_MULT: 1.12,
+    // Owner-directed cinematic beat: at the physical A2 time-of-impact the
+    // inward radial component is killed immediately (gameplay safety is NOT
+    // deferred), the tangential component is preserved verbatim, and the
+    // OUTWARD radial speed ramps in over this short sim-time envelope so the
+    // shot reads as "magnetic catch -> curve -> release" instead of a mirror
+    // ricochet. ~0.07s is 4 frames at 60fps.
+    A2_BULLET_CAPTURE_SECONDS: 0.07,
     BULLET_SPEED_CAP_MULT: 1.10,
     PASSIVE_SPEED_MULT: 1.18,
   });
@@ -56,6 +63,7 @@
   let lastFloorInfluence = [];
   let lastBodyInfluence = [];
   let lastProjectileInfluence = [];
+  let lastCaptureEvents = [];
   let worldStepCount = 0;
 
   function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
@@ -189,9 +197,16 @@
     return t >= 0 && t <= 1 ? t : -1;
   }
 
+  // Smoothstep: slow catch, accelerating release, soft arrival. This is the
+  // shape that makes the deflection read as magnetic rather than reflective.
+  function captureEase(u) { const k = clamp(u, 0, 1); return k * k * (3 - 2 * k); }
+
   // A2 firearm-bullet repulsion. Trajectory only: identity, owner, damage,
-  // crit, payload and lifetime are never touched, and the bullet is never
-  // moved here — canonical integration still owns position.
+  // crit, payload and lifetime are never touched. This function NEVER moves
+  // the projectile and never writes p.vx/p.vy -- it returns a report, and the
+  // entry response is published as a time-of-impact movement plan that the
+  // canonical projectile integration consumes, so the response is applied at
+  // the real R=225 crossing rather than at the frame-start position.
   function applyA2BulletRepulsion(p, rec, field, dt) {
     const cx = field.owner.anchor.x, cy = field.owner.anchor.y;
     const radius = field.cfg.radius ?? CONSTANTS.A2_RADIUS;
@@ -199,22 +214,28 @@
     const rearm = radius * CONSTANTS.A2_BULLET_REARM_RADIUS_MULT;
 
     let ep = rec.a2.get(field.state);
-    if (!ep) { ep = { entered: false }; rec.a2.set(field.state, ep); }
+    if (!ep) { ep = { entered: false, capture: null }; rec.a2.set(field.state, ep); }
 
     const d0 = Math.hypot(p.x - cx, p.y - cy);
     // Re-arm only after the bullet has genuinely left the field again.
-    if (ep.entered && d0 > rearm) ep.entered = false;
+    if (ep.entered && d0 > rearm) { ep.entered = false; ep.capture = null; }
 
     const t = sweptEntry(p.x, p.y, p.vx * dt, p.vy * dt, cx, cy, radius);
     const insideNow = d0 < radius;
     const crossing = t >= 0;
-    if (!insideNow && !crossing) return null;
+    // An active capture episode must keep being driven even once the bullet is
+    // sitting exactly ON the boundary with no inward motion left: a head-on
+    // shot has zero tangential component, so after the inward radial is
+    // neutralized it is momentarily stationary at R and would otherwise never
+    // be seen by this field again (a trapped bullet).
+    const capturing = !!(ep.capture && !ep.capture.released);
+    if (!insideNow && !crossing && !capturing) return null;
 
-    const report = { radius, entry: null, accel: 0 };
+    const report = { radius, entry: null, plan: null, capture: null, accel: 0, cx, cy };
 
-    // ---- 1. Field-entry response (once per entry episode) ------------------
+    // ---- 1. Field-entry response, once per entry episode ------------------
+    // Published as a PLAN at parameter t. Nothing is mutated here.
     if (!ep.entered && crossing) {
-      // Real crossing point of this movement segment with the live A2 radius.
       const ex = p.x + p.vx * dt * t, ey = p.y + p.vy * dt * t;
       let nx = ex - cx, ny = ey - cy;
       const nd = Math.hypot(nx, ny);
@@ -223,15 +244,34 @@
         const vr = p.vx * nx + p.vy * ny; // < 0 == inbound
         if (vr < 0) {
           const tx = p.vx - vr * nx, ty = p.vy - vr * ny; // tangential preserved
-          const outward = -vr * CONSTANTS.A2_BULLET_ENTRY_RESTITUTION;
+          const target = -vr * CONSTANTS.A2_BULLET_ENTRY_RESTITUTION;
+          // Gameplay safety is immediate: radial component becomes exactly 0
+          // at the boundary, so the bullet cannot continue inward for even one
+          // sub-step. A tangent ray from a point on the circle never re-enters
+          // it, so the capture beat cannot leak inward either.
+          report.plan = {
+            t, ex, ey, nx, ny,
+            fieldOwner: field.owner,
+            preVx: p.vx, preVy: p.vy,
+            postVx: tx, postVy: ty,
+            radialBefore: vr, radialTarget: target,
+            tangential: Math.hypot(tx, ty),
+            cx, cy, radius,
+          };
           report.entry = {
             x: ex, y: ey, nx, ny, t,
             radialBefore: vr,
-            radialAfter: outward,
+            radialAfter: 0,          // neutralized AT the boundary
+            radialTarget: target,    // ramped in over the capture envelope
             tangential: Math.hypot(tx, ty),
           };
-          p.vx = tx + nx * outward;
-          p.vy = ty + ny * outward;
+          ep.capture = {
+            age: 0, duration: CONSTANTS.A2_BULLET_CAPTURE_SECONDS,
+            target, nx, ny, startedAt: field.state,
+            tangentialAtEntry: Math.hypot(tx, ty),
+            minRadius: radius, released: false,
+          };
+          report.capture = ep.capture;
         }
       }
       ep.entered = true;
@@ -239,11 +279,37 @@
       ep.entered = true;
     }
 
-    // ---- 2. Donor continued outward force (flat 18000, no u^2 falloff) -----
+    // ---- 2. Magnetic capture envelope (radial authority while active) -----
+    // The outward radial speed is driven by a deterministic sim-time envelope
+    // rather than snapped. This is ONE continuous episode per entry, not a
+    // per-frame re-trigger of the entry response.
+    const cap = ep.capture;
+    if (cap && !cap.released && !report.plan) {
+      cap.age += dt;
+      const u = clamp(cap.age / cap.duration, 0, 1);
+      let rx = p.x - cx, ry = p.y - cy;
+      const rd = Math.hypot(rx, ry);
+      if (rd > EPS) {
+        rx /= rd; ry /= rd;
+        cap.minRadius = Math.min(cap.minRadius, rd);
+        const vr = p.vx * rx + p.vy * ry;
+        const want = captureEase(u) * cap.target;
+        // Radial component is SET to the envelope value; tangential is left to
+        // evolve on its own. Never allow it to be inward.
+        const dvr = Math.max(want, 0) - vr;
+        report.captureRadial = { u, want, vr, radius: rd, tangential: Math.hypot(p.vx - vr * rx, p.vy - vr * ry) };
+        report.dvx = rx * dvr; report.dvy = ry * dvr;
+      }
+      if (u >= 1) { cap.released = true; cap.releasedAt = true; }
+      report.accel = 0;
+      return report;
+    }
+
+    // ---- 3. Donor continued outward force (flat 18000, no u^2 falloff) ----
     let rx = p.x - cx, ry = p.y - cy;
     let rd = Math.hypot(rx, ry);
-    if (!(rd > EPS) && report.entry) { rx = report.entry.nx; ry = report.entry.ny; rd = 1; }
-    if (rd > EPS && (insideNow || report.entry)) {
+    if (!(rd > EPS) && report.plan) { rx = report.plan.nx; ry = report.plan.ny; rd = 1; }
+    if (rd > EPS && (insideNow || report.plan)) {
       report.accel = maxAccel;
       report.ax = rx / rd * maxAccel;
       report.ay = ry / rd * maxAccel;
@@ -251,17 +317,30 @@
     return report;
   }
 
+  // Time-of-impact movement plans published for the canonical projectile
+  // integration pass. Keyed by the real projectile object, consumed exactly
+  // once per frame by reworkUpdateProjectiles().
+  const movementPlans = new WeakMap();
+  function consumeMovementPlan(p) {
+    const plan = movementPlans.get(p);
+    if (plan) movementPlans.delete(p);
+    return plan || null;
+  }
+
   // Called once immediately before the canonical projectile movement pass.
   function stepProjectiles(dt, projectiles, combatantOfBody, now) {
     const t = now == null ? Number(globalScope.matchClock) || 0 : now;
     const live = activeFields(t);
     const influenced = [];
+    lastCaptureEvents = [];
     for (const p of projectiles || []) {
       if (!isEligibleBullet(p)) continue;
       const rec = projectileRecord(p); // authored emission speed, captured before force
-      let ax = 0, ay = 0;
+      let ax = 0, ay = 0, dvx = 0, dvy = 0;
       const by = [];
       const entries = [];
+      let bestPlan = null;
+      const captures = [];
       for (const f of live) {
         if (!hostileTo(p, f.owner, combatantOfBody)) continue;
         if (f.state.kind === 'a1') {
@@ -282,15 +361,46 @@
           if (!report) continue;
           ax += report.ax || 0;
           ay += report.ay || 0;
+          dvx += report.dvx || 0;
+          dvy += report.dvy || 0;
           by.push({ kind: 'a2', owner: f.owner });
           if (report.entry) entries.push({ owner: f.owner, ...report.entry });
+          if (report.captureRadial) captures.push({ owner: f.owner, ...report.captureRadial });
+          // Earliest real crossing across every hostile field wins the frame.
+          if (report.plan && (!bestPlan || report.plan.t < bestPlan.t)) bestPlan = report.plan;
         }
       }
       if (!by.length) continue;
-      p.vx += ax * dt;
-      p.vy += ay * dt;
-      capVelocity(p, rec.launchSpeed * CONSTANTS.BULLET_SPEED_CAP_MULT);
-      influenced.push({ projectile: p, fields: by, ax, ay, entries });
+
+      if (bestPlan) {
+        // Publish the split-integration plan. Velocity is NOT written here:
+        // the canonical pass travels frameStart -> boundary with the ORIGINAL
+        // velocity, applies the response at the boundary, then integrates the
+        // remaining (1-t)*dt. Continued-force terms from this frame are not
+        // folded in, because they belong to the post-entry sub-step.
+        movementPlans.set(p, {
+          entryT: bestPlan.t,
+          entryX: bestPlan.ex, entryY: bestPlan.ey,
+          preVx: bestPlan.preVx, preVy: bestPlan.preVy,
+          postVx: bestPlan.postVx, postVy: bestPlan.postVy,
+          cx: bestPlan.cx, cy: bestPlan.cy, radius: bestPlan.radius,
+        });
+        lastCaptureEvents.push({
+          projectile: p, owner: bestPlan.fieldOwner,
+          toi: bestPlan.t, x: bestPlan.ex, y: bestPlan.ey,
+          nx: bestPlan.nx, ny: bestPlan.ny,
+          radialBefore: bestPlan.radialBefore,
+          radialTarget: bestPlan.radialTarget,
+          tangential: bestPlan.tangential,
+          duration: CONSTANTS.A2_BULLET_CAPTURE_SECONDS,
+          clock: t,
+        });
+      } else {
+        p.vx += ax * dt + dvx;
+        p.vy += ay * dt + dvy;
+        capVelocity(p, rec.launchSpeed * CONSTANTS.BULLET_SPEED_CAP_MULT);
+      }
+      influenced.push({ projectile: p, fields: by, ax, ay, entries, captures, plan: bestPlan ? { t: bestPlan.t, x: bestPlan.ex, y: bestPlan.ey } : null });
     }
     lastProjectileInfluence = influenced;
     return influenced.length;
@@ -562,6 +672,7 @@
       floorInfluence: lastFloorInfluence.slice(),
       bodyInfluence: lastBodyInfluence.slice(),
       projectileInfluence: lastProjectileInfluence.slice(),
+      captureEvents: lastCaptureEvents.slice(),
       worldStepCount,
     };
   }
@@ -571,7 +682,7 @@
     canCast, castA1, castA2, activeFor, activeFields,
     isEligibleFloorFirearm, isEligibleBullet,
     stepWorld, prepareBodyForces, consumeBodyMotion,
-    stepProjectiles, modifyFirearmEmission,
+    stepProjectiles, consumeMovementPlan, modifyFirearmEmission,
     teardown, inspect,
   };
   globalScope.apexMagnetGameplayRuntime = 'ready';

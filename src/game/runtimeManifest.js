@@ -6,7 +6,7 @@
 // shellSelect/ladder).
 // Frost eye cleanup: remove trailing eye ribbon; boost only the existing eye
 // asset while Frost overlaps its own active ice surface.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261001-magnet-v1-r6';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261001-magnet-v1-r7';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by
