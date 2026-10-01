@@ -191,6 +191,86 @@ try {
 } catch (e) { gate('M06.1-magnet-forces-sum-before-one-integration', false, String(e)); }
 
 try {
+  const o = start();
+  HR.pressAbility(o.a, 'A1');
+  const slots = [
+    { id: 101, x: 250, y: 500, phase: 'REVEALED', kind: 'WEAPON', weaponId: 'PISTOL' },
+    { id: 102, x: 650, y: 500, phase: 'REVEALED', kind: 'WEAPON', weaponId: 'PISTOL' },
+    { id: 103, x: 1000, y: 500, phase: 'REVEALED', kind: 'WEAPON', weaponId: 'PISTOL' },
+    { id: 104, x: 500, y: 600, phase: 'REVEALED', kind: 'WEAPON', weaponId: 'STORMBREAKER' },
+  ];
+  MAG.stepWorld(.01, { now: win.matchClock, slots, bodies: [], gameSize: 2000 });
+  let snap = MAG.inspect(win.matchClock), states = snap.floorFirearms;
+  const speed = (slot) => { const q=states.find((x)=>x.slot===slot);return q&&Math.hypot(q.vx,q.vy); };
+  const near=speed(slots[0]),mid=speed(slots[1]),far=speed(slots[2]);
+  const farState=states.find((x)=>x.slot===slots[2]),before=farState.vx;
+  MAG.stepWorld(.2, { now: win.matchClock+2, slots, bodies: [], gameSize: 2000 });
+  snap=MAG.inspect(win.matchClock+2);const after=snap.floorFirearms.find((x)=>x.slot===slots[2]).vx;
+  gate('M02.4-all-no-radius-distance-law-t6',states.length===3&&near<mid&&mid<far&&close(near,15.4285714286,1e-6)&&close(far,24,1e-6)&&!states.some((x)=>x.slot===slots[3]),{near,mid,far,count:states.length});
+  gate('M02.5-post-field-coast-drag',close(after,before*Math.exp(-1.8*.2),1e-6),{before,after});
+} catch (e) { gate('M02.4-all-no-radius-distance-law-t6', false, String(e)); }
+
+try {
+  const o=start();HR.pressAbility(o.a,'A1');
+  const make=(d)=>({aq:true,type:'aq_bullet',weapon:'PISTOL',life:2,owner:o.b,x:o.a.x+d,y:o.a.y,vx:0,vy:1000,damage:20,__hr:{chill:true}});
+  const p479=make(479),p481=make(481),p240=make(240);
+  MAG.stepProjectiles(.01,[p479,p481,p240],HR.byCombatant,win.matchClock);
+  gate('M03.4-a1-radius-and-quadratic-law',p479.vx<0&&p481.vx===0&&close(p240.vx,-35,1e-9),{v479:p479.vx,v481:p481.vx,v240:p240.vx});
+  const capBullet=make(1);
+  MAG.stepProjectiles(.1,[capBullet],HR.byCombatant,win.matchClock);
+  gate('M03.5-launch-speed-cap-1p10',close(Math.hypot(capBullet.vx,capBullet.vy),1100,1e-6),{speed:Math.hypot(capBullet.vx,capBullet.vy)});
+} catch(e){gate('M03.4-a1-radius-and-quadratic-law',false,String(e));}
+
+try {
+  const o=start();HR.pressAbility(o.a,'A2');o.b.x=o.a.x+100;o.b.y=o.a.y;
+  const gun={id:201,x:o.a.x+100,y:o.a.y+80,phase:'REVEALED',kind:'WEAPON',weaponId:'PISTOL',frostToken:'keep'};
+  const t6={id:202,x:o.a.x+80,y:o.a.y,phase:'REVEALED',kind:'WEAPON',weaponId:'STORMBREAKER'};
+  MAG.stepWorld(.1,{now:win.matchClock,slots:[gun,t6],bodies:[o.b],combatantOfBody:HR.byCombatant,gameSize:1000,pickupEligible:()=>false});
+  const bullet={aq:true,type:'aq_bullet',weapon:'PISTOL',life:2,owner:o.b,x:o.a.x+100,y:o.a.y,vx:0,vy:1000,damage:33,__hr:{rubberDebt:44}};
+  MAG.stepProjectiles(.1,[bullet],HR.byCombatant,win.matchClock);
+  const snap=MAG.inspect(win.matchClock),gs=snap.floorFirearms.find((x)=>x.slot===gun),bs=snap.bodies.find((x)=>x.body===o.b);
+  gate('M06.2-a2-body-gun-bullet-law',gs.vx>0&&gs.vy>0&&Math.hypot(gs.vx,gs.vy)<=950&&bs.vx>0&&bs.vx<=650&&bullet.vx>0&&Math.hypot(bullet.vx,bullet.vy)<=1100+1e-6&&bullet.damage===33&&bullet.__hr.rubberDebt===44&&!snap.floorFirearms.some((x)=>x.slot===t6),{gun:[gs.vx,gs.vy],body:bs.vx,bullet:[bullet.vx,bullet.vy]});
+} catch(e){gate('M06.2-a2-body-gun-bullet-law',false,String(e));}
+
+try {
+  const o=start();HR.pressAbility(o.a,'A1');o.a.x=0;
+  const armed={id:333,x:200,y:500,hp:100,radius:50,armed:true},gun={id:301,x:250,y:500,phase:'REVEALED',kind:'WEAPON',weaponId:'PISTOL'};
+  MAG.stepWorld(.1,{now:win.matchClock,slots:[gun],bodies:[armed],combatantOfBody:()=>({idx:9}),pickupEligible:()=>false,gameSize:1000});
+  const first=MAG.inspect(win.matchClock).floorFirearms[0],hp=armed.hp;
+  MAG.stepWorld(.01,{now:win.matchClock,slots:[gun],bodies:[armed],combatantOfBody:()=>({idx:9}),pickupEligible:()=>false,gameSize:1000});
+  const second=MAG.inspect(win.matchClock).floorFirearms[0];
+  gate('M05.1-armed-contact-enter-deflection-only',first.vx>0&&armed.hp===hp&&second.integrations===2&&Number.isFinite(second.vx),{firstV:first.vx,secondV:second.vx,hp:armed.hp});
+} catch(e){gate('M05.1-armed-contact-enter-deflection-only',false,String(e));}
+
+try {
+  T.start('MAGNET','MAGNET');T.holdSpawns();const [a,b]=H.fighters();a.baseSpeed=b.baseSpeed=0;a.x=200;a.y=500;b.x=800;b.y=500;
+  HR.pressAbility(a,'A1');HR.pressAbility(b,'A2');
+  const slot={id:401,x:650,y:500,phase:'REVEALED',kind:'WEAPON',weaponId:'PISTOL'};
+  MAG.stepWorld(1/60,{now:win.matchClock,slots:[slot],bodies:[],gameSize:1000});
+  const st=MAG.inspect(win.matchClock).floorFirearms[0];
+  gate('M06.3-a1-plus-a2-compose-once',st.integrations===1&&Number.isFinite(st.vx),{integrations:st.integrations,vx:st.vx});
+} catch(e){gate('M06.3-a1-plus-a2-compose-once',false,String(e));}
+
+try {
+  const o=start();W.equip(o.a,'PISTOL');const copied=HR.pressAbility(o.b,'A1'),held=W.getHolder(o.b);
+  const spec={owner:o.b,x:o.b.x,y:o.b.y,angle:0,speed:1000,damage:10,weapon:'PISTOL'};const tag=HR.onFireBullet(spec);
+  gate('M10.1-mirror-copy-fresh-no-passive-inheritance',copied.ok&&held&&held.weaponId==='PISTOL'&&spec.speed===1000&&!(tag&&tag.magnetBoosted),{copied,weapon:held&&held.weaponId,speed:spec.speed,tag});
+} catch(e){gate('M10.1-mirror-copy-fresh-no-passive-inheritance',false,String(e));}
+
+try {
+  const o=start();HR.pressAbility(o.a,'A1');const old={ax:o.a.x,bx:o.b.x};const swap=HR.pressAbility(o.b,'A2');T.step(.27);
+  const slot={id:501,x:o.a.x-150,y:o.a.y,phase:'REVEALED',kind:'WEAPON',weaponId:'PISTOL'},x0=o.a.x-150;
+  MAG.stepWorld(.05,{now:win.matchClock,slots:[slot],bodies:[],gameSize:1000});
+  gate('M10.2-mirror-swap-relocates-live-field-center',swap.ok&&Math.abs(o.a.x-old.bx)<2&&Math.abs(o.b.x-old.ax)<2&&slot.x>x0,{old,now:{ax:o.a.x,bx:o.b.x},gunDx:slot.x-x0});
+} catch(e){gate('M10.2-mirror-swap-relocates-live-field-center',false,String(e));}
+
+try {
+  const o=start();HR.pressAbility(o.a,'A2');W.equip(o.b,'STORMBREAKER');o.b.x=o.a.x+100;o.b.y=o.a.y;const x0=o.b.x;
+  MAG.stepWorld(.1,{now:win.matchClock,slots:[],bodies:[o.b],combatantOfBody:HR.byCombatant,gameSize:1000});
+  gate('M08.1-t6-holder-body-still-pushable',o.b.x>x0,{dx:o.b.x-x0,weapon:W.getHolder(o.b)?.weaponId});
+} catch(e){gate('M08.1-t6-holder-body-still-pushable',false,String(e));}
+
+try {
   const source = fs.readFileSync('public/game/hero-rework/magnetGameplayRuntime.js', 'utf8');
   gate('M07.1-trajectory-only-source-law',
     !/applyStatus\s*\(|aqDamage\s*\(|\.damage\s*[+*/-]?=(?!=)|\.owner\s*=(?!=)/.test(source),
