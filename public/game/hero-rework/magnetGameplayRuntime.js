@@ -252,6 +252,7 @@
           report.plan = {
             t, ex, ey, nx, ny,
             fieldOwner: field.owner,
+            fieldState: field.state,
             preVx: p.vx, preVy: p.vy,
             postVx: tx, postVy: ty,
             radialBefore: vr, radialTarget: target,
@@ -331,6 +332,33 @@
     return plan || null;
   }
 
+  // Episode bookkeeping for the frame, so an entry can be rolled back if a
+  // physically EARLIER event (Crystal contact, Mirror capture) proves the
+  // projectile never actually reached the A2 boundary.
+  const pendingEntries = new WeakMap();
+
+  // Called by the ordered-path adjudicator in heroReworkRuntime when another
+  // subsystem wins at a smaller global frame fraction. Undoes the entry
+  // episode so the field can legitimately catch this projectile later, and
+  // withdraws the capture beat so presentation never shows a catch that did
+  // not physically occur.
+  function revokeEntry(p) {
+    const rec = projectileState.get(p);
+    const pend = pendingEntries.get(p);
+    if (pend && rec && rec.a2) {
+      const ep = rec.a2.get(pend.fieldState);
+      if (ep) { ep.entered = false; ep.capture = null; }
+    }
+    pendingEntries.delete(p);
+    movementPlans.delete(p);
+    const before = lastCaptureEvents.length;
+    lastCaptureEvents = lastCaptureEvents.filter((e) => e.projectile !== p);
+    for (const inf of lastProjectileInfluence) {
+      if (inf.projectile === p) { inf.entries = []; inf.plan = null; inf.revoked = true; }
+    }
+    return before !== lastCaptureEvents.length;
+  }
+
   // Called once immediately before the canonical projectile movement pass.
   function stepProjectiles(dt, projectiles, combatantOfBody, now) {
     const t = now == null ? Number(globalScope.matchClock) || 0 : now;
@@ -389,6 +417,7 @@
           postVx: bestPlan.postVx, postVy: bestPlan.postVy,
           cx: bestPlan.cx, cy: bestPlan.cy, radius: bestPlan.radius,
         });
+        pendingEntries.set(p, { fieldState: bestPlan.fieldState });
         lastCaptureEvents.push({
           projectile: p, owner: bestPlan.fieldOwner,
           toi: bestPlan.t, x: bestPlan.ex, y: bestPlan.ey,
@@ -686,7 +715,7 @@
     canCast, castA1, castA2, activeFor, activeFields,
     isEligibleFloorFirearm, isEligibleBullet,
     stepWorld, prepareBodyForces, consumeBodyMotion,
-    stepProjectiles, consumeMovementPlan, modifyFirearmEmission,
+    stepProjectiles, consumeMovementPlan, revokeEntry, modifyFirearmEmission,
     teardown, inspect,
   };
   globalScope.apexMagnetGameplayRuntime = 'ready';

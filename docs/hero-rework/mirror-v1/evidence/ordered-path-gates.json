@@ -1,0 +1,151 @@
+{
+  "generatedAt": "2026-10-01T20:29:08.136Z",
+  "gates": {
+    "P0.1-no-corner-equals-single-chord": {
+      "pass": true,
+      "detail": [
+        {
+          "x0": 0,
+          "y0": 0,
+          "x1": 100,
+          "y1": 0,
+          "t0": 0,
+          "t1": 1
+        }
+      ]
+    },
+    "P0.2-corner-is-ordered-with-global-fractions": {
+      "pass": true,
+      "detail": [
+        {
+          "x0": 0,
+          "y0": 0,
+          "x1": 40,
+          "y1": 30,
+          "t0": 0,
+          "t1": 0.4
+        },
+        {
+          "x0": 40,
+          "y0": 30,
+          "x1": 100,
+          "y1": 0,
+          "t0": 0.4,
+          "t1": 1
+        }
+      ]
+    },
+    "P0.3-segment-join-is-continuous": {
+      "pass": true,
+      "detail": {
+        "join": [
+          40,
+          30
+        ]
+      }
+    },
+    "P0.4-clearPath-restores-single-chord": {
+      "pass": true,
+      "detail": [
+        {
+          "x0": 0,
+          "y0": 0,
+          "x1": 100,
+          "y1": 0,
+          "t0": 0,
+          "t1": 1
+        }
+      ]
+    },
+    "CRYSTALA-A-contact-on-real-inbound-leg": {
+      "pass": true,
+      "detail": {
+        "label": "A",
+        "consumed": true,
+        "expectContact": true,
+        "cap": {
+          "ax": 330,
+          "ay": 508.46153846153845,
+          "bx": 330,
+          "by": 491.53846153846155
+        }
+      }
+    },
+    "CRYSTALA-B-no-contact-on-false-chord-only": {
+      "pass": true,
+      "detail": {
+        "label": "B",
+        "consumed": false,
+        "expectContact": false,
+        "cap": {
+          "ax": 350,
+          "ay": 658.4615384615385,
+          "bx": 350,
+          "by": 641.5384615384615
+        }
+      }
+    },
+    "CRYSTALA-C-contact-on-real-outbound-leg": {
+      "pass": true,
+      "detail": {
+        "label": "C",
+        "consumed": true,
+        "expectContact": true,
+        "cap": {
+          "ax": 500,
+          "ay": 708.4615384615385,
+          "bx": 500,
+          "by": 691.5384615384615
+        }
+      }
+    },
+    "ORDER-earlier-event-supersedes-magnet-boundary": {
+      "pass": true,
+      "detail": {
+        "revoked": true,
+        "cleared": true
+      }
+    },
+    "ORDER-later-event-does-not-supersede": {
+      "pass": true,
+      "detail": {
+        "notRevoked": false
+      }
+    },
+    "MAGNET-capture-beat-withdrawn-on-revoke": {
+      "pass": true,
+      "detail": {
+        "fired": true,
+        "before": 1,
+        "after": 0
+      }
+    },
+    "MIRROR-A-routes-on-real-segment": {
+      "pass": true,
+      "detail": {
+        "routed": 1
+      }
+    },
+    "MIRROR-A-no-stale-path-after-relocation": {
+      "pass": true,
+      "detail": {
+        "pathVia": null
+      }
+    },
+    "MIRROR-B-no-route-on-false-chord-only": {
+      "pass": true,
+      "detail": {
+        "routed": 0
+      }
+    },
+    "MIRROR-C-no-phantom-body-hit-across-teleport": {
+      "pass": true,
+      "detail": {
+        "hpBefore": 1000,
+        "hpAfter": 1000,
+        "pathVia": null
+      }
+    }
+  },
+  "failures": []
+}

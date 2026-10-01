@@ -423,13 +423,23 @@ function applyPassive(st, p) {
   return pct;
 }
 
-function shardToi(st, p, job) {
+// Shard interception over ONE ordered sub-segment of the projectile's real
+// travelled path. The shard is moving too, so it must be evaluated over the
+// SAME GLOBAL part of the frame that the sub-segment spans -- otherwise a
+// Magnet-cornered frame would test the gem's whole-frame motion against only
+// a fraction of the bullet's. Returns a GLOBAL frame fraction, never a
+// segment-local one.
+function shardToiSeg(st, p, job, seg) {
   const stone = st.rig.stones[job.shard], sh = st.shards[job.shard];
   const R = stone.gem.r * 0.95 + (p.radius || 7);
-  const dx0 = p.px - sh.x0, dy0 = p.py - sh.y0;
-  const wx = (p.x - p.px) - (stone.x - sh.x0), wy = (p.y - p.py) - (stone.y - sh.y0);
-  const t = firstWithin(dx0, dy0, wx, wy, R);
-  return t != null && t <= 1 ? t : null;
+  // Gem position at the global fractions this sub-segment spans.
+  const gx0 = sh.x0 + (stone.x - sh.x0) * seg.t0, gy0 = sh.y0 + (stone.y - sh.y0) * seg.t0;
+  const gx1 = sh.x0 + (stone.x - sh.x0) * seg.t1, gy1 = sh.y0 + (stone.y - sh.y0) * seg.t1;
+  const dx0 = seg.x0 - gx0, dy0 = seg.y0 - gy0;
+  const wx = (seg.x1 - seg.x0) - (gx1 - gx0), wy = (seg.y1 - seg.y0) - (gy1 - gy0);
+  const u = firstWithin(dx0, dy0, wx, wy, R);
+  if (u == null || u > 1) return null;
+  return seg.t0 + u * (seg.t1 - seg.t0);
 }
 
 function interacts(p, cap) {
@@ -449,23 +459,41 @@ function resolveBullet(p, tBody, dt) {
   const hr = p.__hr || null;
   if (hr && hr.cryHold) return { consumed: true };
   let best = null;
+  // Walk the ONE authoritative ordered movement path (HR.geom.pathSegments).
+  // On an ordinary frame this is a single chord p.px,p.py -> p.x,p.y and the
+  // behaviour is identical to before; on a Magnet A2 corner frame it is the
+  // two real legs, in travel order, carrying global frame fractions.
+  const segs = G.pathSegments ? G.pathSegments(p) : [{ x0: p.px, y0: p.py, x1: p.x, y1: p.y, t0: 0, t1: 1 }];
   // 1) the assigned shard (real contact with the real, moving gem)
   if (hr && hr.cryTid) {
     const job = jobById(hr.cryTid);
     if (job && job.phase === STATE.OUTBOUND) {
-      const st = job.st, t = shardToi(st, p, job);
-      if (t != null) best = { kind: 'shard', t, job, st };
+      const st = job.st;
+      for (const seg of segs) {
+        const t = shardToiSeg(st, p, job, seg);
+        if (t != null) { best = { kind: 'shard', t, job, st, seg }; break; } // segments are in travel order
+      }
     }
   }
   // 2) solid construct material
   if (!(hr && hr.crystalReflected)) {
     for (const cap of capsules()) {
       if (!interacts(p, cap)) continue;
-      const r = G.capsuleToi(p.px, p.py, p.x, p.y, cap.ax, cap.ay, cap.bx, cap.by, cap.r + (p.radius || 7));
-      if (r && (!best || r.t < best.t)) best = { kind: 'cap', t: r.t, cap, n: { x: r.nx, y: r.ny } };
+      for (const seg of segs) {
+        const r = G.capsuleToi(seg.x0, seg.y0, seg.x1, seg.y1, cap.ax, cap.ay, cap.bx, cap.by, cap.r + (p.radius || 7));
+        if (!r) continue;
+        const t = seg.t0 + r.t * (seg.t1 - seg.t0);           // GLOBAL frame TOI
+        if (!best || t < best.t) best = { kind: 'cap', t, cap, n: { x: r.nx, y: r.ny }, seg };
+        break;                                                 // earliest leg wins for this capsule
+      }
     }
   }
   if (!best || best.t >= tBody) return null;                  // a body is hit first (or nothing)
+  // PHYSICAL ORDERING: if this contact happens earlier in the frame than a
+  // pending Magnet A2 boundary, the projectile never reached that boundary.
+  // Roll the Magnet entry back so no capture beat is presented for an event
+  // that did not physically occur.
+  if (G.supersedeMagnetBoundary) G.supersedeMagnetBoundary(p, best.t);
   return best.kind === 'shard' ? shardContact(best, p, dt) : constructHit(best, p, dt);
 }
 
@@ -483,7 +511,11 @@ function shardContact(best, p, dt) {
   const now = AIL.clock();
   const hr = hrOf(p);
   const sh = st.shards[job.shard];
-  const cx = p.px + (p.x - p.px) * best.t, cy = p.py + (p.y - p.py) * best.t;
+  // Contact point on the REAL travelled leg, not on the frameStart->final chord.
+  const seg = best.seg || { x0: p.px, y0: p.py, x1: p.x, y1: p.y, t0: 0, t1: 1 };
+  const segSpan = seg.t1 - seg.t0;
+  const su = segSpan > 1e-12 ? Math.max(0, Math.min(1, (best.t - seg.t0) / segSpan)) : 0;
+  const cx = seg.x0 + (seg.x1 - seg.x0) * su, cy = seg.y0 + (seg.y1 - seg.y0) * su;
   const sx = sh.x0 + (stone.x - sh.x0) * best.t, sy = sh.y0 + (stone.y - sh.y0) * best.t;
   // real facet normal at this instant; if the indexed facet is not facing the ray
   // fall back to the contact radial (a sphere-like bounce), never a teleport.
