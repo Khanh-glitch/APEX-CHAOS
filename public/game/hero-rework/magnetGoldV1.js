@@ -93,7 +93,7 @@ function poleChannels(side){return[`${POLES[side]}.in`,`${POLES[side]}.out`];}
 function boundedPush(list,item,max){list.push(item);while(list.length>max)list.shift();}
 function addArc(s,x,y,r,dr,a,span,d,w,color){boundedPush(s.arcs,{x,y,r,dr,a,span,age:0,d,w,color},28);}
 function addBump(s,x,y,nx,ny,amp,sigma,d=.42){boundedPush(s.bumps,{x,y,nx,ny,amp,sigma,age:0,d},16);}
-function addRing(s,object,d=.58,alpha=.72){if(object)boundedPush(s.rings,{key:object.key,object,age:0,d,alpha},16);}
+function addRing(s,object,d=.58,alpha=.72){if(object)boundedPush(s.rings,{key:object.key,object,age:0,d,alpha},8);}
 function addCorridor(s,x,y,angle,len=170,width=14,d=.42,alpha=.85){boundedPush(s.corridors,{x,y,angle,len,width,age:0,d,alpha},8);}
 function rigSnapshot(s){return Object.fromEntries(IDS.map(id=>[id,{x:s.rig[id].x,y:s.rig[id].y,r:s.rig[id].r,sx:s.rig[id].sx,sy:s.rig[id].sy}]));}
 function addEcho(s,kind,dx,dy,alpha,d){boundedPush(s.echoes,{kind,x:s.root.x,y:s.root.y,dx,dy,alpha,age:0,d,bodyK:bodyK(s),rig:rigSnapshot(s)},10);}
@@ -340,7 +340,7 @@ function draw(ctx,combatant){
   ctx.save();try{for(const id of IDS)drawPart(ctx,s,id,level,false);for(const id of IDS)drawPart(ctx,s,id,level,true);s.sockets=socketsFor(s);}finally{ctx.restore();}return true;
 }
 function teardown(combatant){if(combatant)states.delete(combatant);else states.clear();}
-function stateSnapshot(s){return s&&{fixedSteps:s.fixedSteps,droppedTime:s.droppedTime,accumulator:s.accumulator,simTime:s.simTime,frameCount:s.frameCount,a1:s.a1,a2:s.a2,passive:s.passive,bodyScale:SOURCE_SCALE*bodyK(s),bodyCalibration:BODY_VISUAL_CALIBRATION,root:{...s.root},velocity:{...s.velocity},acceleration:{...s.acceleration},a1Target:{...s.a1Target},desiredA1Target:{...s.desiredA1Target},rig:s.rig,gold:s.gold,sockets:socketsFor(s),effects:{histories:s.histories.size,arcs:s.arcs.length,bumps:s.bumps.length,echoes:s.echoes.length,corridors:s.corridors.length,rings:s.rings.length,particles:s.particles.length,hot:[...s.hot]}};}
+function stateSnapshot(s){return s&&{fixedSteps:s.fixedSteps,droppedTime:s.droppedTime,accumulator:s.accumulator,simTime:s.simTime,frameCount:s.frameCount,a1:s.a1,a2:s.a2,passive:s.passive,bodyScale:SOURCE_SCALE*bodyK(s),bodyCalibration:BODY_VISUAL_CALIBRATION,root:{...s.root},velocity:{...s.velocity},acceleration:{...s.acceleration},a1Target:{...s.a1Target},desiredA1Target:{...s.desiredA1Target},rig:s.rig,gold:s.gold,sockets:socketsFor(s),effects:{histories:s.histories.size,projectileHistories:[...s.histories.values()].filter(h=>h.kind==='bullet').length,arcs:s.arcs.length,bumps:s.bumps.length,echoes:s.echoes.length,corridors:s.corridors.length,rings:s.rings.length,particles:s.particles.length,hot:[...s.hot]}};}
 function inspect(combatant){const s=combatant?states.get(combatant):null;return{ready,loadError:loadError&&String(loadError),stateCount:states.size,state:stateSnapshot(s)};}
 
 g.APEX_MAGNET_GOLD={

@@ -20,9 +20,9 @@ try{
 
 try{
   const source=fs.readFileSync('public/game/hero-rework/magnetGoldV1.js','utf8'),adapter=fs.readFileSync('public/game/hero-rework/magnetPresentationRuntime.js','utf8');
-  const a2=adapter.slice(adapter.indexOf('function drawA2('),adapter.indexOf('function drawObjectPressure('));
+  const a2=source.slice(source.indexOf('function drawReactiveField('),source.indexOf('function drawA1Filaments('));
   gate('M11.3-no-demo-hitboxes-or-fallback-redraw',!/segCircle|const HC=|demo hit/i.test(source)&&!/strokeRect\([^)]*RASTER|fallback redraw/i.test(source),'runtime consumes only pre-baked six-part raster');
-  gate('M11.4-a2-angular-never-filled-shield',/ctx\.arc\(/.test(a2)&&/ctx\.stroke\(/.test(a2)&&!/ctx\.fill\(/.test(a2)&&!/(fillStyle|radialGradient)/.test(a2),'A2 sector function is stroke-only');
+  gate('M11.4-gold-owned-a2-angular-never-filled-shield',/ctx\.arc\(/.test(a2)&&/ctx\.stroke\(/.test(a2)&&!/ctx\.fill\(/.test(a2)&&!/(fillStyle|radialGradient)/.test(a2)&&!/function drawReactiveField\(/.test(adapter),'Gold owns stroke-only A2 sectors; adapter owns no A2 drawing');
   gate('M11.5-local-seeded-presentation-rng',/let seed = .*0x4d41474e/.test(source)&&!/Math\.random\(/.test(source),'no gameplay/global RNG consumption');
 }catch(e){gate('M11.3-no-demo-hitboxes-or-fallback-redraw',false,String(e));}
 
