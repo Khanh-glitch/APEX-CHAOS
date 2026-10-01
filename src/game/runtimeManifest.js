@@ -6,7 +6,7 @@
 // shellSelect/ladder).
 // Frost eye cleanup: remove trailing eye ribbon; boost only the existing eye
 // asset while Frost overlaps its own active ice surface.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261001-frost-v1-ice-eye-boost-r1';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261001-magnet-v1-r1';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by
@@ -170,6 +170,8 @@ export const MODE_DEFERRED_RUNTIMES = {
     ['/game/hero-rework/crystalGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalGameplayRuntime'],
     // FROST V1: gameplay truth module (same placement law as CRYSTAL).
     ['/game/hero-rework/frostGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostGameplayRuntime'],
+    // MAGNET V1: authoritative field/physics truth before thin executors.
+    ['/game/hero-rework/magnetGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetGameplayRuntime'],
     // HERO REWORK: mechanics + integration load AFTER the quest runtime so
     // they wrap its step/entry/exit hooks (never inside ARSENAL_HUB_RUNTIMES).
     ['/game/hero-rework/heroMechanicsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkMechanics'],

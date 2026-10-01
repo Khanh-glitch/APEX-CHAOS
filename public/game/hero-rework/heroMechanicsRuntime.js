@@ -300,81 +300,34 @@
    * 3. MAGNET
    * -------------------------------------------------------------------- */
 
+  const MAGNET = () => globalScope.APEX_MAGNET;
+
   EXECUTORS['magnet.acquisition'] = {
+    canCast(ctx) { const m = MAGNET(); return !!(m && m.canCast(ctx, 'a1')); },
     cast(ctx) {
-      const pick = ctx.api.nearestRevealedPickup(ctx.combatant, { excludeT6: true, weaponsOnly: true });
-      if (!pick) return false; // fail-cue, no cooldown consumed
-      ctx.store.pullUntil = ctx.clock() + ctx.cfg.maxActiveTime;
-      ctx.store.targetSlotId = pick.slot && pick.slot.id;
-      ctx.api.note('magnet.acquisition', 'cast', { target: pick.weaponId });
-      return true;
+      const m = MAGNET();
+      const ok = !!(m && m.castA1(ctx));
+      if (ok) ctx.api.note('magnet.acquisition', 'cast', {});
+      return ok;
     },
-    onTick(ctx, dt) {
-      if (!ctx.store.pullUntil || ctx.clock() >= ctx.store.pullUntil) { ctx.store.pullUntil = 0; return; }
-      // Physical pull on the nearest eligible revealed weapon pickup slot.
-      const pick = ctx.api.nearestRevealedPickup(ctx.combatant, { excludeT6: true, weaponsOnly: true, preferSlotId: ctx.store.targetSlotId });
-      if (!pick) return;
-      const a = ctx.combatant.anchor;
-      const ang = angleTo(pick.x, pick.y, a.x, a.y);
-      const sp = Math.min(ctx.cfg.maxPulledSpeed, (pick.speed || 0) + ctx.cfg.pullAcceleration * dt);
-      pick.speed = sp;
-      // Physical slot movement (the opponent may still intercept it).
-      pick.slot.x += Math.cos(ang) * sp * dt;
-      pick.slot.y += Math.sin(ang) * sp * dt;
-      ctx.api.note('magnet.acquisition', 'pull', { weaponId: pick.weaponId, speed: sp });
-    },
-    onTeardown(ctx) { ctx.store.pullUntil = 0; },
+    onTeardown(ctx) { const m = MAGNET(); if (m) m.teardown(ctx.combatant); },
   };
 
   EXECUTORS['magnet.repulsion_field'] = {
+    canCast(ctx) { const m = MAGNET(); return !!(m && m.canCast(ctx, 'a2')); },
     cast(ctx) {
-      ctx.store.fieldUntil = ctx.clock() + ctx.cfg.duration;
-      ctx.api.emitEvent('RepulsionField', { hero: 'MAGNET', radius: ctx.cfg.radius, duration: ctx.cfg.duration });
-      ctx.api.note('magnet.repulsion_field', 'cast', {});
-      return true;
+      const m = MAGNET();
+      const ok = !!(m && m.castA2(ctx));
+      if (ok) ctx.api.note('magnet.repulsion_field', 'cast', {});
+      return ok;
     },
-    onTick(ctx, dt) {
-      if (!ctx.store.fieldUntil || ctx.clock() >= ctx.store.fieldUntil) { ctx.store.fieldUntil = 0; return; }
-      const a = ctx.combatant.anchor;
-      const cfg = ctx.cfg;
-      // Fighter push (physical; T6 holder is not globally immune — only the
-      // T6 projectile itself is unaffected by the field).
-      for (const body of ctx.api.enemyBodies(ctx.combatant)) {
-        const d = dist(a.x, a.y, body.x, body.y);
-        if (d > cfg.radius || d <= 1) continue;
-        const ang = angleTo(a.x, a.y, body.x, body.y);
-        const falloff = 1 - d / cfg.radius;
-        body.applyStatus('push', 0.1, {
-          x: Math.cos(ang), y: Math.sin(ang),
-          strength: cfg.fighterPushAcceleration * falloff,
-        });
-      }
-      // Projectile radial impulse (T6 unaffected).
-      for (const p of ctx.api.liveProjectiles()) {
-        if (!p || !p.aq || p.type !== 'aq_bullet') continue;
-        if (p.weapon === 'STORMBREAKER') continue;
-        const ownerCt = ctx.api.combatantOfBody(p.owner);
-        if (ownerCt === ctx.combatant) continue; // own projectiles unaffected
-        const d = dist(a.x, a.y, p.x, p.y);
-        if (d > cfg.radius || d <= 1) continue;
-        const ang = angleTo(a.x, a.y, p.x, p.y);
-        const sp = Math.hypot(p.vx, p.vy) || 1;
-        const boost = (cfg.projectileRadialImpulse * dt) / sp;
-        p.vx += Math.cos(ang) * sp * boost;
-        p.vy += Math.sin(ang) * sp * boost;
-        p.__hrRepulsed = true;
-      }
-    },
-    onTeardown(ctx) { ctx.store.fieldUntil = 0; },
+    onTeardown(ctx) { const m = MAGNET(); if (m) m.teardown(ctx.combatant); },
   };
 
   EXECUTORS['magnet.acceleration'] = {
     onProjectileFired(ctx, p, descriptor) {
-      if (!descriptor || descriptor.kind !== 'bullet') return;
-      if (p.weapon === 'STORMBREAKER') return; // T6 unaffected
-      // Boost the spec BEFORE the base push (stand-in has no vx/vy).
-      descriptor.params.speed *= 1 + ctx.cfg.ownedProjectileVelocityBonus;
-      p.__hr.magnetBoosted = true;
+      const m = MAGNET();
+      if (m) m.modifyFirearmEmission(ctx, p, descriptor);
     },
   };
 

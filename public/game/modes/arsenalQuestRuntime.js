@@ -304,6 +304,11 @@
         fighters[1].update(dt, fighters[0]);
         handleCollisions(dt);
       }
+      // MAGNET V1 narrow hook: no-op unless the Hero Rework integration is
+      // present. It runs after body movement and before canonical pickups.
+      if (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.stepMagnetWorld) {
+        window.APEX_HERO_REWORK.stepMagnetWorld(dt);
+      }
       SPAWN.resolvePickups();
       for (const f of fighters) if (f) weaponApi.updateHolder(f, dt);
       if (weaponApi.tickDetachedWeapons) weaponApi.tickDetachedWeapons(dt);

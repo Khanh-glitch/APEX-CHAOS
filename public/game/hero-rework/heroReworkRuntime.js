@@ -1037,6 +1037,9 @@
       if (!exec || !exec.onProjectileFired) continue;
       exec.onProjectileFired(mechCtx(ct, slot), standin, descriptor);
     }
+    // Narrow live-spec bridge: descriptor speed was historically a detached
+    // copy, so Magnet's pre-emission multiplier never reached fireBullet().
+    if (descriptor.params.speed !== spec.speed) spec.speed = descriptor.params.speed;
     return Object.keys(tag).length ? tag : null;
   };
 
@@ -1249,6 +1252,19 @@
       }
     }
   }
+
+  // Narrow mode-loop bridge. Arsenal Quest calls this after canonical fighter
+  // movement/collisions and immediately before its pickup transaction.
+  HR.stepMagnetWorld = function stepMagnetWorld(dt) {
+    const magnet = globalScope.APEX_MAGNET;
+    const arsenal = globalScope.APEX_ARSENAL;
+    if (!M || !magnet || !arsenal || !arsenal.state) return;
+    const bodies = HR.pickupActors ? HR.pickupActors() : (globalScope.fighters || []);
+    magnet.stepWorld(dt, {
+      now: AIL.clock(), slots: arsenal.state.slots || [], bodies,
+      combatantOfBody, gameSize: globalScope.GAME_SIZE || 1000,
+    });
+  };
 
   function hrPostTick(dt) {
     if (!M) return;
@@ -1627,6 +1643,10 @@
     // live chill line: Stage B hands (p, target) for every confirmed exact
     // body hit incl. multi-body children. Optional/lazy like CRY.
     const FR = globalScope.APEX_FROST;
+    // MAGNET V1: sum every active field once, then alter trajectory before
+    // this pass performs the one canonical projectile movement integration.
+    const magnet = globalScope.APEX_MAGNET;
+    if (magnet) magnet.stepProjectiles(dt, projectiles, combatantOfBody, AIL.clock());
 
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const p = projectiles[i];

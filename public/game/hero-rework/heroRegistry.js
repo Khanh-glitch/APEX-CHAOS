@@ -180,14 +180,19 @@
       classRef: 'rework.magnet',
       skills: {
         A1: skill('magnet.acquisition', 'A1', 'magnet.acquisition', {
-          cooldown: 10, pullAcceleration: 1500, maxPulledSpeed: 1000,
-          maxActiveTime: 2, t6Immune: true,
-        }, ['pullAcceleration'], 'magnitude_step'),
-        A2: skill('magnet.repulsion_field', 'A2', 'magnet.repulsion_field', {
-          cooldown: 13, duration: 2.2, radius: 210,
-          fighterPushAcceleration: 1300, projectileRadialImpulse: 900,
+          cooldown: 11, gameplayDuration: 1.00,
+          gunAccelerationMin: 1400, gunAccelerationMax: 2400,
+          gunDistanceSpan: 700, gunSpeedCap: 900, postFieldDrag: 1.8,
+          bulletRadius: 480, bulletAcceleration: 14000, bulletSpeedCapMult: 1.10,
           t6Immune: true,
-        }, ['fighterPushAcceleration'], 'magnitude_step'),
+        }, ['gunAccelerationMax'], 'magnitude_step'),
+        A2: skill('magnet.repulsion_field', 'A2', 'magnet.repulsion_field', {
+          cooldown: 13, duration: 1.80, radius: 225,
+          bodyAcceleration: 2200, bodyRadialSpeedCap: 650,
+          gunAcceleration: 3000, gunSpeedCap: 950,
+          bulletAcceleration: 18000, bulletSpeedCapMult: 1.10,
+          t6Immune: true,
+        }, ['bodyAcceleration'], 'magnitude_step'),
         PASSIVE: skill('magnet.acceleration', 'PASSIVE', 'magnet.acceleration', {
           ownedProjectileVelocityBonus: 0.18, t6Immune: true,
         }, ['ownedProjectileVelocityBonus'], 'pp_step'),
