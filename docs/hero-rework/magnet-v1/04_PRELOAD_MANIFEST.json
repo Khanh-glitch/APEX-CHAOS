@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "prepared_at": "2026-10-01",
+  "repository": "Khanh-glitch/APEX-CHAOS",
+  "implementation_baseline": {
+    "commit": "5411906a741f87d637ee20535c82e96b866d4ab2",
+    "runtime_revision": "20261001-frost-v1-ice-eye-boost-r1"
+  },
+  "preload_branch": "magnet-v1-preload-20261001",
+  "gold": {
+    "path": "docs/hero-rework/magnet-v1/gold/MAGNET_FINAL_DONOR_MAX.html",
+    "owner_filename": "MAGNET_FINAL_DONOR_MAX (1).html",
+    "bytes": 3095049,
+    "logical_lines": 1242,
+    "sha256": "468f7b2aa34588c2c52bf23fb5202c507ff5d584d423ea9f1a9232d751247d8b"
+  },
+  "baseline_blob_shas": {
+    "public/game/hero-rework/heroRegistry.js": "6e4eeb641fdab02c7189eada47d8901819a22f6e",
+    "public/game/hero-rework/heroMechanicsRuntime.js": "2e8c7ce9ffe35edce703eb2a4d6d5a9511cd180b",
+    "public/game/hero-rework/heroReworkRuntime.js": "bca80d817549ae375d92eed902935b461ecdb565",
+    "public/game/arsenal/arsenalSpawnRuntime.js": "3dde70546782cf8d2ee7fad3e9899936af9024ff",
+    "public/game/arsenal/arsenalWeaponRuntime.js": "d6cf89ee1845d2edccd17b7a458b5970f2d6417a",
+    "src/game/runtimeManifest.js": "3f12b5f1a10f064fbe5fcf49d2c5eaba209a6c0e"
+  },
+  "preload_allowed_paths": [
+    "docs/hero-rework/magnet-v1/**",
+    "tools/preflightMagnetOneShot.mjs"
+  ],
+  "mirror": {
+    "policy": "FROZEN_CURRENT_GAMEPLAY_SAME_RELEASE_BATCH",
+    "a1": {
+      "cooldown": 15,
+      "copyLifetime": 6,
+      "freshInstance": true,
+      "freshAmmo": true,
+      "opponentKeepsOriginal": true,
+      "whiffConsumesCooldown": true,
+      "t6Copy": false,
+      "shieldCopyExcluded": true
+    },
+    "a2": {
+      "cooldown": 12,
+      "telegraph": 0.25,
+      "atomicPositionSwapOnly": true,
+      "keepsOwn": [
+        "velocity",
+        "hp",
+        "weapon",
+        "status"
+      ]
+    },
+    "passive": {
+      "damagePerShard": 35,
+      "minEventDamage": 20,
+      "maxShardsPerEvent": 5,
+      "shardLifetime": 6,
+      "shardsToMirror": 5,
+      "mirrorFormRadius": 130,
+      "mirrorLifetime": 10,
+      "maxMirrors": 3,
+      "exitController": "NEUTRAL",
+      "damageUnchanged": true,
+      "noHeroCredit": true,
+      "provenanceRetained": true,
+      "t6Immune": true
+    }
+  }
+}
