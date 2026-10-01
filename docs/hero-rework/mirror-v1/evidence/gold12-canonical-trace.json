@@ -1,0 +1,799 @@
+{
+  "generatedAt": "2026-10-01T20:44:22.571Z",
+  "purpose": "Canonical Gold 12 reference trace. Production Mirror parity tests compare AGAINST this; it is produced by executing the canonical HTML directly, never by a reconstruction.",
+  "gold": {
+    "path": "docs/hero-rework/mirror-v1/gold/MIRROR_GOLD_FUSION_12.html",
+    "sha256": "c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205",
+    "bytes": 107480,
+    "lines": 1404
+  },
+  "url": "http://127.0.0.1:4200/docs/hero-rework/mirror-v1/gold/MIRROR_GOLD_FUSION_12.html",
+  "trace": {
+    "engine": {
+      "STEP": 0.008333333333333333,
+      "fixedHz": 120,
+      "maxSubsteps": 12,
+      "HN": 64,
+      "HS": 22,
+      "histLength": 1408,
+      "ARENA": 1000,
+      "SPD": 250,
+      "MR": 34
+    },
+    "plates": [
+      {
+        "id": "UL",
+        "side": "L",
+        "delay": 0.095,
+        "role": "shameless",
+        "gain": 0.3
+      },
+      {
+        "id": "UR",
+        "side": "R",
+        "delay": 0.115,
+        "role": "observer",
+        "gain": 0.26
+      },
+      {
+        "id": "LL",
+        "side": "L",
+        "delay": 0.145,
+        "role": "stale",
+        "gain": 0.36
+      },
+      {
+        "id": "LR",
+        "side": "R",
+        "delay": 0.17,
+        "role": "wrong",
+        "gain": 0.4
+      }
+    ],
+    "node": {
+      "NV": [
+        [
+          -5,
+          -60
+        ],
+        [
+          28,
+          -27
+        ],
+        [
+          20,
+          28
+        ],
+        [
+          0,
+          62
+        ],
+        [
+          -28,
+          31
+        ]
+      ],
+      "routeSurface": {
+        "fromVertex": 0,
+        "toVertex": 3,
+        "from": [
+          -5,
+          -60
+        ],
+        "to": [
+          0,
+          62
+        ]
+      },
+      "lifecycleSlots": 4,
+      "shardPool": 16
+    },
+    "a1": {
+      "TS": 1.6,
+      "ownStep": 112,
+      "ownU": 0.5833333333333327,
+      "ownT": 0.9333333333333333,
+      "endStep": 177,
+      "endU": 0.9218749999999982,
+      "endT": 1.475,
+      "samples": [
+        {
+          "step": 20,
+          "t": 0.16667,
+          "u": 0.10417,
+          "on": true
+        },
+        {
+          "step": 40,
+          "t": 0.33333,
+          "u": 0.20833,
+          "on": true
+        },
+        {
+          "step": 60,
+          "t": 0.5,
+          "u": 0.3125,
+          "on": true
+        },
+        {
+          "step": 80,
+          "t": 0.66667,
+          "u": 0.41667,
+          "on": true
+        },
+        {
+          "step": 100,
+          "t": 0.83333,
+          "u": 0.52083,
+          "on": true
+        },
+        {
+          "step": 120,
+          "t": 1,
+          "u": 0.625,
+          "on": true
+        },
+        {
+          "step": 140,
+          "t": 1.16667,
+          "u": 0.72917,
+          "on": true
+        },
+        {
+          "step": 160,
+          "t": 1.33333,
+          "u": 0.83333,
+          "on": true
+        },
+        {
+          "step": 180,
+          "t": 1.5,
+          "u": 0.92187,
+          "on": false
+        },
+        {
+          "step": 200,
+          "t": 1.66667,
+          "u": 0.92187,
+          "on": false
+        },
+        {
+          "step": 220,
+          "t": 1.83333,
+          "u": 0.92187,
+          "on": false
+        },
+        {
+          "step": 240,
+          "t": 2,
+          "u": 0.92187,
+          "on": false
+        },
+        {
+          "step": 260,
+          "t": 2.16667,
+          "u": 0.92187,
+          "on": false
+        },
+        {
+          "step": 280,
+          "t": 2.33333,
+          "u": 0.92187,
+          "on": false
+        },
+        {
+          "step": 300,
+          "t": 2.5,
+          "u": 0.92187,
+          "on": false
+        }
+      ],
+      "nominalOwnT": 0.9279999999999999,
+      "nominalEndT": 1.4720000000000002
+    },
+    "a1Whiff": {
+      "whiffFlag": true,
+      "everProducedCopy": false
+    },
+    "a2": {
+      "TS": 1,
+      "snapStep": 31,
+      "snapU": 0.2583333333333333,
+      "snapT": 0.2583333333333333,
+      "endStep": 77,
+      "endU": 0.6416666666666668,
+      "samples": [
+        {
+          "step": 12,
+          "t": 0.1,
+          "u": 0.1
+        },
+        {
+          "step": 24,
+          "t": 0.2,
+          "u": 0.2
+        },
+        {
+          "step": 36,
+          "t": 0.3,
+          "u": 0.3
+        },
+        {
+          "step": 48,
+          "t": 0.4,
+          "u": 0.4
+        },
+        {
+          "step": 60,
+          "t": 0.5,
+          "u": 0.5
+        },
+        {
+          "step": 72,
+          "t": 0.6,
+          "u": 0.6
+        },
+        {
+          "step": 84,
+          "t": 0.7,
+          "u": 0.64167
+        },
+        {
+          "step": 96,
+          "t": 0.8,
+          "u": 0.64167
+        },
+        {
+          "step": 108,
+          "t": 0.9,
+          "u": 0.64167
+        },
+        {
+          "step": 120,
+          "t": 1,
+          "u": 0.64167
+        },
+        {
+          "step": 132,
+          "t": 1.1,
+          "u": 0.64167
+        },
+        {
+          "step": 144,
+          "t": 1.2,
+          "u": 0.64167
+        }
+      ],
+      "observedSwap": {
+        "step": 31,
+        "t": 0.25833,
+        "u": 0.25833
+      },
+      "nominalSnapT": 0.25,
+      "beforeM": {
+        "x": 330,
+        "y": 560
+      },
+      "beforeF": {
+        "x": 700,
+        "y": 430
+      },
+      "afterM": {
+        "x": 700,
+        "y": 430
+      },
+      "afterF": {
+        "x": 394.42332084289205,
+        "y": 516.3015609480512
+      }
+    },
+    "nodes": {
+      "firstLiveT": 0.9083,
+      "firstActiveStep": 253,
+      "firstActiveT": 2.1083,
+      "maxActive": 1,
+      "maxLifecycle": 1,
+      "trace": [
+        {
+          "t": 0.2,
+          "live": 0,
+          "active": 0,
+          "shardsOn": 5
+        },
+        {
+          "t": 0.4,
+          "live": 0,
+          "active": 0,
+          "shardsOn": 5
+        },
+        {
+          "t": 0.6,
+          "live": 0,
+          "active": 0,
+          "shardsOn": 5
+        },
+        {
+          "t": 0.8,
+          "live": 0,
+          "active": 0,
+          "shardsOn": 5
+        },
+        {
+          "t": 1,
+          "live": 1,
+          "active": 0,
+          "shardsOn": 5
+        },
+        {
+          "t": 1.2,
+          "live": 1,
+          "active": 0,
+          "shardsOn": 5
+        },
+        {
+          "t": 1.4,
+          "live": 1,
+          "active": 0,
+          "shardsOn": 5
+        },
+        {
+          "t": 1.6,
+          "live": 1,
+          "active": 0,
+          "shardsOn": 5
+        },
+        {
+          "t": 1.8,
+          "live": 1,
+          "active": 0,
+          "shardsOn": 5
+        },
+        {
+          "t": 2,
+          "live": 1,
+          "active": 0,
+          "shardsOn": 5
+        },
+        {
+          "t": 2.2,
+          "live": 1,
+          "active": 1,
+          "shardsOn": 5
+        },
+        {
+          "t": 2.4,
+          "live": 1,
+          "active": 1,
+          "shardsOn": 5
+        },
+        {
+          "t": 2.6,
+          "live": 1,
+          "active": 1,
+          "shardsOn": 5
+        },
+        {
+          "t": 2.8,
+          "live": 1,
+          "active": 1,
+          "shardsOn": 5
+        },
+        {
+          "t": 3,
+          "live": 1,
+          "active": 1,
+          "shardsOn": 5
+        },
+        {
+          "t": 3.2,
+          "live": 1,
+          "active": 1,
+          "shardsOn": 5
+        },
+        {
+          "t": 3.4,
+          "live": 1,
+          "active": 1,
+          "shardsOn": 5
+        },
+        {
+          "t": 3.6,
+          "live": 1,
+          "active": 1,
+          "shardsOn": 5
+        },
+        {
+          "t": 3.8,
+          "live": 1,
+          "active": 1,
+          "shardsOn": 5
+        },
+        {
+          "t": 4,
+          "live": 1,
+          "active": 1,
+          "shardsOn": 5
+        }
+      ],
+      "spawnToActiveT": 2.1083,
+      "formationStartToActiveT": 1.2
+    },
+    "history": {
+      "HN": 64,
+      "HS": 22,
+      "head": 16,
+      "sampleStride": 22,
+      "nonZeroChannels": 10
+    },
+    "errors": [],
+    "pageErrors": []
+  },
+  "gates": {
+    "G00-canonical-gold-present": {
+      "pass": true
+    },
+    "G01-gold-sha256-exact": {
+      "pass": true,
+      "detail": "c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205"
+    },
+    "G02-gold-bytes-and-no-external-dependency": {
+      "pass": true,
+      "detail": {
+        "bytes": 107480,
+        "lines": 1404
+      }
+    },
+    "C00-gold-url-reachable": {
+      "pass": true,
+      "detail": "http://127.0.0.1:4200/docs/hero-rework/mirror-v1/gold/MIRROR_GOLD_FUSION_12.html"
+    },
+    "V-ENGINE-fixed-1/120-and-12-substeps": {
+      "pass": true,
+      "detail": {
+        "STEP": 0.008333333333333333,
+        "fixedHz": 120,
+        "maxSubsteps": 12,
+        "HN": 64,
+        "HS": 22,
+        "histLength": 1408,
+        "ARENA": 1000,
+        "SPD": 250,
+        "MR": 34
+      }
+    },
+    "V-ENGINE-history-HN64-HS22": {
+      "pass": true,
+      "detail": {
+        "HN": 64,
+        "HS": 22
+      }
+    },
+    "V03-false-face-base-delays": {
+      "pass": true,
+      "detail": "UL:0.095 UR:0.115 LL:0.145 LR:0.17"
+    },
+    "V03-false-face-roles": {
+      "pass": true,
+      "detail": "UL:shameless UR:observer LL:stale LR:wrong"
+    },
+    "V-NODE-canonical-polygon": {
+      "pass": true,
+      "detail": [
+        [
+          -5,
+          -60
+        ],
+        [
+          28,
+          -27
+        ],
+        [
+          20,
+          28
+        ],
+        [
+          0,
+          62
+        ],
+        [
+          -28,
+          31
+        ]
+      ]
+    },
+    "V-NODE-route-surface-v0-to-v3": {
+      "pass": true,
+      "detail": {
+        "fromVertex": 0,
+        "toVertex": 3,
+        "from": [
+          -5,
+          -60
+        ],
+        "to": [
+          0,
+          62
+        ]
+      }
+    },
+    "V-NODE-four-lifecycle-slots": {
+      "pass": true,
+      "detail": {
+        "NV": [
+          [
+            -5,
+            -60
+          ],
+          [
+            28,
+            -27
+          ],
+          [
+            20,
+            28
+          ],
+          [
+            0,
+            62
+          ],
+          [
+            -28,
+            31
+          ]
+        ],
+        "routeSurface": {
+          "fromVertex": 0,
+          "toVertex": 3,
+          "from": [
+            -5,
+            -60
+          ],
+          "to": [
+            0,
+            62
+          ]
+        },
+        "lifecycleSlots": 4,
+        "shardPool": 16
+      }
+    },
+    "V10-A1-timescale-1.6": {
+      "pass": true,
+      "detail": {
+        "A1TS": 1.6
+      }
+    },
+    "V10-A1-OWN-edge-at-u>=.58": {
+      "pass": true,
+      "detail": {
+        "ownStep": 112,
+        "ownT": 0.9333333333333333,
+        "ownU": 0.5833333333333327,
+        "nominal": 0.9279999999999999
+      }
+    },
+    "V10-A1-visual-end-at-u>=.92": {
+      "pass": true,
+      "detail": {
+        "endT": 1.475,
+        "nominal": 1.4720000000000002
+      }
+    },
+    "V11-A1-whiff-never-copies": {
+      "pass": true,
+      "detail": {
+        "whiffFlag": true,
+        "everProducedCopy": false
+      }
+    },
+    "V12-A2-timescale-1.0": {
+      "pass": true,
+      "detail": {
+        "A2TS": 1
+      }
+    },
+    "V12-A2-snap-edge-exactly-0.25s": {
+      "pass": true,
+      "detail": {
+        "snapStep": 31,
+        "snapT": 0.2583333333333333,
+        "nominal": 0.25
+      }
+    },
+    "V12-A2-observed-position-exchange-at-snap": {
+      "pass": true,
+      "detail": {
+        "step": 31,
+        "t": 0.25833,
+        "u": 0.25833
+      }
+    },
+    "V12-A2-exchange-is-exact-coordinates": {
+      "pass": true,
+      "detail": {
+        "beforeM": {
+          "x": 330,
+          "y": 560
+        },
+        "beforeF": {
+          "x": 700,
+          "y": 430
+        },
+        "afterM": {
+          "x": 700,
+          "y": 430
+        },
+        "afterF": {
+          "x": 394.42332084289205,
+          "y": 516.3015609480512
+        }
+      }
+    },
+    "V13-formation-start-to-ACTIVE-near-1.20s": {
+      "pass": true,
+      "detail": {
+        "formationStartToActiveT": 1.2,
+        "firstLiveT": 0.9083,
+        "firstActiveT": 2.1083
+      }
+    },
+    "V13-free-shard-age-gate-and-scan-cadence-precede-formation": {
+      "pass": true,
+      "detail": {
+        "firstLiveT": 0.9083,
+        "ageGate": 0.7,
+        "scanCadence": 0.3
+      }
+    },
+    "V13-node-lifecycle-slots-never-exceed-4": {
+      "pass": true,
+      "detail": {
+        "firstLiveT": 0.9083,
+        "firstActiveStep": 253,
+        "firstActiveT": 2.1083,
+        "maxActive": 1,
+        "maxLifecycle": 1,
+        "trace": [
+          {
+            "t": 0.2,
+            "live": 0,
+            "active": 0,
+            "shardsOn": 5
+          },
+          {
+            "t": 0.4,
+            "live": 0,
+            "active": 0,
+            "shardsOn": 5
+          },
+          {
+            "t": 0.6,
+            "live": 0,
+            "active": 0,
+            "shardsOn": 5
+          },
+          {
+            "t": 0.8,
+            "live": 0,
+            "active": 0,
+            "shardsOn": 5
+          },
+          {
+            "t": 1,
+            "live": 1,
+            "active": 0,
+            "shardsOn": 5
+          },
+          {
+            "t": 1.2,
+            "live": 1,
+            "active": 0,
+            "shardsOn": 5
+          },
+          {
+            "t": 1.4,
+            "live": 1,
+            "active": 0,
+            "shardsOn": 5
+          },
+          {
+            "t": 1.6,
+            "live": 1,
+            "active": 0,
+            "shardsOn": 5
+          },
+          {
+            "t": 1.8,
+            "live": 1,
+            "active": 0,
+            "shardsOn": 5
+          },
+          {
+            "t": 2,
+            "live": 1,
+            "active": 0,
+            "shardsOn": 5
+          },
+          {
+            "t": 2.2,
+            "live": 1,
+            "active": 1,
+            "shardsOn": 5
+          },
+          {
+            "t": 2.4,
+            "live": 1,
+            "active": 1,
+            "shardsOn": 5
+          },
+          {
+            "t": 2.6,
+            "live": 1,
+            "active": 1,
+            "shardsOn": 5
+          },
+          {
+            "t": 2.8,
+            "live": 1,
+            "active": 1,
+            "shardsOn": 5
+          },
+          {
+            "t": 3,
+            "live": 1,
+            "active": 1,
+            "shardsOn": 5
+          },
+          {
+            "t": 3.2,
+            "live": 1,
+            "active": 1,
+            "shardsOn": 5
+          },
+          {
+            "t": 3.4,
+            "live": 1,
+            "active": 1,
+            "shardsOn": 5
+          },
+          {
+            "t": 3.6,
+            "live": 1,
+            "active": 1,
+            "shardsOn": 5
+          },
+          {
+            "t": 3.8,
+            "live": 1,
+            "active": 1,
+            "shardsOn": 5
+          },
+          {
+            "t": 4,
+            "live": 1,
+            "active": 1,
+            "shardsOn": 5
+          }
+        ],
+        "spawnToActiveT": 2.1083,
+        "formationStartToActiveT": 1.2
+      }
+    },
+    "V-HISTORY-channels-populated": {
+      "pass": true,
+      "detail": {
+        "HN": 64,
+        "HS": 22,
+        "head": 16,
+        "sampleStride": 22,
+        "nonZeroChannels": 10
+      }
+    },
+    "C99-no-canonical-page-errors": {
+      "pass": true,
+      "detail": []
+    }
+  },
+  "failures": [],
+  "pass": true
+}
