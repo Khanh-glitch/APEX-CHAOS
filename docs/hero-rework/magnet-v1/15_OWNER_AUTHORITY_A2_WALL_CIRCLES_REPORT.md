@@ -271,3 +271,105 @@ accel 14000).
 | `src/game/runtimeManifest.js`, `tools/runtimeRevision.lock.json` | revision `20261001-magnet-v1-r5` → `r6`, re-locked (38 runtimes) |
 | `tools/testMagnetV1RealBrowser.mjs`, `tools/testMagnetCanonicalGoldParity.mjs`, `tools/testChamberPaletteGates.mjs` | environment compatibility only: `@sparticuz/chromium` ≥ 121 no longer exports `inflate()` |
 | `tools/probeMagnet*.mjs` (4 new) | targeted diagnostics |
+
+---
+
+## 6. Regression results
+
+### 6.1 Magnet suites — all green
+
+| suite | result |
+|---|---|
+| `testMagnetV1RealBrowser` (real Chromium, 21 gates) | **PASS** |
+| `testMagnetCanonicalGoldParity` (donor vs production, real browser) | **PASS** |
+| `testMagnetV1GameplayGates` | **PASS** 27/27 |
+| `testMagnetV1PresentationGates` | **PASS** 13/13 |
+| `testMagnetV1PresentationSemantics` | **PASS** |
+| `testMagnetMotionAuthorityGates` | **PASS** |
+| `testMagnetV1SchedulerParity` | **PASS** |
+| `testMagnetGoldMotionTrace` | **PASS** |
+| `testChamberPaletteGates` | **PASS** 15/15 |
+| `testRuntimeRevisionGate` | **PASS** (38 runtimes, r6) |
+
+Canonical Gold parity is worth calling out: the wall change did **not** cost
+local six-part fidelity — `polR` RMSE 0.119 / max 0.576, `lobeL` RMSE 0.020,
+`lobeR` RMSE 0.026, peak ratios 0.915–0.931, peak time delta 0.067 s.
+
+### 6.2 A1 positive-control oracle (in-browser)
+
+`a1-positive-control-real-object` **PASS** — A1 acquires exactly **one** real
+object, drives `a1Target.x` to **−0.986** and `desiredA1Target.x` to **−1.0**,
+and renders **1** acknowledgement ring. `a1-field-render-frame-budget-measured`
+**PASS** — A1's marginal render cost is **28.5 ms** over the same scene idling.
+
+### 6.3 A2 repulsion in the shipping suite
+
+`actual-firearm-a2-projectile-repulsion` **PASS**:
+radial velocity **−2484.5 → +2484.5** at the true crossing (286.4, 549.4),
+tangential 766.4 preserved, **1** entry response, closest approach **264.4 px**
+against a **65.5 px** damaging envelope, `penetrated=false`, `damaged=false`,
+identity stable, life decreasing normally.
+
+### 6.4 Protected (non-Magnet) regressions
+
+| suite | result |
+|---|---|
+| `testHeroReworkLocomotionGates` | PASS 4/4 |
+| `testHeroReworkRobotGates` | PASS 11/11 |
+| `testHeroReworkSlimeGates` | PASS 9/9 |
+| `testHeroReworkGoldens` | fail — **pre-existing** |
+| `testHeroReworkRobotPresentationGates` | fail — **pre-existing** |
+| `testFrostV1Gates` | fail — **pre-existing** |
+| `testCrystalaGameplayGates` | fail — **pre-existing** |
+| `testHeroReworkHunterOwnerFixGates` | fail — **pre-existing** |
+
+The five failures were verified against a clean checkout of the start SHA
+`df3f9fba` (changes stashed, suites re-run, changes restored) and reproduce
+there with **identical failure sets**. They are not caused by this work. For
+the record they are:
+`golden-crystal-reflect-ice-payload`, `golden-rubber-stores-reflected`;
+`P-A1-lock-dash-single-dispatch-bus`, `P-A1-dash-1-sfx`, `P-A2-auto-hits-per-hit`,
+`P-passive-*`; `F00.4-revision-lineage`, `F12.22-frost-battle-scale`,
+`F12.26-full-lifecycle-Gold-parity`; Crystala gameplay; `runtime-cache-bust`.
+
+### 6.5 Test-harness changes (no product semantics)
+
+Three browser harnesses needed environment repair before they could run at all:
+
+* `@sparticuz/chromium` ≥ 121 no longer exports `inflate()`; all three call
+  sites now tolerate both APIs.
+* Headless swiftshader rasterises this 1280×1100 canvas at **1255 ms/frame**
+  versus **176 ms/frame** on the plain software path, which blew the CDP
+  protocol budget. `--disable-gpu` plus rAF anti-throttling flags fixed it.
+
+Two gate definitions were corrected, both because they asserted the host rather
+than the product:
+
+* `a1-positive-control-real-object` read A1 state after a fixed 24 frames. A1
+  lasts 1.0 s of sim time, so on a slow host the ability expired inside a
+  single frame and the acquired object was gone before it was read. It now
+  polls every frame and keeps the peak observation — same assertion, no
+  wall-clock race. **A1 itself was not modified.**
+* `a1-field-render-frame-budget-measured` asserted absolute frame time < 40 ms,
+  which measures the machine. It now asserts A1's *marginal* cost over the same
+  scene idling.
+
+And one gate was superseded by owner authority:
+
+* `actual-firearm-a2-projectile-curves` required `|angleDelta| > .002` and
+  `influencedTicks >= 2` — criteria that the **rejected** "bend slightly and
+  penetrate" behaviour satisfies, and which correct repulsion can fail (a
+  properly repelled bullet is ejected so hard it leaves the field in one tick).
+  Replaced by `actual-firearm-a2-projectile-repulsion`, which asserts the
+  owner's actual criterion: inward radial velocity converted outward exactly
+  once at the true crossing, and the bullet never reaching the damaging
+  envelope or dealing damage.
+
+---
+
+## 7. Not claimed
+
+Owner visual acceptance is **not** claimed. Every result above is instrumented
+measurement — authoritative projectile ticks, screen-space root positions and
+Canvas call provenance. Whether the wall reaction and the de-cluttered fighters
+now *look* right to the owner can only be settled by an owner playtest.
