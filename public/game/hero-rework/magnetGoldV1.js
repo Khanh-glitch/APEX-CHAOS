@@ -222,7 +222,38 @@ function passiveEmission(s,data={}){
   after(s,110,()=>goldRecover(s,side,0));
   addCorridor(s,Number(data.x)||s.root.x,Number(data.y)||s.root.y,angle);addEcho(s,'passive',-ax*5,-ay*5,.055,.14);
 }
-function cue(combatant,type,data){const s=stateFor(combatant);if(type==='a1')startA1(s,data);else if(type==='a2')startA2(s,data);else if(type==='passive')passiveEmission(s,data);else if(type==='impact')impact(s,data);else if(type==='wall')wallImpact(s,data?.nx||0,data?.ny||0,data?.speed||0);else if(type==='lateReveal'){addRing(s,data?.object);if(data?.object){addMotes(s,data.object.x,data.object.y,2);pulse(s,'core.eyes',.2,.14);}}}
+function a2BulletCapture(s,data={}){
+  // Owner-directed "magnetic catch -> curve -> release" beat for a hostile
+  // firearm bullet repelled at the A2 boundary. This reuses the PASSIVE
+  // projectile visual GRAMMAR (directional corridor streak + gold arc + a few
+  // motes + a short pole/eye pulse) deliberately -- it carries none of the
+  // passive gameplay semantics, does not touch ownership, damage, crit or
+  // payload, and draws no ring or shield flash. Crisp and short-lived:
+  // ~0.07s of catch read plus a slightly longer release streak.
+  const x=Number(data.x)||s.root.x, y=Number(data.y)||s.root.y;
+  const nx=Number(data.nx)||0, ny=Number(data.ny)||0;        // outward normal at TOI
+  const tangential=Math.max(0,Number(data.tangential)||0);
+  const speed=Math.abs(Number(data.radialBefore)||0);
+  const dur=Math.max(.03,Number(data.duration)||.07);
+  const power=clamp(speed/5800,.18,1);                        // PISTOL..SNIPER
+  const outAngle=Math.atan2(ny,nx);
+  // Directional release streak along the outward normal, length scaled by the
+  // speed that was actually caught.
+  addCorridor(s,x,y,outAngle,96+150*power,9+7*power,dur*2.6,.52+.34*power);
+  // Curved transient showing the bend: an arc hugging the field shell, swept
+  // the way the tangential component is carrying the bullet.
+  const tanSign=(data.tangentialSign||1)>=0?1:-1;
+  const span=clamp(.16+tangential/5200,.12,.52);
+  addArc(s,s.root.x,s.root.y-6,Math.max(2,Number(data.radius)||225),0,
+    outAngle+tanSign*span*.35,span,dur*3.1,1.5+2.2*power,'a2');
+  // Small directional pulse at the catch itself, strongest at catch->release.
+  addMotes(s,x,y,2+Math.round(2*power));
+  const side=nx<0?0:1;
+  poleChannels(side).forEach(k=>pulse(s,k,.42*power,.05));
+  pulse(s,'core.eyes',.22*power,.09);
+  s.lastAct=s.simTime;
+}
+function cue(combatant,type,data){const s=stateFor(combatant);if(type==='a1')startA1(s,data);else if(type==='a2')startA2(s,data);else if(type==='passive')passiveEmission(s,data);else if(type==='a2capture')a2BulletCapture(s,data);else if(type==='impact')impact(s,data);else if(type==='wall')wallImpact(s,data?.nx||0,data?.ny||0,data?.speed||0);else if(type==='lateReveal'){addRing(s,data?.object);if(data?.object){addMotes(s,data.object.x,data.object.y,2);pulse(s,'core.eyes',.2,.14);}}}
 
 function movementStart(s,dx,dy){
   const side=dx>=0?1:0,other=1-side;s.lastAct=s.simTime;

@@ -261,6 +261,24 @@
       // Edge fallback covers a cast accepted before this adapter subscribed.
       if (activeA1 && !state.lastGameplayA1) GOLD.cue(ct, 'a1', { objects: currentFloorDescriptors() });
       if (activeA2 && !state.lastGameplayA2) GOLD.cue(ct, 'a2');
+
+      // A2 bullet magnetic-catch beat. Presentation-only: it reads the real
+      // time-of-impact the gameplay runtime resolved this frame and never
+      // feeds anything back into gameplay.
+      for (const ev of (snapshot.captureEvents || [])) {
+        if (ev.owner !== ct) continue;
+        const tanSign = (ev.nx || 0) * (ev.ny || 0) === 0
+          ? 1
+          : Math.sign((-(ev.ny || 0)) * (ev.radialBefore || 0));
+        GOLD.cue(ct, 'a2capture', {
+          x: ev.x, y: ev.y, nx: ev.nx, ny: ev.ny,
+          radialBefore: ev.radialBefore,
+          tangential: ev.tangential,
+          duration: ev.duration,
+          radius: 225,
+          tangentialSign: tanSign,
+        });
+      }
       state.lastGameplayA1 = activeA1;
       state.lastGameplayA2 = activeA2;
 
