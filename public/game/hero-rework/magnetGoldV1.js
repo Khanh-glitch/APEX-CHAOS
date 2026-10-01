@@ -78,7 +78,8 @@ function createState(combatant){
     wall:{L:false,R:false,T:false,B:false},slide:0,slideNormal:{x:0,y:0},
     a1:-1,a2:-1,a1Lead:1,a2Lead:1,a1Target:{x:0,y:0},desiredA1Target:{x:0,y:0},passive:0,lastAct:0,
     idle:{next:2.2,t0:-99,side:0,amp:2,rot:.8,dir:1,dy:0,w:1},
-    objects:{a1:[],a2:[]},sockets:null,
+    objects:{a1:[],a2:[]},histories:new Map(),hot:new Float32Array(24),a2Seen:new Set(),
+    arcs:[],bumps:[],echoes:[],corridors:[],rings:[],particles:[],sockets:null,
   };
 }
 function stateFor(combatant){let s=states.get(combatant);if(!s){s=createState(combatant);states.set(combatant,s);}return s;}
@@ -89,6 +90,33 @@ function kick(s,id,dx,dy,dr,ds){const p=s.rig[id];if(!p)return;const w=Math.sqrt
 function pulse(s,key,amount,tau){const q=s.gold[key];if(!q)return;q.pulse=Math.max(q.pulse,amount);q.tau=tau||.14;}
 function dip(s,key,amount,hold,recover){const q=s.gold[key];if(!q)return;q.dip=Math.max(q.dip,amount);q.hold=hold;q.rec=recover;}
 function poleChannels(side){return[`${POLES[side]}.in`,`${POLES[side]}.out`];}
+function boundedPush(list,item,max){list.push(item);while(list.length>max)list.shift();}
+function addArc(s,x,y,r,dr,a,span,d,w,color){boundedPush(s.arcs,{x,y,r,dr,a,span,age:0,d,w,color},28);}
+function addBump(s,x,y,nx,ny,amp,sigma,d=.42){boundedPush(s.bumps,{x,y,nx,ny,amp,sigma,age:0,d},16);}
+function addRing(s,object,d=.58,alpha=.72){if(object)boundedPush(s.rings,{key:object.key,object,age:0,d,alpha},16);}
+function addCorridor(s,x,y,angle,len=170,width=14,d=.42,alpha=.85){boundedPush(s.corridors,{x,y,angle,len,width,age:0,d,alpha},8);}
+function rigSnapshot(s){return Object.fromEntries(IDS.map(id=>[id,{x:s.rig[id].x,y:s.rig[id].y,r:s.rig[id].r,sx:s.rig[id].sx,sy:s.rig[id].sy}]));}
+function addEcho(s,kind,dx,dy,alpha,d){boundedPush(s.echoes,{kind,x:s.root.x,y:s.root.y,dx,dy,alpha,age:0,d,rig:rigSnapshot(s)},10);}
+function addParticle(s,p){boundedPush(s.particles,p,80);}
+function addMotes(s,x,y,count){for(let i=0;i<count;i++){const a=s.random()*TAU,sp=20+s.random()*50;addParticle(s,{kind:'mote',x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,age:0,d:.25+s.random()*.2,size:1+s.random()*.8});}}
+function objectKey(o,index){return o&&((o.key!=null&&o.key)||(o.ref)||(o.object))||`${o?.kind||'object'}:${o?.id??index}`;}
+function updateObjectTruth(s,input,dt){
+  if(Array.isArray(input.a1Objects))s.objects.a1=input.a1Objects.slice();
+  if(Array.isArray(input.a2Objects))s.objects.a2=input.a2Objects.slice();
+  const active=[...s.objects.a1,...s.objects.a2],seen=new Set();
+  active.forEach((o,index)=>{if(!o||!Number.isFinite(o.x)||!Number.isFinite(o.y))return;const key=objectKey(o,index);o.key=key;seen.add(key);let h=s.histories.get(key);if(!h){h={kind:o.kind||'object',hostile:!!o.hostile,points:[],stale:0,object:o};s.histories.set(key,h);}h.object=o;h.hostile=!!o.hostile;h.stale=0;const last=h.points[h.points.length-1];if(!last||Math.hypot(o.x-last.x,o.y-last.y)>.25)h.points.push({x:o.x,y:o.y});if(h.points.length>20)h.points.shift();});
+  for(const[key,h]of s.histories){if(!seen.has(key))h.stale+=dt;if(h.stale>.75)s.histories.delete(key);}
+  const targets=s.objects.a1.filter(o=>o&&Number.isFinite(o.x)&&Number.isFinite(o.y)).sort((a,b)=>Math.hypot(a.x-s.root.x,a.y-s.root.y)-Math.hypot(b.x-s.root.x,b.y-s.root.y));
+  if(targets.length){const o=targets[0],x=o.x-s.root.x,y=o.y-s.root.y,d=Math.hypot(x,y);s.desiredA1Target.x=d?x/d:0;s.desiredA1Target.y=d?y/d:0;s.a1Lead=x<0?0:1;}
+  else if(input.a1Target){const x=Number(input.a1Target.x)||0,y=Number(input.a1Target.y)||0,d=Math.hypot(x,y);s.desiredA1Target.x=d?x/d:0;s.desiredA1Target.y=d?y/d:0;if(d)s.a1Lead=x<0?0:1;}
+  else{s.desiredA1Target.x=0;s.desiredA1Target.y=0;}
+  if(s.a2>=0&&s.a2<=1.8){for(let index=0;index<s.objects.a2.length;index++){const o=s.objects.a2[index],dx=o.x-s.root.x,dy=o.y-s.root.y,d=Math.hypot(dx,dy);if(!(d>0&&d<225))continue;const bin=(((Math.atan2(dy,dx)/TAU)%1+1)%1*24)|0,u=1-d/225;s.hot[bin]=Math.max(s.hot[bin],u*u);s.hot[(bin+1)%24]=Math.max(s.hot[(bin+1)%24],u*u*.7);s.hot[(bin+23)%24]=Math.max(s.hot[(bin+23)%24],u*u*.7);const key=objectKey(o,index);if(!s.a2Seen.has(key)){s.a2Seen.add(key);const side=dx<0?0:1;after(s,50,()=>kick(s,POLES[side],INWARD[side]*2,0,INWARD[side]*.65*DEG));addBump(s,o.x,o.y,dx/d,dy/d,4.2,o.radius?o.radius+12:28,.38);}}}
+}
+function ageEffects(s){
+  for(const list of [s.arcs,s.bumps,s.echoes,s.corridors,s.rings])for(let i=list.length-1;i>=0;i--){list[i].age+=DT;if(list[i].age>=list[i].d)list.splice(i,1);}
+  for(let i=s.particles.length-1;i>=0;i--){const p=s.particles[i];p.age+=DT;if(p.age>=p.d){s.particles.splice(i,1);continue;}p.x+=p.vx*DT;p.y+=p.vy*DT;const drag=Math.exp(-4*DT);p.vx*=drag;p.vy*=drag;}
+  for(const a of s.arcs)a.r+=a.dr*DT;for(let i=0;i<24;i++)s.hot[i]*=Math.exp(-DT*5.5);
+}
 
 function goldRouteA1(s){
   after(s,70,()=>pulse(s,'spine.main',.72,.18));
@@ -120,24 +148,30 @@ function structural(s,dx,dy,mag,near,level){
 function wallImpact(s,nx,ny,speed){
   const mag=clamp(2.5+speed*.015,2.5,13),level=speed<200?0:speed<450?1:2,near=nx>0?0:nx<0?1:2;
   structural(s,nx,ny,mag,near,level);if(near!==2)goldRecover(s,near,level);
+  if(level>=1){addEcho(s,'wall',-nx*(5+level*2),-ny*(5+level*2),level===2?.11:.07,level===2?.26:.18);addBump(s,s.root.x-nx*s.root.radius,s.root.y-ny*s.root.radius,nx,ny,4.5+level*2.2,28+level*6,.42);addArc(s,s.root.x-nx*s.root.radius,s.root.y-ny*s.root.radius,10,45,Math.atan2(ny,nx),.44,.34,1.5,'impact');}
 }
 function impact(s,data={}){
-  const dx=Number(data.dx)||0,dy=Number(data.dy)||0,mag=clamp(Number(data.magnitude)||5,2,14);
-  structural(s,dx,dy,mag,data.side==null?(dx<0?0:1):data.side,mag<4.5?0:mag<8?1:2);
-  pulse(s,'core.eyes',.4,.08);goldRecover(s,dx<0?0:1,mag<4.5?0:mag<8?1:2);
+  const dx=Number(data.dx)||0,dy=Number(data.dy)||0,mag=clamp(Number(data.magnitude)||5,2,14),level=mag<4.5?0:mag<8?1:2;
+  structural(s,dx,dy,mag,data.side==null?(dx<0?0:1):data.side,level);
+  pulse(s,'core.eyes',.4,.08);goldRecover(s,dx<0?0:1,level);
+  addEcho(s,'hit',-dx*(level===2?9:6),-dy*(level===2?9:6),level===2?.12:.075,level===2?.24:.17);
+  addBump(s,Number(data.x)||s.root.x,Number(data.y)||s.root.y,-dx,-dy,4.2+level*2.4,24+level*6,.38);
 }
 
 function startA1(s,data={}){
   s.a1=0;s.lastAct=s.simTime;
   const x=Number(data.x)||0,y=Number(data.y)||0,d=Math.hypot(x,y);
   s.desiredA1Target.x=d?x/d:0;s.desiredA1Target.y=d?y/d:0;s.a1Lead=x<0?0:1;
-  goldRouteA1(s);
+  goldRouteA1(s);addEcho(s,'a1',0,4,.07,.22);
+  addArc(s,s.root.x,s.root.y,68,150,Math.PI,.56,.48,1.7,'a1');addArc(s,s.root.x,s.root.y,68,150,0,.56,.48,1.7,'a1');
+  for(const object of(data.objects||[]))addRing(s,object);
 }
 function startA2(s){
-  s.a2=0;s.a2Lead=s.random()<.5?0:1;s.lastAct=s.simTime;
+  s.a2=0;s.a2Lead=s.random()<.5?0:1;s.lastAct=s.simTime;s.a2Seen.clear();
   after(s,70,()=>{pulse(s,'core.main',.75,.15);pulse(s,'core.eyes',.48,.14);});
   after(s,155,()=>{pulse(s,'polL.out',.72,.18);pulse(s,'polR.out',.72,.18);});
-  s.rig.core.vsy+=-.03*14;s.rig.core.vsx+=.03*14;
+  s.rig.core.vsy+=-.03*14;s.rig.core.vsx+=.03*14;addEcho(s,'a2',0,-3,.07,.24);
+  addArc(s,s.root.x,s.root.y,84,250,Math.PI,.54,.62,2,'a2');addArc(s,s.root.x,s.root.y,84,250,0,.54,.62,2,'a2');
 }
 function passiveEmission(s,data={}){
   const angle=Number(data.angle)||0,ax=Math.cos(angle),ay=Math.sin(angle),side=ax<0?0:1,other=1-side;
@@ -150,8 +184,9 @@ function passiveEmission(s,data={}){
   pulse(s,'core.eyes',.3,.1);pulse(s,'spine.main',.3,.1);kick(s,'core',-ax*.6,-ay*.6);
   after(s,40,()=>kick(s,POLES[other],-ax*1.2,-ay*1.2));
   after(s,110,()=>goldRecover(s,side,0));
+  addCorridor(s,Number(data.x)||s.root.x,Number(data.y)||s.root.y,angle);addEcho(s,'passive',-ax*5,-ay*5,.055,.14);
 }
-function cue(combatant,type,data){const s=stateFor(combatant);if(type==='a1')startA1(s,data);else if(type==='a2')startA2(s);else if(type==='passive')passiveEmission(s,data);else if(type==='impact')impact(s,data);else if(type==='wall')wallImpact(s,data?.nx||0,data?.ny||0,data?.speed||0);}
+function cue(combatant,type,data){const s=stateFor(combatant);if(type==='a1')startA1(s,data);else if(type==='a2')startA2(s);else if(type==='passive')passiveEmission(s,data);else if(type==='impact')impact(s,data);else if(type==='wall')wallImpact(s,data?.nx||0,data?.ny||0,data?.speed||0);else if(type==='lateReveal'){addRing(s,data?.object);if(data?.object){addMotes(s,data.object.x,data.object.y,2);pulse(s,'core.eyes',.2,.14);}}}
 
 function movementStart(s,dx,dy){
   const side=dx>=0?1:0,other=1-side;s.lastAct=s.simTime;
@@ -232,13 +267,12 @@ function fixedStep(s){
   if(s.a1>=0){const t=s.a1;for(let side=0;side<2;side++){const lead=side===s.a1Lead,on=t>=(lead?.10:.13)&&t<(lead?1.08:1.16),p=s.target[POLES[side]];if(on){p.x+=INWARD[side]*12.5;p.y-=2.4;p.r+=INWARD[side]*4.6*DEG;p.sx*=.964;p.sy*=1.013;}if(t>=.06&&t<(lead?1.12:1.16)){const l=s.target[LOBES[side]];l.x+=INWARD[side]*3.8;l.y-=2.1;l.r+=INWARD[side]*2.25*DEG;}}if(t>=.06&&t<1.05){s.target.core.sy*=1.02;s.target.core.sx*=.97;s.target.core.y-=1.4;}if(t>=.06&&t<1.08){s.target.spine.y-=3.5;s.target.spine.sy*=1.046;}s.rig.core.kM=t>.22&&t<1.05?2.6:1;if(t>.22&&t<1.05){const side=s.a1Target.x<0?0:1,p=s.target[POLES[side]];p.x+=s.a1Target.x*1.6;p.y+=s.a1Target.y*1.2;p.r+=s.a1Target.y*INWARD[side]*.5*DEG;}}
   if(s.a2>=0){const t=s.a2;for(let side=0;side<2;side++){const lead=side===s.a2Lead,on=t>=(lead?.08:.10)&&t<(lead?1.84:1.92),p=s.target[POLES[side]];if(on){p.x+=-INWARD[side]*24;p.y+=1.8;p.r+=-INWARD[side]*7.8*DEG;p.sx*=1.03;p.sy*=.992;}if(t>=.06&&t<1.95){const l=s.target[LOBES[side]];l.x+=INWARD[side]*5.4;l.y+=4;l.r+=-INWARD[side]*2.45*DEG;l.x-=INWARD[side]*(s.rig[POLES[side]].x*INWARD[side])*.075;}}if(t<.08){s.target.core.sy*=1.028;s.target.core.sx*=.987;}s.rig.core.kM=t<1.95?3:1;s.rig.spine.kM=t>=.06&&t<2?4.8:1;if(t>=.06&&t<2){s.target.spine.y-=2.4;s.target.spine.sy*=1.03;}}
   for(const id of IDS){const p=s.rig[id],t=s.target[id],w2=p.k*p.kM,c=2*p.z*Math.sqrt(w2);p.vx+=(w2*(t.x-p.x)-c*p.vx)*DT;p.x+=p.vx*DT;p.vy+=(w2*(t.y-p.y)-c*p.vy)*DT;p.y+=p.vy*DT;p.vr+=(w2*(t.r-p.r)-c*p.vr)*DT;p.r+=p.vr*DT;p.vsx+=(w2*(t.sx-p.sx)-c*p.vsx)*DT;p.sx+=p.vsx*DT;p.vsy+=(w2*(t.sy-p.sy)-c*p.vsy)*DT;p.sy+=p.vsy*DT;}
-  s.fixedSteps++;
+  ageEffects(s);s.fixedSteps++;
 }
 function updateFrame(combatant,dt,input={}){
   if(!combatant||!combatant.anchor)return;const s=stateFor(combatant),frameDt=clamp(Number(dt)||0,0,.1);
-  if(input.a1Target){const x=Number(input.a1Target.x)||0,y=Number(input.a1Target.y)||0,d=Math.hypot(x,y);s.desiredA1Target.x=d?x/d:0;s.desiredA1Target.y=d?y/d:0;if(d)s.a1Lead=x<0?0:1;}
-  if(Array.isArray(input.a1Objects))s.objects.a1=input.a1Objects;if(Array.isArray(input.a2Objects))s.objects.a2=input.a2Objects;
   if(frameDt>0)sampleRoot(s,input.root||input,frameDt);
+  updateObjectTruth(s,input,frameDt);
   s.accumulator+=frameDt;let n=0;while(s.accumulator>=DT&&n<6){fixedStep(s);s.accumulator-=DT;n++;}
   if(n>=6&&s.accumulator>=DT){s.droppedTime+=s.accumulator;s.accumulator=0;}
 }
@@ -273,7 +307,7 @@ function draw(ctx,combatant){
   ctx.save();try{for(const id of IDS)drawPart(ctx,s,id,level,false);for(const id of IDS)drawPart(ctx,s,id,level,true);s.sockets=socketsFor(s);}finally{ctx.restore();}return true;
 }
 function teardown(combatant){if(combatant)states.delete(combatant);else states.clear();}
-function stateSnapshot(s){return s&&{fixedSteps:s.fixedSteps,droppedTime:s.droppedTime,accumulator:s.accumulator,simTime:s.simTime,frameCount:s.frameCount,a1:s.a1,a2:s.a2,passive:s.passive,bodyScale:SOURCE_SCALE*bodyK(s),bodyCalibration:BODY_VISUAL_CALIBRATION,root:{...s.root},velocity:{...s.velocity},acceleration:{...s.acceleration},a1Target:{...s.a1Target},desiredA1Target:{...s.desiredA1Target},rig:s.rig,gold:s.gold,sockets:socketsFor(s)};}
+function stateSnapshot(s){return s&&{fixedSteps:s.fixedSteps,droppedTime:s.droppedTime,accumulator:s.accumulator,simTime:s.simTime,frameCount:s.frameCount,a1:s.a1,a2:s.a2,passive:s.passive,bodyScale:SOURCE_SCALE*bodyK(s),bodyCalibration:BODY_VISUAL_CALIBRATION,root:{...s.root},velocity:{...s.velocity},acceleration:{...s.acceleration},a1Target:{...s.a1Target},desiredA1Target:{...s.desiredA1Target},rig:s.rig,gold:s.gold,sockets:socketsFor(s),effects:{histories:s.histories.size,arcs:s.arcs.length,bumps:s.bumps.length,echoes:s.echoes.length,corridors:s.corridors.length,rings:s.rings.length,particles:s.particles.length,hot:[...s.hot]}};}
 function inspect(combatant){const s=combatant?states.get(combatant):null;return{ready,loadError:loadError&&String(loadError),stateCount:states.size,state:stateSnapshot(s)};}
 
 g.APEX_MAGNET_GOLD={
