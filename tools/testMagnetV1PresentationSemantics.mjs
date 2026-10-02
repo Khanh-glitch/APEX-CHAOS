@@ -26,7 +26,14 @@ try{
   m=start();gate('a1-hostile-bullet-cast-accepted',HR.pressAbility(m.fighter,'A1').ok,{});H.projectiles().push({type:'aq_bullet',aq:true,owner:m.opponent,weapon:'PISTOL',x:260,y:500,px:260,py:500,vx:0,vy:340,radius:5,damage:1,life:2,maxLife:2,__hr:{}});T.step(.12,1/120);state=GOLD.inspect(m.ct).state;
   gate('a1-real-hostile-firearm-bullet-fed-continuously',state.objects.a1Kinds.includes('bullet')&&state.a1Target.x<-.5&&state.effects.projectileHistories===1,{objects:state.objects,target:state.a1Target,histories:state.effects.projectileHistories});
 
-  m=start();m.opponent.x=630;m.opponent.y=500;T.pushSlot({x:500,y:330});H.projectiles().push({type:'aq_bullet',aq:true,owner:m.opponent,weapon:'PISTOL',x:570,y:470,px:570,py:470,vx:0,vy:240,radius:5,damage:1,life:2,maxLife:2,__hr:{}});gate('a2-real-object-cast-accepted',HR.pressAbility(m.fighter,'A2').ok,{});T.step(.12,1/120);state=GOLD.inspect(m.ct).state;
+  m=start();m.opponent.x=630;m.opponent.y=500;T.pushSlot({x:500,y:330});H.projectiles().push({type:'aq_bullet',aq:true,owner:m.opponent,weapon:'PISTOL',x:570,y:470,px:570,py:470,vx:0,vy:240,radius:5,damage:1,life:2,maxLife:2,__hr:{}});gate('a2-real-object-cast-accepted',HR.pressAbility(m.fighter,'A2').ok,{});
+  // H-PHYS2 §28: sample window shortened .12 -> .03. The continuous field is
+  // far stronger than the superseded linear law (it must turn a 2200 px/s
+  // pounce inside 75px), so a body at d=130 and a floor gun at d=170 are now
+  // expelled past R=225 within ~0.1s. At .12s they had already left the field
+  // and were legitimately no longer fed to Gold. The assertion itself -- real
+  // body + gun + bullet objects are fed, with hot>0 -- is UNCHANGED.
+  T.step(.03,1/120);state=GOLD.inspect(m.ct).state;
   const kinds=new Set(state.objects.a2Kinds);gate('a2-real-body-floor-gun-hostile-bullet-fed',kinds.has('body')&&kinds.has('gun')&&kinds.has('bullet')&&state.effects.hot.some(v=>v>0),{objects:state.objects,hotMax:Math.max(...state.effects.hot)});
 
   // Negative boundary: both objects are first genuinely influenced so their

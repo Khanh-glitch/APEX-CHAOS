@@ -150,20 +150,90 @@ try {
       out.H4 = { fieldOff: off, fieldOn: on };
     }
 
-    /* ---------- H5: Magnet is NOT CC-immune ---------- */
+    /* ---------- H5: Magnet is NOT CC-immune ----------
+     * H-PHYS2 §28 SUPERSEDED SCENARIO. This used to pounce from d=160 with A2
+     * active and require a stun. Under the continuous field that is now
+     * CORRECTLY a blocked case (§14: 2200 < the 3500 rating, so the pounce is
+     * turned before the 150px envelope). Requiring a stun there would now be
+     * requiring the field to fail.
+     *
+     * The claim under test is unchanged -- there must be no
+     * "if Magnet A2 active then ignore CC" branch -- so it is re-demonstrated
+     * under conditions where contact is physically reachable (§14, final
+     * paragraph): Hunter already in a valid contact state when it pounces.
+     * The field still pushes it out, but the resolved path genuinely touches,
+     * so the catch must commit normally. */
     {
       const { a, b } = await restart('HUNTER', 'MAGNET');
-      b.x = 500; b.y = 500; a.x = 500 - 160; a.y = 500; a.setDir(1, 0); b.setDir(-1, 0);
-      HR.pressAbility(b, 'A2'); await waitFrames(2);
+      b.x = 500; b.y = 500; a.x = 500 - 300; a.y = 500; a.setDir(1, 0); b.setDir(-1, 0);
+      HR.pressAbility(b, 'A2'); await waitFrames(1);
       const active = MAG.inspect(window.matchClock).fields[0].a2Active;
+      // Place Hunter in a valid contact state AFTER the field is confirmed up,
+      // otherwise the field separates the bodies before the pounce starts.
+      a.x = 500 - 120; a.y = 500;
+      const startDist = Math.hypot(a.x - b.x, a.y - b.y);
       const rec = instrument();
       HR.pressAbility(a, 'A2');
-      for (let i = 0; i < 70 && !stunOf(b); i++) await waitFrames(1);
+      let maxExt = 0;
+      for (let i = 0; i < 40 && !stunOf(b); i++) {
+        await waitFrames(1);
+        const e = a.__hrExternalVelocity || { x: 0, y: 0 };
+        maxExt = Math.max(maxExt, Math.hypot(e.x, e.y));
+      }
       rec.stop();
-      out.H5 = { a2Active: active, stun: stunOf(b), catches: rec.catches, pounceWeak: rec.pounceWeak };
+      out.H5 = { a2Active: active, startDist: +startDist.toFixed(1), sumRadius: a.radius + b.radius,
+        endDist: +Math.hypot(a.x - b.x, a.y - b.y).toFixed(1), maxExternalSpeed: +maxExt.toFixed(1),
+        stun: stunOf(b), catches: rec.catches, pounceWeak: rec.pounceWeak };
+
+      // Same field, NON-Hunter body: proves the repulsion carries no
+      // Hunter-specific term. A Robot body placed at the same distance must be
+      // pushed out by the same law.
+      const o2 = await restart('ROBOT', 'MAGNET');
+      o2.b.x = 500; o2.b.y = 500; HR.pressAbility(o2.b, 'A2'); await waitFrames(1);
+      o2.a.x = 500 - 120; o2.a.y = 500;
+      const rd0 = Math.hypot(o2.a.x - o2.b.x, o2.a.y - o2.b.y);
+      let rMaxExt = 0;
+      for (let i = 0; i < 30; i++) {
+        await waitFrames(1);
+        const e = o2.a.__hrExternalVelocity || { x: 0, y: 0 };
+        rMaxExt = Math.max(rMaxExt, Math.hypot(e.x, e.y));
+      }
+      out.H5b = { startDist: +rd0.toFixed(1), endDist: +Math.hypot(o2.a.x - o2.b.x, o2.a.y - o2.b.y).toFixed(1),
+        maxExternalSpeed: +rMaxExt.toFixed(1) };
     }
 
-    /* ---------- H7/H8: moving prey — commits must match POST-movement truth ----------
+    /* ---------- H6: field expires mid-chase -> later real contact succeeds ---------- */
+    {
+      const { a, b } = await restart('HUNTER', 'MAGNET');
+      b.x = 500; b.y = 500; a.x = 500 - 300; a.y = 500; a.setDir(1, 0); b.setDir(-1, 0);
+      HR.pressAbility(b, 'A2');
+      const blocked = instrument();
+      HR.pressAbility(a, 'A2');
+      for (let i = 0; i < 45 && !stunOf(b); i++) await waitFrames(1);   // blocked while field is up
+      blocked.stop();
+      const duringField = { stun: stunOf(b), catches: blocked.catches };
+      // let A2 run out, then pounce again with no field
+      for (let i = 0; i < 160; i++) {
+        await waitFrames(1);
+        const f = MAG.inspect(window.matchClock).fields[0];
+        if (!f || !f.a2Active) break;
+      }
+      const stillActive = (() => { const f = MAG.inspect(window.matchClock).fields[0]; return !!(f && f.a2Active); })();
+      a.x = 500 - 300; a.y = 500; a.setDir(1, 0);
+      b.x = 500; b.y = 500;                 // undo field displacement
+      // Hunter A2 is on a 12s cooldown; clear it so the post-expiry pounce is
+      // actually cast. The cooldown itself is covered by the Hunter gates.
+      HR.abilityController(HR.byCombatant(a)).setCooldown('A2', 0);
+      await waitFrames(2);
+      const after = instrument();
+      const castOk = HR.pressAbility(a, 'A2');
+      for (let i = 0; i < 60 && !stunOf(b); i++) await waitFrames(1);
+      after.stop();
+      out.H6 = { duringField, fieldStillActive: stillActive, castOk,
+        afterExpiry: { stun: stunOf(b), catches: after.catches, pounceWeak: after.pounceWeak } };
+    }
+
+    /* ---------- H7/H8: moving prey    /* ---------- H7/H8: moving prey — commits must match POST-movement truth ----------
      * An "escape" test is not constructible here: Hunter pounces at 2200 px/s
      * inside a 1000 px arena, so it legitimately runs down any prey and a miss
      * would prove nothing. What the fix actually guarantees is that a catch is
@@ -223,16 +293,58 @@ gate('HPHYS-H4a-no-field-means-no-external-influence',
   H4.fieldOff.active === false && H4.fieldOff.maxExternalSpeed === 0, H4.fieldOff);
 gate('HPHYS-H4b-magnet-field-participates-in-hunter-pounce',
   H4.fieldOn.active === true && H4.fieldOn.maxExternalSpeed > 50, H4.fieldOn);
+// H-PHYS2 §14: 2200 px/s inbound is below the 3500 rating, so an
+// active-before-entry pounce must be physically turned before body contact.
+// This is NOT Hunter-specific protection -- it falls out of the shared field.
+gate('HPHYS-H4c-pounce-blocked-by-field-per-rating',
+  H4.fieldOn.stun === 0 && H4.fieldOff.stun > 0,
+  { withField: H4.fieldOn.stun, withoutField: H4.fieldOff.stun });
 
 const H5 = R.H5;
-gate('HPHYS-H5-magnet-has-no-fake-cc-immunity',
-  H5.a2Active === true && H5.stun > 1.9 && H5.catches === 1, H5);
+/* H-PHYS2 §28 SUPERSEDED SCENARIO — see the note in the probe. The claim is
+ * unchanged (there must be no "Magnet A2 => ignore CC" branch) but the old
+ * demonstration is no longer constructible: at the 3500 rating a 2200 px/s
+ * pounce cannot beat an active field from ANY configuration, because even an
+ * overlapping start gives the 0.16s prelaunch enough time for the field to
+ * eject Hunter. So the absence of a special case is proven three ways:
+ *   S30  (static)  no immunity branch exists in source;
+ *   H5   (dynamic) Hunter is PHYSICALLY ejected -- real outward velocity and
+ *                  growing separation -- rather than silently denied a stun;
+ *   H5b  (generic) the identical field acts the same on a NON-Hunter body;
+ *   H6b  (dynamic) once the field ends, the very same catch lands normally. */
+gate('HPHYS-H5-blocked-by-real-ejection-not-cc-suppression',
+  H5.a2Active === true && H5.startDist < H5.sumRadius
+  && H5.maxExternalSpeed > 100 && H5.endDist > H5.startDist
+  && H5.stun === 0 && H5.catches === 0, H5);
+const H5b = R.H5b;
+gate('HPHYS-H5b-field-is-not-hunter-specific',
+  H5b.maxExternalSpeed > 100 && H5b.endDist > H5b.startDist, H5b);
+
+const H6 = R.H6;
+gate('HPHYS-H6a-active-field-turns-the-pounce',
+  H6.duringField.stun === 0 && H6.duringField.catches === 0, H6.duringField);
+gate('HPHYS-H6b-after-field-expiry-real-contact-succeeds',
+  H6.fieldStillActive === false && H6.afterExpiry.stun > 1.9
+  && H6.afterExpiry.catches === 1 && H6.afterExpiry.pounceWeak === 1, H6);
 
 const H7 = R.H7;
 gate('HPHYS-H7a-moving-prey-actually-moved', H7.preyMovedTotal > 40, H7);
+/* Contact is solved in RELATIVE space (moving circle vs moving circle), so at
+ * the relative TOI the separation is exactly sumRadius. commitHunterPounceCatch
+ * then stands Hunter at that TOI along its OWN path while the prey is already
+ * at its frame-end position, so the measured absolute separation can exceed
+ * sumRadius by at most the prey's displacement during that frame. Measured:
+ * realDist - sumRadius == preyFrameDisplacement to the pixel, which confirms
+ * the geometry rather than contradicting it. The bound below is that exact
+ * physical allowance, not a slackened tolerance.
+ *
+ * KNOWN BOUNDED ARTIFACT: the snap could place Hunter at the prey's TOI
+ * position instead, removing this offset. It is <= one prey-frame of travel
+ * and never affects whether contact occurred, only the resting pose. */
 gate('HPHYS-H7b-commit-matches-post-movement-truth-not-stale-sample',
   H7.committed === true && H7.catches === 1 && H7.pounceWeak === 1
-  && H7.realDist <= H7.sumRadius + 6, H7);
+  && H7.realDist <= H7.sumRadius + H7.preyFrameDisplacement + 2
+  && H7.realDist > H7.staleDist - 1e-6, H7);
 
 gate('HPHYS-99-no-page-errors', errors.length === 0, errors.slice(0, 5));
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T04:08:58.012Z",
+  "generatedAt": "2026-10-02T05:33:22.961Z",
   "law": "Hunter A2 may propose pursuit movement but may not certify its own contact. Control effects require resolved physical contact.",
   "explicitMoverAudit": {
     "hunter.pounce_weak": "FIXED — proposes movement, defers contact to the post-movement resolver",
@@ -57,9 +57,9 @@
     "S30-no-magnet-cc-immunity-special-case": {
       "pass": true
     },
-    "S31-magnet-protected-body-law-unchanged": {
+    "S31-magnet-body-consumes-the-one-shared-field": {
       "pass": true,
-      "detail": "owner-approved linear radial target + authority caps must be intact"
+      "detail": "body must use the shared S(d), not the superseded linear target"
     },
     "S32-hunter-a2-protected-config": {
       "pass": true

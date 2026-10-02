@@ -172,9 +172,18 @@ try {
   const active179 = (() => { T.step(1.69); return MAG.inspect(win.matchClock).fields[0].a2Active; })();
   T.step(0.02);
   const active181 = MAG.inspect(win.matchClock).fields[0].a2Active;
-  gate('M05.1-a2-quadratic-body-force-and-window', res.ok && o.b.x > x0 && st.vx > 0 && st.vx <= 650 && active179 && !active181,
+  // H-PHYS2 §28 SUPERSEDED ASSERTION: the bound was `st.vx <= 650`
+  // (bodyRadialSpeedCap) under the old linear radial-SPEED-target body law.
+  // H-PHYS2 §1/§6 replace that law with one continuous nonlinear field, and
+  // §14 requires a 2200 px/s inbound pounce to be turned before the 150px
+  // body envelope. A 650 px/s outward bound is mathematically incapable of
+  // that (650 against 2200 inbound leaves 1550 px/s of net closing speed), so
+  // the cap is now the single owner rating. Every other assertion in this
+  // gate -- cast ok, outward displacement, positive outward velocity and the
+  // 1.80s A2 window -- is unchanged.
+  gate('M05.1-a2-continuous-field-body-force-and-window', res.ok && o.b.x > x0 && st.vx > 0 && st.vx <= 3500 && active179 && !active181,
     { dx: o.b.x - x0, vx: st && st.vx, active179, active181 });
-} catch (e) { gate('M05.1-a2-quadratic-body-force-and-window', false, String(e)); }
+} catch (e) { gate('M05.1-a2-continuous-field-body-force-and-window', false, String(e)); }
 
 try {
   T.start('MAGNET', 'MAGNET'); T.holdSpawns();
@@ -229,7 +238,11 @@ try {
   const bullet={aq:true,type:'aq_bullet',weapon:'PISTOL',life:2,owner:o.b,x:o.a.x+100,y:o.a.y,vx:0,vy:1000,damage:33,__hr:{rubberDebt:44}};
   MAG.stepProjectiles(.1,[bullet],HR.byCombatant,win.matchClock);
   const snap=MAG.inspect(win.matchClock),gs=snap.floorFirearms.find((x)=>x.slot===gun),bs=snap.bodies.find((x)=>x.body===o.b);
-  gate('M06.2-a2-body-gun-bullet-law',gs.vx>0&&gs.vy>0&&Math.hypot(gs.vx,gs.vy)<=950&&bs.vx>0&&bs.vx<=650&&bullet.vx>0&&Math.hypot(bullet.vx,bullet.vy)<=1100+1e-6&&bullet.damage===33&&bullet.__hr.rubberDebt===44&&!snap.floorFirearms.some((x)=>x.slot===t6),{gun:[gs.vx,gs.vy],body:bs.vx,bullet:[bullet.vx,bullet.vy]});
+  // H-PHYS2 §28 SUPERSEDED ASSERTION: `bs.vx<=650` -> `<=3500`, same reason as
+  // M05.1 (legacy bodyRadialSpeedCap vs the one owner rating). The floor-gun
+  // bound (<=950), the bullet speed cap, damage, rubberDebt preservation and
+  // T6 exclusion are all unchanged.
+  gate('M06.2-a2-body-gun-bullet-law',gs.vx>0&&gs.vy>0&&Math.hypot(gs.vx,gs.vy)<=950&&bs.vx>0&&bs.vx<=3500&&bullet.vx>0&&Math.hypot(bullet.vx,bullet.vy)<=1100+1e-6&&bullet.damage===33&&bullet.__hr.rubberDebt===44&&!snap.floorFirearms.some((x)=>x.slot===t6),{gun:[gs.vx,gs.vy],body:bs.vx,bullet:[bullet.vx,bullet.vy]});
 } catch(e){gate('M06.2-a2-body-gun-bullet-law',false,String(e));}
 
 try {

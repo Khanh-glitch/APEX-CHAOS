@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T04:11:00.903Z",
+  "generatedAt": "2026-10-02T05:38:47.386Z",
   "law": "REAL RESOLVED PHYSICAL CONTACT -> Hunter A2 control effects. Tracking/targeting alone never grants them.",
   "url": "http://127.0.0.1:4173",
   "H1": {
@@ -38,15 +38,39 @@
     },
     "fieldOn": {
       "active": true,
-      "maxExternalSpeed": 194.8,
-      "stun": 0.911
+      "maxExternalSpeed": 3500,
+      "stun": 0
     }
   },
   "H5": {
     "a2Active": true,
-    "stun": 2,
-    "catches": 1,
-    "pounceWeak": 1
+    "startDist": 120,
+    "sumRadius": 150,
+    "endDist": 425,
+    "maxExternalSpeed": 3500,
+    "stun": 0,
+    "catches": 0,
+    "pounceWeak": 0
+  },
+  "H5b": {
+    "startDist": 120,
+    "endDist": 425,
+    "maxExternalSpeed": 3500
+  },
+  "H6": {
+    "duringField": {
+      "stun": 0,
+      "catches": 0
+    },
+    "fieldStillActive": false,
+    "castOk": {
+      "ok": true
+    },
+    "afterExpiry": {
+      "stun": 2,
+      "catches": 1,
+      "pounceWeak": 1
+    }
   },
   "H7": {
     "realDist": 150,
@@ -135,17 +159,61 @@
       "pass": true,
       "detail": {
         "active": true,
-        "maxExternalSpeed": 194.8,
-        "stun": 0.911
+        "maxExternalSpeed": 3500,
+        "stun": 0
       }
     },
-    "HPHYS-H5-magnet-has-no-fake-cc-immunity": {
+    "HPHYS-H4c-pounce-blocked-by-field-per-rating": {
+      "pass": true,
+      "detail": {
+        "withField": 0,
+        "withoutField": 0.911
+      }
+    },
+    "HPHYS-H5-blocked-by-real-ejection-not-cc-suppression": {
       "pass": true,
       "detail": {
         "a2Active": true,
-        "stun": 2,
-        "catches": 1,
-        "pounceWeak": 1
+        "startDist": 120,
+        "sumRadius": 150,
+        "endDist": 425,
+        "maxExternalSpeed": 3500,
+        "stun": 0,
+        "catches": 0,
+        "pounceWeak": 0
+      }
+    },
+    "HPHYS-H5b-field-is-not-hunter-specific": {
+      "pass": true,
+      "detail": {
+        "startDist": 120,
+        "endDist": 425,
+        "maxExternalSpeed": 3500
+      }
+    },
+    "HPHYS-H6a-active-field-turns-the-pounce": {
+      "pass": true,
+      "detail": {
+        "stun": 0,
+        "catches": 0
+      }
+    },
+    "HPHYS-H6b-after-field-expiry-real-contact-succeeds": {
+      "pass": true,
+      "detail": {
+        "duringField": {
+          "stun": 0,
+          "catches": 0
+        },
+        "fieldStillActive": false,
+        "castOk": {
+          "ok": true
+        },
+        "afterExpiry": {
+          "stun": 2,
+          "catches": 1,
+          "pounceWeak": 1
+        }
       }
     },
     "HPHYS-H7a-moving-prey-actually-moved": {

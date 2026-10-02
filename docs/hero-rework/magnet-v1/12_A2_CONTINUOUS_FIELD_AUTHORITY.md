@@ -1,7 +1,7 @@
 # MAGNET A2 — CONTINUOUS NONLINEAR RADIAL FIELD (H-PHYS2)
 
-Status: **calibration CORRECTED; W1 (projectile law) wired and green.**
-W2-W7 remain — see §8.
+Status: **calibration CORRECTED; W1 (projectile) and W2 (body + floor gun) wired and green.**
+W3-W7 remain — see §9.
 
 > **CORRECTION (owner-reported, binding).** An earlier revision of this document
 > claimed Hunter at 2200 px/s "turns at ~124.6 px, safely outside body contact
@@ -221,14 +221,91 @@ suppressed:
 `M06.2` passes again **without weakening the test** — the real field genuinely
 pushes the bullet outward, so the assertion holds on its own merits.
 
-## 8. Remaining slices
+## 8. W2 — body + floor gun on the shared field (green)
 
-* **W2** body + floor-gun onto the shared `S(d)` (the body path still uses the
-  old `fall = 1 - d/radius` law, so Hunter behaviour is currently UNCHANGED —
-  §14's "Hunter must be turned before contact" lands in W2);
-* **W3** ordered body-path truth;
-* **W4** Hunter physical-contact integration against the curved path;
-* **W5/W6** focused + real-browser matrix;
-* **W7** hostile audit, revision relock, push.
+Both now consume the **same** `S(d)` as the projectile law.
+
+**Body.** The previous linear radial-SPEED target
+(`fall = 1 - d/radius`, `A2_BODY_PUSH_SPEED`, `A2_BODY_PUSH_APPROACH`
+controller) is replaced by true force integration `dv = a*dt` with
+`a = K * S(d)`. The radial component is never SET and tangential motion is
+never destroyed, so a body can slide/curve around Magnet. Overlapping hostile
+fields **sum acceleration vectors** (§23), so iteration order cannot change the
+outcome. The body is the binding calibration case, so it consumes `K = 73700`
+directly with no extra per-object factor.
+
+**Floor firearms.** The `u^2` curve is no longer an independent authority
+(§16); they consume `K * S(d)` too. `gunSpeedCap` remains their
+interaction-model bound, and wall / body / pickup authority is untouched.
+
+**Bounded substeps.** Body force integrates at `A2_BODY_SUBSTEP_SECONDS =
+1/480`, re-evaluating `S` at the body's advancing position. A single Euler step
+over a large `dt` overshot badly (the first attempt produced a 3500 px/s launch
+from one 0.1 s step) — exactly the explosive numerical launch §15 forbids.
+
+### `bodyRadialSpeedCap: 650` is superseded, with proof
+
+The legacy cap could add at most **650 px/s** outward against a **2200 px/s**
+inbound pounce, leaving **1550 px/s** of net closing speed. It is therefore
+*mathematically incapable* of satisfying §14 under any coupling. The A2 field
+bound is now the single owner rating (3500). This is the one previously
+protected number H-PHYS2 forces to change, and it is reported rather than
+quietly adjusted.
+
+### Hunter result — §14 satisfied, and it is not a special case
+
+`tools/testHunterPouncePhysicalContactRealBrowser.mjs` — **14/14**.
+
+| gate | result |
+|---|---|
+| H4a no field | Hunter external velocity **0.0**, catch lands (stun 0.878) |
+| H4b field participates | external velocity **3500**, stun **0** |
+| **H4c blocked per rating** | with field **stun 0**, without field **stun 0.878** |
+| **H5 ejection, not suppression** | overlapping start 120 px → **425 px**, external 3500, no stun |
+| **H5b not Hunter-specific** | a **Robot** body at the same 120 px → **425 px**, external 3500 |
+| **H6a/H6b field expiry** | blocked while up; after expiry the same catch lands (stun 2.0, catch ×1) |
+
+So the absence of a CC-immunity special case is shown four ways: `S30` static
+(no branch in source), `H5` dynamic (Hunter is *physically ejected*, not denied),
+`H5b` generic (identical law on a non-Hunter body), `H6b` recovery (the catch
+works the instant the field ends).
+
+### Owner-visible consequence to be aware of
+
+At the 3500 rating the field is strong by necessity — it must turn a 2200 px/s
+pounce within 75 px. Consequences:
+
+* **While A2 is active, Hunter cannot land A2 on Magnet from any configuration
+  tested**, including an overlapping start, because the 0.16 s prelaunch gives
+  the field time to eject. This is emergent physics, not immunity, but it is
+  effectively a hard counter and the owner should see it.
+* Bodies and floor guns deep inside are expelled past `R` within ~0.1 s.
+
+## 9. Honest measurement notes (audit requirements carried forward)
+
+**Shipping dt convergence is NOT the calibration-model figure.** The analytic
+model converges to `<= 0.5 px` across 30/60/120 Hz. The REAL shipping runtime
+measures, for the 3000 px/s case, **139.8 / 139.0 / 134.8 px — a ~5 px spread**.
+Gate `N1` asserts the real runtime tolerance (`< 16 px`), not the model figure.
+The two must not be conflated.
+
+**High-speed evidence is runtime consumption, not model minimum radius.** The
+calibration model predicts a 5800 shot engaged at `d=110` reaches `minD 69.7`.
+The shipping probe does **not** measure 69.7: it records the projectile being
+**consumed inside the field** (`consumedInsideField: true`) from a pre-step
+distance of **126.7 px**, which is the real evidence of a hit. Gate `C2` passes
+on the measured consumption, not the modelled radius.
+
+## 10. Remaining slices
+
+
+* **W3** ordered body-path sub-segments (the body currently integrates a real
+  substepped path but publishes a single summed displacement; Hunter contact
+  already resolves against post-movement truth, and the residual artifact is
+  bounded by one prey-frame of travel — see H7b);
+* **W4** Hunter contact against the full curved body path;
+* **W5/W6** remaining matrix rows (multi-Magnet symmetry §23, T6, Slime,
+  ordinary-fighter feel §15) + broader real-browser evidence;
+* **W7** five hostile passes, final relock, push.
 
 > Automated evidence is **not** owner visual acceptance.

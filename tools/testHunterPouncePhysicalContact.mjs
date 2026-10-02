@@ -79,10 +79,21 @@ gate('S30-no-magnet-cc-immunity-special-case',
 /* ---- Magnet protected values untouched ---- */
 const magnet = fs.readFileSync('public/game/hero-rework/magnetGameplayRuntime.js', 'utf8');
 const reg = fs.readFileSync('public/game/hero-rework/heroRegistry.js', 'utf8');
-gate('S31-magnet-protected-body-law-unchanged',
-  /radius: 225/.test(reg) && /bodyAcceleration: 2200/.test(reg) && /bodyRadialSpeedCap: 650/.test(reg)
-  && /A2_BODY_PUSH_APPROACH/.test(magnet) && /const fall = clamp\(1 - d \/ radius, 0, 1\)/.test(magnet),
-  'owner-approved linear radial target + authority caps must be intact');
+// H-PHYS2 §28 SUPERSEDED ASSERTION. This previously required the linear
+// `fall = 1 - d/radius` radial-SPEED-target body law and the 650 cap. H-PHYS2
+// §1/§6/§7 replace that with ONE continuous nonlinear field shared by bullets,
+// bodies and floor firearms, so asserting the old shape would now forbid the
+// owner-directed law. The protection is retargeted, not dropped: the field
+// radius is still 225, the body must consume the SAME S(d) as everything else,
+// and the coupling must come from the single rating.
+gate('S31-magnet-body-consumes-the-one-shared-field',
+  /radius: 225/.test(reg)
+  && /function fieldStrength\(d, radius\)/.test(magnet)
+  && /A2_RADIAL_STOP_RATING: 3500/.test(magnet)
+  && /A2_FIELD_COUPLING/.test(magnet)
+  && /fieldCoupling\(rt\.fieldRef\) \* fieldStrength\(dd, rt\.radius\)/.test(magnet)
+  && !/const fall = clamp\(1 - d \/ radius, 0, 1\)/.test(magnet),
+  'body must use the shared S(d), not the superseded linear target');
 
 /* ---- Hunter protected numbers unchanged ---- */
 gate('S32-hunter-a2-protected-config',

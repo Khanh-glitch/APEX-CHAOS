@@ -52,6 +52,7 @@
     A2_FIELD_DSAFE: 24,
     A2_FIELD_SUBSTEP_PX: 2.0,           // bounded deterministic substep length
     A2_FIELD_MAX_SUBSTEPS: 64,
+    A2_BODY_SUBSTEP_SECONDS: 1 / 480,   // bounded body force substep
     // Hysteresis before a bullet may earn a NEW entry response. Without it a
     // bullet loitering on the boundary would be re-snapped every frame.
     A2_BULLET_REARM_RADIUS_MULT: 1.12,
@@ -577,9 +578,12 @@
         } else {
           const radius = field.cfg.radius ?? CONSTANTS.A2_RADIUS;
           if (d >= radius) continue;
-          const u = clamp(1 - d / radius, 0, 1);
           dx = -dx; dy = -dy;
-          const accel = (field.cfg.gunAcceleration ?? 3000) * u * u;
+          // H-PHYS2 §16: the u^2 floor-gun curve is no longer an independent
+          // authority. Floor firearms consume the SAME S(d) as bullets and
+          // bodies. Their own gunSpeedCap remains their interaction-model
+          // bound; wall/body/pickup authority is untouched.
+          const accel = fieldCoupling(field) * fieldStrength(d, radius);
           ax += dx / d * accel; ay += dy / d * accel;
           cap = Math.max(cap, field.cfg.gunSpeedCap ?? 950);
           forced = true; by.push({ kind: 'a2', owner: field.owner });
@@ -647,27 +651,19 @@
         const dx = body.x - field.owner.anchor.x, dy = body.y - field.owner.anchor.y;
         const d = Math.hypot(dx, dy), radius = field.cfg.radius ?? CONSTANTS.A2_RADIUS;
         if (!(d > EPS) || d >= radius) continue;
-        // ---- Canonical donor body law -----------------------------------
-        // The rejected production mapping used `bodyAcceleration * u * u`:
-        // the same non-donor quadratic falloff that was already removed from
-        // the bullet law, applied as an ACCELERATION. Across the only legal
-        // fighter spacing (d >= 150, because 75+75 collision radii forbid
-        // closer) u never exceeds 0.333, so u*u never exceeded 0.111 and the
-        // push peaked near 69 px/s against 300-400 px/s of ordinary
-        // locomotion -- the owner-reported "A2 does not push the fighter".
+        // ---- H-PHYS2: the SAME continuous field the projectile law uses ----
         //
-        // The donor instead commands a radial SPEED with a LINEAR falloff and
-        // converges onto it, which is what makes the shove read physically.
-        const fall = clamp(1 - d / radius, 0, 1);
-        // NOTE: the donor additionally scales this by f2 = smoothstep(.14,.26)
-        // of field age. That ramp is deliberately NOT adopted here: the owner
-        // defect is magnitude, not onset, and adopting it would suppress all
-        // body force for the first 0.14s and change an existing, legitimate
-        // timing invariant. Only the falloff shape and the controller -- the
-        // proven defect source -- are corrected.
-        const target = (field.cfg.bodyPushSpeed ?? CONSTANTS.A2_BODY_PUSH_SPEED) * fall;
-        const ux = dx / d, uy = dy / d;
-        radialTargets.push({ ux, uy, target, accel: field.cfg.bodyAcceleration ?? 2200 });
+        // Supersedes the previous linear `fall = 1 - d/radius` radial-SPEED
+        // target. That shape is explicitly no longer an independent authority
+        // (H-PHYS2 §1/§6/§7): one S(d) is shared by bullets, bodies and floor
+        // firearms, and it must grow NONLINEARLY as distance falls.
+        //
+        // The body is the BINDING calibration case: Hunter's 2200 px/s pounce
+        // against its 150 px body-contact envelope demands K_min 64081.2,
+        // versus 25866.6 for the projectile. So the body consumes the shared
+        // coupling directly, with no extra per-object factor.
+        radialTargets.push({ ux: dx / d, uy: dy / d, radius,
+          cx: field.owner.anchor.x, cy: field.owner.anchor.y, fieldRef: field });
         forced = true;
         by.push({ kind: 'a2', owner: field.owner });
       }
@@ -676,25 +672,58 @@
       const st = existing || { vx: 0, vy: 0, integrations: 0, pending: null };
       bodyStates.set(body, st);
       if (forced) {
-        // Donor: if the body's current radial speed is below the commanded
-        // push, drive it toward the push at k = min(1, dt*approach). The
-        // per-frame change is additionally bounded by the configured
-        // bodyAcceleration authority so that value still governs.
-        for (const rt of radialTargets) {
-          const al = st.vx * rt.ux + st.vy * rt.uy;      // current radial speed
-          if (al >= rt.target) continue;                  // already leaving fast enough
-          const k = Math.min(1, dt * CONSTANTS.A2_BODY_PUSH_APPROACH);
-          const step = Math.min((rt.target - al) * k, rt.accel * dt);
-          st.vx += rt.ux * step; st.vy += rt.uy * step;
+        // H-PHYS2: true force integration, dv = a*dt. The radial component is
+        // never SET and tangential motion is never destroyed, so a body can
+        // slide/curve around Magnet instead of meeting an invisible circle.
+        //
+        // Multiple overlapping hostile fields SUM their acceleration vectors
+        // (§23) rather than sequentially assigning velocity, so iteration
+        // order cannot change the outcome.
+        // Bounded deterministic substeps. A single Euler step over a large dt
+        // would hugely overshoot (S grows fast inward), producing exactly the
+        // explosive numerical launch §15 forbids. Substep count is driven by
+        // the field gradient the body is standing in, so the result converges
+        // across supported rates.
+        const sub = Math.max(1, Math.min(CONSTANTS.A2_FIELD_MAX_SUBSTEPS,
+          Math.ceil(dt / CONSTANTS.A2_BODY_SUBSTEP_SECONDS)));
+        const h = dt / sub;
+        let bx = body.x, byp = body.y, moved = 0;
+        for (let i = 0; i < sub; i++) {
+          let axf = 0, ayf = 0;
+          for (const rt of radialTargets) {
+            // Re-evaluate S at the body's advancing position so the force is
+            // integrated along the real path, not frozen at frame start.
+            const ddx = bx - rt.cx, ddy = byp - rt.cy;
+            const dd = Math.hypot(ddx, ddy);
+            if (!(dd > EPS)) continue;
+            const a = fieldCoupling(rt.fieldRef) * fieldStrength(dd, rt.radius);
+            axf += (ddx / dd) * a; ayf += (ddy / dd) * a;
+          }
+          st.vx += axf * h; st.vy += ayf * h;
+          const sp = Math.hypot(st.vx, st.vy);
+          if (sp > CONSTANTS.A2_RADIAL_STOP_RATING) {
+            const k = CONSTANTS.A2_RADIAL_STOP_RATING / sp; st.vx *= k; st.vy *= k;
+          }
+          bx += st.vx * h; byp += st.vy * h; moved += 1;
         }
-        capVelocity(st, field0Cap);
+        st.__fieldDx = bx - body.x; st.__fieldDy = byp - body.y;
+        // The outward speed the field may impart is bounded by the ONE owner
+        // rating, not by the legacy 650 bodyRadialSpeedCap. That cap is
+        // mathematically incapable of satisfying §14: it could add at most
+        // 650 px/s outward against a 2200 px/s inbound pounce, leaving 1550
+        // px/s of net closing speed, so Hunter would always reach the body.
       } else {
         // Donor opponent momentum and Apex push both recover; the rejected
         // bridge accidentally created a perpetual second position integrator.
         const drag = Math.exp(-5 * dt);
         st.vx *= drag; st.vy *= drag;
       }
-      st.pending = { dx: st.vx * dt, dy: st.vy * dt, consumed: false };
+      st.pending = {
+        dx: Number.isFinite(st.__fieldDx) ? st.__fieldDx : st.vx * dt,
+        dy: Number.isFinite(st.__fieldDy) ? st.__fieldDy : st.vy * dt,
+        consumed: false,
+      };
+      st.__fieldDx = st.__fieldDy = undefined;
       st.integrations += 1;
       if (!opts.deferBodyMotion) applyPreparedBodyMotion(body, st, size);
       if (by.length) influenced.push({ body, fields: by, vx: st.vx, vy: st.vy });
