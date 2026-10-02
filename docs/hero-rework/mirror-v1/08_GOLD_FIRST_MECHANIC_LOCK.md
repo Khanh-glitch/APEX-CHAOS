@@ -99,16 +99,32 @@ Gold-first production law, per MIRROR owner:
 
 ## 6. Passive — node lifecycle and network
 
+> **SUPERSEDED BY C-R EXECUTABLE MEASUREMENT (binding).** The statements in this
+> section about **4 node lifecycle slots**, an **oldest-ACTIVE retirement**
+> mechanic, and **not importing the 16-shard pool** are contradicted by direct
+> measurement of the canonical executable. Gold's `ND` array has 4 storage
+> entries, but the `SH` pool is 16, a node owns 5 shards for its whole life
+> *including fold-out*, and `tryForm()` needs 5 free shards. So 1 node leaves 11
+> free, 2 leave 6, 3 leave 1 — `formNode()` is never reached with `live >= 3`
+> and the retirement branch is unreachable dead headroom. Production MUST make
+> a fourth concurrent node **unproducible** via the per-owner 16/5 shard economy
+> and MUST NOT implement a live "form a fourth and retire the oldest" mechanic.
+> Spare capacity in an internal array is not a gameplay slot.
+> See `10_ACTIVE_BASELINE_ADDENDUM.md` (C-R section) for the instrumented trace.
+> This historical text is retained deliberately; it is not the current law.
+
+
+
 Per MIRROR owner:
 - maximum **3 ACTIVE routing nodes** per owner;
-- preserve Gold's **4 node-lifecycle slots per owner** so concurrent assembly/fold overlap cannot grow unbounded and high-rate formation behaves like the executable Gold; unlike the free-shard pool, this 4-slot node lifecycle bound directly affects visible/state concurrency and is therefore retained;
-- when a new formation begins with the Gold threshold condition met and an ACTIVE node is available to retire, the oldest ACTIVE node enters fold state instead of silently rejecting the formation; if all 4 lifecycle slots are occupied, formation waits until a slot frees exactly as the Gold pool does;
+- ~~preserve Gold's **4 node-lifecycle slots per owner**~~ **SUPERSEDED**: effective concurrency is **3**, enforced by the per-owner 16-shard / 5-per-node economy. Original text: so concurrent assembly/fold overlap cannot grow unbounded and high-rate formation behaves like the executable Gold; unlike the free-shard pool, this 4-slot node lifecycle bound directly affects visible/state concurrency and is therefore retained;
+- ~~when a new formation begins ... the oldest ACTIVE node enters fold state~~ **SUPERSEDED — DO NOT IMPLEMENT.** This branch is unreachable in executable Gold. Original text: when a new formation begins with the Gold threshold condition met and an ACTIVE node is available to retire, the oldest ACTIVE node enters fold state instead of silently rejecting the formation; if all 4 lifecycle slots are occupied, formation waits until a slot frees exactly as the Gold pool does;
 - fold/despawn duration: about **0.55 s** (`fold` reaches full over first `.5 s`);
 - ACTIVE lifetime: **10 s starting when the node reaches ACTIVE**, not at formation reservation;
 - same-owner nodes form the routing network; opposing MIRROR networks do not cross-route or cross-form;
 - presentation and gameplay share one node transform/orientation authority.
 
-The Gold demo's **16-shard pool** is not imported as a production balance cap because the owner explicitly retained APEX free-shard lifetime semantics. The **4 node-lifecycle slots are retained** for Gold-equivalent formation/fold concurrency as stated above.
+**SUPERSEDED.** The 16-shard pool IS binding (it is what makes a fourth node unproducible); the free-shard 6 s lifetime is retained alongside it. Original text: The Gold demo's 16-shard pool is not imported as a production balance cap because the owner explicitly retained APEX free-shard lifetime semantics. The 4 node-lifecycle slots are retained** for Gold-equivalent formation/fold concurrency as stated above.
 
 ## 7. Passive — eligible routed object families
 

@@ -12,18 +12,46 @@ Automated evidence here is **not** owner visual acceptance.
 | Checkpoint | SHA | Status |
 |---|---|---|
 | START | `3f6479683418e7b71518274f9a6121a6893badbc` | verified = remote at start |
-| **A** — ordered path + Magnet A2 fighter push | **`3d450cf2d52a1c6808c4c1ee36edc84954f3d821`** | complete, pushed |
-| **B** — preload transplant + activation | **`2c830a995fd32127fce00d3e4fad4249eaaf7575`** | complete, pushed |
-| **C** — executable Gold 12 reference | **`bbe0bd504790a7a508aec325b172d7bd7e21edd6`** | complete, pushed |
-| D — Mirror Gold engine | — | **not started** |
-| E — A1 + A2 gameplay | — | **not started** |
-| F — Shattered Mirrors + routing | — | **not started** |
-| G — presentation bridge | — | **not started** |
-| H — focused parity matrix | — | **not started** |
-| I — broad regression + final relock | — | partial (relocks done per checkpoint) |
-| J — hostile audit + owner handoff | — | this document is the interim handoff |
+| **A** — ordered path + Magnet A2 fighter push | `3d450cf2d52a1c6808c4c1ee36edc84954f3d821` | complete, pushed |
+| **B** — preload transplant + activation | `2c830a995fd32127fce00d3e4fad4249eaaf7575` | complete, pushed |
+| **C** — executable Gold 12 reference | `bbe0bd504790a7a508aec325b172d7bd7e21edd6` | complete, pushed |
+| **A-R** — ordered event supersession | `109560e2a2dfe5edb7e35f39dbd65d19adbb86e3` | complete, pushed |
+| **C-R** — Gold visual + lifecycle oracle | `43790bbde050c347011a009c35f6d96af89a7c09` | complete, pushed |
+| **D1** — static/material Gold bridge (26 assets byte-identical) | `f92f2b3815642cfa576c7d42502949c05ecfc429` | complete, pushed |
+| **H-PHYS** — Hunter resolved physical contact | `5c98e2d996d8571ea9d10090fbbe4e19c9185a5e` | complete, pushed |
+| H-PHYS2 calibration | `9e7801e203deccc7825131b9481239ad4d5d8337` | complete, pushed |
+| H-PHYS2 W1 projectile field | `facb5b3dd9f3ae46c7c3323180db530e5d78b229` | complete, pushed |
+| H-PHYS2 W2 body + floor gun | `83954d3848a9eed2562a1bbd5c8dac372ea08172` | complete, pushed |
+| **H-PHYS2** — W3-W7 + relock | **`43bfcaf51ec5b65ef407dbf838bdb0d1e25c653a`** | complete, pushed |
+| **D2** — temporal history + locomotion | **`09e25ed55a7db4d1c2fb48fa02370edc74544a1b`** | complete, pushed |
+| D3 — A1/A2 Gold choreography | — | in progress |
+| D4 — passive shard/node/routing visual engine | — | not started |
+| E — A1 + A2 gameplay (replaces scaffold) | — | not started |
+| F1/F2/F3 — shards, routing, cross-hero matrix | — | not started |
+| G — shipping presentation bridge | — | not started |
+| H — real visual parity | — | not started |
+| I — broad regression + final relock | — | not started |
+| J — final hostile audit | — | not started |
 
-Branch: `arena/01a0f862-apex-chaos`. Runtime revision: `20261002-mirror-v1-r11`.
+Branch: `arena/01a0f862-apex-chaos`.
+Runtime revision at D2: **`20261002-mirror-v1-r17`** (38 versioned runtimes).
+Re-measure rather than trusting this number if HEAD has advanced.
+
+> **STALE-AUTHORITY WARNINGS for any zero-context reader.**
+> * Checkpoint rows above that once read "not started" for D-J were stale; the
+>   campaign has reached **D2**.
+> * Any sentence in this file claiming runtime revision **r11** is stale.
+> * Any sentence describing Magnet's A2 body law as a **linear radial-speed
+>   target** with `bodyAcceleration 2200` / `bodyRadialSpeedCap 650` is
+>   **SUPERSEDED by H-PHYS2**. The current law is one shared continuous field
+>   `S(d) = (R/max(d,dSafe))^2 - 1` inside `R = 225` with coupling `K = 73700`.
+>   `3500` is an owner-facing calibration anchor only — never a runtime branch
+>   and never a speed cap.
+> * Mirror node concurrency is **3**, enforced by the per-owner 16-shard /
+>   5-per-node economy. There is **no** fourth-node / oldest-retirement
+>   mechanic; see the SUPERSEDED notes in `07_` and `08_`.
+> * `mirrorGoldV1.js` is intentionally **not yet manifest-registered**;
+>   registration is Checkpoint G.
 
 ## 2. What Checkpoint A delivered
 
@@ -73,7 +101,7 @@ was deliberately not adopted (defect is magnitude, not onset).
 engine   STEP 1/120, 120 Hz, max 12 substeps, HN=64 HS=22 (hist 1408)
 plates   UL .095 shameless | UR .115 observer | LL .145 stale | LR .17 wrong
 node     NV [[-5,-60],[28,-27],[20,28],[0,62],[-28,31]]
-         route surface = vertex 0 -> vertex 3; 4 lifecycle slots; 16 shards
+         route surface = vertex 0 -> vertex 3; 16 shards, 5/node => max 3 concurrent
 A1       A1TS 1.6; OWN edge step 112 = 0.93333 s (u .58333, nominal .928)
          visual end 1.475 s (nominal 1.472); whiff never produces a copy
 A2       A2TS 1.0; snap edge step 31 = 0.25833 s; exchange observed at the

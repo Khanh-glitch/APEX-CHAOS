@@ -5,33 +5,23 @@
       "detail": "rework runtimes ready"
     },
     "golden-crystal-reflect-ice-payload": {
-      "pass": true,
+      "pass": false,
       "detail": {
+        "wall": {
+          "k": true,
+          "j": true,
+          "wall": true
+        },
         "a1": true,
-        "reflectSeen": true,
-        "payloadKept": true,
-        "controllerFlipped": true,
-        "intercepted": true,
-        "chilledIce": true,
-        "creditedCrystal": true,
-        "traj": [
-          {
-            "f": 21,
-            "x": 548,
-            "y": 474,
-            "life": 0.47,
-            "chill": true
-          },
-          {
-            "f": 22,
-            "x": 507,
-            "y": 445,
-            "life": 0,
-            "chill": true
-          }
-        ],
+        "reflectSeen": false,
+        "payloadKept": false,
+        "controllerFlipped": false,
+        "intercepted": false,
+        "chilledIce": false,
+        "creditedCrystal": false,
+        "traj": [],
         "hitLines": [
-          "[AQ] HIT source=CRYSTAL target=ICE weapon=MAGNUM_500 damage=98.0"
+          "[AQ] HIT source=ICE target=CRYSTAL weapon=MAGNUM_500 damage=196.0"
         ],
         "runError": null
       }
@@ -43,17 +33,21 @@
         "routed": true,
         "neutralSeen": true,
         "neutralHitNoCredit": true,
-        "chilledMirror": true,
         "runError": null
       }
     },
     "golden-blackhole-stores-reflected": {
       "pass": true,
       "detail": {
+        "wall": {
+          "k": true,
+          "j": true,
+          "wall": true
+        },
         "sing": true,
         "storedReflected": true,
         "released": true,
-        "storeFrame": 28,
+        "storeFrame": 32,
         "releaseCount": 1,
         "storedCount": 1,
         "schedPending": 0,
@@ -62,22 +56,22 @@
       }
     },
     "golden-rubber-stores-reflected": {
-      "pass": true,
+      "pass": false,
       "detail": {
+        "wall": {
+          "k": true,
+          "j": true,
+          "wall": true
+        },
         "a2": true,
-        "storedReflected": true,
-        "held": 1,
-        "reflCount": 1,
-        "intercepted": true,
-        "traj": [
-          {
-            "f": 21,
-            "x": 547,
-            "y": 478,
-            "life": 0.47
-          }
+        "storedReflected": false,
+        "held": 0,
+        "reflCount": 0,
+        "intercepted": false,
+        "traj": [],
+        "hitLines": [
+          "[AQ] HIT source=RUBBER target=CRYSTAL weapon=MAGNUM_500 damage=294.0"
         ],
-        "hitLines": [],
         "runError": null
       }
     },
@@ -194,7 +188,7 @@
       "pass": true,
       "detail": {
         "hpBefore": 1000,
-        "hpAfter": 874.315,
+        "hpAfter": 892.2700000000001,
         "hpConserved": true,
         "noEquipDup": true,
         "oneRealize": true,
@@ -226,14 +220,17 @@
           ],
           "runs": 14,
           "casts": 277,
-          "entitiesPeak": 7,
+          "entitiesPeak": 6,
           "slimeBodyPeak": 2,
           "mathProjectiles": 0
         }
       }
     }
   },
-  "failures": [],
+  "failures": [
+    "golden-crystal-reflect-ice-payload",
+    "golden-rubber-stores-reflected"
+  ],
   "loadErrors": [
     {
       "file": "/game/fighters/soccerChampionRuntime.js",
@@ -259,7 +256,7 @@
     ],
     "runs": 14,
     "casts": 277,
-    "entitiesPeak": 7,
+    "entitiesPeak": 6,
     "slimeBodyPeak": 2,
     "mathProjectiles": 0
   },

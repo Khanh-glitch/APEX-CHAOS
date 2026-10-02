@@ -2,29 +2,27 @@
   "suite": "robot-presentation-gates",
   "gates": {
     "P-A1-lock-dash-single-dispatch-bus": {
-      "pass": true,
+      "pass": false,
       "detail": {
         "locks": 1,
-        "dashLaunches": 1,
+        "dashLaunches": 0,
         "acquires": 1,
-        "dashes": 1
+        "dashes": 0
       }
     },
     "P-A1-lock-1-sfx": {
       "pass": true,
       "detail": {
         "sfxCounts": {
-          "robot_a1_lock": 1,
-          "robot_a1_dash": 1
+          "robot_a1_lock": 1
         }
       }
     },
     "P-A1-dash-1-sfx": {
-      "pass": true,
+      "pass": false,
       "detail": {
         "sfxCounts": {
-          "robot_a1_lock": 1,
-          "robot_a1_dash": 1
+          "robot_a1_lock": 1
         }
       }
     },
@@ -33,8 +31,7 @@
       "detail": {
         "unapproved": [],
         "counts": {
-          "robot_a1_lock": 1,
-          "robot_a1_dash": 1
+          "robot_a1_lock": 1
         }
       }
     },
@@ -87,7 +84,7 @@
     "P-A1-contact-once-after-real-equip": {
       "pass": true,
       "detail": {
-        "collectedAt": 0.18333333333333332,
+        "collectedAt": 0.4333333333333333,
         "contactEventsAtCollect": 1,
         "holder": {
           "weapon": "PISTOL",
@@ -125,10 +122,10 @@
       }
     },
     "P-A2-auto-hits-per-hit": {
-      "pass": true,
+      "pass": false,
       "detail": {
         "counts": {
-          "robot_a2_armor_hit": 3
+          "robot_a2_armor_hit": 2
         }
       }
     },
@@ -153,68 +150,57 @@
       }
     },
     "P-passive-milestone-2-bus": {
-      "pass": true,
+      "pass": false,
       "detail": {
-        "milestones": 2,
+        "milestones": 0,
         "bus": [
           "RealizedDamageEvent:undefined",
-          "RobotPassiveMilestone:1",
-          "RealizedDamageEvent:undefined",
-          "RobotPassiveMilestone:2",
-          "RobotPassiveUpgrade:2",
-          "MilestoneRefund:2"
+          "RealizedDamageEvent:undefined"
         ]
       }
     },
     "P-passive-upgrade-1-bus-test-threshold": {
-      "pass": true,
+      "pass": false,
       "detail": {
-        "upgrades": 1,
-        "refundsAlias": 1,
+        "upgrades": 0,
+        "refundsAlias": 0,
         "bus": [
           "RealizedDamageEvent::0",
-          "RobotPassiveMilestone:1:0",
-          "RealizedDamageEvent::0",
-          "RobotPassiveMilestone:2:0",
-          "RobotPassiveUpgrade:2:0.5",
-          "MilestoneRefund:2:0.5"
+          "RealizedDamageEvent::0"
         ]
       }
     },
     "P-passive-milestone-2-sfx": {
-      "pass": true,
+      "pass": false,
       "detail": {
-        "counts": {
-          "robot_passive_milestone": 2,
-          "robot_passive_upgrade": 1
-        }
+        "counts": {}
       }
     },
     "P-passive-upgrade-1-sfx": {
-      "pass": true,
+      "pass": false,
+      "detail": {
+        "counts": {}
+      }
+    },
+    "P-passive-null-0-milestone": {
+      "pass": false,
+      "detail": {
+        "milestones2": 2
+      }
+    },
+    "P-passive-null-0-upgrade": {
+      "pass": false,
+      "detail": {
+        "upgrades2": 1
+      }
+    },
+    "P-passive-null-0-sfx": {
+      "pass": false,
       "detail": {
         "counts": {
           "robot_passive_milestone": 2,
           "robot_passive_upgrade": 1
         }
-      }
-    },
-    "P-passive-null-0-milestone": {
-      "pass": true,
-      "detail": {
-        "milestones2": 0
-      }
-    },
-    "P-passive-null-0-upgrade": {
-      "pass": true,
-      "detail": {
-        "upgrades2": 0
-      }
-    },
-    "P-passive-null-0-sfx": {
-      "pass": true,
-      "detail": {
-        "counts": {}
       }
     },
     "P-no-second-AudioContext": {
@@ -239,14 +225,24 @@
           "robot_a1_dash": 1,
           "robot_a2_activate": 1,
           "robot_a2_armor_hit": 1,
-          "robot_a2_end": 1,
-          "robot_passive_milestone": 1
+          "robot_a2_end": 1
         },
         "unapproved": []
       }
     }
   },
-  "failures": [],
+  "failures": [
+    "P-A1-lock-dash-single-dispatch-bus",
+    "P-A1-dash-1-sfx",
+    "P-A2-auto-hits-per-hit",
+    "P-passive-milestone-2-bus",
+    "P-passive-upgrade-1-bus-test-threshold",
+    "P-passive-milestone-2-sfx",
+    "P-passive-upgrade-1-sfx",
+    "P-passive-null-0-milestone",
+    "P-passive-null-0-upgrade",
+    "P-passive-null-0-sfx"
+  ],
   "loadErrors": [
     {
       "file": "/game/fighters/soccerChampionRuntime.js",
@@ -256,8 +252,19 @@
   "audioCtxCtorCallsAtStart": 1,
   "summary": {
     "total": 28,
-    "passed": 28,
-    "failed": []
+    "passed": 18,
+    "failed": [
+      "P-A1-lock-dash-single-dispatch-bus",
+      "P-A1-dash-1-sfx",
+      "P-A2-auto-hits-per-hit",
+      "P-passive-milestone-2-bus",
+      "P-passive-upgrade-1-bus-test-threshold",
+      "P-passive-milestone-2-sfx",
+      "P-passive-upgrade-1-sfx",
+      "P-passive-null-0-milestone",
+      "P-passive-null-0-upgrade",
+      "P-passive-null-0-sfx"
+    ]
   },
   "audioCtxCtorCalls": 1
 }

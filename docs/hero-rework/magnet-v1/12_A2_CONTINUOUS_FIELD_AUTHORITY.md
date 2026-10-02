@@ -171,9 +171,14 @@ The field still acts in every eligible non-guaranteed case; only the *guaranteed
 outcome* changes.
 
 Hunter pounce is `2200 px/s` inward, well under 3500, so with A2 active before
-entry it falls in the guaranteed tier and turns at `~124.6 px` — comfortably
-outside body contact at `150 px`. That is **not** Hunter-specific protection; it
-is purely `2200 < 3500` under the shared law.
+entry it falls in the guaranteed tier. At the final coupling it turns at
+**~154 px**, outside the **150 px** body-contact envelope. (An earlier revision
+of this file said `~124.6 px` and called that "outside" 150 — that was the
+inverted-inequality error this document's header records; an inward object
+reaches 150 *before* 124.6. The value is corrected here so the stale number is
+not propagated.) That is **not** Hunter-specific protection; it is purely
+`2200 < 3500` under the shared law, and the real-browser Hunter suite is the
+behavioural authority.
 
 ---
 

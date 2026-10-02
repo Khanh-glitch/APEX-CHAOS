@@ -36,6 +36,22 @@ Compared the written contract back to executable Gold for:
 - recapture cooldowns.
 
 ### Findings + corrections
+
+> **SUPERSEDED BY C-R EXECUTABLE MEASUREMENT (binding).** The statements in this
+> section about **4 node lifecycle slots**, an **oldest-ACTIVE retirement**
+> mechanic, and **not importing the 16-shard pool** are contradicted by direct
+> measurement of the canonical executable. Gold's `ND` array has 4 storage
+> entries, but the `SH` pool is 16, a node owns 5 shards for its whole life
+> *including fold-out*, and `tryForm()` needs 5 free shards. So 1 node leaves 11
+> free, 2 leave 6, 3 leave 1 — `formNode()` is never reached with `live >= 3`
+> and the retirement branch is unreachable dead headroom. Production MUST make
+> a fourth concurrent node **unproducible** via the per-owner 16/5 shard economy
+> and MUST NOT implement a live "form a fourth and retire the oldest" mechanic.
+> Spare capacity in an internal array is not a gameplay slot.
+> See `10_ACTIVE_BASELINE_ADDENDUM.md` (C-R section) for the instrumented trace.
+> This historical text is retained deliberately; it is not the current law.
+
+
 1. Draft omitted Gold's longer **presentation busy recovery envelopes**: A1 ~2.2s and A2 ~1.8s. These affect idle choreography but must not become movement roots or extended gameplay action locks. Added to mechanic lock + tests.
 2. Draft simplified the one-node case to “no routing”. Gold actually gives the touched node a local response and sets projectile capture-attempt cooldown ~0.40s even when no destination exists. Added exact behavior + test.
 
