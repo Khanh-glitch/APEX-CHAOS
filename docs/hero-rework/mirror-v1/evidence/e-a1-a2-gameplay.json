@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T07:41:26.068Z",
+  "generatedAt": "2026-10-02T07:54:04.010Z",
   "gates": {
     "E-A1-01-no-copy-at-cast": {
       "pass": true,
@@ -91,29 +91,38 @@
       }
     },
     "E-A1-14-lifetime-starts-at-OWN-not-cast": {
-      "pass": false,
-      "detail": {
-        "atOwn": null,
-        "atOwnPlus5": null,
-        "atOwnPlus6p1": null
-      }
-    },
-    "E-A1-15-copy-expires-at-six-seconds": {
       "pass": true,
       "detail": {
-        "after": null
+        "castClock": 0,
+        "ownClock": 0.925,
+        "until": 6.925,
+        "sinceOwn": 6,
+        "sinceCast": 6.925
+      }
+    },
+    "E-A1-15-copy-expires-six-seconds-after-OWN": {
+      "pass": true,
+      "detail": {
+        "atOwnPlus5p4": "PISTOL",
+        "atOwnPlus6p2": null,
+        "until": 6.925
       }
     },
     "E-A1-16-replacement-survives-expiry": {
-      "pass": false,
+      "pass": true,
       "detail": {
-        "held": null
+        "held": "SHOTGUN",
+        "replacementIsSameInstance": true,
+        "differsFromCopy": true
       }
     },
     "E-A1-17-later-same-id-real-pickup-survives": {
-      "pass": false,
+      "pass": true,
       "detail": {
-        "held": null,
+        "held": "PISTOL",
+        "sameInstanceAsCopy": false,
+        "copyToken": "mirror-copy-11",
+        "laterToken": null,
         "note": "must not be consumed merely because weaponId matches"
       }
     },
@@ -143,10 +152,13 @@
       "detail": null
     },
     "E-A2-03-snap-at-canonical-first-crossing": {
-      "pass": false,
+      "pass": true,
       "detail": {
-        "beforeAt0p25": 0,
-        "canonical": 0.25833
+        "exchangeEventsAfter30Steps": 0,
+        "firstObservedAtStep": 31,
+        "payloadT": 0.25833,
+        "canonical": 0.25833,
+        "totalEvents": 1
       }
     },
     "E-A2-05-exact-coordinate-exchange": {
@@ -282,11 +294,6 @@
       }
     }
   },
-  "failures": [
-    "E-A1-14-lifetime-starts-at-OWN-not-cast",
-    "E-A1-16-replacement-survives-expiry",
-    "E-A1-17-later-same-id-real-pickup-survives",
-    "E-A2-03-snap-at-canonical-first-crossing"
-  ],
-  "pass": false
+  "failures": [],
+  "pass": true
 }

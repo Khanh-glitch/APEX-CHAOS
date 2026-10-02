@@ -103,41 +103,81 @@ for (const [id, label, setup] of [
   } catch (e) { gate(id, false, String(e)); }
 }
 
+/* Copy-lifetime law.
+ *
+ * FIXTURE NOTE: an equipped firearm is auto-activated by the ordinary
+ * arsenalWeaponRuntime.updateHolder path whenever a live target exists, which
+ * depletes it long before 6s and would confound the lifetime law. Melee is not
+ * a valid substitute (it does not persist in the holder the way the old
+ * fixture assumed). The controlled condition used here is simply to remove the
+ * live target AFTER OWN -- which E-A1-09 already proves cannot affect the
+ * cast-time snapshot. No production code is special-cased for tests. */
 try {
-  // BATTLE_AXE: eligible (only T6/shields are excluded) and not depleted by
-  // ordinary auto-fire, so the 6s copy law is what is actually measured.
-  const o = start(); arm(o.b, 'BATTLE_AXE');
+  const o = start(); arm(o.b, 'PISTOL');
+  const castClock = win.matchClock;
+  const ownEv = capture(['MirrorA1Own']);
   HR.pressAbility(o.a, 'A1');
   T.step(0.95, DT);
-  const atOwn = held(o.a);
-  T.step(5.0, DT);
-  const at595 = held(o.a);                       // ~5.0s after OWN
-  T.step(1.10, DT);
-  const after = held(o.a);
+  const own = ownEv()[0];
+  const rec = o.ct.store.__mirrorCopy;
+  // Exact: the 6s window is measured from the clock AT materialisation, which
+  // the OWN event now carries, so there is no sampling-point drift. And it is
+  // demonstrably NOT 6s from cast.
   gate('E-A1-14-lifetime-starts-at-OWN-not-cast',
-    atOwn === 'PISTOL' && at595 === 'PISTOL' && after === null,
-    { atOwn, atOwnPlus5: at595, atOwnPlus6p1: after });
-  gate('E-A1-15-copy-expires-at-six-seconds', after === null, { after });
+    !!rec && !!own && close(rec.until - own.payload.clock, 6, 1e-9)
+    && !close(rec.until - castClock, 6, 0.02)
+    && held(o.a) === 'PISTOL',
+    { castClock: +castClock.toFixed(4), ownClock: own && +own.payload.clock.toFixed(5),
+      until: rec && +rec.until.toFixed(5),
+      sinceOwn: own && rec && +(rec.until - own.payload.clock).toFixed(9),
+      sinceCast: rec && +(rec.until - castClock).toFixed(4) });
+
+  o.b.hp = 0;                                  // controlled: no live fire target
+  T.step(5.4, DT);
+  const beforeExpiry = held(o.a);
+  T.step(0.8, DT);
+  const afterExpiry = held(o.a);
+  gate('E-A1-15-copy-expires-six-seconds-after-OWN',
+    beforeExpiry === 'PISTOL' && afterExpiry === null,
+    { atOwnPlus5p4: beforeExpiry, atOwnPlus6p2: afterExpiry, until: rec && +rec.until.toFixed(3) });
 } catch (e) { gate('E-A1-14-lifetime-starts-at-OWN-not-cast', false, String(e)); }
 
 try {
-  const o = start(); arm(o.b, 'BATTLE_AXE');
+  const o = start(); arm(o.b, 'PISTOL');
   HR.pressAbility(o.a, 'A1');
   T.step(0.95, DT);
-  arm(o.a, 'SPEAR');                             // real replacement before expiry
-  T.step(6.5, DT);
-  gate('E-A1-16-replacement-survives-expiry', held(o.a) === 'SPEAR', { held: held(o.a) });
+  const copyHolder = holderOf(o.a);
+  o.b.hp = 0;
+  arm(o.a, 'SHOTGUN');                         // DIFFERENT real holder, canonical equip
+  const replHolder = holderOf(o.a);
+  T.step(6.5, DT);                             // well past the old copy expiry
+  gate('E-A1-16-replacement-survives-expiry',
+    held(o.a) === 'SHOTGUN' && holderOf(o.a) === replHolder && replHolder !== copyHolder,
+    { held: held(o.a), replacementIsSameInstance: holderOf(o.a) === replHolder,
+      differsFromCopy: replHolder !== copyHolder });
 } catch (e) { gate('E-A1-16-replacement-survives-expiry', false, String(e)); }
 
+/* Critical instance-safety proof: a later REAL pickup of the SAME weaponId
+ * must never be consumed by the old Mirror copy's expiry. */
 try {
-  const o = start(); arm(o.b, 'BATTLE_AXE');
+  const o = start(); arm(o.b, 'PISTOL');
   HR.pressAbility(o.a, 'A1');
   T.step(0.95, DT);
+  const copyHolder = holderOf(o.a);
+  const copyToken = copyHolder && copyHolder.__hrMirrorCopyToken;
+  o.b.hp = 0;
   if (W.consume) W.consume(o.a, 'test-drop');
-  arm(o.a, 'BATTLE_AXE');                        // later REAL pickup, SAME id
-  T.step(6.5, DT);
-  gate('E-A1-17-later-same-id-real-pickup-survives', held(o.a) === 'BATTLE_AXE',
-    { held: held(o.a), note: 'must not be consumed merely because weaponId matches' });
+  arm(o.a, 'PISTOL');                          // later REAL pickup, SAME id
+  const laterHolder = holderOf(o.a);
+  T.step(6.5, DT);                             // past the old copy expiry
+  gate('E-A1-17-later-same-id-real-pickup-survives',
+    held(o.a) === 'PISTOL' && holderOf(o.a) === laterHolder
+    && laterHolder !== copyHolder
+    && (laterHolder && laterHolder.__hrMirrorCopyToken) !== copyToken,
+    { held: held(o.a), sameInstanceAsCopy: laterHolder === copyHolder,
+      copyToken: copyToken || null,
+      laterToken: (laterHolder && laterHolder.__hrMirrorCopyToken) || null,
+      note: 'must not be consumed merely because weaponId matches' });
 } catch (e) { gate('E-A1-17-later-same-id-real-pickup-survives', false, String(e)); }
 
 try {
@@ -162,17 +202,25 @@ try {
     !/ctx\.api\.after\(ctx\.cfg\.telegraph/.test(mech) && !/new AIL\.RelocationTransaction/.test(mech), null);
 } catch (e) { gate('E-A2-01-cooldown-12', false, String(e)); }
 
+/* The A2 executor only REQUESTS the snap during pre-movement onTick; the
+ * exchange resolves in the POST-MOVEMENT resolver. The fixture therefore steps
+ * one canonical Mirror step at a time (each T.step runs hrPreTick ->
+ * Fighter.update -> hrPostTick) and counts exact steps. */
 try {
   const o = start();
   const ev = capture(['MirrorExchange']);
   HR.pressAbility(o.a, 'A2');
-  T.step(0.25, DT);
-  const before = ev().length;            // 30 ticks: must NOT have snapped yet
-  T.step(0.05, DT);
-  const got = ev()[0];
+  let at30 = null, firstStep = null, firstT = null;
+  for (let i = 1; i <= 40; i++) {
+    T.step(DT, DT);
+    if (i === 30) at30 = ev().length;
+    if (firstStep === null && ev().length > 0) { firstStep = i; firstT = ev()[0].payload.t; }
+  }
   gate('E-A2-03-snap-at-canonical-first-crossing',
-    before === 0 && !!got && close(got.payload.t, 0.25833, 0.0084),
-    { beforeAt0p25: before, t: got && +got.payload.t.toFixed(5), canonical: 0.25833 });
+    at30 === 0 && firstStep !== null && ev().length === 1 && close(firstT, 0.25833, 0.0001),
+    { exchangeEventsAfter30Steps: at30, firstObservedAtStep: firstStep,
+      payloadT: firstT === null ? null : +firstT.toFixed(5),
+      canonical: 0.25833, totalEvents: ev().length });
 } catch (e) { gate('E-A2-03-snap-at-canonical-first-crossing', false, String(e)); }
 
 try {

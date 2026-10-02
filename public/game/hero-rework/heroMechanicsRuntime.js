@@ -1051,8 +1051,12 @@
       // 6s lifetime begins EXACTLY here, at OWN materialisation.
       until: ctx.clock() + (ctx.cfg.copyLifetime ?? 6),
     };
+    // `clock` is the match clock AT materialisation, so the 6s lifetime can be
+    // verified exactly against `until` without sampling-point drift.
     ctx.api.emitEvent('MirrorA1Own', { hero: 'MIRROR', castId: a.castId,
-      weaponId: a.weaponId, token, t: e.t, lifetime: ctx.cfg.copyLifetime ?? 6 });
+      weaponId: a.weaponId, token, t: e.t, clock: ctx.clock(),
+      until: ctx.combatant.store.__mirrorCopy.until,
+      lifetime: ctx.cfg.copyLifetime ?? 6 });
     ctx.api.note('mirror.arsenal', 'own', { weapon: a.weaponId, t: e.t });
   }
 

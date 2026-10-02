@@ -70,7 +70,7 @@
         "intercepted": false,
         "traj": [],
         "hitLines": [
-          "[AQ] HIT source=RUBBER target=CRYSTAL weapon=MAGNUM_500 damage=294.0"
+          "[AQ] HIT source=RUBBER target=CRYSTAL weapon=MAGNUM_500 damage=196.0"
         ],
         "runError": null
       }
@@ -220,7 +220,7 @@
           ],
           "runs": 14,
           "casts": 277,
-          "entitiesPeak": 6,
+          "entitiesPeak": 7,
           "slimeBodyPeak": 2,
           "mathProjectiles": 0
         }
@@ -256,7 +256,7 @@
     ],
     "runs": 14,
     "casts": 277,
-    "entitiesPeak": 6,
+    "entitiesPeak": 7,
     "slimeBodyPeak": 2,
     "mathProjectiles": 0
   },

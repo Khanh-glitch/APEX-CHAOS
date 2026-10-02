@@ -41,22 +41,40 @@ try {
     { a1, a2, passive: p });
 } catch (e) { gate('M00.2-locked-registry', false, String(e)); }
 
+/* MIRROR V1 Checkpoint E SUPERSEDES the byte-freeze. This gate pinned the
+ * MIRROR mechanic slice byte-for-byte against an old baseline so Magnet work
+ * could not disturb it. Checkpoint E is an owner-directed replacement of
+ * exactly that slice, so a byte freeze would now forbid the authored law.
+ *
+ * It is replaced by a SEMANTIC invariant, not deleted and not loosened: the
+ * obsolete scaffold paths must be absent AND the new final authority present.
+ * A hash is deliberately not used so legitimate F/G Mirror work is not frozen. */
 try {
-  const base = '5411906a741f87d637ee20535c82e96b866d4ab2';
-  const files = ['public/game/hero-rework/heroMechanicsRuntime.js', 'public/game/hero-rework/heroRegistry.js'];
-  const mirrorSlices = files.map((file) => {
-    const slice = (text) => {
-      const start = text.indexOf('* 10. MIRROR');
-      const end = text.indexOf('* 11. SLIME', start);
-      return start >= 0 && end > start ? text.slice(start, end) : '';
-    };
-    const current = slice(fs.readFileSync(file, 'utf8'));
-    const oldText = execFileSync('git', ['show', `${base}:${file}`], { encoding: 'utf8' });
-    const old = slice(oldText);
-    return { file, current: sha(current), baseline: sha(old), nonempty: !!current && !!old };
-  });
-  gate('M00.3-mirror-gameplay-byte-frozen', mirrorSlices.every((x) => x.nonempty && x.current === x.baseline), mirrorSlices);
-} catch (e) { gate('M00.3-mirror-gameplay-byte-frozen', false, String(e)); }
+  const mech = fs.readFileSync('public/game/hero-rework/heroMechanicsRuntime.js', 'utf8');
+  const world = fs.readFileSync('public/game/hero-rework/heroReworkRuntime.js', 'utf8');
+  const i = mech.indexOf("EXECUTORS['mirror.arsenal']");
+  const j = mech.indexOf("EXECUTORS['mirror.shattered_mirrors']");
+  const slice = i >= 0 && j > i ? mech.slice(i, j) : '';
+  const code = slice.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+  const absent = {
+    immediateGrantAtCast: !/grantWeaponCopy\s*\(/.test(code),
+    rawAfterTelegraph: !/ctx\.api\.after\s*\(\s*ctx\.cfg\.telegraph/.test(code),
+    genericRelocationTransaction: !/new\s+AIL\.RelocationTransaction/.test(code),
+    rawScheduler: !/after\s*\(\s*0?\.(25|928)/.test(code),
+    weaponIdOnlyExpiry: /__hrMirrorCopyToken|cp\.holder/.test(code),
+  };
+  const present = {
+    fixedStepTimeline: /ctx\.api\.mirrorAdvance\(/.test(code),
+    ownEdgeGate: /MIRROR_A1_OWN_U/.test(code) && /MIRROR_A1TS/.test(code),
+    snapRequestOnly: /ctx\.api\.mirrorEnqueueSnap\(/.test(code),
+    postMovementResolver: /function resolvePendingMirrorSnaps\(\)/.test(world),
+    resolverRunsInPostTick: world.indexOf('resolvePendingMirrorSnaps();') > world.indexOf('function hrPostTick'),
+    actionWindowLock: /mirrorBusy\(ctx\)/.test(code),
+  };
+  gate('M00.3-mirror-final-authority-semantic-invariant',
+    slice.length > 1000 && Object.values(absent).every(Boolean) && Object.values(present).every(Boolean),
+    { absent, present, sliceBytes: slice.length });
+} catch (e) { gate('M00.3-mirror-final-authority-semantic-invariant', false, String(e)); }
 
 function start(p2 = 'MIRROR') {
   T.start('MAGNET', p2); T.holdSpawns();
@@ -264,11 +282,30 @@ try {
   gate('M06.3-a1-plus-a2-compose-once',st.integrations===1&&Number.isFinite(st.vx),{integrations:st.integrations,vx:st.vx});
 } catch(e){gate('M06.3-a1-plus-a2-compose-once',false,String(e));}
 
+/* MIRROR V1 Checkpoint E SUPERSEDES the old immediate-copy law. This gate used
+ * to assert a copy existed the instant A1 was cast. Under the final Gold-first
+ * mechanic NO copy exists before the canonical OWN edge (first fixed-step
+ * crossing of u >= .58 on A1TS 1.6, ~0.93333s). The gate is rewritten to the
+ * new law and is strictly STRONGER: it now also proves the absence at cast,
+ * that the opponent keeps the original, and that the copy is a fresh instance
+ * which inherits no Magnet passive boost. */
 try {
-  const o=start();W.equip(o.a,'PISTOL');const copied=HR.pressAbility(o.b,'A1'),held=W.getHolder(o.b);
+  const o=start();W.equip(o.a,'PISTOL');
+  const copied=HR.pressAbility(o.b,'A1');
+  const atCast=W.getHolder(o.b);
+  T.step(0.90,1/120);
+  const beforeOwn=W.getHolder(o.b);
+  T.step(0.05,1/120);
+  const atOwn=W.getHolder(o.b);
   const spec={owner:o.b,x:o.b.x,y:o.b.y,angle:0,speed:1000,damage:10,weapon:'PISTOL'};const tag=HR.onFireBullet(spec);
-  gate('M10.1-mirror-copy-fresh-no-passive-inheritance',copied.ok&&held&&held.weaponId==='PISTOL'&&spec.speed===1000&&!(tag&&tag.magnetBoosted),{copied,weapon:held&&held.weaponId,speed:spec.speed,tag});
-} catch(e){gate('M10.1-mirror-copy-fresh-no-passive-inheritance',false,String(e));}
+  gate('M10.1-mirror-copy-materialises-at-OWN-fresh-no-passive-inheritance',
+    copied.ok && !atCast && !beforeOwn
+    && !!atOwn && atOwn.weaponId==='PISTOL'
+    && !!W.getHolder(o.a) && W.getHolder(o.a).weaponId==='PISTOL'
+    && spec.speed===1000 && !(tag&&tag.magnetBoosted),
+    {copied,atCast:!!atCast,beforeOwn:!!beforeOwn,atOwn:atOwn&&atOwn.weaponId,
+     opponentKeepsOriginal:!!W.getHolder(o.a),speed:spec.speed,tag:tag&&tag.magnetBoosted||null});
+} catch(e){gate('M10.1-mirror-copy-materialises-at-OWN-fresh-no-passive-inheritance',false,String(e));}
 
 try {
   const o=start();HR.pressAbility(o.a,'A1');const old={ax:o.a.x,bx:o.b.x};const swap=HR.pressAbility(o.b,'A2');T.step(.27);

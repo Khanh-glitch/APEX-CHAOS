@@ -461,7 +461,7 @@ subscribe. The presentation never decides that gameplay succeeded.
 
 ---
 
-## CHECKPOINT E — A1/A2 GAMEPLAY AUTHORITY (**PARTIAL — NOT CLOSED**)
+## CHECKPOINT E — A1/A2 GAMEPLAY AUTHORITY (**CLOSED — 32/32**)
 
 Suite: `tools/testMirrorA1A2Gameplay.mjs` — **28/32**. E is **not** complete.
 
@@ -484,26 +484,50 @@ executors were replaced wholesale, not wrapped.
   may cast once the *authored* window ends even though the longer presentation
   busy envelope (2.2 s / 1.8 s) is still running.
 
-### Known failures, with diagnosis (do not mistake for green)
-1. `E-A1-14/16/17` — lifetime / replacement / same-id survival. Root cause is a
-   **test-fixture** problem, not the law: an equipped `PISTOL` is auto-fired to
-   depletion by ordinary Arsenal behaviour well before 6 s, and `BATTLE_AXE`
-   does not persist on the holder either. Direct probing confirmed holder
-   objects are **not** reused across equips, so the instance-safe token logic
-   itself is sound. These must be re-expressed against the copy **record**
-   (`store.__mirrorCopy`) plus a weapon that survives, before E can close.
-2. `E-A2-03` — snap timing. Measured directly in isolation as **step 31,
-   t = 0.25833 s**, exactly canonical; the suite's capture window is wrong, not
-   the implementation.
-3. `testMagnetV1GameplayGates` `M00.3-mirror-gameplay-byte-frozen` — froze the
-   MIRROR mechanic slice byte-for-byte. E is an owner-directed rewrite of
-   exactly that slice, so this gate is **superseded** and needs re-baselining.
-   It was **not** weakened here.
-4. `testMagnetV1GameplayGates` `M10.1-mirror-copy-fresh-no-passive-inheritance`
-   — asserts a copy exists immediately after cast. That is the **old immediate
-   grant law**; under E no copy exists before OWN, so the gate must be updated
-   to step to the OWN edge first.
+### Closure (all four previously-failing gates resolved)
 
-Items 3 and 4 are **new reds versus `13_BASELINE_REDS_AT_D3_PARENT.md`** and
-must be resolved (by correcting the gates to the new owner law, never by
-weakening them) before E is declared complete.
+`tools/testMirrorA1A2Gameplay.mjs` — **32/32**. No gameplay law was changed to
+achieve this; three were fixture defects and one was a measurement artifact.
+
+1. **`E-A1-14/15/16/17`** — fixture defect. An equipped firearm is auto-activated
+   by `arsenalWeaponRuntime.updateHolder` whenever a live target exists, so a
+   PISTOL was depleted long before 6 s; the earlier attempt to dodge this with
+   `BATTLE_AXE`/`SPEAR` was worse (they do not persist in the holder as the
+   fixture assumed, and the gate even asserted `'PISTOL'` after arming
+   `BATTLE_AXE` — internally inconsistent). The controlled condition is now
+   simply to remove the live fire target **after OWN**, which `E-A1-09` already
+   proves cannot affect the cast-time snapshot. **No production code is
+   special-cased for tests.**
+   * `E-A1-14` proves the law exactly: `MirrorA1Own` now carries the match
+     `clock` at materialisation, and `until - ownClock === 6` to **1e-9**, while
+     `until - castClock` is demonstrably **not** 6.
+   * `E-A1-16/17` assert holder **instance identity** — the replacement / later
+     same-id pickup must be a *different* holder object with a different
+     (absent) Mirror token. Direct probing confirmed holder objects are never
+     reused across equips, so the token test is meaningful.
+2. **`E-A2-03`** — measurement artifact; the implementation was already correct.
+   The executor only *requests* the snap in pre-movement `onTick`; the exchange
+   resolves in the post-movement resolver. The gate now steps **one canonical
+   Mirror step at a time** (each `T.step` runs preTick → `Fighter.update` →
+   postTick) and asserts **0 exchange events after 30 steps**, exactly **one**
+   first observed at **step 31**, payload `t = 0.25833` (±1e-4).
+
+### Superseded gates rebased (not deleted, not loosened)
+
+* **`M00.3`** byte-freeze → **`M00.3-mirror-final-authority-semantic-invariant`**.
+  The old gate pinned the MIRROR slice byte-for-byte; E is an owner-directed
+  rewrite of exactly that slice, so a byte freeze would forbid the authored law.
+  It now asserts, on the live slice: **absent** — `grantWeaponCopy`, raw
+  `after(cfg.telegraph)`, `new AIL.RelocationTransaction`, raw `.25`/`.928`
+  schedulers; **present** — the `mirrorAdvance` fixed-step timeline, the
+  OWN-edge gate, `mirrorEnqueueSnap`, the post-movement
+  `resolvePendingMirrorSnaps` running inside `hrPostTick`, the action-window
+  lock, and token-based (not weaponId-only) expiry. A hash is deliberately
+  **not** used so legitimate F/G Mirror work is not frozen.
+* **`M10.1`** → **`M10.1-mirror-copy-materialises-at-OWN-fresh-no-passive-inheritance`**.
+  Rewritten to the new law and strictly stronger: no copy at cast, none before
+  OWN, a fresh copy at OWN, opponent keeps the original, and no Magnet passive
+  inheritance (the only thing the old gate checked).
+
+Both replacements are **green**, so these are owner-superseded tests with green
+replacements — **not** tolerated new reds. The parent baseline of **18** stands.
