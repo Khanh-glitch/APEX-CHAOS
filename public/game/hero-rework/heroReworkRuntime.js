@@ -2321,21 +2321,38 @@
         }
         if (p.x < -20 || p.x > GAME_SIZE + 20 || p.y < -20 || p.y > GAME_SIZE + 20) { p.life = 0; continue; }
 
-        // ---- Stage W: walls (absorb non-T6; T6 shatters) ---------------
+        // ---- Stage W: walls — swept GLOBAL TOI observed here; the non-T6
+        // absorb is realized only after the global-TOI reconcile with the
+        // F2 mirror surface below. Earliest terminal event on the ONE
+        // ordered path wins; stage order never decides. T6 capability
+        // routes through the shared authority (api.isT6Weapon) and
+        // shatters through — walls are not terminal for T6. --------------
         const wallHit = sweepWalls(p, BULLET_HIT_SCALE);
-        if (wallHit) {
-          const isT6 = p.weapon === 'STORMBREAKER';
-          const dmg = scaledProjectileDamage(p);
-          wallHit.wall.hp -= isT6 ? ((CFG && CFG.WEAPONS && CFG.WEAPONS.STORMBREAKER && CFG.WEAPONS.STORMBREAKER.confirmedHitDamage) || 446) : dmg;
-          if (isT6) { wallHit.wall.__shatteredBy = 'STORMBREAKER'; AIL.bus.emit('WallShatteredByT6', {}); }
+        const wallIsT6 = wallHit && M.api.isT6Weapon && M.api.isT6Weapon(p.weapon);
+        const wallTerminal = !!wallHit && !wallIsT6;
+        if (wallHit && wallIsT6) {
+          wallHit.wall.hp -= ((CFG && CFG.WEAPONS && CFG.WEAPONS.STORMBREAKER && CFG.WEAPONS.STORMBREAKER.confirmedHitDamage) || 446);
+          wallHit.wall.__shatteredBy = 'STORMBREAKER';
+          AIL.bus.emit('WallShatteredByT6', {});
           if (wallHit.wall.hp <= 0) wallHit.wall.__shatteredBy = wallHit.wall.__shatteredBy || 'damage';
-          if (!isT6) {
-            // Absorbing wall is terminal: the projectile never reaches a
-            // later Magnet boundary, so no capture beat may be presented.
-            supersedeMagnetBoundary(p, wallHit.t != null ? wallHit.t : 0, { terminal: true });
-            p.life = 0; continue;
-          } // absorbed
           // T6 continues through the shattering wall.
+        }
+        // F2 mirror candidacy observed BEFORE the wall-absorb decision so
+        // the reconcile is physical: body TOI and wall TOI bound every
+        // surface event (nothing at/after an earlier terminal event is
+        // presented; preview included).
+        const bodyHit = earliestToiBodyT(p, BULLET_HIT_SCALE);
+        const mf2 = mirrorF2Candidate(p, bodyHit ? bodyHit.t : null, wallTerminal ? wallHit.t : null);
+        const mirrorBeatsWall = wallTerminal && mf2 && mf2.kind === 'capture'
+          && mf2.capT < wallHit.t && !(bodyHit && bodyHit.t < mf2.capT);
+        if (wallTerminal && !mirrorBeatsWall) {
+          // Wall at-or-before any mirror capture on the ordered path:
+          // absorb (unchanged terminal law; the projectile never reaches a
+          // later Magnet boundary, so no capture beat may be presented).
+          wallHit.wall.hp -= scaledProjectileDamage(p);
+          if (wallHit.wall.hp <= 0) wallHit.wall.__shatteredBy = wallHit.wall.__shatteredBy || 'damage';
+          supersedeMagnetBoundary(p, wallHit.t != null ? wallHit.t : 0, { terminal: true });
+          p.life = 0; continue;
         }
 
         // ---- Stage G: MATH graph absorb (T6 immune) --------------------
@@ -2351,10 +2368,10 @@
         if (singularityStore(p)) { projectiles.splice(i, 1); continue; }
 
         // ---- Stage P: F2 mirror surface routing (real F1 ACTIVE nodes;
-        // T6 immune). Global TOI ordering against body / Crystal / Magnet:
-        // the earliest terminal event on the ONE ordered path wins.
-        const bodyHit = earliestToiBodyT(p, BULLET_HIT_SCALE);
-        const mf2 = mirrorF2Candidate(p, bodyHit ? bodyHit.t : null);
+        // T6 capability-denied). `bodyHit` / `mf2` were observed above for
+        // the wall global-TOI reconcile. Global TOI ordering against
+        // wall / body / Crystal / Magnet: the earliest terminal event on
+        // the ONE ordered path wins — stage order never decides.
         // CRYSTALA (K shard contact / J solid material): the earliest of
         // shard contact, construct surface, body AND mirror capture wins.
         // There is NO automatic body reflect any more
@@ -2436,8 +2453,12 @@
         // F2 routes grenades through the real F1 node surface (doc 06 §8:
         // grenade projectile is an eligible routed family). While escrowed
         // the grenade is absent from the live array, so its fuse does not
-        // tick and no bounce/wall logic can act on it.
-        const mg = mirrorF2Candidate(p, null);
+        // tick and no bounce/wall logic can act on it. GLOBAL TOI: the
+        // grenade's wall interaction is the arena boundary bounce — its
+        // crossing TOI bounds mirror candidacy, so a physically-earlier
+        // bounce always wins and no surface event beyond it is presented.
+        const gWallToi = arenaBoundToi(p, GAME_SIZE);
+        const mg = mirrorF2Candidate(p, null, gWallToi);
         if (mg && mg.kind === 'capture') { mirrorF2Capture(p, mg, projectiles); continue; }
         if (mg && mg.kind === 'oneNode') mirrorF2LocalResponse(p, mg);
         if (p.x < p.radius) { p.x = p.radius; p.vx = Math.abs(p.vx); }
@@ -2474,11 +2495,18 @@
           // F2 routes normal thrown-melee FLIGHT projectiles through the
           // real F1 node surface (doc 08 §7 eligible family; T6 already
           // capability-denied). Ordered against the body contact exactly
-          // like bullets: a strictly-earlier body pin wins. While escrowed
-          // the thrown object's grace/flight/maxFlight/life timers do not
-          // tick.
+          // like bullets: a strictly-earlier body pin wins. GLOBAL TOI:
+          // the thrown's wall interactions (real world-wall ricochet and
+          // arena boundary bounce) bound mirror candidacy by their swept
+          // TOI — an earlier ricochet/bounce always wins and no surface
+          // event beyond it is presented. While escrowed the thrown
+          // object's grace/flight/maxFlight/life timers do not tick.
           const tBodyHit = p.grace <= 0 ? earliestToiBodyT(p, BULLET_HIT_SCALE) : null;
-          const mt = mirrorF2Candidate(p, tBodyHit ? tBodyHit.t : null);
+          const tWallSweep = sweepThrownWall(p);
+          const tBoundToi = arenaBoundToi(p, GAME_SIZE);
+          let tWallToi = tWallSweep ? tWallSweep.t : null;
+          if (tBoundToi != null && (tWallToi == null || tBoundToi < tWallToi)) tWallToi = tBoundToi;
+          const mt = mirrorF2Candidate(p, tBodyHit ? tBodyHit.t : null, tWallToi);
           if (mt && mt.kind === 'capture' && !(tBodyHit && tBodyHit.t < mt.capT)) {
             mirrorF2Capture(p, mt, projectiles);
             continue;
@@ -2486,10 +2514,11 @@
           if (mt && mt.kind === 'oneNode' && !(tBodyHit && tBodyHit.t < mt.capT)) {
             mirrorF2LocalResponse(p, mt);     // non-terminal: no supersede
           }
-          // Walls: T6 shatters through; others consume ricochet budget.
+          // Walls: T6 shatters through (shared capability authority);
+          // others consume ricochet budget.
           const tw = (CRY && CRY.thrownSurface(p)) || sweepThrownWall(p);
           if (tw) {
-            const isT6 = p.weapon === 'STORMBREAKER';
+            const isT6 = !!(M.api.isT6Weapon && M.api.isT6Weapon(p.weapon));
             if (tw.crystal) CRY.thrownHit(p, tw);   // real structural damage + ricochet stand-off
             else {
               tw.wall.hp -= isT6 ? ((CFG.WEAPONS.STORMBREAKER && CFG.WEAPONS.STORMBREAKER.confirmedHitDamage) || 446) : scaledProjectileDamage(p);
@@ -2779,8 +2808,25 @@
     for (const w of M.world.walls) {
       const e = wallEndpoints(w);
       const toi = segmentCrossT(p.px, p.py, p.x, p.y, e.ax, e.ay, e.bx, e.by, p.radius + w.thickness / 2);
-      if (toi != null && toi < bestT) { bestT = toi; best = { wall: w, normal: { x: e.nx, y: e.ny } }; }
+      if (toi != null && toi < bestT) { bestT = toi; best = { wall: w, normal: { x: e.nx, y: e.ny }, t: toi }; }
     }
+    return best;
+  }
+
+  // Earliest crossing TOI (0..1] of the frame's travelled segment against
+  // the arena play bounds [r, S-r]^2; null while the segment stays inside.
+  // This is the wall interaction for grenades/thrown (boundary bounce); the
+  // returned TOI bounds F2 mirror candidacy exactly like a terminal wall
+  // (global TOI law — earliest event wins, never stage order).
+  function arenaBoundToi(p, S) {
+    const r = p.radius || 0;
+    const dx = p.x - p.px, dy = p.y - p.py;
+    let best = null;
+    const cand = (t) => { if (t != null && t > 0 && t <= 1 && (best == null || t < best)) best = t; };
+    if (dx < 0) cand((p.px - r) / -dx);
+    else if (dx > 0) cand((S - r - p.px) / dx);
+    if (dy < 0) cand((p.py - r) / -dy);
+    else if (dy > 0) cand((S - r - p.py) / dy);
     return best;
   }
 
@@ -2930,12 +2976,14 @@
   function mirrorNodeId() { return ++mirrorF2World().nodeSeq; }
 
   // Eligibility by capability/type semantics (doc 08 §7): detached
-  // projectile entities only. T6 is capability-denied. Thrown melees route
-  // only while they are real detached flight projectiles (never pinned or
+  // projectile entities only. T6 is capability-denied through the SHARED
+  // T6 authority (api.isT6Weapon: STORMBREAKER and T6 aliases alike) —
+  // never an F2-local weapon-name exception. Thrown melees route only
+  // while they are real detached flight projectiles (never pinned or
   // tumbling drop states). No ad-hoc weapon-name allowlist decides family.
   function mirrorF2Eligible(p) {
     if (!M || !p || !p.aq) return false;
-    if (p.weapon === 'STORMBREAKER') return false; // T6 immune
+    if (M.api && M.api.isT6Weapon && M.api.isT6Weapon(p.weapon)) return false; // T6 immune (capability authority)
     if (p.type === 'aq_bullet') return true;       // bullets + pellets + replays + transforms
     if (p.type === 'aq_grenade') return true;
     if (p.type === 'aq_thrown') return p.state === 'flight';
@@ -2997,17 +3045,24 @@
   // `bodyToi` is the earliest body-contact TOI already adjudicated for this
   // frame (null when none / not applicable): surface events that would only
   // happen AFTER the projectile is consumed by a body are not presented.
-  function mirrorF2Candidate(p, bodyToi) {
+  // `wallToi` is the earliest TERMINAL/trajectory-changing wall TOI on the
+  // same ordered path (bullet wall absorb; grenade/thrown boundary bounce or
+  // world-wall ricochet): surface events at or after it are physically
+  // unreachable and are not presented (capture OR preview). This is the
+  // global-TOI reconcile: earliest event wins, never stage order.
+  function mirrorF2Candidate(p, bodyToi, wallToi) {
     if (!mirrorF2Eligible(p) || mirrorF2CoolingDown(p)) return null;
     const captureR = MIRROR_F2.capturePx + (p.radius || 0);
     const cap = mirrorF2Sweep(p, captureR);
-    if (!cap) {
-      // Preview region (Gold d < 34): presentation-facing routing state for
-      // Checkpoint G. One event per (projectile, node) approach; the real
-      // projectile is never removed, frozen, relocated or neutralized here.
-      const previewR = MIRROR_F2.previewPx + (p.radius || 0);
+    if (!cap || (wallToi != null && cap.t >= wallToi)) {
+      // Preview region — Gold authority: ~34px FROM the oriented surface.
+      // NOT expanded by projectile radius (capture alone carries the real
+      // radius). Presentation-facing routing state for Checkpoint G. One
+      // event per (projectile, node) approach; the real projectile is never
+      // removed, frozen, relocated or neutralized here.
+      const previewR = MIRROR_F2.previewPx;
       const pv = mirrorF2Sweep(p, previewR);
-      if (pv && !(bodyToi != null && bodyToi < pv.t)) {
+      if (pv && !(bodyToi != null && bodyToi < pv.t) && !(wallToi != null && pv.t >= wallToi)) {
         const hr = p.__hr || (p.__hr = {});
         const seen = hr.mirrorPreviewed || (hr.mirrorPreviewed = []);
         if (!seen.includes(pv.node.id)) {

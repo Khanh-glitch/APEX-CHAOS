@@ -136,25 +136,36 @@ function runCapture(p, seqs, maxFrames = 240, snapAtCapture = null) {
 }
 
 /* ============ R09 preview threshold / no removal ============ */
+// Gold authority: preview region ~= 34px FROM the oriented surface — NOT
+// expanded by projectile radius. Capture alone carries the real radius
+// (17 + r). Surface for a rot-0 node at (400,500) runs (395,440)->(400,562);
+// a horizontal path at y=Y keeps distance |Y-562| from the lower endpoint:
+//   y=590 -> d=28  inside preview (34), OUTSIDE capture (17+7=24)
+//   y=600 -> d=38  outside preview
 try {
   const o = start();
-  seed(o.ct, 400, 500, 0);                       // one ACTIVE node (preview only needs nodes)
+  seed(o.ct, 400, 500, 0);
   seed(o.ct, 700, 500, 0);
-  // Path at y=600 stays ~38px from the surface endpoint: inside the 34+r
-  // preview band, OUTSIDE the 17+r capture band.
-  const p = emitBullet(o, { x: 250, y: 600, speed: 1200 });
+  const pIn = emitBullet(o, { x: 250, y: 590, speed: 1200 });   // d=28
+  const pOut = emitBullet(o, { x: 250, y: 600, speed: 1200 });  // d=38
   const seqs = captureSeq(['MirrorRoutePreview', 'MirrorRouteCapture', 'MirrorRouteLocal']);
-  const vx0 = p.vx, vy0 = p.vy;
-  stepFrames(30);
+  const vx0 = pIn.vx, vy0 = pIn.vy;
+  stepFrames(25);
   const ev = seqs();
   const previews = ev.filter((e) => e.type === 'MirrorRoutePreview');
-  const captures = ev.filter((e) => e.type !== 'MirrorRoutePreview');
+  const nonPreview = ev.filter((e) => e.type !== 'MirrorRoutePreview');
+  // Preview fires exactly for the inside-34 path (both nodes on its way)
+  // and NEVER for the outside-34 path; neither projectile is removed,
+  // frozen, relocated, neutralized or velocity-mutated by preview.
   gate('F2-R09-preview-threshold-no-removal',
-    previews.length >= 1 && captures.length === 0
-    && win.projectiles.includes(p) && p.life > 0
-    && close(p.vx, vx0) && close(p.vy, vy0),
-    { previews: previews.length, captures: captures.length,
-      inWorld: win.projectiles.includes(p), vxUnchanged: close(p.vx, vx0) });
+    previews.length === 2 && nonPreview.length === 0
+    && win.projectiles.includes(pIn) && win.projectiles.includes(pOut)
+    && pIn.life > 0 && pOut.life > 0
+    && close(pIn.vx, vx0) && close(pIn.vy, vy0)
+    && close(pOut.vx, vx0) && close(pOut.vy, vy0),
+    { previews: previews.length, captures: nonPreview.length,
+      inWorld: win.projectiles.includes(pIn) && win.projectiles.includes(pOut),
+      vxUnchanged: close(pIn.vx, vx0) && close(pOut.vx, vx0) });
 } catch (e) { gate('F2-R09-preview-threshold-no-removal', false, String(e)); }
 
 /* ============ R10 high-speed swept capture cannot tunnel ============ */
@@ -208,30 +219,38 @@ try {
       canon: { img: IMG_T, em: EM_T } });
 } catch (e) { gate('F2-R01-bullet-canonical-transit', false, String(e)); }
 
-/* ============ R02 shotgun pellets (each real pellet entity) ============ */
+/* ============ R02 shotgun pellets (REAL multi-pellet producer) ============ */
+// Evidence strength: the pellets come from the SHIPPING gun pipeline —
+// equip(SHOTGUN) -> real holder activation -> fireOneShot's pellet fan
+// (spec.pellets=8, cone spread) -> real fireBullet emissions. No manual
+// per-pellet fabrication.
 try {
   const o = start();
-  seed(o.ct, 400, 500, 0);
-  seed(o.ct, 700, 500, 0);
-  // Two real SHOTGUN-family pellet entities through the shipping emission.
-  const p1 = emitBullet(o, { weapon: 'SHOTGUN', x: 250, y: 495, angle: 0.02, speed: 1100 });
-  const p2 = emitBullet(o, { weapon: 'SHOTGUN', x: 250, y: 505, angle: -0.02, speed: 1100 });
-  const seqs = captureSeq(['MirrorRouteCapture', 'MirrorRouteEmerge']);
-  const tl = runCapture(p1, seqs, 300);
-  const ev = seqs();
-  const caps = ev.filter((e) => e.type === 'MirrorRouteCapture');
-  const pelletCaptured = caps.some((e) => {
+  o.a.x = 500; o.b.x = 850;                      // distance 350 <= triggerRange 430
+  seed(o.ct, 620, 500, 0);                       // entry node in the fan's flight
+  seed(o.ct, 480, 500, 0);                       // destination node
+  const fan = (win.APEX_ARSENAL_CONFIG.WEAPONS.SHOTGUN.pellets | 0) || 8;
+  W().equip(o.b, 'SHOTGUN');
+  const seqs = captureSeq(['MirrorRouteCapture']);
+  let captureFrames = -1;
+  for (let f = 1; f <= 90; f++) {
+    win.APEX_ARSENAL.step(DT);
+    if (seqs().filter((e) => e.type === 'MirrorRouteCapture').length >= fan) { captureFrames = f; break; }
+  }
+  const caps = seqs().filter((e) => e.type === 'MirrorRouteCapture');
+  const escrowed = escrowList();
+  const entities = new Set(escrowed.map((e) => e.p));
+  const allPellets = [...entities].every((q) => q && q.aq && q.type === 'aq_bullet' && q.weapon === 'SHOTGUN');
+  // Every pellet of the real fan is its own detached entity in escrow
+  // (or already emerged), and the captures are real SHOTGUN projectiles.
+  const capsAllShotgun = caps.every((e) => {
     const q = e.payload || e; return q.type === 'aq_bullet' && q.weapon === 'SHOTGUN';
   });
-  // Each pellet is its own REAL detached projectile entity (family resolves
-  // through the shipping config, here AUTOSHOT for the SHOTGUN id).
-  const bothEntities = p1 !== p2 && p1.aq && p2.aq
-    && p1.type === 'aq_bullet' && p2.type === 'aq_bullet'
-    && p1.weapon === 'SHOTGUN' && p2.weapon === 'SHOTGUN'
-    && p1.family === p2.family && !!p1.family;
   gate('F2-R02-shotgun-pellet-entity-routes',
-    pelletCaptured && bothEntities && caps.length >= 2,
-    { captures: caps.length, pelletCaptured, bothEntities, family: p1.family });
+    captureFrames > 0 && caps.length >= fan && capsAllShotgun
+    && entities.size >= fan && allPellets,
+    { captures: caps.length, fan, distinctEntities: entities.size,
+      allShotgun: capsAllShotgun, captureFrames });
 } catch (e) { gate('F2-R02-shotgun-pellet-entity-routes', false, String(e)); }
 
 /* ============ R03 grenade: real fuse lifecycle through escrow ============ */
@@ -316,39 +335,84 @@ try {
     { loopOk: loop && loop.ok, captures: evs.length, replayPreserved: !!(emergedReplay && emergedReplay.__hr.replay) });
 } catch (e) { gate('F2-R05-time-replay-lineage-routes', false, String(e)); }
 
-/* ============ R06 transformed CHILL/FROST payload preserved ============ */
+/* ============ R06 FROST payload preserved (REAL provenance path) ============ */
+// Evidence strength: the frost tag is produced by the SHIPPING FROST V1
+// pipeline — a frozen-gun hold (FR.noteFrozenPickup) on an ICE combatant
+// whose PASSIVE executor (frost.deep_frost) tags the bullet at REAL fire
+// time through HR.onFireBullet -> executor onProjectileFired dispatch.
+// No manual tag injection. (Legacy chill payloads have no remaining
+// shipping producer; frost is the live transformed-payload law.)
 try {
-  const o = start();
-  seed(o.ct, 400, 500, 0);
-  seed(o.ct, 700, 500, 0);
-  const p = emitBullet(o, { x: 250, y: 500, speed: 1200 });
-  p.__hr = p.__hr || {};
-  p.__hr.frost = true;                            // real FROST V1 payload tag
-  p.__hr.chill = true;                            // legacy chill payload tag
+  const o = start('ICE', 'MIRROR');
+  seed(o.ctB, 500, 500, 0);                      // MIRROR-owned network
+  seed(o.ctB, 750, 500, 0);
+  o.a.x = 250; o.a.y = 500;
+  const FR = win.APEX_FROST;
+  W().equip(o.a, 'PISTOL');
+  const hold = o.a.data && o.a.data.arsenal;
+  if (FR && hold && FR.noteFrozenPickup) FR.noteFrozenPickup(o.a, hold, null);
+  const before = new Set(win.projectiles);
+  W().fireBullet({ owner: o.a, x: 300, y: 500, angle: 0, speed: 1200, damage: 30, weapon: 'PISTOL', life: 6 });
+  const p = newestAfter(before);
+  if (!p) throw new Error('R06: real fireBullet pushed no projectile');
+  const tagged = p.__hr && p.__hr.frost && p.__hr.frost.group;  // real tag shape
   const seqs = captureSeq(['MirrorRouteCapture', 'MirrorRouteEmerge']);
   runCapture(p, seqs);
   gate('F2-R06-payload-tags-preserved',
-    p.__hr.frost === true && p.__hr.chill === true && p.__hr.neutral === true,
-    { frost: p.__hr.frost, chill: p.__hr.chill, neutral: p.__hr.neutral });
+    !!tagged && p.__hr.frost && p.__hr.frost.group
+    && p.__hr.neutral === true,
+    { realFrostTag: !!tagged, group: p.__hr && p.__hr.frost && String(p.__hr.frost.group).slice(0, 24),
+      neutral: p.__hr && p.__hr.neutral });
 } catch (e) { gate('F2-R06-payload-tags-preserved', false, String(e)); }
 
-/* ============ R07 T6/STORMBREAKER immune ============ */
+/* ============ R07 T6 capability immune (REAL lifecycle + identities) ============ */
+// Evidence strength: part (a) exercises the SHIPPING T6 projectile
+// lifecycle — a real STORMBREAKER thrown-melee in homing flight (spawned
+// by the real spawnThrownMelee, spin 82, homing turn toward the target).
+// Part (b) covers every T6 capability IDENTITY the shared authority denies
+// (STORMBREAKER and T6 aliases). STORMBREAKER is a melee/thrown weapon in
+// the shipping config, so NO real T6 bullet producer exists; labelled
+// bullet/thrown entities are therefore fabricated ONLY as capability
+// identities for the eligibility check — this limitation is reported
+// rather than overstated.
 try {
   const o = start();
-  seed(o.ct, 400, 500, 0);
-  seed(o.ct, 700, 500, 0);
-  const p = emitBullet(o, { weapon: 'STORMBREAKER', x: 250, y: 500, speed: 1200, damage: 446 });
+  seed(o.ct, 500, 500, 0);
+  seed(o.ct, 300, 500, 0);
+  // (a) REAL T6 lifecycle: shipping STORMBREAKER throw, homing flight.
+  const before6 = new Set(win.projectiles);
+  W().spawnThrownMelee(o.b, 'STORMBREAKER', Math.PI);
+  const t6 = newestAfter(before6);
+  if (!t6) throw new Error('R07: real spawnThrownMelee(STORMBREAKER) pushed no projectile');
   const seqs = captureSeq(['MirrorRouteCapture', 'MirrorRouteLocal', 'MirrorRoutePreview', 'MirrorEscrowImage', 'MirrorRouteEmerge']);
   let everEscrowed = false;
-  for (let f = 0; f < 25; f++) {
+  for (let f = 0; f < 40; f++) {
     win.APEX_ARSENAL.step(DT);
-    if (escrowList().some((e) => e.p === p)) everEscrowed = true;
+    if (escrowList().some((e) => e.p === t6)) everEscrowed = true;
   }
-  const ev = seqs();
+  const evA = seqs();
+  const realLifecycleImmune = evA.length === 0 && !everEscrowed;
+  // (b) Capability identities through the shared authority.
+  let identityImmune = true;
+  for (const wid of ['STORMBREAKER', 'T6']) {
+    const before = new Set(win.projectiles);
+    W().fireBullet({ owner: o.b, x: 250, y: 500, angle: 0, speed: 1200, damage: 446, weapon: wid, life: 6 });
+    const pb = newestAfter(before);
+    const thrown = { aq: true, type: 'aq_thrown', state: 'flight', weapon: wid, owner: o.b,
+      x: 250, y: 500, px: 250, py: 500, vx: 1200, vy: 0, radius: 9, damage: 30,
+      life: 6, grace: 0, spin: 5, rot: 0, ricochetsLeft: 1, flightTime: 0, maxFlight: 0, __hr: {} };
+    win.projectiles.push(thrown);
+    const mark = bus().seq;
+    for (let f = 0; f < 25; f++) {
+      win.APEX_ARSENAL.step(DT);
+      if (escrowList().some((e) => e.p === pb || e.p === thrown)) identityImmune = false;
+    }
+    if (bus().since(mark).some((e) => /^MirrorRoute|^MirrorEscrowImage/.test(e.type))) identityImmune = false;
+  }
   gate('F2-R07-t6-immune',
-    ev.length === 0 && !everEscrowed && !(p.__hr && p.__hr.neutral)
-    && win.projectiles.includes(p),
-    { events: ev.length, everEscrowed, stillWorld: win.projectiles.includes(p) });
+    realLifecycleImmune && identityImmune,
+    { realLifecycleEvents: evA.length, realEverEscrowed: everEscrowed,
+      realLifecycleImmune, identityImmune });
 } catch (e) { gate('F2-R07-t6-immune', false, String(e)); }
 
 /* ============ R08 non-projectile families never routed ============ */
@@ -782,6 +846,132 @@ try {
     { capF, imgOff: imgF - capF, emOff: emF - capF, imgT, emT,
       canonImg: IMG_T, canonEm: EM_T, earlyImg, earlyEm });
 } catch (e) { gate('F2-R14-R15-first-crossing-exact', false, String(e)); }
+
+/* ============ WALL-VS-MIRROR GLOBAL TOI (Blocker 1 regression gates) ======
+ * Law: capture is terminal/trajectory-changing and reconciles with walls by
+ * REAL GLOBAL TOI on the ONE ordered travelled path — earliest event wins,
+ * stage order never decides. Mirror-earlier prevents the later wall event;
+ * wall-earlier prevents capture AND preview beyond the terminal wall.
+ * Real shipping walls via api.spawnWall; grenade/thrown wall interaction is
+ * the arena boundary bounce (plus real world walls for thrown). */
+const spawnWall = (opts) => HR.match.api.spawnWall(opts);
+
+/* ---- 1. bullet: Mirror earlier than wall -> capture, wall untouched ---- */
+try {
+  const o = start();
+  seed(o.ct, 400, 500, 0);
+  seed(o.ct, 550, 500, 0);
+  const w = spawnWall({ owner: o.a, x: 750, y: 520, angle: Math.PI / 2, len: 220, hp: 500, lifetime: 30 });
+  const hp0 = w.hp;
+  const p = emitBullet(o, { x: 250, y: 500, speed: 1200 });
+  const seqs = captureSeq(['MirrorRouteCapture', 'MirrorRouteEmerge']);
+  const tl = runCapture(p, seqs);
+  gate('F2-wall-bullet-mirror-earlier-wins',
+    tl.captureFrame > 0 && tl.emergeFrame > 0
+    && w.hp === hp0,                                 // wall untouched by this projectile
+    { captureFrame: tl.captureFrame, emergeFrame: tl.emergeFrame,
+      wallHp0: hp0, wallHp: w.hp });
+} catch (e) { gate('F2-wall-bullet-mirror-earlier-wins', false, String(e)); }
+
+/* ---- 2. bullet: wall earlier than Mirror -> wall wins; no capture AND no
+          preview beyond the terminal wall (high-speed frame whose swept
+          path reaches the surface on the far side of the wall) ----------- */
+try {
+  const o = start();
+  seed(o.ct, 400, 500, 0);
+  seed(o.ct, 700, 500, 0);
+  const w = spawnWall({ owner: o.a, x: 330, y: 520, angle: Math.PI / 2, len: 220, hp: 500, lifetime: 30 });
+  const hp0 = w.hp;
+  const p = emitBullet(o, { x: 250, y: 500, speed: 12000 }); // 200px/frame: path crosses wall AND surface in one frame
+  const seqs = captureSeq(['MirrorRouteCapture', 'MirrorRoutePreview', 'MirrorRouteLocal', 'MirrorRouteEmerge']);
+  stepFrames(4);
+  const ev = seqs();
+  gate('F2-wall-bullet-wall-earlier-wins',
+    p.life === 0 && w.hp < hp0                       // absorbed by the wall
+    && !ev.some((e) => e.type === 'MirrorRouteCapture')
+    && !ev.some((e) => e.type === 'MirrorRoutePreview')
+    && !ev.some((e) => e.type === 'MirrorRouteLocal'),
+    { absorbed: p.life === 0, wallHp0: hp0, wallHp: w.hp,
+      events: ev.map((e) => e.type) });
+} catch (e) { gate('F2-wall-bullet-wall-earlier-wins', false, String(e)); }
+
+/* ---- 3. grenade: Mirror earlier than boundary bounce -> capture -------- */
+try {
+  const o = start();
+  seed(o.ct, 500, 500, 0);
+  seed(o.ct, 300, 500, 0);
+  const g = emitGrenade(o, { x: 250, y: 500, speed: 300 });
+  const seqs = captureSeq(['MirrorRouteCapture', 'MirrorRouteEmerge']);
+  const tl = runCapture(g, seqs, 300);
+  gate('F2-wall-grenade-mirror-earlier-wins',
+    tl.captureFrame > 0 && tl.emergeFrame > 0 && g.vx > 0, // never reflected
+    { captureFrame: tl.captureFrame, emergeFrame: tl.emergeFrame, vx: g.vx });
+} catch (e) { gate('F2-wall-grenade-mirror-earlier-wins', false, String(e)); }
+
+/* ---- 4. grenade: boundary bounce earlier -> bounce wins, no capture
+          before it; a later legitimate approach still captures ---------- */
+try {
+  const o = start();
+  seed(o.ct, 500, 500, 0);
+  seed(o.ct, 700, 500, 0);
+  const g = emitGrenade(o, { x: 980, y: 500, speed: 300 });  // toward the right boundary
+  const seqs = captureSeq(['MirrorRouteCapture']);
+  let bounceFrame = -1, captureFrame = -1, earlyCapture = false;
+  for (let f = 1; f <= 240; f++) {
+    win.APEX_ARSENAL.step(DT);
+    if (bounceFrame < 0 && g.vx < 0) bounceFrame = f;
+    const cap = seqs().find((e) => e.type === 'MirrorRouteCapture');
+    if (cap && captureFrame < 0) {
+      captureFrame = f;
+      if (bounceFrame < 0) earlyCapture = true;
+      break;
+    }
+  }
+  gate('F2-wall-grenade-boundary-earlier-wins',
+    bounceFrame > 0 && captureFrame > bounceFrame && !earlyCapture,
+    { bounceFrame, captureFrame, earlyCapture });
+} catch (e) { gate('F2-wall-grenade-boundary-earlier-wins', false, String(e)); }
+
+/* ---- 5. thrown melee: Mirror earlier than wall/bounce -> capture ------- */
+try {
+  const o = start();
+  seed(o.ct, 500, 500, 0);
+  seed(o.ct, 300, 500, 0);
+  const t0 = emitThrown(o, 'DAGGER', Math.PI);
+  const rico0 = t0.ricochetsLeft;
+  const seqs = captureSeq(['MirrorRouteCapture', 'MirrorRouteEmerge']);
+  const tl = runCapture(t0, seqs, 300);
+  gate('F2-wall-thrown-mirror-earlier-wins',
+    tl.captureFrame > 0 && tl.emergeFrame > 0
+    && t0.ricochetsLeft === rico0                    // no ricochet consumed
+    && t0.vx < 0,                                    // never reflected
+    { captureFrame: tl.captureFrame, emergeFrame: tl.emergeFrame,
+      ricochetsLeft: t0.ricochetsLeft, vx: t0.vx });
+} catch (e) { gate('F2-wall-thrown-mirror-earlier-wins', false, String(e)); }
+
+/* ---- 6. thrown melee: boundary wall earlier -> ricochet wins; no
+          capture, ricochet budget consumed, velocity reflected ---------- */
+try {
+  const o = start();
+  seed(o.ct, 500, 500, 0);
+  seed(o.ct, 300, 500, 0);
+  // Thrown RIGHT from ~908: the right arena boundary (the thrown's wall
+  // interaction) lies BEFORE any node surface on the ordered path.
+  const t0 = emitThrown(o, 'DAGGER', 0);
+  const rico0 = t0.ricochetsLeft;
+  const seqs = captureSeq(['MirrorRouteCapture', 'MirrorRouteLocal', 'MirrorRoutePreview']);
+  let ricochetFrame = -1;
+  for (let f = 1; f <= 8; f++) {                     // boundary ricochet ~frame 4-5
+    win.APEX_ARSENAL.step(DT);
+    if (ricochetFrame < 0 && t0.vx < 0) ricochetFrame = f;
+  }
+  const ev = seqs();
+  gate('F2-wall-thrown-wall-earlier-wins',
+    ricochetFrame > 0 && t0.ricochetsLeft === rico0 - 1
+    && t0.vx < 0 && ev.length === 0,
+    { ricochetFrame, ricoBefore: rico0, ricoAfter: t0.ricochetsLeft,
+      vx: t0.vx, events: ev.length });
+} catch (e) { gate('F2-wall-thrown-wall-earlier-wins', false, String(e)); }
 
 if (HR.match) win.exitArsenalQuestMode();
 

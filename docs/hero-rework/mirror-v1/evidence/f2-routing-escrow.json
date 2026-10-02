@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T13:26:44.202Z",
+  "generatedAt": "2026-10-02T14:36:02.522Z",
   "gates": {
     "F2-R09-preview-threshold-no-removal": {
       "pass": true,
@@ -46,10 +46,11 @@
     "F2-R02-shotgun-pellet-entity-routes": {
       "pass": true,
       "detail": {
-        "captures": 2,
-        "pelletCaptured": true,
-        "bothEntities": true,
-        "family": "AUTOSHOT"
+        "captures": 6,
+        "fan": 6,
+        "distinctEntities": 6,
+        "allShotgun": true,
+        "captureFrames": 24
       }
     },
     "F2-R03-grenade-fuse-pauses-in-escrow": {
@@ -87,17 +88,18 @@
     "F2-R06-payload-tags-preserved": {
       "pass": true,
       "detail": {
-        "frost": true,
-        "chill": true,
+        "realFrostTag": true,
+        "group": "1:0",
         "neutral": true
       }
     },
     "F2-R07-t6-immune": {
       "pass": true,
       "detail": {
-        "events": 0,
-        "everEscrowed": false,
-        "stillWorld": true
+        "realLifecycleEvents": 0,
+        "realEverEscrowed": false,
+        "realLifecycleImmune": true,
+        "identityImmune": true
       }
     },
     "F2-R08-non-projectile-families-ignored": {
@@ -255,6 +257,59 @@
         "canonEm": 0.5666666666666671,
         "earlyImg": false,
         "earlyEm": false
+      }
+    },
+    "F2-wall-bullet-mirror-earlier-wins": {
+      "pass": true,
+      "detail": {
+        "captureFrame": 7,
+        "emergeFrame": 41,
+        "wallHp0": 500,
+        "wallHp": 500
+      }
+    },
+    "F2-wall-bullet-wall-earlier-wins": {
+      "pass": true,
+      "detail": {
+        "absorbed": true,
+        "wallHp0": 500,
+        "wallHp": 220,
+        "events": []
+      }
+    },
+    "F2-wall-grenade-mirror-earlier-wins": {
+      "pass": true,
+      "detail": {
+        "captureFrame": 3,
+        "emergeFrame": 37,
+        "vx": 300
+      }
+    },
+    "F2-wall-grenade-boundary-earlier-wins": {
+      "pass": true,
+      "detail": {
+        "bounceFrame": 1,
+        "captureFrame": 52,
+        "earlyCapture": false
+      }
+    },
+    "F2-wall-thrown-mirror-earlier-wins": {
+      "pass": true,
+      "detail": {
+        "captureFrame": 13,
+        "emergeFrame": 47,
+        "ricochetsLeft": 4,
+        "vx": -1210
+      }
+    },
+    "F2-wall-thrown-wall-earlier-wins": {
+      "pass": true,
+      "detail": {
+        "ricochetFrame": 4,
+        "ricoBefore": 4,
+        "ricoAfter": 3,
+        "vx": -1210,
+        "events": 0
       }
     }
   },
