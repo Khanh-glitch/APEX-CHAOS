@@ -82,8 +82,33 @@ implementation SHA).
   `sweptHit` closest-point-on-travelled-segment impact → `aqDamage`), with
   the impact marker made transaction-scoped so stale impacts cannot leak;
   the revision relocks **r22 → r23** with this commit.
-- **Focused suite:** `tools/testMirrorPassiveFormation.mjs` (27 gates),
-  evidence `docs/hero-rework/mirror-v1/evidence/f1-passive-formation.json`.
+- **Checkpoint F2 — Gold-first Mirror routing/escrow gameplay** (this
+  commit, directly on top of the F1 provenance-correction SHA
+  `bb80d47f…`): routing/escrow now operates on the REAL F1 per-owner ACTIVE
+  nodes through the shared `HR.mirrorNode.surface(node)` transform (local
+  route surface = polygon v0→v3) and the REAL travelled paths from
+  `HR.geom.pathSegments` — never a frame chord and never a second geometry.
+  The old circular `M.world.mirrors` router (permanent `lastPortalId`,
+  instant teleport, global nearest-portal) is RETIRED as a shipping
+  authority; its remnants survive only as NON-SHIPPING test seams
+  (`api.mirrorTestNode`, shard/portal spawn helpers for historical
+  goldens). Capture is global-TOI-terminal and reconciles with Magnet via
+  `supersedeMagnetBoundary` only when it wins the global TOI; preview and
+  one-node contact are non-terminal (world stays intact, ~0.40s attempt
+  cooldown only). Escrow detaches the ACTUAL projectile object
+  (WORLD → MIRROR_ESCROW → WORLD), pauses life/fuse/thrown ticks, and
+  releases at the canonical Gold fixed-step crossings — image ≈ **0.2083s**,
+  emergence ≈ **0.5667s** (1/120 accumulator, strict `>` first crossing) —
+  at the chosen destination node, or ONCE via the captured entry-node
+  fallback transform; emergence position = node center + incoming unit
+  direction × 20 (no legacy portal-radius offsets), `clearPath` semantics
+  for zero teleport-gap phantom hits, controller NEUTRAL, ~0.45s recapture
+  lock, no permanent suppression. Because production runtime changed, the
+  revision relocks **r23 → r24** with this commit.
+- **Focused suites:** `tools/testMirrorPassiveFormation.mjs` (28 gates),
+  evidence `docs/hero-rework/mirror-v1/evidence/f1-passive-formation.json`;
+  `tools/testMirrorF2Routing.mjs` (24 gates, R01–R23 + Slice-A laws),
+  evidence `docs/hero-rework/mirror-v1/evidence/f2-routing-escrow.json`.
 
 **F1 laws now shipping (Gold-first, per MIRROR owner):**
 

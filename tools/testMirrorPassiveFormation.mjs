@@ -206,11 +206,12 @@ try {
   const hpBefore = o.a.hp;
   // Real flight: step until the live rework projectile path resolves the hit.
   let hitStep = null;
-  for (let i = 1; i <= 120; i++) {
-    T.step(DT, DT);
-    if (onCount(st) > 0) { hitStep = i; break; }
-  }
-  rec.restore();
+  try {
+    for (let i = 1; i <= 120; i++) {
+      T.step(DT, DT);
+      if (onCount(st) > 0) { hitStep = i; break; }
+    }
+  } finally { rec.restore(); }                    // exception-safe seam restore
   const impact = rec.impact;
   const realized = hpBefore - o.a.hp;
   const shards = st.slots.filter((s) => s && s.on);
@@ -302,8 +303,9 @@ try {
   o.a.hp = o.a.maxHp;
   const p = fireRealBullet(o, 'PISTOL', 60);
   const rec = captureLiveImpact(o);
-  for (let i = 1; i <= 120; i++) { T.step(DT, DT); if (onCount(st) > 0) break; }
-  rec.restore();
+  try {
+    for (let i = 1; i <= 120; i++) { T.step(DT, DT); if (onCount(st) > 0) break; }
+  } finally { rec.restore(); }                    // exception-safe seam restore
   const impact = rec.impact;
   const p2 = provs();
   const impactProv = impact && p2.length > 0 && p2.every((pr) =>

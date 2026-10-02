@@ -90,30 +90,40 @@ try {
 } catch (e) { gate('AR1-segments-carry-their-own-velocity', false, String(e)); }
 
 /* ============ AR-1/2: Mirror route direction per leg ============ */
-function mirrorRouteCase({ portalAt, label }) {
+// F2 migration: the legacy circular router was retired at Checkpoint F2; the
+// same ordered-leg direction law is now pinned through the real F1 node
+// surface + escrow authority (nodes seeded via the NON-SHIPPING
+// mirrorTestNode seam for exact geometry).
+function mirrorRouteCase({ entryAt, label }) {
   const o = start('MIRROR', 'ROBOT');
   const M = HR.match;
-  M.world.mirrors.length = 0;
-  M.api.spawnMirrorPortal({ owner: o.a, x: portalAt.x, y: portalAt.y });
-  M.api.spawnMirrorPortal({ owner: o.a, x: 900, y: 120 });
+  const ctA = HR.byCombatant(o.a);
+  // Fixture hygiene: keep both bodies off the ordered test path so the
+  // surface capture (not a body hit) is the earliest event under test.
+  o.a.x = 150; o.a.y = 150; o.b.x = 850; o.b.y = 850;
+  M.api.mirrorTestNode(ctA, entryAt.x, entryAt.y, 0);      // entry node
+  M.api.mirrorTestNode(ctA, 900, 120, 0);                  // destination node
   const p = mkBullet(o.b);
   win.projectiles.length = 0; win.projectiles.push(p);
   const routed = [];
-  const un = win.APEX_HERO_REWORK_AIL.bus.on('MirrorPortalRoute', (e) => routed.push(e.payload || e));
+  const un = win.APEX_HERO_REWORK_AIL.bus.on('MirrorRouteCapture', (e) => routed.push(e.payload || e));
   withCorner(p, () => win.APEX_ARSENAL.weaponApi.updateArsenalProjectiles(DT));
   un();
   return { label, routed: routed.length, vx: p.vx, vy: p.vy, toi: routed[0] && routed[0].toi };
 }
 try {
-  // Portal on the real INBOUND leg (y=500, between x=200 and x=500).
-  const r = mirrorRouteCase({ portalAt: { x: 330, y: 500 }, label: 'inbound' });
+  // Entry-node surface on the real INBOUND leg (y=500, x in [200,500]).
+  const r = mirrorRouteCase({ entryAt: { x: 330, y: 500 }, label: 'inbound' });
   gate('AR-T1-mirror-inbound-uses-PRE-magnet-direction',
     r.routed === 1 && Math.abs(r.vx - PRE_VX) < 1e-6 && Math.abs(r.vy - PRE_VY) < 1e-6,
     r);
 } catch (e) { gate('AR-T1-mirror-inbound-uses-PRE-magnet-direction', false, String(e)); }
 try {
-  // Portal on the real OUTBOUND leg (x=500, between y=500 and y=800).
-  const r = mirrorRouteCase({ portalAt: { x: 500, y: 700 }, label: 'outbound' });
+  // Entry-node surface on the real OUTBOUND leg (x=500, y in [500,800]).
+  // The Magnet boundary at t=0.5 is physically EARLIER here, so it stays
+  // realized and the capture follows on the post-boundary leg with the POST
+  // velocity — global TOI ordering, not mirror-always-first.
+  const r = mirrorRouteCase({ entryAt: { x: 500, y: 700 }, label: 'outbound' });
   gate('AR-T2-mirror-outbound-uses-POST-magnet-direction',
     r.routed === 1 && Math.abs(r.vx - POST_VX) < 1e-6 && Math.abs(r.vy - POST_VY) < 1e-6,
     r);
@@ -222,7 +232,7 @@ try {
 
 /* ============ AR-T8: no stale path after relocation ==================== */
 try {
-  const r = mirrorRouteCase({ portalAt: { x: 330, y: 500 }, label: 'stale-check' });
+  const r = mirrorRouteCase({ entryAt: { x: 330, y: 500 }, label: 'stale-check' });
   gate('AR-T8-no-stale-path-after-relocation', r.routed === 1 && r.toi != null, r);
 } catch (e) { gate('AR-T8-no-stale-path-after-relocation', false, String(e)); }
 

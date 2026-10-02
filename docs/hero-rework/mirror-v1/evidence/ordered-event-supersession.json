@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T07:54:13.444Z",
+  "generatedAt": "2026-10-02T13:35:55.638Z",
   "gates": {
     "AR1-segments-carry-their-own-velocity": {
       "pass": true,
@@ -51,7 +51,7 @@
         "routed": 1,
         "vx": 36000,
         "vy": 0,
-        "toi": 0.13166666666666665
+        "toi": 0.17239811496332916
       }
     },
     "AR-T2-mirror-outbound-uses-POST-magnet-direction": {
@@ -61,7 +61,7 @@
         "routed": 1,
         "vx": 0,
         "vy": 36000,
-        "toi": 0.7483333333333333
+        "toi": 0.6942110180189817
       }
     },
     "AR-T3-crystal-reflect-uses-PRE-magnet-incoming-velocity": {
@@ -146,7 +146,7 @@
         "routed": 1,
         "vx": 36000,
         "vy": 0,
-        "toi": 0.13166666666666665
+        "toi": 0.17239811496332916
       }
     }
   },

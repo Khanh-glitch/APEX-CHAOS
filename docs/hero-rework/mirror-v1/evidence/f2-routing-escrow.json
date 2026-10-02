@@ -1,0 +1,262 @@
+{
+  "generatedAt": "2026-10-02T13:26:44.202Z",
+  "gates": {
+    "F2-R09-preview-threshold-no-removal": {
+      "pass": true,
+      "detail": {
+        "previews": 2,
+        "captures": 0,
+        "inWorld": true,
+        "vxUnchanged": true
+      }
+    },
+    "F2-R10-high-speed-swept-capture": {
+      "pass": true,
+      "detail": {
+        "captureFrame": 1,
+        "events": 1
+      }
+    },
+    "F2-R01-bullet-canonical-transit": {
+      "pass": true,
+      "detail": {
+        "captureFrame": 7,
+        "imgFrame": 20,
+        "imgT": 0.20833333333333331,
+        "emergeFrame": 41,
+        "emT": 0.5666666666666671,
+        "via": 2,
+        "emPos": [
+          720,
+          500
+        ],
+        "expected": [
+          720,
+          500
+        ],
+        "speedOk": true,
+        "kept": true,
+        "pxOk": true,
+        "canon": {
+          "img": 0.20833333333333331,
+          "em": 0.5666666666666671
+        }
+      }
+    },
+    "F2-R02-shotgun-pellet-entity-routes": {
+      "pass": true,
+      "detail": {
+        "captures": 2,
+        "pelletCaptured": true,
+        "bothEntities": true,
+        "family": "AUTOSHOT"
+      }
+    },
+    "F2-R03-grenade-fuse-pauses-in-escrow": {
+      "pass": true,
+      "detail": {
+        "captureFrame": 23,
+        "emergeFrame": 57,
+        "transitFrames": 34,
+        "fuseAtCapture": 1.0333333333333345,
+        "fuseAtEmerge": 1.016666666666668,
+        "lifeAtCapture": 1.616666666666668,
+        "lifeAtEmerge": 1.616666666666668
+      }
+    },
+    "F2-R04-thrown-melee-routes-with-lifecycle": {
+      "pass": true,
+      "detail": {
+        "captureFrame": 13,
+        "emergeFrame": 47,
+        "graceAtCapture": 0.13333333333333336,
+        "graceAtEmerge": 0.1166666666666667,
+        "lifeAtCapture": 5.583333333333335,
+        "lifeAtEmerge": 5.566666666666668,
+        "ricochetsLeft": 4
+      }
+    },
+    "F2-R05-time-replay-lineage-routes": {
+      "pass": true,
+      "detail": {
+        "loopOk": true,
+        "captures": 4,
+        "replayPreserved": true
+      }
+    },
+    "F2-R06-payload-tags-preserved": {
+      "pass": true,
+      "detail": {
+        "frost": true,
+        "chill": true,
+        "neutral": true
+      }
+    },
+    "F2-R07-t6-immune": {
+      "pass": true,
+      "detail": {
+        "events": 0,
+        "everEscrowed": false,
+        "stillWorld": true
+      }
+    },
+    "F2-R08-non-projectile-families-ignored": {
+      "pass": true,
+      "detail": {
+        "directDamageDealt": true,
+        "routingEvents": 0
+      }
+    },
+    "F2-R11-one-node-world-local-cooldown": {
+      "pass": true,
+      "detail": {
+        "locals": 1,
+        "escrowed": 0,
+        "inWorld": true,
+        "cooldownOk": true,
+        "blockedDuringCd": true,
+        "afterCdLocal": 1
+      }
+    },
+    "F2-R12-nearest-other-active-destination": {
+      "pass": true,
+      "detail": {
+        "dest": 2,
+        "nearId": 2,
+        "farId": 3,
+        "emPos": [
+          720,
+          500
+        ]
+      }
+    },
+    "F2-mirror-vs-mirror-network-isolation": {
+      "pass": true,
+      "detail": {
+        "owner": 1,
+        "bIdx": 1,
+        "entry": 3,
+        "dest": 4
+      }
+    },
+    "F2-forming-fold-nodes-cannot-capture": {
+      "pass": true,
+      "detail": {
+        "formingCaptures": 0,
+        "foldCaptures": 0
+      }
+    },
+    "F2-R13-escrow-absent-from-world": {
+      "pass": true,
+      "detail": {
+        "captured": true,
+        "emerged": true,
+        "escrowFrames": 31,
+        "neverInWorldDuringEscrow": true,
+        "frozen": true,
+        "singleCopy": true
+      }
+    },
+    "F2-R19-neutral-no-hero-credit": {
+      "pass": true,
+      "detail": {
+        "neutral": true,
+        "hitShooterSide": true,
+        "hpDelta": 280,
+        "creditUnchanged": true
+      }
+    },
+    "F2-R20-R21-recapture-lock-then-routing": {
+      "pass": true,
+      "detail": {
+        "lockOk": true,
+        "lockedCaptures": 0,
+        "laterCaptures": 1,
+        "lastPortalIdAbsent": true
+      }
+    },
+    "F2-R18-no-teleport-gap-phantom-hit": {
+      "pass": true,
+      "detail": {
+        "emerged": true,
+        "victimHp0": 1000,
+        "victimHp": 1000,
+        "px": 720,
+        "emX": 720,
+        "pxReset": true
+      }
+    },
+    "F2-R22-lost-destination-entry-fallback": {
+      "pass": true,
+      "detail": {
+        "emerges": 1,
+        "via": "entry-fallback",
+        "emPos": [
+          420,
+          500
+        ],
+        "expected": [
+          420,
+          500
+        ],
+        "thirdAt": [
+          920,
+          150
+        ]
+      }
+    },
+    "F2-R23-lifecycle-churn-no-dup-no-loss": {
+      "pass": true,
+      "detail": {
+        "singleCopy": true,
+        "lost": false,
+        "emergedVia": 2,
+        "destId": 2
+      }
+    },
+    "F2-mirror-earlier-supersedes-magnet": {
+      "pass": true,
+      "detail": {
+        "captures": 1,
+        "toi": 0.17239811496332916,
+        "pathViaCleared": true,
+        "escrowed": 1,
+        "restoreErr": null
+      }
+    },
+    "F2-magnet-earlier-mirror-captures-post-leg": {
+      "pass": true,
+      "detail": {
+        "captures": 1,
+        "toi": 0.6942110180189817,
+        "vx": 0,
+        "vy": 36000,
+        "restoreErr": null
+      }
+    },
+    "F2-preview-never-revokes-magnet": {
+      "pass": true,
+      "detail": {
+        "previews": 1,
+        "captures": 0,
+        "pathViaPending": true,
+        "restoreErr": null
+      }
+    },
+    "F2-R14-R15-first-crossing-exact": {
+      "pass": true,
+      "detail": {
+        "capF": 7,
+        "imgOff": 13,
+        "emOff": 34,
+        "imgT": 0.20833333333333331,
+        "emT": 0.5666666666666671,
+        "canonImg": 0.20833333333333331,
+        "canonEm": 0.5666666666666671,
+        "earlyImg": false,
+        "earlyEm": false
+      }
+    }
+  },
+  "failures": []
+}

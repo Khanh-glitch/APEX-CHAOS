@@ -377,15 +377,19 @@ try {
   T.holdSpawns();
   T.place(150, 500, 850, 500);
   const mirrorCt = T.ct(1);
-  // Force two mirror portals via the shard law (5 shards within 130px).
+  // F2 migration: two ACTIVE same-owner F1 mirror nodes via the
+  // NON-SHIPPING test seam (real node shape + lifecycle) at the historical
+  // portal positions. The legacy circular router was retired at F2; the
+  // golden's law (neutral exit, no hero credit) rides the real F2
+  // surface/escrow authority.
   const api = HR.match.api;
-  api.spawnShards(mirrorCt, 350, 500, 5);
-  api.spawnShards(mirrorCt, 650, 500, 5);
-  T.step(0.1); // shard clustering forms mirrors
-  const mirrors = W().mirrors.length;
+  api.mirrorTestNode(mirrorCt, 350, 500, 0);
+  api.mirrorTestNode(mirrorCt, 650, 500, 0);
+  T.step(0.1);
+  const mirrors = ((mirrorCt.store['mirror.passive'] || {}).nodes || []).filter(n => n.st === 2).length;
   // FROST V1 migration: ICE A1 is frost.breath (cone blast), not the legacy
   // ice.bullets chill-payload buff (authority §0/§8 supersession) — no chill
-  // leg exists anymore. This golden's purpose is portal neutrality, kept intact.
+  // leg exists anymore. This golden's purpose is route neutrality, kept intact.
   T.equip(0, 'GLOCK_17');
   const mark = T.busMark();
   let routed = false, neutralSeen = false, mirrorCredit = 0, runError = null;
@@ -393,7 +397,8 @@ try {
   try {
     for (let f = 0; f < 420; f++) {
       T.step(1 / 60);
-      if (!routed && T.busSince(mark, 'MirrorPortalRoute') > 0) routed = true;
+      if (!routed && T.busSince(mark, 'MirrorRouteCapture') > 0
+          && T.busSince(mark, 'MirrorRouteEmerge') > 0) routed = true;
       if (win.projectiles.some(p => p && p.aq && p.__hr && p.__hr.neutral)) neutralSeen = true;
       mirrorCredit = Math.max(mirrorCredit, mirCt2.telemetry.damageDealt);
       if (routed && neutralSeen) break;
@@ -533,10 +538,12 @@ try {
   T.place(150, 500, 850, 500);
   const mir = T.ct(1);
   const api = HR.match.api;
-  api.spawnShards(mir, 350, 500, 5);
-  api.spawnShards(mir, 650, 500, 5);
+  // F2 migration: two ACTIVE same-owner F1 mirror nodes via the
+  // NON-SHIPPING test seam at the historical portal positions.
+  api.mirrorTestNode(mir, 350, 500, 0);
+  api.mirrorTestNode(mir, 650, 500, 0);
   T.step(0.1);
-  const mirrors = W().mirrors.length;
+  const mirrors = ((mir.store['mirror.passive'] || {}).nodes || []).filter(n => n.st === 2).length;
   // Record real GLOCK fire for 1.5s, then loop-cast and watch a replayed
   // bullet enter a mirror portal and exit NEUTRAL (no hero controller).
   T.equip(0, 'GLOCK_17');
@@ -694,8 +701,10 @@ try {
     const mark = T.busMark(); // bus ring persists across matches
     let runError = null;
     try { T.step(6); } catch (e) { runError = String(e && e.message); }
+    // F2: the legacy MirrorPortalRoute event was retired with the circular
+    // router; F2 routing emits MirrorRouteCapture/MirrorRouteEmerge.
     const t6Transformed = ['CrystalReflect', 'SingularityStored', 'RubberStored',
-      'MirrorPortalRoute', 'MirrorCopy'].some(t => T.busSince(mark, t) > 0);
+      'MirrorRouteCapture', 'MirrorRouteEmerge', 'MirrorCopy'].some(t => T.busSince(mark, t) > 0);
     const storedT6 = W() && ((W().singularities || []).some(s => s.stored.some(d => d.weapon === 'STORMBREAKER'))
       || ((T.ct(0).store['rubber.compression'] || {}).held || []).some(d => d.weapon === 'STORMBREAKER'));
     const t6Projectiles = win.projectiles.filter(p => p && p.weapon === 'STORMBREAKER' && p.__hr

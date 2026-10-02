@@ -178,8 +178,10 @@ try {
 /* ====================================================== MIRROR A / B / C */
 // Drive a REAL corner frame: feed Magnet's own movement-plan seam so the real
 // production integration in reworkUpdateProjectiles() builds the ordered path,
-// then let the real mirrorRoute() consume it. Nothing about the path is
-// hand-written -- only the plan Magnet itself would have published.
+// then let the real F2 mirror routing (oriented F1 node surface + escrow)
+// consume it. Nothing about the path is hand-written -- only the plan Magnet
+// itself would have published. Nodes are seeded through the NON-SHIPPING
+// mirrorTestNode seam (real F1 node shape + lifecycle) for exact geometry.
 //
 // frameStart (200,500) -> corner (500,500) at t=0.5 -> end (500,800).
 // The false chord runs diagonally and passes near (350,650): a point on
@@ -203,12 +205,15 @@ function withCornerFrame(p, fn) {
   try { return fn(); } finally { MAGR.consumeMovementPlan = realConsume; }
 }
 
-function mirrorScenario({ portalAt }) {
+function mirrorScenario({ entryAt }) {
   const o = start('MIRROR', 'ROBOT');
   const M = HR.match;
-  M.world.mirrors.length = 0;
-  const m1 = M.api.spawnMirrorPortal({ owner: o.a, x: portalAt.x, y: portalAt.y });
-  const m2 = M.api.spawnMirrorPortal({ owner: o.a, x: 900, y: 120 });
+  const ctA = HR.byCombatant(o.a);
+  // Fixture hygiene: keep both bodies off the ordered test path so the
+  // surface capture (not a body hit) is the earliest event under test.
+  o.a.x = 150; o.a.y = 150; o.b.x = 850; o.b.y = 850;
+  M.api.mirrorTestNode(ctA, entryAt.x, entryAt.y, 0);      // entry node
+  M.api.mirrorTestNode(ctA, 900, 120, 0);                  // destination node
   const plan = cornerPlan();
   const p = {
     aq: true, type: 'aq_bullet', weapon: 'PISTOL', life: 1, radius: 7,
@@ -218,48 +223,60 @@ function mirrorScenario({ portalAt }) {
   win.projectiles.length = 0; win.projectiles.push(p);
   const routed = [];
   const AIL = win.APEX_HERO_REWORK_AIL;
-  const un = AIL.bus.on('MirrorPortalRoute', (e) => routed.push(e.payload || e));
+  const un = AIL.bus.on('MirrorRouteCapture', (e) => routed.push(e.payload || e));
   withCornerFrame(p, () => win.APEX_ARSENAL.weaponApi.updateArsenalProjectiles(DT));
   un();
-  return { routed: routed.length, p, m1, m2, toi: routed[0] && routed[0].toi };
+  return { routed: routed.length, p, toi: routed[0] && routed[0].toi };
 }
 
 try {
-  // Portal centred on the real inbound leg.
-  const r = mirrorScenario({ portalAt: { x: 330, y: 500 } });
+  // Entry-node surface crossing the real inbound leg.
+  const r = mirrorScenario({ entryAt: { x: 330, y: 500 } });
   gate('MIRROR-A-routes-on-real-segment', r.routed === 1, { routed: r.routed });
   gate('MIRROR-A-no-stale-path-after-relocation', !(r.p.__hr && r.p.__hr.pathVia),
     { pathVia: r.p.__hr && r.p.__hr.pathVia });
 } catch (e) { gate('MIRROR-A-routes-on-real-segment', false, String(e)); }
 
 try {
-  // Portal only on the false chord (350,650) -- on neither real leg.
-  const r = mirrorScenario({ portalAt: { x: 350, y: 650 } });
+  // Node surface only on the false chord (350,650) -- on neither real leg.
+  const r = mirrorScenario({ entryAt: { x: 350, y: 650 } });
   gate('MIRROR-B-no-route-on-false-chord-only', r.routed === 0, { routed: r.routed });
 } catch (e) { gate('MIRROR-B-no-route-on-false-chord-only', false, String(e)); }
 
 try {
-  // After relocation the stale portalExit -> oldMagnetBoundary geometry must
-  // not produce a phantom body hit. Put a fighter exactly on that stale line.
+  // After capture the stale capturePoint -> oldMagnetBoundary geometry must
+  // not produce a phantom body hit. Drive a REAL corner frame (Magnet's own
+  // plan seam), capture on the inbound leg, put a victim exactly on the
+  // stale inbound remainder past the capture point, then run the full
+  // escrow transit to emergence and check the victim was never hit.
   const o = start('MIRROR', 'ROBOT');
   const M = HR.match;
-  M.world.mirrors.length = 0;
-  M.api.spawnMirrorPortal({ owner: o.a, x: 330, y: 500 });
-  const exitPortal = M.api.spawnMirrorPortal({ owner: o.a, x: 900, y: 120 });
+  const ctA = HR.byCombatant(o.a);
+  o.a.x = 150; o.a.y = 150; o.b.x = 850; o.b.y = 850;
+  M.api.mirrorTestNode(ctA, 330, 500, 0);
+  M.api.mirrorTestNode(ctA, 900, 120, 0);
+  const plan = cornerPlan();
   const p = {
     aq: true, type: 'aq_bullet', weapon: 'PISTOL', life: 1, radius: 7,
     owner: o.b, damage: 25, critical: false, __hr: {},
-    px: 200, py: 500, x: 500, y: 800, vx: 0, vy: 0,
+    x: 200, y: 500, vx: plan.preVx, vy: plan.preVy,
   };
-  p.__hr.pathVia = { x: 500, y: 500, t: 0.5 };
-  // Victim sits on the midpoint of portalExit -> oldMagnetBoundary.
-  o.b.x = (exitPortal.x + 500) / 2; o.b.y = (exitPortal.y + 500) / 2;
+  // Victim sits on the inbound leg PAST the capture point: exactly the
+  // stale geometry a phantom teleport-gap sweep would test.
+  o.b.x = 415; o.b.y = 500;
   const hpBefore = o.b.hp;
   win.projectiles.length = 0; win.projectiles.push(p);
-  win.APEX_ARSENAL.weaponApi.updateArsenalProjectiles(0);
+  let captured = false;
+  const AIL = win.APEX_HERO_REWORK_AIL;
+  const un = AIL.bus.on('MirrorRouteCapture', () => { captured = true; });
+  withCornerFrame(p, () => win.APEX_ARSENAL.weaponApi.updateArsenalProjectiles(DT));
+  // Full escrow transit (canonical emergence edge ~0.5667s).
+  for (let f = 0; f < 40; f++) win.APEX_ARSENAL.weaponApi.updateArsenalProjectiles(DT);
+  un();
+  const emerged = !!(p.__hr && p.__hr.neutral) && win.projectiles.includes(p);
   gate('MIRROR-C-no-phantom-body-hit-across-teleport',
-    o.b.hp === hpBefore && !(p.__hr && p.__hr.pathVia),
-    { hpBefore, hpAfter: o.b.hp, pathVia: p.__hr && p.__hr.pathVia });
+    captured && emerged && o.b.hp === hpBefore && !(p.__hr && p.__hr.pathVia),
+    { captured, emerged, hpBefore, hpAfter: o.b.hp, pathVia: p.__hr && p.__hr.pathVia });
 } catch (e) { gate('MIRROR-C-no-phantom-body-hit-across-teleport', false, String(e)); }
 
 if (HR.match) win.exitArsenalQuestMode();

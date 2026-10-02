@@ -572,38 +572,45 @@
         if (!M) return;
         mirrorPassiveTick(ct, dt);
       },
-      /* DEPRECATED (F2 cleanup) — legacy pre-F1 shard/portal scaffold.
-       * NOT passive authority: the mirror.shattered_mirrors passive never
-       * calls this. Retained ONLY because protected historical suites pin
-       * the old law through this direct test seam:
-       *   - tools/testHeroReworkGoldens.mjs (G2/G5 historical X-matrix);
-       * legacy portals live in M.world.mirrors, a space F1 nodes never
-       * enter, so the F1 node lifecycle and the legacy router can never
-       * interact. Removal belongs to Checkpoint F2. */
-      spawnShards(ct, x, y, n) {
-        for (let i = 0; i < n; i++) {
-          const a = rng() * Math.PI * 2;
-          const r = 18 + rng() * 40;
-          M.world.shards.push({
-            owner: ct, x: x + Math.cos(a) * r, y: y + Math.sin(a) * r,
-            bornAt: AIL.clock(), lifetime: 6,
-          });
-        }
-        tryFormMirrors();
-      },
-      /* DEPRECATED (F2 cleanup) — legacy circular portal object for the
-       * protected ordered-path/supersession foundations and the historical
-       * goldens. Never produced by F1 formation; F1 nodes are per-owner
-       * oriented-surface nodes in the combatant mirror passive state. */
-      spawnMirrorPortal(o) {
-        if (M.world.mirrors.length >= 3) return null;
-        const m = {
-          id: ++M.world.mirrorSeq, owner: o.owner, x: o.x, y: o.y,
-          radius: 44, bornAt: AIL.clock(), lifetime: o.lifetime || 10,
+      /* F2 NON-SHIPPING TEST SEAM — inject a ready-ACTIVE F1 node with the
+       * REAL node shape and REAL lifecycle (it ages and folds through
+       * mirrorPassiveStep exactly like any formed node, owns five shard
+       * slots through the real 16-slot pool, and is routed by the same F2
+       * surface/escrow authority). Focused gates, the protected ordered
+       * foundations and the historical goldens need precise node geometry
+       * without running the full damage->formation pipeline; gameplay code
+       * never calls this. The legacy pre-F1 scaffold (spawnShards /
+       * tryFormMirrors / spawnMirrorPortal, circular M.world.mirrors
+       * router, permanent lastPortalId) was RETIRED at Checkpoint F2 — the
+       * shipping projectile pass routes Mirror behavior only through the
+       * real F1 node network below. */
+      mirrorTestNode(ct, x, y, rot) {
+        if (!M || !ct) return null;
+        const st = mirrorPassiveState(ct);
+        const node = {
+          owner: ct, x, y, rot: rot || 0,
+          st: 2,                       // ACTIVE (same state machine as formed nodes)
+          t: 0, age: 0, t3: 0, tlock: 0,
+          activeAtClock: AIL.clock(), formedAtClock: AIL.clock(),
+          sh: [], id: mirrorNodeId(),
         };
-        M.world.mirrors.push(m);
-        AIL.bus.emit('MirrorFormed', { x: m.x, y: m.y });
-        return m;
+        // Economy truth: an ACTIVE node owns FIVE shard slots for its whole
+        // life. Create five owned shards occupying the first free slots so
+        // the 16/5 accounting stays exact.
+        for (let k = 0; k < 5 && node.sh.length < 5; k++) {
+          const si = st.slots.findIndex((s) => !s);
+          if (si < 0) break;
+          const w = mirrorNodeToWorld(node, MIRROR_NV[k][0], MIRROR_NV[k][1]);
+          const sh = {
+            on: true, st: 3, node, x: w.x, y: w.y, vx: 0, vy: 0,
+            age: 1, moving: false, mt0: 0, fx: w.x, fy: w.y, tx: w.x, ty: w.y,
+            trot: node.rot, dist: 0, prov: null,
+          };
+          st.slots[si] = sh;
+          node.sh.push(sh);
+        }
+        st.nodes.push(node);
+        return node;
       },
 
       /* SLIME bodies (doc 06: never in global fighters[]) ------------- */
@@ -906,28 +913,6 @@
     return h && h.weaponId ? { weaponId: h.weaponId, holder: h } : null;
   }
 
-  function tryFormMirrors() {
-    // 5 shards within 130px form a mirror (mirror.shattered_mirrors).
-    const shards = M.world.shards;
-    if (shards.length < 5) return;
-    for (let i = 0; i < shards.length; i++) {
-      const cluster = [shards[i]];
-      for (let j = 0; j < shards.length; j++) {
-        if (j === i) continue;
-        if (dist(shards[i].x, shards[i].y, shards[j].x, shards[j].y) <= 130) cluster.push(shards[j]);
-      }
-      if (cluster.length >= 5) {
-        const mx = cluster.slice(0, 5).reduce((s, c) => s + c.x, 0) / 5;
-        const my = cluster.slice(0, 5).reduce((s, c) => s + c.y, 0) / 5;
-        const owner = shards[i].owner;
-        const used = cluster.slice(0, 5);
-        M.world.shards = M.world.shards.filter((s) => !used.includes(s));
-        M.api.spawnMirrorPortal({ owner, x: mx, y: my, lifetime: 10 });
-        return;
-      }
-    }
-  }
-
   /* ==================================================================== *
    * CHECKPOINT F1 — MIRROR GOLD-FIRST PER-OWNER SHARD / NODE FORMATION.
    *
@@ -954,9 +939,10 @@
    * node-count cap branch and no oldest-node retirement on purpose.
    *
    * ROUTING IS DISABLED IN F1: nodes carry the shared oriented transform
-   * (NV, v0->v3 surface) for F2/G, but nothing here captures or moves a
-   * projectile. F1 nodes never enter M.world.mirrors, so the deprecated
-   * legacy circle router above can never act on them.
+   * (NV, v0->v3 surface) for F2/G, but nothing in THIS block captures or
+   * moves a projectile. Checkpoint F2 routes through these ACTIVE nodes via
+   * mirrorF2Candidate/mirrorF2Capture below; the legacy circular router was
+   * retired there.
    * ==================================================================== */
   const MIRROR_NV = [[-5, -60], [28, -27], [20, 28], [0, 62], [-28, 31]];
   const MIRROR_SHARD_SLOTS = 16;
@@ -1103,6 +1089,7 @@
       t: 0, age: 0, t3: 0, tlock: -1,
       activeAtClock: -1, formedAtClock: AIL.clock(),
       sh: [],
+      id: mirrorNodeId(),        // F2: stable identity for routing events
     };
     // Edge target slots from transformed NV edge midpoints (Gold law).
     const edges = [];
@@ -2276,6 +2263,14 @@
     const magnet = globalScope.APEX_MAGNET;
     if (magnet) magnet.stepProjectiles(dt, projectiles, combatantOfBody, AIL.clock());
 
+    // F2 MIRROR ESCROW TRANSIT: advance the canonical fixed-step transit
+    // choreography for every escrowed projectile BEFORE the ordinary pass.
+    // Objects at the canonical emergence edge rejoin the live array here and
+    // are then integrated by the normal lifecycle the same frame. Escrowed
+    // objects are absent from `projectiles`, so the Magnet sum above and
+    // every stage below are physically unable to act on them.
+    mirrorF2EscrowStep(projectiles, dt);
+
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const p = projectiles[i];
       if (!p || !p.aq) continue;
@@ -2355,18 +2350,33 @@
         // ---- Stage S: singularity store (T6 immune) ---------------------
         if (singularityStore(p)) { projectiles.splice(i, 1); continue; }
 
-        // ---- Stage P: mirror portal routing (bullets; T6 immune) -------
-        mirrorRoute(p);
-
-        // ---- Stage B: body interactions (earliest TOI winner) ----------
+        // ---- Stage P: F2 mirror surface routing (real F1 ACTIVE nodes;
+        // T6 immune). Global TOI ordering against body / Crystal / Magnet:
+        // the earliest terminal event on the ONE ordered path wins.
         const bodyHit = earliestToiBodyT(p, BULLET_HIT_SCALE);
-        // CRYSTALA (K shard contact / J solid material): the earliest of shard
-        // contact, construct surface and body wins. There is NO automatic body
-        // reflect any more (docs/hero-rework/crystala-v1 authority).
+        const mf2 = mirrorF2Candidate(p, bodyHit ? bodyHit.t : null);
+        // CRYSTALA (K shard contact / J solid material): the earliest of
+        // shard contact, construct surface, body AND mirror capture wins.
+        // There is NO automatic body reflect any more
+        // (docs/hero-rework/crystala-v1 authority). A pending mirror
+        // capture bounds the crystal window exactly like an earlier body:
+        // the projectile is escrowed at the capture TOI and never reaches
+        // anything later on the path.
+        let cryLimit = bodyHit ? bodyHit.t : 2;
+        if (mf2 && mf2.kind === 'capture') cryLimit = Math.min(cryLimit, mf2.capT);
         if (CRY) {
-          const cr = CRY.resolveBullet(p, bodyHit ? bodyHit.t : 2, dt);
+          const cr = CRY.resolveBullet(p, cryLimit, dt);
           if (cr && cr.consumed) continue;
         }
+        if (mf2 && mf2.kind === 'capture' && !(bodyHit && bodyHit.t < mf2.capT)) {
+          mirrorF2Capture(p, mf2, projectiles);
+          continue;
+        }
+        if (mf2 && mf2.kind === 'oneNode' && !(bodyHit && bodyHit.t < mf2.capT)) {
+          mirrorF2LocalResponse(p, mf2);      // non-terminal: no supersede
+        }
+
+        // ---- Stage B: body interactions (earliest TOI winner) ----------
         const target = bodyHit ? bodyHit.body : null;
         if (target) {
           // RUBBER compression storage (enemy projectile into RUBBER).
@@ -2419,11 +2429,17 @@
       }
 
       if (p.type === 'aq_grenade') {
+        p.px = p.x; p.py = p.y;   // swept-path truth for ordered consumers (F2)
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         p.rot = (p.rot || 0) + dt * 9;
-        // Mirror portals route grenades too (doc 06).
-        mirrorRoute(p);
+        // F2 routes grenades through the real F1 node surface (doc 06 §8:
+        // grenade projectile is an eligible routed family). While escrowed
+        // the grenade is absent from the live array, so its fuse does not
+        // tick and no bounce/wall logic can act on it.
+        const mg = mirrorF2Candidate(p, null);
+        if (mg && mg.kind === 'capture') { mirrorF2Capture(p, mg, projectiles); continue; }
+        if (mg && mg.kind === 'oneNode') mirrorF2LocalResponse(p, mg);
         if (p.x < p.radius) { p.x = p.radius; p.vx = Math.abs(p.vx); }
         if (p.x > GAME_SIZE - p.radius) { p.x = GAME_SIZE - p.radius; p.vx = -Math.abs(p.vx); }
         if (p.y < p.radius) { p.y = p.radius; p.vy = Math.abs(p.vy); }
@@ -2455,6 +2471,21 @@
           p.x += p.vx * dt;
           p.y += p.vy * dt;
           p.rot += p.spin * dt;
+          // F2 routes normal thrown-melee FLIGHT projectiles through the
+          // real F1 node surface (doc 08 §7 eligible family; T6 already
+          // capability-denied). Ordered against the body contact exactly
+          // like bullets: a strictly-earlier body pin wins. While escrowed
+          // the thrown object's grace/flight/maxFlight/life timers do not
+          // tick.
+          const tBodyHit = p.grace <= 0 ? earliestToiBodyT(p, BULLET_HIT_SCALE) : null;
+          const mt = mirrorF2Candidate(p, tBodyHit ? tBodyHit.t : null);
+          if (mt && mt.kind === 'capture' && !(tBodyHit && tBodyHit.t < mt.capT)) {
+            mirrorF2Capture(p, mt, projectiles);
+            continue;
+          }
+          if (mt && mt.kind === 'oneNode' && !(tBodyHit && tBodyHit.t < mt.capT)) {
+            mirrorF2LocalResponse(p, mt);     // non-terminal: no supersede
+          }
           // Walls: T6 shatters through; others consume ricochet budget.
           const tw = (CRY && CRY.thrownSurface(p)) || sweepThrownWall(p);
           if (tw) {
@@ -2840,73 +2871,273 @@
     return false;
   }
 
-  /* LEGACY CIRCLE ROUTER — DEPRECATED, F2 replaces this path.
+  /* ==================================================================== *
+   * CHECKPOINT F2 — GOLD-FIRST ORIENTED-SURFACE ROUTING / ESCROW.
    *
-   * CHECKPOINT F1 INERTNESS LAW: F1 mirror nodes live ONLY in the per-owner
-   * mirror passive state (ct.store['mirror.passive'].nodes) and NEVER enter
-   * M.world.mirrors, so this function — which iterates M.world.mirrors
-   * exclusively — can never see, capture or route through an F1 node in any
-   * of its states (FORMING / ACTIVE / FOLD). Its remaining inputs are the
-   * deprecated legacy portal objects spawned directly by protected
-   * historical suites (ordered path/supersession foundations, goldens G2/G5).
-   * Checkpoint F2 removes this path and implements Gold-first
-   * oriented-surface routing against the F1 node transform. */
-  function mirrorRoute(p) {
-    if (!M || M.world.mirrors.length < 2) return;
-    if (p.weapon === 'STORMBREAKER') return; // T6 immune
-    // A portal may trigger only if its surface is intersected by a REAL
-    // travelled segment. A portal lying only on the false frameStart->final
-    // chord of a Magnet A2 corner frame must NOT trigger.
-    let hit = null;
-    for (const m of M.world.mirrors) {
-      if (p.__hr && p.__hr.lastPortalId === m.id) continue; // anti-loop
-      const R = m.radius + (p.radius || 0);
-      for (const g of pathSegments(p)) {
-        const local = segmentToPointToi(g.x0, g.y0, g.x1, g.y1, m.x, m.y, R);
-        if (local == null) continue;
-        const t = globalT(g, local);                          // GLOBAL frame TOI
-        if (!hit || t < hit.t) hit = { m, t, seg: g };
-        break;                                                // segments are in travel order
+   * THE OLD CIRCULAR M.world.mirrors ROUTER IS RETIRED (removed at F2):
+   * no circular portal radius, no permanent lastPortalId, no instant
+   * teleport, no global owner-blind nearest portal. F2 routes through the
+   * REAL per-owner F1 ACTIVE nodes and the ONE shared transform authority
+   * HR.mirrorNode (local route surface v0 -> v3).
+   *
+   * Laws (doc 08 §7-§9, doc 02 R01-R23, executable Gold CR10-CR14):
+   *   eligible  = firearm bullets, each shotgun pellet entity, grenade,
+   *               normal thrown-melee flight, transformed/replayed
+   *               descendants — capability semantics, no weapon-name
+   *               allowlist; T6/STORMBREAKER immune; never direct melee,
+   *               shields, fields, Hero actives.
+   *   surface   = swept capsule test on every REAL ordered path segment
+   *               (no frame-chord, no tunnelling); capture ~17px + radius,
+   *               preview ~34px + radius.
+   *   one node  = projectile stays WORLD, no escrow/relocation/neutral;
+   *               touched node gets the local response event and the
+   *               projectile gets a ~0.40s capture-attempt cooldown
+   *               (not damage immunity, not a global lock).
+   *   capture   = >=2 ACTIVE same-owner nodes: entry node fixed at the
+   *               actually-crossed surface; destination = nearest OTHER
+   *               ACTIVE same-owner node by center distance, chosen ONCE.
+   *   escrow    = WORLD -> MIRROR_ESCROW -> WORLD on the ACTUAL detached
+   *               object (never a clone): removed from ordinary movement/
+   *               collision; Magnet/walls/bodies/Crystal cannot act on it;
+   *               life/fuse/thrown timers do not tick; exists exactly once.
+   *   transit   = canonical Gold fixed-step edges measured on the
+   *               executable: destination image at t = 0.2083 (authored
+   *               .20), emergence at t = 0.5667 (authored .56), advanced
+   *               through the same 1/120 fixed-step accumulator law as
+   *               mirrorAdvance — never a raw timer.
+   *   emergence = node center + incomingUnitDirection * 20 (1:1 shared
+   *               transform); controller NEUTRAL; damage/provenance
+   *               unchanged; px/py + swept history reset to the emergence
+   *               point (ZERO teleport-gap phantom); destination lost
+   *               before release -> captured entry-node transform fallback
+   *               exactly once (no retarget, no deletion); ~0.45s
+   *               post-exit recapture lock (not immunity), then valid
+   *               later routing is allowed — no global one-portal cap.
+   *   ordering  = capture is a real terminal/trajectory-changing event and
+   *               is reconciled with walls/Crystal/body/Magnet by global
+   *               TOI on the ONE ordered path; preview and one-node local
+   *               response are NON-terminal and never revoke Magnet.
+   * ==================================================================== */
+  const MIRROR_F2 = {
+    previewPx: 34, capturePx: 17,
+    attemptCd: 0.40, recaptureLock: 0.45,
+    imageT: 0.20, emergeT: 0.56, step: 1 / 120, offsetPx: 20,
+  };
+
+  function mirrorF2World() {
+    return M.world.mirrorF2 || (M.world.mirrorF2 = { escrow: [], nodeSeq: 0 });
+  }
+  function mirrorNodeId() { return ++mirrorF2World().nodeSeq; }
+
+  // Eligibility by capability/type semantics (doc 08 §7): detached
+  // projectile entities only. T6 is capability-denied. Thrown melees route
+  // only while they are real detached flight projectiles (never pinned or
+  // tumbling drop states). No ad-hoc weapon-name allowlist decides family.
+  function mirrorF2Eligible(p) {
+    if (!M || !p || !p.aq) return false;
+    if (p.weapon === 'STORMBREAKER') return false; // T6 immune
+    if (p.type === 'aq_bullet') return true;       // bullets + pellets + replays + transforms
+    if (p.type === 'aq_grenade') return true;
+    if (p.type === 'aq_thrown') return p.state === 'flight';
+    return false;
+  }
+
+  function mirrorF2CoolingDown(p) {
+    const hr = p.__hr;
+    if (!hr) return false;
+    const now = AIL.clock();
+    if (hr.mirrorRecaptureUntil != null && now < hr.mirrorRecaptureUntil) return true;
+    if (hr.mirrorAttemptCdUntil != null && now < hr.mirrorAttemptCdUntil) return true;
+    return false;
+  }
+
+  // Swept capsule contact of the REAL ordered travelled path against one
+  // node's oriented route surface. Segments are walked in travel order, so
+  // the first contact is the earliest GLOBAL TOI; high-speed projectiles
+  // cannot tunnel (swept test, not a per-frame point test).
+  function mirrorF2Sweep(p, R) {
+    let best = null;
+    for (const ct of M.combatants) {
+      const st = ct.store && ct.store['mirror.passive'];
+      if (!st || !st.nodes || !st.nodes.length) continue;
+      for (const n of st.nodes) {
+        if (n.st !== 2) continue;                 // ACTIVE only (never FORMING/FOLD/OFF)
+        const s = HR.mirrorNode.surface(n);
+        for (const g of pathSegments(p)) {
+          const hit = capsuleToi(g.x0, g.y0, g.x1, g.y1, s.ax, s.ay, s.bx, s.by, R);
+          if (!hit) continue;
+          const t = globalT(g, hit.t);            // GLOBAL frame TOI
+          if (!best || t < best.t) best = { node: n, t, seg: g };
+          break;                                  // segments are in travel order
+        }
       }
     }
-    if (!hit) return;
-    // PHYSICAL ORDERING: a Mirror crossing earlier in the frame than a pending
-    // Magnet A2 boundary means the projectile never reached that boundary.
-    // Mirror capture relocates the projectile: terminal AND trajectory
-    // changing, so it genuinely supersedes a later Magnet boundary.
-    if (hit.t != null) supersedeMagnetBoundary(p, hit.t, { terminal: true, trajectoryChanged: true });
-    {
-      const m = hit.m;
-      // Route to the nearest OTHER mirror (Lv1 routing policy).
-      let other = null, bestD = Infinity;
-      for (const m2 of M.world.mirrors) {
-        if (m2 === m) continue;
-        const d = dist(m.x, m.y, m2.x, m2.y);
-        if (d < bestD) { bestD = d; other = m2; }
-      }
-      if (!other) return;
-      (p.__hr = p.__hr || {}).lastPortalId = other.id;
-      p.__hr.neutral = true; // exiting controller = NEUTRAL
-      // Exit along the projectile's incoming travel direction ON THE LEG THE
-      // PORTAL WAS ACTUALLY CROSSED. Reading p.vx here would use Magnet's
-      // post-response velocity for a capture that happened BEFORE that
-      // boundary was ever reached.
-      const inVx = hit.seg && Number.isFinite(hit.seg.vx) ? hit.seg.vx : p.vx;
-      const inVy = hit.seg && Number.isFinite(hit.seg.vy) ? hit.seg.vy : p.vy;
-      const sp = Math.hypot(inVx, inVy) || 1;
-      const dx = inVx / sp, dy = inVy / sp;
-      p.vx = inVx; p.vy = inVy;   // the routed object keeps its real incoming kinematics
-      p.x = other.x + dx * (other.radius + 4);
-      p.y = other.y + dy * (other.radius + 4);
-      p.px = p.x; p.py = p.y;
-      // The projectile has been relocated. Terminate the travelled-path
-      // metadata so no downstream consumer can see geometry equivalent to
-      // portalExit -> oldMagnetBoundary -> portalExit and invent a phantom
-      // body or Crystal contact across the teleport gap.
-      clearPath(p);
-      AIL.bus.emit('MirrorPortalRoute', { from: m.id, to: other.id, toi: hit.t });
-      return;
+    return best;
+  }
+
+  // Destination law: nearest OTHER ACTIVE node of the SAME owner/network by
+  // node-center distance, chosen ONCE at capture (ties broken by node id so
+  // the choice is deterministic). Mirror-vs-Mirror networks never mix.
+  function mirrorF2Destination(entryNode) {
+    const owner = entryNode.owner;
+    const st = owner && owner.store && owner.store['mirror.passive'];
+    if (!st) return null;
+    let dest = null, bestD = Infinity;
+    for (const n2 of st.nodes) {
+      if (n2 === entryNode || n2.st !== 2) continue;
+      const d = dist(entryNode.x, entryNode.y, n2.x, n2.y);
+      if (d < bestD || (d === bestD && dest && n2.id < dest.id)) { bestD = d; dest = n2; }
     }
+    return dest;
+  }
+
+  // Capture/preview candidacy for one projectile this frame. PURE
+  // observation except for the one-per-node preview event emission: never
+  // mutates the projectile, never revokes Magnet, never alters trajectory.
+  // `bodyToi` is the earliest body-contact TOI already adjudicated for this
+  // frame (null when none / not applicable): surface events that would only
+  // happen AFTER the projectile is consumed by a body are not presented.
+  function mirrorF2Candidate(p, bodyToi) {
+    if (!mirrorF2Eligible(p) || mirrorF2CoolingDown(p)) return null;
+    const captureR = MIRROR_F2.capturePx + (p.radius || 0);
+    const cap = mirrorF2Sweep(p, captureR);
+    if (!cap) {
+      // Preview region (Gold d < 34): presentation-facing routing state for
+      // Checkpoint G. One event per (projectile, node) approach; the real
+      // projectile is never removed, frozen, relocated or neutralized here.
+      const previewR = MIRROR_F2.previewPx + (p.radius || 0);
+      const pv = mirrorF2Sweep(p, previewR);
+      if (pv && !(bodyToi != null && bodyToi < pv.t)) {
+        const hr = p.__hr || (p.__hr = {});
+        const seen = hr.mirrorPreviewed || (hr.mirrorPreviewed = []);
+        if (!seen.includes(pv.node.id)) {
+          seen.push(pv.node.id);
+          const dest = mirrorF2Destination(pv.node);
+          AIL.bus.emit('MirrorRoutePreview', {
+            node: pv.node.id, owner: pv.node.owner ? pv.node.owner.idx : -1,
+            dest: dest ? dest.id : null, toi: pv.t,
+          });
+        }
+      }
+      return null;
+    }
+    const dest = mirrorF2Destination(cap.node);
+    if (!dest) return { kind: 'oneNode', capT: cap.t, node: cap.node };
+    return { kind: 'capture', capT: cap.t, node: cap.node, dest, seg: cap.seg };
+  }
+
+  // Realize a capture: escrow the ACTUAL detached projectile object.
+  function mirrorF2Capture(p, cand, projectiles) {
+    // PHYSICAL ORDERING: an actually-realized capture is terminal AND
+    // trajectory-changing, so it supersedes a pending Magnet boundary that
+    // lies later on the ordered path (the internal TOI check keeps a
+    // physically-earlier boundary intact).
+    supersedeMagnetBoundary(p, cand.capT, { terminal: true, trajectoryChanged: true });
+    // Incoming kinematics valid on the LEG that actually crossed the
+    // surface — never Magnet's post-response velocity for a capture that
+    // happened before that boundary was reached.
+    const inVx = cand.seg && Number.isFinite(cand.seg.vx) ? cand.seg.vx : p.vx;
+    const inVy = cand.seg && Number.isFinite(cand.seg.vy) ? cand.seg.vy : p.vy;
+    const sp = Math.hypot(inVx, inVy) || 1;
+    const nA = cand.node;
+    p.vx = inVx; p.vy = inVy;
+    // Escrow removes the object from ordinary projectile movement and
+    // collision: Magnet sums, walls, bodies, Crystal, bullet life, grenade
+    // fuse and thrown timers all iterate the live array — an escrowed
+    // object is absent from it and therefore untouched by all of them. It
+    // exists exactly once (here), never duplicated.
+    const idx = projectiles.indexOf(p);
+    if (idx >= 0) projectiles.splice(idx, 1);
+    clearPath(p);
+    (p.__hr = p.__hr || {}).mirrorEscrow = true;
+    mirrorF2World().escrow.push({
+      p,
+      entryId: nA.id,
+      // Entry-node transform SNAPSHOTTED at capture so emergence stays
+      // defined even if the entry node folds/despawns during transit.
+      entrySnap: { x: nA.x, y: nA.y, rot: nA.rot },
+      destRef: cand.dest, destId: cand.dest.id,
+      dirX: inVx / sp, dirY: inVy / sp,
+      vx: inVx, vy: inVy,
+      acc: 0, t: 0, img: false, fallbackUsed: false,
+    });
+    AIL.bus.emit('MirrorRouteCapture', {
+      entry: nA.id, dest: cand.dest.id,
+      owner: nA.owner ? nA.owner.idx : -1,
+      toi: cand.capT, weapon: p.weapon || null, type: p.type,
+    });
+  }
+
+  // Emerge at the canonical edge: fixed destination chosen at capture;
+  // lost destination falls back to the captured entry transform EXACTLY
+  // ONCE — never a third-node retarget, never a deletion.
+  function mirrorF2Emerge(e, projectiles) {
+    const p = e.p;
+    let cx, cy, via;
+    if (e.destRef && e.destRef.st === 2) { cx = e.destRef.x; cy = e.destRef.y; via = e.destId; }
+    else { e.fallbackUsed = true; cx = e.entrySnap.x; cy = e.entrySnap.y; via = 'entry-fallback'; }
+    // Gold-equivalent offset: node center + incoming unit direction * 20,
+    // through the shared 1:1 node/world transform (never a portal-radius
+    // jump).
+    p.x = cx + e.dirX * MIRROR_F2.offsetPx;
+    p.y = cy + e.dirY * MIRROR_F2.offsetPx;
+    // Reset previous-position and ALL swept-history to the emergence point:
+    // zero teleport-gap phantom collision (clearPath law).
+    p.px = p.x; p.py = p.y;
+    clearPath(p);
+    p.vx = e.vx; p.vy = e.vy;          // real incoming speed + direction
+    const hr = p.__hr || (p.__hr = {});
+    hr.mirrorEscrow = false;
+    hr.neutral = true;                 // controller NEUTRAL; damage unchanged
+    hr.mirrorRecaptureUntil = AIL.clock() + MIRROR_F2.recaptureLock;
+    projectiles.push(p);
+    AIL.bus.emit('MirrorRouteEmerge', {
+      entry: e.entryId, via, t: e.t,
+      x: p.x, y: p.y,                       // canonical emergence point
+      weapon: p.weapon || null, type: p.type, fallback: e.fallbackUsed,
+    });
+  }
+
+  // Transit choreography: canonical Gold fixed-step edges. Advances through
+  // the SAME 1/120 accumulator law as mirrorAdvance (Checkpoint E) — repeated
+  // fixed-step addition, first crossing wins, never a raw timer and never
+  // fps-dependent. Runs once per shared fixed step; emerged objects rejoin
+  // the live array before the ordinary pass so their continuation is
+  // integrated by the normal lifecycle.
+  function mirrorF2EscrowStep(projectiles, dt) {
+    if (!M) return;
+    const w = M.world.mirrorF2;
+    if (!w || !w.escrow.length) return;
+    const keep = [];
+    for (const e of w.escrow) {
+      e.acc += dt;
+      let emerged = false;
+      while (e.acc >= MIRROR_F2.step - 1e-12) {
+        e.acc -= MIRROR_F2.step;
+        e.t += MIRROR_F2.step;
+        if (!e.img && e.t > MIRROR_F2.imageT) {
+          e.img = true;                // destination reflected-image edge
+          AIL.bus.emit('MirrorEscrowImage', {
+            entry: e.entryId, dest: e.destId,
+            destLive: !!(e.destRef && e.destRef.st === 2), t: e.t,
+          });
+        }
+        if (e.t > MIRROR_F2.emergeT) { mirrorF2Emerge(e, projectiles); emerged = true; break; }
+      }
+      if (!emerged) keep.push(e);
+    }
+    w.escrow = keep;
+  }
+
+  // Non-terminal one-node surface contact: local Mirror response for the
+  // touched node + ~0.40s capture-attempt cooldown on that projectile.
+  // NEVER an escrow, relocation, neutralization or Magnet revocation.
+  function mirrorF2LocalResponse(p, cand) {
+    AIL.bus.emit('MirrorRouteLocal', {
+      node: cand.node.id, owner: cand.node.owner ? cand.node.owner.idx : -1,
+      toi: cand.capT, weapon: p.weapon || null, type: p.type,
+    });
+    (p.__hr = p.__hr || {}).mirrorAttemptCdUntil = AIL.clock() + MIRROR_F2.attemptCd;
   }
 
   function earliestToiBody(p, BULLET_HIT_SCALE, index) {
@@ -3482,6 +3713,7 @@
         singularities: M.world.singularities.length, lanes: M.world.lanes.length,
         snares: M.world.snares.length, graphs: M.world.graphs.length,
         mirrors: M.world.mirrors.length, shards: M.world.shards.length,
+        mirrorEscrow: M.world.mirrorF2 ? M.world.mirrorF2.escrow.length : 0,
       },
       events: AIL.bus.ring.slice(-30).map((e) => `${e.type}#${e.seq}`),
     };

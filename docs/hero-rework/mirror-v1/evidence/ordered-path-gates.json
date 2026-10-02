@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T07:54:12.009Z",
+  "generatedAt": "2026-10-02T13:35:54.480Z",
   "gates": {
     "P0.1-no-corner-equals-single-chord": {
       "pass": true,
@@ -155,6 +155,8 @@
     "MIRROR-C-no-phantom-body-hit-across-teleport": {
       "pass": true,
       "detail": {
+        "captured": true,
+        "emerged": true,
         "hpBefore": 1000,
         "hpAfter": 1000,
         "pathVia": null
