@@ -1,5 +1,14 @@
 # MIRROR V1 — CAMPAIGN STATUS AND HANDOFF
 
+> **SUPERSEDED BY `14_MIRROR_PHASE2_BASELINE.md`.**
+> This file is retained as historical record only (last updated at Checkpoint D2,
+> `09e25ed55a7db4d1c2fb48fa02370edc74544a1b`). Since then, **D3 is CLOSED
+> (`2a6a2df1b0e0492fda3d8080fab0319e12b4b7bb`), D4 is COMPLETE
+> (`a10aa5a28e22623763d66e68f86bf05d06d5330d`), and Checkpoint E is CLOSED
+> (`37b2ca92f40666625c150b85d2a207c41bf8a951`, runtime revision
+> `20261002-mirror-v1-r19`)**. Zero-context readers must start from
+> [`14_MIRROR_PHASE2_BASELINE.md`](./14_MIRROR_PHASE2_BASELINE.md).
+
 Honest status of the Mirror V1 active campaign. **Checkpoints A, B and C are
 complete and durable on the remote. Checkpoints D through J are NOT
 implemented.** This document states exactly what exists, what was proven, and
