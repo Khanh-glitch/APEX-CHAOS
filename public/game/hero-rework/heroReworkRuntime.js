@@ -1543,7 +1543,7 @@
   }
   HR.geom = { capsuleToi, solidCapsules, wallsBlockPoint, pointToSegmentDist, segmentToPointToi: (...a) => segmentToPointToi(...a),
     // The one authoritative ordered movement path (see pathSegments above).
-    pathSegments, pathPointAt, pathToPointDist, globalT, clearPath,
+    pathSegments, pathPointAt, pathVelocityAt, pathToPointDist, globalT, clearPath,
     pendingMagnetToi, supersedeMagnetBoundary };
 
 
@@ -1713,7 +1713,12 @@
           p.x = ex + p.vx * dt * (1 - magnetPlan.entryT);
           p.y = ey + p.vy * dt * (1 - magnetPlan.entryT);
           if (!p.__hr) p.__hr = {};
-          p.__hr.pathVia = { x: ex, y: ey, t: magnetPlan.entryT };
+          p.__hr.pathVia = {
+            x: ex, y: ey, t: magnetPlan.entryT,
+            // Kinematic truth per leg (see pathSegments).
+            preVx: magnetPlan.preVx, preVy: magnetPlan.preVy,
+            postVx: magnetPlan.postVx, postVy: magnetPlan.postVy,
+          };
         } else {
           if (p.__hr) p.__hr.pathVia = null;
           p.x += p.vx * dt;
@@ -1729,12 +1734,20 @@
           wallHit.wall.hp -= isT6 ? ((CFG && CFG.WEAPONS && CFG.WEAPONS.STORMBREAKER && CFG.WEAPONS.STORMBREAKER.confirmedHitDamage) || 446) : dmg;
           if (isT6) { wallHit.wall.__shatteredBy = 'STORMBREAKER'; AIL.bus.emit('WallShatteredByT6', {}); }
           if (wallHit.wall.hp <= 0) wallHit.wall.__shatteredBy = wallHit.wall.__shatteredBy || 'damage';
-          if (!isT6) { p.life = 0; continue; } // absorbed
+          if (!isT6) {
+            // Absorbing wall is terminal: the projectile never reaches a
+            // later Magnet boundary, so no capture beat may be presented.
+            supersedeMagnetBoundary(p, wallHit.t != null ? wallHit.t : 0, { terminal: true });
+            p.life = 0; continue;
+          } // absorbed
           // T6 continues through the shattering wall.
         }
 
         // ---- Stage G: MATH graph absorb (T6 immune) --------------------
-        if (graphBlocks(p)) { p.life = 0; continue; }
+        if (graphBlocks(p)) {
+          supersedeMagnetBoundary(p, 0, { terminal: true });   // absorbed before any boundary
+          p.life = 0; continue;
+        }
 
         // ---- Stage T: gates (x2 / div2; T6 unaffected) ------------------
         gateTransform(p);
@@ -1760,12 +1773,19 @@
           if (tryRubberStore(p, target)) { projectiles.splice(i, 1); continue; }
 
           const hitR = target.radius * BULLET_HIT_SCALE + p.radius;
-          let hit = null;
+          let hit = null, hitSeg = null;
           for (const g of pathSegments(p)) {
             hit = sweptHit(g.x0, g.y0, g.x1, g.y1, target.x, target.y, hitR);
-            if (hit) break;
+            if (hit) { hitSeg = g; break; }
           }
           if (!hit) hit = { x: p.x, y: p.y };
+          // A body hit consumes the projectile: terminal, so it supersedes a
+          // later Magnet boundary and no capture beat may be presented.
+          supersedeMagnetBoundary(p, bodyHit && bodyHit.t != null ? bodyHit.t : 0, { terminal: true });
+          // Impact direction must be the velocity valid on the leg that
+          // actually reached the body, not Magnet's post-response velocity.
+          const impVx = hitSeg && Number.isFinite(hitSeg.vx) ? hitSeg.vx : p.vx;
+          const impVy = hitSeg && Number.isFinite(hitSeg.vy) ? hitSeg.vy : p.vy;
           const neutral = p.__hr && p.__hr.neutral;
           const W2 = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
           const hpBeforeHit = target.hp;
@@ -1773,7 +1793,7 @@
             W2.aqDamage(target, p.damage, neutral ? null : p.owner, p.weapon, {
               knockback: p.knockback, stun: p.stun, hitStop: p.heavy ? 0.05 : 0,
               critical: !!p.critical,
-              impact: { x: hit.x, y: hit.y, vx: p.vx, vy: p.vy },
+              impact: { x: hit.x, y: hit.y, vx: impVx, vy: impVy },
             });
           }
           if (CRY) { CRY.noteBodyHit(p, target); CRY.afterBodyHit(p, target, hpBeforeHit - target.hp); }
@@ -1975,16 +1995,33 @@
   // A frame with no corner returns exactly one segment spanning
   // p.px,p.py -> p.x,p.y with t0=0,t1=1, which is strictly equivalent to the
   // pre-existing single-chord behaviour.
+  // Each segment also carries the velocity ACTUALLY VALID on it. On a Magnet
+  // corner frame the integration has already written the post-response
+  // velocity onto p.vx/p.vy, so a consumer adjudicating an event on the
+  // INBOUND leg must not read p.vx: it would reflect/route using a velocity
+  // the projectile does not have until after the boundary it never reached.
   function pathSegments(p) {
     const via = p.__hr && p.__hr.pathVia;
     if (via && Number.isFinite(via.x) && Number.isFinite(via.y)
       && Number.isFinite(via.t) && via.t > 0 && via.t < 1) {
+      const pre = Number.isFinite(via.preVx) ? via.preVx : p.vx;
+      const prey = Number.isFinite(via.preVy) ? via.preVy : p.vy;
+      const post = Number.isFinite(via.postVx) ? via.postVx : p.vx;
+      const posty = Number.isFinite(via.postVy) ? via.postVy : p.vy;
       return [
-        { x0: p.px, y0: p.py, x1: via.x, y1: via.y, t0: 0, t1: via.t },
-        { x0: via.x, y0: via.y, x1: p.x, y1: p.y, t0: via.t, t1: 1 },
+        { x0: p.px, y0: p.py, x1: via.x, y1: via.y, t0: 0, t1: via.t, vx: pre, vy: prey },
+        { x0: via.x, y0: via.y, x1: p.x, y1: p.y, t0: via.t, t1: 1, vx: post, vy: posty },
       ];
     }
-    return [{ x0: p.px, y0: p.py, x1: p.x, y1: p.y, t0: 0, t1: 1 }];
+    return [{ x0: p.px, y0: p.py, x1: p.x, y1: p.y, t0: 0, t1: 1, vx: p.vx, vy: p.vy }];
+  }
+
+  // Velocity valid at a GLOBAL frame fraction t (the segment containing t).
+  function pathVelocityAt(p, t) {
+    const segs = pathSegments(p);
+    for (const g of segs) if (t <= g.t1 || g.t1 >= 1) return { vx: g.vx, vy: g.vy };
+    const last = segs[segs.length - 1];
+    return { vx: last.vx, vy: last.vy };
   }
 
   // Map a sub-segment-local parameter u in [0,1] onto the global frame fraction.
@@ -2026,7 +2063,20 @@
   // projectile never reached the Magnet boundary at all: roll the Magnet
   // entry episode back so no capture beat is presented for an event that did
   // not physically happen, and terminate the stale path.
-  function supersedeMagnetBoundary(p, tWinner) {
+  // An earlier event supersedes the pending Magnet boundary ONLY when it
+  // actually prevents the projectile from reaching that boundary or changes
+  // its trajectory before it. Being earlier is not sufficient on its own:
+  // a Crystal breaking-shot pass-through resolves first and the SAME
+  // projectile still physically reaches the boundary afterwards, so Magnet
+  // must still be allowed to happen.
+  //
+  // Supersedes:   terminal (consumed/absorbed/stored/escrowed) or
+  //               trajectory-changing (reflected/rerouted) events.
+  // Does NOT:     pass-through damage, previews, non-blocking contact.
+  function supersedeMagnetBoundary(p, tWinner, opts) {
+    const o = opts || {};
+    const changes = o.terminal === true || o.trajectoryChanged === true;
+    if (!changes) return false;
     const tm = pendingMagnetToi(p);
     if (tm == null || !(tWinner < tm)) return false;
     const MAGNET = globalScope.APEX_MAGNET;
@@ -2070,7 +2120,7 @@
         const local = segmentCrossT(g.x0, g.y0, g.x1, g.y1, e.ax, e.ay, e.bx, e.by, p.radius + w.thickness / 2);
         if (local == null) continue;
         const toi = globalT(g, local);
-        if (toi < bestT) { bestT = toi; best = { wall: w, normal: { x: e.nx, y: e.ny } }; }
+        if (toi < bestT) { bestT = toi; best = { wall: w, normal: { x: e.nx, y: e.ny }, t: toi, seg: g }; }
         break; // sub-segments are in travel order
       }
     }
@@ -2110,7 +2160,10 @@
         const v = Math.pow(Math.abs(u) / (g.span / 2), 2) * g.height;
         const gx = g.x + cos * v - sin * u;
         const gy = g.y + sin * v + cos * u;
-        if (pointToSegmentDist(gx, gy, p.px, p.py, p.x, p.y) <= p.radius + 12) return true;
+        // Real travelled path: on a Magnet corner frame the chord can both
+        // invent a graph contact across the corner and miss a real one on
+        // the inbound leg.
+        if (pathToPointDist(p, gx, gy) <= p.radius + 12) return true;
       }
     }
     return false;
@@ -2186,14 +2239,16 @@
         const local = segmentToPointToi(g.x0, g.y0, g.x1, g.y1, m.x, m.y, R);
         if (local == null) continue;
         const t = globalT(g, local);                          // GLOBAL frame TOI
-        if (!hit || t < hit.t) hit = { m, t };
+        if (!hit || t < hit.t) hit = { m, t, seg: g };
         break;                                                // segments are in travel order
       }
     }
     if (!hit) return;
     // PHYSICAL ORDERING: a Mirror crossing earlier in the frame than a pending
     // Magnet A2 boundary means the projectile never reached that boundary.
-    if (hit.t != null) supersedeMagnetBoundary(p, hit.t);
+    // Mirror capture relocates the projectile: terminal AND trajectory
+    // changing, so it genuinely supersedes a later Magnet boundary.
+    if (hit.t != null) supersedeMagnetBoundary(p, hit.t, { terminal: true, trajectoryChanged: true });
     {
       const m = hit.m;
       // Route to the nearest OTHER mirror (Lv1 routing policy).
@@ -2206,9 +2261,15 @@
       if (!other) return;
       (p.__hr = p.__hr || {}).lastPortalId = other.id;
       p.__hr.neutral = true; // exiting controller = NEUTRAL
-      // Exit along the projectile's incoming travel direction.
-      const sp = Math.hypot(p.vx, p.vy) || 1;
-      const dx = p.vx / sp, dy = p.vy / sp;
+      // Exit along the projectile's incoming travel direction ON THE LEG THE
+      // PORTAL WAS ACTUALLY CROSSED. Reading p.vx here would use Magnet's
+      // post-response velocity for a capture that happened BEFORE that
+      // boundary was ever reached.
+      const inVx = hit.seg && Number.isFinite(hit.seg.vx) ? hit.seg.vx : p.vx;
+      const inVy = hit.seg && Number.isFinite(hit.seg.vy) ? hit.seg.vy : p.vy;
+      const sp = Math.hypot(inVx, inVy) || 1;
+      const dx = inVx / sp, dy = inVy / sp;
+      p.vx = inVx; p.vy = inVy;   // the routed object keeps its real incoming kinematics
       p.x = other.x + dx * (other.radius + 4);
       p.y = other.y + dy * (other.radius + 4);
       p.px = p.x; p.py = p.y;

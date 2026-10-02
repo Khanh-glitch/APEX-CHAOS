@@ -124,17 +124,28 @@ try {
     owner: o.b, damage: 10, critical: false, __hr: { pathVia: { x: 500, y: 500, t: 0.5 } },
     px: 200, py: 500, x: 500, y: 800, vx: 1000, vy: 0,
   };
-  const revoked = G.supersedeMagnetBoundary(p, 0.2);   // earlier than t=0.5
+  // A-R2: being earlier is NOT sufficient. Only a terminal or
+  // trajectory-changing event supersedes the pending boundary.
+  const revoked = G.supersedeMagnetBoundary(p, 0.2, { terminal: true });
   const cleared = !(p.__hr && p.__hr.pathVia);
-  gate('ORDER-earlier-event-supersedes-magnet-boundary', revoked === true && cleared,
+  gate('ORDER-earlier-TERMINAL-event-supersedes-magnet-boundary', revoked === true && cleared,
     { revoked, cleared });
+
+  const pPass = {
+    aq: true, type: 'aq_bullet', weapon: 'PISTOL', life: 1, radius: 7,
+    owner: o.b, damage: 10, critical: false, __hr: { pathVia: { x: 500, y: 500, t: 0.5 } },
+    px: 200, py: 500, x: 500, y: 800, vx: 1000, vy: 0,
+  };
+  const passThrough = G.supersedeMagnetBoundary(pPass, 0.2, {});   // earlier but NOT terminal
+  gate('ORDER-earlier-PASS-THROUGH-does-not-supersede',
+    passThrough === false && !!(pPass.__hr && pPass.__hr.pathVia), { passThrough });
 
   const p2 = {
     aq: true, type: 'aq_bullet', weapon: 'PISTOL', life: 1, radius: 7,
     owner: o.b, damage: 10, critical: false, __hr: { pathVia: { x: 500, y: 500, t: 0.5 } },
     px: 200, py: 500, x: 500, y: 800, vx: 1000, vy: 0,
   };
-  const notRevoked = G.supersedeMagnetBoundary(p2, 0.8); // later than t=0.5
+  const notRevoked = G.supersedeMagnetBoundary(p2, 0.8, { terminal: true }); // later than t=0.5
   gate('ORDER-later-event-does-not-supersede',
     notRevoked === false && !!(p2.__hr && p2.__hr.pathVia), { notRevoked });
 } catch (e) { gate('ORDER-earlier-event-supersedes-magnet-boundary', false, String(e)); }

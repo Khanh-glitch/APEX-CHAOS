@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T20:45:00.458Z",
+  "generatedAt": "2026-10-02T03:20:10.937Z",
   "law": {
     "donor": "18000 * f2 * dt outward, gate d<225, no u^2 falloff (MAGNET_FINAL_DONOR_MAX.html world())",
     "rejectedProduction": "accel = 18000 * clamp(1-d/225,0,1)^2",

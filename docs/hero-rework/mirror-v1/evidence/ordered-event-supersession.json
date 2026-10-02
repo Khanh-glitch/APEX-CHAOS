@@ -1,0 +1,154 @@
+{
+  "generatedAt": "2026-10-02T03:20:09.387Z",
+  "gates": {
+    "AR1-segments-carry-their-own-velocity": {
+      "pass": true,
+      "detail": [
+        {
+          "t0": 0,
+          "t1": 0.5,
+          "vx": 36000,
+          "vy": 0
+        },
+        {
+          "t0": 0.5,
+          "t1": 1,
+          "vx": 0,
+          "vy": 36000
+        }
+      ]
+    },
+    "AR1-velocity-query-by-global-fraction": {
+      "pass": true,
+      "detail": {
+        "at025": {
+          "vx": 36000,
+          "vy": 0
+        },
+        "at075": {
+          "vx": 0,
+          "vy": 36000
+        }
+      }
+    },
+    "AR9-no-corner-parity-unchanged": {
+      "pass": true,
+      "detail": {
+        "x0": 0,
+        "y0": 0,
+        "x1": 100,
+        "y1": 0,
+        "t0": 0,
+        "t1": 1,
+        "vx": 777,
+        "vy": -3
+      }
+    },
+    "AR-T1-mirror-inbound-uses-PRE-magnet-direction": {
+      "pass": true,
+      "detail": {
+        "label": "inbound",
+        "routed": 1,
+        "vx": 36000,
+        "vy": 0,
+        "toi": 0.13166666666666665
+      }
+    },
+    "AR-T2-mirror-outbound-uses-POST-magnet-direction": {
+      "pass": true,
+      "detail": {
+        "label": "outbound",
+        "routed": 1,
+        "vx": 0,
+        "vy": 36000,
+        "toi": 0.7483333333333333
+      }
+    },
+    "AR-T3-crystal-reflect-uses-PRE-magnet-incoming-velocity": {
+      "pass": true,
+      "detail": {
+        "label": "reflect",
+        "consumed": true,
+        "reflected": true,
+        "before": {
+          "vx": 0,
+          "vy": 36000
+        },
+        "after": {
+          "vx": -36000,
+          "vy": 0
+        },
+        "pathViaStillPending": false
+      }
+    },
+    "AR-T3b-crystal-reflect-supersedes-magnet": {
+      "pass": true,
+      "detail": {
+        "label": "reflect",
+        "consumed": true,
+        "reflected": true,
+        "before": {
+          "vx": 0,
+          "vy": 36000
+        },
+        "after": {
+          "vx": -36000,
+          "vy": 0
+        },
+        "pathViaStillPending": false
+      }
+    },
+    "AR-T4-crystal-break-through-does-NOT-supersede-magnet": {
+      "pass": true,
+      "detail": {
+        "label": "break-through",
+        "consumed": false,
+        "reflected": false,
+        "before": {
+          "vx": 0,
+          "vy": 36000
+        },
+        "after": {
+          "vx": 0,
+          "vy": 36000
+        },
+        "pathViaStillPending": true
+      }
+    },
+    "AR-T5-body-consume-before-magnet-emits-no-capture-beat": {
+      "pass": true,
+      "detail": {
+        "realBodyHit": true,
+        "captureBeats": 0,
+        "hp0": 1000,
+        "hp1": 924.4
+      }
+    },
+    "AR-T6-absorbing-wall-before-magnet-emits-no-capture-beat": {
+      "pass": true,
+      "detail": {
+        "captureBeats": 0,
+        "life": 0
+      }
+    },
+    "AR-T7-false-chord-invents-no-contact": {
+      "pass": true,
+      "detail": {
+        "life": 1,
+        "hp0": 1000,
+        "hp1": 1000
+      }
+    },
+    "AR-T8-no-stale-path-after-relocation": {
+      "pass": true,
+      "detail": {
+        "label": "stale-check",
+        "routed": 1,
+        "vx": 36000,
+        "vy": 0,
+        "toi": 0.13166666666666665
+      }
+    }
+  },
+  "failures": []
+}

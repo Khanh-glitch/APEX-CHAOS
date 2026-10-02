@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T20:45:00.361Z",
+  "generatedAt": "2026-10-02T03:20:12.725Z",
   "donorLaw": "fall=clamp(1-d/225,0,1); push=1050*fall*f2 (TARGET radial speed); if(radial<push) radial->push at k=min(1,dt*10)  [MAGNET_FINAL_DONOR_MAX.html L815-817]",
   "minimumVisiblePushPx": 24,
   "donorTrackingFloor": 0.55,

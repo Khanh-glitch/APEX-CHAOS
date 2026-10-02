@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T20:44:58.503Z",
+  "generatedAt": "2026-10-02T03:20:10.858Z",
   "gates": {
     "P0.1-no-corner-equals-single-chord": {
       "pass": true,
@@ -10,7 +10,9 @@
           "x1": 100,
           "y1": 0,
           "t0": 0,
-          "t1": 1
+          "t1": 1,
+          "vx": 1,
+          "vy": 0
         }
       ]
     },
@@ -23,7 +25,9 @@
           "x1": 40,
           "y1": 30,
           "t0": 0,
-          "t1": 0.4
+          "t1": 0.4,
+          "vx": 1,
+          "vy": 0
         },
         {
           "x0": 40,
@@ -31,7 +35,9 @@
           "x1": 100,
           "y1": 0,
           "t0": 0.4,
-          "t1": 1
+          "t1": 1,
+          "vx": 1,
+          "vy": 0
         }
       ]
     },
@@ -53,7 +59,9 @@
           "x1": 100,
           "y1": 0,
           "t0": 0,
-          "t1": 1
+          "t1": 1,
+          "vx": 1,
+          "vy": 0
         }
       ]
     },
@@ -99,11 +107,17 @@
         }
       }
     },
-    "ORDER-earlier-event-supersedes-magnet-boundary": {
+    "ORDER-earlier-TERMINAL-event-supersedes-magnet-boundary": {
       "pass": true,
       "detail": {
         "revoked": true,
         "cleared": true
+      }
+    },
+    "ORDER-earlier-PASS-THROUGH-does-not-supersede": {
+      "pass": true,
+      "detail": {
+        "passThrough": false
       }
     },
     "ORDER-later-event-does-not-supersede": {

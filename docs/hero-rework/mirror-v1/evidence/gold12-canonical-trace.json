@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T20:44:22.571Z",
+  "generatedAt": "2026-10-02T03:16:29.958Z",
   "purpose": "Canonical Gold 12 reference trace. Production Mirror parity tests compare AGAINST this; it is produced by executing the canonical HTML directly, never by a reconstruction.",
   "gold": {
     "path": "docs/hero-rework/mirror-v1/gold/MIRROR_GOLD_FUSION_12.html",

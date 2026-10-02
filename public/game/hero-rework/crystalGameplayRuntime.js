@@ -489,12 +489,16 @@ function resolveBullet(p, tBody, dt) {
     }
   }
   if (!best || best.t >= tBody) return null;                  // a body is hit first (or nothing)
-  // PHYSICAL ORDERING: if this contact happens earlier in the frame than a
-  // pending Magnet A2 boundary, the projectile never reached that boundary.
-  // Roll the Magnet entry back so no capture beat is presented for an event
-  // that did not physically occur.
-  if (G.supersedeMagnetBoundary) G.supersedeMagnetBoundary(p, best.t);
-  return best.kind === 'shard' ? shardContact(best, p, dt) : constructHit(best, p, dt);
+  // PHYSICAL ORDERING is decided by the OUTCOME, not merely by being earlier.
+  // A reflect/hold changes or ends the trajectory and supersedes a later
+  // Magnet boundary; a breaking-shot pass-through does not -- the same
+  // projectile continues unchanged and may still reach that boundary.
+  const res = best.kind === 'shard' ? shardContact(best, p, dt) : constructHit(best, p, dt);
+  if (G.supersedeMagnetBoundary && res) {
+    const terminal = res.kind === 'shard' ? true : !!res.reflected;
+    if (terminal) G.supersedeMagnetBoundary(p, best.t, { terminal: true, trajectoryChanged: true });
+  }
+  return res;
 }
 
 function jobById(id) {
@@ -520,13 +524,20 @@ function shardContact(best, p, dt) {
   // real facet normal at this instant; if the indexed facet is not facing the ray
   // fall back to the contact radial (a sphere-like bounce), never a teleport.
   let n = rig.facetNormal(job.shard, job.facet);
-  const sp = Math.hypot(p.vx, p.vy) || 1;
-  if ((p.vx * n.x + p.vy * n.y) / sp > -0.3) {
+  const segVx0 = Number.isFinite(seg.vx) ? seg.vx : p.vx;
+  const segVy0 = Number.isFinite(seg.vy) ? seg.vy : p.vy;
+  const sp = Math.hypot(segVx0, segVy0) || 1;
+  if ((segVx0 * n.x + segVy0 * n.y) / sp > -0.3) {
     const rx = cx - sx, ry = cy - sy, rm = Math.hypot(rx, ry) || 1;
     n = { x: rx / rm, y: ry / rm };
   }
-  const inV = { x: p.vx, y: p.vy };
-  const exitV = reflectVec(p.vx, p.vy, n.x, n.y);
+  // Incoming velocity valid ON THE LEG the contact happened (see
+  // HR.geom.pathSegments): p.vx may already hold Magnet's post-response
+  // velocity for a boundary this projectile never reached.
+  const segVx = Number.isFinite(seg.vx) ? seg.vx : p.vx;
+  const segVy = Number.isFinite(seg.vy) ? seg.vy : p.vy;
+  const inV = { x: segVx, y: segVy };
+  const exitV = reflectVec(segVx, segVy, n.x, n.y);
   const incoming = scaledDamageOf(p);
   const pct = applyPassive(st, p);
   const exit = rig.refract(job.shard, { x: cx, y: cy }, exitV, p.radius || 7);
@@ -552,7 +563,13 @@ function structDamage(p) { return scaledDamageOf(p); }
 
 function constructHit(best, p, dt) {
   const { cap } = best, cons = cap.cons, st = cons.st;
-  const hx = p.px + (p.x - p.px) * best.t, hy = p.py + (p.y - p.py) * best.t;
+  // Contact point on the REAL travelled leg, and the velocity valid there.
+  const cseg = best.seg || { x0: p.px, y0: p.py, x1: p.x, y1: p.y, t0: 0, t1: 1, vx: p.vx, vy: p.vy };
+  const cspan = cseg.t1 - cseg.t0;
+  const cu = cspan > 1e-12 ? Math.max(0, Math.min(1, (best.t - cseg.t0) / cspan)) : 0;
+  const hx = cseg.x0 + (cseg.x1 - cseg.x0) * cu, hy = cseg.y0 + (cseg.y1 - cseg.y0) * cu;
+  const cvx = Number.isFinite(cseg.vx) ? cseg.vx : p.vx;
+  const cvy = Number.isFinite(cseg.vy) ? cseg.vy : p.vy;
   const n = best.n;
   const t6 = isT6(p);
   const dmg = structDamage(p);
@@ -565,7 +582,7 @@ function constructHit(best, p, dt) {
   // damage/owner/velocity/crit/provenance. No residual-damage arithmetic.
   const breaking = !t6 && cons.kind === 'wall' && dmg >= cons.hp;
   if (!t6 && !breaking) {
-    const v = reflectVec(p.vx, p.vy, n.x, n.y);
+    const v = reflectVec(cvx, cvy, n.x, n.y);
     if (cons.decision) cons.decision.blockedProjectileDamage += dmg;
     applyPassive(st, p);
     if (cons.decision) {
@@ -583,7 +600,7 @@ function constructHit(best, p, dt) {
   } else {
     (hr.cryPassed || (hr.cryPassed = {}))[cons.id + ':' + cap.idx] = true;
   }
-  damageConstruct(st, cons, cap, dmg, hx, hy, p.vx, p.vy, t6 ? 'T6' : breaking ? 'break-through' : 'hit');
+  damageConstruct(st, cons, cap, dmg, hx, hy, cvx, cvy, t6 ? 'T6' : breaking ? 'break-through' : 'hit');
   return { consumed: reflected, kind: 'construct', reflected };
 }
 
