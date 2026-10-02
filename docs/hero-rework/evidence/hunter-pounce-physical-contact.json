@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T05:38:47.386Z",
+  "generatedAt": "2026-10-02T05:59:21.534Z",
   "law": "REAL RESOLVED PHYSICAL CONTACT -> Hunter A2 control effects. Tracking/targeting alone never grants them.",
   "url": "http://127.0.0.1:4173",
   "H1": {
@@ -7,7 +7,7 @@
     "catches": 1,
     "pounceWeak": 1,
     "busFound": true,
-    "dist": 150,
+    "dist": 155.9,
     "sumRadius": 150
   },
   "H2": {
@@ -34,11 +34,11 @@
     "fieldOff": {
       "active": false,
       "maxExternalSpeed": 0,
-      "stun": 0.911
+      "stun": 0.878
     },
     "fieldOn": {
       "active": true,
-      "maxExternalSpeed": 3500,
+      "maxExternalSpeed": 1594.6,
       "stun": 0
     }
   },
@@ -46,8 +46,8 @@
     "a2Active": true,
     "startDist": 120,
     "sumRadius": 150,
-    "endDist": 425,
-    "maxExternalSpeed": 3500,
+    "endDist": 337.8,
+    "maxExternalSpeed": 2351.1,
     "stun": 0,
     "catches": 0,
     "pounceWeak": 0
@@ -55,7 +55,7 @@
   "H5b": {
     "startDist": 120,
     "endDist": 425,
-    "maxExternalSpeed": 3500
+    "maxExternalSpeed": 2351.1
   },
   "H6": {
     "duringField": {
@@ -73,8 +73,8 @@
     }
   },
   "H7": {
-    "realDist": 150,
-    "staleDist": 114.56,
+    "realDist": 177.14,
+    "staleDist": 141.7,
     "preyFrameDisplacement": 35.44,
     "committed": true,
     "catches": 1,
@@ -91,7 +91,7 @@
         "catches": 1,
         "pounceWeak": 1,
         "busFound": true,
-        "dist": 150,
+        "dist": 155.9,
         "sumRadius": 150
       }
     },
@@ -152,14 +152,14 @@
       "detail": {
         "active": false,
         "maxExternalSpeed": 0,
-        "stun": 0.911
+        "stun": 0.878
       }
     },
     "HPHYS-H4b-magnet-field-participates-in-hunter-pounce": {
       "pass": true,
       "detail": {
         "active": true,
-        "maxExternalSpeed": 3500,
+        "maxExternalSpeed": 1594.6,
         "stun": 0
       }
     },
@@ -167,7 +167,7 @@
       "pass": true,
       "detail": {
         "withField": 0,
-        "withoutField": 0.911
+        "withoutField": 0.878
       }
     },
     "HPHYS-H5-blocked-by-real-ejection-not-cc-suppression": {
@@ -176,8 +176,8 @@
         "a2Active": true,
         "startDist": 120,
         "sumRadius": 150,
-        "endDist": 425,
-        "maxExternalSpeed": 3500,
+        "endDist": 337.8,
+        "maxExternalSpeed": 2351.1,
         "stun": 0,
         "catches": 0,
         "pounceWeak": 0
@@ -188,7 +188,7 @@
       "detail": {
         "startDist": 120,
         "endDist": 425,
-        "maxExternalSpeed": 3500
+        "maxExternalSpeed": 2351.1
       }
     },
     "HPHYS-H6a-active-field-turns-the-pounce": {
@@ -219,8 +219,8 @@
     "HPHYS-H7a-moving-prey-actually-moved": {
       "pass": true,
       "detail": {
-        "realDist": 150,
-        "staleDist": 114.56,
+        "realDist": 177.14,
+        "staleDist": 141.7,
         "preyFrameDisplacement": 35.44,
         "committed": true,
         "catches": 1,
@@ -232,8 +232,8 @@
     "HPHYS-H7b-commit-matches-post-movement-truth-not-stale-sample": {
       "pass": true,
       "detail": {
-        "realDist": 150,
-        "staleDist": 114.56,
+        "realDist": 177.14,
+        "staleDist": 141.7,
         "preyFrameDisplacement": 35.44,
         "committed": true,
         "catches": 1,

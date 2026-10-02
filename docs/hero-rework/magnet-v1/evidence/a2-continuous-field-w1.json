@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T05:36:25.491Z",
+  "generatedAt": "2026-10-02T05:59:34.862Z",
   "rating": 3500,
   "coupling": 73700,
   "R": 225,
@@ -274,6 +274,70 @@
     },
     "N2-no-nan-or-teleport": {
       "pass": true
+    },
+    "E1-ordinary-body-resistance-grows-inward": {
+      "pass": true,
+      "detail": {
+        "edgePush": 24.2,
+        "deepPush": 265
+      }
+    },
+    "E2-no-teleport-progressive-ejection": {
+      "pass": true,
+      "detail": {
+        "deepMaxStepPx": 32.11,
+        "edgeMaxStepPx": 2.14
+      }
+    },
+    "E3-no-invisible-wall-at-R": {
+      "pass": true,
+      "detail": {
+        "crossedR": true
+      }
+    },
+    "G1-multi-field-deterministic-and-order-safe": {
+      "pass": true,
+      "detail": {
+        "a": 581.42,
+        "b": 581.42
+      }
+    },
+    "G2-multi-field-finite": {
+      "pass": true,
+      "detail": {
+        "final": 581.42
+      }
+    },
+    "N3-body-dt-convergence-shipping": {
+      "pass": true,
+      "detail": {
+        "dt30": 393.3,
+        "dt60": 391.9,
+        "dt120": 388.5,
+        "spreadPx": 4.9,
+        "note": "SHIPPING runtime tolerance, not the analytic model figure"
+      }
+    },
+    "T6a-object-never-manipulated": {
+      "pass": true,
+      "detail": {
+        "x": 560,
+        "y": 500
+      }
+    },
+    "T6b-holder-body-still-feels-field": {
+      "pass": true,
+      "detail": {
+        "before": 228.4,
+        "after": 425
+      }
+    },
+    "S1-slime-bodies-finite-under-field": {
+      "pass": true,
+      "detail": {
+        "bodies": 2,
+        "dist": 425
+      }
     }
   },
   "failures": [],

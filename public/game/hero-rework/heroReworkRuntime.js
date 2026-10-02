@@ -452,14 +452,54 @@
         M.world.lanes.push(l);
         return l;
       },
+      // Explicit body movement for authored movers (Hunter pounce / A1 recoil).
+      //
+      // H-PHYS2 §13: a hostile Magnet field must participate DURING this
+      // movement, not be added afterwards as an unrelated nudge. The caller's
+      // target point is therefore treated as a PROPOSED velocity which the
+      // field decelerates substep by substep, so the calibration (which is an
+      // energy argument about the mover's real motion) actually governs the
+      // outcome. Solid-world authority via wallsBlockPoint is unchanged, and
+      // the real travelled sub-segments are recorded for contact adjudication.
       moveHunterBody(body, x, y) {
         const from={x:body.x,y:body.y},r=body.radius||40,size=globalScope.GAME_SIZE||1000;
         x=clamp(x,r,size-r);y=clamp(y,r,size-r);
+        const dt=HR._magnetStepPendingDt>0?HR._magnetStepPendingDt:1/60;
+        const magnet=globalScope.APEX_MAGNET;
+        const accelAt=magnet&&magnet.fieldAccelerationAt?magnet.fieldAccelerationAt:null;
         const steps=Math.max(1,Math.ceil(Math.hypot(x-from.x,y-from.y)/4));
-        for(let k=1;k<=steps;k++) { const nx=from.x+(x-from.x)*k/steps,ny=from.y+(y-from.y)*k/steps;
+        const h=dt/steps;
+        const pvx=(x-from.x)/dt, pvy=(y-from.y)/dt;  // authored pursuit velocity
+        // Field-induced velocity PERSISTS across frames. The mover re-proposes
+        // its authored pursuit velocity every frame, so a per-frame-only
+        // deceleration would be discarded and the field could never actually
+        // stop anything. Accumulating it is what makes the energy calibration
+        // govern the real outcome over the whole movement window.
+        const fv=body.__hrFieldVel||(body.__hrFieldVel={x:0,y:0});
+        let cx=from.x, cy=from.y, influenced=false;
+        const path=body.__hrBodyPath;
+        for(let k=0;k<steps;k++){
+          if(accelAt){
+            const a=accelAt(cx,cy,body,combatantOfBody,AIL.clock());
+            if(a.active){
+              influenced=true; fv.x+=a.ax*h; fv.y+=a.ay*h;
+              const CEIL=(globalScope.APEX_MAGNET&&globalScope.APEX_MAGNET.EXPLICIT_MOVER_CEILING)||18000;
+              const sp=Math.hypot(fv.x,fv.y);
+              if(sp>CEIL){const kk=CEIL/sp; fv.x*=kk; fv.y*=kk;}
+            }
+          }
+          const vx=pvx+fv.x, vy=pvy+fv.y;
+          const nx=cx+vx*h, ny=cy+vy*h;
           if(wallsBlockPoint(nx,ny,r)) break;
-          body.x=nx;body.y=ny;
+          const sx=cx, sy=cy;
+          cx=clamp(nx,r,size-r); cy=clamp(ny,r,size-r);
+          body.x=cx; body.y=cy;
+          if(path) path.push({stage:'explicit',x0:sx,y0:sy,x1:cx,y1:cy});
         }
+        // Claim the field for this frame so prepareBodies does not apply it
+        // a second time to this body.
+        if(influenced) body.__hrExplicitFieldFrame=HR.__frameSeq;
+        else if(body.__hrFieldVel){ body.__hrFieldVel.x*=0.80; body.__hrFieldVel.y*=0.80; }
         return from;
       },
       sweptHunterContact: segmentToPointToi,
@@ -1235,6 +1275,12 @@
   HR.applyExternalBodyMotion = function applyExternalBodyMotion(body) {
     const magnet = globalScope.APEX_MAGNET;
     if (!M || !magnet || !magnet.consumeBodyMotion || !body) return null;
+    // W3: capture the field's REAL ordered sub-segments before the summed
+    // displacement is applied, so the curve is never collapsed to a chord.
+    if (body.__hrBodyPath && magnet.bodyFieldPath) {
+      const fp = magnet.bodyFieldPath(body);
+      if (fp) for (const g of fp) body.__hrBodyPath.push({ stage: 'field', x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1 });
+    }
     const motion = magnet.consumeBodyMotion(body);
     body.__hrExternalVelocity = motion
       ? { x: motion.vx, y: motion.vy }
@@ -1249,6 +1295,7 @@
   function hrPreTick(dt) {
     if (!M) return;
     HR._magnetStepPendingDt = dt;
+    HR.__frameSeq = (HR.__frameSeq || 0) + 1;
     // Frame-start body positions. Explicit movers (Hunter pounce) run inside
     // executor onTick, BEFORE Magnet body force and before canonical
     // Fighter.update movement. Any contact they adjudicate inline therefore
@@ -1258,6 +1305,12 @@
       if (!b) continue;
       if (!b.__hrFrameStart) b.__hrFrameStart = { x: 0, y: 0 };
       b.__hrFrameStart.x = b.x; b.__hrFrameStart.y = b.y;
+      // W3: ordered body path for the frame. Stages are appended as they
+      // actually happen (authored explicit movement, Magnet field
+      // sub-segments, canonical movement) so physical-contact consumers can
+      // query the REAL travelled path instead of a frame chord.
+      b.__hrBodyPath = b.__hrBodyPath || [];
+      b.__hrBodyPath.length = 0;
     }
     // Presentation root sampling starts before canonical fighter movement.
     // The matching post-movement sample is consumed exactly once in
@@ -1270,6 +1323,18 @@
       abilityController(ct).tick(dt);
       p2CastAI(ct, dt);
       eachExecutor(ct, (exec, ctx) => { if (exec.onTick) exec.onTick(ctx, dt); });
+    }
+    // W3: authored explicit movement has now run. moveHunterBody records its
+    // own field-integrated sub-segments; anything else that moved a body
+    // directly (e.g. Robot dash) gets one explicit stage here.
+    for (const b of M.api.allBodies()) {
+      if (!b || !b.__hrFrameStart || !b.__hrBodyPath) continue;
+      const fs = b.__hrFrameStart;
+      const last = b.__hrBodyPath.length ? b.__hrBodyPath[b.__hrBodyPath.length - 1] : null;
+      const cx = last ? last.x1 : fs.x, cy = last ? last.y1 : fs.y;
+      if (Math.abs(b.x - cx) > 1e-9 || Math.abs(b.y - cy) > 1e-9) {
+        b.__hrBodyPath.push({ stage: 'explicit', x0: cx, y0: cy, x1: b.x, y1: b.y });
+      }
     }
     // Child bodies: full engine pipeline + holder updates. The anchor is
     // driven by the ENGINE while it is the fighters[] entry; a PROMOTED
@@ -1337,6 +1402,46 @@
    * Moving circle vs moving circle: with both paths linear over the frame the
    * separation vector is itself linear, so the earliest contact is the TOI of
    * the RELATIVE path against the origin at the summed radius. */
+  /* W3: the ordered path a body actually travelled this frame.
+   * Always terminated by the canonical post-movement endpoint, so the last
+   * point equals the body's real resting position after walls/collision. */
+  function bodyPathSegments(b) {
+    const fs = b && b.__hrFrameStart;
+    if (!fs) return [{ x0: b.x, y0: b.y, x1: b.x, y1: b.y }];
+    const raw = (b.__hrBodyPath || []).filter((g) =>
+      Number.isFinite(g.x0) && Number.isFinite(g.y0) && Number.isFinite(g.x1) && Number.isFinite(g.y1));
+    const out = [];
+    let cx = fs.x, cy = fs.y;
+    for (const g of raw) {
+      if (Math.abs(g.x0 - cx) > 1e-6 || Math.abs(g.y0 - cy) > 1e-6) {
+        out.push({ stage: 'link', x0: cx, y0: cy, x1: g.x0, y1: g.y0 });
+      }
+      out.push(g); cx = g.x1; cy = g.y1;
+    }
+    if (Math.abs(b.x - cx) > 1e-6 || Math.abs(b.y - cy) > 1e-6) {
+      out.push({ stage: 'canonical', x0: cx, y0: cy, x1: b.x, y1: b.y });
+    }
+    if (!out.length) out.push({ stage: 'still', x0: fs.x, y0: fs.y, x1: b.x, y1: b.y });
+    return out;
+  }
+  /* Resample an ordered path to n+1 points by arc length, so two bodies with
+   * different sub-segment counts can be compared on a common parameter. */
+  function samplePath(segs, n) {
+    const pts = [{ x: segs[0].x0, y: segs[0].y0 }];
+    const lens = segs.map((g) => Math.hypot(g.x1 - g.x0, g.y1 - g.y0));
+    const total = lens.reduce((a, c) => a + c, 0);
+    if (!(total > 1e-9)) { for (let i = 1; i <= n; i++) pts.push({ x: segs[segs.length - 1].x1, y: segs[segs.length - 1].y1 }); return pts; }
+    for (let i = 1; i <= n; i++) {
+      let want = (i / n) * total, k = 0;
+      while (k < segs.length && want > lens[k]) { want -= lens[k]; k++; }
+      if (k >= segs.length) { pts.push({ x: segs[segs.length - 1].x1, y: segs[segs.length - 1].y1 }); continue; }
+      const u = lens[k] > 1e-9 ? want / lens[k] : 0;
+      pts.push({ x: segs[k].x0 + (segs[k].x1 - segs[k].x0) * u, y: segs[k].y0 + (segs[k].y1 - segs[k].y0) * u });
+    }
+    return pts;
+  }
+  const CONTACT_SAMPLES = 16;
+
   function resolvePendingBodyContacts() {
     const list = M.pendingBodyContacts;
     if (!list || !list.length) return;
@@ -1345,13 +1450,25 @@
       const mover = req.mover;
       if (!mover || mover.hp <= 0) { if (req.onMiss) req.onMiss(); continue; }
       const ms = mover.__hrFrameStart || { x: mover.x, y: mover.y };
+      // W4: adjudicate against the ORDERED relative motion of the two real
+      // body paths. A Magnet-curved path is no longer approximated by a
+      // frame-start -> frame-end chord, so there is neither a false catch
+      // through a curve nor a false miss when the real curves touch.
+      const moverPts = samplePath(bodyPathSegments(mover), CONTACT_SAMPLES);
       let best = null, bestT = Infinity;
       for (const tgt of (req.targets || [])) {
         if (!tgt || tgt === mover || tgt.hp <= 0) continue;
-        const ts = tgt.__hrFrameStart || { x: tgt.x, y: tgt.y };
         const R = (mover.radius || 75) + (tgt.radius || 75);
-        const t = segmentToPointToi(ms.x - ts.x, ms.y - ts.y, mover.x - tgt.x, mover.y - tgt.y, 0, 0, R);
-        if (t != null && t < bestT) { bestT = t; best = tgt; }
+        const tgtPts = samplePath(bodyPathSegments(tgt), CONTACT_SAMPLES);
+        for (let i = 0; i < CONTACT_SAMPLES; i++) {
+          const ax = moverPts[i].x - tgtPts[i].x, ay = moverPts[i].y - tgtPts[i].y;
+          const bx = moverPts[i + 1].x - tgtPts[i + 1].x, by = moverPts[i + 1].y - tgtPts[i + 1].y;
+          const u = segmentToPointToi(ax, ay, bx, by, 0, 0, R);
+          if (u == null) continue;
+          const t = (i + u) / CONTACT_SAMPLES;
+          if (t < bestT) { bestT = t; best = tgt; }
+          break;
+        }
       }
       if (best) { if (req.onContact) req.onContact(best, bestT, ms); }
       else if (req.onMiss) req.onMiss();
@@ -1605,6 +1722,7 @@
   HR.geom = { capsuleToi, solidCapsules, wallsBlockPoint, pointToSegmentDist, segmentToPointToi: (...a) => segmentToPointToi(...a),
     // The one authoritative ordered movement path (see pathSegments above).
     pathSegments, pathPointAt, pathVelocityAt, pathToPointDist, globalT, clearPath,
+    bodyPathSegments, samplePath,
     pendingMagnetToi, supersedeMagnetBoundary };
 
 

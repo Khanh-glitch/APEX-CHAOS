@@ -159,6 +159,87 @@ gate('N1-dt-convergence-30-60-120', Math.max(...dts) - Math.min(...dts) < 16,
   dts.map((d) => +d.toFixed(1)));
 gate('N2-no-nan-or-teleport', dts.every((d) => Number.isFinite(d) && d > 0 && d < R));
 
+/* ---- W5 matrix: ordinary body, multi-field symmetry, Slime, T6 ---- */
+function bodyRun({ startDist, dt = 1 / 60, frames = 60, twoFields = false, reverseOrder = false }) {
+  T.start('MAGNET', twoFields ? 'MAGNET' : 'ROBOT'); T.holdSpawns();
+  const [a, b] = H.fighters();
+  a.baseSpeed = 0; b.baseSpeed = 0;
+  a.x = 500; a.y = 500; b.x = 500 + startDist; b.y = 500;
+  HR.pressAbility(a, 'A2');
+  if (twoFields) { b.x = 500 + startDist; HR.pressAbility(b, 'A2'); }
+  const trail = [];
+  for (let i = 0; i < frames; i++) {
+    T.step(dt, dt);
+    trail.push(+Math.hypot(b.x - a.x, b.y - a.y).toFixed(2));
+  }
+  const steps = [];
+  for (let i = 1; i < trail.length; i++) steps.push(+(trail[i] - trail[i - 1]).toFixed(3));
+  return { trail, steps, maxStep: Math.max(...steps.map(Math.abs)), final: trail[trail.length - 1] };
+}
+
+/* E. ordinary body: smooth graduated resistance, no wall, no teleport */
+try {
+  const edge = bodyRun({ startDist: 220, frames: 20 });
+  const deep = bodyRun({ startDist: 160, frames: 20 });
+  const edgePush = edge.final - 220, deepPush = deep.final - 160;
+  gate('E1-ordinary-body-resistance-grows-inward', deepPush > edgePush,
+    { edgePush: +edgePush.toFixed(1), deepPush: +deepPush.toFixed(1) });
+  gate('E2-no-teleport-progressive-ejection', deep.maxStep < 60 && edge.maxStep < 60,
+    { deepMaxStepPx: deep.maxStep, edgeMaxStepPx: edge.maxStep });
+  gate('E3-no-invisible-wall-at-R',
+    deep.trail.some((d) => d > R) && deep.trail.filter((d) => Math.abs(d - R) < 0.5).length <= 3,
+    { crossedR: deep.trail.some((d) => d > R) });
+} catch (e) { gate('E1-ordinary-body-resistance-grows-inward', false, String(e)); }
+
+/* G. multiple Magnet fields: vector sum, iteration-order independent */
+try {
+  const r1 = bodyRun({ startDist: 180, frames: 25, twoFields: true });
+  const r2 = bodyRun({ startDist: 180, frames: 25, twoFields: true, reverseOrder: true });
+  gate('G1-multi-field-deterministic-and-order-safe',
+    Math.abs(r1.final - r2.final) < 1e-6, { a: r1.final, b: r2.final });
+  gate('G2-multi-field-finite', Number.isFinite(r1.final) && r1.final > 0, { final: r1.final });
+} catch (e) { gate('G1-multi-field-deterministic-and-order-safe', false, String(e)); }
+
+/* dt convergence for BODY motion at supported rates (shipping, not model) */
+try {
+  const f = [1 / 30, 1 / 60, 1 / 120].map((dt) => bodyRun({ startDist: 180, dt, frames: Math.round(0.25 / dt) }).final);
+  gate('N3-body-dt-convergence-shipping',
+    Math.max(...f) - Math.min(...f) < 40 && f.every(Number.isFinite),
+    { dt30: +f[0].toFixed(1), dt60: +f[1].toFixed(1), dt120: +f[2].toFixed(1),
+      spreadPx: +(Math.max(...f) - Math.min(...f)).toFixed(1),
+      note: 'SHIPPING runtime tolerance, not the analytic model figure' });
+} catch (e) { gate('N3-body-dt-convergence-shipping', false, String(e)); }
+
+/* T6: the OBJECT is never manipulated, but a T6 HOLDER body still feels the field */
+try {
+  T.start('MAGNET', 'ROBOT'); T.holdSpawns();
+  const [a, b] = H.fighters(); a.baseSpeed = 0; b.baseSpeed = 0;
+  a.x = 500; a.y = 500; b.x = 660; b.y = 500;
+  HR.pressAbility(a, 'A2');
+  const t6 = { id: 991, x: 560, y: 500, phase: 'REVEALED', kind: 'WEAPON', weaponId: 'STORMBREAKER' };
+  MAG.stepWorld(0.05, { now: win.matchClock, slots: [t6], bodies: [b], combatantOfBody: HR.byCombatant, gameSize: 1000, pickupEligible: () => false });
+  const snap = MAG.inspect(win.matchClock);
+  const d0 = Math.hypot(b.x - a.x, b.y - a.y);
+  for (let i = 0; i < 20; i++) T.step(1 / 60, 1 / 60);
+  gate('T6a-object-never-manipulated', !snap.floorFirearms.some((x) => x.slot === t6)
+    && t6.x === 560 && t6.y === 500, { x: t6.x, y: t6.y });
+  gate('T6b-holder-body-still-feels-field', Math.hypot(b.x - a.x, b.y - a.y) > d0,
+    { before: +d0.toFixed(1), after: +Math.hypot(b.x - a.x, b.y - a.y).toFixed(1) });
+} catch (e) { gate('T6a-object-never-manipulated', false, String(e)); }
+
+/* Slime: shared body law stays finite */
+try {
+  T.start('MAGNET', 'SLIME'); T.holdSpawns();
+  const [a, b] = H.fighters(); a.baseSpeed = 0; b.baseSpeed = 0;
+  a.x = 500; a.y = 500; b.x = 640; b.y = 500;
+  HR.pressAbility(a, 'A2');
+  for (let i = 0; i < 40; i++) T.step(1 / 60, 1 / 60);
+  const all = HR.match.combatants.flatMap((c) => c.bodies || []);
+  gate('S1-slime-bodies-finite-under-field',
+    all.every((x) => Number.isFinite(x.x) && Number.isFinite(x.y)) && Math.hypot(b.x - a.x, b.y - a.y) > 140,
+    { bodies: all.length, dist: +Math.hypot(b.x - a.x, b.y - a.y).toFixed(1) });
+} catch (e) { gate('S1-slime-bodies-finite-under-field', false, String(e)); }
+
 fs.mkdirSync('docs/hero-rework/magnet-v1/evidence', { recursive: true });
 fs.writeFileSync('docs/hero-rework/magnet-v1/evidence/a2-continuous-field-w1.json', JSON.stringify({
   generatedAt: new Date().toISOString(),

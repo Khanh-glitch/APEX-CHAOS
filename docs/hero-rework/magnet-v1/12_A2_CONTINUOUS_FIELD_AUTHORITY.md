@@ -1,7 +1,6 @@
 # MAGNET A2 — CONTINUOUS NONLINEAR RADIAL FIELD (H-PHYS2)
 
-Status: **calibration CORRECTED; W1 (projectile) and W2 (body + floor gun) wired and green.**
-W3-W7 remain — see §9.
+Status: **H-PHYS2 COMPLETE — W1-W7 wired and green.**
 
 > **CORRECTION (owner-reported, binding).** An earlier revision of this document
 > claimed Hunter at 2200 px/s "turns at ~124.6 px, safely outside body contact
@@ -296,16 +295,89 @@ The shipping probe does **not** measure 69.7: it records the projectile being
 distance of **126.7 px**, which is the real evidence of a hit. Gate `C2` passes
 on the measured consumption, not the modelled radius.
 
-## 10. Remaining slices
+## 10. W3-W7 (complete)
 
+### The 3500 rating is no longer reused as a velocity cap (W2 audit issue)
 
-* **W3** ordered body-path sub-segments (the body currently integrates a real
-  substepped path but publishes a single summed displacement; Hunter contact
-  already resolves against post-movement truth, and the residual artifact is
-  bounded by one prey-frame of travel — see H7b);
-* **W4** Hunter contact against the full curved body path;
-* **W5/W6** remaining matrix rows (multi-Magnet symmetry §23, T6, Slime,
-  ordinary-fighter feel §15) + broader real-browser evidence;
-* **W7** five hostile passes, final relock, push.
+W2 capped field-driven body speed at `A2_RADIAL_STOP_RATING`, conflating a
+field POWER anchor with a speed ceiling. Both uses are now separately named and
+separately derived, and neither determines a physical outcome:
+
+| constant | value | derivation |
+|---|---:|---|
+| `A2_RADIAL_STOP_RATING` | 3500 | owner-facing field power anchor. Calibration only. Never compared against a speed at runtime. |
+| `A2_FIELD_MAX_WORK_SPEED` | 2351.1 | the most work the field can do on a **free** body: collision forbids d<150, so `sqrt(2K(R^2/150+150-2R))`. Bounds energy the field cannot physically supply. |
+| `A2_EXPLICIT_MOVER_CEILING` | 18000 | pure anti-tunnelling for a body **propelling itself** into the field (the work bound does not apply — work keeps being done on it). `(75/2)px / (1/480)s`, ~7.7x above anything reachable. |
+
+Removing the misnamed cap exposed a real defect the old velocity-TARGET law
+could not have: a body held near the field edge accumulated speed without
+bound, and `M06.4` caught the resulting 17.6 px collision penetration. The
+work-speed bound fixes it physically rather than with a magic number, and keeps
+per-frame displacement under the 150 px contact envelope at every supported
+rate (19.6 px @1/120, 39 @1/60, 78 @1/30).
+
+### W3 — ordered body path
+
+`MAG.bodyFieldPath()` publishes the field's real sub-segments;
+`HR.geom.bodyPathSegments()` assembles the frame path with distinct
+`explicit` / `field` / `link` / `canonical` stages, always terminated by the
+canonical post-movement endpoint. No second Fighter integrator, no chord.
+
+### W4 — Hunter contact against the real curved path, and a §13 violation fixed
+
+Contact is adjudicated by a piecewise relative sweep (`samplePath`,
+16 samples) over **both** bodies' ordered paths, replacing the single
+frame-start→frame-end chord.
+
+More importantly, W2 was still doing exactly what §13 forbids: *Hunter moved
+the full 2200 px/s kinematically, then Magnet added an unrelated after-the-fact
+nudge.* With the honest 2351 work bound this was immediately visible — Hunter
+was **no longer blocked** (stun 0.911 with the field up). Two fixes:
+
+1. `moveHunterBody` now treats the caller's target as a **proposed velocity**
+   and integrates hostile field acceleration substep-by-substep *during* the
+   movement (`MAG.fieldAccelerationAt`), so the field participates in the
+   movement outcome. Solid-world authority via `wallsBlockPoint` is unchanged.
+2. Field-induced velocity **persists across frames** (`__hrFieldVel`). The
+   mover re-proposes its authored pursuit velocity every frame, so a
+   per-frame-only deceleration was being discarded and the field could never
+   actually stop anything. Accumulation is what makes the energy calibration
+   govern the real outcome over the whole 0.5 s window.
+
+Double-application is prevented: a body that integrated the field explicitly
+claims the frame (`__hrExplicitFieldFrame`) and `prepareBodies` skips it.
+
+### W5 — matrix (26/26 in `testMagnetA2ContinuousField`)
+
+| row | evidence |
+|---|---|
+| ordinary body, graduated resistance | edge push **24.2 px** vs deep push **265 px** |
+| no teleport | max per-frame step **32.1 px** deep, **2.1 px** at the edge |
+| no invisible wall | body crosses R freely, never parks on it |
+| multi-Magnet §23 | two fields, order-independent to **1e-6** (581.42 == 581.42) |
+| body dt convergence (shipping) | 393.3 / 391.9 / 388.5 → **4.9 px spread** |
+| T6 object | never manipulated (`560,500` unmoved), not in floorFirearms |
+| T6 holder body | still feels the field (228.4 → 425) |
+| Slime | all bodies finite under the field |
+
+### W6 — real-browser shipping evidence (Hunter 14/14)
+
+| gate | measured |
+|---|---|
+| H4b field participates | external **1594.6 px/s**, stun **0** |
+| H4c blocked per rating | with field **stun 0**, without **0.878** |
+| H5 ejection not suppression | 120 px → 425 px, no stun |
+| H5b not Hunter-specific | **Robot** body: identical 120 → 425 |
+| H6a/H6b | blocked while up; catch lands the instant it expires |
+| H7b | commit matches post-movement truth, bounded by one prey-frame |
+
+### W7 — five hostile passes
+
+All clean: 0 radial-velocity SET, 0 hard R clamp, 0 uses of 3500 as a runtime
+branch, 0 reuse of 3500 as a speed cap, 0 CC-immunity branches, 0
+Hunter-specific terms in the Magnet runtime (4 textual hits, all comments),
+`applyA2BulletRepulsion` gone, linear body falloff gone, floor-gun `u^2` gone,
+capture envelope gone, 0 duplicate Fighter integrators, 0 raw timers, T6
+exclusion intact.
 
 > Automated evidence is **not** owner visual acceptance.

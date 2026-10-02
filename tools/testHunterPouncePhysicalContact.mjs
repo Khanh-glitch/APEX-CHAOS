@@ -14,6 +14,7 @@ import fs from 'node:fs';
 
 const mech = fs.readFileSync('public/game/hero-rework/heroMechanicsRuntime.js', 'utf8');
 const world = fs.readFileSync('public/game/hero-rework/heroReworkRuntime.js', 'utf8');
+const magnetSrcW3 = fs.readFileSync('public/game/hero-rework/magnetGameplayRuntime.js', 'utf8');
 
 const report = { gates: {}, failures: [] };
 function gate(name, ok, detail) {
@@ -31,9 +32,27 @@ gate('S02-resolver-runs-after-movement',
   'resolver must run in hrPostTick, i.e. after Fighter.update');
 gate('S03-frame-start-samples-recorded',
   /__hrFrameStart/.test(world) && /b\.__hrFrameStart\.x = b\.x; b\.__hrFrameStart\.y = b\.y;/.test(world));
-gate('S04-resolver-uses-both-real-paths',
-  /segmentToPointToi\(ms\.x - ts\.x, ms\.y - ts\.y, mover\.x - tgt\.x, mover\.y - tgt\.y, 0, 0, R\)/.test(world),
-  'moving-circle vs moving-circle via the relative path');
+// W3/W4: upgraded from a single frame-start -> frame-end relative chord to a
+// piecewise sweep over the ORDERED body paths both bodies actually travelled,
+// so a Magnet-curved path can neither fake a catch nor hide a real one.
+gate('S04-resolver-uses-both-real-ordered-paths',
+  /function bodyPathSegments\(b\)/.test(world)
+  && /function samplePath\(segs, n\)/.test(world)
+  && /const moverPts = samplePath\(bodyPathSegments\(mover\), CONTACT_SAMPLES\)/.test(world)
+  && /const tgtPts = samplePath\(bodyPathSegments\(tgt\), CONTACT_SAMPLES\)/.test(world)
+  && /segmentToPointToi\(ax, ay, bx, by, 0, 0, R\)/.test(world),
+  'piecewise relative sweep over both real ordered paths');
+gate('S05-body-field-subsegments-recorded',
+  /function bodyFieldPath\(body\)/.test(magnetSrcW3)
+  && /path\.push\(\{ x0: sx, y0: sy, x1: bx, y1: byp/.test(magnetSrcW3)
+  && /stage: 'field'/.test(world) && /stage: 'explicit'/.test(world)
+  && /stage: 'canonical'/.test(world),
+  'ordered body path keeps explicit / field / canonical stages distinct');
+gate('S06-owner-rating-not-reused-as-speed-cap',
+  !/A2_RADIAL_STOP_RATING \/ sp/.test(magnetSrcW3)
+  && /A2_FIELD_MAX_WORK_SPEED/.test(magnetSrcW3)
+  && /A2_RADIAL_STOP_RATING: 3500/.test(magnetSrcW3),
+  'the 3500 rating is a field power anchor, not a velocity ceiling');
 
 /* ---- Hunter no longer self-certifies ---- */
 const a2Block = (() => {

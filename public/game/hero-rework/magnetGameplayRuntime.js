@@ -53,6 +53,34 @@
     A2_FIELD_SUBSTEP_PX: 2.0,           // bounded deterministic substep length
     A2_FIELD_MAX_SUBSTEPS: 64,
     A2_BODY_SUBSTEP_SECONDS: 1 / 480,   // bounded body force substep
+    // PHYSICAL bound on field-imparted body speed. This is NOT the owner
+    // rating reused as a speed limit -- it is the most work the field can
+    // actually do on a fighter body, derived from the field itself:
+    //
+    //   body collision forbids a centre separation below 150 px (75+75), so
+    //   the longest push the field can ever deliver is from d=150 out to R,
+    //   giving v_max = sqrt(2*K*(R^2/150 + 150 - 2R)) = 2351 px/s.
+    //
+    // Anything above that is energy the field cannot physically supply and
+    // only appears when something artificially holds a body at a fixed small
+    // distance (the force integrator would otherwise accumulate without
+    // bound, which the superseded velocity-TARGET law could not do).
+    //
+    // It provably does not determine the Hunter result: the §14 stop happens
+    // at d~154 where the required outward speed is below this bound by
+    // construction, and 2351 > the 2200 px/s pounce it must cancel. It also
+    // keeps per-frame displacement under the 150 px contact envelope at every
+    // supported rate (19.6 px at 1/120, 39 px at 1/60, 78 px at 1/30), so
+    // field motion still enters the canonical collision solve.
+    A2_FIELD_MAX_WORK_SPEED: Math.sqrt(2 * 73700 * ((225 * 225) / 150 + 150 - 2 * 225)),
+    // Separate NUMERICAL ceiling for an EXPLICIT mover that is actively
+    // propelling itself into the field. The work bound above describes the
+    // most the field can give a FREE body; a mover being driven inward keeps
+    // having work done on it, so that bound does not apply and using it would
+    // silently decide the §14 outcome. This value is pure anti-tunnelling:
+    // (bodyRadius/2) / substep = (75/2) / (1/480) = 18000 px/s, ~7.7x above
+    // anything reachable, so it never determines a physical result either.
+    A2_EXPLICIT_MOVER_CEILING: 18000,
     // Hysteresis before a bullet may earn a NEW entry response. Without it a
     // bullet loitering on the boundary would be re-snapped every frame.
     A2_BULLET_REARM_RADIUS_MULT: 1.12,
@@ -236,6 +264,28 @@
     const q = radius / Math.max(d, CONSTANTS.A2_FIELD_DSAFE);
     return q * q - 1;
   }
+  // Hostile A2 field acceleration at an arbitrary point, for explicit movers
+  // that must integrate the field DURING their own movement (H-PHYS2 §13)
+  // rather than receiving an unrelated after-the-fact nudge. Same S(d), same
+  // coupling, vector-summed over every hostile field.
+  function fieldAccelerationAt(x, y, body, combatantOfBody, now) {
+    const t = now == null ? Number(globalScope.matchClock) || 0 : now;
+    const live = activeFields(t);
+    const ofBody = combatantOfBody || (() => null);
+    let ax = 0, ay = 0;
+    for (const field of live) {
+      if (field.state.kind !== 'a2') continue;
+      const ct = ofBody(body);
+      if (ct ? ct === field.owner : (field.owner.bodies && field.owner.bodies.includes(body))) continue;
+      const dx = x - field.owner.anchor.x, dy = y - field.owner.anchor.y;
+      const d = Math.hypot(dx, dy), radius = field.cfg.radius ?? CONSTANTS.A2_RADIUS;
+      if (!(d > EPS) || d >= radius) continue;
+      const a = fieldCoupling(field) * fieldStrength(d, radius);
+      ax += (dx / d) * a; ay += (dy / d) * a;
+    }
+    return { ax, ay, active: ax !== 0 || ay !== 0 };
+  }
+
   function fieldCoupling(field) {
     return field && field.cfg && Number.isFinite(field.cfg.fieldCoupling)
       ? field.cfg.fieldCoupling : CONSTANTS.A2_FIELD_COUPLING;
@@ -639,6 +689,12 @@
     const influenced = [];
     for (const body of bodies) {
       if (!body || !(body.hp > 0)) continue;
+      // An explicit mover that already integrated this field inside its own
+      // movement this frame must not receive the force a second time.
+      if (body.__hrExplicitFieldFrame != null
+        && body.__hrExplicitFieldFrame === globalScope.APEX_HERO_REWORK?.__frameSeq) {
+        bodyStates.delete(body); continue;
+      }
       const targetCt = combatantOfBody(body);
       let ax = 0, ay = 0, forced = false;
       const by = [];
@@ -688,6 +744,7 @@
           Math.ceil(dt / CONSTANTS.A2_BODY_SUBSTEP_SECONDS)));
         const h = dt / sub;
         let bx = body.x, byp = body.y, moved = 0;
+        const path = [];
         for (let i = 0; i < sub; i++) {
           let axf = 0, ayf = 0;
           for (const rt of radialTargets) {
@@ -700,13 +757,22 @@
             axf += (ddx / dd) * a; ayf += (ddy / dd) * a;
           }
           st.vx += axf * h; st.vy += ayf * h;
+          // Physical work bound -- see A2_FIELD_MAX_WORK_SPEED. The owner
+          // rating is a FIELD POWER anchor and is deliberately NOT reused as a
+          // velocity ceiling here.
           const sp = Math.hypot(st.vx, st.vy);
-          if (sp > CONSTANTS.A2_RADIAL_STOP_RATING) {
-            const k = CONSTANTS.A2_RADIAL_STOP_RATING / sp; st.vx *= k; st.vy *= k;
+          if (sp > CONSTANTS.A2_FIELD_MAX_WORK_SPEED) {
+            const k = CONSTANTS.A2_FIELD_MAX_WORK_SPEED / sp; st.vx *= k; st.vy *= k;
           }
+          const sx = bx, sy = byp;
           bx += st.vx * h; byp += st.vy * h; moved += 1;
+          // W3: publish the REAL travelled body sub-segments, not just the
+          // summed displacement, so physical-contact consumers can query the
+          // actual curve the field produced.
+          path.push({ x0: sx, y0: sy, x1: bx, y1: byp, vx: st.vx, vy: st.vy });
         }
         st.__fieldDx = bx - body.x; st.__fieldDy = byp - body.y;
+        st.fieldPath = path;
         // The outward speed the field may impart is bounded by the ONE owner
         // rating, not by the legacy 650 bodyRadialSpeedCap. That cap is
         // mathematically incapable of satisfying §14: it could add at most
@@ -724,6 +790,7 @@
         consumed: false,
       };
       st.__fieldDx = st.__fieldDy = undefined;
+      if (!forced) st.fieldPath = null;
       st.integrations += 1;
       if (!opts.deferBodyMotion) applyPreparedBodyMotion(body, st, size);
       if (by.length) influenced.push({ body, fields: by, vx: st.vx, vy: st.vy });
@@ -739,6 +806,11 @@
     const now = opts.now == null ? Number(globalScope.matchClock) || 0 : opts.now;
     lastBodyInfluence = prepareBodies(dt, activeFields(now), { ...opts, deferBodyMotion: true });
     return lastBodyInfluence.length;
+  }
+  // W3: the ordered sub-segments the field actually drove this body through.
+  function bodyFieldPath(body) {
+    const st = bodyStates.get(body);
+    return st && st.fieldPath && st.fieldPath.length ? st.fieldPath : null;
   }
   function consumeBodyMotion(body) {
     return applyPreparedBodyMotion(body, bodyStates.get(body), 0);
@@ -813,7 +885,8 @@
     version: '1.0.0', CONSTANTS,
     canCast, castA1, castA2, activeFor, activeFields,
     isEligibleFloorFirearm, isEligibleBullet,
-    stepWorld, prepareBodyForces, consumeBodyMotion,
+    stepWorld, prepareBodyForces, consumeBodyMotion, bodyFieldPath, fieldAccelerationAt,
+    EXPLICIT_MOVER_CEILING: CONSTANTS.A2_EXPLICIT_MOVER_CEILING,
     stepProjectiles, consumeMovementPlan, revokeEntry, modifyFirearmEmission,
     teardown, inspect,
   };

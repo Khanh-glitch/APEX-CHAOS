@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T05:33:22.961Z",
+  "generatedAt": "2026-10-02T05:59:37.922Z",
   "law": "Hunter A2 may propose pursuit movement but may not certify its own contact. Control effects require resolved physical contact.",
   "explicitMoverAudit": {
     "hunter.pounce_weak": "FIXED — proposes movement, defers contact to the post-movement resolver",
@@ -20,9 +20,17 @@
     "S03-frame-start-samples-recorded": {
       "pass": true
     },
-    "S04-resolver-uses-both-real-paths": {
+    "S04-resolver-uses-both-real-ordered-paths": {
       "pass": true,
-      "detail": "moving-circle vs moving-circle via the relative path"
+      "detail": "piecewise relative sweep over both real ordered paths"
+    },
+    "S05-body-field-subsegments-recorded": {
+      "pass": true,
+      "detail": "ordered body path keeps explicit / field / canonical stages distinct"
+    },
+    "S06-owner-rating-not-reused-as-speed-cap": {
+      "pass": true,
+      "detail": "the 3500 rating is a field power anchor, not a velocity ceiling"
     },
     "S10-hunter-a2-block-isolated": {
       "pass": true
