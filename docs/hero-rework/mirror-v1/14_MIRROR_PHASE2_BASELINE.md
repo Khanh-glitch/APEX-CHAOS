@@ -75,6 +75,13 @@ implementation SHA).
   `sourceId` — captured pre-jitter, surviving shard motion) plus the
   strengthened authored-`.40s` assembly proof; because production runtime
   changed again, the revision relocks **r21 → r22** with the closure commit.
+- **F1 provenance-correction amendment** (this record's commit, directly on
+  top of the F1 closure SHA `24e8f983…`): the provenance law below was
+  corrected to the real-hit precedence (see law 1) and proven against the
+  SHIPPING Hero-Rework projectile path (reworkUpdateProjectiles → Stage B →
+  `sweptHit` closest-point-on-travelled-segment impact → `aqDamage`), with
+  the impact marker made transaction-scoped so stale impacts cannot leak;
+  the revision relocks **r22 → r23** with this commit.
 - **Focused suite:** `tools/testMirrorPassiveFormation.mjs` (27 gates),
   evidence `docs/hero-rework/mirror-v1/evidence/f1-passive-formation.json`.
 
@@ -83,9 +90,25 @@ implementation SHA).
 1. Shards spawn only from REALIZED Mirror HP loss (adapter before−after):
    `< minEventDamage (20) → 0`, else `clamp(round(d/35), 1, 5)`. Self-credit
    excluded; T6-caused realized loss still spawns; the passive never
-   manipulates T6 objects. Immutable provenance recorded per shard: original
-   realized-hit position, exact normalized source→victim direction when
-   derivable, weaponId, sourceId — never re-derived from scattered vx/vy.
+   manipulates T6 objects. **Immutable event-bound provenance is recorded
+   per shard with explicit precedence (never re-derived from scattered
+   vx/vy):**
+   - *position:* the exact real impact/contact point when the damage
+     transaction carries finite impact metadata (real firearm hits ride
+     `__aqImpact` through the transaction); otherwise — for damage families
+     with no authored contact-point metadata — the victim body center.
+   - *direction:* the exact normalized incoming impact vector when finite;
+     otherwise the derivable source→victim direction; otherwise null
+     (deterministic seeded spread fallback).
+   - *identity:* weaponId and (when a real source body exists) sourceId; no
+     sourceId is invented for neutral damage.
+   The impact marker is **transaction-scoped**: set immediately before
+   `takeDamage` by `aqDamage` and cleared when the transaction unwinds, so a
+   stale impact from an earlier projectile hit can never leak into a later
+   direct/status/non-impact event. The shard bodies physically jitter around
+   the SAME resolved hit point (Gold `passiveProc` scatters from the real
+   hit `wx/wy`), with the victim-center fallback only when no real
+   contact-point metadata exists.
 2. Per-owner 16-slot pool (`OFF/FREE/RESERVED/NODE_OWNED`). FREE shards have
    real position and seeded scatter motion (`exp(−3.2·dt)` decay, clamped to
    the real arena), 6.0s free lifetime → OFF; formation eligibility requires

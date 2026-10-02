@@ -1159,14 +1159,41 @@
       if (n <= 0) return;
       const victim = ev.victimBody;
       const src = ev.sourceBody;
+      // F1 PROVENANCE CORRECTION — precedence law (doc 08 §4; Gold
+      // hitMirror/passiveProc pass the REAL hit wx/wy and incoming nx/ny):
+      //   position:  the exact real impact/contact point when THIS damage
+      //              transaction carries finite impact metadata; otherwise the
+      //              victim body center (damage families with no authored
+      //              contact point).
+      //   direction: the real incoming impact vector when finite; otherwise
+      //              the derivable source->victim direction; otherwise null
+      //              (mirrorShardProc keeps its deterministic seeded spread).
+      // ev.impact is snapshotted at the ENTRY of the synchronous damage
+      // transaction (hrTakeDamage) and __aqImpact is cleared when the
+      // transaction unwinds, so a stale impact from an earlier projectile hit
+      // can never leak into this event. Identity (weaponId/sourceId) is
+      // unchanged; no sourceId is invented for neutral damage.
+      const impact = ev.impact;
+      let hitX = victim.x, hitY = victim.y;
+      if (impact && Number.isFinite(impact.x) && Number.isFinite(impact.y)) {
+        hitX = impact.x; hitY = impact.y;
+      }
       let dirX = null, dirY = null;
-      if (src && Number.isFinite(src.x) && Number.isFinite(src.y)) {
-        // Real incoming direction from the REAL hit event (source -> victim).
+      if (impact && Number.isFinite(impact.vx) && Number.isFinite(impact.vy)
+          && (impact.vx !== 0 || impact.vy !== 0)) {
+        const il = Math.hypot(impact.vx, impact.vy);
+        dirX = impact.vx / il; dirY = impact.vy / il;
+      } else if (src && Number.isFinite(src.x) && Number.isFinite(src.y)) {
         const dx = victim.x - src.x, dy = victim.y - src.y;
         const d = Math.hypot(dx, dy);
         if (d > 1e-6) { dirX = dx / d; dirY = dy / d; }
       }
-      ctx.api.mirrorShardProc(ctx.combatant, victim.x, victim.y, n, {
+      // Physical spawn origin follows the SAME resolved real hit: Gold
+      // passiveProc scatters shards from the real hit wx/wy, so the shard
+      // bodies jitter around the impact point (victim-center fallback only
+      // when no real contact-point metadata exists). Count formula, economy,
+      // scatter speed/angle laws, lifetime and formation are untouched.
+      ctx.api.mirrorShardProc(ctx.combatant, hitX, hitY, n, {
         dirX, dirY, weaponId: ev.weaponId || null,
         sourceId: src && src.id != null ? src.id : null,
       });

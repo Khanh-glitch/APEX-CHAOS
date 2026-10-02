@@ -383,6 +383,13 @@
       target.__aqImpact = opts.impact || null;
     }
     target.takeDamage(dealt, source && source !== target ? source : null, `arsenal-${(weaponId || 'unknown').toLowerCase()}`, !!opts.statusDamage);
+    // F1 PROVENANCE CORRECTION: __aqImpact is a TRANSIENT, transaction-scoped
+    // marker. It is set immediately above and consumed synchronously inside
+    // takeDamage (Robot armored-hit direction/point, MIRROR shard provenance,
+    // AQ feel note). Clear it exactly once when the transaction unwinds so a
+    // stale impact can never leak into a later direct/status/non-impact damage
+    // event. Every set is paired with this synchronous clear.
+    if (target) target.__aqImpact = null;
     if (opts.knockback && source && source !== target && target.hp > 0) {
       const n = norm(target.x - source.x || 1, target.y - source.y);
       target.applyStatus('push', 0.18, { x: n.x, y: n.y, strength: opts.knockback });

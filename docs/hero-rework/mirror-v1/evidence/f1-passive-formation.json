@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T11:59:28.507Z",
+  "generatedAt": "2026-10-02T12:32:48.172Z",
   "checkpoint": "F1",
   "gates": {
     "F1-P01-P03-realized-damage-formula-boundaries": {
@@ -38,25 +38,61 @@
         ]
       }
     },
-    "F1-P04b-immutable-provenance-hitpos-dir-weapon-source-survives-motion": {
+    "F1-P04b-real-projectile-impact-provenance": {
       "pass": true,
       "detail": {
-        "shards": 2,
-        "storedHit": [
-          [
-            850,
-            500
-          ],
-          [
-            850,
-            500
-          ]
-        ],
-        "expectedHit": [
-          850,
+        "hitStep": 27,
+        "realized": 411.6,
+        "shards": 5,
+        "expectedN": 5,
+        "livePathImpact": [
+          435,
           500
         ],
-        "storedDir": [
+        "livePathLeg": [
+          600,
+          0
+        ],
+        "victimCenter": [
+          500,
+          500
+        ],
+        "hitOffCenterBy": 65,
+        "provHit": [
+          [
+            435,
+            500
+          ],
+          [
+            435,
+            500
+          ],
+          [
+            435,
+            500
+          ],
+          [
+            435,
+            500
+          ],
+          [
+            435,
+            500
+          ]
+        ],
+        "provDir": [
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            0
+          ],
           [
             1,
             0
@@ -66,22 +102,57 @@
             0
           ]
         ],
-        "expectedDir": [
-          1,
-          0
-        ],
-        "weapon": [
-          "PISTOL",
-          "PISTOL"
-        ],
-        "sourceId": [
-          2,
-          2
-        ],
-        "bodiesScattered": true,
-        "movedAfter1s": true,
+        "weapon": "PISTOL",
+        "sourceIsOwnerBody": true,
+        "markerCleared": true,
         "survivesMotion": true,
-        "note": "exact pre-jitter values stored on the shard; never re-derived from scattered vx/vy"
+        "movedAfter1s": true,
+        "note": "oracle = the live Hero-Rework projectile path output captured at the aqDamage boundary; no base-Arsenal circle-entry substitution"
+      }
+    },
+    "F1-P04c-no-impact-fallback-and-stale-impact-cannot-leak": {
+      "pass": true,
+      "detail": {
+        "fallback1": {
+          "n": 2,
+          "hit": [
+            500,
+            500
+          ],
+          "victimCenter": [
+            500,
+            500
+          ]
+        },
+        "impact": {
+          "n": 5,
+          "livePathHit": [
+            435,
+            500
+          ],
+          "provHit": [
+            435,
+            500
+          ]
+        },
+        "markerClearedAfterHit": true,
+        "afterHitDirectDamage": {
+          "n": 2,
+          "hit": [
+            500,
+            500
+          ],
+          "staleBulletHitX": 435
+        },
+        "neutral": {
+          "n": 2,
+          "dir": [
+            null,
+            null
+          ],
+          "sourceId": null
+        },
+        "note": "victim-center/source-direction fallback is deterministic; a previous real impact never leaks into a later non-impact transaction"
       }
     },
     "F1-P06-P07-pool-16-and-oldest-free-replacement": {
@@ -191,7 +262,7 @@
       "detail": {
         "nodeCenter": [
           47,
-          59.67
+          60.2
         ],
         "rawCentroid": [
           47,

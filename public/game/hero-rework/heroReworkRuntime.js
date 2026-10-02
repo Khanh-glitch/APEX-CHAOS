@@ -1288,6 +1288,13 @@
       if (!M || !(amount > 0)) return prevTake.call(this, amount, source, label, statusDamage);
       const ct = combatantOfBody(this);
       if (!ct) return prevTake.call(this, amount, source, label, statusDamage);
+      // F1 PROVENANCE CORRECTION: capture the real firearm impact metadata at
+      // the ENTRY of this synchronous damage transaction. aqDamage sets
+      // __aqImpact immediately before calling takeDamage and clears it when
+      // the transaction unwinds, so this snapshot is bound to exactly THIS
+      // damage event — a stale impact from an earlier hit can never leak into
+      // a later direct/status/non-impact transaction (the field is null then).
+      const impact = this.__aqImpact || null;
       const weaponId = String(label || '').startsWith('arsenal-')
         ? String(label).slice('arsenal-'.length).toUpperCase() : null;
       let packet = { amount, source, weaponId, statusDamage };
@@ -1326,7 +1333,7 @@
         onRealized({
           victimBody: this, victimCombatant: ct, amount: dealt,
           creditedTo: sourceCt || null, sourceBody: packet.source || null,
-          weaponId, label,
+          weaponId, label, impact,
         });
         // Immediate anchor promotion when the anchor body died (SLIME law:
         // the combatant lives while any body lives; the array keeps exactly

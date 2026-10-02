@@ -150,48 +150,194 @@ try {
     { shards: shards.length, provenanceWeapon: shards.map((s) => s.prov && s.prov.weaponId) });
 } catch (e) { gate('F1-P05-t6-realized-damage-still-creates-shards', false, String(e)); }
 
-/* F1-CLOSURE item 1 — COMPLETE IMMUTABLE PROVENANCE: the real shard state
- * must carry the exact realized-hit location and the exact normalized
- * source->victim direction captured BEFORE spawn jitter, plus weaponId and
- * sourceId — and those stored values must survive shard motion untouched. */
+/* F1 PROVENANCE CORRECTION — primary gate on the REAL production projectile
+ * path. In a Hero-Rework match the installed projectile authority is
+ * heroReworkRuntime's reworkUpdateProjectiles (it replaces
+ * weaponApi.updateArsenalProjectiles): Stage B resolves the earliest body TOI
+ * and feeds aqDamage the impact produced by sweptHit() = the closest point on
+ * the actually-travelled segment plus the incoming leg velocity. This gate
+ * therefore captures THAT live-path impact at the aqDamage boundary (the
+ * transaction seam the production code itself uses) and proves the Mirror
+ * shard prov inherits EXACTLY those values — never an independently
+ * substituted collision model:
+ *   A. live-path impact != victim center assumption
+ *   B. prov.hitX/hitY exactly equal the live-path impact point
+ *   C. shard bodies physically jitter around that impact point
+ *   D. prov.dirX/dirY exactly equal the normalized live-path incoming leg
+ *   E/F. weaponId / sourceId are the real firearm / source body identity
+ *   G. all immutable fields survive 1s of real shard motion */
+function fireRealBullet(o, weaponId, damage) {
+  const p = { aq: true, type: 'aq_bullet',
+    x: o.a.x - 200, px: o.a.x - 200, y: o.a.y, py: o.a.y,
+    vx: 600, vy: 0, owner: o.b, weapon: weaponId, damage,
+    life: 4, radius: 7, family: 'SEMI', color: '#ffffff', __hr: {} };
+  win.projectiles.length = 0; win.projectiles.push(p);
+  return p;
+}
+/* Observe the live Hero-Rework projectile path's own output: record the
+ * impact handed to aqDamage for target o.a, passthrough to the real function,
+ * restore afterwards. No geometry is substituted — the oracle IS the shipping
+ * path's transaction payload. */
+function captureLiveImpact(o) {
+  const W = win.APEX_ARSENAL.weaponApi;
+  const orig = W.aqDamage;
+  const rec = { impact: null, weaponId: null, source: undefined, restore: null };
+  W.aqDamage = function (target, amount, source, weaponId, opts) {
+    if (target === o.a && !rec.impact && opts && opts.impact) {
+      rec.impact = { x: opts.impact.x, y: opts.impact.y, vx: opts.impact.vx, vy: opts.impact.vy };
+      rec.weaponId = weaponId; rec.source = source;
+    }
+    return orig.call(this, target, amount, source, weaponId, opts);
+  };
+  rec.restore = () => { W.aqDamage = orig; };
+  return rec;
+}
 try {
   const o = start();
-  // Source far to the WEST of the victim: exact expected direction known.
-  o.b.x = 150; o.a.x = 850;
-  const hitX = o.a.x, hitY = o.a.y, srcX = o.b.x, srcY = o.b.y;
-  const sep = Math.hypot(hitX - srcX, hitY - srcY);
-  const exDx = (hitX - srcX) / sep, exDy = (hitY - srcY) / sep;
-  o.a.takeDamage(60, o.b, 'arsenal-PISTOL');
+  // Keep both fighters well inside the arena so the bullet's start position
+  // (victim.x - 200) is inside the flight boundary.
+  o.a.x = 500; o.a.y = 500; o.b.x = 850; o.b.y = 500;
+  T.step(DT, DT);                                   // passive state exists
   const st = pstate(o.ct);
+  o.a.hp = o.a.maxHp;
+  const victimX = o.a.x, victimY = o.a.y;
+  const p = fireRealBullet(o, 'PISTOL', 60);
+  const rec = captureLiveImpact(o);
+  const hpBefore = o.a.hp;
+  // Real flight: step until the live rework projectile path resolves the hit.
+  let hitStep = null;
+  for (let i = 1; i <= 120; i++) {
+    T.step(DT, DT);
+    if (onCount(st) > 0) { hitStep = i; break; }
+  }
+  rec.restore();
+  const impact = rec.impact;
+  const realized = hpBefore - o.a.hp;
   const shards = st.slots.filter((s) => s && s.on);
-  const exactAtSpawn = shards.length === 2 && shards.every((s) =>
-    s.prov && s.prov.hitX === hitX && s.prov.hitY === hitY
-    && s.prov.dirX === exDx && s.prov.dirY === exDy
-    && s.prov.weaponId === 'PISTOL' && s.prov.sourceId === o.b.id);
-  // The shard BODIES scatter (gameplay jitter) — their positions/velocities
-  // must NOT be the provenance record; the record is the immutable prov block.
-  const bodiesScattered = shards.some((s) => s.x !== hitX || s.y !== hitY);
-  const speeds = shards.map((z) => Math.hypot(z.vx, z.vy));
-  const speedsLawful = speeds.every((sp) => sp >= 100 - 1e-6 && sp <= 175 + 1e-6);
-  // Survive motion: advance 1s of real free-flight (drift + decay + scans),
-  // then re-read the SAME shard objects: provenance must be unchanged.
+  const expectedN = expectedShards(realized);
+  // A. the live-path contact point is NOT the victim center assumption and
+  //    lies on the actually-travelled segment (closest-point property check
+  //    of the captured record, not a substituted authority).
+  const liveOffCenter = impact && Math.hypot(impact.x - victimX, impact.y - victimY) > 5;
+  const onTravelledSegment = impact && impact.x >= p.px - 1e-9 && impact.x <= p.x + 1e-9
+    && Math.abs(impact.y - p.y) <= 1e-9;
+  // B. prov hit position EXACTLY equals the live-path impact point.
+  const exactHitPos = impact && shards.length === expectedN && shards.every((s) =>
+    s.prov && s.prov.hitX === impact.x && s.prov.hitY === impact.y);
+  // C. physical shard bodies jittered around the live-path impact point
+  //    (sampled on the hit frame: the passive tick runs pre-projectiles, so
+  //    zero motion so far; jitter law is +-6 per axis), NOT around the victim
+  //    center.
+  const jitterBound = 6 * Math.SQRT2 + 1e-9;
+  const bodiesAroundHit = impact && shards.every((s) =>
+    Math.hypot(s.x - impact.x, s.y - impact.y) <= jitterBound);
+  const bodiesNotAroundCenter = impact && shards.every((s) =>
+    Math.hypot(s.x - victimX, s.y - victimY)
+      > Math.hypot(impact.x - victimX, impact.y - victimY) - jitterBound - 1e-9);
+  // D. prov direction EXACTLY equals the normalized live-path incoming leg.
+  const il = impact ? Math.hypot(impact.vx, impact.vy) : 0;
+  const exactDir = impact && il > 0 && shards.every((s) =>
+    s.prov && s.prov.dirX === impact.vx / il && s.prov.dirY === impact.vy / il);
+  // E/F. real firearm identity + real source body id; no inventions.
+  const exactIdentity = impact && shards.every((s) =>
+    s.prov && s.prov.weaponId === 'PISTOL' && s.prov.sourceId === o.b.id)
+    && rec.weaponId === 'PISTOL' && rec.source === o.b;
+  // Transaction hygiene: the impact marker is cleared when the transaction
+  // unwinds — it cannot be read stale afterwards.
+  const markerCleared = o.a.__aqImpact === null || o.a.__aqImpact === undefined;
+  // G. ~1s of real shard motion later, every immutable field is unchanged.
   T.step(1.0, DT);
-  const survivesMotion = shards.every((s) =>
-    s.on && s.prov && s.prov.hitX === hitX && s.prov.hitY === hitY
-    && s.prov.dirX === exDx && s.prov.dirY === exDy
+  const survivesMotion = impact && shards.every((s) =>
+    s.on && s.prov
+    && s.prov.hitX === impact.x && s.prov.hitY === impact.y
+    && s.prov.dirX === impact.vx / il && s.prov.dirY === impact.vy / il
     && s.prov.weaponId === 'PISTOL' && s.prov.sourceId === o.b.id);
-  const moved = shards.some((s) => Math.hypot(s.x - hitX, s.y - hitY) > 5);
-  gate('F1-P04b-immutable-provenance-hitpos-dir-weapon-source-survives-motion',
-    exactAtSpawn && bodiesScattered && speedsLawful && survivesMotion && moved,
-    { shards: shards.length,
-      storedHit: shards.map((s) => s.prov && [s.prov.hitX, s.prov.hitY]),
-      expectedHit: [hitX, hitY],
-      storedDir: shards.map((s) => s.prov && [+s.prov.dirX.toFixed(6), +s.prov.dirY.toFixed(6)]),
-      expectedDir: [+exDx.toFixed(6), +exDy.toFixed(6)],
-      weapon: shards.map((s) => s.prov && s.prov.weaponId), sourceId: shards.map((s) => s.prov && s.prov.sourceId),
-      bodiesScattered, movedAfter1s: moved, survivesMotion,
-      note: 'exact pre-jitter values stored on the shard; never re-derived from scattered vx/vy' });
-} catch (e) { gate('F1-P04b-immutable-provenance-hitpos-dir-weapon-source-survives-motion', false, String(e)); }
+  const moved = impact && shards.some((s) =>
+    Math.hypot(s.x - impact.x, s.y - impact.y) > jitterBound + 1);
+  gate('F1-P04b-real-projectile-impact-provenance',
+    !!hitStep && realized > 0 && !!impact && liveOffCenter && onTravelledSegment
+    && exactHitPos && bodiesAroundHit && bodiesNotAroundCenter && exactDir
+    && exactIdentity && markerCleared && survivesMotion && moved,
+    { hitStep, realized: +realized.toFixed(3), shards: shards.length, expectedN,
+      livePathImpact: impact && [+impact.x.toFixed(4), +impact.y.toFixed(4)],
+      livePathLeg: impact && [impact.vx, impact.vy],
+      victimCenter: [victimX, victimY],
+      hitOffCenterBy: impact && +Math.hypot(impact.x - victimX, impact.y - victimY).toFixed(3),
+      provHit: shards.map((s) => s.prov && [s.prov.hitX, s.prov.hitY]),
+      provDir: shards.map((s) => s.prov && [s.prov.dirX, s.prov.dirY]),
+      weapon: rec.weaponId, sourceIsOwnerBody: rec.source === o.b,
+      markerCleared, survivesMotion, movedAfter1s: moved,
+      note: 'oracle = the live Hero-Rework projectile path output captured at the aqDamage boundary; no base-Arsenal circle-entry substitution' });
+} catch (e) { gate('F1-P04b-real-projectile-impact-provenance', false, String(e)); }
+
+/* F1 PROVENANCE CORRECTION — mandatory fallback + STALE-IMPACT gate.
+ * Damage transactions without real impact metadata fall back deterministically
+ * to victim center + source->victim direction, and a stale impact from an
+ * earlier real projectile hit can NEVER contaminate a later event:
+ *   (1) direct damage before any impact  -> victim-center provenance
+ *   (2) real projectile hit              -> impact provenance (off-center)
+ *   (3) direct damage AFTER that hit     -> victim-center provenance again
+ *       (would equal the old impact point if the marker leaked)
+ *   (4) neutral direct damage            -> direction null, no sourceId */
+try {
+  const o = start();
+  o.a.x = 500; o.a.y = 500; o.b.x = 850; o.b.y = 500;
+  T.step(DT, DT);
+  const st = pstate(o.ct);
+  const clearPool = () => { st.slots.fill(null); st.nodes.length = 0; };
+  const provs = () => st.slots.filter((s) => s && s.on).map((s) => s.prov);
+  const srcDx = (o.a.x - o.b.x), srcDy = (o.a.y - o.b.y);
+  const srcLen = Math.hypot(srcDx, srcDy);
+  // (1) no-impact fallback baseline
+  o.a.hp = o.a.maxHp;
+  o.a.takeDamage(70, o.b, 'arsenal-PISTOL');
+  const p1 = provs();
+  const fallback1 = p1.length === 2 && p1.every((pr) =>
+    pr && pr.hitX === o.a.x && pr.hitY === o.a.y
+    && Math.abs(pr.dirX - srcDx / srcLen) <= 1e-12 && Math.abs(pr.dirY - srcDy / srcLen) <= 1e-12
+    && pr.sourceId === o.b.id && pr.weaponId === 'PISTOL');
+  clearPool();
+  // (2) real projectile hit — impact provenance captured at the live path's
+  //     aqDamage boundary; marker must be cleared when the transaction ends
+  o.a.hp = o.a.maxHp;
+  const p = fireRealBullet(o, 'PISTOL', 60);
+  const rec = captureLiveImpact(o);
+  for (let i = 1; i <= 120; i++) { T.step(DT, DT); if (onCount(st) > 0) break; }
+  rec.restore();
+  const impact = rec.impact;
+  const p2 = provs();
+  const impactProv = impact && p2.length > 0 && p2.every((pr) =>
+    pr && pr.hitX === impact.x && pr.hitY === impact.y);
+  const bulletHitX = impact ? impact.x : null;
+  const markerClearedAfterHit = o.a.__aqImpact === null || o.a.__aqImpact === undefined;
+  clearPool();
+  // (3) direct damage AFTER the real impact — must be victim center again,
+  //     must NOT carry the old impact point (stale-leak proof)
+  o.a.hp = o.a.maxHp;
+  o.a.takeDamage(70, o.b, 'arsenal-PISTOL');
+  const p3 = provs();
+  const noStaleLeak = bulletHitX !== null && p3.length === 2 && p3.every((pr) =>
+    pr && pr.hitX === o.a.x && pr.hitY === o.a.y
+    && pr.hitX !== bulletHitX
+    && Math.abs(pr.dirX - srcDx / srcLen) <= 1e-12 && Math.abs(pr.dirY - srcDy / srcLen) <= 1e-12);
+  clearPool();
+  // (4) neutral damage: no impact, no source -> direction null, no sourceId
+  o.a.hp = o.a.maxHp;
+  o.a.takeDamage(70, null, 'arsenal-PISTOL');
+  const p4 = provs();
+  const neutralFallback = p4.length === 2 && p4.every((pr) =>
+    pr && pr.hitX === o.a.x && pr.hitY === o.a.y
+    && pr.dirX === null && pr.dirY === null && pr.sourceId === null);
+  gate('F1-P04c-no-impact-fallback-and-stale-impact-cannot-leak',
+    fallback1 && impactProv && bulletHitX !== null && Math.abs(bulletHitX - o.a.x) > 5
+    && markerClearedAfterHit && noStaleLeak && neutralFallback,
+    { fallback1: { n: p1.length, hit: p1[0] && [p1[0].hitX, p1[0].hitY], victimCenter: [o.a.x, o.a.y] },
+      impact: { n: p2.length, livePathHit: impact && [impact.x, impact.y], provHit: p2[0] && [p2[0].hitX, p2[0].hitY] },
+      markerClearedAfterHit,
+      afterHitDirectDamage: { n: p3.length, hit: p3[0] && [p3[0].hitX, p3[0].hitY], staleBulletHitX: bulletHitX },
+      neutral: { n: p4.length, dir: p4[0] && [p4[0].dirX, p4[0].dirY], sourceId: p4[0] && p4[0].sourceId },
+      note: 'victim-center/source-direction fallback is deterministic; a previous real impact never leaks into a later non-impact transaction' });
+} catch (e) { gate('F1-P04c-no-impact-fallback-and-stale-impact-cannot-leak', false, String(e)); }
 
 /* ============ PER-OWNER POOL LAW (P06-P10) ============ */
 try {
