@@ -401,13 +401,23 @@
           keepsOwn: ['velocity', 'hp', 'weapon', 'status'],
         }, ['cooldown'], 'cooldown_step'),
         PASSIVE: skill('mirror.shattered_mirrors', 'PASSIVE', 'mirror.shattered_mirrors', {
+          // Realized-damage -> shard law (doc 08 §4, binding):
+          // realized < minEventDamage -> 0; else clamp(round(d/35),1,5).
           damagePerShard: 35, minEventDamage: 20, maxShardsPerEvent: 5,
-          shardLifetime: 6, shardsToMirror: 5, mirrorFormRadius: 130,
-          mirrorLifetime: 10, maxMirrors: 3,
+          // Checkpoint F1 — Gold-first per-owner shard/node formation law.
+          // The cap is the 16/5 ECONOMY itself: three nodes own 15 of 16
+          // slots, leaving 1 free shard — never the 5 required by tryForm,
+          // so a fourth concurrent node is UNPRODUCIBLE. No node-count cap
+          // field and no retirement mechanic exist on purpose.
+          shardSlots: 16, shardsPerNode: 5, freeShardLifetime: 6,
+          formAgeGate: 0.7, scanCadence: 0.3, seedRadius: 170,
+          assemblyStart: 0.18, assemblyStagger: 0.06, shardTravel: 0.4,
+          fillDelay: 0.04, fillSpan: 0.30, activeDelayAfterLock: 0.38,
+          activeLifetime: 10, foldDuration: 0.55, orientationRange: 0.35,
           exitController: 'NEUTRAL', damageUnchanged: true, noHeroCredit: true,
           provenanceRetained: true, t6Immune: true,
           loopSuppression: 'zero-progress-only',
-        }, ['shardLifetime'], 'seconds_step'),
+        }, ['freeShardLifetime'], 'seconds_step'),
       },
     },
 

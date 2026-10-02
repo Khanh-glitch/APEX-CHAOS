@@ -1143,18 +1143,43 @@
     });
   }
 
+  /* CHECKPOINT F1 — Gold-first passive. Shards come ONLY from REALIZED HP
+   * loss suffered by MIRROR-owned bodies (the damage adapter already reports
+   * realized = beforeHP - afterHP). Self-credited damage is excluded exactly
+   * as before; neutral/external realized damage remains valid. A T6 hit that
+   * realizes MIRROR HP loss creates shards by this same path — the passive
+   * reacts to HP loss only and never inspects/manipulates the T6 object. */
   EXECUTORS['mirror.shattered_mirrors'] = {
     onRealizedDamage(ctx, ev) {
-      // Shards from realized damage suffered by MIRROR bodies.
       if (ev.creditedTo === ctx.combatant) return;
       if (!ctx.api.ownsBody(ctx.combatant, ev.victimBody)) return;
       const amount = ev.amount;
       let n = 0;
       if (amount >= ctx.cfg.minEventDamage) n = clamp(Math.round(amount / ctx.cfg.damagePerShard), 1, ctx.cfg.maxShardsPerEvent);
       if (n <= 0) return;
-      ctx.api.spawnShards(ctx.combatant, ev.victimBody.x, ev.victimBody.y, n);
+      const victim = ev.victimBody;
+      const src = ev.sourceBody;
+      let dirX = null, dirY = null;
+      if (src && Number.isFinite(src.x) && Number.isFinite(src.y)) {
+        // Real incoming direction from the REAL hit event (source -> victim).
+        const dx = victim.x - src.x, dy = victim.y - src.y;
+        const d = Math.hypot(dx, dy);
+        if (d > 1e-6) { dirX = dx / d; dirY = dy / d; }
+      }
+      ctx.api.mirrorShardProc(ctx.combatant, victim.x, victim.y, n, {
+        dirX, dirY, weaponId: ev.weaponId || null,
+        sourceId: src && src.id != null ? src.id : null,
+      });
       ctx.api.note('mirror.shattered_mirrors', 'shards', { n, amount });
     },
+    onTick(ctx, dt) {
+      // One deterministic per-owner passive lifecycle authority (F1):
+      // FREE shard motion/expiry, 0.3s formation scans, Gold assembly and
+      // node lifecycle. Runs through the shared fixed step like every other
+      // executor — never a raw timer, never a second clock.
+      ctx.api.mirrorPassiveStep(ctx.combatant, dt);
+    },
+    onTeardown(ctx) { ctx.combatant.store['mirror.passive'] = null; },
   };
 
   /* -------------------------------------------------------------------- *

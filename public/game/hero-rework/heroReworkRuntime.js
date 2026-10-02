@@ -557,6 +557,29 @@
       armorEnded(ct) {
         eachExecutor(ct, (exec, ctx) => { if (exec.onArmorEnded) exec.onArmorEnded(ctx); });
       },
+      /* CHECKPOINT F1 — Gold-first shard provenance seam. This is the ONLY
+       * passive shard authority: realized MIRROR HP loss reaches this and
+       * nothing else spawns F1 shards. Per-owner 16-slot pool, Gold
+       * replacement law, no immediate formation (scans run on the per-owner
+       * 0.3s cadence inside mirrorPassiveTick). */
+      mirrorShardProc(ct, x, y, n, prov) {
+        return mirrorProcShards(ct, x, y, n, prov || null);
+      },
+      /* F1 per-owner passive lifecycle step (FREE motion/expiry, formation
+       * scans, assembly, ACTIVE/FOLD). Driven from the executor onTick so it
+       * runs exactly once per shared fixed step per MIRROR owner. */
+      mirrorPassiveStep(ct, dt) {
+        if (!M) return;
+        mirrorPassiveTick(ct, dt);
+      },
+      /* DEPRECATED (F2 cleanup) — legacy pre-F1 shard/portal scaffold.
+       * NOT passive authority: the mirror.shattered_mirrors passive never
+       * calls this. Retained ONLY because protected historical suites pin
+       * the old law through this direct test seam:
+       *   - tools/testHeroReworkGoldens.mjs (G2/G5 historical X-matrix);
+       * legacy portals live in M.world.mirrors, a space F1 nodes never
+       * enter, so the F1 node lifecycle and the legacy router can never
+       * interact. Removal belongs to Checkpoint F2. */
       spawnShards(ct, x, y, n) {
         for (let i = 0; i < n; i++) {
           const a = rng() * Math.PI * 2;
@@ -568,6 +591,10 @@
         }
         tryFormMirrors();
       },
+      /* DEPRECATED (F2 cleanup) — legacy circular portal object for the
+       * protected ordered-path/supersession foundations and the historical
+       * goldens. Never produced by F1 formation; F1 nodes are per-owner
+       * oriented-surface nodes in the combatant mirror passive state. */
       spawnMirrorPortal(o) {
         if (M.world.mirrors.length >= 3) return null;
         const m = {
@@ -897,6 +924,287 @@
         M.world.shards = M.world.shards.filter((s) => !used.includes(s));
         M.api.spawnMirrorPortal({ owner, x: mx, y: my, lifetime: 10 });
         return;
+      }
+    }
+  }
+
+  /* ==================================================================== *
+   * CHECKPOINT F1 — MIRROR GOLD-FIRST PER-OWNER SHARD / NODE FORMATION.
+   *
+   * One coherent passive lifecycle, per MIRROR owner (doc 08 §4/§5/§6,
+   * doc 02 P01-P18 binding text, canonical Gold executable state machine):
+   *
+   *   realized MIRROR HP loss -> mirrorShardProc
+   *     -> per-owner 16-slot shard pool (OFF/FREE/RESERVED/NODE_OWNED)
+   *     -> FREE shards: real position, motion with decay, 6s free lifetime
+   *     -> deterministic 0.3s per-owner formation scan
+   *     -> age > .7 gate, same-owner only
+   *     -> seed + 4 nearest, FOURTH-nearest strictly < 170 (seed radius,
+   *        NOT all-pairs)
+   *     -> immediate reservation (no double claim, free expiry paused)
+   *     -> Gold 5-shard assembly choreography (.18 + i*.06 stagger, .4 travel)
+   *     -> fill/lock, ACTIVE at ~1.20s from formation start
+   *     -> 10s ACTIVE lifetime (clock starts AT ACTIVE)
+   *     -> .55s FOLD, then node OFF and its 5 shard slots OFF (no
+   *        return-to-free)
+   *
+   * CONCURRENCY CAP IS THE ECONOMY, NOT A COUNTER: 16 slots / 5 per node.
+   * Three nodes own 15 slots leaving 1 free shard — never the 5 tryForm
+   * needs — so a fourth concurrent node is unproducible. There is no
+   * node-count cap branch and no oldest-node retirement on purpose.
+   *
+   * ROUTING IS DISABLED IN F1: nodes carry the shared oriented transform
+   * (NV, v0->v3 surface) for F2/G, but nothing here captures or moves a
+   * projectile. F1 nodes never enter M.world.mirrors, so the deprecated
+   * legacy circle router above can never act on them.
+   * ==================================================================== */
+  const MIRROR_NV = [[-5, -60], [28, -27], [20, 28], [0, 62], [-28, 31]];
+  const MIRROR_SHARD_SLOTS = 16;
+
+  function mirrorPassiveState(ct) {
+    const st = ct.store['mirror.passive'] || (ct.store['mirror.passive'] = {
+      slots: new Array(MIRROR_SHARD_SLOTS).fill(null),
+      nodes: [],
+      scanT: 0,                 // Gold fcT=0: the first scan runs on tick 1
+    });
+    return st;
+  }
+
+  /* Shared node transform authority (doc 02 P17). F2 gameplay collision and
+   * G presentation MUST both consume HR.mirrorNode — never a second
+   * transform. */
+  function mirrorNodeToWorld(n, lx, ly) {
+    const c = Math.cos(n.rot), s = Math.sin(n.rot);
+    return { x: n.x + lx * c - ly * s, y: n.y + lx * s + ly * c };
+  }
+  function mirrorNodeSurface(n) {
+    const a = mirrorNodeToWorld(n, MIRROR_NV[0][0], MIRROR_NV[0][1]);
+    const b = mirrorNodeToWorld(n, MIRROR_NV[3][0], MIRROR_NV[3][1]);
+    return { ax: a.x, ay: a.y, bx: b.x, by: b.y };
+  }
+  function mirrorNodePolygon(n) {
+    return MIRROR_NV.map((v) => mirrorNodeToWorld(n, v[0], v[1]));
+  }
+  HR.mirrorNode = { NV: MIRROR_NV, toWorld: mirrorNodeToWorld, surface: mirrorNodeSurface, polygon: mirrorNodePolygon };
+
+  /* Per-owner pool spawn with the Gold replacement law: OFF slot first,
+   * else OLDEST FREE slot replaced, RESERVED/NODE_OWNED slots are never
+   * stolen, and if nothing is replaceable the new shard is dropped. */
+  function mirrorProcShards(ct, x, y, n, prov) {
+    if (!M || !ct || ct.facade) return [];
+    const st = mirrorPassiveState(ct);
+    const S = globalScope.GAME_SIZE || 1000;
+    // Gold passiveProc: shards scatter around the REAL impact point along the
+    // real incoming hit direction (alternating spread), with match-seeded
+    // gameplay speed/angle jitter. Never Math.random.
+    const base = (prov && Number.isFinite(prov.dirX) && Number.isFinite(prov.dirY)
+      && (prov.dirX !== 0 || prov.dirY !== 0))
+      ? Math.atan2(prov.dirY, prov.dirX)
+      : rng() * Math.PI * 2;
+    const made = [];
+    for (let i = 0; i < n; i++) {
+      let slotIdx = st.slots.findIndex((z) => !z);
+      if (slotIdx < 0) {
+        let old = -1;
+        for (let k = 0; k < st.slots.length; k++) {
+          const z = st.slots[k];
+          if (z && z.st === 0 && (old < 0 || z.age > st.slots[old].age)) old = k;
+        }
+        slotIdx = old;                       // -1 => unreplaceable: dropped
+      }
+      if (slotIdx < 0) continue;
+      const a = base + (i === 0 ? (rng() * 0.5 - 0.25) : (i % 2 ? 1 : -1) * (0.3 + rng() * 0.5));
+      const sp = 100 + rng() * 75;
+      const sh = {
+        on: true, st: 0, node: null,
+        x: clamp(x + (rng() * 12 - 6), 30, Math.max(30, S - 30)),
+        y: clamp(y + (rng() * 12 - 6), 30, Math.max(30, S - 30)),
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        age: 0, mt0: 0, moving: false,
+        fx: 0, fy: 0, tx: 0, ty: 0, trot: 0, dist: 0,
+        prov: prov ? { weaponId: prov.weaponId || null, sourceId: prov.sourceId != null ? prov.sourceId : null } : null,
+      };
+      st.slots[slotIdx] = sh;
+      made.push(sh);
+    }
+    // No detach bus event in F1: the pool IS the positional/lifecycle truth
+    // and presentation hooks belong to G. Keeping event pressure off the
+    // shared bounded ring also protects historical capture windows.
+    return made;
+  }
+
+  /* Clamp the node center only as required to keep the transformed Gold NV
+   * polygon inside the REAL arena (never the demo's literal 90/910/100/900). */
+  function mirrorClampCenter(cx, cy, rot) {
+    const S = globalScope.GAME_SIZE || 1000;
+    const c = Math.cos(rot), s = Math.sin(rot);
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const v of MIRROR_NV) {
+      const lx = v[0] * c - v[1] * s, ly = v[0] * s + v[1] * c;
+      if (lx < minX) minX = lx; if (lx > maxX) maxX = lx;
+      if (ly < minY) minY = ly; if (ly > maxY) maxY = ly;
+    }
+    let lo = -minX, hi = S - maxX;
+    const nx = lo > hi ? (lo + hi) / 2 : clamp(cx, lo, hi);
+    lo = -minY; hi = S - maxY;
+    const ny = lo > hi ? (lo + hi) / 2 : clamp(cy, lo, hi);
+    return { x: nx, y: ny };
+  }
+
+  /* Gold tryForm: per-owner, eligible = FREE and age STRICTLY > .7, seeds in
+   * deterministic slot order, seed-radius topology (fourth-nearest strictly
+   * < 170). */
+  function mirrorTryForm(ct) {
+    if (!ct || ct.facade) return null;
+    const cfg = (ct.skills.PASSIVE && ct.skills.PASSIVE.cfg) || {};
+    const ageGate = cfg.formAgeGate ?? 0.7;
+    const seedR = cfg.seedRadius ?? 170;
+    const st = mirrorPassiveState(ct);
+    const free = [];
+    for (let i = 0; i < st.slots.length; i++) {
+      const z = st.slots[i];
+      if (z && z.st === 0 && z.age > ageGate) free.push(z);
+    }
+    if (free.length < 5) return null;
+    for (const s of free) {
+      const nb = free.filter((o) => o !== s)
+        .map((o) => ({ o, d: Math.hypot(o.x - s.x, o.y - s.y) }))
+        .sort((a, b) => a.d - b.d);
+      if (nb.length >= 4 && nb[3].d < seedR) {
+        return mirrorFormNode(ct, [s, nb[0].o, nb[1].o, nb[2].o, nb[3].o]);
+      }
+    }
+    return null;
+  }
+
+  /* Gold formNode: centroid + seeded orientation + clamped center, edge-slot
+   * mapping minimising travel, immediate reservation of all five slots. */
+  function mirrorFormNode(ct, group) {
+    const cfg = (ct.skills.PASSIVE && ct.skills.PASSIVE.cfg) || {};
+    let cx = 0, cy = 0;
+    for (const s of group) { cx += s.x; cy += s.y; }
+    cx /= 5; cy /= 5;
+    const rotRange = cfg.orientationRange ?? 0.35;
+    const rot = rng() * 2 * rotRange - rotRange;   // match-seeded gameplay RNG
+    const center = mirrorClampCenter(cx, cy, rot);
+    const node = {
+      owner: ct, x: center.x, y: center.y, rot,
+      st: 1,                       // 1 FORMING, 2 ACTIVE, 3 FOLD
+      t: 0, age: 0, t3: 0, tlock: -1,
+      activeAtClock: -1, formedAtClock: AIL.clock(),
+      sh: [],
+    };
+    // Edge target slots from transformed NV edge midpoints (Gold law).
+    const edges = [];
+    for (let i = 0; i < 5; i++) {
+      const a = MIRROR_NV[i], b = MIRROR_NV[(i + 1) % 5];
+      const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      const w = mirrorNodeToWorld(node, mx, my);
+      edges.push({ x: w.x, y: w.y, ang: Math.atan2(w.y - node.y, w.x - node.x) });
+    }
+    edges.sort((a, b) => a.ang - b.ang);
+    const sh = group.slice().sort((a, b) =>
+      Math.atan2(a.y - node.y, a.x - node.x) - Math.atan2(b.y - node.y, b.x - node.x));
+    let bestShift = 0, bestD = Infinity;
+    for (let sft = 0; sft < 5; sft++) {
+      let t = 0;
+      for (let i = 0; i < 5; i++) {
+        const e = edges[(i + sft) % 5];
+        t += Math.hypot(sh[i].x - e.x, sh[i].y - e.y);
+      }
+      if (t < bestD) { bestD = t; bestShift = sft; }
+    }
+    sh.forEach((s, i) => {
+      const e = edges[(i + bestShift) % 5];
+      s.tx = e.x; s.ty = e.y;
+      s.dist = Math.hypot(s.x - e.x, s.y - e.y);
+    });
+    sh.sort((a, b) => a.dist - b.dist);            // travel-distance order
+    const start0 = cfg.assemblyStart ?? 0.18;
+    const stagger = cfg.assemblyStagger ?? 0.06;
+    sh.forEach((s, i) => {
+      // IMMEDIATE RESERVATION: leaves FREE before any later scan can see it;
+      // the 6s free expiry no longer applies while reserved/node-owned.
+      s.st = 1; s.node = node;
+      s.vx = 0; s.vy = 0; s.moving = false;
+      s.mt0 = start0 + i * stagger;
+      s.fx = s.x; s.fy = s.y;
+    });
+    node.sh = sh;
+    mirrorPassiveState(ct).nodes.push(node);
+    AIL.bus.emit('MirrorNodeForming', { owner: ct.idx, x: node.x, y: node.y, rot: node.rot });
+    return node;
+  }
+
+  const eo3 = (p) => 1 - Math.pow(1 - p, 3);
+
+  function mirrorPassiveTick(ct, dt) {
+    if (!ct || ct.facade) return;
+    const cfg = (ct.skills.PASSIVE && ct.skills.PASSIVE.cfg) || {};
+    const st = mirrorPassiveState(ct);
+    const S = globalScope.GAME_SIZE || 1000;
+    const freeLife = cfg.freeShardLifetime ?? 6;
+    // Shard aging + FREE motion/expiry.
+    for (let i = 0; i < st.slots.length; i++) {
+      const s = st.slots[i];
+      if (!s || !s.on) continue;
+      s.age += dt;
+      if (s.st === 0) {
+        s.x += s.vx * dt; s.y += s.vy * dt;
+        const f = Math.exp(-3.2 * dt);             // Gold free-shard decay
+        s.vx *= f; s.vy *= f;
+        s.x = clamp(s.x, 30, Math.max(30, S - 30));
+        s.y = clamp(s.y, 30, Math.max(30, S - 30));
+        if (s.age >= freeLife) { s.on = false; st.slots[i] = null; } // FREE expiry -> slot OFF
+      }
+    }
+    // Deterministic per-owner formation scan cadence (Gold fcT = .3).
+    st.scanT -= dt;
+    while (st.scanT <= 0) {
+      st.scanT += (cfg.scanCadence ?? 0.3);
+      mirrorTryForm(ct);
+    }
+    // Node lifecycle.
+    const travel = cfg.shardTravel ?? 0.4;
+    const activeDelay = cfg.activeDelayAfterLock ?? 0.38;
+    const activeLife = cfg.activeLifetime ?? 10;
+    const foldDur = cfg.foldDuration ?? 0.55;
+    for (let i = st.nodes.length - 1; i >= 0; i--) {
+      const n = st.nodes[i];
+      n.t += dt;
+      if (n.st === 1) {
+        let done = true;
+        for (const s of n.sh) {
+          if (n.t < s.mt0) { done = false; continue; }
+          if (!s.moving) { s.moving = true; s.fx = s.x; s.fy = s.y; }
+          const p = clamp((n.t - s.mt0) / travel, 0, 1);
+          const e = eo3(p);
+          s.x = s.fx + (s.tx - s.fx) * e;
+          s.y = s.fy + (s.ty - s.fy) * e;
+          if (p < 1) done = false;
+        }
+        if (done && n.tlock < 0) n.tlock = n.t;    // fill only after ALL arrive
+        if (n.tlock >= 0 && n.t > n.tlock + activeDelay) {
+          n.st = 2; n.age = 0; n.activeAtClock = AIL.clock();
+          for (const s of n.sh) s.st = 3;          // NODE_OWNED
+          AIL.bus.emit('MirrorNodeActive', { owner: ct.idx, x: n.x, y: n.y, rot: n.rot });
+        }
+      } else if (n.st === 2) {
+        n.age += dt;
+        if (n.age >= activeLife) { n.st = 3; n.t3 = 0; }
+      } else if (n.st === 3) {
+        n.t3 += dt;
+        if (n.t3 >= foldDur) {
+          // Gold fold completion: node OFF and its five shard slots OFF.
+          // They never return to FREE.
+          for (const s of n.sh) {
+            s.on = false;
+            const k = st.slots.indexOf(s);
+            if (k >= 0) st.slots[k] = null;
+          }
+          st.nodes.splice(i, 1);
+          AIL.bus.emit('MirrorNodeOff', { owner: ct.idx });
+        }
       }
     }
   }
@@ -2515,6 +2823,17 @@
     return false;
   }
 
+  /* LEGACY CIRCLE ROUTER — DEPRECATED, F2 replaces this path.
+   *
+   * CHECKPOINT F1 INERTNESS LAW: F1 mirror nodes live ONLY in the per-owner
+   * mirror passive state (ct.store['mirror.passive'].nodes) and NEVER enter
+   * M.world.mirrors, so this function — which iterates M.world.mirrors
+   * exclusively — can never see, capture or route through an F1 node in any
+   * of its states (FORMING / ACTIVE / FOLD). Its remaining inputs are the
+   * deprecated legacy portal objects spawned directly by protected
+   * historical suites (ordered path/supersession foundations, goldens G2/G5).
+   * Checkpoint F2 removes this path and implements Gold-first
+   * oriented-surface routing against the F1 node transform. */
   function mirrorRoute(p) {
     if (!M || M.world.mirrors.length < 2) return;
     if (p.weapon === 'STORMBREAKER') return; // T6 immune

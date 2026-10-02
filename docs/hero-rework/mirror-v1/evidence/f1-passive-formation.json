@@ -1,0 +1,321 @@
+{
+  "generatedAt": "2026-10-02T11:46:51.623Z",
+  "checkpoint": "F1",
+  "gates": {
+    "F1-P01-P03-realized-damage-formula-boundaries": {
+      "pass": true,
+      "detail": {
+        "mitigationFactor": 0.98,
+        "boundaries": [
+          "below-threshold (realized < 20): realized 19.59902 -> spawned 0/0",
+          "realized just >= 20: realized 20 -> spawned 1/1",
+          "round(35/35)=1: realized 35 -> spawned 1/1",
+          "round(52.4/35)=1: realized 52.4 -> spawned 1/1",
+          "round(52.5/35)=2 (rounding edge): realized 52.5 -> spawned 2/2",
+          "round(70/35)=2: realized 70 -> spawned 2/2",
+          "clamp to 5: realized 490 -> spawned 5/5"
+        ],
+        "poolTotal": 12,
+        "expectedTotal": 12,
+        "note": "<20 -> 0; else clamp(round(realized/35),1,5), all probed on the REAL engine path"
+      }
+    },
+    "F1-P04-only-mirror-owned-realized-damage": {
+      "pass": true,
+      "detail": {
+        "afterOpponentHit": 0,
+        "afterSelfCreditedHit": 0,
+        "afterNeutralHit": 2
+      }
+    },
+    "F1-P05-t6-realized-damage-still-creates-shards": {
+      "pass": true,
+      "detail": {
+        "shards": 2,
+        "provenanceWeapon": [
+          "STORMBREAKER",
+          "STORMBREAKER"
+        ]
+      }
+    },
+    "F1-P04b-spawn-provenance-from-real-hit": {
+      "pass": true,
+      "detail": {
+        "shards": 2,
+        "meanVx": 115.8,
+        "speeds": [
+          100.1,
+          144.2
+        ],
+        "note": "scatter base direction = real source->victim direction; speeds are Gold 100..175"
+      }
+    },
+    "F1-P06-P07-pool-16-and-oldest-free-replacement": {
+      "pass": true,
+      "detail": {
+        "slotCount": 16,
+        "onCount": 16,
+        "free": 16,
+        "liveShardsSurviving": 16,
+        "firstSlotIsRequest20": true,
+        "note": "20 spawn requests -> exactly 16 live FREE shards; overflow replaced the oldest FREE slot, never grew the pool"
+      }
+    },
+    "F1-P08-full-pool-never-steals-reserved": {
+      "pass": true,
+      "detail": {
+        "nodeOwnedIntact": 5,
+        "probeReplacedOldestFree": true,
+        "onCount": 16
+      }
+    },
+    "F1-P09-no-replaceable-free-slot-drops-shard": {
+      "pass": true,
+      "detail": {
+        "nodes": 3,
+        "owned": 15,
+        "droppedSpawned": 0,
+        "onCount": 16
+      }
+    },
+    "F1-P10-free-shard-expires-at-6s": {
+      "pass": true,
+      "detail": {
+        "at5p997s": 1,
+        "at6p01s": 0
+      }
+    },
+    "F1-P11-P12-age-gate-strictly-greater": {
+      "pass": true,
+      "detail": {
+        "nodesAtAgeExactlyPoint7": 0,
+        "nodesAtNextScan": 1
+      }
+    },
+    "F1-P13-scan-cadence-0p3-not-immediate-not-per-frame": {
+      "pass": true,
+      "detail": {
+        "formedAtDeltaS": 0.89167,
+        "expectedCadencePoint": 0.9,
+        "immediateOrPerFrameWindow": "(0, 0.75]",
+        "note": "formation lands exactly on the 0.3s scan grid, never at spawn"
+      }
+    },
+    "F1-P14-same-owner-only-no-cross-form": {
+      "pass": true,
+      "detail": {
+        "p1Nodes": 1,
+        "p2Nodes": 0,
+        "p1NodeOwnerIsP1": true,
+        "strayStillFreeInP1Pool": true
+      }
+    },
+    "F1-P15-P17-P18-seed-radius-fourth-nearest-lt-170": {
+      "pass": true,
+      "detail": {
+        "nodes": 1,
+        "note": "neighbors mutually 320px apart (>170): all-pairs law would fail, seed law forms"
+      }
+    },
+    "F1-P16-fourth-nearest-eq-170-fails-strictly": {
+      "pass": true,
+      "detail": {
+        "nodes": 0,
+        "free": 5
+      }
+    },
+    "F1-P19-immediate-reservation-no-double-claim": {
+      "pass": true,
+      "detail": {
+        "nodes": 1,
+        "secondClusterStillFree": true
+      }
+    },
+    "F1-P20-reserved-shards-do-not-free-expire": {
+      "pass": true,
+      "detail": {
+        "nodeAlive": true,
+        "ownedShardsAlive": 5,
+        "nodeState": 2
+      }
+    },
+    "F1-P21-centroid-from-five-shards": {
+      "pass": true,
+      "detail": {
+        "node": [
+          414,
+          412
+        ],
+        "centroid": [
+          414,
+          412
+        ]
+      }
+    },
+    "F1-P22-corner-centroid-clamp-keeps-surface-inside-arena": {
+      "pass": true,
+      "detail": {
+        "nodeCenter": [
+          47,
+          59.67
+        ],
+        "rawCentroid": [
+          47,
+          48
+        ],
+        "polygonInsideArena": true,
+        "arena": 1000
+      }
+    },
+    "F1-P23-P24-seeded-orientation-deterministic-bounded": {
+      "pass": true,
+      "detail": {
+        "seed4242": [
+          -0.212109,
+          -0.212109
+        ],
+        "seed97531": -0.054238,
+        "range": "[-0.35, 0.35]"
+      }
+    },
+    "F1-P25-P27-assembly-stagger-travel-and-lock": {
+      "pass": true,
+      "detail": {
+        "starts": [
+          0.175,
+          0.2333,
+          0.2917,
+          0.3583,
+          0.4167
+        ],
+        "mt0": [
+          0.18,
+          0.24,
+          0.3,
+          0.36,
+          0.42
+        ],
+        "travelDurations": [
+          0.2333,
+          0.3,
+          0.3083,
+          0.325,
+          0.325
+        ],
+        "tlock": 0.825,
+        "expectedTlock": 0.82
+      }
+    },
+    "F1-P28-P29-active-at-1p20-not-early": {
+      "pass": true,
+      "detail": {
+        "activeAfterFormS": 1.2,
+        "earlyAt0p5": false,
+        "canonical": "~1.20 (tlock 0.82 + 0.38 + fixed-step edge)"
+      }
+    },
+    "F1-P30-shared-transform-v0-v3-surface": {
+      "pass": true,
+      "detail": {
+        "surface": {
+          "ax": 479.484,
+          "ay": 441.995,
+          "bx": 516.213,
+          "by": 558.443
+        },
+        "NV": [
+          [
+            -5,
+            -60
+          ],
+          [
+            28,
+            -27
+          ],
+          [
+            20,
+            28
+          ],
+          [
+            0,
+            62
+          ],
+          [
+            -28,
+            31
+          ]
+        ],
+        "nodeActive": true
+      }
+    },
+    "F1-P31-P33-active-clock-starts-at-active-folds-at-10": {
+      "pass": true,
+      "detail": {
+        "activeAtAfterFormS": 1.1917,
+        "stillActiveAtActiveAge9p7": true,
+        "foldEntered": true,
+        "note": "fold clock starts at ACTIVE+10, never at reservation"
+      }
+    },
+    "F1-P34-P36-fold-holds-then-node-and-five-slots-off": {
+      "pass": true,
+      "detail": {
+        "midFoldState": 3,
+        "midFoldT3": 0.05,
+        "ownedMidFold": 5,
+        "nodeGoneAfter0p55": true,
+        "slotsOffAfter": true,
+        "note": "no return-to-free; the five shards are OFF, not fresh FREE"
+      }
+    },
+    "F1-P37-P40-16-5-economy-three-nodes-fourth-unproducible": {
+      "pass": true,
+      "detail": {
+        "nodesAfterFourthCluster": 3,
+        "owned": 15,
+        "free": 1,
+        "nodeStates": [
+          2,
+          2,
+          2
+        ],
+        "note": "no node-count cap branch, no retirement — the pool math is the cap"
+      }
+    },
+    "F1-P41-active-node-never-routes-projectile": {
+      "pass": true,
+      "detail": {
+        "nodeState": 2,
+        "portalRouteEvents": 0,
+        "neutral": false,
+        "bulletX": 615,
+        "expectedX": 615,
+        "life": 2.65,
+        "legacyMirrorsInWorld": 0,
+        "note": "F2 routing is NOT implemented; the projectile stays an ordinary WORLD object"
+      }
+    },
+    "F1-P42-P44-mirror-vs-mirror-independent-pools-no-global-cap": {
+      "pass": true,
+      "detail": {
+        "p1Nodes": 3,
+        "p2Nodes": 3,
+        "totalConcurrentNodes": 6,
+        "p1Owned": 15,
+        "p2Owned": 15,
+        "note": "6 concurrent nodes across two owners — no global cap 3, no cross-owner reservation"
+      }
+    },
+    "F1-P45-teardown-rematch-leaves-nothing-behind": {
+      "pass": true,
+      "detail": {
+        "stateBeforeExit": "ACTIVE node + owned shards",
+        "rematchNodes": 0,
+        "rematchShards": 0,
+        "legacyWorldClean": true
+      }
+    }
+  },
+  "failures": [],
+  "pass": true
+}
