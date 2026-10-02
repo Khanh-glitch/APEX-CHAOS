@@ -758,6 +758,37 @@
       // state (equip() always builds a brand-new holder). The opponent
       // keeps the original. Temporary: the mirror.arsenal executor expires
       // it after the copy lifetime (only if still held and still the copy).
+      /* ---------------- MIRROR V1 (Checkpoint E) ---------------------- *
+       * Canonical Gold fixed-step action timeline. Gold advances `t += STEP`
+       * and tests `t/TS >= threshold`, so the FIRST CROSSING is produced by
+       * repeated float addition -- which is why A2 SNAP lands on step 31
+       * (0.25833s) and not step 30 (0.25s). This reproduces that exactly;
+       * it is NOT a raw after(.25)/after(.928) timer and never depends on
+       * render fps. */
+      mirrorStep() { return 1 / 120; },
+      mirrorAdvance(st, dt) {
+        const STEP = 1 / 120;
+        const edges = [];
+        st.acc = (st.acc || 0) + dt;
+        while (st.acc >= STEP - 1e-12) {
+          st.acc -= STEP;
+          st.t = (st.t || 0) + STEP;
+          st.steps = (st.steps || 0) + 1;
+          edges.push({ step: st.steps, t: st.t });
+        }
+        return edges;
+      },
+      /* Mirror A2 snap requests are resolved in the POST-MOVEMENT seam, never
+       * in executor onTick. Normal movement, Magnet H-PHYS2 field motion,
+       * walls/body physics and Hunter explicit-contact adjudication all
+       * resolve first, so a real contact that happened during actual movement
+       * is never retroactively erased by the exchange. */
+      mirrorEnqueueSnap(req) {
+        if (!req || !req.a || !req.b) return null;
+        (M.pendingMirrorSnaps || (M.pendingMirrorSnaps = [])).push(req);
+        return req;
+      },
+      mirrorPendingSnaps() { return (M.pendingMirrorSnaps || []).slice(); },
       grantWeaponCopy(ct, weaponId, lifetime) {
         const a = ct && ct.anchor;
         if (!a || a.hp <= 0) return false;
@@ -1475,11 +1506,55 @@
     }
   }
 
+  /* MIRROR A2 — true observer-atomic coordinate exchange.
+   *
+   * The generic RelocationTransaction writes A, emits, then writes B, so a
+   * synchronous listener can observe a half-swapped world. Mirror requires
+   * BOTH writes to complete before ANY event is emitted.
+   *
+   * Mirror-vs-Mirror: if both combatants reach SNAP for the SAME unordered
+   * pair in the same batch, the pair's pre-batch state is snapshotted ONCE and
+   * exchanged ONCE -- processing the second request against already-swapped
+   * coordinates would swap them straight back. Each accepted cast still gets
+   * its own resolution event. */
+  function resolvePendingMirrorSnaps() {
+    const list = M.pendingMirrorSnaps;
+    if (!list || !list.length) return;
+    M.pendingMirrorSnaps = [];
+    const pairKey = (x, y) => (x.id < y.id ? `${x.id}:${y.id}` : `${y.id}:${x.id}`);
+    const done = new Map();            // pairKey -> exchange result
+    for (const req of list) {
+      const a = req.a, b = req.b;
+      if (!a || !b || a.hp <= 0 || b.hp <= 0) {
+        if (req.onCancel) req.onCancel(a && a.hp <= 0 ? 'self-dead' : 'target-dead');
+        continue;
+      }
+      const key = pairKey(a, b);
+      let ex = done.get(key);
+      if (!ex) {
+        // Read BOTH live POST-MOVEMENT positions, snapshot, then write BOTH
+        // before anything observable happens.
+        const ax = a.x, ay = a.y, bx = b.x, by = b.y;
+        a.x = bx; a.y = by;
+        b.x = ax; b.y = ay;
+        ex = { ax, ay, bx, by, coalesced: 0 };
+        done.set(key, ex);
+      } else {
+        ex.coalesced += 1;             // simultaneous same-pair snap: one swap
+      }
+      if (req.onExchanged) req.onExchanged(ex);
+    }
+    // Events only after every write in the batch has landed.
+    for (const req of list) if (req.onEmit) req.onEmit();
+  }
+
   function hrPostTick(dt) {
     if (!M) return;
     // Physical contact for explicit movers is adjudicated first, so a catch and
     // its whole consequence bundle derive from post-movement truth.
     resolvePendingBodyContacts();
+    // Mirror A2 exchanges resolve after all movement + contact truth.
+    resolvePendingMirrorSnaps();
     tickWorld(dt);
     // Frost A2 presentation history must observe the post-Fighter.update,
     // post-wall/body-collision position consumed by the body renderer below.

@@ -937,67 +937,207 @@
    * 10. MIRROR
    * -------------------------------------------------------------------- */
 
+  /* MIRROR A1 / A2 — FINAL GOLD-FIRST GAMEPLAY AUTHORITY (Checkpoint E).
+   *
+   * Replaces the obsolete scaffold entirely. The removed behaviours were:
+   *   - A1 granting the weapon copy IMMEDIATELY at cast;
+   *   - A2 swapping via a generic ctx.api.after(telegraph) callback;
+   *   - A2 using RelocationTransaction, which emits after its first write and
+   *     therefore exposes an observable half-swapped world.
+   * None of those paths remain reachable.
+   *
+   * Timing is the canonical Gold fixed-step first crossing (ctx.api.
+   * mirrorAdvance), never a raw timer and never fps-dependent. */
+  const MIRROR_A1TS = 1.6, MIRROR_A1_OWN_U = 0.58, MIRROR_A1_END_U = 0.92;
+  const MIRROR_A2TS = 1.0, MIRROR_A2_SNAP_U = 0.25, MIRROR_A2_END_U = 0.64;
+  let MIRROR_CAST_SEQ = 0;
+
+  // One deterministic action-state authority per combatant. Presentation state
+  // is never consulted. A1 and A2 may not overlap their AUTHORED ACTION
+  // windows; the longer presentation busy envelope is not a gameplay lock and
+  // never restricts movement.
+  function mirrorAct(ctx) { return ctx.combatant.store.__mirrorAct || null; }
+  function mirrorBusy(ctx) { const a = mirrorAct(ctx); return !!(a && !a.actionEnded); }
+  function mirrorBegin(ctx, slot) {
+    const a = { slot, castId: ++MIRROR_CAST_SEQ, t: 0, acc: 0, steps: 0,
+      ownResolved: false, snapRequested: false, actionEnded: false };
+    ctx.combatant.store.__mirrorAct = a;
+    return a;
+  }
+  function mirrorEnd(ctx, a) {
+    a.actionEnded = true;
+    if (ctx.combatant.store.__mirrorAct === a) ctx.combatant.store.__mirrorAct = null;
+  }
+  function mirrorEligibility(ctx) {
+    const held = ctx.api.heldWeapon(ctx.api.enemyOf(ctx.combatant));
+    if (!held || !held.weaponId) return { reason: 'unarmed' };
+    if (ctx.api.isT6Weapon(held.weaponId)) return { reason: 't6' };
+    if (held.weaponId === 'SWIRL_SHIELD' || held.weaponId === 'TOWER_SHIELD') return { reason: 'shield-excluded' };
+    return { weaponId: held.weaponId };
+  }
+
   EXECUTORS['mirror.arsenal'] = {
-    // Doc 02: "if opponent unarmed/ineligible, cast may whiff". Bad timing
-    // is allowed to waste the Active — there is NO free no-cooldown retry:
-    // the cast is a valid attempted Active and consumes normal cooldown,
-    // producing no copied weapon; the opponent retains the original.
-    // (T6 cannot be copied; Level-1 shield copy remains excluded.)
+    // An attempted cast is ACCEPTED even when the opponent holds nothing
+    // eligible: that is a WHIFF which consumes cooldown, not a canCast
+    // failure. Only an already-running Mirror action window blocks the cast.
+    canCast(ctx) { return !mirrorBusy(ctx); },
     cast(ctx) {
-      const held = ctx.api.heldWeapon(ctx.api.enemyOf(ctx.combatant));
-      const reason = !held || !held.weaponId ? 'unarmed'
-        : ctx.api.isT6Weapon(held.weaponId) ? 't6'
-        : (held.weaponId === 'SWIRL_SHIELD' || held.weaponId === 'TOWER_SHIELD') ? 'shield-excluded'
-        : null;
-      if (reason) {
-        ctx.api.emitEvent('MirrorWhiff', { hero: 'MIRROR', reason });
-        ctx.api.note('mirror.arsenal', 'whiff', { reason });
-        return true; // whiff: cooldown consumed, no copy
+      if (mirrorBusy(ctx)) return false;
+      const el = mirrorEligibility(ctx);
+      const a = mirrorBegin(ctx, 'A1');
+      // CAST-TIME IMMUTABLE SNAPSHOT. A weaponId string, never a mutable
+      // holder: a later opponent drop/consume/swap/death cannot invalidate it.
+      a.weaponId = el.weaponId || null;
+      a.whiff = !el.weaponId;
+      a.whiffReason = el.reason || null;
+      a.castAt = ctx.clock();
+      ctx.api.emitEvent('MirrorA1Cast', { hero: 'MIRROR', castId: a.castId,
+        combatantIndex: ctx.combatant.idx, weaponId: a.weaponId, whiff: a.whiff, reason: a.whiffReason });
+      if (a.whiff) {
+        ctx.api.emitEvent('MirrorWhiff', { hero: 'MIRROR', reason: a.whiffReason, castId: a.castId });
+        ctx.api.note('mirror.arsenal', 'whiff', { reason: a.whiffReason });
+      } else {
+        ctx.api.note('mirror.arsenal', 'cast-snapshot', { weapon: a.weaponId });
       }
-      const ok = ctx.api.grantWeaponCopy(ctx.combatant, held.weaponId, ctx.cfg.copyLifetime);
-      ctx.api.note('mirror.arsenal', ok ? 'copy' : 'whiff', { weapon: held.weaponId });
-      return true; // cooldown consumed either way (cast happened)
+      return true;   // cooldown consumed either way
     },
-    onTick(ctx) {
-      // Copy lifetime: expire the copy only if the fighter still holds THAT
-      // copy instance (a later real pickup/equip replaces it cleanly).
-      const st = ctx.store;
-      const cp = st.__mirrorCopy;
-      if (!cp || ctx.clock() < cp.until) return;
-      st.__mirrorCopy = null;
-      const a = ctx.combatant.anchor;
-      const holder = a && a.data && a.data.arsenal;
-      if (holder && holder.__hrMirrorCopy && holder.weaponId === cp.weaponId) {
-        const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
-        if (W && W.consume) W.consume(a, 'mirror-copy-expired');
-        ctx.api.note('mirror.arsenal', 'copy-expired', { weapon: cp.weaponId });
+    onTick(ctx, dt) {
+      mirrorExpireCopy(ctx);
+      const a = mirrorAct(ctx);
+      if (!a || a.slot !== 'A1' || a.actionEnded) return;
+      for (const e of ctx.api.mirrorAdvance(a, dt)) {
+        const u = e.t / MIRROR_A1TS;
+        if (!a.ownResolved && u >= MIRROR_A1_OWN_U) {
+          a.ownResolved = true;
+          mirrorResolveOwn(ctx, a, e);
+        }
+        if (u >= MIRROR_A1_END_U) {
+          ctx.api.emitEvent('MirrorA1End', { hero: 'MIRROR', castId: a.castId, t: e.t });
+          mirrorEnd(ctx, a);
+          break;
+        }
       }
+    },
+    onTeardown(ctx) {
+      ctx.combatant.store.__mirrorAct = null;
+      ctx.combatant.store.__mirrorCopy = null;
     },
   };
 
+  // OWN edge: the ONLY place a Mirror copy is ever materialised.
+  function mirrorResolveOwn(ctx, a, e) {
+    if (a.whiff) {
+      ctx.api.emitEvent('MirrorA1Whiff', { hero: 'MIRROR', castId: a.castId, reason: a.whiffReason, t: e.t });
+      return;
+    }
+    const body = ctx.combatant.anchor;
+    if (!body || body.hp <= 0) {
+      ctx.api.emitEvent('MirrorA1Whiff', { hero: 'MIRROR', castId: a.castId, reason: 'self-dead', t: e.t });
+      return;
+    }
+    const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+    if (!W || !W.equip || !W.equip(body, a.weaponId)) {
+      ctx.api.emitEvent('MirrorA1Whiff', { hero: 'MIRROR', castId: a.castId, reason: 'equip-failed', t: e.t });
+      return;
+    }
+    // INSTANCE-SAFE temporary copy. A weaponId match is not enough: a later
+    // real pickup of the SAME id must never be consumed by this expiry. The
+    // record points at the actual holder instance created by this equip.
+    const holder = body.data && body.data.arsenal;
+    const token = `mirror-copy-${a.castId}`;
+    if (holder) { holder.__hrMirrorCopy = true; holder.__hrMirrorCopyToken = token; }
+    ctx.combatant.store.__mirrorCopy = {
+      castId: a.castId, weaponId: a.weaponId, token, holder: holder || null,
+      // 6s lifetime begins EXACTLY here, at OWN materialisation.
+      until: ctx.clock() + (ctx.cfg.copyLifetime ?? 6),
+    };
+    ctx.api.emitEvent('MirrorA1Own', { hero: 'MIRROR', castId: a.castId,
+      weaponId: a.weaponId, token, t: e.t, lifetime: ctx.cfg.copyLifetime ?? 6 });
+    ctx.api.note('mirror.arsenal', 'own', { weapon: a.weaponId, t: e.t });
+  }
+
+  function mirrorExpireCopy(ctx) {
+    const cp = ctx.combatant.store.__mirrorCopy;
+    if (!cp || ctx.clock() < cp.until) return;
+    ctx.combatant.store.__mirrorCopy = null;
+    const body = ctx.combatant.anchor;
+    const holder = body && body.data && body.data.arsenal;
+    // Consume ONLY if the current holder is still exactly this copy instance.
+    const sameInstance = !!holder && (holder === cp.holder || holder.__hrMirrorCopyToken === cp.token);
+    if (!sameInstance) { ctx.api.note('mirror.arsenal', 'copy-record-cleanup', { weapon: cp.weaponId }); return; }
+    const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
+    if (W && W.consume) W.consume(body, 'mirror-copy-expired');
+    ctx.api.emitEvent('MirrorA1CopyExpired', { hero: 'MIRROR', castId: cp.castId, weaponId: cp.weaponId });
+    ctx.api.note('mirror.arsenal', 'copy-expired', { weapon: cp.weaponId });
+  }
+
   EXECUTORS['mirror.exchange'] = {
     canCast(ctx) {
+      if (mirrorBusy(ctx)) return false;
       const enemy = ctx.api.enemyOf(ctx.combatant);
       return !!(enemy && enemy.anchor && enemy.anchor.hp > 0);
     },
     cast(ctx) {
-      const enemy = ctx.api.enemyOf(ctx.combatant);
-      const a = ctx.combatant.anchor;
-      const b = enemy.anchor;
-      // Telegraph first; the atomic swap happens after the telegraph.
-      ctx.api.emitEvent('ExchangeTelegraph', { hero: 'MIRROR', duration: ctx.cfg.telegraph });
-      ctx.api.after(ctx.cfg.telegraph, () => {
-        if (a.hp <= 0 || b.hp <= 0) return;
-        const tx = new AIL.RelocationTransaction(ctx.api.bus);
-        tx.move(a, b.x, b.y, 'mirror.exchange');
-        tx.move(b, a.x, a.y, 'mirror.exchange');
-        tx.commit(); // atomic — each keeps own velocity/HP/weapon/status
-        ctx.api.emitEvent('MirrorExchange', { hero: 'MIRROR' });
-        ctx.api.note('mirror.exchange', 'swap', {});
-      }, 'mirror.exchange.swap');
+      if (!this.canCast(ctx)) return false;
+      const a = mirrorBegin(ctx, 'A2');
+      // Deliberately NO cast-time coordinate snapshot: the exchange must use
+      // LIVE post-movement positions sampled at SNAP.
+      ctx.api.emitEvent('MirrorA2Cast', { hero: 'MIRROR', castId: a.castId, combatantIndex: ctx.combatant.idx });
+      ctx.api.emitEvent('ExchangeTelegraph', { hero: 'MIRROR', castId: a.castId });
       return true;
     },
+    onTick(ctx, dt) {
+      const a = mirrorAct(ctx);
+      if (!a || a.slot !== 'A2' || a.actionEnded) return;
+      for (const e of ctx.api.mirrorAdvance(a, dt)) {
+        const u = e.t / MIRROR_A2TS;
+        if (!a.snapRequested && u >= MIRROR_A2_SNAP_U) {
+          a.snapRequested = true;
+          mirrorRequestSnap(ctx, a, e);
+        }
+        if (u >= MIRROR_A2_END_U) {
+          ctx.api.emitEvent('MirrorA2End', { hero: 'MIRROR', castId: a.castId, t: e.t });
+          mirrorEnd(ctx, a);
+          break;
+        }
+      }
+    },
+    onTeardown(ctx) { ctx.combatant.store.__mirrorAct = null; },
   };
+
+  // SNAP is only REQUESTED here; it resolves in the post-movement seam so the
+  // exchange reads live positions after all movement and contact truth.
+  function mirrorRequestSnap(ctx, a, e) {
+    const self = ctx.combatant.anchor;
+    const enemy = ctx.api.enemyOf(ctx.combatant);
+    const foe = enemy && enemy.anchor;
+    if (!self || !foe || self.hp <= 0 || foe.hp <= 0) {
+      ctx.api.emitEvent('MirrorA2NoSnap', { hero: 'MIRROR', castId: a.castId, reason: 'invalid-at-request' });
+      return;
+    }
+    let result = null;
+    ctx.api.mirrorEnqueueSnap({
+      a: self, b: foe, castId: a.castId,
+      onExchanged: (ex) => { result = ex; },
+      onCancel: (reason) => {
+        ctx.api.emitEvent('MirrorA2NoSnap', { hero: 'MIRROR', castId: a.castId, reason });
+      },
+      onEmit: () => {
+        if (!result) return;
+        // Both writes already landed before this runs.
+        ctx.api.emitEvent('Relocated', { hero: 'MIRROR', castId: a.castId,
+          id: self.id, x: self.x, y: self.y, source: 'mirror.exchange' });
+        ctx.api.emitEvent('MirrorExchange', { hero: 'MIRROR', castId: a.castId, t: e.t,
+          coalesced: result.coalesced,
+          // Enough for G to REBASE Gold history (shiftHist), never clear it.
+          self: { id: self.id, from: { x: result.ax, y: result.ay }, to: { x: self.x, y: self.y } },
+          opponent: { id: foe.id, from: { x: result.bx, y: result.by }, to: { x: foe.x, y: foe.y } },
+          delta: { x: result.bx - result.ax, y: result.by - result.ay },
+        });
+        ctx.api.note('mirror.exchange', 'snap', { t: e.t });
+      },
+    });
+  }
 
   EXECUTORS['mirror.shattered_mirrors'] = {
     onRealizedDamage(ctx, ev) {

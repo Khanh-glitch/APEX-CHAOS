@@ -375,16 +375,30 @@
       name: 'MIRROR',
       classRef: 'rework.mirror',
       skills: {
+        // Checkpoint E: no copy exists before the canonical Gold OWN edge
+        // (first crossing of u >= .58 on A1TS = 1.6, step 112, ~0.93333s).
+        // copyLifetime starts AT OWN, never at cast.
         A1: skill('mirror.arsenal', 'A1', 'mirror.arsenal', {
           cooldown: 15, copyLifetime: 6,
+          timeScale: 1.6, ownU: 0.58, actionEndU: 0.92,
+          canonicalOwnSeconds: 0.93333, presentationBusySeconds: 2.2,
+          copyMaterialisesAtOwn: true, instanceSafeExpiry: true,
           copiesOpponentHeldEligible: true, freshInstance: true, freshAmmo: true,
           opponentKeepsOriginal: true, whiffIfIneligible: true,
           t6Copy: false, shieldCopyExcluded: true,
         }, ['cooldown'], 'cooldown_step'),
+        // Checkpoint E: timing is the canonical Gold fixed-step FIRST
+        // CROSSING of u >= .25 on A2TS = 1.0 (step 31, ~0.25833s), resolved in
+        // the post-movement seam. `snapU`/`actionEndU` are descriptive of that
+        // canonical law; there is deliberately no generic scheduler delay
+        // field, and the exchange no longer uses RelocationTransaction (whose
+        // commit() emits between its two writes and is observer-non-atomic).
         A2: skill('mirror.exchange', 'A2', 'mirror.exchange', {
-          cooldown: 12, telegraph: 0.25, atomicPositionSwapOnly: true,
+          cooldown: 12, atomicPositionSwapOnly: true,
+          timeScale: 1.0, snapU: 0.25, actionEndU: 0.64,
+          canonicalSnapSeconds: 0.25833, presentationBusySeconds: 1.8,
+          resolvesPostMovement: true, observerAtomicPairExchange: true,
           keepsOwn: ['velocity', 'hp', 'weapon', 'status'],
-          usesRelocationTransaction: true,
         }, ['cooldown'], 'cooldown_step'),
         PASSIVE: skill('mirror.shattered_mirrors', 'PASSIVE', 'mirror.shattered_mirrors', {
           damagePerShard: 35, minEventDamage: 20, maxShardsPerEvent: 5,

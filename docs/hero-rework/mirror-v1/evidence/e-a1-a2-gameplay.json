@@ -1,0 +1,292 @@
+{
+  "generatedAt": "2026-10-02T07:41:26.068Z",
+  "gates": {
+    "E-A1-01-no-copy-at-cast": {
+      "pass": true,
+      "detail": {
+        "cast": {
+          "ok": true
+        },
+        "heldAtCast": null
+      }
+    },
+    "E-A1-02-no-copy-before-OWN": {
+      "pass": true,
+      "detail": {
+        "at090": null
+      }
+    },
+    "E-A1-03-OWN-at-canonical-first-crossing": {
+      "pass": true,
+      "detail": {
+        "t": 0.93333,
+        "canonical": 0.93333
+      }
+    },
+    "E-A1-04-fresh-holder-instance-at-OWN": {
+      "pass": true,
+      "detail": {
+        "held": "PISTOL"
+      }
+    },
+    "E-A1-06-opponent-keeps-original": {
+      "pass": true,
+      "detail": {
+        "opponent": "PISTOL"
+      }
+    },
+    "E-A1-07-swap-after-cast-uses-cast-snapshot": {
+      "pass": true,
+      "detail": {
+        "mirror": "PISTOL",
+        "opponent": null
+      }
+    },
+    "E-A1-08-drop-after-cast-still-copies": {
+      "pass": true,
+      "detail": {
+        "mirror": "PISTOL"
+      }
+    },
+    "E-A1-09-opponent-death-does-not-invalidate": {
+      "pass": true,
+      "detail": {
+        "mirror": "PISTOL"
+      }
+    },
+    "E-A1-10-mirror-death-before-OWN-no-copy": {
+      "pass": true,
+      "detail": {
+        "mirror": null
+      }
+    },
+    "E-A1-11-unarmed-whiff": {
+      "pass": true,
+      "detail": {
+        "label": "unarmed",
+        "cast": true,
+        "cooldown": 15,
+        "held": null,
+        "whiffEvents": 1
+      }
+    },
+    "E-A1-12-t6-whiff": {
+      "pass": true,
+      "detail": {
+        "label": "t6",
+        "cast": true,
+        "cooldown": 15,
+        "held": null,
+        "whiffEvents": 1
+      }
+    },
+    "E-A1-13-shield-whiff": {
+      "pass": true,
+      "detail": {
+        "label": "shield",
+        "cast": true,
+        "cooldown": 15,
+        "held": null,
+        "whiffEvents": 1
+      }
+    },
+    "E-A1-14-lifetime-starts-at-OWN-not-cast": {
+      "pass": false,
+      "detail": {
+        "atOwn": null,
+        "atOwnPlus5": null,
+        "atOwnPlus6p1": null
+      }
+    },
+    "E-A1-15-copy-expires-at-six-seconds": {
+      "pass": true,
+      "detail": {
+        "after": null
+      }
+    },
+    "E-A1-16-replacement-survives-expiry": {
+      "pass": false,
+      "detail": {
+        "held": null
+      }
+    },
+    "E-A1-17-later-same-id-real-pickup-survives": {
+      "pass": false,
+      "detail": {
+        "held": null,
+        "note": "must not be consumed merely because weaponId matches"
+      }
+    },
+    "E-A1-19-A2-cannot-overlap-A1-window": {
+      "pass": true,
+      "detail": {
+        "ok": false,
+        "reason": "condition",
+        "failCue": true
+      }
+    },
+    "E-A1-20-A2-allowed-after-authored-end-despite-busy-envelope": {
+      "pass": true,
+      "detail": {
+        "allowed": {
+          "ok": true
+        },
+        "note": "presentation busy 2.2s is not a gameplay lock"
+      }
+    },
+    "E-A2-01-cooldown-12": {
+      "pass": true,
+      "detail": null
+    },
+    "E-A2-02-no-generic-after-telegraph-swap": {
+      "pass": true,
+      "detail": null
+    },
+    "E-A2-03-snap-at-canonical-first-crossing": {
+      "pass": false,
+      "detail": {
+        "beforeAt0p25": 0,
+        "canonical": 0.25833
+      }
+    },
+    "E-A2-05-exact-coordinate-exchange": {
+      "pass": true,
+      "detail": {
+        "a": [
+          700,
+          500
+        ],
+        "b": [
+          300,
+          500
+        ],
+        "expectA": [
+          700,
+          500
+        ],
+        "expectB": [
+          300,
+          500
+        ]
+      }
+    },
+    "E-A2-06-velocity-retained": {
+      "pass": true,
+      "detail": {
+        "a": [
+          123,
+          -45
+        ],
+        "b": [
+          -60,
+          12
+        ]
+      }
+    },
+    "E-A2-07-hp-retained": {
+      "pass": true,
+      "detail": {
+        "a": 77,
+        "b": 41
+      }
+    },
+    "E-A2-08-weapons-retained": {
+      "pass": true,
+      "detail": {
+        "a": "PISTOL",
+        "b": "SHOTGUN"
+      }
+    },
+    "E-A2-10-observer-sees-no-half-swap": {
+      "pass": true,
+      "detail": {
+        "atFirstEvent": {
+          "aNow": [
+            700,
+            500
+          ],
+          "bNow": [
+            300,
+            500
+          ]
+        },
+        "expectedA": [
+          700,
+          500
+        ],
+        "expectedB": [
+          300,
+          500
+        ]
+      }
+    },
+    "E-A2-11-death-before-snap-no-relocation": {
+      "pass": true,
+      "detail": {
+        "a": 300,
+        "was": 300
+      }
+    },
+    "E-A2-12-cooldown-remains-spent": {
+      "pass": true,
+      "detail": {
+        "cooldown": 11.9
+      }
+    },
+    "E-A2-13-teardown-no-late-callback": {
+      "pass": true,
+      "detail": {
+        "a": 300,
+        "b": 700
+      }
+    },
+    "E-A2-17-mirror-vs-mirror-simultaneous-snap-exchanges-once": {
+      "pass": true,
+      "detail": {
+        "cast1": true,
+        "cast2": true,
+        "a": [
+          700,
+          500
+        ],
+        "b": [
+          300,
+          500
+        ],
+        "expectA": [
+          700,
+          500
+        ],
+        "expectB": [
+          300,
+          500
+        ],
+        "backToOrigin": false
+      }
+    },
+    "E-A2-18-A1-cannot-overlap-A2-window": {
+      "pass": true,
+      "detail": {
+        "ok": false,
+        "reason": "condition",
+        "failCue": true
+      }
+    },
+    "E-A2-19-A1-allowed-after-authored-end-despite-busy-envelope": {
+      "pass": true,
+      "detail": {
+        "allowed": {
+          "ok": true
+        },
+        "note": "presentation busy 1.8s is not a gameplay lock"
+      }
+    }
+  },
+  "failures": [
+    "E-A1-14-lifetime-starts-at-OWN-not-cast",
+    "E-A1-16-replacement-survives-expiry",
+    "E-A1-17-later-same-id-real-pickup-survives",
+    "E-A2-03-snap-at-canonical-first-crossing"
+  ],
+  "pass": false
+}

@@ -28,7 +28,8 @@ gate('S01-defer-seam-exists',
   /deferBodyContact\s*\(req\)\s*\{/.test(world) && /pendingBodyContacts/.test(world));
 gate('S02-resolver-runs-after-movement',
   /function resolvePendingBodyContacts\(\)/.test(world)
-  && /resolvePendingBodyContacts\(\);\s*\n\s*tickWorld\(dt\);/.test(world),
+  && /resolvePendingBodyContacts\(\);[\s\S]{0,200}?tickWorld\(dt\);/.test(world)
+  && world.indexOf('resolvePendingBodyContacts();') < world.indexOf('resolvePendingMirrorSnaps();'),
   'resolver must run in hrPostTick, i.e. after Fighter.update');
 gate('S03-frame-start-samples-recorded',
   /__hrFrameStart/.test(world) && /b\.__hrFrameStart\.x = b\.x; b\.__hrFrameStart\.y = b\.y;/.test(world));

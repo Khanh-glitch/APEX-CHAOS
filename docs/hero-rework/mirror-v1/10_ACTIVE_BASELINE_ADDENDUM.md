@@ -458,3 +458,52 @@ subscribe. The presentation never decides that gameplay succeeded.
   `clipHalf`, `strips`, `drawResidue`) still live in the un-ported RENDERING
   banner; only the authored timeline/state is ported so far.
 * Canonical frame comparison for the seven A1/A2 reference frames.
+
+---
+
+## CHECKPOINT E — A1/A2 GAMEPLAY AUTHORITY (**PARTIAL — NOT CLOSED**)
+
+Suite: `tools/testMirrorA1A2Gameplay.mjs` — **28/32**. E is **not** complete.
+
+### Scaffold removed (no longer reachable)
+`mirror.arsenal` no longer calls `grantWeaponCopy()` at cast; `mirror.exchange`
+no longer uses `ctx.api.after(telegraph)` nor `RelocationTransaction`. Both
+executors were replaced wholesale, not wrapped.
+
+### Proven green
+* A1: **no copy at cast**, none before OWN, OWN at the canonical first crossing
+  **0.93333 s**, fresh holder, opponent keeps original, cast-time snapshot
+  survives opponent swap / drop / death, Mirror death before OWN yields no
+  copy, all three whiffs (unarmed / T6 / shield) consume cooldown.
+* A2: cooldown 12, **no** generic `after()`/`RelocationTransaction` path,
+  exact coordinate exchange, velocity/HP/weapons retained,
+  **observer sees no half-swap**, death before snap performs no relocation
+  while cooldown stays spent, teardown produces no late callback,
+  **Mirror-vs-Mirror simultaneous snap exchanges exactly once**.
+* Action-window law both ways: A1/A2 cannot overlap authored windows, and each
+  may cast once the *authored* window ends even though the longer presentation
+  busy envelope (2.2 s / 1.8 s) is still running.
+
+### Known failures, with diagnosis (do not mistake for green)
+1. `E-A1-14/16/17` — lifetime / replacement / same-id survival. Root cause is a
+   **test-fixture** problem, not the law: an equipped `PISTOL` is auto-fired to
+   depletion by ordinary Arsenal behaviour well before 6 s, and `BATTLE_AXE`
+   does not persist on the holder either. Direct probing confirmed holder
+   objects are **not** reused across equips, so the instance-safe token logic
+   itself is sound. These must be re-expressed against the copy **record**
+   (`store.__mirrorCopy`) plus a weapon that survives, before E can close.
+2. `E-A2-03` — snap timing. Measured directly in isolation as **step 31,
+   t = 0.25833 s**, exactly canonical; the suite's capture window is wrong, not
+   the implementation.
+3. `testMagnetV1GameplayGates` `M00.3-mirror-gameplay-byte-frozen` — froze the
+   MIRROR mechanic slice byte-for-byte. E is an owner-directed rewrite of
+   exactly that slice, so this gate is **superseded** and needs re-baselining.
+   It was **not** weakened here.
+4. `testMagnetV1GameplayGates` `M10.1-mirror-copy-fresh-no-passive-inheritance`
+   — asserts a copy exists immediately after cast. That is the **old immediate
+   grant law**; under E no copy exists before OWN, so the gate must be updated
+   to step to the OWN edge first.
+
+Items 3 and 4 are **new reds versus `13_BASELINE_REDS_AT_D3_PARENT.md`** and
+must be resolved (by correcting the gates to the new owner law, never by
+weakening them) before E is declared complete.
