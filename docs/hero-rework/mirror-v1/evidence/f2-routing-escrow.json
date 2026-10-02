@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T14:36:02.522Z",
+  "generatedAt": "2026-10-02T15:01:13.856Z",
   "gates": {
     "F2-R09-preview-threshold-no-removal": {
       "pass": true,
@@ -310,6 +310,31 @@
         "ricoAfter": 3,
         "vx": -1210,
         "events": 0
+      }
+    },
+    "F2-crystal-thrown-crystal-earlier-wins": {
+      "pass": true,
+      "detail": {
+        "ricochetFrame": 14,
+        "hpBefore": 80,
+        "hpAfter": -14.5,
+        "vx": 1210,
+        "ricoBefore": 4,
+        "ricoAfter": 3,
+        "crystalHits": 1,
+        "mirrorEvents": 0
+      }
+    },
+    "F2-crystal-thrown-mirror-earlier-wins": {
+      "pass": true,
+      "detail": {
+        "captureFrame": 14,
+        "emergeFrame": 48,
+        "hpBefore": 80,
+        "hpAfter": 80,
+        "crystalHits": 0,
+        "ricochetsLeft": 4,
+        "vx": -1210
       }
     }
   },

@@ -104,26 +104,31 @@ implementation SHA).
   direction × 20 (no legacy portal-radius offsets), `clearPath` semantics
   for zero teleport-gap phantom hits, controller NEUTRAL, ~0.45s recapture
   lock, no permanent suppression. Because production runtime changed, the
-  revision relocks **r23 → r24** with the F2 commit, and **r24 → r25**
-  with the F2 correction pass (directly on top of the F2 SHA `0ad80dad…`).
-- **F2 correction pass** (this commit): wall-vs-Mirror is reconciled by
-  REAL GLOBAL TOI on the one ordered travelled path for bullets, grenades
-  and normal thrown melees — the earliest terminal/trajectory-changing
-  event wins and stage order never decides (a mirror capture strictly
-  earlier than a wall prevents the wall event; a wall/bounce at-or-before
-  the surface TOI absorbs or reflects first and no capture OR preview is
-  presented beyond it). Preview restored to the Gold surface threshold
-  (~34px FROM surface, NOT expanded by projectile radius; capture alone
-  carries the real radius). T6 capability denial routes through the shared
-  `api.isT6Weapon` authority (STORMBREAKER and T6 aliases) with no F2-local
-  weapon-name exception. Evidence strengthened: R02 exercises the real
-  shotgun multi-pellet producer, R06 the real FROST V1 frozen-bullet
-  provenance, R07 the real STORMBREAKER thrown lifecycle (no shipping T6
-  bullet producer exists — labelled T6 identities are capability checks).
+  revision relocks **r23 → r24** with the F2 commit, **r24 → r25** with the
+  F2 correction pass (directly on top of `0ad80dad…`), and **r25 → r26**
+  with the thrown-vs-Crystal global-TOI correction pass (directly on top of
+  `e6c9d26f…`).
+- **F2 correction passes (r25–r26):** wall / Crystal construct / arena
+  boundary vs Mirror is reconciled by REAL GLOBAL TOI on the one ordered
+  travelled path for bullets, grenades and normal thrown melees — including
+  `CRY.thrownSurface(p)` observed before Mirror candidacy so the earliest
+  physical event wins and stage order never decides (a mirror capture
+  strictly earlier than a wall or Crystal construct prevents the later
+  event; a wall, Crystal construct, or bounce at-or-before the surface TOI
+  absorbs or reflects first and no capture OR preview is presented beyond
+  it; `CRY.thrownHit` is never called twice). Preview restored to the Gold
+  surface threshold (~34px FROM surface, NOT expanded by projectile radius;
+  capture alone carries the real radius). T6 capability denial routes
+  through the shared `api.isT6Weapon` authority (STORMBREAKER and T6
+  aliases) with no F2-local weapon-name exception. Evidence strengthened:
+  R02 exercises the real shotgun multi-pellet producer (shipping fan = 6
+  pellets), R06 the real FROST V1 frozen-bullet provenance, R07 the real
+  STORMBREAKER thrown lifecycle (no shipping T6 bullet producer exists —
+  labelled T6 identities are capability checks).
 - **Focused suites:** `tools/testMirrorPassiveFormation.mjs` (28 gates),
   evidence `docs/hero-rework/mirror-v1/evidence/f1-passive-formation.json`;
-  `tools/testMirrorF2Routing.mjs` (30 gates: R01–R23, Slice-A laws, and
-  wall-vs-Mirror global-TOI ordering),
+  `tools/testMirrorF2Routing.mjs` (32 gates: R01–R23, Slice-A laws, and
+  wall/Crystal-vs-Mirror global-TOI ordering),
   evidence `docs/hero-rework/mirror-v1/evidence/f2-routing-escrow.json`.
 
 **F1 laws now shipping (Gold-first, per MIRROR owner):**

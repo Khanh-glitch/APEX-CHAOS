@@ -222,14 +222,14 @@ try {
 /* ============ R02 shotgun pellets (REAL multi-pellet producer) ============ */
 // Evidence strength: the pellets come from the SHIPPING gun pipeline —
 // equip(SHOTGUN) -> real holder activation -> fireOneShot's pellet fan
-// (spec.pellets=8, cone spread) -> real fireBullet emissions. No manual
+// (spec.pellets=6, cone spread) -> real fireBullet emissions. No manual
 // per-pellet fabrication.
 try {
   const o = start();
   o.a.x = 500; o.b.x = 850;                      // distance 350 <= triggerRange 430
   seed(o.ct, 620, 500, 0);                       // entry node in the fan's flight
   seed(o.ct, 480, 500, 0);                       // destination node
-  const fan = (win.APEX_ARSENAL_CONFIG.WEAPONS.SHOTGUN.pellets | 0) || 8;
+  const fan = (win.APEX_ARSENAL_CONFIG.WEAPONS.SHOTGUN.pellets | 0) || 6;
   W().equip(o.b, 'SHOTGUN');
   const seqs = captureSeq(['MirrorRouteCapture']);
   let captureFrames = -1;
@@ -972,6 +972,79 @@ try {
     { ricochetFrame, ricoBefore: rico0, ricoAfter: t0.ricochetsLeft,
       vx: t0.vx, events: ev.length });
 } catch (e) { gate('F2-wall-thrown-wall-earlier-wins', false, String(e)); }
+
+/* ---- 7. thrown melee vs REAL Crystala construct: Crystal earlier than
+          Mirror on the same swept frame -> Crystal wins, zero Mirror
+          capture/preview/local beyond it -------------------------------- */
+function startCrystalMirrorWall() {
+  const o = start('CRYSTAL', 'MIRROR');
+  o.a.setDir(1, 0); o.b.setDir(-1, 0);
+  T.step(0.35);
+  HR.pressAbility(o.a, 'A1');                      // real Crystala wall cast at x=480, y∈[390,610]
+  T.step(0.5);
+  return o;
+}
+try {
+  const CRY = win.APEX_CRYSTAL;
+  const o = startCrystalMirrorWall();
+  // Real Crystal wall capsule sits at x=480, r=19.5 (right contact at ~514.9
+  // for DAGGER r=15.4). With Mirror entry node at x=480, frame 14 sweeps
+  // 529.33 -> 509.17 across BOTH the Crystal construct (t≈0.716) and the
+  // Mirror preview (t≈0.882) / capture (t≈0.962) on the same frame.
+  seed(o.ctB, 480, 500, 0);
+  seed(o.ctB, 300, 500, 0);
+  const hp0 = CRY.inspect(o.ct).constructs[0].hp;
+  const before = new Set(win.projectiles);
+  W().spawnThrownMelee(o.b, 'DAGGER', Math.PI);
+  const t0 = newestAfter(before);
+  const rico0 = t0.ricochetsLeft;
+  const seqs = captureSeq(['MirrorRouteCapture', 'MirrorRouteLocal', 'MirrorRoutePreview', 'CrystalConstructHit']);
+  let ricochetFrame = -1;
+  for (let f = 1; f <= 20; f++) {
+    win.APEX_ARSENAL.step(DT);
+    if (ricochetFrame < 0 && t0.vx > 0) { ricochetFrame = f; break; }
+  }
+  const ev = seqs();
+  const mirrorEv = ev.filter((e) => e.type.startsWith('MirrorRoute'));
+  const cryHits = ev.filter((e) => e.type === 'CrystalConstructHit');
+  const hp1 = CRY.inspect(o.ct).constructs[0]?.hp;
+  gate('F2-crystal-thrown-crystal-earlier-wins',
+    ricochetFrame > 0 && cryHits.length === 1 && hp1 < hp0
+    && t0.vx > 0 && t0.ricochetsLeft === rico0 - 1
+    && mirrorEv.length === 0,
+    { ricochetFrame, hpBefore: hp0, hpAfter: hp1, vx: t0.vx,
+      ricoBefore: rico0, ricoAfter: t0.ricochetsLeft,
+      crystalHits: cryHits.length, mirrorEvents: mirrorEv.length });
+} catch (e) { gate('F2-crystal-thrown-crystal-earlier-wins', false, String(e)); }
+
+/* ---- 8. thrown melee vs REAL Crystala construct: Mirror earlier than
+          Crystal on the same swept frame -> Mirror captures, Crystal
+          construct remains untouched by that projectile ----------------- */
+try {
+  const CRY = win.APEX_CRYSTAL;
+  const o = startCrystalMirrorWall();
+  // Entry node at x=488 places Mirror capture contact (~517.9, t≈0.565 on
+  // frame 14) strictly earlier than the Crystal wall contact (~514.9, t≈0.716)
+  // on the same swept frame.
+  seed(o.ctB, 488, 500, 0);
+  seed(o.ctB, 300, 500, 0);
+  const hp0 = CRY.inspect(o.ct).constructs[0].hp;
+  const before = new Set(win.projectiles);
+  W().spawnThrownMelee(o.b, 'DAGGER', Math.PI);
+  const t0 = newestAfter(before);
+  const rico0 = t0.ricochetsLeft;
+  const seqs = captureSeq(['MirrorRouteCapture', 'MirrorRouteEmerge', 'CrystalConstructHit']);
+  const tl = runCapture(t0, seqs, 300);
+  const cryHits = seqs().filter((e) => e.type === 'CrystalConstructHit');
+  const hp1 = CRY.inspect(o.ct).constructs[0]?.hp;
+  gate('F2-crystal-thrown-mirror-earlier-wins',
+    tl.captureFrame > 0 && tl.emergeFrame > 0
+    && cryHits.length === 0 && hp1 === hp0
+    && t0.ricochetsLeft === rico0 && t0.vx < 0,
+    { captureFrame: tl.captureFrame, emergeFrame: tl.emergeFrame,
+      hpBefore: hp0, hpAfter: hp1, crystalHits: cryHits.length,
+      ricochetsLeft: t0.ricochetsLeft, vx: t0.vx });
+} catch (e) { gate('F2-crystal-thrown-mirror-earlier-wins', false, String(e)); }
 
 if (HR.match) win.exitArsenalQuestMode();
 

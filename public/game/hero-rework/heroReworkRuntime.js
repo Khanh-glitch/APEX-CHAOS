@@ -2496,15 +2496,18 @@
           // real F1 node surface (doc 08 §7 eligible family; T6 already
           // capability-denied). Ordered against the body contact exactly
           // like bullets: a strictly-earlier body pin wins. GLOBAL TOI:
-          // the thrown's wall interactions (real world-wall ricochet and
-          // arena boundary bounce) bound mirror candidacy by their swept
-          // TOI — an earlier ricochet/bounce always wins and no surface
-          // event beyond it is presented. While escrowed the thrown
-          // object's grace/flight/maxFlight/life timers do not tick.
+          // the thrown's construct/wall interactions (real Crystal construct
+          // surface, world-wall ricochet, and arena boundary bounce) bound
+          // mirror candidacy by their swept TOI — an earlier construct/wall/
+          // bounce always wins and no surface event beyond it is presented.
+          // While escrowed the thrown object's grace/flight/maxFlight/life
+          // timers do not tick.
           const tBodyHit = p.grace <= 0 ? earliestToiBodyT(p, BULLET_HIT_SCALE) : null;
+          const tCrySweep = CRY ? CRY.thrownSurface(p) : null;
           const tWallSweep = sweepThrownWall(p);
           const tBoundToi = arenaBoundToi(p, GAME_SIZE);
-          let tWallToi = tWallSweep ? tWallSweep.t : null;
+          let tWallToi = tCrySweep ? tCrySweep.t : null;
+          if (tWallSweep && (tWallToi == null || tWallSweep.t < tWallToi)) tWallToi = tWallSweep.t;
           if (tBoundToi != null && (tWallToi == null || tBoundToi < tWallToi)) tWallToi = tBoundToi;
           const mt = mirrorF2Candidate(p, tBodyHit ? tBodyHit.t : null, tWallToi);
           if (mt && mt.kind === 'capture' && !(tBodyHit && tBodyHit.t < mt.capT)) {
@@ -2516,7 +2519,7 @@
           }
           // Walls: T6 shatters through (shared capability authority);
           // others consume ricochet budget.
-          const tw = (CRY && CRY.thrownSurface(p)) || sweepThrownWall(p);
+          const tw = tCrySweep || tWallSweep;
           if (tw) {
             const isT6 = !!(M.api.isT6Weapon && M.api.isT6Weapon(p.weapon));
             if (tw.crystal) CRY.thrownHit(p, tw);   // real structural damage + ricochet stand-off
@@ -2933,8 +2936,8 @@
    *               allowlist; T6/STORMBREAKER immune; never direct melee,
    *               shields, fields, Hero actives.
    *   surface   = swept capsule test on every REAL ordered path segment
-   *               (no frame-chord, no tunnelling); capture ~17px + radius,
-   *               preview ~34px + radius.
+   *               (no frame-chord, no tunnelling); capture ~17px + projectile
+   *               radius, preview ~34px FROM surface (no radius expansion).
    *   one node  = projectile stays WORLD, no escrow/relocation/neutral;
    *               touched node gets the local response event and the
    *               projectile gets a ~0.40s capture-attempt cooldown

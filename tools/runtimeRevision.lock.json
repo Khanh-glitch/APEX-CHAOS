@@ -1,5 +1,5 @@
 {
-  "revision": "20261002-mirror-v1-r25",
+  "revision": "20261002-mirror-v1-r26",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "a0d10025cde29ee55d6eb95a06aee2cbebe2a56e01adcdb1154f8366e3128712",
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
@@ -24,7 +24,7 @@
     "public/game/hero-rework/magnetGameplayRuntime.js": "1c1ea058f2b20413fc4888b7f940d858e07f25275a08e80468d20dbd19507c1b",
     "public/game/hero-rework/magnetGoldV1.js": "36e01cd6b8f9da7bdae38dec31af5a0bb8fa403226e489bdcfe68b82249dfc8f",
     "public/game/hero-rework/heroMechanicsRuntime.js": "2c8a3b7a7b8a61c021c18d95e564bbaddd0286bbbd495d2a993935e31a7bab3a",
-    "public/game/hero-rework/heroReworkRuntime.js": "d1380960f68b082e6b16b9476c0af294c30e44cda8b2a864e317fe4d012cddcf",
+    "public/game/hero-rework/heroReworkRuntime.js": "e2a8da6fcb3dcbbf3fe7dc0ffa21d85562bcfd1e273ae05987092339695038b9",
     "public/game/hero-rework/robotPresentationRuntime.js": "27856fca5ccda11674a825948a0f98ea48a62e9fe23b27e49200570f09e1c24c",
     "public/game/hero-rework/hunterGoldV10.js": "3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1",
     "public/game/hero-rework/hunterPresentationRuntime.js": "a5e414a61a25ce5595d129a712785b59fa68f996febb29cdf361b36302c645e2",
