@@ -160,3 +160,92 @@ bridge, parity matrix, broad relock, hostile audit) are **not** implemented at
 the time this addendum was written.
 
 Automated evidence in this package is **not** owner visual acceptance.
+
+---
+
+## CHECKPOINT C-R — CANONICAL GOLD VISUAL + LIFECYCLE ORACLE
+
+Harness: `tools/testMirrorGoldVisualOracle.mjs` — **14/14**.
+Evidence: `docs/hero-rework/mirror-v1/evidence/gold12-visual-oracle.json`
+Reference frames: `docs/hero-rework/mirror-v1/evidence/gold-frames/*.png` (19 frames).
+
+Checkpoint C locked Gold's *semantics*. C-R adds the **direct visual reference
+frames** production must be compared against at Checkpoint H, plus the lifecycle
+facts C covered only by prose. The canonical file is never modified; determinism
+is imposed externally (seeded `Math.random` via `evaluateOnNewDocument`, `rAF`
+neutralised, Gold's own `step()` driven explicitly). **Every scenario re-seeds and
+calls `resetAll()` first**, so adding or reordering a capture cannot shift any
+other scenario's random sequence.
+
+Frames are read from the canvas **backing store** (`toDataURL`), not element
+screenshots. Element screenshots go through the compositor, which does not update
+deterministically once `rAF` is neutralised — it returned the identical stale
+layer for all 19 scenarios. The backing store is exactly what Gold's `render()`
+drew, which is what a reference oracle must record.
+
+### Directly measured routing lifecycle (not inferred)
+
+| Fact | Canonical value | Gate |
+|---|---|---|
+| Capture-attempt cooldown, single node | `0.40` s, **no escrow**, object stays in world | CR10 |
+| Entry-surface preview distance | `d < 34` (image), `d < 17` (capture) | source L739-741 |
+| Destination image | `t = 0.2083` s (st 1→2 at `.20`, `imgB` gate `.14`) | CR11 |
+| Emergence | `t = 0.5667` s (authored `.56`) | CR12 |
+| Emergence position | `node.{x,y} + dir * 20`, exact to 1e-6 | CR13 |
+| Owner after emergence | `own = 2` (**NEUTRAL**) | CR14 |
+| Post-exit recapture lock | `cool = 0.45` s | CR14 |
+| Destination lost | falls back to **entry node** `nA` (`const e=(n&&n.on)?n:p.nA`) | source L746 |
+| A1 presentation envelope | `M.busy = 2.2` at cast | CR16 |
+| A2 presentation envelope | `M.busy = 1.8` at cast | CR16 |
+| LR wrong reflection | `extraDelay = 0.04`, plus `+0.45` in the sampling delay | CR17 |
+
+Sampling delay law (L559): `delay = p.dl + p.extraDelay + (wrong ? .45 : 0)`.
+For LR: `0.17 + 0.04 + 0.45 = 0.66` s.
+
+### CORRECTION — node concurrency is 3, bounded by the shard economy
+
+Prior prose (`07_PRELOAD_HOSTILE_AUDIT.md:94,112`, `08_GOLD_FIRST_MECHANIC_LOCK.md:104-105,111`,
+`02_IMPLEMENTATION_TEST_MATRIX.md:93` P18) states Gold has **4 node lifecycle slots**
+with an oldest-ACTIVE retirement branch, and that the 16-shard pool is *not* imported.
+Measured against the executable, that combination describes behavior canonical Gold
+**cannot produce**:
+
+- `ND` pool is 4 entries, but **max occupancy observed is 3** (`maxPoolSlotsOccupied: 3`).
+- `SH` pool is **16 shards** (L762); formation consumes **5**; a node owns its shards
+  for its entire life — a `st===3` fold-out node still holds them until `n.on=false`
+  at `t3 >= .55` (L841).
+- Three forming-or-active nodes therefore hold **15 of 16** shards, leaving 1 free —
+  never the 5 a fourth group needs.
+- Instrumenting the real `formNode` call site proves it: free shards `11 → 6 → 1`,
+  live-at-call `0 → 1 → 2`. **`formNode` is never reached with `live >= 3`**, so the
+  `live.length>=3` oldest-ACTIVE→`st=3` retirement branch at L808-809 is
+  **unreachable dead headroom**.
+
+**PORT CONSEQUENCE (binding on D4 / F1 / H-P18):** production must cap concurrent
+nodes at **3 through the shard economy** (16-shard pool, 5 per node, shards held for
+the node's whole life including fold-out). It must **NOT** implement a 4-slot ring
+with active retirement as a live mechanic — dropping the shard pool while keeping
+4 slots would produce 4 concurrent nodes and visible ACTIVE-node retirement, neither
+of which Gold ever exhibits. Gate CR15b locks the unreachability.
+
+### Timing terminology (binding on E)
+
+A2's authored threshold is `u = .25` (nominal `.25` s), but the canonical fixed-step
+crossing is **`.25833` s**; A1 OWN is nominal `.928` s, canonical **`.93333` s**.
+The production fixed-step event must land on the **same first canonical fixed-step
+crossing** as the oracle. A raw `after(.25)` / `after(.928)` timer is **not** parity.
+
+### Reference frames captured
+
+`neutral-battle-scale`, `neutral-close-up`, `movement-start`, `movement-sustained`,
+`hard-reverse`, `sudden-stop`, `a1-attached-reflection`, `a1-peel`,
+`a1-reform-own-edge`, `a1-whiff`, `a2-pre-snap`, `a2-snap`, `a2-post-residue`,
+`free-shard`, `assembling-node`, `active-node`, `projectile-entry-image`,
+`destination-image`, `emergence`.
+
+All 19 frames verified distinct (CR03). Spot-verified visually: `a1-peel` shows the
+split L/R face, luminous seam, six-slice peel with a false-face eye per slice and the
+captured weapon imaged in the upper-right slice; `destination-image` shows two ACTIVE
+nodes carrying the routed object's surface image during escrow.
+
+> These are **automated** reference frames. They are **not** owner visual acceptance.

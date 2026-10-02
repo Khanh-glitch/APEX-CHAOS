@@ -1,0 +1,693 @@
+{
+  "generatedAt": "2026-10-02T03:26:35.096Z",
+  "purpose": "Canonical Gold 12 VISUAL + LIFECYCLE oracle. Production parity must be compared against these reference frames and timings, never against a reconstruction.",
+  "gold": {
+    "path": "docs/hero-rework/mirror-v1/gold/MIRROR_GOLD_FUSION_12.html",
+    "sha256": "c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205",
+    "bytes": 107480
+  },
+  "framesDir": "docs/hero-rework/mirror-v1/evidence/gold-frames",
+  "timingTerminology": {
+    "note": "A2 authored threshold is u=.25 (nominal .25s). The real production event must land on the SAME first canonical fixed-step crossing as the oracle, observed at .25833s. A raw after(.25) timer is NOT parity.",
+    "a2AuthoredU": 0.25,
+    "a2NominalSeconds": 0.25,
+    "a2CanonicalFixedStepSeconds": 0.25833,
+    "a1OwnAuthoredU": 0.58,
+    "a1NominalSeconds": 0.928,
+    "a1CanonicalFixedStepSeconds": 0.93333
+  },
+  "frames": {
+    "neutral-battle-scale": {
+      "simT": 0.6833,
+      "M": {
+        "x": 330,
+        "y": 560,
+        "vx": 0,
+        "vy": 0,
+        "busy": -0.5,
+        "copyOn": false
+      },
+      "A1": {
+        "on": false,
+        "u": 0,
+        "whiff": false
+      },
+      "A2": {
+        "on": false,
+        "u": 0
+      },
+      "shards": 0,
+      "nodes": [],
+      "proj": [],
+      "image": {
+        "file": "neutral-battle-scale.png",
+        "bytes": 579426,
+        "sha256": "70b81182b021d97d"
+      }
+    },
+    "neutral-close-up": {
+      "simT": 1.1833,
+      "M": {
+        "x": 330,
+        "y": 560,
+        "vx": 0,
+        "vy": 0,
+        "busy": -0.5,
+        "copyOn": false
+      },
+      "A1": {
+        "on": false,
+        "u": 0,
+        "whiff": false
+      },
+      "A2": {
+        "on": false,
+        "u": 0
+      },
+      "shards": 0,
+      "nodes": [],
+      "proj": [],
+      "image": {
+        "file": "neutral-close-up.png",
+        "bytes": 649964,
+        "sha256": "836328d797bcbd4b"
+      }
+    },
+    "movement-start": {
+      "simT": 1.3,
+      "M": {
+        "x": 342.4,
+        "y": 560,
+        "vx": 198.33,
+        "vy": 0,
+        "busy": -0.117,
+        "copyOn": false
+      },
+      "A1": {
+        "on": false,
+        "u": 0,
+        "whiff": false
+      },
+      "A2": {
+        "on": false,
+        "u": 0
+      },
+      "shards": 0,
+      "nodes": [],
+      "proj": [],
+      "image": {
+        "file": "movement-start.png",
+        "bytes": 584032,
+        "sha256": "02c9750f6fab8f94"
+      }
+    },
+    "movement-sustained": {
+      "simT": 2.2167,
+      "M": {
+        "x": 541.81,
+        "y": 560,
+        "vx": 250,
+        "vy": 0,
+        "busy": -0.917,
+        "copyOn": false
+      },
+      "A1": {
+        "on": false,
+        "u": 0,
+        "whiff": false
+      },
+      "A2": {
+        "on": false,
+        "u": 0
+      },
+      "shards": 0,
+      "nodes": [],
+      "proj": [],
+      "image": {
+        "file": "movement-sustained.png",
+        "bytes": 576751,
+        "sha256": "8011c64c973f4518"
+      }
+    },
+    "hard-reverse": {
+      "M": {
+        "vx": 23.33,
+        "vy": 0,
+        "busy": -0.967
+      },
+      "image": {
+        "file": "hard-reverse.png",
+        "bytes": 577959,
+        "sha256": "36fca9784f4bc022"
+      }
+    },
+    "sudden-stop": {
+      "M": {
+        "vx": 75,
+        "vy": 0,
+        "busy": -0.917
+      },
+      "image": {
+        "file": "sudden-stop.png",
+        "bytes": 576920,
+        "sha256": "cfe18c92b6aa8c9b"
+      }
+    },
+    "a1-attached-reflection": {
+      "simT": 4.475,
+      "M": {
+        "x": 330,
+        "y": 560,
+        "vx": 0,
+        "vy": 0,
+        "busy": 1.825,
+        "copyOn": false
+      },
+      "A1": {
+        "on": true,
+        "u": 0.2344,
+        "whiff": false
+      },
+      "A2": {
+        "on": false,
+        "u": 0
+      },
+      "shards": 0,
+      "nodes": [],
+      "proj": [],
+      "image": {
+        "file": "a1-attached-reflection.png",
+        "bytes": 661812,
+        "sha256": "ef42652eebb96194"
+      }
+    },
+    "a1-peel": {
+      "simT": 5.225,
+      "M": {
+        "x": 330,
+        "y": 560,
+        "vx": 0,
+        "vy": 0,
+        "busy": 1.45,
+        "copyOn": false
+      },
+      "A1": {
+        "on": true,
+        "u": 0.4687,
+        "whiff": false
+      },
+      "A2": {
+        "on": false,
+        "u": 0
+      },
+      "shards": 0,
+      "nodes": [],
+      "proj": [],
+      "image": {
+        "file": "a1-peel.png",
+        "bytes": 667166,
+        "sha256": "57bde107d89fa7e9"
+      }
+    },
+    "a1-reform-own-edge": {
+      "simT": 6.1583,
+      "M": {
+        "x": 330,
+        "y": 560,
+        "vx": 0,
+        "vy": 0,
+        "busy": 1.267,
+        "copyOn": true
+      },
+      "A1": {
+        "on": true,
+        "u": 0.5833,
+        "whiff": false
+      },
+      "A2": {
+        "on": false,
+        "u": 0
+      },
+      "shards": 0,
+      "nodes": [],
+      "proj": [],
+      "image": {
+        "file": "a1-reform-own-edge.png",
+        "bytes": 665795,
+        "sha256": "6d881c5a92c7f1e4"
+      }
+    },
+    "a1-whiff": {
+      "simT": 6.7417,
+      "M": {
+        "x": 330,
+        "y": 560,
+        "vx": 0,
+        "vy": 0,
+        "busy": 1.617,
+        "copyOn": false
+      },
+      "A1": {
+        "on": true,
+        "u": 0.3646,
+        "whiff": true
+      },
+      "A2": {
+        "on": false,
+        "u": 0
+      },
+      "shards": 0,
+      "nodes": [],
+      "proj": [],
+      "image": {
+        "file": "a1-whiff.png",
+        "bytes": 660314,
+        "sha256": "83fccf9a6b5cc791"
+      }
+    },
+    "a2-pre-snap": {
+      "simT": 6.9083,
+      "M": {
+        "x": 330,
+        "y": 560,
+        "vx": 0,
+        "vy": 0,
+        "busy": 1.633,
+        "copyOn": false
+      },
+      "A1": {
+        "on": false,
+        "u": 0.3646,
+        "whiff": true
+      },
+      "A2": {
+        "on": true,
+        "u": 0.1667
+      },
+      "shards": 0,
+      "nodes": [],
+      "proj": [],
+      "image": {
+        "file": "a2-pre-snap.png",
+        "bytes": 606652,
+        "sha256": "de0f845aa5a917c8"
+      }
+    },
+    "a2-snap": {
+      "simT": 7.1667,
+      "M": {
+        "x": 700,
+        "y": 430,
+        "vx": 0,
+        "vy": 0,
+        "busy": 1.542,
+        "copyOn": false
+      },
+      "A1": {
+        "on": false,
+        "u": 0.3646,
+        "whiff": true
+      },
+      "A2": {
+        "on": true,
+        "u": 0.2583
+      },
+      "shards": 0,
+      "nodes": [],
+      "proj": [],
+      "image": {
+        "file": "a2-snap.png",
+        "bytes": 628945,
+        "sha256": "06f8edd9a2d1b990"
+      }
+    },
+    "a2-post-residue": {
+      "simT": 7.9167,
+      "M": {
+        "x": 700,
+        "y": 430,
+        "vx": 0,
+        "vy": 0,
+        "busy": 1.05,
+        "copyOn": false
+      },
+      "A1": {
+        "on": false,
+        "u": 0.3646,
+        "whiff": true
+      },
+      "A2": {
+        "on": false,
+        "u": 0.6417
+      },
+      "shards": 0,
+      "nodes": [],
+      "proj": [],
+      "image": {
+        "file": "a2-post-residue.png",
+        "bytes": 588707,
+        "sha256": "16d1eee07a9fcdf9"
+      }
+    },
+    "free-shard": {
+      "simT": 8.1667,
+      "M": {
+        "x": 330,
+        "y": 560,
+        "vx": 0,
+        "vy": 0,
+        "busy": -0.25,
+        "copyOn": false
+      },
+      "A1": {
+        "on": false,
+        "u": 0.3646,
+        "whiff": true
+      },
+      "A2": {
+        "on": false,
+        "u": 0.6417
+      },
+      "shards": 5,
+      "nodes": [],
+      "proj": [],
+      "image": {
+        "file": "free-shard.png",
+        "bytes": 592374,
+        "sha256": "1ccd62d83a47bb60"
+      }
+    },
+    "assembling-node": {
+      "simT": 9.4167,
+      "M": {
+        "x": 330,
+        "y": 560,
+        "vx": 0,
+        "vy": 0,
+        "busy": -1.25,
+        "copyOn": false
+      },
+      "A1": {
+        "on": false,
+        "u": 0.3646,
+        "whiff": true
+      },
+      "A2": {
+        "on": false,
+        "u": 0.6417
+      },
+      "shards": 5,
+      "nodes": [
+        {
+          "st": 1,
+          "fill": 0,
+          "fold": 0
+        }
+      ],
+      "proj": [],
+      "image": {
+        "file": "assembling-node.png",
+        "bytes": 588068,
+        "sha256": "fec01fcf81ba2c73"
+      }
+    },
+    "active-node": {
+      "simT": 11.5833,
+      "M": {
+        "x": 330,
+        "y": 560,
+        "vx": 0,
+        "vy": 0,
+        "busy": -2.167,
+        "copyOn": false
+      },
+      "A1": {
+        "on": false,
+        "u": 0.3646,
+        "whiff": true
+      },
+      "A2": {
+        "on": false,
+        "u": 0.6417
+      },
+      "shards": 5,
+      "nodes": [
+        {
+          "st": 2,
+          "fill": 1,
+          "fold": 0
+        }
+      ],
+      "proj": [],
+      "image": {
+        "file": "active-node.png",
+        "bytes": 590777,
+        "sha256": "f3b9697ff59f5a46"
+      }
+    },
+    "projectile-entry-image": {
+      "activeNodes": 2,
+      "proj": {
+        "st": 1,
+        "t": 0.025,
+        "own": 0,
+        "cool": 0.4
+      },
+      "image": {
+        "file": "projectile-entry-image.png",
+        "bytes": 626088,
+        "sha256": "836a10190bbe4236"
+      }
+    },
+    "destination-image": {
+      "activeNodes": 2,
+      "proj": {
+        "st": 2,
+        "t": 0.3,
+        "own": 0,
+        "cool": 0.4
+      },
+      "image": {
+        "file": "destination-image.png",
+        "bytes": 626423,
+        "sha256": "4b5f44051dfd2d8f"
+      }
+    },
+    "emergence": {
+      "activeNodes": 2,
+      "proj": {
+        "st": 0,
+        "t": 0.5667,
+        "own": 2,
+        "cool": 0.45
+      },
+      "image": {
+        "file": "emergence.png",
+        "bytes": 626032,
+        "sha256": "ca5c7cfe83968874"
+      }
+    }
+  },
+  "probes": {
+    "singleNode": {
+      "activeNodes": 1,
+      "escrowed": false,
+      "maxCoolSet": 0.4,
+      "stillInWorld": true
+    },
+    "routing": {
+      "activeNodes": 2,
+      "captured": true,
+      "destinationImageAtT": 0.2083,
+      "imgBAtT": 0.2083,
+      "emergenceObservedAtT": 0.5667,
+      "ownerAfter": 2,
+      "postExitCooldown": 0.45,
+      "emergenceX": 721.226,
+      "expectedEmergenceX": 721.226,
+      "offsetMatches20px": true
+    },
+    "slots": {
+      "nodePoolSize": 4,
+      "shardPoolSize": 16,
+      "shardsPerNode": 5,
+      "maxConcurrentFormingOrActive": 3,
+      "maxConcurrentActive": 3,
+      "maxPoolSlotsOccupied": 3,
+      "minFreeShardsObserved": 0,
+      "formNodeCalls": [
+        {
+          "liveAtCall": 0,
+          "freeShards": 11
+        },
+        {
+          "liveAtCall": 1,
+          "freeShards": 6
+        },
+        {
+          "liveAtCall": 2,
+          "freeShards": 1
+        }
+      ],
+      "maxLiveAtAnyFormNodeCall": 2,
+      "fourLifecycleSlotsObserved": false,
+      "oldestActiveRetiredToFoldOut": false,
+      "foldObserved": false,
+      "law": "MEASURED, not inferred: the node pool has 4 entries but canonical play can never occupy more than 3. Formation consumes 5 shards from a 16-shard pool, and a node holds its shards for its whole life (a st===3 fold-out node still owns them until n.on=false at t3>=.55). Three forming-or-active nodes therefore hold 15 of 16 shards, leaving 1 free - never the 5 a fourth group needs. formNode is consequently never reached with live>=3, so the oldest-active->st=3 retirement branch at the top of formNode is unreachable dead headroom. PORT CONSEQUENCE: production must cap concurrent nodes at 3 via the shard economy, and must NOT implement a 4-slot ring with active retirement as a mechanic."
+    },
+    "busy": {
+      "a1BusyAtCast": 2.2,
+      "a2BusyAtCast": 1.8
+    },
+    "wrongReflection": {
+      "plate": "LR",
+      "baseDelay": 0.17,
+      "extraDelayAfterWrong": 0.04,
+      "wrongAddsSeconds": 0.45,
+      "effectiveDelay": 0.66
+    }
+  },
+  "pageErrors": [],
+  "gates": {
+    "CR00-gold-unmodified": {
+      "pass": true,
+      "detail": {
+        "sha": "c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205",
+        "bytes": 107480
+      }
+    },
+    "CR01-gold-url-reachable": {
+      "pass": true,
+      "detail": "http://127.0.0.1:4200/docs/hero-rework/mirror-v1/gold/MIRROR_GOLD_FUSION_12.html"
+    },
+    "CR02-all-visual-references-captured": {
+      "pass": true,
+      "detail": {
+        "count": 19,
+        "missing": []
+      }
+    },
+    "CR03-reference-frames-are-distinct": {
+      "pass": true,
+      "detail": {
+        "distinct": 19,
+        "total": 19
+      }
+    },
+    "CR10-single-node-no-escrow-and-0.40-cooldown": {
+      "pass": true,
+      "detail": {
+        "activeNodes": 1,
+        "escrowed": false,
+        "maxCoolSet": 0.4,
+        "stillInWorld": true
+      }
+    },
+    "CR11-destination-image-before-emergence": {
+      "pass": true,
+      "detail": {
+        "activeNodes": 2,
+        "captured": true,
+        "destinationImageAtT": 0.2083,
+        "imgBAtT": 0.2083,
+        "emergenceObservedAtT": 0.5667,
+        "ownerAfter": 2,
+        "postExitCooldown": 0.45,
+        "emergenceX": 721.226,
+        "expectedEmergenceX": 721.226,
+        "offsetMatches20px": true
+      }
+    },
+    "CR12-emergence-at-0.56": {
+      "pass": true,
+      "detail": {
+        "activeNodes": 2,
+        "captured": true,
+        "destinationImageAtT": 0.2083,
+        "imgBAtT": 0.2083,
+        "emergenceObservedAtT": 0.5667,
+        "ownerAfter": 2,
+        "postExitCooldown": 0.45,
+        "emergenceX": 721.226,
+        "expectedEmergenceX": 721.226,
+        "offsetMatches20px": true
+      }
+    },
+    "CR13-emergence-offset-is-node-center-plus-dir-times-20": {
+      "pass": true,
+      "detail": {
+        "emergenceX": 721.226,
+        "expected": 721.226
+      }
+    },
+    "CR14-exit-controller-neutral-and-0.45-recapture-lock": {
+      "pass": true,
+      "detail": {
+        "activeNodes": 2,
+        "captured": true,
+        "destinationImageAtT": 0.2083,
+        "imgBAtT": 0.2083,
+        "emergenceObservedAtT": 0.5667,
+        "ownerAfter": 2,
+        "postExitCooldown": 0.45,
+        "emergenceX": 721.226,
+        "expectedEmergenceX": 721.226,
+        "offsetMatches20px": true
+      }
+    },
+    "CR15-three-concurrent-node-cap-observed-directly": {
+      "pass": true,
+      "detail": {
+        "nodePool": 4,
+        "shardPool": 16,
+        "maxLive": 3,
+        "maxActive": 3
+      }
+    },
+    "CR15b-fourth-slot-and-retirement-branch-proven-unreachable": {
+      "pass": true,
+      "detail": {
+        "maxOccupied": 3,
+        "maxLiveAtFormNode": 2,
+        "minFreeShards": 0,
+        "formNodeCalls": [
+          {
+            "liveAtCall": 0,
+            "freeShards": 11
+          },
+          {
+            "liveAtCall": 1,
+            "freeShards": 6
+          },
+          {
+            "liveAtCall": 2,
+            "freeShards": 1
+          }
+        ]
+      }
+    },
+    "CR16-busy-envelopes-2.2-and-1.8": {
+      "pass": true,
+      "detail": {
+        "a1BusyAtCast": 2.2,
+        "a2BusyAtCast": 1.8
+      }
+    },
+    "CR17-LR-wrong-reflection-extra-delay": {
+      "pass": true,
+      "detail": {
+        "plate": "LR",
+        "baseDelay": 0.17,
+        "extraDelayAfterWrong": 0.04,
+        "wrongAddsSeconds": 0.45,
+        "effectiveDelay": 0.66
+      }
+    },
+    "CR99-no-canonical-page-errors": {
+      "pass": true,
+      "detail": []
+    }
+  },
+  "failures": [],
+  "pass": true
+}
