@@ -463,6 +463,24 @@
         return from;
       },
       sweptHunterContact: segmentToPointToi,
+      // Explicit-body-motion contact seam.
+      //
+      // An explicit mover proposes its movement through moveHunterBody (which
+      // remains the solid-world/Crystala capsule authority) and then defers
+      // CONTACT ADJUDICATION to here instead of self-certifying a hit. The
+      // request is resolved in hrPostTick, after Magnet's A2 body force and
+      // canonical Fighter.update movement have been applied to the mover AND
+      // after the target's own real movement for the frame. Tracking a target
+      // therefore no longer implies touching it.
+      //
+      // This is deliberately NOT a second integrator and contains no
+      // hero-specific force equation: it only reads the paths both bodies
+      // actually travelled this frame.
+      deferBodyContact(req) {
+        if (!req || !req.mover) return null;
+        (M.pendingBodyContacts || (M.pendingBodyContacts = [])).push(req);
+        return req;
+      },
       spawnSnare(o) {
         const s = {
           id: ++M.world.snareSeq, owner: o.owner, x: o.x, y: o.y,
@@ -1231,6 +1249,16 @@
   function hrPreTick(dt) {
     if (!M) return;
     HR._magnetStepPendingDt = dt;
+    // Frame-start body positions. Explicit movers (Hunter pounce) run inside
+    // executor onTick, BEFORE Magnet body force and before canonical
+    // Fighter.update movement. Any contact they adjudicate inline therefore
+    // uses a pre-physics mover path and a stale target position. These samples
+    // let contact be resolved after movement against both bodies' REAL paths.
+    for (const b of M.api.allBodies()) {
+      if (!b) continue;
+      if (!b.__hrFrameStart) b.__hrFrameStart = { x: 0, y: 0 };
+      b.__hrFrameStart.x = b.x; b.__hrFrameStart.y = b.y;
+    }
     // Presentation root sampling starts before canonical fighter movement.
     // The matching post-movement sample is consumed exactly once in
     // hrPostTick for both AQ.step (headless) and global update (real rAF).
@@ -1300,8 +1328,41 @@
     });
   };
 
+  /* Resolve explicit-body-motion contact requests against the REAL paths both
+   * bodies travelled this frame. Runs after Fighter.update, so the mover's
+   * position already includes hostile physics (Magnet A2 body force) and
+   * canonical walls, and the target position is this frame's actual one rather
+   * than a pre-movement sample.
+   *
+   * Moving circle vs moving circle: with both paths linear over the frame the
+   * separation vector is itself linear, so the earliest contact is the TOI of
+   * the RELATIVE path against the origin at the summed radius. */
+  function resolvePendingBodyContacts() {
+    const list = M.pendingBodyContacts;
+    if (!list || !list.length) return;
+    M.pendingBodyContacts = [];
+    for (const req of list) {
+      const mover = req.mover;
+      if (!mover || mover.hp <= 0) { if (req.onMiss) req.onMiss(); continue; }
+      const ms = mover.__hrFrameStart || { x: mover.x, y: mover.y };
+      let best = null, bestT = Infinity;
+      for (const tgt of (req.targets || [])) {
+        if (!tgt || tgt === mover || tgt.hp <= 0) continue;
+        const ts = tgt.__hrFrameStart || { x: tgt.x, y: tgt.y };
+        const R = (mover.radius || 75) + (tgt.radius || 75);
+        const t = segmentToPointToi(ms.x - ts.x, ms.y - ts.y, mover.x - tgt.x, mover.y - tgt.y, 0, 0, R);
+        if (t != null && t < bestT) { bestT = t; best = tgt; }
+      }
+      if (best) { if (req.onContact) req.onContact(best, bestT, ms); }
+      else if (req.onMiss) req.onMiss();
+    }
+  }
+
   function hrPostTick(dt) {
     if (!M) return;
+    // Physical contact for explicit movers is adjudicated first, so a catch and
+    // its whole consequence bundle derive from post-movement truth.
+    resolvePendingBodyContacts();
     tickWorld(dt);
     // Frost A2 presentation history must observe the post-Fighter.update,
     // post-wall/body-collision position consumed by the body renderer below.

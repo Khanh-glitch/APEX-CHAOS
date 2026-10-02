@@ -770,6 +770,32 @@
     },
     onTeardown(ctx){ctx.store.cast=null;ctx.combatant.store.__hunterAction=null;},
   };
+  /* SINGLE atomic Hunter A2 success transaction.
+   *
+   * STUN, combatant WEAK, firearm disarm, PounceWeak and the Gold CATCH
+   * presentation/SFX are one semantic outcome and must all derive from the
+   * SAME proven physical contact. Nothing here may be emitted from any other
+   * site, and this function accepts only an already-resolved real contact. */
+  function commitHunterPounceCatch(ctx,a,hit,toi,from){
+    // Stand Hunter at the moment of contact along the path it really travelled.
+    a.x=from.x+(a.x-from.x)*toi;a.y=from.y+(a.y-from.y)*toi;
+    ctx.api.applyStunTo(hit,ctx.cfg.stunDuration??2.0);
+    ctx.api.applyWeakCombatant(ctx.api.combatantOfBody(hit),ctx.cfg.weakDuration??1.0);
+    // Successful A2 contact forcibly discards an equipped firearm. The
+    // canonical consume path owns the visible gun-flick/throw exit and
+    // prevents a duplicate floor pickup from being invented.
+    const W=globalScope.APEX_ARSENAL&&globalScope.APEX_ARSENAL.weaponApi;
+    const held=W&&W.getHolder?W.getHolder(hit):null;
+    let disarmedWeapon=null;
+    if(held&&held.def&&held.def.category==='ranged'&&W&&W.consume){
+      disarmedWeapon=held.weaponId;
+      W.consume(hit,'hunter-a2-disarm');
+      ctx.api.emitEvent('HunterA2Disarm',{hero:'HUNTER',target:hit.id,weaponId:disarmedWeapon});
+    }
+    ctx.api.emitEvent('PounceWeak',{hero:'HUNTER',target:hit.id,directDamage:0,swept:true,stun:ctx.cfg.stunDuration??2.0,weak:ctx.cfg.weakDuration??1.0,disarmedWeapon});
+    ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;
+    globalScope.APEX_HUNTER_PRESENTATION.catch(a);
+  }
   EXECUTORS['hunter.pounce_weak'] = {
     canCast: hunterReady,
     cast(ctx){if(!hunterReady(ctx)||!ctx.api.enemyBodies(ctx.combatant).length)return false;
@@ -785,29 +811,28 @@
       moveDt=Math.min(moveDt,ctx.cfg.maxMoveTime-p.elapsed);p.elapsed+=moveDt;
       const bodies=ctx.api.enemyBodies(ctx.combatant),target=bodies.reduce((best,b)=>!best||dist(a.x,a.y,b.x,b.y)<dist(a.x,a.y,best.x,best.y)?b:best,null);
       if(!target){ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;globalScope.APEX_HUNTER_PRESENTATION.miss(a);return;}
-      const heading=angleTo(a.x,a.y,target.x,target.y),ox=a.x,oy=a.y;
+      const heading=angleTo(a.x,a.y,target.x,target.y);
       a.setDir(Math.cos(heading),Math.sin(heading));
       ctx.api.moveHunterBody(a,a.x+Math.cos(heading)*ctx.cfg.moveSpeed*moveDt,a.y+Math.sin(heading)*ctx.cfg.moveSpeed*moveDt);
-      let hit=null,toi=Infinity;
-      for(const b of bodies){const t=ctx.api.sweptHunterContact(ox,oy,a.x,a.y,b.x,b.y,a.radius+b.radius);if(t!=null&&t<toi){toi=t;hit=b;}}
       globalScope.APEX_HUNTER_PRESENTATION.travel(a,heading,moveDt);
-      if(hit){a.x=ox+(a.x-ox)*toi;a.y=oy+(a.y-oy)*toi;
-        ctx.api.applyStunTo(hit,ctx.cfg.stunDuration??2.0);
-        ctx.api.applyWeakCombatant(ctx.api.combatantOfBody(hit),ctx.cfg.weakDuration??1.0);
-        // Successful A2 contact forcibly discards an equipped firearm. The
-        // canonical consume path owns the visible gun-flick/throw exit and
-        // prevents a duplicate floor pickup from being invented.
-        const W=globalScope.APEX_ARSENAL&&globalScope.APEX_ARSENAL.weaponApi;
-        const held=W&&W.getHolder?W.getHolder(hit):null;
-        let disarmedWeapon=null;
-        if(held&&held.def&&held.def.category==='ranged'&&W&&W.consume){
-          disarmedWeapon=held.weaponId;
-          W.consume(hit,'hunter-a2-disarm');
-          ctx.api.emitEvent('HunterA2Disarm',{hero:'HUNTER',target:hit.id,weaponId:disarmedWeapon});
-        }
-        ctx.api.emitEvent('PounceWeak',{hero:'HUNTER',target:hit.id,directDamage:0,swept:true,stun:ctx.cfg.stunDuration??2.0,weak:ctx.cfg.weakDuration??1.0,disarmedWeapon});
-        ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;globalScope.APEX_HUNTER_PRESENTATION.catch(a);
-      }else if(p.elapsed>=ctx.cfg.maxMoveTime-1e-9){ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;globalScope.APEX_HUNTER_PRESENTATION.miss(a);}
+      // Hunter proposes pursuit movement, but may NOT certify its own hit.
+      // Tracking the prey is not touching it: the catch is adjudicated in
+      // hrPostTick against the path Hunter ACTUALLY travelled once hostile
+      // physics (solid constructs via moveHunterBody, Magnet A2 body force via
+      // the canonical external-motion seam) and canonical movement have
+      // resolved, and against the prey's real movement for the same frame.
+      const expired=p.elapsed>=ctx.cfg.maxMoveTime-1e-9;
+      ctx.api.deferBodyContact({
+        mover:a,targets:bodies,
+        onContact:(hit,toi,from)=>{
+          if(ctx.store.pounce!==p)return;           // episode already ended
+          commitHunterPounceCatch(ctx,a,hit,toi,from);
+        },
+        onMiss:()=>{
+          if(ctx.store.pounce!==p)return;
+          if(expired){ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;globalScope.APEX_HUNTER_PRESENTATION.miss(a);}
+        },
+      });
     },
     onTeardown(ctx){ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;},
   };

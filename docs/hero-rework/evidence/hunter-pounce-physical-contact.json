@@ -1,0 +1,184 @@
+{
+  "generatedAt": "2026-10-02T04:11:00.903Z",
+  "law": "REAL RESOLVED PHYSICAL CONTACT -> Hunter A2 control effects. Tracking/targeting alone never grants them.",
+  "url": "http://127.0.0.1:4173",
+  "H1": {
+    "stun": 2,
+    "catches": 1,
+    "pounceWeak": 1,
+    "busFound": true,
+    "dist": 150,
+    "sumRadius": 150
+  },
+  "H2": {
+    "capsules": 1,
+    "between": 1,
+    "betweenSample": [
+      {
+        "ax": 332,
+        "ay": 610,
+        "bx": 332,
+        "by": 390,
+        "r": 19.5
+      }
+    ],
+    "stun": 0,
+    "catches": 0,
+    "pounceWeak": 0,
+    "hunterX": 237.4,
+    "preyX": 500,
+    "dist": 262.6,
+    "sumRadius": 150
+  },
+  "H4": {
+    "fieldOff": {
+      "active": false,
+      "maxExternalSpeed": 0,
+      "stun": 0.911
+    },
+    "fieldOn": {
+      "active": true,
+      "maxExternalSpeed": 194.8,
+      "stun": 0.911
+    }
+  },
+  "H5": {
+    "a2Active": true,
+    "stun": 2,
+    "catches": 1,
+    "pounceWeak": 1
+  },
+  "H7": {
+    "realDist": 150,
+    "staleDist": 114.56,
+    "preyFrameDisplacement": 35.44,
+    "committed": true,
+    "catches": 1,
+    "pounceWeak": 1,
+    "preyMovedTotal": 286.2,
+    "sumRadius": 150
+  },
+  "pageHasHunterPres": true,
+  "gates": {
+    "HPHYS-H1-positive-control-real-contact-stuns": {
+      "pass": true,
+      "detail": {
+        "stun": 2,
+        "catches": 1,
+        "pounceWeak": 1,
+        "busFound": true,
+        "dist": 150,
+        "sumRadius": 150
+      }
+    },
+    "HPHYS-H1b-event-bus-observed": {
+      "pass": true,
+      "detail": {
+        "busFound": true
+      }
+    },
+    "HPHYS-H2a-solid-construct-exists-between-bodies": {
+      "pass": true,
+      "detail": {
+        "capsules": 1,
+        "between": 1,
+        "betweenSample": [
+          {
+            "ax": 332,
+            "ay": 610,
+            "bx": 332,
+            "by": 390,
+            "r": 19.5
+          }
+        ],
+        "stun": 0,
+        "catches": 0,
+        "pounceWeak": 0,
+        "hunterX": 237.4,
+        "preyX": 500,
+        "dist": 262.6,
+        "sumRadius": 150
+      }
+    },
+    "HPHYS-H2b-hexa-block-prevents-contact-and-all-consequences": {
+      "pass": true,
+      "detail": {
+        "capsules": 1,
+        "between": 1,
+        "betweenSample": [
+          {
+            "ax": 332,
+            "ay": 610,
+            "bx": 332,
+            "by": 390,
+            "r": 19.5
+          }
+        ],
+        "stun": 0,
+        "catches": 0,
+        "pounceWeak": 0,
+        "hunterX": 237.4,
+        "preyX": 500,
+        "dist": 262.6,
+        "sumRadius": 150
+      }
+    },
+    "HPHYS-H4a-no-field-means-no-external-influence": {
+      "pass": true,
+      "detail": {
+        "active": false,
+        "maxExternalSpeed": 0,
+        "stun": 0.911
+      }
+    },
+    "HPHYS-H4b-magnet-field-participates-in-hunter-pounce": {
+      "pass": true,
+      "detail": {
+        "active": true,
+        "maxExternalSpeed": 194.8,
+        "stun": 0.911
+      }
+    },
+    "HPHYS-H5-magnet-has-no-fake-cc-immunity": {
+      "pass": true,
+      "detail": {
+        "a2Active": true,
+        "stun": 2,
+        "catches": 1,
+        "pounceWeak": 1
+      }
+    },
+    "HPHYS-H7a-moving-prey-actually-moved": {
+      "pass": true,
+      "detail": {
+        "realDist": 150,
+        "staleDist": 114.56,
+        "preyFrameDisplacement": 35.44,
+        "committed": true,
+        "catches": 1,
+        "pounceWeak": 1,
+        "preyMovedTotal": 286.2,
+        "sumRadius": 150
+      }
+    },
+    "HPHYS-H7b-commit-matches-post-movement-truth-not-stale-sample": {
+      "pass": true,
+      "detail": {
+        "realDist": 150,
+        "staleDist": 114.56,
+        "preyFrameDisplacement": 35.44,
+        "committed": true,
+        "catches": 1,
+        "pounceWeak": 1,
+        "preyMovedTotal": 286.2,
+        "sumRadius": 150
+      }
+    },
+    "HPHYS-99-no-page-errors": {
+      "pass": true,
+      "detail": []
+    }
+  },
+  "failures": [],
+  "pass": true
+}

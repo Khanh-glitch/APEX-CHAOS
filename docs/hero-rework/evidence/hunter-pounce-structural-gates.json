@@ -1,0 +1,83 @@
+{
+  "generatedAt": "2026-10-02T04:08:58.012Z",
+  "law": "Hunter A2 may propose pursuit movement but may not certify its own contact. Control effects require resolved physical contact.",
+  "explicitMoverAudit": {
+    "hunter.pounce_weak": "FIXED — proposes movement, defers contact to the post-movement resolver",
+    "hunter.snare (A1 recoil)": "SAFE — moves via moveHunterBody (wall authority), adjudicates no contact",
+    "robot.weapon_dash": "SAFE — explicit mover, but contact authority is the real equip resolution (onEquipOffensive) which runs on the post-movement position; the dash never emits RobotA1Contact itself",
+    "sniper A2 position lock": "NOT CONTACT-SENSITIVE — lock only, no body translation",
+    "frost movement lock": "NOT CONTACT-SENSITIVE — lock only",
+    "slime promoted/child bodies": "SAFE — driven through the full canonical engine pipeline (child.update)"
+  },
+  "gates": {
+    "S01-defer-seam-exists": {
+      "pass": true
+    },
+    "S02-resolver-runs-after-movement": {
+      "pass": true,
+      "detail": "resolver must run in hrPostTick, i.e. after Fighter.update"
+    },
+    "S03-frame-start-samples-recorded": {
+      "pass": true
+    },
+    "S04-resolver-uses-both-real-paths": {
+      "pass": true,
+      "detail": "moving-circle vs moving-circle via the relative path"
+    },
+    "S10-hunter-a2-block-isolated": {
+      "pass": true
+    },
+    "S11-hunter-a2-defers-contact": {
+      "pass": true
+    },
+    "S12-hunter-a2-does-not-adjudicate-inline": {
+      "pass": true,
+      "detail": "the executor must not run its own contact sweep"
+    },
+    "S13-hunter-a2-commits-nothing-inline": {
+      "pass": true
+    },
+    "S20-single-commit-function": {
+      "pass": true
+    },
+    "S21-commit-is-the-only-site-of-each-consequence": {
+      "pass": true,
+      "detail": {
+        "stun": 1,
+        "pounceWeak": 1,
+        "disarm": 1,
+        "disarmEvent": 1,
+        "catchPresentation": 1
+      }
+    },
+    "S22-commit-only-reached-from-resolver": {
+      "pass": true,
+      "detail": "exactly one definition + one call from the deferred onContact"
+    },
+    "S30-no-magnet-cc-immunity-special-case": {
+      "pass": true
+    },
+    "S31-magnet-protected-body-law-unchanged": {
+      "pass": true,
+      "detail": "owner-approved linear radial target + authority caps must be intact"
+    },
+    "S32-hunter-a2-protected-config": {
+      "pass": true
+    },
+    "S33-movehunterbody-still-wall-authority": {
+      "pass": true
+    },
+    "S40-robot-a1-dash-does-not-self-certify-contact": {
+      "pass": true,
+      "detail": "Robot A1 moves explicitly but its contact authority is the real equip resolution"
+    },
+    "S41-only-expected-explicit-movers-mutate-position": {
+      "pass": true,
+      "detail": {
+        "sites": 2
+      }
+    }
+  },
+  "failures": [],
+  "pass": true
+}
