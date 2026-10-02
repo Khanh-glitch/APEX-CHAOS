@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T06:01:41.554Z",
+  "generatedAt": "2026-10-02T06:06:05.130Z",
   "law": "Hunter A2 may propose pursuit movement but may not certify its own contact. Control effects require resolved physical contact.",
   "explicitMoverAudit": {
     "hunter.pounce_weak": "FIXED — proposes movement, defers contact to the post-movement resolver",

@@ -462,6 +462,266 @@ function bakeArt(){
 const PLI={};
 
 // =====================================================================================
+// CHECKPOINT D2 — temporal history + false-reflection expression + locomotion
+// =====================================================================================
+//
+// PER-INSTANCE STATE. Gold declares its state (E/M/F/H/PL/ACC/hist/TW/Q/SW/FX)
+// as module-level singletons because the showcase only ever has one Mirror.
+// Production can have P1 Mirror, P2 Mirror, or Mirror-vs-Mirror, so the whole
+// region is wrapped in a factory: every call gets its own closure, hence its
+// own history ring, springs, plates and pools. The baked art atlas stays
+// module-level because it is static and immutable.
+//
+// DEDICATED PRESENTATION RNG. Gold's ambient rr() is Math.random-backed and
+// addCrack calls Math.random directly. Presentation must never consume the
+// gameplay/combat stream, so each instance owns a seeded mulberry32 and rr()
+// is rebound to it. The bridge fails if Math.random survives anywhere.
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function createMirrorInstance(options) {
+  const opts = options || {};
+  ensureBaked();
+  // Dedicated presentation stream. Never the gameplay/combat RNG.
+  let __rand = mulberry32((opts.seed >>> 0) || 0x9E3779B9);
+  const rr = (a, b) => a + __rand() * (b - a);
+
+  // =====================================================================================
+  // STATE, SPRINGS, HISTORY, TWEENS
+  // =====================================================================================
+  class Sp{constructor(k,c){this.k=k;this.c=c;this.x=0;this.v=0}step(t,dt){this.v+=(this.k*(t-this.x)-this.c*this.v)*dt;this.x+=this.v*dt}}
+  const K=110/1200,CX=613,CY=620,MR=34,FR=30,SPD=250,WS=.38,STEP=1/120,ARENA=1000;
+  let simT=0;
+  const cam={x:500,y:500,zm:1,tz:1,sx:new Sp(160,13),sy:new Sp(160,13),close:false};
+
+  const E={eL:.6,eR:.34,nL:.08,nR:.4,sL:.62,sR:.12,gx:0,gy:0,gap:0,slip:0,G:0,fl:0};
+  const M={x:330,y:560,vx:0,vy:0,aim:0,drive:null,mv:0,pkx:0,pky:0,turnCd:0,wallCd:0,colCd:0,hitCd:0,busy:0,
+    cs:new Sp(260,16),cn:{x:1,y:0},copyOn:false,copyT:0,rec:new Sp(520,22),dmg:0,sf:0,copyFx:0};
+  const F={x:700,y:430,vx:0,vy:0,tx:700,ty:430,wt:1,aim:Math.PI,flash:0,rec:new Sp(420,20),armed:true,shot:0,wspec:-1,hl:-1};
+  const H={L:{x:new Sp(240,10),y:new Sp(240,10),r:new Sp(320,13),lock:0},R:{x:new Sp(170,13),y:new Sp(170,13),r:new Sp(230,16),lock:0}};
+  let PL=[];
+  function mkPlate(id,side,dl,gain,kk,cc,mul,amp){const i=PLI[id];
+    return {id,side,dl,gain,kk,cc,mul,amp,pv:[i.cx,i.cy],axis:i.ang,sx:new Sp(kk,cc),sy:new Sp(kk,cc),sr:new Sp(kk*1.2,cc*.9),
+      wx:0,wy:0,wr:0,wt:rr(0,2),lx:0,ly:0,lr:0,wash:0,act:0,tint:0,slow:0,
+      holdT:0,he:0,hn:0,hs:0,wrongT:0,extraDelay:0,role:id==='UL'?'shameless':id==='UR'?'observer':id==='LL'?'stale':'wrong',gz:0}}
+  let ACC=[];
+  function mkAcc(){
+    const L=[[420,205,.35,130,'shard'],[245,600,-.1,190,'shard'],[860,190,2.3,100,'shard'],[1030,625,.12,190,'shard'],[1090,705,.5,70,'eshard'],[392,925,.45,130,'shard'],[482,1072,.5,60,'eshard'],[895,925,.15,170,'shard']];
+    return L.map(a=>({x:a[0],y:a[1],rot:a[2],len:a[3],t:a[4],ph:rr(0,6),sx:new Sp(90,8),sy:new Sp(90,8),sr:new Sp(80,7)}));
+  }
+  // ---- VFX6-style history ring: 64 interpolated snapshots, never current-state spring fakery ----
+  // 0 rootX, 1 rootY, 2/3 eye, 4/5 narrow, 6/7 smile, 8 gap, 9 slip, 10 ghost,
+  // 11 gaze, 12/13 velocity, 14..19 left/right half transforms, 20/21 opponent position.
+  const HN=64,HS=22,hist=new Float32Array(HN*HS);let hHead=0;
+  function pushHist(){const o=hHead*HS;
+    hist[o]=M.x;hist[o+1]=M.y;hist[o+2]=E.eL;hist[o+3]=E.eR;hist[o+4]=E.nL;hist[o+5]=E.nR;
+    hist[o+6]=E.sL;hist[o+7]=E.sR;hist[o+8]=E.gap;hist[o+9]=E.slip;hist[o+10]=E.G;hist[o+11]=E.gx;
+    hist[o+12]=M.vx;hist[o+13]=M.vy;hist[o+14]=H.L.x.x;hist[o+15]=H.L.y.x;hist[o+16]=H.L.r.x;
+    hist[o+17]=H.R.x.x;hist[o+18]=H.R.y.x;hist[o+19]=H.R.r.x;hist[o+20]=F.x;hist[o+21]=F.y;
+    hHead=(hHead+1)%HN}
+  function hs(d,ch){const f=clamp(d/STEP,0,HN-3),i0=Math.floor(f),fr=f-i0,a=((hHead-1-i0)%HN+HN)%HN,b=(a-1+HN)%HN;return hist[a*HS+ch]*(1-fr)+hist[b*HS+ch]*fr}
+  function histFill(){for(let i=0;i<HN;i++)pushHist()}
+  function shiftHist(dx,dy){for(let i=0;i<HN;i++){const o=i*HS;hist[o]+=dx;hist[o+1]+=dy;hist[o+20]-=dx;hist[o+21]-=dy}}
+  // ---- tween pool + timed queue ----
+  const TW=[];for(let i=0;i<110;i++)TW.push({on:false,o:null,k:'',a:0,b:0,t:0,d:1,dl:0,st:false,e:0});
+  function tw(o,k,to,dur,delay,ease){
+    let s=null;for(const x of TW)if(!x.on){s=x;break}if(!s)s=TW[0];
+    s.on=true;s.o=o;s.k=k;s.b=to;s.d=Math.max(.001,dur);s.dl=delay||0;s.t=0;s.st=false;s.e=ease||0;
+  }
+  function twStep(dt){for(const s of TW){if(!s.on)continue;if(s.dl>0){s.dl-=dt;continue}
+    if(!s.st){s.st=true;s.a=s.o[s.k];for(const z of TW)if(z!==s&&z.on&&z.st&&z.o===s.o&&z.k===s.k)z.on=false}
+    s.t+=dt;const p=clamp(s.t/s.d,0,1);s.o[s.k]=lerp(s.a,s.b,s.e?eo3(p):p*p*(3-2*p));if(p>=1)s.on=false}}
+  const Q=[];function later(sec,fn){Q.push({t:sec,fn})}
+  function qStep(dt){for(let i=Q.length-1;i>=0;i--){const q=Q[i];q.t-=dt;if(q.t<=0){Q.splice(i,1);q.fn()}}}
+  // ---- specular sweeps / fx pools ----
+  const SW=[];for(let i=0;i<16;i++)SW.push({on:false,nm:'',t:0,d:1,ang:0,amp:.8,bw:.18,dl:0});
+  function addSweep(nm,d,ang,amp,bw,dl){let s=null;for(const x of SW)if(!x.on){s=x;break}if(!s)return;s.on=true;s.nm=nm;s.t=0;s.d=d;s.ang=ang;s.amp=amp;s.bw=bw;s.dl=dl||0}
+  function sweepStep(dt){for(const s of SW){if(!s.on)continue;if(s.dl>0){s.dl-=dt;continue}s.t+=dt;if(s.t>=s.d)s.on=false}}
+  function sweepsFor(g,nm){for(const s of SW){if(s.on&&s.dl<=0&&s.nm===nm)masked(g,nm,PU,sweepFill(s.t/s.d,s.ang,s.bw),s.amp*Math.sin(Math.PI*clamp(s.t/s.d,0,1)*.9+.15),null)}}
+  const FX=[];for(let i=0;i<90;i++)FX.push({on:false,ty:0,x:0,y:0,vx:0,vy:0,t:0,d:1,a:0,b:0,c:0,r:0,s:0,nm:''});
+  function fxNew(ty){for(const f of FX)if(!f.on){f.on=true;f.ty=ty;f.t=0;f.vx=f.vy=f.a=f.b=f.c=f.r=f.s=0;f.nm='';return f}return null}
+  function chips(wx,wy,nx,ny,n){for(let i=0;i<n;i++){const f=fxNew(1);if(!f)return;const a=Math.atan2(ny,nx)+rr(-.9,.9),sp=rr(40,130);f.x=wx;f.y=wy;f.vx=Math.cos(a)*sp;f.vy=Math.sin(a)*sp;f.r=rr(0,TAU);f.a=rr(-9,9);f.s=rr(2.2,5);f.d=rr(.35,.6)}}
+  function flecks(wx,wy,n,sp){for(let i=0;i<n;i++){const f=fxNew(5);if(!f)return;const a=rr(0,TAU),v=rr(10,sp||40);f.x=wx;f.y=wy;f.vx=Math.cos(a)*v;f.vy=Math.sin(a)*v;f.s=rr(.9,1.7);f.d=rr(.3,.55)}}
+  function ripple(wx,wy,ang,d){const f=fxNew(2);if(!f)return;f.x=wx;f.y=wy;f.a=ang;f.d=d||.4}
+  function addCrack(side,x,y,ang,len){const f=fxNew(3);if(!f)return;f.nm=side;f.x=x;f.y=y;f.r=ang;f.s=len;f.d=1.2;f.a=__rand()*10}
+  function fxStep(dt){for(const f of FX){if(!f.on)continue;f.t+=dt;if(f.t>=f.d){f.on=false;continue}
+    if(f.ty===1||f.ty===5){f.x+=f.vx*dt;f.y+=f.vy*dt;const k=Math.exp(-3*dt);f.vx*=k;f.vy*=k;if(f.ty===1)f.r+=f.a*dt}}}
+
+  // =====================================================================================
+  // FALSE-REFLECTION EXPRESSION ENGINE
+  // =====================================================================================
+  const PEX={e:0,n:0,s:0};
+  function plateExpr(p,o){
+    if(p.holdT>0){o.e=p.he;o.n=p.hn;o.s=p.hs;return}
+    const L=p.side==='L',wrong=p.wrongT>0,delay=p.dl+p.extraDelay+(wrong?.45:0);
+    // LR deliberately samples the opposite identity when it is wrong; this is old identity, not a tint.
+    const srcL=wrong?!L:L;
+    o.e=hs(delay,srcL?2:3);o.n=hs(delay,srcL?4:5);o.s=hs(delay+(p.id==='LL'?.05:0),srcL?6:7);
+  }
+  function holdPlate(p,dur,e,n,s){p.holdT=dur;p.he=e;p.hn=n;p.hs=s}
+  function wrongPlate(p,dur){p.wrongT=dur;p.extraDelay=.04}
+  const I={beat:4,t:0,dur:.6};
+  function busy(){return M.busy>0||A1.on||A2.on}
+  function idleStep(dt){
+    if(busy()){I.t=0;return}
+    I.t+=dt;if(I.t<I.dur)return;I.t=0;I.beat=(I.beat+1)%5;
+    [beatA,beatB,beatC,beatD,beatE][I.beat]();
+  }
+  function beatA(){I.dur=rr(1.2,2.3);
+    tw(E,'eL',.55,.4);tw(E,'nL',.1,.35);tw(E,'sL',.64,.4);tw(E,'eR',.32,.5,.06);tw(E,'nR',.42,.5,.06);tw(E,'sR',.1,.5,.08);tw(E,'gx',0,.4);tw(E,'gy',0,.4);
+    PL.forEach(p=>{p.wx=rr(-1,1)*p.amp*1.6;p.wy=rr(-1,1)*p.amp*1.2;p.wr=rr(-.035,.035)});
+  }
+  function beatB(){I.dur=rr(.9,1.4);
+    const d=Math.sign(F.x-M.x)||1;
+    if(__rand()<.65){tw(E,'nL',.55,.1);tw(E,'eL',1.05,.1);tw(E,'nR',.62,.12,.07)}else{tw(E,'nR',.7,.12);tw(E,'eR',.9,.1);tw(E,'nL',.3,.1,.08)}
+    tw(E,'gx',d*9,.14);tw(E,'gy',clamp((F.y-M.y)/60,-1,1)*5,.14);
+    const p=PL[__rand()<.5?0:1];p.lr=d*.05;p.lx=d*rr(10,22);p.ly=rr(-8,8);
+    addSweep(PL[__rand()<.5?0:1].id,.6,.9+rr(-.3,.3),.85,.2);
+  }
+  function beatC(){I.dur=rr(.13,.19);
+    const sg=__rand()<.5?-1:1;
+    tw(E,'slip',sg*rr(14,26),.04);tw(E,'gap',rr(6,14),.04);tw(E,'G',.6,.05);
+    (__rand()<.5?H.L:H.R).r.v+=rr(-.5,.5);
+  }
+  function beatD(){I.dur=rr(.28,.42);
+    tw(E,'eL',1.25,.05);tw(E,'sL',1.0,.06);tw(E,'eR',.7,.08,.06);tw(E,'G',0,.32);
+    // The slow face can preserve the exact expression it sampled; the latest face can become truly wrong.
+    if(__rand()<.62){const p=PL[2];plateExpr(p,PEX);holdPlate(p,rr(.42,.62),PEX.e,PEX.n,PEX.s)}
+    if(__rand()<.48)wrongPlate(PL[3],rr(.46,.58));
+    addSweep('Lh',.5,.7,.5,.2,.05);
+  }
+  function beatE(){I.dur=rr(.7,1.4);
+    tw(E,'slip',0,.12);tw(E,'gap',0,.1,.04);tw(E,'G',0,.25);
+    tw(E,'eL',.55,.35);tw(E,'sL',.62,.5);tw(E,'nL',.1,.4);tw(E,'eR',.32,.55,.1);tw(E,'nR',.42,.5,.1);tw(E,'sR',.1,.6,.12);
+    PL.forEach(p=>{later(rr(0,.25),()=>{p.lx=0;p.ly=0;p.lr=0;p.extraDelay=0})});
+  }
+  function lockStep(dt){
+    for(const s of ['L','R']){const h=H[s];if(h.lock>0){h.lock-=dt;E['e'+s]=1.35;E['n'+s]=.6;E['s'+s]=.3;
+      if(h.lock<=0){const d=s==='L'?0:.06,L=s==='L';tw(E,'e'+s,L?.55:.33,.3+d,0,1);tw(E,'n'+s,L?.1:.4,.34+d);tw(E,'s'+s,L?.62:.12,.4+d)}}}
+  }
+
+  // =====================================================================================
+  // MOVEMENT, TURN, STOP, WALL, BODY COLLISION
+  // =====================================================================================
+  function stepMirror(dt){
+    M.turnCd-=dt;M.wallCd-=dt;M.colCd-=dt;M.hitCd-=dt;M.busy-=dt;
+    let ix=0,iy=0;
+    if(M.drive){ix=M.drive.x;iy=M.drive.y}
+    const il=Math.hypot(ix,iy);if(il>0){ix/=il;iy/=il}
+    const sp0=Math.hypot(M.vx,M.vy),ovx=hs(.12,12),ovy=hs(.12,13),oldSp=Math.hypot(ovx,ovy);
+    if(il>0&&oldSp>135&&M.turnCd<=0){const dot=(ovx*ix+ovy*iy)/oldSp;if(dot<.05){onTurn(ovx/oldSp,ovy/oldSp,ix,iy);M.turnCd=.45}}
+    if(il>0&&M.mv===0&&sp0<90){M.mv=1;onStart(ix,iy)}
+    if(il>0){M.pkx=M.vx;M.pky=M.vy;if(sp0>150)M.mv=1}
+    const tvx=ix*SPD,tvy=iy*SPD,ac=il>0?1700:2100;let dx=tvx-M.vx,dy=tvy-M.vy;const dl=Math.hypot(dx,dy),mx=ac*dt;
+    if(dl>mx){dx=dx/dl*mx;dy=dy/dl*mx}M.vx+=dx;M.vy+=dy;
+    const sp=Math.hypot(M.vx,M.vy);
+    if(il===0&&M.mv===1&&sp<50){if(Math.hypot(M.pkx,M.pky)>140)onStop(M.pkx,M.pky);M.mv=0}
+    M.x+=M.vx*dt;M.y+=M.vy*dt;
+    const R=MR,hi=ARENA-MR;
+    if(M.x<R){const s=-M.vx;M.x=R;if(M.vx<0)M.vx=-M.vx*.12;if(s>35&&M.wallCd<=0){wallHit(1,0,s);M.wallCd=.25}}
+    if(M.x>hi){const s=M.vx;M.x=hi;if(M.vx>0)M.vx=-M.vx*.12;if(s>35&&M.wallCd<=0){wallHit(-1,0,s);M.wallCd=.25}}
+    if(M.y<R){const s=-M.vy;M.y=R;if(M.vy<0)M.vy=-M.vy*.12;if(s>35&&M.wallCd<=0){wallHit(0,1,s);M.wallCd=.25}}
+    if(M.y>hi){const s=M.vy;M.y=hi;if(M.vy>0)M.vy=-M.vy*.12;if(s>35&&M.wallCd<=0){wallHit(0,-1,s);M.wallCd=.25}}
+    // body collision with the opponent
+    const cx=M.x-F.x,cy=M.y-F.y,d=Math.hypot(cx,cy),mn=MR+FR;
+    if(d<mn&&d>.01){const nx=cx/d,ny=cy/d,pen=mn-d;M.x+=nx*pen*.6;M.y+=ny*pen*.6;F.x-=nx*pen*.4;F.y-=ny*pen*.4;
+      const rv=(M.vx-F.vx)*nx+(M.vy-F.vy)*ny;
+      if(rv<0){const j=-rv*1.15;M.vx+=nx*j*.6;M.vy+=ny*j*.6;F.vx-=nx*j*.4;F.vy-=ny*j*.4;if(-rv>50&&M.colCd<=0){collide(nx,ny,-rv);M.colCd=.3}}}
+    M.aim=angLerp(M.aim,Math.atan2(F.y-M.y,F.x-M.x),Math.min(1,dt*7));
+    M.rec.step(0,dt);M.cs.step(0,dt);M.sf=Math.max(0,M.sf-dt*3.2);
+    if(M.copyOn){M.copyT-=dt;if(M.copyT<=0){M.copyOn=false;M.copyFx=.45;flecks(M.x+Math.cos(M.aim)*46,M.y+Math.sin(M.aim)*46,5,50)}}
+    if(M.copyFx>0)M.copyFx-=dt;
+  }
+  function onStart(ix,iy){
+    H.L.x.v+=ix*90;H.L.y.v+=iy*90;H.R.x.v+=ix*60;H.R.y.v+=iy*60;
+    addSweep(PL[ix>=0?1:0].id,.42,Math.atan2(iy,ix)+.3,.55,.2,.04);
+  }
+  function onTurn(ox,oy,nx,ny){
+    PL.forEach(p=>{p.extraDelay=[.035,.055,.08,.12][PL.indexOf(p)];later(p.dl*.6,()=>{p.sx.v+=ox*640*p.mul;p.sy.v+=oy*640*p.mul})});
+    const p=PL[__rand()<.5?0:3];later(.08,()=>{p.sx.v+=nx*520;p.sy.v+=ny*520});
+    const h=nx>=0?H.R:H.L;h.x.v+=nx*330;h.y.v+=ny*330;
+    tw(E,'G',.72,.04);later(.18,()=>tw(E,'G',0,.3));
+    tw(E,'slip',(__rand()<.5?-1:1)*11,.03);later(.07,()=>tw(E,'slip',0,.12));
+  }
+  function onStop(vx,vy){
+    const l=Math.hypot(vx,vy)||1,ox=vx/l,oy=vy/l;
+    PL.forEach(p=>{p.extraDelay=[.02,.035,.075,.11][PL.indexOf(p)];later(.01+p.dl*.25,()=>{p.sx.v+=ox*[520,560,780,860][PL.indexOf(p)];p.sy.v+=oy*[520,560,780,860][PL.indexOf(p)]})});
+    tw(E,'G',.55,.03);later(.1,()=>tw(E,'G',0,.3));
+    tw(E,'slip',9,.025);later(.06,()=>tw(E,'slip',0,.1));
+    addSweep('Lh',.4,.8,.6,.2,.06);addSweep('Rh',.4,.8,.55,.2,.12);
+  }
+  function wallHit(nx,ny,sp){
+    const lv=sp<110?1:sp<250?2:3;M.busy=Math.max(M.busy,.4+.2*lv);
+    const tx=-ny,ty=nx,wl=-nx,wy=-ny,Fm=[0,260,560,980][lv];
+    const S=nx>.5?'L':nx<-.5?'R':(M.vx>=0?'R':'L'),O=S==='L'?'R':'L',h=H[S],ho=H[O];
+    h.x.v+=wl*Fm*.9+tx*Fm*.3;h.y.v+=wy*Fm*.9+ty*Fm*.3;h.r.v+=(S==='L'?-1:1)*lv*.5;
+    later(.05,()=>{ho.x.v+=wl*Fm*.45;ho.y.v+=wy*Fm*.45;ho.r.v+=(S==='L'?1:-1)*lv*.3});
+    PL.forEach(p=>later(.04+p.dl*.9,()=>{p.sx.v+=wl*Fm*1.6*p.mul;p.sy.v+=wy*Fm*1.6*p.mul;p.sr.v+=(p.side==='L'?-1:1)*lv*.5*p.mul}));
+    const sg=__rand()<.5?-1:1;tw(E,'slip',sg*lv*9,.04);later(.1+lv*.05,()=>tw(E,'slip',0,.25));
+    if(lv>=2){tw(E,'gap',lv*11,.04);later(.18+lv*.08,()=>tw(E,'gap',0,.26))}
+    tw(E,'G',[0,.35,.7,1][lv],.03);later(.18+lv*.08,()=>tw(E,'G',0,.5));
+    M.cn.x=nx;M.cn.y=ny;M.cs.v+=[0,.3,.55,.9][lv];
+    const lx=clamp(CX+wl*300,330,960),ly=clamp(CY+wy*480,160,1100);
+    if(lv>=2)addCrack(lx<642?'L':'R',lx<642?Math.min(lx,590):Math.max(lx,700),ly,Math.atan2(ty,tx)+rr(-.5,.5),150+lv*50);
+    chips(M.x+wl*MR,M.y+wy*MR,nx,ny,lv===1?1:lv*2);
+    addSweep(S+'h',.35,Math.atan2(ty,tx)+.4,.7,.2);
+    if(lv===3){cam.sx.v+=nx*70;cam.sy.v+=ny*70;const p=S==='L'?PL[2]:PL[3];p.sx.v+=wl*1700;p.sy.v+=wy*1700;p.slow=.45}
+    ripple(M.x+wl*MR*.9,M.y+wy*MR*.9,Math.atan2(ty,tx),.35);
+  }
+  function collide(nx,ny,sp){
+    const lv=sp<120?1:2;M.busy=Math.max(M.busy,.5);
+    const S=nx>0?'L':'R',O=S==='L'?'R':'L',Fm=lv*330;
+    H[S].x.v+=nx*Fm;H[S].y.v+=ny*Fm;H[S].r.v+=(S==='L'?-1:1)*.6;
+    later(.05,()=>{H[O].x.v+=nx*Fm*.4;H[O].y.v+=ny*Fm*.4;H[O].r.v-=(S==='L'?-1:1)*.4});
+    PL.forEach(p=>later(.02+p.dl*.5,()=>{p.sx.v+=nx*Fm*1.4*p.mul;p.sy.v+=ny*Fm*1.4*p.mul;p.sr.v+=(p.side===S?-1:1)*.5*p.mul}));
+    tw(E,'gap',lv*14,.04);later(.16,()=>tw(E,'gap',0,.22));
+    tw(E,'G',.75,.03);later(.1,()=>tw(E,'G',0,.3));
+    const a=ACC.find(z=>z.t==='eshard'&&(nx>0)===(z.x<640));if(a)a.sr.v+=nx*6;
+    M.sf=1;chips(M.x-nx*MR,M.y-ny*MR,nx,ny,2);ripple(M.x-nx*MR,M.y-ny*MR,Math.atan2(ny,nx)+1.57,.3);
+  }
+
+  // Instance initialisation. Gold builds these inside the demo's resetAll();
+  // only the state-construction part belongs in production.
+  PL = [
+    mkPlate('UL', 'L', .095, .30, 230, 10, .8, 10),
+    mkPlate('UR', 'R', .115, .26, 170, 12, .6, 7),
+    mkPlate('LL', 'L', .145, .36, 200, 9, 1.0, 14),
+    mkPlate('LR', 'R', .17, .4, 150, 9, 1.25, 18),
+  ];
+  ACC = mkAcc();
+  hHead = 0;
+  histFill();
+
+  return {
+    // state
+    get E() { return E; }, get M() { return M; }, get F() { return F; },
+    get H() { return H; }, get PL() { return PL; }, get ACC() { return ACC; },
+    get I() { return I; }, get cam() { return cam; },
+    hist, HN, HS, get hHead() { return hHead; },
+    // temporal history
+    pushHist, hs, histFill, shiftHist,
+    // expression engine
+    plateExpr, holdPlate, wrongPlate, busy, idleStep,
+    // locomotion + reactions
+    stepMirror, onStart, onTurn, onStop, wallHit, collide, lockStep,
+    // scheduling / fx pools
+    tw, twStep, later, qStep, addSweep, sweepStep, sweepsFor,
+    fxNew, chips, flecks, ripple, addCrack, fxStep,
+    mkPlate, mkAcc,
+    // deterministic presentation RNG control
+    reseed(seed) { __rand = mulberry32((seed >>> 0) || 0x9E3779B9); },
+    random() { return __rand(); },
+    constants: Object.freeze({ K, CX, CY, MR, FR, SPD, WS, STEP, ARENA, HN, HS }),
+  };
+}
+
+// =====================================================================================
 // PRODUCTION SURFACE (D1)
 // =====================================================================================
 // Gold bakes at init(). Production bakes lazily on first use, in Gold's order.
@@ -516,10 +776,12 @@ function drawAssetMasked(ctx2d, name, ppu, fill, alpha, comp) {
 }
 
 g.APEX_MIRROR_GOLD = {
-  version: '1.0.0-d1-static-material-core',
+  version: '1.1.0-d2-temporal-history-locomotion',
   goldSha256: 'c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205',
   regionSha256: '6c659ed0e821addf580e02e9b635fd090a4bfc1c9e482f2aa86970e9c779aa11',
-  checkpoint: 'D1',
+  checkpoint: 'D2',
+  d2RegionSha256: '94f56ac4bbc75a30744005ec39615595e1c614ae0ab84d05021db2364f3f0ab5',
+  createMirrorInstance, mulberry32,
   // material / raster core
   P, PTS, PLI, NV, STOPS, ASSET_NAMES, GOLD_REF,
   ensureBaked, assetInfo, drawAsset, drawAssetMasked,

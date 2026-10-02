@@ -327,3 +327,73 @@ therefore legitimately stays **PASS at r12** with no bump: the file is not yet a
 versioned shipping runtime. Checkpoint G must bump and relock when it registers.
 
 The module owns **no gameplay truth, no timers and no clock** (gate D1-02).
+
+
+---
+
+## CHECKPOINT D2 — TEMPORAL HISTORY + LOCOMOTION
+
+Bridge: `tools/bridgeMirrorGoldV1.mjs` (extended). Module:
+`public/game/hero-rework/mirrorGoldV1.js` (GENERATED). Gate:
+`tools/testMirrorGoldD1Raster.mjs` — **23/23** (13 D1 + 10 D2).
+
+Regions extracted verbatim from Gold's own banners: `STATE, SPRINGS, HISTORY,
+TWEENS`, `FALSE-REFLECTION EXPRESSION ENGINE`, and `MOVEMENT, TURN, STOP, WALL,
+BODY COLLISION`. D2 region sha recorded in the module header.
+
+### Per-instance state
+
+Gold declares E/M/F/H/PL/ACC/hist/TW/Q/SW/FX as module-level singletons because
+the showcase only ever has one Mirror. Production needs P1 Mirror, P2 Mirror and
+Mirror-vs-Mirror, so the whole region is wrapped in `createMirrorInstance()`:
+each call gets its own closure, hence its own history ring, springs, plates and
+pools. The baked atlas stays module-level because it is static and immutable
+(and still byte-identical — D1-07 unchanged at 26/26 assets).
+
+Verified: two instances hold independent roots (400 vs 700) and distinct
+`hist` buffers.
+
+### Dedicated presentation RNG (binding D2 requirement)
+
+Gold's ambient `rr` is `Math.random`-backed, and the expression/locomotion beats
+call `Math.random()` directly in **11** places (coin flips choosing which false
+face reacts, which half twitches, slip sign, `addCrack` jitter). Presentation
+must never consume the gameplay/combat stream, so:
+
+* each instance owns a seeded **mulberry32**;
+* `rr` is rebound to it inside the factory;
+* the bridge asserts exactly 11 `Math.random()` sites and rewrites every one;
+* the emitted module contains **zero** `Math.random` in code (D1-03).
+
+Measured: same seed → identical streams; different seed → different stream;
+**0** `Math.random` calls observed while exercising history, locomotion, turns
+and plate reactions (D2-05, instrumented by replacing `Math.random` and counting).
+
+### Measured behaviour
+
+```
+D2-02 history ring HN=64 HS=22, Float32Array length 1408   (exactly Gold)
+D2-06 history lags: hs(0)=500 while hs(30*STEP)=100        (samples the past)
+D2-07 locomotion start mv=0 -> sustained mv=1 -> stopped vel=0, moved 107.6 px
+D2-08 hard turn kicks the new-heading half:  H.L.x.v  90 -> -240
+      and stamps escalating plate delays [0.035, 0.055, 0.08, 0.12]
+D2-09 role delays all distinct: UL .095 shameless | UR .115 observer
+                                 LL .145 stale    | LR .17  wrong
+D2-10 wrongPlate() sets extraDelay 0.04            (matches the C-R oracle)
+```
+
+`D2-09`/`D2-10` independently reproduce the C-R canonical oracle numbers from
+the *ported* code, which is the cross-check that the port did not drift.
+
+### Cuts
+
+Demo-only state removed: `keys`, canvas/context handles, `VW/VH/DPR/baseZoom`.
+`simT` is reintroduced as instance state (the expression code reads it).
+`stepMirror`'s keyboard fallback is cut — production always supplies `M.drive`,
+so no reference to a demo global ships.
+
+### Integration status
+
+Still **not** manifest-registered or loaded (grep-verified, 0 references).
+Registration remains Checkpoint G; the revision gate therefore legitimately
+stays PASS with no bump.

@@ -83,6 +83,58 @@ const PLI_AT = assetRegion.indexOf('const PLI={};');
 if (DIAG_AT < 0 || PLI_AT < 0 || PLI_AT < DIAG_AT) fail('cannot isolate diagnostic sheet from PLI');
 const assetKept = assetRegion.slice(0, DIAG_AT).replace(/\s+$/, '') + '\n' + assetRegion.slice(PLI_AT);
 
+// ---------- D2: temporal history + false-reflection expression + locomotion ----------
+const stateRegion = cut('STATE, SPRINGS, HISTORY, TWEENS', 'FALSE-REFLECTION EXPRESSION ENGINE');
+const exprRegion = cut('FALSE-REFLECTION EXPRESSION ENGINE', 'MOVEMENT, TURN, STOP, WALL, BODY COLLISION');
+let moveRegion = cut('MOVEMENT, TURN, STOP, WALL, BODY COLLISION', 'HIT SYSTEM (same language escalates into passive shard detachment)');
+
+// Demo-only globals inside the state banner: canvas handles, input map, zoom.
+// `cam` stays because wallHit/collide nudge it; production drives nothing from it.
+const DEMO_STATE = [
+  "const keys={};",
+  "let VW=1,VH=1,DPR=1,cvs,ctx,baseZoom=1,simT=0;",
+];
+let d2State = stateRegion;
+for (const line of DEMO_STATE) {
+  if (!d2State.includes(line)) fail(`expected demo state line not found: ${line}`);
+  d2State = d2State.replace(line + '\n', '');
+}
+// simT is read by the expression/locomotion code, so reintroduce it as pure
+// instance state rather than a demo global.
+d2State = d2State.replace("const cam={", "let simT=0;\nconst cam={");
+
+// stepMirror falls back to the demo keyboard map when nothing drives it.
+// Production always supplies M.drive, so the input branch is cut rather than
+// shipping a reference to a demo global.
+const KEY_LINE = "if(M.drive){ix=M.drive.x;iy=M.drive.y}else{ix=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);iy=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)}";
+if (!moveRegion.includes(KEY_LINE)) fail('expected demo input fallback in stepMirror');
+moveRegion = moveRegion.replace(KEY_LINE, "if(M.drive){ix=M.drive.x;iy=M.drive.y}");
+
+let d2Region = [d2State, exprRegion, moveRegion].join('\n\n');
+
+// Rebind the presentation RNG. Gold calls Math.random directly in 11 places
+// across the expression/locomotion beats (coin flips choosing which false face
+// reacts, which half twitches, slip sign) plus addCrack's jitter. Presentation
+// must never consume the gameplay/combat stream, so every one becomes the
+// instance's own dedicated mulberry32. rr() is likewise rebound inside the
+// factory. The emitted module is then asserted free of Math.random.
+const MATH_RANDOM_SITES = 11;
+const seen = (d2Region.match(/Math\.random\(\)/g) || []).length;
+if (seen !== MATH_RANDOM_SITES) fail(`expected ${MATH_RANDOM_SITES} Math.random sites in D2, saw ${seen}`);
+d2Region = d2Region.replace(/Math\.random\(\)/g, '__rand()');
+
+const D2_REQUIRED = ['const HN=64,HS=22', 'function pushHist()', 'function hs(d,ch)', 'function histFill()',
+  'function shiftHist(', 'class Sp{', 'function mkPlate(', 'function mkAcc(', 'function tw(', 'function twStep(',
+  'function qStep(', 'function addSweep(', 'function fxStep(', 'function plateExpr(', 'function holdPlate(',
+  'function wrongPlate(', 'function idleStep(', 'function beatA()', 'function beatE()', 'function lockStep(',
+  'function stepMirror(', 'function onStart(', 'function onTurn(', 'function onStop(', 'function wallHit(',
+  'function collide('];
+for (const r of D2_REQUIRED) if (!d2Region.includes(r)) fail(`D2 region lost required symbol: ${r}`);
+for (const f of ['document.getElementById', 'addEventListener', 'requestAnimationFrame', 'function render('])
+  if (d2Region.includes(f)) fail(`D2 region leaked demo symbol: ${f}`);
+
+const d2Sha = crypto.createHash('sha256').update(d2Region).digest('hex');
+
 // NV lives in the PASSIVE section but is pure geometry the node asset needs.
 const nvLine = src.split('\n').find((l) => l.startsWith('const NV='));
 if (!nvLine) fail('NV node silhouette not found');
@@ -142,6 +194,74 @@ ${rasterRegion}
 ${assetKept}
 
 // =====================================================================================
+// CHECKPOINT D2 — temporal history + false-reflection expression + locomotion
+// =====================================================================================
+//
+// PER-INSTANCE STATE. Gold declares its state (E/M/F/H/PL/ACC/hist/TW/Q/SW/FX)
+// as module-level singletons because the showcase only ever has one Mirror.
+// Production can have P1 Mirror, P2 Mirror, or Mirror-vs-Mirror, so the whole
+// region is wrapped in a factory: every call gets its own closure, hence its
+// own history ring, springs, plates and pools. The baked art atlas stays
+// module-level because it is static and immutable.
+//
+// DEDICATED PRESENTATION RNG. Gold's ambient rr() is Math.random-backed and
+// addCrack calls Math.random directly. Presentation must never consume the
+// gameplay/combat stream, so each instance owns a seeded mulberry32 and rr()
+// is rebound to it. The bridge fails if Math.random survives anywhere.
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function createMirrorInstance(options) {
+  const opts = options || {};
+  ensureBaked();
+  // Dedicated presentation stream. Never the gameplay/combat RNG.
+  let __rand = mulberry32((opts.seed >>> 0) || 0x9E3779B9);
+  const rr = (a, b) => a + __rand() * (b - a);
+
+${d2Region.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
+
+  // Instance initialisation. Gold builds these inside the demo's resetAll();
+  // only the state-construction part belongs in production.
+  PL = [
+    mkPlate('UL', 'L', .095, .30, 230, 10, .8, 10),
+    mkPlate('UR', 'R', .115, .26, 170, 12, .6, 7),
+    mkPlate('LL', 'L', .145, .36, 200, 9, 1.0, 14),
+    mkPlate('LR', 'R', .17, .4, 150, 9, 1.25, 18),
+  ];
+  ACC = mkAcc();
+  hHead = 0;
+  histFill();
+
+  return {
+    // state
+    get E() { return E; }, get M() { return M; }, get F() { return F; },
+    get H() { return H; }, get PL() { return PL; }, get ACC() { return ACC; },
+    get I() { return I; }, get cam() { return cam; },
+    hist, HN, HS, get hHead() { return hHead; },
+    // temporal history
+    pushHist, hs, histFill, shiftHist,
+    // expression engine
+    plateExpr, holdPlate, wrongPlate, busy, idleStep,
+    // locomotion + reactions
+    stepMirror, onStart, onTurn, onStop, wallHit, collide, lockStep,
+    // scheduling / fx pools
+    tw, twStep, later, qStep, addSweep, sweepStep, sweepsFor,
+    fxNew, chips, flecks, ripple, addCrack, fxStep,
+    mkPlate, mkAcc,
+    // deterministic presentation RNG control
+    reseed(seed) { __rand = mulberry32((seed >>> 0) || 0x9E3779B9); },
+    random() { return __rand(); },
+    constants: Object.freeze({ K, CX, CY, MR, FR, SPD, WS, STEP, ARENA, HN, HS }),
+  };
+}
+
+// =====================================================================================
 // PRODUCTION SURFACE (D1)
 // =====================================================================================
 // Gold bakes at init(). Production bakes lazily on first use, in Gold's order.
@@ -196,10 +316,12 @@ function drawAssetMasked(ctx2d, name, ppu, fill, alpha, comp) {
 }
 
 g.APEX_MIRROR_GOLD = {
-  version: '1.0.0-d1-static-material-core',
+  version: '1.1.0-d2-temporal-history-locomotion',
   goldSha256: '${GOLD_SHA}',
   regionSha256: '${regionSha}',
-  checkpoint: 'D1',
+  checkpoint: 'D2',
+  d2RegionSha256: '${d2Sha}',
+  createMirrorInstance, mulberry32,
   // material / raster core
   P, PTS, PLI, NV, STOPS, ASSET_NAMES, GOLD_REF,
   ensureBaked, assetInfo, drawAsset, drawAssetMasked,
@@ -222,4 +344,5 @@ fs.writeFileSync(path.join(ROOT, DEST), out);
 console.log(`[mirror-bridge] D1 wrote ${DEST}`);
 console.log(`[mirror-bridge]   gold   sha256 ${GOLD_SHA}`);
 console.log(`[mirror-bridge]   region sha256 ${regionSha}`);
+console.log(`[mirror-bridge]   d2     sha256 ${d2Sha}`);
 console.log(`[mirror-bridge]   bytes ${out.length}, lines ${out.split('\n').length}`);

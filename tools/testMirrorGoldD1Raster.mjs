@@ -49,9 +49,15 @@ gate('D1-02-module-owns-no-gameplay-clock',
 // Strip line comments before scanning, so the header's own explanation of why
 // Math.random is absent cannot be mistaken for a use of it.
 const modCode = modSrc.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
+// D1 had no rr() at all. D2 legitimately uses rr(), but it must resolve to the
+// instance's DEDICATED mulberry32 stream, never to Math.random, so that
+// presentation can never consume the gameplay/combat RNG.
 gate('D1-03-module-has-no-ambient-rng',
-  !/Math\.random/.test(modCode) && !/(^|[^\w])rr\(/m.test(modCode),
-  { mathRandomHits: (modCode.match(/Math\.random/g) || []).length });
+  !/Math\.random/.test(modCode)
+  && /const rr = \(a, b\) => a \+ __rand\(\) \* \(b - a\);/.test(modCode)
+  && /let __rand = mulberry32\(/.test(modCode),
+  { mathRandomHits: (modCode.match(/Math\.random/g) || []).length,
+    rrBoundToDedicatedStream: /a \+ __rand\(\)/.test(modCode) });
 
 const browser = await puppeteer.launch({
   executablePath: await chromium.executablePath(),
@@ -92,8 +98,83 @@ try {
         out[k] = { w: p.w, h: p.h, ox: p.ox, oy: p.oy, levels: p.lv.map((l) => ({ s: l.s, url: l.c.toDataURL('image/png') })) };
       }
     }
+    // ---- D2 probe: per-instance state, dedicated RNG, history, locomotion ----
+    let d2 = { ok: false, err: null };
+    try {
+      const realRandom = Math.random;
+      let mathRandomCalls = 0;
+      Math.random = function () { mathRandomCalls++; return realRandom(); };
+
+      const A = G.createMirrorInstance({ seed: 1 });
+      const B = G.createMirrorInstance({ seed: 1 });
+      const C = G.createMirrorInstance({ seed: 2 });
+      const sa = [A.random(), A.random(), A.random()];
+      const sb = [B.random(), B.random(), B.random()];
+      const sc = [C.random(), C.random(), C.random()];
+      const rngRepeatable = sa.every((v, i) => v === sb[i]);
+      const rngDiffersBySeed = sa.some((v, i) => v !== sc[i]);
+
+      A.M.x = 400; A.M.y = 400; A.histFill();
+      B.M.x = 700; B.M.y = 700; B.histFill();
+      const independent = A.M.x !== B.M.x && A.hist !== B.hist;
+
+      const inst = G.createMirrorInstance({ seed: 7 });
+      inst.M.x = 100; inst.M.y = 100; inst.histFill();
+      inst.M.x = 500; inst.M.y = 100;
+      for (let i = 0; i < 12; i++) inst.pushHist();
+      const histNow = inst.hs(0, 0);
+      const histPast = inst.hs(inst.constants.STEP * 30, 0);
+      const historyLag = Math.abs(histNow - histPast) > 1;
+
+      const L = G.createMirrorInstance({ seed: 3 });
+      L.M.x = 500; L.M.y = 500; L.histFill();
+      const STEP = L.constants.STEP;
+      L.onStart(1, 0);
+      const startMv = L.M.mv;
+      for (let i = 0; i < 60; i++) { L.M.drive = { x: 1, y: 0 }; L.stepMirror(STEP); }
+      const sustainedMv = L.M.mv, sustainedX = L.M.x;
+      L.onStop(L.M.vx, L.M.vy);
+      // mv decays over real time; 10 steps at 1/120 is only 0.083s.
+      for (let i = 0; i < 90; i++) { L.M.drive = null; L.stepMirror(STEP); }
+      const stoppedMv = L.M.mv;
+      const stoppedVel = Math.hypot(L.M.vx, L.M.vy);
+      const locomotion = { startMv: +startMv.toFixed(4), sustainedMv: +sustainedMv.toFixed(4),
+        stoppedMv: +stoppedMv.toFixed(4), stoppedVel: +stoppedVel.toFixed(2),
+        movedX: +(sustainedX - 500).toFixed(1) };
+      const locomotionDistinct = sustainedX > 500 && startMv < sustainedMv && stoppedVel < 1;
+
+      const Tn = G.createMirrorInstance({ seed: 4 });
+      Tn.M.x = 500; Tn.M.y = 500; Tn.histFill();
+      for (let i = 0; i < 30; i++) { Tn.M.drive = { x: 1, y: 0 }; Tn.stepMirror(STEP); }
+      // onTurn's authored reaction: it kicks the half whose side matches the
+      // NEW heading (nx>=0 ? R : L) on x/y, sets E.G, and stamps the four
+      // false-face plates with escalating extraDelays.
+      const beforeTurn = Tn.H.L.x.v;
+      Tn.onTurn(1, 0, -1, 0);
+      const afterTurn = Tn.H.L.x.v;
+      const turnExtraDelays = Tn.PL.map((x) => x.extraDelay);
+      for (let i = 0; i < 10; i++) { Tn.M.drive = { x: -1, y: 0 }; Tn.stepMirror(STEP); }
+      const hardTurn = afterTurn !== beforeTurn
+        && JSON.stringify(turnExtraDelays) === JSON.stringify([0.035, 0.055, 0.08, 0.12]);
+
+      const P2 = G.createMirrorInstance({ seed: 5 });
+      const plateDelays = P2.PL.map((p) => ({ id: p.id, role: p.role, dl: p.dl }));
+      P2.wrongPlate(P2.PL[3], 0.5);
+      const wrongExtraDelay = P2.PL[3].extraDelay;
+
+      Math.random = realRandom;
+      d2 = { ok: true, err: null, HN: A.HN, HS: A.HS, histLength: A.hist.length,
+        independent, aRoot: A.M.x, bRoot: B.M.x,
+        rngRepeatable, rngDiffersBySeed, rngSample: sa.map((v) => +v.toFixed(6)),
+        mathRandomCalls, historyLag, histNow: +histNow.toFixed(2), histPast: +histPast.toFixed(2),
+        locomotion, locomotionDistinct, hardTurn,
+        turnInfo: { beforeHalfVx: +beforeTurn.toFixed(2), afterHalfVx: +afterTurn.toFixed(2),
+          plateExtraDelays: turnExtraDelays },
+        plateDelays, wrongExtraDelay };
+    } catch (e) { d2 = { ok: false, err: String((e && e.stack) || e) }; }
+
     return { ok, err: G.bakeError ? String(G.bakeError) : null, atlas: out,
-      version: G.version, checkpoint: G.checkpoint, names: G.ASSET_NAMES, ref: G.GOLD_REF };
+      version: G.version, checkpoint: G.checkpoint, names: G.ASSET_NAMES, ref: G.GOLD_REF, d2 };
   });
   prodAtlas = res.atlas; prodMeta = res;
   gate('D1-04-production-module-bakes', res.ok === true, res.err);
@@ -143,6 +224,30 @@ gate('D1-11-gold-ref-exported',
   !!(prodMeta && prodMeta.ref && prodMeta.ref.MIRROR_R === 34 && prodMeta.ref.ARENA === 1000
      && prodMeta.ref.REF_SPACE === 1254 && Array.isArray(prodMeta.ref.NV) && prodMeta.ref.NV.length === 5),
   prodMeta && prodMeta.ref);
+/* ---------------- CHECKPOINT D2: temporal history + locomotion ---------------- */
+const d2 = prodMeta && prodMeta.d2;
+gate('D2-01-per-instance-factory-exists', !!(d2 && d2.ok), d2 && d2.err);
+gate('D2-02-history-ring-is-HN64-HS22',
+  !!d2 && d2.HN === 64 && d2.HS === 22 && d2.histLength === 64 * 22,
+  d2 && { HN: d2.HN, HS: d2.HS, histLength: d2.histLength });
+gate('D2-03-instances-are-independent', !!d2 && d2.independent === true,
+  d2 && { aRoot: d2.aRoot, bRoot: d2.bRoot });
+gate('D2-04-dedicated-rng-deterministic-and-seeded',
+  !!d2 && d2.rngRepeatable === true && d2.rngDiffersBySeed === true,
+  d2 && { repeatable: d2.rngRepeatable, differsBySeed: d2.rngDiffersBySeed, sample: d2.rngSample });
+gate('D2-05-presentation-never-consumes-math-random',
+  !!d2 && d2.mathRandomCalls === 0, d2 && { calls: d2.mathRandomCalls });
+gate('D2-06-history-samples-the-past-not-the-present',
+  !!d2 && d2.historyLag === true, d2 && { now: d2.histNow, past: d2.histPast });
+gate('D2-07-locomotion-start-sustained-stop-distinct',
+  !!d2 && d2.locomotionDistinct === true, d2 && d2.locomotion);
+gate('D2-08-hard-turn-registers', !!d2 && d2.hardTurn === true, d2 && d2.turnInfo);
+gate('D2-09-false-face-plates-have-distinct-role-delays',
+  !!d2 && Array.isArray(d2.plateDelays) && d2.plateDelays.length === 4
+  && new Set(d2.plateDelays.map((x) => x.dl)).size === 4, d2 && d2.plateDelays);
+gate('D2-10-wrong-plate-adds-authored-extra-delay',
+  !!d2 && d2.wrongExtraDelay === 0.04, d2 && { extraDelay: d2.wrongExtraDelay });
+
 gate('D1-99-no-page-errors', pageErrors.length === 0, pageErrors);
 
 fs.mkdirSync('docs/hero-rework/mirror-v1/evidence', { recursive: true });
