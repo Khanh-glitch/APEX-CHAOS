@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T03:26:35.096Z",
+  "generatedAt": "2026-10-02T03:32:54.802Z",
   "purpose": "Canonical Gold 12 VISUAL + LIFECYCLE oracle. Production parity must be compared against these reference frames and timings, never against a reconstruction.",
   "gold": {
     "path": "docs/hero-rework/mirror-v1/gold/MIRROR_GOLD_FUSION_12.html",
@@ -18,7 +18,7 @@
   },
   "frames": {
     "neutral-battle-scale": {
-      "simT": 0.6833,
+      "simT": 0.5,
       "M": {
         "x": 330,
         "y": 560,
@@ -41,12 +41,12 @@
       "proj": [],
       "image": {
         "file": "neutral-battle-scale.png",
-        "bytes": 579426,
-        "sha256": "70b81182b021d97d"
+        "bytes": 579553,
+        "sha256": "1aa838c049e78f89"
       }
     },
     "neutral-close-up": {
-      "simT": 1.1833,
+      "simT": 1,
       "M": {
         "x": 330,
         "y": 560,
@@ -69,12 +69,12 @@
       "proj": [],
       "image": {
         "file": "neutral-close-up.png",
-        "bytes": 649964,
-        "sha256": "836328d797bcbd4b"
+        "bytes": 650432,
+        "sha256": "a7eeae4b2dcb3b5a"
       }
     },
     "movement-start": {
-      "simT": 1.3,
+      "simT": 1.1167,
       "M": {
         "x": 342.4,
         "y": 560,
@@ -97,12 +97,12 @@
       "proj": [],
       "image": {
         "file": "movement-start.png",
-        "bytes": 584032,
-        "sha256": "02c9750f6fab8f94"
+        "bytes": 584194,
+        "sha256": "7fcb5a93cae97ae1"
       }
     },
     "movement-sustained": {
-      "simT": 2.2167,
+      "simT": 2.0333,
       "M": {
         "x": 541.81,
         "y": 560,
@@ -125,8 +125,8 @@
       "proj": [],
       "image": {
         "file": "movement-sustained.png",
-        "bytes": 576751,
-        "sha256": "8011c64c973f4518"
+        "bytes": 576298,
+        "sha256": "93978138d3218579"
       }
     },
     "hard-reverse": {
@@ -137,8 +137,8 @@
       },
       "image": {
         "file": "hard-reverse.png",
-        "bytes": 577959,
-        "sha256": "36fca9784f4bc022"
+        "bytes": 578437,
+        "sha256": "3980e9ec868ac876"
       }
     },
     "sudden-stop": {
@@ -149,12 +149,12 @@
       },
       "image": {
         "file": "sudden-stop.png",
-        "bytes": 576920,
-        "sha256": "cfe18c92b6aa8c9b"
+        "bytes": 576691,
+        "sha256": "87b69958df15f087"
       }
     },
     "a1-attached-reflection": {
-      "simT": 4.475,
+      "simT": 4.2917,
       "M": {
         "x": 330,
         "y": 560,
@@ -177,12 +177,12 @@
       "proj": [],
       "image": {
         "file": "a1-attached-reflection.png",
-        "bytes": 661812,
-        "sha256": "ef42652eebb96194"
+        "bytes": 662117,
+        "sha256": "5d26641d7ce58031"
       }
     },
     "a1-peel": {
-      "simT": 5.225,
+      "simT": 5.0417,
       "M": {
         "x": 330,
         "y": 560,
@@ -205,12 +205,12 @@
       "proj": [],
       "image": {
         "file": "a1-peel.png",
-        "bytes": 667166,
-        "sha256": "57bde107d89fa7e9"
+        "bytes": 667102,
+        "sha256": "ae3a760e07f9eaba"
       }
     },
     "a1-reform-own-edge": {
-      "simT": 6.1583,
+      "simT": 5.975,
       "M": {
         "x": 330,
         "y": 560,
@@ -233,12 +233,12 @@
       "proj": [],
       "image": {
         "file": "a1-reform-own-edge.png",
-        "bytes": 665795,
-        "sha256": "6d881c5a92c7f1e4"
+        "bytes": 665955,
+        "sha256": "dcb1d2e93d391a31"
       }
     },
     "a1-whiff": {
-      "simT": 6.7417,
+      "simT": 6.5583,
       "M": {
         "x": 330,
         "y": 560,
@@ -261,12 +261,12 @@
       "proj": [],
       "image": {
         "file": "a1-whiff.png",
-        "bytes": 660314,
-        "sha256": "83fccf9a6b5cc791"
+        "bytes": 661259,
+        "sha256": "119029b46f6f4a85"
       }
     },
     "a2-pre-snap": {
-      "simT": 6.9083,
+      "simT": 6.725,
       "M": {
         "x": 330,
         "y": 560,
@@ -289,12 +289,12 @@
       "proj": [],
       "image": {
         "file": "a2-pre-snap.png",
-        "bytes": 606652,
-        "sha256": "de0f845aa5a917c8"
+        "bytes": 607309,
+        "sha256": "34bc61609027da65"
       }
     },
     "a2-snap": {
-      "simT": 7.1667,
+      "simT": 6.9833,
       "M": {
         "x": 700,
         "y": 430,
@@ -317,12 +317,12 @@
       "proj": [],
       "image": {
         "file": "a2-snap.png",
-        "bytes": 628945,
-        "sha256": "06f8edd9a2d1b990"
+        "bytes": 628498,
+        "sha256": "68451da2dd72a447"
       }
     },
     "a2-post-residue": {
-      "simT": 7.9167,
+      "simT": 7.7333,
       "M": {
         "x": 700,
         "y": 430,
@@ -345,12 +345,12 @@
       "proj": [],
       "image": {
         "file": "a2-post-residue.png",
-        "bytes": 588707,
-        "sha256": "16d1eee07a9fcdf9"
+        "bytes": 589313,
+        "sha256": "aa2588eed2ba42b3"
       }
     },
     "free-shard": {
-      "simT": 8.1667,
+      "simT": 7.9833,
       "M": {
         "x": 330,
         "y": 560,
@@ -373,12 +373,12 @@
       "proj": [],
       "image": {
         "file": "free-shard.png",
-        "bytes": 592374,
-        "sha256": "1ccd62d83a47bb60"
+        "bytes": 592050,
+        "sha256": "fe10018fd4bf7a4a"
       }
     },
     "assembling-node": {
-      "simT": 9.4167,
+      "simT": 9.2333,
       "M": {
         "x": 330,
         "y": 560,
@@ -407,12 +407,12 @@
       "proj": [],
       "image": {
         "file": "assembling-node.png",
-        "bytes": 588068,
-        "sha256": "fec01fcf81ba2c73"
+        "bytes": 587701,
+        "sha256": "6b91af407d40c04e"
       }
     },
     "active-node": {
-      "simT": 11.5833,
+      "simT": 11.4,
       "M": {
         "x": 330,
         "y": 560,
@@ -441,8 +441,8 @@
       "proj": [],
       "image": {
         "file": "active-node.png",
-        "bytes": 590777,
-        "sha256": "f3b9697ff59f5a46"
+        "bytes": 590568,
+        "sha256": "bc7ba8b1b4226adf"
       }
     },
     "projectile-entry-image": {
@@ -455,8 +455,8 @@
       },
       "image": {
         "file": "projectile-entry-image.png",
-        "bytes": 626088,
-        "sha256": "836a10190bbe4236"
+        "bytes": 625117,
+        "sha256": "2945df67047acef5"
       }
     },
     "destination-image": {
@@ -469,8 +469,8 @@
       },
       "image": {
         "file": "destination-image.png",
-        "bytes": 626423,
-        "sha256": "4b5f44051dfd2d8f"
+        "bytes": 625948,
+        "sha256": "8f8036d4459c7a63"
       }
     },
     "emergence": {
@@ -483,8 +483,8 @@
       },
       "image": {
         "file": "emergence.png",
-        "bytes": 626032,
-        "sha256": "ca5c7cfe83968874"
+        "bytes": 626052,
+        "sha256": "6b9b8238bd22b1c7"
       }
     }
   },

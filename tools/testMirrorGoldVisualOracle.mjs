@@ -66,6 +66,12 @@ try {
   const pageErrors = [];
   page.on('pageerror', (e) => pageErrors.push(String(e)));
   await page.evaluateOnNewDocument(() => {
+    // Neutralise rAF BEFORE any page script runs. Gold's init() ends with
+    // requestAnimationFrame(frame); if we only neutralise it after goto(), a
+    // nondeterministic number of real frames have already run and consumed the
+    // seeded stream, so captures are not reproducible run to run.
+    window.requestAnimationFrame = () => 0;
+    window.cancelAnimationFrame = () => {};
     window.__seedRng = (seed) => {
       let s = seed >>> 0;
       Math.random = function seeded() {
@@ -77,7 +83,6 @@ try {
   });
   await page.goto(GOLD_URL, { waitUntil: 'load', timeout: 120000 });
   await page.waitForFunction(() => typeof step === 'function' && typeof M === 'object', { timeout: 60000 });
-  await page.evaluate(() => { window.requestAnimationFrame = () => 0; });
   await new Promise((r) => setTimeout(r, 80));
 
   // Prepare a scenario from a clean, identically-seeded state every time.

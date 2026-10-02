@@ -248,4 +248,82 @@ split L/R face, luminous seam, six-slice peel with a false-face eye per slice an
 captured weapon imaged in the upper-right slice; `destination-image` shows two ACTIVE
 nodes carrying the routed object's surface image during escrow.
 
+### Frame reproducibility (required for H to mean anything)
+
+The frames are **byte-reproducible**: two consecutive full runs produce an
+identical sha256 over the whole frame set. This was not true initially —
+`rAF` was neutralised *after* `page.goto`, so a nondeterministic number of
+Gold's own frames (`init()` ends with `requestAnimationFrame(frame)`) had
+already run and consumed the seeded stream. `rAF` is now neutralised inside
+`evaluateOnNewDocument`, before any page script executes. If a future run
+produces different frame hashes with Gold unchanged, the harness determinism
+has regressed — fix that before trusting any comparison against these frames.
+
 > These are **automated** reference frames. They are **not** owner visual acceptance.
+
+
+---
+
+## CHECKPOINT D1 — GOLD STATIC / MATERIAL CORE
+
+Bridge: `tools/bridgeMirrorGoldV1.mjs` (build-time only; never parses authority HTML at runtime).
+Module: `public/game/hero-rework/mirrorGoldV1.js` (GENERATED — do not hand edit).
+Gate: `tools/testMirrorGoldD1Raster.mjs` — **13/13**.
+Evidence: `docs/hero-rework/mirror-v1/evidence/d1-raster-parity.json`.
+
+Follows the established house pattern (`tools/bridgeFrostGoldV1.mjs`,
+`tools/bridgeHunterGoldV10.mjs`): hash-verify Gold, extract the engine script,
+keep the material/art layer **verbatim**, cut the demo.
+
+**Why a generator and not a hand port.** The product law forbids simplifying Gold
+into generic VFX, and hand-porting raster code is precisely how that drift occurs.
+The bridge slices on Gold's **own section banners**, never on line numbers, and
+refuses to emit if a required symbol was lost or a demo/gameplay symbol leaked.
+
+**Kept verbatim:** UTIL; RASTER BAKER (`P` atlas, `STOPS`, `tone`, `facet`, `poly`,
+`rimGlow`, `inkEdge`, `star`, `rrect`, `bake`, `pick`, `dp`, `masked`, `sweepFill`,
+`solidFill`, `PTS`, `pinfo`, `drawEye`, `drawSmile`, `plateBody`, `bakePlate`,
+`legacyBakeAll`, `foeShape`, `bakeSupport`); ASSET PACK v3 (`A_plane`, `A_line`,
+`A_shell`, `A_plate`, `drawEye2`, `drawSmile2`, `bakeArt`, `PLI`); plus `NV`
+hoisted as pure geometry.
+
+**Cut:** demo loop/`init`/`resize`/camera, input, AUTO director, foe entity,
+gameplay state/springs/history, movement/hit/projectile/passive systems, A1/A2
+choreography, world render, diagnostic sheet. Those arrive in D2-D4.
+
+### Raster determinism and the proof of zero drift
+
+The bake path contains **zero** `Math.random`/`rr()` and draws only from Gold's
+seeded Lehmer stream `br()` (`bs = 7`, never reseeded), so the atlas is
+byte-reproducible **provided bake order is preserved**. `ensureBaked()` is the
+single place that order exists (`bakeSupport()` then `bakeArt()`, as Gold's
+`init()` does) and it restates `bs = 7` so a re-bake is identical.
+
+Gold's ambient `rr = (a,b) => a + Math.random()*(b-a)` is **deliberately not
+shipped**. D1 never needs it, and D2 must supply a *dedicated* presentation RNG
+that cannot consume the gameplay/combat stream; the bridge fails if that
+`Math.random` hook ever reappears in the emitted module.
+
+**D1-07 proves the port is exact:** the atlas is baked in the canonical Gold page
+and in the shipped module, and all **26 assets are BYTE-IDENTICAL** (per-asset
+per-mip-level PNG sha256, plus identical `w/h/ox/oy`). Any changed colour stop,
+dropped facet, or bake-order perturbation moves a hash and fails the gate.
+The bridge is also idempotent: re-running emits an identical file sha256.
+
+Asset inventory (from Gold's own diagnostic sheet): `Lh, Rh, UL, UR, LL, LR,
+shard, eshard, ghost, eL, eR, sL, sR` (26 entries total in `P` including
+support rasters).
+
+`GOLD_REF` exports Gold's own reference numbers — `ARENA 1000`, `MIRROR_R 34`,
+`FOE_R 26`, `SPD 250`, `REF_SPACE 1254`, `NV`, `PLATES` — so the production
+adapter **derives** its scale instead of inventing a multiplier.
+
+### Integration status (deliberate)
+
+`mirrorGoldV1.js` is **not yet referenced by the manifest or any loader** —
+verified by source grep. It is an inert artifact until **Checkpoint G**, which
+owns manifest registration in dependency order. The runtime revision gate
+therefore legitimately stays **PASS at r12** with no bump: the file is not yet a
+versioned shipping runtime. Checkpoint G must bump and relock when it registers.
+
+The module owns **no gameplay truth, no timers and no clock** (gate D1-02).
