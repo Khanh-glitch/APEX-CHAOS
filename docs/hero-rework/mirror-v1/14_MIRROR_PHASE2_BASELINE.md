@@ -125,11 +125,33 @@ implementation SHA).
   pellets), R06 the real FROST V1 frozen-bullet provenance, R07 the real
   STORMBREAKER thrown lifecycle (no shipping T6 bullet producer exists —
   labelled T6 identities are capability checks).
+- **Checkpoint F3-A — Core Six-Hero Interoperability** (directly on top of
+  closed F2 SHA `bd1dd3a3…`, runtime revision unchanged at
+  **`20261002-mirror-v1-r26`** because zero production runtime files changed):
+  - **Current owner-approved execution scope (F3-A Core Six):**
+    `ROBOT`, `HUNTER`, `CRYSTALA`, `MAGNET`, `FROST` (`ICE`), and `MIRROR`,
+    plus `T6 / STORMBREAKER` Arsenal capability regression and
+    `Teardown / Rematch` state-class cleanup.
+  - **Deferred scope (F3-B — DEFERRED — OWNER SKILL DESIGN NOT FINAL):**
+    `TIME`, `RUBBER`, `BLACK_HOLE`, `MATH_V2`, `SLIME`, and other unfinished
+    Heroes remain future-facing F3-B targets in
+    `02_IMPLEMENTATION_TEST_MATRIX.md`; they are untouched and their current
+    behavior is not frozen into new authority.
+  - **Unresolved / non-frozen product-law notes (reported without modifying
+    production):** (1) `R2` post-relocation `robot.weapon_dash` continuation
+    vs cancellation policy is not separately specified by Robot authority;
+    frozen invariants (atomic swap, no teleport-gap contact, Robot state
+    ownership) hold. (2) `MM-A1` copying an opponent Mirror's temporary copy
+    uses the standard cast-time `weaponId` snapshot + 6.0s OWN lifetime; no
+    special remaining-lifetime inheritance rule is defined.
 - **Focused suites:** `tools/testMirrorPassiveFormation.mjs` (28 gates),
   evidence `docs/hero-rework/mirror-v1/evidence/f1-passive-formation.json`;
   `tools/testMirrorF2Routing.mjs` (32 gates: R01–R23, Slice-A laws, and
   wall/Crystal-vs-Mirror global-TOI ordering),
-  evidence `docs/hero-rework/mirror-v1/evidence/f2-routing-escrow.json`.
+  evidence `docs/hero-rework/mirror-v1/evidence/f2-routing-escrow.json`;
+  `tools/testMirrorCoreSixInterop.mjs` (19 gates: M1–M3, C1–C3, F1–F2,
+  H1–H2, R1–R2, MM1–MM3, T6, T1–T3),
+  evidence `docs/hero-rework/mirror-v1/evidence/f3a-core-six-interop.json`.
 
 **F1 laws now shipping (Gold-first, per MIRROR owner):**
 
@@ -352,7 +374,8 @@ Proceed in strict order, pushing a clean, gate-verified checkpoint at each step:
 2. **Checkpoint F2 — Routing / escrow gameplay:**
    Implement Gold-first surface intersection on `HR.geom.pathSegments(p)`, global TOI ordering (`supersedeMagnetBoundary` + `clearPath`), single-node `0.40 s` no-escrow cooldown, multi-node escrow (`st 1→2` at `0.20 s`, emergence at `0.5667 s` at `node.{x,y} + dir * 20`, neutral owner `own = 2`, `0.45 s` post-exit recapture lock, fallback to entry node `nA` if destination node is lost).
 3. **Checkpoint F3 — Cross-system lifecycle matrix:**
-   Verify Mirror routing/nodes/A1/A2 across Crystala constructs, Frost, Magnet A1/A2 continuous field, Robot, Slime, Hunter pounce contact, T6 immunities, and round teardown.
+   * **F3-A (COMPLETE at `r26`):** Owner-approved Core Six scope (`ROBOT`, `HUNTER`, `CRYSTALA`, `MAGNET`, `FROST`, `MIRROR`) + T6 capability regression + round teardown/rematch (`tools/testMirrorCoreSixInterop.mjs` `19/19 PASS`).
+   * **F3-B (DEFERRED — OWNER SKILL DESIGN NOT FINAL):** `TIME`, `RUBBER`, `BLACK_HOLE`, `MATH_V2`, `SLIME`, and other unfinished Heroes remain deferred until their skill designs are owner-finalized (`02_IMPLEMENTATION_TEST_MATRIX.md` preserved intact for F3-B).
 4. **Checkpoint G — Shipping presentation bridge:**
    Register `mirrorGoldV1.js` in `src/game/runtimeManifest.js`, wire gameplay state/events (`MirrorA1Cast`, `MirrorA1Own`, `MirrorExchange` with `shiftHist` rebase, shard/node/routing pools) to per-fighter `createMirrorInstance()`, integrate into the `Fighter.prototype.draw` chain without breaking Magnet/Crystala/Frost post-world interop, and bump/relock runtime revision.
 5. **Checkpoint H — Real-browser visual parity:**

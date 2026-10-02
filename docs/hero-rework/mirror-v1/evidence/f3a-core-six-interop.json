@@ -1,0 +1,238 @@
+{
+  "generatedAt": "2026-10-02T15:41:02.509Z",
+  "checkpoint": "F3-A",
+  "scope": [
+    "ROBOT",
+    "HUNTER",
+    "CRYSTALA",
+    "MAGNET",
+    "FROST",
+    "MIRROR"
+  ],
+  "deferredF3B": [
+    "TIME",
+    "RUBBER",
+    "BLACK_HOLE",
+    "MATH_V2",
+    "SLIME"
+  ],
+  "gates": {
+    "M1-magnet-field-influences-mirror-routed-neutral-projectile": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "W.fireBullet -> Mirror F2 capture/escrow/emerge -> HR.pressAbility(MAGNET, A2) -> MAG.stepProjectiles -> Stage B body hit",
+      "emerged": true,
+      "falseToiDuringEscrow": false,
+      "magnetInfluenced": true,
+      "neutralSurvived": true,
+      "propsSurvived": true,
+      "creditedTo": null,
+      "magnetDamageDealt": 0
+    },
+    "M2-mirror-a2-during-magnet-a2-continuous-field": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "HR.pressAbility(MAGNET, A2) -> HR.pressAbility(MIRROR, A2) -> resolvePendingMirrorSnaps -> MAG.activeFields/fieldAccelerationAt",
+      "liveExchanged": true,
+      "ownedByMagnet": true,
+      "followsNewPos": true,
+      "noRestart": true,
+      "activeFieldsCount": 1,
+      "preSwapMagX": 250,
+      "postSwapMagX": 617.5
+    },
+    "M3-mirror-a1-copies-magnet-held-firearm-x03": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "W.equip(MAGNET, PISTOL) -> HR.pressAbility(MIRROR, A1) -> MirrorA1Own -> W.fireBullet -> 6s MirrorA1CopyExpired",
+      "bothHoldPistol": true,
+      "isTempCopy": true,
+      "magBoosted": true,
+      "mirNotBoosted": true,
+      "magSpeed": 1180,
+      "mirSpeed": 1000,
+      "expiredCleanly": true
+    },
+    "C1-crystala-reflected-projectile-routes-through-mirror": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "HR.pressAbility(CRYSTAL, A2) -> W.fireBullet -> CrystalIntercept/CrystalReflect -> MirrorRouteCapture/MirrorRouteEmerge -> Stage B hit",
+      "reflectCount": 1,
+      "captureCount": 1,
+      "emerged": true,
+      "dmgAtReflect": 20,
+      "dmgAfterEmerge": 20,
+      "payloadSurvived": true,
+      "controllerNeutral": true,
+      "creditedTo": null
+    },
+    "C2-crystala-vs-mirror-global-toi-and-post-emerge-interaction": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "HR.pressAbility(CRYSTAL, A1) -> W.fireBullet + W.spawnThrownMelee -> global TOI reconcile + post-emergence CRY.resolveBullet wall hit",
+      "crystalEarlierOk": true,
+      "mirrorEarlierOk": true,
+      "thrownCrystalEarlierOk": true,
+      "hpBeforeCapture": 80,
+      "hpDuringEscrow": 80,
+      "hpAfterPostEmergeHit": 45,
+      "postEmergeCrystalHit": true
+    },
+    "C3-mirror-a2-with-live-crystala-construct": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "HR.pressAbility(CRYSTAL, A1) -> HR.pressAbility(MIRROR, A2) -> SNAP across construct -> subsequent W.fireBullet into construct",
+      "fightersExchanged": true,
+      "constructStayedInWorld": true,
+      "ownershipIntact": true,
+      "noTeleportGapCollision": true,
+      "genuineCollisionWorks": true
+    },
+    "F1-frost-frozen-bullet-provenance-routes-through-mirror": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "W.equip(ICE, PISTOL) -> FR.noteFrozenPickup -> W.fireBullet -> Mirror F2 capture/emerge -> Stage B FR.noteBodyHit",
+      "tagSurvived": true,
+      "isNeutral": true,
+      "creditedTo": null,
+      "frostPostHitEvent": "FrostRollFailed",
+      "rollsUsed": 1,
+      "rolledGroups": 1
+    },
+    "F2-mirror-a2-during-frost-active-states": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "HR.pressAbility(ICE, A1) + HR.pressAbility(ICE, A2) -> HR.pressAbility(MIRROR, A2) -> SNAP",
+      "exchanged": true,
+      "frostOwned": true,
+      "worldLaneFixed": true,
+      "noFalseContactProc": true,
+      "noCloneOrReset": true
+    },
+    "H1-hunter-a2-pounce-overlapping-mirror-a2": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "HR.pressAbility(HUNTER, A2) overlapping HR.pressAbility(MIRROR, A2) -> resolvePendingBodyContacts before resolvePendingMirrorSnaps",
+      "sameFrameOrderOk": true,
+      "noTeleportGapHit": true,
+      "genuinePostSwapContact": true,
+      "pounceCountPartB": 1
+    },
+    "H2-hunter-world-trap-ownership-across-mirror-a2": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "HR.pressAbility(HUNTER, A1) -> world.snares[0] -> HR.pressAbility(MIRROR, A2) -> SNAP",
+      "trapStayedAndOwned": true,
+      "trapX": 250,
+      "ownerHero": "HUNTER"
+    },
+    "R1-neutral-mirror-routed-projectile-damages-robot-no-credit": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "HR.pressAbility(ROBOT, A2) -> W.fireBullet(owner=ROBOT, dmg=200) -> Mirror F2 capture/emerge (NEUTRAL) -> hits ROBOT",
+      "creditedTo": null,
+      "armorReduced": true,
+      "milestoneEvents": 0,
+      "robotBurstProgress": 0
+    },
+    "R2-mirror-a2-during-robot-active-states": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "HR.pressAbility(ROBOT, A2) + HR.pressAbility(ROBOT, A1) -> HR.pressAbility(MIRROR, A2) -> SNAP",
+      "atomicExchange": true,
+      "noTeleportGapContact": true,
+      "stateRemainsRobotOwned": true,
+      "unresolvedNote": "Post-relocation robot.weapon_dash continuation vs cancellation is not separately specified by Robot authority; frozen invariants (atomic swap, no teleport-gap contact, Robot state ownership) hold."
+    },
+    "MM1-mirror-vs-mirror-independent-passive-networks": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "takeDamage realized HP loss -> mirrorShardProc -> mirrorPassiveStep natural formation + cross-route denial",
+      "separatePools": true,
+      "noCrossForm": true,
+      "independentFormation": true,
+      "noCrossRoute": true,
+      "maxThreePerOwner": true
+    },
+    "MM2-mirror-vs-mirror-overlapping-routing": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "Simultaneous W.fireBullet into ctA and ctB ACTIVE node pairs -> overlapping escrow -> independent same-owner emergence",
+      "bothInEscrow": true,
+      "correctNetworks": true,
+      "bothNeutral": true,
+      "capA": {
+        "entry": 1,
+        "dest": 2,
+        "owner": 0,
+        "toi": 0.606332138679847,
+        "weapon": "GLOCK_17",
+        "type": "aq_bullet"
+      },
+      "capB": {
+        "entry": 3,
+        "dest": 4,
+        "owner": 1,
+        "toi": 0.9112501714667417,
+        "weapon": "GLOCK_17",
+        "type": "aq_bullet"
+      }
+    },
+    "MM3-mirror-vs-mirror-overlapping-a2-casts": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "HR.pressAbility(MIRROR_A, A2) + HR.pressAbility(MIRROR_B, A2) simultaneous and staggered -> resolvePendingMirrorSnaps",
+      "simultaneousOk": true,
+      "staggeredOk": true
+    },
+    "T6-stormbreaker-a1-routing-passive-regression": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "W.equip(STORMBREAKER) -> HR.pressAbility(MIRROR, A1) whiff -> W.spawnThrownMelee(STORMBREAKER) across nodes -> hits MIRROR -> mirrorShardProc",
+      "a1Denied": true,
+      "routeEvents": 0,
+      "hpLost": 437.1,
+      "shardTelemetry": 1,
+      "freeShards": 5
+    },
+    "T1-teardown-mirror-escrow-nodes-pending-actions": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "Mid-escrow + FREE shards + ACTIVE nodes + pending A1 -> T.start rematch -> step 1.5s",
+      "preTeardownEscrow": 1,
+      "cleanAtStart": true,
+      "leakedEvents": 0
+    },
+    "T2-teardown-mirror-vs-world-state-heroes-magnet-crystala": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "MAGNET A2 + Mirror escrow -> rematch CRYSTAL A1 construct -> rematch MIRROR/ROBOT",
+      "magActiveBefore": true,
+      "magClearedOnRematch": true,
+      "cryActiveBefore": true,
+      "cryClearedOnRematch": true
+    },
+    "T3-teardown-mirror-vs-mirror-and-scheduler-wrapper-hygiene": {
+      "pass": true,
+      "classification": "PASS",
+      "lifecycle": "MIRROR vs MIRROR nodes + pending A2 + hrScheduler job -> rematch MIRROR vs MIRROR -> step 0.5s",
+      "bothClean": true,
+      "staleCallbackFired": false,
+      "ownershipValid": true,
+      "noWrapperDuplication": true
+    }
+  },
+  "unresolvedNotes": [
+    {
+      "area": "R2-post-relocation-robot-dash-policy",
+      "classification": "UNRESOLVED / NO FROZEN PRODUCT LAW",
+      "detail": "Robot authority does not freeze whether an external coordinate swap cancels or re-steers an in-flight A1 dash; current executor steers toward the target slot until arrival/timeout without violating any frozen invariant."
+    },
+    {
+      "area": "MM-A1-temporary-copy-of-temporary-copy-lifetime",
+      "classification": "UNRESOLVED / NO FROZEN PRODUCT LAW",
+      "detail": "Mirror A1 authority snapshots weaponId at cast and grants a fresh 6.0s copy at OWN, but does not define a special remaining-lifetime inheritance rule when copying an opponent Mirror temporary copy; non-blocking per F3-A scope."
+    }
+  ],
+  "failures": []
+}
