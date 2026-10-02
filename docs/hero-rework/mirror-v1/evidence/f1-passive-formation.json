@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T11:46:51.623Z",
+  "generatedAt": "2026-10-02T11:59:28.507Z",
   "checkpoint": "F1",
   "gates": {
     "F1-P01-P03-realized-damage-formula-boundaries": {
@@ -38,16 +38,50 @@
         ]
       }
     },
-    "F1-P04b-spawn-provenance-from-real-hit": {
+    "F1-P04b-immutable-provenance-hitpos-dir-weapon-source-survives-motion": {
       "pass": true,
       "detail": {
         "shards": 2,
-        "meanVx": 115.8,
-        "speeds": [
-          100.1,
-          144.2
+        "storedHit": [
+          [
+            850,
+            500
+          ],
+          [
+            850,
+            500
+          ]
         ],
-        "note": "scatter base direction = real source->victim direction; speeds are Gold 100..175"
+        "expectedHit": [
+          850,
+          500
+        ],
+        "storedDir": [
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            0
+          ]
+        ],
+        "expectedDir": [
+          1,
+          0
+        ],
+        "weapon": [
+          "PISTOL",
+          "PISTOL"
+        ],
+        "sourceId": [
+          2,
+          2
+        ],
+        "bodiesScattered": true,
+        "movedAfter1s": true,
+        "survivesMotion": true,
+        "note": "exact pre-jitter values stored on the shard; never re-derived from scattered vx/vy"
       }
     },
     "F1-P06-P07-pool-16-and-oldest-free-replacement": {
@@ -178,16 +212,9 @@
         "range": "[-0.35, 0.35]"
       }
     },
-    "F1-P25-P27-assembly-stagger-travel-and-lock": {
+    "F1-P25-P27-assembly-mt0-inflight-canonical-completion-tlock": {
       "pass": true,
       "detail": {
-        "starts": [
-          0.175,
-          0.2333,
-          0.2917,
-          0.3583,
-          0.4167
-        ],
         "mt0": [
           0.18,
           0.24,
@@ -195,15 +222,37 @@
           0.36,
           0.42
         ],
-        "travelDurations": [
-          0.2333,
+        "startsNodeTime": [
+          0.1833,
+          0.2417,
           0.3,
-          0.3083,
-          0.325,
-          0.325
+          0.3667,
+          0.425
+        ],
+        "completionNodeTime": [
+          0.5833,
+          0.6417,
+          0.7,
+          0.7667,
+          0.825
+        ],
+        "boundary": [
+          0.58,
+          0.64,
+          0.7,
+          0.76,
+          0.82
+        ],
+        "lastSubBoundaryResiduePx": [
+          0.000021,
+          0.000228,
+          0.00053,
+          0.000009,
+          0.000073
         ],
         "tlock": 0.825,
-        "expectedTlock": 0.82
+        "expectedTlock": 0.82,
+        "note": "completion at the first fixed-step crossing of mt0+.40; still >1e-6px out one step earlier; tlock set by the last completion"
       }
     },
     "F1-P28-P29-active-at-1p20-not-early": {

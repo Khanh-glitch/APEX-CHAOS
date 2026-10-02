@@ -60,6 +60,87 @@ the runtime revision relocked **`20261002-mirror-v1-r19` →
 `20261002-mirror-v1-r20`**. All other statements in the §1 table were true at
 `b3d474ab` and remain true; F1 starts from the r20 relock.
 
+### 1.3 F1 Closure Amendment — Gold-first per-owner shard/node formation (binding)
+
+**Checkpoint F1 is COMPLETE**, subject to this closure amendment (which is
+committed as the single F1-closure commit directly on top of the F1
+implementation SHA).
+
+- **F1 parent SHA:** `95200f3e4e1d37e78b09bf8b6330a09acc7714ee` (r20 relock).
+- **F1 implementation SHA:** `938d528bb97e8b532e104d08096b0f3f8243a05a`
+  (`feat(mirror): implement Gold-first passive formation gameplay F1`),
+  runtime revision **`20261002-mirror-v1-r21`** at that implementation SHA.
+- **F1 closure amendment:** immutable shard provenance
+  (`hitX/hitY`, exact normalized incoming `dirX/dirY`, `weaponId`,
+  `sourceId` — captured pre-jitter, surviving shard motion) plus the
+  strengthened authored-`.40s` assembly proof; because production runtime
+  changed again, the revision relocks **r21 → r22** with the closure commit.
+- **Focused suite:** `tools/testMirrorPassiveFormation.mjs` (27 gates),
+  evidence `docs/hero-rework/mirror-v1/evidence/f1-passive-formation.json`.
+
+**F1 laws now shipping (Gold-first, per MIRROR owner):**
+
+1. Shards spawn only from REALIZED Mirror HP loss (adapter before−after):
+   `< minEventDamage (20) → 0`, else `clamp(round(d/35), 1, 5)`. Self-credit
+   excluded; T6-caused realized loss still spawns; the passive never
+   manipulates T6 objects. Immutable provenance recorded per shard: original
+   realized-hit position, exact normalized source→victim direction when
+   derivable, weaponId, sourceId — never re-derived from scattered vx/vy.
+2. Per-owner 16-slot pool (`OFF/FREE/RESERVED/NODE_OWNED`). FREE shards have
+   real position and seeded scatter motion (`exp(−3.2·dt)` decay, clamped to
+   the real arena), 6.0s free lifetime → OFF; formation eligibility requires
+   age **strictly > 0.7**; replacement = OFF slot else oldest FREE, never
+   RESERVED/owned, drop if nothing replaceable. Fold turns the node's five
+   slots OFF — never back to FREE.
+3. Formation: per-owner deterministic **0.3s scan cadence** (never on-spawn,
+   never per-frame); same-owner only; seed + 4 nearest eligible FREE shards
+   qualify iff the **fourth-nearest is strictly < 170px** (seed-radius gate,
+   not all-pairs); all five slots reserved immediately (no double claim;
+   reserved shards exempt from free expiry).
+4. Node: Gold `NV [[-5,-60],[28,-27],[20,28],[0,62],[-28,31]]` behind the
+   shared transform authority `HR.mirrorNode` (`nodeToWorld`, v0→v3
+   `surface`, `polygon`) — F2 gameplay and G presentation must both consume
+   it. Center = centroid of the five shards, clamped only as required by the
+   transformed-NV extents to keep the polygon inside the real arena;
+   orientation seeded uniform in `[−0.35, +0.35]`, exactly once per
+   formation.
+5. Assembly: FORMING; edge targets from transformed NV edge midpoints with
+   Gold shard/edge mapping minimising travel; travel-distance order; starts
+   `.18 + i·.06`, travel `.40` each (canonical completion at the first
+   fixed-step crossing of `mt0 + .40`); fill/lock when all five arrive
+   (`tlock ≈ .82`); ACTIVE at `tlock + .38` (≈ 1.20s from formation start).
+6. ACTIVE lifetime 10.0s clocked from the ACTIVE edge; FOLD at ≥10s, node
+   and its five slots OFF at fold time ≥ .55s; owned/unavailable throughout
+   fold.
+7. Concurrency cap IS the 16/5 economy: three nodes own 15 of 16 slots, so a
+   fourth concurrent node is unproducible. There is no node-count counter and
+   no oldest-ACTIVE retirement. Mirror-vs-Mirror runs two fully independent
+   pools/scans (no cross-owner reservation, no global cap).
+8. Teardown/rematch clears all F1 state through the existing teardown
+   authority (per-combatant store + executor `onTeardown`).
+
+**Routing is DISABLED in F1.** F1 nodes carry the oriented surface transform
+for F2/G but never capture or move a projectile. F1 nodes never enter
+`M.world.mirrors`, so the legacy router can never act on them.
+
+**Deprecated legacy seams (F2 owns their removal).** The pre-F1
+`spawnShards` / `tryFormMirrors` / `spawnMirrorPortal` / `mirrorRoute`
+scaffold remains in `heroReworkRuntime.js` ONLY as clearly-marked
+**historical direct-test seams**: protected goldens G2/G5
+(`tools/testHeroReworkGoldens.mjs`) and the ordered-path/supersession
+foundations pin the old law through them, and removing them would create new
+reds (forbidden). They are fully **detached from passive gameplay** — the
+`mirror.shattered_mirrors` passive calls only the F1 seams
+(`mirrorShardProc`, `mirrorPassiveStep`), and no gameplay path can reach the
+legacy 130px cluster, the legacy circle portals, or the legacy router from F1
+state.
+
+**Next checkpoint: F2** — Gold-first oriented-surface routing, escrow,
+neutral resolution, and destination preview against the F1 node transform,
+plus removal of the deprecated legacy seams. **F2 has NOT begun.** No F2
+routing, escrow, neutral controller, or preview code exists anywhere in the
+repository at this amendment.
+
 ---
 
 ## 2. Canonical Gold Identity (Unchanged & Binding)

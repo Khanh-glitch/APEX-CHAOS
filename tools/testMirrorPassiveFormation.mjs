@@ -150,22 +150,48 @@ try {
     { shards: shards.length, provenanceWeapon: shards.map((s) => s.prov && s.prov.weaponId) });
 } catch (e) { gate('F1-P05-t6-realized-damage-still-creates-shards', false, String(e)); }
 
-/* spawn provenance: real hit direction drives the scatter base direction */
+/* F1-CLOSURE item 1 — COMPLETE IMMUTABLE PROVENANCE: the real shard state
+ * must carry the exact realized-hit location and the exact normalized
+ * source->victim direction captured BEFORE spawn jitter, plus weaponId and
+ * sourceId — and those stored values must survive shard motion untouched. */
 try {
   const o = start();
-  // Source far to the WEST: Gold scatter spreads around source->victim (+x).
+  // Source far to the WEST of the victim: exact expected direction known.
   o.b.x = 150; o.a.x = 850;
+  const hitX = o.a.x, hitY = o.a.y, srcX = o.b.x, srcY = o.b.y;
+  const sep = Math.hypot(hitX - srcX, hitY - srcY);
+  const exDx = (hitX - srcX) / sep, exDy = (hitY - srcY) / sep;
   o.a.takeDamage(60, o.b, 'arsenal-PISTOL');
   const st = pstate(o.ct);
   const shards = st.slots.filter((s) => s && s.on);
-  const meanVx = shards.reduce((s, z) => s + z.vx, 0) / shards.length;
+  const exactAtSpawn = shards.length === 2 && shards.every((s) =>
+    s.prov && s.prov.hitX === hitX && s.prov.hitY === hitY
+    && s.prov.dirX === exDx && s.prov.dirY === exDy
+    && s.prov.weaponId === 'PISTOL' && s.prov.sourceId === o.b.id);
+  // The shard BODIES scatter (gameplay jitter) — their positions/velocities
+  // must NOT be the provenance record; the record is the immutable prov block.
+  const bodiesScattered = shards.some((s) => s.x !== hitX || s.y !== hitY);
   const speeds = shards.map((z) => Math.hypot(z.vx, z.vy));
-  gate('F1-P04b-spawn-provenance-from-real-hit',
-    shards.length === 2 && meanVx > 0
-    && speeds.every((sp) => sp >= 100 - 1e-6 && sp <= 175 + 1e-6),
-    { shards: shards.length, meanVx: +meanVx.toFixed(1), speeds: speeds.map((s) => +s.toFixed(1)),
-      note: 'scatter base direction = real source->victim direction; speeds are Gold 100..175' });
-} catch (e) { gate('F1-P04b-spawn-provenance-from-real-hit', false, String(e)); }
+  const speedsLawful = speeds.every((sp) => sp >= 100 - 1e-6 && sp <= 175 + 1e-6);
+  // Survive motion: advance 1s of real free-flight (drift + decay + scans),
+  // then re-read the SAME shard objects: provenance must be unchanged.
+  T.step(1.0, DT);
+  const survivesMotion = shards.every((s) =>
+    s.on && s.prov && s.prov.hitX === hitX && s.prov.hitY === hitY
+    && s.prov.dirX === exDx && s.prov.dirY === exDy
+    && s.prov.weaponId === 'PISTOL' && s.prov.sourceId === o.b.id);
+  const moved = shards.some((s) => Math.hypot(s.x - hitX, s.y - hitY) > 5);
+  gate('F1-P04b-immutable-provenance-hitpos-dir-weapon-source-survives-motion',
+    exactAtSpawn && bodiesScattered && speedsLawful && survivesMotion && moved,
+    { shards: shards.length,
+      storedHit: shards.map((s) => s.prov && [s.prov.hitX, s.prov.hitY]),
+      expectedHit: [hitX, hitY],
+      storedDir: shards.map((s) => s.prov && [+s.prov.dirX.toFixed(6), +s.prov.dirY.toFixed(6)]),
+      expectedDir: [+exDx.toFixed(6), +exDy.toFixed(6)],
+      weapon: shards.map((s) => s.prov && s.prov.weaponId), sourceId: shards.map((s) => s.prov && s.prov.sourceId),
+      bodiesScattered, movedAfter1s: moved, survivesMotion,
+      note: 'exact pre-jitter values stored on the shard; never re-derived from scattered vx/vy' });
+} catch (e) { gate('F1-P04b-immutable-provenance-hitpos-dir-weapon-source-survives-motion', false, String(e)); }
 
 /* ============ PER-OWNER POOL LAW (P06-P10) ============ */
 try {
@@ -400,39 +426,71 @@ try {
     { seed4242: [+r1a.toFixed(6), +r1b.toFixed(6)], seed97531: +r2.toFixed(6), range: '[-0.35, 0.35]' });
 } catch (e) { gate('F1-P23-P24-seeded-orientation-deterministic-bounded', false, String(e)); }
 
+/* F1-CLOSURE item 2 — AUTHORED .40s TRAVEL LAW PROOF.
+ * Ease-out visually approaches the target early, so a loose arrival radius
+ * cannot prove the law. This gate proves it structurally, in NODE time:
+ *   (a) mt0 = .18 + i*.06 exactly, in travel-distance order;
+ *   (b) the interpolation is still in-flight (>1e-6px out) at every sample
+ *       before the mt0+.40 boundary — ease-out never satisfies a strict
+ *       tolerance early;
+ *   (c) canonical completion occurs at the FIRST fixed-step sample whose
+ *       node.t has crossed mt0+.40 (clamp drives p to exactly 1 there);
+ *   (d) tlock is set by the LAST shard's completion (~.82 fixed-step
+ *       realization), with no extra delay. */
 try {
   const o = start();
-  // Five shards at distinct distances from the node center so travel-distance
-  // order is unambiguous.
+  // Five shards at distinct, non-trivial travel distances so the in-flight
+  // residue one step before completion is comfortably above the strict 1e-6.
   placeCluster(o.ct, 0, 0, [[300, 500], [380, 470], [450, 540], [520, 480], [590, 520]], 0.8);
   T.step(DT, DT);                                   // reserve
   const node = pstate(o.ct).nodes[0];
-  const shards = node.sh.slice();                   // already travel-ordered
-  const starts = shards.map(() => null);
-  const arrivals = shards.map(() => null);
-  let t = 0;
-  for (let i = 0; i < 100; i++) {
-    T.step(DT, DT); t += DT;
+  const shards = node.sh.slice();                   // travel-ordered
+  const ARRIVED = 1e-9, INFLIGHT = 1e-6;
+  const completionT = shards.map(() => null);
+  const startT = shards.map(() => null);
+  // Last sample observed STRICTLY before the shard's mt0+.40 boundary:
+  // proves the interpolation is still in flight up to the boundary itself.
+  const lastSubBoundary = shards.map(() => null);
+  for (let i = 0; i < 120; i++) {
+    T.step(DT, DT);
+    const t = node.t;
     shards.forEach((s, k) => {
-      if (starts[k] === null && s.moving) starts[k] = t;
-      if (arrivals[k] === null && s.moving
-        && Math.hypot(s.x - s.tx, s.y - s.ty) < 0.75) arrivals[k] = t;
+      if (startT[k] === null && s.moving) startT[k] = t;
+      const d = Math.hypot(s.x - s.tx, s.y - s.ty);
+      if (completionT[k] === null) {
+        if (t < s.mt0 + 0.4) lastSubBoundary[k] = { t, d };
+        if (d <= ARRIVED) completionT[k] = t;
+      }
     });
+    if (node.tlock >= 0) break;
   }
-  const okStarts = shards.every((s, k) => starts[k] !== null && close(starts[k], s.mt0, 2 * DT));
-  const okStagger = shards.every((s, k) => close(s.mt0, 0.18 + k * 0.06, 1e-9));
-  // Travel is EXACTLY .40 by construction: every shard reached its edge target
-  // inside its own window (last arrival ≈ mt0(4)+.4 = .82), none before.
-  const okTravel = shards.every((s, k) => arrivals[k] !== null
-    && arrivals[k] <= s.mt0 + 0.4 + 2 * DT && arrivals[k] >= s.mt0 + 0.2);
-  const okLock = node.tlock > 0 && close(node.tlock, 0.82, 4 * DT);
-  gate('F1-P25-P27-assembly-stagger-travel-and-lock',
-    okStarts && okStagger && okTravel && okLock,
-    { starts: starts.map((x) => x === null ? null : +x.toFixed(4)),
-      mt0: shards.map((s) => +s.mt0.toFixed(2)),
-      travelDurations: shards.map((s, k) => arrivals[k] === null || starts[k] === null ? null : +(arrivals[k] - starts[k]).toFixed(4)),
-      tlock: +node.tlock.toFixed(4), expectedTlock: 0.82 });
-} catch (e) { gate('F1-P25-P27-assembly-stagger-travel-and-lock', false, String(e)); }
+  const okMt0 = shards.every((s, k) => close(s.mt0, 0.18 + k * 0.06, 1e-9));
+  const okStarts = shards.every((s, k) => startT[k] !== null && close(startT[k], s.mt0, DT + 1e-9));
+  const okNoEarlyArrival = shards.every((s, k) => completionT[k] !== null
+    && completionT[k] >= s.mt0 + 0.4 - 1e-9);
+  const okFirstCrossing = shards.every((s, k) => completionT[k] !== null
+    && completionT[k] <= s.mt0 + 0.4 + DT + 1e-9);
+  const okInFlightBeforeBoundary = shards.every((s, k) => {
+    const m = lastSubBoundary[k];
+    return m !== null && m.d > INFLIGHT && m.t > s.mt0          // moved, still out, strictly before boundary
+      && s.mt0 + 0.4 - m.t <= DT + 1e-9;                        // ...at the final sub-boundary sample
+  });
+  const okTlockFollowsLast = (() => {
+    const last = Math.max(...completionT);
+    return node.tlock >= last - 1e-9 && node.tlock <= last + DT + 1e-9
+      && close(node.tlock, 0.82, 2 * DT);
+  })();
+  gate('F1-P25-P27-assembly-mt0-inflight-canonical-completion-tlock',
+    okMt0 && okStarts && okNoEarlyArrival && okFirstCrossing
+    && okInFlightBeforeBoundary && okTlockFollowsLast,
+    { mt0: shards.map((s) => +s.mt0.toFixed(2)),
+      startsNodeTime: startT.map((x) => x === null ? null : +x.toFixed(4)),
+      completionNodeTime: completionT.map((x) => x === null ? null : +x.toFixed(4)),
+      boundary: shards.map((s) => +(s.mt0 + 0.4).toFixed(2)),
+      lastSubBoundaryResiduePx: shards.map((s, k) => lastSubBoundary[k] ? +lastSubBoundary[k].d.toFixed(6) : null),
+      tlock: +node.tlock.toFixed(4), expectedTlock: 0.82,
+      note: 'completion at the first fixed-step crossing of mt0+.40; still >1e-6px out one step earlier; tlock set by the last completion' });
+} catch (e) { gate('F1-P25-P27-assembly-mt0-inflight-canonical-completion-tlock', false, String(e)); }
 
 try {
   const o = start();

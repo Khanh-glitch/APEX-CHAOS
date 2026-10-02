@@ -1022,7 +1022,17 @@
         vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
         age: 0, mt0: 0, moving: false,
         fx: 0, fy: 0, tx: 0, ty: 0, trot: 0, dist: 0,
-        prov: prov ? { weaponId: prov.weaponId || null, sourceId: prov.sourceId != null ? prov.sourceId : null } : null,
+        // F1-CLOSURE: IMMUTABLE spawn provenance. G later needs the REAL
+        // realized-hit location and the exact incoming direction — both
+        // captured here, before spawn jitter/scatter, and never re-derived
+        // from the scattered vx/vy (which carry gameplay jitter by design).
+        prov: prov ? {
+          hitX: x, hitY: y,
+          dirX: Number.isFinite(prov.dirX) ? prov.dirX : null,
+          dirY: Number.isFinite(prov.dirY) ? prov.dirY : null,
+          weaponId: prov.weaponId || null,
+          sourceId: prov.sourceId != null ? prov.sourceId : null,
+        } : null,
       };
       st.slots[slotIdx] = sh;
       made.push(sh);
