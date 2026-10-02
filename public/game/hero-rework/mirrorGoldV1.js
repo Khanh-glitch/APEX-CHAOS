@@ -35,6 +35,7 @@ let bs=7;const br=()=>{bs=(bs*16807)%2147483647;return bs/2147483647};
 
 // ---- node silhouette (geometry only; hoisted from Gold's PASSIVE section) ----
 const NV=[[-5,-60],[28,-27],[20,28],[0,62],[-28,31]];
+const _t2=[0,0];
 
 // =====================================================================================
 // RASTER BAKER  (ref space = 1254x1254 MAIN LOOK coordinates)
@@ -686,6 +687,155 @@ function createMirrorInstance(options) {
     M.sf=1;chips(M.x-nx*MR,M.y-ny*MR,nx,ny,2);ripple(M.x-nx*MR,M.y-ny*MR,Math.atan2(ny,nx)+1.57,.3);
   }
 
+  // ---- D3 semantic edges + exchange control -------------------------------
+  // The authored timeline REPORTS its canonical edges; it never performs the
+  // gameplay effect. Production subscribes and owns equip / relocation.
+  const __listeners = {};
+  function on(evt, fn) { (__listeners[evt] || (__listeners[evt] = [])).push(fn); return () => off(evt, fn); }
+  function off(evt, fn) { const a = __listeners[evt]; if (a) { const i = a.indexOf(fn); if (i >= 0) a.splice(i, 1); } }
+  function emit(evt, payload) { const a = __listeners[evt]; if (a) for (const f of a.slice()) { try { f(payload); } catch (e) { /* listener isolation */ } } }
+  // When false (production default) a2Snap performs its visual consequences and
+  // REBASES history, but does not move the actors -- gameplay already did.
+  let __applyExchange = !!opts.applyExchange;
+
+  // =====================================================================================
+  // A1 — MIRROR ARSENAL  (NOTICE → LOCK → REFLECT → PEEL → REFORM → OWN)
+  // =====================================================================================
+  const A1={on:false,t:0,u:0,whiff:false,pl:null,sec:null,late:null,f:{},q:0,tr:0,rv:0};
+  const A1TS=1.6,A1G={cx:0,cy:0,ua:0,ux:1,uy:0,vx:0,vy:1,os:1};
+  function plW(p,rx,ry,o){const dx=rx-p.pv[0],dy=ry-p.pv[1],c=Math.cos(p.sr.x),s=Math.sin(p.sr.x);
+    const qx=p.pv[0]+dx*c-dy*s+p.sx.x,qy=p.pv[1]+dx*s+dy*c+p.sy.x;o[0]=M.x+(qx-CX)*K;o[1]=M.y+(qy-CY)*K;return o}
+  function plClip(g,p){const pts=PTS[p.id];g.beginPath();for(let i=0;i<pts.length;i++){plW(p,pts[i][0],pts[i][1],_t2);if(i)g.lineTo(_t2[0],_t2[1]);else g.moveTo(_t2[0],_t2[1])}g.closePath();g.clip()}
+  function a1Frame(){
+    const pl=A1.pl;plW(pl,pl.pv[0],pl.pv[1],_t2);A1G.cx=_t2[0];A1G.cy=_t2[1];
+    A1G.ua=pl.axis+pl.sr.x;A1G.ux=Math.cos(A1G.ua);A1G.uy=Math.sin(A1G.ua);A1G.vx=-A1G.uy;A1G.vy=A1G.ux;
+    A1G.os=((A1G.cx-M.x)*A1G.vx+(A1G.cy-M.y)*A1G.vy)>=0?1:-1;
+  }
+  function castA1(whiff){
+    if(A1.on||A2.on)return;if(!F.armed)whiff=true;
+    A1.on=true;A1.t=0;A1.u=0;A1.whiff=!!whiff;A1.f={};A1.q=0;A1.tr=0;A1.rv=0;
+    const left=F.x<M.x;A1.pl=left?PL[0]:PL[1];A1.sec=left?PL[2]:PL[3];A1.late=left?PL[3]:PL[2];M.busy=Math.max(M.busy,2.2);
+  }
+  function stepA1(dt){
+    if(!A1.on)return;A1.t+=dt;const S=A1TS,u=A1.t/S;A1.u=u;const pl=A1.pl,f=A1.f,wf=A1.whiff;
+    const once=(k,c,fn)=>{if(c&&!f[k]){f[k]=1;fn()}};
+    const dir=Math.sign(F.x-M.x)||1;
+    once('n',true,()=>{
+      tw(E,'eL',1.15,.08*S);tw(E,'nL',.38,.08*S);tw(E,'eR',.4,.1*S);tw(E,'nR',.52,.1*S,.04*S);
+      tw(E,'gx',dir*10,.1*S);tw(E,'gy',clamp((F.y-M.y)/60,-1,1)*6,.1*S);
+      PL.forEach(p=>{const cs=p===pl?1:(p===A1.sec?.6:.25);p.lx=dir*30*cs;p.ly=p===pl?-18:7;p.lr=dir*(p.side==='L'?1:-1)*.06*cs});
+      plateExpr(A1.late,PEX);holdPlate(A1.late,99,PEX.e,PEX.n,PEX.s);
+      tw(E,'gap',16,.14*S);tw(E,'slip',-13*dir,.14*S);
+    });
+    once('l',u>=.06,()=>{addSweep(pl.id,.42*S,pl.axis,1,.22);tw(pl,'act',1,.12*S)});
+    once('r',u>=.12,()=>{tw(pl,'wash',wf?.8:.78,.14*S);addSweep(A1.sec.id,.4*S,A1.sec.axis,.7,.2,.08*S)});
+    once('p',u>=.24&&!wf,()=>tw(pl,'wash',1,.16*S));
+    once('w',wf&&u>=.3,()=>{tw(E,'sL',.12,.05*S);tw(E,'eL',.7,.06*S);tw(E,'nR',.72,.06*S)});
+    once('rb',u>=(wf?.46:.48),()=>{tw(pl,'wash',0,.12*S,0,1);tw(pl,'act',0,.2*S);addSweep(pl.id,.45*S,pl.axis,.95,.22)});
+    once('ow',u>=.58,()=>{
+      if(!wf){M.copyOn=true;M.copyFx=0;emit('ownEdge',{t:A1.t,u:u})}
+      tw(E,'sL',1.15,.05*S);tw(E,'eL',.7,.1*S);tw(E,'nL',.15,.1*S);tw(E,'eR',.38,.1*S,.08*S);
+      A1.late.holdT=0;tw(E,'gap',0,.08*S);tw(E,'slip',0,.08*S);
+    });
+    once('end',u>=.92,()=>{
+      A1.on=false;PL.forEach(p=>{p.lx=p.ly=p.lr=0});pl.wash=0;pl.act=0;
+      tw(E,'eL',.55,.4);tw(E,'sL',.64,.5);tw(E,'nL',.1,.4);tw(E,'eR',.32,.5,.1);tw(E,'nR',.42,.5,.1);tw(E,'gx',0,.4);tw(E,'gy',0,.4);
+    });
+    A1.rv=sstep(.12,.28,u);A1.q=clamp((u-.24)/.2,0,1);A1.tr=clamp((u-.4)/.2,0,1);
+    if(!wf&&u>.26&&u<.44&&__rand()<dt*28){a1Frame();const kf=A1.q*1.35*A1N,i=A1N-kf,lx=P.wpnMV.ox+i*(P.wpnMV.w/A1N)-(P.wpnMV.ox+P.wpnMV.w/2);
+      if(kf>0&&kf<A1N)flecks(A1G.cx+A1G.ux*lx*WS*A1SS,A1G.cy+A1G.uy*lx*WS*A1SS,1,36)}
+  }
+  const A1N=6,A1R=1,A1SS=.95;
+  const _ss={x:0,y:0,rot:0,sc:1,a:1,m:0,lift:0,trv:0};
+  function holdPos(o){const d=46+M.rec.x*.12;o[0]=M.x+Math.cos(M.aim)*d;o[1]=M.y+Math.sin(M.aim)*d;return o}
+  const _hp=[0,0];
+  function sliceState(i,j,o){
+    const pM=P.wpnMV,wl=pM.w/A1N,hh=pM.h/A1R,k=A1N-1-i;
+    const lxr=pM.ox+(i+.5)*wl,lyr=pM.oy+(j+.5)*hh,cwx=pM.ox+pM.w/2;
+    const lift=sstep(0,.35,A1.q*1.35-k/A1N),td=(k/A1N)*.25+j*.08,trv=sstep(0,1,(A1.tr-td)/.67);
+    const wob=Math.sin(simT*9+i*.9)*.7*(1-lift)*(1-sstep(.28,.4,A1.u));
+    const ax=A1G.cx+A1G.ux*(lxr-cwx)*WS*A1SS+A1G.vx*(lyr*WS*A1SS+wob),ay=A1G.cy+A1G.uy*(lxr-cwx)*WS*A1SS+A1G.vy*(lyr*WS*A1SS+wob);
+    const lx=ax+A1G.vx*A1G.os*lift*15-A1G.ux*lift*3,ly=ay+A1G.vy*A1G.os*lift*15-A1G.uy*lift*3;
+    holdPos(_hp);const ca=Math.cos(M.aim),sa=Math.sin(M.aim),lat=(i%2?1:-1)*7*Math.sin(Math.PI*trv);
+    const fx=_hp[0]+ca*lxr*WS-sa*(lyr*WS+lat),fy=_hp[1]+sa*lxr*WS+ca*(lyr*WS+lat);
+    o.x=lerp(lx,fx,trv);o.y=lerp(ly,fy,trv);o.rot=angLerp(A1G.ua+A1G.os*lift*.5,M.aim,trv);o.sc=lerp((1+.35*lift)*A1SS,1,trv);
+    o.m=sstep(.7,1,trv);o.lift=lift;o.trv=trv;o.a=sstep(0,.25,A1.rv*1.3-k/A1N*.9);
+  }
+  function drawA1World(g){
+    if(!A1.on||A1.whiff||A1.u<.1||A1.u>=.62)return;
+    a1Frame();const pM=P.wpnMV,pR=P.wpn,ppu=PPW*WS*A1SS,lvM=pick(pM,ppu),lvR=pick(pR,ppu);
+    const sw=lvM.c.width/A1N,sh3=lvM.c.height/A1R,wl=pM.w/A1N,hh=pM.h/A1R;
+    // pre-peel stage: the whole reflected weapon is visibly flat inside the plate, with a mirror sheen
+    if(A1.q<.02){g.save();plClip(g,A1.pl);g.translate(A1G.cx,A1G.cy);g.rotate(A1G.ua);g.scale(WS*A1SS,WS*A1SS);g.globalAlpha=A1.rv;
+      g.drawImage(lvM.c,pM.ox,pM.oy,pM.w,pM.h);masked(g,'wpnMV',ppu,sweepFill(clamp((A1.u-.12)/.14,0,1),.4,.2),.9*A1.rv,null);g.restore();return}
+    const draw=(i,j,o)=>{
+      g.save();g.translate(o.x,o.y);g.rotate(o.rot);g.scale(o.sc*WS,o.sc*WS);
+      const ga=g.globalAlpha;g.globalAlpha=ga*o.a*(1-o.m*.0);
+      if(o.m<.999)g.drawImage(lvM.c,i*sw,j*sh3,sw,sh3,-wl/2-.2,-hh/2-.15,wl+.4,hh+.3);
+      if(o.m>.01){g.globalAlpha=ga*o.a*o.m;g.drawImage(lvR.c,i*sw,j*sh3,sw,sh3,-wl/2-.2,-hh/2-.15,wl+.4,hh+.3)}
+      g.restore();
+    };
+    // attached slices — clipped to the capture plate surface
+    g.save();plClip(g,A1.pl);
+    for(let i=0;i<A1N;i++)for(let j=0;j<A1R;j++){sliceState(i,j,_ss);if(_ss.lift<.03&&_ss.trv<=0)draw(i,j,_ss)}
+    g.restore();
+    // lifted / travelling slices — free of the plate
+    for(let i=0;i<A1N;i++)for(let j=0;j<A1R;j++){sliceState(i,j,_ss);if(!(_ss.lift<.03&&_ss.trv<=0)){
+      g.save();g.globalAlpha=.22*_ss.lift*(1-_ss.trv);g.translate(_ss.x-A1G.vx*A1G.os*3.2,_ss.y-A1G.vy*A1G.os*3.2);g.rotate(_ss.rot);g.scale(_ss.sc*WS,_ss.sc*WS);g.fillStyle='#120a2c';g.fillRect(-wl/2,-hh/2,wl,hh);g.restore();
+      draw(i,j,_ss)}}
+    // peel boundary rim — only on the delamination edge
+    if(A1.q>0&&A1.q<1&&A1.tr<.05){
+      const kf=A1.q*1.35*A1N;
+      if(kf>0&&kf<A1N){const lx=(pM.ox+(A1N-kf)*wl)-(pM.ox+pM.w/2),px=A1G.cx+A1G.ux*lx*WS*A1SS,py=A1G.cy+A1G.uy*lx*WS*A1SS,hl=7.5;
+        g.save();g.globalCompositeOperation='lighter';g.lineCap='round';
+        g.strokeStyle='rgba(160,110,255,.45)';g.lineWidth=4;g.beginPath();g.moveTo(px-A1G.vx*hl,py-A1G.vy*hl);g.lineTo(px+A1G.vx*hl,py+A1G.vy*hl);g.stroke();
+        g.strokeStyle='rgba(255,255,255,.95)';g.lineWidth=1.3;g.stroke();g.restore()}
+    }
+  }
+
+  // =====================================================================================
+  // A2 — REFLECTION EXCHANGE  (MARK → SPLIT → INVERT → SNAP → CONTINUE)
+  // =====================================================================================
+  const A2={on:false,t:0,u:0,f:{},band:0,ghostA:0,tear:0,ang:0,res:0,rx:0,ry:0,fx:0,fy:0,mark:null,opp:null};
+  const A2TS=1.0; // atomic coordinate exchange at u=.25, approximately 250 ms
+  function castA2(){if(A1.on||A2.on)return;A2.on=true;A2.t=0;A2.f={};A2.res=0;A2.band=0;A2.ghostA=0;A2.tear=0;const left=F.x<M.x;A2.mark=left?PL[0]:PL[1];A2.opp=left?PL[1]:PL[0];M.busy=Math.max(M.busy,1.8)}
+  function stepA2(dt){
+    if(A2.res>0)A2.res-=dt;
+    if(!A2.on)return;A2.t+=dt;const S=A2TS,u=A2.t/S,f=A2.f;A2.u=u;
+    const once=(k,c,fn)=>{if(c&&!f[k]){f[k]=1;fn()}};const dir=Math.sign(F.x-M.x)||1;
+    A2.ang=Math.atan2(F.y-M.y,F.x-M.x);
+    A2.band=u<.25?sstep(.13,.25,u):0;A2.ghostA=u<.25?.85*sstep(.05,.17,u):0;A2.tear=u<.25?sstep(.14,.24,u):0;
+    once('m',true,()=>{
+      tw(E,'gx',dir*11,.06*S);tw(E,'gy',clamp((F.y-M.y)/60,-1,1)*6,.06*S);tw(E,'eL',1.1,.06*S);tw(E,'eR',.9,.06*S);tw(E,'nR',.5,.06*S);
+      A2.mark.lx=dir*34;A2.mark.ly=-14;A2.mark.lr=dir*(A2.mark.side==='L'?1:-1)*.09;F.hl=0;
+    });
+    once('s',u>=.05,()=>{
+      tw(E,'gap',38,.08*S);tw(E,'slip',-24*dir,.08*S);tw(E,'G',.7,.08*S);tw(E,'fl',1,.08*S);
+      (dir>0?H.R:H.L).x.v+=dir*160;(dir>0?H.L:H.R).x.v-=dir*90;
+      PL[2].lx=-26;PL[3].lx=26;PL[2].ly=PL[3].ly=12;
+    });
+    once('i',u>=.13,()=>{tw(A2.opp,'tint',1,.1*S);tw(E,'gap',52,.1*S);addSweep(A2.opp.id,.3*S,A2.opp.axis,.9,.22);addSweep('Lh',.3*S,.5,.6,.2);addSweep('Rh',.3*S,.5,.6,.2,.04*S)});
+    once('x',u>=.25,a2Snap);
+    once('e',u>=.64,()=>{
+      A2.on=false;PL.forEach(p=>{p.lx=p.ly=p.lr=0});tw(A2.opp,'tint',0,.2);
+      tw(E,'eL',.55,.4);tw(E,'sL',.64,.5);tw(E,'nL',.1,.4);tw(E,'eR',.32,.5,.1);tw(E,'nR',.42,.5,.1);tw(E,'sR',.1,.5);tw(E,'gx',0,.4);tw(E,'gy',0,.4);
+    });
+  }
+  function a2Snap(){
+    const ox=M.x,oy=M.y,fx=F.x,fy=F.y;
+    PL.forEach(p=>{if(p===A2.mark||p.id==='LL'||p.id==='LR'){const f=fxNew(4);if(f){f.nm=p.id;f.x=ox;f.y=oy;f.a=p.sx.x;f.b=p.sy.x;f.c=p.sr.x;f.d=p===A2.mark?.7:.55;f.s=p===A2.mark?.55:.4}}});
+    A2.res=.14;A2.rx=ox;A2.ry=oy;A2.fx=fx;A2.fy=fy;
+    if(__applyExchange){M.x=fx;M.y=fy;F.x=ox;F.y=oy;}      // coordinates exchange — velocities of both are left untouched
+    shiftHist(fx-ox,fy-oy);           // keeps reflection-lag continuous across the exchange
+    PL[2].extraDelay=.12;wrongPlate(PL[3],.5); // old reality remains in the slow/latest identities
+    tw(E,'gap',0,.03);tw(E,'slip',0,.03);tw(E,'fl',0,.15);tw(E,'G',.55,.02);later(.12,()=>tw(E,'G',0,.3));
+    const dx=(fx-ox)/K,dy=(fy-oy)/K;
+    PL.forEach(p=>{const m=(p.id==='LL'||p.id==='LR')?.14:.05;p.sx.x+=clamp(-dx*m,-110,110);p.sy.x+=clamp(-dy*m,-110,110)});
+    chips(ox,oy,1,0,3);chips(fx,fy,-1,0,3);cam.sx.v+=Math.sign(dx)*22;
+    tw(E,'eL',.5,.08);tw(E,'nL',.1,.08);tw(E,'sL',.6,.1);
+    tw(E,'nR',.72,.02);later(.18,()=>{tw(E,'nR',.42,.3);tw(E,'eR',.32,.3)});
+  }
+
   // Instance initialisation. Gold builds these inside the demo's resetAll();
   // only the state-construction part belongs in production.
   PL = [
@@ -714,6 +864,12 @@ function createMirrorInstance(options) {
     tw, twStep, later, qStep, addSweep, sweepStep, sweepsFor,
     fxNew, chips, flecks, ripple, addCrack, fxStep,
     mkPlate, mkAcc,
+    // D3 authored choreography (reports edges; performs no gameplay)
+    castA1, stepA1, castA2, stepA2, a2Snap, a1Frame, sliceState, holdPos,
+    get A1() { return A1; }, get A2() { return A2; },
+    on, off,
+    setApplyExchange(v) { __applyExchange = !!v; },
+    get applyExchange() { return __applyExchange; },
     // deterministic presentation RNG control
     reseed(seed) { __rand = mulberry32((seed >>> 0) || 0x9E3779B9); },
     random() { return __rand(); },
@@ -776,11 +932,13 @@ function drawAssetMasked(ctx2d, name, ppu, fill, alpha, comp) {
 }
 
 g.APEX_MIRROR_GOLD = {
-  version: '1.1.0-d2-temporal-history-locomotion',
+  version: '1.2.0-d3-a1-a2-choreography',
   goldSha256: 'c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205',
   regionSha256: '6c659ed0e821addf580e02e9b635fd090a4bfc1c9e482f2aa86970e9c779aa11',
-  checkpoint: 'D2',
+  checkpoint: 'D3',
   d2RegionSha256: '94f56ac4bbc75a30744005ec39615595e1c614ae0ab84d05021db2364f3f0ab5',
+  d3RegionSha256: '71bd288f177bf2f0d22b7b45ace24488ce6839f2ca77ebb3ddac2c46e6923eff',
+  d3RemovedMutations: [{"removed":"if(!wf){M.copyOn=true;M.copyT=6;M.copyFx=0}","replacedWith":"if(!wf){M.copyOn=true;M.copyFx=0;emit('ownEdge',{t:A1.t,u:u})}","why":"Gold granted a 6s demo copy at OWN. Production owns equip + lifetime (E)."},{"removed":"F.wspec=0;","replacedWith":"","why":"mutated the demo foe actor; production has no such field."},{"removed":"Math[random]()<dt*28","replacedWith":"__rand()<dt*28","why":"presentation must never consume the gameplay/combat RNG stream."},{"removed":"M.x=fx;M.y=fy;F.x=ox;F.y=oy;","replacedWith":"if(__applyExchange){M.x=fx;M.y=fy;F.x=ox;F.y=oy;}","why":"presentation may not relocate real fighters; gameplay owns the atomic swap."}],
   createMirrorInstance, mulberry32,
   // material / raster core
   P, PTS, PLI, NV, STOPS, ASSET_NAMES, GOLD_REF,

@@ -397,3 +397,64 @@ so no reference to a demo global ships.
 Still **not** manifest-registered or loaded (grep-verified, 0 references).
 Registration remains Checkpoint G; the revision gate therefore legitimately
 stays PASS with no bump.
+
+---
+
+## CHECKPOINT D3 — A1 / A2 AUTHORED CHOREOGRAPHY (partial: timeline ported)
+
+Gate: `tools/testMirrorGoldD1Raster.mjs` — **33/33** (13 D1 + 10 D2 + 10 D3).
+Module version `1.2.0-d3-a1-a2-choreography`. D3 region sha in the header.
+
+Regions extracted verbatim from Gold's own banners: `A1 — MIRROR ARSENAL
+(NOTICE -> LOCK -> REFLECT -> PEEL -> REFORM -> OWN)` and `A2 — REFLECTION
+EXCHANGE (MARK -> SPLIT -> INVERT -> SNAP -> CONTINUE)`, plus the `_t2` scratch
+hoisted (the plate world-transform helpers `plW`/`plClip` already live inside
+the A1 banner).
+
+### Canonical timing reproduced from the PORT (not from the oracle)
+
+```
+A1 OWN edge     t = 0.93333 s   u = 0.5833   (canonical first crossing of u>=.58)
+A1 visual end   t = 1.475   s                (canonical)
+A1 busy         2.2 s
+A2 SNAP         t = 0.25833 s                (canonical first crossing of u>=.25)
+A2 busy         1.8 s
+```
+
+These are produced by stepping the ported timeline at `STEP = 1/120`, so they
+are an independent confirmation that D3 did not drift — **not** a raw
+`after(.928)` / `after(.25)` timer.
+
+### The four demo gameplay mutations removed (enumerated, §14 requirement)
+
+| # | removed from Gold | replaced with | why |
+|---|---|---|---|
+| 1 | `if(!wf){M.copyOn=true;M.copyT=6;M.copyFx=0}` | `…M.copyOn=true;M.copyFx=0;emit('ownEdge',{t,u})` | Gold granted a 6 s demo copy at OWN. Production owns the real equip and the 6 s lifetime (Checkpoint E). The timeline now only **reports** the edge. |
+| 2 | `F.wspec=0;` | *(deleted)* | mutated the demo foe actor; production has no such field. |
+| 3 | `Math.random()<dt*28` | `__rand()<dt*28` | presentation must never consume the gameplay/combat RNG. |
+| 4 | `M.x=fx;M.y=fy;F.x=ox;F.y=oy;` | `if(__applyExchange){…}` | presentation may not relocate real fighters; gameplay owns the ONE atomic swap. |
+
+`shiftHist(fx-ox, fy-oy)` is **deliberately retained** — the contract requires
+history be **rebased** across the exchange, never cleared. The bridge fails if
+that call disappears.
+
+Proven: `D3-05` the whiff path never reaches the OWN grant (`reachedOwn:false`,
+`copyOn:false`); `D3-08` with the production default the snap performs its full
+visual consequence and history rebase but leaves both actors where they were;
+`D3-09` the same code applies the exchange only when gameplay supplies it.
+
+### A semantic edge bus, not a gameplay authority
+
+Each instance exposes `on('ownEdge'|…)` so the Checkpoint-E gameplay owner can
+subscribe. The presentation never decides that gameplay succeeded.
+
+### NOT YET DONE in D3 (carried forward, do not mark D3 closed)
+
+* **Real Arsenal weapon in the A1 reflection/peel.** The ported `sliceState`
+  still reads Gold's demo raster `P.wpnMV`. §14's CRITICAL REAL-WEAPON
+  REQUIREMENT — a thin adapter sourcing the real weapon silhouette, proven with
+  three visibly different Arsenal weapons — is **outstanding**.
+* The A1/A2 **draw** functions (`drawA1World`, `drawSite`, `drawHalf`,
+  `clipHalf`, `strips`, `drawResidue`) still live in the un-ported RENDERING
+  banner; only the authored timeline/state is ported so far.
+* Canonical frame comparison for the seven A1/A2 reference frames.

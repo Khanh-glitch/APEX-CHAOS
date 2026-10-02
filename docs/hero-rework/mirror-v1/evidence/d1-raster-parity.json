@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T06:39:26.600Z",
+  "generatedAt": "2026-10-02T06:45:49.878Z",
   "purpose": "Checkpoint D1: the shipped Gold static/material core bakes a BYTE-IDENTICAL atlas to canonical Gold.",
   "gold": {
     "path": "docs/hero-rework/mirror-v1/gold/MIRROR_GOLD_FUSION_12.html",
@@ -7,9 +7,100 @@
   },
   "module": {
     "path": "public/game/hero-rework/mirrorGoldV1.js",
-    "version": "1.1.0-d2-temporal-history-locomotion"
+    "version": "1.2.0-d3-a1-a2-choreography"
   },
   "assetCount": 26,
+  "d2": {
+    "ok": true,
+    "d3": {
+      "ok": true,
+      "busyA1": 2.2,
+      "ownEdgeT": 0.93333,
+      "ownEdgeU": 0.5833,
+      "endA1": 1.475,
+      "whiffReachedOwn": false,
+      "whiffCopy": false,
+      "busyA2": 1.8,
+      "snapT": 0.25833,
+      "movedByPresentation": false,
+      "exchangeApplied": true,
+      "removedMutations": 4
+    },
+    "err": null,
+    "HN": 64,
+    "HS": 22,
+    "histLength": 1408,
+    "independent": true,
+    "aRoot": 400,
+    "bRoot": 700,
+    "rngRepeatable": true,
+    "rngDiffersBySeed": true,
+    "rngSample": [
+      0.138934,
+      0.403745,
+      0.247524
+    ],
+    "mathRandomCalls": 0,
+    "historyLag": true,
+    "histNow": 500,
+    "histPast": 100,
+    "locomotion": {
+      "startMv": 0,
+      "sustainedMv": 1,
+      "stoppedMv": 0,
+      "stoppedVel": 0,
+      "movedX": 107.6
+    },
+    "locomotionDistinct": true,
+    "hardTurn": true,
+    "turnInfo": {
+      "beforeHalfVx": 90,
+      "afterHalfVx": -240,
+      "plateExtraDelays": [
+        0.035,
+        0.055,
+        0.08,
+        0.12
+      ]
+    },
+    "plateDelays": [
+      {
+        "id": "UL",
+        "role": "shameless",
+        "dl": 0.095
+      },
+      {
+        "id": "UR",
+        "role": "observer",
+        "dl": 0.115
+      },
+      {
+        "id": "LL",
+        "role": "stale",
+        "dl": 0.145
+      },
+      {
+        "id": "LR",
+        "role": "wrong",
+        "dl": 0.17
+      }
+    ],
+    "wrongExtraDelay": 0.04
+  },
+  "d3": {
+    "ok": true,
+    "busyA1": 2.2,
+    "ownEdgeT": 0.93333,
+    "ownEdgeU": 0.5833,
+    "endA1": 1.475,
+    "whiffReachedOwn": false,
+    "whiffCopy": false,
+    "busyA2": 1.8,
+    "snapT": 0.25833,
+    "movedByPresentation": false,
+    "exchangeApplied": true,
+    "removedMutations": 4
+  },
   "goldDigest": {
     "LL": {
       "box": "426x545@12,624",
@@ -642,6 +733,82 @@
       "pass": true,
       "detail": {
         "extraDelay": 0.04
+      }
+    },
+    "D3-01-a1-a2-timeline-ported": {
+      "pass": true,
+      "detail": {
+        "ok": true,
+        "busyA1": 2.2,
+        "ownEdgeT": 0.93333,
+        "ownEdgeU": 0.5833,
+        "endA1": 1.475,
+        "whiffReachedOwn": false,
+        "whiffCopy": false,
+        "busyA2": 1.8,
+        "snapT": 0.25833,
+        "movedByPresentation": false,
+        "exchangeApplied": true,
+        "removedMutations": 4
+      }
+    },
+    "D3-02-a1-OWN-edge-at-canonical-first-crossing": {
+      "pass": true,
+      "detail": {
+        "t": 0.93333,
+        "u": 0.5833,
+        "canonical": 0.93333
+      }
+    },
+    "D3-03-a1-visual-end-canonical": {
+      "pass": true,
+      "detail": {
+        "endA1": 1.475,
+        "canonical": 1.475
+      }
+    },
+    "D3-04-a1-busy-envelope-2p2": {
+      "pass": true,
+      "detail": {
+        "busy": 2.2
+      }
+    },
+    "D3-05-whiff-never-reaches-OWN-grant": {
+      "pass": true,
+      "detail": {
+        "reachedOwn": false,
+        "copyOn": false
+      }
+    },
+    "D3-06-a2-snap-at-canonical-first-crossing": {
+      "pass": true,
+      "detail": {
+        "snapT": 0.25833,
+        "canonical": 0.25833
+      }
+    },
+    "D3-07-a2-busy-envelope-1p8": {
+      "pass": true,
+      "detail": {
+        "busy": 1.8
+      }
+    },
+    "D3-08-presentation-does-not-relocate-actors": {
+      "pass": true,
+      "detail": {
+        "movedByPresentation": false
+      }
+    },
+    "D3-09-exchange-applies-only-when-gameplay-supplies-it": {
+      "pass": true,
+      "detail": {
+        "exchangeApplied": true
+      }
+    },
+    "D3-10-demo-gameplay-mutations-enumerated-and-removed": {
+      "pass": true,
+      "detail": {
+        "removed": 4
       }
     },
     "D1-99-no-page-errors": {

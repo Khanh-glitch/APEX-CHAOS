@@ -45,7 +45,10 @@ gate('D1-01-module-is-generated-and-cites-gold',
 const modCodeEarly = modSrc.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
 gate('D1-02-module-owns-no-gameplay-clock',
   !/requestAnimationFrame|setTimeout|setInterval/.test(modCodeEarly)
-  && !/function (step|resetAll|castA1|castA2)\s*\(/.test(modCodeEarly), null);
+  // castA1/castA2/stepA1/stepA2 are D3's AUTHORED presentation timeline entry
+  // points. They report canonical edges and perform no gameplay, which is
+  // asserted separately by D3-05/D3-06. What must stay absent is a clock.
+  && !/function (resetAll|buildAuto|autoStep)\s*\(/.test(modCodeEarly), null);
 // Strip line comments before scanning, so the header's own explanation of why
 // Math.random is absent cannot be mistaken for a use of it.
 const modCode = modSrc.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
@@ -162,8 +165,53 @@ try {
       P2.wrongPlate(P2.PL[3], 0.5);
       const wrongExtraDelay = P2.PL[3].extraDelay;
 
+      // ---- D3: A1/A2 authored choreography ----
+      const X = G.createMirrorInstance({ seed: 11 });
+      X.M.x = 400; X.M.y = 500; X.F.x = 700; X.F.y = 500; X.histFill();
+      const STEP3 = X.constants.STEP;
+      let ownEdge = null;
+      X.on('ownEdge', (e) => { if (!ownEdge) ownEdge = e; });
+      X.castA1(false);
+      const busyA1 = X.M.busy;
+      let t = 0, endA1 = null;
+      for (let i = 0; i < 400; i++) { X.stepA1(STEP3); t += STEP3; if (!X.A1.on && endA1 === null) { endA1 = t; break; } }
+      // whiff must not reach the OWN edge grant
+      const Xw = G.createMirrorInstance({ seed: 12 });
+      Xw.M.x = 400; Xw.M.y = 500; Xw.F.x = 700; Xw.F.y = 500; Xw.histFill();
+      let whiffOwn = null; Xw.on('ownEdge', (e) => { whiffOwn = e; });
+      Xw.castA1(true);
+      for (let i = 0; i < 400 && Xw.A1.on; i++) Xw.stepA1(STEP3);
+      const whiffCopy = Xw.M.copyOn;
+
+      // A2: snap at the canonical first fixed-step crossing, no actor move
+      const Y = G.createMirrorInstance({ seed: 13 });
+      Y.M.x = 400; Y.M.y = 500; Y.F.x = 700; Y.F.y = 500; Y.histFill();
+      const beforeM = { x: Y.M.x, y: Y.M.y }, beforeF = { x: Y.F.x, y: Y.F.y };
+      Y.castA2();
+      const busyA2 = Y.M.busy;
+      let t2 = 0, snapT = null;
+      for (let i = 0; i < 400; i++) {
+        Y.stepA2(STEP3); t2 += STEP3;
+        if (snapT === null && Y.A2.res > 0) snapT = t2;
+        if (!Y.A2.on && t2 > 0.1) break;
+      }
+      const movedByPresentation = Y.M.x !== beforeM.x || Y.F.x !== beforeF.x;
+      // with applyExchange the same code DOES move its own presentation actors
+      const Z = G.createMirrorInstance({ seed: 13, applyExchange: true });
+      Z.M.x = 400; Z.M.y = 500; Z.F.x = 700; Z.F.y = 500; Z.histFill();
+      Z.castA2();
+      for (let i = 0; i < 60; i++) Z.stepA2(STEP3);
+      const exchangeApplied = Z.M.x === 700 && Z.F.x === 400;
+
       Math.random = realRandom;
-      d2 = { ok: true, err: null, HN: A.HN, HS: A.HS, histLength: A.hist.length,
+      const d3 = { ok: true, busyA1, ownEdgeT: ownEdge ? +ownEdge.t.toFixed(5) : null,
+        ownEdgeU: ownEdge ? +ownEdge.u.toFixed(4) : null, endA1: endA1 === null ? null : +endA1.toFixed(5),
+        whiffReachedOwn: whiffOwn !== null, whiffCopy,
+        busyA2, snapT: snapT === null ? null : +snapT.toFixed(5),
+        movedByPresentation, exchangeApplied,
+        removedMutations: G.d3RemovedMutations ? G.d3RemovedMutations.length : 0 };
+
+      d2 = { ok: true, d3, err: null, HN: A.HN, HS: A.HS, histLength: A.hist.length,
         independent, aRoot: A.M.x, bRoot: B.M.x,
         rngRepeatable, rngDiffersBySeed, rngSample: sa.map((v) => +v.toFixed(6)),
         mathRandomCalls, historyLag, histNow: +histNow.toFixed(2), histPast: +histPast.toFixed(2),
@@ -171,6 +219,7 @@ try {
         turnInfo: { beforeHalfVx: +beforeTurn.toFixed(2), afterHalfVx: +afterTurn.toFixed(2),
           plateExtraDelays: turnExtraDelays },
         plateDelays, wrongExtraDelay };
+      d2.d3 = d3;
     } catch (e) { d2 = { ok: false, err: String((e && e.stack) || e) }; }
 
     return { ok, err: G.bakeError ? String(G.bakeError) : null, atlas: out,
@@ -248,6 +297,29 @@ gate('D2-09-false-face-plates-have-distinct-role-delays',
 gate('D2-10-wrong-plate-adds-authored-extra-delay',
   !!d2 && d2.wrongExtraDelay === 0.04, d2 && { extraDelay: d2.wrongExtraDelay });
 
+/* ---------------- CHECKPOINT D3: A1 / A2 authored choreography ---------------- */
+const d3 = d2 && d2.d3;
+gate('D3-01-a1-a2-timeline-ported', !!(d3 && d3.ok), d3);
+gate('D3-02-a1-OWN-edge-at-canonical-first-crossing',
+  !!d3 && Math.abs(d3.ownEdgeT - 0.93333) < 0.009 && d3.ownEdgeU >= 0.58,
+  d3 && { t: d3.ownEdgeT, u: d3.ownEdgeU, canonical: 0.93333 });
+gate('D3-03-a1-visual-end-canonical',
+  !!d3 && Math.abs(d3.endA1 - 1.475) < 0.02, d3 && { endA1: d3.endA1, canonical: 1.475 });
+gate('D3-04-a1-busy-envelope-2p2', !!d3 && d3.busyA1 === 2.2, d3 && { busy: d3.busyA1 });
+gate('D3-05-whiff-never-reaches-OWN-grant',
+  !!d3 && d3.whiffReachedOwn === false && d3.whiffCopy !== true,
+  d3 && { reachedOwn: d3.whiffReachedOwn, copyOn: d3.whiffCopy });
+gate('D3-06-a2-snap-at-canonical-first-crossing',
+  !!d3 && Math.abs(d3.snapT - 0.25833) < 0.009, d3 && { snapT: d3.snapT, canonical: 0.25833 });
+gate('D3-07-a2-busy-envelope-1p8', !!d3 && d3.busyA2 === 1.8, d3 && { busy: d3.busyA2 });
+gate('D3-08-presentation-does-not-relocate-actors',
+  !!d3 && d3.movedByPresentation === false,
+  d3 && { movedByPresentation: d3.movedByPresentation });
+gate('D3-09-exchange-applies-only-when-gameplay-supplies-it',
+  !!d3 && d3.exchangeApplied === true, d3 && { exchangeApplied: d3.exchangeApplied });
+gate('D3-10-demo-gameplay-mutations-enumerated-and-removed',
+  !!d3 && d3.removedMutations === 4, d3 && { removed: d3.removedMutations });
+
 gate('D1-99-no-page-errors', pageErrors.length === 0, pageErrors);
 
 fs.mkdirSync('docs/hero-rework/mirror-v1/evidence', { recursive: true });
@@ -257,6 +329,7 @@ fs.writeFileSync('docs/hero-rework/mirror-v1/evidence/d1-raster-parity.json', JS
   gold: { path: GOLD_REL, sha256: sha },
   module: { path: 'public/game/hero-rework/mirrorGoldV1.js', version: prodMeta && prodMeta.version },
   assetCount: goldNames.length,
+  d2: prodMeta && prodMeta.d2, d3: prodMeta && prodMeta.d2 && prodMeta.d2.d3,
   goldDigest: gd, productionDigest: pd,
   ...report, pass: report.failures.length === 0,
 }, null, 2));

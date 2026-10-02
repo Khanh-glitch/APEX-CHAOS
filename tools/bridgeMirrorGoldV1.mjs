@@ -112,6 +112,56 @@ moveRegion = moveRegion.replace(KEY_LINE, "if(M.drive){ix=M.drive.x;iy=M.drive.y
 
 let d2Region = [d2State, exprRegion, moveRegion].join('\n\n');
 
+// ---------- D3: A1 + A2 authored choreography ----------
+let a1Region = cut('A1 — MIRROR ARSENAL  (NOTICE → LOCK → REFLECT → PEEL → REFORM → OWN)',
+  'A2 — REFLECTION EXCHANGE  (MARK → SPLIT → INVERT → SNAP → CONTINUE)');
+let a2Region = cut('A2 — REFLECTION EXCHANGE  (MARK → SPLIT → INVERT → SNAP → CONTINUE)',
+  'RENDERING — MIRROR RIG (raster parts only)');
+
+// === ENUMERATED DEMO GAMEPLAY MUTATIONS REMOVED FROM THE PRESENTATION PORT ===
+// Each is replaced by a semantic EDGE the production adapter owns. The
+// presentation module must never decide that gameplay succeeded.
+const D3_MUTATIONS = [];
+function stripMutation(region, needle, replacement, why) {
+  if (!region.includes(needle)) fail(`D3 mutation not found: ${needle}`);
+  D3_MUTATIONS.push({ removed: needle.replace(/Math\.random/g, 'Math[random]'),
+    replacedWith: replacement.replace(/Math\.random/g, 'Math[random]'), why });
+  return region.replace(needle, replacement);
+}
+
+// 1. OWN edge granted the demo copy directly. Production equips the real
+//    snapshotted Arsenal weapon at Checkpoint E; presentation only reports it.
+a1Region = stripMutation(a1Region,
+  "if(!wf){M.copyOn=true;M.copyT=6;M.copyFx=0}",
+  "if(!wf){M.copyOn=true;M.copyFx=0;emit('ownEdge',{t:A1.t,u:u})}",
+  'Gold granted a 6s demo copy at OWN. Production owns equip + lifetime (E).');
+
+// 2. Demo foe weapon-spec mutation.
+a1Region = stripMutation(a1Region, "F.wspec=0;", "",
+  'mutated the demo foe actor; production has no such field.');
+
+// 3. Presentation RNG for peel flecks.
+a1Region = stripMutation(a1Region, "Math.random()<dt*28", "__rand()<dt*28",
+  'presentation must never consume the gameplay/combat RNG stream.');
+
+// 4. a2Snap moved the demo fighters. Production performs the ONE atomic
+//    exchange (E); presentation receives the already-resolved coordinates.
+a2Region = stripMutation(a2Region,
+  "M.x=fx;M.y=fy;F.x=ox;F.y=oy;",
+  "if(__applyExchange){M.x=fx;M.y=fy;F.x=ox;F.y=oy;}",
+  'presentation may not relocate real fighters; gameplay owns the atomic swap.');
+
+// shiftHist() is deliberately RETAINED: the contract requires history be
+// REBASED across the exchange, never cleared.
+if (!a2Region.includes('shiftHist(fx-ox,fy-oy)')) fail('A2 history rebase lost');
+
+const d3Region = [a1Region, a2Region].join('\n\n');
+const D3_REQUIRED = ['function castA1(', 'function stepA1(', 'function a1Frame(', 'function sliceState(',
+  'function holdPos(', 'function castA2(', 'function stepA2(', 'function a2Snap('];
+for (const r of D3_REQUIRED) if (!d3Region.includes(r)) fail(`D3 region lost required symbol: ${r}`);
+if (/Math\.random/.test(d3Region)) fail('D3 region still consumes Math.random');
+const d3Sha = crypto.createHash('sha256').update(d3Region).digest('hex');
+
 // Rebind the presentation RNG. Gold calls Math.random directly in 11 places
 // across the expression/locomotion beats (coin flips choosing which false face
 // reacts, which half twitches, slip sign) plus addCrack's jitter. Presentation
@@ -138,6 +188,10 @@ const d2Sha = crypto.createHash('sha256').update(d2Region).digest('hex');
 // NV lives in the PASSIVE section but is pure geometry the node asset needs.
 const nvLine = src.split('\n').find((l) => l.startsWith('const NV='));
 if (!nvLine) fail('NV node silhouette not found');
+// Shared scratch vector used by the plate world-transform helpers (plW/plClip,
+// which live inside the A1 banner). Pure scratch, hoisted like NV.
+const t2Line = src.split('\n').find((l) => l.startsWith('const _t2='));
+if (!t2Line) fail('_t2 scratch not found');
 
 // ---------- S3: prove the cuts kept what D1 must keep ----------
 const kept = [utilRegion, rasterRegion, assetKept].join('\n');
@@ -188,6 +242,7 @@ ${utilRegion}
 
 // ---- node silhouette (geometry only; hoisted from Gold's PASSIVE section) ----
 ${nvLine}
+${t2Line}
 
 ${rasterRegion}
 
@@ -226,6 +281,19 @@ function createMirrorInstance(options) {
 
 ${d2Region.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
 
+  // ---- D3 semantic edges + exchange control -------------------------------
+  // The authored timeline REPORTS its canonical edges; it never performs the
+  // gameplay effect. Production subscribes and owns equip / relocation.
+  const __listeners = {};
+  function on(evt, fn) { (__listeners[evt] || (__listeners[evt] = [])).push(fn); return () => off(evt, fn); }
+  function off(evt, fn) { const a = __listeners[evt]; if (a) { const i = a.indexOf(fn); if (i >= 0) a.splice(i, 1); } }
+  function emit(evt, payload) { const a = __listeners[evt]; if (a) for (const f of a.slice()) { try { f(payload); } catch (e) { /* listener isolation */ } } }
+  // When false (production default) a2Snap performs its visual consequences and
+  // REBASES history, but does not move the actors -- gameplay already did.
+  let __applyExchange = !!opts.applyExchange;
+
+${d3Region.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
+
   // Instance initialisation. Gold builds these inside the demo's resetAll();
   // only the state-construction part belongs in production.
   PL = [
@@ -254,6 +322,12 @@ ${d2Region.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
     tw, twStep, later, qStep, addSweep, sweepStep, sweepsFor,
     fxNew, chips, flecks, ripple, addCrack, fxStep,
     mkPlate, mkAcc,
+    // D3 authored choreography (reports edges; performs no gameplay)
+    castA1, stepA1, castA2, stepA2, a2Snap, a1Frame, sliceState, holdPos,
+    get A1() { return A1; }, get A2() { return A2; },
+    on, off,
+    setApplyExchange(v) { __applyExchange = !!v; },
+    get applyExchange() { return __applyExchange; },
     // deterministic presentation RNG control
     reseed(seed) { __rand = mulberry32((seed >>> 0) || 0x9E3779B9); },
     random() { return __rand(); },
@@ -316,11 +390,13 @@ function drawAssetMasked(ctx2d, name, ppu, fill, alpha, comp) {
 }
 
 g.APEX_MIRROR_GOLD = {
-  version: '1.1.0-d2-temporal-history-locomotion',
+  version: '1.2.0-d3-a1-a2-choreography',
   goldSha256: '${GOLD_SHA}',
   regionSha256: '${regionSha}',
-  checkpoint: 'D2',
+  checkpoint: 'D3',
   d2RegionSha256: '${d2Sha}',
+  d3RegionSha256: '${d3Sha}',
+  d3RemovedMutations: ${JSON.stringify(D3_MUTATIONS)},
   createMirrorInstance, mulberry32,
   // material / raster core
   P, PTS, PLI, NV, STOPS, ASSET_NAMES, GOLD_REF,
@@ -345,4 +421,6 @@ console.log(`[mirror-bridge] D1 wrote ${DEST}`);
 console.log(`[mirror-bridge]   gold   sha256 ${GOLD_SHA}`);
 console.log(`[mirror-bridge]   region sha256 ${regionSha}`);
 console.log(`[mirror-bridge]   d2     sha256 ${d2Sha}`);
+console.log(`[mirror-bridge]   d3     sha256 ${d3Sha}`);
+console.log(`[mirror-bridge]   d3 removed ${D3_MUTATIONS.length} demo gameplay mutations`);
 console.log(`[mirror-bridge]   bytes ${out.length}, lines ${out.split('\n').length}`);
