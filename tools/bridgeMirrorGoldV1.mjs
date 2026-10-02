@@ -203,6 +203,73 @@ if (/P\.wpnMV|P\.wpn\b|'wpnMV'|'wpn'/.test(a1Region))
   fail('A1 still references Gold demo weapon rasters');
 
 const d3Region = [a1Region, a2Region, renderRegion].join('\n\n');
+
+// ---------- D4: shard / node / routing presentation ----------
+// Everything from the projectile marker to the WORLD RENDER banner: the
+// projectile bolt, free shard, assembling/ACTIVE node body, and the FX pool
+// draw. Verbatim; the demo world render / camera / floor stay out.
+let d4Region = src.slice(BANNER('RENDERING — MIRROR RIG (raster parts only)'));
+const d4Start = d4Region.indexOf(PROJ_MARK);
+const d4End = d4Region.indexOf('// =====================================================================================\n// WORLD RENDER');
+if (d4Start < 0 || d4End < 0 || d4End < d4Start) fail('cannot isolate D4 render region');
+d4Region = d4Region.slice(d4Start, d4End).replace(/\s+$/, '');
+
+// drawFloor is the demo arena floor; it lives past the WORLD RENDER banner so
+// the slice above already excludes it. Guard anyway.
+const floorAt = d4Region.indexOf('function drawFloor(');
+if (floorAt >= 0) d4Region = d4Region.slice(0, floorAt).replace(/\s+$/, '');
+
+// The node/shard state Gold's draws read lives in the PASSIVE banner. Only the
+// pure DATA declarations are imported; every gameplay function in that banner
+// (spawnShard, tryForm, formNode, stepShards, stepNodes, routeProj, passiveProc)
+// is deliberately EXCLUDED -- gameplay owns the lifecycle, F1/F2 own routing.
+const passiveRegion = cut('PASSIVE — SHARDS, FORMATION, NODES', 'FOE (functional opponent only) + SPRINGS');
+// SH/ND/PJ pool declarations are multi-line in Gold, so extract each by
+// scanning to balanced brackets rather than by line.
+// Each pool is `const X=[];for(...)X.push({...});` which may span lines, so
+// capture from the declaration up to the next top-level statement rather than
+// stopping at the first semicolon.
+function extractDecl(text, startsWith) {
+  const i = text.indexOf(startsWith);
+  if (i < 0) return null;
+  const lines = text.slice(i).split('\n');
+  const out = [lines[0]];
+  for (let k = 1; k < lines.length; k++) {
+    if (/^(const |let |function |\/\/|\/\*)/.test(lines[k])) break;
+    out.push(lines[k]);
+  }
+  return out.join('\n').replace(/\s+$/, '');
+}
+const D4_STATE_LINES = [];
+for (const d of ['const SH=', 'const ND=']) {
+  const got = extractDecl(passiveRegion, d);
+  if (!got || !/\.push\(/.test(got)) fail(`D4 pool declaration not captured: ${d}`);
+  D4_STATE_LINES.push(got);
+}
+const pjDecl = extractDecl(src, 'const PJ=');
+if (!pjDecl || !/\.push\(/.test(pjDecl)) fail('PJ pool not captured');
+D4_STATE_LINES.push(pjDecl);
+const d4Helpers = ['function nodeToWorld(', 'function nodeCap(', 'function nodeRipple('];
+const helperSrc = [];
+for (const h of d4Helpers) {
+  const i = passiveRegion.indexOf(h);
+  if (i < 0) fail(`D4 helper not found: ${h}`);
+  const j = passiveRegion.indexOf('\nfunction ', i + 1);
+  helperSrc.push(passiveRegion.slice(i, j < 0 ? undefined : j).replace(/\s+$/, ''));
+}
+const d4State = [...D4_STATE_LINES, ...helperSrc].join('\n');
+
+for (const forbidden of ['function tryForm(', 'function formNode(', 'function stepShards(',
+  'function stepNodes(', 'function routeProj(', 'function spawnShard(', 'function passiveProc(']) {
+  if (d4State.includes(forbidden) || d4Region.includes(forbidden))
+    fail(`D4 leaked passive GAMEPLAY function: ${forbidden}`);
+}
+const D4_REQUIRED = ['function drawShardAt(', 'function drawFreeShard(', 'function drawNodeBody(',
+  'function drawFX(', 'function drawProj(', 'function drawBolt('];
+for (const r of D4_REQUIRED) if (!d4Region.includes(r)) fail(`D4 region lost required symbol: ${r}`);
+if (/Math\.random/.test(d4Region)) fail('D4 region consumes Math.random');
+const d4Full = [d4State, d4Region].join('\n\n');
+const d4Sha = crypto.createHash('sha256').update(d4Full).digest('hex');
 const D3_REQUIRED = ['function castA1(', 'function stepA1(', 'function a1Frame(', 'function sliceState(',
   'function holdPos(', 'function castA2(', 'function stepA2(', 'function a2Snap(',
   'function drawA1World(', 'function drawSite(', 'function drawHalf(', 'function clipHalf(',
@@ -414,6 +481,12 @@ ${d2Region.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
 
 ${d3Region.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
 
+  // ---- D4: shard / node / routing presentation ---------------------------
+  // Gameplay owns shard eligibility, formation, node lifetime, routing success
+  // and escrow. These draws consume gameplay-provided node/shard state as
+  // TRUTH; no independent lifecycle clock exists here that could drift.
+${d4Full.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
+
   // Instance initialisation. Gold builds these inside the demo's resetAll();
   // only the state-construction part belongs in production.
   PL = [
@@ -442,6 +515,10 @@ ${d3Region.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
     tw, twStep, later, qStep, addSweep, sweepStep, sweepsFor,
     fxNew, chips, flecks, ripple, addCrack, fxStep,
     mkPlate, mkAcc,
+    // D4 shard / node / routing presentation (draw only)
+    drawShardAt, drawFreeShard, drawNodeBody, drawFX, drawProj, drawBolt,
+    nodeToWorld, nodeCap, nodeRipple,
+    get SH() { return SH; }, get ND() { return ND; }, get PJ() { return PJ; },
     // D3 real-weapon visual adapter
     setWeaponArt, weaponArt: () => __weaponArt(),
     // D3 authored choreography (reports edges; performs no gameplay)
@@ -515,13 +592,14 @@ function drawAssetMasked(ctx2d, name, ppu, fill, alpha, comp) {
 }
 
 g.APEX_MIRROR_GOLD = {
-  version: '1.2.0-d3-a1-a2-choreography',
+  version: '1.3.0-d4-shard-node-routing-visuals',
   goldSha256: '${GOLD_SHA}',
   regionSha256: '${regionSha}',
-  checkpoint: 'D3',
+  checkpoint: 'D4',
   d2RegionSha256: '${d2Sha}',
   d3RegionSha256: '${d3Sha}',
   d3RemovedMutations: ${JSON.stringify(D3_MUTATIONS)},
+  d4RegionSha256: '${d4Sha}',
   d3WeaponArtSites: ${JSON.stringify(WEAPON_SITES.map((w) => w.note))},
   weaponEntryFromImage, dpEntry, maskedEntry,
   createMirrorInstance, mulberry32,
@@ -549,5 +627,6 @@ console.log(`[mirror-bridge]   gold   sha256 ${GOLD_SHA}`);
 console.log(`[mirror-bridge]   region sha256 ${regionSha}`);
 console.log(`[mirror-bridge]   d2     sha256 ${d2Sha}`);
 console.log(`[mirror-bridge]   d3     sha256 ${d3Sha}`);
+console.log(`[mirror-bridge]   d4     sha256 ${d4Sha}`);
 console.log(`[mirror-bridge]   d3 removed ${D3_MUTATIONS.length} demo gameplay mutations`);
 console.log(`[mirror-bridge]   bytes ${out.length}, lines ${out.split('\n').length}`);

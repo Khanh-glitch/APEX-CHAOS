@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T07:15:51.190Z",
+  "generatedAt": "2026-10-02T07:18:05.934Z",
   "weapons": {
     "SNIPER": {
       "sha": "a65571de78b903be",
@@ -29,7 +29,10 @@
     "a1-whiff": "fcbce7287f7ef9be",
     "a2-pre-snap": "458c496951de9409",
     "a2-snap": "710afcddde771c16",
-    "a2-post-residue": "20a7364f3621b3b0"
+    "a2-post-residue": "20a7364f3621b3b0",
+    "free-shard": "26dd3e3f3751ff5f",
+    "assembling-node": "b77ebbac918d065a",
+    "active-node": "9cf3bd6f10ceaf9a"
   },
   "gates": {
     "D3-W1-real-weapon-art-accepted": {
@@ -98,7 +101,10 @@
         "a1-whiff",
         "a2-pre-snap",
         "a2-snap",
-        "a2-post-residue"
+        "a2-post-residue",
+        "free-shard",
+        "assembling-node",
+        "active-node"
       ]
     },
     "D3-F2-all-frames-distinct": {
@@ -110,7 +116,10 @@
         "a1-whiff": "fcbce7287f7ef9be",
         "a2-pre-snap": "458c496951de9409",
         "a2-snap": "710afcddde771c16",
-        "a2-post-residue": "20a7364f3621b3b0"
+        "a2-post-residue": "20a7364f3621b3b0",
+        "free-shard": "26dd3e3f3751ff5f",
+        "assembling-node": "b77ebbac918d065a",
+        "active-node": "9cf3bd6f10ceaf9a"
       }
     },
     "D3-F3-a1-peel-differs-from-attached": {
@@ -122,6 +131,46 @@
       "detail": null
     },
     "D3-F5-a2-snap-differs-from-pre-snap": {
+      "pass": true,
+      "detail": null
+    },
+    "D4-01-draw-surface-exported": {
+      "pass": true,
+      "detail": true
+    },
+    "D4-02-gold-pool-sizes": {
+      "pass": true,
+      "detail": {
+        "SH": 16,
+        "ND": 4,
+        "PJ": 16
+      }
+    },
+    "D4-03-node-routing-surface-v0-to-v3": {
+      "pass": true,
+      "detail": {
+        "cap": [
+          495,
+          440,
+          500,
+          562
+        ],
+        "expect": "v0(-5,-60) -> v3(0,62) at (500,500) rot 0"
+      }
+    },
+    "D4-04-shard-and-node-frames-captured": {
+      "pass": true,
+      "detail": [
+        "26dd3e3f3751ff5f",
+        "b77ebbac918d065a",
+        "9cf3bd6f10ceaf9a"
+      ]
+    },
+    "D4-05-assembling-differs-from-active": {
+      "pass": true,
+      "detail": null
+    },
+    "D4-06-shard-differs-from-node": {
       "pass": true,
       "detail": null
     },

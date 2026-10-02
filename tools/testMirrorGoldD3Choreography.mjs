@@ -96,6 +96,39 @@ try {
     await shot('a2-snap', (i, g) => { i.castA2(); run(i, (s) => i.stepA2(s), 0.27); i.drawMirrorEntity(g); i.drawFoeEntity(g); i.drawResidue(g); });
     await shot('a2-post-residue', (i, g) => { i.castA2(); run(i, (s) => i.stepA2(s), 0.34); i.drawMirrorEntity(g); i.drawFoeEntity(g); i.drawResidue(g); });
 
+    // ---- D4: shard / node / routing presentation ----
+    const d4shot = (name, fn) => {
+      const inst = G.createMirrorInstance({ seed: 41 });
+      inst.M.x = 500; inst.M.y = 500; inst.F.x = 760; inst.F.y = 500; inst.histFill();
+      const c = mkCanvas(560, 560), g = c.getContext('2d');
+      g.fillStyle = '#111216'; g.fillRect(0, 0, 560, 560);
+      g.setTransform(1.5, 0, 0, 1.5, 280 - 500 * 1.5, 280 - 500 * 1.5);
+      fn(inst, g);
+      out.frames[name] = c.toDataURL('image/png');
+    };
+    // Gameplay-owned state is injected directly; presentation only draws it.
+    d4shot('free-shard', (i, g) => {
+      const s0 = i.SH[0];
+      Object.assign(s0, { on: true, st: 0, x: 500, y: 500, rot: 0.2, side: 'L', age: 1.2, pe: .6, pn: .2, ps: .5, sc: 1, a: 1 });
+      i.drawFreeShard(g, s0, 0);
+    });
+    d4shot('assembling-node', (i, g) => {
+      const n = i.ND[0];
+      Object.assign(n, { on: true, st: 1, t: .6, age: .6, x: 500, y: 500, rot: .18, fill: .35, fold: 0, sh: [], flash: 0 });
+      i.drawNodeBody(g, n);
+    });
+    d4shot('active-node', (i, g) => {
+      const n = i.ND[0];
+      Object.assign(n, { on: true, st: 2, t: 1.4, age: 2.0, x: 500, y: 500, rot: .18, fill: 1, fold: 0, sh: [], flash: 0 });
+      i.drawNodeBody(g, n);
+    });
+    out.d4 = {
+      pools: { SH: G.createMirrorInstance({ seed: 1 }).SH.length, ND: G.createMirrorInstance({ seed: 1 }).ND.length, PJ: G.createMirrorInstance({ seed: 1 }).PJ.length },
+      hasDraws: ['drawShardAt', 'drawFreeShard', 'drawNodeBody', 'drawFX', 'drawProj', 'nodeToWorld', 'nodeCap', 'nodeRipple']
+        .every((k) => typeof G.createMirrorInstance({ seed: 1 })[k] === 'function'),
+      nodeCap: (() => { const i = G.createMirrorInstance({ seed: 1 }); const n = i.ND[0];
+        Object.assign(n, { on: true, x: 500, y: 500, rot: 0 }); return i.nodeCap(n).map((v) => +v.toFixed(2)); })(),
+    };
     return out;
   }, BASE, WEAPONS);
 } finally { await browser.close(); }
@@ -120,13 +153,26 @@ gate('D3-W3-real-weapon-differs-from-gold-demo-placeholder',
 gate('D3-W4-no-placeholder-when-production-supplies-art',
   WEAPONS.every((w) => wSha[w].source !== 'gold-demo-fallback'), null);
 
-const NEED = ['a1-attached-reflection', 'a1-peel', 'a1-reform-own-edge', 'a1-whiff', 'a2-pre-snap', 'a2-snap', 'a2-post-residue'];
+const NEED = ['free-shard', 'assembling-node', 'active-node', 'a1-attached-reflection', 'a1-peel', 'a1-reform-own-edge', 'a1-whiff', 'a2-pre-snap', 'a2-snap', 'a2-post-residue'];
 gate('D3-F1-seven-choreography-frames-captured', NEED.every((n) => fSha[n]), Object.keys(fSha));
 gate('D3-F2-all-frames-distinct', new Set(NEED.map((n) => fSha[n])).size === NEED.length, fSha);
 gate('D3-F3-a1-peel-differs-from-attached',
   fSha['a1-peel'] !== fSha['a1-attached-reflection'], null);
 gate('D3-F4-whiff-differs-from-valid-peel', fSha['a1-whiff'] !== fSha['a1-peel'], null);
 gate('D3-F5-a2-snap-differs-from-pre-snap', fSha['a2-snap'] !== fSha['a2-pre-snap'], null);
+/* ---------------- CHECKPOINT D4: shard / node / routing visuals ---------------- */
+const D4 = R.d4;
+gate('D4-01-draw-surface-exported', !!(D4 && D4.hasDraws), D4 && D4.hasDraws);
+gate('D4-02-gold-pool-sizes', !!D4 && D4.pools.SH === 16 && D4.pools.ND === 4 && D4.pools.PJ === 16, D4 && D4.pools);
+gate('D4-03-node-routing-surface-v0-to-v3',
+  !!D4 && Math.abs(D4.nodeCap[0] - 495) < 0.01 && Math.abs(D4.nodeCap[1] - 440) < 0.01
+  && Math.abs(D4.nodeCap[2] - 500) < 0.01 && Math.abs(D4.nodeCap[3] - 562) < 0.01,
+  D4 && { cap: D4.nodeCap, expect: 'v0(-5,-60) -> v3(0,62) at (500,500) rot 0' });
+const D4F = ['free-shard', 'assembling-node', 'active-node'];
+gate('D4-04-shard-and-node-frames-captured', D4F.every((n) => fSha[n]), D4F.map((n) => fSha[n]));
+gate('D4-05-assembling-differs-from-active', fSha['assembling-node'] !== fSha['active-node'], null);
+gate('D4-06-shard-differs-from-node', fSha['free-shard'] !== fSha['active-node'], null);
+
 gate('D3-99-no-page-errors', errors.length === 0, errors.slice(0, 4));
 
 fs.writeFileSync('docs/hero-rework/mirror-v1/evidence/d3-choreography.json', JSON.stringify({

@@ -1049,6 +1049,109 @@ function createMirrorInstance(options) {
     g.restore();
   }
 
+  // ---- D4: shard / node / routing presentation ---------------------------
+  // Gameplay owns shard eligibility, formation, node lifetime, routing success
+  // and escrow. These draws consume gameplay-provided node/shard state as
+  // TRUTH; no independent lifecycle clock exists here that could drift.
+  const SH=[];for(let i=0;i<16;i++)SH.push({on:false,st:0,x:0,y:0,vx:0,vy:0,rot:0,ta:0,side:'L',pe:0,pn:0,ps:0,ph:0,age:0,fx:0,fy:0,frot:0,tx:0,ty:0,trot:0,tlen:0,twid:0,mt0:0,moving:false,rep:3,repT:0,spt:0,sa:0,dsx:.087,dsy:.087,faceA:0,eyeP:0,spc:0});
+  const ND=[];for(let i=0;i<4;i++)ND.push({on:false,st:0,t:0,age:0,x:0,y:0,rot:0,fill:0,fold:0,sh:[],tlock:-1,t3:0,flash:0,swc:2,fa:2,faT:-1,faW:0,
+    img:{on:false,k:0,t:0,d:.5,ang:0,pw:1,own:0,sx:0,sy:0,dx:1,dy:0},rp:[{t:9,x:0,y:0},{t:9,x:0,y:0},{t:9,x:0,y:0}],sw:[{on:false,t:0,d:.7,ang:.8,amp:.8},{on:false,t:0,d:.7,ang:.8,amp:.8}]});
+  const PJ=[];for(let i=0;i<16;i++)PJ.push({on:false,x:0,y:0,vx:0,vy:0,own:0,pw:1,st:0,t:0,cool:0,nA:null,nB:null,imgB:false,hx:new Float32Array(10),hy:new Float32Array(10),hn:0,hc:0,life:0,dx:1,dy:0});
+  function nodeToWorld(n,lx,ly,o){const c=Math.cos(n.rot),s=Math.sin(n.rot);o[0]=n.x+lx*c-ly*s;o[1]=n.y+lx*s+ly*c;return o}
+  const _t2=[0,0];
+  function nodeCap(n){const a=nodeToWorld(n,NV[0][0],NV[0][1],[0,0]),b=nodeToWorld(n,NV[3][0],NV[3][1],[0,0]);return [a[0],a[1],b[0],b[1]]}
+  function nodeRipple(n,wx,wy){let r=n.rp[0];for(const q of n.rp)if(q.t>r.t)r=q;const lx=(wx-n.x)*Math.cos(n.rot)+(wy-n.y)*Math.sin(n.rot),ly=-(wx-n.x)*Math.sin(n.rot)+(wy-n.y)*Math.cos(n.rot);r.t=0;r.x=lx;r.y=ly}
+
+  // ---------- projectiles ----------
+  function drawBolt(g,x,y,ang,pw,alpha,mode){
+    const r=[0,4,6.5,10][pw]||4,L=r*3.2;
+    g.save();g.translate(x,y);g.rotate(ang);g.globalAlpha=alpha;
+    if(mode!==1){g.save();g.globalCompositeOperation='lighter';const rg=g.createRadialGradient(r*.4,0,0,r*.4,0,r*2.8);rg.addColorStop(0,'rgba(255,170,80,.5)');rg.addColorStop(1,'rgba(255,120,40,0)');g.fillStyle=rg;g.fillRect(-r*3,-r*3,r*6.4,r*6);g.restore()}
+    const gr=g.createLinearGradient(-L,0,r*1.6,0);gr.addColorStop(0,'rgba(255,120,40,0)');gr.addColorStop(.6,mode===1?'rgba(255,196,150,.92)':'rgba(255,140,50,.96)');gr.addColorStop(1,'rgba(255,246,222,1)');
+    g.fillStyle=gr;g.beginPath();g.moveTo(-L,0);g.quadraticCurveTo(-L*.3,-r,r*1.2,-r*.8);g.arc(r*1.2,0,r*.8,-Math.PI/2,Math.PI/2);g.quadraticCurveTo(-L*.3,r,-L,0);g.closePath();g.fill();
+    g.fillStyle='#fff';g.beginPath();g.ellipse(r*.4,0,r*.9,r*.42,0,0,TAU);g.fill();
+    if(mode===2){g.strokeStyle='rgba(228,228,255,.9)';g.lineWidth=1.1;g.beginPath();g.ellipse(r*.5,0,r*1.7,r*1.1,0,0,TAU);g.stroke()}
+    if(mode===1){g.strokeStyle='rgba(190,150,255,.85)';g.lineWidth=.9;g.beginPath();g.ellipse(r*.4,0,r*1.5,r*.95,0,0,TAU);g.stroke()}
+    g.restore();
+  }
+  function drawProj(g,p){
+    if(p.st!==0)return;
+    const n=Math.min(p.hn,10);
+    if(n>0){g.save();g.lineCap='round';let px=p.x,py=p.y;
+      for(let k=0;k<n;k++){const i=((p.hn-1-k)%10+10)%10,x=p.hx[i],y=p.hy[i],a=(1-k/n)*.5;
+        g.strokeStyle=p.own===2?'rgba(225,222,255,'+a+')':'rgba(255,150,60,'+a+')';g.lineWidth=[0,3,5,7.5][p.pw]*(1-k/n)+.6;g.beginPath();g.moveTo(px,py);g.lineTo(x,y);g.stroke();px=x;py=y}
+      g.restore()}
+    drawBolt(g,p.x,p.y,Math.atan2(p.vy,p.vx),p.pw,1,p.own===2?2:0);
+  }
+  // ---------- shards + mirror nodes ----------
+  function drawShardAt(g,x,y,rot,sx,sy,alpha,idx,eyeFn){
+    g.save();g.translate(x,y);g.rotate(rot);g.scale(sx,sy);g.globalAlpha=alpha;
+    const ppu=PPW*Math.max(sx,sy);dp(g,'shard',ppu);
+    if(eyeFn)masked(g,'shard',ppu,eyeFn,1,null);
+    for(const s of SW)if(s.on&&s.dl<=0&&s.nm==='sh'+idx)masked(g,'shard',ppu,sweepFill(s.t/s.d,s.ang,s.bw),s.amp*Math.sin(Math.PI*clamp(s.t/s.d,0,1)),null);
+    g.restore();
+  }
+  function drawFreeShard(g,s,idx){
+    const hv=Math.sin(s.ph*1.3)*1.6,hv2=Math.cos(s.ph*1.1)*1.2;
+    g.save();g.fillStyle='rgba(0,0,0,.2)';g.beginPath();g.ellipse(s.x+2,s.y+9,7,3.2,0,0,TAU);g.fill();g.restore();
+    const side=s.side==='L'?'eL':'eR',pe=P[side],ea=clamp(.3+(s.pe-.4)*.6+.3*Math.sin(s.ph*.8+s.eyeP),0,1),nar=1-.5*clamp(s.pn,0,1),smA=s.repT>0?Math.sin(Math.PI*clamp(s.repT/.7,0,1)):0;
+    const eyeFn=(c,w,h)=>{
+      c.save();c.translate(w/2,h/2);const k=w/220;c.scale(k,k);
+      c.save();c.translate(0,-22);c.scale(.36,.36*nar);c.rotate(side==='eL'?.12:-.12);c.globalAlpha=ea;c.drawImage(pick(pe,.2).c,pe.ox-pe.ax,pe.oy-pe.ay,pe.w,pe.h);c.restore();
+      if(smA>.02){const ps=P[s.side==='L'?'sL':'sR'];c.save();c.translate(0,48);c.scale(.3,.3);c.globalAlpha=smA*(.4+.4*s.ps);c.drawImage(pick(ps,.2).c,ps.ox-ps.ax,ps.oy-ps.ay,ps.w,ps.h);c.restore()}
+      c.restore();
+    };
+    drawShardAt(g,s.x+hv,s.y+hv2,s.rot+Math.sin(s.ph*.9)*.04,s.dsx,s.dsy,1,idx,eyeFn);
+  }
+  function drawNodeBody(g,n){
+    const coh=n.st===2?sstep(7.2,10,n.age):0,fillA=n.st>=2?1:n.fill,inset=.55+.45*fillA,fold=1-n.fold;
+    g.save();g.translate(n.x,n.y);g.fillStyle='rgba(0,0,0,.25)';g.beginPath();g.ellipse(6,60,20*fold,9,0,0,TAU);g.fill();g.rotate(n.rot);
+    if(fillA>.01){
+      g.save();g.scale(fold,1);g.globalAlpha=fillA;
+      g.beginPath();NV.forEach((v,i)=>{const x=v[0]*inset,y=v[1]*(.7+.3*inset);if(i)g.lineTo(x,y);else g.moveTo(x,y)});g.closePath();g.clip();
+      let gr=g.createLinearGradient(0,-62,0,62);gr.addColorStop(0,'#0b0716');gr.addColorStop(1,'#26164c');g.fillStyle=gr;g.fillRect(-30,-70,60,140);
+      gr=g.createLinearGradient(-22+Math.sin(simT*.3+n.x)*4,-60,26,44);gr.addColorStop(0,'rgba(255,255,255,0)');gr.addColorStop(.33,'rgba(236,230,255,'+(.4*(1-coh*.5))+')');gr.addColorStop(.46,'rgba(255,255,255,.1)');gr.addColorStop(.6,'rgba(205,195,255,.3)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(-30,-70,60,140);
+      // delayed MIRROR expression (face lives on the surface)
+      const lag=.30,eA=clamp(Math.max(n.faT>=0&&n.faW===0?Math.sin(Math.PI*clamp(n.faT/1.3,0,1)):0,Math.max(.38,(hs(lag,3)-.34)*1.2)),0,1)*(1-coh*.35);
+      const sA=clamp(Math.max(n.faT>=0?Math.sin(Math.PI*clamp((n.faT-.18)/1.1,0,1)):0,(hs(lag+.1,6)-.7)*1.6),0,1)*.85;
+      if(eA>.02){const pe=P.eR;g.save();g.globalAlpha=eA*fillA;g.translate(-1,-8);g.scale(.075,.075*(1-.4*hs(lag,5)));g.rotate(-.1);g.drawImage(pick(pe,.22).c,pe.ox-pe.ax,pe.oy-pe.ay,pe.w,pe.h);
+        g.globalCompositeOperation='lighter';g.globalAlpha=eA*.5;dp(g,'egR');g.restore()}
+      if(sA>.02){const ps=P.sL;g.save();g.globalAlpha=sA*fillA;g.translate(-2,20);g.scale(.07,.07);g.drawImage(pick(ps,.22).c,ps.ox-ps.ax,ps.oy-ps.ay,ps.w,ps.h);g.restore()}
+      // projectile image held / travelling inside the surface
+      const im=n.img;
+      if(im.on){
+        const la=im.ang-n.rot;let lx,ly,al;
+        if(im.k===0){const t=im.t,e=eo3(t/.2);lx=lerp(im.sx,0,e);ly=lerp(im.sy,im.sy*.3,e);al=t<.3?1:clamp(1-(t-.3)/.45,0,1)}
+        else{const t=im.t,e=eo3(t/im.d),dl=(im.dx*Math.cos(n.rot)+im.dy*Math.sin(n.rot)),dv=(-im.dx*Math.sin(n.rot)+im.dy*Math.cos(n.rot));lx=lerp(0,dl*11,e);ly=lerp(2,dv*30,e);al=clamp(t/.1,0,1)*(t>im.d?clamp(1-(t-im.d)/.08,0,1):1);
+          const rad=lerp(28,10,e);const rg=g.createRadialGradient(lx,ly,0,lx,ly,rad);rg.addColorStop(0,'rgba(255,255,255,.5)');rg.addColorStop(1,'rgba(200,180,255,0)');g.fillStyle=rg;g.fillRect(lx-rad,ly-rad,rad*2,rad*2)}
+        g.save();g.translate(lx,ly);g.scale(.62,.62);drawBolt(g,0,0,la,im.pw,al*.95,1);g.restore();
+      }
+      // ripples masked to the surface
+      for(const r of n.rp){if(r.t<.5){const k=r.t/.5;g.strokeStyle='rgba(235,225,255,'+((1-k)*.8)+')';g.lineWidth=1.3;for(let q=0;q<2;q++){const rad=3+(k-q*.12)*24;if(rad>0){g.beginPath();g.ellipse(r.x,r.y,rad,rad*.55,0,0,TAU);g.stroke()}}}}
+      // specular sweeps (broad)
+      for(const w of n.sw)if(w.on){const p=w.t/w.d,gr2=g.createLinearGradient(-40+p*100-16,-60,-40+p*100+16,60);gr2.addColorStop(0,'rgba(170,120,255,0)');gr2.addColorStop(.5,'rgba(255,255,255,'+(.7*w.amp*Math.sin(Math.PI*p))+')');gr2.addColorStop(1,'rgba(170,120,255,0)');g.fillStyle=gr2;g.fillRect(-40,-70,80,140)}
+      if(n.flash>0){g.fillStyle='rgba(235,225,255,'+(n.flash*.28)+')';g.fillRect(-30,-70,60,140)}
+      g.restore();
+    }
+    g.restore();
+    // edge shards (locked pieces) — drawn in world so formation is continuous with free flight
+    const sh=n.sh,fl=1-n.fold*.7;
+    for(let i=0;i<sh.length;i++){const s=sh[i];let x=s.x,y=s.y,rot=s.rot,sx=s.dsx,sy=s.dsy;
+      if(n.st>=2){const jt=coh*2.4;x=s.tx+Math.sin(simT*3+i*2)*jt;y=s.ty+Math.cos(simT*2.6+i)*jt;rot=s.trot+Math.sin(simT*2.2+i*1.7)*coh*.07;
+        if(n.st===3){x=lerp(x,n.x,n.fold*.6);y=lerp(y,n.y,n.fold*.6)}sx=s.twid/130*fl;sy=s.tlen/300}
+      drawShardAt(g,x,y,rot,sx,sy,n.st===3?1-n.fold:1,SH.indexOf(s),null);
+    }
+  }
+  function drawFX(g,mem){
+    for(const f of FX){if(!f.on||(f.ty===4)!==mem)continue;const k=f.t/f.d;
+      if(f.ty===1){g.save();g.translate(f.x,f.y);g.rotate(f.r);g.globalCompositeOperation='lighter';g.globalAlpha=1-k;g.fillStyle='rgba(240,235,255,1)';g.fillRect(-f.s,-f.s*.32,f.s*2,f.s*.64);g.restore()}
+      else if(f.ty===5){g.save();g.globalCompositeOperation='lighter';g.globalAlpha=1-k;g.fillStyle='rgba(190,140,255,1)';g.beginPath();g.arc(f.x,f.y,f.s,0,TAU);g.fill();g.restore()}
+      else if(f.ty===2){g.save();g.translate(f.x,f.y);g.rotate(f.a);g.globalCompositeOperation='lighter';g.lineWidth=1.3;for(let q=0;q<2;q++){const rad=3+(k-q*.12)*22;if(rad>0){g.strokeStyle='rgba(228,218,255,'+((1-k)*.65)+')';g.beginPath();g.ellipse(0,0,rad*.45,rad,0,0,TAU);g.stroke()}}g.restore()}
+      else if(f.ty===4){g.save();g.globalAlpha=f.s*(1-k);g.translate(f.x,f.y);g.scale(K,K);g.translate(-CX,-CY);const p=PL.find(z=>z.id===f.nm);
+        g.translate(p.pv[0]+f.a,p.pv[1]+f.b);g.rotate(f.c);g.translate(-p.pv[0],-p.pv[1]);dp(g,f.nm);masked(g,f.nm,PU,whiteFill,.35,null);g.restore()}
+    }
+  }
+
   // Instance initialisation. Gold builds these inside the demo's resetAll();
   // only the state-construction part belongs in production.
   PL = [
@@ -1077,6 +1180,10 @@ function createMirrorInstance(options) {
     tw, twStep, later, qStep, addSweep, sweepStep, sweepsFor,
     fxNew, chips, flecks, ripple, addCrack, fxStep,
     mkPlate, mkAcc,
+    // D4 shard / node / routing presentation (draw only)
+    drawShardAt, drawFreeShard, drawNodeBody, drawFX, drawProj, drawBolt,
+    nodeToWorld, nodeCap, nodeRipple,
+    get SH() { return SH; }, get ND() { return ND; }, get PJ() { return PJ; },
     // D3 real-weapon visual adapter
     setWeaponArt, weaponArt: () => __weaponArt(),
     // D3 authored choreography (reports edges; performs no gameplay)
@@ -1150,13 +1257,14 @@ function drawAssetMasked(ctx2d, name, ppu, fill, alpha, comp) {
 }
 
 g.APEX_MIRROR_GOLD = {
-  version: '1.2.0-d3-a1-a2-choreography',
+  version: '1.3.0-d4-shard-node-routing-visuals',
   goldSha256: 'c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205',
   regionSha256: '6c659ed0e821addf580e02e9b635fd090a4bfc1c9e482f2aa86970e9c779aa11',
-  checkpoint: 'D3',
+  checkpoint: 'D4',
   d2RegionSha256: '94f56ac4bbc75a30744005ec39615595e1c614ae0ab84d05021db2364f3f0ab5',
   d3RegionSha256: 'f99e943af77245dd41a9f124ef0e69fca6e7da196a5c8ca6114130d781cf7c19',
   d3RemovedMutations: [{"removed":"if(!wf){M.copyOn=true;M.copyT=6;M.copyFx=0}","replacedWith":"if(!wf){M.copyOn=true;M.copyFx=0;emit('ownEdge',{t:A1.t,u:u})}","why":"Gold granted a 6s demo copy at OWN. Production owns equip + lifetime (E)."},{"removed":"F.wspec=0;","replacedWith":"","why":"mutated the demo foe actor; production has no such field."},{"removed":"Math[random]()<dt*28","replacedWith":"__rand()<dt*28","why":"presentation must never consume the gameplay/combat RNG stream."},{"removed":"M.x=fx;M.y=fy;F.x=ox;F.y=oy;","replacedWith":"if(__applyExchange){M.x=fx;M.y=fy;F.x=ox;F.y=oy;}","why":"presentation may not relocate real fighters; gameplay owns the atomic swap."}],
+  d4RegionSha256: '7d35be712ccd430cc3e7900936f8247cafa946f63a1f1442013ed60a385cc6c4',
   d3WeaponArtSites: ["A1 reflection + peel slices use the real copied weapon atlas","flat-in-plate sheen masks the real weapon silhouette","sliceState geometry derives from the real weapon bounds","held weapon after OWN is the real copied weapon","held-weapon sweep masks the real weapon","peel-edge flecks follow the real weapon bounds"],
   weaponEntryFromImage, dpEntry, maskedEntry,
   createMirrorInstance, mulberry32,
