@@ -462,6 +462,38 @@ function bakeArt(){
 }
 const PLI={};
 
+// Entry-based variants of Gold's dp()/masked(). Gold looks art up by NAME in
+// its own atlas; the real Arsenal weapon is not in that atlas, so these take
+// the atlas ENTRY directly. The drawing is otherwise identical to Gold's.
+function dpEntry(g, p, ppu) { g.drawImage(pick(p, ppu || PU).c, p.ox, p.oy, p.w, p.h); }
+function maskedEntry(g, p, ppu, fill, alpha, comp) {
+  const l = pick(p, ppu), w = l.c.width, h = l.c.height;
+  SG.globalCompositeOperation = 'source-over'; SG.clearRect(0, 0, 1100, 1100);
+  SG.save(); fill(SG, w, h); SG.restore();
+  SG.globalCompositeOperation = 'destination-in'; SG.drawImage(l.c, 0, 0);
+  SG.globalCompositeOperation = 'source-over';
+  g.save(); g.globalAlpha *= alpha; if (comp) g.globalCompositeOperation = comp;
+  g.drawImage(SC, 0, 0, w, h, p.ox, p.oy, p.w, p.h); g.restore();
+}
+
+// Build a Gold-shaped atlas entry (with mip levels) from an arbitrary image
+// source, so a REAL Arsenal weapon can flow through Gold's own draw path.
+function weaponEntryFromImage(img, opts) {
+  const o = opts || {};
+  const w = o.w || img.width, h = o.h || img.height;
+  const ox = o.ox == null ? -w / 2 : o.ox, oy = o.oy == null ? -h / 2 : o.oy;
+  const lv = [];
+  for (const sc of (o.scales || [1, 0.5, 0.25])) {
+    const c = mk(Math.max(2, w * sc), Math.max(2, h * sc));
+    const x = c.getContext('2d');
+    x.imageSmoothingEnabled = true;
+    x.drawImage(img, 0, 0, c.width, c.height);
+    lv.push({ s: sc, c });
+  }
+  lv.sort((a, b) => a.s - b.s);
+  return { w, h, ox, oy, ax: 0, ay: 0, lv };
+}
+
 // =====================================================================================
 // CHECKPOINT D2 — temporal history + false-reflection expression + locomotion
 // =====================================================================================
@@ -698,6 +730,44 @@ function createMirrorInstance(options) {
   // REBASES history, but does not move the actors -- gameplay already did.
   let __applyExchange = !!opts.applyExchange;
 
+  // ---- REAL ARSENAL WEAPON SOURCE (section 14) ---------------------------
+  // The authored A1 choreography is unchanged; only the imagery it reflects
+  // and peels comes from the actual snapshotted weapon. Falls back to Gold's
+  // demo raster ONLY when production has not supplied one, so a missing
+  // adapter is visible rather than silently shipping a placeholder.
+  let __wpnArt = null;
+  function __weaponArt() {
+    return __wpnArt || { mv: P.wpnMV, real: P.wpn, source: 'gold-demo-fallback' };
+  }
+  function setWeaponArt(art) {
+    // art: { mv, real } atlas entries, or { image } / { mvImage, realImage }
+    if (!art) { __wpnArt = null; return null; }
+    if (art.mv && art.real) { __wpnArt = { mv: art.mv, real: art.real, source: art.source || 'production' }; return __wpnArt; }
+    const mvImg = art.mvImage || art.image, reImg = art.realImage || art.image;
+    if (!mvImg || !reImg) return null;
+    // Normalise to Gold's AUTHORED weapon bounds. The real Arsenal PNGs are
+    // far larger than Gold's demo raster, and the peel geometry (slice width
+    // wl = w/A1N, lift, travel) is authored against those bounds -- feeding
+    // raw pixel sizes would scale the whole choreography wrongly. Fit by the
+    // longer axis so silhouette proportions are preserved.
+    const ref = P.wpnMV;
+    const fit = art.fitToGold === false ? null : ref;
+    let box = { w: art.w || mvImg.width, h: art.h || mvImg.height };
+    if (fit) {
+      const k = Math.min(fit.w / mvImg.width, fit.h / mvImg.height);
+      box = { w: mvImg.width * k, h: mvImg.height * k };
+    }
+    const spec = { ...art, w: box.w, h: box.h, ox: -box.w / 2, oy: -box.h / 2 };
+    __wpnArt = {
+      mv: weaponEntryFromImage(mvImg, spec),
+      real: weaponEntryFromImage(reImg, spec),
+      goldRef: { w: ref.w, h: ref.h }, fitted: !!fit,
+      source: art.source || 'production',
+      weaponId: art.weaponId || null,
+    };
+    return __wpnArt;
+  }
+
   // =====================================================================================
   // A1 — MIRROR ARSENAL  (NOTICE → LOCK → REFLECT → PEEL → REFORM → OWN)
   // =====================================================================================
@@ -742,7 +812,7 @@ function createMirrorInstance(options) {
       tw(E,'eL',.55,.4);tw(E,'sL',.64,.5);tw(E,'nL',.1,.4);tw(E,'eR',.32,.5,.1);tw(E,'nR',.42,.5,.1);tw(E,'gx',0,.4);tw(E,'gy',0,.4);
     });
     A1.rv=sstep(.12,.28,u);A1.q=clamp((u-.24)/.2,0,1);A1.tr=clamp((u-.4)/.2,0,1);
-    if(!wf&&u>.26&&u<.44&&__rand()<dt*28){a1Frame();const kf=A1.q*1.35*A1N,i=A1N-kf,lx=P.wpnMV.ox+i*(P.wpnMV.w/A1N)-(P.wpnMV.ox+P.wpnMV.w/2);
+    if(!wf&&u>.26&&u<.44&&__rand()<dt*28){a1Frame();const __fm=__weaponArt().mv,kf=A1.q*1.35*A1N,i=A1N-kf,lx=__fm.ox+i*(__fm.w/A1N)-(__fm.ox+__fm.w/2);
       if(kf>0&&kf<A1N)flecks(A1G.cx+A1G.ux*lx*WS*A1SS,A1G.cy+A1G.uy*lx*WS*A1SS,1,36)}
   }
   const A1N=6,A1R=1,A1SS=.95;
@@ -750,7 +820,7 @@ function createMirrorInstance(options) {
   function holdPos(o){const d=46+M.rec.x*.12;o[0]=M.x+Math.cos(M.aim)*d;o[1]=M.y+Math.sin(M.aim)*d;return o}
   const _hp=[0,0];
   function sliceState(i,j,o){
-    const pM=P.wpnMV,wl=pM.w/A1N,hh=pM.h/A1R,k=A1N-1-i;
+    const pM=__weaponArt().mv,wl=pM.w/A1N,hh=pM.h/A1R,k=A1N-1-i;
     const lxr=pM.ox+(i+.5)*wl,lyr=pM.oy+(j+.5)*hh,cwx=pM.ox+pM.w/2;
     const lift=sstep(0,.35,A1.q*1.35-k/A1N),td=(k/A1N)*.25+j*.08,trv=sstep(0,1,(A1.tr-td)/.67);
     const wob=Math.sin(simT*9+i*.9)*.7*(1-lift)*(1-sstep(.28,.4,A1.u));
@@ -763,11 +833,11 @@ function createMirrorInstance(options) {
   }
   function drawA1World(g){
     if(!A1.on||A1.whiff||A1.u<.1||A1.u>=.62)return;
-    a1Frame();const pM=P.wpnMV,pR=P.wpn,ppu=PPW*WS*A1SS,lvM=pick(pM,ppu),lvR=pick(pR,ppu);
+    a1Frame();const __wa=__weaponArt(),pM=__wa.mv,pR=__wa.real,ppu=PPW*WS*A1SS,lvM=pick(pM,ppu),lvR=pick(pR,ppu);
     const sw=lvM.c.width/A1N,sh3=lvM.c.height/A1R,wl=pM.w/A1N,hh=pM.h/A1R;
     // pre-peel stage: the whole reflected weapon is visibly flat inside the plate, with a mirror sheen
     if(A1.q<.02){g.save();plClip(g,A1.pl);g.translate(A1G.cx,A1G.cy);g.rotate(A1G.ua);g.scale(WS*A1SS,WS*A1SS);g.globalAlpha=A1.rv;
-      g.drawImage(lvM.c,pM.ox,pM.oy,pM.w,pM.h);masked(g,'wpnMV',ppu,sweepFill(clamp((A1.u-.12)/.14,0,1),.4,.2),.9*A1.rv,null);g.restore();return}
+      g.drawImage(lvM.c,pM.ox,pM.oy,pM.w,pM.h);maskedEntry(g,pM,ppu,sweepFill(clamp((A1.u-.12)/.14,0,1),.4,.2),.9*A1.rv,null);g.restore();return}
     const draw=(i,j,o)=>{
       g.save();g.translate(o.x,o.y);g.rotate(o.rot);g.scale(o.sc*WS,o.sc*WS);
       const ga=g.globalAlpha;g.globalAlpha=ga*o.a*(1-o.m*.0);
@@ -836,6 +906,149 @@ function createMirrorInstance(options) {
     tw(E,'nR',.72,.02);later(.18,()=>{tw(E,'nR',.42,.3);tw(E,'eR',.32,.3)});
   }
 
+  // =====================================================================================
+  // RENDERING — MIRROR RIG (raster parts only)
+  // =====================================================================================
+  const whiteFill=solidFill('rgba(240,234,255,1)'),warmFill=solidFill('rgba(255,150,70,1)');
+  function drawPlate(g,p,alpha){
+    // Historical half articulation is inherited in addition to historical root movement.
+    const hd=p.dl+p.extraDelay+(p.wrongT>0?.45:0),L=p.side==='L',hx=hs(hd,L?14:17)*.28,hy=hs(hd,L?15:18)*.28,hr=hs(hd,L?16:19)*.32;
+    g.save();g.translate(p.pv[0]+p.sx.x+hx,p.pv[1]+p.sy.x+hy);g.rotate(p.sr.x+hr);g.translate(-p.pv[0],-p.pv[1]);
+    if(alpha!==undefined)g.globalAlpha*=alpha;
+    dp(g,p.id);sweepsFor(g,p.id);
+    if(p.wash>.01)masked(g,p.id,PU,whiteFill,p.wash*.6);
+    if(p.act>.01)masked(g,p.id,PU,whiteFill,p.act*.16);
+    if(p.tint>.01)masked(g,p.id,PU,warmFill,p.tint*.42);
+    const fa=1-p.wash*.92;
+    if(fa>.02){
+      plateExpr(p,PEX);const wr=(p.holdT>0||p.wrongT>0)&&p.id==='LR',gx=hs(hd,11)*(wr?-1.3:.9)+(wr?-9:0),pe=P[p.id+'e'];
+      g.save();g.globalAlpha*=fa;g.translate(pe.ax+gx,pe.ay);g.scale(1,1-.5*clamp(PEX.n,0,1));g.drawImage(pick(pe,PU).c,pe.ox-pe.ax,pe.oy-pe.ay,pe.w,pe.h);g.restore();
+      const gl=clamp((PEX.e-.55)*.55,0,.8);
+      if(gl>.02){g.save();g.globalCompositeOperation='lighter';g.globalAlpha*=gl*fa;g.translate(pe.ax+gx,pe.ay);g.scale(.7,.7);dp(g,p.side==='L'?'egL':'egR');g.restore()}
+      const ps=P[p.id+'s'];
+      if(ps){g.save();g.globalAlpha*=fa;g.translate(ps.ax,ps.ay-(PEX.s-.5)*8);g.rotate((PEX.s-.5)*.06);g.scale(1,.55+.45*clamp(PEX.s,0,1.2));g.drawImage(pick(ps,PU).c,ps.ox-ps.ax,ps.oy-ps.ay,ps.w,ps.h);g.restore()}
+    }
+    g.restore();
+  }
+  function drawCracks(g,s){
+    for(const f of FX){if(!f.on||f.ty!==3||f.nm!==s)continue;const k=f.t/f.d,al=1-sstep(.55,1,k),L=f.s*sstep(0,.1,k);
+      g.save();g.translate(f.x,f.y);g.rotate(f.r);g.lineCap='round';g.lineJoin='round';
+      const kx=[-.5,-.25,0,.28,.5],ky=[0,Math.sin(f.a)*12,-Math.cos(f.a*1.7)*14,Math.sin(f.a*2.3)*10,0];
+      const path=()=>{g.beginPath();for(let i=0;i<5;i++){const x=kx[i]*L,y=ky[i];if(i)g.lineTo(x,y);else g.moveTo(x,y)}};
+      g.strokeStyle='rgba(8,4,20,'+(al*.92)+')';g.lineWidth=5;path();g.stroke();
+      g.save();g.translate(0,-2.6);g.strokeStyle='rgba(250,246,255,'+al+')';g.lineWidth=2.2;path();g.stroke();g.restore();
+      g.strokeStyle='rgba(200,170,255,'+(al*.8)+')';g.lineWidth=1.6;g.beginPath();g.moveTo(kx[2]*L,ky[2]);g.lineTo(kx[2]*L+L*.14,ky[2]+L*.12);g.moveTo(kx[3]*L,ky[3]);g.lineTo(kx[3]*L-L*.1,ky[3]-L*.12);g.stroke();
+      g.restore()}
+  }
+  function drawHalf(g,s){
+    const h=H[s],sg=s==='L'?-1:1;
+    g.save();g.translate(642+h.x.x+E.gap*.5*sg,620+h.y.x+E.slip*.5*sg);g.rotate(h.r.x+sg*E.slip*.0008);g.translate(-642,-620);
+    dp(g,s+'h');sweepsFor(g,s+'h');
+    const eye=s==='L'?E.eL:E.eR,nar=s==='L'?E.nL:E.nR,sm=s==='L'?E.sL:E.sR,pe=P['e'+s],gk=s==='L'?1:.5;
+    g.save();g.translate(pe.ax+E.gx*gk,pe.ay+E.gy*gk);g.scale(1,1-.5*clamp(nar,0,1));g.drawImage(pick(pe,PU).c,pe.ox-pe.ax,pe.oy-pe.ay,pe.w,pe.h);g.restore();
+    const gl=clamp((eye-.55)*.6,0,.85);
+    if(gl>.02){g.save();g.globalCompositeOperation='lighter';g.globalAlpha=gl;g.translate(pe.ax+E.gx*gk,pe.ay+E.gy*gk);dp(g,s==='L'?'egL':'egR');g.restore()}
+    const ps=P['s'+s];
+    g.save();g.translate(ps.ax,ps.ay-(sm-.5)*10);g.rotate(sg*-(sm-.5)*.05);g.scale(1,.55+.45*clamp(sm,0,1.2));g.drawImage(pick(ps,PU).c,ps.ox-ps.ax,ps.oy-ps.ay,ps.w,ps.h);g.restore();
+    drawCracks(g,s);
+    g.restore();
+  }
+  function drawHistoryCore(g,d,alpha){
+    const rx=(hs(d,0)-M.x)/K,ry=(hs(d,1)-M.y)/K,gap=hs(d,8),slip=hs(d,9);
+    g.save();g.globalAlpha*=alpha;g.translate(rx,ry);g.globalCompositeOperation='screen';
+    for(const s of ['R','L']){const L=s==='L',sg=L?-1:1,hx=hs(d,L?14:17),hy=hs(d,L?15:18),hr=hs(d,L?16:19),nar=hs(d,L?4:5),sm=hs(d,L?6:7);
+      g.save();g.translate(642+hx+gap*.5*sg,620+hy+slip*.5*sg);g.rotate(hr+sg*slip*.0008);g.translate(-642,-620);dp(g,s+'h');
+      const pe=P['e'+s];g.save();g.translate(pe.ax+hs(d,11)*(L?1:.5),pe.ay);g.scale(1,1-.5*clamp(nar,0,1));g.drawImage(pick(pe,PU).c,pe.ox-pe.ax,pe.oy-pe.ay,pe.w,pe.h);g.restore();
+      const ps=P['s'+s];g.save();g.translate(ps.ax,ps.ay-(sm-.5)*10);g.scale(1,.55+.45*clamp(sm,0,1.2));g.drawImage(pick(ps,PU).c,ps.ox-ps.ax,ps.oy-ps.ay,ps.w,ps.h);g.restore();g.restore()}
+    g.restore();
+  }
+  function rigFull(g,x,y){
+    g.save();g.translate(x,y);
+    g.fillStyle='rgba(0,0,0,.22)';g.beginPath();g.ellipse(0,26,46,20,0,0,TAU);g.fill();
+    const c=clamp(M.cs.x,0,.06);if(c>.002){const a=Math.atan2(M.cn.y,M.cn.x);g.rotate(a);g.scale(1-c,1);g.rotate(-a)}
+    g.scale(K,K);g.translate(-CX,-CY);
+    drawPlate(g,PL[2]);drawPlate(g,PL[3]);drawPlate(g,PL[0]);drawPlate(g,PL[1]);
+    // Visual (10) construction: a single hidden backing prevents alpha holes under all separation envelopes.
+    if(P.coreBacking){g.save();g.globalAlpha=.58+clamp((E.gap+Math.abs(E.slip))*.012,0,.4);dp(g,'coreBacking');g.restore()}
+    if(E.G>.02){
+      const gx=(hs(.14,0)-M.x)/K*.9,gy=(hs(.14,1)-M.y)/K*.9;
+      g.save();g.globalAlpha=clamp(E.G,0,1)*.26;g.translate(gx-11*E.G,gy+7*E.G);dp(g,'ghost');g.restore();
+      drawHistoryCore(g,.14,clamp(E.G,0,1)*.44);
+    }
+    const sa=.5+E.fl*.5+E.gap*.01;g.save();g.globalCompositeOperation='lighter';g.globalAlpha=clamp(sa,0,1)*(.45+clamp(E.gap/30,0,.5));g.translate(E.gap*0+0,0);dp(g,'seam');g.restore();
+    drawHalf(g,'R');drawHalf(g,'L');
+    g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.2+E.fl*.45+clamp(E.gap/70,0,.35);dp(g,'seam');g.restore();
+    for(const a of ACC){
+      const ppu=PU*a.len/300;g.save();g.translate(a.x+a.sx.x,a.y+a.sy.x);g.rotate(a.rot+a.sr.x);g.scale(a.len/300,a.len/300);dp(g,a.t,ppu);
+      if(a.t==='eshard'&&M.sf>.02){g.globalCompositeOperation='lighter';g.globalAlpha=M.sf*.85;g.scale(1.5,1.5);dp(g,'egL')}
+      g.restore();
+    }
+    g.restore();
+  }
+  function drawHeld(g){
+    if(!M.copyOn&&M.copyFx<=0)return;
+    let a=1;if(M.copyFx>0)a=clamp(M.copyFx/.45,0,1)*(.55+.45*Math.sin(simT*70));else if(M.copyT<.8)a=.65+.35*Math.sin(simT*45);
+    holdPos(_hp);
+    g.save();g.translate(_hp[0],_hp[1]);g.rotate(M.aim);g.scale(WS,WS);g.globalAlpha=a;
+    const __hw=__weaponArt().real;
+    g.save();g.scale(1.08,1.14);maskedEntry(g,__hw,PPW*WS,solidFill('rgba(165,105,255,1)'),.5,'lighter');g.restore();
+    dpEntry(g,__hw,PPW*WS);
+    const sp=(simT*.45)%3;if(sp<.7&&M.copyFx<=0)maskedEntry(g,__hw,PPW*WS,sweepFill(sp/.7,.4,.14),.35,null);
+    g.restore();
+  }
+  // ---------- foe ----------
+  function foeReal(g,x,y){
+    g.save();g.translate(x,y);g.fillStyle='rgba(0,0,0,.22)';g.beginPath();g.ellipse(0,8,32,14,0,0,TAU);g.fill();
+    foeShape(g,false);
+    if(F.flash>0){g.globalAlpha=F.flash*.7;g.fillStyle='#fff';g.beginPath();g.arc(0,0,30,0,TAU);g.fill();g.globalAlpha=1}
+    if(F.hl>=0){g.save();g.beginPath();g.arc(0,0,31,0,TAU);g.clip();const p=F.hl,gr=g.createLinearGradient(-40+p*80-14,-20,-40+p*80+14,20);gr.addColorStop(0,'rgba(200,170,255,0)');gr.addColorStop(.5,'rgba(255,255,255,.75)');gr.addColorStop(1,'rgba(200,170,255,0)');g.fillStyle=gr;g.fillRect(-40,-40,80,80);g.restore()}
+    g.save();g.rotate(F.aim);g.fillStyle='#2a160c';g.beginPath();g.moveTo(25,0);g.lineTo(15,-6);g.lineTo(15,6);g.closePath();g.fill();
+    g.translate(34+F.rec.x*.1,0);g.scale(WS,WS);dp(g,'wpn',PPW*WS);
+    if(F.wspec>=0)masked(g,'wpn',PPW*WS,sweepFill(F.wspec,.5,.16),.95*Math.sin(Math.PI*F.wspec),null);
+    g.restore();g.restore();
+  }
+  function foeMV(g,x,y){
+    g.save();g.translate(x,y);let p=P.foeMV;g.drawImage(pick(p,PPW).c,p.ox,p.oy,p.w,p.h);
+    g.rotate(F.aim);g.translate(34,0);g.scale(WS,WS);p=P.wpnMV;g.drawImage(pick(p,PPW*WS).c,p.ox,p.oy,p.w,p.h);g.restore();
+  }
+  function clipHalf(g,x,y,c,sn,ub,realSide){
+    const L=400,qx=x+c*ub,qy=y+sn*ub,dx=-sn*L,dy=c*L,s=realSide?1:-1,nx=c*L*s,ny=sn*L*s;
+    g.beginPath();g.moveTo(qx-dx,qy-dy);g.lineTo(qx+dx,qy+dy);g.lineTo(qx+dx+nx,qy+dy+ny);g.lineTo(qx-dx+nx,qy-dy+ny);g.closePath();g.clip();
+  }
+  function drawSite(g,x,y,band,gA,tear,ang,R,real,wrong){
+    const slabs=tear>.02?3:1,c=Math.cos(ang),sn=Math.sin(ang),ub=lerp(-R,R,band);
+    for(let s=0;s<slabs;s++){
+      g.save();
+      if(slabs>1){const y0=[-R*1.8,-R*.18,R*.22][s],y1=[-R*.18,R*.22,R*1.8][s],ox=[-1,1.2,-.8][s]*tear*9;g.beginPath();g.rect(x-R*2.4,y+y0,R*4.8,y1-y0);g.clip();g.translate(ox,0)}
+      if(band>.002){
+        g.save();clipHalf(g,x,y,c,sn,ub,true);real();g.restore();
+        g.save();clipHalf(g,x,y,c,sn,ub,false);wrong(1);g.restore();
+        g.save();g.translate(x,y);g.rotate(ang);g.globalCompositeOperation='lighter';
+        let gr=g.createLinearGradient(ub-9,0,ub+9,0);gr.addColorStop(0,'rgba(170,120,255,0)');gr.addColorStop(.5,'rgba(255,255,255,.85)');gr.addColorStop(1,'rgba(170,120,255,0)');
+        g.fillStyle=gr;g.fillRect(ub-9,-R*1.05,18,R*2.1);g.restore();
+      }else{real();if(gA>.01)wrong(gA)}
+      g.restore();
+    }
+  }
+  function drawMirrorEntity(g){
+    if(A2.on&&(A2.band>.002||A2.ghostA>.01))drawSite(g,M.x,M.y,A2.band,A2.ghostA,A2.tear,A2.ang,72,()=>rigFull(g,M.x,M.y),a=>{g.save();g.globalAlpha=a;foeMV(g,M.x,M.y);g.restore()});
+    else rigFull(g,M.x,M.y);
+  }
+  function drawFoeEntity(g){
+    if(A2.on&&(A2.band>.002||A2.ghostA>.01))drawSite(g,F.x,F.y,A2.band,A2.ghostA,A2.tear,A2.ang+Math.PI,72,()=>foeReal(g,F.x,F.y),a=>{g.save();g.globalAlpha=a*.95;g.translate(F.x,0);g.scale(-1,1);g.translate(-F.x,0);rigFull(g,F.x,F.y);g.restore()});
+    else foeReal(g,F.x,F.y);
+  }
+  function strips(g,x,y,R,off,fn){
+    g.save();g.beginPath();for(let k=0;k<6;k+=2)g.rect(x-R*1.6,y-R+k*(2*R/6),R*3.2,2*R/6);g.clip();g.translate(off,0);fn();g.restore();
+    g.save();g.beginPath();for(let k=1;k<6;k+=2)g.rect(x-R*1.6,y-R+k*(2*R/6),R*3.2,2*R/6);g.clip();g.translate(-off,0);fn();g.restore();
+  }
+  function drawResidue(g){
+    if(A2.res<=0)return;const k=A2.res/.14;g.save();g.globalAlpha=.5*k;
+    strips(g,A2.rx,A2.ry,72,4*k,()=>rigFull(g,A2.rx,A2.ry));
+    strips(g,A2.fx,A2.fy,72,4*k,()=>foeReal(g,A2.fx,A2.fy));
+    g.restore();
+  }
+
   // Instance initialisation. Gold builds these inside the demo's resetAll();
   // only the state-construction part belongs in production.
   PL = [
@@ -864,8 +1077,13 @@ function createMirrorInstance(options) {
     tw, twStep, later, qStep, addSweep, sweepStep, sweepsFor,
     fxNew, chips, flecks, ripple, addCrack, fxStep,
     mkPlate, mkAcc,
+    // D3 real-weapon visual adapter
+    setWeaponArt, weaponArt: () => __weaponArt(),
     // D3 authored choreography (reports edges; performs no gameplay)
     castA1, stepA1, castA2, stepA2, a2Snap, a1Frame, sliceState, holdPos,
+    drawA1World, drawSite, drawHalf, clipHalf, strips, drawResidue, drawPlate,
+    rigFull, drawHeld, drawMirrorEntity, drawFoeEntity, drawCracks, drawHistoryCore,
+    foeReal, foeMV,
     get A1() { return A1; }, get A2() { return A2; },
     on, off,
     setApplyExchange(v) { __applyExchange = !!v; },
@@ -937,8 +1155,10 @@ g.APEX_MIRROR_GOLD = {
   regionSha256: '6c659ed0e821addf580e02e9b635fd090a4bfc1c9e482f2aa86970e9c779aa11',
   checkpoint: 'D3',
   d2RegionSha256: '94f56ac4bbc75a30744005ec39615595e1c614ae0ab84d05021db2364f3f0ab5',
-  d3RegionSha256: '71bd288f177bf2f0d22b7b45ace24488ce6839f2ca77ebb3ddac2c46e6923eff',
+  d3RegionSha256: 'f99e943af77245dd41a9f124ef0e69fca6e7da196a5c8ca6114130d781cf7c19',
   d3RemovedMutations: [{"removed":"if(!wf){M.copyOn=true;M.copyT=6;M.copyFx=0}","replacedWith":"if(!wf){M.copyOn=true;M.copyFx=0;emit('ownEdge',{t:A1.t,u:u})}","why":"Gold granted a 6s demo copy at OWN. Production owns equip + lifetime (E)."},{"removed":"F.wspec=0;","replacedWith":"","why":"mutated the demo foe actor; production has no such field."},{"removed":"Math[random]()<dt*28","replacedWith":"__rand()<dt*28","why":"presentation must never consume the gameplay/combat RNG stream."},{"removed":"M.x=fx;M.y=fy;F.x=ox;F.y=oy;","replacedWith":"if(__applyExchange){M.x=fx;M.y=fy;F.x=ox;F.y=oy;}","why":"presentation may not relocate real fighters; gameplay owns the atomic swap."}],
+  d3WeaponArtSites: ["A1 reflection + peel slices use the real copied weapon atlas","flat-in-plate sheen masks the real weapon silhouette","sliceState geometry derives from the real weapon bounds","held weapon after OWN is the real copied weapon","held-weapon sweep masks the real weapon","peel-edge flecks follow the real weapon bounds"],
+  weaponEntryFromImage, dpEntry, maskedEntry,
   createMirrorInstance, mulberry32,
   // material / raster core
   P, PTS, PLI, NV, STOPS, ASSET_NAMES, GOLD_REF,

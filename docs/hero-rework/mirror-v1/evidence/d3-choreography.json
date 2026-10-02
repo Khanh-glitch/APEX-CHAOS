@@ -1,0 +1,135 @@
+{
+  "generatedAt": "2026-10-02T07:15:51.190Z",
+  "weapons": {
+    "SNIPER": {
+      "sha": "a65571de78b903be",
+      "source": "production",
+      "id": "SNIPER"
+    },
+    "BATTLE_AXE": {
+      "sha": "3b29ecb3029b1d56",
+      "source": "production",
+      "id": "BATTLE_AXE"
+    },
+    "PISTOL": {
+      "sha": "4583531a5be8d5d0",
+      "source": "production",
+      "id": "PISTOL"
+    },
+    "__goldFallback": {
+      "sha": "8b27abb3621fc9c9",
+      "source": "gold-demo-fallback",
+      "id": null
+    }
+  },
+  "frames": {
+    "a1-attached-reflection": "5519f05791a56003",
+    "a1-peel": "35274316bd51badb",
+    "a1-reform-own-edge": "5f5f7f7ac01ddd46",
+    "a1-whiff": "fcbce7287f7ef9be",
+    "a2-pre-snap": "458c496951de9409",
+    "a2-snap": "710afcddde771c16",
+    "a2-post-residue": "20a7364f3621b3b0"
+  },
+  "gates": {
+    "D3-W1-real-weapon-art-accepted": {
+      "pass": true,
+      "detail": {
+        "SNIPER": {
+          "sha": "a65571de78b903be",
+          "source": "production",
+          "id": "SNIPER"
+        },
+        "BATTLE_AXE": {
+          "sha": "3b29ecb3029b1d56",
+          "source": "production",
+          "id": "BATTLE_AXE"
+        },
+        "PISTOL": {
+          "sha": "4583531a5be8d5d0",
+          "source": "production",
+          "id": "PISTOL"
+        },
+        "__goldFallback": {
+          "sha": "8b27abb3621fc9c9",
+          "source": "gold-demo-fallback",
+          "id": null
+        }
+      }
+    },
+    "D3-W2-three-real-weapons-render-distinctly": {
+      "pass": true,
+      "detail": [
+        {
+          "weapon": "SNIPER",
+          "sha": "a65571de78b903be"
+        },
+        {
+          "weapon": "BATTLE_AXE",
+          "sha": "3b29ecb3029b1d56"
+        },
+        {
+          "weapon": "PISTOL",
+          "sha": "4583531a5be8d5d0"
+        }
+      ]
+    },
+    "D3-W3-real-weapon-differs-from-gold-demo-placeholder": {
+      "pass": true,
+      "detail": {
+        "goldFallback": "8b27abb3621fc9c9",
+        "real": [
+          "a65571de78b903be",
+          "3b29ecb3029b1d56",
+          "4583531a5be8d5d0"
+        ]
+      }
+    },
+    "D3-W4-no-placeholder-when-production-supplies-art": {
+      "pass": true,
+      "detail": null
+    },
+    "D3-F1-seven-choreography-frames-captured": {
+      "pass": true,
+      "detail": [
+        "a1-attached-reflection",
+        "a1-peel",
+        "a1-reform-own-edge",
+        "a1-whiff",
+        "a2-pre-snap",
+        "a2-snap",
+        "a2-post-residue"
+      ]
+    },
+    "D3-F2-all-frames-distinct": {
+      "pass": true,
+      "detail": {
+        "a1-attached-reflection": "5519f05791a56003",
+        "a1-peel": "35274316bd51badb",
+        "a1-reform-own-edge": "5f5f7f7ac01ddd46",
+        "a1-whiff": "fcbce7287f7ef9be",
+        "a2-pre-snap": "458c496951de9409",
+        "a2-snap": "710afcddde771c16",
+        "a2-post-residue": "20a7364f3621b3b0"
+      }
+    },
+    "D3-F3-a1-peel-differs-from-attached": {
+      "pass": true,
+      "detail": null
+    },
+    "D3-F4-whiff-differs-from-valid-peel": {
+      "pass": true,
+      "detail": null
+    },
+    "D3-F5-a2-snap-differs-from-pre-snap": {
+      "pass": true,
+      "detail": null
+    },
+    "D3-99-no-page-errors": {
+      "pass": true,
+      "detail": []
+    }
+  },
+  "failures": [],
+  "pass": true
+}

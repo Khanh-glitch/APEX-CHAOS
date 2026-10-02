@@ -155,9 +155,59 @@ a2Region = stripMutation(a2Region,
 // REBASED across the exchange, never cleared.
 if (!a2Region.includes('shiftHist(fx-ox,fy-oy)')) fail('A2 history rebase lost');
 
-const d3Region = [a1Region, a2Region].join('\n\n');
+// Draw helpers the A1/A2 sites need: plate/half/site/residue rendering.
+// Everything from the RENDERING banner up to the projectile marker; the
+// shard/node/projectile draws after it belong to D4.
+let renderRegion = src.slice(BANNER('RENDERING — MIRROR RIG (raster parts only)'));
+const PROJ_MARK = '// ---------- projectiles ----------';
+const pm = renderRegion.indexOf(PROJ_MARK);
+if (pm < 0) fail('projectile marker not found in RENDERING');
+renderRegion = renderRegion.slice(0, pm).replace(/\s+$/, '');
+
+// --- REAL ARSENAL WEAPON ADAPTER (section 14 CRITICAL requirement) ---
+// Gold draws its own demo weapon rasters P.wpnMV / P.wpn. The authored
+// choreography (flat reflected image -> peel -> lifted slices -> material
+// gain -> held weapon) stays exactly as Gold wrote it; ONLY the source
+// imagery becomes the actual snapshotted Arsenal weapon.
+const WEAPON_SITES = [];
+function swapWeaponArt(region, needle, replacement, note) {
+  if (!region.includes(needle)) fail(`weapon art site not found: ${needle}`);
+  WEAPON_SITES.push({ site: needle, note });
+  return region.replace(needle, replacement);
+}
+a1Region = swapWeaponArt(a1Region,
+  "const pM=P.wpnMV,pR=P.wpn,ppu=PPW*WS*A1SS",
+  "const __wa=__weaponArt(),pM=__wa.mv,pR=__wa.real,ppu=PPW*WS*A1SS",
+  'A1 reflection + peel slices use the real copied weapon atlas');
+a1Region = swapWeaponArt(a1Region,
+  "masked(g,'wpnMV',ppu,sweepFill(clamp((A1.u-.12)/.14,0,1),.4,.2),.9*A1.rv,null)",
+  "maskedEntry(g,pM,ppu,sweepFill(clamp((A1.u-.12)/.14,0,1),.4,.2),.9*A1.rv,null)",
+  'flat-in-plate sheen masks the real weapon silhouette');
+a1Region = swapWeaponArt(a1Region,
+  "const pM=P.wpnMV,wl=pM.w/A1N,hh=pM.h/A1R",
+  "const pM=__weaponArt().mv,wl=pM.w/A1N,hh=pM.h/A1R",
+  'sliceState geometry derives from the real weapon bounds');
+renderRegion = swapWeaponArt(renderRegion,
+  "g.save();g.scale(1.08,1.14);masked(g,'wpn',PPW*WS,solidFill('rgba(165,105,255,1)'),.5,'lighter');g.restore();\n  dp(g,'wpn',PPW*WS);",
+  "const __hw=__weaponArt().real;\n  g.save();g.scale(1.08,1.14);maskedEntry(g,__hw,PPW*WS,solidFill('rgba(165,105,255,1)'),.5,'lighter');g.restore();\n  dpEntry(g,__hw,PPW*WS);",
+  'held weapon after OWN is the real copied weapon');
+renderRegion = swapWeaponArt(renderRegion,
+  "const sp=(simT*.45)%3;if(sp<.7&&M.copyFx<=0)masked(g,'wpn',PPW*WS,sweepFill(sp/.7,.4,.14),.35,null);",
+  "const sp=(simT*.45)%3;if(sp<.7&&M.copyFx<=0)maskedEntry(g,__hw,PPW*WS,sweepFill(sp/.7,.4,.14),.35,null);",
+  'held-weapon sweep masks the real weapon');
+a1Region = swapWeaponArt(a1Region,
+  "const kf=A1.q*1.35*A1N,i=A1N-kf,lx=P.wpnMV.ox+i*(P.wpnMV.w/A1N)-(P.wpnMV.ox+P.wpnMV.w/2);",
+  "const __fm=__weaponArt().mv,kf=A1.q*1.35*A1N,i=A1N-kf,lx=__fm.ox+i*(__fm.w/A1N)-(__fm.ox+__fm.w/2);",
+  'peel-edge flecks follow the real weapon bounds');
+if (/P\.wpnMV|P\.wpn\b|'wpnMV'|'wpn'/.test(a1Region))
+  fail('A1 still references Gold demo weapon rasters');
+
+const d3Region = [a1Region, a2Region, renderRegion].join('\n\n');
 const D3_REQUIRED = ['function castA1(', 'function stepA1(', 'function a1Frame(', 'function sliceState(',
-  'function holdPos(', 'function castA2(', 'function stepA2(', 'function a2Snap('];
+  'function holdPos(', 'function castA2(', 'function stepA2(', 'function a2Snap(',
+  'function drawA1World(', 'function drawSite(', 'function drawHalf(', 'function clipHalf(',
+  'function strips(', 'function drawResidue(', 'function drawPlate(', 'function rigFull(',
+  'function drawHeld(', 'function drawMirrorEntity(', 'function drawFoeEntity('];
 for (const r of D3_REQUIRED) if (!d3Region.includes(r)) fail(`D3 region lost required symbol: ${r}`);
 if (/Math\.random/.test(d3Region)) fail('D3 region still consumes Math.random');
 const d3Sha = crypto.createHash('sha256').update(d3Region).digest('hex');
@@ -248,6 +298,38 @@ ${rasterRegion}
 
 ${assetKept}
 
+// Entry-based variants of Gold's dp()/masked(). Gold looks art up by NAME in
+// its own atlas; the real Arsenal weapon is not in that atlas, so these take
+// the atlas ENTRY directly. The drawing is otherwise identical to Gold's.
+function dpEntry(g, p, ppu) { g.drawImage(pick(p, ppu || PU).c, p.ox, p.oy, p.w, p.h); }
+function maskedEntry(g, p, ppu, fill, alpha, comp) {
+  const l = pick(p, ppu), w = l.c.width, h = l.c.height;
+  SG.globalCompositeOperation = 'source-over'; SG.clearRect(0, 0, 1100, 1100);
+  SG.save(); fill(SG, w, h); SG.restore();
+  SG.globalCompositeOperation = 'destination-in'; SG.drawImage(l.c, 0, 0);
+  SG.globalCompositeOperation = 'source-over';
+  g.save(); g.globalAlpha *= alpha; if (comp) g.globalCompositeOperation = comp;
+  g.drawImage(SC, 0, 0, w, h, p.ox, p.oy, p.w, p.h); g.restore();
+}
+
+// Build a Gold-shaped atlas entry (with mip levels) from an arbitrary image
+// source, so a REAL Arsenal weapon can flow through Gold's own draw path.
+function weaponEntryFromImage(img, opts) {
+  const o = opts || {};
+  const w = o.w || img.width, h = o.h || img.height;
+  const ox = o.ox == null ? -w / 2 : o.ox, oy = o.oy == null ? -h / 2 : o.oy;
+  const lv = [];
+  for (const sc of (o.scales || [1, 0.5, 0.25])) {
+    const c = mk(Math.max(2, w * sc), Math.max(2, h * sc));
+    const x = c.getContext('2d');
+    x.imageSmoothingEnabled = true;
+    x.drawImage(img, 0, 0, c.width, c.height);
+    lv.push({ s: sc, c });
+  }
+  lv.sort((a, b) => a.s - b.s);
+  return { w, h, ox, oy, ax: 0, ay: 0, lv };
+}
+
 // =====================================================================================
 // CHECKPOINT D2 — temporal history + false-reflection expression + locomotion
 // =====================================================================================
@@ -292,6 +374,44 @@ ${d2Region.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
   // REBASES history, but does not move the actors -- gameplay already did.
   let __applyExchange = !!opts.applyExchange;
 
+  // ---- REAL ARSENAL WEAPON SOURCE (section 14) ---------------------------
+  // The authored A1 choreography is unchanged; only the imagery it reflects
+  // and peels comes from the actual snapshotted weapon. Falls back to Gold's
+  // demo raster ONLY when production has not supplied one, so a missing
+  // adapter is visible rather than silently shipping a placeholder.
+  let __wpnArt = null;
+  function __weaponArt() {
+    return __wpnArt || { mv: P.wpnMV, real: P.wpn, source: 'gold-demo-fallback' };
+  }
+  function setWeaponArt(art) {
+    // art: { mv, real } atlas entries, or { image } / { mvImage, realImage }
+    if (!art) { __wpnArt = null; return null; }
+    if (art.mv && art.real) { __wpnArt = { mv: art.mv, real: art.real, source: art.source || 'production' }; return __wpnArt; }
+    const mvImg = art.mvImage || art.image, reImg = art.realImage || art.image;
+    if (!mvImg || !reImg) return null;
+    // Normalise to Gold's AUTHORED weapon bounds. The real Arsenal PNGs are
+    // far larger than Gold's demo raster, and the peel geometry (slice width
+    // wl = w/A1N, lift, travel) is authored against those bounds -- feeding
+    // raw pixel sizes would scale the whole choreography wrongly. Fit by the
+    // longer axis so silhouette proportions are preserved.
+    const ref = P.wpnMV;
+    const fit = art.fitToGold === false ? null : ref;
+    let box = { w: art.w || mvImg.width, h: art.h || mvImg.height };
+    if (fit) {
+      const k = Math.min(fit.w / mvImg.width, fit.h / mvImg.height);
+      box = { w: mvImg.width * k, h: mvImg.height * k };
+    }
+    const spec = { ...art, w: box.w, h: box.h, ox: -box.w / 2, oy: -box.h / 2 };
+    __wpnArt = {
+      mv: weaponEntryFromImage(mvImg, spec),
+      real: weaponEntryFromImage(reImg, spec),
+      goldRef: { w: ref.w, h: ref.h }, fitted: !!fit,
+      source: art.source || 'production',
+      weaponId: art.weaponId || null,
+    };
+    return __wpnArt;
+  }
+
 ${d3Region.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
 
   // Instance initialisation. Gold builds these inside the demo's resetAll();
@@ -322,8 +442,13 @@ ${d3Region.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
     tw, twStep, later, qStep, addSweep, sweepStep, sweepsFor,
     fxNew, chips, flecks, ripple, addCrack, fxStep,
     mkPlate, mkAcc,
+    // D3 real-weapon visual adapter
+    setWeaponArt, weaponArt: () => __weaponArt(),
     // D3 authored choreography (reports edges; performs no gameplay)
     castA1, stepA1, castA2, stepA2, a2Snap, a1Frame, sliceState, holdPos,
+    drawA1World, drawSite, drawHalf, clipHalf, strips, drawResidue, drawPlate,
+    rigFull, drawHeld, drawMirrorEntity, drawFoeEntity, drawCracks, drawHistoryCore,
+    foeReal, foeMV,
     get A1() { return A1; }, get A2() { return A2; },
     on, off,
     setApplyExchange(v) { __applyExchange = !!v; },
@@ -397,6 +522,8 @@ g.APEX_MIRROR_GOLD = {
   d2RegionSha256: '${d2Sha}',
   d3RegionSha256: '${d3Sha}',
   d3RemovedMutations: ${JSON.stringify(D3_MUTATIONS)},
+  d3WeaponArtSites: ${JSON.stringify(WEAPON_SITES.map((w) => w.note))},
+  weaponEntryFromImage, dpEntry, maskedEntry,
   createMirrorInstance, mulberry32,
   // material / raster core
   P, PTS, PLI, NV, STOPS, ASSET_NAMES, GOLD_REF,
