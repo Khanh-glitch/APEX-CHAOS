@@ -28,6 +28,12 @@ APEX remains authoritative only for balance/data systems that Gold does not mode
 - canonical timeline: `A1TS = 1.6 s`;
 - NOTICE/LOCK/REFLECT/PEEL/REFORM run from the Gold state machine;
 - OWN threshold is `u >= .58`; under canonical 1/120 stepping the real edge occurs on the first fixed step crossing that threshold (nominal 0.928 s, fixed-step realization about 0.933 s);
+  - **Timing correction (pre-F1 authority hygiene, binding):** the AUTHORED
+    threshold is `u >= .58` on `A1TS = 1.6` (nominal `0.928 s`). The
+    EXECUTABLE truth under the canonical repeated `1/120` float accumulation
+    is the FIRST FIXED-STEP CROSSING of that threshold: **step 112,
+    `~0.93333 s`**. Raw `after(.928)` (or any independent approximate timer)
+    is forbidden; the edge must come from the shared fixed-step accumulator.
 - create/equip the real copy **on the Gold OWN edge**, not from an independent approximate timer;
 - copy lifetime = **6 s starting at materialization/OWN**;
 - A1 action visually ends at `u >= .92` (nominal 1.472 s, fixed-step crossing approximately 1.475 s);
@@ -48,6 +54,16 @@ Whiff follows Gold's whiff choreography but never creates a reflected/solid copy
 ### Gold-first behavior
 - canonical `A2TS = 1.0 s`;
 - telegraph/snap beat = `u = .25` = exactly **0.25 s** at 1/120;
+  - **SUPERSEDED WORDING — Timing correction (pre-F1 authority hygiene,
+    binding).** The line above states the AUTHORED threshold only. It must not
+    be read as an executable timer value. Gold semantics are unchanged:
+    the AUTHORED snap threshold is `u >= .25` on `A2TS = 1.0` (nominal
+    `0.25 s`). The EXECUTABLE truth under the canonical repeated `1/120`
+    float accumulation is the FIRST FIXED-STEP CROSSING of that threshold:
+    **step 31, `~0.25833 s`** — not step 30. Therefore a raw `after(.25)`
+    scheduler is forbidden; the SNAP request must come from the shared
+    fixed-step accumulator (`mirrorAdvance`), and it resolves in the
+    post-movement seam, never on an independent approximate timer.
 - resolve after the frame's normal movement, matching Gold's movement->A2 order;
 - snapshot both fighters' **current live positions at the snap edge** and exchange those exact coordinates;
 - do not use cast-time coordinates;

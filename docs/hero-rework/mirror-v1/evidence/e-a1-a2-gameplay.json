@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T07:54:04.010Z",
+  "generatedAt": "2026-10-02T09:53:01.685Z",
   "gates": {
     "E-A1-01-no-copy-at-cast": {
       "pass": true,
@@ -291,6 +291,159 @@
           "ok": true
         },
         "note": "presentation busy 1.8s is not a gameplay lock"
+      }
+    },
+    "E-A1-05-copy-holder-is-fresh-not-inherited": {
+      "pass": true,
+      "detail": {
+        "cast": true,
+        "sameWeaponIdentity": true,
+        "distinctHolderInstances": true,
+        "copyPhase": "READY",
+        "copyElapsed": 0,
+        "copyShotsFired": 0,
+        "copyConsumed": false,
+        "opponentUsedStateAtSample": {
+          "elapsed": 0.4,
+          "shotsFired": 1,
+          "phase": "FIRING"
+        },
+        "note": "used mutable holder state never transfers across a weaponId match"
+      }
+    },
+    "E-A1-18-A1-does-not-root-native-movement": {
+      "pass": true,
+      "detail": {
+        "cast": true,
+        "baseSpeed": 520,
+        "travelledPx": 494,
+        "expectedApproxPx": 494,
+        "ownAtStep": 112,
+        "ownDisplacementPx": 485.3,
+        "A1EndBeforeWindowEnd": null,
+        "heldAfterWindow": "PISTOL",
+        "note": "per-frame displacement bounded by production locomotion while A1 stays active"
+      }
+    },
+    "E-A2-04-live-post-movement-coordinates": {
+      "pass": true,
+      "detail": {
+        "aFinal": [
+          434.33,
+          700
+        ],
+        "bFinal": [
+          434.33,
+          300
+        ],
+        "selfFrom": {
+          "x": 434.33333333333275,
+          "y": 300
+        },
+        "opponentFrom": {
+          "x": 434.33333333333275,
+          "y": 700
+        },
+        "castA": {
+          "x": 300,
+          "y": 300
+        },
+        "castB": {
+          "x": 300,
+          "y": 700
+        },
+        "baseSpeeds": [
+          520,
+          520
+        ],
+        "movedAPx": 130,
+        "movedBPx": 134.3,
+        "strideIntoSnapFramePx": 4.33,
+        "note": "finals equal the LIVE pre-snap samples, which differ from cast-time positions"
+      }
+    },
+    "E-A2-09-status-retention-own-statuses-survive-snap": {
+      "pass": true,
+      "detail": {
+        "swapped": true,
+        "mirrorStatuses": {
+          "STUN": true,
+          "CHILL": false
+        },
+        "opponentStatuses": {
+          "STUN": false,
+          "CHILL": true
+        },
+        "mirrorStunRemaining": [
+          4.9,
+          4.7
+        ],
+        "opponentChillRemaining": [
+          4.9,
+          4.7
+        ]
+      }
+    },
+    "E-A2-14-no-fabricated-teleport-path-contact": {
+      "pass": true,
+      "detail": {
+        "wallId": 1,
+        "fixtureGapCrossesWallBetweenEndpoints": true,
+        "finalA": [
+          700,
+          500
+        ],
+        "finalB": [
+          300,
+          500
+        ],
+        "expectA": [
+          700,
+          500
+        ],
+        "expectB": [
+          300,
+          500
+        ],
+        "worldWallCollisionsAfterSnap": 0,
+        "wallHp": 1000,
+        "note": "endpoints keep normal physics; only the gap must produce nothing"
+      }
+    },
+    "E-A2-20-history-handoff-payload-coherent": {
+      "pass": true,
+      "detail": {
+        "payload": {
+          "self": {
+            "id": 1,
+            "from": {
+              "x": 300,
+              "y": 500
+            },
+            "to": {
+              "x": 700,
+              "y": 500
+            }
+          },
+          "opponent": {
+            "id": 2,
+            "from": {
+              "x": 700,
+              "y": 500
+            },
+            "to": {
+              "x": 300,
+              "y": 500
+            }
+          },
+          "delta": {
+            "x": 400,
+            "y": 0
+          }
+        },
+        "deltaEqualsSelfToMinusSelfFrom": true,
+        "noHistoryClearInExchangePath": true,
+        "note": "payload is the exact truth G rebases Gold shiftHist from; never cleared here"
       }
     }
   },

@@ -21,6 +21,45 @@
 | Current runtime revision | **`20261002-mirror-v1-r19`** (38 versioned runtimes, `tools/testRuntimeRevisionGate.mjs` **PASS**) |
 | Build status | `pnpm build` **PASS** |
 
+### 1.1 Baseline Identity Law — SHA vs. branch (binding)
+
+The canonical Phase-2 baseline identity is the **commit SHA**, not any branch
+name:
+
+```
+CANONICAL PHASE-2 BASELINE SHA: b3d474ab22f9536cb1a4568c677333bcf22a8ee8
+Commit:  docs(mirror): establish phase-2 baseline after checkpoint E
+Parent:  37b2ca92f40666625c150b85d2a207c41bf8a951  (Checkpoint E closed)
+```
+
+Arena session branch names (e.g. `arena/01a0f862-apex-chaos`,
+`arena/01a0fbae-apex-chaos`) are **TRANSPORT ONLY**. `arena/01a0fbae-apex-chaos`
+happened to carry this baseline, but it is **not** permanently the only valid
+future branch. A future session may work on any newly assigned Arena working
+branch; the only requirement is that the branch **contains
+`b3d474ab22f9536cb1a4568c677333bcf22a8ee8` in its ancestry**
+(`git merge-base --is-ancestor b3d474ab… HEAD` must succeed) before any edit.
+A clean branch sitting behind the baseline must be fast-forwarded to it; a
+branch with legitimately newer work must preserve that delta — never reset
+blindly, never force-push.
+
+### 1.2 Pre-F1 Amendment (authority hygiene preflight)
+
+A small pre-F1 preflight landed directly on top of this baseline
+(`test(mirror): harden phase-2 authority and E preflight`). It changed
+**no E mechanic law** and added six local E proofs plus two cross-system
+ordering proofs (`E-A1-05`, `E-A1-18`, `E-A2-04`, `E-A2-09`, `E-A2-14`,
+`E-A2-20`; `E-A2-15`, `E-A2-16` in `tools/testMirrorA2Ordering.mjs`).
+
+One genuine defect was proven and minimally corrected during that preflight:
+the A2 coordinate exchange did not rebase the solid-wall sweep origin
+(`__hrWallPos`), so the frame after a swap swept the whole teleport gap
+against solid capsules (teleport behaved as a dash). The exchange now resets
+the sweep origin to the arrival points. Because production runtime changed,
+the runtime revision relocked **`20261002-mirror-v1-r19` →
+`20261002-mirror-v1-r20`**. All other statements in the §1 table were true at
+`b3d474ab` and remain true; F1 starts from the r20 relock.
+
 ---
 
 ## 2. Canonical Gold Identity (Unchanged & Binding)

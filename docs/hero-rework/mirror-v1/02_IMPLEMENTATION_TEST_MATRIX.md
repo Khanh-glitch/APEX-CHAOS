@@ -87,10 +87,10 @@ Parity tolerances must be derived from canonical output variance/scale. Never wi
 - **P12** stagger `.18+i*.06`, travel `.4`, fill/lock timing and ~1.20s activation match Gold trace.
 - **P13** no projectile routing before ACTIVE.
 - **P14** active lifetime 10s starts at ACTIVE.
-- **P15** per-owner network cap 3; new formation folds oldest Gold-equivalent node rather than silently failing.
+- **P15** ~~per-owner network cap 3; new formation folds oldest Gold-equivalent node rather than silently failing.~~ **SUPERSEDED (pre-F1 authority hygiene).** The "form a fourth and fold/retire the oldest" reading is not executable Gold law. Binding law per MIRROR owner: shard slots = **16**, shards per node = **5**, held for the node's whole life including fold-out. Three concurrent nodes own 15 of 16 shards, leaving exactly **1 free shard**, while `tryForm` requires 5 — so a fourth concurrent node is **UNPRODUCIBLE** through the shard economy and formation blocks naturally. P15 therefore tests: three concurrent node ownership consumes 15/16 slots and a fourth formation is blocked naturally by shard shortage (no retirement mechanic, no silent-failure fallback, no live fourth node).
 - **P16** fold completes ~.55s.
 - **P17** presentation and collision use identical node surface transform.
-- **P18** per-owner node lifecycle slots never exceed 4; active routing nodes never exceed 3; concurrent pre-active assemblies/folds match canonical Gold slot behavior.
+- **P18** ~~per-owner node lifecycle slots never exceed 4; active routing nodes never exceed 3; concurrent pre-active assemblies/folds match canonical Gold slot behavior.~~ **SUPERSEDED (pre-F1 authority hygiene).** Gold's 4-entry `ND` array is internal **storage headroom, not gameplay capacity**; treating it as a fourth gameplay slot is the trap that produced the superseded retirement prose. Binding law: P18 tests that **no hidden live fourth-node / oldest-ACTIVE retirement path is reachable** and that assembly/fold ownership never violates the **16/5 shard economy** (reserved shards leave FREE immediately, stay owned through fold-out, and concurrent node ownership can never require more than the 16 per-owner slots).
 
 ## R — projectile routing
 

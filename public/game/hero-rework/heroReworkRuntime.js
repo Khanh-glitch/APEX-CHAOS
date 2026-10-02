@@ -1537,6 +1537,14 @@
         const ax = a.x, ay = a.y, bx = b.x, by = b.y;
         a.x = bx; a.y = by;
         b.x = ax; b.y = ay;
+        // TELEPORT IS NOT A DASH (E-A2-14 pre-F1 proof): the exchange is an
+        // instantaneous coordinate swap, so the solid-wall sweep origin is
+        // rebased to the arrival points. Without this, the next frame's
+        // resolveWorldWalls sweep would test the entire teleport gap against
+        // solid capsules and fabricate a skipped-path contact/clamp — the
+        // same previous-position-reset law routed emergence already applies.
+        a.__hrWallPos = { x: a.x, y: a.y };
+        b.__hrWallPos = { x: b.x, y: b.y };
         ex = { ax, ay, bx, by, coalesced: 0 };
         done.set(key, ex);
       } else {

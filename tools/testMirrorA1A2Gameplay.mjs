@@ -312,6 +312,235 @@ try {
     { allowed, note: 'presentation busy 1.8s is not a gameplay lock' });
 } catch (e) { gate('E-A2-18-A1-cannot-overlap-A2-window', false, String(e)); }
 
+/* ============================================================================
+ * PRE-F1 E-PROOF ADDITIONS — missing LOCAL Checkpoint-E proofs.
+ * E-A1-05 / E-A1-18 / E-A2-04 / E-A2-09 / E-A2-14 / E-A2-20.
+ * These gates ADD proof; they do not reopen or redesign A1/A2.
+ * ========================================================================== */
+
+/* startMoving(): identical to start() EXCEPT baseSpeed is NOT zeroed. Bodies
+ * keep production speed and move through the real Fighter.update locomotion
+ * seam (heading via setDir, nothing frozen, nothing pinned) — the same
+ * real-movement pattern as tools/testHeroReworkLocomotionGates.mjs. */
+function startMoving(p2 = 'ROBOT') {
+  T.start('MIRROR', p2); T.holdSpawns();
+  const [a, b] = H.fighters();
+  const ct = HR.byCombatant(a);
+  return { a, b, ct, ctl: HR.abilityController(ct), ctB: HR.byCombatant(b) };
+}
+
+/* Eviction-safe event capture for the gates below. The shared bus ring is
+ * capped (EVENT_RING_CAP = 160), so an index mark silently returns [] once
+ * the ring saturates late in this long suite. Capture by the bus's monotonic
+ * seq instead (bus.since). */
+function captureSeq(types) {
+  const b = bus(); const mark = b.seq;
+  return () => b.since(mark).filter((e) => types.includes(e.type));
+}
+
+/* E-A1-05 — the OWN copy is a FRESH Arsenal holder. Same weapon identity as
+ * the cast-time snapshot, but no mutable holder state may transfer merely
+ * because weaponId matches. Expected fresh values come 1:1 from the canonical
+ * W.equip creation path (arsenalWeaponRuntime.js): phase 'READY', elapsed 0,
+ * shotsFired 0, consumed false — nothing fabricated.
+ *
+ * FIXTURE NOTE: while the Mirror is a live target, the opponent's equipped
+ * firearm auto-fires and is eventually CONSUMED by the ordinary holder path,
+ * which would destroy the very used-state this gate must inspect. The used
+ * state is therefore sampled first; the opponent is then killed BEFORE the
+ * cast — a condition E-A1-09-equivalent reproduction confirms is legal: the
+ * dead opponent's holder persists and the cast still snapshots it. */
+try {
+  const o = start(); arm(o.b, 'PISTOL');
+  T.step(0.4, DT);                          // opponent holder ages and fires at the live Mirror
+  const oppHolder = holderOf(o.b);
+  const oppUsed = oppHolder ? { elapsed: oppHolder.elapsed, shotsFired: oppHolder.shotsFired, phase: oppHolder.phase } : null;
+  o.b.hp = 0;                               // freeze the holder's usage; snapshot law unaffected
+  const res = HR.pressAbility(o.a, 'A1');
+  T.step(0.95, DT);                         // past canonical OWN (step 112, ~0.93333s)
+  const copyHolder = holderOf(o.a);
+  gate('E-A1-05-copy-holder-is-fresh-not-inherited',
+    res.ok && held(o.a) === 'PISTOL'
+    && !!copyHolder && !!oppHolder && copyHolder !== oppHolder
+    && copyHolder.weaponId === oppHolder.weaponId
+    && copyHolder.shotsFired === 0
+    && copyHolder.consumed === false
+    && copyHolder.phase === 'READY'
+    && copyHolder.elapsed < 0.1             // only post-OWN frames may have ticked it
+    && oppUsed !== null && oppUsed.elapsed > 0.35   // opponent holder WAS partially used
+    && !(oppUsed.phase === 'READY' && oppUsed.elapsed === 0 && oppUsed.shotsFired === 0),
+    { cast: res.ok,
+      sameWeaponIdentity: !!(copyHolder && oppHolder && copyHolder.weaponId === oppHolder.weaponId),
+      distinctHolderInstances: copyHolder !== oppHolder,
+      copyPhase: copyHolder && copyHolder.phase,
+      copyElapsed: copyHolder === null ? null : +copyHolder.elapsed.toFixed(5),
+      copyShotsFired: copyHolder && copyHolder.shotsFired,
+      copyConsumed: copyHolder && copyHolder.consumed,
+      opponentUsedStateAtSample: oppUsed && { elapsed: +oppUsed.elapsed.toFixed(4), shotsFired: oppUsed.shotsFired, phase: oppUsed.phase },
+      note: 'used mutable holder state never transfers across a weaponId match' });
+} catch (e) { gate('E-A1-05-copy-holder-is-fresh-not-inherited', false, String(e)); }
+
+/* E-A1-18 — A1 does NOT root Mirror movement. Uses the native movement seam
+ * (production baseSpeed + setDir through the real frame pipeline), NOT the
+ * frozen start() helper and NOT any direct x += mutation. */
+try {
+  const o = startMoving(); arm(o.b, 'PISTOL');
+  o.a.x = 250; o.a.y = 500; o.a.setDir(1, 0);    // east; ~0.95s of travel stays clear of walls
+  o.b.x = 250; o.b.y = 150; o.b.setDir(-1, 0);   // opponent drifts away west; fixture stays quiet
+  const speed = o.a.baseSpeed;
+  const ev = captureSeq(['MirrorA1Cast', 'MirrorA1Own', 'MirrorA1End']);
+  const res = HR.pressAbility(o.a, 'A1');
+  const x0 = o.a.x;
+  let ownAtStep = null, ownX = null, endSeenAtStep = null;
+  const disp = [];
+  let prev = x0;
+  for (let i = 1; i <= 114; i++) {               // 0.95s: past canonical OWN (step 112), before authored end (~step 141)
+    T.step(DT, DT);
+    disp.push(o.a.x - prev); prev = o.a.x;
+    if (ownAtStep === null && ev().some((e) => e.type === 'MirrorA1Own')) { ownAtStep = i; ownX = o.a.x; }
+    if (endSeenAtStep === null && ev().some((e) => e.type === 'MirrorA1End')) endSeenAtStep = i;
+  }
+  const travelled = prev - x0;
+  const nativeStride = disp.every((d) => d >= speed * DT * 0.5 && d <= speed * DT * 1.6);
+  gate('E-A1-18-A1-does-not-root-native-movement',
+    res.ok && speed > 0 && nativeStride
+    && travelled > speed * 0.95 * 0.7
+    && ownAtStep !== null && (ownX - x0) > speed * 0.7     // OWN fired mid-movement
+    && endSeenAtStep === null                              // A1 still inside its authored window
+    && held(o.a) === 'PISTOL',
+    { cast: res.ok, baseSpeed: speed, travelledPx: +travelled.toFixed(1),
+      expectedApproxPx: +(speed * 0.95).toFixed(1),
+      ownAtStep, ownDisplacementPx: ownX === null ? null : +(ownX - x0).toFixed(1),
+      A1EndBeforeWindowEnd: endSeenAtStep, heldAfterWindow: held(o.a),
+      note: 'per-frame displacement bounded by production locomotion while A1 stays active' });
+} catch (e) { gate('E-A1-18-A1-does-not-root-native-movement', false, String(e)); }
+
+/* E-A2-04 — SNAP exchanges LIVE post-movement coordinates while BOTH fighters
+ * move natively through the real frame pipeline. Strengthens E-A2-05 (static
+ * coordinates). Coordinates are never written by the test after cast. */
+try {
+  const o = startMoving();
+  o.a.x = 300; o.a.y = 300; o.a.setDir(1, 0);
+  o.b.x = 300; o.b.y = 700; o.b.setDir(1, 0);    // parallel eastbound lanes: no contact, no walls
+  const speedA = o.a.baseSpeed, speedB = o.b.baseSpeed;
+  const castA = { x: o.a.x, y: o.a.y }, castB = { x: o.b.x, y: o.b.y };
+  const ev = captureSeq(['MirrorExchange']);
+  HR.pressAbility(o.a, 'A2');
+  const trajA = [];
+  for (let i = 1; i <= 30; i++) { T.step(DT, DT); trajA.push({ x: o.a.x, y: o.a.y }); }
+  T.step(DT, DT);                                 // step 31: canonical SNAP frame
+  const ex = ev().length === 1 ? ev()[0].payload : null;
+  const aEnd = { x: o.a.x, y: o.a.y }, bEnd = { x: o.b.x, y: o.b.y };
+  const movedA = Math.hypot(trajA[29].x - castA.x, trajA[29].y - castA.y);
+  const movedB = ex ? Math.hypot(ex.opponent.from.x - castB.x, ex.opponent.from.y - castB.y) : NaN;
+  const strideIntoSnap = ex ? Math.hypot(ex.self.from.x - trajA[29].x, ex.self.from.y - trajA[29].y) : NaN;
+  gate('E-A2-04-live-post-movement-coordinates',
+    !!ex
+    && close(aEnd.x, ex.opponent.from.x) && close(aEnd.y, ex.opponent.from.y)
+    && close(bEnd.x, ex.self.from.x) && close(bEnd.y, ex.self.from.y)
+    && movedA > 50 && movedB > 50                            // NOT the cast-time coordinates
+    && Number.isFinite(strideIntoSnap)
+    && strideIntoSnap > 0 && strideIntoSnap <= speedA * DT * 2.5,   // one more frame of native movement, then sample
+    { aFinal: [+aEnd.x.toFixed(2), +aEnd.y.toFixed(2)], bFinal: [+bEnd.x.toFixed(2), +bEnd.y.toFixed(2)],
+      selfFrom: ex && ex.self.from, opponentFrom: ex && ex.opponent.from,
+      castA, castB, baseSpeeds: [speedA, speedB],
+      movedAPx: +movedA.toFixed(1), movedBPx: Number.isFinite(movedB) ? +movedB.toFixed(1) : null,
+      strideIntoSnapFramePx: Number.isFinite(strideIntoSnap) ? +strideIntoSnap.toFixed(2) : null,
+      note: 'finals equal the LIVE pre-snap samples, which differ from cast-time positions' });
+} catch (e) { gate('E-A2-04-live-post-movement-coordinates', false, String(e)); }
+
+/* E-A2-09 — status retention. Each fighter keeps ITS OWN statuses through the
+ * exchange via the ordinary StatusResolver API; no exchange, no reset, no
+ * Mirror-specific status copy. */
+try {
+  const o = start();
+  const SR = win.APEX_HERO_REWORK_AIL.StatusResolver;
+  HR.pressAbility(o.a, 'A2');
+  SR.apply(o.a, 'STUN', 5);                       // distinguishable real statuses, normal API
+  SR.apply(o.b, 'CHILL', 5);
+  T.step(0.1, DT);
+  const remABefore = SR.remaining(o.a, 'STUN');
+  const remBBefore = SR.remaining(o.b, 'CHILL');
+  const ax = o.a.x, ay = o.a.y, bx = o.b.x, by = o.b.y;
+  T.step(0.20, DT);                               // through the step-31 SNAP
+  const remAAfter = SR.remaining(o.a, 'STUN');
+  const remBAfter = SR.remaining(o.b, 'CHILL');
+  gate('E-A2-09-status-retention-own-statuses-survive-snap',
+    close(o.a.x, bx) && close(o.a.y, by) && close(o.b.x, ax) && close(o.b.y, ay)   // exchange really happened
+    && SR.has(o.a, 'STUN') && !SR.has(o.a, 'CHILL')
+    && SR.has(o.b, 'CHILL') && !SR.has(o.b, 'STUN')
+    && remAAfter > 4 && remAAfter < remABefore    // decayed normally: not reset, not cleared
+    && remBAfter > 4 && remBAfter < remBBefore,
+    { swapped: true,
+      mirrorStatuses: { STUN: SR.has(o.a, 'STUN'), CHILL: SR.has(o.a, 'CHILL') },
+      opponentStatuses: { STUN: SR.has(o.b, 'STUN'), CHILL: SR.has(o.b, 'CHILL') },
+      mirrorStunRemaining: [+remABefore.toFixed(4), +remAAfter.toFixed(4)],
+      opponentChillRemaining: [+remBBefore.toFixed(4), +remBAfter.toFixed(4)] });
+} catch (e) { gate('E-A2-09-status-retention-own-statuses-survive-snap', false, String(e)); }
+
+/* E-A2-14 — teleport is NOT a dash. A real solid world wall (production
+ * M.api.spawnWall -> solidCapsules -> the swept-body authority
+ * resolveWorldWalls) stands BETWEEN the two exchange endpoints while neither
+ * endpoint touches it. No synthetic swept contact may be generated along the
+ * teleport gap, and endpoint physics stays fully enabled. */
+try {
+  const o = start();
+  const wall = HR.match.api.spawnWall({ owner: null, x: 500, y: 500, angle: Math.PI / 2, len: 400, hp: 1000, lifetime: 60 });
+  o.a.__hrWallPos = { x: o.a.x, y: o.a.y };       // fixture hygiene: placement is not movement
+  o.b.__hrWallPos = { x: o.b.x, y: o.b.y };
+  T.step(2 * DT, DT);                             // idle frames: endpoints alone must not touch the wall
+  const wallEvents = captureSeq(['WorldWallCollision']);
+  const ax = o.a.x, ay = o.a.y, bx = o.b.x, by = o.b.y;
+  const gapCrossesWall = !!wall && HR.geom.pointToSegmentDist(500, 500, ax, ay, bx, by) < 1
+    && Math.hypot(ax - 500, ay - 500) > 75 + 13 + 50 && Math.hypot(bx - 500, by - 500) > 75 + 13 + 50;
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.30, DT);                               // step-31 SNAP lands inside this window
+  const atSnapA = { x: o.a.x, y: o.a.y }, atSnapB = { x: o.b.x, y: o.b.y };
+  T.step(0.30, DT);                               // post-snap frames: where a dash-style sweep would hit the wall
+  gate('E-A2-14-no-fabricated-teleport-path-contact',
+    gapCrossesWall && wall.hp === 1000
+    && close(atSnapA.x, bx) && close(atSnapA.y, by) && close(atSnapB.x, ax) && close(atSnapB.y, ay)
+    && close(o.a.x, bx) && close(o.a.y, by) && close(o.b.x, ax) && close(o.b.y, ay)
+    && wallEvents().length === 0,
+    { wallId: wall && wall.id, fixtureGapCrossesWallBetweenEndpoints: gapCrossesWall,
+      finalA: [o.a.x, o.a.y], finalB: [o.b.x, o.b.y], expectA: [bx, by], expectB: [ax, ay],
+      worldWallCollisionsAfterSnap: wallEvents().length, wallHp: wall.hp,
+      note: 'endpoints keep normal physics; only the gap must produce nothing' });
+} catch (e) { gate('E-A2-14-no-fabricated-teleport-path-contact', false, String(e)); }
+
+/* E-A2-20 — MirrorExchange history handoff payload (semantic bridge only; G
+ * will REBASE Gold history from this exact truth — this gate never runs Gold
+ * presentation). */
+try {
+  const o = start();
+  const ev = captureSeq(['MirrorExchange']);
+  HR.pressAbility(o.a, 'A2');
+  T.step(0.30, DT);
+  const ex = ev().length === 1 ? ev()[0].payload : null;
+  const coherent = !!ex && !!ex.self && !!ex.opponent && !!ex.delta
+    && !!ex.self.from && !!ex.self.to && !!ex.opponent.from && !!ex.opponent.to
+    && ex.delta.x === ex.self.to.x - ex.self.from.x          // delta == self.to - self.from
+    && ex.delta.y === ex.self.to.y - ex.self.from.y
+    && ex.self.to.x === ex.opponent.from.x && ex.self.to.y === ex.opponent.from.y   // coherent exchange
+    && ex.opponent.to.x === ex.self.from.x && ex.opponent.to.y === ex.self.from.y
+    && (ex.delta.x !== 0 || ex.delta.y !== 0);
+  // No gameplay path on the exchange route may clear presentation history.
+  const worldSrc = fs.readFileSync('public/game/hero-rework/heroReworkRuntime.js', 'utf8');
+  const snapFn = worldSrc.slice(worldSrc.indexOf('function resolvePendingMirrorSnaps'), worldSrc.indexOf('function hrPostTick'));
+  const mechSrc = fs.readFileSync('public/game/hero-rework/heroMechanicsRuntime.js', 'utf8');
+  const exchangeBlock = mechSrc.slice(mechSrc.indexOf("EXECUTORS['mirror.exchange']"), mechSrc.indexOf("EXECUTORS['mirror.shattered_mirrors']"));
+  const noHistoryClear = !/history\s*=\s*\[\]|history\.length\s*=\s*0|clearHistory|shiftHist\s*=\s*\[\]/.test(snapFn + exchangeBlock);
+  gate('E-A2-20-history-handoff-payload-coherent',
+    coherent && noHistoryClear
+    && !!ex && close(o.a.x, ex.self.to.x) && close(o.a.y, ex.self.to.y)
+    && close(o.b.x, ex.opponent.to.x) && close(o.b.y, ex.opponent.to.y),
+    { payload: ex && { self: ex.self, opponent: ex.opponent, delta: ex.delta },
+      deltaEqualsSelfToMinusSelfFrom: !!ex
+        && ex.delta.x === ex.self.to.x - ex.self.from.x && ex.delta.y === ex.self.to.y - ex.self.from.y,
+      noHistoryClearInExchangePath: noHistoryClear,
+      note: 'payload is the exact truth G rebases Gold shiftHist from; never cleared here' });
+} catch (e) { gate('E-A2-20-history-handoff-payload-coherent', false, String(e)); }
+
 fs.mkdirSync('docs/hero-rework/mirror-v1/evidence', { recursive: true });
 fs.writeFileSync('docs/hero-rework/mirror-v1/evidence/e-a1-a2-gameplay.json',
   JSON.stringify({ generatedAt: new Date().toISOString(), ...report, pass: report.failures.length === 0 }, null, 2));
