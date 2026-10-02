@@ -1768,11 +1768,23 @@
         // not a straight chord across it.
         const magnetPlan = magnet && magnet.consumeMovementPlan ? magnet.consumeMovementPlan(p) : null;
         if (magnetPlan) {
-          const ex = p.x + magnetPlan.preVx * dt * magnetPlan.entryT;
-          const ey = p.y + magnetPlan.preVy * dt * magnetPlan.entryT;
+          // H-PHYS2: the field integrated a real CURVE this frame. Velocity is
+          // continuous across field entry (no radial snap); the projectile is
+          // placed at the true end of the integrated path and the whole curve
+          // is published as ordered sub-segments so nothing downstream sees a
+          // false frame-start -> frame-end chord.
+          const ex = Number.isFinite(magnetPlan.entryX) ? magnetPlan.entryX
+            : p.x + magnetPlan.preVx * dt * magnetPlan.entryT;
+          const ey = Number.isFinite(magnetPlan.entryY) ? magnetPlan.entryY
+            : p.y + magnetPlan.preVy * dt * magnetPlan.entryT;
           p.vx = magnetPlan.postVx; p.vy = magnetPlan.postVy;
-          p.x = ex + p.vx * dt * (1 - magnetPlan.entryT);
-          p.y = ey + p.vy * dt * (1 - magnetPlan.entryT);
+          // A force-integrated plan carries its true endpoint. A plan without
+          // one (no field curve for this frame) still integrates the remaining
+          // fraction straight from the entry point, as before.
+          p.x = Number.isFinite(magnetPlan.finalX) ? magnetPlan.finalX
+            : ex + p.vx * dt * (1 - magnetPlan.entryT);
+          p.y = Number.isFinite(magnetPlan.finalY) ? magnetPlan.finalY
+            : ey + p.vy * dt * (1 - magnetPlan.entryT);
           if (!p.__hr) p.__hr = {};
           p.__hr.pathVia = {
             x: ex, y: ey, t: magnetPlan.entryT,
@@ -1780,8 +1792,9 @@
             preVx: magnetPlan.preVx, preVy: magnetPlan.preVy,
             postVx: magnetPlan.postVx, postVy: magnetPlan.postVy,
           };
+          p.__hr.pathPoly = (magnetPlan.poly && magnetPlan.poly.length) ? magnetPlan.poly : null;
         } else {
-          if (p.__hr) p.__hr.pathVia = null;
+          if (p.__hr) { p.__hr.pathVia = null; p.__hr.pathPoly = null; }
           p.x += p.vx * dt;
           p.y += p.vy * dt;
         }
@@ -2062,6 +2075,21 @@
   // INBOUND leg must not read p.vx: it would reflect/route using a velocity
   // the projectile does not have until after the boundary it never reached.
   function pathSegments(p) {
+    // H-PHYS2: a force-integrated Magnet curve publishes its ACTUAL travelled
+    // sub-segments. They are returned verbatim (prefixed by the pre-field leg)
+    // so ordered consumers adjudicate against the real path, never a chord.
+    const poly = p.__hr && p.__hr.pathPoly;
+    if (poly && poly.length) {
+      const first = poly[0];
+      const out = [];
+      if (first.t0 > 0) {
+        out.push({ x0: p.px, y0: p.py, x1: first.x0, y1: first.y0, t0: 0, t1: first.t0,
+          vx: p.__hr.pathVia ? p.__hr.pathVia.preVx : p.vx,
+          vy: p.__hr.pathVia ? p.__hr.pathVia.preVy : p.vy });
+      }
+      for (const g of poly) out.push({ x0: g.x0, y0: g.y0, x1: g.x1, y1: g.y1, t0: g.t0, t1: g.t1, vx: g.vx, vy: g.vy });
+      return out;
+    }
     const via = p.__hr && p.__hr.pathVia;
     if (via && Number.isFinite(via.x) && Number.isFinite(via.y)
       && Number.isFinite(via.t) && via.t > 0 && via.t < 1) {
@@ -2112,7 +2140,7 @@
   // hold, singularity), otherwise downstream consumers would keep seeing
   // geometry like exitPoint -> oldMagnetBoundary -> exitPoint and invent
   // phantom collisions across the teleport gap.
-  function clearPath(p) { if (p && p.__hr) p.__hr.pathVia = null; }
+  function clearPath(p) { if (p && p.__hr) { p.__hr.pathVia = null; p.__hr.pathPoly = null; } }
 
   // The Magnet A2 boundary TOI pending on this projectile this frame, or null.
   function pendingMagnetToi(p) {

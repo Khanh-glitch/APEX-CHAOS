@@ -1,0 +1,281 @@
+{
+  "generatedAt": "2026-10-02T05:16:15.317Z",
+  "rating": 3500,
+  "coupling": 73700,
+  "R": 225,
+  "damageEnvelope": 84,
+  "bodyEnvelope": 150,
+  "guaranteedTier": {
+    "2200": {
+      "minD": 156.6,
+      "closed": 153.9,
+      "polyFrames": 7
+    },
+    "2600": {
+      "minD": 144.1,
+      "closed": 143.8,
+      "polyFrames": 6
+    },
+    "3000": {
+      "minD": 139,
+      "closed": 134.4,
+      "polyFrames": 7
+    },
+    "3200": {
+      "minD": 132.8,
+      "closed": 130,
+      "polyFrames": 6
+    },
+    "3400": {
+      "minD": 126.8,
+      "closed": 125.7,
+      "polyFrames": 6
+    },
+    "3490": {
+      "minD": 124.4,
+      "closed": 123.8,
+      "polyFrames": 6
+    },
+    "3500": {
+      "minD": 124.2,
+      "closed": 123.6,
+      "polyFrames": 6
+    },
+    "3510": {
+      "minD": 123.9,
+      "closed": 123.4,
+      "polyFrames": 6
+    }
+  },
+  "highSpeed": {
+    "headOn": 85.56345786640748,
+    "lateEngage": 126.66666666666674,
+    "offAxis": 304.34617306467715
+  },
+  "dtConvergence": [
+    139.76844698150524,
+    138.98746854451417,
+    134.81880440100144
+  ],
+  "gates": {
+    "A1-strength-zero-at-R": {
+      "pass": true,
+      "detail": {
+        "S_R": 0
+      }
+    },
+    "A2-monotonic-increase-inward": {
+      "pass": true
+    },
+    "A3-finite-at-dSafe": {
+      "pass": true,
+      "detail": {
+        "atDsafe": 86.89
+      }
+    },
+    "A5-continuity-at-R": {
+      "pass": true
+    },
+    "A6-no-speed-branch-at-3500": {
+      "pass": true
+    },
+    "A7-no-wall-law-remaining": {
+      "pass": true
+    },
+    "B1-all-guaranteed-tier-outside-damage-envelope": {
+      "pass": true,
+      "detail": {
+        "2200": {
+          "minD": 156.6,
+          "closed": 153.9,
+          "polyFrames": 7
+        },
+        "2600": {
+          "minD": 144.1,
+          "closed": 143.8,
+          "polyFrames": 6
+        },
+        "3000": {
+          "minD": 139,
+          "closed": 134.4,
+          "polyFrames": 7
+        },
+        "3200": {
+          "minD": 132.8,
+          "closed": 130,
+          "polyFrames": 6
+        },
+        "3400": {
+          "minD": 126.8,
+          "closed": 125.7,
+          "polyFrames": 6
+        },
+        "3490": {
+          "minD": 124.4,
+          "closed": 123.8,
+          "polyFrames": 6
+        },
+        "3500": {
+          "minD": 124.2,
+          "closed": 123.6,
+          "polyFrames": 6
+        },
+        "3510": {
+          "minD": 123.9,
+          "closed": 123.4,
+          "polyFrames": 6
+        }
+      }
+    },
+    "B2-no-discontinuity-across-the-anchor": {
+      "pass": true,
+      "detail": {
+        "d3490": 124.4,
+        "d3500": 124.2,
+        "d3510": 123.9
+      }
+    },
+    "B3-turning-radius-decreases-with-speed": {
+      "pass": true,
+      "detail": {
+        "2200": {
+          "minD": 156.6,
+          "closed": 153.9,
+          "polyFrames": 7
+        },
+        "2600": {
+          "minD": 144.1,
+          "closed": 143.8,
+          "polyFrames": 6
+        },
+        "3000": {
+          "minD": 139,
+          "closed": 134.4,
+          "polyFrames": 7
+        },
+        "3200": {
+          "minD": 132.8,
+          "closed": 130,
+          "polyFrames": 6
+        },
+        "3400": {
+          "minD": 126.8,
+          "closed": 125.7,
+          "polyFrames": 6
+        },
+        "3490": {
+          "minD": 124.4,
+          "closed": 123.8,
+          "polyFrames": 6
+        },
+        "3500": {
+          "minD": 124.2,
+          "closed": 123.6,
+          "polyFrames": 6
+        },
+        "3510": {
+          "minD": 123.9,
+          "closed": 123.4,
+          "polyFrames": 6
+        }
+      }
+    },
+    "B4-matches-closed-form-within-tolerance": {
+      "pass": true,
+      "detail": {
+        "2200": {
+          "minD": 156.6,
+          "closed": 153.9,
+          "polyFrames": 7
+        },
+        "2600": {
+          "minD": 144.1,
+          "closed": 143.8,
+          "polyFrames": 6
+        },
+        "3000": {
+          "minD": 139,
+          "closed": 134.4,
+          "polyFrames": 7
+        },
+        "3200": {
+          "minD": 132.8,
+          "closed": 130,
+          "polyFrames": 6
+        },
+        "3400": {
+          "minD": 126.8,
+          "closed": 125.7,
+          "polyFrames": 6
+        },
+        "3490": {
+          "minD": 124.4,
+          "closed": 123.8,
+          "polyFrames": 6
+        },
+        "3500": {
+          "minD": 124.2,
+          "closed": 123.6,
+          "polyFrames": 6
+        },
+        "3510": {
+          "minD": 123.9,
+          "closed": 123.4,
+          "polyFrames": 6
+        }
+      }
+    },
+    "B5-velocity-continuous-across-field-entry": {
+      "pass": true,
+      "detail": {
+        "dPre": 270,
+        "dPost": 220.00137073535996,
+        "speedBefore": 3000,
+        "speedAfter": 2998.1460677286364,
+        "radialBefore": -3000
+      }
+    },
+    "C1-high-speed-still-influenced": {
+      "pass": true,
+      "detail": {
+        "minD": 85.6
+      }
+    },
+    "C2-legit-high-speed-penetration-exists": {
+      "pass": true,
+      "detail": {
+        "lateEngageMinD": 126.7,
+        "consumedInsideField": true,
+        "consumedAtDist": 126.66666666666674,
+        "note": "A2 engaged while the shot was already deep — PASS when it reaches a real interaction"
+      }
+    },
+    "C3-high-speed-offaxis-deflects": {
+      "pass": true,
+      "detail": {
+        "offAxisMinD": 304.3,
+        "note": "inward radial component, not scalar speed, governs"
+      }
+    },
+    "P1-real-curve-published-as-subsegments": {
+      "pass": true,
+      "detail": {
+        "polyFrames": 7,
+        "maxSegments": 25
+      }
+    },
+    "N1-dt-convergence-30-60-120": {
+      "pass": true,
+      "detail": [
+        139.8,
+        139,
+        134.8
+      ]
+    },
+    "N2-no-nan-or-teleport": {
+      "pass": true
+    }
+  },
+  "failures": [],
+  "pass": true
+}

@@ -1,7 +1,14 @@
 # MAGNET A2 — CONTINUOUS NONLINEAR RADIAL FIELD (H-PHYS2)
 
-Status: **calibration complete and committed; gameplay wiring NOT yet applied.**
-See §7 for why this stops here rather than part-rewriting the integrator.
+Status: **calibration CORRECTED; W1 (projectile law) wired and green.**
+W2-W7 remain — see §8.
+
+> **CORRECTION (owner-reported, binding).** An earlier revision of this document
+> claimed Hunter at 2200 px/s "turns at ~124.6 px, safely outside body contact
+> at 150 px". That is backwards: an inward object reaches d=150 BEFORE d=124.6,
+> so the old K=29700 let Hunter make legal body contact before turning. The
+> coupling is recalibrated below against **all** guaranteed contact envelopes,
+> and Hunter — not the projectile — is the binding case.
 
 ---
 
@@ -76,72 +83,79 @@ literal physical dipole.
 
 ---
 
-## 4. Derived coupling (§7, §18) — one knob, not many
+## 4. Derived coupling (§7, §18) — one knob, bound by the WORST case
 
 `tools/calibrateMagnetA2Field.mjs` derives the single coupling `K` from the one
-rating by bisection **on the real discrete integrator** at every supported rate,
-not by guessing.
+rating by bisection **on the real discrete integrator** at every supported rate.
 
-Damage envelope = fighter radius `75` + max bullet radius `9` = **84 px**.
+The coupling is **not** set by the projectile case. Each guaranteed interaction
+has its own legal contact envelope, and an inward object reaches a **larger**
+envelope **earlier**. Hunter's body-contact envelope (150 px) is nearly twice
+the projectile's (84 px), so even at the lower 2200 px/s pounce speed it is by
+far the more demanding constraint. `K` must be the **maximum** demanded across
+every guaranteed case.
+
+| case | v_radial | envelope | K_min (bisected) | closed form |
+|---|---:|---:|---:|---:|
+| projectile-3500 | 3500 | 84 | 25866.6 | 25879.0 |
+| **hunter-pounce-2200 (BINDING)** | **2200** | **150** | **64081.2** | **64533.3** |
 
 ```
-minimum K satisfying the 3500 guarantee (bisected) = 25866.6
-closed-form cross-check  K = v0^2 / 2 / (R^2/d + d - 2R) = 25879.0   (0.05% agreement)
-modest margin                                      x1.15
-CHOSEN  A2_FIELD_COUPLING = 29700
+BINDING K_min = 64081.2   (hunter-pounce-2200)
+modest margin x1.15
+CHOSEN  A2_FIELD_COUPLING = 73700
 ```
 
-The closed form comes from the work integral
-`W(d) = K * (R^2/d + d - 2R)`, turning point where `W = v0^2 / 2`. Its
-independent agreement with the numeric bisection is the cross-validation that
-the coupling is derived rather than fitted.
+Closed form: `W(d) = K * (R^2/d + d - 2R)`, turning point at `W = v0^2/2`. Its
+independent agreement with the numeric bisection cross-validates that the
+coupling is derived, not fitted.
 
 `K` is deliberately **not** raised further: the goal is the smallest field that
 honestly earns the 3500 rating, explicitly not maximum defence (§18).
 
----
-
 ## 5. Turning-radius table (required by §18)
 
-Head-on, A2 active before entry, `K = 29700`.
+Head-on, A2 active before entry, `K = 73700`.
 
-| v0 | closed form | dt=1/30 | dt=1/60 | dt=1/120 | outcome |
-|---:|---:|---:|---:|---:|---|
-| 2200 | 124.3 | 124.4 | 124.6 | 124.8 | stopped outside |
-| 2600 | 112.1 | 112.1 | 112.4 | 112.9 | stopped outside |
-| 3000 | 101.2 | 101.3 | 101.6 | 101.6 | stopped outside |
-| 3200 | 96.2 | 96.3 | 96.7 | 96.7 | stopped outside |
-| 3400 | 91.5 | 91.6 | 92.1 | 92.1 | stopped outside |
-| **3490** | 89.5 | 89.6 | **90.0** | 90.1 | stopped outside |
-| **3500** | 89.3 | 89.3 | **89.8** | 89.8 | stopped outside |
-| **3510** | 89.1 | 89.1 | **89.5** | 89.6 | stopped outside |
-| 5000 | 62.6 | 62.6 | 62.8 | 62.9 | **REACHES ENVELOPE** |
-| 5200 | 59.9 | 59.9 | 60.1 | 60.1 | **REACHES ENVELOPE** |
-| 5400 | 57.3 | 57.3 | 57.5 | 57.5 | **REACHES ENVELOPE** |
-| 5800 | 52.5 | 52.6 | 52.9 | 52.8 | **REACHES ENVELOPE** |
+| v0 | closed form | dt=1/30 | dt=1/60 | dt=1/120 | vs 84 (bullet) | vs 150 (body) |
+|---:|---:|---:|---:|---:|---|---|
+| **2200** | 153.9 | 154.2 | **154.1** | 154.4 | outside | **outside** |
+| 2600 | 143.8 | 144.1 | 144.1 | 144.4 | outside | reaches |
+| 3000 | 134.4 | 134.7 | 134.7 | 135.0 | outside | reaches |
+| 3200 | 130.0 | 130.3 | 130.3 | 130.4 | outside | reaches |
+| 3400 | 125.7 | 126.0 | 126.1 | 126.1 | outside | reaches |
+| **3490** | 123.8 | 124.1 | **124.2** | 124.2 | outside | reaches |
+| **3500** | 123.6 | 123.9 | **124.0** | 124.0 | outside | reaches |
+| **3510** | 123.4 | 123.7 | **123.8** | 123.8 | outside | reaches |
+| 5000 | 96.8 | 97.2 | 97.3 | 97.4 | outside | reaches |
+| 5200 | 93.8 | 94.3 | 94.3 | 94.4 | outside | reaches |
+| 5400 | 90.9 | 91.0 | 91.1 | 91.2 | outside | reaches |
+| 5800 | 85.4 | 85.4 | 85.4 | 85.6 | outside | reaches |
 
-Properties this table proves:
+* every `<= 3500` entry stays outside the 84 px damaging envelope;
+* **Hunter 2200 turns at 154.1 px, outside the 150 px body-contact envelope** —
+  the constraint the previous revision got wrong;
+* **no discontinuity at the anchor**: 3490 -> 3510 differ by **0.40 px**;
+* turning radius decreases **monotonically** with inbound radial speed;
+* dt spread across 30/60/120 Hz `<= 0.5 px`.
 
-* **every** `<= 3500` entry stops outside the 84 px envelope (guarantee earned);
-* the precision tier **can** penetrate — the field is a force field, not a shield (§5, §19);
-* **no discontinuity at 3500**: 3490 → 3510 differ by **0.50 px**, a smooth
-  continuation, so 3500 is an anchor and not a switch (§8). 3510 still happens
-  to stop; it is simply outside the *guarantee*, which is the correct semantics;
-* turning radius decreases **monotonically** with inbound radial speed across
-  all 12 samples — a major proof the behaviour is integrated physics, not script;
-* dt spread across 30/60/120 Hz is `<= 0.5 px`, i.e. the law converges and is
-  not a frame-rate artefact (§22).
+### High speed is CONDITIONAL, never binary (§2, §5, §19, §20)
 
-Favourable late-engagement penetration (field activates with the object already
-deep), all **expected PASS**:
+No weapon-ID branch and no speed threshold exists anywhere. The same law
+produces all of these:
 
 ```
-v=5000 engaged at d=200 -> minD 62.8 HITS    v=5800 d=200 -> 52.4 HITS
-v=5000 engaged at d=150 -> minD 59.9 HITS    v=5800 d=150 -> 50.7 HITS
-v=5000 engaged at d=120 -> minD 56.4 HITS    v=5800 d=120 -> 48.3 HITS
+penetration  v=5400 engaged at d=110 -> minD 73.1  HITS
+penetration  v=5800 engaged at d=150 -> minD 80.2  HITS
+penetration  v=5800 engaged at d=110 -> minD 69.7  HITS
+reversal     v=5400 engaged at d=150 -> minD 84.9  stopped
+deflection   v=5800 at 70deg off-axis (inward radial 1984) -> minD 159.9  DEFLECTED
+deflection   v=5800 at 75deg off-axis (inward radial 1501) -> minD 173.8  DEFLECTED
+deflection   v=5400 at 72deg off-axis (inward radial 1669) -> minD 168.8  DEFLECTED
 ```
 
----
+The same 5800 weapon penetrates or is deflected purely according to its **inward
+radial component**, which is the point of §17.
 
 ## 6. Guaranteed vs non-guaranteed (§21)
 
@@ -164,28 +178,57 @@ is purely `2200 < 3500` under the shared law.
 
 ---
 
-## 7. What is NOT done yet, and why
+## 7. W1 — projectile law wired (green)
 
-Calibration, the field function, the audit and the evidence table are committed
-and green. The **gameplay wiring is deliberately not applied in this commit**:
+`tools/testMagnetA2ContinuousField.mjs` — **17/17** against the REAL shipping
+projectile pass. Evidence: `evidence/a2-continuous-field-w1.json`.
 
-* the current projectile law must have its wall-like behaviour removed
-  (`A2_BULLET_ENTRY_RESTITUTION`, radial `SET` to 0 at the `R` crossing, the
-  0.07 s capture envelope that *sets* radial velocity, and the flat 18000
-  outward term) and be replaced by continuous `dv = a*dt` integration;
-* body, floor-gun and Hunter paths must then consume the same `S(d)`;
-* ordered path sub-segments (§12) and Hunter's sub-segmented body path (§13)
-  must be produced so no false chord reaches Crystal / Mirror / contact;
-* the full A–G matrix and five hostile passes must then run.
+**The invisible wall is gone.** Removed from the projectile path:
+`applyA2BulletRepulsion` (deleted), the `radialAfter: 0` snap at the R crossing,
+the `A2_BULLET_ENTRY_RESTITUTION` response, and the 0.07 s capture envelope that
+*set* radial velocity. `A2_BULLET_ENTRY_RESTITUTION` remains declared but is no
+longer consulted; gate `A7` statically forbids the wall law returning.
 
-That is a single indivisible physics change: part-applying it would leave the
-shipping projectile integrator in a half-rewritten state, which the durability
-law forbids. The calibration committed here is the prerequisite the brief
-demanded ("do not guess a force coefficient") and is independently verifiable.
+`R=225` swept detection is retained, but now means only **"force integration
+starts here"**, never "collision occurred here". Measured at entry:
+speed `3000 -> 2998.1` px/s, i.e. **velocity is continuous across the boundary**
+(gate `B5`).
 
-`tools/calibrateMagnetA2Field.mjs` exports `strength()`, `workPerK()`,
-`closedFormTurningRadius()`, `closedFormK()`, `simulateHeadOn()` and
-`calibrate()` for the wiring work to consume directly, so the shipped runtime
-will import the *same* function this table was produced from.
+Integration is semi-implicit Euler with bounded deterministic substeps
+(`A2_FIELD_SUBSTEP_PX = 2.0`, max 64), inside the existing canonical pass — no
+second integrator, no rendering clock, no raw timers.
+
+**Ordered path truth (§12).** The frame's real curve is published as ordered
+sub-segments (`pathPoly`, up to **25 segments/frame** observed) and
+`HR.geom.pathSegments()` returns them verbatim, prefixed by the pre-field leg.
+Crystal / Mirror / body contact therefore consume the actual curve, never a
+frame-start -> frame-end chord. `clearPath()` clears the polyline too.
+
+Two real defects were caught by the protected suites during W1 and fixed, not
+suppressed:
+
+1. **velocity blow-up** — `S(dSafe) ~ 86.9` gives `a ~ 6.4e6 px/s^2`, and the
+   plan path had dropped the canonical projectile speed cap. The same
+   `BULLET_SPEED_CAP_MULT` bound the pre-H-PHYS2 continued-force path used is
+   now applied per substep. It bounds magnitude only and never direction, so it
+   cannot reintroduce a radial SET.
+2. **direct-caller regression** — routing everything through the plan meant
+   unit callers of `stepProjectiles` saw no force at all. The integrated
+   velocity is now also written there (position deliberately is not, since
+   `reworkUpdateProjectiles` samples `px/py` after the call and owns the single
+   position integration, assigning exactly these same `postV` values).
+
+`M06.2` passes again **without weakening the test** — the real field genuinely
+pushes the bullet outward, so the assertion holds on its own merits.
+
+## 8. Remaining slices
+
+* **W2** body + floor-gun onto the shared `S(d)` (the body path still uses the
+  old `fall = 1 - d/radius` law, so Hunter behaviour is currently UNCHANGED —
+  §14's "Hunter must be turned before contact" lands in W2);
+* **W3** ordered body-path truth;
+* **W4** Hunter physical-contact integration against the curved path;
+* **W5/W6** focused + real-browser matrix;
+* **W7** hostile audit, revision relock, push.
 
 > Automated evidence is **not** owner visual acceptance.
