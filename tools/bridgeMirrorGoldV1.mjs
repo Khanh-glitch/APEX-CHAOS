@@ -666,7 +666,10 @@ ${d4Full.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
     }
     __externalPrevSpeed = speed;
     M.rec.step(0, STEP); M.cs.step(0, STEP); M.sf = Math.max(0, M.sf - STEP * 3.2);
-    idleStep(STEP); lockStep(STEP); stepA1(STEP); stepA2(STEP);
+    // Preserve Gold's production presentation order after the external-motion
+    // reaction above: authored action timelines, idle/lock, body springs, FX.
+    stepA1(STEP); stepA2(STEP);
+    idleStep(STEP); lockStep(STEP);
     stepExternalSprings(STEP); sweepStep(STEP); fxStep(STEP);
     pushHist();
     return true;
@@ -725,7 +728,7 @@ ${d4Full.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
     return true;
   }
   function externalAudit() {
-    return Object.freeze({ enabled: __externalTruth, fixedStep: STEP,
+    return Object.freeze({ enabled: __externalTruth, fixedStep: STEP, simTime: simT,
       steps: __externalSteps, exchanges: __externalExchanges, snaps: __externalSnaps,
       lastExchangeCastId: __externalExchangeCastId, a1CastId: __externalA1CastId,
       a2CastId: __externalA2CastId, a2Resolved: __externalA2Resolved, applyExchange: __applyExchange,

@@ -6,13 +6,23 @@
  * real Mirror end/exchange events instead of self-authoring lifecycle edges.
  */
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import { JSDOM } from 'jsdom';
 import { createCanvas, Path2D, ImageData } from '@napi-rs/canvas';
 
+const GOLD_PATH = 'docs/hero-rework/mirror-v1/gold/MIRROR_GOLD_FUSION_12.html';
+const GOLD_SHA = 'c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205';
+const canonicalGold = fs.readFileSync(GOLD_PATH);
+assert.equal(canonicalGold.length, 107480, 'canonical Gold byte length is pinned');
+assert.equal(createHash('sha256').update(canonicalGold).digest('hex'), GOLD_SHA,
+  'canonical Gold SHA-256 is pinned');
+
 const dom = new JSDOM('<!doctype html><html><body></body></html>', { runScripts: 'dangerously' });
 const win = dom.window;
 win.Path2D = Path2D; win.ImageData = ImageData;
+let ambientRandomCalls = 0;
+win.Math.random = () => { ambientRandomCalls++; return 0.5; };
 const realCanvases = new WeakMap();
 function realCanvasFor(el) {
   let real = realCanvases.get(el);
@@ -52,10 +62,24 @@ try {
   const f0 = root('foe-a', 770, 500, 0, 0, Math.PI, { armed: true });
   const A = G.createMirrorInstance({ seed: 81 });
   const B = G.createMirrorInstance({ seed: 81 });
+  for (const method of ['enableExternalTruth', 'syncExternalTruth', 'stepExternalPresentation',
+    'beginExternalA1', 'beginExternalA2', 'applyExternalExchange', 'endExternalA1',
+    'endExternalA2', 'clearExternalTruth', 'externalAudit']) {
+    assert.equal(typeof A[method], 'function', `external-truth API exposes ${method}`);
+  }
+  const externalStepSource = A.stepExternalPresentation.toString();
+  assert.ok(!['stepMirror(', 'stepFoe(', 'stepProj(', 'stepShards(', 'stepNodes(']
+    .some((call) => externalStepSource.includes(call)),
+    'shipping presentation step never enters Gold demo movement or lifecycle');
   assert.notEqual(A.M, B.M, 'instances own separate actor proxies');
   assert.notEqual(A.hist, B.hist, 'instances own separate history rings');
   assert.equal(A.enableExternalTruth(m0, f0), true);
   assert.equal(B.enableExternalTruth(root('mirror-b', 240, 330), root('foe-b', 900, 820)), true);
+  const bBeforeAAdvance = {
+    mirror: { x: B.M.x, y: B.M.y, vx: B.M.vx, vy: B.M.vy },
+    opponent: { x: B.F.x, y: B.F.y, vx: B.F.vx, vy: B.F.vy },
+    hHead: B.hHead, history: Array.from(B.hist), expression: JSON.stringify(B.E),
+  };
   assert.equal(A.applyExchange, false);
   A.setApplyExchange(true);
   assert.equal(A.applyExchange, false, 'external-truth instances cannot enable local actor swaps');
@@ -66,14 +90,72 @@ try {
   const moving = root('mirror-a', 410, 500, 120, 0, 0);
   assert.equal(A.syncExternalTruth(moving, f0), true);
   const beforeStep = { x: A.M.x, y: A.M.y, vx: A.M.vx, vy: A.M.vy };
+  const opponentBeforeStep = { x: A.F.x, y: A.F.y, vx: A.F.vx, vy: A.F.vy };
   const STEP = A.constants.STEP;
   for (let i = 0; i < 8; i++) assert.equal(A.stepExternalPresentation(STEP), true);
   assert.deepEqual({ x: A.M.x, y: A.M.y, vx: A.M.vx, vy: A.M.vy }, beforeStep,
-    'presentation ticks preserve the latest real APEX root and velocity');
+    'presentation ticks preserve the latest real Mirror root and velocity');
+  assert.deepEqual({ x: A.F.x, y: A.F.y, vx: A.F.vx, vy: A.F.vy }, opponentBeforeStep,
+    'presentation ticks preserve the latest real opponent root and velocity');
   assert.equal(A.externalAudit().steps, 8);
+  assert.ok(Math.abs(A.externalAudit().simTime - 8 * STEP) < 1e-12,
+    'Gold presentation time advances once per exact fixed tick');
   assert.equal(B.externalAudit().steps, 0, 'stepping one Mirror cannot advance another instance');
+  assert.deepEqual({
+    mirror: { x: B.M.x, y: B.M.y, vx: B.M.vx, vy: B.M.vy },
+    opponent: { x: B.F.x, y: B.F.y, vx: B.F.vx, vy: B.F.vy },
+    hHead: B.hHead, history: Array.from(B.hist), expression: JSON.stringify(B.E),
+  }, bBeforeAAdvance, 'root, expression, springs and history are isolated per Mirror instance');
   assert.equal(moving.x, 410, 'frozen gameplay samples are read-only');
   assert.equal(A.M.x, 410);
+
+  // Deliberately place external roots at Gold's demo wall/body-collision
+  // thresholds. External presentation must preserve both authoritative roots.
+  const noDemoPhysics = G.createMirrorInstance({ seed: 83 });
+  assert.equal(noDemoPhysics.enableExternalTruth(
+    root('wall-root', 20, 420, 0, 0), root('overlap-root', 50, 420, 0, 0, Math.PI)), true);
+  assert.equal(noDemoPhysics.stepExternalPresentation(STEP), true);
+  assert.deepEqual([noDemoPhysics.M.x, noDemoPhysics.M.y, noDemoPhysics.F.x, noDemoPhysics.F.y],
+    [20, 420, 50, 420], 'no Gold wall clamp or body-collision correction runs');
+
+  // The presentation-only queue, tween pool, springs and history all advance
+  // once, while D4 gameplay-shaped pools remain read-only.
+  const scheduled = G.createMirrorInstance({ seed: 84 });
+  assert.equal(scheduled.enableExternalTruth(root('scheduled-m', 300, 400), root('scheduled-f', 700, 400)), true);
+  let queued = 0;
+  scheduled.later(STEP, () => { queued++; });
+  scheduled.tw(scheduled.E, 'gap', 12, 0.12);
+  scheduled.H.L.x.v = 120;
+  const historyHead = scheduled.hHead;
+  const springX = scheduled.H.L.x.x;
+  const projectile = scheduled.PJ[0];
+  const shard = scheduled.SH[0];
+  const node = scheduled.ND[0];
+  Object.assign(projectile, { on: true, x: 180, y: 190, vx: 240, vy: -30, t: 0.25, life: 1.2 });
+  Object.assign(shard, { on: true, st: 1, x: 220, y: 230, vx: 30, vy: 40, age: 0.3 });
+  Object.assign(node, { on: true, st: 1, t: 0.4, age: 0.5, x: 520, y: 530, fill: 0.6 });
+  node.img.on = true; node.img.t = 0.2;
+  const d4Before = JSON.stringify({ projectile, shard, node });
+  assert.equal(scheduled.stepExternalPresentation(STEP), true);
+  assert.equal(queued, 1, 'presentation timed callbacks advance by one fixed step');
+  assert.ok(scheduled.E.gap > 0, 'authored Gold tween advances');
+  assert.notEqual(scheduled.H.L.x.x, springX, 'authored body spring advances');
+  assert.equal(scheduled.hHead, (historyHead + 1) % scheduled.HN, 'one history sample is pushed');
+  assert.ok(Math.abs(scheduled.externalAudit().simTime - STEP) < 1e-12);
+  assert.equal(JSON.stringify({ projectile, shard, node }), d4Before,
+    'no demo projectile, shard or node lifecycle advances in the external step');
+
+  // Real externally supplied velocity drives authored start/reaction pose, but
+  // the presentation step still cannot integrate either actor root.
+  const locomotion = G.createMirrorInstance({ seed: 85 });
+  assert.equal(locomotion.enableExternalTruth(root('motion-m', 360, 340), root('motion-f', 760, 340)), true);
+  assert.equal(locomotion.syncExternalTruth(root('motion-m', 360, 340, 160, 0),
+    root('motion-f', 760, 340, -25, 0, Math.PI)), true);
+  assert.equal(locomotion.stepExternalPresentation(STEP), true);
+  assert.equal(locomotion.M.x, 360); assert.equal(locomotion.M.y, 340);
+  assert.equal(locomotion.F.x, 760); assert.equal(locomotion.F.y, 340);
+  assert.equal(locomotion.M.mv, 1, 'real post-movement velocity activates the Gold presentation reaction');
+  assert.ok(locomotion.H.L.x.v > 0, 'real velocity drives authored start recoil');
 
   // Gold may animate to its A2 snap crossing but cannot snap/end itself. The
   // authoritative MirrorExchange event supplies the PRE-swap roots and the
@@ -84,6 +166,9 @@ try {
   assert.equal(A.beginExternalA2('a2-cast-1'), true);
   const camBefore = { sx: A.cam.sx.x, svx: A.cam.sx.v, sy: A.cam.sy.x, svy: A.cam.sy.v };
   for (let i = 0; i < 82; i++) A.stepExternalPresentation(STEP);
+  assert.ok(A.A2.t > STEP && A.A2.u > 0.25, 'authored A2 timeline advances through its visual snap crossing');
+  assert.ok(Math.abs(A.externalAudit().simTime - 90 * STEP) < 1e-12,
+    'presentation simT advances exactly once for each fixed step');
   assert.equal(A.A2.on, true, 'Gold does not own the real A2 end event');
   assert.equal(A.M.x, 410);
   assert.equal(A.F.x, 770);
@@ -126,6 +211,7 @@ try {
   C.on('ownEdge', () => { ownEdges++; });
   assert.equal(C.beginExternalA1('a1-cast-1', false), true);
   for (let i = 0; i < 205; i++) C.stepExternalPresentation(STEP);
+  assert.ok(C.A1.t > 1.6 && C.A1.u > 0.92, 'authored A1 timeline advances past its visual end crossing');
   assert.equal(C.A1.on, true, 'Gold does not own the real A1 end event');
   assert.equal(C.M.copyOn, false, 'Gold does not claim gameplay OWN or a held weapon');
   assert.equal(ownEdges, 0, 'external-truth OWN is owned by real MirrorA1Own');
@@ -140,7 +226,18 @@ try {
   assert.equal(audit.enabled, true);
   assert.equal(audit.fixedStep, 1 / 120);
   assert.equal(audit.applyExchange, false);
-  console.log('[MIRROR G1 external truth] PASS — fixed tick, actor immutability, deferred A1/A2 edges, single history rebase, instance isolation.');
+
+  const rngA = G.createMirrorInstance({ seed: 0x12345678 });
+  const rngB = G.createMirrorInstance({ seed: 0x12345678 });
+  const rngReference = G.createMirrorInstance({ seed: 0x12345678 });
+  assert.equal(rngA.random(), rngB.random(), 'same seed starts the dedicated presentation streams identically');
+  rngA.random(); // Advancing one Mirror must not consume another instance's stream.
+  rngReference.random();
+  const expectedSecond = rngReference.random();
+  assert.equal(rngB.random(), expectedSecond, 'presentation RNG state is instance-local');
+  assert.equal(rngA.random(), rngReference.random(), 'presentation RNG remains deterministic after isolated advancement');
+  assert.equal(ambientRandomCalls, 0, 'Gold stepping and choreography never consume ambient Math.random');
+  console.log('[MIRROR G1 external truth] PASS — canonical Gold identity, fixed tick/time, immutable external roots, no demo physics/lifecycle, queue/tween/spring/history, real A1/A2 edges, deterministic per-instance RNG.');
 } finally {
   dom.window.close();
 }

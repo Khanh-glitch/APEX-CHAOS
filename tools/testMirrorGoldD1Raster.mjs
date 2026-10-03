@@ -209,7 +209,8 @@ try {
         whiffReachedOwn: whiffOwn !== null, whiffCopy,
         busyA2, snapT: snapT === null ? null : +snapT.toFixed(5),
         movedByPresentation, exchangeApplied,
-        removedMutations: G.d3RemovedMutations ? G.d3RemovedMutations.length : 0 };
+        removedMutations: G.d3RemovedMutations ? G.d3RemovedMutations.length : 0,
+        removedMutationReasons: (G.d3RemovedMutations || []).map((entry) => entry.why) };
 
       d2 = { ok: true, d3, err: null, HN: A.HN, HS: A.HS, histLength: A.hist.length,
         independent, aRoot: A.M.x, bRoot: B.M.x,
@@ -317,8 +318,17 @@ gate('D3-08-presentation-does-not-relocate-actors',
   d3 && { movedByPresentation: d3.movedByPresentation });
 gate('D3-09-exchange-applies-only-when-gameplay-supplies-it',
   !!d3 && d3.exchangeApplied === true, d3 && { exchangeApplied: d3.exchangeApplied });
+const EXPECTED_D3_REMOVALS = [
+  'Gold granted a 6s demo copy at OWN. Production owns equip + lifetime (E).',
+  'mutated the demo foe actor; production has no such field.',
+  'presentation must never consume the gameplay/combat RNG stream.',
+  'presentation may not relocate real fighters; gameplay owns the atomic swap.',
+  'production has no Gold demo camera; actor roots and visual history remain authoritative',
+];
 gate('D3-10-demo-gameplay-mutations-enumerated-and-removed',
-  !!d3 && d3.removedMutations === 4, d3 && { removed: d3.removedMutations });
+  !!d3 && d3.removedMutations === EXPECTED_D3_REMOVALS.length
+    && JSON.stringify(d3.removedMutationReasons) === JSON.stringify(EXPECTED_D3_REMOVALS),
+  d3 && { removed: d3.removedMutations, reasons: d3.removedMutationReasons });
 
 gate('D1-99-no-page-errors', pageErrors.length === 0, pageErrors);
 
