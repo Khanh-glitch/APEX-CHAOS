@@ -12,7 +12,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES, WARMUP_GROUP_SEQUENCE } from '../src/game/runtimeManifest.js';
+import { BOOT_GAME_RUNTIMES, ARSENAL_LEGACY_QUEST_RUNTIMES, WARMUP_GROUP_SEQUENCE } from '../src/game/runtimeManifest.js';
+import { installProductSurfaceAuthority } from '../src/game/productSurface.js';
 
 const REPO = process.cwd();
 const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules');
@@ -76,6 +77,7 @@ const dom = new JSDOM(`<!doctype html><html><body>
 </body></html>`, { pretendToBeVisual: true, runScripts: 'dangerously', url: 'http://localhost/' });
 
 const win = dom.window;
+installProductSurfaceAuthority(win);
 win.__apexStatsSilent = true; // silence synthesized battle SFX in the harness
 
 // Real canvas backing for every jsdom <canvas>. @napi-rs/canvas drawImage only
@@ -163,8 +165,11 @@ win.webkitAudioContext = AudioContextStub;
 // the bounded-voice playback path run for real (sound itself stays stubbed).
 win.fetch = (url) => {
   const u = String(url);
-  if (u.includes('/assets/arsenal/av/')) {
-    const rel = u.slice(u.indexOf('/assets/') + 1);
+  // Serve every real Arsenal AV/feel and Hunter presentation audio asset.
+  // Keeping pick-layout JSON pending preserves the picker's browser-fetch
+  // behavior in this headless harness.
+  if (/\/assets\/(?:arsenal\/(?:av|feel)|hero-rework\/hunter-v10\/sfx)\//.test(u)) {
+    const rel = u.slice(u.indexOf('/assets/') + 1).split(/[?#]/, 1)[0];
     try {
       const data = fs.readFileSync(path.join(REPO, 'public', rel));
       const copy = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
@@ -223,16 +228,17 @@ function loadScript(relPath, required) {
 }
 
 loadScript('/apexEngine.js', true);
-// Boot the same world a real browser reaches: Tier-1 menu runtime + full
-// battle/select spine (BOOT_GAME_RUNTIMES compat aggregate), then Quest.
+// Boot the same neutral product core a normal browser reaches, then explicitly
+// load the detached legacy Quest compatibility group for this historical
+// acceptance harness. Production warmup must never take this second path.
 const loadedRuntimeSrcs = new Set();
 for (const [src] of BOOT_GAME_RUNTIMES) {
   loadedRuntimeSrcs.add(String(src).split(/[?#]/, 1)[0]);
   loadScript(src, false);
 }
-for (const [src] of MODE_DEFERRED_RUNTIMES.arsenalQuest) {
+for (const [src] of ARSENAL_LEGACY_QUEST_RUNTIMES) {
   const key = String(src).split(/[?#]/, 1)[0];
-  if (loadedRuntimeSrcs.has(key)) continue; // never double-eval a classic runtime
+  if (loadedRuntimeSrcs.has(key)) continue; // never double-eval a shared runtime
   loadScript(src, true);
 }
 
@@ -319,7 +325,8 @@ fs.mkdirSync(evidenceDir, { recursive: true });
 // state only (the harness's own wait loop above still ensures the real AV
 // image/audio loads settle; the browser suite owns the true barrier
 // coverage).
-win['__apexDeferredRuntimesReady_arsenalQuest'] = true;
+win['__apexDeferredRuntimesReady_arsenalProduct'] = true;
+win['__apexDeferredRuntimesReady_arsenalQuest'] = true; // detached compatibility alias
 win['__apexDeferredRuntimesReady_select'] = true;
 
 // ------------------------------------------------------- gate: registration
@@ -1196,6 +1203,7 @@ report.aimLaw = run(`
   // Fighter commits to a vertical trajectory while the enemy sits horizontal:
   // any weapon steering would bend dir toward the enemy.
   fighters[0].baseSpeed = 520; fighters[0].setDir(0, 1); fighters[1].baseSpeed = 0;
+  if (fighters[0].data) fighters[0].data.__hrHoldBody = false;
   const d0 = { x: fighters[0].dir.x, y: fighters[0].dir.y };
   const p0 = { x: fighters[0].x, y: fighters[0].y };
   __AQ_TEST.equip('HERO', 'SNIPER');
@@ -1210,6 +1218,7 @@ report.aimLaw = run(`
   __AQ_TEST.holdSpawns();
   __AQ_TEST.place(200, 500, 800, 500);
   fighters[0].baseSpeed = 520; fighters[0].setDir(0, 1); fighters[1].baseSpeed = 0;
+  if (fighters[0].data) fighters[0].data.__hrHoldBody = false;
   const q0 = { x: fighters[0].dir.x, y: fighters[0].dir.y };
   __AQ_TEST.equip('HERO', 'PISTOL');
   __AQ_TEST.step(0.8); // three shots while moving
@@ -1227,6 +1236,7 @@ report.daggerLaw = run(`
   __AQ_TEST.clearEvents();
   __AQ_TEST.place(500, 500, 700, 500); // 200px apart, inside dagger trigger range
   fighters[0].baseSpeed = 520; fighters[0].setDir(0, 1); fighters[1].baseSpeed = 0;
+  if (fighters[0].data) fighters[0].data.__hrHoldBody = false;
   const p0 = { x: fighters[0].x, y: fighters[0].y };
   __AQ_TEST.equip('HERO', 'DAGGER');
   __AQ_TEST.step(0.2);
@@ -1474,11 +1484,10 @@ report.shells = run(`
     rage: fighters.some(f => f.isRage),
   };
 `);
-// Pre-pilot product graph: the visible twelve are centralized separately;
-// Shell selection exposes only the ACTIVE Core Six. Legacy encounter ids stay
-// resolvable through typeFor for explicit historical compatibility.
-gate('shells-active-core-six-product',
-  report.shells.count === 6 && report.shells.allResolvable && report.shells.legacyResolvable,
+// HERO REWORK (doc-06): the playable pool is the canonical 12; the legacy 33
+// (incl. boss-only Quest identities) stay resolvable through typeFor.
+gate('shells-12-playable-canonical',
+  report.shells.count === 12 && report.shells.allResolvable && report.shells.legacyResolvable,
   { count: report.shells.count, legacyResolvable: report.shells.legacyResolvable });
 gate('shells-p1-p2-independent',
   report.shells.names[0] === 'SNIPER' && report.shells.names[1] === 'WITCH'
@@ -1490,8 +1499,8 @@ gate('shells-native-kits-active-in-arsenal',
   { nativeProj: report.shells.nativeProj, hp: report.shells.hp });
 
 // ------------------------- gates: A-CORR-3 roster compatibility (matrix proof)
-// Product selection = Core Six rework shells; detached Quest encounter
-// identities retain their audited legacy KEEP/ADAPT classes.
+// HERO REWORK (doc 06): playable roster = canonical 12 rework shells; the
+// Quest encounter identities keep the audited legacy KEEP/ADAPT classes.
 report.roster = run(`
   const shells = window.APEX_ARSENAL_SHELLS;
   const REG = window.APEX_HERO_REWORK_REGISTRY;
@@ -1501,7 +1510,7 @@ report.roster = run(`
   for (const n of bossIds) kits[n] = (shells.typeFor(n) || {}).compatKit || 'MISSING';
   const allClassified = bossIds.every(n => kits[n] === 'KEEP' || kits[n] === 'ADAPT');
   const adapted = bossIds.filter(n => kits[n] === 'ADAPT');
-  const playableRework = ids.length === 6 && ids.every(n => (shells.typeFor(n) || {}).__hrHero === n);
+  const playableRework = ids.length === 12 && ids.every(n => (shells.typeFor(n) || {}).__hrHero === n);
 
   // REWORK proof (replaces the legacy ICE KEEP-proof): canonical ICE casts
   // its rework skill (A2) inside a real Arsenal match.
@@ -1829,11 +1838,19 @@ report.postCNewbie = run(`
   for (let i = 0; i < 8; i++) APEX_ARSENAL.step(1 / 60);
   const failedNoPickup = ctl.cooldownLeft('A1') === 0
     && !(ct.store['robot.weapon_dash'] && ct.store['robot.weapon_dash'].dash);
-  const sid = __AQ_TEST.pushSlot({ x: 700, y: 500, phase: 'REVEALED', weaponId: 'PISTOL', revealedFor: 0 });
+  // Isolate P1's real A1 from P2's valid CPU pickup/cast behavior. The slot
+  // remains a real revealed pickup and the Robot still takes its documented
+  // windup then physical dash.
+  const aiWas = HR.aiEnabled;
+  HR.setAiEnabled(false);
+  fighters[1].x = 900; fighters[1].y = 100; fighters[1].baseSpeed = 0;
+  const sid = __AQ_TEST.pushSlot({ x: 450, y: 500, phase: 'REVEALED', weaponId: 'PISTOL', revealedFor: 0 });
   f.x = 200; f.y = 500; f.baseSpeed = 0;
+  if (f.data) f.data.__hrHoldBody = false;
   const x0 = f.x;
   window.APEX_ARSENAL_SKILL_GATE.pressJ(f);
-  for (let i = 0; i < 20; i++) APEX_ARSENAL.step(1 / 60);
+  for (let i = 0; i < 36; i++) APEX_ARSENAL.step(1 / 60);
+  HR.setAiEnabled(aiWas);
   return {
     name: f.name,
     cooldown: window.APEX_HERO_REWORK_REGISTRY.resolveSkillLevel('ROBOT', 'A1', 1).cooldown,
@@ -2902,18 +2919,19 @@ gate('v3-popup-palette', report.v3Visual.pal.dmg.fill === '#F2382F' && report.v3
 gate('v3-size-bands', report.v3Visual.bands.join(',') === 'XS,S,M,L,XL,XXL', report.v3Visual);
 gate('v3-no-blanket-text-mute', report.v3Visual.muted === false, report.v3Visual);
 
-report.prePilotCredits = run(`
+report.ownerTestCredits = run(`
   const M = window.APEX_ARSENAL_META;
-  try { localStorage.removeItem(M.KEY); } catch (e) {}
+  try { localStorage.removeItem(M.KEY); localStorage.removeItem(M.OWNER_TEST_GRANT_KEY); } catch (e) {}
   const first = M.load();
   M.save({ ...first, credits: 11000 });
   const second = M.load();
-  return { first: first.credits, second: second.credits };
+  return { first: first.credits, second: second.credits, marker: localStorage.getItem(M.OWNER_TEST_GRANT_KEY) };
 `);
-gate('pre-pilot-fresh-credit-350-no-owner-grant',
-  report.prePilotCredits.first === 350
-  && report.prePilotCredits.second === 11000,
-  report.prePilotCredits);
+gate('product-clean-credits-no-owner-grant',
+  report.ownerTestCredits.first === 350
+  && report.ownerTestCredits.second === 11000
+  && report.ownerTestCredits.marker === null,
+  report.ownerTestCredits);
 
 report.v3Meta = run(`
   const M = window.APEX_ARSENAL_META;
@@ -4431,11 +4449,12 @@ gate('storm-cp5-collision-authority-source',
   cp5Src.weapon.includes('STORMBREAKER.thrownRadius')
   && !/radius: Math\.max\(10, long \* 0\.14\),/.test(cp5Src.weapon),
   { explicitAuthority: cp5Src.weapon.includes('STORMBREAKER.thrownRadius') });
-gate('pre-pilot-warmup-public-graph-without-legacy-ladder',
+gate('menu-cp5-product-warmup-detaches-legacy-quest',
   WARMUP_GROUP_SEQUENCE.length === 2
-  && WARMUP_GROUP_SEQUENCE[0] === 'arsenalHub'
-  && WARMUP_GROUP_SEQUENCE[1] === 'select',
-  { sequence: WARMUP_GROUP_SEQUENCE });
+  && WARMUP_GROUP_SEQUENCE[0] === 'arsenalProduct'
+  && WARMUP_GROUP_SEQUENCE[1] === 'select'
+  && !WARMUP_GROUP_SEQUENCE.includes('arsenalLegacyQuest'),
+  { sequence: WARMUP_GROUP_SEQUENCE, legacyLoadedExplicitly: ARSENAL_LEGACY_QUEST_RUNTIMES.length });
 gate('menu-cp5-no-prefetch-everything',
   !cp5Src.loader.includes('prefetchDeferredRuntimeSources'),
   { loaderStillReferencesIt: cp5Src.loader.includes('prefetchDeferredRuntimeSources') });
@@ -4443,10 +4462,10 @@ gate('menu-cp5-audio-warm-on-intent-only',
   cp5Src.loader.includes('if (priority) warmGroupAudioWhenReady(group, window[promiseKey])')
   && cp5Src.loader.includes('if (priority) warmGroupAudioWhenReady(group, gate);'),
   { earlyReturnIntent: cp5Src.loader.includes('if (priority) warmGroupAudioWhenReady(group, window[promiseKey])') });
-gate('product-menu-button-no-artificial-delay',
-  cp5Src.app.includes('requestAnimationFrame(() => { void run(); })')
+gate('menu-cp5-button-no-artificial-delay',
+  cp5Src.app.includes('requestAnimationFrame(run)')
   && !cp5Src.app.includes('}, 105)'),
-  { rafExec: cp5Src.app.includes('requestAnimationFrame(() => { void run(); })'), no105: !cp5Src.app.includes('}, 105)') });
+  { rafExec: cp5Src.app.includes('requestAnimationFrame(run)'), no105: !cp5Src.app.includes('}, 105)') });
 gate('battle-audio-cp5-no-auto-restore-timer',
   !cp5Src.battleAudio.includes('restoreBattleAudio(), 80')
   && cp5Src.battleAudio.includes('window.apexBeginBattleAudioSession = beginBattleAudioSession')
@@ -4752,12 +4771,11 @@ console.log('STORM_PERF ' + report.stormPerf);
 // ------------------------------------------------ Arsenal Lab V1 owner gates
 report.labV1 = run(`
   const M = APEX_ARSENAL_META, A = APEX_ARSENAL, S = APEX_ARSENAL_SPAWN;
-  M.openHub();
-  const hub = document.getElementById('aq-meta-root');
-  const tiles = [...hub.querySelectorAll('[data-go]')].map(e => e.getAttribute('data-go'));
-  const labCard = hub.querySelector('[data-go="lab"], [data-go="arsenal-lab"]');
+  // The Lab is deliberately an admin seam now, not a normal Hub tile.
+  const adminSeam = typeof window.startArsenalLab === 'function';
+  const publicLabTile = document.querySelector('[data-go="lab"]');
   const startingMode = APEX_ARSENAL_FEEL.getSplatterMode();
-  const labRequest = M.openDeveloperLab();
+  window.startArsenalLab();
   cancelAnimationFrame(reqId); reqId = 0;
   __AQ_TEST.clearEvents();
   const entryFull = __AQ_TEST.debug();
@@ -4798,14 +4816,13 @@ report.labV1 = run(`
   const beforeExit = { credits: M.credits(), quest: JSON.stringify(APEX_ARSENAL_QUEST.loadSave()) };
   window.exitArsenalLab();
   const afterExit = { credits: M.credits(), quest: JSON.stringify(APEX_ARSENAL_QUEST.loadSave()),
-    hub: document.getElementById('aq-meta-root').style.display, gameState, panelGone: !document.getElementById('aq-lab-panel') };
-  return { tiles, labCard: !!labCard, labRequest, startingMode, entry, panelIds, idle,
+    active: A.state.active, gameState, panelGone: !document.getElementById('aq-lab-panel') };
+  return { adminSeam, publicLabTile: !!publicLabTile, startingMode, entry, panelIds, idle,
     noAutomatic, first, collected, hits, damage, popups, hpBefore, lethal,
     storm: storm && { weapon: storm.weaponId, phase: storm.phase, tier: storm.tier },
     floorAngle, beforeExit, afterExit };
 `);
-gate('lab-admin-seam-not-public-graph', report.labV1.tiles.join(',') === 'bot-battle,local-1v1,fighter-shop,lucky-draw'
-  && report.labV1.labCard === false && report.labV1.labRequest?.ok === true, report.labV1);
+gate('lab-admin-seam-not-public-hub-tile', report.labV1.adminSeam && !report.labV1.publicLabTile, report.labV1);
 // HERO REWORK: the Lab default hero is ROBOT (NEWBIE retired).
 gate('lab-entry-robot-robot-full-panel', report.labV1.entry.labMode && report.labV1.entry.hero.name === 'ROBOT'
   && report.labV1.entry.rival.name === 'ROBOT' && report.labV1.panelIds.join(',') === win.APEX_ARSENAL_CONFIG.P0_WEAPON_IDS.join(','), report.labV1.entry);
@@ -4819,7 +4836,7 @@ gate('lab-lethal-feedback-no-ko-true-damage', report.labV1.lethal.hp.rival === 1
 gate('lab-exact-storm-horizontal-floor', report.labV1.storm?.weapon === 'STORMBREAKER' && report.labV1.storm?.phase === 'REVEALED'
   && Math.abs(report.labV1.floorAngle - Math.PI * 1.5) < 1e-8, report.labV1.storm);
 gate('lab-exit-no-progression', report.labV1.afterExit.credits === report.labV1.beforeExit.credits
-  && report.labV1.afterExit.quest === report.labV1.beforeExit.quest && report.labV1.afterExit.hub === 'block'
+  && report.labV1.afterExit.quest === report.labV1.beforeExit.quest && report.labV1.afterExit.active === false
   && report.labV1.afterExit.panelGone, report.labV1.afterExit);
 report.labCap = run(`
   window.startArsenalLab(); cancelAnimationFrame(reqId); reqId=0;
@@ -5024,28 +5041,6 @@ gate('quest-stage-result-actions-correct',
 gate('quest-p1-wins-recorded-to-save',
   hr6.winSaved === hr6.wins && hr6.wins >= 1,
   { wins: hr6.wins, naturalWins: hr6.naturalWins, saved: hr6.winSaved });
-
-// Product Bot Battle uses the same accepted combat core. This direct result
-// proof intentionally runs after the legacy ladder has loaded too, proving a
-// detached history module cannot steal Bot result routing in a long session.
-report.botProductResult = run(`
-  window.__apexArsenalBattleKind = 'BOT_BATTLE';
-  window.startArsenalQuestMode('ROBOT', 'HUNTER');
-  cancelAnimationFrame(reqId); reqId = 0;
-  APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
-  fighters[0].hp = fighters[0].maxHp;
-  fighters[1].hp = 0;
-  APEX_ARSENAL.step(1 / 60);
-  draw();
-  const win = document.getElementById('aq-win');
-  const debug = window.getArsenalQuestDebugState();
-  window.__apexArsenalBattleKind = 'LOCAL_1V1';
-  return { kind: debug.productBattleKind, winner: debug.over, result: win && win.textContent, p1: fighters[0].name, p2: fighters[1].name };
-`);
-gate('bot-battle-real-core-result', report.botProductResult.kind === 'BOT_BATTLE'
-  && report.botProductResult.winner === 'ROBOT' && report.botProductResult.p1 === 'ROBOT'
-  && report.botProductResult.p2 === 'HUNTER' && /BOT BATTLE RESULT/.test(report.botProductResult.result || ''), report.botProductResult);
-
 
 // Evidence: the final stage's result state through the real engine canvas.
 run(`__AQ_TEST.redraw(); return true;`);

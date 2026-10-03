@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES } from '../src/game/runtimeManifest.js';
+import { PRODUCT_ROSTER, installProductSurfaceAuthority } from '../src/game/productSurface.js';
 
 const REPO = process.cwd();
 const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules');
@@ -57,6 +58,7 @@ const dom = new JSDOM(`<!doctype html><html><body>
 </body></html>`, { pretendToBeVisual: true, runScripts: 'dangerously', url: 'http://localhost/' });
 
 const win = dom.window;
+installProductSurfaceAuthority(win);
 win.__apexStatsSilent = true;
 
 // Seed a LEGACY meta save BEFORE any runtime loads, so the NEWBIE->ROBOT
@@ -66,9 +68,8 @@ win.localStorage.setItem('apexChaos.arsenalMeta.v1', JSON.stringify({
   lastSelectedP1: 'NEWBIE', lastSelectedP2: 'ICE', totalSpins: 2,
   unlockedAt: { NEWBIE: 123, ICE: 456 },
 }));
-// The one-time 12,000 AC owner-test grant is its own law (arsenalMetaRuntime, protected). This harness asserts the
-// NEWBIE->ROBOT migration preserves credits, so it marks the grant as already consumed to keep that gate isolated.
-win.localStorage.setItem('apexChaos.ownerTestCredits.20260930.v1', '1');
+// Clean and historic balances now pass through unchanged: no owner-test grant
+// exists in the pre-pilot product graph.
 
 const realCanvases = new WeakMap();
 function realCanvasFor(el) {
@@ -165,10 +166,16 @@ for (const [src] of BOOT_GAME_RUNTIMES) {
   loadedRuntimeSrcs.add(String(src).split(/[?#]/, 1)[0]);
   loadScript(src, false);
 }
-for (const [src] of MODE_DEFERRED_RUNTIMES.arsenalQuest) {
-  const key = String(src).split(/[?#]/, 1)[0];
-  if (loadedRuntimeSrcs.has(key)) continue;
-  loadScript(src, true);
+// Active product core is independent from the retired ladder. Load the
+// detached group explicitly afterward only because this regression preserves
+// compatibility coverage for the historical 20-stage data.
+for (const group of ['arsenalProduct', 'arsenalLegacyQuest']) {
+  for (const [src] of MODE_DEFERRED_RUNTIMES[group]) {
+    const key = String(src).split(/[?#]/, 1)[0];
+    if (loadedRuntimeSrcs.has(key)) continue;
+    loadedRuntimeSrcs.add(key);
+    loadScript(src, true);
+  }
 }
 
 fs.mkdirSync(evidenceDir, { recursive: true });
@@ -254,16 +261,16 @@ const ladderOk = Array.isArray(STAGES) && STAGES.length === 20
 gate('smoke-ladder-20-bosses-preserved', ladderOk,
   Array.isArray(STAGES) ? STAGES.map((s) => s.opponent || s.boss || s).join(',') : 'no STAGES');
 
-/* Gate 6 — playable pool cutover + boss-leak prevention */
+/* Gate 6 — pre-pilot visible-12 + selectable Core Six + boss-leak prevention */
 const ids = shells.ids;
-const expected12 = ['ROBOT', 'CRYSTAL', 'MAGNET', 'BLACK_HOLE', 'MATH_V2', 'ICE', 'RUBBER', 'HUNTER', 'TIME', 'MIRROR', 'SLIME', 'SNIPER'];
-const poolOk = ids.length === 12 && expected12.every((n, i) => ids[i] === n);
+const poolOk = ids.length === 12 && PRODUCT_ROSTER.visibleIds.every((n, i) => ids[i] === n)
+  && shells.roster().map((s) => s.name).join(',') === PRODUCT_ROSTER.playableIds.join(',');
 const bossIds = ['PAINTER', 'DRUM', 'CARD', 'BLADE', 'TOXIC', 'ORBIT', 'FLASH', 'ELECTRIC', 'VAMPIRE', 'SAW', 'WOLF', 'WITCH', 'MONK'];
 const noLeak = bossIds.every((b) => !ids.includes(b) && !shells.isPlayable(b));
-const buyRejected = metaApi ? metaApi.buy('PAINTER').ok === false : false;
-const spinPool = metaApi ? metaApi.getState() : null;
-gate('smoke-playable-pool-12-no-boss-leak', poolOk && noLeak && buyRejected,
-  { ids, buyRejected });
+const lockedNoPlay = PRODUCT_ROSTER.lockedIds.every((id) => ids.includes(id) && !shells.isPlayable(id));
+const buyRejected = metaApi ? metaApi.buy('PAINTER').ok === false && metaApi.buy('BLACK_HOLE').ok === false : false;
+gate('smoke-product-visible12-core6-no-boss-leak', poolOk && noLeak && lockedNoPlay && buyRejected,
+  { ids, selectable: shells.roster().map((s) => s.name), buyRejected });
 
 /* Gate 7 — 20s @ 60fps healthy match (ROBOT vs SNIPER, AI on) */
 HR.setSeed(42);
@@ -277,6 +284,23 @@ const hpAfter = T.hp();
 const healthy = startOk && !runError && hpAfter.hero > 0 && hpAfter.rival > 0;
 gate('smoke-20s-60fps-healthy', healthy, { runError, hpAfter });
 snapshot('smoke-20s-robot-vs-sniper');
+
+/* Gate 7b — real Bot Battle profile uses existing P2 Hero Rework cast AI.
+ * This is the product seam: no alternate combat loop, no simulated outcome. */
+win.__apexArsenalBattleProfile = 'BOT';
+HR.setSeed(31);
+HR.setAiEnabled(true);
+T.start('ROBOT', 'CRYSTAL');
+T.holdSpawns();
+const botMode = win.getArsenalBattleDebugState()?.battleMode;
+const botAiBefore = HR.AIL.bus.ring.length;
+T.step(2.2);
+const botEvents = HR.AIL.bus.ring.slice(botAiBefore)
+  .filter((event) => event.payload?.source === 'p2-ai');
+const botCasts = botEvents.filter((event) => event.type === 'Cast');
+gate('smoke-bot-profile-real-p2-ai', botMode === 'BOT' && HR.match?.aiEnabled === true && botCasts.length > 0,
+  { botMode, aiEnabled: HR.match?.aiEnabled, events: botEvents.map((event) => ({ type: event.type, payload: event.payload })) });
+win.__apexArsenalBattleProfile = 'LOCAL';
 
 /* Gate 8 — invariants during the run */
 const inv = HR.invariants();
@@ -304,7 +328,9 @@ T.pushSlot({ x: 800, y: 500, weaponId: 'PISTOL' });
 const heroBefore = T.fighters()[0];
 const posBefore = { x: heroBefore.x, y: heroBefore.y };
 const dashRes = ctl.tryCast('A1', 'test');
-T.step(0.2);
+// Robot A1 owns a .26s recognize/commit windup before physical launch.
+// Step beyond that frozen edge so this gate observes real dash movement.
+T.step(0.5);
 const posAfter = { x: T.fighters()[0].x, y: T.fighters()[0].y };
 const moved = Math.hypot(posAfter.x - posBefore.x, posAfter.y - posBefore.y);
 gate('smoke-robot-dash-moves-to-pickup', dashRes.ok && moved > 60, { dashRes, moved: Math.round(moved) });

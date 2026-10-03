@@ -9,10 +9,10 @@
  *
  * Authority: docs/hero-rework/phase1/00..05 + 06_POSTFREEZE_ROSTER_CORRECTION.
  *
- * Roster law (doc 06): the canonical 12 are the PLAYABLE roster. Quest boss
- * identities outside the 12 keep their audited legacy encounter behavior via
- * a facade combatant; bosses that ARE canonical-12 run rework mechanics
- * underneath the encounter layer.
+ * Compatibility roster law (doc 06): the canonical 12 resolve rework
+ * mechanics. The pre-pilot product graph separately narrows normal-public
+ * selection to Core Six; boss identities outside the 12 keep their audited
+ * legacy encounter behavior via a facade combatant.
  *
  * SLIME law (doc 06): one logical Combatant per side; child Bodies live in
  * per-combatant AIL collections and are NEVER pushed into the global
@@ -3380,25 +3380,33 @@
    * Entry/exit wrapping + step wrapping + draw wrapping.
    * ------------------------------------------------------------------ */
   function installIntegration() {
-    const baseStart = globalScope.startArsenalQuestMode;
+    // Product core owns neutral Arsenal Battle names. Retired Quest aliases
+    // remain only for compatibility and always forward into this wrapped seam.
+    const baseStart = globalScope.startArsenalBattleMode || globalScope.startArsenalQuestMode;
     if (baseStart && !baseStart.__hrWrapped) {
-      const wrapped = function startArsenalQuestModeHR(p1, p2) {
+      const wrapped = function startArsenalBattleModeHR(p1, p2) {
         const out = baseStart.call(this, p1, p2);
         installMatch();
         return out;
       };
       wrapped.__hrWrapped = true;
-      globalScope.startArsenalQuestMode = wrapped;
+      globalScope.startArsenalBattleMode = wrapped;
+      globalScope.startArsenalQuestMode = function legacyStartArsenalQuestModeHR(...args) {
+        return globalScope.startArsenalBattleMode(...args);
+      };
     }
 
-    const baseExit = globalScope.exitArsenalQuestMode;
+    const baseExit = globalScope.exitArsenalBattleMode || globalScope.exitArsenalQuestMode;
     if (baseExit && !baseExit.__hrWrapped) {
-      const wrapped = function exitArsenalQuestModeHR() {
+      const wrapped = function exitArsenalBattleModeHR() {
         teardownMatch();
         return baseExit.call(this);
       };
       wrapped.__hrWrapped = true;
-      globalScope.exitArsenalQuestMode = wrapped;
+      globalScope.exitArsenalBattleMode = wrapped;
+      globalScope.exitArsenalQuestMode = function legacyExitArsenalQuestModeHR(...args) {
+        return globalScope.exitArsenalBattleMode(...args);
+      };
     }
 
     const AQ = globalScope.APEX_ARSENAL;

@@ -18,37 +18,34 @@
     'NEWBIE',
   ];
 
-  // Hero Rework owns the canonical twelve identities. The pre-pilot product
-  // graph intentionally exposes all twelve as visible roster records but only
-  // its Core Six as ACTIVE/selectable. The product authority is queried here
-  // rather than re-encoding a shop/select-only allowlist.
+  // HERO REWORK canonical compatibility definitions. The pre-pilot product
+  // graph below narrows public selection to Core Six while keeping all 12
+  // resolvable for saved data/developer compatibility. ROBOT replaces NEWBIE.
   const CANONICAL_12 = [
     'ROBOT', 'CRYSTAL', 'MAGNET', 'BLACK_HOLE', 'MATH_V2', 'ICE', 'RUBBER',
     'HUNTER', 'TIME', 'MIRROR', 'SLIME', 'SNIPER',
   ];
   const REWORK_PRODUCT_CUTOVER = !!(window.APEX_HERO_REWORK_REGISTRY
     && window.APEX_HERO_REWORK_REGISTRY.productCutover !== false);
-  function productAuthority() { return window.APEX_PRODUCT_SURFACES || null; }
-  function visibleProductIds() {
-    const P = productAuthority();
-    return REWORK_PRODUCT_CUTOVER && P && P.visibleRosterIds ? P.visibleRosterIds() : CANONICAL_12.slice();
+
+  // PRE-PILOT PRODUCT LAW: Hero Registry still defines the canonical 12
+  // compatibility shells, but public availability is owned by the one
+  // semantic product surface authority. If that authority is unexpectedly
+  // absent, fail closed to ROBOT rather than reopening a retired roster.
+  function productRoster(key) {
+    const product = window.APEX_PRODUCT_SURFACE;
+    const ids = product && product.roster && product.roster[key];
+    return Array.isArray(ids) && ids.length ? ids.slice() : ['ROBOT'];
   }
+  function visibleIds() { return productRoster('visibleIds'); }
   function playableIds() {
-    const P = productAuthority();
-    return REWORK_PRODUCT_CUTOVER && P && P.activeRosterIds ? P.activeRosterIds() : (REWORK_PRODUCT_CUTOVER ? CANONICAL_12.slice() : CANONICAL_32.slice());
+    return REWORK_PRODUCT_CUTOVER ? productRoster('playableIds') : ['ROBOT'];
   }
-  function canSelectProductFighter(name) {
-    const P = productAuthority();
-    return P && P.canSelectFighter ? P.canSelectFighter(name) : playableIds().includes(String(name || '').toUpperCase());
+  function isVisiblePublicId(name) {
+    return visibleIds().includes(String(name || '').toUpperCase());
   }
-  function canUseProductFighter(name) {
-    const id = String(name || '').toUpperCase();
-    if (!canSelectProductFighter(id)) return false;
-    // Availability alone is insufficient at a launch boundary. When Meta is
-    // present (every product route), ownership is also required. The fallback
-    // keeps explicit compatibility harnesses functional before Meta loads.
-    const meta = window.APEX_ARSENAL_META;
-    return !meta || typeof meta.owns !== 'function' || meta.owns(id);
+  function isPublicPlayableId(name) {
+    return playableIds().includes(String(name || '').toUpperCase());
   }
 
   // HERO REWORK: rework shell — runs NO legacy kit (no-double-execution law,
@@ -345,14 +342,10 @@
     return shell;
   }
 
-  // Product selection is deliberately narrower than typeFor(): the latter
-  // still resolves historical bosses and retired shells for compatibility,
-  // while the picker receives only currently ACTIVE product fighters.
-  function roster() { return playableIds().map(shellTypeFor).filter(Boolean); }
-  function selectionTypeFor(name) {
-    const id = String(name || '').toUpperCase();
-    return canUseProductFighter(id) ? shellTypeFor(id) : null;
-  }
+  // Public pickers receive only the product-authorized Core Six. The visible
+  // 12 are exposed separately for Shop/Draw/status UI; compatibility shells
+  // remain resolvable through typeFor but cannot enter public selection.
+  function roster() { return playableIds().map(shellTypeFor); }
 
   function ensureNewbieOnRoster() {
     // HERO REWORK cutover: NEWBIE is retired from the roster — ROBOT is the
@@ -368,78 +361,62 @@
     if (i >= 0) FighterTypes.splice(i, 1);
   }
 
-  function beginSelection(options) {
-    const requested = options && options.mode;
-    // Legacy ladder callers set their own explicit pending flag. They retain
-    // their compatibility route but cannot leak into normal public navigation.
-    const mode = requested || (window.__apexArsenalQuestPick ? 'legacy-quest' : 'local');
+  function beginSelection(opts) {
+    const requested = String((opts && opts.mode) || window.__apexArsenalSelectionMode || 'local').toLowerCase();
+    const mode = requested === 'bot' ? 'bot' : 'local';
     window.__apexArsenalSelectionMode = mode;
-    window.__apexArsenalSelectPending = true;
-    window.__apexArsenalFreeBattle = mode === 'local';
     window.__apexArsenalBotBattle = mode === 'bot';
-    if (mode !== 'legacy-quest') window.__apexArsenalQuestPick = false;
+    window.__apexArsenalFreeBattle = mode === 'local';
+    window.__apexArsenalQuestPick = false;
+    window.__apexArsenalSelectPending = true;
     ensureNewbieOnRoster();
     if (typeof goToSelect === 'function') goToSelect();
     else if (typeof window.goToSelect === 'function') window.goToSelect();
-    // Product display identity is owned by the Hero Registry (FROST, NEWBOT,
-    // CRYSTALA); this patch remains a non-authoritative compatibility hook.
+    // FROST V1 (authority §1): pick-grid product copy shows FROST.
     try {
       const HR = window.APEX_HERO_REWORK;
       if (HR && HR.patchFrostProductCopy) HR.patchFrostProductCopy();
     } catch (e) { /* copy never breaks selection */ }
   }
 
-  // Route the shared select screen's START into the neutral Arsenal combat
-  // shell. The historical function name remains below as a compatibility
-  // alias, but product launch no longer waits for the retired quest ladder.
+  function canPublicSelect(name) {
+    const id = String(name || '').toUpperCase();
+    if (!isPublicPlayableId(id)) return false;
+    const meta = window.APEX_ARSENAL_META;
+    return !meta || typeof meta.owns !== 'function' || meta.owns(id);
+  }
+
+  // Route the shared select screen's START into neutral Arsenal Battle with
+  // product-legal shells. Normal classic selection remains untouched.
   const baseStartMatch = typeof window.startMatch === 'function' ? window.startMatch : null;
   window.startMatch = function (...args) {
     if (window.__apexArsenalSelectPending) {
+      const mode = window.__apexArsenalSelectionMode === 'bot' ? 'BOT' : 'LOCAL';
       window.__apexArsenalSelectPending = false;
-      const mode = window.__apexArsenalSelectionMode || (window.__apexArsenalQuestPick ? 'legacy-quest' : 'local');
-      const legacyQuest = mode === 'legacy-quest' || window.__apexArsenalQuestPick === true;
       const p1 = typeof p1Selection !== 'undefined' ? p1Selection : null;
       const p2 = typeof p2Selection !== 'undefined' ? p2Selection : null;
-      const productSelectionAllowed = !!p1 && !!p2
-        && canUseProductFighter(p1.name)
-        && (mode === 'bot' || legacyQuest || canUseProductFighter(p2.name));
-      // Product entry must reject stale/future selections below the UI. Quest
-      // compatibility may still resolve its historical opponent through
-      // typeFor, but its player side remains an ACTIVE roster fighter.
-      if (!p1 || !p2 || !productSelectionAllowed) {
-        if (typeof window.openApexProductSurface === 'function' && !legacyQuest) window.openApexProductSurface(mode === 'bot' ? 'bot-battle' : 'local-1v1');
-        else if (typeof window.beginArsenalQuestSelection === 'function') window.beginArsenalQuestSelection();
+      // Public mutation boundary: stale, locked, legacy, or unowned shells
+      // never fall through to either classic battle or Arsenal battle.
+      if (!p1 || !p2 || !canPublicSelect(p1.name) || !canPublicSelect(p2.name)) {
+        beginSelection({ mode: mode === 'BOT' ? 'bot' : 'local' });
         return;
       }
+      window.__apexArsenalBattleProfile = mode;
+      window.__apexArsenalBotBattle = false;
+      window.__apexArsenalFreeBattle = false;
       const launch = () => {
-        const productLauncher = window.startArsenalProductBattle;
-        if (typeof window.startArsenalQuestMode === 'function' && (legacyQuest || typeof productLauncher === 'function')) {
-          window.__apexArsenalBattleKind = mode === 'bot' ? 'BOT_BATTLE' : (legacyQuest ? 'LEGACY_QUEST' : 'LOCAL_1V1');
-          window.APEX_ARSENAL_META?.setLast?.(p1.name, legacyQuest ? null : p2.name);
-          const result = legacyQuest ? window.startArsenalQuestMode(p1.name, p2.name) : productLauncher(p1.name, p2.name);
-          if (result && result.ok === false) {
-            if (typeof window.openApexProductSurface === 'function') window.openApexProductSurface(mode === 'bot' ? 'bot-battle' : 'local-1v1');
-            return;
-          }
-          window.__apexArsenalSelectionMode = null;
-          window.__apexArsenalQuestPick = false;
-          window.__apexArsenalFreeBattle = false;
-          window.__apexArsenalBotBattle = false;
-        } else if (typeof window.openApexProductSurface === 'function' && !legacyQuest) {
-          window.openApexProductSurface(mode === 'bot' ? 'bot-battle' : 'local-1v1');
-        } else if (typeof window.beginArsenalQuestSelection === 'function') {
-          window.beginArsenalQuestSelection();
-        }
+        if (typeof window.startArsenalBattleMode === 'function') window.startArsenalBattleMode(p1.name, p2.name);
+        else beginSelection({ mode: mode === 'BOT' ? 'bot' : 'local' });
       };
-      // The barrier loads arsenalCore, the shared combat/presentation spine.
-      // It has no dependency on the historical 20-stage ladder.
+      // Cold selection waits only for neutral active product core. The retired
+      // ladder/runtime group is never a dependency of Local or Bot Battle.
       if (window.apexArsenalGameplayBarrierSync && window.apexArsenalGameplayBarrierSync('match')) { launch(); return; }
       if (window.apexArsenalGameplayBarrier) {
         window.apexArsenalGameplayBarrier('match').then((ok) => { if (ok) launch(); });
         return;
       }
       const ensure = window.__apexEnsureDeferredRuntimes;
-      if (typeof ensure === 'function') ensure(legacyQuest ? 'arsenalQuest' : 'arsenalCore').then(launch).catch(() => {});
+      if (typeof ensure === 'function') ensure('arsenalProduct').then(launch).catch(() => {});
       else launch();
       return;
     }
@@ -450,31 +427,28 @@
   const baseGoToMenu = typeof window.goToMenu === 'function' ? window.goToMenu : null;
   window.goToMenu = function (...args) {
     window.__apexArsenalSelectPending = false;
-    window.__apexArsenalSelectionMode = null;
-    window.__apexArsenalFreeBattle = false;
-    window.__apexArsenalBotBattle = false;
     return baseGoToMenu ? baseGoToMenu.apply(this, args) : undefined;
   };
 
-  // Compatibility alias deliberately retained for historical integrations.
-  // Product callers use beginArsenalProductSelection/openApexProductSurface.
+  // Historical entry point remains a compatibility alias; public React
+  // navigation calls the explicit Local/Bot entry points instead.
   window.beginArsenalQuestSelection = beginSelection;
-  window.beginArsenalProductSelection = beginSelection;
+  window.beginArsenalBattleSelection = beginSelection;
 
   window.APEX_ARSENAL_SHELLS = {
-    // `ids` is strictly the currently ACTIVE selection/purchase/draw pool.
-    // `visibleIds` preserves the exact twelve-row product roster for shop UI;
-    // `typeFor` remains unrestricted for historical encounter compatibility.
-    ids: playableIds(),
-    visibleIds: visibleProductIds(),
+    // `ids` is the visible product roster (exactly 12). `roster()` is the
+    // selectable Core Six and is the only source given to public pickers.
+    ids: visibleIds(),
+    visibleIds: visibleIds(),
+    playableIds: playableIds(),
     legacyIds: CANONICAL_32,
-    isPlayable: (name) => canSelectProductFighter(name),
-    canSelect: canSelectProductFighter,
-    canUse: canUseProductFighter,
+    canonicalIds: CANONICAL_12,
+    isVisible: isVisiblePublicId,
+    isPlayable: isPublicPlayableId,
     typeFor: shellTypeFor,
-    selectionTypeFor,
     roster,
     beginSelection,
+    canPublicSelect,
     isPending: () => !!window.__apexArsenalSelectPending,
   };
   window.apexArsenalShellSelectRuntime = 'ready';

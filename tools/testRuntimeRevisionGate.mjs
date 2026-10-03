@@ -12,9 +12,32 @@ if (!mRev) { console.error('FAIL revision constant missing'); process.exit(1); }
 const revision = mRev[1];
 const urls = [...manifest.matchAll(/'\(\/game\/[^']+\?v=' \+ APEX_ARSENAL_RUNTIME_REVISION, '(\w+)'/g)].map(m => m[1].replace(/^'/, ''));
 const paths = [...manifest.matchAll(/'\/(game\/[^']+?)\?v=' \+ APEX_ARSENAL_RUNTIME_REVISION/g)].map(m => 'public/' + m[1]);
-const required = ['public/game/arsenal/arsenalChamberPaletteRuntime.js', 'public/game/arsenal/arsenalMetaRuntime.js', 'public/game/modes/arsenalQuestRuntime.js'];
+const required = [
+  'public/game/arsenal/arsenalChamberPaletteRuntime.js',
+  'public/game/arsenal/arsenalMetaRuntime.js',
+  'public/game/modes/arsenalBattleRuntime.js',
+];
 const missing = required.filter(r => !paths.includes(r));
 if (missing.length) { console.error('FAIL required runtimes not versioned:', missing); process.exit(1); }
+
+// Pre-pilot routing closure: the normal product bundle must never accidentally
+// absorb retired Quest code while its explicit compatibility bundle preserves
+// versioned historical access.
+const productBlock = manifest.match(/export const ARSENAL_PRODUCT_RUNTIMES = \[([\s\S]*?)\n\];/);
+const legacyBlock = manifest.match(/export const ARSENAL_LEGACY_QUEST_RUNTIMES = \[([\s\S]*?)\n\];/);
+if (!productBlock || /arsenalQuestRuntime\.js|arsenalQuestLadder\.js/.test(productBlock[1])) {
+  console.error('FAIL neutral Arsenal product core references a detached Quest runtime');
+  process.exit(1);
+}
+if (!legacyBlock || !/arsenalQuestRuntime\.js/.test(legacyBlock[1]) || !/arsenalQuestLadder\.js/.test(legacyBlock[1])) {
+  console.error('FAIL explicit detached Quest compatibility group is incomplete');
+  process.exit(1);
+}
+const warmupBlock = manifest.match(/export const WARMUP_GROUP_SEQUENCE = \[([\s\S]*?)\];/);
+if (!warmupBlock || /(arsenalLegacyQuest|['"]arsenalQuest['"])/.test(warmupBlock[1])) {
+  console.error('FAIL a detached Quest group is scheduled for normal warmup');
+  process.exit(1);
+}
 const hashes = {};
 for (const p of paths) hashes[p] = crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 if (process.env.UPDATE_LOCK === '1') {

@@ -390,7 +390,7 @@
 
   const API = {
     config: CONFIG,
-    // Installed by arsenalQuestRuntime on mode entry; spawn/weapon runtimes read it.
+    // Installed by the neutral Arsenal Battle core on mode entry; spawn/weapon runtimes read it.
     state: null,
     // Ring buffer of structured [AQ] events (handoff §11).
     events: [],
@@ -416,9 +416,8 @@
   // every transition from the hub INTO gameplay (Lab, Free Battle START,
   // Quest stage, re-entry) is a HARD barrier: the combat shell, fighters,
   // battle controls and Lab controls must not exist until the full
-  // neutral arsenalCore tier has loaded AND its presentation init (image
-  // atlas fetch/decode) has settled. The historical quest tier is accepted
-  // only as an explicit compatibility path, never as a normal requirement.
+  // arsenalProduct tier has loaded AND its presentation init (image atlas
+  // fetch/decode) has settled. Script evaluation alone is not readiness.
   //
   // State machine (window.apexArsenalTransitionState()):
   //   idle → lab-loading | match-loading → lab-ready | match-ready
@@ -427,20 +426,6 @@
   window.__apexArsenalTransition = {
     state: 'idle', destination: null, since: 0, lastDurationMs: null, error: null, _pending: null,
   };
-  // `arsenalQuest` remains a legacy compatibility group. Its dependency list
-  // includes the neutral core, so accepting it here preserves explicit legacy
-  // entry while normal product routes only request `arsenalCore`.
-  function coreRuntimeReady() {
-    return !!(window.__apexDeferredRuntimesReady_arsenalCore
-      || window.__apexDeferredRuntimesReady_arsenalQuest
-      || window.__apexDeferredRuntimesReady_legacyArsenalQuest);
-  }
-  function coreRuntimePromise() {
-    return window.__apexDeferredRuntimesPromise_arsenalCore
-      || window.__apexDeferredRuntimesPromise_arsenalQuest
-      || window.__apexDeferredRuntimesPromise_legacyArsenalQuest
-      || null;
-  }
   window.apexArsenalTransitionState = function () {
     const t = window.__apexArsenalTransition;
     const AV = window.APEX_ARSENAL_AV;
@@ -451,10 +436,7 @@
       error: t.error,
       readiness: {
         'hub-ready': !!(window.APEX_ARSENAL_META && document.getElementById('aq-meta-root')),
-        // Old probe name remains a compatibility alias; its truth is now the
-        // neutral core rather than a dependency on the legacy ladder.
-        'arsenal-full-runtime-ready': coreRuntimeReady(),
-        'arsenal-core-runtime-ready': coreRuntimeReady(),
+        'arsenal-full-runtime-ready': !!window['__apexDeferredRuntimesReady_arsenalProduct'],
         'av-images-ready': !!(AV && AV.imagesSettled && AV.imagesSettled()),
         // CP7: compare against the TOTAL — audioReady() is a count and its
         // truthiness was true after a single decode, reporting the audio
@@ -466,7 +448,7 @@
   window.apexArsenalBarrierSatisfied = function () {
     // Warm fast path: the full tier is loaded and images are settled — the
     // destination may open synchronously (zero added latency on re-entry).
-    return !!(coreRuntimeReady()
+    return !!(window['__apexDeferredRuntimesReady_arsenalProduct']
       && window.APEX_ARSENAL_AV
       && window.APEX_ARSENAL_AV.imagesSettled
       && window.APEX_ARSENAL_AV.imagesSettled());
@@ -532,9 +514,9 @@
     t._pending = (async () => {
       try {
         const ensure = window.__apexEnsureDeferredRuntimes;
-        if (typeof ensure === 'function') await ensure('arsenalCore');
-        if (!coreRuntimeReady()) {
-          throw new Error('arsenalCore runtime group did not finish loading');
+        if (typeof ensure === 'function') await ensure('arsenalProduct');
+        if (!window['__apexDeferredRuntimesReady_arsenalProduct']) {
+          throw new Error('arsenalProduct runtime group did not finish loading');
         }
         const AV = window.APEX_ARSENAL_AV;
         if (AV && AV.preload) {
@@ -561,18 +543,19 @@
     })();
     return t._pending;
   };
-  // If a neutral core route has begun loading, start image-side preload early
-  // (NO audio decode — that stays route-intent). Legacy compatibility loads
-  // also satisfy coreRuntimeReady(), but normal warmup never starts them.
-  (function watchArsenalCoreRuntime() {
+  // When the background warmup finishes the arsenalProduct group, start the
+  // image-side preload early (NO audio decode — that stays route-intent
+  // only, per CP5). This makes the barrier resolve instantly in the common
+  // case where the user browses the hub for a moment before entering.
+  (function watchArsenalFullRuntime() {
     const tick = () => {
       try {
-        if (coreRuntimeReady()) {
+        if (window['__apexDeferredRuntimesReady_arsenalProduct']) {
           const AV = window.APEX_ARSENAL_AV;
           if (AV && AV.preload) AV.preload({ audio: false });
           return;
         }
-        const gate = coreRuntimePromise();
+        const gate = window['__apexDeferredRuntimesPromise_arsenalProduct'];
         if (gate && gate.then) {
           gate.then(() => {
             const AV2 = window.APEX_ARSENAL_AV;

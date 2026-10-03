@@ -1,46 +1,30 @@
-// ARSENAL V3 meta: Hub / Shop / Lucky Draw / AC economy / owned roster.
+// ARSENAL product meta: Shop / Lucky Draw / AC economy / owned roster.
+// Public navigation lives in the semantic React product graph, not this file.
 (function apexArsenalMetaRuntime() {
   if (window.apexArsenalMetaRuntime === 'ready') return;
   const KEY = 'apexChaos.arsenalMeta.v1';
   const SHOP_COST = 1000;
   const DRAW_COST = 350;
   const START_CREDITS = 350;
-
-  // The product graph is the authority for roster availability. The visible
-  // twelve and the currently ACTIVE six are intentionally distinct: historic
-  // ownership remains saved, but locked future fighters never become a public
-  // selection, purchase, or draw result merely because an old save owns them.
-  function product() { return window.APEX_PRODUCT_SURFACES || null; }
-  function visibleRosterIds() {
-    const P = product();
-    if (P && P.visibleRosterIds) return P.visibleRosterIds();
-    return (window.APEX_ARSENAL_SHELLS && window.APEX_ARSENAL_SHELLS.visibleIds) || ['ROBOT'];
-  }
-  function activeRosterIds() {
-    const P = product();
-    if (P && P.activeRosterIds) return P.activeRosterIds();
-    return (window.APEX_ARSENAL_SHELLS && window.APEX_ARSENAL_SHELLS.ids) || ['ROBOT'];
-  }
-  function displayNameFor(id) {
-    const P = product();
-    return P && P.displayNameFor ? P.displayNameFor(id) : String(id || '').toUpperCase();
-  }
-  function canSelect(id) {
-    const P = product();
-    return P && P.canSelectFighter ? P.canSelectFighter(id) : activeRosterIds().includes(String(id || '').toUpperCase());
-  }
-  function canPurchase(id) {
-    const P = product();
-    return P && P.canPurchaseFighter ? P.canPurchaseFighter(id) : activeRosterIds().includes(String(id || '').toUpperCase());
-  }
-  function canDraw(id) {
-    const P = product();
-    return P && P.canDrawFighter ? P.canDrawFighter(id) : activeRosterIds().includes(String(id || '').toUpperCase());
-  }
-  function canonicalFighterId(id) {
-    const P = product();
-    return P && P.normalizeId ? P.normalizeId(id) : String(id == null ? '' : id).trim().toUpperCase();
-  }
+  // Product availability is centralized in src/game/productSurface.js and is
+  // registered on window before classic runtimes load. These adapters never
+  // invent a fallback broad roster: a missing authority fails closed to ROBOT.
+  const PRODUCT = () => window.APEX_PRODUCT_SURFACE || null;
+  const ROSTER = () => {
+    const ids = PRODUCT()?.roster?.visibleIds;
+    return Array.isArray(ids) && ids.length ? ids.slice() : ['ROBOT'];
+  };
+  const PLAYABLE_ROSTER = () => {
+    const ids = PRODUCT()?.roster?.playableIds;
+    return Array.isArray(ids) && ids.length ? ids.slice() : ['ROBOT'];
+  };
+  const isProductVisible = (name) => ROSTER().includes(String(name || '').toUpperCase());
+  const isProductPlayable = (name) => PLAYABLE_ROSTER().includes(String(name || '').toUpperCase());
+  const displayNameFor = (name) => {
+    const id = String(name || '').toUpperCase();
+    const registry = window.APEX_HERO_REWORK_REGISTRY;
+    return (registry && typeof registry.displayNameFor === 'function' && registry.displayNameFor(id)) || id;
+  };
 
   // HERO REWORK (doc 06): ROBOT replaces legacy NEWBIE as the default-owned
   // playable hero. Migration is IDEMPOTENT: any persisted NEWBIE ownership/
@@ -53,11 +37,8 @@
       st.ownedFighters.unshift('ROBOT');
     }
     if (!st.ownedFighters.includes('ROBOT')) st.ownedFighters.unshift('ROBOT');
-    // Preserve ownership history, but current selections are an ACTIVE product
-    // concern. A saved future/retired selection must never inject a locked
-    // fighter into the picker or match; prefer ROBOT deterministically.
-    if (st.lastSelectedP1 === 'NEWBIE' || !st.ownedFighters.includes(st.lastSelectedP1) || !canSelect(st.lastSelectedP1)) st.lastSelectedP1 = 'ROBOT';
-    if (st.lastSelectedP2 === 'NEWBIE' || !st.ownedFighters.includes(st.lastSelectedP2) || !canSelect(st.lastSelectedP2)) st.lastSelectedP2 = 'ROBOT';
+    if (st.lastSelectedP1 === 'NEWBIE' || !st.ownedFighters.includes(st.lastSelectedP1)) st.lastSelectedP1 = 'ROBOT';
+    if (st.lastSelectedP2 === 'NEWBIE' || !st.ownedFighters.includes(st.lastSelectedP2)) st.lastSelectedP2 = 'ROBOT';
     if (st.unlockedAt) {
       if (st.unlockedAt.NEWBIE != null) {
         st.unlockedAt.ROBOT = st.unlockedAt.ROBOT != null
@@ -88,12 +69,12 @@
     const s = emptyState();
     if (!raw || typeof raw !== 'object') return s;
     s.credits = Math.max(0, raw.credits | 0);
-    const owned = Array.isArray(raw.ownedFighters) ? raw.ownedFighters.map(canonicalFighterId).filter(Boolean) : [];
+    const owned = Array.isArray(raw.ownedFighters)
+      ? raw.ownedFighters.map((id) => String(id || '').toUpperCase()).filter(Boolean) : [];
+    // Historic ownership survives, even for product-locked/legacy entries.
     s.ownedFighters = Array.from(new Set(['ROBOT', ...owned]));
-    const savedP1 = canonicalFighterId(raw.lastSelectedP1);
-    const savedP2 = canonicalFighterId(raw.lastSelectedP2);
-    s.lastSelectedP1 = s.ownedFighters.includes(savedP1) ? savedP1 : 'ROBOT';
-    s.lastSelectedP2 = s.ownedFighters.includes(savedP2) ? savedP2 : 'ROBOT';
+    s.lastSelectedP1 = String(raw.lastSelectedP1 || 'ROBOT').toUpperCase();
+    s.lastSelectedP2 = String(raw.lastSelectedP2 || 'ROBOT').toUpperCase();
     s.totalSpins = Math.max(0, raw.totalSpins | 0);
     s.unlockedAt = raw.unlockedAt && typeof raw.unlockedAt === 'object' ? { ...raw.unlockedAt } : { ROBOT: 0 };
     // AUDIT-E: state truth must match rendered truth — unknown/stale palette
@@ -102,14 +83,22 @@
     // palette runtime is present; absent (partial boot) means default too.
     const P = window.APEX_CHAMBER_PALETTE;
     s.arenaPaletteId = (typeof raw.arenaPaletteId === 'string' && P && P.isKnown(raw.arenaPaletteId)) ? raw.arenaPaletteId : null;
-    return migrateNewbieToRobot(s);
+    migrateNewbieToRobot(s);
+    // A stale historical selection is safe only when it is both owned and in
+    // the current public Core Six. Locked visibility never implies selectability.
+    if (!isProductPlayable(s.lastSelectedP1) || !s.ownedFighters.includes(s.lastSelectedP1)) s.lastSelectedP1 = 'ROBOT';
+    if (!isProductPlayable(s.lastSelectedP2) || !s.ownedFighters.includes(s.lastSelectedP2)) s.lastSelectedP2 = 'ROBOT';
+    return s;
   }
   function load() {
-    // No automatic owner-test credit migration: historic balances remain
-    // untouched, while a brand-new profile starts at the unchanged 350 AC.
     try {
       const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null;
-      return raw ? sanitize(JSON.parse(raw)) : emptyState();
+      if (!raw) return emptyState();
+      const clean = sanitize(JSON.parse(raw));
+      // Migration is durable: a NEWBIE/stale selection cannot reappear after
+      // the next reload, while all historic ownership and balances survive.
+      try { localStorage.setItem(KEY, JSON.stringify(clean)); } catch (error) {}
+      return clean;
     } catch (e) {
       return emptyState();
     }
@@ -137,15 +126,19 @@
   }
   function getState() { return JSON.parse(JSON.stringify(state)); }
   function credits() { return state.credits; }
-  function owns(name) { return state.ownedFighters.includes(canonicalFighterId(name)); }
+  function owns(name) { return state.ownedFighters.includes(String(name).toUpperCase()); }
+  function canPublicSelect(name) {
+    const id = String(name || '').toUpperCase();
+    return isProductPlayable(id) && owns(id);
+  }
   function poolLocked() {
-    // Draw pool authority is below the wheel UI: only ACTIVE eligible fighters
-    // can ever be selected, even if historical saves own/contain other ids.
-    return activeRosterIds().filter((id) => canDraw(id) && !owns(id));
+    // Draw is a mutation path, so it has the Core Six legality boundary rather
+    // than merely filtering whatever happens to be painted in the shop.
+    return PLAYABLE_ROSTER().filter((n) => !owns(n));
   }
   function buy(name) {
-    const id = canonicalFighterId(name);
-    if (!id || !visibleRosterIds().includes(id) || !canPurchase(id)) return { ok: false, reason: 'not-available' };
+    const id = String(name || '').toUpperCase();
+    if (!id || !isProductPlayable(id)) return { ok: false, reason: 'unavailable' };
     if (owns(id)) return { ok: false, reason: 'owned' };
     if (state.credits < SHOP_COST) return { ok: false, reason: 'need', need: SHOP_COST - state.credits };
     state.credits -= SHOP_COST;
@@ -182,16 +175,16 @@
   function filterOwned(list) {
     const arr = list || [];
     return arr.filter((ft) => {
-      const n = canonicalFighterId(ft && (ft.name || ft));
-      return canSelect(n) && (owns(n) || n === 'ROBOT');
+      const n = ft && (ft.name || ft);
+      return canPublicSelect(n);
     });
   }
   function setLast(p1, p2) {
-    // Do not mutate historic ownership, but never persist a locked/future
-    // current selection. This is the save-layer enforcement paired with the
-    // picker and shop checks above.
-    if (p1 && owns(p1) && canSelect(p1)) state.lastSelectedP1 = canonicalFighterId(p1);
-    if (p2 && owns(p2) && canSelect(p2)) state.lastSelectedP2 = canonicalFighterId(p2);
+    if (p1 && canPublicSelect(p1)) state.lastSelectedP1 = String(p1).toUpperCase();
+    if (p2 && canPublicSelect(p2)) state.lastSelectedP2 = String(p2).toUpperCase();
+    // Sanitization makes direct compatibility callers safe too.
+    if (!canPublicSelect(state.lastSelectedP1)) state.lastSelectedP1 = 'ROBOT';
+    if (!canPublicSelect(state.lastSelectedP2)) state.lastSelectedP2 = 'ROBOT';
     save(state);
   }
 
@@ -228,7 +221,7 @@
     const artId = FIGHTER_ART[id] || null;
     return {
       id,
-      displayName: displayNameFor(id),
+      label: displayNameFor(id),
       color: (shell && shell.color) || '#d7bd72',
       desc: (shell && shell.desc) || 'Arsenal fighter',
       mark: (typeof window.fighterGlyph === 'function' && window.fighterGlyph(id)) || id.slice(0, 2),
@@ -275,9 +268,7 @@
     @media(hover:hover){.aq-back:hover,.aq-exit:hover{filter:brightness(1.14);transform:translateY(-1px)}}
     .aq-action{position:relative;border:1px solid var(--aq-line);background:linear-gradient(160deg,#1a2027,#0e1318 72%);color:#f4f0e6;cursor:pointer;text-align:left;overflow:hidden;box-shadow:inset 0 1px rgba(255,255,255,.035);transition:transform .14s ease,filter .14s ease,border-color .14s ease;clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);}
     .aq-action::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--aq-tile-accent,var(--aq-accent));opacity:.82}
-    .aq-action-locked{cursor:default;opacity:.62;filter:saturate(.35)}
-    .aq-action-locked .aq-action-meta{color:#9aa3ab}
-    @media(hover:hover){.aq-action:not(.aq-action-locked):hover{transform:translateY(-5px);filter:brightness(1.08);border-color:#59636d}}
+    @media(hover:hover){.aq-action:hover{transform:translateY(-5px);filter:brightness(1.08);border-color:#59636d}}
     .aq-action:active{transform:translateY(0) scale(.985)}
     .aq-action-index{display:block;color:var(--aq-tile-accent,var(--aq-accent));font:800 10px/1 ui-monospace,monospace;letter-spacing:.18em}
     .aq-action-title{display:block;margin-top:14px;font-size:clamp(22px,2.1vw,34px);line-height:.92;font-style:italic;font-weight:900;letter-spacing:.01em}
@@ -416,83 +407,33 @@
     const el = document.getElementById('aq-meta-root');
     if (el) el.style.display = 'none';
   }
-  function paintHub() {
-    cancelDrawSpinAnimation();
-    const el = ensureRoot();
-    const P = product();
-    const surfaces = P && P.publicSurfaces ? P.publicSurfaces() : [];
-    const ownedN = activeRosterIds().filter(owns).length;
-    const total = activeRosterIds().length;
-    const info = fighterInfo(state.lastSelectedP1 || 'ROBOT');
-    const detail = {
-      'quest-01': 'Quest 01 is planned for a later rollout.',
-      'bot-battle': 'Choose one owned Core fighter. P2 uses the accepted Arsenal CPU seam.',
-      'local-1v1': 'Choose two owned Core fighters and jump into accepted Arsenal Free Battle.',
-      'fighter-shop': 'Unlock currently active fighters with Arsenal Credits.',
-      'lucky-draw': 'Draw one currently active, unowned fighter with no duplicates.',
-      'fighter-upgrade': 'Upgrade systems are not available in this product cut.',
-      dictionary: 'Reference data is not available in this product cut.',
-      missions: 'Mission systems are not available in this product cut.',
-      achievements: 'Achievement systems are not available in this product cut.',
-      'account-profile': 'Account and profile systems are not available in this product cut.',
-    };
-    const cards = surfaces.map((entry, index) => {
-      const active = entry.availability === 'ACTIVE';
-      const stateLabel = active ? 'AVAILABLE NOW' : 'LOCKED';
-      const tag = active ? 'button type="button"' : 'div role="group" aria-disabled="true"';
-      const go = active ? ` data-go="${esc(entry.id)}"` : ` data-surface="${esc(entry.id)}"`;
-      return `<${tag}${go} class="aq-action ${active ? '' : 'aq-action-locked'}" style="--aq-tile-accent:${active ? '#d7bd72' : '#59636d'}"><span class="aq-action-index">${String(index + 1).padStart(2, '0')} · ${stateLabel}</span><span class="aq-action-title">${esc(entry.title)}</span><span class="aq-action-desc">${esc(detail[entry.id] || '')}</span><span class="aq-action-meta">${stateLabel}</span></${active ? 'button' : 'div'}>`;
-    }).join('');
-    el.style.display = 'block';
-    el.innerHTML = shell(`
-      <main class="aq-ui" id="aq-hub" data-product-graph="pre-pilot">
-        <header class="aq-topbar">
-          <div class="aq-brand">
-            <button id="aq-hub-exit" class="aq-exit" type="button" aria-label="Back to product menu">←</button>
-            <div class="aq-brand-copy"><div class="aq-kicker">APEX CHAOS · PRE-PILOT</div><h1 class="aq-title">PRODUCT GRAPH</h1></div>
-          </div>
-          <div class="aq-meta-stats">
-            <div class="aq-stat"><span>ARSENAL CREDITS</span><b id="aq-ac">${state.credits} AC</b></div>
-            <div class="aq-stat"><span>ACTIVE ROSTER</span><b>${ownedN} / ${total}</b></div>
-          </div>
-        </header>
-        <section class="aq-hub-layout">
-          <article class="aq-ident" style="--fighter-accent:${esc(info.color)}">
-            <div class="aq-ident-label">CURRENT PRODUCT FIGHTER</div>
-            <div class="aq-plate" aria-hidden="true">${info.standing ? `<img class="aq-standing" src="${esc(info.standing)}" alt=""/>` : `<span class="aq-plate-mark">${esc(info.mark)}</span>`}</div>
-            <div class="aq-sel">${esc(info.displayName)}</div>
-            <div class="aq-tag">ACTIVE / OWNED</div>
-            <button id="aq-change" class="aq-primary-btn" type="button">OPEN LOCAL 1V1</button>
-          </article>
-          <div class="aq-hub-grid" aria-label="APEX CHAOS product surfaces">${cards}</div>
-        </section>
-      </main>`);
-    el.querySelectorAll('[data-go]').forEach((b) => {
-      b.addEventListener('click', () => openProductSurface(b.getAttribute('data-go')));
-    });
-    el.querySelector('#aq-change')?.addEventListener('click', openFreePick);
-    el.querySelector('#aq-hub-exit')?.addEventListener('click', () => {
-      hideMeta();
+  function returnToProductMenu() {
+    hideMeta();
+    try {
       if (typeof goToMenu === 'function') goToMenu();
       else if (typeof window.goToMenu === 'function') window.goToMenu();
-    });
-    wireGridNav(el.querySelector('.aq-hub-grid'), '[data-go]', 2);
+    } catch (error) { /* menu handoff never invalidates persistent meta */ }
+    try { window.dispatchEvent(new CustomEvent('apex:product-menu')); } catch (error) {}
   }
+  // Historical hub API now returns to the semantic React product graph. The
+  // old Quest/Lab hub is not a second public navigation authority.
+  function paintHub() { returnToProductMenu(); }
+
   function paintShop(selectedName) {
     cancelDrawSpinAnimation();
     const el = ensureRoot();
-    const ids = visibleRosterIds();
-    shopSelected = canonicalFighterId(selectedName || state.lastSelectedP1 || shopSelected || 'ROBOT');
+    const ids = ROSTER();
+    shopSelected = String(selectedName || state.lastSelectedP1 || shopSelected || 'ROBOT').toUpperCase();
     if (!ids.includes(shopSelected)) shopSelected = 'ROBOT';
     const selected = fighterInfo(shopSelected);
-    const selectedOwned = owns(shopSelected);
-    const selectedAvailable = canPurchase(shopSelected);
+    const selectedAvailable = isProductPlayable(shopSelected);
+    const selectedOwned = selectedAvailable && owns(shopSelected);
     const cards = ids.map((n) => {
-      const owned = owns(n);
-      const available = canPurchase(n);
+      const available = isProductPlayable(n);
+      const owned = available && owns(n);
       const info = fighterInfo(n);
-      const label = !available ? 'LOCKED · COMING SOON' : owned ? 'OWNED' : '1000 AC';
-      return `<button type="button" data-shop-card="${esc(n)}" class="aq-fighter-card ${owned || !available ? 'is-locked' : ''} ${n === shopSelected ? 'is-selected' : ''}" style="--fighter-accent:${esc(info.color)}"><span class="aq-fighter-mark">${info.icon ? `<img src="${esc(info.icon)}" alt=""/>` : esc(info.mark)}</span><span class="aq-fighter-name">${esc(info.displayName)}</span><span class="aq-fighter-state">${label}</span></button>`;
+      const label = !available ? 'PRE-PILOT LOCKED' : owned ? 'OWNED' : '1000 AC';
+      return `<button type="button" data-shop-card="${esc(n)}" class="aq-fighter-card ${owned ? '' : 'is-locked'} ${n === shopSelected ? 'is-selected' : ''}" style="--fighter-accent:${esc(info.color)}"><span class="aq-fighter-mark">${info.icon ? `<img src="${esc(info.icon)}" alt=""/>` : esc(info.mark)}</span><span class="aq-fighter-name">${esc(info.label)}</span><span class="aq-fighter-state">${label}</span></button>`;
     }).join('');
     el.style.display = 'block';
     el.innerHTML = shell(`
@@ -506,11 +447,11 @@
           <aside class="aq-detail" id="aq-shop-detail" style="--fighter-accent:${esc(selected.color)}">
             <div class="aq-detail-mark">${selected.standing ? `<img src="${esc(selected.standing)}" alt=""/>` : esc(selected.mark)}</div>
             <div class="aq-kicker" style="margin-top:18px">FIGHTER PROFILE</div>
-            <h2>${esc(selected.displayName)}</h2>
+            <h2>${esc(selected.label)}</h2>
             <p>${esc(selected.desc)}</p>
-            <div class="aq-detail-status">${!selectedAvailable ? 'LOCKED · COMING SOON' : selectedOwned ? 'OWNED' : 'AVAILABLE · 1000 AC'}</div>
+            <div class="aq-detail-status">${!selectedAvailable ? 'PRE-PILOT LOCKED' : selectedOwned ? 'OWNED' : 'LOCKED · 1000 AC'}</div>
             <div id="aq-shop-message" class="aq-detail-message"></div>
-            <button id="aq-buy" class="aq-buy" type="button" ${(!selectedAvailable || selectedOwned) ? 'disabled' : ''}>${!selectedAvailable ? 'LOCKED' : selectedOwned ? 'OWNED' : 'UNLOCK · 1000 AC'}</button>
+            <button id="aq-buy" class="aq-buy" type="button" ${(!selectedAvailable || selectedOwned) ? 'disabled' : ''}>${!selectedAvailable ? 'LOCKED · PRE-PILOT' : selectedOwned ? 'OWNED' : 'UNLOCK · 1000 AC'}</button>
           </aside>
         </section>
       </main>`);
@@ -609,21 +550,18 @@
     el.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawBusy) paintHub(); }, { once: true });
   }
   function openFighterPick(opts) {
-    const mode = (opts && opts.mode) || 'local';
-    const legacyQuest = mode === 'legacy-quest' || mode === 'quest';
-    window.__apexArsenalSelectPending = true;
-    window.__apexArsenalSelectionMode = legacyQuest ? 'legacy-quest' : mode;
-    window.__apexArsenalFreeBattle = mode === 'local' || mode === 'free';
+    const requested = String((opts && opts.mode) || 'local').toLowerCase();
+    const mode = requested === 'bot' ? 'bot' : 'local';
+    window.__apexArsenalSelectionMode = mode;
     window.__apexArsenalBotBattle = mode === 'bot';
-    window.__apexArsenalQuestPick = legacyQuest;
-    // The JSON picker is only a renderer. Selection legality is enforced by
-    // Meta.filterOwned + APEX_ARSENAL_SHELLS.selectionTypeFor before a match
-    // can launch; no locked save entry can bypass it through this route.
+    window.__apexArsenalFreeBattle = mode === 'local';
+    window.__apexArsenalQuestPick = false;
+    window.__apexArsenalSelectPending = true;
+    // The shared picker is loaded only when a real active battle is requested.
     const open = () => {
       hideMeta();
       const shells = window.APEX_ARSENAL_SHELLS;
-      if (shells && typeof shells.beginSelection === 'function') shells.beginSelection({ mode: window.__apexArsenalSelectionMode });
-      else if (typeof goToSelect === 'function') goToSelect();
+      if (shells && typeof shells.beginSelection === 'function') shells.beginSelection({ mode });
       else if (typeof window.goToSelect === 'function') window.goToSelect();
     };
     if (window['__apexDeferredRuntimesReady_select']) { open(); return; }
@@ -631,60 +569,17 @@
     if (typeof ensure === 'function') { ensure('select').then(open).catch(open); return; }
     open();
   }
-  function openFreePick() {
-    openFighterPick({ mode: 'local' });
-  }
-  function openBotPick() {
-    openFighterPick({ mode: 'bot' });
-  }
-  function openProductSurface(id) {
-    const P = product();
-    const request = P && P.request ? P.request(id) : { ok: false, reason: 'product-authority-unavailable' };
-    if (!request.ok) return request;
-    if (id === 'local-1v1') { openFreePick(); return request; }
-    if (id === 'bot-battle') { openBotPick(); return request; }
-    if (id === 'fighter-shop') { paintShop(); return request; }
-    if (id === 'lucky-draw') { paintDraw(); return request; }
-    return { ok: false, reason: 'no-public-launcher', surface: request.surface };
-  }
-  function openDeveloperLab() {
-    const P = product();
-    const request = P && P.request ? P.request('arsenal-lab', { developer: true }) : { ok: false, reason: 'product-authority-unavailable' };
-    if (!request.ok) return request;
-    const launch = () => {
-      hideMeta();
-      window.startArsenalLab?.();
-      return request;
-    };
-    if (window.apexArsenalGameplayBarrierSync && window.apexArsenalGameplayBarrierSync('lab')) return launch();
-    if (window.apexArsenalGameplayBarrier) {
-      window.apexArsenalGameplayBarrier('lab').then((ok) => { if (ok) launch(); });
-      return request;
-    }
-    const ensure = window.__apexEnsureDeferredRuntimes;
-    if (typeof ensure === 'function') ensure('arsenalCore').then(launch).catch(() => {});
-    else launch();
-    return request;
-  }
-  function openHub() {
-    state = load();
-    paintHub();
-  }
+  function openFreePick() { openFighterPick({ mode: 'local' }); }
+  function openBotPick() { openFighterPick({ mode: 'bot' }); }
+  function openHub() { returnToProductMenu(); }
 
-  // Compatibility entry remains intentionally non-public. The React product
-  // menu calls openApexProductSurface() instead of this historical name.
-  window.beginArsenalQuestSelection = function () {
-    openHub();
-  };
-  window.openApexProductSurface = openProductSurface;
-  // Deliberate admin seam: the Lab remains available to developers without
-  // being a normal product card or public route.
-  window.openArsenalLab = openDeveloperLab;
+  // Retired route alias: it returns to the product root rather than mounting
+  // the old Quest map or hub.
+  window.beginArsenalQuestSelection = function () { returnToProductMenu(); };
 
-  // The historical ladder may be loaded after this small product Meta group.
-  // Install its reward bridge lazily when (and only when) that explicit
-  // compatibility runtime exists. Product Local/Bot results use the shared
-  // result HUD directly and do not require a hidden quest dependency.
+  // The legacy ladder evaluates after this active product meta runtime when
+  // an operator explicitly requests the detached group. Keep its historical
+  // reward bridge lazy, so normal Local/Bot never imports or depends on Quest.
   function installLegacyResultHook() {
     const Q = window.APEX_ARSENAL_QUEST;
     if (!Q || !Q.onMatchOver || Q.__apexMetaResultHookInstalled) return false;
@@ -714,12 +609,13 @@
 
   window.APEX_ARSENAL_META = {
     KEY, SHOP_COST, DRAW_COST, START_CREDITS,
-    getState, credits, owns, buy, spin, award, filterOwned, setLast,
+    getState, credits, owns, canPublicSelect, buy, spin, award, filterOwned, setLast,
     palette, setPalette,
-    load, save, emptyState, sanitize, poolLocked, lastAward: () => lastAward,
-    visibleRosterIds, activeRosterIds, canSelect, canPurchase, canDraw, displayNameFor,
+    load, save, emptyState, sanitize, poolLocked,
+    visibleRoster: ROSTER, playableRoster: PLAYABLE_ROSTER,
+    isProductVisible, isProductPlayable, displayNameFor,
+    lastAward: () => lastAward,
     openHub, hideMeta, paintShop, paintDraw, openFreePick, openBotPick, openFighterPick,
-    openProductSurface, openDeveloperLab,
   };
   window.apexArsenalMetaRuntime = 'ready';
 })();

@@ -135,14 +135,8 @@
       accentGlow: champ.accentGlow || champ.accent || '#ffffff'
     }));
   }
-  function productDisplayName(name) {
-    const P = window.APEX_PRODUCT_SURFACES;
-    return P && P.displayNameFor ? P.displayNameFor(name) : name;
-  }
   function currentRoster() {
-    // Product selection deliberately uses the ACTIVE owned subset, never the
-    // old canonical-12/32 shell list. `typeFor` may still resolve legacy
-    // encounters, but those identities cannot enter a public match here.
+    // V2 §A3: Arsenal select reuses this pick UI with the canonical 32 shells.
     if (window.__apexArsenalSelectPending && window.APEX_ARSENAL_SHELLS) {
       const recs = championRecords();
       const byName = new Map(recs.map((c) => [c.name, c]));
@@ -154,7 +148,6 @@
         return {
           id: ft.name.toLowerCase(),
           name: ft.name,
-          label: productDisplayName(ft.name),
           accent: ft.color,
           glow: ft.color,
           standing: (rec && rec.standing) || '',
@@ -173,8 +166,7 @@
   }
   function fighterForChampion(champ) {
     if (window.__apexArsenalSelectPending && window.APEX_ARSENAL_SHELLS) {
-      const selector = window.APEX_ARSENAL_SHELLS.selectionTypeFor || window.APEX_ARSENAL_SHELLS.typeFor;
-      return selector ? selector(champ?.name) : null;
+      return window.APEX_ARSENAL_SHELLS.typeFor(champ?.name);
     }
     return FighterTypes.find(ft => ft && ft.name === champ?.name) || null;
   }
@@ -199,7 +191,6 @@
     return {
       id: id.toLowerCase(),
       name: id,
-      label: productDisplayName(id),
       accent: (ft && ft.color) || (rec && rec.accent) || '#c4a574',
       accentGlow: (ft && ft.color) || (rec && rec.accentGlow) || '#c4a574',
       standing: (rec && rec.standing) || '',
@@ -218,13 +209,24 @@
     const meta = window.APEX_ARSENAL_META && window.APEX_ARSENAL_META.getState ? window.APEX_ARSENAL_META.getState() : {};
     const pickOwned = (name) => (owned(name) ? name : 'ROBOT');
     const p1Name = pickOwned(meta.lastSelectedP1 || 'ROBOT');
-    const p1Champ = roster.find(c => c.name === p1Name) || roster.find(c => c.name === 'ROBOT') || roster[0];
+    const p1Champ = roster.find(c => c.name === p1Name) || roster.find(c => c.name === 'ROBOT');
     if (p1Champ) {
       PickRuntimeController.p1ChampionId = p1Champ.id;
       p1Selection = fighterForChampion(p1Champ);
     }
     const q = questPending();
-    if (q || window.__apexArsenalQuestPick) {
+    const botBattle = window.__apexArsenalBotBattle === true;
+    if (botBattle) {
+      // Thin Bot seam: accepted Arsenal P1 input stays intact while P2 is the
+      // existing Hero Rework P2 cast AI. CPU identity is deterministic and
+      // legal even on a fresh save; no fake combat path is introduced.
+      const cpu = roster.find(c => c.name === 'ROBOT') || roster[0] || null;
+      if (cpu) {
+        PickRuntimeController.p2ChampionId = cpu.id;
+        p2Selection = fighterForChampion(cpu);
+      }
+      PickRuntimeController.activePlayer = 1;
+    } else if (q || window.__apexArsenalQuestPick) {
       const oppRaw = (q && (q.opponent || (window.APEX_ARSENAL_QUEST.liveOpponent && window.APEX_ARSENAL_QUEST.liveOpponent(q.opponent)))) || null;
       const opp = oppRaw && window.APEX_ARSENAL_QUEST.liveOpponent ? window.APEX_ARSENAL_QUEST.liveOpponent(q.opponent) : oppRaw;
       const ft = window.APEX_ARSENAL_SHELLS && window.APEX_ARSENAL_SHELLS.typeFor && window.APEX_ARSENAL_SHELLS.typeFor(opp || q.opponent);
@@ -234,20 +236,9 @@
       }
       PickRuntimeController.activePlayer = 1;
       window.__apexArsenalQuestPick = true;
-    } else if (window.__apexArsenalBotBattle) {
-      // Bot Battle is the audited existing P1-vs-CPU seam: only P1 is chosen
-      // here; P2 is preselected as a legal active shell and Hero Rework's
-      // p2CastAI owns its ability behavior in the real battle runtime.
-      const botName = pickOwned(meta.lastSelectedP2 || 'ROBOT');
-      const botChamp = roster.find(c => c.name === botName) || roster.find(c => c.name === 'ROBOT') || roster[0];
-      if (botChamp) {
-        PickRuntimeController.p2ChampionId = botChamp.id;
-        p2Selection = fighterForChampion(botChamp);
-      }
-      PickRuntimeController.activePlayer = 1;
     } else {
       const p2Name = pickOwned(meta.lastSelectedP2 || 'ROBOT');
-      const p2Champ = roster.find(c => c.name === p2Name) || roster.find(c => c.name === 'ROBOT') || roster[0];
+      const p2Champ = roster.find(c => c.name === p2Name) || roster.find(c => c.name === 'ROBOT');
       if (p2Champ) {
         PickRuntimeController.p2ChampionId = p2Champ.id;
         p2Selection = fighterForChampion(p2Champ);
@@ -463,7 +454,6 @@
       window.__apexArsenalFreeBattle = false;
       window.__apexArsenalBotBattle = false;
       window.__apexArsenalQuestPick = false;
-      window.__apexArsenalSelectionMode = null;
       goToMenu();
       if (arsenalFree || arsenalBot) {
         const M = window.APEX_ARSENAL_META;
@@ -549,7 +539,7 @@
     card.style.setProperty('--champion-accent', champ.accent);
     card.style.setProperty('--champion-glow', champ.accentGlow);
     layerStyle(card, slotLayer);
-    card.setAttribute('aria-label', champ.label || champ.name);
+    card.setAttribute('aria-label', champ.name);
 
     const artWrap = document.createElement('span');
     artWrap.className = 'apex-pick-card-art';
@@ -609,7 +599,7 @@
 
     const name = document.createElement('span');
     name.className = 'apex-pick-card-name';
-    name.textContent = champ.label || champ.name;
+    name.textContent = champ.name;
     name.style.color = champ.accent;
     const nameStyle = cardNameStyleFor(slotLayer, slotLayers().center);
     if (nameStyle) {
@@ -805,9 +795,13 @@
       if (title) title.textContent = `P${player} · ${ft.name} SELECTED`;
       return;
     }
-    if (window.__apexArsenalQuestPick || questPending() || window.__apexArsenalBotBattle) {
-      // Quest keeps its fixed historical opponent; Bot Battle keeps its
-      // preselected CPU opponent. In both cases a card can only alter P1.
+    if (window.__apexArsenalBotBattle === true) {
+      // Bot Battle exposes P1 selection only; P2 remains the deterministic
+      // existing CPU shell set in applyArsenalPickDefaults().
+      PickRuntimeController.p1ChampionId = champ.id;
+      p1Selection = ft;
+      PickRuntimeController.activePlayer = 1;
+    } else if (window.__apexArsenalQuestPick || questPending()) {
       PickRuntimeController.p1ChampionId = champ.id;
       p1Selection = ft;
       PickRuntimeController.activePlayer = 1;
@@ -838,7 +832,7 @@
       if (!champ.standing) standing.removeAttribute('src');
     }
     applyStandingFit(player);
-    setLayerText(`p${player}-name`, champ.label || champ.name);
+    setLayerText(`p${player}-name`, champ.name);
     setLayerText(`p${player}-hp-number`, PickRuntimeController[`p${player}Hp`]);
     const dmgId = player === 1 ? 'p1-dmg%-numbur' : 'p2-dmg%-number';
     setLayerText(dmgId, PickRuntimeController[`p${player}Dmg`]);
@@ -886,13 +880,13 @@
     } else {
       const questPend = questPending() || window.__apexArsenalQuestPick;
       const botBattle = window.__apexArsenalBotBattle === true;
-      setLayerText('title', questPend
-        ? (PickRuntimeController.p1ChampionId ? 'QUEST · P1 READY' : 'QUEST · SELECT P1')
-        : botBattle
-          ? (PickRuntimeController.p1ChampionId ? 'BOT BATTLE · READY' : 'BOT BATTLE · SELECT P1')
+      setLayerText('title', botBattle
+        ? (PickRuntimeController.p1ChampionId ? 'BOT BATTLE · P1 READY' : 'BOT BATTLE · SELECT P1')
+        : questPend
+          ? (PickRuntimeController.p1ChampionId ? 'QUEST · P1 READY' : 'QUEST · SELECT P1')
           : (PickRuntimeController.activePlayer === 1 ? 'SELECT PLAYER 1' : PickRuntimeController.activePlayer === 2 ? 'SELECT PLAYER 2' : 'READY TO FIGHT'));
       setLayerText('start-label', questPend ? 'START STAGE' : botBattle ? 'START BOT BATTLE' : 'START BATTLE');
-      if (start) start.disabled = questPend || botBattle
+      if (start) start.disabled = questPend
         ? !PickRuntimeController.p1ChampionId
         : !(PickRuntimeController.p1ChampionId && PickRuntimeController.p2ChampionId);
       refs.get('arrow-left')?.removeAttribute('disabled');
@@ -1058,7 +1052,6 @@
     p2: () => p2Selection && p2Selection.name,
     activePlayer: () => PickRuntimeController.activePlayer,
     questPick: () => !!window.__apexArsenalQuestPick,
-    botPick: () => !!window.__apexArsenalBotBattle,
   };
 
   Object.assign(window.apexReactBridge || {}, { goToSelect, startMatch, goToMenu });

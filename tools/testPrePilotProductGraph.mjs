@@ -1,199 +1,265 @@
-// Focused pre-pilot product-graph cutover proof.
-// Run: node tools/testPrePilotProductGraph.mjs
+// Focused pre-pilot product graph proof.
+//
+// This intentionally exercises the semantic authority plus the public
+// mutation seams without booting legacy Quest routes. It is deterministic and
+// browser-independent: node tools/testPrePilotProductGraph.mjs
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
 import vm from 'node:vm';
 import {
-  ARSENAL_HUB_RUNTIMES,
-  LEGACY_ARSENAL_QUEST_RUNTIMES,
+  PRODUCT_AVAILABILITY,
+  PRODUCT_ECONOMY,
+  PRODUCT_ROSTER,
+  canLaunchProductSurface,
+  installProductSurfaceAuthority,
+  listProductSurfaces,
+} from '../src/game/productSurface.js';
+import {
+  ARSENAL_LEGACY_QUEST_RUNTIMES,
+  ARSENAL_PRODUCT_RUNTIMES,
   MODE_DEFERRED_RUNTIMES,
   WARMUP_GROUP_SEQUENCE,
 } from '../src/game/runtimeManifest.js';
 
-const PRODUCT_RUNTIME = 'public/game/arsenal/apexProductSurfaceRuntime.js';
-const META_RUNTIME = 'public/game/arsenal/arsenalMetaRuntime.js';
-const PRODUCT_SOURCE = fs.readFileSync(PRODUCT_RUNTIME, 'utf8');
-const META_SOURCE = fs.readFileSync(META_RUNTIME, 'utf8');
-const APP_SOURCE = fs.readFileSync('src/App.jsx', 'utf8');
-const SHELL_SOURCE = fs.readFileSync('public/game/arsenal/arsenalShellSelectRuntime.js', 'utf8');
-const MODE_SOURCE = fs.readFileSync('public/game/modes/arsenalQuestRuntime.js', 'utf8');
+const REPO = process.cwd();
+const report = { gates: {}, failures: [] };
+function gate(name, fn) {
+  try {
+    const detail = fn();
+    report.gates[name] = { pass: true, detail };
+    console.log(`PASS  ${name}${detail ? ` — ${typeof detail === 'string' ? detail : JSON.stringify(detail)}` : ''}`);
+  } catch (error) {
+    const detail = String(error?.stack || error);
+    report.gates[name] = { pass: false, detail };
+    report.failures.push(name);
+    console.log(`FAIL  ${name} — ${detail}`);
+  }
+}
 
 function makeStorage(seed = {}) {
-  const values = new Map(Object.entries(seed));
+  const data = new Map(Object.entries(seed));
   return {
-    getItem(key) { return values.has(key) ? values.get(key) : null; },
-    setItem(key, value) { values.set(key, String(value)); },
-    removeItem(key) { values.delete(key); },
-    dump() { return Object.fromEntries(values); },
+    getItem(key) { return data.has(key) ? data.get(key) : null; },
+    setItem(key, value) { data.set(key, String(value)); },
+    removeItem(key) { data.delete(key); },
+    dump() { return Object.fromEntries(data); },
   };
 }
 
-function makeProductContext(seed = {}) {
-  const localStorage = makeStorage(seed);
-  const context = {
+function source(rel) {
+  return fs.readFileSync(path.join(REPO, rel), 'utf8');
+}
+
+function makeClassicContext(seed = {}) {
+  const storage = makeStorage(seed);
+  const calls = { select: 0, menu: 0, starts: [] };
+  const win = {
     console,
-    localStorage,
-    setTimeout() { return 0; },
-    clearTimeout() {},
-    requestAnimationFrame() { return 0; },
-    cancelAnimationFrame() {},
-    document: {
-      getElementById() { return null; },
-      body: { appendChild() {} },
-      head: { appendChild() {} },
-      createElement() { return { style: {}, appendChild() {}, addEventListener() {}, setAttribute() {}, querySelectorAll() { return []; } }; },
+    localStorage: storage,
+    APEX_ARSENAL_CONFIG: { FIGHTER_SPEED: 450 },
+    APEX_HERO_REWORK_REGISTRY: {
+      productCutover: true,
+      isCanonicalHero(id) {
+        return ['ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR', 'BLACK_HOLE', 'MATH_V2', 'RUBBER', 'TIME', 'SLIME', 'SNIPER'].includes(String(id));
+      },
+      displayNameFor(id) { return String(id).toUpperCase() === 'ICE' ? 'FROST' : String(id); },
     },
+    FighterTypes: [],
+    document: {
+      body: { appendChild() {} },
+      getElementById() { return null; },
+      createElement() { return { style: {}, appendChild() {}, addEventListener() {}, remove() {} }; },
+    },
+    goToSelect() { calls.select += 1; },
+    goToMenu() { calls.menu += 1; },
+    startMatch() { calls.classicStarts = (calls.classicStarts || 0) + 1; },
+    startArsenalBattleMode(p1, p2) { calls.starts.push({ p1, p2, profile: win.__apexArsenalBattleProfile }); },
+    clearTimeout() {},
+    setTimeout() { return 0; },
+    CustomEvent: class CustomEvent { constructor(type) { this.type = type; } },
+    dispatchEvent() {},
   };
-  context.window = context;
-  context.globalThis = context;
-  vm.createContext(context);
-  vm.runInContext(PRODUCT_SOURCE, context, { filename: PRODUCT_RUNTIME });
-  vm.runInContext(META_SOURCE, context, { filename: META_RUNTIME });
-  return context;
+  win.window = win;
+  const context = vm.createContext({
+    window: win,
+    document: win.document,
+    localStorage: storage,
+    console,
+    Math,
+    Date,
+    JSON,
+    Set,
+    Map,
+    Array,
+    Object,
+    String,
+    Number,
+    Boolean,
+    performance: { now: () => 0 },
+    p1Selection: null,
+    p2Selection: null,
+    FighterTypes: win.FighterTypes,
+    goToSelect: win.goToSelect,
+    goToMenu: win.goToMenu,
+    startMatch: win.startMatch,
+  });
+  installProductSurfaceAuthority(win);
+  vm.runInContext(source('public/game/arsenal/arsenalShellSelectRuntime.js'), context, { filename: 'arsenalShellSelectRuntime.js' });
+  vm.runInContext(source('public/game/arsenal/arsenalMetaRuntime.js'), context, { filename: 'arsenalMetaRuntime.js' });
+  return { win, context, storage, calls };
 }
 
-function paths(entries) { return entries.map(([src]) => src); }
-function hasPath(entries, fragment) { return paths(entries).some((src) => src.includes(fragment)); }
-function assertJsonEqual(actual, expected, message) {
-  assert.equal(JSON.stringify(actual), JSON.stringify(expected), message);
-}
+const expectedPublic = [
+  'quest-01', 'bot-battle', 'local-1v1', 'fighter-shop', 'lucky-draw',
+  'fighter-upgrade', 'dictionary', 'missions', 'achievements', 'account-profile',
+];
 
-const ctx = makeProductContext();
-const P = ctx.APEX_PRODUCT_SURFACES;
-const M = ctx.APEX_ARSENAL_META;
-
-// One frozen, queryable authority owns the complete public graph.
-assert.equal(P, ctx.APEX_CHAOS_PRODUCT);
-assert.equal(P, ctx.APEX_PRODUCT);
-assertJsonEqual(
-  P.publicSurfaces().map((surface) => [surface.id, surface.availability]),
-  [
-    ['quest-01', 'LOCKED'],
-    ['bot-battle', 'ACTIVE'],
-    ['local-1v1', 'ACTIVE'],
-    ['fighter-shop', 'ACTIVE'],
-    ['lucky-draw', 'ACTIVE'],
-    ['fighter-upgrade', 'LOCKED'],
-    ['dictionary', 'LOCKED'],
-    ['missions', 'LOCKED'],
-    ['achievements', 'LOCKED'],
-    ['account-profile', 'LOCKED'],
-  ],
-);
-assertJsonEqual(P.activeRosterIds(), ['ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR']);
-assertJsonEqual(P.visibleRosterIds(), [
-  'ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR',
-  'BLACK_HOLE', 'MATH_V2', 'RUBBER', 'TIME', 'SLIME', 'SNIPER',
-]);
-assert.equal(P.displayNameFor('ROBOT'), 'NEWBOT');
-assert.equal(P.displayNameFor('CRYSTAL'), 'CRYSTALA');
-assert.equal(P.displayNameFor('ICE'), 'FROST');
-assert.equal(P.request('quest-01').ok, false);
-assert.equal(P.request('arsenal-lab').ok, false);
-assert.equal(P.request('arsenal-lab', { developer: true }).ok, true);
-assert.equal(P.request('classic-play').reason, 'detached');
-assert.equal(P.BOT_BATTLE_SEAM.launcher, 'arsenalShellSelectRuntime.beginSelection({ mode: "bot" })');
-
-// Fresh economy stays 350; the old owner grant has no normal product path.
-assert.equal(M.credits(), 350);
-assert.equal(M.owns('ROBOT'), true);
-assert.equal(M.buy('BLACK_HOLE').reason, 'not-available');
-assert.equal(M.buy('NEWBIE').ok, false);
-assertJsonEqual(M.poolLocked(), ['HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR']);
-assert.equal(M.spin(() => 0).ok, true);
-assert.equal(M.credits(), 0);
-assert.equal(M.owns('HUNTER'), true);
-assert.equal(M.poolLocked().includes('BLACK_HOLE'), false);
-assert.equal(/OWNER_TEST_CREDITS|applyOwnerTestCreditGrant|12000/.test(META_SOURCE), false);
-
-// The Shell consumes the authority below the renderer: it exposes only Core
-// Six and rejects an injected locked/unowned match selection before launch.
-const SHELL_RUNTIME = 'public/game/arsenal/arsenalShellSelectRuntime.js';
-const shellSource = fs.readFileSync(SHELL_RUNTIME, 'utf8');
-ctx.APEX_HERO_REWORK_REGISTRY = { productCutover: true };
-ctx.APEX_ARSENAL_CONFIG = { FIGHTER_SPEED: 100 };
-ctx.FighterTypes = P.activeRosterIds().map((name, index) => ({
-  name, color: `#00${index}000`, desc: name, speed: 100, init() {}, draw() {},
-}));
-ctx.goToSelect = () => { ctx.__wentToSelect = true; };
-ctx.goToMenu = () => {};
-ctx.startMatch = () => 'classic-fallthrough';
-vm.runInContext(shellSource, ctx, { filename: SHELL_RUNTIME });
-const S = ctx.APEX_ARSENAL_SHELLS;
-assertJsonEqual(S.ids, ['ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR']);
-assert.equal(S.selectionTypeFor('BLACK_HOLE'), null);
-assert.equal(S.selectionTypeFor('CRYSTAL'), null, 'active but unowned fighters cannot enter a match');
-assert.equal(S.selectionTypeFor('ROBOT').name, 'ROBOT');
-let launched = null;
-let rerouted = null;
-ctx.startArsenalQuestMode = () => {};
-ctx.startArsenalProductBattle = (p1, p2) => { launched = [p1, p2]; return { ok: true }; };
-ctx.openApexProductSurface = (id) => { rerouted = id; return { ok: true }; };
-ctx.p1Selection = S.typeFor('BLACK_HOLE');
-ctx.p2Selection = S.typeFor('ROBOT');
-ctx.__apexArsenalSelectPending = true;
-ctx.__apexArsenalSelectionMode = 'local';
-ctx.startMatch();
-assert.equal(launched, null);
-assert.equal(rerouted, 'local-1v1');
-ctx.p1Selection = S.typeFor('ROBOT');
-ctx.p2Selection = S.typeFor('ROBOT');
-ctx.__apexArsenalSelectPending = true;
-ctx.__apexArsenalSelectionMode = 'bot';
-ctx.startMatch();
-assert.equal(JSON.stringify(launched), JSON.stringify(['ROBOT', 'ROBOT']));
-assert.equal(ctx.__apexArsenalBattleKind, 'BOT_BATTLE');
-
-// Saved credits and ownership are retained; only stale current picks are
-// sanitized to a playable default. NEWBIE migration remains idempotent.
-const saveKey = 'apexChaos.arsenalMeta.v1';
-const preserved = makeProductContext({
-  [saveKey]: JSON.stringify({
-    version: 1,
-    credits: 7777,
-    ownedFighters: ['NEWBIE', 'BLACK_HOLE', 'SNIPER', 'HUNTER'],
-    lastSelectedP1: 'BLACK_HOLE',
-    lastSelectedP2: 'SNIPER',
-    totalSpins: 4,
-    unlockedAt: { NEWBIE: 12, BLACK_HOLE: 20, SNIPER: 21, HUNTER: 22 },
-  }),
+gate('semantic-graph-and-admin-boundary', () => {
+  const graph = listProductSurfaces();
+  assert.deepEqual(graph.map((s) => s.id), expectedPublic);
+  assert.equal(graph.filter((s) => s.availability === PRODUCT_AVAILABILITY.ACTIVE).map((s) => s.id).join(','),
+    'bot-battle,local-1v1,fighter-shop,lucky-draw');
+  assert.equal(graph.filter((s) => s.availability === PRODUCT_AVAILABILITY.LOCKED).length, 6);
+  assert.equal(canLaunchProductSurface('arsenal-lab'), false);
+  assert.equal(canLaunchProductSurface('arsenal-lab', { admin: true }), true);
+  assert.equal(canLaunchProductSurface('arsenal-quest-ladder', { admin: true }), false);
+  return { public: graph.length, active: graph.filter((s) => s.availability === 'ACTIVE').length };
 });
-const preservedState = preserved.APEX_ARSENAL_META.getState();
-assert.equal(preservedState.credits, 7777);
-assertJsonEqual(preservedState.ownedFighters, ['ROBOT', 'BLACK_HOLE', 'SNIPER', 'HUNTER']);
-assert.equal(preservedState.lastSelectedP1, 'ROBOT');
-assert.equal(preservedState.lastSelectedP2, 'ROBOT');
-assert.equal(preserved.APEX_ARSENAL_META.owns('BLACK_HOLE'), true);
-assert.equal(preserved.APEX_ARSENAL_META.canSelect('BLACK_HOLE'), false);
-assert.equal(preserved.APEX_ARSENAL_META.filterOwned([{ name: 'ROBOT' }, { name: 'HUNTER' }, { name: 'BLACK_HOLE' }]).map((fighter) => fighter.name).join(','), 'ROBOT,HUNTER');
 
-// Normal public boot/hub/core paths exclude the historical ladder. It remains
-// accessible only through an explicit compatibility group.
-assert.deepEqual(WARMUP_GROUP_SEQUENCE, ['arsenalHub', 'select']);
-assert.equal(hasPath(MODE_DEFERRED_RUNTIMES.arsenalCore, 'arsenalQuestLadder.js'), false);
-assert.equal(hasPath(ARSENAL_HUB_RUNTIMES, 'arsenalQuestLadder.js'), false);
-assert.equal(hasPath(LEGACY_ARSENAL_QUEST_RUNTIMES, 'arsenalQuestLadder.js'), true);
-const legacyPaths = paths(LEGACY_ARSENAL_QUEST_RUNTIMES);
-assert.equal(legacyPaths.findIndex((src) => src.includes('arsenalQuestLadder.js')), legacyPaths.findIndex((src) => src.includes('arsenalShellSelectRuntime.js')) + 1, 'legacy wrapper insertion order must stay compatible');
-assert.equal(hasPath(MODE_DEFERRED_RUNTIMES.arsenalCore, 'apexProductSurfaceRuntime.js'), true);
-assert.equal(hasPath(ARSENAL_HUB_RUNTIMES, 'apexProductSurfaceRuntime.js'), true);
+gate('visible-roster-core-six-and-locked-six', () => {
+  assert.deepEqual(PRODUCT_ROSTER.visibleIds, [
+    'ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR',
+    'BLACK_HOLE', 'MATH_V2', 'RUBBER', 'TIME', 'SLIME', 'SNIPER',
+  ]);
+  assert.deepEqual(PRODUCT_ROSTER.playableIds, ['ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR']);
+  assert.deepEqual(PRODUCT_ROSTER.lockedIds, ['BLACK_HOLE', 'MATH_V2', 'RUBBER', 'TIME', 'SLIME', 'SNIPER']);
+  return { visible: PRODUCT_ROSTER.visibleIds.length, playable: PRODUCT_ROSTER.playableIds.length };
+});
 
-// Public React entry no longer renders the legacy seven-card menu. Admin Lab
-// is intentionally absent from it, while the developer seam is present in
-// Meta and result flow has a Bot-specific result/action branch.
-assert.equal(APP_SOURCE.includes('const MENU_BUTTONS = ['), false);
-assert.equal(APP_SOURCE.includes('authority?.publicSurfaces'), true, 'App must render the authority query, not a second graph table');
-assert.equal(APP_SOURCE.includes('PRODUCT_SURFACE_FALLBACK'), false);
-assert.equal(APP_SOURCE.includes("arsenal-lab'"), false);
-assert.equal(META_SOURCE.includes('window.openArsenalLab = openDeveloperLab;'), true);
-assert.equal(META_SOURCE.includes("P.request ? P.request('arsenal-lab', { developer: true })"), true);
-assert.equal(SHELL_SOURCE.includes("beginSelection({ mode: 'bot' })"), false, 'source must not fabricate a second bot launcher');
-assert.equal(SHELL_SOURCE.includes("window.__apexArsenalBotBattle = mode === 'bot';"), true);
-assert.equal(MODE_SOURCE.includes("state.productBattleKind === 'BOT_BATTLE'"), true);
-assert.equal(MODE_SOURCE.includes("'BOT BATTLE RESULT'"), true);
-assert.equal(MODE_SOURCE.includes('M.openBotPick'), true);
-assert.equal(MODE_SOURCE.includes("reason: 'product-fighter-not-eligible'"), true);
+gate('economy-clean-state-and-mutation-legality', () => {
+  const { win } = makeClassicContext();
+  const meta = win.APEX_ARSENAL_META;
+  assert.equal(meta.credits(), PRODUCT_ECONOMY.cleanStateCredits);
+  assert.equal(meta.getState().credits, 350);
+  assert.equal(meta.buy('BLACK_HOLE').reason, 'unavailable');
+  assert.equal(meta.buy('PAINTER').reason, 'unavailable');
+  assert.deepEqual(meta.poolLocked(), ['HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR']);
+  // Clean-state 350 is deliberately enough for exactly one 350 AC draw.
+  const draw = meta.spin(() => 0.999999);
+  assert.equal(draw.ok, true);
+  assert.ok(PRODUCT_ROSTER.playableIds.includes(draw.name));
+  assert.ok(!PRODUCT_ROSTER.lockedIds.includes(draw.name));
+  assert.equal(meta.credits(), 0);
+  assert.equal(meta.spin(() => 0).reason, 'need');
+  meta.award('proof', 1000);
+  const bought = meta.buy('HUNTER');
+  assert.equal(bought.ok, true);
+  assert.equal(bought.credits, 0);
+  return { credits: meta.credits(), draw: draw.name, shopCost: meta.SHOP_COST, drawCost: meta.DRAW_COST };
+});
 
-console.log('[PRE-PILOT PRODUCT GRAPH] PASS');
-console.log('  surfaces=10 public; activeRoster=6; visibleRoster=12; freshCredits=350');
-console.log('  public warmup/core detached from legacy ladder; Lab admin seam and Bot result route verified');
+gate('newbie-migration-historic-ownership-and-stale-selection-safety', () => {
+  const seed = {
+    'apexChaos.arsenalMeta.v1': JSON.stringify({
+      credits: 777,
+      ownedFighters: ['NEWBIE', 'BLACK_HOLE', 'HUNTER'],
+      lastSelectedP1: 'BLACK_HOLE',
+      lastSelectedP2: 'NEWBIE',
+      unlockedAt: { NEWBIE: 33, BLACK_HOLE: 44 },
+    }),
+  };
+  const { win, storage } = makeClassicContext(seed);
+  const state = win.APEX_ARSENAL_META.getState();
+  assert.equal(state.credits, 777);
+  assert.ok(state.ownedFighters.includes('ROBOT'));
+  assert.ok(state.ownedFighters.includes('BLACK_HOLE'));
+  assert.ok(state.ownedFighters.includes('HUNTER'));
+  assert.ok(!state.ownedFighters.includes('NEWBIE'));
+  assert.equal(state.lastSelectedP1, 'ROBOT');
+  assert.equal(state.lastSelectedP2, 'ROBOT');
+  assert.equal(state.unlockedAt.ROBOT, 33);
+  assert.equal(state.unlockedAt.NEWBIE, undefined);
+  const persisted = JSON.parse(storage.getItem('apexChaos.arsenalMeta.v1'));
+  assert.ok(persisted.ownedFighters.includes('ROBOT'));
+  assert.ok(!persisted.ownedFighters.includes('NEWBIE'));
+  assert.equal(persisted.lastSelectedP1, 'ROBOT');
+  return { owned: state.ownedFighters, p1: state.lastSelectedP1, p2: state.lastSelectedP2 };
+});
+
+gate('shell-public-selection-and-bot-profile-seam', () => {
+  const { win, context, calls } = makeClassicContext();
+  const shells = win.APEX_ARSENAL_SHELLS;
+  assert.deepEqual(shells.ids, PRODUCT_ROSTER.visibleIds);
+  assert.deepEqual(shells.roster().map((s) => s.name), PRODUCT_ROSTER.playableIds);
+  assert.equal(shells.isPlayable('BLACK_HOLE'), false);
+  assert.equal(shells.isVisible('BLACK_HOLE'), true);
+  assert.ok(shells.typeFor('BLACK_HOLE')); // compatibility definition remains resolvable
+
+  // Locked/stale handoff never invokes either active or classic battle.
+  context.p1Selection = shells.typeFor('BLACK_HOLE');
+  context.p2Selection = shells.typeFor('ROBOT');
+  win.__apexArsenalSelectPending = true;
+  win.__apexArsenalSelectionMode = 'local';
+  win.startMatch();
+  assert.equal(calls.starts.length, 0);
+  assert.equal(calls.classicStarts || 0, 0);
+  assert.ok(calls.select >= 1);
+
+  // Local is the accepted Free Battle handoff.
+  context.p1Selection = shells.typeFor('ROBOT');
+  context.p2Selection = shells.typeFor('ROBOT');
+  win.__apexArsenalSelectPending = true;
+  win.__apexArsenalSelectionMode = 'local';
+  win.startMatch();
+  assert.deepEqual(calls.starts.at(-1), { p1: 'ROBOT', p2: 'ROBOT', profile: 'LOCAL' });
+
+  // Bot uses the same safe handoff with the existing P2-AI profile marker.
+  win.__apexArsenalSelectPending = true;
+  win.__apexArsenalSelectionMode = 'bot';
+  win.startMatch();
+  assert.deepEqual(calls.starts.at(-1), { p1: 'ROBOT', p2: 'ROBOT', profile: 'BOT' });
+  return { visible: shells.ids.length, selectable: shells.roster().length, starts: calls.starts };
+});
+
+gate('neutral-core-and-detached-warmup', () => {
+  const active = ARSENAL_PRODUCT_RUNTIMES.map(([src]) => src);
+  const legacy = ARSENAL_LEGACY_QUEST_RUNTIMES.map(([src]) => src);
+  assert.ok(active.some((src) => src.includes('arsenalBattleRuntime.js')));
+  assert.ok(!active.some((src) => src.includes('arsenalQuestRuntime.js')));
+  assert.ok(!active.some((src) => src.includes('arsenalQuestLadder.js')));
+  assert.ok(legacy.some((src) => src.includes('arsenalQuestRuntime.js')));
+  assert.deepEqual(MODE_DEFERRED_RUNTIMES.arsenalQuest, MODE_DEFERRED_RUNTIMES.arsenalLegacyQuest);
+  assert.ok(legacy.some((src) => src.includes('arsenalQuestLadder.js')));
+  assert.ok(WARMUP_GROUP_SEQUENCE.includes('arsenalProduct'));
+  assert.ok(!WARMUP_GROUP_SEQUENCE.includes('arsenalLegacyQuest'));
+  assert.ok(!WARMUP_GROUP_SEQUENCE.includes('arsenalQuest'));
+  const loader = source('src/game/runtimeLoader.js');
+  assert.ok(!loader.includes("group === 'arsenalProduct') window.__apexDeferredRuntimesReady_arsenalQuest"));
+  return { warmup: WARMUP_GROUP_SEQUENCE, activeRuntimes: active.length, legacyRuntimes: legacy.length };
+});
+
+gate('admin-lab-real-but-not-publicly-navigated', () => {
+  const app = source('src/App.jsx');
+  const battle = source('public/game/modes/arsenalBattleRuntime.js');
+  const menu = app.slice(app.indexOf('<div id="menu-screen"'), app.indexOf('<div id="select-screen"'));
+  assert.ok(app.includes('window.apexLaunchArsenalLab'));
+  assert.ok(app.includes("launchProductSurface('arsenal-lab', { admin: true })"));
+  assert.ok(battle.includes('window.startArsenalLab = function startArsenalLab()'));
+  assert.ok(battle.includes('window.startArsenalBattleMode'));
+  assert.ok(!menu.includes('ARSENAL LAB'));
+  return 'admin API reaches real neutral battle Lab; normal menu has no Lab node';
+});
+
+gate('no-retired-public-menu-actions', () => {
+  const app = source('src/App.jsx');
+  const menu = app.slice(app.indexOf('<div id="menu-screen"'), app.indexOf('<div id="select-screen"'));
+  for (const retired of ['Classic Play', 'APEX CONTROL', '3-Phase', 'Saitama', 'Tournament', 'Solo 1v1 Local', 'ARSENAL QUEST', 'ARSENAL LAB']) {
+    assert.ok(!menu.includes(retired), `${retired} leaked into public menu`);
+  }
+  assert.ok(menu.includes('data-product-surface'));
+  assert.ok(menu.includes('PUBLIC_PRODUCT_SURFACES'));
+  return 'normal menu derives from semantic graph only';
+});
+
+process.exitCode = report.failures.length ? 1 : 0;
