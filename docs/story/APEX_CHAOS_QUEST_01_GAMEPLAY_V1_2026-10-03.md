@@ -1448,4 +1448,633 @@ The exact network mechanism remains intentionally unresolved for later story wor
 
 ---
 
+
+
+# 21. IMPLEMENTATION-READY PASS C — FINAL ACT
+
+This section locks the final-act gameplay from the end of BREACH WAVES through BOT's sacrifice.
+
+Final-act hierarchy:
+- BOT2 = mechanical proof / first corrupted boss.
+- BOT = emotional final boss.
+- Stormbreaker = final exceptional weapon and escape-energy bridge.
+
+Stormbreaker must use the existing production combat authority:
+- confirmed hit damage: 446;
+- confirmed hit stun: 2.0s;
+- throw speed: 1350;
+- bounded homing turn rate: 2.6 rad/s;
+- missed-flight lifetime: 2.2s;
+- visible floor-bolt contact: 1.0s stun, zero damage;
+- no invented Story-only damage multiplier.
+
+---
+
+## 21.1 POST-BREACH REVEAL — SOMETHING ANSWERS
+
+After Wave C ends:
+- no victory/result screen;
+- ordinary enemy pressure stops;
+- one distant relay answers the active Stormbreaker/gate system;
+- BOT2 detects machine-command traffic that is not originating from its own rig.
+
+The group still does not know the true source.
+
+The first readable fragments may include:
+- ACQUIRE
+- RETURN
+- SECURE
+- IDENTIFY
+
+NEWBOT, BOT and BOT2 are all scanned.
+
+BOT2 and BOT receive valid-device responses.
+
+NEWBOT returns:
+**NO VALID NETWORK ID**
+
+This is not yet a lore lecture.
+The characters only know that the unknown system recognizes two of them and fails to recognize NEWBOT.
+
+---
+
+# 21.2 BOT2 OVERRIDE BUILDUP
+
+BOT2 is physically closest to and most tightly linked with the reactivated infrastructure.
+
+Corruption progresses visibly over a short in-engine sequence:
+
+1. BOT2 stops responding for a beat.
+2. one arm reconnects a cable BOT2 had just removed;
+3. BOT2 consciously pulls it back out;
+4. system command repeats;
+5. BOT2 involuntarily reconnects it again;
+6. acquisition/combat posture activates.
+
+BOT2 understands first that this is not ordinary hardware failure.
+
+BOT2:
+> “Lùi lại.”
+
+No boss title yet.
+
+BOT2 tries to shut itself down and fails.
+
+Then combat state takes over.
+
+---
+
+# 21.3 ENCOUNTER 07 — BOT2 OVERRIDDEN
+
+### Format
+
+NEWBOT vs BOT2.
+
+BOT remains outside the direct combat lane and attempts to help BOT2 verbally / through the workshop system.
+
+Do not make BOT a second simultaneous allied fighter here.
+
+Reason:
+- keeps the boss readable;
+- makes NEWBOT personally confront the phenomenon;
+- preserves BOT for the emotional finale.
+
+### Starting state
+
+Before BOT2 fully loses control, the workshop performs one visible emergency repair cycle on NEWBOT and BOT.
+
+For gameplay:
+- NEWBOT starts BOT2 OVERRIDDEN at 1000 HP.
+- BOT2 starts at 1000 HP.
+
+This is an authored repair scene, not a hidden HP reset.
+
+### BOT2 combat identity
+
+BOT2 uses Arsenal Battle rules.
+
+It receives:
+- no damage multiplier;
+- no damage resistance;
+- no bonus max HP;
+- no invented hero skill.
+
+Its boss identity comes from decision pressure and story state.
+
+BOT2 should strongly prioritize:
+1. revealed offensive weapon acquisition;
+2. maintaining attack pressure after pickup;
+3. reacquiring after weapon loss.
+
+Do not make BOT2 faster than canonical fighter speed unless a later owner-approved Bot archetype requires it.
+
+### Spawn law
+
+- cadence: 4.5s;
+- cap: 5;
+- emergency firearm: canonical;
+- ordinary Arsenal pool;
+- Stormbreaker excluded.
+
+Heal support remains canonical.
+
+If BOT2 heals, one-shot story threshold flags must not replay when its HP rises.
+
+### Corruption thresholds
+
+These thresholds change presentation/decision intent, not damage numbers.
+
+#### 1000 → 750 HP
+BOT2 still speaks in full sentences.
+
+Commands occasionally interrupt.
+
+#### 750 → 450 HP
+BOT2 speech fragments become shorter.
+
+Machine-command text becomes more frequent.
+
+Acquisition priority increases, but movement and equipment remain legal Arsenal behavior.
+
+#### 450 → 180 HP
+BOT2 rarely gains control long enough to speak.
+
+At 180 HP:
+- story floor activates;
+- no further lethal damage is accepted;
+- new attack scheduling stops;
+- active projectiles resolve safely;
+- encounter transitions to story.
+
+### Story floor
+
+BOT2 floor: **180 HP** for v1.
+
+This value is tuning-only.
+
+Do not show an artificial shield or heal.
+
+### Failure
+
+NEWBOT KO = retry BOT2 OVERRIDDEN from its start.
+
+### Target duration
+
+Approximately 2–4 minutes.
+
+---
+
+# 21.4 BOT2 REGAINS PARTIAL CONTROL
+
+At the floor, BOT2 collapses but does not die.
+
+The override becomes unstable enough for BOT2 to speak.
+
+BOT2 compares network responses:
+
+- BOT2: registered.
+- BOT: registered.
+- NEWBOT: unregistered.
+
+BOT2's conclusion is local and mechanical:
+
+> whatever is issuing the commands cannot address NEWBOT through the normal Bot-network identity path.
+
+Do not explain the alien origin.
+
+Do not state that NEWBOT is universally immune to every possible future control method.
+
+Quest 01 only establishes:
+> this Bot-network corruption cannot take NEWBOT in the same way.
+
+BOT begins showing stronger command interference during this conversation.
+
+---
+
+# 21.5 BOT'S INFECTION — QUIET DESCENT
+
+Do not transform BOT immediately.
+
+The player must watch its control degrade.
+
+A short quiet sequence follows.
+
+Symptoms:
+- hand twitch toward a floor weapon and then stop;
+- head orientation snaps toward the same relay that affected BOT2;
+- command text appears and is suppressed;
+- BOT loses a word mid-sentence;
+- acquisition stance starts, then BOT consciously relaxes it.
+
+BOT knows what is coming because it just watched BOT2.
+
+NEWBOT tries to find another solution.
+
+BOT2, damaged but conscious, identifies the final escape problem:
+
+- the gate has partially awakened;
+- Stormbreaker has enough energy to open it;
+- the old gate relay will not latch;
+- the final discharge must be conducted from inside the Scrap Basin while the escapee crosses.
+
+This creates a real cost:
+> someone must remain on the inside of the gate circuit.
+
+BOT2 cannot do it reliably because its body/control system is too damaged.
+
+BOT is still physically capable but increasingly corrupted.
+
+NEWBOT is the only one who can plausibly function outside without immediate network takeover.
+
+No character calls this destiny.
+It is a bad engineering situation with one survivable choice.
+
+---
+
+# 21.6 LAST REPAIR / LAST QUIET BEAT
+
+Before attempting the gate:
+
+BOT2 uses the last stable workshop repair cycle on NEWBOT and BOT.
+
+This serves two purposes:
+- story: BOT2 prepares them for the escape attempt;
+- gameplay: final boss begins from a fair, deterministic state.
+
+Final-boss starting state:
+- NEWBOT = 1000 HP.
+- BOT = 1000 HP.
+
+BOT2 remains damaged at its story-floor condition and cannot join combat.
+
+This quiet beat contains the friendship acknowledgement.
+
+Direction:
+NEWBOT refuses to leave BOT.
+BOT warns that staying will eventually make NEWBOT fight it anyway.
+
+The line:
+> “Chúng ta là bạn à?”
+> “Tôi nghĩ vậy.”
+
+belongs here or immediately before the final takeover.
+
+---
+
+# 21.7 FINAL TAKEOVER
+
+Stormbreaker containment begins opening for the escape attempt.
+
+The exceptional weapon becomes visible.
+
+BOT's acquisition system reacts immediately.
+
+The unknown command stream also intensifies.
+
+BOT tells NEWBOT to move away.
+
+BOT:
+> “Nếu tôi quay sang cậu... đừng chờ.”
+
+NEWBOT refuses.
+
+BOT loses control.
+
+Final encounter starts.
+
+---
+
+# 21.8 ENCOUNTER 08 — BOT: LAST CHOICE
+
+### Format
+
+NEWBOT vs BOT.
+
+This is the hardest encounter in Quest 01.
+
+It must remain understandable as Arsenal Battle.
+
+No new tutorial mechanic appears.
+
+### Starting state
+
+- NEWBOT: 1000 HP.
+- BOT: 1000 HP.
+- ordinary weapon spawn director active.
+- Stormbreaker still contained.
+
+### PHASE 1 — FIGHT THE FRIEND, NOT THE WEAPON
+
+BOT HP:
+1000 → 700.
+
+Spawn law:
+- cadence: 4.5s;
+- cap: 5;
+- ordinary Arsenal pool;
+- Stormbreaker excluded.
+
+Heal support:
+canonical <=800 HP law.
+
+BOT behavior:
+- normal legal equipment use;
+- higher acquisition commitment than ordinary Scrap Bots;
+- no hidden damage/defense buff.
+
+Dialogue:
+BOT intermittently regains enough control to warn NEWBOT.
+
+The emotional rule:
+BOT never taunts NEWBOT while corrupted.
+Machine commands are cold; BOT's own voice is scared, frustrated or protective.
+
+### Transition at 700 HP
+
+At the first downward crossing of 700 HP:
+
+1. hold new ordinary offensive spawns;
+2. safely resolve immediate attack transactions;
+3. unlock Stormbreaker containment;
+4. create one authored Stormbreaker floor spawn.
+
+Stormbreaker position must heavily favor BOT without teleporting it into BOT's hand.
+
+Story reservation:
+- BOT is the intended holder;
+- NEWBOT cannot steal this specific authored Stormbreaker;
+- presentation must make this obvious through placement/timing rather than an invisible arbitrary rejection where possible.
+
+Existing Stormbreaker floor lightning remains authoritative:
+- visible floor-bolt contact may stun either fighter for 1.0s;
+- floor bolt does zero damage.
+
+### Fairness repair condition
+
+Because the coming Stormbreaker confirmed hit deals 446 damage:
+
+If NEWBOT is below 650 HP when the Stormbreaker transition begins, authorize one visible emergency repair opportunity using an existing high-tier heal item near NEWBOT.
+
+Recommended v1:
+- HEAL_H5 = 385.
+
+This is a Story Director fairness injection, not a hidden HP grant.
+
+It can trigger only once.
+
+If NEWBOT is already >=650 HP, do not spawn the extra heal.
+
+### PHASE 2 — STORMBREAKER TEST
+
+BOT acquires Stormbreaker.
+
+Use the production weapon exactly:
+- 0.28s windup;
+- 0.45s ready delay;
+- 1350 throw speed;
+- bounded homing;
+- 446 confirmed damage;
+- 2.0s confirmed-hit stun;
+- miss exits through canonical max-flight behavior.
+
+The player must survive one real canonical Stormbreaker release.
+
+No fake cinematic dodge.
+
+Possible outcomes:
+- player evades;
+- player is hit and survives;
+- player is hit and KOs.
+
+NEWBOT KO = retry from a checkpoint immediately before the Stormbreaker transition, not from the entire BOT fight.
+
+The phase checkpoint restores the deterministic transition state:
+- BOT at 700 HP;
+- NEWBOT at the HP value after any authored fairness repair;
+- no stale projectiles/pickups;
+- Stormbreaker contained and ready to release again.
+
+### Single-artifact continuity
+
+Quest 01 treats this as one Stormbreaker artifact.
+
+After the canonical Stormbreaker release resolves through hit or miss:
+- combat does not spawn another Stormbreaker;
+- Story Director returns the single artifact to the nearby gate containment cradle only after its combat release lifecycle has completed;
+- this return is story/presentation continuity, not a second attack or duplicate pickup.
+
+The normal production attack itself remains unchanged.
+
+### PHASE 3 — LAST ORDINARY FIGHT
+
+After Stormbreaker has completed its one canonical combat release:
+
+- ordinary Arsenal spawning resumes at 4.5s / cap 5;
+- Stormbreaker remains excluded;
+- BOT continues using ordinary equipment.
+
+BOT HP:
+700 → 120.
+
+NEWBOT must finish the combat pressure normally.
+
+BOT increasingly fails to speak.
+
+Command text increasingly dominates.
+
+Suggested late exchange:
+
+NEWBOT:
+> “Tôi không đánh nữa!”
+
+BOT:
+> “Cậu phải đánh.”
+
+Later:
+> “Nếu cậu dừng...”
+> “...tôi sẽ không.”
+
+### Final story floor
+
+BOT floor: **120 HP** for v1.
+
+At first downward crossing:
+- clamp lethal overflow;
+- stop new offensive spawns;
+- resolve/despawn dangerous active transactions safely;
+- lock NEWBOT skill input after combat has cleanly ended;
+- transition directly to the final choice.
+
+BOT is not shown as KO/dead yet.
+
+---
+
+# 21.9 BOT'S LAST CHOICE
+
+With the combat override destabilized by damage, BOT regains a short window of agency.
+
+The gate cradle now holds Stormbreaker again.
+
+BOT understands the final engineering problem:
+- Stormbreaker can supply the gate;
+- the inside conductor must remain connected through the opening cycle;
+- the conductor will take the destructive electrical load;
+- an infected BOT that exits would also immediately expose itself to the wider corrupted network.
+
+NEWBOT offers to stay instead.
+
+BOT refuses.
+
+This choice must not be framed as:
+> BOT is worth less because it is infected.
+
+It is:
+- BOT can no longer trust its future actions;
+- NEWBOT can survive outside;
+- BOT consciously chooses what its remaining control will accomplish.
+
+BOT:
+> “Từ lúc tỉnh dậy đến giờ... tôi chưa từng chọn được mình có nhặt súng hay không.”
+
+Stormbreaker/gate system activates.
+
+> “Nhưng tôi có thể chọn mình làm gì với nó.”
+
+BOT connects itself as the final conductor.
+
+No QTE.
+
+The player does not press a sacrifice button.
+
+---
+
+# 21.10 FINAL CALLBACK
+
+The unknown command system makes one last attempt to redirect BOT toward NEWBOT.
+
+Command:
+**ELIMINATE TARGET**
+
+BOT's body visibly tries to obey.
+
+BOT holds the conductor instead.
+
+NEWBOT hesitates at the gate.
+
+BOT:
+> “Đi.”
+
+NEWBOT still does not move.
+
+BOT:
+> “Cậu muốn biết mình là ai mà.”
+
+Then the final callback:
+
+> “Lần này...”
+> “...tôi dừng được rồi.”
+
+Stormbreaker discharge peaks.
+
+Gate opens enough for NEWBOT.
+
+BOT shuts down permanently.
+
+Do not explode BOT.
+
+Do not disintegrate it.
+
+The emotional image is stillness.
+
+---
+
+# 21.11 BOT2 END STATE
+
+BOT2 remains inside the Scrap Basin.
+
+Its exact fate is intentionally unresolved.
+
+At the ending:
+- BOT is clearly dead/shut down permanently;
+- BOT2 is damaged/corrupted and cannot follow;
+- do not show BOT2 dying;
+- do not show BOT2 fully recovering.
+
+Future story may return to BOT2.
+
+---
+
+# 21.12 OUTSIDE TRANSITION
+
+NEWBOT crosses the wall.
+
+The gate loses power after BOT shuts down.
+
+For the first time the camera reveals wider EAX-1.
+
+Required contrast:
+- Scrap Basin behind = enclosed, dead, industrial.
+- outside = larger, active, inhabited or visibly connected to civilization.
+
+The world must not read as a completely empty apocalypse.
+
+A distant Bot receives a command / turns toward a Drop.
+
+NEWBOT recognizes the behavior.
+
+No exposition explains the entire Botfall.
+
+Quest completion follows.
+
+---
+
+# 21.13 FINAL-ACT RETRY LAW
+
+BOT2 OVERRIDDEN:
+- retry from BOT2 boss start.
+
+BOT LAST CHOICE Phase 1:
+- retry from final boss start.
+
+Stormbreaker Phase:
+- if NEWBOT is KO by/after the authored Stormbreaker release, retry from the Stormbreaker transition checkpoint.
+
+After BOT reaches 120 HP:
+- no gameplay failure;
+- story ending is deterministic.
+
+All retries must clear:
+- projectiles;
+- floor pickups not part of checkpoint state;
+- dialogue queue;
+- command overlays;
+- story reservations;
+- Stormbreaker VFX ownership/state;
+- stale stun/status state.
+
+---
+
+# 21.14 FINAL-ACT SUCCESS CONDITION
+
+The final act succeeds only if the player understands three things without a lore dump:
+
+1. BOT2 and BOT can be addressed by the corrupted Bot network.
+2. NEWBOT cannot be addressed through the same registered identity path.
+3. BOT's sacrifice is a conscious act that directly contradicts the command controlling it.
+
+The emotional structure is:
+
+Beginning:
+> BOT cannot stop.
+
+Middle:
+> BOT learns that something else can stop it.
+
+Ending:
+> BOT stops itself.
+
+That is the final meaning of Quest 01.
+
+---
+
 **END — QUEST 01 GAMEPLAY v1**
