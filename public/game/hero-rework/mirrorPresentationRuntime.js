@@ -183,6 +183,10 @@
       identitySurface: null, identityContext: null, identitySurfaceAttempted: false,
       pendingA2Cast: null, pendingA2End: null, pendingA2Exchange: null,
       a2CastId: null, a2NoSnap: false, a2ExchangeApplied: false, lastA2Exchange: null,
+      // G3 uses only fixed Gold storage. Node ids occupy at most three of the
+      // four D4 drawing proxies; route records are references to real escrow
+      // entries/projectiles, never a second routing state machine.
+      nodeBindings: [null, null, null, null], routeBindings: new Map(),
       mirrorSample: { id: mirrorBody.id, x: mirrorBody.x, y: mirrorBody.y, vx: 0, vy: 0, aim: 0 },
       preMirrorSample: { id: mirrorBody.id, x: mirrorBody.x, y: mirrorBody.y, vx: 0, vy: 0, aim: 0 },
       preOpponentSample: {
@@ -238,6 +242,14 @@
   }
 
   function destroyState(ct, state) {
+    if (state) {
+      state.routeBindings.clear();
+      state.nodeBindings.fill(null);
+      if (state.gold) {
+        for (const s of state.gold.SH) s.on = false;
+        for (const n of state.gold.ND) { n.on = false; n.img.on = false; n.sh.length = 0; }
+      }
+    }
     if (state && state.gold && state.gold.clearExternalTruth) {
       try { state.gold.clearExternalTruth(); } catch (error) { scheduler.errors++; }
     }
@@ -585,6 +597,131 @@
     return true;
   }
 
+  function copyShardTruth(dst, src, slotIndex) {
+    if (!src || !src.on) { dst.on = false; return; }
+    const first = !dst.on;
+    dst.on = true; dst.st = src.st; dst.x = src.x; dst.y = src.y;
+    dst.vx = src.vx || 0; dst.vy = src.vy || 0; dst.age = src.age || 0;
+    dst.fx = src.fx || 0; dst.fy = src.fy || 0; dst.tx = src.tx || 0; dst.ty = src.ty || 0;
+    dst.mt0 = src.mt0 || 0; dst.moving = !!src.moving;
+    if (first) {
+      const prov = src.prov;
+      const dx = prov && Number.isFinite(prov.dirX) ? prov.dirX : dst.vx;
+      const dy = prov && Number.isFinite(prov.dirY) ? prov.dirY : dst.vy;
+      dst.rot = Math.atan2(dy || 0, dx || 1);
+      dst.side = slotIndex % 2 ? 'R' : 'L';
+      dst.ph = slotIndex * 0.71; dst.eyeP = slotIndex * 0.37;
+    }
+  }
+
+  function proxyForNode(state, node) {
+    let k = state.nodeBindings.indexOf(node.id);
+    if (k < 0) {
+      k = state.nodeBindings.indexOf(null);
+      if (k < 0) return null; // gameplay economy permits only three live nodes
+      state.nodeBindings[k] = node.id;
+    }
+    return state.gold.ND[k];
+  }
+
+  function reconcilePassive(state) {
+    const passive = state.ct.store && state.ct.store['mirror.passive'];
+    const slots = passive && passive.slots;
+    for (let i = 0; i < state.gold.SH.length; i++)
+      copyShardTruth(state.gold.SH[i], slots && slots[i], i);
+    const nodes = passive && Array.isArray(passive.nodes) ? passive.nodes : [];
+    for (let k = 0; k < state.nodeBindings.length; k++) {
+      const id = state.nodeBindings[k];
+      if (id != null && !nodes.some((n) => n.id === id)) {
+        state.nodeBindings[k] = null; state.gold.ND[k].on = false;
+      }
+    }
+    for (const node of nodes) {
+      const n = proxyForNode(state, node);
+      if (!n) continue;
+      n.on = true; n.st = node.st; n.x = node.x; n.y = node.y; n.rot = node.rot;
+      n.t = node.t || 0; n.age = node.age || 0; n.tlock = node.tlock;
+      n.t3 = node.t3 || 0;
+      n.fill = node.st === 1 && node.tlock >= 0
+        ? Math.max(0, Math.min(1, (node.t - node.tlock) / 0.34)) : (node.st >= 2 ? 1 : 0);
+      n.fold = node.st === 3 ? Math.max(0, Math.min(1, node.t3 / 0.5)) : 0;
+      n.sh.length = 0;
+      for (const realShard of node.sh || []) {
+        const slot = slots ? slots.indexOf(realShard) : -1;
+        if (slot >= 0) n.sh.push(state.gold.SH[slot]);
+      }
+    }
+  }
+
+  function nodeProxyById(state, id) {
+    const k = state.nodeBindings.indexOf(id);
+    return k < 0 ? null : state.gold.ND[k];
+  }
+
+  function routeOwnerState(payload) {
+    return payload && stateForCombatantIndex(payload.owner);
+  }
+
+  function realEscrow(payload) {
+    const world = currentMatch() && currentMatch().world;
+    const list = world && world.mirrorF2 && world.mirrorF2.escrow;
+    if (!Array.isArray(list)) return null;
+    for (let i = list.length - 1; i >= 0; i--) {
+      const e = list[i];
+      if (e.entryId === payload.entry && e.destId === payload.dest) return e;
+    }
+    return null;
+  }
+
+  function pulseNode(state, id) {
+    const n = state && nodeProxyById(state, id);
+    if (n) state.gold.nodeRipple(n, n.x, n.y);
+  }
+
+  function onRoutePreviewOrLocal(event) {
+    const p = event && event.payload ? event.payload : event;
+    const state = routeOwnerState(p);
+    if (state) pulseNode(state, p.node);
+  }
+
+  function onRouteCapture(event) {
+    const p = event && event.payload ? event.payload : event;
+    const state = routeOwnerState(p);
+    if (!state) return;
+    const escrow = realEscrow(p);
+    if (!escrow || !escrow.p) return;
+    state.routeBindings.set(escrow.p, escrow);
+    pulseNode(state, p.entry);
+  }
+
+  function onEscrowImage(event) {
+    const p = event && event.payload ? event.payload : event;
+    for (const state of instances.values()) {
+      const escrow = realEscrow(p);
+      if (!escrow || !state.routeBindings.has(escrow.p)) continue;
+      const n = nodeProxyById(state, p.dest);
+      if (!n) return;
+      n.img.on = true; n.img.k = 1; n.img.t = 0; n.img.d = 1;
+      n.img.ang = Math.atan2(escrow.vy, escrow.vx); n.img.dx = escrow.dirX; n.img.dy = escrow.dirY;
+      n.img.pw = 1;
+      pulseNode(state, p.dest);
+      return;
+    }
+  }
+
+  function onRouteEmerge(event) {
+    const p = event && event.payload ? event.payload : event;
+    for (const state of instances.values()) {
+      for (const [projectile, escrow] of state.routeBindings) {
+        if (escrow.entryId !== p.entry) continue;
+        state.routeBindings.delete(projectile);
+        for (const n of state.gold.ND) n.img.on = false;
+        pulseNode(state, p.via === 'entry-fallback' ? p.entry : p.via);
+        return;
+      }
+    }
+  }
+
   function tick(dt) {
     if (disposed) return false;
     scheduler.tickCalls++;
@@ -599,6 +736,14 @@
     let advanced = false;
 
     for (const state of instances.values()) {
+      reconcilePassive(state);
+      // Only visual response envelopes advance here. Capture/image/emergence
+      // edges themselves come exclusively from real F2 events/escrow.
+      for (const n of state.gold.ND) if (n.on) {
+        for (const r of n.rp) r.t += frameDt;
+        for (const w of n.sw) if (w.on) { w.t += frameDt; if (w.t >= w.d) w.on = false; }
+        if (n.img.on) n.img.t += frameDt;
+      }
       if (!syncRootsAndExchange(state, validDt ? dt : 0)) continue;
       if (!state.a1Whiff && state.a1WeaponId) resolveA1WeaponArt(state);
       processPendingA1Start(state);
@@ -658,7 +803,20 @@
 
   function renderArenaWorldEffects(ctx, provenance) {
     if (!ctx || provenance?.stage !== 'after-world-before-fighters') return false;
-    for (const state of instances.values()) {
+    const ordered = Array.from(instances.values()).sort((a, b) => a.ct.idx - b.ct.idx);
+    for (const state of ordered) {
+      reconcilePassive(state);
+      const passive = state.ct.store && state.ct.store['mirror.passive'];
+      const slots = passive && passive.slots;
+      for (let i = 0; i < state.gold.SH.length; i++) {
+        const real = slots && slots[i];
+        if (real && real.on && real.st === 0) state.gold.drawFreeShard(ctx, state.gold.SH[i], i);
+      }
+      const nodes = passive && passive.nodes ? passive.nodes.slice().sort((a, b) => a.id - b.id) : [];
+      for (const realNode of nodes) {
+        const proxy = nodeProxyById(state, realNode.id);
+        if (proxy && proxy.on) state.gold.drawNodeBody(ctx, proxy);
+      }
       if (state.a1CastId != null && state.weaponArtReady && !state.a1Whiff && !state.realOwn)
         state.gold.drawA1World(ctx);
       if (state.gold.A2.res > 0 && ownsA2Residue(state)) state.gold.drawResidue(ctx);
@@ -707,6 +865,15 @@
         a2CastId: state.a2CastId,
         a2NoSnap: state.a2NoSnap,
         a2ExchangeApplied: state.a2ExchangeApplied,
+        passive: {
+          visibleSlots: state.gold.SH.reduce((n, s) => n + (s.on ? 1 : 0), 0),
+          nodeBindings: state.nodeBindings.slice(),
+          visibleNodes: state.gold.ND.reduce((n, x) => n + (x.on ? 1 : 0), 0),
+          routeBindings: state.routeBindings.size,
+          slots: state.gold.SH.map((s, i) => ({ i, on: s.on, st: s.st, x: s.x, y: s.y })),
+          nodes: state.gold.ND.map((n, i) => ({ i, id: state.nodeBindings[i], on: n.on,
+            st: n.st, x: n.x, y: n.y, rot: n.rot, shards: n.sh.length, image: n.img.on })),
+        },
         external: state.gold.externalAudit(),
       });
     }
@@ -753,6 +920,11 @@
     // The exchange is a coordinate teleport, not a velocity impulse. Retain
     // its PRE-SWAP movement samples so the next post-tick binds honest velocity.
     unsubscribers.push(AIL.bus.on('MirrorExchange', onMirrorExchange));
+    unsubscribers.push(AIL.bus.on('MirrorRoutePreview', onRoutePreviewOrLocal));
+    unsubscribers.push(AIL.bus.on('MirrorRouteLocal', onRoutePreviewOrLocal));
+    unsubscribers.push(AIL.bus.on('MirrorRouteCapture', onRouteCapture));
+    unsubscribers.push(AIL.bus.on('MirrorEscrowImage', onEscrowImage));
+    unsubscribers.push(AIL.bus.on('MirrorRouteEmerge', onRouteEmerge));
   }
   g.APEX_MIRROR_PRESENTATION = api;
   installDraw();

@@ -124,9 +124,10 @@ try {
   assert.equal(createdGoldInstances.length, 0);
   assert.deepEqual([...listeners.keys()].sort(), [
     'MirrorA1Cast', 'MirrorA1End', 'MirrorA1Own', 'MirrorA1Whiff',
-    'MirrorA2Cast', 'MirrorA2End', 'MirrorA2NoSnap',
-    'MirrorExchange', 'ReworkMatchInstall', 'ReworkMatchTeardown',
-  ], 'bridge listens only for match lifetime, A1/A2 edges and the real exchange teleport');
+    'MirrorA2Cast', 'MirrorA2End', 'MirrorA2NoSnap', 'MirrorEscrowImage',
+    'MirrorExchange', 'MirrorRouteCapture', 'MirrorRouteEmerge',
+    'MirrorRouteLocal', 'MirrorRoutePreview', 'ReworkMatchInstall', 'ReworkMatchTeardown',
+  ], 'bridge listens only for match lifetime and accepted real Mirror gameplay edges');
 
   const runtimeSource = fs.readFileSync('public/game/hero-rework/heroReworkRuntime.js', 'utf8');
   const manifestSource = fs.readFileSync('src/game/runtimeManifest.js', 'utf8');

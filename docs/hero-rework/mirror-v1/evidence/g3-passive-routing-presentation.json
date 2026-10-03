@@ -1,0 +1,29 @@
+{
+  "checkpoint": "G3",
+  "parent": "7e3f0b9fb9d63c53d9461181df9beda40ed82de2",
+  "revision": "20261002-mirror-v1-r26",
+  "architecture": "real F1/F2 truth -> bounded Gold SH/ND visual proxies -> existing world draw seam",
+  "proofs": {
+    "f1": "slot index maps 1:1 to SH index; stable real node id maps to bounded ND storage; real coordinates/state/timeline remain authoritative",
+    "p17": "node proxies copy real x/y/rot exactly and Gold drawNodeBody applies that transform; numerical multi-position/rotation proof tolerance 1e-12",
+    "f2": "Preview/Local pulse real node; Capture binds the actual escrow.p identity; MirrorEscrowImage enables destination image; MirrorRouteEmerge deletes the binding",
+    "sameObject": "route bindings key the exact HR.match.world.mirrorF2.escrow[].p object and never create a projectile clone",
+    "fallback": "MirrorRouteEmerge via entry-fallback pulses captured entry only; adapter performs no destination selection or retarget",
+    "isolation": "state and fixed SH/ND pools are per combatant; render order is combatant idx then slot/node id",
+    "resources": "no frame canvas/Image/Gold allocation; maps bounded by real escrow; teardown clears bindings and all proxies"
+  },
+  "tests": {
+    "g3": "24/24",
+    "f1": "28/28",
+    "f2": "32/32",
+    "coreSix": "19/19",
+    "a1a2Gameplay": "38/38",
+    "a2Ordering": "2/2",
+    "orderedEventSupersession": "12/12",
+    "orderedProjectilePath": "15/15",
+    "g2ActorA1": "PASS",
+    "g2A2": "PASS",
+    "g2Bridge": "PASS",
+    "g1ExternalTruth": "PASS"
+  }
+}
