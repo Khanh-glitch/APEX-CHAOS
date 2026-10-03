@@ -1,32 +1,219 @@
 #!/usr/bin/env node
-/* G3 correction — shipping runtime integration: real HR geometry/F1 objects/F2 payload identity. */
+/* G3/R2 real integration — semantic F1 snapshots and Gold-owned route lifetimes. */
 import assert from 'node:assert/strict';
 import { bootHarness } from './lib/crystalaHarness.mjs';
-const H=await bootHarness(); const {win,T}=H; const HR=win.APEX_HERO_REWORK;
-HR.setAiEnabled(false); T.start('MIRROR','MIRROR'); T.holdSpawns();
-T.step(1/120,1/120);
-const [a,b]=H.fighters(), ca=HR.byCombatant(a), cb=HR.byCombatant(b); const P=win.APEX_MIRROR_PRESENTATION;
-assert.ok(P&&HR.mirrorNode,'shipping presentation and real HR.mirrorNode loaded');
-const mkShard=(x,y,st=0)=>({on:true,st,node:null,x,y,vx:0,vy:0,age:1,mt0:.18,moving:st===1,fx:x,fy:y,tx:x+1,ty:y+1,prov:{hitX:x,hitY:y,dirX:1,dirY:0,weaponId:'PISTOL',sourceId:a.id}});
-const installNode=(ct,id,x,y,rot)=>{const st=ct.store['mirror.passive'];const sh=[],base=st.slots.findIndex(s=>!s);for(let i=0;i<5;i++){const s=mkShard(x+i,y+i,3);st.slots[base+i]=s;sh.push(s);}const n={owner:ct,x,y,rot,st:2,t:2,age:1,t3:0,tlock:1,activeAtClock:0,formedAtClock:0,sh,id};sh.forEach(s=>s.node=n);st.nodes.push(n);return n;};
-const na=installNode(ca,9001,213,377,.41), da=installNode(ca,9002,613,477,-.22);const nb=installNode(cb,9011,733,207,.13), db=installNode(cb,9012,433,707,-.31);
-P.tick(1/120);
-const rec=(idx)=>P.inspect().records.find(r=>r.combatantIndex===idx);
-assert.equal(rec(ca.idx).passive.slots[0].x,na.sh[0].x); assert.equal(ca.store['mirror.passive'].nodes[0],na);
-console.log('PASS real F1 object shape maps without mutation');
-for(const n of [na,da,nb,db]){const pr=rec(n.owner.idx).passive.nodes.find(x=>x.id===n.id);const o=HR.mirrorNode.toWorld(n,0,0),ex=HR.mirrorNode.toWorld(n,1,0),ey=HR.mirrorNode.toWorld(n,0,1);assert.deepEqual([pr.x,pr.y],[o.x,o.y]);for(const [k,v] of Object.entries({a:ex.x-o.x,b:ex.y-o.y,c:ey.x-o.x,d:ey.y-o.y}))assert.ok(Math.abs(pr.worldTransform[k]-v)<1e-12);for(const v of HR.mirrorNode.NV){const gp={x:pr.x+v[0]*pr.worldTransform.a+v[1]*pr.worldTransform.c,y:pr.y+v[0]*pr.worldTransform.b+v[1]*pr.worldTransform.d};const hp=HR.mirrorNode.toWorld(n,v[0],v[1]);assert.ok(Math.hypot(gp.x-hp.x,gp.y-hp.y)<1e-9);}const s=HR.mirrorNode.surface(n),v0=HR.mirrorNode.toWorld(n,...HR.mirrorNode.NV[0]),v3=HR.mirrorNode.toWorld(n,...HR.mirrorNode.NV[3]);assert.deepEqual([s.ax,s.ay,s.bx,s.by],[v0.x,v0.y,v3.x,v3.y]);}
-console.log('PASS P17 shipping Gold basis derives from real HR.mirrorNode across owners/rotations/NV/surfaces');
-const world=HR.match.world.mirrorF2||(HR.match.world.mirrorF2={escrow:[],nodeSeq:0});
-const capture=(owner,entry,dest,p)=>{const e={p,entryId:entry.id,entrySnap:{x:entry.x,y:entry.y,rot:entry.rot},destRef:dest,destId:dest.id,dirX:1,dirY:0,vx:300,vy:0,acc:0,t:0,img:false,fallbackUsed:false};world.escrow.push(e);H.AIL.bus.emit('MirrorRouteCapture',{entry:entry.id,dest:dest.id,owner:owner.idx,toi:.5,weapon:'PISTOL',type:'aq_bullet',projectile:p});return e;};
-const image=(e)=>H.AIL.bus.emit('MirrorEscrowImage',{entry:e.entryId,dest:e.destId,projectile:e.p,destLive:true,t:.208});
-const emerge=(e,via=e.destId)=>H.AIL.bus.emit('MirrorRouteEmerge',{entry:e.entryId,via,t:.566,x:1,y:2,weapon:'PISTOL',type:'aq_bullet',fallback:false,projectile:e.p});
-const p1={tag:'p1'},p2={tag:'p2'},p3={tag:'p3'};const e1=capture(ca,na,da,p1),e2=capture(ca,na,da,p2),e3=capture(cb,nb,db,p3);image(e1);image(e2);image(e3);
-let ra=rec(ca.idx),rb=rec(cb.idx);assert.equal(ra.passive.routeBindings,2);assert.equal(ra.passive.imageOwners.find(x=>x.nodeId===da.id).count,2);assert.equal(rb.passive.routeBindings,1);assert.strictEqual(ra.passive.routes[0].projectile,ra.passive.routes[0].escrowProjectile);assert.equal(win.APEX_MIRROR_GOLD.createMirrorInstance?true:false,true);
-assert.ok(P.inspect().records.every(r=>r.passive.routes.every(x=>x.projectile!==undefined)));console.log('PASS same-entry/same-destination and Mirror-v-Mirror routes bind exact real objects');
-emerge(e1);ra=rec(ca.idx);assert.equal(ra.passive.routeBindings,1);assert.strictEqual(ra.passive.routes[0].projectile,p2);assert.equal(ra.passive.imageOwners.find(x=>x.nodeId===da.id).count,1);assert.ok(ra.passive.nodes.find(x=>x.id===da.id).image);assert.equal(rec(cb.idx).passive.routeBindings,1);console.log('PASS one exact emerge preserves surviving same-destination and opposing-owner image');
-emerge(e2);emerge(e3);assert.equal(rec(ca.idx).passive.routeBindings,0);assert.equal(rec(cb.idx).passive.routeBindings,0);assert.ok(!rec(ca.idx).passive.nodes.find(x=>x.id===da.id).image);console.log('PASS final exact emerges release only their image ownership');
-assert.equal(P.inspect().records.reduce((n,r)=>n+r.passive.routes.length,0),0);assert.ok(P.inspect().records.every(r=>r.passive.routes.every(x=>x.projectile!==null)));assert.ok(P.inspect().records.every(r=>r.passive.goldProjectilesActive===0));console.log('PASS zero Gold PJ clones: PJ pool inactive and bindings are escrow.p references only');
-let canvases=0,images=0;const oldCreate=win.document.createElement.bind(win.document);win.document.createElement=(name,...args)=>{if(String(name).toLowerCase()==='canvas')canvases++;return oldCreate(name,...args);};const OldImage=win.Image;win.Image=new Proxy(OldImage,{construct(t,args,n){images++;return Reflect.construct(t,args,n);}});const beforeInstances=P.inspect().scheduler.createdInstances,beforeListeners=P.inspect().listenerCount;for(let i=0;i<120;i++)P.tick(1/120);assert.deepEqual([canvases,images,P.inspect().scheduler.createdInstances-beforeInstances,P.inspect().listenerCount-beforeListeners],[0,0,0,0]);console.log(`PASS allocations canvas=${canvases} Image=${images} GoldInstances=0 listenerGrowth=0`);
-H.AIL.bus.emit('ReworkMatchTeardown',{});assert.equal(P.inspect().instanceCount,0);console.log('Mirror G3 corrected integration: 7/7 passed');
 
-process.exit(0);
+const H = await bootHarness();
+const { win, T } = H;
+const HR = win.APEX_HERO_REWORK;
+const GOLD = win.APEX_MIRROR_GOLD;
+const bus = win.APEX_HERO_REWORK_AIL.bus;
+const DT = 1 / 120;
+const goldInstances = [];
+const makeGold = GOLD.createMirrorInstance;
+GOLD.createMirrorInstance = function captureGold(options) {
+  const instance = makeGold.call(GOLD, options); goldInstances.push(instance); return instance;
+};
+HR.setAiEnabled(false);
+const stepPresentation = (api, count) => { for (let i = 0; i < count; i++) api.tick(DT); };
+let passed = 0;
+function gate(name, fn) { fn(); passed++; console.log(`PASS G3/R2 ${passed} ${name}`); }
+
+try {
+  T.start('MIRROR', 'MIRROR'); T.holdSpawns();
+  const [a, b] = H.fighters();
+  const ca = HR.byCombatant(a), cb = HR.byCombatant(b);
+  a.baseSpeed = 0; b.baseSpeed = 0;
+  a.x = 160; a.y = 240; b.x = 840; b.y = 760;
+  T.step(DT, DT);
+  const P = win.APEX_MIRROR_PRESENTATION;
+  assert.ok(P && HR.mirrorNode);
+  const goldA = goldInstances.find((instance) => instance.M.id === a.id);
+  const goldB = goldInstances.find((instance) => instance.M.id === b.id);
+  assert.ok(goldA && goldB && goldA !== goldB);
+  const passiveA = ca.store['mirror.passive'], passiveB = cb.store['mirror.passive'];
+
+  const addNode = (ct, id, x, y, rot) => {
+    const state = ct.store['mirror.passive'];
+    const members = [];
+    for (let i = 0; i < 5; i++) {
+      const slot = state.slots.findIndex((entry) => !entry);
+      assert.ok(slot >= 0);
+      const shard = { on: true, st: 3, node: null, x: x + i, y: y - i,
+        vx: 0, vy: 0, age: 1, fx: x + i, fy: y - i, tx: x + i + 1, ty: y - i + 1,
+        mt0: .18, moving: false,
+        prov: Object.freeze({ hitX: x, hitY: y, dirX: 1, dirY: 0, weaponId: 'PISTOL', sourceId: ct.anchor.id }) };
+      state.slots[slot] = shard; members.push(shard);
+    }
+    const node = { owner: ct, id, x, y, rot, st: 2, t: 1.5, age: .7, t3: 0,
+      tlock: 1.1, activeAtClock: 0, formedAtClock: 0, sh: members };
+    for (const shard of members) shard.node = node;
+    state.nodes.push(node);
+    return node;
+  };
+  const na = addNode(ca, 9001, 213, 377, .41);
+  const da = addNode(ca, 9002, 613, 477, -.22);
+  const nb = addNode(cb, 9011, 733, 207, .13);
+  const db = addNode(cb, 9012, 433, 707, -.31);
+  const shardSnapshots = [passiveA, passiveB].map((state) => state.slots.map((shard) =>
+    shard && { identity: shard, on: shard.on, x: shard.x, y: shard.y, prov: shard.prov }));
+  P.tick(0);
+
+  gate('real per-owner F1 pools bind semantic shards/nodes without mutating gameplay truth', () => {
+    const recA = P.inspect().records.find((record) => record.combatantIndex === ca.idx);
+    const recB = P.inspect().records.find((record) => record.combatantIndex === cb.idx);
+    assert.deepEqual([recA.passive.shardBindings, recA.passive.nodeBindings], [10, 2]);
+    assert.deepEqual([recB.passive.shardBindings, recB.passive.nodeBindings], [10, 2]);
+    for (const [state, before] of [[passiveA, shardSnapshots[0]], [passiveB, shardSnapshots[1]]]) {
+      for (let i = 0; i < state.slots.length; i++) {
+        const old = before[i], current = state.slots[i];
+        if (!old) { assert.equal(current, null); continue; }
+        assert.strictEqual(current, old.identity);
+        assert.deepEqual([current.on, current.x, current.y], [old.on, old.x, old.y]);
+        assert.strictEqual(current.prov, old.prov);
+      }
+    }
+  });
+
+  const close = (x, y) => Math.abs(x - y) < 1e-9;
+  for (const [gold, real] of [[goldA, na], [goldA, da], [goldB, nb], [goldB, db]]) {
+    const proxy = gold.ND.find((node) => node.on && node.x === real.x && node.y === real.y);
+    assert.ok(proxy);
+    assert.strictEqual(proxy.externalGeometry, HR.mirrorNode);
+    const origin = HR.mirrorNode.toWorld(real, 0, 0);
+    const xAxis = HR.mirrorNode.toWorld(real, 1, 0);
+    const yAxis = HR.mirrorNode.toWorld(real, 0, 1);
+    assert.deepEqual([proxy.x, proxy.y], [origin.x, origin.y]);
+    assert.ok(close(proxy.worldTransform.a, xAxis.x - origin.x));
+    assert.ok(close(proxy.worldTransform.b, xAxis.y - origin.y));
+    assert.ok(close(proxy.worldTransform.c, yAxis.x - origin.x));
+    assert.ok(close(proxy.worldTransform.d, yAxis.y - origin.y));
+    for (const [slot, v] of HR.mirrorNode.NV.entries()) {
+      const expected = HR.mirrorNode.toWorld(real, v[0], v[1]);
+      const projected = { x: proxy.x + v[0] * proxy.worldTransform.a + v[1] * proxy.worldTransform.c,
+        y: proxy.y + v[0] * proxy.worldTransform.b + v[1] * proxy.worldTransform.d };
+      assert.ok(Math.hypot(projected.x - expected.x, projected.y - expected.y) < 1e-9);
+      const realMember = real.sh[slot];
+      const goldMember = gold.SH[passiveA === real.owner.store['mirror.passive']
+        ? passiveA.slots.indexOf(realMember) : passiveB.slots.indexOf(realMember)];
+      assert.ok(proxy.sh.includes(goldMember));
+    }
+    const surface = HR.mirrorNode.surface(real);
+    const first = HR.mirrorNode.toWorld(real, ...HR.mirrorNode.NV[0]);
+    const fourth = HR.mirrorNode.toWorld(real, ...HR.mirrorNode.NV[3]);
+    assert.deepEqual([surface.ax, surface.ay, surface.bx, surface.by], [first.x, first.y, fourth.x, fourth.y]);
+  }
+  gate('all real F1 node bases, surfaces, five NV vertices and member slots share HR.mirrorNode geometry', () => {
+    assert.equal(goldA.ND.filter((node) => node.on).length, 2);
+    assert.equal(goldB.ND.filter((node) => node.on).length, 2);
+  });
+
+  const routeCallsA = [], routeCallsB = [];
+  for (const [gold, calls] of [[goldA, routeCallsA], [goldB, routeCallsB]]) {
+    const present = gold.presentExternalRoute;
+    gold.presentExternalRoute = function captureRoute(route) {
+      calls.push(route); return present.call(gold, route);
+    };
+  }
+  const projectileA1 = { route: 'A1' }, projectileA2 = { route: 'A2' }, projectileB = { route: 'B1' };
+  const visualEvent = (base, projectile, point, direction = { x: 300, y: 0 }, power = 1) => {
+    const payload = { ...base };
+    Object.defineProperties(payload, {
+      projectile: { value: projectile }, point: { value: Object.freeze({ ...point }) },
+      direction: { value: Object.freeze({ ...direction }) }, power: { value: power },
+    });
+    return payload;
+  };
+  const emit = (type, payload) => bus.emit(type, payload);
+  const capture = (owner, entry, destination, projectile, point) => emit('MirrorRouteCapture',
+    visualEvent({ owner: owner.idx, entry: entry.id, dest: destination.id, toi: .5,
+      weapon: 'PISTOL', type: 'aq_bullet' }, projectile, point));
+  const image = (entry, destination, projectile, point) => emit('MirrorEscrowImage',
+    visualEvent({ entry: entry.id, dest: destination.id, destLive: true, t: .208 }, projectile, point));
+  const emerge = (entry, destination, projectile, point, via = destination.id) => emit('MirrorRouteEmerge',
+    visualEvent({ entry: entry.id, via, t: .566, x: point.x, y: point.y,
+      weapon: 'PISTOL', type: 'aq_bullet', fallback: via === 'entry-fallback' }, projectile, point));
+  capture(ca, na, da, projectileA1, { x: 250, y: 377 });
+  capture(ca, na, da, projectileA2, { x: 260, y: 378 });
+  capture(cb, nb, db, projectileB, { x: 500, y: 207 });
+  image(na, da, projectileA1, { x: 250, y: 377 });
+  image(na, da, projectileA2, { x: 260, y: 378 });
+  image(nb, db, projectileB, { x: 500, y: 207 });
+  gate('semantic route bridge preserves exact same-endpoint and Mirror-v-Mirror projectile identities', () => {
+    assert.equal(goldA.externalPassiveAudit().routes, 2);
+    assert.equal(goldB.externalPassiveAudit().routes, 1);
+    assert.equal(goldA.externalPassiveAudit().imageOwners, 4);
+    assert.equal(goldB.externalPassiveAudit().imageOwners, 2);
+    for (const [calls, ids] of [[routeCallsA, [projectileA1, projectileA2]], [routeCallsB, [projectileB]]]) {
+      const captures = calls.filter((route) => route.kind === 'capture');
+      assert.equal(captures.length, ids.length);
+      for (let i = 0; i < ids.length; i++) assert.strictEqual(captures[i].routeId, ids[i]);
+    }
+    assert.equal(goldA.externalPassiveAudit().goldProjectiles, 0);
+    assert.equal(goldB.externalPassiveAudit().goldProjectiles, 0);
+  });
+
+  emerge(na, da, projectileA1, { x: 613, y: 477 });
+  gate('one exact emerge consumes only its route and preserves concurrent route/image owners', () => {
+    assert.equal(goldA.externalPassiveAudit().routes, 1);
+    assert.equal(goldA.externalPassiveAudit().imageOwners, 2);
+    assert.equal(goldB.externalPassiveAudit().routes, 1);
+    assert.equal(goldB.externalPassiveAudit().imageOwners, 2);
+    assert.strictEqual(routeCallsA.filter((route) => route.kind === 'emerge').at(-1).routeId, projectileA1);
+  });
+  emerge(na, da, projectileA2, { x: 613, y: 477 });
+  emerge(nb, db, projectileB, { x: 433, y: 707 });
+  gate('terminal emerge clears only its real Gold route and image owners', () => {
+    assert.equal(goldA.externalPassiveAudit().routes, 0);
+    assert.equal(goldA.externalPassiveAudit().imageOwners, 0);
+    assert.equal(goldB.externalPassiveAudit().routes, 0);
+    assert.equal(goldB.externalPassiveAudit().imageOwners, 0);
+    assert.deepEqual([goldA.externalPassiveAudit().goldProjectiles,
+      goldB.externalPassiveAudit().goldProjectiles], [0, 0]);
+    assert.ok(routeCallsA.every((route) => route.routeId !== null));
+    assert.ok(routeCallsB.every((route) => route.routeId !== null));
+  });
+
+  const canvas = win.document.getElementById('game-canvas');
+  P.renderArenaWorldEffects(canvas.getContext('2d'), { stage: 'after-world-before-fighters' });
+  const oldCreateElement = win.document.createElement.bind(win.document);
+  const oldImage = win.Image;
+  let canvases = 0, images = 0;
+  win.document.createElement = function countCanvas(name, ...args) {
+    if (String(name).toLowerCase() === 'canvas') canvases++;
+    return oldCreateElement(name, ...args);
+  };
+  win.Image = new Proxy(oldImage, { construct(target, args, newTarget) {
+    images++; return Reflect.construct(target, args, newTarget);
+  } });
+  const beforeCreated = P.inspect().scheduler.createdInstances;
+  const beforeListeners = P.inspect().listenerCount;
+  const beforeStepsA = goldA.externalAudit().steps, beforeStepsB = goldB.externalAudit().steps;
+  stepPresentation(P, 120);
+  win.document.createElement = oldCreateElement; win.Image = oldImage;
+  gate('sustained presentation frames remain allocation-bounded and Gold-clock exact', () => {
+    assert.deepEqual([canvases, images], [0, 0]);
+    assert.equal(P.inspect().scheduler.createdInstances, beforeCreated);
+    assert.equal(P.inspect().listenerCount, beforeListeners);
+    assert.equal(goldA.externalAudit().steps - beforeStepsA, 120);
+    assert.equal(goldB.externalAudit().steps - beforeStepsB, 120);
+    assert.equal(goldA.externalPassiveAudit().goldProjectiles, 0);
+    assert.equal(goldB.externalPassiveAudit().goldProjectiles, 0);
+  });
+
+  bus.emit('ReworkMatchTeardown', {});
+  gate('teardown explicitly clears both Gold semantic instances', () => {
+    assert.equal(P.inspect().instanceCount, 0);
+    for (const instance of [goldA, goldB]) {
+      assert.equal(instance.externalAudit().enabled, false);
+      assert.equal(instance.externalPassiveAudit().shardBindings, 0);
+      assert.equal(instance.externalPassiveAudit().nodeBindings, 0);
+      assert.equal(instance.externalPassiveAudit().routes, 0);
+      assert.equal(instance.externalPassiveAudit().imageOwners, 0);
+    }
+  });
+  assert.equal(passed, 7);
+  console.log('Mirror G3/R2 real semantic integration: 7/7 passed');
+} finally {
+  H.dom.window.close();
+}

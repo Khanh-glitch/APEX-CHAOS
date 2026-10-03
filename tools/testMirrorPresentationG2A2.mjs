@@ -224,7 +224,7 @@ try {
 
   win.eval(fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js', 'utf8'));
   const bridge = win.APEX_MIRROR_PRESENTATION;
-  assert.equal(bridge.version, 'g2b-actor-a1-a2-presentation');
+  assert.equal(bridge.version, 'r2-semantic-gold-presentation');
   install(mirrorCt, robotCt);
   assert.equal(bridge.inspect().instanceCount, 1);
   assert.equal(goldInstances.length, 1);

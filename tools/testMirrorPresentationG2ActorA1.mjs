@@ -124,7 +124,7 @@ let weaponImageLookups = 0;
 win.APEX_ARSENAL_AV = {
   weaponImage(weaponId) {
     weaponImageLookups++;
-    return weaponId === 'PISTOL' ? arsenalImage : null;
+    return weaponId === 'PISTOL' ? { img: arsenalImage, w: 180, h: 68 } : null;
   },
   drawEquippedWeapon(ctx, fighter) {
     equippedWeaponDraws++;
@@ -176,11 +176,17 @@ try {
 
   win.eval(fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js', 'utf8'));
   const bridge = win.APEX_MIRROR_PRESENTATION;
-  assert.equal(bridge.version, 'g2b-actor-a1-a2-presentation');
+  assert.equal(bridge.version, 'r2-semantic-gold-presentation');
   bus.emit('ReworkMatchInstall', { p1: 'MIRROR', p2: 'STALKER' });
   assert.equal(bridge.inspect().instanceCount, 1);
   const gold = goldInstances[0];
   assert.equal(gold.externalTruth, true);
+  const suppliedWeaponArts = [];
+  const setWeaponArt = gold.setWeaponArt;
+  gold.setWeaponArt = function captureWeaponArt(art) {
+    if (art) suppliedWeaponArts.push(art);
+    return setWeaponArt.call(gold, art);
+  };
   const drawA1World = gold.drawA1World;
   let a1WorldDraws = 0;
   gold.drawA1World = function captureA1World(ctx) {
@@ -215,6 +221,11 @@ try {
   assert.equal(weaponImageLookups, 1, 'A1 resolves the real cached Arsenal image once');
   assert.equal(gold.weaponArt().source, 'production');
   assert.equal(gold.weaponArt().weaponId, 'PISTOL');
+  assert.equal(suppliedWeaponArts.length, 1, 'Gold conversion happens once for the accepted wrapper');
+  assert.equal(suppliedWeaponArts[0].image, arsenalImage, 'the underlying Arsenal image is passed to Gold');
+  assert.equal(suppliedWeaponArts[0].w, 180, 'authored wrapper width is preserved');
+  assert.equal(suppliedWeaponArts[0].h, 68, 'authored wrapper height is preserved');
+  assert.equal(suppliedWeaponArts[0].weaponId, 'PISTOL');
   assert.equal(bridge.inspect().records[0].weaponArtReady, true);
   assert.equal(gold.A1.on, false, 'cast start is applied only after post-movement root sync');
 
@@ -224,6 +235,7 @@ try {
   assert.equal(gold.A1.on, true);
   assert.ok(gold.A1.u > 0.12, 'Gold A1 presentation reaches the authored reflection interval');
   assert.equal(weaponImageLookups, 1, 'steady presentation ticks reuse Arsenal image identity');
+  assert.equal(suppliedWeaponArts.length, 1, 'steady ticks never reconvert accepted Arsenal art');
   assert.equal(canvasCreations, actorCanvasCount, 'Gold stepping creates no per-frame canvas');
   assert.equal(imageCreations, actorImageCount, 'Gold stepping creates no per-frame image');
 

@@ -563,7 +563,15 @@
        * replacement law, no immediate formation (scans run on the per-owner
        * 0.3s cadence inside mirrorPassiveTick). */
       mirrorShardProc(ct, x, y, n, prov) {
-        return mirrorProcShards(ct, x, y, n, prov || null);
+        const made = mirrorProcShards(ct, x, y, n, prov || null);
+        // Hit-time side capture is presentation-only. It consumes the exact
+        // real shard identities after spawn; failure must never gate damage or
+        // alter the unchanged F1 pool/lifecycle.
+        const presentation = globalScope.APEX_MIRROR_PRESENTATION;
+        if (made.length && presentation && typeof presentation.capturePassiveShardSeeds === 'function') {
+          try { presentation.capturePassiveShardSeeds(ct, made); } catch (error) { /* fail open: gameplay owns F1 */ }
+        }
+        return made;
       },
       /* F1 per-owner passive lifecycle step (FREE motion/expiry, formation
        * scans, assembly, ACTIVE/FOLD). Driven from the executor onTick so it
@@ -3006,6 +3014,36 @@
     return false;
   }
 
+  // Gold's authored bolt power is a presentation tier derived only from the
+  // actual projectile family. This metadata never feeds collision or damage.
+  function mirrorF2VisualPower(p) {
+    if (!p) return 1;
+    if (p.type === 'aq_grenade' || p.type === 'aq_thrown') return 3;
+    const config = globalScope.APEX_ARSENAL_CONFIG;
+    const family = p.family || (config && config.WEAPONS && config.WEAPONS[p.weapon]
+      && config.WEAPONS[p.weapon].family);
+    if (family === 'PRECISION') return 3;
+    if (family === 'SHOTGUN' || family === 'AUTOSHOT' || family === 'BURST') return 2;
+    return 1;
+  }
+
+  // Preserve real producer truth as non-enumerable presentation metadata so
+  // bounded gameplay telemetry keeps its existing serialized event shape.
+  function attachMirrorF2Visual(payload, projectile, point, vx, vy, power) {
+    if (!payload || !projectile || !point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return payload;
+    const direction = Object.freeze({
+      x: Number.isFinite(vx) ? vx : (Number.isFinite(projectile.vx) ? projectile.vx : 0),
+      y: Number.isFinite(vy) ? vy : (Number.isFinite(projectile.vy) ? projectile.vy : 0),
+    });
+    Object.defineProperties(payload, {
+      projectile: { value: projectile },
+      point: { value: point },
+      direction: { value: direction },
+      power: { value: Number.isFinite(power) ? power : mirrorF2VisualPower(projectile) },
+    });
+    return payload;
+  }
+
   // Swept capsule contact of the REAL ordered travelled path against one
   // node's oriented route surface. Segments are walked in travel order, so
   // the first contact is the earliest GLOBAL TOI; high-speed projectiles
@@ -3022,7 +3060,12 @@
           const hit = capsuleToi(g.x0, g.y0, g.x1, g.y1, s.ax, s.ay, s.bx, s.by, R);
           if (!hit) continue;
           const t = globalT(g, hit.t);            // GLOBAL frame TOI
-          if (!best || t < best.t) best = { node: n, t, seg: g };
+          if (!best || t < best.t) best = {
+            node: n, t, seg: g,
+            // The exact projectile center at the already-computed swept TOI.
+            // Presentation consumes this point; gameplay collision is unchanged.
+            point: { x: g.x0 + (g.x1 - g.x0) * hit.t, y: g.y0 + (g.y1 - g.y0) * hit.t },
+          };
           break;                                  // segments are in travel order
         }
       }
@@ -3075,17 +3118,20 @@
         if (!seen.includes(pv.node.id)) {
           seen.push(pv.node.id);
           const dest = mirrorF2Destination(pv.node);
-          AIL.bus.emit('MirrorRoutePreview', {
+          const previewEvent = {
             node: pv.node.id, owner: pv.node.owner ? pv.node.owner.idx : -1,
             dest: dest ? dest.id : null, toi: pv.t,
-          });
+          };
+          attachMirrorF2Visual(previewEvent, p, pv.point,
+            pv.seg && pv.seg.vx, pv.seg && pv.seg.vy);
+          AIL.bus.emit('MirrorRoutePreview', previewEvent);
         }
       }
       return null;
     }
     const dest = mirrorF2Destination(cap.node);
-    if (!dest) return { kind: 'oneNode', capT: cap.t, node: cap.node };
-    return { kind: 'capture', capT: cap.t, node: cap.node, dest, seg: cap.seg };
+    if (!dest) return { kind: 'oneNode', capT: cap.t, node: cap.node, seg: cap.seg, point: cap.point };
+    return { kind: 'capture', capT: cap.t, node: cap.node, dest, seg: cap.seg, point: cap.point };
   }
 
   // Realize a capture: escrow the ACTUAL detached projectile object.
@@ -3112,7 +3158,7 @@
     if (idx >= 0) projectiles.splice(idx, 1);
     clearPath(p);
     (p.__hr = p.__hr || {}).mirrorEscrow = true;
-    mirrorF2World().escrow.push({
+    const escrowEntry = {
       p,
       entryId: nA.id,
       // Entry-node transform SNAPSHOTTED at capture so emergence stays
@@ -3122,15 +3168,22 @@
       dirX: inVx / sp, dirY: inVy / sp,
       vx: inVx, vy: inVy,
       acc: 0, t: 0, img: false, fallbackUsed: false,
+    };
+    // Non-enumerable presentation provenance keeps gameplay escrow snapshots
+    // stable while preserving the real swept contact and family at capture.
+    Object.defineProperties(escrowEntry, {
+      contactPoint: { value: cand.point },
+      power: { value: mirrorF2VisualPower(p) },
     });
+    mirrorF2World().escrow.push(escrowEntry);
     const captureEvent = {
       entry: nA.id, dest: cand.dest.id,
       owner: nA.owner ? nA.owner.idx : -1,
       toi: cand.capT, weapon: p.weapon || null, type: p.type,
     };
-    // Non-enumerable presentation identity keeps telemetry JSON stable while
-    // carrying the exact already-escrowed object to synchronous listeners.
-    Object.defineProperty(captureEvent, 'projectile', { value: p });
+    // Exact route identity, swept contact and incoming-leg direction remain
+    // presentation metadata; JSON/telemetry retains the established payload.
+    attachMirrorF2Visual(captureEvent, p, cand.point, inVx, inVy, escrowEntry.power);
     AIL.bus.emit('MirrorRouteCapture', captureEvent);
   }
 
@@ -3162,7 +3215,7 @@
       x: p.x, y: p.y,                       // canonical emergence point
       weapon: p.weapon || null, type: p.type, fallback: e.fallbackUsed,
     };
-    Object.defineProperty(emergeEvent, 'projectile', { value: p });
+    attachMirrorF2Visual(emergeEvent, p, { x: p.x, y: p.y }, e.vx, e.vy, e.power);
     AIL.bus.emit('MirrorRouteEmerge', emergeEvent);
   }
 
@@ -3189,7 +3242,7 @@
             entry: e.entryId, dest: e.destId,
             destLive: !!(e.destRef && e.destRef.st === 2), t: e.t,
           };
-          Object.defineProperty(imageEvent, 'projectile', { value: e.p });
+          attachMirrorF2Visual(imageEvent, e.p, e.contactPoint, e.vx, e.vy, e.power);
           AIL.bus.emit('MirrorEscrowImage', imageEvent);
         }
         if (e.t > MIRROR_F2.emergeT) { mirrorF2Emerge(e, projectiles); emerged = true; break; }
@@ -3203,10 +3256,14 @@
   // touched node + ~0.40s capture-attempt cooldown on that projectile.
   // NEVER an escrow, relocation, neutralization or Magnet revocation.
   function mirrorF2LocalResponse(p, cand) {
-    AIL.bus.emit('MirrorRouteLocal', {
+    const localEvent = {
       node: cand.node.id, owner: cand.node.owner ? cand.node.owner.idx : -1,
       toi: cand.capT, weapon: p.weapon || null, type: p.type,
-    });
+    };
+    const vx = cand.seg && Number.isFinite(cand.seg.vx) ? cand.seg.vx : p.vx;
+    const vy = cand.seg && Number.isFinite(cand.seg.vy) ? cand.seg.vy : p.vy;
+    attachMirrorF2Visual(localEvent, p, cand.point, vx, vy);
+    AIL.bus.emit('MirrorRouteLocal', localEvent);
     (p.__hr = p.__hr || {}).mirrorAttemptCdUntil = AIL.clock() + MIRROR_F2.attemptCd;
   }
 

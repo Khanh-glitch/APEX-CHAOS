@@ -591,13 +591,23 @@ const EXTERNAL_PASSIVE_API = `
     }
     return true;
   }
-  function syncExternalShardSlot(input) {
-    if (!__externalTruth || !input || !Number.isInteger(input.slotIndex)
-        || input.slotIndex < 0 || input.slotIndex >= SH.length) return false;
-    const i = input.slotIndex;
+  function captureExternalShardSide(provenance, mirrorX) {
+    if (!__externalTruth || !provenance) return null;
+    const dx = __finite(provenance.dirX, 0), dy = __finite(provenance.dirY, 0);
+    const mag = Math.hypot(dx, dy) || 1;
+    const nx = dx / mag;
+    const rootX = __finite(mirrorX, M.x);
+    const hitX = __finite(provenance.hitX, rootX);
+    return Math.abs(nx) > .25 ? (nx > 0 ? 'L' : 'R') : (hitX < rootX ? 'L' : 'R');
+  }
+  function syncExternalShardSlot(input, slotIndex) {
+    const i = Number.isInteger(slotIndex) ? slotIndex : input && input.slotIndex;
+    if (!__externalTruth || !input || !Number.isInteger(i) || i < 0 || i >= SH.length) return false;
     const active = input.on !== false && input.identity != null;
     if (!active) { __resetExternalShard(i); return true; }
     if (!Number.isFinite(input.x) || !Number.isFinite(input.y)) return false;
+    const presentationSide = input.presentationSide;
+    const hasPresentationSide = presentationSide === 'L' || presentationSide === 'R';
     const replacing = !__externalShardBound[i] || __externalShardIdentities[i] !== input.identity;
     if (replacing) {
       __resetExternalShard(i);
@@ -607,7 +617,11 @@ const EXTERNAL_PASSIVE_API = `
       const mag = Math.hypot(dx, dy) || 1;
       const nx = dx / mag, ny = dy / mag;
       const hx = __finite(provenance.hitX, __finite(input.x, M.x));
-      const side = Math.abs(nx) > .25 ? (nx > 0 ? 'L' : 'R') : (hx < M.x ? 'L' : 'R');
+      const rootX = __finite(input.mirrorX, M.x);
+      const side = hasPresentationSide ? presentationSide
+        : (Math.abs(nx) > .25 ? (nx > 0 ? 'L' : 'R') : (hx < rootX ? 'L' : 'R'));
+      // First semantic binding occurs before Gold's next fixed step, so these
+      // remain the pre-hit expression channels without adapter-owned copies.
       const e = E['e' + side], n = E['n' + side], eye = E['s' + side];
       const sa = Math.atan2(ny, nx) + Math.PI / 2 + rr(-.3, .3);
       s.on = true; s.st = Number.isInteger(input.st) ? input.st : 0;
@@ -692,7 +706,7 @@ const EXTERNAL_PASSIVE_API = `
     for (let i = 0; i < SH.length; i++) {
       const shard = snapshot.shards[i];
       if (!shard) __resetExternalShard(i);
-      else if (!syncExternalShardSlot({ ...shard, slotIndex: i })) return false;
+      else if (!syncExternalShardSlot(shard, i)) return false;
     }
     const liveIds = new Set(snapshot.nodes.map((node) => node && node.id).filter((id) => id != null));
     for (const id of Array.from(__externalNodeBindings.keys())) if (!liveIds.has(id)) releaseExternalNode(id);
@@ -1030,10 +1044,12 @@ ${externalSprings.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
     // longer axis so silhouette proportions are preserved.
     const ref = P.wpnMV;
     const fit = art.fitToGold === false ? null : ref;
-    let box = { w: art.w || mvImg.width, h: art.h || mvImg.height };
+    const sourceW = Number.isFinite(art.w) && art.w > 0 ? art.w : mvImg.width;
+    const sourceH = Number.isFinite(art.h) && art.h > 0 ? art.h : mvImg.height;
+    let box = { w: sourceW, h: sourceH };
     if (fit) {
-      const k = Math.min(fit.w / mvImg.width, fit.h / mvImg.height);
-      box = { w: mvImg.width * k, h: mvImg.height * k };
+      const k = Math.min(fit.w / sourceW, fit.h / sourceH);
+      box = { w: sourceW * k, h: sourceH * k };
     }
     const spec = { ...art, w: box.w, h: box.h, ox: -box.w / 2, oy: -box.h / 2 };
     __wpnArt = {
@@ -1285,7 +1301,7 @@ ${EXTERNAL_PASSIVE_API}
     enableExternalTruth, syncExternalTruth, stepExternalPresentation,
     applyExternalExchange, beginExternalA1, markExternalA1Whiff, beginExternalA2,
     endExternalA1, endExternalA2, clearExternalTruth,
-    syncExternalShardSlot, syncExternalNode, releaseExternalNode, syncExternalPassive,
+    captureExternalShardSide, syncExternalShardSlot, syncExternalNode, releaseExternalNode, syncExternalPassive,
     presentExternalRoute, rebaseExternalExchangeHistory, clearExternalPassive,
     drawExternalPassive, externalPassiveAudit,
     get externalTruth() { return __externalTruth; }, externalAudit,

@@ -117,7 +117,7 @@ try {
   };
   win.eval(fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js', 'utf8'));
   const bridge = win.APEX_MIRROR_PRESENTATION;
-  assert.equal(bridge.version, 'g2b-actor-a1-a2-presentation');
+  assert.equal(bridge.version, 'r2-semantic-gold-presentation');
   assert.equal(bridge.inspect().version, bridge.version, 'inspection reports the installed adapter version');
   assert.equal(bridge.fixedStep, 1 / 120);
   assert.equal(bridge.inspect().instanceCount, 0, 'no Mirror means no Gold instance');
@@ -148,7 +148,7 @@ try {
   const adapterIndex = manifestSource.indexOf('/game/hero-rework/mirrorPresentationRuntime.js');
   assert.ok(goldIndex >= 0 && adapterIndex > goldIndex, 'Gold loads before its production adapter');
   assert.match(manifestSource, /20261002-mirror-v1-r27/,
-    'G1B preserves the current r26 runtime lock');
+    'G1B preserves the current r27 runtime lock');
   assert.doesNotMatch(adapterSource, /requestAnimationFrame|setInterval|stepMirror\s*\(/,
     'the bridge owns neither an independent clock nor Gold demo gameplay');
 

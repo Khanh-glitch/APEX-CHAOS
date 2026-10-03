@@ -13,9 +13,12 @@
   const HR = g.APEX_HERO_REWORK;
   const AIL = g.APEX_HERO_REWORK_AIL;
   const GOLD = g.APEX_MIRROR_GOLD;
-  const VERSION = 'g2b-actor-a1-a2-presentation';
+  const VERSION = 'r2-semantic-gold-presentation';
   const STEP = 1 / 120;
   const MAX_SUBSTEPS = 8;
+  const PASSIVE_SHARD_SLOTS = 16;
+  const PASSIVE_NODE_SLOTS = 4;
+  const PASSIVE_NODE_MEMBERS = 5;
   const MAX_FRAME_DT = STEP * MAX_SUBSTEPS;
   const EPSILON = 1e-12;
   const instances = new Map();
@@ -180,6 +183,26 @@
     return true;
   }
 
+  // One reusable semantic snapshot per Mirror instance. The arrays and records
+  // are adapter scratch only; identities and all lifecycle values are reread
+  // from the real ct.store pool on every reconciliation.
+  function createPassiveSnapshot() {
+    const shards = new Array(PASSIVE_SHARD_SLOTS).fill(null);
+    const shardInputs = new Array(PASSIVE_SHARD_SLOTS);
+    for (let i = 0; i < shardInputs.length; i++) shardInputs[i] = {
+      slotIndex: i, identity: null, on: false, st: 0,
+      x: 0, y: 0, vx: 0, vy: 0, age: 0,
+      fx: 0, fy: 0, tx: 0, ty: 0, mt0: 0, moving: false,
+      provenance: null, mirrorX: 0, presentationSide: null,
+    };
+    const nodes = new Array(PASSIVE_NODE_SLOTS);
+    for (let i = 0; i < nodes.length; i++) nodes[i] = {
+      id: null, st: 0, x: 0, y: 0, rot: 0, t: 0, age: 0, t3: 0, tlock: -1,
+      memberSlots: new Array(PASSIVE_NODE_MEMBERS).fill(-1),
+    };
+    return { snapshot: { shards, nodes: [] }, shardInputs, nodeInputs: nodes };
+  }
+
   function makeState(match, ct, opponent) {
     const mirrorBody = ct && ct.anchor;
     const opponentBody = opponent && opponent.anchor;
@@ -194,15 +217,15 @@
       recentExchangeCastIds: [null, null, null, null], recentExchangeWrite: 0,
       pendingA1Cast: null, pendingA1End: null, pendingA1Whiff: null,
       a1CastId: null, a1WeaponId: null, pendingWeaponImage: null,
-      a1Whiff: false, weaponArtReady: false, weaponLookupAttempted: false,
+      failedWeaponImage: null, failedWeaponId: null, failedWeaponWidth: 0, failedWeaponHeight: 0,
+      a1Whiff: false, weaponArtReady: false,
       realOwn: false, drawType: null, drawOpponentIdentity: null,
       identitySurface: null, identityContext: null, identitySurfaceAttempted: false,
       pendingA2Cast: null, pendingA2End: null, pendingA2Exchange: null,
       a2CastId: null, a2NoSnap: false, a2ExchangeApplied: false, lastA2Exchange: null,
-      // G3 uses only fixed Gold storage. Node ids occupy at most three of the
-      // four D4 drawing proxies; route records are references to real escrow
-      // entries/projectiles, never a second routing state machine.
-      nodeBindings: [null, null, null, null], routeBindings: new Map(), imageOwners: new Map(),
+      // R2 scratch snapshots and hit-time seeds carry no lifecycle authority;
+      // Gold owns every shard/node/route binding and visual envelope.
+      passiveSnapshotState: createPassiveSnapshot(), shardHitSeeds: new WeakMap(),
       mirrorSample: { id: mirrorBody.id, x: mirrorBody.x, y: mirrorBody.y, vx: 0, vy: 0, aim: 0 },
       preMirrorSample: { id: mirrorBody.id, x: mirrorBody.x, y: mirrorBody.y, vx: 0, vy: 0, aim: 0 },
       preOpponentSample: {
@@ -259,13 +282,10 @@
 
   function destroyState(ct, state) {
     if (state) {
-      state.routeBindings.clear();
-      state.imageOwners.clear();
-      state.nodeBindings.fill(null);
-      if (state.gold) {
-        for (const s of state.gold.SH) s.on = false;
-        for (const n of state.gold.ND) { n.on = false; n.img.on = false; n.sh.length = 0; }
-      }
+      state.shardHitSeeds = new WeakMap();
+      state.pendingWeaponImage = null;
+      state.failedWeaponImage = null;
+      state.failedWeaponId = null;
     }
     if (state && state.gold && state.gold.clearExternalTruth) {
       try { state.gold.clearExternalTruth(); } catch (error) { scheduler.errors++; }
@@ -340,33 +360,69 @@
     return image.complete == null && width > 0 && height > 0;
   }
 
+  function validWeaponImageWrapper(wrapper) {
+    return !!(wrapper && typeof wrapper === 'object' && wrapper.img
+      && Number.isFinite(wrapper.w) && wrapper.w > 0
+      && Number.isFinite(wrapper.h) && wrapper.h > 0);
+  }
+
+  function resetA1WeaponArt(state) {
+    if (!state) return;
+    state.pendingWeaponImage = null;
+    state.failedWeaponImage = null; state.failedWeaponId = null;
+    state.failedWeaponWidth = 0; state.failedWeaponHeight = 0;
+    state.weaponArtReady = false;
+    if (state.gold && typeof state.gold.setWeaponArt === 'function') {
+      try { state.gold.setWeaponArt(null); }
+      catch (error) { scheduler.errors++; }
+    }
+  }
+
   function resolveA1WeaponArt(state) {
     if (!state || !state.a1WeaponId || !state.gold) return false;
     const existing = state.gold.weaponArt && state.gold.weaponArt();
     if (existing && existing.source === 'production' && existing.weaponId === state.a1WeaponId) {
+      state.pendingWeaponImage = null;
       state.weaponArtReady = true;
       return true;
     }
-    if (!state.pendingWeaponImage && !state.weaponLookupAttempted) {
-      state.weaponLookupAttempted = true;
+    // Arsenal's production contract is { img, w, h }. A null lookup is not a
+    // terminal miss: retry on later presentation ticks until a ready wrapper
+    // exists. Once a wrapper is accepted, retain that exact wrapper while its
+    // underlying image finishes loading instead of allocating replacements.
+    if (!state.pendingWeaponImage) {
       const av = g.APEX_ARSENAL_AV;
-      if (av && typeof av.weaponImage === 'function') {
-        try { state.pendingWeaponImage = av.weaponImage(state.a1WeaponId) || null; }
-        catch (error) { scheduler.errors++; }
-      }
+      if (!av || typeof av.weaponImage !== 'function') return false;
+      try {
+        const wrapper = av.weaponImage(state.a1WeaponId);
+        if (!validWeaponImageWrapper(wrapper)) return false;
+        state.pendingWeaponImage = wrapper;
+      } catch (error) { scheduler.errors++; return false; }
     }
-    if (!imageReady(state.pendingWeaponImage)) return false;
+    const wrapper = state.pendingWeaponImage;
+    if (!validWeaponImageWrapper(wrapper) || !imageReady(wrapper.img)) return false;
+    if (state.failedWeaponImage === wrapper.img && state.failedWeaponId === state.a1WeaponId
+        && state.failedWeaponWidth === wrapper.w && state.failedWeaponHeight === wrapper.h) return false;
     try {
       const art = state.gold.setWeaponArt({
-        image: state.pendingWeaponImage,
-        weaponId: state.a1WeaponId,
-        source: 'production',
+        image: wrapper.img, w: wrapper.w, h: wrapper.h,
+        weaponId: state.a1WeaponId, source: 'production',
       });
       state.weaponArtReady = !!(art && art.source === 'production' && art.weaponId === state.a1WeaponId);
-      if (state.weaponArtReady) state.pendingWeaponImage = null;
+      if (state.weaponArtReady) {
+        state.pendingWeaponImage = null;
+        state.failedWeaponImage = null; state.failedWeaponId = null;
+      } else {
+        state.failedWeaponImage = wrapper.img; state.failedWeaponId = state.a1WeaponId;
+        state.failedWeaponWidth = wrapper.w; state.failedWeaponHeight = wrapper.h;
+        state.pendingWeaponImage = null;
+      }
     } catch (error) {
       scheduler.errors++;
       state.weaponArtReady = false;
+      state.failedWeaponImage = wrapper.img; state.failedWeaponId = state.a1WeaponId;
+      state.failedWeaponWidth = wrapper.w; state.failedWeaponHeight = wrapper.h;
+      state.pendingWeaponImage = null;
     }
     return state.weaponArtReady;
   }
@@ -376,13 +432,11 @@
     if (!payload || payload.castId == null) return;
     const state = stateForCombatantIndex(payload.combatantIndex);
     if (!state) return;
+    resetA1WeaponArt(state);
     state.a1CastId = payload.castId;
-    state.a1WeaponId = payload.weaponId || null;
+    state.a1WeaponId = payload.weaponId == null ? null : payload.weaponId;
     state.a1Whiff = !!payload.whiff;
     state.realOwn = false;
-    state.weaponArtReady = false;
-    state.weaponLookupAttempted = false;
-    state.pendingWeaponImage = null;
     state.pendingA1Cast = payload;
     state.pendingA1End = null;
     state.pendingA1Whiff = null;
@@ -449,9 +503,10 @@
       state.pendingA1Cast = null;
       if (!state.gold.beginExternalA1(cast.castId, !!cast.whiff)) {
         state.a1CastId = null;
+        state.a1WeaponId = null;
         state.a1Whiff = false;
         state.realOwn = false;
-        state.weaponArtReady = false;
+        resetA1WeaponArt(state);
         state.pendingA1Whiff = null;
         return false;
       }
@@ -470,9 +525,7 @@
       state.a1WeaponId = null;
       state.a1Whiff = false;
       state.realOwn = false;
-      state.weaponArtReady = false;
-      state.pendingWeaponImage = null;
-      state.weaponLookupAttempted = false;
+      resetA1WeaponArt(state);
       state.pendingA1Whiff = null;
     }
   }
@@ -614,161 +667,138 @@
     return true;
   }
 
-  function copyShardTruth(dst, src, slotIndex) {
-    if (!src || !src.on) { dst.on = false; return; }
-    const first = !dst.on;
-    dst.on = true; dst.st = src.st; dst.x = src.x; dst.y = src.y;
-    dst.vx = src.vx || 0; dst.vy = src.vy || 0; dst.age = src.age || 0;
-    dst.fx = src.fx || 0; dst.fy = src.fy || 0; dst.tx = src.tx || 0; dst.ty = src.ty || 0;
-    dst.mt0 = src.mt0 || 0; dst.moving = !!src.moving;
-    if (first) {
-      const prov = src.prov;
-      const dx = prov && Number.isFinite(prov.dirX) ? prov.dirX : dst.vx;
-      const dy = prov && Number.isFinite(prov.dirY) ? prov.dirY : dst.vy;
-      dst.rot = Math.atan2(dy || 0, dx || 1);
-      dst.side = slotIndex % 2 ? 'R' : 'L';
-      dst.ph = slotIndex * 0.71; dst.eyeP = slotIndex * 0.37;
+  function capturePassiveShardSeeds(ct, shards) {
+    const state = instances.get(ct);
+    if (!state || !state.gold || !Array.isArray(shards) || !shards.length
+        || typeof state.gold.captureExternalShardSide !== 'function') return false;
+    const provenance = shards[0] && shards[0].prov;
+    if (!provenance) return false;
+    // The side depends on the victim root at the realized hit. Capture only
+    // that timing-sensitive value here; expression channels remain Gold-owned
+    // and are sampled on first semantic bind before Gold advances again.
+    const mirrorX = ct.anchor && Number.isFinite(ct.anchor.x) ? ct.anchor.x : state.gold.M.x;
+    let side;
+    try { side = state.gold.captureExternalShardSide(provenance, mirrorX); }
+    catch (error) { scheduler.errors++; return false; }
+    if (side !== 'L' && side !== 'R') return false;
+    for (let i = 0; i < shards.length; i++) {
+      const shard = shards[i];
+      if (shard && typeof shard === 'object') state.shardHitSeeds.set(shard, side);
     }
-  }
-
-  function proxyForNode(state, node) {
-    let k = state.nodeBindings.indexOf(node.id);
-    if (k < 0) {
-      k = state.nodeBindings.indexOf(null);
-      if (k < 0) return null; // gameplay economy permits only three live nodes
-      state.nodeBindings[k] = node.id;
-    }
-    return state.gold.ND[k];
+    return true;
   }
 
   function reconcilePassive(state) {
+    if (!state || !state.gold || typeof state.gold.syncExternalPassive !== 'function') return false;
+    const snapshotState = state.passiveSnapshotState;
+    const snapshot = snapshotState.snapshot;
     const passive = state.ct.store && state.ct.store['mirror.passive'];
-    const slots = passive && passive.slots;
-    for (let i = 0; i < state.gold.SH.length; i++)
-      copyShardTruth(state.gold.SH[i], slots && slots[i], i);
-    const nodes = passive && Array.isArray(passive.nodes) ? passive.nodes : [];
-    for (let k = 0; k < state.nodeBindings.length; k++) {
-      const id = state.nodeBindings[k];
-      if (id != null && !nodes.some((n) => n.id === id)) {
-        state.nodeBindings[k] = null; state.gold.ND[k].on = false;
-      }
+    const slots = passive && Array.isArray(passive.slots) ? passive.slots : null;
+    const nodes = passive && Array.isArray(passive.nodes) ? passive.nodes : null;
+    const shardInputs = snapshotState.shardInputs;
+    const mirrorX = state.ct.anchor && Number.isFinite(state.ct.anchor.x) ? state.ct.anchor.x : state.gold.M.x;
+    for (let i = 0; i < shardInputs.length; i++) {
+      const real = slots && slots[i];
+      if (!real) { snapshot.shards[i] = null; continue; }
+      const input = shardInputs[i];
+      snapshot.shards[i] = input;
+      input.identity = real;
+      input.on = !!real.on; input.st = real.st;
+      input.x = real.x; input.y = real.y; input.vx = real.vx; input.vy = real.vy;
+      input.age = real.age; input.fx = real.fx; input.fy = real.fy;
+      input.tx = real.tx; input.ty = real.ty; input.mt0 = real.mt0;
+      input.moving = !!real.moving; input.provenance = real.prov || null;
+      input.mirrorX = mirrorX; input.presentationSide = state.shardHitSeeds.get(real) || null;
     }
-    for (const node of nodes) {
-      const n = proxyForNode(state, node);
-      if (!n) continue;
-      n.on = true; n.st = node.st; n.x = node.x; n.y = node.y; n.rot = node.rot;
-      // P17: derive Gold's actual canvas basis from gameplay's shared
-      // transform authority. No presentation copy of cos/sin owns geometry.
-      const geometry = HR && HR.mirrorNode;
-      if (geometry && typeof geometry.toWorld === 'function') {
-        const o = geometry.toWorld(node, 0, 0);
-        const ex = geometry.toWorld(node, 1, 0);
-        const ey = geometry.toWorld(node, 0, 1);
-        const q = n.worldTransform || (n.worldTransform = { a: 1, b: 0, c: 0, d: 1 });
-        q.a = ex.x - o.x; q.b = ex.y - o.y; q.c = ey.x - o.x; q.d = ey.y - o.y;
-        n.x = o.x; n.y = o.y;
-      } else n.worldTransform = null;
-      n.t = node.t || 0; n.age = node.age || 0; n.tlock = node.tlock;
-      n.t3 = node.t3 || 0;
-      n.fill = node.st === 1 && node.tlock >= 0
-        ? Math.max(0, Math.min(1, (node.t - node.tlock) / 0.34)) : (node.st >= 2 ? 1 : 0);
-      n.fold = node.st === 3 ? Math.max(0, Math.min(1, node.t3 / 0.5)) : 0;
-      n.sh.length = 0;
-      for (const realShard of node.sh || []) {
-        const slot = slots ? slots.indexOf(realShard) : -1;
-        if (slot >= 0) n.sh.push(state.gold.SH[slot]);
-      }
+    const nodeInputs = snapshotState.nodeInputs;
+    const nodeCount = nodes ? nodes.length : 0;
+    if (nodeCount > nodeInputs.length) { scheduler.errors++; return false; }
+    for (let i = 0; i < nodeCount; i++) {
+      const real = nodes[i], input = nodeInputs[i];
+      input.id = real.id; input.st = real.st;
+      input.x = real.x; input.y = real.y; input.rot = real.rot;
+      input.t = real.t; input.age = real.age; input.t3 = real.t3; input.tlock = real.tlock;
+      const members = real.sh || [];
+      for (let j = 0; j < input.memberSlots.length; j++)
+        input.memberSlots[j] = slots && members[j] ? slots.indexOf(members[j]) : -1;
+      snapshot.nodes[i] = input;
     }
-  }
-
-  function nodeProxyById(state, id) {
-    const k = state.nodeBindings.indexOf(id);
-    return k < 0 ? null : state.gold.ND[k];
+    snapshot.nodes.length = nodeCount;
+    try {
+      const ok = state.gold.syncExternalPassive(snapshot, HR && HR.mirrorNode);
+      if (!ok) scheduler.errors++;
+      return !!ok;
+    } catch (error) { scheduler.errors++; return false; }
   }
 
   function routeOwnerState(payload) {
     return payload && stateForCombatantIndex(payload.owner);
   }
 
-  function realEscrow(payload) {
-    const world = currentMatch() && currentMatch().world;
-    const list = world && world.mirrorF2 && world.mirrorF2.escrow;
-    if (!Array.isArray(list)) return null;
-    for (let i = list.length - 1; i >= 0; i--) {
-      const e = list[i];
-      if (e.entryId === payload.entry && e.destId === payload.dest
-          && (!payload.projectile || e.p === payload.projectile)) return e;
-    }
-    return null;
+  function presentExternalRoute(state, route) {
+    if (!state || !state.gold || !route || route.routeId == null
+        || typeof state.gold.presentExternalRoute !== 'function') return false;
+    // A real F2 edge may be emitted before hrPostTick reconciles a just-active
+    // gameplay node. Bind the current semantic snapshot first; Gold still owns
+    // all node/route/image identities and all subsequent lifecycle edges.
+    reconcilePassive(state);
+    try { return !!state.gold.presentExternalRoute(route); }
+    catch (error) { scheduler.errors++; return false; }
   }
 
-  function pulseNode(state, id) {
-    const n = state && nodeProxyById(state, id);
-    if (n) state.gold.nodeRipple(n, n.x, n.y);
+  function eventPoint(payload) {
+    if (payload && payload.point && Number.isFinite(payload.point.x) && Number.isFinite(payload.point.y))
+      return payload.point;
+    if (payload && Number.isFinite(payload.x) && Number.isFinite(payload.y))
+      return { x: payload.x, y: payload.y };
+    return null;
   }
 
   function onRoutePreviewOrLocal(event) {
     const p = event && event.payload ? event.payload : event;
     const state = routeOwnerState(p);
-    if (state) pulseNode(state, p.node);
+    if (!state || !p || !p.projectile) return;
+    const preview = event && event.type === 'MirrorRoutePreview';
+    presentExternalRoute(state, {
+      kind: preview ? 'preview' : 'local', routeId: p.projectile,
+      nodeId: p.node, entryNodeId: p.node,
+      destinationNodeId: p.dest == null ? null : p.dest,
+      point: eventPoint(p), direction: p.direction, power: p.power,
+    });
   }
 
   function onRouteCapture(event) {
     const p = event && event.payload ? event.payload : event;
     const state = routeOwnerState(p);
-    if (!state || !p.projectile) return;
-    const escrow = realEscrow(p);
-    if (!escrow || escrow.p !== p.projectile) return;
-    state.routeBindings.set(p.projectile, { escrow, imageNodeId: null });
-    pulseNode(state, p.entry);
-  }
-
-  function imageOwnersFor(state, nodeId) {
-    let owners = state.imageOwners.get(nodeId);
-    if (!owners) { owners = new Set(); state.imageOwners.set(nodeId, owners); }
-    return owners;
+    if (!state || !p || !p.projectile) return;
+    presentExternalRoute(state, {
+      kind: 'capture', routeId: p.projectile,
+      entryNodeId: p.entry, destinationNodeId: p.dest,
+      point: eventPoint(p), direction: p.direction, power: p.power,
+    });
   }
 
   function onEscrowImage(event) {
     const p = event && event.payload ? event.payload : event;
     if (!p || !p.projectile) return;
-    for (const state of instances.values()) {
-      const route = state.routeBindings.get(p.projectile);
-      if (!route || route.escrow.p !== p.projectile || route.escrow.destId !== p.dest) continue;
-      const n = nodeProxyById(state, p.dest);
-      if (!n) return;
-      route.imageNodeId = p.dest;
-      imageOwnersFor(state, p.dest).add(p.projectile);
-      n.img.on = true; n.img.k = 1; n.img.t = 0; n.img.d = 1;
-      n.img.ang = Math.atan2(route.escrow.vy, route.escrow.vx);
-      n.img.dx = route.escrow.dirX; n.img.dy = route.escrow.dirY; n.img.pw = 1;
-      pulseNode(state, p.dest);
-      return;
-    }
+    const route = {
+      kind: 'destination-image', routeId: p.projectile,
+      destinationNodeId: p.dest, destinationLive: p.destLive === true,
+      point: eventPoint(p), direction: p.direction, power: p.power,
+    };
+    for (const state of instances.values()) presentExternalRoute(state, route);
   }
 
   function onRouteEmerge(event) {
     const p = event && event.payload ? event.payload : event;
     if (!p || !p.projectile) return;
-    for (const state of instances.values()) {
-      const route = state.routeBindings.get(p.projectile);
-      if (!route || route.escrow.p !== p.projectile) continue;
-      state.routeBindings.delete(p.projectile);
-      const nodeId = route.imageNodeId;
-      if (nodeId != null) {
-        const owners = state.imageOwners.get(nodeId);
-        if (owners) {
-          owners.delete(p.projectile);
-          if (owners.size === 0) {
-            state.imageOwners.delete(nodeId);
-            const n = nodeProxyById(state, nodeId);
-            if (n) n.img.on = false;
-          }
-        }
-      }
-      pulseNode(state, p.via === 'entry-fallback' ? p.entry : p.via);
-      return;
-    }
+    const route = {
+      kind: 'emerge', routeId: p.projectile,
+      via: p.via, viaNodeId: Number.isFinite(p.via) ? p.via : null,
+      fallback: p.fallback === true || p.via === 'entry-fallback',
+      point: eventPoint(p), direction: p.direction, power: p.power,
+    };
+    for (const state of instances.values()) presentExternalRoute(state, route);
   }
 
   function tick(dt) {
@@ -786,13 +816,6 @@
 
     for (const state of instances.values()) {
       reconcilePassive(state);
-      // Only visual response envelopes advance here. Capture/image/emergence
-      // edges themselves come exclusively from real F2 events/escrow.
-      for (const n of state.gold.ND) if (n.on) {
-        for (const r of n.rp) r.t += frameDt;
-        for (const w of n.sw) if (w.on) { w.t += frameDt; if (w.t >= w.d) w.on = false; }
-        if (n.img.on) n.img.t += frameDt;
-      }
       if (!syncRootsAndExchange(state, validDt ? dt : 0)) continue;
       if (!state.a1Whiff && state.a1WeaponId) resolveA1WeaponArt(state);
       processPendingA1Start(state);
@@ -852,20 +875,8 @@
 
   function renderArenaWorldEffects(ctx, provenance) {
     if (!ctx || provenance?.stage !== 'after-world-before-fighters') return false;
-    const ordered = Array.from(instances.values()).sort((a, b) => a.ct.idx - b.ct.idx);
-    for (const state of ordered) {
-      reconcilePassive(state);
-      const passive = state.ct.store && state.ct.store['mirror.passive'];
-      const slots = passive && passive.slots;
-      for (let i = 0; i < state.gold.SH.length; i++) {
-        const real = slots && slots[i];
-        if (real && real.on && real.st === 0) state.gold.drawFreeShard(ctx, state.gold.SH[i], i);
-      }
-      const nodes = passive && passive.nodes ? passive.nodes.slice().sort((a, b) => a.id - b.id) : [];
-      for (const realNode of nodes) {
-        const proxy = nodeProxyById(state, realNode.id);
-        if (proxy && proxy.on) state.gold.drawNodeBody(ctx, proxy);
-      }
+    for (const state of instances.values()) {
+      state.gold.drawExternalPassive(ctx);
       if (state.a1CastId != null && state.weaponArtReady && !state.a1Whiff && !state.realOwn)
         state.gold.drawA1World(ctx);
       if (state.gold.A2.res > 0 && ownsA2Residue(state)) state.gold.drawResidue(ctx);
@@ -914,21 +925,9 @@
         a2CastId: state.a2CastId,
         a2NoSnap: state.a2NoSnap,
         a2ExchangeApplied: state.a2ExchangeApplied,
-        passive: {
-          visibleSlots: state.gold.SH.reduce((n, s) => n + (s.on ? 1 : 0), 0),
-          nodeBindings: state.nodeBindings.slice(),
-          visibleNodes: state.gold.ND.reduce((n, x) => n + (x.on ? 1 : 0), 0),
-          goldProjectilesActive: state.gold.PJ.reduce((n, x) => n + (x.on ? 1 : 0), 0),
-          routeBindings: state.routeBindings.size,
-          routes: Array.from(state.routeBindings, ([projectile, route]) => ({
-            projectile, escrowProjectile: route.escrow.p, imageNodeId: route.imageNodeId,
-          })),
-          imageOwners: Array.from(state.imageOwners, ([nodeId, owners]) => ({ nodeId, count: owners.size })),
-          slots: state.gold.SH.map((s, i) => ({ i, on: s.on, st: s.st, x: s.x, y: s.y })),
-          nodes: state.gold.ND.map((n, i) => ({ i, id: state.nodeBindings[i], on: n.on,
-            st: n.st, x: n.x, y: n.y, rot: n.rot, shards: n.sh.length, image: n.img.on,
-            worldTransform: n.worldTransform && { ...n.worldTransform } })),
-        },
+        // Diagnostics are the Gold semantic audit, never a parallel adapter
+        // listing of SH/ND proxies or route/image owners.
+        passive: state.gold.externalPassiveAudit(),
         external: state.gold.externalAudit(),
       });
     }
@@ -960,6 +959,7 @@
 
   const api = {
     version: VERSION, fixedStep: STEP, tick, teardown,
+    capturePassiveShardSeeds,
     renderArenaWorldEffects, inspect, dispose,
   };
 
