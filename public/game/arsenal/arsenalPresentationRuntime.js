@@ -1,4 +1,4 @@
-// ARSENAL QUEST — curated VFX/SFX presentation layer (AV_INTEGRATION_HANDOFF.md).
+// ARSENAL BATTLE — curated VFX/SFX presentation layer.
 // ISOLATED presentation: no gameplay logic lives here. The weapon/spawn runtimes
 // emit semantic cues through avCue(); this runtime turns them into preloaded
 // image animations and bounded WebAudio playback on the EXISTING Apex audio
@@ -87,12 +87,8 @@
     casing_land: [{ rel: 'sfx/feel/casing_01.mp3', vol: 0.22, maxVoices: 4 }],
     shotgun_shell_land: [{ rel: 'sfx/feel/shell_01.mp3', vol: 0.26, maxVoices: 3 }],
 
-    // POST-C additions — reuse the approved baseline files ONLY (no new
-    // audio sourcing): ricochet = plate tick, NEWBIE dash = force field
-    // whoosh, NEWBIE fail = short metal click.
+    // Shared presentation: reuse the approved baseline files only.
     ricochet: [{ rel: 'sfx/impact/impactPlate_light_001.ogg', vol: 0.34, maxVoices: 3 }],
-    newbie_dash: [{ rel: 'sfx/scifi/forceField_001.ogg', vol: 0.30, maxVoices: 2 }],
-    newbie_fail: [{ rel: 'sfx/rpg/metalClick.ogg', vol: 0.28, maxVoices: 2 }],
 
     // STORMBREAKER (red tier) — approved baseline files only, no new sourcing:
     // charge = the existing force-field bed, release = the heavy axe whoosh,
@@ -258,7 +254,7 @@
   // CP7 (owner playtest round 4): the combat shell used to mount while this
   // runtime's async init (image fetch/decode) was still at zero — the arena
   // looked broken until loading finished. These readiness probes back the
-  // gameplay-ready barrier in arsenalQuestConfig.js.
+  // gameplay-ready barrier in arsenalConfig.js.
   function imagesTotal() { return ALL_IMAGES.length; }
   function imagesSettled() { return stats.imagesLoaded + stats.imagesFailed >= ALL_IMAGES.length; }
   function whenImagesReady(timeoutMs = 8000) {
@@ -513,15 +509,6 @@
       case 'ricochet': {
         // Readable wall bounce: small metal tick + the runtime spark particles.
         playAll('ricochet');
-        break;
-      }
-      case 'newbie_dash': {
-        playAll('newbie_dash');
-        break;
-      }
-      case 'newbie_fail': {
-        // Deliberate no-pickup rejection: short dry click, cooldown untouched.
-        playAll('newbie_fail');
         break;
       }
       case 'casing': {

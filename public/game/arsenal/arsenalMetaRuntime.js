@@ -172,6 +172,20 @@
     lastAward.balance = state.credits;
     return { ok: true, ...lastAward };
   }
+  // Preserve the accepted Bot/Local battle economy without routing rewards
+  // through the retired Quest ladder. One completion pays once: P1 wins earn
+  // 50 AC, and P1 losses earn 25 AC, matching the former product hook.
+  function awardBattleResult(winnerName, battleState) {
+    const current = battleState || (window.APEX_ARSENAL && window.APEX_ARSENAL.state);
+    if (!current || current.labMode || current.questStage || current.productResultAwarded) {
+      return { ok: false, reason: 'not-awardable', balance: state.credits };
+    }
+    const p1 = typeof fighters !== 'undefined' && fighters[0] ? fighters[0] : null;
+    const won = winnerName === (p1 && p1.name) || winnerName === 'P1'
+      || !!(p1 && p1.type && winnerName === p1.type.name);
+    current.productResultAwarded = true;
+    return award(won ? ['free_complete', 'free_winner'] : 'free_complete', won ? 50 : 25);
+  }
   function filterOwned(list) {
     const arr = list || [];
     return arr.filter((ft) => {
@@ -415,10 +429,6 @@
     } catch (error) { /* menu handoff never invalidates persistent meta */ }
     try { window.dispatchEvent(new CustomEvent('apex:product-menu')); } catch (error) {}
   }
-  // Historical hub API now returns to the semantic React product graph. The
-  // old Quest/Lab hub is not a second public navigation authority.
-  function paintHub() { returnToProductMenu(); }
-
   function paintShop(selectedName) {
     cancelDrawSpinAnimation();
     const el = ensureRoot();
@@ -439,7 +449,7 @@
     el.innerHTML = shell(`
       <main class="aq-ui">
         <header class="aq-topbar">
-          <div class="aq-brand"><button class="aq-back" id="aq-shop-back" type="button" aria-label="Back to Arsenal Hub">←</button><div class="aq-brand-copy"><div class="aq-kicker">ARSENAL · ROSTER</div><h1 class="aq-title">FIGHTER SHOP</h1></div></div>
+          <div class="aq-brand"><button class="aq-back" id="aq-shop-back" type="button" aria-label="Back to Product Menu">←</button><div class="aq-brand-copy"><div class="aq-kicker">ARSENAL · ROSTER</div><h1 class="aq-title">FIGHTER SHOP</h1></div></div>
           <div class="aq-meta-stats"><div class="aq-stat"><span>ARSENAL CREDITS</span><b>${state.credits} AC</b></div></div>
         </header>
         <section class="aq-shop-layout">
@@ -455,7 +465,7 @@
           </aside>
         </section>
       </main>`);
-    el.querySelector('#aq-shop-back').onclick = paintHub;
+    el.querySelector('#aq-shop-back').onclick = returnToProductMenu;
     el.querySelectorAll('[data-shop-card]').forEach((b) => {
       b.onclick = () => paintShop(b.getAttribute('data-shop-card'));
     });
@@ -474,7 +484,7 @@
       };
     }
     wireGridNav(el.querySelector('.aq-shop-grid'), '[data-shop-card]', window.innerWidth < 860 ? 2 : 4);
-    el.addEventListener('keydown', (e) => { if (e.key === 'Escape') paintHub(); }, { once: true });
+    el.addEventListener('keydown', (e) => { if (e.key === 'Escape') returnToProductMenu(); }, { once: true });
   }
   function paintDraw() {
     const el = ensureRoot();
@@ -490,7 +500,7 @@
     el.innerHTML = shell(`
       <main class="aq-ui">
         <header class="aq-topbar">
-          <div class="aq-brand"><button class="aq-back" id="aq-draw-back" type="button" aria-label="Back to Arsenal Hub">←</button><div class="aq-brand-copy"><div class="aq-kicker">ARSENAL · UNLOCK</div><h1 class="aq-title">LUCKY DRAW</h1></div></div>
+          <div class="aq-brand"><button class="aq-back" id="aq-draw-back" type="button" aria-label="Back to Product Menu">←</button><div class="aq-brand-copy"><div class="aq-kicker">ARSENAL · UNLOCK</div><h1 class="aq-title">LUCKY DRAW</h1></div></div>
           <div class="aq-meta-stats"><div class="aq-stat"><span>ARSENAL CREDITS</span><b>${state.credits} AC</b></div></div>
         </header>
         <section class="aq-draw-layout">
@@ -507,7 +517,7 @@
           </aside>
         </section>
       </main>`);
-    el.querySelector('#aq-draw-back').onclick = () => { if (!drawBusy) { lastDrawResult = null; paintHub(); } };
+    el.querySelector('#aq-draw-back').onclick = () => { if (!drawBusy) { lastDrawResult = null; returnToProductMenu(); } };
     const spinBtn = el.querySelector('#aq-spin');
     if (spinBtn && !spinBtn.disabled) {
       spinBtn.onclick = () => {
@@ -547,7 +557,7 @@
       paintDraw();
       ensureRoot().querySelector('#aq-spin')?.focus();
     });
-    el.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawBusy) paintHub(); }, { once: true });
+    el.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawBusy) returnToProductMenu(); }, { once: true });
   }
   function openFighterPick(opts) {
     const requested = String((opts && opts.mode) || 'local').toLowerCase();
@@ -555,7 +565,6 @@
     window.__apexArsenalSelectionMode = mode;
     window.__apexArsenalBotBattle = mode === 'bot';
     window.__apexArsenalFreeBattle = mode === 'local';
-    window.__apexArsenalQuestPick = false;
     window.__apexArsenalSelectPending = true;
     // The shared picker is loaded only when a real active battle is requested.
     const open = () => {
@@ -571,51 +580,17 @@
   }
   function openFreePick() { openFighterPick({ mode: 'local' }); }
   function openBotPick() { openFighterPick({ mode: 'bot' }); }
-  function openHub() { returnToProductMenu(); }
 
-  // Retired route alias: it returns to the product root rather than mounting
-  // the old Quest map or hub.
-  window.beginArsenalQuestSelection = function () { returnToProductMenu(); };
-
-  // The legacy ladder evaluates after this active product meta runtime when
-  // an operator explicitly requests the detached group. Keep its historical
-  // reward bridge lazy, so normal Local/Bot never imports or depends on Quest.
-  function installLegacyResultHook() {
-    const Q = window.APEX_ARSENAL_QUEST;
-    if (!Q || !Q.onMatchOver || Q.__apexMetaResultHookInstalled) return false;
-    const prev = Q.onMatchOver;
-    Q.onMatchOver = function (winnerName) {
-      const st = window.APEX_ARSENAL && window.APEX_ARSENAL.state;
-      const before = Q.loadSave ? Q.loadSave() : {};
-      prev(winnerName);
-      if (st && st.questStage) {
-        const p1 = (typeof fighters !== 'undefined' && fighters[0]) ? fighters[0].name : null;
-        const won = winnerName === p1 || winnerName === 'P1';
-        if (won) {
-          const first = !(before.completedStages || []).includes(st.questStage);
-          award(first ? 'quest_first' : 'quest_replay', first ? 150 : 40);
-        }
-      } else if (st && !st.questStage) {
-        const p1 = (typeof fighters !== 'undefined' && fighters[0]) ? fighters[0].name : null;
-        const won = winnerName === p1;
-        award(won ? ['free_complete', 'free_winner'] : 'free_complete', won ? 50 : 25);
-      }
-    };
-    Q.__apexMetaResultHookInstalled = true;
-    return true;
-  }
-  window.__apexArsenalInstallMetaResultHook = installLegacyResultHook;
-  installLegacyResultHook();
 
   window.APEX_ARSENAL_META = {
     KEY, SHOP_COST, DRAW_COST, START_CREDITS,
-    getState, credits, owns, canPublicSelect, buy, spin, award, filterOwned, setLast,
+    getState, credits, owns, canPublicSelect, buy, spin, award, awardBattleResult, filterOwned, setLast,
     palette, setPalette,
     load, save, emptyState, sanitize, poolLocked,
     visibleRoster: ROSTER, playableRoster: PLAYABLE_ROSTER,
     isProductVisible, isProductPlayable, displayNameFor,
     lastAward: () => lastAward,
-    openHub, hideMeta, paintShop, paintDraw, openFreePick, openBotPick, openFighterPick,
+    returnToProductMenu, hideMeta, paintShop, paintDraw, openFreePick, openBotPick, openFighterPick,
   };
   window.apexArsenalMetaRuntime = 'ready';
 })();

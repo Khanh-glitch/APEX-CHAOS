@@ -1649,7 +1649,7 @@ function renderRig(g) {
         loadRobotAudio();
         return prevInstall.apply(this, arguments);
       };
-      const baseExit = globalScope.exitArsenalQuestMode;
+      const baseExit = globalScope.exitArsenalBattleMode;
       if (baseExit && !baseExit.__robotExitWrapped) {
         const wrappedExit = function () {
           clearRobotStates();
@@ -1658,7 +1658,7 @@ function renderRig(g) {
         };
         wrappedExit.__hrWrapped = baseExit.__hrWrapped;
         wrappedExit.__robotExitWrapped = true;
-        globalScope.exitArsenalQuestMode = wrappedExit;
+        globalScope.exitArsenalBattleMode = wrappedExit;
       }
     }
   }

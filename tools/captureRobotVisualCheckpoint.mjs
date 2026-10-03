@@ -33,9 +33,9 @@ await page.evaluate(async()=>{
   window.update=()=>{};
   window.checkpoint={
     setup(){
-      if (APEX_ARSENAL.state?.active) exitArsenalQuestMode();
+      if (APEX_ARSENAL.state?.active) exitArsenalBattleMode();
       APEX_HERO_REWORK.setAiEnabled(false);
-      startArsenalQuestMode('ROBOT','ICE');
+      startArsenalBattleMode('ROBOT','ICE');
       const s=APEX_ARSENAL.state;
       s.spawnTimer=1e6;s.slots=[];s.spawnHeld=true;s.unarmedFastConsumed=true;
       const [a,b]=fighters;

@@ -997,7 +997,7 @@ try {
   gate('T3-teardown-mirror-vs-mirror-and-scheduler-wrapper-hygiene', false, { error: String(e) });
 }
 
-if (HR.match) win.exitArsenalQuestMode();
+if (HR.match) win.exitArsenalBattleMode();
 
 fs.mkdirSync('docs/hero-rework/mirror-v1/evidence', { recursive: true });
 fs.writeFileSync('docs/hero-rework/mirror-v1/evidence/f3a-core-six-interop.json',

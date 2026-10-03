@@ -100,13 +100,21 @@ await command('Page.addScriptToEvaluateOnNewDocument', { source: `
 ` });
 
 await command('Page.navigate', { url: appUrl });
+let loaderReady = false;
+for (let i = 0; i < 200; i++) {
+  loaderReady = await evaluate(`typeof window.__apexEnsureDeferredRuntimes === 'function'`).catch(() => false);
+  if (loaderReady) break;
+  await sleep(150);
+}
+if (!loaderReady) throw new Error('Deferred runtime loader did not become ready.');
+await evaluate(`window.__apexEnsureDeferredRuntimes('arsenalProduct').then(() => true)`);
 let appReady = false;
 for (let i = 0; i < 200; i++) {
-  appReady = await evaluate(`(() => !!(window.APEX_ARSENAL && window.APEX_HERO_REWORK && window.startArsenalQuestMode))()`).catch(() => false);
+  appReady = await evaluate(`(() => !!(window.APEX_ARSENAL && window.APEX_HERO_REWORK && window.startArsenalBattleMode))()`).catch(() => false);
   if (appReady) break;
   await sleep(150);
 }
-if (!appReady) throw new Error('App runtimes did not become ready.');
+if (!appReady) throw new Error('Neutral Arsenal product runtimes did not become ready.');
 
 // Install the scenario runner in-page.
 await evaluate(`(() => {
@@ -126,7 +134,8 @@ await evaluate(`(() => {
       window.startSpecificMatch(t1, t2, { countdown: false });
     } else {
       if (window.APEX_HERO_REWORK) window.APEX_HERO_REWORK.setAiEnabled(false);
-      window.startArsenalQuestMode('SLIME', 'ICE');
+      window.__APEX_TEST_MODE = true;
+      window.startArsenalBattleMode('SLIME', 'ICE', { testFixture: true });
       const s = window.APEX_ARSENAL && window.APEX_ARSENAL.state;
       if (s) { s.spawnTimer = 1e6; s.slots = []; s.unarmedFastConsumed = true; s.spawnHeld = true; }
     }

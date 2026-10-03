@@ -27,7 +27,7 @@ page.on('pageerror', (e) => { const t = String(e); if (!t.includes('net::ERR_'))
 page.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('net::ERR_')) errors.push('console: ' + m.text()); });
 await page.goto('http://127.0.0.1:4173', { waitUntil: 'load', timeout: 120000 });
 await page.waitForFunction(() => typeof window.__apexEnsureDeferredRuntimes === 'function', { timeout: 60000 });
-await page.evaluate(async () => { const e = window.__apexEnsureDeferredRuntimes; if (e) await e('arsenalQuest'); });
+await page.evaluate(async () => { const e = window.__apexEnsureDeferredRuntimes; if (e) await e('arsenalProduct'); });
 await page.waitForFunction(() => window.APEX_CHAMBER_PALETTE, { timeout: 60000 });
 
 const results = {};
@@ -35,7 +35,7 @@ const check = (name, pass, data) => { results[name] = { pass: !!pass, data: data
 
 // --- E-urls: production resource URLs carry the NEW runtime revision --------
 const urls = await page.evaluate((rev) => {
-  const want = ['game/arsenal/arsenalChamberPaletteRuntime.js', 'game/arsenal/arsenalMetaRuntime.js', 'game/modes/arsenalQuestRuntime.js', 'game/arsenal/arsenalPresentationRuntime.js', 'game/hero-rework/hunterGoldV10.js'];
+  const want = ['game/arsenal/arsenalChamberPaletteRuntime.js', 'game/arsenal/arsenalMetaRuntime.js', 'game/modes/arsenalBattleRuntime.js', 'game/arsenal/arsenalPresentationRuntime.js', 'game/hero-rework/hunterGoldV10.js'];
   const res = performance.getEntriesByType('resource').map(r => r.name);
   return want.map(w => ({ w, loaded: res.some(u => u.includes(w) && u.includes('v=' + rev)) }));
 }, APEX_ARSENAL_RUNTIME_REVISION);
@@ -67,8 +67,8 @@ const filt = await page.evaluate(async (rev) => {
       return desc.set.call(this, v);
     },
   });
-  if (window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.active) window.exitArsenalQuestMode();
-  window.startArsenalQuestMode('HUNTER', 'ICE');
+  if (window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.active) window.exitArsenalBattleMode();
+  window.__APEX_TEST_MODE = true; window.startArsenalBattleMode('HUNTER', 'ICE', { testFixture: true });
   if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
   const s = window.APEX_ARSENAL.state; s.slots = []; s.spawnHeld = true; s.spawnTimer = 1e6; s.unarmedFastConsumed = true;
   const draw = window.draw; window.draw = () => {}; window.update = () => {};
@@ -84,7 +84,7 @@ await page.evaluate(() => {
 });
 await page.reload({ waitUntil: 'load', timeout: 120000 });
 await page.waitForFunction(() => typeof window.__apexEnsureDeferredRuntimes === 'function', { timeout: 60000 });
-await page.evaluate(async () => { const e = window.__apexEnsureDeferredRuntimes; if (e) await e('arsenalQuest'); });
+await page.evaluate(async () => { const e = window.__apexEnsureDeferredRuntimes; if (e) await e('arsenalProduct'); });
 await page.waitForFunction(() => window.APEX_CHAMBER_PALETTE && window.APEX_ARSENAL_META, { timeout: 60000 });
 const stale = await page.evaluate(() => ({ state: window.APEX_ARSENAL_META.getState().arenaPaletteId, rendered: window.APEX_CHAMBER_PALETTE.current(), keys: Object.keys(localStorage).filter(k => /palette/i.test(k)) }));
 await page.evaluate(() => {
@@ -94,7 +94,7 @@ await page.evaluate(() => {
 });
 await page.reload({ waitUntil: 'load', timeout: 120000 });
 await page.waitForFunction(() => typeof window.__apexEnsureDeferredRuntimes === 'function', { timeout: 60000 });
-await page.evaluate(async () => { const e = window.__apexEnsureDeferredRuntimes; if (e) await e('arsenalQuest'); });
+await page.evaluate(async () => { const e = window.__apexEnsureDeferredRuntimes; if (e) await e('arsenalProduct'); });
 await page.waitForFunction(() => window.APEX_CHAMBER_PALETTE && window.APEX_ARSENAL_META, { timeout: 60000 });
 await page.waitForFunction(() => window.APEX_HUNTER_GOLD && window.APEX_HUNTER_PRESENTATION && window.APEX_ARSENAL_AV, { timeout: 60000 });
 await page.waitForFunction(() => window.APEX_HUNTER_PRESENTATION.ready === true, { timeout: 90000 });
@@ -103,25 +103,23 @@ const nokey = await page.evaluate(() => window.APEX_ARSENAL_META.KEY);
 check('E-sanitize-stale-to-default', stale.state === null && stale.rendered === 'graphite-mid' && stale.keys.length === 0, stale);
 check('E-sanitize-valid-survives', valid.state === 'teal-deep' && valid.rendered === 'teal-deep' && nokey === 'apexChaos.arsenalMeta.v1', { valid, nokey });
 
-// --- hub selector -------------------------------------------------------------
-const hub = await page.evaluate(() => {
-  window.beginArsenalQuestSelection();
-  const row = document.getElementById('aq-palette-row');
-  if (!row) return { ok: false };
-  const chips = [...row.querySelectorAll('.aq-palette-chip')];
-  const activeBefore = chips.find(c => c.classList.contains('is-active'))?.getAttribute('data-palette');
-  const teal = chips.find(c => c.getAttribute('data-palette') === 'oxide-warm');
-  teal && teal.click();
-  const activeAfter = [...row.querySelectorAll('.aq-palette-chip')].find(c => c.classList.contains('is-active'))?.getAttribute('data-palette');
-  return { ok: true, n: chips.length, activeBefore, activeAfter, current: window.APEX_CHAMBER_PALETTE.current() };
+// --- current product meta palette state -------------------------------------
+const productPalette = await page.evaluate(() => {
+  const M = window.APEX_ARSENAL_META;
+  const before = M.palette();
+  const selected = M.setPalette('oxide-warm');
+  return { before, selected, saved: M.getState().arenaPaletteId,
+    current: window.APEX_CHAMBER_PALETTE.current(), selectorHost: !!document.getElementById('aq-palette-row') };
 });
-check('D-hub-selector', hub.ok && hub.n >= 6 && hub.activeBefore === 'teal-deep' && hub.activeAfter === 'oxide-warm' && hub.current === 'oxide-warm', hub);
+check('D-product-meta-palette-state', productPalette.before === 'teal-deep'
+  && productPalette.selected === 'oxide-warm' && productPalette.saved === 'oxide-warm'
+  && productPalette.current === 'oxide-warm', productPalette);
 
 // --- battle instrumentation: single actor render, no layer replay, cache -----
 const battle = await page.evaluate(() => {
   const P = window.APEX_CHAMBER_PALETTE;
-  if (window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.active) window.exitArsenalQuestMode();
-  window.startArsenalQuestMode('HUNTER', 'ICE');
+  if (window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.active) window.exitArsenalBattleMode();
+  window.__APEX_TEST_MODE = true; window.startArsenalBattleMode('HUNTER', 'ICE', { testFixture: true });
   if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
   const s = window.APEX_ARSENAL.state; s.slots = []; s.spawnHeld = true; s.spawnTimer = 1e6; s.unarmedFastConsumed = true;
   window.APEX_ARSENAL.weaponApi.equip(fighters[0], 'PISTOL');
@@ -192,8 +190,8 @@ check('E-no-per-frame-growth',
 // --- robot actor single render ------------------------------------------------
 const robot = await page.evaluate(() => {
   const P = window.APEX_CHAMBER_PALETTE;
-  if (window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.active) window.exitArsenalQuestMode();
-  window.startArsenalQuestMode('ROBOT', 'ICE');
+  if (window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.active) window.exitArsenalBattleMode();
+  window.__APEX_TEST_MODE = true; window.startArsenalBattleMode('ROBOT', 'ICE', { testFixture: true });
   const s = window.APEX_ARSENAL.state; s.slots = []; s.spawnHeld = true; s.spawnTimer = 1e6; s.unarmedFastConsumed = true;
   const draw = window.__realDraw || window.draw;
   const r0 = P.renderStats();
@@ -230,7 +228,7 @@ check('E2-full-color-source-preserved',
 const law = await page.evaluate(() => ({ fighters: window.fighters.length, speed: typeof window.APEX_ARSENAL_CONFIG.FIGHTER_SPEED }));
 check('D-presentation-only', law.fighters === 2 && law.speed === 'number', law);
 
-await page.evaluate(() => window.exitArsenalQuestMode && window.exitArsenalQuestMode());
+await page.evaluate(() => window.exitArsenalBattleMode && window.exitArsenalBattleMode());
 fs.mkdirSync('docs/hero-rework/post-playtest-2026-09-29/evidence', { recursive: true });
 fs.writeFileSync('docs/hero-rework/post-playtest-2026-09-29/evidence/chamber-palette-gates.json', JSON.stringify({ results, errors }, null, 2));
 const passN = Object.values(results).filter(r => r.pass).length;

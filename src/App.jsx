@@ -19,30 +19,6 @@ import {
 } from './game/performanceMetrics.js';
 
 const once = { loaded: false };
-const RAW_MANUAL_ROOM_WS_URL = String(import.meta.env.VITE_MANUAL_ROOM_WS_URL || '').trim();
-const MANUAL_ROOM_WS_URL = /(^|\.)example\.com(?=\/|$)/i.test(RAW_MANUAL_ROOM_WS_URL.replace(/^wss?:\/\//i, ''))
-  ? ''
-  : RAW_MANUAL_ROOM_WS_URL;
-
-function wakeManualRoomRelay() {
-  if (!MANUAL_ROOM_WS_URL) return;
-  try {
-    const relayUrl = new URL(MANUAL_ROOM_WS_URL);
-    relayUrl.protocol = relayUrl.protocol === 'wss:' ? 'https:' : 'http:';
-    relayUrl.pathname = '/health';
-    relayUrl.search = '';
-    relayUrl.hash = '';
-    fetch(relayUrl.toString(), {
-      method: 'GET',
-      mode: 'no-cors',
-      cache: 'no-store',
-      keepalive: true,
-    }).catch(() => {});
-  } catch (error) {
-    console.warn('[manual-room] Invalid VITE_MANUAL_ROOM_WS_URL; relay wake-up skipped.');
-  }
-}
-
 const LOADING_ASSETS = {
   bgPortrait: '/assets/ui_2026/loading-bg-portrait.webp',
   bgLandscape: '/assets/ui_2026/loading-bg-landscape.webp',
@@ -82,21 +58,10 @@ const LOADER_READY_HOLD_MS = 160;
 const LOADER_FADE_MS = 280;
 
 const DEFERRED_RUNTIME_ACTION_GROUPS = {
-  // Existing compatibility actions remain callable by developer/history code,
-  // but none are reachable from the normal product menu.
   goToSelect: 'select',
-  startMatch: 'battle',
-  goToTournament: 'select',
-  goToManualLabSelect: 'manualLab',
-  goToSoloSelect: 'soloBattle',
-  startSoloMode: 'soloBattle',
-  goToTrialSelect: 'trialBattle',
-  startTrialMode: 'trialBattle',
-  startTamChienMode: 'tamChien',
+  startMatch: 'arsenalProduct',
   startArsenalBattleMode: 'arsenalProduct',
-  startArsenalQuestMode: 'arsenalProduct', // compatibility alias only
-  beginArsenalBattleSelection: 'arsenalHub',
-  beginArsenalQuestSelection: 'arsenalHub', // compatibility alias only
+  beginArsenalBattleSelection: 'select',
 };
 
 function callApexGlobal(name, enabled = true) {
@@ -266,19 +231,7 @@ function injectApexEngine(scriptRef, engineSrc) {
       bridge.textContent = `
         try { window.goToMenu = goToMenu; } catch (error) {}
         try { window.goToSelect = goToSelect; } catch (error) {}
-        try { window.goToTournament = goToTournament; } catch (error) {}
-        try { window.resetTournament = resetTournament; } catch (error) {}
         try { window.startMatch = startMatch; } catch (error) {}
-        try { window.startSoloMode = startSoloMode; } catch (error) {}
-        try { window.goToSoloSelect = goToSoloSelect; } catch (error) {}
-        try { window.goToTrialSelect = goToTrialSelect; } catch (error) {}
-        try { window.startTrialMode = startTrialMode; } catch (error) {}
-        try { window.endTrialMode = endTrialMode; } catch (error) {}
-        try { window.startTamChienMode = startTamChienMode; } catch (error) {}
-        try { window.goToManualLabSelect = goToManualLabSelect; } catch (error) {}
-        try { window.toggleAutoBattlePause = toggleAutoBattlePause; } catch (error) {}
-        try { window.restartAutoBattle = restartAutoBattle; } catch (error) {}
-        try { window.exitAutoBattle = exitAutoBattle; } catch (error) {}
       `;
       bridge.dataset.apexEngineBridge = 'true';
       document.body.appendChild(bridge);
@@ -293,7 +246,6 @@ function injectApexEngine(scriptRef, engineSrc) {
         // else loads as background warmup or route intent.
         await loadMenuInteractiveRuntimes();
         markBootPhase('menu-runtime-ready');
-        window.APEX_MANUAL_ROOM_WS_URL = MANUAL_ROOM_WS_URL;
         window.__apexEnsureDeferredRuntimes = loadDeferredGameRuntimes;
         finishRuntimeLoad();
       } catch (error) {
@@ -439,8 +391,6 @@ export default function App() {
     // Cache-bust the classic engine the same way as the other public
     // runtimes so a stable Cloudflare alias can never serve stale bytes.
     const engineSrc = `/apexEngine.js?v=${APEX_ARSENAL_RUNTIME_REVISION}`;
-
-    wakeManualRoomRelay();
 
     const boot = async () => {
       markBootPhase('boot-start');
@@ -638,18 +588,18 @@ export default function App() {
       if (options.startsMatch) {
         stopMenuMusic(true);
         window.apexBeginBattleAudioSession?.();
-      } else if (name === 'startMatch' || name === 'startSoloMode' || name === 'startTrialMode' || name === 'startArsenalBattleMode' || name === 'startArsenalQuestMode' || name === 'startTamChienMode') {
+      } else if (name === 'startMatch' || name === 'startArsenalBattleMode') {
         stopMenuMusic(true);
         window.apexBeginBattleAudioSession?.();
-      } else if (name === 'goToMenu' || name === 'exitAutoBattle') {
+      } else if (name === 'goToMenu') {
         window.apexEndBattleAudioSession?.();
         playMenuMusic(true);
-      } else if (name === 'goToSelect' || name === 'goToManualLabSelect' || name === 'goToTournament' || name === 'goToSoloSelect' || name === 'beginArsenalQuestSelection' || name === 'beginArsenalQuestMap') {
+      } else if (name === 'goToSelect' || name === 'beginArsenalBattleSelection') {
         window.apexEndBattleAudioSession?.();
         playMenuMusic(false);
       }
       callApexGlobal(name, true);
-      if (options.startsMatch || name === 'startMatch' || name === 'startSoloMode' || name === 'startTrialMode') {
+      if (options.startsMatch || name === 'startMatch' || name === 'startArsenalBattleMode') {
         stopMenuMusic(true);
       }
     } catch (error) {
@@ -744,10 +694,9 @@ export default function App() {
         </div>
       </div>
     )}
-    {/* PASS B: P1 SIDE PANEL | SQUARE ARENA | P2 SIDE PANEL (authority §3).
-        Side panels are hidden outside battle (CSS .is-battle); the arena
-        column keeps its exact legacy box so absolute screens/overlays
-        behave as before. Engine-owned p1/p2 ids now live in the panels. */}
+    {/* Current battle shell: the side panels are hidden outside combat; the
+        shared select route and product menu use the same fixed arena column.
+        Engine-owned p1/p2 ids live in the panels. */}
     <div id="battle-shell">
       <CombatPanelSide side={1} />
     <div id="game-wrapper">
@@ -755,58 +704,10 @@ export default function App() {
 
       <div id="countdown-overlay">
         <div className="count-num" id="countdown-num">3</div>
-        <div className="count-sub" id="countdown-sub">TOURNAMENT MATCH</div>
+        <div className="count-sub" id="countdown-sub">ARSENAL BATTLE</div>
       </div>
 
-      <div className="ui-layer" id="hud" style={{ opacity: 0 }}>
-        <div id="manual-lab-hud" className="manual-lab-hud hidden" aria-live="polite">
-          <div className="manual-lab-title">APEX CONTROL · TERRITORY MODE</div>
-          <div className="manual-engineer-hud">
-          <div className="manual-lab-readout">
-            <span>BLUEPRINT <b id="manual-blueprint">TURRET</b></span>
-            <span>COST <b id="manual-cost">3</b></span>
-            <span>SCRAP <b id="manual-scrap">3</b></span>
-          </div>
-          </div>
-          <div className="manual-katana-hud hidden">
-            <div className="manual-katana-slots">
-              <span><b>LMB</b> ADAPTIVE ATTACK</span>
-              <span><b>RMB</b> COLLISION EXECUTION</span>
-              <span><b>Q</b> DASH <i id="manual-katana-q">READY</i></span>
-              <span><b>E</b> CLONE EVADE <i id="manual-katana-e">LOCKED</i></span>
-              <span><b>R</b> LUNAR REWRITE <i id="manual-katana-r">LOCKED</i></span>
-            </div>
-          </div>
-          <div id="manual-status" className="manual-lab-status">READY</div>
-          <div id="manual-skill-map" className="manual-skill-map hidden" aria-label="Champion skill mapping" />
-          <div className="manual-lab-keys">WASD MOVE · MOUSE AIM · LMB BUILD/FIRE · RMB MAGNET · Q/E BLUEPRINT · SPACE MERGE · R WAR MACHINE</div>
-        </div>
-      </div>
-
-      <div id="battle-controls" className="battle-controls hidden">
-        <button id="battle-pause-btn" type="button" disabled={!gameReady} onClick={() => runApex('toggleAutoBattlePause')} aria-label="Pause">II</button>
-        <button type="button" disabled={!gameReady} onClick={() => runApex('restartAutoBattle')} aria-label="Restart">R</button>
-        <button type="button" disabled={!gameReady} onClick={() => runApex('exitAutoBattle')} aria-label="Exit">X</button>
-      </div>
-      <aside id="multiplayer-debug-overlay" className="multiplayer-debug-overlay hidden" aria-live="polite">
-        <b>REALTIME AUTHORITY</b>
-        <pre id="multiplayer-debug-content">NETWORK IDLE</pre>
-      </aside>
-
-      <div id="manual-room-dialog" className="manual-room-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="manual-room-dialog-title">
-        <div className="manual-room-dialog-panel">
-          <p className="manual-room-dialog-kicker">APEX CONTROL · ONLINE</p>
-          <h2 id="manual-room-dialog-title">CLOSE BATTLE ROOM?</h2>
-          <p id="manual-room-dialog-message">Leaving now will close the room for both players.</p>
-          <div id="manual-room-dialog-confirm-actions" className="manual-room-dialog-actions">
-            <button type="button" onClick={() => window.cancelManualRoomDestroy?.()}>CANCEL</button>
-            <button className="danger" type="button" onClick={() => window.confirmManualRoomDestroy?.()}>CLOSE ROOM</button>
-          </div>
-          <div id="manual-room-dialog-notice-actions" className="manual-room-dialog-actions hidden">
-            <button type="button" onClick={() => window.acknowledgeManualRoomNotice?.()}>OK</button>
-          </div>
-        </div>
-      </div>
+      <div className="ui-layer" id="hud" style={{ opacity: 0 }} />
 
       <div id="menu-screen" className="screen product-menu-screen">
         <div className="menu-bg menu-bg-landscape" aria-hidden="true" />
@@ -912,7 +813,7 @@ export default function App() {
                 </div>
               </div>
               <div className="select-actions">
-                <button id="start-btn" className="fight-stage-button hidden" type="button" disabled={!gameReady} onClick={() => document.body.classList.contains('manual-online-select') ? window.lockManualRoomChampion?.() : document.body.classList.contains('manual-lab-select') ? window.goToManualRoomLobby?.() : runApex('startMatch')}>
+                <button id="start-btn" className="fight-stage-button hidden" type="button" disabled={!gameReady} onClick={() => runApex('startMatch')}>
                   <span>START BATTLE</span>
                 </button>
                 <button id="select-exit-btn" type="button" disabled={!gameReady} onClick={() => runApex('goToMenu')}>
@@ -945,182 +846,6 @@ export default function App() {
         </div>
       </div>
 
-      <div id="manual-room-screen" className="screen hidden" aria-label="APEX Control room lobby">
-        <div className="manual-room-bg" aria-hidden="true" />
-        <div className="manual-room-scanlines" aria-hidden="true" />
-        <section id="manual-room-panel" className="manual-room-panel" aria-live="polite">
-          <p className="manual-room-kicker">APEX CONTROL · VERSUS LINK</p>
-          <h2 className="manual-room-title">BATTLE ROOM</h2>
-          <p className="manual-room-subtitle">Create a private link or enter your rival's access code.</p>
-
-          <div className="manual-room-primary-actions">
-            <button id="manual-room-create" className="room-art-button" type="button"><span>CREATE ROOM</span></button>
-            <div className="manual-room-code-entry">
-              <label htmlFor="manual-room-input">ROOM CODE</label>
-              <input id="manual-room-input" type="text" maxLength={4} placeholder="----" spellCheck="false" aria-label="Room code" />
-            </div>
-            <button id="manual-room-join" className="room-art-button" type="button"><span>JOIN ROOM</span></button>
-          </div>
-
-          <div className="manual-room-readout">
-            <span>ACCESS CODE <b id="manual-room-code">----</b></span>
-            <i aria-hidden="true" />
-            <span>LINK ROLE <b id="manual-room-role">OFFLINE</b></span>
-          </div>
-
-          <div id="manual-room-status" className="manual-room-status">CHAMPIONS LOCKED · CHOOSE CONNECTION</div>
-          <div className="manual-room-secondary-actions">
-            <button id="manual-room-copy" className="room-art-button compact" type="button"><span>COPY CODE</span></button>
-            <button id="manual-room-select" className="room-art-button compact accent" type="button" disabled onClick={() => window.closeManualRoomLobby?.()}><span>SELECT CHAMPIONS</span></button>
-            <button id="manual-room-leave" className="room-art-button compact danger" type="button" disabled><span>LEAVE</span></button>
-          </div>
-          <button id="manual-room-start" className="room-art-button local-battle accent" type="button" disabled><span>START ONLINE</span></button>
-          <div className="manual-room-divider"><span>OR</span></div>
-          <button className="room-art-button local-battle" type="button" onClick={() => window.startManualLocalMatch?.()}><span>PLAY LOCAL BATTLE</span></button>
-          <button className="manual-room-back" type="button" onClick={() => window.closeManualRoomLobby?.()}>← CHANGE CHAMPIONS</button>
-        </section>
-      </div>
-
-      <div id="tournament-screen" className="screen hidden">
-        <div className="tournament-wrap">
-          <div className="tournament-head">
-            <div>
-              <div className="tournament-title">GIAI DAU</div>
-              <div className="tournament-sub">
-                Giai dau 2 nhanh tuong tac. Cap co the choi luon nam o khu CAP SAN SANG;
-                bracket ben duoi chi dung de theo doi nhanh.
-              </div>
-            </div>
-            <button type="button" disabled={!gameReady} onClick={() => runApex('resetTournament')}>Xep lai giai</button>
-          </div>
-          <div id="tournament-board" className="tournament-board" />
-          <div className="tournament-footer">
-            <button type="button" disabled={!gameReady} onClick={() => runApex('goToMenu')}>Ve Menu</button>
-            <button type="button" disabled={!gameReady} onClick={() => runApex('goToSelect')}>Chon dau thuong</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="end-screen" className="screen hidden">
-        <h1 id="winner-text">WINNER</h1>
-        <div id="stats-panel" className="stats-panel" />
-        <div id="end-actions" style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button id="save-replay-btn" type="button" disabled={!gameReady} onClick={() => runApex('saveLastReplay')}>
-            Save Replay
-          </button>
-          <button type="button" disabled={!gameReady} onClick={() => runApex('goToSelect')}>Rematch</button>
-          <button id="tournament-return-btn" className="hidden" type="button" disabled={!gameReady} onClick={() => runApex('goToTournament')}>
-            Tiep tuc giai dau
-          </button>
-        </div>
-      </div>
-
-      <div id="solo-screen" className="screen hidden">
-        <h1>SOLO 1V1 LOCAL</h1>
-        <p className="solo-hint">
-          Uses the same fighter roster, colors, speed profile, and signature skills as Play.
-          Player-controlled local 1v1 with manual normal, skill, and rage inputs.
-        </p>
-        <h2 id="solo-title" style={{ color: '#7fd4ff', margin: '8px 0 4px' }}>P1 SELECT</h2>
-        <div id="solo-roster" className="solo-roster" />
-        <div className="solo-controls">
-          <div className="solo-panel">
-            <b>P1</b>
-            <div className="control-row">
-              <div className="key-cluster wasd">
-                <span className="key key-up">W</span>
-                <span className="key key-left">A</span>
-                <span className="key key-down">S</span>
-                <span className="key key-right">D</span>
-              </div>
-              <span className="control-label">MOVE</span>
-            </div>
-            <div className="control-row">
-              <span className="key action-key">E</span>
-              <span className="control-label">NORMAL</span>
-              <span className="key action-key">R</span>
-              <span className="control-label">SKILL</span>
-              <span className="key action-key space-key">SPACE</span>
-              <span className="control-label">RAGE</span>
-            </div>
-          </div>
-          <div className="solo-panel">
-            <b>P2</b>
-            <div className="control-row">
-              <div className="key-cluster arrows">
-                <span className="key key-up">↑</span>
-                <span className="key key-left">←</span>
-                <span className="key key-down">↓</span>
-                <span className="key key-right">→</span>
-              </div>
-              <span className="control-label">MOVE</span>
-            </div>
-            <div className="control-row">
-              <span className="key action-key">1</span>
-              <span className="control-label">NORMAL</span>
-              <span className="key action-key">2</span>
-              <span className="control-label">SKILL</span>
-              <span className="key action-key">3</span>
-              <span className="control-label">RAGE</span>
-            </div>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button id="solo-start-btn" className="hidden" type="button" disabled={!gameReady} onClick={() => runApex('startSoloMode')}>
-            START SOLO
-          </button>
-          <button type="button" disabled={!gameReady} onClick={() => runApex('goToMenu')}>BACK</button>
-        </div>
-      </div>
-
-      <div id="solo-hud" className="solo-hud">
-        <div className="solo-hud-card">
-          <b id="solo-p1-name">P1</b>
-          <span id="solo-p1-state">READY</span>
-          <div className="solo-mini-bar"><div id="solo-p1-hp" className="solo-mini-fill" /></div>
-        </div>
-        <div className="solo-hud-card" style={{ textAlign: 'right' }}>
-          <b id="solo-p2-name">P2</b>
-          <span id="solo-p2-state">READY</span>
-          <div className="solo-mini-bar"><div id="solo-p2-hp" className="solo-mini-fill" /></div>
-        </div>
-      </div>
-
-      <div id="trial-screen" className="screen hidden">
-        <h1>DAU THU</h1>
-        <p className="trial-hint">
-          Chon 1 tuong de test voi boss SAITAMA. Boss chi dam thuong 10 damage moi 10 giay va khong ket lieu doi thu.
-        </p>
-        <div className="trial-config">
-          <label htmlFor="trial-boss-hp">SAITAMA HP</label>
-          <input id="trial-boss-hp" type="text" inputMode="decimal" defaultValue="1000" placeholder="1, 1000, infinity" />
-        </div>
-        <div className="sandbox-tools">
-          <button type="button" disabled={!gameReady} onClick={() => runApex('sandboxToggleRage')}>Toggle Rage</button>
-          <button type="button" disabled={!gameReady} onClick={() => runApex('sandboxResetCooldowns')}>Reset CD</button>
-          <button type="button" disabled={!gameReady} onClick={() => runApex('sandboxSlowMotion')}>Slow 50%</button>
-        </div>
-        <h2 id="trial-title" style={{ color: '#7fd4ff', margin: '8px 0 4px' }}>SELECT TEST FIGHTER</h2>
-        <div id="trial-roster" className="solo-roster trial-roster" />
-        <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button id="trial-start-btn" className="hidden" type="button" disabled={!gameReady} onClick={() => runApex('startTrialMode')}>
-            START TEST
-          </button>
-          <button type="button" disabled={!gameReady} onClick={() => runApex('goToMenu')}>BACK</button>
-        </div>
-      </div>
-
-      <div id="trial-hud" className="trial-hud">
-        <div className="trial-hud-card">
-          <b id="trial-clock">0.0s</b>
-          <span id="trial-boss-hp-readout">SAITAMA HP</span>
-        </div>
-        <button type="button" disabled={!gameReady} onClick={() => runApex('endTrialMode')}>KET THUC</button>
-      </div>
-
-      <div id="tam-chien-screen" className="screen hidden">
-        <div id="tam-chien-root" className="tam-chien-root" />
-      </div>
     </div>
       <CombatPanelSide side={2} />
     </div>

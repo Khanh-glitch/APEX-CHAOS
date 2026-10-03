@@ -59,14 +59,14 @@ page.on('pageerror',e=>errors.push(String(e)));
 page.on('console',m=>{if(m.type()==='error'&&!m.text().includes('net::ERR_'))errors.push('[console] '+m.text());});
 await page.goto(APP,{waitUntil:'load',timeout:30000});
 await page.waitForFunction(()=>typeof window.__apexEnsureDeferredRuntimes==='function',{timeout:30000});
-await page.evaluate(async()=>{await window.__apexEnsureDeferredRuntimes('arsenalQuest');});
+await page.evaluate(async()=>{await window.__apexEnsureDeferredRuntimes('arsenalProduct');window.__APEX_TEST_MODE=true;});
 await page.waitForFunction(()=>window.APEX_HUNTER_PRESENTATION?.ready===true,{timeout:30000});
 
 const audit=await page.evaluate(()=>{
   const G=window;
   if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
-  if(G.APEX_ARSENAL?.state?.active)G.exitArsenalQuestMode();
-  G.startArsenalQuestMode('HUNTER','CRYSTAL');
+  if(G.APEX_ARSENAL?.state?.active)G.exitArsenalBattleMode();
+  G.startArsenalBattleMode('HUNTER','CRYSTAL',{testFixture:true});
   if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
   if(G.APEX_ARSENAL?.state)G.APEX_ARSENAL.state.labMode=true;
   G.APEX_HERO_REWORK?.setAiEnabled?.(false);

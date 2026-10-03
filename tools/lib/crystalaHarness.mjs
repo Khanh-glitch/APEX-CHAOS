@@ -1,13 +1,13 @@
-// Shared headless harness for the CRYSTALA gates: boots the REAL engine + every
-// arsenalQuest runtime in jsdom (same world as tools/smokeHeroReworkHeadless.mjs /
-// testArsenalQuestHeadless.mjs) on @napi-rs/canvas, with the two generic
-// compatibility shims the Hunter V10 art path needs under jsdom (ImageData, Path2D).
-// No gameplay is faked: matches start through startArsenalQuestMode and advance
-// through the single shared APEX_ARSENAL.step used by rAF and every other suite.
+// Shared Hero Rework headless harness: boots the REAL engine and active
+// Arsenal product runtimes in jsdom on @napi-rs/canvas, with the generic
+// ImageData/Path2D shims the Hunter V10 art path needs under jsdom.
+// No gameplay is faked: matches start through startArsenalBattleMode and
+// advance through the shared APEX_ARSENAL.step used by rAF and these suites.
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES } from '../../src/game/runtimeManifest.js';
+import { installProductSurfaceAuthority } from '../../src/game/productSurface.js';
 
 const REPO = process.cwd();
 const requireTool = createRequire(path.join(REPO, 'node_modules', 'noop.js'));
@@ -24,16 +24,10 @@ export const SKELETON = `<!doctype html><html><body>
   <div id="game-wrapper">
     <canvas id="game-canvas" width="1000" height="1000"></canvas>
     <div id="countdown-overlay" style="display:none"><div id="countdown-num">3</div><div id="countdown-sub"></div></div>
-    <div class="ui-layer" id="hud"><div id="manual-lab-hud" class="hidden"></div></div>
-    <div id="battle-controls" class="hidden"></div>
+    <div class="ui-layer" id="hud"></div>
     <div id="menu-screen" class="screen"></div>
     <div id="select-screen" class="screen hidden"><div id="select-title"></div><button id="start-btn" class="hidden"></button><div id="apex-pick-runtime-root"></div></div>
-    <div id="manual-room-screen" class="screen hidden"></div>
-    <div id="tournament-screen" class="screen hidden"></div>
-    <div id="end-screen" class="screen hidden"><div id="winner-text"></div><div id="stats-panel"></div><button id="tournament-return-btn" class="hidden"></button><button id="challenge-retry-btn" class="hidden"></button></div>
-    <div id="solo-screen" class="screen hidden"></div>
-    <div id="trial-screen" class="screen hidden"></div>
-    <div id="tam-chien-screen" class="screen hidden"></div>
+    <div id="end-screen" class="screen hidden"><div id="winner-text"></div><div id="stats-panel"></div></div>
     <div id="roster-grid"></div>
   </div>
     <aside id="p2-combat-panel" class="combat-panel">
@@ -53,6 +47,8 @@ export async function bootHarness(opts = {}) {
   try { GlobalFonts.registerFromPath(path.join(REPO, 'public', 'assets', 'fonts', 'kanit', 'Kanit-BlackItalic.ttf'), 'ApcKanit'); } catch (e) { /* font optional */ }
   const dom = new JSDOM(SKELETON, { pretendToBeVisual: true, runScripts: 'dangerously', url: 'http://localhost/' });
   const win = dom.window;
+  installProductSurfaceAuthority(win);
+  win.__APEX_TEST_MODE = true;
   win.__apexStatsSilent = true;
   // One-time owner-test credit grant marker (canonical meta law) so the grant does not perturb saves.
   try { win.localStorage.setItem('apexChaos.ownerTestCredits.20260930.v1', '1'); } catch (e) { /* ignore */ }
@@ -144,15 +140,20 @@ export async function bootHarness(opts = {}) {
   loadScript('/apexEngine.js', true);
   const loaded = new Set();
   for (const [src] of BOOT_GAME_RUNTIMES) { loaded.add(String(src).split(/[?#]/, 1)[0]); loadScript(src, false); }
-  for (const [src] of MODE_DEFERRED_RUNTIMES.arsenalQuest) {
+  for (const [src] of MODE_DEFERRED_RUNTIMES.arsenalProduct) {
     const key = String(src).split(/[?#]/, 1)[0];
     if (loaded.has(key)) continue;
+    loaded.add(key);
     loadScript(src, true);
   }
 
   win.eval(`(() => {
     window.__HR_TEST = {
-      start(p1, p2) { window.startArsenalQuestMode(p1, p2); cancelAnimationFrame(reqId); reqId = 0; return APEX_HERO_REWORK.match; },
+      start(p1, p2) {
+        const started = window.startArsenalBattleMode(p1, p2, { testFixture: true });
+        cancelAnimationFrame(reqId); reqId = 0;
+        return started ? APEX_HERO_REWORK.match : null;
+      },
       step(seconds, dt) { let t = seconds; dt = dt || 1/60; while (t > 1e-9) { const d = Math.min(dt, t); APEX_ARSENAL.step(d); t -= d; } },
       holdSpawns() { const s = APEX_ARSENAL.state; s.spawnTimer = 1e6; s.slots = []; s.unarmedFastConsumed = true; s.spawnHeld = true; },
       pushSlot(o) { const s = APEX_ARSENAL.state; const slot = Object.assign({ id: s.nextSlotId++, x: 500, y: 500, phase: 'REVEALED', weaponId: 'PISTOL', revealLeadSeconds: 1.5, revealedFor: 0, pickedBy: null, rejectedFor: {}, spawnTime: s.time, predictedHeroETA: null, predictedRivalETA: null, earliestETA: null, predictedFighter: null }, o); s.slots.push(slot); return slot.id; },

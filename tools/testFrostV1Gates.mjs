@@ -62,15 +62,15 @@ function park(a, b) {
 
 /* ================= F00 — baseline / scope (in-node leaves) ============ */
 try {
-  const out = execSync('git merge-base --is-ancestor 6b83fc6502eb8e23e4bd122074fc7fdfb47441ae HEAD && echo YES', { cwd: process.cwd() }).toString();
-  gate('F00.1-ancestry', out.includes('YES'), '6b83fc in HEAD ancestry');
+  const out = execSync('git merge-base --is-ancestor 43d3eebd2d4351e007e9577bd907197f742a1a3d HEAD && echo YES', { cwd: process.cwd() }).toString();
+  gate('F00.1-ancestry', out.includes('YES'), 'pre-pilot rollback oracle 43d3eeb is in HEAD ancestry');
 } catch (e) { gate('F00.1-ancestry', false, String(e && e.message)); }
 try {
   const manifest = fs.readFileSync('src/game/runtimeManifest.js', 'utf8');
   const lock = JSON.parse(fs.readFileSync('tools/runtimeRevision.lock.json', 'utf8'));
   const m = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION = '([^']+)'/);
   gate('F00.4-revision-lineage',
-    !!m && m[1] === '20261001-frost-v1-motion-energy-reliability-r1' && lock.revision === m[1],
+    !!m && m[1] === lock.revision && lock.revision === '20261003-mirror-v1-r35',
     { revision: m && m[1], lock: lock.revision });
 } catch (e) { gate('F00.4-revision-lineage', false, String(e && e.message)); }
 
@@ -124,12 +124,12 @@ try {
   const shopOk = !!cardName && cardName.textContent === 'FROST'
     && !!detailH2 && detailH2.textContent === 'FROST'
     && cardName.closest('[data-shop-card]').getAttribute('data-shop-card') === 'ICE';
-  win.beginArsenalQuestMap();
-  const stage4 = [...win.document.querySelectorAll('#aq-quest-map .aq-stage-name')][3];
-  const mapOk = !!stage4 && stage4.textContent === 'FROST';
-  gate('F01.2b-shop-map-display', shopOk && mapOk,
-    { card: cardName && cardName.textContent, stage4: stage4 && stage4.textContent });
-} catch (e) { gate('F01.2b-shop-map-display', false, String(e && e.message)); }
+  const retiredMapApi = ['beginArsenalQuestMap', 'startArsenalQuestMode', 'exitArsenalQuestMode']
+    .some((name) => typeof win[name] === 'function');
+  const retiredMapDom = !!win.document.querySelector('#aq-quest-map');
+  gate('F01.2b-shop-display-no-retired-ladder-route', shopOk && !retiredMapApi && !retiredMapDom,
+    { card: cardName && cardName.textContent, retiredMapApi, retiredMapDom });
+} catch (e) { gate('F01.2b-shop-display-no-retired-ladder-route', false, String(e && e.message)); }
 
 try {
   // Legacy ICE save loads; ICE is selectable and shown as FROST.
@@ -693,7 +693,7 @@ try {
     const out = [];
     const origLog = console.log;
     console.log = (...lg) => {
-      const m = String(lg[0]).match(/\[AQ\] HIT .* damage=([\d.]+)/);
+      const m = String(lg[0]).match(/\[ARSENAL\] HIT .* damage=([\d.]+)/);
       if (m) out.push(+m[1]);
       return origLog(...lg);
     };
@@ -854,7 +854,7 @@ function frostBusTap() {
   bus.emit = (t, p) => { if (String(t).indexOf('Frost') === 0) seen.push(t); return orig(t, p); };
   return { seen, release() { bus.emit = orig; } };
 }
-function tapAQ(re, fn) {
+function tapArsenal(re, fn) {
   const out = [];
   const origLog = console.log;
   console.log = (...lg) => {
@@ -900,13 +900,13 @@ try {
   const { o, h } = frozenDuel('PISTOL', seed);
   if (!h || !h.__frostFrozen) throw new Error('frozen pistol pickup failed');
   const tap = frostBusTap();
-  // The [AQ] HIT log fires inside aqDamage, BEFORE the post-hit hook runs,
+  // The [ARSENAL] HIT log fires inside aqDamage, BEFORE the post-hit hook runs,
   // so freeze state is sampled after each frame that delivered a hit.
   const perHit = [];
   let hits = 0, lastHits = 0;
   const origLog = console.log;
   console.log = (...lg) => {
-    if (/\[AQ\] HIT/.test(String(lg[0]))) hits++;
+    if (/\[ARSENAL\] HIT/.test(String(lg[0]))) hits++;
     return origLog(...lg);
   };
   try {
@@ -929,7 +929,7 @@ try {
   // AUTO: SMG 8 projectile hits = 8 rolls.
   const { o, h } = frozenDuel('SMG', 21);
   if (!h || !h.__frostFrozen) throw new Error('frozen smg pickup failed');
-  const hits = tapAQ(/\[AQ\] HIT/, () => T.step(2.5));
+  const hits = tapArsenal(/\[ARSENAL\] HIT/, () => T.step(2.5));
   gate('F07.2-auto-one-roll-each',
     h.shotsFired === 8 && hits.length === 8 && FR().inspect(o.ct).rolls === 8,
     { shots: h.shotsFired, hits: hits.length, rolls: FR().inspect(o.ct).rolls });
@@ -939,7 +939,7 @@ try {
   // BURST: BERETTA 6 projectile hits (2 bursts x 3) = 6 rolls.
   const { o, h } = frozenDuel('BERETTA_93R', 22);
   if (!h || !h.__frostFrozen) throw new Error('frozen beretta pickup failed');
-  const hits = tapAQ(/\[AQ\] HIT/, () => T.step(2.5));
+  const hits = tapArsenal(/\[ARSENAL\] HIT/, () => T.step(2.5));
   gate('F07.3-burst-one-roll-each',
     h.shotsFired === 6 && hits.length === 6 && FR().inspect(o.ct).rolls === 6,
     { shots: h.shotsFired, hits: hits.length, rolls: FR().inspect(o.ct).rolls });
@@ -949,7 +949,7 @@ try {
   // PRECISION: MBR 2 projectile hits = 2 rolls.
   const { o, h } = frozenDuel('MBR', 23);
   if (!h || !h.__frostFrozen) throw new Error('frozen mbr pickup failed');
-  const hits = tapAQ(/\[AQ\] HIT/, () => T.step(3.0));
+  const hits = tapArsenal(/\[ARSENAL\] HIT/, () => T.step(3.0));
   gate('F07.4-precision-one-roll-each',
     h.shotsFired === 2 && hits.length === 2 && FR().inspect(o.ct).rolls === 2,
     { shots: h.shotsFired, hits: hits.length, rolls: FR().inspect(o.ct).rolls });
@@ -1040,7 +1040,7 @@ try {
   let hitCount = 0;
   const mazeLog = console.log;
   console.log = (...lg) => {
-    if (/\[AQ\] HIT/.test(String(lg[0]))) hitCount++;
+    if (/\[ARSENAL\] HIT/.test(String(lg[0]))) hitCount++;
     return mazeLog(...lg);
   };
   try {
@@ -1067,7 +1067,7 @@ try {
   o.b.x = 600; o.b.y = 500;
   const h2 = frozenEquip(o.a, 'PISTOL');
   void h2;
-  const hits = tapAQ(/\[AQ\] HIT/, () => {
+  const hits = tapArsenal(/\[ARSENAL\] HIT/, () => {
     for (let f = 0; f < 200 && FR().inspect(o.ct).rolls < 1; f++) T.step(1 / 60);
   });
   const expectProc = frostDraws(26, 1)[0] < 0.08;
@@ -1114,7 +1114,7 @@ try {
     let hits = 0, lastHits = 0;
     const origLog = console.log;
     console.log = (...lg) => {
-      if (/\[AQ\] HIT/.test(String(lg[0]))) hits++;
+      if (/\[ARSENAL\] HIT/.test(String(lg[0]))) hits++;
       return origLog(...lg);
     };
     try {
@@ -1174,7 +1174,7 @@ try {
   let hitClock = -1, timerAtProc = -1;
   const origLog = console.log;
   console.log = (...lg) => {
-    if (/\[AQ\] HIT/.test(String(lg[0])) && hitClock < 0) hitClock = frostClock();
+    if (/\[ARSENAL\] HIT/.test(String(lg[0])) && hitClock < 0) hitClock = frostClock();
     return origLog(...lg);
   };
   try {
@@ -1194,7 +1194,7 @@ try {
     && drift < 2 && stillFrozen && thawed,
     { timer: +timerAtProc.toFixed(3), drift: +drift.toFixed(2), stillFrozen, thawed, hp: +hpAfterHit1.toFixed(1) });
   // Zero direct Freeze damage: frozen-hit damage == control-hit damage.
-  const dmgF = tapAQ(/\[AQ\] HIT .* damage=([\d.]+)/, () => {});
+  const dmgF = tapArsenal(/\[ARSENAL\] HIT .* damage=([\d.]+)/, () => {});
   void dmgF;
 } catch (e) { gate('F08.2-proc-0.90-zero-dmg-lock', false, String(e && e.message)); }
 
@@ -1207,7 +1207,7 @@ try {
     o.a.x = 300; o.a.y = 500; o.a.setDir(1, 0); o.a.baseSpeed = 0;
     o.b.x = 600; o.b.y = 500; o.b.setDir(-1, 0); o.b.baseSpeed = 0;
     const hp0 = o.b.hp;
-    const hits = tapAQ(/\[AQ\] HIT .* damage=([\d.]+)/, () => {
+    const hits = tapArsenal(/\[ARSENAL\] HIT .* damage=([\d.]+)/, () => {
       for (let f = 0; f < 120; f++) { T.step(1 / 60); if (o.b.hp < hp0) break; }
     });
     return { dmg: hits[0], delta: +(hp0 - o.b.hp).toFixed(2), frozen: o.b.hasStatus('freeze') };
@@ -1226,7 +1226,7 @@ try {
   let hits = 0, preTimer = -1, postTimer = -1;
   const origLog = console.log;
   console.log = (...lg) => {
-    if (/\[AQ\] HIT/.test(String(lg[0]))) {
+    if (/\[ARSENAL\] HIT/.test(String(lg[0]))) {
       hits++;
       if (hits === 2 && !o.b.hasStatus('freeze')) preTimer = -2; // would break the fixture
     }
@@ -1256,7 +1256,7 @@ try {
   let preT = -1, preC = -1, postT = -1, postC = -1;
   const origLog = console.log;
   console.log = (...lg) => {
-    if (/\[AQ\] HIT/.test(String(lg[0]))) {
+    if (/\[ARSENAL\] HIT/.test(String(lg[0]))) {
       hits++;
       if (hits === 2) { postT = o.b.statuses.freeze.timer; postC = frostClock(); }
     }
@@ -1285,7 +1285,7 @@ try {
   const rollAtHit = [], frozeAtHit = [];
   const origLog = console.log;
   console.log = (...lg) => {
-    if (/\[AQ\] HIT/.test(String(lg[0]))) {
+    if (/\[ARSENAL\] HIT/.test(String(lg[0]))) {
       hits++;
       rollAtHit.push(FR().inspect(o.ct).rolls);
       frozeAtHit.push(o.b.hasStatus('freeze'));
@@ -1318,7 +1318,7 @@ try {
   let lockedHits = 0, lockedClock = -1;
   const olog2 = console.log;
   console.log = (...lg) => {
-    if (/\[AQ\] HIT/.test(String(lg[0])) && lockedHits === 0) { lockedHits++; lockedClock = frostClock(); }
+    if (/\[ARSENAL\] HIT/.test(String(lg[0])) && lockedHits === 0) { lockedHits++; lockedClock = frostClock(); }
     return olog2(...lg);
   };
   try {
@@ -1336,7 +1336,7 @@ try {
   let lateHits = 0;
   const olog3 = console.log;
   console.log = (...lg) => {
-    if (/\[AQ\] HIT/.test(String(lg[0]))) lateHits++;
+    if (/\[ARSENAL\] HIT/.test(String(lg[0]))) lateHits++;
     return olog3(...lg);
   };
   try {
@@ -1724,7 +1724,7 @@ try {
     W().equip(o.b, wid);
     const h0 = W().getHolder(o.b);
     const tap = frostBusTap();
-    const spends = tapAQ(/\[AQ\] (CONSUME|STRIKE|THROW) /, () => {
+    const spends = tapArsenal(/\[ARSENAL\] (CONSUME|STRIKE|THROW) /, () => {
       HR.pressAbility(o.a, 'A2');
       T.step(0.1); // short: thrown classes must still be held, not spent
       touchBodies(o);
@@ -1790,7 +1790,7 @@ try {
   T.step(3 / 60);
   partBodies(o); // re-open the firing lane
   let postFam = null;
-  const shots = tapAQ(/\[AQ\] SHOT fighter=(\w+)/, () => {
+  const shots = tapArsenal(/\[ARSENAL\] SHOT fighter=(\w+)/, () => {
     for (let f = 0; f < 120; f++) {
       T.step(1 / 60);
       if (!postFam) {
@@ -3217,10 +3217,10 @@ try {
 try {
   // The shared render stack moves only Frost's world-surface layer into the
   // chamber background, immediately before real floor weapon sprites.
-  const questSrc = fs.readFileSync('public/game/modes/arsenalQuestRuntime.js', 'utf8');
+  const battleSrc = fs.readFileSync('public/game/modes/arsenalBattleRuntime.js', 'utf8');
   const presSrc = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js', 'utf8');
-  const hook = questSrc.indexOf('APEX_FROST_PRESENTATION?.renderSurfaceUnderWeapons');
-  const slotsAfter = questSrc.indexOf('SPAWN.drawSlots(c)', hook);
+  const hook = battleSrc.indexOf('APEX_FROST_PRESENTATION?.renderSurfaceUnderWeapons');
+  const slotsAfter = battleSrc.indexOf('SPAWN.drawSlots(c)', hook);
   const actorSeparate = presSrc.includes('if (!arsenalActive) renderSurfaceUnderWeapons(ctx)')
     && presSrc.includes('drawFrostBody(ctx, f, S)');
   gate('F15.1-surface-below-floor-guns-only', hook >= 0 && slotsAfter > hook && actorSeparate,
@@ -3386,11 +3386,11 @@ try {
   HR.pressAbility(d.a, 'A2'); T.step(0.05);
   d.a.hp = 0; T.step(1 / 60);
   const dead = P().ambienceState();
-  const questSrc = fs.readFileSync('public/game/modes/arsenalQuestRuntime.js', 'utf8');
+  const battleSrc = fs.readFileSync('public/game/modes/arsenalBattleRuntime.js', 'utf8');
   const presSrc = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js', 'utf8');
-  const moodHook = questSrc.indexOf('renderArenaAmbience(c)');
-  const iceHook = questSrc.indexOf('renderSurfaceUnderWeapons(c)');
-  const slots = questSrc.indexOf('SPAWN.drawSlots(c)');
+  const moodHook = battleSrc.indexOf('renderArenaAmbience(c)');
+  const iceHook = battleSrc.indexOf('renderSurfaceUnderWeapons(c)');
+  const slots = battleSrc.indexOf('SPAWN.drawSlots(c)');
   gate('F17.2-shared-ambience-lifecycle-cleanup',
     attack.level >= 0.8 && refreshed.level <= 1 && refreshed.target <= 1
     && thawing.level > 0 && thawing.level < refreshed.level

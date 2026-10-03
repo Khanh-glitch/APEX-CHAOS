@@ -2497,8 +2497,22 @@ function renderTournament(){
     board.classList.add('full');
     board.innerHTML = `${renderTournamentReadyPanel()}${renderTournamentBranch('NHÄ‚ÂNH A', tournamentState.branches.A)}${renderTournamentBranch('NHÄ‚ÂNH B', tournamentState.branches.B)}<div class="tournament-section"><div class="tournament-section-title"><span>CHUNG KĂ¡ÂºÂ¾T TĂ¡Â»â€NG</span></div><div class="round-strip final-strip">${renderTournamentRound('Grand Final',[tournamentState.final])}</div>${buildTournamentSummary()}</div>`;
 }
-function goToMenu(){ stopBattleAudio(); clearNinjaVisualArtifacts(); autoBattlePaused=false; autoBattleControlsActive=false; updateAutoBattleControls(); document.getElementById('select-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden'); document.getElementById('tournament-screen').classList.add('hidden'); document.getElementById('menu-screen').classList.remove('hidden'); document.getElementById('hud').style.opacity = 0; tournamentModeActive=false; gameState='MENU'; }
-function goToTournament(){ stopBattleAudio(); clearNinjaVisualArtifacts(); autoBattlePaused=false; autoBattleControlsActive=false; updateAutoBattleControls(); document.getElementById('menu-screen').classList.add('hidden'); document.getElementById('select-screen').classList.add('hidden'); document.getElementById('end-screen').classList.add('hidden'); document.getElementById('tournament-screen').classList.remove('hidden'); document.getElementById('hud').style.opacity = 0; gameState='TOURNAMENT'; tournamentModeActive=true; renderTournament(); }
+function setProductScreenHidden(id, hidden) {
+    const screen = document.getElementById(id);
+    if (screen) screen.classList.toggle('hidden', hidden);
+}
+function goToMenu() {
+    stopBattleAudio();
+    clearNinjaVisualArtifacts();
+    autoBattlePaused = false;
+    autoBattleControlsActive = false;
+    updateAutoBattleControls();
+    setProductScreenHidden('select-screen', true);
+    setProductScreenHidden('menu-screen', false);
+    const hud = document.getElementById('hud');
+    if (hud) hud.style.opacity = 0;
+    gameState = 'MENU';
+}
 function startTournamentMatch(matchId){
     const match = tournamentFindMatch(matchId);
     if(!tournamentReady(match)) return;
@@ -2724,18 +2738,20 @@ function goToSelect() {
     autoBattlePaused = false;
     autoBattleControlsActive = false;
     updateAutoBattleControls();
-    document.getElementById('menu-screen').classList.add('hidden');
-    document.getElementById('end-screen').classList.add('hidden');
-    document.getElementById('tournament-screen').classList.add('hidden');
-    document.getElementById('select-screen').classList.remove('hidden');
-    document.getElementById('hud').style.opacity = 0;
+    setProductScreenHidden('menu-screen', true);
+    setProductScreenHidden('select-screen', false);
+    const hud = document.getElementById('hud');
+    if (hud) hud.style.opacity = 0;
     p1Selection = null; p2Selection = null;
     syncSelectedFighterVfx();
     gameState = 'SELECT';
     populateRoster();
-    document.getElementById('start-btn').classList.add('hidden');
-    document.getElementById('select-title').innerText = 'SELECT PLAYER 1';
-    document.getElementById('select-title').style.color = '#7fd4ff';
+    document.getElementById('start-btn')?.classList.add('hidden');
+    const title = document.getElementById('select-title');
+    if (title) {
+        title.innerText = 'SELECT PLAYER 1';
+        title.style.color = '#7fd4ff';
+    }
 }
 
 function isPlainAutoBattleOptions(opts = {}) {
@@ -2838,13 +2854,10 @@ function startMatch() {
 function startSpecificMatch(ft1, ft2, opts = {}) {
     clearNinjaVisualArtifacts();
     currentChallenge = opts.challenge || null;
-    document.getElementById('menu-screen')?.classList.add('hidden');
-    document.getElementById('select-screen').classList.add('hidden');
-    document.getElementById('tournament-screen').classList.add('hidden');
-    document.getElementById('end-screen').classList.add('hidden');
-    document.getElementById('hud').style.opacity = 1;
-    document.getElementById('tournament-return-btn')?.classList.add('hidden');
-    document.getElementById('challenge-retry-btn')?.classList.add('hidden');
+    setProductScreenHidden('menu-screen', true);
+    setProductScreenHidden('select-screen', true);
+    const hud = document.getElementById('hud');
+    if (hud) hud.style.opacity = 1;
     fighters = [
         new Fighter(1, 200, GAME_SIZE/2, ft1),
         new Fighter(2, GAME_SIZE-200, GAME_SIZE/2, ft2)

@@ -4,7 +4,7 @@ const out='docs/hero-rework/robot-final/passive-completion';fs.mkdirSync(out,{re
 const browser=await puppeteer.launch({executablePath:await chromium.executablePath(),args:chromium.args,headless:true});const errors=[],shots=[];
 try{const page=await browser.newPage();await page.setViewport({width:1440,height:1000});page.on('pageerror',e=>errors.push(String(e)));await page.goto('http://127.0.0.1:4173',{waitUntil:'networkidle0'});await page.waitForFunction(()=>window.APEX_ROBOT_PRESENTATION);await page.mouse.click(20,20);
 await page.evaluate(()=>{
- const drawGame=window.draw;window.update=()=>{};window.draw=()=>{};APEX_HERO_REWORK.setAiEnabled(false);startArsenalQuestMode('ROBOT','ICE');
+ const drawGame=window.draw;window.update=()=>{};window.draw=()=>{};APEX_HERO_REWORK.setAiEnabled(false);startArsenalBattleMode('ROBOT','ICE');
  const[a,b]=fighters,hr=APEX_HERO_REWORK,api=APEX_ARSENAL.weaponApi,ctl=hr.abilityController(hr.byCombatant(a));const aq=APEX_ARSENAL.state;aq.slots=[];aq.spawnHeld=true;aq.spawnTimer=1e6;aq.unarmedFastConsumed=true;
  const events=[],emit=hr.AIL.bus.emit;hr.AIL.bus.emit=function(type,payload){if(type.startsWith('RobotPassive')||type==='MilestoneRefund')events.push({type,payload});return emit.call(this,type,payload);};
  window.proof={a,b,hr,api,ctl,events,drawGame,
@@ -24,9 +24,9 @@ await page.evaluate(()=>{while(proof.ctl.cooldownLeft('A1')>0)proof.step();if(!p
 await page.evaluate(()=>{while(proof.ctl.cooldownLeft('A2')>0)proof.step();proof.to(900);});await shot('06-ready-no-refund');
 await new Promise(r=>setTimeout(r,1400));await shot('07-burst-expired-progress-persists');
 const events=await page.evaluate(()=>proof.events),audio=await page.evaluate(()=>APEX_ROBOT_PRESENTATION.audioEvidence());
-await page.evaluate(()=>{exitArsenalQuestMode();startArsenalQuestMode('ROBOT','ICE');APEX_COMBAT_HUD.sync();proof.drawGame();});
+await page.evaluate(()=>{exitArsenalBattleMode();startArsenalBattleMode('ROBOT','ICE');APEX_COMBAT_HUD.sync();proof.drawGame();});
 const reset=await page.evaluate(()=>APEX_HERO_REWORK.robotPassiveHud(fighters[0]));
-await page.screenshot({path:`${out}/08-match-reset.png`});await page.evaluate(()=>exitArsenalQuestMode());await page.goto('about:blank');
+await page.screenshot({path:`${out}/08-match-reset.png`});await page.evaluate(()=>exitArsenalBattleMode());await page.goto('about:blank');
 const ms=events.filter(e=>e.type==='RobotPassiveMilestone'),up=events.filter(e=>e.type==='RobotPassiveUpgrade');
 assert.equal(audio.find(a=>a.event==='robot_passive_milestone').sourceStarted,6);assert.equal(audio.find(a=>a.event==='robot_passive_upgrade').sourceStarted,3);assert.equal(ms.length,6);assert.equal(up.length,3);assert.equal(up[0].payload.refund,.5);assert(up[1].payload.refund>0&&up[1].payload.refund<1);assert.equal(up[2].payload.slot,'A2');assert.equal(shots[0].state.reached,0);assert.equal(shots[6].burst,null);assert.equal(shots[6].state.reached,6);assert.equal(reset.reached,0);assert.equal(errors.length,0);
 fs.writeFileSync(`${out}/browser-proof.json`,JSON.stringify({browser:await browser.version(),method:'Real fireBullet projectiles through Arsenal step and damage adapters. Real A1/A2 casts and naturally elapsed cooldowns; no milestone, HP, cooldown or HUD state injection. Actor positions/directions reset between controlled shots. AI/spawns disabled.',shots,events,audio,reset,runtimeErrors:errors,pass:true},null,2));

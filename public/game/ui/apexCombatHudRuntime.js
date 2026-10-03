@@ -1,6 +1,6 @@
 // APEX CHAOS — PASS B universal combat HUD (state adapter + DOM renderer).
 //
-// Authority: docs/arsenal-quest/pass-b/PASS_B_PRODUCTION_COMBAT_HUD_AUTHORITY_2026-09-26.md
+// Product context: docs/CURRENT_PRODUCT_AUTHORITY.md
 //
 // Architecture law (authority §13):
 //
@@ -17,11 +17,11 @@
 //     central Fighter.takeDamage path (amount = actual HP loss, already
 //     post-mitigation; never mutates the damage result);
 //   - APEX_COMBAT_HUD.onMatchStart() fired from startSpecificMatch /
-//     startArsenalQuestMode (energy + burst reset).
+//     startArsenalBattleMode (energy + burst reset).
 //
 // DOM contract: React (src/App.jsx) owns the panel markup. This module only
 // caches element refs and writes when a value actually changes (the same
-// cached-ref / last-value pattern as arsenalQuestRuntime.syncDomHud).
+// cached-ref / last-value pattern as arsenalBattleRuntime.syncDomHud).
 (function apexCombatHudRuntime() {
   if (window.apexCombatHudRuntime === 'ready') return;
   if (typeof document === 'undefined') return;
@@ -448,21 +448,21 @@
     if (!r || !r.modeSlot) return;
     let text = '';
     const gs = gameStateNow();
+    const AQ = window.APEX_ARSENAL;
+    const state = AQ && AQ.state;
     if (r.chip) {
-      const chipText = gs === 'ARSENAL' ? 'ARSENAL' : (document.body && document.body.classList && document.body.classList.contains('manual-lab-mode') ? 'APEX CONTROL' : 'COMBAT');
+      const chipText = gs === 'ARSENAL' ? 'ARSENAL' : 'COMBAT';
       if (r.chip.textContent !== chipText) { r.chip.textContent = chipText; stats.panelWrites += 1; }
     }
     if (gs === 'ARSENAL') {
-      const AQ = window.APEX_ARSENAL;
-      const q = (AQ && AQ.state && AQ.state.questStage) ? 'ARSENAL QUEST' : 'FREE BATTLE';
-      // V6 visual correction: keep truthful skill/cooldown state, but move it
-      // into the panel footer instead of overlapping identity/HP.
+      const modeLabel = state?.labMode ? 'ARSENAL LAB'
+        : state?.battleMode === 'BOT' ? 'BOT BATTLE' : 'LOCAL 1V1';
+      // Keep truthful skill/cooldown state in the panel footer instead of
+      // overlapping identity and HP.
       const skill = document.getElementById('aq-skill-hud');
       const fs = fighterList(), heroLines = fs && window.APEX_HERO_REWORK?.skillHud(fs[i]);
       const skillText = heroLines?.length ? heroLines.join(' | ') : (skill && skill.textContent ? String(skill.textContent).trim() : '');
-      text = skillText ? q + ' · ' + skillText : q;
-    } else if (document.body && document.body.classList && document.body.classList.contains('manual-lab-mode')) {
-      text = 'APEX CONTROL';
+      text = skillText ? modeLabel + ' · ' + skillText : modeLabel;
     }
     if (r.modeSlot.textContent !== text) { r.modeSlot.textContent = text; stats.panelWrites += 1; }
   }

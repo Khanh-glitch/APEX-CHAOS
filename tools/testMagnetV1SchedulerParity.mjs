@@ -55,7 +55,7 @@ function runPath(name, advance) {
     && result.frameSample.dt === 1 / 60
     && Number.isFinite(result.frameSample.before.x)
     && Number.isFinite(result.frameSample.after.x), result.frameSample);
-  win.exitArsenalQuestMode();
+  win.exitArsenalBattleMode();
 }
 
 try {

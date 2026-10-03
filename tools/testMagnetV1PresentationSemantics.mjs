@@ -8,7 +8,7 @@ const HR=win.APEX_HERO_REWORK,GOLD=win.APEX_MAGNET_GOLD,PRES=win.APEX_MAGNET_PRE
 const failures=[];
 function gate(name,ok,detail){console.log(`${ok?'PASS':'FAIL'}  ${name} — ${JSON.stringify(detail)}`);if(!ok)failures.push(name);}
 const deadline=Date.now()+12000;while(!GOLD.ready&&Date.now()<deadline)await new Promise(r=>setTimeout(r,20));
-function start(rival='MIRROR'){if(HR.match)win.exitArsenalQuestMode();T.start('MAGNET',rival);T.holdSpawns();HR.setAiEnabled(false);const[fighter,opponent]=H.fighters(),ct=HR.byCombatant(fighter),opponentCt=HR.byCombatant(opponent);fighter.baseSpeed=0;opponent.baseSpeed=0;fighter.x=500;fighter.y=500;opponent.x=900;opponent.y=900;return{fighter,opponent,ct,opponentCt};}
+function start(rival='MIRROR'){if(HR.match)win.exitArsenalBattleMode();T.start('MAGNET',rival);T.holdSpawns();HR.setAiEnabled(false);const[fighter,opponent]=H.fighters(),ct=HR.byCombatant(fighter),opponentCt=HR.byCombatant(opponent);fighter.baseSpeed=0;opponent.baseSpeed=0;fighter.x=500;fighter.y=500;opponent.x=900;opponent.y=900;return{fighter,opponent,ct,opponentCt};}
 function pose(ct){return GOLD.inspect(ct).state.rig;}
 function finitePose(rig){return Object.values(rig).every(p=>Object.values(p).every(v=>typeof v!=='number'||Number.isFinite(v)));}
 function semanticItems(objects){return objects.a2Items||objects.a2Kinds.map(kind=>({kind,id:null}));}
@@ -75,5 +75,5 @@ try{
   gate('complete-three-phase-render-isolation',JSON.stringify(canvasBefore)===JSON.stringify(canvasAfter)&&physics===physicsAfter,{canvasRestored:JSON.stringify(canvasBefore)===JSON.stringify(canvasAfter),gameplayUntouched:physics===physicsAfter});
 }catch(error){gate('presentation-semantics-execution',false,String(error&&error.stack||error));}
 
-if(HR.match)win.exitArsenalQuestMode();
+if(HR.match)win.exitArsenalBattleMode();
 console.log(`\n[MAGNET PRESENTATION SEMANTICS] ${failures.length?'FAIL':'PASS'}`);if(failures.length)console.error(`FAILURES: ${failures.join(', ')}`);process.exit(failures.length?1:0);

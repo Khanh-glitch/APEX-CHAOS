@@ -36,8 +36,8 @@ try{
 
   magnet.data.__hrHoldBody=true;const holdX=magnet.x;T.step(1/60,1/60);snapshot=state(magnet);sample=snapshot.presentation.frameSample;
   gate('explicit-body-hold-shares-authoritative-lock',Math.abs(magnet.x-holdX)<1e-9&&!sample.motion.ordinaryAllowed&&!sample.motion.active,{holdX,x:magnet.x,motion:sample.motion});
-  win.exitArsenalQuestMode();
-} catch(error){gate('root-release-integration-execution',false,String(error&&error.stack||error));try{win.exitArsenalQuestMode();}catch{}}
+  win.exitArsenalBattleMode();
+} catch(error){gate('root-release-integration-execution',false,String(error&&error.stack||error));try{win.exitArsenalBattleMode();}catch{}}
 
 try{
   const [target,source]=fresh('MAGNET','MAGNET');target.x=400;source.x=550;target.baseSpeed=450;target.dir.x=1;target.dir.y=0;
@@ -48,7 +48,7 @@ try{
     sawExternal=sawExternal||Math.hypot(last.motion.externalVx,last.motion.externalVy)>.01;
   }
   gate('root-keeps-a2-external-force-independent',cast.ok&&target.x<x0&&sawExternal&&!last.motion.active&&!last.motion.ordinaryAllowed&&last.motion.externalVx<0&&Math.abs(last.velocity.x)<1e-9&&Math.abs(last.root.x-target.x)<1e-9,{cast,x0,last});
-  win.exitArsenalQuestMode();
-} catch(error){gate('root-external-force-integration-execution',false,String(error&&error.stack||error));try{win.exitArsenalQuestMode();}catch{}}
+  win.exitArsenalBattleMode();
+} catch(error){gate('root-external-force-integration-execution',false,String(error&&error.stack||error));try{win.exitArsenalBattleMode();}catch{}}
 
 console.log(`\n[MAGNET MOTION AUTHORITY] ${failures.length?'FAIL':'PASS'}`);if(failures.length)console.error(`FAILURES: ${failures.join(', ')}`);process.exit(failures.length?1:0);

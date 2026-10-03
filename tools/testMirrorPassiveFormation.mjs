@@ -799,7 +799,7 @@ try {
   placeCluster(o.ct, 500, 500, TIGHT5, 0.8);
   T.step(1.4, DT);                                  // ACTIVE node + live shards exist
   const dirtyBefore = pstate(o.ct).nodes.length === 1;
-  win.exitArsenalQuestMode();
+  win.exitArsenalBattleMode();
   const o2 = start();
   const freshState = pstate(o2.ct);
   T.step(DT, DT);                                   // first passive tick of the new match

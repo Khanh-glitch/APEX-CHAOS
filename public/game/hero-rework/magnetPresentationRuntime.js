@@ -390,7 +390,7 @@
     lastTickClock = -Infinity;
   }
   function installLifecycle() {
-    const exit = g.exitArsenalQuestMode;
+    const exit = g.exitArsenalBattleMode;
     if (!exit || exit.__magnetPresentationWrapped) return;
     const wrapped = function exitWithMagnetTeardown() {
       teardown();
@@ -398,7 +398,7 @@
     };
     wrapped.__hrWrapped = exit.__hrWrapped;
     wrapped.__magnetPresentationWrapped = true;
-    g.exitArsenalQuestMode = wrapped;
+    g.exitArsenalBattleMode = wrapped;
   }
   function inspect(ct) {
     const adapter = ct ? states.get(ct) : null;

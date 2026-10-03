@@ -54,5 +54,5 @@ try{
   gate('idle-irregular-six-part-relative-motion',idleMoved.length>=5,{moved:idleMoved,samples:idleSamples.map(q=>q.t)});
 }catch(error){gate('motion-trace-execution',false,String(error&&error.stack||error));}
 
-win.exitArsenalQuestMode();
+win.exitArsenalBattleMode();
 console.log(`\n[MAGNET GOLD MOTION TRACE] ${failures.length?'FAIL':'PASS'}`);if(failures.length)console.error(`FAILURES: ${failures.join(', ')}`);process.exit(failures.length?1:0);

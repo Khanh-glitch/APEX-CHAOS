@@ -27,7 +27,7 @@ page.on('console', m => {
 
 await page.goto(APP, { waitUntil: 'load', timeout: 30000 });
 await page.waitForFunction(() => typeof window.__apexEnsureDeferredRuntimes === 'function', { timeout: 30000 });
-await page.evaluate(async () => { await window.__apexEnsureDeferredRuntimes('arsenalQuest'); });
+await page.evaluate(async () => { await window.__apexEnsureDeferredRuntimes('arsenalProduct'); window.__APEX_TEST_MODE = true; });
 
 const result = await page.evaluate(async () => {
   const G = window;
@@ -102,8 +102,8 @@ const result = await page.evaluate(async () => {
     if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
   }
   function newMatch(a='CRYSTAL', b='ROBOT') {
-    if (G.APEX_ARSENAL?.state?.active) G.exitArsenalQuestMode();
-    G.startArsenalQuestMode(a,b);
+    if (G.APEX_ARSENAL?.state?.active) G.exitArsenalBattleMode();
+    G.startArsenalBattleMode(a,b,{testFixture:true});
     stopRaf();
     if (G.APEX_ARSENAL?.state) G.APEX_ARSENAL.state.labMode = true;
     if (G.APEX_HERO_REWORK?.setAiEnabled) G.APEX_HERO_REWORK.setAiEnabled(false);

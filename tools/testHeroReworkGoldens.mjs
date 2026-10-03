@@ -27,6 +27,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES } from '../src/game/runtimeManifest.js';
+import { installProductSurfaceAuthority } from '../src/game/productSurface.js';
 
 const REPO = process.cwd();
 const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules');
@@ -87,6 +88,8 @@ const dom = new JSDOM(`<!doctype html><html><body>
 </body></html>`, { pretendToBeVisual: true, runScripts: 'dangerously', url: 'http://localhost/' });
 
 const win = dom.window;
+installProductSurfaceAuthority(win);
+win.__APEX_TEST_MODE = true;
 win.__apexStatsSilent = true; // silence synthesized battle SFX in the harness
 win.localStorage.setItem('apexChaos.arsenalMeta.v1', JSON.stringify({ version: 1, credits: 350, ownedFighters: ['ROBOT'], lastSelectedP1: 'ROBOT', lastSelectedP2: 'SNIPER', totalSpins: 0, unlockedAt: { ROBOT: 1 } }));
 
@@ -233,7 +236,7 @@ for (const [src] of BOOT_GAME_RUNTIMES) {
   loadedRuntimeSrcs.add(String(src).split(/[?#]/, 1)[0]);
   loadScript(src, false);
 }
-for (const [src] of MODE_DEFERRED_RUNTIMES.arsenalQuest) {
+for (const [src] of MODE_DEFERRED_RUNTIMES.arsenalProduct) {
   const key = String(src).split(/[?#]/, 1)[0];
   if (loadedRuntimeSrcs.has(key)) continue;
   loadScript(src, true);
@@ -257,7 +260,7 @@ function snapshot(name) {
 // Test helpers (page context).
 win.eval(`(() => {
   window.__GOLD_TEST = {
-    start(p1, p2) { window.startArsenalQuestMode(p1, p2); cancelAnimationFrame(reqId); reqId = 0; return APEX_HERO_REWORK.match; },
+    start(p1, p2) { window.startArsenalBattleMode(p1, p2, { testFixture: true }); cancelAnimationFrame(reqId); reqId = 0; return APEX_HERO_REWORK.match; },
     step(seconds, dt) { let t = seconds; dt = dt || 1/60; while (t > 1e-9) { const d = Math.min(dt, t); APEX_ARSENAL.step(d); t -= d; } },
     place(fx, fy, ex, ey) { const [a, b] = fighters; a.x = fx; a.y = fy; b.x = ex; b.y = ey; a.setDir(Math.sign(ex - fx) || 1, 0); b.setDir(-Math.sign(ex - fx) || -1, 0); a.baseSpeed = 0; b.baseSpeed = 0; if (a.data) a.data.__hrHoldBody = true; if (b.data) b.data.__hrHoldBody = true; },
     unhold() { fighters.forEach(f => { if (f && f.data) f.data.__hrHoldBody = false; }); },
@@ -739,7 +742,7 @@ try {
   T.equip(1, 'PISTOL');
   win.APEX_ARSENAL.events.length = 0;
   T.step(2.5);
-  const hitLogs = win.APEX_ARSENAL.events.filter(e => e.startsWith('[AQ] HIT')).length;
+  const hitLogs = win.APEX_ARSENAL.events.filter(e => e.startsWith('[ARSENAL] HIT')).length;
   const takenDelta = slimeCt.telemetry.damageTaken - taken0;
   const oneRealize = hitLogs === 0 ? takenDelta === 0 : (takenDelta > 0 && !Number.isNaN(takenDelta));
   const hpAfter = win.fighters[0].hp;
@@ -754,7 +757,7 @@ try {
   const inv = HR.invariants();
   // Teardown: exiting the mode tears the match down — no match, no pending
   // scheduler jobs, no aq projectiles left.
-  win.exitArsenalQuestMode();
+  win.exitArsenalBattleMode();
   const teardownOk = !HR.match && HR.AIL.hrScheduler.pending() === 0
     && win.projectiles.filter(p => p && p.aq).length === 0;
   gate('goldens-invariants',

@@ -20,7 +20,7 @@ const errors=[];
 page.on('pageerror',e=>errors.push(String(e)));
 await page.goto(APP,{waitUntil:'load',timeout:30000});
 await page.waitForFunction(()=>typeof window.__apexEnsureDeferredRuntimes==='function',{timeout:30000});
-await page.evaluate(async()=>{await window.__apexEnsureDeferredRuntimes('arsenalQuest');});
+await page.evaluate(async()=>{await window.__apexEnsureDeferredRuntimes('arsenalProduct');window.__APEX_TEST_MODE=true;});
 
 const result=await page.evaluate(()=>{
   const G=window, DT=1/60;
@@ -31,8 +31,8 @@ const result=await page.evaluate(()=>{
   const clone=x=>JSON.parse(JSON.stringify(x));
   function stopRaf(){if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}}
   function fresh(){
-    if(G.APEX_ARSENAL?.state?.active)G.exitArsenalQuestMode();
-    G.startArsenalQuestMode('CRYSTAL','ROBOT');stopRaf();
+    if(G.APEX_ARSENAL?.state?.active)G.exitArsenalBattleMode();
+    G.startArsenalBattleMode('CRYSTAL','ROBOT',{testFixture:true});stopRaf();
     if(G.APEX_ARSENAL?.state)G.APEX_ARSENAL.state.labMode=true;
     HR.setAiEnabled?.(false);
     const a=G.fighters[0],b=G.fighters[1];

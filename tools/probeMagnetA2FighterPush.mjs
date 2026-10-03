@@ -26,8 +26,8 @@ const DT = 1 / 60;
 const A2_SECONDS = 1.8;
 
 function scenario({ distance, magnetP1 = true, victimMotion = 'still', nearWall = false, t6 = false }) {
-  if (HR.match) win.exitArsenalQuestMode();
-  win.startArsenalQuestMode(magnetP1 ? 'MAGNET' : 'ROBOT', magnetP1 ? 'ROBOT' : 'MAGNET');
+  if (HR.match) win.exitArsenalBattleMode();
+  win.startArsenalBattleMode(magnetP1 ? 'MAGNET' : 'ROBOT', magnetP1 ? 'ROBOT' : 'MAGNET');
   HR.setAiEnabled(false);
   const st = win.APEX_ARSENAL.state;
   st.spawnTimer = 1e6; st.slots = []; st.spawnHeld = true; st.unarmedFastConsumed = true;
@@ -100,7 +100,7 @@ for (const c of cases) {
   try { results.push({ label: c.label, ...scenario(c) }); }
   catch (e) { results.push({ label: c.label, error: String(e) }); }
 }
-if (HR.match) win.exitArsenalQuestMode();
+if (HR.match) win.exitArsenalBattleMode();
 
 // PRODUCT LAW, expressed against the DONOR rather than a flat constant.
 // Gold is the absolute authority: its own law is push = 1050*fall*f2, so at

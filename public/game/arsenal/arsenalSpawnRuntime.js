@@ -1,4 +1,4 @@
-// ARSENAL QUEST — spawn / hidden-reveal pickup lifecycle.
+// ARSENAL BATTLE — spawn / hidden-reveal pickup lifecycle.
 // Authoritative override: docs/arsenal-quest/CORRECTION_PASS_HANDOFF.md
 // TELEGRAPH -> REVEALED -> PICKED_UP -> REMOVED
 // Spawn cadence is independent of collection state; reveal is proximity-predicted.

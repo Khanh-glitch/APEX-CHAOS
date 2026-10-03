@@ -37,13 +37,13 @@ try {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.waitForFunction(() => typeof window.__apexEnsureDeferredRuntimes === 'function', { timeout: 60000 });
   out = await page.evaluate(async () => {
-    await window.__apexEnsureDeferredRuntimes('arsenalQuest');
+    await window.__apexEnsureDeferredRuntimes('arsenalProduct');
     const waitFrames = (n) => new Promise((r) => { let c = 0; const next = () => (++c >= n ? r() : requestAnimationFrame(next)); requestAnimationFrame(next); });
     const HR = window.APEX_HERO_REWORK, MAG = window.APEX_MAGNET;
 
     const setup = async () => {
-      if (HR.match) window.exitArsenalQuestMode();
-      window.startArsenalQuestMode('MAGNET', 'ROBOT');
+      if (HR.match) window.exitArsenalBattleMode();
+      window.startArsenalBattleMode('MAGNET', 'ROBOT');
       HR.setAiEnabled(false);
       const st = window.APEX_ARSENAL.state;
       st.spawnTimer = 1e6; st.slots = []; st.spawnHeld = true; st.unarmedFastConsumed = true;

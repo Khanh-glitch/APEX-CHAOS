@@ -269,8 +269,7 @@
    * Install / teardown
    * ------------------------------------------------------------------ */
   function installMatch() {
-    // Rematch/direct re-entry (end-screen REMATCH calls startArsenalQuestMode
-    // again): tear down any live match first so its delayed jobs, executor
+    // Rematch/direct re-entry calls startArsenalBattleMode again: tear down any live match first so its delayed jobs, executor
     // teardown hooks and body bookkeeping never leak into the new match.
     if (M) teardownMatch();
     const fighters = globalScope.fighters;
@@ -295,8 +294,8 @@
       // P2 rework cast AI is ON by default; HR.setAiEnabled() syncs both
       // switches AND PERSISTS across installs (an operator-set switch must
       // not be silently reset by the next match). (Deterministic scheduling
-      // time = global matchClock, which updateArsenalQuest — the single
-      // shared sim step for rAF AND headless AQ.step — advances exactly
+      // time = global matchClock, which updateArsenalBattle — the single
+      // shared sim step for rAF AND headless Arsenal.step — advances exactly
       // once per step.)
       aiEnabled: HR.aiEnabled,
       aiCastPlan: {},
@@ -310,9 +309,8 @@
   }
 
   // FROST V1 (authority §1): battle HUD shows the product display identity
-  // for rework combatants. installMatch runs after base quest start wrote
-  // storage names, so this overwrite is correctly ordered; the G07-pinned
-  // quest/engine files are untouched. Legacy (facade) sides keep classic copy.
+  // for rework combatants. installMatch runs after the battle runtime wrote
+  // storage names, so this overwrite is correctly ordered; the shared engine files remain untouched. Legacy (facade) sides keep classic copy.
   function syncFrostBattleHud() {
     try {
       if (typeof document === 'undefined' || !M) return;
@@ -1728,7 +1726,7 @@
     }
   }
 
-  // Narrow mode-loop bridge. Arsenal Quest calls this after canonical fighter
+  // Narrow mode-loop bridge. Arsenal Battle calls this after canonical fighter
   // movement/collisions and immediately before its pickup transaction.
   HR.stepMagnetWorld = function stepMagnetWorld(dt) {
     const magnet = globalScope.APEX_MAGNET;
@@ -3380,23 +3378,18 @@
    * Entry/exit wrapping + step wrapping + draw wrapping.
    * ------------------------------------------------------------------ */
   function installIntegration() {
-    // Product core owns neutral Arsenal Battle names. Retired Quest aliases
-    // remain only for compatibility and always forward into this wrapped seam.
-    const baseStart = globalScope.startArsenalBattleMode || globalScope.startArsenalQuestMode;
+    const baseStart = globalScope.startArsenalBattleMode;
     if (baseStart && !baseStart.__hrWrapped) {
-      const wrapped = function startArsenalBattleModeHR(p1, p2) {
-        const out = baseStart.call(this, p1, p2);
-        installMatch();
+      const wrapped = function startArsenalBattleModeHR(p1, p2, options) {
+        const out = baseStart.call(this, p1, p2, options);
+        if (out) installMatch();
         return out;
       };
       wrapped.__hrWrapped = true;
       globalScope.startArsenalBattleMode = wrapped;
-      globalScope.startArsenalQuestMode = function legacyStartArsenalQuestModeHR(...args) {
-        return globalScope.startArsenalBattleMode(...args);
-      };
     }
 
-    const baseExit = globalScope.exitArsenalBattleMode || globalScope.exitArsenalQuestMode;
+    const baseExit = globalScope.exitArsenalBattleMode;
     if (baseExit && !baseExit.__hrWrapped) {
       const wrapped = function exitArsenalBattleModeHR() {
         teardownMatch();
@@ -3404,9 +3397,6 @@
       };
       wrapped.__hrWrapped = true;
       globalScope.exitArsenalBattleMode = wrapped;
-      globalScope.exitArsenalQuestMode = function legacyExitArsenalQuestModeHR(...args) {
-        return globalScope.exitArsenalBattleMode(...args);
-      };
     }
 
     const AQ = globalScope.APEX_ARSENAL;
@@ -3422,7 +3412,7 @@
       AQ.step = wrappedStep;
     }
 
-    // rAF path: global update() (already wrapped by the quest runtime).
+    // rAF path: global update() (wrapped by the Arsenal Battle runtime).
     if (typeof globalScope.update === 'function' && !globalScope.update.__hrWrapped) {
       const baseUpdateFn = globalScope.update;
       const wrappedUpdate = function updateHR(dt) {
@@ -3493,7 +3483,7 @@
       gate.pressJ.__hrWrapped = true;
     }
 
-    // K -> A2 for rework P1 (own listener; quest runtime owns J).
+    // K -> A2 for rework P1 (own listener; Arsenal Battle runtime owns J).
     if (!HR.__keyKInstalled && typeof globalScope.addEventListener === 'function') {
       HR.__keyKInstalled = true;
       globalScope.addEventListener('keydown', (e) => {

@@ -8,7 +8,6 @@
   const ROOT = '/assets/pick_ui_final/assets/';
   const LAYOUT_URL = '/assets/pick_ui_final/pick-layout-final-v1.json';
   const path = file => ROOT + encodeURIComponent(String(file).replace(/^\.\/assets\//, '')).replace(/%2F/g, '/');
-  const rosterNames = ['SHOTGUN','KATANA','ENGINEER','GALAXY','ICE','NINJA','SOCCER','STRING','FANG'];
   const cardFrame = Object.freeze({
     base: path('card-frame-imagen-portrait-3x4-exact-layers/41-card-frame-imagen-portrait-3x4-base.webp'),
     tint: path('card-frame-imagen-portrait-3x4-exact-layers/52-card-frame-imagen-portrait-3x4-neutral-tint-mask-exact.webp'),
@@ -136,39 +135,31 @@
     }));
   }
   function currentRoster() {
-    // V2 §A3: Arsenal select reuses this pick UI with the canonical 32 shells.
-    if (window.__apexArsenalSelectPending && window.APEX_ARSENAL_SHELLS) {
-      const recs = championRecords();
-      const byName = new Map(recs.map((c) => [c.name, c]));
-      const raw = window.APEX_ARSENAL_SHELLS.roster();
-      const owned = (window.APEX_ARSENAL_META && window.APEX_ARSENAL_META.filterOwned)
-        ? window.APEX_ARSENAL_META.filterOwned(raw) : raw;
-      const roster = owned.map(ft => {
-        const rec = byName.get(ft.name);
-        return {
-          id: ft.name.toLowerCase(),
-          name: ft.name,
-          accent: ft.color,
-          glow: ft.color,
-          standing: (rec && rec.standing) || '',
-          cardArt: (rec && rec.cardArt) || '',
-          icon: (rec && rec.icon) || '',
-          stats: { hp: 1000, dmg: 100 },
-        };
-      });
-      PickRuntimeController.champions = roster;
-      return roster;
-    }
-    const byName = new Map(championRecords().map(champ => [champ.name, champ]));
-    const roster = rosterNames.map(name => byName.get(name)).filter(Boolean);
+    const shells = window.APEX_ARSENAL_SHELLS;
+    if (!shells || typeof shells.roster !== 'function') return [];
+    const records = championRecords();
+    const byName = new Map(records.map((champion) => [champion.name, champion]));
+    const raw = shells.roster();
+    const owned = window.APEX_ARSENAL_META?.filterOwned
+      ? window.APEX_ARSENAL_META.filterOwned(raw) : raw;
+    const roster = owned.map((fighter) => {
+      const record = byName.get(fighter.name);
+      return {
+        id: fighter.name.toLowerCase(),
+        name: fighter.name,
+        accent: fighter.color,
+        glow: fighter.color,
+        standing: record?.standing || '',
+        cardArt: record?.cardArt || '',
+        icon: record?.icon || '',
+        stats: { hp: 1000, dmg: 100 },
+      };
+    });
     PickRuntimeController.champions = roster;
     return roster;
   }
   function fighterForChampion(champ) {
-    if (window.__apexArsenalSelectPending && window.APEX_ARSENAL_SHELLS) {
-      return window.APEX_ARSENAL_SHELLS.typeFor(champ?.name);
-    }
-    return FighterTypes.find(ft => ft && ft.name === champ?.name) || null;
+    return window.APEX_ARSENAL_SHELLS?.typeFor?.(champ?.name) || null;
   }
   function championForFighter(fighter) {
     if (!fighter) return null;
@@ -177,10 +168,6 @@
   function championById(id) {
     if (!id) return null;
     return currentRoster().find(champ => champ.id === id || champ.name === String(id).toUpperCase()) || null;
-  }
-  function questPending() {
-    const Q = window.APEX_ARSENAL_QUEST;
-    return (Q && Q.peekPending && Q.peekPending()) || null;
   }
   function syntheticChamp(name) {
     if (!name) return null;
@@ -214,28 +201,15 @@
       PickRuntimeController.p1ChampionId = p1Champ.id;
       p1Selection = fighterForChampion(p1Champ);
     }
-    const q = questPending();
     const botBattle = window.__apexArsenalBotBattle === true;
     if (botBattle) {
-      // Thin Bot seam: accepted Arsenal P1 input stays intact while P2 is the
-      // existing Hero Rework P2 cast AI. CPU identity is deterministic and
-      // legal even on a fresh save; no fake combat path is introduced.
-      const cpu = roster.find(c => c.name === 'ROBOT') || roster[0] || null;
+      // Bot Battle keeps the accepted P1 picker and uses the existing P2 AI.
+      const cpu = roster.find((champion) => champion.name === 'ROBOT') || roster[0] || null;
       if (cpu) {
         PickRuntimeController.p2ChampionId = cpu.id;
         p2Selection = fighterForChampion(cpu);
       }
       PickRuntimeController.activePlayer = 1;
-    } else if (q || window.__apexArsenalQuestPick) {
-      const oppRaw = (q && (q.opponent || (window.APEX_ARSENAL_QUEST.liveOpponent && window.APEX_ARSENAL_QUEST.liveOpponent(q.opponent)))) || null;
-      const opp = oppRaw && window.APEX_ARSENAL_QUEST.liveOpponent ? window.APEX_ARSENAL_QUEST.liveOpponent(q.opponent) : oppRaw;
-      const ft = window.APEX_ARSENAL_SHELLS && window.APEX_ARSENAL_SHELLS.typeFor && window.APEX_ARSENAL_SHELLS.typeFor(opp || q.opponent);
-      if (ft) {
-        p2Selection = ft;
-        PickRuntimeController.p2ChampionId = String(ft.name).toLowerCase();
-      }
-      PickRuntimeController.activePlayer = 1;
-      window.__apexArsenalQuestPick = true;
     } else {
       const p2Name = pickOwned(meta.lastSelectedP2 || 'ROBOT');
       const p2Champ = roster.find(c => c.name === p2Name) || roster.find(c => c.name === 'ROBOT');
@@ -429,43 +403,15 @@
     if (layer.id === 'arrow-left') btn.addEventListener('click', () => setFocusedIndex(PickRuntimeController.centerIndex - 1));
     if (layer.id === 'arrow-right') btn.addEventListener('click', () => setFocusedIndex(PickRuntimeController.centerIndex + 1));
     if (layer.id === 'start-button') btn.addEventListener('click', () => {
-      if (document.body.classList.contains('manual-online-select')) {
-        window.lockManualRoomChampion?.();
-        return;
-      }
-      const questPend = window.APEX_ARSENAL_QUEST && window.APEX_ARSENAL_QUEST.peekPending && window.APEX_ARSENAL_QUEST.peekPending();
-      if ((questPend && PickRuntimeController.p1ChampionId)
-          || (PickRuntimeController.p1ChampionId && PickRuntimeController.p2ChampionId)) {
-        window.apexStopMenuMusic?.(true);
-        syncHiddenMatchSettings();
-        startMatch();
-      }
+      if (!(PickRuntimeController.p1ChampionId && PickRuntimeController.p2ChampionId)) return;
+      window.apexStopMenuMusic?.(true);
+      syncHiddenMatchSettings();
+      startMatch();
     });
     if (layer.id === 'exit-button') btn.addEventListener('click', () => {
-      // PASS A §4.2: inside Arsenal the Hub is the navigation root — the
-      // Free Battle picker must visibly return there, the Quest P1 picker
-      // returns to the Quest Map it came from. Normal (non-Arsenal) picks
-      // keep exiting to the global Main Menu exactly as before.
-      const arsenalFree = window.__apexArsenalFreeBattle === true;
-      const arsenalBot = window.__apexArsenalBotBattle === true;
-      const arsenalQuest = window.__apexArsenalQuestPick === true;
-      if (!arsenalFree && !arsenalBot && !arsenalQuest) { goToMenu(); return; }
-      window.__apexArsenalSelectPending = false;
-      window.__apexArsenalFreeBattle = false;
-      window.__apexArsenalBotBattle = false;
-      window.__apexArsenalQuestPick = false;
-      goToMenu();
-      if (arsenalFree || arsenalBot) {
-        const M = window.APEX_ARSENAL_META;
-        if (M && typeof M.openHub === 'function') M.openHub();
-      } else {
-        const Q = window.APEX_ARSENAL_QUEST;
-        if (Q && typeof Q.returnToMap === 'function') Q.returnToMap();
-        else {
-          const M = window.APEX_ARSENAL_META;
-          if (M && typeof M.openHub === 'function') M.openHub();
-        }
-      }
+      const meta = window.APEX_ARSENAL_META;
+      if (meta?.returnToProductMenu) meta.returnToProductMenu();
+      else goToMenu();
     });
     if (layer.id === 'music-button') btn.addEventListener('click', () => togglePickMusic());
     if (layer.id === 'fullscreen-button') btn.addEventListener('click', () => toggleFullscreen());
@@ -739,7 +685,6 @@
     stage.style.transform = `translate(${left}px, ${top}px) scale(${scale})`;
   }
   function setFocusedIndex(nextIndex) {
-    if (document.body.classList.contains('manual-online-select') && window.APEX_MANUAL_LAB_ONLINE?.championLocked) return;
     const roster = currentRoster();
     if (!roster.length) return;
     carouselTouched = true;
@@ -772,36 +717,9 @@
     if (!ft) return;
     carouselTouched = true;
     PickRuntimeController.centerIndex = currentRoster().findIndex(item => item.name === champ.name);
-    if (document.body.classList.contains('manual-online-select')) {
-      const onlineState = window.APEX_MANUAL_LAB_ONLINE;
-      if (onlineState?.championLocked) return;
-      const role = onlineState?.role;
-      const player = role === 'guest' ? 2 : 1;
-      if (player === 2) {
-        PickRuntimeController.p2ChampionId = champ.id;
-        p2Selection = ft;
-      } else {
-        PickRuntimeController.p1ChampionId = champ.id;
-        p1Selection = ft;
-      }
-      PickRuntimeController.activePlayer = player;
-      renderCards();
-      syncPickState();
-      window.APEX_MANUAL_LAB_ONLINE?.selectChampion?.(ft.name);
-      const ready = document.getElementById('start-btn');
-      ready?.classList.remove('hidden');
-      if (ready) ready.disabled = false;
-      const title = document.getElementById('select-title');
-      if (title) title.textContent = `P${player} · ${ft.name} SELECTED`;
-      return;
-    }
     if (window.__apexArsenalBotBattle === true) {
       // Bot Battle exposes P1 selection only; P2 remains the deterministic
       // existing CPU shell set in applyArsenalPickDefaults().
-      PickRuntimeController.p1ChampionId = champ.id;
-      p1Selection = ft;
-      PickRuntimeController.activePlayer = 1;
-    } else if (window.__apexArsenalQuestPick || questPending()) {
       PickRuntimeController.p1ChampionId = champ.id;
       p1Selection = ft;
       PickRuntimeController.activePlayer = 1;
@@ -866,33 +784,18 @@
     if (p2Champ) syncPlayerPanel(2, p2Champ);
     else syncEmptyPlayerPanel(2);
     syncHiddenMatchSettings();
-    const onlineState = document.body.classList.contains('manual-online-select') ? window.APEX_MANUAL_LAB_ONLINE : null;
-    const onlinePlayer = onlineState?.role === 'guest' ? 2 : 1;
-    const onlineLocalChampionId = onlinePlayer === 2 ? PickRuntimeController.p2ChampionId : PickRuntimeController.p1ChampionId;
-    if (onlineState) setLayerText('title', `SELECT PLAYER ${onlinePlayer}`);
+    const botBattle = window.__apexArsenalBotBattle === true;
     const start = refs.get('start-button');
-    if (onlineState) {
-      setLayerText('start-label', onlineState.championLocked ? 'READY ✓' : 'READY');
-      if (start) start.disabled = !onlineLocalChampionId || onlineState.championLocked;
-      refs.get('arrow-left')?.toggleAttribute('disabled', !!onlineState.championLocked);
-      refs.get('arrow-right')?.toggleAttribute('disabled', !!onlineState.championLocked);
-      stage?.classList.toggle('online-ready-locked', !!onlineState.championLocked);
-    } else {
-      const questPend = questPending() || window.__apexArsenalQuestPick;
-      const botBattle = window.__apexArsenalBotBattle === true;
-      setLayerText('title', botBattle
-        ? (PickRuntimeController.p1ChampionId ? 'BOT BATTLE · P1 READY' : 'BOT BATTLE · SELECT P1')
-        : questPend
-          ? (PickRuntimeController.p1ChampionId ? 'QUEST · P1 READY' : 'QUEST · SELECT P1')
-          : (PickRuntimeController.activePlayer === 1 ? 'SELECT PLAYER 1' : PickRuntimeController.activePlayer === 2 ? 'SELECT PLAYER 2' : 'READY TO FIGHT'));
-      setLayerText('start-label', questPend ? 'START STAGE' : botBattle ? 'START BOT BATTLE' : 'START BATTLE');
-      if (start) start.disabled = questPend
-        ? !PickRuntimeController.p1ChampionId
-        : !(PickRuntimeController.p1ChampionId && PickRuntimeController.p2ChampionId);
-      refs.get('arrow-left')?.removeAttribute('disabled');
-      refs.get('arrow-right')?.removeAttribute('disabled');
-      stage?.classList.remove('online-ready-locked');
-    }
+    setLayerText('title', botBattle
+      ? (PickRuntimeController.p1ChampionId ? 'BOT BATTLE · P1 READY' : 'BOT BATTLE · SELECT P1')
+      : (PickRuntimeController.activePlayer === 1
+        ? 'SELECT PLAYER 1'
+        : PickRuntimeController.activePlayer === 2 ? 'SELECT PLAYER 2' : 'READY TO FIGHT'));
+    setLayerText('start-label', botBattle ? 'START BOT BATTLE' : 'START BATTLE');
+    if (start) start.disabled = !(PickRuntimeController.p1ChampionId && PickRuntimeController.p2ChampionId);
+    refs.get('arrow-left')?.removeAttribute('disabled');
+    refs.get('arrow-right')?.removeAttribute('disabled');
+    stage?.classList.remove('online-ready-locked');
     stage?.querySelectorAll('.apex-pick-card').forEach(card => {
       const selected = [p1Champ?.name, p2Champ?.name].includes(card.dataset.champion);
       card.classList.toggle('is-selected', selected);
@@ -1051,7 +954,6 @@
     p1: () => p1Selection && p1Selection.name,
     p2: () => p2Selection && p2Selection.name,
     activePlayer: () => PickRuntimeController.activePlayer,
-    questPick: () => !!window.__apexArsenalQuestPick,
   };
 
   Object.assign(window.apexReactBridge || {}, { goToSelect, startMatch, goToMenu });

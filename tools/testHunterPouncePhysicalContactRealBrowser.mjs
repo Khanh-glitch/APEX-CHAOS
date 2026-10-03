@@ -47,7 +47,7 @@ try {
   await page.waitForFunction(() => typeof window.__apexEnsureDeferredRuntimes === 'function', { timeout: 60000 });
 
   R = await page.evaluate(async () => {
-    await window.__apexEnsureDeferredRuntimes('arsenalQuest');
+    await window.__apexEnsureDeferredRuntimes('arsenalProduct');
     const waitFrames = (n) => new Promise((r) => { let c = 0; const nx = () => { if (++c >= n) r(); else requestAnimationFrame(nx); }; requestAnimationFrame(nx); });
     const waitUntil = async (p, f = 900) => { for (let i = 0; i < f; i++) { if (p()) return true; await waitFrames(1); } return false; };
     const HR = window.APEX_HERO_REWORK;
@@ -55,8 +55,8 @@ try {
     const cfgWorld = () => { const s = window.APEX_ARSENAL.state; s.spawnTimer = 1e6; s.slots = []; s.unarmedFastConsumed = true; s.spawnHeld = true; };
 
     const restart = async (p1, p2) => {
-      if (HR.match) window.exitArsenalQuestMode();
-      window.startArsenalQuestMode(p1, p2); HR.setAiEnabled(false); cfgWorld(); await waitFrames(3);
+      if (HR.match) window.exitArsenalBattleMode();
+      window.startArsenalBattleMode(p1, p2); HR.setAiEnabled(false); cfgWorld(); await waitFrames(3);
       const [a, b] = window.fighters; a.baseSpeed = 0; b.baseSpeed = 0;
       await waitUntil(() => window.APEX_HUNTER_PRESENTATION && window.APEX_HUNTER_PRESENTATION.ready, 900);
       return { a, b };

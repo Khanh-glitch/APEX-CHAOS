@@ -53,9 +53,10 @@ console.log('[AUDIT] Navigating to http://127.0.0.1:4173 ...');
 await page.goto('http://127.0.0.1:4173', { waitUntil: 'load', timeout: 30000 });
 await page.waitForFunction(() => typeof window.__apexEnsureDeferredRuntimes === 'function', { timeout: 30000 });
 
-console.log('[AUDIT] Ensuring deferred runtimes (arsenalQuest)...');
+console.log('[AUDIT] Ensuring neutral Arsenal product runtimes...');
 await page.evaluate(async () => {
-  await window.__apexEnsureDeferredRuntimes('arsenalQuest');
+  await window.__apexEnsureDeferredRuntimes('arsenalProduct');
+  window.__APEX_TEST_MODE = true;
 });
 
 // Helper to capture #game-canvas
@@ -71,7 +72,7 @@ async function captureCanvas(filename) {
 
 const auditReport = {
   timestamp: new Date().toISOString(),
-  targetBranch: 'arena/01a0ee80-apex-chaos',
+  targetBranch: 'arena/01a1025a-apex-chaos',
   expectedRevision: APEX_ARSENAL_RUNTIME_REVISION,
   loadedRevision: null,
   browser: await browser.version(),
@@ -96,8 +97,8 @@ const sec14 = await page.evaluate(async () => {
   results.presReady = !!(G.APEX_CRYSTALA_PRESENTATION && G.APEX_CRYSTALA_PRESENTATION.ready);
 
   // Setup match
-  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalQuestMode();
-  G.startArsenalQuestMode('CRYSTAL', 'ROBOT');
+  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalBattleMode();
+  G.startArsenalBattleMode('CRYSTAL', 'ROBOT', { testFixture: true });
   if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
 
   const f0 = G.fighters[0];
@@ -203,8 +204,8 @@ console.log('Section 14 Assertions:', JSON.stringify(sec14, null, 2));
 console.log('\n--- EXECUTING SCENARIO RB01: DORMANT PRODUCTION SILHOUETTE ---');
 const rb01Data = await page.evaluate(() => {
   const G = window;
-  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalQuestMode();
-  G.startArsenalQuestMode('CRYSTAL', 'ROBOT');
+  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalBattleMode();
+  G.startArsenalBattleMode('CRYSTAL', 'ROBOT', { testFixture: true });
   if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
 
   const f0 = G.fighters[0];
@@ -380,8 +381,8 @@ auditReport.scenarios.RB04 = { pass: rb04Data.returnShardState !== null, data: r
 console.log('\n--- EXECUTING SCENARIO RB05: WALL IN REAL PRODUCTION DRAW ORDER ---');
 const rb05Data = await page.evaluate(() => {
   const G = window;
-  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalQuestMode();
-  G.startArsenalQuestMode('CRYSTAL', 'ROBOT');
+  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalBattleMode();
+  G.startArsenalBattleMode('CRYSTAL', 'ROBOT', { testFixture: true });
   if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
 
   const f0 = G.fighters[0];
@@ -456,8 +457,8 @@ auditReport.scenarios.RB05 = { pass: rb05Data.constructKind === 'wall', data: rb
 console.log('\n--- EXECUTING SCENARIO RB06: PRISON DEPTH SPLIT ---');
 const rb06Data = await page.evaluate(() => {
   const G = window;
-  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalQuestMode();
-  G.startArsenalQuestMode('CRYSTAL', 'ROBOT');
+  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalBattleMode();
+  G.startArsenalBattleMode('CRYSTAL', 'ROBOT', { testFixture: true });
   if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
 
   const f0 = G.fighters[0];
@@ -505,8 +506,8 @@ auditReport.scenarios.RB06 = { pass: rb06Data.constructKind === 'prison', data: 
 console.log('\n--- EXECUTING SCENARIO RB07: CAMERA SHAKE / ZOOM / BLOOM CORRECTION ---');
 const rb07Data = await page.evaluate(() => {
   const G = window;
-  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalQuestMode();
-  G.startArsenalQuestMode('CRYSTAL', 'ROBOT');
+  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalBattleMode();
+  G.startArsenalBattleMode('CRYSTAL', 'ROBOT', { testFixture: true });
   if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
 
   const f0 = G.fighters[0];

@@ -3,6 +3,9 @@ node_modules/
 dist/
 reports/
 replays/
+
+# Local/generated acceptance artifacts and scratch files
+.cache/
 .agents/
 .codex/
 .katana-chrome-profile/

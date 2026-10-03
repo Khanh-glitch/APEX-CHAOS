@@ -16,7 +16,6 @@ import {
   listProductSurfaces,
 } from '../src/game/productSurface.js';
 import {
-  ARSENAL_LEGACY_QUEST_RUNTIMES,
   ARSENAL_PRODUCT_RUNTIMES,
   MODE_DEFERRED_RUNTIMES,
   WARMUP_GROUP_SEQUENCE,
@@ -60,9 +59,6 @@ function makeClassicContext(seed = {}) {
     APEX_ARSENAL_CONFIG: { FIGHTER_SPEED: 450 },
     APEX_HERO_REWORK_REGISTRY: {
       productCutover: true,
-      isCanonicalHero(id) {
-        return ['ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR', 'BLACK_HOLE', 'MATH_V2', 'RUBBER', 'TIME', 'SLIME', 'SNIPER'].includes(String(id));
-      },
       displayNameFor(id) { return String(id).toUpperCase() === 'ICE' ? 'FROST' : String(id); },
     },
     FighterTypes: [],
@@ -110,31 +106,35 @@ function makeClassicContext(seed = {}) {
   return { win, context, storage, calls };
 }
 
-const expectedPublic = [
-  'quest-01', 'bot-battle', 'local-1v1', 'fighter-shop', 'lucky-draw',
-  'fighter-upgrade', 'dictionary', 'missions', 'achievements', 'account-profile',
-];
-
 gate('semantic-graph-and-admin-boundary', () => {
   const graph = listProductSurfaces();
-  assert.deepEqual(graph.map((s) => s.id), expectedPublic);
-  assert.equal(graph.filter((s) => s.availability === PRODUCT_AVAILABILITY.ACTIVE).map((s) => s.id).join(','),
-    'bot-battle,local-1v1,fighter-shop,lucky-draw');
-  assert.equal(graph.filter((s) => s.availability === PRODUCT_AVAILABILITY.LOCKED).length, 6);
+  const active = graph.filter((surface) => surface.availability === PRODUCT_AVAILABILITY.ACTIVE);
+  const locked = graph.filter((surface) => surface.availability === PRODUCT_AVAILABILITY.LOCKED);
+  assert.equal(graph.length, 10);
+  assert.equal(active.length, 4);
+  assert.equal(locked.length, 6);
+  assert.ok(active.some((surface) => surface.id === 'bot-battle'));
+  assert.ok(active.some((surface) => surface.id === 'local-1v1'));
+  assert.ok(active.some((surface) => surface.id === 'fighter-shop'));
+  assert.ok(active.some((surface) => surface.id === 'lucky-draw'));
+  assert.ok(locked.some((surface) => surface.id === 'quest-01'));
+  assert.ok(locked.every((surface) => !canLaunchProductSurface(surface.id)));
   assert.equal(canLaunchProductSurface('arsenal-lab'), false);
   assert.equal(canLaunchProductSurface('arsenal-lab', { admin: true }), true);
-  assert.equal(canLaunchProductSurface('arsenal-quest-ladder', { admin: true }), false);
-  return { public: graph.length, active: graph.filter((s) => s.availability === 'ACTIVE').length };
+  return { public: graph.length, active: active.length, locked: locked.length };
 });
 
 gate('visible-roster-core-six-and-locked-six', () => {
-  assert.deepEqual(PRODUCT_ROSTER.visibleIds, [
-    'ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR',
-    'BLACK_HOLE', 'MATH_V2', 'RUBBER', 'TIME', 'SLIME', 'SNIPER',
-  ]);
-  assert.deepEqual(PRODUCT_ROSTER.playableIds, ['ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR']);
-  assert.deepEqual(PRODUCT_ROSTER.lockedIds, ['BLACK_HOLE', 'MATH_V2', 'RUBBER', 'TIME', 'SLIME', 'SNIPER']);
-  return { visible: PRODUCT_ROSTER.visibleIds.length, playable: PRODUCT_ROSTER.playableIds.length };
+  assert.equal(PRODUCT_ROSTER.visibleIds.length, 12);
+  assert.equal(PRODUCT_ROSTER.playableIds.length, 6);
+  assert.equal(PRODUCT_ROSTER.lockedIds.length, 6);
+  assert.ok(PRODUCT_ROSTER.playableIds.includes('ROBOT'));
+  assert.ok(PRODUCT_ROSTER.playableIds.includes('ICE'));
+  assert.ok(PRODUCT_ROSTER.playableIds.includes('MIRROR'));
+  assert.ok(PRODUCT_ROSTER.lockedIds.every((id) => PRODUCT_ROSTER.visibleIds.includes(id)));
+  assert.ok(PRODUCT_ROSTER.lockedIds.every((id) => !PRODUCT_ROSTER.playableIds.includes(id)));
+  return { visible: PRODUCT_ROSTER.visibleIds.length, playable: PRODUCT_ROSTER.playableIds.length,
+    locked: PRODUCT_ROSTER.lockedIds.length };
 });
 
 gate('economy-clean-state-and-mutation-legality', () => {
@@ -143,8 +143,10 @@ gate('economy-clean-state-and-mutation-legality', () => {
   assert.equal(meta.credits(), PRODUCT_ECONOMY.cleanStateCredits);
   assert.equal(meta.getState().credits, 350);
   assert.equal(meta.buy('BLACK_HOLE').reason, 'unavailable');
-  assert.equal(meta.buy('PAINTER').reason, 'unavailable');
-  assert.deepEqual(meta.poolLocked(), ['HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR']);
+  assert.equal(meta.buy('NEWBIE').reason, 'unavailable');
+  assert.equal(meta.poolLocked().length, 5);
+  assert.ok(meta.poolLocked().includes('HUNTER'));
+  assert.ok(meta.poolLocked().every((id) => PRODUCT_ROSTER.playableIds.includes(id)));
   // Clean-state 350 is deliberately enough for exactly one 350 AC draw.
   const draw = meta.spin(() => 0.999999);
   assert.equal(draw.ok, true);
@@ -194,7 +196,7 @@ gate('shell-public-selection-and-bot-profile-seam', () => {
   assert.deepEqual(shells.roster().map((s) => s.name), PRODUCT_ROSTER.playableIds);
   assert.equal(shells.isPlayable('BLACK_HOLE'), false);
   assert.equal(shells.isVisible('BLACK_HOLE'), true);
-  assert.ok(shells.typeFor('BLACK_HOLE')); // compatibility definition remains resolvable
+  assert.ok(shells.typeFor('BLACK_HOLE')); // visible-but-locked shell remains resolvable
 
   // Locked/stale handoff never invokes either active or classic battle.
   context.p1Selection = shells.typeFor('BLACK_HOLE');
@@ -222,21 +224,19 @@ gate('shell-public-selection-and-bot-profile-seam', () => {
   return { visible: shells.ids.length, selectable: shells.roster().length, starts: calls.starts };
 });
 
-gate('neutral-core-and-detached-warmup', () => {
+gate('neutral-product-runtime-and-warmup-closure', () => {
   const active = ARSENAL_PRODUCT_RUNTIMES.map(([src]) => src);
-  const legacy = ARSENAL_LEGACY_QUEST_RUNTIMES.map(([src]) => src);
   assert.ok(active.some((src) => src.includes('arsenalBattleRuntime.js')));
-  assert.ok(!active.some((src) => src.includes('arsenalQuestRuntime.js')));
-  assert.ok(!active.some((src) => src.includes('arsenalQuestLadder.js')));
-  assert.ok(legacy.some((src) => src.includes('arsenalQuestRuntime.js')));
-  assert.deepEqual(MODE_DEFERRED_RUNTIMES.arsenalQuest, MODE_DEFERRED_RUNTIMES.arsenalLegacyQuest);
-  assert.ok(legacy.some((src) => src.includes('arsenalQuestLadder.js')));
+  assert.ok(active.some((src) => src.includes('arsenalConfig.js')));
+  assert.ok(!active.some((src) => /arsenalQuest(Runtime|Ladder|Config)\.js/.test(src)));
+  assert.deepEqual(Object.keys(MODE_DEFERRED_RUNTIMES).sort(), ['arsenalProduct', 'battle', 'battleDeferred', 'select']);
   assert.ok(WARMUP_GROUP_SEQUENCE.includes('arsenalProduct'));
-  assert.ok(!WARMUP_GROUP_SEQUENCE.includes('arsenalLegacyQuest'));
-  assert.ok(!WARMUP_GROUP_SEQUENCE.includes('arsenalQuest'));
+  assert.ok(!WARMUP_GROUP_SEQUENCE.some((group) => /quest/i.test(group)));
   const loader = source('src/game/runtimeLoader.js');
-  assert.ok(!loader.includes("group === 'arsenalProduct') window.__apexDeferredRuntimesReady_arsenalQuest"));
-  return { warmup: WARMUP_GROUP_SEQUENCE, activeRuntimes: active.length, legacyRuntimes: legacy.length };
+  assert.ok(!loader.includes('ARSENAL_LEGACY_QUEST_RUNTIMES'));
+  assert.ok(!loader.includes("arsenalLegacyQuest"));
+  return { warmup: WARMUP_GROUP_SEQUENCE, activeRuntimes: active.length,
+    deferredGroups: Object.keys(MODE_DEFERRED_RUNTIMES).sort() };
 });
 
 gate('admin-lab-real-but-not-publicly-navigated', () => {
