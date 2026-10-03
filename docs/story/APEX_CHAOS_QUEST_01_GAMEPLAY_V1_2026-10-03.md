@@ -1,3 +1,11 @@
+# SUPERSEDED — HISTORICAL WORKING NOTES ONLY
+
+> This file preserves the iterative design history of Quest 01. It is **not implementation authority**.
+>
+> Use `docs/story/APEX_CHAOS_QUEST_01_IMPLEMENTATION_AUTHORITY_V1_2026-10-03.md` for the current approved Quest 01 truth.
+
+---
+
 # APEX CHAOS — QUEST 01 GAMEPLAY v1
 ## THE ONES THROWN AWAY
 
