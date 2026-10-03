@@ -1,0 +1,43 @@
+{
+  "checkpoint": "G-R3 Mirror-vs-Mirror A2 receiver-only history continuity",
+  "result": "PASS",
+  "test": "tools/testMirrorPresentationR3A2ReceiverClosure.mjs",
+  "gates": {
+    "passed": 12,
+    "failed": 0,
+    "names": [
+      "MirrorA2Cast alone does not rebase or start receiver choreography",
+      "one-caster/one-receiver translates full rings once; receiver gets no A2 choreography",
+      "duplicate same-cast delivery is inert and does not move hHead or increment counters",
+      "Gold physical-key dedupe independently rejects reversed same exchange with a new castId",
+      "simultaneous casts canonicalize two coalesced notices to one unordered physical key",
+      "simultaneous physical exchange yields one rebase per Gold and one residue draw",
+      "staggered distinct PRE/POST exchange gets a second independent full-ring rebase",
+      "non-Mirror matchup installs exactly one Gold; cast event alone has no snap/rebase",
+      "death-before-snap emits no receiver rebase, authored snap, exchange or residue",
+      "teardown and invalid/stale physical event cannot trigger a late receiver rebase",
+      "Robot/Hunter/Crystala/Magnet/Frost keep one-Gold caster semantics unchanged",
+      "shipping adapter uses Gold physical-key history primitive without A2 choreography for receivers"
+    ]
+  },
+  "gold": {
+    "canonicalSha256": "c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205",
+    "generatedRuntimeSha256": "875e712d5be2017a7cab23b05eef036f51e756eb111267a259db62ddafedb30e",
+    "authority": "tools/bridgeMirrorGoldV1.mjs; Gold HTML unchanged"
+  },
+  "runtimeRevision": "20261002-mirror-v1-r28",
+  "proved": [
+    "real gameplay caster retains applyExternalExchange and exactly one authored snap",
+    "receiver-only Mirror synchronously rebases Gold history then syncs POST roots on the normal adapter tick",
+    "receiver-only event does not start A2, snap, residue, or caster choreography",
+    "simultaneous/coalesced MvM notices normalize to one unordered PRE/POST Gold key; Gold dedupes caster apply",
+    "changed castId and reversed participant order are independently rejected by Gold physical-key dedupe",
+    "a later distinct physical PRE/POST exchange rebases despite the same unordered actor pair",
+    "full Float32Array shift law holds and exchange methods leave hHead unchanged",
+    "death-before-snap, malformed/stale event, teardown, and non-Mirror opponent cases do not create receiver work"
+  ],
+  "nonClaims": [
+    "visual parity",
+    "Checkpoint H owner acceptance"
+  ]
+}
