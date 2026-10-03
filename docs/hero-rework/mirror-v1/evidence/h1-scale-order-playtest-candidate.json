@@ -1,0 +1,107 @@
+{
+  "checkpoint": "H1 Mirror body-scale calibration and A1 render-order candidate",
+  "status": "AUTOMATED H1 GATES PASS; OWNER PLAYTEST PENDING",
+  "date": "2026-10-03",
+  "branch": "arena/01a10020-apex-chaos",
+  "wipCommit": "5ddcce9bd8ddd2baf6267d838da223560deb8dba",
+  "acceptedParent": "59145731bb0ed6b225dfd9c30ca5d30b0888e4e5",
+  "runtimeRevision": "20261002-mirror-v1-r29",
+  "canonicalGold": {
+    "path": "docs/hero-rework/mirror-v1/gold/MIRROR_GOLD_FUSION_12.html",
+    "sha256": "c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205",
+    "generatedRuntimeUnchangedByBridge": true
+  },
+  "implementation": {
+    "bodyScaleLaw": "fighter.radius / GOLD_REF.MIRROR_R * 1.00",
+    "goldMirrorReferenceRadius": 34,
+    "fixtureFighterRadius": 75,
+    "fixtureBodyK": 2.2058823529411766,
+    "drawOrder": [
+      "live fighter bodies",
+      "A2 residue (Mirror silhouette scaled; opponent echo remains world-space)",
+      "real Arsenal held weapons",
+      "plate-clipped A1World"
+    ],
+    "unchangedGameplay": true,
+    "changedCanonicalGold": false
+  },
+  "productionWeaponArt": {
+    "PISTOL": { "wrapper": "97x61", "attachedA1ChangedPixels": 964 },
+    "AK_47": { "wrapper": "419x107", "attachedA1ChangedPixels": 709 },
+    "SHOTGUN": { "wrapper": "250x87", "attachedA1ChangedPixels": 1423 },
+    "source": "APEX_ARSENAL_AV.weaponImage(id) exact production Image and authored wrapper bounds"
+  },
+  "focusedGates": {
+    "h1ScaleAndOrder": "48/48",
+    "g2ActorA1": "PASS",
+    "g2A2Presentation": "PASS",
+    "r3ReceiverClosure": "12/12",
+    "g4ClosureAudit": "18/18",
+    "runtimeRevisionGate": "PASS revision=20261002-mirror-v1-r29 versionedRuntimes=40"
+  },
+  "requiredRegressionSet": {
+    "goldG1ExternalTruth": "PASS",
+    "goldR1SemanticBoundary": "42/42",
+    "presentationBridge": "PASS",
+    "r2RealSemanticMigration": "15/15",
+    "g3RealIntegration": "7/7",
+    "g3PassiveRoutingAdapter": "20/20",
+    "a1a2Gameplay": "38/38",
+    "a2Ordering": "2/2",
+    "f1PassiveFormation": "28/28",
+    "f2RoutingEscrow": "32/32",
+    "coreSixInterop": "19/19",
+    "orderedEventSupersession": "12/12",
+    "orderedProjectilePath": "15/15",
+    "heroReworkLocomotion": "4/4",
+    "magnetGameplay": "27/27",
+    "magnetContinuousField": "26/26",
+    "hunterPhysicalContact": "19/19",
+    "robotGameplay": "11/11"
+  },
+  "inheritedBroadRegression": {
+    "robotPresentation": {
+      "result": "18/28",
+      "baselineReds": [
+        "P-A1-lock-dash-single-dispatch-bus",
+        "P-A1-dash-1-sfx",
+        "P-A2-auto-hits-per-hit",
+        "P-passive-milestone-2-bus",
+        "P-passive-upgrade-1-bus-test-threshold",
+        "P-passive-milestone-2-sfx",
+        "P-passive-upgrade-1-sfx",
+        "P-passive-null-0-milestone",
+        "P-passive-null-0-upgrade",
+        "P-passive-null-0-sfx"
+      ]
+    },
+    "heroReworkGoldens": {
+      "result": "9/11",
+      "baselineReds": ["golden-crystal-reflect-ice-payload", "golden-rubber-stores-reflected"]
+    },
+    "frostV1": {
+      "result": "162/166 on isolated rerun",
+      "baselineReds": [
+        "F00.4-revision-lineage",
+        "F12.22-frost-battle-scale",
+        "F12.26-full-lifecycle-Gold-parity",
+        "F14.3-real-speed-history-seam-continuity"
+      ]
+    },
+    "crystalaGameplay": {
+      "result": "72/73",
+      "baselineReds": ["G07-anti-tunnelling-is-shared-geometry-not-robot-hunter-rewrites"]
+    },
+    "hunterOwnerFix": { "result": "10/11", "baselineReds": ["runtime-cache-bust"] }
+  },
+  "transientSuiteObservation": "One full Frost V1 run reported F05.8-trail-freezes as false; an isolated full rerun passed F05.8 and returned to the accepted 162/166 baseline result. No Frost production file was changed.",
+  "build": {
+    "sfxMaterialization": "PASS; 20 owner-approved files",
+    "assetManifestGeneration": "PASS; 705 assets",
+    "vite": "PASS; v5.4.21, 35 modules"
+  },
+  "limitations": {
+    "browserVisualOracle": "Not run: puppeteer-core and @sparticuz/chromium are unavailable in this workspace; no dependencies were installed.",
+    "ownerPlaytest": "Pending; this file records an H1 playtest candidate, not final visual acceptance."
+  }
+}

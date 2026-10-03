@@ -708,7 +708,7 @@ try {
     }
   }
 
-  console.log(`\n[MIRROR H1 SCALE/ORDER] ${checks}/${checks} focused gates passed; r28 remains a playtest candidate.`);
+  console.log(`\n[MIRROR H1 SCALE/ORDER] ${checks}/${checks} focused gates passed; r29 remains a playtest candidate.`);
   if (captureDir) console.log(`[MIRROR H1 SCALE/ORDER] rendered PNG captures: ${captureDir}`);
 } finally {
   crystalProbe = false;

@@ -25,7 +25,7 @@
     "generatedRuntimeSha256": "875e712d5be2017a7cab23b05eef036f51e756eb111267a259db62ddafedb30e",
     "authority": "tools/bridgeMirrorGoldV1.mjs; Gold HTML unchanged"
   },
-  "runtimeRevision": "20261002-mirror-v1-r28",
+  "runtimeRevision": "20261002-mirror-v1-r29",
   "proved": [
     "real gameplay caster retains applyExternalExchange and exactly one authored snap",
     "receiver-only Mirror synchronously rebases Gold history then syncs POST roots on the normal adapter tick",
