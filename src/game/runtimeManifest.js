@@ -192,7 +192,7 @@ export const MODE_DEFERRED_RUNTIMES = {
     ['/game/hero-rework/frostPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostPresentationRuntime'],
     // MAGNET V1 outermost actor/effect adapter (preserves prior post-world debts).
     ['/game/hero-rework/magnetPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetPresentationRuntime'],
-    // MIRROR G1B lifecycle/fixed-step bridge; drawing is added in the later G slices.
+    // MIRROR G1B lifecycle/fixed-step bridge; G2A/G2B add Gold actor and A1/A2 presentation.
     ['/game/hero-rework/mirrorPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMirrorPresentationRuntime'],
   ],
   select: SELECT_RUNTIMES,

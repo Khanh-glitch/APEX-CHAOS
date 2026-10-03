@@ -974,6 +974,31 @@ function renderRig(g) {
     ctx.restore();
   }
 
+  // Body-only wrapper used by Mirror's wrong-person reflection. It draws the
+  // live Robot rig at a caller-supplied world root without entering Fighter.draw,
+  // advancing Robot state, or duplicating status/world effects.
+  function renderActorImage(ctx, fighter, x, y) {
+    if (!ctx || !isRobotFighter(fighter)) return false;
+    const st = getRobotState(fighter);
+    if (!st) return false;
+    ensureSprites();
+    if (!SPR.ready) return false;
+    ctx.save();
+    try {
+      if (fighter.hasStatus && fighter.hasStatus('immune')) ctx.globalAlpha *= 0.55;
+      ctx.translate(Number.isFinite(x) ? x : fighter.x, Number.isFinite(y) ? y : fighter.y);
+      if (fighter.isRage) {
+        const glow = fighter.color || '#ffffff';
+        try { ctx.filter = `drop-shadow(0 0 5px ${glow}) drop-shadow(0 0 11px ${glow})`; } catch (error) {}
+      }
+      renderRobotLocal(ctx, fighter, st);
+    } finally {
+      if (fighter.isRage) { try { ctx.filter = 'none'; } catch (error) {} }
+      ctx.restore();
+    }
+    return true;
+  }
+
   // World-space: brackets, measure, trail with calibration ticks (authority)
   function renderRobotWorld(ctx, fighter, st) {
   for (const f of st.flashes) {
@@ -1641,6 +1666,7 @@ function renderRig(g) {
   globalScope.APEX_ROBOT_PRESENTATION = {
     ensureSprites,
     getRobotState,
+    renderActorImage,
     getRobotWeaponSocketWorld,
     playRobotSfx,
     loadRobotAudio,

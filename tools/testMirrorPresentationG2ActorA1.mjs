@@ -176,7 +176,7 @@ try {
 
   win.eval(fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js', 'utf8'));
   const bridge = win.APEX_MIRROR_PRESENTATION;
-  assert.equal(bridge.version, 'g2a-actor-a1-presentation');
+  assert.equal(bridge.version, 'g2b-actor-a1-a2-presentation');
   bus.emit('ReworkMatchInstall', { p1: 'MIRROR', p2: 'STALKER' });
   assert.equal(bridge.inspect().instanceCount, 1);
   const gold = goldInstances[0];
@@ -291,7 +291,7 @@ try {
   assert.match(arsenalQuestSource, /drawEquippedWeapons\(ctx\)/,
     'real Arsenal held-weapon foreground remains outside the Gold actor pass');
   assert.match(fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js', 'utf8'),
-    /state\.gold\.rigFull\(ctx, state\.gold\.M\.x, state\.gold\.M\.y\)/,
+    /state\.gold\.drawMirrorEntityWithOpponent\(ctx, state\.drawOpponentIdentity\)/,
     'Mirror actor uses the authored Gold body rig, not demo gameplay draw/update');
 
   bridge.dispose();

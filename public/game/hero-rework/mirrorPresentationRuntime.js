@@ -1,5 +1,5 @@
 /* =============================================================================
- * MIRROR G2A — Gold actor/A1 presentation on the G1B fixed-step bridge.
+ * MIRROR G2B — Gold actor/A1/A2 presentation on the G1B fixed-step bridge.
  *
  * APEX owns combatant identity, roots, velocity, events and match lifetime.
  * APEX_MIRROR_GOLD owns the isolated authored presentation instance. This
@@ -13,7 +13,7 @@
   const HR = g.APEX_HERO_REWORK;
   const AIL = g.APEX_HERO_REWORK_AIL;
   const GOLD = g.APEX_MIRROR_GOLD;
-  const VERSION = 'g2a-actor-a1-presentation';
+  const VERSION = 'g2b-actor-a1-a2-presentation';
   const STEP = 1 / 120;
   const MAX_SUBSTEPS = 8;
   const MAX_FRAME_DT = STEP * MAX_SUBSTEPS;
@@ -47,11 +47,15 @@
     return (0x4d495252 ^ Math.imul(((Number(ct.idx) || 0) + 1) >>> 0, 0x9e3779b1)) >>> 0 || 1;
   }
 
-  function rootAim(body, other) {
+  function rootAimAt(body, x, y, otherX, otherY) {
     const holder = body && body.data && body.data.arsenal;
     const authoredAim = holder && holder.meta && holder.meta.aimAngle;
     if (Number.isFinite(authoredAim)) return authoredAim;
-    return Math.atan2(other.y - body.y, other.x - body.x);
+    return Math.atan2(otherY - y, otherX - x);
+  }
+
+  function rootAim(body, other) {
+    return rootAimAt(body, body.x, body.y, other.x, other.y);
   }
 
   // Mutate one preallocated Gold root sample; never allocate per production
@@ -77,10 +81,86 @@
         + (external ? Number(external.x) || 0 : 0);
       sample.vy = (Number(motion.locomotionVy) || 0) + (Number(motion.engineForceVy) || 0)
         + (external ? Number(external.y) || 0 : 0);
-    } else {
+    } else if (dt > 0) {
       sample.vx = 0;
       sample.vy = 0;
     }
+    return true;
+  }
+
+  const IDENTITY_SURFACE_SIZE = 256;
+  const IDENTITY_SURFACE_CENTER = IDENTITY_SURFACE_SIZE / 2;
+
+  function ensureOpponentIdentitySurface(state) {
+    if (state.identitySurface) return true;
+    if (state.identitySurfaceAttempted || !g.document) return false;
+    state.identitySurfaceAttempted = true;
+    try {
+      const surface = g.document.createElement('canvas');
+      surface.width = IDENTITY_SURFACE_SIZE;
+      surface.height = IDENTITY_SURFACE_SIZE;
+      const context = surface.getContext('2d');
+      if (!context) { surface.width = surface.height = 0; return false; }
+      state.identitySurface = surface;
+      state.identityContext = context;
+      return true;
+    } catch (error) {
+      scheduler.errors++;
+      return false;
+    }
+  }
+
+  function refreshOpponentIdentitySurface(state) {
+    const opponent = state && state.opponent;
+    const fighter = opponent && opponent.anchor;
+    if (!fighter || !opponent || !ensureOpponentIdentitySurface(state)) return false;
+    const ctx = state.identityContext;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.filter = 'none';
+    ctx.clearRect(0, 0, IDENTITY_SURFACE_SIZE, IDENTITY_SURFACE_SIZE);
+
+    const robot = g.APEX_ROBOT_PRESENTATION;
+    const isRobot = opponent.heroId === 'ROBOT'
+      || !!(robot && typeof robot.isRobotFighter === 'function' && robot.isRobotFighter(fighter));
+    if (isRobot) {
+      if (!robot || typeof robot.renderActorImage !== 'function') return false;
+      try { return !!robot.renderActorImage(ctx, fighter, IDENTITY_SURFACE_CENTER, IDENTITY_SURFACE_CENTER); }
+      catch (error) { scheduler.errors++; return false; }
+    }
+    if (opponent.heroId === 'MIRROR') {
+      const mirrorState = instances.get(opponent);
+      if (!mirrorState || !mirrorState.gold) return false;
+      try {
+        if (fighter.hasStatus && fighter.hasStatus('immune')) ctx.globalAlpha = 0.55;
+        mirrorState.gold.rigFull(ctx, IDENTITY_SURFACE_CENTER, IDENTITY_SURFACE_CENTER);
+      } catch (error) { scheduler.errors++; return false; }
+      return true;
+    }
+    const type = fighter.type;
+    if (!type || typeof type.draw !== 'function') return false;
+    ctx.save();
+    try {
+      if (fighter.hasStatus && fighter.hasStatus('immune')) ctx.globalAlpha *= 0.55;
+      ctx.translate(IDENTITY_SURFACE_CENTER, IDENTITY_SURFACE_CENTER);
+      const dir = fighter.dir;
+      ctx.rotate(Math.atan2(Number(dir && dir.y) || 0, Number(dir && dir.x) || 1));
+      if (fighter.isRage) {
+        const glow = fighter.color || '#ffffff';
+        try { ctx.filter = `drop-shadow(0 0 5px ${glow}) drop-shadow(0 0 11px ${glow})`; } catch (error) {}
+      }
+      type.draw(ctx, fighter);
+      return true;
+    } catch (error) {
+      scheduler.errors++;
+      return false;
+    } finally { ctx.restore(); }
+  }
+
+  function drawOpponentIdentity(state, ctx, x, y) {
+    if (!state || !ctx || !state.identitySurface) return false;
+    ctx.drawImage(state.identitySurface, x - IDENTITY_SURFACE_CENTER, y - IDENTITY_SURFACE_CENTER);
     return true;
   }
 
@@ -95,11 +175,21 @@
     const state = {
       match, ct, opponent, gold: null, accumulator: 0, totalSteps: 0,
       droppedSeconds: 0, pendingExchange: null, exchangeEvents: 0,
+      recentExchangeCastIds: [null, null, null, null], recentExchangeWrite: 0,
       pendingA1Cast: null, pendingA1End: null, pendingA1Whiff: null,
       a1CastId: null, a1WeaponId: null, pendingWeaponImage: null,
       a1Whiff: false, weaponArtReady: false, weaponLookupAttempted: false,
-      realOwn: false, drawType: null,
+      realOwn: false, drawType: null, drawOpponentIdentity: null,
+      identitySurface: null, identityContext: null, identitySurfaceAttempted: false,
+      pendingA2Cast: null, pendingA2End: null, pendingA2Exchange: null,
+      a2CastId: null, a2NoSnap: false, a2ExchangeApplied: false, lastA2Exchange: null,
       mirrorSample: { id: mirrorBody.id, x: mirrorBody.x, y: mirrorBody.y, vx: 0, vy: 0, aim: 0 },
+      preMirrorSample: { id: mirrorBody.id, x: mirrorBody.x, y: mirrorBody.y, vx: 0, vy: 0, aim: 0 },
+      preOpponentSample: {
+        id: opponentBody.id, x: opponentBody.x, y: opponentBody.y,
+        vx: 0, vy: 0, aim: 0, armed: !!(opponentBody.data && opponentBody.data.arsenal
+          && opponentBody.data.arsenal.weaponId),
+      },
       opponentSample: {
         id: opponentBody.id, x: opponentBody.x, y: opponentBody.y,
         vx: 0, vy: 0, aim: 0, armed: !!(opponentBody.data && opponentBody.data.arsenal
@@ -110,6 +200,9 @@
         || !fillRootSample(state.opponentSample, opponentBody, mirrorBody, 0, null)) return null;
     state.opponentSample.armed = !!(opponentBody.data && opponentBody.data.arsenal
       && opponentBody.data.arsenal.weaponId);
+    state.drawOpponentIdentity = function drawActualOpponent(ctx, x, y) {
+      return drawOpponentIdentity(state, ctx, x, y);
+    };
     state.drawType = function drawGoldMirrorBody(ctx, fighter) {
       const angle = Math.atan2(Number(fighter.dir && fighter.dir.y) || 0,
         Number(fighter.dir && fighter.dir.x) || 1);
@@ -119,7 +212,10 @@
         // context. Return to world-space so Gold's authored rig stays upright.
         ctx.rotate(-angle);
         ctx.translate(-fighter.x, -fighter.y);
-        state.gold.rigFull(ctx, state.gold.M.x, state.gold.M.y);
+        const a2 = state.gold.A2;
+        if (a2 && a2.on && (a2.band > 0.002 || a2.ghostA > 0.01))
+          refreshOpponentIdentitySurface(state);
+        state.gold.drawMirrorEntityWithOpponent(ctx, state.drawOpponentIdentity);
       } finally { ctx.restore(); }
     };
     try {
@@ -144,6 +240,13 @@
   function destroyState(ct, state) {
     if (state && state.gold && state.gold.clearExternalTruth) {
       try { state.gold.clearExternalTruth(); } catch (error) { scheduler.errors++; }
+    }
+    if (state && state.identitySurface) {
+      try { state.identitySurface.width = state.identitySurface.height = 0; }
+      catch (error) { scheduler.errors++; }
+      state.identitySurface = null;
+      state.identityContext = null;
+      state.identitySurfaceAttempted = false;
     }
     instances.delete(ct);
     if (state) scheduler.destroyedInstances++;
@@ -278,9 +381,42 @@
     if (state) state.pendingA1End = payload;
   }
 
+  function stateForA2Cast(castId) {
+    if (castId == null) return null;
+    for (const state of instances.values()) if (state.a2CastId === castId) return state;
+    return null;
+  }
+
+  function onMirrorA2Cast(event) {
+    const payload = event && event.payload ? event.payload : event;
+    if (!payload || payload.castId == null) return;
+    const state = stateForCombatantIndex(payload.combatantIndex);
+    if (!state) return;
+    state.a2CastId = payload.castId;
+    state.pendingA2Cast = payload;
+    state.pendingA2End = null;
+    state.pendingA2Exchange = null;
+    state.a2NoSnap = false;
+    state.a2ExchangeApplied = false;
+    state.lastA2Exchange = null;
+  }
+
+  function onMirrorA2NoSnap(event) {
+    const payload = event && event.payload ? event.payload : event;
+    const state = payload && stateForA2Cast(payload.castId);
+    if (state) state.a2NoSnap = true;
+  }
+
+  function onMirrorA2End(event) {
+    const payload = event && event.payload ? event.payload : event;
+    const state = payload && stateForA2Cast(payload.castId);
+    if (state) state.pendingA2End = payload;
+  }
+
   function processPendingA1Start(state) {
     const cast = state.pendingA1Cast;
     if (cast) {
+      if (state.gold.A1.on || state.gold.A2.on) return false;
       state.pendingA1Cast = null;
       if (!state.gold.beginExternalA1(cast.castId, !!cast.whiff)) {
         state.a1CastId = null;
@@ -288,11 +424,12 @@
         state.realOwn = false;
         state.weaponArtReady = false;
         state.pendingA1Whiff = null;
-        return;
+        return false;
       }
     }
     if (state.pendingA1Whiff && state.gold.A1.on
         && state.gold.markExternalA1Whiff(state.pendingA1Whiff.castId)) state.pendingA1Whiff = null;
+    return true;
   }
 
   function processPendingA1End(state) {
@@ -311,30 +448,79 @@
     }
   }
 
+  function processPendingA2Start(state) {
+    const cast = state.pendingA2Cast;
+    if (!cast) return true;
+    if (state.gold.A1.on || state.gold.A2.on) return false;
+    state.pendingA2Cast = null;
+    if (state.gold.beginExternalA2(cast.castId)) return true;
+    state.a2CastId = null;
+    state.pendingA2End = null;
+    state.pendingA2Exchange = null;
+    state.a2NoSnap = false;
+    state.a2ExchangeApplied = false;
+    state.lastA2Exchange = null;
+    return false;
+  }
+
+  function processPendingA2End(state) {
+    const ending = state.pendingA2End;
+    if (!ending) return;
+    state.pendingA2End = null;
+    if (state.gold.endExternalA2(ending.castId)) {
+      state.a2CastId = null;
+      state.pendingA2Cast = null;
+      state.pendingA2Exchange = null;
+    }
+  }
+
+  function hasSeenExchangeCast(state, castId) {
+    if (castId == null) return false;
+    if (state.lastA2Exchange && state.lastA2Exchange.castId === castId) return true;
+    const recent = state.recentExchangeCastIds;
+    for (let i = 0; i < recent.length; i++) if (recent[i] === castId) return true;
+    recent[state.recentExchangeWrite] = castId;
+    state.recentExchangeWrite = (state.recentExchangeWrite + 1) % recent.length;
+    return false;
+  }
+
+  function invertExchangePerspective(event) {
+    const delta = event.delta;
+    return {
+      ...event,
+      self: event.opponent,
+      opponent: event.self,
+      delta: delta && { x: -delta.x, y: -delta.y },
+    };
+  }
+
   function onMirrorExchange(event) {
     const payload = event && event.payload ? event.payload : event;
     if (disposed || !payload || !payload.self || !payload.opponent
         || !payload.self.from || !payload.opponent.from) return;
     for (const state of instances.values()) {
       const id = state.ct && state.ct.anchor && state.ct.anchor.id;
-      if (id == null) continue;
+      if (id == null || hasSeenExchangeCast(state, payload.castId)) continue;
       if (payload.self.id === id) {
         state.pendingExchange = {
           mirrorFrom: payload.self.from,
           opponentFrom: payload.opponent.from,
         };
+        if (state.a2CastId === payload.castId) state.pendingA2Exchange = payload;
       } else if (payload.opponent.id === id) {
+        const perspective = invertExchangePerspective(payload);
         state.pendingExchange = {
-          mirrorFrom: payload.opponent.from,
-          opponentFrom: payload.self.from,
+          mirrorFrom: perspective.self.from,
+          opponentFrom: perspective.opponent.from,
         };
+        if (state.a2CastId === payload.castId) state.pendingA2Exchange = perspective;
       } else continue;
       state.exchangeEvents++;
       scheduler.exchangeEvents++;
     }
   }
 
-  function refreshRoots(state, dt) {
+  function sampleRoots(state, dt) {
     const mirrorBody = state.ct && state.ct.anchor;
     const opponentBody = state.opponent && state.opponent.anchor;
     const exchange = state.pendingExchange;
@@ -349,7 +535,54 @@
     }
     state.opponentSample.armed = !!(opponentBody.data && opponentBody.data.arsenal
       && opponentBody.data.arsenal.weaponId);
-    return state.gold.syncExternalTruth(state.mirrorSample, state.opponentSample);
+    return true;
+  }
+
+  function fillPreExchangeSamples(state, event) {
+    if (!event || !event.self || !event.opponent
+        || event.self.id !== state.mirrorSample.id
+        || event.opponent.id !== state.opponentSample.id
+        || !Number.isFinite(event.self.from && event.self.from.x)
+        || !Number.isFinite(event.self.from && event.self.from.y)
+        || !Number.isFinite(event.opponent.from && event.opponent.from.x)
+        || !Number.isFinite(event.opponent.from && event.opponent.from.y)) return false;
+    const mirror = state.preMirrorSample, opponent = state.preOpponentSample;
+    mirror.id = state.mirrorSample.id;
+    mirror.x = event.self.from.x; mirror.y = event.self.from.y;
+    mirror.vx = state.mirrorSample.vx; mirror.vy = state.mirrorSample.vy;
+    mirror.aim = rootAimAt(state.ct.anchor, mirror.x, mirror.y, event.opponent.from.x, event.opponent.from.y);
+    opponent.id = state.opponentSample.id;
+    opponent.x = event.opponent.from.x; opponent.y = event.opponent.from.y;
+    opponent.vx = state.opponentSample.vx; opponent.vy = state.opponentSample.vy;
+    opponent.aim = rootAimAt(state.opponent.anchor, opponent.x, opponent.y, event.self.from.x, event.self.from.y);
+    opponent.armed = state.opponentSample.armed;
+    return true;
+  }
+
+  function syncRootsAndExchange(state, dt) {
+    if (!sampleRoots(state, dt)) return false;
+    const exchange = state.pendingA2Exchange;
+    if (exchange && state.a2CastId === exchange.castId) {
+      if (state.pendingA1End) processPendingA1End(state);
+      if (!fillPreExchangeSamples(state, exchange)
+          || !state.gold.syncExternalTruth(state.preMirrorSample, state.preOpponentSample)) {
+        state.pendingA2Exchange = null;
+        return state.gold.syncExternalTruth(state.mirrorSample, state.opponentSample);
+      }
+      if (!processPendingA2Start(state)) {
+        state.gold.syncExternalTruth(state.mirrorSample, state.opponentSample);
+        return true;
+      }
+      state.pendingA2Exchange = null;
+      if (state.gold.applyExternalExchange(exchange, state.mirrorSample, state.opponentSample)) {
+        state.a2ExchangeApplied = true;
+        state.lastA2Exchange = exchange;
+        return true;
+      }
+      return state.gold.syncExternalTruth(state.mirrorSample, state.opponentSample);
+    }
+    if (!state.gold.syncExternalTruth(state.mirrorSample, state.opponentSample)) return false;
+    return true;
   }
 
   function tick(dt) {
@@ -366,11 +599,15 @@
     let advanced = false;
 
     for (const state of instances.values()) {
-      if (!refreshRoots(state, validDt ? dt : 0)) continue;
+      if (!syncRootsAndExchange(state, validDt ? dt : 0)) continue;
       if (!state.a1Whiff && state.a1WeaponId) resolveA1WeaponArt(state);
       processPendingA1Start(state);
+      processPendingA2Start(state);
       if (frameDt <= 0) {
         processPendingA1End(state);
+        processPendingA2End(state);
+        processPendingA1Start(state);
+        processPendingA2Start(state);
         continue;
       }
       state.accumulator += frameDt;
@@ -396,8 +633,27 @@
         scheduler.droppedSeconds += dropped;
       }
       processPendingA1End(state);
+      processPendingA2End(state);
+      processPendingA1Start(state);
+      processPendingA2Start(state);
     }
     return advanced;
+  }
+
+  function sameExchangePair(a, b) {
+    return !!(a && b && a.self && a.opponent && b.self && b.opponent
+      && a.self.id === b.opponent.id && a.opponent.id === b.self.id
+      && a.self.from && a.opponent.from && b.self.from && b.opponent.from
+      && a.self.from.x === b.opponent.from.x && a.self.from.y === b.opponent.from.y
+      && a.opponent.from.x === b.self.from.x && a.opponent.from.y === b.self.from.y);
+  }
+
+  function ownsA2Residue(state) {
+    const other = state.opponent && instances.get(state.opponent);
+    if (!state.a2ExchangeApplied || !state.lastA2Exchange || !other
+        || !other.a2ExchangeApplied || !other.lastA2Exchange || !(other.gold.A2.res > 0)) return true;
+    if (!sameExchangePair(state.lastA2Exchange, other.lastA2Exchange)) return true;
+    return state.ct.idx < other.ct.idx;
   }
 
   function renderArenaWorldEffects(ctx, provenance) {
@@ -405,6 +661,7 @@
     for (const state of instances.values()) {
       if (state.a1CastId != null && state.weaponArtReady && !state.a1Whiff && !state.realOwn)
         state.gold.drawA1World(ctx);
+      if (state.gold.A2.res > 0 && ownsA2Residue(state)) state.gold.drawResidue(ctx);
     }
     return true;
   }
@@ -447,6 +704,9 @@
         a1Whiff: state.a1Whiff,
         realOwn: state.realOwn,
         weaponArtReady: state.weaponArtReady,
+        a2CastId: state.a2CastId,
+        a2NoSnap: state.a2NoSnap,
+        a2ExchangeApplied: state.a2ExchangeApplied,
         external: state.gold.externalAudit(),
       });
     }
@@ -487,6 +747,9 @@
     unsubscribers.push(AIL.bus.on('MirrorA1Own', onMirrorA1Own));
     unsubscribers.push(AIL.bus.on('MirrorA1Whiff', onMirrorA1Whiff));
     unsubscribers.push(AIL.bus.on('MirrorA1End', onMirrorA1End));
+    unsubscribers.push(AIL.bus.on('MirrorA2Cast', onMirrorA2Cast));
+    unsubscribers.push(AIL.bus.on('MirrorA2NoSnap', onMirrorA2NoSnap));
+    unsubscribers.push(AIL.bus.on('MirrorA2End', onMirrorA2End));
     // The exchange is a coordinate teleport, not a velocity impulse. Retain
     // its PRE-SWAP movement samples so the next post-tick binds honest velocity.
     unsubscribers.push(AIL.bus.on('MirrorExchange', onMirrorExchange));

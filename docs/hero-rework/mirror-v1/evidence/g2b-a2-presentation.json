@@ -1,0 +1,56 @@
+{
+  "suite": "mirror-presentation-g2b-a2",
+  "canonicalGoldSha256": "c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205",
+  "passed": true,
+  "checks": [
+    "gold-bound-external-truth-and-applyExchange-false",
+    "gold-a2-adapter-draw-reuses-prebound-callbacks",
+    "Robot-product-alias-uses-body-only-identity-renderer",
+    "bounded-lazy-opponent-identity-snapshot-no-per-frame-canvas-image",
+    "wrong-person-draw-has-zero-gameplay-mutation-and-no-recursive-effects",
+    "no-snap-end-closes-cleanly-without-snap-exchange-or-residue",
+    "pre-post-roots-exact-once-snap-and-history-rebase-duplicate-protection",
+    "real-end-cleans-action-and-retains-world-residue",
+    "post-swap-root-and-honest-velocity-sampling",
+    "mirror-versus-mirror-perspective-identity-resource-and-residue-bounds"
+  ],
+  "results": {
+    "identity": {
+      "renderer": "Robot body-only renderActorImage",
+      "canvasesForOneMirror": 1,
+      "imagesCreatedDuringReuse": 0,
+      "robotImageDrawCalls": 12,
+      "genericOpponentDrawCalls": 1,
+      "identityBlits": 39,
+      "mirrorActorDrawCalls": 13,
+      "opponentFullDrawCalls": 0
+    },
+    "exchange": {
+      "snapsForNoSnapCast": 0,
+      "successfulSnaps": 2,
+      "uniqueExchanges": 2,
+      "historyRebasesForFirstSnap": 1,
+      "velocityMirror": {
+        "vx": 360,
+        "vy": 360
+      },
+      "velocityOpponent": {
+        "vx": -360,
+        "vy": 480
+      },
+      "residueAfterEnd": true
+    },
+    "mirrorVersusMirror": {
+      "independentInstances": 2,
+      "snapsPerInstance": [
+        1,
+        1
+      ],
+      "identitySurfaces": 2,
+      "residueDraws": [
+        1,
+        0
+      ]
+    }
+  }
+}

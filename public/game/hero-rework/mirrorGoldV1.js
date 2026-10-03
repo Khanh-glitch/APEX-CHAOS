@@ -1276,6 +1276,30 @@ function createMirrorInstance(options) {
     __externalExchanges++;
     return true;
   }
+  let __mirrorEntityDrawContext = null, __mirrorEntityOpponentDraw = null;
+  function drawCurrentMirrorBody() {
+    if (__mirrorEntityDrawContext) rigFull(__mirrorEntityDrawContext, M.x, M.y);
+  }
+  function drawCurrentOpponentBody(alpha) {
+    const ctx = __mirrorEntityDrawContext, drawOpponent = __mirrorEntityOpponentDraw;
+    if (!ctx || typeof drawOpponent !== 'function') return;
+    ctx.save();
+    try { ctx.globalAlpha *= alpha; drawOpponent(ctx, M.x, M.y); }
+    finally { ctx.restore(); }
+  }
+  function drawMirrorEntityWithOpponent(g, drawOpponent) {
+    if (A2.on && (A2.band > .002 || A2.ghostA > .01)) {
+      __mirrorEntityDrawContext = g;
+      __mirrorEntityOpponentDraw = drawOpponent;
+      try {
+        drawSite(g, M.x, M.y, A2.band, A2.ghostA, A2.tear, A2.ang, 72,
+          drawCurrentMirrorBody, drawCurrentOpponentBody);
+      } finally {
+        __mirrorEntityDrawContext = null;
+        __mirrorEntityOpponentDraw = null;
+      }
+    } else rigFull(g, M.x, M.y);
+  }
   function beginExternalA1(castId, whiff) {
     if (!__externalTruth || castId == null || A1.on || A2.on) return false;
     __externalA1CastId = castId; castA1(!!whiff); return A1.on;
@@ -1348,7 +1372,7 @@ function createMirrorInstance(options) {
     // D3 authored choreography (reports edges; performs no gameplay)
     castA1, stepA1, castA2, stepA2, a2Snap: () => __externalTruth ? false : a2Snap(), a1Frame, sliceState, holdPos,
     drawA1World, drawSite, drawHalf, clipHalf, strips, drawResidue, drawPlate,
-    rigFull, drawHeld, drawMirrorEntity, drawFoeEntity, drawCracks, drawHistoryCore,
+    rigFull, drawHeld, drawMirrorEntity, drawMirrorEntityWithOpponent, drawFoeEntity, drawCracks, drawHistoryCore,
     foeReal, foeMV,
     get A1() { return A1; }, get A2() { return A2; },
     on, off,
