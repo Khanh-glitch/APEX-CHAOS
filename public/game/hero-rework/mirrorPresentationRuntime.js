@@ -138,6 +138,22 @@
       } catch (error) { scheduler.errors++; return false; }
       return true;
     }
+    // Finalized custom actors bypass their engine type.draw in production.
+    // Invoke their explicit body-only seam at a translated snapshot root;
+    // never recurse through Fighter.draw or run world/status layers.
+    const presentation = opponent.heroId === 'HUNTER' ? g.APEX_HUNTER_PRESENTATION
+      : opponent.heroId === 'CRYSTAL' ? g.APEX_CRYSTALA_PRESENTATION
+      : opponent.heroId === 'ICE' ? g.APEX_FROST_PRESENTATION
+      : opponent.heroId === 'MAGNET' ? g.APEX_MAGNET_PRESENTATION : null;
+    const identityDraw = presentation && (presentation.renderIdentityBody || presentation.renderBody);
+    if (typeof identityDraw === 'function') {
+      ctx.save();
+      try {
+        ctx.translate(IDENTITY_SURFACE_CENTER - fighter.x, IDENTITY_SURFACE_CENTER - fighter.y);
+        return identityDraw.call(presentation, ctx, fighter) !== false;
+      } catch (error) { scheduler.errors++; return false; }
+      finally { ctx.restore(); }
+    }
     const type = fighter.type;
     if (!type || typeof type.draw !== 'function') return false;
     ctx.save();

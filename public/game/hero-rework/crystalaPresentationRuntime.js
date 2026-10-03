@@ -561,6 +561,17 @@
     },
     getBloom,
     renderBody: body,
+    renderIdentityBody(ctx, f) {
+      const st = getPresentationState(f);
+      if (!st.rig) return false;
+      st.rig.setBody(f.x, f.y, f.vx || 0, f.vy || 0);
+      ctx.save();
+      try {
+        ctx.globalAlpha = f.hasStatus && f.hasStatus('immune') ? 0.55 : 1;
+        GOLD.drawCrystala(ctx, st.rig.hero, false, 1);
+      } finally { ctx.restore(); }
+      return true;
+    },
     renderStatusVfx: drawGenericStatusVfx,
     renderWorldConstructsAndFx,
     runBloomPass,

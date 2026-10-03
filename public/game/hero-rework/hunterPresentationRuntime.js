@@ -89,6 +89,10 @@ function layer(c,which){if(!api.ready||!HR.match)return;for(const t of HR.match.
 function weakLayer(c){if(!api.ready||!HR.match)return;for(const ct of HR.match.combatants){if(ct.heroId!=='HUNTER')continue;const s=states.get(ct.anchor);if(!s||(s.p.weak||0)<=0)continue;c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.drawWeak(c);c.restore();}}
 const baseProjectiles=g.drawProjectiles;g.drawProjectiles=function(c){baseProjectiles(c);layer(c,'back');for(const ct of HR.match?.combatants||[])if(ct.heroId==='HUNTER'&&api.ready){const s=state(ct.anchor);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.fx.draw(c,false);c.restore();}};
 function postWorld(c){layer(c,'front');weakLayer(c);for(const ct of HR.match?.combatants||[])if(ct.heroId==='HUNTER'&&api.ready){const s=state(ct.anchor);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.fx.draw(c,true);c.restore();}layer(c,'fx');}
+// Side-effect-free body seam for Mirror's wrong-person identity snapshot.
+// It deliberately excludes trap/world/status dispatch and Fighter.draw.
+api.renderBody=body;
+api.renderIdentityBody=actorCore;
 api.renderPostWorld=postWorld;
 const baseDraw=g.Fighter.prototype.draw;g.Fighter.prototype.draw=function(c){if(hunter(this)){if(api.ready&&this.hp>0)body(c,this);else if(!api.ready){c.save();c.fillStyle='#c8ff5e';c.font='12px monospace';c.fillText(api.error?'HUNTER ASSET ERROR':'LOADING HUNTER',this.x-65,this.y);c.restore();}}else baseDraw.call(this,c);if(this===g.fighters?.[g.fighters.length-1]||this===g.fighters?.[1])postWorld(c);};
 // Owner SFX semantics: event edges own playback; single dispatch layer.

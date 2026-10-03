@@ -147,7 +147,7 @@ try {
   const goldIndex = manifestSource.indexOf('/game/hero-rework/mirrorGoldV1.js');
   const adapterIndex = manifestSource.indexOf('/game/hero-rework/mirrorPresentationRuntime.js');
   assert.ok(goldIndex >= 0 && adapterIndex > goldIndex, 'Gold loads before its production adapter');
-  assert.match(manifestSource, /20261002-mirror-v1-r26/,
+  assert.match(manifestSource, /20261002-mirror-v1-r27/,
     'G1B preserves the current r26 runtime lock');
   assert.doesNotMatch(adapterSource, /requestAnimationFrame|setInterval|stepMirror\s*\(/,
     'the bridge owns neither an independent clock nor Gold demo gameplay');

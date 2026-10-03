@@ -420,6 +420,17 @@
     };
   }
 
+  function renderIdentityBody(ctx, fighter) {
+    const ct = combatantForMagnet(fighter);
+    if (!ct || !GOLD.ready) return false;
+    ctx.save();
+    try {
+      ctx.globalAlpha = fighter.hasStatus && fighter.hasStatus('immune') ? 0.55 : 1;
+      GOLD.drawActor(ctx, ct);
+    } finally { ctx.restore(); }
+    return true;
+  }
+
   subscribe();
   installDraw();
   installLifecycle();
@@ -428,6 +439,7 @@
     capturePreMovement,
     tick,
     renderArenaDistortion,
+    renderIdentityBody,
     teardown,
     inspect,
   };

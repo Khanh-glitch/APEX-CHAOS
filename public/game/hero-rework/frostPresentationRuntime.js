@@ -1692,6 +1692,24 @@ function drawFrostBody(ctx, f, S) {
   drawStatusRings(ctx, f);
 }
 
+// Body-only identity seam for Mirror snapshots: no breath, floor, status,
+// world effects, state advancement, or Fighter.draw recursion.
+function drawFrostIdentity(ctx, f) {
+  const S = liveStates.get(f);
+  if (!S || !S.engine || !S.engine.ready) return false;
+  const px = pxFromCtx(ctx);
+  ctx.save();
+  try {
+    if (f.hasStatus && f.hasStatus('immune')) ctx.globalAlpha *= 0.55;
+    ctx.translate(f.x, f.y);
+    ctx.scale(S.kBody, S.kBody);
+    ctx.translate(-f.x, -f.y);
+    S.engine.drawFrost(ctx, px);
+  } finally { ctx.restore(); }
+  return true;
+}
+api.renderIdentityBody = drawFrostIdentity;
+
 function drawStatusRings(ctx, f) {
   const TAU = g.TAU || Math.PI * 2;
   ctx.save();
