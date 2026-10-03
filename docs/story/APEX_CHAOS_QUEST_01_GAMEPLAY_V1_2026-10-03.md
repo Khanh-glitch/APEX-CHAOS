@@ -456,4 +456,421 @@ However, the intended combat identities are fixed:
 
 ---
 
+
+
+# 19. IMPLEMENTATION-READY PASS A — FIRST THREE ENCOUNTERS
+
+This section locks the first-pass playable specification for REFLEX, FIRST WAKE and SCRAP SWARM against the current Arsenal baseline.
+
+Current Arsenal baseline used by this pass:
+- MATCH_HP = 1000;
+- ARSENAL_DAMAGE_SCALE = 7;
+- normal offensive spawn cadence = 4.5s;
+- normal offensive active cap = 5;
+- emergency-firearm behavior remains part of the core;
+- firearm crit and canonical weapon behavior remain unchanged.
+
+The values below are **playtest tuning authority v1**, not immutable lore canon.
+
+---
+
+## 19.1 ENCOUNTER 01 — REFLEX
+
+### Purpose
+
+The player must finish REFLEX understanding:
+- Drops are contested;
+- NEWBOT's body already understands acquisition/combat;
+- BOT is not an evil tutorial enemy;
+- J and K are NEWBOT's direct intervention tools;
+- normal Arsenal combat can continue without further hand-holding.
+
+### Participants
+
+- Player: NEWBOT — 1000 HP.
+- Opponent: BOT — 1000 HP.
+- No third combatant.
+- No Virus state.
+
+### Opening spawn script
+
+Normal offensive cadence is held until the two authored opening Drops are complete.
+
+#### DROP R1
+- weapon: PISTOL;
+- authored position favors NEWBOT strongly enough that NEWBOT reaches it first;
+- NEWBOT acquisition is automatic;
+- the first valid attack discharge is allowed;
+- after the first confirmed hit on BOT, the battle enters a short story hold.
+
+During the hold:
+- damage simulation pauses;
+- projectiles are resolved/cleared safely;
+- NEWBOT looks at BOT;
+- apology dialogue occurs;
+- no result state is created.
+
+#### DROP R2
+- weapon: PISTOL;
+- authored position is immediately favorable to BOT;
+- BOT acquires it;
+- BOT's first confirmed hit on NEWBOT ends the story hold and starts the real combat tutorial.
+
+After R2:
+- normal 4.5s offensive cadence resumes;
+- active offensive cap returns/remains 5;
+- emergency-firearm behavior resumes.
+
+### Introductory weapon pool
+
+REFLEX should use a deliberately readable subset rather than expose the entire Arsenal at once:
+
+- PISTOL
+- GLOCK_17
+- SMG
+- SHOTGUN
+- DAGGER
+- SABRE
+
+Excluded for this encounter:
+- Stormbreaker;
+- grenade;
+- shields;
+- precision rifles;
+- high-volume/advanced firearms;
+- heals.
+
+This restriction belongs only to REFLEX and exists to prevent the first battle from becoming a weapon encyclopedia.
+
+### Skill reveal
+
+#### A1 / J
+Reveal only after:
+- BOT has retaliated;
+- NEWBOT has taken at least one confirmed damage transaction;
+- at least one normal combat beat has occurred.
+
+Player-facing cue:
+**UNKNOWN ROUTINE — J**
+
+After the first successful use, replace UNKNOWN ROUTINE with the canonical A1 name/skill UI.
+
+#### A2 / K
+Reveal only after:
+- A1 has been activated once;
+- combat has continued for a short additional beat.
+
+After first use, reveal the canonical A2 identity.
+
+No further tutorial prompts are allowed.
+
+### HP / ending law
+
+The authored ending target remains:
+> both NEWBOT and BOT below 500 HP.
+
+Safety:
+- neither character may canonically die in REFLEX;
+- use a hidden story floor sufficiently below the 500 trigger so ordinary damage still reads honestly;
+- recommended first-pass floor: 250 HP;
+- if an extreme burst would cross the floor, clamp the story actor instead of entering KO;
+- as soon as both fighters are <=500 HP, stop scheduling new attacks and fire BOT2's Stormbreaker interruption.
+
+If one fighter reaches the story floor while the other has not yet reached 500, continue only long enough to obtain the second threshold; this condition must be telemetry-visible because repeated occurrence means the tuning is bad and should be fixed rather than relying on the clamp.
+
+### Failure / retry
+
+REFLEX has no canonical loss.
+
+The player can fail input timing, miss skill opportunities or take heavy damage, but the story proceeds to BOT2 interruption.
+
+### Target duration
+
+Approximately 2.5–4 minutes including authored pauses.
+
+---
+
+## 19.2 ENCOUNTER 02 — FIRST WAKE
+
+### Story setup
+
+After the workshop sequence, two nearby discarded Bots activate unexpectedly.
+
+This is the first evidence that NEWBOT/BOT waking was not an isolated event.
+
+The three protagonists do not know why.
+
+BOT2 remains near the workshop/Stormbreaker system rather than becoming a normal combatant.
+
+### Format
+
+**NEWBOT + BOT vs 2 SCRAP BOTS**
+
+This is the player's first allied Arsenal encounter.
+
+### Player side
+
+- NEWBOT: 1000 HP.
+- BOT: 1000 HP after BOT2's immediate repairs.
+
+BOT is AI-controlled but uses the same legal acquisition/weapon system.
+
+BOT must never receive hidden damage bonuses merely because it is an ally.
+
+### Enemy side
+
+Two lightweight Scrap Bots:
+
+- SCRAP-A: 350 HP.
+- SCRAP-B: 350 HP.
+- normal incoming Arsenal damage;
+- normal weapon damage when attacking;
+- no bespoke skills;
+- no shields at spawn;
+- no stat inflation.
+
+Design identity:
+> fragile opponents with full-danger weapons.
+
+Their low HP, not weak guns, makes the fight readable.
+
+### Spawn law
+
+Keep core identity:
+- cadence: 4.5s;
+- offensive cap: 5.
+
+At battle start only:
+- author two separated question-mark telegraphs, one on each side of the central fight space;
+- after those initial opportunities, immediately return to normal spawn director behavior.
+
+This creates the first visual of four machines redirecting around shared Drops without turning the encounter into Weapon Rain.
+
+### Weapon pool
+
+Open the pool wider than REFLEX but still exclude exceptional/red-tier equipment.
+
+Allowed:
+- all ordinary firearms;
+- grenade;
+- standard held/thrown melee;
+- shields.
+
+Excluded:
+- Stormbreaker.
+
+Heal support:
+- enabled under the normal <=800 HP rule;
+- no special free heal;
+- no enemy-specific heal prohibition.
+
+### Multi-combat pickup law
+
+All four living combatants are valid pickup actors.
+
+A pickup is still taken by the first eligible living unarmed actor that reaches it.
+
+No item duplication per team.
+
+No reserved “player weapon” unless the existing counter-shield law creates a legitimate reservation.
+
+### Targeting law
+
+Each actor belongs to a side.
+
+- NEWBOT/BOT target living hostile Scrap Bots.
+- Scrap Bots target living NEWBOT/BOT.
+- Target selection may prefer the closest/current threat but cannot create friendly fire intent.
+- Arsenal projectile/area effects may still create normal emergent battlefield interactions if already canonical.
+
+### Emergency firearm extension
+
+Do not change the global Free Battle law.
+
+For this Story encounter, the Story Director asks the existing spawn API for one immediate firearm when:
+- at least one living actor exists on each side;
+- no living combatant holds a firearm;
+- no revealed firearm pickup exists;
+- offensive cap has room.
+
+The request must obey cap and must not per-frame spam.
+
+This is the multi-combat generalization of the current two-fighter emergency intent, not a new weapon economy.
+
+### Win condition
+
+Both Scrap Bots reach KO.
+
+NEWBOT and BOT may not both be KO.
+
+If NEWBOT KOs, retry from encounter checkpoint.
+
+If BOT KOs first while NEWBOT survives:
+- do not instant-fail;
+- NEWBOT may finish the fight;
+- story afterward treats BOT as badly damaged and BOT2 repairs it.
+
+This keeps ally behavior from creating unfair retries.
+
+### Story beats during combat
+
+Only 2–3 lines.
+
+Suggested sequence:
+1. BOT2: surprise that those units were inert.
+2. BOT notices they are heading for Drops, not simply charging NEWBOT.
+3. After victory, BOT2 states that two spontaneous reactivations at once are unusual.
+
+No one uses the word **Virus**.
+
+### Target duration
+
+Approximately 1.5–3 minutes.
+
+---
+
+## 19.3 ENCOUNTER 03 — SCRAP SWARM
+
+### Story setup
+
+Shortly after FIRST WAKE, sensors/noise from deeper in the basin show additional movement.
+
+BOT is temporarily kept at the workshop:
+- repair/calibration;
+- or monitoring another approach.
+
+This creates a natural reason for NEWBOT to face the next event alone.
+
+BOT and BOT2 remain available through dialogue.
+
+### Core identity
+
+**NEWBOT vs many low-HP Scrap Bots.**
+
+The challenge is not one strong opponent.
+
+It is:
+> many independent actors able to steal different weapon opportunities.
+
+Do not increase weapon spawn speed here.
+
+Weapon Rain needs to remain a distinct later encounter.
+
+### Wave structure
+
+#### WAVE 1
+- 3 Scrap Bots.
+- 280 HP each.
+- Spawn from three separated inactive scrap positions.
+- They activate within a tight stagger rather than on the same exact frame.
+
+#### Inter-wave beat
+- maximum ~4–6 seconds;
+- clear dead actors/projectile leftovers correctly;
+- do not reset NEWBOT HP;
+- do not reset NEWBOT skill cooldowns;
+- Arsenal floor pickups remain unless unsafe for transition.
+
+#### WAVE 2
+- 4 Scrap Bots.
+- 220 HP each.
+- Enter from four separated positions.
+- Two may wake first, followed by two more roughly 1–2 seconds later to avoid unreadable instant clutter.
+
+No Wave 3 in v1.
+
+If playtest shows the encounter is too short, adjust HP/count only after telemetry review rather than automatically adding endless waves.
+
+### NEWBOT state
+
+- starts at 1000 HP;
+- persistent HP between Wave 1 and Wave 2;
+- normal J/K;
+- normal passive;
+- no story invulnerability.
+
+Normal KO = retry SCRAP SWARM.
+
+### Enemy behavior
+
+Every Scrap Bot:
+- can move/acquire normally;
+- can pick one normal Arsenal item while eligible;
+- can attack NEWBOT with canonical equipment behavior;
+- has no hero A1/A2;
+- has no passive;
+- uses no hidden damage reduction.
+
+Acquisition emphasis:
+- path/decision weight toward revealed offensive pickups should be high;
+- aggression toward NEWBOT must not completely override pickup behavior.
+
+Desired visual:
+> a Drop appears and several weak Bots instantly redirect toward it.
+
+### Spawn law
+
+- offensive cadence: **4.5s unchanged**;
+- offensive active cap: **5 unchanged**;
+- ordinary spawn selection;
+- Stormbreaker excluded.
+
+At the start of each wave:
+- one authored telegraph may already be pending to prevent a dead opening;
+- after that, normal cadence only.
+
+### Heal law
+
+Normal heal support remains enabled for NEWBOT.
+
+Scrap Bots may interact with heal pickups only if the shared pickup system supports it cleanly and predictably.
+
+If multi-actor heal ownership creates implementation instability, the v1 fallback is:
+- only NEWBOT is heal-eligible in SCRAP SWARM;
+- document this explicitly as a Story encounter constraint;
+- do not alter Free Battle heal rules.
+
+### Win condition
+
+All Wave 2 hostile actors are KO.
+
+### Dialogue law
+
+Dialogue must never compete with combat readability.
+
+Maximum 4 short exchanges for the full encounter.
+
+Suggested emotional purpose:
+- BOT initially jokes from the workshop.
+- Tone shifts after Wave 2 begins because too many units are waking.
+- BOT2 stops treating the event as coincidence.
+
+Final line direction:
+> “Ba lần liên tiếp không còn là ngẫu nhiên nữa.”
+
+Do not identify the cause yet.
+
+### Target duration
+
+Approximately 2.5–4 minutes.
+
+---
+
+## 19.4 FIRST-THREE-ENCOUNTER PACING CHECK
+
+Expected first-session playable rhythm:
+
+1. **REFLEX** — confused, intimate, 1v1.
+2. **FIRST WAKE** — relief of fighting beside BOT; first external threat.
+3. **SCRAP SWARM** — NEWBOT alone under numerical pressure; mystery escalates.
+
+The player should reach the end of SCRAP SWARM with three beliefs:
+- NEWBOT and BOT are becoming allies;
+- the Scrap Basin is waking up around them;
+- the Arsenal rules are still stable **for now**.
+
+That last point is important because the following encounter, WEAPON RAIN, only works if the player has already learned what “normal” spawning feels like.
+
+---
+
 **END — QUEST 01 GAMEPLAY v1**
