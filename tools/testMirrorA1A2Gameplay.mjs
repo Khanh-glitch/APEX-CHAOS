@@ -276,7 +276,7 @@ try {
   const o = start();
   HR.pressAbility(o.a, 'A2');
   T.step(0.1, DT);
-  win.exitArsenalQuestMode();
+  win.exitArsenalBattleMode();
   const o2 = start();
   const ax = o2.a.x, bx = o2.b.x;
   T.step(1.0, DT);

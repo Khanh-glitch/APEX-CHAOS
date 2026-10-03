@@ -1046,7 +1046,7 @@ try {
       ricochetsLeft: t0.ricochetsLeft, vx: t0.vx });
 } catch (e) { gate('F2-crystal-thrown-mirror-earlier-wins', false, String(e)); }
 
-if (HR.match) win.exitArsenalQuestMode();
+if (HR.match) win.exitArsenalBattleMode();
 
 fs.mkdirSync('docs/hero-rework/mirror-v1/evidence', { recursive: true });
 fs.writeFileSync('docs/hero-rework/mirror-v1/evidence/f2-routing-escrow.json',

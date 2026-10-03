@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES } from '../src/game/runtimeManifest.js';
+import { installProductSurfaceAuthority } from '../src/game/productSurface.js';
 
 const REPO = process.cwd();
 const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules');
@@ -24,6 +25,8 @@ const dom = new JSDOM(`<!doctype html><html><body>
 </body></html>`, { pretendToBeVisual: true, runScripts: 'dangerously', url: 'http://localhost/' });
 
 const win = dom.window;
+installProductSurfaceAuthority(win);
+win.__APEX_TEST_MODE = true;
 win.__apexStatsSilent = true;
 win.Path2D = CanvasPath2D;
 global.Path2D = CanvasPath2D;
@@ -116,19 +119,19 @@ function loadScript(relPath, required) {
 loadScript('/apexEngine.js', true);
 const loaded = new Set();
 for (const [src] of BOOT_GAME_RUNTIMES) { loaded.add(String(src).split(/[?#]/,1)[0]); loadScript(src, false); }
-for (const [src] of MODE_DEFERRED_RUNTIMES.arsenalQuest) {
+for (const [src] of MODE_DEFERRED_RUNTIMES.arsenalProduct) {
   const key = String(src).split(/[?#]/,1)[0];
   if (loaded.has(key)) continue;
   loadScript(src, true);
 }
-win['__apexDeferredRuntimesReady_arsenalQuest'] = true;
+win['__apexDeferredRuntimesReady_arsenalProduct'] = true;
 
 win.eval(`
   window.__HR_Q = {
     start(p1,p2,seed){
       if (window.APEX_HERO_REWORK && seed!=null) window.APEX_HERO_REWORK.setSeed(seed);
       window.APEX_HERO_REWORK.setAiEnabled(false);
-      window.startArsenalQuestMode(p1,p2);
+      window.startArsenalBattleMode(p1,p2,{ testFixture: true });
       const s = window.APEX_ARSENAL && window.APEX_ARSENAL.state;
       if (s) { s.spawnTimer=1e6; s.slots=[]; s.unarmedFastConsumed=true; s.spawnHeld=true; }
       return window.APEX_HERO_REWORK.match;

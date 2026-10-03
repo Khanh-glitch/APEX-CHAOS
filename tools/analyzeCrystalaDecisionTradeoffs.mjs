@@ -31,7 +31,7 @@ const result=await page.evaluate(()=>{
   const clone=x=>JSON.parse(JSON.stringify(x));
   function stopRaf(){if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}}
   function fresh(){
-    if(G.APEX_ARSENAL?.state?.active)G.exitArsenalQuestMode();
+    if(G.APEX_ARSENAL?.state?.active)G.exitArsenalBattleMode();
     G.startArsenalQuestMode('CRYSTAL','ROBOT');stopRaf();
     if(G.APEX_ARSENAL?.state)G.APEX_ARSENAL.state.labMode=true;
     HR.setAiEnabled?.(false);

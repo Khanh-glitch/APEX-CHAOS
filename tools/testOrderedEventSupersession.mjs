@@ -18,7 +18,7 @@ import { bootHarness } from './lib/crystalaHarness.mjs';
 import fs from 'node:fs';
 
 const H = await bootHarness();
-const { win } = H;
+const { win, T } = H;
 const report = { gates: {}, failures: [] };
 function gate(name, ok, detail) {
   report.gates[name] = { pass: !!ok, detail };
@@ -33,8 +33,8 @@ win.APEX_ARSENAL.combatRng = () => 0.5;
 
 const DT = 1 / 60;
 function start(p1, p2) {
-  if (HR.match) win.exitArsenalQuestMode();
-  win.startArsenalQuestMode(p1, p2);
+  if (HR.match) win.exitArsenalBattleMode();
+  T.start(p1, p2);
   HR.setAiEnabled(false);
   const st = win.APEX_ARSENAL.state;
   st.spawnTimer = 1e6; st.slots = []; st.spawnHeld = true; st.unarmedFastConsumed = true;
@@ -236,7 +236,7 @@ try {
   gate('AR-T8-no-stale-path-after-relocation', r.routed === 1 && r.toi != null, r);
 } catch (e) { gate('AR-T8-no-stale-path-after-relocation', false, String(e)); }
 
-if (HR.match) win.exitArsenalQuestMode();
+if (HR.match) win.exitArsenalBattleMode();
 fs.mkdirSync('docs/hero-rework/mirror-v1/evidence', { recursive: true });
 fs.writeFileSync('docs/hero-rework/mirror-v1/evidence/ordered-event-supersession.json',
   JSON.stringify({ generatedAt: new Date().toISOString(), ...report }, null, 2));

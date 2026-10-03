@@ -1,9 +1,9 @@
-// Arsenal Quest P0 acceptance test — follows repository CDP test conventions
-// (see tools/testShotgunRuntime.mjs / testManualLabRuntime.mjs).
+// Pre-pilot Arsenal Battle browser acceptance — uses repository CDP test
+// conventions and physical browser input for current product routes.
 //
 // Usage:
-//   CHROME_PATH=/path/to/chrome node tools/testArsenalQuestRuntime.mjs
-//   APEX_CDP_ENDPOINT=http://127.0.0.1:9224 node tools/testArsenalQuestRuntime.mjs
+//   CHROME_PATH=/path/to/chrome node tools/testArsenalBattleBrowser.mjs
+//   APEX_CDP_ENDPOINT=http://127.0.0.1:9224 node tools/testArsenalBattleBrowser.mjs
 //
 // Options: APEX_APP_URL (default http://127.0.0.1:5173)
 //          APEX_EVIDENCE_DIR (default docs/acceptance/arsenal-product/browser)
@@ -222,9 +222,8 @@ try {
     report.bootTruth.bgm);
   gate('boot-no-boot-errors', (report.bootTruth.errors || []).length === 0, report.bootTruth.errors);
 
-  // Current-product real-browser acceptance runs before any legacy Quest
-  // compatibility request. It physically exercises the product graph, lock
-  // dialogs, Local/Bot, Shop/Draw, save migration, and the admin-only Lab.
+  // Current-product real-browser acceptance physically exercises the product
+  // graph, lock dialogs, Local/Bot, Shop/Draw, save migration, and admin Lab.
   report.prePilotProduct = await runPrePilotProductBrowserAcceptance({
     evaluate,
     hitProbe,
@@ -238,33 +237,35 @@ try {
     evidence: report.evidence,
   });
 
-  // Historical tooling remains supported only through an explicit detached
-  // compatibility-group request, after the public-product proof is complete.
-  await evaluate(`window.__apexEnsureDeferredRuntimes('arsenalLegacyQuest').then(() => true)`);
-  for (let i = 0; i < 60; i++) {
-    if (await evaluate('Boolean(window.__apexDeferredRuntimesReady_arsenalLegacyQuest && window.startArsenalBattleMode && window.APEX_ARSENAL?.weaponApi && window.getArsenalBattleDebugState)')) break;
-    await sleep(250);
-  }
-  report.legacyCompatibility = await evaluate(`(() => ({
-    ready: window.__apexDeferredRuntimesReady_arsenalLegacyQuest === true,
-    questBridge: window.apexArsenalQuestRuntime || null,
-    battleRuntime: window.apexArsenalBattleRuntime || null,
-    questApi: !!window.APEX_ARSENAL_QUEST,
-    battleScript: [...document.scripts].some(node => /\\/game\\/modes\\/arsenalBattleRuntime\\.js(?:[?#]|$)/.test(node.src)),
-    questScript: [...document.scripts].some(node => /\\/game\\/modes\\/arsenalQuestRuntime\\.js(?:[?#]|$)/.test(node.src)),
-    ladderScript: [...document.scripts].some(node => /\\/game\\/arsenal\\/arsenalQuestLadder\\.js(?:[?#]|$)/.test(node.src)),
-  }))()`);
-  gate('legacy-quest-compatibility-group-explicitly-loadable',
-    report.legacyCompatibility.ready === true
-      && report.legacyCompatibility.questBridge === 'compat-ready'
-      && report.legacyCompatibility.battleRuntime === 'ready'
-      && report.legacyCompatibility.questApi === true
-      && report.legacyCompatibility.battleScript === true
-      && report.legacyCompatibility.questScript === true
-      && report.legacyCompatibility.ladderScript === true,
-    report.legacyCompatibility);
-  gate('runtime-registered', report.legacyCompatibility.ready === true,
-    'explicit arsenalLegacyQuest compatibility group loaded');
+  // The retired 20-stage Quest execution layer must be absent even after the
+  // current product has warmed and launched every active surface.
+  report.retiredQuestBoundary = await evaluate(`(() => {
+    const urls = [...document.scripts].map(node => node.src)
+      .concat([...document.querySelectorAll('link[href]')].map(node => node.href),
+        performance.getEntriesByType('resource').map(entry => entry.name));
+    const retiredFile = /\\/game\\/(modes\\/arsenalQuestRuntime|arsenal\\/arsenalQuestLadder)\\.js(?:[?#]|$)/;
+    const retiredApiNames = ['APEX_ARSENAL_QUEST', 'startArsenalQuestMode', 'exitArsenalQuestMode', 'beginArsenalQuestMap'];
+    const retiredGroupNames = ['arsenalQuest', 'arsenalLegacyQuest'];
+    return {
+      productReady: window.__apexDeferredRuntimesReady_arsenalProduct === true,
+      battleRuntime: window.apexArsenalBattleRuntime || null,
+      battleApi: typeof window.startArsenalBattleMode === 'function'
+        && typeof window.exitArsenalBattleMode === 'function'
+        && typeof window.getArsenalBattleDebugState === 'function',
+      retiredApiPresent: retiredApiNames.filter(name => name in window),
+      retiredGroupsReady: retiredGroupNames.filter(name => window[`__apexDeferredRuntimesReady_${name}`] === true),
+      retiredFilesRequested: urls.filter(url => retiredFile.test(url)),
+    };
+  })()`);
+  gate('retired-quest-execution-authority-absent',
+    report.retiredQuestBoundary.retiredApiPresent.length === 0
+      && report.retiredQuestBoundary.retiredGroupsReady.length === 0
+      && report.retiredQuestBoundary.retiredFilesRequested.length === 0,
+    report.retiredQuestBoundary);
+  gate('runtime-registered', report.retiredQuestBoundary.productReady === true
+    && report.retiredQuestBoundary.battleRuntime === 'ready'
+    && report.retiredQuestBoundary.battleApi === true,
+    'active Arsenal product and neutral battle runtime ready');
 
   // ------------------------------ Audio 2B: latency-critical SFX ----------
   // The HOT bank (gunfire, melee impacts, pickups, storm combat SFX) must be
@@ -330,26 +331,30 @@ try {
 
   // Test-side helpers installed in the page.
   await evaluate(`(() => {
+    window.__APEX_TEST_MODE = true;
     window.__APEX_TEST = {
-      enterManual() {
-        // Direct compatibility-runtime probes hide the product meta overlay
-        // first, and pin blank HERO/RIVAL actors so preceding Core Six product
-        // matches cannot leak their shell identities into legacy fixtures.
+      startFixture(p1 = 'HERO', p2 = 'RIVAL') {
+        return window.startArsenalBattleMode(p1, p2, { testFixture: true });
+      },
+      enterNeutralFixture() {
+        // This localhost-only test seam pins blank HERO/RIVAL actors so
+        // preceding Core Six product matches cannot leak shell identity into
+        // isolated neutral-runtime mechanics probes.
         window.APEX_ARSENAL_META?.hideMeta?.();
         window.__apexArsenalBattleProfile = 'LOCAL';
         window.__apexArsenalBotBattle = false;
         window.__apexArsenalFreeBattle = false;
         window.__apexArsenalSelectPending = false;
-        window.startArsenalBattleMode('HERO', 'RIVAL');
+        window.startArsenalBattleMode('HERO', 'RIVAL', { testFixture: true });
         cancelAnimationFrame(reqId); reqId = 0;
         return getArsenalBattleDebugState();
       },
-      enterLive() {
+      enterNeutralFixtureLive() {
         window.__apexArsenalBattleProfile = 'LOCAL';
         window.__apexArsenalBotBattle = false;
         window.__apexArsenalFreeBattle = false;
         window.__apexArsenalSelectPending = false;
-        window.startArsenalBattleMode('HERO', 'RIVAL');
+        window.startArsenalBattleMode('HERO', 'RIVAL', { testFixture: true });
         return getArsenalBattleDebugState();
       },
       step(seconds, dt) {
@@ -439,7 +444,7 @@ try {
 
   // ------------------------------------------------------- mode entry ------
   report.entry = await evaluate(`(() => {
-    const d = __APEX_TEST.enterManual();
+    const d = __APEX_TEST.enterNeutralFixture();
     return { gameState: d.gameState, hero: d.hero, rival: d.rival, hudOpacity: document.getElementById('hud').style.opacity, menuHidden: document.getElementById('menu-screen').classList.contains('hidden') };
   })()`);
   gate('entry-state', report.entry.gameState === 'ARSENAL'
@@ -449,7 +454,7 @@ try {
 
   // ------------------------------------------------ spawn law (A-CORR-1/2) --
   report.spawnLaw = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots();
     __APEX_TEST.clearEvents();
     __APEX_TEST.place(90, 90, 910, 910);
@@ -493,7 +498,7 @@ try {
 
   // --------------------- whole-circle reveal law + 3.0s failsafe (A-CORR-2) --
   report.telegraphLaw = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearEvents();
     __APEX_TEST.holdSpawns();
     __APEX_TEST.place(400, 500, 900, 900);
@@ -552,7 +557,7 @@ try {
 
   // ------------- A-CORR-2 negatives: near miss outside circle + no pre-bounce --
   report.circleNeg = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.holdSpawns();
     __APEX_TEST.clearEvents();
     __APEX_TEST.place(400, 440, 900, 200);
@@ -594,7 +599,7 @@ try {
   // ------------------------- V2 §A1: aim never steers; dagger body stays put --
   report.aimLaw = await evaluate(`(() => {
     const out = {};
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.holdSpawns();
     __APEX_TEST.place(200, 500, 800, 500);
     fighters[0].baseSpeed = 520; fighters[0].setDir(0, 1); fighters[1].baseSpeed = 0;
@@ -604,7 +609,7 @@ try {
     __APEX_TEST.step(0.5);
     out.aimDirSame = fighters[0].dir.x === d0.x && fighters[0].dir.y === d0.y;
     out.aimKeptApexTrajectory = Math.abs(fighters[0].y - (p0.y + 260)) < 8 && Math.abs(fighters[0].x - p0.x) < 1e-6;
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.holdSpawns();
     __APEX_TEST.place(500, 500, 700, 500);
     fighters[0].baseSpeed = 520; fighters[0].setDir(0, 1); fighters[1].baseSpeed = 0;
@@ -622,7 +627,7 @@ try {
   report.noSlash = await evaluate(`(() => {
     const av = window.APEX_ARSENAL_AV;
     const seqBefore = av.stats.seqAnimsPushed || 0;
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.holdSpawns();
     __APEX_TEST.place(500, 500, 650, 500);
     __APEX_TEST.equip('HERO', 'SABRE');
@@ -640,7 +645,7 @@ try {
 
   // --------------------------------- both sides collect + armed rejection --
   report.pickupRules = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearEvents();
     __APEX_TEST.place(300, 500, 700, 500);
     __APEX_TEST.holdSpawns();
@@ -668,7 +673,7 @@ try {
 
   // ------------------------------------------------ soft cap suppression ---
   report.softCap = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearEvents();
     __APEX_TEST.clearSlots();
     for (let i = 0; i < APEX_ARSENAL_CONFIG.MAX_ACTIVE_SLOTS; i++) __APEX_TEST.pushSlot({ x: 100 + i * 100, y: 200, weaponId: 'PISTOL' });
@@ -684,7 +689,7 @@ try {
     const isMelee = !!MELEE_PLACEMENT[weaponId];
     const gap = isMelee ? MELEE_PLACEMENT[weaponId] : 300;
     report.weapons[weaponId] = await evaluate(`(() => {
-      __APEX_TEST.enterManual();
+      __APEX_TEST.enterNeutralFixture();
       __APEX_TEST.clearEvents();
       __APEX_TEST.place(300, 500, ${300 + gap}, 500);
       __APEX_TEST.holdSpawns();
@@ -722,7 +727,7 @@ try {
 
   // Grenade: consumed on throw but projectile resolves later in world.
   report.grenade = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearEvents();
     __APEX_TEST.place(250, 500, 550, 500);
     __APEX_TEST.holdSpawns();
@@ -742,7 +747,7 @@ try {
 
   // Melee waits for valid activation geometry (does not waste itself).
   report.meleeWait = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearEvents();
     __APEX_TEST.place(120, 120, 880, 880);
     __APEX_TEST.holdSpawns();
@@ -758,7 +763,7 @@ try {
 
   // ---------------------------------------------------- shield behaviors ---
   report.swirl = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearEvents();
     __APEX_TEST.place(300, 500, 700, 500);
     __APEX_TEST.holdSpawns();
@@ -780,7 +785,7 @@ try {
   gate('swirl-reflect-ownership-correct', report.swirl.hitOnRivalFromHero >= 1, 'reflected bullet source=HERO target=RIVAL');
 
   report.tower = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearEvents();
     __APEX_TEST.place(300, 500, 700, 500);
     __APEX_TEST.holdSpawns();
@@ -802,7 +807,7 @@ try {
 
   // ------------------------------------------------- cleanup / stale refs --
   report.cleanup = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.holdSpawns();
     __APEX_TEST.place(300, 500, 700, 500);
     __APEX_TEST.equip('HERO', 'SNIPER');
@@ -824,123 +829,43 @@ try {
   gate('exit-cleanup', report.cleanup.gameStateAfter === 'MENU' && report.cleanup.menuVisible && report.cleanup.hudHidden
     && report.cleanup.slotsCleared && report.cleanup.aqProjectilesCleared && report.cleanup.heroHolderCleared && report.cleanup.exitLogged, report.cleanup);
 
-  // ------------------ V2 §A3 + A-CORR-3: 32 shells with compatible identity --
-  // Runs AFTER the shield/pickup gates so their blank HERO/RIVAL expectations
-  // are not affected by the shell matchup remembered for rematch (lastShells).
-  report.shells = await evaluate(`(() => {
+  // Shell visibility/resolution follows the single production product graph.
+  // The historical 33-encounter Quest roster is not retained as a compatibility
+  // layer; future visible shells remain locked and save-compatible.
+  report.shellAuthority = await evaluate(`(() => {
+    const authority = window.APEX_PRODUCT_SURFACE?.roster;
     const shells = window.APEX_ARSENAL_SHELLS;
-    const ids = shells ? shells.ids : [];
-    const legacyIds = shells ? (shells.legacyIds || []) : [];
-    window.startArsenalBattleMode('SNIPER', 'WITCH');
-    cancelAnimationFrame(reqId); reqId = 0;
-    APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
-    const names = fighters.map(f => f.name);
-    const shellFlags = fighters.map(f => !!f.type.arsenalShell);
-    let nativeProj = 0;
-    for (let i = 0; i < 180; i++) {
-      APEX_ARSENAL.step(1 / 60);
-      nativeProj = Math.max(nativeProj, projectiles.filter(p => !p.aq).length);
-    }
+    const visible = authority?.visibleIds || [];
+    const playable = authority?.playableIds || [];
+    const locked = authority?.lockedIds || [];
     return {
-      count: ids.length,
-      allResolvable: ids.every(n => !!shells.typeFor(n)),
-      legacyResolvable: legacyIds.length === 33 && legacyIds.every(n => !!shells.typeFor(n)),
-      names, shellFlags, nativeProj, hp: [fighters[0].hp, fighters[1].hp],
+      visibleCount: visible.length,
+      playableCount: playable.length,
+      lockedCount: locked.length,
+      visibleMatches: JSON.stringify(shells?.ids || []) === JSON.stringify(visible),
+      allVisibleResolvable: visible.length > 0 && visible.every(id => shells?.isVisible(id) && !!shells.typeFor(id)),
+      playableMatches: JSON.stringify(shells?.playableIds || []) === JSON.stringify(playable),
+      lockedRemainNonPlayable: locked.length > 0 && locked.every(id => shells?.isVisible(id)
+        && !shells.isPlayable(id) && !shells.canPublicSelect(id)),
+      historicalNewbieHasNoShell: shells?.typeFor('NEWBIE') === null,
+      retiredEncounterHasNoShell: shells?.typeFor('WITCH') === null && shells?.typeFor('MONK') === null,
+      historicalRosterAbsent: !Object.hasOwn(shells || {}, 'legacyIds'),
     };
   })()`);
-  // HERO REWORK (doc-06): the playable pool is the canonical 12; the legacy
-  // 33 (incl. boss-only Quest identities) stay resolvable through typeFor.
-  gate('shells-12-playable-canonical',
-    report.shells.count === 12 && report.shells.allResolvable && report.shells.legacyResolvable,
-    { count: report.shells.count, legacyResolvable: report.shells.legacyResolvable });
-  gate('shells-p1-p2-independent',
-    report.shells.names[0] === 'SNIPER' && report.shells.names[1] === 'WITCH' && report.shells.shellFlags.every(Boolean),
-    report.shells.names);
-  gate('shells-native-kits-active-in-arsenal',
-    report.shells.nativeProj >= 1 && report.shells.hp.every(h => h > 0 && h <= 1000), report.shells);
-
-  // A-CORR-3 roster matrix proof (real browser): encounter classification,
-  // rework ICE lane, ADAPT durations, native-skill + Arsenal-weapon
-  // coexistence. HERO REWORK (doc-06): the playable ids are the canonical
-  // 12 (all rework shells); the legacy encounter roster (boss-only Quest
-  // identities) keeps the audited KEEP/ADAPT compat path.
-  report.roster = await evaluate(`(() => {
-    const shells = window.APEX_ARSENAL_SHELLS;
-    const REG = window.APEX_HERO_REWORK_REGISTRY;
-    const ids = shells.ids;
-    const bossIds = shells.legacyIds.filter(n => n !== 'NEWBIE' && !REG.isCanonicalHero(n));
-    const kits = {};
-    for (const n of bossIds) kits[n] = (shells.typeFor(n) || {}).compatKit || 'MISSING';
-    const allClassified = bossIds.every(n => kits[n] === 'KEEP' || kits[n] === 'ADAPT');
-    const adapted = bossIds.filter(n => kits[n] === 'ADAPT');
-    const playableRework = ids.length === 12 && ids.every(n => (shells.typeFor(n) || {}).__hrHero === n);
-
-    // Current Frost authority: A1 (Frost Breath) creates the Frozen Lane.
-    // A2 is Frost Rush and must not be reinterpreted as the old lane proof.
-    window.startArsenalBattleMode('ICE', 'WITCH');
-    cancelAnimationFrame(reqId); reqId = 0;
-    APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
-    const HR = window.APEX_HERO_REWORK;
-    const iceCt = HR.byCombatant(fighters[0]);
-    const iceCtl = HR.abilityController(iceCt);
-    const frostA1Cast = iceCtl.tryCast('A1', 'browser-proof');
-    let frostA1Lanes = [];
-    for (let i = 0; i < 40; i++) {
-      APEX_ARSENAL.step(1 / 60);
-      frostA1Lanes = window.APEX_FROST?.inspect?.(iceCt)?.lanes?.filter(lane => lane.active) || [];
-      if (frostA1Lanes.length) break;
-    }
-
-    // ADAPT proof: VAMPIRE latch shortened to 2.5s for shell fighters.
-    const vamp = shells.typeFor('VAMPIRE');
-    const vf = { type: vamp, data: {}, x: 500, y: 500, radius: 75, isRage: false, hasStatus: () => false };
-    vamp.init(vf);
-    vf.data.latchCd = 0; vf.data.latchTimer = 0;
-    vamp.onCollide(vf, { id: 2, x: 560, y: 500, radius: 75, applyStatus() {}, takeDamage() {}, heal() {}, hasStatus: () => false, statuses: {} });
-    const vampLatch = vf.data.latchTimer;
-    const monk = shells.typeFor('MONK');
-    const mf = { type: monk, data: {}, x: 400, y: 400, radius: 75, isRage: false, hasStatus: () => false, setDir() {}, heal() {} };
-    monk.init(mf);
-    const me = { id: 9, x: 460, y: 400, radius: 75, hp: 100, maxHp: 100, statuses: {}, data: {}, applyStatus(k, t) { this.statuses[k] = { timer: t }; }, takeDamage() {}, hasStatus: () => false };
-    for (let i = 0; i < 4; i++) { mf.data.hitCd = 0; monk.onCollide(mf, me); }
-    const monkRush = mf.data.rushTimer;
-    window.startArsenalBattleMode('RUBBER', 'WITCH');
-    cancelAnimationFrame(reqId); reqId = 0;
-    APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
-    projectiles.length = 0;
-    fighters[0].x = 300; fighters[0].y = 500; fighters[1].x = 700; fighters[1].y = 500;
-    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
-    __APEX_TEST.equip('HERO', 'PISTOL');
-    let nativeSeen = 0, aqSeen = 0;
-    for (let i = 0; i < 240; i++) {
-      fighters.forEach(q => { if (q) q.hp = q.maxHp; });
-      APEX_ARSENAL.step(1 / 60);
-      if (projectiles.some(p => !p.aq && p.type === 'witch_ray')) nativeSeen++;
-      if (projectiles.some(p => p.aq)) aqSeen++;
-    }
-    const holderIntact = !!APEX_ARSENAL.weaponApi.getHolder(fighters[0])
-      || __APEX_TEST.countEvents('USE', 'weapon=PISTOL') >= 1;
-    return {
-      kits, allClassified, adapted, playableRework,
-      frostA1Cast: frostA1Cast && frostA1Cast.ok, frostLane: frostA1Lanes.length > 0,
-      frostA1Lanes, vampLatch, monkRush, nativeSeen, aqSeen, holderIntact,
-    };
-  })()`);
-  gate('roster-encounters-classified-keep-or-adapt',
-    report.roster.allClassified && Object.keys(report.roster.kits).length === 21
-      && report.roster.adapted.join(',') === 'VAMPIRE,MONK' && report.roster.playableRework,
-    { adapted: report.roster.adapted, playableRework: report.roster.playableRework });
-  gate('roster-frost-a1-creates-frozen-lane', report.roster.frostA1Cast === true && report.roster.frostLane === true,
-    { skill: 'A1', frostA1Cast: report.roster.frostA1Cast, frozenLanePresent: report.roster.frostLane });
-  gate('roster-adapt-vampire-latch-2.5', report.roster.vampLatch === 2.5, `latchTimer=${report.roster.vampLatch}`);
-  gate('roster-adapt-monk-rush-2.5', report.roster.monkRush === 2.5, `rushTimer=${report.roster.monkRush}`);
-  gate('roster-native-skill-and-weapon-coexist',
-    report.roster.nativeSeen > 0 && report.roster.aqSeen > 0 && report.roster.holderIntact,
-    { nativeFrames: report.roster.nativeSeen, aqFrames: report.roster.aqSeen });
+  gate('shells-product-authority-visible12-core6-locked6',
+    report.shellAuthority.visibleCount === 12 && report.shellAuthority.playableCount === 6
+      && report.shellAuthority.lockedCount === 6 && report.shellAuthority.visibleMatches
+      && report.shellAuthority.allVisibleResolvable && report.shellAuthority.playableMatches
+      && report.shellAuthority.lockedRemainNonPlayable,
+    report.shellAuthority);
+  gate('shells-retired-newbie-and-quest-encounter-identities-have-no-runtime',
+    report.shellAuthority.historicalNewbieHasNoShell && report.shellAuthority.retiredEncounterHasNoShell
+      && report.shellAuthority.historicalRosterAbsent,
+    report.shellAuthority);
 
   // ------------------------------------------------- F3 overlay + screenshots
   report.f3 = await evaluate(`(() => {
-    __APEX_TEST.enterLive();
+    __APEX_TEST.enterNeutralFixtureLive();
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'F3', bubbles: true, cancelable: true }));
     const on = APEX_ARSENAL.state.debugOverlay;
     return { toggledOn: on };
@@ -950,7 +875,7 @@ try {
   // Issue #4/C: real-browser proof that the committed C weapon set renders (floor +
   // equipped) and the old placeholder path is not serving weapon art.
   report.weaponArt = await evaluate(`(async () => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots();
     __APEX_TEST.place(180, 180, 820, 820);
     __APEX_TEST.holdSpawns();
@@ -973,7 +898,7 @@ try {
 
   // Screenshot 1: hidden telegraph (deterministic scene, direct draw()).
   await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots();
     __APEX_TEST.place(240, 620, 780, 340);
     __APEX_TEST.pushSlot({ x: 500, y: 470, phase: 'TELEGRAPH', weaponId: null, revealDelay: 99, revealTimer: 99 });
@@ -1010,7 +935,7 @@ try {
 
   // Screenshot 4: RIVAL pickup moment.
   await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots();
     __APEX_TEST.place(180, 720, 760, 480);
     __APEX_TEST.pushSlot({ x: 760, y: 480, weaponId: 'SPIKED_CLUB' });
@@ -1022,7 +947,7 @@ try {
 
   // Screenshot 5: ranged attack — sniper aim telegraph, then pistol tracers.
   await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots();
     __APEX_TEST.place(220, 500, 780, 500);
     __APEX_TEST.equip('HERO', 'SNIPER');
@@ -1032,7 +957,7 @@ try {
   })()`);
   report.evidence.push(await screenshot('05-ranged-sniper-aim'));
   await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots();
     __APEX_TEST.place(220, 500, 780, 500);
     __APEX_TEST.equip('RIVAL', 'PISTOL');
@@ -1045,7 +970,7 @@ try {
 
   // Screenshot 6: melee attack — battle axe windup + slash arc.
   await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots();
     __APEX_TEST.place(330, 500, 520, 500);
     __APEX_TEST.equip('HERO', 'BATTLE_AXE');
@@ -1057,7 +982,7 @@ try {
 
   // Screenshot 7: shield behavior — tower guard absorbing a hit.
   await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots();
     __APEX_TEST.place(300, 500, 700, 500);
     __APEX_TEST.equip('HERO', 'TOWER_SHIELD');
@@ -1068,7 +993,7 @@ try {
   })()`);
   report.evidence.push(await screenshot('07-tower-shield-guard'));
   await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots();
     __APEX_TEST.place(300, 500, 700, 500);
     __APEX_TEST.equip('RIVAL', 'SNIPER');
@@ -1081,7 +1006,7 @@ try {
 
   // Screenshot 8: F3 debug overlay on a live-ish arena.
   await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots();
     __APEX_TEST.place(240, 620, 780, 340, false);
     for (let i = 0; i < 120; i++) __APEX_TEST.step(1/30);
@@ -1092,15 +1017,17 @@ try {
   report.evidence.push(await screenshot('08-f3-debug-overlay'));
 
   // Shared select screen renders only owned Core Six entries. Historic
-  // ownership of locked SLIME and legacy CARD survives storage, but cannot
-  // override current public selectability; stale active selection falls back
-  // to ROBOT while NEWBIE migration remains durable.
+  // ownership of graph-derived locked future fighters survives storage but
+  // cannot override public selectability; stale selection falls back to ROBOT
+  // while NEWBIE remains a historical save token that migrates to ROBOT.
   const newbieFallback = await evaluate(`(async () => {
     const M = window.APEX_ARSENAL_META;
+    const lockedId = window.APEX_PRODUCT_SURFACE.roster.lockedIds[0];
     M.save(M.sanitize({
       version: 1, credits: 350,
-      ownedFighters: ['NEWBIE'],
-      lastSelectedP1: 'SNIPER', lastSelectedP2: 'WITCH', totalSpins: 0, unlockedAt: { NEWBIE: 0 },
+      ownedFighters: ['NEWBIE', lockedId],
+      lastSelectedP1: lockedId, lastSelectedP2: 'NEWBIE', totalSpins: 0,
+      unlockedAt: { NEWBIE: 0, [lockedId]: 1 },
     }));
     if (gameState === 'ARSENAL' && typeof window.exitArsenalBattleMode === 'function') window.exitArsenalBattleMode();
     M.openFighterPick({ mode: 'free' });
@@ -1112,10 +1039,13 @@ try {
 
   const shellSelect = await evaluate(`(async () => {
     const M = window.APEX_ARSENAL_META;
+    const lockedIds = window.APEX_PRODUCT_SURFACE.roster.lockedIds.slice();
+    const lockedA = lockedIds[0], lockedB = lockedIds[1];
     const seeded = M.sanitize({
       version: 1, credits: 350,
-      ownedFighters: ['NEWBIE', 'ICE', 'SLIME', 'CARD'],
-      lastSelectedP1: 'ICE', lastSelectedP2: 'SLIME', totalSpins: 0, unlockedAt: { NEWBIE: 0, ICE: 1, SLIME: 1, CARD: 1 },
+      ownedFighters: ['NEWBIE', 'ICE', lockedA, lockedB],
+      lastSelectedP1: 'ICE', lastSelectedP2: lockedA, totalSpins: 0,
+      unlockedAt: { NEWBIE: 0, ICE: 1, [lockedA]: 1, [lockedB]: 1 },
     });
     M.save(seeded);
     if (gameState === 'ARSENAL' && typeof window.exitArsenalBattleMode === 'function') window.exitArsenalBattleMode();
@@ -1125,7 +1055,7 @@ try {
     const names = t ? t.roster().map(c => c.name) : [];
     const restored = { p1: t && t.p1(), p2: t && t.p2() };
     const sanitizedSave = M.getState();
-    const hubHidden = !document.getElementById('aq-meta-root') || document.getElementById('aq-meta-root').style.display === 'none';
+    const productMetaHidden = !document.getElementById('aq-meta-root') || document.getElementById('aq-meta-root').style.display === 'none';
     const broken = Array.from(document.querySelectorAll('.apex-pick-card img')).filter(img => img.getAttribute('src') === 'null' || img.getAttribute('src') === 'undefined').length;
     if (t) t.confirmByName('ROBOT');
     await new Promise(r => setTimeout(r, 80));
@@ -1134,26 +1064,27 @@ try {
     return {
       names, restored, sanitizedSave,
       productPlayable: window.APEX_PRODUCT_SURFACE?.roster?.playableIds || [],
-      publicSelectionRejected: !M.canPublicSelect('SLIME'),
+      lockedIds,
+      lockedRemainOwned: lockedIds.every(id => sanitizedSave.ownedFighters.includes(id)),
+      lockedNeverSelectable: lockedIds.every(id => !M.canPublicSelect(id)),
       p1: t && t.p1(),
       p2: t && t.p2(),
       selectVisible: !document.getElementById('select-screen').classList.contains('hidden'),
-      hubHidden, broken,
+      productMetaHidden, broken,
       robot: names.includes('ROBOT'),
-      cardExcluded: !names.includes('CARD'),
-      unownedSniper: names.includes('SNIPER'),
+      lockedHiddenFromPicker: lockedIds.every(id => !names.includes(id)),
+      rosterMatchesOwnedCore: names.every(id => window.APEX_PRODUCT_SURFACE.roster.playableIds.includes(id) && M.owns(id)), 
     };
   })()`);
-  gate('v3-free-core-six-owned-only-roster', shellSelect.robot && shellSelect.cardExcluded && !shellSelect.unownedSniper
+  gate('product-picker-core-six-owned-only-roster', shellSelect.robot && shellSelect.lockedHiddenFromPicker
+    && shellSelect.rosterMatchesOwnedCore
     && shellSelect.names.join(',') === 'ROBOT,ICE'
     && shellSelect.names.every(name => shellSelect.productPlayable.includes(name))
-    && shellSelect.selectVisible && shellSelect.hubHidden, shellSelect);
-  gate('v3-free-historic-locked-ownership-persists-selection-sanitizes',
+    && shellSelect.selectVisible && shellSelect.productMetaHidden, shellSelect);
+  gate('save-migration-preserves-locked-future-ownership-and-sanitizes-selections',
     shellSelect.restored.p1 === 'ICE' && shellSelect.restored.p2 === 'ROBOT'
-      && shellSelect.sanitizedSave.ownedFighters.includes('SLIME')
-      && shellSelect.sanitizedSave.ownedFighters.includes('CARD')
-      && shellSelect.sanitizedSave.lastSelectedP2 === 'ROBOT'
-      && shellSelect.publicSelectionRejected === true,
+      && shellSelect.lockedRemainOwned && shellSelect.lockedNeverSelectable
+      && shellSelect.sanitizedSave.lastSelectedP2 === 'ROBOT',
     shellSelect);
   gate('v3-free-p1-p2-independent', shellSelect.p1 === 'ROBOT' && shellSelect.p2 === 'ICE', shellSelect);
   gate('v3-free-no-broken-cards', shellSelect.broken === 0, shellSelect);
@@ -1176,14 +1107,14 @@ try {
   // rework combatant's cast AI (e.g. ROBOT A1 weapon dash) would move the
   // body and corrupt bodySame/motion observables.
   await evaluate(`(() => {
-    window.startArsenalBattleMode('HERO', 'RIVAL');
+    window.__APEX_TEST.startFixture();
     cancelAnimationFrame(reqId); reqId = 0;
     return true;
   })()`);
 
   // V2 evidence 17: movement direction unchanged while equipped weapon aims.
   await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.holdSpawns();
     fighters[0].x = 250; fighters[0].y = 500; fighters[1].x = 800; fighters[1].y = 500;
     fighters[0].baseSpeed = 520; fighters[0].setDir(0, 1); fighters[1].baseSpeed = 0;
@@ -1197,7 +1128,7 @@ try {
   // V2 B evidence 18: whole-circle reveal — an EDGE approach (25px off-center,
   // inside the 42px visible question-mark circle) reveals at the 2.0s lead.
   await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.holdSpawns();
     fighters[0].x = 400; fighters[0].y = 475; fighters[1].x = 900; fighters[1].y = 150;
     fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
@@ -1212,7 +1143,7 @@ try {
   // V2 B evidence 19: near miss 60px off-center (outside the visible circle)
   // stays a hidden telegraph through the whole pass.
   await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.holdSpawns();
     fighters[0].x = 400; fighters[0].y = 440; fighters[1].x = 900; fighters[1].y = 150;
     fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
@@ -1226,7 +1157,7 @@ try {
 
   // V2 evidence 20: dagger weapon-only thrust while the body keeps moving.
   await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.holdSpawns();
     fighters[0].x = 500; fighters[0].y = 500; fighters[1].x = 700; fighters[1].y = 500;
     fighters[0].baseSpeed = 520; fighters[0].setDir(0, 1); fighters[1].baseSpeed = 0;
@@ -1250,7 +1181,7 @@ try {
       const hero = () => fighters[0];
       const gap = ${JSON.stringify(MOTION_GAP)}[weaponId] || 260;
       function arm() {
-        __APEX_TEST.enterManual();
+        __APEX_TEST.enterNeutralFixture();
         __APEX_TEST.holdSpawns();
         fighters[0].x = 300; fighters[0].y = 500;
         fighters[1].x = 300 + gap; fighters[1].y = 500;
@@ -1345,12 +1276,10 @@ try {
     Object.values(report.motion).every(s => s.bodySame),
     Object.entries(report.motion).map(([k, v]) => `${k}:${v.bodySame}`).join(','));
 
-  // HERO REWORK: J routes to the rework A1. A REAL browser keydown on KeyJ
-  // must drive the rework ability controller (ROBOT weapon dash to the
-  // revealed regular pickup — T6 never auto-targeted), not the retired
-  // legacy NEWBIE kit.
+  // HERO REWORK: a real browser keydown on KeyJ drives ROBOT's current A1
+  // weapon-dash controller toward a revealed regular pickup; T6 is excluded.
   report.gapKeyJ = await evaluate(`(() => {
-    window.startArsenalBattleMode('NEWBIE', 'ICE'); // NEWBIE -> ROBOT rework shell
+    window.__APEX_TEST.startFixture('ROBOT', 'ICE');
     cancelAnimationFrame(reqId); reqId = 0;
     APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
     const HR = window.APEX_HERO_REWORK;
@@ -1384,7 +1313,7 @@ try {
 
   report.gapBurst = await evaluate(`(() => {
     function stamps(id, n) {
-      __APEX_TEST.enterManual(); __APEX_TEST.holdSpawns();
+      __APEX_TEST.enterNeutralFixture(); __APEX_TEST.holdSpawns();
       __APEX_TEST.place(320, 500, 540, 500);
       fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
       __APEX_TEST.clearEvents();
@@ -1404,7 +1333,7 @@ try {
   gate('browser-szecsei-two-shot', report.gapBurst.szec.n === 2, report.gapBurst.szec);
 
   report.gapSawedMag = await evaluate(`(() => {
-    __APEX_TEST.enterManual(); __APEX_TEST.holdSpawns();
+    __APEX_TEST.enterNeutralFixture(); __APEX_TEST.holdSpawns();
     __APEX_TEST.place(300, 500, 480, 500);
     fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
     const rack0 = APEX_ARSENAL_AV.stats.cued.filter(c => c.event === 'shotgun_rack').length;
@@ -1429,7 +1358,7 @@ try {
   gate('browser-magnum-no-shot-casing', report.gapSawedMag.magCasing === 0, report.gapSawedMag);
 
   report.gapReserveBr = await evaluate(`(() => {
-    __APEX_TEST.enterManual(); __APEX_TEST.holdSpawns();
+    __APEX_TEST.enterNeutralFixture(); __APEX_TEST.holdSpawns();
     __APEX_TEST.place(300, 500, 700, 500);
     fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
     APEX_ARSENAL.weaponApi.equip(fighters[1], 'P90');
@@ -1446,7 +1375,7 @@ try {
   gate('browser-reserved-shield-not-stolen', report.gapReserveBr.stolen == null && report.gapReserveBr.hero === 'SWIRL_SHIELD', report.gapReserveBr);
 
   await evaluate(`(() => {
-    __APEX_TEST.enterManual(); __APEX_TEST.holdSpawns();
+    __APEX_TEST.enterNeutralFixture(); __APEX_TEST.holdSpawns();
     __APEX_TEST.place(180, 200, 820, 800);
     __APEX_TEST.pushSlot({ x: 400, y: 280, phase: 'REVEALED', weaponId: 'PISTOL', tier: 'T1', revealedFor: 0 });
     __APEX_TEST.redraw();
@@ -1474,7 +1403,7 @@ try {
 
   async function casingScene(weaponId, name) {
     const detail = await evaluate(`(() => {
-      __APEX_TEST.enterManual(); __APEX_TEST.holdSpawns();
+      __APEX_TEST.enterNeutralFixture(); __APEX_TEST.holdSpawns();
       __APEX_TEST.place(280, 500, 720, 500);
       fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
       APEX_ARSENAL_AV.stats.cued.length = 0;
@@ -1501,7 +1430,7 @@ try {
     report.gapCasingBr);
 
   await evaluate(`(() => {
-    __APEX_TEST.enterManual(); __APEX_TEST.holdSpawns();
+    __APEX_TEST.enterNeutralFixture(); __APEX_TEST.holdSpawns();
     APEX_ARSENAL.state.slots = [];
     const ids = ['GLOCK_17','P90','AK_47','M249_SAW','SNIPER'];
     ids.forEach((id, i) => __APEX_TEST.pushSlot({ x: 140 + i * 160, y: 420, phase: 'REVEALED', weaponId: id, tier: 'T1', revealedFor: 0 }));
@@ -1516,7 +1445,7 @@ try {
   gate('browser-rev2-senko-scale', Math.abs(report.rev2ScaleBr.ratio - report.rev2ScaleBr.src) < 0.02 && report.rev2ScaleBr.s > report.rev2ScaleBr.g * 3, report.rev2ScaleBr);
 
   report.rev2ExitBr = await evaluate(`(() => {
-    __APEX_TEST.enterManual(); __APEX_TEST.holdSpawns();
+    __APEX_TEST.enterNeutralFixture(); __APEX_TEST.holdSpawns();
     __APEX_TEST.place(320, 520, 760, 520);
     fighters[0].baseSpeed = 0;
     const ids = ['GLOCK_17','AK_47','MAC_10','SHOTGUN','M249_SAW','SNIPER'];
@@ -1538,43 +1467,25 @@ try {
   await evaluate(`__APEX_TEST.redraw()`);
   report.evidence.push(await screenshot('rev2-detached-exits'));
 
-  report.rev2QuestBr = await evaluate(`(() => {
-    const Q = APEX_ARSENAL_QUEST;
-    Q.persist({ unlockedThrough: 20, completedStages: [1] });
-    const a = Q.startStage(1, 'NEWBIE');
-    const p2a = fighters[1] && (fighters[1].type && fighters[1].type.name);
-    const b = Q.startStage(10, 'NEWBIE');
-    const p2b = fighters[1] && fighters[1].type && fighters[1].type.name;
-    const c = Q.startStage(20, 'NEWBIE');
-    const p2c = fighters[1] && fighters[1].type && fighters[1].type.name;
-    return { a, p2a, b, p2b, c, p2c, live: Q.liveOpponent('MONK') };
-  })()`);
-  gate('browser-rev2-quest-1-10-20',
-    report.rev2QuestBr.a.opponent === 'PAINTER' && report.rev2QuestBr.b.opponent === 'ELECTRIC' && report.rev2QuestBr.c.opponent === 'MONK',
-    report.rev2QuestBr);
-
-  report.rev2Hud = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+  report.neutralHud = await evaluate(`(() => {
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.redraw();
     const el = document.getElementById('aq-skill-hud');
     return { has: !!el, text: el ? el.textContent : '' };
   })()`);
-  gate('browser-rev2-cooldown-hud', report.rev2Hud.has === true, report.rev2Hud);
+  gate('browser-neutral-product-cooldown-hud', report.neutralHud.has === true, report.neutralHud);
 
-  // Legacy Quest-map/picker/result-page UI is intentionally not a public
-  // route in the pre-pilot product. Runtime-level compatibility remains
-  // covered above (explicit group, stage 1/10/20 opponent mapping) and below;
-  // current Shop, Draw, Local/Bot and hidden admin Lab are physically covered
-  // by runPrePilotProductBrowserAcceptance before this group is loaded.
+  // Current Shop, Draw, Local/Bot and hidden admin Lab are physically covered
+  // by runPrePilotProductBrowserAcceptance. Quest 01 remains a locked product
+  // surface; the retired 20-stage execution route is tested only for absence.
 
   // ------------------------------------------ responsive UI / pointer QA -----
   // These gates use real browser viewport overrides and physical CDP pointer
   // dispatch. Programmatic HTMLElement.click() is intentionally insufficient:
   // it can pass even when an overlay has pointer-events:none.
   await evaluate(`(() => {
-    document.getElementById('aq-quest-map')?.remove();
     APEX_ARSENAL_META.hideMeta();
-    window.startArsenalBattleMode('HERO', 'RIVAL');
+    window.__APEX_TEST.startFixture();
     APEX_ARSENAL.state.debugOverlay = false;
     __APEX_TEST.redraw();
     return true;
@@ -1664,7 +1575,7 @@ try {
     phoneExitTap.hitWithin === true && phoneExitTap.pointerEvents !== 'none'
       && phoneExitState.state === 'MENU' && phoneExitState.menuVisible === true,
     { tap:phoneExitTap, after:phoneExitState });
-  await evaluate(`window.startArsenalBattleMode('HERO','RIVAL'); APEX_ARSENAL.state.debugOverlay=false; __APEX_TEST.redraw(); true`);
+  await evaluate(`window.__APEX_TEST.startFixture(); APEX_ARSENAL.state.debugOverlay=false; __APEX_TEST.redraw(); true`);
   await evaluate(`document.getElementById('p1-combat-panel')?.scrollIntoView({ block:'start' }); true`);
   await sleep(100);
   report.evidence.push(await screenshot('responsive-panels-390x844'));
@@ -1697,7 +1608,7 @@ try {
   // 7) Active battle exposes a visible EXIT; it mirrors the accepted B/ESC behavior.
   await evaluate(`(() => {
     APEX_ARSENAL_META.hideMeta();
-    window.startArsenalBattleMode('HERO', 'RIVAL');
+    window.__APEX_TEST.startFixture();
     return true;
   })()`);
   // Deterministic: paint one explicit Arsenal frame (draw -> syncDomHud) so the
@@ -1726,7 +1637,7 @@ try {
 
   // 8) Frame-stepped hit feedback — deterministic manual stepping + real draw().
   await evaluate(`(() => {
-    window.startArsenalBattleMode('HERO', 'RIVAL');
+    window.__APEX_TEST.startFixture();
     // The assertions inspect the FIRST manual frame; a concurrent live rAF
     // can age the core between the collision probe and the next CDP command.
     cancelAnimationFrame(reqId); reqId = 0;
@@ -1797,7 +1708,7 @@ try {
 
   // --------------------------------------------- 5-minute simulation -------
   report.fiveMinute = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     let error = null;
     let restarts = 0;
     const dt = 1/30;
@@ -1811,7 +1722,7 @@ try {
           spawnedCumulative += getArsenalBattleDebugState().spawnedTotal;
           koCount++;
           restarts++;
-          window.startArsenalBattleMode();
+          window.__APEX_TEST.startFixture();
           cancelAnimationFrame(reqId); reqId = 0;
         }
       }
@@ -1836,7 +1747,7 @@ try {
 
 
   report.rev2PerfPass1 = await evaluate(`(() => {
-    if (typeof startArsenalBattleMode === 'function') startArsenalBattleMode('HERO', 'RIVAL');
+    if (typeof startArsenalBattleMode === 'function') __APEX_TEST.startFixture();
     const c = document.createElement('canvas').getContext('2d');
     const api = typeof apexArsenalPerfSummary === 'function';
     const globalApi = typeof apexPerfSummary === 'function';
@@ -1892,7 +1803,7 @@ try {
 
 
   report.rev2Feel = await evaluate(`(() => {
-    if (typeof startArsenalBattleMode === 'function') startArsenalBattleMode('HERO', 'RIVAL');
+    if (typeof startArsenalBattleMode === 'function') __APEX_TEST.startFixture();
     const feel = window.APEX_ARSENAL_FEEL;
     const av = window.APEX_ARSENAL_AV;
     fighters[0].takeDamage(12, fighters[1], 'arsenal-pistol', false);
@@ -1960,7 +1871,7 @@ try {
   gate('atlas-miss-slate-and-light-halo', report.atlasPixels.miss && report.atlasPixels.miss.fillHits > 8 && report.atlasPixels.miss.edgeHits > 8, report.atlasPixels.miss);
 
   report.rafPlay = await evaluate(`(async () => {
-    if (typeof startArsenalBattleMode === 'function') startArsenalBattleMode('HERO', 'RIVAL');
+    if (typeof startArsenalBattleMode === 'function') __APEX_TEST.startFixture();
     const pacing = await window.apexArsenalObserveRaf(90);
     const perf = typeof apexArsenalPerfSummary === 'function' ? apexArsenalPerfSummary() : {};
     return { pacing, sections: perf.sections, peaks: perf.peaks, longTasks: perf.longTasks, interpolation: perf.interpolation };
@@ -1998,7 +1909,7 @@ try {
   // engine bodies — rework cast AI on a leftover rework fighter can collect
   // or disturb the emergency pickup mid-window and re-trigger the spawn.
   await evaluate(`(() => {
-    window.startArsenalBattleMode('HERO', 'RIVAL');
+    window.__APEX_TEST.startFixture();
     cancelAnimationFrame(reqId); reqId = 0;
     return true;
   })()`);
@@ -2011,7 +1922,7 @@ try {
     const originalResolvePickups = APEX_ARSENAL_SPAWN.resolvePickups;
     APEX_ARSENAL_SPAWN.resolvePickups = () => {};
     try {
-      __APEX_TEST.enterManual();
+      __APEX_TEST.enterNeutralFixture();
       __APEX_TEST.clearSlots();
       APEX_ARSENAL.state.spawnedTotal = 0;
       APEX_ARSENAL.state.unarmedFastConsumed = false;
@@ -2060,7 +1971,7 @@ try {
 
 
   report.bothUnarmedCap = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots();
     const cap = APEX_ARSENAL_CONFIG.MAX_ACTIVE_SLOTS;
     APEX_ARSENAL.state.spawnedTotal = 0;
@@ -2151,7 +2062,7 @@ try {
       cSet: APEX_ARSENAL_C_SET && APEX_ARSENAL_C_SET.weapons.STORMBREAKER,
     };
     // Asset must render from the real C set (floor + equipped).
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots();
     __APEX_TEST.place(240, 420, 760, 420);
     __APEX_TEST.holdSpawns();
@@ -2186,7 +2097,7 @@ try {
     storm.render);
   report.evidence.push(await screenshot('10a-storm-floor-lightning'));
 
-  // Held windup screenshot (deterministic: rAF cancelled under enterManual).
+  // Held windup screenshot (deterministic: rAF cancelled under enterNeutralFixture).
   await evaluate(`(() => {
     __APEX_TEST.clearSlots();
     __APEX_TEST.place(240, 420, 760, 420);
@@ -2201,7 +2112,7 @@ try {
   // Confirmed hit: final-authority 446 damage (no scale ride), real stun,
   // knockback status, weapon vanishes (no pin). Frame-poll the 0.18s push.
   report.stormHit = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearEvents();
     __APEX_TEST.place(400, 500, 600, 500);
     __APEX_TEST.holdSpawns();
@@ -2227,7 +2138,7 @@ try {
 
   // Impact flash screenshot: fresh throw, capture ~35ms after the hit point.
   await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.place(400, 500, 600, 500);
     __APEX_TEST.holdSpawns();
     __APEX_TEST.equip('HERO', 'STORMBREAKER');
@@ -2240,7 +2151,7 @@ try {
   // Flight screenshot: centered, unobstructed A/B evidence for the V9
   // local-electricity + ghosts + solid-body composition.
   await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     APEX_ARSENAL.state.debugOverlay = false;
     __APEX_TEST.place(220, 500, 900, 500);
     __APEX_TEST.holdSpawns();
@@ -2254,7 +2165,7 @@ try {
   // B1 owner correction: no global slow while unclaimed — the unclaimed storm
   // must not debuff either fighter's movement; nothing may linger after.
   report.stormSlow = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.place(200, 300, 800, 300);
     __APEX_TEST.holdSpawns();
     __APEX_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
@@ -2317,7 +2228,7 @@ try {
   // B3: the visible floor-bolt geometry strikes who it touches — HERO first.
   report.stormFloorHero = await evaluate(`(() => {
     APEX_ARSENAL_CONFIG.STORMBREAKER.floorBoltHazard = true;
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearEvents();
     __APEX_TEST.holdSpawns();
     __APEX_TEST.place(350, 500, 850, 300);
@@ -2342,7 +2253,7 @@ try {
 
   // B3: the RIVAL is an equally valid target.
   report.stormFloorRival = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearEvents();
     __APEX_TEST.holdSpawns();
     __APEX_TEST.place(150, 300, 650, 500);
@@ -2365,7 +2276,7 @@ try {
     && b3r.hpDelta === 0 && b3r.strikes === 1,
     b3r);
 
-  // B7: red-tier pickup immunity — predicate, no NEWBIE dash at T6, dash
+  // B7: red-tier pickup immunity — predicate, no ROBOT A1 dash at T6, dash
   // still targets a regular pickup, physical pickup still works, and the
   // thrown storm is immune to magnet/crystal/gravity-well manipulation
   // (with non-immune control projectiles proving each field is live).
@@ -2375,7 +2286,7 @@ try {
     const out = {};
     const mk = (wid, x, y) => ({ id: APEX_ARSENAL.state.nextSlotId++, x, y, phase: 'REVEALED', weaponId: wid, revealedFor: 0, pickedBy: null, rejectedFor: {}, spawnTime: APEX_ARSENAL.state.time });
     const fresh = () => {
-      window.startArsenalBattleMode('NEWBIE', 'ICE');
+      window.__APEX_TEST.startFixture('ROBOT', 'ICE');
       cancelAnimationFrame(reqId); reqId = 0;
       __APEX_TEST.holdSpawns();
       const f = fighters[0];
@@ -2385,9 +2296,8 @@ try {
     };
     out.t6Immune = CFG.isHeroManipulablePickup({ weaponId: 'STORMBREAKER' }) === false;
     out.regularManipulable = CFG.isHeroManipulablePickup({ weaponId: 'PISTOL' }) === true;
-    // HERO REWORK: the dash law now runs on the ROBOT rework A1 (NEWBIE is
-    // retired): pressJ routes to the rework controller, and the weapon-dash
-    // store is the observable (targetSlotId). T6 is never auto-targeted.
+    // HERO REWORK: pressJ routes through ROBOT's current A1 controller; the
+    // weapon-dash store is observable by targetSlotId. T6 is never auto-targeted.
     const HR = window.APEX_HERO_REWORK;
     const dashOf = (f) => {
       const ct = HR.byCombatant(f);
@@ -2419,7 +2329,7 @@ try {
     const mkWall = () => ({ type: 'crystal_wall', owner: fighters[1], x1: 550, y1: 200, x2: 550, y2: 700, x: 550, y: 450, life: 5, maxLife: 5, hitIds: {}, touchCd: {}, permanent: false });
     const mkWell = () => ({ type: 'gravity_well', owner: fighters[1], x: 600, y: 500, core: 100, radius: 200, life: 3.1, maxLife: 3.1, exploded: false, absorbed: 0, absorbedDamage: 0 });
     const mkBullet = (x, y, vx, vy) => ({ type: 'aq_bullet', aq: true, owner: fighters[0], weapon: 'PISTOL', x, y, px: x, py: y, vx, vy, radius: 4, life: 3, maxLife: 3, color: '#ffe08a' });
-    __APEX_TEST.enterManual(); __APEX_TEST.clearEvents();
+    __APEX_TEST.enterNeutralFixture(); __APEX_TEST.clearEvents();
     __APEX_TEST.place(400, 500, 650, 300); __APEX_TEST.holdSpawns();
     fighters[1].name = 'MAGNET'; fighters[1].data = fighters[1].data || {}; fighters[1].data.fieldTimer = 3;
     projectiles.length = 0;
@@ -2429,7 +2339,7 @@ try {
     out.magnetControlDestroyed = !projectiles.some(p => p.type === 'aq_bullet');
     for (let i = 0; i < 60; i++) __APEX_TEST.step(1 / 60);
     out.magnetBoltConnected = __APEX_TEST.hp().rival < 1000;
-    __APEX_TEST.enterManual(); __APEX_TEST.clearEvents();
+    __APEX_TEST.enterNeutralFixture(); __APEX_TEST.clearEvents();
     __APEX_TEST.place(400, 500, 800, 500); __APEX_TEST.holdSpawns();
     projectiles.length = 0; projectiles.push(mkWall());
     api.spawnThrownMelee(fighters[0], 'STORMBREAKER', 0);
@@ -2440,7 +2350,7 @@ try {
     for (let i = 0; i < 30; i++) __APEX_TEST.step(1 / 60);
     out.crystalBoltConnected = __APEX_TEST.hp().rival < 1000;
     out.crystalHeroUntouched = __APEX_TEST.hp().hero === 1000;
-    __APEX_TEST.enterManual(); __APEX_TEST.clearEvents();
+    __APEX_TEST.enterNeutralFixture(); __APEX_TEST.clearEvents();
     __APEX_TEST.place(400, 500, 800, 500); __APEX_TEST.holdSpawns();
     fighters[1].isRage = true;
     projectiles.length = 0;
@@ -2464,12 +2374,10 @@ try {
 
   // B8: bounded homing pursuit — aimed at the living opponent, continuous
   // steering (curvature vs a hard-strafing opponent), exact speed, capped
-  // per-frame turn, and it connects. Plain HERO/RIVAL pair: post-cutover
-  // NEWBIE resolves to the ROBOT rework shell whose live P2 cast AI opens
-  // virtual_armor (incomingMult 0.45) during the bolt flight — correct
-  // product behavior this physics gate must not measure.
+  // per-frame turn, and it connects. The neutral HERO/RIVAL fixture isolates
+  // this weapon-motion law from hero abilities and passive defenses.
   report.stormB8 = await evaluate(`(() => {
-    window.startArsenalBattleMode('HERO', 'RIVAL');
+    window.__APEX_TEST.startFixture();
     cancelAnimationFrame(reqId); reqId = 0;
     __APEX_TEST.clearEvents();
     __APEX_TEST.place(150, 500, 620, 500);
@@ -2512,7 +2420,7 @@ try {
 
   // B8 evidence: mid-flight curved pursuit against the strafing opponent.
   await evaluate(`(() => {
-    window.startArsenalBattleMode('HERO', 'RIVAL');
+    window.__APEX_TEST.startFixture();
     cancelAnimationFrame(reqId); reqId = 0;
     __APEX_TEST.place(150, 500, 620, 500);
     __APEX_TEST.holdSpawns();
@@ -2533,7 +2441,7 @@ try {
   // reference (HERO parked in-frame), same camera, no perspective difference.
   report.firearmLineup = await evaluate(`(() => {
     APEX_ARSENAL_CONFIG.STORMBREAKER.floorBoltHazard = false; // isolate lineup from floor strikes
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots();
     // HERO + RIVAL parked below the grid = the same-world fighter reference.
     __APEX_TEST.place(100, 950, 900, 950);
@@ -2562,7 +2470,7 @@ try {
 
   // B12 evidence: all five heals with their tier shadows, one frame.
   report.healLineup = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots();
     __APEX_TEST.place(500, 915, 500, 60);
     fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
@@ -2587,7 +2495,7 @@ try {
   // B6 evidence: static held frame where the mirror reflection is obvious
   // (hero facing RIGHT), plus the live transform-law probe.
   report.stormHeldMirror = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots();
     __APEX_TEST.place(350, 500, 850, 500); // rival to the RIGHT -> aim right
     fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
@@ -2778,14 +2686,14 @@ try {
     const saved=localStorage.getItem(F.SPLATTER_KEY), reload=F.reloadSplatterMode();
     __APEX_TEST.redraw();
     const credits=APEX_ARSENAL_META.credits();
-    const quest=JSON.stringify(APEX_ARSENAL_QUEST.loadSave());
+    const productSave=JSON.stringify(APEX_ARSENAL_META.getState());
     window.exitArsenalLab();
     const exit={menuVisible:!document.getElementById('menu-screen').classList.contains('hidden'),
       metaHidden:!document.getElementById('aq-meta-root') || document.getElementById('aq-meta-root').style.display === 'none',
-      gameState,credits:APEX_ARSENAL_META.credits(),quest:JSON.stringify(APEX_ARSENAL_QUEST.loadSave()),
+      gameState,credits:APEX_ARSENAL_META.credits(),productSave:JSON.stringify(APEX_ARSENAL_META.getState()),
       panelGone:!document.getElementById('aq-lab-panel')};
     F.setSplatterMode('BLOOD');
-    return {v1,expected,legacy,legacyExpected,saved,reload,credits,quest,exit};
+    return {v1,expected,legacy,legacyExpected,saved,reload,credits,productSave,exit};
   })()`);
   // Capture the color frame after re-entering through the hidden admin seam.
   await evaluate(`(async () => {
@@ -2808,7 +2716,7 @@ try {
   gate('lab-browser-exit-product-menu-zero-progression', report.labPigmentColor.exit.menuVisible === true
     && report.labPigmentColor.exit.metaHidden === true && report.labPigmentColor.exit.gameState === 'MENU'
     && report.labPigmentColor.exit.panelGone && report.labPigmentColor.exit.credits === report.labPigmentColor.credits
-    && report.labPigmentColor.exit.quest === report.labPigmentColor.quest, report.labPigmentColor.exit);
+    && report.labPigmentColor.exit.productSave === report.labPigmentColor.productSave, report.labPigmentColor.exit);
 
   // ── Correction pass (owner playtest feedback round 2) ────────────────────
   // Real-browser evidence: orientation sequence (held → exact release frame →
@@ -2816,7 +2724,7 @@ try {
   // floor-contact points for HERO and RIVAL, battle-audio session lifecycle,
   // likely-next-only warmup, and the stale global-slow label removal.
   report.cp5Held = await evaluate(`(() => {
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots(); __APEX_TEST.clearEvents();
     __APEX_TEST.place(300, 500, 850, 500); // hero aims RIGHT at the rival
     fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
@@ -2885,7 +2793,7 @@ try {
   // the first step — same deterministic geometry).
   report.cp5ContactHero = await evaluate(`(() => {
     const S = window.APEX_ARSENAL_STORM;
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots(); __APEX_TEST.clearEvents();
     __APEX_TEST.place(500, 410, 850, 800); // HERO 60px below the bolt lane
     fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
@@ -2910,7 +2818,7 @@ try {
   report.evidence.push(await screenshot('cp5-05-floor-contact-hero-closeup'));
   report.cp5ContactRival = await evaluate(`(() => {
     const S = window.APEX_ARSENAL_STORM;
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots(); __APEX_TEST.clearEvents();
     __APEX_TEST.place(150, 800, 500, 410); // RIVAL 60px below the bolt lane
     fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
@@ -2952,7 +2860,7 @@ try {
     const probe = () => AV.audioSessionProbe();
     await AV.warmAudio();
     // (1)+(3) match A: live SFX, a playLater cue scheduled to fire AFTER exit.
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots(); __APEX_TEST.clearEvents();
     __APEX_TEST.place(300, 500, 850, 500);
     fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
@@ -2982,7 +2890,7 @@ try {
     const bgmAfter = window.__apexMenuBgmState();
     out.menuBgmIndependent = !!bgmBefore && !!bgmAfter && bgmBefore.paused === bgmAfter.paused;
     // (2) match B: clean session, SFX live again.
-    __APEX_TEST.enterManual();
+    __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.clearSlots(); __APEX_TEST.clearEvents();
     __APEX_TEST.place(300, 500, 850, 500);
     fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
@@ -3033,26 +2941,22 @@ try {
     cp5Audio.menuBgmIndependent === true,
     cp5Audio);
 
-  // Likely-next warmup is the active Arsenal product plus shared picker. The
-  // explicit compatibility group was intentionally loaded earlier in this
-  // suite only after product acceptance; this probe therefore checks current
-  // warmup completion and unrelated legacy modes rather than pretending the
-  // explicit compatibility request never happened.
-  report.cp5Warmup = await evaluate(`(() => ({
-    productReady: window.__apexDeferredRuntimesReady_arsenalProduct === true,
-    legacyQuestReady: window.__apexDeferredRuntimesReady_arsenalLegacyQuest === true,
-    questAliasReady: window.__apexDeferredRuntimesReady_arsenalQuest === true,
-    selectReady: window.__apexDeferredRuntimesReady_select === true,
-    unrelatedLegacyWarm: ['battle','soloBattle','trialBattle','tamChien','manualLab']
-      .filter(g => window['__apexDeferredRuntimesReady_' + g] === true),
-    warmupComplete: window.__apexWarmupComplete === true,
-  }))()`);
-  gate('menu-cp5-current-product-warmup-unrelated-modes-cold',
+  // Likely-next warmup contains only the active Arsenal product and shared
+  // picker. Retired mode groups remain cold and are not compatibility-loaded.
+  report.cp5Warmup = await evaluate(`(() => {
+    const retiredGroups = ['arsenalQuest', 'arsenalLegacyQuest', 'battle', 'battleDeferred',
+      'soloBattle', 'trialBattle', 'tamChien', 'manualLab'];
+    return {
+      productReady: window.__apexDeferredRuntimesReady_arsenalProduct === true,
+      selectReady: window.__apexDeferredRuntimesReady_select === true,
+      retiredGroupsReady: retiredGroups.filter(group => window['__apexDeferredRuntimesReady_' + group] === true),
+      warmupComplete: window.__apexWarmupComplete === true,
+    };
+  })()`);
+  gate('menu-cp5-current-product-warmup-retired-groups-cold',
     report.cp5Warmup.productReady === true
-    && report.cp5Warmup.legacyQuestReady === true
-    && report.cp5Warmup.questAliasReady === false
     && report.cp5Warmup.selectReady === true
-    && report.cp5Warmup.unrelatedLegacyWarm.length === 0
+    && report.cp5Warmup.retiredGroupsReady.length === 0
     && report.cp5Warmup.warmupComplete === true,
     report.cp5Warmup);
 
@@ -3144,10 +3048,13 @@ try {
     clickability: { exists: ${JSON.stringify(!!(cp6Clickability && cp6Clickability.exists))}, hitWithin: ${JSON.stringify(!!(cp6Clickability && cp6Clickability.hitWithin))}, topClass: ${JSON.stringify(cp6Clickability ? cp6Clickability.topClass : null)} },
     productReadyBeforeClick: ${JSON.stringify(cp6ProductReadyBeforeClick)},
     productReadyAfterClick: window.__apexDeferredRuntimesReady_arsenalProduct === true,
-    legacyQuestReadyAfterClick: window.__apexDeferredRuntimesReady_arsenalLegacyQuest === true,
-    questAliasReadyAfterClick: window.__apexDeferredRuntimesReady_arsenalQuest === true,
-    legacyRequestedAfterClick: [...document.scripts].map(node => node.src).concat([...document.querySelectorAll('link[href]')].map(node => node.href), performance.getEntriesByType('resource').map(entry => entry.name))
-      .some(url => /\\/game\\/(modes\\/arsenalQuestRuntime|arsenal\\/arsenalQuestLadder)\\.js(?:[?#]|$)/.test(url)),
+    retiredGroupsReadyAfterClick: ['arsenalQuest','arsenalLegacyQuest','battle','battleDeferred','soloBattle','trialBattle','tamChien','manualLab']
+      .filter(group => window['__apexDeferredRuntimesReady_' + group] === true),
+    retiredApisPresentAfterClick: ['APEX_ARSENAL_QUEST','startArsenalQuestMode','exitArsenalQuestMode','beginArsenalQuestMap']
+      .filter(name => name in window),
+    retiredFilesRequestedAfterClick: [...document.scripts].map(node => node.src)
+      .concat([...document.querySelectorAll('link[href]')].map(node => node.href), performance.getEntriesByType('resource').map(entry => entry.name))
+      .filter(url => /\\/game\\/(modes\\/arsenalQuestRuntime|arsenal\\/arsenalQuestLadder)\\.js(?:[?#]|$)/.test(url)), 
     routeKind: window.__cp6.routeKind,
     pressPaintMs: (window.__cp6.pressPaintAt != null && window.__cp6.pointerdownAt != null) ? +(window.__cp6.pressPaintAt - window.__cp6.pointerdownAt).toFixed(1) : null,
     routePaintMs: window.__cp6.routePaintAt != null ? +(window.__cp6.routePaintAt - ${cp6T0}).toFixed(1) : null,
@@ -3166,9 +3073,9 @@ try {
     && report.cp6Entry.routeKind === 'picker'
     && report.cp6Entry.routePaintMs != null && report.cp6Entry.routePaintMs < 3500
     && report.cp6Entry.productReadyAfterClick === true
-    && report.cp6Entry.legacyQuestReadyAfterClick === false
-    && report.cp6Entry.questAliasReadyAfterClick === false
-    && report.cp6Entry.legacyRequestedAfterClick === false,
+    && report.cp6Entry.retiredGroupsReadyAfterClick.length === 0
+    && report.cp6Entry.retiredApisPresentAfterClick.length === 0
+    && report.cp6Entry.retiredFilesRequestedAfterClick.length === 0,
     report.cp6Entry);
   gate('owner-cp6-input-alive-during-product-warmup',
     report.cp6Entry.inputs >= 8 && report.cp6Entry.inputsOver400 === 0
@@ -3199,7 +3106,7 @@ try {
     out.bgmBefore = window.__apexMenuBgmState();
     // (1) menu → Arsenal match (real path). Session begins; SFX live.
     window.APEX_ARSENAL_META?.hideMeta?.();
-    window.startArsenalBattleMode('NEWBIE', 'GALAXY');
+    window.startArsenalBattleMode('ROBOT', 'HUNTER');
     await sleep(150);
     out.enterSession = info();
     out.masterInMatch = state().masterGain;
@@ -3245,7 +3152,7 @@ try {
       loopStoppedForReal: loopSrc.__probeEnded === true, oldCueNoop: cueFired === false };
     // (3) rapid re-enter: clean session, SFX live again.
     const playedAtReenter = window.APEX_ARSENAL_AV.stats.played;
-    window.startArsenalBattleMode('NEWBIE', 'GALAXY');
+    window.startArsenalBattleMode('ROBOT', 'HUNTER');
     await sleep(120);
     APEX_ARSENAL.weaponApi.equip(fighters[0], 'STORMBREAKER');
     await sleep(350);
@@ -3254,18 +3161,18 @@ try {
       sfxLive: window.APEX_ARSENAL_AV.stats.played > playedAtReenter };
     window.exitArsenalBattleMode();
     await sleep(120);
-    // (4) other-mode boundaries: engine match path (classic) begins a session;
-    //     select-screen navigation ends it.
-    startSpecificMatch('NEWBIE', 'NEWBIE', { countdown: false, tournament: false });
+    // (4) Current Local-picker/menu navigation remains silent; the retired
+    // Classic match entry path is not part of this product acceptance.
+    window.beginArsenalBattleSelection?.({ mode: 'local' });
     await sleep(150);
-    out.engineMatch = info();
+    out.productPicker = info();
     window.goToMenu();
     await sleep(120);
-    out.afterEngineMenu = info();
+    out.afterProductMenu = info();
     const settled2 = await settleSilent();
-    out.afterEngineMenuSettled = { session: info(), master: settled2.masterGain };
-    // (5) another mode → Arsenal again.
-    window.startArsenalBattleMode('NEWBIE', 'GALAXY');
+    out.afterProductMenuSettled = { session: info(), master: settled2.masterGain };
+    // (5) another current Arsenal match → session again.
+    window.startArsenalBattleMode('ROBOT', 'HUNTER');
     await sleep(120);
     out.otherToArsenal = info();
     window.exitArsenalBattleMode();
@@ -3306,16 +3213,21 @@ try {
     cp6A.reenter.session.active === true && cp6A.reenter.session.sessionId > cp6A.enterSession.sessionId
     && cp6A.reenter.sfxLive === true && cp6A.reenter.master > 0.5,
     cp6A.reenter);
-  gate('owner-cp6-engine-match-begins-session',
-    cp6A.engineMatch.active === true, cp6A.engineMatch);
-  gate('owner-cp6-cross-mode-boundaries-zero-leak',
-    cp6A.afterEngineMenu.active === false
-    && cp6A.afterEngineMenu.registeredSources === 0
-    && cp6A.afterEngineMenuSettled.master <= 0.01
+  gate('owner-cp6-product-picker-does-not-start-battle-audio',
+    cp6A.productPicker.active === false && cp6A.productPicker.registeredSources === 0
+    && cp6A.afterProductMenu.active === false && cp6A.afterProductMenu.registeredSources === 0
+    && cp6A.afterProductMenuSettled.master <= 0.01,
+    { productPicker: cp6A.productPicker, afterProductMenu: cp6A.afterProductMenu,
+      afterProductMenuSettled: cp6A.afterProductMenuSettled });
+  gate('owner-cp6-product-navigation-zero-leak',
+    cp6A.afterProductMenu.active === false
+    && cp6A.afterProductMenu.registeredSources === 0
+    && cp6A.afterProductMenuSettled.master <= 0.01
     && cp6A.otherToArsenal.active === true
     && cp6A.bgmAfter && cp6A.bgmAfter.paused === false
     && cp6A.bgmAfter.readyState >= 2,
-    { afterEngineMenu: cp6A.afterEngineMenu, afterEngineMenuSettled: cp6A.afterEngineMenuSettled, otherToArsenal: cp6A.otherToArsenal, bgm: [cp6A.bgmBefore, cp6A.bgmAfter] });
+    { afterProductMenu: cp6A.afterProductMenu, afterProductMenuSettled: cp6A.afterProductMenuSettled,
+      otherToArsenal: cp6A.otherToArsenal, bgm: [cp6A.bgmBefore, cp6A.bgmAfter] });
 
   // ── CP7 (owner playtest round 4): current-product cold barriers ────────
   // A cold public Local/Bot start and the hidden admin Lab must expose no
@@ -3334,9 +3246,13 @@ try {
       labPanel: !!document.getElementById('aq-lab-panel'),
       gameState: typeof gameState !== 'undefined' ? gameState : null,
       productReady: window.__apexDeferredRuntimesReady_arsenalProduct === true,
-      legacyQuestReady: window.__apexDeferredRuntimesReady_arsenalLegacyQuest === true,
-      questAliasReady: window.__apexDeferredRuntimesReady_arsenalQuest === true,
-    };
+      retiredExecutionAbsent: !(
+        ['APEX_ARSENAL_QUEST', 'startArsenalQuestMode', 'exitArsenalQuestMode', 'beginArsenalQuestMap']
+          .some(name => name in window)
+        || ['arsenalQuest', 'arsenalLegacyQuest'].some(group => window['__apexDeferredRuntimesReady_' + group] === true)
+        || [...document.scripts].some(script => /\\/game\\/(modes\\/arsenalQuestRuntime|arsenal\\/arsenalQuestLadder)\\.js(?:[?#]|$)/.test(script.src))
+      ),
+    }; 
   })()`;
   const cp7Seed = {
     version: 1, credits: 777, ownedFighters: ['ROBOT', 'HUNTER', 'ICE'],
@@ -3460,8 +3376,12 @@ try {
     })()`, value => value && value.visible && value.cards === 10 && value.loaderHidden, 240);
     const before = await evaluate(`(() => ({
       productReady: window.__apexDeferredRuntimesReady_arsenalProduct === true,
-      legacyQuestReady: window.__apexDeferredRuntimesReady_arsenalLegacyQuest === true,
-      questAliasReady: window.__apexDeferredRuntimesReady_arsenalQuest === true,
+      retiredExecutionAbsent: !(
+        ['APEX_ARSENAL_QUEST', 'startArsenalQuestMode', 'exitArsenalQuestMode', 'beginArsenalQuestMap']
+          .some(name => name in window)
+        || ['arsenalQuest', 'arsenalLegacyQuest'].some(group => window['__apexDeferredRuntimesReady_' + group] === true)
+        || [...document.scripts].some(script => /\\/game\\/(modes\\/arsenalQuestRuntime|arsenal\\/arsenalQuestLadder)\\.js(?:[?#]|$)/.test(script.src))
+      ),
     }))()`);
     const route = await entry();
     let firstGameplayAt = null;
@@ -3497,8 +3417,7 @@ try {
       labMode: first.labMode,
       labPanel: first.labPanel,
       productReady: first.productReady,
-      legacyQuestReady: first.legacyQuestReady,
-      questAliasReady: first.questAliasReady,
+      retiredExecutionAbsent: first.retiredExecutionAbsent,
     };
   };
 
@@ -3523,13 +3442,13 @@ try {
   report.evidence.push(await screenshot('cp7-01-cold-admin-lab-barrier'));
   gate('owner-cp7-admin-lab-cold-barrier-held',
     cp7LabRaw.menu?.visible === true && cp7LabRaw.menu.cards === 10
-    && cp7LabRaw.before.legacyQuestReady === false && cp7LabRaw.before.questAliasReady === false
+    && cp7LabRaw.before.retiredExecutionAbsent === true
     && cp7LabRaw.route?.launchStarted === true && cp7LabRaw.route?.launchResolved === true
     && cp7LabRaw.route?.menuLabCard === false && cp7LabRaw.preGameplayLeak === false
     && cp7Lab.held === true && cp7Lab.stateAtOpen === 'lab-ready'
     && cp7Lab.ready['arsenal-full-runtime-ready'] === true
     && cp7Lab.ready['av-images-ready'] === true
-    && cp7Lab.legacyQuestReady === false && cp7Lab.questAliasReady === false,
+    && cp7Lab.retiredExecutionAbsent === true,
     cp7Lab);
   gate('owner-cp7-admin-lab-cold-functional',
     cp7LabFunctional.labMode === true && cp7LabFunctional.buttons >= 30
@@ -3563,7 +3482,7 @@ try {
     && cp7Local.battleMode === 'LOCAL' && cp7Local.fighters?.join(',') === 'HUNTER,ROBOT'
     && cp7Local.ready['arsenal-full-runtime-ready'] === true
     && cp7Local.ready['av-images-ready'] === true
-    && cp7Local.legacyQuestReady === false && cp7Local.questAliasReady === false,
+    && cp7Local.retiredExecutionAbsent === true,
     cp7Local);
 
   // (3) Cold Bot Battle shares the same barrier and fixes legal P2 to ROBOT.
@@ -3592,7 +3511,7 @@ try {
     && cp7Bot.battleMode === 'BOT' && cp7Bot.fighters?.join(',') === 'HUNTER,ROBOT'
     && cp7Bot.ready['arsenal-full-runtime-ready'] === true
     && cp7Bot.ready['av-images-ready'] === true
-    && cp7Bot.legacyQuestReady === false && cp7Bot.questAliasReady === false,
+    && cp7Bot.retiredExecutionAbsent === true,
     cp7Bot);
 
   // (4) Warm re-entry through the same hidden admin seam is synchronous.
@@ -3615,56 +3534,19 @@ try {
       && cp7Reentry.durationMs < 50 && cp7Reentry.launched === true && cp7Reentry.labMode === true,
     cp7Reentry);
 
-  // ── CP7 BUG 2: start-of-match fail-cue loop ─────────────────────────────
-  // Owner repro: fresh NEWBIE-vs-NEWBIE Arsenal battle, nobody picks up — a
-  // sound used to "loop" until the first pickup. Root cause: the P2 NEWBIE
-  // auto-cast re-attempted its dash every tick while no revealed pickup
-  // existed, cueing newbie_fail (metalClick) ~10x/s. Fix: auto-cast failures
-  // are silent; deliberate (skill-gate) activations keep the fail cue.
-  const cp7Loop = await evaluate(`(async () => {
-    const sleep = ms => new Promise(r => setTimeout(r, ms));
-    const AV = window.APEX_ARSENAL_AV;
-    const state = () => window.APEX_ARSENAL.state;
-    if (window.exitArsenalLab) { try { window.exitArsenalLab(); } catch (e) {} }
-    if (typeof gameState !== 'undefined' && gameState === 'ARSENAL') window.exitArsenalBattleMode();
-    await sleep(200);
-    window.startArsenalBattleMode('NEWBIE', 'NEWBIE');
-    // Hold every spawn/pickup path immediately (before the first weapon) and
-    // freeze both fighters so the unarmed brawl cannot end the match during
-    // the hold window (the auto-cast polling is movement-independent).
-    const s = APEX_ARSENAL.state;
-    s.spawnTimer = 1e6; s.slots = []; s.unarmedFastConsumed = true; s.spawnHeld = true;
-    fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
-    const cuedBefore = AV.stats.cued.filter(c => c.event === 'newbie_fail').length;
-    await sleep(4000); // "no pickup for several seconds"
-    const failCuesDuringHold = AV.stats.cued.filter(c => c.event === 'newbie_fail').length - cuedBefore;
-    const probeAfterHold = AV.audioSessionProbe();
-    const holdHealth = { over: !!s.over, hp: [fighters[0].hp, fighters[1].hp] };
-    // Real pickup: drop a REVEALED pistol under the hero.
-    s.slots.length = 0;
-    s.slots.push({ id: s.nextSlotId++, x: fighters[0].x, y: fighters[0].y, phase: 'REVEALED', weaponId: 'PISTOL',
-      revealLeadSeconds: 0, revealedFor: 0, pickedBy: null, rejectedFor: {}, spawnTime: s.time,
-      predictedHeroETA: null, predictedRivalETA: null, earliestETA: null, predictedFighter: null });
-    const pickupCuesBefore = AV.stats.cued.filter(c => c.event === 'pickup').length;
-    let holder = null;
-    for (let i = 0; i < 40 && !holder; i++) {
-      await sleep(100);
-      holder = APEX_ARSENAL.weaponApi.getHolder(fighters[0]) || APEX_ARSENAL.weaponApi.getHolder(fighters[1]);
-    }
-    const pickupCuesAfter = AV.stats.cued.filter(c => c.event === 'pickup').length - pickupCuesBefore;
-    const probeAfterPickup = AV.audioSessionProbe();
-    return { failCuesDuringHold, avVoicesDuringHold: probeAfterHold.activeVoices,
-      holder: holder ? holder.weaponId : null, pickupCuesAfter,
-      holdHealth,
-      avLiveAfterPickup: probeAfterPickup.liveSources, session: window.apexBattleAudioSessionInfo() };
-  })()`);
-  report.evidence.push(await screenshot('cp7-04-newbie-no-fail-loop'));
-  gate('owner-cp7-newbie-no-fail-loop',
-    cp7Loop.failCuesDuringHold <= 2
-    && cp7Loop.holder === 'PISTOL'
-    && cp7Loop.pickupCuesAfter >= 1
-    && cp7Loop.avVoicesDuringHold === 0,
-    cp7Loop);
+  // Replacement for the historical NEWBIE fail-cue probe: `newbie_fail` is
+  // not a current production cue, so it cannot establish Robot Bot AI law.
+  // Reuse the physical current-product Bot acceptance and require a real
+  // successful P2 Hero Rework cast from the accepted BOT profile.
+  const cp7BotAi = report.prePilotProduct?.['bot-battle-physical-route-deterministic-p2-neutral-match-and-real-ai-cast'];
+  const cp7BotRuntime = cp7BotAi?.detail?.runtime || null;
+  gate('owner-cp7-bot-profile-real-p2-ai-cast-observed',
+    cp7BotAi?.pass === true && cp7BotRuntime?.state === 'ARSENAL'
+      && cp7BotRuntime?.active === true && cp7BotRuntime?.battleMode === 'BOT'
+      && cp7BotRuntime?.aiEnabled === true && cp7BotRuntime?.reworkP2 === 'ROBOT'
+      && cp7BotRuntime?.cast?.source === 'p2-ai'
+      && ['A1', 'A2'].includes(cp7BotRuntime?.cast?.slot),
+    cp7BotRuntime);
 
   // ------------------------------------------------------------ summary ----
   report.summary = {
@@ -3672,7 +3554,7 @@ try {
     passed: Object.values(report.gates).filter(g => g.pass).length,
     failed: report.failures,
   };
-  console.log('\n==== ARSENAL QUEST TEST SUMMARY ====');
+  console.log('\n==== PRE-PILOT ARSENAL BATTLE TEST SUMMARY ====');
   console.log(JSON.stringify(report.summary, null, 2));
   await writeFile(path.join(evidenceDir, 'test-report.json'), JSON.stringify(report, null, 2));
   console.log(`report+evidence written under ${evidenceDir}/`);

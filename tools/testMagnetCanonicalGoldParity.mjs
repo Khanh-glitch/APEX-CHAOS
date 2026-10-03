@@ -124,4 +124,4 @@ const reportPath=process.env.MAGNET_GOLD_PARITY_REPORT||'docs/hero-rework/magnet
 for(const[name,ok]of Object.entries(checks))console.log(`${ok?'PASS':'FAIL'}  ${name}${comparisons[name.split('-')[0]]?` — rmse=${comparisons[name.split('-')[0]].rmse.toFixed(4)}`:''}`);
 console.log(JSON.stringify(Object.fromEntries(Object.entries(comparisons).map(([k,v])=>[k,{rmse:v.rmse,max:v.max,parts:v.parts}])),null,2));
 const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);console.log(`\n[MAGNET CANONICAL GOLD PARITY] ${failed.length?'FAIL':'PASS'}`);if(failed.length)console.error(`FAILURES: ${failed.join(', ')}`);
-win.exitArsenalQuestMode();process.exit(failed.length?1:0);
+win.exitArsenalBattleMode();process.exit(failed.length?1:0);

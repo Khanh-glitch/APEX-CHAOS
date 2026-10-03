@@ -62,15 +62,15 @@ function park(a, b) {
 
 /* ================= F00 — baseline / scope (in-node leaves) ============ */
 try {
-  const out = execSync('git merge-base --is-ancestor 6b83fc6502eb8e23e4bd122074fc7fdfb47441ae HEAD && echo YES', { cwd: process.cwd() }).toString();
-  gate('F00.1-ancestry', out.includes('YES'), '6b83fc in HEAD ancestry');
+  const out = execSync('git merge-base --is-ancestor 43d3eebd2d4351e007e9577bd907197f742a1a3d HEAD && echo YES', { cwd: process.cwd() }).toString();
+  gate('F00.1-ancestry', out.includes('YES'), 'pre-pilot rollback oracle 43d3eeb is in HEAD ancestry');
 } catch (e) { gate('F00.1-ancestry', false, String(e && e.message)); }
 try {
   const manifest = fs.readFileSync('src/game/runtimeManifest.js', 'utf8');
   const lock = JSON.parse(fs.readFileSync('tools/runtimeRevision.lock.json', 'utf8'));
   const m = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION = '([^']+)'/);
   gate('F00.4-revision-lineage',
-    !!m && m[1] === '20261001-frost-v1-motion-energy-reliability-r1' && lock.revision === m[1],
+    !!m && m[1] === lock.revision && lock.revision === '20261003-mirror-v1-r35',
     { revision: m && m[1], lock: lock.revision });
 } catch (e) { gate('F00.4-revision-lineage', false, String(e && e.message)); }
 
@@ -124,12 +124,12 @@ try {
   const shopOk = !!cardName && cardName.textContent === 'FROST'
     && !!detailH2 && detailH2.textContent === 'FROST'
     && cardName.closest('[data-shop-card]').getAttribute('data-shop-card') === 'ICE';
-  win.beginArsenalQuestMap();
-  const stage4 = [...win.document.querySelectorAll('#aq-quest-map .aq-stage-name')][3];
-  const mapOk = !!stage4 && stage4.textContent === 'FROST';
-  gate('F01.2b-shop-map-display', shopOk && mapOk,
-    { card: cardName && cardName.textContent, stage4: stage4 && stage4.textContent });
-} catch (e) { gate('F01.2b-shop-map-display', false, String(e && e.message)); }
+  const retiredMapApi = ['beginArsenalQuestMap', 'startArsenalQuestMode', 'exitArsenalQuestMode']
+    .some((name) => typeof win[name] === 'function');
+  const retiredMapDom = !!win.document.querySelector('#aq-quest-map');
+  gate('F01.2b-shop-display-no-retired-ladder-route', shopOk && !retiredMapApi && !retiredMapDom,
+    { card: cardName && cardName.textContent, retiredMapApi, retiredMapDom });
+} catch (e) { gate('F01.2b-shop-display-no-retired-ladder-route', false, String(e && e.message)); }
 
 try {
   // Legacy ICE save loads; ICE is selectable and shown as FROST.
@@ -3217,10 +3217,10 @@ try {
 try {
   // The shared render stack moves only Frost's world-surface layer into the
   // chamber background, immediately before real floor weapon sprites.
-  const questSrc = fs.readFileSync('public/game/modes/arsenalQuestRuntime.js', 'utf8');
+  const battleSrc = fs.readFileSync('public/game/modes/arsenalBattleRuntime.js', 'utf8');
   const presSrc = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js', 'utf8');
-  const hook = questSrc.indexOf('APEX_FROST_PRESENTATION?.renderSurfaceUnderWeapons');
-  const slotsAfter = questSrc.indexOf('SPAWN.drawSlots(c)', hook);
+  const hook = battleSrc.indexOf('APEX_FROST_PRESENTATION?.renderSurfaceUnderWeapons');
+  const slotsAfter = battleSrc.indexOf('SPAWN.drawSlots(c)', hook);
   const actorSeparate = presSrc.includes('if (!arsenalActive) renderSurfaceUnderWeapons(ctx)')
     && presSrc.includes('drawFrostBody(ctx, f, S)');
   gate('F15.1-surface-below-floor-guns-only', hook >= 0 && slotsAfter > hook && actorSeparate,
@@ -3386,11 +3386,11 @@ try {
   HR.pressAbility(d.a, 'A2'); T.step(0.05);
   d.a.hp = 0; T.step(1 / 60);
   const dead = P().ambienceState();
-  const questSrc = fs.readFileSync('public/game/modes/arsenalQuestRuntime.js', 'utf8');
+  const battleSrc = fs.readFileSync('public/game/modes/arsenalBattleRuntime.js', 'utf8');
   const presSrc = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js', 'utf8');
-  const moodHook = questSrc.indexOf('renderArenaAmbience(c)');
-  const iceHook = questSrc.indexOf('renderSurfaceUnderWeapons(c)');
-  const slots = questSrc.indexOf('SPAWN.drawSlots(c)');
+  const moodHook = battleSrc.indexOf('renderArenaAmbience(c)');
+  const iceHook = battleSrc.indexOf('renderSurfaceUnderWeapons(c)');
+  const slots = battleSrc.indexOf('SPAWN.drawSlots(c)');
   gate('F17.2-shared-ambience-lifecycle-cleanup',
     attack.level >= 0.8 && refreshed.level <= 1 && refreshed.target <= 1
     && thawing.level > 0 && thawing.level < refreshed.level

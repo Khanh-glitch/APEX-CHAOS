@@ -102,7 +102,7 @@ const result = await page.evaluate(async () => {
     if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
   }
   function newMatch(a='CRYSTAL', b='ROBOT') {
-    if (G.APEX_ARSENAL?.state?.active) G.exitArsenalQuestMode();
+    if (G.APEX_ARSENAL?.state?.active) G.exitArsenalBattleMode();
     G.startArsenalQuestMode(a,b);
     stopRaf();
     if (G.APEX_ARSENAL?.state) G.APEX_ARSENAL.state.labMode = true;

@@ -36,14 +36,14 @@ try{
   await page.goto(url,{waitUntil:'domcontentloaded',timeout:120000});
   await page.waitForFunction(()=>typeof window.__apexEnsureDeferredRuntimes==='function',{timeout:60000});
   telemetry=await page.evaluate(async()=>{
-    await window.__apexEnsureDeferredRuntimes('arsenalQuest');
+    await window.__apexEnsureDeferredRuntimes('arsenalProduct');
     const IDS=['core','spine','polL','polR','lobeL','lobeR'];
     const waitFrames=n=>new Promise(resolve=>{let count=0;const next=()=>{if(++count>=n)resolve();else requestAnimationFrame(next);};requestAnimationFrame(next);});
     const waitUntil=async(predicate,frames=300)=>{for(let i=0;i<frames;i++){if(predicate())return true;await waitFrames(1);}return false;};
     const configureWorld=()=>{const state=window.APEX_ARSENAL.state;state.spawnTimer=1e6;state.slots=[];state.unarmedFastConsumed=true;state.spawnHeld=true;return state;};
     const restart=async(enemy='ROBOT')=>{
-      if(window.APEX_HERO_REWORK.match)window.exitArsenalQuestMode();
-      window.startArsenalQuestMode('MAGNET',enemy);window.APEX_HERO_REWORK.setAiEnabled(false);configureWorld();await waitFrames(3);
+      if(window.APEX_HERO_REWORK.match)window.exitArsenalBattleMode();
+      window.startArsenalBattleMode('MAGNET',enemy);window.APEX_HERO_REWORK.setAiEnabled(false);configureWorld();await waitFrames(3);
       const [fighter,opponent]=window.fighters,ct=window.APEX_HERO_REWORK.byCombatant(fighter);
       fighter.baseSpeed=0;opponent.baseSpeed=0;fighter.x=500;fighter.y=500;opponent.x=900;opponent.y=900;
       return{fighter,opponent,ct,state:window.APEX_ARSENAL.state};
@@ -180,7 +180,7 @@ try{
     // The event trace proves distortion source sampling happens after the
     // declared completed world layers and before either Fighter.draw.
     const layerProbe=async(p1,p2)=>{
-      if(HR.match)window.exitArsenalQuestMode();window.startArsenalQuestMode(p1,p2);HR.setAiEnabled(false);configureWorld();await waitFrames(3);
+      if(HR.match)window.exitArsenalBattleMode();window.startArsenalBattleMode(p1,p2);HR.setAiEnabled(false);configureWorld();await waitFrames(3);
       const bodies=window.fighters;bodies[0].baseSpeed=0;bodies[1].baseSpeed=0;bodies[0].x=400;bodies[0].y=500;bodies[1].x=650;bodies[1].y=500;
       for(const body of bodies)if(HR.byCombatant(body)?.heroId==='MAGNET')HR.pressAbility(body,'A2');
       await waitFrames(12);
@@ -200,7 +200,7 @@ try{
     };
     const arenaLayers={p1:await layerProbe('MAGNET','ROBOT'),p2:await layerProbe('ROBOT','MAGNET'),mirror:await layerProbe('MAGNET','MAGNET')};
 
-    window.exitArsenalQuestMode();
+    window.exitArsenalBattleMode();
     return{ready,scheduler,locomotion,wall,a2Bullet,floor,contact,fighterPush,arenaLayers};
   });
 }finally{await browser.close();}

@@ -339,7 +339,7 @@ try {
   gate('M07.1-trajectory-only-source-law',
     !/applyStatus\s*\(|aqDamage\s*\(|\.damage\s*[+*/-]?=(?!=)|\.owner\s*=(?!=)/.test(source),
     'no damage/status/ownership mutation');
-  win.exitArsenalQuestMode();
+  win.exitArsenalBattleMode();
   const inspect = MAG.inspect(win.matchClock);
   gate('M07.2-teardown-clears-runtime', inspect.fields.length === 0 && inspect.floorFirearms.length === 0
     && inspect.bodies.length === 0 && inspect.projectileInfluence.length === 0 && inspect.worldStepCount === 0,

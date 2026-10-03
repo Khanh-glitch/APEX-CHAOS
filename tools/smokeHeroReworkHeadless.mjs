@@ -1,11 +1,9 @@
 // HERO REWORK — headless smoke harness.
 //
-// Boots the REAL engine + runtimes in jsdom (same world as
-// tools/testArsenalQuestHeadless.mjs) and runs the rework smoke sequence:
-// boot, registry validation, NEWBIE->ROBOT migration, retired-NEWBIE shell,
-// ladder preservation (doc-06), playable-pool cutover, 20s@60fps health,
-// A1/A2 casts + cooldowns + fail-cues, J/K routing, no-transform parity,
-// invariants, teardown.
+// Boots the REAL engine + active Arsenal product runtimes in jsdom and runs
+// the rework smoke sequence: boot, registry validation, NEWBIE save migration,
+// product-authority roster boundaries, 20s@60fps health, A1/A2 casts and
+// cooldowns, J/K routing, no-transform parity, invariants, and teardown.
 //
 // Usage: node tools/smokeHeroReworkHeadless.mjs
 import fs from 'node:fs';
@@ -35,16 +33,10 @@ const dom = new JSDOM(`<!doctype html><html><body>
   <div id="game-wrapper">
     <canvas id="game-canvas" width="1000" height="1000"></canvas>
     <div id="countdown-overlay" style="display:none"><div id="countdown-num">3</div><div id="countdown-sub"></div></div>
-    <div class="ui-layer" id="hud"><div id="manual-lab-hud" class="hidden"></div></div>
-    <div id="battle-controls" class="hidden"></div>
+    <div class="ui-layer" id="hud"></div>
     <div id="menu-screen" class="screen"></div>
     <div id="select-screen" class="screen hidden"><div id="select-title"></div><button id="start-btn" class="hidden"></button><div id="apex-pick-runtime-root"></div></div>
-    <div id="manual-room-screen" class="screen hidden"></div>
-    <div id="tournament-screen" class="screen hidden"></div>
-    <div id="end-screen" class="screen hidden"><div id="winner-text"></div><div id="stats-panel"></div><button id="tournament-return-btn" class="hidden"></button><button id="challenge-retry-btn" class="hidden"></button></div>
-    <div id="solo-screen" class="screen hidden"></div>
-    <div id="trial-screen" class="screen hidden"></div>
-    <div id="tam-chien-screen" class="screen hidden"></div>
+    <div id="end-screen" class="screen hidden"><div id="winner-text"></div><div id="stats-panel"></div></div>
     <div id="roster-grid"></div>
   </div>
     <aside id="p2-combat-panel" class="combat-panel">
@@ -59,6 +51,7 @@ const dom = new JSDOM(`<!doctype html><html><body>
 
 const win = dom.window;
 installProductSurfaceAuthority(win);
+win.__APEX_TEST_MODE = true;
 win.__apexStatsSilent = true;
 
 // Seed a LEGACY meta save BEFORE any runtime loads, so the NEWBIE->ROBOT
@@ -166,16 +159,13 @@ for (const [src] of BOOT_GAME_RUNTIMES) {
   loadedRuntimeSrcs.add(String(src).split(/[?#]/, 1)[0]);
   loadScript(src, false);
 }
-// Active product core is independent from the retired ladder. Load the
-// detached group explicitly afterward only because this regression preserves
-// compatibility coverage for the historical 20-stage data.
-for (const group of ['arsenalProduct', 'arsenalLegacyQuest']) {
-  for (const [src] of MODE_DEFERRED_RUNTIMES[group]) {
-    const key = String(src).split(/[?#]/, 1)[0];
-    if (loadedRuntimeSrcs.has(key)) continue;
-    loadedRuntimeSrcs.add(key);
-    loadScript(src, true);
-  }
+// Load only the active neutral Arsenal product runtime. The detached
+// historical ladder is retired rather than retained as a compatibility group.
+for (const [src] of MODE_DEFERRED_RUNTIMES.arsenalProduct) {
+  const key = String(src).split(/[?#]/, 1)[0];
+  if (loadedRuntimeSrcs.has(key)) continue;
+  loadedRuntimeSrcs.add(key);
+  loadScript(src, true);
 }
 
 fs.mkdirSync(evidenceDir, { recursive: true });
@@ -195,7 +185,11 @@ function snapshot(name) {
 // Test helpers (page context).
 win.eval(`(() => {
   window.__HR_TEST = {
-    start(p1, p2) { window.startArsenalQuestMode(p1, p2); cancelAnimationFrame(reqId); reqId = 0; return APEX_HERO_REWORK.match; },
+    start(p1, p2) {
+      const started = window.startArsenalBattleMode(p1, p2, { testFixture: true });
+      cancelAnimationFrame(reqId); reqId = 0;
+      return started ? APEX_HERO_REWORK.match : null;
+    },
     step(seconds, dt) { let t = seconds; dt = dt || 1/60; while (t > 1e-9) { const d = Math.min(dt, t); APEX_ARSENAL.step(d); t -= d; } },
     place(fx, fy, ex, ey) { const [a, b] = fighters; a.x = fx; a.y = fy; b.x = ex; b.y = ey; a.setDir(Math.sign(ex - fx) || 1, 0); b.setDir(-Math.sign(ex - fx) || -1, 0); a.baseSpeed = 0; b.baseSpeed = 0; },
     hp() { return { hero: fighters[0].hp, rival: fighters[1].hp }; },
@@ -242,35 +236,36 @@ const idempotent = JSON.stringify(migrated.ownedFighters) === JSON.stringify(mig
 gate('smoke-migration-newbie-to-robot', !!migrateOk && !!idempotent,
   migrateOk ? 'NEWBIE→ROBOT idempotent' : migrated);
 
-/* Gate 4 — retired NEWBIE has no legacy product shell */
+/* Gate 4 — NEWBIE is a historical save token, never a shell or launch id */
 const shells = win.APEX_ARSENAL_SHELLS;
 const newbieType = shells.typeFor('NEWBIE');
 const robotType = shells.typeFor('ROBOT');
-gate('smoke-newbie-retired',
-  !!newbieType && !!robotType
-  && newbieType.__hrHero === 'ROBOT' && robotType.__hrHero === 'ROBOT'
-  && newbieType.name === 'ROBOT' && newbieType.compatKit === 'REWORK'
-  && !newbieType.arsenalOriginal,
-  `typeFor('NEWBIE') -> ${newbieType && newbieType.name} (${newbieType && newbieType.compatKit})`);
+const newbieLaunch = win.startArsenalBattleMode('NEWBIE', 'ROBOT', { testFixture: true });
+gate('smoke-newbie-save-token-only',
+  newbieType === null && newbieLaunch === false
+  && !!robotType && robotType.name === 'ROBOT' && robotType.__hrHero === 'ROBOT',
+  { newbieType, newbieLaunch, robot: robotType && robotType.name });
 
-/* Gate 5 — ladder preservation (doc-06: original boss identities intact) */
-const STAGES = win.APEX_ARSENAL_QUEST && win.APEX_ARSENAL_QUEST.STAGES;
-const ladderOk = Array.isArray(STAGES) && STAGES.length === 20
-  && STAGES[0] && String(STAGES[0].opponent || STAGES[0].boss || STAGES[0]).toUpperCase().includes('PAINTER')
-  && STAGES[19] && String(STAGES[19].opponent || STAGES[19].boss || STAGES[19]).toUpperCase().includes('MONK');
-gate('smoke-ladder-20-bosses-preserved', ladderOk,
-  Array.isArray(STAGES) ? STAGES.map((s) => s.opponent || s.boss || s).join(',') : 'no STAGES');
+/* Gate 5 — neutral runtime replaces the retired 20-stage ladder authority */
+const noRetiredQuestApi = !('APEX_ARSENAL_QUEST' in win)
+  && !('startArsenalQuestMode' in win)
+  && !('exitArsenalQuestMode' in win)
+  && !('beginArsenalQuestMap' in win);
+gate('smoke-neutral-arsenal-api-no-retired-ladder',
+  typeof win.startArsenalBattleMode === 'function'
+  && typeof win.exitArsenalBattleMode === 'function'
+  && typeof win.getArsenalBattleDebugState === 'function'
+  && noRetiredQuestApi,
+  { battleRuntime: win.apexArsenalBattleRuntime, noRetiredQuestApi });
 
-/* Gate 6 — pre-pilot visible-12 + selectable Core Six + boss-leak prevention */
+/* Gate 6 — product authority owns the visible 12 / playable Core Six split */
 const ids = shells.ids;
-const poolOk = ids.length === 12 && PRODUCT_ROSTER.visibleIds.every((n, i) => ids[i] === n)
-  && shells.roster().map((s) => s.name).join(',') === PRODUCT_ROSTER.playableIds.join(',');
-const bossIds = ['PAINTER', 'DRUM', 'CARD', 'BLADE', 'TOXIC', 'ORBIT', 'FLASH', 'ELECTRIC', 'VAMPIRE', 'SAW', 'WOLF', 'WITCH', 'MONK'];
-const noLeak = bossIds.every((b) => !ids.includes(b) && !shells.isPlayable(b));
+const poolOk = ids.length === 12 && PRODUCT_ROSTER.visibleIds.every((id, index) => ids[index] === id)
+  && shells.roster().map((fighter) => fighter.name).join(',') === PRODUCT_ROSTER.playableIds.join(',');
 const lockedNoPlay = PRODUCT_ROSTER.lockedIds.every((id) => ids.includes(id) && !shells.isPlayable(id));
-const buyRejected = metaApi ? metaApi.buy('PAINTER').ok === false && metaApi.buy('BLACK_HOLE').ok === false : false;
-gate('smoke-product-visible12-core6-no-boss-leak', poolOk && noLeak && lockedNoPlay && buyRejected,
-  { ids, selectable: shells.roster().map((s) => s.name), buyRejected });
+const buyRejected = metaApi ? PRODUCT_ROSTER.lockedIds.every((id) => metaApi.buy(id).ok === false) : false;
+gate('smoke-product-visible12-playable6-locked6', poolOk && lockedNoPlay && buyRejected,
+  { ids, playable: shells.roster().map((fighter) => fighter.name), lockedNoPlay, buyRejected });
 
 /* Gate 7 — 20s @ 60fps healthy match (ROBOT vs SNIPER, AI on) */
 HR.setSeed(42);
@@ -379,7 +374,7 @@ gate('smoke-j-a1-routing', jRes === true && busCasts.length >= 2, { jRes, busCas
 }
 
 /* Gate 13 — teardown */
-win.exitArsenalQuestMode();
+win.exitArsenalBattleMode();
 const tornDown = HR.match == null;
 gate('smoke-teardown', tornDown, { active: !tornDown });
 
@@ -405,7 +400,7 @@ function parityScenario(forceBase) {
     uses: events.filter((e) => e.includes('USE')).length,
     projectiles: T.projectiles().filter((p) => p.aq).length,
   };
-  win.exitArsenalQuestMode();
+  win.exitArsenalBattleMode();
   HR._forceBasePass = false;
   return out;
 }

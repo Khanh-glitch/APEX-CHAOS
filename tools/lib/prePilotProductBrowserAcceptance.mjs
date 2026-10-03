@@ -1,8 +1,7 @@
 // Current-product real-browser acceptance for the pre-pilot cutover.
 // This is intentionally driven by the same CDP physical-pointer helper as the
 // Arsenal browser suite; it is not a DOM-only or direct-call substitute for UI
-// navigation. The suite runs BEFORE the historical Arsenal compatibility group
-// is explicitly requested.
+// navigation. Retired Quest execution artifacts are not loaded or retained.
 
 export async function runPrePilotProductBrowserAcceptance({
   evaluate,
@@ -139,35 +138,30 @@ export async function runPrePilotProductBrowserAcceptance({
   await setViewport(1600, 900, false);
   const ready = await menuReady();
 
-  // The boot/preload route must warm the active product group only. Exact
-  // filename matching deliberately ignores arsenalQuestConfig.js, which is
-  // shared compatibility data and is not the detached Quest runtime/ladder.
+  // The boot/preload route warms the active product group and exposes no
+  // retired Quest execution APIs or resource requests.
   result.runtimeWarmup = await evaluate(`(() => {
     const scriptUrls = [...document.scripts].map(node => node.src).filter(Boolean);
     const hintedUrls = [...document.querySelectorAll('link[href]')].map(node => node.href);
     const resources = performance.getEntriesByType('resource').map(entry => entry.name);
     const allUrls = [...scriptUrls, ...hintedUrls, ...resources];
-    const isLegacyQuestFile = url => /\\/game\\/(modes\\/arsenalQuestRuntime|arsenal\\/arsenalQuestLadder)\\.js(?:[?#]|$)/.test(url);
+    const retiredPattern = /\\/game\\/(modes\\/arsenalQuestRuntime|arsenal\\/arsenalQuestLadder)\\.js(?:[?#]|$)/;
+    const retiredApiNames = ['APEX_ARSENAL_QUEST', 'startArsenalQuestMode', 'exitArsenalQuestMode', 'beginArsenalQuestMap'];
     return {
       productReady: window.__apexDeferredRuntimesReady_arsenalProduct === true,
-      questAliasReady: window.__apexDeferredRuntimesReady_arsenalQuest === true,
-      legacyGroupReady: window.__apexDeferredRuntimesReady_arsenalLegacyQuest === true,
       battleRuntimeLoaded: scriptUrls.some(url => /\\/game\\/modes\\/arsenalBattleRuntime\\.js(?:[?#]|$)/.test(url)),
-      questRuntimeLoaded: scriptUrls.some(url => /\\/game\\/modes\\/arsenalQuestRuntime\\.js(?:[?#]|$)/.test(url)),
-      ladderLoaded: scriptUrls.some(url => /\\/game\\/arsenal\\/arsenalQuestLadder\\.js(?:[?#]|$)/.test(url)),
-      legacyRequested: allUrls.some(isLegacyQuestFile),
+      retiredApiNames,
+      retiredApiPresent: retiredApiNames.filter(name => name in window),
+      retiredFilesRequested: allUrls.filter(url => retiredPattern.test(url)),
       scriptUrls,
     };
   })()`);
-  pass('warmup-active-arsenal-product-no-legacy-request',
+  pass('warmup-active-arsenal-product-no-retired-quest-authority',
     !!ready && ready.productReady === true
       && result.runtimeWarmup.productReady === true
       && result.runtimeWarmup.battleRuntimeLoaded === true
-      && result.runtimeWarmup.questAliasReady === false
-      && result.runtimeWarmup.legacyGroupReady === false
-      && result.runtimeWarmup.questRuntimeLoaded === false
-      && result.runtimeWarmup.ladderLoaded === false
-      && result.runtimeWarmup.legacyRequested === false,
+      && result.runtimeWarmup.retiredApiPresent.length === 0
+      && result.runtimeWarmup.retiredFilesRequested.length === 0,
     { ready, runtime: result.runtimeWarmup });
   evidence.push(await screenshot('prepilot-product-menu-graph'));
 

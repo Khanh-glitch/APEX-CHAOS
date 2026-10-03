@@ -59,7 +59,10 @@ async function run() {
 
   // Wait for apexEngine and fighters
   await page.waitForFunction(() => typeof window.Fighter !== 'undefined', { timeout: 15000 });
-  console.log('[BROWSER VERIFY] Fighter runtime loaded');
+  await page.waitForFunction(() => typeof window.__apexEnsureDeferredRuntimes === 'function', { timeout: 60000 });
+  await page.evaluate(() => window.__apexEnsureDeferredRuntimes('arsenalProduct'));
+  await page.waitForFunction(() => window.apexArsenalBattleRuntime === 'ready', { timeout: 60000 });
+  console.log('[BROWSER VERIFY] Fighter and neutral Arsenal product runtimes loaded');
 
   // Check ROBOT runtime loads
   const robotRuntime = await page.evaluate(() => {
@@ -108,11 +111,11 @@ async function run() {
   }, audioAssets);
   console.log('[BROWSER VERIFY] Audio assets', audioCheck);
 
-  // Start Arsenal Quest with ROBOT vs ICE via page.evaluate
+  // Start neutral Arsenal Battle with the accepted ROBOT vs ICE pair.
   const startResult = await page.evaluate(async () => {
     if (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.setSeed) window.APEX_HERO_REWORK.setSeed(4001);
     if (window.APEX_HERO_REWORK) window.APEX_HERO_REWORK.setAiEnabled(false);
-    window.startArsenalQuestMode('ROBOT', 'ICE');
+    window.startArsenalBattleMode('ROBOT', 'ICE');
     // wait a bit for mode enter
     await new Promise(r => setTimeout(r, 500));
     const s = window.APEX_ARSENAL && window.APEX_ARSENAL.state;
@@ -222,7 +225,7 @@ async function run() {
   // A1 valid cast/dash/contact
   const a1Result = await page.evaluate(async () => {
     window.APEX_HERO_REWORK.setAiEnabled(false);
-    window.startArsenalQuestMode('ROBOT', 'ICE');
+    window.startArsenalBattleMode('ROBOT', 'ICE');
     await new Promise(r => setTimeout(r, 300));
     const s = window.APEX_ARSENAL.state;
     s.spawnTimer = 1e6; s.slots = []; s.unarmedFastConsumed = true; s.spawnHeld = true;
@@ -260,7 +263,7 @@ async function run() {
 
   // A1 no-target
   const noTargetResult = await page.evaluate(async () => {
-    window.startArsenalQuestMode('ROBOT', 'ICE');
+    window.startArsenalBattleMode('ROBOT', 'ICE');
     await new Promise(r => setTimeout(r, 300));
     const s = window.APEX_ARSENAL.state;
     s.spawnTimer = 1e6; s.slots = []; s.unarmedFastConsumed = true; s.spawnHeld = true;
@@ -286,7 +289,7 @@ async function run() {
 
   // A2 activate/hit/end
   const a2Result = await page.evaluate(async () => {
-    window.startArsenalQuestMode('ROBOT', 'ICE');
+    window.startArsenalBattleMode('ROBOT', 'ICE');
     await new Promise(r => setTimeout(r, 300));
     const s = window.APEX_ARSENAL.state;
     s.spawnTimer = 1e6; s.slots = []; s.unarmedFastConsumed = true; s.spawnHeld = true;
@@ -315,14 +318,14 @@ async function run() {
 
   // Teardown check
   const teardownResult = await page.evaluate(async () => {
-    window.startArsenalQuestMode('ROBOT', 'ICE');
+    window.startArsenalBattleMode('ROBOT', 'ICE');
     await new Promise(r => setTimeout(r, 300));
     const before = window.APEX_ROBOT_PRESENTATION ? true : false;
-    if (window.exitArsenalQuestMode) window.exitArsenalQuestMode();
+    if (window.exitArsenalBattleMode) window.exitArsenalBattleMode();
     await new Promise(r => setTimeout(r, 200));
     // Try to get state after exit - should be cleared or new
     const after = window.APEX_ROBOT_PRESENTATION ? true : false;
-    return { before, after, hadExit: typeof window.exitArsenalQuestMode === 'function' };
+    return { before, after, hadExit: typeof window.exitArsenalBattleMode === 'function' };
   });
   console.log('[BROWSER VERIFY] Teardown result', teardownResult);
 

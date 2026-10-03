@@ -9,7 +9,7 @@ const H=await bootHarness(),{win,T}=H,HR=win.APEX_HERO_REWORK,W=win.APEX_ARSENAL
 const DT=1/120;
 const out={tip:'4aac3fbb831bfaf1ac4f19336607763f16234c12',generatedAt:new Date().toISOString()};
 function start(p2='ROBOT'){
-  if(HR.match)win.exitArsenalQuestMode();
+  if(HR.match)win.exitArsenalBattleMode();
   T.start('MAGNET',p2);T.holdSpawns();HR.setAiEnabled(false);
   const [magnet,opponent]=H.fighters();
   magnet.baseSpeed=0;opponent.baseSpeed=0;
@@ -93,5 +93,5 @@ console.log(JSON.stringify({
   realA2OffAxis:{initial:out.realA2OffAxis.initial,influencedTicks:out.realA2OffAxis.influencedTicks,angleDelta:out.realA2OffAxis.angleDelta,last:out.realA2OffAxis.last},
   anchorContact:{maxPenetration:out.anchorContact.maxPenetration,penetratingFrames:out.anchorContact.penetratingFrames,deepFrames:out.anchorContact.deepFrames},gateForensics:out.gateForensics,file
 },null,2));
-win.exitArsenalQuestMode();
+win.exitArsenalBattleMode();
 process.exit(0);

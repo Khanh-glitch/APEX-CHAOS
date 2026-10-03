@@ -65,7 +65,7 @@ await page.waitForFunction(()=>window.APEX_HUNTER_PRESENTATION?.ready===true,{ti
 const audit=await page.evaluate(()=>{
   const G=window;
   if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
-  if(G.APEX_ARSENAL?.state?.active)G.exitArsenalQuestMode();
+  if(G.APEX_ARSENAL?.state?.active)G.exitArsenalBattleMode();
   G.startArsenalQuestMode('HUNTER','CRYSTAL');
   if(typeof reqId!=='undefined'&&reqId){cancelAnimationFrame(reqId);reqId=0;}
   if(G.APEX_ARSENAL?.state)G.APEX_ARSENAL.state.labMode=true;

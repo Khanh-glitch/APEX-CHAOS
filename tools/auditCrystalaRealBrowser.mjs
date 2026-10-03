@@ -96,7 +96,7 @@ const sec14 = await page.evaluate(async () => {
   results.presReady = !!(G.APEX_CRYSTALA_PRESENTATION && G.APEX_CRYSTALA_PRESENTATION.ready);
 
   // Setup match
-  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalQuestMode();
+  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalBattleMode();
   G.startArsenalQuestMode('CRYSTAL', 'ROBOT');
   if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
 
@@ -203,7 +203,7 @@ console.log('Section 14 Assertions:', JSON.stringify(sec14, null, 2));
 console.log('\n--- EXECUTING SCENARIO RB01: DORMANT PRODUCTION SILHOUETTE ---');
 const rb01Data = await page.evaluate(() => {
   const G = window;
-  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalQuestMode();
+  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalBattleMode();
   G.startArsenalQuestMode('CRYSTAL', 'ROBOT');
   if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
 
@@ -380,7 +380,7 @@ auditReport.scenarios.RB04 = { pass: rb04Data.returnShardState !== null, data: r
 console.log('\n--- EXECUTING SCENARIO RB05: WALL IN REAL PRODUCTION DRAW ORDER ---');
 const rb05Data = await page.evaluate(() => {
   const G = window;
-  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalQuestMode();
+  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalBattleMode();
   G.startArsenalQuestMode('CRYSTAL', 'ROBOT');
   if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
 
@@ -456,7 +456,7 @@ auditReport.scenarios.RB05 = { pass: rb05Data.constructKind === 'wall', data: rb
 console.log('\n--- EXECUTING SCENARIO RB06: PRISON DEPTH SPLIT ---');
 const rb06Data = await page.evaluate(() => {
   const G = window;
-  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalQuestMode();
+  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalBattleMode();
   G.startArsenalQuestMode('CRYSTAL', 'ROBOT');
   if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
 
@@ -505,7 +505,7 @@ auditReport.scenarios.RB06 = { pass: rb06Data.constructKind === 'prison', data: 
 console.log('\n--- EXECUTING SCENARIO RB07: CAMERA SHAKE / ZOOM / BLOOM CORRECTION ---');
 const rb07Data = await page.evaluate(() => {
   const G = window;
-  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalQuestMode();
+  if (G.APEX_ARSENAL?.state?.active) G.exitArsenalBattleMode();
   G.startArsenalQuestMode('CRYSTAL', 'ROBOT');
   if (typeof reqId !== 'undefined' && reqId) { cancelAnimationFrame(reqId); reqId = 0; }
 

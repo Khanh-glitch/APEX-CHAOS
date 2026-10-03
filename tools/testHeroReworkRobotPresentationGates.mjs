@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES } from '../src/game/runtimeManifest.js';
+import { installProductSurfaceAuthority } from '../src/game/productSurface.js';
 
 const REPO = process.cwd();
 const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules');
@@ -35,6 +36,8 @@ const dom = new JSDOM(`<!doctype html><html><body>
 </body></html>`, { pretendToBeVisual: true, runScripts: 'dangerously', url: 'http://localhost/' });
 
 const win = dom.window;
+installProductSurfaceAuthority(win);
+win.__APEX_TEST_MODE = true;
 win.__apexStatsSilent = true;
 
 let audioCtxCtorCalls = 0;
@@ -103,8 +106,8 @@ function loadScript(relPath, required) {
 loadScript('/apexEngine.js', true);
 const loadedRuntimeSrcs = new Set();
 for (const [src] of BOOT_GAME_RUNTIMES) { loadedRuntimeSrcs.add(String(src).split(/[?#]/, 1)[0]); loadScript(src, false); }
-for (const [src] of MODE_DEFERRED_RUNTIMES.arsenalQuest) { const key = String(src).split(/[?#]/, 1)[0]; if (loadedRuntimeSrcs.has(key)) continue; loadScript(src, true); }
-win['__apexDeferredRuntimesReady_arsenalQuest'] = true;
+for (const [src] of MODE_DEFERRED_RUNTIMES.arsenalProduct) { const key = String(src).split(/[?#]/, 1)[0]; if (loadedRuntimeSrcs.has(key)) continue; loadScript(src, true); }
+win['__apexDeferredRuntimesReady_arsenalProduct'] = true;
 win['__apexDeferredRuntimesReady_select'] = true;
 
 fs.mkdirSync(evidenceDir, { recursive: true });
@@ -121,7 +124,7 @@ win.eval(`(() => {
     start(p1, p2, seed) {
       if (window.APEX_HERO_REWORK && seed != null) window.APEX_HERO_REWORK.setSeed(seed);
       window.APEX_HERO_REWORK.setAiEnabled(false);
-      window.startArsenalQuestMode(p1, p2);
+      window.startArsenalBattleMode(p1, p2, { testFixture: true });
       const s = window.APEX_ARSENAL && window.APEX_ARSENAL.state;
       if (s) { s.spawnTimer = 1e6; s.slots = []; s.unarmedFastConsumed = true; s.spawnHeld = true; }
       return window.APEX_HERO_REWORK.match;
@@ -392,7 +395,7 @@ function withSfxCounter(fn) {
   // Teardown
   const beforeExitLive = win.APEX_ROBOT_PRESENTATION ? (() => { try { return win.APEX_ROBOT_PRESENTATION; } catch(e){ return null; } })() : null;
   // call exit
-  if (win.exitArsenalQuestMode) win.exitArsenalQuestMode();
+  if (win.exitArsenalBattleMode) win.exitArsenalBattleMode();
   Q.step(0.1);
   // After teardown, check robotStates cleared? Access via internal map not exposed, but we can check getRobotState for old fighter returns new state (cleared)
   // Check live audio sources cleared via reset

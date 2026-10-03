@@ -74,7 +74,7 @@ try{
   for(let i=0;i<30;i++)win.APEX_HERO_REWORK_AIL.bus.emit('MagnetPassiveEmission',{combatantIndex:ct.idx,x:1,y:2,angle:0,weapon:'PISTOL',speed:100});
   const st=PRES.inspect(ct).state;
   gate('M12.4-bounded-effect-history',st.late<=8&&st.corridors<=8&&st.projectileHistories<=0,{late:st.late,corridors:st.corridors,projectileHistories:st.projectileHistories});
-  win.exitArsenalQuestMode();const clean=PRES.inspect(ct),goldClean=GOLD.inspect(ct);
+  win.exitArsenalBattleMode();const clean=PRES.inspect(ct),goldClean=GOLD.inspect(ct);
   gate('M12.5-rematch-teardown-clean',clean.stateCount===0&&goldClean.stateCount===0,{presentation:clean.stateCount,gold:goldClean.stateCount});
 }catch(e){gate('M12.4-bounded-effect-history',false,String(e));}
 
