@@ -46,6 +46,26 @@ gate('A1 validates production wrapper readiness, dimensions and exact ID', () =>
 gate('A2 remains an external exchange-only bridge', () => {
   assert.match(mirror, /applyExternalExchange/); assert.doesNotMatch(mirror, /anchor\.(x|y)\s*=/);
 });
+gate('R3 validates a live owning cast and exact Mirror/opponent pair', () => {
+  assert.match(mirror, /function onMirrorExchange\(event\)/);
+  assert.match(mirror, /function canonicalExchangeSamples\(payload\)/);
+  assert.match(mirror, /casterState\.a2CastId !== payload\.castId/);
+  assert.match(mirror, /payload\.self\.id === id && payload\.opponent\.id === opponentId/);
+  assert.match(mirror, /payload\.opponent\.id === id && payload\.self\.id === opponentId/);
+  assert.match(mirror, /actor\.to\.x\) \|\| !Number\.isFinite\(actor\.to\.y/);
+});
+gate('R3 receiver rebases Gold history only; caster keeps the authored apply path', () => {
+  assert.match(mirror, /state\.gold\.rebaseExternalExchangeHistory\(exchange, id\)/);
+  assert.match(mirror, /state\.pendingA2Exchange = perspective/);
+  assert.match(mirror, /state\.gold\.applyExternalExchange\(exchange, state\.mirrorSample, state\.opponentSample\)/);
+  assert.doesNotMatch(mirror, /\.a2Snap\s*\(|\.shiftHist\s*\(/);
+});
+gate('R3 coalesced notices share Gold PRE/POST physical key without adapter physical dedupe', () => {
+  assert.match(mirror, /payload\.coalesced > 0/);
+  assert.match(mirror, /from: \{ x: payload\.opponent\.to\.x, y: payload\.opponent\.to\.y \}/);
+  assert.match(mirror, /from: \{ x: payload\.self\.to\.x, y: payload\.self\.to\.y \}/);
+  assert.doesNotMatch(mirror, /physicalExchangeKeys|physicalExchangeDedupe|exchangePhysicalKeys/);
+});
 gate('F1 snapshots preserve actual identities and use Gold semantic sync', () => {
   assert.match(mirror, /identity = real/); assert.match(mirror, /syncExternalPassive\(snapshot, HR && HR\.mirrorNode\)/);
   assert.match(mirror, /input\.presentationSide = state\.shardHitSeeds\.get\(real\)/);

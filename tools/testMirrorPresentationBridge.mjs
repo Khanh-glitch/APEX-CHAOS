@@ -207,6 +207,8 @@ try {
   // movement positions in the semantic event (not teleport displacement).
   const preSwapMirror = { x: 106, y: 220 };
   const preSwapFoe = { x: 496, y: 220 };
+  bus.emit('MirrorA2Cast', { hero: 'MIRROR', castId: 'exchange-p1-1', combatantIndex: mirrorP1.idx });
+  bridge.tick(0); // register the current real cast owner before its exchange notice
   mirrorP1.anchor.__hrFrameStart.x = 104;
   foeP1.anchor.__hrFrameStart.x = 497;
   mirrorP1.anchor.x = preSwapFoe.x;

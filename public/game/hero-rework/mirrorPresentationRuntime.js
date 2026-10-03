@@ -576,27 +576,57 @@
     };
   }
 
+  function canonicalExchangeSamples(payload) {
+    // The real resolver emits every callback after the one atomic coalesced
+    // swap. Later notices therefore carry POST roots for both actors in their
+    // `to` fields, while their shared result's PRE pair is oriented to the
+    // first request. Reconstruct the unordered PRE pair from the opposite
+    // POST roots so Gold sees the same physical key for each notice.
+    if (!(Number.isFinite(payload.coalesced) && payload.coalesced > 0)) return payload;
+    return {
+      ...payload,
+      self: { ...payload.self, from: { x: payload.opponent.to.x, y: payload.opponent.to.y } },
+      opponent: { ...payload.opponent, from: { x: payload.self.to.x, y: payload.self.to.y } },
+    };
+  }
+
   function onMirrorExchange(event) {
     const payload = event && event.payload ? event.payload : event;
-    if (disposed || !payload || !payload.self || !payload.opponent
-        || !payload.self.from || !payload.opponent.from) return;
+    const actors = payload && [payload.self, payload.opponent];
+    if (disposed || !payload || payload.castId == null || !actors
+        || actors.some((actor) => !actor || actor.id == null
+          || !actor.from || !Number.isFinite(actor.from.x) || !Number.isFinite(actor.from.y)
+          || !actor.to || !Number.isFinite(actor.to.x) || !Number.isFinite(actor.to.y))) return;
+    const exchange = canonicalExchangeSamples(payload);
+    const casterState = Array.from(instances.values()).find((candidate) =>
+      candidate.ct && candidate.ct.anchor && candidate.ct.anchor.id === payload.self.id);
+    if (!casterState || casterState.a2CastId !== payload.castId) return;
     for (const state of instances.values()) {
       const id = state.ct && state.ct.anchor && state.ct.anchor.id;
-      if (id == null || hasSeenExchangeCast(state, payload.castId)) continue;
-      if (payload.self.id === id) {
-        state.pendingExchange = {
-          mirrorFrom: payload.self.from,
-          opponentFrom: payload.opponent.from,
-        };
-        if (state.a2CastId === payload.castId) state.pendingA2Exchange = payload;
-      } else if (payload.opponent.id === id) {
-        const perspective = invertExchangePerspective(payload);
-        state.pendingExchange = {
-          mirrorFrom: perspective.self.from,
-          opponentFrom: perspective.opponent.from,
-        };
-        if (state.a2CastId === payload.castId) state.pendingA2Exchange = perspective;
-      } else continue;
+      const opponentId = state.opponentSample && state.opponentSample.id;
+      if (id == null || opponentId == null) continue;
+      const isSelf = payload.self.id === id && payload.opponent.id === opponentId;
+      const isOpponent = payload.opponent.id === id && payload.self.id === opponentId;
+      if ((!isSelf && !isOpponent) || hasSeenExchangeCast(state, payload.castId)) continue;
+      const perspective = isSelf ? exchange : invertExchangePerspective(exchange);
+      state.pendingExchange = {
+        mirrorFrom: perspective.self.from,
+        opponentFrom: perspective.opponent.from,
+      };
+      if (state.a2CastId === payload.castId) {
+        // The caster path remains the sole owner of authored A2 choreography;
+        // Gold's applyExternalExchange performs the one snap and physical-key
+        // dedupe for this instance.
+        state.pendingA2Exchange = perspective;
+      } else if (state.gold && typeof state.gold.rebaseExternalExchangeHistory === 'function') {
+        // Gameplay has atomically committed POST roots before this real event.
+        // A Mirror that only receives this exchange rebases history now, then
+        // syncRootsAndExchange consumes pendingExchange to sample/sync POST.
+        // Gold's unordered PRE/POST physical key dedupes coalesced notices even
+        // when their cast IDs or perspectives differ.
+        try { state.gold.rebaseExternalExchangeHistory(exchange, id); }
+        catch (error) { scheduler.errors++; }
+      }
       state.exchangeEvents++;
       scheduler.exchangeEvents++;
     }
