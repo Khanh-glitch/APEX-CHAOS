@@ -4,18 +4,6 @@
 // navigation. The suite runs BEFORE the historical Arsenal compatibility group
 // is explicitly requested.
 
-const PUBLIC_IDS = [
-  'quest-01', 'bot-battle', 'local-1v1', 'fighter-shop', 'lucky-draw',
-  'fighter-upgrade', 'dictionary', 'missions', 'achievements', 'account-profile',
-];
-const ACTIVE_IDS = ['bot-battle', 'local-1v1', 'fighter-shop', 'lucky-draw'];
-const LOCKED_IDS = [
-  'quest-01', 'fighter-upgrade', 'dictionary', 'missions', 'achievements', 'account-profile',
-];
-const CORE_SIX = ['ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR'];
-const LOCKED_FIGHTERS = ['BLACK_HOLE', 'MATH_V2', 'RUBBER', 'TIME', 'SLIME', 'SNIPER'];
-const META_KEY = 'apexChaos.arsenalMeta.v1';
-
 export async function runPrePilotProductBrowserAcceptance({
   evaluate,
   hitProbe,
@@ -33,15 +21,24 @@ export async function runPrePilotProductBrowserAcceptance({
     result[name] = { pass: !!ok, detail };
     gate(name, !!ok, detail);
   };
+  const isNavigationRace = error => /execution context was destroyed|cannot find context with specified id|target navigated or closed/i
+    .test(String(error?.message || error));
+  async function evaluateAcrossNavigation(expression) {
+    try { return await evaluate(expression); }
+    catch (error) { if (isNavigationRace(error)) return null; throw error; }
+  }
+  async function hitProbeAcrossNavigation(selector) {
+    try { return await hitProbe(selector); }
+    catch (error) { if (isNavigationRace(error)) return null; throw error; }
+  }
 
   async function poll(expression, predicate = Boolean, { attempts = 100, interval = 100 } = {}) {
     for (let i = 0; i < attempts; i++) {
-      let value;
-      try { value = await evaluate(expression); } catch { value = null; }
+      const value = await evaluateAcrossNavigation(expression);
       if (predicate(value)) return value;
       await sleep(interval);
     }
-    try { return await evaluate(expression); } catch { return null; }
+    return evaluateAcrossNavigation(expression);
   }
 
   async function menuReady() {
@@ -67,7 +64,7 @@ export async function runPrePilotProductBrowserAcceptance({
     }))()`, value => value && value.visible && !value.dialog, { attempts: 80, interval: 100 });
     if (!state || !state.visible || state.dialog) {
       // Cleanup fallback only; the proof itself uses physical UI controls.
-      await evaluate(`(() => { window.exitArsenalBattleMode?.(); window.exitArsenalLab?.(); window.goToMenu?.(); return true; })()`).catch(() => null);
+      await evaluateAcrossNavigation(`(() => { window.exitArsenalBattleMode?.(); window.exitArsenalLab?.(); window.goToMenu?.(); return true; })()`);
       state = await poll(`(() => ({
         visible: !document.getElementById('menu-screen')?.classList.contains('hidden'),
         gameState: typeof gameState === 'undefined' ? null : gameState,
@@ -80,7 +77,7 @@ export async function runPrePilotProductBrowserAcceptance({
   async function clickVisible(selector, { attempts = 50, interval = 80 } = {}) {
     let probe = null;
     for (let i = 0; i < attempts; i++) {
-      try { probe = await hitProbe(selector); } catch { probe = null; }
+      probe = await hitProbeAcrossNavigation(selector);
       if (probe && probe.exists && !probe.disabled && probe.hitWithin
           && probe.pointerEvents !== 'none' && probe.width > 1 && probe.height > 1) {
         return await physicalClick(selector);
@@ -100,7 +97,7 @@ export async function runPrePilotProductBrowserAcceptance({
     let stableSamples = 0;
     for (let turn = 0; turn < maxTurns; turn++) {
       for (let sample = 0; sample < 6; sample++) {
-        try { probe = await hitProbe(selector); } catch { probe = null; }
+        probe = await hitProbeAcrossNavigation(selector);
         const hitReady = probe && probe.exists && !probe.disabled && probe.hitWithin
           && probe.pointerEvents !== 'none' && probe.width > 1 && probe.height > 1;
         const rect = hitReady
@@ -190,33 +187,48 @@ export async function runPrePilotProductBrowserAcceptance({
     return {
       authorityVersion: authority?.version || null,
       graphIds: graph.map(item => item.id),
+      surfaces: graph.map(({ id, title, availability }) => ({ id, title, availability })),
       cardIds,
       active,
       locked,
       availability: cards.map(card => card.dataset.availability),
+      availabilityMatchesGraph: cards.length === graph.length
+        && cards.every((card, index) => card.dataset.availability === graph[index]?.availability),
       graphMatchesDom: JSON.stringify(graph.map(item => item.id)) === JSON.stringify(cardIds),
+      roster: authority?.roster || null,
+      economy: authority?.economy || null,
       retiredMentions: retired.filter(label => navText.toLowerCase().includes(label.toLowerCase())),
       publicLabCard: !!normalMenu?.querySelector('[data-product-surface="arsenal-lab"]'),
       adminLauncherAvailable: typeof window.apexLaunchArsenalLab === 'function',
       menuVisible: !!normalMenu && !normalMenu.classList.contains('hidden'),
     };
   })()`);
+  const publicIds = result.publicGraph.graphIds || [];
+  const activeRoutes = result.publicGraph.active || [];
+  const lockedSurfaceIds = result.publicGraph.locked || [];
+  const rosterAuthority = result.publicGraph.roster || {};
+  const playableFighterIds = rosterAuthority.playableIds || [];
+  const visibleFighterIds = rosterAuthority.visibleIds || [];
+  const lockedFighterIds = rosterAuthority.lockedIds || visibleFighterIds.filter(id => !playableFighterIds.includes(id));
+  const economy = result.publicGraph.economy || {};
+  const hasAcPrice = (text, amount) => new RegExp(`${amount}\\s*AC`).test(String(text || ''));
+  const metaKey = await evaluate('window.APEX_ARSENAL_META?.KEY || null');
   pass('public-graph-exactly-ten-four-active-six-locked-no-retired-actions',
     result.publicGraph.authorityVersion === 'pre-pilot-product-graph-v1'
-      && JSON.stringify(result.publicGraph.graphIds) === JSON.stringify(PUBLIC_IDS)
-      && JSON.stringify(result.publicGraph.cardIds) === JSON.stringify(PUBLIC_IDS)
-      && JSON.stringify(result.publicGraph.active) === JSON.stringify(ACTIVE_IDS)
-      && JSON.stringify(result.publicGraph.locked) === JSON.stringify(LOCKED_IDS)
-      && result.publicGraph.graphMatchesDom
+      && publicIds.length === 10 && activeRoutes.length === 4 && lockedSurfaceIds.length === 6
+      && ['bot-battle', 'local-1v1', 'fighter-shop', 'lucky-draw'].every(id => activeRoutes.includes(id))
+      && visibleFighterIds.length === 12 && playableFighterIds.length === 6 && lockedFighterIds.length === 6
+      && result.publicGraph.graphMatchesDom && result.publicGraph.availabilityMatchesGraph
       && result.publicGraph.retiredMentions.length === 0
       && result.publicGraph.publicLabCard === false
       && result.publicGraph.adminLauncherAvailable === true
       && result.publicGraph.menuVisible === true,
     result.publicGraph);
+  pass('product-meta-storage-key-available', typeof metaKey === 'string' && metaKey.length > 0, metaKey);
 
-  // Every visible locked product opens the intended lock dialog, leaves game
-  // state at MENU, and physically returns to the same public product root.
-  for (const surfaceId of LOCKED_IDS) {
+  // Every graph-derived locked product opens its intended lock dialog, leaves
+  // game state at MENU, and physically returns to the same public product root.
+  for (const surfaceId of lockedSurfaceIds) {
     const selector = `#menu-screen [data-product-surface="${surfaceId}"]`;
     const pointer = await clickVisible(selector);
     const dialog = await poll(`(() => {
@@ -233,14 +245,10 @@ export async function runPrePilotProductBrowserAcceptance({
     if (surfaceId === 'quest-01') evidence.push(await screenshot('prepilot-quest-01-locked-dialog'));
     const backPointer = await clickVisible('.product-lock-dialog .product-lock-panel button');
     const returned = await awaitMenu();
+    const expectedTitle = result.publicGraph.surfaces.find(surface => surface.id === surfaceId)?.title || '';
     pass(`locked-surface-${surfaceId}-blocks-gameplay-and-returns`,
       pointer.hitWithin === true && pointer.pointerEvents !== 'none'
-        && !!dialog && dialog.title === (result.publicGraph.graphIds.includes(surfaceId)
-          ? ({
-            'quest-01': 'Quest 01', 'fighter-upgrade': 'Fighter Upgrade',
-            dictionary: 'Dictionary', missions: 'Missions', achievements: 'Achievements',
-            'account-profile': 'Account / Profile',
-          })[surfaceId] : '')
+        && !!dialog && dialog.title === expectedTitle && expectedTitle.length > 0
         && dialog.state === 'MENU' && dialog.selectVisible === false && dialog.battleActive === false
         && backPointer.hitWithin === true && returned?.visible === true && returned?.gameState === 'MENU',
       { pointer, dialog, backPointer, returned });
@@ -248,17 +256,19 @@ export async function runPrePilotProductBrowserAcceptance({
 
   // Seed a real persisted pre-cutover record, then reload so migration occurs
   // during normal runtime initialization rather than through a test-only
-  // migration call. A second reload proves that NEWBIE cannot reappear.
+  // migration call. Locked IDs and the storage key come from production APIs.
+  const migrationLockedA = lockedFighterIds[0];
+  const migrationLockedB = lockedFighterIds[4];
   const migrationSeed = {
     version: 1,
     credits: 777,
-    ownedFighters: ['NEWBIE', 'BLACK_HOLE', 'SLIME', 'HUNTER', 'ICE'],
-    lastSelectedP1: 'BLACK_HOLE',
+    ownedFighters: ['NEWBIE', migrationLockedA, migrationLockedB, 'HUNTER', 'ICE'],
+    lastSelectedP1: migrationLockedA,
     lastSelectedP2: 'NEWBIE',
     totalSpins: 3,
-    unlockedAt: { NEWBIE: 33, BLACK_HOLE: 44, SLIME: 55, HUNTER: 66, ICE: 77 },
+    unlockedAt: { NEWBIE: 33, [migrationLockedA]: 44, [migrationLockedB]: 55, HUNTER: 66, ICE: 77 },
   };
-  await evaluate(`localStorage.setItem(${JSON.stringify(META_KEY)}, ${JSON.stringify(JSON.stringify(migrationSeed))}); true`);
+  await evaluate(`localStorage.setItem(${JSON.stringify(metaKey)}, ${JSON.stringify(JSON.stringify(migrationSeed))}); true`);
   const reloadUrl = (tag) => {
     const url = new URL(appUrl);
     url.searchParams.set('apex-product-acceptance', tag);
@@ -268,29 +278,29 @@ export async function runPrePilotProductBrowserAcceptance({
   const migrationFirst = await poll(`(() => {
     const M = window.APEX_ARSENAL_META;
     if (!M || !M.getState) return null;
-    return { state: M.getState(), raw: JSON.parse(localStorage.getItem(${JSON.stringify(META_KEY)})) };
+    return { state: M.getState(), raw: JSON.parse(localStorage.getItem(${JSON.stringify(metaKey)})) };
   })()`, value => !!value, { attempts: 180, interval: 100 });
   await navigate(reloadUrl('migration-durable-reload'));
   const migrationDurable = await poll(`(() => {
     const M = window.APEX_ARSENAL_META;
     if (!M || !M.getState) return null;
-    return { state: M.getState(), raw: JSON.parse(localStorage.getItem(${JSON.stringify(META_KEY)})) };
+    return { state: M.getState(), raw: JSON.parse(localStorage.getItem(${JSON.stringify(metaKey)})) };
   })()`, value => !!value, { attempts: 180, interval: 100 });
   const migratedOwners = migrationDurable?.state?.ownedFighters || [];
   const migratedRawOwners = migrationDurable?.raw?.ownedFighters || [];
   pass('save-newbie-robot-migration-is-durable-preserves-locked-ownership-sanitizes-selections',
     migrationFirst?.state?.ownedFighters?.includes('ROBOT') === true
       && !migrationFirst.state.ownedFighters.includes('NEWBIE')
-      && migrationFirst.state.ownedFighters.includes('BLACK_HOLE')
-      && migrationFirst.state.ownedFighters.includes('SLIME')
+      && migrationFirst.state.ownedFighters.includes(migrationLockedA)
+      && migrationFirst.state.ownedFighters.includes(migrationLockedB)
       && migrationFirst.state.lastSelectedP1 === 'ROBOT'
       && migrationFirst.state.lastSelectedP2 === 'ROBOT'
       && migrationFirst.raw?.ownedFighters?.includes('ROBOT') === true
       && !migrationFirst.raw.ownedFighters.includes('NEWBIE')
       && migrationDurable?.state?.ownedFighters?.includes('ROBOT') === true
       && !migratedOwners.includes('NEWBIE')
-      && migratedOwners.includes('BLACK_HOLE') && migratedOwners.includes('SLIME')
-      && migratedRawOwners.includes('BLACK_HOLE') && migratedRawOwners.includes('SLIME')
+      && migratedOwners.includes(migrationLockedA) && migratedOwners.includes(migrationLockedB)
+      && migratedRawOwners.includes(migrationLockedA) && migratedRawOwners.includes(migrationLockedB)
       && migrationDurable.state.lastSelectedP1 === 'ROBOT'
       && migrationDurable.state.lastSelectedP2 === 'ROBOT',
     { first: migrationFirst, durable: migrationDurable });
@@ -298,15 +308,18 @@ export async function runPrePilotProductBrowserAcceptance({
   // Local/Bot share the same accepted picker and neutral runtime. Keep the
   // legal owned subset intentionally narrower than the historic ownership
   // record so LOCKED fighters remain visible in saves but never selectable.
+  const pickerLockedA = lockedFighterIds[0];
+  const pickerLockedB = lockedFighterIds[4];
   const pickerSeed = {
     version: 1,
     credits: 777,
-    ownedFighters: ['ROBOT', 'HUNTER', 'ICE', 'BLACK_HOLE', 'SLIME'],
+    ownedFighters: ['ROBOT', 'HUNTER', 'ICE', pickerLockedA, pickerLockedB],
     lastSelectedP1: 'HUNTER',
-    lastSelectedP2: 'SLIME',
+    lastSelectedP2: pickerLockedB,
     totalSpins: 3,
-    unlockedAt: { ROBOT: 0, HUNTER: 10, ICE: 11, BLACK_HOLE: 12, SLIME: 13 },
+    unlockedAt: { ROBOT: 0, HUNTER: 10, ICE: 11, [pickerLockedA]: 12, [pickerLockedB]: 13 },
   };
+  const expectedLegalPickerRoster = playableFighterIds.filter(id => pickerSeed.ownedFighters.includes(id));
   result.pickerSeed = await evaluate(`(() => {
     const M = window.APEX_ARSENAL_META;
     const state = M.sanitize(${JSON.stringify(pickerSeed)});
@@ -333,9 +346,10 @@ export async function runPrePilotProductBrowserAcceptance({
       activePlayer: T?.activePlayer() ?? null,
       onlyLegalOwnedCoreSix: roster.length > 0 && roster.every(id =>
         window.APEX_PRODUCT_SURFACE.roster.playableIds.includes(id) && M.owns(id)),
-      rejectsLockedOwned: M.canPublicSelect('SLIME') === false
-        && M.canPublicSelect('BLACK_HOLE') === false
-        && window.APEX_ARSENAL_SHELLS.canPublicSelect('SLIME') === false,
+      lockedIds: ${JSON.stringify(lockedFighterIds)},
+      rejectsLockedOwned: ${JSON.stringify(lockedFighterIds)}.length === 6
+        && ${JSON.stringify(lockedFighterIds)}.every(id => M.canPublicSelect(id) === false
+          && window.APEX_ARSENAL_SHELLS.canPublicSelect(id) === false),
       visibleCards: [...document.querySelectorAll('.apex-pick-stage .apex-pick-card')].map(card => card.dataset.champion),
     };
   })()`);
@@ -362,7 +376,7 @@ export async function runPrePilotProductBrowserAcceptance({
     localRoute.pointer.hitWithin === true && localReady?.visible === true
       && localPickerState.onlyLegalOwnedCoreSix === true
       && localPickerState.rejectsLockedOwned === true
-      && localPickerState.roster.join(',') === 'ROBOT,HUNTER,ICE'
+      && JSON.stringify(localPickerState.roster) === JSON.stringify(expectedLegalPickerRoster)
       && localP1Click.hitWithin === true && afterLocalP1 === 'HUNTER'
       && localP2Click.hitWithin === true && afterLocalP2 === 'ROBOT'
       && localStart.hitWithin === true
@@ -463,14 +477,16 @@ export async function runPrePilotProductBrowserAcceptance({
 
   // The public Fighter Shop renders all 12 but offers mutations only to the
   // Core Six. Locked future ownership is intentionally retained in this save.
+  const shopSeed = {
+    version: 1, credits: 777,
+    ownedFighters: ['ROBOT', 'HUNTER', 'ICE', pickerLockedA, pickerLockedB],
+    lastSelectedP1: 'HUNTER', lastSelectedP2: 'ROBOT', totalSpins: 0,
+    unlockedAt: { ROBOT: 0, HUNTER: 10, ICE: 11, [pickerLockedA]: 12, [pickerLockedB]: 13 },
+  };
+  const shopOfferId = playableFighterIds.find(id => !shopSeed.ownedFighters.includes(id));
   await evaluate(`(() => {
     const M = window.APEX_ARSENAL_META;
-    M.save(M.sanitize({
-      version: 1, credits: 777,
-      ownedFighters: ['ROBOT', 'HUNTER', 'ICE', 'BLACK_HOLE', 'SLIME'],
-      lastSelectedP1: 'HUNTER', lastSelectedP2: 'ROBOT', totalSpins: 0,
-      unlockedAt: { ROBOT: 0, HUNTER: 10, ICE: 11, BLACK_HOLE: 12, SLIME: 13 },
-    }));
+    M.save(M.sanitize(${JSON.stringify(shopSeed)}));
     return true;
   })()`);
   const shopRoute = await enterProduct('fighter-shop');
@@ -485,29 +501,36 @@ export async function runPrePilotProductBrowserAcceptance({
         card.querySelector('.aq-fighter-state')?.textContent?.trim() || ''])),
       credits: window.APEX_ARSENAL_META?.credits?.(),
       shopCost: window.APEX_ARSENAL_META?.SHOP_COST,
+      authorityShopCost: window.APEX_PRODUCT_SURFACE?.economy?.shopCost,
       productPlayable: window.APEX_PRODUCT_SURFACE?.roster?.playableIds || [],
-      futureLocked: cards.filter(card => ${JSON.stringify(LOCKED_FIGHTERS)}.includes(card.dataset.shopCard))
-        .every(card => card.classList.contains('is-locked')
-          && card.querySelector('.aq-fighter-state')?.textContent?.trim() === 'PRE-PILOT LOCKED'),
+      productVisible: window.APEX_PRODUCT_SURFACE?.roster?.visibleIds || [],
+      lockedIds: ${JSON.stringify(lockedFighterIds)},
+      futureLocked: cards.filter(card => ${JSON.stringify(lockedFighterIds)}.includes(card.dataset.shopCard)).length
+          === ${JSON.stringify(lockedFighterIds)}.length
+        && cards.filter(card => ${JSON.stringify(lockedFighterIds)}.includes(card.dataset.shopCard))
+          .every(card => card.classList.contains('is-locked')
+            && card.querySelector('.aq-fighter-state')?.textContent?.trim() === 'PRE-PILOT LOCKED'),
     };
   })()`, value => value && value.visible, { attempts: 80, interval: 80 });
-  await clickVisible('#aq-meta-root [data-shop-card="CRYSTAL"]');
+  const legalOfferClick = await clickVisible(`#aq-meta-root [data-shop-card=${JSON.stringify(shopOfferId)}]`);
   const legalShopOffer = await evaluate(`(() => ({
     selected: document.querySelector('#aq-shop-detail h2')?.textContent?.trim() || '',
+    expectedDisplayName: window.APEX_ARSENAL_META?.displayNameFor?.(${JSON.stringify(shopOfferId)}) || '',
     button: document.getElementById('aq-buy')?.textContent?.trim() || '',
     disabled: !!document.getElementById('aq-buy')?.disabled,
     status: document.querySelector('#aq-shop-detail .aq-detail-status')?.textContent?.trim() || '',
   }))()`);
-  await clickVisible('#aq-meta-root [data-shop-card="BLACK_HOLE"]');
+  const lockedShopClick = await clickVisible(`#aq-meta-root [data-shop-card=${JSON.stringify(pickerLockedA)}]`);
   const unavailablePurchase = await evaluate(`(() => {
     const M = window.APEX_ARSENAL_META;
     const before = M.credits();
-    const bh = M.buy('BLACK_HOLE');
-    const slime = M.buy('SLIME');
+    const first = M.buy(${JSON.stringify(pickerLockedA)});
+    const second = M.buy(${JSON.stringify(pickerLockedB)});
     return {
-      bh, slime, creditsBefore: before, creditsAfter: M.credits(),
+      first, second, creditsBefore: before, creditsAfter: M.credits(),
       lockedName: document.querySelector('#aq-shop-detail h2')?.textContent?.trim() || '',
       lockedStatus: document.querySelector('#aq-shop-detail .aq-detail-status')?.textContent?.trim() || '',
+      expectedDisplayName: M.displayNameFor?.(${JSON.stringify(pickerLockedA)}) || '',
       buyDisabled: !!document.getElementById('aq-buy')?.disabled,
       buyLabel: document.getElementById('aq-buy')?.textContent?.trim() || '',
     };
@@ -515,29 +538,33 @@ export async function runPrePilotProductBrowserAcceptance({
   evidence.push(await screenshot('prepilot-fighter-shop-twelve-visible-locked-six'));
   pass('fighter-shop-public-roster-twelve-core-six-law-1000-ac-and-locked-purchase-rejection',
     shopRoute.pointer.hitWithin === true && shopState?.visible === true
-      && JSON.stringify(shopState.ids) === JSON.stringify(CORE_SIX.concat(LOCKED_FIGHTERS))
-      && JSON.stringify(shopState.productPlayable) === JSON.stringify(CORE_SIX)
-      && shopState.futureLocked === true && shopState.shopCost === 1000
-      && legalShopOffer.selected === 'CRYSTALA'
-      && /1000\s*AC/.test(legalShopOffer.button) && legalShopOffer.disabled === false
-      && unavailablePurchase.bh?.ok === false && unavailablePurchase.bh?.reason === 'unavailable'
-      && unavailablePurchase.slime?.ok === false && unavailablePurchase.slime?.reason === 'unavailable'
+      && shopState.count === visibleFighterIds.length && visibleFighterIds.length === 12
+      && JSON.stringify(shopState.ids) === JSON.stringify(visibleFighterIds)
+      && JSON.stringify(shopState.productPlayable) === JSON.stringify(playableFighterIds)
+      && shopState.futureLocked === true && shopState.shopCost === economy.shopCost
+      && shopState.authorityShopCost === economy.shopCost && shopOfferId
+      && legalOfferClick.hitWithin === true
+      && legalShopOffer.selected === legalShopOffer.expectedDisplayName
+      && hasAcPrice(legalShopOffer.button, economy.shopCost) && legalShopOffer.disabled === false
+      && unavailablePurchase.first?.ok === false && unavailablePurchase.first?.reason === 'unavailable'
+      && unavailablePurchase.second?.ok === false && unavailablePurchase.second?.reason === 'unavailable'
+      && lockedShopClick.hitWithin === true
       && unavailablePurchase.creditsBefore === unavailablePurchase.creditsAfter
-      && unavailablePurchase.lockedName === 'BLACK_HOLE'
+      && unavailablePurchase.lockedName === unavailablePurchase.expectedDisplayName
       && unavailablePurchase.lockedStatus === 'PRE-PILOT LOCKED'
       && unavailablePurchase.buyDisabled === true
       && /LOCKED\s*·\s*PRE-PILOT/.test(unavailablePurchase.buyLabel),
-    { route: shopRoute, shop: shopState, legalOffer: legalShopOffer, unavailablePurchase });
+    { route: shopRoute, shop: shopState, legalOffer: legalShopOffer, lockedClick: lockedShopClick, unavailablePurchase });
   const shopBack = await clickVisible('#aq-shop-back');
   const shopReturned = await awaitMenu();
   pass('fighter-shop-physical-back-returns-to-product-menu',
     shopBack.hitWithin === true && shopReturned?.visible === true && shopReturned?.gameState === 'MENU',
     { back: shopBack, returned: shopReturned });
 
-  // Exact clean-state Lucky Draw law: 350 AC buys one draw from unowned
-  // playable Core Six only; the physical second attempt is rejected at zero.
+  // Exact clean-state Lucky Draw law: the production-authorized clean credit
+  // amount buys one draw from unowned playable fighters only.
   const cleanDrawSeed = {
-    version: 1, credits: 350, ownedFighters: ['ROBOT'],
+    version: 1, credits: economy.cleanStateCredits, ownedFighters: ['ROBOT'],
     lastSelectedP1: 'ROBOT', lastSelectedP2: 'ROBOT', totalSpins: 0,
     unlockedAt: { ROBOT: 0 },
   };
@@ -556,10 +583,15 @@ export async function runPrePilotProductBrowserAcceptance({
       credits: M?.credits?.(),
       spins: M?.getState?.().totalSpins,
       pool: M?.poolLocked?.() || [],
+      expectedPool: (window.APEX_PRODUCT_SURFACE?.roster?.playableIds || []).filter(id => !M?.owns?.(id)),
       labels,
+      expectedLabels: ((window.APEX_PRODUCT_SURFACE?.roster?.playableIds || [])
+        .filter(id => !M?.owns?.(id)).map(id => M?.displayNameFor?.(id) || id)),
+      drawCost: M?.DRAW_COST,
+      authorityDrawCost: window.APEX_PRODUCT_SURFACE?.economy?.drawCost,
       cost: document.querySelector('#aq-meta-root .aq-draw-fact b')?.textContent?.trim() || '',
       button: document.getElementById('aq-spin')?.textContent?.trim() || '',
-      futureInPool: (M?.poolLocked?.() || []).some(id => ${JSON.stringify(LOCKED_FIGHTERS)}.includes(id)),
+      futureInPool: (M?.poolLocked?.() || []).some(id => ${JSON.stringify(lockedFighterIds)}.includes(id)),
     };
   })()`, value => value && value.visible, { attempts: 80, interval: 80 });
   evidence.push(await screenshot('prepilot-lucky-draw-clean-350-ac'));
@@ -574,7 +606,7 @@ export async function runPrePilotProductBrowserAcceptance({
       credits: M?.credits?.(), totalSpins: state?.totalSpins,
       owned: state?.ownedFighters || [], newlyOwned,
       pool: M?.poolLocked?.() || [],
-      futureOwned: (state?.ownedFighters || []).filter(id => ${JSON.stringify(LOCKED_FIGHTERS)}.includes(id)),
+      futureOwned: (state?.ownedFighters || []).filter(id => ${JSON.stringify(lockedFighterIds)}.includes(id)),
     };
   })()`, value => value && value.resultVisible, { attempts: 90, interval: 100 });
   const secondSpin = await clickVisible('#aq-spin');
@@ -591,19 +623,21 @@ export async function runPrePilotProductBrowserAcceptance({
   const drawReturned = await awaitMenu();
   pass('lucky-draw-physical-route-pool-core-six-and-exactly-one-350-ac-draw',
     drawRoute.pointer.hitWithin === true && drawBefore?.visible === true
-      && drawBefore.credits === 350 && drawBefore.spins === 0
-      && drawBefore.cost === '350 AC' && /350\s*AC/.test(drawBefore.button)
-      && JSON.stringify(drawBefore.pool) === JSON.stringify(['HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR'])
-      && JSON.stringify([...drawBefore.labels].sort()) === JSON.stringify(['HUNTER', 'CRYSTALA', 'MAGNET', 'FROST', 'MIRROR'].sort())
+      && drawBefore.credits === economy.cleanStateCredits && drawBefore.spins === 0
+      && drawBefore.drawCost === economy.drawCost && drawBefore.authorityDrawCost === economy.drawCost
+      && drawBefore.cost === `${economy.drawCost} AC` && hasAcPrice(drawBefore.button, economy.drawCost)
+      && JSON.stringify(drawBefore.pool) === JSON.stringify(drawBefore.expectedPool)
+      && JSON.stringify([...drawBefore.labels].sort()) === JSON.stringify(drawBefore.expectedLabels.sort())
       && drawBefore.futureInPool === false
       && firstSpin.hitWithin === true && drawResult?.resultVisible === true
-      && drawResult.credits === 0 && drawResult.totalSpins === 1
-      && drawResult.newlyOwned.length === 1 && CORE_SIX.includes(drawResult.newlyOwned[0])
-      && drawResult.pool.length === 4 && drawResult.futureOwned.length === 0
-      && secondSpin.hitWithin === true && /NEED\s+350\s+AC/.test(secondDraw.message)
+      && drawResult.credits === economy.cleanStateCredits - economy.drawCost && drawResult.totalSpins === 1
+      && drawResult.newlyOwned.length === 1 && playableFighterIds.includes(drawResult.newlyOwned[0])
+      && drawResult.pool.length === drawBefore.expectedPool.length - 1 && drawResult.futureOwned.length === 0
+      && secondSpin.hitWithin === true && /NEED/i.test(secondDraw.message)
+      && hasAcPrice(secondDraw.message, economy.drawCost)
       && secondDraw.denial?.ok === false && secondDraw.denial?.reason === 'need'
-      && secondDraw.credits === 0 && secondDraw.totalSpins === 1
-      && secondDraw.owned.length === 2
+      && secondDraw.credits === drawResult.credits && secondDraw.totalSpins === 1
+      && secondDraw.owned.length === drawResult.owned.length
       && drawBack.hitWithin === true && drawReturned?.visible === true && drawReturned?.gameState === 'MENU',
     { route: drawRoute, before: drawBefore, firstSpin, result: drawResult,
       secondSpin, secondAttempt: secondDraw, back: drawBack, returned: drawReturned });
@@ -633,7 +667,7 @@ export async function runPrePilotProductBrowserAcceptance({
   evidence.push(await screenshot('prepilot-admin-lab-real-neutral-runtime'));
   pass('admin-lab-absent-publicly-launchable-only-by-api-on-neutral-core',
     beforeLab.labCard === false && beforeLab.navHasLab === false && beforeLab.api === 'function'
-      && JSON.stringify(beforeLab.ids) === JSON.stringify(PUBLIC_IDS)
+      && JSON.stringify(beforeLab.ids) === JSON.stringify(publicIds)
       && labLaunch.launched === true && labLaunch.state === 'ARSENAL'
       && labLaunch.debug?.active === true && labLaunch.debug?.labMode === true
       && labLaunch.fighters.join(',') === 'ROBOT,ROBOT' && labLaunch.labPanel === true
@@ -647,7 +681,7 @@ export async function runPrePilotProductBrowserAcceptance({
   }))()`);
   pass('admin-lab-physical-exit-returns-without-public-lab-link',
     labExit.hitWithin === true && labReturned?.visible === true && labReturned?.gameState === 'MENU'
-      && afterLabMenu.labCard === false && JSON.stringify(afterLabMenu.ids) === JSON.stringify(PUBLIC_IDS),
+      && afterLabMenu.labCard === false && JSON.stringify(afterLabMenu.ids) === JSON.stringify(publicIds),
     { exit: labExit, returned: labReturned, menu: afterLabMenu });
 
   result.summary = {

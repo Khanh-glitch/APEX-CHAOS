@@ -1513,23 +1513,22 @@ report.roster = run(`
   const playableRework = ids.length === 12 && ids.every(n => (shells.typeFor(n) || {}).__hrHero === n);
 
   // REWORK proof (replaces the legacy ICE KEEP-proof): canonical ICE casts
-  // its rework skill (A2) inside a real Arsenal match.
-  // FROST V1 migration: A2 is now the Frost HUNT (live window + real-path
-  // trail in Frost truth state), not the old world.lanes frost lane, so the
-  // gate proves the Frost A2 cast took effect instead of world.lanes.
+  // both current Frost skills inside a real Arsenal match. The browser proof
+  // covers A1's Frozen Lane; A2 remains Frost Rush with its own live window
+  // and real-path trail, not a second source of A1 lane geometry.
   window.startArsenalQuestMode('ICE', 'WITCH');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
   const HR = window.APEX_HERO_REWORK;
   const iceCt = HR.byCombatant(fighters[0]);
   const iceCtl = HR.abilityController(iceCt);
-  const laneCast = iceCtl.tryCast('A2', 'gate');
-  let iceLaneFired = false;
+  const rushCast = iceCtl.tryCast('A2', 'gate');
+  let rushTrailFired = false;
   for (let i = 0; i < 40; i++) {
     APEX_ARSENAL.step(1 / 60);
     const FR = window.APEX_FROST;
     const insp = FR && FR.inspect ? FR.inspect(iceCt) : null;
-    if (insp && (insp.a2live || insp.trail > 0)) iceLaneFired = true;
+    if (insp && (insp.a2live || insp.trail > 0)) rushTrailFired = true;
   }
 
   // ADAPT proof: VAMPIRE latch shortened to 2.5s for shell fighters.
@@ -1575,7 +1574,7 @@ report.roster = run(`
     || __AQ_TEST.countEvents('USE', 'weapon=PISTOL') >= 1;
   return {
     kits, allClassified, adapted, playableRework,
-    laneCast: laneCast && laneCast.ok, iceLaneFired, vampLatch, monkRush, monkStun,
+    rushCast: rushCast && rushCast.ok, rushTrailFired, vampLatch, monkRush, monkStun,
     nativeSeen, aqSeen, bothFrames, holderIntact,
   };
 `);
@@ -1583,8 +1582,8 @@ gate('roster-encounters-classified-keep-or-adapt',
   report.roster.allClassified && Object.keys(report.roster.kits).length === 21
     && report.roster.adapted.join(',') === 'VAMPIRE,MONK' && report.roster.playableRework,
   { adapted: report.roster.adapted, playableRework: report.roster.playableRework });
-gate('roster-rework-ice-lane-runs', report.roster.laneCast === true && report.roster.iceLaneFired,
-  { laneCast: report.roster.laneCast, iceLaneFired: report.roster.iceLaneFired });
+gate('roster-rework-ice-a2-rush-trail-runs', report.roster.rushCast === true && report.roster.rushTrailFired,
+  { rushCast: report.roster.rushCast, rushTrailFired: report.roster.rushTrailFired });
 gate('roster-adapt-vampire-latch-2.5', report.roster.vampLatch === 2.5, `latchTimer=${report.roster.vampLatch}`);
 gate('roster-adapt-monk-rush-2.5',
   report.roster.monkRush === 2.5 && (report.roster.monkStun == null || report.roster.monkStun <= 2.5),

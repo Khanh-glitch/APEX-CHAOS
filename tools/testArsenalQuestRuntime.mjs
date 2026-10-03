@@ -1133,6 +1133,7 @@ try {
     await new Promise(r => setTimeout(r, 80));
     return {
       names, restored, sanitizedSave,
+      productPlayable: window.APEX_PRODUCT_SURFACE?.roster?.playableIds || [],
       publicSelectionRejected: !M.canPublicSelect('SLIME'),
       p1: t && t.p1(),
       p2: t && t.p2(),
@@ -1145,7 +1146,7 @@ try {
   })()`);
   gate('v3-free-core-six-owned-only-roster', shellSelect.robot && shellSelect.cardExcluded && !shellSelect.unownedSniper
     && shellSelect.names.join(',') === 'ROBOT,ICE'
-    && shellSelect.names.every(name => ['ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR'].includes(name))
+    && shellSelect.names.every(name => shellSelect.productPlayable.includes(name))
     && shellSelect.selectVisible && shellSelect.hubHidden, shellSelect);
   gate('v3-free-historic-locked-ownership-persists-selection-sanitizes',
     shellSelect.restored.p1 === 'ICE' && shellSelect.restored.p2 === 'ROBOT'
@@ -2003,41 +2004,51 @@ try {
   })()`);
 
   report.bothUnarmed = await evaluate(`(() => {
-    __AQ_TEST.enterManual();
-    __AQ_TEST.clearSlots();
-    APEX_ARSENAL.state.spawnedTotal = 0;
-    APEX_ARSENAL.state.unarmedFastConsumed = false;
-    APEX_ARSENAL.state.spawnTimer = 4.5;
-    fighters[0].hp = 100; fighters[1].hp = 100;
-    fighters[0].data.arsenal = null; fighters[1].data.arsenal = null;
-    __AQ_TEST.step(1/60);
-    const afterImmediate = APEX_ARSENAL.state.spawnedTotal;
-    const timerAfter = APEX_ARSENAL.state.spawnTimer;
-    __AQ_TEST.step(1.0);
-    const mid = APEX_ARSENAL.state.spawnedTotal;
-    // Make the false phase deterministic: remove any incidental emergency
-    // pickup/holder first, then arm HERO with a known firearm for one tick.
-    __AQ_TEST.clearSlots();
-    fighters[0].data.arsenal = null;
-    fighters[1].data.arsenal = null;
-    APEX_ARSENAL.weaponApi.equip(fighters[0], 'PISTOL');
-    const armedBefore = APEX_ARSENAL.state.spawnedTotal;
-    __AQ_TEST.step(1/60);
-    const afterOneArmed = APEX_ARSENAL.state.spawnedTotal;
-    // Now create the exact false -> true retrigger: no holders and no
-    // revealed firearm floor pickup.
-    __AQ_TEST.clearSlots();
-    fighters[0].data.arsenal = null;
-    fighters[1].data.arsenal = null;
-    APEX_ARSENAL.state.spawnTimer = 2.4;
-    const retrigBefore = APEX_ARSENAL.state.spawnedTotal;
-    __AQ_TEST.step(1/60);
-    const retrigAfter = APEX_ARSENAL.state.spawnedTotal;
-    window.avCue('pickup', { weapon: 'AK_47', x: 1, y: 1 });
-    const ak = APEX_ARSENAL_AV.stats.lastGunReady;
-    window.avCue('pickup', { weapon: 'PISTOL', x: 1, y: 1 });
-    const pistol = APEX_ARSENAL_AV.stats.lastGunReady;
-    return { afterImmediate, timerAfter, mid, afterOneArmed, armedBefore, retrigBefore, retrigAfter, ak, pistol };
+    // Keep this spawn-law fixture independent of random physical pickup;
+    // item collection is outside the invariant under test. A revealed firearm
+    // remains in the slot list, so it still suppresses the
+    // emergency spawn while this deterministic test holds time for one second.
+    const originalResolvePickups = APEX_ARSENAL_SPAWN.resolvePickups;
+    APEX_ARSENAL_SPAWN.resolvePickups = () => {};
+    try {
+      __AQ_TEST.enterManual();
+      __AQ_TEST.clearSlots();
+      APEX_ARSENAL.state.spawnedTotal = 0;
+      APEX_ARSENAL.state.unarmedFastConsumed = false;
+      APEX_ARSENAL.state.spawnTimer = 4.5;
+      fighters[0].hp = 100; fighters[1].hp = 100;
+      fighters[0].data.arsenal = null; fighters[1].data.arsenal = null;
+      __AQ_TEST.step(1/60);
+      const afterImmediate = APEX_ARSENAL.state.spawnedTotal;
+      const timerAfter = APEX_ARSENAL.state.spawnTimer;
+      __AQ_TEST.step(1.0);
+      const mid = APEX_ARSENAL.state.spawnedTotal;
+      // Make the false phase deterministic: remove any incidental emergency
+      // pickup/holder first, then arm HERO with a known firearm for one tick.
+      __AQ_TEST.clearSlots();
+      fighters[0].data.arsenal = null;
+      fighters[1].data.arsenal = null;
+      APEX_ARSENAL.weaponApi.equip(fighters[0], 'PISTOL');
+      const armedBefore = APEX_ARSENAL.state.spawnedTotal;
+      __AQ_TEST.step(1/60);
+      const afterOneArmed = APEX_ARSENAL.state.spawnedTotal;
+      // Now create the exact false -> true retrigger: no holders and no
+      // revealed firearm floor pickup.
+      __AQ_TEST.clearSlots();
+      fighters[0].data.arsenal = null;
+      fighters[1].data.arsenal = null;
+      APEX_ARSENAL.state.spawnTimer = 2.4;
+      const retrigBefore = APEX_ARSENAL.state.spawnedTotal;
+      __AQ_TEST.step(1/60);
+      const retrigAfter = APEX_ARSENAL.state.spawnedTotal;
+      window.avCue('pickup', { weapon: 'AK_47', x: 1, y: 1 });
+      const ak = APEX_ARSENAL_AV.stats.lastGunReady;
+      window.avCue('pickup', { weapon: 'PISTOL', x: 1, y: 1 });
+      const pistol = APEX_ARSENAL_AV.stats.lastGunReady;
+      return { afterImmediate, timerAfter, mid, afterOneArmed, armedBefore, retrigBefore, retrigAfter, ak, pistol };
+    } finally {
+      APEX_ARSENAL_SPAWN.resolvePickups = originalResolvePickups;
+    }
   })()`);
   gate('both-unarmed-immediate-fresh', report.bothUnarmed.afterImmediate === 1, report.bothUnarmed);
   gate('both-unarmed-timer-reset-3s', report.bothUnarmed.timerAfter > 4.4 && report.bothUnarmed.timerAfter <= 4.5, report.bothUnarmed);
@@ -3332,10 +3343,20 @@ try {
     lastSelectedP1: 'HUNTER', lastSelectedP2: 'ROBOT', totalSpins: 0,
     unlockedAt: { ROBOT: 0, HUNTER: 1, ICE: 2 },
   };
+  const cp7IsNavigationRace = error => /execution context was destroyed|cannot find context with specified id|target navigated or closed/i
+    .test(String(error?.message || error));
+  async function cp7EvaluateAcrossNavigation(expression) {
+    try { return await evaluate(expression); }
+    catch (error) { if (cp7IsNavigationRace(error)) return null; throw error; }
+  }
+  async function cp7HitProbeAcrossNavigation(selector) {
+    try { return await hitProbe(selector); }
+    catch (error) { if (cp7IsNavigationRace(error)) return null; throw error; }
+  }
   async function cp7Physical(selector, { attempts = 240, interval = 50 } = {}) {
     let probe = null;
     for (let i = 0; i < attempts; i++) {
-      try { probe = await hitProbe(selector); } catch { probe = null; }
+      probe = await cp7HitProbeAcrossNavigation(selector);
       if (probe && probe.exists && !probe.disabled && probe.hitWithin
           && probe.pointerEvents !== 'none' && probe.width > 1 && probe.height > 1) {
         return await physicalClick(selector);
@@ -3347,8 +3368,20 @@ try {
   async function cp7Wait(expression, predicate = Boolean, attempts = 240) {
     let value = null;
     for (let i = 0; i < attempts; i++) {
-      try { value = await evaluate(expression); } catch { value = null; }
+      value = await cp7EvaluateAcrossNavigation(expression);
       if (predicate(value)) return value;
+      await sleep(50);
+    }
+    return value;
+  }
+  async function cp7WaitForSelection(champion, player) {
+    let value = null;
+    let stableSamples = 0;
+    const expression = `window.__APEX_PICK_TEST?.p${player}() || null`;
+    for (let i = 0; i < 40; i++) {
+      value = await cp7EvaluateAcrossNavigation(expression);
+      stableSamples = value === champion ? stableSamples + 1 : 0;
+      if (stableSamples >= 3) return value;
       await sleep(50);
     }
     return value;
@@ -3363,7 +3396,7 @@ try {
       let previousRect = null;
       let stableSamples = 0;
       for (let sample = 0; sample < 6; sample++) {
-        try { probe = await hitProbe(selector); } catch { probe = null; }
+        probe = await cp7HitProbeAcrossNavigation(selector);
         const hitReady = probe && probe.exists && !probe.disabled && probe.hitWithin
           && probe.pointerEvents !== 'none' && probe.width > 1 && probe.height > 1;
         const rect = hitReady
@@ -3372,7 +3405,16 @@ try {
         if (rect && rect === previousRect) stableSamples += 1;
         else stableSamples = 0;
         previousRect = rect;
-        if (hitReady && stableSamples >= 2) return await physicalClick(selector);
+        if (hitReady && stableSamples >= 2) {
+          const click = await physicalClick(selector);
+          const selectingPlayer = (champion === 'ROBOT'
+            && await cp7EvaluateAcrossNavigation('window.__apexArsenalSelectionMode === "local"')) ? 2 : 1;
+          const selected = await cp7WaitForSelection(champion, selectingPlayer);
+          if (selected === champion) return { ...click, selected };
+          previousRect = null;
+          stableSamples = 0;
+          await sleep(100);
+        }
         await sleep(80);
       }
       const arrow = await cp7Physical('.apex-pick-button[aria-label="arrow-right"]', { attempts: 3, interval: 60 });
@@ -3383,11 +3425,7 @@ try {
   }
   async function cp7PickStart() {
     const p1 = await cp7SelectChampion('HUNTER');
-    const selectedP1 = await cp7Wait(`(() => {
-      const id = window.__APEX_PICK_TEST?.p1() || null;
-      return id && window.APEX_PRODUCT_SURFACE?.isPublicPlayableFighter(id)
-        && window.APEX_ARSENAL_META?.owns(id) ? id : null;
-    })()`, value => !!value, 50);
+    const selectedP1 = await cp7Wait(`window.__APEX_PICK_TEST?.p1() || null`, value => value === 'HUNTER', 50);
     let p2 = null;
     if (await evaluate('window.__apexArsenalSelectionMode !== "bot"')) {
       p2 = await cp7SelectChampion('ROBOT');
@@ -3452,6 +3490,8 @@ try {
       stateAtOpen: transition.state,
       destination: transition.destination,
       ready: transition.readiness || {},
+      route: result.route?.route || null,
+      picker: result.route?.picker || null,
       fighters: first.fighters,
       battleMode: first.battleMode,
       labMode: first.labMode,
@@ -3509,9 +3549,11 @@ try {
   gate('owner-cp7-local-battle-cold-barrier-held',
     cp7LocalRaw.menu?.visible === true && cp7LocalRaw.route?.route?.hitWithin === true
     && cp7LocalRaw.route?.picker?.p1?.hitWithin === true
+    && cp7LocalRaw.route?.picker?.p1?.selected === 'HUNTER'
     && cp7LocalRaw.route?.picker?.selectedP1 === 'HUNTER'
-    && cp7LocalRaw.route?.picker?.p2?.hitWithin === true
     && cp7LocalRaw.route?.picker?.selection?.p1 === 'HUNTER'
+    && cp7LocalRaw.route?.picker?.selection?.p1Legal === true
+    && cp7LocalRaw.route?.picker?.p2?.hitWithin === true
     && cp7LocalRaw.route?.picker?.selection?.p2 === 'ROBOT'
     && cp7LocalRaw.route?.picker?.selection?.mode === 'local'
     && cp7LocalRaw.route?.picker?.selection?.p2Legal === true
@@ -3537,8 +3579,10 @@ try {
   gate('owner-cp7-bot-battle-cold-barrier-held',
     cp7BotRaw.menu?.visible === true && cp7BotRaw.route?.route?.hitWithin === true
     && cp7BotRaw.route?.picker?.p1?.hitWithin === true
+    && cp7BotRaw.route?.picker?.p1?.selected === 'HUNTER'
     && cp7BotRaw.route?.picker?.selectedP1 === 'HUNTER'
     && cp7BotRaw.route?.picker?.selection?.p1 === 'HUNTER'
+    && cp7BotRaw.route?.picker?.selection?.p1Legal === true
     && cp7BotRaw.route?.picker?.selection?.p2 === 'ROBOT'
     && cp7BotRaw.route?.picker?.selection?.mode === 'bot'
     && cp7BotRaw.route?.picker?.selection?.p2Legal === true
