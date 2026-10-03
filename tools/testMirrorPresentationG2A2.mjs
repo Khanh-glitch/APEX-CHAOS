@@ -22,6 +22,7 @@ const canvases = [];
 const identitySurfaces = new WeakSet();
 let captureIdentityBlits = false;
 let identityBlits = 0;
+const identityBlitMatrices = [];
 const createElement = win.document.createElement.bind(win.document);
 win.document.createElement = function countedCreateElement(name, ...args) {
   const lower = String(name).toLowerCase();
@@ -58,7 +59,11 @@ win.HTMLCanvasElement.prototype.getContext = function getContext(type) {
         return (img, ...args) => {
           if (captureIdentityBlits && img && img.width === 256 && img.height === 256)
             identitySurfaces.add(img);
-          if (identitySurfaces.has(img)) identityBlits++;
+          if (identitySurfaces.has(img)) {
+            identityBlits++;
+            const m = ctx.getTransform();
+            identityBlitMatrices.push([m.a, m.b, m.c, m.d, m.e, m.f]);
+          }
           const mapped = img && (img.__realImage || realCanvases.get(img)
             || (img instanceof win.HTMLCanvasElement ? realCanvasFor(img) : null));
           return value.call(ctx, mapped || img, ...args);
@@ -229,6 +234,12 @@ try {
   assert.equal(bridge.inspect().instanceCount, 1);
   assert.equal(goldInstances.length, 1);
   const gold = goldInstances[0];
+  const realDrawMirrorEntityWithOpponent = gold.drawMirrorEntityWithOpponent;
+  const a2CompositeScales = [];
+  gold.drawMirrorEntityWithOpponent = function captureA2CompositeScale(ctx2d, drawOpponent, mirrorScale) {
+    a2CompositeScales.push(mirrorScale);
+    return realDrawMirrorEntityWithOpponent.call(this, ctx2d, drawOpponent, mirrorScale);
+  };
   assert.equal(gold.externalTruth, true);
   assert.equal(gold.applyExchange, false, 'the production instance cannot own gameplay relocation');
   console.log('[G2B A2] adapter and Gold ready');
@@ -249,8 +260,13 @@ try {
   const goldDrawHelperStart = goldSource.indexOf('let __mirrorEntityDrawContext');
   const goldDrawHelperEnd = goldSource.indexOf('function beginExternalA1(', goldDrawHelperStart);
   assert.ok(goldDrawHelperStart >= 0 && goldDrawHelperEnd > goldDrawHelperStart);
-  assert.doesNotMatch(goldSource.slice(goldDrawHelperStart, goldDrawHelperEnd), /=>/,
+  const goldDrawHelperSource = goldSource.slice(goldDrawHelperStart, goldDrawHelperEnd);
+  assert.doesNotMatch(goldDrawHelperSource, /=>/,
     'the A2 identity draw bridge reuses callbacks instead of allocating per-frame closures');
+  assert.match(goldDrawHelperSource, /72 \* scale/,
+    'active A2 clip/sweep envelope follows the Mirror presentation scale');
+  assert.match(adapterSource, /drawMirrorEntityWithOpponent\(ctx, state\.drawOpponentIdentity, bodyK\)/,
+    'active A2 passes Mirror scale into Gold instead of scaling the mixed composite context');
   check('gold-bound-external-truth-and-applyExchange-false');
   check('gold-a2-adapter-draw-reuses-prebound-callbacks');
   check('Robot-product-alias-uses-body-only-identity-renderer');
@@ -302,6 +318,15 @@ try {
   assert.deepEqual([...identityPixel].slice(0, 3), [233, 44, 252],
     'the bounded snapshot contains the actual opponent identity pixels');
   assert.ok(identityBlits > 0, 'Gold composites the snapshot through its authored A2 wrong-person clip');
+  const expectedA2MirrorScale = (mirror.radius / 34) * 0.70;
+  assert.ok(Math.abs(a2CompositeScales.at(-1) - expectedA2MirrorScale) < 1e-9,
+    'active A2 receives the same owner-tuned Mirror scale as idle presentation');
+  const identityMatrix = identityBlitMatrices.at(-1);
+  assert.ok(identityMatrix, 'active A2 records the opponent snapshot composite matrix');
+  assert.ok(Math.abs(identityMatrix[0] - 1) < 1e-9 && Math.abs(identityMatrix[1]) < 1e-9
+    && Math.abs(identityMatrix[2]) < 1e-9 && Math.abs(identityMatrix[3] - 1) < 1e-9,
+    'opponent snapshot stays at 1x production scale instead of inheriting Mirror body scale');
+  check('active-a2-keeps-mirror-at-owner-scale-and-opponent-snapshot-at-production-scale');
   assert.deepEqual(bodyState(mirror), untouchedMirror, 'actor drawing leaves all Mirror gameplay state unchanged');
   assert.deepEqual(bodyState(robotOpponent), untouchedOpponent, 'identity drawing leaves all opponent gameplay state unchanged');
 

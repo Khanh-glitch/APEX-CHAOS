@@ -21,10 +21,9 @@
   const PASSIVE_NODE_MEMBERS = 5;
   const MAX_FRAME_DT = STEP * MAX_SUBSTEPS;
   const EPSILON = 1e-12;
-  // Owner visual playtest 2026-10-03: retain the live-radius calibration law,
-  // then tune Mirror to 90% of the r31 footprint (= 72% of the r30 footprint).
-  // Gameplay radius/hitbox and world-space passive/F2 geometry remain untouched.
-  const BODY_VISUAL_MULTIPLIER = 0.72;
+  // Owner visual playtest 2026-10-03: keep Mirror at 70% of the original H1
+  // visual calibration. Gameplay radius/hitbox and world-space passive/F2 geometry remain untouched.
+  const BODY_VISUAL_MULTIPLIER = 0.70;
   const GOLD_MIRROR_RADIUS = GOLD && GOLD.GOLD_REF && Number.isFinite(GOLD.GOLD_REF.MIRROR_R)
     ? GOLD.GOLD_REF.MIRROR_R : null;
   // Mirror-only presentation accent authority. Values are intentionally muted
@@ -315,11 +314,19 @@
         // Fighter radius/gameplay coordinates are read-only inputs here.
         ctx.rotate(-angle);
         ctx.translate(-fighter.x, -fighter.y);
-        scaleAbout(ctx, fighter.x, fighter.y, mirrorBodyK(state));
+        const bodyK = mirrorBodyK(state);
         const a2 = state.gold.A2;
-        if (a2 && a2.on && (a2.band > 0.002 || a2.ghostA > 0.01))
+        const a2Composite = !!(a2 && a2.on && (a2.band > 0.002 || a2.ghostA > 0.01));
+        if (a2Composite) {
           refreshOpponentIdentitySurface(state);
-        state.gold.drawMirrorEntityWithOpponent(ctx, state.drawOpponentIdentity);
+          // Active A2 is a mixed-identity composite: scale only Mirror-owned
+          // geometry. The opponent snapshot is already rendered at production
+          // size and must not inherit Mirror's body calibration.
+          state.gold.drawMirrorEntityWithOpponent(ctx, state.drawOpponentIdentity, bodyK);
+        } else {
+          scaleAbout(ctx, fighter.x, fighter.y, bodyK);
+          state.gold.drawMirrorEntityWithOpponent(ctx, state.drawOpponentIdentity);
+        }
       } finally { ctx.restore(); }
     };
     try {

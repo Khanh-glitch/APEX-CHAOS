@@ -1803,9 +1803,17 @@ function createMirrorInstance(options) {
     __externalExchanges++;
     return true;
   }
-  let __mirrorEntityDrawContext = null, __mirrorEntityOpponentDraw = null;
+  let __mirrorEntityDrawContext = null, __mirrorEntityOpponentDraw = null, __mirrorEntityScale = 1;
+  function scaleMirrorEntityRoot(ctx, scale) {
+    if (!ctx || !Number.isFinite(scale) || scale === 1) return;
+    ctx.translate(M.x, M.y); ctx.scale(scale, scale); ctx.translate(-M.x, -M.y);
+  }
   function drawCurrentMirrorBody() {
-    if (__mirrorEntityDrawContext) rigFull(__mirrorEntityDrawContext, M.x, M.y);
+    const ctx = __mirrorEntityDrawContext;
+    if (!ctx) return;
+    ctx.save();
+    try { scaleMirrorEntityRoot(ctx, __mirrorEntityScale); rigFull(ctx, M.x, M.y); }
+    finally { ctx.restore(); }
   }
   function drawCurrentOpponentBody(alpha) {
     const ctx = __mirrorEntityDrawContext, drawOpponent = __mirrorEntityOpponentDraw;
@@ -1814,16 +1822,19 @@ function createMirrorInstance(options) {
     try { ctx.globalAlpha *= alpha; drawOpponent(ctx, M.x, M.y); }
     finally { ctx.restore(); }
   }
-  function drawMirrorEntityWithOpponent(g, drawOpponent) {
+  function drawMirrorEntityWithOpponent(g, drawOpponent, mirrorScale) {
+    const scale = Number.isFinite(mirrorScale) && mirrorScale > 0 ? mirrorScale : 1;
     if (A2.on && (A2.band > .002 || A2.ghostA > .01)) {
       __mirrorEntityDrawContext = g;
       __mirrorEntityOpponentDraw = drawOpponent;
+      __mirrorEntityScale = scale;
       try {
-        drawSite(g, M.x, M.y, A2.band, A2.ghostA, A2.tear, A2.ang, 72,
+        drawSite(g, M.x, M.y, A2.band, A2.ghostA, A2.tear, A2.ang, 72 * scale,
           drawCurrentMirrorBody, drawCurrentOpponentBody);
       } finally {
         __mirrorEntityDrawContext = null;
         __mirrorEntityOpponentDraw = null;
+        __mirrorEntityScale = 1;
       }
     } else rigFull(g, M.x, M.y);
   }
