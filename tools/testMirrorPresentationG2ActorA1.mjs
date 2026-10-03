@@ -173,6 +173,7 @@ try {
   const mirrorCt = combatant(0, 'MIRROR', mirror);
   const foeCt = combatant(1, 'STALKER', foe, true);
   HR.match = { combatants: [mirrorCt, foeCt] };
+  win.fighters = [mirror, foe];
 
   win.eval(fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js', 'utf8'));
   const bridge = win.APEX_MIRROR_PRESENTATION;
@@ -245,11 +246,17 @@ try {
   ctx.clearRect(0, 0, view.width, view.height);
   const emptyWorldHash = pixelHash(view);
   assert.equal(bridge.renderArenaWorldEffects(ctx, { stage: 'after-world-before-fighters' }), true);
-  const reflectionHash = pixelHash(view);
-  assert.notEqual(reflectionHash, emptyWorldHash, 'the A1 reflection is drawn from real Arsenal weapon art');
-  assert.equal(a1WorldDraws, 1, 'the protected world stage owns the pre-OWN reflection exactly once');
+  assert.equal(a1WorldDraws, 0, 'the pre-fighter world seam no longer draws A1World');
+  assert.equal(pixelHash(view), emptyWorldHash, 'world-only rendering contains no reflected weapon pass');
+  win.__apexRenderFrame = 1;
   mirror.draw(ctx);
   foe.draw(ctx);
+  assert.equal(a1WorldDraws, 0, 'fighter wrappers do not draw A1World before Arsenal held weapons');
+  win.APEX_ARSENAL_AV.drawEquippedWeapon(ctx, foe, foe.data.arsenal);
+  bridge.renderPostFighters(ctx);
+  const reflectionHash = pixelHash(view);
+  assert.notEqual(reflectionHash, emptyWorldHash, 'the post-held-weapon A1 reflection uses real Arsenal weapon art');
+  assert.equal(a1WorldDraws, 1, 'the foreground seam draws the pre-OWN reflection once');
   assert.equal(gold.weaponArt().source, 'production', 'the Gold demo weapon fallback is not used');
 
   let goldHeldDraws = 0;
@@ -260,13 +267,16 @@ try {
   ctx.clearRect(0, 0, view.width, view.height);
   const emptyAfterOwnHash = pixelHash(view);
   bridge.renderArenaWorldEffects(ctx, { stage: 'after-world-before-fighters' });
-  assert.equal(pixelHash(view), emptyAfterOwnHash, 'Gold stops reflected-weapon ownership at the real OWN edge');
-  assert.equal(a1WorldDraws, 1, 'no Gold weapon image is drawn after real OWN');
+  assert.equal(pixelHash(view), emptyAfterOwnHash, 'world-only layer stays clear of the reflected weapon after OWN');
+  win.__apexRenderFrame = 2;
   mirror.draw(ctx);
+  foe.draw(ctx);
+  assert.equal(a1WorldDraws, 1, 'fighter wrappers do not draw a duplicate after real OWN');
   const actorAfterOwnHash = pixelHash(view);
   win.APEX_ARSENAL_AV.drawEquippedWeapon(ctx, mirror, mirror.data.arsenal);
   assert.notEqual(pixelHash(view), actorAfterOwnHash, 'the actual equipped weapon remains in the Arsenal foreground');
-  assert.equal(equippedWeaponDraws, 1, 'the real Arsenal foreground draws the held weapon once');
+  bridge.renderPostFighters(ctx);
+  assert.equal(equippedWeaponDraws, 2, 'the real Arsenal foreground draws the held weapon once in each fixture pass');
   assert.equal(goldHeldDraws, 0, 'Gold never double-draws its demo held weapon after OWN');
   assert.equal(gold.M.copyOn, false, 'Gold never claims gameplay copy materialisation');
   assert.equal(canvasCreations, actorCanvasCount, 'actor and A1 drawing reuse the baked/cached surfaces');
@@ -285,9 +295,12 @@ try {
   assert.equal(gold.A1.on, true);
   bus.emit('MirrorA1Whiff', { hero: 'MIRROR', castId: 'a1-late-whiff', reason: 'equip-failed' });
   assert.equal(gold.A1.whiff, true, 'real OWN failure changes only the active visual to a whiff');
-  const whiffHash = pixelHash(view);
+  ctx.clearRect(0, 0, view.width, view.height);
   bridge.renderArenaWorldEffects(ctx, { stage: 'after-world-before-fighters' });
-  assert.equal(pixelHash(view), whiffHash, 'a failed real OWN cannot leave the reflected weapon active');
+  win.__apexRenderFrame = 3;
+  mirror.draw(ctx);
+  foe.draw(ctx);
+  bridge.renderPostFighters(ctx);
   assert.equal(a1WorldDraws, 1, 'a failed real OWN suppresses the reflected image as well');
   bus.emit('MirrorA1End', { hero: 'MIRROR', castId: 'a1-late-whiff' });
   bridge.tick(1 / 120);
@@ -300,11 +313,31 @@ try {
     'the Hero world seam dispatches Mirror presentation once');
   assert.match(fullRosterSource, /stage: 'after-world-before-fighters'/,
     'the effective world renderer preserves the protected presentation stage');
-  assert.match(arsenalQuestSource, /drawEquippedWeapons\(ctx\)/,
-    'real Arsenal held-weapon foreground remains outside the Gold actor pass');
-  assert.match(fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js', 'utf8'),
+  const foregroundStart = arsenalQuestSource.indexOf('function drawForeground() {');
+  const foregroundEnd = arsenalQuestSource.indexOf('function muteArenaGlyphs(c)', foregroundStart);
+  const foregroundSource = arsenalQuestSource.slice(foregroundStart, foregroundEnd);
+  const residueAt = foregroundSource.indexOf('renderPostFighterResidue?.(ctx)');
+  const heldWeaponsAt = foregroundSource.indexOf('drawEquippedWeapons(ctx)');
+  const mirrorPostAt = foregroundSource.indexOf('renderPostFighters?.(ctx)');
+  const arsenalVfxAt = foregroundSource.indexOf('weaponApi.drawArsenalVisuals(ctx)');
+  assert.ok(foregroundStart >= 0 && foregroundEnd > foregroundStart
+    && residueAt >= 0 && heldWeaponsAt > residueAt
+    && mirrorPostAt > heldWeaponsAt && arsenalVfxAt > mirrorPostAt,
+    'the production foreground renders Gold A2 residue → real held weapons → Gold A1 → Arsenal VFX');
+  const adapterSource = fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js', 'utf8');
+  assert.match(adapterSource,
     /state\.gold\.drawMirrorEntityWithOpponent\(ctx, state\.drawOpponentIdentity\)/,
     'Mirror actor uses the authored Gold body rig, not demo gameplay draw/update');
+  const worldPassSource = adapterSource.slice(adapterSource.indexOf('function renderArenaWorldEffects'),
+    adapterSource.indexOf('function renderPostFighters'));
+  assert.doesNotMatch(worldPassSource, /drawA1World/,
+    'A1World is absent from the after-world-before-fighters pass');
+  assert.match(adapterSource, /function renderPostFighters\(ctx\)/,
+    'the one post-fighter seam owns the reflected weapon overlay');
+  const actorWrapperAt = adapterSource.indexOf('function installDraw() {');
+  const actorWrapperEnd = adapterSource.indexOf('function inspect()', actorWrapperAt);
+  assert.doesNotMatch(adapterSource.slice(actorWrapperAt, actorWrapperEnd), /renderPostFighters\(/,
+    'Mirror draw wrapping preserves the established actor chain without dispatching the overlay early');
 
   bridge.dispose();
   assert.equal(Fighter.prototype.draw, originalFighterDraw, 'dispose restores the original draw chain');

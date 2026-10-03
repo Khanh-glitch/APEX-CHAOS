@@ -373,16 +373,24 @@ try {
   }
   assert.ok(simultaneous.gold.A2.res > 0 && simultaneous.otherGold.A2.res > 0);
   let residueA = 0, residueB = 0;
-  const drawA = simultaneous.gold.drawResidue, drawB = simultaneous.otherGold.drawResidue;
-  simultaneous.gold.drawResidue = function (ctx) { residueA++; return drawA.call(simultaneous.gold, ctx); };
-  simultaneous.otherGold.drawResidue = function (ctx) { residueB++; return drawB.call(simultaneous.otherGold, ctx); };
+  const stripsA = simultaneous.gold.strips, stripsB = simultaneous.otherGold.strips;
+  simultaneous.gold.strips = function (ctx, ...args) {
+    residueA++; return stripsA.call(simultaneous.gold, ctx, ...args);
+  };
+  simultaneous.otherGold.strips = function (ctx, ...args) {
+    residueB++; return stripsB.call(simultaneous.otherGold, ctx, ...args);
+  };
   const ctx = win.document.getElementById('game-canvas').getContext('2d');
-  win.APEX_MIRROR_PRESENTATION.renderArenaWorldEffects(ctx, { stage: 'after-world-before-fighters' });
-  simultaneous.gold.drawResidue = drawA; simultaneous.otherGold.drawResidue = drawB;
-  gate('simultaneous physical exchange yields one rebase per Gold and one residue draw', () => {
+  const presentation = win.APEX_MIRROR_PRESENTATION;
+  presentation.renderArenaWorldEffects(ctx, { stage: 'after-world-before-fighters' });
+  assert.deepEqual([residueA, residueB], [0, 0], 'A2 residue is not drawn in the pre-fighter world layer');
+  win.__apexRenderFrame = (win.__apexRenderFrame || 0) + 1;
+  presentation.renderPostFighterResidue(ctx);
+  simultaneous.gold.strips = stripsA; simultaneous.otherGold.strips = stripsB;
+  gate('simultaneous physical exchange yields one rebase per Gold and one post-fighter residue owner', () => {
     assert.deepEqual([simultaneous.gold.externalPassiveAudit().historyRebases,
       simultaneous.otherGold.externalPassiveAudit().historyRebases], [1, 1]);
-    assert.deepEqual([residueA, residueB], [1, 0], 'existing MvM residue ownership remains singular');
+    assert.deepEqual([residueA, residueB], [2, 0], 'one owner draws the two Gold residue echoes exactly once');
     assert.deepEqual([simultaneous.mirror.x, simultaneous.mirror.y,
       simultaneous.opponent.x, simultaneous.opponent.y],
       [simultaneousEvents[0].self.to.x, simultaneousEvents[0].self.to.y,

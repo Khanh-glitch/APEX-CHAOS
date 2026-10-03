@@ -11,7 +11,7 @@
       "duplicate same-cast delivery is inert and does not move hHead or increment counters",
       "Gold physical-key dedupe independently rejects reversed same exchange with a new castId",
       "simultaneous casts canonicalize two coalesced notices to one unordered physical key",
-      "simultaneous physical exchange yields one rebase per Gold and one residue draw",
+      "simultaneous physical exchange yields one rebase per Gold and one post-fighter residue owner",
       "staggered distinct PRE/POST exchange gets a second independent full-ring rebase",
       "non-Mirror matchup installs exactly one Gold; cast event alone has no snap/rebase",
       "death-before-snap emits no receiver rebase, authored snap, exchange or residue",

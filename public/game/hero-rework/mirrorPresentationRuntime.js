@@ -21,6 +21,9 @@
   const PASSIVE_NODE_MEMBERS = 5;
   const MAX_FRAME_DT = STEP * MAX_SUBSTEPS;
   const EPSILON = 1e-12;
+  const BODY_VISUAL_MULTIPLIER = 1.00;
+  const GOLD_MIRROR_RADIUS = GOLD && GOLD.GOLD_REF && Number.isFinite(GOLD.GOLD_REF.MIRROR_R)
+    ? GOLD.GOLD_REF.MIRROR_R : null;
   const instances = new Map();
   const unsubscribers = [];
   const scheduler = {
@@ -35,6 +38,24 @@
 
   function currentMatch() {
     return HR && HR.match ? HR.match : null;
+  }
+
+  function liveFighterRadius(state) {
+    const radius = state && state.ct && state.ct.anchor && state.ct.anchor.radius;
+    return Number.isFinite(radius) && radius > 0 ? radius : null;
+  }
+
+  function mirrorBodyK(state) {
+    const radius = liveFighterRadius(state);
+    if (radius == null || !(GOLD_MIRROR_RADIUS > 0)) return BODY_VISUAL_MULTIPLIER;
+    return (radius / GOLD_MIRROR_RADIUS) * BODY_VISUAL_MULTIPLIER;
+  }
+
+  function scaleAbout(ctx, x, y, scale) {
+    if (!Number.isFinite(scale) || scale === 1) return;
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.translate(-x, -y);
   }
 
   function opponentOf(match, ct) {
@@ -137,6 +158,7 @@
       if (!mirrorState || !mirrorState.gold) return false;
       try {
         if (fighter.hasStatus && fighter.hasStatus('immune')) ctx.globalAlpha = 0.55;
+        scaleAbout(ctx, IDENTITY_SURFACE_CENTER, IDENTITY_SURFACE_CENTER, mirrorBodyK(mirrorState));
         mirrorState.gold.rigFull(ctx, IDENTITY_SURFACE_CENTER, IDENTITY_SURFACE_CENTER);
       } catch (error) { scheduler.errors++; return false; }
       return true;
@@ -252,9 +274,12 @@
       ctx.save();
       try {
         // Fighter.draw supplies its normal translated/rotated local actor
-        // context. Return to world-space so Gold's authored rig stays upright.
+        // context. Return to world-space so Gold's authored rig stays upright,
+        // then calibrate all body-local Gold geometry around the real root.
+        // Fighter radius/gameplay coordinates are read-only inputs here.
         ctx.rotate(-angle);
         ctx.translate(-fighter.x, -fighter.y);
+        scaleAbout(ctx, fighter.x, fighter.y, mirrorBodyK(state));
         const a2 = state.gold.A2;
         if (a2 && a2.on && (a2.band > 0.002 || a2.ghostA > 0.01))
           refreshOpponentIdentitySurface(state);
@@ -903,13 +928,85 @@
     return state.ct.idx < other.ct.idx;
   }
 
+  function drawScaledA2Residue(ctx, state) {
+    const gold = state && state.gold;
+    const a2 = gold && gold.A2;
+    if (!ctx || !a2 || !(a2.res > 0) || typeof gold.strips !== 'function'
+        || typeof gold.rigFull !== 'function' || typeof gold.foeReal !== 'function') return false;
+    const fade = a2.res / 0.14;
+    ctx.save();
+    try {
+      ctx.globalAlpha = 0.5 * fade;
+      // Gold's residue is two authored echoes. Calibrate only the Mirror body
+      // about its own PRE-exchange root; the opponent echo remains at its real
+      // world root and unscaled.
+      ctx.save();
+      try {
+        scaleAbout(ctx, a2.rx, a2.ry, mirrorBodyK(state));
+        gold.strips(ctx, a2.rx, a2.ry, 72, 4 * fade,
+          () => gold.rigFull(ctx, a2.rx, a2.ry));
+      } finally { ctx.restore(); }
+      gold.strips(ctx, a2.fx, a2.fy, 72, 4 * fade,
+        () => gold.foeReal(ctx, a2.fx, a2.fy));
+    } finally { ctx.restore(); }
+    return true;
+  }
+
+  function hasArsenalForeground() {
+    const arsenal = g.APEX_ARSENAL;
+    return !!(arsenal && arsenal.state && arsenal.state.active);
+  }
+
   function renderArenaWorldEffects(ctx, provenance) {
     if (!ctx || provenance?.stage !== 'after-world-before-fighters') return false;
+    // F1 shards/nodes and F2 routes stay in their original, unscaled world seam.
+    for (const state of instances.values()) state.gold.drawExternalPassive(ctx);
+    // Modes without Arsenal's foreground seam retain their prior A2 residue
+    // presentation here. Arsenal routes residue to the post-body/pre-weapon
+    // seam below so the authored order remains body -> residue -> weapon -> A1.
+    if (!hasArsenalForeground()) {
+      for (const state of instances.values())
+        if (state.gold.A2.res > 0 && ownsA2Residue(state)) drawScaledA2Residue(ctx, state);
+    }
+    return true;
+  }
+
+  let lastResidueFrame = null;
+  let hasResidueFrame = false;
+  function renderPostFighterResidue(ctx) {
+    if (!ctx) return false;
+    const frame = g.__apexRenderFrame;
+    if (Number.isFinite(frame)) {
+      if (hasResidueFrame && frame === lastResidueFrame) return false;
+      lastResidueFrame = frame;
+      hasResidueFrame = true;
+    }
+    for (const state of instances.values())
+      if (state.gold.A2.res > 0 && ownsA2Residue(state)) drawScaledA2Residue(ctx, state);
+    return true;
+  }
+
+  let lastPostFighterFrame = null;
+  let hasPostFighterFrame = false;
+  function renderPostFighters(ctx) {
+    if (!ctx) return false;
+    const frame = g.__apexRenderFrame;
+    if (Number.isFinite(frame)) {
+      if (hasPostFighterFrame && frame === lastPostFighterFrame) return false;
+      lastPostFighterFrame = frame;
+      hasPostFighterFrame = true;
+    }
+    // Arsenal calls this after its real held-weapon pass: all fighter bodies,
+    // post-body residue, and held weapons precede the authored A1World overlay.
     for (const state of instances.values()) {
-      state.gold.drawExternalPassive(ctx);
-      if (state.a1CastId != null && state.weaponArtReady && !state.a1Whiff && !state.realOwn)
+      if (state.a1CastId == null || !state.weaponArtReady || state.a1Whiff || state.realOwn) continue;
+      const fighter = state.ct && state.ct.anchor;
+      if (!fighter || !Number.isFinite(fighter.x) || !Number.isFinite(fighter.y)) continue;
+      ctx.save();
+      try {
+        scaleAbout(ctx, fighter.x, fighter.y, mirrorBodyK(state));
         state.gold.drawA1World(ctx);
-      if (state.gold.A2.res > 0 && ownsA2Residue(state)) state.gold.drawResidue(ctx);
+      } finally { ctx.restore(); }
     }
     return true;
   }
@@ -922,14 +1019,22 @@
     drawWrapper = function drawMirrorPresentation(ctx) {
       const ct = HR && HR.byCombatant ? HR.byCombatant(this) : (this && this.__hrCombatant);
       const state = ct && instances.get(ct);
-      if (typeof previousDraw !== 'function') return;
-      if (!state || this !== ct.anchor || !(this.hp > 0) || !this.type)
-        return previousDraw.call(this, ctx);
-      const type = this.type;
-      const originalTypeDraw = type.draw;
-      type.draw = state.drawType;
-      try { return previousDraw.call(this, ctx); }
-      finally { type.draw = originalTypeDraw; }
+      let result;
+      if (typeof previousDraw === 'function') {
+        if (!state || this !== ct.anchor || !(this.hp > 0) || !this.type) {
+          result = previousDraw.call(this, ctx);
+        } else {
+          const type = this.type;
+          const originalTypeDraw = type.draw;
+          type.draw = state.drawType;
+          try { result = previousDraw.call(this, ctx); }
+          finally { type.draw = originalTypeDraw; }
+        }
+      }
+      // Preserve the existing Robot -> Hunter -> Crystala -> Frost -> Magnet
+      // actor chain. The Arsenal foreground owns the later A1World dispatch,
+      // after every fighter and held-weapon draw has completed.
+      return result;
     };
     drawWrapper.__mirrorPresentationWrapped = true;
     drawPrototype.__mirrorPresentationWrapped = true;
@@ -944,6 +1049,10 @@
         heroId: ct.heroId,
         mirrorId: ct.anchor && ct.anchor.id,
         opponentId: state.opponent && state.opponent.anchor && state.opponent.anchor.id,
+        fighterRadius: liveFighterRadius(state),
+        goldMirrorRadius: GOLD_MIRROR_RADIUS,
+        bodyK: mirrorBodyK(state),
+        bodyVisualMultiplier: BODY_VISUAL_MULTIPLIER,
         accumulator: state.accumulator,
         totalSteps: state.totalSteps,
         droppedSeconds: state.droppedSeconds,
@@ -990,7 +1099,7 @@
   const api = {
     version: VERSION, fixedStep: STEP, tick, teardown,
     capturePassiveShardSeeds,
-    renderArenaWorldEffects, inspect, dispose,
+    renderArenaWorldEffects, renderPostFighterResidue, renderPostFighters, inspect, dispose,
   };
 
   if (AIL && AIL.bus && typeof AIL.bus.on === 'function') {

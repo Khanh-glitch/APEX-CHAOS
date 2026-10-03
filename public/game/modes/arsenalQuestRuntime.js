@@ -852,7 +852,11 @@
     ctx.scale(view.zoom, view.zoom);
     ctx.translate(-GAME_SIZE / 2, -GAME_SIZE / 2);
     const tEq = performance.now();
+    // baseDraw has already rendered every live body. Preserve Gold's exact
+    // order: body → A2 residue → real held weapon → plate-clipped A1World.
+    window.APEX_MIRROR_PRESENTATION?.renderPostFighterResidue?.(ctx);
     drawEquippedWeapons(ctx);
+    window.APEX_MIRROR_PRESENTATION?.renderPostFighters?.(ctx);
     weaponApi.drawArsenalVisuals(ctx);
     aqPerfMark('foreground', performance.now() - tEq);
     const tVfx = performance.now();

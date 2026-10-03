@@ -259,6 +259,11 @@ try {
   view.width = 600;
   view.height = 500;
   const ctx = view.getContext('2d');
+  let postFrame = 0;
+  function renderPostResidue() {
+    win.__apexRenderFrame = ++postFrame;
+    return bridge.renderPostFighterResidue(ctx);
+  }
   const step = bridge.fixedStep;
   const noSnapCast = 'g2b-no-snap';
   bus.emit('MirrorA2Cast', { hero: 'MIRROR', castId: noSnapCast, combatantIndex: mirrorCt.idx });
@@ -419,15 +424,25 @@ try {
   assert.equal(record.a2CastId, null);
   assert.equal(record.a2ExchangeApplied, true, 'end cleanup retains snap identity during residue lifetime');
   assert.ok(gold.A2.res > 0, 'clean A2 end preserves authored post-snap residue');
-  const realDrawResidue = gold.drawResidue;
-  let residueDraws = 0;
-  gold.drawResidue = function countedResidue(ctx) { residueDraws++; return realDrawResidue.call(gold, ctx); };
+  const realStrips = gold.strips;
+  let residueStripDraws = 0;
+  gold.strips = function countedResidueStrips(...args) {
+    residueStripDraws++;
+    return realStrips.apply(gold, args);
+  };
+  win.APEX_ARSENAL = { state: { active: true } };
   assert.equal(bridge.renderArenaWorldEffects(ctx, { stage: 'before-world' }), false);
-  assert.equal(residueDraws, 0, 'residue respects the existing world render-stage provenance');
+  assert.equal(residueStripDraws, 0, 'residue is absent from the pre-fighter world seam');
   assert.equal(bridge.renderArenaWorldEffects(ctx, { stage: 'after-world-before-fighters' }), true);
-  assert.equal(residueDraws, 1, 'authored A2 residue draws once in the protected world seam');
-  gold.drawResidue = realDrawResidue;
-  check('real-end-cleans-action-and-retains-world-residue');
+  assert.equal(residueStripDraws, 0, 'the valid Arsenal world seam draws passive world content only');
+  assert.equal(renderPostResidue(), true, 'A2 residue is rendered after fighter bodies');
+  assert.equal(residueStripDraws, 2, 'the one Gold residue owns its Mirror and opponent strip passes');
+  win.APEX_ARSENAL.state.active = false;
+  bridge.renderArenaWorldEffects(ctx, { stage: 'after-world-before-fighters' });
+  assert.equal(residueStripDraws, 4, 'non-Arsenal modes retain residue in their existing world seam');
+  win.APEX_ARSENAL.state.active = true;
+  gold.strips = realStrips;
+  check('real-end-cleans-action-and-retains-context-correct-residue-order');
   console.log('[G2B A2] exact snap, history rebase, duplicate, end and residue checks passed');
 
   // A second real exchange checks physical movement velocity against the PRE
@@ -529,13 +544,13 @@ try {
     'both independent Gold perspectives preserve the already-committed gameplay swap');
 
   let residueA = 0, residueB = 0;
-  const drawResidueA = goldA.drawResidue, drawResidueB = goldB.drawResidue;
-  goldA.drawResidue = function (ctx) { residueA++; return drawResidueA.call(goldA, ctx); };
-  goldB.drawResidue = function (ctx) { residueB++; return drawResidueB.call(goldB, ctx); };
-  bridge.renderArenaWorldEffects(ctx, { stage: 'after-world-before-fighters' });
-  assert.equal(residueA, 1, 'one correctly oriented Mirror-v-Mirror residue owner draws');
+  const stripsA = goldA.strips, stripsB = goldB.strips;
+  goldA.strips = function (ctx, ...args) { residueA++; return stripsA.call(goldA, ctx, ...args); };
+  goldB.strips = function (ctx, ...args) { residueB++; return stripsB.call(goldB, ctx, ...args); };
+  renderPostResidue();
+  assert.equal(residueA, 2, 'the singular Mirror-v-Mirror owner draws its two Gold residue echoes');
   assert.equal(residueB, 0, 'coalesced Mirror-v-Mirror residue never double-draws');
-  goldA.drawResidue = drawResidueA; goldB.drawResidue = drawResidueB;
+  goldA.strips = stripsA; goldB.strips = stripsB;
 
   const rigA = goldA.rigFull, rigB = goldB.rigFull;
   let identityA = 0, identityB = 0;

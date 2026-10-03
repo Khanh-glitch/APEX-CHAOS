@@ -40,7 +40,8 @@ gate('A1 validates production wrapper readiness, dimensions and exact ID', () =>
   assert.match(mirror, /function validWeaponImageWrapper\(wrapper\)/);
   assert.match(mirror, /function imageReady\(image\)/);
   assert.match(mirror, /weaponId: state\.a1WeaponId, source: 'production'/);
-  assert.match(mirror, /!state\.realOwn/);
+  assert.match(mirror, /state\.realOwn\)\s*continue/,
+    'the post-held A1 pass suppresses Gold art immediately after real OWN');
   assert.match(mirror, /function resetA1WeaponArt\(state\)/);
 });
 gate('A2 remains an external exchange-only bridge', () => {

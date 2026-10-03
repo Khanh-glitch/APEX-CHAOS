@@ -10,7 +10,7 @@
     "wrong-person-draw-has-zero-gameplay-mutation-and-no-recursive-effects",
     "no-snap-end-closes-cleanly-without-snap-exchange-or-residue",
     "pre-post-roots-exact-once-snap-and-history-rebase-duplicate-protection",
-    "real-end-cleans-action-and-retains-world-residue",
+    "real-end-cleans-action-and-retains-context-correct-residue-order",
     "post-swap-root-and-honest-velocity-sampling",
     "mirror-versus-mirror-perspective-identity-resource-and-residue-bounds"
   ],
@@ -48,7 +48,7 @@
       ],
       "identitySurfaces": 2,
       "residueDraws": [
-        1,
+        2,
         0
       ]
     }

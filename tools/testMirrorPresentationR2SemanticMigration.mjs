@@ -448,9 +448,16 @@ try {
   assert.equal(suppliedArts.length, 1, 'steady ticks do not repeat lookup or conversion');
   const view = win.document.getElementById('game-canvas');
   const ctx = view.getContext('2d');
+  let postFrame = Number.isFinite(win.__apexRenderFrame) ? win.__apexRenderFrame : 0;
+  const renderPostFighters = () => {
+    win.__apexRenderFrame = ++postFrame;
+    return presentation.renderPostFighters(ctx);
+  };
   const drawCountBefore = a1Draws;
   presentation.renderArenaWorldEffects(ctx, { stage: 'after-world-before-fighters' });
-  assert.equal(a1Draws, drawCountBefore + 1, 'ready pre-OWN art renders once in the protected world pass');
+  assert.equal(a1Draws, drawCountBefore, 'the pre-fighter world pass contains no A1World call');
+  renderPostFighters();
+  assert.equal(a1Draws, drawCountBefore + 1, 'ready pre-OWN art renders once after both fighter bodies');
   let ownEvent = eventsAfter(a1Seq, 'MirrorA1Own')[0] || null;
   for (let i = 0; i < 500 && !ownEvent; i++) {
     stepFrames(1);
@@ -459,7 +466,7 @@ try {
   assert.ok(ownEvent, 'real Mirror gameplay resolves the authored A1 OWN edge');
   assert.equal(ownEvent.payload.castId, a1CastId);
   const postOwnDrawCount = a1Draws;
-  presentation.renderArenaWorldEffects(ctx, { stage: 'after-world-before-fighters' });
+  renderPostFighters();
   assert.equal(a1Draws, postOwnDrawCount, 'real OWN prevents a duplicate reflected held weapon');
   let endEvent = eventsAfter(a1Seq, 'MirrorA1End')[0] || null;
   for (let i = 0; i < 500 && !endEvent; i++) {
