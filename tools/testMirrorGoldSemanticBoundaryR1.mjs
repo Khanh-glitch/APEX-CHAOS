@@ -351,10 +351,20 @@ check('R1-27 emergence uses supplied via/fallback semantics and clears route own
     && viaRipple.t === 0);
 
 const releaseRoute = Object.freeze({ projectile: 'release-owner' });
+const samePairRoute = Object.freeze({ projectile: 'same-entry-same-destination' });
+const parallelRoute = Object.freeze({ projectile: 'parallel-destination' });
 assert.equal(main.presentExternalRoute(routeEvent('capture', releaseRoute,
   { entryNodeId: 'node-b', destinationNodeId: 'node-a' })), true);
 assert.equal(main.presentExternalRoute(routeEvent('destination-image', releaseRoute,
   { destinationNodeId: 'node-a', destinationLive: true })), true);
+assert.equal(main.presentExternalRoute(routeEvent('capture', samePairRoute,
+  { entryNodeId: 'node-b', destinationNodeId: 'node-a' })), true);
+assert.equal(main.presentExternalRoute(routeEvent('destination-image', samePairRoute,
+  { destinationNodeId: 'node-a', destinationLive: true })), true);
+assert.equal(main.presentExternalRoute(routeEvent('capture', parallelRoute,
+  { entryNodeId: 'node-b', destinationNodeId: 'node-c' })), true);
+assert.equal(main.presentExternalRoute(routeEvent('destination-image', parallelRoute,
+  { destinationNodeId: 'node-c', destinationLive: true })), true);
 proxyA.img.pw = 77; proxyA.rp[0].t = .25; proxyA.rp[0].x = 44;
 proxyA.sw[0].on = true; proxyA.sw[0].t = .3; proxyA.flash = .9;
 assert.equal(main.releaseExternalNode('node-a'), true);
@@ -369,12 +379,28 @@ const memberDetached = groupSpecs[0].slots.every((i) => {
     && s.mt0 === 0 && s.faceA === 0 && s.dsx === .087 && s.dsy === .087
     && !('dist' in s) && !('trotAdj' in s) && !('__externalTravelStarted' in s);
 });
-assert.equal(main.externalPassiveAudit().routes, 0);
-assert.equal(main.externalPassiveAudit().imageOwners, 0);
+const routesAfterDestinationRelease = main.externalPassiveAudit().routes;
+const imageOwnersAfterDestinationRelease = main.externalPassiveAudit().imageOwners;
 assert.equal(main.syncExternalNode(nodeInput({ ...groupSpecs[0], id: 'node-a-reused' }), geometry), true);
-check('R1-28 node release clears nested Gold state, route ownership, links, and reuses ND cleanly',
+const retargetRejected = main.presentExternalRoute(routeEvent('destination-image', releaseRoute,
+  { destinationNodeId: 'node-a-reused', destinationLive: true, power: 3 })) === false;
+const reusedAStayedClean = !proxyA.img.on && proxyA.flash === 0
+  && proxyA.rp.every((r) => r.t === 9 && r.x === 0 && r.y === 0)
+  && proxyA.sw.every((w) => !w.on && w.t === 0);
+assert.equal(main.presentExternalRoute(Object.freeze({ kind: 'emerge', routeId: releaseRoute,
+  fallback: true, point: point(468, 514) })), true);
+const releaseRouteConsumedOnce = main.presentExternalRoute(Object.freeze({ kind: 'emerge', routeId: releaseRoute,
+  fallback: true, point: point(468, 514) })) === false;
+const parallelRouteRemains = main.externalPassiveAudit().routes === 2;
+assert.equal(main.presentExternalRoute(Object.freeze({ kind: 'emerge', routeId: samePairRoute,
+  fallback: true, point: point(480, 520) })), true);
+const samePairConsumedIndependently = main.externalPassiveAudit().routes === 1
+  && main.externalPassiveAudit().imageOwners === 2;
+check('R1-28 node release clears its proxy state but retains endpoint routes through reuse',
   nodeReset && memberDetached && main.ND[0] === proxyA && proxyA.on
-    && main.externalPassiveAudit().routes === 0 && main.externalPassiveAudit().imageOwners === 0);
+    && routesAfterDestinationRelease === 3 && imageOwnersAfterDestinationRelease === 4
+    && retargetRejected && reusedAStayedClean && releaseRouteConsumedOnce
+    && parallelRouteRemains && samePairConsumedIndependently);
 
 const history = G.createMirrorInstance({ seed: 0xA202 });
 assert.equal(history.enableExternalTruth(root('history-m', 100, 200), root('history-f', 500, 600)), true);
@@ -435,6 +461,178 @@ check('R1-30 external reset clears shard/node/route/image history and all nested
     && resetAudit.passiveSteps === 0 && resetAudit.routeEvents === 0 && resetAudit.historyRebases === 0
     && resetAudit.goldProjectiles === 0 && main.A1.on === false && main.A2.on === false);
 
-assert.equal(checks.length, 30, 'R1 gate count is exactly thirty named invariants');
-console.log(`\nPASS: ${checks.length}/30 R1 semantic Gold boundary invariants`);
+// Hostile lifetime boundary: these are real route events against a second
+// generated Gold instance, with actual pooled ND nodes released and rebound.
+const lifetime = G.createMirrorInstance({ seed: 0x1F3E });
+assert.equal(lifetime.enableExternalTruth(root('lifetime-mirror', 480, 520),
+  root('lifetime-foe', 820, 360)), true);
+assert.equal(lifetime.syncExternalPassive({ shards: sources, nodes: [] }, geometry), true);
+const lifetimeSpecs = [
+  { ...groupSpecs[0], id: 'life-entry' },
+  { ...groupSpecs[1], id: 'life-destination' },
+  { ...groupSpecs[2], id: 'life-unrelated-live' },
+];
+for (const spec of lifetimeSpecs)
+  assert.equal(lifetime.syncExternalNode(nodeInput(spec, 2, 1.5, .8, 2, 0), geometry), true);
+const lifeProxyEntry = lifetime.ND[0];
+const lifeProxyDestination = lifetime.ND[1];
+const lifeProxyUnrelated = lifetime.ND[2];
+assert.ok(lifeProxyEntry.on && lifeProxyUnrelated.on && lifeProxyDestination.on);
+const lifeRouteOne = Object.freeze({ projectile: 'life-entry-loss-one' });
+const lifeSamePairRoute = Object.freeze({ projectile: 'life-entry-loss-same-pair' });
+const lifeParallelRoute = Object.freeze({ projectile: 'life-parallel-entry' });
+assert.equal(lifetime.presentExternalRoute(routeEvent('capture', lifeRouteOne,
+  { entryNodeId: 'life-entry', destinationNodeId: 'life-destination' })), true);
+assert.equal(lifetime.presentExternalRoute(routeEvent('capture', lifeSamePairRoute,
+  { entryNodeId: 'life-entry', destinationNodeId: 'life-destination' })), true);
+assert.equal(lifetime.presentExternalRoute(routeEvent('capture', lifeParallelRoute,
+  { entryNodeId: 'life-unrelated-live', destinationNodeId: 'life-destination' })), true);
+assert.equal(lifetime.presentExternalRoute(routeEvent('destination-image', lifeRouteOne,
+  { destinationNodeId: 'life-destination', destinationLive: true })), true);
+assert.equal(lifetime.presentExternalRoute(routeEvent('destination-image', lifeSamePairRoute,
+  { destinationNodeId: 'life-destination', destinationLive: true })), true);
+assert.equal(lifetime.presentExternalRoute(routeEvent('destination-image', lifeParallelRoute,
+  { destinationNodeId: 'life-destination', destinationLive: true })), true);
+
+function nodeVisualSignature(n) {
+  return JSON.stringify({
+    image: { ...n.img }, flash: n.flash,
+    ripples: n.rp.map((r) => ({ t: r.t, x: r.x, y: r.y })),
+    sweeps: n.sw.map((w) => ({ on: w.on, t: w.t, d: w.d, ang: w.ang, amp: w.amp })),
+  });
+}
+function nodeVisualsClean(n) {
+  return !n.img.on && n.img.k === 0 && n.img.t === 0 && n.img.d === .5 && n.img.pw === 1
+    && n.flash === 0 && n.rp.every((r) => r.t === 9 && r.x === 0 && r.y === 0)
+    && n.sw.every((w) => !w.on && w.t === 0 && w.d === .7 && w.ang === .8 && w.amp === .8)
+    && n.faT === -1 && n.faW === 0;
+}
+assert.equal(lifetime.releaseExternalNode('life-entry'), true);
+const entryProxyResetBeforeReuse = !lifeProxyEntry.on && lifeProxyEntry.sh.length === 0
+  && lifeProxyEntry.worldTransform === null && lifeProxyEntry.externalGeometry === null
+  && nodeVisualsClean(lifeProxyEntry);
+const entryLossAudit = lifetime.externalPassiveAudit();
+assert.equal(lifetime.syncExternalNode(nodeInput({ ...lifetimeSpecs[0], id: 'life-entry-reused' },
+  2, 1.5, .8, 2, 0), geometry), true);
+const entryProxyReusedClean = lifeProxyEntry.on && nodeVisualsClean(lifeProxyEntry);
+const oldEntryUnbound = lifetime.releaseExternalNode('life-entry') === false;
+check('R1-31 entry-node disappearance clears only that proxy owner set; captured routes survive',
+  entryProxyResetBeforeReuse && entryProxyReusedClean
+    && entryLossAudit.routes === 3 && entryLossAudit.imageOwners === 4
+    && lifetime.externalPassiveAudit().routes === 3 && lifetime.externalPassiveAudit().imageOwners === 4
+    && lifetime.externalPassiveAudit().nodeBindings === 3 && oldEntryUnbound);
+
+assert.equal(lifetime.presentExternalRoute(routeEvent('destination-image', lifeRouteOne,
+  { destinationNodeId: 'life-destination', destinationLive: true, point: point(614, 742),
+    direction: point(-3, 4), power: 4 })), true);
+check('R1-32 destination image still reaches its original live endpoint after entry loss',
+  lifeProxyDestination.img.on && lifeProxyDestination.img.k === 1
+    && lifeProxyDestination.img.pw === 4 && lifeProxyDestination.img.d === .42
+    && lifetime.externalPassiveAudit().routes === 3 && lifetime.externalPassiveAudit().imageOwners === 4);
+
+const destinationEmergePoint = point(619, 748);
+assert.equal(lifetime.presentExternalRoute(Object.freeze({ kind: 'emerge', routeId: lifeRouteOne,
+  viaNodeId: 'life-destination', point: destinationEmergePoint })), true);
+const destinationRipple = lifeProxyDestination.rp.find((r) => r.t === 0);
+assert.ok(destinationRipple);
+const destinationDx = destinationEmergePoint.x - lifeProxyDestination.x;
+const destinationDy = destinationEmergePoint.y - lifeProxyDestination.y;
+check('R1-33 same-endpoint concurrent routes keep exact IDs; emerge consumes only its route at the real point',
+  close(destinationRipple.x, destinationDx * Math.cos(lifeProxyDestination.rot)
+    + destinationDy * Math.sin(lifeProxyDestination.rot))
+    && close(destinationRipple.y, -destinationDx * Math.sin(lifeProxyDestination.rot)
+      + destinationDy * Math.cos(lifeProxyDestination.rot))
+    && lifetime.externalPassiveAudit().routes === 2 && lifetime.externalPassiveAudit().imageOwners === 3);
+
+assert.equal(lifetime.releaseExternalNode('life-destination'), true);
+const destinationLossAudit = lifetime.externalPassiveAudit();
+check('R1-34 destination-node disappearance leaves concurrent routes active and clears only local owners',
+  !lifeProxyDestination.on && lifeProxyDestination.sh.length === 0
+    && destinationLossAudit.routes === 2 && destinationLossAudit.imageOwners === 1
+    && destinationLossAudit.nodeBindings === 2);
+
+assert.equal(lifetime.syncExternalNode(nodeInput({ ...lifetimeSpecs[1], id: 'life-destination-reused' },
+  2, 1.5, .8, 2, 0), geometry), true);
+const destinationRetargetRejected = lifetime.presentExternalRoute(routeEvent('destination-image',
+  lifeSamePairRoute, { destinationNodeId: 'life-destination-reused', destinationLive: true, power: 6 })) === false;
+const oldDestinationUnbound = lifetime.releaseExternalNode('life-destination') === false;
+const reboundNodesClean = nodeVisualsClean(lifeProxyEntry) && nodeVisualsClean(lifeProxyDestination);
+let passiveIntervalOk = true;
+for (let i = 0; i < 601; i++) {
+  if (!lifetime.stepExternalPresentation(lifetime.constants.STEP)) { passiveIntervalOk = false; break; }
+}
+check('R1-35 reused ND proxies cannot retarget old routes, stay visually clean, and routes have no timeout',
+  destinationRetargetRejected && oldDestinationUnbound && reboundNodesClean && passiveIntervalOk
+    && lifetime.externalPassiveAudit().passiveSteps === 601
+    && lifetime.externalPassiveAudit().routes === 2 && lifetime.externalPassiveAudit().imageOwners === 1);
+
+lifeProxyUnrelated.rp.forEach((r) => { r.t = 9; r.x = 0; r.y = 0; });
+const entryFallbackPoint = point(748, 402);
+assert.equal(lifetime.presentExternalRoute(Object.freeze({ kind: 'emerge', routeId: lifeParallelRoute,
+  fallback: true, point: entryFallbackPoint })), true);
+const entryFallbackRipple = lifeProxyUnrelated.rp.find((r) => r.t === 0);
+assert.ok(entryFallbackRipple);
+const fallbackDx = entryFallbackPoint.x - lifeProxyUnrelated.x;
+const fallbackDy = entryFallbackPoint.y - lifeProxyUnrelated.y;
+check('R1-36 destination-loss fallback pulses the live entry at the supplied world point and consumes one route',
+  close(entryFallbackRipple.x, fallbackDx * Math.cos(lifeProxyUnrelated.rot) + fallbackDy * Math.sin(lifeProxyUnrelated.rot))
+    && close(entryFallbackRipple.y, -fallbackDx * Math.sin(lifeProxyUnrelated.rot) + fallbackDy * Math.cos(lifeProxyUnrelated.rot))
+    && lifetime.externalPassiveAudit().routes === 1 && lifetime.externalPassiveAudit().imageOwners === 0);
+
+const reusedEntryBeforeMissingEmerge = nodeVisualSignature(lifeProxyEntry);
+const reusedDestinationBeforeMissingEmerge = nodeVisualSignature(lifeProxyDestination);
+const unrelatedProxyBeforeMissingEmerge = nodeVisualSignature(lifeProxyUnrelated);
+const missingEndpointEmerge = Object.freeze({ kind: 'emerge', routeId: lifeSamePairRoute,
+  fallback: true, point: point(701, 433) });
+assert.equal(lifetime.presentExternalRoute(missingEndpointEmerge), true);
+check('R1-37 both endpoint IDs may be unbound; real fallback emerge is accepted without stale-proxy feedback',
+  lifetime.externalPassiveAudit().routes === 0 && lifetime.externalPassiveAudit().imageOwners === 0
+    && nodeVisualSignature(lifeProxyEntry) === reusedEntryBeforeMissingEmerge
+    && nodeVisualSignature(lifeProxyDestination) === reusedDestinationBeforeMissingEmerge
+    && nodeVisualSignature(lifeProxyUnrelated) === unrelatedProxyBeforeMissingEmerge);
+check('R1-38 terminal emerge is consumed exactly once even when neither endpoint has a live proxy',
+  lifetime.presentExternalRoute(missingEndpointEmerge) === false
+    && lifetime.externalPassiveAudit().routes === 0 && lifetime.externalPassiveAudit().imageOwners === 0);
+
+const lateCaptureRoute = Object.freeze({ projectile: 'capture-after-entry-visual-loss' });
+assert.equal(lifetime.presentExternalRoute(routeEvent('capture', lateCaptureRoute,
+  { entryNodeId: 'never-bound-entry', destinationNodeId: 'never-bound-destination' })), true);
+const lateCaptureAudit = lifetime.externalPassiveAudit();
+check('R1-39 capture truth records an immutable route even with no entry or destination proxy',
+  lateCaptureAudit.routes === 1 && lateCaptureAudit.imageOwners === 0);
+const recaptureRetargetRejected = lifetime.presentExternalRoute(routeEvent('capture', lateCaptureRoute,
+  { entryNodeId: 'life-entry-reused', destinationNodeId: 'life-destination-reused' })) === false;
+check('R1-40 capture identity cannot be retargeted by replaying the same route ID',
+  recaptureRetargetRejected && lifetime.externalPassiveAudit().routes === 1
+    && lifetime.externalPassiveAudit().imageOwners === 0);
+
+const unrelatedBeforeTerminal = nodeVisualSignature(lifeProxyUnrelated);
+const unrelatedViaEmerge = Object.freeze({ kind: 'emerge', routeId: lateCaptureRoute,
+  viaNodeId: 'life-unrelated-live', point: point(740, 390) });
+assert.equal(lifetime.presentExternalRoute(unrelatedViaEmerge), true);
+check('R1-41 terminal route is consumed without pulsing an unrelated live proxy',
+  lifetime.externalPassiveAudit().routes === 0 && lifetime.externalPassiveAudit().imageOwners === 0
+    && nodeVisualSignature(lifeProxyUnrelated) === unrelatedBeforeTerminal);
+
+const teardownRouteOne = Object.freeze({ projectile: 'lifetime-teardown-one' });
+const teardownRouteTwo = Object.freeze({ projectile: 'lifetime-teardown-two' });
+assert.equal(lifetime.presentExternalRoute(routeEvent('capture', teardownRouteOne,
+  { entryNodeId: 'life-entry-reused', destinationNodeId: 'life-destination-reused' })), true);
+assert.equal(lifetime.presentExternalRoute(routeEvent('destination-image', teardownRouteOne,
+  { destinationNodeId: 'life-destination-reused', destinationLive: true })), true);
+assert.equal(lifetime.presentExternalRoute(routeEvent('capture', teardownRouteTwo,
+  { entryNodeId: 'life-unrelated-live', destinationNodeId: 'life-destination-reused' })), true);
+assert.equal(lifetime.presentExternalRoute(routeEvent('destination-image', teardownRouteTwo,
+  { destinationNodeId: 'life-destination-reused', destinationLive: true })), true);
+const beforeLifetimeTeardown = lifetime.externalPassiveAudit();
+assert.equal(lifetime.clearExternalTruth(), true);
+const lifetimeTeardown = lifetime.externalPassiveAudit();
+check('R1-42 explicit teardown clears every live semantic route and image owner',
+  beforeLifetimeTeardown.routes === 2 && beforeLifetimeTeardown.imageOwners === 4
+    && lifetime.externalTruth === false && lifetimeTeardown.routes === 0
+    && lifetimeTeardown.imageOwners === 0 && lifetimeTeardown.nodeBindings === 0
+    && lifetime.ND.every((n) => !n.on));
+
+assert.equal(checks.length, 42, 'R1 gate count is exactly forty-two named invariants');
+console.log(`\nPASS: ${checks.length}/42 R1 semantic Gold boundary invariants`);
 dom.window.close();

@@ -516,9 +516,9 @@ const EXTERNAL_PASSIVE_API = `
     __externalRoutes.delete(routeId);
     return true;
   }
-  function __dropRoutesForNode(nodeId) {
-    for (const [routeId, route] of Array.from(__externalRoutes.entries()))
-      if (route.entryNodeId === nodeId || route.destinationNodeId === nodeId) __removeRoute(routeId);
+  // Node proxies own only node-local image feedback. Semantic route records
+  // retain immutable IDs and survive either endpoint's visual-node lifetime.
+  function __dropNodeImageOwners(nodeId) {
     __externalImageOwners.delete(nodeId);
   }
   function __nodeForExternalId(nodeId) {
@@ -681,7 +681,7 @@ const EXTERNAL_PASSIVE_API = `
   function releaseExternalNode(nodeId) {
     const proxyIndex = __externalNodeBindings.get(nodeId);
     if (proxyIndex == null) return false;
-    __dropRoutesForNode(nodeId);
+    __dropNodeImageOwners(nodeId);
     __externalNodeBindings.delete(nodeId);
     __resetExternalNode(proxyIndex);
     return true;
@@ -731,31 +731,45 @@ const EXTERNAL_PASSIVE_API = `
     }
     if (kind === 'capture') {
       const entryId = event.entryNodeId, destinationId = event.destinationNodeId;
+      if (entryId == null || destinationId == null) return false;
+      const existing = __externalRoutes.get(routeId);
+      if (existing) {
+        if (existing.entryNodeId !== entryId || existing.destinationNodeId !== destinationId) return false;
+        __externalRouteEvents++; return true;
+      }
+      // Capture truth creates a semantic record even if the entry proxy has
+      // already gone. A live entry, when present, gets only its local feedback.
+      const route = Object.freeze({ entryNodeId: entryId, destinationNodeId: destinationId });
+      __externalRoutes.set(routeId, route);
       const n = __nodeForExternalId(entryId);
-      if (!n || destinationId == null) return false;
-      __removeRoute(routeId);
-      const route = { entryNodeId: entryId, destinationNodeId: destinationId };
-      __externalRoutes.set(routeId, route); __addImageOwner(entryId, routeId);
-      nodeRipple(n, payload.x, payload.y); setImg(n, 0, payload); n.flash = 1;
+      if (n && n.on) {
+        __addImageOwner(entryId, routeId);
+        nodeRipple(n, payload.x, payload.y); setImg(n, 0, payload); n.flash = 1;
+      }
       __externalRouteEvents++; return true;
     }
     const route = __externalRoutes.get(routeId);
     if (!route) return false;
     if (kind === 'destination-image') {
+      if (event.destinationNodeId != null && event.destinationNodeId !== route.destinationNodeId) return false;
       if (event.destinationLive !== true) { __externalRouteEvents++; return true; }
-      const id = event.destinationNodeId == null ? route.destinationNodeId : event.destinationNodeId;
-      const n = __nodeForExternalId(id);
-      if (!n) return false;
-      route.destinationNodeId = id; __addImageOwner(id, routeId); setImg(n, 1, payload);
+      const n = __nodeForExternalId(route.destinationNodeId);
+      if (n && n.on) {
+        __addImageOwner(route.destinationNodeId, routeId); setImg(n, 1, payload);
+      }
+      // The real image event is consumed even when its node visual is gone.
       __externalRouteEvents++; return true;
     }
     if (kind === 'emerge') {
       const fallback = event.fallback === true || event.via === 'entry-fallback';
       const id = fallback ? route.entryNodeId
         : (event.viaNodeId == null ? route.destinationNodeId : event.viaNodeId);
-      const n = __nodeForExternalId(id);
-      if (!n) return false;
-      nodeRipple(n, payload.x, payload.y); __removeRoute(routeId);
+      const relevant = id === route.entryNodeId || id === route.destinationNodeId;
+      const n = relevant ? __nodeForExternalId(id) : null;
+      if (n && n.on) nodeRipple(n, payload.x, payload.y);
+      // Emerge is the only route terminal event. Feedback is optional; real
+      // route completion and its supplied world point are authoritative.
+      __removeRoute(routeId);
       __externalRouteEvents++; return true;
     }
     return false;
