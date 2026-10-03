@@ -1,4 +1,4 @@
-// ARSENAL QUEST — POST-C §6: P1 manual active-skill gate.
+// ARSENAL BATTLE — P1 manual active-skill gate.
 // ONE central registry. In Arsenal mode, human P1's cooldown-only auto-cast
 // skills stop auto-casting: their cooldown still RECOVERS, but the kit's
 // "ready" tick is held until an edge-triggered J press releases exactly one
@@ -27,8 +27,7 @@
 
   // Registry: canonical shell name -> gated skill keys.
   // `sub` addresses a nested data object (RUBBER's learned sub-skill).
-  // `ready` mirrors the kit's own extra cast condition. Full-roster audit:
-  // docs/arsenal-quest/POST_C_OWNER_FEEDBACK_REVISION_CONTRACT.md §6.
+  // `ready` mirrors the listed kit's own extra cast condition.
   // Deliberately ABSENT (event-triggered, stay automatic): VAMPIRE (collision
   // latch), ELECTRIC (wall/contact), BLADE (wall bounce), DRUM (wall beat),
   // SLIME (burst on damage), TOXIC (passive trail; rage-only spit is already
@@ -61,10 +60,6 @@
     VIRUS: [{ key: 'spawnCd' }],
     SUPERSTAR: [{ key: 'eventCd' }],
     CARD: [{ key: 'drawCd', ready: (f) => f.data.phase === 'draw' }],
-    // POST-C §7: NEWBIE's dash is P1-manual too. Its runtime watches
-    // f.data.nbTrigger (set by the custom release below) instead of a raw
-    // cooldown-zero, and only consumes the cooldown on a real dash launch.
-    NEWBIE: [{ key: 'nbCd', release: (f) => { f.data.nbTrigger = true; }, activated: (f) => !!f.data.nbDash }],
   };
 
   function containerFor(f, entry) {
@@ -116,11 +111,6 @@
     // Edge-triggered press from the mode runtime (KeyJ, P1 only).
     pressJ(f) {
       const shell = (f && f.type && (f.type.shellOf || f.type.name)) || (f && f.name);
-      if (shell === 'NEWBIE') {
-        const slots = (window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.slots) || [];
-        const has = slots.some((s) => s && s.phase === 'REVEALED' && s.weaponId);
-        if (!has) return false;
-      }
       const g = gateState(f);
       g.pulseAge = 0;
       return true;

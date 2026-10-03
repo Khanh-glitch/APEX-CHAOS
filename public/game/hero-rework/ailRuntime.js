@@ -337,8 +337,8 @@
   const bus = new EventBus();
   // Simulation clock. The integration runtime binds a DETERMINISTIC
   // resolver (global matchClock — advanced exactly once per simulation
-  // step by updateArsenalQuest, the single shared step for rAF AND
-  // headless AQ.step). PRODUCER LAW: AIL.clock()/StatusResolver.clock()
+  // step by updateArsenalBattle, the single shared step for rAF AND
+  // headless APEX_ARSENAL.step). PRODUCER LAW: AIL.clock()/StatusResolver.clock()
   // must always return the RESOLVED NUMBER, never the resolver function —
   // a function leaking into time arithmetic silently kills every
   // time-based semantic (cast plans, lifetimes, status expiry).

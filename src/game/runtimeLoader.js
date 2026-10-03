@@ -16,18 +16,13 @@ import { AUDIO_WARM_BANKS } from './audioWarmBanks.generated.js';
 // Audio 2B — tiered audio preparation. Runs when a group's scripts have all
 // evaluated, so lazily-constructed HTMLAudioElements / runtime
 // fetch+decodeAudioData paths start from the HTTP cache (no trigger-time
-// network). The Arsenal AV HOT bank is separate: its clips are decoded into
-// AudioBuffers by the AV runtime's own preload (AudioBuffer authority), which
-// the quest group carrying it triggers here as well.
+// network). The Arsenal AV HOT bank is decoded by its own runtime preload.
 function warmGroupAudio(group) {
   try {
-    if (group === 'arsenalProduct' || group === 'arsenalQuest' || group === 'battle') {
+    if (group === 'arsenalProduct' || group === 'battle') {
       window.APEX_ARSENAL_AV?.preload?.();
     }
-    const urls = AUDIO_WARM_BANKS[group]
-      // Generated banks retain the historical key; active product routing
-      // deliberately reuses those accepted Arsenal audio assets.
-      || (group === 'arsenalProduct' ? AUDIO_WARM_BANKS.arsenalQuest : null);
+    const urls = AUDIO_WARM_BANKS[group];
     if (urls?.length && typeof window.apexWarmAudioUrls === 'function') {
       window.apexWarmAudioUrls(urls);
     }
@@ -166,20 +161,10 @@ export function loadRequiredGameRuntimes() {
 const RUNTIME_GROUPS = {
   all: DEFERRED_GAME_RUNTIMES,
   arsenalHub: ARSENAL_HUB_RUNTIMES,
+  arsenalProduct: MODE_DEFERRED_RUNTIMES.arsenalProduct,
   battle: BATTLE_RUNTIMES,
   battleDeferred: BATTLE_DEFERRED_RUNTIMES,
-  manualLab: MODE_DEFERRED_RUNTIMES.manualLab,
-  solo: MODE_DEFERRED_RUNTIMES.solo,
-  trial: MODE_DEFERRED_RUNTIMES.trial,
-  tamChien: MODE_DEFERRED_RUNTIMES.tamChien,
-  arsenalProduct: MODE_DEFERRED_RUNTIMES.arsenalProduct,
-  arsenalLegacyQuest: MODE_DEFERRED_RUNTIMES.arsenalLegacyQuest,
-  // Historical compatibility alias. It is a detached explicit request for
-  // the legacy group, never an active-product or warmup dependency.
-  arsenalQuest: MODE_DEFERRED_RUNTIMES.arsenalQuest,
   select: SELECT_RUNTIMES,
-  soloBattle: MODE_DEFERRED_RUNTIMES.soloBattle,
-  trialBattle: MODE_DEFERRED_RUNTIMES.trialBattle,
 };
 
 // Audio banks (dozens of HTMLAudioElements per group and the AV HOT-bank
@@ -195,7 +180,8 @@ function warmGroupAudioWhenReady(group, gatePromise) {
   gatePromise.then(() => warmGroupAudio(group)).catch(() => {});
 }
 export function loadDeferredGameRuntimes(group = 'all', { priority = true } = {}) {
-  const runtimes = RUNTIME_GROUPS[group] || RUNTIME_GROUPS.all;
+  const runtimes = RUNTIME_GROUPS[group];
+  if (!runtimes) return Promise.reject(new Error(`Unknown runtime group: ${group}`));
   const promiseKey = `__apexDeferredRuntimesPromise_${group}`;
   if (window[promiseKey]) {
     if (priority) warmGroupAudioWhenReady(group, window[promiseKey]);
@@ -205,13 +191,6 @@ export function loadDeferredGameRuntimes(group = 'all', { priority = true } = {}
   const gate = enqueueGroup(runtimes, { priority })
     .then(() => {
       window[`__apexDeferredRuntimesReady_${group}`] = true;
-      // The detached legacy bundle contains the product core, so it may
-      // satisfy a product-ready probe after an explicit compatibility launch.
-      // The reverse is forbidden: active product loading must never mark the
-      // old 20-stage bundle ready or prevent a later explicit legacy request.
-      if (group === 'arsenalQuest' || group === 'arsenalLegacyQuest') {
-        window.__apexDeferredRuntimesReady_arsenalProduct = true;
-      }
       if (group === 'all') window.__apexDeferredRuntimesReady = true;
     })
     .catch((error) => {
@@ -219,9 +198,6 @@ export function loadDeferredGameRuntimes(group = 'all', { priority = true } = {}
       throw error;
     });
   window[promiseKey] = gate;
-  if (group === 'arsenalQuest' || group === 'arsenalLegacyQuest') {
-    window.__apexDeferredRuntimesPromise_arsenalProduct = gate;
-  }
   if (priority) warmGroupAudioWhenReady(group, gate);
   hintRuntimeSources(runtimes, 'prefetch');
   if (group === 'all') window.__apexDeferredRuntimesPromise = gate;
@@ -254,10 +230,8 @@ function yieldToIdleBudget() {
 export async function scheduleDeferredGameRuntimes() {
   const start = () => {
     markBootPhase('warmup-start');
-    // CP6: prefetch the Arsenal hub critical path bytes immediately (4 small
-    // scripts, no evaluation) so a cold ARSENAL press opens the hub from warm
-    // HTTP cache even when it lands before the background warmup reaches the
-    // arsenalQuest group.
+    // Prefetch the Arsenal hub critical path scripts immediately so a cold
+    // product-surface press opens from warm HTTP cache during background warmup.
     try { hintRuntimeSources(ARSENAL_HUB_RUNTIMES, 'prefetch'); } catch (error) {}
     (async () => {
       for (let i = 0; i < WARMUP_GROUP_SEQUENCE.length; i++) {

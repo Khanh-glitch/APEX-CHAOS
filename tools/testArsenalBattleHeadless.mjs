@@ -1,23 +1,22 @@
-// Arsenal Quest P0 — headless acceptance harness.
+// Neutral Arsenal headless acceptance harness.
 //
-// Runs the REAL Apex engine (public/apexEngine.js) and the REAL Arsenal Quest
-// runtimes inside jsdom with a real 2D canvas (@napi-rs/canvas), stepping the
-// simulation deterministically and writing genuine canvas renders as PNG
-// evidence. This is the sandbox-friendly sibling of tools/testArsenalQuestRuntime.mjs
-// (which drives a real browser over CDP); both assert the same acceptance gates.
+// Runs the real Apex engine and active Arsenal product runtimes inside jsdom
+// with a real 2D canvas (@napi-rs/canvas), stepping the simulation
+// deterministically and writing canvas renders as current-product evidence.
+// The sibling browser suite drives the same product path over CDP.
 //
-// Usage: node tools/testArsenalQuestHeadless.mjs
-// Env:   AQ_TOOLING_DIR  (default /home/user/.tooling/browser — provides jsdom + @napi-rs/canvas)
-//        AQ_EVIDENCE_DIR (default docs/arsenal-quest/evidence)
+// Usage: node tools/testArsenalHeadless.mjs
+// Env:   APEX_TOOLING_DIR  (default node_modules; provides jsdom + @napi-rs/canvas)
+//        APEX_EVIDENCE_DIR (default docs/acceptance/arsenal-product/headless)
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { BOOT_GAME_RUNTIMES, ARSENAL_LEGACY_QUEST_RUNTIMES, WARMUP_GROUP_SEQUENCE } from '../src/game/runtimeManifest.js';
+import { BOOT_GAME_RUNTIMES, ARSENAL_PRODUCT_RUNTIMES, WARMUP_GROUP_SEQUENCE } from '../src/game/runtimeManifest.js';
 import { installProductSurfaceAuthority } from '../src/game/productSurface.js';
 
 const REPO = process.cwd();
-const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules');
-const evidenceDir = process.env.AQ_EVIDENCE_DIR || 'docs/arsenal-quest/evidence';
+const TOOLING_DIR = process.env.APEX_TOOLING_DIR || path.join(REPO, 'node_modules');
+const evidenceDir = process.env.APEX_EVIDENCE_DIR || 'docs/acceptance/arsenal-product/headless';
 const requireTool = createRequire(path.join(TOOLING_DIR, 'noop.js'));
 const { JSDOM } = requireTool('jsdom');
 const { createCanvas, loadImage, GlobalFonts, ImageData: NapiImageData, Path2D: NapiPath2D } = requireTool('@napi-rs/canvas');
@@ -78,6 +77,7 @@ const dom = new JSDOM(`<!doctype html><html><body>
 
 const win = dom.window;
 installProductSurfaceAuthority(win);
+win.__APEX_TEST_MODE = true;
 win.__apexStatsSilent = true; // silence synthesized battle SFX in the harness
 
 // Real canvas backing for every jsdom <canvas>. @napi-rs/canvas drawImage only
@@ -119,6 +119,7 @@ win.HTMLCanvasElement.prototype.getContext = function (type) {
 };
 const gameCanvasEl = win.document.getElementById('game-canvas');
 const gameCanvasReal = gameCanvasEl.getContext('2d').canvas;
+win.CanvasRenderingContext2D = gameCanvasReal.getContext('2d').constructor;
 
 // Minimal WebAudio stub (SFX code paths are silenced by __apexStatsSilent).
 class ParamStub {
@@ -184,7 +185,20 @@ win.fetch = (url) => {
 // jsdom Image cannot decode PNGs; back every Image with a real @napi-rs image
 // loaded from public/ so curated VFX actually render into evidence frames.
 class HarnessImage {
-  constructor() { this.complete = false; this.width = 0; this.height = 0; this.__realImage = null; this.onload = null; this.onerror = null; }
+  constructor() {
+    this.complete = false; this.width = 0; this.height = 0; this.__realImage = null;
+    this.onload = null; this.onerror = null; this.listeners = new Map();
+  }
+  addEventListener(type, listener) {
+    if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+    this.listeners.get(type).add(listener);
+  }
+  removeEventListener(type, listener) { this.listeners.get(type)?.delete(listener); }
+  dispatch(type) {
+    const propertyHandler = this[`on${type}`];
+    if (typeof propertyHandler === 'function') propertyHandler.call(this, { type, target: this });
+    for (const listener of this.listeners.get(type) || []) listener.call(this, { type, target: this });
+  }
   set src(v) {
     this._src = v;
     const rel = String(v).replace(/^\//, '');
@@ -196,9 +210,9 @@ class HarnessImage {
         this.naturalWidth = im.width;
         this.naturalHeight = im.height;
         this.complete = true;
-        if (this.onload) this.onload();
+        this.dispatch('load');
       })
-      .catch(() => { if (this.onerror) this.onerror(); });
+      .catch(() => this.dispatch('error'));
   }
   get src() { return this._src; }
 }
@@ -228,17 +242,17 @@ function loadScript(relPath, required) {
 }
 
 loadScript('/apexEngine.js', true);
-// Boot the same neutral product core a normal browser reaches, then explicitly
-// load the detached legacy Quest compatibility group for this historical
-// acceptance harness. Production warmup must never take this second path.
+// Load the shared engine chain followed by the same neutral Arsenal product
+// group used by the browser. Shared sources are evaluated exactly once.
 const loadedRuntimeSrcs = new Set();
 for (const [src] of BOOT_GAME_RUNTIMES) {
   loadedRuntimeSrcs.add(String(src).split(/[?#]/, 1)[0]);
-  loadScript(src, false);
+  loadScript(src, true);
 }
-for (const [src] of ARSENAL_LEGACY_QUEST_RUNTIMES) {
+for (const [src] of ARSENAL_PRODUCT_RUNTIMES) {
   const key = String(src).split(/[?#]/, 1)[0];
-  if (loadedRuntimeSrcs.has(key)) continue; // never double-eval a shared runtime
+  if (loadedRuntimeSrcs.has(key)) continue;
+  loadedRuntimeSrcs.add(key);
   loadScript(src, true);
 }
 
@@ -261,11 +275,11 @@ function snapshot(name) {
 
 // Install test helpers into the page context (same API as the CDP harness).
 win.eval(`(() => {
-  window.__AQ_TEST = {
+  window.__APEX_TEST = {
     enterManual() {
-      window.startArsenalQuestMode();
+      window.__apexArsenalTestStartMatch('HERO', 'RIVAL');
       cancelAnimationFrame(reqId); reqId = 0;
-      return getArsenalQuestDebugState();
+      return getArsenalBattleDebugState();
     },
     step(seconds, dt) {
       dt = dt || 1/60;
@@ -304,13 +318,13 @@ win.eval(`(() => {
     events() { return APEX_ARSENAL.events.slice(); },
     clearEvents() { APEX_ARSENAL.events.length = 0; },
     countEvents(prefix, filter) {
-      return APEX_ARSENAL.events.filter(e => e.startsWith('[AQ] ' + prefix) && (!filter || e.includes(filter))).length;
+      return APEX_ARSENAL.events.filter(e => e.startsWith('[ARSENAL] ' + prefix) && (!filter || e.includes(filter))).length;
     },
     aqProjectiles() {
       return projectiles.filter(p => p.aq).map(p => ({ type: p.type, owner: p.owner ? p.owner.name : null, weapon: p.weapon }));
     },
     statuses(who) { const f = who === 'HERO' ? fighters[0] : fighters[1]; return Object.keys(f.statuses || {}); },
-    debug() { return getArsenalQuestDebugState(); },
+    debug() { return getArsenalBattleDebugState(); },
     redraw() { draw(); },
     earlyErrors() { return window.apexEarlyErrors || []; },
   };
@@ -326,47 +340,40 @@ fs.mkdirSync(evidenceDir, { recursive: true });
 // image/audio loads settle; the browser suite owns the true barrier
 // coverage).
 win['__apexDeferredRuntimesReady_arsenalProduct'] = true;
-win['__apexDeferredRuntimesReady_arsenalQuest'] = true; // detached compatibility alias
 win['__apexDeferredRuntimesReady_select'] = true;
 
 // ------------------------------------------------------- gate: registration
-gate('runtime-registered',
-  typeof win.startArsenalQuestMode === 'function'
-  && typeof win.exitArsenalQuestMode === 'function'
-  && typeof win.getArsenalQuestDebugState === 'function'
-  && !!win.APEX_ARSENAL?.weaponApi,
+gate('neutral-arsenal-runtime-registered',
+  typeof win.startArsenalBattleMode === 'function'
+  && typeof win.exitArsenalBattleMode === 'function'
+  && typeof win.getArsenalBattleDebugState === 'function'
+  && !!win.APEX_ARSENAL?.weaponApi
+  && !('startArsenalQuestMode' in win)
+  && !('APEX_ARSENAL_QUEST' in win),
   { bootLoadErrors: loadErrors.map(e => e.file) });
 
-// ------------------------------------------------- gate: normal modes intact
-report.normalModes = run(`
-  const results = {};
-  goToSelect();
-  results.selectState = gameState;
-  goToMenu();
-  results.menuState = gameState;
-  results.menuVisible = !document.getElementById('menu-screen').classList.contains('hidden');
-  const ICE = FighterTypes.find(t => t.name === 'ICE');
-  const TOXIC = FighterTypes.find(t => t.name === 'TOXIC');
-  startSpecificMatch(ICE, TOXIC, { countdown: false });
-  results.normalMatchState = gameState;
-  results.normalFighters = fighters.map(f => f.name);
-  const x0 = fighters[0].x;
-  for (let i = 0; i < 60; i++) update(1/60);
-  results.normalSimMoved = fighters[0].x !== x0 || projectiles.length > 0;
-  goToMenu();
-  results.menuAfterMatch = gameState;
-  return results;
+// ----------------------------------------------- gate: product battle launch
+report.productBattleLaunch = run(`
+  const started = window.__apexArsenalTestStartMatch('ROBOT', 'HUNTER');
+  cancelAnimationFrame(reqId); reqId = 0;
+  return {
+    started,
+    state: gameState,
+    fighters: fighters.map(f => f.name),
+    active: !!APEX_ARSENAL.state?.active,
+    profile: APEX_ARSENAL.state?.battleMode,
+  };
 `);
-gate('normal-modes-launch',
-  report.normalModes.normalMatchState === 'PLAYING'
-  && report.normalModes.menuAfterMatch === 'MENU'
-  && report.normalModes.menuVisible
-  && report.normalModes.normalSimMoved,
-  report.normalModes);
+gate('neutral-product-launches-core-six-shells',
+  report.productBattleLaunch.started === true
+  && report.productBattleLaunch.state === 'ARSENAL'
+  && report.productBattleLaunch.fighters.join(',') === 'ROBOT,HUNTER'
+  && report.productBattleLaunch.active === true,
+  report.productBattleLaunch);
 
 // ---------------------------------------------------------- gate: entry state
 report.entry = run(`
-  const d = __AQ_TEST.enterManual();
+  const d = __APEX_TEST.enterManual();
   return {
     gameState: d.gameState, hero: d.hero, rival: d.rival,
     hudOpacity: document.getElementById('hud').style.opacity,
@@ -385,16 +392,16 @@ gate('entry-state',
 
 // ---------------------------------------------- gate: A-CORR-1 spawn cadence law
 report.spawnLaw = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearSlots();
-  __AQ_TEST.clearEvents();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearSlots();
+  __APEX_TEST.clearEvents();
   // Frozen, far fighters: cadence is timer-driven and independent of pickups.
-  __AQ_TEST.place(90, 90, 910, 910);
+  __APEX_TEST.place(90, 90, 910, 910);
   const leads = {};
   const spawnTimes = [];
   let lastCount = 0;
   for (let t = 0; t < 20; t += 0.1) {
-    __AQ_TEST.step(0.1);
+    __APEX_TEST.step(0.1);
     const st = APEX_ARSENAL.state;
     if (st.spawnedTotal > lastCount) { spawnTimes.push(+st.time.toFixed(2)); lastCount = st.spawnedTotal; }
     for (const slot of st.slots) {
@@ -402,28 +409,28 @@ report.spawnLaw = run(`
     }
   }
   const gaps = spawnTimes.slice(1).map((v, i) => +(v - spawnTimes[i]).toFixed(2));
-  const d = __AQ_TEST.debug();
+  const d = __APEX_TEST.debug();
   const leadValues = Object.values(leads);
-  const revealEvents = __AQ_TEST.events().filter(e => e.startsWith('[AQ] REVEAL'));
+  const revealEvents = __APEX_TEST.events().filter(e => e.startsWith('[ARSENAL] REVEAL'));
   return {
     spawnedTotal: d.spawnedTotal,
     maxActive: d.maxActiveSlots,
     spawnTimes,
     gaps,
-    // POST-C §2: measured cadence must be exactly 3.0s.
+    // POST-C §2: the visible production law is one offensive spawn every 4.5s.
     cadenceOk: spawnTimes.length >= 4 && spawnTimes[0] <= 0.2
       && gaps.every(g => Math.abs(g - 4.5) < 0.15),
     leadValues,
     // A-CORR-2: every slot carries the fixed 2.0s whole-circle reveal lead.
     leadsFixedTwo: leadValues.length >= 3 && leadValues.every(v => Math.abs(v - 2.0) < 1e-9),
-    spawnEvents: __AQ_TEST.countEvents('SPAWN_SLOT'),
+    spawnEvents: __APEX_TEST.countEvents('SPAWN_SLOT'),
     revealCount: revealEvents.length,
     // Nobody approaches, so every reveal in this run is the 3.0s failsafe.
     allRevealsForced: revealEvents.length >= 3 && revealEvents.every(e => /force=true/.test(e)),
     allHiddenIdentityNull: d.slots.filter(s => s.phase === 'TELEGRAPH').every(s => s.weaponId === null),
   };
 `);
-gate('spawn-cadence-3.0s', report.spawnLaw.cadenceOk,
+gate('spawn-cadence-4.5s', report.spawnLaw.cadenceOk,
   `spawnTimes=${JSON.stringify(report.spawnLaw.spawnTimes)} gaps=${JSON.stringify(report.spawnLaw.gaps)}`);
 gate('reveal-lead-fixed-2.0', report.spawnLaw.leadsFixedTwo, report.spawnLaw.leadValues.map(v => +v.toFixed(3)));
 gate('multi-slot-coexist', report.spawnLaw.maxActive >= 3, `maxActiveSlots=${report.spawnLaw.maxActive}`);
@@ -433,38 +440,38 @@ gate('force-reveals-only-while-unapproached',
 
 // ------------------------- gate: A-CORR-2 whole-circle reveal law + 3.0s failsafe
 report.telegraphLaw = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(400, 500, 900, 900); // frozen by default
-  const id = __AQ_TEST.pushSlot({
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(400, 500, 900, 900); // frozen by default
+  const id = __APEX_TEST.pushSlot({
     x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null,
     revealLeadSeconds: 2.0
   });
 
   // Age 2.9s, nobody approaching: still hidden, still identity-null.
-  __AQ_TEST.step(2.9);
+  __APEX_TEST.step(2.9);
   let slot = APEX_ARSENAL.state.slots.find(s => s.id === id);
   const hiddenAt2_9 = !!slot && slot.phase === 'TELEGRAPH' && slot.weaponId === null;
-  const beforeDebug = __AQ_TEST.debug().slots.find(s => s.id === id);
+  const beforeDebug = __APEX_TEST.debug().slots.find(s => s.id === id);
 
   // Cross age 3.0s -> FORCE REVEAL (not auto-pickup): identity assigned, log
   // carries force=true; the slot then behaves like any normal collectible.
-  __AQ_TEST.step(0.2);
+  __APEX_TEST.step(0.2);
   slot = APEX_ARSENAL.state.slots.find(s => s.id === id);
   const forceRevealed = !!slot && slot.phase === 'REVEALED' && !!slot.weaponId;
-  const forceLog = __AQ_TEST.events().find(e => e.startsWith('[AQ] REVEAL') && e.includes('id=' + id)) || '';
-  const heroHolderAfterForce = __AQ_TEST.holder('HERO');
+  const forceLog = __APEX_TEST.events().find(e => e.startsWith('[ARSENAL] REVEAL') && e.includes('id=' + id)) || '';
+  const heroHolderAfterForce = __APEX_TEST.holder('HERO');
 
   // HERO now walks into the force-revealed pickup like a normal weapon.
   fighters[0].baseSpeed = 520;
   fighters[0].setDir(1, 0);
   fighters[1].baseSpeed = 0;
-  __AQ_TEST.step(1.5);
+  __APEX_TEST.step(1.5);
   // Instant-fire weapons (SHOTGUN/GRENADE) legitimately consume before we look;
   // a logged PICKUP + (holder still up OR consume logged) proves normal-collectible behavior.
-  const pickupAfterForce = __AQ_TEST.countEvents('PICKUP', 'fighter=HERO') === 1
-    && (!!__AQ_TEST.holder('HERO') || __AQ_TEST.countEvents('CONSUME', 'fighter=HERO') >= 1);
+  const pickupAfterForce = __APEX_TEST.countEvents('PICKUP', 'fighter=HERO') === 1
+    && (!!__APEX_TEST.holder('HERO') || __APEX_TEST.countEvents('CONSUME', 'fighter=HERO') >= 1);
 
   // Movement-triggered reveal at the fixed 2.0s lead on a fresh slot.
   // (Disarm HERO first: an armed fighter is not eligible to trigger reveals.)
@@ -474,14 +481,14 @@ report.telegraphLaw = run(`
   projectiles.length = 0; // drop leftovers from the pickup walk (grenades etc.)
   fighters[0].statuses = {}; fighters[1].statuses = {}; // e.g. Tower Shield slow
   fighters[0].hp = fighters[0].maxHp; fighters[1].hp = fighters[1].maxHp;
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(100, 300, 900, 900);
-  const mid = __AQ_TEST.pushSlot({ x: 850, y: 300, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 2.0 });
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(100, 300, 900, 900);
+  const mid = __APEX_TEST.pushSlot({ x: 850, y: 300, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 2.0 });
   fighters[0].baseSpeed = 520; fighters[0].setDir(1, 0);
-  __AQ_TEST.step(0.04);
+  __APEX_TEST.step(0.04);
   slot = APEX_ARSENAL.state.slots.find(s => s.id === mid);
-  const moveRevealLog = __AQ_TEST.events().find(e => e.startsWith('[AQ] REVEAL') && e.includes('id=' + mid)) || '';
+  const moveRevealLog = __APEX_TEST.events().find(e => e.startsWith('[ARSENAL] REVEAL') && e.includes('id=' + mid)) || '';
   const revealedOnMovement = !!slot && slot.phase === 'REVEALED'
     && /lead=2\.00/.test(moveRevealLog) && /force=false/.test(moveRevealLog) && /fighter=HERO/.test(moveRevealLog);
   const etaMatch = /eta=(\\d+\\.\\d+)/.exec(moveRevealLog);
@@ -514,43 +521,43 @@ gate('movement-reveal-lead-2.0',
 
 // ------------- gate: A-CORR-2 negatives — near miss outside circle + no pre-bounce
 report.circleNeg = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.clearEvents();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.clearEvents();
   // Near miss: path passes 60px off-center — outside the 42px visible circle.
   // Must stay hidden through the whole pass (age < 3.0s, no force reveal yet).
-  __AQ_TEST.place(400, 440, 900, 200);
-  const missId = __AQ_TEST.pushSlot({ x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 2.0 });
+  __APEX_TEST.place(400, 440, 900, 200);
+  const missId = __APEX_TEST.pushSlot({ x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 2.0 });
   fighters[0].baseSpeed = 520; fighters[0].setDir(1, 0); fighters[1].baseSpeed = 0;
-  __AQ_TEST.step(1.1); // hero sweeps past the slot's x while 60px outside
+  __APEX_TEST.step(1.1); // hero sweeps past the slot's x while 60px outside
   const miss = APEX_ARSENAL.state.slots.find(s => s.id === missId);
   const nearMissStayedHidden = !!miss && miss.phase === 'TELEGRAPH' && miss.weaponId === null;
 
   // Edge of circle: path passes 25px off-center — inside the visible circle.
   // Any part of the visible question-mark circle may trigger the reveal.
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(400, 475, 900, 200);
-  const edgeId = __AQ_TEST.pushSlot({ x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 2.0 });
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(400, 475, 900, 200);
+  const edgeId = __APEX_TEST.pushSlot({ x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 2.0 });
   fighters[0].baseSpeed = 520; fighters[0].setDir(1, 0);
-  __AQ_TEST.step(0.04);
+  __APEX_TEST.step(0.04);
   const edge = APEX_ARSENAL.state.slots.find(s => s.id === edgeId);
-  const edgeLog = __AQ_TEST.events().find(e => e.startsWith('[AQ] REVEAL') && e.includes('id=' + edgeId)) || '';
+  const edgeLog = __APEX_TEST.events().find(e => e.startsWith('[ARSENAL] REVEAL') && e.includes('id=' + edgeId)) || '';
   const edgeOfCircleReveals = !!edge && edge.phase === 'REVEALED' && /force=false/.test(edgeLog);
 
   // Pre-bounce: slot behind the fighter near the wall. The current segment
   // would bounce before circle entry -> no reveal until the bounce happens.
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(900, 500, 300, 200);
-  const bounceId = __AQ_TEST.pushSlot({ x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 2.0 });
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(900, 500, 300, 200);
+  const bounceId = __APEX_TEST.pushSlot({ x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 2.0 });
   fighters[0].baseSpeed = 520; fighters[0].setDir(1, 0);
-  __AQ_TEST.step(0.03); // still pre-bounce (wall contact ~0.05s away)
+  __APEX_TEST.step(0.03); // still pre-bounce (wall contact ~0.05s away)
   const preBounce = APEX_ARSENAL.state.slots.find(s => s.id === bounceId);
   const hiddenBeforeBounce = !!preBounce && preBounce.phase === 'TELEGRAPH' && preBounce.weaponId === null;
-  __AQ_TEST.step(0.35); // after the bounce the new segment re-evaluates
+  __APEX_TEST.step(0.35); // after the bounce the new segment re-evaluates
   const postBounce = APEX_ARSENAL.state.slots.find(s => s.id === bounceId);
-  const bounceLog = __AQ_TEST.events().find(e => e.startsWith('[AQ] REVEAL') && e.includes('id=' + bounceId)) || '';
+  const bounceLog = __APEX_TEST.events().find(e => e.startsWith('[ARSENAL] REVEAL') && e.includes('id=' + bounceId)) || '';
   const revealedAfterBounce = !postBounce || (postBounce.phase === 'REVEALED' && /force=false/.test(bounceLog));
   return { nearMissStayedHidden, edgeOfCircleReveals, edgeLog, hiddenBeforeBounce, revealedAfterBounce, bounceLog };
 `);
@@ -561,26 +568,26 @@ gate('no-reveal-before-bounce', report.circleNeg.hiddenBeforeBounce && report.ci
 
 // ------------------------------------------------ gate: pickup rules both sides
 report.pickupRules = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(300, 500, 700, 500);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.pushSlot({ x: 700, y: 500, weaponId: 'SABRE' });
-  __AQ_TEST.step(0.3);
-  const rivalGot = __AQ_TEST.holder('RIVAL');
-  const rivalPicked = __AQ_TEST.countEvents('PICKUP', 'fighter=RIVAL') >= 1;
-  __AQ_TEST.pushSlot({ x: 300, y: 500, weaponId: 'SMG' });
-  __AQ_TEST.step(0.3);
-  const heroGot = __AQ_TEST.holder('HERO');
-  __AQ_TEST.pushSlot({ x: 300, y: 520, weaponId: 'PISTOL' });
-  __AQ_TEST.step(0.3);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(300, 500, 700, 500);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.pushSlot({ x: 700, y: 500, weaponId: 'SABRE' });
+  __APEX_TEST.step(0.3);
+  const rivalGot = __APEX_TEST.holder('RIVAL');
+  const rivalPicked = __APEX_TEST.countEvents('PICKUP', 'fighter=RIVAL') >= 1;
+  __APEX_TEST.pushSlot({ x: 300, y: 500, weaponId: 'SMG' });
+  __APEX_TEST.step(0.3);
+  const heroGot = __APEX_TEST.holder('HERO');
+  __APEX_TEST.pushSlot({ x: 300, y: 520, weaponId: 'PISTOL' });
+  __APEX_TEST.step(0.3);
   const rejectedStillThere = APEX_ARSENAL.state.slots.some(s => s.weaponId === 'PISTOL' && s.phase === 'REVEALED');
   return {
     rivalGot: (rivalGot && rivalGot.weapon) || (rivalPicked ? 'SABRE' : null),
     heroGot: heroGot && heroGot.weapon,
-    heroStillArmedWith: (__AQ_TEST.holder('HERO') || {}).weapon,
+    heroStillArmedWith: (__APEX_TEST.holder('HERO') || {}).weapon,
     rejectedStillThere,
-    rejectLogged: __AQ_TEST.countEvents('REJECT_PICKUP', 'fighter=HERO') > 0,
+    rejectLogged: __APEX_TEST.countEvents('REJECT_PICKUP', 'fighter=HERO') > 0,
   };
 `);
 gate('rival-can-collect', report.pickupRules.rivalGot === 'SABRE');
@@ -590,12 +597,12 @@ gate('armed-fighter-cannot-vacuum',
 
 // --------------------------------------------------------- gate: soft cap
 report.softCap = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.holdSpawns();
-  for (let i = 0; i < APEX_ARSENAL_CONFIG.MAX_ACTIVE_SLOTS; i++) __AQ_TEST.pushSlot({ x: 100 + i * 100, y: 200, weaponId: 'PISTOL' });
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.holdSpawns();
+  for (let i = 0; i < APEX_ARSENAL_CONFIG.MAX_ACTIVE_SLOTS; i++) __APEX_TEST.pushSlot({ x: 100 + i * 100, y: 200, weaponId: 'PISTOL' });
   const result = APEX_ARSENAL_SPAWN.trySpawnSlot();
-  return { spawned: !!result, suppressed: __AQ_TEST.countEvents('SPAWN_SUPPRESSED') };
+  return { spawned: !!result, suppressed: __APEX_TEST.countEvents('SPAWN_SUPPRESSED') };
 `);
 gate('soft-cap-suppresses-and-logs', report.softCap.spawned === false && report.softCap.suppressed >= 1);
 
@@ -605,27 +612,27 @@ report.weapons = {};
 for (const weaponId of ['PISTOL', 'SHOTGUN', 'SMG', 'SNIPER', 'GRENADE', 'SABRE', 'BATTLE_AXE', 'DAGGER', 'SPEAR', 'SPIKED_CLUB']) {
   const gap = MELEE_PLACEMENT[weaponId] ?? 300;
   report.weapons[weaponId] = run(`
-    __AQ_TEST.enterManual();
-    __AQ_TEST.clearEvents();
-    __AQ_TEST.place(300, 500, ${300 + gap}, 500);
-    __AQ_TEST.holdSpawns();
-    __AQ_TEST.equip('HERO', '${weaponId}');
-    __AQ_TEST.step(0.3);
-    const midPhase = (__AQ_TEST.holder('HERO') || {}).phase;
-    __AQ_TEST.step(0.35);
-    const midPhase2 = (__AQ_TEST.holder('HERO') || {}).phase;
-    const statusesMid = __AQ_TEST.statuses('RIVAL');
-    __AQ_TEST.step(2.35);
-    const hp = __AQ_TEST.hp();
+    __APEX_TEST.enterManual();
+    __APEX_TEST.clearEvents();
+    __APEX_TEST.place(300, 500, ${300 + gap}, 500);
+    __APEX_TEST.holdSpawns();
+    __APEX_TEST.equip('HERO', '${weaponId}');
+    __APEX_TEST.step(0.3);
+    const midPhase = (__APEX_TEST.holder('HERO') || {}).phase;
+    __APEX_TEST.step(0.35);
+    const midPhase2 = (__APEX_TEST.holder('HERO') || {}).phase;
+    const statusesMid = __APEX_TEST.statuses('RIVAL');
+    __APEX_TEST.step(2.35);
+    const hp = __APEX_TEST.hp();
     return {
       midPhase,
       midPhase2,
       damageDealt: +(hp.rivalMax - hp.rival).toFixed(1),
-      holderAfter: __AQ_TEST.holder('HERO'),
-      useLogged: __AQ_TEST.countEvents('USE', 'weapon=${weaponId}'),
-      hitLogged: __AQ_TEST.countEvents('HIT', 'weapon=${weaponId}'),
-      consumeLogged: __AQ_TEST.countEvents('CONSUME', 'weapon=${weaponId}'),
-      statuses: __AQ_TEST.statuses('RIVAL'),
+      holderAfter: __APEX_TEST.holder('HERO'),
+      useLogged: __APEX_TEST.countEvents('USE', 'weapon=${weaponId}'),
+      hitLogged: __APEX_TEST.countEvents('HIT', 'weapon=${weaponId}'),
+      consumeLogged: __APEX_TEST.countEvents('CONSUME', 'weapon=${weaponId}'),
+      statuses: __APEX_TEST.statuses('RIVAL'),
       statusesMid,
     };
   `);
@@ -642,57 +649,57 @@ gate('club-stun-applied', report.weapons.SPIKED_CLUB.statusesMid.includes('stun'
 gate('axe-knockback-applied', report.weapons.BATTLE_AXE.statusesMid.includes('push'), report.weapons.BATTLE_AXE.statusesMid);
 
 report.grenade = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(250, 500, 550, 500);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.equip('HERO', 'GRENADE');
-  __AQ_TEST.step(0.6);
-  const afterThrow = { holder: __AQ_TEST.holder('HERO'), grenadeInWorld: __AQ_TEST.aqProjectiles().some(p => p.type === 'aq_grenade') };
-  __AQ_TEST.step(1.6);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(250, 500, 550, 500);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.equip('HERO', 'GRENADE');
+  __APEX_TEST.step(0.6);
+  const afterThrow = { holder: __APEX_TEST.holder('HERO'), grenadeInWorld: __APEX_TEST.aqProjectiles().some(p => p.type === 'aq_grenade') };
+  __APEX_TEST.step(1.6);
   return {
     afterThrow,
-    rivalHpAfter: __AQ_TEST.hp().rival,
-    explodeLogged: __AQ_TEST.countEvents('EXPLODE') > 0,
-    grenadeGone: !__AQ_TEST.aqProjectiles().some(p => p.type === 'aq_grenade'),
+    rivalHpAfter: __APEX_TEST.hp().rival,
+    explodeLogged: __APEX_TEST.countEvents('EXPLODE') > 0,
+    grenadeGone: !__APEX_TEST.aqProjectiles().some(p => p.type === 'aq_grenade'),
   };
 `);
 gate('grenade-throw-consumes-immediately', report.grenade.afterThrow.holder === null && report.grenade.afterThrow.grenadeInWorld);
 gate('grenade-resolves-after-fuse', report.grenade.rivalHpAfter < 1000 && report.grenade.explodeLogged && report.grenade.grenadeGone, `rivalHp=${report.grenade.rivalHpAfter}`);
 
 report.meleeWait = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(120, 120, 880, 880);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.equip('HERO', 'BATTLE_AXE');
-  __AQ_TEST.step(2.0);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(120, 120, 880, 880);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.equip('HERO', 'BATTLE_AXE');
+  __APEX_TEST.step(2.0);
   const thrown = projectiles.some(p => p.aq && p.type === 'aq_thrown' && p.weapon === 'BATTLE_AXE');
-  const throwLogged = __AQ_TEST.countEvents('THROW', 'weapon=BATTLE_AXE') >= 1;
-  const farState = { holder: __AQ_TEST.holder('HERO'), rivalHp: __AQ_TEST.hp().rival, thrown, throwLogged };
-  __AQ_TEST.place(120, 120, 280, 120);
-  __AQ_TEST.equip('HERO', 'BATTLE_AXE');
-  __AQ_TEST.step(1.2);
-  return { farHolder: farState.holder && farState.holder.weapon, farRivalHp: farState.rivalHp, thrown: farState.thrown, throwLogged: farState.throwLogged, nearHolder: __AQ_TEST.holder('HERO'), nearRivalHp: __AQ_TEST.hp().rival };
+  const throwLogged = __APEX_TEST.countEvents('THROW', 'weapon=BATTLE_AXE') >= 1;
+  const farState = { holder: __APEX_TEST.holder('HERO'), rivalHp: __APEX_TEST.hp().rival, thrown, throwLogged };
+  __APEX_TEST.place(120, 120, 280, 120);
+  __APEX_TEST.equip('HERO', 'BATTLE_AXE');
+  __APEX_TEST.step(1.2);
+  return { farHolder: farState.holder && farState.holder.weapon, farRivalHp: farState.rivalHp, thrown: farState.thrown, throwLogged: farState.throwLogged, nearHolder: __APEX_TEST.holder('HERO'), nearRivalHp: __APEX_TEST.hp().rival };
 `);
 gate('melee-not-wasted-out-of-range', !!(report.meleeWait.thrown || report.meleeWait.throwLogged), report.meleeWait);
 gate('melee-activates-in-range', report.meleeWait.nearHolder === null && report.meleeWait.nearRivalHp < 1000);
 
 // ------------------------------------------------------------ gate: shields
 report.swirl = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(300, 500, 700, 500);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.equip('RIVAL', 'SNIPER');
-  __AQ_TEST.equip('HERO', 'SWIRL_SHIELD');
-  __AQ_TEST.step(2.5);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(300, 500, 700, 500);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.equip('RIVAL', 'SNIPER');
+  __APEX_TEST.equip('HERO', 'SWIRL_SHIELD');
+  __APEX_TEST.step(2.5);
   return {
-    heroHp: __AQ_TEST.hp().hero,
-    rivalHp: __AQ_TEST.hp().rival,
-    heroHolder: __AQ_TEST.holder('HERO'),
-    reflectLogged: __AQ_TEST.countEvents('REFLECT', 'fighter=HERO') > 0,
-    hitOnRivalFromHero: __AQ_TEST.events().filter(e => e.startsWith('[AQ] HIT') && e.includes('source=HERO') && e.includes('target=RIVAL')).length,
+    heroHp: __APEX_TEST.hp().hero,
+    rivalHp: __APEX_TEST.hp().rival,
+    heroHolder: __APEX_TEST.holder('HERO'),
+    reflectLogged: __APEX_TEST.countEvents('REFLECT', 'fighter=HERO') > 0,
+    hitOnRivalFromHero: __APEX_TEST.events().filter(e => e.startsWith('[ARSENAL] HIT') && e.includes('source=HERO') && e.includes('target=RIVAL')).length,
   };
 `);
 gate('swirl-reflects-projectile', report.swirl.reflectLogged && report.swirl.heroHp === 1000 && report.swirl.rivalHp < 1000 && report.swirl.heroHolder === null,
@@ -700,19 +707,19 @@ gate('swirl-reflects-projectile', report.swirl.reflectLogged && report.swirl.her
 gate('swirl-reflect-ownership-correct', report.swirl.hitOnRivalFromHero >= 1, 'reflected bullet source=HERO target=RIVAL');
 
 report.tower = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(300, 500, 700, 500);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.equip('HERO', 'TOWER_SHIELD');
-  __AQ_TEST.step(0.3);
-  const speedStatus = __AQ_TEST.statuses('HERO').includes('slow');
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(300, 500, 700, 500);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.equip('HERO', 'TOWER_SHIELD');
+  __APEX_TEST.step(0.3);
+  const speedStatus = __APEX_TEST.statuses('HERO').includes('slow');
   APEX_ARSENAL.weaponApi.aqDamage(fighters[0], 10, fighters[1], 'TEST_PROBE');
-  const guardedHp = __AQ_TEST.hp().hero;
-  __AQ_TEST.step(3.0);
-  const expired = __AQ_TEST.holder('HERO');
+  const guardedHp = __APEX_TEST.hp().hero;
+  __APEX_TEST.step(3.0);
+  const expired = __APEX_TEST.holder('HERO');
   APEX_ARSENAL.weaponApi.aqDamage(fighters[0], 10, fighters[1], 'TEST_PROBE');
-  const unguardedHp = __AQ_TEST.hp().hero;
+  const unguardedHp = __APEX_TEST.hp().hero;
   return { speedStatus, guardedHp, expiredHolder: expired, unguardedHp, unguardedDelta: +(guardedHp - unguardedHp).toFixed(2) };
 `);
 gate('tower-shield-reduces-damage', report.tower.guardedHp === 997.5 && report.tower.unguardedDelta === 10,
@@ -722,13 +729,13 @@ gate('tower-shield-expires-to-unarmed', report.tower.expiredHolder === null);
 
 // --------------------------------------------------- gate: exit cleanup
 report.cleanup = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(300, 500, 700, 500);
-  __AQ_TEST.equip('HERO', 'SNIPER');
-  __AQ_TEST.step(1.6);
-  __AQ_TEST.equip('RIVAL', 'TOWER_SHIELD');
-  window.exitArsenalQuestMode();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(300, 500, 700, 500);
+  __APEX_TEST.equip('HERO', 'SNIPER');
+  __APEX_TEST.step(1.6);
+  __APEX_TEST.equip('RIVAL', 'TOWER_SHIELD');
+  window.exitArsenalBattleMode();
   return {
     gameStateAfter: gameState,
     menuVisible: !document.getElementById('menu-screen').classList.contains('hidden'),
@@ -736,7 +743,7 @@ report.cleanup = run(`
     slotsCleared: !APEX_ARSENAL.state || APEX_ARSENAL.state.slots.length === 0,
     aqProjectilesCleared: projectiles.filter(p => p.aq).length === 0,
     heroHolderCleared: !fighters[0].data.arsenal,
-    exitLogged: APEX_ARSENAL.events.some(e => e.startsWith('[AQ] MODE_EXIT')),
+    exitLogged: APEX_ARSENAL.events.some(e => e.startsWith('[ARSENAL] MODE_EXIT')),
   };
 `);
 gate('exit-cleanup',
@@ -746,7 +753,7 @@ gate('exit-cleanup',
 
 // ------------------------------------------------------ F3 overlay + evidence
 report.f3 = run(`
-  __AQ_TEST.enterManual();
+  __APEX_TEST.enterManual();
   window.dispatchEvent(new KeyboardEvent('keydown', { code: 'F3', bubbles: true, cancelable: true }));
   return { toggledOn: APEX_ARSENAL.state.debugOverlay };
 `);
@@ -762,110 +769,110 @@ gate('f3-debug-overlay-toggle', report.f3.toggledOn === true);
 
 // Evidence 1: hidden telegraph + F3 overlay.
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(240, 620, 780, 340);
-  __AQ_TEST.pushSlot({ x: 500, y: 470, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 1.5 });
-  __AQ_TEST.step(0.4);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(240, 620, 780, 340);
+  __APEX_TEST.pushSlot({ x: 500, y: 470, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 1.5 });
+  __APEX_TEST.step(0.4);
   APEX_ARSENAL.state.debugOverlay = true;
-  __AQ_TEST.redraw();
+  __APEX_TEST.redraw();
 `);
 snapshot('01-hidden-telegraph');
 
 // Evidence 2: multiple simultaneous pickups (3 revealed + 1 telegraph).
 run(`
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.pushSlot({ x: 320, y: 300, weaponId: 'SHOTGUN' });
-  __AQ_TEST.pushSlot({ x: 500, y: 640, weaponId: 'BATTLE_AXE' });
-  __AQ_TEST.pushSlot({ x: 720, y: 380, weaponId: 'SWIRL_SHIELD' });
-  __AQ_TEST.pushSlot({ x: 620, y: 760, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 1.5 });
-  __AQ_TEST.step(0.2);
-  __AQ_TEST.redraw();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.pushSlot({ x: 320, y: 300, weaponId: 'SHOTGUN' });
+  __APEX_TEST.pushSlot({ x: 500, y: 640, weaponId: 'BATTLE_AXE' });
+  __APEX_TEST.pushSlot({ x: 720, y: 380, weaponId: 'SWIRL_SHIELD' });
+  __APEX_TEST.pushSlot({ x: 620, y: 760, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 1.5 });
+  __APEX_TEST.step(0.2);
+  __APEX_TEST.redraw();
 `);
 snapshot('02-multiple-simultaneous-pickups');
 
 // Evidence 3: HERO pickup moment.
 run(`
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(300, 500, 820, 260);
-  __AQ_TEST.pushSlot({ x: 300, y: 500, weaponId: 'SNIPER' });
-  __AQ_TEST.step(0.15);
-  __AQ_TEST.redraw();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(300, 500, 820, 260);
+  __APEX_TEST.pushSlot({ x: 300, y: 500, weaponId: 'SNIPER' });
+  __APEX_TEST.step(0.15);
+  __APEX_TEST.redraw();
 `);
 snapshot('03-hero-pickup');
 
 // Evidence 4: RIVAL pickup moment.
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(180, 720, 760, 480);
-  __AQ_TEST.pushSlot({ x: 760, y: 480, weaponId: 'SPIKED_CLUB' });
-  __AQ_TEST.step(0.15);
-  __AQ_TEST.redraw();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(180, 720, 760, 480);
+  __APEX_TEST.pushSlot({ x: 760, y: 480, weaponId: 'SPIKED_CLUB' });
+  __APEX_TEST.step(0.15);
+  __APEX_TEST.redraw();
 `);
 snapshot('04-rival-pickup');
 
 // Evidence 5: ranged attacks — sniper aim telegraph + pistol tracers.
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(220, 500, 780, 500);
-  __AQ_TEST.equip('HERO', 'SNIPER');
-  __AQ_TEST.step(0.75);
-  __AQ_TEST.redraw();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(220, 500, 780, 500);
+  __APEX_TEST.equip('HERO', 'SNIPER');
+  __APEX_TEST.step(0.75);
+  __APEX_TEST.redraw();
 `);
 snapshot('05-ranged-sniper-aim');
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(220, 500, 780, 500);
-  __AQ_TEST.equip('RIVAL', 'PISTOL');
-  __AQ_TEST.step(0.62);
-  __AQ_TEST.redraw();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(220, 500, 780, 500);
+  __APEX_TEST.equip('RIVAL', 'PISTOL');
+  __APEX_TEST.step(0.62);
+  __APEX_TEST.redraw();
 `);
 snapshot('05b-ranged-pistol-burst');
 
 // Evidence 6: melee — battle axe windup + slash arc frame.
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(330, 500, 520, 500);
-  __AQ_TEST.equip('HERO', 'BATTLE_AXE');
-  __AQ_TEST.step(0.6);
-  __AQ_TEST.redraw();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(330, 500, 520, 500);
+  __APEX_TEST.equip('HERO', 'BATTLE_AXE');
+  __APEX_TEST.step(0.6);
+  __APEX_TEST.redraw();
 `);
 snapshot('06-melee-axe-swing');
 
 // Evidence 7: shields — tower guard absorbing + swirl reflect frame.
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(300, 500, 700, 500);
-  __AQ_TEST.equip('HERO', 'TOWER_SHIELD');
-  __AQ_TEST.step(0.4);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(300, 500, 700, 500);
+  __APEX_TEST.equip('HERO', 'TOWER_SHIELD');
+  __APEX_TEST.step(0.4);
   APEX_ARSENAL.weaponApi.aqDamage(fighters[0], 10, fighters[1], 'TEST_PROBE');
-  __AQ_TEST.redraw();
+  __APEX_TEST.redraw();
 `);
 snapshot('07-tower-shield-guard');
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(300, 500, 700, 500);
-  __AQ_TEST.equip('RIVAL', 'SNIPER');
-  __AQ_TEST.equip('HERO', 'SWIRL_SHIELD');
-  __AQ_TEST.step(1.35);
-  __AQ_TEST.redraw();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(300, 500, 700, 500);
+  __APEX_TEST.equip('RIVAL', 'SNIPER');
+  __APEX_TEST.equip('HERO', 'SWIRL_SHIELD');
+  __APEX_TEST.step(1.35);
+  __APEX_TEST.redraw();
 `);
 snapshot('07b-swirl-reflect');
 
 // Evidence 8: F3 debug overlay over a busy arena.
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearSlots();
-  __AQ_TEST.place(240, 620, 780, 340, false);
-  for (let i = 0; i < 120; i++) __AQ_TEST.step(1/30);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearSlots();
+  __APEX_TEST.place(240, 620, 780, 340, false);
+  for (let i = 0; i < 120; i++) __APEX_TEST.step(1/30);
   APEX_ARSENAL.state.debugOverlay = true;
-  __AQ_TEST.redraw();
+  __APEX_TEST.redraw();
 `);
 snapshot('08-f3-debug-overlay');
 
@@ -917,86 +924,86 @@ const avStats = () => win.eval('JSON.parse(JSON.stringify({ cued: APEX_ARSENAL_A
 
 // AV evidence 1: pickup telegraph with cool neutral accent.
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(240, 620, 780, 340);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(240, 620, 780, 340);
   window.APEX_ARSENAL_SPAWN.trySpawnSlot();
-  __AQ_TEST.step(0.5);
-  __AQ_TEST.redraw();
+  __APEX_TEST.step(0.5);
+  __APEX_TEST.redraw();
 `);
 snapshot('av-01-pickup-telegraph');
 
 // AV evidence 2: same long-hidden slot reveals only on predicted approach.
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(150, 500, 900, 900);
-  const id = __AQ_TEST.pushSlot({ x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 1.5 });
-  __AQ_TEST.step(6.1);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(150, 500, 900, 900);
+  const id = __APEX_TEST.pushSlot({ x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 1.5 });
+  __APEX_TEST.step(6.1);
   fighters[0].baseSpeed = 520; fighters[0].setDir(1, 0); fighters[1].baseSpeed = 0;
-  __AQ_TEST.step(0.04);
-  __AQ_TEST.redraw();
+  __APEX_TEST.step(0.04);
+  __APEX_TEST.redraw();
 `);
 snapshot('av-02-weapon-reveal');
 
 // AV evidence 3: pistol firing (muzzle + gunshot bound).
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(320, 500, 640, 500);
-  __AQ_TEST.equip('HERO', 'PISTOL');
-  __AQ_TEST.step(0.5);
-  __AQ_TEST.step(0.1);
-  __AQ_TEST.redraw();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(320, 500, 640, 500);
+  __APEX_TEST.equip('HERO', 'PISTOL');
+  __APEX_TEST.step(0.5);
+  __APEX_TEST.step(0.1);
+  __APEX_TEST.redraw();
 `);
 snapshot('av-03-pistol-firing');
 
 // AV evidence 4: shotgun blast.
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(300, 520, 620, 520);
-  __AQ_TEST.equip('HERO', 'SHOTGUN');
-  __AQ_TEST.step(0.42);
-  __AQ_TEST.redraw();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(300, 520, 620, 520);
+  __APEX_TEST.equip('HERO', 'SHOTGUN');
+  __APEX_TEST.step(0.42);
+  __APEX_TEST.redraw();
 `);
 snapshot('av-04-shotgun-firing');
 
 // AV evidence 5: SMG burst mid-stream.
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(300, 480, 660, 480);
-  __AQ_TEST.equip('HERO', 'SMG');
-  __AQ_TEST.step(0.5);
-  __AQ_TEST.step(0.3);
-  __AQ_TEST.redraw();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(300, 480, 660, 480);
+  __APEX_TEST.equip('HERO', 'SMG');
+  __APEX_TEST.step(0.5);
+  __APEX_TEST.step(0.3);
+  __APEX_TEST.redraw();
 `);
 snapshot('av-05-smg-burst');
 
 // AV evidence 6: sniper aim window, then the shot.
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(240, 500, 820, 500);
-  __AQ_TEST.equip('HERO', 'SNIPER');
-  __AQ_TEST.step(0.5);
-  __AQ_TEST.step(0.3);
-  __AQ_TEST.redraw();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(240, 500, 820, 500);
+  __APEX_TEST.equip('HERO', 'SNIPER');
+  __APEX_TEST.step(0.5);
+  __APEX_TEST.step(0.3);
+  __APEX_TEST.redraw();
 `);
 snapshot('av-06-sniper-aim');
-run(`__AQ_TEST.step(0.37); __AQ_TEST.redraw();`);
+run(`__APEX_TEST.step(0.37); __APEX_TEST.redraw();`);
 snapshot('av-06b-sniper-shot');
 
 // AV evidence 7: grenade explosion atlas.
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(300, 500, 620, 500);
-  __AQ_TEST.equip('HERO', 'GRENADE');
-  __AQ_TEST.step(0.5);
-  __AQ_TEST.step(2.2);
-  __AQ_TEST.redraw();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(300, 500, 620, 500);
+  __APEX_TEST.equip('HERO', 'GRENADE');
+  __APEX_TEST.step(0.5);
+  __APEX_TEST.step(2.2);
+  __APEX_TEST.redraw();
 `);
 snapshot('av-07-grenade-explosion');
 
@@ -1010,100 +1017,100 @@ const meleeScenes = [
 ];
 for (const [name, weapon, t] of meleeScenes) {
   run(`
-    __AQ_TEST.enterManual();
-    __AQ_TEST.holdSpawns();
-    __AQ_TEST.place(330, 500, 470, 500);
-    __AQ_TEST.equip('HERO', '${weapon}');
-    __AQ_TEST.step(${t});
-    __AQ_TEST.redraw();
+    __APEX_TEST.enterManual();
+    __APEX_TEST.holdSpawns();
+    __APEX_TEST.place(330, 500, 470, 500);
+    __APEX_TEST.equip('HERO', '${weapon}');
+    __APEX_TEST.step(${t});
+    __APEX_TEST.redraw();
   `);
   snapshot(name);
 }
 
 // AV evidence 13: swirl shield reflect.
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(430, 500, 700, 500);
-  __AQ_TEST.equip('HERO', 'SWIRL_SHIELD');
-  __AQ_TEST.equip('RIVAL', 'PISTOL');
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(430, 500, 700, 500);
+  __APEX_TEST.equip('HERO', 'SWIRL_SHIELD');
+  __APEX_TEST.equip('RIVAL', 'PISTOL');
   let guard = 0;
-  while (guard++ < 200 && !APEX_ARSENAL.events.some(e => e.includes('REFLECT'))) __AQ_TEST.step(0.02);
-  __AQ_TEST.step(0.05);
-  __AQ_TEST.redraw();
+  while (guard++ < 200 && !APEX_ARSENAL.events.some(e => e.includes('REFLECT'))) __APEX_TEST.step(0.02);
+  __APEX_TEST.step(0.05);
+  __APEX_TEST.redraw();
 `);
 snapshot('av-13-swirl-reflect');
 
 // AV evidence 14: tower shield block.
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(320, 500, 640, 500);
-  __AQ_TEST.equip('RIVAL', 'TOWER_SHIELD');
-  __AQ_TEST.equip('HERO', 'SHOTGUN');
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(320, 500, 640, 500);
+  __APEX_TEST.equip('RIVAL', 'TOWER_SHIELD');
+  __APEX_TEST.equip('HERO', 'SHOTGUN');
   let guard2 = 0;
-  while (guard2++ < 200 && !APEX_ARSENAL.events.some(e => e.startsWith('[AQ] HIT'))) __AQ_TEST.step(0.02);
-  __AQ_TEST.step(0.04);
-  __AQ_TEST.redraw();
+  while (guard2++ < 200 && !APEX_ARSENAL.events.some(e => e.startsWith('[ARSENAL] HIT'))) __APEX_TEST.step(0.02);
+  __APEX_TEST.step(0.04);
+  __APEX_TEST.redraw();
 `);
 snapshot('av-14-tower-shield-block');
 
 // AV evidence 15: multiple simultaneous pickups while VFX/audio stay stable.
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.step(10);
-  __AQ_TEST.redraw();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.step(10);
+  __APEX_TEST.redraw();
 `);
 snapshot('av-15-multi-pickup-stable');
 
 // V2 evidence 16: P1/P2 canonical shells (SNIPER vs WITCH) with body art.
 run(`
-  window.startArsenalQuestMode('SNIPER', 'WITCH');
+  window.__apexArsenalTestStartMatch('SNIPER', 'ROBOT');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
-  __AQ_TEST.step(0.6);
-  __AQ_TEST.redraw();
+  __APEX_TEST.step(0.6);
+  __APEX_TEST.redraw();
 `);
-snapshot('16-v2-shells-sniper-vs-witch');
+snapshot('16-v2-shells-sniper-vs-robot');
 
 // V2 evidence 17: movement direction unchanged while equipped weapon aims.
 run(`
-  window.startArsenalQuestMode('RUBBER', 'ICE');
+  window.__apexArsenalTestStartMatch('RUBBER', 'ICE');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
   fighters[0].x = 250; fighters[0].y = 500; fighters[1].x = 800; fighters[1].y = 500;
   fighters[0].baseSpeed = 520; fighters[0].setDir(0, 1); fighters[1].baseSpeed = 0;
   APEX_ARSENAL.weaponApi.equip(fighters[0], 'SNIPER');
-  __AQ_TEST.step(0.45); // sniper aiming right while body travels down
-  __AQ_TEST.redraw();
+  __APEX_TEST.step(0.45); // sniper aiming right while body travels down
+  __APEX_TEST.redraw();
 `);
 snapshot('17-v2-aim-independent-of-movement');
 
 // V2 evidence 18: strict centerline reveal — aligned path reveals at <=1.0s.
 run(`
-  window.startArsenalQuestMode('RUBBER', 'ICE');
+  window.__apexArsenalTestStartMatch('RUBBER', 'ICE');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
   fighters[0].x = 400; fighters[0].y = 500; fighters[1].x = 900; fighters[1].y = 150;
   fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
-  __AQ_TEST.pushSlot({ x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 1.0 });
+  __APEX_TEST.pushSlot({ x: 850, y: 500, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 1.0 });
   fighters[0].baseSpeed = 520; fighters[0].setDir(1, 0);
-  __AQ_TEST.step(0.1);
-  __AQ_TEST.redraw();
+  __APEX_TEST.step(0.1);
+  __APEX_TEST.redraw();
 `);
 snapshot('18-v2-centerline-reveal');
 
 // V2 evidence 19: grazing trajectory (70px off-center) stays a hidden telegraph.
 run(`
-  window.startArsenalQuestMode('RUBBER', 'ICE');
+  window.__apexArsenalTestStartMatch('RUBBER', 'ICE');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
   fighters[0].x = 400; fighters[0].y = 500; fighters[1].x = 900; fighters[1].y = 150;
   fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
-  __AQ_TEST.pushSlot({ x: 850, y: 570, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 1.0 });
+  __APEX_TEST.pushSlot({ x: 850, y: 570, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 1.0 });
   fighters[0].baseSpeed = 520; fighters[0].setDir(1, 0);
-  __AQ_TEST.step(0.8); // hero is now beside the slot, 70px off its centerline
-  __AQ_TEST.redraw();
+  __APEX_TEST.step(0.8); // hero is now beside the slot, 70px off its centerline
+  __APEX_TEST.redraw();
 `);
 snapshot('19-v2-graze-stays-hidden');
 
@@ -1148,7 +1155,7 @@ gate('av-smg-voice-cap-enforced', (report.av.after.throttled['sfx/guns/sks.mp3']
 gate('av-mosin-pistol-trimmed', report.av.after.scheduled.filter(s => s.rel.endsWith('cz.mp3')).every(s => s.dur <= 0.9)
   && report.av.after.scheduled.filter(s => s.rel.endsWith('mosin.mp3')).every(s => s.dur <= 1.8));
 gate('av-vfx-expire-no-leak', (() => {
-  run(`__AQ_TEST.holdSpawns(); __AQ_TEST.clearSlots(); __AQ_TEST.step(3);`);
+  run(`__APEX_TEST.holdSpawns(); __APEX_TEST.clearSlots(); __APEX_TEST.step(3);`);
   return AV.activeVfx() === 0 && report.av.after.peak > 0;
 })(), { activeAfterQuiet: AV.activeVfx(), peak: report.av.after.peak });
 gate('av-no-asset-load-failures', report.av.after.imagesFailed === 0 && report.av.after.audioFailed === 0);
@@ -1157,7 +1164,7 @@ gate('av-no-asset-load-failures', report.av.after.imagesFailed === 0 && report.a
 report.fiveMinute = (() => {
   const started = Date.now();
   const out = run(`
-    __AQ_TEST.enterManual();
+    __APEX_TEST.enterManual();
     let error = null, koCount = 0, restarts = 0, spawnedCumulative = 0;
     const dt = 1/30;
     const totalSteps = Math.round(300 / dt);
@@ -1167,15 +1174,15 @@ report.fiveMinute = (() => {
         APEX_ARSENAL.step(dt);
         for (const s of APEX_ARSENAL.state.slots) if (s.phase === 'TELEGRAPH' && s.revealLeadSeconds != null) leadSamples.push(s.revealLeadSeconds);
         if (APEX_ARSENAL.state.over) {
-          spawnedCumulative += __AQ_TEST.debug().spawnedTotal;
+          spawnedCumulative += __APEX_TEST.debug().spawnedTotal;
           koCount++; restarts++;
-          window.startArsenalQuestMode();
+          window.__apexArsenalTestStartMatch();
           cancelAnimationFrame(reqId); reqId = 0;
         }
       }
     } catch (e) { error = String(e && e.stack || e); }
-    spawnedCumulative += __AQ_TEST.debug().spawnedTotal;
-    const d = __AQ_TEST.debug();
+    spawnedCumulative += __APEX_TEST.debug().spawnedTotal;
+    const d = __APEX_TEST.debug();
     return {
       error, koCount, restarts,
       spawnedTotal: d.spawnedTotal,
@@ -1183,7 +1190,7 @@ report.fiveMinute = (() => {
       // A-CORR-2: fixed 2.0s whole-circle reveal lead on every telegraph, forever.
       leadSamplesFixedOne: leadSamples.length > 100 && leadSamples.every(v => Math.abs(v - 2.0) < 1e-9),
       leadSampleCount: leadSamples.length,
-      earlyErrors: __AQ_TEST.earlyErrors(),
+      earlyErrors: __APEX_TEST.earlyErrors(),
     };
   `);
   out.wallClockMs = Date.now() - started;
@@ -1197,31 +1204,31 @@ gate('reveal-lead-fixed-over-5min', report.fiveMinute.leadSamplesFixedOne, `samp
 // ----------------------------------------- gate: V2 §A1 — aim never steers body
 report.aimLaw = run(`
   const out = {};
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(200, 500, 800, 500);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(200, 500, 800, 500);
   // Fighter commits to a vertical trajectory while the enemy sits horizontal:
   // any weapon steering would bend dir toward the enemy.
   fighters[0].baseSpeed = 520; fighters[0].setDir(0, 1); fighters[1].baseSpeed = 0;
   if (fighters[0].data) fighters[0].data.__hrHoldBody = false;
   const d0 = { x: fighters[0].dir.x, y: fighters[0].dir.y };
   const p0 = { x: fighters[0].x, y: fighters[0].y };
-  __AQ_TEST.equip('HERO', 'SNIPER');
-  __AQ_TEST.step(0.5); // full live-aim window
+  __APEX_TEST.equip('HERO', 'SNIPER');
+  __APEX_TEST.step(0.5); // full live-aim window
   out.aimDirSame = fighters[0].dir.x === d0.x && fighters[0].dir.y === d0.y;
   out.aimKeptApexTrajectory = Math.abs(fighters[0].y - (p0.y + 260)) < 8 && Math.abs(fighters[0].x - p0.x) < 1e-6;
   out.aimAngleTrackedEnemy = (() => {
     const h = APEX_ARSENAL.weaponApi.getHolder(fighters[0]);
     return h && h.meta && h.meta.aimAngle != null;
   })();
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(200, 500, 800, 500);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(200, 500, 800, 500);
   fighters[0].baseSpeed = 520; fighters[0].setDir(0, 1); fighters[1].baseSpeed = 0;
   if (fighters[0].data) fighters[0].data.__hrHoldBody = false;
   const q0 = { x: fighters[0].dir.x, y: fighters[0].dir.y };
-  __AQ_TEST.equip('HERO', 'PISTOL');
-  __AQ_TEST.step(0.8); // three shots while moving
+  __APEX_TEST.equip('HERO', 'PISTOL');
+  __APEX_TEST.step(0.8); // three shots while moving
   out.fireDirSame = fighters[0].dir.x === q0.x && fighters[0].dir.y === q0.y;
   return out;
 `);
@@ -1231,21 +1238,21 @@ gate('aim-never-steers-fighter',
 
 // ----------------------------------------- gate: V2 §A1 — dagger body stays put
 report.daggerLaw = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(500, 500, 700, 500); // 200px apart, inside dagger trigger range
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(500, 500, 700, 500); // 200px apart, inside dagger trigger range
   fighters[0].baseSpeed = 520; fighters[0].setDir(0, 1); fighters[1].baseSpeed = 0;
   if (fighters[0].data) fighters[0].data.__hrHoldBody = false;
   const p0 = { x: fighters[0].x, y: fighters[0].y };
-  __AQ_TEST.equip('HERO', 'DAGGER');
-  __AQ_TEST.step(0.2);
+  __APEX_TEST.equip('HERO', 'DAGGER');
+  __APEX_TEST.step(0.2);
   const dx = fighters[0].x - p0.x;
   const dy = fighters[0].y - p0.y;
   return {
     dx, dy,
     bodyKeptTrajectory: Math.abs(dy - 104) < 12 && Math.abs(dx) < 1e-6,
-    thrustConnected: __AQ_TEST.countEvents('CONSUME', 'stab-landed') >= 1,
+    thrustConnected: __APEX_TEST.countEvents('CONSUME', 'stab-landed') >= 1,
   };
 `);
 gate('dagger-no-body-dash', report.daggerLaw.bodyKeptTrajectory, report.daggerLaw);
@@ -1257,13 +1264,13 @@ report.motion = run(`
   const api = APEX_ARSENAL.weaponApi;
   const hero = () => fighters[0];
   function fresh(weaponId, gap) {
-    __AQ_TEST.enterManual();
-    __AQ_TEST.holdSpawns();
-    __AQ_TEST.clearEvents();
-    __AQ_TEST.place(300, 500, 300 + (gap || 260), 500); // frozen fighters
+    __APEX_TEST.enterManual();
+    __APEX_TEST.holdSpawns();
+    __APEX_TEST.clearEvents();
+    __APEX_TEST.place(300, 500, 300 + (gap || 260), 500); // frozen fighters
     hero().data.arsenal = null;
     hero().data.arsenalFade = null;
-    __AQ_TEST.equip('HERO', weaponId);
+    __APEX_TEST.equip('HERO', weaponId);
     return api.getHolder(hero());
   }
   const poseOf = () => { const h = api.getHolder(hero()); return h ? h.meta.pose : null; };
@@ -1278,7 +1285,7 @@ report.motion = run(`
     const b0 = bodySnapshot();
     let pulses = 0, maxRecoil = 0, maxRot = 0, lastPulses = -1;
     for (let i = 0; i < 90; i++) {
-      __AQ_TEST.step(1 / 60);
+      __APEX_TEST.step(1 / 60);
       const p = poseOf();
       if (p) {
         if (p.pulses > lastPulses) { lastPulses = p.pulses; pulses = p.pulses; }
@@ -1294,7 +1301,7 @@ report.motion = run(`
     const b0 = bodySnapshot();
     let ghostRecoil = 0, ghostRot = 0;
     for (let i = 0; i < 40; i++) {
-      __AQ_TEST.step(1 / 60);
+      __APEX_TEST.step(1 / 60);
       const g = ghostOf();
       if (g) { ghostRecoil = Math.max(ghostRecoil, g.pose.recoil); ghostRot = Math.max(ghostRot, Math.abs(g.pose.rotKick)); }
     }
@@ -1306,7 +1313,7 @@ report.motion = run(`
     const b0 = bodySnapshot();
     let lastPulses = -1, pulses = 0, signFlips = 0, lastSign = 0, maxRecoil = 0;
     for (let i = 0; i < 120; i++) {
-      __AQ_TEST.step(1 / 60);
+      __APEX_TEST.step(1 / 60);
       const p = poseOf();
       if (p) {
         if (p.pulses > lastPulses) {
@@ -1326,7 +1333,7 @@ report.motion = run(`
     const b0 = bodySnapshot();
     let midFlourish = 0, ghostRecoil = 0, sawAim = false, chambered = false;
     for (let i = 0; i < 240; i++) {
-      __AQ_TEST.step(1 / 60);
+      __APEX_TEST.step(1 / 60);
       const h = api.getHolder(hero());
       if (h && h.phase === 'AIM') { sawAim = true; chambered = chambered || !!h.meta.chambered; midFlourish = Math.max(midFlourish, h.meta.pose.flourish); }
       const g = ghostOf();
@@ -1339,9 +1346,9 @@ report.motion = run(`
     fresh('GRENADE');
     const b0 = bodySnapshot();
     let drawSeen = false;
-    for (let i = 0; i < 25; i++) { __AQ_TEST.step(1 / 60); const p = poseOf(); if (p && p.localX < -8) drawSeen = true; }
+    for (let i = 0; i < 25; i++) { __APEX_TEST.step(1 / 60); const p = poseOf(); if (p && p.localX < -8) drawSeen = true; }
     let throwFwd = 0;
-    for (let i = 0; i < 45; i++) { __AQ_TEST.step(1 / 60); const g = ghostOf(); if (g) throwFwd = Math.max(throwFwd, g.pose.localX); }
+    for (let i = 0; i < 45; i++) { __APEX_TEST.step(1 / 60); const g = ghostOf(); if (g) throwFwd = Math.max(throwFwd, g.pose.localX); }
     out.grenade = { drawSeen, throwFwd: +throwFwd.toFixed(1), bodySame: sameBody(b0, bodySnapshot()) };
   }
   // B6/B7/B10 melee windup -> strike snap with per-weapon easing.
@@ -1350,7 +1357,7 @@ report.motion = run(`
     const b0 = bodySnapshot();
     let windupRot = 0, strikeRot = 0, lift = 0;
     for (let i = 0; i < 150; i++) {
-      __AQ_TEST.step(1 / 60);
+      __APEX_TEST.step(1 / 60);
       const p = poseOf();
       if (p) { windupRot = Math.min(windupRot, p.rotKick); lift = Math.min(lift, p.localY); }
       const g = ghostOf();
@@ -1363,7 +1370,7 @@ report.motion = run(`
     fresh('DAGGER', 190);
     const b0 = bodySnapshot();
     let peak = 0;
-    for (let i = 0; i < 90; i++) { __AQ_TEST.step(1 / 60); const p = poseOf(); if (p) peak = Math.max(peak, p.localX); const g = ghostOf(); if (g) peak = Math.max(peak, g.pose.localX); }
+    for (let i = 0; i < 90; i++) { __APEX_TEST.step(1 / 60); const p = poseOf(); if (p) peak = Math.max(peak, p.localX); const g = ghostOf(); if (g) peak = Math.max(peak, g.pose.localX); }
     out.dagger = { peakThrust: +peak.toFixed(1), bodySame: sameBody(b0, bodySnapshot()) };
   }
   // B9 SPEAR — long narrow 90-120px thrust with controlled return.
@@ -1371,7 +1378,7 @@ report.motion = run(`
     fresh('SPEAR', 320);
     const b0 = bodySnapshot();
     let peak = 0;
-    for (let i = 0; i < 150; i++) { __AQ_TEST.step(1 / 60); const p = poseOf(); if (p) peak = Math.max(peak, p.localX); const g = ghostOf(); if (g) peak = Math.max(peak, g.pose.localX); }
+    for (let i = 0; i < 150; i++) { __APEX_TEST.step(1 / 60); const p = poseOf(); if (p) peak = Math.max(peak, p.localX); const g = ghostOf(); if (g) peak = Math.max(peak, g.pose.localX); }
     out.spear = { peakThrust: +peak.toFixed(1), bodySame: sameBody(b0, bodySnapshot()) };
   }
   // B11 SWIRL SHIELD — idle settle oscillation + forward pop on reflect.
@@ -1379,11 +1386,11 @@ report.motion = run(`
     fresh('SWIRL_SHIELD');
     const b0 = bodySnapshot();
     let lastSign = 0, flips = 0, popRecoil = 0;
-    for (let i = 0; i < 100; i++) { __AQ_TEST.step(1 / 60); const p = poseOf(); if (p && p.rotKick !== 0) { const s = Math.sign(p.rotKick); if (lastSign !== 0 && s !== lastSign) flips++; lastSign = s; } }
+    for (let i = 0; i < 100; i++) { __APEX_TEST.step(1 / 60); const p = poseOf(); if (p && p.rotKick !== 0) { const s = Math.sign(p.rotKick); if (lastSign !== 0 && s !== lastSign) flips++; lastSign = s; } }
     // Force a reflect: fire a hostile bullet at the hero.
     const rival = fighters[1];
     api.fireBullet({ owner: rival, x: rival.x - 60, y: rival.y, angle: Math.PI, speed: 500, damage: 4, weapon: 'PISTOL' });
-    for (let i = 0; i < 60; i++) { __AQ_TEST.step(1 / 60); const g = ghostOf(); if (g) popRecoil = Math.min(popRecoil, g.pose.recoil); }
+    for (let i = 0; i < 60; i++) { __APEX_TEST.step(1 / 60); const g = ghostOf(); if (g) popRecoil = Math.min(popRecoil, g.pose.recoil); }
     out.swirl = { idleFlips: flips, popRecoil: +popRecoil.toFixed(1), bodySame: sameBody(b0, bodySnapshot()) };
   }
   // B12 TOWER SHIELD — forward guard pose + shield-only block pushback.
@@ -1391,7 +1398,7 @@ report.motion = run(`
     fresh('TOWER_SHIELD');
     const b0 = bodySnapshot();
     let guardX = 0;
-    for (let i = 0; i < 30; i++) { __AQ_TEST.step(1 / 60); const p = poseOf(); if (p) guardX = Math.max(guardX, p.localX); }
+    for (let i = 0; i < 30; i++) { __APEX_TEST.step(1 / 60); const p = poseOf(); if (p) guardX = Math.max(guardX, p.localX); }
     const rival = fighters[1];
     api.aqDamage(hero(), 10, rival, 'PISTOL', {});
     const p2 = poseOf();
@@ -1454,72 +1461,73 @@ gate('motion-tower-guard-pose-block-pushback',
 gate('motion-12-distinct-recipes', report.motion.recipes.distinct, report.motion.recipes);
 
 
-// ----------------------------------------- gate: V2 §A3 — 32 canonical shells
+// ---------------------------- gates: product roster and active Core Six shells
 report.shells = run(`
   const shells = window.APEX_ARSENAL_SHELLS;
-  const ids = shells ? shells.ids : [];
-  window.startArsenalQuestMode('SNIPER', 'WITCH');
-  cancelAnimationFrame(reqId); reqId = 0;
-  APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
-  const names = fighters.map(f => f.name);
-  const shellFlags = fighters.map(f => !!f.type.arsenalShell);
-  const speedOk = fighters.every(f => f.type.speed === APEX_ARSENAL_CONFIG.FIGHTER_SPEED);
-  const drawFns = fighters.map(f => typeof f.type.draw === 'function');
-  let nativeProj = 0;
-  for (let i = 0; i < 180; i++) {
-    APEX_ARSENAL.step(1 / 60);
-    nativeProj = Math.max(nativeProj, projectiles.filter(p => !p.aq).length);
-  }
-  const legacyIds = shells.legacyIds || [];
-  return {
-    count: ids.length,
-    allResolvable: ids.every(n => !!shells.typeFor(n)),
-    legacyResolvable: legacyIds.length === 33 && legacyIds.every(n => !!shells.typeFor(n)),
-    names, shellFlags, speedOk, drawFns,
-    // HERO REWORK: a rework shell may omit type.draw — the engine default
-    // sketch blob renders it (temporary neutral presentation).
-    drawable: fighters.map(f => typeof f.type.draw === 'function' || !!f.type.__hrHero),
-    nativeProj,
-    hp: [fighters[0].hp, fighters[1].hp],
-    rage: fighters.some(f => f.isRage),
+  const roster = window.APEX_PRODUCT_SURFACE.roster;
+  const visible = roster.visibleIds;
+  const playable = roster.playableIds;
+  const locked = roster.lockedIds;
+  const allVisibleResolvable = visible.every(id => !!shells.typeFor(id));
+  const playableMatchesAuthority = shells.playableIds.join(',') === playable.join(',');
+  const lockedResolveButDoNotPlay = locked.every(id => !!shells.typeFor(id) && !shells.isPlayable(id));
+  const result = {
+    visibleCount: shells.visibleIds.length,
+    playableCount: shells.playableIds.length,
+    allVisibleResolvable,
+    playableMatchesAuthority,
+    lockedResolveButDoNotPlay,
   };
+
+  window.__apexArsenalTestStartMatch('ROBOT', 'HUNTER');
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.spawnTimer = 1e6;
+  APEX_ARSENAL.state.slots = [];
+  result.names = fighters.map(f => f.name);
+  result.shellFlags = fighters.map(f => !!f.type.arsenalShell);
+  result.speedOk = fighters.every(f => f.type.speed === APEX_ARSENAL_CONFIG.FIGHTER_SPEED);
+  result.drawable = fighters.map(f => typeof f.type.draw === 'function' || !!f.type.__hrHero);
+  result.hp = fighters.map(f => f.hp);
+  result.rage = fighters.some(f => f.isRage);
+  const HR = window.APEX_HERO_REWORK;
+  const hunter = HR.byCombatant(fighters[1]);
+  const hunterController = HR.abilityController(hunter);
+  const cast = hunterController.tryCast('A1', 'gate');
+  result.nativeCast = !!cast?.ok;
+  return result;
 `);
-// HERO REWORK (doc-06): the playable pool is the canonical 12; the legacy 33
-// (incl. boss-only Quest identities) stay resolvable through typeFor.
-gate('shells-12-playable-canonical',
-  report.shells.count === 12 && report.shells.allResolvable && report.shells.legacyResolvable,
-  { count: report.shells.count, legacyResolvable: report.shells.legacyResolvable });
+gate('shells-visible-12-playable-core-six',
+  report.shells.visibleCount === 12 && report.shells.playableCount === 6
+    && report.shells.allVisibleResolvable && report.shells.playableMatchesAuthority
+    && report.shells.lockedResolveButDoNotPlay,
+  report.shells);
 gate('shells-p1-p2-independent',
-  report.shells.names[0] === 'SNIPER' && report.shells.names[1] === 'WITCH'
+  report.shells.names.join(',') === 'ROBOT,HUNTER'
     && report.shells.shellFlags.every(Boolean) && report.shells.drawable.every(Boolean),
   report.shells.names);
 gate('shells-native-kits-active-in-arsenal',
-  report.shells.nativeProj >= 1 && !report.shells.rage
+  report.shells.nativeCast && !report.shells.rage
     && report.shells.hp.every(h => h > 0 && h <= 1000) && report.shells.speedOk,
-  { nativeProj: report.shells.nativeProj, hp: report.shells.hp });
+  { nativeCast: report.shells.nativeCast, hp: report.shells.hp, speedOk: report.shells.speedOk });
 
-// ------------------------- gates: A-CORR-3 roster compatibility (matrix proof)
-// HERO REWORK (doc 06): playable roster = canonical 12 rework shells; the
-// Quest encounter identities keep the audited legacy KEEP/ADAPT classes.
+// -------------------- gates: locked and migration-only identities stay closed
 report.roster = run(`
   const shells = window.APEX_ARSENAL_SHELLS;
-  const REG = window.APEX_HERO_REWORK_REGISTRY;
-  const ids = shells.ids;
-  const bossIds = shells.legacyIds.filter(n => n !== 'NEWBIE' && !REG.isCanonicalHero(n));
-  const kits = {};
-  for (const n of bossIds) kits[n] = (shells.typeFor(n) || {}).compatKit || 'MISSING';
-  const allClassified = bossIds.every(n => kits[n] === 'KEEP' || kits[n] === 'ADAPT');
-  const adapted = bossIds.filter(n => kits[n] === 'ADAPT');
-  const playableRework = ids.length === 12 && ids.every(n => (shells.typeFor(n) || {}).__hrHero === n);
+  const locked = window.APEX_PRODUCT_SURFACE.roster.lockedIds;
+  const lockedResolvable = locked.every(id => !!shells.typeFor(id));
+  const lockedRejected = locked.every(id => !shells.isPlayable(id)
+    && window.startArsenalBattleMode(id, 'ROBOT') === false);
+  const newbieNotShell = shells.typeFor('NEWBIE') === null
+    && window.startArsenalBattleMode('NEWBIE', 'ROBOT') === false;
 
-  // REWORK proof (replaces the legacy ICE KEEP-proof): canonical ICE casts
-  // both current Frost skills inside a real Arsenal match. The browser proof
-  // covers A1's Frozen Lane; A2 remains Frost Rush with its own live window
-  // and real-path trail, not a second source of A1 lane geometry.
-  window.startArsenalQuestMode('ICE', 'WITCH');
+  // Core Six proof: ICE A2 remains an active Frost Rush with its real-path
+  // trail; no retired progression identity is needed for this seam.
+  window.__apexArsenalTestStartMatch('ICE', 'ROBOT');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
   const HR = window.APEX_HERO_REWORK;
+  const reworkAiWasEnabled = HR.aiEnabled;
+  HR.setAiEnabled(false);
   const iceCt = HR.byCombatant(fighters[0]);
   const iceCtl = HR.abilityController(iceCt);
   const rushCast = iceCtl.tryCast('A2', 'gate');
@@ -1531,84 +1539,57 @@ report.roster = run(`
     if (insp && (insp.a2live || insp.trail > 0)) rushTrailFired = true;
   }
 
-  // ADAPT proof: VAMPIRE latch shortened to 2.5s for shell fighters.
-  const vamp = shells.typeFor('VAMPIRE');
-  const vf = { type: vamp, data: {}, x: 500, y: 500, radius: 75, isRage: false, hasStatus: () => false };
-  vamp.init(vf);
-  vf.data.latchCd = 0; vf.data.latchTimer = 0;
-  vamp.onCollide(vf, { id: 2, x: 560, y: 500, radius: 75, applyStatus() {}, takeDamage() {}, heal() {}, hasStatus: () => false, statuses: {} });
-  const vampLatch = vf.data.latchTimer;
-
-  // ADAPT proof: MONK trauma rush/stun capped at 2.5s for shell fighters.
-  const monk = shells.typeFor('MONK');
-  const monkBase = (typeof FighterTypes !== 'undefined' && FighterTypes.find(t => t.name === 'MONK')) || null;
-  const mf = { type: monk, data: {}, x: 400, y: 400, radius: 75, isRage: false, hasStatus: () => false, setDir() {}, heal() {} };
-  monk.init(mf);
-  const me = {
-    id: 9, x: 460, y: 400, radius: 75, hp: 100, maxHp: 100, statuses: {},
-    applyStatus(k, t) { this.statuses[k] = { timer: t }; },
-    takeDamage() {}, hasStatus: () => false, data: {},
-  };
-  for (let i = 0; i < 4; i++) { mf.data.hitCd = 0; monk.onCollide(mf, me); }
-  const monkRush = mf.data.rushTimer;
-  const monkStun = me.statuses.stun ? me.statuses.stun.timer : null;
-
-  // Coexistence proof: native skill + equipped Arsenal weapon at the same time.
-  window.startArsenalQuestMode('RUBBER', 'WITCH');
+  // Current playable-shell coexistence: native ability state and Arsenal
+  // equipment transactions remain independent in one neutral match.
+  window.__apexArsenalTestStartMatch('MAGNET', 'ROBOT');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
   projectiles.length = 0;
-  __AQ_TEST.place(300, 500, 700, 500, true);
-  __AQ_TEST.equip('HERO', 'PISTOL');
-  let nativeSeen = 0, aqSeen = 0, bothFrames = 0;
+  __APEX_TEST.place(300, 500, 700, 500, true);
+  __APEX_TEST.equip('HERO', 'PISTOL');
+  const magnet = HR.byCombatant(fighters[0]);
+  const magnetCast = HR.abilityController(magnet).tryCast('A1', 'gate');
+  let weaponUsed = false;
   for (let i = 0; i < 240; i++) {
-    fighters.forEach(q => { if (q) q.hp = q.maxHp; }); // nobody KOs during the proof
+    fighters.forEach(q => { if (q) q.hp = q.maxHp; });
     APEX_ARSENAL.step(1 / 60);
-    const nat = projectiles.some(p => !p.aq && p.type === 'witch_ray');
-    const aq = projectiles.some(p => p.aq);
-    if (nat) nativeSeen++;
-    if (aq) aqSeen++;
-    if (nat && aq) bothFrames++;
+    weaponUsed ||= __APEX_TEST.countEvents('USE', 'weapon=PISTOL') > 0;
   }
-  const holderIntact = !!APEX_ARSENAL.weaponApi.getHolder(fighters[0])
-    || __AQ_TEST.countEvents('USE', 'weapon=PISTOL') >= 1;
+  const holderIntact = !!APEX_ARSENAL.weaponApi.getHolder(fighters[0]) || weaponUsed;
+  HR.setAiEnabled(reworkAiWasEnabled);
   return {
-    kits, allClassified, adapted, playableRework,
-    rushCast: rushCast && rushCast.ok, rushTrailFired, vampLatch, monkRush, monkStun,
-    nativeSeen, aqSeen, bothFrames, holderIntact,
+    lockedResolvable, lockedRejected, newbieNotShell,
+    rushCast: rushCast && rushCast.ok, rushTrailFired,
+    magnetCast: !!magnetCast?.ok, weaponUsed, holderIntact,
   };
 `);
-gate('roster-encounters-classified-keep-or-adapt',
-  report.roster.allClassified && Object.keys(report.roster.kits).length === 21
-    && report.roster.adapted.join(',') === 'VAMPIRE,MONK' && report.roster.playableRework,
-  { adapted: report.roster.adapted, playableRework: report.roster.playableRework });
-gate('roster-rework-ice-a2-rush-trail-runs', report.roster.rushCast === true && report.roster.rushTrailFired,
+gate('locked-shells-resolve-but-cannot-launch',
+  report.roster.lockedResolvable && report.roster.lockedRejected,
+  { lockedResolvable: report.roster.lockedResolvable, lockedRejected: report.roster.lockedRejected });
+gate('newbie-token-is-save-migration-only', report.roster.newbieNotShell, report.roster.newbieNotShell);
+gate('core-six-ice-a2-rush-trail-runs', report.roster.rushCast === true && report.roster.rushTrailFired,
   { rushCast: report.roster.rushCast, rushTrailFired: report.roster.rushTrailFired });
-gate('roster-adapt-vampire-latch-2.5', report.roster.vampLatch === 2.5, `latchTimer=${report.roster.vampLatch}`);
-gate('roster-adapt-monk-rush-2.5',
-  report.roster.monkRush === 2.5 && (report.roster.monkStun == null || report.roster.monkStun <= 2.5),
-  { rush: report.roster.monkRush, stun: report.roster.monkStun });
-gate('roster-native-skill-and-weapon-coexist',
-  report.roster.nativeSeen > 0 && report.roster.aqSeen > 0 && report.roster.holderIntact,
-  { nativeFrames: report.roster.nativeSeen, aqFrames: report.roster.aqSeen, bothFrames: report.roster.bothFrames });
+gate('core-six-native-skill-and-weapon-coexist',
+  report.roster.magnetCast && report.roster.weaponUsed && report.roster.holderIntact,
+  { magnetCast: report.roster.magnetCast, weaponUsed: report.roster.weaponUsed, holderIntact: report.roster.holderIntact });
 
 // ----------------------------------------- gate: V2 §A4 — slash VFX absent, bomb stays
 report.noSlash = run(`
   const av = window.APEX_ARSENAL_AV;
   const seqBefore = av.stats.seqAnimsPushed || 0;
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(500, 500, 650, 500);
-  __AQ_TEST.equip('HERO', 'SABRE');
-  __AQ_TEST.step(0.5);
-  __AQ_TEST.equip('RIVAL', 'BATTLE_AXE');
-  __AQ_TEST.step(0.8);
-  __AQ_TEST.equip('RIVAL', 'SWIRL_SHIELD');
-  __AQ_TEST.equip('HERO', 'PISTOL');
-  __AQ_TEST.step(1.0);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(500, 500, 650, 500);
+  __APEX_TEST.equip('HERO', 'SABRE');
+  __APEX_TEST.step(0.5);
+  __APEX_TEST.equip('RIVAL', 'BATTLE_AXE');
+  __APEX_TEST.step(0.8);
+  __APEX_TEST.equip('RIVAL', 'SWIRL_SHIELD');
+  __APEX_TEST.equip('HERO', 'PISTOL');
+  __APEX_TEST.step(1.0);
   const seqAfter = av.stats.seqAnimsPushed || 0;
   let atlasAfter = av.stats.atlasCued || 0;
-  __AQ_TEST.equip('HERO', 'GRENADE');
+  __APEX_TEST.equip('HERO', 'GRENADE');
   for (let i = 0; i < 150; i++) APEX_ARSENAL.step(1 / 60);
   return {
     seqBefore, seqAfter,
@@ -1621,33 +1602,33 @@ gate('bomb-explosion-vfx-remains', report.noSlash.bombAtlas, report.noSlash);
 
 // ------------------------------------- gates: Checkpoint C combat language
 run(`
-  window.startArsenalQuestMode();
+  window.__apexArsenalTestStartMatch();
   cancelAnimationFrame(reqId); reqId = 0;
-  __AQ_TEST.step(2);
-  __AQ_TEST.redraw();
+  __APEX_TEST.step(2);
+  __APEX_TEST.redraw();
 `);
 snapshot('20-chamber01-arena');
 
 run(`
-  window.startArsenalQuestMode();
+  window.__apexArsenalTestStartMatch();
   cancelAnimationFrame(reqId); reqId = 0;
-  __AQ_TEST.place(300, 500, 640, 500);
-  __AQ_TEST.equip('HERO', 'GRENADE');
+  __APEX_TEST.place(300, 500, 640, 500);
+  __APEX_TEST.equip('HERO', 'GRENADE');
   for (let i = 0; i < 12; i++) APEX_ARSENAL.step(1 / 60);
-  __AQ_TEST.redraw();
+  __APEX_TEST.redraw();
 `);
 snapshot('21a-grenade-equipped');
 run(`
   for (let i = 0; i < 26; i++) APEX_ARSENAL.step(1 / 60);
-  __AQ_TEST.redraw();
+  __APEX_TEST.redraw();
 `);
 snapshot('21b-grenade-in-flight');
 
 report.cCasing = run(`
-  window.startArsenalQuestMode();
+  window.__apexArsenalTestStartMatch();
   cancelAnimationFrame(reqId); reqId = 0;
-  __AQ_TEST.place(240, 500, 760, 500);
-  __AQ_TEST.equip('HERO', 'PISTOL');
+  __APEX_TEST.place(240, 500, 760, 500);
+  __APEX_TEST.equip('HERO', 'PISTOL');
   for (let i = 0; i < 90; i++) APEX_ARSENAL.step(1 / 60);
   const cued = APEX_ARSENAL_AV.stats.cued;
   return { casing: cued.some(c => c.event === 'casing') };
@@ -1655,9 +1636,9 @@ report.cCasing = run(`
 gate('c-casing-ejected-on-fire', report.cCasing.casing, report.cCasing);
 
 report.cNative = run(`
-  window.startArsenalQuestMode();
+  window.__apexArsenalTestStartMatch();
   cancelAnimationFrame(reqId); reqId = 0;
-  __AQ_TEST.step(0.1);
+  __APEX_TEST.step(0.1);
   const t = fighters[1];
   const h0 = t.hp;
   t.takeDamage(10, fighters[0], 'galaxy-divine', false);
@@ -1683,7 +1664,7 @@ report.postCGuns = run(`
   const ids = (CFG.GUN_REGISTRY || []).map(e => e.id);
   const weapons = APEX_ARSENAL_WEAPONS || {};
   const missing = ids.filter(id => !weapons[id]);
-  window.startArsenalQuestMode();
+  window.__apexArsenalTestStartMatch();
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
   const fired = {};
@@ -1749,7 +1730,7 @@ gate('postc-melee-damage-x1.5',
 report.postCThrow = run(`
   const CFG = APEX_ARSENAL_CONFIG;
   const bounce = CFG.THROWN_MELEE.ricochets;
-  window.startArsenalQuestMode();
+  window.__apexArsenalTestStartMatch();
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
   const out = {};
@@ -1799,7 +1780,7 @@ gate('postc-bounce-caps-1-1-2-3-4',
 report.postCJ = run(`
   const gate = window.APEX_ARSENAL_SKILL_GATE;
   const HR = window.APEX_HERO_REWORK;
-  window.startArsenalQuestMode('ICE', 'RUBBER');
+  window.__apexArsenalTestStartMatch('ICE', 'RUBBER');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
   projectiles.length = 0;
@@ -1823,11 +1804,10 @@ gate('postc-p1-no-autocast', report.postCJ.autoCasts === 0 && report.postCJ.p1Is
 gate('postc-p1-j-activates', report.postCJ.afterJ >= 1, report.postCJ);
 gate('postc-p2-still-auto', report.postCJ.p2Active, report.postCJ);
 
-// HERO REWORK: NEWBIE is retired — the product-facing P1 hero is ROBOT
-// (A1 weapon-dash, Lv1 cooldown 10, T6 never auto-targeted).
-report.postCNewbie = run(`
+// ROBOT's accepted A1 remains tied to the real pickup state (Lv1 cooldown 10, T6 never auto-targeted).
+report.postCRobot = run(`
   const HR = window.APEX_HERO_REWORK;
-  window.startArsenalQuestMode('NEWBIE', 'ICE'); // NEWBIE -> ROBOT shell
+  window.__apexArsenalTestStartMatch('ROBOT', 'ICE');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
   const f = fighters[0];
@@ -1843,7 +1823,7 @@ report.postCNewbie = run(`
   const aiWas = HR.aiEnabled;
   HR.setAiEnabled(false);
   fighters[1].x = 900; fighters[1].y = 100; fighters[1].baseSpeed = 0;
-  const sid = __AQ_TEST.pushSlot({ x: 450, y: 500, phase: 'REVEALED', weaponId: 'PISTOL', revealedFor: 0 });
+  const sid = __APEX_TEST.pushSlot({ x: 450, y: 500, phase: 'REVEALED', weaponId: 'PISTOL', revealedFor: 0 });
   f.x = 200; f.y = 500; f.baseSpeed = 0;
   if (f.data) f.data.__hrHoldBody = false;
   const x0 = f.x;
@@ -1860,9 +1840,9 @@ report.postCNewbie = run(`
     x: f.x,
   };
 `);
-gate('postc-robot-selectable', report.postCNewbie.name === 'ROBOT' && report.postCNewbie.cooldown === 10, report.postCNewbie);
-gate('postc-robot-no-consume-without-pickup', report.postCNewbie.failedNoPickup, report.postCNewbie);
-gate('postc-robot-dash-to-revealed', report.postCNewbie.dashed && report.postCNewbie.cdAfter > 5, report.postCNewbie);
+gate('postc-robot-selectable', report.postCRobot.name === 'ROBOT' && report.postCRobot.cooldown === 10, report.postCRobot);
+gate('postc-robot-no-consume-without-pickup', report.postCRobot.failedNoPickup, report.postCRobot);
+gate('postc-robot-dash-to-revealed', report.postCRobot.dashed && report.postCRobot.cdAfter > 5, report.postCRobot);
 
 report.postCText = run(`
   const src = [drawBackground.toString(), (window.APEX_ARSENAL_SPAWN.drawSlots||function(){}).toString()].join('\\n');
@@ -1887,7 +1867,7 @@ gate('postc-vfx-uses-sanitized-c-paths', true, report.postCVfx);
 // AbilityController. Observe the P1 combatant's match-local telemetry
 // counter (the global AIL ring intentionally retains cross-match history).
 report.gapKeyJ = run(`
-  window.startArsenalQuestMode('ICE', 'RUBBER');
+  window.__apexArsenalTestStartMatch('ICE', 'RUBBER');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
   projectiles.length = 0;
@@ -1908,20 +1888,20 @@ gate('gap-keyj-ignores-repeat', report.gapKeyJ.afterRepeat === report.gapKeyJ.af
 
 function fireTimestamps(weaponId, frames) {
   return run(`
-    __AQ_TEST.enterManual();
-    __AQ_TEST.holdSpawns();
-    __AQ_TEST.place(320, 500, 520, 500);
+    __APEX_TEST.enterManual();
+    __APEX_TEST.holdSpawns();
+    __APEX_TEST.place(320, 500, 520, 500);
     fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
-    __AQ_TEST.clearEvents();
+    __APEX_TEST.clearEvents();
     APEX_ARSENAL.weaponApi.equip(fighters[0], '${weaponId}');
     for (let i = 0; i < ${frames}; i++) APEX_ARSENAL.step(1 / 60);
-    const shots = APEX_ARSENAL.events.filter(e => e.startsWith('[AQ] SHOT') && e.includes('weapon=${weaponId}')).map(e => {
+    const shots = APEX_ARSENAL.events.filter(e => e.startsWith('[ARSENAL] SHOT') && e.includes('weapon=${weaponId}')).map(e => {
       const m = e.match(/t=([0-9.]+)/); return m ? +m[1] : null;
     }).filter(x => x != null);
-    const consume = APEX_ARSENAL.events.filter(e => e.startsWith('[AQ] CONSUME') && e.includes('weapon=${weaponId}'));
+    const consume = APEX_ARSENAL.events.filter(e => e.startsWith('[ARSENAL] CONSUME') && e.includes('weapon=${weaponId}'));
     const bullets = projectiles.filter(p => p.aq && p.weapon === '${weaponId}').length;
     const ghost = fighters[0].data && fighters[0].data.arsenalFade;
-    return { shots, n: shots.length, gaps: shots.slice(1).map((t,i) => +(t - shots[i]).toFixed(3)), consume: consume.length, bullets, exit: ghost && ghost.exitKey, holder: __AQ_TEST.holder('HERO') };
+    return { shots, n: shots.length, gaps: shots.slice(1).map((t,i) => +(t - shots[i]).toFixed(3)), consume: consume.length, bullets, exit: ghost && ghost.exitKey, holder: __APEX_TEST.holder('HERO') };
   `);
 }
 report.gapBeretta = fireTimestamps('BERETTA_93R', 180);
@@ -1950,9 +1930,9 @@ gate('gap-szecsei-two-shot', report.gapSzec.n === 2 && report.gapSzec.consume >=
 gate('gap-sniper-one-shot', report.gapSniper.n === 1, report.gapSniper);
 
 report.gapMuzzle = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(300, 500, 700, 500);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(300, 500, 700, 500);
   fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
   // Test-only isolation: this gate asserts the MUZZLE METADATA of a fired
   // GLOCK bullet. Post clock-fix the P2 rework cast AI is alive, and an
@@ -1973,9 +1953,9 @@ report.gapMuzzle = run(`
 gate('gap-muzzle-uses-metadata', report.gapMuzzle.usedMeta === true && report.gapMuzzle.bx != null, report.gapMuzzle);
 
 report.gapCasing = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(300, 500, 700, 500);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(300, 500, 700, 500);
   fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
   const av = APEX_ARSENAL_AV;
   av.stats.cued.length = 0;
@@ -1990,12 +1970,12 @@ report.gapCasing = run(`
 gate('gap-casing-uses-metadata', report.gapCasing.usedMeta === true && report.gapCasing.n >= 1 && report.gapCasing.dist < 80, report.gapCasing);
 
 report.gapSawed = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(300, 500, 480, 500);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(300, 500, 480, 500);
   fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
   const rack0 = APEX_ARSENAL_AV.stats.cued.filter(c => c.event === 'shotgun_rack').length;
-  __AQ_TEST.clearEvents();
+  __APEX_TEST.clearEvents();
   APEX_ARSENAL.weaponApi.equip(fighters[0], 'SAWED_OFF');
   for (let i = 0; i < 50; i++) APEX_ARSENAL.step(1 / 60);
   const rack = APEX_ARSENAL_AV.stats.cued.filter(c => c.event === 'shotgun_rack').length - rack0;
@@ -2007,9 +1987,9 @@ gate('gap-sawed-no-rack', report.gapSawed.rack === 0, report.gapSawed);
 gate('gap-sawed-no-per-shot-casing', report.gapSawed.casingDuring === 0 || report.gapSawed.exit === 'breakOpen', report.gapSawed);
 
 report.gapMagnum = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(300, 500, 620, 500);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(300, 500, 620, 500);
   fighters[0].baseSpeed = 0;
   APEX_ARSENAL_AV.clear();
   APEX_ARSENAL_AV.stats.cued.length = 0;
@@ -2047,29 +2027,29 @@ gate('gap-rarity-glow-hierarchy',
   report.gapGlow);
 
 report.gapReserve = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(300, 500, 700, 500);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(300, 500, 700, 500);
   fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
   APEX_ARSENAL.weaponApi.equip(fighters[1], 'P90');
-  const id = __AQ_TEST.pushSlot({ x: 300, y: 500, phase: 'COUNTER_RESERVED', weaponId: 'SWIRL_SHIELD', reservedFor: fighters[0].id, boundWeaponId: 'P90', boundOwnerId: fighters[1].id, revealedFor: 0 });
+  const id = __APEX_TEST.pushSlot({ x: 300, y: 500, phase: 'COUNTER_RESERVED', weaponId: 'SWIRL_SHIELD', reservedFor: fighters[0].id, boundWeaponId: 'P90', boundOwnerId: fighters[1].id, revealedFor: 0 });
   fighters[1].x = 300; fighters[1].y = 500;
   APEX_ARSENAL.weaponApi.consume(fighters[1], 'test');
   APEX_ARSENAL_SPAWN.resolvePickups();
-  const stolen = __AQ_TEST.holder('RIVAL');
+  const stolen = __APEX_TEST.holder('RIVAL');
   fighters[1].x = 700;
   APEX_ARSENAL_SPAWN.resolvePickups();
-  const heroGot = __AQ_TEST.holder('HERO');
+  const heroGot = __APEX_TEST.holder('HERO');
   return { stolen: stolen && stolen.weapon, heroGot: heroGot && heroGot.weapon, reject: APEX_ARSENAL.events.some(e => e.includes('not-reserved')) };
 `);
 gate('gap-reserved-not-stolen', report.gapReserve.stolen == null && report.gapReserve.heroGot === 'SWIRL_SHIELD', report.gapReserve);
 
 report.gapRelease = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(200, 200, 800, 800);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(200, 200, 800, 800);
   fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
-  const id = __AQ_TEST.pushSlot({ x: 500, y: 500, phase: 'COUNTER_RESERVED', weaponId: 'SWIRL_SHIELD', reservedFor: fighters[0].id, boundWeaponId: 'P90', boundOwnerId: fighters[1].id, revealedFor: 0.1, spawnTime: APEX_ARSENAL.state.time });
+  const id = __APEX_TEST.pushSlot({ x: 500, y: 500, phase: 'COUNTER_RESERVED', weaponId: 'SWIRL_SHIELD', reservedFor: fighters[0].id, boundWeaponId: 'P90', boundOwnerId: fighters[1].id, revealedFor: 0.1, spawnTime: APEX_ARSENAL.state.time });
   APEX_ARSENAL_SPAWN.updateSlots(0.05);
   const slot = APEX_ARSENAL.state.slots.find(s => s.id === id);
   return { phase: slot && slot.phase, weaponId: slot && slot.weaponId, reservedFor: slot && slot.reservedFor };
@@ -2077,18 +2057,18 @@ report.gapRelease = run(`
 gate('gap-invalid-reservation-restores-telegraph', report.gapRelease.phase === 'TELEGRAPH' && report.gapRelease.weaponId == null, report.gapRelease);
 
 report.gapVolley = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(360, 500, 560, 500);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(360, 500, 560, 500);
   fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
   APEX_ARSENAL.weaponApi.equip(fighters[1], 'P90');
   APEX_ARSENAL.weaponApi.equip(fighters[0], 'SWIRL_SHIELD');
   const h = APEX_ARSENAL.weaponApi.getHolder(fighters[0]);
   h.meta.boundWeaponId = 'P90';
   h.meta.boundOwnerId = fighters[1].id;
-  __AQ_TEST.clearEvents();
+  __APEX_TEST.clearEvents();
   for (let i = 0; i < 90; i++) APEX_ARSENAL.step(1 / 60);
-  const reflects = APEX_ARSENAL.events.filter(e => e.startsWith('[AQ] REFLECT')).length;
+  const reflects = APEX_ARSENAL.events.filter(e => e.startsWith('[ARSENAL] REFLECT')).length;
   const swirlGone = !APEX_ARSENAL.weaponApi.getHolder(fighters[0]);
   const p90Gone = !APEX_ARSENAL.weaponApi.getHolder(fighters[1]) || APEX_ARSENAL.weaponApi.getHolder(fighters[1]).weaponId !== 'P90';
   return { reflects, swirlGone, p90Gone };
@@ -2099,24 +2079,25 @@ gate('gap-swirl-covers-full-volley', report.gapVolley.reflects >= 2 && report.ga
 report.logSample = run(`
   // Self-contained organic window so every lifecycle kind is present regardless
   // of earlier event-ring clears.
-  window.startArsenalQuestMode();
+  window.__apexArsenalTestStartMatch();
   cancelAnimationFrame(reqId); reqId = 0;
-  __AQ_TEST.clearEvents();
+  __APEX_TEST.clearEvents();
   const kinds = ['SPAWN_SLOT', 'REVEAL', 'PICKUP', 'USE', 'HIT', 'CONSUME'];
   const out = {};
   // The event ring trims to 160 lines, so scan it every second of sim time and
   // keep the first sighting of each lifecycle kind.
   for (let s = 0; s < 60; s++) {
-    __AQ_TEST.step(1);
+    __APEX_TEST.step(1);
     for (const e of APEX_ARSENAL.events) {
-      const m = e.match(/^\\[AQ\\] ([A-Z_]+)/);
+      const payload = typeof e === 'string' && e.startsWith('[ARSENAL] ') ? e.slice(10) : '';
+      const m = payload.match(/^([A-Z_]+)/);
       if (m && kinds.includes(m[1]) && !out[m[1]]) out[m[1]] = e;
     }
   }
   for (const k of kinds) if (!out[k]) out[k] = null;
-  return out;
+  return { events: out, recent: APEX_ARSENAL.events.slice(-12) };
 `);
-gate('structured-aq-events', Object.values(report.logSample).every(Boolean), report.logSample);
+gate('structured-arsenal-events', Object.values(report.logSample.events).every(Boolean), report.logSample);
 
 report.rev2Scale = run(`
   const set = APEX_ARSENAL_C_SET;
@@ -2138,8 +2119,8 @@ function gunsOk(d) {
 gate('rev2-z15-shared-scale', Math.abs(report.rev2Scale.z15 - report.rev2Scale.z15s1) < 1, report.rev2Scale);
 
 report.rev2Exit = run(`
-  __AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(300, 500, 700, 500);
+  __APEX_TEST.enterManual(); __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(300, 500, 700, 500);
   fighters[0].baseSpeed = 0;
   const ids = ['GLOCK_17','AK_47','M249_SAW','SNIPER','SHOTGUN','MAC_10'];
   const traces = {};
@@ -2185,8 +2166,8 @@ report.rev2Melee = run(`
 gate('rev2-melee-bounce-caps', report.rev2Melee.BATTLE_AXE === 1 && report.rev2Melee.SPIKED_CLUB === 1 && report.rev2Melee.SPEAR === 2 && report.rev2Melee.SABRE === 3 && report.rev2Melee.DAGGER === 4, report.rev2Melee);
 
 report.rev2MeleeRuntime = run(`
-  __AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(200, 200, 800, 800);
+  __APEX_TEST.enterManual(); __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(200, 200, 800, 800);
   fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
   const out = {};
   for (const id of ['BATTLE_AXE','SPIKED_CLUB','SPEAR','SABRE','DAGGER']) {
@@ -2230,9 +2211,9 @@ gate('rev2-shotgun-diagonal-ttl', report.rev2Shotgun.ok, report.rev2Shotgun);
 // HERO REWORK: ROBOT J with no eligible pickup -> fail-cue only: the
 // cooldown is NOT consumed and no dash is launched (legacy NEWBIE law
 // preserved through the rework AbilityController).
-report.rev2NewbieJ = run(`
-  __AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();
-  window.startArsenalQuestMode('NEWBIE', 'PAINTER'); // NEWBIE -> ROBOT
+report.rev2RobotJ = run(`
+  __APEX_TEST.enterManual(); __APEX_TEST.holdSpawns();
+  window.__apexArsenalTestStartMatch('ROBOT', 'MIRROR');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.slots = [];
   const HR = window.APEX_HERO_REWORK;
@@ -2247,106 +2228,94 @@ report.rev2NewbieJ = run(`
     || Math.hypot(f.x - x0, f.y - y0) > 4;
   return { cd, dash, name: f.name };
 `);
-gate('rev2-robot-invalid-j-noop', report.rev2NewbieJ.cd === 0 && !report.rev2NewbieJ.dash && report.rev2NewbieJ.name === 'ROBOT', report.rev2NewbieJ);
+gate('rev2-robot-invalid-j-noop', report.rev2RobotJ.cd === 0 && !report.rev2RobotJ.dash && report.rev2RobotJ.name === 'ROBOT', report.rev2RobotJ);
 
-report.rev2Quest = run(`
-  const Q = APEX_ARSENAL_QUEST;
-  const order = Q.STAGES.map(s => s.opponent);
-  const s1 = Q.stage(1).opponent;
-  const s10 = Q.stage(10).opponent;
-  const s20 = Q.stage(20).opponent;
-  const live20 = Q.liveOpponent('MONK');
-  try { localStorage.setItem(Q.STORAGE_KEY, '{bad'); } catch (e) {}
-  const safe = Q.loadSave();
-  Q.persist({ unlockedThrough: 1, completedStages: [] });
-  const locked = Q.canPlay(2);
-  const win = Q.recordWin(1);
-  const after = Q.loadSave();
-  return { order, s1, s10, s20, live20, safe, locked, after };
+// Current product graph replaces the retired ladder's order/progression/map
+// gates. The graph itself remains the sole roster/surface authority.
+report.rev2ProductGraph = run(`
+  const product = window.APEX_PRODUCT_SURFACE;
+  const publicSurfaces = product.list();
+  const active = publicSurfaces.filter(item => item.availability === 'ACTIVE');
+  const locked = publicSurfaces.filter(item => item.availability === 'LOCKED');
+  const admin = product.get('arsenal-lab');
+  const shells = window.APEX_ARSENAL_SHELLS;
+  const playable = product.roster.playableIds;
+  const visible = product.roster.visibleIds;
+  const lockedIds = product.roster.lockedIds;
+  return {
+    publicCount: publicSurfaces.length,
+    activeCount: active.length,
+    lockedCount: locked.length,
+    activeIds: active.map(item => item.id),
+    allLockedBlocked: locked.every(item => !product.canLaunch(item.id)),
+    botLocalLaunchable: product.canLaunch('bot-battle') && product.canLaunch('local-1v1'),
+    shopDrawLaunchable: product.canLaunch('fighter-shop') && product.canLaunch('lucky-draw'),
+    adminHidden: !publicSurfaces.some(item => item.id === 'arsenal-lab'),
+    adminGate: admin?.availability === 'ADMIN'
+      && !product.canLaunch('arsenal-lab')
+      && product.canLaunch('arsenal-lab', { admin: true }),
+    visibleCount: visible.length,
+    playableCount: playable.length,
+    coreSixIds: playable.slice().sort(),
+    coreSixAliasesResolve: shells.typeFor('CRYSTALA')?.name === 'CRYSTAL'
+      && shells.typeFor('FROST')?.name === 'ICE',
+    lockedCountByRoster: lockedIds.length,
+    lockedNonPlayable: lockedIds.every(id => !product.isPublicPlayableFighter(id)),
+    currentPlayableShellsResolve: playable.every(id => shells.typeFor(id)?.name === id),
+    newbieNotPlayable: !product.isPublicPlayableFighter('NEWBIE') && shells.typeFor('NEWBIE') === null,
+    quest01: product.get('quest-01'),
+    oldApiAbsent: !('APEX_ARSENAL_QUEST' in window)
+      && !('startArsenalQuestMode' in window)
+      && !('exitArsenalQuestMode' in window),
+  };
 `);
-gate('rev2-quest-order', report.rev2Quest.s1 === 'PAINTER' && report.rev2Quest.s10 === 'ELECTRIC' && report.rev2Quest.s20 === 'MONK' && report.rev2Quest.order.length === 20, report.rev2Quest);
-gate('rev2-quest-persist', report.rev2Quest.safe.unlockedThrough === 1 && report.rev2Quest.locked === false && report.rev2Quest.after.unlockedThrough === 2, report.rev2Quest);
-gate('rev2-quest-monk-live', report.rev2Quest.live20 === 'KUNGFU' || report.rev2Quest.live20 === 'MONK', report.rev2Quest);
-
-report.rev2QuestUx = run(`
-  const Q = APEX_ARSENAL_QUEST;
-  Q.persist({ unlockedThrough: 1, completedStages: [] });
-  const show = typeof Q.showMap === 'function';
-  Q.showMap();
-  const mapEl = document.getElementById('aq-quest-map');
-  const mapOpen = !!(mapEl && mapEl.style.display !== 'none');
-  const req = Q.requestStage(1);
-  const gsAfterReq = gameState;
-  const pending = Q.peekPending && Q.peekPending();
-  const p1AfterReq = fighters[0] && fighters[0].name;
-  const confirmed = Q.confirmP1('ICE');
-  cancelAnimationFrame(reqId); reqId = 0;
-  const p1 = fighters[0] && fighters[0].name;
-  const p2 = fighters[1] && fighters[1].type && fighters[1].type.name;
-  const stage = APEX_ARSENAL.state.questStage;
-  fighters[1].hp = 0;
-  APEX_ARSENAL.step(1/60);
-  const winActs = Q.resultActions(APEX_ARSENAL.state);
-  const next = Q.nextStage();
-  cancelAnimationFrame(reqId); reqId = 0;
-  const p2b = fighters[1] && fighters[1].type && fighters[1].type.name;
-  const st2 = APEX_ARSENAL.state.questStage;
-  fighters[0].hp = 0; fighters[1].hp = 100;
-  APEX_ARSENAL.step(1/60);
-  const lossActs = Q.resultActions(APEX_ARSENAL.state);
-  Q.persist({ unlockedThrough: 20, completedStages: [20] });
-  const s20 = Q.startStage(20, 'RUBBER');
-  cancelAnimationFrame(reqId); reqId = 0;
-  fighters[1].hp = 0;
-  APEX_ARSENAL.step(1/60);
-  const win20 = Q.resultActions(APEX_ARSENAL.state);
-  window.startArsenalQuestMode('HERO', 'RIVAL');
-  cancelAnimationFrame(reqId); reqId = 0;
-  fighters[1].hp = 0;
-  APEX_ARSENAL.step(1/60);
-  const free = Q.resultActions(APEX_ARSENAL.state);
-  return { show, mapOpen, req, gsAfterReq, pending, p1AfterReq, confirmed, p1, p2, stage, winActs, next, p2b, st2, lossActs, s20, win20, free };
-`);
-gate('rev2-quest-showmap-export', report.rev2QuestUx.show === true && report.rev2QuestUx.mapOpen === true, report.rev2QuestUx);
-gate('rev2-quest-stage-click-not-newbie',
-  report.rev2QuestUx.req && report.rev2QuestUx.req.started === false
-  && report.rev2QuestUx.pending && report.rev2QuestUx.pending.n === 1
-  && report.rev2QuestUx.pending.opponent === 'PAINTER',
-  report.rev2QuestUx);
-gate('rev2-quest-confirm-p1-ice-vs-painter',
-  report.rev2QuestUx.p1 === 'ICE' && report.rev2QuestUx.p2 === 'PAINTER' && report.rev2QuestUx.stage === 1,
-  report.rev2QuestUx);
-gate('rev2-quest-win-actions',
-  report.rev2QuestUx.winActs.mode === 'quest-win'
-  && report.rev2QuestUx.winActs.actions.indexOf('NEXT') >= 0
-  && report.rev2QuestUx.winActs.actions.indexOf('REPLAY') >= 0
-  && report.rev2QuestUx.winActs.actions.indexOf('QUEST MAP') >= 0,
-  report.rev2QuestUx.winActs);
-gate('rev2-quest-next-stage-2-drum',
-  report.rev2QuestUx.st2 === 2 && report.rev2QuestUx.p2b === 'DRUM',
-  report.rev2QuestUx);
-gate('rev2-quest-loss-actions',
-  report.rev2QuestUx.lossActs.mode === 'quest-loss'
-  && report.rev2QuestUx.lossActs.actions.indexOf('RETRY') >= 0
-  && report.rev2QuestUx.lossActs.actions.indexOf('QUEST MAP') >= 0
-  && report.rev2QuestUx.lossActs.actions.indexOf('NEXT') < 0,
-  report.rev2QuestUx.lossActs);
-gate('rev2-quest-stage20-no-next',
-  report.rev2QuestUx.win20.mode === 'quest-win' && report.rev2QuestUx.win20.actions.indexOf('NEXT') < 0,
-  report.rev2QuestUx.win20);
-gate('rev2-quest-freeplay-result-unchanged',
-  report.rev2QuestUx.free.mode === 'freeplay'
-  && report.rev2QuestUx.free.actions.indexOf('REMATCH') >= 0,
-  report.rev2QuestUx.free);
-
+gate('rev2-product-four-active-surfaces',
+  report.rev2ProductGraph.publicCount === 10 && report.rev2ProductGraph.activeCount === 4
+    && report.rev2ProductGraph.activeIds.includes('bot-battle')
+    && report.rev2ProductGraph.activeIds.includes('local-1v1')
+    && report.rev2ProductGraph.activeIds.includes('fighter-shop')
+    && report.rev2ProductGraph.activeIds.includes('lucky-draw'), report.rev2ProductGraph);
+gate('rev2-product-six-public-future-surfaces-locked',
+  report.rev2ProductGraph.lockedCount === 6 && report.rev2ProductGraph.allLockedBlocked,
+  report.rev2ProductGraph);
+gate('rev2-quest-01-is-locked-future-product-surface',
+  report.rev2ProductGraph.quest01?.availability === 'LOCKED'
+    && !win.APEX_PRODUCT_SURFACE.canLaunch('quest-01'), report.rev2ProductGraph.quest01);
+gate('rev2-bot-local-are-the-active-battle-entries',
+  report.rev2ProductGraph.botLocalLaunchable && report.rev2ProductGraph.shopDrawLaunchable,
+  { botLocal: report.rev2ProductGraph.botLocalLaunchable, shopDraw: report.rev2ProductGraph.shopDrawLaunchable });
+gate('rev2-admin-lab-requires-explicit-admin-authority',
+  report.rev2ProductGraph.adminHidden && report.rev2ProductGraph.adminGate,
+  { adminHidden: report.rev2ProductGraph.adminHidden, adminGate: report.rev2ProductGraph.adminGate });
+gate('rev2-roster-visible-twelve-playable-core-six',
+  report.rev2ProductGraph.visibleCount === 12 && report.rev2ProductGraph.playableCount === 6
+    && report.rev2ProductGraph.lockedCountByRoster === 6,
+  { visible: report.rev2ProductGraph.visibleCount, playable: report.rev2ProductGraph.playableCount,
+    locked: report.rev2ProductGraph.lockedCountByRoster });
+gate('rev2-locked-roster-shells-cannot-be-public-played',
+  report.rev2ProductGraph.lockedNonPlayable && report.roster.lockedRejected,
+  { lockedNonPlayable: report.rev2ProductGraph.lockedNonPlayable, rejected: report.roster.lockedRejected });
+gate('rev2-roster-exact-core-six-identities-and-aliases',
+  report.rev2ProductGraph.coreSixIds.join(',') === 'CRYSTAL,HUNTER,ICE,MAGNET,MIRROR,ROBOT'
+    && report.rev2ProductGraph.coreSixAliasesResolve,
+  { coreSixIds: report.rev2ProductGraph.coreSixIds,
+    aliasesResolve: report.rev2ProductGraph.coreSixAliasesResolve });
+gate('rev2-playable-roster-resolves-through-the-shell-adapter',
+  report.rev2ProductGraph.currentPlayableShellsResolve, report.rev2ProductGraph.currentPlayableShellsResolve);
+gate('rev2-newbie-is-not-a-product-shell',
+  report.rev2ProductGraph.newbieNotPlayable, report.rev2ProductGraph.newbieNotPlayable);
+gate('rev2-retired-quest-ladder-api-is-absent',
+  report.rev2ProductGraph.oldApiAbsent, report.rev2ProductGraph.oldApiAbsent);
+gate('rev2-locked-future-surface-cards-remain-data-only',
+  report.roster.lockedResolvable && report.roster.lockedRejected,
+  { visibleLockedShellsResolve: report.roster.lockedResolvable, publicLaunchRejected: report.roster.lockedRejected });
 
 report.rev2PerfPass1 = run(`
-  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  if (typeof __apexArsenalTestStartMatch === 'function') __apexArsenalTestStartMatch('HERO', 'RIVAL');
   const S = GAME_SIZE;
   const c = document.createElement('canvas').getContext('2d');
   const api = typeof apexArsenalPerfSummary === 'function';
   const globalApi = typeof apexPerfSummary === 'function';
-  const src = (window.apexArsenalQuestRuntimeSource || '');
   // Draw chamber twice; cache must reuse after first paint.
   drawBackground(c);
   const a = apexArsenalPerfSummary();
@@ -2403,7 +2372,7 @@ gate('rev2-perf-pass1-sections',
 
 
 report.rev2Feel = run(`
-  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  if (typeof __apexArsenalTestStartMatch === 'function') __apexArsenalTestStartMatch('HERO', 'RIVAL');
   const feel = window.APEX_ARSENAL_FEEL;
   const av = window.APEX_ARSENAL_AV;
   const pal = { floor: true };
@@ -2522,7 +2491,7 @@ gate('feel-floating-text-still-sunk', report.rev2Feel.floating === 0, report.rev
 
 
 report.smoothRarity = run(`
-  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  if (typeof __apexArsenalTestStartMatch === 'function') __apexArsenalTestStartMatch('HERO', 'RIVAL');
   const S = APEX_ARSENAL_SPAWN;
   const slot = { id: 1, x: 200, y: 200, phase: 'REVEALED', weaponId: 'PISTOL', tier: 'T5', revealedFor: 1 };
   APEX_ARSENAL.state.slots = [slot];
@@ -2540,12 +2509,12 @@ report.smoothRarity = run(`
 gate('smooth-rarity-cache-reuse', report.smoothRarity.reuse === true && report.smoothRarity.h >= 1, report.smoothRarity);
 
 report.healPlay = run(`
-  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  if (typeof __apexArsenalTestStartMatch === 'function') __apexArsenalTestStartMatch('HERO', 'RIVAL');
   const st = APEX_ARSENAL.state;
   const S = APEX_ARSENAL_SPAWN;
-  if (__AQ_TEST.releaseSpawns) __AQ_TEST.releaseSpawns();
+  if (__APEX_TEST.releaseSpawns) __APEX_TEST.releaseSpawns();
   st.spawnHeld = false;
-  __AQ_TEST.clearSlots();
+  __APEX_TEST.clearSlots();
   st.healCooldown = 0;
   st.forceHealId = 'HEAL_H3';
   fighters[0].hp = 1000; fighters[1].hp = 1000;
@@ -2617,9 +2586,9 @@ gate('chamber-midtone-graphite', report.chamberTone.pix[0] >= 70 && report.chamb
 
 
 report.bothUnarmed = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearSlots();
-  __AQ_TEST.clearEvents();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearSlots();
+  __APEX_TEST.clearEvents();
   APEX_ARSENAL.state.spawnedTotal = 0;
   APEX_ARSENAL.state.unarmedFastConsumed = false;
   APEX_ARSENAL.state.spawnHeld = false;
@@ -2634,7 +2603,7 @@ report.bothUnarmed = run(`
   fighters[0].hp = 1000; fighters[1].hp = 1000;
   fighters[0].data.arsenal = null; fighters[1].data.arsenal = null;
   const before = APEX_ARSENAL.state.spawnedTotal;
-  __AQ_TEST.step(1/60);
+  __APEX_TEST.step(1/60);
   const t0 = APEX_ARSENAL.state.time;
   const afterImmediate = APEX_ARSENAL.state.spawnedTotal;
   const timerAfter = +APEX_ARSENAL.state.spawnTimer.toFixed(3);
@@ -2649,42 +2618,42 @@ report.bothUnarmed = run(`
   APEX_ARSENAL.state.spawnHeld = true;
   // stay unarmed <3s: no extra immediate (1.5 s keeps the timer > 0 even under
   // residual dt scaling, and still satisfies the <3 s law being asserted)
-  __AQ_TEST.step(1.5);
+  __APEX_TEST.step(1.5);
   const mid = APEX_ARSENAL.state.spawnedTotal;
   // next cadence ~3s from immediate (timer was set to 3 then minus dt);
   // 1.5 + 4.2 = 5.7 s guarantees exactly one expiry inside the held window
-  __AQ_TEST.step(4.2);
+  __APEX_TEST.step(4.2);
   const later = APEX_ARSENAL.state.spawnedTotal;
   APEX_ARSENAL.state.spawnHeld = false;
   // arm one fighter: no fast path
   APEX_ARSENAL.weaponApi.equip(fighters[0], 'PISTOL');
   APEX_ARSENAL.state.unarmedFastConsumed = false;
   const armedBefore = APEX_ARSENAL.state.spawnedTotal;
-  __AQ_TEST.step(1/60);
+  __APEX_TEST.step(1/60);
   const afterOneArmed = APEX_ARSENAL.state.spawnedTotal;
   // both unarmed again before timer
   fighters[0].data.arsenal = null;
   APEX_ARSENAL.state.spawnTimer = 2.5;
   const retrigBefore = APEX_ARSENAL.state.spawnedTotal;
-  __AQ_TEST.step(1/60);
+  __APEX_TEST.step(1/60);
   const retrigAfter = APEX_ARSENAL.state.spawnedTotal;
   const retrigTimer = +APEX_ARSENAL.state.spawnTimer.toFixed(2);
   // same-tick timer expiry + transition: one spawn
   fighters[0].data.arsenal = null; fighters[1].data.arsenal = null;
   APEX_ARSENAL.weaponApi.equip(fighters[0], 'SMG');
-  __AQ_TEST.step(1/60);
+  __APEX_TEST.step(1/60);
   fighters[0].data.arsenal = null;
   APEX_ARSENAL.state.spawnTimer = 0;
   APEX_ARSENAL.state.unarmedFastConsumed = false;
   const sameBefore = APEX_ARSENAL.state.spawnedTotal;
-  __AQ_TEST.step(1/60);
+  __APEX_TEST.step(1/60);
   const sameAfter = APEX_ARSENAL.state.spawnedTotal;
   // KO: no spawn
   fighters[1].hp = 0;
   APEX_ARSENAL.state.over = 'HERO';
   APEX_ARSENAL.state.unarmedFastConsumed = false;
   const koBefore = APEX_ARSENAL.state.spawnedTotal;
-  __AQ_TEST.step(1/60);
+  __APEX_TEST.step(1/60);
   const koAfter = APEX_ARSENAL.state.spawnedTotal;
   return {
     afterImmediate, timerAfter, slotsAfter, mid, later,
@@ -2720,28 +2689,28 @@ gate('both-unarmed-no-post-ko',
 
 
 report.v3Emergency = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearSlots();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearSlots();
   APEX_ARSENAL.state.spawnHeld = false;
   APEX_ARSENAL.state.unarmedFastConsumed = false;
   APEX_ARSENAL.state.spawnedTotal = 0;
   APEX_ARSENAL.state.over = null;
   fighters[0].hp = 1000; fighters[1].hp = 1000;
   fighters[0].data.arsenal = null; fighters[1].data.arsenal = null;
-  __AQ_TEST.step(1/60);
+  __APEX_TEST.step(1/60);
   const first = APEX_ARSENAL.state.spawnedTotal;
-  __AQ_TEST.clearSlots();
+  __APEX_TEST.clearSlots();
   APEX_ARSENAL.state.unarmedFastConsumed = false;
   fighters[0].data.arsenal = null; fighters[1].data.arsenal = null;
   const before = APEX_ARSENAL.state.spawnedTotal;
-  __AQ_TEST.step(1/60);
+  __APEX_TEST.step(1/60);
   const afterClear = APEX_ARSENAL.state.spawnedTotal;
   APEX_ARSENAL.weaponApi.equip(fighters[0], 'SABRE');
   fighters[1].data.arsenal = null;
-  __AQ_TEST.clearSlots();
+  __APEX_TEST.clearSlots();
   APEX_ARSENAL.state.unarmedFastConsumed = false;
   const meleeBefore = APEX_ARSENAL.state.spawnedTotal;
-  __AQ_TEST.step(1/60);
+  __APEX_TEST.step(1/60);
   const meleeAfter = APEX_ARSENAL.state.spawnedTotal;
   return { first, afterClear: afterClear - before, meleeDelta: meleeAfter - meleeBefore };
 `);
@@ -2749,9 +2718,9 @@ gate('v3-emergency-on-empty-ground', report.v3Emergency.first === 1 && report.v3
 gate('v3-emergency-if-melee-only', report.v3Emergency.meleeDelta === 1, report.v3Emergency);
 
 report.bothUnarmedCap = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearSlots();
-  __AQ_TEST.clearEvents();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearSlots();
+  __APEX_TEST.clearEvents();
   const cap = APEX_ARSENAL_CONFIG.MAX_ACTIVE_SLOTS;
   APEX_ARSENAL.state.spawnedTotal = 0;
   APEX_ARSENAL.state.unarmedFastConsumed = false;
@@ -2772,13 +2741,13 @@ report.bothUnarmedCap = run(`
   fighters[1].baseSpeed = 0;
   fighters[0].data.arsenal = null; fighters[1].data.arsenal = null;
   for (let i = 0; i < cap; i++) {
-    __AQ_TEST.pushSlot({ x: 120 + (i % 4) * 180, y: 140 + Math.floor(i / 4) * 180, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 2.0 });
+    __APEX_TEST.pushSlot({ x: 120 + (i % 4) * 180, y: 140 + Math.floor(i / 4) * 180, phase: 'TELEGRAPH', weaponId: null, revealLeadSeconds: 2.0 });
   }
   const filled = APEX_ARSENAL.state.slots.filter(s => s.phase !== 'REMOVED').length;
   const spawned0 = APEX_ARSENAL.state.spawnedTotal;
   const sup0 = APEX_ARSENAL.state.suppressedSpawns;
   const timer0 = APEX_ARSENAL.state.spawnTimer;
-  __AQ_TEST.step(1/60);
+  __APEX_TEST.step(1/60);
   const afterTrigSlots = APEX_ARSENAL.state.slots.filter(s => s.phase !== 'REMOVED').length;
   const spawned1 = APEX_ARSENAL.state.spawnedTotal;
   const timer1 = APEX_ARSENAL.state.spawnTimer;
@@ -2786,7 +2755,7 @@ report.bothUnarmedCap = run(`
   const pending1 = APEX_ARSENAL.state.unarmedFastPending;
   const sup1 = APEX_ARSENAL.state.suppressedSpawns;
   // stay capped across several frames: no extra suppress logs / slots
-  __AQ_TEST.step(0.5);
+  __APEX_TEST.step(0.5);
   const afterHoldSlots = APEX_ARSENAL.state.slots.filter(s => s.phase !== 'REMOVED').length;
   const spawned2 = APEX_ARSENAL.state.spawnedTotal;
   const sup2 = APEX_ARSENAL.state.suppressedSpawns;
@@ -2797,14 +2766,14 @@ report.bothUnarmedCap = run(`
   const free = APEX_ARSENAL.state.slots.find(s => s.phase !== 'REMOVED');
   if (free) free.phase = 'REMOVED';
   const spawned3 = APEX_ARSENAL.state.spawnedTotal;
-  __AQ_TEST.step(1/60);
+  __APEX_TEST.step(1/60);
   const afterFreeSlots = APEX_ARSENAL.state.slots.filter(s => s.phase !== 'REMOVED').length;
   const spawned4 = APEX_ARSENAL.state.spawnedTotal;
   const timer4 = +APEX_ARSENAL.state.spawnTimer.toFixed(3);
   const consumed4 = APEX_ARSENAL.state.unarmedFastConsumed;
   const pending4 = APEX_ARSENAL.state.unarmedFastPending;
   // no same-tick second spawn
-  __AQ_TEST.step(1/60);
+  __APEX_TEST.step(1/60);
   const spawned5 = APEX_ARSENAL.state.spawnedTotal;
   return {
     cap, filled, spawned0, spawned1, spawned2, spawned3, spawned4, spawned5,
@@ -2842,7 +2811,7 @@ gate('both-unarmed-cap-pending-then-one',
   report.bothUnarmedCap);
 
 report.v3Combat = run(`
-  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  if (typeof __apexArsenalTestStartMatch === 'function') __apexArsenalTestStartMatch('HERO', 'RIVAL');
   const CFG = APEX_ARSENAL_CONFIG;
   const hp = fighters[0].maxHp;
   fighters[1].hp = 1000;
@@ -2947,64 +2916,64 @@ report.v3Meta = run(`
   const emptyPool = M.poolLocked();
   return { credits0: st.credits, owned0: st.ownedFighters, buyNew, poor, ice, ice2, spinOk: spin.ok, spinName: spin.name, credits: M.credits() };
 `);
-// HERO REWORK: fresh accounts own ROBOT (NEWBIE retired from the pool).
+// Fresh accounts own ROBOT; historical NEWBIE is migration-only.
 gate('v3-meta-fresh-350-robot', report.v3Meta.credits0 === 350 && report.v3Meta.owned0[0] === 'ROBOT', report.v3Meta);
 gate('v3-meta-shop-rules', report.v3Meta.buyNew.ok === false && report.v3Meta.poor.ok === false && report.v3Meta.ice.ok === true && report.v3Meta.ice2.ok === false, report.v3Meta);
 gate('v3-meta-spin-no-dup', report.v3Meta.spinOk === true && report.v3Meta.spinName !== 'ICE' && report.v3Meta.spinName !== 'NEWBIE', report.v3Meta);
 
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(300, 500, 700, 500);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(300, 500, 700, 500);
   fighters[0].hp = 1000; fighters[1].hp = 1000;
   APEX_ARSENAL.feel.resetMatch();
   APEX_ARSENAL.feel.noteDamage({ dealt: 31.5, victim: fighters[1], source: fighters[0], label: 'arsenal-PISTOL', critical: false });
-  __AQ_TEST.redraw();
+  __APEX_TEST.redraw();
 `);
 snapshot('v3-01-hud-unarmed-red-dmg');
 run(`
   APEX_ARSENAL.weaponApi.equip(fighters[0], 'SNIPER');
   APEX_ARSENAL.feel.noteDamage({ dealt: 188, victim: fighters[1], source: fighters[0], label: 'arsenal-SNIPER', critical: true });
-  __AQ_TEST.redraw();
+  __APEX_TEST.redraw();
 `);
 snapshot('v3-02-sniper-crit-orange');
 run(`
   fighters[0].hp = 700;
   APEX_ARSENAL.feel.noteHeal(fighters[0], 70);
-  __AQ_TEST.redraw();
+  __APEX_TEST.redraw();
 `);
 snapshot('v3-03-heal-green');
 run(`
   APEX_ARSENAL.weaponApi.consume(fighters[0], 'test');
   APEX_ARSENAL.weaponApi.equip(fighters[0], 'SHOTGUN');
   APEX_ARSENAL.feel.noteDamage({ dealt: 90, victim: fighters[1], source: fighters[0], label: 'arsenal-SHOTGUN', critical: false });
-  __AQ_TEST.redraw();
+  __APEX_TEST.redraw();
 `);
 snapshot('v3-04-shotgun-splatter');
 run(`
-  window.startArsenalQuestMode('CARD', 'MATH');
+  window.__apexArsenalTestStartMatch('CRYSTAL', 'MIRROR');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
-  __AQ_TEST.place(320, 500, 680, 500);
-  __AQ_TEST.redraw();
+  __APEX_TEST.place(320, 500, 680, 500);
+  __APEX_TEST.redraw();
 `);
-snapshot('v3-05-card-math');
+snapshot('v3-05-crystal-mirror');
 run(`
-  window.startArsenalQuestMode('MATH_V2', 'SNIPER');
+  window.__apexArsenalTestStartMatch('MATH_V2', 'SNIPER');
   cancelAnimationFrame(reqId); reqId = 0;
   APEX_ARSENAL.state.spawnTimer = 1e6;
-  __AQ_TEST.redraw();
+  __APEX_TEST.redraw();
 `);
 snapshot('v3-06-mathv2-sniper');
 run(`
-  window.startArsenalQuestMode('NEWBIE', 'HUNTER');
+  window.__apexArsenalTestStartMatch('ROBOT', 'HUNTER');
   cancelAnimationFrame(reqId); reqId = 0;
-  __AQ_TEST.redraw();
+  __APEX_TEST.redraw();
 `);
-snapshot('v3-07-newbie-hunter');
+snapshot('v3-07-robot-hunter');
 run(`
   const M = APEX_ARSENAL_META;
-  M.openHub();
+  M.returnToProductMenu();
 `);
 snapshot('v3-08-hub');
 run(` APEX_ARSENAL_META.paintShop(); `);
@@ -3014,7 +2983,7 @@ snapshot('v3-10-lucky-draw');
 run(` APEX_ARSENAL_META.hideMeta(); `);
 
 report.v3Perf = run(`
-  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  if (typeof __apexArsenalTestStartMatch === 'function') __apexArsenalTestStartMatch('HERO', 'RIVAL');
   cancelAnimationFrame(reqId); reqId = 0;
   for (let i = 0; i < 120; i++) APEX_ARSENAL.step(1/60);
   const p = apexArsenalPerfSummary();
@@ -3023,7 +2992,7 @@ report.v3Perf = run(`
 gate('v3-perf-summary', !!report.v3Perf && report.v3Perf.interpolation === false, report.v3Perf);
 
 report.v3GunAudit = run(`
-  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  if (typeof __apexArsenalTestStartMatch === 'function') __apexArsenalTestStartMatch('HERO', 'RIVAL');
   cancelAnimationFrame(reqId); reqId = 0;
   const CFG = APEX_ARSENAL_CONFIG;
   const api = APEX_ARSENAL.weaponApi;
@@ -3079,10 +3048,10 @@ gate('v3-native-not-equipment-x7', report.v3GunAudit.native < 10 && report.v3Gun
 // sustained bounded workload, and V1 material identity.
 // ---------------------------------------------------------------------------
 report.v1Blood = run(`
-  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  if (typeof __apexArsenalTestStartMatch === 'function') __apexArsenalTestStartMatch('HERO', 'RIVAL');
   cancelAnimationFrame(reqId); reqId = 0;
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.clearSlots();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.clearSlots();
   APEX_ARSENAL.combatRng = () => 0.99; // never roll crits; crits are forced per-shot
   const feel = window.APEX_ARSENAL_FEEL;
   const api = APEX_ARSENAL.weaponApi;
@@ -3108,12 +3077,12 @@ report.v1Blood = run(`
   });
 
   // 1) left→right normal firearm hit through the REAL collision loop.
-  __AQ_TEST.place(240, 500, 780, 500);
+  __APEX_TEST.place(240, 500, 780, 500);
   const before1 = snap();
   out.legacyStampsBefore = feel.stats.stamps;
   firePistolFromHero(false);
   out.shots += 1;
-  __AQ_TEST.step(0.4);
+  __APEX_TEST.step(0.4);
   out.normalCounts = diff(before1);
   const last1 = feel.stats.lastV1 || {};
   out.normalAngle = last1.angle;
@@ -3127,11 +3096,11 @@ report.v1Blood = run(`
   // 2) direction = REAL projectile travel vector, NOT victim − source.
   //    Teleport the SOURCE away before impact; legacy victim−source math
   //    would follow the moved shooter, V1 must not.
-  __AQ_TEST.place(240, 500, 780, 500);
+  __APEX_TEST.place(240, 500, 780, 500);
   firePistolFromHero(false);
   out.shots += 1;
   hero.x = 700; hero.y = 150;
-  __AQ_TEST.step(0.4);
+  __APEX_TEST.step(0.4);
   const last2 = feel.stats.lastV1 || {};
   out.travelAngle = last2.angle;
   out.victimSourceAngle = Math.atan2(rival.y - hero.y, rival.x - hero.x);
@@ -3141,10 +3110,10 @@ report.v1Blood = run(`
   // 3) critical: same blood language, reference-stronger counts, crimson.
   const before3 = snap();
   const v1HitsBefore3 = feel.stats.v1Hits;
-  __AQ_TEST.place(240, 500, 780, 500);
+  __APEX_TEST.place(240, 500, 780, 500);
   firePistolFromHero(true);
   out.shots += 1;
-  __AQ_TEST.step(0.4);
+  __APEX_TEST.step(0.4);
   out.critCounts = diff(before3);
   const last3 = feel.stats.lastV1 || {};
   out.critFlagCarried = last3.critical === true;
@@ -3152,13 +3121,13 @@ report.v1Blood = run(`
   out.v1HitsAfterCrit = feel.stats.v1Hits - v1HitsBefore3;
 
   // 4) right→left mirror: blood continues along the travel vector (≈ π).
-  __AQ_TEST.place(240, 500, 780, 500);
+  __APEX_TEST.place(240, 500, 780, 500);
   api.fireBullet({
     owner: rival, x: rival.x - 30, y: rival.y, angle: Math.PI, speed: 2600,
     damage: CFG.WEAPONS.PISTOL.damagePerShot, weapon: 'PISTOL', critical: false,
   });
   out.shots += 1;
-  __AQ_TEST.step(0.4);
+  __APEX_TEST.step(0.4);
   const last4 = feel.stats.lastV1 || {};
   out.mirrorAngle = last4.angle;
   out.mirrorIsTravel = Math.abs(Math.abs(last4.angle) - Math.PI) < 0.02;
@@ -3175,16 +3144,16 @@ report.v1Blood = run(`
 
   // 6) sustained/high-rate combat (20 shots/s incl. forced crits every 8th):
   //    every shot lands, live workload stays bounded, stain stays one surface.
-  __AQ_TEST.place(240, 500, 780, 500);
+  __APEX_TEST.place(240, 500, 780, 500);
   const sustainedBefore = snap();
   const v1HitsBeforeSustained = feel.stats.v1Hits;
   for (let b = 0; b < 24; b++) {
     if (rival.hp < 400) rival.hp = 1000; // keep the target alive; test-only
     firePistolFromHero(b % 8 === 7);
     out.shots += 1;
-    __AQ_TEST.step(0.05);
+    __APEX_TEST.step(0.05);
   }
-  __AQ_TEST.step(0.35); // let the last in-flight bullets reach the target (travel ≈ 0.2 s)
+  __APEX_TEST.step(0.35); // let the last in-flight bullets reach the target (travel ≈ 0.2 s)
   out.sustained = {
     hits: feel.stats.v1Hits - v1HitsBeforeSustained,
     sprayPeak: feel.stats.sprayPeak,
@@ -3265,10 +3234,10 @@ gate('v1-blood-material-identity',
 // spawn counter may increase without another projectile collision.
 // ---------------------------------------------------------------------------
 report.v1b = run(`
-  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  if (typeof __apexArsenalTestStartMatch === 'function') __apexArsenalTestStartMatch('HERO', 'RIVAL');
   cancelAnimationFrame(reqId); reqId = 0;
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.clearSlots();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.clearSlots();
   APEX_ARSENAL.combatRng = () => 0.99; // never roll crits; this gate is non-crit
   APEX_ARSENAL_FEEL.resetMatch();
   const feel = window.APEX_ARSENAL_FEEL;
@@ -3278,7 +3247,7 @@ report.v1b = run(`
   const rival = fighters[1];
   hero.hp = 1000; rival.hp = 1000;
   const DT = 1 / 60;
-  __AQ_TEST.place(240, 500, 780, 500);
+  __APEX_TEST.place(240, 500, 780, 500);
   const s0 = {
     hits: feel.stats.v1Hits, cores: feel.stats.v1Cores, streaks: feel.stats.v1Streaks,
     drops: feel.stats.v1Drops, micro: feel.stats.v1Micro,
@@ -3288,7 +3257,7 @@ report.v1b = run(`
     damage: CFG.WEAPONS.PISTOL.damagePerShot, weapon: 'PISTOL', critical: false,
   });
   let guard = 0;
-  while (feel.stats.v1Hits === s0.hits && guard++ < 40) __AQ_TEST.step(DT); // stop on the collision tick
+  while (feel.stats.v1Hits === s0.hits && guard++ < 40) __APEX_TEST.step(DT); // stop on the collision tick
   const last = feel.stats.lastV1 || {};
   const live = feel.liveSpray().filter(p => (p.kind || '').indexOf('v1') === 0);
   const noneAged = live.length > 0 && live.every(p => (
@@ -3333,7 +3302,7 @@ report.v1b = run(`
   let prev = live.length;
   let extinguished = false;
   for (let i = 0; i < 132; i++) { // ~2.2 s; max drop life is 0.58 s
-    __AQ_TEST.step(DT);
+    __APEX_TEST.step(DT);
     const s = feel.stats;
     if (s.v1Hits !== frozen.hits || s.v1Cores !== frozen.cores
       || s.v1Streaks !== frozen.streaks || s.v1Drops !== frozen.drops || s.v1Micro !== frozen.micro) countersFrozen = false;
@@ -3362,10 +3331,10 @@ gate('v1b-one-time-burst-collision-tick',
 // §3.1 blood first-visible-frame immediacy + §3.2 immediate-first aggregation.
 // ---------------------------------------------------------------------------
 report.passA = run(`
-  if (typeof startArsenalQuestMode === 'function') startArsenalQuestMode('HERO', 'RIVAL');
+  if (typeof __apexArsenalTestStartMatch === 'function') __apexArsenalTestStartMatch('HERO', 'RIVAL');
   cancelAnimationFrame(reqId); reqId = 0;
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.clearSlots();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.clearSlots();
   APEX_ARSENAL.combatRng = () => 0.99;
   const feel = window.APEX_ARSENAL_FEEL;
   const api = APEX_ARSENAL.weaponApi;
@@ -3377,14 +3346,14 @@ report.passA = run(`
   // ---- 1) §3.1 first-visible-frame blood immediacy (real collision loop) ----
   APEX_ARSENAL_FEEL.resetMatch();
   fighters[0].hp = 1000; fighters[1].hp = 1000;
-  __AQ_TEST.place(240, 500, 780, 500);
+  __APEX_TEST.place(240, 500, 780, 500);
   api.fireBullet({ owner: hero, x: hero.x + 30, y: hero.y, angle: 0, speed: 2600,
     damage: CFG.WEAPONS.PISTOL.damagePerShot, weapon: 'PISTOL', critical: false });
   const hits0 = feel.stats.v1Hits;
   const stamps0 = feel.stats.v1FloorStamps;
   let guard = 0;
   while (feel.stats.v1Hits === hits0 && guard++ < 40) {
-    __AQ_TEST.step(1 / 60); // stop EXACTLY on the tick that carried the collision
+    __APEX_TEST.step(1 / 60); // stop EXACTLY on the tick that carried the collision
   }
   const live = feel.liveSpray();
   const core = live.find(p => p.kind === 'v1core');
@@ -3401,7 +3370,7 @@ report.passA = run(`
   };
   // First-render probe: draw now (the first rendered frame after collision)
   // and require dark-crimson V1 family pixels at the real collision point.
-  __AQ_TEST.redraw();
+  __APEX_TEST.redraw();
   const g2d = document.getElementById('game-canvas').getContext('2d');
   const img = g2d.getImageData(Math.max(0, (last.x | 0) - 22), Math.max(0, (last.y | 0) - 22), 44, 44).data;
   let v1Pix = 0;
@@ -3511,7 +3480,7 @@ gate('passb-commentary-norm-300-overdrive', commentary(45, 2, 0, 20, 300, 300, 3
 gate('passb-commentary-norm-300-devastating', commentary(70.5, 2, 0, 20, 300, 300, 300) === '"DEVASTATING"');
 
 // ---- burst law: start / add / crit / exclusions / reset / sustain ----
-run(`__AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();`);
+run(`__APEX_TEST.enterManual(); __APEX_TEST.holdSpawns();`);
 await sleep(150);
 let d = hudDebug();
 gate('passb-burst-idle-at-match-start', d.sides[0].burst === null && d.sides[1].burst === null);
@@ -3543,7 +3512,7 @@ gate('passb-burst-sustained-beyond-12s-absolute', d.sides[0].burst && d.sides[0]
 run(`APEX_COMBAT_HUD._test.forceExpire(0)`);
 
 // ---- ENERGY B1 ----
-run(`__AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();`);
+run(`__APEX_TEST.enterManual(); __APEX_TEST.holdSpawns();`);
 await sleep(150);
 d = hudDebug();
 gate('passb-energy-zero-at-match-start', d.sides[0].energy === 0 && d.sides[1].energy === 0);
@@ -3556,7 +3525,7 @@ gate('passb-energy-cap-100', d.sides[0].energy === 100 && Math.abs(d.sides[1].en
 await sleep(700);
 d = hudDebug();
 gate('passb-energy-no-passive-gain', d.sides[0].energy === 100 && Math.abs(d.sides[1].energy - 60) < 1e-9, d);
-run(`__AQ_TEST.enterManual(); __AQ_TEST.holdSpawns();`);
+run(`__APEX_TEST.enterManual(); __APEX_TEST.holdSpawns();`);
 await sleep(150);
 d = hudDebug();
 gate('passb-energy-reset-on-new-match', d.sides[0].energy === 0 && d.sides[1].energy === 0 && d.sides[0].burst === null);
@@ -3569,7 +3538,7 @@ const snap1 = skillSnap();
 gate('passb-energy-no-skill-behavior-change', snap0 === snap1, { snap0, snap1 });
 
 // ---- real canonical loadout asset (holder id → canonical image) ----
-run(`__AQ_TEST.equip('HERO', 'AK_47'); __AQ_TEST.holdSpawns();`);
+run(`__APEX_TEST.equip('HERO', 'AK_47'); __APEX_TEST.holdSpawns();`);
 await sleep(400);
 d = hudDebug();
 const canonical = run(`const w = APEX_ARSENAL_C_SET.weapons.AK_47; const r = APEX_ARSENAL_AV.weaponImage('AK_47'); return r && r.img ? { w: r.w, h: r.h, metaW: w.w, metaH: w.h, ready: !!(r.img.complete && r.img.width) } : null;`);
@@ -3597,36 +3566,42 @@ const ks0 = JSON.parse(run(`return JSON.stringify(APEX_ARSENAL_FEEL.kanitSheets(
 gate('passb-kanit-local-ready', ks0.ready === true && ks0.rasterizations >= 41 && /dmg:10/.test(ks0.digitsPerKind) && /crit:10/.test(ks0.digitsPerKind) && /heal:10/.test(ks0.digitsPerKind), ks0);
 gate('passb-kanit-not-silent-fallback', !!ks0.glyphSig && ks0.glyphSig.kanit > 0 && ks0.glyphSig.kanit !== ks0.glyphSig.other, ks0.glyphSig);
 // damage cache reuse: many popups must not re-rasterize
-run(`__AQ_TEST.redraw(); for (let i = 0; i < 50; i++) { APEX_ARSENAL_FEEL.noteDamage({ dealt: 7, victim: fighters[1], source: fighters[0], label: 'arsenal-pistol' }); APEX_ARSENAL.step(1 / 60); __AQ_TEST.redraw(); }`);
+run(`__APEX_TEST.redraw(); for (let i = 0; i < 50; i++) { APEX_ARSENAL_FEEL.noteDamage({ dealt: 7, victim: fighters[1], source: fighters[0], label: 'arsenal-pistol' }); APEX_ARSENAL.step(1 / 60); __APEX_TEST.redraw(); }`);
 const ks1 = JSON.parse(run(`return JSON.stringify(APEX_ARSENAL_FEEL.kanitSheets())`));
 gate('passb-kanit-cache-reuse-across-50-popups', ks1.rasterizations === ks0.rasterizations, { before: ks0.rasterizations, after: ks1.rasterizations });
 gate('passb-kanit-size-bands-unchanged', run(`return JSON.stringify(APEX_ARSENAL_FEEL.sizeBands.map(b => b.id))`) === '["XS","S","M","L","XL","XXL"]');
 
 // ---- non-Arsenal mode: global shell, truthful data, no fake loadout ----
-run(`window.startSpecificMatch(FighterTypes.find(t => t.name === 'RUBBER'), FighterTypes.find(t => t.name === 'ICE'), {})`);
+run(`window.__apexArsenalTestStartMatch('ROBOT', 'ICE');`);
 await sleep(250);
 d = hudDebug();
-gate('passb-native-mode-no-fake-loadout',
-  typeof d.sides[0].loadoutKey === 'string' && d.sides[0].loadoutKey.startsWith('F:RUBBER')
-  && typeof d.sides[1].loadoutKey === 'string' && d.sides[1].loadoutKey.startsWith('F:ICE'), d);
-const nativeTx = JSON.parse(run(`
+gate('passb-product-battle-starts-unarmed',
+  d.sides[0].loadoutKey === 'UNARMED' && d.sides[1].loadoutKey === 'UNARMED'
+  && run(`return document.getElementById('p1-loadout-name').textContent`) === 'UNARMED'
+  && run(`return document.getElementById('p2-loadout-name').textContent`) === 'UNARMED', d);
+const battleDamage = JSON.parse(run(`
   const victim = fighters[1];
   const before = victim.hp;
   const maxHp = victim.maxHp;
-  victim.takeDamage(30, fighters[0], 'rubber-impact', false);
+  victim.takeDamage(30, fighters[0], 'robot-impact', false);
   return JSON.stringify({ before, after: victim.hp, maxHp, realized: Math.max(0, before - victim.hp) });
 `));
 d = hudDebug();
-const nativeExpectedDealtEnergy = 100 * nativeTx.realized / nativeTx.maxHp;
-const nativeExpectedTakenEnergy = 60 * nativeTx.realized / nativeTx.maxHp;
-gate('passb-native-realized-feed',
+const battleExpectedDealtEnergy = 100 * battleDamage.realized / battleDamage.maxHp;
+const battleExpectedTakenEnergy = 60 * battleDamage.realized / battleDamage.maxHp;
+gate('passb-battle-realized-damage-feed',
   d.sides[0].burst
-  && Math.abs(d.sides[0].burst.total - nativeTx.realized) < 1e-9
-  && Math.abs(d.sides[0].energy - nativeExpectedDealtEnergy) < 1e-9
-  && Math.abs(d.sides[1].energy - nativeExpectedTakenEnergy) < 1e-9,
-  { hud: d, nativeTx, nativeExpectedDealtEnergy, nativeExpectedTakenEnergy });
-const nativePanelText = run(`return document.getElementById('p1-combat-panel').textContent || ''`);
-gate('passb-native-panel-truthful', /RUBBER/.test(nativePanelText) && !/AK-?47|MOSSBERG|SNIPER/i.test(nativePanelText), nativePanelText.slice(0, 120));
+  && Math.abs(d.sides[0].burst.total - battleDamage.realized) < 1e-9
+  && Math.abs(d.sides[0].energy - battleExpectedDealtEnergy) < 1e-9
+  && Math.abs(d.sides[1].energy - battleExpectedTakenEnergy) < 1e-9,
+  { hud: d, battleDamage, battleExpectedDealtEnergy, battleExpectedTakenEnergy });
+const battlePanelIdentity = JSON.parse(run(`return JSON.stringify({
+  p1: document.getElementById('p1-name')?.innerText || document.getElementById('p1-name')?.textContent || '',
+  p2: document.getElementById('p2-name')?.innerText || document.getElementById('p2-name')?.textContent || '',
+})`));
+gate('passb-battle-panel-identities-truthful',
+  battlePanelIdentity.p1 === 'ROBOT' && battlePanelIdentity.p2 === 'FROST',
+  battlePanelIdentity);
 
 // =====================================================================
 // STORMBREAKER — first red-tier (T6) weapon, V1 port gates
@@ -3710,24 +3685,24 @@ gate('storm-rarity-roll-real', Math.abs(report.stormRoll.rate - 0.02) < 0.008, r
 
 // Committed release: ready delay -> windup -> the ACTUAL weapon flies.
 report.stormThrow = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(120, 120, 980, 120);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.equip('HERO', 'STORMBREAKER');
-  __AQ_TEST.step(0.2);
-  const early = __AQ_TEST.holder('HERO');
-  __AQ_TEST.step(0.6); // t=0.8s: ready@0.45 + windup@0.28 -> thrown ~0.73s
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(120, 120, 980, 120);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.equip('HERO', 'STORMBREAKER');
+  __APEX_TEST.step(0.2);
+  const early = __APEX_TEST.holder('HERO');
+  __APEX_TEST.step(0.6); // t=0.8s: ready@0.45 + windup@0.28 -> thrown ~0.73s
   const p = projectiles.find(q => q.aq && q.type === 'aq_thrown' && q.weapon === 'STORMBREAKER');
   return {
     earlyPhase: early && early.phase,
-    holderNow: __AQ_TEST.holder('HERO'),
+    holderNow: __APEX_TEST.holder('HERO'),
     thrown: !!p,
     speed: p ? +Math.hypot(p.vx, p.vy).toFixed(0) : null,
     spin: p ? p.spin : null,
     ricochets: p ? p.ricochetsLeft : null,
-    throwLogged: __AQ_TEST.countEvents('THROW', 'weapon=STORMBREAKER') >= 1,
-    rivalHp: __AQ_TEST.hp().rival,
+    throwLogged: __APEX_TEST.countEvents('THROW', 'weapon=STORMBREAKER') >= 1,
+    rivalHp: __APEX_TEST.hp().rival,
   };
 `);
 gate('storm-ready-delay-then-committed-throw',
@@ -3750,14 +3725,14 @@ gate('storm-throw-speed-spin-ricochet',
 // (engine hardCC law — same as the T4 club), so it must be observed
 // frame-by-frame at the impact moment.
 report.stormImpact = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(400, 500, 600, 500);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.equip('HERO', 'STORMBREAKER');
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(400, 500, 600, 500);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.equip('HERO', 'STORMBREAKER');
   let sawPush = false, sawStun = false, rivalHp = 1000, stunDur = null, dmg = null;
   for (let n = 0; n < 120; n++) {
-    __AQ_TEST.step(1 / 60);
+    __APEX_TEST.step(1 / 60);
     const f = fighters[1];
     if (f.hasStatus('push')) sawPush = true;
     if (f.hasStatus('stun')) {
@@ -3767,11 +3742,11 @@ report.stormImpact = run(`
     if (f.hp < 1000) { rivalHp = f.hp; if (dmg === null) dmg = 1000 - f.hp; }
     if (sawPush && sawStun && n > 30) break;
   }
-  const stormProj = __AQ_TEST.aqProjectiles().filter(p => p.weapon === 'STORMBREAKER');
-  const impactLogged = __AQ_TEST.countEvents('STORM_IMPACT') >= 1;
-  const hitLogged = __AQ_TEST.events().some(e => e.startsWith('[AQ] HIT') && e.includes('weapon=STORMBREAKER'));
+  const stormProj = __APEX_TEST.aqProjectiles().filter(p => p.weapon === 'STORMBREAKER');
+  const impactLogged = __APEX_TEST.countEvents('STORM_IMPACT') >= 1;
+  const hitLogged = __APEX_TEST.events().some(e => e.startsWith('[ARSENAL] HIT') && e.includes('weapon=STORMBREAKER'));
   return {
-    heroHolder: __AQ_TEST.holder('HERO'),
+    heroHolder: __APEX_TEST.holder('HERO'),
     rivalHp,
     dmg,
     stunDur,
@@ -3796,12 +3771,12 @@ gate('storm-weapon-vanishes-no-pin',
 // exit through the physical path — ricochet budget and/or the maxFlight
 // failsafe — never a silent fade, never damage.
 report.stormMiss = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(200, 500, 800, 500);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.equip('HERO', 'STORMBREAKER');
-  __AQ_TEST.step(0.85); // release at 0.73s; projectile ~160px into a 540px flight
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(200, 500, 800, 500);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.equip('HERO', 'STORMBREAKER');
+  __APEX_TEST.step(0.85); // release at 0.73s; projectile ~160px into a 540px flight
   const farthestCorner = (p) => {
     const corners = [[80, 80], [920, 80], [80, 920], [920, 920]];
     let best = corners[0], bd = -1;
@@ -3816,7 +3791,7 @@ report.stormMiss = run(`
   let vyAtExit = null, vyLater = null, tAfterExit = 0;
   let cumTurn = 0, lastHeading = null, aimWithin90 = 0, aimSamples = 0;
   for (let n = 0; n < 400; n++) {
-    __AQ_TEST.step(1 / 60);
+    __APEX_TEST.step(1 / 60);
     const p = projectiles.find(q => q.aq && q.weapon === 'STORMBREAKER');
     if (p) {
       // Rival teleports away from the bolt — the miss is forced, repeatedly.
@@ -3851,15 +3826,15 @@ report.stormMiss = run(`
       }
     } else if (removedFrame === null) { removed = true; removedFrame = n; break; }
   }
-  const hp = __AQ_TEST.hp();
+  const hp = __APEX_TEST.hp();
   return {
     rivalHp: hp.rival, heroHp: hp.hero,
     exitSeen, removed, exitFrame, removedFrame,
     dirChanges, vyAtExit, vyLater, cumTurn, aimWithin90, aimSamples,
-    hitEvents: __AQ_TEST.events().filter(e => e.startsWith('[AQ] HIT') && e.includes('weapon=STORMBREAKER')).length,
-    maxFlightLogged: __AQ_TEST.countEvents('THROWN_MAXFLIGHT'),
-    ricochetEvents: __AQ_TEST.countEvents('THROWN_RICOCHET'),
-    stormProjLeft: __AQ_TEST.aqProjectiles().filter(p => p.weapon === 'STORMBREAKER').length,
+    hitEvents: __APEX_TEST.events().filter(e => e.startsWith('[ARSENAL] HIT') && e.includes('weapon=STORMBREAKER')).length,
+    maxFlightLogged: __APEX_TEST.countEvents('THROWN_MAXFLIGHT'),
+    ricochetEvents: __APEX_TEST.countEvents('THROWN_RICOCHET'),
+    stormProjLeft: __APEX_TEST.aqProjectiles().filter(p => p.weapon === 'STORMBREAKER').length,
   };
 `);
 gate('storm-miss-teleport-dodge-no-damage',
@@ -3897,20 +3872,20 @@ report.stormCycle = run(`
   const cycles = [];
   for (let c = 0; c < 3; c++) {
     const L = layouts[c];
-    __AQ_TEST.enterManual();
-    __AQ_TEST.clearEvents();
-    __AQ_TEST.place(L.h[0], L.h[1], L.r[0], L.r[1]);
-    __AQ_TEST.holdSpawns();
-    __AQ_TEST.pushSlot({ x: L.r[0], y: L.r[1], weaponId: 'STORMBREAKER' }); // on the rival
+    __APEX_TEST.enterManual();
+    __APEX_TEST.clearEvents();
+    __APEX_TEST.place(L.h[0], L.h[1], L.r[0], L.r[1]);
+    __APEX_TEST.holdSpawns();
+    __APEX_TEST.pushSlot({ x: L.r[0], y: L.r[1], weaponId: 'STORMBREAKER' }); // on the rival
     let pickedUp = null;
     for (let n = 0; n < 180; n++) {
-      __AQ_TEST.step(1 / 60);
-      const hr = __AQ_TEST.holder('RIVAL');
+      __APEX_TEST.step(1 / 60);
+      const hr = __APEX_TEST.holder('RIVAL');
       if (hr && hr.weapon === 'STORMBREAKER') { pickedUp = n; break; }
     }
     let heroHp = 1000, sawStun = false;
     for (let n = 0; n < 120; n++) {
-      __AQ_TEST.step(1 / 60);
+      __APEX_TEST.step(1 / 60);
       const hf = fighters[0];
       if (hf.hasStatus('stun')) sawStun = true;
       if (hf.hp < 1000) heroHp = hf.hp;
@@ -3918,7 +3893,7 @@ report.stormCycle = run(`
     cycles.push({
       c, pickedUp, heroHp, sawStun,
       projLeft: projectiles.filter(p => p.aq && p.weapon === 'STORMBREAKER').length,
-      rivalHolder: __AQ_TEST.holder('RIVAL'),
+      rivalHolder: __APEX_TEST.holder('RIVAL'),
       slotGone: APEX_ARSENAL.state.slots.filter(s => s.weaponId === 'STORMBREAKER').length,
     });
   }
@@ -3936,21 +3911,21 @@ gate('storm-cycles-real-pickup-throw-hit',
 // status from it (the danger read is the local floor lightning, not a
 // movement debuff), and no slow may linger after the slot resolves.
 report.stormSlow = run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(200, 300, 800, 300);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
-  __AQ_TEST.step(0.4);
-  const slowHero = __AQ_TEST.statuses('HERO').includes('slow');
-  const slowRival = __AQ_TEST.statuses('RIVAL').includes('slow');
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(200, 300, 800, 300);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
+  __APEX_TEST.step(0.4);
+  const slowHero = __APEX_TEST.statuses('HERO').includes('slow');
+  const slowRival = __APEX_TEST.statuses('RIVAL').includes('slow');
   const mult = fighters[0].statuses && fighters[0].statuses.slow ? fighters[0].statuses.slow.mult : null;
   APEX_ARSENAL.state.slots = []; // pickup/expire
-  __AQ_TEST.step(0.3); // > old 0.12s refresh window
+  __APEX_TEST.step(0.3); // > old 0.12s refresh window
   return {
     slowHero, slowRival, mult,
-    slowHeroAfter: __AQ_TEST.statuses('HERO').includes('slow'),
-    slowRivalAfter: __AQ_TEST.statuses('RIVAL').includes('slow'),
+    slowHeroAfter: __APEX_TEST.statuses('HERO').includes('slow'),
+    slowRivalAfter: __APEX_TEST.statuses('RIVAL').includes('slow'),
   };
 `);
 gate('storm-floor-no-global-slow',
@@ -3962,7 +3937,7 @@ gate('storm-no-slow-status-lingers',
 
 // ── B7: red-tier (T6) hero-manipulation immunity ──────────────────────────
 // The unclaimed T6 pickup can't be moved, yanked, or auto-acquired by hero
-// manipulation. The ROBOT weapon-dash (NEWBIE's rework successor) never
+// manipulation. The ROBOT weapon-dash (ROBOT's product A1) never
 // targets it and never moves/claims any floor slot; regular pickups are
 // acquired only by PHYSICAL arrival; PHYSICAL T6 pickup works (section D).
 // Each subscenario gets a FRESH mode/gate state (a failed activation leaves
@@ -3976,15 +3951,15 @@ report.stormB7Pickup = run(`
   const out = {};
   const mk = (wid, x, y) => ({ id: APEX_ARSENAL.state.nextSlotId++, x, y, phase: 'REVEALED', weaponId: wid, revealedFor: 0, pickedBy: null, rejectedFor: {}, spawnTime: APEX_ARSENAL.state.time });
   const fresh = () => {
-    window.startArsenalQuestMode('NEWBIE', 'ICE');
+    window.__apexArsenalTestStartMatch('ROBOT', 'ICE');
     cancelAnimationFrame(reqId); reqId = 0;
-    __AQ_TEST.holdSpawns();
+    __APEX_TEST.holdSpawns();
     const f = fighters[0];
     f.x = 200; f.y = 500; f.baseSpeed = 0;
     fighters[1].x = 900; fighters[1].y = 100; fighters[1].baseSpeed = 0;
     return f;
   };
-  // HERO REWORK: NEWBIE -> ROBOT. The T6 immunity laws carry over through
+  // ROBOT product A1. The T6 immunity laws carry over through
   // the rework AbilityController + robot.weapon_dash executor.
   const HR = window.APEX_HERO_REWORK;
   const robotCtl = (f) => HR.abilityController(HR.byCombatant(f));
@@ -4029,7 +4004,7 @@ report.stormB7Pickup = run(`
     const slot = mk(wid, 500, 405);
     const reg = mk('PISTOL', 820, 500);
     APEX_ARSENAL.state.slots.push(slot, reg);
-    __AQ_TEST.equip('HERO', 'TOWER_SHIELD');
+    __APEX_TEST.equip('HERO', 'TOWER_SHIELD');
     const sx = slot.x, sy = slot.y;
     window.APEX_ARSENAL_SKILL_GATE.pressJ(ff);
     for (let i = 0; i < 40; i++) APEX_ARSENAL.step(1 / 60);
@@ -4076,57 +4051,57 @@ report.stormB7Proj = run(`
   // 1) MAGNET shell (rival renamed MAGNET with a live field): the storm is
   //    spawned INSIDE the shell and flies through to connect; the control
   //    bullet dies in the same shell.
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(400, 500, 650, 300);
-  __AQ_TEST.holdSpawns();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(400, 500, 650, 300);
+  __APEX_TEST.holdSpawns();
   fighters[1].name = 'MAGNET';
   fighters[1].data = fighters[1].data || {};
   fighters[1].data.fieldTimer = 3;
   projectiles.length = 0;
   api.spawnThrownMelee(fighters[0], 'STORMBREAKER', Math.atan2(300 - 500, 650 - 400));
   projectiles.push(mkBullet(400, 560, 1350, 0));
-  for (let i = 0; i < 12; i++) __AQ_TEST.step(1 / 60);
+  for (let i = 0; i < 12; i++) __APEX_TEST.step(1 / 60);
   out.magnetControlDestroyed = !projectiles.some(p => p.type === 'aq_bullet');
-  for (let i = 0; i < 60; i++) __AQ_TEST.step(1 / 60);
-  out.magnetBoltConnected = __AQ_TEST.hp().rival < 1000;
-  out.magnetImpactLogged = __AQ_TEST.countEvents('STORM_IMPACT') >= 1;
+  for (let i = 0; i < 60; i++) __APEX_TEST.step(1 / 60);
+  out.magnetBoltConnected = __APEX_TEST.hp().rival < 1000;
+  out.magnetImpactLogged = __APEX_TEST.countEvents('STORM_IMPACT') >= 1;
 
   // 2) Crystal wall across the flight line: the storm passes through and
   //    hits the rival (never re-owned — the hero stays untouched); the
   //    control bullet is reflected and re-owned by the wall's owner.
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(400, 500, 800, 500);
-  __AQ_TEST.holdSpawns();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(400, 500, 800, 500);
+  __APEX_TEST.holdSpawns();
   projectiles.length = 0;
   projectiles.push(mkWall());
   api.spawnThrownMelee(fighters[0], 'STORMBREAKER', 0);
   projectiles.push(mkBullet(400, 680, 1350, 0));
-  for (let i = 0; i < 14; i++) __AQ_TEST.step(1 / 60);
+  for (let i = 0; i < 14; i++) __APEX_TEST.step(1 / 60);
   const ctl = projectiles.find(p => p.type === 'aq_bullet');
   out.crystalControlReflected = !ctl || ctl.owner === fighters[1];
-  for (let i = 0; i < 30; i++) __AQ_TEST.step(1 / 60);
-  out.crystalBoltConnected = __AQ_TEST.hp().rival < 1000;
-  out.crystalHeroUntouched = __AQ_TEST.hp().hero === 1000;
-  out.crystalImpactLogged = __AQ_TEST.countEvents('STORM_IMPACT') >= 1;
+  for (let i = 0; i < 30; i++) __APEX_TEST.step(1 / 60);
+  out.crystalBoltConnected = __APEX_TEST.hp().rival < 1000;
+  out.crystalHeroUntouched = __APEX_TEST.hp().hero === 1000;
+  out.crystalImpactLogged = __APEX_TEST.countEvents('STORM_IMPACT') >= 1;
 
   // 3) Rage gravity well on the flight line: the storm is neither rerouted
   //    nor absorbed and still connects; the control bullet is absorbed.
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(400, 500, 800, 500);
-  __AQ_TEST.holdSpawns();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(400, 500, 800, 500);
+  __APEX_TEST.holdSpawns();
   fighters[1].isRage = true;
   projectiles.length = 0;
   const well = mkWell();
   projectiles.push(well);
   api.spawnThrownMelee(fighters[0], 'STORMBREAKER', 0);
   projectiles.push(mkBullet(450, 500, 1350, 0));
-  for (let i = 0; i < 40; i++) __AQ_TEST.step(1 / 60);
+  for (let i = 0; i < 40; i++) __APEX_TEST.step(1 / 60);
   out.wellControlAbsorbed = (well.absorbed || 0) >= 1;
-  out.wellBoltConnected = __AQ_TEST.hp().rival < 1000;
-  out.wellImpactLogged = __AQ_TEST.countEvents('STORM_IMPACT') >= 1;
+  out.wellBoltConnected = __APEX_TEST.hp().rival < 1000;
+  out.wellImpactLogged = __APEX_TEST.countEvents('STORM_IMPACT') >= 1;
   return JSON.stringify(out);
 `);
 const b7j = JSON.parse(report.stormB7Proj);
@@ -4143,23 +4118,23 @@ gate('storm-b7-thrown-immune-to-hero-manipulation',
 // and still connects through the swept-segment path.
 report.stormB8Homing = run(`
   // Deterministic shells: enterManual() would reuse lastShells (the B7
-  // blocks above leave NEWBIE/ICE, and ICE carries a canonical taken:x0.98
+  // blocks above leave ROBOT/ICE, and ICE carries its accepted taken:x0.98
   // tune — 446*0.98=437.08). HERO/RIVAL are the plain engine pair — no
-  // shell-roster entry, no tuning, no rework combat (post-cutover NEWBIE
+  // shell-roster entry, no tuning, no rework combat (post-cutover save migration
   // resolves to the ROBOT rework shell, whose alive P2 cast AI opens
   // virtual_armor [incomingMult 0.45] during the bolt flight and turns the
   // 446 into 200.7 — correct product behavior this physics gate must not
   // measure).
-  window.startArsenalQuestMode('HERO', 'RIVAL');
+  window.__apexArsenalTestStartMatch('HERO', 'RIVAL');
   cancelAnimationFrame(reqId); reqId = 0;
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.place(150, 500, 620, 500);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.equip('HERO', 'STORMBREAKER');
-  __AQ_TEST.step(0.85); // release ~0.73s, bolt in flight
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.place(150, 500, 620, 500);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.equip('HERO', 'STORMBREAKER');
+  __APEX_TEST.step(0.85); // release ~0.73s, bolt in flight
   let maxTurn = 0, cumTurn = 0, spMin = Infinity, spMax = 0, last = null;
   for (let n = 0; n < 200; n++) {
-    __AQ_TEST.step(1 / 60);
+    __APEX_TEST.step(1 / 60);
     const p = projectiles.find(q => q.aq && q.weapon === 'STORMBREAKER');
     if (!p) break;
     const sp = Math.hypot(p.vx, p.vy);
@@ -4178,10 +4153,10 @@ report.stormB8Homing = run(`
     fighters[1].x = 620;
   }
   return JSON.stringify({
-    rivalHp: __AQ_TEST.hp().rival,
+    rivalHp: __APEX_TEST.hp().rival,
     spMin, spMax, maxTurn, cumTurn,
     cap: APEX_ARSENAL_CONFIG.STORMBREAKER.homingTurnRateRadPerSec,
-    impactLogged: __AQ_TEST.countEvents('STORM_IMPACT') >= 1,
+    impactLogged: __APEX_TEST.countEvents('STORM_IMPACT') >= 1,
   });
 `);
 const b8 = JSON.parse(report.stormB8Homing);
@@ -4235,17 +4210,17 @@ out.impactRadiusIsWorldFixed = String(S.draw).includes('g.arc(x, y, 130,');
   out.offsetRetired = CFG.STORMBREAKER.flightVisualOffsetRad === 0;
   out.mirrorLaw = CFG.STORMBREAKER.mirrorLocal === true;
   // Live proof: equip + flight probes report the local transform law.
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(400, 500, 800, 500);
-  __AQ_TEST.equip('HERO', 'STORMBREAKER');
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(400, 500, 800, 500);
+  __APEX_TEST.equip('HERO', 'STORMBREAKER');
   const heldProbe = S.heldPresentationProbe ? S.heldPresentationProbe() : null;
   out.heldProbe = heldProbe && { det: heldProbe.det, mirror: heldProbe.mirror, long: heldProbe.long, bladeForward: heldProbe.bladeForward, bladeProj: heldProbe.bladeProj };
-  __AQ_TEST.step(0.85); // release ~0.73s -> flight
+  __APEX_TEST.step(0.85); // release ~0.73s -> flight
   let flightProbe = null;
   for (let i = 0; i < 30 && !flightProbe; i++) {
-    __AQ_TEST.step(1 / 60);
+    __APEX_TEST.step(1 / 60);
     flightProbe = S.flightPresentationProbe ? S.flightPresentationProbe() : null;
   }
   out.flightProbe = flightProbe && {
@@ -4268,10 +4243,10 @@ out.impactRadiusIsWorldFixed = String(S.draw).includes('g.arc(x, y, 130,');
     && out.flightProbe.ghostSpread > 40; // visibly distributed, still short
 
   // --- B5: red-tier floor shadow actually draws under a T6 floor slot.
-  __AQ_TEST.enterManual();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(200, 200, 800, 800);
-  __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER', tier: 'T6' });
+  __APEX_TEST.enterManual();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(200, 200, 800, 800);
+  __APEX_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER', tier: 'T6' });
   const noopCtx = new Proxy({}, {
     get: (t, k) => (k === 'canvas' ? { width: 100, height: 100 } : () => {}),
     set: (t, k, v) => { t[k] = v; return true; },
@@ -4287,8 +4262,8 @@ out.impactRadiusIsWorldFixed = String(S.draw).includes('g.arc(x, y, 130,');
   out.healTiersOk = out.healShadows.every((sp, i) => sp && sp.tier === 'T' + (i + 1)
     && sp.color === CFG.TIER_COLORS['T' + (i + 1)]);
   // And the heal DRAW uses the tier color: instrument fillStyle on HEAL_H3.
-  __AQ_TEST.clearSlots();
-  __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'HEAL_H3', kind: 'HEAL', tier: 'T3' });
+  __APEX_TEST.clearSlots();
+  __APEX_TEST.pushSlot({ x: 500, y: 500, weaponId: 'HEAL_H3', kind: 'HEAL', tier: 'T3' });
   const seenFills = [];
   const recCtx = new Proxy({}, {
     get: (t, k) => (k === 'canvas' ? { width: 100, height: 100 } : () => {}),
@@ -4363,15 +4338,15 @@ report.cp5Correction = run(`
   const CFG = APEX_ARSENAL_CONFIG;
   const AV = window.APEX_ARSENAL_AV;
   const out = {};
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(400, 500, 800, 500);
-  __AQ_TEST.equip('HERO', 'STORMBREAKER');
-  __AQ_TEST.step(0.85); // ready + windup -> release
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(400, 500, 800, 500);
+  __APEX_TEST.equip('HERO', 'STORMBREAKER');
+  __APEX_TEST.step(0.85); // ready + windup -> release
   let proj = null;
   for (let i = 0; i < 30 && !proj; i++) {
-    __AQ_TEST.step(1 / 60);
+    __APEX_TEST.step(1 / 60);
     proj = (typeof projectiles !== 'undefined' ? projectiles : [])
       .find(p => p && p.aq && p.type === 'aq_thrown' && p.weapon === 'STORMBREAKER') || null;
   }
@@ -4448,12 +4423,13 @@ gate('storm-cp5-collision-authority-source',
   cp5Src.weapon.includes('STORMBREAKER.thrownRadius')
   && !/radius: Math\.max\(10, long \* 0\.14\),/.test(cp5Src.weapon),
   { explicitAuthority: cp5Src.weapon.includes('STORMBREAKER.thrownRadius') });
-gate('menu-cp5-product-warmup-detaches-legacy-quest',
+gate('menu-cp5-product-warmup-is-neutral',
   WARMUP_GROUP_SEQUENCE.length === 2
   && WARMUP_GROUP_SEQUENCE[0] === 'arsenalProduct'
   && WARMUP_GROUP_SEQUENCE[1] === 'select'
-  && !WARMUP_GROUP_SEQUENCE.includes('arsenalLegacyQuest'),
-  { sequence: WARMUP_GROUP_SEQUENCE, legacyLoadedExplicitly: ARSENAL_LEGACY_QUEST_RUNTIMES.length });
+  && !WARMUP_GROUP_SEQUENCE.includes('arsenalLegacyQuest')
+  && !WARMUP_GROUP_SEQUENCE.includes('arsenalQuest'),
+  { sequence: WARMUP_GROUP_SEQUENCE, currentProductRuntimeCount: ARSENAL_PRODUCT_RUNTIMES.length });
 gate('menu-cp5-no-prefetch-everything',
   !cp5Src.loader.includes('prefetchDeferredRuntimeSources'),
   { loaderStillReferencesIt: cp5Src.loader.includes('prefetchDeferredRuntimeSources') });
@@ -4492,9 +4468,9 @@ gate('firearm-cp4-class-ladder-rifle-baseline',
 // reach the sampler, and a real fighter near a live slot gets struck.
 report.stormFloorHazard = run(`
   APEX_ARSENAL_CONFIG.STORMBREAKER.floorBoltHazard = true; // explicit: on
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.holdSpawns();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.holdSpawns();
   const S = window.APEX_ARSENAL_STORM;
   const out = {};
 
@@ -4531,53 +4507,53 @@ report.stormFloorHazard = run(`
 
   // --- Phase 2: the mode turns a contact into exactly one stun, no damage.
   // Fresh bolt — the phase-1 bolt's gates belong to the probes only.
-  __AQ_TEST.place(350, 500, 800, 500);
+  __APEX_TEST.place(350, 500, 800, 500);
   fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
   S.testInjectFloorBolt(300, 500, 700, 500);
-  const hpB = __AQ_TEST.hp();
-  for (let i = 0; i < 5; i++) __AQ_TEST.step(1 / 60);
+  const hpB = __APEX_TEST.hp();
+  for (let i = 0; i < 5; i++) __APEX_TEST.step(1 / 60);
   out.stunnedOnPath = fighters[0].hasStatus('stun');
   out.stunTimer = fighters[0].statuses && fighters[0].statuses.stun ? +fighters[0].statuses.stun.timer.toFixed(3) : null;
   out.rivalUntouchedOffPath = !fighters[1].hasStatus('stun');
-  out.heroHpDelta = +(hpB.hero - __AQ_TEST.hp().hero).toFixed(6);
-  out.strikesLogged = __AQ_TEST.countEvents('STORM_FLOOR_STRIKE');
+  out.heroHpDelta = +(hpB.hero - __APEX_TEST.hp().hero).toFixed(6);
+  out.strikesLogged = __APEX_TEST.countEvents('STORM_FLOOR_STRIKE');
 
   // --- Phase 3: the stun actually expires (~1.0s + margin).
-  for (let i = 0; i < 75; i++) __AQ_TEST.step(1 / 60);
+  for (let i = 0; i < 75; i++) __APEX_TEST.step(1 / 60);
   out.stunExpired = !fighters[0].hasStatus('stun');
 
   // --- Phase 4: off the path = no strike. HERO 150px clear of the segment
   // start (150,500 → closest point (300,500), distance 150 > 75).
-  __AQ_TEST.place(150, 500, 800, 500);
+  __APEX_TEST.place(150, 500, 800, 500);
   fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
   S.testInjectFloorBolt(300, 500, 700, 500);
-  const before = __AQ_TEST.countEvents('STORM_FLOOR_STRIKE');
-  for (let i = 0; i < 5; i++) __AQ_TEST.step(1 / 60);
-  out.offPathNoNewStrikes = __AQ_TEST.countEvents('STORM_FLOOR_STRIKE') === before;
+  const before = __APEX_TEST.countEvents('STORM_FLOOR_STRIKE');
+  for (let i = 0; i < 5; i++) __APEX_TEST.step(1 / 60);
+  out.offPathNoNewStrikes = __APEX_TEST.countEvents('STORM_FLOOR_STRIKE') === before;
   out.offPathNotStunned = !fighters[0].hasStatus('stun');
 
   // --- Phase 5: the RIVAL is an equally valid target.
-  __AQ_TEST.place(150, 500, 650, 500);
+  __APEX_TEST.place(150, 500, 650, 500);
   fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
   S.testInjectFloorBolt(300, 500, 700, 500);
-  for (let i = 0; i < 5; i++) __AQ_TEST.step(1 / 60);
+  for (let i = 0; i < 5; i++) __APEX_TEST.step(1 / 60);
   out.rivalStruckOnPath = fighters[1].hasStatus('stun');
-  out.rivalHpDelta = +(hpB.rival - __AQ_TEST.hp().rival).toFixed(6);
+  out.rivalHpDelta = +(hpB.rival - __APEX_TEST.hp().rival).toFixed(6);
 
   // --- Phase 6: LIVE random floor pulses reach the sampler. A synthetic
   // fighter parked exactly on a real unclaimed slot cannot pick it up, so
   // the slot keeps pulsing — the first pulse's bolt origins (slot ± 8px)
   // are guaranteed inside its 75px circle.
-  __AQ_TEST.enterManual();
-  __AQ_TEST.clearEvents();
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.place(150, 150, 850, 850);
+  __APEX_TEST.enterManual();
+  __APEX_TEST.clearEvents();
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.place(150, 150, 850, 850);
   fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
-  __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
+  __APEX_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
   const probe = { id: 99901, x: 500, y: 500, radius: 75, hp: 1 };
   let liveContacts = 0;
   for (let i = 0; i < 90 && liveContacts === 0; i++) {
-    __AQ_TEST.step(1 / 60);
+    __APEX_TEST.step(1 / 60);
     if (S.floorContacts([probe]).length) liveContacts += 1;
   }
   out.livePulseReachesSampler = liveContacts > 0;
@@ -4586,7 +4562,7 @@ report.stormFloorHazard = run(`
   fighters[0].x = 500 + 118; fighters[0].y = 500;
   let realStrike = false;
   for (let i = 0; i < 600 && !realStrike; i++) {
-    __AQ_TEST.step(1 / 60);
+    __APEX_TEST.step(1 / 60);
     if (fighters[0].hasStatus('stun')) realStrike = true;
   }
   out.realFighterStruckByLivePulses = realStrike;
@@ -4619,11 +4595,11 @@ gate('storm-floor-contact-real-point',
 report.stormVfx = run(`
   const S = window.APEX_ARSENAL_STORM;
   if (!S) return JSON.stringify({ missing: true });
-  __AQ_TEST.enterManual();
-  __AQ_TEST.place(200, 300, 800, 300); // keep fighters out of pickup range
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
-  __AQ_TEST.step(2.0); // full pulse cycle on the floor
+  __APEX_TEST.enterManual();
+  __APEX_TEST.place(200, 300, 800, 300); // keep fighters out of pickup range
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
+  __APEX_TEST.step(2.0); // full pulse cycle on the floor
   const floorBolts = S.boltCount();
   const floorSparks = S.sparkCount();
   const profile = S.referenceProfile ? S.referenceProfile() : null;
@@ -4689,42 +4665,42 @@ gate('storm-vfx-clear-clean',
 
 // Evidence frames (real canvas renders of the four canonical states).
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.place(200, 300, 800, 300);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
-  __AQ_TEST.step(0.3);
-  __AQ_TEST.redraw();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.place(200, 300, 800, 300);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
+  __APEX_TEST.step(0.3);
+  __APEX_TEST.redraw();
   return true;
 `);
 report.evidence.push(snapshot('storm-01-floor-lightning'));
 run(`
-  __AQ_TEST.clearSlots();
-  __AQ_TEST.place(240, 420, 760, 420);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.equip('HERO', 'STORMBREAKER');
-  __AQ_TEST.step(0.55); // inside the windup window
-  __AQ_TEST.redraw();
+  __APEX_TEST.clearSlots();
+  __APEX_TEST.place(240, 420, 760, 420);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.equip('HERO', 'STORMBREAKER');
+  __APEX_TEST.step(0.55); // inside the windup window
+  __APEX_TEST.redraw();
   return true;
 `);
 report.evidence.push(snapshot('storm-02-held-windup'));
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.place(120, 120, 980, 120);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.equip('HERO', 'STORMBREAKER');
-  __AQ_TEST.step(0.80); // mid-flight after the 0.73s release
-  __AQ_TEST.redraw();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.place(120, 120, 980, 120);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.equip('HERO', 'STORMBREAKER');
+  __APEX_TEST.step(0.80); // mid-flight after the 0.73s release
+  __APEX_TEST.redraw();
   return true;
 `);
 report.evidence.push(snapshot('storm-03-flight-spin-ghosts'));
 run(`
-  __AQ_TEST.enterManual();
-  __AQ_TEST.place(400, 500, 600, 500);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.equip('HERO', 'STORMBREAKER');
-  __AQ_TEST.step(0.80); // impact lands ~0.764s — flash still hot
-  __AQ_TEST.redraw();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.place(400, 500, 600, 500);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.equip('HERO', 'STORMBREAKER');
+  __APEX_TEST.step(0.80); // impact lands ~0.764s — flash still hot
+  __APEX_TEST.redraw();
   return true;
 `);
 report.evidence.push(snapshot('storm-04-impact-flash'));
@@ -4736,24 +4712,24 @@ report.evidence.push(snapshot('storm-04-impact-flash'));
 report.stormPerf = run(`
   const S = window.APEX_ARSENAL_STORM;
   // Baseline: same scene, no storm anywhere.
-  __AQ_TEST.enterManual();
-  __AQ_TEST.place(120, 120, 980, 120);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.step(0.3); __AQ_TEST.redraw();
+  __APEX_TEST.enterManual();
+  __APEX_TEST.place(120, 120, 980, 120);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.step(0.3); __APEX_TEST.redraw();
   let t0 = performance.now();
-  for (let i = 0; i < 240; i++) { __AQ_TEST.step(1 / 60); __AQ_TEST.redraw(); }
+  for (let i = 0; i < 240; i++) { __APEX_TEST.step(1 / 60); __APEX_TEST.redraw(); }
   const baselineMs = (performance.now() - t0) / 240;
   // Storm: floor slot + committed throw (flight ~0.73s-1.27s, then floor-only).
-  __AQ_TEST.enterManual();
-  __AQ_TEST.place(120, 120, 980, 120);
-  __AQ_TEST.holdSpawns();
-  __AQ_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
-  __AQ_TEST.equip('HERO', 'STORMBREAKER');
-  __AQ_TEST.step(0.85); // storm on floor AND mid-flight
+  __APEX_TEST.enterManual();
+  __APEX_TEST.place(120, 120, 980, 120);
+  __APEX_TEST.holdSpawns();
+  __APEX_TEST.pushSlot({ x: 500, y: 500, weaponId: 'STORMBREAKER' });
+  __APEX_TEST.equip('HERO', 'STORMBREAKER');
+  __APEX_TEST.step(0.85); // storm on floor AND mid-flight
   t0 = performance.now();
-  for (let i = 0; i < 240; i++) { __AQ_TEST.step(1 / 60); __AQ_TEST.redraw(); }
+  for (let i = 0; i < 240; i++) { __APEX_TEST.step(1 / 60); __APEX_TEST.redraw(); }
   const stormMs = (performance.now() - t0) / 240;
-  __AQ_TEST.step(0.3);
+  __APEX_TEST.step(0.3);
   const summary = (typeof window.apexArsenalPerfSummary === 'function') ? window.apexArsenalPerfSummary() : null;
   const pick = (o, keys) => { const out = {}; for (const k of keys) if (o && o[k]) out[k] = o[k]; return out; };
   return JSON.stringify({
@@ -4776,32 +4752,32 @@ report.labV1 = run(`
   const startingMode = APEX_ARSENAL_FEEL.getSplatterMode();
   window.startArsenalLab();
   cancelAnimationFrame(reqId); reqId = 0;
-  __AQ_TEST.clearEvents();
-  const entryFull = __AQ_TEST.debug();
+  __APEX_TEST.clearEvents();
+  const entryFull = __APEX_TEST.debug();
   const entry = {labMode:entryFull.labMode,hero:entryFull.hero,rival:entryFull.rival};
   const panelIds = [...document.querySelectorAll('[data-lab-weapon]')].map(e => e.getAttribute('data-lab-weapon'));
-  __AQ_TEST.step(31);
-  const idleFull = __AQ_TEST.debug();
+  __APEX_TEST.step(31);
+  const idleFull = __APEX_TEST.debug();
   const idle = {activeSlots:idleFull.activeSlots,spawnedTotal:idleFull.spawnedTotal,over:idleFull.over};
-  const noAutomatic = __AQ_TEST.events().filter(e => /SPAWN_SLOT|SPAWN_HEAL|REVEAL|LAB_SPAWN/.test(e));
-  __AQ_TEST.place(90,90,910,910);
+  const noAutomatic = __APEX_TEST.events().filter(e => /SPAWN_SLOT|SPAWN_HEAL|REVEAL|LAB_SPAWN/.test(e));
+  __APEX_TEST.place(90,90,910,910);
   document.querySelector('[data-lab-weapon="PISTOL"]').click();
   const first = A.state.slots.map(s => ({id:s.id,weapon:s.weaponId,phase:s.phase}));
   const pistolSlot = A.state.slots[0];
-  __AQ_TEST.place(pistolSlot.x, pistolSlot.y, 760, 500);
-  __AQ_TEST.step(1/60);
-  const collected = __AQ_TEST.holder('HERO');
-  __AQ_TEST.place(300, 500, 490, 500);
-  __AQ_TEST.step(1.1);
+  __APEX_TEST.place(pistolSlot.x, pistolSlot.y, 760, 500);
+  __APEX_TEST.step(1/60);
+  const collected = __APEX_TEST.holder('HERO');
+  __APEX_TEST.place(300, 500, 490, 500);
+  __APEX_TEST.step(1.1);
   const hits = A.state.labHits, damage = A.state.labDamage;
   const popups = APEX_ARSENAL_FEEL.livePopups().length;
-  const hpBefore = __AQ_TEST.hp();
+  const hpBefore = __APEX_TEST.hp();
   fighters[1].takeDamage(1600, fighters[0], 'arsenal-pistol');
-  const lethal = { hp: __AQ_TEST.hp(), over: A.state.over, hits: A.state.labHits, damage: A.state.labDamage,
+  const lethal = { hp: __APEX_TEST.hp(), over: A.state.over, hits: A.state.labHits, damage: A.state.labDamage,
     numbers: APEX_ARSENAL_FEEL.livePopups().map(p => p.text) };
   // Empty slot list again to isolate manual STORMBREAKER exact-ID selection.
   A.state.slots = [];
-  __AQ_TEST.place(90,90,910,910);
+  __APEX_TEST.place(90,90,910,910);
   document.querySelector('[data-lab-weapon="STORMBREAKER"]').click();
   const storm = A.state.slots[0];
   let floorAngle = null;
@@ -4812,9 +4788,9 @@ report.labV1 = run(`
   };
   S.drawSlots(ctx);
   APEX_ARSENAL_AV.drawWeaponSprite = originalDraw;
-  const beforeExit = { credits: M.credits(), quest: JSON.stringify(APEX_ARSENAL_QUEST.loadSave()) };
+  const beforeExit = { credits: M.credits(), state: JSON.stringify(M.getState()) };
   window.exitArsenalLab();
-  const afterExit = { credits: M.credits(), quest: JSON.stringify(APEX_ARSENAL_QUEST.loadSave()),
+  const afterExit = { credits: M.credits(), state: JSON.stringify(M.getState()),
     active: A.state.active, gameState, panelGone: !document.getElementById('aq-lab-panel') };
   return { adminSeam, publicLabTile: !!publicLabTile, startingMode, entry, panelIds, idle,
     noAutomatic, first, collected, hits, damage, popups, hpBefore, lethal,
@@ -4822,7 +4798,7 @@ report.labV1 = run(`
     floorAngle, beforeExit, afterExit };
 `);
 gate('lab-admin-seam-not-public-hub-tile', report.labV1.adminSeam && !report.labV1.publicLabTile, report.labV1);
-// HERO REWORK: the Lab default hero is ROBOT (NEWBIE retired).
+// The active admin Lab uses the ROBOT Core Six shell.
 gate('lab-entry-robot-robot-full-panel', report.labV1.entry.labMode && report.labV1.entry.hero.name === 'ROBOT'
   && report.labV1.entry.rival.name === 'ROBOT' && report.labV1.panelIds.join(',') === win.APEX_ARSENAL_CONFIG.P0_WEAPON_IDS.join(','), report.labV1.entry);
 gate('lab-no-click-no-spawn-31s', report.labV1.idle.activeSlots === 0 && report.labV1.idle.spawnedTotal === 0
@@ -4835,7 +4811,7 @@ gate('lab-lethal-feedback-no-ko-true-damage', report.labV1.lethal.hp.rival === 1
 gate('lab-exact-storm-horizontal-floor', report.labV1.storm?.weapon === 'STORMBREAKER' && report.labV1.storm?.phase === 'REVEALED'
   && Math.abs(report.labV1.floorAngle - Math.PI * 1.5) < 1e-8, report.labV1.storm);
 gate('lab-exit-no-progression', report.labV1.afterExit.credits === report.labV1.beforeExit.credits
-  && report.labV1.afterExit.quest === report.labV1.beforeExit.quest && report.labV1.afterExit.active === false
+  && report.labV1.afterExit.state === report.labV1.beforeExit.state && report.labV1.afterExit.active === false
   && report.labV1.afterExit.panelGone, report.labV1.afterExit);
 report.labCap = run(`
   window.startArsenalLab(); cancelAnimationFrame(reqId); reqId=0;
@@ -4882,12 +4858,12 @@ gate('lab-splatter-persists-semantic-numbers', report.splatterV1.stored === 'FIG
 // screenshots are produced by the real-Chrome suite below).
 run(`
   window.startArsenalLab(); cancelAnimationFrame(reqId); reqId = 0;
-  __AQ_TEST.place(90,90,910,910);
+  __APEX_TEST.place(90,90,910,910);
   document.querySelector('[data-lab-weapon="STORMBREAKER"]').click();
   // Evidence staging only: place this real manually-created slot centrally so
   // neither corner fighter vacuums it before the horizontal pose is captured.
   APEX_ARSENAL.state.slots[0].x=500; APEX_ARSENAL.state.slots[0].y=500;
-  __AQ_TEST.step(0.1); __AQ_TEST.redraw(); return true;
+  __APEX_TEST.step(0.1); __APEX_TEST.redraw(); return true;
 `);
 snapshot('lab-v1-storm-horizontal-floor');
 run(`
@@ -4896,7 +4872,7 @@ run(`
   fighters[1].x=560; fighters[1].y=500;
   fighters[1].__aqImpact={x:560,y:500,vx:2600,vy:0};
   fighters[1].takeDamage(56,fighters[0],'arsenal-pistol');
-  __AQ_TEST.redraw(); return true;
+  __APEX_TEST.redraw(); return true;
 `);
 snapshot('lab-v1-splatter-blood');
 run(`
@@ -4904,146 +4880,66 @@ run(`
   F.setSplatterMode('FIGHTER COLOR'); F.resetMatch();
   fighters[1].color='#3377bb'; fighters[1].__aqImpact={x:560,y:500,vx:2600,vy:0};
   fighters[1].takeDamage(56,fighters[0],'arsenal-pistol');
-  __AQ_TEST.redraw(); return true;
+  __APEX_TEST.redraw(); return true;
 `);
 snapshot('lab-v1-splatter-fighter-color');
 run(`APEX_ARSENAL_FEEL.setSplatterMode('BLOOD'); window.exitArsenalLab(); return true;`);
 
-// ------------------------------------- gates: CP-HR6 — Quest roster cutover
-// Every one of the 20 ladder stages must RESOLVE through the production
-// quest path: startStage (readiness barrier + typeFor opponent resolution),
-// real AI-vs-AI play with spawning weapons, the KO/over machinery, quest
-// result actions, and recordWin persistence for P1 wins. The canonical-6
-// bosses (ICE, HUNTER, CRYSTAL, MAGNET, BLACK_HOLE, TIME) run REWORK
-// mechanics under the encounter layer — rework fighters with ZERO legacy
-// native-kit execution; the other 14 keep their legacy encounter
-// identities (doc 06 roster classes).
-const HR6_CANON = ['ICE', 'HUNTER', 'CRYSTAL', 'MAGNET', 'BLACK_HOLE', 'TIME'];
-const hr6Stages = JSON.parse(run(`return JSON.stringify(window.APEX_ARSENAL_QUEST.STAGES)`));
-// Test save seed: all 20 stages unlocked (progression gating is the ladder's
-// own concern; this block gates RESOLUTION, not progression).
-run(`localStorage.setItem(window.APEX_ARSENAL_QUEST.STORAGE_KEY,
-  JSON.stringify({ unlockedThrough: 20, completedStages: [] })); return true;`);
-const hr6rows = [];
-for (const s of hr6Stages) {
-  let row = null;
-  // The ladder's readiness barrier may take the ASYNC path (cold entry):
-  // startStage returns before beginQuestStage fires. Poll until the stage's
-  // match is actually mounted — the ladder starts it on its own.
-  for (let attempt = 0; attempt < 60; attempt++) {
-    row = JSON.parse(run(`
-      const Q = window.APEX_ARSENAL_QUEST;
-      const res = Q.startStage(${s.n}, 'ROBOT');
-      cancelAnimationFrame(reqId); reqId = 0;
-      const st = APEX_ARSENAL.state;
-      if (!st || !st.active || st.questStage !== ${s.n}) return JSON.stringify({ deferred: true });
-      return JSON.stringify({
-        ok: !!(res && res.ok),
-        live: res && res.live,
-        p1Name: fighters[0] && fighters[0].name,
-        oppName: fighters[1] && fighters[1].name,
-        oppIsRework: !!(window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.isReworkFighter
-          && fighters[1] && window.APEX_HERO_REWORK.isReworkFighter(fighters[1])),
-      });
-    `));
-    if (!row.deferred) break;
-    await new Promise(r => setTimeout(r, 50));
-  }
-  if (row && !row.deferred) {
-    Object.assign(row, JSON.parse(run(`
-      const Q = window.APEX_ARSENAL_QUEST;
-      // Natural AI-vs-AI play: weapons spawn on cadence, both sides collect
-      // and fire, rework cast AI runs. 60s budget.
-      let t = 0, nativeFromOpp = 0;
-      for (; t < 60 && !APEX_ARSENAL.state.over; t += 1/60) {
-        APEX_ARSENAL.step(1/60);
-        nativeFromOpp = Math.max(nativeFromOpp,
-          projectiles.filter(p => p.aq !== true && p.owner === fighters[1]).length);
-      }
-      const natural = !!APEX_ARSENAL.state.over;
-      if (!APEX_ARSENAL.state.over) {
-        // Resolution driver: natural KO speed is an UNRESOLVED BALANCE
-        // question (weapon damage vs 1000hp pools). Drive the OPPONENT to
-        // KO through the REAL engine damage entry — the KO check, over
-        // state, result actions, and recordWin all run for real. The loop
-        // iterates because the engine's canonical numeric tuning applies a
-        // per-hero damage-TAKEN multiplier (e.g. CRYSTAL ~0.686), so a
-        // single full-hp packet can never zero a tuned hero.
-        const HRr = window.APEX_HERO_REWORK;
-        for (let round = 0; round < 3 && !HRr.bodyKO(fighters[1]); round++) {
-          const ct = HRr.byCombatant(fighters[1]);
-          const targets = (ct && !ct.facade) ? HRr.getTargetableBodies(ct) : [fighters[1]];
-          for (const b of targets) {
-            for (let k = 0; k < 80 && b.hp > 0; k++) {
-              b.takeDamage(Math.max(1, b.hp), fighters[0], 'quest-stage-resolve-driver');
-            }
-          }
-        }
-        for (let k = 0; k < 300 && !APEX_ARSENAL.state.over; k++) APEX_ARSENAL.step(1/60);
-      }
-      const st = APEX_ARSENAL.state;
-      return JSON.stringify({
-        natural,
-        naturalT: +t.toFixed(2),
-        over: st.over || null,
-        quest: { stage: st.questStage, opponent: st.questOpponent, p1: st.questP1 },
-        actions: Q.resultActions(st),
-        nativeFromOpp,
-        saveHasWin: Q.loadSave().completedStages.includes(${s.n}),
-        p1HpEnd: fighters[0] ? +fighters[0].hp.toFixed(1) : null,
-        oppHpEnd: fighters[1] ? +fighters[1].hp.toFixed(1) : null,
-      });
-    `)));
-  }
-  row.n = s.n;
-  row.opponent = s.opponent;
-  hr6rows.push(row);
-}
-const hr6 = {
-  rows: hr6rows,
-  get allOk() {
-    return this.rows.length === 20 && this.rows.every(r => r.ok && !r.error && r.deferred !== true
-      && r.over && r.quest && r.quest.stage === r.n && r.quest.opponent === r.opponent
-      && r.quest.p1 === 'ROBOT');
-  },
-  get canonOk() {
-    const c = this.rows.filter(r => HR6_CANON.includes(r.opponent));
-    return c.length === 6 && c.every(r => r.oppIsRework === true && r.nativeFromOpp === 0 && r.live === r.opponent);
-  },
-  get legacyOk() {
-    const l = this.rows.filter(r => !HR6_CANON.includes(r.opponent));
-    return l.length === 14 && l.every(r => r.oppIsRework === false);
-  },
-  get wins() { return this.rows.filter(r => r.over === r.p1Name).length; },
-  get naturalWins() { return this.rows.filter(r => r.over === r.p1Name && r.natural).length; },
-  get winSaved() { return this.rows.filter(r => r.over === r.p1Name && r.saveHasWin).length; },
-  get actionsOk() {
-    return this.rows.every(r => r.over && r.actions
-      && (r.actions.mode === 'quest-win' || r.actions.mode === 'quest-loss')
-      && r.actions.stage === r.n && r.actions.actions.length >= 2);
-  },
-};
-gate('quest-every-stage-resolves',
-  hr6.allOk === true,
-  { rows: hr6rows.map(r => ({ n: r.n, opp: r.opponent, live: r.live, over: r.over, natural: r.natural, deferred: r.deferred, err: r.error })) });
-gate('quest-canonical-bosses-run-rework-encounters',
-  hr6.canonOk === true,
-  hr6rows.filter(r => HR6_CANON.includes(r.opponent))
-    .map(r => ({ n: r.n, opp: r.opponent, rework: r.oppIsRework, nativeFromOpp: r.nativeFromOpp })));
-gate('quest-legacy-bosses-keep-encounter-identities',
-  hr6.legacyOk === true,
-  hr6rows.filter(r => !HR6_CANON.includes(r.opponent))
-    .map(r => ({ n: r.n, opp: r.opponent, live: r.live, rework: r.oppIsRework })));
-gate('quest-stage-result-actions-correct',
-  hr6.actionsOk === true,
-  hr6rows.map(r => ({ n: r.n, mode: r.actions && r.actions.mode, actions: r.actions && r.actions.actions })));
-gate('quest-p1-wins-recorded-to-save',
-  hr6.winSaved === hr6.wins && hr6.wins >= 1,
-  { wins: hr6.wins, naturalWins: hr6.naturalWins, saved: hr6.winSaved });
+// ------------------------------- gates: retired progression and current profiles
+const productClosure = JSON.parse(run(`
+  localStorage.removeItem('apexChaos.arsenalQuest.v1');
+  const authority = window.APEX_PRODUCT_SURFACE;
+  const quest01 = authority.get('quest-01');
+  const beforeState = window.APEX_ARSENAL_META?.getState?.() || {};
+  const before = {
+    credits: window.APEX_ARSENAL_META?.credits?.(),
+    owned: (beforeState.ownedFighters || []).slice().sort(),
+    spins: beforeState.totalSpins || 0,
+  };
 
-// Evidence: the final stage's result state through the real engine canvas.
-run(`__AQ_TEST.redraw(); return true;`);
-snapshot('cp-hr6-quest-final-stage-result');
+  window.__apexArsenalBattleProfile = 'BOT';
+  const botStarted = window.__apexArsenalTestStartMatch('ROBOT', 'HUNTER');
+  cancelAnimationFrame(reqId); reqId = 0;
+  const bot = { started: botStarted, mode: APEX_ARSENAL.state?.battleMode || null };
+  window.exitArsenalBattleMode();
+
+  window.__apexArsenalBattleProfile = 'LOCAL';
+  const localStarted = window.__apexArsenalTestStartMatch('ROBOT', 'HUNTER');
+  cancelAnimationFrame(reqId); reqId = 0;
+  const local = { started: localStarted, mode: APEX_ARSENAL.state?.battleMode || null };
+  window.exitArsenalBattleMode();
+
+  const afterState = window.APEX_ARSENAL_META?.getState?.() || {};
+  const after = {
+    credits: window.APEX_ARSENAL_META?.credits?.(),
+    owned: (afterState.ownedFighters || []).slice().sort(),
+    spins: afterState.totalSpins || 0,
+  };
+  return JSON.stringify({
+    oldApiAbsent: !('APEX_ARSENAL_QUEST' in window)
+      && !('startArsenalQuestMode' in window)
+      && !('exitArsenalQuestMode' in window),
+    quest01Locked: quest01?.availability === 'LOCKED'
+      && !authority.canLaunch('quest-01'),
+    bot, local,
+    exitState: gameState,
+    menuVisible: !document.getElementById('menu-screen').classList.contains('hidden'),
+    saveUnchanged: JSON.stringify(before) === JSON.stringify(after),
+    retiredSaveAbsent: localStorage.getItem('apexChaos.arsenalQuest.v1') === null,
+  });
+`));
+gate('retired-quest-ladder-api-not-registered', productClosure.oldApiAbsent, productClosure.oldApiAbsent);
+gate('quest-01-remains-a-locked-future-surface', productClosure.quest01Locked, productClosure.quest01Locked);
+gate('bot-battle-profile-runs-neutral-arsenal', productClosure.bot.started && productClosure.bot.mode === 'BOT', productClosure.bot);
+gate('local-1v1-profile-runs-neutral-arsenal', productClosure.local.started && productClosure.local.mode === 'LOCAL', productClosure.local);
+gate('arsenal-battle-exit-preserves-save-and-returns-to-product-menu',
+  productClosure.exitState === 'MENU' && productClosure.menuVisible
+    && productClosure.saveUnchanged && productClosure.retiredSaveAbsent,
+  productClosure);
+
+// Evidence: the public hub after a current Local/Bot battle exit.
+run(`__APEX_TEST.redraw(); return true;`);
+snapshot('arsenal-product-menu-after-battle-exit');
 
 // ------------------------------------------------------------------- summary
 report.summary = {
@@ -5051,7 +4947,7 @@ report.summary = {
   passed: Object.values(report.gates).filter(g => g.pass).length,
   failed: report.failures,
 };
-console.log('\n==== ARSENAL QUEST HEADLESS TEST SUMMARY ====');
+console.log('\n==== ARSENAL BATTLE HEADLESS TEST SUMMARY ====');
 console.log(JSON.stringify(report.summary, null, 2));
 if (loadErrors.length) console.log('non-fatal boot runtime load errors:', JSON.stringify(loadErrors, null, 2));
 fs.writeFileSync(path.join(evidenceDir, 'headless-test-report.json'), JSON.stringify(report, null, 2));

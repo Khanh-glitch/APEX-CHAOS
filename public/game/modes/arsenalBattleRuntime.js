@@ -10,12 +10,6 @@
   const SPAWN = window.APEX_ARSENAL_SPAWN;
   const weaponApi = AQ.weaponApi;
 
-  // The detached 20-stage ladder still publishes its historical object name.
-  // Neutral product battle never needs it, but compatibility callers do.
-  function detachedQuestApi() {
-    return window.APEX_ARSENAL_QUEST || window.APEX_ARSENAL_BATTLE || null;
-  }
-
   // -------------------------------------------------------------------------
   // Blank fighter model (handoff §4): standard Apex Fighter machinery,
   // 100 HP, no update ability logic, no onCollide intrinsic damage, no rage.
@@ -382,8 +376,6 @@
       const winner = aqHp(fighters[0]) > aqHp(fighters[1]) ? fighters[0] : fighters[1];
       state.over = winner.name;
       AQ.log('KO', `winner=${winner.name}`);
-      const quest = detachedQuestApi();
-      if (quest && quest.onMatchOver) quest.onMatchOver(winner.name);
       updateHUD();
     }
   }
@@ -605,9 +597,6 @@
     const f = typeof fighters !== 'undefined' && fighters[0];
     const gate = window.APEX_ARSENAL_SKILL_GATE;
     const snap = gate && f ? gate.snapshot(f) : null;
-    let revealed = 0;
-    const slots = state.slots || [];
-    for (let i = 0; i < slots.length; i++) if (slots[i] && slots[i].phase === 'REVEALED') revealed += 1;
     const lines = [];
     // HERO REWORK: rework P1 skills read straight from the rework runtime
     // (J -> A1, K -> A2); the legacy gate snapshot stays untouched.
@@ -615,13 +604,6 @@
       && window.APEX_HERO_REWORK.isReworkFighter(f)) {
       const hrLines = window.APEX_HERO_REWORK.skillHud(f) || [];
       if (hrLines.length) return hrLines.join('  |  ');
-    }
-    if (snap && snap.shell === 'NEWBIE') {
-      const cd = f && f.data ? f.data.nbCd : 0;
-      let text = 'J · —';
-      if (cd > 0.05) text = 'J · ' + cd.toFixed(1) + 's';
-      else if (revealed) text = 'J · READY';
-      lines.push(text);
     } else if (snap && snap.keys && snap.keys.length) {
       for (const k of snap.keys) {
         const v = k.value;
@@ -740,10 +722,7 @@
       hudRefs.hint.style.display = hintDisplay;
       hudLast.hintDisplay = hintDisplay;
     }
-    // PASS A §4.2: a discoverable visible way out of an active battle — the
-    // button mirrors the accepted B/ESC behavior exactly (Quest battle →
-    // Quest Map; Free battle → global Main Menu). Keyboard-only exit is not
-    // sufficient for the owner.
+    // A discoverable visible way out of every active Arsenal Battle.
     if (!hudRefs.exitBtn) {
       let btn = document.getElementById('aq-battle-exit');
       if (!btn) {
@@ -753,9 +732,7 @@
         btn.textContent = 'EXIT';
         btn.className = 'aq-battle-exit-btn';
         btn.addEventListener('click', () => {
-          const Q = detachedQuestApi();
           if (AQ.state && AQ.state.labMode) window.exitArsenalLab();
-          else if (AQ.state && AQ.state.questStage && Q && Q.returnToMap) Q.returnToMap();
           else window.exitArsenalBattleMode();
         });
         el.appendChild(btn);
@@ -772,9 +749,7 @@
     syncSkillHud(el, state, now, !!force || !!(state && state.over && hudLast.winKey == null));
     let win = hudRefs.win || document.getElementById('aq-win');
     if (state && state.over) {
-      const Q = detachedQuestApi();
-      const spec = Q && Q.resultActions ? Q.resultActions(state) : { mode: 'freeplay', actions: ['REMATCH', 'HUB'] };
-      const winKey = state.over + '|' + spec.mode + '|' + (spec.actions || []).join(',');
+      const winKey = state.over + '|' + (state.battleMode || 'LOCAL');
       if (hudLast.winKey !== winKey) {
         if (!win) {
           win = document.createElement('div');
@@ -783,30 +758,19 @@
         }
         win.className = 'aq-result-layer';
         hudRefs.win = win;
-        const M = window.APEX_ARSENAL_META;
-        const aw = M && M.lastAward ? M.lastAward() : null;
-        const reward = aw && aw.amount
-          ? '<div class="aq-result-reward">+' + aw.amount + ' AC · BALANCE ' + aw.balance + '</div>'
-          : '';
-        let actions = [];
-        if (spec.mode === 'quest-win' || spec.mode === 'quest-loss') {
-          actions = (spec.actions || []).slice();
-          if (!actions.includes('HUB')) actions.push('HUB');
-        } else {
-          actions = ['REMATCH', 'PICK AGAIN', 'HUB'];
-        }
-        win.innerHTML = '<div class="aq-result-card"><div class="aq-result-kicker">ARSENAL RESULT</div><div class="aq-result-title">' + state.over + ' WINS</div>' + reward
-          + '<div id="aq-quest-actions" class="aq-result-actions">' + actions.map((a) => '<button type="button" data-aq-act="' + a + '">' + a + '</button>').join('') + '</div></div>';
-        win.onclick = (e) => {
-          const btn = e.target && e.target.closest ? e.target.closest('[data-aq-act]') : null;
-          const act = btn && btn.getAttribute('data-aq-act');
-          if (!act) return;
-          if (act === 'NEXT' && Q && Q.nextStage) Q.nextStage();
-          else if ((act === 'REPLAY' || act === 'RETRY') && Q && Q.replay) Q.replay();
-          else if (act === 'QUEST MAP' && Q && Q.returnToMap) Q.returnToMap();
-          else if (act === 'REMATCH') window.startArsenalBattleMode();
-          else if (act === 'PICK AGAIN' && M) M.openFreePick();
-          else if (act === 'HUB' && M) { window.exitArsenalBattleMode(); M.openHub(); }
+        const actions = ['REMATCH', 'PICK AGAIN', 'PRODUCT MENU'];
+        win.innerHTML = '<div class="aq-result-card"><div class="aq-result-kicker">ARSENAL RESULT</div><div class="aq-result-title">' + state.over + ' WINS</div>'
+          + '<div id="arsenal-result-actions" class="aq-result-actions">' + actions.map((action) => '<button type="button" data-arsenal-act="' + action + '">' + action + '</button>').join('') + '</div></div>';
+        win.onclick = (event) => {
+          const button = event.target && event.target.closest ? event.target.closest('[data-arsenal-act]') : null;
+          const action = button && button.getAttribute('data-arsenal-act');
+          if (!action) return;
+          if (action === 'REMATCH') window.startArsenalBattleMode();
+          else if (action === 'PICK AGAIN') window.APEX_ARSENAL_META?.openFighterPick?.({ mode: state.battleMode || 'local' });
+          else if (action === 'PRODUCT MENU') {
+            window.exitArsenalBattleMode();
+            window.APEX_ARSENAL_META?.returnToProductMenu?.();
+          }
         };
         hudLast.winKey = winKey;
         AQ_PERF.hud.winWrites += 1;
@@ -924,36 +888,53 @@
       return;
     }
     if (e.code === 'KeyT' && AQ.state && AQ.state.over) {
-      const Q = detachedQuestApi();
-      if (AQ.state.questStage && Q && Q.replay) Q.replay();
-      else window.startArsenalBattleMode();
+      window.startArsenalBattleMode();
       return;
     }
     if (e.code === 'KeyB' || e.code === 'Escape') {
-      const Q = detachedQuestApi();
       if (AQ.state && AQ.state.labMode) window.exitArsenalLab();
-      else if (AQ.state && AQ.state.questStage && Q && Q.returnToMap) Q.returnToMap();
       else window.exitArsenalBattleMode();
     }
   }
 
   let lastShells = null;
 
-  window.startArsenalBattleMode = function startArsenalBattleMode(p1Name, p2Name) {
+  function startArsenalBattleMode(p1Name, p2Name, options = {}) {
+    const shells = window.APEX_ARSENAL_SHELLS || null;
+    const want1 = p1Name || (lastShells && lastShells[0]) || null;
+    const want2 = p2Name || (lastShells && lastShells[1]) || null;
+    const localTestHost = ['localhost', '127.0.0.1', '::1'].includes(String(window.location?.hostname || ''));
+    const testFixture = options.testFixture === true && window.__APEX_TEST_MODE === true && localTestHost;
+    const isBlankFixture = testFixture && want1 === 'HERO' && want2 === 'RIVAL';
+    let types;
+
+    if (isBlankFixture) {
+      types = [HERO_TYPE, RIVAL_TYPE];
+    } else {
+      if (!shells || !want1 || !want2) return false;
+      if (testFixture) {
+        // Local acceptance harnesses may exercise visible locked shells without
+        // changing public selection authority. This seam is unavailable outside
+        // an explicitly marked localhost test run.
+        if (!shells.isVisible(want1) || !shells.isVisible(want2)) return false;
+      } else {
+        if (!shells.isPlayable(want1) || !shells.isPlayable(want2)) return false;
+        if (!options.adminLab && (!shells.canPublicSelect(want1) || !shells.canPublicSelect(want2))) return false;
+      }
+      const p1 = shells.typeFor(want1);
+      const p2 = shells.typeFor(want2);
+      if (!p1 || !p2) return false;
+      types = [p1, p2];
+    }
+
     resetState();
     if (AQ.feel && AQ.feel.resetMatch) AQ.feel.resetMatch();
-    ['menu-screen', 'select-screen', 'tournament-screen', 'end-screen', 'solo-screen', 'trial-screen', 'tam-chien-screen', 'manual-room-screen']
+    ['menu-screen', 'select-screen']
       .forEach(id => document.getElementById(id)?.classList.add('hidden'));
     const hud = document.getElementById('hud');
     if (hud) hud.style.opacity = 1;
 
-    // V2 §A3: P1/P2 canonical test shells from the shared select screen;
-    // blank HERO/RIVAL remains the direct-entry fallback (harnesses, rematch).
-    const shells = window.APEX_ARSENAL_SHELLS || null;
-    const want1 = p1Name || (lastShells && lastShells[0]) || null;
-    const want2 = p2Name || (lastShells && lastShells[1]) || null;
-    const t1 = (shells && want1 && shells.typeFor(want1)) || HERO_TYPE;
-    const t2 = (shells && want2 && shells.typeFor(want2)) || RIVAL_TYPE;
+    const [t1, t2] = types;
     lastShells = [t1.name, t2.name];
     fighters = [
       new Fighter(1, 220, GAME_SIZE / 2, t1),
@@ -1007,7 +988,15 @@
       window.addEventListener('keydown', keyListener);
     }
     AQ.log('MODE_ENTER', `mode=ARSENAL_BATTLE profile=${(AQ.state && AQ.state.battleMode) || 'LOCAL'}`);
-    try { draw(); } catch (error) { console.warn('[AQ] initial draw failed', error); }
+    try { draw(); } catch (error) { console.warn('[ARSENAL] initial draw failed', error); }
+    return true;
+  }
+  window.startArsenalBattleMode = function startProductArsenalBattle(p1Name, p2Name, options) {
+    return startArsenalBattleMode(p1Name, p2Name, options);
+  };
+  window.__apexArsenalTestStartMatch = function startArsenalTestFixture(p1Name, p2Name) {
+    if (window.__APEX_TEST_MODE !== true || !['localhost', '127.0.0.1', '::1'].includes(String(window.location?.hostname || ''))) return false;
+    return window.startArsenalBattleMode(p1Name, p2Name, { testFixture: true });
   };
 
   // Lab entry deliberately reuses the default playable shell (ROBOT after the
@@ -1040,7 +1029,7 @@
   }
 
   window.startArsenalLab = function startArsenalLab() {
-    window.startArsenalBattleMode('NEWBIE', 'NEWBIE');
+    if (!startArsenalBattleMode('ROBOT', 'ROBOT', { adminLab: true })) return false;
     const state = AQ.state;
     state.labMode = true;
     state.spawnHeld = true;
@@ -1051,7 +1040,7 @@
   };
   window.exitArsenalLab = function exitArsenalLab() {
     window.exitArsenalBattleMode();
-    window.APEX_ARSENAL_META?.openHub();
+    window.APEX_ARSENAL_META?.returnToProductMenu?.();
   };
 
   window.exitArsenalBattleMode = function exitArsenalBattleMode() {
@@ -1151,17 +1140,5 @@
   AQ.step = updateArsenalBattle;
   AQ.resetState = resetState;
 
-  // Compatibility aliases preserve existing saves, harnesses, and detached
-  // Quest code without making the retired filename/product route authoritative.
-  window.startArsenalQuestMode = function legacyStartArsenalQuestMode(...args) {
-    return window.startArsenalBattleMode?.(...args);
-  };
-  window.exitArsenalQuestMode = function legacyExitArsenalQuestMode(...args) {
-    return window.exitArsenalBattleMode?.(...args);
-  };
-  window.getArsenalQuestDebugState = function legacyGetArsenalQuestDebugState(...args) {
-    return window.getArsenalBattleDebugState?.(...args);
-  };
-  window.apexArsenalQuestRuntime = 'compat-ready';
   window.apexArsenalBattleRuntime = 'ready';
 })();

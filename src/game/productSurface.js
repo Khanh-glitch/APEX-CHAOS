@@ -1,22 +1,21 @@
 // APEX CHAOS pre-pilot product graph.
 //
 // This is the single semantic authority for what the product exposes. It is
-// intentionally framework-free so React, classic Arsenal runtimes, headless
-// gates, and developer tooling all query the same graph rather than keeping
-// their own route/roster allowlists.
+// intentionally framework-free so React, the neutral Arsenal runtime,
+// acceptance gates, and developer tooling all query one graph rather than
+// maintaining parallel route or roster allowlists.
 
 export const PRODUCT_AVAILABILITY = Object.freeze({
   ACTIVE: 'ACTIVE',
   LOCKED: 'LOCKED',
   ADMIN: 'ADMIN',
-  LEGACY_DETACHED: 'LEGACY / DETACHED',
 });
 
-const { ACTIVE, LOCKED, ADMIN, LEGACY_DETACHED } = PRODUCT_AVAILABILITY;
+const { ACTIVE, LOCKED, ADMIN } = PRODUCT_AVAILABILITY;
 
 // Stable storage IDs stay canonical. ICE may be displayed as FROST by the
-// Hero Registry; display copy is deliberately resolved at render time rather
-// than duplicating a second name authority here.
+// Hero Registry; display copy is resolved at render time rather than duplicated
+// as another naming authority here.
 const VISIBLE_ROSTER_IDS = Object.freeze([
   'ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR',
   'BLACK_HOLE', 'MATH_V2', 'RUBBER', 'TIME', 'SLIME', 'SNIPER',
@@ -32,14 +31,15 @@ function surface(id, title, availability, detail, extra = {}) {
   return Object.freeze({ id, title, availability, detail, ...extra });
 }
 
-// Ordering is intentional: it is the normal-public navigation graph. ADMIN
-// and detached entries remain queryable below but do not appear here.
+// Ordering is intentional: playable product surfaces appear first, followed
+// by the six visible locked roadmap surfaces. ADMIN is separate from public
+// navigation and can only launch through its explicit owner seam.
 const PUBLIC_SURFACES = Object.freeze([
-  surface('quest-01', 'Quest 01', LOCKED, 'Quest 01 is not available in the pre-pilot build.'),
   surface('bot-battle', 'Bot Battle', ACTIVE, 'Choose a fighter and face the accepted Arsenal CPU.', { route: 'bot' }),
-  surface('local-1v1', 'Local 1v1', ACTIVE, 'Choose two owned Core Six fighters and launch Arsenal Free Battle.', { route: 'local' }),
+  surface('local-1v1', 'Local 1v1', ACTIVE, 'Choose two owned Core Six fighters and launch Arsenal Battle.', { route: 'local' }),
   surface('fighter-shop', 'Fighter Shop', ACTIVE, 'Unlock available Core Six fighters for 1000 AC.', { route: 'shop' }),
   surface('lucky-draw', 'Lucky Draw', ACTIVE, 'Draw one available Core Six fighter for 350 AC.', { route: 'draw' }),
+  surface('quest-01', 'Quest 01', LOCKED, 'Quest 01 is a future surface and is not available in the pre-pilot build.'),
   surface('fighter-upgrade', 'Fighter Upgrade', LOCKED, 'Fighter Upgrade is not available in the pre-pilot build.'),
   surface('dictionary', 'Dictionary', LOCKED, 'Dictionary is not available in the pre-pilot build.'),
   surface('missions', 'Missions', LOCKED, 'Missions are not available in the pre-pilot build.'),
@@ -53,19 +53,7 @@ const ADMIN_SURFACES = Object.freeze([
     { route: 'lab', publicNavigation: false, launchHint: 'window.apexLaunchArsenalLab()' }),
 ]);
 
-// These names remain queryable so compatibility code cannot silently become
-// product authority. They are explicitly non-launchable from normal UI.
-const DETACHED_SURFACES = Object.freeze([
-  surface('classic-play', 'Classic Play', LEGACY_DETACHED, 'Retired public route.'),
-  surface('apex-control', 'APEX CONTROL', LEGACY_DETACHED, 'Retired public route.'),
-  surface('three-phase-battle', '3-Phase / Tam Chien', LEGACY_DETACHED, 'Retired public route.'),
-  surface('saitama-trial', 'Saitama Trial', LEGACY_DETACHED, 'Retired public route.'),
-  surface('tournament', 'Tournament', LEGACY_DETACHED, 'Retired public route.'),
-  surface('standalone-solo', 'Standalone Solo', LEGACY_DETACHED, 'Retired public route.'),
-  surface('arsenal-quest-ladder', 'Arsenal Quest Ladder', LEGACY_DETACHED, 'Retired compatibility route.'),
-]);
-
-const ALL_SURFACES = Object.freeze([...PUBLIC_SURFACES, ...ADMIN_SURFACES, ...DETACHED_SURFACES]);
+const ALL_SURFACES = Object.freeze([...PUBLIC_SURFACES, ...ADMIN_SURFACES]);
 const SURFACES_BY_ID = new Map(ALL_SURFACES.map((entry) => [entry.id, entry]));
 
 function normalizeId(id) {
@@ -80,10 +68,9 @@ export function getProductSurface(id) {
   return cloneSurface(SURFACES_BY_ID.get(normalizeId(id)));
 }
 
-export function listProductSurfaces({ includeAdmin = false, includeDetached = false } = {}) {
+export function listProductSurfaces({ includeAdmin = false } = {}) {
   const list = [...PUBLIC_SURFACES];
   if (includeAdmin) list.push(...ADMIN_SURFACES);
-  if (includeDetached) list.push(...DETACHED_SURFACES);
   return list.map(cloneSurface);
 }
 
@@ -141,6 +128,6 @@ export function installProductSurfaceAuthority(scope = globalThis) {
 }
 
 // The React entry is evaluated before deferred classic scripts. Registering
-// here gives legacy-compatible runtimes one authoritative global seam without
-// making the product graph depend on a second /public copy.
+// here gives the active runtimes one authoritative global seam without making
+// the product graph depend on a second /public copy.
 if (typeof window !== 'undefined') installProductSurfaceAuthority(window);

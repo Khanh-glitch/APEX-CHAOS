@@ -1,15 +1,15 @@
 /* =============================================================================
  * APEX CHAOS — Hero Rework Registry (canonical product authority).
  *
- * HeroDefinitions for the canonical playable 12:
+ * HeroDefinitions for the canonical visible 12 (Core Six playable; six locked):
  *   ROBOT, CRYSTAL, MAGNET, BLACK_HOLE, MATH_V2, ICE, RUBBER,
  *   HUNTER, TIME, MIRROR, SLIME, SNIPER.
  *
  * Authority: docs/hero-rework/phase1/02_LEVEL1_CANONICAL_BASELINE_V1_2.md
  *            docs/hero-rework/phase1/03_HERO_DEFINITION_CONTRACT_V1_FINAL.md
  *            docs/hero-rework/phase1/04 (progression knob map)
- *            docs/hero-rework/phase1/06 (roster correction: playable roster
- *            only — Quest boss identities stay in their own encounter class)
+ *            docs/hero-rework/phase1/06 (pre-pilot roster correction: six
+ *            playable fighters; the remaining six stay visibly locked)
  *
  * Laws encoded here:
  *   - Lv1 baseConfig is EXACTLY the canonical baseline (hard law).
@@ -111,7 +111,7 @@
       id: 'ROBOT',
       name: 'ROBOT',
       // Product display copy only; storage/canonical id stays ROBOT.
-      displayName: 'NEWBOT',
+      displayName: 'ROBOT',
       classRef: 'rework.robot',
       skills: {
         A1: skill('robot.weapon_dash', 'A1', 'robot.weapon_dash', {

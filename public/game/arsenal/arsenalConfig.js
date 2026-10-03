@@ -1,8 +1,8 @@
-// ARSENAL QUEST P0 — central tuning constants + shared runtime plumbing.
-// Authoritative spec: docs/arsenal-quest/AGENT_HANDOFF.md
+// ARSENAL BATTLE — shared tuning constants and runtime plumbing.
+// Current product authority: docs/CURRENT_PRODUCT_AUTHORITY.md
 // Classic-script runtime; keep execution-order conventions (see src/game/runtimeManifest.js).
-(function apexArsenalQuestConfig() {
-  if (window.apexArsenalQuestConfig === 'ready') return;
+(function apexArsenalConfig() {
+  if (window.apexArsenalConfig === 'ready') return;
 
   // First-pass tuning values from the handoff. All gameplay numbers live here
   // (or in the weapon registry below) so balance passes never touch logic.
@@ -93,13 +93,11 @@
   };
 
   /* ══ POST-C OWNER FEEDBACK REVISION ═══════════════════════════════════════
-   * docs/arsenal-quest/POST_C_OWNER_FEEDBACK_REVISION_CONTRACT.md is the
-   * authority for this block.
+   * The accepted Arsenal tuning contract is preserved in this shared block.
    *  §3 every staged Senko v9 gun is a separately spawnable weapon (data-driven
    *     registry — adding a gun never means another hand-written runtime);
    *  §4 weighted pickup selection (melee 0.5x, baseline 1.0x);
    *  §5 melee damage authority x1.5 + thrown-melee rules;
-   *  §7 NEWBIE hero tuning.
    * ══════════════════════════════════════════════════════════════════════ */
 
   // ── §3 data-driven gun registry ──────────────────────────────────────────
@@ -314,7 +312,6 @@
     mirrorLocal: true,
   };
 
-  // ── §7 NEWBIE hero tuning ────────────────────────────────────────────────
   // ── §B7 red-tier (T6) hero-manipulation immunity ─────────────────────────
   // While a red-tier weapon sits as a floor pickup, hero manipulation must
   // not move, yank, auto-acquire, deny, or reroute it: no magnetic pull, no
@@ -331,14 +328,7 @@
     return !(slot.weaponId && CONFIG.tierOf && CONFIG.tierOf(slot.weaponId) === 'T6');
   };
 
-  CONFIG.NEWBIE = {
-    cooldown: 10,             // one active skill, 10s cooldown
-    dashSpeed: 3400,          // fast — tuned in the real browser
-    dashMaxSeconds: 0.55,     // fail-safe: never an endless chase
-    turnRate: 11,             // trajectory bending (steering, rad/s)
-    magnetRadius: 34,         // pickup collected when the dash passes this close
-    magnetPull: 900,          // gentle last-metre pull on the pickup itself
-  };
+
 
   CONFIG.GUN_REGISTRY = GUN_REGISTRY;
   CONFIG.GUN_FAMILIES = GUN_FAMILIES;
@@ -378,7 +368,7 @@
   };
   CONFIG.HEAL_IDS = ['HEAL_H1', 'HEAL_H2', 'HEAL_H3', 'HEAL_H4', 'HEAL_H5'];
 
-  // P0 roster order matches docs/arsenal-quest/P0_ASSET_MANIFEST.csv
+  // Active weapon roster and order.
   // Spawn roster (POST-C §3): all 24 staged Senko v9 guns are separately
   // spawnable, plus GRENADE, the 5 melee weapons and the 2 shields.
   CONFIG.P0_WEAPON_IDS = [
@@ -392,10 +382,10 @@
     config: CONFIG,
     // Installed by the neutral Arsenal Battle core on mode entry; spawn/weapon runtimes read it.
     state: null,
-    // Ring buffer of structured [AQ] events (handoff §11).
+    // Ring buffer of structured [ARSENAL] events (handoff §11).
     events: [],
     log(event, fields) {
-      const line = fields ? `[AQ] ${event} ${fields}` : `[AQ] ${event}`;
+      const line = fields ? `[ARSENAL] ${event} ${fields}` : `[ARSENAL] ${event}`;
       console.log(line);
       API.events.push(line);
       if (API.events.length > 160) API.events.splice(0, API.events.length - 160);
@@ -413,8 +403,8 @@
 
   // ── CP7 (owner playtest round 4) — gameplay-ready barrier ──────────────
   // The Arsenal HUB opens fast on its small critical-path group (CP6), but
-  // every transition from the hub INTO gameplay (Lab, Free Battle START,
-  // Quest stage, re-entry) is a HARD barrier: the combat shell, fighters,
+  // every transition from the product menu INTO gameplay (Lab, Bot/Local
+  // Battle START, re-entry) is a HARD barrier: the combat shell, fighters,
   // battle controls and Lab controls must not exist until the full
   // arsenalProduct tier has loaded AND its presentation init (image atlas
   // fetch/decode) has settled. Script evaluation alone is not readiness.
@@ -568,5 +558,5 @@
     };
     tick();
   })();
-  window.apexArsenalQuestConfig = 'ready';
+  window.apexArsenalConfig = 'ready';
 })();

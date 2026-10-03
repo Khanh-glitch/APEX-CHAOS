@@ -203,7 +203,7 @@ win.eval(`(() => {
     pushSlot(o) { const s = APEX_ARSENAL.state; const slot = Object.assign({ id: s.nextSlotId++, x: 500, y: 500, phase: 'REVEALED', weaponId: 'PISTOL', revealLeadSeconds: 1.5, revealedFor: 0, pickedBy: null, rejectedFor: {}, spawnTime: s.time, predictedHeroETA: null, predictedRivalETA: null, earliestETA: null, predictedFighter: null }, o); s.slots.push(slot); return slot.id; },
     events() { return APEX_ARSENAL.events.slice(); },
     clearEvents() { APEX_ARSENAL.events.length = 0; },
-    countEvents(prefix, filter) { return APEX_ARSENAL.events.filter(e => e.startsWith('[AQ] ' + prefix) && (!filter || e.includes(filter))).length; },
+    countEvents(prefix, filter) { return APEX_ARSENAL.events.filter(e => e.startsWith('[ARSENAL] ' + prefix) && (!filter || e.includes(filter))).length; },
     hr() { return APEX_HERO_REWORK; },
     fighters: () => fighters,
     projectiles: () => projectiles,
@@ -398,7 +398,7 @@ function parityScenario(forceBase) {
   const realRandom = win.Math.random;
   win.Math.random = () => { seedState = (seedState * 1103515245 + 12345) & 0x7fffffff; return seedState / 0x7fffffff; };
   try { T.step(1.5); } finally { win.Math.random = realRandom; }
-  const events = T.events().filter((e) => e.startsWith('[AQ] '));
+  const events = T.events().filter((e) => e.startsWith('[ARSENAL] '));
   const out = {
     hp: T.hp(),
     hits: events.filter((e) => e.includes('HIT')).map((e) => e.replace(/x=\d+ y=\d+/, '')),

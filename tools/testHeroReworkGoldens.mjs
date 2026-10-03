@@ -739,7 +739,7 @@ try {
   T.equip(1, 'PISTOL');
   win.APEX_ARSENAL.events.length = 0;
   T.step(2.5);
-  const hitLogs = win.APEX_ARSENAL.events.filter(e => e.startsWith('[AQ] HIT')).length;
+  const hitLogs = win.APEX_ARSENAL.events.filter(e => e.startsWith('[ARSENAL] HIT')).length;
   const takenDelta = slimeCt.telemetry.damageTaken - taken0;
   const oneRealize = hitLogs === 0 ? takenDelta === 0 : (takenDelta > 0 && !Number.isNaN(takenDelta));
   const hpAfter = win.fighters[0].hp;

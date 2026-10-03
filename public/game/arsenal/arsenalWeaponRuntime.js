@@ -1,4 +1,4 @@
-// ARSENAL QUEST P0 — weapon registry + holder-state runtime (handoff §7, §9).
+// ARSENAL BATTLE — weapon registry + holder-state runtime.
 // Data-driven definitions; no scattered string-conditionals in the engine.
 // Reuses Apex globals: projectiles, particles, floatingTexts, shockwaves, cameraShake,
 // hitStop, FloatingText, emitParticles, spawnShockwave, triggerFlash, playFighterSound.
@@ -324,7 +324,7 @@
     if (!h) return;
     h.consumed = true;
     snapshotPoseGhost(f, h);
-    if (h.def.cleanup) { try { h.def.cleanup(makeCtx(f)); } catch (error) { console.warn('[AQ] weapon cleanup failed', h.weaponId, error); } }
+    if (h.def.cleanup) { try { h.def.cleanup(makeCtx(f)); } catch (error) { console.warn('[ARSENAL] weapon cleanup failed', h.weaponId, error); } }
     f.data.arsenal = null; // holder returns to UNARMED; no stale owner/target refs remain
     log('CONSUME', `fighter=${f.name} weapon=${h.weaponId}${reason ? ` reason=${reason}` : ''}`);
   }
@@ -1016,7 +1016,7 @@
     const y = f.y + Math.sin(angle) * ox + Math.sin(angle + Math.PI / 2) * oy;
     const long = meleeDrawLong(weaponId);
     // Correction pass: STORMBREAKER collision radius is the explicit
-    // gameplay authority in arsenalQuestConfig (THROWN_MELEE-free) — it must
+    // gameplay authority in arsenalConfig (THROWN_MELEE-free) — it must
     // not move when the presentation long side shrinks. Other thrown melee
     // keep the historical formula.
     const radius = weaponId === 'STORMBREAKER'

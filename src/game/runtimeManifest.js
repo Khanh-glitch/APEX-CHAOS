@@ -1,44 +1,30 @@
 // Cache-bust classic runtime scripts that live under /public and therefore do
-// not receive Vite content hashes. Without this, stable Cloudflare branch
-// aliases can serve a previous Arsenal runtime even when index.html is new.
-// CP7: gameplay-ready barriers + start-of-match fail-cue fix — cache-bust
-// every runtime that changed in this pass (config/presentation/meta/
-// shellSelect/ladder).
-// Frost eye cleanup: remove trailing eye ribbon; boost only the existing eye
-// asset while Frost overlaps its own active ice surface.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r34';
+// not receive Vite content hashes. This is the single product-runtime
+// transition from 20261003-mirror-v1-r34 to r35; keep its lock and generated
+// expectations in sync.
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r35';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by
-// historical placement (authority §A2). Tiers:
+// Runtime loading is classified by NEED, not by historical placement.
 //   Tier 0  critical boot shell      — React bundle + loader art (index.html).
-//   Tier 1  menu interactive         — engine + the one runtime the menu nav
-//                                      path actually calls into (audio bridge).
-//   Tier 2  likely-next warmup       — after the menu is interactive, warm the
-//                                      active Arsenal product core, then select.
-//                                      Detached legacy groups never warm.
-//   Tier 3  intent-based             — a route click raises that route's group
-//                                      to high priority and waits only for it.
-//   Tier 4  match-specific           — assets actually needed by the selected
-//                                      fighters/arena/encounter (loaded by the
-//                                      runtimes themselves when they run).
-//   Tier 5  deep lazy / rare         — Lab-only extras and legacy-mode assets
-//                                      never sit on the first-interaction path.
+//   Tier 1  menu interactive         — engine + menu audio bridge.
+//   Tier 2  likely-next warmup       — active Arsenal product core, then select.
+//   Tier 3  intent-based             — a product action raises only its active
+//                                      shared-engine/runtime group to priority.
+//   Tier 4  match-specific           — assets required by the selected fighters
+//                                      or arena are loaded by their runtimes.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Tier 1 — menu interactive. The engine's menu navigation (goToMenu /
-// goToSelect / goToTournament / exitAutoBattle) calls stopBattleAudio(), which
-// lives in apexBattleAudioRuntime. Nothing else from the old boot list is
-// referenced before a route is entered (verified by call-graph audit + browser
-// gate). The audio runtime also owns the eager AudioContext bootstrap.
+// Tier 1 — menu interactive. The engine's menu navigation uses the audio
+// session runtime. Nothing else is needed before a product surface is entered.
 export const MENU_INTERACTIVE_RUNTIMES = [
   ['/game/core/apexBattleAudioRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBattleAudioRuntime'],
 ];
 
-// Roster/fighter runtimes. Relative order is the historical boot order and is
-// load-bearing: several of these chain-wrap populateRoster /
-// syncSelectedFighterVfx (engineer → galaxy → katana → fang …), so the order
-// must be preserved inside every group that includes them.
+// Shared engine roster/fighter patch chain. Relative order is load-bearing:
+// several runtimes wrap populateRoster / syncSelectedFighterVfx in sequence.
+// These engine files remain shared infrastructure; product selectability is
+// still governed only by src/game/productSurface.js.
 export const ROSTER_RUNTIMES = [
   ['/game/fighters/shotgunRuntime.js', 'apexShotgunRuntime'],
   ['/game/fighters/engineerRuntime.js', 'apexEngineerRuntime'],
@@ -60,9 +46,7 @@ export const ROSTER_RUNTIMES = [
   ['/game/fighters/fangRuntime.js', 'apexFangRuntime'],
 ];
 
-// Combat leaf runtimes the engine's draw/update paths call (battle only —
-// drawRosterPreview additionally needs renderPrimitives, hence its presence in
-// the select group below).
+// Combat leaf runtimes called by the shared engine's draw/update paths.
 export const COMBAT_CORE_RUNTIMES = [
   ['/game/core/apexBattleSfxRuntime.js', 'apexBattleSfxRuntime'],
   ['/game/core/apexRenderPrimitives.js', 'apexRenderPrimitives'],
@@ -70,31 +54,32 @@ export const COMBAT_CORE_RUNTIMES = [
   ['/game/core/apexMajorMechanicVisuals.js', 'apexMajorMechanicVisuals'],
 ];
 
-// PASS B: universal combat HUD state adapter + renderer (battle shell).
+// Universal combat HUD state adapter + renderer.
 export const HUD_RUNTIMES = [
   ['/game/ui/apexCombatHudRuntime.js', 'apexCombatHudRuntime'],
 ];
 
-// JSON character-select presentation (wraps populateRoster at load time).
+// Shared character-select presentation.
 export const PICK_RUNTIMES = [
   ['/game/ui/apexPickRuntime.js', 'apexPickRuntime'],
 ];
 
-// Tier 3 — the character-select route: roster patches + pick presentation.
-// renderPrimitives comes first because drawRosterPreview calls drawSketchBlob.
+// The shared select route needs render primitives before roster patches.
 export const SELECT_RUNTIMES = [
   COMBAT_CORE_RUNTIMES[1], // apexRenderPrimitives
   ...ROSTER_RUNTIMES,
   ...PICK_RUNTIMES,
 ];
 
-// Battle core = everything a match needs that is not select-specific.
+// Battle core = engine draw/update leaves, roster patches, and the combat HUD.
 export const BATTLE_CORE_RUNTIMES = [
   ...COMBAT_CORE_RUNTIMES,
   ...ROSTER_RUNTIMES,
   ...HUD_RUNTIMES,
 ];
 
+// Shared engine extras required by the current battle path. The ordering is
+// preserved because these scripts wrap shared match lifecycle and rendering.
 export const BATTLE_DEFERRED_RUNTIMES = [
   ['/game/core/apexFightTelemetry.js', 'apexFightTelemetry'],
   ['/game/fighters/musicianVisualRuntime.js', 'apexMusicianVisualRuntime'],
@@ -113,28 +98,19 @@ export const BATTLE_DEFERRED_RUNTIMES = [
   ['/game/core/apexPoseLockRuntime.js', 'apexPoseLockRuntime'],
 ];
 
-// Full battle group (core + historically deferred battle extras).
+// Full shared battle group (core + active engine extras).
 export const BATTLE_RUNTIMES = [
   ...BATTLE_CORE_RUNTIMES,
   ...BATTLE_DEFERRED_RUNTIMES,
 ];
 
-export const SOLO_RUNTIMES = [
-  ['/game/modes/soloRuntime.js', 'apexSoloRuntime'],
-];
-export const TRIAL_RUNTIMES = [
-  ['/game/modes/trialRuntime.js', 'apexTrialRuntime'],
-];
-
-// Active Arsenal product core. It is intentionally neutral: Free Battle,
-// Bot Battle, Shop/Draw, and the developer Lab share this combat chain, while
-// the retired 20-stage ladder is loaded only by ARSENAL_LEGACY_QUEST_RUNTIMES.
-// Order remains load-bearing: the neutral battle runtime mounts before Hero
-// Rework wraps its lifecycle hooks.
+// Active neutral Arsenal product runtime. Bot Battle, Local 1v1, Shop/Draw,
+// and the admin-only Lab share this chain. The neutral config and battle
+// runtime are the only product authority for Arsenal combat.
 export const ARSENAL_PRODUCT_RUNTIMES = [
   ...BATTLE_CORE_RUNTIMES,
   ['/game/arsenal/arsenalCWeaponSet.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalCSet'],
-  ['/game/arsenal/arsenalQuestConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestConfig'],
+  ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalConfig'],
   ['/game/arsenal/arsenalIdentityRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalIdentityRuntime'],
   ['/game/arsenal/arsenalWeaponRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalWeaponRuntime'],
   ['/game/arsenal/arsenalSpawnRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalSpawnRuntime'],
@@ -142,18 +118,12 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/arsenal/arsenalFeelRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalFeelRuntime'],
   ['/game/arsenal/arsenalStormbreakerVfxRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalStormbreakerVfxRuntime'],
   ['/game/arsenal/arsenalManualSkillGate.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalManualSkillGate'],
-  // Registry before shell selection: product roster law is enforced at shell
-  // and mutation seams, never only in a painted card.
   ['/game/hero-rework/ailRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkAil'],
   ['/game/hero-rework/heroRegistry.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRegistry'],
   ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
   ['/game/arsenal/arsenalChamberPaletteRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalChamberPaletteRuntime'],
   ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
-  // Neutral common battle runtime. The old arsenalQuestRuntime file is only a
-  // detached compatibility bridge and is never part of this product group.
   ['/game/modes/arsenalBattleRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalBattleRuntime'],
-  // CRYSTALA V1: gameplay-neutral Gold rig (authored motion/material) and the
-  // real gameplay truth module. Both load BEFORE mechanics/integration.
   ['/game/hero-rework/crystalaGoldV6.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalaGoldV6'],
   ['/game/hero-rework/crystalGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalGameplayRuntime'],
   ['/game/hero-rework/frostGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostGameplayRuntime'],
@@ -172,73 +142,44 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/hero-rework/mirrorPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMirrorPresentationRuntime'],
 ];
 
-// Compatibility-only bundle for saved links and developer archaeology. This
-// group is deliberately absent from normal boot, public navigation, and
-// warmup. It receives the neutral core first, then the bridge and retired map.
-export const ARSENAL_LEGACY_QUEST_RUNTIMES = [
-  ...ARSENAL_PRODUCT_RUNTIMES,
-  ['/game/modes/arsenalQuestRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestRuntime'],
-  ['/game/arsenal/arsenalQuestLadder.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestLadder'],
-];
-
+// Product/admin groups only. All other product routes have been removed rather
+// than retained as compatibility loaders.
 export const MODE_DEFERRED_RUNTIMES = {
-  manualLab: [
-    ...BATTLE_CORE_RUNTIMES,
-    ['/game/modes/apexControlChampionSkills.js', 'apexControlChampionSkills'],
-    ['/manualLab.js', 'apexManualLab'],
-    ['/game/network/apexRealtimeMultiplayer.js', 'apexRealtimeMultiplayer'],
-    ['/manualLabOnline.js', 'apexManualLabOnline', { optional: true }],
-  ],
-  solo: SOLO_RUNTIMES,
-  trial: TRIAL_RUNTIMES,
-  tamChien: [
-    ...BATTLE_CORE_RUNTIMES,
-    ['/game/modes/tamChienRuntime.js', 'apexTamChienRuntime'],
-  ],
   arsenalProduct: ARSENAL_PRODUCT_RUNTIMES,
-  arsenalLegacyQuest: ARSENAL_LEGACY_QUEST_RUNTIMES,
-  // Compatibility alias for existing diagnostics, saved developer links, and
-  // historical acceptance harnesses. It is detached because no normal public
-  // route or warmup requests it; new product callers must use arsenalProduct.
-  arsenalQuest: ARSENAL_LEGACY_QUEST_RUNTIMES,
-  select: SELECT_RUNTIMES,
   battle: BATTLE_RUNTIMES,
-  // Historical load order (battle core → mode → battle deferred) preserved.
-  soloBattle: [...BATTLE_CORE_RUNTIMES, ...SOLO_RUNTIMES, ...BATTLE_DEFERRED_RUNTIMES],
-  trialBattle: [...BATTLE_CORE_RUNTIMES, ...TRIAL_RUNTIMES, ...BATTLE_DEFERRED_RUNTIMES],
+  battleDeferred: BATTLE_DEFERRED_RUNTIMES,
+  select: SELECT_RUNTIMES,
 };
 
-export const DEFERRED_GAME_RUNTIMES = [
-  ...BATTLE_RUNTIMES,
-  ...MODE_DEFERRED_RUNTIMES.manualLab.filter((entry) => !BATTLE_RUNTIMES.some((b) => b[0] === entry[0])),
-  ...MODE_DEFERRED_RUNTIMES.solo,
-  ...MODE_DEFERRED_RUNTIMES.trial,
-  ...MODE_DEFERRED_RUNTIMES.tamChien.filter((entry) => !BATTLE_RUNTIMES.some((b) => b[0] === entry[0])),
-  ...MODE_DEFERRED_RUNTIMES.arsenalProduct.filter((entry) => !BATTLE_RUNTIMES.some((b) => b[0] === entry[0])),
-  ...MODE_DEFERRED_RUNTIMES.select.filter((entry) => !BATTLE_RUNTIMES.some((b) => b[0] === entry[0])),
-];
+function uniqueRuntimeEntries(groups) {
+  const seen = new Set();
+  return groups.filter(([src]) => {
+    const key = String(src).split(/[?#]/, 1)[0];
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
-// Tier 2 — background warmup order after the menu is interactive.
-// Correction pass (menu responsiveness): warm ONLY the genuinely likely-next
-// groups — active Arsenal product then select. Legacy modes
-// (classic battle, solo/trial/tamChien, manual lab) are route-intent /
-// deep-lazy: their groups load when actually clicked, never on the menu.
-// Measured on the deployed build: the old 7-group sequence put ~3.4s of long
-// tasks on the first menu seconds (arcadeVisualRuntime alone evaluated for
-// 1.18s). Loading remains sequential and priority-preemptable (see loader).
+// Back-compat aggregate consumed by diagnostics and preload tooling. It now
+// contains only the shared engine, active product, and selection chain.
+export const DEFERRED_GAME_RUNTIMES = uniqueRuntimeEntries([
+  ...BATTLE_RUNTIMES,
+  ...ARSENAL_PRODUCT_RUNTIMES,
+  ...SELECT_RUNTIMES,
+]);
+
+// Tier 2 — background warmup after the menu is interactive. These are the
+// only groups that benefit the pre-pilot product's first interactions.
 export const WARMUP_GROUP_SEQUENCE = [
   'arsenalProduct',
   'select',
 ];
 
-// Product meta's critical path. Shop/Draw/selection intent needs only its
-// save/config/shell/meta scripts; heavy battle core, presentation, and AV
-// remain in the active product group. No detached Quest ladder dependency is
-// present here.
+// Product meta's critical path. Shop/Draw/selection needs save/config/shell
+// scripts; combat presentation and AV remain lazy until the battle is entered.
 export const ARSENAL_HUB_RUNTIMES = [
-  ['/game/arsenal/arsenalQuestConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestConfig'],
-  // HERO REWORK: tiny pure-JS registry (no assets) so the hub's shell/meta
-  // cards already reflect the playable-12 cutover. Keeps hub entry fast.
+  ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalConfig'],
   ['/game/hero-rework/ailRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkAil'],
   ['/game/hero-rework/heroRegistry.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRegistry'],
   ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
@@ -246,10 +187,8 @@ export const ARSENAL_HUB_RUNTIMES = [
   ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
 ];
 
-// Back-compat aggregate: the engine-following set the old boot list implied
-// (menu + battle core + select presentation), in the historical order. Used by
-// the headless harness so it exercises the same world a real browser reaches
-// after warmup.
+// Shared-engine set used by headless/current-hero gates. Its historical order
+// remains stable; product-specific behavior is loaded separately above.
 export const BOOT_GAME_RUNTIMES = [
   ...MENU_INTERACTIVE_RUNTIMES,
   ...COMBAT_CORE_RUNTIMES,
