@@ -813,33 +813,121 @@ The player should discover these facts through the world and story.
 
 ---
 
-# 19. DAY ZERO — OPENING IMAGE
+# 19. DAY ZERO — QUEST 01 OPENING FOUNDATION
 
-The current intended opening foundation:
+## 19.1 NEWBOT wakes — OWNER CORE
 
-NEWBOT lies discarded in the Scrap region.
+NEWBOT lies discarded inside a sealed Scrap Basin used to dispose of failed units and material from THE BOT Project.
 
 Its memory is gone.
 
-It wakes after the Botfall era has already transformed the world.
+It wakes beneath a mountain of discarded machines and discovers that the basin is enormous, isolated and surrounded by a high containment wall.
 
-A weapon-related event/Drop provides an immediate gameplay stimulus.
+A Weapon Drop appears.
 
-NEWBOT instinctively recognizes the weapon-management/combat context even though it does not remember its own past.
+Before NEWBOT can understand what it is, its body reacts automatically and moves to acquire the weapon.
 
-The opening should teach:
-- movement;
-- weapon opportunity;
-- competition for weapons;
-- the danger of Fallen Bots
+A second discarded Bot, referred to here as **BOT**, also wakes and reacts to the same Drop.
 
-before explaining cosmic lore.
+NEWBOT reaches the weapon first and fires on BOT through an automatic combat/acquisition response that neither character consciously understands.
+
+NEWBOT is immediately disturbed by what it has done.
+
+A second Drop appears near BOT. BOT is pulled into the same behavior, acquires the weapon and fires back.
+
+The first playable battle therefore begins because both characters are discovering the same disturbing fact:
+
+> **their bodies know how to fight before their conscious minds know why.**
+
+## 19.2 BOT2 and Stormbreaker — OWNER CORE
+
+A third discarded unit, **BOT2**, has been awake in the Scrap Basin for longer.
+
+BOT2 has salvaged an exceptional fallen weapon:
+
+> **Stormbreaker**
+
+and incorporated it into a crude machine.
+
+BOT2 has discovered that controlled electrical discharge from Stormbreaker can temporarily interrupt the automatic weapon-acquisition/combat behavior of Bot hardware.
+
+When NEWBOT and BOT's first fight becomes dangerous, BOT2 uses this system to disable both of them and brings them back to its workshop.
+
+BOT2, BOT and NEWBOT are all rejected products associated with the Bot era rather than heroic chosen units.
+
+The exact technical history of each rejected prototype may be refined later, but NEWBOT remains distinct in one crucial way:
+
+> it was discarded before full Bot-network integration and therefore lacks the same valid network identity carried by ordinary integrated Bots.
+
+This later becomes important to its survival.
+
+## 19.3 The Scrap Basin begins waking — OWNER CORE + STRONG WORKING DIRECTION
+
+Quest 01 must **not** reveal the Bot virus as a sudden one-scene surprise.
+
+After NEWBOT, BOT and BOT2 become active together, dormant Bots throughout the Scrap Basin begin waking in small and then increasingly aggressive groups.
+
+At first the three characters do not know why.
+
+They may reasonably suspect:
+- power returning to old disposal infrastructure;
+- Stormbreaker interference;
+- local Bot systems reacting to Weapon Drops;
+- a fault spreading through abandoned machinery.
+
+The attacks become progressively harder and more coordinated.
+
+At the same time, Weapon Drop behavior inside the basin becomes increasingly unstable, including periods in which weapons appear at an abnormally high rate.
+
+The characters should therefore **experience the symptoms before they can name the cause**.
+
+The current strong working interpretation is that activity around the three awakened units, Stormbreaker and old infrastructure is gradually re-energizing or exposing dead local Bot-network pathways. Corrupted commands from the wider Bot network begin leaking into the basin rather than arriving as one instantaneous event.
+
+Do not reveal the alien origin of the corruption during Quest 01.
+
+## 19.4 Quest 01 emotional core — OWNER CORE
+
+Quest 01 is fundamentally about the relationship between NEWBOT and BOT.
+
+Their relationship begins with involuntary violence.
+
+It develops through surviving repeated attacks together.
+
+BOT must become the first person NEWBOT genuinely trusts and considers a friend.
+
+By the end of the Quest, BOT becomes corrupted strongly enough that it can no longer safely remain beside NEWBOT.
+
+BOT eventually uses Stormbreaker in the final escape sequence and sacrifices itself so NEWBOT can leave the Scrap Basin.
+
+The emotional payoff is built around the contrast:
+
+At the beginning, BOT cannot stop itself from attacking.
+
+At the end, BOT finally makes a conscious choice and **stops**.
+
+NEWBOT leaves the basin carrying:
+- the loss of its first friend;
+- evidence that something outside is controlling Bots;
+- evidence that the outside world is unstable;
+- the knowledge that the same control does not affect it normally;
+- a reason to discover why.
+
+## 19.5 Story/gameplay law for Quest 01 — OWNER DIRECTION
+
+Quest 01 should preserve Arsenal Battle as the dominant playable language.
+
+Gameplay variety should come from understandable variations of the same core:
+- standard 1v1 Arsenal combat;
+- one-versus-many fights against weaker Bots;
+- high-frequency Weapon Drop encounters;
+- defensive survival against awakening scrap units;
+- scripted interaction with Stormbreaker and its charging system.
+
+Do not turn the opening Quest into a collection of unrelated minigames.
 
 Guiding principle:
 
-> **The player learns EAX-1 by surviving inside it, not by watching a lore lecture.**
-
-The exact first quest trigger remains **OPEN**.
+> **The player learns EAX-1 by surviving inside it, and the mystery becomes visible through changes in the same Arsenal rules they are learning.**
 
 ---
 
@@ -963,21 +1051,62 @@ Do not answer these by accident.
 
 Do **not** immediately write biographies for all 12 heroes.
 
-Recommended next step:
+Quest 01 now has an approved story spine.
 
-> Design the playable opening from NEWBOT's first boot through the first clear Quest objective.
+The next authoring work should therefore move outward from the Scrap Basin rather than adding more disconnected opening lore:
 
-That opening should establish Present-Day EAX-1 through action:
-- scrapyard;
-- first weapon opportunity;
-- first corrupted Bot;
-- first sign of human civilization;
-- first reason NEWBOT must leave the scrapyard.
+1. lock the exact playable encounter order and tuning for Quest 01;
+2. lock the final BOT / Stormbreaker escape presentation;
+3. determine what NEWBOT first discovers immediately outside the wall;
+4. establish the first functioning human settlement or other civilization contact;
+5. only then decide which major hero naturally enters Quest 02.
 
-Only after that objective becomes clear should Quest 01's antagonist/boss be selected.
-
-This prevents the plot from becoming:
+Continue to avoid the structure:
 > NEWBOT meets Hero A → Hero B → Hero C simply because the roster contains them.
+
+---
+
+# 24. QUEST 01 — THE ONES THROWN AWAY
+
+## 24.1 Status
+
+The story spine of Quest 01 is now **OWNER-APPROVED**.
+
+Detailed combat tuning, exact Bot counts, HP values, spawn cadence and cinematic timing belong in the Quest 01 gameplay design document rather than being treated as immutable world canon.
+
+## 24.2 Canon sequence
+
+Quest 01 follows this broad sequence:
+
+1. NEWBOT wakes in the Scrap Basin.
+2. NEWBOT and BOT discover their automatic weapon-acquisition/combat behavior through their first Drop and fight.
+3. BOT2 interrupts the fight using a Stormbreaker-based suppression machine.
+4. NEWBOT, BOT and BOT2 begin functioning as a small group of rejected machines.
+5. Dormant scrap Bots begin waking in successive attacks for reasons the group cannot yet explain.
+6. The attacks diversify and intensify; Weapon Drops also begin appearing at abnormal frequency.
+7. The three characters increasingly suspect that the basin is being affected by something beyond ordinary mechanical failure.
+8. Stormbreaker becomes both their defensive tool and their possible means of opening an escape route.
+9. A charging/activation sequence requires the group to accumulate energy through combat rather than simply switching the machine on.
+10. The growing activity exposes the connection between awakened Bots and corrupted external commands.
+11. BOT2 is compromised during the escalation and may serve as an important hostile encounter, but BOT remains the emotional center of the finale.
+12. BOT is ultimately corrupted strongly enough to become dangerous to NEWBOT.
+13. Stormbreaker becomes the final exceptional weapon of the Quest.
+14. BOT regains enough agency to choose how the weapon is used.
+15. BOT sacrifices itself to enable NEWBOT's escape.
+16. NEWBOT crosses the wall and enters the wider EAX-1 world alone.
+
+## 24.3 Information deliberately withheld
+
+Quest 01 does **not** explain:
+- Crystala;
+- the true alien purpose behind Weapon Drops;
+- the alien origin of Botfall;
+- the complete history of Reconstruction;
+- why the Scrap Basin began reactivating at exactly this moment;
+- why Stormbreaker appeared there;
+- the full reason NEWBOT was rejected.
+
+The Quest should end with a larger mystery than it began with, but with stronger evidence.
 
 ---
 
