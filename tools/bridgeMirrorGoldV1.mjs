@@ -359,6 +359,20 @@ const D4_REQUIRED = ['function drawShardAt(', 'function drawFreeShard(', 'functi
   'function drawFX(', 'function drawProj(', 'function drawBolt('];
 for (const r of D4_REQUIRED) if (!d4Region.includes(r)) fail(`D4 region lost required symbol: ${r}`);
 if (/Math\.random/.test(d4Region)) fail('D4 region consumes Math.random');
+// Production may provide the shared gameplay node transform as an affine
+// basis. Gold retains its authored local NV art, but its world transform then
+// comes from HR.mirrorNode rather than an independently reproduced rotation.
+const NODE_ROTATE = 'g.rotate(n.rot);';
+const nodeDrawAt = d4Region.indexOf('function drawNodeBody(');
+const nodeDrawEnd = d4Region.indexOf('\nfunction drawFX(', nodeDrawAt);
+if (nodeDrawAt < 0 || nodeDrawEnd < 0) fail('cannot isolate drawNodeBody for shared transform adapter');
+const nodeDraw = d4Region.slice(nodeDrawAt, nodeDrawEnd);
+if ((nodeDraw.match(/g\.rotate\(n\.rot\);/g) || []).length !== 1)
+  fail('drawNodeBody shared transform insertion site changed');
+d4Region = d4Region.slice(0, nodeDrawAt)
+  + nodeDraw.replace(NODE_ROTATE,
+    "if(n.worldTransform){const q=n.worldTransform;g.transform(q.a,q.b,q.c,q.d,0,0)}else g.rotate(n.rot);")
+  + d4Region.slice(nodeDrawEnd);
 const d4Full = [d4State, d4Region].join('\n\n');
 const d4Sha = crypto.createHash('sha256').update(d4Full).digest('hex');
 const D3_REQUIRED = ['function castA1(', 'function stepA1(', 'function a1Frame(', 'function sliceState(',

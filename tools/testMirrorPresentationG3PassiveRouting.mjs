@@ -15,7 +15,7 @@ const blankNode = () => ({ on:false, st:0, x:0, y:0, rot:0, t:0, age:0, tlock:-1
 let drawShards = 0, drawNodes = 0, instancesMade = 0;
 function goldInstance() {
   const SH = Array.from({length:16}, blankShard), ND = Array.from({length:4}, blankNode);
-  return { SH, ND, A1:{on:false}, A2:{on:false,res:0},
+  return { SH, ND, PJ:Array.from({length:16},()=>({on:false})), A1:{on:false}, A2:{on:false,res:0},
     enableExternalTruth(){return true;}, clearExternalTruth(){return true;}, syncExternalTruth(){return true;}, stepExternalPresentation(){return true;},
     externalAudit(){return {enabled:true};}, beginExternalA1(){return true;}, beginExternalA2(){return true;}, endExternalA1(){return true;}, endExternalA2(){return true;},
     applyExternalExchange(){return true;}, markExternalA1Whiff(){return true;}, weaponArt(){return null;}, setWeaponArt(){return null;},
@@ -51,19 +51,18 @@ gate('G3-06 three nodes independent',()=>assert.equal(api.inspect().records[0].p
 gate('G3-07 no synthetic fourth gameplay node',()=>assert.equal(p0.nodes.length,3));
 p1.slots[0]=shard(777,888);p1.nodes=[{...node(21,700,700,.1,2,[]),owner:m1}];run();
 gate('G3-08 Mirror-v-Mirror isolation',()=>{const r=api.inspect().records;assert.equal(r[0].passive.slots[0].x,300);assert.equal(r[1].passive.slots[0].x,777);});
-HR.mirrorNode={toWorld(n,lx,ly){const c=Math.cos(n.rot),s=Math.sin(n.rot);return{x:n.x+lx*c-ly*s,y:n.y+lx*s+ly*c};}};
-gate('G3-09 P17 transform equality',()=>{for(const [x,y,r,lx,ly] of [[0,0,0,-5,-60],[123,456,.7,0,62],[-4,9,-1.2,28,-27]]){const n={x,y,rot:r};const a=HR.mirrorNode.toWorld(n,lx,ly);const b={x:x+lx*Math.cos(r)-ly*Math.sin(r),y:y+lx*Math.sin(r)+ly*Math.cos(r)};assert.ok(Math.hypot(a.x-b.x,a.y-b.y)<1e-12);}});
+gate('G3-09 P17 adapter requires shared authority',()=>{const source=fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js','utf8');const gold=fs.readFileSync('public/game/hero-rework/mirrorGoldV1.js','utf8');assert.match(source,/HR && HR\.mirrorNode/);assert.match(source,/geometry\.toWorld\(node, 1, 0\)/);assert.match(gold,/n\.worldTransform/);});
 const projectile={id:'same',x:0};
 bus.emit('MirrorRoutePreview',{owner:0,node:10,dest:11});gate('G3-10 preview response stays WORLD',()=>assert.equal(projectile.id,'same'));
 bus.emit('MirrorRouteLocal',{owner:0,node:10});gate('G3-11 local stays WORLD',()=>assert.equal(projectile.id,'same'));
 const escrow={p:projectile,entryId:10,destId:11,destRef:p0.nodes[1],dirX:1,dirY:0,vx:90,vy:0,t:0,img:false};HR.match.world.mirrorF2.escrow.push(escrow);
-bus.emit('MirrorRouteCapture',{owner:0,entry:10,dest:11});gate('G3-12 capture binds real identity',()=>assert.equal(api.inspect().records[0].passive.routeBindings,1));
-bus.emit('MirrorEscrowImage',{entry:10,dest:11,t:.208333});gate('G3-13 real image event enables image',()=>assert.ok(api.inspect().records[0].passive.nodes.some(n=>n.id===11&&n.image)));
+bus.emit('MirrorRouteCapture',{owner:0,entry:10,dest:11,projectile});gate('G3-12 capture binds real identity',()=>assert.equal(api.inspect().records[0].passive.routeBindings,1));
+bus.emit('MirrorEscrowImage',{entry:10,dest:11,projectile,t:.208333});gate('G3-13 real image event enables image',()=>assert.ok(api.inspect().records[0].passive.nodes.some(n=>n.id===11&&n.image)));
 gate('G3-14 no independent .208 clock',()=>assert.ok(!fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js','utf8').includes('0.208')));
-bus.emit('MirrorRouteEmerge',{entry:10,via:11,t:.566667,x:220,y:200});gate('G3-15 real emerge ends visual',()=>assert.equal(api.inspect().records[0].passive.routeBindings,0));
+bus.emit('MirrorRouteEmerge',{entry:10,via:11,projectile,t:.566667,x:220,y:200});gate('G3-15 real emerge ends visual',()=>assert.equal(api.inspect().records[0].passive.routeBindings,0));
 gate('G3-16 no independent .566 clock',()=>assert.ok(!fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js','utf8').includes('0.566')));
 gate('G3-17 same projectile object returns',()=>assert.equal(escrow.p,projectile));
-const fallback={p:projectile,entryId:10,destId:11,destRef:null,dirX:1,dirY:0,vx:90,vy:0};HR.match.world.mirrorF2.escrow=[fallback];bus.emit('MirrorRouteCapture',{owner:0,entry:10,dest:11});bus.emit('MirrorRouteEmerge',{entry:10,via:'entry-fallback',fallback:true});
+const fallback={p:projectile,entryId:10,destId:11,destRef:null,dirX:1,dirY:0,vx:90,vy:0};HR.match.world.mirrorF2.escrow=[fallback];bus.emit('MirrorRouteCapture',{owner:0,entry:10,dest:11,projectile});bus.emit('MirrorRouteEmerge',{entry:10,via:'entry-fallback',fallback:true,projectile});
 gate('G3-18 fallback consumed once',()=>assert.equal(api.inspect().records[0].passive.routeBindings,0));
 gate('G3-19 no visual retarget',()=>assert.ok(!api.inspect().records[0].passive.nodeBindings.includes(999)));
 gate('G3-20 escrow projectile has no Gold projectile clone',()=>assert.equal(api.inspect().records[0].passive.routeBindings,0));

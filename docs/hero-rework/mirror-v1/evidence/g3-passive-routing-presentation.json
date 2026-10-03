@@ -1,19 +1,33 @@
 {
-  "checkpoint": "G3",
-  "parent": "7e3f0b9fb9d63c53d9461181df9beda40ed82de2",
+  "checkpoint": "G3 correction",
+  "parent": "3d1a897524ddce4561cbf3b64ba332e9bf2af513",
   "revision": "20261002-mirror-v1-r26",
-  "architecture": "real F1/F2 truth -> bounded Gold SH/ND visual proxies -> existing world draw seam",
-  "proofs": {
-    "f1": "slot index maps 1:1 to SH index; stable real node id maps to bounded ND storage; real coordinates/state/timeline remain authoritative",
-    "p17": "node proxies copy real x/y/rot exactly and Gold drawNodeBody applies that transform; numerical multi-position/rotation proof tolerance 1e-12",
-    "f2": "Preview/Local pulse real node; Capture binds the actual escrow.p identity; MirrorEscrowImage enables destination image; MirrorRouteEmerge deletes the binding",
-    "sameObject": "route bindings key the exact HR.match.world.mirrorF2.escrow[].p object and never create a projectile clone",
-    "fallback": "MirrorRouteEmerge via entry-fallback pulses captured entry only; adapter performs no destination selection or retarget",
-    "isolation": "state and fixed SH/ND pools are per combatant; render order is combatant idx then slot/node id",
-    "resources": "no frame canvas/Image/Gold allocation; maps bounded by real escrow; teardown clears bindings and all proxies"
+  "sharedP17Authority": {
+    "implementation": "adapter samples HR.mirrorNode.toWorld(node,0,0), (1,0), and (0,1); generated Gold drawNodeBody consumes that affine worldTransform",
+    "test": "real shipping HR.mirrorNode loaded by integration harness; four nodes across two owners, four rotations, every real NV point and both route-surface endpoints",
+    "tolerance": 1e-9
+  },
+  "routingIdentity": {
+    "eventField": "non-enumerable projectile reference on existing Capture/Image/Emerge payloads",
+    "sameEntry": "two exact projectile objects concurrently bound through node 9001",
+    "sameDestination": "two image owners concurrently held for node 9002",
+    "perRouteEmerge": "emerging p1 removed only p1; p2 remained bound and node 9002 image remained enabled",
+    "mirrorVsMirror": "owner B route/image remained while owner A p1 and p2 emerged",
+    "strictIdentity": "each route key === event projectile === escrow.p by strict reference equality",
+    "cloneProof": "presentation never activates or writes Gold.PJ; route records reference escrow.p and create no projectile stand-in",
+    "timers": "MirrorEscrowImage and MirrorRouteEmerge are the sole image activation/termination edges; no .208/.566 presentation timers"
+  },
+  "resources": {
+    "frames": 120,
+    "canvasCreated": 0,
+    "imagesConstructed": 0,
+    "goldInstancesCreated": 0,
+    "listenerGrowth": 0,
+    "bindingBound": "one Map entry per exact real escrow projectile; removed on its exact emerge; teardown clears maps"
   },
   "tests": {
-    "g3": "24/24",
+    "g3Unit": "24/24",
+    "g3Integration": "7/7",
     "f1": "28/28",
     "f2": "32/32",
     "coreSix": "19/19",

@@ -186,7 +186,7 @@
       // G3 uses only fixed Gold storage. Node ids occupy at most three of the
       // four D4 drawing proxies; route records are references to real escrow
       // entries/projectiles, never a second routing state machine.
-      nodeBindings: [null, null, null, null], routeBindings: new Map(),
+      nodeBindings: [null, null, null, null], routeBindings: new Map(), imageOwners: new Map(),
       mirrorSample: { id: mirrorBody.id, x: mirrorBody.x, y: mirrorBody.y, vx: 0, vy: 0, aim: 0 },
       preMirrorSample: { id: mirrorBody.id, x: mirrorBody.x, y: mirrorBody.y, vx: 0, vy: 0, aim: 0 },
       preOpponentSample: {
@@ -244,6 +244,7 @@
   function destroyState(ct, state) {
     if (state) {
       state.routeBindings.clear();
+      state.imageOwners.clear();
       state.nodeBindings.fill(null);
       if (state.gold) {
         for (const s of state.gold.SH) s.on = false;
@@ -640,6 +641,17 @@
       const n = proxyForNode(state, node);
       if (!n) continue;
       n.on = true; n.st = node.st; n.x = node.x; n.y = node.y; n.rot = node.rot;
+      // P17: derive Gold's actual canvas basis from gameplay's shared
+      // transform authority. No presentation copy of cos/sin owns geometry.
+      const geometry = HR && HR.mirrorNode;
+      if (geometry && typeof geometry.toWorld === 'function') {
+        const o = geometry.toWorld(node, 0, 0);
+        const ex = geometry.toWorld(node, 1, 0);
+        const ey = geometry.toWorld(node, 0, 1);
+        const q = n.worldTransform || (n.worldTransform = { a: 1, b: 0, c: 0, d: 1 });
+        q.a = ex.x - o.x; q.b = ex.y - o.y; q.c = ey.x - o.x; q.d = ey.y - o.y;
+        n.x = o.x; n.y = o.y;
+      } else n.worldTransform = null;
       n.t = node.t || 0; n.age = node.age || 0; n.tlock = node.tlock;
       n.t3 = node.t3 || 0;
       n.fill = node.st === 1 && node.tlock >= 0
@@ -668,7 +680,8 @@
     if (!Array.isArray(list)) return null;
     for (let i = list.length - 1; i >= 0; i--) {
       const e = list[i];
-      if (e.entryId === payload.entry && e.destId === payload.dest) return e;
+      if (e.entryId === payload.entry && e.destId === payload.dest
+          && (!payload.projectile || e.p === payload.projectile)) return e;
     }
     return null;
   }
@@ -687,23 +700,32 @@
   function onRouteCapture(event) {
     const p = event && event.payload ? event.payload : event;
     const state = routeOwnerState(p);
-    if (!state) return;
+    if (!state || !p.projectile) return;
     const escrow = realEscrow(p);
-    if (!escrow || !escrow.p) return;
-    state.routeBindings.set(escrow.p, escrow);
+    if (!escrow || escrow.p !== p.projectile) return;
+    state.routeBindings.set(p.projectile, { escrow, imageNodeId: null });
     pulseNode(state, p.entry);
+  }
+
+  function imageOwnersFor(state, nodeId) {
+    let owners = state.imageOwners.get(nodeId);
+    if (!owners) { owners = new Set(); state.imageOwners.set(nodeId, owners); }
+    return owners;
   }
 
   function onEscrowImage(event) {
     const p = event && event.payload ? event.payload : event;
+    if (!p || !p.projectile) return;
     for (const state of instances.values()) {
-      const escrow = realEscrow(p);
-      if (!escrow || !state.routeBindings.has(escrow.p)) continue;
+      const route = state.routeBindings.get(p.projectile);
+      if (!route || route.escrow.p !== p.projectile || route.escrow.destId !== p.dest) continue;
       const n = nodeProxyById(state, p.dest);
       if (!n) return;
+      route.imageNodeId = p.dest;
+      imageOwnersFor(state, p.dest).add(p.projectile);
       n.img.on = true; n.img.k = 1; n.img.t = 0; n.img.d = 1;
-      n.img.ang = Math.atan2(escrow.vy, escrow.vx); n.img.dx = escrow.dirX; n.img.dy = escrow.dirY;
-      n.img.pw = 1;
+      n.img.ang = Math.atan2(route.escrow.vy, route.escrow.vx);
+      n.img.dx = route.escrow.dirX; n.img.dy = route.escrow.dirY; n.img.pw = 1;
       pulseNode(state, p.dest);
       return;
     }
@@ -711,14 +733,25 @@
 
   function onRouteEmerge(event) {
     const p = event && event.payload ? event.payload : event;
+    if (!p || !p.projectile) return;
     for (const state of instances.values()) {
-      for (const [projectile, escrow] of state.routeBindings) {
-        if (escrow.entryId !== p.entry) continue;
-        state.routeBindings.delete(projectile);
-        for (const n of state.gold.ND) n.img.on = false;
-        pulseNode(state, p.via === 'entry-fallback' ? p.entry : p.via);
-        return;
+      const route = state.routeBindings.get(p.projectile);
+      if (!route || route.escrow.p !== p.projectile) continue;
+      state.routeBindings.delete(p.projectile);
+      const nodeId = route.imageNodeId;
+      if (nodeId != null) {
+        const owners = state.imageOwners.get(nodeId);
+        if (owners) {
+          owners.delete(p.projectile);
+          if (owners.size === 0) {
+            state.imageOwners.delete(nodeId);
+            const n = nodeProxyById(state, nodeId);
+            if (n) n.img.on = false;
+          }
+        }
       }
+      pulseNode(state, p.via === 'entry-fallback' ? p.entry : p.via);
+      return;
     }
   }
 
@@ -869,10 +902,16 @@
           visibleSlots: state.gold.SH.reduce((n, s) => n + (s.on ? 1 : 0), 0),
           nodeBindings: state.nodeBindings.slice(),
           visibleNodes: state.gold.ND.reduce((n, x) => n + (x.on ? 1 : 0), 0),
+          goldProjectilesActive: state.gold.PJ.reduce((n, x) => n + (x.on ? 1 : 0), 0),
           routeBindings: state.routeBindings.size,
+          routes: Array.from(state.routeBindings, ([projectile, route]) => ({
+            projectile, escrowProjectile: route.escrow.p, imageNodeId: route.imageNodeId,
+          })),
+          imageOwners: Array.from(state.imageOwners, ([nodeId, owners]) => ({ nodeId, count: owners.size })),
           slots: state.gold.SH.map((s, i) => ({ i, on: s.on, st: s.st, x: s.x, y: s.y })),
           nodes: state.gold.ND.map((n, i) => ({ i, id: state.nodeBindings[i], on: n.on,
-            st: n.st, x: n.x, y: n.y, rot: n.rot, shards: n.sh.length, image: n.img.on })),
+            st: n.st, x: n.x, y: n.y, rot: n.rot, shards: n.sh.length, image: n.img.on,
+            worldTransform: n.worldTransform && { ...n.worldTransform } })),
         },
         external: state.gold.externalAudit(),
       });
@@ -884,6 +923,7 @@
       matchBound: !!boundMatch,
       instanceCount: instances.size,
       scheduler: { ...scheduler },
+      listenerCount: unsubscribers.length,
       records,
     };
   }

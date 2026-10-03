@@ -1126,7 +1126,7 @@ function createMirrorInstance(options) {
   }
   function drawNodeBody(g,n){
     const coh=n.st===2?sstep(7.2,10,n.age):0,fillA=n.st>=2?1:n.fill,inset=.55+.45*fillA,fold=1-n.fold;
-    g.save();g.translate(n.x,n.y);g.fillStyle='rgba(0,0,0,.25)';g.beginPath();g.ellipse(6,60,20*fold,9,0,0,TAU);g.fill();g.rotate(n.rot);
+    g.save();g.translate(n.x,n.y);g.fillStyle='rgba(0,0,0,.25)';g.beginPath();g.ellipse(6,60,20*fold,9,0,0,TAU);g.fill();if(n.worldTransform){const q=n.worldTransform;g.transform(q.a,q.b,q.c,q.d,0,0)}else g.rotate(n.rot);
     if(fillA>.01){
       g.save();g.scale(fold,1);g.globalAlpha=fillA;
       g.beginPath();NV.forEach((v,i)=>{const x=v[0]*inset,y=v[1]*(.7+.3*inset);if(i)g.lineTo(x,y);else g.moveTo(x,y)});g.closePath();g.clip();
@@ -1451,7 +1451,7 @@ g.APEX_MIRROR_GOLD = {
   d2RegionSha256: '94f56ac4bbc75a30744005ec39615595e1c614ae0ab84d05021db2364f3f0ab5',
   d3RegionSha256: '0b7a3ed8968fe5e5c0bc2429dee1509718560e7dde4c00bc3be369da69a046fb',
   d3RemovedMutations: [{"removed":"if(!wf){M.copyOn=true;M.copyT=6;M.copyFx=0}","replacedWith":"if(!wf){if(!__externalTruth){M.copyOn=true;M.copyFx=0;emit('ownEdge',{t:A1.t,u:u})}}","why":"Gold granted a 6s demo copy at OWN. Production owns equip + lifetime (E)."},{"removed":"F.wspec=0;","replacedWith":"","why":"mutated the demo foe actor; production has no such field."},{"removed":"Math[random]()<dt*28","replacedWith":"__rand()<dt*28","why":"presentation must never consume the gameplay/combat RNG stream."},{"removed":"M.x=fx;M.y=fy;F.x=ox;F.y=oy;","replacedWith":"if(__applyExchange){M.x=fx;M.y=fy;F.x=ox;F.y=oy;}","why":"presentation may not relocate real fighters; gameplay owns the atomic swap."},{"removed":"cam.sx.v+=Math.sign(dx)*22;","replacedWith":"","why":"production has no Gold demo camera; actor roots and visual history remain authoritative"}],
-  d4RegionSha256: '7d35be712ccd430cc3e7900936f8247cafa946f63a1f1442013ed60a385cc6c4',
+  d4RegionSha256: '0fd4f01585641e7491d8a1b2aea0e5bf41773950ca0b935d6962f1e12129e7eb',
   d3WeaponArtSites: ["A1 reflection + peel slices use the real copied weapon atlas","flat-in-plate sheen masks the real weapon silhouette","sliceState geometry derives from the real weapon bounds","held weapon after OWN is the real copied weapon","held-weapon sweep masks the real weapon","peel-edge flecks follow the real weapon bounds"],
   weaponEntryFromImage, dpEntry, maskedEntry,
   createMirrorInstance, mulberry32,

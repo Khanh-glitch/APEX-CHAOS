@@ -3123,11 +3123,15 @@
       vx: inVx, vy: inVy,
       acc: 0, t: 0, img: false, fallbackUsed: false,
     });
-    AIL.bus.emit('MirrorRouteCapture', {
+    const captureEvent = {
       entry: nA.id, dest: cand.dest.id,
       owner: nA.owner ? nA.owner.idx : -1,
       toi: cand.capT, weapon: p.weapon || null, type: p.type,
-    });
+    };
+    // Non-enumerable presentation identity keeps telemetry JSON stable while
+    // carrying the exact already-escrowed object to synchronous listeners.
+    Object.defineProperty(captureEvent, 'projectile', { value: p });
+    AIL.bus.emit('MirrorRouteCapture', captureEvent);
   }
 
   // Emerge at the canonical edge: fixed destination chosen at capture;
@@ -3153,11 +3157,13 @@
     hr.neutral = true;                 // controller NEUTRAL; damage unchanged
     hr.mirrorRecaptureUntil = AIL.clock() + MIRROR_F2.recaptureLock;
     projectiles.push(p);
-    AIL.bus.emit('MirrorRouteEmerge', {
+    const emergeEvent = {
       entry: e.entryId, via, t: e.t,
       x: p.x, y: p.y,                       // canonical emergence point
       weapon: p.weapon || null, type: p.type, fallback: e.fallbackUsed,
-    });
+    };
+    Object.defineProperty(emergeEvent, 'projectile', { value: p });
+    AIL.bus.emit('MirrorRouteEmerge', emergeEvent);
   }
 
   // Transit choreography: canonical Gold fixed-step edges. Advances through
@@ -3179,10 +3185,12 @@
         e.t += MIRROR_F2.step;
         if (!e.img && e.t > MIRROR_F2.imageT) {
           e.img = true;                // destination reflected-image edge
-          AIL.bus.emit('MirrorEscrowImage', {
+          const imageEvent = {
             entry: e.entryId, dest: e.destId,
             destLive: !!(e.destRef && e.destRef.st === 2), t: e.t,
-          });
+          };
+          Object.defineProperty(imageEvent, 'projectile', { value: e.p });
+          AIL.bus.emit('MirrorEscrowImage', imageEvent);
         }
         if (e.t > MIRROR_F2.emergeT) { mirrorF2Emerge(e, projectiles); emerged = true; break; }
       }
