@@ -376,6 +376,7 @@
       const winner = aqHp(fighters[0]) > aqHp(fighters[1]) ? fighters[0] : fighters[1];
       state.over = winner.name;
       AQ.log('KO', `winner=${winner.name}`);
+      window.APEX_ARSENAL_META?.awardBattleResult?.(winner.name, state);
       updateHUD();
     }
   }

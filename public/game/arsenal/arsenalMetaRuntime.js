@@ -172,6 +172,20 @@
     lastAward.balance = state.credits;
     return { ok: true, ...lastAward };
   }
+  // Preserve the accepted Bot/Local battle economy without routing rewards
+  // through the retired Quest ladder. One completion pays once: P1 wins earn
+  // 50 AC, and P1 losses earn 25 AC, matching the former product hook.
+  function awardBattleResult(winnerName, battleState) {
+    const current = battleState || (window.APEX_ARSENAL && window.APEX_ARSENAL.state);
+    if (!current || current.labMode || current.questStage || current.productResultAwarded) {
+      return { ok: false, reason: 'not-awardable', balance: state.credits };
+    }
+    const p1 = typeof fighters !== 'undefined' && fighters[0] ? fighters[0] : null;
+    const won = winnerName === (p1 && p1.name) || winnerName === 'P1'
+      || !!(p1 && p1.type && winnerName === p1.type.name);
+    current.productResultAwarded = true;
+    return award(won ? ['free_complete', 'free_winner'] : 'free_complete', won ? 50 : 25);
+  }
   function filterOwned(list) {
     const arr = list || [];
     return arr.filter((ft) => {
@@ -570,7 +584,7 @@
 
   window.APEX_ARSENAL_META = {
     KEY, SHOP_COST, DRAW_COST, START_CREDITS,
-    getState, credits, owns, canPublicSelect, buy, spin, award, filterOwned, setLast,
+    getState, credits, owns, canPublicSelect, buy, spin, award, awardBattleResult, filterOwned, setLast,
     palette, setPalette,
     load, save, emptyState, sanitize, poolLocked,
     visibleRoster: ROSTER, playableRoster: PLAYABLE_ROSTER,
