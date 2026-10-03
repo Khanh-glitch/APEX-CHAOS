@@ -522,6 +522,58 @@ function mulberry32(a) {
 function createMirrorInstance(options) {
   const opts = options || {};
   ensureBaked();
+  // Presentation-only opponent accent state belongs to this Gold instance.
+  // Its neutral default is also the teardown/reset color; no global matchup
+  // color can leak between two independently-created Mirrors.
+  const NEUTRAL_REFLECTION_ACCENT = Object.freeze({ id: 'NEUTRAL', r: 194, g: 200, b: 208 });
+  function makeOpponentReflectionPaint(accent) {
+    const valid = accent && Number.isFinite(accent.r) && Number.isFinite(accent.g) && Number.isFinite(accent.b);
+    const source = valid ? accent : NEUTRAL_REFLECTION_ACCENT;
+    const r = Math.round(clamp(source.r, 0, 255));
+    const gg = Math.round(clamp(source.g, 0, 255));
+    const b = Math.round(clamp(source.b, 0, 255));
+    const rgb = r + ',' + gg + ',' + b;
+    return Object.freeze({
+      id: typeof source.id === 'string' ? source.id : 'NEUTRAL', r, g: gg, b, rgb,
+      css: 'rgb(' + rgb + ')',
+      tint: 'rgba(' + rgb + ',1)',
+      sweepClear: 'rgba(' + rgb + ',0)',
+      sweep38: 'rgba(' + rgb + ',.38)',
+      sweep62: 'rgba(' + rgb + ',.62)',
+      sweep30: 'rgba(' + rgb + ',.3)',
+      sweep20: 'rgba(' + rgb + ',.2)',
+    });
+  }
+  let __opponentReflectionPaint = makeOpponentReflectionPaint(NEUTRAL_REFLECTION_ACCENT);
+  function setOpponentReflectionAccent(accent) {
+    __opponentReflectionPaint = makeOpponentReflectionPaint(accent);
+    return __opponentReflectionPaint;
+  }
+  function getOpponentReflectionAccent() { return __opponentReflectionPaint; }
+  function opponentReflectionColor(alpha) {
+    const paint = __opponentReflectionPaint;
+    return 'rgba(' + paint.rgb + ',' + alpha + ')';
+  }
+  function opponentReflectionFill(surface, w, h) {
+    surface.fillStyle = __opponentReflectionPaint.tint;
+    surface.fillRect(0, 0, w, h);
+  }
+  function opponentReflectionSweepFill(prog, ang, bw) {
+    return (surface, w, h) => {
+      const d = Math.hypot(w, h), c = Math.cos(ang), sn = Math.sin(ang);
+      const pos = (prog - .5) * d * 1.5, cx = w / 2 + c * pos, cy = h / 2 + sn * pos, band = d * bw;
+      const gr = surface.createLinearGradient(cx - c * band, cy - sn * band, cx + c * band, cy + sn * band);
+      const paint = __opponentReflectionPaint;
+      gr.addColorStop(0, paint.sweepClear);
+      gr.addColorStop(.3, paint.sweep38);
+      gr.addColorStop(.46, 'rgba(255,255,255,.92)');
+      gr.addColorStop(.58, paint.sweep62);
+      gr.addColorStop(.8, paint.sweep20);
+      gr.addColorStop(1, paint.sweepClear);
+      surface.fillStyle = gr;
+      surface.fillRect(0, 0, w, h);
+    };
+  }
   // Dedicated presentation stream. Never the gameplay/combat RNG.
   let __rand = mulberry32((opts.seed >>> 0) || 0x9E3779B9);
   const rr = (a, b) => a + __rand() * (b - a);
@@ -586,7 +638,7 @@ function createMirrorInstance(options) {
   const SW=[];for(let i=0;i<16;i++)SW.push({on:false,nm:'',t:0,d:1,ang:0,amp:.8,bw:.18,dl:0});
   function addSweep(nm,d,ang,amp,bw,dl){let s=null;for(const x of SW)if(!x.on){s=x;break}if(!s)return;s.on=true;s.nm=nm;s.t=0;s.d=d;s.ang=ang;s.amp=amp;s.bw=bw;s.dl=dl||0}
   function sweepStep(dt){for(const s of SW){if(!s.on)continue;if(s.dl>0){s.dl-=dt;continue}s.t+=dt;if(s.t>=s.d)s.on=false}}
-  function sweepsFor(g,nm){for(const s of SW){if(s.on&&s.dl<=0&&s.nm===nm)masked(g,nm,PU,sweepFill(s.t/s.d,s.ang,s.bw),s.amp*Math.sin(Math.PI*clamp(s.t/s.d,0,1)*.9+.15),null)}}
+  function sweepsFor(g,nm){const reflected=A2.on&&A2.opp&&A2.opp.id===nm;for(const s of SW){if(s.on&&s.dl<=0&&s.nm===nm)masked(g,nm,PU,reflected?opponentReflectionSweepFill(s.t/s.d,s.ang,s.bw):sweepFill(s.t/s.d,s.ang,s.bw),s.amp*Math.sin(Math.PI*clamp(s.t/s.d,0,1)*.9+.15),null)}}
   const FX=[];for(let i=0;i<90;i++)FX.push({on:false,ty:0,x:0,y:0,vx:0,vy:0,t:0,d:1,a:0,b:0,c:0,r:0,s:0,nm:''});
   function fxNew(ty){for(const f of FX)if(!f.on){f.on=true;f.ty=ty;f.t=0;f.vx=f.vy=f.a=f.b=f.c=f.r=f.s=0;f.nm='';return f}return null}
   function chips(wx,wy,nx,ny,n){for(let i=0;i<n;i++){const f=fxNew(1);if(!f)return;const a=Math.atan2(ny,nx)+rr(-.9,.9),sp=rr(40,130);f.x=wx;f.y=wy;f.vx=Math.cos(a)*sp;f.vy=Math.sin(a)*sp;f.r=rr(0,TAU);f.a=rr(-9,9);f.s=rr(2.2,5);f.d=rr(.35,.6)}}
@@ -933,7 +985,7 @@ function createMirrorInstance(options) {
   // =====================================================================================
   // RENDERING — MIRROR RIG (raster parts only)
   // =====================================================================================
-  const whiteFill=solidFill('rgba(240,234,255,1)'),warmFill=solidFill('rgba(255,150,70,1)');
+  const whiteFill=solidFill('rgba(240,234,255,1)');
   function drawPlate(g,p,alpha){
     // Historical half articulation is inherited in addition to historical root movement.
     const hd=p.dl+p.extraDelay+(p.wrongT>0?.45:0),L=p.side==='L',hx=hs(hd,L?14:17)*.28,hy=hs(hd,L?15:18)*.28,hr=hs(hd,L?16:19)*.32;
@@ -942,7 +994,7 @@ function createMirrorInstance(options) {
     dp(g,p.id);sweepsFor(g,p.id);
     if(p.wash>.01)masked(g,p.id,PU,whiteFill,p.wash*.6);
     if(p.act>.01)masked(g,p.id,PU,whiteFill,p.act*.16);
-    if(p.tint>.01)masked(g,p.id,PU,warmFill,p.tint*.42);
+    if(p.tint>.01)masked(g,p.id,PU,opponentReflectionFill,p.tint*.42);
     const fa=1-p.wash*.92;
     if(fa>.02){
       plateExpr(p,PEX);const wr=(p.holdT>0||p.wrongT>0)&&p.id==='LR',gx=hs(hd,11)*(wr?-1.3:.9)+(wr?-9:0),pe=P[p.id+'e'];
@@ -1048,7 +1100,7 @@ function createMirrorInstance(options) {
         g.save();clipHalf(g,x,y,c,sn,ub,true);real();g.restore();
         g.save();clipHalf(g,x,y,c,sn,ub,false);wrong(1);g.restore();
         g.save();g.translate(x,y);g.rotate(ang);g.globalCompositeOperation='lighter';
-        let gr=g.createLinearGradient(ub-9,0,ub+9,0);gr.addColorStop(0,'rgba(170,120,255,0)');gr.addColorStop(.5,'rgba(255,255,255,.85)');gr.addColorStop(1,'rgba(170,120,255,0)');
+        const opponentReflection=typeof __mirrorEntityOpponentDraw==='function';let gr=g.createLinearGradient(ub-9,0,ub+9,0);gr.addColorStop(0,opponentReflection?__opponentReflectionPaint.sweepClear:'rgba(170,120,255,0)');gr.addColorStop(.5,'rgba(255,255,255,.85)');gr.addColorStop(1,opponentReflection?__opponentReflectionPaint.sweepClear:'rgba(170,120,255,0)');
         g.fillStyle=gr;g.fillRect(ub-9,-R*1.05,18,R*2.1);g.restore();
       }else{real();if(gA>.01)wrong(gA)}
       g.restore();
@@ -1114,7 +1166,7 @@ function createMirrorInstance(options) {
     g.save();g.translate(x,y);g.rotate(rot);g.scale(sx,sy);g.globalAlpha=alpha;
     const ppu=PPW*Math.max(sx,sy);dp(g,'shard',ppu);
     if(eyeFn)masked(g,'shard',ppu,eyeFn,1,null);
-    for(const s of SW)if(s.on&&s.dl<=0&&s.nm==='sh'+idx)masked(g,'shard',ppu,sweepFill(s.t/s.d,s.ang,s.bw),s.amp*Math.sin(Math.PI*clamp(s.t/s.d,0,1)),null);
+    for(const s of SW)if(s.on&&s.dl<=0&&s.nm==='sh'+idx)masked(g,'shard',ppu,opponentReflectionSweepFill(s.t/s.d,s.ang,s.bw),s.amp*Math.sin(Math.PI*clamp(s.t/s.d,0,1)),null);
     g.restore();
   }
   function drawFreeShard(g,s,idx){
@@ -1136,7 +1188,7 @@ function createMirrorInstance(options) {
       g.save();g.scale(fold,1);g.globalAlpha=fillA;
       g.beginPath();NV.forEach((v,i)=>{const x=v[0]*inset,y=v[1]*(.7+.3*inset);if(i)g.lineTo(x,y);else g.moveTo(x,y)});g.closePath();g.clip();
       let gr=g.createLinearGradient(0,-62,0,62);gr.addColorStop(0,'#0b0716');gr.addColorStop(1,'#26164c');g.fillStyle=gr;g.fillRect(-30,-70,60,140);
-      gr=g.createLinearGradient(-22+Math.sin(simT*.3+n.x)*4,-60,26,44);gr.addColorStop(0,'rgba(255,255,255,0)');gr.addColorStop(.33,'rgba(236,230,255,'+(.4*(1-coh*.5))+')');gr.addColorStop(.46,'rgba(255,255,255,.1)');gr.addColorStop(.6,'rgba(205,195,255,.3)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(-30,-70,60,140);
+      gr=g.createLinearGradient(-22+Math.sin(simT*.3+n.x)*4,-60,26,44);gr.addColorStop(0,__opponentReflectionPaint.sweepClear);gr.addColorStop(.33,opponentReflectionColor(.4*(1-coh*.5)));gr.addColorStop(.46,'rgba(255,255,255,.1)');gr.addColorStop(.6,__opponentReflectionPaint.sweep30);gr.addColorStop(1,__opponentReflectionPaint.sweepClear);g.fillStyle=gr;g.fillRect(-30,-70,60,140);
       // delayed MIRROR expression (face lives on the surface)
       const lag=.30,eA=clamp(Math.max(n.faT>=0&&n.faW===0?Math.sin(Math.PI*clamp(n.faT/1.3,0,1)):0,Math.max(.38,(hs(lag,3)-.34)*1.2)),0,1)*(1-coh*.35);
       const sA=clamp(Math.max(n.faT>=0?Math.sin(Math.PI*clamp((n.faT-.18)/1.1,0,1)):0,(hs(lag+.1,6)-.7)*1.6),0,1)*.85;
@@ -1155,7 +1207,7 @@ function createMirrorInstance(options) {
       // ripples masked to the surface
       for(const r of n.rp){if(r.t<.5){const k=r.t/.5;g.strokeStyle='rgba(235,225,255,'+((1-k)*.8)+')';g.lineWidth=1.3;for(let q=0;q<2;q++){const rad=3+(k-q*.12)*24;if(rad>0){g.beginPath();g.ellipse(r.x,r.y,rad,rad*.55,0,0,TAU);g.stroke()}}}}
       // specular sweeps (broad)
-      for(const w of n.sw)if(w.on){const p=w.t/w.d,gr2=g.createLinearGradient(-40+p*100-16,-60,-40+p*100+16,60);gr2.addColorStop(0,'rgba(170,120,255,0)');gr2.addColorStop(.5,'rgba(255,255,255,'+(.7*w.amp*Math.sin(Math.PI*p))+')');gr2.addColorStop(1,'rgba(170,120,255,0)');g.fillStyle=gr2;g.fillRect(-40,-70,80,140)}
+      for(const w of n.sw)if(w.on){const p=w.t/w.d,gr2=g.createLinearGradient(-40+p*100-16,-60,-40+p*100+16,60);gr2.addColorStop(0,__opponentReflectionPaint.sweepClear);gr2.addColorStop(.5,'rgba(255,255,255,'+(.7*w.amp*Math.sin(Math.PI*p))+')');gr2.addColorStop(1,__opponentReflectionPaint.sweepClear);g.fillStyle=gr2;g.fillRect(-40,-70,80,140)}
       if(n.flash>0){g.fillStyle='rgba(235,225,255,'+(n.flash*.28)+')';g.fillRect(-30,-70,60,140)}
       g.restore();
     }
@@ -1807,6 +1859,7 @@ function createMirrorInstance(options) {
     clearExternalPassive();
     A1.on = false; A1.f = {}; A2.on = false; A2.f = {};
     M.busy = 0; M.copyOn = false; M.copyT = 0; M.copyFx = 0; __wpnArt = null;
+    setOpponentReflectionAccent(NEUTRAL_REFLECTION_ACCENT);
     for (const p of PJ) {
       p.on = false; p.x = 0; p.y = 0; p.vx = 0; p.vy = 0; p.own = 0; p.pw = 1;
       p.st = 0; p.t = 0; p.cool = 0; p.nA = null; p.nB = null; p.imgB = false;
@@ -1831,6 +1884,8 @@ function createMirrorInstance(options) {
   }
 
   return {
+    // instance-local presentation-only opponent reflection hue
+    setOpponentReflectionAccent, getOpponentReflectionAccent,
     // state
     get E() { return E; }, get M() { return M; }, get F() { return F; },
     get H() { return H; }, get PL() { return PL; }, get ACC() { return ACC; },
@@ -1934,10 +1989,10 @@ g.APEX_MIRROR_GOLD = {
   goldSha256: 'c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205',
   regionSha256: '6c659ed0e821addf580e02e9b635fd090a4bfc1c9e482f2aa86970e9c779aa11',
   checkpoint: 'G1',
-  d2RegionSha256: '94f56ac4bbc75a30744005ec39615595e1c614ae0ab84d05021db2364f3f0ab5',
-  d3RegionSha256: '68fd38a9bafdb980e726274a62e5c08f2cd7efe3bc92983185e9b59759e6fc79',
+  d2RegionSha256: '219b0e9e3ce904aaa79239d5408d2e0ef71b35f85924b333888c33e4daa7312a',
+  d3RegionSha256: '19b345307345d2fd996817d33f0f61fc363f98d08633e3fe759ff1b3902744dd',
   d3RemovedMutations: [{"removed":"if(!wf){M.copyOn=true;M.copyT=6;M.copyFx=0}","replacedWith":"if(!wf){if(!__externalTruth){M.copyOn=true;M.copyFx=0;emit('ownEdge',{t:A1.t,u:u})}}","why":"Gold granted a 6s demo copy at OWN. Production owns equip + lifetime (E)."},{"removed":"F.wspec=0;","replacedWith":"","why":"mutated the demo foe actor; production has no such field."},{"removed":"Math[random]()<dt*28","replacedWith":"__rand()<dt*28","why":"presentation must never consume the gameplay/combat RNG stream."},{"removed":"M.x=fx;M.y=fy;F.x=ox;F.y=oy;","replacedWith":"if(__applyExchange){M.x=fx;M.y=fy;F.x=ox;F.y=oy;}","why":"presentation may not relocate real fighters; gameplay owns the atomic swap."},{"removed":"cam.sx.v+=Math.sign(dx)*22;","replacedWith":"","why":"production has no Gold demo camera; actor roots and visual history remain authoritative"}],
-  d4RegionSha256: 'da59296f57783172a38820153ecceaa4fa929c5fbf9bb45218b280a082d93da4',
+  d4RegionSha256: 'af8210fca3e50d1f17c44679c61bdfbf7d2846a65559277ed8f32a0bbf7b9c1a',
   d3WeaponArtSites: ["A1 reflection + peel slices use the real copied weapon atlas","flat-in-plate sheen masks the real weapon silhouette","sliceState geometry derives from the real weapon bounds","held weapon after OWN is the real copied weapon","held-weapon sweep masks the real weapon","peel-edge flecks follow the real weapon bounds"],
   weaponEntryFromImage, dpEntry, maskedEntry,
   createMirrorInstance, mulberry32,

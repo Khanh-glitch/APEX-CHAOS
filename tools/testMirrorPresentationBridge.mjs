@@ -131,6 +131,7 @@ try {
 
   const runtimeSource = fs.readFileSync('public/game/hero-rework/heroReworkRuntime.js', 'utf8');
   const manifestSource = fs.readFileSync('src/game/runtimeManifest.js', 'utf8');
+  const revisionLock = JSON.parse(fs.readFileSync('tools/runtimeRevision.lock.json', 'utf8'));
   const adapterSource = fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js', 'utf8');
   assert.equal((runtimeSource.match(/APEX_MIRROR_PRESENTATION\?\.tick\(dt\)/g) || []).length, 1,
     'the adapter has exactly one production tick callsite');
@@ -147,8 +148,10 @@ try {
   const goldIndex = manifestSource.indexOf('/game/hero-rework/mirrorGoldV1.js');
   const adapterIndex = manifestSource.indexOf('/game/hero-rework/mirrorPresentationRuntime.js');
   assert.ok(goldIndex >= 0 && adapterIndex > goldIndex, 'Gold loads before its production adapter');
-  assert.match(manifestSource, /20261002-mirror-v1-r29/,
-    'H1 candidate carries the locked r29 runtime revision');
+  const revisionMatch = manifestSource.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
+  assert.ok(revisionMatch, 'the active runtime revision is declared');
+  assert.equal(revisionLock.revision, revisionMatch[1],
+    'the active runtime revision and revision lock stay synchronized');
   assert.doesNotMatch(adapterSource, /requestAnimationFrame|setInterval|stepMirror\s*\(/,
     'the bridge owns neither an independent clock nor Gold demo gameplay');
 

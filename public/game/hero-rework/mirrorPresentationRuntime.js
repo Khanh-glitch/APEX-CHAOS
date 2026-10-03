@@ -24,6 +24,23 @@
   const BODY_VISUAL_MULTIPLIER = 1.00;
   const GOLD_MIRROR_RADIUS = GOLD && GOLD.GOLD_REF && Number.isFinite(GOLD.GOLD_REF.MIRROR_R)
     ? GOLD.GOLD_REF.MIRROR_R : null;
+  // Mirror-only presentation accent authority. Values are intentionally muted
+  // material tints: Gold keeps its silver/black/violet substrate and white core.
+  const NEUTRAL_REFLECTION_ACCENT = Object.freeze({ id: 'NEUTRAL', r: 194, g: 200, b: 208 });
+  const OPPONENT_REFLECTION_ACCENTS = Object.freeze({
+    ROBOT: Object.freeze({ id: 'ROBOT', r: 131, g: 205, b: 224 }),
+    HUNTER: Object.freeze({ id: 'HUNTER', r: 177, g: 209, b: 112 }),
+    CRYSTAL: Object.freeze({ id: 'CRYSTAL', r: 98, g: 165, b: 216 }),
+    MAGNET: Object.freeze({ id: 'MAGNET', r: 192, g: 128, b: 208 }),
+    ICE: Object.freeze({ id: 'ICE', r: 138, g: 207, b: 226 }),
+    MIRROR: Object.freeze({ id: 'MIRROR', r: 183, g: 171, b: 217 }),
+  });
+  function resolveOpponentReflectionAccent(heroId) {
+    const raw = typeof heroId === 'string' ? heroId.trim().toUpperCase() : '';
+    const canonical = raw === 'FROST' ? 'ICE' : raw;
+    return Object.prototype.hasOwnProperty.call(OPPONENT_REFLECTION_ACCENTS, canonical)
+      ? OPPONENT_REFLECTION_ACCENTS[canonical] : NEUTRAL_REFLECTION_ACCENT;
+  }
   const instances = new Map();
   const unsubscribers = [];
   const scheduler = {
@@ -69,6 +86,20 @@
 
   function seedFor(ct) {
     return (0x4d495252 ^ Math.imul(((Number(ct.idx) || 0) + 1) >>> 0, 0x9e3779b1)) >>> 0 || 1;
+  }
+
+  function updateOpponentReflectionAccent(state, opponent) {
+    const heroId = opponent && typeof opponent.heroId === 'string' ? opponent.heroId : null;
+    const accent = resolveOpponentReflectionAccent(heroId);
+    if (state.opponentHeroId === heroId && state.opponentAccent === accent) return false;
+    state.opponentHeroId = heroId;
+    state.opponentAccent = accent;
+    const gold = state.gold;
+    if (gold && typeof gold.setOpponentReflectionAccent === 'function') {
+      try { gold.setOpponentReflectionAccent(accent); }
+      catch (error) { scheduler.errors++; }
+    }
+    return true;
   }
 
   function rootAimAt(body, x, y, otherX, otherY) {
@@ -234,7 +265,9 @@
         || !Number.isFinite(opponentBody.x) || !Number.isFinite(opponentBody.y)) return null;
 
     const state = {
-      match, ct, opponent, gold: null, accumulator: 0, totalSteps: 0,
+      match, ct, opponent, gold: null,
+      opponentHeroId: null, opponentAccent: null,
+      accumulator: 0, totalSteps: 0,
       droppedSeconds: 0, pendingExchange: null, exchangeEvents: 0,
       recentExchangeCastIds: [null, null, null, null], recentExchangeWrite: 0,
       pendingA1Cast: null, pendingA1End: null, pendingA1Whiff: null,
@@ -288,6 +321,7 @@
     };
     try {
       state.gold = GOLD.createMirrorInstance({ seed: seedFor(ct) });
+      if (state.gold) updateOpponentReflectionAccent(state, opponent);
       if (!state.gold || !state.gold.enableExternalTruth
           || !state.gold.enableExternalTruth(state.mirrorSample, state.opponentSample)) {
         if (state.gold && state.gold.clearExternalTruth) state.gold.clearExternalTruth();
@@ -307,6 +341,8 @@
 
   function destroyState(ct, state) {
     if (state) {
+      state.opponentHeroId = null;
+      state.opponentAccent = NEUTRAL_REFLECTION_ACCENT;
       state.shardHitSeeds = new WeakMap();
       state.pendingWeaponImage = null;
       state.failedWeaponImage = null;
@@ -354,7 +390,10 @@
       const live = combatants.includes(ct) && !ct.facade && ct.heroId === 'MIRROR';
       const opponent = live ? opponentOf(match, ct) : null;
       if (!opponent || !combatants.includes(opponent) || !opponent.anchor) destroyState(ct, state);
-      else state.opponent = opponent;
+      else {
+        state.opponent = opponent;
+        updateOpponentReflectionAccent(state, opponent);
+      }
     }
   }
 
@@ -863,6 +902,16 @@
     if (match !== boundMatch) reconcile(match);
     if (!match || instances.size === 0) return false;
 
+    // Matchup identity is a presentation input. Refresh it without retaining a
+    // global color or changing any fighter/gameplay authority.
+    for (const state of instances.values()) {
+      const opponent = opponentOf(match, state.ct);
+      if (opponent && opponent.anchor) {
+        state.opponent = opponent;
+        updateOpponentReflectionAccent(state, opponent);
+      }
+    }
+
     const validDt = Number.isFinite(dt) && dt >= 0;
     if (!validDt) scheduler.invalidDt++;
     const frameDt = validDt ? Math.min(dt, MAX_FRAME_DT) : 0;
@@ -1049,6 +1098,10 @@
         heroId: ct.heroId,
         mirrorId: ct.anchor && ct.anchor.id,
         opponentId: state.opponent && state.opponent.anchor && state.opponent.anchor.id,
+        opponentHeroId: state.opponentHeroId,
+        opponentAccent: state.opponentAccent && state.opponentAccent.id,
+        opponentAccentRgb: state.opponentAccent
+          ? [state.opponentAccent.r, state.opponentAccent.g, state.opponentAccent.b] : null,
         fighterRadius: liveFighterRadius(state),
         goldMirrorRadius: GOLD_MIRROR_RADIUS,
         bodyK: mirrorBodyK(state),
@@ -1098,6 +1151,7 @@
 
   const api = {
     version: VERSION, fixedStep: STEP, tick, teardown,
+    resolveOpponentReflectionAccent,
     capturePassiveShardSeeds,
     renderArenaWorldEffects, renderPostFighterResidue, renderPostFighters, inspect, dispose,
   };

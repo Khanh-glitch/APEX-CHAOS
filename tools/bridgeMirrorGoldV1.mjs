@@ -295,7 +295,21 @@ a1Region = swapWeaponArt(a1Region,
 if (/P\.wpnMV|P\.wpn\b|'wpnMV'|'wpn'/.test(a1Region))
   fail('A1 still references Gold demo weapon rasters');
 
-const d3Region = [a1Region, a2Region, renderRegion].join('\n\n');
+let d3Region = [a1Region, a2Region, renderRegion].join('\n\n');
+const GOLD_WARM_PLATE_FILL = "const whiteFill=solidFill('rgba(240,234,255,1)'),warmFill=solidFill('rgba(255,150,70,1)');";
+const GOLD_OPPONENT_PLATE_TINT = "if(p.tint>.01)masked(g,p.id,PU,warmFill,p.tint*.42);";
+if (d3Region.split(GOLD_WARM_PLATE_FILL).length !== 2
+    || d3Region.split(GOLD_OPPONENT_PLATE_TINT).length !== 2)
+  fail('Gold opponent-derived plate tint insertion sites changed');
+d3Region = d3Region.replace(GOLD_WARM_PLATE_FILL,
+  "const whiteFill=solidFill('rgba(240,234,255,1)');");
+d3Region = d3Region.replace(GOLD_OPPONENT_PLATE_TINT,
+  'if(p.tint>.01)masked(g,p.id,PU,opponentReflectionFill,p.tint*.42);');
+const GOLD_REFLECTION_SEAM = "let gr=g.createLinearGradient(ub-9,0,ub+9,0);gr.addColorStop(0,'rgba(170,120,255,0)');gr.addColorStop(.5,'rgba(255,255,255,.85)');gr.addColorStop(1,'rgba(170,120,255,0)');";
+if (d3Region.split(GOLD_REFLECTION_SEAM).length !== 2)
+  fail('Gold A2 opponent-reflection seam insertion site changed');
+d3Region = d3Region.replace(GOLD_REFLECTION_SEAM,
+  "const opponentReflection=typeof __mirrorEntityOpponentDraw==='function';let gr=g.createLinearGradient(ub-9,0,ub+9,0);gr.addColorStop(0,opponentReflection?__opponentReflectionPaint.sweepClear:'rgba(170,120,255,0)');gr.addColorStop(.5,'rgba(255,255,255,.85)');gr.addColorStop(1,opponentReflection?__opponentReflectionPaint.sweepClear:'rgba(170,120,255,0)');");
 
 // ---------- D4: shard / node / routing presentation ----------
 // Everything from the projectile marker to the WORLD RENDER banner: the
@@ -368,13 +382,27 @@ const NODE_ROTATE = 'g.rotate(n.rot);';
 const nodeDrawAt = d4Region.indexOf('function drawNodeBody(');
 const nodeDrawEnd = d4Region.indexOf('\nfunction drawFX(', nodeDrawAt);
 if (nodeDrawAt < 0 || nodeDrawEnd < 0) fail('cannot isolate drawNodeBody for shared transform adapter');
-const nodeDraw = d4Region.slice(nodeDrawAt, nodeDrawEnd);
+let nodeDraw = d4Region.slice(nodeDrawAt, nodeDrawEnd);
 if ((nodeDraw.match(/g\.rotate\(n\.rot\);/g) || []).length !== 1)
   fail('drawNodeBody shared transform insertion site changed');
-d4Region = d4Region.slice(0, nodeDrawAt)
-  + nodeDraw.replace(NODE_ROTATE,
-    "if(n.worldTransform){const q=n.worldTransform;g.transform(q.a,q.b,q.c,q.d,0,0)}else g.rotate(n.rot);")
-  + d4Region.slice(nodeDrawEnd);
+nodeDraw = nodeDraw.replace(NODE_ROTATE,
+  "if(n.worldTransform){const q=n.worldTransform;g.transform(q.a,q.b,q.c,q.d,0,0)}else g.rotate(n.rot);");
+const GOLD_NODE_SWEEP = "gr.addColorStop(0,'rgba(255,255,255,0)');gr.addColorStop(.33,'rgba(236,230,255,'+(.4*(1-coh*.5))+')');gr.addColorStop(.46,'rgba(255,255,255,.1)');gr.addColorStop(.6,'rgba(205,195,255,.3)');gr.addColorStop(1,'rgba(255,255,255,0)');";
+if (nodeDraw.split(GOLD_NODE_SWEEP).length !== 2)
+  fail('drawNodeBody opponent-reflection sweep insertion site changed');
+nodeDraw = nodeDraw.replace(GOLD_NODE_SWEEP,
+  "gr.addColorStop(0,__opponentReflectionPaint.sweepClear);gr.addColorStop(.33,opponentReflectionColor(.4*(1-coh*.5)));gr.addColorStop(.46,'rgba(255,255,255,.1)');gr.addColorStop(.6,__opponentReflectionPaint.sweep30);gr.addColorStop(1,__opponentReflectionPaint.sweepClear);");
+const GOLD_NODE_DYNAMIC_SWEEP = "for(const w of n.sw)if(w.on){const p=w.t/w.d,gr2=g.createLinearGradient(-40+p*100-16,-60,-40+p*100+16,60);gr2.addColorStop(0,'rgba(170,120,255,0)');gr2.addColorStop(.5,'rgba(255,255,255,'+(.7*w.amp*Math.sin(Math.PI*p))+')');gr2.addColorStop(1,'rgba(170,120,255,0)');g.fillStyle=gr2;g.fillRect(-40,-70,80,140)}";
+if (nodeDraw.split(GOLD_NODE_DYNAMIC_SWEEP).length !== 2)
+  fail('drawNodeBody formed-material sweep insertion site changed');
+nodeDraw = nodeDraw.replace(GOLD_NODE_DYNAMIC_SWEEP,
+  "for(const w of n.sw)if(w.on){const p=w.t/w.d,gr2=g.createLinearGradient(-40+p*100-16,-60,-40+p*100+16,60);gr2.addColorStop(0,__opponentReflectionPaint.sweepClear);gr2.addColorStop(.5,'rgba(255,255,255,'+(.7*w.amp*Math.sin(Math.PI*p))+')');gr2.addColorStop(1,__opponentReflectionPaint.sweepClear);g.fillStyle=gr2;g.fillRect(-40,-70,80,140)}");
+d4Region = d4Region.slice(0, nodeDrawAt) + nodeDraw + d4Region.slice(nodeDrawEnd);
+const GOLD_SHARD_SWEEP = "for(const s of SW)if(s.on&&s.dl<=0&&s.nm==='sh'+idx)masked(g,'shard',ppu,sweepFill(s.t/s.d,s.ang,s.bw),s.amp*Math.sin(Math.PI*clamp(s.t/s.d,0,1)),null);";
+if (d4Region.split(GOLD_SHARD_SWEEP).length !== 2)
+  fail('drawShardAt opponent-reflection sweep insertion site changed');
+d4Region = d4Region.replace(GOLD_SHARD_SWEEP,
+  "for(const s of SW)if(s.on&&s.dl<=0&&s.nm==='sh'+idx)masked(g,'shard',ppu,opponentReflectionSweepFill(s.t/s.d,s.ang,s.bw),s.amp*Math.sin(Math.PI*clamp(s.t/s.d,0,1)),null);");
 const d4Full = [d4State, d4Region].join('\n\n');
 const d4Sha = crypto.createHash('sha256').update(d4Full).digest('hex');
 const D3_REQUIRED = ['function castA1(', 'function stepA1(', 'function a1Frame(', 'function sliceState(',
@@ -396,6 +424,14 @@ const MATH_RANDOM_SITES = 11;
 const seen = (d2Region.match(/Math\.random\(\)/g) || []).length;
 if (seen !== MATH_RANDOM_SITES) fail(`expected ${MATH_RANDOM_SITES} Math.random sites in D2, saw ${seen}`);
 d2Region = d2Region.replace(/Math\.random\(\)/g, '__rand()');
+
+// The authored A2 sweep on its opponent-derived plate is reflection light,
+// while all other plate sweeps remain generic Mirror specular. Resolve that
+// narrow target at draw time; Gold retains the original sweep envelope.
+const GOLD_SWEEPS_FOR = "function sweepsFor(g,nm){for(const s of SW){if(s.on&&s.dl<=0&&s.nm===nm)masked(g,nm,PU,sweepFill(s.t/s.d,s.ang,s.bw),s.amp*Math.sin(Math.PI*clamp(s.t/s.d,0,1)*.9+.15),null)}}";
+if (!d2Region.includes(GOLD_SWEEPS_FOR)) fail('D2 opponent-reflection sweep insertion site changed');
+d2Region = d2Region.replace(GOLD_SWEEPS_FOR,
+  "function sweepsFor(g,nm){const reflected=A2.on&&A2.opp&&A2.opp.id===nm;for(const s of SW){if(s.on&&s.dl<=0&&s.nm===nm)masked(g,nm,PU,reflected?opponentReflectionSweepFill(s.t/s.d,s.ang,s.bw):sweepFill(s.t/s.d,s.ang,s.bw),s.amp*Math.sin(Math.PI*clamp(s.t/s.d,0,1)*.9+.15),null)}}");
 
 const D2_REQUIRED = ['const HN=64,HS=22', 'function pushHist()', 'function hs(d,ch)', 'function histFill()',
   'function shiftHist(', 'class Sp{', 'function mkPlate(', 'function mkAcc(', 'function tw(', 'function twStep(',
@@ -994,6 +1030,58 @@ function mulberry32(a) {
 function createMirrorInstance(options) {
   const opts = options || {};
   ensureBaked();
+  // Presentation-only opponent accent state belongs to this Gold instance.
+  // Its neutral default is also the teardown/reset color; no global matchup
+  // color can leak between two independently-created Mirrors.
+  const NEUTRAL_REFLECTION_ACCENT = Object.freeze({ id: 'NEUTRAL', r: 194, g: 200, b: 208 });
+  function makeOpponentReflectionPaint(accent) {
+    const valid = accent && Number.isFinite(accent.r) && Number.isFinite(accent.g) && Number.isFinite(accent.b);
+    const source = valid ? accent : NEUTRAL_REFLECTION_ACCENT;
+    const r = Math.round(clamp(source.r, 0, 255));
+    const gg = Math.round(clamp(source.g, 0, 255));
+    const b = Math.round(clamp(source.b, 0, 255));
+    const rgb = r + ',' + gg + ',' + b;
+    return Object.freeze({
+      id: typeof source.id === 'string' ? source.id : 'NEUTRAL', r, g: gg, b, rgb,
+      css: 'rgb(' + rgb + ')',
+      tint: 'rgba(' + rgb + ',1)',
+      sweepClear: 'rgba(' + rgb + ',0)',
+      sweep38: 'rgba(' + rgb + ',.38)',
+      sweep62: 'rgba(' + rgb + ',.62)',
+      sweep30: 'rgba(' + rgb + ',.3)',
+      sweep20: 'rgba(' + rgb + ',.2)',
+    });
+  }
+  let __opponentReflectionPaint = makeOpponentReflectionPaint(NEUTRAL_REFLECTION_ACCENT);
+  function setOpponentReflectionAccent(accent) {
+    __opponentReflectionPaint = makeOpponentReflectionPaint(accent);
+    return __opponentReflectionPaint;
+  }
+  function getOpponentReflectionAccent() { return __opponentReflectionPaint; }
+  function opponentReflectionColor(alpha) {
+    const paint = __opponentReflectionPaint;
+    return 'rgba(' + paint.rgb + ',' + alpha + ')';
+  }
+  function opponentReflectionFill(surface, w, h) {
+    surface.fillStyle = __opponentReflectionPaint.tint;
+    surface.fillRect(0, 0, w, h);
+  }
+  function opponentReflectionSweepFill(prog, ang, bw) {
+    return (surface, w, h) => {
+      const d = Math.hypot(w, h), c = Math.cos(ang), sn = Math.sin(ang);
+      const pos = (prog - .5) * d * 1.5, cx = w / 2 + c * pos, cy = h / 2 + sn * pos, band = d * bw;
+      const gr = surface.createLinearGradient(cx - c * band, cy - sn * band, cx + c * band, cy + sn * band);
+      const paint = __opponentReflectionPaint;
+      gr.addColorStop(0, paint.sweepClear);
+      gr.addColorStop(.3, paint.sweep38);
+      gr.addColorStop(.46, 'rgba(255,255,255,.92)');
+      gr.addColorStop(.58, paint.sweep62);
+      gr.addColorStop(.8, paint.sweep20);
+      gr.addColorStop(1, paint.sweepClear);
+      surface.fillStyle = gr;
+      surface.fillRect(0, 0, w, h);
+    };
+  }
   // Dedicated presentation stream. Never the gameplay/combat RNG.
   let __rand = mulberry32((opts.seed >>> 0) || 0x9E3779B9);
   const rr = (a, b) => a + __rand() * (b - a);
@@ -1244,6 +1332,7 @@ ${EXTERNAL_PASSIVE_API}
     clearExternalPassive();
     A1.on = false; A1.f = {}; A2.on = false; A2.f = {};
     M.busy = 0; M.copyOn = false; M.copyT = 0; M.copyFx = 0; __wpnArt = null;
+    setOpponentReflectionAccent(NEUTRAL_REFLECTION_ACCENT);
     for (const p of PJ) {
       p.on = false; p.x = 0; p.y = 0; p.vx = 0; p.vy = 0; p.own = 0; p.pw = 1;
       p.st = 0; p.t = 0; p.cool = 0; p.nA = null; p.nB = null; p.imgB = false;
@@ -1268,6 +1357,8 @@ ${EXTERNAL_PASSIVE_API}
   }
 
   return {
+    // instance-local presentation-only opponent reflection hue
+    setOpponentReflectionAccent, getOpponentReflectionAccent,
     // state
     get E() { return E; }, get M() { return M; }, get F() { return F; },
     get H() { return H; }, get PL() { return PL; }, get ACC() { return ACC; },

@@ -313,9 +313,10 @@ try {
   const goldHtml = fs.readFileSync('docs/hero-rework/mirror-v1/gold/MIRROR_GOLD_FUSION_12.html');
   const goldSha = crypto.createHash('sha256').update(goldHtml).digest('hex');
   assert.equal(goldSha, GOLD_SHA256, 'canonical Gold source remains byte-identical');
-  assert.equal(sourceFiles.revisionLock.revision, '20261002-mirror-v1-r29',
-    'the locked r29 revision identifies the H1 visual playtest candidate');
-  assert.match(sourceFiles.manifest, /20261002-mirror-v1-r29/);
+  const activeRevision = sourceFiles.manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
+  assert.ok(activeRevision, 'the active runtime revision is declared');
+  assert.equal(sourceFiles.revisionLock.revision, activeRevision[1],
+    'the H1 candidate runs with the active runtime revision lock synchronized');
   assert.match(sourceFiles.gold, /const A1TS=1\.6/);
   const drawForegroundAt = sourceFiles.arsenal.indexOf('function drawForeground() {');
   const drawForegroundEnd = sourceFiles.arsenal.indexOf('function muteArenaGlyphs(c)', drawForegroundAt);
@@ -336,7 +337,7 @@ try {
     'non-Arsenal modes retain their prior A2 residue seam, calibrated to body scale');
   assert.match(worldPass, /drawExternalPassive\(ctx\)/,
     'free F1/F2 passive world content retains its original unscaled world seam');
-  gate('canonical Gold unchanged, r29 candidate locked, and production layer insertion is exact', {
+  gate('canonical Gold unchanged, active revision locked, and production layer insertion is exact', {
     canonicalGoldSha256: goldSha, revision: sourceFiles.revisionLock.revision,
     foregroundOrder: ['fighter bodies', 'A2 residue', 'real held weapons', 'A1World'],
   });
@@ -708,7 +709,7 @@ try {
     }
   }
 
-  console.log(`\n[MIRROR H1 SCALE/ORDER] ${checks}/${checks} focused gates passed; r29 remains a playtest candidate.`);
+  console.log(`\n[MIRROR H1 SCALE/ORDER] ${checks}/${checks} focused gates passed; accepted H1 scale/order behavior remains regression-locked.`);
   if (captureDir) console.log(`[MIRROR H1 SCALE/ORDER] rendered PNG captures: ${captureDir}`);
 } finally {
   crystalProbe = false;
