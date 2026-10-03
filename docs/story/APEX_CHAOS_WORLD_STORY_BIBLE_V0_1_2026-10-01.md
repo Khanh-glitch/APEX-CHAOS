@@ -817,6 +817,12 @@ The player should discover these facts through the world and story.
 
 ## 19.1 NEWBOT wakes — OWNER CORE
 
+The player-facing/canon protagonist name at game start is:
+
+> **NEWBOT**
+
+The implementation may retain ROBOT as an internal storage/runtime identifier, but player-facing Story, HUD, Dictionary and profile surfaces should use **NEWBOT** consistently.
+
 NEWBOT lies discarded inside a sealed Scrap Basin used to dispose of failed units and material from THE BOT Project.
 
 Its memory is gone.
@@ -827,92 +833,157 @@ A Weapon Drop appears.
 
 Before NEWBOT can understand what it is, its body reacts automatically and moves to acquire the weapon.
 
-A second discarded Bot, referred to here as **BOT**, also wakes and reacts to the same Drop.
+A second discarded Bot named:
 
-NEWBOT reaches the weapon first and fires on BOT through an automatic combat/acquisition response that neither character consciously understands.
+> **T.O.T**
+
+also wakes and reacts to the same Drop.
+
+NEWBOT reaches the weapon first and fires on T.O.T through an automatic combat/acquisition response that neither character consciously understands.
 
 NEWBOT is immediately disturbed by what it has done.
 
-A second Drop appears near BOT. BOT is pulled into the same behavior, acquires the weapon and fires back.
+A second Drop appears near T.O.T. T.O.T is pulled into the same behavior, acquires the weapon and fires back.
 
 The first playable battle therefore begins because both characters are discovering the same disturbing fact:
 
 > **their bodies know how to fight before their conscious minds know why.**
 
-## 19.2 BOT2 and Stormbreaker — OWNER CORE
+## 19.2 RIVET and Stormbreaker — OWNER CORE
 
-A third discarded unit, **BOT2**, has been awake in the Scrap Basin for longer.
+A third discarded unit named:
 
-BOT2 has salvaged an exceptional fallen weapon:
+> **RIVET**
+
+has been awake in the Scrap Basin for longer.
+
+RIVET is a practical survivor and builder who has kept itself functional by scavenging failed Bot hardware and dead industrial systems.
+
+RIVET has salvaged an exceptional fallen weapon:
 
 > **Stormbreaker**
 
-and incorporated it into a crude machine.
+and incorporated it into a crude containment/energy machine.
 
-BOT2 has discovered that controlled electrical discharge from Stormbreaker can temporarily interrupt the automatic weapon-acquisition/combat behavior of Bot hardware.
+The name RIVET reflects its role and identity rather than its weapon: it survives by fastening broken systems together and keeping things functioning that should already have fallen apart.
 
-When NEWBOT and BOT's first fight becomes dangerous, BOT2 uses this system to disable both of them and brings them back to its workshop.
+RIVET has discovered that controlled electrical discharge from Stormbreaker can temporarily interrupt the automatic weapon-acquisition/combat behavior of Bot hardware.
 
-BOT2, BOT and NEWBOT are all rejected products associated with the Bot era rather than heroic chosen units.
+When NEWBOT and T.O.T's first fight becomes dangerous, RIVET uses this system to disable both of them and brings them back to its workshop.
 
-The exact technical history of each rejected prototype may be refined later, but NEWBOT remains distinct in one crucial way:
+RIVET, T.O.T and NEWBOT are all rejected products associated with the Bot era rather than heroic chosen units.
 
-> it was discarded before full Bot-network integration and therefore lacks the same valid network identity carried by ordinary integrated Bots.
+NEWBOT remains distinct in one crucial way:
 
-This later becomes important to its survival.
+> it was discarded before full Bot-network integration and therefore lacks the same valid registered network identity carried by integrated Bots such as T.O.T and RIVET.
 
-## 19.3 The Scrap Basin begins waking — OWNER CORE + STRONG WORKING DIRECTION
+This later becomes both NEWBOT's protection and its limitation.
 
-Quest 01 must **not** reveal the Bot virus as a sudden one-scene surprise.
+## 19.3 Why RIVET has not already escaped — OWNER CORE
 
-After NEWBOT, BOT and BOT2 become active together, dormant Bots throughout the Scrap Basin begin waking in small and then increasingly aggressive groups.
+RIVET has had Stormbreaker for some time, but it has never been able to use it to escape alone.
+
+Its improvised containment rig requires an operator to remain at the machine to stabilize Stormbreaker's discharge.
+
+Opening the dead wall infrastructure also requires large amounts of external impact/energy input that RIVET cannot safely generate while simultaneously controlling the rig.
+
+NEWBOT and T.O.T waking provides RIVET with active external operators for the first time.
+
+Therefore Quest 01 is not built around RIVET suddenly inventing an obvious escape plan.
+
+It is the first moment in which the plan becomes physically possible.
+
+## 19.4 The Scrap Basin begins waking — OWNER CORE + STRONG WORKING DIRECTION
+
+Quest 01 must **not** reveal the Bot corruption as a sudden one-scene surprise.
+
+After NEWBOT, T.O.T and RIVET become active together, dormant Bots throughout the Scrap Basin begin waking in small and then increasingly aggressive groups.
 
 At first the three characters do not know why.
 
+Early awakenings are not themselves proof that the external Bot corruption has entered the basin.
+
 They may reasonably suspect:
-- power returning to old disposal infrastructure;
+- returning local power;
 - Stormbreaker interference;
-- local Bot systems reacting to Weapon Drops;
-- a fault spreading through abandoned machinery.
+- old Drop-detection infrastructure;
+- dormant acquisition routines;
+- faults spreading through abandoned machinery.
 
 The attacks become progressively harder and more coordinated.
 
 At the same time, Weapon Drop behavior inside the basin becomes increasingly unstable, including periods in which weapons appear at an abnormally high rate.
 
-The characters should therefore **experience the symptoms before they can name the cause**.
+The characters should therefore **experience symptoms before they can identify a cause**.
 
-The current strong working interpretation is that activity around the three awakened units, Stormbreaker and old infrastructure is gradually re-energizing or exposing dead local Bot-network pathways. Corrupted commands from the wider Bot network begin leaking into the basin rather than arriving as one instantaneous event.
+The intended escalation is:
 
-Do not reveal the alien origin of the corruption during Quest 01.
+> local awakening → repeated awakening → Drop anomaly → infrastructure reactivation → coordinated arrival → command traffic → direct override
 
-## 19.4 Quest 01 emotional core — OWNER CORE
+The current strong working interpretation is that activity around the three awakened units, Stormbreaker and old infrastructure gradually makes the isolated basin reachable to corrupted systems that already exist outside.
 
-Quest 01 is fundamentally about the relationship between NEWBOT and BOT.
+Do not reveal the alien origin of that corruption during Quest 01.
+
+## 19.5 Quest 01 emotional core — OWNER CORE
+
+Quest 01 is fundamentally about the relationship between NEWBOT and T.O.T.
 
 Their relationship begins with involuntary violence.
 
 It develops through surviving repeated attacks together.
 
-BOT must become the first person NEWBOT genuinely trusts and considers a friend.
+T.O.T becomes the first person NEWBOT genuinely trusts and considers a friend.
 
-By the end of the Quest, BOT becomes corrupted strongly enough that it can no longer safely remain beside NEWBOT.
-
-BOT eventually uses Stormbreaker in the final escape sequence and sacrifices itself so NEWBOT can leave the Scrap Basin.
+By the end of the Quest, T.O.T becomes corrupted strongly enough that it can no longer safely remain beside NEWBOT.
 
 The emotional payoff is built around the contrast:
 
-At the beginning, BOT cannot stop itself from attacking.
+At the beginning, T.O.T cannot stop itself from attacking.
 
-At the end, BOT finally makes a conscious choice and **stops**.
+At the end, T.O.T finally makes a conscious choice and **stops**.
 
-NEWBOT leaves the basin carrying:
-- the loss of its first friend;
-- evidence that something outside is controlling Bots;
-- evidence that the outside world is unstable;
-- the knowledge that the same control does not affect it normally;
-- a reason to discover why.
+The final callback is:
 
-## 19.5 Story/gameplay law for Quest 01 — OWNER DIRECTION
+> **“Lần này... tôi dừng được rồi.”**
+
+T.O.T shuts down permanently after enabling NEWBOT's escape.
+
+Do not turn the death into an explosion or disintegration spectacle.
+
+The intended emotional image is stillness.
+
+## 19.6 Gate authorization and sacrifice — OWNER CORE
+
+The Scrap Basin gate requires two things to complete an opening cycle:
+
+1. **Stormbreaker energy** to power the dead gate machinery.
+2. **A valid registered Bot identity** holding the local authorization/latch from inside the basin until the escape cycle completes.
+
+This rule must be foreshadowed before the finale.
+
+NEWBOT cannot perform the authorization role because:
+
+> **NO VALID NETWORK ID**
+
+The same failed integration that protects NEWBOT from ordinary Bot-network takeover also prevents old Bot infrastructure from recognizing it as an authorized operator.
+
+RIVET is registered, but by the finale its body/control system is too damaged and unstable after being overridden.
+
+T.O.T is registered and remains physically capable long enough to hold the latch.
+
+Therefore T.O.T's sacrifice is not an arbitrary requirement that “someone must stand there.”
+
+Stormbreaker provides the power.
+
+T.O.T provides the registered live control loop.
+
+NEWBOT is the one unit that can cross into the wider world without immediate takeover.
+
+This irony is central:
+
+> NEWBOT's rejection is why it survives, but T.O.T's remaining connection to the system is what lets NEWBOT escape.
+
+## 19.7 Story/gameplay law for Quest 01 — OWNER DIRECTION
 
 Quest 01 should preserve Arsenal Battle as the dominant playable language.
 
@@ -925,12 +996,42 @@ Gameplay variety should come from understandable variations of the same core:
 
 Do not turn the opening Quest into a collection of unrelated minigames.
 
+The production offensive active cap remains **5** throughout Quest 01 unless a future owner-approved global Arsenal law changes it.
+
+Weapon Rain should feel abnormal through cadence, authored telegraph bursts and rapid replenishment rather than by silently raising the production cap.
+
 Guiding principle:
 
 > **The player learns EAX-1 by surviving inside it, and the mystery becomes visible through changes in the same Arsenal rules they are learning.**
 
----
+## 19.8 Quest 01 ending view — OWNER CORE
 
+After T.O.T's sacrifice, NEWBOT exits the Scrap Basin alone.
+
+The immediate outside region should **not** place NEWBOT directly inside a settlement or into another exposition scene.
+
+The first reveal is a larger, quieter stretch of the outside world.
+
+Civilization is visible only at a distance through signs such as:
+- lights;
+- structures;
+- transport;
+- industrial silhouettes;
+- other evidence that EAX-1 remains inhabited.
+
+This establishes that the world is much larger than the Scrap Basin while preserving solitude after T.O.T's death.
+
+The first direct civilization contact belongs later, after the Quest 01 ending has had room to breathe.
+
+NEWBOT leaves carrying:
+- the loss of T.O.T;
+- uncertainty about RIVET's fate;
+- evidence that something outside is controlling registered Bots;
+- evidence that the wider world is unstable;
+- the knowledge that the same control cannot address NEWBOT normally;
+- a reason to discover why.
+
+---
 # 20. STORY DESIGN LAWS
 
 These are important safeguards for all future writing.
