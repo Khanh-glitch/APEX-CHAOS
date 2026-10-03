@@ -14,8 +14,9 @@
 // as long as bake order is bakeSupport() -> bakeArt(). ensureBaked() is the single
 // place that order exists; nothing else may bake.
 //
-// This module is pure presentation material. It owns NO gameplay truth, NO timers
-// and NO clock. Checkpoint E (mirrorGameplayRuntime) owns mechanics.
+// This module is pure presentation material. In production, APEX supplies truth
+// and exact STEP ticks; the showcase demo remains isolated. Checkpoint E
+// (mirrorGameplayRuntime) owns mechanics and lifecycle.
 (function (g) {
 'use strict';
 const doc = typeof document !== 'undefined' ? document : null;
@@ -524,6 +525,14 @@ function createMirrorInstance(options) {
   // Dedicated presentation stream. Never the gameplay/combat RNG.
   let __rand = mulberry32((opts.seed >>> 0) || 0x9E3779B9);
   const rr = (a, b) => a + __rand() * (b - a);
+  // External-truth mode is the sole production bridge: roots are assigned from
+  // APEX after movement, while authored Gold pose/choreography advances only
+  // through exact STEP-sized calls. The demo remains unchanged by default.
+  let __externalTruth = false;
+  let __externalSteps = 0, __externalExchanges = 0, __externalSnaps = 0;
+  let __externalExchangeCastId = null;
+  let __externalA1CastId = null, __externalA2CastId = null, __externalA2Resolved = false;
+  let __externalPrevSpeed = 0, __externalMoving = false;
 
   // =====================================================================================
   // STATE, SPRINGS, HISTORY, TWEENS
@@ -719,6 +728,20 @@ function createMirrorInstance(options) {
     M.sf=1;chips(M.x-nx*MR,M.y-ny*MR,nx,ny,2);ripple(M.x-nx*MR,M.y-ny*MR,Math.atan2(ny,nx)+1.57,.3);
   }
 
+  function stepExternalSprings(dt){
+    for(let i=0;i<2;i++){const h=H[i?'R':'L'];h.x.step(0,dt);h.y.step(0,dt);h.r.step(0,dt)}
+    for(let i=0;i<PL.length;i++){const p=PL[i];
+      p.wt-=dt;if(p.wt<=0){p.wt=rr(1.6,3.4);if(!busy()){p.wx=rr(-1,1)*p.amp*1.6;p.wy=rr(-1,1)*p.amp*1.2;p.wr=rr(-.035,.035)}}
+      if(p.holdT>0)p.holdT-=dt;if(p.wrongT>0)p.wrongT-=dt;else p.extraDelay=Math.max(0,p.extraDelay-dt*.18);
+      const lagx=clamp((hs(p.dl,0)-M.x)/K*p.gain,-150,150),lagy=clamp((hs(p.dl,1)-M.y)/K*p.gain,-150,150);
+      let k=p.kk;if(p.slow>0){p.slow-=dt;k=p.kk*.28}
+      p.sx.k=k;p.sy.k=k;p.sr.k=k*1.2;
+      p.sx.step(p.wx+p.lx+lagx,dt);p.sy.step(p.wy+p.ly+lagy,dt);p.sr.step(p.wr+p.lr,dt);
+    }
+    for(let i=0;i<ACC.length;i++){const a=ACC[i];a.sx.step(Math.sin(simT*.6+a.ph)*10,dt);a.sy.step(Math.cos(simT*.5+a.ph*1.3)*8,dt);a.sr.step(Math.sin(simT*.4+a.ph)*.05,dt)}
+
+  }
+
   // ---- D3 semantic edges + exchange control -------------------------------
   // The authored timeline REPORTS its canonical edges; it never performs the
   // gameplay effect. Production subscribes and owns equip / relocation.
@@ -784,8 +807,10 @@ function createMirrorInstance(options) {
   function castA1(whiff){
     if(A1.on||A2.on)return;if(!F.armed)whiff=true;
     A1.on=true;A1.t=0;A1.u=0;A1.whiff=!!whiff;A1.f={};A1.q=0;A1.tr=0;A1.rv=0;
-    const left=F.x<M.x;A1.pl=left?PL[0]:PL[1];A1.sec=left?PL[2]:PL[3];A1.late=left?PL[3]:PL[2];M.busy=Math.max(M.busy,2.2);
+    const left=F.x<M.x;A1.pl=left?PL[0]:PL[1];A1.sec=left?PL[2]:PL[3];A1.late=left?PL[3]:PL[2];if(!__externalTruth)M.busy=Math.max(M.busy,2.2);
   }
+  function finishA1(){if(!A1.on)return false;const pl=A1.pl;A1.on=false;PL.forEach(p=>{p.lx=p.ly=p.lr=0});pl.wash=0;pl.act=0;
+      tw(E,'eL',.55,.4);tw(E,'sL',.64,.5);tw(E,'nL',.1,.4);tw(E,'eR',.32,.5,.1);tw(E,'nR',.42,.5,.1);tw(E,'gx',0,.4);tw(E,'gy',0,.4);return true}
   function stepA1(dt){
     if(!A1.on)return;A1.t+=dt;const S=A1TS,u=A1.t/S;A1.u=u;const pl=A1.pl,f=A1.f,wf=A1.whiff;
     const once=(k,c,fn)=>{if(c&&!f[k]){f[k]=1;fn()}};
@@ -803,14 +828,11 @@ function createMirrorInstance(options) {
     once('w',wf&&u>=.3,()=>{tw(E,'sL',.12,.05*S);tw(E,'eL',.7,.06*S);tw(E,'nR',.72,.06*S)});
     once('rb',u>=(wf?.46:.48),()=>{tw(pl,'wash',0,.12*S,0,1);tw(pl,'act',0,.2*S);addSweep(pl.id,.45*S,pl.axis,.95,.22)});
     once('ow',u>=.58,()=>{
-      if(!wf){M.copyOn=true;M.copyFx=0;emit('ownEdge',{t:A1.t,u:u})}
+      if(!wf){if(!__externalTruth){M.copyOn=true;M.copyFx=0;emit('ownEdge',{t:A1.t,u:u})}}
       tw(E,'sL',1.15,.05*S);tw(E,'eL',.7,.1*S);tw(E,'nL',.15,.1*S);tw(E,'eR',.38,.1*S,.08*S);
       A1.late.holdT=0;tw(E,'gap',0,.08*S);tw(E,'slip',0,.08*S);
     });
-    once('end',u>=.92,()=>{
-      A1.on=false;PL.forEach(p=>{p.lx=p.ly=p.lr=0});pl.wash=0;pl.act=0;
-      tw(E,'eL',.55,.4);tw(E,'sL',.64,.5);tw(E,'nL',.1,.4);tw(E,'eR',.32,.5,.1);tw(E,'nR',.42,.5,.1);tw(E,'gx',0,.4);tw(E,'gy',0,.4);
-    });
+    once('end',u>=.92,()=>{if(!__externalTruth)finishA1();});
     A1.rv=sstep(.12,.28,u);A1.q=clamp((u-.24)/.2,0,1);A1.tr=clamp((u-.4)/.2,0,1);
     if(!wf&&u>.26&&u<.44&&__rand()<dt*28){a1Frame();const __fm=__weaponArt().mv,kf=A1.q*1.35*A1N,i=A1N-kf,lx=__fm.ox+i*(__fm.w/A1N)-(__fm.ox+__fm.w/2);
       if(kf>0&&kf<A1N)flecks(A1G.cx+A1G.ux*lx*WS*A1SS,A1G.cy+A1G.uy*lx*WS*A1SS,1,36)}
@@ -868,7 +890,9 @@ function createMirrorInstance(options) {
   // =====================================================================================
   const A2={on:false,t:0,u:0,f:{},band:0,ghostA:0,tear:0,ang:0,res:0,rx:0,ry:0,fx:0,fy:0,mark:null,opp:null};
   const A2TS=1.0; // atomic coordinate exchange at u=.25, approximately 250 ms
-  function castA2(){if(A1.on||A2.on)return;A2.on=true;A2.t=0;A2.f={};A2.res=0;A2.band=0;A2.ghostA=0;A2.tear=0;const left=F.x<M.x;A2.mark=left?PL[0]:PL[1];A2.opp=left?PL[1]:PL[0];M.busy=Math.max(M.busy,1.8)}
+  function castA2(){if(A1.on||A2.on)return;if(__externalTruth){__externalA2CastId=null;__externalA2Resolved=false;__externalExchangeCastId=null;}A2.on=true;A2.t=0;A2.f={};A2.res=0;A2.band=0;A2.ghostA=0;A2.tear=0;const left=F.x<M.x;A2.mark=left?PL[0]:PL[1];A2.opp=left?PL[1]:PL[0];if(!__externalTruth)M.busy=Math.max(M.busy,1.8)}
+  function finishA2(){if(!A2.on)return false;A2.on=false;PL.forEach(p=>{p.lx=p.ly=p.lr=0});tw(A2.opp,'tint',0,.2);
+      tw(E,'eL',.55,.4);tw(E,'sL',.64,.5);tw(E,'nL',.1,.4);tw(E,'eR',.32,.5,.1);tw(E,'nR',.42,.5,.1);tw(E,'sR',.1,.5);tw(E,'gx',0,.4);tw(E,'gy',0,.4);return true}
   function stepA2(dt){
     if(A2.res>0)A2.res-=dt;
     if(!A2.on)return;A2.t+=dt;const S=A2TS,u=A2.t/S,f=A2.f;A2.u=u;
@@ -885,13 +909,10 @@ function createMirrorInstance(options) {
       PL[2].lx=-26;PL[3].lx=26;PL[2].ly=PL[3].ly=12;
     });
     once('i',u>=.13,()=>{tw(A2.opp,'tint',1,.1*S);tw(E,'gap',52,.1*S);addSweep(A2.opp.id,.3*S,A2.opp.axis,.9,.22);addSweep('Lh',.3*S,.5,.6,.2);addSweep('Rh',.3*S,.5,.6,.2,.04*S)});
-    once('x',u>=.25,a2Snap);
-    once('e',u>=.64,()=>{
-      A2.on=false;PL.forEach(p=>{p.lx=p.ly=p.lr=0});tw(A2.opp,'tint',0,.2);
-      tw(E,'eL',.55,.4);tw(E,'sL',.64,.5);tw(E,'nL',.1,.4);tw(E,'eR',.32,.5,.1);tw(E,'nR',.42,.5,.1);tw(E,'sR',.1,.5);tw(E,'gx',0,.4);tw(E,'gy',0,.4);
-    });
+    once('x',u>=.25,()=>{if(!__externalTruth)a2Snap()});
+    once('e',u>=.64,()=>{if(!__externalTruth)finishA2();});
   }
-  function a2Snap(){
+  function a2Snap(){if(__externalTruth)__externalSnaps++;
     const ox=M.x,oy=M.y,fx=F.x,fy=F.y;
     PL.forEach(p=>{if(p===A2.mark||p.id==='LL'||p.id==='LR'){const f=fxNew(4);if(f){f.nm=p.id;f.x=ox;f.y=oy;f.a=p.sx.x;f.b=p.sy.x;f.c=p.sr.x;f.d=p===A2.mark?.7:.55;f.s=p===A2.mark?.55:.4}}});
     A2.res=.14;A2.rx=ox;A2.ry=oy;A2.fx=fx;A2.fy=fy;
@@ -901,7 +922,7 @@ function createMirrorInstance(options) {
     tw(E,'gap',0,.03);tw(E,'slip',0,.03);tw(E,'fl',0,.15);tw(E,'G',.55,.02);later(.12,()=>tw(E,'G',0,.3));
     const dx=(fx-ox)/K,dy=(fy-oy)/K;
     PL.forEach(p=>{const m=(p.id==='LL'||p.id==='LR')?.14:.05;p.sx.x+=clamp(-dx*m,-110,110);p.sy.x+=clamp(-dy*m,-110,110)});
-    chips(ox,oy,1,0,3);chips(fx,fy,-1,0,3);cam.sx.v+=Math.sign(dx)*22;
+    chips(ox,oy,1,0,3);chips(fx,fy,-1,0,3);
     tw(E,'eL',.5,.08);tw(E,'nL',.1,.08);tw(E,'sL',.6,.1);
     tw(E,'nR',.72,.02);later(.18,()=>{tw(E,'nR',.42,.3);tw(E,'eR',.32,.3)});
   }
@@ -1164,6 +1185,136 @@ function createMirrorInstance(options) {
   hHead = 0;
   histFill();
 
+  // Production adapter contract. No physics, relocation, timers, or actor
+  // lifecycle lives here: callers sample APEX truth after movement, then advance
+  // the authored Gold presentation by exactly STEP from hrPostTick(dt).
+  function validRoot(actor) {
+    return !!actor && Number.isFinite(actor.x) && Number.isFinite(actor.y);
+  }
+  function syncExternalTruth(mirror, opponent) {
+    if (!validRoot(mirror) || !validRoot(opponent)) return false;
+    M.x = mirror.x; M.y = mirror.y;
+    M.vx = Number.isFinite(mirror.vx) ? mirror.vx : 0;
+    M.vy = Number.isFinite(mirror.vy) ? mirror.vy : 0;
+    F.x = opponent.x; F.y = opponent.y;
+    F.vx = Number.isFinite(opponent.vx) ? opponent.vx : 0;
+    F.vy = Number.isFinite(opponent.vy) ? opponent.vy : 0;
+    M.aim = Number.isFinite(mirror.aim) ? mirror.aim : Math.atan2(F.y - M.y, F.x - M.x);
+    F.aim = Number.isFinite(opponent.aim) ? opponent.aim : Math.atan2(M.y - F.y, M.x - F.x);
+    if (Object.prototype.hasOwnProperty.call(opponent, 'armed')) F.armed = !!opponent.armed;
+    return true;
+  }
+  function enableExternalTruth(mirror, opponent) {
+    if (!syncExternalTruth(mirror, opponent)) return false;
+    __externalTruth = true;
+    __applyExchange = false;
+    __externalSteps = 0; __externalExchanges = 0; __externalSnaps = 0;
+    __externalExchangeCastId = null;
+    __externalA1CastId = __externalA2CastId = null; __externalA2Resolved = false;
+    __externalPrevSpeed = Math.hypot(M.vx, M.vy);
+    __externalMoving = __externalPrevSpeed >= 50;
+    M.mv = __externalMoving ? 1 : 0;
+    M.pkx = M.vx; M.pky = M.vy;
+    simT = 0;
+    histFill();
+    return true;
+  }
+  function stepExternalPresentation(dt) {
+    if (!__externalTruth) return false;
+    if (!Number.isFinite(dt) || Math.abs(dt - STEP) > 1e-12)
+      throw new RangeError('Mirror external presentation requires one exact 1/120s step');
+    __externalSteps++;
+    simT += STEP;
+    qStep(STEP); twStep(STEP);
+    M.turnCd -= STEP; M.wallCd -= STEP; M.colCd -= STEP; M.hitCd -= STEP; M.busy -= STEP;
+    const vx = M.vx, vy = M.vy, speed = Math.hypot(vx, vy);
+    if (speed > 1e-6) {
+      const ix = vx / speed, iy = vy / speed;
+      const ovx = hs(.12, 12), ovy = hs(.12, 13), oldSpeed = Math.hypot(ovx, ovy);
+      if (__externalMoving && oldSpeed > 135 && M.turnCd <= 0
+          && (ovx * ix + ovy * iy) / oldSpeed < .05) {
+        onTurn(ovx / oldSpeed, ovy / oldSpeed, ix, iy);
+        M.turnCd = .45;
+      }
+      if (!__externalMoving && __externalPrevSpeed < 90) onStart(ix, iy);
+      if (speed > 150) M.mv = 1;
+      else if (!M.mv && speed >= 90) M.mv = 1;
+      M.pkx = vx; M.pky = vy;
+      __externalMoving = true;
+    } else if (M.mv === 1 && speed < 50) {
+      if (Math.hypot(M.pkx, M.pky) > 140) onStop(M.pkx, M.pky);
+      M.mv = 0; __externalMoving = false;
+    }
+    __externalPrevSpeed = speed;
+    M.rec.step(0, STEP); M.cs.step(0, STEP); M.sf = Math.max(0, M.sf - STEP * 3.2);
+    idleStep(STEP); lockStep(STEP); stepA1(STEP); stepA2(STEP);
+    stepExternalSprings(STEP); sweepStep(STEP); fxStep(STEP);
+    pushHist();
+    return true;
+  }
+  function applyExternalExchange(event, mirror, opponent) {
+    if (!__externalTruth || !event || !A2.on || event.castId == null || __externalA2Resolved
+        || __externalExchangeCastId === event.castId
+        || (__externalA2CastId != null && event.castId !== __externalA2CastId)) return false;
+    const self = event.self, other = event.opponent;
+    if (!self || !other || !validRoot(self.from) || !validRoot(other.from)
+        || !validRoot(mirror) || !validRoot(opponent)) return false;
+    if (Object.prototype.hasOwnProperty.call(self, 'id') && mirror.id != null && self.id !== mirror.id) return false;
+    if (Object.prototype.hasOwnProperty.call(other, 'id') && opponent.id != null && other.id !== opponent.id) return false;
+    // Real event carries the PRE-SWAP sample; invoke the authored snap exactly
+    // once there (including its one shiftHist rebase), then restore POST-SWAP
+    // roots and current velocities from the actual APEX actors.
+    M.x = self.from.x; M.y = self.from.y;
+    F.x = other.from.x; F.y = other.from.y;
+    a2Snap();
+    if (!syncExternalTruth(mirror, opponent)) return false;
+    __externalExchangeCastId = event.castId;
+    __externalA2Resolved = true;
+    __externalExchanges++;
+    return true;
+  }
+  function beginExternalA1(castId, whiff) {
+    if (!__externalTruth || castId == null || A1.on || A2.on) return false;
+    __externalA1CastId = castId; castA1(!!whiff); return A1.on;
+  }
+  function beginExternalA2(castId) {
+    if (!__externalTruth || castId == null || A1.on || A2.on) return false;
+    __externalA2CastId = castId; castA2();
+    if (A2.on) __externalA2CastId = castId;
+    return A2.on;
+  }
+  function endExternalA1(castId) {
+    if (!__externalTruth || (castId != null && __externalA1CastId != null && castId !== __externalA1CastId)) return false;
+    const ended = finishA1(); if (ended) __externalA1CastId = null; return ended;
+  }
+  function endExternalA2(castId) {
+    if (!__externalTruth || (castId != null && __externalA2CastId != null && castId !== __externalA2CastId)) return false;
+    const ended = finishA2(); if (ended) { __externalA2CastId = null; __externalA2Resolved = false; } return ended;
+  }
+  function clearExternalTruth() {
+    __externalTruth = false; __applyExchange = !!opts.applyExchange;
+    __externalExchangeCastId = null; __externalA1CastId = __externalA2CastId = null;
+    __externalA2Resolved = false; __externalMoving = false; __externalPrevSpeed = 0;
+    A1.on = false; A1.f = {}; A2.on = false; A2.f = {};
+    M.busy = 0; M.copyOn = false; M.copyT = 0; M.copyFx = 0; __wpnArt = null;
+    Q.length = 0;
+    for (const s of TW) { s.on = false; s.o = null; }
+    for (const s of SW) s.on = false;
+    for (const f of FX) { f.on = false; f.nm = ''; }
+    for (const key of Object.keys(__listeners)) __listeners[key].length = 0;
+    histFill();
+    return true;
+  }
+  function externalAudit() {
+    return Object.freeze({ enabled: __externalTruth, fixedStep: STEP,
+      steps: __externalSteps, exchanges: __externalExchanges, snaps: __externalSnaps,
+      lastExchangeCastId: __externalExchangeCastId, a1CastId: __externalA1CastId,
+      a2CastId: __externalA2CastId, a2Resolved: __externalA2Resolved, applyExchange: __applyExchange,
+      mirror: { x: M.x, y: M.y, vx: M.vx, vy: M.vy },
+      opponent: { x: F.x, y: F.y, vx: F.vx, vy: F.vy },
+      a1On: A1.on, a2On: A2.on });
+  }
+
   return {
     // state
     get E() { return E; }, get M() { return M; }, get F() { return F; },
@@ -1187,14 +1338,18 @@ function createMirrorInstance(options) {
     // D3 real-weapon visual adapter
     setWeaponArt, weaponArt: () => __weaponArt(),
     // D3 authored choreography (reports edges; performs no gameplay)
-    castA1, stepA1, castA2, stepA2, a2Snap, a1Frame, sliceState, holdPos,
+    castA1, stepA1, castA2, stepA2, a2Snap: () => __externalTruth ? false : a2Snap(), a1Frame, sliceState, holdPos,
     drawA1World, drawSite, drawHalf, clipHalf, strips, drawResidue, drawPlate,
     rigFull, drawHeld, drawMirrorEntity, drawFoeEntity, drawCracks, drawHistoryCore,
     foeReal, foeMV,
     get A1() { return A1; }, get A2() { return A2; },
     on, off,
-    setApplyExchange(v) { __applyExchange = !!v; },
+    setApplyExchange(v) { __applyExchange = __externalTruth ? false : !!v; },
     get applyExchange() { return __applyExchange; },
+    enableExternalTruth, syncExternalTruth, stepExternalPresentation,
+    applyExternalExchange, beginExternalA1, beginExternalA2,
+    endExternalA1, endExternalA2, clearExternalTruth,
+    get externalTruth() { return __externalTruth; }, externalAudit,
     // deterministic presentation RNG control
     reseed(seed) { __rand = mulberry32((seed >>> 0) || 0x9E3779B9); },
     random() { return __rand(); },
@@ -1257,13 +1412,13 @@ function drawAssetMasked(ctx2d, name, ppu, fill, alpha, comp) {
 }
 
 g.APEX_MIRROR_GOLD = {
-  version: '1.3.0-d4-shard-node-routing-visuals',
+  version: '1.4.0-g1-external-truth-foundation',
   goldSha256: 'c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205',
   regionSha256: '6c659ed0e821addf580e02e9b635fd090a4bfc1c9e482f2aa86970e9c779aa11',
-  checkpoint: 'D4',
+  checkpoint: 'G1',
   d2RegionSha256: '94f56ac4bbc75a30744005ec39615595e1c614ae0ab84d05021db2364f3f0ab5',
-  d3RegionSha256: 'f99e943af77245dd41a9f124ef0e69fca6e7da196a5c8ca6114130d781cf7c19',
-  d3RemovedMutations: [{"removed":"if(!wf){M.copyOn=true;M.copyT=6;M.copyFx=0}","replacedWith":"if(!wf){M.copyOn=true;M.copyFx=0;emit('ownEdge',{t:A1.t,u:u})}","why":"Gold granted a 6s demo copy at OWN. Production owns equip + lifetime (E)."},{"removed":"F.wspec=0;","replacedWith":"","why":"mutated the demo foe actor; production has no such field."},{"removed":"Math[random]()<dt*28","replacedWith":"__rand()<dt*28","why":"presentation must never consume the gameplay/combat RNG stream."},{"removed":"M.x=fx;M.y=fy;F.x=ox;F.y=oy;","replacedWith":"if(__applyExchange){M.x=fx;M.y=fy;F.x=ox;F.y=oy;}","why":"presentation may not relocate real fighters; gameplay owns the atomic swap."}],
+  d3RegionSha256: '0b7a3ed8968fe5e5c0bc2429dee1509718560e7dde4c00bc3be369da69a046fb',
+  d3RemovedMutations: [{"removed":"if(!wf){M.copyOn=true;M.copyT=6;M.copyFx=0}","replacedWith":"if(!wf){if(!__externalTruth){M.copyOn=true;M.copyFx=0;emit('ownEdge',{t:A1.t,u:u})}}","why":"Gold granted a 6s demo copy at OWN. Production owns equip + lifetime (E)."},{"removed":"F.wspec=0;","replacedWith":"","why":"mutated the demo foe actor; production has no such field."},{"removed":"Math[random]()<dt*28","replacedWith":"__rand()<dt*28","why":"presentation must never consume the gameplay/combat RNG stream."},{"removed":"M.x=fx;M.y=fy;F.x=ox;F.y=oy;","replacedWith":"if(__applyExchange){M.x=fx;M.y=fy;F.x=ox;F.y=oy;}","why":"presentation may not relocate real fighters; gameplay owns the atomic swap."},{"removed":"cam.sx.v+=Math.sign(dx)*22;","replacedWith":"","why":"production has no Gold demo camera; actor roots and visual history remain authoritative"}],
   d4RegionSha256: '7d35be712ccd430cc3e7900936f8247cafa946f63a1f1442013ed60a385cc6c4',
   d3WeaponArtSites: ["A1 reflection + peel slices use the real copied weapon atlas","flat-in-plate sheen masks the real weapon silhouette","sliceState geometry derives from the real weapon bounds","held weapon after OWN is the real copied weapon","held-weapon sweep masks the real weapon","peel-edge flecks follow the real weapon bounds"],
   weaponEntryFromImage, dpEntry, maskedEntry,

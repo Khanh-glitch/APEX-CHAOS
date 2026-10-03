@@ -87,6 +87,21 @@ const assetKept = assetRegion.slice(0, DIAG_AT).replace(/\s+$/, '') + '\n' + ass
 const stateRegion = cut('STATE, SPRINGS, HISTORY, TWEENS', 'FALSE-REFLECTION EXPRESSION ENGINE');
 const exprRegion = cut('FALSE-REFLECTION EXPRESSION ENGINE', 'MOVEMENT, TURN, STOP, WALL, BODY COLLISION');
 let moveRegion = cut('MOVEMENT, TURN, STOP, WALL, BODY COLLISION', 'HIT SYSTEM (same language escalates into passive shard detachment)');
+const springRegion = cut('FOE (functional opponent only) + SPRINGS',
+  'A1 — MIRROR ARSENAL  (NOTICE → LOCK → REFLECT → PEEL → REFORM → OWN)');
+const springMatch = springRegion.match(/function stepSprings\(dt\)\{[\s\S]*?\n\}/);
+if (!springMatch) fail('Gold presentation springs function not found');
+let externalSprings = springMatch[0]
+  .replace('function stepSprings(dt)', 'function stepExternalSprings(dt)');
+const CAMERA_SPRINGS = 'cam.sx.step(0,dt);cam.sy.step(0,dt);';
+if (!externalSprings.includes(CAMERA_SPRINGS)) fail('camera spring cut site not found');
+externalSprings = externalSprings.replace(CAMERA_SPRINGS, '');
+externalSprings = externalSprings
+  .replace("for(const s of ['L','R']){const h=H[s];h.x.step(0,dt);h.y.step(0,dt);h.r.step(0,dt)}",
+    "for(let i=0;i<2;i++){const h=H[i?'R':'L'];h.x.step(0,dt);h.y.step(0,dt);h.r.step(0,dt)}")
+  .replace('for(const p of PL){', 'for(let i=0;i<PL.length;i++){const p=PL[i];')
+  .replace('for(const a of ACC){', 'for(let i=0;i<ACC.length;i++){const a=ACC[i];')
+  .replace(/[ \\t]+$/gm, '');
 
 // Demo-only globals inside the state banner: canvas handles, input map, zoom.
 // `cam` stays because wallHit/collide nudge it; production drives nothing from it.
@@ -133,7 +148,7 @@ function stripMutation(region, needle, replacement, why) {
 //    snapshotted Arsenal weapon at Checkpoint E; presentation only reports it.
 a1Region = stripMutation(a1Region,
   "if(!wf){M.copyOn=true;M.copyT=6;M.copyFx=0}",
-  "if(!wf){M.copyOn=true;M.copyFx=0;emit('ownEdge',{t:A1.t,u:u})}",
+  "if(!wf){if(!__externalTruth){M.copyOn=true;M.copyFx=0;emit('ownEdge',{t:A1.t,u:u})}}",
   'Gold granted a 6s demo copy at OWN. Production owns equip + lifetime (E).');
 
 // 2. Demo foe weapon-spec mutation.
@@ -143,6 +158,12 @@ a1Region = stripMutation(a1Region, "F.wspec=0;", "",
 // 3. Presentation RNG for peel flecks.
 a1Region = stripMutation(a1Region, "Math.random()<dt*28", "__rand()<dt*28",
   'presentation must never consume the gameplay/combat RNG stream.');
+for (const [regionName, region] of [['A1', a1Region], ['A2', a2Region]]) {
+  const needle = regionName === 'A1' ? 'M.busy=Math.max(M.busy,2.2);' : 'M.busy=Math.max(M.busy,1.8)';
+  if (!region.includes(needle)) fail(`${regionName} cast busy edge not found`);
+  if (regionName === 'A1') a1Region = region.replace(needle, 'if(!__externalTruth)M.busy=Math.max(M.busy,2.2);');
+  else a2Region = region.replace(needle, 'if(!__externalTruth)M.busy=Math.max(M.busy,1.8)');
+}
 
 // 4. a2Snap moved the demo fighters. Production performs the ONE atomic
 //    exchange (E); presentation receives the already-resolved coordinates.
@@ -152,8 +173,78 @@ a2Region = stripMutation(a2Region,
   'presentation may not relocate real fighters; gameplay owns the atomic swap.');
 
 // shiftHist() is deliberately RETAINED: the contract requires history be
-// REBASED across the exchange, never cleared.
+// REBASED across the exchange, never cleared. The executable real exchange
+// event, not Gold's local .25 threshold, invokes a2Snap in external-truth mode.
 if (!a2Region.includes('shiftHist(fx-ox,fy-oy)')) fail('A2 history rebase lost');
+const cameraSnap = 'cam.sx.v+=Math.sign(dx)*22;';
+if (!a2Region.includes(cameraSnap)) fail('A2 camera-only snap mutation not found');
+a2Region = stripMutation(a2Region, cameraSnap, '',
+  'production has no Gold demo camera; actor roots and visual history remain authoritative');
+const a2SnapEntry = 'function a2Snap(){';
+if (!a2Region.includes(a2SnapEntry)) fail('A2 snap function entry not found');
+a2Region = a2Region.replace(a2SnapEntry,
+  'function a2Snap(){if(__externalTruth)__externalSnaps++;');
+
+// Gold owns the authored finish choreography, while real Mirror end events
+// remain the lifecycle authority in production. Preserve the original demo
+// finish blocks and defer them to explicit external end calls when bridged.
+function callbackBlock(region, needle, label, from = 0) {
+  const start = region.indexOf(needle, from);
+  if (start < 0) fail(`${label} callback not found`);
+  const open = start + needle.length - 1;
+  if (region[open] !== '{') fail(`${label} callback opening brace moved`);
+  let depth = 0, quote = '', lineComment = false, blockComment = false;
+  for (let i = open; i < region.length; i++) {
+    const ch = region[i], next = region[i + 1];
+    if (lineComment) { if (ch === '\n') lineComment = false; continue; }
+    if (blockComment) { if (ch === '*' && next === '/') { blockComment = false; i++; } continue; }
+    if (quote) {
+      if (ch === '\\') { i++; continue; }
+      if (ch === quote) quote = '';
+      continue;
+    }
+    if (ch === '/' && next === '/') { lineComment = true; i++; continue; }
+    if (ch === '/' && next === '*') { blockComment = true; i++; continue; }
+    if (ch === '\'' || ch === '"' || ch === '`') { quote = ch; continue; }
+    if (ch === '{') depth++;
+    else if (ch === '}' && --depth === 0) {
+      if (region.slice(i, i + 3) !== '});') fail(`${label} callback closing edge changed`);
+      return { start, open, close: i, body: region.slice(open + 1, i) };
+    }
+  }
+  fail(`${label} callback is unterminated`);
+}
+const A1_END_EDGE = "once('end',u>=.92,()=>{";
+let a1End = callbackBlock(a1Region, A1_END_EDGE, 'A1 end');
+const a1FinishBody = a1End.body.trim();
+if (!a1FinishBody.startsWith('A1.on=false;')) fail('A1 end body changed unexpectedly');
+const a1FinishFn = `function finishA1(){if(!A1.on)return false;const pl=A1.pl;A1.on=false;${a1FinishBody.slice('A1.on=false;'.length)}return true}\n`;
+const a1StepAt = a1Region.indexOf('function stepA1(dt){');
+if (a1StepAt < 0) fail('A1 step function not found');
+a1Region = a1Region.slice(0, a1StepAt) + a1FinishFn + a1Region.slice(a1StepAt);
+a1End = callbackBlock(a1Region, A1_END_EDGE, 'A1 end', a1StepAt + a1FinishFn.length);
+a1Region = a1Region.slice(0, a1End.start) +
+  "once('end',u>=.92,()=>{if(!__externalTruth)finishA1();});" + a1Region.slice(a1End.close + 3);
+
+const A2_CAST_EDGE = 'function castA2(){if(A1.on||A2.on)return;';
+if (!a2Region.includes(A2_CAST_EDGE)) fail('A2 cast entry not found');
+a2Region = a2Region.replace(A2_CAST_EDGE,
+  'function castA2(){if(A1.on||A2.on)return;if(__externalTruth){__externalA2CastId=null;__externalA2Resolved=false;__externalExchangeCastId=null;}');
+const A2_END_EDGE = "once('e',u>=.64,()=>{";
+let a2End = callbackBlock(a2Region, A2_END_EDGE, 'A2 end');
+const a2FinishBody = a2End.body.trim();
+if (!a2FinishBody.startsWith('A2.on=false;')) fail('A2 end body changed unexpectedly');
+const a2FinishFn = `function finishA2(){if(!A2.on)return false;A2.on=false;${a2FinishBody.slice('A2.on=false;'.length)}return true}\n`;
+const a2StepAt = a2Region.indexOf('function stepA2(dt){');
+if (a2StepAt < 0) fail('A2 step function not found');
+a2Region = a2Region.slice(0, a2StepAt) + a2FinishFn + a2Region.slice(a2StepAt);
+a2End = callbackBlock(a2Region, A2_END_EDGE, 'A2 end', a2StepAt + a2FinishFn.length);
+a2Region = a2Region.slice(0, a2End.start) +
+  "once('e',u>=.64,()=>{if(!__externalTruth)finishA2();});" + a2Region.slice(a2End.close + 3);
+const A2_SNAP_EDGE = "once('x',u>=.25,a2Snap);";
+if (!a2Region.includes(A2_SNAP_EDGE)) fail('A2 authored snap edge not found');
+a2Region = a2Region.replace(A2_SNAP_EDGE,
+  "once('x',u>=.25,()=>{if(!__externalTruth)a2Snap()});");
 
 // Draw helpers the A1/A2 sites need: plate/half/site/residue rendering.
 // Everything from the RENDERING banner up to the projectile marker; the
@@ -297,6 +388,9 @@ const D2_REQUIRED = ['const HN=64,HS=22', 'function pushHist()', 'function hs(d,
   'function stepMirror(', 'function onStart(', 'function onTurn(', 'function onStop(', 'function wallHit(',
   'function collide('];
 for (const r of D2_REQUIRED) if (!d2Region.includes(r)) fail(`D2 region lost required symbol: ${r}`);
+if (!externalSprings.includes('function stepExternalSprings(dt){')
+  || externalSprings.includes('cam.sx.step') || externalSprings.includes('cam.sy.step'))
+  fail('external spring region must retain authored body springs and omit camera simulation');
 for (const f of ['document.getElementById', 'addEventListener', 'requestAnimationFrame', 'function render('])
   if (d2Region.includes(f)) fail(`D2 region leaked demo symbol: ${f}`);
 
@@ -349,8 +443,9 @@ const out = `// GENERATED by tools/bridgeMirrorGoldV1.mjs — DO NOT EDIT BY HAN
 // as long as bake order is bakeSupport() -> bakeArt(). ensureBaked() is the single
 // place that order exists; nothing else may bake.
 //
-// This module is pure presentation material. It owns NO gameplay truth, NO timers
-// and NO clock. Checkpoint E (mirrorGameplayRuntime) owns mechanics.
+// This module is pure presentation material. In production, APEX supplies truth
+// and exact STEP ticks; the showcase demo remains isolated. Checkpoint E
+// (mirrorGameplayRuntime) owns mechanics and lifecycle.
 (function (g) {
 'use strict';
 const doc = typeof document !== 'undefined' ? document : null;
@@ -427,8 +522,18 @@ function createMirrorInstance(options) {
   // Dedicated presentation stream. Never the gameplay/combat RNG.
   let __rand = mulberry32((opts.seed >>> 0) || 0x9E3779B9);
   const rr = (a, b) => a + __rand() * (b - a);
+  // External-truth mode is the sole production bridge: roots are assigned from
+  // APEX after movement, while authored Gold pose/choreography advances only
+  // through exact STEP-sized calls. The demo remains unchanged by default.
+  let __externalTruth = false;
+  let __externalSteps = 0, __externalExchanges = 0, __externalSnaps = 0;
+  let __externalExchangeCastId = null;
+  let __externalA1CastId = null, __externalA2CastId = null, __externalA2Resolved = false;
+  let __externalPrevSpeed = 0, __externalMoving = false;
 
 ${d2Region.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
+
+${externalSprings.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
 
   // ---- D3 semantic edges + exchange control -------------------------------
   // The authored timeline REPORTS its canonical edges; it never performs the
@@ -499,6 +604,136 @@ ${d4Full.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
   hHead = 0;
   histFill();
 
+  // Production adapter contract. No physics, relocation, timers, or actor
+  // lifecycle lives here: callers sample APEX truth after movement, then advance
+  // the authored Gold presentation by exactly STEP from hrPostTick(dt).
+  function validRoot(actor) {
+    return !!actor && Number.isFinite(actor.x) && Number.isFinite(actor.y);
+  }
+  function syncExternalTruth(mirror, opponent) {
+    if (!validRoot(mirror) || !validRoot(opponent)) return false;
+    M.x = mirror.x; M.y = mirror.y;
+    M.vx = Number.isFinite(mirror.vx) ? mirror.vx : 0;
+    M.vy = Number.isFinite(mirror.vy) ? mirror.vy : 0;
+    F.x = opponent.x; F.y = opponent.y;
+    F.vx = Number.isFinite(opponent.vx) ? opponent.vx : 0;
+    F.vy = Number.isFinite(opponent.vy) ? opponent.vy : 0;
+    M.aim = Number.isFinite(mirror.aim) ? mirror.aim : Math.atan2(F.y - M.y, F.x - M.x);
+    F.aim = Number.isFinite(opponent.aim) ? opponent.aim : Math.atan2(M.y - F.y, M.x - F.x);
+    if (Object.prototype.hasOwnProperty.call(opponent, 'armed')) F.armed = !!opponent.armed;
+    return true;
+  }
+  function enableExternalTruth(mirror, opponent) {
+    if (!syncExternalTruth(mirror, opponent)) return false;
+    __externalTruth = true;
+    __applyExchange = false;
+    __externalSteps = 0; __externalExchanges = 0; __externalSnaps = 0;
+    __externalExchangeCastId = null;
+    __externalA1CastId = __externalA2CastId = null; __externalA2Resolved = false;
+    __externalPrevSpeed = Math.hypot(M.vx, M.vy);
+    __externalMoving = __externalPrevSpeed >= 50;
+    M.mv = __externalMoving ? 1 : 0;
+    M.pkx = M.vx; M.pky = M.vy;
+    simT = 0;
+    histFill();
+    return true;
+  }
+  function stepExternalPresentation(dt) {
+    if (!__externalTruth) return false;
+    if (!Number.isFinite(dt) || Math.abs(dt - STEP) > 1e-12)
+      throw new RangeError('Mirror external presentation requires one exact 1/120s step');
+    __externalSteps++;
+    simT += STEP;
+    qStep(STEP); twStep(STEP);
+    M.turnCd -= STEP; M.wallCd -= STEP; M.colCd -= STEP; M.hitCd -= STEP; M.busy -= STEP;
+    const vx = M.vx, vy = M.vy, speed = Math.hypot(vx, vy);
+    if (speed > 1e-6) {
+      const ix = vx / speed, iy = vy / speed;
+      const ovx = hs(.12, 12), ovy = hs(.12, 13), oldSpeed = Math.hypot(ovx, ovy);
+      if (__externalMoving && oldSpeed > 135 && M.turnCd <= 0
+          && (ovx * ix + ovy * iy) / oldSpeed < .05) {
+        onTurn(ovx / oldSpeed, ovy / oldSpeed, ix, iy);
+        M.turnCd = .45;
+      }
+      if (!__externalMoving && __externalPrevSpeed < 90) onStart(ix, iy);
+      if (speed > 150) M.mv = 1;
+      else if (!M.mv && speed >= 90) M.mv = 1;
+      M.pkx = vx; M.pky = vy;
+      __externalMoving = true;
+    } else if (M.mv === 1 && speed < 50) {
+      if (Math.hypot(M.pkx, M.pky) > 140) onStop(M.pkx, M.pky);
+      M.mv = 0; __externalMoving = false;
+    }
+    __externalPrevSpeed = speed;
+    M.rec.step(0, STEP); M.cs.step(0, STEP); M.sf = Math.max(0, M.sf - STEP * 3.2);
+    idleStep(STEP); lockStep(STEP); stepA1(STEP); stepA2(STEP);
+    stepExternalSprings(STEP); sweepStep(STEP); fxStep(STEP);
+    pushHist();
+    return true;
+  }
+  function applyExternalExchange(event, mirror, opponent) {
+    if (!__externalTruth || !event || !A2.on || event.castId == null || __externalA2Resolved
+        || __externalExchangeCastId === event.castId
+        || (__externalA2CastId != null && event.castId !== __externalA2CastId)) return false;
+    const self = event.self, other = event.opponent;
+    if (!self || !other || !validRoot(self.from) || !validRoot(other.from)
+        || !validRoot(mirror) || !validRoot(opponent)) return false;
+    if (Object.prototype.hasOwnProperty.call(self, 'id') && mirror.id != null && self.id !== mirror.id) return false;
+    if (Object.prototype.hasOwnProperty.call(other, 'id') && opponent.id != null && other.id !== opponent.id) return false;
+    // Real event carries the PRE-SWAP sample; invoke the authored snap exactly
+    // once there (including its one shiftHist rebase), then restore POST-SWAP
+    // roots and current velocities from the actual APEX actors.
+    M.x = self.from.x; M.y = self.from.y;
+    F.x = other.from.x; F.y = other.from.y;
+    a2Snap();
+    if (!syncExternalTruth(mirror, opponent)) return false;
+    __externalExchangeCastId = event.castId;
+    __externalA2Resolved = true;
+    __externalExchanges++;
+    return true;
+  }
+  function beginExternalA1(castId, whiff) {
+    if (!__externalTruth || castId == null || A1.on || A2.on) return false;
+    __externalA1CastId = castId; castA1(!!whiff); return A1.on;
+  }
+  function beginExternalA2(castId) {
+    if (!__externalTruth || castId == null || A1.on || A2.on) return false;
+    __externalA2CastId = castId; castA2();
+    if (A2.on) __externalA2CastId = castId;
+    return A2.on;
+  }
+  function endExternalA1(castId) {
+    if (!__externalTruth || (castId != null && __externalA1CastId != null && castId !== __externalA1CastId)) return false;
+    const ended = finishA1(); if (ended) __externalA1CastId = null; return ended;
+  }
+  function endExternalA2(castId) {
+    if (!__externalTruth || (castId != null && __externalA2CastId != null && castId !== __externalA2CastId)) return false;
+    const ended = finishA2(); if (ended) { __externalA2CastId = null; __externalA2Resolved = false; } return ended;
+  }
+  function clearExternalTruth() {
+    __externalTruth = false; __applyExchange = !!opts.applyExchange;
+    __externalExchangeCastId = null; __externalA1CastId = __externalA2CastId = null;
+    __externalA2Resolved = false; __externalMoving = false; __externalPrevSpeed = 0;
+    A1.on = false; A1.f = {}; A2.on = false; A2.f = {};
+    M.busy = 0; M.copyOn = false; M.copyT = 0; M.copyFx = 0; __wpnArt = null;
+    Q.length = 0;
+    for (const s of TW) { s.on = false; s.o = null; }
+    for (const s of SW) s.on = false;
+    for (const f of FX) { f.on = false; f.nm = ''; }
+    for (const key of Object.keys(__listeners)) __listeners[key].length = 0;
+    histFill();
+    return true;
+  }
+  function externalAudit() {
+    return Object.freeze({ enabled: __externalTruth, fixedStep: STEP,
+      steps: __externalSteps, exchanges: __externalExchanges, snaps: __externalSnaps,
+      lastExchangeCastId: __externalExchangeCastId, a1CastId: __externalA1CastId,
+      a2CastId: __externalA2CastId, a2Resolved: __externalA2Resolved, applyExchange: __applyExchange,
+      mirror: { x: M.x, y: M.y, vx: M.vx, vy: M.vy },
+      opponent: { x: F.x, y: F.y, vx: F.vx, vy: F.vy },
+      a1On: A1.on, a2On: A2.on });
+  }
+
   return {
     // state
     get E() { return E; }, get M() { return M; }, get F() { return F; },
@@ -522,14 +757,18 @@ ${d4Full.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
     // D3 real-weapon visual adapter
     setWeaponArt, weaponArt: () => __weaponArt(),
     // D3 authored choreography (reports edges; performs no gameplay)
-    castA1, stepA1, castA2, stepA2, a2Snap, a1Frame, sliceState, holdPos,
+    castA1, stepA1, castA2, stepA2, a2Snap: () => __externalTruth ? false : a2Snap(), a1Frame, sliceState, holdPos,
     drawA1World, drawSite, drawHalf, clipHalf, strips, drawResidue, drawPlate,
     rigFull, drawHeld, drawMirrorEntity, drawFoeEntity, drawCracks, drawHistoryCore,
     foeReal, foeMV,
     get A1() { return A1; }, get A2() { return A2; },
     on, off,
-    setApplyExchange(v) { __applyExchange = !!v; },
+    setApplyExchange(v) { __applyExchange = __externalTruth ? false : !!v; },
     get applyExchange() { return __applyExchange; },
+    enableExternalTruth, syncExternalTruth, stepExternalPresentation,
+    applyExternalExchange, beginExternalA1, beginExternalA2,
+    endExternalA1, endExternalA2, clearExternalTruth,
+    get externalTruth() { return __externalTruth; }, externalAudit,
     // deterministic presentation RNG control
     reseed(seed) { __rand = mulberry32((seed >>> 0) || 0x9E3779B9); },
     random() { return __rand(); },
@@ -592,10 +831,10 @@ function drawAssetMasked(ctx2d, name, ppu, fill, alpha, comp) {
 }
 
 g.APEX_MIRROR_GOLD = {
-  version: '1.3.0-d4-shard-node-routing-visuals',
+  version: '1.4.0-g1-external-truth-foundation',
   goldSha256: '${GOLD_SHA}',
   regionSha256: '${regionSha}',
-  checkpoint: 'D4',
+  checkpoint: 'G1',
   d2RegionSha256: '${d2Sha}',
   d3RegionSha256: '${d3Sha}',
   d3RemovedMutations: ${JSON.stringify(D3_MUTATIONS)},
