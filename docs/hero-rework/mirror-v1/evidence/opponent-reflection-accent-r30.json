@@ -1,0 +1,276 @@
+{
+  "checkpoint": "Mirror opponent-derived reflected illumination",
+  "status": "CLOSED — r30",
+  "generatedAt": "2026-10-03T09:53:08.842Z",
+  "branch": "arena/01a10020-apex-chaos",
+  "runtimeRevision": "20261002-mirror-v1-r30",
+  "implementationCommitMessage": "fix(mirror): adapt reflection accent to opponent identity",
+  "implementationCommit": "de4a1f2",
+  "sourceSha256": {
+    "canonicalGoldHtml": "c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205",
+    "generatedGoldRuntime": "508e57710cda7774202cf331d59ba8b05c241b66d654ec2367be1cb6323c0861",
+    "presentationRuntime": "444b3ee3855729574ac5b94c178c168ace786baba9225b9068960c4797fdd0ac",
+    "goldBridge": "eb925ba02c9a2e83097bc70e2996a3a77cfdc0e7bf72dfef9218d347e451e866"
+  },
+  "identityAccentsRgb": {
+    "ROBOT": [
+      131,
+      205,
+      224
+    ],
+    "HUNTER": [
+      177,
+      209,
+      112
+    ],
+    "CRYSTAL": [
+      98,
+      165,
+      216
+    ],
+    "MAGNET": [
+      192,
+      128,
+      208
+    ],
+    "ICE": [
+      138,
+      207,
+      226
+    ],
+    "MIRROR": [
+      183,
+      171,
+      217
+    ],
+    "FROST": "ICE alias",
+    "neutralFallback": [
+      194,
+      200,
+      208
+    ]
+  },
+  "drawScope": {
+    "adapted": [
+      "A2 opponent-derived plate tint and plate-bound sweep",
+      "reflected shard sweeps",
+      "formed Mirror node shimmer and dynamic sweep edges",
+      "A2 reflected-image seam edges; white seam core retained"
+    ],
+    "retained": [
+      "silver/black/violet Mirror substrate",
+      "white-hot specular centers and authored alpha/timing envelopes",
+      "generic non-opponent Mirror seam",
+      "weapon orange and generic projectile-owner orange channels",
+      "gameplay, damage, cooldowns, routing, ownership, scale, and layer order",
+      "canonical Gold HTML bytes"
+    ]
+  },
+  "focusedRenderedPixelEvidence": {
+    "harness": "@napi-rs/canvas through tools/lib/crystalaHarness.mjs; not a browser pixel-parity claim",
+    "script": "tools/testMirrorOpponentReflectionAccents.mjs",
+    "gates": "10/10 PASS",
+    "surfaces": [
+      "plate",
+      "shard",
+      "node",
+      "reflectedSeam"
+    ],
+    "uniqueIdentityFramesPerSurface": {
+      "plate": 6,
+      "shard": 6,
+      "node": 6,
+      "reflectedSeam": 6
+    },
+    "renderedFrames": {
+      "ROBOT": {
+        "plate": {
+          "sha256": "169d8642c3f4c6043a3a1049cbb48bf13d7fc1a1c081bbcbe1c98ad68b736fb6",
+          "changedFromNeutral": 43105
+        },
+        "shard": {
+          "sha256": "41b6096916702bae1fda2fd1e0f0fe5ad8f329830eee90f1318595eb87daaa0b",
+          "changedFromNeutral": 1887
+        },
+        "node": {
+          "sha256": "a8cccd76a29fd66d9681fe04f10a56cd1dd4acf23dc01565f9c1432bdee52746",
+          "changedFromNeutral": 4095
+        },
+        "reflectedSeam": {
+          "sha256": "d991e42cb80342bb0c64f7f3e0e7ff6d47de6861b013c60f639f506a10ed2e52",
+          "changedFromNeutral": 2500
+        }
+      },
+      "HUNTER": {
+        "plate": {
+          "sha256": "7febf9d80158f71652a6ec427d7b0059f106cd0fe89c95a03fb7fe8ca5929677",
+          "changedFromNeutral": 45950
+        },
+        "shard": {
+          "sha256": "46a6944482de59322ec079675491e650b5bc2f2c88399c0f60bca8d4954f75be",
+          "changedFromNeutral": 1999
+        },
+        "node": {
+          "sha256": "ef8de3515fb1a968d0537a2380d6ac6aa332fe22673e19c018646e865fa4eaf0",
+          "changedFromNeutral": 4101
+        },
+        "reflectedSeam": {
+          "sha256": "adc94bb3bf949e1d9980c319546a6a15879e72b9caf47ab812ad43af93700e72",
+          "changedFromNeutral": 2515
+        }
+      },
+      "CRYSTAL": {
+        "plate": {
+          "sha256": "21f23aeac5657e26d725c6225e5e75821b58e07204856317cc1d5a066b161c19",
+          "changedFromNeutral": 46425
+        },
+        "shard": {
+          "sha256": "1542697979ddd4720127c370e2e0127676d1b7d15fdd037772ff5de64485c4ef",
+          "changedFromNeutral": 2030
+        },
+        "node": {
+          "sha256": "cebd50b932e19ee92f84cfe99fd5bff6ebc06378eb3aa52e44ff1f5b8a661967",
+          "changedFromNeutral": 4100
+        },
+        "reflectedSeam": {
+          "sha256": "3c518154d1a23ce845b0d36223a57e2afa743622629c67f600df03d9daa9741f",
+          "changedFromNeutral": 2567
+        }
+      },
+      "MAGNET": {
+        "plate": {
+          "sha256": "4a5b5dfd0ac028875de58fdedcd989e1d8cf4f6ad6ecd05d42065a52fa114c03",
+          "changedFromNeutral": 41813
+        },
+        "shard": {
+          "sha256": "7dc0c48398ede3db4474b5830275c8d63466ebc4be5a9c91c11f2fb3cf4edbfc",
+          "changedFromNeutral": 1783
+        },
+        "node": {
+          "sha256": "79aed102450f765846293ea9a882eea39ec0330233342dfaffb0e2bcb323b927",
+          "changedFromNeutral": 4091
+        },
+        "reflectedSeam": {
+          "sha256": "02d4147f723cfe22f54a8a6599c3ba34faee5cc8c380826229b95c16f70cff71",
+          "changedFromNeutral": 2294
+        }
+      },
+      "ICE": {
+        "plate": {
+          "sha256": "60086c680c66334575aaac12f6eb448305909a3bd4664af163e7187bce0730e8",
+          "changedFromNeutral": 43091
+        },
+        "shard": {
+          "sha256": "22868685a89b0efae9d52989aae245d3d514630b73c8074e165602a3cfdb1927",
+          "changedFromNeutral": 1883
+        },
+        "node": {
+          "sha256": "66507e8509a72377979afcc5fa87a31203c145e3fea518502ec37037680018cf",
+          "changedFromNeutral": 4096
+        },
+        "reflectedSeam": {
+          "sha256": "34a191257812757c04322d00f4a6b392ed76911ba4fb6d89b3d5a61ec5e9ddfc",
+          "changedFromNeutral": 2500
+        }
+      },
+      "MIRROR": {
+        "plate": {
+          "sha256": "9b30e57898ba6f52edf15583163ec13b3c4a35f125ffceef6cc7b8b81fedacb1",
+          "changedFromNeutral": 40408
+        },
+        "shard": {
+          "sha256": "c9ad9b2a57f4aacc18e01eee7157606d4d4cd2bfe1591f4d0b26d14736cf97d9",
+          "changedFromNeutral": 1492
+        },
+        "node": {
+          "sha256": "dfa10d92439dfb8c7685e84d29630eded2889332069e82f857519aa198ce652d",
+          "changedFromNeutral": 4058
+        },
+        "reflectedSeam": {
+          "sha256": "10721136df071d5f44b4e96ff8e4051cd1d6d5ee7e8938dbe5a1c6f53a561460",
+          "changedFromNeutral": 2420
+        }
+      }
+    },
+    "checks": {
+      "frostMatchesIce": true,
+      "unknownFallbackRepeatDeterministic": true,
+      "genericDemoSeamIndependentOfOpponent": true,
+      "gameplaySnapshotUnchanged": true,
+      "mirrorVersusMirrorInstancesIsolated": true,
+      "teardownNeutralizesOldInstances": true,
+      "rematchBindsNewOpponent": true,
+      "whiteSpecularCentersRetained": true,
+      "unrelatedWarmChannelsRetained": true
+    }
+  },
+  "acceptedH1": {
+    "bodyScaleLaw": "fighter.radius / GOLD_REF.MIRROR_R × 1.00",
+    "fixtureBodyK": 2.2058823529411766,
+    "dynamicLayerOrder": [
+      "fighter bodies",
+      "real held weapons",
+      "A1World"
+    ],
+    "sourceLayerOrder": [
+      "A2 residue",
+      "real held weapons",
+      "A1World",
+      "Arsenal VFX"
+    ],
+    "test": "tools/testMirrorPresentationH1ScaleAndOrder.mjs",
+    "result": "48/48 PASS"
+  },
+  "regressionSuite": {
+    "broadRunRevision": "20261002-mirror-v1-r29 (before the single r30 transition)",
+    "results": {
+      "testMirrorOpponentReflectionAccents.mjs": "10/10 PASS (also re-run on r30)",
+      "testMirrorA1A2Gameplay.mjs": "38/38 PASS",
+      "testMirrorA2Ordering.mjs": "2/2 PASS",
+      "testMirrorCoreSixInterop.mjs": "19/19 PASS",
+      "testMirrorF2Routing.mjs": "32/32 PASS",
+      "testMirrorG4ClosureAudit.mjs": "18/18 PASS (also re-run on r30)",
+      "testMirrorGoldG1ExternalTruth.mjs": "PASS",
+      "testMirrorGoldSemanticBoundaryR1.mjs": "42/42 PASS",
+      "testMirrorPassiveFormation.mjs": "28/28 PASS",
+      "testMirrorPresentationBridge.mjs": "PASS (re-run on r30)",
+      "testMirrorPresentationG2A2.mjs": "PASS",
+      "testMirrorPresentationG2ActorA1.mjs": "PASS",
+      "testMirrorPresentationG3Integration.mjs": "7/7 PASS",
+      "testMirrorPresentationG3PassiveRouting.mjs": "20/20 PASS",
+      "testMirrorPresentationH1ScaleAndOrder.mjs": "48/48 PASS (re-run on r30)",
+      "testMirrorPresentationR2SemanticMigration.mjs": "15/15 PASS (re-run on r30)",
+      "testMirrorPresentationR3A2ReceiverClosure.mjs": "12/12 PASS (re-run on r30)"
+    }
+  },
+  "runtimeRevisionGate": {
+    "updateLock": "PASS — UPDATE_LOCK=1 node tools/testRuntimeRevisionGate.mjs",
+    "normal": "PASS — node tools/testRuntimeRevisionGate.mjs",
+    "manifestVersionedRuntimeCount": 40,
+    "uniqueLockedFileCount": 33
+  },
+  "productionBuild": {
+    "status": "PASS",
+    "command": "node tools/materializeArsenalFinalSfx.mjs && node tools/generatePublicAssetManifest.cjs && ./node_modules/.bin/vite build",
+    "note": "Equivalent package build steps run directly because pnpm was not on the nested script PATH.",
+    "materializedSfxCount": 20,
+    "manifestAssetCount": 705,
+    "viteVersion": "5.4.21",
+    "transformedModules": 35,
+    "buildRanAfterR30": true
+  },
+  "environmentLimitations": {
+    "browserVisualOracle": "Not run: puppeteer-core and @sparticuz/chromium are unavailable in this sandbox.",
+    "browserDependentMirrorSuites": [
+      "testMirrorGoldD1Raster.mjs",
+      "testMirrorGoldD3Choreography.mjs",
+      "testMirrorGoldHarness.mjs",
+      "testMirrorGoldVisualOracle.mjs"
+    ],
+    "ownerPlaytest": "Not claimed; owner visual review remains the visual truth."
+  },
+  "nonClaims": [
+    "pixel-perfect browser parity",
+    "owner playtest acceptance"
+  ]
+}
