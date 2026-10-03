@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-03T06:45:20.800Z",
+  "generatedAt": "2026-10-03T07:12:03.261Z",
   "gates": {
     "E-A1-01-no-copy-at-cast": {
       "pass": true,
@@ -316,10 +316,10 @@
       "detail": {
         "cast": true,
         "baseSpeed": 520,
-        "travelledPx": 501.3,
+        "travelledPx": 494,
         "expectedApproxPx": 494,
         "ownAtStep": 112,
-        "ownDisplacementPx": 492.6,
+        "ownDisplacementPx": 485.3,
         "A1EndBeforeWindowEnd": null,
         "heldAfterWindow": "PISTOL",
         "note": "per-frame displacement bounded by production locomotion while A1 stays active"
