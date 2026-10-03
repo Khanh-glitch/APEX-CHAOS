@@ -10,6 +10,7 @@
 import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { runPrePilotProductBrowserAcceptance } from './lib/prePilotProductBrowserAcceptance.mjs';
 
 const endpoint = process.env.APEX_CDP_ENDPOINT || 'http://127.0.0.1:9224';
 const appUrl = process.env.APEX_APP_URL || 'http://127.0.0.1:5173';
@@ -134,7 +135,8 @@ try {
   // transitions are captured live, not reconstructed after the fact.
   await command('Page.addScriptToEvaluateOnNewDocument', { source: `
     window.__APEX_BOOT_OBSERVER = {
-      loaderHiddenAt: null, engineReadyAtLoaderHidden: null, menuButtonsDisabledAtLoaderHidden: null,
+      loaderHiddenAt: null, engineReadyAtLoaderHidden: null,
+      productCardCountAtLoaderHidden: null, productCardsDisabledAtLoaderHidden: null,
       loaderMaxPercentSeen: 0, firstGestureAt: null, bgmAtLoaderHidden: null, errors: [], _seenLoader: false,
     };
     window.addEventListener('error', ev => { window.__APEX_BOOT_OBSERVER.errors.push(String(ev.message)); });
@@ -142,8 +144,9 @@ try {
       if (window.__APEX_BOOT_OBSERVER.loaderHiddenAt !== null) return;
       window.__APEX_BOOT_OBSERVER.loaderHiddenAt = performance.now();
       window.__APEX_BOOT_OBSERVER.engineReadyAtLoaderHidden = Boolean(window.__apexEngineReady);
-      const btn = document.querySelector('#menu-screen .menu-buttons button');
-      window.__APEX_BOOT_OBSERVER.menuButtonsDisabledAtLoaderHidden = btn ? !!btn.disabled : null;
+      const cards = [...document.querySelectorAll('#menu-screen [data-product-surface]')];
+      window.__APEX_BOOT_OBSERVER.productCardCountAtLoaderHidden = cards.length;
+      window.__APEX_BOOT_OBSERVER.productCardsDisabledAtLoaderHidden = cards.length === 0 || cards.some(card => !!card.disabled);
       window.__APEX_BOOT_OBSERVER.bgmAtLoaderHidden = window.__apexMenuBgmState ? window.__apexMenuBgmState() : null;
     };
     const sample = () => {
@@ -184,14 +187,6 @@ try {
     await sleep(250);
     if (i === 119) throw new Error('Apex engine did not become ready.');
   }
-  await evaluate(`window.__apexEnsureDeferredRuntimes('arsenalQuest').then(() => true)`);
-  for (let i = 0; i < 60; i++) {
-    if (await evaluate('Boolean(window.startArsenalQuestMode && window.APEX_ARSENAL?.weaponApi && window.getArsenalQuestDebugState)')) break;
-    await sleep(250);
-    if (i === 59) throw new Error('Arsenal Quest runtime was not exposed.');
-  }
-  gate('runtime-registered', true, 'arsenalQuest deferred group loaded');
-
   // ------------------------------------------------ boot truth (§A1/§A4) ---
   report.bootTruth = await evaluate(`(() => {
     const o = window.__APEX_BOOT_OBSERVER || {};
@@ -201,16 +196,18 @@ try {
     const bgmFetched = performance.getEntriesByType('resource').some(e => e.name.includes('/assets/audio/menu_bgm.mp3'));
     return {
       engineReadyAtLoaderHidden: o.engineReadyAtLoaderHidden,
-      menuButtonsDisabledAtLoaderHidden: o.menuButtonsDisabledAtLoaderHidden,
+      productCardCountAtLoaderHidden: o.productCardCountAtLoaderHidden,
+      productCardsDisabledAtLoaderHidden: o.productCardsDisabledAtLoaderHidden,
       loaderMaxPercentSeen: o.loaderMaxPercentSeen,
       loaderHiddenMs: perf && perf.boot ? perf.boot.loaderHiddenMs : null,
       interactiveMs: perf && perf.boot ? perf.boot.interactiveMs : null,
       phases, bgm, bgmFetched, firstGestureAt: o.firstGestureAt, errors: o.errors,
     };
   })()`);
-  gate('boot-loader-hides-only-when-menu-usable',
+  gate('boot-loader-hides-only-when-product-graph-usable',
     report.bootTruth.engineReadyAtLoaderHidden === true
-    && report.bootTruth.menuButtonsDisabledAtLoaderHidden === false
+    && report.bootTruth.productCardCountAtLoaderHidden === 10
+    && report.bootTruth.productCardsDisabledAtLoaderHidden === false
     && report.bootTruth.loaderMaxPercentSeen === 100,
     report.bootTruth);
   gate('boot-marks-complete',
@@ -224,6 +221,50 @@ try {
     && report.bootTruth.firstGestureAt === null,
     report.bootTruth.bgm);
   gate('boot-no-boot-errors', (report.bootTruth.errors || []).length === 0, report.bootTruth.errors);
+
+  // Current-product real-browser acceptance runs before any legacy Quest
+  // compatibility request. It physically exercises the product graph, lock
+  // dialogs, Local/Bot, Shop/Draw, save migration, and the admin-only Lab.
+  report.prePilotProduct = await runPrePilotProductBrowserAcceptance({
+    evaluate,
+    hitProbe,
+    physicalClick,
+    screenshot,
+    setViewport,
+    navigate: (url) => command('Page.navigate', { url }),
+    appUrl,
+    sleep,
+    gate,
+    evidence: report.evidence,
+  });
+
+  // Historical tooling remains supported only through an explicit detached
+  // compatibility-group request, after the public-product proof is complete.
+  await evaluate(`window.__apexEnsureDeferredRuntimes('arsenalLegacyQuest').then(() => true)`);
+  for (let i = 0; i < 60; i++) {
+    if (await evaluate('Boolean(window.__apexDeferredRuntimesReady_arsenalLegacyQuest && window.startArsenalQuestMode && window.APEX_ARSENAL?.weaponApi && window.getArsenalQuestDebugState)')) break;
+    await sleep(250);
+  }
+  report.legacyCompatibility = await evaluate(`(() => ({
+    ready: window.__apexDeferredRuntimesReady_arsenalLegacyQuest === true,
+    questBridge: window.apexArsenalQuestRuntime || null,
+    battleRuntime: window.apexArsenalBattleRuntime || null,
+    questApi: !!window.APEX_ARSENAL_QUEST,
+    battleScript: [...document.scripts].some(node => /\\/game\\/modes\\/arsenalBattleRuntime\\.js(?:[?#]|$)/.test(node.src)),
+    questScript: [...document.scripts].some(node => /\\/game\\/modes\\/arsenalQuestRuntime\\.js(?:[?#]|$)/.test(node.src)),
+    ladderScript: [...document.scripts].some(node => /\\/game\\/arsenal\\/arsenalQuestLadder\\.js(?:[?#]|$)/.test(node.src)),
+  }))()`);
+  gate('legacy-quest-compatibility-group-explicitly-loadable',
+    report.legacyCompatibility.ready === true
+      && report.legacyCompatibility.questBridge === 'compat-ready'
+      && report.legacyCompatibility.battleRuntime === 'ready'
+      && report.legacyCompatibility.questApi === true
+      && report.legacyCompatibility.battleScript === true
+      && report.legacyCompatibility.questScript === true
+      && report.legacyCompatibility.ladderScript === true,
+    report.legacyCompatibility);
+  gate('runtime-registered', report.legacyCompatibility.ready === true,
+    'explicit arsenalLegacyQuest compatibility group loaded');
 
   // ------------------------------ Audio 2B: latency-critical SFX ----------
   // The HOT bank (gunfire, melee impacts, pickups, storm combat SFX) must be
@@ -291,15 +332,26 @@ try {
   await evaluate(`(() => {
     window.__AQ_TEST = {
       enterManual() {
-        // Direct entry (like the Lab blocks above) must hide the meta hub
-        // overlay first, or evidence screenshots capture the Hub over the
-        // arena instead of the fighters/weapon being verified.
+        // Direct compatibility-runtime probes hide the product meta overlay
+        // first, and pin blank HERO/RIVAL actors so preceding Core Six product
+        // matches cannot leak their shell identities into legacy fixtures.
         window.APEX_ARSENAL_META?.hideMeta?.();
-        window.startArsenalQuestMode();
+        window.__apexArsenalBattleProfile = 'LOCAL';
+        window.__apexArsenalBotBattle = false;
+        window.__apexArsenalFreeBattle = false;
+        window.__apexArsenalSelectPending = false;
+        window.startArsenalQuestMode('HERO', 'RIVAL');
         cancelAnimationFrame(reqId); reqId = 0;
         return getArsenalQuestDebugState();
       },
-      enterLive() { window.startArsenalQuestMode(); return getArsenalQuestDebugState(); },
+      enterLive() {
+        window.__apexArsenalBattleProfile = 'LOCAL';
+        window.__apexArsenalBotBattle = false;
+        window.__apexArsenalFreeBattle = false;
+        window.__apexArsenalSelectPending = false;
+        window.startArsenalQuestMode('HERO', 'RIVAL');
+        return getArsenalQuestDebugState();
+      },
       step(seconds, dt) {
         dt = dt || 1/60;
         let t = seconds;
@@ -368,60 +420,22 @@ try {
   })()`);
   gate('normal-modes-launch', report.normalModes.selectVisible && report.normalModes.menuVisible && report.normalModes.normalMatchState === 'PLAYING' && report.normalModes.menuAfterMatch === 'MENU', report.normalModes);
 
-  // ------------------------------- real menu-button route intent (§A3) ----
-  // A physical click on the real menu buttons must navigate through the
-  // tiered loader (intent group), proving no first-route regression.
-  await evaluate(`goToMenu()`);
-  await sleep(350);
-  const playProbe = await hitProbe('#menu-screen .menu-buttons button.primary');
-  await physicalClick('#menu-screen .menu-buttons button.primary');
-  for (let i = 0; i < 40; i++) {
-    if (await evaluate(`!document.getElementById('select-screen').classList.contains('hidden')`)) break;
-    await sleep(150);
-  }
-  // The pick presentation renders asynchronously (layout JSON + card art) as a
-  // 3-card carousel under its own stage root (NOT inside the React-owned
-  // .apex-pick-layer wrapper, which stays empty).
-  for (let i = 0; i < 40; i++) {
-    const counts = await evaluate(`(() => ({
-      pickCards: document.querySelectorAll('.apex-pick-stage .apex-pick-card').length,
-      rosterCards: document.querySelectorAll('#roster-grid .fighter-card').length,
-    }))()`).catch(() => ({ pickCards: 0, rosterCards: 0 }));
-    if (counts.pickCards >= 3 || counts.rosterCards >= 30) break;
-    await sleep(150);
-  }
-  report.menuPlayRoute = await evaluate(`(() => {
-    const grid = document.getElementById('roster-grid');
-    return {
-      probe: ${JSON.stringify(playProbe)},
-      selectVisible: !document.getElementById('select-screen').classList.contains('hidden'),
-      rosterCards: grid ? grid.querySelectorAll('.fighter-card').length : 0,
-      pickLayer: !!document.querySelector('.apex-pick-layer'),
-      pickCards: document.querySelectorAll('.apex-pick-stage .apex-pick-card').length,
-      menuHidden: document.getElementById('menu-screen').classList.contains('hidden'),
-    };
-  })()`);
-  gate('menu-button-play-route-select-loads',
-    report.menuPlayRoute.selectVisible
-    && (report.menuPlayRoute.rosterCards >= 30 || report.menuPlayRoute.pickCards >= 3)
-    && report.menuPlayRoute.pickLayer,
-    report.menuPlayRoute);
-  await evaluate(`goToMenu()`);
-  await sleep(350);
-  await physicalClick('#menu-screen .menu-buttons button[aria-label="ARSENAL QUEST"]');
-  let questHubVisible = false;
-  for (let i = 0; i < 40; i++) {
-    questHubVisible = await evaluate(`Boolean(document.getElementById('aq-hub'))`).catch(() => false);
-    if (questHubVisible) break;
-    await sleep(150);
-  }
-  report.menuQuestRoute = await evaluate(`(() => ({
-    hubVisible: Boolean(document.getElementById('aq-hub')),
-    menuHidden: document.getElementById('menu-screen').classList.contains('hidden'),
-  }))()`).catch(() => ({ hubVisible: questHubVisible }));
-  gate('menu-button-quest-route-hub-loads', report.menuQuestRoute.hubVisible === true, report.menuQuestRoute);
-  await evaluate(`(() => { try { window.aqExitToMainMenu ? window.aqExitToMainMenu() : document.getElementById('aq-hub-exit')?.click(); } catch (e) {} goToMenu(); return true; })()`);
-  await sleep(300);
+  // The former Classic Play / Arsenal Quest menu-button assertions are
+  // superseded by the physical current-product proof above: graph-derived
+  // cards, locked-surface dialogs, Local/Bot, Shop/Draw, and admin-only Lab.
+  // Retain an aggregate route gate here so the broad historical runtime suite
+  // fails if any focused current-product browser acceptance gate regresses.
+  const productRouteGateNames = [
+    'public-graph-exactly-ten-four-active-six-locked-no-retired-actions',
+    'locked-surface-quest-01-blocks-gameplay-and-returns',
+    'local-1v1-physical-route-legal-owned-picker-and-neutral-match',
+    'bot-battle-physical-route-deterministic-p2-neutral-match-and-real-ai-cast',
+    'fighter-shop-public-roster-twelve-core-six-law-1000-ac-and-locked-purchase-rejection',
+    'lucky-draw-physical-route-pool-core-six-and-exactly-one-350-ac-draw',
+  ];
+  gate('current-product-menu-routes-physical-acceptance',
+    productRouteGateNames.every(name => report.prePilotProduct?.[name]?.pass === true),
+    Object.fromEntries(productRouteGateNames.map(name => [name, report.prePilotProduct?.[name]?.pass === true])));
 
   // ------------------------------------------------------- mode entry ------
   report.entry = await evaluate(`(() => {
@@ -861,19 +875,20 @@ try {
     const adapted = bossIds.filter(n => kits[n] === 'ADAPT');
     const playableRework = ids.length === 12 && ids.every(n => (shells.typeFor(n) || {}).__hrHero === n);
 
-    // REWORK proof (replaces the legacy ICE KEEP-proof): canonical ICE casts
-    // its rework frost lane (A2) inside a real Arsenal match.
+    // Current Frost authority: A1 (Frost Breath) creates the Frozen Lane.
+    // A2 is Frost Rush and must not be reinterpreted as the old lane proof.
     window.startArsenalQuestMode('ICE', 'WITCH');
     cancelAnimationFrame(reqId); reqId = 0;
     APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
     const HR = window.APEX_HERO_REWORK;
     const iceCt = HR.byCombatant(fighters[0]);
     const iceCtl = HR.abilityController(iceCt);
-    const laneCast = iceCtl.tryCast('A2', 'gate');
-    let iceLaneFired = false;
+    const frostA1Cast = iceCtl.tryCast('A1', 'browser-proof');
+    let frostA1Lanes = [];
     for (let i = 0; i < 40; i++) {
       APEX_ARSENAL.step(1 / 60);
-      if (HR.match && HR.match.world.lanes.length > 0) iceLaneFired = true;
+      frostA1Lanes = window.APEX_FROST?.inspect?.(iceCt)?.lanes?.filter(lane => lane.active) || [];
+      if (frostA1Lanes.length) break;
     }
 
     // ADAPT proof: VAMPIRE latch shortened to 2.5s for shell fighters.
@@ -907,16 +922,16 @@ try {
       || __AQ_TEST.countEvents('USE', 'weapon=PISTOL') >= 1;
     return {
       kits, allClassified, adapted, playableRework,
-      laneCast: laneCast && laneCast.ok, iceLaneFired, vampLatch, monkRush,
-      nativeSeen, aqSeen, holderIntact,
+      frostA1Cast: frostA1Cast && frostA1Cast.ok, frostLane: frostA1Lanes.length > 0,
+      frostA1Lanes, vampLatch, monkRush, nativeSeen, aqSeen, holderIntact,
     };
   })()`);
   gate('roster-encounters-classified-keep-or-adapt',
     report.roster.allClassified && Object.keys(report.roster.kits).length === 21
       && report.roster.adapted.join(',') === 'VAMPIRE,MONK' && report.roster.playableRework,
     { adapted: report.roster.adapted, playableRework: report.roster.playableRework });
-  gate('roster-rework-ice-lane-runs', report.roster.laneCast === true && report.roster.iceLaneFired,
-    { laneCast: report.roster.laneCast, iceLaneFired: report.roster.iceLaneFired });
+  gate('roster-frost-a1-creates-frozen-lane', report.roster.frostA1Cast === true && report.roster.frostLane === true,
+    { skill: 'A1', frostA1Cast: report.roster.frostA1Cast, frozenLanePresent: report.roster.frostLane });
   gate('roster-adapt-vampire-latch-2.5', report.roster.vampLatch === 2.5, `latchTimer=${report.roster.vampLatch}`);
   gate('roster-adapt-monk-rush-2.5', report.roster.monkRush === 2.5, `rushTimer=${report.roster.monkRush}`);
   gate('roster-native-skill-and-weapon-coexist',
@@ -1076,11 +1091,10 @@ try {
   })()`);
   report.evidence.push(await screenshot('08-f3-debug-overlay'));
 
-  // V2 evidence 16: shared select screen renders the owned PLAYABLE roster
-  // (canonical 12 ∩ owned); P1 locks ROBOT, P2 locks ICE independently,
-  // START enters Arsenal. HERO REWORK (doc-06): an invalid save falls back
-  // to ROBOT (NEWBIE retired); legacy non-canonical owned IDs (CARD) never
-  // leak into the playable pick pool.
+  // Shared select screen renders only owned Core Six entries. Historic
+  // ownership of locked SLIME and legacy CARD survives storage, but cannot
+  // override current public selectability; stale active selection falls back
+  // to ROBOT while NEWBIE migration remains durable.
   const newbieFallback = await evaluate(`(async () => {
     const M = window.APEX_ARSENAL_META;
     M.save(M.sanitize({
@@ -1110,6 +1124,7 @@ try {
     const t = window.__APEX_PICK_TEST;
     const names = t ? t.roster().map(c => c.name) : [];
     const restored = { p1: t && t.p1(), p2: t && t.p2() };
+    const sanitizedSave = M.getState();
     const hubHidden = !document.getElementById('aq-meta-root') || document.getElementById('aq-meta-root').style.display === 'none';
     const broken = Array.from(document.querySelectorAll('.apex-pick-card img')).filter(img => img.getAttribute('src') === 'null' || img.getAttribute('src') === 'undefined').length;
     if (t) t.confirmByName('ROBOT');
@@ -1117,7 +1132,8 @@ try {
     if (t) t.confirmByName('ICE');
     await new Promise(r => setTimeout(r, 80));
     return {
-      names, restored,
+      names, restored, sanitizedSave,
+      publicSelectionRejected: !M.canPublicSelect('SLIME'),
       p1: t && t.p1(),
       p2: t && t.p2(),
       selectVisible: !document.getElementById('select-screen').classList.contains('hidden'),
@@ -1127,9 +1143,17 @@ try {
       unownedSniper: names.includes('SNIPER'),
     };
   })()`);
-  gate('v3-free-owned-only-roster', shellSelect.robot && shellSelect.cardExcluded && !shellSelect.unownedSniper
-    && shellSelect.names.length === 3 && shellSelect.selectVisible && shellSelect.hubHidden, shellSelect);
-  gate('v3-free-restore-saved-owned', shellSelect.restored.p1 === 'ICE' && shellSelect.restored.p2 === 'SLIME', shellSelect);
+  gate('v3-free-core-six-owned-only-roster', shellSelect.robot && shellSelect.cardExcluded && !shellSelect.unownedSniper
+    && shellSelect.names.join(',') === 'ROBOT,ICE'
+    && shellSelect.names.every(name => ['ROBOT', 'HUNTER', 'CRYSTAL', 'MAGNET', 'ICE', 'MIRROR'].includes(name))
+    && shellSelect.selectVisible && shellSelect.hubHidden, shellSelect);
+  gate('v3-free-historic-locked-ownership-persists-selection-sanitizes',
+    shellSelect.restored.p1 === 'ICE' && shellSelect.restored.p2 === 'ROBOT'
+      && shellSelect.sanitizedSave.ownedFighters.includes('SLIME')
+      && shellSelect.sanitizedSave.ownedFighters.includes('CARD')
+      && shellSelect.sanitizedSave.lastSelectedP2 === 'ROBOT'
+      && shellSelect.publicSelectionRejected === true,
+    shellSelect);
   gate('v3-free-p1-p2-independent', shellSelect.p1 === 'ROBOT' && shellSelect.p2 === 'ICE', shellSelect);
   gate('v3-free-no-broken-cards', shellSelect.broken === 0, shellSelect);
   report.evidence.push(await screenshot('v3-free-pick-owned'));
@@ -1536,134 +1560,18 @@ try {
   })()`);
   gate('browser-rev2-cooldown-hud', report.rev2Hud.has === true, report.rev2Hud);
 
-  report.rev2QuestUxBr = await evaluate(`(async () => {
-    const Q = APEX_ARSENAL_QUEST;
-    const M = window.APEX_ARSENAL_META;
-    M.save(M.sanitize({
-      version: 1, credits: 350,
-      ownedFighters: ['NEWBIE', 'ICE'],
-      lastSelectedP1: 'ICE', lastSelectedP2: 'NEWBIE', totalSpins: 0, unlockedAt: { NEWBIE: 0, ICE: 1 },
-    }));
-    Q.persist({ unlockedThrough: 1, completedStages: [] });
-    if (gameState === 'ARSENAL') window.exitArsenalQuestMode();
-    Q.showMap();
-    const map1 = document.getElementById('aq-quest-map');
-    const mapOpen = !!(map1 && map1.style.display !== 'none' && typeof Q.showMap === 'function');
-    const btn1 = map1 && map1.querySelector('button[data-n="1"]');
-    if (btn1) btn1.click();
-    await new Promise(r => setTimeout(r, 400));
-    const pending = Q.peekPending && Q.peekPending();
-    const selectVisible = !document.getElementById('select-screen').classList.contains('hidden');
-    const hubHidden = !document.getElementById('aq-meta-root') || document.getElementById('aq-meta-root').style.display === 'none';
-    const t = window.__APEX_PICK_TEST;
-    const rosterNames = t ? t.roster().map(c => c.name) : [];
-    const p2Before = t && t.p2();
-    if (t) t.confirmByName('ICE');
-    await new Promise(r => setTimeout(r, 80));
-    const p1Locked = t && t.p1();
-    const p2Mid = t && t.p2();
-    if (t) t.confirmByName('NEWBIE');
-    await new Promise(r => setTimeout(r, 80));
-    const p2AfterAttempt = t && t.p2();
-    if (t) t.confirmByName('ICE');
-    await new Promise(r => setTimeout(r, 80));
-    const p1After = t && t.p1();
-    await new Promise(r => setTimeout(r, 120));
-    document.querySelector('.apex-pick-button[aria-label="start-button"]')?.click();
-    const t0 = Date.now();
-    while (gameState !== 'ARSENAL' && Date.now() - t0 < 6000) await new Promise(r => setTimeout(r, 80));
-    cancelAnimationFrame(reqId); reqId = 0;
-    const names = fighters.map(f => f.name);
-    const types = fighters.map(f => f.type && f.type.name);
-    fighters[1].hp = 0;
-    APEX_ARSENAL.step(1/60);
-    __AQ_TEST.redraw();
-    const winEl = document.getElementById('aq-quest-actions');
-    const winText = winEl ? winEl.textContent : '';
-    const winActs = Q.resultActions(APEX_ARSENAL.state);
-    const next = Q.nextStage();
-    cancelAnimationFrame(reqId); reqId = 0;
-    const stage2 = { n: APEX_ARSENAL.state.questStage, p1: fighters[0].name, p2: fighters[1].type && fighters[1].type.name };
-    fighters[0].hp = 0; fighters[1].hp = 100;
-    APEX_ARSENAL.step(1/60);
-    __AQ_TEST.redraw();
-    const lossActs = Q.resultActions(APEX_ARSENAL.state);
-    const lossEl = document.getElementById('aq-quest-actions');
-    Q.recordWin(1);
-    Q.showMap();
-    const map2 = document.getElementById('aq-quest-map');
-    const mapHtml = map2 ? map2.innerText : '';
-    const save = Q.loadSave();
-    Q.persist(save);
-    const raw = localStorage.getItem(Q.STORAGE_KEY);
-    return {
-      mapOpen, pending, selectVisible, hubHidden, rosterNames, p2Before, p2Mid, p2AfterAttempt, p1Locked, p1After,
-      names, types, winText, winActs, next, stage2, lossActs,
-      lossText: lossEl ? lossEl.textContent : '',
-      mapHtml, save, raw, showFn: typeof Q.showMap,
-    };
-  })()`);
-  report.evidence.push(await screenshot('rev2-quest-map'));
-  gate('browser-rev2-quest-map-opens', report.rev2QuestUxBr.mapOpen === true && report.rev2QuestUxBr.showFn === 'function', report.rev2QuestUxBr);
-  gate('browser-rev2-quest-stage1-opens-selector',
-    report.rev2QuestUxBr.pending && report.rev2QuestUxBr.pending.n === 1 && report.rev2QuestUxBr.selectVisible === true && report.rev2QuestUxBr.hubHidden === true,
-    report.rev2QuestUxBr);
-  gate('v3-quest-owned-p1-fixed-unowned-p2',
-    report.rev2QuestUxBr.p2Before === 'PAINTER'
-    && report.rev2QuestUxBr.p2AfterAttempt === 'PAINTER'
-    && report.rev2QuestUxBr.p1After === 'ICE'
-    && report.rev2QuestUxBr.rosterNames && report.rev2QuestUxBr.rosterNames.includes('ICE')
-    && !report.rev2QuestUxBr.rosterNames.includes('PAINTER'),
-    report.rev2QuestUxBr);
-  gate('browser-rev2-quest-ice-vs-painter',
-    report.rev2QuestUxBr.names && report.rev2QuestUxBr.names[0] === 'ICE' && report.rev2QuestUxBr.types && report.rev2QuestUxBr.types[1] === 'PAINTER',
-    report.rev2QuestUxBr);
-  gate('browser-rev2-quest-win-ui',
-    report.rev2QuestUxBr.winActs && report.rev2QuestUxBr.winActs.actions && report.rev2QuestUxBr.winActs.actions.join(',') === 'NEXT,REPLAY,QUEST MAP'
-    && /NEXT/.test(report.rev2QuestUxBr.winText),
-    report.rev2QuestUxBr.winActs);
-  gate('browser-rev2-quest-next-drum',
-    report.rev2QuestUxBr.stage2 && report.rev2QuestUxBr.stage2.n === 2 && report.rev2QuestUxBr.stage2.p2 === 'DRUM' && report.rev2QuestUxBr.stage2.p1 === 'ICE',
-    report.rev2QuestUxBr.stage2);
-  gate('browser-rev2-quest-loss-ui',
-    report.rev2QuestUxBr.lossActs && report.rev2QuestUxBr.lossActs.actions && report.rev2QuestUxBr.lossActs.actions.join(',') === 'RETRY,QUEST MAP',
-    report.rev2QuestUxBr.lossActs);
-  gate('browser-rev2-quest-persist',
-    report.rev2QuestUxBr.save && report.rev2QuestUxBr.save.unlockedThrough >= 2 && !!report.rev2QuestUxBr.raw,
-    report.rev2QuestUxBr.save);
-  report.evidence.push(await screenshot('v3-quest-result-or-map'));
-
-  await evaluate(`(() => {
-    const M = window.APEX_ARSENAL_META;
-    if (gameState === 'ARSENAL' && typeof window.exitArsenalQuestMode === 'function') window.exitArsenalQuestMode();
-    M.openHub();
-    return true;
-  })()`);
-  report.evidence.push(await screenshot('v3-hub'));
-  await evaluate(`APEX_ARSENAL_META.paintShop()`);
-  report.evidence.push(await screenshot('v3-shop'));
-  await evaluate(`document.querySelector('[data-buy]')?.click()`);
-  report.evidence.push(await screenshot('v3-shop-detail'));
-  await evaluate(`APEX_ARSENAL_META.paintDraw()`);
-  report.evidence.push(await screenshot('v3-lucky-draw-idle'));
-  await evaluate(`(() => {
-    const el = document.getElementById('aq-wheel');
-    if (el) el.style.transform = 'rotate(540deg)';
-    return true;
-  })()`);
-  report.evidence.push(await screenshot('v3-lucky-draw-spin'));
-  await evaluate(`document.getElementById('aq-spin')?.click()`);
-  report.evidence.push(await screenshot('v3-lucky-draw-result'));
-  await evaluate(`(() => { APEX_ARSENAL_META.hideMeta(); APEX_ARSENAL_QUEST.showMap(); return true; })()`);
-  report.evidence.push(await screenshot('v3-quest-map'));
+  // Legacy Quest-map/picker/result-page UI is intentionally not a public
+  // route in the pre-pilot product. Runtime-level compatibility remains
+  // covered above (explicit group, stage 1/10/20 opponent mapping) and below;
+  // current Shop, Draw, Local/Bot and hidden admin Lab are physically covered
+  // by runPrePilotProductBrowserAcceptance before this group is loaded.
 
   // ------------------------------------------ responsive UI / pointer QA -----
   // These gates use real browser viewport overrides and physical CDP pointer
   // dispatch. Programmatic HTMLElement.click() is intentionally insufficient:
   // it can pass even when an overlay has pointer-events:none.
   await evaluate(`(() => {
-    APEX_ARSENAL_QUEST.showMap();
-    document.getElementById('aq-quest-map').style.display = 'none';
+    document.getElementById('aq-quest-map')?.remove();
     APEX_ARSENAL_META.hideMeta();
     window.startArsenalQuestMode('HERO', 'RIVAL');
     APEX_ARSENAL.state.debugOverlay = false;
@@ -1763,118 +1671,27 @@ try {
   await clearViewport();
   await sleep(120);
 
-  // ------------------------------------------------------------- PASS A -----
-  // Owner playtest Pass A (OWNER_PLAYTEST_PASS_A_HIT_FEEDBACK_AND_NAV_AUTHORITY):
-  // main-menu entry resolves to the Hub, Hub-rooted navigation with visible
-  // exits, and frame-stepped hit-feedback evidence.
-  await evaluate(`(() => {
-    if (gameState === 'ARSENAL' && typeof window.exitArsenalQuestMode === 'function') window.exitArsenalQuestMode();
-    if (typeof goToMenu === 'function') goToMenu();
-    return true;
-  })()`);
-  await sleep(400);
-  // 1) the REAL main-menu Arsenal action must open the Hub (not Quest Map).
-  await evaluate(`(() => {
-    const btn = [...document.querySelectorAll('#menu-screen button')]
-      .find(b => /ARSENAL/i.test(b.textContent || ''));
-    if (btn) btn.click();
-    return !!btn;
-  })()`);
-  let menuHub = null;
-  for (let i = 0; i < 40; i++) {
-    menuHub = await evaluate(`(() => {
-      const meta = document.getElementById('aq-meta-root');
-      return {
-        hubVisible: !!meta && meta.style.display !== 'none'
-          && !!meta.querySelector('[data-go="free"]')
-          && !!meta.querySelector('[data-go="quest"]')
-          && !!meta.querySelector('[data-go="shop"]')
-          && !!meta.querySelector('[data-go="draw"]'),
-        hubExit: !!document.getElementById('aq-hub-exit'),
-        state: gameState,
-      };
-    })()`);
-    if (menuHub.hubVisible && menuHub.hubExit) break;
-    await sleep(250);
-  }
-  gate('passa-menu-arsenal-opens-hub', menuHub.hubVisible === true && menuHub.hubExit === true, menuHub);
-  report.evidence.push(await screenshot('passa-menu-hub'));
-
-  // 2) Hub visible EXIT -> global Main Menu.
-  const hubExitPointer = await physicalClick('#aq-hub-exit');
-  gate('responsive-pointer-hub-exit-hit-test', hubExitPointer.hitWithin === true && hubExitPointer.pointerEvents !== 'none', hubExitPointer);
-  await sleep(300);
-  const hubExit = await evaluate(`(() => ({
-    state: gameState,
-    menuVisible: !document.getElementById('menu-screen').classList.contains('hidden'),
-    metaHidden: !document.getElementById('aq-meta-root') || document.getElementById('aq-meta-root').style.display === 'none',
-  }))()`);
-  gate('passa-hub-exit-main-menu', hubExit.state === 'MENU' && hubExit.menuVisible === true && hubExit.metaHidden === true, hubExit);
-  report.evidence.push(await screenshot('passa-hub-exit-mainmenu'));
-
-  // 3) Hub -> Shop -> BACK -> Hub.
-  await evaluate(`APEX_ARSENAL_META.openHub()`);
-  await sleep(150);
-  const shopPointer = await physicalClick('#aq-meta-root [data-go="shop"]');
-  gate('responsive-pointer-hub-shop-hit-test', shopPointer.hitWithin === true && shopPointer.pointerEvents !== 'none', shopPointer);
-  await sleep(250);
-  const shopView = await evaluate(`!!document.getElementById('aq-shop-back')`);
-  gate('passa-hub-to-shop', shopView === true, shopView);
-  report.evidence.push(await screenshot('passa-shop'));
-  const shopBackPointer = await physicalClick('#aq-shop-back');
-  gate('responsive-pointer-shop-back-hit-test', shopBackPointer.hitWithin === true && shopBackPointer.pointerEvents !== 'none', shopBackPointer);
-  await sleep(200);
-  gate('passa-shop-back-hub', await evaluate(`!!document.querySelector('#aq-meta-root [data-go="free"]')`) === true);
-  report.evidence.push(await screenshot('passa-shop-back-hub'));
-
-  // 4) Hub -> Lucky Draw -> BACK -> Hub.
-  const drawPointer = await physicalClick('#aq-meta-root [data-go="draw"]');
-  gate('responsive-pointer-hub-draw-hit-test', drawPointer.hitWithin === true && drawPointer.pointerEvents !== 'none', drawPointer);
-  await sleep(250);
-  const drawView = await evaluate(`!!document.getElementById('aq-draw-back')`);
-  gate('passa-hub-to-lucky-draw', drawView === true, drawView);
-  report.evidence.push(await screenshot('passa-lucky-draw'));
-  const drawBackPointer = await physicalClick('#aq-draw-back');
-  gate('responsive-pointer-draw-back-hit-test', drawBackPointer.hitWithin === true && drawBackPointer.pointerEvents !== 'none', drawBackPointer);
-  await sleep(200);
-  gate('passa-draw-back-hub', await evaluate(`!!document.querySelector('#aq-meta-root [data-go="free"]')`) === true);
-  report.evidence.push(await screenshot('passa-draw-back-hub'));
-
-  // 5) Hub -> Quest Map -> visible BACK -> Hub.
-  const questPointer = await physicalClick('#aq-meta-root [data-go="quest"]');
-  gate('responsive-pointer-hub-quest-hit-test', questPointer.hitWithin === true && questPointer.pointerEvents !== 'none', questPointer);
-  await sleep(400);
-  const qmap = await evaluate(`(() => {
-    const el = document.getElementById('aq-quest-map');
-    return { visible: !!el && el.style.display !== 'none', close: !!document.getElementById('aq-quest-close') };
-  })()`);
-  gate('passa-hub-to-quest-map', qmap.visible === true && qmap.close === true, qmap);
-  report.evidence.push(await screenshot('passa-quest-map'));
-  const questBackPointer = await physicalClick('#aq-quest-close');
-  gate('responsive-pointer-quest-back-hit-test', questBackPointer.hitWithin === true && questBackPointer.pointerEvents !== 'none', questBackPointer);
-  await sleep(200);
-  gate('passa-quest-map-back-hub', await evaluate(`!!document.querySelector('#aq-meta-root [data-go="free"]')`) === true);
-  report.evidence.push(await screenshot('passa-quest-map-back-hub'));
-
-  // 6) Hub -> Free Battle picker -> visible exit back to Hub.
-  const freePointer = await physicalClick('#aq-meta-root [data-go="free"]');
-  gate('responsive-pointer-hub-free-hit-test', freePointer.hitWithin === true && freePointer.pointerEvents !== 'none', freePointer);
-  await sleep(500);
-  const pick = await evaluate(`(() => ({
-    selectVisible: !document.getElementById('select-screen').classList.contains('hidden'),
-    exitBtn: !!document.querySelector('button[aria-label="exit-button"]'),
-  }))()`);
-  gate('passa-hub-to-free-pick', pick.selectVisible === true && pick.exitBtn === true, pick);
-  report.evidence.push(await screenshot('passa-free-pick'));
-  const pickerBackPointer = await physicalClick('button[aria-label="exit-button"]');
-  gate('responsive-pointer-picker-exit-hit-test', pickerBackPointer.hitWithin === true && pickerBackPointer.pointerEvents !== 'none', pickerBackPointer);
-  await sleep(300);
-  const pickBack = await evaluate(`(() => ({
-    hubVisible: !!document.querySelector('#aq-meta-root [data-go="free"]'),
-    state: gameState,
-  }))()`);
-  gate('passa-free-pick-back-hub', pickBack.hubVisible === true, pickBack);
-  report.evidence.push(await screenshot('passa-free-pick-back-hub'));
+  // Current product-surface physical route/back proofs replace the retired
+  // public Hub, Quest Map, and Hub-rooted Free/Shop/Draw flow. The focused
+  // acceptance above exercises those real menu cards and return controls.
+  const currentNavigationGateNames = [
+    'public-graph-exactly-ten-four-active-six-locked-no-retired-actions',
+    ...['quest-01', 'fighter-upgrade', 'dictionary', 'missions', 'achievements', 'account-profile']
+      .map(id => `locked-surface-${id}-blocks-gameplay-and-returns`),
+    'local-1v1-physical-route-legal-owned-picker-and-neutral-match',
+    'local-battle-physical-exit-returns-to-product-menu',
+    'bot-battle-physical-route-deterministic-p2-neutral-match-and-real-ai-cast',
+    'bot-battle-physical-exit-returns-to-product-menu',
+    'fighter-shop-public-roster-twelve-core-six-law-1000-ac-and-locked-purchase-rejection',
+    'fighter-shop-physical-back-returns-to-product-menu',
+    'lucky-draw-physical-route-pool-core-six-and-exactly-one-350-ac-draw',
+    'admin-lab-absent-publicly-launchable-only-by-api-on-neutral-core',
+    'admin-lab-physical-exit-returns-without-public-lab-link',
+  ];
+  gate('current-product-physical-route-and-return-coverage',
+    currentNavigationGateNames.every(name => report.prePilotProduct?.[name]?.pass === true),
+    Object.fromEntries(currentNavigationGateNames.map(name =>
+      [name, report.prePilotProduct?.[name]?.pass === true])));
 
   // 7) Active battle exposes a visible EXIT; it mirrors the accepted B/ESC behavior.
   await evaluate(`(() => {
@@ -2778,31 +2595,36 @@ try {
     && heldMir.aimRight === true,
     heldMir);
 
-  // ------------------------------------------------ Arsenal Lab V1 real Chrome
-  report.labV1 = await evaluate(`(() => {
-    window.exitArsenalQuestMode();
-    APEX_ARSENAL_META.openHub();
-    const hub = document.getElementById('aq-meta-root');
-    const tiles = [...hub.querySelectorAll('[data-go]')].map(b => b.getAttribute('data-go'));
-    const toggle = hub.querySelector('#aq-splatter-mode');
-    hub.querySelector('[data-go="lab"]').click();
+  // ------------------------------------------------ Arsenal Lab runtime proof
+  // The current product Lab is admin-only and has already been physically
+  // launched through apexLaunchArsenalLab() in the focused product suite. This
+  // detailed runtime probe repeats the authorized seam, never a retired Hub tile.
+  report.labV1 = await evaluate(`(async () => {
+    if (gameState === 'ARSENAL') window.exitArsenalQuestMode?.();
+    const launched = await window.apexLaunchArsenalLab?.();
     cancelAnimationFrame(reqId); reqId = 0;
     APEX_ARSENAL.state.debugOverlay = false;
     const entry = __AQ_TEST.debug();
     const ids = [...document.querySelectorAll('[data-lab-weapon]')].map(b => b.dataset.labWeapon);
+    const menu = document.getElementById('menu-screen');
+    const menuCards = [...document.querySelectorAll('#menu-screen [data-product-surface]')];
     __AQ_TEST.step(31);
     const idle = __AQ_TEST.debug();
     const events = __AQ_TEST.events().filter(e => /SPAWN_SLOT|SPAWN_HEAL|LAB_SPAWN/.test(e));
-    return { tiles, toggle:!!toggle, entry:{lab:entry.labMode,hero:entry.hero.name,rival:entry.rival.name},
+    return { launched, menuCards:menuCards.length,
+      publicLab:!!menu?.querySelector('[data-product-surface="arsenal-lab"]'),
+      entry:{lab:entry.labMode,hero:entry.hero.name,rival:entry.rival.name},
       clearedPressure:[document.getElementById('p1-burst-total')?.textContent,document.getElementById('p2-burst-total')?.textContent],
       ids, idle:{slots:idle.activeSlots,spawns:idle.spawnedTotal,over:idle.over}, events };
   })()`);
-  // HERO REWORK: the Lab default hero is ROBOT (NEWBIE retired).
-  gate('lab-browser-hub-and-robot-panel', report.labV1.tiles.join(',') === 'free,quest,shop,draw,lab'
-    && report.labV1.toggle && report.labV1.entry.lab && report.labV1.entry.hero === 'ROBOT'
+  // HERO REWORK: the Lab default neutral fighters are both ROBOT.
+  gate('lab-browser-admin-seam-neutral-robot-panel', report.labV1.launched === true
+    && report.labV1.menuCards === 10 && report.labV1.publicLab === false
+    && report.labV1.entry.lab && report.labV1.entry.hero === 'ROBOT'
     && report.labV1.entry.rival === 'ROBOT'
     && report.labV1.ids.join(',') === (await evaluate('APEX_ARSENAL_CONFIG.P0_WEAPON_IDS.join(",")')),
-    { tiles:report.labV1.tiles, entry:report.labV1.entry, count:report.labV1.ids.length });
+    { entry:report.labV1.entry, menuCards:report.labV1.menuCards,
+      publicLab:report.labV1.publicLab, count:report.labV1.ids.length });
   gate('lab-browser-entry-clears-stale-pressure', report.labV1.clearedPressure.join(',') === '0,0', report.labV1.clearedPressure);
   gate('lab-browser-no-input-31s-no-spawns', report.labV1.idle.slots === 0
     && report.labV1.idle.spawns === 0 && report.labV1.idle.over === null && !report.labV1.events.length,
@@ -2921,8 +2743,10 @@ try {
     && report.labFlight.refProfile?.motesEnabled===true, report.labFlight);
   report.labPigment = await evaluate(`(() => {
     const F=APEX_ARSENAL_FEEL;
-    const victim = fighters[1], source = fighters[0];
-    victim.color='#3377bb'; source.color='#ff5533';
+    // Robot intentionally suppresses splatter. Use a detached HUNTER pigment
+    // fixture for this renderer-only probe without changing Lab gameplay.
+    const victim = {name:'HUNTER',x:500,y:500,color:'#3377bb',type:{__hrHero:'HUNTER'}};
+    const source = {name:'ROBOT',x:450,y:500,color:'#ff5533',type:{__hrHero:'ROBOT'}};
     F.setSplatterMode('BLOOD'); F.resetMatch();
     F.noteDamage({dealt:56,victim,source,label:'arsenal-pistol',impact:{x:500,y:500,vx:2600,vy:0}});
     const blood = F.liveSpray()[0].rgb.slice();
@@ -2931,7 +2755,9 @@ try {
   })()`);
   report.evidence.push(await screenshot('lab-v1-splatter-blood'));
   report.labPigmentColor = await evaluate(`(() => {
-    const F=APEX_ARSENAL_FEEL, victim=fighters[1], source=fighters[0];
+    const F=APEX_ARSENAL_FEEL;
+    const victim={name:'HUNTER',x:500,y:500,color:'#3377bb',type:{__hrHero:'HUNTER'}};
+    const source={name:'ROBOT',x:450,y:500,color:'#ff5533',type:{__hrHero:'ROBOT'}};
     F.setSplatterMode('FIGHTER COLOR'); F.resetMatch();
     F.noteDamage({dealt:56,victim,source,label:'arsenal-pistol',impact:{x:500,y:500,vx:2600,vy:0}});
     const v1=F.liveSpray()[0].rgb.slice(), expected=F.pigment(victim).v1.coreCenter;
@@ -2943,19 +2769,17 @@ try {
     const credits=APEX_ARSENAL_META.credits();
     const quest=JSON.stringify(APEX_ARSENAL_QUEST.loadSave());
     window.exitArsenalLab();
-    const exit={hub:document.getElementById('aq-meta-root').style.display,
+    const exit={menuVisible:!document.getElementById('menu-screen').classList.contains('hidden'),
+      metaHidden:!document.getElementById('aq-meta-root') || document.getElementById('aq-meta-root').style.display === 'none',
       gameState,credits:APEX_ARSENAL_META.credits(),quest:JSON.stringify(APEX_ARSENAL_QUEST.loadSave()),
       panelGone:!document.getElementById('aq-lab-panel')};
     F.setSplatterMode('BLOOD');
     return {v1,expected,legacy,legacyExpected,saved,reload,credits,quest,exit};
   })()`);
-  // Capture the color frame before the Lab exit (the data above includes its
-  // proof); a new Lab entry makes the two mode screenshots visually comparable.
-  await evaluate(`(() => {
-    // Direct test entry (unlike the hub tile) must hide the meta overlay first,
-    // or the screenshot would capture the Hub instead of fighter-color spray.
-    APEX_ARSENAL_META.hideMeta();
-    window.startArsenalLab(); cancelAnimationFrame(reqId); reqId=0;
+  // Capture the color frame after re-entering through the hidden admin seam.
+  await evaluate(`(async () => {
+    await window.apexLaunchArsenalLab?.();
+    cancelAnimationFrame(reqId); reqId=0;
     const F=APEX_ARSENAL_FEEL;
     F.setSplatterMode('FIGHTER COLOR');
     fighters[1].color='#3377bb'; fighters[0].color='#ff5533';
@@ -2965,12 +2789,13 @@ try {
   })()`);
   report.evidence.push(await screenshot('lab-v1-splatter-fighter-color'));
   await evaluate(`(() => {window.exitArsenalLab();APEX_ARSENAL_FEEL.setSplatterMode('BLOOD');return true})()`);
-  gate('lab-browser-splatter-victim-both-paths-persist', report.labPigment.blood.join(',') === '92,0,0'
+  gate('lab-browser-splatter-blood-and-victim-color-fixture-persist', report.labPigment.blood.join(',') === '92,0,0'
     && report.labPigmentColor.v1.join(',') === report.labPigmentColor.expected.join(',')
     && report.labPigmentColor.legacy.join(',') === report.labPigmentColor.legacyExpected.join(',')
     && report.labPigmentColor.saved === 'FIGHTER COLOR' && report.labPigmentColor.reload === 'FIGHTER COLOR'
     && report.labPigment.semantics.join(',') === '#F2382F,#FF8A24,#37D96B', report.labPigmentColor);
-  gate('lab-browser-exit-hub-zero-progression', report.labPigmentColor.exit.hub === 'block'
+  gate('lab-browser-exit-product-menu-zero-progression', report.labPigmentColor.exit.menuVisible === true
+    && report.labPigmentColor.exit.metaHidden === true && report.labPigmentColor.exit.gameState === 'MENU'
     && report.labPigmentColor.exit.panelGone && report.labPigmentColor.exit.credits === report.labPigmentColor.credits
     && report.labPigmentColor.exit.quest === report.labPigmentColor.quest, report.labPigmentColor.exit);
 
@@ -3197,19 +3022,26 @@ try {
     cp5Audio.menuBgmIndependent === true,
     cp5Audio);
 
-  // Likely-next-only background warmup (menu responsiveness): quest + select
-  // warm, legacy battle groups never touched while staying inside quest.
+  // Likely-next warmup is the active Arsenal product plus shared picker. The
+  // explicit compatibility group was intentionally loaded earlier in this
+  // suite only after product acceptance; this probe therefore checks current
+  // warmup completion and unrelated legacy modes rather than pretending the
+  // explicit compatibility request never happened.
   report.cp5Warmup = await evaluate(`(() => ({
-    questReady: window.__apexDeferredRuntimesReady_arsenalQuest === true,
+    productReady: window.__apexDeferredRuntimesReady_arsenalProduct === true,
+    legacyQuestReady: window.__apexDeferredRuntimesReady_arsenalLegacyQuest === true,
+    questAliasReady: window.__apexDeferredRuntimesReady_arsenalQuest === true,
     selectReady: window.__apexDeferredRuntimesReady_select === true,
-    legacyWarm: ['battle','soloBattle','trialBattle','tamChien','manualLab']
+    unrelatedLegacyWarm: ['battle','soloBattle','trialBattle','tamChien','manualLab']
       .filter(g => window['__apexDeferredRuntimesReady_' + g] === true),
     warmupComplete: window.__apexWarmupComplete === true,
   }))()`);
-  gate('menu-cp5-warmup-likely-next-only',
-    report.cp5Warmup.questReady === true
+  gate('menu-cp5-current-product-warmup-unrelated-modes-cold',
+    report.cp5Warmup.productReady === true
+    && report.cp5Warmup.legacyQuestReady === true
+    && report.cp5Warmup.questAliasReady === false
     && report.cp5Warmup.selectReady === true
-    && report.cp5Warmup.legacyWarm.length === 0
+    && report.cp5Warmup.unrelatedLegacyWarm.length === 0
     && report.cp5Warmup.warmupComplete === true,
     report.cp5Warmup);
 
@@ -3232,7 +3064,7 @@ try {
   // The three owner complaints: audio leaks across transitions, a multi-second
   // dead ARSENAL press, and delayed/janky UI while background work runs.
   // Fresh navigation = the cold-owner path: menu interactive → REAL click on
-  // ARSENAL QUEST → hub paints → background warmup continues behind it.
+  // active Bot Battle card → shared legal picker paints while warmup continues.
   await command('Page.navigate', { url: appUrl });
   await sleep(800);
   for (let i = 0; i < 120; i++) {
@@ -3240,7 +3072,7 @@ try {
     await sleep(250);
   }
   await evaluate(`(() => {
-    window.__cp6 = { inputs: [], pressPaintAt: null, hubPaintAt: null, done: false };
+    window.__cp6 = { inputs: [], pressPaintAt: null, routePaintAt: null, routeKind: null, done: false };
     const t0 = performance.now();
     const probe = (ev) => {
       const at = performance.now();
@@ -3250,23 +3082,31 @@ try {
     window.addEventListener('pointerdown', probe, { capture: true, passive: true });
     window.addEventListener('pointerdown', () => { window.__cp6.pointerdownAt = +performance.now().toFixed(1); }, { capture: true, passive: true });
     const mo = new MutationObserver(() => {
-      if (window.__cp6.pressPaintAt == null && document.querySelector('.menu-image-button.is-pressed')) {
+      if (window.__cp6.pressPaintAt == null && document.querySelector('.product-surface-card.is-pressed')) {
         requestAnimationFrame(() => { if (window.__cp6.pressPaintAt == null) window.__cp6.pressPaintAt = +performance.now().toFixed(1); });
       }
-      const hub = document.getElementById('aq-meta-root');
-      if (window.__cp6.hubPaintAt == null && hub && hub.style.display !== 'none' && hub.getBoundingClientRect().width > 50) {
-        requestAnimationFrame(() => requestAnimationFrame(() => { window.__cp6.hubPaintAt = +performance.now().toFixed(1); }));
+      const select = document.getElementById('select-screen');
+      const meta = document.getElementById('aq-meta-root');
+      const menuVisible = !!document.getElementById('menu-screen')
+        && !document.getElementById('menu-screen').classList.contains('hidden');
+      const pickerVisible = !!select && !select.classList.contains('hidden');
+      const metaViewVisible = !!meta && meta.style.display !== 'none' && meta.getBoundingClientRect().width > 50;
+      if (window.__cp6.routePaintAt == null && (pickerVisible || metaViewVisible || !menuVisible)) {
+        window.__cp6.routeKind = pickerVisible ? 'picker'
+          : metaViewVisible ? 'meta-view' : 'other-route';
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          if (window.__cp6.routePaintAt == null) window.__cp6.routePaintAt = +performance.now().toFixed(1);
+        }));
       }
     });
     mo.observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['class', 'style'], childList: true });
     return true;
   })()`);
-  // Wait until the ARSENAL button is genuinely clickable: enabled AND the
-  // topmost element at its center (entry overlays / boot splash / sweep
-  // animations must have cleared — a dispatch during that window is a no-op).
+  // Wait until the real Bot Battle card is genuinely clickable: enabled and
+  // the topmost element at its center after loader/overlay transitions clear.
   let cp6Clickability = null;
   for (let i = 0; i < 400; i++) {
-    cp6Clickability = await hitProbe('button[aria-label="ARSENAL QUEST"]').catch(() => null);
+    cp6Clickability = await hitProbe('#menu-screen [data-product-surface="bot-battle"]').catch(() => null);
     if (cp6Clickability && cp6Clickability.exists && !cp6Clickability.disabled
       && cp6Clickability.hitWithin && cp6Clickability.pointerEvents !== 'none'
       && cp6Clickability.width > 1 && cp6Clickability.height > 1) break;
@@ -3280,38 +3120,46 @@ try {
       await sleep(140);
     }
   })();
-  await physicalClick('button[aria-label="ARSENAL QUEST"]');
+  const cp6ProductReadyBeforeClick = await evaluate('window.__apexDeferredRuntimesReady_arsenalProduct === true');
+  await physicalClick('#menu-screen [data-product-surface="bot-battle"]');
   for (let i = 0; i < 250; i++) {
-    if (await evaluate('window.__cp6 && window.__cp6.hubPaintAt != null').catch(() => false)) break;
+    if (await evaluate('window.__cp6 && window.__cp6.routePaintAt != null').catch(() => false)) break;
     await sleep(100);
   }
-  // Keep sampling through the background warmup window (decode/eval work).
+  // Keep sampling through the active product route's remaining warmup window.
   await sleep(2200);
   await cp6InputDriver;
-  const cp6Click = await hitProbe('button[aria-label="ARSENAL QUEST"]');
   report.cp6Entry = JSON.parse(await evaluate(`JSON.stringify({
-    clickability: { exists: ${JSON.stringify(!!(cp6Click && cp6Click.exists))}, hitWithin: ${JSON.stringify(!!(cp6Click && cp6Click.hitWithin))}, topClass: ${JSON.stringify(cp6Click ? cp6Click.topClass : null)} },
+    clickability: { exists: ${JSON.stringify(!!(cp6Clickability && cp6Clickability.exists))}, hitWithin: ${JSON.stringify(!!(cp6Clickability && cp6Clickability.hitWithin))}, topClass: ${JSON.stringify(cp6Clickability ? cp6Clickability.topClass : null)} },
+    productReadyBeforeClick: ${JSON.stringify(cp6ProductReadyBeforeClick)},
+    productReadyAfterClick: window.__apexDeferredRuntimesReady_arsenalProduct === true,
+    legacyQuestReadyAfterClick: window.__apexDeferredRuntimesReady_arsenalLegacyQuest === true,
+    questAliasReadyAfterClick: window.__apexDeferredRuntimesReady_arsenalQuest === true,
+    legacyRequestedAfterClick: [...document.scripts].map(node => node.src).concat([...document.querySelectorAll('link[href]')].map(node => node.href), performance.getEntriesByType('resource').map(entry => entry.name))
+      .some(url => /\\/game\\/(modes\\/arsenalQuestRuntime|arsenal\\/arsenalQuestLadder)\\.js(?:[?#]|$)/.test(url)),
+    routeKind: window.__cp6.routeKind,
     pressPaintMs: (window.__cp6.pressPaintAt != null && window.__cp6.pointerdownAt != null) ? +(window.__cp6.pressPaintAt - window.__cp6.pointerdownAt).toFixed(1) : null,
-    hubPaintMs: window.__cp6.hubPaintAt != null ? +(window.__cp6.hubPaintAt - ${cp6T0}).toFixed(1) : null,
+    routePaintMs: window.__cp6.routePaintAt != null ? +(window.__cp6.routePaintAt - ${cp6T0}).toFixed(1) : null,
     inputs: window.__cp6.inputs.length,
     inputsMax: window.__cp6.inputs.length ? Math.max(...window.__cp6.inputs) : null,
     inputsP95: (() => { const a = window.__cp6.inputs.slice().sort((x, y) => x - y); return a.length ? a[Math.floor(a.length * 0.95)] : null; })(),
     inputsOver400: window.__cp6.inputs.filter(v => v > 400).length,
   })`));
-  report.evidence.push(await screenshot('cp6-01-arsenal-hub-entry'));
-  // Bounds: the CP6 regression this guards is the multi-second dead press
-  // (pre-fix: 6357ms press→hub, 1078ms monolithic long task). Post-fix the
-  // residual per-event cost is single script-eval chunks (~150-300ms worst
-  // on a busy CI main thread — see inputsP95 ~2-3ms vs one chunk); a 400ms
-  // pressed-paint bound and 3500ms press→hub stay far below the regression
-  // while tolerating CI variance. The standalone cold-entry evidence
-  // (docs/arsenal-quest/evidence) records the real numbers: ~830ms cold
-  // press→hub, ~170ms warm.
-  gate('owner-cp6-arsenal-entry-immediate',
-    report.cp6Entry.pressPaintMs != null && report.cp6Entry.pressPaintMs < 400
-    && report.cp6Entry.hubPaintMs != null && report.cp6Entry.hubPaintMs < 3500,
+  report.evidence.push(await screenshot('cp6-01-current-product-bot-route'));
+  // Bounds guard against a multi-second dead click while proving the current
+  // product card paints promptly and opens the shared Bot Battle picker. Keep
+  // input responsiveness measured across active-product background warmup.
+  gate('owner-cp6-product-entry-immediate-and-detached',
+    report.cp6Entry.clickability.exists === true && report.cp6Entry.clickability.hitWithin === true
+    && report.cp6Entry.pressPaintMs != null && report.cp6Entry.pressPaintMs < 400
+    && report.cp6Entry.routeKind === 'picker'
+    && report.cp6Entry.routePaintMs != null && report.cp6Entry.routePaintMs < 3500
+    && report.cp6Entry.productReadyAfterClick === true
+    && report.cp6Entry.legacyQuestReadyAfterClick === false
+    && report.cp6Entry.questAliasReadyAfterClick === false
+    && report.cp6Entry.legacyRequestedAfterClick === false,
     report.cp6Entry);
-  gate('owner-cp6-input-alive-during-warmup',
+  gate('owner-cp6-input-alive-during-product-warmup',
     report.cp6Entry.inputs >= 8 && report.cp6Entry.inputsOver400 === 0
     && (report.cp6Entry.inputsMax == null || report.cp6Entry.inputsMax < 400)
     && (report.cp6Entry.inputsP95 == null || report.cp6Entry.inputsP95 < 50),
@@ -3458,186 +3306,269 @@ try {
     && cp6A.bgmAfter.readyState >= 2,
     { afterEngineMenu: cp6A.afterEngineMenu, afterEngineMenuSettled: cp6A.afterEngineMenuSettled, otherToArsenal: cp6A.otherToArsenal, bgm: [cp6A.bgmBefore, cp6A.bgmAfter] });
 
-  // ── CP7 (owner playtest round 4): cold-transition ready barriers ────────
-  // BUG 1: Arsenal gameplay could open before its tier finished initializing
-  // (combat shell + fighters + Lab controls mounted while the presentation
-  // atlas was still at 0/45 images). Every hub→gameplay transition is now a
-  // hard barrier with an explicit state machine; these gates prove it from a
-  // COLD page each time: reload → ARSENAL immediately → destination
-  // immediately → the destination may only appear once ready.
-  const cp7HoldProbe = `(() => ({
-    atMs: Math.round(performance.now()),
-    transition: window.apexArsenalTransitionState ? window.apexArsenalTransitionState() : null,
-    fighters: (typeof fighters !== 'undefined' && fighters && fighters.length === 2) ? fighters.map(f => f.name) : null,
-    aqActive: !!(window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.active),
-    labPanel: !!document.getElementById('aq-lab-panel'),
-    gameState: typeof gameState !== 'undefined' ? gameState : null,
-  }))()`;
-  async function cp7ColdOpen(label, clickThrough) {
-    // Fresh document = cold owner path (menu → ARSENAL → destination, all
-    // clicked the moment the UI permits).
-    await command('Page.navigate', { url: appUrl });
-    await sleep(600);
-    for (let i = 0; i < 160; i++) {
-      if (await evaluate('Boolean(window.__apexEngineReady)').catch(() => false)) break;
-      await sleep(150);
+  // ── CP7 (owner playtest round 4): current-product cold barriers ────────
+  // A cold public Local/Bot start and the hidden admin Lab must expose no
+  // gameplay until the active neutral product runtime and presentation tier
+  // are ready. No Hub or Quest-map route is part of this acceptance surface.
+  const cp7HoldProbe = `(() => {
+    const debug = window.getArsenalBattleDebugState?.();
+    const active = debug?.active === true;
+    return {
+      atMs: Math.round(performance.now()),
+      transition: window.apexArsenalTransitionState ? window.apexArsenalTransitionState() : null,
+      fighters: active && typeof fighters !== 'undefined' && fighters ? fighters.map(f => f.name) : null,
+      active,
+      battleMode: debug?.battleMode || null,
+      labMode: debug?.labMode === true,
+      labPanel: !!document.getElementById('aq-lab-panel'),
+      gameState: typeof gameState !== 'undefined' ? gameState : null,
+      productReady: window.__apexDeferredRuntimesReady_arsenalProduct === true,
+      legacyQuestReady: window.__apexDeferredRuntimesReady_arsenalLegacyQuest === true,
+      questAliasReady: window.__apexDeferredRuntimesReady_arsenalQuest === true,
+    };
+  })()`;
+  const cp7Seed = {
+    version: 1, credits: 777, ownedFighters: ['ROBOT', 'HUNTER', 'ICE'],
+    lastSelectedP1: 'HUNTER', lastSelectedP2: 'ROBOT', totalSpins: 0,
+    unlockedAt: { ROBOT: 0, HUNTER: 1, ICE: 2 },
+  };
+  async function cp7Physical(selector, { attempts = 240, interval = 50 } = {}) {
+    let probe = null;
+    for (let i = 0; i < attempts; i++) {
+      try { probe = await hitProbe(selector); } catch { probe = null; }
+      if (probe && probe.exists && !probe.disabled && probe.hitWithin
+          && probe.pointerEvents !== 'none' && probe.width > 1 && probe.height > 1) {
+        return await physicalClick(selector);
+      }
+      await sleep(interval);
     }
-    for (let i = 0; i < 300; i++) {
-      const ok = await hitProbe('button[aria-label="ARSENAL QUEST"]').catch(() => null);
-      if (ok && ok.exists && !ok.disabled && ok.hitWithin && ok.width > 1) break;
-      await sleep(100);
-    }
-    await physicalClick('button[aria-label="ARSENAL QUEST"]');
-    for (let i = 0; i < 200; i++) {
-      if (await evaluate(`(() => { const h = document.getElementById('aq-meta-root'); return !!(h && h.style.display !== 'none' && h.getBoundingClientRect().width > 50); })()`).catch(() => false)) break;
-      await sleep(100);
-    }
-    const clicked = await clickThrough();
-    // Poll the whole transition window: while not ready, nothing gameplay-ish
-    // may exist. When it appears, it must already be ready.
-    const samples = [];
-    let firstGameplayAt = null;
-    for (let i = 0; i < 260; i++) {
-      const s = JSON.parse(await evaluate(`JSON.stringify(${cp7HoldProbe})`));
-      samples.push(s);
-      const gameplayLive = !!s.fighters || s.aqActive || s.labPanel;
-      if (gameplayLive) { firstGameplayAt = s; break; }
-      await sleep(100);
-    }
-    return { label, clicked, firstGameplayAt, lastSample: samples[samples.length - 1] };
+    return probe || { exists: false };
   }
-  const cp7PickStart = async () => {
-    // The Arsenal pick runtime pre-applies defaults (NEWBIE/NEWBIE for free
-    // battle; NEWBIE + quest opponent for the quest P1 picker), so its
-    // start-button commits immediately.
-    for (let i = 0; i < 240; i++) {
-      const ok = await hitProbe('[data-layer-id="start-button"]').catch(() => null);
-      if (ok && ok.exists && !ok.disabled && ok.hitWithin && ok.width > 1) break;
+  async function cp7Wait(expression, predicate = Boolean, attempts = 240) {
+    let value = null;
+    for (let i = 0; i < attempts; i++) {
+      try { value = await evaluate(expression); } catch { value = null; }
+      if (predicate(value)) return value;
       await sleep(50);
     }
-    const p = await physicalClick('[data-layer-id="start-button"]');
-    await sleep(150);
-    return p;
-  };
-  const cp7AssertHeld = (r) => {
-    if (!r.firstGameplayAt) return { held: false, reason: 'gameplay never appeared' };
-    const t = r.firstGameplayAt.transition || {};
+    return value;
+  }
+  async function cp7SelectChampion(champion, maxTurns = 8) {
+    // Only confirm the centered card after its pointer box has settled. A side
+    // card can be painted during cold picker mount but move underneath another
+    // card before Chromium dispatches the physical click.
+    const selector = `.apex-pick-card[data-champion="${champion}"][data-slot="focus"]`;
+    let probe = null;
+    for (let turn = 0; turn < maxTurns; turn++) {
+      let previousRect = null;
+      let stableSamples = 0;
+      for (let sample = 0; sample < 6; sample++) {
+        try { probe = await hitProbe(selector); } catch { probe = null; }
+        const hitReady = probe && probe.exists && !probe.disabled && probe.hitWithin
+          && probe.pointerEvents !== 'none' && probe.width > 1 && probe.height > 1;
+        const rect = hitReady
+          ? [probe.left, probe.top, probe.width, probe.height].map(value => Math.round(value * 10) / 10).join(',')
+          : null;
+        if (rect && rect === previousRect) stableSamples += 1;
+        else stableSamples = 0;
+        previousRect = rect;
+        if (hitReady && stableSamples >= 2) return await physicalClick(selector);
+        await sleep(80);
+      }
+      const arrow = await cp7Physical('.apex-pick-button[aria-label="arrow-right"]', { attempts: 3, interval: 60 });
+      if (!arrow.hitWithin) return probe || arrow;
+      await sleep(520);
+    }
+    return probe || { exists: false };
+  }
+  async function cp7PickStart() {
+    const p1 = await cp7SelectChampion('HUNTER');
+    const selectedP1 = await cp7Wait(`(() => {
+      const id = window.__APEX_PICK_TEST?.p1() || null;
+      return id && window.APEX_PRODUCT_SURFACE?.isPublicPlayableFighter(id)
+        && window.APEX_ARSENAL_META?.owns(id) ? id : null;
+    })()`, value => !!value, 50);
+    let p2 = null;
+    if (await evaluate('window.__apexArsenalSelectionMode !== "bot"')) {
+      p2 = await cp7SelectChampion('ROBOT');
+    }
+    const selection = await evaluate(`(() => {
+      const T = window.__APEX_PICK_TEST;
+      const p1 = T?.p1() || null;
+      const p2 = T?.p2() || null;
+      const playable = id => !!id && !!window.APEX_PRODUCT_SURFACE?.isPublicPlayableFighter(id)
+        && !!window.APEX_ARSENAL_META?.owns(id);
+      return { p1, p2, mode: window.__apexArsenalSelectionMode || null,
+        p1Legal: playable(p1), p2Legal: playable(p2) };
+    })()`);
+    const start = await cp7Physical('[data-layer-id="start-button"]');
+    return { p1, selectedP1, p2, selection, start };
+  }
+  async function cp7ColdOpen(label, entry) {
+    // Seed legal Core Six defaults before each fresh document. This tests the
+    // current migration/selection seams without relying on stale prior-suite UI.
+    await evaluate(`localStorage.setItem('apexChaos.arsenalMeta.v1', ${JSON.stringify(JSON.stringify(cp7Seed))}); true`);
+    await command('Page.navigate', { url: appUrl });
+    await sleep(500);
+    await cp7Wait('Boolean(window.__apexEngineReady)', value => value === true, 160);
+    const menu = await cp7Wait(`(() => {
+      const loader = document.getElementById('loading-screen');
+      return {
+        visible: !!document.getElementById('menu-screen')
+          && !document.getElementById('menu-screen').classList.contains('hidden'),
+        cards: document.querySelectorAll('#menu-screen [data-product-surface]').length,
+        loaderHidden: !loader || getComputedStyle(loader).display === 'none',
+      };
+    })()`, value => value && value.visible && value.cards === 10 && value.loaderHidden, 240);
+    const before = await evaluate(`(() => ({
+      productReady: window.__apexDeferredRuntimesReady_arsenalProduct === true,
+      legacyQuestReady: window.__apexDeferredRuntimesReady_arsenalLegacyQuest === true,
+      questAliasReady: window.__apexDeferredRuntimesReady_arsenalQuest === true,
+    }))()`);
+    const route = await entry();
+    let firstGameplayAt = null;
+    const preGameplaySamples = [];
+    for (let i = 0; i < 260; i++) {
+      const sample = JSON.parse(await evaluate(`JSON.stringify(${cp7HoldProbe})`));
+      if (sample.gameState === 'ARSENAL' && sample.active) {
+        firstGameplayAt = sample;
+        break;
+      }
+      preGameplaySamples.push(sample);
+      await sleep(100);
+    }
+    if (route?.launchStarted) route.launchResolved = await evaluate('window.__cp7AdminLaunchPromise');
+    const preGameplayLeak = preGameplaySamples.some(sample =>
+      sample.gameState === 'ARSENAL' || sample.active || sample.labPanel || sample.fighters !== null);
+    return { label, menu, before, route, firstGameplayAt,
+      preGameplaySamples: preGameplaySamples.length, preGameplayLeak };
+  }
+  const cp7AssertHeld = (result) => {
+    if (!result.firstGameplayAt) return { held: false, reason: 'gameplay never appeared', route: result.route };
+    const first = result.firstGameplayAt;
+    const transition = first.transition || {};
     return {
-      held: true,
-      stateAtOpen: t.state,
-      ready: t.readiness || {},
-      fighters: r.firstGameplayAt.fighters,
-      labPanel: r.firstGameplayAt.labPanel,
-      // A classic-engine match (the pre-CP7 cold-START fall-through) also
-      // creates the global fighters array — assert the ARSENAL state is the
-      // one that went active so that bypass class fails on every machine.
-      aqActive: r.firstGameplayAt.aqActive === true,
+      held: first.gameState === 'ARSENAL' && first.active === true,
+      stateAtOpen: transition.state,
+      destination: transition.destination,
+      ready: transition.readiness || {},
+      fighters: first.fighters,
+      battleMode: first.battleMode,
+      labMode: first.labMode,
+      labPanel: first.labPanel,
+      productReady: first.productReady,
+      legacyQuestReady: first.legacyQuestReady,
+      questAliasReady: first.questAliasReady,
     };
   };
 
-  // (1) LAB cold: click LAB the instant the hub permits.
-  const cp7Lab = cp7AssertHeld(await cp7ColdOpen('lab', async () => {
-    for (let i = 0; i < 200; i++) {
-      const ok = await hitProbe('#aq-meta-root [data-go="lab"]').catch(() => null);
-      if (ok && ok.exists && ok.hitWithin && ok.width > 1) break;
-      await sleep(50);
-    }
-    const p = await physicalClick('#aq-meta-root [data-go="lab"]');
-    await sleep(150);
-    return p;
-  }));
-  // After the lab opens it must be functional: 33 weapon buttons, a spawn
-  // works, and the exit returns to the hub.
+  // (1) Cold hidden admin Lab launch; no public Lab card is ever added.
+  const cp7LabRaw = await cp7ColdOpen('admin-lab', async () => {
+    const launch = await cp7Wait('typeof window.apexLaunchArsenalLab', value => value === 'function', 200);
+    const launchStarted = launch === 'function'
+      ? await evaluate('window.__cp7AdminLaunchPromise = window.apexLaunchArsenalLab(); true') : false;
+    const menuLabCard = await evaluate(`Boolean(document.querySelector('#menu-screen [data-product-surface="arsenal-lab"]'))`);
+    const transitionAtRoute = await evaluate('window.apexArsenalTransitionState?.() || null');
+    return { launchStarted, menuLabCard, transitionAtRoute };
+  });
+  const cp7Lab = cp7AssertHeld(cp7LabRaw);
   const cp7LabFunctional = await evaluate(`(() => {
     const buttons = document.querySelectorAll('[data-lab-weapon]').length;
     const btn = document.querySelector('[data-lab-weapon="PISTOL"]');
     if (btn) btn.click();
-    const state = APEX_ARSENAL.state;
-    return { buttons, labMode: !!state.labMode, spawnClicked: !!btn, slots: state.slots.length };
+    const state = window.getArsenalBattleDebugState?.();
+    return { buttons, labMode: !!state?.labMode, spawnClicked: !!btn,
+      slots: state?.activeSlots ?? 0, gameState, battleMode: state?.battleMode || null };
   })()`);
-  report.evidence.push(await screenshot('cp7-01-cold-lab-barrier'));
-  gate('owner-cp7-lab-cold-barrier-held',
-    cp7Lab.held === true
-    && (cp7Lab.stateAtOpen === 'lab-ready' || cp7Lab.stateAtOpen === 'match-ready')
+  report.evidence.push(await screenshot('cp7-01-cold-admin-lab-barrier'));
+  gate('owner-cp7-admin-lab-cold-barrier-held',
+    cp7LabRaw.menu?.visible === true && cp7LabRaw.menu.cards === 10
+    && cp7LabRaw.before.legacyQuestReady === false && cp7LabRaw.before.questAliasReady === false
+    && cp7LabRaw.route?.launchStarted === true && cp7LabRaw.route?.launchResolved === true
+    && cp7LabRaw.route?.menuLabCard === false && cp7LabRaw.preGameplayLeak === false
+    && cp7Lab.held === true && cp7Lab.stateAtOpen === 'lab-ready'
     && cp7Lab.ready['arsenal-full-runtime-ready'] === true
-    && cp7Lab.ready['av-images-ready'] === true,
+    && cp7Lab.ready['av-images-ready'] === true
+    && cp7Lab.legacyQuestReady === false && cp7Lab.questAliasReady === false,
     cp7Lab);
-  gate('owner-cp7-lab-cold-functional',
-    cp7LabFunctional.labMode === true && cp7LabFunctional.buttons >= 30 && cp7LabFunctional.slots >= 1,
+  gate('owner-cp7-admin-lab-cold-functional',
+    cp7LabFunctional.labMode === true && cp7LabFunctional.buttons >= 30
+      && cp7LabFunctional.spawnClicked === true && cp7LabFunctional.slots >= 1,
     cp7LabFunctional);
 
-  // (2) FREE BATTLE cold: hub → FREE → START immediately (default NEWBIEs).
-  const cp7Free = cp7AssertHeld(await cp7ColdOpen('free', async () => {
-    for (let i = 0; i < 200; i++) {
-      const ok = await hitProbe('#aq-meta-root [data-go="free"]').catch(() => null);
-      if (ok && ok.exists && ok.hitWithin && ok.width > 1) break;
-      await sleep(50);
-    }
-    await physicalClick('#aq-meta-root [data-go="free"]');
-    for (let i = 0; i < 200; i++) {
-      if (await evaluate(`(() => { const s = document.getElementById('select-screen'); return !!(s && !s.classList.contains('hidden')); })()`).catch(() => false)) break;
-      await sleep(50);
-    }
-    return cp7PickStart();
-  }));
-  report.evidence.push(await screenshot('cp7-02-cold-free-battle-barrier'));
-  gate('owner-cp7-free-battle-cold-barrier-held',
-    cp7Free.held === true
-    && (cp7Free.stateAtOpen === 'match-ready')
-    && cp7Free.ready['arsenal-full-runtime-ready'] === true
-    && cp7Free.ready['av-images-ready'] === true
-    && cp7Free.aqActive === true
-    && Array.isArray(cp7Free.fighters) && cp7Free.fighters.length === 2,
-    cp7Free);
+  // (2) Cold Local 1v1 route and neutral match barrier, with legal Core Six.
+  const cp7LocalRaw = await cp7ColdOpen('local-1v1', async () => {
+    const route = await cp7Physical('#menu-screen [data-product-surface="local-1v1"]');
+    await cp7Wait(`!document.getElementById('select-screen')?.classList.contains('hidden')
+      && !!window.__APEX_PICK_TEST`, value => value === true, 240);
+    const picker = await cp7PickStart();
+    return { route, picker };
+  });
+  const cp7Local = cp7AssertHeld(cp7LocalRaw);
+  report.evidence.push(await screenshot('cp7-02-cold-local-neutral-match'));
+  gate('owner-cp7-local-battle-cold-barrier-held',
+    cp7LocalRaw.menu?.visible === true && cp7LocalRaw.route?.route?.hitWithin === true
+    && cp7LocalRaw.route?.picker?.p1?.hitWithin === true
+    && cp7LocalRaw.route?.picker?.selectedP1 === 'HUNTER'
+    && cp7LocalRaw.route?.picker?.p2?.hitWithin === true
+    && cp7LocalRaw.route?.picker?.selection?.p1 === 'HUNTER'
+    && cp7LocalRaw.route?.picker?.selection?.p2 === 'ROBOT'
+    && cp7LocalRaw.route?.picker?.selection?.mode === 'local'
+    && cp7LocalRaw.route?.picker?.selection?.p2Legal === true
+    && cp7LocalRaw.route?.picker?.start?.hitWithin === true
+    && cp7LocalRaw.preGameplayLeak === false
+    && cp7Local.held === true && cp7Local.stateAtOpen === 'match-ready'
+    && cp7Local.battleMode === 'LOCAL' && cp7Local.fighters?.join(',') === 'HUNTER,ROBOT'
+    && cp7Local.ready['arsenal-full-runtime-ready'] === true
+    && cp7Local.ready['av-images-ready'] === true
+    && cp7Local.legacyQuestReady === false && cp7Local.questAliasReady === false,
+    cp7Local);
 
-  // (3) QUEST cold: hub → QUEST → stage 01 immediately.
-  const cp7Quest = cp7AssertHeld(await cp7ColdOpen('quest', async () => {
-    for (let i = 0; i < 200; i++) {
-      const ok = await hitProbe('#aq-meta-root [data-go="quest"]').catch(() => null);
-      if (ok && ok.exists && ok.hitWithin && ok.width > 1) break;
-      await sleep(50);
-    }
-    await physicalClick('#aq-meta-root [data-go="quest"]');
-    for (let i = 0; i < 200; i++) {
-      if (await evaluate(`(() => { const m = document.getElementById('aq-quest-map'); return !!(m && m.style.display !== 'none'); })()`).catch(() => false)) break;
-      await sleep(50);
-    }
-    for (let i = 0; i < 200; i++) {
-      const ok = await hitProbe('.aq-stage[data-n="1"]').catch(() => null);
-      if (ok && ok.exists && !ok.disabled && ok.hitWithin && ok.width > 1) break;
-      await sleep(50);
-    }
-    await physicalClick('.aq-stage[data-n="1"]');
-    // Stage click opens the quest P1 picker (opponent pre-applied); its
-    // start-button commits the stage → barrier → battle.
-    return cp7PickStart();
-  }));
-  report.evidence.push(await screenshot('cp7-03-cold-quest-stage-barrier'));
-  gate('owner-cp7-quest-stage-cold-barrier-held',
-    cp7Quest.held === true
-    && (cp7Quest.stateAtOpen === 'match-ready')
-    && cp7Quest.ready['arsenal-full-runtime-ready'] === true
-    && cp7Quest.ready['av-images-ready'] === true
-    && cp7Quest.aqActive === true
-    && Array.isArray(cp7Quest.fighters) && cp7Quest.fighters.length === 2,
-    cp7Quest);
+  // (3) Cold Bot Battle shares the same barrier and fixes legal P2 to ROBOT.
+  const cp7BotRaw = await cp7ColdOpen('bot-battle', async () => {
+    const route = await cp7Physical('#menu-screen [data-product-surface="bot-battle"]');
+    await cp7Wait(`!document.getElementById('select-screen')?.classList.contains('hidden')
+      && !!window.__APEX_PICK_TEST`, value => value === true, 240);
+    const picker = await cp7PickStart();
+    return { route, picker };
+  });
+  const cp7Bot = cp7AssertHeld(cp7BotRaw);
+  report.evidence.push(await screenshot('cp7-03-cold-bot-neutral-match'));
+  gate('owner-cp7-bot-battle-cold-barrier-held',
+    cp7BotRaw.menu?.visible === true && cp7BotRaw.route?.route?.hitWithin === true
+    && cp7BotRaw.route?.picker?.p1?.hitWithin === true
+    && cp7BotRaw.route?.picker?.selectedP1 === 'HUNTER'
+    && cp7BotRaw.route?.picker?.selection?.p1 === 'HUNTER'
+    && cp7BotRaw.route?.picker?.selection?.p2 === 'ROBOT'
+    && cp7BotRaw.route?.picker?.selection?.mode === 'bot'
+    && cp7BotRaw.route?.picker?.selection?.p2Legal === true
+    && cp7BotRaw.route?.picker?.start?.hitWithin === true
+    && cp7BotRaw.preGameplayLeak === false
+    && cp7Bot.held === true && cp7Bot.stateAtOpen === 'match-ready'
+    && cp7Bot.battleMode === 'BOT' && cp7Bot.fighters?.join(',') === 'HUNTER,ROBOT'
+    && cp7Bot.ready['arsenal-full-runtime-ready'] === true
+    && cp7Bot.ready['av-images-ready'] === true
+    && cp7Bot.legacyQuestReady === false && cp7Bot.questAliasReady === false,
+    cp7Bot);
 
-  // (4) Warm re-entry: exit to hub, re-open the Lab — the barrier must be
-  // satisfied synchronously (zero added latency).
+  // (4) Warm re-entry through the same hidden admin seam is synchronous.
   const cp7Reentry = await evaluate(`(async () => {
-    window.exitArsenalQuestMode();
-    await new Promise(r => setTimeout(r, 250));
-    const M = window.APEX_ARSENAL_META;
-    if (M && M.openHub) M.openHub();
+    window.exitArsenalBattleMode?.();
+    await new Promise(r => setTimeout(r, 150));
+    window.APEX_ARSENAL_META?.openHub?.(); // compatibility alias: product menu
     const t0 = performance.now();
-    const satisfiedBefore = window.apexArsenalBarrierSatisfied();
-    const ok = await window.apexArsenalGameplayBarrier('lab');
-    const dur = performance.now() - t0;
-    return { ok, satisfiedBefore, durationMs: Math.round(dur),
-      transition: window.apexArsenalTransitionState() };
+    const satisfiedBefore = window.apexArsenalBarrierSatisfied?.() === true;
+    const ok = await window.apexArsenalGameplayBarrier?.('lab');
+    const durationMs = Math.round(performance.now() - t0);
+    const launched = await window.apexLaunchArsenalLab?.();
+    const debug = window.getArsenalBattleDebugState?.();
+    return { ok, satisfiedBefore, durationMs,
+      launched: launched === true, labMode: debug?.labMode === true,
+      transition: window.apexArsenalTransitionState?.() || null };
   })()`);
   gate('owner-cp7-reentry-warm-instant',
-    cp7Reentry.ok === true && cp7Reentry.satisfiedBefore === true && cp7Reentry.durationMs < 50,
+    cp7Reentry.ok === true && cp7Reentry.satisfiedBefore === true
+      && cp7Reentry.durationMs < 50 && cp7Reentry.launched === true && cp7Reentry.labMode === true,
     cp7Reentry);
 
   // ── CP7 BUG 2: start-of-match fail-cue loop ─────────────────────────────
