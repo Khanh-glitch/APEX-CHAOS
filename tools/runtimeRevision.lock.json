@@ -1,5 +1,5 @@
 {
-  "revision": "20261003-mirror-v1-r31",
+  "revision": "20261003-mirror-v1-r32",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "a0d10025cde29ee55d6eb95a06aee2cbebe2a56e01adcdb1154f8366e3128712",
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
@@ -33,6 +33,6 @@
     "public/game/hero-rework/frostGoldV1.js": "0d97e857df605a3ac2a5a95099b27fa4037533844142e21e49fbca4667976f1a",
     "public/game/hero-rework/frostPresentationRuntime.js": "c187324f25c509f2558d5a6a359156d16711a6c0635a4b4ba2eb74879f7d8092",
     "public/game/hero-rework/magnetPresentationRuntime.js": "c603bc0c18187064e234e42a9492e883df4d7113385e3bdcc377238b86dd95ca",
-    "public/game/hero-rework/mirrorPresentationRuntime.js": "19c27a3ff07300b6c9196c3d8a664e94957c2e0eae83bca30e39b4e420fed486"
+    "public/game/hero-rework/mirrorPresentationRuntime.js": "ba1f841be8760cc4596f39c7dbcdd265394b69495ec01204588fecee3463f22f"
   }
 }

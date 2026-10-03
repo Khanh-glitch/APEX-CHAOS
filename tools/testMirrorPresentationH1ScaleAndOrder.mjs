@@ -23,7 +23,7 @@ const bus = win.APEX_HERO_REWORK_AIL.bus;
 const PRESENTATION = win.APEX_MIRROR_PRESENTATION;
 const FIXED_STEP = 1 / 120;
 const GOLD_REF_RADIUS = 34;
-const BODY_VISUAL_MULTIPLIER = 0.80;
+const BODY_VISUAL_MULTIPLIER = 0.72;
 const GOLD_SHA256 = 'c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205';
 const WEAPON_IDS = ['PISTOL', 'AK_47', 'SHOTGUN'];
 const captureDir = process.env.H1_CAPTURE_DIR ? path.resolve(process.env.H1_CAPTURE_DIR) : null;
@@ -79,7 +79,7 @@ function assertBodyScaleDiagnostics(mirror, context) {
   assert.equal(record.goldMirrorRadius, GOLD_REF_RADIUS);
   assert.equal(record.bodyVisualMultiplier, BODY_VISUAL_MULTIPLIER);
   assert.equal(record.bodyK, expected);
-  gate(`${context}: live radius / Gold 34, multiplier 0.80`, {
+  gate(`${context}: live radius / Gold 34, multiplier 0.72`, {
     radius: mirror.radius, goldRadius: record.goldMirrorRadius,
     multiplier: record.bodyVisualMultiplier, bodyK: record.bodyK,
   });

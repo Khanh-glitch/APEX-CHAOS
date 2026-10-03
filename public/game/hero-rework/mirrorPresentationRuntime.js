@@ -22,9 +22,9 @@
   const MAX_FRAME_DT = STEP * MAX_SUBSTEPS;
   const EPSILON = 1e-12;
   // Owner visual playtest 2026-10-03: retain the live-radius calibration law,
-  // but reduce Mirror's body-attached presentation to 80% of the r30 footprint.
+  // then tune Mirror to 90% of the r31 footprint (= 72% of the r30 footprint).
   // Gameplay radius/hitbox and world-space passive/F2 geometry remain untouched.
-  const BODY_VISUAL_MULTIPLIER = 0.80;
+  const BODY_VISUAL_MULTIPLIER = 0.72;
   const GOLD_MIRROR_RADIUS = GOLD && GOLD.GOLD_REF && Number.isFinite(GOLD.GOLD_REF.MIRROR_R)
     ? GOLD.GOLD_REF.MIRROR_R : null;
   // Mirror-only presentation accent authority. Values are intentionally muted
