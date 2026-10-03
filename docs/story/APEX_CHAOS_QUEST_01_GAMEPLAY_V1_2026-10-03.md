@@ -873,4 +873,579 @@ That last point is important because the following encounter, WEAPON RAIN, only 
 
 ---
 
+
+
+# 20. IMPLEMENTATION-READY PASS B — MID-QUEST ESCALATION
+
+This section locks WEAPON RAIN, CHARGE THE BREAKER and BREACH WAVES.
+
+The design goal is to create a clear escalation in **what is becoming abnormal**:
+
+1. SCRAP SWARM proves more Bots are waking.
+2. WEAPON RAIN proves Arsenal spawning itself is becoming unstable.
+3. CHARGE THE BREAKER lets the player deliberately feed that instability into Stormbreaker.
+4. BREACH WAVES proves the awakening is no longer random: hostile units arrive in organized pressure.
+
+All three encounters continue to use canonical Arsenal damage and equipment behavior.
+
+---
+
+## 20.1 ENCOUNTER 04 — WEAPON RAIN
+
+### Purpose
+
+This encounter must feel immediately different from SCRAP SWARM without changing the core combat model.
+
+SCRAP SWARM identity:
+> too many hands for normal weapon supply.
+
+WEAPON RAIN identity:
+> too many weapons for a normal battlefield.
+
+### Participants
+
+Recommended first-pass:
+- NEWBOT: 1000 HP.
+- BOT: 1000 HP, AI ally.
+- 2 hostile Scrap Bots: 450 HP each.
+
+Do not increase enemy count beyond 2 in v1.
+
+The visual overload comes from Drops, not bodies.
+
+### Combat law
+
+Damage:
+- canonical.
+
+Skills:
+- NEWBOT canonical;
+- BOT no extra bespoke skill logic unless its canonical story shell later receives one;
+- Scrap Bots have no hero skills.
+
+### Spawn progression
+
+The encounter has three authored spawn phases.
+
+#### PHASE A — SOMETHING IS OFF
+Duration target: ~8 seconds.
+
+- cadence: 3.0s;
+- offensive cap: 5;
+- normal weapon selection;
+- no Stormbreaker.
+
+This should feel faster, but still plausible.
+
+#### PHASE B — WEAPON RAIN
+Duration target: ~12–15 seconds.
+
+- cadence: 1.6s;
+- offensive cap: 8;
+- normal spawn-position safety rules remain;
+- allow overlapping question-mark telegraphs;
+- do not bypass pickup/reveal legality.
+
+The cap increase is local to this encounter.
+
+#### PHASE C — BURST
+Duration target: ~6–8 seconds.
+
+Instead of lowering cadence further, issue an authored burst:
+- 3 offensive telegraphs scheduled within roughly 1 second;
+- then one more normal 1.6s cycle;
+- then stop new spawns.
+
+This creates a memorable climax without creating an unbounded spawn loop.
+
+### Weapon pool
+
+Allowed:
+- all ordinary firearms;
+- grenade;
+- melee;
+- shields.
+
+Excluded:
+- Stormbreaker.
+
+Precision weapons remain allowed here because the purpose is to show Arsenal instability, not onboarding simplicity.
+
+### Heal law
+
+Keep heal support at normal <=800 HP eligibility.
+
+Do **not** accelerate heal cadence with offensive Weapon Rain.
+
+Support spawning remains independent and normal.
+
+This prevents the encounter from accidentally becoming easier because the screen is also raining heals.
+
+### Enemy behavior
+
+The two Scrap Bots should remain strongly pickup-oriented.
+
+BOT should also compete legitimately for weapons.
+
+The desired visual is not:
+> player has infinite guns.
+
+It is:
+> everyone is constantly being forced to reconsider the next weapon opportunity.
+
+### Story beats
+
+At entry:
+BOT can joke that the basin seems generous.
+
+Once Phase B begins:
+tone changes.
+
+BOT2 should explicitly notice the spawn frequency, not just enemy behavior.
+
+Suggested direction:
+> “Khoan. Drop không chạy như vậy.”
+
+Near Burst:
+> “Đừng nhặt hết. Tôi cần nhìn pattern.”
+
+NEWBOT/BOT may ignore that naturally through acquisition behavior.
+
+After Burst abruptly stops:
+silence.
+
+BOT2:
+> “Không phải mấy con Bot.”
+> “Cả hệ thống ở đây vừa phản ứng.”
+
+No Virus naming yet.
+
+### End condition
+
+Preferred v1:
+- both hostile Scrap Bots KO;
+- AND scripted Weapon Rain sequence has reached Phase C completion.
+
+If enemies die too early:
+- keep the final Rain burst as a short non-hostile observation beat;
+- do not spawn replacement enemies merely to fill time.
+
+If Rain sequence ends while enemies remain:
+- spawn law returns to normal 4.5s / cap 5;
+- combat continues until enemies KO.
+
+### Failure
+
+NEWBOT KO = retry WEAPON RAIN.
+
+BOT KO does not force retry.
+
+### Target duration
+
+Approximately 2–3.5 minutes.
+
+---
+
+## 20.2 INTERLUDE — BOT2'S HYPOTHESIS
+
+After WEAPON RAIN, BOT2 compares three observations:
+
+1. NEWBOT/BOT woke.
+2. multiple scrap units woke afterward.
+3. Drop cadence became abnormal in the same area.
+
+BOT2 does **not** conclude Virus.
+
+Its working hypothesis:
+> old Scrap Basin infrastructure is being re-energized by activity around the awakened units and Stormbreaker.
+
+BOT2 identifies the wall gate as the only plausible exit, but its power system is dead.
+
+Stormbreaker contains enough energy to wake it, but BOT2 cannot safely dump full output directly into the old grid.
+
+Its workaround is a crude impact accumulator.
+
+---
+
+# 20.3 ENCOUNTER 05 — CHARGE THE BREAKER
+
+### Purpose
+
+Give the player a non-combat use for the exact same Arsenal actions.
+
+The player should feel:
+> I am using combat as a tool.
+
+Not:
+> I am playing a different minigame.
+
+### Target object
+
+Working gameplay name:
+**IMPACT ACCUMULATOR**
+
+Story object:
+a dense Crystala-era / industrial kinetic storage mass scavenged and wired by BOT2 into the Stormbreaker rig.
+
+Exact lore material remains open.
+
+### Core behavior
+
+The accumulator:
+- is stationary;
+- cannot attack;
+- cannot move;
+- cannot acquire;
+- cannot die in the normal character sense;
+- accepts canonical damage transactions;
+- converts accepted damage into CHARGE.
+
+Player-facing UI:
+**STORMBREAKER CHARGE: 0%**
+
+Do not present a normal red enemy HP bar.
+
+### Damage reservoir
+
+Recommended first-pass charge reservoir:
+**6000 effective damage**
+
+Reason:
+- current Arsenal damage is already scaled ×7;
+- 6000 gives enough time for multiple weapon cycles without becoming a sponge marathon;
+- this number is explicitly tuning-only and must be playtested.
+
+Conversion:
+- 1 point of final accepted damage = 1 charge unit.
+
+No crit suppression.
+No damage normalization.
+A crit should charge more because the player genuinely dealt more damage.
+
+### Player state
+
+NEWBOT:
+- 1000 HP;
+- cannot be damaged by the accumulator;
+- J/K active;
+- passive active.
+
+No hostile Bots in the first half of the encounter.
+
+This creates a deliberate pacing release.
+
+### Spawn law
+
+Phase A — 0% to 50%:
+- cadence: 3.0s;
+- cap: 6;
+- broad ordinary Arsenal pool;
+- no Stormbreaker.
+
+Phase B — 50% to 85%:
+- cadence: 2.2s;
+- cap: 7;
+- preserve normal reveal/pickup rules.
+
+Phase C — 85% to 100%:
+- authored 3-weapon burst;
+- then hold new spawns until charge completes.
+
+This is not framed as random system instability.
+BOT2 is intentionally overdriving local Drop attractors / scavenged spawning infrastructure if the final lore permits, or simply timing stored floor equipment if not.
+
+Implementation should keep this distinction from WEAPON RAIN:
+- WEAPON RAIN = uncontrolled abnormality;
+- CHARGE = controlled exploitation.
+
+### Weapon showcase law
+
+The Story Director may bias selection to avoid immediate repetition.
+
+Suggested family rotation:
+- firearm;
+- melee;
+- firearm;
+- grenade;
+- firearm;
+- shield only if useful;
+- then ordinary weighted pool.
+
+Do not guarantee every weapon.
+
+Do not include Stormbreaker itself.
+
+### Visual progression
+
+At:
+- 25%: first visible internal glow.
+- 50%: cracks/channels illuminate.
+- 75%: Stormbreaker arcs begin striking the accumulator rig.
+- 90%: surrounding scrap vibrates / wall lamps flicker.
+- 100%: accumulator locks and releases stored energy into Stormbreaker.
+
+### BOT/BOT2 presence
+
+BOT is physically present but not a competing fighter in v1.
+
+BOT can react from outside the combat circle.
+
+Reason:
+the player should own this satisfying damage sequence.
+
+BOT2 operates the rig.
+
+### Optional micro-threat after 50%
+
+Do **not** add enemies by default.
+
+If playtest shows the sequence is too passive, the allowed fallback is:
+- one single 200–250 HP Scrap Bot wakes after 60%;
+- never more than one;
+- its purpose is interruption, not a second combat encounter.
+
+Default v1 remains target-only.
+
+### Completion
+
+At 100%:
+- stop accepting further charge;
+- stop new offensive spawns;
+- safely resolve active projectiles;
+- trigger Stormbreaker activation cinematic in-engine.
+
+The accumulator is not “killed”.
+It is **fully charged**.
+
+### Failure
+
+No normal failure condition.
+
+This encounter should be cathartic.
+
+If NEWBOT somehow receives environmental/story damage later, that is outside v1.
+
+### Target duration
+
+Approximately 1.5–2.5 minutes.
+
+---
+
+# 20.4 STORMBREAKER ACTIVATION CONSEQUENCE
+
+100% charge causes a large Stormbreaker pulse.
+
+Effects are primarily story/presentation:
+- old wall power buses wake;
+- dead Scrap Basin lights sequence on;
+- dormant relay nodes reboot;
+- gate mechanisms respond;
+- distant Bot shells twitch or wake;
+- unknown traffic begins appearing on dead systems.
+
+Important:
+this is not yet a clean external network reconnection reveal.
+
+The characters only know:
+> their activation reached farther into the basin than expected.
+
+BOT2 detects that some systems are responding from sectors it did not power directly.
+
+This is the first strong sign of an external or distributed influence.
+
+---
+
+# 20.5 ENCOUNTER 06 — BREACH WAVES
+
+### Purpose
+
+Change the player's interpretation from:
+> random things are waking.
+
+to:
+> these things are arriving with structure.
+
+This is the first **defense encounter**, but it remains Arsenal combat.
+
+### Arena
+
+Use the Stormbreaker/workshop/gate area.
+
+The player should recognize:
+- the rig;
+- accumulator;
+- partial gate machinery.
+
+Do not create a tower-defense UI.
+
+### Participants
+
+Player side:
+- NEWBOT: 1000 HP.
+- BOT: 1000 HP, AI ally.
+
+BOT2:
+- non-combat story actor operating the rig.
+
+### Wave structure
+
+#### WAVE A
+3 Scrap Bots:
+- 300 HP each.
+- enter from one broad sector but separated enough to avoid stacking.
+
+Spawn law:
+- normal 4.5s cadence;
+- cap 5.
+
+Purpose:
+still plausible as another spontaneous wake.
+
+#### SHORT STORY BEAT
+BOT2 notes:
+> they came from the same access route.
+
+Pause new enemy activation for ~3–4 seconds.
+Do not pause the whole game if floor pickups remain.
+
+#### WAVE B
+4 Scrap Bots:
+- 260 HP each.
+- 2 from left access;
+- 2 from right access;
+- activation stagger ~1–1.5s.
+
+Spawn law:
+- cadence 3.5s;
+- cap 6.
+
+This is the first subtle sign the pressure is increasing again.
+
+#### WAVE C
+3 Scrap Bots:
+- 320 HP each.
+- enter in a tighter coordinated stagger.
+
+Plus:
+- one authored two-weapon Drop burst shortly after they enter.
+
+Spawn law afterward:
+- cadence 3.0s;
+- cap 6.
+
+The purpose is not raw difficulty.
+The purpose is to make enemy arrival and Arsenal behavior feel synchronized.
+
+### Why no giant wave
+
+Do not exceed 4 simultaneously newly activated hostiles in v1.
+
+The engine and visual language were built around small numbers.
+
+Readability is more important than spectacle.
+
+### Team / targeting
+
+Same laws as FIRST WAKE:
+- NEWBOT/BOT one side;
+- Scrap Bots hostile;
+- all can compete for floor equipment;
+- no duplicate team pickups;
+- no friendly target intent.
+
+### Ally failure law
+
+BOT KO:
+- does not instantly fail;
+- NEWBOT may finish the current wave;
+- afterward BOT2 pulls BOT back toward the rig and repairs/stabilizes it for story continuity.
+
+NEWBOT KO:
+- retry BREACH WAVES from Wave A.
+
+### Persistence
+
+Between waves:
+- NEWBOT HP persists;
+- BOT HP persists unless a story stabilization beat explicitly restores a small, authored amount;
+- cooldowns persist;
+- existing floor equipment persists unless it blocks safe wave setup.
+
+Default: no free full heal between waves.
+
+### Dialogue / mystery progression
+
+Wave A:
+BOT still treats it as more scrap waking.
+
+Between A/B:
+BOT2 notices shared directionality.
+
+Wave B:
+first incomplete command fragments may appear as corrupted telemetry:
+- ACQUIRE
+- RETURN
+- SECURE
+
+Do not present them as a villain voice.
+
+They should look like machine command residue.
+
+Wave C:
+BOT2:
+> “Chúng không tỉnh ngẫu nhiên nữa.”
+
+After final hostile KO:
+one distant relay answers the Stormbreaker rig.
+
+BOT2 realizes the commands are not originating from its workshop.
+
+This is the handoff into the later BOT2 corruption sequence.
+
+### Win condition
+
+All Wave C hostiles KO.
+
+No separate “protect the machine HP bar” in v1.
+
+The rig cannot be destroyed by enemies because that would turn the encounter into escort/tower-defense gameplay.
+
+Enemies are narratively converging on the active Arsenal/Stormbreaker zone; their normal combat target remains NEWBOT/BOT.
+
+### Failure
+
+NEWBOT KO = retry from Wave A.
+
+No rig-health fail state.
+
+### Target duration
+
+Approximately 3–5 minutes.
+
+---
+
+# 20.6 MID-QUEST PACING CHECK
+
+The player should experience these three encounters as:
+
+### WEAPON RAIN
+**The rules are behaving strangely.**
+
+### CHARGE THE BREAKER
+**We can use this strange energy to escape.**
+
+### BREACH WAVES
+**Something noticed us using it.**
+
+That causal sequence is required.
+
+Do not present Stormbreaker as the confirmed cause of the Virus.
+
+The stronger interpretation for Quest 01 is:
+> Stormbreaker and the awakened group make the sealed basin increasingly visible/reachable to systems that were already corrupted outside.
+
+The exact network mechanism remains intentionally unresolved for later story work.
+
+---
+
 **END — QUEST 01 GAMEPLAY v1**
