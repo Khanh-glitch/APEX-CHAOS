@@ -289,13 +289,13 @@ try {
   const gold = goldFor(mirror);
   const focusRecord = PRESENTATION.inspect().records.find((record) => record.mirrorId === mirror.id);
   assert.ok(focusRecord, 'the live Mirror diagnostic record exists');
-  assert.equal(focusRecord.bodyVisualMultiplier, 1.00,
-    'accepted H1 live body multiplier remains exactly 1.00');
+  assert.equal(focusRecord.bodyVisualMultiplier, 0.80,
+    'owner-tuned H1 live body multiplier remains exactly 0.80');
   assert.equal(focusRecord.goldMirrorRadius, 34, 'H1 uses Gold reference radius 34');
-  assert.equal(focusRecord.bodyK, mirror.radius / 34,
-    'H1 bodyK remains live fighter radius / Gold MIRROR_R');
-  gate('live H1 bodyK remains fighter.radius / Gold.MIRROR_R with multiplier 1.00', {
-    fighterRadius: mirror.radius, goldMirrorRadius: 34, bodyVisualMultiplier: 1.00,
+  assert.equal(focusRecord.bodyK, (mirror.radius / 34) * 0.80,
+    'H1 bodyK remains live fighter radius / Gold MIRROR_R times owner visual multiplier');
+  gate('live H1 bodyK remains fighter.radius / Gold.MIRROR_R with multiplier 0.80', {
+    fighterRadius: mirror.radius, goldMirrorRadius: 34, bodyVisualMultiplier: 0.80,
     bodyK: focusRecord.bodyK,
   });
 

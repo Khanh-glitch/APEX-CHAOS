@@ -23,6 +23,7 @@ const bus = win.APEX_HERO_REWORK_AIL.bus;
 const PRESENTATION = win.APEX_MIRROR_PRESENTATION;
 const FIXED_STEP = 1 / 120;
 const GOLD_REF_RADIUS = 34;
+const BODY_VISUAL_MULTIPLIER = 0.80;
 const GOLD_SHA256 = 'c11a8f0fba8e3c37f1180e7746a9169a443be1a1c51d95fbdc464c3c50ef5205';
 const WEAPON_IDS = ['PISTOL', 'AK_47', 'SHOTGUN'];
 const captureDir = process.env.H1_CAPTURE_DIR ? path.resolve(process.env.H1_CAPTURE_DIR) : null;
@@ -73,12 +74,12 @@ function actorName(f) {
 function assertBodyScaleDiagnostics(mirror, context) {
   const record = PRESENTATION.inspect().records.find((row) => row.mirrorId === mirror.id);
   assert.ok(record, `${context}: live Mirror diagnostic exists`);
-  const expected = mirror.radius / GOLD_REF_RADIUS;
+  const expected = (mirror.radius / GOLD_REF_RADIUS) * BODY_VISUAL_MULTIPLIER;
   assert.equal(record.fighterRadius, mirror.radius);
   assert.equal(record.goldMirrorRadius, GOLD_REF_RADIUS);
-  assert.equal(record.bodyVisualMultiplier, 1.00);
+  assert.equal(record.bodyVisualMultiplier, BODY_VISUAL_MULTIPLIER);
   assert.equal(record.bodyK, expected);
-  gate(`${context}: live radius / Gold 34, multiplier 1.00`, {
+  gate(`${context}: live radius / Gold 34, multiplier 0.80`, {
     radius: mirror.radius, goldRadius: record.goldMirrorRadius,
     multiplier: record.bodyVisualMultiplier, bodyK: record.bodyK,
   });
@@ -234,7 +235,7 @@ function assertRenderOrder(events, expectedFighters, expectedMirrorIds, label, {
 }
 function assertBodyMatrices(events, mirrors, label, { requireA1 = true } = {}) {
   for (const mirror of mirrors) {
-    const k = mirror.radius / GOLD_REF_RADIUS;
+    const k = (mirror.radius / GOLD_REF_RADIUS) * BODY_VISUAL_MULTIPLIER;
     const body = events.find((e) => e.kind === 'mirror-body' && e.mirrorId === mirror.id);
     const overlay = events.find((e) => e.kind === 'a1-world' && e.mirrorId === mirror.id);
     assert.ok(body, `${label}: Mirror Gold body draw observed for ${mirror.id}`);
@@ -419,7 +420,7 @@ try {
         q: +gold.A1.q.toFixed(4), tr: +gold.A1.tr.toFixed(4),
         u: +gold.A1.u.toFixed(4), changedPixels: mask.count, bounds: mask.bounds,
       });
-      assert.equal(bodyScale, mirror.radius / GOLD_REF_RADIUS,
+      assert.equal(bodyScale, (mirror.radius / GOLD_REF_RADIUS) * BODY_VISUAL_MULTIPLIER,
         `${weaponId}: scale law continues to use the unchanged live fighter radius`);
     }
     assert.ok(maskDistance(masksForWeapon.attached, masksForWeapon.peel) > 160,
@@ -474,7 +475,7 @@ try {
     assert.equal(win.__apexRenderFrame, frameToken);
     assert.equal(a1Count, 1);
     gate('real A1 postpass is once-only for one render-frame token', { frame: frameToken, a1WorldDraws: a1Count });
-    assert.equal(bodyScale, mirror.radius / GOLD_REF_RADIUS);
+    assert.equal(bodyScale, (mirror.radius / GOLD_REF_RADIUS) * BODY_VISUAL_MULTIPLIER);
   }
 
   // Real gameplay edge with Mirror in fighter slot 1. The custom Crystala draw
@@ -502,7 +503,7 @@ try {
       bloomDraws: crystalFrameCalls.filter((call) => call.emissive).length,
       castId,
     });
-    assert.equal(bodyScale, mirror.radius / GOLD_REF_RADIUS);
+    assert.equal(bodyScale, (mirror.radius / GOLD_REF_RADIUS) * BODY_VISUAL_MULTIPLIER);
   }
 
   // Mirror-v-Mirror: two independent Gold bodies and two A1 overlays, all
@@ -594,7 +595,7 @@ try {
     const duplicateResidue = PRESENTATION.renderPostFighterResidue(win.document.getElementById('game-canvas').getContext('2d'));
     assert.equal(duplicateResidue, false, 'A2 residue pass is once-only for the render-frame token');
     assert.equal(residueMirror.length, 2, 'duplicate residue dispatch does not redraw the Mirror echo');
-    const k = mirror.radius / GOLD_REF_RADIUS;
+    const k = (mirror.radius / GOLD_REF_RADIUS) * BODY_VISUAL_MULTIPLIER;
     assert.equal(residueMirror.length, 2, 'Gold Mirror residue echo is sliced into its two authored strips');
     assert.equal(residueFoe.length, 2, 'Gold opponent residue echo retains its two authored strips');
     for (const echo of residueMirror) expectUniformScale(echo.matrix, k, 'A2 Mirror residue silhouette');
