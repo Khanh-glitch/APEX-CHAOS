@@ -1902,6 +1902,9 @@
       }
       if (ct.anchor && ct.anchor.hp <= 0) promoteAnchor(ct);
     }
+    // Sole MIRROR presentation clock: AQ.step (headless) and rAF both enter
+    // hrPostTick after gameplay movement, contacts, world updates and swaps.
+    globalScope.APEX_MIRROR_PRESENTATION?.tick(dt);
   }
 
   function tickWorld(dt) {

@@ -174,6 +174,9 @@ export const MODE_DEFERRED_RUNTIMES = {
     // thin executors; its presentation adapter loads last below.
     ['/game/hero-rework/magnetGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetGameplayRuntime'],
     ['/game/hero-rework/magnetGoldV1.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetGoldV1'],
+    // MIRROR G1A/B: deterministic canonical Gold bridge source; the thin
+    // production adapter is loaded after the completed Hero presentation chain.
+    ['/game/hero-rework/mirrorGoldV1.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMirrorGoldV1'],
     // HERO REWORK: mechanics + integration load AFTER the quest runtime so
     // they wrap its step/entry/exit hooks (never inside ARSENAL_HUB_RUNTIMES).
     ['/game/hero-rework/heroMechanicsRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkMechanics'],
@@ -189,6 +192,8 @@ export const MODE_DEFERRED_RUNTIMES = {
     ['/game/hero-rework/frostPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostPresentationRuntime'],
     // MAGNET V1 outermost actor/effect adapter (preserves prior post-world debts).
     ['/game/hero-rework/magnetPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetPresentationRuntime'],
+    // MIRROR G1B lifecycle/fixed-step bridge; drawing is added in the later G slices.
+    ['/game/hero-rework/mirrorPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMirrorPresentationRuntime'],
   ],
   select: SELECT_RUNTIMES,
   battle: BATTLE_RUNTIMES,
