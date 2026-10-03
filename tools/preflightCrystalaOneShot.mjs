@@ -69,8 +69,9 @@ console.log('[CRYSTALA PREFLIGHT] runtimeRevision=' + m[1]);
 if (head === sourceHead) check(m[1] === EXPECTED_PREP_REVISION, 'Canonical prep runtime revision mismatch.');
 
 const meta = fs.readFileSync('public/game/arsenal/arsenalMetaRuntime.js','utf8');
-check(/OWNER_TEST_CREDITS\s*=\s*12000/.test(meta), '12,000 AC owner-test grant missing.');
-check(/OWNER_TEST_GRANT_KEY/.test(meta), 'One-time AC grant marker missing.');
+// Pre-pilot product law supersedes the old owner-test balance migration.
+check(!/OWNER_TEST_CREDITS\s*=\s*12000/.test(meta), 'Removed 12,000 AC owner-test grant unexpectedly remains.');
+check(!/OWNER_TEST_GRANT_KEY/.test(meta), 'Removed owner-test grant marker unexpectedly remains.');
 
 if (wantPush) {
   check(wantAnchor, '--push-anchor requires --anchor.');
@@ -83,6 +84,6 @@ if (wantPush) {
 }
 
 console.log('[CRYSTALA PREFLIGHT] GoldHash=PASS ' + expectedGold);
-console.log('[CRYSTALA PREFLIGHT] ownerTestCredits=PASS 12000 one-time grant present');
+console.log('[CRYSTALA PREFLIGHT] ownerTestCredits=PASS no automatic owner-test grant');
 console.log('[CRYSTALA PREFLIGHT] knownBaselineCI=' + KNOWN_BASELINE_RUN + ' Hunter Gold headless asset/harness failure; do not misattribute to Crystal');
 console.log('[CRYSTALA PREFLIGHT] PASS head=' + git('rev-parse','HEAD'));

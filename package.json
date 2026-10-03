@@ -11,6 +11,7 @@
     "test:multiplayer": "node tools/testRealtimeMultiplayer.mjs",
     "test:arsenal": "pnpm arsenal:sfx:materialize && node tools/testArsenalQuestRuntime.mjs",
     "test:arsenal:headless": "pnpm arsenal:sfx:materialize && node tools/testArsenalQuestHeadless.mjs",
+    "test:product-graph": "node tools/testPrePilotProductGraph.mjs",
     "build": "pnpm arsenal:sfx:materialize && node tools/generatePublicAssetManifest.cjs && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "arsenal:sfx:materialize": "node tools/materializeArsenalFinalSfx.mjs"

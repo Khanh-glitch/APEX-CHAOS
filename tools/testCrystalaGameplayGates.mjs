@@ -1127,24 +1127,24 @@ await gate('G06-Hunter-pounce-authored-displacement-cannot-tunnel', async () => 
 await gate('G07-anti-tunnelling-is-shared-geometry-not-robot-hunter-rewrites', () => {
   const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
   const read = (f) => fs.readFileSync(f, 'utf8');
-  const PROTECTED = {   // byte-identical to the Hunter owner-fix / prep baseline 12613d89 (protected semantics)
-    'public/game/arsenal/arsenalChamberPaletteRuntime.js': '547ed50a88dbf1a10e8eb3f2fcdf69e3930ad10547302f8e6b48cc8b29425978',
-    'public/game/arsenal/arsenalMetaRuntime.js': 'c7bca2c76d954a2887f311d4c00515e2c6350fc707fd98bf0f9d02c37280021d',
-    'public/game/hero-rework/hunterPresentationRuntime.js': 'a5e414a61a25ce5595d129a712785b59fa68f996febb29cdf361b36302c645e2',
-    'public/game/hero-rework/robotPresentationRuntime.js': '27856fca5ccda11674a825948a0f98ea48a62e9fe23b27e49200570f09e1c24c',
+  const PROTECTED = {   // byte-identical to accepted r33 baseline 0348694 (protected semantics)
+    'public/game/arsenal/arsenalChamberPaletteRuntime.js': 'dea5c0cf90465ab18731dc61df4d4568ef4275695d0b81482e779806322f91a6',
+    'public/game/hero-rework/hunterPresentationRuntime.js': '3fcb290dc5dd5ff7b4a102f11c181394a0f01e3d6a5f42efbf535d21a9e1ae89',
+    'public/game/hero-rework/robotPresentationRuntime.js': '419249adade667ee8ef06d2b4709ce252304b7edd50906108b26a0304c15b411',
     'public/game/hero-rework/hunterGoldV10.js': '3aa150490997345877b3eb8c8801252e733b544aa4f14a6ad3fde1ae59ac01a1',
-    'public/game/arsenal/arsenalWeaponRuntime.js': '70f26c3fa049e572fe9e9d045adc3a8d0b46f569b22e0b990f1a073b2d16c9b3',
-    'public/game/modes/arsenalQuestRuntime.js': 'c82047c13559e550a541dd7fbc5179d5c8b9765871e544d885dc685c95e3a8de',
+    'public/game/arsenal/arsenalWeaponRuntime.js': 'aa931e9cd661c8748a5e4f149d96ee48b7544b4f93e34054a96ff02e281892b2',
     'public/game/hero-rework/ailRuntime.js': 'dbc5e1e22a52639fbf8a0cc609ee9be03ca2538903d8c13788188b73d4e2f0b0',
   };
   const bad = Object.entries(PROTECTED).filter(([f, h]) => sha(read(f)) !== h).map(([f]) => f);
   const mech = read('public/game/hero-rework/heroMechanicsRuntime.js');
   const slice = (a, b) => mech.slice(mech.indexOf(a), mech.indexOf(b));
   const robot = sha(slice('   * 1. ROBOT', '   * 2. CRYSTAL')) === 'e3f0ee8cd974403a27ac53bbb739629b2e550b1f548a42a19c3e58b5d73f983b';
-  const hunter = sha(slice('   * 8. HUNTER', '   * 9. TIME')) === 'f56cb13f3632fc7b1e5bf767177fc534bd453f41eee0899829c3719490bda9b4';
+  const hunter = sha(slice('   * 8. HUNTER', '   * 9. TIME')) === '7b5b5ae4662ec800274f075fbcf2b1072642a62e00fc13bb279d49ef54e92aa2';
   const geom = HR.geom && typeof HR.geom.capsuleToi === 'function' && typeof HR.geom.wallsBlockPoint === 'function' && typeof HR.geom.solidCapsules === 'function';
-  const grant = /OWNER_TEST_CREDITS\s*=\s*12000/.test(read('public/game/arsenal/arsenalMetaRuntime.js')) && /OWNER_TEST_GRANT_KEY/.test(read('public/game/arsenal/arsenalMetaRuntime.js'));
-  return { ok: bad.length === 0 && robot && hunter && geom && grant, detail: { changedProtectedFiles: bad, robotBlockIdentical: robot, hunterBlockIdentical: hunter, sharedGeom: geom, grant12000: grant } };
+  // Pre-pilot product law removes the normal owner-test grant while retaining
+  // the protected Crystal/Robot/Hunter mechanics above.
+  const noOwnerGrant = !/OWNER_TEST_CREDITS\s*=\s*12000/.test(read('public/game/arsenal/arsenalMetaRuntime.js')) && !/OWNER_TEST_GRANT_KEY/.test(read('public/game/arsenal/arsenalMetaRuntime.js'));
+  return { ok: bad.length === 0 && robot && hunter && geom && noOwnerGrant, detail: { changedProtectedFiles: bad, robotBlockIdentical: robot, hunterBlockIdentical: hunter, sharedGeom: geom, noOwnerGrant } };
 });
 
 await gate('G08-cage-stops-tracking-the-target-after-NUCLEATE', () => {

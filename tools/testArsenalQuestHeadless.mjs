@@ -1474,10 +1474,11 @@ report.shells = run(`
     rage: fighters.some(f => f.isRage),
   };
 `);
-// HERO REWORK (doc-06): the playable pool is the canonical 12; the legacy 33
-// (incl. boss-only Quest identities) stay resolvable through typeFor.
-gate('shells-12-playable-canonical',
-  report.shells.count === 12 && report.shells.allResolvable && report.shells.legacyResolvable,
+// Pre-pilot product graph: the visible twelve are centralized separately;
+// Shell selection exposes only the ACTIVE Core Six. Legacy encounter ids stay
+// resolvable through typeFor for explicit historical compatibility.
+gate('shells-active-core-six-product',
+  report.shells.count === 6 && report.shells.allResolvable && report.shells.legacyResolvable,
   { count: report.shells.count, legacyResolvable: report.shells.legacyResolvable });
 gate('shells-p1-p2-independent',
   report.shells.names[0] === 'SNIPER' && report.shells.names[1] === 'WITCH'
@@ -1489,8 +1490,8 @@ gate('shells-native-kits-active-in-arsenal',
   { nativeProj: report.shells.nativeProj, hp: report.shells.hp });
 
 // ------------------------- gates: A-CORR-3 roster compatibility (matrix proof)
-// HERO REWORK (doc 06): playable roster = canonical 12 rework shells; the
-// Quest encounter identities keep the audited legacy KEEP/ADAPT classes.
+// Product selection = Core Six rework shells; detached Quest encounter
+// identities retain their audited legacy KEEP/ADAPT classes.
 report.roster = run(`
   const shells = window.APEX_ARSENAL_SHELLS;
   const REG = window.APEX_HERO_REWORK_REGISTRY;
@@ -1500,7 +1501,7 @@ report.roster = run(`
   for (const n of bossIds) kits[n] = (shells.typeFor(n) || {}).compatKit || 'MISSING';
   const allClassified = bossIds.every(n => kits[n] === 'KEEP' || kits[n] === 'ADAPT');
   const adapted = bossIds.filter(n => kits[n] === 'ADAPT');
-  const playableRework = ids.length === 12 && ids.every(n => (shells.typeFor(n) || {}).__hrHero === n);
+  const playableRework = ids.length === 6 && ids.every(n => (shells.typeFor(n) || {}).__hrHero === n);
 
   // REWORK proof (replaces the legacy ICE KEEP-proof): canonical ICE casts
   // its rework skill (A2) inside a real Arsenal match.
@@ -2901,19 +2902,18 @@ gate('v3-popup-palette', report.v3Visual.pal.dmg.fill === '#F2382F' && report.v3
 gate('v3-size-bands', report.v3Visual.bands.join(',') === 'XS,S,M,L,XL,XXL', report.v3Visual);
 gate('v3-no-blanket-text-mute', report.v3Visual.muted === false, report.v3Visual);
 
-report.ownerTestCredits = run(`
+report.prePilotCredits = run(`
   const M = window.APEX_ARSENAL_META;
-  try { localStorage.removeItem(M.KEY); localStorage.removeItem(M.OWNER_TEST_GRANT_KEY); } catch (e) {}
+  try { localStorage.removeItem(M.KEY); } catch (e) {}
   const first = M.load();
   M.save({ ...first, credits: 11000 });
   const second = M.load();
-  return { first: first.credits, second: second.credits, marker: localStorage.getItem(M.OWNER_TEST_GRANT_KEY) };
+  return { first: first.credits, second: second.credits };
 `);
-gate('owner-test-credit-grant-12000-once',
-  report.ownerTestCredits.first === 12000
-  && report.ownerTestCredits.second === 11000
-  && report.ownerTestCredits.marker === '1',
-  report.ownerTestCredits);
+gate('pre-pilot-fresh-credit-350-no-owner-grant',
+  report.prePilotCredits.first === 350
+  && report.prePilotCredits.second === 11000,
+  report.prePilotCredits);
 
 report.v3Meta = run(`
   const M = window.APEX_ARSENAL_META;
@@ -4431,9 +4431,9 @@ gate('storm-cp5-collision-authority-source',
   cp5Src.weapon.includes('STORMBREAKER.thrownRadius')
   && !/radius: Math\.max\(10, long \* 0\.14\),/.test(cp5Src.weapon),
   { explicitAuthority: cp5Src.weapon.includes('STORMBREAKER.thrownRadius') });
-gate('menu-cp5-warmup-likely-next-only',
+gate('pre-pilot-warmup-public-graph-without-legacy-ladder',
   WARMUP_GROUP_SEQUENCE.length === 2
-  && WARMUP_GROUP_SEQUENCE[0] === 'arsenalQuest'
+  && WARMUP_GROUP_SEQUENCE[0] === 'arsenalHub'
   && WARMUP_GROUP_SEQUENCE[1] === 'select',
   { sequence: WARMUP_GROUP_SEQUENCE });
 gate('menu-cp5-no-prefetch-everything',
@@ -4443,10 +4443,10 @@ gate('menu-cp5-audio-warm-on-intent-only',
   cp5Src.loader.includes('if (priority) warmGroupAudioWhenReady(group, window[promiseKey])')
   && cp5Src.loader.includes('if (priority) warmGroupAudioWhenReady(group, gate);'),
   { earlyReturnIntent: cp5Src.loader.includes('if (priority) warmGroupAudioWhenReady(group, window[promiseKey])') });
-gate('menu-cp5-button-no-artificial-delay',
-  cp5Src.app.includes('requestAnimationFrame(run)')
+gate('product-menu-button-no-artificial-delay',
+  cp5Src.app.includes('requestAnimationFrame(() => { void run(); })')
   && !cp5Src.app.includes('}, 105)'),
-  { rafExec: cp5Src.app.includes('requestAnimationFrame(run)'), no105: !cp5Src.app.includes('}, 105)') });
+  { rafExec: cp5Src.app.includes('requestAnimationFrame(() => { void run(); })'), no105: !cp5Src.app.includes('}, 105)') });
 gate('battle-audio-cp5-no-auto-restore-timer',
   !cp5Src.battleAudio.includes('restoreBattleAudio(), 80')
   && cp5Src.battleAudio.includes('window.apexBeginBattleAudioSession = beginBattleAudioSession')
@@ -4755,9 +4755,9 @@ report.labV1 = run(`
   M.openHub();
   const hub = document.getElementById('aq-meta-root');
   const tiles = [...hub.querySelectorAll('[data-go]')].map(e => e.getAttribute('data-go'));
-  const setting = hub.querySelector('#aq-splatter-mode');
+  const labCard = hub.querySelector('[data-go="lab"], [data-go="arsenal-lab"]');
   const startingMode = APEX_ARSENAL_FEEL.getSplatterMode();
-  hub.querySelector('[data-go="lab"]').click();
+  const labRequest = M.openDeveloperLab();
   cancelAnimationFrame(reqId); reqId = 0;
   __AQ_TEST.clearEvents();
   const entryFull = __AQ_TEST.debug();
@@ -4799,12 +4799,13 @@ report.labV1 = run(`
   window.exitArsenalLab();
   const afterExit = { credits: M.credits(), quest: JSON.stringify(APEX_ARSENAL_QUEST.loadSave()),
     hub: document.getElementById('aq-meta-root').style.display, gameState, panelGone: !document.getElementById('aq-lab-panel') };
-  return { tiles, setting: !!setting, startingMode, entry, panelIds, idle,
+  return { tiles, labCard: !!labCard, labRequest, startingMode, entry, panelIds, idle,
     noAutomatic, first, collected, hits, damage, popups, hpBefore, lethal,
     storm: storm && { weapon: storm.weaponId, phase: storm.phase, tier: storm.tier },
     floorAngle, beforeExit, afterExit };
 `);
-gate('lab-hub-five-entries-setting', report.labV1.tiles.join(',') === 'free,quest,shop,draw,lab' && report.labV1.setting, report.labV1.tiles);
+gate('lab-admin-seam-not-public-graph', report.labV1.tiles.join(',') === 'bot-battle,local-1v1,fighter-shop,lucky-draw'
+  && report.labV1.labCard === false && report.labV1.labRequest?.ok === true, report.labV1);
 // HERO REWORK: the Lab default hero is ROBOT (NEWBIE retired).
 gate('lab-entry-robot-robot-full-panel', report.labV1.entry.labMode && report.labV1.entry.hero.name === 'ROBOT'
   && report.labV1.entry.rival.name === 'ROBOT' && report.labV1.panelIds.join(',') === win.APEX_ARSENAL_CONFIG.P0_WEAPON_IDS.join(','), report.labV1.entry);
@@ -5023,6 +5024,28 @@ gate('quest-stage-result-actions-correct',
 gate('quest-p1-wins-recorded-to-save',
   hr6.winSaved === hr6.wins && hr6.wins >= 1,
   { wins: hr6.wins, naturalWins: hr6.naturalWins, saved: hr6.winSaved });
+
+// Product Bot Battle uses the same accepted combat core. This direct result
+// proof intentionally runs after the legacy ladder has loaded too, proving a
+// detached history module cannot steal Bot result routing in a long session.
+report.botProductResult = run(`
+  window.__apexArsenalBattleKind = 'BOT_BATTLE';
+  window.startArsenalQuestMode('ROBOT', 'HUNTER');
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+  fighters[0].hp = fighters[0].maxHp;
+  fighters[1].hp = 0;
+  APEX_ARSENAL.step(1 / 60);
+  draw();
+  const win = document.getElementById('aq-win');
+  const debug = window.getArsenalQuestDebugState();
+  window.__apexArsenalBattleKind = 'LOCAL_1V1';
+  return { kind: debug.productBattleKind, winner: debug.over, result: win && win.textContent, p1: fighters[0].name, p2: fighters[1].name };
+`);
+gate('bot-battle-real-core-result', report.botProductResult.kind === 'BOT_BATTLE'
+  && report.botProductResult.winner === 'ROBOT' && report.botProductResult.p1 === 'ROBOT'
+  && report.botProductResult.p2 === 'HUNTER' && /BOT BATTLE RESULT/.test(report.botProductResult.result || ''), report.botProductResult);
+
 
 // Evidence: the final stage's result state through the real engine canvas.
 run(`__AQ_TEST.redraw(); return true;`);

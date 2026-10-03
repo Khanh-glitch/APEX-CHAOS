@@ -1,9 +1,9 @@
 {
-  "revision": "20261003-mirror-v1-r33",
+  "revision": "20261003-pre-pilot-product-v1-r34",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "a0d10025cde29ee55d6eb95a06aee2cbebe2a56e01adcdb1154f8366e3128712",
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
-    "public/game/arsenal/arsenalQuestConfig.js": "ed6f41660904ade5b4a45d8af4eed774c05564ef60fa25e92c820fd4e29dc37d",
+    "public/game/arsenal/arsenalQuestConfig.js": "5dbdac8821a08d5f0804b9bfc5f80ccc4d5fcea5ce7eab51de0285b0420fe5a4",
     "public/game/arsenal/arsenalIdentityRuntime.js": "3289fa204d1b2eeab946cc57e43670815f1d934ff803b082134a9541ba94f944",
     "public/game/arsenal/arsenalWeaponRuntime.js": "aa931e9cd661c8748a5e4f149d96ee48b7544b4f93e34054a96ff02e281892b2",
     "public/game/arsenal/arsenalSpawnRuntime.js": "3a4d1827d4e55994cbbeb0b51c061a2187fa453ef541745eba15679e46143fc1",
@@ -12,12 +12,12 @@
     "public/game/arsenal/arsenalStormbreakerVfxRuntime.js": "f5862f8e002958c967ab5a5796caef33962bdcf5eaafa183c30a90b55caaed8d",
     "public/game/arsenal/arsenalManualSkillGate.js": "6ca35f63efc873981ed9afda18b1828d6dd1d18e5b542a43118340409a2b404d",
     "public/game/hero-rework/ailRuntime.js": "dbc5e1e22a52639fbf8a0cc609ee9be03ca2538903d8c13788188b73d4e2f0b0",
-    "public/game/hero-rework/heroRegistry.js": "68bae129d4986f7779101ebd578f914d9da35e2abfcd5d13add4913f1f831d52",
-    "public/game/arsenal/arsenalShellSelectRuntime.js": "915b30bb0bd82cf1abaa755ee76d043a6acda0d412ea78c7807984a4b8c26ec0",
-    "public/game/arsenal/arsenalQuestLadder.js": "063f5b34504296183c3f54e321507f7ba8a93bde42e51972c07845266f60348a",
+    "public/game/hero-rework/heroRegistry.js": "0161258f030baa60c7368565ab56ecac02763cef43f0b6b88418adb3c526e7eb",
+    "public/game/arsenal/apexProductSurfaceRuntime.js": "abc60474a09a84511e8fc27db432324178d4d4b19c3e41980a35f4b3363f45ae",
+    "public/game/arsenal/arsenalShellSelectRuntime.js": "dfc78a0091fa4ed67e1c855c63410fc9bdc0e118291a88d7bd5ce6f7eb78a70d",
     "public/game/arsenal/arsenalChamberPaletteRuntime.js": "dea5c0cf90465ab18731dc61df4d4568ef4275695d0b81482e779806322f91a6",
-    "public/game/arsenal/arsenalMetaRuntime.js": "c7bca2c76d954a2887f311d4c00515e2c6350fc707fd98bf0f9d02c37280021d",
-    "public/game/modes/arsenalQuestRuntime.js": "9478b5f5a9e61f133b1662f5d24010b5e7316ef49f6c1ec1e158d62a7b5bcbcb",
+    "public/game/arsenal/arsenalMetaRuntime.js": "144cd57c4155df5944fac04535712ec689d50924e7133b726f3edb3f7cc69b86",
+    "public/game/modes/arsenalQuestRuntime.js": "09a62e81aa2f2726822338cd934770b7ddea640a361557168c86d294e78690e3",
     "public/game/hero-rework/crystalaGoldV6.js": "cea96dc2b58f5c41fb482e196ec0cf9a2b9c25bb21f2b7df37afc2787b67ab2f",
     "public/game/hero-rework/crystalGameplayRuntime.js": "d2756e16c412b2e480861d2330af48647bcdb08ad1ff848031d8d5e103bd7cba",
     "public/game/hero-rework/frostGameplayRuntime.js": "7b0e8f12e2dfc70e3e7b6de76695bceaf3170b41bfce9ac44ecf13a779a6699b",
@@ -33,6 +33,7 @@
     "public/game/hero-rework/frostGoldV1.js": "0d97e857df605a3ac2a5a95099b27fa4037533844142e21e49fbca4667976f1a",
     "public/game/hero-rework/frostPresentationRuntime.js": "c187324f25c509f2558d5a6a359156d16711a6c0635a4b4ba2eb74879f7d8092",
     "public/game/hero-rework/magnetPresentationRuntime.js": "c603bc0c18187064e234e42a9492e883df4d7113385e3bdcc377238b86dd95ca",
-    "public/game/hero-rework/mirrorPresentationRuntime.js": "35748160dcdb616d39562ab4ab037e99def7cd1f0d08176102133e675f08ec4d"
+    "public/game/hero-rework/mirrorPresentationRuntime.js": "35748160dcdb616d39562ab4ab037e99def7cd1f0d08176102133e675f08ec4d",
+    "public/game/arsenal/arsenalQuestLadder.js": "2fcbda3ad4a1da0e21ba8ab557369ca46eb3791f1a0037f6951b7cb19edc89c9"
   }
 }

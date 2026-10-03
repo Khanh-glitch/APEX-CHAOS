@@ -18,10 +18,11 @@ import { AUDIO_WARM_BANKS } from './audioWarmBanks.generated.js';
 // fetch+decodeAudioData paths start from the HTTP cache (no trigger-time
 // network). The Arsenal AV HOT bank is separate: its clips are decoded into
 // AudioBuffers by the AV runtime's own preload (AudioBuffer authority), which
-// the quest group carrying it triggers here as well.
+// the neutral Arsenal core carrying it triggers here as well; the detached
+// legacy quest group is accepted only for explicit compatibility entry.
 function warmGroupAudio(group) {
   try {
-    if (group === 'arsenalQuest' || group === 'battle') {
+    if (group === 'arsenalCore' || group === 'arsenalQuest' || group === 'legacyArsenalQuest' || group === 'battle') {
       window.APEX_ARSENAL_AV?.preload?.();
     }
     const urls = AUDIO_WARM_BANKS[group];
@@ -169,7 +170,10 @@ const RUNTIME_GROUPS = {
   solo: MODE_DEFERRED_RUNTIMES.solo,
   trial: MODE_DEFERRED_RUNTIMES.trial,
   tamChien: MODE_DEFERRED_RUNTIMES.tamChien,
+  // Neutral product combat is separate from the detached historical ladder.
+  arsenalCore: MODE_DEFERRED_RUNTIMES.arsenalCore,
   arsenalQuest: MODE_DEFERRED_RUNTIMES.arsenalQuest,
+  legacyArsenalQuest: MODE_DEFERRED_RUNTIMES.legacyArsenalQuest,
   select: SELECT_RUNTIMES,
   soloBattle: MODE_DEFERRED_RUNTIMES.soloBattle,
   trialBattle: MODE_DEFERRED_RUNTIMES.trialBattle,
@@ -238,9 +242,9 @@ export async function scheduleDeferredGameRuntimes() {
   const start = () => {
     markBootPhase('warmup-start');
     // CP6: prefetch the Arsenal hub critical path bytes immediately (4 small
-    // scripts, no evaluation) so a cold ARSENAL press opens the hub from warm
-    // HTTP cache even when it lands before the background warmup reaches the
-    // arsenalQuest group.
+    // scripts, no evaluation) so a cold product-menu press opens the hub from
+    // warm HTTP cache. Background warmup intentionally never requests the
+    // detached historical quest group.
     try { hintRuntimeSources(ARSENAL_HUB_RUNTIMES, 'prefetch'); } catch (error) {}
     (async () => {
       for (let i = 0; i < WARMUP_GROUP_SEQUENCE.length; i++) {

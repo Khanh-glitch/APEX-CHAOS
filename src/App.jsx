@@ -47,7 +47,6 @@ const LOADING_ASSETS = {
 const UI_2026_ASSETS = {
   menuBgLandscape: '/assets/ui_2026/menu-bg-landscape.webp',
   menuBgPortrait: '/assets/ui_2026/menu-bg-portrait.webp',
-  menuVfxOverlay: '/assets/ui_2026/menu-vfx-overlay.webp',
   fighterPickBg: '/assets/ui_2026/fighter-pick-bg.webp',
   tabApexUpdate: '/assets/ui_2026/tab-apex-update.webp',
   tabFullRoster: '/assets/ui_2026/tab-full-roster.webp',
@@ -66,16 +65,6 @@ const UI_2026_ASSETS = {
 
 const MENU_AUDIO = '/assets/audio/menu_bgm.mp3';
 
-const MENU_BUTTONS = [
-  { id: 'play', label: 'Choi', asset: '/assets/ui_2026/menu-play.webp', action: 'goToSelect', primary: true },
-  { id: 'manual-lab', label: 'APEX CONTROL', asset: '/assets/ui_2026/menu-pvp.webp', action: 'goToManualLabSelect' },
-  { id: 'tam-chien', label: '3-Phase Battle', asset: '/assets/ui_2026/menu-3phase.webp', action: 'startTamChienMode' },
-  { id: 'trial', label: 'Test Battle With Saitama', asset: '/assets/ui_2026/menu-saitama-test.webp', action: 'goToTrialSelect' },
-  { id: 'giai', label: 'Tournament', asset: '/assets/ui_2026/menu-tournament.webp', action: 'goToTournament' },
-  { id: 'solo', label: 'Solo 1v1 Local', asset: '/assets/ui_2026/menu-solo.webp', action: 'goToSoloSelect' },
-  { id: 'arsenal-quest', label: 'ARSENAL QUEST', text: 'ARSENAL QUEST', action: 'beginArsenalQuestSelection' },
-];
-
 const LOADING_LABELS = ['LOADING ASSETS', 'PREPARING ARENA', 'SYNCHRONIZING VFX'];
 const IMAGE_PRELOAD_TIMEOUT_MS = 7000;
 const LOADER_READY_HOLD_MS = 160;
@@ -91,13 +80,13 @@ const DEFERRED_RUNTIME_ACTION_GROUPS = {
   goToTrialSelect: 'trialBattle',
   startTrialMode: 'trialBattle',
   startTamChienMode: 'tamChien',
+  // Historical quest calls are explicit compatibility/developer entry only.
   startArsenalQuestMode: 'arsenalQuest',
-  // CP6 (owner playtest round 3): hub-level navigation opens the hub on its
-  // tiny critical-path group (config + shell select + ladder + meta). The
-  // heavy battle-core/roster/AV work stays on the background warmup and loads
-  // behind the open hub; match starts ensure the full arsenalQuest group.
-  beginArsenalQuestSelection: 'arsenalHub',
-  beginArsenalQuestMap: 'arsenalHub',
+  beginArsenalQuestSelection: 'arsenalQuest',
+  beginArsenalQuestMap: 'arsenalQuest',
+  // Public product actions use these neutral groups directly.
+  startArsenalProductBattle: 'arsenalCore',
+  openArsenalLab: 'arsenalCore',
 };
 
 function callApexGlobal(name, enabled = true) {
@@ -196,8 +185,6 @@ function criticalBootAssets() {
     { path: LOADING_ASSETS.gameTitle, type: 'image', required: true },
     { path: LOADING_ASSETS.loadingBarFrame, type: 'image', required: true },
     { path: menuBackground, type: 'image', required: true },
-    { path: UI_2026_ASSETS.menuVfxOverlay, type: 'image', required: true },
-    ...MENU_BUTTONS.filter((button) => button.asset).map((button) => ({ path: button.asset, type: 'image', required: true })),
   ];
 }
 
@@ -422,6 +409,8 @@ export default function App() {
   const menuAudioWasPlayingRef = useRef(false);
   const pendingActionRef = useRef(null);
   const [gameReady, setGameReady] = useState(false);
+  const [productSurfaces, setProductSurfaces] = useState([]);
+  const [productNotice, setProductNotice] = useState('Loading the product graph…');
   const [pressedMenuButton, setPressedMenuButton] = useState(null);
   const [loader, setLoader] = useState({
     active: true,
@@ -502,6 +491,25 @@ export default function App() {
       scriptRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (!gameReady) return undefined;
+    let cancelled = false;
+    // Load the small graph/meta authority behind the interactive menu. This is
+    // intentionally not the Arsenal combat core and never touches the retired
+    // quest ladder; clicking a product surface remains priority loading.
+    loadDeferredGameRuntimes('arsenalHub', { priority: false }).then(() => {
+      if (cancelled) return;
+      const authority = window.APEX_PRODUCT_SURFACES;
+      if (authority?.publicSurfaces) {
+        setProductSurfaces(authority.publicSurfaces());
+        setProductNotice('Choose an available surface. Locked systems are clearly marked and do not open placeholder pages.');
+      }
+    }).catch((error) => {
+      console.warn('[product-graph] Unable to hydrate product authority.', error);
+    });
+    return () => { cancelled = true; };
+  }, [gameReady]);
 
   const menuMusicAllowed = () => {
     if (typeof document === 'undefined') return false;
@@ -661,22 +669,40 @@ export default function App() {
     }
   };
 
-  const handleMenuButton = (button) => {
+  const handleProductSurface = (surface) => {
     if (!gameReady || pendingActionRef.current) return;
-    pendingActionRef.current = button.action;
-    setPressedMenuButton(button.id);
-    // Correction 3A: no artificial 105ms hold. The pressed visual state is
-    // committed first (React renders it), then the action starts on the very
-    // next animation frame — the button stays visually pressed until the
-    // navigation/match flow finishes.
-    const run = () => {
-      runApex(button.action, { startsMatch: button.startsMatch }).finally(() => {
+    const id = surface?.id;
+    if (!id) return;
+    if (surface.availability !== 'ACTIVE') {
+      setProductNotice(`${surface.title} is LOCKED. ${surface.summary || 'This system is not available in the pre-pilot cut.'}`);
+      return;
+    }
+    pendingActionRef.current = id;
+    setPressedMenuButton(id);
+    setProductNotice(`Opening ${surface.title}…`);
+    const run = async () => {
+      try {
+        await loadDeferredGameRuntimes('arsenalHub');
+        const authority = window.APEX_PRODUCT_SURFACES;
+        if (authority?.publicSurfaces) setProductSurfaces(authority.publicSurfaces());
+        const result = window.openApexProductSurface?.(id);
+        if (!result?.ok) {
+          setProductNotice(`${surface.title} is unavailable: ${result?.reason || 'launcher not ready'}.`);
+          return;
+        }
+        // Selection and Meta overlays retain their own visible controls; this
+        // notice only documents the graph transition for the root shell.
+        setProductNotice(`${surface.title} opened.`);
+      } catch (error) {
+        console.warn(`[product-graph] Failed to open ${id}.`, error);
+        setProductNotice(`${surface.title} could not be opened.`);
+      } finally {
         setPressedMenuButton(null);
         pendingActionRef.current = null;
-      });
+      }
     };
-    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
-    else run();
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => { void run(); });
+    else { void run(); }
   };
 
   return (
@@ -767,31 +793,41 @@ export default function App() {
       <div id="menu-screen" className="screen">
         <div className="menu-bg menu-bg-landscape" aria-hidden="true" />
         <div className="menu-bg menu-bg-portrait" aria-hidden="true" />
-        <div className="menu-vfx-overlay" aria-hidden="true" />
         <div className="menu-darken" aria-hidden="true" />
-        <div className="menu-energy menu-energy-red" aria-hidden="true" />
-        <div className="menu-energy menu-energy-cyan" aria-hidden="true" />
-        <img className="menu-title-img" src={LOADING_ASSETS.gameTitle} alt="Apex Chaos" />
-        <div className="menu-buttons">
-          {MENU_BUTTONS.map((button, index) => (
-            <button
-              key={button.id}
-              type="button"
-              className={`menu-image-button ${button.id === 'manual-lab' ? 'manual-lab-button' : ''} ${button.primary ? 'primary' : ''} ${pressedMenuButton === button.id ? 'is-pressed' : ''}`}
-              style={{ '--menu-delay': `${index * 42 + 80}ms` }}
-              disabled={!gameReady}
-              onClick={() => handleMenuButton(button)}
-              aria-label={button.label}
-            >
-              {button.asset ? (
-                <img src={button.asset} alt="" draggable="false" />
+        <section className="product-menu" aria-labelledby="product-menu-title">
+          <header className="product-menu-head">
+            <div>
+              <p className="product-menu-kicker">APEX CHAOS · PRE-PILOT</p>
+              <h1 id="product-menu-title">PRODUCT GRAPH</h1>
+              <p className="product-menu-subtitle">Active systems launch real accepted runtime seams. Locked systems do not open placeholder pages.</p>
+            </div>
+            <div className="product-menu-revision">RUNTIME {APEX_ARSENAL_RUNTIME_REVISION}</div>
+          </header>
+          <p className="product-menu-notice" role="status">{productNotice}</p>
+          <div className="product-surface-grid" aria-label="Public product surfaces">
+            {productSurfaces.length ? productSurfaces.map((surface, index) => {
+              const active = surface.availability === 'ACTIVE';
+              const contents = <>
+                <span className="product-surface-index">{String(index + 1).padStart(2, '0')} · {active ? 'AVAILABLE NOW' : 'LOCKED'}</span>
+                <strong>{surface.title}</strong>
+                <span>{surface.summary || surface.description || (active ? 'Available now.' : 'Not available in the pre-pilot cut.')}</span>
+                <em>{active ? 'OPEN' : 'LOCKED'}</em>
+              </>;
+              return active ? (
+                <button
+                  key={surface.id}
+                  type="button"
+                  className={`product-surface-card is-active ${pressedMenuButton === surface.id ? 'is-pressed' : ''}`}
+                  disabled={!gameReady}
+                  onClick={() => handleProductSurface(surface)}
+                >{contents}</button>
               ) : (
-                <span className="menu-text-label">{button.text || button.label}</span>
-              )}
-              <span className="menu-button-sweep" aria-hidden="true" />
-            </button>
-          ))}
-        </div>
+                <div key={surface.id} className="product-surface-card is-locked" aria-disabled="true">{contents}</div>
+              );
+            }) : <div className="product-surface-card is-locked" aria-live="polite"><span className="product-surface-index">PRODUCT AUTHORITY</span><strong>LOADING PRODUCT GRAPH</strong><span>Preparing the authoritative public surface list.</span></div>}
+          </div>
+          <footer className="product-menu-foot">Developer tools are deliberately omitted from this public graph.</footer>
+        </section>
       </div>
 
       <div id="select-screen" className="screen hidden">
@@ -845,7 +881,7 @@ export default function App() {
                 </div>
               </div>
               <div className="select-actions">
-                <button id="start-btn" className="fight-stage-button hidden" type="button" disabled={!gameReady} onClick={() => document.body.classList.contains('manual-online-select') ? window.lockManualRoomChampion?.() : document.body.classList.contains('manual-lab-select') ? window.goToManualRoomLobby?.() : runApex('startMatch')}>
+                <button id="start-btn" className="fight-stage-button hidden" type="button" disabled={!gameReady} onClick={() => document.body.classList.contains('manual-online-select') ? window.lockManualRoomChampion?.() : document.body.classList.contains('manual-lab-select') ? window.goToManualRoomLobby?.() : runApex('startMatch', window.__apexArsenalSelectPending ? { startsMatch: true, deferredGroup: 'arsenalCore' } : {})}>
                   <span>START BATTLE</span>
                 </button>
                 <button id="select-exit-btn" type="button" disabled={!gameReady} onClick={() => runApex('goToMenu')}>

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T07:59:42.591Z",
+  "generatedAt": "2026-10-03T14:14:10.382Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -3510,7 +3510,7 @@
     {
       "path": "/game/ui/apexPickRuntime.js",
       "type": "script",
-      "bytes": 44732
+      "bytes": 46567
     },
     {
       "path": "/manualLab.js",

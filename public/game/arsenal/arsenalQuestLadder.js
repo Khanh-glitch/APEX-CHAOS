@@ -351,5 +351,8 @@
     showMap,
     beginArsenalQuestMap,
   };
+  // The detached ladder is allowed to restore its own historical reward
+  // bridge only when explicitly loaded; normal product combat never imports it.
+  window.__apexArsenalInstallMetaResultHook?.();
   window.apexArsenalQuestLadder = 'ready';
 })();

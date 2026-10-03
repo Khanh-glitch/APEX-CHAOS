@@ -110,6 +110,8 @@
     ROBOT: {
       id: 'ROBOT',
       name: 'ROBOT',
+      // Product display copy only; storage/canonical id stays ROBOT.
+      displayName: 'NEWBOT',
       classRef: 'rework.robot',
       skills: {
         A1: skill('robot.weapon_dash', 'A1', 'robot.weapon_dash', {
@@ -137,6 +139,8 @@
     CRYSTAL: {
       id: 'CRYSTAL',
       name: 'CRYSTAL',
+      // Product display copy only; storage/canonical id stays CRYSTAL.
+      displayName: 'CRYSTALA',
       classRef: 'rework.crystal',
       // CRYSTALA V1 (docs/hero-rework/crystala-v1/00_CRYSTALA_IMPLEMENTATION_AUTHORITY.md
       // §4) with the V2 minimal-delta override

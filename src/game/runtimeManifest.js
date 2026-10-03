@@ -1,12 +1,10 @@
 // Cache-bust classic runtime scripts that live under /public and therefore do
 // not receive Vite content hashes. Without this, stable Cloudflare branch
 // aliases can serve a previous Arsenal runtime even when index.html is new.
-// CP7: gameplay-ready barriers + start-of-match fail-cue fix — cache-bust
-// every runtime that changed in this pass (config/presentation/meta/
-// shellSelect/ladder).
-// Frost eye cleanup: remove trailing eye ribbon; boost only the existing eye
-// asset while Frost overlaps its own active ice surface.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r33';
+// Pre-pilot product-graph cutover: cache-bust the authority, product Meta /
+// selection paths, shared core barrier, and compatibility ladder seam as one
+// deliberate post-r33 revision.
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-pre-pilot-product-v1-r34';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRE-REWORK BASELINE CLEANUP — runtime loading is classified by NEED, not by
@@ -15,9 +13,9 @@ export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r33';
 //   Tier 1  menu interactive         — engine + the one runtime the menu nav
 //                                      path actually calls into (audio bridge).
 //   Tier 2  likely-next warmup       — after the menu is interactive, warm the
-//                                      Quest experience first (primary shipping
-//                                      mode), then select/battle, then legacy
-//                                      modes. Background only, never blocking.
+//                                      small public product graph and picker;
+//                                      combat is route-intent and detached
+//                                      history never warms. Background only.
 //   Tier 3  intent-based             — a route click raises that route's group
 //                                      to high priority and waits only for it.
 //   Tier 4  match-specific           — assets actually needed by the selected
@@ -141,9 +139,9 @@ export const MODE_DEFERRED_RUNTIMES = {
     ...BATTLE_CORE_RUNTIMES,
     ['/game/modes/tamChienRuntime.js', 'apexTamChienRuntime'],
   ],
-  // Quest is the primary shipping experience: its group carries the battle
-  // core it depends on so entering Quest never waits on anything else.
-  arsenalQuest: [
+  // Neutral shared Arsenal combat/product spine. It supports active Local
+  // 1v1 and Bot Battle without loading the retired 20-stage quest ladder.
+  arsenalCore: [
     ...BATTLE_CORE_RUNTIMES,
     ['/game/arsenal/arsenalCWeaponSet.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalCSet'],
     ['/game/arsenal/arsenalQuestConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestConfig'],
@@ -158,8 +156,8 @@ export const MODE_DEFERRED_RUNTIMES = {
     // playable-roster cutover is active wherever shells resolve.
     ['/game/hero-rework/ailRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkAil'],
     ['/game/hero-rework/heroRegistry.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRegistry'],
+    ['/game/arsenal/apexProductSurfaceRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexProductSurfaceRuntime'],
     ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
-    ['/game/arsenal/arsenalQuestLadder.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestLadder'],
     ['/game/arsenal/arsenalChamberPaletteRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalChamberPaletteRuntime'],
     ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
     ['/game/modes/arsenalQuestRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestRuntime'],
@@ -202,44 +200,55 @@ export const MODE_DEFERRED_RUNTIMES = {
   trialBattle: [...BATTLE_CORE_RUNTIMES, ...TRIAL_RUNTIMES, ...BATTLE_DEFERRED_RUNTIMES],
 };
 
+
+// Explicit compatibility-only route for the detached historical 20-stage
+// ladder. It is intentionally absent from normal boot, warmup, hub, and
+// product actions. The shared core remains first; the ladder attaches only
+// when a developer/history caller deliberately asks for this group.
+const LEGACY_LADDER_INSERT_AT = MODE_DEFERRED_RUNTIMES.arsenalCore.findIndex(([src]) => src.includes('/game/arsenal/arsenalChamberPaletteRuntime.js'));
+export const LEGACY_ARSENAL_QUEST_RUNTIMES = [
+  // Preserve the old wrapper order exactly for an explicit history load: the
+  // ladder used to install between Shell Select and palette/meta/mode hooks.
+  ...MODE_DEFERRED_RUNTIMES.arsenalCore.slice(0, LEGACY_LADDER_INSERT_AT),
+  ['/game/arsenal/arsenalQuestLadder.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestLadder'],
+  ...MODE_DEFERRED_RUNTIMES.arsenalCore.slice(LEGACY_LADDER_INSERT_AT),
+];
+MODE_DEFERRED_RUNTIMES.arsenalQuest = LEGACY_ARSENAL_QUEST_RUNTIMES;
+MODE_DEFERRED_RUNTIMES.legacyArsenalQuest = LEGACY_ARSENAL_QUEST_RUNTIMES;
+
 export const DEFERRED_GAME_RUNTIMES = [
   ...BATTLE_RUNTIMES,
   ...MODE_DEFERRED_RUNTIMES.manualLab.filter((entry) => !BATTLE_RUNTIMES.some((b) => b[0] === entry[0])),
   ...MODE_DEFERRED_RUNTIMES.solo,
   ...MODE_DEFERRED_RUNTIMES.trial,
   ...MODE_DEFERRED_RUNTIMES.tamChien.filter((entry) => !BATTLE_RUNTIMES.some((b) => b[0] === entry[0])),
-  ...MODE_DEFERRED_RUNTIMES.arsenalQuest.filter((entry) => !BATTLE_RUNTIMES.some((b) => b[0] === entry[0])),
+  ...MODE_DEFERRED_RUNTIMES.arsenalCore.filter((entry) => !BATTLE_RUNTIMES.some((b) => b[0] === entry[0])),
   ...MODE_DEFERRED_RUNTIMES.select.filter((entry) => !BATTLE_RUNTIMES.some((b) => b[0] === entry[0])),
 ];
 
 // Tier 2 — background warmup order after the menu is interactive.
-// Correction pass (menu responsiveness): warm ONLY the genuinely likely-next
-// groups — Quest (primary shipping experience) then select. Legacy modes
-// (classic battle, solo/trial/tamChien, manual lab) are route-intent /
-// deep-lazy: their groups load when actually clicked, never on the menu.
-// Measured on the deployed build: the old 7-group sequence put ~3.4s of long
-// tasks on the first menu seconds (arcadeVisualRuntime alone evaluated for
-// 1.18s). Loading remains sequential and priority-preemptable (see loader).
+// Warm only the tiny public product authority/hub and picker renderer. Shared
+// combat is route-intent; the historical quest ladder is explicit legacy-only
+// and must never enter this sequence. Loading remains sequential and
+// priority-preemptable (see loader).
 export const WARMUP_GROUP_SEQUENCE = [
-  'arsenalQuest',
+  'arsenalHub',
   'select',
 ];
 
-// CP6 (owner playtest round 3): the Arsenal HUB's critical path. Pressing
-// ARSENAL must open the hub immediately — the hub is a DOM overlay that needs
-// only its own save/config/shell/meta scripts. The heavy battle-core roster
-// runtimes, weapon/feel/storm presentation, and AV banks stay on the
-// background warmup (arsenalQuest above) and load behind the open hub; match
-// starts (startArsenalQuestMode / lab / pick START) still ensure the FULL
-// arsenalQuest group. Internal order mirrors the arsenalQuest group's order.
+// Public product hub critical path. The graph/shop/draw shell loads its own
+// save/config/selection/meta scripts only. Heavy Arsenal combat, weapons,
+// presentation, and AV banks remain route-intent under arsenalCore; the
+// detached ladder is not represented here. Internal order mirrors the shared
+// core's early product dependencies.
 export const ARSENAL_HUB_RUNTIMES = [
   ['/game/arsenal/arsenalQuestConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestConfig'],
   // HERO REWORK: tiny pure-JS registry (no assets) so the hub's shell/meta
   // cards already reflect the playable-12 cutover. Keeps hub entry fast.
   ['/game/hero-rework/ailRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkAil'],
   ['/game/hero-rework/heroRegistry.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroReworkRegistry'],
+  ['/game/arsenal/apexProductSurfaceRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexProductSurfaceRuntime'],
   ['/game/arsenal/arsenalShellSelectRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalShellSelectRuntime'],
-  ['/game/arsenal/arsenalQuestLadder.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalQuestLadder'],
   ['/game/arsenal/arsenalChamberPaletteRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalChamberPaletteRuntime'],
   ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
 ];

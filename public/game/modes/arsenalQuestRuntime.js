@@ -148,8 +148,14 @@
   };
 
   function resetState() {
+    // The source filename is historical; this state is now the shared Arsenal
+    // combat core for Local 1v1, Bot Battle, developer Lab, and legacy Quest.
+    // Preserve the current battle kind over rematches without changing combat.
+    const previousKind = AQ.state && AQ.state.productBattleKind;
+    const carriedKind = previousKind === 'BOT_BATTLE' ? previousKind : null;
     const state = {
       active: true,
+      productBattleKind: window.__apexArsenalBattleKind || carriedKind || 'LOCAL_1V1',
       time: 0,
       spawnTimer: CFG.SPAWN_CADENCE_SECONDS,
       unarmedFastConsumed: false,
@@ -759,7 +765,13 @@
     let win = hudRefs.win || document.getElementById('aq-win');
     if (state && state.over) {
       const Q = window.APEX_ARSENAL_QUEST;
-      const spec = Q && Q.resultActions ? Q.resultActions(state) : { mode: 'freeplay', actions: ['REMATCH', 'HUB'] };
+      // Normal product battles deliberately do not require the historical
+      // ladder object. Bot Battle keeps an explicit result mode so its retry
+      // and pick-again actions remain on the audited CPU seam.
+      const productMode = state.productBattleKind === 'BOT_BATTLE' ? 'bot-battle' : 'freeplay';
+      const spec = productMode === 'bot-battle'
+        ? { mode: 'bot-battle', actions: ['REMATCH', 'PICK AGAIN', 'HUB'] }
+        : Q && Q.resultActions ? Q.resultActions(state) : { mode: productMode, actions: ['REMATCH', 'PICK AGAIN', 'HUB'] };
       const winKey = state.over + '|' + spec.mode + '|' + (spec.actions || []).join(',');
       if (hudLast.winKey !== winKey) {
         if (!win) {
@@ -781,7 +793,8 @@
         } else {
           actions = ['REMATCH', 'PICK AGAIN', 'HUB'];
         }
-        win.innerHTML = '<div class="aq-result-card"><div class="aq-result-kicker">ARSENAL RESULT</div><div class="aq-result-title">' + state.over + ' WINS</div>' + reward
+        const resultKicker = spec.mode === 'bot-battle' ? 'BOT BATTLE RESULT' : 'ARSENAL RESULT';
+        win.innerHTML = '<div class="aq-result-card"><div class="aq-result-kicker">' + resultKicker + '</div><div class="aq-result-title">' + state.over + ' WINS</div>' + reward
           + '<div id="aq-quest-actions" class="aq-result-actions">' + actions.map((a) => '<button type="button" data-aq-act="' + a + '">' + a + '</button>').join('') + '</div></div>';
         win.onclick = (e) => {
           const btn = e.target && e.target.closest ? e.target.closest('[data-aq-act]') : null;
@@ -791,7 +804,10 @@
           else if ((act === 'REPLAY' || act === 'RETRY') && Q && Q.replay) Q.replay();
           else if (act === 'QUEST MAP' && Q && Q.returnToMap) Q.returnToMap();
           else if (act === 'REMATCH') window.startArsenalQuestMode();
-          else if (act === 'PICK AGAIN' && M) M.openFreePick();
+          else if (act === 'PICK AGAIN' && M) {
+            if (spec.mode === 'bot-battle' && M.openBotPick) M.openBotPick();
+            else M.openFreePick();
+          }
           else if (act === 'HUB' && M) { window.exitArsenalQuestMode(); M.openHub(); }
         };
         hudLast.winKey = winKey;
@@ -992,8 +1008,24 @@
       keyListener = onKeyDown;
       window.addEventListener('keydown', keyListener);
     }
-    AQ.log('MODE_ENTER', 'mode=ARSENAL_QUEST');
+    AQ.log('MODE_ENTER', 'mode=ARSENAL_QUEST kind=' + (AQ.state && AQ.state.productBattleKind || 'LOCAL_1V1'));
     try { draw(); } catch (error) { console.warn('[AQ] initial draw failed', error); }
+  };
+
+  // Neutral public product boundary. It resolves the current wrapped
+  // compatibility function at call time so Hero Rework integration remains
+  // intact, while rejecting unavailable/unowned product shells below the UI.
+  // The historical function remains unrestricted for explicit legacy bosses.
+  window.startArsenalProductBattle = function startArsenalProductBattle(p1Name, p2Name) {
+    const P = window.APEX_PRODUCT_SURFACES;
+    const M = window.APEX_ARSENAL_META;
+    const legal = (name) => !P || !P.canSelectFighter || P.canSelectFighter(name);
+    const owned = (name) => !M || !M.owns || M.owns(name);
+    if (!legal(p1Name) || !legal(p2Name) || !owned(p1Name) || !owned(p2Name)) {
+      return { ok: false, reason: 'product-fighter-not-eligible' };
+    }
+    window.startArsenalQuestMode(p1Name, p2Name);
+    return { ok: true, p1: p1Name, p2: p2Name };
   };
 
   // Lab entry deliberately reuses the default playable shell (ROBOT after the
@@ -1026,6 +1058,7 @@
   }
 
   window.startArsenalLab = function startArsenalLab() {
+    window.__apexArsenalBattleKind = 'ARSENAL_LAB';
     window.startArsenalQuestMode('NEWBIE', 'NEWBIE');
     const state = AQ.state;
     state.labMode = true;
@@ -1043,6 +1076,9 @@
   window.exitArsenalQuestMode = function exitArsenalQuestMode() {
     const state = AQ.state;
     if (state) {
+      // A rematch occurs before exit and keeps its state kind. Leaving any
+      // battle must not leak Bot/Lab classification into a later direct entry.
+      window.__apexArsenalBattleKind = null;
       for (const f of fighters || []) if (f && f.data) f.data.arsenal = null;
       state.active = false;
       state.slots = [];
@@ -1070,6 +1106,9 @@
     AQ.log('MODE_EXIT', 'mode=ARSENAL_QUEST');
     goToMenu(); // restores MENU state + screens, stops battle audio
     window.apexPlayMenuMusic?.(true);
+  };
+  window.exitArsenalProductBattle = function exitArsenalProductBattle() {
+    return window.exitArsenalQuestMode();
   };
 
   // -------------------------------------------------------------------------
@@ -1099,6 +1138,7 @@
       active: state.active,
       gameState,
       over: state.over,
+      productBattleKind: state.productBattleKind || null,
       labMode: !!state.labMode,
       labDamage: state.labDamage || 0,
       labHits: state.labHits || 0,
