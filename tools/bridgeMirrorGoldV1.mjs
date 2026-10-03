@@ -176,6 +176,8 @@ a2Region = stripMutation(a2Region,
 // REBASED across the exchange, never cleared. The executable real exchange
 // event, not Gold's local .25 threshold, invokes a2Snap in external-truth mode.
 if (!a2Region.includes('shiftHist(fx-ox,fy-oy)')) fail('A2 history rebase lost');
+a2Region = a2Region.replace('shiftHist(fx-ox,fy-oy);',
+  'if(!__skipExternalHistoryShift)shiftHist(fx-ox,fy-oy);');
 const cameraSnap = 'cam.sx.v+=Math.sign(dx)*22;';
 if (!a2Region.includes(cameraSnap)) fail('A2 camera-only snap mutation not found');
 a2Region = stripMutation(a2Region, cameraSnap, '',
@@ -340,7 +342,7 @@ for (const d of ['const SH=', 'const ND=']) {
 const pjDecl = extractDecl(src, 'const PJ=');
 if (!pjDecl || !/\.push\(/.test(pjDecl)) fail('PJ pool not captured');
 D4_STATE_LINES.push(pjDecl);
-const d4Helpers = ['function nodeToWorld(', 'function nodeCap(', 'function nodeRipple('];
+const d4Helpers = ['function nodeToWorld(', 'function nodeCap(', 'function setImg(', 'function nodeRipple('];
 const helperSrc = [];
 for (const h of d4Helpers) {
   const i = passiveRegion.indexOf(h);
@@ -439,6 +441,437 @@ if (/Math\.random/.test(kept)) fail('D1 region unexpectedly consumes Math.random
 if (/(^|[^\w])rr\(/m.test(kept)) fail('D1 region unexpectedly calls the ambient rr() helper');
 
 const regionSha = crypto.createHash('sha256').update(kept).digest('hex');
+
+// R1 semantic boundary: Gold owns only bounded presentation proxies. Real
+// shard/node/projectile lifecycle, F1 formation and F2 routing remain outside.
+const EXTERNAL_PASSIVE_API = `
+  // ---- R1: Gold-owned semantic passive presentation ----------------------
+  // Slots are identities, not a second allocator. The caller supplies the real
+  // stable shard slot and node ID; Gold only projects them into SH / bounded ND.
+  const __externalShardIdentities = new Array(SH.length).fill(null);
+  const __externalShardBound = new Array(SH.length).fill(false);
+  const __externalNodeBindings = new Map();
+  const __externalRoutes = new Map();
+  const __externalImageOwners = new Map();
+  const __externalHistoryKeys = new Map();
+  let __externalPassiveSteps = 0, __externalRouteEvents = 0, __externalHistoryRebases = 0;
+
+  function __finite(v, fallback) { return Number.isFinite(v) ? v : fallback; }
+  function __validPoint(p) { return !!p && Number.isFinite(p.x) && Number.isFinite(p.y); }
+  function __sweepReset(w) { w.on = false; w.t = 0; w.d = .7; w.ang = .8; w.amp = .8; }
+  function __resetExternalShardSweeps(slotIndex) {
+    const name = 'sh' + slotIndex;
+    for (const w of SW) if (w.nm === name) {
+      w.on = false; w.nm = ''; w.t = 0; w.d = 1; w.ang = 0; w.amp = .8; w.bw = .18; w.dl = 0;
+    }
+  }
+  function __detachExternalNodeShard(s, n) {
+    if (!s || s.node !== n) return;
+    __resetExternalShardSweeps(SH.indexOf(s));
+    delete s.node; s.rot = 0; s.ta = 0; s.frot = 0;
+    s.tx = 0; s.ty = 0; s.trot = 0; s.tlen = 0; s.twid = 0; s.mt0 = 0;
+    s.dsx = .087; s.dsy = .087; s.faceA = 0;
+    delete s.dist; delete s.trotAdj; delete s.__externalTravelStarted;
+  }
+  function __resetExternalShard(slotIndex) {
+    if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= SH.length) return false;
+    const s = SH[slotIndex];
+    __resetExternalShardSweeps(slotIndex);
+    for (const n of ND) {
+      const at = n.sh.indexOf(s);
+      if (at >= 0) n.sh.splice(at, 1);
+    }
+    s.on = false; s.st = 0; s.x = 0; s.y = 0; s.vx = 0; s.vy = 0;
+    s.rot = 0; s.ta = 0; s.side = 'L'; s.pe = 0; s.pn = 0; s.ps = 0;
+    s.ph = 0; s.age = 0; s.fx = 0; s.fy = 0; s.frot = 0;
+    s.tx = 0; s.ty = 0; s.trot = 0; s.tlen = 0; s.twid = 0; s.mt0 = 0;
+    s.moving = false; s.rep = 3; s.repT = 0; s.spt = 0; s.sa = 0;
+    s.dsx = .087; s.dsy = .087; s.faceA = 0; s.eyeP = 0; s.spc = 0;
+    delete s.node; delete s.dist; delete s.trotAdj; delete s.__externalTravelStarted;
+    __externalShardIdentities[slotIndex] = null; __externalShardBound[slotIndex] = false;
+    return true;
+  }
+  function __resetExternalNode(proxyIndex) {
+    if (!Number.isInteger(proxyIndex) || proxyIndex < 0 || proxyIndex >= ND.length) return false;
+    const n = ND[proxyIndex];
+    const linked = n.sh.slice();
+    for (const s of linked) __detachExternalNodeShard(s, n);
+    n.on = false; n.st = 0; n.t = 0; n.age = 0; n.x = 0; n.y = 0; n.rot = 0;
+    n.fill = 0; n.fold = 0; n.sh.length = 0; n.tlock = -1; n.t3 = 0; n.flash = 0;
+    n.swc = 2; n.fa = 2; n.faT = -1; n.faW = 0;
+    n.img.on = false; n.img.k = 0; n.img.t = 0; n.img.d = .5; n.img.ang = 0;
+    n.img.pw = 1; n.img.own = 0; n.img.sx = 0; n.img.sy = 0; n.img.dx = 1; n.img.dy = 0;
+    for (const r of n.rp) { r.t = 9; r.x = 0; r.y = 0; }
+    for (const w of n.sw) __sweepReset(w);
+    delete n.__externalPreviousStage; n.externalGeometry = null; n.worldTransform = null;
+    return true;
+  }
+  function __removeRoute(routeId) {
+    const route = __externalRoutes.get(routeId);
+    if (!route) return false;
+    for (const nodeId of [route.entryNodeId, route.destinationNodeId]) {
+      const owners = __externalImageOwners.get(nodeId);
+      if (owners) { owners.delete(routeId); if (!owners.size) __externalImageOwners.delete(nodeId); }
+    }
+    __externalRoutes.delete(routeId);
+    return true;
+  }
+  function __dropRoutesForNode(nodeId) {
+    for (const [routeId, route] of Array.from(__externalRoutes.entries()))
+      if (route.entryNodeId === nodeId || route.destinationNodeId === nodeId) __removeRoute(routeId);
+    __externalImageOwners.delete(nodeId);
+  }
+  function __nodeForExternalId(nodeId) {
+    const proxyIndex = __externalNodeBindings.get(nodeId);
+    return proxyIndex == null ? null : ND[proxyIndex];
+  }
+  function __addImageOwner(nodeId, routeId) {
+    let owners = __externalImageOwners.get(nodeId);
+    if (!owners) { owners = new Set(); __externalImageOwners.set(nodeId, owners); }
+    owners.add(routeId);
+  }
+  function __sharedNodeGeometry(geometry) {
+    if (!geometry || typeof geometry.toWorld !== 'function' || !Array.isArray(geometry.NV)
+        || geometry.NV.length !== NV.length) return false;
+    for (let i = 0; i < NV.length; i++) {
+      if (!Array.isArray(geometry.NV[i]) || geometry.NV[i].length < 2
+          || geometry.NV[i][0] !== NV[i][0] || geometry.NV[i][1] !== NV[i][1]) return false;
+    }
+    return true;
+  }
+  function __worldPoint(geometry, n, lx, ly) {
+    const p = geometry.toWorld(n, lx, ly);
+    if (!__validPoint(p)) throw new TypeError('HR.mirrorNode.toWorld must return a finite point');
+    return p;
+  }
+  function __deriveExternalNodeEdges(n, geometry, memberSlots) {
+    const origin = __worldPoint(geometry, n, 0, 0);
+    const ux = __worldPoint(geometry, n, 1, 0), uy = __worldPoint(geometry, n, 0, 1);
+    n.worldTransform = { a: ux.x - origin.x, b: ux.y - origin.y,
+      c: uy.x - origin.x, d: uy.y - origin.y };
+    const edges = [];
+    for (let i = 0; i < NV.length; i++) {
+      const a = NV[i], b = NV[(i + 1) % NV.length];
+      const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      const wa = __worldPoint(geometry, n, a[0], a[1]);
+      const wb = __worldPoint(geometry, n, b[0], b[1]);
+      const wm = __worldPoint(geometry, n, mx, my);
+      const dx = wb.x - wa.x, dy = wb.y - wa.y;
+      edges.push({ x: wm.x, y: wm.y,
+        rot: Math.atan2(dy, dx) - Math.PI / 2,
+        len: Math.hypot(dx, dy) * 1.08,
+        ang: Math.atan2(wm.y - n.y, wm.x - n.x) });
+    }
+    edges.sort((a, b) => a.ang - b.ang);
+    const shards = memberSlots.map((slot) => SH[slot]).sort((a, b) =>
+      Math.atan2(a.y - n.y, a.x - n.x) - Math.atan2(b.y - n.y, b.x - n.x));
+    let bestShift = 0, bestDistance = Infinity;
+    for (let shift = 0; shift < edges.length; shift++) {
+      let total = 0;
+      for (let i = 0; i < shards.length; i++) {
+        const edge = edges[(i + shift) % edges.length];
+        total += Math.hypot(shards[i].x - edge.x, shards[i].y - edge.y);
+      }
+      if (total < bestDistance) { bestDistance = total; bestShift = shift; }
+    }
+    shards.forEach((s, i) => {
+      const edge = edges[(i + bestShift) % edges.length];
+      s.tx = edge.x; s.ty = edge.y; s.trot = edge.rot; s.tlen = edge.len; s.twid = 9;
+      s.dist = Math.hypot(s.x - edge.x, s.y - edge.y);
+      s.faceA = Math.atan2(n.y - s.y, n.x - s.x) - Math.PI / 2;
+      s.trotAdj = s.trot;
+    });
+    shards.sort((a, b) => a.dist - b.dist);
+    const retained = new Set(memberSlots);
+    for (const old of n.sh) if (!retained.has(SH.indexOf(old))) __detachExternalNodeShard(old, n);
+    n.sh = shards;
+    for (const s of shards) {
+      if (s.node !== n) s.__externalTravelStarted = false;
+      s.node = n;
+    }
+    return true;
+  }
+  function syncExternalShardSlot(input) {
+    if (!__externalTruth || !input || !Number.isInteger(input.slotIndex)
+        || input.slotIndex < 0 || input.slotIndex >= SH.length) return false;
+    const i = input.slotIndex;
+    const active = input.on !== false && input.identity != null;
+    if (!active) { __resetExternalShard(i); return true; }
+    if (!Number.isFinite(input.x) || !Number.isFinite(input.y)) return false;
+    const replacing = !__externalShardBound[i] || __externalShardIdentities[i] !== input.identity;
+    if (replacing) {
+      __resetExternalShard(i);
+      const s = SH[i], provenance = input.provenance || {};
+      const dx = __finite(provenance.dirX, __finite(input.vx, 0));
+      const dy = __finite(provenance.dirY, __finite(input.vy, 0));
+      const mag = Math.hypot(dx, dy) || 1;
+      const nx = dx / mag, ny = dy / mag;
+      const hx = __finite(provenance.hitX, __finite(input.x, M.x));
+      const side = Math.abs(nx) > .25 ? (nx > 0 ? 'L' : 'R') : (hx < M.x ? 'L' : 'R');
+      const e = E['e' + side], n = E['n' + side], eye = E['s' + side];
+      const sa = Math.atan2(ny, nx) + Math.PI / 2 + rr(-.3, .3);
+      s.on = true; s.st = Number.isInteger(input.st) ? input.st : 0;
+      s.side = side; s.pe = e; s.pn = n; s.ps = eye;
+      s.ph = rr(0, 6); s.rep = rr(1.5, 4); s.repT = 0; s.spt = rr(.3, .8);
+      s.sa = sa; s.rot = sa + rr(-.3, .3); s.ta = s.rot; s.dsx = .087; s.dsy = .087;
+      s.mt0 = __finite(input.mt0, 0); s.eyeP = rr(0, 6); s.spc = rr(2, 5);
+      __externalShardIdentities[i] = input.identity; __externalShardBound[i] = true;
+    }
+    const s = SH[i], wasMoving = s.moving;
+    s.on = true; s.st = Number.isInteger(input.st) ? input.st : s.st;
+    for (const key of ['x', 'y', 'vx', 'vy', 'age', 'fx', 'fy', 'tx', 'ty', 'mt0'])
+      if (Number.isFinite(input[key])) s[key] = input[key];
+    if (typeof input.moving === 'boolean') s.moving = input.moving;
+    if (s.moving && !wasMoving) { s.frot = s.rot; s.fx = s.x; s.fy = s.y; }
+    return true;
+  }
+  function syncExternalNode(input, sharedGeometry) {
+    if (!__externalTruth || !input || input.id == null || !__sharedNodeGeometry(sharedGeometry)
+        || ![1, 2, 3].includes(input.st) || !__validPoint(input)
+        || !Number.isFinite(input.rot) || !Number.isFinite(input.t)
+        || !Number.isFinite(input.age) || !Number.isFinite(input.t3)
+        || !Number.isFinite(input.tlock) || !Array.isArray(input.memberSlots)
+        || input.memberSlots.length !== NV.length) return false;
+    const slots = input.memberSlots;
+    if (new Set(slots).size !== NV.length || slots.some((i) => !Number.isInteger(i) || i < 0
+        || i >= SH.length || !__externalShardBound[i] || !SH[i].on)) return false;
+    const memberIds = new Set(slots.map((i) => __externalShardIdentities[i]));
+    if (memberIds.size !== NV.length) return false;
+    for (const [boundId, boundIndex] of __externalNodeBindings)
+      if (boundId !== input.id && slots.some((i) => ND[boundIndex].sh.includes(SH[i]))) return false;
+    let proxyIndex = __externalNodeBindings.get(input.id);
+    const isNew = proxyIndex == null;
+    if (isNew) {
+      const used = new Set(__externalNodeBindings.values());
+      proxyIndex = ND.findIndex((n, i) => !n.on && !used.has(i));
+      if (proxyIndex < 0) return false;
+      __resetExternalNode(proxyIndex);
+      __externalNodeBindings.set(input.id, proxyIndex);
+    }
+    const n = ND[proxyIndex];
+    n.on = true; n.st = input.st; n.t = input.t; n.age = input.age;
+    n.x = input.x; n.y = input.y; n.rot = input.rot; n.t3 = input.t3; n.tlock = input.tlock;
+    n.externalGeometry = sharedGeometry;
+    n.fill = n.st >= 2 ? 1 : (n.tlock >= 0 ? sstep(n.tlock + .04, n.tlock + .34, n.t) : 0);
+    n.fold = n.st === 3 ? sstep(0, .5, n.t3) : 0;
+    if (n.st >= 2 && n.sw[0].on === false && n.__externalPreviousStage === 1) {
+      const w = n.sw[0]; w.on = true; w.t = 0; w.d = .8; w.ang = .9; w.amp = 1;
+    }
+    if (isNew) { n.swc = rr(2, 3.5); n.fa = rr(1.5, 3); }
+    try { __deriveExternalNodeEdges(n, sharedGeometry, slots); }
+    catch (e) {
+      if (isNew) { __externalNodeBindings.delete(input.id); __resetExternalNode(proxyIndex); }
+      return false;
+    }
+    const assemblyStart = __finite(input.assemblyStart, .18);
+    const assemblyStagger = __finite(input.assemblyStagger, .06);
+    for (let order = 0; order < n.sh.length; order++) {
+      const s = n.sh[order], slot = SH.indexOf(s);
+      s.st = n.st === 1 ? 1 : 3;
+      const suppliedMt0 = input.memberMt0 && input.memberMt0[slot];
+      s.mt0 = Number.isFinite(suppliedMt0) ? suppliedMt0
+        : (Number.isFinite(s.mt0) && s.mt0 > 0 ? s.mt0 : assemblyStart + order * assemblyStagger);
+      if (!s.__externalTravelStarted && n.t >= s.mt0) {
+        s.__externalTravelStarted = true; s.fx = s.x; s.fy = s.y; s.frot = s.rot;
+      }
+    }
+    n.__externalPreviousStage = n.st;
+    return true;
+  }
+  function releaseExternalNode(nodeId) {
+    const proxyIndex = __externalNodeBindings.get(nodeId);
+    if (proxyIndex == null) return false;
+    __dropRoutesForNode(nodeId);
+    __externalNodeBindings.delete(nodeId);
+    __resetExternalNode(proxyIndex);
+    return true;
+  }
+  function syncExternalPassive(snapshot, sharedGeometry) {
+    if (!__externalTruth || !snapshot || !Array.isArray(snapshot.shards) || !Array.isArray(snapshot.nodes)) return false;
+    const geometry = sharedGeometry || snapshot.geometry;
+    for (let i = 0; i < SH.length; i++) {
+      const shard = snapshot.shards[i];
+      if (!shard) __resetExternalShard(i);
+      else if (!syncExternalShardSlot({ ...shard, slotIndex: i })) return false;
+    }
+    const liveIds = new Set(snapshot.nodes.map((node) => node && node.id).filter((id) => id != null));
+    for (const id of Array.from(__externalNodeBindings.keys())) if (!liveIds.has(id)) releaseExternalNode(id);
+    for (const node of snapshot.nodes) if (!syncExternalNode(node, geometry)) return false;
+    return true;
+  }
+  function __externalVisualPayload(event) {
+    if (!event || !event.direction || !Number.isFinite(event.power)
+        || !Number.isFinite(event.direction.x) || !Number.isFinite(event.direction.y)
+        || Math.hypot(event.direction.x, event.direction.y) < 1e-9) return null;
+    const p = event.point;
+    if (!__validPoint(p)) return null;
+    const d = Math.hypot(event.direction.x, event.direction.y);
+    return { x: p.x, y: p.y, vx: event.direction.x / d, vy: event.direction.y / d,
+      dx: event.direction.x / d, dy: event.direction.y / d, pw: event.power, own: 1 };
+  }
+  function presentExternalRoute(event) {
+    if (!__externalTruth || !event || event.routeId == null) return false;
+    const kind = event.kind;
+    const needsProjectileImage = kind === 'preview' || kind === 'capture' || kind === 'destination-image';
+    const payload = needsProjectileImage ? __externalVisualPayload(event)
+      : (__validPoint(event.point) ? { x: event.point.x, y: event.point.y } : null);
+    if (!payload) return false;
+    const routeId = event.routeId;
+    if (kind === 'local') {
+      const n = __nodeForExternalId(event.nodeId);
+      if (!n) return false;
+      nodeRipple(n, payload.x, payload.y); __externalRouteEvents++; return true;
+    }
+    if (kind === 'preview') {
+      const id = event.entryNodeId == null ? event.nodeId : event.entryNodeId;
+      const n = __nodeForExternalId(id);
+      if (!n) return false;
+      if (!n.img.on) setImg(n, 0, payload);
+      __externalRouteEvents++; return true;
+    }
+    if (kind === 'capture') {
+      const entryId = event.entryNodeId, destinationId = event.destinationNodeId;
+      const n = __nodeForExternalId(entryId);
+      if (!n || destinationId == null) return false;
+      __removeRoute(routeId);
+      const route = { entryNodeId: entryId, destinationNodeId: destinationId };
+      __externalRoutes.set(routeId, route); __addImageOwner(entryId, routeId);
+      nodeRipple(n, payload.x, payload.y); setImg(n, 0, payload); n.flash = 1;
+      __externalRouteEvents++; return true;
+    }
+    const route = __externalRoutes.get(routeId);
+    if (!route) return false;
+    if (kind === 'destination-image') {
+      if (event.destinationLive !== true) { __externalRouteEvents++; return true; }
+      const id = event.destinationNodeId == null ? route.destinationNodeId : event.destinationNodeId;
+      const n = __nodeForExternalId(id);
+      if (!n) return false;
+      route.destinationNodeId = id; __addImageOwner(id, routeId); setImg(n, 1, payload);
+      __externalRouteEvents++; return true;
+    }
+    if (kind === 'emerge') {
+      const fallback = event.fallback === true || event.via === 'entry-fallback';
+      const id = fallback ? route.entryNodeId
+        : (event.viaNodeId == null ? route.destinationNodeId : event.viaNodeId);
+      const n = __nodeForExternalId(id);
+      if (!n) return false;
+      nodeRipple(n, payload.x, payload.y); __removeRoute(routeId);
+      __externalRouteEvents++; return true;
+    }
+    return false;
+  }
+  function __advanceExternalPassiveVisuals(dt) {
+    for (let i = 0; i < SH.length; i++) {
+      const s = SH[i]; if (!__externalShardBound[i] || !s.on) continue;
+      s.ph += dt;
+      if (s.st === 0) {
+        s.spt -= dt;
+        if (s.spt <= 0) {
+          s.spt = rr(1.2, 2.6);
+          let nearest = null, best = 260;
+          for (const other of SH) if (other !== s && other.on && other.st === 0) {
+            const d = Math.hypot(other.x - s.x, other.y - s.y);
+            if (d < best) { best = d; nearest = other; }
+          }
+          s.ta = Math.atan2((nearest ? nearest.y : M.y) - s.y,
+            (nearest ? nearest.x : M.x) - s.x) - Math.PI / 2 + rr(-.25, .25);
+        }
+        s.rot = angLerp(s.rot, s.ta, Math.min(1, dt * 2.2));
+        s.rep -= dt; if (s.rep <= 0) { s.rep = rr(2.5, 5); s.repT = .7; }
+        if (s.repT > 0) s.repT = Math.max(0, s.repT - dt);
+        s.spc -= dt;
+        if (s.spc <= 0) { s.spc = rr(3, 6); addSweep('sh' + i, .6, .9, .8, .2); }
+      }
+    }
+    for (const proxyIndex of __externalNodeBindings.values()) {
+      const n = ND[proxyIndex];
+      if (!n || !n.on) continue;
+      if (n.flash > 0) n.flash = Math.max(0, n.flash - dt * 3);
+      n.fill = n.st >= 2 ? 1 : (n.tlock >= 0 ? sstep(n.tlock + .04, n.tlock + .34, n.t) : 0);
+      n.fold = n.st === 3 ? sstep(0, .5, n.t3) : 0;
+      if (n.st === 1) for (const s of n.sh) {
+        if (n.t < s.mt0) { s.rot = angLerp(s.rot, s.faceA, Math.min(1, dt * 7)); continue; }
+        if (!s.__externalTravelStarted) {
+          s.__externalTravelStarted = true; s.fx = s.x; s.fy = s.y; s.frot = s.rot;
+        }
+        const p = clamp((n.t - s.mt0) / .4, 0, 1), e = eo3(p);
+        s.rot = angLerp(s.frot, s.trot, e);
+        s.dsx = lerp(.087, s.twid / 130, e); s.dsy = lerp(.087, s.tlen / 300, e);
+      }
+      if (n.st === 2) {
+        n.swc -= dt;
+        if (n.swc <= 0) {
+          n.swc = rr(2.2, 4.5); const w = n.sw[n.sw[0].on ? 1 : 0];
+          w.on = true; w.t = 0; w.d = .75; w.ang = rr(.5, 1.3); w.amp = .7;
+        }
+        n.fa -= dt;
+        if (n.fa <= 0) { n.fa = rr(2, 4.2); n.faT = 0; n.faW = __rand() < .35 ? 1 : 0; }
+        if (n.faT >= 0) { n.faT += dt; if (n.faT > 1.3) n.faT = -1; }
+      }
+      for (const w of n.sw) if (w.on) { w.t += dt; if (w.t >= w.d) w.on = false; }
+      for (const r of n.rp) if (r.t < 9) r.t = Math.min(9, r.t + dt);
+      if (n.img.on) {
+        n.img.t += dt;
+        if (n.img.t >= n.img.d + (n.img.k === 0 ? .25 : .08)) n.img.on = false;
+      }
+    }
+    __externalPassiveSteps++;
+  }
+  function clearExternalPassive() {
+    for (let i = 0; i < SH.length; i++) __resetExternalShard(i);
+    for (let i = 0; i < ND.length; i++) __resetExternalNode(i);
+    __externalNodeBindings.clear(); __externalRoutes.clear(); __externalImageOwners.clear();
+    __externalPassiveSteps = 0; __externalRouteEvents = 0;
+    return true;
+  }
+  function drawExternalPassive(ctx) {
+    if (!__externalTruth || !ctx || !ensureBaked()) return false;
+    for (let i = 0; i < SH.length; i++)
+      if (__externalShardBound[i] && SH[i].on && SH[i].st === 0) drawFreeShard(ctx, SH[i], i);
+    for (const proxyIndex of __externalNodeBindings.values()) {
+      const n = ND[proxyIndex]; if (n && n.on) drawNodeBody(ctx, n);
+    }
+    return true;
+  }
+  function __externalExchangeHistoryKey(event) {
+    // Coalesced Mirror-v-Mirror notices can have different castId/coalesced
+    // values; the unordered pair plus both PRE/POST samples is the physical key.
+    if (!event || !event.self || !event.opponent) return null;
+    const actors = [event.self, event.opponent];
+    if (actors.some((a) => a.id == null || !__validPoint(a.from) || !__validPoint(a.to))) return null;
+    const rows = actors.map((a) => [typeof a.id, String(a.id),
+      a.from.x === 0 ? 0 : a.from.x, a.from.y === 0 ? 0 : a.from.y,
+      a.to.x === 0 ? 0 : a.to.x, a.to.y === 0 ? 0 : a.to.y]);
+    rows.sort((a, b) => (a[0] + ':' + a[1]).localeCompare(b[0] + ':' + b[1]));
+    return JSON.stringify(rows);
+  }
+  function __rememberExternalHistoryKey(key) {
+    if (!key) return;
+    __externalHistoryKeys.set(key, __externalSteps + 1);
+    while (__externalHistoryKeys.size > 16)
+      __externalHistoryKeys.delete(__externalHistoryKeys.keys().next().value);
+  }
+  function rebaseExternalExchangeHistory(event, mirrorId) {
+    if (!__externalTruth || !event) return false;
+    const key = __externalExchangeHistoryKey(event);
+    if (!key) return false;
+    const expires = __externalHistoryKeys.get(key);
+    if (expires != null && expires >= __externalSteps) return false;
+    const id = mirrorId == null ? M.id : mirrorId;
+    const actor = [event.self, event.opponent].find((a) => a.id === id);
+    if (!actor || !__validPoint(actor.from) || !__validPoint(actor.to)) return false;
+    shiftHist(actor.to.x - actor.from.x, actor.to.y - actor.from.y);
+    __rememberExternalHistoryKey(key); __externalHistoryRebases++;
+    return true;
+  }
+  function externalPassiveAudit() {
+    return Object.freeze({ shardBindings: __externalShardBound.filter(Boolean).length,
+      nodeBindings: __externalNodeBindings.size, routes: __externalRoutes.size,
+      imageOwners: Array.from(__externalImageOwners.values()).reduce((n, set) => n + set.size, 0),
+      passiveSteps: __externalPassiveSteps, routeEvents: __externalRouteEvents,
+      historyRebases: __externalHistoryRebases, goldProjectiles: PJ.filter((p) => p.on).length });
+  }
+`;
 
 // ---------- S4: emit ----------
 const out = `// GENERATED by tools/bridgeMirrorGoldV1.mjs — DO NOT EDIT BY HAND.
@@ -541,6 +974,7 @@ function createMirrorInstance(options) {
   // through exact STEP-sized calls. The demo remains unchanged by default.
   let __externalTruth = false;
   let __externalSteps = 0, __externalExchanges = 0, __externalSnaps = 0;
+  let __skipExternalHistoryShift = false;
   let __externalExchangeCastId = null;
   let __externalA1CastId = null, __externalA2CastId = null, __externalA2Resolved = false;
   let __externalPrevSpeed = 0, __externalMoving = false;
@@ -606,6 +1040,8 @@ ${d3Region.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
   // TRUTH; no independent lifecycle clock exists here that could drift.
 ${d4Full.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
 
+${EXTERNAL_PASSIVE_API}
+
   // Instance initialisation. Gold builds these inside the demo's resetAll();
   // only the state-construction part belongs in production.
   PL = [
@@ -626,6 +1062,8 @@ ${d4Full.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
   }
   function syncExternalTruth(mirror, opponent) {
     if (!validRoot(mirror) || !validRoot(opponent)) return false;
+    if (mirror.id != null) M.id = mirror.id;
+    if (opponent.id != null) F.id = opponent.id;
     M.x = mirror.x; M.y = mirror.y;
     M.vx = Number.isFinite(mirror.vx) ? mirror.vx : 0;
     M.vy = Number.isFinite(mirror.vy) ? mirror.vy : 0;
@@ -657,6 +1095,8 @@ ${d4Full.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
     if (!Number.isFinite(dt) || Math.abs(dt - STEP) > 1e-12)
       throw new RangeError('Mirror external presentation requires one exact 1/120s step');
     __externalSteps++;
+    for (const [key, expires] of __externalHistoryKeys)
+      if (expires < __externalSteps) __externalHistoryKeys.delete(key);
     simT += STEP;
     qStep(STEP); twStep(STEP);
     M.turnCd -= STEP; M.wallCd -= STEP; M.colCd -= STEP; M.hitCd -= STEP; M.busy -= STEP;
@@ -684,7 +1124,7 @@ ${d4Full.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
     // reaction above: authored action timelines, idle/lock, body springs, FX.
     stepA1(STEP); stepA2(STEP);
     idleStep(STEP); lockStep(STEP);
-    stepExternalSprings(STEP); sweepStep(STEP); fxStep(STEP);
+    stepExternalSprings(STEP); __advanceExternalPassiveVisuals(STEP); sweepStep(STEP); fxStep(STEP);
     pushHist();
     return true;
   }
@@ -698,11 +1138,20 @@ ${d4Full.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
     if (Object.prototype.hasOwnProperty.call(self, 'id') && mirror.id != null && self.id !== mirror.id) return false;
     if (Object.prototype.hasOwnProperty.call(other, 'id') && opponent.id != null && other.id !== opponent.id) return false;
     // Real event carries the PRE-SWAP sample; invoke the authored snap exactly
-    // once there (including its one shiftHist rebase), then restore POST-SWAP
-    // roots and current velocities from the actual APEX actors.
+    // once there, then restore POST-SWAP roots and current velocities from APEX.
+    // A non-casting receiver may already have rebased its history from this same
+    // event; the payload-derived key prevents the caster's a2Snap shifting twice.
+    const historyKey = __externalExchangeHistoryKey(event);
+    const historyExpires = historyKey && __externalHistoryKeys.get(historyKey);
+    const skipHistoryShift = historyExpires != null && historyExpires >= __externalSteps;
     M.x = self.from.x; M.y = self.from.y;
     F.x = other.from.x; F.y = other.from.y;
-    a2Snap();
+    __skipExternalHistoryShift = skipHistoryShift;
+    try { a2Snap(); } finally { __skipExternalHistoryShift = false; }
+    if (!skipHistoryShift) {
+      if (historyKey) __rememberExternalHistoryKey(historyKey);
+      __externalHistoryRebases++;
+    }
     if (!syncExternalTruth(mirror, opponent)) return false;
     __externalExchangeCastId = event.castId;
     __externalA2Resolved = true;
@@ -760,8 +1209,16 @@ ${d4Full.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
     __externalTruth = false; __applyExchange = !!opts.applyExchange;
     __externalExchangeCastId = null; __externalA1CastId = __externalA2CastId = null;
     __externalA2Resolved = false; __externalMoving = false; __externalPrevSpeed = 0;
+    __skipExternalHistoryShift = false; __externalHistoryKeys.clear(); __externalHistoryRebases = 0;
+    delete M.id; delete F.id;
+    clearExternalPassive();
     A1.on = false; A1.f = {}; A2.on = false; A2.f = {};
     M.busy = 0; M.copyOn = false; M.copyT = 0; M.copyFx = 0; __wpnArt = null;
+    for (const p of PJ) {
+      p.on = false; p.x = 0; p.y = 0; p.vx = 0; p.vy = 0; p.own = 0; p.pw = 1;
+      p.st = 0; p.t = 0; p.cool = 0; p.nA = null; p.nB = null; p.imgB = false;
+      p.hx.fill(0); p.hy.fill(0); p.hn = 0; p.hc = 0; p.life = 0; p.dx = 1; p.dy = 0;
+    }
     Q.length = 0;
     for (const s of TW) { s.on = false; s.o = null; }
     for (const s of SW) s.on = false;
@@ -814,6 +1271,9 @@ ${d4Full.split('\n').map((l) => (l ? '  ' + l : l)).join('\n')}
     enableExternalTruth, syncExternalTruth, stepExternalPresentation,
     applyExternalExchange, beginExternalA1, markExternalA1Whiff, beginExternalA2,
     endExternalA1, endExternalA2, clearExternalTruth,
+    syncExternalShardSlot, syncExternalNode, releaseExternalNode, syncExternalPassive,
+    presentExternalRoute, rebaseExternalExchangeHistory, clearExternalPassive,
+    drawExternalPassive, externalPassiveAudit,
     get externalTruth() { return __externalTruth; }, externalAudit,
     // deterministic presentation RNG control
     reseed(seed) { __rand = mulberry32((seed >>> 0) || 0x9E3779B9); },
