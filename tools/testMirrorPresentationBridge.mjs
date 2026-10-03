@@ -117,13 +117,15 @@ try {
   };
   win.eval(fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js', 'utf8'));
   const bridge = win.APEX_MIRROR_PRESENTATION;
-  assert.equal(bridge.version, 'g1b-thin-fixed-step-bridge');
+  assert.equal(bridge.version, 'g2a-actor-a1-presentation');
+  assert.equal(bridge.inspect().version, bridge.version, 'inspection reports the installed adapter version');
   assert.equal(bridge.fixedStep, 1 / 120);
   assert.equal(bridge.inspect().instanceCount, 0, 'no Mirror means no Gold instance');
   assert.equal(createdGoldInstances.length, 0);
   assert.deepEqual([...listeners.keys()].sort(), [
+    'MirrorA1Cast', 'MirrorA1End', 'MirrorA1Own', 'MirrorA1Whiff',
     'MirrorExchange', 'ReworkMatchInstall', 'ReworkMatchTeardown',
-  ], 'bridge listens only for match lifetime and the real exchange teleport');
+  ], 'bridge listens only for match lifetime, A1 edges and the real exchange teleport');
 
   const runtimeSource = fs.readFileSync('public/game/hero-rework/heroReworkRuntime.js', 'utf8');
   const manifestSource = fs.readFileSync('src/game/runtimeManifest.js', 'utf8');
@@ -287,7 +289,11 @@ try {
   assert.equal(listeners.get('ReworkMatchInstall').length, 0);
   assert.equal(listeners.get('ReworkMatchTeardown').length, 0);
   assert.equal(listeners.get('MirrorExchange').length, 0);
-  console.log('[MIRROR G1B bridge] PASS — P1/P2/Mirror-v-Mirror lifecycle, external roots/velocity, teleport-safe sampling, shared hrPostTick seam, bounded fixed steps, teardown/rematch isolation, no per-frame Gold/image/canvas allocation.');
+  assert.equal(listeners.get('MirrorA1Cast').length, 0);
+  assert.equal(listeners.get('MirrorA1Own').length, 0);
+  assert.equal(listeners.get('MirrorA1Whiff').length, 0);
+  assert.equal(listeners.get('MirrorA1End').length, 0);
+  console.log('[MIRROR G2A bridge] PASS — G1B fixed-step/lifecycle bridge plus A1 event subscriptions, P1/P2/Mirror-v-Mirror isolation, bounded steps and clean disposal.');
 } finally {
   try { win.APEX_MIRROR_PRESENTATION?.dispose(); } catch (error) {}
   dom.window.close();

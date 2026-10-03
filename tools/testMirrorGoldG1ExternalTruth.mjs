@@ -63,8 +63,8 @@ try {
   const A = G.createMirrorInstance({ seed: 81 });
   const B = G.createMirrorInstance({ seed: 81 });
   for (const method of ['enableExternalTruth', 'syncExternalTruth', 'stepExternalPresentation',
-    'beginExternalA1', 'beginExternalA2', 'applyExternalExchange', 'endExternalA1',
-    'endExternalA2', 'clearExternalTruth', 'externalAudit']) {
+    'beginExternalA1', 'markExternalA1Whiff', 'beginExternalA2', 'applyExternalExchange',
+    'endExternalA1', 'endExternalA2', 'clearExternalTruth', 'externalAudit']) {
     assert.equal(typeof A[method], 'function', `external-truth API exposes ${method}`);
   }
   const externalStepSource = A.stepExternalPresentation.toString();
@@ -226,6 +226,15 @@ try {
   assert.equal(audit.enabled, true);
   assert.equal(audit.fixedStep, 1 / 120);
   assert.equal(audit.applyExchange, false);
+
+  const failedOwn = G.createMirrorInstance({ seed: 86 });
+  assert.equal(failedOwn.enableExternalTruth(root('failed-own-m', 300, 400), root('failed-own-f', 700, 400)), true);
+  assert.equal(failedOwn.beginExternalA1('failed-own-cast', false), true);
+  assert.equal(failedOwn.markExternalA1Whiff('other-cast'), false, 'late whiff cannot cross action identity');
+  assert.equal(failedOwn.markExternalA1Whiff('failed-own-cast'), true,
+    'real OWN failure can suppress the reflected copy after cast-time eligibility');
+  assert.equal(failedOwn.A1.whiff, true);
+  assert.equal(failedOwn.M.copyOn, false, 'late whiff never grants or consumes Gold demo equipment');
 
   const rngA = G.createMirrorInstance({ seed: 0x12345678 });
   const rngB = G.createMirrorInstance({ seed: 0x12345678 });

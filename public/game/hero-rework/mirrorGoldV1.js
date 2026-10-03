@@ -1280,6 +1280,11 @@ function createMirrorInstance(options) {
     if (!__externalTruth || castId == null || A1.on || A2.on) return false;
     __externalA1CastId = castId; castA1(!!whiff); return A1.on;
   }
+  function markExternalA1Whiff(castId) {
+    if (!__externalTruth || !A1.on || castId == null || castId !== __externalA1CastId) return false;
+    A1.whiff = true;
+    return true;
+  }
   function beginExternalA2(castId) {
     if (!__externalTruth || castId == null || A1.on || A2.on) return false;
     __externalA2CastId = castId; castA2();
@@ -1350,7 +1355,7 @@ function createMirrorInstance(options) {
     setApplyExchange(v) { __applyExchange = __externalTruth ? false : !!v; },
     get applyExchange() { return __applyExchange; },
     enableExternalTruth, syncExternalTruth, stepExternalPresentation,
-    applyExternalExchange, beginExternalA1, beginExternalA2,
+    applyExternalExchange, beginExternalA1, markExternalA1Whiff, beginExternalA2,
     endExternalA1, endExternalA2, clearExternalTruth,
     get externalTruth() { return __externalTruth; }, externalAudit,
     // deterministic presentation RNG control

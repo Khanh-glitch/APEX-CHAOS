@@ -1633,6 +1633,7 @@
   HR.renderArenaWorldEffects = function renderArenaWorldEffects(ctx, provenance) {
     if (!M || provenance?.stage !== 'after-world-before-fighters') return;
     globalScope.APEX_MAGNET_PRESENTATION?.renderArenaDistortion?.(ctx, provenance);
+    globalScope.APEX_MIRROR_PRESENTATION?.renderArenaWorldEffects?.(ctx, provenance);
   };
 
   function hrPreTick(dt) {
