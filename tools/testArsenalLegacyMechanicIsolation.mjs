@@ -86,8 +86,8 @@ vm.runInContext(source, context, { filename: 'arsenalShellSelectRuntime.js' });
 assert.equal(window.apexArsenalShellSelectRuntime, 'ready');
 const shells = window.APEX_ARSENAL_SHELLS;
 assert.ok(shells);
-assert.deepEqual(Array.from(shells.visibleIds()), Array.from(PRODUCT_ROSTER.visibleIds));
-assert.deepEqual(Array.from(shells.playableIds()), Array.from(PRODUCT_ROSTER.playableIds));
+assert.deepEqual(Array.from(shells.visibleIds), Array.from(PRODUCT_ROSTER.visibleIds));
+assert.deepEqual(Array.from(shells.playableIds), Array.from(PRODUCT_ROSTER.playableIds));
 
 const forbiddenBehaviorKeys = [
   'draw', 'speedModifier', 'onCollide', 'onWallBounce', 'onRage', 'onTakeDamage',
