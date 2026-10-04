@@ -1,0 +1,169 @@
+{
+  "gates": {
+    "gold-bridge-registered": {
+      "pass": true,
+      "detail": {
+        "loadErrors": []
+      }
+    },
+    "gold-battle-hud-mounts-and-boots": {
+      "pass": true,
+      "detail": {
+        "hudVersion": "gold-hud-seam-v1",
+        "hudInHost": true,
+        "mountError": null
+      }
+    },
+    "handoff-accents-come-from-production": {
+      "pass": true,
+      "detail": {
+        "players": [
+          {
+            "productionId": "ROBOT"
+          }
+        ]
+      }
+    },
+    "battle-live-preloads-product-group-before-start": {
+      "pass": true,
+      "detail": {
+        "order": [
+          "load:arsenalProduct",
+          "startMatch",
+          "load:arsenalProduct"
+        ]
+      }
+    },
+    "real-local-match-started-through-production-path": {
+      "pass": true,
+      "detail": {
+        "gameState": "ARSENAL",
+        "active": true,
+        "mode": "LOCAL",
+        "fighters": [
+          "ROBOT",
+          "ROBOT"
+        ],
+        "canvasInGoldArena": true,
+        "legacyShellStillMounted": true
+      }
+    },
+    "battle-live-entry-is-idempotent": {
+      "pass": true,
+      "detail": {
+        "startsBefore": 1,
+        "startsAfter": 1
+      }
+    },
+    "real-damage-reaches-gold-hud-seam": {
+      "pass": true,
+      "detail": {
+        "seam": [
+          [
+            0,
+            1,
+            60,
+            "normal",
+            940
+          ]
+        ],
+        "realized": {
+          "victimHp": 940,
+          "victimMax": 1000
+        }
+      }
+    },
+    "heavy-tier-law-one-response-per-burst": {
+      "pass": true,
+      "detail": {
+        "heavyResponses": 1,
+        "burstRealized": 360,
+        "allTiers": [
+          "normal",
+          "heavy",
+          "normal",
+          "normal"
+        ]
+      }
+    },
+    "stormbreaker-hit-is-heavy-plus-thunder-family": {
+      "pass": true,
+      "detail": {
+        "equipped": "STORMBREAKER",
+        "seam": [
+          [
+            0,
+            1,
+            40,
+            960
+          ]
+        ],
+        "realized": 40
+      }
+    },
+    "crit-color-follows-attacker-accent": {
+      "pass": true,
+      "detail": {
+        "crit": "#c8c2b4",
+        "attackerColor": "#c8c2b4",
+        "donorOrange": "#ff8a1e"
+      }
+    },
+    "mobile-skill-cards-use-production-adapter": {
+      "pass": true,
+      "detail": {
+        "seen": [
+          "A1",
+          "A2"
+        ]
+      }
+    },
+    "production-hud-observer-wrapped-not-replaced": {
+      "pass": true,
+      "detail": {
+        "wrapped": true
+      }
+    },
+    "unmount-releases-guard-and-bot-rematch-runs": {
+      "pass": true,
+      "detail": {
+        "rematchStarts": 1,
+        "rematchState": {
+          "active": true,
+          "mode": "BOT"
+        }
+      }
+    },
+    "bot-mode-real-cpu-and-p1-only-human-controls": {
+      "pass": true,
+      "detail": {
+        "aiMaster": true,
+        "battleMode": "BOT",
+        "gameState": "ARSENAL"
+      }
+    },
+    "no-donor-harness-survivors-in-generated-gold": {
+      "pass": true,
+      "detail": {
+        "leakage": []
+      }
+    },
+    "production-truth-roots-stay-mounted": {
+      "pass": true,
+      "detail": {
+        "canvas": true,
+        "battleShell": true,
+        "engineLoopRunning": false
+      }
+    }
+  },
+  "failures": [],
+  "loadErrors": [],
+  "evidence": [],
+  "runtimeScriptCount": 41,
+  "summary": {
+    "total": 16,
+    "passed": 16,
+    "failed": []
+  }
+}

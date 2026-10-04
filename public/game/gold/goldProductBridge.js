@@ -53,7 +53,16 @@
   function rosterFromProduction() {
     const shells = window.APEX_ARSENAL_SHELLS;
     const meta = window.APEX_ARSENAL_META;
-    const ids = shells && typeof shells.playableIds === 'function' ? shells.playableIds() : [];
+    // Production truth: the shell runtime publishes the playable list as an
+    // ARRAY (playableIds/ids), not a function. Read either shape so the Gold
+    // roster is derived from the real playable set (never a hardcoded copy).
+    let ids = [];
+    if (shells) {
+      if (Array.isArray(shells.playableIds)) ids = shells.playableIds;
+      else if (typeof shells.playableIds === 'function') ids = shells.playableIds() || [];
+      else if (Array.isArray(shells.ids)) ids = shells.ids;
+      else if (typeof shells.ids === 'function') ids = shells.ids() || [];
+    }
     const heroes = {};
     for (const id of ids) {
       const productionId = String(id).toUpperCase();
@@ -150,8 +159,46 @@
   const BRIDGE = window.APEX_GOLD || (window.APEX_GOLD = {});
   let hudHost = null;
   let hudMounted = false;
+  let battleLiveRunning = false;
   let arenaOriginParent = null;
   let arenaOriginNext = null;
+
+  // Same-document mount: the canonical donor DOM lives inside #battleHudHost
+  // next to the real engine roots. Two consequences are handled explicitly:
+  //   1. The donor's document-scoped selectors ($('#hud'), $('#stage'), …) must
+  //      resolve to the DONOR's own elements. Any element outside the host that
+  //      shares an id with a donor element (the legacy engine #hud, the shell's
+  //      #stage/#p1Side/#p2Side) is id-parked for the duration of the mount and
+  //      restored on unmount — production truth is never removed or rewritten.
+  //   2. Re-created scripts must be appended to the LIVE document (appending to
+  //      the detached parse document never executes them).
+  const parkedIdElements = [];
+  function parkCollidingIds() {
+    const host = document.getElementById('battleHudHost');
+    if (!host) return;
+    const innerIds = new Set();
+    for (const el of Array.from(host.querySelectorAll('[id]'))) innerIds.add(el.id);
+    for (const id of innerIds) {
+      let outside = [];
+      try {
+        outside = Array.from(document.querySelectorAll('[id="' + id + '"]'))
+          .filter((el) => !host.contains(el));
+      } catch (error) { outside = []; }
+      for (const el of outside) {
+        el.setAttribute('data-apex-parked-id', id);
+        el.removeAttribute('id');
+        parkedIdElements.push(el);
+      }
+    }
+  }
+  function restoreParkedIds() {
+    for (const el of parkedIdElements) {
+      const id = el.getAttribute('data-apex-parked-id');
+      if (id) el.setAttribute('id', id);
+      el.removeAttribute('data-apex-parked-id');
+    }
+    parkedIdElements.length = 0;
+  }
 
   BRIDGE.mountBattleHud = function mountBattleHud(html, onready) {
     const host = document.getElementById('battleHudHost');
@@ -160,12 +207,15 @@
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const root = doc.body.firstElementChild || doc.documentElement;
     if (root) host.appendChild(document.importNode(root, true));
-    for (const src of Array.from(doc.querySelectorAll('script'))) {
+    // Park BEFORE the donor scripts run so their lookups hit their own DOM.
+    parkCollidingIds();
+    const scripts = Array.from(doc.querySelectorAll('script'));
+    for (const src of scripts) {
       const run = document.createElement('script');
       if (src.src) run.src = src.src;
       else run.textContent = src.textContent;
       run.async = false;
-      doc.body.appendChild(run);
+      host.appendChild(run);
     }
     hudHost = host;
     hudMounted = true;
@@ -182,6 +232,8 @@
     if (hudHost) hudHost.textContent = '';
     hudHost = null;
     hudMounted = false;
+    restoreParkedIds();
+    battleLiveRunning = false;
     theme.stop();
   };
 
@@ -276,7 +328,39 @@
   };
 
   // ── real match start at the authored handoff beat ────────────────────────
-  BRIDGE.onBattleLive = function onBattleLive(pick) {
+  // The product match entry lives in the deferred 'arsenalProduct' group
+  // (arsenalShellSelectRuntime.startMatch + arsenalBattleRuntime + the combat
+  // HUD + presentation/SFX runtimes). Gold's shell mount only warms the hub
+  // group, so the group must be loaded HERE — before any production trigger
+  // is wired or fired — or startMatch/the HUD observer simply do not exist.
+  function ensureDeferredRuntimes(group, timeoutMs = 10000) {
+    return new Promise((resolve) => {
+      const started = Date.now();
+      const tick = () => {
+        const loader = window.__apexEnsureDeferredRuntimes;
+        if (typeof loader === 'function') {
+          try {
+            Promise.resolve(loader(group)).then(
+              () => resolve(true),
+              () => resolve(false)
+            );
+          } catch (error) {
+            resolve(false);
+          }
+          return;
+        }
+        if (Date.now() - started > timeoutMs) {
+          console.warn('[gold-bridge] deferred runtime loader never became available.');
+          resolve(false);
+          return;
+        }
+        setTimeout(tick, 50);
+      };
+      tick();
+    });
+  }
+  BRIDGE.onBattleLive = async function onBattleLive(pick) {
+    if (battleLiveRunning) return;
     const mode = (pick && pick.mode === 'bot') ? 'BOT' : 'LOCAL';
     const p1Shell = String((pick && pick.p1) || 'newbot').toLowerCase();
     const p2Shell = mode === 'BOT' ? 'newbot' : String((pick && pick.p2) || 'newbot').toLowerCase();
@@ -285,20 +369,36 @@
     const shells = window.APEX_ARSENAL_SHELLS;
     if (!shells || typeof shells.typeFor !== 'function') return;
     if (window.APEX_GOLD_LOCKED && (window.APEX_GOLD_LOCKED(p1Shell) || window.APEX_GOLD_LOCKED(p2Shell))) return;
-    window.__apexArsenalSelectionMode = mode.toLowerCase();
-    window.__apexArsenalBotBattle = mode === 'BOT';
-    window.__apexArsenalFreeBattle = mode !== 'BOT';
-    window.__apexArsenalSelectPending = true;
-    window.p1Selection = shells.typeFor(p1);
-    window.p2Selection = shells.typeFor(p2);
-    if (window.apexStopMenuMusic) { try { window.apexStopMenuMusic(true); } catch (e) {} }
-    relocateArena();
-    hideLegacyBattleUi();
-    installEventTranslation();
-    // The product match entry validates ownership and starts the real match
-    // (startArsenalBattleMode). No synthetic input is involved.
-    if (typeof window.startMatch === 'function') window.startMatch();
-    startPump();
+    battleLiveRunning = true;
+    try {
+      window.__apexArsenalSelectionMode = mode.toLowerCase();
+      window.__apexArsenalBotBattle = mode === 'BOT';
+      window.__apexArsenalFreeBattle = mode !== 'BOT';
+      window.__apexArsenalSelectPending = true;
+      window.p1Selection = shells.typeFor(p1);
+      window.p2Selection = shells.typeFor(p2);
+      // Load the battle product runtimes first: startMatch, the combat HUD
+      // observer and the SFX/VFX presentation runtimes must exist before any
+      // production trigger is wired or fired.
+      await ensureDeferredRuntimes('arsenalProduct');
+      if (window.apexStopMenuMusic) { try { window.apexStopMenuMusic(true); } catch (e) {} }
+      relocateArena();
+      hideLegacyBattleUi();
+      // Wrap the real HUD observer only after the group is present.
+      installEventTranslation();
+      // The product match entry validates ownership and starts the real match
+      // (startArsenalBattleMode). No synthetic input is involved.
+      if (typeof window.startMatch !== 'function') {
+        console.warn('[gold-bridge] startMatch unavailable; battle did not start.');
+        battleLiveRunning = false;
+        return;
+      }
+      window.startMatch();
+      startPump();
+    } catch (error) {
+      console.warn('[gold-bridge] battle live failed.', error);
+      battleLiveRunning = false;
+    }
   };
 
   // ── mobile skill cards / weapon panel through the production adapter ────
@@ -324,6 +424,11 @@
   const HEAVY_WINDOW_MS = 1200;
   const HEAVY_THRESHOLD = 200;
   const heavyWindows = [[], []];
+  // Locked owner law: one Heavy response per burst. The burst is the rolling
+  // window; once a Heavy response has fired inside it, later hits of the same
+  // burst present as their own tier (normal/crit) instead of re-triggering the
+  // Heavy family. The latch clears when the window drains (new burst).
+  const heavyLatch = [0, 0];
   let translationInstalled = false;
 
   function sideOfBody(body) {
@@ -336,7 +441,10 @@
     while (w.length && now - w[0].t > HEAVY_WINDOW_MS) w.shift();
     let sum = 0;
     for (const e of w) sum += e.amount;
-    return sum > HEAVY_THRESHOLD;
+    if (sum <= HEAVY_THRESHOLD) return false;
+    if (heavyLatch[victimIdx] && now - heavyLatch[victimIdx] <= HEAVY_WINDOW_MS) return false;
+    heavyLatch[victimIdx] = now;
+    return true;
   }
   function stormbreakerHit(ev) {
     const attacker = ev && ev.attacker;
@@ -433,9 +541,11 @@
   }
   function stopEventTranslation() {
     // Listeners stay installed (idempotent across sessions); the hudMounted
-    // flag above gates them. Heavy windows reset per match.
+    // flag above gates them. Heavy windows/latches reset per match.
     heavyWindows[0].length = 0;
     heavyWindows[1].length = 0;
+    heavyLatch[0] = 0;
+    heavyLatch[1] = 0;
   }
 
   // ── per-frame production projection → canonical HUD state ───────────────
