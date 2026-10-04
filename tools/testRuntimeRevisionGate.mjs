@@ -12,7 +12,9 @@ const engine = fs.readFileSync('public/apexEngine.js', 'utf8');
 const mRev = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
 if (!mRev) { console.error('FAIL revision constant missing'); process.exit(1); }
 const revision = mRev[1];
-const expectedRevision = '20261003-mirror-v1-r42';
+// r43 is the Gold UI/UX/HUD cutover revision. It is additive presentation
+// seams only; the r42 gameplay truth underneath is unchanged.
+const expectedRevision = '20261004-gold-ui-r43';
 if (revision !== expectedRevision) {
   console.error(`FAIL this cutover permits exactly one revision: expected=${expectedRevision} actual=${revision}`);
   process.exit(1);

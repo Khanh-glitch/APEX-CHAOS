@@ -17,6 +17,10 @@ import {
   markBootPhase,
   markLoaderHidden,
 } from './game/performanceMetrics.js';
+import {
+  THEME_MUSIC,
+  createThemeMusicController,
+} from './game/themeMusic.js';
 
 const once = { loaded: false };
 const LOADING_ASSETS = {
@@ -32,7 +36,10 @@ const UI_2026_ASSETS = {
   menuVfxOverlay: '/assets/ui_2026/menu-vfx-overlay.webp',
 };
 
-const MENU_AUDIO = '/assets/audio/menu_bgm.mp3';
+// Product theme (Forward Drive). Materialized to a stable public runtime path
+// by tools/materializeCoreSixAvPreload.mjs — never a ZIP dependency, never a
+// network fetch. The legacy menu-only BGM is replaced, not kept alongside.
+const THEME_AUDIO = THEME_MUSIC.src;
 
 // Derived from the one product-surface authority. ADMIN and detached entries
 // are intentionally excluded: no normal-public control can expose them.
@@ -357,7 +364,6 @@ export default function App() {
   installProductSurfaceAuthority(window);
   const scriptRef = useRef(null);
   const menuAudioRef = useRef(null);
-  const menuAudioWasPlayingRef = useRef(false);
   const pendingActionRef = useRef(null);
   const [gameReady, setGameReady] = useState(false);
   const [pressedMenuButton, setPressedMenuButton] = useState(null);
@@ -440,68 +446,60 @@ export default function App() {
     };
   }, []);
 
-  const menuMusicAllowed = () => {
-    if (typeof document === 'undefined') return false;
-    const visible = (id) => {
-      const el = document.getElementById(id);
-      if (!el || el.classList.contains('hidden')) return false;
-      const style = window.getComputedStyle(el);
-      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
-    };
-    // Normal-public flow is the semantic product menu plus the active
-    // Arsenal picker. Detached legacy screens do not participate in warmup
-    // or menu-audio navigation.
-    return visible('menu-screen') || visible('select-screen');
+  // ── THEME MUSIC (Forward Drive) ────────────────────────────────────────────
+  // The architecture is unchanged: ONE HTMLMediaElement owned here, outside the
+  // battle-audio graph, no new AudioContext. Only the BEHAVIOR is replaced.
+  //
+  // The old seam allowed music on menu/select only, reset currentTime to 0 on
+  // battle/menu handoffs, had no authored fade and no music toggle. All four
+  // are superseded by the Forward Drive continuity/fade/surface-policy/M-key
+  // authority in src/game/themeMusic.js.
+  const themeControllerRef = useRef(null);
+
+  const themeController = () => themeControllerRef.current;
+
+  // Surface policy is driven by REAL product transitions (navigation and
+  // match-start call sites), never by DOM inspection or key input.
+  const setThemeSurface = (surfaceId) => {
+    themeControllerRef.current?.setSurface(surfaceId);
   };
 
-  const stopMenuMusic = (reset = false) => {
-    const audio = menuAudioRef.current;
-    if (!audio) return;
-    audio.pause();
-    if (reset) {
-      try { audio.currentTime = 0; } catch (error) {}
-    }
+  // Battle-start seam: invalidates in-flight fades so a late theme resume can
+  // never race the battle session, then fades out and pauses.
+  const themeEnterBattleMatch = () => {
+    themeControllerRef.current?.enterBattleMatch();
   };
 
-  const playMenuMusic = (restart = false, attempts = 0) => {
-    const audio = menuAudioRef.current;
-    if (!audio) return;
-    if (!menuMusicAllowed()) {
-      audio.pause();
-      // CP7 self-healing resume: the exit-to-menu handoff is fire-once — if
-      // the menu screen was not yet visible at that instant (screen swap,
-      // transient blur/hidden state on slow machines) the menu stayed silent
-      // with no retry. Retry briefly; never fight a real background-tab
-      // pause (document.hidden) or the battle-audio session (independent
-      // element, CP6).
-      if (attempts < 8 && !document.hidden) {
-        setTimeout(() => playMenuMusic(restart, attempts + 1), 250);
-      }
-      return;
-    }
-    if (restart) {
-      try { audio.currentTime = 0; } catch (error) {}
-    }
-    audio.volume = 0.48;
-    const playPromise = audio.play();
-    if (playPromise && playPromise.catch) playPromise.catch(() => {});
-  };
+
 
   useEffect(() => {
     const audio = new Audio();
     audio.loop = true;
-    // §A4 — warm the menu BGM in the background before the first user
-    // gesture. Preload never blocks menu interactivity, and playback still
-    // respects autoplay policy (no forced audible autoplay); the first
-    // allowed play starts from already-warmed data.
+    // §A4 — warm the theme in the background before the first user gesture.
+    // Preload never blocks menu interactivity, and playback still respects
+    // autoplay policy (no forced audible autoplay); the first allowed play
+    // starts from already-warmed data. Forward Drive ships locally, so there
+    // is no runtime network dependency.
     audio.preload = 'auto';
-    audio.volume = 0.48;
-    audio.src = MENU_AUDIO;
+    audio.volume = THEME_MUSIC.targetVolume;
+    audio.src = THEME_AUDIO;
     audio.__apexMenuMusic = true;
+    audio.__apexThemeMusic = true;
     audio.load();
     menuAudioRef.current = audio;
-    // Evidence probe (§A4): read-only BGM readiness without exposing the
-    // element itself (it is deliberately never attached to the DOM).
+
+    // ONE controller over ONE element. No second music engine, no new
+    // AudioContext, and nothing here routes into battleAudioMaster.
+    const controller = createThemeMusicController({
+      media: audio,
+      surface: 'home',
+      fadeMs: THEME_MUSIC.fadeMs,
+      targetVolume: THEME_MUSIC.targetVolume,
+    });
+    themeControllerRef.current = controller;
+
+    // Evidence probe: read-only theme state for acceptance gates, without
+    // exposing the element itself (it is deliberately never attached to DOM).
     window.__apexMenuBgmState = () => {
       const a = menuAudioRef.current;
       if (!a) return null;
@@ -513,37 +511,59 @@ export default function App() {
         src: a.currentSrc || a.src,
       };
     };
-    window.apexStopMenuMusic = (reset = false) => stopMenuMusic(reset);
-    window.apexPlayMenuMusic = (restart = false) => playMenuMusic(restart);
+    // §12 required theme proof seam: playhead continuity, fade, surface policy,
+    // tab/window and M-key state are all observable without touching the DOM.
+    window.__apexThemeMusicState = () => {
+      const c = themeControllerRef.current;
+      return c ? { ...c.snapshot(), stats: { ...c.stats } } : null;
+    };
 
-    // CP7: re-armed on every interaction (NOT once) — if a resume was ever
-    // missed (transient blur/hidden state at the exit-to-menu handoff), the
-    // next click/keypress heals the menu music instead of leaving the menu
-    // silent for the rest of the session. playMenuMusic no-ops when already
-    // playing or when no menu screen is visible.
-    const unlock = () => playMenuMusic(false);
-    const pauseForHiddenTab = () => {
-      const current = menuAudioRef.current;
-      if (!current) return;
-      menuAudioWasPlayingRef.current = !current.paused;
-      current.pause();
-    };
-    const resumeForVisibleTab = () => {
-      if (!menuMusicAllowed()) {
-        menuAudioWasPlayingRef.current = false;
-        menuAudioRef.current?.pause();
-        return;
-      }
-      if (!menuAudioWasPlayingRef.current) return;
-      menuAudioWasPlayingRef.current = false;
-      playMenuMusic(false);
-    };
+    // Product seams. `window.apexStopMenuMusic` / `apexPlayMenuMusic` keep
+    // their names for existing callers, but their `reset`/`restart` arguments
+    // are IGNORED: ordinary navigation must never restart the playhead.
+    window.apexStopMenuMusic = () => themeControllerRef.current?.apply?.();
+    window.apexPlayMenuMusic = () => themeControllerRef.current?.apply?.();
+    // Real product transitions drive surface policy.
+    window.apexSetThemeSurface = (surfaceId) => themeControllerRef.current?.setSurface?.(surfaceId);
+    // The ACTUAL match-start seam — not "a battle was selected".
+    window.apexEnterBattleMatchTheme = () => themeControllerRef.current?.enterBattleMatch?.();
+    // §4.5 M key + the Pick screen's existing music button share ONE mute
+    // state, so neither can fight the other.
+    window.apexToggleThemeMusic = () => themeControllerRef.current?.toggleMuted?.();
+
+    // Autoplay recovery: re-armed on every interaction (NOT once). If a resume
+    // was missed, the next gesture heals it. apply() no-ops when policy, mute
+    // or suppression already forbid audible playback.
+    const unlock = () => themeControllerRef.current?.apply?.();
+
+    // §4.4 TAB/WINDOW LAW — document.hidden or blur silences the theme; resume
+    // only when visible/focused AND unmuted AND policy allows, from the SAME
+    // playhead. currentTime is never reset here.
+    const pauseForHiddenTab = () => themeControllerRef.current?.setSuppressed?.(true);
+    const resumeForVisibleTab = () => themeControllerRef.current?.setSuppressed?.(false);
     const handleVisibility = () => {
       if (document.hidden) pauseForHiddenTab();
       else resumeForVisibleTab();
     };
+
+    // §4.5 M KEY LAW — global MUSIC-only mute/unmute.
+    // The Battle HUD donor's demo-only "M = toggle 1P/2P" binding does NOT
+    // survive production: BOT/Local/P1/P2 mode is real product state, and no
+    // keyboard event is ever synthesized to change game mode.
+    const handleMusicKey = (event) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const controller2 = themeControllerRef.current;
+      if (!controller2 || !controller2.handlesKey(event.key)) return;
+      const target = event.target;
+      // Never steal M from a focused text input.
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      event.preventDefault();
+      controller2.toggleMuted();
+    };
+
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);
+    window.addEventListener('keydown', handleMusicKey);
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('blur', pauseForHiddenTab);
     window.addEventListener('focus', resumeForVisibleTab);
@@ -551,14 +571,21 @@ export default function App() {
     return () => {
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
+      window.removeEventListener('keydown', handleMusicKey);
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('blur', pauseForHiddenTab);
       window.removeEventListener('focus', resumeForVisibleTab);
+      themeControllerRef.current?.dispose?.();
+      themeControllerRef.current = null;
       audio.pause();
       menuAudioRef.current = null;
       if (window.apexStopMenuMusic) delete window.apexStopMenuMusic;
       if (window.apexPlayMenuMusic) delete window.apexPlayMenuMusic;
+      if (window.apexSetThemeSurface) delete window.apexSetThemeSurface;
+      if (window.apexEnterBattleMatchTheme) delete window.apexEnterBattleMatchTheme;
+      if (window.apexToggleThemeMusic) delete window.apexToggleThemeMusic;
       if (window.__apexMenuBgmState) delete window.__apexMenuBgmState;
+      if (window.__apexThemeMusicState) delete window.__apexThemeMusicState;
     };
   }, []);
 
@@ -571,23 +598,23 @@ export default function App() {
       // terminate the previous session for real (old voices/cues die), then
       // unmute the master for the new session. Menu/select navigation ends
       // the session — battle SFX stay silent until the next match begins.
-      if (options.startsMatch) {
-        stopMenuMusic(true);
-        window.apexBeginBattleAudioSession?.();
-      } else if (name === 'startMatch' || name === 'startArsenalBattleMode') {
-        stopMenuMusic(true);
+      //
+      // THEME MUSIC: only the ACTUAL match-start seam stops the theme.
+      // Selecting a battle, entering the battle-entry transition or opening a
+      // Pick surface does NOT stop it (§4.2). Every stop is a fade, and every
+      // stop PRESERVES currentTime so the result/return flow can resume from
+      // the same playhead.
+      if (options.startsMatch || name === 'startMatch' || name === 'startArsenalBattleMode') {
+        themeEnterBattleMatch();
         window.apexBeginBattleAudioSession?.();
       } else if (name === 'goToMenu') {
         window.apexEndBattleAudioSession?.();
-        playMenuMusic(true);
+        setThemeSurface('home');
       } else if (name === 'goToSelect' || name === 'beginArsenalBattleSelection') {
         window.apexEndBattleAudioSession?.();
-        playMenuMusic(false);
+        setThemeSurface('pick');
       }
       callApexGlobal(name, true);
-      if (options.startsMatch || name === 'startMatch' || name === 'startArsenalBattleMode') {
-        stopMenuMusic(true);
-      }
     } catch (error) {
       console.warn(`[asset-loader] Failed to prepare action ${name}.`, error);
     }
@@ -600,6 +627,17 @@ export default function App() {
     if (!gameReady) return false;
 
     if (surface.route === 'shop' || surface.route === 'draw' || surface.route === 'local' || surface.route === 'bot') {
+      // §4.2 SURFACE POLICY — data-driven and route-keyed, so unlocking a
+      // lightly-locked surface later changes only the product graph, never the
+      // audio manager. Lucky Draw and Fighter Shop are explicit music-OFF
+      // owner exceptions; BOT/Local Pick keep the theme running.
+      const THEME_SURFACE_BY_ROUTE = {
+        shop: 'fighter-shop',
+        draw: 'lucky-draw',
+        local: 'local-pick',
+        bot: 'bot-pick',
+      };
+      setThemeSurface(THEME_SURFACE_BY_ROUTE[surface.route] || 'pick');
       await loadDeferredGameRuntimes('arsenalHub');
       const meta = window.APEX_ARSENAL_META;
       if (!meta) throw new Error('Arsenal product meta runtime did not register.');
@@ -614,7 +652,8 @@ export default function App() {
       // ADMIN only: the real Lab keeps the accepted Arsenal battle core. It
       // is deliberately launchable through this seam but absent from public UI.
       await loadDeferredGameRuntimes('arsenalProduct');
-      stopMenuMusic(true);
+      // The Lab starts a real battle session, so it uses the match-start seam.
+      themeEnterBattleMatch();
       const ready = window.apexArsenalGameplayBarrierSync?.('lab')
         || await window.apexArsenalGameplayBarrier?.('lab');
       if (ready === false) return false;

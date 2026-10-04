@@ -1062,7 +1062,10 @@
     }
     AQ.log('MODE_EXIT', 'mode=ARSENAL_BATTLE');
     goToMenu(); // restores MENU state + screens, stops battle audio
-    window.apexPlayMenuMusic?.(true);
+    // Result/return flow: the theme resumes from the SAME preserved playhead
+    // because Home is a policy-allowed surface. Passing a restart flag here
+    // would violate the playhead-continuity law, so the seam takes a surface.
+    window.apexSetThemeSurface?.('home');
   };
 
   // -------------------------------------------------------------------------

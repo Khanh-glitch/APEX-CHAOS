@@ -2296,9 +2296,14 @@ report.rev2ProductGraph = run(`
     activeCount: active.length,
     lockedCount: locked.length,
     activeIds: active.map(item => item.id),
+    // Surface-level locked ids (distinct from the roster's locked shells).
+    lockedIds: locked.map(item => item.id),
     allLockedBlocked: locked.every(item => !product.canLaunch(item.id)),
     botLocalLaunchable: product.canLaunch('bot-battle') && product.canLaunch('local-1v1'),
-    shopDrawLaunchable: product.canLaunch('fighter-shop') && product.canLaunch('lucky-draw'),
+    drawLaunchable: product.canLaunch('lucky-draw'),
+    // GOLD CUTOVER 2026-10-04: Fighter Shop is lightly locked, so it must NOT
+    // be publicly launchable. Its route survives for a later unlock.
+    shopLockedNotLaunchable: !product.canLaunch('fighter-shop'),
     adminHidden: !publicSurfaces.some(item => item.id === 'arsenal-lab'),
     adminGate: admin?.availability === 'ADMIN'
       && !product.canLaunch('arsenal-lab')
@@ -2318,21 +2323,28 @@ report.rev2ProductGraph = run(`
       && !('exitArsenalQuestMode' in window),
   };
 `);
-gate('rev2-product-four-active-surfaces',
-  report.rev2ProductGraph.publicCount === 10 && report.rev2ProductGraph.activeCount === 4
+// GOLD CUTOVER 2026-10-04: Fighter Shop moved ACTIVE -> LOCKED. The Gold
+// cutover therefore opens exactly three public surfaces. Nothing was deleted:
+// the public surface count stays 10 and the Shop keeps its route.
+gate('gold-cutover-three-active-surfaces',
+  report.rev2ProductGraph.publicCount === 10 && report.rev2ProductGraph.activeCount === 3
     && report.rev2ProductGraph.activeIds.includes('bot-battle')
     && report.rev2ProductGraph.activeIds.includes('local-1v1')
-    && report.rev2ProductGraph.activeIds.includes('fighter-shop')
-    && report.rev2ProductGraph.activeIds.includes('lucky-draw'), report.rev2ProductGraph);
-gate('rev2-product-six-public-future-surfaces-locked',
-  report.rev2ProductGraph.lockedCount === 6 && report.rev2ProductGraph.allLockedBlocked,
+    && report.rev2ProductGraph.activeIds.includes('lucky-draw')
+    && !report.rev2ProductGraph.activeIds.includes('fighter-shop'), report.rev2ProductGraph);
+gate('gold-cutover-seven-public-future-surfaces-locked',
+  report.rev2ProductGraph.lockedCount === 7 && report.rev2ProductGraph.allLockedBlocked
+    && report.rev2ProductGraph.lockedIds.includes('fighter-shop')
+    && report.rev2ProductGraph.lockedIds.includes('quest-01'),
   report.rev2ProductGraph);
 gate('rev2-quest-01-is-locked-future-product-surface',
   report.rev2ProductGraph.quest01?.availability === 'LOCKED'
     && !win.APEX_PRODUCT_SURFACE.canLaunch('quest-01'), report.rev2ProductGraph.quest01);
-gate('rev2-bot-local-are-the-active-battle-entries',
-  report.rev2ProductGraph.botLocalLaunchable && report.rev2ProductGraph.shopDrawLaunchable,
-  { botLocal: report.rev2ProductGraph.botLocalLaunchable, shopDraw: report.rev2ProductGraph.shopDrawLaunchable });
+gate('gold-cutover-bot-local-launchable-shop-lightly-locked',
+  report.rev2ProductGraph.botLocalLaunchable && report.rev2ProductGraph.drawLaunchable
+    && report.rev2ProductGraph.shopLockedNotLaunchable,
+  { botLocal: report.rev2ProductGraph.botLocalLaunchable, draw: report.rev2ProductGraph.drawLaunchable,
+    shopLocked: report.rev2ProductGraph.shopLockedNotLaunchable });
 gate('rev2-admin-lab-requires-explicit-admin-authority',
   report.rev2ProductGraph.adminHidden && report.rev2ProductGraph.adminGate,
   { adminHidden: report.rev2ProductGraph.adminHidden, adminGate: report.rev2ProductGraph.adminGate });

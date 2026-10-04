@@ -12,6 +12,7 @@ import {
   PRODUCT_ECONOMY,
   PRODUCT_ROSTER,
   canLaunchProductSurface,
+  getProductSurface,
   installProductSurfaceAuthority,
   listProductSurfaces,
 } from '../src/game/productSurface.js';
@@ -119,18 +120,30 @@ gate('semantic-graph-and-admin-boundary', () => {
   const graph = listProductSurfaces();
   const active = graph.filter((surface) => surface.availability === PRODUCT_AVAILABILITY.ACTIVE);
   const locked = graph.filter((surface) => surface.availability === PRODUCT_AVAILABILITY.LOCKED);
-  assert.equal(graph.length, 10);
-  assert.equal(active.length, 4);
-  assert.equal(locked.length, 6);
+  // GOLD CUTOVER 2026-10-04: Fighter Shop moved ACTIVE -> LOCKED, so the Gold
+  // cutover opens exactly three public surfaces (Bot Battle, Local 1v1, Lucky
+  // Draw). The Shop is lightly locked, not deleted: its route and unlock path
+  // are asserted below so a later unlock stays a one-field change.
+  assert.equal(graph.length, 10, 'no surface may be deleted for the cutover');
+  assert.equal(active.length, 3);
+  assert.equal(locked.length, 7);
   assert.ok(active.some((surface) => surface.id === 'bot-battle'));
   assert.ok(active.some((surface) => surface.id === 'local-1v1'));
-  assert.ok(active.some((surface) => surface.id === 'fighter-shop'));
   assert.ok(active.some((surface) => surface.id === 'lucky-draw'));
-  assert.ok(locked.some((surface) => surface.id === 'quest-01'));
+  // Stale ACTIVE Shop must be gone, but the surface itself must survive.
+  assert.ok(!active.some((surface) => surface.id === 'fighter-shop'),
+    'Fighter Shop must no longer be ACTIVE under the Gold cutover authority');
+  const shop = getProductSurface('fighter-shop');
+  assert.ok(shop, 'Fighter Shop must remain in the product graph');
+  assert.equal(shop.availability, PRODUCT_AVAILABILITY.LOCKED);
+  assert.equal(shop.route, 'shop', 'Shop route preserved for future unlock');
+  assert.equal(canLaunchProductSurface('fighter-shop'), false);
+  assert.ok(locked.some((surface) => surface.id === 'quest-01'), 'Quest stays a locked extension point');
   assert.ok(locked.every((surface) => !canLaunchProductSurface(surface.id)));
   assert.equal(canLaunchProductSurface('arsenal-lab'), false);
   assert.equal(canLaunchProductSurface('arsenal-lab', { admin: true }), true);
-  return { public: graph.length, active: active.length, locked: locked.length };
+  return { public: graph.length, active: active.length, locked: locked.length,
+    lockedIds: locked.map((surface) => surface.id) };
 });
 
 gate('visible-roster-core-six-and-locked-six', () => {

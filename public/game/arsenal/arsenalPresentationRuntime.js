@@ -904,6 +904,58 @@
     return true;
   }
 
+  // CORE SIX AV PRELOAD (2026-10-04) — one generic hero-SFX seam for
+  // Crystala / Magnet / Frost / Mirror. It deliberately reuses the SAME audio
+  // bank, AudioContext, session lifecycle, timer tracking and voice-cap
+  // accounting as the accepted Robot/Hunter path rather than forking a second
+  // pipeline. Hero SFX stay inside the battle-audio graph and never create a
+  // new AudioContext.
+  //
+  // `rel` must be a stable materialized runtime path under one of the accepted
+  // hero-rework SFX roots; reference/source material is never loaded.
+  const HERO_SFX_ROOTS = [
+    '/assets/hero-rework/crystala-v1/sfx/',
+    '/assets/hero-rework/magnet-v1/sfx/',
+    '/assets/hero-rework/frost-v1/sfx/',
+    '/assets/hero-rework/mirror-v1/sfx/',
+  ];
+  const heroSfxLog = [];
+  // Per-cue rate limiting is the anti-noise law: one semantic event = at most
+  // one audible cue, and bursty reflection/deflect/shard cues are throttled.
+  const heroSfxLastAt = new Map();
+  function playHeroSfx(rel, opts) {
+    const options = opts || {};
+    if (typeof rel !== 'string' || !HERO_SFX_ROOTS.some((root) => rel.startsWith(root))) return false;
+    // OFF BY DEFAULT cues must stay off until owner playtest asks for them.
+    if (options.enabled === false) return false;
+    const now = (typeof performance !== 'undefined' && performance && typeof performance.now === 'function')
+      ? performance.now() : Date.now();
+    const rateKey = options.rateKey || rel;
+    const minGapMs = Number(options.rateLimitMs) || 0;
+    if (minGapMs > 0) {
+      const last = heroSfxLastAt.get(rateKey);
+      if (last != null && now - last < minGapMs) {
+        stats.heroSfxThrottled = (stats.heroSfxThrottled || 0) + 1;
+        return false;
+      }
+    }
+    heroSfxLastAt.set(rateKey, now);
+    heroSfxLog.push({ rel, t: now, event: options.event || null });
+    if (heroSfxLog.length > 160) heroSfxLog.shift();
+    const entry = Object.assign({ rel, maxVoices: 2 }, options);
+    if (audioBuffers.has(rel)) {
+      playEntry(entry);
+    } else {
+      // No first-use decode hitch inside live combat: the decode is deferred
+      // and session-scoped, so a match that ends first never plays a stale cue.
+      loadAudio(rel);
+      if (typeof window.apexBattleAudioScheduleCue === 'function') {
+        window.apexBattleAudioScheduleCue(() => playEntry(entry), 0);
+      }
+    }
+    return true;
+  }
+
   window.APEX_ARSENAL_AV = {
     cue,
     tick,
@@ -920,6 +972,10 @@
     playLater,
     playHunter,
     hunterSfxLog,
+    playHeroSfx,
+    heroSfxLog,
+    // Warm a specific hero clip so the first combat event never decodes.
+    warmHeroSfx: (rel) => loadAudio(rel),
     stats,
     audioReady: () => stats.audioLoaded,
     // CP7: a true predicate — audioReady() returns a COUNT (the headless

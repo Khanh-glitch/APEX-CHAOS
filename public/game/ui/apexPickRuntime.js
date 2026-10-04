@@ -404,7 +404,10 @@
     if (layer.id === 'arrow-right') btn.addEventListener('click', () => setFocusedIndex(PickRuntimeController.centerIndex + 1));
     if (layer.id === 'start-button') btn.addEventListener('click', () => {
       if (!(PickRuntimeController.p1ChampionId && PickRuntimeController.p2ChampionId)) return;
-      window.apexStopMenuMusic?.(true);
+      // ACTUAL match-start seam (not "a battle was selected"): the theme
+      // fades out and pauses here, preserving currentTime. The donor demo's
+      // reset-to-0 behavior is gone; ordinary navigation never restarts it.
+      window.apexEnterBattleMatchTheme?.();
       syncHiddenMatchSettings();
       startMatch();
     });
@@ -654,8 +657,10 @@
   }
   function togglePickMusic() {
     PickRuntimeController.musicEnabled = !PickRuntimeController.musicEnabled;
-    if (PickRuntimeController.musicEnabled) window.apexPlayMenuMusic?.(false);
-    else window.apexStopMenuMusic?.(false);
+    // This existing Pick music button and the global M key share ONE
+    // music-only mute state, so they can never fight each other. It never
+    // touches battle SFX and never changes BOT/Local/P1/P2 mode.
+    window.apexToggleThemeMusic?.();
     syncUtilityState();
   }
   function toggleFullscreen() {

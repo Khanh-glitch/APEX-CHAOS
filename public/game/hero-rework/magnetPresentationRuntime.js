@@ -278,6 +278,13 @@
           radius: 225,
           tangentialSign: tanSign,
         });
+        // CORE SIX SFX: the REAL A2 bullet-capture/redirection seam, not "a
+        // bullet is somewhere inside A2". Uses the pre-cut whizz portion only
+        // (no wall-impact transient) and is rate-limited per Magnet so a spray
+        // reads as one or two whizzes, never one sound per pellet or tick.
+        if (g.APEX_CORE_SIX_SFX) {
+          g.APEX_CORE_SIX_SFX.dispatch('MagnetA2BulletDeflect', { combatantIndex: ct.idx });
+        }
       }
       state.lastGameplayA1 = activeA1;
       state.lastGameplayA2 = activeA2;

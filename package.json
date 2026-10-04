@@ -5,8 +5,8 @@
   "packageManager": "pnpm@9.15.9",
   "type": "module",
   "scripts": {
-    "dev": "pnpm arsenal:sfx:materialize && vite --host 0.0.0.0 --port 5173",
-    "dev:lan": "pnpm arsenal:sfx:materialize && vite --host 0.0.0.0 --port 5173",
+    "dev": "pnpm arsenal:sfx:materialize && pnpm arsenal:av:materialize && vite --host 0.0.0.0 --port 5173",
+    "dev:lan": "pnpm arsenal:sfx:materialize && pnpm arsenal:av:materialize && vite --host 0.0.0.0 --port 5173",
     "test:arsenal": "pnpm arsenal:sfx:materialize && node tools/testArsenalBattleBrowser.mjs",
     "test:arsenal:browser": "pnpm arsenal:sfx:materialize && node tools/testArsenalBattleBrowser.mjs",
     "test:arsenal:headless": "pnpm arsenal:sfx:materialize && node tools/testArsenalBattleHeadless.mjs",
@@ -19,11 +19,17 @@
     "test:runtime-revision": "node tools/testRuntimeRevisionGate.mjs",
     "test:hero-rework:headless": "node tools/smokeHeroReworkHeadless.mjs && node tools/testHeroReworkGoldens.mjs && node tools/testHeroReworkLocomotionGates.mjs && node tools/testHeroReworkRobotGates.mjs && node tools/testHeroReworkRobotPresentationGates.mjs && node tools/testHeroReworkRobotRecoilGate.mjs && node tools/testHeroReworkHunterOwnerFixGates.mjs && node tools/testFrostV1Gates.mjs && node tools/testMagnetV1GameplayGates.mjs && node tools/testMagnetV1PresentationGates.mjs && node tools/testMirrorA1A2Gameplay.mjs && node tools/testMirrorCoreSixInterop.mjs && node tools/testMirrorPresentationBridge.mjs && node tools/testMirrorPresentationG2A2.mjs",
     "assets:verify": "node tools/assetAudit.mjs && node tools/generateAudioWarmBanks.mjs",
-    "build": "pnpm arsenal:sfx:materialize && node tools/assetAudit.mjs && vite build && node tools/generatePublicAssetManifest.cjs dist/asset-manifest.json && node tools/pruneShippingDist.mjs",
+    "build": "pnpm arsenal:sfx:materialize && pnpm arsenal:av:materialize && node tools/assetAudit.mjs && vite build && node tools/generatePublicAssetManifest.cjs dist/asset-manifest.json && node tools/pruneShippingDist.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "arsenal:sfx:materialize": "node tools/materializeArsenalFinalSfx.mjs",
     "test:shipping-dist": "node tools/testShippingDist.mjs",
-    "test:source-hygiene": "node tools/testProductionSourceHygiene.mjs"
+    "test:source-hygiene": "node tools/testProductionSourceHygiene.mjs",
+    "arsenal:av:materialize": "node tools/materializeCoreSixAvPreload.mjs",
+    "test:gold-cutover": "node tools/testCombatHudSemanticTriggers.mjs && node tools/testThemeMusicAuthority.mjs && node tools/testCoreSixHeroSfx.mjs && node tools/testGoldCutoverDomBoot.mjs",
+    "test:combat-hud-triggers": "node tools/testCombatHudSemanticTriggers.mjs",
+    "test:theme-music": "node tools/testThemeMusicAuthority.mjs",
+    "test:core-six-sfx": "node tools/testCoreSixHeroSfx.mjs",
+    "test:gold-cutover-dom": "node tools/testGoldCutoverDomBoot.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

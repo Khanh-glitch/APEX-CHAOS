@@ -553,6 +553,13 @@
        * 0.3s cadence inside mirrorPassiveTick). */
       mirrorShardProc(ct, x, y, n, prov) {
         const made = mirrorProcShards(ct, x, y, n, prov || null);
+        // ONE semantic event per realized passive proc. This is deliberately
+        // emitted once with the real shard COUNT rather than once per shard, so
+        // the Core Six SFX authority can honour "one shard-drop accent per
+        // proc even when a single hit creates several shards".
+        if (made.length) {
+          AIL.bus.emit('MirrorPassiveShardProc', { owner: ct.idx, shards: made.length, x, y });
+        }
         // Hit-time side capture is presentation-only. It consumes the exact
         // real shard identities after spawn; failure must never gate damage or
         // alter the unchanged F1 pool/lifecycle.

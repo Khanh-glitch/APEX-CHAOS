@@ -37,7 +37,16 @@ function surface(id, title, availability, detail, extra = {}) {
 const PUBLIC_SURFACES = Object.freeze([
   surface('bot-battle', 'Bot Battle', ACTIVE, 'Choose a fighter and face the accepted Arsenal CPU.', { route: 'bot' }),
   surface('local-1v1', 'Local 1v1', ACTIVE, 'Choose two owned Core Six fighters and launch Arsenal Battle.', { route: 'local' }),
-  surface('fighter-shop', 'Fighter Shop', ACTIVE, 'Unlock available Core Six fighters for 1000 AC.', { route: 'shop' }),
+  // GOLD CUTOVER 2026-10-04: Fighter Shop was still ACTIVE from pre-Gold
+  // production and that is stale against the Gold cutover authority, which
+  // opens only Home, Lucky Draw, Local/BOT Fighter Pick, Battle HUD, the
+  // battle-entry transition and the current result/return flow. The Shop
+  // becomes LIGHTLY LOCKED: its route, product role, economy entry and unlock
+  // path are all preserved so a later unlock is a one-field change, not a
+  // rewrite. Quest and Shop are deliberately extension points, never deleted.
+  surface('fighter-shop', 'Fighter Shop', LOCKED,
+    'Fighter Shop is a Gold cutover extension point and is lightly locked; its route and unlock path are preserved.',
+    { route: 'shop' }),
   surface('lucky-draw', 'Lucky Draw', ACTIVE, 'Draw one available Core Six fighter for 350 AC.', { route: 'draw' }),
   surface('quest-01', 'Quest 01', LOCKED, 'Quest 01 is a future surface and is not available in the pre-pilot build.'),
   surface('fighter-upgrade', 'Fighter Upgrade', LOCKED, 'Fighter Upgrade is not available in the pre-pilot build.'),

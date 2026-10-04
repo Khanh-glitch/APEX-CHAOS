@@ -627,6 +627,18 @@ var Fighter = class Fighter {
         this.hp = Math.min(cap, this.hp + amount);
         this.healingDone += Math.max(0, this.hp - before);
         spawnDamageText(this.x, this.y - this.radius - 6, amount, true);
+        // Battle HUD SEMANTIC TRIGGER AUTHORITY: the real heal transaction owns
+        // the HEAL presentation trigger. The HUD must never infer Heal from
+        // green damage-number text or animation state, so it is told here.
+        if (window.APEX_COMBAT_HUD && window.APEX_COMBAT_HUD.onHeal) {
+            try {
+                window.APEX_COMBAT_HUD.onHeal({
+                    target: this,
+                    amount: Math.max(0, this.hp - before),
+                    overheal: !!overheal,
+                });
+            } catch (apexCombatHudErr) { /* HUD failure never breaks combat */ }
+        }
         updateHUD();
     }
     update(dt, enemy) {

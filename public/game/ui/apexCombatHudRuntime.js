@@ -624,6 +624,26 @@
     }
   }
 
+  // ------------------------------------------------- semantic triggers --
+  // Battle HUD SEMANTIC TRIGGER AUTHORITY (owner patch 2026-10-04). Which Gold
+  // presentation response a trigger maps to is decided ONLY by
+  // APEX_COMBAT_HUD_TRIGGERS, from real production transactions. This adapter
+  // forwards; it never classifies and never re-derives damage/crit truth.
+  // Gold demo buttons/keys/showcase timers are not a trigger source.
+  let triggerSession = null;
+  function triggers() {
+    if (!triggerSession && window.APEX_COMBAT_HUD_TRIGGERS) {
+      try { triggerSession = window.APEX_COMBAT_HUD_TRIGGERS.createSession(); }
+      catch (error) { triggerSession = null; }
+    }
+    return triggerSession;
+  }
+  function drainTriggers() {
+    const s = triggerSession;
+    if (!s) return [];
+    try { return s.drain(); } catch (error) { return []; }
+  }
+
   // ------------------------------------------------------------- events --
   function onRealizedDamage(ev) {
     try {
@@ -632,6 +652,11 @@
       const attacker = ev.attacker;
       const amount = Number(ev.amount) || 0;
       if (!victim || !(amount > 0)) return; // zero/blocked/miss never extend (§7.4)
+      // Forward the real realized-damage transaction to the semantic trigger
+      // authority BEFORE any HUD bookkeeping, so presentation classification
+      // observes the transaction itself rather than a HUD-derived number.
+      const ts = triggers();
+      if (ts) { try { ts.onRealizedDamage(ev); } catch (error) { /* HUD failure never breaks combat */ } }
       stats.events += 1;
       const vi = sideIndexOf(victim);
       if (vi < 0) return;
@@ -651,9 +676,20 @@
     }
   }
 
+  // A real authoritative heal transaction (apexEngine Fighter.heal). Green DOM
+  // text or animation state is never accepted as a heal source.
+  function onHeal(ev) {
+    const ts = triggers();
+    if (!ts) return null;
+    try { return ts.onHeal(ev); } catch (error) { return null; }
+  }
+
   function onMatchStart() {
     try {
       stats.matchStarts += 1;
+      // A new battle must not inherit the previous match's rolling Heavy
+      // windows, low-HP latches or trigger backlog.
+      if (triggerSession) { try { triggerSession.reset(); } catch (error) {} }
       for (let i = 0; i < 2; i++) {
         sides[i].energy = 0;
         if (sides[i].timer) { clearTimeout(sides[i].timer); sides[i].timer = null; }
@@ -699,13 +735,18 @@
   }
 
   window.APEX_COMBAT_HUD = {
-    version: 'authority-r42',
+    version: 'authority-r43',
     SILENCE_MS,
     TIERS,
     TIER_COLOR,
     commentaryFor,
     onRealizedDamage,
+    onHeal,
     onMatchStart,
+    // Semantic trigger authority seam: the renderer DRAINS presentation
+    // triggers; it never infers them from DOM nodes or key input.
+    drainTriggers,
+    triggerSession: () => triggerSession,
     onProjectionChanged() { sync(); },
     syncVitals() { for (let i = 0; i < 2; i++) renderVitals(i); },
     sync,

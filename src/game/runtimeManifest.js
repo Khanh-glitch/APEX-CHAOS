@@ -1,8 +1,11 @@
 // Cache-bust classic runtime scripts that live under /public and therefore do
-// not receive Vite content hashes. This Phase 2C product-runtime transition
-// from r41 to r42 consolidates current combat HUD state/projection authority
-// before the Gold HUD/UI/UX overhaul.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r42';
+// not receive Vite content hashes. r42 consolidated current combat HUD
+// state/projection authority; r43 carries the Gold UI/UX/HUD cutover seams on
+// top of the unchanged r42 gameplay truth: the Battle HUD semantic trigger
+// authority (NORMAL/CRITICAL/HEAVY/THUNDER/HEAL from real transactions), the
+// realized-heal trigger seam, the theme-music surface seams, and the Fighter
+// Shop light-lock. No hero balance or mechanic was retuned.
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261004-gold-ui-r43';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -28,8 +31,11 @@ export const CURRENT_COMBAT_CORE_RUNTIMES = [
   ['/game/core/apexCombatEffectsRuntime.js', 'apexCombatEffectsRuntime'],
 ];
 
-// Universal combat HUD state adapter + renderer.
+// Universal combat HUD state adapter + renderer, plus the semantic trigger
+// authority that decides which Gold presentation response a real production
+// transaction maps to (NORMAL/CRITICAL/HEAVY/THUNDER/HEAL/KO/...).
 export const HUD_RUNTIMES = [
+  ['/game/ui/apexCombatHudTriggerRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCombatHudTriggerRuntime'],
   ['/game/ui/apexCombatHudRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCombatHudRuntime'],
 ];
 
@@ -92,6 +98,10 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/hero-rework/frostPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostPresentationRuntime'],
   ['/game/hero-rework/magnetPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetPresentationRuntime'],
   ['/game/hero-rework/mirrorPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMirrorPresentationRuntime'],
+  // Core Six hero SFX semantic authority (AV preload). Loaded last so the AIL
+  // bus already exists when it subscribes. It forks no audio pipeline: it maps
+  // semantic gameplay events onto the existing APEX_ARSENAL_AV hero-SFX seam.
+  ['/game/hero-rework/coreSixHeroSfxRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCoreSixHeroSfxRuntime'],
 ];
 
 // Shipping product groups only. Historical generic Battle groups are
