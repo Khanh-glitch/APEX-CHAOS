@@ -21,9 +21,10 @@ Read first:
 4. `manifests/asset-manifest.json`
 5. `manifests/dependency-audit.json`
 6. `docs/gold-ui/preload/PROCESS_GOLD_PARITY_RELOCK_2026-10-05.md`
-7. `index.html`
-8. `donors/lucky-draw/index.html`
-9. `donors/battle-hud/index.html`
+7. `docs/gold-ui/preload/CANONICAL_CUTOVER_STRATEGY_RELOCK_2026-10-05.md`
+8. `index.html`
+9. `donors/lucky-draw/index.html`
+10. `donors/battle-hud/index.html`
 
 ## Owner law: only these art slots are replaceable
 1. Lucky Draw fighter visual art.
@@ -241,3 +242,19 @@ It adds hard requirements for:
 - explicit separation of automated, canonical, browser, performance and owner-acceptance gates.
 
 `manifests/ACTIVE_IMPLEMENTATION_PROMPT.md` is intentionally only an activation/handoff prompt. The implementation law belongs in this preload, the anti-drift contract, the relock documents and canonical Gold sources.
+
+
+## 2026-10-05 — Canonical-preserving cutover strategy relock
+
+Read and obey:
+
+`docs/gold-ui/preload/CANONICAL_CUTOVER_STRATEGY_RELOCK_2026-10-05.md`
+
+This closes the remaining implementation-strategy loophole:
+- do not hand-author a React clone from the Gold;
+- do not treat extracted Gold CSS as decoration for the legacy shell;
+- do not retain legacy CombatPanelSide/old HUD as visible Battle presentation;
+- retain/port canonical DOM/CSS/JS choreography through minimal/mechanical transformations;
+- framework wrappers own lifecycle/plumbing, not art direction;
+- if canonical Gold uses an iframe/host boundary, it may be retained only as a real canonical boundary with production truth bridged underneath and no legacy visible duplicate;
+- parity is checked after each surface slice, not only at the end.

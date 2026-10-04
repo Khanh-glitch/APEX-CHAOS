@@ -396,3 +396,12 @@ on top of
 REAL CURRENT APEX CHAOS TRUTH
 with
 ZERO SILENT DRIFT.
+
+
+## 16. Canonical-preserving implementation strategy
+
+The presentation-preserving execution strategy is additionally locked by:
+
+`docs/gold-ui/preload/CANONICAL_CUTOVER_STRATEGY_RELOCK_2026-10-05.md`
+
+This explicitly rejects hand-reauthoring Gold into new React clones and rejects keeping legacy visible combat/menu/pick presentation alongside Gold. Framework/module extraction is allowed only as a mechanical/minimal source-preserving transformation with direct canonical parity proof.

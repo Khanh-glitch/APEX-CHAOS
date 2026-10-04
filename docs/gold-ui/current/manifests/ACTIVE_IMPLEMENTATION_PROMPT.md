@@ -18,13 +18,14 @@ Before production edits, read the Gold/preload authority completely, including:
 2. docs/gold-ui/current/manifests/ANTI_DRIFT_CONTRACT.md
 3. docs/gold-ui/current/manifests/IMPLEMENTATION_PRELOAD.md
 4. docs/gold-ui/preload/PROCESS_GOLD_PARITY_RELOCK_2026-10-05.md
-5. docs/gold-ui/preload/BATTLE_TRIGGER_RESPONSIVE_RELOCK_2026-10-04.md
-6. docs/gold-ui/preload/README_AV_THEME_PRELOAD.md
-7. docs/gold-ui/preload/AV_THEME_PRELOAD_MANIFEST.json
-8. docs/gold-ui/current/index.html
-9. docs/gold-ui/current/donors/lucky-draw/index.html
-10. docs/gold-ui/current/donors/battle-hud/index.html
-11. the Robot -> Mirror failure-prevention documents referenced by IMPLEMENTATION_PRELOAD / PROCESS_GOLD_PARITY_RELOCK
+5. docs/gold-ui/preload/CANONICAL_CUTOVER_STRATEGY_RELOCK_2026-10-05.md
+6. docs/gold-ui/preload/BATTLE_TRIGGER_RESPONSIVE_RELOCK_2026-10-04.md
+7. docs/gold-ui/preload/README_AV_THEME_PRELOAD.md
+8. docs/gold-ui/preload/AV_THEME_PRELOAD_MANIFEST.json
+9. docs/gold-ui/current/index.html
+10. docs/gold-ui/current/donors/lucky-draw/index.html
+11. docs/gold-ui/current/donors/battle-hud/index.html
+12. the Robot -> Mirror failure-prevention documents referenced by IMPLEMENTATION_PRELOAD / PROCESS_GOLD_PARITY_RELOCK
 
 Then hostile-audit the LIVE production source and execute the real cutover one-shot.
 
@@ -33,7 +34,9 @@ Do not return a plan and stop.
 Do not stop at a checkpoint.
 Checkpoint means commit/push/remote-verify and continue.
 Do not substitute generic UI/VFX for Gold.
-Do not preserve legacy visible UI underneath/above Gold.
+Do not hand-reauthor Gold into a new React/component clone.
+Prefer canonical-preserving mechanical extraction/mounting with direct parity proof.
+Do not preserve legacy visible UI underneath/above/beside Gold.
 Gold visual drift outside the explicitly authorized adaptation categories is a release failure.
 
 Use production truth underneath the Gold presentation.

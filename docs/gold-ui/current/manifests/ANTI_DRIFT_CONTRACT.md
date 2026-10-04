@@ -79,3 +79,17 @@ Canonical parity must compare production directly against the canonical Gold sou
 See:
 `docs/gold-ui/preload/PROCESS_GOLD_PARITY_RELOCK_2026-10-05.md`
 for the Robot -> Mirror process lessons, real-path evidence law, event/listener lifecycle law, rejected-cutover negative evidence and acceptance ladder.
+
+
+## 2026-10-05 canonical-preserving implementation strategy
+
+Do not hand-rewrite the Gold presentation into a new approximation/component tree.
+
+React/framework code may host, mount, route and bridge canonical-preserved Gold presentation, but does not become a new art authority.
+
+Legacy visible Home/Pick/Battle/Result DOM must not remain as a second visible presentation after cutover. In Battle, the live arena/canvas survives; obsolete legacy combat panels/HUD do not.
+
+Canonical iframe/host boundaries may be retained when they are part of the Gold structure and are correctly bridged, but never as a Gold wallpaper underneath the old product.
+
+Full law:
+`docs/gold-ui/preload/CANONICAL_CUTOVER_STRATEGY_RELOCK_2026-10-05.md`
