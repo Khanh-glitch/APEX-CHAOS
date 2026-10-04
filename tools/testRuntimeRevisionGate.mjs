@@ -15,7 +15,7 @@ const telemetry = fs.readFileSync('public/game/core/apexFightTelemetry.js', 'utf
 const mRev = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
 if (!mRev) { console.error('FAIL revision constant missing'); process.exit(1); }
 const revision = mRev[1];
-const expectedRevision = '20261003-mirror-v1-r39';
+const expectedRevision = '20261003-mirror-v1-r40';
 if (revision !== expectedRevision) {
   console.error(`FAIL this cutover permits exactly one revision: expected=${expectedRevision} actual=${revision}`);
   process.exit(1);
@@ -81,6 +81,22 @@ const retiredRuntimeNames = [
   'manualLab.js', 'manualLabOnline.js', 'apexRealtimeMultiplayer.js',
 ];
 const activeRuntimeText = `${manifest}\n${loader}`;
+const forbiddenLegacyRuntimeTokens = [
+  'ROSTER_RUNTIMES', 'BATTLE_CORE_RUNTIMES', 'BATTLE_RUNTIMES',
+  'BATTLE_DEFERRED_RUNTIMES', 'BOOT_GAME_RUNTIMES',
+  '/game/fighters/katanaRuntime.js', '/game/fighters/fangRuntime.js',
+  '/game/core/apexMajorMechanicVisuals.js',
+];
+const productionLegacyLeaks = forbiddenLegacyRuntimeTokens.filter((token) => activeRuntimeText.includes(token));
+if (productionLegacyLeaks.length) {
+  console.error('FAIL production runtime graph leaked test-only legacy tokens:', productionLegacyLeaks);
+  process.exit(1);
+}
+if (/options\.startsMatch\s*\?\s*['"]battle['"]/.test(app)
+    || /loadDeferredGameRuntimes\(\s*['"](?:battle|battleDeferred|all)['"]/.test(app)) {
+  console.error('FAIL React product bridge can still route into the retired generic Battle loader graph');
+  process.exit(1);
+}
 const activeRetiredReferences = retiredRuntimeNames.filter((name) => activeRuntimeText.includes(name));
 if (activeRetiredReferences.length) {
   console.error('FAIL active runtime graph references retired route scripts:', activeRetiredReferences);
