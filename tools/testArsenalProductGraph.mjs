@@ -17,7 +17,13 @@ import {
 } from '../src/game/productSurface.js';
 import {
   ARSENAL_PRODUCT_RUNTIMES,
+  ARSENAL_SHARED_ENGINE_RUNTIMES,
+  BATTLE_CORE_RUNTIMES,
+  BATTLE_RUNTIMES,
+  COMBAT_CORE_RUNTIMES,
   MODE_DEFERRED_RUNTIMES,
+  ROSTER_RUNTIMES,
+  SELECT_RUNTIMES,
   WARMUP_GROUP_SEQUENCE,
 } from '../src/game/runtimeManifest.js';
 
@@ -243,10 +249,36 @@ gate('shell-public-selection-and-bot-profile-seam', () => {
 });
 
 gate('neutral-product-runtime-and-warmup-closure', () => {
-  const active = ARSENAL_PRODUCT_RUNTIMES.map(([src]) => src);
-  assert.ok(active.some((src) => src.includes('arsenalBattleRuntime.js')));
-  assert.equal(active.filter((src) => src.includes('/arsenalConfig.js')).length, 1);
+  const runtimePaths = entries => entries.map(([src]) => String(src).split(/[?#]/, 1)[0]);
+  const active = runtimePaths(ARSENAL_PRODUCT_RUNTIMES);
+  const currentEngine = runtimePaths(ARSENAL_SHARED_ENGINE_RUNTIMES);
+  const roster = new Set(runtimePaths(ROSTER_RUNTIMES));
+  const productRosterRefs = active.filter(src => roster.has(src)).sort();
+  const selectPaths = runtimePaths(SELECT_RUNTIMES);
+  const battleCore = runtimePaths(BATTLE_CORE_RUNTIMES);
+  const battlePaths = runtimePaths(BATTLE_RUNTIMES);
+  const transientRosterBridges = [
+    '/game/core/apexFullRosterQa.js',
+    '/game/guards/apexRuntimeStability.js',
+  ].sort();
+
+  assert.deepEqual(active.slice(0, currentEngine.length), currentEngine,
+    'Arsenal must begin with its own explicit current engine chain');
+  assert.ok(active.includes('/game/modes/arsenalBattleRuntime.js'));
+  assert.equal(active.filter((src) => src === '/game/arsenal/arsenalConfig.js').length, 1);
   assert.ok(!active.some((src) => /arsenalQuest(Runtime|Ladder|Config)\.js/.test(src)));
+  assert.deepEqual(productRosterRefs, transientRosterBridges,
+    'only collision and draw-recovery bridges remain from legacy ROSTER during 2A.1');
+  assert.ok(active.indexOf('/game/core/apexFullRosterQa.js')
+    < active.indexOf('/game/core/apexArsenalProductRenderHudRuntime.js'));
+  assert.ok(active.indexOf('/game/core/apexArsenalProductRenderHudRuntime.js')
+    < active.indexOf('/game/guards/apexRuntimeStability.js'));
+  assert.deepEqual(selectPaths.filter(src => roster.has(src)), [],
+    'current picker load must not warm the legacy roster chain');
+  assert.deepEqual(battleCore.slice(COMBAT_CORE_RUNTIMES.length,
+    COMBAT_CORE_RUNTIMES.length + ROSTER_RUNTIMES.length), runtimePaths(ROSTER_RUNTIMES));
+  assert.deepEqual(battlePaths.slice(0, battleCore.length), battleCore,
+    'generic Battle retains its complete legacy core and roster load order');
   assert.deepEqual(Object.keys(MODE_DEFERRED_RUNTIMES).sort(), ['arsenalProduct', 'battle', 'battleDeferred', 'select']);
   assert.deepEqual(WARMUP_GROUP_SEQUENCE, ['arsenalProduct', 'select']);
   assert.ok(!WARMUP_GROUP_SEQUENCE.some((group) => /quest/i.test(group)));
@@ -254,6 +286,7 @@ gate('neutral-product-runtime-and-warmup-closure', () => {
   assert.ok(!loader.includes('ARSENAL_LEGACY_QUEST_RUNTIMES'));
   assert.ok(!loader.includes("arsenalLegacyQuest"));
   return { warmup: WARMUP_GROUP_SEQUENCE, activeRuntimes: active.length,
+    productRosterBridges: productRosterRefs, currentSelectRuntimes: selectPaths.length,
     deferredGroups: Object.keys(MODE_DEFERRED_RUNTIMES).sort() };
 });
 

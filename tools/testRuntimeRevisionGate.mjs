@@ -15,7 +15,7 @@ const telemetry = fs.readFileSync('public/game/core/apexFightTelemetry.js', 'utf
 const mRev = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
 if (!mRev) { console.error('FAIL revision constant missing'); process.exit(1); }
 const revision = mRev[1];
-const expectedRevision = '20261003-mirror-v1-r35';
+const expectedRevision = '20261003-mirror-v1-r36';
 if (revision !== expectedRevision) {
   console.error(`FAIL this cutover permits exactly one revision: expected=${expectedRevision} actual=${revision}`);
   process.exit(1);
@@ -28,6 +28,7 @@ const required = [
   'public/game/arsenal/arsenalMetaRuntime.js',
   'public/game/modes/arsenalBattleRuntime.js',
   'public/game/hero-rework/heroReworkRuntime.js',
+  'public/game/core/apexArsenalProductRenderHudRuntime.js',
 ];
 const missing = required.filter((file) => !paths.includes(file));
 if (missing.length) {

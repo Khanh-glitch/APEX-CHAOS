@@ -1,8 +1,7 @@
 // Cache-bust classic runtime scripts that live under /public and therefore do
-// not receive Vite content hashes. This is the single product-runtime
-// transition from 20261003-mirror-v1-r34 to r35; keep its lock and generated
-// expectations in sync.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r35';
+// not receive Vite content hashes. This Phase 2A.1 product-runtime transition
+// from r35 to r36 must keep its lock and generated expectations in sync.
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r36';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -59,15 +58,15 @@ export const HUD_RUNTIMES = [
   ['/game/ui/apexCombatHudRuntime.js', 'apexCombatHudRuntime'],
 ];
 
-// Shared character-select presentation.
+// Current Arsenal/Core Six character-select presentation.
 export const PICK_RUNTIMES = [
   ['/game/ui/apexPickRuntime.js', 'apexPickRuntime'],
 ];
 
-// The shared select route needs render primitives before roster patches.
+// Current product selection uses the shared UI/runtime primitive, not legacy
+// fighter patches. Generic Battle retains the complete ROSTER_RUNTIMES group.
 export const SELECT_RUNTIMES = [
   COMBAT_CORE_RUNTIMES[1], // apexRenderPrimitives
-  ...ROSTER_RUNTIMES,
   ...PICK_RUNTIMES,
 ];
 
@@ -104,11 +103,25 @@ export const BATTLE_RUNTIMES = [
   ...BATTLE_DEFERRED_RUNTIMES,
 ];
 
+// Current Arsenal engine chain. The two legacy entries are explicit,
+// temporary Phase 2A bridges: FullRoster supplies collision until 2A.2, and
+// RuntimeStability supplies draw recovery until 2A.3. The current renderer/HUD
+// is installed between them, so FullRoster no longer owns product draw/HUD.
+// Generic Battle continues to use the complete BATTLE_CORE_RUNTIMES chain.
+export const ARSENAL_SHARED_ENGINE_RUNTIMES = [
+  ...COMBAT_CORE_RUNTIMES,
+  ['/game/core/apexFullRosterQa.js', 'apexFullRosterQa'],
+  ['/game/core/apexArsenalProductRenderHudRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalProductRenderHudRuntime'],
+  ['/game/guards/apexRuntimeStability.js', 'apexRuntimeStability'],
+  ...HUD_RUNTIMES,
+];
+
 // Active neutral Arsenal product runtime. Bot Battle, Local 1v1, Shop/Draw,
-// and the admin-only Lab share this chain. The neutral config and battle
-// runtime are the only product authority for Arsenal combat.
+// and the admin-only Lab share this chain. It has product-owned engine seams
+// and does not inherit ROSTER_RUNTIMES; temporary FullRoster/recovery bridges
+// are kept explicit above while their ordered Phase 2A slices are validated.
 export const ARSENAL_PRODUCT_RUNTIMES = [
-  ...BATTLE_CORE_RUNTIMES,
+  ...ARSENAL_SHARED_ENGINE_RUNTIMES,
   ['/game/arsenal/arsenalCWeaponSet.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalCSet'],
   ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalConfig'],
   ['/game/arsenal/arsenalIdentityRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalIdentityRuntime'],

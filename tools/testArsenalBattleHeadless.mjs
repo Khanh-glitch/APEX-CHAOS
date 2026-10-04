@@ -5,13 +5,15 @@
 // deterministically and writing canvas renders as current-product evidence.
 // The sibling browser suite drives the same product path over CDP.
 //
-// Usage: node tools/testArsenalHeadless.mjs
+// Usage: node tools/testArsenalBattleHeadless.mjs [--product-authentic]
+//        --product-authentic loads only the actual menu-interactive, Arsenal
+//        product, and select groups; default retains the original BOOT acceptance.
 // Env:   APEX_TOOLING_DIR  (default node_modules; provides jsdom + @napi-rs/canvas)
 //        APEX_EVIDENCE_DIR (default docs/acceptance/arsenal-product/headless)
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { BOOT_GAME_RUNTIMES, ARSENAL_PRODUCT_RUNTIMES, WARMUP_GROUP_SEQUENCE } from '../src/game/runtimeManifest.js';
+import { BOOT_GAME_RUNTIMES, MENU_INTERACTIVE_RUNTIMES, ARSENAL_PRODUCT_RUNTIMES, SELECT_RUNTIMES, WARMUP_GROUP_SEQUENCE } from '../src/game/runtimeManifest.js';
 import { installProductSurfaceAuthority } from '../src/game/productSurface.js';
 
 const REPO = process.cwd();
@@ -242,27 +244,60 @@ function loadScript(relPath, required) {
 }
 
 loadScript('/apexEngine.js', true);
-// Load the shared engine chain followed by the same neutral Arsenal product
-// group used by the browser. Shared sources are evaluated exactly once.
+// The default keeps the original shared-engine acceptance path unchanged.
+// The product-authentic path mirrors current route intent: load only the
+// Arsenal product group and its select group, never BOOT_GAME_RUNTIMES.
+const productAuthentic = process.argv.includes('--product-authentic');
+const runtimeGroupsToLoad = productAuthentic
+  ? [
+    ['MENU_INTERACTIVE_RUNTIMES', MENU_INTERACTIVE_RUNTIMES],
+    ['ARSENAL_PRODUCT_RUNTIMES', ARSENAL_PRODUCT_RUNTIMES],
+    ['SELECT_RUNTIMES', SELECT_RUNTIMES],
+  ]
+  : [['BOOT_GAME_RUNTIMES', BOOT_GAME_RUNTIMES], ['ARSENAL_PRODUCT_RUNTIMES', ARSENAL_PRODUCT_RUNTIMES]];
 const loadedRuntimeSrcs = new Set();
-for (const [src] of BOOT_GAME_RUNTIMES) {
-  loadedRuntimeSrcs.add(String(src).split(/[?#]/, 1)[0]);
-  loadScript(src, true);
-}
-for (const [src] of ARSENAL_PRODUCT_RUNTIMES) {
-  const key = String(src).split(/[?#]/, 1)[0];
-  if (loadedRuntimeSrcs.has(key)) continue;
-  loadedRuntimeSrcs.add(key);
-  loadScript(src, true);
+for (const [, group] of runtimeGroupsToLoad) {
+  for (const [src] of group) {
+    const key = String(src).split(/[?#]/, 1)[0];
+    if (loadedRuntimeSrcs.has(key)) continue;
+    loadedRuntimeSrcs.add(key);
+    loadScript(src, true);
+  }
 }
 
 // ------------------------------------------------------------ test plumbing
-const report = { gates: {}, failures: [], loadErrors, evidence: [] };
+const report = {
+  gates: {}, failures: [], loadErrors, evidence: [],
+  runtimeLoadPath: runtimeGroupsToLoad.map(([name]) => name),
+  runtimeScriptCount: loadedRuntimeSrcs.size,
+};
 function gate(name, ok, detail) {
   report.gates[name] = { pass: !!ok, detail };
   if (!ok) report.failures.push(name);
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail !== undefined ? `  — ${typeof detail === 'string' ? detail : JSON.stringify(detail)}` : ''}`);
 }
+const runtimeKey = src => String(src).split(/[?#]/, 1)[0];
+const expectedProductRuntimeSrcs = new Set([
+  ...MENU_INTERACTIVE_RUNTIMES.map(([src]) => runtimeKey(src)),
+  ...ARSENAL_PRODUCT_RUNTIMES.map(([src]) => runtimeKey(src)),
+  ...SELECT_RUNTIMES.map(([src]) => runtimeKey(src)),
+]);
+const productOnlyBootRuntimes = new Set(BOOT_GAME_RUNTIMES.map(([src]) => runtimeKey(src)))
+  .difference(expectedProductRuntimeSrcs);
+const unexpectedBootRuntimeCount = [...loadedRuntimeSrcs]
+  .filter(src => productOnlyBootRuntimes.has(src)).length;
+const missingProductRuntimeCount = [...expectedProductRuntimeSrcs]
+  .filter(src => !loadedRuntimeSrcs.has(src)).length;
+report.runtimeIsProductAuthentic = productAuthentic;
+gate('current-product-authentic-runtime-load-path', !productAuthentic
+  || (unexpectedBootRuntimeCount === 0 && missingProductRuntimeCount === 0), {
+  mode: productAuthentic
+    ? 'MENU_INTERACTIVE_RUNTIMES + ARSENAL_PRODUCT_RUNTIMES + SELECT_RUNTIMES'
+    : 'BOOT_GAME_RUNTIMES + Arsenal product (legacy acceptance)',
+  runtimeScriptCount: loadedRuntimeSrcs.size,
+  unexpectedBootRuntimeCount,
+  missingProductRuntimeCount,
+});
 const $ = id => win.document.getElementById(id);
 const T = {}; // test helpers over engine globals
 

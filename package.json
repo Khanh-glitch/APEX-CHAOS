@@ -10,6 +10,8 @@
     "test:arsenal": "pnpm arsenal:sfx:materialize && node tools/testArsenalBattleBrowser.mjs",
     "test:arsenal:browser": "pnpm arsenal:sfx:materialize && node tools/testArsenalBattleBrowser.mjs",
     "test:arsenal:headless": "pnpm arsenal:sfx:materialize && node tools/testArsenalBattleHeadless.mjs",
+    "test:arsenal:headless:product": "pnpm arsenal:sfx:materialize && node tools/testArsenalBattleHeadless.mjs --product-authentic",
+    "test:arsenal:current-render-hud": "node tools/testArsenalCurrentRenderHud.mjs",
     "test:product-graph": "node tools/testArsenalProductGraph.mjs",
     "test:runtime-revision": "node tools/testRuntimeRevisionGate.mjs",
     "test:hero-rework:headless": "node tools/smokeHeroReworkHeadless.mjs && node tools/testHeroReworkGoldens.mjs && node tools/testHeroReworkLocomotionGates.mjs && node tools/testHeroReworkRobotGates.mjs && node tools/testHeroReworkRobotPresentationGates.mjs && node tools/testHeroReworkRobotRecoilGate.mjs && node tools/testHeroReworkHunterOwnerFixGates.mjs && node tools/testFrostV1Gates.mjs && node tools/testMagnetV1GameplayGates.mjs && node tools/testMagnetV1PresentationGates.mjs && node tools/testMirrorA1A2Gameplay.mjs && node tools/testMirrorCoreSixInterop.mjs && node tools/testMirrorPresentationBridge.mjs && node tools/testMirrorPresentationG2A2.mjs",
