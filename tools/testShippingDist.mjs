@@ -56,7 +56,15 @@ const forbiddenManifest = [...manifestPaths].filter((p) =>
   forbiddenPrefixes.some((prefix) => p.startsWith(prefix))
   && !allowedLegacyDonors.has(p));
 if (forbiddenManifest.length) {
-  throw new Error(`Legacy asset paths remain in shipping manifest: ${forbiddenManifest.slice(0, 20).join(', ')}`);
+  const refs = forbiddenManifest.slice(0, 20).map((assetPath) => {
+    const entry = audit.assets.find((asset) => asset.path === assetPath);
+    return {
+      path: assetPath,
+      classification: entry?.classification || null,
+      shipRefs: entry?.shipRefs || [],
+    };
+  });
+  throw new Error(`Legacy asset paths remain in shipping manifest: ${JSON.stringify(refs)}`);
 }
 
 console.log(JSON.stringify({
