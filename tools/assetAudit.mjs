@@ -109,6 +109,7 @@ function toPublicPath(abs) {
 function findRefs(publicPath, corpus) {
   const base = path.basename(publicPath);
   const segments = publicPath.split('/').filter(Boolean);
+  const basenameUnique = assetIndex.filter((a) => path.basename(a.publicPath) === base).length === 1;
   // Longest unambiguous path suffix (up to 4 segments) that identifies the
   // file: catches ROOT-relative refs like 'vfx/c/smoke_01.png' or
   // 'audio/fire_sfx.wav' without over-matching bare basenames.
@@ -122,7 +123,7 @@ function findRefs(publicPath, corpus) {
   for (const { file, text } of corpus) {
     const match = text.includes(publicPath) ? 'path'
       : text.includes(suffix) && suffix !== base ? 'suffix'
-      : text.includes(base) ? 'basename' : null;
+      : basenameUnique && text.includes(base) ? 'basename' : null;
     if (match) refs.push({ file: path.relative(REPO, file).split(path.sep).join('/'), match });
   }
   return refs;
