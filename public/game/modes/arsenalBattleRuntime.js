@@ -48,7 +48,7 @@
     sections: {},
     peaks: {},
     chamber: { builds: 0, draws: 0, hits: 0, size: 0, usedCacheLast: false },
-    hud: { skillWrites: 0, winWrites: 0, debugWrites: 0 },
+    hud: { projectionReads: 0, winWrites: 0, debugWrites: 0 },
   };
   function aqPerfMark(name, ms) {
     const s = AQ_PERF.sections[name] || (AQ_PERF.sections[name] = { n: 0, sum: 0, max: 0 });
@@ -589,63 +589,56 @@
     }
   }
 
-  const hudRefs = { root: null, hint: null, skill: null, win: null, dbg: null };
-  const hudLast = {
-    hintDisplay: null, skillText: null, skillVis: null, skillAt: 0,
-    winKey: null, debugText: null, debugOn: false, debugAt: 0,
-  };
-  function skillHudText(state) {
-    const f = typeof fighters !== 'undefined' && fighters[0];
+  const hudRefs = { root: null, hint: null, win: null, dbg: null };
+  const hudLast = { hintDisplay: null, winKey: null, debugText: null, debugOn: false, debugAt: 0 };
+
+  function projectSkillLines(f) {
+    if (!f) return [];
+    const H = window.APEX_HERO_REWORK;
+    if (H && H.isReworkFighter && H.isReworkFighter(f) && H.skillHud) return H.skillHud(f) || [];
     const gate = window.APEX_ARSENAL_SKILL_GATE;
-    const snap = gate && f ? gate.snapshot(f) : null;
+    const snap = gate && gate.snapshot ? gate.snapshot(f) : null;
     const lines = [];
-    // HERO REWORK: rework P1 skills read straight from the rework runtime
-    // (J -> A1, K -> A2); the legacy gate snapshot stays untouched.
-    if (window.APEX_HERO_REWORK && f && window.APEX_HERO_REWORK.isReworkFighter
-      && window.APEX_HERO_REWORK.isReworkFighter(f)) {
-      const hrLines = window.APEX_HERO_REWORK.skillHud(f) || [];
-      if (hrLines.length) return hrLines.join('  |  ');
-    } else if (snap && snap.keys && snap.keys.length) {
+    if (snap && snap.keys && snap.keys.length) {
       for (const k of snap.keys) {
         const v = k.value;
         if (typeof v !== 'number') continue;
         const label = k.key.replace(/Cd$/, '').slice(0, 8);
-        if (v > 0.09) lines.push(label + ' · ' + v.toFixed(1) + 's');
-        else lines.push(label + ' · READY');
+        lines.push(v > 0.09 ? label + ' · ' + v.toFixed(1) + 's' : label + ' · READY');
       }
     }
-    return lines.join('  |  ');
+    return lines;
   }
-  function syncSkillHud(el, state, now, force) {
-    if (!state || !state.active) {
-      if (hudRefs.skill && hudLast.skillVis !== 'hidden-off') {
-        hudRefs.skill.style.display = 'none';
-        hudLast.skillVis = 'hidden-off';
-      }
-      return;
-    }
-    if (!force && now - hudLast.skillAt < 100) return;
-    hudLast.skillAt = now;
-    if (!hudRefs.skill) {
-      const box = document.createElement('div');
-      box.id = 'aq-skill-hud';
-      box.style.cssText = 'position:absolute;left:12px;top:8px;pointer-events:none;color:#efe6c8;font:800 13px monospace;background:rgba(8,8,12,0.55);padding:6px 10px;border:1px solid rgba(180,170,140,0.35);';
-      el.appendChild(box);
-      hudRefs.skill = box;
-    }
-    if (hudLast.skillVis !== 'block') {
-      hudRefs.skill.style.display = 'block';
-      hudLast.skillVis = 'block';
-    }
-    const text = skillHudText(state);
-    if (text !== hudLast.skillText) {
-      hudRefs.skill.textContent = text;
-      hudLast.skillText = text;
-      AQ_PERF.hud.skillWrites += 1;
-    }
-    const vis = text ? 'visible' : 'hidden';
-    if (hudRefs.skill.style.visibility !== vis) hudRefs.skill.style.visibility = vis;
+
+  function hudProjectionFor(f, sideIndex) {
+    const state = AQ.state;
+    const active = !!(state && state.active);
+    const modeLabel = !active ? '' : state.labMode ? 'ARSENAL LAB'
+      : state.battleMode === 'BOT' ? 'BOT BATTLE' : 'LOCAL 1V1';
+    const skillLines = active ? projectSkillLines(f) : [];
+    AQ_PERF.hud.projectionReads += 1;
+    return {
+      active, side: Number(sideIndex) + 1, modeLabel,
+      battleMode: state && state.battleMode || null,
+      labMode: !!(state && state.labMode),
+      skillLines, skillText: skillLines.join(' | '),
+    };
   }
+
+  function resultProjection() {
+    const state = AQ.state;
+    if (!state || !state.over) return null;
+    const award = window.APEX_ARSENAL_META && window.APEX_ARSENAL_META.lastAward
+      ? window.APEX_ARSENAL_META.lastAward() : null;
+    return {
+      winner: state.over,
+      battleMode: state.battleMode || 'LOCAL',
+      award: award && award.amount ? { amount: award.amount, balance: award.balance } : null,
+    };
+  }
+
+  AQ.hudProjectionFor = hudProjectionFor;
+  AQ.resultProjection = resultProjection;
 
   function hudRoot() {
     if (hudRefs.root && hudRefs.root.isConnected) return hudRefs.root;
@@ -665,7 +658,7 @@
     style.id = 'aq-battle-ui-style';
     style.textContent = `
       #aq-dom-hud{font-family:"ApcKanit","Segoe UI",sans-serif!important;pointer-events:none!important}
-      #aq-dom-hud #aq-hint,#aq-dom-hud #aq-skill-hud,#aq-dom-hud #aq-debug{pointer-events:none!important}
+      #aq-dom-hud #aq-hint,#aq-dom-hud #aq-debug{pointer-events:none!important}
       #aq-dom-hud #aq-battle-exit,#aq-dom-hud #aq-win,#aq-dom-hud #aq-win *{pointer-events:auto!important}
       #aq-dom-hud button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
       #aq-dom-hud button:focus-visible{outline:2px solid #f3d477;outline-offset:2px}
@@ -747,10 +740,10 @@
       hudRefs.exitBtn.style.display = exitDisplay;
       hudLast.exitDisplay = exitDisplay;
     }
-    syncSkillHud(el, state, now, !!force || !!(state && state.over && hudLast.winKey == null));
     let win = hudRefs.win || document.getElementById('aq-win');
-    if (state && state.over) {
-      const winKey = state.over + '|' + (state.battleMode || 'LOCAL');
+    const result = resultProjection();
+    if (result) {
+      const winKey = result.winner + '|' + result.battleMode;
       if (hudLast.winKey !== winKey) {
         if (!win) {
           win = document.createElement('div');
@@ -760,10 +753,10 @@
         win.className = 'aq-result-layer';
         hudRefs.win = win;
         const actions = ['REMATCH', 'PICK AGAIN', 'PRODUCT MENU'];
-        const award = window.APEX_ARSENAL_META?.lastAward?.();
-        const reward = award && award.amount
+        const award = result.award;
+        const reward = award
           ? '<div class="aq-result-reward">+' + award.amount + ' AC · BALANCE ' + award.balance + '</div>' : '';
-        win.innerHTML = '<div class="aq-result-card"><div class="aq-result-kicker">ARSENAL RESULT</div><div class="aq-result-title">' + state.over + ' WINS</div>'
+        win.innerHTML = '<div class="aq-result-card"><div class="aq-result-kicker">ARSENAL RESULT</div><div class="aq-result-title">' + result.winner + ' WINS</div>'
           + reward + '<div id="arsenal-result-actions" class="aq-result-actions">' + actions.map((action) => '<button type="button" data-arsenal-act="' + action + '">' + action + '</button>').join('') + '</div></div>';
         win.onclick = (event) => {
           const button = event.target && event.target.closest ? event.target.closest('[data-arsenal-act]') : null;
@@ -964,14 +957,6 @@
     arenaFlash = { r: 0, g: 0, b: 0, a: 0 };
     sawWallRage = { timer: 0, owner: null, phase: 0 };
 
-    const p1n = document.getElementById('p1-name');
-    const p2n = document.getElementById('p2-name');
-    if (p1n) { p1n.innerText = fighters[0].name; p1n.style.color = fighters[0].color; }
-    if (p2n) { p2n.innerText = fighters[1].name; p2n.style.color = fighters[1].color; }
-    const p1hp = document.getElementById('p1-hp');
-    const p2hp = document.getElementById('p2-hp');
-    if (p1hp) p1hp.style.backgroundColor = fighters[0].color;
-    if (p2hp) p2hp.style.backgroundColor = fighters[1].color;
     updateHUD();
     // PASS B §11: ENERGY B1 is match state — reset on every match start.
     if (window.APEX_COMBAT_HUD && window.APEX_COMBAT_HUD.onMatchStart) {
@@ -985,6 +970,7 @@
     if (window.APEX_ARSENAL_AV) { window.APEX_ARSENAL_AV.clear(); window.APEX_ARSENAL_AV.preload(); }
     if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.clear();
     gameState = 'ARSENAL';
+    window.APEX_COMBAT_HUD?.onProjectionChanged?.();
     lastTime = performance.now();
     if (!reqId) reqId = requestAnimationFrame(loop);
     if (!keyListener) {

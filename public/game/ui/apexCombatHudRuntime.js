@@ -35,7 +35,7 @@
   const ENERGY_DEALT_CONST = 100;
   const ENERGY_TAKEN_CONST = 60;
   const BEHIND_RATIO = 0.75;                     // §9 "meaningfully behind in HP"
-  const SYNC_MS = 100;                           // last-value-compare cadence (not per-frame)
+  const RECONCILE_MS = 100;                    // low-rate reconciliation for cooldown/loadout state
 
   // §9 deterministic commentary tiers (priority high → low).
   const TIERS = ['DEVASTATING', 'CRITICAL RUSH', 'MOMENTUM SWING', 'OVERDRIVE', 'RAMPAGE', 'PRESSURE', 'CONTACT'];
@@ -98,6 +98,7 @@
     energyWrites: 0,
     loadoutDraws: 0,
     panelWrites: 0,
+    vitalWrites: 0,
     matchStarts: 0,
   };
 
@@ -105,6 +106,11 @@
 
   const SIDE_IDS = (n) => ({
     panel: `p${n}-combat-panel`,
+    name: `p${n}-name`,
+    hp: `p${n}-hp`,
+    hpText: `p${n}-hp-text`,
+    hpLoss: `p${n}-hp-loss`,
+    rage: `p${n}-rage`,
     chip: `p${n}-cp-chip`,
     burst: `p${n}-burst`,
     burstLabel: `p${n}-burst-label`,
@@ -137,6 +143,11 @@
       const ids = SIDE_IDS(i + 1);
       const r = { _ids: ids };
       r.panel = $(ids.panel);
+      r.name = $(ids.name);
+      r.hp = $(ids.hp);
+      r.hpText = $(ids.hpText);
+      r.hpLoss = $(ids.hpLoss);
+      r.rage = $(ids.rage);
       r.chip = $(ids.chip);
       r.burst = $(ids.burst);
       r.burstLabel = $(ids.burstLabel);
@@ -178,6 +189,95 @@
   }
   function nowMs() {
     return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  }
+
+  // --------------------------------------------------------- projection --
+  // Gold-HUD boundary: all presentation truth is projected here. Renderers
+  // consume this shape; they do not re-query unrelated DOM nodes.
+  function identityProjection(f) {
+    if (!f) return { name: '', color: '#ffffff', heroId: null };
+    const hr = window.APEX_HERO_REWORK;
+    const p = hr && hr.hudIdentity ? hr.hudIdentity(f) : null;
+    return {
+      name: String((p && p.name) || f.name || ''),
+      color: String((p && p.color) || f.color || '#ffffff'),
+      heroId: (p && p.heroId) || null,
+    };
+  }
+
+  function vitalsProjection(f) {
+    if (!f) return { hp: 0, maxHp: 1, visiblePct: 0, label: '0 / 1', rage: false };
+    const hr = window.APEX_HERO_REWORK;
+    const projected = hr && hr.bodyHudHp ? hr.bodyHudHp(f) : { hp: f.hp, maxHp: f.maxHp };
+    const maxHp = Number.isFinite(projected && projected.maxHp) && projected.maxHp > 0 ? projected.maxHp : 1;
+    const hp = Number.isFinite(projected && projected.hp) ? Math.max(0, projected.hp) : 0;
+    const pct = Math.max(0, Math.min(140, (hp / maxHp) * 100));
+    const visiblePct = Math.min(100, pct);
+    const infinite = !!(f.data && f.data.autoBattleInfiniteHp);
+    return {
+      hp,
+      maxHp,
+      visiblePct,
+      label: infinite ? `${hp.toFixed(1)} / INF` : `${hp.toFixed(1)} / ${maxHp}`,
+      rage: !!f.isRage,
+    };
+  }
+
+  function modeProjection(i, f) {
+    const AQ = window.APEX_ARSENAL;
+    if (gameStateNow() !== 'ARSENAL' || !AQ || typeof AQ.hudProjectionFor !== 'function') {
+      return { active: false, modeLabel: '', skillLines: [], skillText: '' };
+    }
+    return AQ.hudProjectionFor(f, i) || { active: false, modeLabel: '', skillLines: [], skillText: '' };
+  }
+
+  function updateHpLossTrail(fill, trail, visiblePct) {
+    if (!fill) return;
+    const previous = Number(fill.dataset.hpPct);
+    if (trail && Number.isFinite(previous) && visiblePct < previous - 0.01) {
+      trail.style.transition = 'none';
+      trail.style.left = `${visiblePct}%`;
+      trail.style.width = `${previous - visiblePct}%`;
+      trail.style.opacity = '1';
+      void trail.offsetWidth;
+      trail.style.transition = 'opacity .62s ease-out';
+      clearTimeout(trail.__apexFadeTimer);
+      trail.__apexFadeTimer = setTimeout(() => { trail.style.opacity = '0'; }, 70);
+    } else if (trail && Number.isFinite(previous) && visiblePct > previous + 0.01) {
+      trail.style.opacity = '0';
+      trail.style.width = '0';
+    }
+    const width = `${visiblePct}%`;
+    if (fill.style.width !== width) {
+      fill.style.width = width;
+      stats.vitalWrites += 1;
+    }
+    if (fill.dataset.hpPct !== String(visiblePct)) fill.dataset.hpPct = String(visiblePct);
+  }
+
+  function renderVitals(i) {
+    cacheRefs();
+    const r = refs.sides[i];
+    const fs = fighterList();
+    const f = fs && fs[i];
+    if (!r || !r.panel || !f) return;
+    const identity = identityProjection(f);
+    const vitals = vitalsProjection(f);
+    if (r.name) {
+      if (r.name.innerText !== identity.name) { r.name.innerText = identity.name; stats.vitalWrites += 1; }
+      if (r.name.style.color !== identity.color) { r.name.style.color = identity.color; stats.vitalWrites += 1; }
+    }
+    if (r.hp) {
+      if (r.hp.style.backgroundColor !== identity.color) { r.hp.style.backgroundColor = identity.color; stats.vitalWrites += 1; }
+      updateHpLossTrail(r.hp, r.hpLoss, vitals.visiblePct);
+    }
+    if (r.hpText && r.hpText.innerText !== vitals.label) { r.hpText.innerText = vitals.label; stats.vitalWrites += 1; }
+    if (r.rage) {
+      const opacity = vitals.rage ? '1' : '0';
+      const display = vitals.rage ? 'block' : 'none';
+      if (String(r.rage.style.opacity) !== opacity) { r.rage.style.opacity = opacity; stats.vitalWrites += 1; }
+      if (r.rage.style.display !== display) { r.rage.style.display = display; stats.vitalWrites += 1; }
+    }
   }
 
   // -------------------------------------------------------------- energy --
@@ -374,16 +474,13 @@
     return true;
   }
 
-  function renderLoadout(i) {
-    cacheRefs();
-    const r = refs.sides[i];
-    if (!r || !r.loadoutName) return;
+  function loadoutProjection(i) {
     const fs = fighterList();
     const f = fs ? fs[i] : null;
-    if (!f) return;
+    if (!f) return null;
     const arsenal = gameStateNow() === 'ARSENAL';
     const CFG = window.APEX_ARSENAL_CONFIG;
-    let key, name, family, tier, tierColor = '', weaponId = null;
+    let key, name, family = '', tier = '', tierColor = '', weaponId = null;
     if (arsenal) {
       const h = (f.data && f.data.arsenal) || null;
       if (h && h.weaponId) {
@@ -399,41 +496,46 @@
         key = 'UNARMED';
       }
     } else {
-      // Non-Arsenal modes: truthful fighter identity/emblem only —
-      // never invent a weapon loadout (authority §8.5 / §16).
-      name = f.name;
+      name = identityProjection(f).name;
       key = `F:${f.name}:${f.color || ''}`;
     }
-    if (sides[i].loadoutKey === key && !r._pending) return;
-    const changed = sides[i].loadoutKey !== key;
-    sides[i].loadoutKey = key;
+    const ready = sides[i].energy >= ENERGY_CAP;
+    return {
+      key, name, family, tier, tierColor, weaponId,
+      state: weaponId ? (ready ? 'SKILL READY' : 'EQUIPPED') : (arsenal ? 'UNARMED' : 'FIGHTER ID'),
+      fallbackLabel: arsenal ? 'UNARMED' : 'EMBLEM',
+    };
+  }
 
-    if (r.loadoutName.textContent !== name) { r.loadoutName.textContent = name; stats.panelWrites += 1; }
-    const famText = family ? family : '';
-    if (r.loadoutFamily && r.loadoutFamily.textContent !== famText) { r.loadoutFamily.textContent = famText; stats.panelWrites += 1; }
+  function renderLoadout(i) {
+    cacheRefs();
+    const r = refs.sides[i];
+    if (!r || !r.loadoutName) return;
+    const fs = fighterList();
+    const f = fs ? fs[i] : null;
+    const p = loadoutProjection(i);
+    if (!f || !p) return;
+    if (sides[i].loadoutKey === p.key && !r._pending) return;
+    const changed = sides[i].loadoutKey !== p.key;
+    sides[i].loadoutKey = p.key;
+    if (r.loadoutName.textContent !== p.name) { r.loadoutName.textContent = p.name; stats.panelWrites += 1; }
+    if (r.loadoutFamily && r.loadoutFamily.textContent !== p.family) { r.loadoutFamily.textContent = p.family; stats.panelWrites += 1; }
     if (r.loadoutTier) {
-      r.loadoutTier.textContent = tier || '';
-      r.loadoutTier.style.color = tierColor || '';
-      r.loadoutTier.style.display = tier ? 'inline-block' : 'none';
+      r.loadoutTier.textContent = p.tier;
+      r.loadoutTier.style.color = p.tierColor;
+      r.loadoutTier.style.display = p.tier ? 'inline-block' : 'none';
     }
-    if (r.loadoutState) {
-      const ready = sides[i].energy >= ENERGY_CAP;
-      const stateText = weaponId ? (ready ? 'SKILL READY' : 'EQUIPPED') : (arsenal ? 'UNARMED' : 'FIGHTER ID');
-      if (r.loadoutState.textContent !== stateText) { r.loadoutState.textContent = stateText; stats.panelWrites += 1; }
-    }
-    if (r.loadoutGlyph && typeof window.fighterGlyph === 'function') {
-      r.loadoutGlyph.textContent = window.fighterGlyph(f.name);
-    }
-    if (weaponId) {
+    if (r.loadoutState && r.loadoutState.textContent !== p.state) { r.loadoutState.textContent = p.state; stats.panelWrites += 1; }
+    if (r.loadoutGlyph && typeof window.fighterGlyph === 'function') r.loadoutGlyph.textContent = window.fighterGlyph(f.name);
+    if (p.weaponId) {
       if (r.loadoutFallback.style.display !== 'none') { r.loadoutFallback.style.display = 'none'; stats.panelWrites += 1; }
       if (r.loadoutCanvas.style.display !== 'block') { r.loadoutCanvas.style.display = 'block'; stats.panelWrites += 1; }
-      if (changed) drawWeaponArt(i, weaponId);
+      if (changed) drawWeaponArt(i, p.weaponId);
     } else {
       if (r.loadoutCanvas.style.display !== 'none') { r.loadoutCanvas.style.display = 'none'; stats.panelWrites += 1; }
       if (r.loadoutFallback.style.display !== 'flex') { r.loadoutFallback.style.display = 'flex'; stats.panelWrites += 1; }
-      if (r.loadoutFallbackLabel) {
-        const label = arsenal ? 'UNARMED' : 'EMBLEM';
-        if (r.loadoutFallbackLabel.textContent !== label) { r.loadoutFallbackLabel.textContent = label; stats.panelWrites += 1; }
+      if (r.loadoutFallbackLabel && r.loadoutFallbackLabel.textContent !== p.fallbackLabel) {
+        r.loadoutFallbackLabel.textContent = p.fallbackLabel; stats.panelWrites += 1;
       }
       if (changed && r.loadoutCanvas && r.loadoutCanvas.getContext) {
         try { r.loadoutCanvas.getContext('2d').clearRect(0, 0, r.loadoutCanvas.width, r.loadoutCanvas.height); } catch (e) { /* headless */ }
@@ -446,24 +548,13 @@
     cacheRefs();
     const r = refs.sides[i];
     if (!r || !r.modeSlot) return;
-    let text = '';
-    const gs = gameStateNow();
-    const AQ = window.APEX_ARSENAL;
-    const state = AQ && AQ.state;
+    const fs = fighterList();
+    const p = modeProjection(i, fs && fs[i]);
     if (r.chip) {
-      const chipText = gs === 'ARSENAL' ? 'ARSENAL' : 'COMBAT';
+      const chipText = gameStateNow() === 'ARSENAL' ? 'ARSENAL' : 'COMBAT';
       if (r.chip.textContent !== chipText) { r.chip.textContent = chipText; stats.panelWrites += 1; }
     }
-    if (gs === 'ARSENAL') {
-      const modeLabel = state?.labMode ? 'ARSENAL LAB'
-        : state?.battleMode === 'BOT' ? 'BOT BATTLE' : 'LOCAL 1V1';
-      // Keep truthful skill/cooldown state in the panel footer instead of
-      // overlapping identity and HP.
-      const skill = document.getElementById('aq-skill-hud');
-      const fs = fighterList(), heroLines = fs && window.APEX_HERO_REWORK?.skillHud(fs[i]);
-      const skillText = heroLines?.length ? heroLines.join(' | ') : (skill && skill.textContent ? String(skill.textContent).trim() : '');
-      text = skillText ? modeLabel + ' · ' + skillText : modeLabel;
-    }
+    const text = p && p.active ? (p.skillText ? p.modeLabel + ' · ' + p.skillText : p.modeLabel) : '';
     if (r.modeSlot.textContent !== text) { r.modeSlot.textContent = text; stats.panelWrites += 1; }
   }
 
@@ -525,6 +616,7 @@
       }
     }
     for (let i = 0; i < 2; i++) {
+      renderVitals(i);
       renderLoadout(i);
       renderEnergy(i);
       renderModeSlot(i);
@@ -581,19 +673,43 @@
   function startInterval() {
     if (refs.interval) return;
     if (typeof setInterval !== 'function') return;
-    refs.interval = setInterval(() => { try { sync(); } catch (e) { /* headless safety */ } }, SYNC_MS);
+    refs.interval = setInterval(() => { try { sync(); } catch (e) { /* headless safety */ } }, RECONCILE_MS);
   }
 
   // ------------------------------------------------------------ public --
+  function sideProjection(i) {
+    const fs = fighterList();
+    const f = fs && fs[i];
+    if (!f) return null;
+    const hr = window.APEX_HERO_REWORK;
+    return {
+      side: i + 1,
+      identity: identityProjection(f),
+      vitals: vitalsProjection(f),
+      energy: sides[i].energy,
+      burst: sides[i].burst ? { ...sides[i].burst } : null,
+      loadout: loadoutProjection(i),
+      mode: modeProjection(i, f),
+      robotPassive: hr && hr.robotPassiveHud ? hr.robotPassiveHud(f) : null,
+    };
+  }
+
+  function projection() {
+    return { gameState: gameStateNow(), visible: !!refs._visible, sides: [sideProjection(0), sideProjection(1)] };
+  }
+
   window.APEX_COMBAT_HUD = {
-    version: 'pass-b-1',
+    version: 'authority-r42',
     SILENCE_MS,
     TIERS,
     TIER_COLOR,
     commentaryFor,
     onRealizedDamage,
     onMatchStart,
+    onProjectionChanged() { sync(); },
+    syncVitals() { for (let i = 0; i < 2; i++) renderVitals(i); },
     sync,
+    projection,
     stats,
     debug() {
       return {

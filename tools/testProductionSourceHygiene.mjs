@@ -14,6 +14,10 @@ const enginePath = path.join(REPO, 'public', 'apexEngine.js');
 const appPath = path.join(REPO, 'src', 'App.jsx');
 const stylesPath = path.join(REPO, 'src', 'styles.css');
 const pickRuntimePath = path.join(REPO, 'public', 'game', 'ui', 'apexPickRuntime.js');
+const combatHudPath = path.join(REPO, 'public', 'game', 'ui', 'apexCombatHudRuntime.js');
+const battleRuntimePath = path.join(REPO, 'public', 'game', 'modes', 'arsenalBattleRuntime.js');
+const renderHudPath = path.join(REPO, 'public', 'game', 'core', 'apexArsenalProductRenderHudRuntime.js');
+const heroReworkPath = path.join(REPO, 'public', 'game', 'hero-rework', 'heroReworkRuntime.js');
 
 function walkJs(dir, out = []) {
   if (!fs.existsSync(dir)) return out;
@@ -77,6 +81,10 @@ const appSource = fs.readFileSync(appPath, 'utf8');
 const stylesSource = fs.readFileSync(stylesPath, 'utf8');
 const pickRuntimeSource = fs.readFileSync(pickRuntimePath, 'utf8');
 const productPresentationSources = [engineSource, appSource, stylesSource, pickRuntimeSource];
+const combatHudSource = fs.readFileSync(combatHudPath, 'utf8');
+const battleRuntimeSource = fs.readFileSync(battleRuntimePath, 'utf8');
+const renderHudSource = fs.readFileSync(renderHudPath, 'utf8');
+const heroReworkSource = fs.readFileSync(heroReworkPath, 'utf8');
 for (const logicalPath of [...LEGACY_FIXTURE_RUNTIME_PATHS, ...retiredOrphanPaths]) {
   assert.ok(!engineSource.includes(logicalPath), `apexEngine contains stale legacy runtime pointer: ${logicalPath}`);
 }
@@ -88,6 +96,15 @@ for (const forbidden of ['/assets/shotgun_v1/', 'SELECTED_FIGHTER_VFX']) {
     `retired generic select shell leaked back into production presentation: ${forbidden}`,
   );
 }
+assert.ok(!battleRuntimeSource.includes('aq-skill-hud'), 'battle utility layer resurrected duplicate skill HUD DOM');
+assert.ok(!combatHudSource.includes("getElementById('aq-skill-hud')"), 'combat HUD reads presentation DOM instead of state projection');
+assert.match(battleRuntimeSource, /AQ\.hudProjectionFor\s*=\s*hudProjectionFor/);
+assert.match(battleRuntimeSource, /AQ\.resultProjection\s*=\s*resultProjection/);
+assert.match(combatHudSource, /projection,/);
+assert.match(combatHudSource, /syncVitals\(\)/);
+assert.ok(!renderHudSource.includes('getElementById('), 'current render/HUD seam still writes HUD DOM directly');
+assert.ok(!heroReworkSource.includes('syncFrostBattleHud'), 'hero rework still owns direct battle HUD identity writes');
+assert.match(manifestSource, /apexCombatHudRuntime\.js\?v=' \+ APEX_ARSENAL_RUNTIME_REVISION/);
 
 console.log(JSON.stringify({
   productionPublicRuntimes: productionRuntimePaths.size,
@@ -95,4 +112,5 @@ console.log(JSON.stringify({
   retiredOrphans: retiredOrphanPaths.length,
   staleEnginePointers: 0,
   retiredSelectShellLeaks: 0,
+  hudAuthorityLeaks: 0,
 }, null, 2));

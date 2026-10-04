@@ -3508,6 +3508,12 @@ win.__AQ_PANEL_SAMPLE = (id) => {
 const hudDebug = () => JSON.parse(run(`return JSON.stringify(APEX_COMBAT_HUD.debug())`));
 
 gate('passb-runtime-registered', !!win.APEX_COMBAT_HUD && win.apexCombatHudRuntime === 'ready');
+gate('hud-authority-contract-registered',
+  typeof win.APEX_COMBAT_HUD?.projection === 'function'
+  && typeof win.APEX_COMBAT_HUD?.syncVitals === 'function'
+  && typeof win.APEX_ARSENAL?.hudProjectionFor === 'function'
+  && typeof win.APEX_ARSENAL?.resultProjection === 'function'
+  && !win.document.getElementById('aq-skill-hud'));
 
 // ---- deterministic commentary (pure resolver, two max-HP values) ----
 const commentary = (total, hits, crits, bigHit, maxHp, aHp, vHp) =>
@@ -3532,6 +3538,14 @@ gate('passb-commentary-norm-300-devastating', commentary(70.5, 2, 0, 20, 300, 30
 run(`__APEX_TEST.enterManual(); __APEX_TEST.holdSpawns();`);
 await sleep(150);
 let d = hudDebug();
+const authorityProjection = JSON.parse(run(`APEX_COMBAT_HUD.sync(); return JSON.stringify(APEX_COMBAT_HUD.projection())`));
+gate('hud-authority-side-projection-truthful',
+  authorityProjection.sides?.length === 2
+  && authorityProjection.sides[0]?.identity?.name
+  && authorityProjection.sides[0]?.vitals?.maxHp > 0
+  && authorityProjection.sides[0]?.loadout
+  && authorityProjection.sides[0]?.mode,
+  authorityProjection);
 gate('passb-burst-idle-at-match-start', d.sides[0].burst === null && d.sides[1].burst === null);
 run(`fighters[1].takeDamage(11, fighters[0], 'arsenal-test', false)`);
 d = hudDebug();

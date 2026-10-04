@@ -12,7 +12,7 @@ const engine = fs.readFileSync('public/apexEngine.js', 'utf8');
 const mRev = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
 if (!mRev) { console.error('FAIL revision constant missing'); process.exit(1); }
 const revision = mRev[1];
-const expectedRevision = '20261003-mirror-v1-r41';
+const expectedRevision = '20261003-mirror-v1-r42';
 if (revision !== expectedRevision) {
   console.error(`FAIL this cutover permits exactly one revision: expected=${expectedRevision} actual=${revision}`);
   process.exit(1);
@@ -28,6 +28,7 @@ const required = [
   'public/game/core/apexArsenalProductCollisionRuntime.js',
   'public/game/core/apexArsenalProductDrawRecoveryRuntime.js',
   'public/game/core/apexArsenalProductRenderHudRuntime.js',
+  'public/game/ui/apexCombatHudRuntime.js',
 ];
 const missing = required.filter((file) => !paths.includes(file));
 if (missing.length) {

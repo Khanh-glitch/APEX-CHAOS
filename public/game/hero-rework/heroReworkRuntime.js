@@ -305,23 +305,14 @@
     AIL.bus.emit('ReworkMatchInstall', {
       p1: M.combatants[0].heroId, p2: M.combatants[1].heroId,
     });
-    syncFrostBattleHud();
+    notifyCombatHudMatchInstalled();
   }
 
-  // FROST V1 (authority §1): battle HUD shows the product display identity
-  // for rework combatants. installMatch runs after the battle runtime wrote
-  // storage names, so this overwrite is correctly ordered; the shared engine files remain untouched. Legacy (facade) sides keep classic copy.
-  function syncFrostBattleHud() {
-    try {
-      if (typeof document === 'undefined' || !M) return;
-      if (!REG || !REG.displayNameFor) return;
-      for (let i = 0; i < 2; i++) {
-        const ct = M.combatants && M.combatants[i];
-        if (!ct || ct.facade || !ct.heroId) continue;
-        const el = document.getElementById(i === 0 ? 'p1-name' : 'p2-name');
-        if (el) el.innerText = REG.displayNameFor(ct.heroId);
-      }
-    } catch (e) { /* HUD copy never breaks match install */ }
+  // Product display identity is projected through APEX_COMBAT_HUD. The
+  // rework runtime owns identity truth but never writes HUD DOM directly.
+  function notifyCombatHudMatchInstalled() {
+    try { globalScope.APEX_COMBAT_HUD?.onProjectionChanged?.(); }
+    catch (e) { /* HUD notification never breaks match install */ }
   }
 
   function teardownMatch() {
@@ -1398,8 +1389,17 @@
   };
   HR.bodyHudHp = function bodyHudHp(f) {
     const ct = combatantOfBody(f);
-    if (!ct || ct.facade) return { hp: f.hp, maxHp: f.maxHp }; // legacy body
-    return combatantHp(ct); // logical Combatant total living HP
+    if (!ct || ct.facade) return { hp: f.hp, maxHp: f.maxHp };
+    return combatantHp(ct);
+  };
+  HR.hudIdentity = function hudIdentity(f) {
+    const ct = combatantOfBody(f);
+    if (!ct || ct.facade) return { name: f ? f.name : '', color: f ? f.color : '#ffffff', heroId: null };
+    return {
+      name: REG.displayNameFor ? REG.displayNameFor(ct.heroId) : ct.heroId,
+      color: (f && f.color) || '#ffffff',
+      heroId: ct.heroId,
+    };
   };
 
   /* ------------------------------------------------------------------ *

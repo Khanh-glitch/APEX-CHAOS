@@ -4,28 +4,12 @@
 // used by the current product. Collision and draw-error recovery remain on
 // their transitional owners until their dedicated Phase 2A slices.
 (function installArsenalProductRenderHud() {
-  function updateArsenalPlayerHud() {
-    if (!fighters[0] || !fighters[1]) return;
-
-    for (let i = 0; i < 2; i++) {
-      const fighter = fighters[i];
-      const maxHp = Number.isFinite(fighter.maxHp) && fighter.maxHp > 0 ? fighter.maxHp : 1;
-      const hp = Number.isFinite(fighter.hp) ? Math.max(0, fighter.hp) : 0;
-      const percent = clamp((hp / maxHp) * 100, 0, 100);
-      const fill = document.getElementById(`p${i + 1}-hp`);
-      const text = document.getElementById(`p${i + 1}-hp-text`);
-      const rage = document.getElementById(`p${i + 1}-rage`);
-
-      if (fill) fill.style.width = `${percent}%`;
-      if (text) text.innerText = `${hp.toFixed(1)} / ${maxHp.toFixed(0)}`;
-      if (rage) {
-        rage.style.opacity = fighter.isRage ? 1 : 0;
-        rage.style.display = fighter.isRage ? 'block' : 'none';
-      }
-    }
+  function syncArsenalPlayerHud() {
+    // Current-product HUD DOM has one owner: APEX_COMBAT_HUD.
+    if (window.APEX_COMBAT_HUD && window.APEX_COMBAT_HUD.syncVitals) window.APEX_COMBAT_HUD.syncVitals();
   }
 
-  updateHUD = updateArsenalPlayerHud;
+  updateHUD = syncArsenalPlayerHud;
 
   draw = function drawArsenalProductFrame() {
     window.__apexRenderFrame = (window.__apexRenderFrame || 0) + 1;

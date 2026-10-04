@@ -1,8 +1,8 @@
 // Cache-bust classic runtime scripts that live under /public and therefore do
 // not receive Vite content hashes. This Phase 2C product-runtime transition
-// from r40 to r41 closes the retired generic select presentation shell while
-// preserving the current Arsenal/Core Six picker as the sole product owner.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r41';
+// from r41 to r42 consolidates current combat HUD state/projection authority
+// before the Gold HUD/UI/UX overhaul.
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r42';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -30,7 +30,7 @@ export const CURRENT_COMBAT_CORE_RUNTIMES = [
 
 // Universal combat HUD state adapter + renderer.
 export const HUD_RUNTIMES = [
-  ['/game/ui/apexCombatHudRuntime.js', 'apexCombatHudRuntime'],
+  ['/game/ui/apexCombatHudRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCombatHudRuntime'],
 ];
 
 // Current Arsenal/Core Six character-select presentation.

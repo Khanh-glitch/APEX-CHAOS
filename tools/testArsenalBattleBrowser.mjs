@@ -1509,10 +1509,22 @@ try {
   report.neutralHud = await evaluate(`(() => {
     __APEX_TEST.enterNeutralFixture();
     __APEX_TEST.redraw();
-    const el = document.getElementById('aq-skill-hud');
-    return { has: !!el, text: el ? el.textContent : '' };
+    APEX_COMBAT_HUD.sync();
+    const el = document.getElementById('p1-mode-slot');
+    return {
+      hasModeSlot: !!el,
+      text: el ? el.textContent : '',
+      legacySkillNode: !!document.getElementById('aq-skill-hud'),
+      hasProjection: typeof APEX_ARSENAL.hudProjectionFor === 'function'
+        && typeof APEX_COMBAT_HUD.projection === 'function',
+    };
   })()`);
-  gate('browser-neutral-product-cooldown-hud', report.neutralHud.has === true, report.neutralHud);
+  gate('browser-neutral-product-cooldown-hud',
+    report.neutralHud.hasModeSlot === true
+      && report.neutralHud.legacySkillNode === false
+      && report.neutralHud.hasProjection === true
+      && /ARSENAL|BATTLE|1V1/.test(report.neutralHud.text),
+    report.neutralHud);
 
   // Current Shop, Draw, Local/Bot and hidden admin Lab are physically covered
   // by runArsenalProductBrowserAcceptance. Quest 01 remains a locked product
