@@ -675,8 +675,8 @@ kbd{font:inherit}
     </defs></svg>
   </div>
   <div id="copyLayer"></div>
-  <div id="safeViz"><i class="sv t"></i><i class="sv r"></i><i class="sv b"></i><i class="sv l"></i></div>
-  <div id="diag"></div>
+  
+  
 </div>
 
 <script>
@@ -882,6 +882,14 @@ function readyPop(u,i,k){
 }
 function renderAll(){[0,1].forEach(i=>{renderRail(i);renderWeapon(i);});renderTimer();renderStatic();}
 
+/* ================= ARENA ANCHOR STORE (production truth) ================= */
+// Canonical FX anchors (popups/sweeps/flashes/streaks/thunder) mirror the
+// REAL production fighter positions fed by the seam (syncFighters). The
+// donor's fake simulation (covers, AI, regen, demo loop) is gone; this
+// store is presentation geometry only, never match truth.
+const G={f:[{x:250,y:520,vx:0,vy:0,tx:250,ty:520,aim:0,flash:0,jx:0,jy:0,dash:null},
+           {x:750,y:480,vx:0,vy:0,tx:750,ty:480,aim:Math.PI,flash:0,jx:0,jy:0,dash:null}],
+         b:[],sp:[],beams:[],walls:[],after:[],rings:[],thunder:[]};
 /* ================= ABILITIES / WEAPONS ================= */
 function cast(pi,ai,src){
  const now=performance.now(),a=S.players[pi].abil[ai],u=R.side[pi].skills[ai];

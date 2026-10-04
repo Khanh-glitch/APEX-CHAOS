@@ -209,11 +209,26 @@
     if (root) host.appendChild(document.importNode(root, true));
     // Park BEFORE the donor scripts run so their lookups hit their own DOM.
     parkCollidingIds();
+    // The donor's inline scripts share one top-level lexical scope (the seam
+    // script, the render script and the handoff bridge read each other's
+    // declarations). Executing them as separate <script> elements would make a
+    // REMOUNT fail: classic scripts share the document's global lexical scope,
+    // so re-declaring the donor's top-level consts throws
+    // "Identifier 'IC' has already been declared" and the HUD never boots.
+    // Concatenating them into ONE freshly-scoped IIFE per mount keeps the
+    // shared scope AND makes mount/unmount/remount idempotent.
     const scripts = Array.from(doc.querySelectorAll('script'));
-    for (const src of scripts) {
+    const inline = scripts.filter((node) => !node.src).map((node) => node.textContent || '').filter((t) => t.trim());
+    if (inline.length) {
       const run = document.createElement('script');
-      if (src.src) run.src = src.src;
-      else run.textContent = src.textContent;
+      run.textContent = '(function apexGoldHudMount() {\n' + inline.join('\n;\n') + '\n})();';
+      run.async = false;
+      host.appendChild(run);
+    }
+    for (const src of scripts) {
+      if (!src.src) continue;
+      const run = document.createElement('script');
+      run.src = src.src;
       run.async = false;
       host.appendChild(run);
     }
@@ -234,6 +249,7 @@
     hudMounted = false;
     restoreParkedIds();
     battleLiveRunning = false;
+    cancelResultReturn();
     theme.stop();
   };
 
@@ -654,6 +670,33 @@
 
   let pumpId = 0;
   let lastKo = null;
+  // ── result / return ─────────────────────────────────────────────────────
+  // The Gold HUD owns the result presentation (canonical K.O./TIME stamp +
+  // win counter). Once that presentation has played out, the REAL production
+  // battle is exited (exitArsenalBattleMode: session teardown, AV/storm
+  // clear, listener removal, menu restore) and the shell is told to return to
+  // the fighter screen. Nothing synthetic is invented; the engine stays the
+  // only match authority, and the whole sequence is idempotent per match.
+  const RESULT_HOLD_MS = 2600; // donor K.O. stamp (1700ms) + read-out margin
+  let resultReturnTimer = 0;
+  function scheduleResultReturn() {
+    if (resultReturnTimer) return;
+    resultReturnTimer = setTimeout(() => {
+      resultReturnTimer = 0;
+      if (!hudMounted) return;
+      try { window.exitArsenalBattleMode?.(); } catch (error) { /* truth-first */ }
+      try {
+        window.postMessage({ type: 'APEX_CHAOS_BATTLE_EXIT' }, '*');
+      } catch (error) { /* same-document mount; parent === window */ }
+    }, RESULT_HOLD_MS);
+  }
+  function cancelResultReturn() {
+    if (resultReturnTimer) {
+      clearTimeout(resultReturnTimer);
+      resultReturnTimer = 0;
+    }
+  }
+
   function pump() {
     pumpId = requestAnimationFrame(pump);
     if (!hudMounted) return;
@@ -667,14 +710,24 @@
     const over = state && state.over ? String(state.over) : null;
     if (over && over !== lastKo) {
       lastKo = over;
-      const winnerIdx = over === 'P1' ? 0 : over === 'P2' ? 1 : -1;
+      // Production truth: state.over carries the WINNER'S NAME (or TIME). Map
+      // it to the real fighter side; never assume a P1/P2 token.
+      const fighters = window.fighters;
+      const winnerIdx = Array.isArray(fighters)
+        ? fighters.findIndex((f) => f && String(f.name) === over)
+        : -1;
       const loserIdx = winnerIdx === 0 ? 1 : winnerIdx === 1 ? 0 : -1;
       if (winnerIdx >= 0 && typeof seam.ko === 'function') seam.ko(winnerIdx, loserIdx);
+      else if (typeof seam.ko === 'function') seam.ko(-1, -1);
+      // Draw/time-out still returns: the stamp reads TIME and the shell goes
+      // back to fighter select either way.
+      scheduleResultReturn();
     }
     if (!over) lastKo = null;
   }
   function startPump() {
     lastKo = null;
+    cancelResultReturn();
     if (!pumpId) pumpId = requestAnimationFrame(pump);
   }
 

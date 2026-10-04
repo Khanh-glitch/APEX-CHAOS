@@ -148,12 +148,95 @@
         "leakage": []
       }
     },
+    "gold-recomposes-into-real-viewport-families": {
+      "pass": true,
+      "detail": [
+        {
+          "label": "desktop-1366x768",
+          "expected": "desk",
+          "layout": "desk",
+          "mode": "2p",
+          "stageW": "1366px",
+          "p2Mirror": true
+        },
+        {
+          "label": "desktop-1920x1080",
+          "expected": "desk",
+          "layout": "desk",
+          "mode": "2p",
+          "stageW": "1920px",
+          "p2Mirror": true
+        },
+        {
+          "label": "mobile-landscape-844x390",
+          "expected": "land",
+          "layout": "land",
+          "mode": "2p",
+          "stageW": "844px",
+          "p2Mirror": true
+        },
+        {
+          "label": "mobile-portrait-390x844",
+          "expected": "port",
+          "layout": "port",
+          "mode": "2p",
+          "stageW": "390px",
+          "p2Mirror": false
+        }
+      ]
+    },
+    "portrait-2p-mirrors-only-p2-territory": {
+      "pass": true,
+      "detail": {
+        "portraitMirror": false,
+        "others": [
+          true,
+          true,
+          true
+        ],
+        "rotationRule": true,
+        "rotatedTargets": 2,
+        "neutralRotated": false
+      }
+    },
+    "forward-drive-theme-m-key-mute-only": {
+      "pass": true,
+      "detail": {
+        "before": false,
+        "afterM": true,
+        "afterUpper": false,
+        "bodyClassesAfterDonorKeys": true,
+        "labPresent": false,
+        "diagPresent": false,
+        "safeVizPresent": false
+      }
+    },
+    "result-presented-then-production-exit-and-return": {
+      "pass": true,
+      "detail": {
+        "koPresented": true,
+        "exitMessages": 1,
+        "afterResult": {
+          "gameState": "MENU",
+          "active": false,
+          "over": null
+        }
+      }
+    },
+    "production-loop-frames-stay-bounded": {
+      "pass": true,
+      "detail": {
+        "frames": 90,
+        "elapsedMs": 25.12,
+        "perFrameMs": 0.28
+      }
+    },
     "production-truth-roots-stay-mounted": {
       "pass": true,
       "detail": {
         "canvas": true,
         "battleShell": true,
-        "engineLoopRunning": false
+        "engineLoopRunning": true
       }
     }
   },
@@ -162,8 +245,8 @@
   "evidence": [],
   "runtimeScriptCount": 41,
   "summary": {
-    "total": 16,
-    "passed": 16,
+    "total": 21,
+    "passed": 21,
     "failed": []
   }
 }

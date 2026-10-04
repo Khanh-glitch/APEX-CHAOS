@@ -20,7 +20,15 @@ const REPO = process.cwd();
 const TOOLING_DIR = process.env.APEX_TOOLING_DIR || path.join(REPO, 'node_modules');
 const evidenceDir = process.env.APEX_EVIDENCE_DIR || 'docs/acceptance/gold-cutover/headless';
 const requireTool = createRequire(path.join(TOOLING_DIR, 'noop.js'));
-const { JSDOM } = requireTool('jsdom');
+const { JSDOM, VirtualConsole } = requireTool('jsdom');
+// Surface script errors from the mounted donor HUD (it executes inside jsdom).
+const virtualConsole = new VirtualConsole();
+virtualConsole.on('jsdomError', (error) => {
+  console.log('[page-error]', String((error && error.message) || error).slice(0, 240));
+});
+virtualConsole.on('log', (...a) => console.log('[page]', ...a));
+virtualConsole.on('warn', (...a) => console.log('[page-warn]', ...a));
+virtualConsole.on('error', (...a) => console.log('[page-error]', ...a));
 const { createCanvas, loadImage, GlobalFonts, ImageData: NapiImageData, Path2D: NapiPath2D } = requireTool('@napi-rs/canvas');
 
 GlobalFonts.registerFromPath(path.join(REPO, 'public', 'assets', 'fonts', 'kanit', 'Kanit-BlackItalic.ttf'), 'ApcKanit');
@@ -63,7 +71,7 @@ const dom = new JSDOM(`<!doctype html><html><body>
   </div>
   <div id="gold-shell-host"></div>
   <div id="battleHudHost"></div>
-</body></html>`, { pretendToBeVisual: true, runScripts: 'dangerously', url: 'http://localhost/' });
+</body></html>`, { pretendToBeVisual: true, runScripts: 'dangerously', url: 'http://localhost/', virtualConsole });
 
 const win = dom.window;
 installProductSurfaceAuthority(win);
@@ -139,6 +147,16 @@ class AudioContextStub {
 win.AudioContext = AudioContextStub;
 win.webkitAudioContext = AudioContextStub;
 
+// jsdom lacks ResizeObserver/matchMedia (the donor HUD uses both). Browsers
+// ship them; the stubs keep the donor's own viewport path intact here.
+if (!win.ResizeObserver) {
+  win.ResizeObserver = class ResizeObserverStub {
+    constructor(cb) { this.cb = cb; }
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
 // jsdom lacks matchMedia (Gold HUD reduced-motion read).
 if (!win.matchMedia) {
   win.matchMedia = (q) => ({ matches: false, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
@@ -192,8 +210,24 @@ class HarnessImage {
 win.Image = HarnessImage;
 if (!win.ImageData) win.ImageData = NapiImageData;
 if (!win.Path2D) win.Path2D = NapiPath2D;
-win.requestAnimationFrame = () => 0;
-win.cancelAnimationFrame = () => {};
+// Frame driver: queued rAF so the production engine loop AND the Gold bridge
+// pump can be stepped deterministically (and timed) inside the harness.
+const rafQueue = [];
+let rafId = 0;
+win.requestAnimationFrame = (cb) => { const id = ++rafId; rafQueue.push({ id, cb }); return id; };
+win.cancelAnimationFrame = (id) => {
+  const i = rafQueue.findIndex((e) => e.id === id);
+  if (i >= 0) rafQueue.splice(i, 1);
+};
+win.__apexGoldRafShift = () => rafQueue.shift();
+function drainFrames(count = 1) {
+  for (let i = 0; i < count; i++) {
+    const entry = rafQueue.shift();
+    if (!entry) break;
+    entry.cb(win.performance.now());
+  }
+  return rafQueue.length;
+}
 
 // ------------------------------------------------------------ script loading
 const loadErrors = [];
@@ -504,7 +538,124 @@ async function main() {
   }
   gate('no-donor-harness-survivors-in-generated-gold', leakage.length === 0, { leakage });
 
-  // 13) Protected production truth: the engine canvas and legacy roots stay in
+  // 13) Responsive Gold families: the HUD re-composes from the REAL viewport
+  //     into desk/land/port (never a donor fixed-size preset). Re-mount first:
+  //     the rematch gate above intentionally unmounted the HUD.
+  mountGeneratedBattleHud();
+  recordSeam();
+  const responsive = [];
+  for (const [label, w, h, expected] of [
+    ['desktop-1366x768', 1366, 768, 'desk'],
+    ['desktop-1920x1080', 1920, 1080, 'desk'],
+    ['mobile-landscape-844x390', 844, 390, 'land'],
+    ['mobile-portrait-390x844', 390, 844, 'port'],
+  ]) {
+    const got = win.eval(`(() => {
+      window.innerWidth = ${w}; window.innerHeight = ${h};
+      const hud = document.getElementById('hud');
+      if (!hud) return null;
+      // The donor's own resize path (real production input to the HUD).
+      window.dispatchEvent(new window.Event('resize'));
+      return { layout: hud.dataset.layout, mode: hud.dataset.mode,
+        stageW: document.getElementById('stage').style.width,
+        p2Mirror: document.querySelector('#battleHudHost #p2Side').hasAttribute('data-mirror') };
+    })()`);
+    responsive.push({ label, expected, ...got });
+  }
+  gate('gold-recomposes-into-real-viewport-families', responsive.every((r) => r.layout === r.expected
+    && r.stageW !== '' && typeof r.mode === 'string'), responsive);
+
+  // 13b) Responsive law: Local portrait 2P rotates ONLY the P2 control
+  //      territory (#p2Side gets rotate:180deg) — the donor's data-mirror
+  //      presentation is what drops out in portrait 2P, and the arena, the
+  //      match center (timer/round) and the neutral rails are never rotated.
+  const mirror = responsive.find((r) => r.label === 'mobile-portrait-390x844');
+  const nonPortrait = responsive.filter((r) => r.label !== 'mobile-portrait-390x844');
+  const hudCss = fs.readFileSync(path.join(REPO, 'public/gold/battle-hud.html'), 'utf8');
+  const rotationRule = /#hud\[data-layout="port"\]\[data-mode="2p"\] #p2Side\{rotate:180deg\}/.test(hudCss);
+  const rotatedTargets = (hudCss.match(/rotate:180deg/g) || []).length;
+  const neutralRotated = /#arena[^{}]*rotate:180deg|#matchCenter[^{}]*rotate:180deg/.test(hudCss);
+  gate('portrait-2p-mirrors-only-p2-territory', !!mirror && mirror.p2Mirror === false
+    && nonPortrait.every((r) => r.p2Mirror === true)
+    && rotationRule === true && rotatedTargets >= 1 && neutralRotated === false, {
+    portraitMirror: mirror && mirror.p2Mirror, others: nonPortrait.map((r) => r.p2Mirror),
+    rotationRule, rotatedTargets, neutralRotated,
+  });
+
+  // 13c) Forward Drive theme policy: M is the global music mute/unmute key
+  //      only (owner law). No donor motion/parallax/diagnostic keys survive.
+  const themeRun = win.eval(`(() => {
+    const before = !!window.__apexGoldMusicMuted;
+    window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'm', bubbles: true, cancelable: true }));
+    const afterM = !!window.__apexGoldMusicMuted;
+    window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'M', bubbles: true, cancelable: true }));
+    const afterUpper = !!window.__apexGoldMusicMuted;
+    const donorKeys = ['t', 'h', 'c', 'd', 'f', 'w', 'e', 'r', 'p', 'l', 'v', 's', 'g'];
+    const bodyClasses = document.body.className;
+    for (const k of donorKeys) {
+      window.dispatchEvent(new window.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+    }
+    return { before, afterM, afterUpper, bodyClassesAfterDonorKeys: document.body.className === bodyClasses,
+      labPresent: !!document.getElementById('lab'), diagPresent: !!document.getElementById('diag'),
+      safeVizPresent: !!document.getElementById('safeViz') };
+  })()`);
+  gate('forward-drive-theme-m-key-mute-only', themeRun.before === false
+    && themeRun.afterM === true && themeRun.afterUpper === false
+    && themeRun.bodyClassesAfterDonorKeys === true
+    && themeRun.labPresent === false && themeRun.diagPresent === false
+    && themeRun.safeVizPresent === false, themeRun);
+
+  // 14) Result / return: a real KO presents through the Gold seam, then the
+  //     REAL production battle exits and the shell is told to return.
+  const exitMessages = [];
+  win.addEventListener('message', (e) => {
+    if (e && e.data && e.data.type === 'APEX_CHAOS_BATTLE_EXIT') exitMessages.push(Date.now());
+  });
+  seamCalls.length = 0;
+  win.eval(`(() => {
+    const v = fighters[1];
+    v.hp = v.maxHp;
+    // Real lethal damage through the production weapon API.
+    window.APEX_ARSENAL.weaponApi.aqDamage(v, 99999, fighters[0], undefined, {});
+  })()`);
+  // Step the frame driver so the bridge pump observes the real match-over state.
+  for (let i = 0; i < 12; i++) drainFrames(4);
+  const koPresented = seamCalls.some((c) => c.name === 'ko');
+  await new Promise((r) => setTimeout(r, 3000));
+  for (let i = 0; i < 4; i++) drainFrames(4);
+  const afterResult = win.eval(`(() => ({
+    gameState: typeof gameState !== 'undefined' ? gameState : null,
+    active: !!(window.APEX_ARSENAL && window.APEX_ARSENAL.state && window.APEX_ARSENAL.state.active),
+    over: window.APEX_ARSENAL && window.APEX_ARSENAL.state ? window.APEX_ARSENAL.state.over : null,
+  }))()`);
+  gate('result-presented-then-production-exit-and-return', koPresented === true
+    && exitMessages.length === 1
+    && afterResult.gameState === 'MENU' && afterResult.active === false, {
+    koPresented, exitMessages: exitMessages.length, afterResult,
+  });
+
+  // 14b) Frame cost through the real loop (bounded headless evidence; the
+  //      real-browser GPU proof remains an explicit deviation).
+  const frameCost = win.eval(`(() => {
+    const shift = window.__apexGoldRafShift;
+    if (typeof shift !== 'function') return { frames: 0, elapsedMs: 0 };
+    const started = performance.now();
+    let frames = 0;
+    for (let i = 0; i < 90; i++) {
+      const entry = shift();
+      if (!entry || typeof entry.cb !== 'function') break;
+      entry.cb(performance.now());
+      frames++;
+    }
+    return { frames, elapsedMs: performance.now() - started };
+  })()`);
+  const perFrameMs = frameCost.elapsedMs / Math.max(1, frameCost.frames);
+  gate('production-loop-frames-stay-bounded', frameCost.frames > 0 && perFrameMs < 50, {
+    frames: frameCost.frames, elapsedMs: Math.round(frameCost.elapsedMs * 100) / 100,
+    perFrameMs: Math.round(perFrameMs * 100) / 100,
+  });
+
+  // 15) Protected production truth: the engine canvas and legacy roots stay in
   //     the document underneath Gold (Gold owns presentation, not truth).
   const truth = win.eval(`(() => ({
     canvas: !!document.getElementById('game-canvas'),
@@ -528,7 +679,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('GOLD BATTLE PATH HARNESS ERROR', error);
+  console.error('GOLD BATTLE PATH HARNESS ERROR', error && error.stack ? error.stack : error);
   process.exitCode = 1;
   try { win.close(); } catch (e) { /* teardown only */ }
 });

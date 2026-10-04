@@ -100,15 +100,23 @@ function applyPatches(source, patches, label) {
       log(`  patch ${patch.id} (${label}): ${patch.why}`);
       continue;
     }
-    const matcher = isFn ? patch.find(out) : patch.find;
+    // A function find may resolve to a single needle OR an array of needles
+    // (every needle must be present; each is removed/replaced).
+    let matcher = isFn ? patch.find(out) : patch.find;
+    let needles;
+    if (isRe) needles = null;
+    else if (Array.isArray(matcher)) needles = matcher.filter(Boolean);
+    else needles = matcher ? [matcher] : [];
     let matches;
     if (isRe) {
       const re = patch.find.flags.includes('g') ? patch.find : new RegExp(patch.find.source, patch.find.flags + 'g');
       matches = [...out.matchAll(re)];
     } else {
-      const needle = isFn ? matcher : patch.find;
-      const count = needle ? out.split(needle).length - 1 : 0;
-      matches = count ? new Array(count).fill(needle) : [];
+      matches = [];
+      for (const needle of needles) {
+        const count = out.split(needle).length - 1;
+        for (let i = 0; i < count; i++) matches.push(needle);
+      }
     }
     const expected = patch.all ? '>=1' : '1';
     if ((patch.all && matches.length < 1) || (!patch.all && matches.length !== 1)) {
@@ -117,9 +125,9 @@ function applyPatches(source, patches, label) {
     if (isRe) {
       out = out.replace(patch.find, patch.replace);
     } else if (patch.all) {
-      out = out.split(matcher).join(patch.replace);
+      for (const needle of needles) out = out.split(needle).join(patch.replace);
     } else {
-      out = out.replace(matcher, patch.replace);
+      out = out.replace(needles[0], patch.replace);
     }
     log(`  patch ${patch.id} (${label}): ${patch.why}`);
   }
@@ -271,9 +279,19 @@ function buildBattleHud() {
     // ── H8: remove ARENA DEMO SIM section (fake fighters/bullets/AI/regen) ─
     {
       id: 'HUD-H8',
-      why: 'remove donor arena demo simulation (mkF/resetGame/update/draw/drawFighter)',
+      why: 'remove donor arena demo simulation (covers/AI/update/draw/drawFighter); keep the canonical FX anchor store the surviving presentation functions read',
       find: /\/\* =+ ARENA DEMO SIM =+ \*\/[\s\S]*?(?=\/\* =+ ABILITIES \/ WEAPONS =+ \*\/)/,
-      replace: '',
+      replace: [
+        '/* ================= ARENA ANCHOR STORE (production truth) ================= */',
+        '// Canonical FX anchors (popups/sweeps/flashes/streaks/thunder) mirror the',
+        '// REAL production fighter positions fed by the seam (syncFighters). The',
+        "// donor's fake simulation (covers, AI, regen, demo loop) is gone; this",
+        '// store is presentation geometry only, never match truth.',
+        'const G={f:[{x:250,y:520,vx:0,vy:0,tx:250,ty:520,aim:0,flash:0,jx:0,jy:0,dash:null},',
+        '           {x:750,y:480,vx:0,vy:0,tx:750,ty:480,aim:Math.PI,flash:0,jx:0,jy:0,dash:null}],',
+        '         b:[],sp:[],beams:[],walls:[],after:[],rings:[],thunder:[]};',
+        '',
+      ].join('\n'),
     },
     // ── H9: cast() — drop demo skillEffect arena FX (production VFX own it) ─
     {
@@ -377,6 +395,20 @@ function buildBattleHud() {
       replace: '',
     },
     // ── H12: remove the demo diagnostics block (runDiag + interval) ────────
+    {
+      id: 'HUD-H25',
+      why: 'remove the inert donor diagnostic + safe-area-visualizer elements',
+      find: (src) => {
+        const needles = [
+          '<div id="diag"></div>',
+          '<div id="safeViz"><i class="sv t"></i><i class="sv r"></i><i class="sv b"></i><i class="sv l"></i></div>',
+        ];
+        const missing = needles.filter((n) => !src.includes(n));
+        return missing.length ? null : needles;
+      },
+      replace: '',
+      all: true,
+    },
     {
       id: 'HUD-H24',
       why: 'remove donor body.preview-only CSS scaffolding (never applies in production)',
