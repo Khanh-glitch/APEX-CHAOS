@@ -8,7 +8,7 @@
 // Options: APEX_APP_URL (default http://127.0.0.1:5173)
 //          APEX_EVIDENCE_DIR (default docs/acceptance/arsenal-product/browser)
 import { spawn } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { runArsenalProductBrowserAcceptance } from './lib/arsenalProductBrowserAcceptance.mjs';
 
@@ -1074,7 +1074,7 @@ try {
       names, restored, sanitizedSave,
       productPlayable: window.APEX_PRODUCT_SURFACE?.roster?.playableIds || [],
       lockedIds,
-      lockedRemainOwned: lockedIds.every(id => sanitizedSave.ownedFighters.includes(id)),
+      lockedRemainOwned: [lockedA, lockedB].every(id => sanitizedSave.ownedFighters.includes(id)),
       lockedNeverSelectable: lockedIds.every(id => !M.canPublicSelect(id)),
       p1: t && t.p1(),
       p2: t && t.p2(),
@@ -3026,6 +3026,89 @@ try {
     mo.observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['class', 'style'], childList: true });
     return true;
   })()`);
+  // CP6-only lifecycle trace. Install before the Bot route click, then reinstall
+  // after lazy product runtimes load so replacements are covered too.
+  await evaluate(`(() => {
+    const trace = window.__cp6LifecycleTrace = {
+      startedAt: performance.now(), calls: [], installs: [], active: Object.create(null),
+    };
+    const names = [
+      'apexBeginBattleAudioSession', 'apexEndBattleAudioSession',
+      'goToMenu', 'exitArsenalBattleMode', 'startArsenalBattleMode',
+    ];
+    const snapshot = () => {
+      let currentState = null;
+      try { currentState = typeof gameState === 'undefined' ? null : gameState; } catch (error) {}
+      let saved = null;
+      try { saved = window.APEX_ARSENAL_META?.getState?.() || null; } catch (error) {}
+      let session = null, masterGain = null;
+      try { session = window.apexBattleAudioSessionInfo?.() || null; } catch (error) {}
+      try { masterGain = window.apexBattleAudioSessionState?.().masterGain ?? null; } catch (error) {}
+      return {
+        gameState: currentState,
+        selectionMode: window.__apexArsenalSelectionMode || null,
+        selectPending: !!window.__apexArsenalSelectPending,
+        battleMode: window.__apexArsenalBattleProfile || null,
+        ownedFighters: saved?.ownedFighters || null,
+        canSelectRobot: window.APEX_ARSENAL_META?.canPublicSelect?.('ROBOT') ?? null,
+        canSelectHunter: window.APEX_ARSENAL_META?.canPublicSelect?.('HUNTER') ?? null,
+        p1: window.__APEX_PICK_TEST?.p1?.() || null,
+        p2: window.__APEX_PICK_TEST?.p2?.() || null,
+        session, masterGain,
+      };
+    };
+    const cleanArg = value => {
+      if (value == null || ['string', 'number', 'boolean'].includes(typeof value)) return value;
+      try { return JSON.parse(JSON.stringify(value)); } catch (error) { return String(value); }
+    };
+    const install = () => names.map(name => {
+      const original = window[name];
+      if (typeof original !== 'function') {
+        trace.installs.push({ name, atMs: +performance.now().toFixed(2), installed: false });
+        return { name, installed: false };
+      }
+      if (original.__apexCp6LifecycleWrapper === true) return { name, installed: true, already: true };
+      const wrapped = function(...args) {
+        const nested = !!trace.active[name];
+        let event = null;
+        if (!nested) {
+          trace.active[name] = true;
+          event = {
+            order: trace.calls.length + 1,
+            name,
+            atMs: +performance.now().toFixed(2),
+            elapsedMs: +(performance.now() - trace.startedAt).toFixed(2),
+            args: args.map(cleanArg),
+            before: snapshot(),
+            callerStack: String(new Error().stack || '').split('\\n').slice(2, 10),
+          };
+          trace.calls.push(event);
+        }
+        try {
+          const result = original.apply(this, args);
+          if (event) event.returnValue = result === undefined ? 'undefined' : cleanArg(result);
+          return result;
+        } catch (error) {
+          if (event) event.thrown = String(error?.stack || error);
+          throw error;
+        } finally {
+          if (event) {
+            event.afterMs = +performance.now().toFixed(2);
+            event.after = snapshot();
+            delete trace.active[name];
+          }
+        }
+      };
+      Object.defineProperty(wrapped, '__apexCp6LifecycleWrapper', { value: true });
+      Object.defineProperty(wrapped, '__apexCp6LifecycleOriginal', { value: original });
+      window[name] = wrapped;
+      const installed = { name, atMs: +performance.now().toFixed(2), installed: true };
+      trace.installs.push(installed);
+      return installed;
+    });
+    window.__installCp6LifecycleTrace = install;
+    return install();
+  })()`);
   // Wait until the real Bot Battle card is genuinely clickable: enabled and
   // the topmost element at its center after loader/overlay transitions clear.
   let cp6Clickability = null;
@@ -3100,6 +3183,7 @@ try {
     if (await evaluate('Boolean(window.APEX_ARSENAL_STORM && window.startArsenalBattleMode && window.APEX_ARSENAL && window.APEX_ARSENAL_AV)').catch(() => false)) break;
     await sleep(250);
   }
+  await evaluate('window.__installCp6LifecycleTrace?.()');
   report.cp6Audio = await evaluate(`(async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     const info = () => window.apexBattleAudioSessionInfo();
@@ -3113,9 +3197,11 @@ try {
     };
     const out = {};
     out.bgmBefore = window.__apexMenuBgmState();
-    // (1) menu → Arsenal match (real path). Session begins; SFX live.
+    out.entryOwnership = window.APEX_ARSENAL_META?.getState?.().ownedFighters || [];
+    // (1) Existing CP6 harness direct-start, instrumented before replacing it
+    // with the supported picker transition after the causal trace is reviewed.
     window.APEX_ARSENAL_META?.hideMeta?.();
-    window.startArsenalBattleMode('ROBOT', 'HUNTER');
+    out.directStartResult = window.startArsenalBattleMode('ROBOT', 'HUNTER');
     await sleep(150);
     out.enterSession = info();
     out.masterInMatch = state().masterGain;
@@ -3161,7 +3247,7 @@ try {
       loopStoppedForReal: loopSrc.__probeEnded === true, oldCueNoop: cueFired === false };
     // (3) rapid re-enter: clean session, SFX live again.
     const playedAtReenter = window.APEX_ARSENAL_AV.stats.played;
-    window.startArsenalBattleMode('ROBOT', 'HUNTER');
+    out.reenterStartResult = window.startArsenalBattleMode('ROBOT', 'HUNTER');
     await sleep(120);
     APEX_ARSENAL.weaponApi.equip(fighters[0], 'STORMBREAKER');
     await sleep(350);
@@ -3180,8 +3266,9 @@ try {
     out.afterProductMenu = info();
     const settled2 = await settleSilent();
     out.afterProductMenuSettled = { session: info(), master: settled2.masterGain };
-    // (5) another current Arsenal match → session again.
-    window.startArsenalBattleMode('ROBOT', 'HUNTER');
+    // (5) another direct-start from the product menu; trace records whether
+    // the API accepts this pair in the current saved ownership state.
+    out.otherToArsenalStartResult = window.startArsenalBattleMode('ROBOT', 'HUNTER');
     await sleep(120);
     out.otherToArsenal = info();
     window.exitArsenalBattleMode();
@@ -3200,6 +3287,8 @@ try {
       for (let i = 0; i < 12 && (bgmAfter.paused || bgmAfter.readyState < 2); i++) { await sleep(75); bgmAfter = window.__apexMenuBgmState(); }
     }
     out.bgmAfter = bgmAfter;
+    out.lifecycleTrace = window.__cp6LifecycleTrace?.calls || [];
+    out.lifecycleTraceInstalls = window.__cp6LifecycleTrace?.installs || [];
     return JSON.stringify(out);
   })()`);
   const cp6A = JSON.parse(report.cp6Audio);
@@ -3565,6 +3654,26 @@ try {
   console.log(JSON.stringify(report.summary, null, 2));
   await writeFile(path.join(evidenceDir, 'test-report.json'), JSON.stringify(report, null, 2));
   console.log(`report+evidence written under ${evidenceDir}/`);
+  const cp6AudioReport = typeof report.cp6Audio === 'string'
+    ? JSON.parse(report.cp6Audio) : report.cp6Audio;
+  if (cp6AudioReport?.lifecycleTrace) {
+    const diagnostic = {
+      installs: cp6AudioReport.lifecycleTraceInstalls || [],
+      calls: cp6AudioReport.lifecycleTrace,
+      directStartResults: {
+        entry: cp6AudioReport.directStartResult,
+        reenter: cp6AudioReport.reenterStartResult,
+        otherToArsenal: cp6AudioReport.otherToArsenalStartResult,
+      },
+      entryOwnership: cp6AudioReport.entryOwnership || [],
+    };
+    console.log('[CP6 lifecycle trace]', JSON.stringify(diagnostic));
+    if (process.env.GITHUB_STEP_SUMMARY) {
+      const markdown = `\n## CP6 lifecycle trace\n\n\`\`\`json\n${JSON.stringify(diagnostic, null, 2)}\n\`\`\`\n`;
+      try { await appendFile(process.env.GITHUB_STEP_SUMMARY, markdown, 'utf8'); }
+      catch (error) { console.warn('[CP6 trace] Could not append step summary.', error); }
+    }
+  }
   if (report.failures.length) process.exitCode = 1;
 } finally {
   try { socket.close(); } catch {}
