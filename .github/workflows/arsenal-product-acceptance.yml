@@ -60,6 +60,9 @@ jobs:
       - name: Verify current Arsenal render and HUD contract
         run: pnpm test:arsenal:current-render-hud
 
+      - name: Verify current Arsenal collision contract
+        run: pnpm test:arsenal:current-collision
+
       - name: Run product-authentic Arsenal headless acceptance
         run: APEX_EVIDENCE_DIR=/tmp/arsenal-product-only pnpm test:arsenal:headless:product
 
