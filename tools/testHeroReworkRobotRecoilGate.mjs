@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES } from './legacyRuntimeManifest.mjs';
+import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES, resolveLegacyRuntimeFile } from './legacyRuntimeManifest.mjs';
 import { installProductSurfaceAuthority } from '../src/game/productSurface.js';
 
 const REPO = process.cwd();
@@ -91,7 +91,7 @@ win.cancelAnimationFrame = () => {};
 function loadScript(relPath, required) {
   const fp = String(relPath).split(/[?#]/, 1)[0];
   const rel = fp.startsWith('/') ? fp.slice(1) : fp;
-  const file = path.join(REPO, 'public', rel);
+  const file = resolveLegacyRuntimeFile(REPO, fp);
   try { win.eval(fs.readFileSync(file, 'utf8')); return true; } catch (error) { if (required) throw new Error(`Required runtime failed to load: ${relPath}: ${error}`); return false; }
 }
 loadScript('/apexEngine.js', true);
