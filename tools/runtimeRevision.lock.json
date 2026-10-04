@@ -1,7 +1,8 @@
 {
-  "revision": "20261003-mirror-v1-r36",
+  "revision": "20261003-mirror-v1-r37",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "a0d10025cde29ee55d6eb95a06aee2cbebe2a56e01adcdb1154f8366e3128712",
+    "public/game/core/apexArsenalProductCollisionRuntime.js": "ebda0bc7539be7627b4bec0c639e61ae6a4e0f319a6327518fd23d0f7bd13090",
     "public/game/core/apexArsenalProductRenderHudRuntime.js": "8fb477b542595ecfb879991b158612c11a41fd176ea30d3d4a32c49f2fe3e456",
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
     "public/game/arsenal/arsenalConfig.js": "53c5f287580efed171c7718d6803a56d4812ca051a50cc9857f6f4bc7a359572",
