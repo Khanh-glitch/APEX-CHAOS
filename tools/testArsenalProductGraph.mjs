@@ -257,9 +257,7 @@ gate('neutral-product-runtime-and-warmup-closure', () => {
   const selectPaths = runtimePaths(SELECT_RUNTIMES);
   const battleCore = runtimePaths(BATTLE_CORE_RUNTIMES);
   const battlePaths = runtimePaths(BATTLE_RUNTIMES);
-  const transientRosterBridges = [
-    '/game/guards/apexRuntimeStability.js',
-  ].sort();
+  const transientRosterBridges = [];
 
   assert.deepEqual(active.slice(0, currentEngine.length), currentEngine,
     'Arsenal must begin with its own explicit current engine chain');
@@ -267,13 +265,15 @@ gate('neutral-product-runtime-and-warmup-closure', () => {
   assert.equal(active.filter((src) => src === '/game/arsenal/arsenalConfig.js').length, 1);
   assert.ok(!active.some((src) => /arsenalQuest(Runtime|Ladder|Config)\.js/.test(src)));
   assert.deepEqual(productRosterRefs, transientRosterBridges,
-    'only the draw-recovery bridge may remain from legacy ROSTER during 2A.2');
+    'no legacy ROSTER runtime may execute on the current Arsenal product path after 2A.3');
   assert.ok(!active.includes('/game/core/apexFullRosterQa.js'),
     'FullRoster must not execute on the current Arsenal product path');
+  assert.ok(!active.includes('/game/guards/apexRuntimeStability.js'),
+    'RuntimeStability must not execute on the current Arsenal product path');
   assert.ok(active.indexOf('/game/core/apexArsenalProductCollisionRuntime.js')
     < active.indexOf('/game/core/apexArsenalProductRenderHudRuntime.js'));
   assert.ok(active.indexOf('/game/core/apexArsenalProductRenderHudRuntime.js')
-    < active.indexOf('/game/guards/apexRuntimeStability.js'));
+    < active.indexOf('/game/core/apexArsenalProductDrawRecoveryRuntime.js'));
   assert.deepEqual(selectPaths.filter(src => roster.has(src)), [],
     'current picker load must not warm the legacy roster chain');
   assert.deepEqual(battleCore.slice(COMBAT_CORE_RUNTIMES.length,
