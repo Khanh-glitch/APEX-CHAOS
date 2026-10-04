@@ -63,6 +63,9 @@ jobs:
       - name: Verify current Arsenal collision contract
         run: pnpm test:arsenal:current-collision
 
+      - name: Verify current Arsenal draw recovery contract
+        run: pnpm test:arsenal:current-draw-recovery
+
       - name: Run product-authentic Arsenal headless acceptance
         run: APEX_EVIDENCE_DIR=/tmp/arsenal-product-only pnpm test:arsenal:headless:product
 
