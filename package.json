@@ -22,7 +22,8 @@
     "build": "pnpm arsenal:sfx:materialize && node tools/assetAudit.mjs && vite build && node tools/generatePublicAssetManifest.cjs dist/asset-manifest.json && node tools/pruneShippingDist.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "arsenal:sfx:materialize": "node tools/materializeArsenalFinalSfx.mjs",
-    "test:shipping-dist": "node tools/testShippingDist.mjs"
+    "test:shipping-dist": "node tools/testShippingDist.mjs",
+    "test:source-hygiene": "node tools/testProductionSourceHygiene.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
