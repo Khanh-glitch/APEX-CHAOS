@@ -24,3 +24,37 @@ Replacing art means replacing the **content of the slot only**. Do not alter its
 ## Integration law
 
 Production state truth comes from the game/runtime. Gold owns presentation. Never move combat calculations, cooldown rules, HP math, ownership, or hero mechanics into the Gold renderer.
+
+
+## Prototype harness boundary
+
+The Battle HUD donor is both a visual authority and a self-contained playtest harness. Those roles must be separated in production.
+
+Keep the Gold presentation functions/phase relationships. Replace demo trigger sources with real production semantic sources.
+
+Never ship donor simulator truth such as fake HP, fake cooldowns, fake weapon swapping, fake BOT logic, fake timer/round progression, or H/C/D/F effect-test keys.
+
+Owner trigger corrections that intentionally supersede stale donor semantics:
+- Heavy = more than 200 realized damage to the same victim inside a rolling 1.20s window, one Heavy response per qualifying burst.
+- Confirmed Stormbreaker damaging hit = Heavy family + separate Thunder/Lightning family.
+- Critical response color follows the **attacker/source identity accent** across number, mark, stamp, sweep, chroma/edge/rail response; the donor's fixed orange critical color is stale demo semantics.
+- P1 controls: J=A1, K=A2.
+- Local 2P P2 controls: 1=A1, 2=A2.
+- BOT mode exposes only P1 controls; P2 is real CPU/threat readout.
+- Mobile human skill cards are real touch targets routed through the same production input adapter as keyboard controls.
+
+## Responsive production law
+
+Gold responsiveness is re-composition, not uniform scale-down.
+
+Preserve the three authored families:
+- `desk`: P1 | square arena | P2 with top versus rail.
+- `land`: mobile landscape re-composition; in 1P, P1 gets the usable thumb territory and P2 collapses toward threat/status readout.
+- `port`: vertical P2 territory / match rail / square arena / P1 territory.
+
+Local 2P portrait:
+- rotate the P2 **control territory** 180 degrees toward the opposite player;
+- do NOT rotate arena, timer, neutral match information, or global effects.
+
+Shipping production must size against the real viewport and safe-area insets. The donor preview preset scaler is diagnostic tooling only.
+Active touch targets must remain at least 44px where the Gold interaction is actionable.

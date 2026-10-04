@@ -175,3 +175,44 @@ Important scope correction:
 - Forward Drive supersedes the current menu-BGM behavior for product-theme policy. Reuse/adapt the existing `src/App.jsx` single-media-element seam rather than creating a second music engine.
 - Current `src/game/productSurface.js` still exposes Fighter Shop as ACTIVE; this conflicts with the Gold cutover authority and must be corrected to a lightly locked extension point during implementation.
 - Gold Battle HUD donor's demo `M = 1P/2P` hotkey conflicts with the new owner `M = music mute/unmute` law and must not survive production cutover.
+
+
+## 2026-10-04 — Battle trigger + responsive relock
+
+A second hostile audit of `donors/battle-hud/index.html` found a critical authority boundary:
+
+The donor contains a complete fake combat simulator used only to exercise the HUD:
+- fake state `S` / `G`;
+- fake `applyDamage`, `heal`, `cast`, `swapWeapon`;
+- synthetic reload, round/timer, KO reset, BOT casting and weapon cycling;
+- LAB / diagnostics / preset-view controls;
+- H/C/D/F/W/E/R/T/P/L/V and donor M mode hotkeys;
+- donor P2 U/I keys.
+
+Do not port those semantics into production.
+
+Keep the authored visual responses and bind them to current production truth.
+
+Owner-locked corrections after the donor was authored:
+- Heavy: same victim receives >200 realized damage inside rolling 1.20s; one Heavy response per qualifying burst.
+- Stormbreaker confirmed damaging hit: Heavy + separate Thunder/Lightning.
+- Critical visual family: attacker/source identity accent, not fixed orange.
+- P1: J=A1, K=A2.
+- Local 2P P2: Digit1=A1, Digit2=A2.
+- BOT: only P1 human controls; P2 remains real CPU.
+- Mobile skill cards: real touch controls for human sides.
+- M: music mute/unmute only.
+
+Current production audit findings that the implementation must resolve:
+- `public/game/hero-rework/heroReworkRuntime.js` currently implements P1 J/K and P2 cast AI, but no owner-approved Local 2P Digit1/Digit2 path.
+- `public/game/modes/arsenalBattleRuntime.js` has a BOT/LOCAL profile read-model, but the current product path must be proven to set it from the real picker and to disable P2 AI in Local 2P.
+- `Fighter.takeDamage` already exposes a post-mitigation realized-damage seam via `APEX_COMBAT_HUD.onRealizedDamage`.
+- `Fighter.heal` currently has no equivalent semantic HUD observer; add only a thin post-heal observation seam if required, without changing heal math.
+- weapon/skill/KO/result presentation must observe canonical ownership/controller/result state instead of donor simulation.
+
+Responsive audit:
+- donor families are `desk`, `land`, `port`;
+- donor proof presets: 1366×768, 1920×1080, 844×390 with safe inset [0,44,16,44], and 390×844 with safe inset [47,0,34,0];
+- donor fixed-size preview scaling is not a production responsive strategy;
+- local portrait 2P rotates only P2 control territory 180°;
+- 1P portrait keeps P2 as a compact threat strip and gives P1 the large touch zone.

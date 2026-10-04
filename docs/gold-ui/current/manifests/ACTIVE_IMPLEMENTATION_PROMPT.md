@@ -438,6 +438,515 @@ Do not resurrect aq-skill-hud or old duplicate/direct HUD writers removed before
 Any production runtime/source edit covered by revision authority must bump/relock the runtime revision honestly.
 Do not change runtime bytes under stale r42 cache identity.
 
+
+======================================================================
+6A. BATTLE HUD DONOR — CHOREOGRAPHY AUTHORITY, NOT SIMULATOR AUTHORITY
+======================================================================
+
+The decoded donor:
+docs/gold-ui/current/donors/battle-hud/index.html
+
+contains TWO different things:
+
+A. Gold presentation authority
+B. a self-contained LAB/playtest combat simulator used to exercise A
+
+Do not confuse them.
+
+PRESERVE A:
+- HUD geometry;
+- rail/body/skill/loadout composition;
+- responsive desk/land/port families;
+- Normal/Critical/Heavy/Thunder/Heal visual choreography;
+- ready/cast/cooldown response;
+- weapon-change/reload response;
+- low-HP/tension response;
+- KO/fracture/shatter/recovery;
+- phase order, timing, easing, recoil, overshoot, settle;
+- reduced-motion behavior.
+
+DO NOT PORT B AS PRODUCTION TRUTH:
+- donor state S / G;
+- fake fighters, bullets, cover, walls;
+- applyDamage();
+- heal();
+- cast();
+- skillEffect();
+- swapWeapon();
+- fake reload lifecycle;
+- fake best-of-three wins/round reset;
+- fake 180s timer;
+- fake low-HP regen;
+- fake BOT auto-cast;
+- resetDemo();
+- preview viewport preset controls;
+- LAB / diagnostics;
+- H/C/D/F/W/E/R/T/P/L/V test keys;
+- donor M=1P/2P;
+- donor P2 U/I bindings;
+- timer tap opening LAB;
+- synthetic thunder audio generator as a replacement for the production audio graph.
+
+The production architecture is:
+
+REAL GAMEPLAY / PRODUCT TRUTH
+→ THIN SEMANTIC EVENT / INPUT ADAPTER
+→ GOLD PRESENTATION STATE
+→ GOLD CHOREOGRAPHY
+
+Never:
+
+KEY/BUTTON
+→ DIRECT FX
+
+and never:
+
+DOM TEXT / ANIMATION END
+→ INFERRED GAMEPLAY EVENT
+
+The donor effect-test buttons must disappear from the public build.
+Their corresponding Gold effects survive, driven by the real triggers below.
+
+======================================================================
+6B. OWNER-LOCKED BATTLE SEMANTIC TRIGGER TABLE
+======================================================================
+
+Use the current production event/state authority.
+Add only narrow observation seams when production lacks a readable semantic edge.
+Never add a second combat engine.
+
+-------------------------
+NORMAL HIT
+-------------------------
+
+Trigger:
+a positive REALIZED damage transaction reaches a victim after all existing
+mitigation/defense and actual HP loss, with no real firearm-critical flag.
+
+Current canonical seam already exists:
+Fighter.takeDamage()
+→ APEX_COMBAT_HUD.onRealizedDamage(...)
+
+The normal hit response may occur per real hit, with Gold's existing
+anti-spam/coalescing behavior.
+
+Do not trigger from:
+- damage-number DOM;
+- projectile visual contact alone;
+- key H;
+- donor applyDamage().
+
+-------------------------
+CRITICAL
+-------------------------
+
+Trigger:
+a positive realized damage transaction with the authoritative firearm
+critical flag.
+
+Critical remains FIREARM-CRITICAL semantics.
+Do not label melee, grenade, shield, native hero damage, heal, floor hazard,
+or merely-large damage as Critical unless the combat runtime itself marks
+that transaction as a firearm critical.
+
+OWNER COLOR CORRECTION:
+
+The donor's fixed orange critical color is stale demo semantics.
+
+Production Critical uses a data-driven:
+critAccent(attacker/source)
+
+and that source identity accent drives the complete authored Critical family:
+- damage number;
+- diamond/geometric mark;
+- Critical stamp;
+- sweep;
+- chroma;
+- edge response;
+- rail response;
+- linked Critical accents.
+
+Preserve the Gold hierarchy/brightness/contrast so Critical is still clearly
+different from Normal; only the semantic accent source changes.
+
+Thunder does not replace this identity rule.
+
+-------------------------
+HEAVY
+-------------------------
+
+OWNER-LOCKED definition:
+
+ONE victim receives MORE THAN 200 total REALIZED damage inside a rolling
+1.20 second window
+→ HEAVY presentation response.
+
+Implement Heavy per victim from realized-damage events.
+
+Rules:
+- rolling 1.20s window;
+- actual post-mitigation HP loss only;
+- zero/blocked damage does not count;
+- healing does not count;
+- independent accumulator per victim;
+- the threshold is >200, not >=200;
+- this is NOT "one hit >200";
+- this does not modify damage;
+- this does not change balance;
+- this does not manufacture a combat status.
+
+A qualifying burst produces at most ONE Heavy response.
+Continued hits belonging to the same already-qualified burst must not spam
+Heavy repeatedly.
+
+Heavy classification is presentation state.
+Do not corrupt the existing PASS-B burst/pressure read-model to obtain it.
+The two systems may consume the same realized-damage stream but keep their
+authored semantics separate.
+
+-------------------------
+STORMBREAKER / THUNDER
+-------------------------
+
+Trigger:
+a CONFIRMED damaging Stormbreaker hit from canonical Arsenal projectile /
+weapon resolution.
+
+Response:
+HEAVY presentation family
++
+separate THUNDER / LIGHTNING presentation family.
+
+Do not:
+- reinterpret Stormbreaker as a Critical;
+- use the donor F key;
+- trigger Thunder from the zero-damage floor lightning/stun hazard;
+- infer it from a lightning visual;
+- change Stormbreaker damage/balance in this UI task.
+
+Thunder is an overlay/family with its own authored lightning choreography.
+Critical source-identity color law remains intact.
+
+-------------------------
+HEAL
+-------------------------
+
+Trigger:
+a real heal transaction with positive realized healing:
+afterHp - beforeHp > 0.
+
+Current Fighter.heal owns heal math.
+If no semantic observer exists, add a THIN post-heal notification seam only
+after the real HP delta is known.
+
+Do not:
+- change heal math;
+- use requested heal amount when cap/overheal makes realized healing smaller;
+- trigger from green text;
+- use donor fake regen/heal timer.
+
+-------------------------
+WEAPON ACQUIRED / CHANGED / RELOAD
+-------------------------
+
+Trigger weapon-change presentation only when canonical Arsenal holder /
+weapon identity actually changes.
+
+Use:
+- weaponApi holder truth;
+- accepted Arsenal AV/cache authority;
+- or a change-only diff of the canonical loadout projection if that is the
+  narrowest existing seam.
+
+Do not use donor W/E swap keys.
+
+If production has no legal manual weapon-swap action, do NOT invent one just
+to satisfy the donor's .wp-swap control.
+The Gold slot may remain a state/readout surface, but must not advertise a
+fake W/E action.
+
+Reload start / reload finish presentation must follow real firearm lifecycle
+only. Never use the donor's hard-coded 1400ms simulator as gameplay truth.
+
+-------------------------
+LOW-HP / LATE-FIGHT TENSION
+-------------------------
+
+The owner-approved late-fight trigger is based on REAL HP:
+
+BOTH active combatants at <= 500 HP
+with MATCH_HP = 1000
+→ low-HP / tension phase response.
+
+Use real reconciled body/combatant HP.
+
+Do not silently reuse the donor simulator's individual <25% threshold as
+the authority for this global phase.
+
+If a separate per-side low-health readability treatment is preserved, it
+must still read real HP and must not redefine the owner global tension
+trigger above.
+
+Healing may legitimately move the match out of the condition; handle the
+state transition cleanly without replay spam.
+
+-------------------------
+SKILL CAST
+-------------------------
+
+Input attempt is NOT a successful cast.
+
+Trigger Gold CAST response only after the canonical ability/controller path
+accepts and commits the cast.
+
+Rejected / blocked / cooldown / CC / unmet-condition attempts:
+- may receive the Gold rejected-input feedback if authored;
+- must NOT play successful CAST choreography.
+
+Never drive cast visuals directly from J/K/1/2/touch before runtime acceptance.
+
+-------------------------
+SKILL READY
+-------------------------
+
+Trigger READY only on a real edge:
+NOT USABLE
+→ USABLE
+
+using canonical cooldown / charge / hero-rework skill truth.
+
+Do not:
+- replay READY every reconciliation tick;
+- trigger because a CSS mask reached zero;
+- use donor timers.
+
+-------------------------
+KO / RESULT
+-------------------------
+
+Trigger KO from authoritative combatant KO / Arsenal result truth.
+
+Use existing hero-rework body/combatant authority and:
+APEX_ARSENAL.resultProjection()
+
+Do not:
+- use donor p.hp<=0 simulator state;
+- run donor timed round reset after KO;
+- synthesize a winner in presentation.
+
+-------------------------
+ROUND / TIMER / PIPS
+-------------------------
+
+Only bind round/timer/win-pip visuals if current production has real
+authoritative state for them.
+
+The donor's:
+- R2 seed;
+- 167/180 second timer;
+- best-of-three / first-to-two simulation;
+- post-KO reset
+
+are NOT permission to create new match rules.
+
+If the current product remains single-match with no real round system:
+- do not invent rounds;
+- adapt/hide/neutralize only the stateful content while preserving the Gold
+  frame/composition;
+- report the deviation explicitly.
+
+======================================================================
+6C. PRODUCTION INPUT AUTHORITY — KEYBOARD + TOUCH
+======================================================================
+
+Owner-locked controls:
+
+P1:
+- J = A1
+- K = A2
+
+P2 in REAL LOCAL 2P only:
+- Digit1 = A1
+- Digit2 = A2
+
+BOT:
+- only P1 J/K are human ability controls;
+- P2 remains the real CPU;
+- P2 skill cards are threat/readout surfaces, not player buttons.
+
+LOCAL 2P:
+- P2 cast AI MUST be disabled;
+- Digit1/Digit2 route into the SAME canonical ability controller used by
+  production hero mechanics;
+- do not duplicate hero skill logic;
+- do not add a second cooldown implementation.
+
+Current audit shows:
+- heroReworkRuntime currently implements P1 J/K and P2 cast AI;
+- production currently lacks the owner-approved Local-2P Digit1/Digit2 path;
+- this task must close that gap as a minimal input adapter, not a mechanic redesign.
+
+Product mode truth must come from the actual BOT/LOCAL selection.
+Prove the picker/start-match path sets the battle profile correctly.
+Do not let the runtime silently default to LOCAL or leave P2 AI active in
+Local 2P.
+
+MOBILE / TOUCH:
+
+Gold skill cards for a HUMAN side are real touch targets.
+
+Pointer/touch action:
+→ production input adapter
+→ canonical ability acceptance
+→ semantic cast event/state
+→ Gold response
+
+Never:
+touch tile
+→ direct cast FX.
+
+In Local 2P portrait, both players' skill cards remain independently usable
+from their physical side of the shared device.
+
+Do not retain public:
+- U/I;
+- W/E fake weapon swap;
+- H/C/D/F effect triggers;
+- R reset;
+- T diagnostics;
+- P donor pause;
+- L LAB;
+- V viewport preview.
+
+M remains MUSIC mute/unmute only.
+Escape may remain the real production back/exit action where product flow
+permits it.
+
+Developer diagnostics may exist only behind explicit test/dev authority and
+must not be visible or reachable in the normal public product journey.
+
+======================================================================
+6D. RESPONSIVE BATTLE AUTHORITY — RE-COMPOSE, DO NOT SCALE DOWN
+======================================================================
+
+The Gold donor has three real layout families:
+
+1. desk
+2. land
+3. port
+
+Production must derive the family from the REAL viewport and re-compose the
+HUD accordingly.
+
+The donor PRESETS and:
+stage.style.transform = translate(...) scale(...)
+
+are preview tooling only.
+
+DO NOT ship a fixed virtual canvas/HUD that is uniformly scaled to fit.
+
+-------------------------
+DESK
+-------------------------
+
+Preserve:
+P1 SIDE | SQUARE ARENA | P2 SIDE
+with the authored top versus rail / match center.
+
+Arena remains square and central.
+Side territory absorbs remaining width.
+
+-------------------------
+LAND
+-------------------------
+
+Preserve mobile-landscape re-composition.
+
+In BOT / 1P:
+- P1 receives the larger useful human/thumb territory;
+- P2 collapses to the authored compact CPU threat/status treatment;
+- P2 controls are not exposed.
+
+In Local 2P:
+- both human territories remain actionable;
+- touch targets remain usable;
+- arena remains the priority square.
+
+-------------------------
+PORT
+-------------------------
+
+Preserve the authored vertical family:
+P2 territory
+→ match rail
+→ square arena
+→ P1 territory.
+
+LOCAL 2P PORTRAIT:
+- rotate ONLY the P2 control territory 180 degrees toward the opposite edge;
+- keep P2 controls readable to Player 2;
+- do NOT rotate the arena;
+- do NOT rotate timer/match center;
+- do NOT rotate neutral/global information;
+- global hit/crack/thunder effects must still resolve against real side geometry.
+
+BOT / 1P PORTRAIT:
+- P2 becomes the compact enemy/threat strip;
+- P1 receives the large thumb/skill zone;
+- do not waste half the phone on non-interactive CPU controls.
+
+-------------------------
+SAFE AREA / TOUCH / ORIENTATION
+-------------------------
+
+Use real:
+env(safe-area-inset-*)
+
+where relevant.
+
+No required active touch target may fall below 44px.
+
+No page-level scroll should be required to play the battle.
+Do not solve a narrow phone by stacking a long scrolling legacy HUD.
+
+On resize/orientation change:
+- recompute layout family and canvas backing dimensions;
+- preserve live gameplay state;
+- preserve HP/cooldown/weapon/skill state;
+- preserve music/battle-audio state;
+- do not remount the whole battle;
+- do not duplicate event listeners;
+- do not restart the match.
+
+Crack/rupture/sweep/side-anchor math must use current real post-layout
+geometry, not stale desktop coordinates.
+
+-------------------------
+MANDATORY RESPONSIVE PROOF VIEWPORTS
+-------------------------
+
+At minimum prove the donor's authored reference families:
+
+- 1366 x 768 — desktop
+- 1920 x 1080 — desktop
+- 844 x 390 — mobile landscape
+  reference safe inset: top 0 / right 44 / bottom 16 / left 44
+- 390 x 844 — mobile portrait
+  reference safe inset: top 47 / right 0 / bottom 34 / left 0
+
+For every relevant viewport prove:
+- no unintended overflow;
+- arena square;
+- arena not crushed by HUD;
+- timer/match center aligned;
+- no side-panel spill;
+- actionable touch targets >=44px;
+- P1/P2/BOT semantic orientation correct;
+- hit/crit/heavy/thunder/heal/KO effects remain correctly anchored;
+- local portrait P2 control territory alone is rotated;
+- no global uniform scale-down masquerading as responsiveness.
+
+
 ======================================================================
 7. CORE SIX PROCESS LESSONS — FORBIDDEN REGRESSIONS
 ======================================================================
@@ -574,19 +1083,21 @@ Execute in controlled, reviewable slices:
 9. port Home
 10. port Lucky Draw
 11. port Fighter Pick
-12. port Battle HUD against r42/current projection authority
-13. port battle-entry + result presentation
-14. lightly lock Quest/Shop, including stale ACTIVE Shop correction
-15. responsive closure
-16. motion/effect parity proof
-17. AV behavior proof
-18. kill/crack performance proof
-19. source/runtime/shipping gates
-20. headless acceptance
-21. real browser acceptance
-22. production build
-23. runtime revision bump/relock where required
-24. commit and report exact SHA
+12. build the thin Battle semantic-trigger + BOT/Local input adapters; remove donor LAB/simulator authority
+13. port Battle HUD against r42/current projection authority using real triggers
+14. port battle-entry + result presentation
+15. lightly lock Quest/Shop, including stale ACTIVE Shop correction
+16. responsive closure across desk/land/port + BOT/Local + orientation changes
+17. trigger/control proof including P1 J/K, Local P2 1/2 and touch skill cards
+18. motion/effect parity proof
+19. AV behavior proof
+20. kill/crack performance proof
+21. source/runtime/shipping gates
+22. headless acceptance
+23. real browser acceptance
+24. production build
+25. runtime revision bump/relock where required
+26. commit and report exact SHA
 
 Prefer renderer/adapters and narrow seams over mechanic edits.
 DO NOT retune hero balance/mechanics.
@@ -657,12 +1168,22 @@ Real-browser evidence must include:
 - Home desktop + responsive/mobile
 - Lucky Draw idle/spin/result
 - Fighter Pick P1/P2/BOT + lock behavior + responsive
-- Battle desktop + mobile layout families
+- Battle desk/land/port layout families at 1366x768, 1920x1080, 844x390, 390x844
+- Local 2P portrait P2-control-only 180° orientation proof
+- live resize/orientation-change proof without battle reset
 - P1/P2 data-driven ownership colors
-- A1/A2 ready/cast/cooldown
-- normal damage
-- critical damage
-- heal
+- A1/A2 ready/cast/cooldown from real runtime acceptance/state
+- P1 J/K production controls
+- Local 2P P2 Digit1/Digit2 production controls with P2 AI disabled
+- mobile/touch human skill-card controls
+- BOT P2 threat/readout with no human P2 controls
+- normal realized damage
+- source-identity-colored firearm Critical
+- Heavy (>200 realized damage / same victim / rolling 1.20s, once per qualifying burst)
+- confirmed Stormbreaker Heavy + Thunder/Lightning
+- real realized heal
+- real weapon acquired/change + reload lifecycle
+- owner low-HP/tension phase when both combatants are <=500 HP
 - HP trail
 - kill/KO
 - crack/fracture/shatter
@@ -706,6 +1227,11 @@ DO NOT FORK ACCEPTED HERO VFX.
 DO NOT WIRE EVERY SFX JUST BECAUSE A FILE EXISTS.
 DO NOT RESET THEME PLAYHEAD ON ORDINARY NAVIGATION.
 DO NOT LET M TOGGLE GAME MODE.
+DO NOT SHIP THE DONOR LAB OR FAKE COMBAT SIMULATOR.
+DO NOT SHIP U/I AS P2 SKILL KEYS; LOCAL P2 IS DIGIT1/DIGIT2.
+DO NOT USE FIXED ORANGE FOR PRODUCTION CRITICAL; USE ATTACKER/SOURCE IDENTITY ACCENT.
+DO NOT USE DONOR H/C/D/F BUTTONS AS PRODUCTION EFFECT TRIGGERS.
+DO NOT USE WHOLE-STAGE SCALE-DOWN AS SHIPPING RESPONSIVE BEHAVIOR.
 DO NOT DELETE QUEST/SHOP.
 DO NOT HARD-LOCK THE ROSTER TO SIX HEROES.
 DO NOT DRIFT GOLD PRESENTATION.
