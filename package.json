@@ -19,9 +19,10 @@
     "test:runtime-revision": "node tools/testRuntimeRevisionGate.mjs",
     "test:hero-rework:headless": "node tools/smokeHeroReworkHeadless.mjs && node tools/testHeroReworkGoldens.mjs && node tools/testHeroReworkLocomotionGates.mjs && node tools/testHeroReworkRobotGates.mjs && node tools/testHeroReworkRobotPresentationGates.mjs && node tools/testHeroReworkRobotRecoilGate.mjs && node tools/testHeroReworkHunterOwnerFixGates.mjs && node tools/testFrostV1Gates.mjs && node tools/testMagnetV1GameplayGates.mjs && node tools/testMagnetV1PresentationGates.mjs && node tools/testMirrorA1A2Gameplay.mjs && node tools/testMirrorCoreSixInterop.mjs && node tools/testMirrorPresentationBridge.mjs && node tools/testMirrorPresentationG2A2.mjs",
     "assets:verify": "node tools/assetAudit.mjs && node tools/generateAudioWarmBanks.mjs",
-    "build": "pnpm arsenal:sfx:materialize && node tools/generatePublicAssetManifest.cjs && vite build",
+    "build": "pnpm arsenal:sfx:materialize && node tools/assetAudit.mjs && vite build && node tools/generatePublicAssetManifest.cjs dist/asset-manifest.json && node tools/pruneShippingDist.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
-    "arsenal:sfx:materialize": "node tools/materializeArsenalFinalSfx.mjs"
+    "arsenal:sfx:materialize": "node tools/materializeArsenalFinalSfx.mjs",
+    "test:shipping-dist": "node tools/testShippingDist.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
