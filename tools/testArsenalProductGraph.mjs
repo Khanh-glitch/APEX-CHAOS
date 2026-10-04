@@ -18,15 +18,17 @@ import {
 import {
   ARSENAL_PRODUCT_RUNTIMES,
   ARSENAL_SHARED_ENGINE_RUNTIMES,
-  BATTLE_CORE_RUNTIMES,
-  BATTLE_RUNTIMES,
-  COMBAT_CORE_RUNTIMES,
   CURRENT_COMBAT_CORE_RUNTIMES,
   MODE_DEFERRED_RUNTIMES,
-  ROSTER_RUNTIMES,
   SELECT_RUNTIMES,
   WARMUP_GROUP_SEQUENCE,
 } from '../src/game/runtimeManifest.js';
+import {
+  LEGACY_BATTLE_CORE_RUNTIMES,
+  LEGACY_BATTLE_RUNTIMES,
+  LEGACY_COMBAT_CORE_RUNTIMES,
+  LEGACY_ROSTER_RUNTIMES,
+} from './legacyRuntimeManifest.mjs';
 
 const REPO = process.cwd();
 const report = { gates: {}, failures: [] };
@@ -253,51 +255,78 @@ gate('neutral-product-runtime-and-warmup-closure', () => {
   const runtimePaths = entries => entries.map(([src]) => String(src).split(/[?#]/, 1)[0]);
   const active = runtimePaths(ARSENAL_PRODUCT_RUNTIMES);
   const currentEngine = runtimePaths(ARSENAL_SHARED_ENGINE_RUNTIMES);
-  const roster = new Set(runtimePaths(ROSTER_RUNTIMES));
-  const productRosterRefs = active.filter(src => roster.has(src)).sort();
+  const legacyRoster = new Set(runtimePaths(LEGACY_ROSTER_RUNTIMES));
+  const productRosterRefs = active.filter(src => legacyRoster.has(src)).sort();
   const selectPaths = runtimePaths(SELECT_RUNTIMES);
-  const battleCore = runtimePaths(BATTLE_CORE_RUNTIMES);
-  const battlePaths = runtimePaths(BATTLE_RUNTIMES);
-  const transientRosterBridges = [];
+  const legacyBattleCore = runtimePaths(LEGACY_BATTLE_CORE_RUNTIMES);
+  const legacyBattle = runtimePaths(LEGACY_BATTLE_RUNTIMES);
 
   assert.deepEqual(active.slice(0, currentEngine.length), currentEngine,
     'Arsenal must begin with its own explicit current engine chain');
   assert.ok(active.includes('/game/modes/arsenalBattleRuntime.js'));
   assert.equal(active.filter((src) => src === '/game/arsenal/arsenalConfig.js').length, 1);
   assert.ok(!active.some((src) => /arsenalQuest(Runtime|Ladder|Config)\.js/.test(src)));
-  assert.deepEqual(productRosterRefs, transientRosterBridges,
-    'no legacy ROSTER runtime may execute on the current Arsenal product path after 2A.3');
-  assert.ok(!active.includes('/game/core/apexFullRosterQa.js'),
-    'FullRoster must not execute on the current Arsenal product path');
-  assert.ok(!active.includes('/game/guards/apexRuntimeStability.js'),
-    'RuntimeStability must not execute on the current Arsenal product path');
-  assert.ok(!active.includes('/game/core/apexMajorMechanicVisuals.js'),
-    'legacy MajorMechanicVisuals must not execute on the current Arsenal product path');
+  assert.deepEqual(productRosterRefs, [],
+    'no legacy roster runtime may execute on the current Arsenal product path');
+  for (const forbidden of [
+    '/game/core/apexFullRosterQa.js',
+    '/game/guards/apexRuntimeStability.js',
+    '/game/core/apexMajorMechanicVisuals.js',
+    '/game/fighters/katanaRuntime.js',
+    '/game/fighters/fangRuntime.js',
+  ]) assert.ok(!active.includes(forbidden), `${forbidden} must not execute on current Arsenal`);
+
   assert.deepEqual(currentEngine.slice(0, CURRENT_COMBAT_CORE_RUNTIMES.length),
     runtimePaths(CURRENT_COMBAT_CORE_RUNTIMES),
     'current Arsenal begins with the explicit neutral combat service set');
-  assert.ok(COMBAT_CORE_RUNTIMES.some(([src]) =>
-    String(src).split(/[?#]/, 1)[0] === '/game/core/apexMajorMechanicVisuals.js'),
-    'generic Battle must retain MajorMechanicVisuals as archived legacy compatibility');
   assert.ok(active.indexOf('/game/core/apexArsenalProductCollisionRuntime.js')
     < active.indexOf('/game/core/apexArsenalProductRenderHudRuntime.js'));
   assert.ok(active.indexOf('/game/core/apexArsenalProductRenderHudRuntime.js')
     < active.indexOf('/game/core/apexArsenalProductDrawRecoveryRuntime.js'));
-  assert.deepEqual(selectPaths.filter(src => roster.has(src)), [],
+  assert.deepEqual(selectPaths.filter(src => legacyRoster.has(src)), [],
     'current picker load must not warm the legacy roster chain');
-  assert.deepEqual(battleCore.slice(COMBAT_CORE_RUNTIMES.length,
-    COMBAT_CORE_RUNTIMES.length + ROSTER_RUNTIMES.length), runtimePaths(ROSTER_RUNTIMES));
-  assert.deepEqual(battlePaths.slice(0, battleCore.length), battleCore,
-    'generic Battle retains its complete legacy core and roster load order');
-  assert.deepEqual(Object.keys(MODE_DEFERRED_RUNTIMES).sort(), ['arsenalProduct', 'battle', 'battleDeferred', 'select']);
+
+  // Historical regression coverage is preserved, but only under tools/.
+  assert.ok(LEGACY_COMBAT_CORE_RUNTIMES.some(([src]) =>
+    String(src).split(/[?#]/, 1)[0] === '/game/core/apexMajorMechanicVisuals.js'));
+  assert.ok(LEGACY_ROSTER_RUNTIMES.some(([src]) =>
+    String(src).split(/[?#]/, 1)[0] === '/game/fighters/katanaRuntime.js'));
+  assert.deepEqual(legacyBattleCore.slice(LEGACY_COMBAT_CORE_RUNTIMES.length,
+    LEGACY_COMBAT_CORE_RUNTIMES.length + LEGACY_ROSTER_RUNTIMES.length),
+    runtimePaths(LEGACY_ROSTER_RUNTIMES));
+  assert.deepEqual(legacyBattle.slice(0, legacyBattleCore.length), legacyBattleCore,
+    'test-only legacy Battle retains its historical core/roster order');
+
+  assert.deepEqual(Object.keys(MODE_DEFERRED_RUNTIMES).sort(), ['arsenalProduct', 'select']);
   assert.deepEqual(WARMUP_GROUP_SEQUENCE, ['arsenalProduct', 'select']);
   assert.ok(!WARMUP_GROUP_SEQUENCE.some((group) => /quest/i.test(group)));
+
+  const manifest = source('src/game/runtimeManifest.js');
   const loader = source('src/game/runtimeLoader.js');
+  for (const token of [
+    'ROSTER_RUNTIMES', 'BATTLE_CORE_RUNTIMES', 'BATTLE_RUNTIMES',
+    'BATTLE_DEFERRED_RUNTIMES', 'BOOT_GAME_RUNTIMES',
+    '/game/fighters/katanaRuntime.js', '/game/fighters/fangRuntime.js',
+    '/game/core/apexMajorMechanicVisuals.js',
+  ]) {
+    assert.ok(!manifest.includes(token), `production runtime manifest leaked legacy token ${token}`);
+  }
+  assert.ok(!/\b(?:battle|battleDeferred|all)\s*:/.test(
+    loader.slice(loader.indexOf('const RUNTIME_GROUPS'), loader.indexOf('// Audio banks'))),
+    'production runtime loader must expose only current product groups');
+  assert.ok(!loader.includes('BATTLE_RUNTIMES'));
+  assert.ok(!loader.includes('BATTLE_DEFERRED_RUNTIMES'));
   assert.ok(!loader.includes('ARSENAL_LEGACY_QUEST_RUNTIMES'));
-  assert.ok(!loader.includes("arsenalLegacyQuest"));
-  return { warmup: WARMUP_GROUP_SEQUENCE, activeRuntimes: active.length,
-    productRosterBridges: productRosterRefs, currentSelectRuntimes: selectPaths.length,
-    deferredGroups: Object.keys(MODE_DEFERRED_RUNTIMES).sort() };
+  assert.ok(!loader.includes('arsenalLegacyQuest'));
+
+  return {
+    warmup: WARMUP_GROUP_SEQUENCE,
+    activeRuntimes: active.length,
+    productRosterBridges: productRosterRefs,
+    currentSelectRuntimes: selectPaths.length,
+    deferredGroups: Object.keys(MODE_DEFERRED_RUNTIMES).sort(),
+    legacyFixtureRuntimes: legacyBattle.length,
+  };
 });
 
 gate('admin-lab-real-but-not-publicly-navigated', () => {
