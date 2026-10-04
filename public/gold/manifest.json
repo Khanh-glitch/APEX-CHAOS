@@ -272,12 +272,12 @@
       "sha256": "60d64d7bbba149b12b6dff1a81cb9d25fc4d24cc123a6dfef23b8f7d39298e8b"
     },
     "lucky-draw.html": {
-      "bytes": 101067,
-      "sha256": "35229def3f69ace9bdf3ad6f04b9b2e09e707392ae027feba3361fb04e8f94de"
+      "bytes": 101661,
+      "sha256": "3fb5f51a51ac8f0303f377d6d6a05f16dfb4217b00b4e5c0b85d598e1d870696"
     },
     "shell.html": {
-      "bytes": 330900,
-      "sha256": "cebcddcb8e28c2573ca64f362732caade7c675a622b90b20a74c54f13d285e7d"
+      "bytes": 331366,
+      "sha256": "1685bb0acd95ac15763ad74f8219f371611e3b9dfa631baaf2ac8b9ea6cd7605"
     },
     "../assets/audio/forward_drive_theme.ogg": {
       "bytes": 618594,

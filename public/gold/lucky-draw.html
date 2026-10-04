@@ -334,6 +334,11 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 #stage:not([data-layout="desk"]) .hbtn .t{display:none}
 #stage:not([data-layout="desk"]) .hbtn{padding:0}
 .info-d{display:none}
+.pool-tag{position:absolute;z-index:13;left:50%;bottom:calc(var(--ctl-b) + var(--ctl-h) + 2.2cqh);transform:translateX(-50%);
+  display:flex;align-items:center;height:var(--hud-btn);padding:0 1.2em;background:rgba(14,12,10,.86);box-shadow:inset 0 0 0 1px var(--org-d);
+  font-size:var(--fs-hud);letter-spacing:.18em;color:var(--org-h);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .18s steps(3)}
+.pool-tag[data-on="1"]{opacity:1}
+#stage[data-layout="land"] .pool-tag{bottom:calc(var(--ctl-b) + var(--ctl-h) + 1.2cqh)}
 #stage[data-layout="desk"] .info-d{display:flex;position:absolute;z-index:11;right:var(--ctl-r);bottom:calc(var(--ctl-b) + var(--ctl-h) + 3cqh);
   font-size:var(--fs-hud);letter-spacing:.2em;color:var(--bone-d);align-items:center;gap:.6em;height:2.4em}
 #stage[data-layout="desk"] .info-d:hover{color:var(--bone)}
@@ -493,6 +498,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
     </button>
   </div>
   <button class="info-d" id="infoD">POSSIBLE FIGHTERS <b id="poolCount">03</b></button>
+  <div class="pool-tag" id="poolTag" role="status" aria-live="polite"></div>
 
   <canvas id="fx"></canvas>
 
@@ -1442,7 +1448,6 @@ addEventListener('keydown', e => {
 });
 // Production truth on open: credits, pool, roster.
 window.APEX_LUCKY_SYNC && window.APEX_LUCKY_SYNC();
-setPreset(LAB.preset);
 if (document.fonts) document.fonts.ready.then(() => { scheduleCovers(); A.chevW = Math.max(8, railL.clientHeight * 1.3); });
 onStageResize();
 

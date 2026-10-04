@@ -1979,15 +1979,26 @@ body.battle-hud-open #stage{visibility:hidden!important;pointer-events:none!impo
   function buildLuckyDonorURL(){
     return '/gold/lucky-draw.html';
   }
+  function handLuckyProductionApi(){
+    try{
+      const w=frame.contentWindow;
+      if(!w)return;
+      if(!w.APEX_ARSENAL_META&&window.APEX_ARSENAL_META)w.APEX_ARSENAL_META=window.APEX_ARSENAL_META;
+      if(typeof w.APEX_LUCKY_SYNC==='function')w.APEX_LUCKY_SYNC();
+    }catch(err){/* the donor reports the draw unavailable; never break the shell */}
+  }
   function openLucky(){
     if(!loaded){
       try{
         frame.src=buildLuckyDonorURL();
         loaded=true;
+        frame.addEventListener('load',handLuckyProductionApi);
       }catch(err){
         console.error('[APEX Lucky Draw] donor load failed',err);
         return;
       }
+    }else{
+      handLuckyProductionApi();
     }
     host.classList.add('is-open');host.setAttribute('aria-hidden','false');
   }

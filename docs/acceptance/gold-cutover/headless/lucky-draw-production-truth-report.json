@@ -1,0 +1,118 @@
+{
+  "gates": {
+    "production-meta-authority-present": {
+      "pass": true,
+      "detail": {
+        "loadErrors": []
+      }
+    },
+    "generated-lucky-draw-boots-in-iframe": {
+      "pass": true,
+      "detail": {
+        "drawControl": true,
+        "scrapReadout": true
+      }
+    },
+    "lucky-sync-registers-in-donor-window": {
+      "pass": true,
+      "detail": {
+        "donorOwn": true
+      }
+    },
+    "iframe-receives-real-parent-production-meta": {
+      "pass": true,
+      "detail": {
+        "sameObject": true,
+        "sameOrigin": false
+      }
+    },
+    "displayed-credits-sync-from-production": {
+      "pass": true,
+      "detail": {
+        "production": 350,
+        "shown": "350"
+      }
+    },
+    "real-draw-control-calls-production-spin-once": {
+      "pass": true,
+      "detail": {
+        "spinCalls": 1,
+        "rngArg": "undefined"
+      }
+    },
+    "successful-draw-costs-exactly-350-ac": {
+      "pass": true,
+      "detail": {
+        "before": 350,
+        "after": 0,
+        "delta": 350
+      }
+    },
+    "credits-decrease-through-real-production-economy": {
+      "pass": true,
+      "detail": {
+        "apiCredits": 0,
+        "savedCredits": 0
+      }
+    },
+    "draw-result-maps-to-real-production-fighter": {
+      "pass": true,
+      "detail": {
+        "drawn": [
+          "MIRROR"
+        ]
+      }
+    },
+    "pool-is-real-unowned-only-no-duplicates": {
+      "pass": true,
+      "detail": {
+        "duplicates": [],
+        "poolSize": 4,
+        "poolAllUnowned": true
+      }
+    },
+    "insufficient-funds-comes-from-production-meta": {
+      "pass": true,
+      "detail": {
+        "spinCalls": 1,
+        "credits": 100,
+        "tag": "NEED 250 AC",
+        "shownBroke": "100"
+      }
+    },
+    "roster-complete-comes-from-production-meta": {
+      "pass": true,
+      "detail": {
+        "spinCalls": 1,
+        "pool": 0,
+        "tag": "ROSTER COMPLETE"
+      }
+    },
+    "reopen-resyncs-changed-production-credits-and-pool": {
+      "pass": true,
+      "detail": {
+        "production": 425,
+        "shown": "425",
+        "drawerRows": 5,
+        "productionPool": 5
+      }
+    },
+    "iframe-bridge-same-origin-and-idempotent": {
+      "pass": true,
+      "detail": {
+        "sameObject": true,
+        "creditsStable": true,
+        "sameOriginRelativeSrc": true,
+        "note": "jsdom iframe origin is about:blank; same-origin proven from the shipping shell src"
+      }
+    }
+  },
+  "failures": [],
+  "loadErrors": [],
+  "evidence": [],
+  "summary": {
+    "total": 14,
+    "passed": 14,
+    "failed": []
+  }
+}

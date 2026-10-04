@@ -770,6 +770,34 @@ function buildLuckyDonor() {
     },
     // ── L10: production economy/draw truth ─────────────────────────────────
     {
+      id: 'LKY-L13',
+      why: 'drop the dangling setPreset() boot call (its LAB function was removed with the donor LAB harness)',
+      find: /\nsetPreset\(LAB\.preset\);/,
+      replace: '',
+    },
+    {
+      id: 'LKY-L14',
+      why: 'inject the real #poolTag status node the production draw flow reports into (insufficient AC / ROSTER COMPLETE / DRAW UNAVAILABLE)',
+      find: /<button class="info-d" id="infoD">POSSIBLE FIGHTERS <b id="poolCount">03<\/b><\/button>\n/,
+      replace: (
+        `<button class="info-d" id="infoD">POSSIBLE FIGHTERS <b id="poolCount">03</b></button>\n` +
+        `  <div class="pool-tag" id="poolTag" role="status" aria-live="polite"></div>\n`
+      ),
+    },
+    {
+      id: 'LKY-L14b',
+      why: 'style #poolTag in the donor HUD language (chip surface, HUD type scale, hidden until reported)',
+      find: /.info-d\{display:none\}\n/,
+      replace: (
+        `.info-d{display:none}\n` +
+        `.pool-tag{position:absolute;z-index:13;left:50%;bottom:calc(var(--ctl-b) + var(--ctl-h) + 2.2cqh);transform:translateX(-50%);\n` +
+        `  display:flex;align-items:center;height:var(--hud-btn);padding:0 1.2em;background:rgba(14,12,10,.86);box-shadow:inset 0 0 0 1px var(--org-d);\n` +
+        `  font-size:var(--fs-hud);letter-spacing:.18em;color:var(--org-h);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .18s steps(3)}\n` +
+        `.pool-tag[data-on="1"]{opacity:1}\n` +
+        `#stage[data-layout="land"] .pool-tag{bottom:calc(var(--ctl-b) + var(--ctl-h) + 1.2cqh)}\n`
+      ),
+    },
+    {
       id: 'LKY-L12',
       why: 'remove donor body.preview-only CSS scaffolding (never applies in production)',
       lineFilter: (l) => !l.startsWith('body.preview'),
@@ -986,6 +1014,41 @@ function buildShell(hudProductionHtml) {
       why: 'locked route styling (dimmed, non-interactive)',
       find: /\.route:not\(:last-child\)::after\{content:/,
       replace: '.route.is-locked{color:rgba(235,228,218,.34);cursor:not-allowed;filter:saturate(.4)}.route.is-locked svg{opacity:.5}\n.route:not(:last-child)::after{',
+    },
+    // ── S21: the Lucky Draw donor runs in its own document (the iframe
+    // boundary is canonical for the draw). Hand it the REAL production economy
+    // API on load, and re-sync credits/pool from production on every open: the
+    // draw spends production AC against the canonical save, never donor scrap.
+    // Same-origin object hand-off; the meta runtime keeps the parent's save.
+    {
+      id: 'SHL-S21',
+      why: 'lucky iframe receives the production economy API and re-syncs on open',
+      find: /  function openLucky\(\)\{\n    if\(!loaded\)\{\n      try\{\n        frame\.src=buildLuckyDonorURL\(\);\n        loaded=true;\n      \}catch\(err\)\{\n        console\.error\('\[APEX Lucky Draw\] donor load failed',err\);\n        return;\n      \}\n    \}\n    host\.classList\.add\('is-open'\);host\.setAttribute\('aria-hidden','false'\);\n  \}/,
+      replace: (
+        `  function handLuckyProductionApi(){\n` +
+        `    try{\n` +
+        `      const w=frame.contentWindow;\n` +
+        `      if(!w)return;\n` +
+        `      if(!w.APEX_ARSENAL_META&&window.APEX_ARSENAL_META)w.APEX_ARSENAL_META=window.APEX_ARSENAL_META;\n` +
+        `      if(typeof w.APEX_LUCKY_SYNC==='function')w.APEX_LUCKY_SYNC();\n` +
+        `    }catch(err){/* the donor reports the draw unavailable; never break the shell */}\n` +
+        `  }\n` +
+        `  function openLucky(){\n` +
+        `    if(!loaded){\n` +
+        `      try{\n` +
+        `        frame.src=buildLuckyDonorURL();\n` +
+        `        loaded=true;\n` +
+        `        frame.addEventListener('load',handLuckyProductionApi);\n` +
+        `      }catch(err){\n` +
+        `        console.error('[APEX Lucky Draw] donor load failed',err);\n` +
+        `        return;\n` +
+        `      }\n` +
+        `    }else{\n` +
+        `      handLuckyProductionApi();\n` +
+        `    }\n` +
+        `    host.classList.add('is-open');host.setAttribute('aria-hidden','false');\n` +
+        `  }`
+      ),
     },
     {
       id: 'SHL-S13',
