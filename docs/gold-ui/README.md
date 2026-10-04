@@ -19,4 +19,7 @@ Stable Gold payload-tree SHA-256:
 The final downloadable ZIP is verified by the external sidecar
 `APEX_CHAOS_GOLD_SOURCE_PACK.zip.sha256`. The ZIP itself is intentionally not duplicated into Git because the fully decomposed bytes already live in this tree and duplicating the archive would add redundant repository weight.
 
+Additive AV/theme preload checkpoint: `50b185c184955d279de93874823859ccabb498c6`.
+Read `preload/README_AV_THEME_PRELOAD.md` and the current ACTIVE prompt before production implementation.
+
 This directory is reference/preload authority, not production runtime code.

@@ -147,3 +147,31 @@ Before declaring complete:
 - Do not revive legacy picker/HUD DOM seams removed by r41/r42.
 - Do not remove Quest/Shop product slots; lock them lightly.
 - Do not edit hero mechanics/balance while porting UI.
+
+
+## 2026-10-04 — Core Six AV + Forward Drive additive preload
+
+The Gold source-pack commit was followed by an additive AV/theme preload.
+
+Required implementation starting checkpoint:
+`50b185c184955d279de93874823859ccabb498c6`
+
+Parent Gold-preload commit:
+`b5defc0bc51e98d47dca4e4672fc82a75ef14673`
+
+Runtime revision remains `20261003-mirror-v1-r42` at this additive checkpoint because the preload commit changes reference/assets/docs only, not runtime source.
+
+Read additionally before implementation:
+- `docs/gold-ui/preload/README_AV_THEME_PRELOAD.md`
+- `docs/gold-ui/preload/AV_THEME_PRELOAD_MANIFEST.json`
+- `docs/gold-ui/preload/APEX_CHAOS_CORE_SIX_AV_THEME_PRELOAD.zip`
+
+Archive SHA-256:
+`49d8d5bf448bce7ca6475388cdf640c338bc00250fbcb577dbc7962fcfd0180f`
+
+Important scope correction:
+- Core Six gameplay AV is now sourced/identified and must not be treated as generic TBD.
+- This does NOT resolve the four Gold UI-art placeholder categories.
+- Forward Drive supersedes the current menu-BGM behavior for product-theme policy. Reuse/adapt the existing `src/App.jsx` single-media-element seam rather than creating a second music engine.
+- Current `src/game/productSurface.js` still exposes Fighter Shop as ACTIVE; this conflicts with the Gold cutover authority and must be corrected to a lightly locked extension point during implementation.
+- Gold Battle HUD donor's demo `M = 1P/2P` hotkey conflicts with the new owner `M = music mute/unmute` law and must not survive production cutover.
