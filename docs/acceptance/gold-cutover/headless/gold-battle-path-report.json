@@ -227,8 +227,8 @@
       "pass": true,
       "detail": {
         "frames": 90,
-        "elapsedMs": 48.37,
-        "perFrameMs": 0.54
+        "elapsedMs": 35.62,
+        "perFrameMs": 0.4
       }
     },
     "production-truth-roots-stay-mounted": {
@@ -243,7 +243,7 @@
   "failures": [],
   "loadErrors": [],
   "evidence": [],
-  "runtimeScriptCount": 41,
+  "runtimeScriptCount": 42,
   "summary": {
     "total": 21,
     "passed": 21,

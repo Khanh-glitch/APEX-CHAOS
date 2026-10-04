@@ -1593,6 +1593,10 @@
     const AQS = globalScope.APEX_ARSENAL;
     if (AQS && AQS.state && AQS.state.labMode) return;
     if (ct.idx !== 1) return; // P2 only
+    // Owner law 2026-10-05: in LOCAL 1v1 the P2 abilities belong to the second
+    // human player (Digit1/Digit2), so the cast AI is disabled ONLY for that
+    // player-controlled P2. BOT matches keep the AI on P2.
+    if (AQS && AQS.state && AQS.state.battleMode === 'LOCAL') return;
     const ctl = abilityController(ct);
     for (const slot of ['A1', 'A2']) {
       if (ctl.cooldownLeft(slot) > 0) continue;
@@ -3491,6 +3495,28 @@
         if (globalScope.gameState !== 'ARSENAL' || !M) return;
         const f = globalScope.fighters && globalScope.fighters[0];
         if (f && HR.isReworkFighter(f)) HR.pressAbility(f, 'A2');
+      });
+    }
+
+    // LOCAL 2P human abilities (owner law 2026-10-05): Digit1 -> P2 A1,
+    // Digit2 -> P2 A2. The canonical pressAbility/tryCast path is the ONLY
+    // executor (no second mechanics, no second cooldown authority, no direct
+    // executor calls) and e.repeat guards against auto-repeat activation.
+    // BOT mode never reaches this branch: P2 stays CPU-driven there.
+    if (!HR.__localP2KeysInstalled && typeof globalScope.addEventListener === 'function') {
+      HR.__localP2KeysInstalled = true;
+      const LOCAL_P2_ABILITY_KEYS = { Digit1: 'A1', Digit2: 'A2' };
+      globalScope.addEventListener('keydown', (e) => {
+        if (e.repeat) return;
+        const slot = LOCAL_P2_ABILITY_KEYS[e.code];
+        if (!slot) return;
+        if (globalScope.gameState !== 'ARSENAL' || !M) return;
+        const AQS = globalScope.APEX_ARSENAL;
+        // Production truth owns the profile: only a real LOCAL match hands P2
+        // to a human. BOT matches keep the CPU on P2.
+        if (!AQS || !AQS.state || AQS.state.battleMode !== 'LOCAL') return;
+        const f = globalScope.fighters && globalScope.fighters[1];
+        if (f && HR.isReworkFighter(f)) HR.pressAbility(f, slot);
       });
     }
 

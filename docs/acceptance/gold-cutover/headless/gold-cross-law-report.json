@@ -1,0 +1,568 @@
+{
+  "gates": {
+    "law4-single-product-music-element": {
+      "pass": true,
+      "detail": {
+        "elementCount": 1,
+        "mediaElements": 1,
+        "themeElements": 1,
+        "loadErrors": []
+      }
+    },
+    "law4-forward-drive-is-the-product-source": {
+      "pass": true,
+      "detail": {
+        "source": "/assets/audio/forward_drive_theme.ogg"
+      }
+    },
+    "law4-app-install-creates-no-second-element": {
+      "pass": true,
+      "detail": {
+        "before": 1,
+        "after": 1,
+        "sameAuthority": true,
+        "elementCount": 1
+      }
+    },
+    "law5-visible-roster-matches-production-authority": {
+      "pass": true,
+      "detail": {
+        "productionVisible": 12,
+        "productionPlayable": 6,
+        "productionLocked": 6,
+        "orderLength": 12,
+        "cards": 12,
+        "cardIds": [
+          "crystala",
+          "hunter",
+          "frost",
+          "magnet",
+          "mirror",
+          "newbot",
+          "black_hole",
+          "math_v2",
+          "rubber",
+          "slime",
+          "sniper",
+          "time"
+        ],
+        "lockedCards": [
+          "crystala",
+          "hunter",
+          "frost",
+          "magnet",
+          "mirror",
+          "black_hole",
+          "math_v2",
+          "rubber",
+          "slime",
+          "sniper",
+          "time"
+        ],
+        "disabledCards": [
+          "black_hole",
+          "math_v2",
+          "rubber",
+          "slime",
+          "sniper",
+          "time"
+        ],
+        "playableIds": [
+          "newbot",
+          "hunter",
+          "crystala",
+          "magnet",
+          "frost",
+          "mirror"
+        ],
+        "everyEntryCovered": true
+      }
+    },
+    "law5-core-six-remain-playable-and-future-fighters-locked": {
+      "pass": true,
+      "detail": {
+        "playable": 6,
+        "locked": 6,
+        "lockedCards": [
+          "black_hole",
+          "math_v2",
+          "rubber",
+          "slime",
+          "sniper",
+          "time"
+        ]
+      }
+    },
+    "law4-allowed-surfaces-really-play-the-theme": {
+      "pass": true,
+      "detail": {
+        "allowed": [
+          {
+            "surface": "home",
+            "allowed": true,
+            "paused": false,
+            "volume": 0.48
+          },
+          {
+            "surface": "mode",
+            "allowed": true,
+            "paused": false,
+            "volume": 0.48
+          },
+          {
+            "surface": "fighter",
+            "allowed": true,
+            "paused": false,
+            "volume": 0.48
+          },
+          {
+            "surface": "transition",
+            "allowed": true,
+            "paused": false,
+            "volume": 0.48
+          }
+        ],
+        "allowedSurfaces": [
+          "home",
+          "mode",
+          "fighter",
+          "transition"
+        ]
+      }
+    },
+    "law4-disallowed-surfaces-really-stop-the-theme": {
+      "pass": true,
+      "detail": {
+        "disallowed": [
+          {
+            "surface": "lucky",
+            "allowed": false,
+            "paused": true,
+            "volume": 0
+          },
+          {
+            "surface": "shop",
+            "allowed": false,
+            "paused": true,
+            "volume": 0
+          },
+          {
+            "surface": "missions",
+            "allowed": false,
+            "paused": true,
+            "volume": 0
+          },
+          {
+            "surface": "upgrade",
+            "allowed": false,
+            "paused": true,
+            "volume": 0
+          },
+          {
+            "surface": "battle",
+            "allowed": false,
+            "paused": true,
+            "volume": 0
+          }
+        ]
+      }
+    },
+    "law4-playhead-preserved-across-surfaces": {
+      "pass": true,
+      "detail": {
+        "afterFadeOut": {
+          "paused": true,
+          "time": 42.5
+        },
+        "afterReturn": {
+          "paused": false,
+          "time": 42.5
+        },
+        "restarts": 2
+      }
+    },
+    "law4-m-key-mutes-music-only": {
+      "pass": true,
+      "detail": {
+        "before": false,
+        "afterM": true,
+        "afterUpper": false,
+        "otherAudioMuted": []
+      }
+    },
+    "law4-blur-pauses-and-focus-resumes-only-when-allowed": {
+      "pass": true,
+      "detail": {
+        "afterBlur": true,
+        "afterFocus": false,
+        "afterBlurDisallowed": true,
+        "afterFocusDisallowed": true
+      }
+    },
+    "law1-bot-identity-presented-equals-handoff": {
+      "pass": true,
+      "detail": {
+        "presented": {
+          "id": "newbot",
+          "productionId": "ROBOT",
+          "name": "ROBOT"
+        },
+        "handoff": {
+          "id": "newbot",
+          "productionId": "ROBOT",
+          "name": "ROBOT"
+        }
+      }
+    },
+    "law1-bot-identity-handoff-equals-real-spawned-fighter": {
+      "pass": true,
+      "detail": {
+        "handoffP2": "ROBOT",
+        "spawned": {
+          "name": "ROBOT",
+          "heroId": null,
+          "productionId": null,
+          "battleMode": "BOT",
+          "botOpponentProductionId": "ROBOT",
+          "shellBotId": "ROBOT",
+          "p1Name": "ROBOT"
+        }
+      }
+    },
+    "law1-shell-derives-bot-identity-from-production": {
+      "pass": true,
+      "detail": {
+        "derivesFromProduction": true,
+        "hardcodedFrostGone": true,
+        "productionBotId": "ROBOT"
+      }
+    },
+    "law3-p1-key-law-j-k-matches-production": {
+      "pass": true,
+      "detail": {
+        "abilityCalls": [
+          {
+            "slot": "A1",
+            "name": "ROBOT",
+            "side": 0
+          },
+          {
+            "slot": "A2",
+            "name": "ROBOT",
+            "side": 0
+          }
+        ]
+      }
+    },
+    "law3-bot-p2-has-no-human-key-path": {
+      "pass": true,
+      "detail": {
+        "botP2HumanCasts": 0,
+        "calls": [
+          {
+            "slot": "A1",
+            "side": 0,
+            "name": "ROBOT"
+          },
+          {
+            "slot": "A2",
+            "side": 0,
+            "name": "ROBOT"
+          }
+        ]
+      }
+    },
+    "law3-hud-key-labels-match-accepted-keys": {
+      "pass": true,
+      "detail": {
+        "hudLabels": [
+          [
+            "J",
+            "K"
+          ],
+          [
+            "CPU",
+            "CPU"
+          ]
+        ],
+        "battleMode": "BOT"
+      }
+    },
+    "law3-hud-shows-no-donor-ue-copy": {
+      "pass": true,
+      "detail": {
+        "donorCopyGone": true
+      }
+    },
+    "law2-cast-consumes-a-real-charge": {
+      "pass": true,
+      "detail": {
+        "before": {
+          "charges": 3,
+          "cdLeft": 0,
+          "rechargeLeft": 0,
+          "cooldownLeft": 0
+        },
+        "afterOne": {
+          "charges": 2,
+          "rechargeLeft": 6.5,
+          "cooldownLeft": 0
+        },
+        "castOk": {
+          "ok": true
+        }
+      }
+    },
+    "law2-multi-charge-usable-while-charges-remain": {
+      "pass": true,
+      "detail": {
+        "projected": {
+          "name": "A1",
+          "cd": 6.5,
+          "max": 3,
+          "charges": 2,
+          "nextIn": 0,
+          "truth": true
+        },
+        "production": {
+          "charges": 2,
+          "rechargeLeft": 6.5,
+          "cooldownLeft": 0
+        },
+        "freshProjections": 1
+      }
+    },
+    "law2-charges-depleted-hud-still-cooling": {
+      "pass": true,
+      "detail": {
+        "production": {
+          "attempts": [
+            {
+              "ok": false,
+              "reason": "condition"
+            },
+            {
+              "ok": false,
+              "reason": "condition"
+            },
+            {
+              "ok": false,
+              "reason": "condition"
+            },
+            {
+              "ok": false,
+              "reason": "condition"
+            },
+            {
+              "ok": false,
+              "reason": "condition"
+            },
+            {
+              "ok": true
+            },
+            {
+              "ok": false,
+              "reason": "condition"
+            },
+            {
+              "ok": false,
+              "reason": "condition"
+            },
+            {
+              "ok": false,
+              "reason": "condition"
+            },
+            {
+              "ok": false,
+              "reason": "condition"
+            },
+            {
+              "ok": true
+            }
+          ],
+          "charges": 0,
+          "rechargeLeft": 4.65199999999998,
+          "cooldownLeft": 4.65199999999998
+        },
+        "projected": {
+          "name": "A1",
+          "cd": 6.5,
+          "max": 3,
+          "charges": 0,
+          "nextIn": 4.618999999999979,
+          "truth": true
+        },
+        "freshProjections": 1
+      }
+    },
+    "law2-midpoint-still-cooling": {
+      "pass": true,
+      "detail": {
+        "midpoint": {
+          "cooldownLeft": 1.3689999999999793,
+          "charges": 0
+        },
+        "projected": {
+          "name": "A1",
+          "cd": 6.5,
+          "max": 3,
+          "charges": 0,
+          "nextIn": 1.3359999999999794,
+          "truth": true
+        },
+        "freshProjections": 1
+      }
+    },
+    "law2-production-ready-edge-projects-ready-once": {
+      "pass": true,
+      "detail": {
+        "production": {
+          "cooldownLeft": 0,
+          "charges": 1
+        },
+        "firstFreshProjection": {
+          "name": "A1",
+          "cd": 6.5,
+          "max": 3,
+          "charges": 1,
+          "nextIn": 0,
+          "truth": true
+        },
+        "freshProjectionsAfterEdge": 1
+      }
+    },
+    "law2-multi-charge-skill-stays-multi-charge": {
+      "pass": true,
+      "detail": {
+        "defId": "hunter.snare",
+        "maxCharges": 3,
+        "cooldown": 6.5
+      }
+    },
+    "law2-cast-response-cannot-become-cooldown-authority": {
+      "pass": true,
+      "detail": {
+        "before": {
+          "charges": 1,
+          "cooldownLeft": 0
+        },
+        "after": {
+          "charges": 1,
+          "cooldownLeft": 0
+        }
+      }
+    },
+    "law3-local-p2-keys-1-and-2-reach-production": {
+      "pass": true,
+      "detail": {
+        "p2": "ROBOT",
+        "casts": [
+          "A1",
+          "A2"
+        ],
+        "all": [
+          {
+            "slot": "A1",
+            "side": 0,
+            "name": "HUNTER"
+          },
+          {
+            "slot": "A1",
+            "side": 0,
+            "name": "HUNTER"
+          },
+          {
+            "slot": "A1",
+            "side": 0,
+            "name": "HUNTER"
+          },
+          {
+            "slot": "A1",
+            "side": 0,
+            "name": "HUNTER"
+          },
+          {
+            "slot": "A1",
+            "side": 0,
+            "name": "HUNTER"
+          },
+          {
+            "slot": "A1",
+            "side": 0,
+            "name": "HUNTER"
+          },
+          {
+            "slot": "A1",
+            "side": 0,
+            "name": "HUNTER"
+          },
+          {
+            "slot": "A1",
+            "side": 0,
+            "name": "HUNTER"
+          },
+          {
+            "slot": "A1",
+            "side": 0,
+            "name": "HUNTER"
+          },
+          {
+            "slot": "A1",
+            "side": 0,
+            "name": "HUNTER"
+          },
+          {
+            "slot": "A1",
+            "side": 0,
+            "name": "HUNTER"
+          },
+          {
+            "slot": "A1",
+            "side": 0,
+            "name": "HUNTER"
+          },
+          {
+            "slot": "A1",
+            "side": 1,
+            "name": "ROBOT"
+          },
+          {
+            "slot": "A2",
+            "side": 1,
+            "name": "ROBOT"
+          }
+        ]
+      }
+    },
+    "law3-local-hud-labels-are-1-and-2": {
+      "pass": true,
+      "detail": {
+        "labels": [
+          [
+            "J",
+            "K"
+          ],
+          [
+            "1",
+            "2"
+          ]
+        ],
+        "mode": "LOCAL"
+      }
+    },
+    "law3-local-seam-does-not-enable-p2-ai-outside-local": {
+      "pass": true,
+      "detail": {
+        "aiMaster": true
+      }
+    }
+  },
+  "failures": [],
+  "loadErrors": [],
+  "evidence": [],
+  "summary": {
+    "total": 27,
+    "passed": 27,
+    "failed": []
+  }
+}

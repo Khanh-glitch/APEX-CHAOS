@@ -33,7 +33,18 @@ const UI_2026_ASSETS = {
   menuVfxOverlay: '/assets/ui_2026/menu-vfx-overlay.webp',
 };
 
-const MENU_AUDIO = '/assets/audio/menu_bgm.mp3';
+// §A4 / 2026-10-05 correction slice — ONE product music authority.
+// The single existing menu-media element IS the product theme element: there
+// is exactly one persistent HTMLMediaElement for product music (the Gold
+// bridge must never create a second Audio for music) and its source is the
+// owner Forward Drive theme (AV preload), not a second menu BGM.
+const MENU_AUDIO = '/assets/audio/forward_drive_theme.ogg';
+// Owner law: music fades in/out over ~300–450ms.
+const MENU_MUSIC_FADE_MS = 380;
+const MENU_MUSIC_VOLUME = 0.48;
+// Product surfaces where the Forward Drive theme is allowed. Everything else
+// (Lucky Draw, Upgrade, Missions, Shop, an actual match) is music-off.
+const MENU_MUSIC_ALLOWED_SURFACES = new Set(['home', 'mode', 'fighter', 'transition']);
 
 // Derived from the one product-surface authority. ADMIN and detached entries
 // are intentionally excluded: no normal-public control can expose them.
@@ -359,6 +370,10 @@ export default function App() {
   const scriptRef = useRef(null);
   const menuAudioRef = useRef(null);
   const menuAudioWasPlayingRef = useRef(false);
+  // Product-surface music policy (Gold product surfaces). null = fall back to
+  // the legacy semantic menu/pick visibility check below.
+  const musicSurfaceRef = useRef(null);
+  const musicFadeRef = useRef(0);
   const pendingActionRef = useRef(null);
   const [gameReady, setGameReady] = useState(false);
   const [pressedMenuButton, setPressedMenuButton] = useState(null);
@@ -442,6 +457,8 @@ export default function App() {
   }, []);
 
   const menuMusicAllowed = () => {
+    const policy = musicSurfaceRef.current;
+    if (policy) return policy.allowed === true;
     if (typeof document === 'undefined') return false;
     const visible = (id) => {
       const el = document.getElementById(id);
@@ -455,9 +472,49 @@ export default function App() {
     return visible('menu-screen') || visible('select-screen');
   };
 
+  // Owner law: fades are ~300–450ms and never restart the track. The playhead
+  // is preserved across every surface change; only an explicit reset (legacy
+  // goToMenu hand-off) rewinds it.
+  const fadeMusicTo = (target, ms = MENU_MUSIC_FADE_MS, onDone) => {
+    const audio = menuAudioRef.current;
+    if (!audio) { if (onDone) onDone(); return; }
+    if (musicFadeRef.current) {
+      cancelAnimationFrame(musicFadeRef.current);
+      musicFadeRef.current = 0;
+    }
+    const from = Number.isFinite(audio.volume) ? audio.volume : 0;
+    const started = performance.now();
+    const step = () => {
+      const a = menuAudioRef.current;
+      if (!a) { musicFadeRef.current = 0; return; }
+      const t = Math.min(1, (performance.now() - started) / Math.max(1, ms));
+      // Linear-in-time ramp inside the owner 300–450ms band.
+      a.volume = Math.max(0, Math.min(1, from + (target - from) * t));
+      if (t < 1) {
+        musicFadeRef.current = requestAnimationFrame(step);
+      } else {
+        musicFadeRef.current = 0;
+        if (onDone) onDone();
+      }
+    };
+    musicFadeRef.current = requestAnimationFrame(step);
+  };
+
   const stopMenuMusic = (reset = false) => {
     const audio = menuAudioRef.current;
     if (!audio) return;
+    if (musicFadeRef.current) {
+      cancelAnimationFrame(musicFadeRef.current);
+      musicFadeRef.current = 0;
+    }
+    // The product music authority owns the element: an owner reset (match
+    // start / legacy menu hand-off) fades out through it, so there is exactly
+    // one component that can stop the product theme.
+    const authority = window.apexProductMusic;
+    if (authority && typeof authority.fadeOut === 'function' && !reset) {
+      authority.fadeOut(MENU_MUSIC_FADE_MS);
+      return;
+    }
     audio.pause();
     if (reset) {
       try { audio.currentTime = 0; } catch (error) {}
@@ -489,18 +546,31 @@ export default function App() {
   };
 
   useEffect(() => {
-    const audio = new Audio();
-    audio.loop = true;
-    // §A4 — warm the menu BGM in the background before the first user
-    // gesture. Preload never blocks menu interactivity, and playback still
-    // respects autoplay policy (no forced audible autoplay); the first
-    // allowed play starts from already-warmed data.
-    audio.preload = 'auto';
-    audio.volume = 0.48;
-    audio.src = MENU_AUDIO;
-    audio.__apexMenuMusic = true;
-    audio.load();
-    menuAudioRef.current = audio;
+    // ── the one product music authority (owner law 2026-10-05) ────────────
+    // Home / Mode / Fighter select / battle-entry transition keep the Forward
+    // Drive theme playing continuously; Lucky Draw / Upgrade / Missions / Shop
+    // and a live match do not. A match start fades the theme OUT and the
+    // result/return fades it back IN from the preserved playhead. The single
+    // persistent element, the surface policy, the fades and the M mute all
+    // live in the product music runtime; this effect only installs it and
+    // publishes it for the Gold bridge (never a second music manager).
+    const music = window.installProductMusicAuthority
+      ? window.installProductMusicAuthority({
+        window, document,
+        allowedSurfaces: [...MENU_MUSIC_ALLOWED_SURFACES],
+      })
+      : null;
+    // ONE persistent product-music element in the whole product: the one the
+    // authority owns. The App deliberately does NOT create its own Audio here
+    // (a second element would be a second product music source). §A4 — the
+    // authority warms the theme in the background before the first user
+    // gesture; preload never blocks menu interactivity and playback still
+    // respects autoplay policy (no forced audible autoplay).
+    const audio = (music && music.audio) ? music.audio : null;
+    if (audio) {
+      audio.__apexMenuMusic = true;
+      menuAudioRef.current = audio;
+    }
     // Evidence probe (§A4): read-only BGM readiness without exposing the
     // element itself (it is deliberately never attached to the DOM).
     window.__apexMenuBgmState = () => {
@@ -516,6 +586,36 @@ export default function App() {
     };
     window.apexStopMenuMusic = (reset = false) => stopMenuMusic(reset);
     window.apexPlayMenuMusic = (restart = false) => playMenuMusic(restart);
+    const musicAuthority = music ? music.api : null;
+    if (musicAuthority) {
+      window.apexProductMusic = musicAuthority;
+      // Legacy menu-music probes keep reading the SAME element.
+      window.__apexMenuBgmState = () => {
+        const st = musicAuthority.state();
+        if (!st || !audio) return null;
+        return {
+          preload: audio.preload, readyState: audio.readyState, networkState: audio.networkState,
+          paused: st.paused, src: st.src,
+        };
+      };
+      window.apexStopMenuMusic = (reset) => {
+        if (!reset && typeof musicAuthority.fadeOut === 'function') {
+          musicAuthority.fadeOut(MENU_MUSIC_FADE_MS);
+          return;
+        }
+        if (!audio) return;
+        audio.pause();
+        if (reset) { try { audio.currentTime = 0; } catch (error) {} }
+      };
+      window.apexPlayMenuMusic = (restart) => {
+        const st = musicAuthority.state();
+        if (!st || !st.allowed || !audio) return;
+        if (restart) { try { audio.currentTime = 0; } catch (error) {} }
+        audio.volume = MENU_MUSIC_VOLUME;
+        const p = audio.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      };
+    }
 
     // CP7: re-armed on every interaction (NOT once) — if a resume was ever
     // missed (transient blur/hidden state at the exit-to-menu handoff), the
@@ -555,11 +655,12 @@ export default function App() {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('blur', pauseForHiddenTab);
       window.removeEventListener('focus', resumeForVisibleTab);
-      audio.pause();
+      if (audio) audio.pause();
       menuAudioRef.current = null;
       if (window.apexStopMenuMusic) delete window.apexStopMenuMusic;
       if (window.apexPlayMenuMusic) delete window.apexPlayMenuMusic;
       if (window.__apexMenuBgmState) delete window.__apexMenuBgmState;
+      if (music && typeof music.dispose === 'function') music.dispose();
     };
   }, []);
 

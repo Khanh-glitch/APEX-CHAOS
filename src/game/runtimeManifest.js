@@ -1,8 +1,11 @@
 // Cache-bust classic runtime scripts that live under /public and therefore do
 // not receive Vite content hashes. This Phase 2C product-runtime transition
 // from r41 to r42 consolidates current combat HUD state/projection authority
-// before the Gold HUD/UI/UX overhaul.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r42';
+// before the Gold HUD/UI/UX overhaul. The 2026-10-05 Gold product cutover
+// correction slice (r43) re-keys every versioned runtime and the Gold shell /
+// bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
+// stale cache during owner browser verification.
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261005-gold-cutover-r43';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -16,9 +19,13 @@ export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r42';
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Tier 1 — menu interactive. The engine's menu navigation uses the audio
-// session runtime. Nothing else is needed before a product surface is entered.
+// session runtime, and the ONE product music authority (Forward Drive theme,
+// single persistent media element, surface policy + fades + M mute) installs
+// here so every later surface — including the Gold product shell — talks to
+// exactly one music owner. Nothing else is needed before a product surface.
 export const MENU_INTERACTIVE_RUNTIMES = [
   ['/game/core/apexBattleAudioRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBattleAudioRuntime'],
+  ['/game/product/productMusicAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'productMusicAuthority'],
 ];
 
 // Current-neutral combat services shared by Arsenal and the generic engine.

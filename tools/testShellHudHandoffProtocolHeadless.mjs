@@ -497,16 +497,30 @@ async function mainAsync() {
   const handoffs = messages.filter((m) => m.type === 'APEX_CHAOS_BATTLE_HANDOFF').map((m) => m.data);
   const firstHandoff = handoffs[0] || null;
   const liveHandoff = handoffs.filter((h) => h.live === true).slice(-1)[0] || null;
+  // 6b) BOT OPPONENT = ONE TRUTH (2026-10-05 correction): the handoff P2
+  //     identity is the SAME production CPU identity the shell presents and the
+  //     real match spawns. The previous hardcoded 'ICE' presentation (which
+  //     contradicted the ROBOT the production match actually spawned) is gone;
+  //     the shell derives the presented identity from the bridge authority.
+  const botTruth = win.eval(`(() => ({
+    productionBotId: window.APEX_GOLD && typeof window.APEX_GOLD.botOpponentProductionId === 'function'
+      ? window.APEX_GOLD.botOpponentProductionId() : null,
+    shellBotId: window.APEX_ARSENAL_SHELLS && typeof window.APEX_ARSENAL_SHELLS.botOpponentId === 'function'
+      ? window.APEX_ARSENAL_SHELLS.botOpponentId() : null,
+  }))()`);
   gate('handoff-message-carries-production-truth', !!firstHandoff
     && firstHandoff.mode === '1p'
     && firstHandoff.live === false
     && Array.isArray(firstHandoff.players) && firstHandoff.players.length === 2
     && firstHandoff.players[0].productionId === 'ROBOT'
-    && firstHandoff.players[1].productionId === 'ICE', {
+    && firstHandoff.players[1].productionId === botTruth.productionBotId
+    && botTruth.productionBotId === botTruth.shellBotId
+    && botTruth.productionBotId === 'ROBOT', {
     mode: firstHandoff && firstHandoff.mode,
     live: firstHandoff && firstHandoff.live,
     players: (firstHandoff && firstHandoff.players || []).map((p) => ({ id: p.id, productionId: p.productionId, accent: p.accent })),
     handoffHookCalls: handoffHookCalls.length,
+    botTruth,
   });
 
   // 7) APEX_CHAOS_HUD_READY (posted by the real donor on boot) makes the shell

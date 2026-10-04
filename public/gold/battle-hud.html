@@ -102,6 +102,7 @@ kbd{font:inherit}
   clip-path:polygon(0 0,100% 0,calc(100% - 10px) calc(100% - var(--notch)),calc(50% + 8px) calc(100% - var(--notch)),50% 100%,calc(50% - 8px) calc(100% - var(--notch)),10px calc(100% - var(--notch)))}
 .mc-plate::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,var(--p1) 0 50%,var(--p2) 50% 100%)}
 .mc-round{display:flex;align-items:center;gap:4px;font-size:var(--mcRF);letter-spacing:.22em;color:var(--mute);line-height:1}
+#hud[data-round-authority="0"] .mc-round{display:none}
 .mc-round b{font-weight:700;padding:0 2px}
 .mc-pip{width:5px;height:5px;transform:rotate(45deg);border:1px solid var(--mute2);display:block}
 .mc-pip.on.a{background:var(--p1);border-color:var(--p1)}
@@ -529,8 +530,15 @@ kbd{font:inherit}
     if(!st)return;
     const now=performance.now();
     if(Number.isFinite(st.timer))S.timer=st.timer;
-    if(Number.isFinite(st.round))S.round=st.round;
-    if(Array.isArray(st.wins))S.wins=[Number(st.wins[0])||0,Number(st.wins[1])||0];
+    // Timer truth: elapsed-time semantics unless production supplies a
+    // countdown/round authority (current Arsenal does not).
+    S.roundAuthority=st.roundAuthority===true;
+    if(S.roundAuthority){
+      if(Number.isFinite(st.round))S.round=st.round;
+      if(Array.isArray(st.wins))S.wins=[Number(st.wins[0])||0,Number(st.wins[1])||0];
+    }
+    const hud=document.getElementById('hud');
+    if(hud)hud.dataset.roundAuthority=S.roundAuthority?'1':'0';
     if(typeof st.ko==='boolean')S.ko=st.ko;
     for(let i=0;i<2;i++){
       const s=st.sides&&st.sides[i];if(!s)continue;
@@ -567,9 +575,12 @@ kbd{font:inherit}
           }
           if(Number.isFinite(sk.cd))a.cd=Math.max(.05,sk.cd);
           if(Number.isFinite(sk.max))a.max=Math.max(1,sk.max);
-          if(Number.isFinite(sk.charges))a.charges=Math.max(0,sk.charges);
-          a.next=Number.isFinite(sk.nextIn)?now+sk.nextIn*1000:0;
-          a.castUntil=sk.castUntil?now+380:0;
+          if(Number.isFinite(sk.charges))a.charges=Math.max(0,Math.min(a.max,sk.charges));
+          // nextIn is the REAL remaining time from production; the donor
+          // only re-derives its own absolute deadline from it.
+          a.next=Number.isFinite(sk.nextIn)&&sk.nextIn>0?now+sk.nextIn*1000:0;
+          a.__truth=!!sk.truth;
+          if(sk.castUntil)a.castUntil=now+380;
         }
       }
     }
@@ -597,12 +608,11 @@ kbd{font:inherit}
     cast(pi,ai,'production');
   };
   // Real ability cast telemetry (AIL 'Cast'): skill name + cooldown truth.
+  // Visual cue ONLY: the production combatant owns cooldown/charges and
+  // projects them every frame (applyState). A Cast event must never
+  // become cooldown authority.
   seam.setSkill=function setSkill(pi,ai,patch){
     const a=S.players[pi]&&S.players[pi].abil[ai];if(!a||!patch)return;
-    if(Number.isFinite(patch.cd))a.cd=Math.max(.05,patch.cd);
-    a.max=1;
-    a.charges=0;
-    a.next=performance.now()+(Number.isFinite(patch.nextIn)?patch.nextIn:a.cd)*1000;
     a.castUntil=patch.castUntil?performance.now()+380:0;
   };
   seam.ko=function koEvent(a,v){
@@ -625,6 +635,15 @@ kbd{font:inherit}
       const p=S.players[i];
       if(p.ghost>p.hp&&now>p.hold){p.ghost=Math.max(p.hp,p.ghost-dt*650);renderRail(i);}
       else if(p.ghost<p.hp){p.ghost=p.hp;renderRail(i);}
+      // Production truth owns skill readiness: while a projection is
+      // active the donor must not auto-restore charges between frames.
+      for(let k=0;k<2;k++){
+        const a=p.abil[k];if(!a||!a.__truth)continue;
+        if(a.next&&now>=a.next){
+          if(a.charges<a.max){a.charges++;a.next=a.charges<a.max?a.next+a.cd*1000:0;}
+          else a.next=0;
+        }
+      }
     }
     renderSkills(now);
     drawThunder(now);
@@ -822,8 +841,11 @@ addEventListener('resize',applyViewport);
 /* ================= RENDER (state -> UI) ================= */
 function renderStatic(){
  const desk=S.viewport.layout==='desk';
- R.side[0].ctrl.textContent=desk?'LOCAL · J K W':'LOCAL · TOUCH';
- R.side[1].ctrl.textContent=S.mode==='1p'?'CPU · THREAT':(desk?'LOCAL · U I E':'LOCAL · TOUCH');
+ // Owner input law (production truth): P1 J/K, Local P2 Digit1/Digit2,
+ // BOT P2 = CPU. No manual swap command exists in production, so no
+ // swap key is ever advertised here.
+ R.side[0].ctrl.textContent=desk?'LOCAL · J K':'LOCAL · TOUCH';
+ R.side[1].ctrl.textContent=S.mode==='1p'?'CPU · THREAT':(desk?'LOCAL · 1 2':'LOCAL · TOUCH');
  R.side.forEach((s,i)=>s.skills.forEach((u,k)=>{u.slot.textContent=(S.mode==='1p'&&i===1)?'ENEMY':'ABILITY '+(k+1);u.el.setAttribute('aria-disabled',S.mode==='1p'&&i===1?'true':'false');}));
 }
 function renderRival(viewer){
@@ -845,13 +867,21 @@ function renderRail(i){
  renderRival(i^1);
 }
 function renderTimer(){
+ // Production truth: elapsed time only. No countdown urgency, no
+ // fabricated round number, no best-of-three win pips.
  const t=Math.max(0,Math.ceil(S.timer)),s=String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
  if(R.time.textContent!==s)R.time.textContent=s;
- R.time.classList.toggle('urgent',t<=30);
- const rr='R'+S.round;R.roundEl.textContent=rr;
- document.querySelectorAll('.mc-view-round').forEach(el=>{if(el.textContent!==rr)el.textContent=rr;});
- document.querySelectorAll('.mc-view-time').forEach(el=>{if(el.textContent!==s)el.textContent=s;el.classList.toggle('urgent',t<=30);});
- document.querySelectorAll('.mc-pip').forEach(el=>{const [pi,n]=el.dataset.w.split('-').map(Number);el.classList.toggle('on',S.wins[pi]>n);});
+ R.time.classList.remove('urgent');
+ document.querySelectorAll('.mc-view-time').forEach(el=>{if(el.textContent!==s)el.textContent=s;el.classList.remove('urgent');});
+ if(S.roundAuthority){
+   const rr='R'+S.round;R.roundEl.textContent=rr;
+   document.querySelectorAll('.mc-view-round').forEach(el=>{if(el.textContent!==rr)el.textContent=rr;});
+   document.querySelectorAll('.mc-pip').forEach(el=>{const [pi,n]=el.dataset.w.split('-').map(Number);el.classList.toggle('on',S.wins[pi]>n);});
+ }else{
+   R.roundEl.textContent='';
+   document.querySelectorAll('.mc-view-round').forEach(el=>{el.textContent='';});
+   document.querySelectorAll('.mc-pip').forEach(el=>{el.classList.remove('on');});
+ }
 }
 function renderWeapon(i){
  const p=S.players[i],h=HEROES[i],w=h.weapons[p.wi],alt=h.weapons[p.wi^1],u=R.side[i].wp;

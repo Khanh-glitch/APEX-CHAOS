@@ -1851,7 +1851,35 @@ report.postCJ = run(`
 `);
 gate('postc-p1-no-autocast', report.postCJ.autoCasts === 0 && report.postCJ.p1IsRework, report.postCJ);
 gate('postc-p1-j-activates', report.postCJ.afterJ >= 1, report.postCJ);
-gate('postc-p2-still-auto', report.postCJ.p2Active, report.postCJ);
+report.postCJBot = run(`
+  const gate = window.APEX_ARSENAL_SKILL_GATE;
+  const HR = window.APEX_HERO_REWORK;
+  const prevProfile = window.__apexArsenalBattleProfile;
+  window.__apexArsenalBattleProfile = 'BOT';
+  window.__apexArsenalTestStartMatch('ICE', 'RUBBER');
+  window.__apexArsenalBattleProfile = prevProfile;
+  cancelAnimationFrame(reqId); reqId = 0;
+  APEX_ARSENAL.state.spawnTimer = 1e6; APEX_ARSENAL.state.slots = [];
+  projectiles.length = 0;
+  const p2 = HR.byCombatant(fighters[1]);
+  const battleMode = APEX_ARSENAL.state.battleMode;
+  for (let i = 0; i < 150; i++) APEX_ARSENAL.step(1 / 60);
+  const ctl2 = HR.abilityController(p2);
+  return {
+    battleMode,
+    p2Casts: p2.telemetry.casts,
+    p2Active: p2.telemetry.casts >= 1 || ctl2.cooldownLeft('A1') > 0 || ctl2.cooldownLeft('A2') > 0,
+    aiMaster: !!HR.aiEnabled,
+  };
+`);
+gate('postc-p2-bot-probe-is-bot-mode', report.postCJBot.battleMode === 'BOT'
+  && report.postCJBot.aiMaster === true, report.postCJBot);
+// 2026-10-05 correction: in LOCAL 1v1 the P2 abilities belong to the second
+// HUMAN player (Digit1/Digit2), so the cast AI is disabled ONLY for that
+// player-controlled P2. A BOT match keeps the AI on P2 (real CPU opponent).
+gate('postc-p2-local-is-player-controlled-not-auto', report.postCJ.p2Active === false
+  && report.postCJ.p2Casts === 0, report.postCJ);
+gate('postc-p2-bot-still-auto', report.postCJBot.p2Active === true, report.postCJBot);
 
 // ROBOT's accepted A1 remains tied to the real pickup state (Lv1 cooldown 10, T6 never auto-targeted).
 report.postCRobot = run(`
@@ -2318,20 +2346,31 @@ report.rev2ProductGraph = run(`
       && !('exitArsenalQuestMode' in window),
   };
 `);
-gate('rev2-product-four-active-surfaces',
-  report.rev2ProductGraph.publicCount === 10 && report.rev2ProductGraph.activeCount === 4
+// 2026-10-05 correction: the Fighter Shop is a LOCKED extension point (Gold
+// product direction), so the active public surface set is bot/local/draw and
+// the locked set is shop + the future surfaces. A locked route must be
+// genuinely non-launchable (never a visually disabled ACTIVE route).
+gate('rev2-product-active-surfaces-are-the-battle-entries-and-draw',
+  report.rev2ProductGraph.publicCount === 10 && report.rev2ProductGraph.activeCount === 3
     && report.rev2ProductGraph.activeIds.includes('bot-battle')
     && report.rev2ProductGraph.activeIds.includes('local-1v1')
-    && report.rev2ProductGraph.activeIds.includes('fighter-shop')
-    && report.rev2ProductGraph.activeIds.includes('lucky-draw'), report.rev2ProductGraph);
-gate('rev2-product-six-public-future-surfaces-locked',
-  report.rev2ProductGraph.lockedCount === 6 && report.rev2ProductGraph.allLockedBlocked,
+    && report.rev2ProductGraph.activeIds.includes('lucky-draw')
+    && report.rev2ProductGraph.activeIds.includes('fighter-shop') === false
+    && report.rev2ProductGraph.allLockedBlocked === true
+    && win.APEX_PRODUCT_SURFACE.canLaunch('fighter-shop') === false
+    && win.APEX_PRODUCT_SURFACE.canLaunch('quest-01') === false,
+  report.rev2ProductGraph);
+gate('rev2-product-locked-public-future-surfaces',
+  report.rev2ProductGraph.lockedCount === 7 && report.rev2ProductGraph.allLockedBlocked,
   report.rev2ProductGraph);
 gate('rev2-quest-01-is-locked-future-product-surface',
   report.rev2ProductGraph.quest01?.availability === 'LOCKED'
     && !win.APEX_PRODUCT_SURFACE.canLaunch('quest-01'), report.rev2ProductGraph.quest01);
 gate('rev2-bot-local-are-the-active-battle-entries',
-  report.rev2ProductGraph.botLocalLaunchable && report.rev2ProductGraph.shopDrawLaunchable,
+  report.rev2ProductGraph.botLocalLaunchable === true
+    && report.rev2ProductGraph.shopDrawLaunchable === false
+    && win.APEX_PRODUCT_SURFACE.canLaunch('bot-battle') === true
+    && win.APEX_PRODUCT_SURFACE.canLaunch('local-1v1') === true,
   { botLocal: report.rev2ProductGraph.botLocalLaunchable, shopDraw: report.rev2ProductGraph.shopDrawLaunchable });
 gate('rev2-admin-lab-requires-explicit-admin-authority',
   report.rev2ProductGraph.adminHidden && report.rev2ProductGraph.adminGate,

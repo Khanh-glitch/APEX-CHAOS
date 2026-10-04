@@ -50,34 +50,74 @@
     magnet: '#c7c5e9', frost: '#7ee8ff', mirror: '#e9e5df',
   };
 
+  // Production-visible roster authority (2026-10-05): the Gold roster is
+  // NEVER hard-capped to the Core Six. Every production-VISIBLE fighter is
+  // published; playability/ownership stay production authority, and future
+  // visible fighters present as LOCKED cards (fallback copy, no fake
+  // mechanics) instead of being silently omitted.
+  function productionVisibleIds() {
+    const shells = window.APEX_ARSENAL_SHELLS;
+    const read = (v) => {
+      if (Array.isArray(v)) return v;
+      if (typeof v === 'function') { try { return v() || []; } catch (e) { return []; } }
+      return [];
+    };
+    if (shells) {
+      const visible = read(shells.visibleIds);
+      if (visible.length) return visible.map((id) => String(id).toUpperCase());
+      const all = read(shells.ids);
+      if (all.length) return all.map((id) => String(id).toUpperCase());
+    }
+    return [];
+  }
+  function productionPlayableIds() {
+    const shells = window.APEX_ARSENAL_SHELLS;
+    const read = (v) => {
+      if (Array.isArray(v)) return v;
+      if (typeof v === 'function') { try { return v() || []; } catch (e) { return []; } }
+      return [];
+    };
+    if (shells) {
+      const playable = read(shells.playableIds);
+      if (playable.length) return new Set(playable.map((id) => String(id).toUpperCase()));
+      if (typeof shells.isPlayable === 'function') return null; // predicate fallback below
+    }
+    return new Set();
+  }
+  function isProductionPlayable(productionId) {
+    const shells = window.APEX_ARSENAL_SHELLS;
+    const playable = productionPlayableIds();
+    if (playable) return playable.has(productionId);
+    return !!(shells && typeof shells.isPlayable === 'function' && shells.isPlayable(productionId));
+  }
   function rosterFromProduction() {
     const shells = window.APEX_ARSENAL_SHELLS;
     const meta = window.APEX_ARSENAL_META;
-    // Production truth: the shell runtime publishes the playable list as an
-    // ARRAY (playableIds/ids), not a function. Read either shape so the Gold
-    // roster is derived from the real playable set (never a hardcoded copy).
-    let ids = [];
-    if (shells) {
-      if (Array.isArray(shells.playableIds)) ids = shells.playableIds;
-      else if (typeof shells.playableIds === 'function') ids = shells.playableIds() || [];
-      else if (Array.isArray(shells.ids)) ids = shells.ids;
-      else if (typeof shells.ids === 'function') ids = shells.ids() || [];
-    }
     const heroes = {};
-    for (const id of ids) {
-      const productionId = String(id).toUpperCase();
+    for (const productionId of productionVisibleIds()) {
       const key = GOLD_SHELL_KEY_BY_PRODUCTION_ID[productionId] || productionId.toLowerCase();
-      if (!GOLD_HERO_COPY[key]) continue;
-      const shell = (shells && typeof shells.typeFor === 'function') ? shells.typeFor(id) : null;
+      const shell = (shells && typeof shells.typeFor === 'function') ? shells.typeFor(productionId) : null;
       const copy = GOLD_HERO_COPY[key];
-      const color = (shell && shell.color) || FALLBACK_ACCENTS[key] || '#c4a574';
+      const playable = isProductionPlayable(productionId);
+      // Locked/fallback presentation for future visible fighters: no fabricated
+      // mechanics, no invented art, just a real locked card.
+      const color = (shell && shell.color) || (copy && copy.color) || FALLBACK_ACCENTS[key] || '#8d8375';
+      const name = (copy && copy.name)
+        || (shell && shell.name ? String(shell.name).toUpperCase() : productionId);
+      // Ownership is production authority (the meta save). A missing/absent
+      // ownership API simply means "not owned yet" — never "owned".
+      const owned = !!(meta && typeof meta.owns === 'function' && meta.owns(productionId));
       heroes[key] = {
-        name: copy.name,
+        name,
         color,
         accent: color,
-        tag: copy.tag,
+        tag: (copy && copy.tag) || 'LOCKED // PRE-PILOT',
         productionId,
-        owned: !(meta && typeof meta.owns === 'function') || meta.owns(productionId),
+        playable,
+        // A locked future fighter is never "owned" for selection purposes; the
+        // Core Six keep real production ownership.
+        owned: playable ? owned : false,
+        locked: !playable,
       };
     }
     return heroes;
@@ -98,65 +138,118 @@
   window.APEX_GOLD_LOCKED = function isGoldHeroLocked(shellKey) {
     const roster = rosterFromProduction();
     const hero = roster[shellKey];
-    if (!hero) return true; // not in the production playable roster
+    if (!hero) return true; // not in the production visible roster
+    if (hero.playable === false) return true; // future visible fighter: locked
     return !hero.owned;
   };
+  // Full production-visible roster (playable + locked) for the shell picker.
+  window.APEX_GOLD_ROSTER_ORDER = function goldRosterOrder() {
+    const roster = rosterFromProduction();
+    return Object.keys(roster).sort((a, b) => {
+      const pa = roster[a].playable === false ? 1 : 0;
+      const pb = roster[b].playable === false ? 1 : 0;
+      if (pa !== pb) return pa - pb;
+      return String(roster[a].productionId).localeCompare(String(roster[b].productionId));
+    });
+  };
+  // The one BOT opponent identity: production owns it, presentation derives it.
+  BRIDGE_BOT_HELPERS: {
+    const botProductionId = () => {
+      const shells = window.APEX_ARSENAL_SHELLS;
+      if (shells && typeof shells.botOpponentId === 'function') {
+        const id = shells.botOpponentId();
+        if (id) return String(id).toUpperCase();
+      }
+      return 'ROBOT';
+    };
+    const BRIDGE0 = window.APEX_GOLD || (window.APEX_GOLD = {});
+    BRIDGE0.botOpponentProductionId = botProductionId;
+    BRIDGE0.botOpponentShellKey = function botOpponentShellKey() {
+      const id = botProductionId();
+      return GOLD_SHELL_KEY_BY_PRODUCTION_ID[id] || id.toLowerCase();
+    };
+    // Production-visible roster authority (one explicit mapping covering EVERY
+    // production-visible entry; no hard cap, nothing silently omitted).
+    BRIDGE0.roster = function goldRoster() {
+      const prod = rosterFromProduction();
+      return Object.keys(prod).map((key) => Object.assign({ id: key }, prod[key]));
+    };
+    BRIDGE0.rosterOrder = function goldRosterOrder() {
+      return window.APEX_GOLD_ROSTER_ORDER();
+    };
+    BRIDGE0.isPlayable = function goldIsPlayable(shellKey) {
+      const prod = rosterFromProduction();
+      const hero = prod[String(shellKey || '')];
+      return !!hero && hero.playable !== false;
+    };
+  }
 
-  // ── owner theme music (AV preload: playhead + global mute + tab pause) ───
+  // ── owner theme music — ONE authority (2026-10-05 correction slice) ─────
+  // The product music authority lives in src/App.jsx: ONE persistent
+  // HTMLMediaElement whose source is the Forward Drive theme. This bridge
+  // NEVER creates a second Audio element and NEVER opens a music AudioContext;
+  // it only tells that authority which product surface is showing. Surface
+  // policy, fades (300–450ms), playhead preservation, hidden/blur pause and
+  // the M key (music only) all live in that single authority.
   const THEME_SRC = '/assets/audio/forward_drive_theme.ogg';
+  const productMusic = () => (typeof window !== 'undefined' ? window.apexProductMusic : null);
   const theme = {
-    el: null,
+    // Surfaces where the Forward Drive theme plays: Home, mode select, fighter
+    // select and the battle-entry transition. Everything else is music-off.
+    ALLOWED: ['home', 'mode', 'fighter', 'transition'],
     started: false,
-    muted: false,
     ensure() {
-      if (this.el) return this.el;
-      const el = new Audio(THEME_SRC);
-      el.loop = true;
-      el.preload = 'auto';
-      el.volume = 0.55;
-      this.el = el;
-      return el;
+      // The single existing element is created by the product authority; the
+      // bridge only verifies that its source really is the Forward Drive theme.
+      const music = productMusic();
+      const state = music && typeof music.state === 'function' ? music.state() : null;
+      const ok = !!music && !!state && /forward_drive_theme\.ogg/.test(String(state.src || ''));
+      window.__apexGoldThemeSourceOk = ok;
+      return ok ? music : null;
     },
     start() {
-      const el = this.ensure();
+      const music = this.ensure();
       if (this.started) return;
       this.started = true;
-      // Pause the production menu BGM; the theme owns product music while a
-      // Gold surface is mounted. The menu playhead is preserved (reset=false).
-      if (window.apexStopMenuMusic) { try { window.apexStopMenuMusic(false); } catch (e) {} }
-      const p = el.play();
-      if (p && typeof p.catch === 'function') p.catch(() => {});
+      if (music && typeof music.fadeIn === 'function') music.fadeIn();
     },
     stop() {
       this.started = false;
-      if (this.el) { try { this.el.pause(); } catch (e) {} }
-      if (window.apexPlayMenuMusic) { try { window.apexPlayMenuMusic(false); } catch (e) {} }
+      const music = productMusic();
+      if (music && typeof music.fadeOut === 'function') music.fadeOut();
+    },
+    // The actual match starting fades the theme out (playhead preserved).
+    fadeOutForMatch() {
+      const music = productMusic();
+      if (music && typeof music.fadeOut === 'function') music.fadeOut();
+    },
+    setSurface(surfaceId) {
+      const music = productMusic();
+      if (music && typeof music.setSurface === 'function') music.setSurface(surfaceId);
     },
     toggleMute() {
-      this.muted = !this.muted;
-      if (this.el) this.el.muted = this.muted;
-      return this.muted;
+      const music = productMusic();
+      if (music && typeof music.toggleMute === 'function') return music.toggleMute();
+      return false;
+    },
+    state() {
+      const music = productMusic();
+      return music && typeof music.state === 'function' ? music.state() : null;
     },
   };
-  document.addEventListener('visibilitychange', () => {
-    if (!theme.started || !theme.el) return;
-    if (document.hidden) { try { theme.el.pause(); } catch (e) {} }
-    else { const p = theme.el.play(); if (p && typeof p.catch === 'function') p.catch(() => {}); }
-  });
-  // M is the global music mute/unmute key (owner law; supersedes any donor
-  // motion/parallax/reference diagnostics).
+  // hidden/blur pause and visible/focus resume (only when playback was
+  // previously allowed) are owned by the single product authority in App.jsx.
+  // M is the global music mute — handled there too, so this bridge must not
+  // install a second M handler (that would double-toggle the same element).
   window.__apexGoldMusicMuted = false;
-  addEventListener('keydown', (e) => {
-    const k = String(e.key || '').toLowerCase();
-    if (k !== 'm' || e.metaKey || e.ctrlKey || e.altKey) return;
-    const tag = String((e.target && e.target.tagName) || '').toLowerCase();
-    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-    const muted = theme.toggleMute();
-    window.__apexGoldMusicMuted = muted;
-  });
 
   // ── battle HUD mount (same document, canonical donor DOM) ────────────────
   const BRIDGE = window.APEX_GOLD || (window.APEX_GOLD = {});
+  // Product surface notifications (Home / mode / fighter / transition /
+  // lucky / locked surfaces) drive the single music authority's policy.
+  BRIDGE.onSurface = function onSurface(surfaceId) {
+    theme.setSurface(surfaceId);
+  };
   let hudHost = null;
   let hudMounted = false;
   let battleLiveRunning = false;
@@ -234,7 +327,9 @@
     }
     hudHost = host;
     hudMounted = true;
-    theme.start();
+    // The battle-entry transition is an allowed theme surface (music keeps
+    // playing through it); the match start fades it out for real.
+    theme.setSurface('transition');
     const ready = () => { if (onready) onready(); };
     if (window.APEX_GOLD_HUD && window.APEX_GOLD_HUD.version) ready();
     else setTimeout(ready, 0);
@@ -379,7 +474,11 @@
     if (battleLiveRunning) return;
     const mode = (pick && pick.mode === 'bot') ? 'BOT' : 'LOCAL';
     const p1Shell = String((pick && pick.p1) || 'newbot').toLowerCase();
-    const p2Shell = mode === 'BOT' ? 'newbot' : String((pick && pick.p2) || 'newbot').toLowerCase();
+    // BOT OPPONENT = ONE TRUTH: the production CPU identity, never a second
+    // hardcoded presentation identity.
+    const p2Shell = mode === 'BOT'
+      ? BRIDGE.botOpponentShellKey()
+      : String((pick && pick.p2) || 'newbot').toLowerCase();
     const p1 = PRODUCTION_ID_BY_SHELL_KEY[p1Shell] || 'ROBOT';
     const p2 = PRODUCTION_ID_BY_SHELL_KEY[p2Shell] || 'ROBOT';
     const shells = window.APEX_ARSENAL_SHELLS;
@@ -397,7 +496,9 @@
       // observer and the SFX/VFX presentation runtimes must exist before any
       // production trigger is wired or fired.
       await ensureDeferredRuntimes('arsenalProduct');
-      if (window.apexStopMenuMusic) { try { window.apexStopMenuMusic(true); } catch (e) {} }
+      // The actual match start fades the theme out over the owner band and
+      // preserves the playhead (never resets it); battle SFX are untouched.
+      theme.fadeOutForMatch();
       relocateArena();
       hideLegacyBattleUi();
       // Wrap the real HUD observer only after the group is present.
@@ -541,14 +642,10 @@
           const f = fighters[i];
           if (!f || heroIdOf(f) !== hero) continue;
           try {
+            // Visual cue only. Cooldown/charge authority stays with the
+            // production combatant and is projected per frame below.
             if (typeof seam.cast === 'function') seam.cast(i, slot);
-            if (typeof seam.setSkill === 'function') {
-              seam.setSkill(i, slot, {
-                cd: heroSkillCooldown(hero, payload.slot === 'A2' ? 'A2' : 'A1'),
-                nextIn: heroSkillCooldown(hero, payload.slot === 'A2' ? 'A2' : 'A1'),
-                castUntil: true,
-              });
-            }
+            if (typeof seam.setSkill === 'function') seam.setSkill(i, slot, { castUntil: true });
           } catch (e) {}
           break;
         }
@@ -590,15 +687,57 @@
   function heroIdOf(fighter) {
     return (fighter && (fighter.heroId || fighter.name)) ? String(fighter.heroId || fighter.name).toUpperCase() : null;
   }
+  // Real production skill state (hero-rework combatants own the truth):
+  //   ct.skills[slot].{charges, rechargeLeft, cdLeft, cfg.{maxCharges,cooldown}}
+  //   ct.__ctl.cooldownLeft(slot) -> seconds until usable (0 = ready)
+  // The Gold cards project THAT truth every frame. A Cast event is a visual
+  // cue only and can never become cooldown authority.
+  function skillTruthFor(fighter, slot) {
+    const ct = fighter && (fighter.__hrCombatant || (fighter.anchor && fighter.anchor.__hrCombatant));
+    if (!ct) return null;
+    const s = ct.skills && ct.skills[slot];
+    if (!s) return null;
+    const cfg = s.cfg || {};
+    const maxCharges = Number(cfg.maxCharges) > 0 ? Number(cfg.maxCharges) : 1;
+    const cooldown = Number.isFinite(Number(cfg.cooldown)) && Number(cfg.cooldown) > 0
+      ? Number(cfg.cooldown) : 10;
+    let charges = Number.isFinite(Number(s.charges)) ? Number(s.charges) : maxCharges;
+    charges = Math.max(0, Math.min(maxCharges, charges));
+    let nextIn;
+    if (ct.__ctl && typeof ct.__ctl.cooldownLeft === 'function') {
+      nextIn = Number(ct.__ctl.cooldownLeft(slot)) || 0;
+    } else if (maxCharges > 1) {
+      nextIn = charges > 0 ? 0 : (Number(s.rechargeLeft) || 0);
+    } else {
+      nextIn = Math.max(0, Number(s.cdLeft) || 0);
+    }
+    if (charges >= maxCharges) nextIn = 0;
+    return {
+      name: heroSkillName(heroIdOf(fighter) || (ct.heroId || ''), slot),
+      cd: cooldown,
+      max: maxCharges,
+      charges,
+      nextIn,
+      truth: true,
+    };
+  }
   function skillProjection(fighter) {
     const heroId = heroIdOf(fighter);
     const out = [];
     for (let k = 0; k < 2; k++) {
       const slot = k === 0 ? 'A1' : 'A2';
+      const truth = skillTruthFor(fighter, slot);
+      if (truth) {
+        out.push(truth);
+        continue;
+      }
+      // No production combatant yet (pre-match / non-rework): report the
+      // authored cooldown with an explicit not-truth marker so the HUD never
+      // presents invented readiness.
       out.push({
         name: heroId ? heroSkillName(heroId, slot) : slot,
         cd: heroId ? heroSkillCooldown(heroId, slot) : 10,
-        max: 1, charges: 1, nextIn: 0, castUntil: false,
+        max: 1, charges: 1, nextIn: 0, castUntil: false, truth: false,
       });
     }
     return out;
@@ -652,20 +791,35 @@
         name: identity.name || (f && f.name) || '',
         skills,
         weapon,
+        // Control labels come from the ACCEPTED production key law, so the HUD
+        // can never advertise a key the engine does not accept:
+        //   P1 J/K; Local P2 Digit1/Digit2; BOT P2 = CPU (no human keys).
+        keyLabels: keyLabelsForSide(i),
       });
       if (f) fighterPos.push({ x: f.x, y: f.y, aim: Number.isFinite(f.aim) ? f.aim : 0 });
       else fighterPos.push(null);
     }
-    return {
-      state: {
-        timer: state && Number.isFinite(state.time) ? state.time : 0,
-        round: 1,
-        wins: [0, 0],
-        ko: !!(state && state.over),
-        sides,
-      },
-      fighters: fighterPos,
+    // TIMER TRUTH (2026-10-05): production Arsenal owns ELAPSED time only
+    // (AQ.state.time starts at 0 and increases) and has no best-of-three
+    // round/win system. Present it as elapsed time; never fabricate a
+    // countdown, a round number or win pips.
+    const elapsed = state && Number.isFinite(state.time) ? Math.max(0, Number(state.time)) : 0;
+    const matchState = {
+      timer: elapsed,
+      timeSemantics: 'elapsed',
+      roundAuthority: false,
+      ko: !!(state && state.over),
+      sides,
     };
+    return { state: matchState, fighters: fighterPos };
+  }
+  // Accepted production key law per side (see heroReworkRuntime J/K and the
+  // Local P2 Digit1/Digit2 seam).
+  function keyLabelsForSide(sideIndex) {
+    const arsenal = window.APEX_ARSENAL;
+    const battleMode = arsenal && arsenal.state ? arsenal.state.battleMode : null;
+    if (sideIndex === 0) return ['J', 'K'];
+    return battleMode === 'BOT' ? ['CPU', 'CPU'] : ['1', '2'];
   }
 
   let pumpId = 0;

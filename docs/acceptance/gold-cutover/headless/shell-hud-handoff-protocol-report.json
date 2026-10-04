@@ -4,7 +4,7 @@
       "pass": true,
       "detail": {
         "stageInHost": true,
-        "rosterCards": 6,
+        "rosterCards": 12,
         "messageListenersAddedByShell": 2,
         "loadErrors": []
       }
@@ -12,8 +12,8 @@
     "handoff-payload-is-the-canonical-decoded-donor": {
       "pass": true,
       "detail": {
-        "payloadBytes": 101121,
-        "payloadSha": "437763eb"
+        "payloadBytes": 102604,
+        "payloadSha": "8e35f906"
       }
     },
     "real-battle-entry-reaches-mode-select": {
@@ -42,19 +42,19 @@
       "detail": {
         "mountCalls": [
           {
-            "bytes": 101121,
-            "sha": "437763eb"
+            "bytes": 102604,
+            "sha": "8e35f906"
           },
           {
-            "bytes": 101121,
-            "sha": "437763eb"
+            "bytes": 102604,
+            "sha": "8e35f906"
           },
           {
-            "bytes": 101121,
-            "sha": "437763eb"
+            "bytes": 102604,
+            "sha": "8e35f906"
           }
         ],
-        "canonicalSha": "437763eb"
+        "canonicalSha": "8e35f906"
       }
     },
     "handoff-message-carries-production-truth": {
@@ -69,12 +69,16 @@
             "accent": "#c8c2b4"
           },
           {
-            "id": "frost",
-            "productionId": "ICE",
-            "accent": "#74d8e8"
+            "id": "newbot",
+            "productionId": "ROBOT",
+            "accent": "#c8c2b4"
           }
         ],
-        "handoffHookCalls": 4
+        "handoffHookCalls": 4,
+        "botTruth": {
+          "productionBotId": "ROBOT",
+          "shellBotId": "ROBOT"
+        }
       }
     },
     "hud-ready-message-resends-handoff": {
@@ -120,7 +124,7 @@
       "pass": true,
       "detail": {
         "seamPresent": true,
-        "ticksAfterLive": 233
+        "ticksAfterLive": 232
       }
     },
     "parent-runtime-freezes-during-battle": {
@@ -178,16 +182,16 @@
     "liveHookCalls": 2,
     "mountCalls": [
       {
-        "bytes": 101121,
-        "sha": "437763eb"
+        "bytes": 102604,
+        "sha": "8e35f906"
       },
       {
-        "bytes": 101121,
-        "sha": "437763eb"
+        "bytes": 102604,
+        "sha": "8e35f906"
       },
       {
-        "bytes": 101121,
-        "sha": "437763eb"
+        "bytes": 102604,
+        "sha": "8e35f906"
       }
     ]
   },

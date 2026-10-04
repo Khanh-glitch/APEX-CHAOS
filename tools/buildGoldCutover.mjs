@@ -402,6 +402,57 @@ function buildBattleHud() {
     // and the shell's back/unlock navigation died; every remount added another
     // copy. Install it once, and only own the key while this HUD is the open
     // battle surface (the shell owns Escape on the transition/cancel path).
+    // ── H27: timer truth — production owns ELAPSED time only ──────────────
+    // The donor is authored as a countdown with best-of-three round/win pips.
+    // Current production Arsenal has neither: AQ.state.time is elapsed time
+    // (starts at 0, increases) and there is no round/win authority. Present
+    // the truth: count UP, never urgent, no fabricated round, no fake pips.
+    {
+      id: 'HUD-H27a',
+      why: 'renderTimer presents elapsed-time truth (never countdown-urgent) and suppresses round/win state without production authority',
+      find: /function renderTimer\(\)\{\n const t=Math\.max\(0,Math\.ceil\(S\.timer\)\),s=([\s\S]*?)\n\}/,
+      replace: (
+        `function renderTimer(){\n` +
+        ` // Production truth: elapsed time only. No countdown urgency, no\n` +
+        ` // fabricated round number, no best-of-three win pips.\n` +
+        ` const t=Math.max(0,Math.ceil(S.timer)),s=String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');\n` +
+        ` if(R.time.textContent!==s)R.time.textContent=s;\n` +
+        ` R.time.classList.remove('urgent');\n` +
+        ` document.querySelectorAll('.mc-view-time').forEach(el=>{if(el.textContent!==s)el.textContent=s;el.classList.remove('urgent');});\n` +
+        ` if(S.roundAuthority){\n` +
+        `   const rr='R'+S.round;R.roundEl.textContent=rr;\n` +
+        `   document.querySelectorAll('.mc-view-round').forEach(el=>{if(el.textContent!==rr)el.textContent=rr;});\n` +
+        `   document.querySelectorAll('.mc-pip').forEach(el=>{const [pi,n]=el.dataset.w.split('-').map(Number);el.classList.toggle('on',S.wins[pi]>n);});\n` +
+        ` }else{\n` +
+        `   R.roundEl.textContent='';\n` +
+        `   document.querySelectorAll('.mc-view-round').forEach(el=>{el.textContent='';});\n` +
+        `   document.querySelectorAll('.mc-pip').forEach(el=>{el.classList.remove('on');});\n` +
+        ` }\n` +
+        `}`
+      ),
+    },
+    {
+      id: 'HUD-H27c',
+      why: 'hide the best-of-three round strip when production owns no round authority (composition preserved, no fabricated state)',
+      find: /\.mc-round\{display:flex;align-items:center;gap:4px;font-size:var\(--mcRF\);letter-spacing:\.22em;color:var\(--mute\);line-height:1\}/,
+      replace: (
+        `.mc-round{display:flex;align-items:center;gap:4px;font-size:var(--mcRF);letter-spacing:.22em;color:var(--mute);line-height:1}\n` +
+        `#hud[data-round-authority="0"] .mc-round{display:none}`
+      ),
+    },
+    // ── H28: control labels come from the accepted production key law ──────
+    {
+      id: 'HUD-H28',
+      why: 'replace donor demo control copy (LOCAL · U I E, manual W/E swap claims) with the accepted key law labels',
+      find: / R\.side\[0\]\.ctrl\.textContent=desk\?'LOCAL · J K W':'LOCAL · TOUCH';\n R\.side\[1\]\.ctrl\.textContent=S\.mode==='1p'\?'CPU · THREAT':\(desk\?'LOCAL · U I E':'LOCAL · TOUCH'\);/,
+      replace: (
+        ` // Owner input law (production truth): P1 J/K, Local P2 Digit1/Digit2,\n` +
+        ` // BOT P2 = CPU. No manual swap command exists in production, so no\n` +
+        ` // swap key is ever advertised here.\n` +
+        ` R.side[0].ctrl.textContent=desk?'LOCAL · J K':'LOCAL · TOUCH';\n` +
+        ` R.side[1].ctrl.textContent=S.mode==='1p'?'CPU · THREAT':(desk?'LOCAL · 1 2':'LOCAL · TOUCH');`
+      ),
+    },
     {
       id: 'HUD-H26',
       why: 'donor Escape handler: install once + only while this mount is still connected',
@@ -472,6 +523,79 @@ function buildBattleHud() {
   ];
 
   let out = applyPatches(donor, patches, 'battle-hud');
+// ── H29: the production seam projects REAL skill/timer truth ─────────────
+// These patches apply to the seam string (not the donor): the seam is the
+// only component allowed to speak for production skill state.
+const seamPatches = [
+    // ── H29: skill projection is production truth, Cast is visual only ─────
+    {
+      id: 'HUD-H29a',
+      why: 'setSkill is a visual cast cue only (cooldown/charge authority stays with production)',
+      find: /  seam\.setSkill=function setSkill\(pi,ai,patch\)\{\n    const a=S\.players\[pi\]&&S\.players\[pi\]\.abil\[ai\];if\(!a\|\|!patch\)return;\n    if\(Number\.isFinite\(patch\.cd\)\)a\.cd=Math\.max\(\.05,patch\.cd\);\n    a\.max=1;\n    a\.charges=0;\n    a\.next=performance\.now\(\)\+\(Number\.isFinite\(patch\.nextIn\)\?patch\.nextIn:a\.cd\)\*1000;\n    a\.castUntil=patch\.castUntil\?performance\.now\(\)\+380:0;\n  \};/,
+      replace: (
+        `  // Visual cue ONLY: the production combatant owns cooldown/charges and\n` +
+        `  // projects them every frame (applyState). A Cast event must never\n` +
+        `  // become cooldown authority.\n` +
+        `  seam.setSkill=function setSkill(pi,ai,patch){\n` +
+        `    const a=S.players[pi]&&S.players[pi].abil[ai];if(!a||!patch)return;\n` +
+        `    a.castUntil=patch.castUntil?performance.now()+380:0;\n` +
+        `  };`
+      ),
+    },
+    {
+      id: 'HUD-H29b',
+      why: 'per-frame skill projection is authoritative: the donor never invents a charge/readiness transition of its own',
+      find: /  seam\.tick=function tick\(dt,now\)\{\n    for\(let i=0;i<2;i\+\+\)\{\n      const p=S\.players\[i\];\n      if\(p\.ghost>p\.hp&&now>p\.hold\)\{p\.ghost=Math\.max\(p\.hp,p\.ghost-dt\*650\);renderRail\(i\);\}\n      else if\(p\.ghost<p\.hp\)\{p\.ghost=p\.hp;renderRail\(i\);\}\n/,
+      replace: (
+        `  seam.tick=function tick(dt,now){\n` +
+        `    for(let i=0;i<2;i++){\n` +
+        `      const p=S.players[i];\n` +
+        `      if(p.ghost>p.hp&&now>p.hold){p.ghost=Math.max(p.hp,p.ghost-dt*650);renderRail(i);}\n` +
+        `      else if(p.ghost<p.hp){p.ghost=p.hp;renderRail(i);}\n` +
+        `      // Production truth owns skill readiness: while a projection is\n` +
+        `      // active the donor must not auto-restore charges between frames.\n` +
+        `      for(let k=0;k<2;k++){\n` +
+        `        const a=p.abil[k];if(!a||!a.__truth)continue;\n` +
+        `        if(a.next&&now>=a.next){\n` +
+        `          if(a.charges<a.max){a.charges++;a.next=a.charges<a.max?a.next+a.cd*1000:0;}\n` +
+        `          else a.next=0;\n` +
+        `        }\n` +
+        `      }\n`
+      ),
+    },
+    {
+      id: 'HUD-H29c',
+      why: 'applyState records projected skill truth (and the round-authority flag) instead of inventing readiness',
+      find: /          if\(Number\.isFinite\(sk\.cd\)\)a\.cd=Math\.max\(\.05,sk\.cd\);\n          if\(Number\.isFinite\(sk\.max\)\)a\.max=Math\.max\(1,sk\.max\);\n          if\(Number\.isFinite\(sk\.charges\)\)a\.charges=Math\.max\(0,sk\.charges\);\n          a\.next=Number\.isFinite\(sk\.nextIn\)\?now\+sk\.nextIn\*1000:0;\n          a\.castUntil=sk\.castUntil\?now\+380:0;/,
+      replace: (
+        `          if(Number.isFinite(sk.cd))a.cd=Math.max(.05,sk.cd);\n` +
+        `          if(Number.isFinite(sk.max))a.max=Math.max(1,sk.max);\n` +
+        `          if(Number.isFinite(sk.charges))a.charges=Math.max(0,Math.min(a.max,sk.charges));\n` +
+        `          // nextIn is the REAL remaining time from production; the donor\n` +
+        `          // only re-derives its own absolute deadline from it.\n` +
+        `          a.next=Number.isFinite(sk.nextIn)&&sk.nextIn>0?now+sk.nextIn*1000:0;\n` +
+        `          a.__truth=!!sk.truth;\n` +
+        `          if(sk.castUntil)a.castUntil=now+380;`
+      ),
+    },
+    {
+      id: 'HUD-H29d',
+      why: 'round authority flag drives the round strip + donor-side countdown suppression',
+      find: /    if\(Number\.isFinite\(st\.round\)\)S\.round=st\.round;\n    if\(Array\.isArray\(st\.wins\)\)S\.wins=\[Number\(st\.wins\[0\]\)\|\|0,Number\(st\.wins\[1\]\)\|\|0\];/,
+      replace: (
+        `    // Timer truth: elapsed-time semantics unless production supplies a\n` +
+        `    // countdown/round authority (current Arsenal does not).\n` +
+        `    S.roundAuthority=st.roundAuthority===true;\n` +
+        `    if(S.roundAuthority){\n` +
+        `      if(Number.isFinite(st.round))S.round=st.round;\n` +
+        `      if(Array.isArray(st.wins))S.wins=[Number(st.wins[0])||0,Number(st.wins[1])||0];\n` +
+        `    }\n` +
+        `    const hud=document.getElementById('hud');\n` +
+        `    if(hud)hud.dataset.roundAuthority=S.roundAuthority?'1':'0';`
+      ),
+    },
+];
+
 
     // ── H15: production seam — appended after the donor's main script, in the
     // canonical position (top-level const/function bindings of a classic script
@@ -629,8 +753,9 @@ function buildBattleHud() {
 })();
 </script>
 `;
-  out = out.replace('</head>', `${seam}</head>`);
-  if (!out.includes(seam)) throw new Error('patch HUD-H15 (production seam) could not be inserted');
+  const seamFinal = applyPatches(seam, seamPatches, 'battle-hud-seam');
+  out = out.replace('</head>', `${seamFinal}</head>`);
+  if (!out.includes(seamFinal)) throw new Error('patch HUD-H15 (production seam) could not be inserted');
   log('  patch HUD-H15 (battle-hud): production seam installed');
   return out;
 }
@@ -1075,6 +1200,100 @@ function buildShell(hudProductionHtml) {
         `  }`
       ),
     },
+    // ── S22: BOT OPPONENT = ONE TRUTH (2026-10-05 correction slice) ─────────
+    // The presentation, the battle-entry transition, the HUD handoff and the
+    // actually spawned fighter must all show the SAME BOT production identity.
+    // The production CPU identity is the single authority; the shell derives
+    // its presentation from it and never hardcodes a second one.
+    {
+      id: 'SHL-S22a',
+      why: 'shell derives the BOT opponent presentation identity from production (single truth)',
+      find: /  function makeBattleConfig\(live=false\)\{/,
+      replace: (
+        `  // BOT opponent identity: ONE truth, read from production. Presentation,\n` +
+        `  // transition, handoff and the spawned fighter all use this value.\n` +
+        `  function botHeroId(){\n` +
+        `    try{\n` +
+        `      const g=window.APEX_GOLD;\n` +
+        `      if(g&&typeof g.botOpponentProductionId==='function'){\n` +
+        `        const id=g.botOpponentProductionId();\n` +
+        `        if(id&&HEROES[id])return id;\n` +
+        `      }\n` +
+        `    }catch(_){}\n` +
+        `    return 'newbot';\n` +
+        `  }\n` +
+        `  function makeBattleConfig(live=false){`
+      ),
+    },
+    {
+      id: 'SHL-S22b',
+      why: 'battle handoff + transition identity stop hardcoding a second BOT identity',
+      all: true,
+      find: "bot?heroPayload('frost','newbot')",
+      replace: "bot?heroPayload(botHeroId(),'newbot')",
+    },
+    // ── S23: roster order derives from production authority (no hard cap) ───
+    // Every production-visible fighter appears: the playable Core Six are
+    // selectable, production-visible future fighters are locked extension
+    // points. Nothing is silently omitted.
+    {
+      id: 'SHL-S23a',
+      why: 'roster order derives from the production-visible authority instead of a hardcoded six-card list',
+      find: /  const HERO_ORDER = \[.*?\];/,
+      replace: (
+        `  const HERO_ORDER = (function productionRosterOrder(){\n` +
+        `    const base=['newbot','hunter','crystala','magnet','frost','mirror'];\n` +
+        `    try{\n` +
+        `      const g=window.APEX_GOLD;\n` +
+        `      const order=g&&typeof g.rosterOrder==='function'?g.rosterOrder():null;\n` +
+        `      if(Array.isArray(order)&&order.length){\n` +
+        `        const seen=new Set(); const out=[];\n` +
+        `        order.concat(base,Object.keys(HEROES)).forEach(id=>{if(id&&!seen.has(id)){seen.add(id);out.push(id)}});\n` +
+        `        return out;\n` +
+        `      }\n` +
+        `    }catch(_){}\n` +
+        `    return base;\n` +
+        `  })();`
+      ),
+    },
+    {
+      id: 'SHL-S23b',
+      why: 'roster cards render the production-visible roster, with future fighters as locked extension points',
+      find: /  function buildRoster\(\)\{\n    roster\.innerHTML='';\n    HERO_ORDER\.forEach\(\(id,idx\)=>\{\n      const h=HEROES\[id\]; const b=document\.createElement\('button'\); b\.type='button'; b\.className='rosterCard'; b\.dataset\.hero=id; b\.setAttribute\('aria-label',h\.name\);\n/,
+      replace: (
+        `  // Playability is production authority; a visible-but-not-playable\n` +
+        `  // fighter is a locked extension point, never fake playable mechanics.\n` +
+        `  function heroIsPlayable(id){\n` +
+        `    try{\n` +
+        `      const g=window.APEX_GOLD;\n` +
+        `      if(g&&typeof g.isPlayable==='function')return g.isPlayable(id);\n` +
+        `    }catch(_){}\n` +
+        `    return true;\n` +
+        `  }\n` +
+        `  function buildRoster(){\n` +
+        `    roster.innerHTML='';\n` +
+        `    HERO_ORDER.forEach((id,idx)=>{\n` +
+        `      const h=HEROES[id]||{}; const playable=heroIsPlayable(id); const b=document.createElement('button'); b.type='button'; b.className='rosterCard'+(playable?'':' is-locked'); b.dataset.hero=id; b.setAttribute('aria-label',h.name||id);\n`
+      ),
+    },
+    {
+      id: 'SHL-S23c',
+      why: 'locked roster cards are visibly non-selectable extension points (composition preserved)',
+      find: /      b\.innerHTML=`<span class="rosterMarker p1">P1<\/span><span class="rosterMarker p2">P2<\/span><img src="\$\{h\.portrait\}" alt="" draggable="false"><span class="rosterName">\$\{h\.name\}<\/span>`;/,
+      replace: (
+        `      b.innerHTML=\`<span class=\"rosterMarker p1\">P1</span><span class=\"rosterMarker p2\">P2</span><img src=\"\${h.portrait||''}\" alt=\"\" draggable=\"false\"><span class=\"rosterName\">\${h.name||id}</span>\`+(playable?'':'<span class=\"rosterLock\">LOCKED</span>');\n` +
+        `      if(!playable){b.disabled=true;b.title='LOCKED — EXTENSION POINT';}`
+      ),
+    },
+    {
+      id: 'SHL-S23d',
+      why: 'locked roster card styling',
+      find: /\n\.rosterCard\.p1-selected\{border-color:rgba\(255,148,31,\.92\);/,
+      replace: (
+        `.rosterCard.is-locked{opacity:.42;filter:grayscale(.7)}.rosterCard.is-locked .rosterLock{position:absolute;left:0;right:0;bottom:6px;font-size:9px;letter-spacing:.18em;color:#ffb45a;text-align:center}\n` +
+        `.rosterCard.p1-selected{`
+      ),
+    },
     {
       id: 'SHL-S13',
       why: 'fighter selection respects production ownership (economy gate)',
@@ -1131,6 +1350,15 @@ function main() {
   materializeTheme();
   srcManifestContent = '';
 
+  // Single revision read for the whole build (used by the shell bridge URL and
+  // the Gold surface URLs) — deterministic, no timestamps anywhere.
+  const REVISION = (() => {
+    const manifest = read(path.join(REPO, 'src', 'game', 'runtimeManifest.js')).toString('utf8');
+    const m = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
+    if (!m) throw new Error('runtime revision constant not found');
+    return m[1];
+  })();
+
   const outputs = new Map(); // relpath -> content buffer
   const assetRoot = path.join(GOLD_DIR, 'assets');
   const walk = (dir, base = '') => {
@@ -1185,9 +1413,12 @@ function main() {
   assetLines.push("  '/assets/audio/forward_drive_theme.ogg',");
   assetLines.push(']);');
   assetLines.push('');
-  assetLines.push('export const GOLD_SHELL_URL = \'/gold/shell.html\';');
-  assetLines.push('export const GOLD_LUCKY_DRAW_URL = \'/gold/lucky-draw.html\';');
-  assetLines.push('export const GOLD_BATTLE_HUD_URL = \'/gold/battle-hud.html\';');
+  // Cache identity: the Gold shell / Lucky Draw / battle HUD URLs carry the
+  // runtime revision so a prior Gold cutover can never be served from a stale
+  // browser cache during verification (2026-10-05 correction slice).
+  assetLines.push(`export const GOLD_SHELL_URL = '/gold/shell.html?v=${REVISION}';`);
+  assetLines.push(`export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=${REVISION}';`);
+  assetLines.push(`export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=${REVISION}';`);
   assetLines.push('');
   srcManifestContent = assetLines.join('\n');
 

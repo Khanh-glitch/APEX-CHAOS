@@ -90,6 +90,13 @@
 
   // The shared select screen is the only player-facing match entry point.
   // It cannot fall through into the removed classic roster/match launcher.
+  //
+  // BOT OPPONENT IDENTITY — ONE PRODUCTION AUTHORITY (2026-10-05 correction
+  // slice). The accepted Arsenal CPU opponent is a single production truth.
+  // Presentation (fighter pick, battle-entry transition, handoff payload, HUD
+  // identity) must DERIVE from this value; nothing may hardcode a second BOT
+  // identity for the same match.
+  const BOT_OPPONENT_ID = 'ROBOT';
   window.startMatch = function startProductBattle(...args) {
     if (!window.__apexArsenalSelectPending) return undefined;
     const mode = window.__apexArsenalSelectionMode === 'bot' ? 'BOT' : 'LOCAL';
@@ -140,6 +147,9 @@
     beginSelection,
     canPublicSelect,
     isPending: () => !!window.__apexArsenalSelectPending,
+    // The one BOT opponent authority: the production CPU identity every layer
+    // (presentation, transition, handoff, HUD, spawned fighter) derives from.
+    botOpponentId: () => BOT_OPPONENT_ID,
   };
   window.apexArsenalShellSelectRuntime = 'ready';
 })();

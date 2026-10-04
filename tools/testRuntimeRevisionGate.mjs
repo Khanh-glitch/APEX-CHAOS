@@ -12,7 +12,7 @@ const engine = fs.readFileSync('public/apexEngine.js', 'utf8');
 const mRev = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
 if (!mRev) { console.error('FAIL revision constant missing'); process.exit(1); }
 const revision = mRev[1];
-const expectedRevision = '20261003-mirror-v1-r42';
+const expectedRevision = '20261005-gold-cutover-r43';
 if (revision !== expectedRevision) {
   console.error(`FAIL this cutover permits exactly one revision: expected=${expectedRevision} actual=${revision}`);
   process.exit(1);
@@ -21,6 +21,7 @@ const paths = [...new Set([...manifest.matchAll(/'\/(game\/[^']+?)\?v=' \+ APEX_
   .map((match) => `public/${match[1]}`))];
 const required = [
   'public/game/arsenal/arsenalConfig.js',
+  'public/game/product/productMusicAuthority.js',
   'public/game/arsenal/arsenalShellSelectRuntime.js',
   'public/game/arsenal/arsenalMetaRuntime.js',
   'public/game/modes/arsenalBattleRuntime.js',
