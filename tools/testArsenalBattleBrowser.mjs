@@ -8,7 +8,7 @@
 // Options: APEX_APP_URL (default http://127.0.0.1:5173)
 //          APEX_EVIDENCE_DIR (default docs/acceptance/arsenal-product/browser)
 import { spawn } from 'node:child_process';
-import { appendFile, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { runArsenalProductBrowserAcceptance } from './lib/arsenalProductBrowserAcceptance.mjs';
 
@@ -3667,11 +3667,11 @@ try {
       },
       entryOwnership: cp6AudioReport.entryOwnership || [],
     };
-    console.log('[CP6 lifecycle trace]', JSON.stringify(diagnostic));
-    if (process.env.GITHUB_STEP_SUMMARY) {
-      const markdown = `\n## CP6 lifecycle trace\n\n\`\`\`json\n${JSON.stringify(diagnostic, null, 2)}\n\`\`\`\n`;
-      try { await appendFile(process.env.GITHUB_STEP_SUMMARY, markdown, 'utf8'); }
-      catch (error) { console.warn('[CP6 trace] Could not append step summary.', error); }
+    const diagnosticJson = JSON.stringify(diagnostic);
+    console.log('[CP6 lifecycle trace]', diagnosticJson);
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      const annotationData = diagnosticJson.replace(/%/g, '%25');
+      console.log(`::notice title=CP6 lifecycle trace::${annotationData}`);
     }
   }
   if (report.failures.length) process.exitCode = 1;
