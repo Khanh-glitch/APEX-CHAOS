@@ -317,10 +317,16 @@ const cdAfterFail = ctl.cooldownLeft('A1');
 gate('smoke-a1-fail-cue-no-cd', (!failRes.ok && !!failRes.failCue && cdAfterFail === cdBefore) || (failRes.ok === true && ctl.cooldownLeft('A1') > 0),
   { failRes, cdBefore, cdAfterFail });
 
-/* Gate 11 — dash toward a revealed pickup (physical ROBOT A1) */
+/* Gate 11 — dash toward a revealed pickup (physical ROBOT A1)
+ * Pin the geometry here instead of inheriting the previous Bot scenario's
+ * terminal positions; otherwise a correct dash can begin beside x=800 and
+ * make a fixed "moved > 60" assertion flaky. */
 if (ctl.cooldownLeft('A1') > 0) { T.step(ctl.cooldownLeft('A1') + 0.1); }
-T.pushSlot({ x: 800, y: 500, weaponId: 'PISTOL' });
 const heroBefore = T.fighters()[0];
+const rivalBefore = T.fighters()[1];
+heroBefore.x = 300; heroBefore.y = 500; heroBefore.setDir(1, 0);
+rivalBefore.x = 150; rivalBefore.y = 150; rivalBefore.setDir(-1, 0);
+T.pushSlot({ x: 800, y: 500, weaponId: 'PISTOL' });
 const posBefore = { x: heroBefore.x, y: heroBefore.y };
 const dashRes = ctl.tryCast('A1', 'test');
 // Robot A1 owns a .26s recognize/commit windup before physical launch.
@@ -328,7 +334,9 @@ const dashRes = ctl.tryCast('A1', 'test');
 T.step(0.5);
 const posAfter = { x: T.fighters()[0].x, y: T.fighters()[0].y };
 const moved = Math.hypot(posAfter.x - posBefore.x, posAfter.y - posBefore.y);
-gate('smoke-robot-dash-moves-to-pickup', dashRes.ok && moved > 60, { dashRes, moved: Math.round(moved) });
+const towardPickup = posAfter.x > posBefore.x + 60 && Math.abs(posAfter.y - posBefore.y) < 100;
+gate('smoke-robot-dash-moves-to-pickup', dashRes.ok && moved > 60 && towardPickup,
+  { dashRes, moved: Math.round(moved), dx: Math.round(posAfter.x - posBefore.x), dy: Math.round(posAfter.y - posBefore.y) });
 
 /* Gate 12 — J/K routing through the legacy gate bridge */
 T.clearEvents();
