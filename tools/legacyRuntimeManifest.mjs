@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 // TEST-ONLY legacy runtime compatibility graph.
 //
 // This module preserves the historical shared-engine/roster boot order used by
@@ -81,3 +83,25 @@ export const BOOT_GAME_RUNTIMES = [
 export const MODE_DEFERRED_RUNTIMES = Object.freeze({
   arsenalProduct: ARSENAL_PRODUCT_RUNTIMES,
 });
+
+
+const runtimeKey = (src) => String(src).split(/[?#]/, 1)[0];
+
+// Physical copies of these historical runtimes live outside public/ so broad
+// production audits cannot mistake them for shipping/current code. Logical
+// /game/... names stay unchanged to preserve historical ordering/oracles.
+export const LEGACY_FIXTURE_RUNTIME_PATHS = new Set([
+  ...LEGACY_ROSTER_RUNTIMES.map(([src]) => runtimeKey(src)),
+  ...LEGACY_BATTLE_DEFERRED_RUNTIMES.map(([src]) => runtimeKey(src)),
+  '/game/core/apexMajorMechanicVisuals.js',
+]);
+
+export const LEGACY_RUNTIME_FIXTURE_ROOT = 'test-fixtures/legacy-runtime';
+
+export function resolveLegacyRuntimeFile(repoRoot, src) {
+  const clean = runtimeKey(src);
+  const rel = clean.replace(/^\//, '');
+  return LEGACY_FIXTURE_RUNTIME_PATHS.has(clean)
+    ? path.join(repoRoot, LEGACY_RUNTIME_FIXTURE_ROOT, rel)
+    : path.join(repoRoot, 'public', rel);
+}
