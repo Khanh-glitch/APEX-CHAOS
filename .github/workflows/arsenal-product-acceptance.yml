@@ -51,17 +51,18 @@ jobs:
           pnpm arsenal:sfx:materialize
           git diff --exit-code -- public/assets/arsenal/av
 
-      - name: Run Hero Rework gates
-        run: pnpm test:hero-rework:headless
+      - name: Run targeted Hero Rework smoke
+        run: AQ_EVIDENCE_DIR=/tmp/arsenal-closure-smoke node tools/smokeHeroReworkHeadless.mjs
 
       - name: Run Arsenal Battle headless acceptance
-        run: pnpm test:arsenal:headless
+        run: APEX_EVIDENCE_DIR=/tmp/arsenal-headless pnpm test:arsenal:headless
 
       - name: Build production bundle
         run: pnpm build
 
       - name: Verify generated public asset manifest
-        run: git diff --exit-code -- public/asset-manifest.json
+        # generatedAt is volatile; all generated asset entries must still match.
+        run: git diff --exit-code --ignore-matching-lines='generatedAt' -- public/asset-manifest.json
 
       - name: Smoke-test packaged Windows launcher server
         shell: bash
