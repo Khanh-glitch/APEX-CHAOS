@@ -41,6 +41,9 @@ for (const entry of audit.assets) {
   }
 }
 
+const allowedLegacyDonors = new Set([
+  '/assets/fang_v1/speckBlood.webp', // current Arsenal feel layer uses this blood-speck donor directly
+]);
 const forbiddenPrefixes = [
   '/assets/katana_v1/',
   '/assets/fang_v1/',
@@ -49,7 +52,9 @@ const forbiddenPrefixes = [
   '/assets/string_v1/',
   '/assets/galaxy_v1/',
 ];
-const forbiddenManifest = [...manifestPaths].filter((p) => forbiddenPrefixes.some((prefix) => p.startsWith(prefix)));
+const forbiddenManifest = [...manifestPaths].filter((p) =>
+  forbiddenPrefixes.some((prefix) => p.startsWith(prefix))
+  && !allowedLegacyDonors.has(p));
 if (forbiddenManifest.length) {
   throw new Error(`Legacy asset paths remain in shipping manifest: ${forbiddenManifest.slice(0, 20).join(', ')}`);
 }
