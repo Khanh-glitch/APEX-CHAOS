@@ -75,9 +75,8 @@ jobs:
       - name: Build production bundle
         run: pnpm build
 
-      - name: Verify generated public asset manifest
-        # generatedAt is volatile; all generated asset entries must still match.
-        run: git diff --exit-code --ignore-matching-lines='generatedAt' -- public/asset-manifest.json
+      - name: Verify pruned shipping bundle
+        run: pnpm test:shipping-dist
 
       - name: Smoke-test packaged Windows launcher server
         shell: bash
