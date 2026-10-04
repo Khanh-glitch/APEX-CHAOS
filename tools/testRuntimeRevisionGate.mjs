@@ -9,9 +9,6 @@ const manifest = fs.readFileSync('src/game/runtimeManifest.js', 'utf8');
 const loader = fs.readFileSync('src/game/runtimeLoader.js', 'utf8');
 const app = fs.readFileSync('src/App.jsx', 'utf8');
 const engine = fs.readFileSync('public/apexEngine.js', 'utf8');
-const canonicalBalance = fs.readFileSync('public/game/core/apexCanonicalBalance.js', 'utf8');
-const pickRuntime = fs.readFileSync('public/game/ui/apexPickRuntime.js', 'utf8');
-const telemetry = fs.readFileSync('public/game/core/apexFightTelemetry.js', 'utf8');
 const mRev = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
 if (!mRev) { console.error('FAIL revision constant missing'); process.exit(1); }
 const revision = mRev[1];
@@ -68,7 +65,11 @@ const retiredRouteGlobals = [
   'goToManualLabSelect', 'startManualLab', 'APEX_MANUAL_LAB_ONLINE',
   'apexApplyOnlineFighterSelection', 'apexSyncOnlineReadyState',
 ];
-const productionSources = [app, engine, canonicalBalance, pickRuntime, telemetry];
+const productionSources = [
+  app,
+  engine,
+  ...paths.map((file) => fs.readFileSync(file, 'utf8')),
+];
 const exposedRouteGlobals = retiredRouteGlobals.filter((name) => productionSources.some((source) =>
   new RegExp(`(?:\\bfunction\\s+${name}\\b|\\bwindow\\s*\\.\\s*${name}\\s*=)`).test(source),
 ));
