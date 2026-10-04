@@ -7,8 +7,14 @@ Khanh-glitch/APEX-CHAOS
 Branch:
 arena/01a1025a-apex-chaos
 
-REQUIRED STARTING CHECKPOINT:
+MINIMUM ACCEPTED AV ASSET CHECKPOINT:
 50b185c184955d279de93874823859ccabb498c6
+
+STARTING HEAD LAW:
+Start from the CURRENT tip of arena/01a1025a-apex-chaos.
+That tip must contain/descend from the minimum AV checkpoint above.
+Do NOT reset the branch back to 50b185c184955d279de93874823859ccabb498c6 merely because it is the asset checkpoint.
+Audit and preserve every newer accepted commit, including the prompt/audit relock commits.
 
 Gold-preload parent:
 b5defc0bc51e98d47dca4e4672fc82a75ef14673
@@ -16,8 +22,9 @@ b5defc0bc51e98d47dca4e4672fc82a75ef14673
 Production runtime baseline underneath the additive AV preload:
 20261003-mirror-v1-r42
 
-The starting checkpoint above is an ADDITIVE ASSET/DOCUMENT preload.
+The minimum AV checkpoint above is an ADDITIVE ASSET/DOCUMENT preload.
 It does not by itself change runtime mechanics, balance, or r42 gameplay truth.
+Newer prompt/audit relock commits may sit on top without changing that runtime baseline.
 
 This is the REAL Gold product cutover.
 Do not return a plan and stop.
