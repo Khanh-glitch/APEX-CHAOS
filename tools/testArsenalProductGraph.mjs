@@ -21,6 +21,7 @@ import {
   BATTLE_CORE_RUNTIMES,
   BATTLE_RUNTIMES,
   COMBAT_CORE_RUNTIMES,
+  CURRENT_COMBAT_CORE_RUNTIMES,
   MODE_DEFERRED_RUNTIMES,
   ROSTER_RUNTIMES,
   SELECT_RUNTIMES,
@@ -270,6 +271,14 @@ gate('neutral-product-runtime-and-warmup-closure', () => {
     'FullRoster must not execute on the current Arsenal product path');
   assert.ok(!active.includes('/game/guards/apexRuntimeStability.js'),
     'RuntimeStability must not execute on the current Arsenal product path');
+  assert.ok(!active.includes('/game/core/apexMajorMechanicVisuals.js'),
+    'legacy MajorMechanicVisuals must not execute on the current Arsenal product path');
+  assert.deepEqual(currentEngine.slice(0, CURRENT_COMBAT_CORE_RUNTIMES.length),
+    runtimePaths(CURRENT_COMBAT_CORE_RUNTIMES),
+    'current Arsenal begins with the explicit neutral combat service set');
+  assert.ok(COMBAT_CORE_RUNTIMES.some(([src]) =>
+    String(src).split(/[?#]/, 1)[0] === '/game/core/apexMajorMechanicVisuals.js'),
+    'generic Battle must retain MajorMechanicVisuals as archived legacy compatibility');
   assert.ok(active.indexOf('/game/core/apexArsenalProductCollisionRuntime.js')
     < active.indexOf('/game/core/apexArsenalProductRenderHudRuntime.js'));
   assert.ok(active.indexOf('/game/core/apexArsenalProductRenderHudRuntime.js')
