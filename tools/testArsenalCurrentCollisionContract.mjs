@@ -6,7 +6,7 @@ import vm from 'node:vm';
 const source = fs.readFileSync('public/game/core/apexArsenalProductCollisionRuntime.js', 'utf8');
 const heroRework = fs.readFileSync('public/game/hero-rework/heroReworkRuntime.js', 'utf8');
 
-const forbidden = /MAGNET|fieldTimer|magnet_field|SLIME|SNIPER|FLASH|mirrorStolenCollide|onCollide|teamId/;
+const forbidden = /MAGNET|fieldTimer|magnet_field|SLIME|SNIPER|FLASH|mirrorStolenCollide|onCollide|teamId|sameTeam/;
 assert.doesNotMatch(source, forbidden, 'current collision seam must not carry legacy hero-specific collision logic');
 
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
