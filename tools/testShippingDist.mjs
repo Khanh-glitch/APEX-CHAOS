@@ -45,7 +45,6 @@ const forbiddenPrefixes = [
   '/assets/katana_v1/',
   '/assets/fang_v1/',
   '/assets/engineer_v1/',
-  '/assets/shotgun_v1/',
   '/assets/soccer_v1/',
   '/assets/string_v1/',
   '/assets/galaxy_v1/',
