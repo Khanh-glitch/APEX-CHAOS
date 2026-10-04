@@ -26,7 +26,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES } from './legacyRuntimeManifest.mjs';
+import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES, resolveLegacyRuntimeFile } from './legacyRuntimeManifest.mjs';
 import { installProductSurfaceAuthority } from '../src/game/productSurface.js';
 
 const REPO = process.cwd();
@@ -223,7 +223,7 @@ if (!win.Path2D) win.Path2D = NapiPath2D;
 win.requestAnimationFrame = () => 0;
 win.cancelAnimationFrame = () => {};
 function loadScript(relPath, required) {
-  const file = path.join(REPO, 'public', String(relPath).split(/[?#]/, 1)[0].replace(/^\//, ''));
+  const file = resolveLegacyRuntimeFile(REPO, relPath);
   try { win.eval(fs.readFileSync(file, 'utf8')); return true; } catch (error) {
     if (required) throw error;
     loadErrors.push({ file: relPath, error: String(error && error.message) });
