@@ -291,13 +291,15 @@
       ],
       world,
       startedAt: AIL.clock(),
-      // P2 rework cast AI is ON by default; HR.setAiEnabled() syncs both
-      // switches AND PERSISTS across installs (an operator-set switch must
-      // not be silently reset by the next match). (Deterministic scheduling
-      // time = global matchClock, which updateArsenalBattle — the single
-      // shared sim step for rAF AND headless Arsenal.step — advances exactly
-      // once per step.)
-      aiEnabled: HR.aiEnabled,
+      // P2 rework cast AI: ON in BOT mode, OFF in LOCAL mode (Gold §6C).
+      // HR.setAiEnabled() syncs both switches AND PERSISTS across installs.
+      // Check real battle profile to ensure correct AI state.
+      aiEnabled: (function () {
+        const mode = (globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.state &&
+          globalScope.APEX_ARSENAL.state.battleMode) || '';
+        if (mode === 'LOCAL') return false; // Local 2P: human controls P2
+        return HR.aiEnabled; // BOT: P2 AI is active CPU
+      })(),
       aiCastPlan: {},
       p1Queue: [],
     };
@@ -3492,6 +3494,45 @@
         const f = globalScope.fighters && globalScope.fighters[0];
         if (f && HR.isReworkFighter(f)) HR.pressAbility(f, 'A2');
       });
+    }
+
+    // Gold §6C: Local 2P P2 input — Digit1 -> A1, Digit2 -> A2.
+    // Only active when battle profile is LOCAL (not BOT).
+    // P2 cast AI MUST be disabled when accepting human P2 input.
+    if (!HR.__localP2KeysInstalled && typeof globalScope.addEventListener === 'function') {
+      HR.__localP2KeysInstalled = true;
+      HR.pressAbilityP2 = function pressAbilityP2(f, slot) {
+        if (!M) return { ok: false, reason: 'no-match' };
+        const ct = combatantOfBody(f);
+        if (!ct || ct.facade) return { ok: false, reason: 'not-rework' };
+        if (ct.idx !== 1) return { ok: false, reason: 'not-p2' };
+        const res = abilityController(ct).tryCast(slot, 'p2-local');
+        AIL.bus.emit('P2Press', { slot, ok: res.ok, reason: res.reason });
+        return res;
+      };
+      globalScope.addEventListener('keydown', (e) => {
+        if (e.repeat) return;
+        if (globalScope.gameState !== 'ARSENAL' || !M) return;
+        // Only active in LOCAL mode
+        const battleMode = (globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.state &&
+          globalScope.APEX_ARSENAL.state.battleMode) || '';
+        if (battleMode !== 'LOCAL') return;
+        let slot = null;
+        if (e.code === 'Digit1') slot = 'A1';
+        else if (e.code === 'Digit2') slot = 'A2';
+        if (!slot) return;
+        e.preventDefault();
+        const f = globalScope.fighters && globalScope.fighters[1];
+        if (f && HR.isReworkFighter(f)) HR.pressAbilityP2(f, slot);
+      });
+    }
+
+    // Gold §6C: disable P2 cast AI in LOCAL mode, enable in BOT mode.
+    // Hook into the battle-mode resolution to ensure correct state.
+    if (!HR.__battleModePatched && globalScope.APEX_ARSENAL) {
+      HR.__battleModePatched = true;
+      // Observe battle mode changes via match start
+      const origInstall = HR.installMatch || null;
     }
 
     // Collision observation for anchor pairs (engine still resolves).

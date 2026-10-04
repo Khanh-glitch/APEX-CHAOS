@@ -37,7 +37,7 @@ function surface(id, title, availability, detail, extra = {}) {
 const PUBLIC_SURFACES = Object.freeze([
   surface('bot-battle', 'Bot Battle', ACTIVE, 'Choose a fighter and face the accepted Arsenal CPU.', { route: 'bot' }),
   surface('local-1v1', 'Local 1v1', ACTIVE, 'Choose two owned Core Six fighters and launch Arsenal Battle.', { route: 'local' }),
-  surface('fighter-shop', 'Fighter Shop', ACTIVE, 'Unlock available Core Six fighters for 1000 AC.', { route: 'shop' }),
+  surface('fighter-shop', 'Fighter Shop', LOCKED, 'Fighter Shop is not available in the Gold cutover build. Preserved as a future extension point.'),
   surface('lucky-draw', 'Lucky Draw', ACTIVE, 'Draw one available Core Six fighter for 350 AC.', { route: 'draw' }),
   surface('quest-01', 'Quest 01', LOCKED, 'Quest 01 is a future surface and is not available in the pre-pilot build.'),
   surface('fighter-upgrade', 'Fighter Upgrade', LOCKED, 'Fighter Upgrade is not available in the pre-pilot build.'),

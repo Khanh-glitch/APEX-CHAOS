@@ -32,7 +32,12 @@ const UI_2026_ASSETS = {
   menuVfxOverlay: '/assets/ui_2026/menu-vfx-overlay.webp',
 };
 
-const MENU_AUDIO = '/assets/audio/menu_bgm.mp3';
+const MENU_AUDIO = '/music/forward_drive_theme.ogg';
+
+// Theme music surface policy: surfaces where theme is allowed to play.
+// Lucky Draw, Fighter Upgrade, Missions, and Fighter Shop are music-OFF.
+const THEME_MUSIC_OFF_SURFACES = new Set(['lucky-draw', 'fighter-upgrade', 'missions', 'fighter-shop']);
+const THEME_FADE_MS = 380;
 
 // Derived from the one product-surface authority. ADMIN and detached entries
 // are intentionally excluded: no normal-public control can expose them.
@@ -440,7 +445,72 @@ export default function App() {
     };
   }, []);
 
+  // ── Theme music surface policy (Gold authority §4.2) ───────────────
+  // The theme is allowed on Home, BOT Pick, Local Pick, battle-entry,
+  // and result/return. Lucky Draw, Upgrade, Missions, Shop are music-OFF.
+  // The actual match-start seam pauses the theme separately.
+  const currentProductSurfaceRef = useRef(null);
+  const themeFadeTimerRef = useRef(null);
+  const themeMusicMutedRef = useRef(false);
+
+  function isThemeAllowedForSurface(surfaceId) {
+    if (!surfaceId) return true; // Home/navigation
+    return !THEME_MUSIC_OFF_SURFACES.has(surfaceId);
+  }
+
+  function clearThemeFadeTimer() {
+    if (themeFadeTimerRef.current) {
+      clearInterval(themeFadeTimerRef.current);
+      themeFadeTimerRef.current = null;
+    }
+  }
+
+  // Cross-fade helper: fades volume to target over THEME_FADE_MS.
+  // Returns a promise that resolves when fade completes or is interrupted.
+  function fadeThemeVolume(audio, targetVolume, durationMs = THEME_FADE_MS) {
+    clearThemeFadeTimer();
+    return new Promise((resolve) => {
+      const startVol = audio.volume;
+      const delta = targetVolume - startVol;
+      if (Math.abs(delta) < 0.005) { audio.volume = targetVolume; resolve(); return; }
+      const steps = Math.max(1, Math.round(durationMs / 20));
+      let step = 0;
+      themeFadeTimerRef.current = setInterval(() => {
+        step++;
+        const t = Math.min(1, step / steps);
+        // Ease out cubic for smooth fade
+        const eased = 1 - Math.pow(1 - t, 3);
+        audio.volume = Math.max(0, Math.min(1, startVol + delta * eased));
+        if (t >= 1) {
+          clearThemeFadeTimer();
+          audio.volume = targetVolume;
+          resolve();
+        }
+      }, 20);
+    });
+  }
+
+  // Gold §4.1: pause with fade, preserve currentTime.
+  async function pauseThemeWithFade() {
+    const audio = menuAudioRef.current;
+    if (!audio || audio.paused) return;
+    await fadeThemeVolume(audio, 0);
+    audio.pause();
+    // playhead preserved — do NOT set currentTime = 0
+  }
+
+  // Gold §4.1: resume preserved playhead with fade-in.
+  async function resumeThemeWithFade() {
+    const audio = menuAudioRef.current;
+    if (!audio) return;
+    if (themeMusicMutedRef.current) return;
+    audio.volume = 0;
+    try { await audio.play(); } catch (_) {}
+    await fadeThemeVolume(audio, 0.48);
+  }
+
   const menuMusicAllowed = () => {
+    if (themeMusicMutedRef.current) return false;
     if (typeof document === 'undefined') return false;
     const visible = (id) => {
       const el = document.getElementById(id);
@@ -448,16 +518,18 @@ export default function App() {
       const style = window.getComputedStyle(el);
       return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
     };
-    // Normal-public flow is the semantic product menu plus the active
-    // Arsenal picker. Detached legacy screens do not participate in warmup
-    // or menu-audio navigation.
-    return visible('menu-screen') || visible('select-screen');
+    // Allowed: product menu (Home), select screen (Pick)
+    if (!visible('menu-screen') && !visible('select-screen')) return false;
+    // Also check current surface policy
+    return isThemeAllowedForSurface(currentProductSurfaceRef.current);
   };
 
   const stopMenuMusic = (reset = false) => {
     const audio = menuAudioRef.current;
     if (!audio) return;
+    clearThemeFadeTimer();
     audio.pause();
+    // Gold: only reset on new battle session start, not ordinary navigation
     if (reset) {
       try { audio.currentTime = 0; } catch (error) {}
     }
@@ -468,40 +540,35 @@ export default function App() {
     if (!audio) return;
     if (!menuMusicAllowed()) {
       audio.pause();
-      // CP7 self-healing resume: the exit-to-menu handoff is fire-once — if
-      // the menu screen was not yet visible at that instant (screen swap,
-      // transient blur/hidden state on slow machines) the menu stayed silent
-      // with no retry. Retry briefly; never fight a real background-tab
-      // pause (document.hidden) or the battle-audio session (independent
-      // element, CP6).
       if (attempts < 8 && !document.hidden) {
         setTimeout(() => playMenuMusic(restart, attempts + 1), 250);
       }
       return;
     }
+    // Gold §4.1: ordinary navigation NEVER restarts. Only new session or explicit reset.
     if (restart) {
       try { audio.currentTime = 0; } catch (error) {}
     }
-    audio.volume = 0.48;
+    audio.volume = 0;
     const playPromise = audio.play();
     if (playPromise && playPromise.catch) playPromise.catch(() => {});
+    // Fade in
+    fadeThemeVolume(audio, 0.48);
   };
 
   useEffect(() => {
     const audio = new Audio();
     audio.loop = true;
-    // §A4 — warm the menu BGM in the background before the first user
-    // gesture. Preload never blocks menu interactivity, and playback still
-    // respects autoplay policy (no forced audible autoplay); the first
-    // allowed play starts from already-warmed data.
+    // Gold §4: warm the theme in the background; the first allowed play
+    // starts from already-warmed data.
     audio.preload = 'auto';
-    audio.volume = 0.48;
+    audio.volume = 0;
     audio.src = MENU_AUDIO;
     audio.__apexMenuMusic = true;
     audio.load();
     menuAudioRef.current = audio;
-    // Evidence probe (§A4): read-only BGM readiness without exposing the
-    // element itself (it is deliberately never attached to the DOM).
+
+    // Evidence probe
     window.__apexMenuBgmState = () => {
       const a = menuAudioRef.current;
       if (!a) return null;
@@ -510,25 +577,55 @@ export default function App() {
         readyState: a.readyState,
         networkState: a.networkState,
         paused: a.paused,
+        volume: a.volume,
+        currentTime: a.currentTime,
+        muted: themeMusicMutedRef.current,
         src: a.currentSrc || a.src,
       };
     };
     window.apexStopMenuMusic = (reset = false) => stopMenuMusic(reset);
     window.apexPlayMenuMusic = (restart = false) => playMenuMusic(restart);
 
-    // CP7: re-armed on every interaction (NOT once) — if a resume was ever
-    // missed (transient blur/hidden state at the exit-to-menu handoff), the
-    // next click/keypress heals the menu music instead of leaving the menu
-    // silent for the rest of the session. playMenuMusic no-ops when already
-    // playing or when no menu screen is visible.
+    // Gold §4.2: track product surface for music policy
+    window.__apexSetThemeSurface = (surfaceId) => {
+      const prev = currentProductSurfaceRef.current;
+      currentProductSurfaceRef.current = surfaceId || null;
+      if (prev !== (surfaceId || null)) {
+        if (isThemeAllowedForSurface(surfaceId)) {
+          resumeThemeWithFade();
+        } else {
+          pauseThemeWithFade();
+        }
+      }
+    };
+
+    // Gold §4.5: M key = music mute/unmute only
+    const handleMKey = (e) => {
+      if (e.key !== 'm' && e.key !== 'M') return;
+      // Don't intercept if user is typing in an input
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+      e.preventDefault();
+      themeMusicMutedRef.current = !themeMusicMutedRef.current;
+      if (themeMusicMutedRef.current) {
+        pauseThemeWithFade();
+      } else if (isThemeAllowedForSurface(currentProductSurfaceRef.current)) {
+        resumeThemeWithFade();
+      }
+    };
+
+    // CP7: re-armed on every interaction
     const unlock = () => playMenuMusic(false);
+    // Gold §4.4: tab/window visibility
     const pauseForHiddenTab = () => {
       const current = menuAudioRef.current;
       if (!current) return;
       menuAudioWasPlayingRef.current = !current.paused;
+      clearThemeFadeTimer();
       current.pause();
+      // preserve playhead
     };
     const resumeForVisibleTab = () => {
+      if (themeMusicMutedRef.current) return;
       if (!menuMusicAllowed()) {
         menuAudioWasPlayingRef.current = false;
         menuAudioRef.current?.pause();
@@ -536,7 +633,7 @@ export default function App() {
       }
       if (!menuAudioWasPlayingRef.current) return;
       menuAudioWasPlayingRef.current = false;
-      playMenuMusic(false);
+      resumeThemeWithFade();
     };
     const handleVisibility = () => {
       if (document.hidden) pauseForHiddenTab();
@@ -544,6 +641,7 @@ export default function App() {
     };
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);
+    window.addEventListener('keydown', handleMKey);
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('blur', pauseForHiddenTab);
     window.addEventListener('focus', resumeForVisibleTab);
@@ -551,14 +649,17 @@ export default function App() {
     return () => {
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
+      window.removeEventListener('keydown', handleMKey);
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('blur', pauseForHiddenTab);
       window.removeEventListener('focus', resumeForVisibleTab);
+      clearThemeFadeTimer();
       audio.pause();
       menuAudioRef.current = null;
       if (window.apexStopMenuMusic) delete window.apexStopMenuMusic;
       if (window.apexPlayMenuMusic) delete window.apexPlayMenuMusic;
       if (window.__apexMenuBgmState) delete window.__apexMenuBgmState;
+      if (window.__apexSetThemeSurface) delete window.__apexSetThemeSurface;
     };
   }, []);
 
@@ -567,27 +668,29 @@ export default function App() {
     try {
       const deferredGroup = options.deferredGroup || DEFERRED_RUNTIME_ACTION_GROUPS[name];
       if (deferredGroup) await loadDeferredGameRuntimes(deferredGroup);
-      // Battle-audio session lifecycle (correction pass): entering a match =
-      // terminate the previous session for real (old voices/cues die), then
-      // unmute the master for the new session. Menu/select navigation ends
-      // the session — battle SFX stay silent until the next match begins.
+      // Gold §4.2: theme lifecycle driven by actual match seam, not selection.
+      // Battle-audio session lifecycle: entering a match = terminate the
+      // previous session for real, then unmute master for the new session.
       if (options.startsMatch) {
-        stopMenuMusic(true);
+        // Gold: actual match start → fade theme out, pause preserving playhead
+        pauseThemeWithFade();
         window.apexBeginBattleAudioSession?.();
       } else if (name === 'startMatch' || name === 'startArsenalBattleMode') {
-        stopMenuMusic(true);
+        // Gold: actual match start seam
+        pauseThemeWithFade();
         window.apexBeginBattleAudioSession?.();
       } else if (name === 'goToMenu') {
         window.apexEndBattleAudioSession?.();
-        playMenuMusic(true);
+        currentProductSurfaceRef.current = null;
+        // Gold: resume preserved playhead on return to Home
+        resumeThemeWithFade();
       } else if (name === 'goToSelect' || name === 'beginArsenalBattleSelection') {
         window.apexEndBattleAudioSession?.();
-        playMenuMusic(false);
+        // Gold: Pick screen is allowed — continue theme, do NOT restart
+        resumeThemeWithFade();
       }
       callApexGlobal(name, true);
-      if (options.startsMatch || name === 'startMatch' || name === 'startArsenalBattleMode') {
-        stopMenuMusic(true);
-      }
+      // Do NOT double-stop theme here; the fade is already in progress.
     } catch (error) {
       console.warn(`[asset-loader] Failed to prepare action ${name}.`, error);
     }
@@ -599,22 +702,32 @@ export default function App() {
     if (!surface || !authority?.canLaunch?.(surface.id, { admin })) return false;
     if (!gameReady) return false;
 
-    if (surface.route === 'shop' || surface.route === 'draw' || surface.route === 'local' || surface.route === 'bot') {
+    // Gold §4.2: track current surface for music policy
+    currentProductSurfaceRef.current = surfaceId;
+    if (window.__apexSetThemeSurface) window.__apexSetThemeSurface(surfaceId);
+
+    if (surface.route === 'shop') {
+      // Gold cutover: Fighter Shop is lightly locked
+      return false;
+    }
+
+    if (surface.route === 'draw' || surface.route === 'local' || surface.route === 'bot') {
       await loadDeferredGameRuntimes('arsenalHub');
       const meta = window.APEX_ARSENAL_META;
       if (!meta) throw new Error('Arsenal product meta runtime did not register.');
-      if (surface.route === 'shop') meta.paintShop?.();
-      if (surface.route === 'draw') meta.paintDraw?.();
+      if (surface.route === 'draw') {
+        // Gold §4.2: Lucky Draw = music OFF, fade out and preserve playhead
+        await pauseThemeWithFade();
+        meta.paintDraw?.();
+      }
       if (surface.route === 'local') meta.openFreePick?.();
       if (surface.route === 'bot') meta.openBotPick?.();
       return true;
     }
 
     if (surface.route === 'lab' && admin) {
-      // ADMIN only: the real Lab keeps the accepted Arsenal battle core. It
-      // is deliberately launchable through this seam but absent from public UI.
       await loadDeferredGameRuntimes('arsenalProduct');
-      stopMenuMusic(true);
+      pauseThemeWithFade();
       const ready = window.apexArsenalGameplayBarrierSync?.('lab')
         || await window.apexArsenalGameplayBarrier?.('lab');
       if (ready === false) return false;

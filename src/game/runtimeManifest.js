@@ -2,7 +2,7 @@
 // not receive Vite content hashes. This Phase 2C product-runtime transition
 // from r41 to r42 consolidates current combat HUD state/projection authority
 // before the Gold HUD/UI/UX overhaul.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r42';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261004-gold-cutover-r43';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -92,6 +92,12 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/hero-rework/frostPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostPresentationRuntime'],
   ['/game/hero-rework/magnetPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetPresentationRuntime'],
   ['/game/hero-rework/mirrorPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMirrorPresentationRuntime'],
+  // Gold cutover: curated hero SFX wiring (Crystala/Magnet/Frost/Mirror)
+  ['/game/core/apexHeroSfxRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexHeroSfxRuntime'],
+  // Gold cutover: battle semantic trigger adapter (Heavy/Heal/Thunder/Critical identity)
+  ['/game/core/apexBattleSemanticTriggers.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBattleSemanticTriggers'],
+  // Gold cutover: responsive layout family detection (desk/land/port)
+  ['/game/core/apexResponsiveLayout.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexResponsiveLayout'],
 ];
 
 // Shipping product groups only. Historical generic Battle groups are

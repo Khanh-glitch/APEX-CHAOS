@@ -6610,3 +6610,233 @@ body.apex-battle #battle-controls{
     .product-menu-grid { grid-template-columns: 1fr; }
     .product-surface-card { min-height: 118px; }
 }
+
+/* ===================================================================== */
+/* GOLD CUTOVER — Responsive layout families + semantic trigger classes   */
+/* Authority: docs/gold-ui/current/donors/battle-hud/index.html          */
+/* These classes are the production bridge for Gold choreography.         */
+/* ===================================================================== */
+
+/* --- P1/P2 semantic ownership tokens (data-driven) --- */
+:root {
+  --p1: #b2ff3a;
+  --p1m: #86cc22;
+  --p1a: rgba(178, 255, 58, .16);
+  --p1b: rgba(178, 255, 58, .42);
+  --p2: #86dcff;
+  --p2m: #4fb0e2;
+  --p2a: rgba(134, 220, 255, .16);
+  --p2b: rgba(134, 220, 255, .42);
+  --dmg: #ff3a3a;
+  --crit: #ff8a1e;
+  --heal: #38f27c;
+  --gold-fd: "Bahnschrift", "DIN Alternate", "DIN Condensed", "Roboto Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+}
+
+/* --- Gold responsive layout families --- */
+/* #battle-shell is the main container. data-layout drives responsive. */
+#battle-shell {
+  container-type: size;
+  --safeT: env(safe-area-inset-top, 0px);
+  --safeR: env(safe-area-inset-right, 0px);
+  --safeB: env(safe-area-inset-bottom, 0px);
+  --safeL: env(safe-area-inset-left, 0px);
+}
+
+/* Desk: P1 | SQUARE ARENA | P2 with versus rail */
+#battle-shell[data-layout="desk"] {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(0, auto) minmax(200px, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "p1-panel versus-rail p2-panel"
+    "p1-panel game-arena  p2-panel";
+  align-items: center;
+  justify-items: center;
+}
+#battle-shell[data-layout="desk"] #game-wrapper {
+  grid-area: game-arena;
+  aspect-ratio: 1;
+  max-height: 100%;
+  max-width: 100%;
+}
+#battle-shell[data-layout="desk"] .combat-panel.cp-side-p1 {
+  grid-area: p1-panel;
+  justify-self: end;
+}
+#battle-shell[data-layout="desk"] .combat-panel.cp-side-p2 {
+  grid-area: p2-panel;
+  justify-self: start;
+}
+
+/* Land: mobile landscape — P1 larger territory, P2 compact CPU strip */
+@media (orientation: landscape) and (max-height: 500px) {
+  #battle-shell[data-layout="land"] {
+    display: grid;
+    grid-template-columns: 1fr auto 0.5fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "p1-panel versus-rail p2-panel"
+      "p1-panel game-arena  p2-panel";
+  }
+  #battle-shell[data-layout="land"] .combat-panel.cp-side-p2 {
+    font-size: 0.85em;
+    padding: 4px;
+  }
+}
+
+/* Port: mobile portrait — P2 territory | rail | arena | P1 territory */
+@media (orientation: portrait) and (max-width: 500px) {
+  #battle-shell[data-layout="port"] {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto 1fr;
+    grid-template-areas:
+      "p2-panel"
+      "versus-rail"
+      "game-arena"
+      "p1-panel";
+  }
+  /* Local 2P portrait: rotate P2 controls 180° */
+  #battle-shell[data-layout="port"][data-mode="local2p"] .combat-panel.cp-side-p2 {
+    transform: rotate(180deg);
+  }
+  /* Arena stays square and upright */
+  #battle-shell[data-layout="port"] #game-wrapper {
+    aspect-ratio: 1;
+    max-width: min(100%, 100cqw);
+    max-height: 60cqh;
+  }
+}
+
+/* --- Gold semantic trigger visual classes --- */
+/* These are applied transiently by the semantic trigger adapter. */
+
+/* Normal hit flash */
+.gold-hit-flash {
+  animation: goldHitFlash 180ms ease-out;
+}
+@keyframes goldHitFlash {
+  0% { filter: brightness(1.8) saturate(1.2); }
+  100% { filter: none; }
+}
+
+/* Critical sweep — uses attacker identity accent via --crit-accent */
+.gold-critical-sweep {
+  animation: goldCritSweep 350ms cubic-bezier(.2,.82,.2,1);
+}
+@keyframes goldCritSweep {
+  0% { box-shadow: inset 0 0 0 0 var(--crit-accent, var(--crit)), 0 0 20px var(--crit-accent, var(--crit)); opacity: 1; }
+  50% { box-shadow: inset 0 0 30px 0 var(--crit-accent, var(--crit)), 0 0 40px var(--crit-accent, var(--crit)); opacity: 0.9; }
+  100% { box-shadow: none; opacity: 1; }
+}
+
+/* Heavy impact shake */
+.gold-heavy-shake {
+  animation: goldHeavyShake 200ms cubic-bezier(.25,.1,.25,1);
+}
+@keyframes goldHeavyShake {
+  0% { transform: translate(0, 0); }
+  15% { transform: translate(-4px, 2px); }
+  30% { transform: translate(3px, -3px); }
+  45% { transform: translate(-2px, 1px); }
+  60% { transform: translate(2px, -1px); }
+  75% { transform: translate(-1px, 2px); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Thunder lightning overlay */
+.gold-thunder-flash {
+  animation: goldThunderFlash 500ms ease-out;
+}
+@keyframes goldThunderFlash {
+  0% { background-color: rgba(180, 220, 255, 0.5); }
+  10% { background-color: rgba(255, 255, 255, 0.7); }
+  20% { background-color: rgba(180, 220, 255, 0.3); }
+  40% { background-color: rgba(200, 240, 255, 0.15); }
+  100% { background-color: transparent; }
+}
+
+/* Heal glow */
+.gold-heal-glow {
+  animation: goldHealGlow 400ms ease-out;
+}
+@keyframes goldHealGlow {
+  0% { box-shadow: inset 0 0 20px rgba(56, 242, 124, 0.4), 0 0 15px rgba(56, 242, 124, 0.3); }
+  100% { box-shadow: none; }
+}
+
+/* KO crack/fracture */
+.gold-ko-crack {
+  animation: goldKoCrack 800ms cubic-bezier(.25,.1,.25,1) forwards;
+}
+@keyframes goldKoCrack {
+  0% { transform: scale(1); filter: brightness(2.5) saturate(0.5); }
+  20% { transform: scale(1.05); filter: brightness(1.8) saturate(0.3); }
+  50% { transform: scale(0.97); filter: brightness(1.2) saturate(0.2); }
+  100% { transform: scale(1); filter: brightness(0.8) saturate(0.1) grayscale(0.3); }
+}
+
+/* Screen fracture overlay */
+.gold-screen-fracture {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  animation: goldScreenFracture 1200ms cubic-bezier(.25,.1,.25,1) forwards;
+}
+@keyframes goldScreenFracture {
+  0% { opacity: 0; }
+  5% { opacity: 1; }
+  80% { opacity: 0.6; }
+  100% { opacity: 0; }
+}
+
+/* Low-HP tension pulse */
+.gold-tension-pulse {
+  animation: goldTensionPulse 900ms ease-in-out infinite alternate;
+}
+@keyframes goldTensionPulse {
+  from { box-shadow: inset 0 0 40px rgba(255, 40, 40, 0.15); }
+  to { box-shadow: inset 0 0 60px rgba(255, 40, 40, 0.3); }
+}
+
+/* Skill Ready glow */
+.gold-skill-ready {
+  animation: goldSkillReady 1.5s ease-in-out infinite;
+}
+@keyframes goldSkillReady {
+  0%, 100% { box-shadow: 0 0 6px rgba(255, 148, 31, 0.3); }
+  50% { box-shadow: 0 0 18px rgba(255, 148, 31, 0.7); }
+}
+
+/* Skill Cast burst */
+.gold-skill-cast {
+  animation: goldSkillCast 300ms ease-out;
+}
+@keyframes goldSkillCast {
+  0% { transform: scale(1.15); filter: brightness(1.5); }
+  100% { transform: scale(1); filter: none; }
+}
+
+/* Skill Cooldown overlay */
+.gold-skill-cooldown {
+  opacity: 0.5;
+  filter: saturate(0.3) brightness(0.7);
+}
+
+/* Reduced motion: collapse all animations */
+@media (prefers-reduced-motion: reduce) {
+  .gold-hit-flash,
+  .gold-critical-sweep,
+  .gold-heavy-shake,
+  .gold-thunder-flash,
+  .gold-heal-glow,
+  .gold-ko-crack,
+  .gold-screen-fracture,
+  .gold-tension-pulse,
+  .gold-skill-ready,
+  .gold-skill-cast {
+    animation: none !important;
+  }
+}
