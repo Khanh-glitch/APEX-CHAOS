@@ -1,7 +1,7 @@
 // Cache-bust classic runtime scripts that live under /public and therefore do
-// not receive Vite content hashes. This Phase 2A.3 product-runtime transition
-// from r37 to r38 must keep its lock and generated expectations in sync.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r38';
+// not receive Vite content hashes. This Phase 2B product-runtime transition
+// from r38 to r39 must keep its lock and generated expectations in sync.
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r39';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -45,11 +45,18 @@ export const ROSTER_RUNTIMES = [
   ['/game/fighters/fangRuntime.js', 'apexFangRuntime'],
 ];
 
-// Combat leaf runtimes called by the shared engine's draw/update paths.
-export const COMBAT_CORE_RUNTIMES = [
+// Current-neutral combat services shared by Arsenal and the generic engine.
+export const CURRENT_COMBAT_CORE_RUNTIMES = [
   ['/game/core/apexBattleSfxRuntime.js', 'apexBattleSfxRuntime'],
   ['/game/core/apexRenderPrimitives.js', 'apexRenderPrimitives'],
   ['/game/core/apexCombatEffectsRuntime.js', 'apexCombatEffectsRuntime'],
+];
+
+// Generic Battle keeps its historical mechanic-visual patch after the current
+// neutral services. The current Arsenal product does not execute that legacy
+// mixed-mechanic runtime.
+export const COMBAT_CORE_RUNTIMES = [
+  ...CURRENT_COMBAT_CORE_RUNTIMES,
   ['/game/core/apexMajorMechanicVisuals.js', 'apexMajorMechanicVisuals'],
 ];
 
@@ -66,7 +73,7 @@ export const PICK_RUNTIMES = [
 // Current product selection uses the shared UI/runtime primitive, not legacy
 // fighter patches. Generic Battle retains the complete ROSTER_RUNTIMES group.
 export const SELECT_RUNTIMES = [
-  COMBAT_CORE_RUNTIMES[1], // apexRenderPrimitives
+  CURRENT_COMBAT_CORE_RUNTIMES[1], // apexRenderPrimitives
   ...PICK_RUNTIMES,
 ];
 
@@ -108,7 +115,7 @@ export const BATTLE_RUNTIMES = [
 // the current Arsenal product path; generic Battle keeps its complete legacy
 // BATTLE_CORE_RUNTIMES chain unchanged.
 export const ARSENAL_SHARED_ENGINE_RUNTIMES = [
-  ...COMBAT_CORE_RUNTIMES,
+  ...CURRENT_COMBAT_CORE_RUNTIMES,
   ['/game/core/apexArsenalProductCollisionRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalProductCollisionRuntime'],
   ['/game/core/apexArsenalProductRenderHudRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalProductRenderHudRuntime'],
   ['/game/core/apexArsenalProductDrawRecoveryRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalProductDrawRecoveryRuntime'],
