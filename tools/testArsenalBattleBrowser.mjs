@@ -196,6 +196,19 @@ try {
     await sleep(250);
     if (i === 119) throw new Error('Apex engine did not become ready.');
   }
+  // Engine-ready intentionally precedes the READY hold + loader fade. Wait
+  // for the bounded loader-hidden phase before sampling boot truth so this
+  // assertion measures the completed boot contract rather than scheduler
+  // timing between two legitimate phases.
+  for (let i = 0; i < 100; i++) {
+    const hidden = await evaluate(`(() => {
+      const perf = window.apexPerfReport ? window.apexPerfReport() : null;
+      return !!(perf && perf.boot && perf.boot.phases.some(p => p.name === 'loader-hidden'));
+    })()`);
+    if (hidden) break;
+    await sleep(50);
+    if (i === 99) throw new Error('Apex loader did not reach loader-hidden within the boot bound.');
+  }
   // ------------------------------------------------ boot truth (§A1/§A4) ---
   report.bootTruth = await evaluate(`(() => {
     const o = window.__APEX_BOOT_OBSERVER || {};
