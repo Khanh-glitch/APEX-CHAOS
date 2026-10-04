@@ -1,0 +1,323 @@
+{
+  "version": "gold-source-pack-v1-final",
+  "scope": "all package files except manifests/package-files.json (excluded to avoid self-reference)",
+  "goldPayloadTreeSha256": "e182924831879bbe041c3505161a43a7861e5586575a3f4bb966512d6392fb31",
+  "fileCountExcludingThisManifest": 63,
+  "files": [
+    {
+      "path": "README_GOLD_AUTHORITY.md",
+      "bytes": 1944,
+      "sha256": "2c9443e0dc9d314fe944ffc478347db306297b8b22370642b42edda26b8330fb"
+    },
+    {
+      "path": "assets/gold/apex-chaos-wordmark.png",
+      "bytes": 496066,
+      "sha256": "b0a852c614a2d3bce5f29fad58ce24f304874cb0e325646f4947746f464cede3"
+    },
+    {
+      "path": "assets/gold/favicon-apex-chaos.png",
+      "bytes": 32526,
+      "sha256": "6782e49177fcd86c363455288335b2ea2c1ea88e4e973aa6754e8cd69cff3888"
+    },
+    {
+      "path": "assets/gold/home-foreground.png",
+      "bytes": 378049,
+      "sha256": "54fa2af92d0fd121ddece3e8654ee7ee60f5a585de9e6d6f70e45022c20355ca"
+    },
+    {
+      "path": "assets/gold/home-robot-body.png",
+      "bytes": 1583426,
+      "sha256": "b8ea38b450158cb417b9ee7c03f5d98f934755e9e58bb67d2db82315062caac4"
+    },
+    {
+      "path": "assets/gold/home-robot-core.png",
+      "bytes": 616346,
+      "sha256": "d39d3c4f7c290d132fc1572e8e4193585485831fe72962f738a6a399a824f252"
+    },
+    {
+      "path": "assets/gold/home-robot-eye.png",
+      "bytes": 118272,
+      "sha256": "0898a99ec4c8598a1dcf9d6dc018e902dcfa7c699021f630d79177c917db3a90"
+    },
+    {
+      "path": "assets/gold/home-world-background.png",
+      "bytes": 1848695,
+      "sha256": "b94a40c404bd5e0d5de84a381192141fbf585f6004be97374fe42104f607e23c"
+    },
+    {
+      "path": "assets/gold/mode-local.webp",
+      "bytes": 10048,
+      "sha256": "aeafc303677a972f76a4908d8572a8362f396a8a8a548158264cc08ed570b575"
+    },
+    {
+      "path": "assets/gold/mode-solo.webp",
+      "bytes": 12572,
+      "sha256": "e0439138a919351e089240cf23a4a27e5711a463ea6cbf0c0135cbd5ea14a649"
+    },
+    {
+      "path": "assets/gold/pick-hidden-gold-source.png",
+      "bytes": 201019,
+      "sha256": "99be16834600e82f5c21f65b170ee8d41bafe819cbd9a2a5f8ed1a0c585099d5"
+    },
+    {
+      "path": "assets/gold/pick-reference-overlay.png",
+      "bytes": 2871229,
+      "sha256": "c6b501949a92a9bdd2375da8d62c0e5bd3118e298d3adca2d4e23191506eb5ed"
+    },
+    {
+      "path": "assets/placeholders/battle/avatar/crystala.svg",
+      "bytes": 753,
+      "sha256": "e6bc292b663d6a76b5387c3d6320b3c3d65f25b123a22c27f429e23edc244acf"
+    },
+    {
+      "path": "assets/placeholders/battle/avatar/frost.svg",
+      "bytes": 750,
+      "sha256": "86e99352382e11ad13a58dddd5854b8cbfcdd676f1af05e7eccfde0ef1ad1e85"
+    },
+    {
+      "path": "assets/placeholders/battle/avatar/hunter.svg",
+      "bytes": 751,
+      "sha256": "36f8ad97261ce369526ac14d48a2aad60c6d36489a19d721499a321941c732cb"
+    },
+    {
+      "path": "assets/placeholders/battle/avatar/magnet.svg",
+      "bytes": 751,
+      "sha256": "9f40c3b42ca48b7598a1b1acb837ac1a6bdbc7f73e5beb7b0d510fa74a21a868"
+    },
+    {
+      "path": "assets/placeholders/battle/avatar/mirror.svg",
+      "bytes": 751,
+      "sha256": "5fd3d6d33024f16c86eedabffd98ade253a3c07d4870338368fcb901ba3c3666"
+    },
+    {
+      "path": "assets/placeholders/battle/avatar/newbot.svg",
+      "bytes": 751,
+      "sha256": "429fafc1df7d267a6582def298f7ce87ec2ee1a7acda33c9ac7b9053a0fd40a2"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/crystala-a1.svg",
+      "bytes": 742,
+      "sha256": "566ecfb4d0627374215343ad4faa4c5a3c02812511d05e61da5d40a436f2f7c4"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/crystala-a2.svg",
+      "bytes": 742,
+      "sha256": "776edce7388405eff666805a6dbbe68d8136f9768f41174a56a220bd66552b2b"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/crystala-passive.svg",
+      "bytes": 747,
+      "sha256": "a943b671ef7204bebe675852c4c460def0116826f26d73227654b1625474ff0b"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/frost-a1.svg",
+      "bytes": 739,
+      "sha256": "e5b5388d5a80bfb999bc3e748b214aa92cb4d234dfd7c34d19bb0f1a29d619ca"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/frost-a2.svg",
+      "bytes": 739,
+      "sha256": "bf48a03da9cfeeab1affa9d97a29c6bd2685042daaa7f41d48ee27fce8aee9e8"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/frost-passive.svg",
+      "bytes": 744,
+      "sha256": "d97fc208c1aadeace54378c53cb6b6751d9108ccd996842c27145af32a2547a5"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/hunter-a1.svg",
+      "bytes": 740,
+      "sha256": "145f5c34c412f8d206d4eea01e3773f635d2e9f0fbfad2177ecc90486f3c3494"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/hunter-a2.svg",
+      "bytes": 740,
+      "sha256": "f168e4eb3ad3f2d936ed337986da91a273f03e375b3127c3dda0db9499309d11"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/hunter-passive.svg",
+      "bytes": 745,
+      "sha256": "be383ddc7a130301ec3e26053784969db6587072adce5e67ec1f8b76a99d3afc"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/magnet-a1.svg",
+      "bytes": 740,
+      "sha256": "7df5c93b145e6096db766d8a0fb8051f2645dbdedca974755db66997809bbf8c"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/magnet-a2.svg",
+      "bytes": 740,
+      "sha256": "fc98de9b858b556e2915ab3876dcd97a0cedaa2adb94622081b02d0fba91c991"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/magnet-passive.svg",
+      "bytes": 745,
+      "sha256": "75bcd944bf5ca64ca88afeb5f48ec838603bba7447d75797a41482fca444c780"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/mirror-a1.svg",
+      "bytes": 740,
+      "sha256": "e8e0d59c657894acea11da23d2bbcaf04a6243064dc5fc82a3dacee06216f0ba"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/mirror-a2.svg",
+      "bytes": 740,
+      "sha256": "47003533f73e6f6d7f485dfb53bc156da0dd292f41fe29ccd569433b37e719cb"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/mirror-passive.svg",
+      "bytes": 745,
+      "sha256": "5350a91b876f597fd3c35b6721c1198d8ce140803ea8966c34a7635ce26d8fd2"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/newbot-a1.svg",
+      "bytes": 740,
+      "sha256": "b254507eda3adaeb051eee7dd65540542b2a8338872043cff29fb82d5acb0084"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/newbot-a2.svg",
+      "bytes": 740,
+      "sha256": "8807a7f31fdf1b5fc0e919b6e82392ab0a69485ffa792ac65a30e86b06345e59"
+    },
+    {
+      "path": "assets/placeholders/battle/skill-icons/newbot-passive.svg",
+      "bytes": 745,
+      "sha256": "17344577acb6c65fb1b7f9aa81a7f31276182b77d51c50952df9de0e02313d79"
+    },
+    {
+      "path": "assets/placeholders/pick/cover/crystala.svg",
+      "bytes": 745,
+      "sha256": "f91fa1f1de118e44b8e8949b0ad156042f5b3686e71b6d387833395b56f991a9"
+    },
+    {
+      "path": "assets/placeholders/pick/cover/frost.svg",
+      "bytes": 742,
+      "sha256": "d59f53f4be225481121ff2f86becaca74a2db202b375242e9f904589ed0b8ba3"
+    },
+    {
+      "path": "assets/placeholders/pick/cover/hunter.svg",
+      "bytes": 743,
+      "sha256": "1da5e4f3643bff99fec511e156bd14b58946289f9089655aabef3a5e2767d68a"
+    },
+    {
+      "path": "assets/placeholders/pick/cover/magnet.svg",
+      "bytes": 743,
+      "sha256": "633d5e2fe4dadb44952555c20e6f7c308424f373897367a3ea0dd0a563397a5a"
+    },
+    {
+      "path": "assets/placeholders/pick/cover/mirror.svg",
+      "bytes": 743,
+      "sha256": "98196a5530fe7d21f77602b38be18b575e1c6377ad95b896d48812fd780ae444"
+    },
+    {
+      "path": "assets/placeholders/pick/cover/newbot.svg",
+      "bytes": 743,
+      "sha256": "5f3c632dd617724999861684abbba9fedbc0253da16572cb9b0e06d99398fa63"
+    },
+    {
+      "path": "assets/placeholders/pick/pose/crystala.svg",
+      "bytes": 744,
+      "sha256": "d79bb9f33a54e36dfbca896f4c3453f8867376595ca80ce8704fd49a528f6c56"
+    },
+    {
+      "path": "assets/placeholders/pick/pose/frost-world.svg",
+      "bytes": 747,
+      "sha256": "407889b3701cf701749fd2ef9d40276665d90f00c326d64b9f610503601eebca"
+    },
+    {
+      "path": "assets/placeholders/pick/pose/frost.svg",
+      "bytes": 741,
+      "sha256": "ac400cd784aeef6a2db56086616f452699861f53314f95e3f7f6e8b2bed23db3"
+    },
+    {
+      "path": "assets/placeholders/pick/pose/hunter-world.svg",
+      "bytes": 748,
+      "sha256": "df6e9b47544840087db2e5927f9cddd6bdd1570a07652949d366016ead4ed995"
+    },
+    {
+      "path": "assets/placeholders/pick/pose/hunter.svg",
+      "bytes": 742,
+      "sha256": "68ec7a187b87ad7ba135fc3beefe9e0924ee3eb493d771b984a589f046603eeb"
+    },
+    {
+      "path": "assets/placeholders/pick/pose/magnet.svg",
+      "bytes": 742,
+      "sha256": "39ad90cb82ad08b3385b7c23e8f5eea71dc162b0db5cbee67b11b686a9431bbf"
+    },
+    {
+      "path": "assets/placeholders/pick/pose/mirror-runtime-opponent-ghost.svg",
+      "bytes": 760,
+      "sha256": "04617703d11bfd1af491680e23fd2a366ad0617248b6589b54e9b4d2495a0730"
+    },
+    {
+      "path": "assets/placeholders/pick/pose/mirror-world-runtime-opponent-ghost.svg",
+      "bytes": 758,
+      "sha256": "42ed36822b3dd931e779bc729902fa594dafd0ba9a46b5d0d4f0a25e19a639a5"
+    },
+    {
+      "path": "donors/battle-hud/index.html",
+      "bytes": 115330,
+      "sha256": "96766265665403fd00591eaaacfc97b7289e959cb47606b2df1dfc49b5bfc61d"
+    },
+    {
+      "path": "donors/lucky-draw/index.html",
+      "bytes": 104258,
+      "sha256": "1b1636510863c950b391bcdfb85c3995c5b917ed32e798f7642a79925eaabcb0"
+    },
+    {
+      "path": "index.html",
+      "bytes": 489149,
+      "sha256": "1e3bcacc2834972a6e480f6d19c3a9f15aac36a13c80d2c1c3800292c30b56c0"
+    },
+    {
+      "path": "manifests/ACTIVE_IMPLEMENTATION_PROMPT.md",
+      "bytes": 11793,
+      "sha256": "587340270b17082f2d37d692f3097cbc6c71820ca41374e6940996662450b58d"
+    },
+    {
+      "path": "manifests/ANTI_DRIFT_CONTRACT.md",
+      "bytes": 1749,
+      "sha256": "dd7c2a618d1786225e6f2bfc621f7987d029d7b124d1ebe2ccbc969f2e8a3c74"
+    },
+    {
+      "path": "manifests/IMPLEMENTATION_PRELOAD.md",
+      "bytes": 7434,
+      "sha256": "de4c4079065e0dbb808af808d125cd37839a5deca04dac9efd7ebfba1aff57ee"
+    },
+    {
+      "path": "manifests/asset-manifest.json",
+      "bytes": 4272,
+      "sha256": "00e0159e7476417258a4bb21d09357ca12ec5be2ed8d449ff6c6cb76700c7f0f"
+    },
+    {
+      "path": "manifests/dependency-audit.json",
+      "bytes": 1696,
+      "sha256": "f69e2175598f4aff0561497be1d19a1fee2d212ec038259bf30b425ebb597124"
+    },
+    {
+      "path": "manifests/dependency-map.json",
+      "bytes": 586,
+      "sha256": "c075b2a6f45bf4f0211273042726f0cab4e3bde8a6b9fa90ddd9ac790eea4383"
+    },
+    {
+      "path": "manifests/js-syntax-audit.json",
+      "bytes": 596,
+      "sha256": "998ec859f121fd3dcd870cae9678888fa498f7809125e66a18537358ffdfc280"
+    },
+    {
+      "path": "manifests/original-source.sha256",
+      "bytes": 297,
+      "sha256": "1dc0ed99ff95badcb355567acd1b42afb3c8ffac0bdab23a17db969ee2ac4660"
+    },
+    {
+      "path": "manifests/placeholder-contract.json",
+      "bytes": 1206,
+      "sha256": "2a8fd9817c73e7f023f3f351f1ea2eb48b8c1161ba66e125436ef4e6946333c7"
+    },
+    {
+      "path": "manifests/self-audit.json",
+      "bytes": 773,
+      "sha256": "121c6f0a781f61b56d4ea160c5018265e0e3f449fb05634c5b6bde6e4d2df728"
+    }
+  ]
+}

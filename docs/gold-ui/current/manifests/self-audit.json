@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "originalBytes": 27394347,
+  "sourcePackUnzippedBytes": 8949085,
+  "mainIndexBytes": 489149,
+  "goldBinaryBytes": 8168248,
+  "placeholderBytes": 28301,
+  "goldPayloadTreeSha256": "e182924831879bbe041c3505161a43a7861e5586575a3f4bb966512d6392fb31",
+  "outerStructureFingerprintPreserved": true,
+  "luckyCodeSkeletonPreserved": true,
+  "battleHudDecodedExact": true,
+  "strippedPlaceholderOuterAssets": 14,
+  "strippedLuckyHeroAssets": 3,
+  "remainingDirectBase64ImagesInMain": 0,
+  "zipHashPolicy": "EXTERNAL_SIDECAR_NO_SELF_REFERENCE",
+  "implementationPreloadIncluded": true,
+  "activeImplementationPromptIncluded": true,
+  "dependencyAuditPass": true,
+  "jsSyntaxAuditPass": true,
+  "browserSmokeStatus": "NOT_CLAIMED_ENV_TIMEOUT",
+  "files": 64
+}

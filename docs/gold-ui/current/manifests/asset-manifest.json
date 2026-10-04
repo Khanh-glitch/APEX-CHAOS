@@ -1,0 +1,134 @@
+{
+  "sourceFile": "APEX_CHAOS_FULL_LUCKY_DRAW_RESTORED(1).html",
+  "sourceSha256": "4ffdfcdd64cb908b39d55a1eb210d340b27a111e6bf328774b36e4a1d96a57cd",
+  "retainedGoldAssets": [
+    {
+      "outerDataUriIndex": 1,
+      "role": "gold-retain",
+      "path": "assets/gold/favicon-apex-chaos.png",
+      "mime": "image/png",
+      "bytes": 32526,
+      "sha256": "6782e49177fcd86c363455288335b2ea2c1ea88e4e973aa6754e8cd69cff3888"
+    },
+    {
+      "outerDataUriIndex": 2,
+      "role": "gold-retain",
+      "path": "assets/gold/home-robot-body.png",
+      "mime": "image/png",
+      "bytes": 1583426,
+      "sha256": "b8ea38b450158cb417b9ee7c03f5d98f934755e9e58bb67d2db82315062caac4"
+    },
+    {
+      "outerDataUriIndex": 3,
+      "role": "gold-retain",
+      "path": "assets/gold/home-robot-core.png",
+      "mime": "image/png",
+      "bytes": 616346,
+      "sha256": "d39d3c4f7c290d132fc1572e8e4193585485831fe72962f738a6a399a824f252"
+    },
+    {
+      "outerDataUriIndex": 4,
+      "role": "gold-retain",
+      "path": "assets/gold/home-world-background.png",
+      "mime": "image/png",
+      "bytes": 1848695,
+      "sha256": "b94a40c404bd5e0d5de84a381192141fbf585f6004be97374fe42104f607e23c"
+    },
+    {
+      "outerDataUriIndex": 5,
+      "role": "gold-retain",
+      "path": "assets/gold/home-robot-eye.png",
+      "mime": "image/png",
+      "bytes": 118272,
+      "sha256": "0898a99ec4c8598a1dcf9d6dc018e902dcfa7c699021f630d79177c917db3a90"
+    },
+    {
+      "outerDataUriIndex": 6,
+      "role": "gold-retain",
+      "path": "assets/gold/home-foreground.png",
+      "mime": "image/png",
+      "bytes": 378049,
+      "sha256": "54fa2af92d0fd121ddece3e8654ee7ee60f5a585de9e6d6f70e45022c20355ca"
+    },
+    {
+      "outerDataUriIndex": 7,
+      "role": "gold-retain",
+      "path": "assets/gold/apex-chaos-wordmark.png",
+      "mime": "image/png",
+      "bytes": 496066,
+      "sha256": "b0a852c614a2d3bce5f29fad58ce24f304874cb0e325646f4947746f464cede3"
+    },
+    {
+      "outerDataUriIndex": 8,
+      "role": "gold-retain",
+      "path": "assets/gold/favicon-apex-chaos.png",
+      "mime": "image/png",
+      "bytes": 32526,
+      "sha256": "6782e49177fcd86c363455288335b2ea2c1ea88e4e973aa6754e8cd69cff3888"
+    },
+    {
+      "outerDataUriIndex": 9,
+      "role": "gold-retain",
+      "path": "assets/gold/mode-solo.webp",
+      "mime": "image/webp",
+      "bytes": 12572,
+      "sha256": "e0439138a919351e089240cf23a4a27e5711a463ea6cbf0c0135cbd5ea14a649"
+    },
+    {
+      "outerDataUriIndex": 10,
+      "role": "gold-retain",
+      "path": "assets/gold/mode-local.webp",
+      "mime": "image/webp",
+      "bytes": 10048,
+      "sha256": "aeafc303677a972f76a4908d8572a8362f396a8a8a548158264cc08ed570b575"
+    },
+    {
+      "outerDataUriIndex": 11,
+      "role": "gold-retain",
+      "path": "assets/gold/pick-reference-overlay.png",
+      "mime": "image/png",
+      "bytes": 2871229,
+      "sha256": "c6b501949a92a9bdd2375da8d62c0e5bd3118e298d3adca2d4e23191506eb5ed"
+    },
+    {
+      "outerDataUriIndex": 12,
+      "role": "gold-retain",
+      "path": "assets/gold/pick-hidden-gold-source.png",
+      "mime": "image/png",
+      "bytes": 201019,
+      "sha256": "99be16834600e82f5c21f65b170ee8d41bafe819cbd9a2a5f8ed1a0c585099d5"
+    },
+    {
+      "outerDataUriIndex": 27,
+      "role": "gold-retain",
+      "path": "assets/gold/mode-solo.webp",
+      "mime": "image/webp",
+      "bytes": 12572,
+      "sha256": "e0439138a919351e089240cf23a4a27e5711a463ea6cbf0c0135cbd5ea14a649"
+    }
+  ],
+  "strippedPlaceholderOuterDataUriIndices": [
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26
+  ],
+  "luckyDrawOriginalHeroArtCount": 3,
+  "luckyDrawOriginalDonorSha256": "494d89147a142da33b2f1d1fa3c105e9a0c0e9028772c34903010800391bcfe6",
+  "battleHudDecodedSha256": "96766265665403fd00591eaaacfc97b7289e959cb47606b2df1dfc49b5bfc61d",
+  "notes": [
+    "Retained Gold binaries were extracted byte-for-byte from the standalone HTML.",
+    "Lucky Draw fighter art was replaced only at FIGHTERS.urlBase values.",
+    "Battle HUD payload in index.html remains embedded to preserve its exact preloading/transition behavior; donors/battle-hud/index.html is an exact decoded copy for AI/audit readability."
+  ]
+}

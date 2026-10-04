@@ -1,0 +1,38 @@
+[
+  {
+    "file": "index.html",
+    "scriptIndex": 1,
+    "ok": true,
+    "stderr": ""
+  },
+  {
+    "file": "index.html",
+    "scriptIndex": 2,
+    "ok": true,
+    "stderr": ""
+  },
+  {
+    "file": "index.html",
+    "scriptIndex": 3,
+    "ok": true,
+    "stderr": ""
+  },
+  {
+    "file": "donors/lucky-draw/index.html",
+    "scriptIndex": 1,
+    "ok": true,
+    "stderr": ""
+  },
+  {
+    "file": "donors/battle-hud/index.html",
+    "scriptIndex": 0,
+    "ok": true,
+    "stderr": ""
+  },
+  {
+    "file": "donors/battle-hud/index.html",
+    "scriptIndex": 1,
+    "ok": true,
+    "stderr": ""
+  }
+]

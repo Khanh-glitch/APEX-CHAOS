@@ -1,0 +1,40 @@
+{
+  "version": "gold-source-pack-v1",
+  "replaceableOnly": {
+    "luckyDraw": [
+      "fighter visual art shown by the draw machine/result presentation"
+    ],
+    "fighterPick": [
+      "hero cover/card art",
+      "hero pose/stage art"
+    ],
+    "battle": [
+      "fighter avatar/portrait art",
+      "skill icons (passive/A1/A2)"
+    ]
+  },
+  "preserveAroundPlaceholders": [
+    "slot geometry and aspect ratio",
+    "crop/focus/scale behavior",
+    "mask/chamfer/frame layers",
+    "glow and color propagation",
+    "hover/press/lock/cast/cooldown motion",
+    "responsive breakpoints and layout family",
+    "transition timing and easing",
+    "state hierarchy and attention order"
+  ],
+  "notPlaceholders": [
+    "home/lucky/pick/battle Gold shell art",
+    "backgrounds",
+    "frames",
+    "logo/wordmark",
+    "mode art",
+    "HUD body",
+    "HP rails",
+    "screen crack/fracture",
+    "flash/shake/recoil/thunder/KO/result/transition effects",
+    "responsive behavior",
+    "P1/P2 side-color language"
+  ],
+  "mirrorPickPoseLaw": "Mirror large pose is runtime opponent-image/transparent-identity behavior; do not require a fixed final pose artwork if production keeps this special behavior."
+}

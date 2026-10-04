@@ -1,0 +1,22 @@
+{
+  "entry": "index.html",
+  "runtimeEmbeddedDonors": {
+    "battleHud": "embedded payload preserved in index.html",
+    "luckyDraw": "stripped donor re-embedded in index.html"
+  },
+  "readableDonors": [
+    "donors/battle-hud/index.html",
+    "donors/lucky-draw/index.html"
+  ],
+  "goldAssetRoot": "assets/gold",
+  "placeholderRoots": [
+    "assets/placeholders/pick",
+    "assets/placeholders/battle"
+  ],
+  "authorityDocs": [
+    "README_GOLD_AUTHORITY.md",
+    "manifests/ANTI_DRIFT_CONTRACT.md",
+    "manifests/placeholder-contract.json",
+    "manifests/asset-manifest.json"
+  ]
+}

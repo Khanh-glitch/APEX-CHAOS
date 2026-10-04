@@ -1,0 +1,54 @@
+{
+  "html": {
+    "index.html": {
+      "literalLocalRefs": [
+        "assets/gold/favicon-apex-chaos.png",
+        "assets/gold/home-world-background.png",
+        "assets/gold/home-robot-eye.png",
+        "assets/gold/home-foreground.png",
+        "assets/gold/apex-chaos-wordmark.png",
+        "assets/gold/favicon-apex-chaos.png",
+        "assets/gold/mode-solo.webp",
+        "assets/gold/mode-local.webp",
+        "assets/gold/pick-reference-overlay.png",
+        "assets/gold/pick-hidden-gold-source.png",
+        "assets/gold/mode-solo.webp",
+        "assets/gold/home-robot-body.png",
+        "assets/gold/home-robot-core.png"
+      ],
+      "missing": []
+    },
+    "donors/battle-hud/index.html": {
+      "literalLocalRefs": [],
+      "missing": []
+    },
+    "donors/lucky-draw/index.html": {
+      "literalLocalRefs": [],
+      "missing": []
+    }
+  },
+  "externalDependencies": [
+    {
+      "file": "donors/lucky-draw/index.html",
+      "ref": "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"
+    },
+    {
+      "file": "donors/lucky-draw/index.html",
+      "ref": "https://fonts.googleapis.com"
+    },
+    {
+      "file": "donors/lucky-draw/index.html",
+      "ref": "https://fonts.gstatic.com"
+    },
+    {
+      "file": "donors/lucky-draw/index.html",
+      "ref": "https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Teko:wght@500;600&family=JetBrains+Mono:wght@400;600&display=swap"
+    }
+  ],
+  "errors": [],
+  "syntaxAuditPass": true,
+  "notes": [
+    "about:blank/blob/runtime-generated URLs are intentionally excluded from filesystem dependency checks.",
+    "http://www.w3.org/2000/svg namespace literals are not network dependencies."
+  ]
+}
