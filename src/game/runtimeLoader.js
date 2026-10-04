@@ -1,8 +1,5 @@
 import {
   ARSENAL_HUB_RUNTIMES,
-  BATTLE_RUNTIMES,
-  BATTLE_DEFERRED_RUNTIMES,
-  DEFERRED_GAME_RUNTIMES,
   MENU_INTERACTIVE_RUNTIMES,
   MODE_DEFERRED_RUNTIMES,
   SELECT_RUNTIMES,
@@ -19,7 +16,7 @@ import { AUDIO_WARM_BANKS } from './audioWarmBanks.generated.js';
 // network). The Arsenal AV HOT bank is decoded by its own runtime preload.
 function warmGroupAudio(group) {
   try {
-    if (group === 'arsenalProduct' || group === 'battle') {
+    if (group === 'arsenalProduct') {
       window.APEX_ARSENAL_AV?.preload?.();
     }
     const urls = AUDIO_WARM_BANKS[group];
@@ -159,11 +156,8 @@ export function loadRequiredGameRuntimes() {
 }
 
 const RUNTIME_GROUPS = {
-  all: DEFERRED_GAME_RUNTIMES,
   arsenalHub: ARSENAL_HUB_RUNTIMES,
   arsenalProduct: MODE_DEFERRED_RUNTIMES.arsenalProduct,
-  battle: BATTLE_RUNTIMES,
-  battleDeferred: BATTLE_DEFERRED_RUNTIMES,
   select: SELECT_RUNTIMES,
 };
 
@@ -179,7 +173,7 @@ function warmGroupAudioWhenReady(group, gatePromise) {
   warmAudioDone.add(group);
   gatePromise.then(() => warmGroupAudio(group)).catch(() => {});
 }
-export function loadDeferredGameRuntimes(group = 'all', { priority = true } = {}) {
+export function loadDeferredGameRuntimes(group, { priority = true } = {}) {
   const runtimes = RUNTIME_GROUPS[group];
   if (!runtimes) return Promise.reject(new Error(`Unknown runtime group: ${group}`));
   const promiseKey = `__apexDeferredRuntimesPromise_${group}`;
