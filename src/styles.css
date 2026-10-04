@@ -2809,16 +2809,6 @@ body.manual-lab-mode #combat-inspector {
         background-size: contain;
         background-position: center;
     }
-    #select-screen .fighter-card[data-fighter="KATANA"] {
-        background-image: url('/assets/katana_v1/pickButton.webp') !important;
-        background-size: contain;
-        background-position: center;
-    }
-    #select-screen .fighter-card[data-fighter="FANG"] {
-        background-image: url('/assets/fang_v1/selectionButton.webp') !important;
-        background-size: contain;
-        background-position: center;
-    }
 
     #select-screen .fighter-card:hover {
         background-color: transparent;
