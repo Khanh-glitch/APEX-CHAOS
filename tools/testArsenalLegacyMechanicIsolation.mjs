@@ -116,7 +116,9 @@ for (let i = 0; i < PRODUCT_ROSTER.visibleIds.length; i += 1) {
 
   const fighter = { data: null };
   shell.init(fighter);
-  assert.deepEqual(fighter.data, {});
+  assert.ok(fighter.data && typeof fighter.data === 'object');
+  assert.equal(Object.keys(fighter.data).length, 0,
+    `${id}: current shell init must create an empty data bag without legacy init behavior`);
   shell.update(fighter, {}, 1 / 60);
 }
 
