@@ -1,7 +1,7 @@
 // Cache-bust classic runtime scripts that live under /public and therefore do
-// not receive Vite content hashes. This Phase 2A.1 product-runtime transition
-// from r35 to r36 must keep its lock and generated expectations in sync.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r36';
+// not receive Vite content hashes. Phase 2A.2 replaces the current Arsenal
+// FullRoster collision bridge with its small anchor-pair seam.
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261004-arsenal-collision-v1-r37';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -103,23 +103,20 @@ export const BATTLE_RUNTIMES = [
   ...BATTLE_DEFERRED_RUNTIMES,
 ];
 
-// Current Arsenal engine chain. The two legacy entries are explicit,
-// temporary Phase 2A bridges: FullRoster supplies collision until 2A.2, and
-// RuntimeStability supplies draw recovery until 2A.3. The current renderer/HUD
-// is installed between them, so FullRoster no longer owns product draw/HUD.
-// Generic Battle continues to use the complete BATTLE_CORE_RUNTIMES chain.
+// Current Arsenal engine chain. RuntimeStability remains the temporary 2A.3
+// draw-recovery bridge. The anchor collision seam replaces FullRoster only on
+// this path; generic Battle continues to use the complete BATTLE_CORE_RUNTIMES.
 export const ARSENAL_SHARED_ENGINE_RUNTIMES = [
   ...COMBAT_CORE_RUNTIMES,
-  ['/game/core/apexFullRosterQa.js', 'apexFullRosterQa'],
+  ['/game/core/apexArsenalAnchorCollisionRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalAnchorCollisionRuntime'],
   ['/game/core/apexArsenalProductRenderHudRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalProductRenderHudRuntime'],
   ['/game/guards/apexRuntimeStability.js', 'apexRuntimeStability'],
   ...HUD_RUNTIMES,
 ];
 
 // Active neutral Arsenal product runtime. Bot Battle, Local 1v1, Shop/Draw,
-// and the admin-only Lab share this chain. It has product-owned engine seams
-// and does not inherit ROSTER_RUNTIMES; temporary FullRoster/recovery bridges
-// are kept explicit above while their ordered Phase 2A slices are validated.
+// and the admin-only Lab share this chain. It owns the current anchor-collision
+// seam and does not inherit ROSTER_RUNTIMES or legacy collision behavior.
 export const ARSENAL_PRODUCT_RUNTIMES = [
   ...ARSENAL_SHARED_ENGINE_RUNTIMES,
   ['/game/arsenal/arsenalCWeaponSet.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalCSet'],

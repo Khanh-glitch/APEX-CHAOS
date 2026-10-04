@@ -1,8 +1,8 @@
 // Current Arsenal/Core Six render and HP-HUD seam.
 //
 // This deliberately replaces only the mixed Full Roster renderer/HUD behavior
-// used by the current product. Collision and draw-error recovery remain on
-// their transitional owners until their dedicated Phase 2A slices.
+// used by the current product. Anchor collision has its own current seam;
+// draw-error recovery remains on its transitional owner until Phase 2A.3.
 (function installArsenalProductRenderHud() {
   function updateArsenalPlayerHud() {
     if (!fighters[0] || !fighters[1]) return;

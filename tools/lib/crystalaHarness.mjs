@@ -6,7 +6,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES } from '../../src/game/runtimeManifest.js';
+import {
+  BOOT_GAME_RUNTIMES,
+  MENU_INTERACTIVE_RUNTIMES,
+  MODE_DEFERRED_RUNTIMES,
+  SELECT_RUNTIMES,
+} from '../../src/game/runtimeManifest.js';
 import { installProductSurfaceAuthority } from '../../src/game/productSurface.js';
 
 const REPO = process.cwd();
@@ -139,12 +144,23 @@ export async function bootHarness(opts = {}) {
   }
   loadScript('/apexEngine.js', true);
   const loaded = new Set();
-  for (const [src] of BOOT_GAME_RUNTIMES) { loaded.add(String(src).split(/[?#]/, 1)[0]); loadScript(src, false); }
-  for (const [src] of MODE_DEFERRED_RUNTIMES.arsenalProduct) {
-    const key = String(src).split(/[?#]/, 1)[0];
-    if (loaded.has(key)) continue;
-    loaded.add(key);
-    loadScript(src, true);
+  const runtimeGroups = opts.productAuthentic === true
+    ? [
+      { entries: MENU_INTERACTIVE_RUNTIMES, required: true },
+      { entries: MODE_DEFERRED_RUNTIMES.arsenalProduct, required: true },
+      { entries: SELECT_RUNTIMES, required: true },
+    ]
+    : [
+      { entries: BOOT_GAME_RUNTIMES, required: false },
+      { entries: MODE_DEFERRED_RUNTIMES.arsenalProduct, required: true },
+    ];
+  for (const { entries, required } of runtimeGroups) {
+    for (const [src] of entries) {
+      const key = String(src).split(/[?#]/, 1)[0];
+      if (loaded.has(key)) continue;
+      loaded.add(key);
+      loadScript(src, required);
+    }
   }
 
   win.eval(`(() => {
@@ -164,6 +180,8 @@ export async function bootHarness(opts = {}) {
 
   const H = {
     win, dom, loadErrors, gameCanvasReal, REPO,
+    loadedRuntimeSrcs: [...loaded],
+    productAuthentic: opts.productAuthentic === true,
     T: win.__HR_TEST,
     get HR() { return win.APEX_HERO_REWORK; },
     get CRY() { return win.APEX_CRYSTAL; },

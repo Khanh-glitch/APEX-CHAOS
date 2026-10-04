@@ -54,6 +54,9 @@ jobs:
       - name: Run targeted Hero Rework smoke
         run: AQ_EVIDENCE_DIR=/tmp/arsenal-closure-smoke node tools/smokeHeroReworkHeadless.mjs
 
+      - name: Verify current Arsenal anchor collision contract
+        run: pnpm test:arsenal:collision-contract
+
       - name: Run Arsenal Battle headless acceptance
         run: APEX_EVIDENCE_DIR=/tmp/arsenal-headless pnpm test:arsenal:headless
 
