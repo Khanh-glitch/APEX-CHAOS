@@ -56,6 +56,9 @@ const SHIP_PUBLIC_FILES = [
   && fs.existsSync(filePath)
   && /\.(js|json|html|css)$/i.test(filePath));
 
+const CURRENT_RUNTIME_PATHS = new Set(runtimePublicFiles.map((filePath) =>
+  '/' + path.relative(PUBLIC, filePath).split(path.sep).join('/')));
+
 function walk(dir, out = []) {
   if (!fs.existsSync(dir)) return out;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -167,8 +170,12 @@ for (const { abs, publicPath } of assetIndex) {
       && findRefs(other.publicPath, shipText).some((r) => r.match !== 'basename'));
 
   let classification;
+  const isGameRuntimeScript = ext === '.js' && /^\/game\//.test(publicPath);
   if (isSourceDir || isWavMaster || isPngMaster || isHealMaster) classification = 'SOURCE_MASTER_PROVENANCE_ONLY';
   else if (HOT_PATHS.has(publicPath)) classification = 'SHIPPING_HOT';
+  else if (isGameRuntimeScript) classification = CURRENT_RUNTIME_PATHS.has(publicPath)
+    ? 'SHIPPING_LAZY'
+    : 'LEGACY_NON_SHIPPING';
   else if (shipRefs.length) classification = 'SHIPPING_LAZY';
   else classification = 'LEGACY_NON_SHIPPING';
 
