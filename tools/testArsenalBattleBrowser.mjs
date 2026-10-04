@@ -11,6 +11,15 @@ import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { runArsenalProductBrowserAcceptance } from './lib/arsenalProductBrowserAcceptance.mjs';
+import { AUDIO_WARM_BANKS } from '../src/game/audioWarmBanks.generated.js';
+
+// Boot warms only these active groups before the browser suite's later generic
+// compatibility smoke. Derive the prefetch contract from the generated manifest
+// so retired roster audio is not required on the current product path.
+const BOOT_WARM_AUDIO_GROUPS = ['arsenalProduct', 'select'];
+const EXPECTED_BOOT_WARM_AUDIO_URLS = new Set(
+  BOOT_WARM_AUDIO_GROUPS.flatMap((group) => AUDIO_WARM_BANKS[group] || []),
+);
 
 const endpoint = process.env.APEX_CDP_ENDPOINT || 'http://127.0.0.1:9224';
 const appUrl = process.env.APEX_APP_URL || 'http://127.0.0.1:5173';
@@ -335,8 +344,10 @@ try {
   gate('audio-warm-bank-prefetched-by-loader',
     !report.audioLatency.missing
     && report.audioLatency.warmPrefetch
-    && report.audioLatency.warmPrefetch.prefetched >= 60,
-    report.audioLatency.warmPrefetch);
+    && EXPECTED_BOOT_WARM_AUDIO_URLS.size > 0
+    && report.audioLatency.warmPrefetch.prefetched === EXPECTED_BOOT_WARM_AUDIO_URLS.size,
+    { ...report.audioLatency.warmPrefetch, expected: EXPECTED_BOOT_WARM_AUDIO_URLS.size,
+      groups: BOOT_WARM_AUDIO_GROUPS });
 
   // Test-side helpers installed in the page.
   await evaluate(`(() => {
@@ -421,8 +432,14 @@ try {
     results.selectVisible = !document.getElementById('select-screen').classList.contains('hidden');
     goToMenu();
     results.menuVisible = !document.getElementById('menu-screen').classList.contains('hidden');
-    const ICE = apexFighterTypes ? apexFighterTypes.find(t => t.name === 'ICE') : FighterTypes.find(t => t.name === 'ICE');
-    const TOXIC = apexFighterTypes ? apexFighterTypes.find(t => t.name === 'TOXIC') : FighterTypes.find(t => t.name === 'TOXIC');
+    const fighterTypes = window.apexFighterTypes || window.FighterTypes || [];
+    const ICE = fighterTypes.find(t => t.name === 'ICE');
+    const TOXIC = fighterTypes.find(t => t.name === 'TOXIC');
+    results.availableFighters = fighterTypes.map(t => t.name);
+    if (!ICE || !TOXIC) {
+      results.missingFighters = ['ICE', 'TOXIC'].filter(name => !fighterTypes.some(t => t.name === name));
+      return results;
+    }
     startSpecificMatch(ICE, TOXIC, { countdown: false });
     results.normalMatchState = gameState;
     results.normalFighters = fighters.map(f => f.name);
