@@ -39,9 +39,10 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify product graph, runtime revision, and generated audio bank
+      - name: Verify product graph, source hygiene, runtime revision, and generated audio bank
         run: |
           pnpm test:product-graph
+          pnpm test:source-hygiene
           pnpm test:runtime-revision
           pnpm assets:verify
           git diff --exit-code -- src/game/audioWarmBanks.generated.js
