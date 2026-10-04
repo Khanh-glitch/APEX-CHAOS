@@ -45,6 +45,7 @@ const allowedLegacyDonors = new Set([
   '/assets/fang_v1/speckBlood.webp', // current Arsenal feel layer uses this blood-speck donor directly
 ]);
 const forbiddenPrefixes = [
+  '/assets/shotgun_v1/',
   '/assets/katana_v1/',
   '/assets/fang_v1/',
   '/assets/engineer_v1/',

@@ -1,7 +1,8 @@
 // Cache-bust classic runtime scripts that live under /public and therefore do
 // not receive Vite content hashes. This Phase 2C product-runtime transition
-// from r39 to r40 separates shipping runtimes from test-only legacy fixtures.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r40';
+// from r40 to r41 closes the retired generic select presentation shell while
+// preserving the current Arsenal/Core Six picker as the sole product owner.
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r41';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.

@@ -2504,50 +2504,21 @@ function ensureRosterPreviewLoop() {
     if (!rosterPreviewRaf) renderRosterPreviews(true);
 }
 function populateRoster() {
-    const grid = document.getElementById('roster-grid');
-    grid.innerHTML = '';
-    FighterTypes.forEach((ft) => {
-        const card = document.createElement('div');
-        card.className = 'fighter-card';
-        card.dataset.fighter = ft.name;
-        card.style.color = ft.color;
-        const name = document.createElement('div');
-        name.className = 'f-name';
-        name.textContent = ft.name;
-        const preview = document.createElement('canvas');
-        preview.className = 'f-preview';
-        preview.width = 140;
-        preview.height = 96;
-        preview.setAttribute('aria-label', `${ft.name} battle visual preview`);
-        card.appendChild(name);
-        card.appendChild(preview);
-        card.onclick = () => selectFighter(ft, card);
-        grid.appendChild(card);
-    });
-    renderRosterPreviews(true);
-    ensureRosterPreviewLoop();
+    // Compatibility shim only. Current product selection is rendered by
+    // /game/ui/apexPickRuntime.js after the select runtime group is loaded.
+    document.getElementById('roster-grid')?.replaceChildren();
 }
-const SELECTED_FIGHTER_VFX = Object.freeze({
-    ICE: '/assets/ui_2026/picked-ice.webp',
-    STRING: '/assets/ui_2026/picked-string.webp',
-    GALAXY: '/assets/ui_2026/picked-galaxy.webp',
-    NOVA: '/assets/ui_2026/picked-galaxy.webp',
-    SOCCER: '/assets/ui_2026/picked-soccer.webp',
-    NINJA: '/assets/ui_2026/picked-ninja.webp',
-    ENGINEER: '/assets/ui_2026/picked-engineer.webp',
-    SHOTGUN: '/assets/shotgun_v1/picked.webp'
-});
 function syncSelectedFighterVfx() {
+    // Compatibility shim only. Current picker art/state is owned by
+    // apexPickRuntime; never resurrect the retired generic fighter art map.
     [[1, p1Selection], [2, p2Selection]].forEach(([player, fighter]) => {
         const image = document.getElementById(`p${player}-fighter-vfx`);
         if (!image) return;
         const slot = image.closest('.picked-fighter-slot');
         if (slot) slot.dataset.fighter = fighter?.name || '';
-        const source = fighter ? SELECTED_FIGHTER_VFX[fighter.name] : '';
-        image.classList.toggle('has-fighter', Boolean(source));
+        image.classList.remove('has-fighter');
         image.alt = fighter ? `Player ${player}: ${fighter.name}` : `Player ${player} fighter`;
-        if (source) image.src = source;
-        else image.removeAttribute('src');
+        image.removeAttribute('src');
     });
 }
 function selectFighter(ft, card) {
@@ -2575,9 +2546,9 @@ function goToSelect() {
     const hud = document.getElementById('hud');
     if (hud) hud.style.opacity = 0;
     p1Selection = null; p2Selection = null;
-    syncSelectedFighterVfx();
     gameState = 'SELECT';
-    populateRoster();
+    // Current picker runtime owns selection rendering.
+    document.getElementById('roster-grid')?.replaceChildren();
     document.getElementById('start-btn')?.classList.add('hidden');
     const title = document.getElementById('select-title');
     if (title) {

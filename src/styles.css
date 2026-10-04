@@ -2797,18 +2797,8 @@ body.manual-lab-mode #combat-inspector {
         text-align: left;
         color: #f3efe3 !important;
     }
-
-    #select-screen .fighter-card[data-fighter="ICE"] { background-image: url('/assets/ui_2026/fighter-ice.webp'); }
-    #select-screen .fighter-card[data-fighter="STRING"] { background-image: url('/assets/ui_2026/fighter-string.webp'); }
-    #select-screen .fighter-card[data-fighter="GALAXY"] { background-image: url('/assets/ui_2026/fighter-galaxy.webp'); }
-    #select-screen .fighter-card[data-fighter="SOCCER"] { background-image: url('/assets/ui_2026/fighter-soccer.webp'); }
-    #select-screen .fighter-card[data-fighter="NINJA"] { background-image: url('/assets/ui_2026/fighter-ninja.webp'); }
-    #select-screen .fighter-card[data-fighter="ENGINEER"] { background-image: url('/assets/ui_2026/fighter-engineer.webp'); }
-    #select-screen .fighter-card[data-fighter="SHOTGUN"] {
-        background-image: url('/assets/shotgun_v1/pick_button.webp') !important;
-        background-size: contain;
-        background-position: center;
-    }
+    /* Fighter-specific legacy card art retired in r41. Current selection art is
+       owned by /game/ui/apexPickRuntime.js and pick_ui_final. */
 
     #select-screen .fighter-card:hover {
         background-color: transparent;

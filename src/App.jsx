@@ -30,20 +30,6 @@ const UI_2026_ASSETS = {
   menuBgLandscape: '/assets/ui_2026/menu-bg-landscape.webp',
   menuBgPortrait: '/assets/ui_2026/menu-bg-portrait.webp',
   menuVfxOverlay: '/assets/ui_2026/menu-vfx-overlay.webp',
-  fighterPickBg: '/assets/ui_2026/fighter-pick-bg.webp',
-  tabApexUpdate: '/assets/ui_2026/tab-apex-update.webp',
-  tabFullRoster: '/assets/ui_2026/tab-full-roster.webp',
-  p1SetupVfx: '/assets/ui_2026/p1-setup-vfx.webp',
-  p2SetupVfx: '/assets/ui_2026/p2-setup-vfx.webp',
-  fighterPickButton: '/assets/ui_2026/fighter-pick-button.webp',
-  fightButton: '/assets/ui_2026/fight-button.webp',
-  exitButton: '/assets/ui_2026/exit-button.webp',
-  pickedIce: '/assets/ui_2026/picked-ice.webp',
-  pickedString: '/assets/ui_2026/picked-string.webp',
-  pickedGalaxy: '/assets/ui_2026/picked-galaxy.webp',
-  pickedSoccer: '/assets/ui_2026/picked-soccer.webp',
-  pickedNinja: '/assets/ui_2026/picked-ninja.webp',
-  pickedEngineer: '/assets/ui_2026/picked-engineer.webp',
 };
 
 const MENU_AUDIO = '/assets/audio/menu_bgm.mp3';

@@ -1,5 +1,5 @@
 {
-  "revision": "20261003-mirror-v1-r40",
+  "revision": "20261003-mirror-v1-r41",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "a0d10025cde29ee55d6eb95a06aee2cbebe2a56e01adcdb1154f8366e3128712",
     "public/game/core/apexArsenalProductCollisionRuntime.js": "ebda0bc7539be7627b4bec0c639e61ae6a4e0f319a6327518fd23d0f7bd13090",

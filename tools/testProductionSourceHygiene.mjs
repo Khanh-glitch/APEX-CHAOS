@@ -11,6 +11,9 @@ const REPO = process.cwd();
 const PUBLIC_GAME = path.join(REPO, 'public', 'game');
 const manifestPath = path.join(REPO, 'src', 'game', 'runtimeManifest.js');
 const enginePath = path.join(REPO, 'public', 'apexEngine.js');
+const appPath = path.join(REPO, 'src', 'App.jsx');
+const stylesPath = path.join(REPO, 'src', 'styles.css');
+const pickRuntimePath = path.join(REPO, 'public', 'game', 'ui', 'apexPickRuntime.js');
 
 function walkJs(dir, out = []) {
   if (!fs.existsSync(dir)) return out;
@@ -70,14 +73,26 @@ for (const logicalPath of retiredOrphanPaths) {
 }
 
 const engineSource = fs.readFileSync(enginePath, 'utf8');
+const appSource = fs.readFileSync(appPath, 'utf8');
+const stylesSource = fs.readFileSync(stylesPath, 'utf8');
+const pickRuntimeSource = fs.readFileSync(pickRuntimePath, 'utf8');
+const productPresentationSources = [engineSource, appSource, stylesSource, pickRuntimeSource];
 for (const logicalPath of [...LEGACY_FIXTURE_RUNTIME_PATHS, ...retiredOrphanPaths]) {
   assert.ok(!engineSource.includes(logicalPath), `apexEngine contains stale legacy runtime pointer: ${logicalPath}`);
 }
 assert.ok(!manifestSource.includes(LEGACY_RUNTIME_FIXTURE_ROOT), 'production manifest points into test fixtures');
+
+for (const forbidden of ['/assets/shotgun_v1/', 'SELECTED_FIGHTER_VFX']) {
+  assert.ok(
+    productPresentationSources.every((source) => !source.includes(forbidden)),
+    `retired generic select shell leaked back into production presentation: ${forbidden}`,
+  );
+}
 
 console.log(JSON.stringify({
   productionPublicRuntimes: productionRuntimePaths.size,
   quarantinedLegacyRuntimes: LEGACY_FIXTURE_RUNTIME_PATHS.size,
   retiredOrphans: retiredOrphanPaths.length,
   staleEnginePointers: 0,
+  retiredSelectShellLeaks: 0,
 }, null, 2));
