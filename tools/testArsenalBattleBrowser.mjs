@@ -3670,8 +3670,15 @@ try {
     const diagnosticJson = JSON.stringify(diagnostic);
     console.log('[CP6 lifecycle trace]', diagnosticJson);
     if (process.env.GITHUB_ACTIONS === 'true') {
-      const annotationData = diagnosticJson.replace(/%/g, '%25');
-      console.log(`::notice title=CP6 lifecycle trace::${annotationData}`);
+      const annotationData = value => JSON.stringify(value).replace(/%/g, '%25');
+      console.log(`::notice title=CP6 trace header::${annotationData({
+        installs: diagnostic.installs,
+        directStartResults: diagnostic.directStartResults,
+        entryOwnership: diagnostic.entryOwnership,
+      })}`);
+      for (const call of diagnostic.calls) {
+        console.log(`::notice title=CP6 event ${call.order} ${call.name}::${annotationData(call)}`);
+      }
     }
   }
   if (report.failures.length) process.exitCode = 1;
