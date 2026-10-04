@@ -23,7 +23,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES } from '../src/game/runtimeManifest.js';
+import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES } from './legacyRuntimeManifest.mjs';
 import { installProductSurfaceAuthority } from '../src/game/productSurface.js';
 
 const REPO = process.cwd();
