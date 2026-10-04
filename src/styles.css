@@ -5296,6 +5296,21 @@ body.manual-lab-select #select-screen:not(.hidden) #manual-room-panel {
     font-display: swap;
 }
 
+/* ---------- Gold product shell (canonical cutover) ---------- */
+/* The Gold pack owns the visible product UI. Legacy roots stay mounted as
+   production truth (engine canvas, runtimes, economy) but are hidden; the
+   live arena canvas is relocated into the donor's authored arena slot by
+   public/game/gold/goldProductBridge.js when a battle starts. */
+#gold-shell-host {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: #07080a;
+}
+body.apex-gold-mounted #battle-shell {
+    display: none;
+}
+
 #battle-shell {
     position: relative;
     width: 100%;

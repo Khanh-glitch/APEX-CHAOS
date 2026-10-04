@@ -61,6 +61,7 @@ export const ARSENAL_SHARED_ENGINE_RUNTIMES = [
 // and no production dependency on the legacy roster/runtime graph.
 export const ARSENAL_PRODUCT_RUNTIMES = [
   ...ARSENAL_SHARED_ENGINE_RUNTIMES,
+  ['/game/gold/goldProductBridge.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexGoldProductBridge'],
   ['/game/arsenal/arsenalCWeaponSet.generated.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalCSet'],
   ['/game/arsenal/arsenalConfig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalConfig'],
   ['/game/arsenal/arsenalIdentityRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalIdentityRuntime'],

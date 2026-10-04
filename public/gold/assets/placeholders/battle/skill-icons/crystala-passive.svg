@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+<rect width="100%" height="100%" fill="#090b0d"/>
+<rect x="12" y="12" width="776" height="776" fill="none" stroke="#55bfff" stroke-opacity=".42" stroke-width="3" stroke-dasharray="12 10"/>
+<path d="M0 624.0 L800 224.0" stroke="#55bfff" stroke-opacity=".12" stroke-width="24"/>
+<text x="50%" y="48%" dominant-baseline="middle" text-anchor="middle" fill="#55bfff" font-family="Arial,sans-serif" font-size="36" font-weight="700">CRYSTALA · PASSIVE</text>
+<text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="#d9dde1" fill-opacity=".56" font-family="Arial,sans-serif" font-size="20">REPLACE ART ONLY · PRESERVE SLOT / MOTION</text>
+</svg>

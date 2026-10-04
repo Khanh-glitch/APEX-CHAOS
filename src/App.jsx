@@ -17,6 +17,7 @@ import {
   markBootPhase,
   markLoaderHidden,
 } from './game/performanceMetrics.js';
+import { GOLD_SHELL_URL } from './game/goldAssetManifest.js';
 
 const once = { loaded: false };
 const LOADING_ASSETS = {
@@ -645,6 +646,63 @@ export default function App() {
     else run();
   };
 
+  // ── Gold product shell ──────────────────────────────────────────────────
+  // The Gold pack (docs/gold-ui/current, owner authority) is the visible
+  // product UI: Home, Mode/Fighter select, Lucky Draw and the Battle HUD.
+  // Production truth stays in this document — the engine canvas, runtimes and
+  // economy — and public/game/gold/goldProductBridge.js is the only seam.
+  // The canonical iframe boundary is relaxed ONLY so the live arena canvas can
+  // occupy the donor's authored arena slot (same-document mount).
+  const [goldReady, setGoldReady] = useState(false);
+  useEffect(() => {
+    if (!gameReady || goldReady) return;
+    const host = document.getElementById('gold-shell-host');
+    if (!host || host.dataset.apexGoldMounted === '1') return;
+    let cancelled = false;
+    const mountGoldShell = async () => {
+      try {
+        // Shop/Draw/selection save + shell authority (hub group) before mount.
+        await loadDeferredGameRuntimes('arsenalHub');
+        const response = await fetch(GOLD_SHELL_URL, { cache: 'force-cache' });
+        if (!response.ok) throw new Error(`gold shell HTTP ${response.status}`);
+        const html = await response.text();
+        if (cancelled) return;
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const base = doc.createElement('base');
+        base.href = '/gold/';
+        doc.head.insertBefore(base, doc.head.firstChild);
+        const scripts = [...doc.querySelectorAll('script')].filter((node) => {
+          const type = String(node.getAttribute('type') || '').toLowerCase();
+          return !type || type === 'text/javascript' || type === 'application/javascript' || type === 'module';
+        });
+        for (const node of [...doc.head.children]) host.appendChild(document.importNode(node, true));
+        for (const node of [...doc.body.children]) host.appendChild(document.importNode(node, true));
+        for (const src of scripts) {
+          const run = document.createElement('script');
+          if (src.src) {
+            await new Promise((resolve, reject) => {
+              run.onload = resolve;
+              run.onerror = () => reject(new Error(`gold script failed: ${src.src}`));
+              run.src = src.src;
+              host.appendChild(run);
+            });
+          } else {
+            run.textContent = src.textContent;
+            host.appendChild(run);
+          }
+          if (cancelled) return;
+        }
+        host.dataset.apexGoldMounted = '1';
+        document.body.classList.add('apex-gold-mounted');
+        setGoldReady(true);
+      } catch (error) {
+        console.warn('[gold-shell] Gold product shell mount failed.', error);
+      }
+    };
+    mountGoldShell();
+    return () => { cancelled = true; };
+  }, [gameReady, goldReady]);
+
   useEffect(() => {
     const launchAdminLab = () => launchProductSurface('arsenal-lab', { admin: true });
     const launchAny = (id, options = {}) => launchProductSurface(id, options);
@@ -680,6 +738,10 @@ export default function App() {
         </div>
       </div>
     )}
+    {/* Gold product shell mount: the canonical Gold surfaces own the visible
+        product UI. Legacy roots below stay mounted (production truth: engine
+        canvas + runtimes) and are hidden by body.apex-gold-mounted. */}
+    <div id="gold-shell-host" aria-label="APEX CHAOS product surface" />
     {/* Current battle shell: the side panels are hidden outside combat; the
         shared select route and product menu use the same fixed arena column.
         Engine-owned p1/p2 ids live in the panels. */}
