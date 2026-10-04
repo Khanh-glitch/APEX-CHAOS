@@ -20,9 +20,10 @@ Read first:
 3. `manifests/placeholder-contract.json`
 4. `manifests/asset-manifest.json`
 5. `manifests/dependency-audit.json`
-6. `index.html`
-7. `donors/lucky-draw/index.html`
-8. `donors/battle-hud/index.html`
+6. `docs/gold-ui/preload/PROCESS_GOLD_PARITY_RELOCK_2026-10-05.md`
+7. `index.html`
+8. `donors/lucky-draw/index.html`
+9. `donors/battle-hud/index.html`
 
 ## Owner law: only these art slots are replaceable
 1. Lucky Draw fighter visual art.
@@ -216,3 +217,27 @@ Responsive audit:
 - donor fixed-size preview scaling is not a production responsive strategy;
 - local portrait 2P rotates only P2 control territory 180°;
 - 1P portrait keeps P2 as a compact threat strip and gives P1 the large touch zone.
+
+
+## 2026-10-05 — Process / canonical Gold parity relock
+
+The Robot -> Mirror history and the rejected `a1427d...` Gold attempt showed that the previous preload still allowed an agent to understand the written rules while implementing the wrong visible architecture.
+
+The authoritative failure-prevention extension is:
+
+`docs/gold-ui/preload/PROCESS_GOLD_PARITY_RELOCK_2026-10-05.md`
+
+It adds hard requirements for:
+- visible presentation ownership cutover (never legacy UI + Gold underlay);
+- direct canonical Gold vs production parity at matched state/viewport;
+- normal-scale screenshot/frame evidence for static + dynamic choreography;
+- real-path/non-vacuous trigger proof;
+- verified event provenance before SFX/VFX/HUD binding;
+- idempotent listener/session/rematch lifecycle;
+- Local/BOT protection;
+- render-state/performance isolation;
+- pnpm/package-lock discipline;
+- exact-final-SHA acceptance ladder;
+- explicit separation of automated, canonical, browser, performance and owner-acceptance gates.
+
+`manifests/ACTIVE_IMPLEMENTATION_PROMPT.md` is intentionally only an activation/handoff prompt. The implementation law belongs in this preload, the anti-drift contract, the relock documents and canonical Gold sources.

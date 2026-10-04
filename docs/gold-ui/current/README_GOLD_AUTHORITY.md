@@ -52,6 +52,20 @@ The following donor mechanics are **NOT** production authority and must not ship
 - donor P2 U/I skill keys;
 - fake best-of-three / reset choreography when production has no corresponding match authority.
 
-Production must preserve the Gold response while sourcing its trigger from real runtime state/events. The current owner semantic corrections are encoded in `manifests/ACTIVE_IMPLEMENTATION_PROMPT.md` and supersede stale demo values inside the donor.
+Production must preserve the Gold response while sourcing its trigger from real runtime state/events. The current owner semantic corrections live in the preload/relock authority, especially `docs/gold-ui/preload/BATTLE_TRIGGER_RESPONSIVE_RELOCK_2026-10-04.md` and `docs/gold-ui/preload/PROCESS_GOLD_PARITY_RELOCK_2026-10-05.md`. `manifests/ACTIVE_IMPLEMENTATION_PROMPT.md` is an execution trigger, not the primary instruction store.
 
 Responsive is also behavioral authority: production must re-compose into the Gold `desk`, `land`, and `port` families from the real viewport. The donor's fixed-size preset + whole-stage scale transform is preview tooling only and must not become the shipping responsive strategy.
+
+
+## 2026-10-05 process / Gold-parity relock
+
+Before implementation, read:
+`docs/gold-ui/preload/PROCESS_GOLD_PARITY_RELOCK_2026-10-05.md`.
+
+This relock incorporates Robot -> Mirror failure lessons and the rejected `a1427d...` cutover as negative evidence.
+
+Key release law:
+- Gold must become the visible presentation owner, not an underlay/decoration around legacy UI;
+- canonical Gold must be compared directly against production at matched real viewports/states;
+- only approved trigger plumbing, placeholder contents, semantic color adaptation and necessary runtime/responsive plumbing may differ;
+- green tests/builds cannot substitute for canonical visual parity, real-browser proof or owner acceptance.

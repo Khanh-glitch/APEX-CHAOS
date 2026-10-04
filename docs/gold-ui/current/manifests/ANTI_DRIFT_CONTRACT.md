@@ -58,3 +58,24 @@ Local 2P portrait:
 
 Shipping production must size against the real viewport and safe-area insets. The donor preview preset scaler is diagnostic tooling only.
 Active touch targets must remain at least 44px where the Gold interaction is actionable.
+
+
+## 2026-10-05 exact visible-parity / ownership relock
+
+The implementation target is the canonical Gold's visible presentation at normal product scale.
+
+Approved differences are limited to:
+1. the four declared placeholder slot contents;
+2. real production trigger/state plumbing replacing donor simulator truth;
+3. owner-approved data-driven semantic color ownership;
+4. necessary runtime/responsive plumbing that preserves the same authored visible result.
+
+All other visible drift is a release failure.
+
+Every Gold surface must have one visible presentation owner. Legacy Home/Pick/Battle/Result presentation may remain only as hidden/internal state plumbing where required; it must not remain visibly stacked above, below, behind or beside Gold.
+
+Canonical parity must compare production directly against the canonical Gold source at matched viewport/state. A production module compared only against itself is not parity. A function call/counter/class name is not visual evidence.
+
+See:
+`docs/gold-ui/preload/PROCESS_GOLD_PARITY_RELOCK_2026-10-05.md`
+for the Robot -> Mirror process lessons, real-path evidence law, event/listener lifecycle law, rejected-cutover negative evidence and acceptance ladder.
