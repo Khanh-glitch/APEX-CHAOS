@@ -227,8 +227,8 @@
       "pass": true,
       "detail": {
         "frames": 90,
-        "elapsedMs": 30.02,
-        "perFrameMs": 0.33
+        "elapsedMs": 48.37,
+        "perFrameMs": 0.54
       }
     },
     "production-truth-roots-stay-mounted": {

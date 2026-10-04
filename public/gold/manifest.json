@@ -200,8 +200,8 @@
       "sha256": "42ed36822b3dd931e779bc729902fa594dafd0ba9a46b5d0d4f0a25e19a639a5"
     },
     "battle-hud.html": {
-      "bytes": 100880,
-      "sha256": "a05692342e6d34e2bf7f8a51d2ad08d86bf775bd9c2cd954780c0a806c3f5487"
+      "bytes": 101148,
+      "sha256": "e50124208f00b14bbd6ae4982dbddd16f9b6584a2627c9e116cd4938b2f8af90"
     },
     "fonts.css": {
       "bytes": 6552,
@@ -276,8 +276,8 @@
       "sha256": "3fb5f51a51ac8f0303f377d6d6a05f16dfb4217b00b4e5c0b85d598e1d870696"
     },
     "shell.html": {
-      "bytes": 331366,
-      "sha256": "1685bb0acd95ac15763ad74f8219f371611e3b9dfa631baaf2ac8b9ea6cd7605"
+      "bytes": 331722,
+      "sha256": "82889121b374ff4bc6efb4c86cd7ea7ab2aeb41b6382dcb4244c80f88c78b831"
     },
     "../assets/audio/forward_drive_theme.ogg": {
       "bytes": 618594,

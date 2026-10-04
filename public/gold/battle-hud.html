@@ -1367,12 +1367,18 @@ applyViewport();requestAnimationFrame(frame);
       if(typeof S!=='undefined')S.paused=true;
     }
   });
-  document.addEventListener('keydown',e=>{
-    if(e.key==='Escape'){
+  if(!document.__apexGoldHudExitKey){
+    document.__apexGoldHudExitKey=true;
+    const exitRoot=document.currentScript||null;
+    document.addEventListener('keydown',e=>{
+      if(e.key!=='Escape')return;
+      if(exitRoot&&!exitRoot.isConnected)return;
+      if(!exitRoot&&!document.body.classList.contains('battle-hud-open'))return;
       e.preventDefault();e.stopImmediatePropagation();
       parent.postMessage({type:'APEX_CHAOS_BATTLE_EXIT'},'*');
-    }
-  },true);
+    },true);
+  }
+
   try{if(typeof S!=='undefined')S.paused=true;}catch(_){}
   parent.postMessage({type:'APEX_CHAOS_HUD_READY'},'*');
 })();

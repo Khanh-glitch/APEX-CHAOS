@@ -395,6 +395,31 @@ function buildBattleHud() {
       replace: '',
     },
     // ── H12: remove the demo diagnostics block (runDiag + interval) ────────
+    // ── H26: the donor's Escape handler is a document-level capture listener
+    // that outlives the mount. The bridge unmounts by emptying the host, which
+    // does NOT remove document-level listeners, so after the first battle
+    // session the donor swallowed EVERY later Escape (stopImmediatePropagation)
+    // and the shell's back/unlock navigation died; every remount added another
+    // copy. Install it once, and only own the key while this HUD is the open
+    // battle surface (the shell owns Escape on the transition/cancel path).
+    {
+      id: 'HUD-H26',
+      why: 'donor Escape handler: install once + only while this mount is still connected',
+      find: /  document\.addEventListener\('keydown',e=>\{\n    if\(e\.key==='Escape'\)\{\n      e\.preventDefault\(\);e\.stopImmediatePropagation\(\);\n      parent\.postMessage\(\{type:'APEX_CHAOS_BATTLE_EXIT'\},'\*'\);\n    \}\n  \},true\);/,
+      replace: (
+        `  if(!document.__apexGoldHudExitKey){\n` +
+        `    document.__apexGoldHudExitKey=true;\n` +
+        `    const exitRoot=document.currentScript||null;\n` +
+        `    document.addEventListener('keydown',e=>{\n` +
+        `      if(e.key!=='Escape')return;\n` +
+        `      if(exitRoot&&!exitRoot.isConnected)return;\n` +
+        `      if(!exitRoot&&!document.body.classList.contains('battle-hud-open'))return;\n` +
+        `      e.preventDefault();e.stopImmediatePropagation();\n` +
+        `      parent.postMessage({type:'APEX_CHAOS_BATTLE_EXIT'},'*');\n` +
+        `    },true);\n` +
+        `  }\n`
+      ),
+    },
     {
       id: 'HUD-H25',
       why: 'remove the inert donor diagnostic + safe-area-visualizer elements',

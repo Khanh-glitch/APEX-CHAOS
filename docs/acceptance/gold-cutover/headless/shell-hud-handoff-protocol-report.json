@@ -1,0 +1,197 @@
+{
+  "gates": {
+    "production-shell-mounts-through-app-model": {
+      "pass": true,
+      "detail": {
+        "stageInHost": true,
+        "rosterCards": 6,
+        "messageListenersAddedByShell": 2,
+        "loadErrors": []
+      }
+    },
+    "handoff-payload-is-the-canonical-decoded-donor": {
+      "pass": true,
+      "detail": {
+        "payloadBytes": 101121,
+        "payloadSha": "437763eb"
+      }
+    },
+    "real-battle-entry-reaches-mode-select": {
+      "pass": true,
+      "detail": {
+        "modeCards": 2
+      }
+    },
+    "real-mode-choice-reaches-fighter-select": {
+      "pass": true,
+      "detail": {
+        "mode": "bot",
+        "badge": "VS BOT"
+      }
+    },
+    "real-lock-drives-battle-entry-transition": {
+      "pass": true,
+      "detail": {
+        "battleHudOpen": true,
+        "hudHostOpen": true,
+        "handoffMessages": 4
+      }
+    },
+    "shell-mounts-canonical-donor-through-bridge": {
+      "pass": true,
+      "detail": {
+        "mountCalls": [
+          {
+            "bytes": 101121,
+            "sha": "437763eb"
+          },
+          {
+            "bytes": 101121,
+            "sha": "437763eb"
+          },
+          {
+            "bytes": 101121,
+            "sha": "437763eb"
+          }
+        ],
+        "canonicalSha": "437763eb"
+      }
+    },
+    "handoff-message-carries-production-truth": {
+      "pass": true,
+      "detail": {
+        "mode": "1p",
+        "live": false,
+        "players": [
+          {
+            "id": "newbot",
+            "productionId": "ROBOT",
+            "accent": "#c8c2b4"
+          },
+          {
+            "id": "frost",
+            "productionId": "ICE",
+            "accent": "#74d8e8"
+          }
+        ],
+        "handoffHookCalls": 4
+      }
+    },
+    "hud-ready-message-resends-handoff": {
+      "pass": true,
+      "detail": {
+        "readyMessages": 1,
+        "handoffMessages": 4,
+        "hookCalls": 4
+      }
+    },
+    "shell-protocol-listener-answers-exactly-once": {
+      "pass": true,
+      "detail": {
+        "resendsForOneReadyMessage": 1
+      }
+    },
+    "battle-live-message-sent-with-live-handoff": {
+      "pass": true,
+      "detail": {
+        "liveMessages": 1,
+        "liveHandoff": true,
+        "hookLiveCalls": 1
+      }
+    },
+    "battle-live-starts-the-real-production-match": {
+      "pass": true,
+      "detail": {
+        "live": [
+          {
+            "mode": "bot",
+            "p1": "newbot",
+            "p2": "newbot"
+          },
+          {
+            "mode": "bot",
+            "p1": "newbot",
+            "p2": "newbot"
+          }
+        ]
+      }
+    },
+    "donor-pump-runs-after-battle-live": {
+      "pass": true,
+      "detail": {
+        "seamPresent": true,
+        "ticksAfterLive": 233
+      }
+    },
+    "parent-runtime-freezes-during-battle": {
+      "pass": true,
+      "detail": {
+        "pauseEvents": 1,
+        "paused": true,
+        "inert": true,
+        "ariaHidden": "true"
+      }
+    },
+    "donor-escape-exits-battle-and-resumes-parent": {
+      "pass": true,
+      "detail": {
+        "closed": true,
+        "exitMessages": 1,
+        "hudHostChildren": 0,
+        "resumeEvents": 1,
+        "paused": false,
+        "backOnFighterScreen": true
+      }
+    },
+    "escape-cancels-transition-without-entering-battle": {
+      "pass": true,
+      "detail": {
+        "cancelled": true,
+        "battleHudOpen": false,
+        "pauseEvents": 1,
+        "backOnFighterScreen": true
+      }
+    },
+    "reentry-after-exit-is-a-fresh-handoff-cycle": {
+      "pass": true,
+      "detail": {
+        "reEntered": true,
+        "mountCalls": 3,
+        "liveHookCalls": 2,
+        "liveMessages": 2,
+        "handoffHookCalls": 10
+      }
+    }
+  },
+  "failures": [],
+  "loadErrors": [],
+  "evidence": {
+    "messageTypes": {
+      "APEX_CHAOS_HUD_READY": 4,
+      "APEX_CHAOS_BATTLE_HANDOFF": 10,
+      "APEX_CHAOS_BATTLE_LIVE": 2,
+      "APEX_CHAOS_BATTLE_EXIT": 1
+    },
+    "pauseEvents": 2,
+    "resumeEvents": 2,
+    "handoffHookCalls": 10,
+    "liveHookCalls": 2,
+    "mountCalls": [
+      {
+        "bytes": 101121,
+        "sha": "437763eb"
+      },
+      {
+        "bytes": 101121,
+        "sha": "437763eb"
+      },
+      {
+        "bytes": 101121,
+        "sha": "437763eb"
+      }
+    ]
+  },
+  "total": 16,
+  "passed": 16,
+  "failed": []
+}
