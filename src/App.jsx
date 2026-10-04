@@ -579,7 +579,7 @@ export default function App() {
   const runApex = async (name, options = {}) => {
     if (!gameReady) return;
     try {
-      const deferredGroup = options.deferredGroup || (options.startsMatch ? 'battle' : DEFERRED_RUNTIME_ACTION_GROUPS[name]);
+      const deferredGroup = options.deferredGroup || DEFERRED_RUNTIME_ACTION_GROUPS[name];
       if (deferredGroup) await loadDeferredGameRuntimes(deferredGroup);
       // Battle-audio session lifecycle (correction pass): entering a match =
       // terminate the previous session for real (old voices/cues die), then
