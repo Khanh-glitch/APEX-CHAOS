@@ -318,17 +318,20 @@ gate('smoke-a1-fail-cue-no-cd', (!failRes.ok && !!failRes.failCue && cdAfterFail
   { failRes, cdBefore, cdAfterFail });
 
 /* Gate 11 — dash toward a revealed pickup (physical ROBOT A1)
- * Pin the geometry here instead of inheriting the previous Bot scenario's
- * terminal positions; otherwise a correct dash can begin beside x=800 and
- * make a fixed "moved > 60" assertion flaky. */
-if (ctl.cooldownLeft('A1') > 0) { T.step(ctl.cooldownLeft('A1') + 0.1); }
+ * Use a fresh match instead of inheriting the previous Bot/Crystal scenario:
+ * its live constructs/ability state can legitimately deflect a later dash and
+ * turn this focused Robot gate into a cross-hero integration test. */
+HR.setAiEnabled(false);
+const dashMatch = T.start('ROBOT', 'CRYSTAL');
+T.holdSpawns();
+const dashCtl = HR.abilityController(dashMatch.combatants[0]);
 const heroBefore = T.fighters()[0];
 const rivalBefore = T.fighters()[1];
 heroBefore.x = 300; heroBefore.y = 500; heroBefore.setDir(1, 0);
 rivalBefore.x = 150; rivalBefore.y = 150; rivalBefore.setDir(-1, 0);
 T.pushSlot({ x: 800, y: 500, weaponId: 'PISTOL' });
 const posBefore = { x: heroBefore.x, y: heroBefore.y };
-const dashRes = ctl.tryCast('A1', 'test');
+const dashRes = dashCtl.tryCast('A1', 'test');
 // Robot A1 owns a .26s recognize/commit windup before physical launch.
 // Step beyond that frozen edge so this gate observes real dash movement.
 T.step(0.5);
