@@ -13,7 +13,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { BOOT_GAME_RUNTIMES, MENU_INTERACTIVE_RUNTIMES, ARSENAL_PRODUCT_RUNTIMES, SELECT_RUNTIMES, WARMUP_GROUP_SEQUENCE } from '../src/game/runtimeManifest.js';
+import { MENU_INTERACTIVE_RUNTIMES, ARSENAL_PRODUCT_RUNTIMES, SELECT_RUNTIMES, WARMUP_GROUP_SEQUENCE } from '../src/game/runtimeManifest.js';
+import { BOOT_GAME_RUNTIMES } from './legacyRuntimeManifest.mjs';
 import { installProductSurfaceAuthority } from '../src/game/productSurface.js';
 
 const REPO = process.cwd();
