@@ -3026,89 +3026,6 @@ try {
     mo.observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['class', 'style'], childList: true });
     return true;
   })()`);
-  // CP6-only lifecycle trace. Install before the Bot route click, then reinstall
-  // after lazy product runtimes load so replacements are covered too.
-  await evaluate(`(() => {
-    const trace = window.__cp6LifecycleTrace = {
-      startedAt: performance.now(), calls: [], installs: [], active: Object.create(null),
-    };
-    const names = [
-      'apexBeginBattleAudioSession', 'apexEndBattleAudioSession',
-      'goToMenu', 'exitArsenalBattleMode', 'startArsenalBattleMode',
-    ];
-    const snapshot = () => {
-      let currentState = null;
-      try { currentState = typeof gameState === 'undefined' ? null : gameState; } catch (error) {}
-      let saved = null;
-      try { saved = window.APEX_ARSENAL_META?.getState?.() || null; } catch (error) {}
-      let session = null, masterGain = null;
-      try { session = window.apexBattleAudioSessionInfo?.() || null; } catch (error) {}
-      try { masterGain = window.apexBattleAudioSessionState?.().masterGain ?? null; } catch (error) {}
-      return {
-        gameState: currentState,
-        selectionMode: window.__apexArsenalSelectionMode || null,
-        selectPending: !!window.__apexArsenalSelectPending,
-        battleMode: window.__apexArsenalBattleProfile || null,
-        ownedFighters: saved?.ownedFighters || null,
-        canSelectRobot: window.APEX_ARSENAL_META?.canPublicSelect?.('ROBOT') ?? null,
-        canSelectHunter: window.APEX_ARSENAL_META?.canPublicSelect?.('HUNTER') ?? null,
-        p1: window.__APEX_PICK_TEST?.p1?.() || null,
-        p2: window.__APEX_PICK_TEST?.p2?.() || null,
-        session, masterGain,
-      };
-    };
-    const cleanArg = value => {
-      if (value == null || ['string', 'number', 'boolean'].includes(typeof value)) return value;
-      try { return JSON.parse(JSON.stringify(value)); } catch (error) { return String(value); }
-    };
-    const install = () => names.map(name => {
-      const original = window[name];
-      if (typeof original !== 'function') {
-        trace.installs.push({ name, atMs: +performance.now().toFixed(2), installed: false });
-        return { name, installed: false };
-      }
-      if (original.__apexCp6LifecycleWrapper === true) return { name, installed: true, already: true };
-      const wrapped = function(...args) {
-        const nested = !!trace.active[name];
-        let event = null;
-        if (!nested) {
-          trace.active[name] = true;
-          event = {
-            order: trace.calls.length + 1,
-            name,
-            atMs: +performance.now().toFixed(2),
-            elapsedMs: +(performance.now() - trace.startedAt).toFixed(2),
-            args: args.map(cleanArg),
-            before: snapshot(),
-            callerStack: String(new Error().stack || '').split('\\n').slice(2, 10),
-          };
-          trace.calls.push(event);
-        }
-        try {
-          const result = original.apply(this, args);
-          if (event) event.returnValue = result === undefined ? 'undefined' : cleanArg(result);
-          return result;
-        } catch (error) {
-          if (event) event.thrown = String(error?.stack || error);
-          throw error;
-        } finally {
-          if (event) {
-            event.afterMs = +performance.now().toFixed(2);
-            event.after = snapshot();
-            delete trace.active[name];
-          }
-        }
-      };
-      Object.defineProperty(wrapped, '__apexCp6LifecycleWrapper', { value: true });
-      Object.defineProperty(wrapped, '__apexCp6LifecycleOriginal', { value: original });
-      window[name] = wrapped;
-      const installed = { name, atMs: +performance.now().toFixed(2), installed: true };
-      trace.installs.push(installed);
-      return installed;
-    });
-    window.__installCp6LifecycleTrace = install;
-    return install();
-  })()`);
   // Wait until the real Bot Battle card is genuinely clickable: enabled and
   // the topmost element at its center after loader/overlay transitions clear.
   let cp6Clickability = null;
@@ -3183,11 +3100,16 @@ try {
     if (await evaluate('Boolean(window.APEX_ARSENAL_STORM && window.startArsenalBattleMode && window.APEX_ARSENAL && window.APEX_ARSENAL_AV)').catch(() => false)) break;
     await sleep(250);
   }
-  await evaluate('window.__installCp6LifecycleTrace?.()');
   report.cp6Audio = await evaluate(`(async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     const info = () => window.apexBattleAudioSessionInfo();
     const state = () => window.apexBattleAudioSessionState();
+    const visible = node => !!node && !node.classList.contains('hidden')
+      && getComputedStyle(node).display !== 'none'
+      && node.getBoundingClientRect().width > 1 && node.getBoundingClientRect().height > 1;
+    const isPublicSelectable = name => !!name
+      && window.APEX_ARSENAL_SHELLS?.canPublicSelect?.(name) === true;
+    const matchActive = () => window.getArsenalBattleDebugState?.()?.active === true;
     const settleSilent = async () => {
       // Web Audio readback race (CP5 lesson): gain.value lags scheduled
       // setValueAtTime until the render thread processes it.
@@ -3195,14 +3117,80 @@ try {
       for (let i = 0; i < 12 && st.masterGain > 0.01; i++) { await sleep(50); st = state(); }
       return st;
     };
+    const enterBotViaProductPicker = async () => {
+      let menuCardClicked = false;
+      let select = document.getElementById('select-screen');
+      if (!visible(select) || window.__apexArsenalSelectionMode !== 'bot') {
+        if (visible(select)) window.goToMenu?.();
+        const menu = document.getElementById('menu-screen');
+        const card = menu?.querySelector('[data-product-surface="bot-battle"]');
+        for (let i = 0; i < 120 && (!visible(menu) || !visible(card) || card.disabled); i++) await sleep(50);
+        if (!visible(menu) || !visible(card) || card.disabled) {
+          return { started: false, menuCardClicked, error: 'Bot Battle product card was not ready' };
+        }
+        // Dispatch through the real public product-card handler, not the
+        // startArsenalBattleMode API or a test-only match fixture.
+        card.click();
+        menuCardClicked = true;
+      }
+      let selection = null;
+      let start = null;
+      select = document.getElementById('select-screen');
+      for (let i = 0; i < 160; i++) {
+        const pick = window.__APEX_PICK_TEST;
+        const p1 = pick?.p1?.() || null;
+        const p2 = pick?.p2?.() || null;
+        start = document.querySelector('[data-layer-id="start-button"]');
+        selection = {
+          mode: window.__apexArsenalSelectionMode || null,
+          p1, p2,
+          p1Legal: isPublicSelectable(p1),
+          p2Legal: isPublicSelectable(p2),
+          pending: window.__apexArsenalSelectPending === true,
+          startAvailable: visible(start) && !start.disabled,
+        };
+        if (visible(select) && selection.mode === 'bot' && selection.p1Legal
+            && selection.p2Legal && selection.pending && selection.startAvailable) break;
+        await sleep(50);
+      }
+      if (!visible(select) || !selection?.p1Legal || !selection?.p2Legal
+          || selection.mode !== 'bot' || !selection.pending || !selection.startAvailable) {
+        return { started: false, menuCardClicked, selection, error: 'Owned Bot Battle picker selection/start control was not ready' };
+      }
+      start.click();
+      for (let i = 0; i < 200 && !matchActive(); i++) await sleep(50);
+      const after = state();
+      return {
+        started: matchActive(), menuCardClicked, selection,
+        session: info(), masterGain: after.masterGain,
+        gameState: typeof gameState === 'undefined' ? null : gameState,
+      };
+    };
+    const openLocalPickerFromProductMenu = async () => {
+      const menu = document.getElementById('menu-screen');
+      const card = menu?.querySelector('[data-product-surface="local-1v1"]');
+      for (let i = 0; i < 120 && (!visible(menu) || !visible(card) || card.disabled); i++) await sleep(50);
+      if (!visible(menu) || !visible(card) || card.disabled) {
+        return { opened: false, error: 'Local 1v1 product card was not ready' };
+      }
+      card.click();
+      for (let i = 0; i < 160; i++) {
+        const select = document.getElementById('select-screen');
+        if (visible(select) && window.__apexArsenalSelectionMode === 'local'
+            && window.__apexArsenalSelectPending === true) {
+          return { opened: true, mode: 'local', pending: true };
+        }
+        await sleep(50);
+      }
+      return { opened: false, mode: window.__apexArsenalSelectionMode || null,
+        pending: window.__apexArsenalSelectPending === true };
+    };
     const out = {};
     out.bgmBefore = window.__apexMenuBgmState();
     out.entryOwnership = window.APEX_ARSENAL_META?.getState?.().ownedFighters || [];
-    // (1) Existing CP6 harness direct-start, instrumented before replacing it
-    // with the supported picker transition after the causal trace is reviewed.
     window.APEX_ARSENAL_META?.hideMeta?.();
-    out.directStartResult = window.startArsenalBattleMode('ROBOT', 'HUNTER');
-    await sleep(150);
+    // (1) Enter via the owned Bot Battle selection and its real Start button.
+    out.enterRoute = await enterBotViaProductPicker();
     out.enterSession = info();
     out.masterInMatch = state().masterGain;
     // AV hot-bank decode must finish first: playEntry() no-ops (notReady)
@@ -3245,9 +3233,9 @@ try {
     const settled = await settleSilent();
     out.exitSettled = { session: info(), master: settled.masterGain,
       loopStoppedForReal: loopSrc.__probeEnded === true, oldCueNoop: cueFired === false };
-    // (3) rapid re-enter: clean session, SFX live again.
+    // (3) Rapid re-entry via the same Bot product card and picker Start.
     const playedAtReenter = window.APEX_ARSENAL_AV.stats.played;
-    out.reenterStartResult = window.startArsenalBattleMode('ROBOT', 'HUNTER');
+    out.reenterRoute = await enterBotViaProductPicker();
     await sleep(120);
     APEX_ARSENAL.weaponApi.equip(fighters[0], 'STORMBREAKER');
     await sleep(350);
@@ -3256,20 +3244,17 @@ try {
       sfxLive: window.APEX_ARSENAL_AV.stats.played > playedAtReenter };
     window.exitArsenalBattleMode();
     await sleep(120);
-    // (4) Current Local-picker/menu navigation remains silent; the retired
-    // Classic match entry path is not part of this product acceptance.
-    window.beginArsenalBattleSelection?.({ mode: 'local' });
-    await sleep(150);
+    // (4) The public Local 1v1 picker/menu route remains audio-silent.
+    out.localPickerRoute = await openLocalPickerFromProductMenu();
     out.productPicker = info();
     window.goToMenu();
-    await sleep(120);
+    for (let i = 0; i < 80 && !visible(document.getElementById('menu-screen')); i++) await sleep(50);
     out.afterProductMenu = info();
     const settled2 = await settleSilent();
     out.afterProductMenuSettled = { session: info(), master: settled2.masterGain };
-    // (5) another direct-start from the product menu; trace records whether
-    // the API accepts this pair in the current saved ownership state.
-    out.otherToArsenalStartResult = window.startArsenalBattleMode('ROBOT', 'HUNTER');
-    await sleep(120);
+    // (5) A second supported Bot product/picker entry tests that navigation
+    // leaves no old source/cue behind while the new session starts cleanly.
+    out.otherToArsenalRoute = await enterBotViaProductPicker();
     out.otherToArsenal = info();
     window.exitArsenalBattleMode();
     await sleep(100);
@@ -3287,14 +3272,20 @@ try {
       for (let i = 0; i < 12 && (bgmAfter.paused || bgmAfter.readyState < 2); i++) { await sleep(75); bgmAfter = window.__apexMenuBgmState(); }
     }
     out.bgmAfter = bgmAfter;
-    out.lifecycleTrace = window.__cp6LifecycleTrace?.calls || [];
-    out.lifecycleTraceInstalls = window.__cp6LifecycleTrace?.installs || [];
     return JSON.stringify(out);
   })()`);
   const cp6A = JSON.parse(report.cp6Audio);
   report.evidence.push(await screenshot('cp6-02-post-audio-matrix-menu'));
+  const cp6OwnedBotRoute = route => route?.started === true
+    && route.selection?.mode === 'bot'
+    && route.selection?.pending === true
+    && route.selection?.p1Legal === true
+    && route.selection?.p2Legal === true
+    && route.selection?.startAvailable === true;
   gate('owner-cp6-session-begins-on-match-enter',
-    cp6A.enterSession.active === true && cp6A.masterInMatch > 0.5, cp6A.enterSession);
+    cp6OwnedBotRoute(cp6A.enterRoute)
+    && cp6A.enterSession.active === true && cp6A.masterInMatch > 0.5,
+    { route: cp6A.enterRoute, session: cp6A.enterSession, masterInMatch: cp6A.masterInMatch });
   gate('owner-cp6-exit-terminates-everything',
     cp6A.exitImmediate.session.active === false
     && cp6A.exitImmediate.session.registeredSources === 0
@@ -3308,24 +3299,28 @@ try {
     && cp6A.midFlight.avPlayed > 0,
     { midFlight: cp6A.midFlight, exitImmediate: cp6A.exitImmediate, exitSettled: cp6A.exitSettled });
   gate('owner-cp6-rapid-reenter-clean-session',
-    cp6A.reenter.session.active === true && cp6A.reenter.session.sessionId > cp6A.enterSession.sessionId
+    cp6OwnedBotRoute(cp6A.reenterRoute)
+    && cp6A.reenter.session.active === true && cp6A.reenter.session.sessionId > cp6A.enterSession.sessionId
     && cp6A.reenter.sfxLive === true && cp6A.reenter.master > 0.5,
-    cp6A.reenter);
+    { route: cp6A.reenterRoute, result: cp6A.reenter });
   gate('owner-cp6-product-picker-does-not-start-battle-audio',
-    cp6A.productPicker.active === false && cp6A.productPicker.registeredSources === 0
+    cp6A.localPickerRoute?.opened === true && cp6A.localPickerRoute.mode === 'local'
+    && cp6A.productPicker.active === false && cp6A.productPicker.registeredSources === 0
     && cp6A.afterProductMenu.active === false && cp6A.afterProductMenu.registeredSources === 0
     && cp6A.afterProductMenuSettled.master <= 0.01,
-    { productPicker: cp6A.productPicker, afterProductMenu: cp6A.afterProductMenu,
-      afterProductMenuSettled: cp6A.afterProductMenuSettled });
+    { localPickerRoute: cp6A.localPickerRoute, productPicker: cp6A.productPicker,
+      afterProductMenu: cp6A.afterProductMenu, afterProductMenuSettled: cp6A.afterProductMenuSettled });
   gate('owner-cp6-product-navigation-zero-leak',
     cp6A.afterProductMenu.active === false
     && cp6A.afterProductMenu.registeredSources === 0
     && cp6A.afterProductMenuSettled.master <= 0.01
+    && cp6OwnedBotRoute(cp6A.otherToArsenalRoute)
     && cp6A.otherToArsenal.active === true
     && cp6A.bgmAfter && cp6A.bgmAfter.paused === false
     && cp6A.bgmAfter.readyState >= 2,
     { afterProductMenu: cp6A.afterProductMenu, afterProductMenuSettled: cp6A.afterProductMenuSettled,
-      otherToArsenal: cp6A.otherToArsenal, bgm: [cp6A.bgmBefore, cp6A.bgmAfter] });
+      otherToArsenalRoute: cp6A.otherToArsenalRoute, otherToArsenal: cp6A.otherToArsenal,
+      bgm: [cp6A.bgmBefore, cp6A.bgmAfter] });
 
   // ── CP7 (owner playtest round 4): current-product cold barriers ────────
   // A cold public Local/Bot start and the hidden admin Lab must expose no
@@ -3654,33 +3649,6 @@ try {
   console.log(JSON.stringify(report.summary, null, 2));
   await writeFile(path.join(evidenceDir, 'test-report.json'), JSON.stringify(report, null, 2));
   console.log(`report+evidence written under ${evidenceDir}/`);
-  const cp6AudioReport = typeof report.cp6Audio === 'string'
-    ? JSON.parse(report.cp6Audio) : report.cp6Audio;
-  if (cp6AudioReport?.lifecycleTrace) {
-    const diagnostic = {
-      installs: cp6AudioReport.lifecycleTraceInstalls || [],
-      calls: cp6AudioReport.lifecycleTrace,
-      directStartResults: {
-        entry: cp6AudioReport.directStartResult,
-        reenter: cp6AudioReport.reenterStartResult,
-        otherToArsenal: cp6AudioReport.otherToArsenalStartResult,
-      },
-      entryOwnership: cp6AudioReport.entryOwnership || [],
-    };
-    const diagnosticJson = JSON.stringify(diagnostic);
-    console.log('[CP6 lifecycle trace]', diagnosticJson);
-    if (process.env.GITHUB_ACTIONS === 'true') {
-      const annotationData = value => JSON.stringify(value).replace(/%/g, '%25');
-      console.log(`::notice title=CP6 trace header::${annotationData({
-        installs: diagnostic.installs,
-        directStartResults: diagnostic.directStartResults,
-        entryOwnership: diagnostic.entryOwnership,
-      })}`);
-      for (const call of diagnostic.calls) {
-        console.log(`::notice title=CP6 event ${call.order} ${call.name}::${annotationData(call)}`);
-      }
-    }
-  }
   if (report.failures.length) process.exitCode = 1;
 } finally {
   try { socket.close(); } catch {}
