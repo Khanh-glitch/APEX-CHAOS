@@ -6,20 +6,20 @@ import vm from 'node:vm';
 import { PRODUCT_ROSTER } from '../src/game/productSurface.js';
 import {
   ARSENAL_PRODUCT_RUNTIMES,
-  COMBAT_CORE_RUNTIMES,
   CURRENT_COMBAT_CORE_RUNTIMES,
 } from '../src/game/runtimeManifest.js';
+import { LEGACY_COMBAT_CORE_RUNTIMES } from './legacyRuntimeManifest.mjs';
 
 const runtimeKey = (src) => String(src).split(/[?#]/, 1)[0];
 const productPaths = ARSENAL_PRODUCT_RUNTIMES.map(([src]) => runtimeKey(src));
-const genericCorePaths = COMBAT_CORE_RUNTIMES.map(([src]) => runtimeKey(src));
+const genericCorePaths = LEGACY_COMBAT_CORE_RUNTIMES.map(([src]) => runtimeKey(src));
 const currentCorePaths = CURRENT_COMBAT_CORE_RUNTIMES.map(([src]) => runtimeKey(src));
 const legacyMajor = '/game/core/apexMajorMechanicVisuals.js';
 
 assert.ok(!productPaths.includes(legacyMajor),
   'current Arsenal product graph must not load apexMajorMechanicVisuals');
 assert.ok(genericCorePaths.includes(legacyMajor),
-  'generic Battle keeps apexMajorMechanicVisuals for legacy compatibility');
+  'test-only legacy fixture keeps apexMajorMechanicVisuals for regression compatibility');
 assert.deepEqual(currentCorePaths, [
   '/game/core/apexBattleSfxRuntime.js',
   '/game/core/apexRenderPrimitives.js',
