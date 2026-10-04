@@ -13,15 +13,22 @@
 //                                  */source/ folder, or WAV masters that already
 //                                  have a compressed delivery sibling).
 //
-// Reference scanning covers shipping code (src/, public/*.js, public/game/**,
-// index.html) and, separately, tooling (tools/). A file is "shipping" when any
-// shipping file mentions its public path or its basename.
+// Reference scanning covers only production-reachable code: src/, index.html,
+// apexEngine.js, and classic runtimes exported by the current production
+// runtime manifest. Historical runtimes under public/game are test fixtures and
+// do not make their assets shipping merely by existing in the repository.
+// Tooling (tools/) is scanned separately for provenance/regression references.
 //
 // Usage: node tools/assetAudit.mjs [--out reports/asset-audit.json]
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { classifyAudio, AUDIO_DELIVERY_POLICY } from './audioDeliveryPolicy.mjs';
+import {
+  ARSENAL_PRODUCT_RUNTIMES,
+  MENU_INTERACTIVE_RUNTIMES,
+  SELECT_RUNTIMES,
+} from '../src/game/runtimeManifest.js';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUBLIC = path.join(REPO, 'public');
@@ -33,11 +40,21 @@ const OUT = outIdx >= 0 ? path.resolve(args[outIdx + 1]) : path.join(REPO, 'repo
 const SHIP_GLOBS = [
   'index.html',
   'src',
-  'public/game',
 ];
-const SHIP_ROOT_FILES = fs.readdirSync(PUBLIC, { withFileTypes: true })
-  .filter((e) => e.isFile() && /\.(js|json|html|css)$/i.test(e.name) && e.name !== 'asset-manifest.json')
-  .map((e) => path.join(PUBLIC, e.name));
+
+const runtimePublicFiles = [
+  ...MENU_INTERACTIVE_RUNTIMES,
+  ...ARSENAL_PRODUCT_RUNTIMES,
+  ...SELECT_RUNTIMES,
+].map(([src]) => path.join(PUBLIC, String(src).split(/[?#]/, 1)[0].replace(/^\//, '')));
+
+const SHIP_PUBLIC_FILES = [
+  path.join(PUBLIC, 'apexEngine.js'),
+  ...runtimePublicFiles,
+].filter((filePath, index, list) =>
+  list.indexOf(filePath) === index
+  && fs.existsSync(filePath)
+  && /\.(js|json|html|css)$/i.test(filePath));
 
 function walk(dir, out = []) {
   if (!fs.existsSync(dir)) return out;
@@ -57,7 +74,7 @@ function listTextFiles(rootDir, skip) {
 
 const shipFiles = [
   ...SHIP_GLOBS.flatMap((g) => listTextFiles(path.join(REPO, g), () => false)),
-  ...SHIP_ROOT_FILES,
+  ...SHIP_PUBLIC_FILES,
 ];
 const toolFiles = listTextFiles(path.join(REPO, 'tools'), (f) => f.includes(path.join('tools', 'arsenal-assets')));
 
@@ -78,12 +95,6 @@ const HOT_PATHS = new Set([
   '/assets/ui_2026/menu-bg-landscape.webp',
   '/assets/ui_2026/menu-bg-portrait.webp',
   '/assets/ui_2026/menu-vfx-overlay.webp',
-  '/assets/ui_2026/menu-play.webp',
-  '/assets/ui_2026/menu-pvp.webp',
-  '/assets/ui_2026/menu-3phase.webp',
-  '/assets/ui_2026/menu-saitama-test.webp',
-  '/assets/ui_2026/menu-tournament.webp',
-  '/assets/ui_2026/menu-solo.webp',
   '/assets/audio/menu_bgm.mp3',
   '/apexEngine.js',
 ]);
