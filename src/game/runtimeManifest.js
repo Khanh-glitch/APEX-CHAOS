@@ -170,7 +170,7 @@ export const DEFERRED_GAME_RUNTIMES = uniqueRuntimeEntries([
 ]);
 
 // Tier 2 — background warmup after the menu is interactive. These are the
-// only groups that benefit the pre-pilot product's first interactions.
+// only groups that benefit the current product's first interactions.
 export const WARMUP_GROUP_SEQUENCE = [
   'arsenalProduct',
   'select',

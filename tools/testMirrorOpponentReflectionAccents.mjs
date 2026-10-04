@@ -468,7 +468,7 @@ try {
     assert.equal(a1At.length, 1, 'one accepted A1World draw is observed for the live Mirror');
     assert.ok(lastBody < heldAt[0], 'all fighter bodies precede held-weapon art');
     assert.ok(Math.max(...heldAt) < a1At[0], 'real held weapons precede the A1World overlay');
-    const arsenalSource = fs.readFileSync('public/game/modes/arsenalQuestRuntime.js', 'utf8');
+    const arsenalSource = fs.readFileSync('public/game/modes/arsenalBattleRuntime.js', 'utf8');
     const foregroundAt = arsenalSource.indexOf('function drawForeground() {');
     const foregroundEnd = arsenalSource.indexOf('function muteArenaGlyphs(c)', foregroundAt);
     const foreground = arsenalSource.slice(foregroundAt, foregroundEnd);

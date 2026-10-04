@@ -2,7 +2,6 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { manualLabRoomRelay } from './server/manual-room-relay.js';
 
 const REPLAY_ROUTE = '/__apex-save-replay';
 const MAX_REPLAY_BYTES = 512 * 1024 * 1024;
@@ -47,7 +46,7 @@ function localReplaySaver() {
 }
 
 export default defineConfig({
-  plugins: [react(), localReplaySaver(), manualLabRoomRelay()],
+  plugins: [react(), localReplaySaver()],
   server: {
     host: '0.0.0.0',
     port: 5173,

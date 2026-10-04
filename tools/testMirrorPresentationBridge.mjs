@@ -157,7 +157,7 @@ try {
 
   const noMirror = install(
     combatant(0, 'STALKER', body('legacy-p1', 180, 200), true),
-    combatant(1, 'NEWBIE', body('legacy-p2', 800, 200), true),
+    combatant(1, 'LEGACY_DUMMY', body('legacy-p2', 800, 200), true),
   );
   assert.equal(bridge.inspect().instanceCount, 0);
   assert.equal(createdGoldInstances.length, 0);
@@ -166,7 +166,7 @@ try {
 
   endMatch();
   const mirrorP1 = combatant(0, 'MIRROR', body('mirror-p1', 100, 220));
-  const foeP1 = combatant(1, 'NEWBIE', body('foe-p1', 500, 220, {
+  const foeP1 = combatant(1, 'LEGACY_DUMMY', body('foe-p1', 500, 220, {
     arsenal: { weaponId: 'PISTOL', meta: { aimAngle: 0.37 } },
   }), true);
   const p1Match = install(mirrorP1, foeP1);
@@ -238,7 +238,7 @@ try {
   assert.equal(p1Gold.applyExchange, false);
 
   // Re-emitting install for the same match is idempotent.
-  bus.emit('ReworkMatchInstall', { p1: 'MIRROR', p2: 'NEWBIE' });
+  bus.emit('ReworkMatchInstall', { p1: 'MIRROR', p2: 'LEGACY_DUMMY' });
   assert.equal(bridge.inspect().instanceCount, 1);
   assert.equal(createdGoldInstances.length, 1);
 
@@ -282,7 +282,7 @@ try {
 
   endMatch();
   const freshMirror = combatant(0, 'MIRROR', body('mirror-rematch', 300, 500));
-  const freshFoe = combatant(1, 'NEWBIE', body('foe-rematch', 700, 500), true);
+  const freshFoe = combatant(1, 'LEGACY_DUMMY', body('foe-rematch', 700, 500), true);
   install(freshMirror, freshFoe);
   const rematchGold = createdGoldInstances.at(-1);
   assert.equal(bridge.inspect().instanceCount, 1);

@@ -1,4 +1,4 @@
-// Deterministic runtime cache-bust and pre-pilot product-closure gate.
+// Deterministic runtime cache-bust and Arsenal product-closure gate.
 // Every versioned public runtime must match the one manifest revision and the
 // locked SHA-256; retired Quest executables must not re-enter the product graph.
 import fs from 'node:fs';
@@ -8,6 +8,10 @@ const LOCK = 'tools/runtimeRevision.lock.json';
 const manifest = fs.readFileSync('src/game/runtimeManifest.js', 'utf8');
 const loader = fs.readFileSync('src/game/runtimeLoader.js', 'utf8');
 const app = fs.readFileSync('src/App.jsx', 'utf8');
+const engine = fs.readFileSync('public/apexEngine.js', 'utf8');
+const canonicalBalance = fs.readFileSync('public/game/core/apexCanonicalBalance.js', 'utf8');
+const pickRuntime = fs.readFileSync('public/game/ui/apexPickRuntime.js', 'utf8');
+const telemetry = fs.readFileSync('public/game/core/apexFightTelemetry.js', 'utf8');
 const mRev = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
 if (!mRev) { console.error('FAIL revision constant missing'); process.exit(1); }
 const revision = mRev[1];
@@ -16,8 +20,8 @@ if (revision !== expectedRevision) {
   console.error(`FAIL this cutover permits exactly one revision: expected=${expectedRevision} actual=${revision}`);
   process.exit(1);
 }
-const paths = [...manifest.matchAll(/'\/(game\/[^']+?)\?v=' \+ APEX_ARSENAL_RUNTIME_REVISION/g)]
-  .map((match) => `public/${match[1]}`);
+const paths = [...new Set([...manifest.matchAll(/'\/(game\/[^']+?)\?v=' \+ APEX_ARSENAL_RUNTIME_REVISION/g)]
+  .map((match) => `public/${match[1]}`))];
 const required = [
   'public/game/arsenal/arsenalConfig.js',
   'public/game/arsenal/arsenalShellSelectRuntime.js',
@@ -53,6 +57,30 @@ if (/arsenalLegacyQuest|arsenalQuestRuntime\.js|arsenalQuestLadder\.js/.test(loa
 }
 if (/startArsenalQuestMode|exitArsenalQuestMode|beginArsenalQuestSelection|beginArsenalQuestMap/.test(app)) {
   console.error('FAIL React product bridge retains a retired Quest route alias');
+  process.exit(1);
+}
+const retiredRouteGlobals = [
+  'goToTournament', 'returnToTournament', 'resetTournament', 'startTournamentMatch',
+  'goToSoloSelect', 'startSoloMode', 'goToTrialSelect', 'startTrialMode', 'startTamChienMode',
+  'goToManualLabSelect', 'startManualLab', 'APEX_MANUAL_LAB_ONLINE',
+  'apexApplyOnlineFighterSelection', 'apexSyncOnlineReadyState',
+];
+const productionSources = [app, engine, canonicalBalance, pickRuntime, telemetry];
+const exposedRouteGlobals = retiredRouteGlobals.filter((name) => productionSources.some((source) =>
+  new RegExp(`(?:\\bfunction\\s+${name}\\b|\\bwindow\\s*\\.\\s*${name}\\s*=)`).test(source),
+));
+if (exposedRouteGlobals.length) {
+  console.error('FAIL active production code still exposes retired route globals:', exposedRouteGlobals);
+  process.exit(1);
+}
+const retiredRuntimeNames = [
+  'soloRuntime.js', 'trialRuntime.js', 'tamChienRuntime.js',
+  'manualLab.js', 'manualLabOnline.js', 'apexRealtimeMultiplayer.js',
+];
+const activeRuntimeText = `${manifest}\n${loader}`;
+const activeRetiredReferences = retiredRuntimeNames.filter((name) => activeRuntimeText.includes(name));
+if (activeRetiredReferences.length) {
+  console.error('FAIL active runtime graph references retired route scripts:', activeRetiredReferences);
   process.exit(1);
 }
 const retiredFiles = [

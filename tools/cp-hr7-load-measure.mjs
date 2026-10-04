@@ -1,9 +1,6 @@
-// CP-HR7 load measurement probe (real Chromium via CDP).
-// Measures on the CURRENT tree: menu-interactive timing, warmup long tasks,
-// ARSENAL hub entry latency, Quest map entry + gameplay-ready barrier, and
-// per-script request/evaluation work for the Quest group. The CP-HR7 audit
-// concludes NO load-group change, so this records the (unchanged) before ==
-// after numbers. Run twice (A/B) on the same tree.
+// Arsenal product load measurement probe (real Chromium via CDP).
+// Measures menu-interactive timing, active-product warmup, physical Bot Battle
+// entry into the shared picker, and the current match gameplay barrier.
 //
 //   LD_LIBRARY_PATH=... CHROME_PATH=... APEX_APP_URL=http://127.0.0.1:5173 \
 //   node tools/cp-hr7-load-measure.mjs runA 9225
@@ -16,7 +13,7 @@ const port = process.argv[3] || '9225';
 const endpoint = `http://127.0.0.1:${port}`;
 const appUrl = process.env.APEX_APP_URL || 'http://127.0.0.1:5173';
 const chromePath = process.env.CHROME_PATH;
-const evidenceDir = 'docs/hero-rework/evidence';
+const evidenceDir = 'docs/acceptance/arsenal-product/evidence';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let chrome = null;
 
@@ -25,7 +22,7 @@ chrome = spawn(chromePath, [
   '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
   '--autoplay-policy=no-user-gesture-required', `--remote-debugging-port=${port}`,
   '--window-size=1100,1100',
-  '--user-data-dir=/tmp/.cp-hr7-profile-' + label,
+  '--user-data-dir=/tmp/.arsenal-product-probe-' + label,
   'about:blank',
 ], { stdio: 'ignore', detached: false });
 
@@ -99,7 +96,7 @@ for (let i = 0; i < 200; i++) {
   await sleep(100);
 }
 
-// Let the background warmup (arsenalQuest -> select) settle.
+// Let the active Arsenal product and selection warmup settle.
 await sleep(9000);
 
 const warmup = await evaluate(`(() => {
@@ -115,8 +112,8 @@ const warmup = await evaluate(`(() => {
     gameScriptEvalMs: +game.reduce((a, b) => a + b.duration, 0).toFixed(1),
     gameScriptTransferKB: +(game.reduce((a, b) => a + (b.transferSize || 0), 0) / 1024).toFixed(1),
     warmupGroupReady: {
-      arsenalQuest: !!window['__apexDeferredRuntimesReady_arsenalQuest'],
-      select: !!window['__apexDeferredRuntimesReady_select'],
+      arsenalProduct: window.__apexDeferredRuntimesReady_arsenalProduct === true,
+      select: window.__apexDeferredRuntimesReady_select === true,
     },
     transition: window.__apexArsenalTransition ? {
       state: window.__apexArsenalTransition.state,
@@ -125,30 +122,24 @@ const warmup = await evaluate(`(() => {
   };
 })()`);
 
-// ARSENAL hub entry: the production menu control is the 'ARSENAL QUEST'
-// image button in #menu-screen .menu-buttons (App.jsx MENU_BUTTONS ->
-// action 'beginArsenalQuestSelection' -> routing tier 'arsenalHub').
-const hubT0 = Date.now();
-await evaluate(`(() => {
-  const btn = [...document.querySelectorAll('#menu-screen .menu-buttons button')]
-    .find(b => (b.textContent || '').toUpperCase().includes('ARSENAL QUEST'));
-  if (btn) btn.click();
-  return !!btn;
+// Enter Bot Battle through the real product card and physical CDP pointer input.
+const productT0 = Date.now();
+const productCard = await evaluate(`(() => {
+  const card = document.querySelector('#menu-screen [data-product-surface="bot-battle"]');
+  if (!card || card.disabled) return null;
+  const r = card.getBoundingClientRect();
+  return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
 })()`);
-let hubOpenMs = null;
-for (let i = 0; i < 100; i++) {
-  const ok = await evaluate(`(() => { const h = document.getElementById('aq-meta-root'); return !!(h && h.style.display !== 'none' && h.getBoundingClientRect().width > 50); })()`).catch(() => false);
-  if (ok) { hubOpenMs = Date.now() - hubT0; break; }
-  await sleep(50);
-}
-
-// Quest map entry + gameplay-ready barrier.
-const questT0 = Date.now();
-await evaluate(`(() => { const b = document.querySelector('[data-go=quest]'); if (b) b.click(); return !!b; })()`);
-let questMapMs = null;
-for (let i = 0; i < 100; i++) {
-  const ok = await evaluate(`(() => !!document.getElementById('aq-quest-map'))()`).catch(() => false);
-  if (ok) { questMapMs = Date.now() - questT0; break; }
+if (!productCard) throw new Error('active Bot Battle card was not found or was disabled');
+await command('Input.dispatchMouseEvent', { type: 'mousePressed', x: productCard.x, y: productCard.y, button: 'left', clickCount: 1 });
+await command('Input.dispatchMouseEvent', { type: 'mouseReleased', x: productCard.x, y: productCard.y, button: 'left', clickCount: 1 });
+let productEntryMs = null;
+for (let i = 0; i < 120; i++) {
+  const ready = await evaluate(`(() => {
+    const picker = document.getElementById('select-screen');
+    return !!picker && !picker.classList.contains('hidden');
+  })()`).catch(() => false);
+  if (ready) { productEntryMs = Date.now() - productT0; break; }
   await sleep(50);
 }
 const barrier = await evaluate(`(() => ({
@@ -158,21 +149,21 @@ const barrier = await evaluate(`(() => ({
     state: window.__apexArsenalTransition.state,
     lastDurationMs: window.__apexArsenalTransition.lastDurationMs,
   } : null,
-  questGroupReady: !!window['__apexDeferredRuntimesReady_arsenalQuest'],
+  productReady: window.__apexDeferredRuntimesReady_arsenalProduct === true,
 }))()`);
 
 const out = {
   label, appUrl, at: new Date().toISOString(),
-  menuInteractiveMs, hubOpenMs, questMapMs, warmup, barrier,
+  menuInteractiveMs, productEntryMs, warmup, barrier,
 };
 mkdirSync(evidenceDir, { recursive: true });
-const file = join(evidenceDir, 'cp-hr7-load-measure.json');
+const file = join(evidenceDir, 'arsenal-product-load-measure.json');
 let all = {};
 try { all = JSON.parse(readFileSync(file, 'utf8')); } catch {}
 all[label] = out;
 writeFileSync(file, JSON.stringify(all, null, 2));
-console.log('CP-HR7 measure', label, JSON.stringify({
-  menuInteractiveMs, hubOpenMs, questMapMs,
+console.log('Arsenal product measure', label, JSON.stringify({
+  menuInteractiveMs, productEntryMs, productReady: barrier.productReady,
   longTasks: warmup.longTaskCount, longTaskTotalMs: warmup.longTaskTotalMs,
   gameScripts: warmup.gameScripts, gameScriptEvalMs: warmup.gameScriptEvalMs,
 }, null, 1));

@@ -308,14 +308,14 @@ try {
 
   const runtimeSource = fs.readFileSync('public/game/hero-rework/heroReworkRuntime.js', 'utf8');
   const fullRosterSource = fs.readFileSync('public/game/core/apexFullRosterQa.js', 'utf8');
-  const arsenalQuestSource = fs.readFileSync('public/game/modes/arsenalQuestRuntime.js', 'utf8');
+  const arsenalBattleSource = fs.readFileSync('public/game/modes/arsenalBattleRuntime.js', 'utf8');
   assert.match(runtimeSource, /APEX_MIRROR_PRESENTATION\?\.renderArenaWorldEffects\?\.\(ctx, provenance\)/,
     'the Hero world seam dispatches Mirror presentation once');
   assert.match(fullRosterSource, /stage: 'after-world-before-fighters'/,
     'the effective world renderer preserves the protected presentation stage');
-  const foregroundStart = arsenalQuestSource.indexOf('function drawForeground() {');
-  const foregroundEnd = arsenalQuestSource.indexOf('function muteArenaGlyphs(c)', foregroundStart);
-  const foregroundSource = arsenalQuestSource.slice(foregroundStart, foregroundEnd);
+  const foregroundStart = arsenalBattleSource.indexOf('function drawForeground() {');
+  const foregroundEnd = arsenalBattleSource.indexOf('function muteArenaGlyphs(c)', foregroundStart);
+  const foregroundSource = arsenalBattleSource.slice(foregroundStart, foregroundEnd);
   const residueAt = foregroundSource.indexOf('renderPostFighterResidue?.(ctx)');
   const heldWeaponsAt = foregroundSource.indexOf('drawEquippedWeapons(ctx)');
   const mirrorPostAt = foregroundSource.indexOf('renderPostFighters?.(ctx)');

@@ -467,6 +467,10 @@ report.telegraphLaw = run(`
   fighters[0].baseSpeed = 520;
   fighters[0].setDir(1, 0);
   fighters[1].baseSpeed = 0;
+  // T.place pins both rework bodies for deterministic weapon-law setup; clear
+  // the test-only hold before asserting a real walk into the pickup.
+  fighters[0].data.__hrHoldBody = false;
+  fighters[1].data.__hrHoldBody = false;
   __APEX_TEST.step(1.5);
   // Instant-fire weapons (SHOTGUN/GRENADE) legitimately consume before we look;
   // a logged PICKUP + (holder still up OR consume logged) proves normal-collectible behavior.
@@ -1517,7 +1521,7 @@ report.roster = run(`
   const lockedResolvable = locked.every(id => !!shells.typeFor(id));
   const lockedRejected = locked.every(id => !shells.isPlayable(id)
     && window.startArsenalBattleMode(id, 'ROBOT') === false);
-  const newbieNotShell = shells.typeFor('NEWBIE') === null
+  const historicalIdNotShell = shells.typeFor('NEWBIE') === null
     && window.startArsenalBattleMode('NEWBIE', 'ROBOT') === false;
 
   // Core Six proof: ICE A2 remains an active Frost Rush with its real-path
@@ -1558,7 +1562,7 @@ report.roster = run(`
   const holderIntact = !!APEX_ARSENAL.weaponApi.getHolder(fighters[0]) || weaponUsed;
   HR.setAiEnabled(reworkAiWasEnabled);
   return {
-    lockedResolvable, lockedRejected, newbieNotShell,
+    lockedResolvable, lockedRejected, historicalIdNotShell,
     rushCast: rushCast && rushCast.ok, rushTrailFired,
     magnetCast: !!magnetCast?.ok, weaponUsed, holderIntact,
   };
@@ -1566,7 +1570,7 @@ report.roster = run(`
 gate('locked-shells-resolve-but-cannot-launch',
   report.roster.lockedResolvable && report.roster.lockedRejected,
   { lockedResolvable: report.roster.lockedResolvable, lockedRejected: report.roster.lockedRejected });
-gate('newbie-token-is-save-migration-only', report.roster.newbieNotShell, report.roster.newbieNotShell);
+gate('newbie-token-is-save-migration-only', report.roster.historicalIdNotShell, report.roster.historicalIdNotShell);
 gate('core-six-ice-a2-rush-trail-runs', report.roster.rushCast === true && report.roster.rushTrailFired,
   { rushCast: report.roster.rushCast, rushTrailFired: report.roster.rushTrailFired });
 gate('core-six-native-skill-and-weapon-coexist',
@@ -2209,7 +2213,7 @@ report.rev2Shotgun = run(`
 gate('rev2-shotgun-diagonal-ttl', report.rev2Shotgun.ok, report.rev2Shotgun);
 
 // HERO REWORK: ROBOT J with no eligible pickup -> fail-cue only: the
-// cooldown is NOT consumed and no dash is launched (legacy NEWBIE law
+// cooldown is NOT consumed and no dash is launched (ROBOT product law
 // preserved through the rework AbilityController).
 report.rev2RobotJ = run(`
   __APEX_TEST.enterManual(); __APEX_TEST.holdSpawns();
@@ -2262,7 +2266,7 @@ report.rev2ProductGraph = run(`
     lockedCountByRoster: lockedIds.length,
     lockedNonPlayable: lockedIds.every(id => !product.isPublicPlayableFighter(id)),
     currentPlayableShellsResolve: playable.every(id => shells.typeFor(id)?.name === id),
-    newbieNotPlayable: !product.isPublicPlayableFighter('NEWBIE') && shells.typeFor('NEWBIE') === null,
+    historicalIdNotPlayable: !product.isPublicPlayableFighter('NEWBIE') && shells.typeFor('NEWBIE') === null,
     quest01: product.get('quest-01'),
     oldApiAbsent: !('APEX_ARSENAL_QUEST' in window)
       && !('startArsenalQuestMode' in window)
@@ -2303,7 +2307,7 @@ gate('rev2-roster-exact-core-six-identities-and-aliases',
 gate('rev2-playable-roster-resolves-through-the-shell-adapter',
   report.rev2ProductGraph.currentPlayableShellsResolve, report.rev2ProductGraph.currentPlayableShellsResolve);
 gate('rev2-newbie-is-not-a-product-shell',
-  report.rev2ProductGraph.newbieNotPlayable, report.rev2ProductGraph.newbieNotPlayable);
+  report.rev2ProductGraph.historicalIdNotPlayable, report.rev2ProductGraph.historicalIdNotPlayable);
 gate('rev2-retired-quest-ladder-api-is-absent',
   report.rev2ProductGraph.oldApiAbsent, report.rev2ProductGraph.oldApiAbsent);
 gate('rev2-locked-future-surface-cards-remain-data-only',

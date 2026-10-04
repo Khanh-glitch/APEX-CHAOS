@@ -1,4 +1,4 @@
-// APEX CHAOS pre-pilot product graph.
+// APEX CHAOS current product graph.
 //
 // This is the single semantic authority for what the product exposes. It is
 // intentionally framework-free so React, the neutral Arsenal runtime,
@@ -105,7 +105,7 @@ export const PRODUCT_ECONOMY = Object.freeze({
 
 function makeAuthority() {
   return Object.freeze({
-    version: 'pre-pilot-product-graph-v1',
+    version: 'arsenal-product-graph-v1',
     Availability: PRODUCT_AVAILABILITY,
     roster: PRODUCT_ROSTER,
     economy: PRODUCT_ECONOMY,
@@ -121,7 +121,7 @@ function makeAuthority() {
 
 export function installProductSurfaceAuthority(scope = globalThis) {
   const current = scope && scope.APEX_PRODUCT_SURFACE;
-  if (current && current.version === 'pre-pilot-product-graph-v1') return current;
+  if (current && current.version === 'arsenal-product-graph-v1') return current;
   const authority = makeAuthority();
   if (scope) scope.APEX_PRODUCT_SURFACE = authority;
   return authority;

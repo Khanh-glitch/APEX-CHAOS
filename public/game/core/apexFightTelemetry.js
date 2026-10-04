@@ -324,14 +324,10 @@
         if (typeof oldUpdateHUDExternalTelemetry === 'function') oldUpdateHUDExternalTelemetry();
         updateCombatInspector();
     };
-    const oldGoMenuTelemetry = goToMenu, oldGoSelectTelemetry = goToSelect, oldGoTournamentTelemetry = goToTournament;
+    const oldGoMenuTelemetry = goToMenu, oldGoSelectTelemetry = goToSelect;
     goToMenu = function(){ oldGoMenuTelemetry(); updateCombatInspector(true); };
     goToSelect = function(){ oldGoSelectTelemetry(); updateCombatInspector(true); };
-    goToTournament = function(){ oldGoTournamentTelemetry(); updateCombatInspector(true); };
     window.goToMenu = goToMenu;
     window.goToSelect = goToSelect;
-    window.goToTournament = goToTournament;
-    window.goToSoloSelect = function(){ goToMenu(); };
-    window.startSoloMode = function(){};
     window.apexExternalTelemetryPatch = 'ready';
 })();

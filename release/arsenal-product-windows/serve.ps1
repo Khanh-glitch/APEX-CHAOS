@@ -1,5 +1,5 @@
 #Requires -Version 2.0
-# APEX CHAOS — Arsenal Quest playable Windows static server.
+# APEX CHAOS — Arsenal Battle Windows static server.
 # Built-in PowerShell/.NET only. No Node/pnpm/npm/Python/Git/internet required.
 # Serves .\app\ on a dynamically chosen free localhost port, cache disabled,
 # opens the browser ONLY after the listener is up, prints the exact build SHA.
@@ -52,7 +52,7 @@ if ($null -eq $listener) {
 
 $url = "http://localhost:$port/?build=$sha"
 Write-Host '=============================================================='
-Write-Host ' APEX CHAOS — ARSENAL QUEST playable build (static server)'
+Write-Host ' APEX CHAOS — ARSENAL BATTLE product build (static server)'
 Write-Host " Build SHA : $sha"
 Write-Host " URL       : $url"
 Write-Host ' Keep this window open while playing. Close it to stop.'

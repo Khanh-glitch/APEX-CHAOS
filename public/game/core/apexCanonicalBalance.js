@@ -132,7 +132,12 @@
     ctx.restore();
   };
 
-  // Tournament result enrichment and award summary. Bracket reveal logic stays canonical: future opponents remain hidden until advanced.
+  // The retired Tournament route no longer loads its lifecycle helpers. Keep
+  // this optional result-summary extension dormant unless a compatible caller
+  // explicitly provides the shared bracket primitives.
+  if (typeof completeTournamentMatch === 'function'
+      && typeof tournamentFindMatch === 'function'
+      && typeof tournamentSetWinner === 'function') {
   const oldCompleteTournamentMatchFinal = completeTournamentMatch;
   completeTournamentMatch = function(winner, loser){
     const match = tournamentFindMatch(activeTournamentMatchId);
@@ -203,6 +208,7 @@
     const banner=champion?`<div class="champion-banner"><h2 style="color:${tournamentFighterStyle(champion)}">${champion} CHAMPION</h2><div>Full 32-fighter canonical bracket complete. Damage/heal sources are preserved in match stats.</div></div>`:'';
     return `${banner}<div class="tournament-summary">${cards}</div>`;
   };
+  }
 
   // Browser QA/stress runner: runs deterministic accelerated matches in-place and reports object caps/runtime errors.
   const qa = { runtimeErrors:0, maxProjectiles:0, maxFighters:0, samples:[] };
@@ -1181,10 +1187,6 @@
       }
     };
 
-    // SOLO 1V1 LOCAL removed for the TikTok telemetry build.
-    window.goToSoloSelect = function(){ goToMenu(); };
-    window.startSoloMode = function(){};
-
     window.apexProductionPatchLoaded = 'ready';
   })();
 
@@ -1471,10 +1473,6 @@
       sniper.speedModifier = f => (f.data.recoilMove||0)>0 ? 1.45 : 1;
     }
 
-    // SOLO 1V1 LOCAL removed for the TikTok telemetry build.
-    window.goToSoloSelect = function(){ goToMenu(); };
-    window.startSoloMode = function(){};
-
     window.apexCorrectivePatch2 = 'ready';
   })();
 
@@ -1642,10 +1640,6 @@
         f.data.recoilMove=Math.max(0,(f.data.recoilMove||0)-dt); f.data.cd-=abilityDt(f,dt); if(f.data.cd<=0){ const ratio=clamp(dist(f.x,f.y,e.x,e.y)/Math.hypot(GAME_SIZE,GAME_SIZE),0,1); f.data.aim=Math.max(1.2,.55+1.35*ratio); f.data.aimMax=f.data.aim; }
       };
     }
-
-    // SOLO 1V1 LOCAL removed for the TikTok telemetry build.
-    window.goToSoloSelect = function(){ goToMenu(); };
-    window.startSoloMode = function(){};
 
     window.apexCorrectivePatch3='ready';
   })();

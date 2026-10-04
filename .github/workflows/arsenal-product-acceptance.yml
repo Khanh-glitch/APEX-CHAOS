@@ -1,0 +1,143 @@
+name: Arsenal Product Acceptance
+
+on:
+  push:
+    branches:
+      - main
+      - 'arena/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.9 --activate
+          pnpm --version
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify product graph, runtime revision, and generated audio bank
+        run: |
+          pnpm test:product-graph
+          pnpm test:runtime-revision
+          pnpm assets:verify
+          git diff --exit-code -- src/game/audioWarmBanks.generated.js
+
+      - name: Verify Arsenal sound materialization
+        run: |
+          pnpm arsenal:sfx:materialize
+          git diff --exit-code -- public/assets/arsenal/av
+
+      - name: Run Hero Rework gates
+        run: pnpm test:hero-rework:headless
+
+      - name: Run Arsenal Battle headless acceptance
+        run: pnpm test:arsenal:headless
+
+      - name: Build production bundle
+        run: pnpm build
+
+      - name: Verify generated public asset manifest
+        run: git diff --exit-code -- public/asset-manifest.json
+
+      - name: Smoke-test packaged Windows launcher server
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release/arsenal-product-windows/app
+          cp -R dist/. release/arsenal-product-windows/app/
+          git rev-parse HEAD > release/arsenal-product-windows/app/ARSENAL_BUILD_SHA.txt
+          cd release/arsenal-product-windows
+          command -v pwsh
+          SHA=$(cat app/ARSENAL_BUILD_SHA.txt)
+          pwsh -NoProfile -File serve.ps1 >/tmp/arsenal-launcher-1.log 2>&1 &
+          S1=$!
+          S2=''
+          cleanup() {
+            kill "$S1" 2>/dev/null || true
+            if [ -n "$S2" ]; then kill "$S2" 2>/dev/null || true; fi
+          }
+          trap cleanup EXIT
+          for i in $(seq 1 30); do
+            grep -q 'URL       :' /tmp/arsenal-launcher-1.log && break
+            sleep 1
+          done
+          cat /tmp/arsenal-launcher-1.log
+          PORT1=$(sed -n 's|.*localhost:\([0-9]*\)/.*|\1|p' /tmp/arsenal-launcher-1.log | head -1)
+          test -n "$PORT1"
+          test "$(curl -fsS "http://localhost:$PORT1/ARSENAL_BUILD_SHA.txt")" = "$SHA"
+          curl -fsSI "http://localhost:$PORT1/" | grep -i cache-control | grep -i no-store
+          curl -fsS "http://localhost:$PORT1/" | grep -q 'id="root"'
+          curl -fsS "http://localhost:$PORT1/assets/arsenal/av/vfx/muzzle_flash/muzzleFlash0_transparent.png" -o /dev/null
+          pwsh -NoProfile -File serve.ps1 >/tmp/arsenal-launcher-2.log 2>&1 &
+          S2=$!
+          for i in $(seq 1 30); do
+            grep -q 'URL       :' /tmp/arsenal-launcher-2.log && break
+            sleep 1
+          done
+          cat /tmp/arsenal-launcher-2.log
+          PORT2=$(sed -n 's|.*localhost:\([0-9]*\)/.*|\1|p' /tmp/arsenal-launcher-2.log | head -1)
+          test -n "$PORT2"
+          test "$PORT1" != "$PORT2"
+          echo "LAUNCHER SMOKE PASS: ports $PORT1 and $PORT2, source SHA $SHA"
+
+      - name: Start Vite for browser acceptance
+        shell: bash
+        run: |
+          pnpm dev:lan >/tmp/arsenal-vite.log 2>&1 &
+          echo $! >/tmp/arsenal-vite.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/arsenal-vite.log
+          exit 1
+
+      - name: Locate Chrome or Chromium
+        id: chrome
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          echo "path=$CHROME" >> "$GITHUB_OUTPUT"
+          "$CHROME" --version
+
+      - name: Run physical-pointer browser acceptance
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser
+        run: pnpm test:arsenal:browser
+
+      - name: Upload build and acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arsenal-product-acceptance
+          path: |
+            dist/
+            docs/acceptance/arsenal-product/browser/
+            /tmp/arsenal-vite.log
+            /tmp/arsenal-launcher-1.log
+            /tmp/arsenal-launcher-2.log
+          if-no-files-found: warn

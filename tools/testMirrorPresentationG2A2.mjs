@@ -137,8 +137,8 @@ const HR = {
 };
 win.APEX_HERO_REWORK = HR;
 win.APEX_HERO_REWORK_AIL = { bus };
-// Robot is product-facing ROBOT while its engine type is generic NEWBIE. The
-// body-only wrapper is intentionally distinct from the generic type renderer.
+// Robot is the product-facing ROBOT while the fixture uses an unrelated
+// generic engine type. The body-only wrapper stays distinct from that renderer.
 win.APEX_ROBOT_PRESENTATION = {
   isRobotFighter() { return false; },
   renderActorImage(ctx, fighter, x, y) {
@@ -212,8 +212,8 @@ try {
   };
 
   const mirrorType = { name: 'MIRROR', draw() { originalMirrorTypeDraws++; } };
-  const genericNewbieType = {
-    name: 'NEWBIE',
+  const genericFallbackType = {
+    name: 'GENERIC_FALLBACK',
     draw(ctx) {
       genericRobotTypeDraws++;
       ctx.fillStyle = '#46e0b5';
@@ -221,7 +221,7 @@ try {
     },
   };
   const mirror = new Fighter('g2b-mirror-robot', 200, 220, mirrorType);
-  const robotOpponent = new Fighter('g2b-robot', 800, 260, genericNewbieType, {
+  const robotOpponent = new Fighter('g2b-robot', 800, 260, genericFallbackType, {
     arsenal: { weaponId: 'PISTOL', meta: { aimAngle: 0.3 } },
   });
   const mirrorCt = combatant(0, 'MIRROR', mirror);
@@ -300,7 +300,7 @@ try {
   captureIdentityBlits = false;
   assert.equal(robotImageDraws, 1, 'the actual ROBOT opponent identity renderer runs once per actor draw');
   assert.equal(genericRobotTypeDraws, 0,
-    'generic NEWBIE type art is not substituted for the product-facing ROBOT');
+    'generic engine type art is not substituted for the product-facing ROBOT');
   assert.equal(robotOpponent.drawCalls, 0,
     'wrong-person identity never recursively enters Fighter.draw');
   assert.equal(mirror.drawCalls, 1);

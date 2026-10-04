@@ -8,8 +8,8 @@
 //   - input responsiveness: synthetic pointermove/pointerdown + wheel events
 //     driven through the real CDP input pipeline; input→next-frame latency
 //     recorded in-page (rAF after the event)
-//   - menu button action latency: real click → first DOM/canvas change
-//     (MutationObserver), i.e. the artificial handleMenuButton delay + queue
+//   - product entry action latency: real click → first DOM change
+//     (MutationObserver), capturing the actual menu-to-product response
 //
 // Usage:
 //   LD_LIBRARY_PATH=/tmp/chromium/AL2023libs/lib CHROME_PATH=/tmp/chromium/chromium \
@@ -21,7 +21,7 @@ import path from 'node:path';
 const endpoint = process.env.APEX_CDP_ENDPOINT || 'http://127.0.0.1:9226';
 const appUrl = process.env.APEX_APP_URL || 'http://127.0.0.1:4173';
 const chromePath = process.env.CHROME_PATH || '/tmp/chromium/chromium';
-const outPath = process.argv[2] || 'docs/arsenal-quest/evidence/menu-responsiveness.json';
+const outPath = process.argv[2] || 'docs/acceptance/arsenal-product/evidence/menu-responsiveness.json';
 const label = process.argv[3] || 'run';
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 let chrome = null;
@@ -106,7 +106,7 @@ const t0 = Date.now();
 const startedAt = await evaluate('Math.round(performance.now())');
 
 // Track warmup group readiness during the run.
-const groups = ['arsenalQuest', 'battle', 'select', 'soloBattle', 'trialBattle', 'tamChien', 'manualLab'];
+const groups = ['arsenalProduct', 'select', 'battle', 'battleDeferred', 'arsenalQuest', 'arsenalLegacyQuest', 'soloBattle', 'trialBattle', 'tamChien', 'manualLab'];
 const groupReadyAt = {};
 
 // Drive synthetic input at ~5 Hz and interleave group polls for 10s.
@@ -141,12 +141,12 @@ while (Date.now() - t0 < INPUT_MS) {
 
 // Measure menu button action latency (real click on a navigating button).
 const btn = await evaluate(`(() => {
-  const b = document.querySelector('#menu-screen .menu-image-button');
+  const b = document.querySelector('#menu-screen [data-product-surface="bot-battle"]');
   if (!b) return null;
   const r = b.getBoundingClientRect();
   return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
 })()`);
-let buttonActionMs = null;
+let productEntryActionMs = null;
 if (btn) {
   await evaluate('window.__menuProbe.mutations = 0; true');
   const c0 = Date.now();
@@ -155,7 +155,7 @@ if (btn) {
   // Wait for the first DOM mutation after the click (pressed state or nav).
   for (let i = 0; i < 200; i++) {
     const m = await evaluate('window.__menuProbe.mutations');
-    if (m > 0) { buttonActionMs = Date.now() - c0; break; }
+    if (m > 0) { productEntryActionMs = Date.now() - c0; break; }
     await sleep(10);
   }
 }
@@ -201,7 +201,7 @@ const result = {
     pointerdown: stats(probe.down),
     wheelOrKey: stats(probe.wheel),
   },
-  menuButtonActionMs: buttonActionMs,
+  productEntryActionMs,
   warmupGroupsReadyAtPageMs: groupReadyAt,
   bootPhases: report.boot.phases.map(p => ({ name: p.name, atMs: p.atMs })),
   interactiveMs: report.boot.interactiveMs,
@@ -212,12 +212,12 @@ const result = {
 // Baseline (deployed build, 7-group warmup, same methodology): 15 long tasks /
 // 1695ms total / 2 dropped-frame seconds; all 7 mode groups parsed on the
 // menu; rAF sample count 292 (starved).
-// After the likely-next-only restructure: 2–3 long tasks, quest+select only.
+// After the likely-next-only restructure: current product + select only.
 // KNOWN RESIDUAL (documented, pre-existing in the baseline at ~750ms): one
 // ~850ms no-span block right after warmup-end — a ROSTER-ATLAS DECODE STORM
 // (trace evidence: ~50 'Decode Image'/'Decode LazyPixelRef' ~17ms slices in
-// one RunTask; the battle-core roster runtimes carried by the quest group
-// fire atlasImg.onload together once their bytes land). It is battle-core/
+// one RunTask; the initial roster runtimes parse when their bytes arrive).
+// It is battle-core/
 // roster-runtime architecture, not warmup sequencing — restructuring it is
 // out of scope for this pass (hero rework scale). The gates below bind the
 // improvements that ARE owned here: task count/total, group curation, frame
@@ -243,8 +243,8 @@ result.gates = {
   // for bounded task sizes — frame p95/p99 and input gates carry the real
   // smoothness authority).
   'menu-frame-samples': { pass: (result.frames.samples || 0) >= 300, value: result.frames.samples, baseline: 292, limit: 300 },
-  'menu-legacy-groups-not-warm': {
-    pass: !groups.some(g => groupReadyAt[g] != null && !['arsenalQuest', 'select'].includes(g)),
+  'menu-active-product-warmup-only': {
+    pass: !groups.some(g => groupReadyAt[g] != null && !['arsenalProduct', 'select'].includes(g)),
     value: Object.fromEntries(Object.entries(groupReadyAt)),
   },
 };
@@ -261,7 +261,7 @@ console.log(JSON.stringify({
   frames: { p95Ms: result.frames.p95Ms, p99Ms: result.frames.p99Ms, maxMs: result.frames.maxMs, slowFrames: result.frames.slowFrames, samples: result.frames.samples },
   longTasks: { count: result.longTasks.count, totalMs: result.longTasks.totalMs, longestMs: result.longTasks.longestMs },
   inputLatency: result.inputLatency,
-  menuButtonActionMs: result.menuButtonActionMs,
+  productEntryActionMs: result.productEntryActionMs,
   warmupGroupsReadyAtPageMs: groupReadyAt,
   gates: result.summary,
 }, null, 2));

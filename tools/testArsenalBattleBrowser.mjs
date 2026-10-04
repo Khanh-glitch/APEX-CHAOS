@@ -1,4 +1,4 @@
-// Pre-pilot Arsenal Battle browser acceptance — uses repository CDP test
+// Arsenal Battle browser acceptance — uses repository CDP test
 // conventions and physical browser input for current product routes.
 //
 // Usage:
@@ -10,7 +10,7 @@
 import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { runPrePilotProductBrowserAcceptance } from './lib/prePilotProductBrowserAcceptance.mjs';
+import { runArsenalProductBrowserAcceptance } from './lib/arsenalProductBrowserAcceptance.mjs';
 
 const endpoint = process.env.APEX_CDP_ENDPOINT || 'http://127.0.0.1:9224';
 const appUrl = process.env.APEX_APP_URL || 'http://127.0.0.1:5173';
@@ -224,7 +224,7 @@ try {
 
   // Current-product real-browser acceptance physically exercises the product
   // graph, lock dialogs, Local/Bot, Shop/Draw, save migration, and admin Lab.
-  report.prePilotProduct = await runPrePilotProductBrowserAcceptance({
+  report.arsenalProduct = await runArsenalProductBrowserAcceptance({
     evaluate,
     hitProbe,
     physicalClick,
@@ -239,13 +239,22 @@ try {
 
   // The retired 20-stage Quest execution layer must be absent even after the
   // current product has warmed and launched every active surface.
-  report.retiredQuestBoundary = await evaluate(`(() => {
+  report.retiredRouteBoundary = await evaluate(`(() => {
     const urls = [...document.scripts].map(node => node.src)
       .concat([...document.querySelectorAll('link[href]')].map(node => node.href),
         performance.getEntriesByType('resource').map(entry => entry.name));
-    const retiredFile = /\\/game\\/(modes\\/arsenalQuestRuntime|arsenal\\/arsenalQuestLadder)\\.js(?:[?#]|$)/;
-    const retiredApiNames = ['APEX_ARSENAL_QUEST', 'startArsenalQuestMode', 'exitArsenalQuestMode', 'beginArsenalQuestMap'];
-    const retiredGroupNames = ['arsenalQuest', 'arsenalLegacyQuest'];
+    const retiredFileNames = [
+      'arsenalQuestRuntime.js', 'arsenalQuestLadder.js', 'soloRuntime.js', 'trialRuntime.js',
+      'tamChienRuntime.js', 'manualLab.js', 'manualLabOnline.js', 'apexRealtimeMultiplayer.js',
+    ];
+    const retiredApiNames = [
+      'APEX_ARSENAL_QUEST', 'startArsenalQuestMode', 'exitArsenalQuestMode', 'beginArsenalQuestMap',
+      'goToTournament', 'returnToTournament', 'resetTournament', 'startTournamentMatch',
+      'goToSoloSelect', 'startSoloMode', 'goToTrialSelect', 'startTrialMode', 'startTamChienMode',
+      'goToManualLabSelect', 'startManualLab', 'APEX_MANUAL_LAB_ONLINE',
+      'apexApplyOnlineFighterSelection', 'apexSyncOnlineReadyState',
+    ];
+    const retiredGroupNames = ['arsenalQuest', 'arsenalLegacyQuest', 'tournament', 'manualOnline'];
     return {
       productReady: window.__apexDeferredRuntimesReady_arsenalProduct === true,
       battleRuntime: window.apexArsenalBattleRuntime || null,
@@ -253,18 +262,18 @@ try {
         && typeof window.exitArsenalBattleMode === 'function'
         && typeof window.getArsenalBattleDebugState === 'function',
       retiredApiPresent: retiredApiNames.filter(name => name in window),
-      retiredGroupsReady: retiredGroupNames.filter(name => window[`__apexDeferredRuntimesReady_${name}`] === true),
-      retiredFilesRequested: urls.filter(url => retiredFile.test(url)),
+      retiredGroupsReady: retiredGroupNames.filter(name => window['__apexDeferredRuntimesReady_' + name] === true),
+      retiredFilesRequested: urls.filter(url => retiredFileNames.some(name => url.includes(name))),
     };
   })()`);
-  gate('retired-quest-execution-authority-absent',
-    report.retiredQuestBoundary.retiredApiPresent.length === 0
-      && report.retiredQuestBoundary.retiredGroupsReady.length === 0
-      && report.retiredQuestBoundary.retiredFilesRequested.length === 0,
-    report.retiredQuestBoundary);
-  gate('runtime-registered', report.retiredQuestBoundary.productReady === true
-    && report.retiredQuestBoundary.battleRuntime === 'ready'
-    && report.retiredQuestBoundary.battleApi === true,
+  gate('retired-route-execution-authority-absent',
+    report.retiredRouteBoundary.retiredApiPresent.length === 0
+      && report.retiredRouteBoundary.retiredGroupsReady.length === 0
+      && report.retiredRouteBoundary.retiredFilesRequested.length === 0,
+    report.retiredRouteBoundary);
+  gate('runtime-registered', report.retiredRouteBoundary.productReady === true
+    && report.retiredRouteBoundary.battleRuntime === 'ready'
+    && report.retiredRouteBoundary.battleApi === true,
     'active Arsenal product and neutral battle runtime ready');
 
   // ------------------------------ Audio 2B: latency-critical SFX ----------
@@ -439,8 +448,8 @@ try {
     'lucky-draw-physical-route-pool-core-six-and-exactly-one-350-ac-draw',
   ];
   gate('current-product-menu-routes-physical-acceptance',
-    productRouteGateNames.every(name => report.prePilotProduct?.[name]?.pass === true),
-    Object.fromEntries(productRouteGateNames.map(name => [name, report.prePilotProduct?.[name]?.pass === true])));
+    productRouteGateNames.every(name => report.arsenalProduct?.[name]?.pass === true),
+    Object.fromEntries(productRouteGateNames.map(name => [name, report.arsenalProduct?.[name]?.pass === true])));
 
   // ------------------------------------------------------- mode entry ------
   report.entry = await evaluate(`(() => {
@@ -847,7 +856,7 @@ try {
       playableMatches: JSON.stringify(shells?.playableIds || []) === JSON.stringify(playable),
       lockedRemainNonPlayable: locked.length > 0 && locked.every(id => shells?.isVisible(id)
         && !shells.isPlayable(id) && !shells.canPublicSelect(id)),
-      historicalNewbieHasNoShell: shells?.typeFor('NEWBIE') === null,
+      historicalIdHasNoShell: shells?.typeFor('NEWBIE') === null,
       retiredEncounterHasNoShell: shells?.typeFor('WITCH') === null && shells?.typeFor('MONK') === null,
       historicalRosterAbsent: !Object.hasOwn(shells || {}, 'legacyIds'),
     };
@@ -858,8 +867,8 @@ try {
       && report.shellAuthority.allVisibleResolvable && report.shellAuthority.playableMatches
       && report.shellAuthority.lockedRemainNonPlayable,
     report.shellAuthority);
-  gate('shells-retired-newbie-and-quest-encounter-identities-have-no-runtime',
-    report.shellAuthority.historicalNewbieHasNoShell && report.shellAuthority.retiredEncounterHasNoShell
+  gate('shells-retired-identities-have-no-runtime',
+    report.shellAuthority.historicalIdHasNoShell && report.shellAuthority.retiredEncounterHasNoShell
       && report.shellAuthority.historicalRosterAbsent,
     report.shellAuthority);
 
@@ -1476,7 +1485,7 @@ try {
   gate('browser-neutral-product-cooldown-hud', report.neutralHud.has === true, report.neutralHud);
 
   // Current Shop, Draw, Local/Bot and hidden admin Lab are physically covered
-  // by runPrePilotProductBrowserAcceptance. Quest 01 remains a locked product
+  // by runArsenalProductBrowserAcceptance. Quest 01 remains a locked product
   // surface; the retired 20-stage execution route is tested only for absence.
 
   // ------------------------------------------ responsive UI / pointer QA -----
@@ -1601,9 +1610,9 @@ try {
     'admin-lab-physical-exit-returns-without-public-lab-link',
   ];
   gate('current-product-physical-route-and-return-coverage',
-    currentNavigationGateNames.every(name => report.prePilotProduct?.[name]?.pass === true),
+    currentNavigationGateNames.every(name => report.arsenalProduct?.[name]?.pass === true),
     Object.fromEntries(currentNavigationGateNames.map(name =>
-      [name, report.prePilotProduct?.[name]?.pass === true])));
+      [name, report.arsenalProduct?.[name]?.pass === true])));
 
   // 7) Active battle exposes a visible EXIT; it mirrors the accepted B/ESC behavior.
   await evaluate(`(() => {
@@ -3534,11 +3543,9 @@ try {
       && cp7Reentry.durationMs < 50 && cp7Reentry.launched === true && cp7Reentry.labMode === true,
     cp7Reentry);
 
-  // Replacement for the historical NEWBIE fail-cue probe: `newbie_fail` is
-  // not a current production cue, so it cannot establish Robot Bot AI law.
-  // Reuse the physical current-product Bot acceptance and require a real
-  // successful P2 Hero Rework cast from the accepted BOT profile.
-  const cp7BotAi = report.prePilotProduct?.['bot-battle-physical-route-deterministic-p2-neutral-match-and-real-ai-cast'];
+  // Prove Robot Bot AI through the physical current-product Bot acceptance,
+  // requiring a real successful P2 Hero Rework cast from the accepted profile.
+  const cp7BotAi = report.arsenalProduct?.['bot-battle-physical-route-deterministic-p2-neutral-match-and-real-ai-cast'];
   const cp7BotRuntime = cp7BotAi?.detail?.runtime || null;
   gate('owner-cp7-bot-profile-real-p2-ai-cast-observed',
     cp7BotAi?.pass === true && cp7BotRuntime?.state === 'ARSENAL'

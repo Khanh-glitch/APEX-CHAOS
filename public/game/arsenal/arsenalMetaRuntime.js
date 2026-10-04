@@ -175,14 +175,17 @@
   // Preserve the accepted Bot/Local battle economy without routing rewards
   // through the retired Quest ladder. One completion pays once: P1 wins earn
   // 50 AC, and P1 losses earn 25 AC, matching the former product hook.
-  function awardBattleResult(winnerName, battleState) {
+  function awardBattleResult(winnerSide, battleState) {
     const current = battleState || (window.APEX_ARSENAL && window.APEX_ARSENAL.state);
     if (!current || current.labMode || current.questStage || current.productResultAwarded) {
       return { ok: false, reason: 'not-awardable', balance: state.credits };
     }
-    const p1 = typeof fighters !== 'undefined' && fighters[0] ? fighters[0] : null;
-    const won = winnerName === (p1 && p1.name) || winnerName === 'P1'
-      || !!(p1 && p1.type && winnerName === p1.type.name);
+    if (winnerSide !== 'P1' && winnerSide !== 'P2') {
+      return { ok: false, reason: 'invalid-winner', balance: state.credits };
+    }
+    // Side identity is authoritative: both players may legally choose the
+    // same fighter, so a fighter-name comparison cannot determine a winner.
+    const won = winnerSide === 'P1';
     current.productResultAwarded = true;
     return award(won ? ['free_complete', 'free_winner'] : 'free_complete', won ? 50 : 25);
   }

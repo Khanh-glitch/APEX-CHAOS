@@ -161,13 +161,6 @@
     setBattleControls(false);
     return prevGoSelectRestored();
   };
-  const prevGoTournamentRestored = goToTournament;
-  goToTournament = function() {
-    STATE.paused = false;
-    clearNinjaEvents(true);
-    setBattleControls(false);
-    return prevGoTournamentRestored();
-  };
   const prevEndMatchRestored = endMatch;
   endMatch = function() {
     setBattleControls(false);
@@ -202,7 +195,6 @@
   Object.assign(window.apexReactBridge || {}, {
     goToMenu,
     goToSelect,
-    goToTournament,
     startMatch,
     startSpecificMatch,
     toggleAutoBattlePause: window.toggleAutoBattlePause,

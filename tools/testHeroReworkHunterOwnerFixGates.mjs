@@ -19,7 +19,7 @@ const checks={
   'movement-smear-removed':!/directional smear along the true velocity/.test(gold)&&/high-speed echo history above remains the sole movement afterimage/.test(gold),
   // Revision lineage: the Hunter owner-fix revision, or any later CRYSTALA revision that descends from it
   // (prep/a/b/c). The Hunter behaviour gates above are unchanged and still enforce the owner-fix itself.
-  'runtime-cache-bust':/APEX_ARSENAL_RUNTIME_REVISION = '20260930-(hunter-ownerfix-r1|crystala-[a-z0-9-]+)'/.test(manifest),
+  'runtime-cache-bust':/APEX_ARSENAL_RUNTIME_REVISION = '20261003-mirror-v1-r35'/.test(manifest),
 };
 let fail=0;for(const [name,pass] of Object.entries(checks)){console.log(`[${pass?'PASS':'FAIL'}] ${name}`);if(!pass)fail++;}
 console.log(`[HUNTER OWNER FIX GATES] ${Object.keys(checks).length-fail}/${Object.keys(checks).length}`);

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-03T15:02:37.865Z",
+  "generatedAt": "2026-10-04T03:44:54.742Z",
   "loadingAssets": {
     "bgPortrait": "/assets/loading/loading-bg-portrait.webp",
     "bgLandscape": "/assets/loading/loading-bg-landscape.webp",
@@ -10,7 +10,7 @@
     {
       "path": "/apexEngine.js",
       "type": "script",
-      "bytes": 231492
+      "bytes": 216722
     },
     {
       "path": "/assets/arcade_v1/normalized/battle_idle_reference.webp",
@@ -3315,12 +3315,12 @@
     {
       "path": "/game/core/apexCanonicalBalance.js",
       "type": "script",
-      "bytes": 119331
+      "bytes": 119090
     },
     {
       "path": "/game/core/apexFightTelemetry.js",
       "type": "script",
-      "bytes": 25033
+      "bytes": 24757
     },
     {
       "path": "/game/core/apexFullRosterQa.js",
@@ -3340,7 +3340,7 @@
     {
       "path": "/game/core/apexPrecisionFixes.js",
       "type": "script",
-      "bytes": 30217
+      "bytes": 30218
     },
     {
       "path": "/game/core/apexRosterExtensions.js",
@@ -3430,7 +3430,7 @@
     {
       "path": "/game/fighters/stringHardeningRuntime.js",
       "type": "script",
-      "bytes": 7858
+      "bytes": 7627
     },
     {
       "path": "/game/fighters/stringRuntime.js",
@@ -3483,26 +3483,6 @@
       "bytes": 814
     },
     {
-      "path": "/game/modes/soloRuntime.js",
-      "type": "script",
-      "bytes": 25391
-    },
-    {
-      "path": "/game/modes/tamChienRuntime.js",
-      "type": "script",
-      "bytes": 41795
-    },
-    {
-      "path": "/game/modes/trialRuntime.js",
-      "type": "script",
-      "bytes": 13318
-    },
-    {
-      "path": "/game/network/apexRealtimeMultiplayer.js",
-      "type": "script",
-      "bytes": 19129
-    },
-    {
       "path": "/game/ui/apexCharacterSelectUi.js",
       "type": "script",
       "bytes": 22637
@@ -3510,17 +3490,7 @@
     {
       "path": "/game/ui/apexPickRuntime.js",
       "type": "script",
-      "bytes": 45973
-    },
-    {
-      "path": "/manualLab.js",
-      "type": "script",
-      "bytes": 218559
-    },
-    {
-      "path": "/manualLabOnline.js",
-      "type": "script",
-      "bytes": 20913
+      "bytes": 39959
     },
     {
       "path": "/sniper_cloak_move_sprite.webp",

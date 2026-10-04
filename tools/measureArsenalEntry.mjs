@@ -2,13 +2,12 @@
 // during background work (correction pass CP6, phase 1).
 //
 // Cold-owner path, measured end to end with the real CDP input pipeline:
-//   fresh page load -> menu interactive -> REAL click on ARSENAL QUEST
-//   -> pressed visual painted -> route action -> deferred group scripts
-//   -> roster/weapon image decode storm -> AV audio warm -> hub shown
-//   -> hub first paint.
+//   fresh page load -> menu interactive -> REAL click on the active Bot Battle card
+//   -> pressed visual painted -> product route -> runtime/image warmup -> picker
+//   -> first route paint.
 //
 // Also probes pointer responsiveness (pointerdown -> next rAF paint) at a
-// fixed cadence from menu-interactive until the hub is visible, so blocked
+// fixed cadence from menu-interactive until the product route is visible, so blocked
 // frames during the load/decode window are visible in the evidence.
 //
 // Usage:
@@ -20,7 +19,7 @@ import path from 'node:path';
 
 const appUrl = process.env.APEX_APP_URL || 'http://127.0.0.1:4173';
 const chromePath = process.env.CHROME_PATH || '/tmp/chromium/chromium';
-const outPath = process.argv[2] || 'docs/arsenal-quest/evidence/arsenal-entry-waterfall.json';
+const outPath = process.argv[2] || 'docs/acceptance/arsenal-product/evidence/arsenal-entry-waterfall.json';
 const label = process.argv[3] || 'run';
 const entryDelayMs = parseInt(process.env.APEX_ENTRY_DELAY_MS || '0', 10);
 const profileDir = path.join(process.cwd(), '.arsenal-entry-profile');
@@ -84,7 +83,7 @@ await evaluate(`(() => {
     longTasks: [],        // { at, dur }
     resources: [],        // { at, dur, type, name } script/img/audio
     press: null,          // pressed-visual paint time
-    hubFirstPaint: null,
+    productRouteFirstPaint: null,
     menuInteractiveAt: null,
   };
   const F = window.__ownerFlow;
@@ -117,17 +116,22 @@ await evaluate(`(() => {
     }
   });
   mo.observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true });
-  // hub visible: aq-meta-root exists and has size
-  const hubMo = new MutationObserver(() => {
-    const root = document.getElementById('aq-meta-root');
-    if (root && root.style.display !== 'none' && root.getBoundingClientRect().width > 50) {
+  // product route visible: picker, product meta view, or a hidden menu
+  const routeMo = new MutationObserver(() => {
+    const menu = document.getElementById('menu-screen');
+    const picker = document.getElementById('select-screen');
+    const meta = document.getElementById('aq-meta-root');
+    const pickerVisible = !!picker && !picker.classList.contains('hidden');
+    const metaVisible = !!meta && meta.style.display !== 'none' && meta.getBoundingClientRect().width > 50;
+    const menuHidden = !!menu && menu.classList.contains('hidden');
+    if (pickerVisible || metaVisible || menuHidden) {
       requestAnimationFrame(() => requestAnimationFrame(() => {
-        if (F.hubFirstPaint == null) F.hubFirstPaint = +(performance.now() - F.t0).toFixed(1);
+        if (F.productRouteFirstPaint == null) F.productRouteFirstPaint = +(performance.now() - F.t0).toFixed(1);
       }));
-      hubMo.disconnect();
+      routeMo.disconnect();
     }
   });
-  hubMo.observe(document.documentElement, { subtree: true, childList: true, attributes: true });
+  routeMo.observe(document.documentElement, { subtree: true, childList: true, attributes: true });
   mark('instrumented');
   return true;
 })()`);
@@ -148,14 +152,14 @@ const menuInteractiveAt = await evaluate(`(() => {
   return +(F.menuInteractiveAt - F.t0).toFixed(1);
 })()`);
 
-// Find the ARSENAL QUEST button rect for a REAL click.
+// Find the active Bot Battle product card rect for a REAL click.
 const rect = await evaluate(`(() => {
-  const b = [...document.querySelectorAll('button.menu-image-button')].find(el => (el.getAttribute('aria-label') || '').toUpperCase().includes('ARSENAL'));
+  const b = document.querySelector('#menu-screen [data-product-surface="bot-battle"]');
   if (!b) return null;
   const r = b.getBoundingClientRect();
   return { x: r.x + r.width / 2, y: r.y + r.height / 2, w: r.width, h: r.height, tag: b.tagName, disabled: b.disabled };
 })()`);
-if (!rect) { console.error('ARSENAL button not found'); chrome.kill(); process.exit(1); }
+if (!rect || rect.disabled) { console.error('active Bot Battle product card not found or disabled'); chrome.kill(); process.exit(1); }
 
 // Optional soak before the click (warm-entry variant).
 if (entryDelayMs > 0) await sleep(entryDelayMs);
@@ -165,21 +169,21 @@ const tClickSent = Date.now();
 await command('Input.dispatchMouseEvent', { type: 'mousePressed', x: rect.x, y: rect.y, button: 'left', clickCount: 1 });
 await command('Input.dispatchMouseEvent', { type: 'mouseReleased', x: rect.x, y: rect.y, button: 'left', clickCount: 1 });
 const clickAt = await evaluate(`+(performance.now() - window.__ownerFlow.t0).toFixed(1)`);
-await evaluate(`window.__ownerFlow.events.push({ at: ${clickAt}, type: 'cdp-click', detail: 'arsenal-quest button' })`);
+await evaluate(`window.__ownerFlow.events.push({ at: ${clickAt}, type: 'cdp-click', detail: 'arsenal-product surface card' })`);
 
 // Hover jitter during the load window: real pointermoves to measure input health.
 const hoverJob = (async () => {
   for (let i = 0; i < 60; i++) {
     await command('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 300 + (i % 7) * 40, y: 500 + (i % 5) * 30 }).catch(() => {});
     await sleep(120);
-    const done = await evaluate(`window.__ownerFlow.hubFirstPaint != null`).catch(() => true);
+    const done = await evaluate(`window.__ownerFlow.productRouteFirstPaint != null`).catch(() => true);
     if (done) break;
   }
 })();
 
-// Wait until the hub paints or timeout (25s).
+// Wait until the product route paints or timeout (25s).
 for (let i = 0; i < 250; i++) {
-  const done = await evaluate(`window.__ownerFlow.hubFirstPaint != null`).catch(() => false);
+  const done = await evaluate(`window.__ownerFlow.productRouteFirstPaint != null`).catch(() => false);
   if (done) break;
   await sleep(100);
 }
@@ -190,17 +194,17 @@ const result = await evaluate(`(() => {
   const F = window.__ownerFlow;
   const perf = window.apexPerfReport ? window.apexPerfReport() : null;
   const av = window.APEX_ARSENAL_AV ? window.APEX_ARSENAL_AV.audioStatus() : null;
-  const groupReady = !!window.__apexDeferredRuntimesReady_arsenalQuest;
+  const productReady = window.__apexDeferredRuntimesReady_arsenalProduct === true;
   const scriptSpans = perf && perf.timings ? perf.timings.filter(t => t.category === 'runtime') : [];
   return JSON.stringify({
     label: ${JSON.stringify(label)},
     menuInteractiveAt: F.menuInteractiveAt,
     clickAt: ${clickAt},
     pressedPaintAt: F.press,
-    hubFirstPaintAt: F.hubFirstPaint,
+    productRouteFirstPaintAt: F.productRouteFirstPaint,
     pressToPaintMs: F.press != null ? +(F.press - ${clickAt}).toFixed(1) : null,
-    pressToHubMs: F.hubFirstPaint != null ? +(F.hubFirstPaint - ${clickAt}).toFixed(1) : null,
-    groupReady,
+    pressToProductRouteMs: F.productRouteFirstPaint != null ? +(F.productRouteFirstPaint - ${clickAt}).toFixed(1) : null,
+    productReady,
     scriptSpans,
     longTasks: F.longTasks,
     inputsDuringLoad: F.inputs.map(i => i.latency),
@@ -222,9 +226,9 @@ console.log(JSON.stringify({
   clickAt: data.clickAt,
   pressedPaintAt: data.pressedPaintAt,
   pressToPaintMs: data.pressToPaintMs,
-  hubFirstPaintAt: data.hubFirstPaintAt,
-  pressToHubMs: data.pressToHubMs,
-  groupReady: data.groupReady,
+  productRouteFirstPaintAt: data.productRouteFirstPaintAt,
+  pressToProductRouteMs: data.pressToProductRouteMs,
+  productReady: data.productReady,
   longTasksDuringEntry: data.longTasks.filter(l => l.at >= data.clickAt - 50).length,
   worstLongTask: data.longTasks.length ? Math.max(...data.longTasks.map(l => l.dur)) : 0,
   inputMaxMs: data.inputMaxMs,

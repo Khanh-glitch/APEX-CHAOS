@@ -1,9 +1,9 @@
-// Current-product real-browser acceptance for the pre-pilot cutover.
+// Current-product real-browser acceptance for Arsenal Battle and its product graph.
 // This is intentionally driven by the same CDP physical-pointer helper as the
 // Arsenal browser suite; it is not a DOM-only or direct-call substitute for UI
 // navigation. Retired Quest execution artifacts are not loaded or retained.
 
-export async function runPrePilotProductBrowserAcceptance({
+export async function runArsenalProductBrowserAcceptance({
   evaluate,
   hitProbe,
   physicalClick,
@@ -139,31 +139,40 @@ export async function runPrePilotProductBrowserAcceptance({
   const ready = await menuReady();
 
   // The boot/preload route warms the active product group and exposes no
-  // retired Quest execution APIs or resource requests.
+  // retired route execution APIs or resource requests.
   result.runtimeWarmup = await evaluate(`(() => {
     const scriptUrls = [...document.scripts].map(node => node.src).filter(Boolean);
     const hintedUrls = [...document.querySelectorAll('link[href]')].map(node => node.href);
     const resources = performance.getEntriesByType('resource').map(entry => entry.name);
     const allUrls = [...scriptUrls, ...hintedUrls, ...resources];
-    const retiredPattern = /\\/game\\/(modes\\/arsenalQuestRuntime|arsenal\\/arsenalQuestLadder)\\.js(?:[?#]|$)/;
-    const retiredApiNames = ['APEX_ARSENAL_QUEST', 'startArsenalQuestMode', 'exitArsenalQuestMode', 'beginArsenalQuestMap'];
+    const retiredFileNames = [
+      'arsenalQuestRuntime.js', 'arsenalQuestLadder.js', 'soloRuntime.js', 'trialRuntime.js',
+      'tamChienRuntime.js', 'manualLab.js', 'manualLabOnline.js', 'apexRealtimeMultiplayer.js',
+    ];
+    const retiredApiNames = [
+      'APEX_ARSENAL_QUEST', 'startArsenalQuestMode', 'exitArsenalQuestMode', 'beginArsenalQuestMap',
+      'goToTournament', 'returnToTournament', 'resetTournament', 'startTournamentMatch',
+      'goToSoloSelect', 'startSoloMode', 'goToTrialSelect', 'startTrialMode', 'startTamChienMode',
+      'goToManualLabSelect', 'startManualLab', 'APEX_MANUAL_LAB_ONLINE',
+      'apexApplyOnlineFighterSelection', 'apexSyncOnlineReadyState',
+    ];
     return {
       productReady: window.__apexDeferredRuntimesReady_arsenalProduct === true,
-      battleRuntimeLoaded: scriptUrls.some(url => /\\/game\\/modes\\/arsenalBattleRuntime\\.js(?:[?#]|$)/.test(url)),
+      battleRuntimeLoaded: scriptUrls.some(url => url.includes('/game/modes/arsenalBattleRuntime.js')),
       retiredApiNames,
       retiredApiPresent: retiredApiNames.filter(name => name in window),
-      retiredFilesRequested: allUrls.filter(url => retiredPattern.test(url)),
+      retiredFilesRequested: allUrls.filter(url => retiredFileNames.some(name => url.includes(name))),
       scriptUrls,
     };
   })()`);
-  pass('warmup-active-arsenal-product-no-retired-quest-authority',
+  pass('warmup-active-arsenal-product-no-retired-route-authority',
     !!ready && ready.productReady === true
       && result.runtimeWarmup.productReady === true
       && result.runtimeWarmup.battleRuntimeLoaded === true
       && result.runtimeWarmup.retiredApiPresent.length === 0
       && result.runtimeWarmup.retiredFilesRequested.length === 0,
     { ready, runtime: result.runtimeWarmup });
-  evidence.push(await screenshot('prepilot-product-menu-graph'));
+  evidence.push(await screenshot('arsenal-product-product-menu-graph'));
 
   result.publicGraph = await evaluate(`(() => {
     const authority = window.APEX_PRODUCT_SURFACE;
@@ -208,7 +217,7 @@ export async function runPrePilotProductBrowserAcceptance({
   const hasAcPrice = (text, amount) => new RegExp(`${amount}\\s*AC`).test(String(text || ''));
   const metaKey = await evaluate('window.APEX_ARSENAL_META?.KEY || null');
   pass('public-graph-exactly-ten-four-active-six-locked-no-retired-actions',
-    result.publicGraph.authorityVersion === 'pre-pilot-product-graph-v1'
+    result.publicGraph.authorityVersion === 'arsenal-product-graph-v1'
       && publicIds.length === 10 && activeRoutes.length === 4 && lockedSurfaceIds.length === 6
       && ['bot-battle', 'local-1v1', 'fighter-shop', 'lucky-draw'].every(id => activeRoutes.includes(id))
       && visibleFighterIds.length === 12 && playableFighterIds.length === 6 && lockedFighterIds.length === 6
@@ -236,7 +245,7 @@ export async function runPrePilotProductBrowserAcceptance({
         battleActive: !!window.APEX_ARSENAL?.state?.active,
       } : null;
     })()`, value => value && value.visible, { attempts: 30, interval: 60 });
-    if (surfaceId === 'quest-01') evidence.push(await screenshot('prepilot-quest-01-locked-dialog'));
+    if (surfaceId === 'quest-01') evidence.push(await screenshot('arsenal-product-quest-01-locked-dialog'));
     const backPointer = await clickVisible('.product-lock-dialog .product-lock-panel button');
     const returned = await awaitMenu();
     const expectedTitle = result.publicGraph.surfaces.find(surface => surface.id === surfaceId)?.title || '';
@@ -347,7 +356,7 @@ export async function runPrePilotProductBrowserAcceptance({
       visibleCards: [...document.querySelectorAll('.apex-pick-stage .apex-pick-card')].map(card => card.dataset.champion),
     };
   })()`);
-  evidence.push(await screenshot('prepilot-local-core-six-picker'));
+  evidence.push(await screenshot('arsenal-product-local-core-six-picker'));
   const localP1Click = await selectVisibleChampion('HUNTER');
   const afterLocalP1 = await poll('window.__APEX_PICK_TEST?.p1() || null', value => value === 'HUNTER', { attempts: 20, interval: 50 });
   const localP2Click = await selectVisibleChampion('ROBOT');
@@ -365,7 +374,7 @@ export async function runPrePilotProductBrowserAcceptance({
       menuHidden: !!document.getElementById('menu-screen')?.classList.contains('hidden'),
     };
   })()`, value => value && value.state === 'ARSENAL' && value.active, { attempts: 120, interval: 100 });
-  evidence.push(await screenshot('prepilot-local-neutral-battle'));
+  evidence.push(await screenshot('arsenal-product-local-neutral-battle'));
   pass('local-1v1-physical-route-legal-owned-picker-and-neutral-match',
     localRoute.pointer.hitWithin === true && localReady?.visible === true
       && localPickerState.onlyLegalOwnedCoreSix === true
@@ -387,7 +396,7 @@ export async function runPrePilotProductBrowserAcceptance({
   pass('local-battle-physical-exit-returns-to-product-menu',
     localExitPointer?.hitWithin === true && result.localExit.menu?.visible === true
       && result.localExit.menu.gameState === 'MENU', result.localExit);
-  evidence.push(await screenshot('prepilot-local-product-menu-return'));
+  evidence.push(await screenshot('arsenal-product-local-product-menu-return'));
 
   // BOT is a thin mode profile on the same picker/runtime. P2 is fixed to
   // owned ROBOT; its real Hero Rework cast event is collected from AIL.bus.
@@ -412,28 +421,28 @@ export async function runPrePilotProductBrowserAcceptance({
       && window.APEX_ARSENAL_META.owns(window.__APEX_PICK_TEST?.p2()),
   }))()`);
   await evaluate(`(() => {
-    window.__prePilotBotCastEvents = [];
+    window.__arsenalProductBotCastEvents = [];
     const bus = window.APEX_HERO_REWORK_AIL?.bus;
-    if (window.__prePilotBotCastUnsubscribe) window.__prePilotBotCastUnsubscribe();
-    window.__prePilotBotCastUnsubscribe = bus?.on('Cast', event => {
+    if (window.__arsenalProductBotCastUnsubscribe) window.__arsenalProductBotCastUnsubscribe();
+    window.__arsenalProductBotCastUnsubscribe = bus?.on('Cast', event => {
       const payload = event?.payload || {};
-      if (payload.source === 'p2-ai') window.__prePilotBotCastEvents.push({
+      if (payload.source === 'p2-ai') window.__arsenalProductBotCastEvents.push({
         type: event.type, seq: event.seq, hero: payload.hero, slot: payload.slot,
         mechanic: payload.mechanic, source: payload.source,
       });
     }) || null;
-    return !!window.__prePilotBotCastUnsubscribe;
+    return !!window.__arsenalProductBotCastUnsubscribe;
   })()`);
-  evidence.push(await screenshot('prepilot-bot-battle-picker'));
+  evidence.push(await screenshot('arsenal-product-bot-battle-picker'));
   const botStart = await clickVisible('[data-layer-id="start-button"]');
   const botCastReport = await evaluate(`(async () => {
     const until = performance.now() + 12000;
-    while (performance.now() < until && !(window.__prePilotBotCastEvents || []).length) {
+    while (performance.now() < until && !(window.__arsenalProductBotCastEvents || []).length) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     const debug = window.getArsenalBattleDebugState?.();
     const rework = window.APEX_HERO_REWORK?.debugState?.();
-    const events = window.__prePilotBotCastEvents || [];
+    const events = window.__arsenalProductBotCastEvents || [];
     return {
       state: typeof gameState === 'undefined' ? null : gameState,
       active: debug?.active === true,
@@ -449,7 +458,7 @@ export async function runPrePilotProductBrowserAcceptance({
   })()`);
   result.botBattle = { route: botRoute, ready: botReady, p1Click: botP1Click, picker: botPick,
     start: botStart, runtime: botCastReport };
-  evidence.push(await screenshot('prepilot-bot-neutral-battle-p2-ai-cast'));
+  evidence.push(await screenshot('arsenal-product-bot-neutral-battle-p2-ai-cast'));
   pass('bot-battle-physical-route-deterministic-p2-neutral-match-and-real-ai-cast',
     botRoute.pointer.hitWithin === true && botReady?.visible === true
       && botReady.mode === 'bot' && botReady.botFlag === true
@@ -529,7 +538,7 @@ export async function runPrePilotProductBrowserAcceptance({
       buyLabel: document.getElementById('aq-buy')?.textContent?.trim() || '',
     };
   })()`);
-  evidence.push(await screenshot('prepilot-fighter-shop-twelve-visible-locked-six'));
+  evidence.push(await screenshot('arsenal-product-fighter-shop-twelve-visible-locked-six'));
   pass('fighter-shop-public-roster-twelve-core-six-law-1000-ac-and-locked-purchase-rejection',
     shopRoute.pointer.hitWithin === true && shopState?.visible === true
       && shopState.count === visibleFighterIds.length && visibleFighterIds.length === 12
@@ -588,7 +597,7 @@ export async function runPrePilotProductBrowserAcceptance({
       futureInPool: (M?.poolLocked?.() || []).some(id => ${JSON.stringify(lockedFighterIds)}.includes(id)),
     };
   })()`, value => value && value.visible, { attempts: 80, interval: 80 });
-  evidence.push(await screenshot('prepilot-lucky-draw-clean-350-ac'));
+  evidence.push(await screenshot('arsenal-product-lucky-draw-clean-350-ac'));
   const firstSpin = await clickVisible('#aq-spin');
   const drawResult = await poll(`(() => {
     const M = window.APEX_ARSENAL_META;
@@ -635,7 +644,7 @@ export async function runPrePilotProductBrowserAcceptance({
       && drawBack.hitWithin === true && drawReturned?.visible === true && drawReturned?.gameState === 'MENU',
     { route: drawRoute, before: drawBefore, firstSpin, result: drawResult,
       secondSpin, secondAttempt: secondDraw, back: drawBack, returned: drawReturned });
-  evidence.push(await screenshot('prepilot-lucky-draw-one-legal-result-and-denied-retry'));
+  evidence.push(await screenshot('arsenal-product-lucky-draw-one-legal-result-and-denied-retry'));
 
   // The admin seam launches the real neutral Lab; the menu graph remains free
   // of an Arsenal Lab action before and after the API call.
@@ -658,7 +667,7 @@ export async function runPrePilotProductBrowserAcceptance({
       neutralScriptLoaded: [...document.scripts].some(node => /\\/game\\/modes\\/arsenalBattleRuntime\\.js(?:[?#]|$)/.test(node.src)),
     };
   })()`);
-  evidence.push(await screenshot('prepilot-admin-lab-real-neutral-runtime'));
+  evidence.push(await screenshot('arsenal-product-admin-lab-real-neutral-runtime'));
   pass('admin-lab-absent-publicly-launchable-only-by-api-on-neutral-core',
     beforeLab.labCard === false && beforeLab.navHasLab === false && beforeLab.api === 'function'
       && JSON.stringify(beforeLab.ids) === JSON.stringify(publicIds)

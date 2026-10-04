@@ -14,11 +14,6 @@ var arenaFlash = { r: 0, g: 0, b: 0, a: 0 };
 var fighters = [], particles = [], projectiles = [], floatingTexts = [], shockwaves = [];
 var p1Selection = null, p2Selection = null;
 var calcOverlay = null;
-var tournamentSeeds = [];
-var tournamentState = null;
-var activeTournamentMatchId = null;
-var pendingTournamentMatchId = null;
-var tournamentModeActive = false;
 var matchStartTime = 0;
 var matchClock = 0;
 var currentChallenge = null;
@@ -2381,122 +2376,6 @@ function startDailyChallenge() {
     if (!left || !right) return;
     return apexEnsureBattleRuntimes().then(() => startSpecificMatch(left, right, { countdown:true, tournament:false, challenge }));
 }
-function tournamentFighterStyle(name){ const ft=fighterTypeByName(name); return ft ? ft.color : '#80786c'; }
-function tournamentMakeMatch(branch, round, index, a=null, b=null){ return { id:`${branch}-R${round}-M${index}`, branch, round, index, a, b, winner:null, loser:null, result:null, started:false }; }
-function resetTournament(){ tournamentState = createTournamentState(); renderTournament(); }
-function createTournamentState(){
-    const names = shuffle(FighterTypes.map(f=>f.name));
-    while(names.length < 32) names.push('BYE');
-    const state = { createdAt: Date.now(), champion:null, matchesPlayed:0, log:[], branches:{A:{rounds:[]},B:{rounds:[]}}, final:tournamentMakeMatch('F',1,0,null,null) };
-    for (const branchName of ['A','B']) {
-        const slice = branchName === 'A' ? names.slice(0,16) : names.slice(16,32);
-        const rounds = [];
-        rounds[0] = [];
-        for(let i=0;i<8;i++) rounds[0].push(tournamentMakeMatch(branchName,0,i,slice[i*2],slice[i*2+1]));
-        rounds[1] = Array.from({length:4},(_,i)=>tournamentMakeMatch(branchName,1,i));
-        rounds[2] = Array.from({length:2},(_,i)=>tournamentMakeMatch(branchName,2,i));
-        rounds[3] = [tournamentMakeMatch(branchName,3,0)];
-        state.branches[branchName].rounds = rounds;
-    }
-    tournamentAutoResolveByes(state);
-    return state;
-}
-function tournamentAllMatches(state=tournamentState){
-    if(!state) return [];
-    return [...state.branches.A.rounds.flat(), ...state.branches.B.rounds.flat(), state.final];
-}
-function tournamentFindMatch(id){ return tournamentAllMatches().find(m=>m.id===id); }
-function tournamentAutoResolveByes(state=tournamentState){
-    if(!state) return;
-    let changed=true, guard=0;
-    while(changed && guard++ < 100){
-        changed=false;
-        for(const m of tournamentAllMatches(state)){
-            if(m.winner) continue;
-            const aReady = m.a && m.a !== 'BYE';
-            const bReady = m.b && m.b !== 'BYE';
-            if(aReady && m.b === 'BYE'){ tournamentSetWinner(m, m.a, 'BYE', true, state); changed=true; }
-            else if(bReady && m.a === 'BYE'){ tournamentSetWinner(m, m.b, 'BYE', true, state); changed=true; }
-            else if(m.a === 'BYE' && m.b === 'BYE'){ m.winner='BYE'; m.result={bye:true}; tournamentAdvance(m, 'BYE', state); changed=true; }
-        }
-    }
-}
-function tournamentAdvance(match, winnerName, state=tournamentState){
-    if(!state || !winnerName || winnerName==='BYE') return;
-    if(match.branch === 'F') { state.champion = winnerName; return; }
-    const rounds = state.branches[match.branch].rounds;
-    if(match.round < rounds.length-1){
-        const next = rounds[match.round+1][Math.floor(match.index/2)];
-        if(match.index % 2 === 0) next.a = winnerName; else next.b = winnerName;
-    } else {
-        if(match.branch === 'A') state.final.a = winnerName; else state.final.b = winnerName;
-    }
-}
-function tournamentSetWinner(match, winnerName, loserName, bye=false, state=tournamentState, resultData=null){
-    if(!match || match.winner) return;
-    match.winner = winnerName; match.loser = loserName; match.result = resultData || { bye };
-    if(!bye && state){ state.matchesPlayed++; state.log.push({ id:match.id, winner:winnerName, loser:loserName, result:match.result, time:match.result?.duration || 0 }); }
-    tournamentAdvance(match, winnerName, state);
-    tournamentAutoResolveByes(state);
-}
-function tournamentReady(match){ return match && !match.winner && match.a && match.b && match.a !== 'BYE' && match.b !== 'BYE'; }
-function renderTournamentMatchCard(match){
-    const ready = tournamentReady(match);
-    const locked = !match.winner && !ready;
-    const cls = match.winner ? 'done' : ready ? 'ready' : 'locked';
-    const aColor = tournamentFighterStyle(match.a), bColor = tournamentFighterStyle(match.b);
-    const click = ready ? `onclick="startTournamentMatch('${match.id}')"` : '';
-    const result = match.winner ? `<div class="match-hint">Winner: <b style="color:${tournamentFighterStyle(match.winner)}">${match.winner}</b>${match.result&&match.result.duration?` Ă‚Â· ${match.result.duration.toFixed(1)}s`:''}</div>` : ready ? `<div class="match-hint">Ă¡ÂºÂ¤n Ă„â€˜Ă¡Â»Æ’ bĂ¡ÂºÂ¯t Ă„â€˜Ă¡ÂºÂ§u. 3 giÄ‚Â¢y Ă„â€˜Ă¡ÂºÂ¿m ngĂ†Â°Ă¡Â»Â£c trĂ†Â°Ă¡Â»â€ºc trĂ¡ÂºÂ­n.</div>` : `<div class="match-hint">CHĂ†Â¯A MĂ¡Â»Â KHÄ‚â€œA</div>`;
-    const showName = (n)=> n || '???';
-    return `<div class="match-card ${cls}" ${click}>
-        <div class="match-title"><span>${match.branch==='F'?'GRAND FINAL':`R${match.round+1} Ă‚Â· CĂ¡ÂºÂ·p ${match.index+1}`}</span><span>${match.winner?'DONE':ready?'READY':'LOCKED'}</span></div>
-        <div class="entrant ${match.winner===match.a?'winner':''}" style="color:${aColor}"><span class="dot" style="background:${aColor}"></span><span class="entrant-name">${showName(match.a)}</span></div>
-        <div class="entrant ${match.winner===match.b?'winner':''}" style="color:${bColor}"><span class="dot" style="background:${bColor}"></span><span class="entrant-name">${showName(match.b)}</span></div>
-        ${result}
-    </div>`;
-}
-function renderTournamentRound(title, matches, isOuter=false){ return `<div class="round-col ${isOuter?'outer-round':''}"><h4>${title}${isOuter?' <span class="outer-badge">BĂ¡ÂºÂ¤M Ă¡Â»Â Ă„ÂÄ‚â€Y</span>':''}</h4>${matches.map(renderTournamentMatchCard).join('')}</div>`; }
-function renderTournamentBranch(name, branch){
-    const titles=['VÄ‚Â²ng ngoÄ‚Â i cÄ‚Â¹ng','VÄ‚Â²ng 2','BÄ‚Â¡n kĂ¡ÂºÂ¿t nhÄ‚Â¡nh','Chung kĂ¡ÂºÂ¿t nhÄ‚Â¡nh'];
-    return `<div class="tournament-section"><div class="tournament-section-title"><span>${name}</span><span style="font-size:.75rem;opacity:.78">KÄ‚Â©o ngang Ă„â€˜Ă¡Â»Æ’ xem toÄ‚Â n nhÄ‚Â¡nh</span></div><div class="round-strip">${branch.rounds.map((r,i)=>renderTournamentRound(titles[i],r,i===0)).join('')}</div></div>`;
-}
-function tournamentReadyMatches(){ return tournamentAllMatches().filter(tournamentReady); }
-function renderTournamentReadyPanel(){
-    const ready = tournamentReadyMatches();
-    if(!ready.length) return `<div class="tournament-section"><div class="tournament-section-title"><span>CĂ¡ÂºÂ¶P SĂ¡ÂºÂ´N SÄ‚â‚¬NG</span></div><div class="match-hint">ChĂ†Â°a cÄ‚Â³ cĂ¡ÂºÂ·p mĂ¡Â»Å¸ khÄ‚Â³a. HÄ‚Â£y hoÄ‚Â n thÄ‚Â nh cÄ‚Â¡c trĂ¡ÂºÂ­n Ă„â€˜ang hiĂ¡Â»Æ’n thĂ¡Â»â€¹ hoĂ¡ÂºÂ·c giĂ¡ÂºÂ£i Ă„â€˜Ă¡ÂºÂ¥u Ă„â€˜Ä‚Â£ hoÄ‚Â n tĂ¡ÂºÂ¥t.</div></div>`;
-    const cards = ready.map(m=>{
-        const ac=tournamentFighterStyle(m.a), bc=tournamentFighterStyle(m.b);
-        return `<div class="ready-card" onclick="startTournamentMatch('${m.id}')">
-            <div class="ready-title"><span>${m.branch==='F'?'GRAND FINAL':`NHÄ‚ÂNH ${m.branch} Ă‚Â· ${m.round===0?'VÄ‚â€™NG NGOÄ‚â‚¬I':`VÄ‚â€™NG ${m.round+1}`} Ă‚Â· CĂ¡ÂºÂ¶P ${m.index+1}`}</span><span>PLAY</span></div>
-            <div class="ready-vs"><span style="color:${ac}">${fighterGlyph(m.a)} ${m.a}</span><span class="vs">VS</span><span style="color:${bc};text-align:right">${m.b} ${fighterGlyph(m.b)}</span></div>
-        </div>`;
-    }).join('');
-    return `<div class="tournament-section"><div class="tournament-section-title"><span>CĂ¡ÂºÂ¶P SĂ¡ÂºÂ´N SÄ‚â‚¬NG Ă„ÂĂ¡Â»â€ Ă„ÂĂ¡ÂºÂ¤U</span><span style="font-size:.75rem;opacity:.78">BĂ¡ÂºÂ¥m card lĂ¡Â»â€ºn nÄ‚Â y nĂ¡ÂºÂ¿u vÄ‚Â²ng ngoÄ‚Â i cÄ‚Â¹ng khÄ‚Â³ nhÄ‚Â¬n</span></div><div class="ready-grid">${cards}</div></div>`;
-}
-function buildTournamentSummary(){
-    const st=tournamentState; if(!st) return '';
-    const played = st.log.length;
-    const fastest = st.log.length ? st.log.reduce((a,b)=>(a.result.duration||9999)<(b.result.duration||9999)?a:b) : null;
-    const biggest = st.log.length ? st.log.reduce((a,b)=>(a.result.biggest||0)>(b.result.biggest||0)?a:b) : null;
-    const topDmg = st.log.length ? st.log.reduce((a,b)=>(a.result.winnerDamage||0)>(b.result.winnerDamage||0)?a:b) : null;
-    const champion = st.champion;
-    const stats = `<div class="tournament-summary">
-        <div class="tour-stat"><b>${played}</b><span>TrĂ¡ÂºÂ­n Ă„â€˜Ä‚Â£ Ă„â€˜Ă¡ÂºÂ¥u</span></div>
-        <div class="tour-stat"><b>${fastest?fastest.result.duration.toFixed(1)+'s':'-'}</b><span>TrĂ¡ÂºÂ­n nhanh nhĂ¡ÂºÂ¥t</span></div>
-        <div class="tour-stat"><b>${biggest?biggest.result.biggest.toFixed(1):'-'}</b><span>Biggest hit</span></div>
-        <div class="tour-stat"><b>${topDmg?topDmg.result.winnerDamage.toFixed(1):'-'}</b><span>Winner damage cao nhĂ¡ÂºÂ¥t</span></div>
-    </div>`;
-    const log = st.log.slice(-6).reverse().map(x=>`<div class="match-hint"><b style="color:${tournamentFighterStyle(x.winner)}">${x.winner}</b> thĂ¡ÂºÂ¯ng ${x.loser} Ă‚Â· ${x.result.duration.toFixed(1)}s Ă‚Â· ${x.result.winnerHp.toFixed(1)} HP</div>`).join('');
-    const banner = champion ? `<div class="champion-banner"><h2 style="color:${tournamentFighterStyle(champion)}">Ä‘Å¸Ââ€  ${champion} VÄ‚â€ Ă„ÂĂ¡Â»ÂCH</h2><div>GiĂ¡ÂºÂ£i Ă„â€˜Ă¡ÂºÂ¥u hoÄ‚Â n tĂ¡ÂºÂ¥t. TĂ¡Â»â€¢ng kĂ¡ÂºÂ¿t Ă„â€˜Ă†Â°Ă¡Â»Â£c lĂ†Â°u trong bĂ¡ÂºÂ£ng dĂ†Â°Ă¡Â»â€ºi.</div></div>` : '';
-    return `${banner}${stats}<div class="timeline"><h4>NHĂ¡ÂºÂ¬T KÄ‚Â GIĂ¡ÂºÂ¢I Ă„ÂĂ¡ÂºÂ¤U</h4>${log || '<div>ChĂ†Â°a cÄ‚Â³ trĂ¡ÂºÂ­n nÄ‚Â o. HÄ‚Â£y Ă¡ÂºÂ¥n vÄ‚Â o mĂ¡Â»â„¢t cĂ¡ÂºÂ·p READY Ă„â€˜Ă¡Â»Æ’ bĂ¡ÂºÂ¯t Ă„â€˜Ă¡ÂºÂ§u.</div>'}</div>`;
-}
-function renderTournament(){
-    const board=document.getElementById('tournament-board');
-    if(!board) return;
-    if(!tournamentState) tournamentState = createTournamentState();
-    board.classList.add('full');
-    board.innerHTML = `${renderTournamentReadyPanel()}${renderTournamentBranch('NHÄ‚ÂNH A', tournamentState.branches.A)}${renderTournamentBranch('NHÄ‚ÂNH B', tournamentState.branches.B)}<div class="tournament-section"><div class="tournament-section-title"><span>CHUNG KĂ¡ÂºÂ¾T TĂ¡Â»â€NG</span></div><div class="round-strip final-strip">${renderTournamentRound('Grand Final',[tournamentState.final])}</div>${buildTournamentSummary()}</div>`;
-}
 function setProductScreenHidden(id, hidden) {
     const screen = document.getElementById(id);
     if (screen) screen.classList.toggle('hidden', hidden);
@@ -2513,24 +2392,6 @@ function goToMenu() {
     if (hud) hud.style.opacity = 0;
     gameState = 'MENU';
 }
-function startTournamentMatch(matchId){
-    const match = tournamentFindMatch(matchId);
-    if(!tournamentReady(match)) return;
-    activeTournamentMatchId = matchId;
-    tournamentModeActive = true;
-    const a = fighterTypeByName(match.a), b = fighterTypeByName(match.b);
-    if(!a || !b) return;
-    return apexEnsureBattleRuntimes().then(() => startSpecificMatch(a,b,{countdown:true,tournament:true}));
-}
-function completeTournamentMatch(winner, loser){
-    const match = tournamentFindMatch(activeTournamentMatchId);
-    if(!match) return;
-    const duration = Math.max(.1, matchClock || ((performance.now()-matchStartTime)/1000));
-    const result = { duration, winnerHp:winner.hp, loserHp:loser.hp, winnerDamage:winner.damageDone||0, loserDamage:loser.damageDone||0, biggest:Math.max(winner.maxHit||0, loser.maxHit||0), label:sortedBreakdown(winner.damageLabels||{}) };
-    tournamentSetWinner(match, winner.name, loser.name, false, tournamentState, result);
-    activeTournamentMatchId = null;
-}
-function returnToTournament(){ goToTournament(); }
 var rosterPreviewRaf = 0;
 var rosterPreviewLastFrame = 0;
 var ROSTER_PREVIEW_INTERVAL = 160;
@@ -2690,23 +2551,6 @@ function syncSelectedFighterVfx() {
     });
 }
 function selectFighter(ft, card) {
-    if (document.body.classList.contains('manual-online-select')) {
-        const onlineState = window.APEX_MANUAL_LAB_ONLINE;
-        const player = onlineState?.role === 'guest' ? 2 : 1;
-        const selectedClass = player === 2 ? 'selected-p2' : 'selected-p1';
-        document.querySelectorAll(`#roster-grid .fighter-card.${selectedClass}`).forEach(node => node.classList.remove(selectedClass));
-        if (player === 2) { p1Selection = null; p2Selection = ft; }
-        else { p1Selection = ft; p2Selection = null; }
-        card.classList.add(selectedClass);
-        const lockButton = document.getElementById('start-btn');
-        lockButton.classList.remove('hidden');
-        lockButton.disabled = false;
-        document.getElementById('select-title').innerText = `P${player} · LOCK ${ft.name}`;
-        document.getElementById('select-title').style.color = player === 2 ? '#ff7ac8' : '#70d9ff';
-        syncSelectedFighterVfx();
-        window.APEX_MANUAL_LAB_ONLINE?.selectChampion?.(ft.name);
-        return;
-    }
     if (!p1Selection) {
         p1Selection = ft;
         card.classList.add('selected-p1');
@@ -2721,18 +2565,6 @@ function selectFighter(ft, card) {
     }
     syncSelectedFighterVfx();
 }
-window.apexApplyOnlineFighterSelection = function(role, fighterName) {
-    const ft = fighterTypeByName(String(fighterName || ''));
-    if (!ft) return false;
-    const player = role === 'guest' || role === 'P2' ? 2 : 1;
-    const selectedClass = player === 2 ? 'selected-p2' : 'selected-p1';
-    document.querySelectorAll(`#roster-grid .fighter-card.${selectedClass}`).forEach(node => node.classList.remove(selectedClass));
-    if (player === 2) p2Selection = ft;
-    else p1Selection = ft;
-    document.querySelector(`#roster-grid .fighter-card[data-fighter="${ft.name}"]`)?.classList.add(selectedClass);
-    syncSelectedFighterVfx();
-    return true;
-};
 function goToSelect() {
     stopBattleAudio();
     autoBattlePaused = false;
@@ -2937,14 +2769,11 @@ function endMatch() {
     updateAutoBattleControls();
     const winner = fighters[0].hp > fighters[1].hp ? fighters[0] : fighters[1];
     const loser = winner === fighters[0] ? fighters[1] : fighters[0];
-    if (activeTournamentMatchId) completeTournamentMatch(winner, loser);
     playFighterSound(winner, 'skill');
     fadeBattleAudio(.95, false);
     document.getElementById('winner-text').innerText = `${winner.name} WINS`;
     document.getElementById('winner-text').style.color = winner.color;
     document.getElementById('stats-panel').innerHTML = buildChallengeSummary(winner, loser) + buildPostMatchStats(winner, loser);
-    const tbtn = document.getElementById('tournament-return-btn');
-    if (tbtn) tbtn.classList.toggle('hidden', !tournamentModeActive);
     const cbtn = document.getElementById('challenge-retry-btn');
     if (cbtn) cbtn.classList.toggle('hidden', !currentChallenge);
     setTimeout(() => {

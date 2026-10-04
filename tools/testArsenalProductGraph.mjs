@@ -1,8 +1,8 @@
-// Focused pre-pilot product graph proof.
+// Focused Arsenal product graph proof.
 //
 // This intentionally exercises the semantic authority plus the public
-// mutation seams without booting legacy Quest routes. It is deterministic and
-// browser-independent: node tools/testPrePilotProductGraph.mjs
+// mutation seams without booting retired routes. It is deterministic and
+// browser-independent: node tools/testArsenalProductGraph.mjs
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -143,7 +143,6 @@ gate('economy-clean-state-and-mutation-legality', () => {
   assert.equal(meta.credits(), PRODUCT_ECONOMY.cleanStateCredits);
   assert.equal(meta.getState().credits, 350);
   assert.equal(meta.buy('BLACK_HOLE').reason, 'unavailable');
-  assert.equal(meta.buy('NEWBIE').reason, 'unavailable');
   assert.equal(meta.poolLocked().length, 5);
   assert.ok(meta.poolLocked().includes('HUNTER'));
   assert.ok(meta.poolLocked().every((id) => PRODUCT_ROSTER.playableIds.includes(id)));
@@ -161,6 +160,24 @@ gate('economy-clean-state-and-mutation-legality', () => {
   return { credits: meta.credits(), draw: draw.name, shopCost: meta.SHOP_COST, drawCost: meta.DRAW_COST };
 });
 
+gate('battle-result-credit-uses-player-side-and-awards-once', () => {
+  const { win, context } = makeClassicContext();
+  context.fighters = [
+    { name: 'ROBOT', type: { name: 'ROBOT' } },
+    { name: 'ROBOT', type: { name: 'ROBOT' } },
+  ];
+  const p2State = {};
+  const p2Win = win.APEX_ARSENAL_META.awardBattleResult('P2', p2State);
+  assert.equal(p2Win.ok, true);
+  assert.equal(p2Win.amount, 25, 'a P2 win is a P1 loss even when both fighters share the same name');
+  assert.equal(win.APEX_ARSENAL_META.awardBattleResult('P2', p2State).reason, 'not-awardable');
+  const p1Win = win.APEX_ARSENAL_META.awardBattleResult('P1', {});
+  assert.equal(p1Win.ok, true);
+  assert.equal(p1Win.amount, 50);
+  assert.equal(win.APEX_ARSENAL_META.awardBattleResult('ROBOT', {}).reason, 'invalid-winner');
+  return { balance: win.APEX_ARSENAL_META.credits(), p2Award: p2Win.amount, p1Award: p1Win.amount };
+});
+
 gate('newbie-migration-historic-ownership-and-stale-selection-safety', () => {
   const seed = {
     'apexChaos.arsenalMeta.v1': JSON.stringify({
@@ -173,6 +190,7 @@ gate('newbie-migration-historic-ownership-and-stale-selection-safety', () => {
   };
   const { win, storage } = makeClassicContext(seed);
   const state = win.APEX_ARSENAL_META.getState();
+  assert.equal(win.APEX_ARSENAL_META.buy('NEWBIE').reason, 'unavailable');
   assert.equal(state.credits, 777);
   assert.ok(state.ownedFighters.includes('ROBOT'));
   assert.ok(state.ownedFighters.includes('BLACK_HOLE'));
@@ -227,10 +245,10 @@ gate('shell-public-selection-and-bot-profile-seam', () => {
 gate('neutral-product-runtime-and-warmup-closure', () => {
   const active = ARSENAL_PRODUCT_RUNTIMES.map(([src]) => src);
   assert.ok(active.some((src) => src.includes('arsenalBattleRuntime.js')));
-  assert.ok(active.some((src) => src.includes('arsenalConfig.js')));
+  assert.equal(active.filter((src) => src.includes('/arsenalConfig.js')).length, 1);
   assert.ok(!active.some((src) => /arsenalQuest(Runtime|Ladder|Config)\.js/.test(src)));
   assert.deepEqual(Object.keys(MODE_DEFERRED_RUNTIMES).sort(), ['arsenalProduct', 'battle', 'battleDeferred', 'select']);
-  assert.ok(WARMUP_GROUP_SEQUENCE.includes('arsenalProduct'));
+  assert.deepEqual(WARMUP_GROUP_SEQUENCE, ['arsenalProduct', 'select']);
   assert.ok(!WARMUP_GROUP_SEQUENCE.some((group) => /quest/i.test(group)));
   const loader = source('src/game/runtimeLoader.js');
   assert.ok(!loader.includes('ARSENAL_LEGACY_QUEST_RUNTIMES'));

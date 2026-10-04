@@ -376,7 +376,7 @@
       const winner = aqHp(fighters[0]) > aqHp(fighters[1]) ? fighters[0] : fighters[1];
       state.over = winner.name;
       AQ.log('KO', `winner=${winner.name}`);
-      window.APEX_ARSENAL_META?.awardBattleResult?.(winner.name, state);
+      window.APEX_ARSENAL_META?.awardBattleResult?.(winner === fighters[0] ? 'P1' : 'P2', state);
       updateHUD();
     }
   }
@@ -760,8 +760,11 @@
         win.className = 'aq-result-layer';
         hudRefs.win = win;
         const actions = ['REMATCH', 'PICK AGAIN', 'PRODUCT MENU'];
+        const award = window.APEX_ARSENAL_META?.lastAward?.();
+        const reward = award && award.amount
+          ? '<div class="aq-result-reward">+' + award.amount + ' AC · BALANCE ' + award.balance + '</div>' : '';
         win.innerHTML = '<div class="aq-result-card"><div class="aq-result-kicker">ARSENAL RESULT</div><div class="aq-result-title">' + state.over + ' WINS</div>'
-          + '<div id="arsenal-result-actions" class="aq-result-actions">' + actions.map((action) => '<button type="button" data-arsenal-act="' + action + '">' + action + '</button>').join('') + '</div></div>';
+          + reward + '<div id="arsenal-result-actions" class="aq-result-actions">' + actions.map((action) => '<button type="button" data-arsenal-act="' + action + '">' + action + '</button>').join('') + '</div></div>';
         win.onclick = (event) => {
           const button = event.target && event.target.closest ? event.target.closest('[data-arsenal-act]') : null;
           const action = button && button.getAttribute('data-arsenal-act');

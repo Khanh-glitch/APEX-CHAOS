@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* H1 — live-root Gold body calibration and production post-held-weapon order.
  *
- * Runs the shipping Arsenal Quest renderer through bootHarness. The focused
+ * Runs the shipping Arsenal Battle renderer through bootHarness. The focused
  * visual probes use real AV.weaponImage wrappers for PISTOL, AK_47, and
  * SHOTGUN, while accepted presentation events advance only Gold's production
  * fixed-step bridge. Separate real-gameplay cases cover fighter order,
@@ -252,7 +252,7 @@ function activeGolds() { return createdGold.filter((gold) => gold.externalTruth)
 
 const sourceFiles = {
   adapter: fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js', 'utf8'),
-  arsenal: fs.readFileSync('public/game/modes/arsenalQuestRuntime.js', 'utf8'),
+  arsenal: fs.readFileSync('public/game/modes/arsenalBattleRuntime.js', 'utf8'),
   gold: fs.readFileSync('public/game/hero-rework/mirrorGoldV1.js', 'utf8'),
   manifest: fs.readFileSync('src/game/runtimeManifest.js', 'utf8'),
   revisionLock: JSON.parse(fs.readFileSync('tools/runtimeRevision.lock.json', 'utf8')),

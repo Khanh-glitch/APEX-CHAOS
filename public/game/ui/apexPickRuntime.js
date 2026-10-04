@@ -795,7 +795,6 @@
     if (start) start.disabled = !(PickRuntimeController.p1ChampionId && PickRuntimeController.p2ChampionId);
     refs.get('arrow-left')?.removeAttribute('disabled');
     refs.get('arrow-right')?.removeAttribute('disabled');
-    stage?.classList.remove('online-ready-locked');
     stage?.querySelectorAll('.apex-pick-card').forEach(card => {
       const selected = [p1Champ?.name, p2Champ?.name].includes(card.dataset.champion);
       card.classList.toggle('is-selected', selected);
@@ -904,23 +903,6 @@
     if (champ) confirmChampion(champ);
     return ft;
   };
-
-  window.apexApplyOnlineFighterSelection = function(role, fighterName) {
-    const champ = currentRoster().find(item => item.name === fighterName);
-    const ft = champ && fighterForChampion(champ);
-    if (!champ || !ft) return false;
-    if (role === 'guest' || role === 'P2') {
-      PickRuntimeController.p2ChampionId = champ.id;
-      p2Selection = ft;
-    } else {
-      PickRuntimeController.p1ChampionId = champ.id;
-      p1Selection = ft;
-    }
-    renderCards();
-    syncPickState();
-    return true;
-  };
-  window.apexSyncOnlineReadyState = syncPickState;
 
   const legacyGoToSelectJsonPick = goToSelect;
   goToSelect = function(...args) {
