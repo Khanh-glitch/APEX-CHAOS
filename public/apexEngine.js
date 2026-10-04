@@ -2784,133 +2784,14 @@ function endMatch() {
 
 
 
-// ===== MAJOR MECHANIC + VISUAL PATCH: PUPPET / 32F BALANCE =====
-// Major mechanic visuals now load from /game/core/apexMajorMechanicVisuals.js.
+// Historical full-roster compatibility runtimes are quarantined under test-fixtures/legacy-runtime.
+// Shipping/current runtime authority is src/game/runtimeManifest.js.
 
-// ===== SHOTGUN CHAMPION: hitscan pellets, breach, counter, magazine runtime =====
-// Shotgun champion now loads from /game/fighters/shotgunRuntime.js.
-
-// ===== ENGINEER CHAMPION: scrap economy, construction, match-3 merge =====
-// Engineer champion now loads from /game/fighters/engineerRuntime.js.
-
-// War Machine merge can temporarily stand in for ENGINEER as the directed-skill target.
-// Engineer merge bridge now loads from /game/guards/apexEngineerMergeBridge.js.
-
-// ===== SOCCER CHAMPION: possession, Goal Drive, Penalty, free ball, Chase Down =====
-// Soccer champion now loads from /game/fighters/soccerChampionRuntime.js.
-
-// ===== PRECISION FIX PATCH: requested targeted corrections =====
-// Precision fixes now load from /game/core/apexPrecisionFixes.js.
-
-
-// ===== FULL-ROSTER QA PATCH: simulation-derived runtime fixes + team-aware clone support =====
 function createSlimeMucus(x, y, owner) {
     projectiles.push({ type: 'slime_mucus', owner, x, y, radius: 75, life: 5, maxLife: 5 });
 }
-// Full roster QA now loads from /game/core/apexFullRosterQa.js.
-
-
-// ===== FREEZE / DISAPPEAR HOTFIX: PUPPET + SLIME + FLASH IMMUNITY =====
-// Freeze disappear hotfix now loads from /game/guards/apexFreezeDisappearHotfix.js.
-
-
-// ===== GLOBAL RUNTIME STABILITY GUARD: prevent random frame-freeze from draw/update exceptions =====
-// Runtime stability guard now loads from /game/guards/apexRuntimeStability.js.
-
-
-// ===== SLIME LIVE BODY CAP PATCH =====
-// Slime body cap now loads from /game/guards/apexSlimeBodyCap.js.
-
-// ===== FINAL CANONICAL IDENTITY + BALANCE MERGE PATCH =====
 window.apexBeforeFinalPatch = true;
-// Canonical balance now loads from /game/core/apexCanonicalBalance.js.
-
-
-
-// ===== APEX CHAOS: ROSTER REPLACEMENT + NEW TIKTOK-READABLE KITS =====
-// Roster extensions now load from /game/core/apexRosterExtensions.js.
-
-
 ctx.fillStyle = "#11100e";
 ctx.fillRect(0,0,GAME_SIZE,GAME_SIZE);
-
-// ===== EXTERNAL FIGHTER TELEMETRY HUD: readable counters below arena =====
-// Fight telemetry now loads from /game/core/apexFightTelemetry.js.
-
-// ===== MUSICIAN VISUAL ASSET INTEGRATION: asset-only, no gameplay changes =====
-// Musician visuals now load from /game/fighters/musicianVisualRuntime.js.
-
-// ===== ARCADE VISUAL ASSET INTEGRATION: asset-only, no gameplay changes =====
-// Arcade visuals now loads from /game/fighters/arcadeVisualRuntime.js.
-
-// ===== PUPPET VISUAL ASSET INTEGRATION: asset bodies + dynamic voodoo rope =====
-// Puppet visuals now loads from /game/fighters/puppetVisualRuntime.js.
-
-// ===== BLADE VISUAL ASSET INTEGRATION: spinner/wave visuals only, no gameplay changes =====
-// Blade visuals now load from /game/fighters/bladeVisualRuntime.js.
-
-// ===== NINJA VISUAL INTEGRATION: asset-driven rendering only, gameplay untouched =====
-// Ninja visuals now load from /game/fighters/ninjaVisualRuntime.js.
-
-// ===== GLOBAL TEXT HYGIENE: visible text/font cleanup only, no gameplay changes =====
-// Text hygiene now loads from /game/core/apexTextHygiene.js.
-
-// ===== ICE VISUAL + RAGE INTEGRATION: asset-driven rendering and ICE AGE field =====
-// Ice visual integration now loads from /game/fighters/iceVisualRuntime.js.
-
-// ===== SOLO 1V1 LOCAL RESTORE: deploy keeps current manual mode while auto battle stays from latest standalone =====
-// Solo mode now loads from /game/modes/soloRuntime.js.
-
-// String champion now loads from /game/fighters/stringRuntime.js.
-
-// ===== DAU THU MODE: single fighter test against non-lethal SAITAMA boss =====
-// Trial mode now loads from /game/modes/trialRuntime.js.
-
-// ===== GALAXY CHAMPION REPLACEMENT PATCH: NOVA -> GALAXY =====
-// Galaxy core patches now load from /game/fighters/galaxyRuntime.js.
-
-// ===== RESTORED STRING MAINLINE HARDENING: controls, settings, NINJA cleanup =====
-// String hardening now loads from /game/fighters/stringHardeningRuntime.js.
-
-// ===== GALAXY REFINEMENT PASS: facing, scale, planets, Divine, Impact, Bluehole =====
-// Galaxy refinement now loads from /game/fighters/galaxyRefinementRuntime.js.
-
-// ===== UTILITY FEATURES: sandbox controls, matchup stats, and match recorder =====
-// Utility features now load from /game/core/apexUtilityFeatures.js.
-
-// Keep SOCCER's state machine outside legacy update wrappers. The timestamp guard
-// inside preUpdate makes this compatible with the original nested SOCCER wrapper.
-// Soccer runtime extensions now load from /game/fighters/soccerRuntime.js.
-
-// ===== GALAXY DIVINE STOP-MOTION FINAL GUARD =====
-// Galaxy guards now load from /game/guards/apexGalaxyGuards.js.
-
-// ===== ENGINEER LATE BINDER: keep ENGINEER active after all later runtime patches =====
-// Engineer/Galaxy guards now load from /game/guards/apexEngineerGuards.js.
-
-// ===== FINAL MATCH LIFECYCLE / AUDIO / HUD GUARD =====
-// Final match runtime guard now loads from /game/guards/apexFinalMatchGuard.js.
-
-// ===== TAM CHIEN / THREE-PHASE BATTLE: local offline mode controller =====
-// Tam Chien mode now loads from /game/modes/tamChienRuntime.js.
-
-// Keep screen state honest when a match starts after late runtime wrappers.
-// Battle visibility guard now loads from /game/guards/apexBattleVisibilityGuard.js.
-
-// SHOTGUN is registered early enough for every roster builder, then rebound here
-// so later champion/runtime patches cannot bypass its VFX and stun-immunity clock.
-// Shotgun late binder now loads from /game/guards/apexShotgunLateBinder.js.
-
-// ===== KATANA CHAMPION: 48-frame sword rhythm, clone network, moon trap =====
-// Katana champion runtime now loads from /game/fighters/katanaRuntime.js.
-
-// ===== FANG V7: lunar/solar wolf hunt, frame-authoritative pounces =====
-// Fang champion runtime now loads from /game/fighters/fangRuntime.js.
-
-// ===== CHARACTER SELECT UI UPGRADE: framed runtime composition =====
-// Character select UI upgrade now loads from /game/ui/apexCharacterSelectUi.js.
-
 // ===== ISOLATED JSON PICK RUNTIME: absolute design-pixel renderer =====
 // JSON character picker now loads from /game/ui/apexPickRuntime.js.
-
-// Universal fighter pose locking now loads from /game/core/apexPoseLockRuntime.js.
