@@ -106,7 +106,7 @@ jobs:
           test "$(curl -fsS "http://localhost:$PORT1/ARSENAL_BUILD_SHA.txt")" = "$SHA"
           curl -fsSI "http://localhost:$PORT1/" | grep -i cache-control | grep -i no-store
           curl -fsS "http://localhost:$PORT1/" | grep -q 'id="root"'
-          curl -fsS "http://localhost:$PORT1/assets/arsenal/av/vfx/muzzle_flash/muzzleFlash0_transparent.png" -o /dev/null
+          curl -fsS "http://localhost:$PORT1/assets/arsenal/av/vfx/c/muzzle_0.png" -o /dev/null
           pwsh -NoProfile -File serve.ps1 >/tmp/arsenal-launcher-2.log 2>&1 &
           S2=$!
           for i in $(seq 1 30); do
