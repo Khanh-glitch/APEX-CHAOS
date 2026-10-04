@@ -439,11 +439,20 @@ report.spawnLaw = run(`
   for (let t = 0; t < 20; t += 0.1) {
     __APEX_TEST.step(0.1);
     const st = APEX_ARSENAL.state;
-    if (st.spawnedTotal > lastCount) { spawnTimes.push(+st.time.toFixed(2)); lastCount = st.spawnedTotal; }
+    if (st.spawnedTotal > lastCount) {
+      spawnTimes.push(+st.time.toFixed(2));
+      lastCount = st.spawnedTotal;
+      // The first spawn is the separately-covered both-unarmed emergency.
+      // Once observed, suppress only the emergency-fast path so random
+      // pickup/consumption cannot inject an extra slot into this cadence gate.
+      // Regular 4.5s spawnTimer processing remains active while spawnHeld=true.
+      if (spawnTimes.length === 1) st.spawnHeld = true;
+    }
     for (const slot of st.slots) {
       if (slot.phase === 'TELEGRAPH') leads[slot.id] = slot.revealLeadSeconds;
     }
   }
+  APEX_ARSENAL.state.spawnHeld = false;
   const gaps = spawnTimes.slice(1).map((v, i) => +(v - spawnTimes[i]).toFixed(2));
   const d = __APEX_TEST.debug();
   const leadValues = Object.values(leads);
