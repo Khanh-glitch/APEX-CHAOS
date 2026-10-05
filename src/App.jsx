@@ -472,9 +472,9 @@ export default function App() {
     return visible('menu-screen') || visible('select-screen');
   };
 
-  // Owner law: fades are ~300–450ms and never restart the track. The playhead
-  // is preserved across every surface change; only an explicit reset (legacy
-  // goToMenu hand-off) rewinds it.
+  // Owner law: fades are ~300–450ms and the product theme is one continuous
+  // timeline. Surface and battle changes may pause/fade it, but no compatibility
+  // path is allowed to seek or restart the playhead.
   const fadeMusicTo = (target, ms = MENU_MUSIC_FADE_MS, onDone) => {
     const audio = menuAudioRef.current;
     if (!audio) { if (onDone) onDone(); return; }
@@ -500,55 +500,41 @@ export default function App() {
     musicFadeRef.current = requestAnimationFrame(step);
   };
 
-  const stopMenuMusic = (reset = false) => {
+  const stopMenuMusic = () => {
     const audio = menuAudioRef.current;
     if (!audio) return;
     if (musicFadeRef.current) {
       cancelAnimationFrame(musicFadeRef.current);
       musicFadeRef.current = 0;
     }
-    // The product music authority owns the element: an owner reset (match
-    // start / legacy menu hand-off) fades out through it, so there is exactly
-    // one component that can stop the product theme.
+    // The ONE product music authority owns stop/fade semantics. Compatibility
+    // callers may ask to "reset", but owner law forbids seeking the theme.
     const authority = window.apexProductMusic;
-    if (authority && typeof authority.fadeOut === 'function' && !reset) {
+    if (authority && typeof authority.fadeOut === 'function') {
       authority.fadeOut(MENU_MUSIC_FADE_MS);
       return;
     }
+    // Fallback only when the authority failed to install: pause in place.
     audio.pause();
-    if (reset) {
-      try { audio.currentTime = 0; } catch (error) {}
-    }
   };
 
-  const playMenuMusic = (restart = false, attempts = 0) => {
+  const playMenuMusic = (_restart = false, attempts = 0) => {
     const audio = menuAudioRef.current;
     if (!audio) return;
-    // Owner law 2026-10-05: playback is requested through the ONE product
-    // music authority so autoplay rejection is recorded honestly and the ONE
-    // temporary gesture-unlock set (owned by that authority) resumes the SAME
-    // element. The App never opens a second music element or AudioContext and
-    // never resets the playhead because autoplay was blocked.
+    // Playback is requested through the ONE product music authority so browser
+    // rejection and interruption recovery share one state machine.
     const musicAuthority = window.apexProductMusic;
-    if (musicAuthority && typeof musicAuthority.request === 'function' && !restart) {
+    if (musicAuthority && typeof musicAuthority.request === 'function') {
       musicAuthority.request('menu');
       return;
     }
     if (!menuMusicAllowed()) {
       audio.pause();
-      // CP7 self-healing resume: the exit-to-menu handoff is fire-once — if
-      // the menu screen was not yet visible at that instant (screen swap,
-      // transient blur/hidden state on slow machines) the menu stayed silent
-      // with no retry. Retry briefly; never fight a real background-tab
-      // pause (document.hidden) or the battle-audio session (independent
-      // element, CP6).
+      // Fallback-only self-heal when the authority was unavailable.
       if (attempts < 8 && !document.hidden) {
-        setTimeout(() => playMenuMusic(restart, attempts + 1), 250);
+        setTimeout(() => playMenuMusic(false, attempts + 1), 250);
       }
       return;
-    }
-    if (restart) {
-      try { audio.currentTime = 0; } catch (error) {}
     }
     audio.volume = 0.48;
     const playPromise = audio.play();
@@ -594,8 +580,8 @@ export default function App() {
         src: a.currentSrc || a.src,
       };
     };
-    window.apexStopMenuMusic = (reset = false) => stopMenuMusic(reset);
-    window.apexPlayMenuMusic = (restart = false) => playMenuMusic(restart);
+    window.apexStopMenuMusic = () => stopMenuMusic();
+    window.apexPlayMenuMusic = () => playMenuMusic(false);
     const musicAuthority = music ? music.api : null;
     if (musicAuthority) {
       window.apexProductMusic = musicAuthority;
@@ -701,21 +687,21 @@ export default function App() {
       // unmute the master for the new session. Menu/select navigation ends
       // the session — battle SFX stay silent until the next match begins.
       if (options.startsMatch) {
-        stopMenuMusic(true);
-        window.apexBeginBattleAudioSession?.();
+        stopMenuMusic();
+        window.apexBeginBattleAudioSession?.('runApex:startsMatch');
       } else if (name === 'startMatch' || name === 'startArsenalBattleMode') {
-        stopMenuMusic(true);
-        window.apexBeginBattleAudioSession?.();
+        stopMenuMusic();
+        window.apexBeginBattleAudioSession?.(`runApex:${name}`);
       } else if (name === 'goToMenu') {
-        window.apexEndBattleAudioSession?.();
-        playMenuMusic(true);
+        window.apexEndBattleAudioSession?.('runApex:goToMenu');
+        playMenuMusic(false);
       } else if (name === 'goToSelect' || name === 'beginArsenalBattleSelection') {
-        window.apexEndBattleAudioSession?.();
+        window.apexEndBattleAudioSession?.(`runApex:${name}`);
         playMenuMusic(false);
       }
       callApexGlobal(name, true);
       if (options.startsMatch || name === 'startMatch' || name === 'startArsenalBattleMode') {
-        stopMenuMusic(true);
+        stopMenuMusic();
       }
     } catch (error) {
       console.warn(`[asset-loader] Failed to prepare action ${name}.`, error);
@@ -743,7 +729,7 @@ export default function App() {
       // ADMIN only: the real Lab keeps the accepted Arsenal battle core. It
       // is deliberately launchable through this seam but absent from public UI.
       await loadDeferredGameRuntimes('arsenalProduct');
-      stopMenuMusic(true);
+      stopMenuMusic();
       const ready = window.apexArsenalGameplayBarrierSync?.('lab')
         || await window.apexArsenalGameplayBarrier?.('lab');
       if (ready === false) return false;
