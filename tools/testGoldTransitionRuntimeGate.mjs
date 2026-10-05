@@ -40,12 +40,14 @@ class FakeDoorEngine {
     this.state = 'IDLE';
     this.openCount = 0;
     this.readyCount = 0;
+    this.readyRequested = false;
     this.destroyCount = 0;
     FakeDoorEngine.instances.push(this);
   }
   open(opts) {
     this.opts = opts;
     this.openCount += 1;
+    this.readyRequested = false;
     this.state = 'CLOSING';
     this.callbacks.onState?.('CLOSING');
   }
@@ -56,8 +58,11 @@ class FakeDoorEngine {
   }
   ready() {
     this.readyCount += 1;
-    this.state = 'OPENING';
-    this.callbacks.onState?.('OPENING');
+    this.readyRequested = true;
+    if (this.state === 'SEALED') {
+      this.state = 'OPENING';
+      this.callbacks.onState?.('OPENING');
+    }
   }
   reveal(p) { this.callbacks.onReveal?.(p); }
   done() {
@@ -95,12 +100,14 @@ check('boot transition receives no demo background image', engine?.opts?.from ==
 
 await coordinator.signalBootReady();
 await flush();
-check('boot READY cannot open before opaque cover', engine.readyCount === 0 && blackout.hidden === false);
+check('boot readiness primes Gold close without revealing early',
+  engine.readyCount === 1 && engine.readyRequested === true && engine.state === 'CLOSING' && blackout.hidden === false);
 
 engine.cover();
 await flush();
 check('boot commits only after cover', blackout.hidden === true);
-check('boot opens only after destination readiness', engine.readyCount === 1 && coordinator.state().settled === true);
+check('SEALED disarms the prime until covered destination is settled', coordinator.state().gateReady === true || engine.readyRequested === false || engine.state === 'OPENING');
+check('boot opens only after destination readiness', engine.readyCount === 2 && coordinator.state().settled === true);
 engine.done();
 await flush();
 check('boot transaction reaches DONE', coordinator.active() === false && bootComplete === 1);
@@ -116,11 +123,12 @@ const fast = coordinator.run({
   commit: () => { fastCommit += 1; },
 });
 await flush();
-check('fast load never shortcuts CLOSE/cover', fastCommit === 0 && engine.readyCount === 1);
+check('fast load never shortcuts CLOSE/cover', fastCommit === 0 && engine.readyCount === 3 && engine.state === 'CLOSING');
+check('fast load primes the donor close curve as soon as prepare is ready', coordinator.state().closePrimed === true);
 engine.cover();
 await flush();
 check('fast load commits under cover', fastCommit === 1);
-check('fast load emits exactly one READY for this transaction', engine.readyCount === 2);
+check('fast load re-arms one final READY after covered settle', engine.readyCount === 4 && engine.state === 'OPENING');
 engine.reveal(0.5);
 check('Gold target reveal scale is applied progressively', root.style.transform === 'scale(1.0600)', root.style.transform);
 engine.done();
@@ -170,10 +178,11 @@ engine.cover();
 await flush();
 const readyBeforeLive = engine.readyCount;
 check('semantic gate allows hidden destination commit', gatedCommit === 1);
-check('semantic gate blocks READY/OPEN', engine.readyCount === readyBeforeLive);
+check('semantic gate disarms the prepare-time prime while SEALED', engine.readyRequested === false && engine.state === 'SEALED');
+check('semantic gate blocks final READY/OPEN', engine.readyCount === readyBeforeLive);
 liveGate.resolve(true);
 await flush();
-check('semantic gate releases exactly one READY', engine.readyCount === readyBeforeLive + 1);
+check('semantic gate releases exactly one final READY', engine.readyCount === readyBeforeLive + 1 && engine.state === 'OPENING');
 engine.done();
 const gatedResult = await gated;
 check('semantic-gated transaction resolves success', gatedResult?.ok === true);
