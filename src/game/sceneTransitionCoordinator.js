@@ -309,6 +309,15 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
     prepareElement: settleSceneElement,
     assetsReady: () => assetsPromise.then(() => true),
     active: () => Boolean(active),
+    dispose: () => {
+      try { engine?.destroy?.(); } catch (_) {}
+      engine = null;
+      active = null;
+      clearNodeMotion(defaultRoot());
+      document.body.classList.remove('apex-scene-transition-active');
+      canvas.setAttribute('aria-hidden', 'true');
+      bodyState('IDLE');
+    },
     state: () => active ? {
       id: active.id,
       name: active.name,
