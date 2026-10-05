@@ -2,7 +2,7 @@
   "revision": "20261005-owner-playtest-r44",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "a0d10025cde29ee55d6eb95a06aee2cbebe2a56e01adcdb1154f8366e3128712",
-    "public/game/product/productMusicAuthority.js": "ac7a2567b39e48e3e8276918ee253b8d0096557a9a3982c275a5708a15647fe4",
+    "public/game/product/productMusicAuthority.js": "aee1bdf2eae6770ca465885d685d357410e2c732902d6156ee8f485a1062e9b6",
     "public/game/ui/apexCombatHudRuntime.js": "a193f90e322ed5545d1ae48185abcd819d7c0ae459d23271bf5cadd3adf6033d",
     "public/game/core/apexArsenalProductCollisionRuntime.js": "ebda0bc7539be7627b4bec0c639e61ae6a4e0f319a6327518fd23d0f7bd13090",
     "public/game/core/apexArsenalProductRenderHudRuntime.js": "881b37ff0075988add1a82059782eb207e129005a67ff8bcf322db093189edf8",

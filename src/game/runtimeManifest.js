@@ -45,10 +45,20 @@ export const PICK_RUNTIMES = [
   ['/game/ui/apexPickRuntime.js', 'apexPickRuntime'],
 ];
 
+// The ONE semantic UI/UX/HUD SFX authority (owner law 2026-10-05): a single
+// cached media element per cue for the whole 18-key UI SFX pack — no element is
+// constructed per interaction, no audio graph is built per event, and the UI
+// volume/mute is separate from the MUSIC mute. Loaded before every screen that
+// can make a sound.
+export const UI_SFX_RUNTIMES = [
+  ['/game/ui/uiSfxAuthority.js', 'uiSfxAuthority'],
+];
+
 // Current product selection uses only the shared current render primitive.
 export const SELECT_RUNTIMES = [
   CURRENT_COMBAT_CORE_RUNTIMES[1], // apexRenderPrimitives
   ...PICK_RUNTIMES,
+  ...UI_SFX_RUNTIMES,
 ];
 
 // Current Arsenal engine chain. Collision, renderer/HUD and draw recovery are

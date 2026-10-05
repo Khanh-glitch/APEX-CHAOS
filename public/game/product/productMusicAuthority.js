@@ -17,7 +17,11 @@
 //   * hidden/blur pauses; visible/focus resumes only if playback was
 //     previously allowed.
 //   * M mutes MUSIC ONLY (battle SFX use their own audio graph).
-//   * Autoplay policy is respected: nothing here manufactures playback.
+//   * Autoplay policy is respected: nothing here manufactures playback. A
+//     blocked autoplay is recorded honestly, ONE temporary gesture-unlock
+//     listener set is armed, the SAME element is resumed on the first legal
+//     gesture and the listeners are removed after success. currentTime is
+//     never reset because playback was blocked.
 //
 // This file is a plain classic script (not a module) so the App bundle and the
 // headless cross-law harness load the SAME implementation.
@@ -85,9 +89,85 @@
       fadeFrame = win.requestAnimationFrame(step);
     };
 
-    const play = () => {
+    // ── autoplay / gesture recovery (owner law 2026-10-05) ────────────────
+    // ONE media element, ONE temporary unlock listener set. When the browser
+    // blocks autoplay the blocked state is recorded HONESTLY (never faked as
+    // playing); a single gesture listener set is armed; the SAME element is
+    // resumed on the first legal gesture; the listeners are removed after
+    // success. currentTime is NEVER reset because playback was blocked.
+    const GESTURE_EVENTS = ['pointerdown', 'touchstart', 'keydown', 'click'];
+    const diag = {
+      requested: 0, success: 0, rejected: 0, armed: 0, unlocked: 0,
+      blocked: false, armedAt: null, unlockedAt: null,
+      lastCurrentTimeBefore: null, lastCurrentTimeAfter: null,
+      lastRejectName: '', surface: null, muted: false,
+    };
+    let gestureArmed = false;
+    let gestureHandlers = [];
+    const disarmGestureUnlock = () => {
+      for (const [type, fn] of gestureHandlers) {
+        try { win.removeEventListener(type, fn, true); } catch (error) { /* best effort */ }
+      }
+      gestureHandlers = [];
+      gestureArmed = false;
+    };
+    const armGestureUnlock = () => {
+      if (gestureArmed || !audio.paused) return;
+      gestureArmed = true;
+      diag.armed += 1;
+      diag.armedAt = Date.now();
+      const onFirstGesture = () => {
+        if (!audio.paused) { disarmGestureUnlock(); return; }
+        // Resume the SAME element from its existing playhead. Never reset
+        // currentTime just because autoplay was blocked.
+        diag.lastCurrentTimeBefore = audio.currentTime;
+        const before = audio.currentTime;
+        disarmGestureUnlock();
+        const p = audio.play();
+        const done = () => {
+          diag.unlocked += 1;
+          diag.unlockedAt = Date.now();
+          diag.blocked = false;
+          diag.lastCurrentTimeAfter = audio.currentTime;
+          if (audio.currentTime < before) { try { audio.currentTime = before; } catch (error) { /* ignore */ } }
+          audio.volume = VOLUME;
+        };
+        if (p && typeof p.then === 'function') p.then(done, () => {});
+        else done();
+      };
+      for (const type of GESTURE_EVENTS) {
+        const fn = (e) => {
+          // A gesture that is itself a UI activation is still a legal unlock.
+          try { onFirstGesture(e); } catch (error) { /* ignore */ }
+        };
+        gestureHandlers.push([type, fn]);
+        try { win.addEventListener(type, fn, true); } catch (error) { /* best effort */ }
+      }
+    };
+    const play = (reason) => {
+      diag.requested += 1;
+      diag.surface = surface ? surface.id : null;
+      diag.muted = audio.muted;
       const p = audio.play();
-      if (p && typeof p.catch === 'function') p.catch(() => {});
+      if (p && typeof p.then === 'function') {
+        p.then(() => {
+          diag.success += 1;
+          diag.blocked = false;
+          if (gestureArmed) disarmGestureUnlock();
+        }, (error) => {
+          // Honest: autoplay was blocked. Record it, do NOT fake playback and
+          // do NOT touch the playhead.
+          diag.rejected += 1;
+          diag.blocked = true;
+          diag.lastRejectName = String((error && error.name) || 'rejected');
+          armGestureUnlock();
+        });
+      } else {
+        // Environments without a play() promise: assume success only if the
+        // element is genuinely not paused.
+        if (audio.paused) { diag.rejected += 1; diag.blocked = true; armGestureUnlock(); }
+        else { diag.success += 1; diag.blocked = false; }
+      }
       return p;
     };
 
@@ -134,9 +214,24 @@
       isProductMusicElement: (el) => el === audio,
       allowedSurfaces: () => [...allowed],
       setSurface,
+      // Request playback through the authority: honours autoplay policy,
+      // records the blocked state honestly and arms the ONE temporary
+      // gesture-unlock set. Never resets currentTime.
+      request: (reason) => {
+        if (!isAllowed()) return null;
+        return play(reason || 'request');
+      },
       fadeOut: (ms) => fadeOut(ms),
       fadeIn: (ms) => fadeIn(ms),
       toggleMute,
+      // No-spam browser diagnostics: counters and the honest blocked state.
+      diagnostics: () => ({
+        ...diag,
+        paused: audio.paused,
+        currentTime: audio.currentTime,
+        gestureListenerCount: gestureHandlers.length,
+        elementCount: 1,
+      }),
       state: () => ({
         src: audio.currentSrc || audio.src,
         paused: audio.paused,
@@ -145,6 +240,7 @@
         currentTime: audio.currentTime,
         surface,
         allowed: isAllowed(),
+        blocked: diag.blocked,
       }),
     };
 
@@ -178,6 +274,7 @@
       doc.removeEventListener('visibilitychange', handleVisibility);
       win.removeEventListener('blur', pauseForHidden);
       win.removeEventListener('focus', resumeForVisible);
+      disarmGestureUnlock();
       cancelFade();
       win.__apexProductMusicInstalled = null;
       if (win.__apexProductMusicHandle === handle) delete win.__apexProductMusicHandle;

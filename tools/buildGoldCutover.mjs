@@ -1050,6 +1050,7 @@ function buildShell(hudProductionHtml) {
       why: 'install production bridge before the canonical shell script',
       find: /<script>\n\(\(\) => \{\n  'use strict';\n  const stage = document\.getElementById\('stage'\);/,
       replace: (
+        `<script src="/game/ui/uiSfxAuthority.js?v=${REVISION}"></script>\n` +
         `<script src="/game/gold/goldProductBridge.js?v=${REVISION}"></script>\n` +
         `<script>\n(() => {\n  'use strict';\n  const stage = document.getElementById('stage');`
       ),
@@ -1334,6 +1335,142 @@ function buildShell(hudProductionHtml) {
       ),
     },
     // ── S26: world-stage fallback never resolves to an empty src ────────────
+    // ── S27: Home story copy is RIGHT-aligned (accepted Gold) ─────────────
+    // Scoped to the authored Home story-copy block ONLY (the exact three
+    // <br>-separated lines). Line breaks, text, typography, hierarchy and the
+    // authored responsive behaviour (.copy{display:none}) are untouched, and
+    // no other UI text is globally right-aligned.
+    // ── S30: the synthetic UI oscillator authority is REMOVED ─────────────
+    // uiThud() synthesised triangle+square oscillators through its own
+    // AudioContext (one context, but a second synthetic SFX authority). Owner
+    // law: every UI cue is a REAL Git cue played through the ONE semantic
+    // UI-SFX authority. No synthetic oscillator survives in the product shell.
+    {
+      id: 'SHL-S30',
+      why: 'synthetic UI oscillator authority (uiThud) removed in favour of the real Git UI-SFX pack',
+      find: /  let uiAudio=null;\n  function uiThud\(power=1\)\{[\s\S]*?\n  \}\n/,
+      replace: (
+        `  // Owner law 2026-10-05: no synthetic oscillator authority. Every UI\n` +
+        `  // cue is a real Git cue through the ONE semantic UI-SFX authority\n` +
+        `  // (public/game/ui/uiSfxAuthority.js) — one cached element per key.\n` +
+        `  function uiSfx(key){try{const sfx=window.apexUiSfx;if(sfx&&typeof sfx.play==='function')sfx.play(key);}catch(_){}}\n`
+      ),
+    },
+    // Mode→Fighter Pick is an authored screen transition.
+    {
+      id: 'SHL-S31',
+      why: 'mode commit plays the real ui.screen.transition cue (Mode -> Fighter Pick)',
+      find: /    uiThud\(1\);/,
+      replace: `    uiSfx('ui.screen.transition');`,
+    },
+    // Fighter lock-in has its own real cue (ui.button.press must not stack under it).
+    {
+      id: 'SHL-S32',
+      why: 'fighter lock-in plays the real fighter.lock_in cue',
+      find: /uiThud\(\.88\);/,
+      replace: `uiSfx('fighter.lock_in');`,
+    },
+    // ── S39: Home -> Mode plays the real ui.screen.transition cue ──────────
+    {
+      id: 'SHL-S39',
+      why: 'Home -> Mode plays the real ui.screen.transition cue',
+      find: /  battle\.addEventListener\('click',\(\)=>setScreen\('mode'\)\);/,
+      replace: (
+        `  battle.addEventListener('click',()=>{uiSfx('ui.screen.transition');setScreen('mode')});`
+      ),
+    },
+    // ── S33: battle-entry transition retimed to a readable beat ────────────
+    // The owner reported an "extremely brief" beat. The six authored phases are
+    // re-timed to ≈1.65 s (still well short of a loading screen) while every
+    // phase keeps its place, the is-reveal beat keeps >= the 430 ms authored
+    // CSS transition, and prefers-reduced-motion still collapses to 24 ms.
+    {
+      id: 'SHL-S33',
+      why: 'battle-entry transition retimed from 1.17 s to a readable 1.65 s',
+      find: /    if\(!await transitionDelay\(110,token\)\)return;/,
+      replace: `    if(!await transitionDelay(180,token))return;`,
+    },
+    {
+      id: 'SHL-S34',
+      why: 'battle-entry transition retiming: clamp -> freeze beat',
+      find: /    if\(!await transitionDelay\(155,token\)\)return;/,
+      replace: `    if(!await transitionDelay(240,token))return;`,
+    },
+    {
+      id: 'SHL-S35',
+      why: 'battle-entry transition retiming: freeze -> seam beat',
+      find: /    if\(!await transitionDelay\(150,token\)\)return;\n    battleTransition\.classList\.add\('phase-seam'\);/,
+      replace: (
+        `    if(!await transitionDelay(240,token))return;\n` +
+        `    battleTransition.classList.add('phase-seam');`
+      ),
+    },
+    {
+      id: 'SHL-S36',
+      why: 'battle-entry transition retiming: seam -> open beat',
+      find: /    if\(!await transitionDelay\(170,token\)\)return;/,
+      replace: `    if(!await transitionDelay(260,token))return;`,
+    },
+    {
+      id: 'SHL-S37',
+      why: 'battle-entry transition retiming: is-reveal beat (>= the authored 430 ms CSS transition)',
+      find: /    if\(!await transitionDelay\(430,token\)\)return;/,
+      replace: `    if(!await transitionDelay(520,token))return;`,
+    },
+    {
+      id: 'SHL-S38',
+      why: 'battle-entry transition retiming: open -> live beat',
+      find: /    if\(!await transitionDelay\(150,token\)\)return;\n    resetBattleTransitionVisuals\(\);/,
+      replace: (
+        `    if(!await transitionDelay(210,token))return;\n` +
+        `    resetBattleTransitionVisuals();`
+      ),
+    },
+    // ── S28: real Git transition SFX replace the synthetic oscillator ──────
+    // The seal-phase beep was a short-lived TRIANGLE oscillator (240→640 Hz,
+    // 140 ms) — the "strange triangular/noise beat" the owner reported. The
+    // whole synthetic oscillator authority is removed and the three authored
+    // battle-transition phases now play the REAL Git cues through the ONE
+    // semantic UI-SFX authority: lock_impact on phase-lock, clamp_rail on
+    // phase-clamp, seam_open on phase-seam. No oscillator, no per-frame
+    // retrigger, no second AudioContext.
+    {
+      id: 'SHL-S28',
+      why: 'synthetic oscillator transition SFX replaced by the real Git battle-transition cues',
+      find: /  function transitionSound\(kind\)\{[\s\S]*?\n  \}\n/,
+      replace: (
+        `  const TRANSITION_SFX={'lock':'battle.transition.lock_impact','rail':'battle.transition.clamp_rail','seal':'battle.transition.seam_open'};\n` +
+        `  const transitionSfxPlayed=new Set();\n` +
+        `  function transitionSound(kind){\n` +
+        `    try{\n` +
+        `      const key=TRANSITION_SFX[kind];if(!key)return;\n` +
+        `      // Each authored phase cue fires exactly once per transition.\n` +
+        `      if(transitionSfxPlayed.has(key))return;\n` +
+        `      transitionSfxPlayed.add(key);\n` +
+        `      const sfx=window.apexUiSfx;\n` +
+        `      if(sfx&&typeof sfx.play==='function')sfx.play(key);\n` +
+        `    }catch(_){ }\n` +
+        `  }\n`
+      ),
+    },
+    // ── S29: the once-per-transition cue set resets when a transition starts ─
+    {
+      id: 'SHL-S29',
+      why: 'transition SFX fire exactly once per transition (reset on launch)',
+      find: /    screen='transition';\n    battleHudReady=false;\n    battleHudConfig=makeBattleConfig\(false\);/,
+      replace: (
+        `    screen='transition';\n` +
+        `    battleHudReady=false;\n` +
+        `    transitionSfxPlayed.clear();\n` +
+        `    battleHudConfig=makeBattleConfig(false);`
+      ),
+    },
+    {
+      id: 'SHL-S27',
+      why: 'Home story copy right-aligned inside the authored story-copy block only',
+      find: /section\.story\.e-story::before,\nsection\.story\.e-story::after\{content:none!important;display:none!important;background:none!important;box-shadow:none!important;backdrop-filter:none!important\}/,
+      replace: (matched) => `${matched}\nsection.story.e-story .copy{text-align:right}`,
+    },
     {
       id: 'SHL-S26',
       why: 'world-stage art never resolves to an empty src',

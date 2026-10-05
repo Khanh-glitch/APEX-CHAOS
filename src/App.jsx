@@ -524,6 +524,16 @@ export default function App() {
   const playMenuMusic = (restart = false, attempts = 0) => {
     const audio = menuAudioRef.current;
     if (!audio) return;
+    // Owner law 2026-10-05: playback is requested through the ONE product
+    // music authority so autoplay rejection is recorded honestly and the ONE
+    // temporary gesture-unlock set (owned by that authority) resumes the SAME
+    // element. The App never opens a second music element or AudioContext and
+    // never resets the playhead because autoplay was blocked.
+    const musicAuthority = window.apexProductMusic;
+    if (musicAuthority && typeof musicAuthority.request === 'function' && !restart) {
+      musicAuthority.request('menu');
+      return;
+    }
     if (!menuMusicAllowed()) {
       audio.pause();
       // CP7 self-healing resume: the exit-to-menu handoff is fire-once — if
@@ -611,6 +621,12 @@ export default function App() {
         const st = musicAuthority.state();
         if (!st || !st.allowed || !audio) return;
         if (restart) { try { audio.currentTime = 0; } catch (error) {} }
+        // Route through the authority's request() so a blocked autoplay arms
+        // the ONE temporary gesture-unlock set instead of failing silently.
+        if (typeof musicAuthority.request === 'function') {
+          musicAuthority.request('legacy-menu');
+          return;
+        }
         audio.volume = MENU_MUSIC_VOLUME;
         const p = audio.play();
         if (p && typeof p.catch === 'function') p.catch(() => {});
@@ -622,6 +638,10 @@ export default function App() {
     // next click/keypress heals the menu music instead of leaving the menu
     // silent for the rest of the session. playMenuMusic no-ops when already
     // playing or when no menu screen is visible.
+    // This is a MENU-RESUME path on the SAME single element; the autoplay
+    // unlock itself is the ONE temporary listener set owned by the product
+    // music authority (pointerdown/touchstart/keydown/click, removed after
+    // success) — never a second element, AudioContext or unlock set.
     const unlock = () => playMenuMusic(false);
     const pauseForHiddenTab = () => {
       const current = menuAudioRef.current;
