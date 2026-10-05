@@ -48,65 +48,78 @@
   // PICK_SELECTED_LARGE is absent by design and is never replaced by a broken
   // or placeholder image.
   const HERO_UI_ART_ROOT = '/assets/gold-ui/heroes/';
+  const HERO_UI_ART_REVISION = (() => {
+    try {
+      const src = document.currentScript && document.currentScript.src;
+      if (!src) return '';
+      return new URL(src, window.location.href).searchParams.get('v') || '';
+    } catch (error) { return ''; }
+  })();
+  function heroUiAsset(relativePath) {
+    const url = HERO_UI_ART_ROOT + String(relativePath || '').replace(/^\/+/, '');
+    return HERO_UI_ART_REVISION
+      ? url + '?v=' + encodeURIComponent(HERO_UI_ART_REVISION)
+      : url;
+  }
   const HERO_UI_ART = {
     newbot: {
-      portrait: HERO_UI_ART_ROOT + 'newbot/pick_roster_cover.webp',
-      art: HERO_UI_ART_ROOT + 'newbot/pick_selected_large.webp',
-      battleAvatar: HERO_UI_ART_ROOT + 'newbot/battle_avatar.webp',
+      portrait: heroUiAsset('newbot/pick_roster_cover.webp'),
+      art: heroUiAsset('newbot/pick_selected_large.webp'),
+      battleAvatar: heroUiAsset('newbot/battle_avatar.webp'),
       skillIcons: [
-        HERO_UI_ART_ROOT + 'newbot/skill_passive.webp',
-        HERO_UI_ART_ROOT + 'newbot/skill_a1.webp',
-        HERO_UI_ART_ROOT + 'newbot/skill_a2.webp',
+        heroUiAsset('newbot/skill_passive.webp'),
+        heroUiAsset('newbot/skill_a1.webp'),
+        heroUiAsset('newbot/skill_a2.webp'),
       ],
     },
     hunter: {
-      portrait: HERO_UI_ART_ROOT + 'hunter/pick_roster_cover.webp',
-      art: HERO_UI_ART_ROOT + 'hunter/pick_selected_large.webp',
-      battleAvatar: HERO_UI_ART_ROOT + 'hunter/battle_avatar.webp',
+      portrait: heroUiAsset('hunter/pick_roster_cover.webp'),
+      art: heroUiAsset('hunter/pick_selected_large.webp'),
+      battleAvatar: heroUiAsset('hunter/battle_avatar.webp'),
       skillIcons: [
-        HERO_UI_ART_ROOT + 'hunter/skill_passive.webp',
-        HERO_UI_ART_ROOT + 'hunter/skill_a1.webp',
-        HERO_UI_ART_ROOT + 'hunter/skill_a2.webp',
+        heroUiAsset('hunter/skill_passive.webp'),
+        heroUiAsset('hunter/skill_a1.webp'),
+        heroUiAsset('hunter/skill_a2.webp'),
       ],
     },
     crystala: {
-      portrait: HERO_UI_ART_ROOT + 'crystala/pick_roster_cover.webp',
-      art: HERO_UI_ART_ROOT + 'crystala/pick_selected_large.webp',
-      battleAvatar: HERO_UI_ART_ROOT + 'crystala/battle_avatar.webp',
+      portrait: heroUiAsset('crystala/pick_roster_cover.webp'),
+      art: heroUiAsset('crystala/pick_selected_large.webp'),
+      battleAvatar: heroUiAsset('crystala/battle_avatar.webp'),
       skillIcons: [
-        HERO_UI_ART_ROOT + 'crystala/skill_passive.webp',
-        HERO_UI_ART_ROOT + 'crystala/skill_a1.webp',
-        HERO_UI_ART_ROOT + 'crystala/skill_a2.webp',
+        heroUiAsset('crystala/skill_passive.webp'),
+        heroUiAsset('crystala/skill_a1.webp'),
+        heroUiAsset('crystala/skill_a2.webp'),
       ],
     },
     magnet: {
-      portrait: HERO_UI_ART_ROOT + 'magnet/pick_roster_cover.webp',
-      art: HERO_UI_ART_ROOT + 'magnet/pick_selected_large.webp',
-      battleAvatar: HERO_UI_ART_ROOT + 'magnet/battle_avatar.webp',
+      portrait: heroUiAsset('magnet/pick_roster_cover.webp'),
+      art: heroUiAsset('magnet/pick_selected_large.webp'),
+      battleAvatar: heroUiAsset('magnet/battle_avatar.webp'),
       skillIcons: [
-        HERO_UI_ART_ROOT + 'magnet/skill_passive.webp',
-        HERO_UI_ART_ROOT + 'magnet/skill_a1.webp',
-        HERO_UI_ART_ROOT + 'magnet/skill_a2.webp',
+        heroUiAsset('magnet/skill_passive.webp'),
+        heroUiAsset('magnet/skill_a1.webp'),
+        heroUiAsset('magnet/skill_a2.webp'),
       ],
     },
     frost: {
-      portrait: HERO_UI_ART_ROOT + 'frost/pick_roster_cover.webp',
-      art: HERO_UI_ART_ROOT + 'frost/pick_selected_large.webp',
-      battleAvatar: HERO_UI_ART_ROOT + 'frost/battle_avatar.webp',
+      portrait: heroUiAsset('frost/pick_roster_cover.webp'),
+      art: heroUiAsset('frost/pick_selected_large.webp'),
+      battleAvatar: heroUiAsset('frost/battle_avatar.webp'),
       skillIcons: [
-        HERO_UI_ART_ROOT + 'frost/skill_passive.webp',
-        HERO_UI_ART_ROOT + 'frost/skill_a1.webp',
-        HERO_UI_ART_ROOT + 'frost/skill_a2.webp',
+        heroUiAsset('frost/skill_passive.webp'),
+        heroUiAsset('frost/skill_a1.webp'),
+        heroUiAsset('frost/skill_a2.webp'),
       ],
     },
     // Mirror: no PICK_SELECTED_LARGE by owner decision.
     mirror: {
-      portrait: HERO_UI_ART_ROOT + 'mirror/pick_roster_cover.webp',
-      battleAvatar: HERO_UI_ART_ROOT + 'mirror/battle_avatar.webp',
+      portrait: heroUiAsset('mirror/pick_roster_cover.webp'),
+      battleAvatar: heroUiAsset('mirror/battle_avatar.webp'),
       skillIcons: [
-        HERO_UI_ART_ROOT + 'mirror/skill_passive.webp',
-        HERO_UI_ART_ROOT + 'mirror/skill_a1.webp',
-        HERO_UI_ART_ROOT + 'mirror/skill_a2.webp',
+        heroUiAsset('mirror/skill_passive.webp'),
+        heroUiAsset('mirror/skill_a1.webp'),
+        heroUiAsset('mirror/skill_a2.webp'),
       ],
     },
   };

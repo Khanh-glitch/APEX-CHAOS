@@ -110,20 +110,29 @@ function findRefs(publicPath, corpus) {
   const base = path.basename(publicPath);
   const segments = publicPath.split('/').filter(Boolean);
   const basenameUnique = assetIndex.filter((a) => path.basename(a.publicPath) === base).length === 1;
-  // Longest unambiguous path suffix (up to 4 segments) that identifies the
-  // file: catches ROOT-relative refs like 'vfx/c/smoke_01.png' or
-  // 'audio/fire_sfx.wav' without over-matching bare basenames.
-  let suffix = base;
+
+  // A runtime may compose an asset URL from a root constant plus a shorter
+  // relative suffix (e.g. HERO_UI_ART_ROOT + 'newbot/pick_roster_cover.webp').
+  // The old scanner kept ONLY the longest unique suffix, so these legitimate
+  // shipping refs were invisible and pruneShippingDist deleted the files.
+  // Keep every globally-unambiguous suffix (2..4 segments), then match the
+  // longest one that is ACTUALLY present in each production source file.
+  const uniqueSuffixes = [];
   for (let take = Math.min(4, segments.length); take >= 2; take -= 1) {
     const candidate = segments.slice(-take).join('/');
     const owners = assetIndex.filter((a) => a.publicPath.endsWith('/' + candidate) || a.publicPath === '/' + candidate);
-    if (owners.length === 1) { suffix = candidate; break; }
+    if (owners.length === 1) uniqueSuffixes.push(candidate);
   }
+
   const refs = [];
   for (const { file, text } of corpus) {
-    const match = text.includes(publicPath) ? 'path'
-      : text.includes(suffix) && suffix !== base ? 'suffix'
-      : basenameUnique && text.includes(base) ? 'basename' : null;
+    let match = null;
+    if (text.includes(publicPath)) match = 'path';
+    else {
+      const suffix = uniqueSuffixes.find((candidate) => text.includes(candidate));
+      if (suffix) match = 'suffix';
+      else if (basenameUnique && text.includes(base)) match = 'basename';
+    }
     if (match) refs.push({ file: path.relative(REPO, file).split(path.sep).join('/'), match });
   }
   return refs;
