@@ -1418,19 +1418,53 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     });
   }
 
-  function setScreen(next){
-    if(next==='mode')hydrateDeferredImages(modeScreen);
-    clearTimeout(transitionTimer); stage.classList.add('flow-transition'); stage.classList.remove('match-ready');
-    screen=next; APEX_GOLD.onSurface&&APEX_GOLD.onSurface(next); stage.classList.toggle('screen-mode',next==='mode'); stage.classList.toggle('screen-fighter',next==='fighter');
-    modeScreen.setAttribute('aria-hidden',next==='mode'?'false':'true'); fighterScreen.setAttribute('aria-hidden',next==='fighter'?'false':'true');
+  function commitScreen(next){
+    screen=next;
+    APEX_GOLD.onSurface&&APEX_GOLD.onSurface(next);
+    stage.classList.remove('flow-transition','match-ready');
+    stage.classList.toggle('screen-mode',next==='mode');
+    stage.classList.toggle('screen-fighter',next==='fighter');
+    modeScreen.setAttribute('aria-hidden',next==='mode'?'false':'true');
+    fighterScreen.setAttribute('aria-hidden',next==='fighter'?'false':'true');
     if(next!=='home'){stage.classList.remove('intent-story','intent-battle');stage.style.setProperty('--intent','0')}
-    transitionTimer=setTimeout(()=>stage.classList.remove('flow-transition'),560);
-    if(next==='mode') setTimeout(()=>modeCards[modeFocus]?.focus({preventScroll:true}),260);
-    if(next==='fighter') setTimeout(()=>document.querySelector(`.rosterCard[data-hero="${activePlayer==='p1'?p1Hero:p2Hero}"]`)?.focus({preventScroll:true}),300);
-    if(next==='home') setTimeout(()=>battle.focus({preventScroll:true}),260);
+  }
+  function focusScreen(next){
+    if(next==='mode')modeCards[modeFocus]?.focus({preventScroll:true});
+    else if(next==='fighter')document.querySelector(`.rosterCard[data-hero="${activePlayer==='p1'?p1Hero:p2Hero}"]`)?.focus({preventScroll:true});
+    else if(next==='home')battle.focus({preventScroll:true});
+  }
+  async function setScreen(next){
+    if(next===screen)return true;
+    const tr=window.APEX_SCENE_TRANSITION;
+    if(tr?.active?.())return false;
+    const destination=next==='mode'?modeScreen:(next==='fighter'?fighterScreen:stage);
+    const prepare=async()=>{
+      if(next==='mode')hydrateDeferredImages(modeScreen);
+      if(next==='fighter'){
+        if(!roster.childElementCount)buildRoster();
+        renderFighter();
+      }
+      await tr?.prepareElement?.(destination);
+    };
+    if(!tr?.run){
+      await prepare();
+      commitScreen(next);
+      focusScreen(next);
+      return true;
+    }
+    const result=await tr.run({
+      name:`${screen}->${next}`,
+      source:()=>stage,
+      target:()=>stage,
+      prepare,
+      commit:()=>commitScreen(next),
+      rollback:()=>{},
+    });
+    if(result?.ok!==false)focusScreen(next);
+    return result?.ok!==false;
   }
 
-  function uiFocusMove(){try{const sfx=window.apexUiSfx;if(sfx&&typeof sfx.focusMove==='function')sfx.focusMove('ui.focus.move');}catch(_){}}
+  function uiFocusMove(){  function uiFocusMove(){try{const sfx=window.apexUiSfx;if(sfx&&typeof sfx.focusMove==='function')sfx.focusMove('ui.focus.move');}catch(_){}}
   function setModeFocus(index){
     if(index!==modeFocus)uiFocusMove();
     modeFocus=(index+modeCards.length)%modeCards.length;
@@ -1459,7 +1493,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     uiSfx('ui.screen.transition');
     activePlayer='p1'; p1Locked=false; p2Locked=false; p1Hero='newbot'; p2Hero='newbot'; p2Empty=mode!=='bot'; p1HasPicked=false; p2HasPicked=false;
     fighterModeBadge.textContent=mode==='bot'?'VS BOT':'LOCAL 1 VS 1';
-    setTimeout(()=>{if(!roster.childElementCount)buildRoster();renderFighter();setScreen('fighter')},360);
+    setTimeout(()=>{if(!roster.childElementCount)buildRoster();renderFighter();void setScreen('fighter')},360);
     setTimeout(()=>{stage.classList.remove('mode-committing');modeCards.forEach(c=>c.classList.remove('is-committing'))},820);
   }
 
@@ -1543,146 +1577,115 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     APEX_GOLD.onHandoff&&APEX_GOLD.onHandoff(battleHudConfig);
   }
   async function setBattleLive(){
-    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('battle');
     const ready=APEX_GOLD.onBattleLive
       ? await Promise.resolve(APEX_GOLD.onBattleLive({mode:battleMode,p1:p1Hero,p2:p2Hero}))
       : false;
     if(ready!==true||!window.APEX_GOLD_HUD)return false;
-    // Production projection is now authoritative. Mark preview handoff closed
-    // so no later HUD_READY/load callback can overwrite live skill/weapon truth.
     battleHudConfig={...makeBattleConfig(true)};
     window.postMessage({type:'APEX_CHAOS_BATTLE_LIVE'},'*');
     return true;
   }
-  function transitionDelay(ms,token){
-    return new Promise(resolve=>setTimeout(()=>resolve(token===battleTransitionToken),reduced?Math.min(ms,24):ms));
+  function waitBattleHudMount(){
+    return new Promise((resolve,reject)=>{
+      battleHudReady=false;
+      const ready=()=>{battleHudReady=true;sendBattleHudConfig();resolve(true);};
+      battleHudFrame.onload=ready;
+      try{APEX_GOLD.mountBattleHud(decodeBattleHud(),ready)}
+      catch(error){reject(error)}
+    });
   }
-  const TRANSITION_SFX={'lock':'battle.transition.lock_impact','rail':'battle.transition.clamp_rail','seal':'battle.transition.seam_open'};
-  const transitionSfxPlayed=new Set();
-  function transitionSound(kind){
-    try{
-      const key=TRANSITION_SFX[kind];if(!key)return;
-      // Each authored phase cue fires exactly once per transition.
-      if(transitionSfxPlayed.has(key))return;
-      transitionSfxPlayed.add(key);
-      const sfx=window.apexUiSfx;
-      if(sfx&&typeof sfx.play==='function')sfx.play(key);
-    }catch(_){ }
-  }
-  function setTransitionIdentity(){
-    if(!battleTransition)return;
-    const bot=battleMode==='bot',p1=heroPayload(p1Hero,'newbot'),p2=bot?heroPayload(botHeroId(),'newbot'):heroPayload(p2Hero,'newbot');
-    battleTransition.style.setProperty('--p1',p1.accent||'#ff941f');
-    battleTransition.style.setProperty('--p2',p2.accent||'#8bd8ff');
-    battleTransition.querySelector('[data-bt-name="p1"]').textContent=p1.name;
-    battleTransition.querySelector('[data-bt-name="p2"]').textContent=p2.name;
-    battleTransition.querySelector('[data-bt-state="p1"]').textContent='COMBAT LOCK';
-    battleTransition.querySelector('[data-bt-state="p2"]').textContent=bot?'TARGET ACQUIRED':'COMBAT LOCK';
-    battleTransition.querySelector('[data-bt-kicker="p2"]').textContent=bot?'CPU // TARGET':'P2 // FIGHTER';
-    battleTransition.querySelector('[data-bt-core]').textContent=bot?'SOLO COMBAT CHANNEL':'DUEL COMBAT CHANNEL';
-    const horizontal=!bot&&matchMedia('(orientation:portrait)').matches;
-    battleTransition.classList.toggle('is-horizontal',horizontal);
-    battleTransition.classList.toggle('is-bot',bot);
-    battleHudHost.classList.toggle('is-horizontal',horizontal);
-  }
-  function resetBattleTransitionVisuals(){
-    if(!battleTransition)return;
-    battleTransition.classList.remove('is-active','is-bot','is-horizontal','phase-lock','phase-clamp','phase-seam','phase-open','phase-handoff');
-    battleTransition.setAttribute('aria-hidden','true');
-    battleHudHost.classList.remove('is-preloading','is-transitioning','is-reveal','is-horizontal');
-    document.body.classList.remove('battle-transition-active');
+  function rollbackBattleEntry(){
+    document.body.classList.remove('battle-hud-open','battle-transition-active');
+    battleHudHost.classList.remove('is-open','is-preloading','is-transitioning','is-reveal','is-horizontal');
+    battleHudHost.setAttribute('aria-hidden','true');
+    resumeParentRuntime();
+    battleHudFrame.onload=null;
+    APEX_GOLD.unmountBattleHud();
+    battleHudConfig=null;
+    battleHudReady=false;
+    screen='fighter';
+    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter');
   }
   async function launchBattleHud(){
     if(!battleMode||!battleHudHost||!battleHudFrame||screen==='transition'||screen==='battle')return;
-    const token=++battleTransitionToken;
+    const tr=window.APEX_SCENE_TRANSITION;
+    if(tr?.active?.())return;
     screen='transition';
     APEX_GOLD.onSurface&&APEX_GOLD.onSurface('transition');
-    battleHudReady=false;
-    transitionSfxPlayed.clear();
     battleHudConfig=makeBattleConfig(false);
-    setTransitionIdentity();
-    document.body.classList.add('battle-transition-active');
-    battleTransition.classList.add('is-active','phase-lock');
-    battleTransition.setAttribute('aria-hidden','false');
-    battleHudHost.setAttribute('aria-hidden','false');
-    battleHudHost.classList.add('is-preloading');
-    battleHudFrame.onload=()=>{battleHudReady=true;sendBattleHudConfig();};
-    APEX_GOLD.mountBattleHud(decodeBattleHud(),()=>{battleHudReady=true;sendBattleHudConfig();});
-    transitionSound('lock');
-
-    if(!await transitionDelay(180,token))return;
-    battleTransition.classList.add('phase-clamp');
-    transitionSound('rail');
-
-    if(!await transitionDelay(240,token))return;
-    freezeParentRuntime();
-    battleHudHost.classList.remove('is-preloading');
-    battleHudHost.classList.add('is-transitioning');
-    sendBattleHudConfig();
-
-    if(!await transitionDelay(240,token))return;
-    battleTransition.classList.add('phase-seam');
-    transitionSound('seal');
-
-    if(!await transitionDelay(260,token))return;
-    battleTransition.classList.add('phase-open');
-    battleHudHost.classList.add('is-reveal');
-
-    // Start production behind the still-opaque transition. Reveal only after
-    // both the cinematic minimum and real runtime READY have completed.
-    const cinematicReady=transitionDelay(520,token);
-    const liveReady=await setBattleLive();
-    if(!await cinematicReady)return;
-    if(token!==battleTransitionToken)return;
-    if(liveReady!==true){
-      cancelBattleTransition();
+    const prepare=async()=>{
+      battleHudHost.setAttribute('aria-hidden','false');
+      battleHudHost.classList.add('is-preloading');
+      await waitBattleHudMount();
+      sendBattleHudConfig();
+      await tr?.prepareElement?.(battleHudHost);
+    };
+    if(!tr?.run){
+      try{
+        await prepare();
+        freezeParentRuntime();
+        battleHudHost.classList.remove('is-preloading');
+        battleHudHost.classList.add('is-open');
+        document.body.classList.add('battle-hud-open');
+        screen='battle';APEX_GOLD.onSurface&&APEX_GOLD.onSurface('battle');
+        if(await setBattleLive()!==true)throw new Error('Battle runtime did not report READY');
+      }catch(error){rollbackBattleEntry();console.warn('[battle-entry] failed',error)}
       return;
     }
-    document.body.classList.add('battle-hud-open');
-    document.body.classList.remove('battle-transition-active');
-    battleHudHost.classList.remove('is-transitioning','is-reveal','is-horizontal');
-    battleHudHost.classList.add('is-open');
-    battleTransition.classList.add('phase-handoff');
-    screen='battle';
-
-    if(!await transitionDelay(210,token))return;
-    resetBattleTransitionVisuals();
-    battleHudHost.classList.add('is-open');
-    battleHudHost.setAttribute('aria-hidden','false');
+    const result=await tr.run({
+      name:'fighter->battle',
+      source:()=>stage,
+      target:()=>battleHudHost,
+      prepare,
+      commit:()=>{
+        freezeParentRuntime();
+        battleHudHost.classList.remove('is-preloading','is-transitioning','is-reveal','is-horizontal');
+        battleHudHost.classList.add('is-open');
+        document.body.classList.add('battle-hud-open');
+        screen='battle';
+        APEX_GOLD.onSurface&&APEX_GOLD.onSurface('battle');
+      },
+      readyGate:async()=>{
+        if(await setBattleLive()!==true)throw new Error('Battle runtime did not report READY');
+      },
+      rollback:rollbackBattleEntry,
+    });
+    if(result?.ok===false)console.warn('[battle-entry] Mechanical Door recovered to Fighter Pick.',result.error);
   }
   function cancelBattleTransition(){
-    if(screen!=='transition')return;
-    battleTransitionToken++;
-    resetBattleTransitionVisuals();
-    document.body.classList.remove('battle-hud-open');
-    resumeParentRuntime();
-    battleHudFrame.onload=null;
-    APEX_GOLD.unmountBattleHud();
-    battleHudConfig=null;
-    battleHudReady=false;
-    battleHudHost.classList.remove('is-open');
-    battleHudHost.setAttribute('aria-hidden','true');
-    screen='fighter';
-    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter');
+    // Mechanical Door V4 has no shortcut/cancel path. Once close begins, the
+    // causal sequence must finish or recover through the coordinator rollback.
+    return false;
   }
-  function closeBattleHud(){
-    if(screen==='transition'){cancelBattleTransition();return;}
+  async function closeBattleHud(){
+    if(window.APEX_SCENE_TRANSITION?.active?.())return;
     if(!battleHudHost?.classList.contains('is-open'))return;
-    battleTransitionToken++;
-    resetBattleTransitionVisuals();
-    battleHudHost.classList.remove('is-open');
-    battleHudHost.setAttribute('aria-hidden','true');
-    document.body.classList.remove('battle-hud-open','battle-transition-active');
-    APEX_GOLD.exitBattle&&APEX_GOLD.exitBattle();
-    resumeParentRuntime();
-    battleHudFrame.onload=null;
-    APEX_GOLD.unmountBattleHud();
-    battleHudConfig=null;
-    battleHudReady=false;
-    screen='fighter';
-    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter');
+    const tr=window.APEX_SCENE_TRANSITION;
+    const commit=()=>{
+      battleHudHost.classList.remove('is-open','is-preloading','is-transitioning','is-reveal','is-horizontal');
+      battleHudHost.setAttribute('aria-hidden','true');
+      document.body.classList.remove('battle-hud-open','battle-transition-active');
+      APEX_GOLD.exitBattle&&APEX_GOLD.exitBattle();
+      resumeParentRuntime();
+      battleHudFrame.onload=null;
+      APEX_GOLD.unmountBattleHud();
+      battleHudConfig=null;
+      battleHudReady=false;
+      screen='fighter';
+      APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter');
+    };
+    if(!tr?.run){commit();focusScreen('fighter');return}
+    await tr.run({
+      name:'battle->fighter',
+      source:()=>battleHudHost,
+      target:()=>stage,
+      prepare:()=>tr.prepareElement(stage),
+      commit,
+      rollback:()=>{},
+    });
+    focusScreen('fighter');
   }
-  addEventListener('message',e=>{
+  addEventListener('message',e=>{  addEventListener('message',e=>{
     const d=e.data;
     if(!d)return;
     if(d.type==='APEX_CHAOS_HUD_READY'){battleHudReady=true;sendBattleHudConfig();}
@@ -1964,9 +1967,9 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     uiSfx('ui.back.cancel');
     if(screen==='fighter'){
       if(stage.classList.contains('match-ready')){stage.classList.remove('match-ready');if(battleMode==='bot')p1Locked=false;else{p2Locked=false;activePlayer=p1Locked?'p2':'p1'}renderFighter();return}
-      setScreen('mode'); return;
+      void setScreen('mode'); return;
     }
-    if(screen==='mode'){stage.classList.remove('mode-committing');modeCards.forEach(c=>c.classList.remove('is-selected','is-committing'));setScreen('home')}
+    if(screen==='mode'){stage.classList.remove('mode-committing');modeCards.forEach(c=>c.classList.remove('is-selected','is-committing'));void setScreen('home')}
   }
 
   function moveHero(delta){
@@ -1976,30 +1979,31 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
 
   function navigateGoldShell(target,opts={}){
     const next=String(target||'').toLowerCase();
-    if(screen==='transition'||screen==='battle')return false;
+    if(screen==='transition'||screen==='battle'||window.APEX_SCENE_TRANSITION?.active?.())return false;
     if(next==='home'){
-      stage.classList.remove('mode-committing','match-ready');modeCards.forEach(c=>c.classList.remove('is-selected','is-committing'));setScreen('home');return true;
+      stage.classList.remove('mode-committing','match-ready');modeCards.forEach(c=>c.classList.remove('is-selected','is-committing'));void setScreen('home');return true;
     }
-    if(next==='mode'){setScreen('mode');return true;}
+    if(next==='mode'){void setScreen('mode');return true;}
     if(next==='fighter'){
       const mode=String(opts.mode||battleMode||'local').toLowerCase()==='bot'?'bot':'local';
       stage.classList.remove('mode-committing');modeCards.forEach(c=>c.classList.remove('is-selected','is-committing'));
-      if(screen!=='mode')setScreen('mode');
-      chooseMode(mode);return true;
+      void (async()=>{if(screen!=='mode'&&!(await setScreen('mode')))return;chooseMode(mode)})();
+      return true;
     }
     return false;
   }
-  window.APEX_GOLD_SHELL_NAVIGATE=navigateGoldShell;
+  window.APEX_GOLD_SHELL_NAVIGATE=navigateGoldShell;  window.APEX_GOLD_SHELL_NAVIGATE=navigateGoldShell;
   const pendingGoldNav=window.__apexPendingGoldNavigation;
   if(pendingGoldNav){delete window.__apexPendingGoldNavigation;queueMicrotask(()=>navigateGoldShell(pendingGoldNav.target,pendingGoldNav.options||{}));}
 
-  battle.addEventListener('click',()=>{uiSfx('ui.screen.transition');setScreen('mode')});
+  battle.addEventListener('click',()=>{uiSfx('ui.screen.transition');void setScreen('mode')});
   lockIn.addEventListener('click',lockCurrent);
   APEX_GOLD.onSurface&&APEX_GOLD.onSurface('home');
 
   addEventListener('keydown',e=>{
     if(e.metaKey||e.ctrlKey||e.altKey)return; const k=e.key.toLowerCase();
-    if(k==='escape'){if(screen==='transition'){cancelBattleTransition();e.preventDefault();return}if(screen==='battle'){closeBattleHud();e.preventDefault();return}if(screen!=='home'){back();e.preventDefault()}return}
+    if(window.APEX_SCENE_TRANSITION?.active?.()){e.preventDefault();return}
+    if(k==='escape'){if(screen==='transition'){e.preventDefault();return}if(screen==='battle'){void closeBattleHud();e.preventDefault();return}if(screen!=='home'){back();e.preventDefault()}return}
     if(screen==='mode'){
       if(k==='arrowup'||k==='arrowleft'){setModeFocus(modeFocus-1);modeCards[modeFocus].focus();e.preventDefault()}
       else if(k==='arrowdown'||k==='arrowright'){setModeFocus(modeFocus+1);modeCards[modeFocus].focus();e.preventDefault()}
@@ -2214,31 +2218,65 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       if(typeof w.APEX_LUCKY_SYNC==='function')w.APEX_LUCKY_SYNC();
     }catch(err){/* the donor reports the draw unavailable; never break the shell */}
   }
-  function openLucky(){
-    if(!loaded){
+  function ensureLuckyReady(){
+    if(loaded){
+      handLuckyProductionApi();
+      return Promise.resolve(true);
+    }
+    return new Promise((resolve,reject)=>{
       try{
+        const onLoad=()=>{handLuckyProductionApi();resolve(true)};
+        frame.addEventListener('load',onLoad,{once:true});
+        frame.addEventListener('error',()=>reject(new Error('Lucky Draw failed to load')),{once:true});
         frame.src=buildLuckyDonorURL();
         loaded=true;
-        frame.addEventListener('load',handLuckyProductionApi);
-      }catch(err){
-        console.error('[APEX Lucky Draw] donor load failed',err);
-        return;
-      }
-    }else{
-      handLuckyProductionApi();
-    }
-    host.classList.add('is-open');host.setAttribute('aria-hidden','false');
-    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('lucky');
-    uiSfx('lucky.draw.enter_bay');
+      }catch(error){reject(error)}
+    });
   }
-  function closeLucky(){
-    host.classList.remove('is-open');host.setAttribute('aria-hidden','true');
-    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('home');
+  async function openLucky(){
+    const tr=window.APEX_SCENE_TRANSITION;
+    if(tr?.active?.())return;
+    const prepare=async()=>{
+      await ensureLuckyReady();
+      await tr?.prepareElement?.(host);
+    };
+    const commit=()=>{
+      host.classList.add('is-open');host.setAttribute('aria-hidden','false');
+      APEX_GOLD.onSurface&&APEX_GOLD.onSurface('lucky');
+      uiSfx('lucky.draw.enter_bay');
+    };
+    if(!tr?.run){try{await prepare();commit()}catch(err){console.error('[APEX Lucky Draw] donor load failed',err)}return}
+    const result=await tr.run({
+      name:'home->lucky',
+      source:()=>document.getElementById('stage'),
+      target:()=>host,
+      prepare,
+      commit,
+      rollback:()=>{},
+    });
+    if(result?.ok===false)console.error('[APEX Lucky Draw] transition recovered.',result.error);
+  }
+  async function closeLucky(){
+    const tr=window.APEX_SCENE_TRANSITION;
+    if(tr?.active?.())return;
+    const commit=()=>{
+      host.classList.remove('is-open');host.setAttribute('aria-hidden','true');
+      APEX_GOLD.onSurface&&APEX_GOLD.onSurface('home');
+    };
+    if(!tr?.run){commit();openBtn?.focus?.({preventScroll:true});return}
+    await tr.run({
+      name:'lucky->home',
+      source:()=>host,
+      target:()=>document.getElementById('stage'),
+      prepare:()=>tr.prepareElement(document.getElementById('stage')),
+      commit,
+      rollback:()=>{},
+    });
     openBtn?.focus?.({preventScroll:true});
   }
-  openBtn?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();openLucky();});
-  window.addEventListener('message',e=>{if(e?.data?.type==='APEX_CHAOS_LUCKY_DRAW_EXIT')closeLucky();});
-  window.addEventListener('keydown',e=>{if(e.key==='Escape'&&host.classList.contains('is-open')){e.preventDefault();closeLucky();}},true);
+  openBtn?.addEventListener('click',e=>{  openBtn?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();void openLucky();});
+  window.addEventListener('message',e=>{if(e?.data?.type==='APEX_CHAOS_LUCKY_DRAW_EXIT')void closeLucky();});
+  window.addEventListener('keydown',e=>{if(window.APEX_SCENE_TRANSITION?.active?.()){e.preventDefault();return}if(e.key==='Escape'&&host.classList.contains('is-open')){e.preventDefault();void closeLucky();}},true);
   window.addEventListener('beforeunload',()=>{if(donorObjectUrl)URL.revokeObjectURL(donorObjectUrl);});
 })();
 </script>
