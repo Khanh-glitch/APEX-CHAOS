@@ -788,7 +788,7 @@ function productionPoolIds(){
   const meta = window.APEX_ARSENAL_META;
   if (meta && typeof meta.poolLocked === 'function'){
     const pool = meta.poolLocked();
-    if (Array.isArray(pool) && pool.length) return pool.map(n => String(n).toUpperCase());
+    if (Array.isArray(pool)) return pool.map(n => String(n).toUpperCase());
   }
   return FIGHTERS.map(F => F.id);
 }
@@ -954,6 +954,11 @@ function startDraw(count){
   if (S.busy){ return; }
   const meta = window.APEX_ARSENAL_META;
   if (!meta || typeof meta.spin !== 'function'){ showPoolTag('DRAW UNAVAILABLE'); return; }
+  const drawPool = productionPoolIds();
+  // Never debit AC for a fighter that the presentation registry cannot render.
+  // In a healthy build this is always empty; if a future asset registration is
+  // incomplete, fail closed before economy mutation instead of charging blind.
+  if (drawPool.some(id => productionFighterIndex(id) < 0)){ showPoolTag('DRAW ASSETS UNAVAILABLE'); return; }
   const res = meta.spin();
   if (!res || res.ok !== true){
     if (res && res.reason === 'complete') showPoolTag('ROSTER COMPLETE');
