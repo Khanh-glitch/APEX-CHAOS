@@ -229,6 +229,11 @@
         // Mirror has no static selected pose: leave it undefined rather than
         // emitting a broken or placeholder image.
         art: art && Object.prototype.hasOwnProperty.call(art, 'art') ? art.art : undefined,
+        // Lucky Draw consumes the same production presentation registry. Most
+        // fighters use the transparent stand-pick art; fighters with an
+        // intentional special Pick treatment (currently Mirror) fall back to
+        // their real roster art rather than a fabricated placeholder.
+        drawArt: (art && art.art) || (art && art.portrait) || (art && art.battleAvatar) || '',
         battleAvatar: (art && art.battleAvatar) || (art && art.portrait) || '',
         skillIcons: (art && art.skillIcons) ? art.skillIcons.slice() : [],
       });
@@ -294,6 +299,22 @@
     BRIDGE0.roster = function goldRoster() {
       const prod = rosterFromProduction();
       return Object.keys(prod).map((key) => Object.assign({ id: key }, prod[key]));
+    };
+    // Lucky Draw presentation registry. This is deliberately derived from the
+    // same production-visible roster as Fighter Pick, while ownership remains
+    // exclusively in APEX_ARSENAL_META.poolLocked()/spin(). Adding a future
+    // playable fighter therefore requires no Lucky-specific switch/case.
+    BRIDGE0.luckyRoster = function goldLuckyRoster() {
+      return BRIDGE0.roster()
+        .filter((hero) => hero && hero.playable !== false)
+        .map((hero) => ({
+          shellKey: hero.id,
+          productionId: hero.productionId,
+          name: hero.name,
+          tag: hero.tag,
+          accent: hero.accent || hero.color || '#8d8375',
+          drawArt: hero.drawArt || hero.art || hero.portrait || hero.battleAvatar || '',
+        }));
     };
     BRIDGE0.rosterOrder = function goldRosterOrder() {
       return window.APEX_GOLD_ROSTER_ORDER();
