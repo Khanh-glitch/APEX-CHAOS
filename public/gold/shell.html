@@ -1437,14 +1437,23 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     if(next===screen)return true;
     const tr=window.APEX_SCENE_TRANSITION;
     if(tr?.active?.())return false;
-    const destination=next==='mode'?modeScreen:(next==='fighter'?fighterScreen:stage);
+    const sceneHeroIds=()=>{
+      const ids=[p1Hero];
+      if(battleMode==='bot')ids.push(botHeroId());
+      else if(!p2Empty||p2HasPicked)ids.push(p2Hero);
+      return [...new Set(ids.filter(Boolean))];
+    };
     const prepare=async()=>{
+      const heroIds=next==='fighter'?sceneHeroIds():[];
+      if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface(next,{heroIds});
       if(next==='mode')hydrateDeferredImages(modeScreen);
       if(next==='fighter'){
         if(!roster.childElementCount)buildRoster();
         renderFighter();
       }
-      await tr?.prepareElement?.(destination);
+      // The visible Fighter composition includes world-stage art OUTSIDE the
+      // fighter section, so settle the actual stage rather than a UI sub-tree.
+      await tr?.prepareElement?.(stage);
     };
     if(!tr?.run){
       await prepare();
@@ -1614,6 +1623,10 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     APEX_GOLD.onSurface&&APEX_GOLD.onSurface('transition');
     battleHudConfig=makeBattleConfig(false);
     const prepare=async()=>{
+      const heroIds=[p1Hero,battleMode==='bot'?botHeroId():p2Hero].filter(Boolean);
+      // Runtime scripts + selected-combatant HUD art are part of READY, not an
+      // untracked background warmup. Slow loads therefore become a sealed HOLD.
+      if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('battle',{heroIds});
       battleHudHost.setAttribute('aria-hidden','false');
       battleHudHost.classList.add('is-preloading');
       await waitBattleHudMount();
@@ -1679,7 +1692,11 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       name:'battle->fighter',
       source:()=>battleHudHost,
       target:()=>stage,
-      prepare:()=>tr.prepareElement(stage),
+      prepare:async()=>{
+        const heroIds=[p1Hero,battleMode==='bot'?botHeroId():p2Hero].filter(Boolean);
+        if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('fighter',{heroIds});
+        await tr.prepareElement(stage);
+      },
       commit,
       rollback:()=>{},
     });
@@ -2237,7 +2254,12 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     const tr=window.APEX_SCENE_TRANSITION;
     if(tr?.active?.())return;
     const prepare=async()=>{
+      if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('lucky');
       await ensureLuckyReady();
+      // Same-origin donor: wait for its real image decode/font/layout state,
+      // not merely the iframe load event, before the door may open.
+      const doc=frame.contentDocument;
+      if(doc?.documentElement)await tr?.prepareElement?.(doc.documentElement);
       await tr?.prepareElement?.(host);
     };
     const commit=()=>{
@@ -2268,7 +2290,10 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       name:'lucky->home',
       source:()=>host,
       target:()=>document.getElementById('stage'),
-      prepare:()=>tr.prepareElement(document.getElementById('stage')),
+      prepare:async()=>{
+        if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('home');
+        await tr.prepareElement(document.getElementById('stage'));
+      },
       commit,
       rollback:()=>{},
     });
