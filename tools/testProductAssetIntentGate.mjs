@@ -18,16 +18,29 @@ function check(name, cond, detail=''){
 check('heavy background warmup disabled', /export const WARMUP_GROUP_SEQUENCE = \[\];/.test(manifest));
 check('asset authority is menu-interactive', manifest.includes('/game/product/productAssetRuntime.js?v='));
 check('asset authority exposes prepare/warm/state', assetRuntime.includes('prepare,') && assetRuntime.includes('warm,') && assetRuntime.includes('state: snapshot'));
+
+check('Home Core is explicit', assetRuntime.includes("home: Object.freeze([") && assetRuntime.includes("'/gold/assets/gold/home-robot-body.png'") && assetRuntime.includes("'/gold/assets/gold/home-world-background.png'"));
+check('hero preload all-vs-selected is explicit', assetRuntime.includes("heroIds === null") && assetRuntime.includes("Array.isArray(heroIds) ? heroIds.filter(Boolean) : []"));
+check('Fighter covers may preload all visible', assetRuntime.includes("const covers = heroUrls(null, ['portrait'])"));
+check('Fighter large art is selected-only', assetRuntime.includes("const focused = heroUrls(context.heroIds, ['art'])"));
+check('Battle hero art is selected-only', assetRuntime.includes("return heroUrls(context.heroIds, ['battleAvatar', 'skillIcons'])"));
+
 check('Mode art has no eager src', !shell.includes('<img src="assets/gold/mode-solo.webp"') && !shell.includes('<img src="assets/gold/mode-local.webp"'));
 check('Mode art is data-src deferred', shell.includes('data-apex-src="assets/gold/mode-solo.webp"') && shell.includes('data-apex-src="assets/gold/mode-local.webp"'));
 check('Mode hydration exists', shell.includes("if(next==='mode')hydrateDeferredImages(modeScreen)"));
 check('Home does not build Fighter roster', !shell.includes("buildRoster(); renderFighter(); APEX_GOLD.onSurface&&APEX_GOLD.onSurface('home');"));
-check('Fighter roster materializes on Mode commit', shell.includes("if(!roster.childElementCount)buildRoster();renderFighter();setScreen('fighter')"));
+check('Fighter roster materializes only after route intent', shell.includes("if(!roster.childElementCount)buildRoster();renderFighter();void setScreen('fighter')"));
+
 check('reference-only Pick images absent from shell', !shell.includes('pick-reference-overlay.png') && !shell.includes('pick-hidden-gold-source.png'));
 check('reference-only Pick images absent from shipping manifest', !shipping.includes('pick-reference-overlay.png') && !shipping.includes('pick-hidden-gold-source.png'));
 check('generator excludes reference-only assets', generator.includes('NON_SHIPPING_GOLD_ASSETS'));
-check('Gold surface bridge owns route intent', bridge.includes("__apexEnsureDeferredRuntimes?.('select'") && bridge.includes("__apexEnsureDeferredRuntimes?.('arsenalProduct'"));
-check('Lucky remains click intent', bridge.includes("surface === 'lucky'") && assetRuntime.includes("'/gold/lucky-draw.html'"));
+
+check('surface activation and preparation are separate', bridge.includes('BRIDGE.onSurface = function onSurface') && bridge.includes('BRIDGE.prepareSurface = async function prepareSurface'));
+check('Battle runtime load is awaited by prepareSurface', bridge.includes("ensureDeferredRuntimes('arsenalProduct').then") && bridge.includes("throw new Error('arsenalProduct runtime group did not reach READY')"));
+check('shell awaits scene preparation before reveal', shell.includes("if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface(next,{heroIds})") && shell.includes("if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('battle',{heroIds})"));
+check('Fighter readiness covers world-stage art', shell.includes("await tr?.prepareElement?.(stage)"));
+check('Lucky remains click intent', bridge.includes("surface === 'lucky'") && assetRuntime.includes("'/gold/lucky-draw.html'") && shell.includes("name:'home->lucky'"));
+check('transition runtime is a shipping asset', shipping.includes("'/gold/transition/mechanical-door-v4.gold.js'"));
 check('runtime loader still exposes priority route path', loader.includes('loadDeferredGameRuntimes(group, { priority = true } = {})'));
 
 console.log(['PRODUCT ASSET INTENT GATE',...notes].join('\n'));
