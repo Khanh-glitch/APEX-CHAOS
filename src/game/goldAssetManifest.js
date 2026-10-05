@@ -73,12 +73,13 @@ export const GOLD_SHIPPING_ASSETS = Object.freeze([
   '/gold/fonts/teko-latin-ext-500-normal.woff2',
   '/gold/fonts/teko-latin-ext-600-normal.woff2',
   '/gold/lucky-draw.html',
-  '/gold/transition/mechanical-door-v4.gold.js',
   '/gold/manifest.json',
   '/gold/shell.html',
+  '/gold/transition/mechanical-door-v4.gold.js',
   '/assets/audio/forward_drive_theme.ogg',
 ]);
 
 export const GOLD_SHELL_URL = '/gold/shell.html?v=20261005-owner-playtest-r50k';
 export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=20261005-owner-playtest-r50k';
 export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=20261005-owner-playtest-r50k';
+export const GOLD_TRANSITION_URL = '/gold/transition/mechanical-door-v4.gold.js?v=20261005-owner-playtest-r50k';
