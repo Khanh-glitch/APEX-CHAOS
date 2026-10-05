@@ -3,6 +3,11 @@
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
   "runtimeRevision": "20261005-owner-playtest-r49d",
   "files": {
+    "../assets/audio/forward_drive_theme.ogg": {
+      "bytes": 618594,
+      "sha256": "15afd820d5ca061f374ea41ad425f795204cf2be0e1f03d641f9b1f85f6dfb9b",
+      "note": "owner Forward Drive theme, repository Ogg Opus encode (AV preload)"
+    },
     "assets/gold/apex-chaos-wordmark.png": {
       "bytes": 496066,
       "sha256": "b0a852c614a2d3bce5f29fad58ce24f304874cb0e325646f4947746f464cede3"
@@ -10,6 +15,10 @@
     "assets/gold/favicon-apex-chaos.png": {
       "bytes": 32526,
       "sha256": "6782e49177fcd86c363455288335b2ea2c1ea88e4e973aa6754e8cd69cff3888"
+    },
+    "assets/gold/favicon-tab-apex.svg": {
+      "bytes": 5283,
+      "sha256": "445449459179376e824b4be53fdb286fb023d9ec52c52953d070284d53724ee8"
     },
     "assets/gold/home-foreground.png": {
       "bytes": 378049,
@@ -276,13 +285,8 @@
       "sha256": "3da12663d57383a7db46c88fc25501dbdd3961acef56193d937dd86135b619b7"
     },
     "shell.html": {
-      "bytes": 349978,
-      "sha256": "bca6fc2862272389b67b05bd8074eda4f807952702073e3851797e050cc944b2"
-    },
-    "../assets/audio/forward_drive_theme.ogg": {
-      "bytes": 618594,
-      "sha256": "15afd820d5ca061f374ea41ad425f795204cf2be0e1f03d641f9b1f85f6dfb9b",
-      "note": "owner Forward Drive theme, repository Ogg Opus encode (AV preload)"
+      "bytes": 349980,
+      "sha256": "d4fc48b43cb14bfc72adbc7466edca23e4287fa016daf883bd12e82f6cf93bdc"
     }
   }
 }
