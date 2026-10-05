@@ -370,6 +370,22 @@
   // lucky / locked surfaces) drive the single music authority's policy.
   BRIDGE.onSurface = function onSurface(surfaceId) {
     theme.setSurface(surfaceId);
+    const surface = String(surfaceId || '').toLowerCase();
+    const assets = window.apexProductAssets;
+    // Runtime intent is deliberately attached to the route, never Home idle.
+    if (surface === 'mode' || surface === 'fighter') {
+      try { window.__apexEnsureDeferredRuntimes?.('select', { priority: true }); } catch (_) {}
+    } else if (surface === 'transition' || surface === 'battle') {
+      try { window.__apexEnsureDeferredRuntimes?.('arsenalProduct', { priority: true }); } catch (_) {}
+    }
+    if (assets && typeof assets.prepare === 'function') {
+      if (surface === 'mode') assets.prepare('mode', { scope: 'surface:mode' }).catch(() => {});
+      else if (surface === 'fighter') assets.prepare('fighter', { scope: 'surface:fighter' }).catch(() => {});
+      else if (surface === 'transition' || surface === 'battle') assets.prepare('battle', { scope: 'surface:battle' }).catch(() => {});
+      // Lucky remains click-intent only. Preparing the document fills HTTP
+      // cache; the iframe still owns actual DOM/evaluation when opened.
+      else if (surface === 'lucky') assets.prepare('lucky', { scope: 'surface:lucky', decode: false }).catch(() => {});
+    }
   };
   let hudHost = null;
   let hudMounted = false;
