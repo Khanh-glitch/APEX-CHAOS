@@ -203,7 +203,8 @@ export default function App() {
       window.removeEventListener('apex:boot-transition-complete', onBootTransitionComplete);
       if (window.APEX_SCENE_TRANSITION === coordinator) {
         // The product root normally lives for the whole page. HMR/test unmounts
-        // may remove it; the next mount installs a fresh coordinator.
+        // still release the Gold engine RAF + resize listener before reinstall.
+        coordinator.dispose?.();
         delete window.APEX_SCENE_TRANSITION;
       }
     };
