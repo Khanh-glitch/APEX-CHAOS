@@ -3,11 +3,6 @@
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
   "runtimeRevision": "20261005-owner-playtest-r50k",
   "files": {
-    "../assets/audio/forward_drive_theme.ogg": {
-      "bytes": 618594,
-      "sha256": "15afd820d5ca061f374ea41ad425f795204cf2be0e1f03d641f9b1f85f6dfb9b",
-      "note": "owner Forward Drive theme, repository Ogg Opus encode (AV preload)"
-    },
     "assets/gold/apex-chaos-wordmark.png": {
       "bytes": 496066,
       "sha256": "b0a852c614a2d3bce5f29fad58ce24f304874cb0e325646f4947746f464cede3"
@@ -201,8 +196,8 @@
       "sha256": "42ed36822b3dd931e779bc729902fa594dafd0ba9a46b5d0d4f0a25e19a639a5"
     },
     "battle-hud.html": {
-      "bytes": 114358,
-      "sha256": "6cde73658992cf0641e796c0c28e47058e4df6ed5fa534353df38084dc2af264"
+      "bytes": 114389,
+      "sha256": "d8966972be13d7d110037618f1f1d9b4e1d40cda4daf147fe39ef52ad43ea72e"
     },
     "fonts.css": {
       "bytes": 6552,
@@ -273,16 +268,21 @@
       "sha256": "60d64d7bbba149b12b6dff1a81cb9d25fc4d24cc123a6dfef23b8f7d39298e8b"
     },
     "lucky-draw.html": {
-      "bytes": 100023,
-      "sha256": "7c5133ed1fe9d94913c7c60e42c6e30fe0fcfdac21df18d87863bb18dc04243c"
+      "bytes": 100051,
+      "sha256": "22dabf7206c6d2bb4b73b47e29b4aabb8de97d63acd573813e620db366dc5562"
     },
     "shell.html": {
-      "bytes": 343549,
-      "sha256": "d940885a14dfb84681ec445dfdd73c0d3a87d5ab04d2a0ee8dbec0d35396d2c0"
+      "bytes": 351834,
+      "sha256": "e51d145afbf50255cddfc522aed1544cf2e5bcca7b5787dd18a51c990e8f727a"
     },
     "transition/mechanical-door-v4.gold.js": {
       "bytes": 2666593,
       "sha256": "6d338906e477c13fa42cd6727be7c41bdd0c5b66e12fc140e3836c7858ce0dd2"
+    },
+    "../assets/audio/forward_drive_theme.ogg": {
+      "bytes": 618594,
+      "sha256": "15afd820d5ca061f374ea41ad425f795204cf2be0e1f03d641f9b1f85f6dfb9b",
+      "note": "owner Forward Drive theme, repository Ogg Opus encode (AV preload)"
     }
   }
 }

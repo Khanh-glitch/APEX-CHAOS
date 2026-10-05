@@ -577,7 +577,11 @@ function buildBattleHud() {
       id: 'HUD-H14',
       why: 'handoff bridge setMode uses the production seam (demo M-key removed)',
       find: /    if\(hud\.dataset\.mode!==desired\)\{\n      window\.dispatchEvent\(new KeyboardEvent\('keydown',\{key:'m',code:'KeyM',bubbles:true\}\)\);\n    \}/,
-      replace: `    if(hud.dataset.mode!==desired){\n      APEX_GOLD_HUD.setMode(desired);\n    }`,
+      // The bridge deletes window.APEX_GOLD_HUD on every mount/unmount boundary
+      // (goldProductBridge.js mountBattleHud/unmountBattleHud), so the seam is a
+      // legitimately optional global here: a late handoff message must be inert,
+      // never an uncaught ReferenceError.
+      replace: `    if(hud.dataset.mode!==desired){\n      if(window.APEX_GOLD_HUD)window.APEX_GOLD_HUD.setMode(desired);\n    }`,
     },
   ];
 
@@ -1021,6 +1025,9 @@ function buildLuckyDonor() {
         `  const meta = window.APEX_ARSENAL_META;\n` +
         `  if (!meta || typeof meta.spin !== 'function'){ showPoolTag('DRAW UNAVAILABLE'); return; }\n` +
         `  const drawPool = productionPoolIds();\n` +
+        `  // Never debit AC for a fighter that the presentation registry cannot render.\n` +
+        `  // In a healthy build this is always empty; if a future asset registration is\n` +
+        `  // incomplete, fail closed before economy mutation instead of charging blind.\n` +
         `  if (drawPool.some(id => productionFighterIndex(id) < 0)){ showPoolTag('DRAW ASSETS UNAVAILABLE'); return; }\n` +
         `  const res = meta.spin();\n` +
         `  if (!res || res.ok !== true){\n` +
@@ -1223,6 +1230,12 @@ function buildLuckyDonor() {
       why: 'Lucky Draw labels display fighter identity names while production IDs remain spin/pool keys',
       find: /else if \(\$\('#plM'\)\.textContent !== FIGHTERS\[on\]\.id\) \$\('#plM'\)\.textContent = FIGHTERS\[on\]\.id;/,
       replace: `else if ($('#plM').textContent !== (FIGHTERS[on].name||FIGHTERS[on].id)) $('#plM').textContent = FIGHTERS[on].name||FIGHTERS[on].id;`,
+    },
+    {
+      id: 'LKY-R50I-5',
+      why: 'reveal art alt text uses the canonical fighter name; the storage id stays the spin key',
+      find: 'alt="${F.id}"',
+      replace: 'alt="${F.name||F.id}"',
     },
     {
       id: 'LKY-R50I-4',
@@ -1694,7 +1707,12 @@ function buildShell(hudProductionHtml) {
         `  // Owner law 2026-10-05: no synthetic oscillator authority. Every UI\n` +
         `  // cue is a real Git cue through the ONE semantic UI-SFX authority\n` +
         `  // (public/game/ui/uiSfxAuthority.js) — one cached element per key.\n` +
-        `  function uiSfx(key){try{const sfx=window.apexUiSfx;if(sfx&&typeof sfx.play==='function')sfx.play(key);}catch(_){}}\n`
+        `  function uiSfx(key){try{const sfx=window.apexUiSfx;if(sfx&&typeof sfx.play==='function')sfx.play(key);}catch(_){}}\n` +
+        // ONE cross-script seam. Classic <script> blocks do NOT share lexical
+        // scope, so a later block (Lucky Draw / handoff patches) can never call
+        // the block-local uiSfx() above. Publishing the same helper on window is
+        // the only way every shell block reaches the one SFX authority.
+        `  window.apexShellSfx=uiSfx;\n`
       ),
     },
     // Mode→Fighter Pick is an authored screen transition.
@@ -1810,7 +1828,10 @@ function buildShell(hudProductionHtml) {
       id: 'SHL-S27',
       why: 'Home story hierarchy shares one Gold-authored left edge and defeats legacy global paragraph centering',
       find: /section\.story\.e-story::before,\nsection\.story\.e-story::after\{content:none!important;display:none!important;background:none!important;box-shadow:none!important;backdrop-filter:none!important\}/,
-      replace: (matched) => (\n        `${matched}\\n` +\n        `section.story.e-story,section.story.e-story .quest,section.story.e-story .storyTitle,section.story.e-story .location,section.story.e-story .copy{text-align:left!important}\\n` +\n        `section.story.e-story .location,section.story.e-story .copy{margin-left:0!important}`\n      ),
+      replace: (matched) =>
+        `${matched}\n` +
+        `section.story.e-story,section.story.e-story .quest,section.story.e-story .storyTitle,section.story.e-story .location,section.story.e-story .copy{text-align:left!important}\n` +
+        `section.story.e-story .location,section.story.e-story .copy{margin-left:0!important}`,
     },
     {
       id: 'SHL-S26',

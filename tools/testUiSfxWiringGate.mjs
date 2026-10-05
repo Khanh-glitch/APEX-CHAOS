@@ -82,7 +82,7 @@ ok(/uiSfx\('ui\.screen\.transition'\)/.test(SHELL), 'ui.screen.transition is wir
 ok(countIn('ui.screen.transition') === 2,
   'ui.screen.transition has exactly two production surfaces (Home->Mode, Mode->Fighter Pick)',
   String(countIn('ui.screen.transition')));
-ok(/battle\.addEventListener\('click',\(\)=>\{uiSfx\('ui\.screen\.transition'\);setScreen\('mode'\)\}\)/
+ok(/battle\.addEventListener\('click',\(\)=>\{uiSfx\('ui\.screen\.transition'\);void setScreen\('mode'\)\}\)/
   .test(SHELL), 'Home -> Mode plays ui.screen.transition');
 ok(/uiSfx\('ui\.screen\.transition'\);\n    activePlayer='p1'/.test(SHELL),
   'Mode -> Fighter Pick plays ui.screen.transition');
@@ -128,7 +128,11 @@ ok(/ldLoopStop\('lucky\.draw\.machine_run'\)/.test(LUCKY),
   'the machine_run voice stops at the final lock');
 ok(/ldSfx\('lucky\.draw\.reveal_charge'\)/.test(LUCKY), 'the reveal charge plays at the final lock');
 ok(/ldSfx\('lucky\.draw\.reward_reveal'\)/.test(LUCKY), 'the reward cue plays in reveal()');
-ok(/uiSfx\('lucky\.draw\.enter_bay'\)/.test(SHELL), 'entering the bay plays enter_bay');
+// The Lucky Draw block is a separate classic <script>; the cue must travel
+// through the published window.apexShellSfx seam (a bare uiSfx() call there
+// throws inside SceneTransition commit and leaves the bay unable to open).
+ok(/window\.apexShellSfx&&window\.apexShellSfx\('lucky\.draw\.enter_bay'\)/.test(SHELL),
+  'entering the bay plays enter_bay through the one cross-block SFX seam');
 
 // The reward cue must sit inside reveal() AFTER the winner is known and the
 // hero slot has been populated — i.e. on REAL reward visibility.

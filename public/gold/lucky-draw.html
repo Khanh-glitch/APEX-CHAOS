@@ -1243,8 +1243,9 @@ function renderCover(i){
     const dw = iw * sc, dh = ih * sc;
     const fx = C.focusX ?? .5, fy = C.focusY ?? .5;
     const dx = w * .5 - iw * fx * sc, dy = H * .5 - ih * fy * sc;
-    // Keep the donor striped card/background. The reel identity is a black
-    // silhouette cut from the SAME production art revealed after the lock.
+    // Preserve the donor striped card/background, but identity on the
+    // moving reel is an authored black silhouette cut from the SAME
+    // production art that will be revealed after lock.
     g.save();
     g.globalAlpha=.94;
     g.filter='brightness(0) saturate(0)';
@@ -1261,7 +1262,7 @@ function renderCover(i){
   const iw = g.measureText(idt).width;
   g.font = `600 ${fs}px Oswald, 'Arial Narrow', sans-serif`; g.fillStyle = '#e4d9c6';
   try { g.letterSpacing = (fs * .08).toFixed(1) + 'px'; } catch(e){}
-  g.fillText(F.name||F.id, ix + iw + fs * .45, H - fs * .75);
+  g.fillText(F.id, ix + iw + fs * .45, H - fs * .75);
   g.restore();
   g.strokeStyle = rgba(F.col, .55); g.lineWidth = 1.5;
   g.beginPath(); g.moveTo(s + gap / 2, 0); g.lineTo(gap / 2, H); g.stroke();
@@ -1498,7 +1499,7 @@ $('#infoD').addEventListener('click', openDrawer); $('#infoM').addEventListener(
 $('#drawerX').addEventListener('click', () => stage.dataset.drawer = '0');
 // Pool drawer renders the production locked pool (draw truth).
 $('#drawerList').innerHTML = FIGHTERS.filter(F => productionPoolIds().includes(F.id)).map((F, i) =>
-  `<div class="drow"><span class="n">${pad2(i + 1)}</span><img src="${F.urlBase}" alt=""><span>${F.name||F.id}<small>${F.tag}</small></span></div>`).join('');
+  `<div class="drow"><span class="n">${pad2(i + 1)}</span><img src="${F.urlBase}" alt=""><span>${F.id}<small>${F.tag}</small></span></div>`).join('');
 addEventListener('resize', applyView);
 addEventListener('keydown', e => {
   if (e.target && e.target.tagName === 'INPUT') return;

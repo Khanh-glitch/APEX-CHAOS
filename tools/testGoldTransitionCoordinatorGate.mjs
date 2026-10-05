@@ -74,8 +74,14 @@ check('target reveal scale matches Gold standalone', coordinator.includes('(1.12
 check('responsive engine owns canvas resize', runtimeText.includes('window.addEventListener(\'resize\'') && runtimeText.includes('computeGeo'));
 check('canvas DPR budget preserved', runtimeText.includes('3.2e6'));
 
-for(const route of ["name:`${screen}->${next}`","name:'home->lucky'","name:'lucky->home'"]){
-  check(`HUD/UI route uses Mechanical Door: ${route}`, shell.includes(route));
+// R51 route policy (owner law 2026-10-05): Home / Mode / Fighter Pick are
+// screens of ONE Gold shell surface and already own their authored screen
+// transitions, so the router must NEVER run a Door transaction. The Door is a
+// SCENE authority: boot + the Lucky Draw bay.
+check('screen router never runs a Mechanical Door transaction',
+  !shell.includes("name:`${screen}->${next}`"));
+for(const route of ["name:'home->lucky'","name:'lucky->home'"]){
+  check(`Lucky Draw scene uses Mechanical Door: ${route}`, shell.includes(route));
 }
 check('Battle is excluded from Mechanical Door routes',
   !shell.includes("name:'fighter->battle'") &&

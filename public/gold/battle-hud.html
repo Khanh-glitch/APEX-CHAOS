@@ -1484,7 +1484,7 @@ applyViewport();requestAnimationFrame(frame);
     if(!hud) return;
     const desired=mode==='1p'?'1p':'2p';
     if(hud.dataset.mode!==desired){
-      APEX_GOLD_HUD.setMode(desired);
+      if(window.APEX_GOLD_HUD)window.APEX_GOLD_HUD.setMode(desired);
     }
   }
   function applyIdentity(i,p){

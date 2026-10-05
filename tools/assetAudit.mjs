@@ -28,6 +28,7 @@ import {
   ARSENAL_PRODUCT_RUNTIMES,
   MENU_INTERACTIVE_RUNTIMES,
   SELECT_RUNTIMES,
+  UI_SFX_RUNTIMES,
 } from '../src/game/runtimeManifest.js';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -42,11 +43,47 @@ const SHIP_GLOBS = [
   'src',
 ];
 
+// A classic /game/** runtime that the SHIPPING Gold shell loads is a shipping
+// runtime by definition. Derive it from the authored shell HTML instead of a
+// hand list: missing this derivation is exactly how
+// /game/ui/uiSfxAuthority.js was classified LEGACY_NON_SHIPPING and deleted by
+// pruneShippingDist, which made the shell mount reject on 404, so
+// signalBootReady() never ran and the Mechanical Door held SEALED forever
+// (R50K boot-door regression, 2026-10-05).
+function shellHtmlSources() {
+  const roots = [
+    path.join(REPO, 'docs', 'gold-ui', 'current'),
+    path.join(PUBLIC, 'gold'),
+  ];
+  const found = [];
+  const visit = (dir) => {
+    if (!fs.existsSync(dir)) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) visit(full);
+      else if (/\.html$/i.test(entry.name)) found.push(full);
+    }
+  };
+  roots.forEach(visit);
+  return found;
+}
+
+const shellRuntimeScriptPaths = new Set();
+for (const file of shellHtmlSources()) {
+  const text = fs.readFileSync(file, 'utf8');
+  for (const match of text.matchAll(/(?:src|href)\s*=\s*"(\/game\/[^"?]+\.js)(?:\?[^"]*)?"/g)) {
+    shellRuntimeScriptPaths.add(match[1]);
+  }
+}
+
 const runtimePublicFiles = [
   ...MENU_INTERACTIVE_RUNTIMES,
   ...ARSENAL_PRODUCT_RUNTIMES,
   ...SELECT_RUNTIMES,
-].map(([src]) => path.join(PUBLIC, String(src).split(/[?#]/, 1)[0].replace(/^\//, '')));
+  ...UI_SFX_RUNTIMES,
+]
+  .map(([src]) => path.join(PUBLIC, String(src).split(/[?#]/, 1)[0].replace(/^\//, '')))
+  .concat([...shellRuntimeScriptPaths].map((p) => path.join(PUBLIC, String(p).replace(/^\//, ''))));
 
 const SHIP_PUBLIC_FILES = [
   path.join(PUBLIC, 'apexEngine.js'),
