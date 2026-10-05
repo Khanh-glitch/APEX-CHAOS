@@ -98,33 +98,51 @@
   // identity for the same match.
   const BOT_OPPONENT_ID = 'ROBOT';
   window.startMatch = function startProductBattle(...args) {
-    if (!window.__apexArsenalSelectPending) return undefined;
+    if (!window.__apexArsenalSelectPending) return Promise.resolve(false);
     const mode = window.__apexArsenalSelectionMode === 'bot' ? 'BOT' : 'LOCAL';
+    const goldHosted = window.__apexGoldBattleHosted === true;
     window.__apexArsenalSelectPending = false;
     const p1 = typeof p1Selection !== 'undefined' ? p1Selection : null;
     const p2 = typeof p2Selection !== 'undefined' ? p2Selection : null;
+
+    // Legacy selection is a fallback ONLY for legacy entry. A Gold-hosted
+    // handoff already owns fighter selection and must never resurrect the old
+    // picker while its battle runtimes are loading.
+    const fail = () => {
+      if (!goldHosted) beginSelection({ mode: mode === 'BOT' ? 'bot' : 'local' });
+      return false;
+    };
     if (!p1 || !p2 || !canPublicSelect(p1.name) || !canPublicSelect(p2.name)) {
-      beginSelection({ mode: mode === 'BOT' ? 'bot' : 'local' });
-      return;
+      return Promise.resolve(fail());
     }
+
     window.__apexArsenalBattleProfile = mode;
     window.__apexArsenalBotBattle = false;
     window.__apexArsenalFreeBattle = false;
+
     const launch = () => {
-      if (typeof window.startArsenalBattleMode === 'function') {
-        window.startArsenalBattleMode(p1.name, p2.name);
-      } else {
-        beginSelection({ mode: mode === 'BOT' ? 'bot' : 'local' });
-      }
+      if (typeof window.startArsenalBattleMode !== 'function') return fail();
+      return window.startArsenalBattleMode(p1.name, p2.name) === true;
     };
-    if (window.apexArsenalGameplayBarrierSync?.('match')) { launch(); return; }
+
+    // READY CONTRACT: every branch resolves only after the real Arsenal match
+    // has either started or definitively failed. Gold transition reveal awaits
+    // this Promise and therefore cannot show donor defaults / old picker UI.
+    if (window.apexArsenalGameplayBarrierSync?.('match')) {
+      return Promise.resolve(launch());
+    }
     if (window.apexArsenalGameplayBarrier) {
-      window.apexArsenalGameplayBarrier('match').then((ready) => { if (ready) launch(); });
-      return;
+      return Promise.resolve(window.apexArsenalGameplayBarrier('match'))
+        .then((ready) => ready ? launch() : false)
+        .catch(() => false);
     }
     const ensure = window.__apexEnsureDeferredRuntimes;
-    if (typeof ensure === 'function') ensure('arsenalProduct').then(launch).catch(() => {});
-    else launch();
+    if (typeof ensure === 'function') {
+      return Promise.resolve(ensure('arsenalProduct'))
+        .then(() => launch())
+        .catch(() => false);
+    }
+    return Promise.resolve(launch());
   };
 
   const baseGoToMenu = typeof window.goToMenu === 'function' ? window.goToMenu : null;

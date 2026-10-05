@@ -559,47 +559,55 @@
   function arenaElement() {
     return document.getElementById('arena');
   }
-  function arenaWrapper() {
-    return document.getElementById('game-wrapper') || document.getElementById('game-wrap');
+  function arenaCanvas() {
+    return document.getElementById('game-canvas');
+  }
+  function hideLegacyProductScreens() {
+    // Gold owns every player-facing product surface. The engine's menu/select
+    // roots stay mounted only as runtime infrastructure and must never enter
+    // the Gold battle compositor, even for one async loading frame.
+    for (const id of ['menu-screen', 'select-screen']) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      el.classList.add('hidden');
+      el.setAttribute('aria-hidden', 'true');
+      el.style.display = 'none';
+    }
+    const legacyHud = legacyUiElement('hud');
+    if (legacyHud) legacyHud.style.opacity = 0;
   }
   function relocateArena() {
-    const wrap = arenaWrapper();
+    const canvas = arenaCanvas();
     const arena = arenaElement();
-    if (!wrap || !arena) return;
-    if (wrap.parentElement === arena) return;
-    arenaOriginParent = wrap.parentElement;
-    arenaOriginNext = wrap.nextElementSibling;
-    arena.appendChild(wrap);
-    // Presentation adaptation only: the engine keeps its 1000×1000 gameplay
-    // space; the wrapper is centered square so nothing distorts.
-    wrap.style.position = 'absolute';
-    wrap.style.inset = 'auto';
-    wrap.style.left = '50%';
-    wrap.style.top = '50%';
-    wrap.style.transform = 'translate(-50%,-50%)';
-    wrap.style.aspectRatio = '1 / 1';
-    wrap.style.height = '100%';
-    wrap.style.width = 'auto';
-    wrap.style.maxWidth = '100%';
-    wrap.style.maxHeight = '100%';
-    wrap.style.margin = '0';
-    const canvas = wrap.querySelector('#game-canvas');
-    if (canvas) {
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
-      canvas.style.display = 'block';
-    }
+    if (!canvas || !arena) return false;
+    if (canvas.parentElement === arena) return true;
+    arenaOriginParent = canvas.parentElement;
+    arenaOriginNext = canvas.nextElementSibling;
+    arena.appendChild(canvas);
+    // Move ONLY the 1000×1000 gameplay canvas. #game-wrapper also contains
+    // legacy menu/select/HUD DOM and moving that wrapper was the root cause of
+    // the old picker visibly contaminating both Gold battle modes.
+    canvas.style.position = 'absolute';
+    canvas.style.inset = 'auto';
+    canvas.style.left = '50%';
+    canvas.style.top = '50%';
+    canvas.style.transform = 'translate(-50%,-50%)';
+    canvas.style.aspectRatio = '1 / 1';
+    canvas.style.height = '100%';
+    canvas.style.width = 'auto';
+    canvas.style.maxWidth = '100%';
+    canvas.style.maxHeight = '100%';
+    canvas.style.display = 'block';
+    return true;
   }
   function restoreArena() {
-    const wrap = arenaWrapper();
-    if (!wrap || !arenaOriginParent) return;
-    wrap.style.cssText = '';
-    const canvas = wrap.querySelector('#game-canvas');
-    if (canvas) canvas.style.cssText = '';
+    const canvas = arenaCanvas();
+    if (!canvas || !arenaOriginParent) return;
+    canvas.style.cssText = '';
     if (arenaOriginNext && arenaOriginNext.parentElement === arenaOriginParent) {
-      arenaOriginParent.insertBefore(wrap, arenaOriginNext);
+      arenaOriginParent.insertBefore(canvas, arenaOriginNext);
     } else {
-      arenaOriginParent.appendChild(wrap);
+      arenaOriginParent.appendChild(canvas);
     }
     arenaOriginParent = null;
     arenaOriginNext = null;
@@ -616,6 +624,7 @@
   const LEGACY_BATTLE_IDS = [
     'hud', 'battle-controls', 'battle-pause-btn', 'challenge-caption',
     'countdown-overlay', 'end-screen', 'p1-name', 'p2-name', 'combat-inspector',
+    'menu-screen', 'select-screen',
     // arsenalBattleRuntime creates this overlay only AFTER startMatch(); it
     // contains the legacy B/ESC hint, EXIT button, debug and result layer.
     'aq-dom-hud', 'aq-hint', 'aq-battle-exit', 'aq-debug', 'aq-win',
@@ -748,7 +757,7 @@
     });
   }
   BRIDGE.onBattleLive = async function onBattleLive(pick) {
-    if (battleLiveRunning) return;
+    if (battleLiveRunning) return false;
     const sessionToken = ++battleSessionToken;
     const mode = (pick && pick.mode === 'bot') ? 'BOT' : 'LOCAL';
     const p1Shell = String((pick && pick.p1) || 'newbot').toLowerCase();
@@ -759,51 +768,97 @@
       : String((pick && pick.p2) || 'newbot').toLowerCase();
     const p1 = PRODUCTION_ID_BY_SHELL_KEY[p1Shell] || 'ROBOT';
     const p2 = PRODUCTION_ID_BY_SHELL_KEY[p2Shell] || 'ROBOT';
-    const shells = window.APEX_ARSENAL_SHELLS;
-    if (!shells || typeof shells.typeFor !== 'function') return;
-    if (window.APEX_GOLD_LOCKED && (window.APEX_GOLD_LOCKED(p1Shell) || window.APEX_GOLD_LOCKED(p2Shell))) return;
+    if (window.APEX_GOLD_LOCKED && (window.APEX_GOLD_LOCKED(p1Shell) || window.APEX_GOLD_LOCKED(p2Shell))) return false;
     battleLiveRunning = true;
     try {
-      window.__apexArsenalSelectionMode = mode.toLowerCase();
-      window.__apexArsenalBotBattle = mode === 'BOT';
-      window.__apexArsenalFreeBattle = mode !== 'BOT';
-      window.__apexArsenalSelectPending = true;
-      window.p1Selection = shells.typeFor(p1);
-      window.p2Selection = shells.typeFor(p2);
-      // Load the battle product runtimes first: startMatch, the combat HUD
-      // observer and the SFX/VFX presentation runtimes must exist before any
-      // production trigger is wired or fired.
+      // The legacy picker/menu live inside #game-wrapper. Hide them BEFORE
+      // deferred runtime work starts so an async barrier can never expose the
+      // retired picker beneath the Gold transition.
+      hideLegacyProductScreens();
+
+      // Runtime FIRST, handoff state SECOND. This order is mandatory: on a cold
+      // load arsenalShellSelectRuntime creates APEX_ARSENAL_SHELLS and its
+      // pending-selection state. Writing those fields before the script exists
+      // makes the flow timing-dependent and lets slow loads erase the handoff.
       const loaded = await ensureDeferredRuntimes('arsenalProduct');
       if (!loaded || sessionToken !== battleSessionToken || !hudMounted || !battleLiveRunning) {
         battleLiveRunning = false;
-        return;
+        return false;
       }
+      const shells = window.APEX_ARSENAL_SHELLS;
+      if (!shells || typeof shells.typeFor !== 'function') {
+        battleLiveRunning = false;
+        return false;
+      }
+      const p1Type = shells.typeFor(p1);
+      const p2Type = shells.typeFor(p2);
+      if (!p1Type || !p2Type) {
+        battleLiveRunning = false;
+        return false;
+      }
+      window.__apexArsenalSelectionMode = mode.toLowerCase();
+      window.__apexArsenalBotBattle = mode === 'BOT';
+      window.__apexArsenalFreeBattle = mode !== 'BOT';
+      window.p1Selection = p1Type;
+      window.p2Selection = p2Type;
+      window.__apexArsenalSelectPending = true;
+
       // The Gold shell already published the music-off battle surface. From
       // here the bridge starts only the real engine + presentation projection.
-      relocateArena();
+      hideLegacyProductScreens();
+      captureLegacyBattleUi(false);
       hideLegacyBattleUi();
+      if (!relocateArena()) {
+        console.warn('[gold-bridge] gameplay canvas unavailable; battle did not start.');
+        battleLiveRunning = false;
+        return false;
+      }
       // Wrap the real HUD observer only after the group is present.
       installEventTranslation();
-      // The product match entry validates ownership and starts the real match
-      // (startArsenalBattleMode). No synthetic input is involved.
+
+      // Gold-hosted status is set BEFORE startMatch so every fallback branch
+      // knows it must never resurrect the legacy selection surface.
+      window.__apexGoldBattleHosted = true;
       if (typeof window.startMatch !== 'function') {
         console.warn('[gold-bridge] startMatch unavailable; battle did not start.');
         battleLiveRunning = false;
         window.__apexGoldBattleHosted = false;
-        return;
+        return false;
       }
-      window.__apexGoldBattleHosted = true;
-      window.startMatch();
-      // arsenalBattleRuntime creates #aq-dom-hud during its first draw, after
-      // the initial legacy capture. Capture again without losing the first set
-      // and hide the late overlay before the browser paints the live frame.
+      const started = await Promise.resolve(window.startMatch());
+      if (started !== true || sessionToken !== battleSessionToken || !hudMounted || !battleLiveRunning) {
+        console.warn('[gold-bridge] production match start did not reach READY.');
+        battleLiveRunning = false;
+        window.__apexGoldBattleHosted = false;
+        restoreArena();
+        return false;
+      }
+
+      // arsenalBattleRuntime may create its DOM HUD during match start. Capture
+      // and suppress it after the engine is real, then push one truthful frame
+      // synchronously so Gold is never revealed with donor defaults (0 HP,
+      // A1/A2 labels, fake 10s cooldowns, placeholder weapon glyphs).
+      hideLegacyProductScreens();
       captureLegacyBattleUi(false);
       hideLegacyBattleUi();
+      const seam = window.APEX_GOLD_HUD;
+      if (!seam) {
+        battleLiveRunning = false;
+        window.__apexGoldBattleHosted = false;
+        restoreArena();
+        return false;
+      }
+      const first = projection();
+      if (typeof seam.applyState === 'function') seam.applyState(first.state);
+      if (typeof seam.syncFighters === 'function') seam.syncFighters(first.fighters);
       startPump();
+      return true;
     } catch (error) {
       console.warn('[gold-bridge] battle live failed.', error);
       battleLiveRunning = false;
       window.__apexGoldBattleHosted = false;
+      restoreArena();
+      return false;
     }
   };
 

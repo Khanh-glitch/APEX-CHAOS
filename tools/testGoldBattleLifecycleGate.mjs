@@ -4,6 +4,7 @@ import vm from 'node:vm';
 const read = (p) => fs.readFileSync(p, 'utf8');
 const bridge = read('public/game/gold/goldProductBridge.js');
 const battle = read('public/game/modes/arsenalBattleRuntime.js');
+const selectRuntime = read('public/game/arsenal/arsenalShellSelectRuntime.js');
 const shell = read('public/gold/shell.html');
 const hud = read('public/gold/battle-hud.html');
 const generator = read('tools/buildGoldCutover.mjs');
@@ -81,14 +82,45 @@ check('generator carries remount-safe donor RAF and Escape laws',
 // Runtime-created legacy Arsenal DOM HUD appears after startMatch; recapture it.
 check('legacy runtime DOM HUD ids are in the suppression set',
   /'aq-dom-hud'.*'aq-battle-exit'/s.test(bridge));
-check('legacy refs are recaptured after startMatch and hidden before live paint',
-  /window\.startMatch\(\);[\s\S]*?captureLegacyBattleUi\(false\);[\s\S]*?hideLegacyBattleUi\(\);/.test(bridge));
+check('legacy refs are recaptured only after awaited production match READY and hidden before live paint',
+  /const started = await Promise\.resolve\(window\.startMatch\(\)\);[\s\S]*?started !== true[\s\S]*?captureLegacyBattleUi\(false\);[\s\S]*?hideLegacyBattleUi\(\);/.test(bridge));
 
 check('Gold-hosted Arsenal DOM HUD is suppressed at source even if match launch is async',
   /window\.__apexGoldBattleHosted === true\) el\.style\.display = 'none'/.test(battle));
 check('Arsenal DOM HUD is disposed and refs reset on battle exit',
   /function disposeArsenalDomHud\(\)/.test(battle)
   && /disposeArsenalDomHud\(\);/.test(battle));
+
+check('Gold battle relocates ONLY the gameplay canvas, never the legacy game-wrapper tree',
+  /arena\.appendChild\(canvas\)/.test(bridge)
+  && !/arena\.appendChild\(wrap\)/.test(bridge)
+  && /Move ONLY the 1000×1000 gameplay canvas/.test(bridge));
+
+check('legacy product menu/select are suppressed before deferred battle loading and again before reveal',
+  /function hideLegacyProductScreens\(\)/.test(bridge)
+  && /hideLegacyProductScreens\(\);[\s\S]*?await ensureDeferredRuntimes\('arsenalProduct'\)/.test(bridge)
+  && /'menu-screen', 'select-screen'/.test(bridge));
+
+check('cold-load handoff writes selection/pending state only AFTER arsenalProduct runtime exists',
+  bridge.indexOf("const loaded = await ensureDeferredRuntimes('arsenalProduct');")
+    < bridge.indexOf('window.__apexArsenalSelectPending = true;')
+  && /const shells = window\.APEX_ARSENAL_SHELLS;[\s\S]*?const p1Type = shells\.typeFor\(p1\);[\s\S]*?window\.p1Selection = p1Type;/.test(bridge));
+
+check('Gold-hosted select runtime never resurrects the legacy picker on failure',
+  /const goldHosted = window\.__apexGoldBattleHosted === true;/.test(selectRuntime)
+  && /if \(!goldHosted\) beginSelection/.test(selectRuntime));
+
+check('select runtime exposes a Promise<boolean> READY contract for every match-start branch',
+  /window\.startMatch = function startProductBattle/.test(selectRuntime)
+  && /return Promise\.resolve\(false\)/.test(selectRuntime)
+  && /return Promise\.resolve\(launch\(\)\)/.test(selectRuntime)
+  && /\.then\(\(ready\) => ready \? launch\(\) : false\)/.test(selectRuntime));
+
+check('Gold shell awaits production READY before battle-hud-open',
+  /async function setBattleLive\(\)/.test(shell)
+  && /const liveReady=await setBattleLive\(\);/.test(shell)
+  && /if\(liveReady!==true\)/.test(shell)
+  && shell.indexOf('const liveReady=await setBattleLive();') < shell.indexOf("document.body.classList.add('battle-hud-open')"));
 
 // Gold owns the destination; engine owns teardown only.
 check('Gold bridge exposes one engine teardown seam',
@@ -227,7 +259,7 @@ if (authority && audio) {
   check('shipping product music authority installs in harness', false);
 }
 
-const out = ['GOLD BATTLE LIFECYCLE GATE (R46C)', ...pass];
+const out = ['GOLD BATTLE LIFECYCLE GATE (R49 root ownership)', ...pass];
 if (fail.length) {
   out.push('', ...fail, '', 'RESULT: FAIL (' + fail.length + ')');
   console.error(out.join('\n'));

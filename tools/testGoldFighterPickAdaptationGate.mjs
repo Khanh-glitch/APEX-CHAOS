@@ -8,43 +8,71 @@ function check(name, ok, detail = '') {
   (ok ? passes : failures).push((ok ? 'PASS ' : 'FAIL ') + name + (detail ? ' :: ' + detail : ''));
 }
 
-check('R48A generated shell contains the dedicated adaptation style',
-  shell.includes('id="r48a-fighter-pick-adaptation"'));
-check('old hero retreats before new hero entrance completes',
-  /\.worldHeroGhost\{animation:r48HeroRetreatP1 150ms/.test(shell)
-  && /r48HeroEnterP1 220ms[^\n]*145ms both/.test(shell));
-check('Frost orientation override applies identically to BOTH P1 and P2',
-  /\.worldHeroSlot\.p1\[data-hero="frost"\] \.worldHeroAsset,\.worldHeroSlot\.p2\[data-hero="frost"\] \.worldHeroAsset\{[^}]*scale:-2\.5 2\.5!important/s.test(shell));
-check('Frost is lowered under foreground while using the owner 2.5x fallback scale',
-  /data-hero="frost"[^}]*transform:translateY\(14%\)!important;[^}]*scale:-2\.5 2\.5!important/s.test(shell));
-check('Hunter selected art is reduced to 60 percent on both sides',
-  /p1\[data-hero="hunter"\][^}]*transform:scale\(\.60\)!important/s.test(shell)
-  && /p2\[data-hero="hunter"\][^}]*transform:scale\(\.60\)!important/s.test(shell));
-check('Mirror has no static world placeholder remaining',
+check('R49 uses one Fighter Pick presentation authority',
+  shell.includes('id="r49-fighter-presentation-authority"')
+  && shell.includes('const HERO_PRESENTATION=Object.freeze')
+  && shell.includes('const worldHeroSwapState=new WeakMap()'));
+
+check('hero swap is sequential: current exits, is removed, then latest pending hero mounts',
+  shell.includes('state.swapping=true;')
+  && shell.includes('current.remove();')
+  && shell.includes('if(latest)commitWorldHero(container,latest,state);')
+  && shell.indexOf('current.remove();') < shell.indexOf('if(latest)commitWorldHero(container,latest,state);'));
+
+check('rapid selection coalesces to the latest pending hero instead of stacking full-art nodes',
+  shell.includes('state.pending=target;')
+  && shell.includes('if(state.swapping)return;')
+  && shell.includes('const latest=state.pending;'));
+
+check('no cloned full-art ghost/echo path survives',
+  !shell.includes('ghost=prev.cloneNode(true)')
+  && !shell.includes('echo=img.cloneNode()')
+  && shell.includes('.worldHeroGhost,.worldHeroFxAsset{display:none!important}'));
+
+check('one slot geometry law is shared by every hero and both sides',
+  shell.includes("container.style.setProperty('top','7vh','important')")
+  && shell.includes("container.style.setProperty('bottom','15.5vh','important')")
+  && shell.includes("container.style.setProperty('width','50.5vw','important')")
+  && shell.includes("container.style.setProperty('left','-4.6vw','important')")
+  && shell.includes("container.style.setProperty('right','-4.6vw','important')"));
+
+check('Hunter physical scale comes from the one authority, not side-specific CSS',
+  shell.includes('hunter:{scale:.62,x:0,y:5}')
+  && !/r49-fighter-presentation-authority[\s\S]*data-hero="hunter"[\s\S]*transform:scale/.test(shell));
+
+check('Frost uses one hero-level orientation for BOTH sides and is grounded lower',
+  shell.includes('frost:{scale:1.18,x:0,y:12,face:-1}')
+  && shell.includes("const face=Number.isFinite(p.face)?p.face:(player==='p2'?-1:1)")
+  && shell.includes("applyHeroPresentation(img,target.renderId,target.id,target.player)"));
+
+check('Mirror has no static selected-large placeholder and waits for a real opponent pick',
   !shell.includes('mirror-world-runtime-opponent-ghost.svg')
-  && shell.includes('const WORLD_ART = {};'));
-check('Mirror selected presentation derives only from an actually picked opponent',
-  shell.includes('function mirrorOpponentHero(player)')
-  && shell.includes('if(!p2HasPicked || p2Empty || p2Hero===\'mirror\') return null;')
-  && shell.includes('if(!p1HasPicked || p1Hero===\'mirror\') return null;'));
-check('Mirror uses opponent selected art and a darker reflection treatment',
-  shell.includes("const sourceHero=renderId?HEROES[renderId]:null;")
-  && shell.includes("img.classList.add('mirrorOpponentAsset')")
-  && /mirrorOpponentAsset\{[^}]*brightness\(\.46\)/s.test(shell));
-check('locked/artless cards no longer emit an empty image src',
+  && shell.includes('function mirrorOpponentHero(player)')
+  && shell.includes("if(!p2HasPicked || p2Empty || p2Hero==='mirror') return null;")
+  && shell.includes("if(!p1HasPicked || p1Hero==='mirror') return null;"));
+
+check('Mirror reuses the copied opponent presentation scale and only darkens presentation',
+  shell.includes("const renderId=id==='mirror'?mirrorSource:id;")
+  && shell.includes('const p=presentationFor(renderId,player);')
+  && shell.includes("if(requestedId==='mirror')")
+  && shell.includes("brightness(.47) saturate(.62)"));
+
+check('locked/artless cards never emit an empty image and retain intentional lock treatment',
   !shell.includes('<img src="${h.portrait||\'\'}"')
   && shell.includes('rosterLockedVisual')
   && shell.includes('<span class="rosterLock"'));
+
 check('portrait load failure has a deliberate visual fallback',
   shell.includes("img.addEventListener('error',()=>")
   && shell.includes("b.classList.add('art-missing')"));
-check('generator contains the same R48A adaptation authority',
-  generator.includes('R48A owner Fighter Pick adaptation')
-  && generator.includes('r48HeroRetreatP1')
-  && generator.includes('mirrorOpponentHero(player)')
-  && generator.includes('scale:-2.5 2.5!important'));
 
-const out = ['GOLD FIGHTER PICK ADAPTATION GATE (R48A)', ...passes];
+check('generator re-applies R49 root authority after historical R48A intermediate patches',
+  generator.includes('R49 root correction: single Pick presentation + READY battle reveal')
+  && generator.includes('R49 duplicate hero-art path survived')
+  && generator.includes('const HERO_PRESENTATION=Object.freeze')
+  && generator.includes('r49-fighter-presentation-authority'));
+
+const out = ['GOLD FIGHTER PICK ADAPTATION GATE (R49 root authority)', ...passes];
 if (failures.length) {
   out.push('', ...failures, '', 'RESULT: FAIL (' + failures.length + ')');
   console.error(out.join('\n'));

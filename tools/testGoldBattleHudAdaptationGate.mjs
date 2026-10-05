@@ -83,14 +83,22 @@ check('shipping shell embeds the exact shipping Battle HUD bytes',
   !!payload && decoded === hud,
   payload ? ('decoded=' + decoded.length + ' hud=' + hud.length) : 'payload missing');
 
-check('R48A Frost orientation correction survives R48B shell rebuild',
-  /\.worldHeroSlot\.p1\[data-hero="frost"\] \.worldHeroAsset,\s*\.worldHeroSlot\.p2\[data-hero="frost"\] \.worldHeroAsset\{[\s\S]*?scale:-2\.5 2\.5!important/.test(shell));
+check('R49 Frost keeps one hero-level orientation/scale authority across both sides',
+  shell.includes('frost:{scale:1.18,x:0,y:12,face:-1}')
+  && shell.includes("const face=Number.isFinite(p.face)?p.face:(player==='p2'?-1:1)")
+  && shell.includes("applyHeroPresentation(img,target.renderId,target.id,target.player)"));
 
-check('R48A Mirror remains opponent-derived with no static selected-large placeholder',
-  shell.includes('function mirrorOpponentHero(player)') &&
-  !shell.includes('mirror-world-runtime-opponent-ghost.svg'));
+check('R49 Mirror remains opponent-derived with no static selected-large placeholder',
+  shell.includes('function mirrorOpponentHero(player)')
+  && shell.includes("const renderId=id==='mirror'?mirrorSource:id;")
+  && !shell.includes('mirror-world-runtime-opponent-ghost.svg'));
 
-console.log('GOLD BATTLE HUD ADAPTATION GATE (R48B)');
+check('R49 battle reveal awaits production READY before exposing Gold HUD',
+  shell.includes('async function setBattleLive()')
+  && shell.includes('const liveReady=await setBattleLive();')
+  && shell.includes('if(liveReady!==true)'));
+
+console.log('GOLD BATTLE HUD ADAPTATION GATE (R49 + R48B production truth)');
 for (const line of pass) console.log(line);
 if (fail.length) {
   console.error('');
