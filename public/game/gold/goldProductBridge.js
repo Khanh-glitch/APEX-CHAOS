@@ -901,12 +901,15 @@
   };
 
   // ── mobile skill cards / weapon panel through the production adapter ────
-  BRIDGE.pressSkill = function pressSkill(pi, ai) {
+  BRIDGE.pressSkill = function pressSkill(pi, ai, sourceMeta) {
     const heroRework = window.APEX_HERO_REWORK;
     const fighters = window.fighters;
     if (!heroRework || typeof heroRework.pressAbility !== 'function') return;
     if (!Array.isArray(fighters) || !fighters[pi]) return;
-    try { heroRework.pressAbility(fighters[pi], ai === 1 ? 'A2' : 'A1'); } catch (e) {}
+    const side = pi === 1 ? 'p2' : 'p1';
+    const meta = Object.assign({ side, source: 'pointer' }, sourceMeta || {});
+    meta.side = side; // caller may describe the pointer, never reassign ownership
+    try { heroRework.pressAbility(fighters[pi], ai === 1 ? 'A2' : 'A1', meta); } catch (e) {}
   };
   BRIDGE.pressSwap = function pressSwap() {
     // Production weapons are acquired by real pickup; there is no manual swap
