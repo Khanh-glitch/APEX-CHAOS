@@ -26,6 +26,7 @@ export const APEX_ARSENAL_RUNTIME_REVISION = '20261005-owner-playtest-r49d';
 export const MENU_INTERACTIVE_RUNTIMES = [
   ['/game/core/apexBattleAudioRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBattleAudioRuntime'],
   ['/game/product/productMusicAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'productMusicAuthority'],
+  ['/game/product/productAssetRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'productAssetRuntime'],
 ];
 
 // Current-neutral combat services shared by Arsenal and the generic engine.
@@ -142,10 +143,10 @@ export const DEFERRED_GAME_RUNTIMES = uniqueRuntimeEntries([
 
 // Tier 2 — background warmup after the menu is interactive. These are the
 // only groups that benefit the current product's first interactions.
-export const WARMUP_GROUP_SEQUENCE = [
-  'arsenalProduct',
-  'select',
-];
+// Heavy product groups are route-intent only. Home idle must never silently
+// download/evaluate Battle or Fighter-Pick runtime graphs; the Gold bridge asks
+// for select at MODE intent and arsenalProduct at BATTLE/transition intent.
+export const WARMUP_GROUP_SEQUENCE = [];
 
 // Product meta's critical path. Shop/Draw/selection needs save/config/shell
 // scripts; combat presentation and AV remain lazy until the battle is entered.
