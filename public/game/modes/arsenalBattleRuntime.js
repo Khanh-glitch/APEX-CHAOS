@@ -177,6 +177,7 @@
       suppressedSpawns: 0,
       maxActiveSlots: 0,
       over: null,
+      winnerSide: null,
       // C §6 telemetry: realized direct damage split weapon vs native kit.
       dmg: { weapon: 0, native: 0, byMechanic: {} },
       debugOverlay: AQ.state ? AQ.state.debugOverlay : false,
@@ -374,9 +375,13 @@
     const aqHp = (f) => (HRW && HRW.bodyHudHp) ? HRW.bodyHudHp(f).hp : f.hp;
     if (!state.labMode && !state.over && fighters[0] && fighters[1] && (aqKO(fighters[0]) || aqKO(fighters[1]))) {
       const winner = aqHp(fighters[0]) > aqHp(fighters[1]) ? fighters[0] : fighters[1];
+      const winnerSide = winner === fighters[0] ? 'P1' : 'P2';
+      // Side is the outcome authority. Fighter name remains legacy display
+      // copy only, because Local may legally use the same hero on both sides.
+      state.winnerSide = winnerSide;
       state.over = winner.name;
-      AQ.log('KO', `winner=${winner.name}`);
-      window.APEX_ARSENAL_META?.awardBattleResult?.(winner === fighters[0] ? 'P1' : 'P2', state);
+      AQ.log('KO', `winnerSide=${winnerSide} winner=${winner.name}`);
+      window.APEX_ARSENAL_META?.awardBattleResult?.(winnerSide, state);
       updateHUD();
     }
   }
@@ -1141,6 +1146,7 @@
       active: state.active,
       gameState,
       over: state.over,
+      winnerSide: state.winnerSide || null,
       labMode: !!state.labMode,
       battleMode: state.battleMode || 'LOCAL',
       labDamage: state.labDamage || 0,
