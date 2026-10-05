@@ -18,6 +18,16 @@ check('rival name is live', hud.includes("R.side[i^1]") && hud.includes('rival.t
 check('battle avatar replaces donor portrait', hud.includes('apex-battle-avatar') && hud.includes('has-production-avatar'));
 check('weapon projection includes tier', bridge.includes('tierColor') && bridge.includes('holder.meta.tier'));
 check('HUD renders tier under-light', hud.includes('.wp-ico.has-tier::before') && hud.includes("u.ico.dataset.tier=w.tier||''"));
+// OWNER LAW (R52, owner item "ammo x/y like Gold"): the numbers live in the ONE
+// weapon config table. Reading them from the behaviour def reported every
+// firearm as UNARMED (the def is routing: id/category/spriteKey/onEquip/…), so
+// the HUD could never show a counter — the bug the owner saw as "—".
+check('ammo authority is the weapon config table, not the behaviour def',
+  bridge.includes('const spec = (cfg && cfg.WEAPONS && cfg.WEAPONS[weaponId]) || null;')
+  && bridge.includes('const shots = Number(def.shots) || Number(spec && spec.shots) || 0;')
+  && !bridge.includes('const shots = Number(def.shots) || 0;'));
+check('weapon family/name fall back to the config table too',
+  bridge.includes('(spec && spec.family)') && bridge.includes('(spec && spec.art)'));
 check('ammo remains current/max', hud.includes("u.cur.textContent=rel?'––':(usesAmmo?am:'—')") && hud.includes("u.max.textContent=rel?'RELOAD':(usesAmmo?'/'+w.mag:'')"));
 check('impact FX sits above entire side panel', hud.includes('#globalFx{z-index:35') && hud.includes('#ruptureLayer{position:absolute;inset:0;z-index:36'));
 check('impact layers remain non-interactive', hud.includes('#globalFx{z-index:35;overflow:visible}') && hud.includes('#copyLayer{z-index:40}'));

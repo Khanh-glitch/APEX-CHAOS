@@ -1241,10 +1241,17 @@
     if (!holder || !holder.def) return null;
     const def = holder.def;
     const weaponId = String(holder.weaponId || '').toUpperCase();
-    const shots = Number(def.shots) || 0;
+    // OWNER LAW (R52, ammo x/y like Gold): the magazine/ammo authority is the
+    // ONE weapon config table (`APEX_ARSENAL_CONFIG.WEAPONS`), never the
+    // behaviour def — the behaviour def carries routing (activate/update/
+    // spriteKey), not numbers, so reading `def.shots` reported every firearm as
+    // UNARMED and the HUD could never count ammo.
+    const cfg = window.APEX_ARSENAL_CONFIG;
+    const spec = (cfg && cfg.WEAPONS && cfg.WEAPONS[weaponId]) || null;
+    const shots = Number(def.shots) || Number(spec && spec.shots) || 0;
     const fired = Number(holder.shotsFired) || 0;
-    const name = def.art || weaponId.replace(/_/g, ' ') || 'UNARMED';
-    const family = def.family || (def.category === 'ranged' ? 'RANGED' : 'MELEE');
+    const name = def.art || (spec && spec.art) || weaponId.replace(/_/g, ' ') || 'UNARMED';
+    const family = def.family || (spec && spec.family) || (def.category === 'ranged' ? 'RANGED' : 'MELEE');
     let asset = '';
     try {
       const av = window.APEX_ARSENAL_AV;
@@ -1252,7 +1259,6 @@
       if (meta && meta.file) asset = '/assets/arsenal/' + String(meta.file).replace(/^\/+/, '');
     } catch (e) {}
     const usesAmmo = shots > 0;
-    const cfg = window.APEX_ARSENAL_CONFIG;
     let tier = holder && holder.meta && holder.meta.tier ? String(holder.meta.tier) : '';
     if (!tier && cfg && typeof cfg.tierOf === 'function') {
       try { tier = String(cfg.tierOf(weaponId) || ''); } catch (e) {}
