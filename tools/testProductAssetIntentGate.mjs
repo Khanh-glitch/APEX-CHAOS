@@ -18,6 +18,9 @@ function check(name, cond, detail=''){
 check('heavy background warmup disabled', /export const WARMUP_GROUP_SEQUENCE = \[\];/.test(manifest));
 check('asset authority is menu-interactive', manifest.includes('/game/product/productAssetRuntime.js?v='));
 check('asset authority exposes prepare/warm/state', assetRuntime.includes('prepare,') && assetRuntime.includes('warm,') && assetRuntime.includes('state: snapshot'));
+check('product image decode cannot orphan on cached failure',
+  assetRuntime.includes('if (img.complete)') &&
+  assetRuntime.includes("finish(new Error('image decode failed: ' + rec.path))"));
 
 check('Home Core is explicit', assetRuntime.includes("home: Object.freeze([") && assetRuntime.includes("'/gold/assets/gold/home-robot-body.png'") && assetRuntime.includes("'/gold/assets/gold/home-world-background.png'"));
 check('hero preload all-vs-selected is explicit', assetRuntime.includes("heroIds === null") && assetRuntime.includes("Array.isArray(heroIds) ? heroIds.filter(Boolean) : []"));
