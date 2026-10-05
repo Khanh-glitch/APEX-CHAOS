@@ -796,8 +796,10 @@ report.cleanup = run(`
   };
 `);
 gate('exit-cleanup',
-  report.cleanup.gameStateAfter === 'MENU' && report.cleanup.menuVisible && report.cleanup.hudHidden
-  && report.cleanup.slotsCleared && report.cleanup.aqProjectilesCleared && report.cleanup.heroHolderCleared && report.cleanup.exitLogged,
+  report.cleanup.slotsCleared
+  && report.cleanup.aqProjectilesCleared
+  && report.cleanup.heroHolderCleared
+  && report.cleanup.exitLogged,
   report.cleanup);
 
 // ------------------------------------------------------ F3 overlay + evidence
@@ -2977,16 +2979,28 @@ gate('v3-no-blanket-text-mute', report.v3Visual.muted === false, report.v3Visual
 
 report.ownerTestCredits = run(`
   const M = window.APEX_ARSENAL_META;
-  try { localStorage.removeItem(M.KEY); localStorage.removeItem(M.OWNER_TEST_GRANT_KEY); } catch (e) {}
+  try { localStorage.removeItem(M.KEY); } catch (e) {}
   const first = M.load();
+  const firstSeed = first.ownerPlaytestAcSeed ? { ...first.ownerPlaytestAcSeed } : null;
   M.save({ ...first, credits: 11000 });
   const second = M.load();
-  return { first: first.credits, second: second.credits, marker: localStorage.getItem(M.OWNER_TEST_GRANT_KEY) };
+  const secondSeed = second.ownerPlaytestAcSeed ? { ...second.ownerPlaytestAcSeed } : null;
+  return {
+    first: first.credits,
+    second: second.credits,
+    firstSeed,
+    secondSeed,
+    revision: M.OWNER_PLAYTEST_AC_SEED_REVISION,
+    profile: M.KEY,
+  };
 `);
-gate('product-clean-credits-no-owner-grant',
-  report.ownerTestCredits.first === 350
+gate('product-owner-playtest-credits-seeded-once',
+  report.ownerTestCredits.first === 12000
   && report.ownerTestCredits.second === 11000
-  && report.ownerTestCredits.marker === null,
+  && report.ownerTestCredits.firstSeed?.revision === report.ownerTestCredits.revision
+  && report.ownerTestCredits.secondSeed?.revision === report.ownerTestCredits.revision
+  && report.ownerTestCredits.firstSeed?.profile === report.ownerTestCredits.profile
+  && report.ownerTestCredits.secondSeed?.profile === report.ownerTestCredits.profile,
   report.ownerTestCredits);
 
 report.v3Meta = run(`
@@ -4525,10 +4539,9 @@ gate('storm-cp5-collision-authority-source',
   cp5Src.weapon.includes('STORMBREAKER.thrownRadius')
   && !/radius: Math\.max\(10, long \* 0\.14\),/.test(cp5Src.weapon),
   { explicitAuthority: cp5Src.weapon.includes('STORMBREAKER.thrownRadius') });
-gate('menu-cp5-product-warmup-is-neutral',
-  WARMUP_GROUP_SEQUENCE.length === 2
-  && WARMUP_GROUP_SEQUENCE[0] === 'arsenalProduct'
-  && WARMUP_GROUP_SEQUENCE[1] === 'select'
+gate('menu-cp5-product-warmup-is-route-intent-only',
+  WARMUP_GROUP_SEQUENCE.length === 0
+  && ARSENAL_PRODUCT_RUNTIMES.length > 0
   && !WARMUP_GROUP_SEQUENCE.includes('arsenalLegacyQuest')
   && !WARMUP_GROUP_SEQUENCE.includes('arsenalQuest'),
   { sequence: WARMUP_GROUP_SEQUENCE, currentProductRuntimeCount: ARSENAL_PRODUCT_RUNTIMES.length });
@@ -4539,10 +4552,15 @@ gate('menu-cp5-audio-warm-on-intent-only',
   cp5Src.loader.includes('if (priority) warmGroupAudioWhenReady(group, window[promiseKey])')
   && cp5Src.loader.includes('if (priority) warmGroupAudioWhenReady(group, gate);'),
   { earlyReturnIntent: cp5Src.loader.includes('if (priority) warmGroupAudioWhenReady(group, window[promiseKey])') });
-gate('menu-cp5-button-no-artificial-delay',
-  cp5Src.app.includes('requestAnimationFrame(run)')
+gate('menu-cp5-navigation-owned-by-scene-transition',
+  cp5Src.app.includes('installSceneTransitionCoordinator')
+  && cp5Src.app.includes('signalBootReady')
   && !cp5Src.app.includes('}, 105)'),
-  { rafExec: cp5Src.app.includes('requestAnimationFrame(run)'), no105: !cp5Src.app.includes('}, 105)') });
+  {
+    coordinator: cp5Src.app.includes('installSceneTransitionCoordinator'),
+    bootReady: cp5Src.app.includes('signalBootReady'),
+    no105: !cp5Src.app.includes('}, 105)'),
+  });
 gate('battle-audio-cp5-no-auto-restore-timer',
   !cp5Src.battleAudio.includes('restoreBattleAudio(), 80')
   && cp5Src.battleAudio.includes('window.apexBeginBattleAudioSession = beginBattleAudioSession')
@@ -5034,10 +5052,23 @@ gate('retired-quest-ladder-api-not-registered', productClosure.oldApiAbsent, pro
 gate('quest-01-remains-a-locked-future-surface', productClosure.quest01Locked, productClosure.quest01Locked);
 gate('bot-battle-profile-runs-neutral-arsenal', productClosure.bot.started && productClosure.bot.mode === 'BOT', productClosure.bot);
 gate('local-1v1-profile-runs-neutral-arsenal', productClosure.local.started && productClosure.local.mode === 'LOCAL', productClosure.local);
-gate('arsenal-battle-exit-preserves-save-and-returns-to-product-menu',
-  productClosure.exitState === 'MENU' && productClosure.menuVisible
-    && productClosure.saveUnchanged && productClosure.retiredSaveAbsent,
+gate('arsenal-battle-exit-preserves-save-for-gold-host',
+  productClosure.saveUnchanged && productClosure.retiredSaveAbsent,
   productClosure);
+
+const battleRuntimeSrc = fs.readFileSync(path.join(REPO, 'public/game/modes/arsenalBattleRuntime.js'), 'utf8');
+const goldShellSrc = fs.readFileSync(path.join(REPO, 'public/gold/shell.html'), 'utf8');
+gate('gold-battle-exit-returns-directly-to-fighter-pick',
+  battleRuntimeSrc.includes('Gold-hosted battle: engine teardown ONLY')
+  && battleRuntimeSrc.includes("['menu-screen', 'select-screen'].forEach")
+  && goldShellSrc.includes("name:'battle->fighter'")
+  && goldShellSrc.includes("screen='fighter'")
+  && goldShellSrc.includes("APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter')"),
+  {
+    goldEngineTeardownOnly: battleRuntimeSrc.includes('Gold-hosted battle: engine teardown ONLY'),
+    battleToFighterTransition: goldShellSrc.includes("name:'battle->fighter'"),
+    fighterCommit: goldShellSrc.includes("screen='fighter'"),
+  });
 
 // Evidence: the public hub after a current Local/Bot battle exit.
 run(`__APEX_TEST.redraw(); return true;`);
