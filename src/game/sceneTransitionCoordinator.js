@@ -7,22 +7,53 @@ async function decodeLoadedImages(root) {
   // Asset-intent law: this helper NEVER promotes data-apex-src. The surface
   // owner must hydrate its own deferred media during prepare(); the coordinator
   // only verifies media that the destination already chose to request.
+  //
+  // IMPORTANT: HTMLImageElement.complete is also true after a failed request.
+  // If that failure happened before we attach an error listener, waiting for a
+  // second error event deadlocks the whole scene transaction at SEALED forever.
+  // Treat complete+zero-naturalWidth as a terminal failure and re-check the
+  // state immediately after listeners are attached to close the event/state
+  // race in both directions.
   const images = [...root.querySelectorAll('img[src]')];
   await Promise.all(images.map(async (img) => {
-    if (img.complete && img.naturalWidth > 0) {
+    const assetError = () => new Error(`Scene asset failed: ${img.currentSrc || img.src || 'image'}`);
+
+    if (img.complete) {
+      if (!(img.naturalWidth > 0)) throw assetError();
       try { await img.decode?.(); } catch (_) {}
       return;
     }
+
     await new Promise((resolve, reject) => {
-      const done = () => { cleanup(); resolve(); };
-      const fail = () => { cleanup(); reject(new Error(`Scene asset failed: ${img.currentSrc || img.src || 'image'}`)); };
+      let settled = false;
       const cleanup = () => {
         img.removeEventListener('load', done);
         img.removeEventListener('error', fail);
       };
+      const finish = (error = null) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        if (error) reject(error);
+        else resolve();
+      };
+      const done = () => finish();
+      const fail = () => finish(assetError());
+      const settleFromCurrentState = () => {
+        if (!img.complete) return false;
+        if (img.naturalWidth > 0) finish();
+        else finish(assetError());
+        return true;
+      };
+
       img.addEventListener('load', done, { once: true });
       img.addEventListener('error', fail, { once: true });
+
+      // The request can settle between the pre-listener complete check above
+      // and addEventListener(). Never depend on a past event being re-fired.
+      settleFromCurrentState();
     });
+
     try { await img.decode?.(); } catch (_) {}
   }));
 }
