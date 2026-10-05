@@ -20,6 +20,15 @@ export function adaptGoldBattleHudR50c(input) {
   );
 
   once(
+    '.skill[data-kind="charges"] .sk-state{min-width:7.2em}',
+    '.skill[data-kind="charges"] .sk-state{min-width:7.2em}\n' +
+    '.skill.is-held{filter:brightness(1.08)}\n' +
+    '.skill.is-held::after{border-color:color-mix(in srgb,var(--acc) 58%,transparent)}\n' +
+    '.skill.is-held .sk-art{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 34%,transparent)}',
+    'held skill visual'
+  );
+
+  once(
     '.wp-ico{grid-area:ico;display:block;width:var(--wpIW,90px);height:calc(var(--wpIW,90px) * .3);color:var(--bone2)}',
     '.wp-ico{grid-area:ico;position:relative;isolation:isolate;display:block;width:var(--wpIW,90px);height:calc(var(--wpIW,90px) * .3);color:var(--bone2)}\n' +
     '.wp-ico::before{content:"";position:absolute;z-index:0;left:4%;right:4%;bottom:-30%;height:74%;border-radius:50%;background:radial-gradient(ellipse at center,var(--tier,#0000) 0%,color-mix(in srgb,var(--tier,#0000) 48%,transparent) 45%,transparent 76%);filter:blur(7px);opacity:0;transform:scale(.86);transition:opacity .16s ease,transform .16s ease;pointer-events:none}\n' +
@@ -169,6 +178,18 @@ export function adaptGoldBattleHudR50c(input) {
   );
 
   once(
+    "  seam.pressSkill=function pressSkill(pi,ai){\n    const bridge=window.APEX_GOLD;\n    if(bridge&&bridge.pressSkill)bridge.pressSkill(pi,ai);\n  };",
+    "  seam.pressSkill=function pressSkill(pi,ai,input){\n    const bridge=window.APEX_GOLD;\n    if(bridge&&bridge.pressSkill)bridge.pressSkill(pi,ai,input);\n  };",
+    'pointer metadata forwarding'
+  );
+
+  once(
+    "R.stage.addEventListener('pointerdown',e=>{\n const sk=e.target.closest('.skill');\n if(sk){e.preventDefault();const pi=+sk.dataset.p-1;if(S.mode==='1p'&&pi===1)return;APEX_GOLD_HUD.pressSkill(pi,+sk.dataset.i);return;}\n const sw=e.target.closest('.wp-swap');if(sw){e.preventDefault();const pi=+sw.dataset.p-1;if(S.mode==='1p'&&pi===1)return;APEX_GOLD_HUD.pressSwap(pi);return;}\n});",
+    "const activeSkillPointers=new Map();\nfunction finishSkillPointer(e,cast){\n const rec=activeSkillPointers.get(e.pointerId);if(!rec)return;activeSkillPointers.delete(e.pointerId);\n rec.sk.classList.remove('is-held');\n try{if(rec.sk.hasPointerCapture&&rec.sk.hasPointerCapture(e.pointerId))rec.sk.releasePointerCapture(e.pointerId);}catch(_){}\n if(cast)APEX_GOLD_HUD.pressSkill(rec.pi,rec.ai,{source:'pointer',pointerId:e.pointerId,pointerType:e.pointerType||'pointer'});\n}\nR.stage.addEventListener('pointerdown',e=>{\n const sk=e.target.closest('.skill');\n if(sk){\n  e.preventDefault();const pi=+sk.dataset.p-1;if(S.mode==='1p'&&pi===1)return;if(activeSkillPointers.has(e.pointerId))return;\n  const rec={sk,pi,ai:+sk.dataset.i};activeSkillPointers.set(e.pointerId,rec);sk.classList.add('is-held');\n  try{sk.setPointerCapture&&sk.setPointerCapture(e.pointerId);}catch(_){}\n  return;\n }\n const sw=e.target.closest('.wp-swap');if(sw){e.preventDefault();const pi=+sw.dataset.p-1;if(S.mode==='1p'&&pi===1)return;APEX_GOLD_HUD.pressSwap(pi);return;}\n});\nR.stage.addEventListener('pointerup',e=>finishSkillPointer(e,true));\nR.stage.addEventListener('pointercancel',e=>finishSkillPointer(e,false));\nR.stage.addEventListener('lostpointercapture',e=>{if(activeSkillPointers.has(e.pointerId))finishSkillPointer(e,false);});",
+    'multi-pointer release-to-cast state machine'
+  );
+
+  once(
     "  seam.hit=function hit(a,v,amt,tier,afterHp){\n    const p=S.players[v];if(!p)return;\n    if(Number.isFinite(afterHp)){p.hp=Math.max(0,afterHp+Math.round(amt));}\n    applyDamage(a,v,Math.round(amt),tier);\n  };",
     "  seam.hit=function hit(a,v,amt,tier,afterHp,impactAccent){\n    const p=S.players[v];if(!p)return;\n    if(Number.isFinite(afterHp)){p.hp=Math.max(0,afterHp+Math.round(amt));}\n    applyDamage(a,v,Math.round(amt),tier,impactAccent);\n  };",
     'production hit accent'
@@ -180,7 +201,7 @@ export function adaptGoldBattleHudR50c(input) {
     'storm hit accent'
   );
 
-  const must = ['apex-battle-avatar','has-tier','applyIdentityProjection','impactAccent','#globalFx{z-index:35'];
+  const must = ['apex-battle-avatar','has-tier','applyIdentityProjection','impactAccent','#globalFx{z-index:35','activeSkillPointers','pointerId:e.pointerId','skill.is-held'];
   for (const token of must) if (!out.includes(token)) throw new Error('R50C invariant missing: ' + token);
   return out;
 }
