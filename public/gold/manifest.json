@@ -1,7 +1,7 @@
 {
   "generator": "tools/buildGoldCutover.mjs",
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
-  "runtimeRevision": "20261005-owner-playtest-r49d",
+  "runtimeRevision": "20261005-owner-playtest-r50i",
   "files": {
     "../assets/audio/forward_drive_theme.ogg": {
       "bytes": 618594,
@@ -209,8 +209,8 @@
       "sha256": "42ed36822b3dd931e779bc729902fa594dafd0ba9a46b5d0d4f0a25e19a639a5"
     },
     "battle-hud.html": {
-      "bytes": 108234,
-      "sha256": "2fbe37b7a5ebeb79597ddfc20eacf1b8e8318380c254024b455f15bf89aab444"
+      "bytes": 114358,
+      "sha256": "6cde73658992cf0641e796c0c28e47058e4df6ed5fa534353df38084dc2af264"
     },
     "fonts.css": {
       "bytes": 6552,
@@ -281,12 +281,12 @@
       "sha256": "60d64d7bbba149b12b6dff1a81cb9d25fc4d24cc123a6dfef23b8f7d39298e8b"
     },
     "lucky-draw.html": {
-      "bytes": 102821,
-      "sha256": "3da12663d57383a7db46c88fc25501dbdd3961acef56193d937dd86135b619b7"
+      "bytes": 100023,
+      "sha256": "7c5133ed1fe9d94913c7c60e42c6e30fe0fcfdac21df18d87863bb18dc04243c"
     },
     "shell.html": {
-      "bytes": 349980,
-      "sha256": "d4fc48b43cb14bfc72adbc7466edca23e4287fa016daf883bd12e82f6cf93bdc"
+      "bytes": 350263,
+      "sha256": "94286c536a6f020ed44648fba6d11566985b23997d81aded22b7774bd16e1f34"
     }
   }
 }
