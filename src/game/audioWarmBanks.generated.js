@@ -34,25 +34,4 @@ export const AUDIO_WARM_BANKS = {
     "/assets/hero-rework/robot-final/sfx/robot_a2_end.mp3",
     "/assets/hero-rework/robot-final/sfx/robot_passive_milestone.mp3",
     "/assets/hero-rework/robot-final/sfx/robot_passive_upgrade.mp3"
-  ],
-  "select": [
-    "/assets/audio/ui-sfx/01_UI_CORE/ui_action_rejected.ogg",
-    "/assets/audio/ui-sfx/01_UI_CORE/ui_back_cancel.ogg",
-    "/assets/audio/ui-sfx/01_UI_CORE/ui_button_press.ogg",
-    "/assets/audio/ui-sfx/01_UI_CORE/ui_focus_move.ogg",
-    "/assets/audio/ui-sfx/01_UI_CORE/ui_option_confirm.ogg",
-    "/assets/audio/ui-sfx/01_UI_CORE/ui_panel_open.ogg",
-    "/assets/audio/ui-sfx/01_UI_CORE/ui_screen_transition.ogg",
-    "/assets/audio/ui-sfx/02_FIGHTER_SELECT/fighter_lock_in.ogg",
-    "/assets/audio/ui-sfx/02_FIGHTER_SELECT/fighter_match_ready.ogg",
-    "/assets/audio/ui-sfx/03_BATTLE_TRANSITION/battle_transition_clamp_rail.ogg",
-    "/assets/audio/ui-sfx/03_BATTLE_TRANSITION/battle_transition_lock_impact.ogg",
-    "/assets/audio/ui-sfx/03_BATTLE_TRANSITION/battle_transition_seam_open.ogg",
-    "/assets/audio/ui-sfx/04_LUCKY_DRAW/lucky_draw_enter_bay.ogg",
-    "/assets/audio/ui-sfx/04_LUCKY_DRAW/lucky_draw_machine_run.ogg",
-    "/assets/audio/ui-sfx/04_LUCKY_DRAW/lucky_draw_machine_start.ogg",
-    "/assets/audio/ui-sfx/04_LUCKY_DRAW/lucky_draw_reveal_charge.ogg",
-    "/assets/audio/ui-sfx/04_LUCKY_DRAW/lucky_draw_reward_reveal.ogg",
-    "/assets/audio/ui-sfx/05_HUD_STATE/hud_critical_warning.ogg"
-  ]
-};
+  ]};
