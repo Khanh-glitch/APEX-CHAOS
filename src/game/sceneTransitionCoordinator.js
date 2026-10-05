@@ -29,10 +29,13 @@ async function decodeLoadedImages(root) {
 
 export async function settleSceneElement(root) {
   await decodeLoadedImages(root);
-  try { await document.fonts?.ready; } catch (_) {}
-  // Commit style/layout, then verify one fully painted destination frame.
-  await nextFrame();
-  await nextFrame();
+  const doc = root?.ownerDocument || document;
+  const view = doc?.defaultView || window;
+  try { await doc?.fonts?.ready; } catch (_) {}
+  // Commit style/layout, then verify one fully painted destination frame in
+  // the destination document (important for same-origin Lucky Draw iframe).
+  await new Promise((resolve) => (view.requestAnimationFrame || requestAnimationFrame)(resolve));
+  await new Promise((resolve) => (view.requestAnimationFrame || requestAnimationFrame)(resolve));
 }
 
 function deferred() {
