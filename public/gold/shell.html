@@ -1464,7 +1464,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     return result?.ok!==false;
   }
 
-  function uiFocusMove(){  function uiFocusMove(){try{const sfx=window.apexUiSfx;if(sfx&&typeof sfx.focusMove==='function')sfx.focusMove('ui.focus.move');}catch(_){}}
+  function uiFocusMove(){try{const sfx=window.apexUiSfx;if(sfx&&typeof sfx.focusMove==='function')sfx.focusMove('ui.focus.move');}catch(_){}}
   function setModeFocus(index){
     if(index!==modeFocus)uiFocusMove();
     modeFocus=(index+modeCards.length)%modeCards.length;
@@ -1685,7 +1685,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     });
     focusScreen('fighter');
   }
-  addEventListener('message',e=>{  addEventListener('message',e=>{
+  addEventListener('message',e=>{
     const d=e.data;
     if(!d)return;
     if(d.type==='APEX_CHAOS_HUD_READY'){battleHudReady=true;sendBattleHudConfig();}
@@ -1992,7 +1992,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     }
     return false;
   }
-  window.APEX_GOLD_SHELL_NAVIGATE=navigateGoldShell;  window.APEX_GOLD_SHELL_NAVIGATE=navigateGoldShell;
+  window.APEX_GOLD_SHELL_NAVIGATE=navigateGoldShell;
   const pendingGoldNav=window.__apexPendingGoldNavigation;
   if(pendingGoldNav){delete window.__apexPendingGoldNavigation;queueMicrotask(()=>navigateGoldShell(pendingGoldNav.target,pendingGoldNav.options||{}));}
 
@@ -2274,7 +2274,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     });
     openBtn?.focus?.({preventScroll:true});
   }
-  openBtn?.addEventListener('click',e=>{  openBtn?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();void openLucky();});
+  openBtn?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();void openLucky();});
   window.addEventListener('message',e=>{if(e?.data?.type==='APEX_CHAOS_LUCKY_DRAW_EXIT')void closeLucky();});
   window.addEventListener('keydown',e=>{if(window.APEX_SCENE_TRANSITION?.active?.()){e.preventDefault();return}if(e.key==='Escape'&&host.classList.contains('is-open')){e.preventDefault();void closeLucky();}},true);
   window.addEventListener('beforeunload',()=>{if(donorObjectUrl)URL.revokeObjectURL(donorObjectUrl);});
