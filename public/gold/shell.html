@@ -1219,13 +1219,13 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     <div class="modeChoices" role="radiogroup" aria-label="Battle mode">
       <button class="modeCard is-focus" data-mode="bot" role="radio" aria-checked="true" type="button">
         <span class="modeSweep"></span><span class="modeShock"></span><span class="modeClamp clampA"></span><span class="modeClamp clampB"></span>
-        <span class="modeArt"><img src="assets/gold/mode-solo.webp" alt="" draggable="false"></span>
+        <span class="modeArt"><img data-apex-src="assets/gold/mode-solo.webp" alt="" draggable="false"></span>
         <span class="modeCopy"><span class="modeIndex">01 / SOLO</span><span class="modeName">VS BOT</span><span class="modeSub">Fight against an AI opponent</span></span>
         <span class="modeArrow" aria-hidden="true">›</span>
       </button>
       <button class="modeCard" data-mode="local1v1" role="radio" aria-checked="false" type="button">
         <span class="modeSweep"></span><span class="modeShock"></span><span class="modeClamp clampA"></span><span class="modeClamp clampB"></span>
-        <span class="modeArt"><img src="assets/gold/mode-local.webp" alt="" draggable="false"></span>
+        <span class="modeArt"><img data-apex-src="assets/gold/mode-local.webp" alt="" draggable="false"></span>
         <span class="modeCopy"><span class="modeIndex">02 / LOCAL</span><span class="modeName">1 VS 1</span><span class="modeSub">Two players. One device.</span></span>
         <span class="modeArrow" aria-hidden="true">›</span>
       </button>
@@ -1295,8 +1295,6 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     <div class="handoffBanner" id="handoffBanner">BATTLE HANDOFF READY</div>
   </section>
 
-  <img id="refOverlay" src="assets/gold/pick-reference-overlay.png" alt="" aria-hidden="true" draggable="false">
-  <img src="assets/gold/pick-hidden-gold-source.png" alt="" hidden aria-hidden="true">
 </main>
 
 <div id="battleTransition" aria-hidden="true">
@@ -1411,7 +1409,17 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   // (public/game/ui/uiSfxAuthority.js) — one cached element per key.
   function uiSfx(key){try{const sfx=window.apexUiSfx;if(sfx&&typeof sfx.play==='function')sfx.play(key);}catch(_){}}
 
+  function hydrateDeferredImages(root){
+    if(!root)return;
+    root.querySelectorAll('img[data-apex-src]').forEach(img=>{
+      if(img.getAttribute('src'))return;
+      const src=img.getAttribute('data-apex-src');
+      if(src)img.setAttribute('src',src);
+    });
+  }
+
   function setScreen(next){
+    if(next==='mode')hydrateDeferredImages(modeScreen);
     clearTimeout(transitionTimer); stage.classList.add('flow-transition'); stage.classList.remove('match-ready');
     screen=next; APEX_GOLD.onSurface&&APEX_GOLD.onSurface(next); stage.classList.toggle('screen-mode',next==='mode'); stage.classList.toggle('screen-fighter',next==='fighter');
     modeScreen.setAttribute('aria-hidden',next==='mode'?'false':'true'); fighterScreen.setAttribute('aria-hidden',next==='fighter'?'false':'true');
@@ -1451,7 +1459,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     uiSfx('ui.screen.transition');
     activePlayer='p1'; p1Locked=false; p2Locked=false; p1Hero='newbot'; p2Hero='newbot'; p2Empty=mode!=='bot'; p1HasPicked=false; p2HasPicked=false;
     fighterModeBadge.textContent=mode==='bot'?'VS BOT':'LOCAL 1 VS 1';
-    setTimeout(()=>{renderFighter();setScreen('fighter')},360);
+    setTimeout(()=>{if(!roster.childElementCount)buildRoster();renderFighter();setScreen('fighter')},360);
     setTimeout(()=>{stage.classList.remove('mode-committing');modeCards.forEach(c=>c.classList.remove('is-committing'))},820);
   }
 
@@ -1968,7 +1976,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
 
   battle.addEventListener('click',()=>{uiSfx('ui.screen.transition');setScreen('mode')});
   lockIn.addEventListener('click',lockCurrent);
-  buildRoster(); renderFighter(); APEX_GOLD.onSurface&&APEX_GOLD.onSurface('home');
+  APEX_GOLD.onSurface&&APEX_GOLD.onSurface('home');
 
   addEventListener('keydown',e=>{
     if(e.metaKey||e.ctrlKey||e.altKey)return; const k=e.key.toLowerCase();
