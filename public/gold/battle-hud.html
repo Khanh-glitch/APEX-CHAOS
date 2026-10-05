@@ -204,6 +204,9 @@ kbd{font:inherit}
 .skill[data-state="active"]{background:linear-gradient(90deg,var(--accA),#10161a)}
 .skill[data-state="active"] .sk-state{color:var(--bone)}
 .skill[data-kind="charges"] .sk-state{min-width:7.2em}
+.skill.is-held{filter:brightness(1.08)}
+.skill.is-held::after{border-color:color-mix(in srgb,var(--acc) 58%,transparent)}
+.skill.is-held .sk-art{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 34%,transparent)}
 .sk-mask{position:absolute;inset:0;z-index:2;background:rgba(5,6,7,.8);transform-origin:50% 0;transform:scaleY(0)}
 .sk-cdn{position:absolute;inset:0;z-index:3;display:grid;place-items:center;font-size:var(--cdF,22px);font-weight:800;font-variant-numeric:tabular-nums;color:var(--bone);opacity:0}
 .sk-sweep{position:absolute;z-index:4;top:-20%;bottom:-20%;left:0;width:45%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);transform:translateX(-140%) skewX(-18deg)}
@@ -682,9 +685,9 @@ kbd{font:inherit}
     ko(a,v);
   };
   seam.status=function statusEvent(i,txt,ms){setStatus(i,txt,ms);};
-  seam.pressSkill=function pressSkill(pi,ai){
+  seam.pressSkill=function pressSkill(pi,ai,input){
     const bridge=window.APEX_GOLD;
-    if(bridge&&bridge.pressSkill)bridge.pressSkill(pi,ai);
+    if(bridge&&bridge.pressSkill)bridge.pressSkill(pi,ai,input);
   };
   seam.pressSwap=function pressSwap(pi){
     const bridge=window.APEX_GOLD;
@@ -1424,11 +1427,26 @@ function ko(a,v,why){
 }
 
 /* ================= PRODUCTION INPUT (donor harness removed) ================= */
+const activeSkillPointers=new Map();
+function finishSkillPointer(e,cast){
+ const rec=activeSkillPointers.get(e.pointerId);if(!rec)return;activeSkillPointers.delete(e.pointerId);
+ rec.sk.classList.remove('is-held');
+ try{if(rec.sk.hasPointerCapture&&rec.sk.hasPointerCapture(e.pointerId))rec.sk.releasePointerCapture(e.pointerId);}catch(_){}
+ if(cast)APEX_GOLD_HUD.pressSkill(rec.pi,rec.ai,{source:'pointer',pointerId:e.pointerId,pointerType:e.pointerType||'pointer'});
+}
 R.stage.addEventListener('pointerdown',e=>{
  const sk=e.target.closest('.skill');
- if(sk){e.preventDefault();const pi=+sk.dataset.p-1;if(S.mode==='1p'&&pi===1)return;APEX_GOLD_HUD.pressSkill(pi,+sk.dataset.i);return;}
+ if(sk){
+  e.preventDefault();const pi=+sk.dataset.p-1;if(S.mode==='1p'&&pi===1)return;if(activeSkillPointers.has(e.pointerId))return;
+  const rec={sk,pi,ai:+sk.dataset.i};activeSkillPointers.set(e.pointerId,rec);sk.classList.add('is-held');
+  try{sk.setPointerCapture&&sk.setPointerCapture(e.pointerId);}catch(_){}
+  return;
+ }
  const sw=e.target.closest('.wp-swap');if(sw){e.preventDefault();const pi=+sw.dataset.p-1;if(S.mode==='1p'&&pi===1)return;APEX_GOLD_HUD.pressSwap(pi);return;}
 });
+R.stage.addEventListener('pointerup',e=>finishSkillPointer(e,true));
+R.stage.addEventListener('pointercancel',e=>finishSkillPointer(e,false));
+R.stage.addEventListener('lostpointercapture',e=>{if(activeSkillPointers.has(e.pointerId))finishSkillPointer(e,false);});
 
 /* ================= PRODUCTION PUMP ================= */
 let __apexLast=performance.now();
