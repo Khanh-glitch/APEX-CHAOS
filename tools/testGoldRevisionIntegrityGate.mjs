@@ -15,11 +15,17 @@ check('Gold manifest revision matches runtime authority', manifest.runtimeRevisi
 check('Gold shell URL carries current revision', urls.includes(`/gold/shell.html?v=${revision}`));
 check('Gold Lucky URL carries current revision', urls.includes(`/gold/lucky-draw.html?v=${revision}`));
 check('Gold HUD URL carries current revision', urls.includes(`/gold/battle-hud.html?v=${revision}`));
-for(const name of ['battle-hud.html','lucky-draw.html','shell.html']){
+check('Mechanical Door is classified as shipping', urls.includes("'/gold/transition/mechanical-door-v4.gold.js'"));
+
+for(const name of ['battle-hud.html','lucky-draw.html','shell.html','transition/mechanical-door-v4.gold.js']){
   const actual=digest(`public/gold/${name}`), expected=manifest.files[name];
   check(`${name} bytes match manifest`, !!expected && actual.bytes===expected.bytes);
   check(`${name} sha256 matches manifest`, !!expected && actual.sha256===expected.sha256);
 }
+check('Mechanical Door Gold hash is pinned',
+  manifest.files['transition/mechanical-door-v4.gold.js']?.sha256==='6d338906e477c13fa42cd6727be7c41bdd0c5b66e12fc140e3836c7858ce0dd2');
+check('non-shipping Pick reference files are absent from manifest',
+  !manifest.files['assets/gold/pick-reference-overlay.png'] && !manifest.files['assets/gold/pick-hidden-gold-source.png']);
 
 console.log(['GOLD REVISION INTEGRITY GATE',...passes].join('\n'));
 if(failures.length){console.error(failures.join('\n'));process.exit(1);}
