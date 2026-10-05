@@ -1172,10 +1172,28 @@ function buildShell(hudProductionHtml) {
     },
     // ── S3: battle HUD mounts in the main document (live arena slot law) ───
     {
+      id: 'SHL-S2a',
+      why: 'production Fighter Pick world-stage consumes real selected-large art; Mirror alone keeps its runtime-derived special slot',
+      find: /  const WORLD_ART = \{"hunter":"assets\/placeholders\/pick\/pose\/hunter-world\.svg","frost":"assets\/placeholders\/pick\/pose\/frost-world\.svg","mirror":"assets\/placeholders\/pick\/pose\/mirror-world-runtime-opponent-ghost\.svg"\};/,
+      replace: '  const WORLD_ART = {"mirror":"assets/placeholders/pick/pose/mirror-world-runtime-opponent-ghost.svg"};',
+    },
+    {
       id: 'SHL-S3',
       why: 'srcdoc iframe mount replaced by same-document canonical mount (arena canvas must occupy the authored arena slot)',
       find: /    battleHudFrame\.srcdoc=decodeBattleHud\(\);/,
       replace: '    APEX_GOLD.mountBattleHud(decodeBattleHud(),()=>{battleHudReady=true;sendBattleHudConfig();});',
+    },
+    {
+      id: 'SHL-S3a',
+      why: 'mark the canonical shell stage so live Battle can suppress only the outgoing Home/Mode/Pick tree',
+      find: '<main id="stage" aria-label="APEX CHAOS Home">',
+      replace: '<main id="stage" data-apex-shell-stage="true" aria-label="APEX CHAOS Home">',
+    },
+    {
+      id: 'SHL-S3b',
+      why: 'same-document Battle donor also owns #stage; scope compositor suppression to the marked shell stage only',
+      find: 'body.battle-hud-open #stage{visibility:hidden!important;pointer-events:none!important;content-visibility:hidden!important;contain:strict!important}',
+      replace: 'body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;pointer-events:none!important;content-visibility:hidden!important;contain:strict!important}',
     },
     {
       id: 'SHL-S4',
@@ -1676,12 +1694,22 @@ function buildShell(hudProductionHtml) {
     },
     {
       id: 'SHL-S26',
-      why: 'world-stage art never resolves to an empty src',
-      find: /      const img=new Image\(\); img\.className='worldHeroAsset'; img\.alt=''; img\.draggable=false; img\.src=WORLD_ART\[id\]\|\|h\.art;/,
+      why: 'world-stage consumes production PICK_SELECTED_LARGE for every static Core Six hero; Mirror preserves the runtime-derived ghost slot',
+      find: /    if\(id==='newbot'\)\{[\s\S]*?    \}\n    container\.appendChild\(body\);/,
       replace: (
-        `      const worldSrc=WORLD_ART[id]||h.art;\n` +
+        `    {\n` +
+        `      const worldSrc=id==='mirror'?WORLD_ART.mirror:h?.art;\n` +
         `      if(!worldSrc)return;\n` +
-        `      const img=new Image(); img.className='worldHeroAsset'; img.alt=''; img.draggable=false; img.src=worldSrc;`
+        `      const img=new Image(); img.className='worldHeroAsset'; img.alt=''; img.draggable=false; img.src=worldSrc;\n` +
+        `      if(id==='mirror'&&WORLD_ART.mirror) img.classList.add('is-cutout');\n` +
+        `      body.appendChild(img);\n` +
+        `      if(id==='hunter'||id==='frost'||id==='mirror'){\n` +
+        `        const echo=img.cloneNode(); echo.className='worldHeroFxAsset '+id; body.appendChild(echo);\n` +
+        `      }\n` +
+        `      if(id==='magnet') body.insertAdjacentHTML('beforeend','<span class="magnetOrbit ringA"></span><span class="magnetOrbit ringB"></span>');\n` +
+        `      if(id==='crystala') body.insertAdjacentHTML('beforeend','<span class="crystalPulse"></span>');\n` +
+        `    }\n` +
+        `    container.appendChild(body);`
       ),
     },
   ];

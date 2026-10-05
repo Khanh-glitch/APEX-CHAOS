@@ -192,6 +192,17 @@ if (helperStart >= 0) {
     residual.length === 0, `residual=${residual.length}`);
 }
 
+// ── shipping CSS scope: the DOM shim cannot compute styles, so assert the
+// exact production invariant that caused the P0 black screen. The outgoing
+// canonical shell stage may be paint-suppressed; the same-document donor
+// #stage must never match that selector.
+const shippingShell = read('public/gold/shell.html');
+check('P0 CSS: canonical Home/Mode/Pick stage is explicitly marked',
+  /<main id="stage" data-apex-shell-stage="true"/.test(shippingShell));
+check('P0 CSS: battle-open compositor suppression targets only the marked shell stage',
+  /body\.battle-hud-open \[data-apex-shell-stage="true"\]\{visibility:hidden!important;pointer-events:none!important;content-visibility:hidden!important;contain:strict!important\}/.test(shippingShell));
+check('P0 CSS: no global battle-open #stage hide remains',
+  !/body\.battle-hud-open\s+#stage\s*\{/.test(shippingShell));
 // ── report ───────────────────────────────────────────────────────────────
 const lines = [
   'GOLD BATTLE VISIBILITY GATE (owner law 2026-10-05, P0 black battle screen)',

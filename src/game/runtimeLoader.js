@@ -28,10 +28,25 @@ function warmGroupAudio(group) {
   }
 }
 
+function runtimeScriptFor(src) {
+  const base = document.baseURI || 'http://localhost/';
+  let target;
+  try { target = new URL(src, base).href; } catch (error) { target = String(src); }
+  const scripts = document.querySelectorAll('script[src]');
+  for (const node of scripts) {
+    const raw = node.getAttribute('src');
+    if (!raw) continue;
+    let candidate;
+    try { candidate = new URL(raw, base).href; } catch (error) { candidate = raw; }
+    if (candidate === target) return node;
+  }
+  return null;
+}
+
 export function loadClassicRuntime(src, dataKey) {
   return new Promise((resolve, reject) => {
     const endTiming = beginPerfSpan('runtime', src);
-    const existing = document.querySelector(`script[src="${src}"]`);
+    const existing = runtimeScriptFor(src);
     if (existing?.dataset.apexLoaded === 'true') {
       endTiming({ ok: true, cached: true });
       resolve();
@@ -83,7 +98,7 @@ let queueRunning = false;
 let priorityDepth = 0;
 
 function runtimeAlreadyLoaded(src) {
-  const existing = document.querySelector(`script[src="${src}"]`);
+  const existing = runtimeScriptFor(src);
   return Boolean(existing && existing.dataset.apexLoaded === 'true');
 }
 

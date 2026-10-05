@@ -792,26 +792,83 @@ export default function App() {
         const base = doc.createElement('base');
         base.href = '/gold/';
         doc.head.insertBefore(base, doc.head.firstChild);
-        const scripts = [...doc.querySelectorAll('script')].filter((node) => {
+        const executableScripts = [...doc.querySelectorAll('script')].filter((node) => {
           const type = String(node.getAttribute('type') || '').toLowerCase();
           return !type || type === 'text/javascript' || type === 'application/javascript' || type === 'module';
         });
+        // DOMParser-created executable scripts are inert. Snapshot their authored
+        // order/bytes, then REMOVE them before importing the Gold DOM so there is
+        // exactly one execution path. Non-executable payload scripts (notably
+        // #battleHudPayload text/plain) remain in the imported DOM.
+        const scriptPlan = executableScripts.map((node) => ({
+          type: String(node.getAttribute('type') || '').toLowerCase(),
+          src: node.getAttribute('src') || '',
+          text: node.textContent || '',
+        }));
+        executableScripts.forEach((node) => node.remove());
+
         for (const node of [...doc.head.children]) host.appendChild(document.importNode(node, true));
         for (const node of [...doc.body.children]) host.appendChild(document.importNode(node, true));
-        for (const src of scripts) {
+
+        // The background deferred-runtime queue can race the Gold mount. Match
+        // script identity by resolved URL (relative/absolute spellings are the
+        // same resource), and share the data-apex-loaded contract so neither
+        // side double-loads nor waits forever on an already-finished script.
+        const findExistingGoldScript = (src) => {
+          const baseUrl = document.baseURI || window.location.href;
+          let target;
+          try { target = new URL(src, baseUrl).href; } catch (error) { target = String(src); }
+          for (const node of document.querySelectorAll('script[src]')) {
+            const raw = node.getAttribute('src');
+            if (!raw) continue;
+            let candidate;
+            try { candidate = new URL(raw, baseUrl).href; } catch (error) { candidate = raw; }
+            if (candidate === target) return node;
+          }
+          return null;
+        };
+
+        for (const planned of scriptPlan) {
+          if (cancelled) return;
           const run = document.createElement('script');
-          if (src.src) {
+          if (planned.type) run.type = planned.type;
+          if (planned.src) {
+            const existing = findExistingGoldScript(planned.src);
+            if (existing) {
+              if (existing.dataset.apexLoaded !== 'true') {
+                await new Promise((resolve, reject) => {
+                  existing.addEventListener('load', () => {
+                    existing.dataset.apexLoaded = 'true';
+                    resolve();
+                  }, { once: true });
+                  existing.addEventListener('error', () => reject(new Error(`gold script failed: ${planned.src}`)), { once: true });
+                });
+              }
+              continue;
+            }
+            await new Promise((resolve, reject) => {
+              run.onload = () => {
+                run.dataset.apexLoaded = 'true';
+                resolve();
+              };
+              run.onerror = () => reject(new Error(`gold script failed: ${planned.src}`));
+              // Preserve the authored raw src instead of src.src (which becomes
+              // absolute and breaks the runtime loader's shared identity).
+              run.src = planned.src;
+              run.async = false;
+              host.appendChild(run);
+            });
+          } else if (planned.type === 'module') {
             await new Promise((resolve, reject) => {
               run.onload = resolve;
-              run.onerror = () => reject(new Error(`gold script failed: ${src.src}`));
-              run.src = src.src;
+              run.onerror = () => reject(new Error('gold inline module failed'));
+              run.textContent = planned.text;
               host.appendChild(run);
             });
           } else {
-            run.textContent = src.textContent;
+            run.textContent = planned.text;
             host.appendChild(run);
           }
-          if (cancelled) return;
         }
         host.dataset.apexGoldMounted = '1';
         document.body.classList.add('apex-gold-mounted');
