@@ -41,10 +41,9 @@ export const HUD_RUNTIMES = [
   ['/game/ui/apexCombatHudRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCombatHudRuntime'],
 ];
 
-// Current Arsenal/Core Six character-select presentation.
-export const PICK_RUNTIMES = [
-  ['/game/ui/apexPickRuntime.js', 'apexPickRuntime'],
-];
+// Gold owns Fighter Pick presentation. No legacy picker runtime ships on the
+// production graph; the empty exports remain only as stable diagnostic API.
+export const PICK_RUNTIMES = [];
 
 // The ONE semantic UI/UX/HUD SFX authority (owner law 2026-10-05): a single
 // cached media element per cue for the whole 18-key UI SFX pack — no element is
@@ -55,12 +54,9 @@ export const UI_SFX_RUNTIMES = [
   ['/game/ui/uiSfxAuthority.js', 'uiSfxAuthority'],
 ];
 
-// Current product selection uses only the shared current render primitive.
-export const SELECT_RUNTIMES = [
-  CURRENT_COMBAT_CORE_RUNTIMES[1], // apexRenderPrimitives
-  ...PICK_RUNTIMES,
-  ...UI_SFX_RUNTIMES,
-];
+// Fighter Pick is authored inside the Gold shell and needs no deferred
+// presentation runtime. Combat dependencies stay lazy until battle intent.
+export const SELECT_RUNTIMES = [];
 
 // Current Arsenal engine chain. Collision, renderer/HUD and draw recovery are
 // now product-owned current seams. No legacy roster or generic-Battle runtime
@@ -122,7 +118,6 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
 // test-only fixtures and are intentionally absent from this production map.
 export const MODE_DEFERRED_RUNTIMES = {
   arsenalProduct: ARSENAL_PRODUCT_RUNTIMES,
-  select: SELECT_RUNTIMES,
 };
 
 function uniqueRuntimeEntries(groups) {
@@ -138,14 +133,13 @@ function uniqueRuntimeEntries(groups) {
 // Current-only aggregate retained for diagnostics/prefetch helpers.
 export const DEFERRED_GAME_RUNTIMES = uniqueRuntimeEntries([
   ...ARSENAL_PRODUCT_RUNTIMES,
-  ...SELECT_RUNTIMES,
 ]);
 
 // Tier 2 — background warmup after the menu is interactive. These are the
 // only groups that benefit the current product's first interactions.
 // Heavy product groups are route-intent only. Home idle must never silently
-// download/evaluate Battle or Fighter-Pick runtime graphs; the Gold bridge asks
-// for select at MODE intent and arsenalProduct at BATTLE/transition intent.
+// download/evaluate Battle runtime graphs; Gold Mode/Fighter Pick is shell-owned
+// and arsenalProduct is requested only at BATTLE/transition intent.
 export const WARMUP_GROUP_SEQUENCE = [];
 
 // Product meta's critical path. Shop/Draw/selection needs save/config/shell
