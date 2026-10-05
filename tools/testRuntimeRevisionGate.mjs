@@ -12,7 +12,7 @@ const engine = fs.readFileSync('public/apexEngine.js', 'utf8');
 const mRev = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
 if (!mRev) { console.error('FAIL revision constant missing'); process.exit(1); }
 const revision = mRev[1];
-const expectedRevision = '20261005-owner-playtest-r49d';
+const expectedRevision = '20261005-owner-playtest-r50k';
 if (revision !== expectedRevision) {
   console.error(`FAIL this cutover permits exactly one revision: expected=${expectedRevision} actual=${revision}`);
   process.exit(1);
@@ -49,8 +49,8 @@ if (!modeBlock || /arsenalQuest|arsenalLegacyQuest/i.test(modeBlock[1])) {
   process.exit(1);
 }
 if (!warmupBlock || /arsenalQuest|arsenalLegacyQuest/i.test(warmupBlock[1])
-    || !/['"]arsenalProduct['"]/.test(warmupBlock[1])) {
-  console.error('FAIL warmup must include the neutral Arsenal product group and exclude retired Quest groups');
+    || warmupBlock[1].trim() !== '') {
+  console.error('FAIL R50K warmup must stay empty: heavy Arsenal/select groups are route-intent only');
   process.exit(1);
 }
 if (/arsenalLegacyQuest|arsenalQuestRuntime\.js|arsenalQuestLadder\.js/.test(loader)) {
