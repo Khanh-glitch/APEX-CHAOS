@@ -1,7 +1,7 @@
 {
   "generator": "tools/buildGoldCutover.mjs",
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
-  "runtimeRevision": "20261005-owner-playtest-r50i",
+  "runtimeRevision": "20261005-owner-playtest-r50j",
   "files": {
     "../assets/audio/forward_drive_theme.ogg": {
       "bytes": 618594,
@@ -285,8 +285,8 @@
       "sha256": "7c5133ed1fe9d94913c7c60e42c6e30fe0fcfdac21df18d87863bb18dc04243c"
     },
     "shell.html": {
-      "bytes": 350263,
-      "sha256": "94286c536a6f020ed44648fba6d11566985b23997d81aded22b7774bd16e1f34"
+      "bytes": 351282,
+      "sha256": "b45055d98e757f5855543420f75ad39f6892317fd6b15f748aa58fcc468fa6ab"
     }
   }
 }
