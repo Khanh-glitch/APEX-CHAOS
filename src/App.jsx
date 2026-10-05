@@ -199,7 +199,6 @@ function injectApexEngine(scriptRef, engineSrc) {
       const bridge = document.createElement('script');
       bridge.textContent = `
         try { window.goToMenu = goToMenu; } catch (error) {}
-        try { window.goToSelect = goToSelect; } catch (error) {}
         try { window.startMatch = startMatch; } catch (error) {}
       `;
       bridge.dataset.apexEngineBridge = 'true';
@@ -341,10 +340,8 @@ export default function App() {
   const scriptRef = useRef(null);
   const menuAudioRef = useRef(null);
   const menuAudioWasPlayingRef = useRef(false);
-  // Product-surface music policy (Gold product surfaces). null = fall back to
-  // the legacy semantic menu/pick visibility check below.
-  const musicSurfaceRef = useRef(null);
-  const musicFadeRef = useRef(0);
+  // Product music lifecycle is owned by productMusicAuthority. React keeps
+  // only the single persistent element ref for diagnostics/fallback cleanup.
   const [gameReady, setGameReady] = useState(false);
   const [loader, setLoader] = useState({
     active: true,
@@ -424,46 +421,9 @@ export default function App() {
     };
   }, []);
 
-  const menuMusicAllowed = () => {
-    const policy = musicSurfaceRef.current;
-    return !!(policy && policy.allowed === true);
-  };
-
-  // Owner law: fades are ~300–450ms and the product theme is one continuous
-  // timeline. Surface and battle changes may pause/fade it, but no compatibility
-  // path is allowed to seek or restart the playhead.
-  const fadeMusicTo = (target, ms = MENU_MUSIC_FADE_MS, onDone) => {
-    const audio = menuAudioRef.current;
-    if (!audio) { if (onDone) onDone(); return; }
-    if (musicFadeRef.current) {
-      cancelAnimationFrame(musicFadeRef.current);
-      musicFadeRef.current = 0;
-    }
-    const from = Number.isFinite(audio.volume) ? audio.volume : 0;
-    const started = performance.now();
-    const step = () => {
-      const a = menuAudioRef.current;
-      if (!a) { musicFadeRef.current = 0; return; }
-      const t = Math.min(1, (performance.now() - started) / Math.max(1, ms));
-      // Linear-in-time ramp inside the owner 300–450ms band.
-      a.volume = Math.max(0, Math.min(1, from + (target - from) * t));
-      if (t < 1) {
-        musicFadeRef.current = requestAnimationFrame(step);
-      } else {
-        musicFadeRef.current = 0;
-        if (onDone) onDone();
-      }
-    };
-    musicFadeRef.current = requestAnimationFrame(step);
-  };
-
   const stopMenuMusic = () => {
     const audio = menuAudioRef.current;
     if (!audio) return;
-    if (musicFadeRef.current) {
-      cancelAnimationFrame(musicFadeRef.current);
-      musicFadeRef.current = 0;
-    }
     // The ONE product music authority owns stop/fade semantics. Compatibility
     // callers may ask to "reset", but owner law forbids seeking the theme.
     const authority = window.apexProductMusic;
@@ -475,7 +435,7 @@ export default function App() {
     audio.pause();
   };
 
-  const playMenuMusic = (_restart = false, attempts = 0) => {
+  const playMenuMusic = () => {
     const audio = menuAudioRef.current;
     if (!audio) return;
     // Playback is requested through the ONE product music authority so browser
@@ -485,12 +445,11 @@ export default function App() {
       musicAuthority.request('menu');
       return;
     }
-    if (!menuMusicAllowed()) {
+    // Without the authority there is no semantic surface owner. Fail silent
+    // rather than guessing from retired DOM; the next Gold surface event will
+    // use the installed authority in normal production.
+    if (!window.apexProductMusic) {
       audio.pause();
-      // Fallback-only self-heal when the authority was unavailable.
-      if (attempts < 8 && !document.hidden) {
-        setTimeout(() => playMenuMusic(false, attempts + 1), 250);
-      }
       return;
     }
     audio.volume = 0.48;
@@ -538,7 +497,7 @@ export default function App() {
       };
     };
     window.apexStopMenuMusic = () => stopMenuMusic();
-    window.apexPlayMenuMusic = () => playMenuMusic(false);
+    window.apexPlayMenuMusic = () => playMenuMusic();
     const musicAuthority = music ? music.api : null;
     if (musicAuthority) {
       window.apexProductMusic = musicAuthority;
@@ -584,7 +543,7 @@ export default function App() {
     // unlock itself is the ONE temporary listener set owned by the product
     // music authority (pointerdown/touchstart/keydown/click, removed after
     // success) — never a second element, AudioContext or unlock set.
-    const unlock = () => playMenuMusic(false);
+    const unlock = () => playMenuMusic();
     const pauseForHiddenTab = () => {
       const current = menuAudioRef.current;
       if (!current) return;
@@ -599,7 +558,7 @@ export default function App() {
       }
       if (!menuAudioWasPlayingRef.current) return;
       menuAudioWasPlayingRef.current = false;
-      playMenuMusic(false);
+      playMenuMusic();
     };
     const handleVisibility = () => {
       if (document.hidden) pauseForHiddenTab();
