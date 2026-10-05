@@ -1,7 +1,7 @@
 {
   "generator": "tools/buildGoldCutover.mjs",
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
-  "runtimeRevision": "20261005-owner-playtest-r50j",
+  "runtimeRevision": "20261005-owner-playtest-r50k",
   "files": {
     "../assets/audio/forward_drive_theme.ogg": {
       "bytes": 618594,
@@ -47,14 +47,6 @@
     "assets/gold/mode-solo.webp": {
       "bytes": 12572,
       "sha256": "e0439138a919351e089240cf23a4a27e5711a463ea6cbf0c0135cbd5ea14a649"
-    },
-    "assets/gold/pick-hidden-gold-source.png": {
-      "bytes": 201019,
-      "sha256": "99be16834600e82f5c21f65b170ee8d41bafe819cbd9a2a5f8ed1a0c585099d5"
-    },
-    "assets/gold/pick-reference-overlay.png": {
-      "bytes": 2871229,
-      "sha256": "c6b501949a92a9bdd2375da8d62c0e5bd3118e298d3adca2d4e23191506eb5ed"
     },
     "assets/placeholders/battle/avatar/crystala.svg": {
       "bytes": 753,
@@ -285,8 +277,13 @@
       "sha256": "7c5133ed1fe9d94913c7c60e42c6e30fe0fcfdac21df18d87863bb18dc04243c"
     },
     "shell.html": {
-      "bytes": 351282,
-      "sha256": "b45055d98e757f5855543420f75ad39f6892317fd6b15f748aa58fcc468fa6ab"
+      "bytes": 351327,
+      "sha256": "f1e410350dea6529e3209ce9a829bc8fbbb6c7a3bdab3a155d74b2f970a551c4"
+    },
+    "transition/mechanical-door-v4.gold.js": {
+      "bytes": 2666593,
+      "sha256": "6d338906e477c13fa42cd6727be7c41bdd0c5b66e12fc140e3836c7858ce0dd2",
+      "note": "owner Gold Mechanical Door V4 production runtime; demo triggers/backgrounds removed only"
     }
   }
 }
