@@ -49,6 +49,10 @@ check('adaptive close prime uses Gold READY without authorizing reveal',
   coordinator.includes("state === 'SEALED'") &&
   coordinator.includes('engine.readyRequested = false'));
 check('final production READY remains singular', (coordinator.match(/engine\?\.ready\(\)/g)||[]).length===1);
+check('already-failed images terminate scene settle instead of waiting for a lost event',
+  coordinator.includes('if (img.complete)') &&
+  coordinator.includes("if (!(img.naturalWidth > 0)) throw assetError()") &&
+  coordinator.includes('settleFromCurrentState()'));
 check('source collapse matches Gold standalone',
   css.includes('transform:scale(.54)!important') &&
   css.includes('transform .48s cubic-bezier(.72,0,1,.55)') &&
@@ -57,12 +61,19 @@ check('target reveal scale matches Gold standalone', coordinator.includes('(1.12
 check('responsive engine owns canvas resize', runtimeText.includes('window.addEventListener(\'resize\'') && runtimeText.includes('computeGeo'));
 check('canvas DPR budget preserved', runtimeText.includes('3.2e6'));
 
-for(const route of ["name:`${screen}->${next}`","name:'fighter->battle'","name:'battle->fighter'","name:'home->lucky'","name:'lucky->home'"]){
-  check(`route uses Mechanical Door: ${route}`, shell.includes(route));
+for(const route of ["name:`${screen}->${next}`","name:'home->lucky'","name:'lucky->home'"]){
+  check(`HUD/UI route uses Mechanical Door: ${route}`, shell.includes(route));
 }
+check('Battle is excluded from Mechanical Door routes',
+  !shell.includes("name:'fighter->battle'") &&
+  !shell.includes("name:'battle->fighter'") &&
+  shell.includes('Battle is NOT a Mechanical Door route'));
 check('old bespoke Battle transition is removed', !shell.includes('#battleTransition') && !shell.includes('id="battleTransition"'));
-check('transition cannot be shortcut by Escape', shell.includes('Mechanical Door V4 has no shortcut/cancel path') && shell.includes('window.APEX_SCENE_TRANSITION?.active?.()'));
-check('Battle READY awaits runtime + selected hero assets', shell.includes("APEX_GOLD.prepareSurface('battle',{heroIds})"));
+check('active HUD/UI transition still serializes Escape/input', shell.includes('window.APEX_SCENE_TRANSITION?.active?.()'));
+check('Battle lazy-load remains lock-in scoped without using the Door',
+  shell.includes("APEX_GOLD.prepareSurface('battle',{heroIds})") &&
+  shell.includes('Battle is NOT a Mechanical Door route') &&
+  !shell.includes("name:'fighter->battle'"));
 check('Lucky READY verifies iframe document', shell.includes('frame.contentDocument') && shell.includes('doc?.documentElement'));
 check('Fighter READY settles actual world stage', shell.includes('await tr?.prepareElement?.(stage)'));
 
