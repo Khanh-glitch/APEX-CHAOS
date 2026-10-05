@@ -66,6 +66,8 @@
     const def = heroId ? REG.HEROES[heroId] : null;
     const ct = {
       idx,
+      side: idx === 0 ? 'p1' : 'p2',
+      combatantId: idx === 0 ? 'p1' : 'p2',
       heroId: heroId || `LEGACY_${anchor.name}`,
       def,
       facade: !heroId,
@@ -182,6 +184,21 @@
     if (!ct.__ctl) ct.__ctl = makeAbilityController(ct);
     return ct.__ctl;
   }
+
+  function normalizeCastInput(ct, source) {
+    const meta = source && typeof source === 'object'
+      ? source
+      : { source: String(source || '') };
+    const side = meta.side === 'p2' ? 'p2' : (meta.side === 'p1' ? 'p1' : (ct.side || (ct.idx === 1 ? 'p2' : 'p1')));
+    return {
+      side,
+      combatantId: ct.combatantId || side,
+      source: String(meta.source || meta.kind || (side === 'p2' ? 'p2' : 'p1')),
+      key: meta.key ? String(meta.key) : '',
+      pointerId: meta.pointerId == null ? null : meta.pointerId,
+    };
+  }
+
   function makeAbilityController(ct) {
     return {
       cooldownLeft(slot) { const s = ct.skills[slot]; return s ? (s.cfg.maxCharges ? (s.charges > 0 ? 0 : s.rechargeLeft) : Math.max(0, s.cdLeft)) : 0; },
@@ -205,6 +222,7 @@
         }
       },
       tryCast(slot, source) {
+        const input = normalizeCastInput(ct, source);
         const s = ct.skills[slot];
         if (!s) return { ok: false, reason: 'no-skill' };
         const a = ct.anchor;
@@ -215,13 +233,13 @@
         const ctx = mechCtx(ct, slot);
         if (exec && exec.canCast && !exec.canCast(ctx)) {
           ct.telemetry.castFails += 1;
-          AIL.bus.emit('CastFailCue', { hero: ct.heroId, slot, reason: 'condition', source });
+          AIL.bus.emit('CastFailCue', { hero: ct.heroId, slot, reason: 'condition', side: input.side, combatantId: input.combatantId, source: input.source, input });
           return { ok: false, reason: 'condition', failCue: true };
         }
         const ok = exec && exec.cast ? exec.cast(ctx) : false;
         if (!ok) {
           ct.telemetry.castFails += 1;
-          AIL.bus.emit('CastFailCue', { hero: ct.heroId, slot, reason: 'whiff', source });
+          AIL.bus.emit('CastFailCue', { hero: ct.heroId, slot, reason: 'whiff', side: input.side, combatantId: input.combatantId, source: input.source, input });
           return { ok: false, reason: 'whiff', failCue: true };
         }
         if(s.cfg.maxCharges) { if(s.charges === s.cfg.maxCharges) s.rechargeLeft = s.cfg.cooldown; s.charges--; }
@@ -229,7 +247,7 @@
         ct.telemetry.casts += 1;
         ct.telemetry.bySkill[slot] = (ct.telemetry.bySkill[slot] || 0) + 1;
         if (ct.telemetry.firstSkillCastAt == null) ct.telemetry.firstSkillCastAt = AIL.clock();
-        AIL.bus.emit('Cast', { hero: ct.heroId, slot, mechanic: s.def.mechanicId, source });
+        AIL.bus.emit('Cast', { hero: ct.heroId, slot, mechanic: s.def.mechanicId, side: input.side, combatantId: input.combatantId, source: input.source, input });
         return { ok: true };
       },
     };
@@ -1577,14 +1595,23 @@
   };
 
   /* ------------------------------------------------------------------ *
-   * P1 ability input (J -> A1, K -> A2) + P2 cast AI.
+   * Side-aware ability input. Keyboard/touch/AI all hit this same executor;
+   * presentation never infers side from hero identity.
    * ------------------------------------------------------------------ */
-  HR.pressAbility = function pressAbility(f, slot) {
+  HR.pressAbility = function pressAbility(f, slot, sourceMeta) {
     if (!M) return { ok: false, reason: 'no-match' };
     const ct = combatantOfBody(f);
     if (!ct || ct.facade) return { ok: false, reason: 'not-rework' };
-    const res = abilityController(ct).tryCast(slot, 'p1');
-    AIL.bus.emit('P1Press', { slot, ok: res.ok, reason: res.reason });
+    const input = normalizeCastInput(ct, sourceMeta || { source: ct.side, side: ct.side });
+    const res = abilityController(ct).tryCast(slot, input);
+    const press = {
+      slot, ok: res.ok, reason: res.reason,
+      side: input.side, combatantId: input.combatantId,
+      source: input.source, input,
+    };
+    AIL.bus.emit('AbilityPress', press);
+    if (input.side === 'p1') AIL.bus.emit('P1Press', press);
+    else AIL.bus.emit('P2Press', press);
     return res;
   };
 
@@ -1611,7 +1638,7 @@
           plan.at = AIL.clock() + 0.25; // executor says the cast cannot succeed now
           continue;
         }
-        const res = ctl.tryCast(slot, 'p2-ai');
+        const res = ctl.tryCast(slot, { side: 'p2', source: 'ai' });
         if (res.ok || res.reason === 'cooldown' || res.reason === 'cc') {
           plan.at = null; // re-plan after cooldown returns
         } else {
@@ -3479,7 +3506,7 @@
       const basePressJ = gate.pressJ;
       gate.pressJ = function pressJHR(f) {
         if (M && HR.isReworkFighter(f)) {
-          const res = HR.pressAbility(f, 'A1');
+          const res = HR.pressAbility(f, 'A1', { side: 'p1', source: 'keyboard', key: 'KeyJ' });
           return res.ok || !!res.failCue;
         }
         return basePressJ.call(gate, f);
@@ -3494,7 +3521,7 @@
         if (e.code !== 'KeyK' || e.repeat) return;
         if (globalScope.gameState !== 'ARSENAL' || !M) return;
         const f = globalScope.fighters && globalScope.fighters[0];
-        if (f && HR.isReworkFighter(f)) HR.pressAbility(f, 'A2');
+        if (f && HR.isReworkFighter(f)) HR.pressAbility(f, 'A2', { side: 'p1', source: 'keyboard', key: 'KeyK' });
       });
     }
 
@@ -3516,7 +3543,7 @@
         // to a human. BOT matches keep the CPU on P2.
         if (!AQS || !AQS.state || AQS.state.battleMode !== 'LOCAL') return;
         const f = globalScope.fighters && globalScope.fighters[1];
-        if (f && HR.isReworkFighter(f)) HR.pressAbility(f, slot);
+        if (f && HR.isReworkFighter(f)) HR.pressAbility(f, slot, { side: 'p2', source: 'keyboard', key: e.code });
       });
     }
 
@@ -3851,7 +3878,7 @@
       active: true,
       aiEnabled: !!M.aiEnabled && HR.aiEnabled,
       combatants: M.combatants.map((ct) => ({
-        heroId: ct.heroId, facade: !!ct.facade, idx: ct.idx,
+        heroId: ct.heroId, facade: !!ct.facade, idx: ct.idx, side: ct.side, combatantId: ct.combatantId,
         bodies: livingBodies(ct).map((b) => ({ id: b.id, hp: Math.round(b.hp * 10) / 10, x: Math.round(b.x), y: Math.round(b.y) })),
         skills: ct.facade ? {} : {
           A1: { cd: +abilityController(ct).cooldownLeft('A1').toFixed(2), level: ct.skills.A1.level },
