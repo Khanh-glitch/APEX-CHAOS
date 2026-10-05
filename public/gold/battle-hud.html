@@ -193,6 +193,7 @@ kbd{font:inherit}
   background:linear-gradient(90deg,#161b20,#0d1013);
   --chamf:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));clip-path:var(--chamf)}
 .side[data-mirror] .skill{--chamf:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px)}
+#hud .skill,#hud .wp-swap{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 .skill::before{content:"";position:absolute;z-index:6;top:0;bottom:0;inset-inline-end:0;width:3px;background:var(--acc);transition:opacity .2s}
 .skill::after{content:"";position:absolute;inset:0;border:1px solid rgba(255,255,255,.06);pointer-events:none}
 .sk-art{grid-area:art;position:relative;display:grid;place-items:center;overflow:hidden;color:var(--acc);
@@ -1439,8 +1440,10 @@ function ko(a,v,why){
 
 /* ================= PRODUCTION INPUT (donor harness removed) ================= */
 const activeSkillPointers=new Map();
+const activeSkillSlots=new Map();
+function skillSlotKey(pi,ai){return pi+':'+ai;}
 function finishSkillPointer(e,cast){
- const rec=activeSkillPointers.get(e.pointerId);if(!rec)return;activeSkillPointers.delete(e.pointerId);
+ const rec=activeSkillPointers.get(e.pointerId);if(!rec)return;activeSkillPointers.delete(e.pointerId);activeSkillSlots.delete(skillSlotKey(rec.pi,rec.ai));
  rec.sk.classList.remove('is-held');
  try{if(rec.sk.hasPointerCapture&&rec.sk.hasPointerCapture(e.pointerId))rec.sk.releasePointerCapture(e.pointerId);}catch(_){}
  if(cast)APEX_GOLD_HUD.pressSkill(rec.pi,rec.ai,{source:'pointer',pointerId:e.pointerId,pointerType:e.pointerType||'pointer'});
@@ -1449,7 +1452,8 @@ R.stage.addEventListener('pointerdown',e=>{
  const sk=e.target.closest('.skill');
  if(sk){
   e.preventDefault();const pi=+sk.dataset.p-1;if(S.mode==='1p'&&pi===1)return;if(activeSkillPointers.has(e.pointerId))return;
-  const rec={sk,pi,ai:+sk.dataset.i};activeSkillPointers.set(e.pointerId,rec);sk.classList.add('is-held');
+  const ai=+sk.dataset.i,slotKey=skillSlotKey(pi,ai);if(activeSkillSlots.has(slotKey))return;
+  const rec={sk,pi,ai};activeSkillPointers.set(e.pointerId,rec);activeSkillSlots.set(slotKey,e.pointerId);sk.classList.add('is-held');
   try{sk.setPointerCapture&&sk.setPointerCapture(e.pointerId);}catch(_){}
   return;
  }

@@ -234,7 +234,7 @@ export function adaptGoldBattleHudR50c(input) {
 
   once(
     "R.stage.addEventListener('pointerdown',e=>{\n const sk=e.target.closest('.skill');\n if(sk){e.preventDefault();const pi=+sk.dataset.p-1;if(S.mode==='1p'&&pi===1)return;APEX_GOLD_HUD.pressSkill(pi,+sk.dataset.i);return;}\n const sw=e.target.closest('.wp-swap');if(sw){e.preventDefault();const pi=+sw.dataset.p-1;if(S.mode==='1p'&&pi===1)return;APEX_GOLD_HUD.pressSwap(pi);return;}\n});",
-    "const activeSkillPointers=new Map();\nfunction finishSkillPointer(e,cast){\n const rec=activeSkillPointers.get(e.pointerId);if(!rec)return;activeSkillPointers.delete(e.pointerId);\n rec.sk.classList.remove('is-held');\n try{if(rec.sk.hasPointerCapture&&rec.sk.hasPointerCapture(e.pointerId))rec.sk.releasePointerCapture(e.pointerId);}catch(_){}\n if(cast)APEX_GOLD_HUD.pressSkill(rec.pi,rec.ai,{source:'pointer',pointerId:e.pointerId,pointerType:e.pointerType||'pointer'});\n}\nR.stage.addEventListener('pointerdown',e=>{\n const sk=e.target.closest('.skill');\n if(sk){\n  e.preventDefault();const pi=+sk.dataset.p-1;if(S.mode==='1p'&&pi===1)return;if(activeSkillPointers.has(e.pointerId))return;\n  const rec={sk,pi,ai:+sk.dataset.i};activeSkillPointers.set(e.pointerId,rec);sk.classList.add('is-held');\n  try{sk.setPointerCapture&&sk.setPointerCapture(e.pointerId);}catch(_){}\n  return;\n }\n const sw=e.target.closest('.wp-swap');if(sw){e.preventDefault();const pi=+sw.dataset.p-1;if(S.mode==='1p'&&pi===1)return;APEX_GOLD_HUD.pressSwap(pi);return;}\n});\nR.stage.addEventListener('pointerup',e=>finishSkillPointer(e,true));\nR.stage.addEventListener('pointercancel',e=>finishSkillPointer(e,false));\nR.stage.addEventListener('lostpointercapture',e=>{if(activeSkillPointers.has(e.pointerId))finishSkillPointer(e,false);});",
+    "const activeSkillPointers=new Map();\nconst activeSkillSlots=new Map();\nfunction skillSlotKey(pi,ai){return pi+':'+ai;}\nfunction finishSkillPointer(e,cast){\n const rec=activeSkillPointers.get(e.pointerId);if(!rec)return;activeSkillPointers.delete(e.pointerId);activeSkillSlots.delete(skillSlotKey(rec.pi,rec.ai));\n rec.sk.classList.remove('is-held');\n try{if(rec.sk.hasPointerCapture&&rec.sk.hasPointerCapture(e.pointerId))rec.sk.releasePointerCapture(e.pointerId);}catch(_){}\n if(cast)APEX_GOLD_HUD.pressSkill(rec.pi,rec.ai,{source:'pointer',pointerId:e.pointerId,pointerType:e.pointerType||'pointer'});\n}\nR.stage.addEventListener('pointerdown',e=>{\n const sk=e.target.closest('.skill');\n if(sk){\n  e.preventDefault();const pi=+sk.dataset.p-1;if(S.mode==='1p'&&pi===1)return;if(activeSkillPointers.has(e.pointerId))return;\n  const ai=+sk.dataset.i,slotKey=skillSlotKey(pi,ai);if(activeSkillSlots.has(slotKey))return;\n  const rec={sk,pi,ai};activeSkillPointers.set(e.pointerId,rec);activeSkillSlots.set(slotKey,e.pointerId);sk.classList.add('is-held');\n  try{sk.setPointerCapture&&sk.setPointerCapture(e.pointerId);}catch(_){}\n  return;\n }\n const sw=e.target.closest('.wp-swap');if(sw){e.preventDefault();const pi=+sw.dataset.p-1;if(S.mode==='1p'&&pi===1)return;APEX_GOLD_HUD.pressSwap(pi);return;}\n});\nR.stage.addEventListener('pointerup',e=>finishSkillPointer(e,true));\nR.stage.addEventListener('pointercancel',e=>finishSkillPointer(e,false));\nR.stage.addEventListener('lostpointercapture',e=>{if(activeSkillPointers.has(e.pointerId))finishSkillPointer(e,false);});",
     'multi-pointer release-to-cast state machine'
   );
 
@@ -250,7 +250,17 @@ export function adaptGoldBattleHudR50c(input) {
     'storm hit accent'
   );
 
-  const must = ['apex-battle-avatar','has-tier','applyIdentityProjection','impactAccent','#globalFx{z-index:35','activeSkillPointers','pointerId:e.pointerId','skill.is-held','data-size="tablet"','S.viewport.size=size','--wpIW:82px'];
+  // C3 (owner report: one pad, two fingers, ONE cast): a slot is a single
+  // press target. Independent pointers stay independent per (side, slot), but a
+  // second pointer landing on a slot that is already held never re-casts it.
+  once(
+    '.skill{--chamf:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px)}',
+    '.skill{--chamf:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px)}\n' +
+    '#hud .skill,#hud .wp-swap{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}',
+    'phone gesture ownership on the ability pads'
+  );
+
+  const must = ['apex-battle-avatar','has-tier','applyIdentityProjection','impactAccent','#globalFx{z-index:35','activeSkillPointers','pointerId:e.pointerId','skill.is-held','data-size="tablet"','S.viewport.size=size','--wpIW:82px','activeSkillSlots','skillSlotKey','touch-action:none'];
   for (const token of must) if (!out.includes(token)) throw new Error('R50C invariant missing: ' + token);
   return out;
 }

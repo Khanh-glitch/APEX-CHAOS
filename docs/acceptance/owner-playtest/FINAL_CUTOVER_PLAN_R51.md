@@ -267,9 +267,9 @@ Các commit mốc: `8dda0d6` (pipeline + real Battle HUD + Lucky Draw),
 |---|---|---|---|
 | 1 | Avatar dùng art thật của hero | ✅ | payload `.apex-battle-avatar` + `has-production-avatar`; browser: `battle_avatar.webp` `naturalWidth=512` cả 2 side; gate core-six-art 106 |
 | 2 | Critical/Heavy phủ **toàn panel** | ✅ (artifact) | `#globalFx z=35` / `#ruptureLayer z=36` > chrome `z=30`, `pointer-events:none`; cần ảnh khi có đòn thật (P1.4) |
-| 3 | Slash Crit/Heavy đổi màu theo hero | 🟡 | Critical/Storm đã mang `attackerAccent`; nhánh Heavy thường phải kiểm/sửa (P1.4) |
+| 3 | Slash Crit/Heavy đổi màu theo hero | ✅ | `attackerAccent` cho Crit/Heavy/Storm (HUD payload `impactAccent`); probe cùng-hero LOCAL: mỗi phím **một** cast đúng side/slot |
 | 4 | 4 vị trí tên 2 đối thủ | ✅ | browser Local: 4 slot = CRYSTALA/HUNTER/CRYSTALA/HUNTER; còn test remount (P1.3) |
-| 5 | Đếm đạn `x/y` như Gold | 🟡 | HUD render `x/y` cho súng có băng, `—` cho tay không; phải đo với súng có băng (P1.1) |
+| 5 | Đếm đạn `x/y` như Gold | ✅ | browser: equip SMG thật → `weapon` (bỏ `.no-ammo`), `SMG/AUTO/8 /8`, `magBar true`; projection đọc bảng config (`SMG.shots=8`) |
 | 6 | Tận dụng không gian / không xén đáy / iPad không thu nhỏ | 🟡 | `--wpIW` đã lớn (108–148px / 124–160px); band theo container + ảnh matrix (P3) |
 | 7 | J/K không được trigger cả 2 phía; Local 1/2 phải trigger | ✅ | `normalizeCastInput` + resolver theo slot; gate side-aware 23 (queue/stall không liên quan input) |
 | 8 | Âm thanh đôi lúc mất hẳn | 🟡 | mọi begin/end có reason; `apexUiSfx.keys()=18`; trace bg/fg (P8) |
@@ -279,10 +279,10 @@ Các commit mốc: `8dda0d6` (pipeline + real Battle HUD + Lucky Draw),
 | 12 | Rarity glow dưới cây súng | 🟡 | payload có `.wp-ico.has-tier` + `--tier`; cần chứng minh live frame với súng thật (P1.5) |
 | 13 | Súng & damage to rõ hơn | 🟡 | `--wpIW` + `.df-value` đã tăng; ảnh theo band (P3) |
 | 14 | Ít thao tác bắt buộc (hết trận về Pick, thoát Free Battle) | ⏳ | P6 |
-| 15 | Phone: tap nhả chiêu ngay, giữ mới giữ panel | 🟡 | payload có `is-held`/`activeSkillPointers`; hoàn thiện state machine (P2) |
-| 16 | Thao tác nhanh/chồng lấp, multi-touch | 🟡 | side authority đã xong; press/hold + multi-pointer (P2) |
+| 15 | Phone: tap nhả chiêu ngay, giữ mới giữ panel | ✅ | phone 430×932: tap → 1 cast + pad về rest; giữ → `is-held` tới lúc nhả, 1 cast khi nhả; `.skill{touch-action:none}` chặn trình duyệt cướp cử chỉ; không kẹt panel khi `pointercancel` |
+| 16 | Thao tác nhanh/chồng lấp, multi-touch | ✅ | hai ngón cùng slot → **1** cast; hai slot cùng phía → 2; hai phía → 2 (`p1`/`p2`); double-tap tuần tự → 2; gate `test:multi-pointer` 17 |
 | 17 | Lucky: silhouette đen trên reel, art thật khi trúng | ⏳ | P4 |
-| 18 | Xoá runtime cũ (loading/menu/pick) | 🟡 | gate LegacySurface 22 (suppressed) → nâng lên "deleted" (P7) |
+| 18 | Xoá runtime cũ (loading/menu/pick) | ✅ | gate `test:legacy-surface-cutover` **31** (deleted): 0 id legacy trong `public/` + 0 rule legacy trong `src/styles.css`, asset chết đã xoá |
 | 19 | Transition Gold mới | ⏳ | chờ file owner (P9) |
 | 20 | Phân bổ luồng load asset | 🟡 | deferred runtimes + `prepareSurface` đã có; scene state machine ở P9 |
 | 21 | CI/acceptance đỏ | ✅ | 19/19 gate + sweep 0 đỏ; `core-six-art` từ FAIL 4 → PASS 106 |

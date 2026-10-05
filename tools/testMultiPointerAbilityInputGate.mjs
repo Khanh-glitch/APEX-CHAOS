@@ -20,6 +20,21 @@ check('bridge forces ownership from side index', bridge.includes("const side = p
 check('bridge passes pointer metadata to executor', bridge.includes("heroRework.pressAbility(fighters[pi], ai === 1 ? 'A2' : 'A1', meta)"));
 check('executor remains side-aware', hr.includes('normalizeCastInput(ct, source)') && hr.includes('side: input.side'));
 check('desktop keyboard laws remain independent', hr.includes("key: 'KeyJ'") && hr.includes("key: 'KeyK'") && hr.includes("key: e.code"));
+// C3: a slot is ONE press target. Independent pointers stay independent per
+// (side, slot), but a second pointer landing on an already-held slot never
+// re-casts it (owner report: two fingers on one pad cast twice).
+check('a slot is held by at most one alive pointer',
+  hud.includes('const activeSkillSlots=new Map()') &&
+  hud.includes("function skillSlotKey(pi,ai){return pi+':'+ai;}") &&
+  hud.includes('if(activeSkillSlots.has(slotKey))return;') &&
+  hud.includes('activeSkillSlots.set(slotKey,e.pointerId);') &&
+  hud.includes('activeSkillSlots.delete(skillSlotKey(rec.pi,rec.ai));'));
+check('phone pads own their gesture (no scroll steal while held)',
+  hud.includes('#hud .skill,#hud .wp-swap{touch-action:none;-webkit-user-select:none;user-select:none') &&
+  adapter.includes('phone gesture ownership on the ability pads'));
+check('1P mode still refuses P2 input on pads and swap',
+  hud.includes("if(S.mode==='1p'&&pi===1)return;") && hud.includes("const sw=e.target.closest('.wp-swap')"));
+
 check('adapter keeps generated HUD deterministic', adapter.includes('multi-pointer release-to-cast state machine') && adapter.includes('activeSkillPointers'));
 
 console.log(['MULTI-POINTER ABILITY INPUT GATE',...passes].join('\n'));
