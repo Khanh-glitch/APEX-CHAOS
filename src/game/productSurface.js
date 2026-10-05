@@ -104,7 +104,11 @@ export const PRODUCT_ROSTER = Object.freeze({
 export const PRODUCT_ECONOMY = Object.freeze({
   shopCost: 1000,
   drawCost: 350,
-  cleanStateCredits: 350,
+  // r44 owner-playtest law: a fresh (or legacy, unmarked) profile starts at
+  // exactly 12,000 AC through the real production economy seed. The seed is
+  // revision+profile scoped in the meta runtime, so an ordinary refresh never
+  // refills a spent balance.
+  cleanStateCredits: 12000,
 });
 
 function makeAuthority() {

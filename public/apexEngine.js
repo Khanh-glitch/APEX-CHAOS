@@ -2380,6 +2380,31 @@ function setProductScreenHidden(id, hidden) {
     const screen = document.getElementById(id);
     if (screen) screen.classList.toggle('hidden', hidden);
 }
+// OWNER LAW 2026-10-05 (P0 black battle screen): during a Gold battle the
+// donor battle HUD owns the legacy ids (#hud/#stage/#p1Side/#p2Side) and the
+// legacy nodes are id-parked. A global document.getElementById('hud') then
+// resolves the GOLD donor, so production writes (e.g. hud.style.opacity = 0)
+// would hide the battle presentation. Resolve legacy nodes explicitly.
+function legacyUiElement(id) {
+  const key = String(id || '');
+  if (!key) return null;
+  let parked = null;
+  try { parked = document.querySelector('[data-apex-parked-id="' + key + '"]'); } catch (error) { parked = null; }
+  if (parked) return parked;
+  if (window.APEX_GOLD && typeof window.APEX_GOLD.legacyUiElement === 'function') {
+    const bridged = window.APEX_GOLD.legacyUiElement(key);
+    if (bridged) return bridged;
+  }
+  const host = document.getElementById('battleHudHost');
+  let nodes = [];
+  try { nodes = Array.from(document.querySelectorAll('[id="' + key + '"]')); } catch (error) { nodes = []; }
+  for (const el of nodes) {
+    if (host && host.contains(el)) continue;
+    return el;
+  }
+  return null;
+}
+
 function goToMenu() {
     stopBattleAudio();
     clearNinjaVisualArtifacts();
@@ -2388,7 +2413,7 @@ function goToMenu() {
     updateAutoBattleControls();
     setProductScreenHidden('select-screen', true);
     setProductScreenHidden('menu-screen', false);
-    const hud = document.getElementById('hud');
+    const hud = legacyUiElement('hud');
     if (hud) hud.style.opacity = 0;
     gameState = 'MENU';
 }
@@ -2543,7 +2568,7 @@ function goToSelect() {
     updateAutoBattleControls();
     setProductScreenHidden('menu-screen', true);
     setProductScreenHidden('select-screen', false);
-    const hud = document.getElementById('hud');
+    const hud = legacyUiElement('hud');
     if (hud) hud.style.opacity = 0;
     p1Selection = null; p2Selection = null;
     gameState = 'SELECT';
@@ -2659,7 +2684,7 @@ function startSpecificMatch(ft1, ft2, opts = {}) {
     currentChallenge = opts.challenge || null;
     setProductScreenHidden('menu-screen', true);
     setProductScreenHidden('select-screen', true);
-    const hud = document.getElementById('hud');
+    const hud = legacyUiElement('hud');
     if (hud) hud.style.opacity = 1;
     fighters = [
         new Fighter(1, 200, GAME_SIZE/2, ft1),
@@ -2749,7 +2774,8 @@ function endMatch() {
     if (cbtn) cbtn.classList.toggle('hidden', !currentChallenge);
     setTimeout(() => {
         document.getElementById('end-screen').classList.remove('hidden');
-        document.getElementById('hud').style.opacity = 0;
+        const legacyHud = legacyUiElement('hud');
+      if (legacyHud) legacyHud.style.opacity = 0;
     }, 650);
 }
 

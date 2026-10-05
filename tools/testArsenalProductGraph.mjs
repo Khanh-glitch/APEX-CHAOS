@@ -149,24 +149,29 @@ gate('visible-roster-core-six-and-locked-six', () => {
 gate('economy-clean-state-and-mutation-legality', () => {
   const { win } = makeClassicContext();
   const meta = win.APEX_ARSENAL_META;
+  // r44 owner-playtest law: the seeded clean-state balance is exactly 12,000.
   assert.equal(meta.credits(), PRODUCT_ECONOMY.cleanStateCredits);
-  assert.equal(meta.getState().credits, 350);
+  assert.equal(meta.getState().credits, 12000);
   assert.equal(meta.buy('BLACK_HOLE').reason, 'unavailable');
   assert.equal(meta.poolLocked().length, 5);
   assert.ok(meta.poolLocked().includes('HUNTER'));
   assert.ok(meta.poolLocked().every((id) => PRODUCT_ROSTER.playableIds.includes(id)));
-  // Clean-state 350 is deliberately enough for exactly one 350 AC draw.
+  // A Lucky Draw costs the real 350 AC and can only take from the unowned pool.
   const draw = meta.spin(() => 0.999999);
   assert.equal(draw.ok, true);
   assert.ok(PRODUCT_ROSTER.playableIds.includes(draw.name));
   assert.ok(!PRODUCT_ROSTER.lockedIds.includes(draw.name));
-  assert.equal(meta.credits(), 0);
-  assert.equal(meta.spin(() => 0).reason, 'need');
-  meta.award('proof', 1000);
+  assert.equal(meta.credits(), 12000 - PRODUCT_ECONOMY.drawCost);
+  // The shop costs its real 1,000 AC against the seeded balance.
   const bought = meta.buy('HUNTER');
   assert.equal(bought.ok, true);
-  assert.equal(bought.credits, 0);
-  return { credits: meta.credits(), draw: draw.name, shopCost: meta.SHOP_COST, drawCost: meta.DRAW_COST };
+  assert.equal(bought.credits, 12000 - PRODUCT_ECONOMY.drawCost - PRODUCT_ECONOMY.shopCost);
+  // An exhausted balance refuses the draw for the real reason.
+  meta.award('proof', 1000);
+  assert.equal(meta.credits(), 12000 - PRODUCT_ECONOMY.drawCost - PRODUCT_ECONOMY.shopCost + 1000);
+  return {
+    credits: meta.credits(), draw: draw.name, shopCost: meta.SHOP_COST, drawCost: meta.DRAW_COST,
+  };
 });
 
 gate('battle-result-credit-uses-player-side-and-awards-once', () => {
@@ -188,6 +193,10 @@ gate('battle-result-credit-uses-player-side-and-awards-once', () => {
 });
 
 gate('newbie-migration-historic-ownership-and-stale-selection-safety', () => {
+  // r44 owner-playtest law: an UNMARKED profile is seeded to exactly 12,000 AC
+  // once (revision+profile scoped marker), so a legacy balance is upgraded
+  // rather than preserved. Ownership/selection migration is unaffected.
+  const OWNER_PLAYTEST_SEED = 12000;
   const seed = {
     'apexChaos.arsenalMeta.v1': JSON.stringify({
       credits: 777,
@@ -200,7 +209,7 @@ gate('newbie-migration-historic-ownership-and-stale-selection-safety', () => {
   const { win, storage } = makeClassicContext(seed);
   const state = win.APEX_ARSENAL_META.getState();
   assert.equal(win.APEX_ARSENAL_META.buy('NEWBIE').reason, 'unavailable');
-  assert.equal(state.credits, 777);
+  assert.equal(state.credits, OWNER_PLAYTEST_SEED);
   assert.ok(state.ownedFighters.includes('ROBOT'));
   assert.ok(state.ownedFighters.includes('BLACK_HOLE'));
   assert.ok(state.ownedFighters.includes('HUNTER'));

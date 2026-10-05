@@ -928,7 +928,11 @@
     if (AQ.feel && AQ.feel.resetMatch) AQ.feel.resetMatch();
     ['menu-screen', 'select-screen']
       .forEach(id => document.getElementById(id)?.classList.add('hidden'));
-    const hud = document.getElementById('hud');
+    // Legacy HUD only (owner law 2026-10-05): a global id lookup would resolve
+    // the Gold donor battle HUD while a Gold battle is mounted.
+    const hud = (typeof legacyUiElement === 'function')
+      ? legacyUiElement('hud')
+      : document.getElementById('hud');
     if (hud) hud.style.opacity = 1;
 
     const [t1, t2] = types;

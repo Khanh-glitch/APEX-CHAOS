@@ -20,6 +20,32 @@
   };
   const isProductVisible = (name) => ROSTER().includes(String(name || '').toUpperCase());
   const isProductPlayable = (name) => PLAYABLE_ROSTER().includes(String(name || '').toUpperCase());
+
+  // ── OWNER PLAYTEST SELECTION OVERRIDE (r44) — THE ONE FENCED SWITCH ─────
+  // Owner acceptance needs all six CURRENT playable Core Six selectable for a
+  // real battle. This is a SELECTION override ONLY:
+  //   · it never writes ownership (owns() stays production truth),
+  //   · it never touches credits or the Shop,
+  //   · it never widens the Lucky Draw pool (poolLocked() uses owns()),
+  //   · it never unlocks a future visible-but-locked fighter.
+  // It is removed as ONE edit — flip this constant to false — after owner
+  // acceptance. No other file may re-implement this bypass.
+  const OWNER_PLAYTEST_CORE_SIX_UNLOCK = true;
+  const OWNER_PLAYTEST_CORE_SIX_UNLOCK_REVISION = '20261005-owner-playtest-r44';
+  // Owner playtest balance: exactly 12,000 AC on the first boot of a profile
+  // under this revision. It uses the REAL production economy (award/save on
+  // the one AC state) — there is no parallel currency variable — and it is
+  // marked revision+profile scoped so an ordinary refresh NEVER refills it
+  // (12,000 → spend 350 → 11,650 → refresh stays 11,650). Removed as ONE
+  // edit (set to 0) after owner acceptance.
+  const OWNER_PLAYTEST_AC_SEED = 12000;
+  const OWNER_PLAYTEST_AC_SEED_REVISION = '20261005-owner-playtest-r44';
+  function ownerPlaytestSelectionUnlocked(name) {
+    if (!OWNER_PLAYTEST_CORE_SIX_UNLOCK) return false;
+    // ONLY the current production playable roster (the Core Six). A future
+    // visible-but-locked fighter is never unlocked by this override.
+    return isProductPlayable(name);
+  }
   const displayNameFor = (name) => {
     const id = String(name || '').toUpperCase();
     const registry = window.APEX_HERO_REWORK_REGISTRY;
@@ -77,6 +103,15 @@
     s.lastSelectedP2 = String(raw.lastSelectedP2 || 'ROBOT').toUpperCase();
     s.totalSpins = Math.max(0, raw.totalSpins | 0);
     s.unlockedAt = raw.unlockedAt && typeof raw.unlockedAt === 'object' ? { ...raw.unlockedAt } : { ROBOT: 0 };
+    // The owner-playtest AC seed marker must survive sanitization, otherwise a
+    // refresh would look "unseeded" and refill the balance.
+    s.ownerPlaytestAcSeed = (raw.ownerPlaytestAcSeed && typeof raw.ownerPlaytestAcSeed === 'object')
+      ? {
+        revision: String(raw.ownerPlaytestAcSeed.revision || ''),
+        profile: String(raw.ownerPlaytestAcSeed.profile || ''),
+        at: Number(raw.ownerPlaytestAcSeed.at) || 0,
+      }
+      : null;
     // AUDIT-E: state truth must match rendered truth — unknown/stale palette
     // ids sanitize to the canonical default representation (null => graphite-mid
     // in the palette runtime). Validated against the curated list when the
@@ -90,19 +125,41 @@
     if (!isProductPlayable(s.lastSelectedP2) || !s.ownedFighters.includes(s.lastSelectedP2)) s.lastSelectedP2 = 'ROBOT';
     return s;
   }
+  // Owner-playtest AC seed (r44). Applied ONLY here, on load, and only when
+  // the profile has no marker for THIS revision — so it fires exactly once per
+  // profile/revision and an ordinary refresh never refills a spent balance.
+  function applyOwnerPlaytestAcSeed(st) {
+    if (!st || typeof st !== 'object') return st;
+    if (!OWNER_PLAYTEST_AC_SEED) return st;
+    const marker = st.ownerPlaytestAcSeed;
+    if (marker && marker.revision === OWNER_PLAYTEST_AC_SEED_REVISION && marker.profile === KEY) return st;
+    // Real production economy path: the single AC state, saved once.
+    st.credits = OWNER_PLAYTEST_AC_SEED;
+    st.ownerPlaytestAcSeed = {
+      revision: OWNER_PLAYTEST_AC_SEED_REVISION,
+      profile: KEY,
+      at: Date.now(),
+    };
+    return st;
+  }
   function load() {
     try {
       const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null;
-      if (!raw) return emptyState();
+      if (!raw) return save(applyOwnerPlaytestAcSeed(emptyState()));
       const clean = sanitize(JSON.parse(raw));
       // Migration is durable: a NEWBIE/stale selection cannot reappear after
       // the next reload, while all historic ownership and balances survive.
-      try { localStorage.setItem(KEY, JSON.stringify(clean)); } catch (error) {}
-      return clean;
+      const seeded = applyOwnerPlaytestAcSeed(clean);
+      try { localStorage.setItem(KEY, JSON.stringify(seeded)); } catch (error) {}
+      state = seeded;
+      return seeded;
     } catch (e) {
-      return emptyState();
+      return save(applyOwnerPlaytestAcSeed(emptyState()));
     }
   }
+  // The one AC/economy state. Declared before save()/load() run so the load
+  // path can persist through the REAL save() mechanism (no second currency).
+  let state = null;
   function save(st) {
     try {
       if (typeof localStorage !== 'undefined') localStorage.setItem(KEY, JSON.stringify(st));
@@ -110,7 +167,7 @@
     state = st;
     return st;
   }
-  let state = load();
+  state = load();
   const lastAward = { reasons: [], amount: 0, balance: state.credits };
 
   // §D palette persistence (sanitized again by the palette runtime against
@@ -129,7 +186,8 @@
   function owns(name) { return state.ownedFighters.includes(String(name).toUpperCase()); }
   function canPublicSelect(name) {
     const id = String(name || '').toUpperCase();
-    return isProductPlayable(id) && owns(id);
+    if (!isProductPlayable(id)) return false;
+    return owns(id) || ownerPlaytestSelectionUnlocked(id);
   }
   function poolLocked() {
     // Draw is a mutation path, so it has the Core Six legality boundary rather
@@ -588,6 +646,14 @@
   window.APEX_ARSENAL_META = {
     KEY, SHOP_COST, DRAW_COST, START_CREDITS,
     getState, credits, owns, canPublicSelect, buy, spin, award, awardBattleResult, filterOwned, setLast,
+    // Owner-playtest selection override (r44): ONE fenced switch, selection
+    // only — Lucky Draw, Shop and ownership keep reading production truth.
+    ownerPlaytestSelectionUnlocked,
+    OWNER_PLAYTEST_CORE_SIX_UNLOCK,
+    OWNER_PLAYTEST_CORE_SIX_UNLOCK_REVISION,
+    OWNER_PLAYTEST_AC_SEED,
+    OWNER_PLAYTEST_AC_SEED_REVISION,
+    applyOwnerPlaytestAcSeed,
     palette, setPalette,
     load, save, emptyState, sanitize, poolLocked,
     visibleRoster: ROSTER, playableRoster: PLAYABLE_ROSTER,

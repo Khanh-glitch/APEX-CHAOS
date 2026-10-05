@@ -1313,6 +1313,37 @@ function buildShell(hudProductionHtml) {
         `      b.addEventListener('click',()=>selectHero(id));`
       ),
     },
+    // ── S24: battle HUD portrait uses the R44 BATTLE_HUD_AVATAR authority ──
+    // The roster cover is the compact presentation; the per-side battle HUD
+    // portrait must come from the immutable Git art authority.
+    {
+      id: 'SHL-S24',
+      why: 'battle handoff portrait uses the BATTLE_HUD_AVATAR Git authority',
+      find: /portrait:h\.portrait\|\|''/,
+      replace: "portrait:h.battleAvatar||h.portrait||''",
+    },
+    // ── S25: no broken/placeholder image for a hero without a static pose ───
+    // Mirror deliberately has NO pick_selected_large (owner decision).
+    {
+      id: 'SHL-S25',
+      why: 'selected-pose art skips heroes with no static selected pose (mirror)',
+      find: /    const img=new Image\(\); img\.className='heroAsset'/,
+      replace: (
+        `    if(!HEROES[id]||!HEROES[id].art)return;\n` +
+        `    const img=new Image(); img.className='heroAsset'`
+      ),
+    },
+    // ── S26: world-stage fallback never resolves to an empty src ────────────
+    {
+      id: 'SHL-S26',
+      why: 'world-stage art never resolves to an empty src',
+      find: /      const img=new Image\(\); img\.className='worldHeroAsset'; img\.alt=''; img\.draggable=false; img\.src=WORLD_ART\[id\]\|\|h\.art;/,
+      replace: (
+        `      const worldSrc=WORLD_ART[id]||h.art;\n` +
+        `      if(!worldSrc)return;\n` +
+        `      const img=new Image(); img.className='worldHeroAsset'; img.alt=''; img.draggable=false; img.src=worldSrc;`
+      ),
+    },
   ];
 
   let out = applyPatches(shell, patches, 'shell');

@@ -37,6 +37,93 @@
     newbot: 'ROBOT', hunter: 'HUNTER', crystala: 'CRYSTAL',
     magnet: 'MAGNET', frost: 'ICE', mirror: 'MIRROR',
   };
+  // ── immutable Git art authority (R44 owner-playtest media manifest) ─────
+  // Every URL below is a gitPath recorded in
+  // docs/gold-ui/preload/OWNER_PLAYTEST_MEDIA_R44_MANIFEST.json — nothing is
+  // inferred, fabricated or substituted. Production state MERGES into this
+  // mapping (see rosterFromProduction); it never replaces it, so a state
+  // projection can no longer drop a resolved Core Six art role.
+  // MIRROR deliberately has NO static selected pose: its selected presentation
+  // is the accepted opponent-derived/translucent mirror treatment, so
+  // PICK_SELECTED_LARGE is absent by design and is never replaced by a broken
+  // or placeholder image.
+  const HERO_UI_ART_ROOT = '/assets/gold-ui/heroes/';
+  const HERO_UI_ART = {
+    newbot: {
+      portrait: HERO_UI_ART_ROOT + 'newbot/pick_roster_cover.webp',
+      art: HERO_UI_ART_ROOT + 'newbot/pick_selected_large.webp',
+      battleAvatar: HERO_UI_ART_ROOT + 'newbot/battle_avatar.webp',
+      skillIcons: [
+        HERO_UI_ART_ROOT + 'newbot/skill_passive.webp',
+        HERO_UI_ART_ROOT + 'newbot/skill_a1.webp',
+        HERO_UI_ART_ROOT + 'newbot/skill_a2.webp',
+      ],
+    },
+    hunter: {
+      portrait: HERO_UI_ART_ROOT + 'hunter/pick_roster_cover.webp',
+      art: HERO_UI_ART_ROOT + 'hunter/pick_selected_large.webp',
+      battleAvatar: HERO_UI_ART_ROOT + 'hunter/battle_avatar.webp',
+      skillIcons: [
+        HERO_UI_ART_ROOT + 'hunter/skill_passive.webp',
+        HERO_UI_ART_ROOT + 'hunter/skill_a1.webp',
+        HERO_UI_ART_ROOT + 'hunter/skill_a2.webp',
+      ],
+    },
+    crystala: {
+      portrait: HERO_UI_ART_ROOT + 'crystala/pick_roster_cover.webp',
+      art: HERO_UI_ART_ROOT + 'crystala/pick_selected_large.webp',
+      battleAvatar: HERO_UI_ART_ROOT + 'crystala/battle_avatar.webp',
+      skillIcons: [
+        HERO_UI_ART_ROOT + 'crystala/skill_passive.webp',
+        HERO_UI_ART_ROOT + 'crystala/skill_a1.webp',
+        HERO_UI_ART_ROOT + 'crystala/skill_a2.webp',
+      ],
+    },
+    magnet: {
+      portrait: HERO_UI_ART_ROOT + 'magnet/pick_roster_cover.webp',
+      art: HERO_UI_ART_ROOT + 'magnet/pick_selected_large.webp',
+      battleAvatar: HERO_UI_ART_ROOT + 'magnet/battle_avatar.webp',
+      skillIcons: [
+        HERO_UI_ART_ROOT + 'magnet/skill_passive.webp',
+        HERO_UI_ART_ROOT + 'magnet/skill_a1.webp',
+        HERO_UI_ART_ROOT + 'magnet/skill_a2.webp',
+      ],
+    },
+    frost: {
+      portrait: HERO_UI_ART_ROOT + 'frost/pick_roster_cover.webp',
+      art: HERO_UI_ART_ROOT + 'frost/pick_selected_large.webp',
+      battleAvatar: HERO_UI_ART_ROOT + 'frost/battle_avatar.webp',
+      skillIcons: [
+        HERO_UI_ART_ROOT + 'frost/skill_passive.webp',
+        HERO_UI_ART_ROOT + 'frost/skill_a1.webp',
+        HERO_UI_ART_ROOT + 'frost/skill_a2.webp',
+      ],
+    },
+    // Mirror: no PICK_SELECTED_LARGE by owner decision.
+    mirror: {
+      portrait: HERO_UI_ART_ROOT + 'mirror/pick_roster_cover.webp',
+      battleAvatar: HERO_UI_ART_ROOT + 'mirror/battle_avatar.webp',
+      skillIcons: [
+        HERO_UI_ART_ROOT + 'mirror/skill_passive.webp',
+        HERO_UI_ART_ROOT + 'mirror/skill_a1.webp',
+        HERO_UI_ART_ROOT + 'mirror/skill_a2.webp',
+      ],
+    },
+  };
+  // Roles the manifest resolves for the current Core Six (mirror's selected
+  // pose is intentionally absent — 5 roles, not 6).
+  const HERO_UI_ART_ROLES = ['portrait', 'art', 'battleAvatar', 'skillIcons'];
+  function heroUiArt(shellKey) {
+    const art = HERO_UI_ART[shellKey];
+    if (!art) return null;
+    // Clone so a consumer can never mutate the immutable Git authority.
+    const out = {};
+    for (const role of HERO_UI_ART_ROLES) {
+      if (Object.prototype.hasOwnProperty.call(art, role)) out[role] = Array.isArray(art[role]) ? art[role].slice() : art[role];
+    }
+    return out;
+  }
+
   const GOLD_HERO_COPY = {
     newbot: { name: 'ROBOT', tag: 'APEX COMBAT FRAME' },
     hunter: { name: 'HUNTER', tag: 'MANTIS ASSASSIN' },
@@ -107,7 +194,13 @@
       // Ownership is production authority (the meta save). A missing/absent
       // ownership API simply means "not owned yet" — never "owned".
       const owned = !!(meta && typeof meta.owns === 'function' && meta.owns(productionId));
-      heroes[key] = {
+      // MERGE, never replace: the immutable Git art authority is the base and
+      // the production state projection is layered on top. Art roles are
+      // therefore always present for a resolved Core Six fighter even when the
+      // state projection is partial, and a Gold placeholder is never used for
+      // a role that has a real Git asset.
+      const art = heroUiArt(key);
+      heroes[key] = Object.assign({}, art, {
         name,
         color,
         accent: color,
@@ -118,7 +211,14 @@
         // Core Six keep real production ownership.
         owned: playable ? owned : false,
         locked: !playable,
-      };
+        // Explicit art roles (survive the state projection by construction).
+        portrait: (art && art.portrait) || '',
+        // Mirror has no static selected pose: leave it undefined rather than
+        // emitting a broken or placeholder image.
+        art: art && Object.prototype.hasOwnProperty.call(art, 'art') ? art.art : undefined,
+        battleAvatar: (art && art.battleAvatar) || (art && art.portrait) || '',
+        skillIcons: (art && art.skillIcons) ? art.skillIcons.slice() : [],
+      });
     }
     return heroes;
   }
@@ -140,6 +240,14 @@
     const hero = roster[shellKey];
     if (!hero) return true; // not in the production visible roster
     if (hero.playable === false) return true; // future visible fighter: locked
+    // ONE selection authority: the production meta's canPublicSelect(), which
+    // owns the single fenced owner-playtest selection override. This bridge
+    // never implements a second bypass, and ownership/Lucky Draw/Shop keep
+    // reading production truth (owns()).
+    const meta = window.APEX_ARSENAL_META;
+    if (meta && typeof meta.canPublicSelect === 'function') {
+      return !meta.canPublicSelect(hero.productionId);
+    }
     return !hero.owned;
   };
   // Full production-visible roster (playable + locked) for the shell picker.
@@ -300,6 +408,9 @@
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const root = doc.body.firstElementChild || doc.documentElement;
     if (root) host.appendChild(document.importNode(root, true));
+    // Capture the exact legacy node references BEFORE their ids are parked, so
+    // no later legacy hide can resolve (and hide) the Gold donor instead.
+    captureLegacyBattleUi();
     // Park BEFORE the donor scripts run so their lookups hit their own DOM.
     parkCollidingIds();
     // The donor's inline scripts share one top-level lexical scope (the seam
@@ -399,28 +510,93 @@
   }
 
   // ── legacy visible battle UI must not survive beside Gold ────────────────
+  // OWNER LAW 2026-10-05 (P0 black battle screen): a global
+  // document.getElementById(id) is AMBIGUOUS once the Gold donor owns the same
+  // id. The donor HUD owns #hud (and #stage/#p1Side/#p2Side), so a legacy hide
+  // that resolved by global id hid the GOLD HUD itself — the battle ran with
+  // audio but a black/invisible presentation. Legacy nodes are therefore
+  // captured by exact reference BEFORE the donor mount parks their ids, and
+  // only those references are ever hidden.
   const LEGACY_BATTLE_IDS = [
     'hud', 'battle-controls', 'battle-pause-btn', 'challenge-caption',
     'countdown-overlay', 'end-screen', 'p1-name', 'p2-name', 'combat-inspector',
   ];
-  function hideLegacyBattleUi() {
+  // Elements a legacy hide must NEVER touch (hard invariant): the Gold host,
+  // every authored donor node, the authored arena slot, #game-wrapper and
+  // #game-canvas. Membership is captured by EXACT REFERENCE before the arena
+  // relocation, because relocateArena() intentionally moves #game-wrapper (and
+  // the legacy overlays inside it) into the donor's arena slot — a live
+  // containment test would then misclassify those legacy overlays as donor
+  // nodes and let them survive beside Gold.
+  const PROTECTED_HIDE_IDS = ['battleHudHost', 'game-wrapper', 'game-canvas', 'arena'];
+  const legacyBattleRefs = [];
+  const protectedHideRefs = new Set();
+  function isProtectedFromLegacyHide(el) {
+    if (!el) return true;
+    return protectedHideRefs.has(el);
+  }
+  // Resolve a legacy production node without ever resolving the Gold donor:
+  // a node parked by the mount (id temporarily removed) is addressable through
+  // its parked-id marker, otherwise the element with that id OUTSIDE the host.
+  function legacyUiElement(id) {
+    const key = String(id || '');
+    if (!key) return null;
+    let parked = null;
+    try { parked = document.querySelector('[data-apex-parked-id="' + key + '"]'); } catch (error) { parked = null; }
+    if (parked) return parked;
+    const host = document.getElementById('battleHudHost');
+    let nodes = [];
+    try { nodes = Array.from(document.querySelectorAll('[id="' + key + '"]')); } catch (error) { nodes = []; }
+    for (const el of nodes) {
+      if (host && host.contains(el)) continue;
+      return el;
+    }
+    return null;
+  }
+  function captureLegacyBattleUi() {
+    legacyBattleRefs.length = 0;
+    protectedHideRefs.clear();
+    const protect = (el) => { if (el) protectedHideRefs.add(el); };
+    const host = document.getElementById('battleHudHost');
+    if (host) {
+      protect(host);
+      // Every authored donor node present at mount time (the donor root and
+      // its whole subtree) — captured by reference, never re-derived later.
+      const donorRoot = host.firstElementChild;
+      protect(donorRoot);
+      let donorNodes = [];
+      try { donorNodes = Array.from(host.querySelectorAll('[id]')); } catch (error) { donorNodes = []; }
+      for (const el of donorNodes) protect(el);
+    }
+    protect(document.getElementById('arena'));
+    protect(document.getElementById('game-wrapper'));
+    protect(document.getElementById('game-canvas'));
     for (const id of LEGACY_BATTLE_IDS) {
-      const el = document.getElementById(id);
-      if (!el) continue;
-      if (!el.__apexGoldHidden) {
-        el.__apexGoldHidden = el.style.display;
-      }
+      const el = legacyUiElement(id);
+      if (!el || protectedHideRefs.has(el)) continue;
+      legacyBattleRefs.push(el);
+    }
+    return legacyBattleRefs.length;
+  }
+  function hideLegacyBattleUi() {
+    for (const el of legacyBattleRefs) {
+      if (!el || isProtectedFromLegacyHide(el)) continue;
+      if (el.__apexGoldHidden === undefined) el.__apexGoldHidden = el.style.display;
       el.style.display = 'none';
     }
   }
   function showLegacyBattleUi() {
-    for (const id of LEGACY_BATTLE_IDS) {
-      const el = document.getElementById(id);
+    for (const el of legacyBattleRefs) {
       if (!el || el.__apexGoldHidden === undefined) continue;
       el.style.display = el.__apexGoldHidden || '';
       delete el.__apexGoldHidden;
     }
+    legacyBattleRefs.length = 0;
   }
+  // Published so production code that legitimately needs a legacy node (the
+  // engine's own HUD opacity handling) can never resolve the Gold donor.
+  BRIDGE.legacyUiElement = legacyUiElement;
+  BRIDGE.captureLegacyBattleUi = captureLegacyBattleUi;
 
   // ── handoff identity (accents from production) ───────────────────────────
   BRIDGE.onHandoff = function onHandoff(cfg) {
@@ -572,10 +748,8 @@
     return (body && body.color) || '#ff8a1e';
   }
   function setCritAccent(color) {
-    const hud = document.getElementById('hud');
-    // The donor HUD root carries data-mode; the Gold host wraps it.
-    const root = (hud && hud.dataset && hud.dataset.mode) ? hud
-      : (document.querySelector('#battleHudHost #hud') || hud);
+    // Always the DONOR root inside the Gold host — never a global-id guess.
+    const root = document.querySelector('#battleHudHost #hud');
     if (root && root.style) root.style.setProperty('--crit', color);
   }
 
