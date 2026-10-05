@@ -549,6 +549,11 @@ export default function App() {
         host.dataset.apexGoldMounted = '1';
         document.body.classList.add('apex-gold-mounted');
         setGoldReady(true);
+        // Boot READY includes the explicit Home Core asset set (including CSS
+        // layer art), then the coordinator verifies DOM decode/font/layout.
+        if (window.APEX_GOLD?.prepareSurface) {
+          await window.APEX_GOLD.prepareSurface('home');
+        }
         await window.APEX_SCENE_TRANSITION?.signalBootReady?.();
       } catch (error) {
         console.warn('[gold-shell] Gold product shell mount failed.', error);
