@@ -2179,7 +2179,8 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   }
   async function openLucky(){
     const tr=window.APEX_SCENE_TRANSITION;
-    if(tr?.active?.())return;
+    // Owner law: a scene intent is never dropped. If the Door is mid-
+    // transaction the coordinator QUEUES this request (latest intent wins).
     const prepare=async()=>{
       if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('lucky');
       await ensureLuckyReady();
@@ -2207,7 +2208,9 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   }
   async function closeLucky(){
     const tr=window.APEX_SCENE_TRANSITION;
-    if(tr?.active?.())return;
+    // Same law in the closing direction: BACK pressed while the bay is still
+    // moving is queued, never swallowed (this is the Lucky-Draw-is-stuck
+    // report — the player had no input left that could dismiss the bay).
     const commit=()=>{
       host.classList.remove('is-open');host.setAttribute('aria-hidden','true');
       APEX_GOLD.onSurface&&APEX_GOLD.onSurface('home');
@@ -2228,7 +2231,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   }
   openBtn?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();void openLucky();});
   window.addEventListener('message',e=>{if(e?.data?.type==='APEX_CHAOS_LUCKY_DRAW_EXIT')void closeLucky();});
-  window.addEventListener('keydown',e=>{if(window.APEX_SCENE_TRANSITION?.active?.()){e.preventDefault();return}if(e.key==='Escape'&&host.classList.contains('is-open')){e.preventDefault();void closeLucky();}},true);
+  window.addEventListener('keydown',e=>{if(e.key==='Escape'&&host.classList.contains('is-open')){e.preventDefault();void closeLucky();}},true);
   window.addEventListener('beforeunload',()=>{if(donorObjectUrl)URL.revokeObjectURL(donorObjectUrl);});
 })();
 </script>

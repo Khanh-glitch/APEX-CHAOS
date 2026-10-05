@@ -141,26 +141,39 @@ check('no Core Six role references a gameplay sprite or a Gold placeholder pack 
   !/assets\/placeholders\//.test(raw.split('const HERO_UI_ART = {')[1]?.split('};')[0] || ''));
 
 // ── 6. the shell consumes the art authority in REAL Pick/Battle slots ─────
+// R49/E1 law: ONE hero presentation authority (HERO_PRESENTATION +
+// applyHeroPresentation) paints the projected roles. The R44 literals this
+// section used to assert (a WORLD_ART mirror ghost placeholder, a bare
+// `worldSrc` ternary, `${h.portrait||''}`) were replaced by that authority, so
+// the section now asserts the SHIPPING law instead of the retired markup.
 const shell = read('public/gold/shell.html');
 check('the battle handoff payload uses BATTLE_HUD_AVATAR', /portrait:h\.battleAvatar\|\|h\.portrait\|\|''/.test(shell));
 check('compact Fighter Pick roster cards consume PICK_ROSTER_COVER through h.portrait',
-  /<img src="\$\{h\.portrait\|\|''\}" alt="" draggable="false">/.test(shell));
+  /const portrait=h\.portrait[\s\S]{0,140}<img src="\$\{h\.portrait\}" alt="" draggable="false">/.test(shell));
+check('roster cards keep a deliberate artless fallback instead of an empty src',
+  /rosterLockedVisual/.test(shell) && /addEventListener\('error'/.test(shell));
 
 const worldStart = shell.indexOf('function renderWorldHero');
 const worldEnd = shell.indexOf('function renderSide', worldStart);
 const worldRenderer = worldStart >= 0 && worldEnd > worldStart ? shell.slice(worldStart, worldEnd) : '';
-check('Fighter Pick world-stage renderer exists', worldRenderer.length > 0);
-check('static Core Six world-stage art consumes production PICK_SELECTED_LARGE through h.art',
-  /const worldSrc=id==='mirror'\?WORLD_ART\.mirror:h\?\.art;/.test(worldRenderer));
+const bodyStart = shell.indexOf('function createWorldHeroBody');
+const bodyEnd = worldStart > bodyStart && bodyStart >= 0 ? worldStart : -1;
+const worldBody = bodyStart >= 0 && bodyEnd > bodyStart ? shell.slice(bodyStart, bodyEnd) : '';
+check('Fighter Pick world-stage renderer exists', worldRenderer.length > 0 && worldBody.length > 0);
+check('static Core Six world-stage art consumes production PICK_SELECTED_LARGE through the projected art role',
+  /function createWorldHeroBody\(target\)/.test(worldBody) && /img\.src=target\.sourceHero\.art;/.test(worldBody));
+check('world-stage never emits an empty selected-pose src and never falls back to a placeholder pack',
+  /if\(!target\.renderId\|\|!target\.sourceHero\?\.art\)return null;/.test(worldBody)
+  && !/placeholders?\//.test(worldBody)
+  && /const body=createWorldHeroBody\(target\);\s*if\(!body\)return;/.test(shell));
 check('NEWBOT selected presentation no longer clones the Home robot instead of PICK_SELECTED_LARGE',
   !/#stage > \.heroWrap/.test(worldRenderer));
-check('world-stage never emits an empty selected-pose src', /if\(!worldSrc\)return;/.test(worldRenderer));
-
-const worldDecl = shell.match(/const WORLD_ART = (\{[^\n]*\});/);
-check('WORLD_ART override is reserved ONLY for Mirror runtime-derived selected presentation',
-  !!worldDecl && /"mirror":"assets\/placeholders\/pick\/pose\/mirror-world-runtime-opponent-ghost\.svg"/.test(worldDecl[1])
-    && !/hunter-world\.svg|frost-world\.svg/.test(worldDecl[1]),
-  worldDecl ? worldDecl[1] : 'WORLD_ART missing');
+check('one hero-level presentation authority owns world-stage scale/orientation for both sides',
+  /const HERO_PRESENTATION=Object\.freeze\(\{/.test(shell)
+  && /applyHeroPresentation\(img,target\.renderId,target\.id,target\.player\)/.test(worldBody)
+  && /const face=Number\.isFinite\(p\.face\)\?p\.face:\(player==='p2'\?-1:1\)/.test(shell));
+check('WORLD_ART static override is retired (empty) and Mirror presentation is runtime-derived',
+  /const WORLD_ART = \{\};/.test(shell) && /mirrorOpponentHero\(player\)/.test(worldRenderer));
 
 check('the base64 battle payload is regenerated from the production HUD',
   (() => {
@@ -168,6 +181,13 @@ check('the base64 battle payload is regenerated from the production HUD',
     if (!m) return false;
     const decoded = Buffer.from(m[1].trim(), 'base64').toString('utf8');
     return decoded.includes('apex-picked-portrait') && decoded.length > 1000;
+  })());
+check('the shipped battle payload carries the production battle-avatar slot (owner feedback: real hero art)',
+  (() => {
+    const m = shell.match(/<script id="battleHudPayload" type="text\/plain">([\s\S]*?)<\/script>/);
+    if (!m) return false;
+    const decoded = Buffer.from(m[1].trim(), 'base64').toString('utf8');
+    return decoded.includes('apex-battle-avatar') && decoded.includes('has-production-avatar');
   })());
 const lines = ['GOLD CORE SIX ART AUTHORITY GATE (R45 consumer wiring)', ...notes];
 if (failures.length) {

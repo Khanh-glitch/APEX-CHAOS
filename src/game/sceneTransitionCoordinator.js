@@ -134,7 +134,7 @@ function resolveNode(candidate, fallback = null) {
  *  - boot black-screen handoff;
  *  - input serialization.
  */
-export function installSceneTransitionCoordinator({ canvas, contentRoot, blackout } = {}) {
+export function installSceneTransitionCoordinator({ canvas, contentRoot, blackout, stallGuardMs = 6000, hardCapMs = 30000 } = {}) {
   if (window.APEX_SCENE_TRANSITION?.version === 'mechanical-door-v4-r50k') return window.APEX_SCENE_TRANSITION;
   if (!canvas) throw new Error('Scene transition canvas is required.');
 
@@ -144,6 +144,30 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
   let bootStarted = false;
   let bootReadySignalled = false;
   const bootReady = deferred();
+
+  // ── Input serialization (owner law: a scene intent is NEVER swallowed) ────
+  // A request that arrives while another transaction is running becomes the
+  // PENDING request and runs the moment the current one finishes. Latest
+  // intent wins, which is exactly what "press BACK while the door is still
+  // moving" has to mean. Dropping the request instead left the player looking
+  // at a bay they could not dismiss (the frozen Lucky Draw report).
+  let pendingRequest = null;
+
+  // ── Stall guard (owner law: the product may never become input-dead) ─────
+  // The door runtime is a requestAnimationFrame machine. If its clock stops
+  // (occluded tab, GPU reset, a dropped frame budget) an unfinished
+  // transaction would hold `active` forever and every scene input would be
+  // swallowed with no recovery. Only a transaction whose engine made NO phase
+  // progress for STALL_MS, or that outlives HARD_CAP_MS, is force-finished:
+  // the destination stays committed, the cover is removed and input returns.
+  const STALL_MS = Math.max(50, Number(stallGuardMs) || 6000);
+  const HARD_CAP_MS = Math.max(STALL_MS, Number(hardCapMs) || 30000);
+  // Sample often enough that a policy-tight guard is still detected promptly,
+  // while the production values keep the check cheap.
+  const WATCHDOG_INTERVAL_MS = Math.max(25, Math.min(400, Math.round(STALL_MS / 2)));
+  let watchdogTimer = 0;
+  let watchdogSignature = '';
+  let watchdogSignatureAt = 0;
 
   const assetsPromise = loadGoldDoorRuntime().then((gold) => gold.loadAssets());
   canvas.setAttribute('aria-hidden', 'true');
@@ -177,15 +201,75 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
     engine.ready();
   };
 
+  const releaseCover = () => {
+    // Fail-open presentation: stop the stuck door and take its canvas out of
+    // the composition instead of leaving a frozen mechanical door on screen.
+    try { engine?.destroy?.(); } catch (_) {}
+    engine = null;
+    try {
+      if (canvas) {
+        canvas.style.display = 'none';
+        canvas.setAttribute('aria-hidden', 'true');
+      }
+    } catch (_) {}
+  };
+
+  const startWatchdog = (tx) => {
+    stopWatchdog();
+    watchdogSignature = '';
+    watchdogSignatureAt = performance.now();
+    watchdogTimer = setInterval(() => {
+      if (active !== tx) { stopWatchdog(); return; }
+      const debug = engine?.getDebug?.() || null;
+      const signature = debug ? `${debug.state}|${debug.stateTime}|${debug.holdTime}` : '';
+      const now = performance.now();
+      if (signature !== watchdogSignature) {
+        watchdogSignature = signature;
+        watchdogSignatureAt = now;
+        return;
+      }
+      const stalledFor = now - watchdogSignatureAt;
+      const age = now - tx.startedAt;
+      if (stalledFor >= STALL_MS || age >= HARD_CAP_MS) {
+        const reason = stalledFor >= STALL_MS
+          ? `scene transaction ${tx.name} made no progress for ${Math.round(stalledFor)}ms`
+          : `scene transaction ${tx.name} exceeded ${Math.round(age)}ms`;
+        console.warn(`[scene-transition] ${reason}; releasing the scene surface.`);
+        tx.failed = true;
+        tx.error = tx.error || new Error(reason);
+        releaseCover();
+        finish(false);
+      }
+    }, WATCHDOG_INTERVAL_MS);
+  };
+
+  const stopWatchdog = () => {
+    if (watchdogTimer) { clearInterval(watchdogTimer); watchdogTimer = 0; }
+    watchdogSignature = '';
+  };
+
   const finish = (ok = true) => {
     const tx = active;
     if (!tx) return;
+    stopWatchdog();
     clearNodeMotion(sourceFor(tx));
     clearNodeMotion(targetFor(tx));
     document.body.classList.remove('apex-scene-transition-active');
     active = null;
     bodyState('DONE');
     tx.done.resolve({ ok, error: tx.error || null, name: tx.name });
+    drainPending();
+  };
+
+  // The queued intent owns the next transaction. Every caller still receives
+  // the result of ITS OWN request, so a queued BACK never resolves the open.
+  const drainPending = () => {
+    const next = pendingRequest;
+    if (!next) return;
+    pendingRequest = null;
+    startTransaction(next.options)
+      .then(next.done.resolve, next.done.reject)
+      .catch(() => {});
   };
 
   const commitWhenSafe = async () => {
@@ -278,7 +362,19 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
     return engine;
   };
 
-  const run = async ({
+  // Latest intent wins: a superseded request resolves as `superseded` so its
+  // caller (e.g. a queued open that a later BACK replaced) is never left
+  // hanging, and the survivor runs immediately after the active transaction.
+  const queueRequest = (options) => {
+    if (pendingRequest) {
+      pendingRequest.done.resolve({ ok: false, error: new Error('superseded'), name: pendingRequest.options?.name || 'scene' });
+    }
+    const queued = deferred();
+    pendingRequest = { options, done: queued };
+    return queued.promise;
+  };
+
+  const startTransaction = async ({
     name = 'scene',
     prepare = null,
     commit = null,
@@ -289,7 +385,7 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
     boot = false,
   } = {}) => {
     await ensureEngine();
-    if (active) return active.done.promise;
+    if (active) return queueRequest({ name, prepare, commit, readyGate, rollback, source, target, boot });
 
     const tx = {
       id: ++txId,
@@ -317,6 +413,7 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
     };
     active = tx;
     document.body.classList.add('apex-scene-transition-active');
+    startWatchdog(tx);
 
     const sourceRoot = sourceFor(tx);
     if (!boot) sourceRoot?.classList.add('apex-scene-collapse');
@@ -346,6 +443,11 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
 
     return tx.done.promise;
   };
+
+  // Public entry point = the queue-aware transaction starter. One transaction
+  // at a time, but an intent that arrives mid-transaction is QUEUED (latest
+  // wins) instead of dropped; finish() drains the queue.
+  const run = (options = {}) => startTransaction(options);
 
   const signalBootReady = async () => {
     if (bootReadySignalled) return bootReady.promise;
@@ -390,7 +492,14 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
     prepareElement: settleSceneElement,
     assetsReady: () => assetsPromise.then(() => true),
     active: () => Boolean(active),
+    pending: () => (pendingRequest ? { name: pendingRequest.options?.name || 'scene' } : null),
+    guard: () => ({ stallMs: STALL_MS, hardCapMs: HARD_CAP_MS, intervalMs: WATCHDOG_INTERVAL_MS }),
     dispose: () => {
+      stopWatchdog();
+      if (pendingRequest) {
+        pendingRequest.done.resolve({ ok: false, error: new Error('disposed'), name: pendingRequest.options?.name || 'scene' });
+        pendingRequest = null;
+      }
       try { engine?.destroy?.(); } catch (_) {}
       engine = null;
       active = null;

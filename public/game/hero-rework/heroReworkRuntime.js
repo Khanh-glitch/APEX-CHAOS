@@ -189,9 +189,15 @@
     const meta = source && typeof source === 'object'
       ? source
       : { source: String(source || '') };
-    const side = meta.side === 'p2' ? 'p2' : (meta.side === 'p1' ? 'p1' : (ct.side || (ct.idx === 1 ? 'p2' : 'p1')));
+    // OWNER LAW (input side authority): a cast belongs to the fighter that
+    // executes it. The caller may describe WHAT triggered the cast
+    // (source/key/pointerId) but it may never re-own the side — before this
+    // law, a key handler that hardcoded {side:'p1'} made a P2 cast light up the
+    // P1 panel and emit P1Press (the "J/K triggers both sides" report).
+    const side = ct.side || (ct.idx === 1 ? 'p2' : 'p1');
     return {
       side,
+      declaredSide: meta.side === 'p2' ? 'p2' : (meta.side === 'p1' ? 'p1' : null),
       combatantId: ct.combatantId || side,
       source: String(meta.source || meta.kind || (side === 'p2' ? 'p2' : 'p1')),
       key: meta.key ? String(meta.key) : '',
@@ -3499,14 +3505,24 @@
       W.__hrEquipWrapped = true;
     }
 
-    // Manual skill gate bridge: J -> A1 for rework P1 (gate stays untouched
-    // for legacy shells; we only intercept rework fighters).
+    // Manual skill gate bridge: J -> A1 (gate stays untouched for legacy
+    // shells; we only intercept rework fighters). ONE side authority: the side
+    // is the fighter's own slot in the live fighters array (the same idx law
+    // makeCombatant uses), never a literal in the key handler.
+    const sideOfFighter = (f) => {
+      const list = globalScope.fighters;
+      if (!Array.isArray(list)) return null;
+      const idx = list.indexOf(f);
+      if (idx === 0) return 'p1';
+      if (idx === 1) return 'p2';
+      return null;
+    };
     const gate = globalScope.APEX_ARSENAL_SKILL_GATE;
     if (gate && gate.pressJ && !gate.pressJ.__hrWrapped) {
       const basePressJ = gate.pressJ;
       gate.pressJ = function pressJHR(f) {
         if (M && HR.isReworkFighter(f)) {
-          const res = HR.pressAbility(f, 'A1', { side: 'p1', source: 'keyboard', key: 'KeyJ' });
+          const res = HR.pressAbility(f, 'A1', { side: sideOfFighter(f), source: 'keyboard', key: 'KeyJ' });
           return res.ok || !!res.failCue;
         }
         return basePressJ.call(gate, f);
@@ -3521,7 +3537,7 @@
         if (e.code !== 'KeyK' || e.repeat) return;
         if (globalScope.gameState !== 'ARSENAL' || !M) return;
         const f = globalScope.fighters && globalScope.fighters[0];
-        if (f && HR.isReworkFighter(f)) HR.pressAbility(f, 'A2', { side: 'p1', source: 'keyboard', key: 'KeyK' });
+        if (f && HR.isReworkFighter(f)) HR.pressAbility(f, 'A2', { side: sideOfFighter(f), source: 'keyboard', key: 'KeyK' });
       });
     }
 
@@ -3543,7 +3559,7 @@
         // to a human. BOT matches keep the CPU on P2.
         if (!AQS || !AQS.state || AQS.state.battleMode !== 'LOCAL') return;
         const f = globalScope.fighters && globalScope.fighters[1];
-        if (f && HR.isReworkFighter(f)) HR.pressAbility(f, slot, { side: 'p2', source: 'keyboard', key: e.code });
+        if (f && HR.isReworkFighter(f)) HR.pressAbility(f, slot, { side: sideOfFighter(f), source: 'keyboard', key: e.code });
       });
     }
 

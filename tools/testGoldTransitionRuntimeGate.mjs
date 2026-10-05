@@ -89,9 +89,16 @@ const root = document.getElementById('root');
 let bootComplete = 0;
 window.addEventListener('apex:boot-transition-complete', () => { bootComplete += 1; });
 
-const coordinator = installSceneTransitionCoordinator({ canvas, blackout, contentRoot: root });
+const coordinator = installSceneTransitionCoordinator({
+  canvas, blackout, contentRoot: root,
+  // The serialization checks below hold transactions open on purpose; the
+  // stall-guard LAW is proven separately in an isolated fixture with a tight
+  // budget so this gate stays deterministic instead of racing a 6s timer.
+  stallGuardMs: 600000, hardCapMs: 1200000,
+});
 await flush();
 const engine = FakeDoorEngine.instances[0];
+check('the guard budget is policy, not a magic number', coordinator.guard().stallMs === 600000 && coordinator.guard().hardCapMs === 1200000, JSON.stringify(coordinator.guard()));
 
 check('one Gold engine instance is installed', FakeDoorEngine.instances.length === 1);
 check('boot starts Mechanical Door automatically', engine?.openCount === 1 && coordinator.active());
@@ -236,8 +243,9 @@ engine.done();
 const failedResult = await failed;
 check('failure transaction reports failure', failedResult?.ok === false && /synthetic prepare failure/.test(String(failedResult?.error)));
 
-// Serialization: repeated intent during an active transition must not start a
-// second mechanical sequence.
+// ── Input serialization: an intent is QUEUED, never dropped ───────────────
+// Owner law (R51): dropping the intent is the frozen-Lucky-Draw bug — the
+// player pressed BACK while the door was still moving and nothing happened.
 const serialGate = deferred();
 let serialA = 0;
 let serialB = 0;
@@ -248,21 +256,62 @@ const serial1 = coordinator.run({
 });
 await flush();
 const opensBeforeSecondIntent = engine.openCount;
-const serial2 = coordinator.run({
-  name: 'serial-b',
-  prepare: async () => true,
-  commit: () => { serialB += 1; },
-});
+const serial2 = coordinator.run({ name: 'serial-b', prepare: async () => true, commit: () => { serialB += 1; } });
 await flush();
 check('concurrent intent does not start a second door cycle', engine.openCount === opensBeforeSecondIntent);
+check('the second intent is QUEUED instead of dropped',
+  coordinator.pending()?.name === 'serial-b', JSON.stringify(coordinator.pending()));
 engine.cover();
 serialGate.resolve(true);
 await flush();
-engine.done();
-const [serialResult1, serialResult2] = await Promise.all([serial1, serial2]);
 check('first serialized transaction owns the commit', serialA === 1 && serialB === 0);
-check('second intent joins the active transaction result', serialResult1?.name === 'serial-a' && serialResult2?.name === 'serial-a');
+engine.done();
+await flush();
+const serialResult1 = await serial1;
+check('the active transaction keeps its own result', serialResult1?.name === 'serial-a' && serialResult1?.ok === true);
+check('the queued intent starts its own cycle after the active one finishes',
+  coordinator.state().name === 'serial-b', JSON.stringify(coordinator.state()));
+engine.cover();
+await flush();
+engine.done();
+await flush();
+const serialResult2 = await serial2;
+check('the queued intent resolves its OWN transaction',
+  serialResult2?.name === 'serial-b' && serialResult2?.ok === true, JSON.stringify(serialResult2));
+check('the queued intent committed in its own cycle', serialB === 1);
 
+// Latest intent wins: a newer request supersedes the queued one instead of
+// stacking two competing scenes, and the superseded caller never hangs.
+const superGate = deferred();
+let superCommitted = 0;
+const super1 = coordinator.run({ name: 'super-a', prepare: () => superGate.promise, commit: () => { superCommitted += 1; } });
+await flush();
+const super2 = coordinator.run({ name: 'super-b', prepare: async () => true, commit: () => { superCommitted += 1; } });
+await flush();
+const super3 = coordinator.run({ name: 'super-c', prepare: async () => true, commit: () => { superCommitted += 1; } });
+await flush();
+const supersededResult = await super2;
+check('a superseded queued intent resolves as superseded (never hangs)',
+  supersededResult?.ok === false && /superseded/.test(String(supersededResult?.error)), JSON.stringify(supersededResult));
+check('only the latest queued intent survives', coordinator.pending()?.name === 'super-c', JSON.stringify(coordinator.pending()));
+superGate.resolve(true);
+await flush();
+engine.cover();
+await flush();
+engine.done();
+await flush();
+for (let i = 0; i < 400 && coordinator.state().name !== 'super-c'; i++) await flush(1);
+check('the surviving queued intent owns the door after the active one finishes',
+  coordinator.state().name === 'super-c', JSON.stringify(coordinator.state()));
+engine.cover();
+await flush();
+engine.done();
+await flush();
+const superResults = await Promise.all([super1, super3]);
+check('supersede keeps the active transaction result', superResults[0]?.name === 'super-a' && superResults[0]?.ok === true);
+check('the surviving queued intent completes',
+  superResults[1]?.name === 'super-c' && superResults[1]?.ok === true, JSON.stringify(superResults[1]));
+check('only the two transactions that owned the door committed', superCommitted === 2);
 coordinator.dispose();
 check('dispose releases Gold engine ownership', engine.destroyCount === 1 && coordinator.active() === false);
 check('dispose hides transition canvas', canvas.getAttribute('aria-hidden') === 'true');
