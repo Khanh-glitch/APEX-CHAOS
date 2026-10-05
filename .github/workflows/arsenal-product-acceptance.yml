@@ -44,6 +44,7 @@ jobs:
           pnpm test:product-graph
           pnpm test:source-hygiene
           pnpm test:runtime-revision
+          pnpm test:gold-transition
           pnpm assets:verify
           git diff --exit-code -- src/game/audioWarmBanks.generated.js
 
