@@ -20,6 +20,55 @@ export function adaptGoldBattleHudR50c(input) {
   );
 
   once(
+    '--wpIW:clamp(92px,11cqh,124px);--wpNF:15px;--amF:24px;--swH:30px}',
+    '--wpIW:clamp(108px,13cqh,148px);--wpNF:16px;--amF:26px;--swH:32px}',
+    'desktop weapon scale'
+  );
+  once(
+    '#hud[data-layout="desk"] .side>.weapon{width:min(100%,384px);justify-self:end}',
+    '#hud[data-layout="desk"] .side>.weapon{width:min(100%,420px);justify-self:end}',
+    'desktop panel width'
+  );
+  once(
+    '--wpIW:44px;--wpNF:11px;--amF:15px;--swH:42px;--swW:46px}',
+    '--wpIW:56px;--wpNF:12px;--amF:18px;--swH:42px;--swW:46px}',
+    'compact landscape weapon scale'
+  );
+  once(
+    '--wpIW:42px;--wpNF:10.5px;--amF:15px;--swH:44px;--swW:44px}',
+    '--wpIW:48px;--wpNF:11px;--amF:17px;--swH:44px;--swW:44px}',
+    'compact portrait weapon scale'
+  );
+  once(
+    '.duel-feed .df-value{font-size:14px;font-weight:900;font-style:italic;font-variant-numeric:tabular-nums;color:var(--feed,var(--bone));text-shadow:var(--ol);line-height:1}',
+    '.duel-feed .df-value{font-size:16px;font-weight:900;font-style:italic;font-variant-numeric:tabular-nums;color:var(--feed,var(--bone));text-shadow:var(--ol);line-height:1}',
+    'duel damage scale'
+  );
+  once(
+    '/* ---------- 5. 1P / 2P MODE MODIFIERS ---------- */',
+    '/* ---------- R50F SIZE BANDS: redistribute; never whole-HUD scale ---------- */\n' +
+    '#hud[data-layout="desk"][data-size="wide"] .side{--porW:clamp(88px,10.8cqh,124px);--tileH:clamp(116px,14.5cqh,168px);--wpIW:clamp(124px,14cqh,160px);--amF:28px}\n' +
+    '#hud[data-layout="desk"][data-size="wide"] .side>.ident,#hud[data-layout="desk"][data-size="wide"] .side>.skills,#hud[data-layout="desk"][data-size="wide"] .side>.weapon{width:min(100%,440px)}\n' +
+    '#hud[data-layout="land"][data-size="tablet"]{--pad:8px;--g:8px;--gx:8px;--railH:44px;--mcW:96px;--lblH:16px;--barH:17px;--nmF:13px;--hpF:22px;--sideMin:220px}\n' +
+    '#hud[data-layout="land"][data-size="tablet"] .side{row-gap:10px;--porW:52px;--porH:52px;--idGap:11px;--nameF:20px;--artW:min(46%,140px);--skGap:8px;--infoPad:8px 11px;--keyS:21px;--skNF:15px;--stF:11px;--cdF:24px;--wpIW:82px;--wpNF:14px;--amF:22px;--swH:48px;--swW:52px}\n' +
+    '#hud[data-layout="port"][data-size="tablet"]{--pad:8px;--g:8px;--railH:46px;--mcW:96px;--lblH:16px;--barH:16px;--nmF:13px;--hpF:22px;--zoneMin:180px}\n' +
+    '#hud[data-layout="port"][data-size="tablet"] .side{column-gap:10px;row-gap:8px;--porW:50px;--porH:50px;--idGap:10px;--nameF:20px;--tw:min(170px,calc((100cqw - 32px) * .34));--skGap:8px;--keyS:21px;--skNF:14px;--stF:11px;--cdF:26px;--wpIW:68px;--wpNF:13px;--amF:21px;--swH:50px;--swW:50px}\n' +
+    '#hud[data-layout="port"][data-size="tablet"] .duel-feed .df-value{font-size:18px}\n\n' +
+    '/* ---------- 5. 1P / 2P MODE MODIFIERS ---------- */',
+    'responsive size bands'
+  );
+  once(
+    " const layout=H>W?'port':(W>=1000&&H>=560?'desk':'land');\n S.viewport.layout=layout;\n R.hud.dataset.layout=layout;R.hud.dataset.mode=S.mode;",
+    " const aspect=W/Math.max(1,H);\n const layout=H>W?'port':(W>=1180&&H>=620&&aspect>=1.5?'desk':'land');\n const size=layout==='desk'?(W>=1600&&H>=800?'wide':'desktop'):(Math.min(W,H)>=700?'tablet':'compact');\n S.viewport.layout=layout;S.viewport.size=size;\n R.hud.dataset.layout=layout;R.hud.dataset.size=size;R.hud.dataset.mode=S.mode;",
+    'viewport family classifier'
+  );
+  once(
+    " const an=sideAnchor(v),fs=clamp(an.w*(kind==='h'?.2:.16),22,kind==='h'?84:64);",
+    " const an=sideAnchor(v),fs=clamp(an.w*(kind==='h'?.23:.18),26,kind==='h'?92:72);",
+    'combat number scale'
+  );
+
+  once(
     '.skill[data-kind="charges"] .sk-state{min-width:7.2em}',
     '.skill[data-kind="charges"] .sk-state{min-width:7.2em}\n' +
     '.skill.is-held{filter:brightness(1.08)}\n' +
@@ -201,7 +250,7 @@ export function adaptGoldBattleHudR50c(input) {
     'storm hit accent'
   );
 
-  const must = ['apex-battle-avatar','has-tier','applyIdentityProjection','impactAccent','#globalFx{z-index:35','activeSkillPointers','pointerId:e.pointerId','skill.is-held'];
+  const must = ['apex-battle-avatar','has-tier','applyIdentityProjection','impactAccent','#globalFx{z-index:35','activeSkillPointers','pointerId:e.pointerId','skill.is-held','data-size="tablet"','S.viewport.size=size','--wpIW:82px'];
   for (const token of must) if (!out.includes(token)) throw new Error('R50C invariant missing: ' + token);
   return out;
 }
