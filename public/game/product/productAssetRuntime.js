@@ -145,8 +145,15 @@
           };
           img.onerror = () => finish(new Error('image decode failed: ' + rec.path));
           img.src = rec.url;
-          if (img.complete && img.naturalWidth > 0) {
-            Promise.resolve(img.decode ? img.decode().catch(() => {}) : null).then(() => finish());
+          // Cached success/failure can become observable immediately after src
+          // assignment. Do not wait forever for an event that may already have
+          // settled; complete+zero width is a terminal decode failure.
+          if (img.complete) {
+            if (img.naturalWidth > 0) {
+              Promise.resolve(img.decode ? img.decode().catch(() => {}) : null).then(() => finish());
+            } else {
+              finish(new Error('image decode failed: ' + rec.path));
+            }
           }
         });
         rec.state = 'READY';
