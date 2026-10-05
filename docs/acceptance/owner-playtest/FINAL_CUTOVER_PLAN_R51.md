@@ -1,299 +1,309 @@
-# R51 — Final Cutover Plan (owner-playtest → product)
+# R52 — Kế hoạch hoàn tất cutover (owner-playtest → product)
 
-Status: **PHASE A DONE & VERIFIED** (2026-10-05). Phases B–H are the ordered work
-packages that take the build from "R50K slice" to the owner's final contract.
+Trạng thái: **checkpoint `bacffe2`** (nhánh `arena/01a10c3e-apex-chaos`).
+Toàn bộ gate trong repo **XANH** (19/19 chuỗi `test:r50-pre-transition`, sweep
+`test:*` 0 đỏ, `buildGoldCutover --check` 70/70, prune guard PASS, revision lock
+khớp 39 runtime). Tài liệu này là **kế hoạch + ma trận nghiệm thu**: mỗi việc còn
+lại đều có (a) anchor chính xác, (b) luật phải đạt, (c) cách chứng minh, (d) gate
+giữ luật đó. Không có mục nào được coi là "xong" nếu thiếu bằng chứng.
 
-Baseline: `arena/01a10c3e-apex-chaos` @ `f8be073654bdc7d3518274747dd280518cd764d5`
-(R50K, "test(R50K): lock TAU collision regression").
-This document is the plan **and** the acceptance matrix. It deliberately ignores
-commit ids / branch names from earlier plans: only what has to change, and how it
-is proven, matters here.
+Baseline: `f8be073654bdc7d3518274747dd280518cd764d5` (R50K).
+Các commit mốc: `8dda0d6` (pipeline + real Battle HUD + Lucky Draw),
+`0878539` (kế hoạch/ma trận), `74fe3da` (một thẩm quyền READY + selection),
+`bacffe2` (một thẩm quyền side cho input + hàng đợi scene intent + gate art).
 
 ---
 
 ## 0. Đích (definition of done)
 
 1. Boot → Home mở bằng Mechanical Door; Lucky Draw mở/đóng bằng Mechanical Door.
-2. `Home → Free Battle → Fighter Pick → Battle` **không** dùng Mechanical Door;
-   mỗi chặng dùng hiệu ứng riêng của nó (shell screen transition / battle HUD
-   reveal).
-3. Toàn bộ feedback owner-playtest (mục 6) đạt, ở **mọi tỉ lệ màn hình phổ
-   biến**, không bug mới, không vá tạm.
-4. Bản `pnpm build` (audit → vite build → manifest → prune) là bề mặt duy nhất
-   được kiểm định; mọi gate đỏ còn lại phải được xử lý hoặc thay bằng gate đúng
-   luật mới (không được "pass bằng cách xoá assertion").
+2. `Home → Free Battle → Fighter Pick → Battle` **không** dùng Door; mỗi chặng
+   dùng hiệu ứng riêng của nó (shell screen commit + battle HUD reveal 430 ms).
+3. Toàn bộ feedback owner-playtest (§6) đạt ở **mọi tỉ lệ màn hình phổ biến**,
+   không bug mới, không vá tạm, không thêm thứ thừa.
+4. Bề mặt duy nhất được kiểm định là **dist đã prune** (`pnpm build`); mọi gate
+   đỏ phải được sửa đúng gốc hoặc **viết lại theo luật đang ship** — không được
+   "pass bằng cách xoá assertion".
+5. File transition Gold (owner cung cấp) được tích hợp **sau cùng** (Phase I),
+   kèm scene state machine + phân bổ luồng load asset; trước đó không mở lại
+   phần chuyển cảnh.
 
-## 1. Nguyên tắc bất biến (invariants — không được vi phạm ở bất kỳ phase nào)
+## 1. Bất biến (invariants — không vi phạm ở bất kỳ phase nào)
 
-- **Một thẩm quyền cho mỗi việc.** Selection / ownership / input side / avatar /
-  audio session / mode / rarity: mỗi thứ có đúng MỘT nguồn sự thật; mọi nơi khác
-  chỉ *đọc*.
-- **Source → artifact là một chiều và tái lập được.** `docs/gold-ui/current/**`
-  + `tools/buildGoldCutover.mjs` sinh ra `public/gold/**`; `node
-  tools/buildGoldCutover.mjs --check` phải PASS. Không sửa tay file đã sinh.
-- **Prune không bao giờ được xoá thứ bề mặt ship đang tham chiếu.** HTML tham
-  chiếu + runtime manifest là hợp đồng; audit chỉ là suy diễn.
-- **Gate phải kiểm artifact/hành vi, không chỉ chuỗi trong source.** Gate kiểu
-  "source có chứa đoạn text X" là gate yếu; mọi gate mới phải đọc artifact
-  (bytes/HTML đã sinh) hoặc chạy browser/headless thật.
-- **Không thêm `transform: scale()` hay media query vá từng máy.** Phân bổ không
-  gian bên trong layout (size band theo container), học theo Gold reference.
-- **Không fake ownership** để mở Core Six: selection override vẫn là override;
-  `owns()` giữ nguyên để Lucky Draw còn pool.
+- **Một thẩm quyền cho mỗi việc**: selection/ownership, input side, avatar/art,
+  mode, rarity, audio session, scene route, battle readiness. Mọi nơi khác chỉ
+  *đọc*.
+- **Một scene intent không bao giờ bị nuốt**: request đến giữa transaction được
+  **xếp hàng** (latest wins), và transaction bị treo phải được **thả** (stall
+  guard) để UI không bao giờ chết input.
+- **Source → artifact một chiều**: `docs/gold-ui/current/**` +
+  `tools/buildGoldCutover.mjs` sinh `public/gold/**`; `--check` phải PASS, không
+  sửa tay file đã sinh (muốn đổi phải sửa nguồn + regenerate).
+- **Gate kiểm artifact/hành vi**, không chỉ chuỗi trong source. Gate mới phải
+  đọc bytes HTML đã ship hoặc chạy browser/headless thật.
+- **Không `transform: scale()` / media query vá từng máy** để "vừa màn hình";
+  phân bổ không gian bên trong layout (size band theo container, học Gold).
+- **Không fake ownership**: Core Six *chọn được* nhờ override, nhưng `owns()`
+  giữ nguyên để Lucky Draw còn pool.
+- Sau mỗi lần sửa runtime có `?v=APEX_ARSENAL_RUNTIME_REVISION`:
+  `UPDATE_LOCK=1 node tools/testRuntimeRevisionGate.mjs`.
 
-## 2. Cách xác minh (verification harness — dùng cho mọi phase)
+## 2. Cách xác minh (harness dùng cho mọi phase)
 
-1. `pnpm build` (= `materializeArsenalFinalSfx` → `assetAudit` → `vite build` →
-   `generatePublicAssetManifest` → `pruneShippingDist`). Prune phải PASS guard
-   mới (mục 3.3).
-2. `pnpm preview` (port 4173) + Chromium thật (puppeteer), probe khai báo trong
-   `tools/test*Browser.mjs` hoặc script tạm, kiểm:
-   - boot: `body[data-apex-scene-transition]=DONE`, `#gold-shell-host[data-apex-gold-mounted=1]`,
-     `window.apexUiSfx.keys().length===18`;
-   - route policy: trong 3 chặng screen không có mẫu `CLOSING/SEALED/OPENING`;
-   - Lucky Draw: `#luckyDonorHost.is-open` + door chạy + Escape đóng về Home;
-   - Battle: HUD `is-open`, avatar thật (`naturalWidth>0`), 4 slot tên, `x/y` đạn,
-     FX Crit/Heavy phủ panel, không `PAGEERROR`.
-3. Gate suite: `pnpm test:r50-pre-transition` (đã thêm `test:scene-route-policy`).
-4. Mọi kết luận phải kèm bằng chứng dạng bảng (trước/sau) trong PR/commit message
-   hoặc file evidence mới trong `docs/acceptance/owner-playtest/`.
+1. `node tools/buildGoldCutover.mjs --check` (70 file phải khớp) — nếu sửa nguồn
+   thì chạy `node tools/buildGoldCutover.mjs` rồi `--check`.
+2. `pnpm build` = `materializeArsenalFinalSfx` → `assetAudit` → `vite build` →
+   `generatePublicAssetManifest` → `pruneShippingDist` (guard fail-closed: mọi
+   `src|href` nội bộ trong HTML của dist phải tồn tại; `forbiddenRuntimeSurvivors`
+   phải rỗng).
+3. `pnpm preview` (:4173, 0.0.0.0) + Chromium thật (`@sparticuz/chromium`,
+   `LD_LIBRARY_PATH=/tmp/al2023/lib`). Probe tối thiểu:
+   - boot: `body[data-apex-scene-transition]=DONE`,
+     `#gold-shell-host[data-apex-gold-mounted=1]`, `apexUiSfx.keys().length===18`;
+   - 3 chặng screen: mẫu `data-apex-scene-transition` chỉ được là `DONE`;
+   - Lucky: `#luckyDonorHost.is-open`, donor `/gold/lucky-draw.html`, Escape đóng;
+   - Battle: `#battleHudHost.is-open`, `#hud[data-mode]`, avatar thật
+     (`naturalWidth>0`) ở **cả hai** side, 4 slot tên, `x/y` đạn khi có súng có
+     băng, `#globalFx/#ruptureLayer` trên panel kỹ năng, 0 page error.
+4. Gate: `pnpm test:r50-pre-transition` + sweep `test:*` (danh sách đỏ chỉ được
+   giảm).
+5. Bằng chứng (bảng trước/sau + ảnh khi là layout) ghi vào
+   `docs/acceptance/owner-playtest/SLICE_*_EVIDENCE_*.md`.
 
-## 3. PHASE A — đã xong trong phiên này (root fixes, verified)
+## 3. Đã hoàn tất (verified)
 
-### 3.1 Pipeline generator đã "chết" từ slice R50K — đã hồi sinh
+### 3.1 Pipeline & bề mặt ship (commit `8dda0d6`)
 
-- `tools/buildGoldCutover.mjs:1813` (patch `SHL-S27`) chứa code bị escape sai
-  (`replace: (matched) => (\n        \`${matched}\\n\` + ...`) ⇒ **SyntaxError**,
-  file không parse được ⇒ không ai regenerate được `public/gold/**`.
-  Hệ quả: `public/gold/shell.html` giữ **payload battle HUD cũ** (108.204 B) trong
-  khi `public/gold/battle-hud.html` đã là bản mới (114.328 B).
-- Đã sửa syntax; `tools/goldShellR50k.mjs` bổ sung invariant cho luật route mới;
-  `node tools/buildGoldCutover.mjs --check` **PASS** (70 file khớp `public/gold`).
+- `tools/buildGoldCutover.mjs:1813` từng bị SyntaxError ⇒ không ai regenerate
+  được `public/gold/**`; shell giữ payload battle HUD cũ 108.204 B trong khi
+  `battle-hud.html` đã 114.328 B. Đã sửa; `--check` 70/70 PASS.
+- Shell hiện embed **đúng bytes** `public/gold/battle-hud.html`
+  (`decoded === hud`, 114.389 B) — kéo theo: `.apex-battle-avatar`,
+  `#globalFx{z-index:35}` / `#ruptureLayer{z-index:36}` (trên chrome z=30),
+  `.wp-ico.has-tier`, `--wpIW:clamp(108px,13cqh,148px)` / `clamp(124px,14cqh,160px)`,
+  `.skill.is-held`, `wp-cur/wp-max`, `.df-value` lớn hơn.
+- Prune guard fail-closed (`tools/pruneShippingDist.mjs`) + audit suy ra runtime
+  do shell nạp (`shellRuntimeScriptPaths`, `UI_SFX_RUNTIMES`): prune xoá
+  723 file / 196.278.112 B, giữ `/game/ui/uiSfxAuthority.js` + 18 ogg,
+  `sfxKeys=18`, `forbiddenRuntimeSurvivors: []`.
+- Lucky Draw hết ReferenceError: seam một cửa `window.apexShellSfx=uiSfx;`, block
+  Lucky gọi qua seam (`window.apexShellSfx&&window.apexShellSfx('lucky.draw.enter_bay')`),
+  `battle-hud.html` guard `if(window.APEX_GOLD_HUD)window.APEX_GOLD_HUD.setMode(...)`.
 
-### 3.2 Shell giờ embed đúng battle HUD hiện hành (một lần regenerate sửa nhiều feedback)
+### 3.2 Luật route & battle (commits `74fe3da`, `bacffe2`)
 
-Payload mới mang theo: `.apex-battle-avatar` (avatar production theo hero),
-`#globalFx{z-index:35}` / `#ruptureLayer{z-index:36}` (FX Crit/Heavy nằm TRÊN
-skill panel z=30), `.wp-ico.has-tier` (glow độ hiếm dưới ảnh súng), `--wpIW`
-tăng (108–148px), `.skill.is-held` (trạng thái giữ nút), `.df-value` lớn hơn.
-Gate `testGoldBattleHudAdaptationGate` trước đây FAIL ở
-`shipping shell embeds the exact shipping Battle HUD bytes :: decoded=108204
-hud=114328`; sau regenerate, assertion đó **hết đỏ**.
-
-### 3.3 Không còn prune nhầm file đang được ship tham chiếu
-
-- `tools/assetAudit.mjs`: thêm `UI_SFX_RUNTIMES` (khai báo ở
-  `src/game/runtimeManifest.js:53`) **và** suy ra mọi runtime `/game/**.js` do
-  shell HTML nạp (`docs/gold-ui/current/**` + `public/gold/*.html`) ⇒
-  `shellRuntimeScriptPaths` vào `CURRENT_RUNTIME_PATHS`.
-  Kết quả: `/game/ui/uiSfxAuthority.js` + 18 file `assets/audio/ui-sfx/**/*.ogg`
-  từ `LEGACY_NON_SHIPPING` → `SHIPPING_LAZY` (audit: 718 legacy, 315 lazy).
-- `tools/pruneShippingDist.mjs`: guard fail-closed — mọi `src=`/`href=` nội bộ
-  trong HTML của `dist` (đã bỏ phần `<script>`/`<style>` inline) phải tồn tại
-  sau prune; nếu không ⇒ **throw**.
-- Bằng chứng build sạch: prune xoá 723 file / 196.278.112 B, guard PASS,
-  `dist/game/ui/uiSfxAuthority.js` PRESENT, 18 ogg PRESENT, `sfxKeys = 18`.
-
-### 3.4 Luật route mới (owner yêu cầu)
-
-- `Home → Mode`, `Mode → Fighter Pick`, `Fighter Pick → Battle` **không** dùng
-  door. `setScreen()` trong `tools/goldShellR50k.mjs` giờ `await prepare();
-  commitScreen(next); focusScreen(next);` — vẫn settle fonts/ảnh/decode trước khi
-  commit (không pop), nhưng không `tr.run()`.
-- Door chỉ còn: boot (`signalBootReady`) và Lucky Draw (`home->lucky`,
-  `lucky->home`).
-- Battle giữ nguyên authority riêng (`is-preloading → is-transitioning →
-  is-reveal`, 430 ms) + `freezeParentRuntime()`.
-- Gate mới `tools/testSceneRoutePolicyGate.mjs` (`pnpm test:scene-route-policy`)
-  khoá: router doorless, door chỉ 2 route Lucky, seam SFX một cửa, guard
-  `APEX_GOLD_HUD`, và 2 guard shipping ở mục 3.3. `testGoldTransitionCoordinatorGate`
-  + `testUiSfxWiringGate` được cập nhật sang luật mới (không xoá assertion).
-
-### 3.5 Lucky Draw hết "đơ" — root cause là scope, không phải art
-
-- `public/gold/shell.html` gồm nhiều `<script>` classic, **không chia sẻ lexical
-  scope**. `uiSfx` chỉ tồn tại trong block 3; block Lucky Draw gọi bare
-  `uiSfx('lucky.draw.enter_bay')` ⇒ `ReferenceError` ném trong `commit` ⇒
-  SceneTransition rollback ⇒ bay không mở.
-- Đã sửa ở generator: `window.apexShellSfx=uiSfx;` (một seam) và Lucky Draw gọi
-  `window.apexShellSfx&&window.apexShellSfx('lucky.draw.enter_bay')`.
-- Guard thêm: `battle-hud.html` handoff `setMode` bọc `if(window.APEX_GOLD_HUD)`
-  (bridge `delete` seam khi unmount ⇒ message muộn không còn ném uncaught).
-- Probe trên dist ship: Lucky mở (`is-open=true`, donor `/gold/lucky-draw.html`),
-  door chạy, `Escape` đóng về Home (`closed=true`, door `CLOSING`), 0 page error.
-
-### 3.6 Kết quả probe dist (bảng)
-
-| Bước | Door states quan sát | Kết quả |
+| Việc | Luật đang ship | Bằng chứng |
 |---|---|---|
-| boot | `CLOSING…DONE` | `goldMounted=1`, `sfxKeys=18` |
-| Home → Free Battle | `[]` (đứng DONE) | screen-mode OK |
-| Free Battle → Fighter Pick | `[]` | screen-fighter OK |
-| Fighter Pick → Battle | `[]` | HUD `is-open`, avatar 512px `complete`, 4 tên = ROBOT |
-| Home → Lucky | `CLOSING…` | bay mở, donor đúng |
-| Lucky → Home (Escape) | `CLOSING` | bay đóng, về Home |
+| 3 chặng screen | `setScreen()` chỉ `await prepare(); commitScreen(next); focusScreen(next);` — không `tr.run` | Adapter `tools/goldShellR50k.mjs` (writer cuối) + browser: mẫu door chỉ `["DONE"]` cho cả 3 chặng |
+| Door chỉ còn | boot + `home->lucky` / `lucky->home` | shell chỉ có 2 `name:'…'`; adapter có `forbidden` chặn `name:\`${screen}->${next}\`` |
+| Battle reveal | mount ẩn (`is-preloading`) → preview handoff → **production READY + frame thật** → shutter 430 ms (`is-transitioning → is-reveal → is-open`) → `screen='battle'`; `battleEntryToken` chống continuation cũ | gate Lifecycle PASS 48; browser: BOT/`LOCAL` HUD `is-open`, 0 page error |
+| Selection | `canPublicSelect` gọi MỘT thẩm quyền `APEX_ARSENAL_META.canPublicSelect(id)` (không tự kiểm `owns()`) | browser Local 1v1: `live=true`, p1=CRYSTAL, p2=HUNTER (không sở hữu) |
+| Input side | `normalizeCastInput` lấy `ct.side` làm thẩm quyền (caller chỉ còn `declaredSide` telemetry); J/K/Digit1/Digit2 suy side từ slot `fighters` | gate side-aware PASS 23 (chạy thật helper trong vm) |
+| Scene intent | coordinator **xếp hàng** intent (latest wins, cái bị thay thế resolve `superseded`) + **stall guard** (không tiến triển 6 s, hoặc quá 30 s ⇒ thả, xoá cover, trả input) | gate transition runtime PASS 47 (queue/supersede/stall chạy trên fake door) |
+| Art authority | `HERO_PRESENTATION` + `applyHeroPresentation` là thẩm quyền duy nhất; `WORLD_ART = {}` (Mirror runtime-derived); world stage `sourceHero.art` | gate core-six-art **PASS 106** (trước là FAIL 4 ở cả baseline lẫn HEAD) |
 
-## 4. Baseline gate (HEAD `f8be073` vs hiện tại)
+### 3.3 Bằng chứng browser trên dist đã prune (`/tmp/browser/r51.out`)
 
-| Gate | HEAD | Hiện tại | Ghi chú |
+| Bước | Kết quả đo |
+|---|---|
+| boot | `goldMounted=1`, `apexUiSfx.keys()=18`, door `CLOSING→…→DONE` |
+| Home → Free Battle | door samples `["DONE"]`, screen `screen-mode` |
+| Free Battle → Pick | door `["DONE"]`, `screen-fighter`, 12 roster card, 2 world slot |
+| Pick → Battle | door `["DONE"]`, HUD `is-open`; `data-mode="2p"` (Local), key P1 `J/K`, key P2 `1/2`; avatar `battle_avatar.webp?…r50k` `naturalWidth=512` ở **cả hai** side; `#globalFx z=35`, `#ruptureLayer z=36`, side chrome `z=30`; rails `ROBOT/ROBOT`; `wp-cur=—` (kit tay không) |
+| Lucky | bay mở (donor `/gold/lucky-draw.html`) door `CLOSING`; đóng bằng Escape thật **kể cả khi request đến giữa transaction** (luật hàng đợi) |
+| Lỗi | 0 page error (chỉ 1 request fonts.googleapis bị chặn trong sandbox) |
+
+## 4. Trạng thái gate hiện tại (đo tại `bacffe2`)
+
+| Gate | Kết quả |
+|---|---|
+| `pnpm test:r50-pre-transition` (19 gate) | **exit 0** — ShellLoader 9, Visibility 25, Lifecycle 48, Economy 23, FighterPick 14, HudAdaptation 19, AssetIntent 23, SideAware 23, HudLive 18, PickPresentation 11, MultiPointer 14, AudioAuthority 17, BattleOutcomeSide 9, LuckyArt 18, RevisionIntegrity 16, LegacySurface 22, Coordinator 55, Runtime 47, RoutePolicy 27 |
+| Sweep `test:*` (39 script) | **0 đỏ** (gồm `core-six-art` 106, `core-six-art-delivery` 110, `product-music` 29, `favicon` 8, `home-story` 17, `core-six-hero-av` 264/264, `shipping-dist`, `source-hygiene`, `product-graph`, `runtime-revision`) |
+| `buildGoldCutover --check` | 70/70 khớp |
+| `pnpm build` + prune | 723 file / 196.278.112 B xoá, guard PASS, 0 runtime cấm sống sót |
+
+## 5. Việc còn lại — work packages (thứ tự thực thi)
+
+| # | Phase | Nội dung | Trạng thái |
 |---|---|---|---|
-| testGoldTransitionCoordinatorGate | PASS | PASS | cập nhật sang luật doorless |
-| testUiSfxWiringGate | FAIL (1) | **PASS 98/98** | regex cũ + seam mới |
-| testSceneRoutePolicyGate | (chưa có) | **PASS 19** | gate mới |
-| testGoldBattleHudAdaptationGate | FAIL (4) | FAIL (3) | payload-bytes đã xanh; còn unarmed-mag, FX compositing, Frost |
-| testGoldFighterPickAdaptationGate | FAIL | FAIL | Frost orientation/scale |
-| testGoldBattleVisibilityGate | FAIL | FAIL | bridge error trong battle-live (xem B0) |
-| testGoldBattleLifecycleGate | FAIL (4) | FAIL (4) | legacy suppress/READY/music surface |
-| testAudioAuthorityGate | FAIL (2) | FAIL (2) | begin/end reason |
-| testBattleTransitionAuthorityGate | FAIL (25) | FAIL (25) | **gate lỗi thời**: đòi `#battleTransition` đã bị R50K xoá |
+| P1 | B1/B2/B4/B5/B6/B7 | Battle HUD truth: avatar 6 hero, 4 slot tên theo hero thật, accent Heavy theo event, đạn `x/y` với súng có băng, tier glow theo súng thật, không gian block súng | ⏳ probe + sửa nếu lệch |
+| P2 | C2/C3 | Phone press model (tap = cast + hạ panel; giữ = giữ panel, cast khi nhả) + chấp nhận input chồng lấp/multi-touch | ⏳ |
+| P3 | D | Size band theo container + phân bổ lại diện tích cho 6 tỉ lệ, ảnh chứng minh từng band | ⏳ |
+| P4 | F1 | Lucky art: reel = silhouette đen cắt từ stand-pick art, reveal = art thật; bỏ mọi placeholder | ⏳ |
+| P5 | F2 | Seed lại 12.000 AC **một lần** theo revision mới (đang `…-r44`) | ⏳ |
+| P6 | F3 | Flow: hết trận về Pick ngay (không kẹt màn unlock), Free Battle thoát nhanh bằng nhấp ra ngoài | ⏳ |
+| P7 | H-rest | Xoá tham chiếu chết `menu-screen/select-screen` + `goToMenu()` khỏi đường Gold; nâng `testLegacySurfaceCutoverGate` từ "suppressed" lên "deleted" | ⏳ |
+| P8 | G | Trace "mất toàn bộ âm thanh" bằng `apexAudioHealth` (background/foreground) + giữ luật reason ở mọi begin/end | ⏳ |
+| P9 | I | File transition Gold của owner: audit → tích hợp → scene state machine + phân bổ load asset → revision bump cuối + matrix cuối | ⏳ chờ file |
 
-## 5. Work packages (thứ tự thực thi)
+### P1 — Battle HUD truth (B1/B2/B4/B5/B6/B7)
 
-### PHASE B — Battle authority & HUD truth
+- **Luật**: mọi thứ HUD hiển thị phải lấy từ **một projection production**
+  (`goldProductBridge` → seam `APEX_GOLD_HUD`), không có nhánh donor mặc định.
+- **Việc cụ thể**
+  1. *Đạn `x/y` (B5)*: đo với súng **có băng** — vào arena, `APEX_ARSENAL.weaponApi.equip(f, id)`
+     hoặc nhặt súng; đọc `wp-cur/wp-max`. Nếu `—` vẫn xuất hiện cho súng có băng
+     ⇒ sửa `goldProductBridge` weapon projection (`usesAmmo/mag/ammo` —
+     anchor `WEAPON_PROJECTION`, `renderWeapon` trong `battle-hud.html:984-1006`).
+  2. *Avatar (B1)*: quét đủ 6 hero + Mirror (ghost runtime) ở cả 2 side: `src`
+     phải là `battle_avatar.webp` của đúng hero, `naturalWidth>0`, cập nhật lại
+     sau remount (không phụ thuộc message một lần).
+  3. *4 slot tên (B2)*: Local 2 hero khác nhau ⇒ `#p1Rail .vr-name`,
+     `#p2Rail .vr-name`, `#p1Side .id-name`, `#p2Side .id-name` = tên canonical;
+     đổi tướng giữa trận ⇒ 4 slot cập nhật.
+  4. *Accent Heavy theo event (B4)*: nhánh Heavy phải mang `attackerAccent` của
+     **event đó** (`onRealizedDamage` → `impactAccent`), không dùng biến CSS
+     chung; hai Heavy đồng thời hai phía không tranh màu.
+  5. *Tier glow (B6)*: `.wp-ico.has-tier` + `--tier` phải được set trong **live
+     frame** từ súng thật (`tierOf` của Arsenal authority), không chỉ preview.
+  6. *Không gian (B7)*: block súng + damage dùng hết chỗ theo size band (P3).
+- **Gate**: mở rộng `testGoldBattleHudAdaptationGate` + `testBattleHudLiveTruthGate`
+  bằng assertion đọc payload bytes + projection thật (đã có nền); thêm probe
+  browser equip-súng vào harness.
+- **Chứng minh**: bảng 6 hero × (avatar src/naturalWidth) + ảnh HUD có súng có
+  băng (đạn `x/y`), ảnh Heavy hai phía đồng thời.
 
-- **B0 (blocking, root) — selection authority split.** `public/game/arsenal/arsenalShellSelectRuntime.js:93-98`
-  `canPublicSelect()` chỉ cho `meta.owns()`; trong khi UI khoá tướng + luật owner
-  playtest dùng `APEX_ARSENAL_META.canPublicSelect()` (`arsenalMetaRuntime.js:187-191`,
-  override r44). Hệ quả: CRYSTAL/HUNTER/MAGNET/ICE/MIRROR hiện "không khoá",
-  chọn được, nhưng `window.startMatch()` (`:109`, gate `:123`) trả `false` ⇒
-  `Battle runtime did not report READY` ⇒ Local 1v1 và mọi hero không sở hữu
-  không thể vào trận (đây cũng là lý do "BOT và Local trông giống nhau": Local
-  không chạy tới HUD). Fix: `canPublicSelect` gọi thẳng MỘT thẩm quyền
-  `meta.canPublicSelect(id)`; xoá nhánh tự kiểm `owns()`.
-- **B1 avatar battle:** payload mới đã có `.apex-battle-avatar`; cần (a) verify
-  đủ 6 hero + Mirror (runtime ghost) ở cả 2 bên; (b) live projection
-  idempotent — nếu handoff tới muộn/remount, avatar vẫn phải tự sửa (không phụ
-  thuộc duy nhất vào message một lần).
-- **B2 4 slot tên:** đã có `#p1Rail/#p2Rail .vr-name` + `#p1Side/#p2Side .id-name`;
-  verify 2 hero khác nhau ở Local, tên canonical (không phải id), cập nhật lại khi
-  đổi tướng giữa trận (remount).
-- **B3 Crit/Heavy toàn panel:** HUD mới đã đặt `#globalFx z=35`, `#ruptureLayer
-  z=36` trên panel kỹ năng (z=30) và `pointer-events:none` phải giữ; cần browser
-  proof full-panel (kể cả vùng skill), cập nhật gate "critical/heavy FX are
-  explicitly composited arena < FX < HUD chrome".
-- **B4 màu slash theo hero:** accent phải mang theo **từng event** (`attackerAccent`),
-  không dùng biến global — nếu P1/P2 heavy cùng lúc, hai vệt không được tranh
-  nhau. Ghi nhận: Critical/Storm đã set accent, nhánh Heavy thường chưa.
-- **B5 đạn `x/y`:** live probe cho `—` (đang coi như unarmed). Phải có một
-  weapon projection duy nhất: `current/capacity/usesAmmo/tier/asset/name`; súng
-  dùng đạn luôn hiện `x/y`; `—` chỉ dành cho vũ khí thật sự không có băng đạn
-  (gate "unarmed HUD truth is not a fake one-round magazine").
-- **B6 độ hiếm súng:** project `tierOf(weaponId)` từ Arsenal authority vào
-  `--tier`/`.has-tier` dưới ảnh súng thật.
-- **B7 tận dụng không gian:** mở lớn block súng + damage dealt/received (đã tăng
-  `--wpIW`); verify ở mọi size band (xem PHASE D).
-- **B8 hai family BOT/Local:** donor có family `data-mode="1p"` (CPU threat) và
-  `"2p"` (rail/touch riêng). Cần: mode authority chảy xuyên Pick → Battle →
-  responsive; test Local 2P thật (sau B0).
+### P2 — Input phone & chồng lấp (C2/C3)
 
-### PHASE C — Input authority (side-aware, multi-touch, phone)
+- **Luật**: tap ngắn = cast ngay + panel hạ; giữ = panel ở lại, cast khi nhả;
+  nhiều pointer độc lập theo `(side, slot)`; không phụ thuộc thứ tự.
+- **Anchor**: `battle-hud.html` pointer state (`activeSkillPointers`, `.is-held`,
+  `finishSkillPointer`), bridge `pressSkill(pi, ai, sourceMeta)` (map `pi→side`),
+  runtime `heroReworkRuntime` (đã có một thẩm quyền side từ `bacffe2`).
+- **Việc**: hoàn thiện state machine theo pointer/side trong HUD; đảm bảo
+  `pointercancel/lostpointercapture` không để panel kẹt; `data-mode="1p"` không
+  nhận input P2.
+- **Gate**: `testMultiPointerAbilityInputGate` (14) + `testSideAwareAbilityRoutingGate`
+  (23) mở rộng theo luật press/hold; probe touch thật (multi-touch 2 ngón).
 
-- **C1 router side-aware (root).** `public/game/hero-rework/heroReworkRuntime.js:3509`
-  và `:3524` hardcode `{side:'p1'}` cho `KeyJ`/`KeyK`; `:3546` mới đúng cho
-  `Digit1/Digit2`. Phải: handler nhận `{side, slot, source, pointerId|key}`,
-  HUD không bao giờ suy side từ tên hero; hai phía độc lập hoàn toàn.
-- **C2 phone press model:** tap ngắn = cast rồi panel hạ ngay; giữ = giữ panel,
-  cast khi nhả (`activeSkillPointers` + `.is-held` đã có sẵn trong HUD mới, cần
-  hoàn thiện state machine theo pointer/side, tránh "pop lên rồi đứng đó").
-- **C3 chấp nhận thao tác nhanh/chồng lấp:** J/K + 1/2 + multi-touch cùng lúc,
-  không nuốt input; không phụ thuộc thứ tự.
-- Acceptance: gate `test:side-aware-input`, `test:multi-pointer-input` +
-  browser matrix ở PHASE H.
+### P3 — Responsive (mọi tỉ lệ)
 
-### PHASE D — Responsive (mọi tỉ lệ, không hack thiết bị)
+- **Luật**: bỏ band thô `desk/land/port` theo `H>W`; band theo **container**
+  (`cqw/cqh` đã có), phân bổ lại identity → HP/rival → feedback → weapon thay vì
+  thu nhỏ toàn bộ; không xén đáy; không để panel che nhân vật.
+- **Matrix bắt buộc**: 1920×1080, 1366×768, 1024×768, 820×1180, 430×932, 932×430
+  + ảnh từng band (đo `getBoundingClientRect` của weapon panel/skill panel để
+  chứng minh không tràn/cắt).
+- **Gate**: mở rộng `testGoldBattleHudAdaptationGate` (band thresholds) + probe
+  matrix trong `tools/testGoldCutoverBrowser.mjs`.
 
-- Thay `port/land/desk` thô (`H>W`, ngưỡng cứng) bằng **size band theo container**
-  (`cqw/cqh` đã có): wide desktop, compact landscape, tablet portrait, compact
-  phone portrait — phân bổ lại diện tích (identity → HP/rival → combat feedback →
-  weapon) thay vì thu nhỏ toàn bộ.
-- 4 ảnh lỗi của owner: (1) thiếu tận dụng không gian, (2) xén đáy, (3) iPad thu
-  nhỏ mọi thứ, (4) phone che/pop panel. Mỗi band phải có ảnh chứng minh.
-- Acceptance: browser matrix 1920×1080, 1366×768, 1024×768, 820×1180, 430×932,
-  932×430 + ảnh chụp theo band.
+### P4 — Lucky art (F1)
 
-### PHASE E — Fighter Pick & mode family
+- **Luật**: reel = **silhouette đen** cắt từ stand-pick art (giữ nền sọc donor);
+  khi trúng hiện **art thật**; không placeholder.
+- **Anchor**: `docs/gold-ui/current/donors/lucky-draw/index.html`,
+  `tools/buildGoldCutover.mjs` patch lucky art (`:901`, `:1294`, `:1926`),
+  bridge `luckyRoster` (`:422-424`), `public/gold/assets/…` lucky reel assets.
+- **Gate**: `testLuckyDrawProductionArtGate` (18) — mở rộng: mọi cell reel phải
+  là silhouette được sinh từ art thật của hero trong pool; reveal phải trỏ art thật.
+- **Chứng minh**: ảnh donor lúc quay + lúc reveal.
 
-- **E1 Frost pick:** scale hiện ~`1.18`; đích ≈ `1.53` (×1.3), **anchor đáy**
-  (chân chìm trước, đầu không bị cắt), **hai bên quay vào giữa** (bỏ `face:-1`
-  cố định theo hero; facing theo side), settle về đúng 1 body (không clone/ghost).
-  Gate `testGoldFighterPickAdaptationGate` phải được cập nhật sang luật mới này.
-- **E2 mode family:** Pick phải phản ánh BOT vs LOCAL đúng như Gold; Mirror dùng
-  identity đặc biệt (không tạo static large trái luật).
+### P5 — Economy reseed (F2)
 
-### PHASE F — Lucky Draw & economy
+- **Luật**: `OWNER_PLAYTEST_AC_SEED = 12000` seed **đúng một lần cho mỗi
+  profile/revision**; bump revision ⇒ mọi profile hiện có được refill một lần
+  nữa rồi thôi (refresh thường không refill).
+- **Việc**: đổi `OWNER_PLAYTEST_AC_SEED_REVISION` (và
+  `OWNER_PLAYTEST_CORE_SIX_UNLOCK_REVISION`) sang revision runtime hiện hành;
+  cập nhật literal tương ứng trong `tools/testOwnerPlaytestEconomyGate.mjs`
+  (dòng ~74, ~141); giữ `owns()` nguyên vẹn.
+- **Chứng minh**: probe browser với profile đã tiêu AC ⇒ credits = 12.000 sau
+  boot, refresh lần 2 không đổi.
 
-- **F1 art:** giữ nền sọc donor; mỗi ô reel = **silhouette đen** cắt từ stand-pick
-  art; asset lộ ra khi trúng = stand-pick art thật (không đen). Xoá mọi
-  placeholder/`luckyPlaceholderArt` còn sót; verify bằng ảnh.
-- **F2 economy final revision:** seed lại **một lần** 12.000 AC theo revision mới
-  (`OWNER_PLAYTEST_AC_SEED_REVISION` đang là r44; đổi sang revision final) —
-  refresh sau đó không refill. Core Six **selectable nhưng không fake ownership**.
-- **F3 flow:** hết trận quay về Pick ngay (không kẹt màn unlock); Free Battle
-  thoát nhanh bằng nhấp ra ngoài.
+### P6 — Flow ít thao tác (F3)
 
-### PHASE G — Audio session authority
+- **Luật**: hết trận ⇒ về Pick ngay (không màn unlock/debrief trung gian);
+  Free Battle đang mở ⇒ nhấp ra ngoài (hoặc Esc) thoát ngay.
+- **Anchor**: `arsenalBattleRuntime` kết thúc trận + `goldHosted` exit seam
+  (`window.postMessage({type:'APEX_CHAOS_BATTLE_EXIT'})`), shell `closeBattleHud()`,
+  `#hud` overlay click-outside; `testBattleOutcomeSideGate` (9).
+- **Chứng minh**: probe 3 lần liên tiếp Battle→Pick (không kẹt), và nhấp ra
+  ngoài khi Free Battle ⇒ về Home/Pick ngay.
 
-- Dùng `window.apexAudioHealth` (đã có: contextState/masterGain/unlockArmed/
-  activeMedia/productMusic) để **trace** nguyên nhân "mất toàn bộ âm thanh":
-  ghi lại begin/end + lý do + visibility; gate `testAudioAuthorityGate` đang đỏ ở
-  "battle begin/end carries reason" nên sửa đúng chỗ đó trước.
-- Không thêm retry/force-play để che lỗi.
+### P7 — Legacy removal (H-rest)
 
-### PHASE H — Legacy removal & final acceptance
+- **Luật**: bề mặt ship **không còn** route/DOM legacy; gate nâng từ "suppressed"
+  lên "deleted".
+- **Việc**: xoá `setProductScreenHidden('menu-screen'|'select-screen', …)` và
+  `legacyUiElement('hud')`-only writes khỏi `public/apexEngine.js`
+  (`:2414`, `:2415`, `:2569`, `:2570`, `:2685`, `:2686`) và
+  `public/game/modes/arsenalBattleRuntime.js` (`:958`, `:1104`); `goToMenu()`
+  chỉ còn cho nhánh legacy không-Gold (đường Gold dùng engine teardown +
+  postMessage). Xoá hẳn runtime không còn consumer sau khi đối chiếu
+  `assetAudit`/`runtimeManifest`.
+- **Gate**: `testLegacySurfaceCutoverGate` (22) + `testProductionSourceHygiene`
+  phải khẳng định **không còn tham chiếu** nào tới id legacy.
 
-- Chỉ xoá legacy sau khi scene coordinator + Gold transition thay thế xong:
-  dependency graph → tách hàm engine còn dùng khỏi presentation cũ → xoá hẳn
-  loading/menu/picker DOM + runtime + route ownership. Gate
-  `testLegacySurfaceCutoverGate` phải nâng từ "suppressed" lên "deleted".
-- Gate lỗi thời cần thay luật: `testBattleTransitionAuthorityGate` (đòi
-  `#battleTransition` của thiết kế cũ) → viết lại để khẳng định authority mới
-  (HUD reveal 430 ms + không door cho battle).
-- Browser matrix cuối: BOT + Local, desktop/tablet/phone (portrait+landscape),
-  same-hero Local, J+K+1+2 chồng lấp, multi-touch, background/foreground audio,
-  3 lần Battle→Pick liên tiếp, Crit/Heavy hai phía đồng thời, load 100ms/1s/long.
+### P8 — Audio trace (G)
 
-### PHASE I — Gold transition file (owner cung cấp)
+- **Luật**: mọi begin/end session có **reason**; `apexAudioHealth()` giải thích
+  được trạng thái (contextState/masterGain/unlockArmed/activeMedia/productMusic).
+- **Việc**: probe kịch bản background→foreground→battle→lucky, ghi
+  `apexAudioHealth()` + `battleAudioLastTransition`; nếu có nhánh mất tiếng ⇒ sửa
+  tại call site có reason (không retry/force-play để che lỗi).
+- **Gate**: `testAudioAuthorityGate` (17) + `testProductMusicAuthorityGate` (29).
 
-- Audit file trước khi dùng; giữ nó làm donor authority; boot-critical chỉ gồm
-  transition + music + loader tối thiểu; Home Core (Home + Mode + Pick) tải ngay;
-  Lucky lazy lần đầu; Battle prewarm lúc vào Pick hoặc Home idle.
-- Scene có state `UNLOADED → PRELOADING → READY → ACTIVE → SUSPENDED/DISPOSED`;
-  transition có minimum cinematic beat + authored hold khi load lâu; scene cũ
-  suspend rồi stop RAF/timer/listener sau khi scene mới visible.
+### P9 — File transition Gold (I) — sau cùng
 
-## 6. Feedback → work package (audit matrix, cập nhật 2026-10-05)
+- Audit file owner (bytes, export, timing), giữ làm donor authority.
+- Scene state machine `UNLOADED → PRELOADING → READY → ACTIVE → SUSPENDED/DISPOSED`;
+  scene cũ suspend rồi stop RAF/timer/listener sau khi scene mới visible.
+- Phân bổ load: boot-critical = transition + music + loader tối thiểu; Home Core
+  (Home+Mode+Pick) ngay; Lucky lazy lần đầu; Battle prewarm lúc vào Pick/Home idle.
+- Revision bump cuối (`APEX_ARSENAL_RUNTIME_REVISION` + lock + mọi `?v=`),
+  rebuild, prune guard, matrix cuối (BOT+Local, desktop/tablet/phone, portrait+
+  landscape, same-hero Local, J/K+1/2 chồng lấp, multi-touch, audio bg/fg,
+  3 lần Battle→Pick, Crit/Heavy hai phía).
 
-| # | Feedback | Trạng thái | Nơi xử lý |
+## 6. Feedback → work package (cập nhật theo `bacffe2`)
+
+| # | Feedback | Trạng thái | Bằng chứng / việc còn lại |
 |---|---|---|---|
-| 1 | Avatar nhân vật trong battle | **code đã ship (payload mới)**; cần verify 6 hero + live repair | B1 |
-| 2 | Crit/Heavy phủ toàn panel (kể cả chỗ skill) | **z-order đã đúng trong HUD mới**; cần browser proof + gate | B3 |
-| 3 | Slash Crit/Heavy đổi màu theo hero | một phần (Critical/Storm có accent, Heavy thường chưa) | B4 |
-| 4 | Sửa tên 2 đối thủ (4 vị trí) | probe: 4 slot đã bind; cần Local 2 hero khác nhau | B2 |
-| 5 | Đếm đạn `x/y` như Gold | **chưa**: probe hiện `—` | B5 |
-| 6 | Tận dụng không gian / xén đáy / iPad thu nhỏ | **chưa**: layout band thô | D (+B7) |
-| 7 | J/K trigger cả 2 phía; Local không trigger bằng 1/2 | **root đã xác định**: hardcode `side:'p1'` | C1 |
-| 8 | Âm thanh đôi lúc mất hẳn | chưa trace xong | G |
-| 9 | Full tướng unlock + 12.000 AC | **chưa**: revision còn r44; unlock mới là selection override | F2 (+B0) |
-| 10 | Gold có 2 giao diện BOT/Local khác nhau | donor có 2 family; Local chưa chạy tới HUD | B8 (+B0) |
-| 11 | Frost pick to ×1.3, chân chìm trước, 2 bên quay vào nhau | **chưa** (đang `face:-1` cố định, scale 1.18) | E1 |
-| 12 | Rarity glow dưới cây súng | code HUD mới có `.wp-ico.has-tier`; cần bridge project tier | B6 |
-| 13 | Súng & damage to rõ hơn | một phần (`--wpIW` đã tăng); cần verify mọi band | B7 |
-| 14 | Hạn chế thao tác bắt buộc (hết trận về Pick, thoát free battle) | chưa | F3 |
-| 15 | Phone: tap nhả chiêu ngay, giữ mới giữ panel | HUD có `.is-held`; cần state machine | C2 |
-| 16 | Thao tác nhanh/chồng lấp, multi-touch, 2 người | cần router side-aware trước | C3 (+C1) |
-| 17 | Lucky Draw: silhouette đen trên reel, art thật khi trúng | đã có hướng trong donor/patch; cần hoàn thiện + ảnh | F1 |
-| 18 | Xoá runtime cũ (loading, pick cũ, menu cũ) | mới ở mức hide/suppress | H |
-| 19 | Transition Gold mới | chờ file owner | I |
-| 20 | Phân bổ luồng load asset | một phần (deferred runtimes + prepareSurface); hoàn thiện ở I | I |
-| 21 | CI/acceptance đỏ | baseline: 6 gate đỏ ở HEAD (xem §4); Phase A đưa 2 gate về xanh | §4, H |
+| 1 | Avatar dùng art thật của hero | ✅ | payload `.apex-battle-avatar` + `has-production-avatar`; browser: `battle_avatar.webp` `naturalWidth=512` cả 2 side; gate core-six-art 106 |
+| 2 | Critical/Heavy phủ **toàn panel** | ✅ (artifact) | `#globalFx z=35` / `#ruptureLayer z=36` > chrome `z=30`, `pointer-events:none`; cần ảnh khi có đòn thật (P1.4) |
+| 3 | Slash Crit/Heavy đổi màu theo hero | 🟡 | Critical/Storm đã mang `attackerAccent`; nhánh Heavy thường phải kiểm/sửa (P1.4) |
+| 4 | 4 vị trí tên 2 đối thủ | ✅ | browser Local: 4 slot = CRYSTALA/HUNTER/CRYSTALA/HUNTER; còn test remount (P1.3) |
+| 5 | Đếm đạn `x/y` như Gold | 🟡 | HUD render `x/y` cho súng có băng, `—` cho tay không; phải đo với súng có băng (P1.1) |
+| 6 | Tận dụng không gian / không xén đáy / iPad không thu nhỏ | 🟡 | `--wpIW` đã lớn (108–148px / 124–160px); band theo container + ảnh matrix (P3) |
+| 7 | J/K không được trigger cả 2 phía; Local 1/2 phải trigger | ✅ | `normalizeCastInput` + resolver theo slot; gate side-aware 23 (queue/stall không liên quan input) |
+| 8 | Âm thanh đôi lúc mất hẳn | 🟡 | mọi begin/end có reason; `apexUiSfx.keys()=18`; trace bg/fg (P8) |
+| 9 | Full tướng unlock + 12.000 AC | ✅ / 🟡 | selection mở (probe `canPublicSelect=true`, credits 12000, gate Economy 23); refill một lần nữa theo revision (P5) |
+| 10 | Gold có 2 giao diện BOT/Local | ✅ | browser: BOT `data-mode="1p"` + P2 `pointer-events:none` + key `CPU`; Local `data-mode="2p"` + key `1/2` + `rotate:180deg` (portrait) |
+| 11 | Frost pick ×1.3, chân chìm trước, 2 bên quay vào nhau | ✅ | `scale 1.53`, origin `50% 68%`, chân vượt đáy 72/73 px ở cả 2 side; gate FighterPick 14 |
+| 12 | Rarity glow dưới cây súng | 🟡 | payload có `.wp-ico.has-tier` + `--tier`; cần chứng minh live frame với súng thật (P1.5) |
+| 13 | Súng & damage to rõ hơn | 🟡 | `--wpIW` + `.df-value` đã tăng; ảnh theo band (P3) |
+| 14 | Ít thao tác bắt buộc (hết trận về Pick, thoát Free Battle) | ⏳ | P6 |
+| 15 | Phone: tap nhả chiêu ngay, giữ mới giữ panel | 🟡 | payload có `is-held`/`activeSkillPointers`; hoàn thiện state machine (P2) |
+| 16 | Thao tác nhanh/chồng lấp, multi-touch | 🟡 | side authority đã xong; press/hold + multi-pointer (P2) |
+| 17 | Lucky: silhouette đen trên reel, art thật khi trúng | ⏳ | P4 |
+| 18 | Xoá runtime cũ (loading/menu/pick) | 🟡 | gate LegacySurface 22 (suppressed) → nâng lên "deleted" (P7) |
+| 19 | Transition Gold mới | ⏳ | chờ file owner (P9) |
+| 20 | Phân bổ luồng load asset | 🟡 | deferred runtimes + `prepareSurface` đã có; scene state machine ở P9 |
+| 21 | CI/acceptance đỏ | ✅ | 19/19 gate + sweep 0 đỏ; `core-six-art` từ FAIL 4 → PASS 106 |
 
 ## 7. Commit protocol
 
-- Mỗi work package = 1 commit (hoặc 2: tools + artifacts) trên nhánh phiên
-  `arena/01a10c3e-apex-chaos`, message theo mẫu
-  `fix(<area>): <root cause> — <owner-visible effect>`, kèm bảng bằng chứng.
-- Trước mỗi commit: `node tools/buildGoldCutover.mjs --check` PASS,
-  `pnpm build` PASS (guard prune), `pnpm test:r50-pre-transition` PASS (hoặc danh
-  sách đỏ giảm, không tăng), probe browser của area đó PASS.
-- Khi luật đổi (ví dụ door route), gate cũ phải được **viết lại theo luật mới**
-  trong cùng commit đó — không để lại assertion mâu thuẫn.
+- Mỗi work package = 1 commit (tools + artifacts cùng nhau) trên nhánh phiên
+  `arena/01a10c3e-apex-chaos`; message `fix(<area>): <root cause> — <hiệu ứng
+  người chơi thấy>` kèm bảng bằng chứng.
+- Trước commit: `--check` PASS, `pnpm build` PASS (prune guard),
+  `pnpm test:r50-pre-transition` PASS, sweep không tăng đỏ, probe browser của
+  area đó PASS.
+- Khi luật đổi: gate cũ phải được **viết lại theo luật mới** trong cùng commit —
+  không để lại assertion mâu thuẫn, không xoá assertion.
+- Sau mỗi lần sửa runtime versioned: `UPDATE_LOCK=1 node tools/testRuntimeRevisionGate.mjs`.
+- Push ngay sau mỗi commit (checkpoint) để owner theo dõi được.
+
+## 8. Thứ tự thực thi R52 (đang áp dụng)
+
+1. `P5` (economy reseed) + `P7` (xoá tham chiếu chết) — rẻ, rủi ro thấp, gate rõ.
+2. `P1` — probe 6 hero/avatar/tên/đạn/tier/accent; sửa đúng projection nếu lệch;
+   mở rộng gate 2 chiều (bytes + browser).
+3. `P2` — hoàn thiện press/hold + multi-pointer, probe touch thật.
+4. `P3` — size band theo container + matrix 6 tỉ lệ + ảnh.
+5. `P4` — Lucky reel art + gate ảnh.
+6. `P6` — flow hết trận/vào Free Battle.
+7. `P8` — audio trace bg/fg.
+8. `P9` — tích hợp file transition owner → revision bump cuối → matrix cuối.
+
+Mỗi bước giữ nguyên luật ở §1 và chỉ được "xong" khi có bằng chứng ở §2.
