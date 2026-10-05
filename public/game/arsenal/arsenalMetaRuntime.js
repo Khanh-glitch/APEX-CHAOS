@@ -482,12 +482,15 @@
     const el = document.getElementById('aq-meta-root');
     if (el) el.style.display = 'none';
   }
+  function requestGoldNavigation(target, options) {
+    const nav = window.APEX_GOLD_SHELL_NAVIGATE;
+    if (typeof nav === 'function') return nav(target, options || {}) !== false;
+    window.__apexPendingGoldNavigation = { target, options: options || {} };
+    return false;
+  }
   function returnToProductMenu() {
     hideMeta();
-    try {
-      if (typeof goToMenu === 'function') goToMenu();
-      else if (typeof window.goToMenu === 'function') window.goToMenu();
-    } catch (error) { /* menu handoff never invalidates persistent meta */ }
+    requestGoldNavigation('home');
     try { window.dispatchEvent(new CustomEvent('apex:product-menu')); } catch (error) {}
   }
   function paintShop(selectedName) {
@@ -627,17 +630,11 @@
     window.__apexArsenalBotBattle = mode === 'bot';
     window.__apexArsenalFreeBattle = mode === 'local';
     window.__apexArsenalSelectPending = true;
-    // The shared picker is loaded only when a real active battle is requested.
-    const open = () => {
-      hideMeta();
-      const shells = window.APEX_ARSENAL_SHELLS;
-      if (shells && typeof shells.beginSelection === 'function') shells.beginSelection({ mode });
-      else if (typeof window.goToSelect === 'function') window.goToSelect();
-    };
-    if (window['__apexDeferredRuntimesReady_select']) { open(); return; }
-    const ensure = window.__apexEnsureDeferredRuntimes;
-    if (typeof ensure === 'function') { ensure('select').then(open).catch(open); return; }
-    open();
+    hideMeta();
+    // Fighter Pick is a Gold shell surface, not a deferred legacy runtime.
+    // Real battle runtimes remain lazy until the Gold transition asks for them.
+    requestGoldNavigation('fighter', { mode });
+    return true;
   }
   function openFreePick() { openFighterPick({ mode: 'local' }); }
   function openBotPick() { openFighterPick({ mode: 'bot' }); }
