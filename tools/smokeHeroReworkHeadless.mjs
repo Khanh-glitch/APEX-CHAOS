@@ -291,7 +291,9 @@ const botMode = win.getArsenalBattleDebugState()?.battleMode;
 const botAiBefore = HR.AIL.bus.ring.length;
 T.step(2.2);
 const botEvents = HR.AIL.bus.ring.slice(botAiBefore)
-  .filter((event) => event.payload?.source === 'p2-ai');
+  // Side-aware input law: AI provenance is source='ai'; ownership is side='p2'.
+  // Do not encode the obsolete combined token 'p2-ai' as a second source truth.
+  .filter((event) => event.payload?.side === 'p2' && event.payload?.source === 'ai');
 const botCasts = botEvents.filter((event) => event.type === 'Cast');
 gate('smoke-bot-profile-real-p2-ai', botMode === 'BOT' && HR.match?.aiEnabled === true && botCasts.length > 0,
   { botMode, aiEnabled: HR.match?.aiEnabled, events: botEvents.map((event) => ({ type: event.type, payload: event.payload })) });
