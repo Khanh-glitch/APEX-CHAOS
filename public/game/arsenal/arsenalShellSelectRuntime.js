@@ -69,6 +69,15 @@
     return playableIds().map(shellTypeFor).filter(Boolean);
   }
 
+  function requestGoldNavigation(target, options) {
+    const nav = window.APEX_GOLD_SHELL_NAVIGATE;
+    if (typeof nav === 'function') return nav(target, options || {}) !== false;
+    // Shell scripts may still be mounting while a production runtime requests
+    // navigation. Queue ONE semantic destination; never resurrect legacy DOM.
+    window.__apexPendingGoldNavigation = { target, options: options || {} };
+    return false;
+  }
+
   function beginSelection(opts = {}) {
     const requested = String(opts.mode || window.__apexArsenalSelectionMode || 'local').toLowerCase();
     const mode = requested === 'bot' ? 'bot' : 'local';
@@ -76,9 +85,9 @@
     window.__apexArsenalBotBattle = mode === 'bot';
     window.__apexArsenalFreeBattle = mode === 'local';
     window.__apexArsenalSelectPending = true;
-    if (typeof goToSelect === 'function') goToSelect();
-    else window.goToSelect?.();
+    requestGoldNavigation('fighter', { mode });
     try { window.APEX_HERO_REWORK?.patchFrostProductCopy?.(); } catch (error) {}
+    return true;
   }
 
   function canPublicSelect(name) {
@@ -145,12 +154,12 @@
     return Promise.resolve(launch());
   };
 
-  const baseGoToMenu = typeof window.goToMenu === 'function' ? window.goToMenu : null;
-  window.goToMenu = function goToProductMenu(...args) {
+  window.goToMenu = function goToProductMenu() {
     window.__apexArsenalSelectPending = false;
     window.__apexArsenalBotBattle = false;
     window.__apexArsenalFreeBattle = false;
-    return baseGoToMenu ? baseGoToMenu.apply(this, args) : undefined;
+    requestGoldNavigation('home');
+    return true;
   };
 
   window.beginArsenalBattleSelection = beginSelection;
