@@ -32,6 +32,7 @@
     "test:home-story-alignment": "node tools/testHomeStoryCopyAlignmentGate.mjs",
     "test:gold-favicon": "node tools/testGoldFaviconGate.mjs",
     "test:asset-intent": "node tools/testProductAssetIntentGate.mjs",
+    "test:side-aware-input": "node tools/testSideAwareAbilityRoutingGate.mjs",
     "test:hero-rework:headless": "node tools/smokeHeroReworkHeadless.mjs && node tools/testHeroReworkGoldens.mjs && node tools/testHeroReworkLocomotionGates.mjs && node tools/testHeroReworkRobotGates.mjs && node tools/testHeroReworkRobotPresentationGates.mjs && node tools/testHeroReworkRobotRecoilGate.mjs && node tools/testHeroReworkHunterOwnerFixGates.mjs && node tools/testFrostV1Gates.mjs && node tools/testMagnetV1GameplayGates.mjs && node tools/testMagnetV1PresentationGates.mjs && node tools/testMirrorA1A2Gameplay.mjs && node tools/testMirrorCoreSixInterop.mjs && node tools/testMirrorPresentationBridge.mjs && node tools/testMirrorPresentationG2A2.mjs",
     "assets:verify": "node tools/assetAudit.mjs && node tools/generateAudioWarmBanks.mjs",
     "build": "pnpm arsenal:sfx:materialize && node tools/assetAudit.mjs && vite build && node tools/generatePublicAssetManifest.cjs dist/asset-manifest.json && node tools/pruneShippingDist.mjs",
