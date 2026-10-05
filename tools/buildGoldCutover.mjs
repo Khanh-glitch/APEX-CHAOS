@@ -1023,6 +1023,8 @@ function buildLuckyDonor() {
         `  if (S.busy){ return; }\n` +
         `  const meta = window.APEX_ARSENAL_META;\n` +
         `  if (!meta || typeof meta.spin !== 'function'){ showPoolTag('DRAW UNAVAILABLE'); return; }\n` +
+        `  const drawPool = productionPoolIds();\n` +
+        `  if (drawPool.some(id => productionFighterIndex(id) < 0)){ showPoolTag('DRAW ASSETS UNAVAILABLE'); return; }\n` +
         `  const res = meta.spin();\n` +
         `  if (!res || res.ok !== true){\n` +
         `    if (res && res.reason === 'complete') showPoolTag('ROSTER COMPLETE');\n` +
@@ -1063,7 +1065,7 @@ function buildLuckyDonor() {
         `  const meta = window.APEX_ARSENAL_META;\n` +
         `  if (meta && typeof meta.poolLocked === 'function'){\n` +
         `    const pool = meta.poolLocked();\n` +
-        `    if (Array.isArray(pool) && pool.length) return pool.map(n => String(n).toUpperCase());\n` +
+        `    if (Array.isArray(pool)) return pool.map(n => String(n).toUpperCase());\n` +
         `  }\n` +
         `  return FIGHTERS.map(F => F.id);\n` +
         `}\n` +
