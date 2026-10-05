@@ -35,6 +35,8 @@ Authoritative timing values:
 
 READY is monotonic. It may accelerate the remaining close/open timeline, but it must never skip structural phases or reorder cues.
 
+Production integration preserves the donor's fast-load behavior without risking an early reveal: once the destination's load/decode preparation is complete, the coordinator may use the donor READY path only as a **close-speed prime**. If the door reaches `SEALED` before covered commit + paint + any semantic live gate are complete, that release bit is revoked and the door holds sealed. Final READY is then re-issued only after the real destination is safe to reveal, so opening speed is sampled from the actual final readiness latency.
+
 Adaptive opening speeds remain donor-authored:
 
 - ≤ 150 ms → `1.85×`
