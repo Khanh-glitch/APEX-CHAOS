@@ -40,6 +40,7 @@
     "test:battle-outcome-side": "node tools/testBattleOutcomeSideGate.mjs",
     "test:lucky-production-art": "node tools/testLuckyDrawProductionArtGate.mjs",
     "test:gold-revision-integrity": "node tools/testGoldRevisionIntegrityGate.mjs",
+    "test:legacy-surface-cutover": "node tools/testLegacySurfaceCutoverGate.mjs",
     "test:r50-pre-transition": "pnpm test:gold-shell-loader && pnpm test:gold-battle-visibility && pnpm test:gold-battle-lifecycle && pnpm test:owner-playtest-economy && pnpm test:gold-fighter-pick-adaptation && pnpm test:gold-battle-hud-adaptation && pnpm test:asset-intent && pnpm test:side-aware-input && pnpm test:battle-hud-live && pnpm test:pick-presentation && pnpm test:multi-pointer-input && pnpm test:audio-authority && pnpm test:battle-outcome-side && pnpm test:lucky-production-art",
     "test:hero-rework:headless": "node tools/smokeHeroReworkHeadless.mjs && node tools/testHeroReworkGoldens.mjs && node tools/testHeroReworkLocomotionGates.mjs && node tools/testHeroReworkRobotGates.mjs && node tools/testHeroReworkRobotPresentationGates.mjs && node tools/testHeroReworkRobotRecoilGate.mjs && node tools/testHeroReworkHunterOwnerFixGates.mjs && node tools/testFrostV1Gates.mjs && node tools/testMagnetV1GameplayGates.mjs && node tools/testMagnetV1PresentationGates.mjs && node tools/testMirrorA1A2Gameplay.mjs && node tools/testMirrorCoreSixInterop.mjs && node tools/testMirrorPresentationBridge.mjs && node tools/testMirrorPresentationG2A2.mjs",
     "assets:verify": "node tools/assetAudit.mjs && node tools/generateAudioWarmBanks.mjs",
