@@ -98,8 +98,19 @@ check('boot starts Mechanical Door automatically', engine?.openCount === 1 && co
 check('boot starts from a black screen', blackout.hidden === false);
 check('boot transition receives no demo background image', engine?.opts?.from === null && engine?.opts?.autoReadyAfter === null);
 
+// Boot readiness is Home-scoped. A broken image belonging to a future surface
+// may coexist in the shell DOM but must not block Home from opening.
+const futureBroken = document.createElement('img');
+futureBroken.setAttribute('src', '/future-surface-broken.png');
+Object.defineProperty(futureBroken, 'complete', { configurable: true, get: () => true });
+Object.defineProperty(futureBroken, 'naturalWidth', { configurable: true, get: () => 0 });
+root.appendChild(futureBroken);
+
 await coordinator.signalBootReady();
 await flush();
+check('boot readiness ignores future-surface broken images',
+  engine.readyCount === 1 && engine.readyRequested === true && engine.state === 'CLOSING');
+futureBroken.remove();
 check('boot readiness primes Gold close without revealing early',
   engine.readyCount === 1 && engine.readyRequested === true && engine.state === 'CLOSING' && blackout.hidden === false);
 
