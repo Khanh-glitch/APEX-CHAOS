@@ -104,7 +104,7 @@
       requested: 0, success: 0, rejected: 0, armed: 0, unlocked: 0,
       blocked: false, armedAt: null, unlockedAt: null,
       lastCurrentTimeBefore: null, lastCurrentTimeAfter: null,
-      lastRejectName: '', surface: null, muted: false,
+      lastRejectName: '', lastRequestReason: '', surface: null, muted: false,
     };
     let gestureArmed = false;
     let gestureHandlers = [];
@@ -152,6 +152,7 @@
       diag.requested += 1;
       diag.surface = surface ? surface.id : null;
       diag.muted = audio.muted;
+      diag.lastRequestReason = String(reason || 'play');
       const p = audio.play();
       if (p && typeof p.then === 'function') {
         p.then(() => {
@@ -243,6 +244,9 @@
         currentTime: audio.currentTime,
         gestureListenerCount: gestureHandlers.length,
         elementCount: 1,
+        fadeActive: !!fadeFrame,
+        interruptedBy: [...interruptionReasons],
+        resumeAfterInterruption,
       }),
       state: () => ({
         src: audio.currentSrc || audio.src,
@@ -253,6 +257,9 @@
         surface,
         allowed: isAllowed(),
         blocked: diag.blocked,
+        fadeActive: !!fadeFrame,
+        interruptedBy: [...interruptionReasons],
+        resumeAfterInterruption,
       }),
     };
 
