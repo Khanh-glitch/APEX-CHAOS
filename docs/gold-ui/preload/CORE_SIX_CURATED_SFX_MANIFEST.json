@@ -1,0 +1,419 @@
+{
+  "version": "20261005-owner-playtest-r44",
+  "purpose": "Curated Core Six hero SFX (CRYSTALA / MAGNET / FROST / MIRROR) materialised byte-identically from the owner preload archive, with the binding runtime trigger and first-mix policy for each cue. ROBOT and HUNTER keep their existing accepted production SFX and are deliberately ABSENT here.",
+  "sourceArchive": {
+    "path": "docs/gold-ui/preload/APEX_CHAOS_CORE_SIX_AV_THEME_PRELOAD.zip",
+    "sha256": "49d8d5bf448bce7ca6475388cdf640c338bc00250fbcb577dbc7962fcfd0180f",
+    "gitBlob": "af1473a33e1979aebee4278bb070e12b6c2825aa"
+  },
+  "preservedUnchanged": {
+    "ROBOT": {
+      "sfx": "public/assets/hero-rework/robot-final/sfx/",
+      "law": "KEEP_EXISTING"
+    },
+    "HUNTER": {
+      "sfx": "public/assets/hero-rework/hunter-v10/sfx/",
+      "law": "KEEP_EXISTING"
+    }
+  },
+  "materialisation": "Clips are copied byte-identically from the archive with NO re-encode, so the owner cut is preserved exactly. The archive clips are the pre-cut runtime cuts, verified against each integration map source slice.",
+  "heroes": {
+    "crystala": {
+      "root": "public/assets/hero-rework/crystala-curated/sfx/",
+      "cues": {
+        "a2_awaken": {
+          "file": "crystala_a2_awaken.mp3",
+          "gitPath": "public/assets/hero-rework/crystala-curated/sfx/crystala_a2_awaken.mp3",
+          "sha256": "a53d417dfc58fec750905d495aed2c5e9d0832b1b5ae7fd16c7c45edaa3c0dc5",
+          "bytes": 28315,
+          "zipEntry": "apex_av_preload/heroes/CRYSTALA/SFX/crystala_a2_awaken.mp3",
+          "runtimeTrigger": [
+            "CrystalAwaken"
+          ],
+          "policy": "DEFAULT_ON",
+          "rateLimitMs": 0,
+          "maxVoices": 1,
+          "note": "One-shot only; no loop across the whole Awakening window."
+        },
+        "wall_construct": {
+          "file": "crystala_wall_construct.mp3",
+          "gitPath": "public/assets/hero-rework/crystala-curated/sfx/crystala_wall_construct.mp3",
+          "sha256": "21311070407519cba23f80eecb3f29b76fe43d38a9de62c83b7fb24d11c5f3b2",
+          "bytes": 15358,
+          "zipEntry": "apex_av_preload/heroes/CRYSTALA/SFX/crystala_wall_construct.mp3",
+          "runtimeTrigger": [
+            "CrystalConstructCast"
+          ],
+          "policy": "DEFAULT_ON",
+          "rateLimitMs": 0,
+          "maxVoices": 1,
+          "note": "Fires only when kind === \"wall\". Prison constructs stay SILENT; the Wall sound is never reused for Prison."
+        },
+        "projectile_reflect": {
+          "file": "crystala_projectile_reflect.mp3",
+          "gitPath": "public/assets/hero-rework/crystala-curated/sfx/crystala_projectile_reflect.mp3",
+          "sha256": "4c8fd0dc2a5877d9a461cf545fd5d6160472f864bd37469199171cec5a400eee",
+          "bytes": 7417,
+          "zipEntry": "apex_av_preload/heroes/CRYSTALA/SFX/crystala_projectile_reflect.mp3",
+          "runtimeTrigger": [
+            "CrystalIntercept"
+          ],
+          "policy": "DEFAULT_ON",
+          "rateLimitMs": 90,
+          "maxVoices": 2,
+          "note": "One projectile event = one audible reflect cue; max 2 overlapping voices."
+        },
+        "shard_pulse": {
+          "file": "crystala_shard_pulse.mp3",
+          "gitPath": "public/assets/hero-rework/crystala-curated/sfx/crystala_shard_pulse.mp3",
+          "sha256": "11707e7dd60960c40133b3c23a81e042ea4fceb918746f0e716dde08c60604e1",
+          "bytes": 3804,
+          "zipEntry": "apex_av_preload/heroes/CRYSTALA/SFX/crystala_shard_pulse.mp3",
+          "runtimeTrigger": [
+            "CrystalReserve"
+          ],
+          "policy": "LOW_ACCENT",
+          "rateLimitMs": 90,
+          "maxVoices": 2,
+          "note": "LOW ACCENT: a short shard/count accent. Never one long overlapping chord."
+        },
+        "construct_hit_optional": {
+          "file": "crystala_construct_hit_optional.mp3",
+          "gitPath": "public/assets/hero-rework/crystala-curated/sfx/crystala_construct_hit_optional.mp3",
+          "sha256": "a73351b3dce907209593041b380117523f19546820f155315463b9cac857d5f1",
+          "bytes": 4073,
+          "zipEntry": "apex_av_preload/heroes/CRYSTALA/SFX/crystala_construct_hit_optional.mp3",
+          "runtimeTrigger": [
+            "CrystalConstructHit"
+          ],
+          "policy": "OFF_BY_DEFAULT",
+          "rateLimitMs": 140,
+          "maxVoices": 1,
+          "note": "OFF BY DEFAULT in the curated first mix. Declared so a later opt-in is explicit."
+        }
+      }
+    },
+    "magnet": {
+      "root": "public/assets/hero-rework/magnet-curated/sfx/",
+      "cues": {
+        "a1_attraction": {
+          "file": "magnet_a1_attraction.mp3",
+          "gitPath": "public/assets/hero-rework/magnet-curated/sfx/magnet_a1_attraction.mp3",
+          "sha256": "e4310cf97d05f8da72e32039bc332ab1b93b064d96e36be5c2292192c9ce9014",
+          "bytes": 9238,
+          "zipEntry": "apex_av_preload/heroes/MAGNET/SFX/magnet_a1_attraction.mp3",
+          "runtimeTrigger": [
+            "MagnetA1Start"
+          ],
+          "policy": "DEFAULT_ON",
+          "rateLimitMs": 0,
+          "maxVoices": 1,
+          "note": "One-shot only; no loop."
+        },
+        "a2_repulsion": {
+          "file": "magnet_a2_repulsion.mp3",
+          "gitPath": "public/assets/hero-rework/magnet-curated/sfx/magnet_a2_repulsion.mp3",
+          "sha256": "593f2d7cb8f7f365ca3cf409d0c2c56c1bc7c31792967c0ac81fd3f07bba3680",
+          "bytes": 25538,
+          "zipEntry": "apex_av_preload/heroes/MAGNET/SFX/magnet_a2_repulsion.mp3",
+          "runtimeTrigger": [
+            "MagnetA2Start"
+          ],
+          "policy": "DEFAULT_ON",
+          "rateLimitMs": 0,
+          "maxVoices": 1,
+          "note": "No loop across the repulsion window."
+        },
+        "a2_bullet_deflect": {
+          "file": "magnet_a2_bullet_deflect.mp3",
+          "gitPath": "public/assets/hero-rework/magnet-curated/sfx/magnet_a2_bullet_deflect.mp3",
+          "sha256": "355782aed0ea100d94bc3364aa335bc8285cec66080aeeea4e6abfe582ce092c",
+          "bytes": 6572,
+          "zipEntry": "apex_av_preload/heroes/MAGNET/SFX/magnet_a2_bullet_deflect.mp3",
+          "runtimeTrigger": [
+            "a2capture"
+          ],
+          "policy": "DEFAULT_ON",
+          "rateLimitMs": 90,
+          "maxVoices": 2,
+          "note": "Driven by the real captureEvents seam (GOLD.cue a2capture) in magnetPresentationRuntime."
+        }
+      }
+    },
+    "frost": {
+      "root": "public/assets/hero-rework/frost-curated/sfx/",
+      "cues": {
+        "a1_breath": {
+          "file": "frost_a1_breath.mp3",
+          "gitPath": "public/assets/hero-rework/frost-curated/sfx/frost_a1_breath.mp3",
+          "sha256": "b6793bfaa4910396821930831b73a276541baa8241bff4101dedf663ca2e7f10",
+          "bytes": 13868,
+          "zipEntry": "apex_av_preload/heroes/FROST/SFX/frost_a1_breath.mp3",
+          "runtimeTrigger": [
+            "FrostBreathCast"
+          ],
+          "policy": "DEFAULT_ON",
+          "rateLimitMs": 0,
+          "maxVoices": 1,
+          "note": "One conversion = one cue."
+        },
+        "enemy_freeze": {
+          "file": "frost_enemy_freeze.mp3",
+          "gitPath": "public/assets/hero-rework/frost-curated/sfx/frost_enemy_freeze.mp3",
+          "sha256": "d414cf5a8c7ac10d8a1b4382cef0b0394eea7c0ce0b47a808aaf8b199a391830",
+          "bytes": 15404,
+          "zipEntry": "apex_av_preload/heroes/FROST/SFX/frost_enemy_freeze.mp3",
+          "runtimeTrigger": [
+            "FrostFreezeStart"
+          ],
+          "policy": "DEFAULT_ON",
+          "rateLimitMs": 0,
+          "maxVoices": 1,
+          "note": "Never replays on FrostFreezeRefresh."
+        },
+        "weapon_freeze": {
+          "file": "frost_weapon_freeze_a.mp3",
+          "gitPath": "public/assets/hero-rework/frost-curated/sfx/frost_weapon_freeze_a.mp3",
+          "sha256": "ddffe9c74eb8b98857a04cdd0ed3808a26cc5fde8038edcde73eed1fcb7cc1ef",
+          "bytes": 8492,
+          "zipEntry": "apex_av_preload/heroes/FROST/SFX/frost_weapon_freeze_a.mp3",
+          "runtimeTrigger": [
+            "FrostSlotFrozen",
+            "FrostGunFrozen"
+          ],
+          "policy": "DEFAULT_ON",
+          "rateLimitMs": 0,
+          "maxVoices": 2,
+          "note": "One slice per conversion, round-robin a/b/c; cap 2 voices per frame."
+        },
+        "weapon_freeze_b": {
+          "file": "frost_weapon_freeze_b.mp3",
+          "gitPath": "public/assets/hero-rework/frost-curated/sfx/frost_weapon_freeze_b.mp3",
+          "sha256": "970027f9bf428e4e9fff6d4d52491f181f27bb033055cf6ddd704902c0151e1e",
+          "bytes": 8876,
+          "zipEntry": "apex_av_preload/heroes/FROST/SFX/frost_weapon_freeze_b.mp3",
+          "runtimeTrigger": [
+            "FrostSlotFrozen",
+            "FrostGunFrozen"
+          ],
+          "policy": "DEFAULT_ON",
+          "rateLimitMs": 0,
+          "maxVoices": 2,
+          "note": "Round-robin slice B."
+        },
+        "weapon_freeze_c": {
+          "file": "frost_weapon_freeze_c.mp3",
+          "gitPath": "public/assets/hero-rework/frost-curated/sfx/frost_weapon_freeze_c.mp3",
+          "sha256": "0e3118e88220b827925187dffce4d5af3f0544ccae1e30cfa5349558e39f5fb2",
+          "bytes": 8876,
+          "zipEntry": "apex_av_preload/heroes/FROST/SFX/frost_weapon_freeze_c.mp3",
+          "runtimeTrigger": [
+            "FrostSlotFrozen",
+            "FrostGunFrozen"
+          ],
+          "policy": "DEFAULT_ON",
+          "rateLimitMs": 0,
+          "maxVoices": 2,
+          "note": "Round-robin slice C."
+        },
+        "floor_contact_optional": {
+          "file": "frost_floor_contact_optional.mp3",
+          "gitPath": "public/assets/hero-rework/frost-curated/sfx/frost_floor_contact_optional.mp3",
+          "sha256": "946bf9577245b87375d457ad421befb137aae7be3d652a6d40fd1e52d387b999",
+          "bytes": 4652,
+          "zipEntry": "apex_av_preload/heroes/FROST/SFX/frost_floor_contact_optional.mp3",
+          "runtimeTrigger": [],
+          "policy": "OFF_BY_DEFAULT",
+          "rateLimitMs": 250,
+          "maxVoices": 1,
+          "note": "OFF BY DEFAULT tactile entry accent; no on-surface entry event exists in the curated first mix."
+        }
+      }
+    },
+    "mirror": {
+      "root": "public/assets/hero-rework/mirror-curated/sfx/",
+      "cues": {
+        "a1_cast": {
+          "file": "mirror_a1_cast.mp3",
+          "gitPath": "public/assets/hero-rework/mirror-curated/sfx/mirror_a1_cast.mp3",
+          "sha256": "3ff08c7789b3fdfb376663391ec1ff002eca894b0dd8030a6b255c7719b42e53",
+          "bytes": 18851,
+          "zipEntry": "apex_av_preload/heroes/MIRROR/SFX/mirror_a1_cast.mp3",
+          "runtimeTrigger": [
+            "MirrorA1Cast"
+          ],
+          "policy": "DEFAULT_ON",
+          "rateLimitMs": 0,
+          "maxVoices": 1,
+          "note": "Reflection peel, one-shot."
+        },
+        "a2_exchange_snap": {
+          "file": "mirror_a2_exchange_snap.mp3",
+          "gitPath": "public/assets/hero-rework/mirror-curated/sfx/mirror_a2_exchange_snap.mp3",
+          "sha256": "140f2968959562b79e914783d4f61d9b364fa58def610b879b271ea9ad12781d",
+          "bytes": 6581,
+          "zipEntry": "apex_av_preload/heroes/MIRROR/SFX/mirror_a2_exchange_snap.mp3",
+          "runtimeTrigger": [
+            "MirrorExchange"
+          ],
+          "policy": "DEFAULT_ON",
+          "rateLimitMs": 0,
+          "maxVoices": 1,
+          "note": "DEFAULT ON at MirrorExchange, NOT at MirrorA2Cast."
+        },
+        "passive_shard_drop": {
+          "file": "mirror_passive_shard_drop_a.mp3",
+          "gitPath": "public/assets/hero-rework/mirror-curated/sfx/mirror_passive_shard_drop_a.mp3",
+          "sha256": "b3bf0c78e710ecac7d70a02796dd51e188fbf3e44bc5c915b39ab6de7a0745a7",
+          "bytes": 6163,
+          "zipEntry": "apex_av_preload/heroes/MIRROR/SFX/mirror_passive_shard_drop_a.mp3",
+          "runtimeTrigger": [
+            "RealizedDamageEvent"
+          ],
+          "policy": "LOW_ACCENT",
+          "rateLimitMs": 0,
+          "maxVoices": 1,
+          "note": "ONE sound per proc, never per shard; round-robin a/b/c."
+        },
+        "passive_shard_drop_b": {
+          "file": "mirror_passive_shard_drop_b.mp3",
+          "gitPath": "public/assets/hero-rework/mirror-curated/sfx/mirror_passive_shard_drop_b.mp3",
+          "sha256": "baa3fd7ee3c70da004e4b03be8675c0921f20184a45c9561785e0a368411d3f1",
+          "bytes": 5327,
+          "zipEntry": "apex_av_preload/heroes/MIRROR/SFX/mirror_passive_shard_drop_b.mp3",
+          "runtimeTrigger": [
+            "RealizedDamageEvent"
+          ],
+          "policy": "LOW_ACCENT",
+          "rateLimitMs": 0,
+          "maxVoices": 1,
+          "note": "Round-robin slice B."
+        },
+        "passive_shard_drop_c": {
+          "file": "mirror_passive_shard_drop_c.mp3",
+          "gitPath": "public/assets/hero-rework/mirror-curated/sfx/mirror_passive_shard_drop_c.mp3",
+          "sha256": "736f113ef170cd005de5db851808074955b93a3a7580a5ffd5a2621375daf84c",
+          "bytes": 6581,
+          "zipEntry": "apex_av_preload/heroes/MIRROR/SFX/mirror_passive_shard_drop_c.mp3",
+          "runtimeTrigger": [
+            "RealizedDamageEvent"
+          ],
+          "policy": "LOW_ACCENT",
+          "rateLimitMs": 0,
+          "maxVoices": 1,
+          "note": "Round-robin slice C."
+        },
+        "passive_node_form": {
+          "file": "mirror_passive_node_form.mp3",
+          "gitPath": "public/assets/hero-rework/mirror-curated/sfx/mirror_passive_node_form.mp3",
+          "sha256": "2e4d362e5684a068d1396d7096d0a67ec7b9bbb1e8f8e06e35ee6e35dd88bcd3",
+          "bytes": 15507,
+          "zipEntry": "apex_av_preload/heroes/MIRROR/SFX/mirror_passive_node_form.mp3",
+          "runtimeTrigger": [
+            "MirrorNodeForming"
+          ],
+          "policy": "DEFAULT_ON",
+          "rateLimitMs": 0,
+          "maxVoices": 1,
+          "note": "Quiet; max one node-form voice per Mirror."
+        },
+        "passive_node_fold_optional": {
+          "file": "mirror_passive_node_fold_optional.mp3",
+          "gitPath": "public/assets/hero-rework/mirror-curated/sfx/mirror_passive_node_fold_optional.mp3",
+          "sha256": "360293f4952e0188163d46b9cbc5a65b850e60bbb33e25ec3719ba8b98d04530",
+          "bytes": 10492,
+          "zipEntry": "apex_av_preload/heroes/MIRROR/SFX/mirror_passive_node_fold_optional.mp3",
+          "runtimeTrigger": [
+            "MirrorNodeOff"
+          ],
+          "policy": "OFF_BY_DEFAULT",
+          "rateLimitMs": 0,
+          "maxVoices": 1,
+          "note": "OFF BY DEFAULT; only if the fold-start seam is proven necessary."
+        }
+      }
+    }
+  },
+  "silentByFirstMixDecision": [
+    {
+      "hero": "crystala",
+      "event": "CrystalRelease",
+      "reason": "SILENT; do not invent extra dock audio"
+    },
+    {
+      "hero": "crystala",
+      "event": "CrystalDock",
+      "reason": "SILENT; do not invent extra dock audio"
+    },
+    {
+      "hero": "crystala",
+      "event": "CrystalConstructBreak",
+      "reason": "SILENT in first mix"
+    },
+    {
+      "hero": "crystala",
+      "event": "CrystalConstructCast kind=prison",
+      "reason": "SILENT; never reuse the Wall sound"
+    },
+    {
+      "hero": "magnet",
+      "event": "MagnetPassiveEmission",
+      "reason": "SILENT in curated first mix"
+    },
+    {
+      "hero": "magnet",
+      "event": "RealizedDamageEvent / BodyCollision",
+      "reason": "NO hero-specific impact audio; shared combat SFX keeps authority"
+    },
+    {
+      "hero": "frost",
+      "event": "FrostHuntStart / FrostHuntEnd",
+      "reason": "INTENTIONALLY SILENT in curated mix"
+    },
+    {
+      "hero": "frost",
+      "event": "FrostColdShock / FrostSteal",
+      "reason": "INTENTIONALLY SILENT; shared collision sound may remain"
+    },
+    {
+      "hero": "frost",
+      "event": "Frozen Bullet projectile tags",
+      "reason": "NO replacement gunshot; firearm sound remains Arsenal authority"
+    },
+    {
+      "hero": "frost",
+      "event": "FrostThaw / slot thaw",
+      "reason": "SILENT in curated mix"
+    },
+    {
+      "hero": "mirror",
+      "event": "MirrorA1Own",
+      "reason": "OFF BY DEFAULT; only if the owner asks for more tactile read"
+    },
+    {
+      "hero": "mirror",
+      "event": "MirrorA1Whiff",
+      "reason": "No extra sound selected"
+    },
+    {
+      "hero": "mirror",
+      "event": "MirrorNodeActive",
+      "reason": "No second full-volume lock sound"
+    },
+    {
+      "hero": "mirror",
+      "event": "MirrorRouteCapture",
+      "reason": "SILENT in current curated mix"
+    },
+    {
+      "hero": "mirror",
+      "event": "MirrorEscrowImage",
+      "reason": "SILENT; no preview leak"
+    },
+    {
+      "hero": "mirror",
+      "event": "MirrorRouteEmerge",
+      "reason": "SILENT in current curated mix"
+    }
+  ]
+}

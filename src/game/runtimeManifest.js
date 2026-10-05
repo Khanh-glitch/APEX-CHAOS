@@ -110,6 +110,11 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/hero-rework/frostPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexFrostPresentationRuntime'],
   ['/game/hero-rework/magnetPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMagnetPresentationRuntime'],
   ['/game/hero-rework/mirrorPresentationRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexMirrorPresentationRuntime'],
+  // The ONE curated hero-SFX authority for the four newer Core Six heroes
+  // (CRYSTALA / MAGNET / FROST / MIRROR), plus its production event bridge.
+  // ROBOT and HUNTER keep their existing accepted SFX authorities untouched.
+  ['/game/heroes/coreSixCuratedSfxAuthority.js', 'apexCoreSixCuratedSfxAuthority'],
+  ['/game/heroes/coreSixCuratedSfxBridge.js', 'apexCoreSixCuratedSfxBridge'],
 ];
 
 // Shipping product groups only. Historical generic Battle groups are
