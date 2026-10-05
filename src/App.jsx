@@ -6,10 +6,8 @@ import {
 } from './game/runtimeLoader.js';
 import { APEX_ARSENAL_RUNTIME_REVISION, preloadRuntimeSources } from './game/runtimeManifest.js';
 import {
-  PRODUCT_AVAILABILITY,
   getProductSurface,
   installProductSurfaceAuthority,
-  listProductSurfaces,
 } from './game/productSurface.js';
 import {
   beginPerfSpan,
@@ -27,18 +25,11 @@ const LOADING_ASSETS = {
   loadingBarFrame: '/assets/loading/loading-bar-frame.webp',
 };
 
-const UI_2026_ASSETS = {
-  menuBgLandscape: '/assets/ui_2026/menu-bg-landscape.webp',
-  menuBgPortrait: '/assets/ui_2026/menu-bg-portrait.webp',
-  menuVfxOverlay: '/assets/ui_2026/menu-vfx-overlay.webp',
-};
-
 // §A4 / 2026-10-05 correction slice — ONE product music authority.
 // The single existing menu-media element IS the product theme element: there
 // is exactly one persistent HTMLMediaElement for product music (the Gold
 // bridge must never create a second Audio for music) and its source is the
 // owner Forward Drive theme (AV preload), not a second menu BGM.
-const MENU_AUDIO = '/assets/audio/forward_drive_theme.ogg';
 // Owner law: music fades in/out over ~300–450ms.
 const MENU_MUSIC_FADE_MS = 380;
 const MENU_MUSIC_VOLUME = 0.48;
@@ -46,26 +37,10 @@ const MENU_MUSIC_VOLUME = 0.48;
 // (Lucky Draw, Upgrade, Missions, Shop, an actual match) is music-off.
 const MENU_MUSIC_ALLOWED_SURFACES = new Set(['home', 'mode', 'fighter', 'transition']);
 
-// Derived from the one product-surface authority. ADMIN and detached entries
-// are intentionally excluded: no normal-public control can expose them.
-const PUBLIC_PRODUCT_SURFACES = listProductSurfaces();
-
 const LOADING_LABELS = ['LOADING ASSETS', 'PREPARING ARENA', 'SYNCHRONIZING VFX'];
 const IMAGE_PRELOAD_TIMEOUT_MS = 7000;
 const LOADER_READY_HOLD_MS = 160;
 const LOADER_FADE_MS = 280;
-
-const DEFERRED_RUNTIME_ACTION_GROUPS = {
-  goToSelect: 'select',
-  startMatch: 'arsenalProduct',
-  startArsenalBattleMode: 'arsenalProduct',
-  beginArsenalBattleSelection: 'select',
-};
-
-function callApexGlobal(name, enabled = true) {
-  if (!enabled) return;
-  window[name]?.();
-}
 
 function wait(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -151,14 +126,10 @@ function uniqueAssets(manifestAssets, engineSrc) {
 function criticalBootAssets() {
   const portraitViewport = window.innerHeight > window.innerWidth || window.innerWidth <= 700;
   const loadingBackground = portraitViewport ? LOADING_ASSETS.bgPortrait : LOADING_ASSETS.bgLandscape;
-  const menuBackground = portraitViewport ? UI_2026_ASSETS.menuBgPortrait : UI_2026_ASSETS.menuBgLandscape;
-
   return [
     { path: loadingBackground, type: 'image', required: true },
     { path: LOADING_ASSETS.gameTitle, type: 'image', required: true },
     { path: LOADING_ASSETS.loadingBarFrame, type: 'image', required: true },
-    { path: menuBackground, type: 'image', required: true },
-    { path: UI_2026_ASSETS.menuVfxOverlay, type: 'image', required: true },
   ];
 }
 
@@ -374,10 +345,7 @@ export default function App() {
   // the legacy semantic menu/pick visibility check below.
   const musicSurfaceRef = useRef(null);
   const musicFadeRef = useRef(0);
-  const pendingActionRef = useRef(null);
   const [gameReady, setGameReady] = useState(false);
-  const [pressedMenuButton, setPressedMenuButton] = useState(null);
-  const [lockedSurface, setLockedSurface] = useState(null);
   const [loader, setLoader] = useState({
     active: true,
     fading: false,
@@ -458,18 +426,7 @@ export default function App() {
 
   const menuMusicAllowed = () => {
     const policy = musicSurfaceRef.current;
-    if (policy) return policy.allowed === true;
-    if (typeof document === 'undefined') return false;
-    const visible = (id) => {
-      const el = document.getElementById(id);
-      if (!el || el.classList.contains('hidden')) return false;
-      const style = window.getComputedStyle(el);
-      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
-    };
-    // Normal-public flow is the semantic product menu plus the active
-    // Arsenal picker. Detached legacy screens do not participate in warmup
-    // or menu-audio navigation.
-    return visible('menu-screen') || visible('select-screen');
+    return !!(policy && policy.allowed === true);
   };
 
   // Owner law: fades are ~300–450ms and the product theme is one continuous
@@ -677,37 +634,6 @@ export default function App() {
     };
   }, []);
 
-  const runApex = async (name, options = {}) => {
-    if (!gameReady) return;
-    try {
-      const deferredGroup = options.deferredGroup || DEFERRED_RUNTIME_ACTION_GROUPS[name];
-      if (deferredGroup) await loadDeferredGameRuntimes(deferredGroup);
-      // Battle-audio session lifecycle (correction pass): entering a match =
-      // terminate the previous session for real (old voices/cues die), then
-      // unmute the master for the new session. Menu/select navigation ends
-      // the session — battle SFX stay silent until the next match begins.
-      if (options.startsMatch) {
-        stopMenuMusic();
-        window.apexBeginBattleAudioSession?.('runApex:startsMatch');
-      } else if (name === 'startMatch' || name === 'startArsenalBattleMode') {
-        stopMenuMusic();
-        window.apexBeginBattleAudioSession?.(`runApex:${name}`);
-      } else if (name === 'goToMenu') {
-        window.apexEndBattleAudioSession?.('runApex:goToMenu');
-        playMenuMusic(false);
-      } else if (name === 'goToSelect' || name === 'beginArsenalBattleSelection') {
-        window.apexEndBattleAudioSession?.(`runApex:${name}`);
-        playMenuMusic(false);
-      }
-      callApexGlobal(name, true);
-      if (options.startsMatch || name === 'startMatch' || name === 'startArsenalBattleMode') {
-        stopMenuMusic();
-      }
-    } catch (error) {
-      console.warn(`[asset-loader] Failed to prepare action ${name}.`, error);
-    }
-  };
-
   const launchProductSurface = async (surfaceId, { admin = false } = {}) => {
     const surface = getProductSurface(surfaceId);
     const authority = window.APEX_PRODUCT_SURFACE;
@@ -737,27 +663,6 @@ export default function App() {
       return true;
     }
     return false;
-  };
-
-  const handleProductSurface = (surface) => {
-    if (!gameReady || !surface) return;
-    if (surface.availability !== PRODUCT_AVAILABILITY.ACTIVE) {
-      setLockedSurface(surface);
-      return;
-    }
-    if (pendingActionRef.current) return;
-    pendingActionRef.current = surface.id;
-    setPressedMenuButton(surface.id);
-    const run = () => {
-      launchProductSurface(surface.id).catch((error) => {
-        console.warn(`[product-surface] Failed to launch ${surface.id}.`, error);
-      }).finally(() => {
-        setPressedMenuButton(null);
-        pendingActionRef.current = null;
-      });
-    };
-    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
-    else run();
   };
 
   // ── Gold product shell ──────────────────────────────────────────────────
@@ -877,12 +782,9 @@ export default function App() {
   useEffect(() => {
     const launchAdminLab = () => launchProductSurface('arsenal-lab', { admin: true });
     const launchAny = (id, options = {}) => launchProductSurface(id, options);
-    const returnToProductMenu = () => setLockedSurface(null);
     window.apexLaunchArsenalLab = launchAdminLab;
     window.apexLaunchProductSurface = launchAny;
-    window.addEventListener('apex:product-menu', returnToProductMenu);
     return () => {
-      window.removeEventListener('apex:product-menu', returnToProductMenu);
       if (window.apexLaunchArsenalLab === launchAdminLab) delete window.apexLaunchArsenalLab;
       if (window.apexLaunchProductSurface === launchAny) delete window.apexLaunchProductSurface;
     };
@@ -909,13 +811,11 @@ export default function App() {
         </div>
       </div>
     )}
-    {/* Gold product shell mount: the canonical Gold surfaces own the visible
-        product UI. Legacy roots below stay mounted (production truth: engine
-        canvas + runtimes) and are hidden by body.apex-gold-mounted. */}
+    {/* Gold is the only public product surface. The host below the Gold mount
+        contains engine/combat infrastructure only; no legacy menu or picker DOM. */}
     <div id="gold-shell-host" aria-label="APEX CHAOS product surface" />
-    {/* Current battle shell: the side panels are hidden outside combat; the
-        shared select route and product menu use the same fixed arena column.
-        Engine-owned p1/p2 ids live in the panels. */}
+    {/* Engine-owned battle infrastructure remains mounted for production truth.
+        Gold relocates the live canvas into its authored arena during battle. */}
     <div id="battle-shell">
       <CombatPanelSide side={1} />
     <div id="game-wrapper">
@@ -928,142 +828,7 @@ export default function App() {
 
       <div className="ui-layer" id="hud" style={{ opacity: 0 }} />
 
-      <div id="menu-screen" className="screen product-menu-screen">
-        <div className="menu-bg menu-bg-landscape" aria-hidden="true" />
-        <div className="menu-bg menu-bg-portrait" aria-hidden="true" />
-        <div className="menu-vfx-overlay" aria-hidden="true" />
-        <div className="menu-darken" aria-hidden="true" />
-        <div className="menu-energy menu-energy-red" aria-hidden="true" />
-        <div className="menu-energy menu-energy-cyan" aria-hidden="true" />
-        <main className="product-menu" aria-label="APEX CHAOS product navigation">
-          <header className="product-menu-header">
-            <img className="product-menu-logo" src={LOADING_ASSETS.gameTitle} alt="Apex Chaos" />
-            <div>
-              <p>PRE-PILOT PRODUCT SURFACE</p>
-              <h1>APEX CHAOS</h1>
-              <span>ARSENAL CORE · CORE SIX</span>
-            </div>
-          </header>
-          <section className="product-menu-grid" aria-label="Available and planned product features">
-            {PUBLIC_PRODUCT_SURFACES.map((surface, index) => {
-              const isActive = surface.availability === PRODUCT_AVAILABILITY.ACTIVE;
-              return (
-                <button
-                  key={surface.id}
-                  type="button"
-                  data-product-surface={surface.id}
-                  data-availability={surface.availability}
-                  className={`product-surface-card ${isActive ? 'is-active' : 'is-locked'} ${pressedMenuButton === surface.id ? 'is-pressed' : ''}`}
-                  style={{ '--product-delay': `${index * 34 + 70}ms` }}
-                  disabled={!gameReady}
-                  onClick={() => handleProductSurface(surface)}
-                >
-                  <span className="product-surface-index">{String(index + 1).padStart(2, '0')}</span>
-                  <span className="product-surface-state">{surface.availability}</span>
-                  <strong>{surface.title}</strong>
-                  <small>{surface.detail}</small>
-                  <em>{isActive ? 'OPEN' : 'LOCKED'}</em>
-                </button>
-              );
-            })}
-          </section>
-          <p className="product-menu-footer">Visible roster: ROBOT · HUNTER · CRYSTAL · MAGNET · FROST · MIRROR · plus six pre-pilot locked fighters.</p>
-        </main>
-        {lockedSurface && (
-          <div className="product-lock-dialog" role="dialog" aria-modal="true" aria-labelledby="product-lock-title">
-            <div className="product-lock-panel">
-              <span>{lockedSurface.availability}</span>
-              <h2 id="product-lock-title">{lockedSurface.title}</h2>
-              <p>{lockedSurface.detail}</p>
-              <button type="button" onClick={() => setLockedSurface(null)}>BACK TO PRODUCT MENU</button>
-            </div>
-          </div>
-        )}
-      </div>
 
-      <div id="select-screen" className="screen hidden">
-        <div id="apex-pick-runtime-root" aria-label="Champion pick screen" />
-        <div className="select-bg" aria-hidden="true" />
-        <div id="select-ui">
-          <div className="select-loading-panel" aria-live="polite">LOADING SELECT UI</div>
-          <div className="fighter-stage" aria-label="Selected fighters">
-            <h2 id="select-title">SELECT PLAYER 1</h2>
-            <div id="select-phase-label">P1 SELECTING</div>
-            <div className="picked-fighter-slot picked-fighter-p1" data-player="1">
-              <img className="side-backdrop" data-select-asset="sideBackdrop" alt="" draggable="false" />
-              <div className="side-art-aperture">
-                <img id="p1-fighter-vfx" className="picked-fighter-vfx" alt="Player 1 fighter" draggable="false" />
-              </div>
-              <img className="side-frame side-frame-base" data-select-asset="sideFrameBase" alt="" draggable="false" />
-              <span className="side-frame-tint" aria-hidden="true" />
-              <img className="side-frame side-frame-highlight" data-select-asset="sideFrameHighlight" alt="" draggable="false" />
-              <div className="picked-fighter-copy">
-                <span className="picked-fighter-label">P1</span>
-                <b id="p1-select-name">SELECTING</b>
-              </div>
-            </div>
-            <div className="pick-stat-panel pick-stat-p1" data-player="1">
-              <img className="pick-stat-base" data-select-asset="statsPanelBase" alt="" draggable="false" />
-              <span className="pick-stat-label pick-hp-label">HP</span>
-              <span id="p1-select-hp" className="pick-stat-value pick-hp-value">1000</span>
-              <span className="pick-stat-label pick-dmg-label">DMG%</span>
-              <span id="p1-select-dmg" className="pick-stat-value pick-dmg-value">100</span>
-            </div>
-            <div className="select-center" aria-label="Champion select controls">
-              <div className="select-vs" aria-hidden="true">VS</div>
-              <div className="carousel-shell">
-                <button id="select-arrow-left" className="select-arrow select-arrow-left" type="button" disabled={!gameReady} aria-label="Previous fighter" />
-                <div className="roster" id="roster-grid" />
-                <button id="select-arrow-right" className="select-arrow select-arrow-right" type="button" disabled={!gameReady} aria-label="Next fighter" />
-              </div>
-              <div className="select-info-panel" aria-label="Champion information">
-                <img className="stats-panel-base" data-select-asset="statsPanelBase" alt="" draggable="false" />
-                <div className="select-info-copy">
-                  <span id="select-info-status">P1 SELECTING</span>
-                  <h3 id="select-info-name">CHOOSE FIGHTER</h3>
-                  <p id="select-info-desc">Pick a champion to preview combat data.</p>
-                  <dl className="select-stat-list">
-                    <div><dt>Speed</dt><dd id="select-info-speed">--</dd></div>
-                    <div><dt>P1 HP</dt><dd><input id="p1-hp-setting" type="text" inputMode="numeric" defaultValue="1000" placeholder="1000 or INF" /></dd></div>
-                    <div><dt>P1 DMG</dt><dd><input id="p1-dmg-setting" type="number" min="100" max="1000" step="10" defaultValue="100" /></dd></div>
-                    <div><dt>P2 HP</dt><dd><input id="p2-hp-setting" type="text" inputMode="numeric" defaultValue="1000" placeholder="1000 or INF" /></dd></div>
-                    <div><dt>P2 DMG</dt><dd><input id="p2-dmg-setting" type="number" min="100" max="1000" step="10" defaultValue="100" /></dd></div>
-                  </dl>
-                </div>
-              </div>
-              <div className="select-actions">
-                <button id="start-btn" className="fight-stage-button hidden" type="button" disabled={!gameReady} onClick={() => runApex('startMatch')}>
-                  <span>START BATTLE</span>
-                </button>
-                <button id="select-exit-btn" type="button" disabled={!gameReady} onClick={() => runApex('goToMenu')}>
-                  <span>BACK</span>
-                </button>
-              </div>
-            </div>
-            <div className="picked-fighter-slot picked-fighter-p2" data-player="2">
-              <img className="side-backdrop" data-select-asset="sideBackdrop" alt="" draggable="false" />
-              <div className="side-art-aperture">
-                <img id="p2-fighter-vfx" className="picked-fighter-vfx" alt="Player 2 fighter" draggable="false" />
-              </div>
-              <img className="side-frame side-frame-base" data-select-asset="sideFrameBase" alt="" draggable="false" />
-              <span className="side-frame-tint" aria-hidden="true" />
-              <img className="side-frame side-frame-highlight" data-select-asset="sideFrameHighlight" alt="" draggable="false" />
-              <div className="picked-fighter-copy">
-                <span className="picked-fighter-label">P2</span>
-                <b id="p2-select-name">WAITING</b>
-              </div>
-            </div>
-            <div className="pick-stat-panel pick-stat-p2" data-player="2">
-              <img className="pick-stat-base" data-select-asset="statsPanelBase" alt="" draggable="false" />
-              <span className="pick-stat-label pick-hp-label">HP</span>
-              <span id="p2-select-hp" className="pick-stat-value pick-hp-value">1000</span>
-              <span className="pick-stat-label pick-dmg-label">DMG%</span>
-              <span id="p2-select-dmg" className="pick-stat-value pick-dmg-value">100</span>
-            </div>
-          </div>
-          <div id="matchup-report" className="matchup-report" />
-        </div>
-      </div>
 
     </div>
       <CombatPanelSide side={2} />
