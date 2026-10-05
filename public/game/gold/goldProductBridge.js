@@ -1018,22 +1018,29 @@
         if (!Array.isArray(fighters)) return;
         const hero = String(payload.hero || '').toUpperCase();
         const slot = payload.slot === 'A2' ? 1 : 0;
-        for (let i = 0; i < 2; i++) {
-          const f = fighters[i];
-          if (!f || heroIdOf(f) !== hero) continue;
-          try {
-            // Visual cue only. Cooldown/charge authority stays with the
-            // production combatant and is projected per frame below.
-            const meta = heroSkillMeta(hero, payload.slot === 'A2' ? 'A2' : 'A1');
-            if (typeof seam.cast === 'function') seam.cast(i, slot);
-            if (typeof seam.setSkill === 'function') seam.setSkill(i, slot, {
-              castUntil: true,
-              activeFor: meta.kind === 'duration' ? meta.duration : 0,
-              kind: meta.kind,
-            });
-          } catch (e) {}
-          break;
+        let targetIndex = payload.side === 'p2' || payload.combatantId === 'p2' ? 1
+          : (payload.side === 'p1' || payload.combatantId === 'p1' ? 0 : -1);
+        // Backward compatibility for old recorded events only. New runtime
+        // events always carry side/combatantId, so same-hero Local cannot
+        // collapse onto the first matching fighter.
+        if (targetIndex < 0) {
+          for (let i = 0; i < 2; i++) {
+            const f = fighters[i];
+            if (f && heroIdOf(f) === hero) { targetIndex = i; break; }
+          }
         }
+        if (targetIndex < 0 || !fighters[targetIndex]) return;
+        try {
+          // Visual cue only. Cooldown/charge authority stays with the
+          // production combatant and is projected per frame below.
+          const meta = heroSkillMeta(heroIdOf(fighters[targetIndex]) || hero, payload.slot === 'A2' ? 'A2' : 'A1');
+          if (typeof seam.cast === 'function') seam.cast(targetIndex, slot);
+          if (typeof seam.setSkill === 'function') seam.setSkill(targetIndex, slot, {
+            castUntil: true,
+            activeFor: meta.kind === 'duration' ? meta.duration : 0,
+            kind: meta.kind,
+          });
+        } catch (e) {}
       });
     }
   }
