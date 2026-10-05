@@ -2150,6 +2150,7 @@ function main() {
   assetLines.push(`export const GOLD_SHELL_URL = '/gold/shell.html?v=${REVISION}';`);
   assetLines.push(`export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=${REVISION}';`);
   assetLines.push(`export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=${REVISION}';`);
+  assetLines.push(`export const GOLD_TRANSITION_URL = '/gold/transition/mechanical-door-v4.gold.js?v=${REVISION}';`);
   assetLines.push('');
   srcManifestContent = assetLines.join('\n');
 
