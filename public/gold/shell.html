@@ -1378,10 +1378,27 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     else if(next==='fighter')document.querySelector(`.rosterCard[data-hero=\"${activePlayer==='p1'?p1Hero:p2Hero}\"]`)?.focus({preventScroll:true});
     else if(next==='home')battle.focus({preventScroll:true});
   }
+  // R52 no-swallowed-steps law: while the Mechanical Door owns the screen, a
+  // doorless step intent is QUEUED (latest wins) and drained the moment the Door
+  // settles - never silently dropped. A pressed card must always land.
+  let queuedScreen=null, queuedScreenTimer=0;
+  function drainQueuedScreen(){
+    queuedScreenTimer=0;
+    const next=queuedScreen;
+    if(!next)return;
+    if(window.APEX_SCENE_TRANSITION?.active?.()){queuedScreenTimer=setTimeout(drainQueuedScreen,120);return;}
+    queuedScreen=null;
+    void setScreen(next);
+  }
+  function queueScreen(next){
+    queuedScreen=next;
+    if(!queuedScreenTimer)queuedScreenTimer=setTimeout(drainQueuedScreen,120);
+    return false;
+  }
   async function setScreen(next){
     if(next===screen)return true;
     const tr=window.APEX_SCENE_TRANSITION;
-    if(tr?.active?.())return false;
+    if(tr?.active?.())return queueScreen(next);
     const sceneHeroIds=()=>{
       const ids=[p1Hero];
       if(battleMode==='bot')ids.push(botHeroId());
@@ -1398,7 +1415,19 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       }
       // The visible Fighter composition includes world-stage art OUTSIDE the
       // fighter section, so settle the actual stage rather than a UI sub-tree.
-      await tr?.prepareElement?.(stage);
+      // R52 STEP-WEIGHT LAW (the owner's "no forced steps"): Home, Mode and
+      // Fighter are doorless screens of ONE surface, so one step must cost ONE
+      // settle - not a full-raster re-decode of every world-stage image. The
+      // destination's own media is already owned by the awaited
+      // APEX_GOLD.prepareSurface() requirement set (fetch + decode, intent
+      // 'required'), so verify the destination panel's media here and then
+      // settle the actual stage (fonts + two painted frames). Boot already uses
+      // the same verifyImages:false contract for exactly this reason.
+      const surfaceRoot=next==='mode'?modeScreen:(next==='fighter'?fighterScreen:null);
+      if(surfaceRoot){try{await tr?.prepareElement?.(surfaceRoot);}catch(_){}}
+      // The visible Fighter composition includes world-stage art OUTSIDE the
+      // fighter section, so settle the actual stage rather than a UI sub-tree.
+      await tr?.prepareElement?.(stage,{verifyImages:false});
     };
     // R51 route policy: Home, Mode and Fighter Pick are screens of ONE
     // Gold shell surface. Each already owns its authored screen transition,
@@ -1916,6 +1945,31 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     if(screen==='mode'){stage.classList.remove('mode-committing');modeCards.forEach(c=>c.classList.remove('is-selected','is-committing'));void setScreen('home')}
   }
 
+  // OWNER LAW (R52, fewer forced steps in the Free Battle flow): a tap on the
+  // backdrop leaves the current step. There is exactly ONE exit route — the same
+  // back() / closeBattleHud() the keyboard already uses — so a tap can never
+  // invent a new destination. Guards keep it intentional: a short still tap
+  // (<=420ms, <=12px), never on an interactive element, never while the Door or
+  // the authored flow transition is running, never while the Lucky donor is
+  // open, and in battle ONLY once the result stamp is published (no mid-match
+  // exit hazard).
+  let tapOutsideStart=null;
+  addEventListener('pointerdown',e=>{tapOutsideStart={x:e.clientX,y:e.clientY,ts:e.timeStamp,now:performance.now(),id:e.pointerId};},{passive:true});
+  addEventListener('pointerup',e=>{
+    const start=tapOutsideStart;tapOutsideStart=null;
+    if(!start||e.pointerId!==start.id)return;
+    const held=(Number.isFinite(e.timeStamp)&&e.timeStamp>=start.ts)?e.timeStamp-start.ts:performance.now()-start.now;
+    if(held>420)return;
+    if(Math.abs(e.clientX-start.x)>12||Math.abs(e.clientY-start.y)>12)return;
+    if(window.APEX_SCENE_TRANSITION?.active?.())return;
+    if(stage.classList.contains('flow-transition'))return;
+    if(document.getElementById('luckyDonorHost')?.classList.contains('is-open'))return;
+    const el=e.target;
+    if(el&&el.closest&&el.closest('button,a,input,select,textarea,label,[role="button"],[data-arsenal-act],.cta,.modeCard,.rosterCard,.lockIn,.skill,.weapon,.wp-swap,.wp-ico'))return;
+    if(screen==='mode'||screen==='fighter'){back();return;}
+    if(screen==='battle'&&document.body.classList.contains('battle-result'))void closeBattleHud();
+  },{passive:true});
+
   function moveHero(delta){
     const current=activePlayer==='p1'?p1Hero:p2Hero; const i=HERO_ORDER.indexOf(current); selectHero(HERO_ORDER[(i+delta+HERO_ORDER.length)%HERO_ORDER.length]);
     setTimeout(()=>document.querySelector(`.rosterCard[data-hero=\"${activePlayer==='p1'?p1Hero:p2Hero}\"]`)?.focus({preventScroll:true}),0);
@@ -1923,7 +1977,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
 
   function navigateGoldShell(target,opts={}){
     const next=String(target||'').toLowerCase();
-    if(screen==='transition'||screen==='battle'||window.APEX_SCENE_TRANSITION?.active?.())return false;
+    if(screen==='transition'||screen==='battle')return false;
     if(next==='home'){
       stage.classList.remove('mode-committing','match-ready');modeCards.forEach(c=>c.classList.remove('is-selected','is-committing'));void setScreen('home');return true;
     }

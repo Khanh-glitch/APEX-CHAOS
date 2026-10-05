@@ -1395,6 +1395,11 @@
     const over = state && state.over ? String(state.over) : null;
     if (over && over !== lastKo) {
       lastKo = over;
+      // ONE result signal for the shell: the match is over, so the backdrop tap
+      // may leave immediately instead of waiting out the K.O. hold. It is set
+      // here (the seam that already owns `state.over`) and cleared by the next
+      // match start / teardown — never by a second observer.
+      try { document.body.classList.add('battle-result'); } catch (error) {}
       // Production truth: winnerSide is combatant identity and survives
       // same-hero Local matches. state.over is legacy display copy only.
       const fighters = window.fighters;
@@ -1417,10 +1422,14 @@
       // back to fighter select either way.
       scheduleResultReturn();
     }
-    if (!over) lastKo = null;
+    if (!over) {
+      lastKo = null;
+      if (document.body.classList.contains('battle-result')) document.body.classList.remove('battle-result');
+    }
   }
   function startPump() {
     lastKo = null;
+    if (document.body.classList.contains('battle-result')) document.body.classList.remove('battle-result');
     cancelResultReturn();
     if (!pumpId) pumpId = requestAnimationFrame(pump);
   }

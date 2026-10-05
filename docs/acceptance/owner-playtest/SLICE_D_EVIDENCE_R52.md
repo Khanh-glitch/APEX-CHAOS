@@ -14,11 +14,16 @@ revision `20261005-owner-playtest-r52`. Branch `arena/01a10c3e-apex-chaos`.
 | B1/B2/B6/B8 | avatar thật, 4 slot tên, tier glow, hai giao diện BOT/Local | — (đã có từ `74fe3da`) | — | browser: avatar `battle_avatar.webp` `naturalWidth=512` cả 2 side; 4 slot = CRYSTALA/HUNTER/CRYSTALA/HUNTER; `.wp-ico.has-tier` + `--tier:#63E28B` sau khi equip SMG; BOT `1p` + P2 `pointer-events:none` + key `CPU`, LOCAL `2p` + key `J/K` + `1/2` |
 | route | 3 chặng phải doorless | — (đã có từ `74fe3da`) | — | browser: `pickToBattle: ["DONE"]`, `battleToPick: ["DONE"]`; Lucky vẫn qua Door (Escape đóng 151 ms sau khi mở) |
 
+| F3a | “quá nhiều bước, không huỷ được bằng cách bấm ra ngoài nền tối” | shell **không có** đường tap nào (chỉ Escape/Enter); `#fighterSelectScreen` phủ kín viewport nên “vùng trống” = nền panel, không phải ngoài panel | luật một-đường-ra trong `goldShellR50k.mjs`: cặp pointerdown/up, tap ngắn & đứng yên (≤420 ms theo **`e.timeStamp`** của chính sự kiện, ≤12 px), bỏ qua khi Door `active()`, khi `flow-transition`, khi Lucky đang mở, và khi điểm chạm nằm trong điều khiển (`button,a,input,select,textarea,label,[role=button],[data-arsenal-act],.cta,.modeCard,.rosterCard,.lockIn,.skill,.weapon,.wp-swap,.wp-ico`); `screen==='mode'|'fighter'` → `back()`; `screen==='battle'` + cờ `body.battle-result` → `closeBattleHud()` | browser (dist prune :4173): mode nền → home **79–127 ms**, fighter vùng trống → mode **115 ms**, home tap **inert**, double-tap = **đúng 1 bước**, tap thẻ đấu sĩ **không** rời màn, kéo 6 bước **không** rời, giữ 700 ms **không** rời, battle giữa trận **không** thoát, cờ kết quả bật → HUD đóng **0 ms** và về fighter, 0 page error |
+| F3b | chặng doorless vẫn “nặng” (2–10 s/chặng trong sandbox) | `setScreen` chờ `prepareElement(stage)` với `verifyImages:true` → **decode lại toàn bộ ảnh world-stage ở full raster** mỗi chặng (ảnh đã hiển thị vẫn phải decode lại; 4.7–10 s trong software raster) | luật cân-chặng: `prepareElement(surfaceRoot)` cho media của **đúng panel đích** (do `APEX_GOLD.prepareSurface` sở hữu) rồi `prepareElement(stage,{verifyImages:false})` (fonts + 2 frame đã vẽ) — cùng hợp đồng `verifyImages:false` mà chính coordinator dùng cho boot | browser (rAF shim 16 ms để loại chi phí renderer software): home→mode **102 ms**, mode→fighter **824 ms** (gồm timer 360 ms của `chooseMode`), fighter→mode **115 ms**, mode→home **79–88 ms** |
+| F3c | “bấm mà không thấy gì xảy ra” (route bị nuốt) | `setScreen` **return false** khi Door đang `active()` và `navigateGoldShell` cũng return false theo trạng thái Door → intent mất hẳn, không hàng đợi, không thử lại | luật không-nuốt-bước: intent doorless được **xếp hàng** (`queuedScreen`, latest wins) và `drainQueuedScreen()` thử lại mỗi 120 ms cho tới khi Door nhả; guard route chỉ còn `transition`/`battle` | browser: mode→fighter đạt **824 ms** ổn định sau nhiều lần lặp; gate lifecycle thêm luật (52 checks) |
+
 ## Gate / build status at this slice
 
-* `pnpm test:r50-pre-transition` — **19/19 exit 0** (Visibility 25, Lifecycle 49,
-  Economy 27, LegacySurface 29, HudLive 20, FighterPick 14, HudAdaptation 19,
-  TransitionRuntime 47, RoutePolicy 27, …).
+* `pnpm test:r50-pre-transition` — **19/19 exit 0** (Lifecycle **52**, LegacySurface
+  **31**, TransitionCoordinator **56**, ProductAssetIntent **23**, Visibility 25,
+  Economy 27, HudLive 20, FighterPick 14, HudAdaptation 19, TransitionRuntime 47,
+  RoutePolicy 27, …).
 * `pnpm build` — 324 assets / 31.223.567 B; prune 723 file / 196.278.112 B;
   `forbiddenRuntimeSurvivors: []`.
 * Revision lock: 39 versioned runtime, `20261005-owner-playtest-r50k`.
@@ -36,11 +41,15 @@ revision `20261005-owner-playtest-r52`. Branch `arena/01a10c3e-apex-chaos`.
   release), overlapping/multi-touch acceptance.
 * **D** size bands + the 6-aspect matrix with images.
 * **F1** Lucky reel = black silhouette cut from the real stand-pick art.
-* **F3** fewer forced steps (match end → straight back to pick, tap-outside exits
-  free battle).
+* **F3** fewer forced steps — ĐÃ ĐÓNG phần tap-outside + chặng doorless + hàng
+  đợi intent (xem F3a/F3b/F3c ở trên). Phần còn lại của “fewer forced steps”:
+  **kết thúc trận → về Pick** đã là tự động (`RESULT_HOLD_MS = 2600`), và **chạm
+  vùng trống trong battle để thoát ngay** cần kiểm tra vùng nhận chạm của HUD
+  iframe (nếu iframe iframe phủ kín sân thì cú chạm không tới được shell — sẽ xử
+  lý ở tầng HUD, vẫn dùng đúng MỘT đường `APEX_CHAOS_BATTLE_EXIT`).
 * **G** audio trace (background/foreground) with reasons on every begin/end.
 * **I** the owner's Gold transition file → integrate, then bump the runtime
   revision and re-lock.
-* **H-rest (CSS)**: ~405 dead `#select-screen`/`#menu-screen` rule blocks remain
-  in `src/styles.css` (live-id references are gone; the CSS is the last
-  deletion target).
+* **H-rest (CSS)** — ĐÃ XONG ở `ae16d59`: `src/styles.css` 217.238 → **135.740 B**
+  (xoá 457 rule chết, kể cả biến thể trong `@media`), 0 tham chiếu id đã nghỉ
+  trong `src/` + `public/`; gate `test:legacy-surface-cutover` **31 checks**.

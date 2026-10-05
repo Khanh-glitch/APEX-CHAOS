@@ -94,7 +94,11 @@ check('Battle lazy-load remains lock-in scoped without using the Door',
   shell.includes('Battle is NOT a Mechanical Door route') &&
   !shell.includes("name:'fighter->battle'"));
 check('Lucky READY verifies iframe document', shell.includes('frame.contentDocument') && shell.includes('doc?.documentElement'));
-check('Fighter READY settles actual world stage', shell.includes('await tr?.prepareElement?.(stage)'));
+check('Fighter READY settles actual world stage', shell.includes('await tr?.prepareElement?.(surfaceRoot)') && shell.includes('await tr?.prepareElement?.(stage,{verifyImages:false})'));
+check('Doorless steps verify the destination panel, then settle the stage',
+  shell.includes("const surfaceRoot=next==='mode'?modeScreen:(next==='fighter'?fighterScreen:null);")
+  && shell.includes('await tr?.prepareElement?.(surfaceRoot)')
+  && shell.includes('await tr?.prepareElement?.(stage,{verifyImages:false})'));
 
 check('activation is separate from preparation', bridge.includes('BRIDGE.prepareSurface = async function prepareSurface') && bridge.includes('BRIDGE.onSurface = function onSurface'));
 check('Battle preparation awaits arsenalProduct', bridge.includes("ensureDeferredRuntimes('arsenalProduct').then"));

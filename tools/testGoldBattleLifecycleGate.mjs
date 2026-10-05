@@ -193,6 +193,33 @@ check('the authority-backed compatibility wrappers never seek currentTime=0',
   !!authorityCompat && !/currentTime\s*=\s*0/.test(authorityCompat[0])
   && !/currentTime\s*=\s*0/.test(app));
 
+// R52 fewer forced steps: a backdrop tap leaves the Free Battle step, but only
+// through the ONE navigation route the keyboard already uses (back() /
+// closeBattleHud()) — a tap never invents a destination, and it can never fire
+// on an interactive element, during the Door/flow transition, while the Lucky
+// donor is open, or mid-match (the result flag gates the battle case).
+check('Free Battle backdrop tap exits one step through the ONE route',
+  shell.includes('let tapOutsideStart=null;')
+  && shell.includes("if(screen==='mode'||screen==='fighter'){back();return;}")
+  && shell.includes("if(screen==='battle'&&document.body.classList.contains('battle-result'))void closeBattleHud();")
+  && shell.includes("el.closest('button,a,input,select,textarea,label,[role=\"button\"],[data-arsenal-act],.cta,.modeCard,.rosterCard,.lockIn,.skill,.weapon,.wp-swap,.wp-ico')")
+  && shell.includes("if(stage.classList.contains('flow-transition'))return;")
+  && shell.includes("if(held>420)return;")
+  && shell.includes('e.timeStamp>=start.ts'));
+// R52 no-swallowed-steps law: while the Door owns the screen, a doorless step
+// intent is queued (latest wins) and drained when the Door settles - a pressed
+// card must always land, and the route guard must not drop on Door state.
+check('a doorless step is queued, never swallowed, while the Door owns the screen',
+  shell.includes('let queuedScreen=null, queuedScreenTimer=0;')
+  && shell.includes('return queueScreen(next);')
+  && shell.includes('queuedScreenTimer=setTimeout(drainQueuedScreen,120);')
+  && shell.includes("if(screen==='transition'||screen==='battle')return false;")
+  && !shell.includes("screen==='battle'||window.APEX_SCENE_TRANSITION?.active?.())return false;"));
+
+check('the result stamp publishes ONE body flag that gates the post-match tap',
+  bridge.includes("document.body.classList.add('battle-result')")
+  && bridge.includes("document.body.classList.remove('battle-result')"));
+
 // Execute the shipping music authority to prove blur+hidden cannot overwrite
 // the resume latch and battle->fighter preserves the same playhead.
 const winListeners = new Map();

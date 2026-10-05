@@ -38,7 +38,7 @@ check('generator excludes reference-only assets', generator.includes('NON_SHIPPI
 check('surface activation and preparation are separate', bridge.includes('BRIDGE.onSurface = function onSurface') && bridge.includes('BRIDGE.prepareSurface = async function prepareSurface'));
 check('Battle runtime load is awaited by prepareSurface', bridge.includes("ensureDeferredRuntimes('arsenalProduct').then") && bridge.includes("throw new Error('arsenalProduct runtime group did not reach READY')"));
 check('shell awaits scene preparation before reveal', shell.includes("if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface(next,{heroIds})") && shell.includes("if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('battle',{heroIds})"));
-check('Fighter readiness covers world-stage art', shell.includes("await tr?.prepareElement?.(stage)"));
+check('Fighter readiness covers world-stage art', shell.includes("await tr?.prepareElement?.(stage,{verifyImages:false})") && shell.includes("await tr?.prepareElement?.(surfaceRoot)"));
 check('Lucky remains click intent', bridge.includes("surface === 'lucky'") && assetRuntime.includes("'/gold/lucky-draw.html'") && shell.includes("name:'home->lucky'"));
 check('transition runtime is a shipping asset', shipping.includes("'/gold/transition/mechanical-door-v4.gold.js'"));
 check('runtime loader still exposes priority route path', loader.includes('loadDeferredGameRuntimes(group, { priority = true } = {})'));
