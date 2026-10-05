@@ -1974,6 +1974,25 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     setTimeout(()=>document.querySelector(`.rosterCard[data-hero="${activePlayer==='p1'?p1Hero:p2Hero}"]`)?.focus({preventScroll:true}),0);
   }
 
+  function navigateGoldShell(target,opts={}){
+    const next=String(target||'').toLowerCase();
+    if(screen==='transition'||screen==='battle')return false;
+    if(next==='home'){
+      stage.classList.remove('mode-committing','match-ready');modeCards.forEach(c=>c.classList.remove('is-selected','is-committing'));setScreen('home');return true;
+    }
+    if(next==='mode'){setScreen('mode');return true;}
+    if(next==='fighter'){
+      const mode=String(opts.mode||battleMode||'local').toLowerCase()==='bot'?'bot':'local';
+      stage.classList.remove('mode-committing');modeCards.forEach(c=>c.classList.remove('is-selected','is-committing'));
+      if(screen!=='mode')setScreen('mode');
+      chooseMode(mode);return true;
+    }
+    return false;
+  }
+  window.APEX_GOLD_SHELL_NAVIGATE=navigateGoldShell;
+  const pendingGoldNav=window.__apexPendingGoldNavigation;
+  if(pendingGoldNav){delete window.__apexPendingGoldNavigation;queueMicrotask(()=>navigateGoldShell(pendingGoldNav.target,pendingGoldNav.options||{}));}
+
   battle.addEventListener('click',()=>{uiSfx('ui.screen.transition');setScreen('mode')});
   lockIn.addEventListener('click',lockCurrent);
   APEX_GOLD.onSurface&&APEX_GOLD.onSurface('home');
