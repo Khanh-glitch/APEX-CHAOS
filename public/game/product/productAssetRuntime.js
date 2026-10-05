@@ -9,6 +9,18 @@
   const scopeControllers = new Map();
 
   const STATIC = Object.freeze({
+    // Home Core is the ONLY scene required by cold boot. Keep this list small
+    // and explicit: it includes CSS-layer art that DOM <img> settling cannot
+    // discover by itself.
+    home: Object.freeze([
+      '/gold/assets/gold/home-world-background.png',
+      '/gold/assets/gold/home-foreground.png',
+      '/gold/assets/gold/home-robot-body.png',
+      '/gold/assets/gold/home-robot-core.png',
+      '/gold/assets/gold/home-robot-eye.png',
+      '/gold/assets/gold/apex-chaos-wordmark.png',
+      '/gold/assets/gold/favicon-apex-chaos.png',
+    ]),
     mode: Object.freeze([
       '/gold/assets/gold/mode-solo.webp',
       '/gold/assets/gold/mode-local.webp',
@@ -165,7 +177,12 @@
 
   function heroUrls(heroIds, roles) {
     const table = roster();
-    const ids = Array.isArray(heroIds) && heroIds.length ? heroIds : Object.keys(table);
+    // Explicit contract: null means "all visible roster"; an omitted/empty
+    // selection means NONE. This prevents Battle/Fighter focused art from
+    // silently expanding into an all-heroes preload.
+    const ids = heroIds === null
+      ? Object.keys(table)
+      : (Array.isArray(heroIds) ? heroIds.filter(Boolean) : []);
     const out = [];
     const wanted = new Set(roles || []);
     for (const id of ids) {
@@ -181,15 +198,19 @@
 
   function urlsFor(surface, context = {}) {
     const id = String(surface || '').toLowerCase();
+    if (id === 'home') return STATIC.home.slice();
     if (id === 'mode') return STATIC.mode.slice();
     if (id === 'fighter') {
+      // Roster covers are intentionally all-visible; the large hero art is
+      // only the currently relevant side(s).
       const covers = heroUrls(null, ['portrait']);
-      const focused = heroUrls(context.heroIds || [], ['art']);
+      const focused = heroUrls(context.heroIds, ['art']);
       return [...covers, ...focused];
     }
-    if (id === 'fighter-hero') return heroUrls(context.heroIds || [], ['portrait', 'art']);
+    if (id === 'fighter-hero') return heroUrls(context.heroIds, ['portrait', 'art']);
     if (id === 'battle' || id === 'transition') {
-      return heroUrls(context.heroIds || [], ['battleAvatar', 'skillIcons']);
+      // Match assets are strictly selected-combatant scoped.
+      return heroUrls(context.heroIds, ['battleAvatar', 'skillIcons']);
     }
     if (id === 'lucky') return STATIC.lucky.slice();
     return [];
