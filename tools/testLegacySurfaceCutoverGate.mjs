@@ -9,6 +9,7 @@ const meta=fs.readFileSync('public/game/arsenal/arsenalMetaRuntime.js','utf8');
 const engine=fs.readFileSync('public/apexEngine.js','utf8');
 const battle=fs.readFileSync('public/game/modes/arsenalBattleRuntime.js','utf8');
 const music=fs.readFileSync('public/game/product/productMusicAuthority.js','utf8');
+const css=fs.readFileSync('src/styles.css','utf8');
 const select=fs.readFileSync('public/game/arsenal/arsenalShellSelectRuntime.js','utf8');
 const bridge=fs.readFileSync('public/game/gold/goldProductBridge.js','utf8');
 const failures=[];const passes=[];
@@ -64,6 +65,10 @@ check('music authority reads a live surface, never a retired screen id',
   !/menu-screen|select-screen/.test(music)
   && /screen-\(\[a-z\]\+\)/.test(music)
   && /allowed\.has\(goldScreen\(\)\)/.test(music));
+check('styles.css carries no rule for a retired product screen',
+  !/menu-screen|select-screen/.test(css));
+check('styles.css kept its live rules (no accidental wholesale deletion)',
+  css.includes('#stage') || css.includes('.ui-layer') || css.includes('#game-canvas'));
 check('App keeps no retired legacy music identifiers',
   !app.includes('menuMusicAllowed') && !app.includes('useLegacyMusicLifecycle'));
 
