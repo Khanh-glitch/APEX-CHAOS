@@ -8,6 +8,7 @@
 export const GOLD_SHIPPING_ASSETS = Object.freeze([
   '/gold/assets/gold/apex-chaos-wordmark.png',
   '/gold/assets/gold/favicon-apex-chaos.png',
+  '/gold/assets/gold/favicon-tab-apex.svg',
   '/gold/assets/gold/home-foreground.png',
   '/gold/assets/gold/home-robot-body.png',
   '/gold/assets/gold/home-robot-core.png',
