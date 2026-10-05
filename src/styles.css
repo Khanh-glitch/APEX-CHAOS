@@ -6625,3 +6625,43 @@ body.apex-battle #battle-controls{
     .product-menu-grid { grid-template-columns: 1fr; }
     .product-surface-card { min-height: 118px; }
 }
+
+
+/* R50K — Mechanical Door V4 scene transition authority */
+#apex-boot-blackout{
+  position:fixed;
+  inset:0;
+  z-index:2147483000;
+  background:#030304;
+  pointer-events:none;
+}
+#apex-scene-transition{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  z-index:2147483001;
+  pointer-events:none;
+  background:transparent;
+  transform:none;
+  opacity:1;
+}
+.apex-scene-collapse{
+  transform-origin:center!important;
+  will-change:transform,opacity;
+  transform:scale(.54)!important;
+  opacity:.04!important;
+  transition:
+    transform .48s cubic-bezier(.72,0,1,.55),
+    opacity .34s cubic-bezier(.85,0,1,1) .06s!important;
+}
+body.apex-scene-transition-active #gold-shell-host,
+body.apex-scene-transition-active #battle-shell{
+  pointer-events:none!important;
+  user-select:none!important;
+}
+@media (prefers-reduced-motion: reduce){
+  /* Gold engine owns reduced-motion behavior. Do not delete phases; only avoid
+     a competing CSS tween on the live source DOM. */
+  .apex-scene-collapse{transition-duration:.08s,.08s!important}
+}
