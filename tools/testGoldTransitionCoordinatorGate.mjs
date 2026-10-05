@@ -42,6 +42,9 @@ check('boot paint settle never scans future HUD images',
 check('boot readiness promise can reject instead of orphaning forever',
   coordinator.includes('return { promise, resolve, reject }') && coordinator.includes('bootReady.reject(error)'));
 check('coordinator consumes generated transition URL', coordinator.includes("import { GOLD_TRANSITION_URL } from './goldAssetManifest.js'") && coordinator.includes('const GOLD_DOOR_RUNTIME_URL = GOLD_TRANSITION_URL'));
+check('Gold Door runtime is module-scoped away from engine globals',
+  coordinator.includes("script.type = 'module'") &&
+  coordinator.includes("script.dataset.apexSceneTransitionRuntime = 'true'"));
 check('generated transition URL carries R50K revision', goldUrls.includes('/gold/transition/mechanical-door-v4.gold.js?v=20261005-owner-playtest-r50k'));
 check('real DOM replaces demo background tile', coordinator.includes("engine.open({ from: null, autoReadyAfter: null })"));
 check('destination commits only after covered + prepared', coordinator.includes('!tx.covered || !tx.prepared'));
