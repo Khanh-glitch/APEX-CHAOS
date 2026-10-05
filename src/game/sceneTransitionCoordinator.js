@@ -58,8 +58,8 @@ async function decodeLoadedImages(root) {
   }));
 }
 
-export async function settleSceneElement(root) {
-  await decodeLoadedImages(root);
+export async function settleSceneElement(root, { verifyImages = true } = {}) {
+  if (verifyImages) await decodeLoadedImages(root);
   const doc = root?.ownerDocument || document;
   const view = doc?.defaultView || window;
   try { await doc?.fonts?.ready; } catch (_) {}
@@ -71,8 +71,9 @@ export async function settleSceneElement(root) {
 
 function deferred() {
   let resolve;
-  const promise = new Promise((r) => { resolve = r; });
-  return { promise, resolve };
+  let reject;
+  const promise = new Promise((r, j) => { resolve = r; reject = j; });
+  return { promise, resolve, reject };
 }
 
 let runtimePromise = null;
@@ -338,12 +339,24 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
   };
 
   const signalBootReady = async () => {
-    if (bootReadySignalled) return;
-    bootReadySignalled = true;
-    // Verify only assets Home has intentionally requested. Deferred Mode/Pick
-    // media remains untouched until its own route intent.
-    await settleSceneElement(defaultRoot());
-    bootReady.resolve();
+    if (bootReadySignalled) return bootReady.promise;
+    try {
+      // Home's explicit asset authority has already fetched+decoded every
+      // required Home Core dependency before this signal is called. Do NOT scan
+      // the whole Gold shell here: Mode/Fighter/Lucky/Battle DOM intentionally
+      // coexists in the host and must stay lazy until its own route intent.
+      // Boot only needs fonts + two painted frames after the Home DOM is mounted.
+      await settleSceneElement(defaultRoot(), { verifyImages: false });
+      bootReadySignalled = true;
+      bootReady.resolve(true);
+      return true;
+    } catch (error) {
+      // Never leave beginBoot() waiting on an orphaned promise. A real boot
+      // settle failure propagates into the coordinator's normal failure path.
+      bootReadySignalled = true;
+      bootReady.reject(error);
+      throw error;
+    }
   };
 
   const beginBoot = async () => {
