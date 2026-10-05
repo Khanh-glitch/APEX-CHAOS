@@ -361,6 +361,11 @@
   let hudHost = null;
   let hudMounted = false;
   let battleLiveRunning = false;
+  // Invalidate any deferred battle launch that outlives its Gold HUD session.
+  // A user can ESC while arsenalProduct runtimes are still loading; without a
+  // session token that stale continuation can start the engine after Pick is
+  // already visible again.
+  let battleSessionToken = 0;
   let arenaOriginParent = null;
   let arenaOriginNext = null;
 
@@ -508,18 +513,25 @@
     }
     hudHost = host;
     hudMounted = true;
-    // The battle-entry transition is an allowed theme surface (music keeps
-    // playing through it); the match start fades it out for real.
-    theme.setSurface('transition');
+    // Surface/music state is owned by the Gold shell. The bridge owns only
+    // donor/runtime lifecycle; it must not create a competing fade sequence.
     const ready = () => { if (onready) onready(); };
     if (window.APEX_GOLD_HUD && window.APEX_GOLD_HUD.version) ready();
     else setTimeout(ready, 0);
   };
 
   BRIDGE.unmountBattleHud = function unmountBattleHud() {
+    // Defensive/idempotent teardown. Invalidate any in-flight deferred launch
+    // before removing the donor so it cannot resume against detached DOM.
+    battleSessionToken += 1;
+    if (battleLiveRunning || window.__apexGoldBattleHosted === true) BRIDGE.exitBattle?.();
     restoreArena();
     showLegacyBattleUi();
     stopEventTranslation();
+    if (pumpId) {
+      if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(pumpId);
+      pumpId = 0;
+    }
     if (hudHost) hudHost.textContent = '';
     hudHost = null;
     hudMounted = false;
@@ -724,6 +736,7 @@
   }
   BRIDGE.onBattleLive = async function onBattleLive(pick) {
     if (battleLiveRunning) return;
+    const sessionToken = ++battleSessionToken;
     const mode = (pick && pick.mode === 'bot') ? 'BOT' : 'LOCAL';
     const p1Shell = String((pick && pick.p1) || 'newbot').toLowerCase();
     // BOT OPPONENT = ONE TRUTH: the production CPU identity, never a second
@@ -747,10 +760,13 @@
       // Load the battle product runtimes first: startMatch, the combat HUD
       // observer and the SFX/VFX presentation runtimes must exist before any
       // production trigger is wired or fired.
-      await ensureDeferredRuntimes('arsenalProduct');
-      // Live match is a music-off surface. setSurface preserves the theme
-      // playhead and owns the fade; no legacy restart/reset path participates.
-      theme.setSurface('battle');
+      const loaded = await ensureDeferredRuntimes('arsenalProduct');
+      if (!loaded || sessionToken !== battleSessionToken || !hudMounted || !battleLiveRunning) {
+        battleLiveRunning = false;
+        return;
+      }
+      // The Gold shell already published the music-off battle surface. From
+      // here the bridge starts only the real engine + presentation projection.
       relocateArena();
       hideLegacyBattleUi();
       // Wrap the real HUD observer only after the group is present.
@@ -781,7 +797,15 @@
   // Gold shell owns the destination. The engine runtime only tears the live
   // match down; it must not open the legacy product menu or restart BGM.
   BRIDGE.exitBattle = function exitBattle() {
-    if (!battleLiveRunning && window.__apexGoldBattleHosted !== true) return false;
+    const hadBattle = battleLiveRunning || window.__apexGoldBattleHosted === true;
+    // Always invalidate a deferred launch, even when startMatch has not been
+    // reached yet. This makes ESC-during-load a real cancellation.
+    battleSessionToken += 1;
+    if (!hadBattle) return false;
+    if (pumpId) {
+      if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(pumpId);
+      pumpId = 0;
+    }
     try {
       if (typeof window.exitArsenalBattleMode === 'function') {
         window.exitArsenalBattleMode({ goldHosted: true, silentGoldExit: true });
@@ -1123,8 +1147,10 @@
   }
 
   function pump() {
+    // An already queued callback after unmount clears itself instead of
+    // recreating a permanent background RAF chain.
+    if (!hudMounted) { pumpId = 0; return; }
     pumpId = requestAnimationFrame(pump);
-    if (!hudMounted) return;
     const seam = window.APEX_GOLD_HUD;
     if (!seam) return;
     const proj = projection();

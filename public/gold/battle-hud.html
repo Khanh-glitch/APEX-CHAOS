@@ -1351,12 +1351,11 @@ R.stage.addEventListener('pointerdown',e=>{
 /* ================= PRODUCTION PUMP ================= */
 let __apexLast=performance.now();
 function frame(now){
+ if(!R.stage||!R.stage.isConnected)return;
  const dt=Math.min(.05,(now-__apexLast)/1000);__apexLast=now;
  try{APEX_GOLD_HUD.tick(dt,now);}catch(err){}
  requestAnimationFrame(frame);
 }
-applyViewport();
-requestAnimationFrame(frame);
 
 applyViewport();requestAnimationFrame(frame);
 </script>
@@ -1427,11 +1426,10 @@ applyViewport();requestAnimationFrame(frame);
   });
   if(!document.__apexGoldHudExitKey){
     document.__apexGoldHudExitKey=true;
-    const exitRoot=document.currentScript||null;
     document.addEventListener('keydown',e=>{
       if(e.key!=='Escape')return;
-      if(exitRoot&&!exitRoot.isConnected)return;
-      if(!exitRoot&&!document.body.classList.contains('battle-hud-open'))return;
+      const host=document.getElementById('battleHudHost');
+      if(!host||!host.classList.contains('is-open'))return;
       e.preventDefault();e.stopImmediatePropagation();
       parent.postMessage({type:'APEX_CHAOS_BATTLE_EXIT'},'*');
     },true);

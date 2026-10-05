@@ -460,11 +460,10 @@ function buildBattleHud() {
       replace: (
         `  if(!document.__apexGoldHudExitKey){\n` +
         `    document.__apexGoldHudExitKey=true;\n` +
-        `    const exitRoot=document.currentScript||null;\n` +
         `    document.addEventListener('keydown',e=>{\n` +
         `      if(e.key!=='Escape')return;\n` +
-        `      if(exitRoot&&!exitRoot.isConnected)return;\n` +
-        `      if(!exitRoot&&!document.body.classList.contains('battle-hud-open'))return;\n` +
+        `      const host=document.getElementById('battleHudHost');\n` +
+        `      if(!host||!host.classList.contains('is-open'))return;\n` +
         `      e.preventDefault();e.stopImmediatePropagation();\n` +
         `      parent.postMessage({type:'APEX_CHAOS_BATTLE_EXIT'},'*');\n` +
         `    },true);\n` +
@@ -505,12 +504,11 @@ function buildBattleHud() {
         `/* ================= PRODUCTION PUMP ================= */\n` +
         `let __apexLast=performance.now();\n` +
         `function frame(now){\n` +
+        ` if(!R.stage||!R.stage.isConnected)return;\n` +
         ` const dt=Math.min(.05,(now-__apexLast)/1000);__apexLast=now;\n` +
         ` try{APEX_GOLD_HUD.tick(dt,now);}catch(err){}\n` +
         ` requestAnimationFrame(frame);\n` +
-        `}\n` +
-        `applyViewport();\n` +
-        `requestAnimationFrame(frame);\n`
+        `}\n`
       ),
     },
     // ── H30: hud.critical.warning fires on threshold ENTRY only ────────────
@@ -1697,7 +1695,27 @@ function buildShell(hudProductionHtml) {
     {
       id: 'SHL-S26',
       why: 'world-stage consumes production PICK_SELECTED_LARGE for every static Core Six hero; Mirror preserves the runtime-derived ghost slot',
-      find: /    if\(id==='newbot'\)\{[\s\S]*?    \}\n    container\.appendChild\(body\);/,
+      find: (src) => {
+        const needle = [
+          "    if(id==='newbot'){",
+          "      const source=document.querySelector('#stage > .heroWrap');",
+          "      if(source){",
+          "        const clone=source.cloneNode(true); clone.classList.remove('e-bot'); clone.removeAttribute('aria-hidden'); body.appendChild(clone);",
+          "      }",
+          "    }else{",
+          "      const img=new Image(); img.className='worldHeroAsset'; img.alt=''; img.draggable=false; img.src=WORLD_ART[id]||h.art;",
+          "      if(WORLD_ART[id]) img.classList.add('is-cutout');",
+          "      body.appendChild(img);",
+          "      if(id==='hunter'||id==='frost'||id==='mirror'){",
+          "        const echo=img.cloneNode(); echo.className='worldHeroFxAsset '+id; body.appendChild(echo);",
+          "      }",
+          "      if(id==='magnet') body.insertAdjacentHTML('beforeend','<span class=\"magnetOrbit ringA\"></span><span class=\"magnetOrbit ringB\"></span>');",
+          "      if(id==='crystala') body.insertAdjacentHTML('beforeend','<span class=\"crystalPulse\"></span>');",
+          "    }",
+          "    container.appendChild(body);",
+        ].join('\n');
+        return src.includes(needle) ? needle : null;
+      },
       replace: (
         `    {\n` +
         `      const worldSrc=id==='mirror'?WORLD_ART.mirror:h?.art;\n` +
@@ -1708,8 +1726,8 @@ function buildShell(hudProductionHtml) {
         `      if(id==='hunter'||id==='frost'||id==='mirror'){\n` +
         `        const echo=img.cloneNode(); echo.className='worldHeroFxAsset '+id; body.appendChild(echo);\n` +
         `      }\n` +
-        `      if(id==='magnet') body.insertAdjacentHTML('beforeend','<span class="magnetOrbit ringA"></span><span class="magnetOrbit ringB"></span>');\n` +
-        `      if(id==='crystala') body.insertAdjacentHTML('beforeend','<span class="crystalPulse"></span>');\n` +
+        `      if(id==='magnet') body.insertAdjacentHTML('beforeend','<span class=\"magnetOrbit ringA\"></span><span class=\"magnetOrbit ringB\"></span>');\n` +
+        `      if(id==='crystala') body.insertAdjacentHTML('beforeend','<span class=\"crystalPulse\"></span>');\n` +
         `    }\n` +
         `    container.appendChild(body);`
       ),

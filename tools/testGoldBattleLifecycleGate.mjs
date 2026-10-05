@@ -5,6 +5,8 @@ const read = (p) => fs.readFileSync(p, 'utf8');
 const bridge = read('public/game/gold/goldProductBridge.js');
 const battle = read('public/game/modes/arsenalBattleRuntime.js');
 const shell = read('public/gold/shell.html');
+const hud = read('public/gold/battle-hud.html');
+const generator = read('tools/buildGoldCutover.mjs');
 const app = read('src/App.jsx');
 const musicSource = read('public/game/product/productMusicAuthority.js');
 
@@ -27,6 +29,54 @@ check('donor keyframes are preserved outside @scope',
 // Remount must not keep closures bound to removed donor DOM.
 check('battle HUD seam is cleared on mount/unmount',
   (bridge.match(/delete window\.APEX_GOLD_HUD/g) || []).length >= 2);
+
+// Deferred-loading cancellation: ESC/exit while arsenalProduct is still loading
+// must invalidate that async continuation before it can start the engine.
+check('battle bridge owns a monotonic deferred-launch session token',
+  /let battleSessionToken = 0;/.test(bridge)
+  && /const sessionToken = \+\+battleSessionToken;/.test(bridge));
+check('deferred battle launch rechecks token + mount state after await',
+  /const loaded = await ensureDeferredRuntimes\('arsenalProduct'\);/.test(bridge)
+  && /sessionToken !== battleSessionToken/.test(bridge)
+  && /!hudMounted \|\| !battleLiveRunning/.test(bridge));
+check('exit and unmount invalidate deferred battle launches',
+  (bridge.match(/battleSessionToken \+= 1;/g) || []).length >= 2);
+
+// The bridge projection pump must die with the donor; no invisible background
+// RAF chain is allowed after returning to Fighter Pick.
+check('bridge projection pump self-stops when donor is unmounted',
+  /if \(!hudMounted\) \{ pumpId = 0; return; \}/.test(bridge));
+check('bridge cancels projection RAF during explicit teardown',
+  (bridge.match(/cancelAnimationFrame\(pumpId\)/g) || []).length >= 2);
+
+// Donor remount law: one recursive RAF + one initial boot; Escape handler must
+// resolve the CURRENT host rather than close over the first mount's script node.
+check('Gold Battle HUD has exactly one pump boot plus its recursive RAF',
+  (hud.match(/requestAnimationFrame\(frame\);/g) || []).length === 2,
+  'count=' + ((hud.match(/requestAnimationFrame\(frame\);/g) || []).length));
+check('Gold Battle HUD frame pump stops when its stage is disconnected',
+  /if\(!R\.stage\|\|!R\.stage\.isConnected\)return;/.test(hud));
+check('Escape handler follows the current open Battle host across remounts',
+  /const host=document\.getElementById\('battleHudHost'\);/.test(hud)
+  && /host\.classList\.contains\('is-open'\)/.test(hud)
+  && !/const exitRoot=document\.currentScript/.test(hud));
+
+// Music surfaces have ONE caller: the shell. Bridge may forward generic
+// BRIDGE.onSurface(surfaceId), but may not independently force battle beats.
+check('bridge does not independently force transition/battle music surfaces',
+  !/theme\.setSurface\('transition'\)/.test(bridge)
+  && !/theme\.setSurface\('battle'\)/.test(bridge));
+
+// Generator anti-drift: SHL-S26 must target the exact renderWorldHero block.
+// The previous broad regex matched renderArt() first and would corrupt the next
+// generated shell even while the checked-in shell looked healthy.
+check('generator SHL-S26 uses an exact function-local world-stage needle',
+  /id: 'SHL-S26'[\s\S]*?find: \(src\) => \{[\s\S]*?body\.appendChild\(clone\);/.test(generator)
+  && !/id: 'SHL-S26'[\s\S]*?find: \/    if\\\(id==='newbot'/.test(generator));
+check('generator carries remount-safe donor RAF and Escape laws',
+  /if\(!R\.stage\|\|!R\.stage\.isConnected\)return;/.test(generator)
+  && /const host=document\.getElementById\('battleHudHost'\)/.test(generator));
+
 
 // Runtime-created legacy Arsenal DOM HUD appears after startMatch; recapture it.
 check('legacy runtime DOM HUD ids are in the suppression set',
@@ -177,7 +227,7 @@ if (authority && audio) {
   check('shipping product music authority installs in harness', false);
 }
 
-const out = ['GOLD BATTLE LIFECYCLE GATE (R46B)', ...pass];
+const out = ['GOLD BATTLE LIFECYCLE GATE (R46C)', ...pass];
 if (fail.length) {
   out.push('', ...fail, '', 'RESULT: FAIL (' + fail.length + ')');
   console.error(out.join('\n'));
