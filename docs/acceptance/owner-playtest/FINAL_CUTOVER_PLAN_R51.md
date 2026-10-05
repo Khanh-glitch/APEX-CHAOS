@@ -1,10 +1,12 @@
 # R52 — Kế hoạch hoàn tất cutover (owner-playtest → product)
 
-Trạng thái: **checkpoint `7d5da61`** — P5 (economy reseed) + P7 (xoá runtime cũ
-menu/pick + một vòng đời nhạc) đã landed; B0/B1/B2/B6/B8 + luật route đã được
-chứng minh lại trên browser (xem `SLICE_D_EVIDENCE_R52.md`); B5 (đạn x/y) đã sửa
-đúng gốc (projection đọc bảng config, không đọc behaviour def) và cần chạy lại
-probe. Kế hoạch gốc: checkpoint `bacffe2` (nhánh `arena/01a10c3e-apex-chaos`).
+Trạng thái: **checkpoint `c832a42`** — P5 (economy reseed) + P7 (xoá runtime cũ
+menu/pick + một vòng đời nhạc) + H-rest (xoá 457 rule CSS chết, `src/styles.css`
+217.238 → 135.740 B) + **F3** (một đường tap-outside duy nhất cho 3 màn, cân lại
+chặng doorless: một chặng = một settle, và hàng đợi intent không bị nuốt khi Door
+đang bận) đã landed. B0/B1/B2/B5/B6/B8 + luật route đã được chứng minh lại trên
+browser (`SLICE_D_EVIDENCE_R52.md`). Kế hoạch gốc: checkpoint `bacffe2`
+(nhánh `arena/01a10c3e-apex-chaos`).
 Toàn bộ gate trong repo **XANH** (19/19 chuỗi `test:r50-pre-transition`, sweep
 `test:*` 0 đỏ, `buildGoldCutover --check` 70/70, prune guard PASS, revision lock
 khớp 39 runtime). Tài liệu này là **kế hoạch + ma trận nghiệm thu**: mỗi việc còn
