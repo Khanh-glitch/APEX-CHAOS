@@ -1,5 +1,5 @@
 // APEX CHAOS Mechanical Door V4 Gold runtime.
-// Only demo source/destination images are removed; authored motion/state machine is unchanged.
+// Adaptation: demo menu/arena background payloads removed; motion/state machine untouched.
 const TAU = Math.PI * 2;
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
