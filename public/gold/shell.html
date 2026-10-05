@@ -1073,54 +1073,6 @@ body.battle-transition-active,body.battle-hud-open{overflow:hidden!important;ove
    but remove its entire visual tree from painting/compositing. */
 body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;pointer-events:none!important;content-visibility:hidden!important;contain:strict!important}
 
-#battleTransition{position:fixed;inset:0;z-index:10000;display:none;pointer-events:auto;overflow:hidden;isolation:isolate;--p1:#ff941f;--p2:#8bd8ff;--seam:#f1f5ef;font-family:Inter,system-ui,Arial,sans-serif;color:#f5f3ec}
-#battleTransition.is-active{display:block}
-#battleTransition .bt-vignette{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,transparent 0 18%,rgba(0,0,0,.18) 58%,rgba(0,0,0,.72) 100%);opacity:0;transition:opacity 220ms ease;pointer-events:none}
-#battleTransition.phase-lock .bt-vignette{opacity:1}
-#battleTransition .bt-rail{position:absolute;top:0;bottom:0;width:calc(50% - 5px);overflow:hidden;background:
- linear-gradient(180deg,rgba(255,255,255,.045),transparent 13%,transparent 84%,rgba(255,255,255,.025)),
- repeating-linear-gradient(90deg,rgba(255,255,255,.025) 0 1px,transparent 1px 42px),
- linear-gradient(135deg,#111519 0%,#080b0e 48%,#030506 100%);
- box-shadow:0 0 0 1px rgba(255,255,255,.055) inset,0 0 42px rgba(0,0,0,.8);will-change:transform;transition:transform 270ms cubic-bezier(.16,.88,.25,1)}
-#battleTransition .bt-rail::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 0 76%,color-mix(in srgb,var(--accent) 38%,transparent) 93%,color-mix(in srgb,var(--accent) 78%,white) 100%);opacity:.55}
-#battleTransition .bt-rail::after{content:"";position:absolute;top:0;bottom:0;width:3px;background:linear-gradient(180deg,transparent 2%,var(--accent) 26%,#fff 50%,var(--accent) 74%,transparent 98%);filter:drop-shadow(0 0 8px var(--accent));opacity:.92}
-#battleTransition .bt-p1{left:0;--accent:var(--p1);transform:translateX(-105%)}
-#battleTransition .bt-p2{right:0;--accent:var(--p2);transform:translateX(105%)}
-#battleTransition .bt-p1::after{right:0}#battleTransition .bt-p2::after{left:0}
-#battleTransition.phase-clamp .bt-p1,#battleTransition.phase-clamp .bt-p2{transform:translateX(0)}
-#battleTransition.phase-open .bt-p1{transform:translateX(-102%);transition-duration:430ms}
-#battleTransition.phase-open .bt-p2{transform:translateX(102%);transition-duration:430ms}
-#battleTransition .bt-plate{position:absolute;top:50%;width:min(38vw,430px);transform:translateY(-50%);padding:16px 20px;border-top:1px solid color-mix(in srgb,var(--accent) 64%,white);border-bottom:1px solid color-mix(in srgb,var(--accent) 38%,transparent);background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 9%,#080b0e),rgba(4,6,8,.72));box-shadow:0 14px 40px rgba(0,0,0,.4);letter-spacing:.12em;text-transform:uppercase}
-.bt-p1 .bt-plate{right:26px;text-align:right}.bt-p2 .bt-plate{left:26px;text-align:left}
-.bt-kicker{display:block;font-size:10px;opacity:.62;letter-spacing:.24em}.bt-name{display:block;margin-top:5px;font-size:clamp(22px,3vw,48px);line-height:.9;font-weight:950;letter-spacing:.02em;text-shadow:0 0 18px color-mix(in srgb,var(--accent) 34%,transparent)}.bt-state{display:block;margin-top:8px;font-size:9px;color:var(--accent);font-weight:800}
-#battleTransition .bt-seam{position:absolute;left:50%;top:0;bottom:0;width:10px;transform:translateX(-50%) scaleY(.08);opacity:0;background:linear-gradient(180deg,transparent,#fff 14%,var(--seam) 50%,#fff 86%,transparent);box-shadow:0 0 10px #fff,0 0 26px var(--seam),0 0 48px color-mix(in srgb,var(--p1) 50%,var(--p2));transition:transform 190ms cubic-bezier(.2,.9,.2,1),opacity 140ms ease}
-#battleTransition.phase-seam .bt-seam{opacity:1;transform:translateX(-50%) scaleY(1)}
-#battleTransition.phase-open .bt-seam{opacity:0;transform:translateX(-50%) scaleY(1.04);transition-duration:260ms}
-#battleTransition .bt-core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);min-width:250px;padding:10px 18px;text-align:center;background:rgba(3,5,6,.88);border:1px solid rgba(255,255,255,.11);clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px);opacity:0;transition:opacity 130ms ease,transform 180ms cubic-bezier(.2,.9,.2,1);box-shadow:0 12px 30px rgba(0,0,0,.54)}
-#battleTransition.phase-seam .bt-core{opacity:1;transform:translate(-50%,-50%) scale(1)}
-#battleTransition.phase-open .bt-core{opacity:0;transform:translate(-50%,-50%) scale(1.06)}
-.bt-core small{display:block;font-size:8px;letter-spacing:.28em;opacity:.58}.bt-core b{display:block;margin-top:4px;font-size:12px;letter-spacing:.2em}
-#battleTransition .bt-scan{position:absolute;inset:-30% 0 auto 0;height:22%;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--p2) 16%,transparent),transparent);opacity:0;transform:translateY(-100%)}
-#battleTransition.is-bot.phase-clamp .bt-scan{opacity:1;animation:btScan 360ms ease-out forwards}@keyframes btScan{to{transform:translateY(650%)}}
-#battleTransition.phase-handoff{pointer-events:none}
-#battleTransition.phase-handoff .bt-vignette{opacity:0;transition-duration:180ms}
-
-#battleTransition.is-horizontal .bt-rail{left:0;right:0;width:auto;height:calc(50% - 5px);top:auto;bottom:auto;transition-property:transform}
-#battleTransition.is-horizontal .bt-p2{top:0;transform:translateY(-105%)}
-#battleTransition.is-horizontal .bt-p1{bottom:0;transform:translateY(105%)}
-#battleTransition.is-horizontal.phase-clamp .bt-p1,#battleTransition.is-horizontal.phase-clamp .bt-p2{transform:translateY(0)}
-#battleTransition.is-horizontal.phase-open .bt-p2{transform:translateY(-102%)}
-#battleTransition.is-horizontal.phase-open .bt-p1{transform:translateY(102%)}
-#battleTransition.is-horizontal .bt-rail::after{left:0;right:0;width:auto;height:3px;top:auto;bottom:auto;background:linear-gradient(90deg,transparent 2%,var(--accent) 26%,#fff 50%,var(--accent) 74%,transparent 98%)}
-#battleTransition.is-horizontal .bt-p2::after{bottom:0;top:auto}#battleTransition.is-horizontal .bt-p1::after{top:0;bottom:auto}
-#battleTransition.is-horizontal .bt-plate{top:50%;left:50%;right:auto;width:min(72vw,420px);transform:translate(-50%,-50%);text-align:center;padding:10px 16px}
-#battleTransition.is-horizontal .bt-p2 .bt-plate{transform:translate(-50%,-50%) rotate(180deg)}
-#battleTransition.is-horizontal .bt-seam{left:0;right:0;top:50%;bottom:auto;width:auto;height:10px;transform:translateY(-50%) scaleX(.08)}
-#battleTransition.is-horizontal.phase-seam .bt-seam{transform:translateY(-50%) scaleX(1)}
-#battleTransition.is-horizontal.phase-open .bt-seam{transform:translateY(-50%) scaleX(1.04)}
-#battleTransition.is-horizontal .bt-core{min-width:210px}
-@media(max-width:700px){#battleTransition:not(.is-horizontal) .bt-plate{width:42vw;padding:12px 12px}.bt-kicker{font-size:8px}.bt-state{font-size:7px}.bt-name{font-size:clamp(17px,5vw,29px)}#battleTransition .bt-core{min-width:190px;padding:8px 12px}}
-@media(prefers-reduced-motion:reduce){#battleTransition .bt-rail,#battleTransition .bt-seam,#battleTransition .bt-core,#battleHudHost{transition-duration:1ms!important;animation-duration:1ms!important}}
 </style>
 
 
@@ -1296,14 +1248,6 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   </section>
 
 </main>
-
-<div id="battleTransition" aria-hidden="true">
-  <div class="bt-vignette"></div>
-  <section class="bt-rail bt-p1"><div class="bt-plate"><span class="bt-kicker">P1 // FIGHTER</span><b class="bt-name" data-bt-name="p1">NEWBOT</b><span class="bt-state" data-bt-state="p1">COMBAT LOCK</span></div></section>
-  <section class="bt-rail bt-p2"><div class="bt-scan"></div><div class="bt-plate"><span class="bt-kicker" data-bt-kicker="p2">P2 // FIGHTER</span><b class="bt-name" data-bt-name="p2">RIVAL</b><span class="bt-state" data-bt-state="p2">COMBAT LOCK</span></div></section>
-  <div class="bt-seam"></div>
-  <div class="bt-core"><small>ARENA // EAX-01</small><b data-bt-core>COMBAT CHANNEL OPEN</b></div>
-</div>
 
 <div id="battleHudHost" aria-hidden="true">
   <iframe id="battleHudFrame" title="APEX CHAOS Battle HUD" allow="autoplay" referrerpolicy="no-referrer"></iframe>
@@ -1510,10 +1454,8 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   const battleHudHost=document.getElementById('battleHudHost');
   const battleHudFrame=document.getElementById('battleHudFrame');
   const battleHudPayload=document.getElementById('battleHudPayload');
-  const battleTransition=document.getElementById('battleTransition');
   let battleHudConfig=null;
   let frozenStageAnimations=[];
-  let battleTransitionToken=0;
   let battleHudReady=false;
 
   function freezeParentRuntime(){
