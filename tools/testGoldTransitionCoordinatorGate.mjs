@@ -28,6 +28,7 @@ check('Gold ultra-fast opening profile preserved', runtimeText.includes('release
 check('Gold state machine preserved', ['CLOSING','SEALED','OPENING','DONE'].every((x)=>runtimeText.includes(x)));
 check('Gold cover callback preserved', runtimeText.includes('onCover'));
 check('Gold adaptive close authority preserved', runtimeText.includes('openBoostTarget'));
+check('coordinator preserves fast-load close adaptation', coordinator.includes('primeAdaptiveClose(tx)'));
 
 for(const token of ['TRIGGER CLOSE','READY → OPEN','closeBtn','readyBtn','resetBtn','menu-bg.jpg','arena-bg.jpg']){
   check(`production transition has no demo token: ${token}`, !runtimeText.includes(token));
@@ -42,7 +43,12 @@ check('real DOM replaces demo background tile', coordinator.includes("engine.ope
 check('destination commits only after covered + prepared', coordinator.includes('!tx.covered || !tx.prepared'));
 check('destination settles before READY', coordinator.indexOf('await settleSceneElement(revealRoot)') < coordinator.indexOf('engine?.ready()'));
 check('semantic readyGate precedes READY', coordinator.indexOf('if (tx.readyGate && !tx.failed) await tx.readyGate()') < coordinator.indexOf('engine?.ready()'));
-check('production READY command is singular', (coordinator.match(/engine\?\.ready\(\)/g)||[]).length===1);
+check('adaptive close prime uses Gold READY without authorizing reveal',
+  coordinator.includes('primeAdaptiveClose') &&
+  coordinator.includes('engine.ready();') &&
+  coordinator.includes("state === 'SEALED'") &&
+  coordinator.includes('engine.readyRequested = false'));
+check('final production READY remains singular', (coordinator.match(/engine\?\.ready\(\)/g)||[]).length===1);
 check('source collapse matches Gold standalone',
   css.includes('transform:scale(.54)!important') &&
   css.includes('transform .48s cubic-bezier(.72,0,1,.55)') &&
