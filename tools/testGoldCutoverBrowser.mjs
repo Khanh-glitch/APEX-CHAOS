@@ -177,8 +177,9 @@ try {
   gate('mode-to-fighter-physical-pointer-uses-full-door-law',modeClick?.hitWithin===true&&fighter?.fighter&&fighter.roster>=6&&ordered(modeFighterStates),{pointer:modeClick,states:modeFighterStates,fighter});
   report.evidence.push(await screenshot('r50k-fighter'));
 
-  // FIGHTER -> BATTLE. The target iframe/runtime must be READY before OPEN
-  // completes; the public door owns the whole handoff.
+  // FIGHTER -> BATTLE is deliberately NOT a Mechanical Door route. LOCK IN
+  // lazy-loads/activates combat through the Battle lifecycle only; the scene
+  // transition state stream must remain untouched.
   mark=await evaluate('window.__APEX_R50K_STATES.length');
   const lockClick=await physicalClick('#lockIn');
   const battle=await poll(`(() => ({
@@ -188,9 +189,12 @@ try {
     live:!!window.APEX_ARSENAL?.state?.active,
     state:document.body?.dataset?.apexSceneTransition||'',
     active:window.APEX_SCENE_TRANSITION?.active?.()||false
-  }))()`,v=>v?.open&&v.host&&v.hud&&v.live&&v.state==='DONE'&&!v.active,{attempts:500,interval:80});
+  }))()`,v=>v?.open&&v.host&&v.hud&&v.live&&!v.active,{attempts:500,interval:80});
   const fighterBattleStates=await transitionSlice(mark);
-  gate('fighter-to-battle-reveals-only-after-live-ready',lockClick?.hitWithin===true&&battle?.open&&battle?.host&&battle?.hud&&battle?.live&&ordered(fighterBattleStates),{pointer:lockClick,states:fighterBattleStates,battle});
+  const battleDoorStates=fighterBattleStates.filter(s=>['CLOSING','SEALED','OPENING'].includes(s));
+  gate('fighter-to-battle-uses-combat-lifecycle-not-mechanical-door',
+    lockClick?.hitWithin===true&&battle?.open&&battle?.host&&battle?.hud&&battle?.live&&battleDoorStates.length===0,
+    {pointer:lockClick,states:fighterBattleStates,battle});
   report.evidence.push(await screenshot('r50k-battle'));
 
   // Responsive contract: Gold transition canvas tracks the real viewport after
