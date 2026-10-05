@@ -9,6 +9,7 @@ const bridge=fs.readFileSync('public/game/gold/goldProductBridge.js','utf8');
 const assets=fs.readFileSync('public/game/product/productAssetRuntime.js','utf8');
 const runtime=fs.readFileSync('public/gold/transition/mechanical-door-v4.gold.js');
 const runtimeText=runtime.toString('utf8');
+const apexEngine=fs.readFileSync('public/apexEngine.js','utf8');
 const build=fs.readFileSync('tools/buildGoldCutover.mjs','utf8');
 const adapter=fs.readFileSync('tools/goldShellR50k.mjs','utf8');
 const manifest=fs.readFileSync('src/game/runtimeManifest.js','utf8');
@@ -46,6 +47,10 @@ check('Gold Door runtime is module-scoped away from engine globals',
   coordinator.includes("script.type = 'module'") &&
   coordinator.includes("s.type === 'module'") &&
   coordinator.includes("script.dataset.apexSceneTransitionRuntime = 'true'"));
+check('known TAU global collision is isolated by module loading',
+  apexEngine.includes('var TAU') &&
+  runtimeText.includes('const TAU') &&
+  coordinator.includes("script.type = 'module'"));
 check('generated transition URL carries R50K revision', goldUrls.includes('/gold/transition/mechanical-door-v4.gold.js?v=20261005-owner-playtest-r50k'));
 check('real DOM replaces demo background tile', coordinator.includes("engine.open({ from: null, autoReadyAfter: null })"));
 check('destination commits only after covered + prepared', coordinator.includes('!tx.covered || !tx.prepared'));
