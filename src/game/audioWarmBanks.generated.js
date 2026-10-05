@@ -34,4 +34,5 @@ export const AUDIO_WARM_BANKS = {
     "/assets/hero-rework/robot-final/sfx/robot_a2_end.mp3",
     "/assets/hero-rework/robot-final/sfx/robot_passive_milestone.mp3",
     "/assets/hero-rework/robot-final/sfx/robot_passive_upgrade.mp3"
-  ]};
+  ]
+};
