@@ -953,12 +953,6 @@
   function accentOf(body) {
     return (body && body.color) || '#ff8a1e';
   }
-  function setCritAccent(color) {
-    // Always the DONOR root inside the Gold host — never a global-id guess.
-    const root = document.querySelector('#battleHudHost #hud');
-    if (root && root.style) root.style.setProperty('--crit', color);
-  }
-
   function onRealizedDamage(ev) {
     if (!hudMounted || !ev) return;
     const seam = window.APEX_GOLD_HUD;
@@ -970,25 +964,25 @@
     const amount = Math.max(0, Number(ev.amount) || 0);
     if (!(amount > 0)) return;
     const victimHp = (ev.victim && typeof ev.victim.hp === 'number') ? ev.victim.hp : null;
+    // Capture the source accent on THIS transaction. Never mutate one shared
+    // CSS variable: simultaneous Local hits must keep their own source color.
+    const impactAccent = accentOf(ev.attacker);
     const storm = stormbreakerHit(ev);
     const heavy = heavyTierFor(v, amount, now);
     if (storm) {
-      setCritAccent(accentOf(ev.attacker));
-      if (seam.hitStorm) seam.hitStorm(a, v, amount, victimHp);
-      else seam.hit(a, v, amount, 'heavy', victimHp);
+      if (seam.hitStorm) seam.hitStorm(a, v, amount, victimHp, impactAccent);
+      else seam.hit(a, v, amount, 'heavy', victimHp, impactAccent);
       return;
     }
     if (heavy) {
-      if (seam.hit) seam.hit(a, v, amount, 'heavy', victimHp);
+      if (seam.hit) seam.hit(a, v, amount, 'heavy', victimHp, impactAccent);
       return;
     }
     if (ev.critical) {
-      // Critical response color follows the attacker/source accent.
-      setCritAccent(accentOf(ev.attacker));
-      if (seam.hit) seam.hit(a, v, amount, 'crit', victimHp);
+      if (seam.hit) seam.hit(a, v, amount, 'crit', victimHp, impactAccent);
       return;
     }
-    if (seam.hit) seam.hit(a, v, amount, 'normal', victimHp);
+    if (seam.hit) seam.hit(a, v, amount, 'normal', victimHp, impactAccent);
   }
 
   function installEventTranslation() {
@@ -1226,11 +1220,19 @@
       if (meta && meta.file) asset = '/assets/arsenal/' + String(meta.file).replace(/^\/+/, '');
     } catch (e) {}
     const usesAmmo = shots > 0;
+    const cfg = window.APEX_ARSENAL_CONFIG;
+    let tier = holder && holder.meta && holder.meta.tier ? String(holder.meta.tier) : '';
+    if (!tier && cfg && typeof cfg.tierOf === 'function') {
+      try { tier = String(cfg.tierOf(weaponId) || ''); } catch (e) {}
+    }
+    const tierColor = tier && cfg && cfg.TIER_COLORS ? String(cfg.TIER_COLORS[tier] || '') : '';
     return {
       id: weaponId,
       name: String(name).toUpperCase(),
       type: String(family).toUpperCase(),
       asset,
+      tier,
+      tierColor,
       index: 0,
       mag: usesAmmo ? shots : 0,
       ammo: usesAmmo ? Math.max(0, shots - fired) : 0,
@@ -1259,8 +1261,12 @@
       const projSide = base && Array.isArray(base.sides) ? base.sides[i] : null;
       const identity = (projSide && projSide.identity) || {};
       const vitals = (projSide && projSide.vitals) || {};
+      const liveHeroId = canonicalHeroId(identity.heroId || heroIdOf(f) || '');
+      const shellKey = GOLD_SHELL_KEY_BY_PRODUCTION_ID[liveHeroId] || liveHeroId.toLowerCase();
+      const art = heroUiArt(shellKey) || {};
+      const copy = GOLD_HERO_COPY[shellKey] || {};
       const skills = skillProjection(f);
-      const weapon = weaponProjection(f) || { id: 'UNARMED', name: 'UNARMED', type: 'UNARMED', asset: '', index: 0, mag: 0, ammo: 0, usesAmmo: false, reloading: false, alt: '' };
+      const weapon = weaponProjection(f) || { id: 'UNARMED', name: 'UNARMED', type: 'UNARMED', asset: '', tier: '', tierColor: '', index: 0, mag: 0, ammo: 0, usesAmmo: false, reloading: false, alt: '' };
       const vitalsFallback = vitalsProjection(f) || { hp: 0, maxHp: 1000 };
       sides.push({
         hp: (vitals && Number.isFinite(vitals.hp)) ? vitals.hp : vitalsFallback.hp,
@@ -1268,6 +1274,13 @@
         rage: (vitals && Number.isFinite(vitals.rage)) ? vitals.rage : 0,
         accent: identity.color || (f && f.color) || '#ffffff',
         name: identity.name || (f && f.name) || '',
+        identity: {
+          heroId: liveHeroId,
+          name: identity.name || (f && f.name) || '',
+          tag: copy.tag || '',
+          battleAvatar: art.battleAvatar || art.portrait || '',
+          accent: identity.color || (f && f.color) || '#ffffff',
+        },
         skills,
         weapon,
         // Control labels come from the ACCEPTED production key law, so the HUD
