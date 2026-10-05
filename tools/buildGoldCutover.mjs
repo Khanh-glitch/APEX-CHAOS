@@ -1998,6 +1998,35 @@ function buildShell(hudProductionHtml) {
   );
   log('  R50A (shell): Mode/Pick media are route-intent only');
 
+  // ── R50J: the Gold shell is the ONE public navigation authority.
+  // External production runtimes may request Home/Mode/Fighter, but they never
+  // resurrect the removed engine menu/select DOM. Requests arriving before
+  // shell boot are queued once on window.__apexPendingGoldNavigation.
+  r49ReplaceOnce(
+    "  battle.addEventListener('click',()=>{uiSfx('ui.screen.transition');setScreen('mode')});",
+    "  function navigateGoldShell(target,opts={}){\n" +
+    "    const next=String(target||'').toLowerCase();\n" +
+    "    if(screen==='transition'||screen==='battle')return false;\n" +
+    "    if(next==='home'){\n" +
+    "      stage.classList.remove('mode-committing','match-ready');modeCards.forEach(c=>c.classList.remove('is-selected','is-committing'));setScreen('home');return true;\n" +
+    "    }\n" +
+    "    if(next==='mode'){setScreen('mode');return true;}\n" +
+    "    if(next==='fighter'){\n" +
+    "      const mode=String(opts.mode||battleMode||'local').toLowerCase()==='bot'?'bot':'local';\n" +
+    "      stage.classList.remove('mode-committing');modeCards.forEach(c=>c.classList.remove('is-selected','is-committing'));\n" +
+    "      if(screen!=='mode')setScreen('mode');\n" +
+    "      chooseMode(mode);return true;\n" +
+    "    }\n" +
+    "    return false;\n" +
+    "  }\n" +
+    "  window.APEX_GOLD_SHELL_NAVIGATE=navigateGoldShell;\n" +
+    "  const pendingGoldNav=window.__apexPendingGoldNavigation;\n" +
+    "  if(pendingGoldNav){delete window.__apexPendingGoldNavigation;queueMicrotask(()=>navigateGoldShell(pendingGoldNav.target,pendingGoldNav.options||{}));}\n\n" +
+    "  battle.addEventListener('click',()=>{uiSfx('ui.screen.transition');setScreen('mode')});",
+    'canonical Gold shell navigator'
+  );
+  log('  R50J (shell): canonical Gold navigation authority exposed');
+
 
   // ── S12: embed the production-bridged battle HUD payload (same canonical
   // base64 payload mechanism, so loading/transition timing does not drift).
