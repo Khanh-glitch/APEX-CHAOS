@@ -96,6 +96,7 @@ function registerBattleMediaElement(audio) {
 // lifecycle by design; decoded AudioBuffers/caches are never cleared.
 var battleAudioSessionToken = 0;
 var battleAudioSessionActiveFlag = false;
+var battleAudioLastTransition = { kind: 'boot', reason: 'boot', at: Date.now(), sessionId: 0 };
 var battleAudioSessionSources = new Set();
 var battleAudioSessionTimers = new Set();
 function stopRegisteredBattleAudioSources() {
@@ -256,25 +257,40 @@ function terminateBattleAudioPlayback() {
     stopRegisteredBattleAudioSources();
     clearBattleAudioSessionTimers();
 }
-function beginBattleAudioSession() {
+function beginBattleAudioSession(reason) {
     terminateBattleAudioPlayback();
     battleAudioSessionActiveFlag = true;
+    battleAudioLastTransition = {
+        kind: 'begin',
+        reason: String(reason || 'battle-start'),
+        at: Date.now(),
+        sessionId: battleAudioSessionToken,
+    };
     // Explicit session start: the master goes live NOW, for THIS session only.
     restoreBattleAudio();
+    // Do not manufacture playback. If the browser suspended WebAudio, the
+    // existing trusted-gesture bridge owns resume() and the probe below makes
+    // that state visible instead of silently guessing.
+    if (audioCtx.state !== 'running') armBattleAudioUnlock();
 }
-function endBattleAudioSession() {
+function endBattleAudioSession(reason) {
     terminateBattleAudioPlayback();
+    battleAudioLastTransition = {
+        kind: 'end',
+        reason: String(reason || 'battle-end'),
+        at: Date.now(),
+        sessionId: battleAudioSessionToken,
+    };
     // No auto-restore timer: the master stays silent until the next explicit
-    // beginBattleAudioSession() (or the engine's post-first-frame restore at
-    // a real match start).
+    // beginBattleAudioSession().
     const now = audioCtx.currentTime;
     battleAudioMaster.gain.cancelScheduledValues(now);
     battleAudioMaster.gain.setValueAtTime(.001, now);
 }
-function stopBattleAudio() {
+function stopBattleAudio(reason) {
     // Back-compat alias: every historical call site wants "no battle SFX
     // after this point" — that is end-of-session semantics.
-    endBattleAudioSession();
+    endBattleAudioSession(reason || 'legacy-stop');
 }
 function apexBattleAudioSessionState() {
     let avSources = null, avTimers = null;
@@ -288,8 +304,37 @@ function apexBattleAudioSessionState() {
     let masterGain = null;
     try { masterGain = battleAudioMaster.gain.value; } catch (error) {}
     const session = window.apexBattleAudioSessionInfo ? window.apexBattleAudioSessionInfo() : null;
-    return { masterGain, avLiveSources: avSources, avPendingTimers: avTimers, session };
+    return {
+        contextState: audioCtx.state,
+        contextTime: audioCtx.currentTime,
+        unlockArmed: battleAudioUnlockArmed,
+        masterGain,
+        activeMediaElements: activeBattleMediaElements.size,
+        registeredMediaElements: battleMediaElements.size,
+        avLiveSources: avSources,
+        avPendingTimers: avTimers,
+        session,
+        lastTransition: { ...battleAudioLastTransition },
+    };
 }
+window.apexAudioHealth = function apexAudioHealth() {
+    let productMusic = null, productMusicDiagnostics = null;
+    try {
+        if (window.apexProductMusic && typeof window.apexProductMusic.state === 'function') {
+            productMusic = window.apexProductMusic.state();
+        }
+        if (window.apexProductMusic && typeof window.apexProductMusic.diagnostics === 'function') {
+            productMusicDiagnostics = window.apexProductMusic.diagnostics();
+        }
+    } catch (error) {}
+    return {
+        hidden: typeof document !== 'undefined' ? !!document.hidden : null,
+        hasFocus: typeof document !== 'undefined' && typeof document.hasFocus === 'function' ? document.hasFocus() : null,
+        battle: apexBattleAudioSessionState(),
+        productMusic,
+        productMusicDiagnostics,
+    };
+};
 window.apexFadeBattleAudio = fadeBattleAudio;
 window.apexStopBattleAudio = stopBattleAudio;
 window.apexBeginBattleAudioSession = beginBattleAudioSession;
