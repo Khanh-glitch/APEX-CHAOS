@@ -146,10 +146,22 @@ check('result return posts one shell exit event and does not directly open/exit 
 
 const exitBlock = battle.match(/window\.exitArsenalBattleMode = function exitArsenalBattleMode\(options = \{\}\)[\s\S]*?\n  \};/);
 check('battle runtime has explicit goldHosted teardown-only branch', !!exitBlock && /if \(goldHosted\)/.test(exitBlock[0]));
-check('goldHosted branch hides legacy screens instead of calling goToMenu',
-  !!exitBlock
-  && /\['menu-screen', 'select-screen'\].*classList\.add\('hidden'\)/s.test(exitBlock[0])
-  && /gameState = 'MENU'/.test(exitBlock[0]));
+// OWNER LAW (R52): the retired menu/select ids are deleted from the product,
+// so the goldHosted branch is engine teardown ONLY — it must not paint, hide or
+// reference a screen that no longer exists, and it must not open the legacy
+// product menu. It announces the exit to the Gold shell instead.
+const goldBranch = exitBlock ? exitBlock[0].match(/if \(goldHosted\) \{[\s\S]*?return true;/) : null;
+check('goldHosted branch is teardown-only and never touches a retired screen',
+  !!goldBranch
+  && /gameState = 'MENU'/.test(goldBranch[0])
+  && !/goToMenu/.test(goldBranch[0])
+  && !/menu-screen/.test(goldBranch[0])
+  && !/select-screen/.test(goldBranch[0])
+  && /APEX_CHAOS_BATTLE_EXIT/.test(goldBranch[0]));
+// The non-Gold fallback keeps its historical destination (goToMenu), which the
+// retired-screen deletion must not have removed.
+check('non-Gold fallback still uses the one legacy menu entry point',
+  !!exitBlock && /goToMenu\(\);/.test(exitBlock[0]));
 check('legacy music resume no longer restarts at zero',
   !!exitBlock && /apexPlayMenuMusic\?\.\(false\)/.test(exitBlock[0])
   && !/apexPlayMenuMusic\?\.\(true\)/.test(exitBlock[0]));
@@ -165,12 +177,21 @@ check('Gold shell tears engine down before unmounting live battle',
   && closeBlock[0].indexOf('APEX_GOLD.exitBattle') < closeBlock[0].indexOf('APEX_GOLD.unmountBattleHud'));
 check('bridge unmount no longer independently stops theme music', !/theme\.stop\(\);/.test(bridge));
 
-// App must not install a second hidden/blur state machine when authority exists.
-check('App gates legacy music lifecycle behind missing authority',
-  app.includes('const useLegacyMusicLifecycle = !musicAuthority;'));
-const authorityCompat = app.match(/const musicAuthority = music \? music\.api : null;[\s\S]*?\/\/ CP7:/);
-check('authority-backed App compatibility wrappers never seek currentTime=0',
-  !!authorityCompat && !/currentTime\s*=\s*0/.test(authorityCompat[0]));
+// OWNER LAW (R52): the App must not install a second hidden/blur state machine
+// at all. The product music authority is the ONE owner of autoplay unlock and
+// of the visible/hidden lifecycle; the old legacy mirror (and the deleted
+// `menuMusicAllowed()` identifier it called) is gone, not re-gated.
+check('App installs exactly ONE music lifecycle (no legacy mirror)',
+  !app.includes('useLegacyMusicLifecycle')
+  && !app.includes('menuMusicAllowed')
+  && !/addEventListener\('visibilitychange'/.test(app)
+  && !/addEventListener\('blur'/.test(app)
+  && !/addEventListener\('focus'/.test(app)
+  && /window\.apexProductMusic = musicAuthority;/.test(app));
+const authorityCompat = app.match(/const musicAuthority = music \? music\.api : null;[\s\S]*?const launchProductSurface = /);
+check('the authority-backed compatibility wrappers never seek currentTime=0',
+  !!authorityCompat && !/currentTime\s*=\s*0/.test(authorityCompat[0])
+  && !/currentTime\s*=\s*0/.test(app));
 
 // Execute the shipping music authority to prove blur+hidden cannot overwrite
 // the resume latch and battle->fighter preserves the same playhead.

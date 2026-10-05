@@ -66,16 +66,18 @@
       if (fadeFrame) { win.cancelAnimationFrame(fadeFrame); fadeFrame = 0; }
     };
 
-    const visible = (id) => {
-      const el = doc.getElementById(id);
-      if (!el || el.classList.contains('hidden')) return false;
-      const style = win.getComputedStyle(el);
-      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+    // Fallback policy for hosts that never announce a surface. The legacy
+    // menu/select ids are DELETED from the product, so the live truth is the
+    // Gold shell's own screen class — the same value the router paints. The
+    // announce (APEX_GOLD.onSurface) is the primary path; this only covers the
+    // window before the bridge is deferred-loaded, and it never guesses.
+    const goldScreen = () => {
+      const stage = doc.getElementById('stage');
+      if (!stage) return '';
+      const name = String(stage.className || '').match(/(?:^|\s)screen-([a-z]+)(?:\s|$)/);
+      return name ? name[1] : '';
     };
-
-    // Fallback policy for hosts that never announce a surface: the semantic
-    // product menu plus the active Arsenal picker are the allowed flow.
-    const allowedByDom = () => visible('menu-screen') || visible('select-screen');
+    const allowedByDom = () => allowed.has(goldScreen());
 
     const isAllowed = () => (surface ? surface.allowed === true : allowedByDom());
 

@@ -2376,10 +2376,6 @@ function startDailyChallenge() {
     if (!left || !right) return;
     return apexEnsureBattleRuntimes().then(() => startSpecificMatch(left, right, { countdown:true, tournament:false, challenge }));
 }
-function setProductScreenHidden(id, hidden) {
-    const screen = document.getElementById(id);
-    if (screen) screen.classList.toggle('hidden', hidden);
-}
 // OWNER LAW 2026-10-05 (P0 black battle screen): during a Gold battle the
 // donor battle HUD owns the legacy ids (#hud/#stage/#p1Side/#p2Side) and the
 // legacy nodes are id-parked. A global document.getElementById('hud') then
@@ -2411,174 +2407,29 @@ function goToMenu() {
     autoBattlePaused = false;
     autoBattleControlsActive = false;
     updateAutoBattleControls();
-    setProductScreenHidden('select-screen', true);
-    setProductScreenHidden('menu-screen', false);
+    // OWNER LAW (R52): the legacy menu/select surfaces are deleted from the
+    // product, so this path only parks the legacy engine state and the legacy
+    // HUD node. It never paints a screen id that no longer exists.
     const hud = legacyUiElement('hud');
     if (hud) hud.style.opacity = 0;
     gameState = 'MENU';
-}
-var rosterPreviewRaf = 0;
-var rosterPreviewLastFrame = 0;
-var ROSTER_PREVIEW_INTERVAL = 160;
-var FULL_ROSTER_PREVIEW_INTERVAL = 450;
-function makeRosterPreviewFighter(ft, id) {
-    try {
-        const f = new Fighter(9000 + id, 500, 500, ft);
-        f.x = 70;
-        f.y = 50;
-        f.radius = 45;
-        f.baseRadius = 45;
-        f.maxHp = 100;
-        f.hp = 100;
-        f.isRage = false;
-        f.dir = norm(1, -0.16);
-        f.trail = [];
-        f.statuses = {};
-        f.virusParasites = [];
-        f.data = Object.assign({}, f.data || {}, {
-            beat: 1,
-            chordName: f.name === 'MUSICIAN' ? 'READY' : (f.data && f.data.chordName),
-            chordPulse: f.name === 'MUSICIAN' ? .18 : (f.data && f.data.chordPulse) || 0,
-            reels: f.name === 'ARCADE' ? ['7','BAR','BELL'] : (f.data && f.data.reels),
-            lastSpin: f.name === 'ARCADE' ? ['7','BAR','BELL'] : (f.data && f.data.lastSpin),
-            cardTimer: f.name === 'PUPPET' ? 5 : (f.data && f.data.cardTimer)
-        });
-        return f;
-    } catch (err) {
-        return {
-            id: 9000 + id, x:70, y:50, name:ft.name, type:ft, color:ft.color, radius:45,
-            baseRadius:45, maxHp:100, hp:100, isRage:false, data:{}, statuses:{},
-            trail:[], virusParasites:[], dir:norm(1,-0.16),
-            hasStatus:()=>false
-        };
-    }
-}
-function drawRosterPreview(canvas, ft, index) {
-    if (!canvas || !ft) return;
-    const ctx = canvas.getContext('2d');
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
-    const fake = canvas.__previewFighter || (canvas.__previewFighter = makeRosterPreviewFighter(ft, index));
-    fake.type = ft;
-    fake.name = ft.name;
-    fake.color = ft.color;
-    fake.x = w / 2;
-    fake.y = h * .58;
-    fake.radius = Math.min(34, h * .32);
-    fake.baseRadius = fake.radius;
-    fake.dir = norm(1, -0.16);
-    fake.trail = [];
-    fake.statuses = {};
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 0, w, h);
-    ctx.clip();
-    ctx.fillStyle = 'rgba(0,0,0,.28)';
-    ctx.beginPath();
-    ctx.ellipse(w/2, h*.78, w*.27, h*.08, 0, 0, TAU);
-    ctx.fill();
-    try {
-        fake.draw(ctx);
-    } catch (err) {
-        ctx.save();
-        ctx.translate(w/2, h*.5);
-        drawSketchBlob(ctx, fake.radius, ft.color, 12);
-        ctx.fillStyle = '#f3efe3';
-        ctx.strokeStyle = '#080808';
-        ctx.lineWidth = 4;
-        ctx.font = "900 22px 'Segoe UI'";
-        ctx.textAlign = 'center';
-        ctx.strokeText(fighterGlyph(ft.name), 0, 8);
-        ctx.fillText(fighterGlyph(ft.name), 0, 8);
-        ctx.restore();
-    }
-    ctx.restore();
-}
-function renderRosterPreviews(forceFlag = false) {
-    const force = forceFlag === true;
-    if (force && rosterPreviewRaf) {
-        window.clearTimeout(rosterPreviewRaf);
-        rosterPreviewRaf = 0;
-    }
-    const selectScreen = document.getElementById('select-screen');
-    if (!selectScreen || selectScreen.classList.contains('hidden')) {
-        rosterPreviewRaf = 0;
-        return;
-    }
-    const now = performance.now();
-    const grid = document.getElementById('roster-grid');
-    const cards = grid?.querySelectorAll('.fighter-card');
-    const previewInterval = (cards?.length || 0) > 12 ? FULL_ROSTER_PREVIEW_INTERVAL : ROSTER_PREVIEW_INTERVAL;
-    if (force || now - rosterPreviewLastFrame >= previewInterval) {
-        rosterPreviewLastFrame = now;
-        const viewport = grid?.getBoundingClientRect();
-        cards?.forEach((card, index) => {
-            const bounds = card.getBoundingClientRect();
-            if (!force && viewport && (bounds.bottom < viewport.top || bounds.top > viewport.bottom)) return;
-            const canvas = card.querySelector('.f-preview');
-            const ft = fighterTypeByName(card.dataset.fighter || '');
-            drawRosterPreview(canvas, ft, index);
-        });
-    }
-    rosterPreviewRaf = window.setTimeout(() => {
-        rosterPreviewRaf = 0;
-        renderRosterPreviews(false);
-    }, previewInterval);
-}
-function ensureRosterPreviewLoop() {
-    if (!rosterPreviewRaf) renderRosterPreviews(true);
-}
-function populateRoster() {
-    // Compatibility shim only. Current product selection is rendered by
-    // /game/ui/apexPickRuntime.js after the select runtime group is loaded.
-    document.getElementById('roster-grid')?.replaceChildren();
-}
-function syncSelectedFighterVfx() {
-    // Compatibility shim only. Current picker art/state is owned by
-    // apexPickRuntime; never resurrect the retired generic fighter art map.
-    [[1, p1Selection], [2, p2Selection]].forEach(([player, fighter]) => {
-        const image = document.getElementById(`p${player}-fighter-vfx`);
-        if (!image) return;
-        const slot = image.closest('.picked-fighter-slot');
-        if (slot) slot.dataset.fighter = fighter?.name || '';
-        image.classList.remove('has-fighter');
-        image.alt = fighter ? `Player ${player}: ${fighter.name}` : `Player ${player} fighter`;
-        image.removeAttribute('src');
-    });
-}
-function selectFighter(ft, card) {
-    if (!p1Selection) {
-        p1Selection = ft;
-        card.classList.add('selected-p1');
-        document.getElementById('select-title').innerText = 'SELECT PLAYER 2';
-        document.getElementById('select-title').style.color = '#ff776f';
-    } else if (!p2Selection) {
-        p2Selection = ft;
-        card.classList.add('selected-p2');
-        document.getElementById('start-btn').classList.remove('hidden');
-        document.getElementById('select-title').innerText = 'READY TO FIGHT';
-        document.getElementById('select-title').style.color = '#f3efe3';
-    }
-    syncSelectedFighterVfx();
 }
 function goToSelect() {
     stopBattleAudio('engine:go-to-select');
     autoBattlePaused = false;
     autoBattleControlsActive = false;
     updateAutoBattleControls();
-    setProductScreenHidden('menu-screen', true);
-    setProductScreenHidden('select-screen', false);
     const hud = legacyUiElement('hud');
     if (hud) hud.style.opacity = 0;
     p1Selection = null; p2Selection = null;
     gameState = 'SELECT';
-    // Current picker runtime owns selection rendering.
-    document.getElementById('roster-grid')?.replaceChildren();
-    document.getElementById('start-btn')?.classList.add('hidden');
-    const title = document.getElementById('select-title');
-    if (title) {
-        title.innerText = 'SELECT PLAYER 1';
-        title.style.color = '#7fd4ff';
+    // OWNER LAW (R52): the pick surface is the Gold fighter-pick screen. The
+    // retired legacy pick DOM is deleted from the product, so this
+    // compatibility entry point asks the ONE Gold navigator instead of painting
+    // a screen that is gone. It stays a no-op when the navigator is not mounted.
+    const navigate = window.APEX_GOLD_SHELL_NAVIGATE;
+    if (typeof navigate === 'function') {
+        try { navigate('fighter'); } catch (error) { /* the navigator owns its own failures */ }
     }
 }
 
@@ -2682,8 +2533,6 @@ function startMatch() {
 function startSpecificMatch(ft1, ft2, opts = {}) {
     clearNinjaVisualArtifacts();
     currentChallenge = opts.challenge || null;
-    setProductScreenHidden('menu-screen', true);
-    setProductScreenHidden('select-screen', true);
     const hud = legacyUiElement('hud');
     if (hud) hud.style.opacity = 1;
     fighters = [

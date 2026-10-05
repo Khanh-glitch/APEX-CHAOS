@@ -6,6 +6,9 @@ const shell=fs.readFileSync('public/gold/shell.html','utf8');
 const build=fs.readFileSync('tools/buildGoldCutover.mjs','utf8');
 const shellAdapter=fs.readFileSync('tools/goldShellR50k.mjs','utf8');
 const meta=fs.readFileSync('public/game/arsenal/arsenalMetaRuntime.js','utf8');
+const engine=fs.readFileSync('public/apexEngine.js','utf8');
+const battle=fs.readFileSync('public/game/modes/arsenalBattleRuntime.js','utf8');
+const music=fs.readFileSync('public/game/product/productMusicAuthority.js','utf8');
 const select=fs.readFileSync('public/game/arsenal/arsenalShellSelectRuntime.js','utf8');
 const bridge=fs.readFileSync('public/game/gold/goldProductBridge.js','utf8');
 const failures=[];const passes=[];
@@ -34,6 +37,35 @@ check('shell selection never calls old goToSelect', !select.includes('goToSelect
 check('engine goToMenu compatibility is replaced by Gold route once hub loads', select.includes("window.goToMenu = function goToProductMenu()") && select.includes("requestGoldNavigation('home')"));
 check('App no longer exports engine goToSelect', !app.includes('window.goToSelect = goToSelect'));
 check('Gold bridge no longer expects menu/select DOM', !bridge.includes("for (const id of ['menu-screen', 'select-screen'])") && !bridge.includes("'menu-screen', 'select-screen'"));
+
+// ── R52: the DELETION law (not just suppression) ─────────────────────────
+// The retired product screens are deleted everywhere, so no shipping source may
+// still query, hide or paint their ids, and the dead pick/preview code that
+// existed only to fill them is gone. Every check below is about *live* bytes in
+// the shipping sources, not comments.
+check('engine keeps no reference to a retired product screen',
+  !/menu-screen|select-screen/.test(engine));
+check('engine no longer defines the retired screen helper',
+  !engine.includes('function setProductScreenHidden('));
+check('dead legacy pick/preview renderer deleted (picker is the Gold picker)',
+  !engine.includes('function drawRosterPreview(')
+  && !engine.includes('function renderRosterPreviews(')
+  && !engine.includes('function populateRoster(')
+  && !engine.includes('function selectFighter(')
+  && !engine.includes('function ensureRosterPreviewLoop(')
+  && !engine.includes('rosterPreviewRaf'));
+check('engine goToSelect routes to the ONE Gold navigator',
+  /window\.APEX_GOLD_SHELL_NAVIGATE/.test(engine)
+  && /navigate\('fighter'\)/.test(engine)
+  && !engine.includes('roster-grid'));
+check('battle runtime keeps no reference to a retired product screen',
+  !/menu-screen|select-screen/.test(battle));
+check('music authority reads a live surface, never a retired screen id',
+  !/menu-screen|select-screen/.test(music)
+  && /screen-\(\[a-z\]\+\)/.test(music)
+  && /allowed\.has\(goldScreen\(\)\)/.test(music));
+check('App keeps no retired legacy music identifiers',
+  !app.includes('menuMusicAllowed') && !app.includes('useLegacyMusicLifecycle'));
 
 check('old bespoke Battle transition DOM removed', !shell.includes('id="battleTransition"') && !shell.includes('#battleTransition'));
 check('Mechanical Door is the sole public transition route', shell.includes('window.APEX_SCENE_TRANSITION') && !shell.includes('phase-lock') && !shell.includes('phase-clamp'));

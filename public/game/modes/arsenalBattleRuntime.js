@@ -955,8 +955,8 @@
 
     resetState();
     if (AQ.feel && AQ.feel.resetMatch) AQ.feel.resetMatch();
-    ['menu-screen', 'select-screen']
-      .forEach(id => document.getElementById(id)?.classList.add('hidden'));
+    // OWNER LAW (R52): the legacy menu/select DOM is deleted from the product —
+    // there is nothing to hide. The Gold surface owns its own screens.
     // Legacy HUD only (owner law 2026-10-05): a global id lookup would resolve
     // the Gold donor battle HUD while a Gold battle is mounted.
     const hud = (typeof legacyUiElement === 'function')
@@ -1084,7 +1084,7 @@
     const labPanel = document.getElementById('aq-lab-panel');
     if (labPanel) labPanel.remove();
     const battleExitBtn = document.getElementById('aq-battle-exit');
-    if (battleExitBtn) battleExitBtn.style.display = 'none'; // PASS A: no menu-screen leak
+    if (battleExitBtn) battleExitBtn.style.display = 'none'; // PASS A: never leaks a legacy menu surface
     // Exiting always tears down the battle-audio/AV session. Presentation
     // destination is a separate concern owned by the host surface.
     window.apexEndBattleAudioSession?.('arsenal:match-exit');
@@ -1101,7 +1101,8 @@
       // Gold-hosted battle: engine teardown ONLY. Never open the legacy product
       // menu, never reset/restart theme music, and never expose legacy select.
       gameState = 'MENU';
-      ['menu-screen', 'select-screen'].forEach((id) => document.getElementById(id)?.classList.add('hidden'));
+      // The retired screens no longer exist; only the parked legacy HUD node
+      // is touched, and never the Gold donor that shares the id.
       const legacyHud = (typeof legacyUiElement === 'function')
         ? legacyUiElement('hud')
         : document.getElementById('hud');

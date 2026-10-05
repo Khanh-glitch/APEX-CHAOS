@@ -184,7 +184,6 @@ export default function App() {
   installProductSurfaceAuthority(window);
   const scriptRef = useRef(null);
   const menuAudioRef = useRef(null);
-  const menuAudioWasPlayingRef = useRef(false);
   // Product music lifecycle is owned by productMusicAuthority. React keeps
   // only the single persistent element ref for diagnostics/fallback cleanup.
   const [gameReady, setGameReady] = useState(false);
@@ -354,56 +353,13 @@ export default function App() {
       };
     }
 
-    // CP7: re-armed on every interaction (NOT once) — if a resume was ever
-    // missed (transient blur/hidden state at the exit-to-menu handoff), the
-    // next click/keypress heals the menu music instead of leaving the menu
-    // silent for the rest of the session. playMenuMusic no-ops when already
-    // playing or when no menu screen is visible.
-    // This is a MENU-RESUME path on the SAME single element; the autoplay
-    // unlock itself is the ONE temporary listener set owned by the product
-    // music authority (pointerdown/touchstart/keydown/click, removed after
-    // success) — never a second element, AudioContext or unlock set.
-    const unlock = () => playMenuMusic();
-    const pauseForHiddenTab = () => {
-      const current = menuAudioRef.current;
-      if (!current) return;
-      menuAudioWasPlayingRef.current = !current.paused;
-      current.pause();
-    };
-    const resumeForVisibleTab = () => {
-      if (!menuMusicAllowed()) {
-        menuAudioWasPlayingRef.current = false;
-        menuAudioRef.current?.pause();
-        return;
-      }
-      if (!menuAudioWasPlayingRef.current) return;
-      menuAudioWasPlayingRef.current = false;
-      playMenuMusic();
-    };
-    const handleVisibility = () => {
-      if (document.hidden) pauseForHiddenTab();
-      else resumeForVisibleTab();
-    };
-    // The product authority owns autoplay unlock + hidden/blur lifecycle.
-    // Keep these legacy listeners ONLY as a fallback when that authority could
-    // not be installed; otherwise two independent pause-state memories race.
-    const useLegacyMusicLifecycle = !musicAuthority;
-    if (useLegacyMusicLifecycle) {
-      window.addEventListener('pointerdown', unlock);
-      window.addEventListener('keydown', unlock);
-      document.addEventListener('visibilitychange', handleVisibility);
-      window.addEventListener('blur', pauseForHiddenTab);
-      window.addEventListener('focus', resumeForVisibleTab);
-    }
-
+    // OWNER LAW (R52): the product music authority is the ONE owner of autoplay
+    // unlock and of the hidden/blur lifecycle, on its ONE persistent element.
+    // The retired legacy mirror of that state machine (a second pause-state
+    // memory that could only ever read a deleted menu surface) is deleted
+    // instead of re-gated: two memories racing is exactly what the authority
+    // exists to prevent.
     return () => {
-      if (useLegacyMusicLifecycle) {
-        window.removeEventListener('pointerdown', unlock);
-        window.removeEventListener('keydown', unlock);
-        document.removeEventListener('visibilitychange', handleVisibility);
-        window.removeEventListener('blur', pauseForHiddenTab);
-        window.removeEventListener('focus', resumeForVisibleTab);
-      }
       if (audio) audio.pause();
       menuAudioRef.current = null;
       if (window.apexStopMenuMusic) delete window.apexStopMenuMusic;
