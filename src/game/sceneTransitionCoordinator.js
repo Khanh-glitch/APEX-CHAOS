@@ -1,4 +1,6 @@
-const GOLD_DOOR_RUNTIME_URL = '/gold/transition/mechanical-door-v4.gold.js?v=20261005-owner-playtest-r50k';
+import { GOLD_TRANSITION_URL } from './goldAssetManifest.js';
+
+const GOLD_DOOR_RUNTIME_URL = GOLD_TRANSITION_URL;
 
 const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
