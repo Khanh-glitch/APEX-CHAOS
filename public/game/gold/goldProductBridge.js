@@ -1360,12 +1360,21 @@
     const over = state && state.over ? String(state.over) : null;
     if (over && over !== lastKo) {
       lastKo = over;
-      // Production truth: state.over carries the WINNER'S NAME (or TIME). Map
-      // it to the real fighter side; never assume a P1/P2 token.
+      // Production truth: winnerSide is combatant identity and survives
+      // same-hero Local matches. state.over is legacy display copy only.
       const fighters = window.fighters;
-      const winnerIdx = Array.isArray(fighters)
-        ? fighters.findIndex((f) => f && String(f.name) === over)
-        : -1;
+      let winnerIdx = state && state.winnerSide === 'P1' ? 0
+        : (state && state.winnerSide === 'P2' ? 1 : -1);
+      // Compatibility for old recorded states that predate winnerSide: resolve
+      // by name ONLY when exactly one side matches. Same-name ambiguity stays
+      // unknown instead of silently crediting P1.
+      if (winnerIdx < 0 && Array.isArray(fighters)) {
+        const matches = [];
+        for (let i = 0; i < fighters.length; i++) {
+          if (fighters[i] && String(fighters[i].name) === over) matches.push(i);
+        }
+        if (matches.length === 1) winnerIdx = matches[0];
+      }
       const loserIdx = winnerIdx === 0 ? 1 : winnerIdx === 1 ? 0 : -1;
       if (winnerIdx >= 0 && typeof seam.ko === 'function') seam.ko(winnerIdx, loserIdx);
       else if (typeof seam.ko === 'function') seam.ko(-1, -1);
