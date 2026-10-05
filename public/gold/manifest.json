@@ -277,13 +277,12 @@
       "sha256": "7c5133ed1fe9d94913c7c60e42c6e30fe0fcfdac21df18d87863bb18dc04243c"
     },
     "shell.html": {
-      "bytes": 351327,
-      "sha256": "f1e410350dea6529e3209ce9a829bc8fbbb6c7a3bdab3a155d74b2f970a551c4"
+      "bytes": 345054,
+      "sha256": "44b837baf13b65ec63111dc6f5c5ed0245fb8c16d66a776cb4fe7999ac111019"
     },
     "transition/mechanical-door-v4.gold.js": {
       "bytes": 2666593,
-      "sha256": "6d338906e477c13fa42cd6727be7c41bdd0c5b66e12fc140e3836c7858ce0dd2",
-      "note": "owner Gold Mechanical Door V4 production runtime; demo triggers/backgrounds removed only"
+      "sha256": "6d338906e477c13fa42cd6727be7c41bdd0c5b66e12fc140e3836c7858ce0dd2"
     }
   }
 }
