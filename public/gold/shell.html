@@ -2191,6 +2191,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       const w=frame.contentWindow;
       if(!w)return;
       if(!w.APEX_ARSENAL_META&&window.APEX_ARSENAL_META)w.APEX_ARSENAL_META=window.APEX_ARSENAL_META;
+      if(window.APEX_GOLD&&typeof window.APEX_GOLD.luckyRoster==='function')w.APEX_GOLD_LUCKY_ROSTER=window.APEX_GOLD.luckyRoster();
       if(typeof w.APEX_LUCKY_SYNC==='function')w.APEX_LUCKY_SYNC();
     }catch(err){/* the donor reports the draw unavailable; never break the shell */}
   }
