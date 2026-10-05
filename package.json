@@ -8,7 +8,7 @@
     "dev": "pnpm arsenal:sfx:materialize && vite --host 0.0.0.0 --port 5173",
     "dev:lan": "pnpm arsenal:sfx:materialize && vite --host 0.0.0.0 --port 5173",
     "test:arsenal": "pnpm arsenal:sfx:materialize && node tools/testArsenalBattleBrowser.mjs",
-    "test:arsenal:browser": "pnpm arsenal:sfx:materialize && node tools/testArsenalBattleBrowser.mjs",
+    "test:arsenal:browser": "pnpm arsenal:sfx:materialize && node tools/testGoldCutoverBrowser.mjs",
     "test:arsenal:headless": "pnpm arsenal:sfx:materialize && node tools/testArsenalBattleHeadless.mjs",
     "test:arsenal:headless:product": "pnpm arsenal:sfx:materialize && node tools/testArsenalBattleHeadless.mjs --product-authentic",
     "test:arsenal:current-render-hud": "node tools/testArsenalCurrentRenderHud.mjs",
