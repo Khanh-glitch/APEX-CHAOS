@@ -236,6 +236,8 @@ gate('shell-public-selection-and-bot-profile-seam', () => {
   assert.ok(shells.typeFor('BLACK_HOLE')); // visible-but-locked shell remains resolvable
 
   // Locked/stale handoff never invokes either active or classic battle.
+  // Gold owns Fighter Pick now: recovery requests the semantic Gold fighter
+  // destination instead of resurrecting the retired goToSelect() DOM path.
   context.p1Selection = shells.typeFor('BLACK_HOLE');
   context.p2Selection = shells.typeFor('ROBOT');
   win.__apexArsenalSelectPending = true;
@@ -243,7 +245,9 @@ gate('shell-public-selection-and-bot-profile-seam', () => {
   win.startMatch();
   assert.equal(calls.starts.length, 0);
   assert.equal(calls.classicStarts || 0, 0);
-  assert.ok(calls.select >= 1);
+  assert.equal(calls.select, 0, 'Gold recovery must not call the retired legacy picker');
+  assert.equal(win.__apexPendingGoldNavigation?.target, 'fighter');
+  assert.equal(win.__apexPendingGoldNavigation?.options?.mode, 'local');
 
   // Local is the accepted Free Battle handoff.
   context.p1Selection = shells.typeFor('ROBOT');
@@ -307,8 +311,11 @@ gate('neutral-product-runtime-and-warmup-closure', () => {
   assert.deepEqual(legacyBattle.slice(0, legacyBattleCore.length), legacyBattleCore,
     'test-only legacy Battle retains its historical core/roster order');
 
-  assert.deepEqual(Object.keys(MODE_DEFERRED_RUNTIMES).sort(), ['arsenalProduct', 'select']);
-  assert.deepEqual(WARMUP_GROUP_SEQUENCE, ['arsenalProduct', 'select']);
+  // Gold Fighter Pick is shell-owned. There is no production select runtime
+  // group and no heavy idle warmup; Arsenal loads only on explicit battle intent.
+  assert.deepEqual(selectPaths, []);
+  assert.deepEqual(Object.keys(MODE_DEFERRED_RUNTIMES).sort(), ['arsenalProduct']);
+  assert.deepEqual(WARMUP_GROUP_SEQUENCE, []);
   assert.ok(!WARMUP_GROUP_SEQUENCE.some((group) => /quest/i.test(group)));
 
   const manifest = source('src/game/runtimeManifest.js');
@@ -353,13 +360,25 @@ gate('admin-lab-real-but-not-publicly-navigated', () => {
 
 gate('no-retired-public-menu-actions', () => {
   const app = source('src/App.jsx');
-  const menu = app.slice(app.indexOf('<div id="menu-screen"'), app.indexOf('<div id="select-screen"'));
+  const shell = source('public/gold/shell.html');
+
+  // R50J/R50K law: React no longer owns a public menu or picker. Gold Shell is
+  // the sole public product surface; semantic production navigation enters it
+  // through APEX_GOLD_SHELL_NAVIGATE instead of rebuilding retired menu cards.
+  assert.ok(!app.includes('id="menu-screen"'));
+  assert.ok(!app.includes('id="select-screen"'));
+  assert.ok(app.includes('id="gold-shell-host"'));
+  assert.ok(shell.includes('data-apex-shell-stage="true"'));
+  assert.ok(shell.includes('id="openLuckyDraw"'));
+  assert.ok(shell.includes('data-mode="bot"'));
+  assert.ok(shell.includes('data-mode="local1v1"'));
+  assert.ok(shell.includes('window.APEX_GOLD_SHELL_NAVIGATE=navigateGoldShell'));
+
   for (const retired of ['Classic Play', 'APEX CONTROL', '3-Phase', 'Saitama', 'Tournament', 'Solo 1v1 Local', 'ARSENAL QUEST', 'ARSENAL LAB']) {
-    assert.ok(!menu.includes(retired), `${retired} leaked into public menu`);
+    assert.ok(!app.includes(retired), `${retired} leaked into React public surface`);
+    assert.ok(!shell.includes(retired), `${retired} leaked into Gold public surface`);
   }
-  assert.ok(menu.includes('data-product-surface'));
-  assert.ok(menu.includes('PUBLIC_PRODUCT_SURFACES'));
-  return 'normal menu derives from semantic graph only';
+  return 'Gold Shell is the sole public menu/picker; retired React actions stay absent';
 });
 
 process.exitCode = report.failures.length ? 1 : 0;
