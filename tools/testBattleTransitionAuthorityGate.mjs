@@ -1,21 +1,18 @@
 // ---------------------------------------------------------------------------
-// Owner playtest r44, item 4 gate — BATTLE-ENTRY TRANSITION ARTIFACT + REAL SFX.
+// R51 BATTLE-ENTRY AUTHORITY GATE (rewritten from the retired r44 bespoke
+// transition gate — the law changed, the assertion did not get deleted).
 //
 // Proves, in this repository, that:
 //   1. NO synthetic oscillator SFX authority survives anywhere in the product
-//      (no createOscillator, no o.type ramp, no per-event AudioContext) — the
-//      short-lived TRIANGLE seal beep the owner reported is gone.
-//   2. The three authored battle-transition phases play the REAL Git cues
-//      (lock_impact / clamp_rail / seam_open) through the ONE semantic UI-SFX
-//      authority, exactly once each per transition, with no per-frame retrigger.
-//   3. The one semantic UI-SFX authority caches exactly one element per key
-//      (never a new Audio per click), keeps UI volume/mute separate from the
-//      MUSIC mute, debounces focus-move, and never stacks ui.button.press
-//      under fighter.lock_in.
-//   4. All 18 UI SFX pack files exist and hash-verify against the R44 manifest.
-//   5. The authored Gold seam/clamp/lock geometry is preserved (no generic fade)
-//      and the transition is retimed to a readable beat with the
-//      prefers-reduced-motion collapse intact.
+//      (no createOscillator, no per-event AudioContext).
+//   2. Battle entry speaks through the ONE semantic UI-SFX helper exactly once
+//      per cue, and the reveal itself never re-fires a cue.
+//   3. The superseded #battleTransition authority (DOM/CSS/phases/token) is
+//      gone: Mechanical Door V4 routes boot + the two Lucky Draw handoffs only.
+//   4. Battle owns its authored 430 ms clip-path shutter reveal, production
+//      READY lands BEFORE `battle-hud-open`, and a failed start throws instead
+//      of revealing donor defaults.
+//   5. All 18 UI SFX pack files exist and hash-verify against the manifest.
 // ---------------------------------------------------------------------------
 import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -56,38 +53,18 @@ ok(/uiSfxAuthority\.js/.test(SHELL), 'the ONE semantic UI-SFX authority is loade
 ok((SHELL.match(/<script[^>]*uiSfxAuthority\.js/g) || []).length === 1, 'UI-SFX authority loaded exactly once');
 
 // ── 2. phase → real Git cue mapping, exactly once per transition ───────────
-const MAP = {
-  lock: 'battle.transition.lock_impact',
-  rail: 'battle.transition.clamp_rail',
-  seal: 'battle.transition.seam_open',
-};
-const mapBlock = /const TRANSITION_SFX=\{(.*?)\};/.exec(SHELL);
-ok(!!mapBlock, 'transition phase→cue map present in the shell');
-if (mapBlock) {
-  for (const [phase, key] of Object.entries(MAP)) {
-    ok(new RegExp(`'${phase}'\\s*:\\s*'${key}'`).test(mapBlock[1]), `phase-${phase} → ${key}`);
-  }
-}
-ok(/const transitionSfxPlayed=new Set\(\)/.test(SHELL), 'once-per-transition cue set exists');
-ok(/if\(transitionSfxPlayed\.has\(key\)\)return;/.test(SHELL), 'cue cannot retrigger within one transition');
-ok(/transitionSfxPlayed\.add\(key\)/.test(SHELL), 'cue is recorded when it fires');
-ok(/transitionSfxPlayed\.clear\(\);/.test(SHELL), 'cue set is cleared when a new transition launches');
-for (const phase of ['lock', 'rail', 'seal']) {
-  ok((SHELL.match(new RegExp(`transitionSound\\('${phase}'\\)`, 'g')) || []).length === 1,
-    `transitionSound('${phase}') fires exactly once`);
-}
-// The cue must reach the authority, not a fresh element.
-ok(/window\.apexUiSfx[\s\S]{0,80}sfx\.play\(key\)/.test(SHELL), 'transition cues play through window.apexUiSfx');
-// The lock cue must be requested at the phase-lock beat (after the is-active class).
-const lockIdx = SHELL.indexOf("battleTransition.classList.add('is-active','phase-lock')");
-const lockSfxIdx = SHELL.indexOf("transitionSound('lock')");
-ok(lockIdx > -1 && lockSfxIdx > lockIdx, 'lock cue fires after phase-lock is applied');
-const clampSfxIdx = SHELL.indexOf("transitionSound('rail')");
-const clampIdx = SHELL.indexOf("battleTransition.classList.add('phase-clamp')");
-ok(clampIdx > -1 && clampSfxIdx > clampIdx, 'clamp cue fires after phase-clamp is applied');
-const seamSfxIdx = SHELL.indexOf("transitionSound('seal')");
-const seamIdx = SHELL.indexOf("battleTransition.classList.add('phase-seam')");
-ok(seamIdx > -1 && seamSfxIdx > seamIdx, 'seam cue fires after phase-seam is applied');
+// ── 2. battle entry cues: one semantic cue per intent, one authority ───────
+ok(!/transitionSfxPlayed|transitionSound\(/.test(SHELL),
+  'no superseded transition cue scheduler survives');
+ok((SHELL.match(/uiSfx\('fighter\.lock_in'\)/g) || []).length === 1,
+  'fighter.lock_in is requested exactly once',
+  String((SHELL.match(/uiSfx\('fighter\.lock_in'\)/g) || []).length));
+ok((SHELL.match(/uiSfx\('fighter\.match_ready'\)/g) || []).length === 2,
+  'fighter.match_ready covers both lock paths (BOT + 2P)',
+  String((SHELL.match(/uiSfx\('fighter\.match_ready'\)/g) || []).length));
+const revealBlock = SHELL.slice(SHELL.indexOf('async function launchBattleHud()'), SHELL.indexOf('  function cancelBattleTransition()'));
+ok(!!revealBlock && !/uiSfx\(/.test(revealBlock),
+  'the battle reveal never re-fires a UI cue');
 
 // ── 3. the real Git transition cue files exist (hash-verified) ─────────────
 const sha = (rel) => createHash('sha256').update(readFileSync(join(REPO, rel))).digest('hex');
@@ -243,29 +220,36 @@ ok(!/new\s+(window\.)?(AudioContext|webkitAudioContext)/.test(AUTH_SRC), 'the UI
 ok((AUTH_SRC.match(/new AudioCtor\(/g) || []).length === 1, 'the authority constructs elements in exactly one place');
 ok(/module\.exports/.test(AUTH_SRC), 'the authority remains require-able for tests');
 
-// ── 6. authored transition geometry is preserved (no generic fade) ─────────
-for (const sel of ['#battleTransition .bt-vignette', '#battleTransition .bt-rail', '#battleTransition .bt-plate',
-  '#battleTransition .bt-seam', '#battleTransition .bt-core', '#battleTransition .bt-scan']) {
-  ok(SHELL.includes(sel), `authored transition geometry preserved: ${sel}`);
-}
-for (const cls of ['phase-lock', 'phase-clamp', 'phase-seam', 'phase-open', 'phase-handoff']) {
-  ok(SHELL.includes(`'${cls}'`) || SHELL.includes(`.${cls}`), `authored phase preserved: ${cls}`);
-}
-ok(/is-horizontal/.test(SHELL), 'is-horizontal transition variant preserved');
-ok(/btScan/.test(SHELL), 'authored scan sweep keyframes preserved');
+// ── 6. the superseded battle transition used to live here; the law now is that
+// it must be GONE, and that the Door routes only the two Lucky Draw handoffs.
+ok(!/#battleTransition|id="battleTransition"/.test(SHELL),
+  'no superseded #battleTransition authority survives');
+ok(!/bt-(vignette|rail|plate|seam|core|scan)/.test(SHELL),
+  'no superseded transition geometry survives');
+ok(/name:'home->lucky'/.test(SHELL) && /name:'lucky->home'/.test(SHELL),
+  'the Door routes exactly the two Lucky Draw scene handoffs');
+ok(!/name:'fighter->battle'|name:'battle->fighter'/.test(SHELL),
+  'battle has no Mechanical Door route');
+ok(SHELL.includes('body.battle-transition-active'),
+  'the battle reveal owns its transition-active body state');
+ok(/#battleHudHost\.is-transitioning\{clip-path:inset\(0 49\.55% 0 49\.55%\)[^}]*transition:clip-path 430ms/.test(SHELL),
+  'the authored 430 ms shutter CSS is present');
+ok(/#battleHudHost\.is-transitioning\.is-reveal\{clip-path:inset\(0\)/.test(SHELL),
+  'the shutter reveals by clip-path, not a generic fade');
+ok(/is-horizontal/.test(SHELL), 'is-horizontal shutter variant preserved');
 ok(/prefers-reduced-motion/.test(SHELL), 'prefers-reduced-motion handling preserved');
 const rmBlock = /@media\s*\(prefers-reduced-motion:\s*reduce\)([\s\S]{0,400})/.exec(SHELL);
 ok(!!rmBlock && /1ms/.test(rmBlock[1]), 'reduced-motion collapses durations to 1ms');
 
-// ── 7. retiming: readable beat, not a loading screen ───────────────────────
-const delays = [...SHELL.matchAll(/await transitionDelay\((\d+),token\)/g)].map((m) => Number(m[1]));
-ok(delays.length === 6, 'six authored transition phases remain', String(delays.length));
-const total = delays.reduce((a, b) => a + b, 0);
-ok(total >= 1500 && total <= 2000, 'transition total is a readable 1.5–2.0 s beat', `${total}ms`);
-const revealIdx = delays.indexOf(520);
-ok(revealIdx > -1 && delays[revealIdx] >= 430, 'the is-reveal beat is >= the authored 430 ms CSS transition');
-ok(!/await transitionDelay\(4[3-9]\d\d?0?,\s*token\)/.test(SHELL) || delays[revealIdx] >= 430, 'no shortened reveal beat');
-ok(Math.max(...delays) <= 600, 'no single beat is a long pause', `${Math.max(...delays)}ms`);
+// ── 7. production READY lands BEFORE the compositor is revealed ────────────
+const liveIdx = SHELL.indexOf('const liveReady=await setBattleLive();');
+const revealIdx = SHELL.indexOf("document.body.classList.add('battle-hud-open')");
+ok(liveIdx > -1 && revealIdx > liveIdx, 'production READY precedes body.battle-hud-open');
+ok(/if\(liveReady!==true\)throw new Error\('Battle runtime did not report READY'\)/.test(SHELL),
+  'a failed production start throws instead of revealing donor defaults');
+const preloadIdx = SHELL.indexOf("battleHudHost.classList.add('is-preloading')");
+ok(preloadIdx > -1 && preloadIdx < liveIdx,
+  'the HUD is mounted hidden (is-preloading) while production loads');
 
 // ── 8. the generator owns the change (never hand-edited output) ────────────
 for (const id of ['SHL-S28', 'SHL-S29', 'SHL-S30', 'SHL-S31', 'SHL-S32', 'SHL-S33', 'SHL-S34',
@@ -282,8 +266,9 @@ if (fails.length) {
   for (const f of fails) console.log('  ✗ ' + f);
   process.exit(1);
 }
-console.log('No synthetic oscillator authority survives; the three authored battle-entry');
-console.log('phases play the real Git transition cues exactly once each through the ONE');
-console.log('semantic UI-SFX authority; 18 ui-sfx files hash-verified; authored Gold');
-console.log('geometry preserved; transition retimed to a readable beat.');
+console.log('No synthetic oscillator authority survives; battle entry speaks through the');
+console.log('ONE semantic UI-SFX helper once per cue; the superseded #battleTransition');
+console.log('authority is gone and the Door routes only the two Lucky Draw handoffs;');
+console.log('production READY lands before the authored 430 ms shutter reveal; the 18');
+console.log('ui-sfx pack files hash-verify against the manifest.');
 process.exit(0);

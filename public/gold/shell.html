@@ -1375,7 +1375,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   }
   function focusScreen(next){
     if(next==='mode')modeCards[modeFocus]?.focus({preventScroll:true});
-    else if(next==='fighter')document.querySelector(`.rosterCard[data-hero="${activePlayer==='p1'?p1Hero:p2Hero}"]`)?.focus({preventScroll:true});
+    else if(next==='fighter')document.querySelector(`.rosterCard[data-hero=\"${activePlayer==='p1'?p1Hero:p2Hero}\"]`)?.focus({preventScroll:true});
     else if(next==='home')battle.focus({preventScroll:true});
   }
   async function setScreen(next){
@@ -1520,11 +1520,16 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     window.postMessage(battleHudConfig,'*');
     APEX_GOLD.onHandoff&&APEX_GOLD.onHandoff(battleHudConfig);
   }
+  let battleEntryToken=0;
   async function setBattleLive(){
+    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('battle');
     const ready=APEX_GOLD.onBattleLive
       ? await Promise.resolve(APEX_GOLD.onBattleLive({mode:battleMode,p1:p1Hero,p2:p2Hero}))
       : false;
     if(ready!==true||!window.APEX_GOLD_HUD)return false;
+    // Production projection is now authoritative. Mark the preview handoff
+    // closed so no later HUD_READY/load callback can overwrite live
+    // skill/weapon truth with donor defaults.
     battleHudConfig={...makeBattleConfig(true)};
     window.postMessage({type:'APEX_CHAOS_BATTLE_LIVE'},'*');
     return true;
@@ -1539,6 +1544,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     });
   }
   function rollbackBattleEntry(){
+    battleEntryToken+=1;
     document.body.classList.remove('battle-hud-open','battle-transition-active');
     battleHudHost.classList.remove('is-open','is-preloading','is-transitioning','is-reveal','is-horizontal');
     battleHudHost.setAttribute('aria-hidden','true');
@@ -1555,25 +1561,48 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     if(window.APEX_SCENE_TRANSITION?.active?.())return;
     screen='transition';
     // Battle is NOT a Mechanical Door route. It owns its own lifecycle and
-    // lazy-loads only when LOCK IN actually requests combat.
+    // lazy-loads only when LOCK IN actually requests combat. The entry beat is
+    // a music-allowed scene surface; combat itself takes the music down.
+    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('transition');
+    const token=++battleEntryToken;
     battleHudConfig=makeBattleConfig(false);
     try{
       const heroIds=[p1Hero,battleMode==='bot'?botHeroId():p2Hero].filter(Boolean);
       if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('battle',{heroIds});
+      if(token!==battleEntryToken)return;
       battleHudHost.setAttribute('aria-hidden','false');
       battleHudHost.classList.add('is-preloading');
       await waitBattleHudMount();
+      if(token!==battleEntryToken)return;
       sendBattleHudConfig();
       await window.APEX_SCENE_TRANSITION?.prepareElement?.(battleHudHost);
+      if(token!==battleEntryToken)return;
 
       freezeParentRuntime();
-      battleHudHost.classList.remove('is-preloading','is-transitioning','is-reveal','is-horizontal');
+      // OWNER READY LAW: production must be live with the first truth frame
+      // applied BEFORE the compositor is revealed. A failed start rolls the
+      // entire entry back — donor defaults are never shown to the player.
+      const liveReady=await setBattleLive();
+      if(token!==battleEntryToken)return;
+      if(liveReady!==true)throw new Error('Battle runtime did not report READY');
+      // Gold Battle owns its authored 430 ms shutter reveal. The Door owns boot
+      // and the Lucky Draw bay only, so this beat never engages the coordinator.
+      battleHudHost.classList.toggle('is-horizontal',(battleHudHost.clientWidth||0)>(battleHudHost.clientHeight||0));
+      battleHudHost.classList.remove('is-preloading');
+      battleHudHost.classList.add('is-transitioning');
+      document.body.classList.add('battle-transition-active');
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+      if(token!==battleEntryToken)return;
+      battleHudHost.classList.add('is-reveal');
+      await new Promise(r=>setTimeout(r,430));
+      if(token!==battleEntryToken)return;
+      battleHudHost.classList.remove('is-transitioning','is-reveal','is-horizontal');
       battleHudHost.classList.add('is-open');
+      document.body.classList.remove('battle-transition-active');
       document.body.classList.add('battle-hud-open');
-      APEX_GOLD.onSurface&&APEX_GOLD.onSurface('battle');
-      if(await setBattleLive()!==true)throw new Error('Battle runtime did not report READY');
       screen='battle';
     }catch(error){
+      if(token!==battleEntryToken)return;
       rollbackBattleEntry();
       console.warn('[battle-entry] failed',error);
     }
@@ -1586,6 +1615,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   function closeBattleHud(){
     if(screen==='transition'){cancelBattleTransition();focusScreen('fighter');return}
     if(!battleHudHost?.classList.contains('is-open'))return;
+    battleEntryToken+=1;
     battleHudHost.classList.remove('is-open','is-preloading','is-transitioning','is-reveal','is-horizontal');
     battleHudHost.setAttribute('aria-hidden','true');
     document.body.classList.remove('battle-hud-open','battle-transition-active');
@@ -1888,7 +1918,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
 
   function moveHero(delta){
     const current=activePlayer==='p1'?p1Hero:p2Hero; const i=HERO_ORDER.indexOf(current); selectHero(HERO_ORDER[(i+delta+HERO_ORDER.length)%HERO_ORDER.length]);
-    setTimeout(()=>document.querySelector(`.rosterCard[data-hero="${activePlayer==='p1'?p1Hero:p2Hero}"]`)?.focus({preventScroll:true}),0);
+    setTimeout(()=>document.querySelector(`.rosterCard[data-hero=\"${activePlayer==='p1'?p1Hero:p2Hero}\"]`)?.focus({preventScroll:true}),0);
   }
 
   function navigateGoldShell(target,opts={}){

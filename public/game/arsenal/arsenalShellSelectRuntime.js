@@ -92,9 +92,18 @@
 
   function canPublicSelect(name) {
     const id = canonicalId(name);
-    if (!isPublicPlayableId(id)) return false;
+    if (!id) return false;
+    // ONE selection authority. The production meta owns playability, ownership
+    // AND the owner-playtest selection override; the shell adapter must never
+    // re-derive them. The old form re-checked `meta.owns()` and therefore
+    // rejected every unlocked-but-unowned Core Six hero, so window.startMatch()
+    // resolved false and Local 1v1 never reached READY (owner-visible: Local
+    // and BOT looked identical because Local never started its own HUD).
     const meta = window.APEX_ARSENAL_META;
-    return !meta || typeof meta.owns !== 'function' || meta.owns(id);
+    if (meta && typeof meta.canPublicSelect === 'function') return meta.canPublicSelect(id) === true;
+    // Cold boot fallback: the meta runtime may not be installed yet, so the
+    // product roster decides. Ownership is NEVER guessed here.
+    return isPublicPlayableId(id);
   }
 
   // The shared select screen is the only player-facing match entry point.

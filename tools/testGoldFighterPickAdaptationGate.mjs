@@ -48,10 +48,15 @@ check('Hunter physical scale comes from the one authority, not side-specific CSS
   shell.includes('hunter:{scale:.62,x:0,y:5}')
   && !/r49-fighter-presentation-authority[\s\S]*data-hero="hunter"[\s\S]*transform:scale/.test(shell));
 
-check('Frost uses one hero-level orientation for BOTH sides and is grounded lower',
-  shell.includes('frost:{scale:1.18,x:0,y:12,face:-1}')
+check('Frost uses one hero-level scale/orientation authority, feet-first and mirrored per side',
+  shell.includes('frost:{scale:1.53,x:0,y:16}')
   && shell.includes("const face=Number.isFinite(p.face)?p.face:(player==='p2'?-1:1)")
-  && shell.includes("applyHeroPresentation(img,target.renderId,target.id,target.player)"));
+  && shell.includes("applyHeroPresentation(img,target.renderId,target.id,target.player)")
+  && shell.includes("setProperty('transform-origin','50% 68%','important')")
+  // E1 owner law: no per-hero fixed facing and no historical CSS geometry
+  // override may survive beside the ONE JS presentation authority.
+  && !/frost:\{[^}]*face:/.test(shell)
+  && !/data-hero="frost"[\s\S]{0,160}scale:-?2\.5/.test(shell));
 
 check('Mirror has no static selected-large placeholder and waits for a real opponent pick',
   !shell.includes('mirror-world-runtime-opponent-ghost.svg')

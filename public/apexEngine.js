@@ -2406,7 +2406,7 @@ function legacyUiElement(id) {
 }
 
 function goToMenu() {
-    stopBattleAudio();
+    stopBattleAudio('engine:go-to-menu');
     clearNinjaVisualArtifacts();
     autoBattlePaused = false;
     autoBattleControlsActive = false;
@@ -2562,7 +2562,7 @@ function selectFighter(ft, card) {
     syncSelectedFighterVfx();
 }
 function goToSelect() {
-    stopBattleAudio();
+    stopBattleAudio('engine:go-to-select');
     autoBattlePaused = false;
     autoBattleControlsActive = false;
     updateAutoBattleControls();
@@ -2754,7 +2754,7 @@ function startSpecificMatch(ft1, ft2, opts = {}) {
     // session (terminates any previous session's sources/cues) instead of a
     // bare master restore — classic/tournament/tamChien matches get the same
     // ownership semantics as React-routed matches.
-    if (window.apexBeginBattleAudioSession) window.apexBeginBattleAudioSession();
+    if (window.apexBeginBattleAudioSession) window.apexBeginBattleAudioSession('engine:classic-match-start');
     else restoreBattleAudio();
 }
 function endMatch() {

@@ -96,10 +96,13 @@ check('Gold battle relocates ONLY the gameplay canvas, never the legacy game-wra
   && !/arena\.appendChild\(wrap\)/.test(bridge)
   && /Move ONLY the 1000×1000 gameplay canvas/.test(bridge));
 
-check('legacy product menu/select are suppressed before deferred battle loading and again before reveal',
+check('legacy product menu/select suppression runs before deferred battle loading and again before live paint',
   /function hideLegacyProductScreens\(\)/.test(bridge)
-  && /hideLegacyProductScreens\(\);[\s\S]*?await ensureDeferredRuntimes\('arsenalProduct'\)/.test(bridge)
-  && /'menu-screen', 'select-screen'/.test(bridge));
+  && bridge.indexOf('hideLegacyProductScreens();') < bridge.indexOf("await ensureDeferredRuntimes('arsenalProduct')")
+  && (bridge.match(/hideLegacyProductScreens\(\);/g) || []).length >= 3);
+check('legacy product screens are deleted from the shipped surface, not merely suppressed',
+  !/id="(menu|select)-screen"/.test(read('index.html'))
+  && !/id="(menu|select)-screen"/.test(shell));
 
 check('cold-load handoff writes selection/pending state only AFTER arsenalProduct runtime exists',
   bridge.indexOf("const loaded = await ensureDeferredRuntimes('arsenalProduct');")

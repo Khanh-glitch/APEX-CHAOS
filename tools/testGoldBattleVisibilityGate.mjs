@@ -102,7 +102,13 @@ const win = runInWindow(document, bridgeSource, 'goldProductBridge.js', {
   },
   APEX_ARSENAL_META: { owns: () => true, credits: () => 12000 },
   __apexEnsureDeferredRuntimes: async () => true,
-  startMatch() { win.__apexStartMatchCalls = (win.__apexStartMatchCalls || 0) + 1; },
+  // Production contract (`public/game/arsenal/arsenalShellSelectRuntime.js`):
+  // window.startMatch() is a Promise<boolean> READY contract — it resolves
+  // `true` only after the real Arsenal match has started. The double must
+  // honour that contract, otherwise the bridge correctly refuses to go live
+  // and this gate would be red for a test-fixture reason instead of a product
+  // one (R51 correction: the old stub returned undefined).
+  startMatch() { win.__apexStartMatchCalls = (win.__apexStartMatchCalls || 0) + 1; return Promise.resolve(true); },
 });
 const APEX_GOLD = win.APEX_GOLD;
 

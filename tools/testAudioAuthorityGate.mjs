@@ -10,8 +10,22 @@ check('App never rewinds product theme', !app.includes('currentTime = 0'));
 check('legacy reset calls removed', !app.includes('stopMenuMusic(true)') && !app.includes('playMenuMusic(true)'));
 check('menu stop routes through one authority', app.includes("authority && typeof authority.fadeOut === 'function'"));
 check('menu play routes through one authority', app.includes("musicAuthority && typeof musicAuthority.request === 'function'"));
-check('battle begin carries reason', app.includes("apexBeginBattleAudioSession?.('runApex:startsMatch')") && app.includes('apexBeginBattleAudioSession?.(`runApex:${name}`)'));
-check('battle end carries reason', app.includes("apexEndBattleAudioSession?.('runApex:goToMenu')") && app.includes('apexEndBattleAudioSession?.(`runApex:${name}`)'));
+// R51: the battle audio session is owned by the PRODUCTION runtimes now (the
+// Gold shell only drives the product surface). The law is unchanged — every
+// begin/end must carry an explicit reason so apexAudioHealth()/
+// battleAudioLastTransition can explain a silent session — but it is asserted
+// on the real call sites instead of on the retired App wrapper names.
+const engine = fs.readFileSync('public/apexEngine.js', 'utf8');
+const modes = fs.readFileSync('public/game/modes/arsenalBattleRuntime.js', 'utf8');
+const audioSurface = app + '\n' + battle + '\n' + engine + '\n' + modes;
+const beginSites = [...audioSurface.matchAll(/apexBeginBattleAudioSession\s*\??\.?\s*\(([^)]*)\)/g)].map((m) => m[1].trim());
+const endSites = [...audioSurface.matchAll(/apexEndBattleAudioSession\s*\??\.?\s*\(([^)]*)\)/g)].map((m) => m[1].trim());
+const stopSites = [...engine.matchAll(/(?<!function )stopBattleAudio\(([^)]*)\)/g)].map((m) => m[1].trim());
+check('battle begin carries reason at every production call site',
+  beginSites.length >= 2 && beginSites.every((a) => /^['"`]/.test(a)));
+check('battle end carries reason at every production call site',
+  endSites.length >= 1 && endSites.every((a) => /^['"`]/.test(a))
+  && stopSites.length >= 1 && stopSites.every((a) => /^['"`]/.test(a)));
 check('battle runtime records lifecycle transition', battle.includes('battleAudioLastTransition') && battle.includes("kind: 'begin'") && battle.includes("kind: 'end'"));
 check('battle probe exposes AudioContext state', battle.includes('contextState: audioCtx.state'));
 check('battle probe exposes master and unlock state', battle.includes('unlockArmed: battleAudioUnlockArmed') && battle.includes('masterGain'));

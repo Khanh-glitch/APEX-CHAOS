@@ -999,7 +999,7 @@
     // Correction pass: match start = begin a NEW battle-audio session (the
     // previous session's live sources/cues are terminated inside), then the
     // AV runtime re-arms its HOT bank (buffers stay decoded across sessions).
-    window.apexBeginBattleAudioSession?.();
+    window.apexBeginBattleAudioSession?.('arsenal:match-start');
     if (window.APEX_ARSENAL_AV) { window.APEX_ARSENAL_AV.clear(); window.APEX_ARSENAL_AV.preload(); }
     if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.clear();
     gameState = 'ARSENAL';
@@ -1087,7 +1087,7 @@
     if (battleExitBtn) battleExitBtn.style.display = 'none'; // PASS A: no menu-screen leak
     // Exiting always tears down the battle-audio/AV session. Presentation
     // destination is a separate concern owned by the host surface.
-    window.apexEndBattleAudioSession?.();
+    window.apexEndBattleAudioSession?.('arsenal:match-exit');
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.clear();
     if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.clear();
     if (keyListener) {

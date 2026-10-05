@@ -3,6 +3,7 @@
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
     "public/game/product/productMusicAuthority.js": "3efaf68f88a8dd732d640bb217ea8ab59dbb2350211603df466de647eac33fa6",
+    "public/game/product/productAssetRuntime.js": "37a38f43ff0069cecba25ebacb321621d288bf091e67a505ca20b09bb930ca88",
     "public/game/ui/apexCombatHudRuntime.js": "a193f90e322ed5545d1ae48185abcd819d7c0ae459d23271bf5cadd3adf6033d",
     "public/game/core/apexArsenalProductCollisionRuntime.js": "ebda0bc7539be7627b4bec0c639e61ae6a4e0f319a6327518fd23d0f7bd13090",
     "public/game/core/apexArsenalProductRenderHudRuntime.js": "881b37ff0075988add1a82059782eb207e129005a67ff8bcf322db093189edf8",
@@ -19,10 +20,10 @@
     "public/game/arsenal/arsenalManualSkillGate.js": "0330a608a68c6515f596d2a6b08c592b07e9608276553ac9b16987fd139fe0d3",
     "public/game/hero-rework/ailRuntime.js": "50a1ee52fc5f935d778a1fe1af0ba9ff843584b59f8547de8aee339c8fc58190",
     "public/game/hero-rework/heroRegistry.js": "00b0aa9f056790c386eb7c00d35ed23651b33202fef20eeb8256bfea34088d80",
-    "public/game/arsenal/arsenalShellSelectRuntime.js": "f3a66798e6b691a4db81a4703b49c839d6d75d71017e28e2ebb5268794438722",
+    "public/game/arsenal/arsenalShellSelectRuntime.js": "f6fbe13d1f58de0fde75924b86f1796bcf0c8bf81b22d91b32e212dc971b8735",
     "public/game/arsenal/arsenalChamberPaletteRuntime.js": "dea5c0cf90465ab18731dc61df4d4568ef4275695d0b81482e779806322f91a6",
     "public/game/arsenal/arsenalMetaRuntime.js": "9167d3b0875940f94efc7fab09b9bb8e577cde063463059ae6ebb8cf9df8768f",
-    "public/game/modes/arsenalBattleRuntime.js": "94c944952fdf9556aff457dd0b48e4869b9ffc2da95a6da7d6dffffcdb047483",
+    "public/game/modes/arsenalBattleRuntime.js": "b3138e1554f9c3f13feed7ef9dd2f6636594216427f6fa201bb4a6c9774466cf",
     "public/game/hero-rework/crystalaGoldV6.js": "cea96dc2b58f5c41fb482e196ec0cf9a2b9c25bb21f2b7df37afc2787b67ab2f",
     "public/game/hero-rework/crystalGameplayRuntime.js": "d2756e16c412b2e480861d2330af48647bcdb08ad1ff848031d8d5e103bd7cba",
     "public/game/hero-rework/frostGameplayRuntime.js": "7b0e8f12e2dfc70e3e7b6de76695bceaf3170b41bfce9ac44ecf13a779a6699b",
@@ -38,7 +39,6 @@
     "public/game/hero-rework/frostGoldV1.js": "0d97e857df605a3ac2a5a95099b27fa4037533844142e21e49fbca4667976f1a",
     "public/game/hero-rework/frostPresentationRuntime.js": "c187324f25c509f2558d5a6a359156d16711a6c0635a4b4ba2eb74879f7d8092",
     "public/game/hero-rework/magnetPresentationRuntime.js": "b12a7246a14a6064f59fb1b4489a596a6b1175273f1dfceb6bd6767f09323d8a",
-    "public/game/hero-rework/mirrorPresentationRuntime.js": "35748160dcdb616d39562ab4ab037e99def7cd1f0d08176102133e675f08ec4d",
-    "public/game/product/productAssetRuntime.js": "37a38f43ff0069cecba25ebacb321621d288bf091e67a505ca20b09bb930ca88"
+    "public/game/hero-rework/mirrorPresentationRuntime.js": "35748160dcdb616d39562ab4ab037e99def7cd1f0d08176102133e675f08ec4d"
   }
 }

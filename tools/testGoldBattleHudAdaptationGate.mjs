@@ -22,8 +22,26 @@ check('weapon projection distinguishes ammo vs non-ammo weapons',
   bridge.includes("mag: usesAmmo ? shots : 0") &&
   bridge.includes("usesAmmo,"));
 
+// R51: the UNARMED fallback is a real object with extra production fields
+// (tier/tierColor/reloading/alt), so the old exact-literal assertion was
+// measuring the field list instead of the law. The law is: an unarmed fighter
+// never reports a magazine, and the HUD renders a real `x/y` only for weapons
+// that actually consume ammo.
+const unarmedLiteral = bridge.match(/\|\|\s*\{ id: 'UNARMED',([^}]*)\}/);
+const unarmedFields = unarmedLiteral ? unarmedLiteral[1] : '';
 check('unarmed HUD truth is not a fake one-round magazine',
-  bridge.includes("{ id: 'UNARMED', name: 'UNARMED', type: 'UNARMED', asset: '', index: 0, mag: 0, ammo: 0, usesAmmo: false"));
+  !!unarmedLiteral
+  && /name: 'UNARMED'/.test(unarmedFields)
+  && /usesAmmo: false/.test(unarmedFields)
+  && /(^|[^\w])mag: 0,/.test(unarmedFields)
+  && /(^|[^\w])ammo: 0,/.test(unarmedFields)
+  && /asset: ''/.test(unarmedFields)
+  && bridge.includes('const usesAmmo = shots > 0;')
+  && bridge.includes('mag: usesAmmo ? shots : 0')
+  && bridge.includes('ammo: usesAmmo ? Math.max(0, shots - fired) : 0')
+  && /am\+'\/'\+w\.mag/.test(hud)
+  && /usesAmmo\?am:'—'/.test(hud),
+  unarmedFields ? unarmedFields.trim().slice(0, 120) : 'UNARMED fallback missing');
 
 check('charge skills expose recharge progress while one charge remains playable',
   bridge.includes("nextIn = charges < maxCharges ? Math.max(0, Number(s.rechargeLeft) || 0) : 0;") &&
@@ -70,11 +88,33 @@ check('hero accent reaches rails, skill panels and HUD tokens',
   hud.includes("R.side[i].root.style.setProperty('--acc',s.accent)") &&
   hud.includes("R.rail[i].root.style.setProperty('--acc',s.accent)"));
 
-check('critical/heavy FX are explicitly composited arena < FX < HUD chrome',
-  hud.includes('if(R.fx&&R.hud&&R.fx.parentElement!==R.hud)R.hud.appendChild(R.fx);') &&
-  hud.includes('#arenaZone{z-index:1}') &&
-  hud.includes('#globalFx{z-index:20;overflow:visible}') &&
-  hud.includes('#p1Side,#p2Side,#versusRail,#matchCenter{z-index:30}'));
+// R51: the FX compositor law changed with the owner's "Crit/Heavy must cover the
+// FULL panel, including the skill slots" feedback. The shipping HUD composites
+// arena(1) < HUD chrome(30) < globalFx(35) < ruptureLayer(36) with every FX
+// layer pointer-events:none, so this gate asserts the ORDER (numbers, not a
+// frozen literal) plus the input-transparency that keeps skills tappable.
+function zIndexFor(selector) {
+  const re = new RegExp(selector.replace(/[#[\]()*+?^$|\\]/g, '\\$&') + '\\{([^}]*)\\}', 'g');
+  let m, found = NaN;
+  while ((m = re.exec(hud))) {
+    const z = m[1].match(/z-index:\s*(-?\d+)/);
+    if (z) found = Number(z[1]);
+  }
+  return found;
+}
+const zArena = zIndexFor('#arenaZone');
+const zChrome = zIndexFor('#p1Side,#p2Side,#versusRail,#matchCenter');
+const zFx = zIndexFor('#globalFx');
+const zRupture = zIndexFor('#ruptureLayer');
+check('critical/heavy FX are explicitly composited arena < HUD chrome < FX < rupture',
+  Number.isFinite(zArena) && Number.isFinite(zChrome) && Number.isFinite(zFx) && Number.isFinite(zRupture)
+  && zArena < zChrome && zChrome < zFx && zFx <= zRupture,
+  `arena=${zArena} chrome=${zChrome} fx=${zFx} rupture=${zRupture}`);
+check('critical/heavy FX cover the full panel without stealing input',
+  hud.includes('if(R.fx&&R.hud&&R.fx.parentElement!==R.hud)R.hud.appendChild(R.fx);')
+  && /#copyLayer,#globalFx\{position:absolute;inset:0;pointer-events:none/.test(hud)
+  && /#globalFx\{z-index:\d+;overflow:visible\}/.test(hud)
+  && /#ruptureLayer\{[^}]*pointer-events:none/.test(hud));
 
 check('generator owns R48B through deterministic adapter',
   generator.includes("import { adaptGoldBattleHudR48b } from './goldBattleHudR48b.mjs';") &&
@@ -88,10 +128,11 @@ check('shipping shell embeds the exact shipping Battle HUD bytes',
   !!payload && decoded === hud,
   payload ? ('decoded=' + decoded.length + ' hud=' + hud.length) : 'payload missing');
 
-check('R49 Frost keeps one hero-level orientation/scale authority across both sides',
-  shell.includes('frost:{scale:1.18,x:0,y:12,face:-1}')
+check('R49/E1 Frost keeps one hero-level orientation/scale authority across both sides',
+  shell.includes('frost:{scale:1.53,x:0,y:16}')
   && shell.includes("const face=Number.isFinite(p.face)?p.face:(player==='p2'?-1:1)")
-  && shell.includes("applyHeroPresentation(img,target.renderId,target.id,target.player)"));
+  && shell.includes("applyHeroPresentation(img,target.renderId,target.id,target.player)")
+  && !/frost:\{[^}]*face:/.test(shell));
 
 check('R49 Mirror remains opponent-derived with no static selected-large placeholder',
   shell.includes('function mirrorOpponentHero(player)')
