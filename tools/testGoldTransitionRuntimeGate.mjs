@@ -136,6 +136,23 @@ const fastResult = await fast;
 check('fast transaction resolves success', fastResult?.ok === true && fastResult?.name === 'fast');
 check('target transform is cleared after DONE', root.style.transform === '');
 
+// LOST-EVENT regression: an image that already failed before the coordinator
+// observes it has complete=true and naturalWidth=0. This must reject promptly
+// instead of waiting forever for an error event that already happened.
+const broken = document.createElement('img');
+broken.setAttribute('src', '/synthetic-broken.png');
+Object.defineProperty(broken, 'complete', { configurable: true, get: () => true });
+Object.defineProperty(broken, 'naturalWidth', { configurable: true, get: () => 0 });
+root.appendChild(broken);
+let brokenRejected = false;
+try {
+  await coordinator.prepareElement(root);
+} catch (error) {
+  brokenRejected = /Scene asset failed/.test(String(error?.message || error));
+}
+check('already-failed image rejects instead of deadlocking scene settle', brokenRejected === true);
+broken.remove();
+
 // SLOW path: cover can happen first and the door must hold SEALED until
 // preparation finishes.
 const slowGate = deferred();
