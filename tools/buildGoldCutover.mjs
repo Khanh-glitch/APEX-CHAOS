@@ -40,6 +40,7 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GOLD_DIR = path.join(REPO, 'docs', 'gold-ui', 'current');
 const PRELOAD_DIR = path.join(REPO, 'docs', 'gold-ui', 'preload');
 const FONT_SRC = path.join(REPO, 'tools', 'gold-cutover', 'fonts');
+const TAB_FAVICON_SRC = path.join(REPO, 'tools', 'gold-cutover', 'assets', 'favicon-tab-apex.svg');
 const OUT_DIR = path.join(REPO, 'public', 'gold');
 const THEME_OUT = path.join(REPO, 'public', 'assets', 'audio', 'forward_drive_theme.ogg');
 const CHECK = process.argv.includes('--check');
@@ -1155,6 +1156,14 @@ function buildShell(hudProductionHtml) {
   })();
 
   const patches = [
+    // ── S0: tab favicon is a production-only owner asset. Keep the canonical
+    // profile avatar on its existing source; only the browser-tab icon changes.
+    {
+      id: 'SHL-S0',
+      why: 'owner-provided APEX mark replaces only the browser tab favicon',
+      find: '<link rel="icon" type="image/png" href="assets/gold/favicon-apex-chaos.png">',
+      replace: '<link rel="icon" type="image/svg+xml" href="assets/gold/favicon-tab-apex.svg">',
+    },
     // ── S1: production bridge script, loaded before the canonical shell
     // script so roster/mode hooks exist at canonical script evaluation.
     {
@@ -1932,6 +1941,10 @@ function main() {
   };
   walk(assetRoot);
   log(`assets staged: ${outputs.size} files (byte-for-byte from canonical pack)`);
+  // Production-only owner favicon stays outside the SHA-pinned canonical donor
+  // pack, then joins the generated shipping tree through this explicit overlay.
+  outputs.set('assets/gold/favicon-tab-apex.svg', read(TAB_FAVICON_SRC));
+  log('owner tab favicon staged (production overlay; canonical profile avatar untouched)');
 
   for (const file of fs.readdirSync(FONT_SRC)) {
     outputs.set(`fonts/${file}`, read(path.join(FONT_SRC, file)));
