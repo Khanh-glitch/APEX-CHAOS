@@ -129,12 +129,6 @@ export function adaptGoldBattleHudR50c(input) {
   );
 
   once('function flash(kind,v){','function flash(kind,v,impactAccent){','flash signature');
-  once(
-    "  el.style.background='radial-gradient(circle at '+fp.x+'px '+fp.y+'px,rgba(255,232,190,.58),rgba(255,138,30,.2) 38%,rgba(255,138,30,.045) 100%)';",
-    "  const c=impactAccent||'#ff8a1e';el.style.background='radial-gradient(circle at '+fp.x+'px '+fp.y+'px,color-mix(in srgb,'+c+' 48%,white),color-mix(in srgb,'+c+' 28%,transparent) 38%,color-mix(in srgb,'+c+' 7%,transparent) 100%)';",
-    'critical flash color'
-  );
-
   // The donor uses template literals here; adapt the exact post-R48B source.
   once(
     "  el.style.background=\`radial-gradient(circle at \${fp.x}px \${fp.y}px,rgba(255,232,190,.58),rgba(255,138,30,.2) 38%,rgba(255,138,30,.045) 100%)\`;",
