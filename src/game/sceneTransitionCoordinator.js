@@ -122,6 +122,20 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
   const sourceFor = (tx) => resolveNode(tx?.source, defaultRoot());
   const targetFor = (tx) => resolveNode(tx?.target, defaultRoot());
 
+  // Gold donor READY has two effects at once: it accelerates the remaining
+  // CLOSE and authorizes OPEN once SEALED. Production must keep the first
+  // benefit without ever allowing the second before the real destination is
+  // ready. We therefore prime the donor's own adaptive close curve as soon as
+  // prepare() is complete, then disarm OPEN permission at SEALED until the
+  // covered commit + paint + semantic readyGate have all completed.
+  const primeAdaptiveClose = (tx) => {
+    if (!tx || active !== tx || tx.failed || tx.closePrimed || tx.readySent) return;
+    if (!engine || engine.state !== 'CLOSING' || typeof engine.ready !== 'function') return;
+    tx.closePrimed = true;
+    tx.closePrimedAt = performance.now();
+    engine.ready();
+  };
+
   const finish = (ok = true) => {
     const tx = active;
     if (!tx) return;
@@ -183,6 +197,9 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
     // This is the ONLY production READY→OPEN command. Gold may accelerate the
     // remaining close timeline, but cannot skip close/SEALED/open order.
     if (!tx.readySent && active === tx) {
+      // A prepare-time prime is only a close-speed hint. Re-arm READY now so
+      // Gold re-samples the REAL final latency for its opening profile.
+      if (tx.closePrimed && engine?.readyRequested) engine.readyRequested = false;
       tx.readySent = true;
       engine?.ready();
     }
@@ -194,7 +211,15 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
     engine = new gold.TransitionEngine(canvas, assets, {
       onState: (state) => {
         bodyState(state);
-        if (active) active.state = state;
+        if (active) {
+          active.state = state;
+          // If adaptive close reached SEALED before the destination's final
+          // semantic gate, revoke the prime's release bit. The Gold door stays
+          // fully sealed and keeps its authored hold until final READY.
+          if (state === 'SEALED' && active.closePrimed && !active.gateReady && engine?.readyRequested) {
+            engine.readyRequested = false;
+          }
+        }
       },
       onCover: () => {
         if (!active) return;
@@ -241,8 +266,10 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       covered: false,
       committed: false,
       settled: false,
-      gateReady: !readyGate,
+      gateReady: false,
       readySent: false,
+      closePrimed: false,
+      closePrimedAt: 0,
       failed: false,
       error: null,
       startedAt: performance.now(),
@@ -264,6 +291,7 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       .then(async () => {
         if (active !== tx) return;
         tx.prepared = true;
+        primeAdaptiveClose(tx);
         await commitWhenSafe();
       })
       .catch(async (error) => {
@@ -327,6 +355,8 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       committed: active.committed,
       settled: active.settled,
       readySent: active.readySent,
+      closePrimed: active.closePrimed,
+      closePrimedMs: active.closePrimedAt ? active.closePrimedAt - active.startedAt : null,
       failed: active.failed,
       elapsedMs: performance.now() - active.startedAt,
       engine: engine?.getDebug?.() || null,
