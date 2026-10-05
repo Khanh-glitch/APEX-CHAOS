@@ -12,6 +12,7 @@ const runtimeText=runtime.toString('utf8');
 const build=fs.readFileSync('tools/buildGoldCutover.mjs','utf8');
 const adapter=fs.readFileSync('tools/goldShellR50k.mjs','utf8');
 const manifest=fs.readFileSync('src/game/runtimeManifest.js','utf8');
+const goldUrls=fs.readFileSync('src/game/goldAssetManifest.js','utf8');
 
 const failures=[];const passes=[];
 function check(name,cond){(cond?passes:failures).push((cond?'PASS ':'FAIL ')+name);}
@@ -35,7 +36,8 @@ for(const token of ['TRIGGER CLOSE','READY → OPEN','closeBtn','readyBtn','rese
 check('boot begins black', app.includes('id="apex-boot-blackout"') && !app.includes('id="loading-screen"'));
 check('one transition canvas is mounted', app.includes('id="apex-scene-transition"'));
 check('Home Core is awaited before boot READY', app.includes("await window.APEX_GOLD.prepareSurface('home')") && app.includes('signalBootReady'));
-check('coordinator loads pinned R50K runtime', coordinator.includes('/gold/transition/mechanical-door-v4.gold.js?v=20261005-owner-playtest-r50k'));
+check('coordinator consumes generated transition URL', coordinator.includes("import { GOLD_TRANSITION_URL } from './goldAssetManifest.js'") && coordinator.includes('const GOLD_DOOR_RUNTIME_URL = GOLD_TRANSITION_URL'));
+check('generated transition URL carries R50K revision', goldUrls.includes('/gold/transition/mechanical-door-v4.gold.js?v=20261005-owner-playtest-r50k'));
 check('real DOM replaces demo background tile', coordinator.includes("engine.open({ from: null, autoReadyAfter: null })"));
 check('destination commits only after covered + prepared', coordinator.includes('!tx.covered || !tx.prepared'));
 check('destination settles before READY', coordinator.indexOf('await settleSceneElement(revealRoot)') < coordinator.indexOf('engine?.ready()'));
