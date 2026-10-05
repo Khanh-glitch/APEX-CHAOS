@@ -15,6 +15,7 @@ check('Gold manifest revision matches runtime authority', manifest.runtimeRevisi
 check('Gold shell URL carries current revision', urls.includes(`/gold/shell.html?v=${revision}`));
 check('Gold Lucky URL carries current revision', urls.includes(`/gold/lucky-draw.html?v=${revision}`));
 check('Gold HUD URL carries current revision', urls.includes(`/gold/battle-hud.html?v=${revision}`));
+check('Gold transition URL carries current revision', urls.includes(`/gold/transition/mechanical-door-v4.gold.js?v=${revision}`));
 check('Mechanical Door is classified as shipping', urls.includes("'/gold/transition/mechanical-door-v4.gold.js'"));
 
 for(const name of ['battle-hud.html','lucky-draw.html','shell.html','transition/mechanical-door-v4.gold.js']){
