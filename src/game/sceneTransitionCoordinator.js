@@ -2,8 +2,6 @@ import { GOLD_TRANSITION_URL } from './goldAssetManifest.js';
 
 const GOLD_DOOR_RUNTIME_URL = GOLD_TRANSITION_URL;
 
-const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
-
 async function decodeLoadedImages(root) {
   if (!root || !root.querySelectorAll) return;
   // Asset-intent law: this helper NEVER promotes data-apex-src. The surface
