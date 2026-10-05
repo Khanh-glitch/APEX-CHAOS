@@ -34,6 +34,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { adaptGoldBattleHudR48b } from './goldBattleHudR48b.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GOLD_DIR = path.join(REPO, 'docs', 'gold-ui', 'current');
@@ -802,6 +803,11 @@ const seamPatches = [
   out = out.replace('</head>', `${seamFinal}</head>`);
   if (!out.includes(seamFinal)) throw new Error('patch HUD-H15 (production seam) could not be inserted');
   log('  patch HUD-H15 (battle-hud): production seam installed');
+
+  // R48B: production-driven weapon/skill presentation + explicit compositor.
+  // Deterministic adapter asserts every seam and refuses silent donor drift.
+  out = adaptGoldBattleHudR48b(out);
+  log('  R48B (battle-hud): production assets/semantics + combat FX compositor adapted');
   return out;
 }
 

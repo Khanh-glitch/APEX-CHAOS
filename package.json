@@ -24,6 +24,7 @@
     "test:core-six-art": "node tools/testCoreSixArtAuthorityGate.mjs",
     "test:core-six-art-delivery": "node tools/testCoreSixArtDeliveryGate.mjs",
     "test:gold-fighter-pick-adaptation": "node tools/testGoldFighterPickAdaptationGate.mjs",
+    "test:gold-battle-hud-adaptation": "node tools/testGoldBattleHudAdaptationGate.mjs",
     "test:core-six-hero-av": "node tools/testCoreSixHeroAvGate.mjs",
     "test:product-music": "node tools/testProductMusicAuthorityGate.mjs",
     "test:battle-transition": "node tools/testBattleTransitionAuthorityGate.mjs",

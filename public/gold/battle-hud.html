@@ -195,6 +195,12 @@ kbd{font:inherit}
 .sk-art{grid-area:art;position:relative;display:grid;place-items:center;overflow:hidden;color:var(--acc);
   background:radial-gradient(68% 68% at 50% 56%,var(--accA),transparent 72%),repeating-linear-gradient(45deg,rgba(255,255,255,.025) 0 1px,transparent 1px 6px),linear-gradient(135deg,#1c2228,#0b0e11)}
 .sk-art svg{position:relative;z-index:1;width:60%;height:60%;display:block;transition:opacity .2s}
+.sk-art>.apex-skill-icon{position:relative;z-index:1;width:100%;height:100%;display:block;object-fit:cover;transition:opacity .2s}
+.sk-art.has-production-icon>svg{display:none}
+.skill[data-state="cd"] .sk-art>.apex-skill-icon{opacity:.35}
+.skill[data-state="active"]{background:linear-gradient(90deg,var(--accA),#10161a)}
+.skill[data-state="active"] .sk-state{color:var(--bone)}
+.skill[data-kind="charges"] .sk-state{min-width:7.2em}
 .sk-mask{position:absolute;inset:0;z-index:2;background:rgba(5,6,7,.8);transform-origin:50% 0;transform:scaleY(0)}
 .sk-cdn{position:absolute;inset:0;z-index:3;display:grid;place-items:center;font-size:var(--cdF,22px);font-weight:800;font-variant-numeric:tabular-nums;color:var(--bone);opacity:0}
 .sk-sweep{position:absolute;z-index:4;top:-20%;bottom:-20%;left:0;width:45%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);transform:translateX(-140%) skewX(-18deg)}
@@ -230,7 +236,10 @@ kbd{font:inherit}
 .side[data-mirror] .weapon{background:linear-gradient(270deg,rgba(255,255,255,.028),transparent)}
 .wp-ico{grid-area:ico;display:block;width:var(--wpIW,90px);height:calc(var(--wpIW,90px) * .3);color:var(--bone2)}
 .wp-ico svg{width:100%;height:100%;display:block}
-.side[data-mirror] .wp-ico svg{transform:scaleX(-1)}
+.wp-ico>.apex-weapon-asset{width:100%;height:100%;display:block;object-fit:contain;filter:drop-shadow(0 3px 3px rgba(0,0,0,.55))}
+.side[data-mirror] .wp-ico svg,.side[data-mirror] .wp-ico>.apex-weapon-asset{transform:scaleX(-1)}
+.weapon.no-ammo .wp-mag{opacity:.3}
+.weapon.no-ammo .wp-cur{color:var(--mute)}
 .wp-txt{grid-area:txt;display:grid;gap:2px;min-width:0}
 .wp-type{font-size:9.5px;letter-spacing:.26em;color:var(--mute);white-space:nowrap}
 .wp-name{font-size:var(--wpNF,14px);font-weight:800;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1}
@@ -249,9 +258,11 @@ kbd{font:inherit}
 
 /* layers */
 #copyLayer,#globalFx{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-#globalFx{z-index:20}
-#copyLayer{z-index:30}
+#arenaZone{z-index:1}
+#globalFx{z-index:20;overflow:visible}
 #ruptureLayer{position:absolute;inset:0;z-index:18;pointer-events:none;overflow:hidden}
+#copyLayer{z-index:40}
+#p1Side,#p2Side,#versusRail,#matchCenter{z-index:30}
 #fxDefs{position:absolute;width:0;height:0;overflow:hidden}
 #fxCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
 .gfx-flash{position:absolute;inset:0;opacity:0}
@@ -543,7 +554,19 @@ kbd{font:inherit}
     for(let i=0;i<2;i++){
       const s=st.sides&&st.sides[i];if(!s)continue;
       const p=S.players[i];
-      if(s.accent&&HEROES[i].accent!==s.accent)HEROES[i].accent=s.accent;
+      if(s.accent&&HEROES[i].accent!==s.accent){
+        HEROES[i].accent=s.accent;ACC[i]=s.accent;
+        const key=i===0?'p1':'p2';
+        R.stage.style.setProperty('--'+key,s.accent);
+        R.stage.style.setProperty('--'+key+'m','color-mix(in srgb,'+s.accent+' 76%,#000)');
+        R.stage.style.setProperty('--'+key+'a','color-mix(in srgb,'+s.accent+' 16%,transparent)');
+        R.stage.style.setProperty('--'+key+'b','color-mix(in srgb,'+s.accent+' 42%,transparent)');
+        R.side[i].root.style.setProperty('--acc',s.accent);
+        R.rail[i].root.style.setProperty('--acc',s.accent);
+        R.rail[i].root.style.setProperty('--fill0','color-mix(in srgb,'+s.accent+' 34%,#050607)');
+        R.rail[i].root.style.setProperty('--fill1','color-mix(in srgb,'+s.accent+' 78%,#050607)');
+        R.rail[i].root.style.setProperty('--fill2','color-mix(in srgb,'+s.accent+' 88%,#fff)');
+      }
       if(Array.isArray(s.keyLabels))applyKeyLabels(i,s.keyLabels);
       if(Number.isFinite(s.hp)){
         const hp=Math.max(0,Number(s.hp));
@@ -559,8 +582,11 @@ kbd{font:inherit}
         if(w){
           if(s.weapon.name)w.name=s.weapon.name;
           if(s.weapon.type)w.type=s.weapon.type;
-          if(Number.isFinite(s.weapon.mag)&&s.weapon.mag>0)w.mag=s.weapon.mag;
-          if(Number.isFinite(s.weapon.ammo))p.ammo[0]=s.weapon.ammo;
+          if(typeof s.weapon.asset==='string')w.asset=s.weapon.asset;
+          if(typeof s.weapon.alt==='string')w.alt=s.weapon.alt;
+          w.usesAmmo=s.weapon.usesAmmo!==false;
+          if(Number.isFinite(s.weapon.mag))w.mag=Math.max(0,s.weapon.mag);
+          if(Number.isFinite(s.weapon.ammo))p.ammo[0]=Math.max(0,s.weapon.ammo);
         }
         p.reloadUntil=0;
         renderWeapon(i);
@@ -568,16 +594,26 @@ kbd{font:inherit}
       if(Array.isArray(s.skills)){
         for(let k=0;k<2&&k<s.skills.length;k++){
           const sk=s.skills[k],a=p.abil[k];if(!a||!sk)continue;
-          if(sk.name){
-            a.name=sk.name;
-            const el=R.side[i].skills[k].el.querySelector('.sk-name');
-            if(el&&el.textContent!==sk.name)el.textContent=sk.name;
+          const u=R.side[i].skills[k];
+          if(sk.name){a.name=sk.name;if(u.name&&u.name.textContent!==sk.name)u.name.textContent=sk.name;}
+          if(sk.desc&&u.desc&&u.desc.textContent!==sk.desc)u.desc.textContent=sk.desc;
+          if(sk.kind){a.kind=sk.kind;u.slot.textContent=sk.kind==='charges'?'CHARGES':(sk.kind==='duration'?'ACTIVE WINDOW':'ABILITY '+(k+1));}
+          if(Number.isFinite(sk.duration))a.duration=Math.max(0,sk.duration);
+          if(sk.icon&&u.k.icon!==sk.icon){
+            let img=u.art&&u.art.querySelector(':scope > .apex-skill-icon');
+            if(!img&&u.art){img=document.createElement('img');img.className='apex-skill-icon';img.alt='';img.draggable=false;u.art.insertBefore(img,u.art.firstChild);}
+            if(img){img.src=sk.icon;img.onerror=()=>{img.remove();u.art&&u.art.classList.remove('has-production-icon');};u.art.classList.add('has-production-icon');}
+            u.k.icon=sk.icon;
           }
           if(Number.isFinite(sk.cd))a.cd=Math.max(.05,sk.cd);
-          if(Number.isFinite(sk.max))a.max=Math.max(1,sk.max);
+          if(Number.isFinite(sk.max)){
+            const max=Math.max(1,sk.max);
+            if(a.max!==max&&u.pipsRoot){u.pipsRoot.innerHTML=max>1?'<i></i>'.repeat(max):'';u.pips=[...u.pipsRoot.querySelectorAll('i')];u.k.p=undefined;}
+            a.max=max;
+          }
           if(Number.isFinite(sk.charges))a.charges=Math.max(0,Math.min(a.max,sk.charges));
-          // nextIn is the REAL remaining time from production; the donor
-          // only re-derives its own absolute deadline from it.
+          // nextIn is REAL production cooldown/recharge truth. The donor never
+          // increments charges or fabricates its own cooldown completion.
           a.next=Number.isFinite(sk.nextIn)&&sk.nextIn>0?now+sk.nextIn*1000:0;
           a.__truth=!!sk.truth;
           if(sk.castUntil)a.castUntil=now+380;
@@ -605,7 +641,14 @@ kbd{font:inherit}
     heal(v,Math.round(amt));
   };
   seam.cast=function castEvent(pi,ai){
-    cast(pi,ai,'production');
+    const a=S.players[pi]&&S.players[pi].abil[ai],u=R.side[pi]&&R.side[pi].skills[ai];
+    if(!a||!u)return;
+    const now=performance.now();a.castUntil=now+380;
+    if(a.kind==='duration'&&a.duration>0)a.activeUntil=now+a.duration*1000;
+    if(!RM.matches)u.el.animate([{scale:1},{scale:.92,offset:.16},{scale:1.035,offset:.52},{scale:1}],{duration:380,easing:'cubic-bezier(.2,.8,.2,1)'});
+    u.flash.animate([{opacity:1},{opacity:0}],{duration:380,easing:'ease-out'});
+    if(!RM.matches)u.sweep.animate([{transform:'translateX(-140%) skewX(-18deg)'},{transform:'translateX(330%) skewX(-18deg)'}],{duration:420,easing:'ease-out'});
+    streakTo(pi,u.el);
   };
   // Real ability cast telemetry (AIL 'Cast'): skill name + cooldown truth.
   // Visual cue ONLY: the production combatant owns cooldown/charges and
@@ -613,7 +656,9 @@ kbd{font:inherit}
   // become cooldown authority.
   seam.setSkill=function setSkill(pi,ai,patch){
     const a=S.players[pi]&&S.players[pi].abil[ai];if(!a||!patch)return;
-    a.castUntil=patch.castUntil?performance.now()+380:0;
+    if(patch.kind)a.kind=patch.kind;
+    if(patch.castUntil)a.castUntil=performance.now()+380;
+    if(Number.isFinite(patch.activeFor)&&patch.activeFor>0){a.duration=patch.activeFor;a.activeUntil=performance.now()+patch.activeFor*1000;}
   };
   seam.ko=function koEvent(a,v){
     ko(a,v);
@@ -635,15 +680,8 @@ kbd{font:inherit}
       const p=S.players[i];
       if(p.ghost>p.hp&&now>p.hold){p.ghost=Math.max(p.hp,p.ghost-dt*650);renderRail(i);}
       else if(p.ghost<p.hp){p.ghost=p.hp;renderRail(i);}
-      // Production truth owns skill readiness: while a projection is
-      // active the donor must not auto-restore charges between frames.
-      for(let k=0;k<2;k++){
-        const a=p.abil[k];if(!a||!a.__truth)continue;
-        if(a.next&&now>=a.next){
-          if(a.charges<a.max){a.charges++;a.next=a.charges<a.max?a.next+a.cd*1000:0;}
-          else a.next=0;
-        }
-      }
+      // Production projection is the ONLY cooldown/charge authority.
+      // The donor never increments charges or completes cooldowns locally.
     }
     renderSkills(now);
     drawThunder(now);
@@ -786,6 +824,10 @@ function sideHTML(i){const h=HEROES[i];return `
 const R={stage:$('#stage'),hud:$('#hud'),vr:$('#versusRail'),mc:$('#matchCenter'),time:$('#mcTime'),roundEl:$('#mcRound'),
  arena:$('#arena'),cv:$('#arenaCanvas'),afx:$('#arenaFx'),fx:$('#globalFx'),fxCv:$('#fxCanvas'),rupture:$('#ruptureLayer'),flash:$('.gfx-flash'),tension:$('.gfx-tension'),
  frac:$('#fracture'),copy:$('#copyLayer'),diag:$('#diag'),rail:[],side:[],ruptures:[null,null],fxTimers:[]};
+// Explicit compositor: arena < critical/heavy combat FX < HUD chrome.
+// #hud fills #stage, so reparenting this absolute full-screen node preserves
+// stage-space coordinates while preventing the live arena from covering it.
+if(R.fx&&R.hud&&R.fx.parentElement!==R.hud)R.hud.appendChild(R.fx);
 R.ctx=R.cv.getContext('2d');
 R.fxCtx=R.fxCv.getContext('2d');
 [0,1].forEach(i=>{
@@ -793,7 +835,7 @@ R.fxCtx=R.fxCv.getContext('2d');
  R.rail[i]={root:rr,cur:$('.vr-cur',rr),bar:$('.vr-bar',rr),fill:$('.vr-fill',rr),ghost:$('.vr-ghost',rr),surge:$('.vr-surge',rr),heal:$('.vr-heal',rr),hpS:'',fS:'',gS:''};
  const sd=$(i?'#p2Side':'#p1Side');sd.innerHTML=sideHTML(i);
  R.side[i]={root:sd,portrait:$('.portrait',sd),status:$('.id-status',sd),light:$('.side-light',sd),ctrl:$('.id-ctrl',sd),rival:{root:$('.rival-health',sd),name:$('.rival-name',sd),hp:$('.rival-hp',sd),fill:$('.rival-fill',sd),last:''},feed:{root:$('.duel-feed',sd),role:$('.df-role',sd),tier:$('.df-tier',sd),value:$('.df-value',sd),timer:0},
-  skills:[...sd.querySelectorAll('.skill')].map(el=>({el,mask:$('.sk-mask',el),cdn:$('.sk-cdn',el),bar:$('.sk-bar i',el),pips:[...el.querySelectorAll('.sk-pips i')],state:$('.sk-state',el),slot:$('.sk-slot',el),sweep:$('.sk-sweep',el),flash:$('.sk-flash',el),st:'ready',k:{}})),
+  skills:[...sd.querySelectorAll('.skill')].map(el=>({el,art:$('.sk-art',el),name:$('.sk-name',el),desc:$('.sk-desc',el),mask:$('.sk-mask',el),cdn:$('.sk-cdn',el),bar:$('.sk-bar i',el),pipsRoot:$('.sk-pips',el),pips:[...el.querySelectorAll('.sk-pips i')],state:$('.sk-state',el),slot:$('.sk-slot',el),sweep:$('.sk-sweep',el),flash:$('.sk-flash',el),st:'ready',k:{}})),
   wp:{root:$('.weapon',sd),ico:$('.wp-ico',sd),txt:$('.wp-txt',sd),name:$('.wp-name',sd),type:$('.wp-type',sd),cur:$('.wp-cur',sd),max:$('.wp-max',sd),mag:$('.wp-mag i',sd),alt:$('.wp-alt',sd),flash:$('.wp-flash',sd),wi:-1,k:''}};
 });
 
@@ -912,23 +954,43 @@ function renderTimer(){
  }
 }
 function renderWeapon(i){
- const p=S.players[i],h=HEROES[i],w=h.weapons[p.wi],alt=h.weapons[p.wi^1],u=R.side[i].wp;
- if(u.wi!==p.wi){u.ico.innerHTML=w.icon;u.name.textContent=w.name;u.type.textContent=w.type;if(u.alt)u.alt.textContent=alt.name;u.mag.style.setProperty('--seg',(100/w.mag)+'%');u.wi=p.wi;}
- const rel=!!p.reloadUntil,am=p.ammo[p.wi],key=rel?'R':am+'/'+w.mag;
- if(u.k!==key){u.k=key;u.cur.textContent=rel?'––':am;u.max.textContent=rel?'RELOAD':'/'+w.mag;u.root.classList.toggle('reloading',rel);
-   if(!rel)u.mag.style.clipPath=`inset(0 ${(100-am/w.mag*100).toFixed(2)}% 0 0)`;}
+ const p=S.players[i],h=HEROES[i],w=h.weapons[p.wi],u=R.side[i].wp;
+ const usesAmmo=w.usesAmmo!==false&&Number(w.mag)>0;
+ const ident=[p.wi,w.name,w.type,w.asset||'',usesAmmo?1:0,w.mag,w.alt||''].join('|');
+ if(u.wi!==ident){
+   if(w.asset){
+     u.ico.innerHTML='';
+     const img=document.createElement('img');img.className='apex-weapon-asset';img.alt='';img.draggable=false;img.src=w.asset;
+     img.addEventListener('error',()=>{img.remove();if(w.icon)u.ico.innerHTML=w.icon;},{once:true});
+     u.ico.appendChild(img);
+   }else u.ico.innerHTML=w.icon||'';
+   u.name.textContent=w.name;u.type.textContent=w.type;if(u.alt)u.alt.textContent=w.alt||'';
+   u.mag.style.setProperty('--seg',usesAmmo?(100/Math.max(1,w.mag))+'%':'100%');u.wi=ident;
+ }
+ const rel=!!p.reloadUntil,am=usesAmmo?Math.max(0,Number(p.ammo[p.wi])||0):0,key=rel?'R':(usesAmmo?am+'/'+w.mag:'NA');
+ if(u.k!==key){u.k=key;u.cur.textContent=rel?'––':(usesAmmo?am:'—');u.max.textContent=rel?'RELOAD':(usesAmmo?'/'+w.mag:'');u.root.classList.toggle('reloading',rel);u.root.classList.toggle('no-ammo',!usesAmmo);
+   if(!rel)u.mag.style.clipPath=usesAmmo?`inset(0 ${(100-am/Math.max(1,w.mag)*100).toFixed(2)}% 0 0)`:'inset(0 0 0 0)';}
 }
 function renderSkills(now){
  for(let i=0;i<2;i++)for(let k=0;k<2;k++){
   const a=S.players[i].abil[k],u=R.side[i].skills[k];
-   if(a.next&&now>=a.next){a.charges++;a.next=a.charges<a.max?a.next+a.cd*1000:0;readyPop(u,i,k);}
-  const frac=a.next?clamp((a.next-now)/(a.cd*1000),0,1):0;
-  const st=now<a.castUntil?'cast':a.charges>0?'ready':'cd';
+  const remaining=a.next?Math.max(0,(a.next-now)/1000):0;
+  const frac=a.next?clamp(remaining/Math.max(.05,a.cd),0,1):0;
+  const activeRemaining=a.activeUntil?Math.max(0,(a.activeUntil-now)/1000):0;
+  const activeFrac=a.duration>0?clamp(activeRemaining/a.duration,0,1):0;
+  const st=activeRemaining>0?'active':now<a.castUntil?'cast':a.charges>0?'ready':'cd';
   if(st!==u.st){u.el.dataset.state=st;u.st=st;}
-  const m=`scaleY(${a.charges>0?0:frac.toFixed(3)})`;if(u.k.m!==m){u.mask.style.transform=m;u.k.m=m;}
-  const b=`scaleX(${a.next?(1-frac).toFixed(3):1})`;if(u.k.b!==b){u.bar.style.transform=b;u.k.b=b;}
-  const secs=(frac*a.cd).toFixed(1);
-  const txt=st==='cast'?'CAST':st==='cd'?secs+'s':(a.max>1?a.charges+'/'+a.max:'READY');
+  u.el.dataset.kind=a.kind||'cooldown';
+  const maskFrac=(st==='cd'&&a.charges<=0)?frac:0;
+  const m=`scaleY(${maskFrac.toFixed(3)})`;if(u.k.m!==m){u.mask.style.transform=m;u.k.m=m;}
+  const meter=activeRemaining>0?activeFrac:(a.next?(1-frac):1);
+  const b=`scaleX(${meter.toFixed(3)})`;if(u.k.b!==b){u.bar.style.transform=b;u.k.b=b;}
+  const secs=remaining.toFixed(1),activeSecs=activeRemaining.toFixed(1);
+  let txt='READY';
+  if(activeRemaining>0)txt='ACTIVE '+activeSecs+'s';
+  else if(a.kind==='charges')txt=a.next&&a.charges<a.max?(a.charges+'/'+a.max+' · '+secs+'s'):(a.charges+'/'+a.max);
+  else if(st==='cast')txt='CAST';
+  else if(st==='cd')txt=secs+'s';
   if(u.k.t!==txt){u.state.textContent=txt;u.k.t=txt;}
   const cd=st==='cd'?secs:'';if(u.k.c!==cd){u.cdn.textContent=cd;u.k.c=cd;}
   if(u.k.p!==a.charges){u.pips.forEach((el,j)=>el.classList.toggle('on',j<a.charges));u.k.p=a.charges;}

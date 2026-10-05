@@ -953,8 +953,13 @@
           try {
             // Visual cue only. Cooldown/charge authority stays with the
             // production combatant and is projected per frame below.
+            const meta = heroSkillMeta(hero, payload.slot === 'A2' ? 'A2' : 'A1');
             if (typeof seam.cast === 'function') seam.cast(i, slot);
-            if (typeof seam.setSkill === 'function') seam.setSkill(i, slot, { castUntil: true });
+            if (typeof seam.setSkill === 'function') seam.setSkill(i, slot, {
+              castUntil: true,
+              activeFor: meta.kind === 'duration' ? meta.duration : 0,
+              kind: meta.kind,
+            });
           } catch (e) {}
           break;
         }
@@ -974,24 +979,69 @@
   function heroRegistry() {
     return window.APEX_HERO_REWORK_REGISTRY || null;
   }
-  function heroSkillCooldown(heroId, slot) {
+  const GOLD_SKILL_COPY = {
+    ROBOT: { A1: 'WEAPON DASH', A2: 'VIRTUAL ARMOR' },
+    HUNTER: { A1: 'TRAP DEPLOY', A2: 'DASH / STRIKE' },
+    CRYSTAL: { A1: 'CONTEXT CONSTRUCT', A2: 'AWAKENING' },
+    MAGNET: { A1: 'MAGNETIC ATTRACTION', A2: 'MAGNETIC REPEL' },
+    ICE: { A1: 'FROST BREATH', A2: 'FROST RUSH' },
+    MIRROR: { A1: 'MIRROR ARSENAL', A2: 'MIRROR EXCHANGE' },
+  };
+  function canonicalHeroId(heroId) {
+    const id = String(heroId || '').toUpperCase();
+    return id === 'FROST' ? 'ICE' : id;
+  }
+  function skillSemantic(kind, maxCharges, cooldown, duration) {
+    const cd = Number(cooldown) || 0;
+    const dur = Number(duration) || 0;
+    if (kind === 'charges') return String(maxCharges) + ' CHARGES · ' + cd.toFixed(1) + 'S RECHARGE';
+    if (kind === 'duration') return dur.toFixed(1) + 'S ACTIVE · ' + cd.toFixed(1) + 'S CD';
+    return cd.toFixed(1) + 'S COOLDOWN';
+  }
+  function heroSkillMeta(heroId, slot) {
+    const id = canonicalHeroId(heroId);
     const reg = heroRegistry();
-    if (!reg) return 10;
+    let def = null, cfg = null;
     try {
-      const cfg = (typeof reg.resolveSkillLevel === 'function')
-        ? reg.resolveSkillLevel(heroId, slot, 1)
-        : (reg.HEROES && reg.HEROES[heroId] && reg.HEROES[heroId].skills ? reg.HEROES[heroId].skills[slot] : null);
-      const cd = cfg && (cfg.cooldown != null ? cfg.cooldown : (cfg.def && cfg.def.cooldown));
-      return Number.isFinite(cd) ? Number(cd) : 10;
-    } catch (e) { return 10; }
+      const hero = reg && reg.HEROES ? reg.HEROES[id] : null;
+      def = hero && hero.skills ? hero.skills[slot] : null;
+      cfg = reg && typeof reg.resolveSkillLevel === 'function'
+        ? reg.resolveSkillLevel(id, slot, 1)
+        : (def && def.baseConfig ? def.baseConfig : null);
+    } catch (e) { cfg = def && def.baseConfig ? def.baseConfig : null; }
+    cfg = cfg || {};
+    const cooldown = Number.isFinite(Number(cfg.cooldown)) ? Number(cfg.cooldown) : 10;
+    const maxCharges = Number(cfg.maxCharges) > 0 ? Number(cfg.maxCharges) : 1;
+    const durationKeys = ['activeWindow', 'gameplayDuration', 'active', 'duration'];
+    let duration = 0;
+    for (const key of durationKeys) {
+      const value = Number(cfg[key]);
+      if (Number.isFinite(value) && value > 0) { duration = value; break; }
+    }
+    const kind = maxCharges > 1 ? 'charges' : (duration > 0 ? 'duration' : 'cooldown');
+    const shellKey = GOLD_SHELL_KEY_BY_PRODUCTION_ID[id] || id.toLowerCase();
+    const art = heroUiArt(shellKey);
+    const iconIndex = slot === 'A2' ? 2 : 1;
+    const icon = art && Array.isArray(art.skillIcons) ? (art.skillIcons[iconIndex] || '') : '';
+    const fallbackName = def && def.id
+      ? String(def.id).split('.').pop().replace(/_/g, ' ').toUpperCase()
+      : slot;
+    const name = (GOLD_SKILL_COPY[id] && GOLD_SKILL_COPY[id][slot]) || fallbackName;
+    return {
+      name,
+      cooldown,
+      maxCharges,
+      duration,
+      kind,
+      icon,
+      desc: skillSemantic(kind, maxCharges, cooldown, duration),
+    };
+  }
+  function heroSkillCooldown(heroId, slot) {
+    return heroSkillMeta(heroId, slot).cooldown;
   }
   function heroSkillName(heroId, slot) {
-    const reg = heroRegistry();
-    try {
-      const hero = reg && reg.HEROES ? reg.HEROES[heroId] : null;
-      const def = hero && hero.skills ? hero.skills[slot] : null;
-      return def && def.name ? String(def.name).toUpperCase() : slot;
-    } catch (e) { return slot; }
+    return heroSkillMeta(heroId, slot).name;
   }
   function heroIdOf(fighter) {
     return (fighter && (fighter.heroId || fighter.name)) ? String(fighter.heroId || fighter.name).toUpperCase() : null;
@@ -1013,21 +1063,29 @@
     let charges = Number.isFinite(Number(s.charges)) ? Number(s.charges) : maxCharges;
     charges = Math.max(0, Math.min(maxCharges, charges));
     let nextIn;
-    if (ct.__ctl && typeof ct.__ctl.cooldownLeft === 'function') {
-      nextIn = Number(ct.__ctl.cooldownLeft(slot)) || 0;
-    } else if (maxCharges > 1) {
-      nextIn = charges > 0 ? 0 : (Number(s.rechargeLeft) || 0);
+    if (maxCharges > 1) {
+      // Charge skills may be READY with one charge while another charge is
+      // already recharging. cooldownLeft() intentionally reports 0 in that
+      // playable state, so rechargeLeft is the truthful HUD source.
+      nextIn = charges < maxCharges ? Math.max(0, Number(s.rechargeLeft) || 0) : 0;
+    } else if (ct.__ctl && typeof ct.__ctl.cooldownLeft === 'function') {
+      nextIn = Math.max(0, Number(ct.__ctl.cooldownLeft(slot)) || 0);
     } else {
       nextIn = Math.max(0, Number(s.cdLeft) || 0);
     }
-    if (charges >= maxCharges) nextIn = 0;
+    const meta = heroSkillMeta(heroIdOf(fighter) || (ct.heroId || ''), slot);
+    const kind = maxCharges > 1 ? 'charges' : meta.kind;
     return {
-      name: heroSkillName(heroIdOf(fighter) || (ct.heroId || ''), slot),
+      name: meta.name,
       cd: cooldown,
       max: maxCharges,
       charges,
       nextIn,
       truth: true,
+      kind,
+      duration: meta.duration,
+      icon: meta.icon,
+      desc: skillSemantic(kind, maxCharges, cooldown, meta.duration),
     };
   }
   function skillProjection(fighter) {
@@ -1043,10 +1101,19 @@
       // No production combatant yet (pre-match / non-rework): report the
       // authored cooldown with an explicit not-truth marker so the HUD never
       // presents invented readiness.
+      const meta = heroId ? heroSkillMeta(heroId, slot) : { name: slot, cooldown: 10, maxCharges: 1, duration: 0, kind: 'cooldown', icon: '', desc: '10.0S COOLDOWN' };
       out.push({
-        name: heroId ? heroSkillName(heroId, slot) : slot,
-        cd: heroId ? heroSkillCooldown(heroId, slot) : 10,
-        max: 1, charges: 1, nextIn: 0, castUntil: false, truth: false,
+        name: meta.name,
+        cd: meta.cooldown,
+        max: meta.maxCharges,
+        charges: meta.maxCharges,
+        nextIn: 0,
+        castUntil: false,
+        truth: false,
+        kind: meta.kind,
+        duration: meta.duration,
+        icon: meta.icon,
+        desc: meta.desc,
       });
     }
     return out;
@@ -1055,16 +1122,27 @@
     const holder = fighter && fighter.data && fighter.data.arsenal;
     if (!holder || !holder.def) return null;
     const def = holder.def;
+    const weaponId = String(holder.weaponId || '').toUpperCase();
     const shots = Number(def.shots) || 0;
     const fired = Number(holder.shotsFired) || 0;
-    const name = def.art || holder.weaponId || 'UNARMED';
+    const name = def.art || weaponId.replace(/_/g, ' ') || 'UNARMED';
     const family = def.family || (def.category === 'ranged' ? 'RANGED' : 'MELEE');
+    let asset = '';
+    try {
+      const av = window.APEX_ARSENAL_AV;
+      const meta = av && typeof av.weaponMeta === 'function' ? av.weaponMeta(weaponId) : null;
+      if (meta && meta.file) asset = '/assets/arsenal/' + String(meta.file).replace(/^\/+/, '');
+    } catch (e) {}
+    const usesAmmo = shots > 0;
     return {
+      id: weaponId,
       name: String(name).toUpperCase(),
       type: String(family).toUpperCase(),
+      asset,
       index: 0,
-      mag: Math.max(1, shots),
-      ammo: Math.max(0, shots - fired),
+      mag: usesAmmo ? shots : 0,
+      ammo: usesAmmo ? Math.max(0, shots - fired) : 0,
+      usesAmmo,
       reloading: false,
       alt: 'UNARMED',
     };
@@ -1090,7 +1168,7 @@
       const identity = (projSide && projSide.identity) || {};
       const vitals = (projSide && projSide.vitals) || {};
       const skills = skillProjection(f);
-      const weapon = weaponProjection(f) || { name: 'UNARMED', type: 'MELEE', index: 0, mag: 1, ammo: 0, reloading: false, alt: 'UNARMED' };
+      const weapon = weaponProjection(f) || { id: 'UNARMED', name: 'UNARMED', type: 'UNARMED', asset: '', index: 0, mag: 0, ammo: 0, usesAmmo: false, reloading: false, alt: '' };
       const vitalsFallback = vitalsProjection(f) || { hp: 0, maxHp: 1000 };
       sides.push({
         hp: (vitals && Number.isFinite(vitals.hp)) ? vitals.hp : vitalsFallback.hp,

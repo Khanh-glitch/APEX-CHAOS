@@ -1,7 +1,7 @@
 {
   "generator": "tools/buildGoldCutover.mjs",
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
-  "runtimeRevision": "20261005-owner-playtest-r48a",
+  "runtimeRevision": "20261005-owner-playtest-r48b",
   "files": {
     "assets/gold/apex-chaos-wordmark.png": {
       "bytes": 496066,
@@ -200,8 +200,8 @@
       "sha256": "42ed36822b3dd931e779bc729902fa594dafd0ba9a46b5d0d4f0a25e19a639a5"
     },
     "battle-hud.html": {
-      "bytes": 103398,
-      "sha256": "07c75685426565d69c1195a2443def47d0c5dccf9567de7477033990c8f827f2"
+      "bytes": 108234,
+      "sha256": "2fbe37b7a5ebeb79597ddfc20eacf1b8e8318380c254024b455f15bf89aab444"
     },
     "fonts.css": {
       "bytes": 6552,
@@ -276,8 +276,8 @@
       "sha256": "3da12663d57383a7db46c88fc25501dbdd3961acef56193d937dd86135b619b7"
     },
     "shell.html": {
-      "bytes": 342151,
-      "sha256": "83a380a71c2875622b2291837e92471db7aaa6a4c3d71b24100c118cd86850a3"
+      "bytes": 348599,
+      "sha256": "5ba44988a5a424ab47f019aaedc0d6e5d1466f0e486b7c262baf5cedba2629bc"
     },
     "../assets/audio/forward_drive_theme.ogg": {
       "bytes": 618594,
