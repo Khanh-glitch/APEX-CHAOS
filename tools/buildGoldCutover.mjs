@@ -835,19 +835,9 @@ const LUCKY_ROSTER = [
   { shellKey: 'mirror', productionId: 'MIRROR', display: 'MIRROR', tag: 'ECHO DUPLICATE' },
 ];
 
-// The pack's Lucky Draw fighter art is an approved replaceable slot
-// (placeholder contract). Heroes without pack art receive the same authored
-// placeholder convention (560×720 data-URL SVG, accent border + name).
-function luckyPlaceholderArt(name, accent) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="560" height="720" viewBox="0 0 560 720">` +
-    `<rect width="560" height="720" fill="#080a0c"/>` +
-    `<rect x="10" y="10" width="540" height="700" fill="none" stroke="${accent}" stroke-opacity=".45" stroke-width="3" stroke-dasharray="12 10"/>` +
-    `<text x="280" y="342" text-anchor="middle" fill="${accent}" font-family="Arial" font-size="36" font-weight="700">${name}</text>` +
-    `<text x="280" y="390" text-anchor="middle" fill="#d8dce0" fill-opacity=".55" font-family="Arial" font-size="18">LUCKY DRAW ART PLACEHOLDER</text>` +
-    `</svg>`;
-  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
-}
-
+// Lucky Draw presentation is sourced from the Fighter presentation registry.
+// The static Core Six entries below are only a first-frame shipping fallback;
+// APEX_GOLD.luckyRoster() replaces/extends them on every production open.
 function buildLuckyDonor() {
   const donor = read(path.join(GOLD_DIR, 'donors', 'lucky-draw', 'index.html')).toString('utf8');
 
@@ -898,7 +888,7 @@ function buildLuckyDonor() {
       find: /#lab\{[^}]*\}\n#lab\[hidden\]\{[^}]*\}\n\.lab-row\{[^}]*\}\n\.lab-row b\{[^}]*\}\n\.lab-row em\{[^}]*\}\n#lab button\{[^}]*\}\n#lab button:hover\{[^}]*\}\n#lab button\[aria-pressed="true"\]\{[^}]*\}\n#labInfo\{[^}]*\}\n#labTab\{[^}]*\}\n#labTab:hover\{[^}]*\}\nbody\.labopen #labTab\{[^}]*\}\n#pvLabel\{[^}]*\}\n#pvLabel i\{[^}]*\}\nbody\.preview\.labopen #pvLabel\{[^}]*\}\n/,
       replace: '',
     },
-    // ── L7: production roster + placeholder art (approved replaceable slot) ─
+    // ── L7: real-art first-frame fallback; runtime registry is authoritative ─
     {
       id: 'LKY-L7',
       why: 'donor pool replaced by the production Core Six roster (ids + display names + placeholder art convention)',
