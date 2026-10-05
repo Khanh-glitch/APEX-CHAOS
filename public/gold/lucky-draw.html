@@ -752,23 +752,23 @@ function artMirror(u){
 }
 
 const FIGHTERS = [
-  { key:'newbot', id:'ROBOT', col:'#ff941f', tag:'APEX COMBAT FRAME',
-     urlBase:"data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22560%22%20height%3D%22720%22%20viewBox%3D%220%200%20560%20720%22%3E%3Crect%20width%3D%22560%22%20height%3D%22720%22%20fill%3D%22%23080a0c%22%2F%3E%3Crect%20x%3D%2210%22%20y%3D%2210%22%20width%3D%22540%22%20height%3D%22700%22%20fill%3D%22none%22%20stroke%3D%22%23ff941f%22%20stroke-opacity%3D%22.45%22%20stroke-width%3D%223%22%20stroke-dasharray%3D%2212%2010%22%2F%3E%3Ctext%20x%3D%22280%22%20y%3D%22342%22%20text-anchor%3D%22middle%22%20fill%3D%22%23ff941f%22%20font-family%3D%22Arial%22%20font-size%3D%2236%22%20font-weight%3D%22700%22%3EROBOT%3C%2Ftext%3E%3Ctext%20x%3D%22280%22%20y%3D%22390%22%20text-anchor%3D%22middle%22%20fill%3D%22%23d8dce0%22%20fill-opacity%3D%22.55%22%20font-family%3D%22Arial%22%20font-size%3D%2218%22%3ELUCKY%20DRAW%20ART%20PLACEHOLDER%3C%2Ftext%3E%3C%2Fsvg%3E", urlFx:null,
+  { key:'newbot', id:'ROBOT', name:'ROBOT', col:'#ff941f', tag:'APEX COMBAT FRAME',
+     urlBase:"/assets/gold-ui/heroes/newbot/pick_selected_large.webp", urlFx:null,
      hero:{scale:1.03,x:'0%',y:'0%'}, cover:{focusX:.50,focusY:.48,scale:1.04} },
-  { key:'hunter', id:'HUNTER', col:'#96ca2d', tag:'MANTIS ASSASSIN',
-     urlBase:"data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22560%22%20height%3D%22720%22%20viewBox%3D%220%200%20560%20720%22%3E%3Crect%20width%3D%22560%22%20height%3D%22720%22%20fill%3D%22%23080a0c%22%2F%3E%3Crect%20x%3D%2210%22%20y%3D%2210%22%20width%3D%22540%22%20height%3D%22700%22%20fill%3D%22none%22%20stroke%3D%22%2396ca2d%22%20stroke-opacity%3D%22.45%22%20stroke-width%3D%223%22%20stroke-dasharray%3D%2212%2010%22%2F%3E%3Ctext%20x%3D%22280%22%20y%3D%22342%22%20text-anchor%3D%22middle%22%20fill%3D%22%2396ca2d%22%20font-family%3D%22Arial%22%20font-size%3D%2236%22%20font-weight%3D%22700%22%3EHUNTER%3C%2Ftext%3E%3Ctext%20x%3D%22280%22%20y%3D%22390%22%20text-anchor%3D%22middle%22%20fill%3D%22%23d8dce0%22%20fill-opacity%3D%22.55%22%20font-family%3D%22Arial%22%20font-size%3D%2218%22%3ELUCKY%20DRAW%20ART%20PLACEHOLDER%3C%2Ftext%3E%3C%2Fsvg%3E", urlFx:null,
+  { key:'hunter', id:'HUNTER', name:'HUNTER', col:'#96ca2d', tag:'MANTIS ASSASSIN',
+     urlBase:"/assets/gold-ui/heroes/hunter/pick_selected_large.webp", urlFx:null,
      hero:{scale:1.03,x:'0%',y:'0%'}, cover:{focusX:.50,focusY:.48,scale:1.04} },
-  { key:'crystala', id:'CRYSTAL', col:'#55bfff', tag:'ANCIENT CRYSTAL ENTITY',
-     urlBase:"data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22560%22%20height%3D%22720%22%20viewBox%3D%220%200%20560%20720%22%3E%3Crect%20width%3D%22560%22%20height%3D%22720%22%20fill%3D%22%23080a0c%22%2F%3E%3Crect%20x%3D%2210%22%20y%3D%2210%22%20width%3D%22540%22%20height%3D%22700%22%20fill%3D%22none%22%20stroke%3D%22%2355bfff%22%20stroke-opacity%3D%22.45%22%20stroke-width%3D%223%22%20stroke-dasharray%3D%2212%2010%22%2F%3E%3Ctext%20x%3D%22280%22%20y%3D%22342%22%20text-anchor%3D%22middle%22%20fill%3D%22%2355bfff%22%20font-family%3D%22Arial%22%20font-size%3D%2236%22%20font-weight%3D%22700%22%3ECRYSTALA%3C%2Ftext%3E%3Ctext%20x%3D%22280%22%20y%3D%22390%22%20text-anchor%3D%22middle%22%20fill%3D%22%23d8dce0%22%20fill-opacity%3D%22.55%22%20font-family%3D%22Arial%22%20font-size%3D%2218%22%3ELUCKY%20DRAW%20ART%20PLACEHOLDER%3C%2Ftext%3E%3C%2Fsvg%3E", urlFx:null,
+  { key:'crystala', id:'CRYSTAL', name:'CRYSTALA', col:'#55bfff', tag:'ANCIENT CRYSTAL ENTITY',
+     urlBase:"/assets/gold-ui/heroes/crystala/pick_selected_large.webp", urlFx:null,
      hero:{scale:1.03,x:'0%',y:'0%'}, cover:{focusX:.50,focusY:.48,scale:1.04} },
-  { key:'magnet', id:'MAGNET', col:'#c7c5e9', tag:'FIELD CONTROL UNIT',
-     urlBase:"data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22560%22%20height%3D%22720%22%20viewBox%3D%220%200%20560%20720%22%3E%3Crect%20width%3D%22560%22%20height%3D%22720%22%20fill%3D%22%23080a0c%22%2F%3E%3Crect%20x%3D%2210%22%20y%3D%2210%22%20width%3D%22540%22%20height%3D%22700%22%20fill%3D%22none%22%20stroke%3D%22%23c7c5e9%22%20stroke-opacity%3D%22.45%22%20stroke-width%3D%223%22%20stroke-dasharray%3D%2212%2010%22%2F%3E%3Ctext%20x%3D%22280%22%20y%3D%22342%22%20text-anchor%3D%22middle%22%20fill%3D%22%23c7c5e9%22%20font-family%3D%22Arial%22%20font-size%3D%2236%22%20font-weight%3D%22700%22%3EMAGNET%3C%2Ftext%3E%3Ctext%20x%3D%22280%22%20y%3D%22390%22%20text-anchor%3D%22middle%22%20fill%3D%22%23d8dce0%22%20fill-opacity%3D%22.55%22%20font-family%3D%22Arial%22%20font-size%3D%2218%22%3ELUCKY%20DRAW%20ART%20PLACEHOLDER%3C%2Ftext%3E%3C%2Fsvg%3E", urlFx:null,
+  { key:'magnet', id:'MAGNET', name:'MAGNET', col:'#c7c5e9', tag:'FIELD CONTROL UNIT',
+     urlBase:"/assets/gold-ui/heroes/magnet/pick_selected_large.webp", urlFx:null,
      hero:{scale:1.03,x:'0%',y:'0%'}, cover:{focusX:.50,focusY:.48,scale:1.04} },
-  { key:'frost', id:'ICE', col:'#7ee8ff', tag:'CRYO EDGE UNIT',
-     urlBase:"data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22560%22%20height%3D%22720%22%20viewBox%3D%220%200%20560%20720%22%3E%3Crect%20width%3D%22560%22%20height%3D%22720%22%20fill%3D%22%23080a0c%22%2F%3E%3Crect%20x%3D%2210%22%20y%3D%2210%22%20width%3D%22540%22%20height%3D%22700%22%20fill%3D%22none%22%20stroke%3D%22%237ee8ff%22%20stroke-opacity%3D%22.45%22%20stroke-width%3D%223%22%20stroke-dasharray%3D%2212%2010%22%2F%3E%3Ctext%20x%3D%22280%22%20y%3D%22342%22%20text-anchor%3D%22middle%22%20fill%3D%22%237ee8ff%22%20font-family%3D%22Arial%22%20font-size%3D%2236%22%20font-weight%3D%22700%22%3EFROST%3C%2Ftext%3E%3Ctext%20x%3D%22280%22%20y%3D%22390%22%20text-anchor%3D%22middle%22%20fill%3D%22%23d8dce0%22%20fill-opacity%3D%22.55%22%20font-family%3D%22Arial%22%20font-size%3D%2218%22%3ELUCKY%20DRAW%20ART%20PLACEHOLDER%3C%2Ftext%3E%3C%2Fsvg%3E", urlFx:null,
+  { key:'frost', id:'ICE', name:'FROST', col:'#7ee8ff', tag:'CRYO EDGE UNIT',
+     urlBase:"/assets/gold-ui/heroes/frost/pick_selected_large.webp", urlFx:null,
      hero:{scale:1.03,x:'0%',y:'0%'}, cover:{focusX:.50,focusY:.48,scale:1.04} },
-  { key:'mirror', id:'MIRROR', col:'#e9e5df', tag:'ECHO DUPLICATE',
-     urlBase:"data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22560%22%20height%3D%22720%22%20viewBox%3D%220%200%20560%20720%22%3E%3Crect%20width%3D%22560%22%20height%3D%22720%22%20fill%3D%22%23080a0c%22%2F%3E%3Crect%20x%3D%2210%22%20y%3D%2210%22%20width%3D%22540%22%20height%3D%22700%22%20fill%3D%22none%22%20stroke%3D%22%23e9e5df%22%20stroke-opacity%3D%22.45%22%20stroke-width%3D%223%22%20stroke-dasharray%3D%2212%2010%22%2F%3E%3Ctext%20x%3D%22280%22%20y%3D%22342%22%20text-anchor%3D%22middle%22%20fill%3D%22%23e9e5df%22%20font-family%3D%22Arial%22%20font-size%3D%2236%22%20font-weight%3D%22700%22%3EMIRROR%3C%2Ftext%3E%3Ctext%20x%3D%22280%22%20y%3D%22390%22%20text-anchor%3D%22middle%22%20fill%3D%22%23d8dce0%22%20fill-opacity%3D%22.55%22%20font-family%3D%22Arial%22%20font-size%3D%2218%22%3ELUCKY%20DRAW%20ART%20PLACEHOLDER%3C%2Ftext%3E%3C%2Fsvg%3E", urlFx:null,
+  { key:'mirror', id:'MIRROR', name:'MIRROR', col:'#e9e5df', tag:'ECHO DUPLICATE',
+     urlBase:"/assets/gold-ui/heroes/mirror/pick_roster_cover.webp", urlFx:null,
      hero:{scale:1.03,x:'0%',y:'0%'}, cover:{focusX:.50,focusY:.48,scale:1.04} },
 ];
 const TIER = ['', 'TIER I', 'TIER II', 'TIER III'];
@@ -798,17 +798,49 @@ function showPoolTag(text){
   clearTimeout(showPoolTag.__t);
   showPoolTag.__t = setTimeout(() => { el.dataset.on = '0'; }, 2200);
 }
+function productionLuckyRoster(){
+  const direct = Array.isArray(window.APEX_GOLD_LUCKY_ROSTER) ? window.APEX_GOLD_LUCKY_ROSTER : null;
+  if (direct && direct.length) return direct;
+  try{
+    const api = window.parent && window.parent.APEX_GOLD;
+    if(api && typeof api.luckyRoster==='function') return api.luckyRoster() || [];
+  }catch(_){ }
+  return [];
+}
+function installFighterImage(F){
+  F.imgBase = new Image(); F.imgBase.decoding='async'; F.imgBase.src = F.urlBase || '';
+  F.imgFx = null;
+  F.imgBase.onload = F.imgBase.onerror = () => scheduleCovers();
+}
+function syncProductionRoster(){
+  const roster = productionLuckyRoster().filter(h => h && h.productionId && h.drawArt);
+  if(!roster.length) return false;
+  const sig = roster.map(h => [h.productionId,h.name,h.tag,h.accent,h.drawArt].join('|')).join('||');
+  if(syncProductionRoster.sig===sig) return true;
+  syncProductionRoster.sig=sig;
+  const next = roster.map(h => ({
+    key:String(h.shellKey||h.productionId).toLowerCase(), id:String(h.productionId).toUpperCase(),
+    name:String(h.name||h.productionId).toUpperCase(), col:String(h.accent||'#8d8375'), tag:String(h.tag||''),
+    urlBase:String(h.drawArt), urlFx:null, hero:{scale:1.03,x:'0%',y:'0%'}, cover:{focusX:.50,focusY:.48,scale:1.04}
+  }));
+  FIGHTERS.splice(0,FIGHTERS.length,...next);
+  FIGHTERS.forEach(installFighterImage);
+  if(typeof buildIdx==='function')buildIdx();
+  scheduleCovers();
+  return true;
+}
 window.APEX_LUCKY_SYNC = function syncProductionState(){
+  syncProductionRoster();
   const meta = window.APEX_ARSENAL_META; if (!meta) return;
   const credits = typeof meta.credits === 'function' ? meta.credits() : S.scrap;
   S.scrap = Number(credits) || 0;
   const scrapEl = $('#scrap'); if (scrapEl) scrapEl.textContent = Number(S.scrap).toLocaleString('en-US');
-  const pc = document.getElementById('poolCount'); if (pc) pc.textContent = pad2(POOL_N());
+  const pool = productionPoolIds();
+  const pc = document.getElementById('poolCount'); if (pc) pc.textContent = pad2(pool.length);
   const list = document.getElementById('drawerList');
   if (list){
-    const pool = productionPoolIds();
     list.innerHTML = FIGHTERS.filter(F => pool.includes(F.id)).map((F, i) =>
-      `<div class="dr-row"><i style="background:${F.col}"></i><b>${F.id}</b><span>${F.tag}</span></div>`).join('');
+      `<div class="drow"><span class="n">${pad2(i+1)}</span><img src="${F.urlBase}" alt=""><span>${F.name||F.id}<small>${F.tag}</small></span></div>`).join('');
   }
 };
 
@@ -1029,7 +1061,7 @@ function setHeroContent(slot, i){
   const F = FIGHTERS[i], H = F.hero || {};
   const inner = slot.querySelector('.hero-inner');
   inner.style.setProperty('--hs', H.scale ?? 1); inner.style.setProperty('--hx', H.x || '0%'); inner.style.setProperty('--hy', H.y || '0%');
-  inner.innerHTML = `<img class="h-base" src="${F.urlBase}" alt="${F.id}" draggable="false">` +
+  inner.innerHTML = `<img class="h-base" src="${F.urlBase}" alt="${F.name||F.id}" draggable="false">` +
     (F.urlFx ? `<img class="h-fx fx-${F.key}" src="${F.urlFx}" alt="" draggable="false">` : '');
   slot.dataset.f = F.key;
 }
@@ -1086,7 +1118,7 @@ function impact(w){
 const tagEl = $('#tag');
 function showTag(w){
   const F = FIGHTERS[w];
-  $('#tagN').textContent = F.id;
+  $('#tagN').textContent = F.name||F.id;
   $('#tagS').innerHTML = `CH ${pad2(w + 1)} · <i>${F.tag}</i>`;
   tagEl.getAnimations().forEach(a => a.cancel());
   anim(tagEl, [{ opacity: 0, clipPath: 'inset(0 100% 0 0)', transform: 'translateY(6px)' }, { opacity: 1, clipPath: 'inset(0 0 0 0)', transform: 'translateY(0)' }],
@@ -1155,7 +1187,7 @@ function updateIndexUI(){
   const blur = sn > .32 ? 1 : 0;
   if (blur !== lastBlur || blur === 0){
     if (blur){ $('#plM').textContent = '— — —'; }
-    else if ($('#plM').textContent !== FIGHTERS[on].id) $('#plM').textContent = FIGHTERS[on].id;
+    else if ($('#plM').textContent !== (FIGHTERS[on].name||FIGHTERS[on].id)) $('#plM').textContent = FIGHTERS[on].name||FIGHTERS[on].id;
     if (blur !== lastBlur){ plate.dataset.blur = blur; lastBlur = blur; }
   }
 }
@@ -1206,8 +1238,14 @@ function renderCover(i){
     const dw = iw * sc, dh = ih * sc;
     const fx = C.focusX ?? .5, fy = C.focusY ?? .5;
     const dx = w * .5 - iw * fx * sc, dy = H * .5 - ih * fy * sc;
+    // Keep the donor striped card/background. The reel identity is a black
+    // silhouette cut from the SAME production art revealed after the lock.
+    g.save();
+    g.globalAlpha=.94;
+    g.filter='brightness(0) saturate(0)';
     g.drawImage(F.imgBase, dx, dy, dw, dh);
-    if (F.imgFx && F.imgFx.naturalWidth) g.drawImage(F.imgFx, dx, dy, dw, dh);
+    g.filter='none';
+    g.restore();
   }
   const bgd = g.createLinearGradient(0, H * .66, 0, H); bgd.addColorStop(0, 'rgba(0,0,0,0)'); bgd.addColorStop(1, 'rgba(0,0,0,.88)');
   g.fillStyle = bgd; g.fillRect(0, 0, w, H);
@@ -1218,7 +1256,7 @@ function renderCover(i){
   const iw = g.measureText(idt).width;
   g.font = `600 ${fs}px Oswald, 'Arial Narrow', sans-serif`; g.fillStyle = '#e4d9c6';
   try { g.letterSpacing = (fs * .08).toFixed(1) + 'px'; } catch(e){}
-  g.fillText(F.id, ix + iw + fs * .45, H - fs * .75);
+  g.fillText(F.name||F.id, ix + iw + fs * .45, H - fs * .75);
   g.restore();
   g.strokeStyle = rgba(F.col, .55); g.lineWidth = 1.5;
   g.beginPath(); g.moveTo(s + gap / 2, 0); g.lineTo(gap / 2, H); g.stroke();
@@ -1455,7 +1493,7 @@ $('#infoD').addEventListener('click', openDrawer); $('#infoM').addEventListener(
 $('#drawerX').addEventListener('click', () => stage.dataset.drawer = '0');
 // Pool drawer renders the production locked pool (draw truth).
 $('#drawerList').innerHTML = FIGHTERS.filter(F => productionPoolIds().includes(F.id)).map((F, i) =>
-  `<div class="drow"><span class="n">${pad2(i + 1)}</span><img src="${F.urlBase}" alt=""><span>${F.id}<small>${F.tag}</small></span></div>`).join('');
+  `<div class="drow"><span class="n">${pad2(i + 1)}</span><img src="${F.urlBase}" alt=""><span>${F.name||F.id}<small>${F.tag}</small></span></div>`).join('');
 addEventListener('resize', applyView);
 addEventListener('keydown', e => {
   if (e.target && e.target.tagName === 'INPUT') return;
