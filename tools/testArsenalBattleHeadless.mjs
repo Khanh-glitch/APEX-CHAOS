@@ -5061,12 +5061,13 @@ const goldShellSrc = fs.readFileSync(path.join(REPO, 'public/gold/shell.html'), 
 gate('gold-battle-exit-returns-directly-to-fighter-pick',
   battleRuntimeSrc.includes('Gold-hosted battle: engine teardown ONLY')
   && battleRuntimeSrc.includes("['menu-screen', 'select-screen'].forEach")
-  && goldShellSrc.includes("name:'battle->fighter'")
+  && !goldShellSrc.includes("name:'battle->fighter'")
+  && goldShellSrc.includes('Battle is NOT a Mechanical Door route')
   && goldShellSrc.includes("screen='fighter'")
   && goldShellSrc.includes("APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter')"),
   {
     goldEngineTeardownOnly: battleRuntimeSrc.includes('Gold-hosted battle: engine teardown ONLY'),
-    battleToFighterTransition: goldShellSrc.includes("name:'battle->fighter'"),
+    battleUsesMechanicalDoor: goldShellSrc.includes("name:'battle->fighter'"),
     fighterCommit: goldShellSrc.includes("screen='fighter'"),
   });
 
