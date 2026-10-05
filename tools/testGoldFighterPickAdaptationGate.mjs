@@ -24,6 +24,14 @@ check('rapid selection coalesces to the latest pending hero instead of stacking 
   && shell.includes('if(state.swapping)return;')
   && shell.includes('const latest=state.pending;'));
 
+check('a new hero outro cancels any still-running entry transform animation first',
+  shell.includes("current.getAnimations?.().forEach(a=>a.cancel())"));
+
+check('Fighter Pick A1/A2 labels resolve through the shared production skill-copy authority',
+  shell.includes('function resolvedSkillCopy(id)')
+  && shell.includes('const s=resolvedSkillCopy(id);')
+  && shell.includes("typeof g.skillDisplay==='function'"));
+
 check('no cloned full-art ghost/echo path survives',
   !shell.includes('ghost=prev.cloneNode(true)')
   && !shell.includes('echo=img.cloneNode()')
@@ -72,7 +80,7 @@ check('generator re-applies R49 root authority after historical R48A intermediat
   && generator.includes('const HERO_PRESENTATION=Object.freeze')
   && generator.includes('r49-fighter-presentation-authority'));
 
-const out = ['GOLD FIGHTER PICK ADAPTATION GATE (R49 root authority)', ...passes];
+const out = ['GOLD FIGHTER PICK ADAPTATION GATE (R49D root authority)', ...passes];
 if (failures.length) {
   out.push('', ...failures, '', 'RESULT: FAIL (' + failures.length + ')');
   console.error(out.join('\n'));

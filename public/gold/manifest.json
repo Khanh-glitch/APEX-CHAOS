@@ -1,7 +1,7 @@
 {
   "generator": "tools/buildGoldCutover.mjs",
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
-  "runtimeRevision": "20261005-owner-playtest-r49",
+  "runtimeRevision": "20261005-owner-playtest-r49d",
   "files": {
     "assets/gold/apex-chaos-wordmark.png": {
       "bytes": 496066,
@@ -276,8 +276,8 @@
       "sha256": "3da12663d57383a7db46c88fc25501dbdd3961acef56193d937dd86135b619b7"
     },
     "shell.html": {
-      "bytes": 349305,
-      "sha256": "53770d1b185c910839f7f8edf416960d3aeab1a359325d89baefe6041ac984b3"
+      "bytes": 349767,
+      "sha256": "6d7eb55fa2af74fb53ebae75e7ac27bf92f6743a6da534a8988e6dff4473e63f"
     },
     "../assets/audio/forward_drive_theme.ogg": {
       "bytes": 618594,

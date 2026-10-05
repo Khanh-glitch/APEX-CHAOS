@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { BOOT_GAME_RUNTIMES, MODE_DEFERRED_RUNTIMES, resolveLegacyRuntimeFile } from './legacyRuntimeManifest.mjs';
-import { PRODUCT_ROSTER, installProductSurfaceAuthority } from '../src/game/productSurface.js';
+import { PRODUCT_ROSTER, PRODUCT_ECONOMY, installProductSurfaceAuthority } from '../src/game/productSurface.js';
 
 const REPO = process.cwd();
 const TOOLING_DIR = process.env.AQ_TOOLING_DIR || path.join(REPO, 'node_modules');
@@ -61,8 +61,8 @@ win.localStorage.setItem('apexChaos.arsenalMeta.v1', JSON.stringify({
   lastSelectedP1: 'NEWBIE', lastSelectedP2: 'ICE', totalSpins: 2,
   unlockedAt: { NEWBIE: 123, ICE: 456 },
 }));
-// Clean and historic balances now pass through unchanged: no owner-test grant
-// exists in the pre-pilot product graph.
+// Owner-playtest law: an unmarked legacy profile is upgraded once to the
+// clean-state AC seed while ownership/selection migration remains idempotent.
 
 const realCanvases = new WeakMap();
 function realCanvasFor(el) {
@@ -227,7 +227,7 @@ const migrated = metaApi ? metaApi.getState() : null;
 const migrateOk = migrated
   && migrated.ownedFighters.includes('ROBOT') && !migrated.ownedFighters.includes('NEWBIE')
   && migrated.ownedFighters.includes('ICE')
-  && migrated.credits === 900
+  && migrated.credits === PRODUCT_ECONOMY.cleanStateCredits
   && migrated.lastSelectedP1 === 'ROBOT'
   && migrated.unlockedAt && migrated.unlockedAt.ROBOT === 123 && migrated.unlockedAt.NEWBIE === undefined;
 const migratedAgain = metaApi ? metaApi.getState() : null;

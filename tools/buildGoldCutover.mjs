@@ -1849,6 +1849,34 @@ function buildShell(hudProductionHtml) {
   if (out.includes('ghost=prev.cloneNode(true)') || out.includes('echo=img.cloneNode()')) throw new Error('R49 duplicate hero-art path survived');
   log('  R49 (shell): single hero presentation authority + production READY battle reveal');
 
+  // ── R49D: production skill-copy ownership + no live donor overwrite ─────
+  r49ReplaceOnce(
+    "  function heroPayload(id,fallback){\n    const h=HEROES[id]||HEROES[fallback]||{};\n    return {id,name:h.name||String(id||'FIGHTER').toUpperCase(),tag:h.tag||'FIGHTER',portrait:h.battleAvatar||h.portrait||'',skills:(SKILLS[id]||['PASSIVE','A1','A2']).slice(),accent:h.accent||'#ff941f'};\n  }",
+    "  function resolvedSkillCopy(id){\n    const fallback=(SKILLS[id]||['PASSIVE','A1','A2']).slice();\n    try{\n      const g=window.APEX_GOLD;\n      if(g&&typeof g.skillDisplay==='function')return g.skillDisplay(id,fallback);\n    }catch(_){}\n    return fallback;\n  }\n  function heroPayload(id,fallback){\n    const h=HEROES[id]||HEROES[fallback]||{};\n    return {id,name:h.name||String(id||'FIGHTER').toUpperCase(),tag:h.tag||'FIGHTER',portrait:h.battleAvatar||h.portrait||'',skills:resolvedSkillCopy(id),accent:h.accent||'#ff941f'};\n  }",
+    'shared skill display'
+  );
+  r49ReplaceOnce(
+    "  function sendBattleHudConfig(){\n    if(!battleHudConfig||!battleHudFrame?.contentWindow)return;\n    window.postMessage(battleHudConfig,'*');\n    APEX_GOLD.onHandoff&&APEX_GOLD.onHandoff(battleHudConfig);\n  }",
+    "  function sendBattleHudConfig(){\n    if(!battleHudConfig||battleHudConfig.live===true||!battleHudFrame?.contentWindow)return;\n    window.postMessage(battleHudConfig,'*');\n    APEX_GOLD.onHandoff&&APEX_GOLD.onHandoff(battleHudConfig);\n  }",
+    'preview-only battle handoff'
+  );
+  r49ReplaceOnce(
+    "    if(ready!==true||!window.APEX_GOLD_HUD)return false;\n    battleHudConfig={...makeBattleConfig(true)};\n    sendBattleHudConfig();\n    window.postMessage({type:'APEX_CHAOS_BATTLE_LIVE'},'*');\n    return true;",
+    "    if(ready!==true||!window.APEX_GOLD_HUD)return false;\n    // Production projection is now authoritative. Mark preview handoff closed\n    // so no later HUD_READY/load callback can overwrite live skill/weapon truth.\n    battleHudConfig={...makeBattleConfig(true)};\n    window.postMessage({type:'APEX_CHAOS_BATTLE_LIVE'},'*');\n    return true;",
+    'no live donor overwrite'
+  );
+  r49ReplaceOnce(
+    "  function skillMarkup(id,player){\n    const s=SKILLS[id]||['PASSIVE','A1','A2'];",
+    "  function skillMarkup(id,player){\n    const s=resolvedSkillCopy(id);",
+    'Pick skill display'
+  );
+  r49ReplaceOnce(
+    "    state.swapping=true;\n    const dir=player==='p1'?-1:1;",
+    "    state.swapping=true;\n    try{current.getAnimations?.().forEach(a=>a.cancel())}catch(_){}\n    const dir=player==='p1'?-1:1;",
+    'hero animation stack cancellation'
+  );
+  log('  R49D (shell): shared skill truth + preview/live handoff boundary hardened');
+
 
   // ── S12: embed the production-bridged battle HUD payload (same canonical
   // base64 payload mechanism, so loading/transition timing does not drift).

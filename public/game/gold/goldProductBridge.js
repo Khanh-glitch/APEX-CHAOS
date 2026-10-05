@@ -1098,6 +1098,20 @@
   function heroSkillName(heroId, slot) {
     return heroSkillMeta(heroId, slot).name;
   }
+  // Shared display-name authority for Fighter Pick preview + Battle handoff.
+  // Passive copy stays authored by the shell, while A1/A2 always come from the
+  // same production mapping used by the live HUD projection.
+  BRIDGE.skillDisplay = function skillDisplay(shellKey, fallback) {
+    const key = String(shellKey || '').toLowerCase();
+    const productionId = PRODUCTION_ID_BY_SHELL_KEY[key] || canonicalHeroId(key);
+    const base = Array.isArray(fallback) ? fallback : ['PASSIVE', 'A1', 'A2'];
+    const copy = GOLD_SKILL_COPY[productionId] || {};
+    return [
+      base[0] || 'PASSIVE',
+      copy.A1 || base[1] || 'A1',
+      copy.A2 || base[2] || 'A2',
+    ];
+  };
   function heroIdOf(fighter) {
     return (fighter && (fighter.heroId || fighter.name)) ? String(fighter.heroId || fighter.name).toUpperCase() : null;
   }

@@ -122,6 +122,15 @@ check('Gold shell awaits production READY before battle-hud-open',
   && /if\(liveReady!==true\)/.test(shell)
   && shell.indexOf('const liveReady=await setBattleLive();') < shell.indexOf("document.body.classList.add('battle-hud-open')"));
 
+check('battle handoff messages are preview-only after production becomes live',
+  /if\(!battleHudConfig\|\|battleHudConfig\.live===true\|\|!battleHudFrame\?\.contentWindow\)return;/.test(shell));
+
+const liveBlock = shell.match(/async function setBattleLive\(\)\{[\s\S]*?\n  \}/);
+check('production READY frame cannot be overwritten by a later donor handoff',
+  !!liveBlock
+  && !/sendBattleHudConfig\(\);/.test(liveBlock[0])
+  && /Production projection is now authoritative/.test(liveBlock[0]));
+
 // Gold owns the destination; engine owns teardown only.
 check('Gold bridge exposes one engine teardown seam',
   /BRIDGE\.exitBattle = function exitBattle\(\)/.test(bridge)
@@ -259,7 +268,7 @@ if (authority && audio) {
   check('shipping product music authority installs in harness', false);
 }
 
-const out = ['GOLD BATTLE LIFECYCLE GATE (R49 root ownership)', ...pass];
+const out = ['GOLD BATTLE LIFECYCLE GATE (R49D root ownership)', ...pass];
 if (fail.length) {
   out.push('', ...fail, '', 'RESULT: FAIL (' + fail.length + ')');
   console.error(out.join('\n'));

@@ -40,6 +40,11 @@ check('skill copy maps Core Six A1/A2 identity instead of generic A1/A2 labels',
   ['WEAPON DASH','VIRTUAL ARMOR','TRAP DEPLOY','DASH / STRIKE','MAGNETIC ATTRACTION','MAGNETIC REPEL','FROST BREATH','FROST RUSH','MIRROR ARSENAL','MIRROR EXCHANGE']
     .every((t) => bridge.includes(t)));
 
+check('Pick preview and live HUD share the same bridge skill display mapping',
+  bridge.includes('BRIDGE.skillDisplay = function skillDisplay')
+  && shell.includes('function resolvedSkillCopy(id)')
+  && shell.includes("typeof g.skillDisplay==='function'"));
+
 check('battle HUD replaces donor weapon glyph with production image when available',
   hud.includes("img.className='apex-weapon-asset'") &&
   hud.includes("img.src=w.asset") &&
@@ -98,7 +103,7 @@ check('R49 battle reveal awaits production READY before exposing Gold HUD',
   && shell.includes('const liveReady=await setBattleLive();')
   && shell.includes('if(liveReady!==true)'));
 
-console.log('GOLD BATTLE HUD ADAPTATION GATE (R49 + R48B production truth)');
+console.log('GOLD BATTLE HUD ADAPTATION GATE (R49D + R48B production truth)');
 for (const line of pass) console.log(line);
 if (fail.length) {
   console.error('');
