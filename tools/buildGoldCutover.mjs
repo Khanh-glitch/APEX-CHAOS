@@ -35,6 +35,7 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { adaptGoldBattleHudR48b } from './goldBattleHudR48b.mjs';
+import { adaptGoldBattleHudR50c } from './goldBattleHudR50c.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GOLD_DIR = path.join(REPO, 'docs', 'gold-ui', 'current');
@@ -813,6 +814,8 @@ const seamPatches = [
   // Deterministic adapter asserts every seam and refuses silent donor drift.
   out = adaptGoldBattleHudR48b(out);
   log('  R48B (battle-hud): production assets/semantics + combat FX compositor adapted');
+  out = adaptGoldBattleHudR50c(out);
+  log('  R50C (battle-hud): live identity/rarity + full-panel impact ownership adapted');
   return out;
 }
 
