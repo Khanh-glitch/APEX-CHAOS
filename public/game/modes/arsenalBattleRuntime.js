@@ -641,7 +641,10 @@
   AQ.resultProjection = resultProjection;
 
   function hudRoot() {
-    if (hudRefs.root && hudRefs.root.isConnected) return hudRefs.root;
+    if (hudRefs.root && hudRefs.root.isConnected) {
+      if (window.__apexGoldBattleHosted === true) hudRefs.root.style.display = 'none';
+      return hudRefs.root;
+    }
     let el = document.getElementById('aq-dom-hud');
     if (!el) {
       el = document.createElement('div');
@@ -649,8 +652,29 @@
       el.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:40;font-family:monospace;';
       (document.getElementById('game-wrapper') || document.getElementById('game-wrap') || document.body).appendChild(el);
     }
+    // Gold HUD is the only visible battle presentation. This root may be
+    // created asynchronously after the bridge's initial legacy capture, so
+    // suppress it at SOURCE whenever Gold owns the battle.
+    if (window.__apexGoldBattleHosted === true) el.style.display = 'none';
     hudRefs.root = el;
     return el;
+  }
+
+  function disposeArsenalDomHud() {
+    const el = (hudRefs.root && hudRefs.root.isConnected)
+      ? hudRefs.root
+      : document.getElementById('aq-dom-hud');
+    if (el) el.remove();
+    hudRefs.root = null;
+    hudRefs.hint = null;
+    hudRefs.exitBtn = null;
+    hudRefs.win = null;
+    hudRefs.dbg = null;
+    hudLast.hintDisplay = null;
+    hudLast.winKey = null;
+    hudLast.debugText = null;
+    hudLast.debugOn = false;
+    hudLast.debugAt = 0;
   }
   function ensureArsenalBattleUiStyle() {
     if (document.getElementById('aq-battle-ui-style')) return;
@@ -1065,6 +1089,7 @@
       window.removeEventListener('keydown', keyListener);
       keyListener = null; // no leaked listeners
     }
+    disposeArsenalDomHud();
     AQ.log('MODE_EXIT', 'mode=ARSENAL_BATTLE');
 
     if (goldHosted) {

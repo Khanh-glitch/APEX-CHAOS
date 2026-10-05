@@ -34,6 +34,12 @@ check('legacy runtime DOM HUD ids are in the suppression set',
 check('legacy refs are recaptured after startMatch and hidden before live paint',
   /window\.startMatch\(\);[\s\S]*?captureLegacyBattleUi\(false\);[\s\S]*?hideLegacyBattleUi\(\);/.test(bridge));
 
+check('Gold-hosted Arsenal DOM HUD is suppressed at source even if match launch is async',
+  /window\.__apexGoldBattleHosted === true\) el\.style\.display = 'none'/.test(battle));
+check('Arsenal DOM HUD is disposed and refs reset on battle exit',
+  /function disposeArsenalDomHud\(\)/.test(battle)
+  && /disposeArsenalDomHud\(\);/.test(battle));
+
 // Gold owns the destination; engine owns teardown only.
 check('Gold bridge exposes one engine teardown seam',
   /BRIDGE\.exitBattle = function exitBattle\(\)/.test(bridge)
@@ -171,7 +177,7 @@ if (authority && audio) {
   check('shipping product music authority installs in harness', false);
 }
 
-const out = ['GOLD BATTLE LIFECYCLE GATE (R46A)', ...pass];
+const out = ['GOLD BATTLE LIFECYCLE GATE (R46B)', ...pass];
 if (fail.length) {
   out.push('', ...fail, '', 'RESULT: FAIL (' + fail.length + ')');
   console.error(out.join('\n'));

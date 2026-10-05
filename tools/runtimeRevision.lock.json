@@ -1,5 +1,5 @@
 {
-  "revision": "20261005-owner-playtest-r46a",
+  "revision": "20261005-owner-playtest-r46b",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "a0d10025cde29ee55d6eb95a06aee2cbebe2a56e01adcdb1154f8366e3128712",
     "public/game/product/productMusicAuthority.js": "4d7a9324fa86053b844bb5cec66650e94ab023de6d55b33eb354641447ddd5ac",
@@ -22,7 +22,7 @@
     "public/game/arsenal/arsenalShellSelectRuntime.js": "14fc3158a05bd7ac545b2b2e32c59b99b7d4631f1777ee1334b99ebdcae2301a",
     "public/game/arsenal/arsenalChamberPaletteRuntime.js": "dea5c0cf90465ab18731dc61df4d4568ef4275695d0b81482e779806322f91a6",
     "public/game/arsenal/arsenalMetaRuntime.js": "eaa564369535b05069c9aad38db73e2ad7cd7f869fd2030cc807d45baf26f75f",
-    "public/game/modes/arsenalBattleRuntime.js": "63b96347a4ae9b606c29bd09d86c5769a2d7eaf1a2435c8764ebae6f7ba63648",
+    "public/game/modes/arsenalBattleRuntime.js": "17d1960228d5f068ddafe7b8e164d630ee3b6c39ecf12f4f75ce676aa7f6a313",
     "public/game/hero-rework/crystalaGoldV6.js": "cea96dc2b58f5c41fb482e196ec0cf9a2b9c25bb21f2b7df37afc2787b67ab2f",
     "public/game/hero-rework/crystalGameplayRuntime.js": "d2756e16c412b2e480861d2330af48647bcdb08ad1ff848031d8d5e103bd7cba",
     "public/game/hero-rework/frostGameplayRuntime.js": "7b0e8f12e2dfc70e3e7b6de76695bceaf3170b41bfce9ac44ecf13a779a6699b",

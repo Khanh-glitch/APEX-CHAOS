@@ -5,7 +5,7 @@
 // correction slice (r43) re-keys every versioned runtime and the Gold shell /
 // bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
 // stale cache during owner browser verification.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261005-owner-playtest-r46a';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261005-owner-playtest-r46b';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.

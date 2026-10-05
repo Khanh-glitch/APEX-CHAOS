@@ -79,6 +79,6 @@ export const GOLD_SHIPPING_ASSETS = Object.freeze([
   '/assets/audio/forward_drive_theme.ogg',
 ]);
 
-export const GOLD_SHELL_URL = '/gold/shell.html?v=20261005-owner-playtest-r46a';
-export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=20261005-owner-playtest-r46a';
-export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=20261005-owner-playtest-r46a';
+export const GOLD_SHELL_URL = '/gold/shell.html?v=20261005-owner-playtest-r46b';
+export const GOLD_LUCKY_DRAW_URL = '/gold/lucky-draw.html?v=20261005-owner-playtest-r46b';
+export const GOLD_BATTLE_HUD_URL = '/gold/battle-hud.html?v=20261005-owner-playtest-r46b';
