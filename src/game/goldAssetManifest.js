@@ -16,8 +16,6 @@ export const GOLD_SHIPPING_ASSETS = Object.freeze([
   '/gold/assets/gold/home-world-background.png',
   '/gold/assets/gold/mode-local.webp',
   '/gold/assets/gold/mode-solo.webp',
-  '/gold/assets/gold/pick-hidden-gold-source.png',
-  '/gold/assets/gold/pick-reference-overlay.png',
   '/gold/assets/placeholders/battle/avatar/crystala.svg',
   '/gold/assets/placeholders/battle/avatar/frost.svg',
   '/gold/assets/placeholders/battle/avatar/hunter.svg',
