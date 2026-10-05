@@ -41,6 +41,10 @@ const GOLD_DIR = path.join(REPO, 'docs', 'gold-ui', 'current');
 const PRELOAD_DIR = path.join(REPO, 'docs', 'gold-ui', 'preload');
 const FONT_SRC = path.join(REPO, 'tools', 'gold-cutover', 'fonts');
 const TAB_FAVICON_SRC = path.join(REPO, 'tools', 'gold-cutover', 'assets', 'favicon-tab-apex.svg');
+const NON_SHIPPING_GOLD_ASSETS = new Set([
+  'gold/pick-reference-overlay.png',
+  'gold/pick-hidden-gold-source.png',
+]);
 const OUT_DIR = path.join(REPO, 'public', 'gold');
 const THEME_OUT = path.join(REPO, 'public', 'assets', 'audio', 'forward_drive_theme.ogg');
 const CHECK = process.argv.includes('--check');
@@ -1164,6 +1168,19 @@ function buildShell(hudProductionHtml) {
       find: '<link rel="icon" type="image/png" href="assets/gold/favicon-apex-chaos.png">',
       replace: '<link rel="icon" type="image/svg+xml" href="assets/gold/favicon-tab-apex.svg">',
     },
+    {
+      id: 'SHL-S0a',
+      why: 'Mode art has no src until the user enters Mode',
+      find: /<img src="assets\/gold\/(mode-(?:solo|local)\.webp)" alt="" draggable="false">/g,
+      replace: '<img data-apex-src="assets/gold/$1" alt="" draggable="false">',
+      all: true,
+    },
+    {
+      id: 'SHL-S0b',
+      why: 'Gold-Lab/reference-only Pick images are not part of production DOM',
+      find: /\n  <img id="refOverlay" src="assets\/gold\/pick-reference-overlay\.png" alt="" aria-hidden="true" draggable="false">\n  <img src="assets\/gold\/pick-hidden-gold-source\.png" alt="" hidden aria-hidden="true">/,
+      replace: '',
+    },
     // ── S1: production bridge script, loaded before the canonical shell
     // script so roster/mode hooks exist at canonical script evaluation.
     {
@@ -1790,9 +1807,9 @@ function buildShell(hudProductionHtml) {
     },
     {
       id: 'SHL-S54',
-      why: 'Gold shell boot announces Home so theme policy never falls back to legacy DOM visibility',
+      why: 'Gold shell boot announces Home without materializing Fighter Pick assets',
       find: /  buildRoster\(\); renderFighter\(\);/,
-      replace: "  buildRoster(); renderFighter(); APEX_GOLD.onSurface&&APEX_GOLD.onSurface('home');",
+      replace: "  APEX_GOLD.onSurface&&APEX_GOLD.onSurface('home');",
     },
     {
       id: 'SHL-S55',
@@ -1887,6 +1904,20 @@ function buildShell(hudProductionHtml) {
   log('  R49D (shell): shared skill truth + preview/live handoff boundary hardened');
 
 
+  // ── R50A: asset intent — hidden/inactive surfaces never cause eager bytes.
+  r49ReplaceOnce(
+    "  function setScreen(next){\n    clearTimeout(transitionTimer); stage.classList.add('flow-transition'); stage.classList.remove('match-ready');",
+    "  function hydrateDeferredImages(root){\n    if(!root)return;\n    root.querySelectorAll('img[data-apex-src]').forEach(img=>{\n      if(img.getAttribute('src'))return;\n      const src=img.getAttribute('data-apex-src');\n      if(src)img.setAttribute('src',src);\n    });\n  }\n\n  function setScreen(next){\n    if(next==='mode')hydrateDeferredImages(modeScreen);\n    clearTimeout(transitionTimer); stage.classList.add('flow-transition'); stage.classList.remove('match-ready');",
+    'deferred Mode image hydration'
+  );
+  r49ReplaceOnce(
+    "    setTimeout(()=>{renderFighter();setScreen('fighter')},360);",
+    "    setTimeout(()=>{if(!roster.childElementCount)buildRoster();renderFighter();setScreen('fighter')},360);",
+    'intent-time Fighter roster materialization'
+  );
+  log('  R50A (shell): Mode/Pick media are route-intent only');
+
+
   // ── S12: embed the production-bridged battle HUD payload (same canonical
   // base64 payload mechanism, so loading/transition timing does not drift).
   const payloadB64 = Buffer.from(hudProductionHtml, 'utf8').toString('base64');
@@ -1936,7 +1967,7 @@ function main() {
       const full = path.join(dir, entry.name);
       const rel = base ? `${base}/${entry.name}` : entry.name;
       if (entry.isDirectory()) walk(full, rel);
-      else outputs.set(`assets/${rel}`, read(full));
+      else if (!NON_SHIPPING_GOLD_ASSETS.has(rel)) outputs.set(`assets/${rel}`, read(full));
     }
   };
   walk(assetRoot);
