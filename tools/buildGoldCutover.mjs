@@ -906,8 +906,11 @@ function buildLuckyDonor() {
       replace: (() => {
         const entries = LUCKY_ROSTER.map((hero) => {
           const accent = GOLD_HERO_ACCENTS[hero.productionId] || '#c4a574';
-          const art = luckyPlaceholderArt(hero.display, accent);
-          return `  { key:'${hero.shellKey}', id:'${hero.productionId}', col:'${accent}', tag:'${hero.tag}',\n` +
+          // Shipping fallback is already REAL Git art. The production roster
+          // sync can replace/extend this list at runtime, so future fighters do
+          // not require a Lucky-specific hardcoded mechanics path.
+          const art = `/assets/gold-ui/heroes/${hero.shellKey}/${hero.shellKey === 'mirror' ? 'pick_roster_cover.webp' : 'pick_selected_large.webp'}`;
+          return `  { key:'${hero.shellKey}', id:'${hero.productionId}', name:'${hero.display}', col:'${accent}', tag:'${hero.tag}',\n` +
             `     urlBase:"${art}", urlFx:null,\n` +
             `     hero:{scale:1.03,x:'0%',y:'0%'}, cover:{focusX:.50,focusY:.48,scale:1.04} }`;
         }).join(',\n');
@@ -1146,6 +1149,88 @@ function buildLuckyDonor() {
         `  ldSfx('lucky.draw.reward_reveal');`
       ),
     },
+    // ── R50I: roster/art comes from the same production presentation registry
+    // as Fighter Pick. Economy ownership remains APEX_ARSENAL_META truth.
+    {
+      id: 'LKY-R50I-1',
+      why: 'Lucky Draw runtime roster is registry-driven and can grow without per-hero Lucky code',
+      find: /window\.APEX_LUCKY_SYNC = function syncProductionState\(\)\{[\s\S]*?\n\};\n/,
+      replace: (
+        `function productionLuckyRoster(){\n` +
+        `  const direct = Array.isArray(window.APEX_GOLD_LUCKY_ROSTER) ? window.APEX_GOLD_LUCKY_ROSTER : null;\n` +
+        `  if (direct && direct.length) return direct;\n` +
+        `  try{\n` +
+        `    const api = window.parent && window.parent.APEX_GOLD;\n` +
+        `    if(api && typeof api.luckyRoster==='function') return api.luckyRoster() || [];\n` +
+        `  }catch(_){ }\n` +
+        `  return [];\n` +
+        `}\n` +
+        `function installFighterImage(F){\n` +
+        `  F.imgBase = new Image(); F.imgBase.decoding='async'; F.imgBase.src = F.urlBase || '';\n` +
+        `  F.imgFx = null;\n` +
+        `  F.imgBase.onload = F.imgBase.onerror = () => scheduleCovers();\n` +
+        `}\n` +
+        `function syncProductionRoster(){\n` +
+        `  const roster = productionLuckyRoster().filter(h => h && h.productionId && h.drawArt);\n` +
+        `  if(!roster.length) return false;\n` +
+        `  const sig = roster.map(h => [h.productionId,h.name,h.tag,h.accent,h.drawArt].join('|')).join('||');\n` +
+        `  if(syncProductionRoster.sig===sig) return true;\n` +
+        `  syncProductionRoster.sig=sig;\n` +
+        `  const next = roster.map(h => ({\n` +
+        `    key:String(h.shellKey||h.productionId).toLowerCase(), id:String(h.productionId).toUpperCase(),\n` +
+        `    name:String(h.name||h.productionId).toUpperCase(), col:String(h.accent||'#8d8375'), tag:String(h.tag||''),\n` +
+        `    urlBase:String(h.drawArt), urlFx:null, hero:{scale:1.03,x:'0%',y:'0%'}, cover:{focusX:.50,focusY:.48,scale:1.04}\n` +
+        `  }));\n` +
+        `  FIGHTERS.splice(0,FIGHTERS.length,...next);\n` +
+        `  FIGHTERS.forEach(installFighterImage);\n` +
+        `  if(typeof buildIdx==='function')buildIdx();\n` +
+        `  scheduleCovers();\n` +
+        `  return true;\n` +
+        `}\n` +
+        `window.APEX_LUCKY_SYNC = function syncProductionState(){\n` +
+        `  syncProductionRoster();\n` +
+        `  const meta = window.APEX_ARSENAL_META; if (!meta) return;\n` +
+        `  const credits = typeof meta.credits === 'function' ? meta.credits() : S.scrap;\n` +
+        `  S.scrap = Number(credits) || 0;\n` +
+        `  const scrapEl = $('#scrap'); if (scrapEl) scrapEl.textContent = Number(S.scrap).toLocaleString('en-US');\n` +
+        `  const pool = productionPoolIds();\n` +
+        `  const pc = document.getElementById('poolCount'); if (pc) pc.textContent = pad2(pool.length);\n` +
+        `  const list = document.getElementById('drawerList');\n` +
+        `  if (list){\n` +
+        `    list.innerHTML = FIGHTERS.filter(F => pool.includes(F.id)).map((F, i) =>\n` +
+        `      \`<div class="drow"><span class="n">\${pad2(i+1)}</span><img src="\${F.urlBase}" alt=""><span>\${F.name||F.id}<small>\${F.tag}</small></span></div>\`).join('');\n` +
+        `  }\n` +
+        `};\n`
+      ),
+    },
+    {
+      id: 'LKY-R50I-2',
+      why: 'LED reel keeps donor stripe treatment but renders production stand art as a black silhouette',
+      find: /    g\.drawImage\(F\.imgBase, dx, dy, dw, dh\);\n    if \(F\.imgFx && F\.imgFx\.naturalWidth\) g\.drawImage\(F\.imgFx, dx, dy, dw, dh\);/,
+      replace: (
+        `    // Preserve the donor striped card/background, but identity on the\n` +
+        `    // moving reel is an authored black silhouette cut from the SAME\n` +
+        `    // production art that will be revealed after lock.\n` +
+        `    g.save();\n` +
+        `    g.globalAlpha=.94;\n` +
+        `    g.filter='brightness(0) saturate(0)';\n` +
+        `    g.drawImage(F.imgBase, dx, dy, dw, dh);\n` +
+        `    g.filter='none';\n` +
+        `    g.restore();`
+      ),
+    },
+    {
+      id: 'LKY-R50I-3',
+      why: 'Lucky Draw labels display fighter identity names while production IDs remain spin/pool keys',
+      find: /else if \(\$\('#plM'\)\.textContent !== FIGHTERS\[on\]\.id\) \$\('#plM'\)\.textContent = FIGHTERS\[on\]\.id;/,
+      replace: `else if ($('#plM').textContent !== (FIGHTERS[on].name||FIGHTERS[on].id)) $('#plM').textContent = FIGHTERS[on].name||FIGHTERS[on].id;`,
+    },
+    {
+      id: 'LKY-R50I-4',
+      why: 'reward tag displays canonical fighter name, not storage id',
+      find: /  \$\('#tagN'\)\.textContent = F\.id;/,
+      replace: `  $('#tagN').textContent = F.name||F.id;`,
+    },
   ];
 
   let out = applyPatches(donor, patches, 'lucky-draw');
@@ -1341,6 +1426,7 @@ function buildShell(hudProductionHtml) {
         `      const w=frame.contentWindow;\n` +
         `      if(!w)return;\n` +
         `      if(!w.APEX_ARSENAL_META&&window.APEX_ARSENAL_META)w.APEX_ARSENAL_META=window.APEX_ARSENAL_META;\n` +
+        `      if(window.APEX_GOLD&&typeof window.APEX_GOLD.luckyRoster==='function')w.APEX_GOLD_LUCKY_ROSTER=window.APEX_GOLD.luckyRoster();\n` +
         `      if(typeof w.APEX_LUCKY_SYNC==='function')w.APEX_LUCKY_SYNC();\n` +
         `    }catch(err){/* the donor reports the draw unavailable; never break the shell */}\n` +
         `  }\n` +
