@@ -22,11 +22,16 @@ revision `20261005-owner-playtest-r52`. Branch `arena/01a10c3e-apex-chaos`.
 | C3 ✅ | “một pad, hai ngón ⇒ hero bị đánh 2 lần” (video owner) | `activeSkillPointers` chỉ khoá theo `pointerId`; ngón thứ hai là pointerId mới ⇒ cast lần nữa cho **cùng** `(side, slot)` | luật slot là một mục tiêu: `activeSkillSlots` giữ `(side,slot)` đang được một pointer còn sống nắm; pointer thứ hai vào cùng slot bị bỏ qua, các slot khác vẫn độc lập | browser phone: hai ngón cùng pad P1-A1 → **1** cast (trước sửa: 2); hai ngón hai slot cùng phía (P1-A1 + P1-A2) → **2** cast đúng slot; hai ngón hai phía (P1-A1 + P2-A1) → **2** cast `p1`/`p2`; double-tap tuần tự cùng pad → **2** cast (spam hợp lệ vẫn chạy); gate `test:multi-pointer` **17 checks** |
 | #3 ✅ | “J/K: cùng hero bị đánh 2 lần / cả hai chiêu cùng kích” (video owner) | không còn ở HEAD: `sideOfFighter()` lấy side theo **slot trong `fighters[]`**, `normalizeCastInput` lấy `ct.side` (không cho caller đổi chủ), `BRIDGE.pressSkill` ép `meta.side = pi===1?'p2':'p1'` | (không cần sửa — kiểm chứng lại bằng probe cùng-hero) | browser LOCAL **CRYSTAL vs CRYSTAL** (đúng ca trong video), bấm từng phím: `KeyJ` → **1** `pressAbility` (`idx 0 / A1 / side p1`); `KeyK` → **1** (`idx 0 / A2 / p1`); `Digit1` → **1** (`idx 1 / A1 / p2`); `Digit2` → **1** (`idx 1 / A2 / p2`); 0 page error |
 
+| D1 ✅ | “không xén đáy, tận dụng không gian ở **mọi** tỉ lệ” (band matrix) | Pick là **hai band độc lập**: roster theo `vh` (co giãn) còn LOCK là band **pixel cố định** (`bottom` vh + `height` px). Chỉ roster co ⇒ chân LOCK (bottom+height) lớn dần so với band roster khi viewport thấp: 1366×768 **13,5 px**, 1280×720 **15,8 px**, 1024×768 **13,5 px**, 932×430 **1,8 px** chồng lên hàng tên; 1920×1080 mới vừa khít (1,3 px) — đúng chỗ artist canh số | luật band: `tools/goldShellR52pickBand.mjs` (LAST writer của band, chạy sau R50K) — deck giữ **mép trên** tác giả (khoảng hở identity), `bottom = max(bottom tác giả, lockBottom + lockHeight + gap)`, thay vì kéo deck lên; số của luật **derive từ chính rule canonical** (`resolvePickBandLaw`) nên lệch donor là build đỏ | gate `test:pick-band-law` **66 checks** (gồm chứng minh canonical *đã* xén ở 1366/1280/1024/932 và luật đưa overlap về **0** ở 14 viewport 360×640→2560×1440); browser 6 band `overflow=[]`, CLEAR ≥ **9 px** |
+| D2 ✅ | phone portrait: LOCK cắt ngang **hàng 2** của roster (ảnh matrix 430×932) | hai “sàn” từ stylesheet menu React đã nghỉ vẫn sống cùng tên class: (a) `button{min-height:44px}` nâng LOCK compact 30 px / portrait 42 px lên **44 px**, (b) `@media(max-width:680px) .roster{min-height:230px;max-height:52dvh}` — `.roster` trong `inset:0;height:auto` là box **content-sized** nên cao **230 px** trong band 147 px (roster 692..922 vs band 692..839) và `repeat(2,1fr)` vẫn nở theo content ⇒ LOCK (3,2vh + 42 px) nằm giữa hàng 2 | luật band ghim luôn hai sàn: `#stage .lockMechanismV6{min-height:var(--apexLockH)!important}` và (portrait) `#stage .selectionDeckV6 .roster{height:100%!important;min-height:0!important;max-height:none!important;grid-template-rows:repeat(2,minmax(0,1fr))!important;grid-auto-rows:0!important;overflow:hidden!important}` | browser portrait: roster **692..839 = đúng band**, card thật h62 (430×932) / h55 (390×844), name 9 px **không bị cắt**, CLEAR **34 px** / **28 px**; ảnh `matrix/pick-430x932-port-phone.png`, `pick-820x1180-port-tablet.png` |
+| D3 ✅ | báo cáo cũ “1920×1080 bị đẩy 18 px sang phải / `#lockIn` bottom 1085 > 1080” | **báo động giả của phép đo**: `.flowScreen` vào màn bằng `translate3d(18px,0,0)` và `flowUp/flowIn` giữ `fill:both`; reconciler của bundler **chưa bao giờ commit** animation vào `document.timeline` trong headless shell (mọi `getAnimations()` trả `currentTime:0` dù đứng yên 4 s), tức lớp phủ đầu animation đứng nguyên **vô hạn** ở mọi band — không phải lỗi hình học của 1920 | đo lại ở trạng thái đã settle (`finish()`/chờ chữ ký rect ổn định) trong `matrix`/`picklaw`: 1920×1080 `deck 821..1017`, `lock 1019..1069` (đáy **1069 < 1080**), `#fighterSelectScreen right = 1920`; luật band cũng giữ đúng pixel cũ ở band này (chênh 1 px so với canonical) | `matrix/pick-1920x1080-desk-wide.png`; ghi chú: **mọi** số đo cũ lấy trong lúc animation treo đều phải bỏ |
+
 ## Gate / build status at this slice
 
-* `pnpm test:r50-pre-transition` — **19/19 exit 0** (Lifecycle **52**, LegacySurface
-  **31**, TransitionCoordinator **56**, ProductAssetIntent **23**, Visibility 25,
-  Economy 27, HudLive 20, FighterPick 14, HudAdaptation 19, TransitionRuntime 47,
+* `pnpm test:r50-pre-transition` — **20/20 exit 0** (thêm `test:pick-band-law`
+  **66**; Lifecycle **52**, LegacySurface **31**, TransitionCoordinator **56**,
+  ProductAssetIntent **23**, MultiPointer **17**, Visibility 25, Economy 27,
+  HudLive 20, FighterPick 14, HudAdaptation 19, TransitionRuntime 47,
   RoutePolicy 27, …).
 * `pnpm build` — 324 assets / 31.223.567 B; prune 723 file / 196.278.112 B;
   `forbiddenRuntimeSurvivors: []`.
@@ -43,7 +48,11 @@ revision `20261005-owner-playtest-r52`. Branch `arena/01a10c3e-apex-chaos`.
   `naturalWidth:512`, both hops `["DONE"]` and 0 page errors.
 * **C2/C3** phone press model (tap = cast + panel down, hold = keep + cast on
   release), overlapping/multi-touch acceptance.
-* **D** size bands + the 6-aspect matrix with images.
+* **D** size bands + the 6-aspect matrix with images — ĐÃ ĐÓNG phần Pick
+  (`matrix/pick-*.png` 6 band sau luật band, `overflow=[]`, CLEAR ≥ 9 px;
+  gate `test:pick-band-law` 66). Phần **Battle HUD** của band matrix đã đo ở
+  cùng lượt: `--wpIW/--amF` 14cqh/28px → 13cqh/26px → 82px/22px → 68px/21px →
+  48px/17px → 56px/18px, `overflow=[]` mọi band (ảnh `matrix/battle-*.png`).
 * **F1** Lucky reel = black silhouette cut from the real stand-pick art.
 * **F3** fewer forced steps — ĐÃ ĐÓNG phần tap-outside + chặng doorless + hàng
   đợi intent (xem F3a/F3b/F3c ở trên). Phần còn lại của “fewer forced steps”:

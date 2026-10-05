@@ -123,7 +123,7 @@ Các commit mốc: `8dda0d6` (pipeline + real Battle HUD + Lucky Draw),
 
 | Gate | Kết quả |
 |---|---|
-| `pnpm test:r50-pre-transition` (19 gate) | **exit 0** — ShellLoader 9, Visibility 25, Lifecycle 48, Economy 23, FighterPick 14, HudAdaptation 19, AssetIntent 23, SideAware 23, HudLive 18, PickPresentation 11, MultiPointer 14, AudioAuthority 17, BattleOutcomeSide 9, LuckyArt 18, RevisionIntegrity 16, LegacySurface 22, Coordinator 55, Runtime 47, RoutePolicy 27 |
+| `pnpm test:r50-pre-transition` (20 gate) | **exit 0** — ShellLoader 9, Visibility 25, Lifecycle 52, Economy 27, FighterPick 14, HudAdaptation 19, AssetIntent 23, SideAware 23, HudLive 20, PickPresentation 11, MultiPointer 17, **PickBandLaw 66**, AudioAuthority 17, BattleOutcomeSide 9, LuckyArt 18, RevisionIntegrity 16, LegacySurface 31, Coordinator 56, Runtime 47, RoutePolicy 27 |
 | Sweep `test:*` (39 script) | **0 đỏ** (gồm `core-six-art` 106, `core-six-art-delivery` 110, `product-music` 29, `favicon` 8, `home-story` 17, `core-six-hero-av` 264/264, `shipping-dist`, `source-hygiene`, `product-graph`, `runtime-revision`) |
 | `buildGoldCutover --check` | 70/70 khớp |
 | `pnpm build` + prune | 723 file / 196.278.112 B xoá, guard PASS, 0 runtime cấm sống sót |
@@ -134,7 +134,7 @@ Các commit mốc: `8dda0d6` (pipeline + real Battle HUD + Lucky Draw),
 |---|---|---|---|
 | P1 | B1/B2/B4/B5/B6/B7 | Battle HUD truth: avatar 6 hero, 4 slot tên theo hero thật, accent Heavy theo event, đạn `x/y` với súng có băng, tier glow theo súng thật, không gian block súng | ⏳ probe + sửa nếu lệch |
 | P2 | C2/C3 | Phone press model (tap = cast + hạ panel; giữ = giữ panel, cast khi nhả) + chấp nhận input chồng lấp/multi-touch | ⏳ |
-| P3 | D | Size band theo container + phân bổ lại diện tích cho 6 tỉ lệ, ảnh chứng minh từng band | ⏳ |
+| P3 | D | Size band theo container + phân bổ lại diện tích cho 6 tỉ lệ, ảnh chứng minh từng band | ✅ luật band Pick (`goldShellR52pickBand.mjs`, gate 66) + 12 ảnh `matrix/`; phần HUD giữ nguyên (đã đạt `overflow=[]` mọi band) |
 | P4 | F1 | Lucky art: reel = silhouette đen cắt từ stand-pick art, reveal = art thật; bỏ mọi placeholder | ⏳ |
 | P5 | F2 | Seed lại 12.000 AC **một lần** theo revision mới (đang `…-r44`) | ⏳ |
 | P6 | F3 | Flow: hết trận về Pick ngay (không kẹt màn unlock), Free Battle thoát nhanh bằng nhấp ra ngoài | ⏳ |
@@ -168,6 +168,23 @@ Các commit mốc: `8dda0d6` (pipeline + real Battle HUD + Lucky Draw),
   browser equip-súng vào harness.
 - **Chứng minh**: bảng 6 hero × (avatar src/naturalWidth) + ảnh HUD có súng có
   băng (đạn `x/y`), ảnh Heavy hai phía đồng thời.
+
+
+### P3 — Fighter-Pick bottom band law (D, R52)
+
+- **Luật**: Pick có **hai band** — roster co theo `vh`, LOCK giữ **pixel** — nên
+  LOCK luôn chồng lên hàng tên ở viewport thấp (13–16 px ở 1024–1366, 1,8 px ở
+  932×430, đúng 1080 thì vừa khít). Luật band (`tools/goldShellR52pickBand.mjs`,
+  LAST writer sau R50K) giữ **mép trên** deck (khe identity 7–11 px) và đặt
+  `bottom = max(bottom tác giả, lockBottom + lockHeight + 0,2vh)`; mọi con số
+  **derive từ rule canonical** (donor lệch ⇒ build đỏ).
+- **Hai sàn ambient** phải ghim vì stylesheet menu React đã nghỉ còn sống cùng
+  tên class: `button{min-height:44px}` (LOCK 30/42 px bị nâng lên 44) và
+  `@media(max-width:680px) .roster{min-height:230px}` (roster content-sized
+  trong `inset:0;height:auto` ⇒ 230 px trong band 147 px ở phone).
+- **Chứng minh**: gate `test:pick-band-law` **66 checks** (có phản chứng:
+  canonical *đã* xén ở 1366/1280/1024/932); browser 6 band `overflow=[]`,
+  CLEAR ≥ 9 px; ảnh `matrix/pick-*.png`.
 
 ### P2 — Input phone & chồng lấp (C2/C3)
 
@@ -270,7 +287,7 @@ Các commit mốc: `8dda0d6` (pipeline + real Battle HUD + Lucky Draw),
 | 3 | Slash Crit/Heavy đổi màu theo hero | ✅ | `attackerAccent` cho Crit/Heavy/Storm (HUD payload `impactAccent`); probe cùng-hero LOCAL: mỗi phím **một** cast đúng side/slot |
 | 4 | 4 vị trí tên 2 đối thủ | ✅ | browser Local: 4 slot = CRYSTALA/HUNTER/CRYSTALA/HUNTER; còn test remount (P1.3) |
 | 5 | Đếm đạn `x/y` như Gold | ✅ | browser: equip SMG thật → `weapon` (bỏ `.no-ammo`), `SMG/AUTO/8 /8`, `magBar true`; projection đọc bảng config (`SMG.shots=8`) |
-| 6 | Tận dụng không gian / không xén đáy / iPad không thu nhỏ | 🟡 | `--wpIW` đã lớn (108–148px / 124–160px); band theo container + ảnh matrix (P3) |
+| 6 | Tận dụng không gian / không xén đáy / iPad không thu nhỏ | ✅ phần **xén đáy** | luật band Pick: deck không bao giờ chìm dưới band LOCK ở 14 viewport (gate `pick-band-law` 66, ảnh `matrix/pick-*.png`); HUD theo band `overflow=[]`; `--wpIW` 124–160px ở band rộng |
 | 7 | J/K không được trigger cả 2 phía; Local 1/2 phải trigger | ✅ | `normalizeCastInput` + resolver theo slot; gate side-aware 23 (queue/stall không liên quan input) |
 | 8 | Âm thanh đôi lúc mất hẳn | 🟡 | mọi begin/end có reason; `apexUiSfx.keys()=18`; trace bg/fg (P8) |
 | 9 | Full tướng unlock + 12.000 AC | ✅ / 🟡 | selection mở (probe `canPublicSelect=true`, credits 12000, gate Economy 23); refill một lần nữa theo revision (P5) |

@@ -1040,6 +1040,21 @@ section.story.e-story .location,section.story.e-story .copy{margin-left:0!import
   .fighterHeaderV6{top:1.65vh!important;gap:4px!important}.fighterHeaderV6 h2{font-size:clamp(25px,8vw,35px)!important}
   .selectionDeckV6{left:7vw!important;right:7vw!important;bottom:10vh!important;height:15.8vh!important;min-height:106px!important}.selectionHeadV6{top:-24px!important;height:18px!important;font-size:8px!important;gap:8px!important}.selectionHeadV6 #selectionPrompt{font-size:8px!important}.selectionDeckV6 .roster{padding:5px 4px!important}
 }
+/* R52 PICK BAND LAW — the deck is the band ABOVE the LOCK band (see adapter header). */
+#stage{--apexLockH:50px;--apexLockB:1.05vh;--apexLockGap:0.2vh}
+#stage .selectionDeckV6{top:76vh!important;bottom:max(5.8vh,calc(var(--apexLockB) + var(--apexLockH) + var(--apexLockGap)))!important;height:auto!important;min-height:0!important}
+#stage .lockMechanismV6{min-height:var(--apexLockH)!important}
+@media(max-width:980px) and (orientation:landscape){
+#stage{--apexLockH:30px;--apexLockB:0.75vh;--apexLockGap:0.2vh}
+#stage .selectionDeckV6{top:77.4vh!important;bottom:max(7.3vh,calc(var(--apexLockB) + var(--apexLockH) + var(--apexLockGap)))!important;height:auto!important;min-height:0!important}
+#stage .lockMechanismV6{min-height:var(--apexLockH)!important}
+}
+@media(orientation:portrait){
+#stage{--apexLockH:42px;--apexLockB:3.2vh;--apexLockGap:0.2vh}
+#stage .selectionDeckV6{top:74.2vh!important;bottom:max(10vh,calc(var(--apexLockB) + var(--apexLockH) + var(--apexLockGap)))!important;height:auto!important;min-height:0!important}
+#stage .lockMechanismV6{min-height:var(--apexLockH)!important}
+#stage .selectionDeckV6 .roster{height:100%!important;min-height:0!important;max-height:none!important;grid-template-rows:repeat(2,minmax(0,1fr))!important;grid-auto-rows:0!important;overflow:hidden!important}
+}
 </style>
 
 

@@ -19,6 +19,10 @@
 //   LUCKY— localize external font/CDN dependencies; remove the LAB preview
 //          tooling; force the real-viewport fit path; bind draw/economy truth
 //          to the production meta runtime.
+//   PICK — the Fighter-Pick bottom band: the deck keeps its authored top edge
+//          and can never sit lower than the lock mechanism's footprint (the
+//          lock is the only fixed-pixel band in an all-vh layout, so it used to
+//          crop the roster at every viewport shorter than 1080).
 //   SHELL— keep the embedded battle payload mechanism (byte-structure), but
 //          embed the production-bridged HUD; mount the HUD in the main
 //          document (canonical boundary relaxed ONLY so the live arena canvas
@@ -37,6 +41,7 @@ import { fileURLToPath } from 'node:url';
 import { adaptGoldBattleHudR48b } from './goldBattleHudR48b.mjs';
 import { adaptGoldBattleHudR50c } from './goldBattleHudR50c.mjs';
 import { adaptGoldShellR50k } from './goldShellR50k.mjs';
+import { adaptGoldShellR52PickBand } from './goldShellR52pickBand.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GOLD_DIR = path.join(REPO, 'docs', 'gold-ui', 'current');
@@ -2050,6 +2055,9 @@ function buildShell(hudProductionHtml) {
 
   out = adaptGoldShellR50k(out);
   log('  R50K (shell): Mechanical Door V4 scene coordinator wiring adapted');
+
+  out = adaptGoldShellR52PickBand(out);
+  log('  R52 (shell): Fighter-Pick bottom band law derived from the canonical deck/lock rules');
 
 
   // ── S12: embed the production-bridged battle HUD payload (same canonical
