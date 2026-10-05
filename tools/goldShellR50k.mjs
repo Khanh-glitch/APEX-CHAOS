@@ -21,6 +21,13 @@ function replaceOnce(src, needle, replacement, label) {
 export function adaptGoldShellR50k(input) {
   let out = String(input || '');
 
+  // Remove the superseded bespoke Battle transition completely. Mechanical
+  // Door V4 is the sole transition visual/temporal authority.
+  out = replaceRangeOnce(out, '\n#battleTransition{', '\n</style>', '', 'legacy Battle transition CSS');
+  out = replaceRangeOnce(out, '<div id="battleTransition" aria-hidden="true">', '<div id="battleHudHost" aria-hidden="true">', '', 'legacy Battle transition DOM');
+  out = replaceOnce(out, "  const battleTransition=document.getElementById('battleTransition');\n", '', 'legacy Battle transition node');
+  out = replaceOnce(out, '  let battleTransitionToken=0;\n', '', 'legacy Battle transition token');
+
   out = replaceRangeOnce(
     out,
     "  function setScreen(next){",
@@ -61,13 +68,15 @@ export function adaptGoldShellR50k(input) {
   );
 
   const forbidden = [
+    "#battleTransition",
+    "id=\"battleTransition\"",
     "function uiFocusMove(){  function uiFocusMove(){",
     "addEventListener('message',e=>{  addEventListener('message',e=>{",
     "window.APEX_GOLD_SHELL_NAVIGATE=navigateGoldShell;  window.APEX_GOLD_SHELL_NAVIGATE=navigateGoldShell;",
     "openBtn?.addEventListener('click',e=>{  openBtn?.addEventListener('click',e=>{",
   ];
   for (const token of forbidden) {
-    if (out.includes(token)) throw new Error('R50K duplicate shell seam survived: ' + token.slice(0, 48));
+    if (out.includes(token)) throw new Error('R50K superseded/duplicate shell seam survived: ' + token.slice(0, 48));
   }
 
   const required = [
