@@ -513,6 +513,53 @@ function buildBattleHud() {
         `requestAnimationFrame(frame);\n`
       ),
     },
+    // ── H30: hud.critical.warning fires on threshold ENTRY only ────────────
+    // Owner law: the critical cue sounds when BOTH fighters drop to <= 500 HP,
+    // on ENTRY only, with hysteresis so it cannot chatter at the boundary. It
+    // plays through the ONE semantic UI-SFX authority (the battle HUD mounts
+    // inline in the shell document, so the authority is the shell's own).
+    {
+      id: 'HUD-H30',
+      why: 'hud.critical.warning plays on threshold entry only (both fighters <= 500 HP) with hysteresis',
+      find: /function renderRail\(i\)\{/,
+      replace: (
+        `/* ---- critical-health cue: threshold ENTRY only, with hysteresis ---- */\n` +
+        `const HUD_CRITICAL_HP=500;\n` +
+        `const HUD_CRITICAL_RELEASE_HP=560;\n` +
+        `let hudCriticalActive=false;\n` +
+        `function hudCriticalCue(){\n` +
+        `  if(!S.players)return;\n` +
+        `  const a=S.players[0],b=S.players[1];\n` +
+        `  if(!a||!b)return;\n` +
+        `  // A KO'd fighter is not a critical-health state.\n` +
+        `  if(S.ko||a.hp<=0||b.hp<=0){\n` +
+        `    hudCriticalActive=false;\n` +
+        `    return;\n` +
+        `  }\n` +
+        `  const bothLow=a.hp<=HUD_CRITICAL_HP&&b.hp<=HUD_CRITICAL_HP;\n` +
+        `  const released=a.hp>HUD_CRITICAL_RELEASE_HP||b.hp>HUD_CRITICAL_RELEASE_HP;\n` +
+        `  if(hudCriticalActive){\n` +
+        `    if(released)hudCriticalActive=false;\n` +
+        `    return;\n` +
+        `  }\n` +
+        `  if(bothLow){\n` +
+        `    hudCriticalActive=true;\n` +
+        `    try{\n` +
+        `      const sfx=window.apexUiSfx;\n` +
+        `      if(sfx&&typeof sfx.play==='function')sfx.play('hud.critical.warning');\n` +
+        `    }catch(_){ }\n` +
+        `  }\n` +
+        `}\n` +
+        `function renderRail(i){`
+      ),
+    },
+    // ── H31: the cue is evaluated from the single HP write path ─────────────
+    {
+      id: 'HUD-H31',
+      why: 'the critical cue is evaluated from renderRail, the single HP write path',
+      find: / renderRival\(i\^1\);\n\}/,
+      replace: `  renderRival(i^1);\n  hudCriticalCue();\n}`,
+    },
     // ── H14: handoff bridge — mode setter binds to the production seam ─────
     {
       id: 'HUD-H14',
@@ -1026,6 +1073,67 @@ function buildLuckyDonor() {
         `};\n`
       ),
     },
+    // ── LKY-S1: the Lucky Draw plays the REAL Git UI-SFX cues ──────────────
+    // The donor runs inside an iframe, so it must reach the ONE semantic UI-SFX
+    // authority owned by the shell (window.parent) rather than build a second
+    // manager. Every cue is a real Git cue from the 18-key pack.
+    {
+      id: 'LKY-S1',
+      why: 'lucky draw cues resolve the ONE semantic UI-SFX authority (iframe-safe, no second manager)',
+      find: /function rollFighter\(\(\{|function rollFighter\(\)\{/,
+      replace: (
+        `  // Owner law 2026-10-05: ONE semantic UI-SFX authority for the whole\n` +
+        `  // product. The donor lives in an iframe, so it reaches the shell's\n` +
+        `  // authority through window.parent and never builds a second manager.\n` +
+        `  const LD_UI_SFX=()=>window.apexUiSfx||(window.parent&&window.parent.apexUiSfx)||null;\n` +
+        `  function ldSfx(key){try{const s=LD_UI_SFX();if(s&&typeof s.play==='function')s.play(key);}catch(_){ }}\n` +
+        `  function ldLoopStart(key){try{const s=LD_UI_SFX();if(s&&typeof s.startLoop==='function')s.startLoop(key);}catch(_){ }}\n` +
+        `  function ldLoopStop(key){try{const s=LD_UI_SFX();if(s&&typeof s.stop==='function')s.stop(key);}catch(_){ }}\n` +
+        `function rollFighter(){`
+      ),
+    },
+    // ── LKY-S2: machine start + ONE continuous machine-run voice ───────────
+    {
+      id: 'LKY-S2',
+      why: 'lucky draw machine start plays machine_start and the roll is ONE continuous machine_run voice',
+      find: /  worldJolt\(count\);\n  startAccel\(m\.vmax, m\.accelT, m\.cruise\);\n  setState\('roll'\);/,
+      replace: (
+        `  worldJolt(count);\n` +
+        `  ldSfx('lucky.draw.machine_start');\n` +
+        `  // ONE continuous machine-run voice for the whole roll: starting an\n` +
+        `  // already-running voice is a no-op, so it never restarts or stacks.\n` +
+        `  ldLoopStart('lucky.draw.machine_run');\n` +
+        `  startAccel(m.vmax, m.accelT, m.cruise);\n` +
+        `  setState('roll');`
+      ),
+    },
+    // ── LKY-S3: the reel stops on the final lock, then the charge builds ────
+    {
+      id: 'LKY-S3',
+      why: 'the machine-run voice stops at the final lock and the reveal charge plays',
+      find: /    S\.lastWinner = w; setState\('lock'\);\n    later\(S\.rm \? \.2 : \.42, reveal\);/,
+      replace: (
+        `    S.lastWinner = w; setState('lock');\n` +
+        `    ldLoopStop('lucky.draw.machine_run');\n` +
+        `    ldSfx('lucky.draw.reveal_charge');\n` +
+        `    later(S.rm ? .2 : .42, reveal);`
+      ),
+    },
+    // ── LKY-S4: the reward cue fires only on REAL reward visibility ────────
+    {
+      id: 'LKY-S4',
+      why: 'lucky.reward.reveal plays only when the winning fighter is actually visible',
+      find: /function reveal\(\)\{\n  const w = S\.lastWinner, m = M\(\), F = FIGHTERS\[w\];\n  setState\('reveal'\);/,
+      replace: (
+        `function reveal(){\n` +
+        `  const w = S.lastWinner, m = M(), F = FIGHTERS[w];\n` +
+        `  setState('reveal');\n` +
+        `  // The reward is now genuinely on screen (the winning hero slot has\n` +
+        `  // been populated and the reveal transition has started), so this is\n` +
+        `  // the ONLY point the reward cue may fire.\n` +
+        `  ldSfx('lucky.draw.reward_reveal');`
+      ),
+    },
   ];
 
   let out = applyPatches(donor, patches, 'lucky-draw');
@@ -1201,6 +1309,99 @@ function buildShell(hudProductionHtml) {
         `  }`
       ),
     },
+    // ── S40: entering the Lucky Draw bay plays the real enter_bay cue ──────
+    {
+      id: 'SHL-S40',
+      why: 'entering the Lucky Draw bay plays the real lucky.draw.enter_bay cue',
+      find: /    host\.classList\.add\('is-open'\);host\.setAttribute\('aria-hidden','false'\);\n  \}/,
+      replace: (
+        `    host.classList.add('is-open');host.setAttribute('aria-hidden','false');\n` +
+        `    uiSfx('lucky.draw.enter_bay');\n` +
+        `  }`
+      ),
+    },
+    // ── S41: focus movement plays the DEBOUNCED real focus-move cue ────────
+    // Rapid keyboard/pointer focus changes must produce a single cue, never one
+    // per event. The authority debounces this key itself.
+    {
+      id: 'SHL-S41',
+      why: 'mode/fighter focus movement plays the debounced real ui.focus.move cue',
+      find: /  function setModeFocus\(index\)\{\n    modeFocus=\(index\+modeCards\.length\)%modeCards\.length;/,
+      replace: (
+        `  function uiFocusMove(){try{const sfx=window.apexUiSfx;if(sfx&&typeof sfx.focusMove==='function')sfx.focusMove('ui.focus.move');}catch(_){}}\n` +
+        `  function setModeFocus(index){\n` +
+        `    if(index!==modeFocus)uiFocusMove();\n` +
+        `    modeFocus=(index+modeCards.length)%modeCards.length;`
+      ),
+    },
+    // ── S42: roster focus movement also plays the debounced focus-move cue ──
+    {
+      id: 'SHL-S42',
+      why: 'fighter roster focus movement plays the debounced real ui.focus.move cue',
+      find: /  function selectHero\(id\)\{\n    if\(screen!=='fighter'\) return;/,
+      replace: (
+        `  function selectHero(id){\n` +
+        `    if(screen!=='fighter') return;\n` +
+        `    uiFocusMove();`
+      ),
+    },
+    // ── S46: the primary Home CTA is a real button press ───────────────────
+    {
+      id: 'SHL-S46',
+      why: 'the primary Home CTA press plays the real ui.button.press cue',
+      find: /  const story = document\.getElementById\('continueStory'\);/,
+      replace: (
+        `  const story = document.getElementById('continueStory');\n` +
+        `  story?.addEventListener('click',()=>uiSfx('ui.button.press'));`
+      ),
+    },
+    // ── S47: an ACCEPTED selection confirms the option ─────────────────────
+    // Distinct from the light press cue: the press is tactile feedback, this
+    // fires only when the selection is actually accepted into the active
+    // player's slot (never on the rejected path above).
+    {
+      id: 'SHL-S47',
+      why: 'an accepted hero selection plays the real ui.option.confirm cue',
+      find: /    renderFighter\(\);\n    if\(motion\)\{stage\.classList\.remove\('hero-switch-impact'\)/,
+      replace: (
+        `    uiSfx('ui.option.confirm');\n` +
+        `    renderFighter();\n` +
+        `    if(motion){stage.classList.remove('hero-switch-impact')`
+      ),
+    },
+    // ── S48: both fighters locked = match ready (BOT path) ─────────────────
+    {
+      id: 'SHL-S48',
+      why: 'the BOT match-ready handoff plays the real fighter.match_ready cue',
+      find: /handoffBanner\.textContent='BATTLE HANDOFF READY';launchBattleHud\(\)/,
+      replace: (
+        `handoffBanner.textContent='BATTLE HANDOFF READY';\n` +
+        `      uiSfx('fighter.match_ready');\n` +
+        `      launchBattleHud()`
+      ),
+    },
+    // ── S49: both fighters locked = match ready (local 1v1 path) ───────────
+    {
+      id: 'SHL-S49',
+      why: 'the local 1v1 match-ready handoff plays the real fighter.match_ready cue',
+      find: /handoffBanner\.textContent='BOTH FIGHTERS LOCKED';launchBattleHud\(\)/,
+      replace: (
+        `handoffBanner.textContent='BOTH FIGHTERS LOCKED';\n` +
+        `    uiSfx('fighter.match_ready');\n` +
+        `    launchBattleHud()`
+      ),
+    },
+    // ── S43: back/cancel plays the real back cue ───────────────────────────
+    {
+      id: 'SHL-S43',
+      why: 'back/cancel plays the real ui.back.cancel cue',
+      find: /  function back\(\)\{\n    if\(screen==='fighter'\)\{/,
+      replace: (
+        `  function back(){\n` +
+        `    uiSfx('ui.back.cancel');\n` +
+        `    if(screen==='fighter'){`
+      ),
+    },
     // ── S22: BOT OPPONENT = ONE TRUTH (2026-10-05 correction slice) ─────────
     // The presentation, the battle-entry transition, the HUD handoff and the
     // actually spawned fighter must all show the SAME BOT production identity.
@@ -1302,7 +1503,9 @@ function buildShell(hudProductionHtml) {
       replace: (
         `  function selectHero(id){\n` +
         `    if(screen!=='fighter') return;\n` +
-        `    if(window.APEX_GOLD_LOCKED&&window.APEX_GOLD_LOCKED(id))return;\n`
+        `    // A hero that is not selectable is a real REJECTED action: it has its\n` +
+        `    // own cue, and it must not fall through to the press/focus cues.\n` +
+        `    if(window.APEX_GOLD_LOCKED&&window.APEX_GOLD_LOCKED(id)){uiSfx('ui.action.rejected');return;}\n`
       ),
     },
     {
@@ -1311,7 +1514,7 @@ function buildShell(hudProductionHtml) {
       find: /      b\.addEventListener\('click',\(\)=>selectHero\(id\)\);/,
       replace: (
         `      if(window.APEX_GOLD_LOCKED&&window.APEX_GOLD_LOCKED(id))b.classList.add('is-locked');\n` +
-        `      b.addEventListener('click',()=>selectHero(id));`
+        `      b.addEventListener('click',()=>{uiSfx('ui.button.press');selectHero(id)});`
       ),
     },
     // ── S24: battle HUD portrait uses the R44 BATTLE_HUD_AVATAR authority ──

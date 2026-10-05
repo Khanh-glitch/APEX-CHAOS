@@ -856,6 +856,33 @@ function renderRival(viewer){
  if(u.fill.style.transform!==f)u.fill.style.transform=f;
  u.root.classList.toggle('low',p.hp/p.max<.25&&p.hp>0);
 }
+/* ---- critical-health cue: threshold ENTRY only, with hysteresis ---- */
+const HUD_CRITICAL_HP=500;
+const HUD_CRITICAL_RELEASE_HP=560;
+let hudCriticalActive=false;
+function hudCriticalCue(){
+  if(!S.players)return;
+  const a=S.players[0],b=S.players[1];
+  if(!a||!b)return;
+  // A KO'd fighter is not a critical-health state.
+  if(S.ko||a.hp<=0||b.hp<=0){
+    hudCriticalActive=false;
+    return;
+  }
+  const bothLow=a.hp<=HUD_CRITICAL_HP&&b.hp<=HUD_CRITICAL_HP;
+  const released=a.hp>HUD_CRITICAL_RELEASE_HP||b.hp>HUD_CRITICAL_RELEASE_HP;
+  if(hudCriticalActive){
+    if(released)hudCriticalActive=false;
+    return;
+  }
+  if(bothLow){
+    hudCriticalActive=true;
+    try{
+      const sfx=window.apexUiSfx;
+      if(sfx&&typeof sfx.play==='function')sfx.play('hud.critical.warning');
+    }catch(_){ }
+  }
+}
 function renderRail(i){
  const p=S.players[i],u=R.rail[i];
  const f=`scaleX(${(p.hp/p.max).toFixed(4)})`,g=`scaleX(${(Math.max(p.ghost,p.hp)/p.max).toFixed(4)})`,t=String(Math.round(p.hp));
@@ -864,7 +891,8 @@ function renderRail(i){
  if(u.hpS!==t){u.cur.textContent=t;u.hpS=t;}
  const low=p.hp/p.max<.25&&p.hp>0;u.root.classList.toggle('low',low);
  if(low!==p.low){p.low=low;if(low)lowHpCue(i);}
- renderRival(i^1);
+  renderRival(i^1);
+  hudCriticalCue();
 }
 function renderTimer(){
  // Production truth: elapsed time only. No countdown urgency, no

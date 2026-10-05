@@ -906,6 +906,13 @@ function updateReel(dt){
 /* =====================================================================
    DRAW FLOW
    ===================================================================== */
+  // Owner law 2026-10-05: ONE semantic UI-SFX authority for the whole
+  // product. The donor lives in an iframe, so it reaches the shell's
+  // authority through window.parent and never builds a second manager.
+  const LD_UI_SFX=()=>window.apexUiSfx||(window.parent&&window.parent.apexUiSfx)||null;
+  function ldSfx(key){try{const s=LD_UI_SFX();if(s&&typeof s.play==='function')s.play(key);}catch(_){ }}
+  function ldLoopStart(key){try{const s=LD_UI_SFX();if(s&&typeof s.startLoop==='function')s.startLoop(key);}catch(_){ }}
+  function ldLoopStop(key){try{const s=LD_UI_SFX();if(s&&typeof s.stop==='function')s.stop(key);}catch(_){ }}
 function rollFighter(){
   let r = Math.random() * 100;
   for (let i = 0; i < FIGHTERS.length; i++){ r -= FIGHTERS[i].rate; if (r <= 0) return i; }
@@ -934,6 +941,10 @@ function startDraw(count){
   stage.dataset.tint = '0';
   const m = M();
   worldJolt(count);
+  ldSfx('lucky.draw.machine_start');
+  // ONE continuous machine-run voice for the whole roll: starting an
+  // already-running voice is a no-op, so it never restarts or stacks.
+  ldLoopStart('lucky.draw.machine_run');
   startAccel(m.vmax, m.accelT, m.cruise);
   setState('roll');
 }
@@ -955,6 +966,8 @@ function onLock(){
     });
   } else {
     S.lastWinner = w; setState('lock');
+    ldLoopStop('lucky.draw.machine_run');
+    ldSfx('lucky.draw.reveal_charge');
     later(S.rm ? .2 : .42, reveal);
   }
 }
@@ -1023,6 +1036,10 @@ function setHeroContent(slot, i){
 function reveal(){
   const w = S.lastWinner, m = M(), F = FIGHTERS[w];
   setState('reveal');
+  // The reward is now genuinely on screen (the winning hero slot has
+  // been populated and the reveal transition has started), so this is
+  // the ONLY point the reward cue may fire.
+  ldSfx('lucky.draw.reward_reveal');
   const oldS = heroSlots[heroFront], newS = heroSlots[1 - heroFront];
   oldS.getAnimations().forEach(a => a.cancel()); newS.getAnimations().forEach(a => a.cancel());
   oldS.style.opacity = 1; newS.style.opacity = 0;

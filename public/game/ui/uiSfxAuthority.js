@@ -121,6 +121,32 @@
       return true;
     }
 
+    // Continuous voices (e.g. the single Lucky Draw machine-run voice). Starting
+    // an already-running voice is a no-op, so the cue is ONE continuous sound and
+    // never restarts or stacks.
+    function startLoop(key) {
+      const url = urlFor(key);
+      if (!url) return false;
+      if (muted) return false;
+      if (isSuppressed(key)) return false;
+      const el = elementFor(key);
+      if (!el) return false;
+      el.loop = true;
+      if (!el.paused && !el.ended) return true; // already the ONE continuous voice
+      try { el.currentTime = 0; } catch (error) { /* not seekable yet */ }
+      const p = el.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+      return true;
+    }
+
+    function stop(key) {
+      const el = cache.get(key);
+      if (!el) return false;
+      el.loop = false;
+      try { el.pause(); el.currentTime = 0; } catch (error) { /* ignore */ }
+      return true;
+    }
+
     // Debounced focus movement: rapid keyboard/pointer focus changes produce a
     // single cue instead of one per event.
     function focusMove(key) {
@@ -142,6 +168,8 @@
       // Semantic playback. Never creates an element per call.
       play,
       focusMove,
+      startLoop,
+      stop,
       // Separate UI-SFX level/mute (MUSIC mute is untouched by these).
       setVolume: (v) => { volume = Math.max(0, Math.min(1, Number(v))); for (const el of cache.values()) el.volume = muted ? 0 : volume; return volume; },
       volume: () => volume,
