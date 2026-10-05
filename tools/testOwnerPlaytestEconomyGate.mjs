@@ -69,9 +69,12 @@ function boot(initial, productSurface) {
   check('first boot seeds exactly 12,000 AC', meta.credits() === 12000, `credits=${meta.credits()}`);
   const stored = JSON.parse(storage.getItem('apexChaos.arsenalMeta.v1'));
   check('the seed is persisted through the real economy save', stored.credits === 12000);
+  // ONE authority: the marker must carry the revision the runtime itself
+  // declares — a literal here would let the gate and the product drift apart.
   check('the seed marker is revision+profile scoped',
     stored.ownerPlaytestAcSeed &&
-    stored.ownerPlaytestAcSeed.revision === '20261005-owner-playtest-r44' &&
+    stored.ownerPlaytestAcSeed.revision === meta.OWNER_PLAYTEST_AC_SEED_REVISION &&
+    stored.ownerPlaytestAcSeed.revision === meta.OWNER_PLAYTEST_REVISION &&
     stored.ownerPlaytestAcSeed.profile === 'apexChaos.arsenalMeta.v1',
     JSON.stringify(stored.ownerPlaytestAcSeed));
   const balanceFields = Object.entries(stored)
@@ -88,6 +91,32 @@ function boot(initial, productSurface) {
   check('a legacy 425 AC profile is upgraded to 12,000 on first r44 boot', meta.credits() === 12000, `credits=${meta.credits()}`);
   const again = boot({ 'apexChaos.arsenalMeta.v1': storage.getItem('apexChaos.arsenalMeta.v1') });
   check('reloading an already-seeded profile does not re-upgrade', again.meta.credits() === 12000, `credits=${again.meta.credits()}`);
+}
+
+// ── 2b. the reseed revision gives every existing profile exactly one refill ─
+// Owner feedback "12.000 AC" must hold for a profile that was already seeded
+// (and possibly spent) under the previous revision — without ever refilling an
+// ordinary refresh of the CURRENT revision.
+{
+  const retired = {
+    version: 1, credits: 11650, ownedFighters: ['ROBOT'],
+    lastSelectedP1: 'ROBOT', lastSelectedP2: 'ROBOT', totalSpins: 1,
+    unlockedAt: { ROBOT: 0 }, arenaPaletteId: null,
+    ownerPlaytestAcSeed: { revision: '20261005-owner-playtest-r44', profile: 'apexChaos.arsenalMeta.v1', at: 1 },
+  };
+  const { meta, storage } = boot({ 'apexChaos.arsenalMeta.v1': JSON.stringify(retired) });
+  check('a profile seeded under the retired revision is refilled once to 12,000',
+    meta.credits() === 12000, `credits=${meta.credits()}`);
+  const stored = JSON.parse(storage.getItem('apexChaos.arsenalMeta.v1'));
+  check('the refill rewrites the marker to the live revision',
+    stored.ownerPlaytestAcSeed.revision === meta.OWNER_PLAYTEST_REVISION &&
+    stored.ownerPlaytestAcSeed.revision !== '20261005-owner-playtest-r44');
+  const spent = meta.spin(() => 0);
+  check('the refilled balance spends through the real economy',
+    spent.ok === true && spent.credits === 11650, JSON.stringify(spent));
+  const refreshed = boot({ 'apexChaos.arsenalMeta.v1': storage.getItem('apexChaos.arsenalMeta.v1') });
+  check('a refresh after the refill never refills again',
+    refreshed.meta.credits() === 11650, `credits=${refreshed.meta.credits()}`);
 }
 
 // ── 3. ordinary refresh never refills ────────────────────────────────────
@@ -133,12 +162,14 @@ function boot(initial, productSurface) {
   check('the override is exposed as a single fenced switch',
     meta.OWNER_PLAYTEST_CORE_SIX_UNLOCK === true &&
     typeof meta.ownerPlaytestSelectionUnlocked === 'function' &&
-    meta.OWNER_PLAYTEST_CORE_SIX_UNLOCK_REVISION === '20261005-owner-playtest-r44');
+    meta.OWNER_PLAYTEST_CORE_SIX_UNLOCK_REVISION === meta.OWNER_PLAYTEST_REVISION);
   check('the picker filter honours the single selection authority',
     meta.filterOwned([{ name: 'MIRROR' }, { name: 'SLIME' }, { name: 'ROBOT' }]).length === 2);
   check('the AC seed is exposed as a single fenced constant',
     meta.OWNER_PLAYTEST_AC_SEED === 12000 &&
-    meta.OWNER_PLAYTEST_AC_SEED_REVISION === '20261005-owner-playtest-r44');
+    meta.OWNER_PLAYTEST_AC_SEED_REVISION === meta.OWNER_PLAYTEST_REVISION &&
+    /^20261005-owner-playtest-r\d+$/.test(meta.OWNER_PLAYTEST_REVISION),
+    String(meta.OWNER_PLAYTEST_REVISION));
 }
 
 // ── 6. no scattered bypasses in production sources ───────────────────────

@@ -30,8 +30,11 @@
   //   · it never unlocks a future visible-but-locked fighter.
   // It is removed as ONE edit — flip this constant to false — after owner
   // acceptance. No other file may re-implement this bypass.
+  // ONE revision string owns both owner-playtest overrides below, so a reseed
+  // can never half-apply (selection under one revision, balance under another).
+  const OWNER_PLAYTEST_REVISION = '20261005-owner-playtest-r52';
   const OWNER_PLAYTEST_CORE_SIX_UNLOCK = true;
-  const OWNER_PLAYTEST_CORE_SIX_UNLOCK_REVISION = '20261005-owner-playtest-r44';
+  const OWNER_PLAYTEST_CORE_SIX_UNLOCK_REVISION = OWNER_PLAYTEST_REVISION;
   // Owner playtest balance: exactly 12,000 AC on the first boot of a profile
   // under this revision. It uses the REAL production economy (award/save on
   // the one AC state) — there is no parallel currency variable — and it is
@@ -39,7 +42,7 @@
   // (12,000 → spend 350 → 11,650 → refresh stays 11,650). Removed as ONE
   // edit (set to 0) after owner acceptance.
   const OWNER_PLAYTEST_AC_SEED = 12000;
-  const OWNER_PLAYTEST_AC_SEED_REVISION = '20261005-owner-playtest-r44';
+  const OWNER_PLAYTEST_AC_SEED_REVISION = OWNER_PLAYTEST_REVISION;
   function ownerPlaytestSelectionUnlocked(name) {
     if (!OWNER_PLAYTEST_CORE_SIX_UNLOCK) return false;
     // ONLY the current production playable roster (the Core Six). A future
@@ -650,6 +653,7 @@
     OWNER_PLAYTEST_CORE_SIX_UNLOCK_REVISION,
     OWNER_PLAYTEST_AC_SEED,
     OWNER_PLAYTEST_AC_SEED_REVISION,
+    OWNER_PLAYTEST_REVISION,
     applyOwnerPlaytestAcSeed,
     palette, setPalette,
     load, save, emptyState, sanitize, poolLocked,
