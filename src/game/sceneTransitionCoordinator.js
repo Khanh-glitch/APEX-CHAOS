@@ -84,8 +84,10 @@ function loadGoldDoorRuntime() {
   if (runtimePromise) return runtimePromise;
   runtimePromise = new Promise((resolve, reject) => {
     const existing = [...document.scripts].find((s) => {
-      try { return new URL(s.src, document.baseURI).pathname === '/gold/transition/mechanical-door-v4.gold.js'; }
-      catch (_) { return false; }
+      try {
+        return s.type === 'module'
+          && new URL(s.src, document.baseURI).pathname === '/gold/transition/mechanical-door-v4.gold.js';
+      } catch (_) { return false; }
     });
     const script = existing || document.createElement('script');
     const ready = () => {
