@@ -16,15 +16,9 @@ import {
   markLoaderHidden,
 } from './game/performanceMetrics.js';
 import { GOLD_SHELL_URL } from './game/goldAssetManifest.js';
+import { installSceneTransitionCoordinator } from './game/sceneTransitionCoordinator.js';
 
 const once = { loaded: false };
-const LOADING_ASSETS = {
-  bgPortrait: '/assets/ui_2026/loading-bg-portrait.webp',
-  bgLandscape: '/assets/ui_2026/loading-bg-landscape.webp',
-  gameTitle: '/assets/ui_2026/game-name-icon.webp',
-  loadingBarFrame: '/assets/loading/loading-bar-frame.webp',
-};
-
 // §A4 / 2026-10-05 correction slice — ONE product music authority.
 // The single existing menu-media element IS the product theme element: there
 // is exactly one persistent HTMLMediaElement for product music (the Gold
@@ -36,155 +30,6 @@ const MENU_MUSIC_VOLUME = 0.48;
 // Product surfaces where the Forward Drive theme is allowed. Everything else
 // (Lucky Draw, Upgrade, Missions, Shop, an actual match) is music-off.
 const MENU_MUSIC_ALLOWED_SURFACES = new Set(['home', 'mode', 'fighter', 'transition']);
-
-const LOADING_LABELS = ['LOADING ASSETS', 'PREPARING ARENA', 'SYNCHRONIZING VFX'];
-const IMAGE_PRELOAD_TIMEOUT_MS = 7000;
-const LOADER_READY_HOLD_MS = 160;
-const LOADER_FADE_MS = 280;
-
-function wait(ms) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
-
-function assetTypeFromPath(path) {
-  const clean = path.split('?')[0].toLowerCase();
-  if (/\.(png|jpe?g|webp|gif|svg|avif)$/.test(clean)) return 'image';
-  if (/\.(mp3|wav|ogg|m4a|aac|flac)$/.test(clean)) return 'audio';
-  if (/\.js$/.test(clean)) return 'script';
-  if (/\.json$/.test(clean)) return 'data';
-  return 'fetch';
-}
-
-async function preloadImage(path) {
-  await new Promise((resolve) => {
-    const img = new Image();
-    let settled = false;
-    let decodeStarted = false;
-    const timeout = window.setTimeout(() => finish('timeout'), IMAGE_PRELOAD_TIMEOUT_MS);
-    const finish = (ok) => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timeout);
-      img.onload = null;
-      img.onerror = null;
-      if (ok === 'timeout') console.warn(`[asset-loader] Timed out image asset: ${path}`);
-      if (ok === false) console.warn(`[asset-loader] Failed image asset: ${path}`);
-      resolve();
-    };
-    const finishLoaded = async () => {
-      if (settled || decodeStarted) return;
-      decodeStarted = true;
-      try {
-        if (img.decode) await img.decode();
-      } catch (decodeError) {
-        if (!img.naturalWidth) {
-          console.warn(`[asset-loader] Failed to decode image asset: ${path}`, decodeError);
-        }
-      }
-      finish(true);
-    };
-    img.decoding = 'async';
-    img.onload = () => { void finishLoaded(); };
-    img.onerror = () => finish(false);
-    img.src = path;
-    if (img.complete) {
-      if (img.naturalWidth > 0) void finishLoaded();
-      else finish(false);
-    }
-  });
-}
-
-async function preloadFetchAsset(path, type) {
-  try {
-    const response = await fetch(path, { cache: 'force-cache' });
-    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-    await response.arrayBuffer();
-  } catch (error) {
-    console.warn(`[asset-loader] Failed ${type} asset: ${path}`, error);
-  }
-}
-
-function uniqueAssets(manifestAssets, engineSrc) {
-  const assets = [
-    ...manifestAssets,
-    { path: engineSrc, type: 'script', required: true },
-  ];
-  const seen = new Set();
-  return assets.filter((asset) => {
-    const path = asset.path || asset.url;
-    if (!path) return false;
-    const dedupeKey = path.split('?')[0];
-    if (dedupeKey === '/apexEngine.js' && path !== engineSrc) return false;
-    if (seen.has(path)) return false;
-    seen.add(path);
-    asset.path = path;
-    asset.type = asset.type || assetTypeFromPath(path);
-    return true;
-  });
-}
-
-function criticalBootAssets() {
-  const portraitViewport = window.innerHeight > window.innerWidth || window.innerWidth <= 700;
-  const loadingBackground = portraitViewport ? LOADING_ASSETS.bgPortrait : LOADING_ASSETS.bgLandscape;
-  return [
-    { path: loadingBackground, type: 'image', required: true },
-    { path: LOADING_ASSETS.gameTitle, type: 'image', required: true },
-    { path: LOADING_ASSETS.loadingBarFrame, type: 'image', required: true },
-  ];
-}
-
-function blockingBootAssets(engineSrc) {
-  return uniqueAssets(criticalBootAssets(), engineSrc);
-}
-
-async function preloadAssetList(assets, onProgress) {
-  let loadedCount = 0;
-  const totalCount = Math.max(assets.length, 1);
-  let nextIndex = 0;
-  const workerCount = Math.min(6, assets.length || 1);
-
-  onProgress({ loadedCount, totalCount, percent: 0, label: LOADING_LABELS[0] });
-
-  const loadOne = async (asset) => {
-    const type = asset.type || assetTypeFromPath(asset.path);
-    const endTiming = beginPerfSpan('asset', asset.path, { type });
-    try {
-      if (type === 'image') await preloadImage(asset.path);
-      else await preloadFetchAsset(asset.path, type);
-      endTiming({ ok: true });
-    } catch (error) {
-      endTiming({ ok: false });
-      throw error;
-    }
-  };
-
-  const tick = () => {
-    loadedCount += 1;
-    const ratio = loadedCount / totalCount;
-    onProgress({
-      loadedCount,
-      totalCount,
-      percent: Math.round(ratio * 100),
-      label: LOADING_LABELS[Math.min(LOADING_LABELS.length - 1, Math.floor(ratio * LOADING_LABELS.length))],
-    });
-  };
-
-  await Promise.all(Array.from({ length: workerCount }, async () => {
-    while (nextIndex < assets.length) {
-      const asset = assets[nextIndex];
-      nextIndex += 1;
-      await loadOne(asset);
-      tick();
-    }
-  }));
-}
-
-async function preloadGameAssets(engineSrc, onProgress) {
-  const assets = blockingBootAssets(engineSrc);
-  await preloadAssetList(assets, onProgress);
-
-  return { totalCount: assets.length, loadedCount: assets.length };
-}
 
 function injectApexEngine(scriptRef, engineSrc) {
   if (window.__apexEngineReady) return Promise.resolve();
@@ -343,14 +188,26 @@ export default function App() {
   // Product music lifecycle is owned by productMusicAuthority. React keeps
   // only the single persistent element ref for diagnostics/fallback cleanup.
   const [gameReady, setGameReady] = useState(false);
-  const [loader, setLoader] = useState({
-    active: true,
-    fading: false,
-    percent: 0,
-    status: 'LOADING ASSETS',
-    loadedCount: 0,
-    totalCount: 1,
-  });
+
+  useEffect(() => {
+    const canvas = document.getElementById('apex-scene-transition');
+    const blackout = document.getElementById('apex-boot-blackout');
+    const contentRoot = document.getElementById('gold-shell-host');
+    const coordinator = installSceneTransitionCoordinator({ canvas, blackout, contentRoot });
+    const onBootTransitionComplete = () => {
+      markLoaderHidden();
+      window.dispatchEvent(new CustomEvent('apex:boot-interactive'));
+    };
+    window.addEventListener('apex:boot-transition-complete', onBootTransitionComplete);
+    return () => {
+      window.removeEventListener('apex:boot-transition-complete', onBootTransitionComplete);
+      if (window.APEX_SCENE_TRANSITION === coordinator) {
+        // The product root normally lives for the whole page. HMR/test unmounts
+        // may remove it; the next mount installs a fresh coordinator.
+        delete window.APEX_SCENE_TRANSITION;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (once.loaded) return undefined;
@@ -362,57 +219,19 @@ export default function App() {
     const boot = async () => {
       markBootPhase('boot-start');
       preloadRuntimeSources();
-      const enginePromise = injectApexEngine(scriptRef, engineSrc);
-      enginePromise.catch(() => {});
-      // Loading truth (§A1): progress counts EVERY menu-interactive unit —
-      // critical shell assets (which include the engine bytes) plus the
-      // engine + Tier-1 runtime execution unit. The percentage can therefore
-      // never read 100%/READY while a menu dependency is still pending.
-      let progressTotalUnits = 0;
-      const preloadResult = await preloadGameAssets(engineSrc, (progress) => {
-        if (cancelled) return;
-        if (!progressTotalUnits) progressTotalUnits = progress.totalCount + 1; // + engine/tier-1 unit
-        setLoader((current) => ({
-          ...current,
-          percent: Math.min(99, Math.floor((progress.loadedCount / progressTotalUnits) * 100)),
-          status: progress.label,
-          loadedCount: progress.loadedCount,
-          totalCount: progress.totalCount,
-        }));
-      });
-      markBootPhase('critical-shell-ready', { assets: preloadResult.loadedCount });
-      if (cancelled) return;
-      setLoader((current) => ({
-        ...current,
-        // All shell assets in; the engine execution unit is still pending.
-        percent: Math.min(99, Math.floor((preloadResult.totalCount / (preloadResult.totalCount + 1)) * 100)),
-        status: 'STARTING ENGINE',
-      }));
-      await enginePromise;
+      await injectApexEngine(scriptRef, engineSrc);
       if (cancelled) return;
       once.loaded = true;
       setGameReady(true);
-      // The menu is genuinely usable from this tick onward (buttons enabled,
-      // engine nav globals bound, Tier-1 audio bridge live).
       markBootInteractive();
       markBootPhase('menu-interactive');
-      setLoader((current) => ({ ...current, active: true, fading: false, percent: 100, status: 'READY' }));
-      // Tier 2 — background warmup of likely-next groups. Never blocks the
-      // menu; yields to any route intent through the priority queue.
+      // Tier 2 stays opportunistic and never blocks the visible Home reveal.
       scheduleDeferredGameRuntimes();
-      await wait(LOADER_READY_HOLD_MS);
-      if (cancelled) return;
-      setLoader((current) => ({ ...current, fading: true }));
-      await wait(LOADER_FADE_MS);
-      if (cancelled) return;
-      setLoader((current) => ({ ...current, active: false, fading: false }));
-      markLoaderHidden();
-      window.dispatchEvent(new CustomEvent('apex:boot-interactive'));
     };
 
     boot().catch((error) => {
       console.warn('[asset-loader] Boot failed.', error);
-      if (!cancelled) setLoader((current) => ({ ...current, status: 'LOADING FALLBACK', percent: 100, fading: true }));
+      document.body.dataset.apexBootError = 'true';
     });
 
     return () => {
@@ -730,6 +549,7 @@ export default function App() {
         host.dataset.apexGoldMounted = '1';
         document.body.classList.add('apex-gold-mounted');
         setGoldReady(true);
+        await window.APEX_SCENE_TRANSITION?.signalBootReady?.();
       } catch (error) {
         console.warn('[gold-shell] Gold product shell mount failed.', error);
       }
@@ -751,25 +571,8 @@ export default function App() {
 
   return (
     <>
-    {loader.active && (
-      <div id="loading-screen" className={loader.fading ? 'is-fading' : ''} aria-live="polite">
-        <div className="loading-fallback" />
-        <picture>
-          <source media="(orientation: portrait), (max-width: 700px)" srcSet={LOADING_ASSETS.bgPortrait} />
-          <img className="loading-bg" src={LOADING_ASSETS.bgLandscape} alt="" />
-        </picture>
-        <div className="loading-vignette" />
-        <img className="loading-title" src={LOADING_ASSETS.gameTitle} alt="Apex Chaos" />
-        <div className="loading-bar-shell">
-          <img className="loading-bar-frame" src={LOADING_ASSETS.loadingBarFrame} alt="" />
-          <div className="loading-bar-interior">
-            <div className="loading-bar-fill" style={{ width: `${loader.percent}%` }} />
-          </div>
-          <div className="loading-status">{loader.status}</div>
-          <div className="loading-percent">{loader.percent}%</div>
-        </div>
-      </div>
-    )}
+    <div id="apex-boot-blackout" aria-hidden="true" />
+    <canvas id="apex-scene-transition" aria-hidden="true" />
     {/* Gold is the only public product surface. The host below the Gold mount
         contains engine/combat infrastructure only; no legacy menu or picker DOM. */}
     <div id="gold-shell-host" aria-label="APEX CHAOS product surface" />
