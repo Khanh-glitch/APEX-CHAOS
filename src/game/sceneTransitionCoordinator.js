@@ -99,6 +99,13 @@ function loadGoldDoorRuntime() {
     script.addEventListener('load', ready, { once: true });
     script.addEventListener('error', () => reject(new Error('Mechanical Door V4 runtime failed to load.')), { once: true });
     if (!existing) {
+      // The Gold runtime is authored as one self-contained classic-style file
+      // with top-level helpers such as const TAU. Load it as an ES module so
+      // those lexical names stay private to the transition runtime and cannot
+      // collide with apexEngine.js/global product runtimes. Its explicit
+      // window.__ApexDoorV4 export remains the public seam; runtime bytes and
+      // motion/state-machine authority are otherwise untouched.
+      script.type = 'module';
       script.src = GOLD_DOOR_RUNTIME_URL;
       script.async = false;
       script.dataset.apexSceneTransitionRuntime = 'true';
