@@ -1221,6 +1221,7 @@ function buildShell(hudProductionHtml) {
       find: /  function setBattleLive\(\)\{\n    if\(!battleHudFrame\?\.contentWindow\)return;/,
       replace: (
         `  function setBattleLive(){\n` +
+        `    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('battle');\n` +
         `    APEX_GOLD.onBattleLive&&APEX_GOLD.onBattleLive({mode:battleMode,p1:p1Hero,p2:p2Hero});\n` +
         `    if(!window.APEX_GOLD_HUD)return;`
       ),
@@ -1334,6 +1335,7 @@ function buildShell(hudProductionHtml) {
       find: /    host\.classList\.add\('is-open'\);host\.setAttribute\('aria-hidden','false'\);\n  \}/,
       replace: (
         `    host.classList.add('is-open');host.setAttribute('aria-hidden','false');\n` +
+        `    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('lucky');\n` +
         `    uiSfx('lucky.draw.enter_bay');\n` +
         `  }`
       ),
@@ -1710,6 +1712,65 @@ function buildShell(hudProductionHtml) {
         `      if(id==='crystala') body.insertAdjacentHTML('beforeend','<span class="crystalPulse"></span>');\n` +
         `    }\n` +
         `    container.appendChild(body);`
+      ),
+    },
+    // ── R46A: surface + battle-exit ownership is explicit and singular ─────
+    {
+      id: 'SHL-S50',
+      why: 'Home/Mode/Fighter screen changes notify the ONE product music surface authority',
+      find: /    screen=next; stage\.classList\.toggle\('screen-mode',next==='mode'\);/,
+      replace: "    screen=next; APEX_GOLD.onSurface&&APEX_GOLD.onSurface(next); stage.classList.toggle('screen-mode',next==='mode');",
+    },
+    {
+      id: 'SHL-S51',
+      why: 'battle transition explicitly owns the transition music surface',
+      find: /    screen='transition';\n    battleHudReady=false;\n    transitionSfxPlayed\.clear\(\);/,
+      replace: (
+        `    screen='transition';\n` +
+        `    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('transition');\n` +
+        `    battleHudReady=false;\n` +
+        `    transitionSfxPlayed.clear();`
+      ),
+    },
+    {
+      id: 'SHL-S52',
+      why: 'cancelling battle transition returns music ownership to Fighter Pick',
+      find: /  function cancelBattleTransition\(\)\{[\s\S]*?\n  \}(?=\n  function closeBattleHud)/,
+      replace: (matched) => matched.replace(
+        "    screen='fighter';",
+        "    screen='fighter';\n    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter');"
+      ),
+    },
+    {
+      id: 'SHL-S53',
+      why: 'closing a live Gold battle tears down the engine without opening legacy menu, then returns to Fighter Pick',
+      find: /  function closeBattleHud\(\)\{[\s\S]*?\n  \}(?=\n  addEventListener\('message')/,
+      replace: (matched) => matched
+        .replace(
+          "    resumeParentRuntime();",
+          "    APEX_GOLD.exitBattle&&APEX_GOLD.exitBattle();\n    resumeParentRuntime();"
+        )
+        .replace(
+          "    screen='fighter';",
+          "    screen='fighter';\n    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter');"
+        ),
+    },
+    {
+      id: 'SHL-S54',
+      why: 'Gold shell boot announces Home so theme policy never falls back to legacy DOM visibility',
+      find: /  buildRoster\(\); renderFighter\(\);/,
+      replace: "  buildRoster(); renderFighter(); APEX_GOLD.onSurface&&APEX_GOLD.onSurface('home');",
+    },
+    {
+      id: 'SHL-S55',
+      why: 'closing Lucky Draw returns the theme to Home without resetting its playhead',
+      find: /  function closeLucky\(\)\{host\.classList\.remove\('is-open'\);host\.setAttribute\('aria-hidden','true'\);openBtn\?\.focus\?\.\(\{preventScroll:true\}\);\}/,
+      replace: (
+        `  function closeLucky(){\n` +
+        `    host.classList.remove('is-open');host.setAttribute('aria-hidden','true');\n` +
+        `    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('home');\n` +
+        `    openBtn?.focus?.({preventScroll:true});\n` +
+        `  }`
       ),
     },
   ];

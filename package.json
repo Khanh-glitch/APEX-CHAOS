@@ -19,6 +19,7 @@
     "test:runtime-revision": "node tools/testRuntimeRevisionGate.mjs",
     "test:gold-shell-loader": "node tools/testGoldShellLoaderGate.mjs",
     "test:gold-battle-visibility": "node tools/testGoldBattleVisibilityGate.mjs",
+    "test:gold-battle-lifecycle": "node tools/testGoldBattleLifecycleGate.mjs",
     "test:owner-playtest-economy": "node tools/testOwnerPlaytestEconomyGate.mjs",
     "test:core-six-art": "node tools/testCoreSixArtAuthorityGate.mjs",
     "test:core-six-hero-av": "node tools/testCoreSixHeroAvGate.mjs",

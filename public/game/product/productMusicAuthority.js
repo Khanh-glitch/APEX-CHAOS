@@ -55,7 +55,11 @@
 
     const allowed = new Set(opts.allowedSurfaces || ALLOWED_SURFACES);
     let surface = null; // { id, allowed }
-    let wasPlaying = false;
+    // Visibility and focus can fire as a pair (blur -> hidden, then visible ->
+    // focus). Track reasons independently so the second pause signal never
+    // overwrites the first signal's "was playing" truth.
+    const interruptionReasons = new Set();
+    let resumeAfterInterruption = false;
     let fadeFrame = 0;
 
     const cancelFade = () => {
@@ -173,6 +177,10 @@
 
     const fadeIn = (ms) => {
       if (!isAllowed()) return;
+      if (interruptionReasons.size) {
+        resumeAfterInterruption = true;
+        return;
+      }
       audio.volume = 0;
       play();
       fadeTo(VOLUME, ms || FADE_MS);
@@ -191,13 +199,17 @@
       const ok = allowed.has(id);
       surface = { id, allowed: ok };
       if (ok) {
-        if (audio.paused) {
+        if (interruptionReasons.size) {
+          resumeAfterInterruption = true;
+          audio.pause();
+        } else if (audio.paused) {
           audio.volume = 0;
           play();
           fadeTo(VOLUME, FADE_MS);
         }
-      } else if (!audio.paused) {
-        fadeOut(FADE_MS);
+      } else {
+        resumeAfterInterruption = false;
+        if (!audio.paused) fadeOut(FADE_MS);
       }
     };
 
@@ -218,7 +230,7 @@
       // records the blocked state honestly and arms the ONE temporary
       // gesture-unlock set. Never resets currentTime.
       request: (reason) => {
-        if (!isAllowed()) return null;
+        if (!isAllowed() || interruptionReasons.size) return null;
         return play(reason || 'request');
       },
       fadeOut: (ms) => fadeOut(ms),
@@ -252,28 +264,41 @@
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
       toggleMute();
     };
-    const pauseForHidden = () => {
-      wasPlaying = !audio.paused;
-      audio.pause();
+    const setInterrupted = (reason, active) => {
+      const key = String(reason || 'page');
+      if (active) {
+        if (!interruptionReasons.has(key) && interruptionReasons.size === 0) {
+          resumeAfterInterruption = !audio.paused;
+        }
+        interruptionReasons.add(key);
+        audio.pause();
+        return;
+      }
+      interruptionReasons.delete(key);
+      if (interruptionReasons.size) return;
+      if (!isAllowed()) {
+        resumeAfterInterruption = false;
+        audio.pause();
+        return;
+      }
+      if (!resumeAfterInterruption) return;
+      resumeAfterInterruption = false;
+      play('resume-visible');
     };
-    const resumeForVisible = () => {
-      if (!isAllowed()) { wasPlaying = false; audio.pause(); return; }
-      if (!wasPlaying) return;
-      wasPlaying = false;
-      play();
-    };
-    const handleVisibility = () => { if (doc.hidden) pauseForHidden(); else resumeForVisible(); };
+    const handleVisibility = () => setInterrupted('hidden', !!doc.hidden);
+    const handleBlur = () => setInterrupted('blur', true);
+    const handleFocus = () => setInterrupted('blur', false);
 
     win.addEventListener('keydown', musicKey);
     doc.addEventListener('visibilitychange', handleVisibility);
-    win.addEventListener('blur', pauseForHidden);
-    win.addEventListener('focus', resumeForVisible);
+    win.addEventListener('blur', handleBlur);
+    win.addEventListener('focus', handleFocus);
 
     const dispose = () => {
       win.removeEventListener('keydown', musicKey);
       doc.removeEventListener('visibilitychange', handleVisibility);
-      win.removeEventListener('blur', pauseForHidden);
-      win.removeEventListener('focus', resumeForVisible);
+      win.removeEventListener('blur', handleBlur);
+      win.removeEventListener('focus', handleFocus);
       disarmGestureUnlock();
       cancelFade();
       win.__apexProductMusicInstalled = null;
@@ -284,16 +309,17 @@
     const handle = { api, audio, dispose };
     win.__apexProductMusicHandle = handle;
     win.apexProductMusic = api;
-    win.apexStopMenuMusic = (reset) => {
+    // Legacy compatibility names route to the SAME authority. reset/restart
+    // arguments are deliberately ignored: Forward Drive is one continuous
+    // product-theme timeline and battle/surface changes never seek to 0.
+    win.apexStopMenuMusic = () => {
       cancelFade();
       audio.pause();
-      if (reset) { try { audio.currentTime = 0; } catch (error) {} }
     };
-    win.apexPlayMenuMusic = (restart) => {
-      if (!isAllowed()) return;
-      if (restart) { try { audio.currentTime = 0; } catch (error) {} }
+    win.apexPlayMenuMusic = () => {
+      if (!isAllowed() || interruptionReasons.size) return;
       audio.volume = VOLUME;
-      play();
+      play('legacy-menu');
     };
     return handle;
   }

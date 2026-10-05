@@ -401,6 +401,65 @@
     parkedIdElements.length = 0;
   }
 
+  // Battle HUD donor is a full-page document. When mounted same-document its
+  // head CSS must come with it, but never as global CSS: broad donor rules
+  // (:root, html/body, *, button, .side, .skill...) would otherwise leak into
+  // Home/Pick. Keep keyframes global by name, and scope every normal/conditional
+  // rule to #battleHudHost. The current donor has no @font-face/import rules.
+  function extractKeyframeBlocks(cssText) {
+    const src = String(cssText || '');
+    const frames = [];
+    let rules = '';
+    let cursor = 0;
+    while (cursor < src.length) {
+      const a = src.indexOf('@keyframes', cursor);
+      const b = src.indexOf('@-webkit-keyframes', cursor);
+      let start = -1;
+      if (a >= 0 && b >= 0) start = Math.min(a, b);
+      else start = Math.max(a, b);
+      if (start < 0) { rules += src.slice(cursor); break; }
+      rules += src.slice(cursor, start);
+      const open = src.indexOf('{', start);
+      if (open < 0) { rules += src.slice(start); break; }
+      let depth = 0, quote = '', comment = false, end = open;
+      for (let i = open; i < src.length; i++) {
+        const ch = src[i], next = src[i + 1];
+        if (comment) {
+          if (ch === '*' && next === '/') { comment = false; i++; }
+          continue;
+        }
+        if (!quote && ch === '/' && next === '*') { comment = true; i++; continue; }
+        if (quote) {
+          if (ch === '\\') { i++; continue; }
+          if (ch === quote) quote = '';
+          continue;
+        }
+        if (ch === '"' || ch === "'") { quote = ch; continue; }
+        if (ch === '{') depth++;
+        else if (ch === '}') {
+          depth--;
+          if (depth === 0) { end = i + 1; break; }
+        }
+      }
+      if (!end || end <= open) { rules += src.slice(start); break; }
+      frames.push(src.slice(start, end));
+      cursor = end;
+    }
+    return { rules, frames };
+  }
+  function scopedBattleHudCss(doc) {
+    const raw = Array.from(doc.querySelectorAll('style'))
+      .map((node) => node.textContent || '')
+      .filter((text) => text.trim())
+      .join('\n');
+    if (!raw.trim()) return '';
+    const split = extractKeyframeBlocks(raw);
+    const scopedRules = split.rules
+      .replace(/:root\b/g, ':scope')
+      .replace(/html\s*,\s*body/g, ':scope');
+    return '@scope (#battleHudHost){\n' + scopedRules + '\n}\n' + split.frames.join('\n');
+  }
+
   BRIDGE.mountBattleHud = function mountBattleHud(html, onready) {
     const host = document.getElementById('battleHudHost');
     if (!host) return;
@@ -413,6 +472,17 @@
     captureLegacyBattleUi();
     // Park BEFORE the donor scripts run so their lookups hit their own DOM.
     parkCollidingIds();
+    const hudCss = scopedBattleHudCss(doc);
+    if (hudCss) {
+      const style = document.createElement('style');
+      style.setAttribute('data-apex-gold-hud-style', 'true');
+      style.textContent = hudCss;
+      host.insertBefore(style, host.firstChild);
+    }
+    // The production seam closes over donor-local renderer state. A remount
+    // must create a FRESH seam; retaining window.APEX_GOLD_HUD would preserve
+    // functions bound to the removed previous donor DOM.
+    try { delete window.APEX_GOLD_HUD; } catch (error) { window.APEX_GOLD_HUD = undefined; }
     // The donor's inline scripts share one top-level lexical scope (the seam
     // script, the render script and the handoff bridge read each other's
     // declarations). Executing them as separate <script> elements would make a
@@ -455,8 +525,9 @@
     hudMounted = false;
     restoreParkedIds();
     battleLiveRunning = false;
+    window.__apexGoldBattleHosted = false;
     cancelResultReturn();
-    theme.stop();
+    try { delete window.APEX_GOLD_HUD; } catch (error) { window.APEX_GOLD_HUD = undefined; }
   };
 
   // ── live arena ownership: the real canvas occupies the authored slot ─────
@@ -520,6 +591,9 @@
   const LEGACY_BATTLE_IDS = [
     'hud', 'battle-controls', 'battle-pause-btn', 'challenge-caption',
     'countdown-overlay', 'end-screen', 'p1-name', 'p2-name', 'combat-inspector',
+    // arsenalBattleRuntime creates this overlay only AFTER startMatch(); it
+    // contains the legacy B/ESC hint, EXIT button, debug and result layer.
+    'aq-dom-hud', 'aq-hint', 'aq-battle-exit', 'aq-debug', 'aq-win',
   ];
   // Elements a legacy hide must NEVER touch (hard invariant): the Gold host,
   // every authored donor node, the authored arena slot, #game-wrapper and
@@ -553,9 +627,11 @@
     }
     return null;
   }
-  function captureLegacyBattleUi() {
-    legacyBattleRefs.length = 0;
-    protectedHideRefs.clear();
+  function captureLegacyBattleUi(reset = true) {
+    if (reset) {
+      legacyBattleRefs.length = 0;
+      protectedHideRefs.clear();
+    }
     const protect = (el) => { if (el) protectedHideRefs.add(el); };
     const host = document.getElementById('battleHudHost');
     if (host) {
@@ -573,7 +649,7 @@
     protect(document.getElementById('game-canvas'));
     for (const id of LEGACY_BATTLE_IDS) {
       const el = legacyUiElement(id);
-      if (!el || protectedHideRefs.has(el)) continue;
+      if (!el || protectedHideRefs.has(el) || legacyBattleRefs.includes(el)) continue;
       legacyBattleRefs.push(el);
     }
     return legacyBattleRefs.length;
@@ -672,9 +748,9 @@
       // observer and the SFX/VFX presentation runtimes must exist before any
       // production trigger is wired or fired.
       await ensureDeferredRuntimes('arsenalProduct');
-      // The actual match start fades the theme out over the owner band and
-      // preserves the playhead (never resets it); battle SFX are untouched.
-      theme.fadeOutForMatch();
+      // Live match is a music-off surface. setSurface preserves the theme
+      // playhead and owns the fade; no legacy restart/reset path participates.
+      theme.setSurface('battle');
       relocateArena();
       hideLegacyBattleUi();
       // Wrap the real HUD observer only after the group is present.
@@ -684,14 +760,36 @@
       if (typeof window.startMatch !== 'function') {
         console.warn('[gold-bridge] startMatch unavailable; battle did not start.');
         battleLiveRunning = false;
+        window.__apexGoldBattleHosted = false;
         return;
       }
+      window.__apexGoldBattleHosted = true;
       window.startMatch();
+      // arsenalBattleRuntime creates #aq-dom-hud during its first draw, after
+      // the initial legacy capture. Capture again without losing the first set
+      // and hide the late overlay before the browser paints the live frame.
+      captureLegacyBattleUi(false);
+      hideLegacyBattleUi();
       startPump();
     } catch (error) {
       console.warn('[gold-bridge] battle live failed.', error);
       battleLiveRunning = false;
+      window.__apexGoldBattleHosted = false;
     }
+  };
+
+  // Gold shell owns the destination. The engine runtime only tears the live
+  // match down; it must not open the legacy product menu or restart BGM.
+  BRIDGE.exitBattle = function exitBattle() {
+    if (!battleLiveRunning && window.__apexGoldBattleHosted !== true) return false;
+    try {
+      if (typeof window.exitArsenalBattleMode === 'function') {
+        window.exitArsenalBattleMode({ goldHosted: true, silentGoldExit: true });
+      }
+    } catch (error) { /* shell still completes presentation teardown */ }
+    battleLiveRunning = false;
+    window.__apexGoldBattleHosted = false;
+    return true;
   };
 
   // ── mobile skill cards / weapon panel through the production adapter ────
@@ -1012,7 +1110,6 @@
     resultReturnTimer = setTimeout(() => {
       resultReturnTimer = 0;
       if (!hudMounted) return;
-      try { window.exitArsenalBattleMode?.(); } catch (error) { /* truth-first */ }
       try {
         window.postMessage({ type: 'APEX_CHAOS_BATTLE_EXIT' }, '*');
       } catch (error) { /* same-document mount; parent === window */ }

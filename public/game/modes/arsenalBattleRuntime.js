@@ -1037,7 +1037,9 @@
     window.APEX_ARSENAL_META?.returnToProductMenu?.();
   };
 
-  window.exitArsenalBattleMode = function exitArsenalBattleMode() {
+  window.exitArsenalBattleMode = function exitArsenalBattleMode(options = {}) {
+    const opts = (options && typeof options === 'object') ? options : {};
+    const goldHosted = opts.goldHosted === true || window.__apexGoldBattleHosted === true;
     const state = AQ.state;
     if (state) {
       for (const f of fighters || []) if (f && f.data) f.data.arsenal = null;
@@ -1054,9 +1056,8 @@
     if (labPanel) labPanel.remove();
     const battleExitBtn = document.getElementById('aq-battle-exit');
     if (battleExitBtn) battleExitBtn.style.display = 'none'; // PASS A: no menu-screen leak
-    // Correction pass: exiting the mode ends the battle-audio session — the
-    // master stays silent (no auto-restore), pending AV cues are cancelled,
-    // and menu BGM (independent element) is untouched.
+    // Exiting always tears down the battle-audio/AV session. Presentation
+    // destination is a separate concern owned by the host surface.
     window.apexEndBattleAudioSession?.();
     if (window.APEX_ARSENAL_AV) window.APEX_ARSENAL_AV.clear();
     if (window.APEX_ARSENAL_STORM) window.APEX_ARSENAL_STORM.clear();
@@ -1065,8 +1066,27 @@
       keyListener = null; // no leaked listeners
     }
     AQ.log('MODE_EXIT', 'mode=ARSENAL_BATTLE');
-    goToMenu(); // restores MENU state + screens, stops battle audio
-    window.apexPlayMenuMusic?.(true);
+
+    if (goldHosted) {
+      // Gold-hosted battle: engine teardown ONLY. Never open the legacy product
+      // menu, never reset/restart theme music, and never expose legacy select.
+      gameState = 'MENU';
+      ['menu-screen', 'select-screen'].forEach((id) => document.getElementById(id)?.classList.add('hidden'));
+      const legacyHud = (typeof legacyUiElement === 'function')
+        ? legacyUiElement('hud')
+        : document.getElementById('hud');
+      if (legacyHud) legacyHud.style.opacity = 0;
+      if (!opts.silentGoldExit) {
+        try { window.postMessage({ type: 'APEX_CHAOS_BATTLE_EXIT' }, '*'); } catch (error) {}
+      }
+      return true;
+    }
+
+    // Legacy/non-Gold entry keeps its historical destination, but resumes the
+    // ONE theme element from its preserved playhead (never restart at 0).
+    goToMenu();
+    window.apexPlayMenuMusic?.(false);
+    return true;
   };
 
   // -------------------------------------------------------------------------

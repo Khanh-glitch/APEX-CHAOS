@@ -608,19 +608,18 @@ export default function App() {
           paused: st.paused, src: st.src,
         };
       };
-      window.apexStopMenuMusic = (reset) => {
-        if (!reset && typeof musicAuthority.fadeOut === 'function') {
+      // Compatibility names must never seek the product theme. Surface changes
+      // pause/fade the ONE persistent element and resume the same playhead.
+      window.apexStopMenuMusic = () => {
+        if (typeof musicAuthority.fadeOut === 'function') {
           musicAuthority.fadeOut(MENU_MUSIC_FADE_MS);
           return;
         }
-        if (!audio) return;
-        audio.pause();
-        if (reset) { try { audio.currentTime = 0; } catch (error) {} }
+        audio?.pause();
       };
-      window.apexPlayMenuMusic = (restart) => {
+      window.apexPlayMenuMusic = () => {
         const st = musicAuthority.state();
         if (!st || !st.allowed || !audio) return;
-        if (restart) { try { audio.currentTime = 0; } catch (error) {} }
         // Route through the authority's request() so a blocked autoplay arms
         // the ONE temporary gesture-unlock set instead of failing silently.
         if (typeof musicAuthority.request === 'function') {
@@ -663,18 +662,26 @@ export default function App() {
       if (document.hidden) pauseForHiddenTab();
       else resumeForVisibleTab();
     };
-    window.addEventListener('pointerdown', unlock);
-    window.addEventListener('keydown', unlock);
-    document.addEventListener('visibilitychange', handleVisibility);
-    window.addEventListener('blur', pauseForHiddenTab);
-    window.addEventListener('focus', resumeForVisibleTab);
+    // The product authority owns autoplay unlock + hidden/blur lifecycle.
+    // Keep these legacy listeners ONLY as a fallback when that authority could
+    // not be installed; otherwise two independent pause-state memories race.
+    const useLegacyMusicLifecycle = !musicAuthority;
+    if (useLegacyMusicLifecycle) {
+      window.addEventListener('pointerdown', unlock);
+      window.addEventListener('keydown', unlock);
+      document.addEventListener('visibilitychange', handleVisibility);
+      window.addEventListener('blur', pauseForHiddenTab);
+      window.addEventListener('focus', resumeForVisibleTab);
+    }
 
     return () => {
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
-      document.removeEventListener('visibilitychange', handleVisibility);
-      window.removeEventListener('blur', pauseForHiddenTab);
-      window.removeEventListener('focus', resumeForVisibleTab);
+      if (useLegacyMusicLifecycle) {
+        window.removeEventListener('pointerdown', unlock);
+        window.removeEventListener('keydown', unlock);
+        document.removeEventListener('visibilitychange', handleVisibility);
+        window.removeEventListener('blur', pauseForHiddenTab);
+        window.removeEventListener('focus', resumeForVisibleTab);
+      }
       if (audio) audio.pause();
       menuAudioRef.current = null;
       if (window.apexStopMenuMusic) delete window.apexStopMenuMusic;
