@@ -36,12 +36,14 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { adaptGoldBattleHudR48b } from './goldBattleHudR48b.mjs';
 import { adaptGoldBattleHudR50c } from './goldBattleHudR50c.mjs';
+import { adaptGoldShellR50k } from './goldShellR50k.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GOLD_DIR = path.join(REPO, 'docs', 'gold-ui', 'current');
 const PRELOAD_DIR = path.join(REPO, 'docs', 'gold-ui', 'preload');
 const FONT_SRC = path.join(REPO, 'tools', 'gold-cutover', 'fonts');
 const TAB_FAVICON_SRC = path.join(REPO, 'tools', 'gold-cutover', 'assets', 'favicon-tab-apex.svg');
+const TRANSITION_RUNTIME_SRC = path.join(REPO, 'public', 'gold', 'transition', 'mechanical-door-v4.gold.js');
 const NON_SHIPPING_GOLD_ASSETS = new Set([
   'gold/pick-reference-overlay.png',
   'gold/pick-hidden-gold-source.png',
@@ -66,6 +68,7 @@ const AUTHORITY = {
   goldSourcePackZipSha256: '61ccb14849b62e0003ca47f3e665e691084ef4418102b9806ab1f03d96eed023',
   preloadZipSha256: '49d8d5bf448bce7ca6475388cdf640c338bc00250fbcb577dbc7962fcfd0180f',
   themeEncodedSha256: '15afd820d5ca061f374ea41ad425f795204cf2be0e1f03d641f9b1f85f6dfb9b',
+  mechanicalDoorV4RuntimeSha256: '6d338906e477c13fa42cd6727be7c41bdd0c5b66e12fc140e3836c7858ce0dd2',
 };
 
 function verifyAuthority() {
@@ -85,7 +88,11 @@ function verifyAuthority() {
   if (sha256(preloadZip) !== AUTHORITY.preloadZipSha256) {
     throw new Error('AV preload zip hash mismatch');
   }
-  log('authority hashes verified (battle HUD donor, lucky donor, source pack record, AV preload zip)');
+  const transitionRuntime = read(TRANSITION_RUNTIME_SRC);
+  if (sha256(transitionRuntime) !== AUTHORITY.mechanicalDoorV4RuntimeSha256) {
+    throw new Error('Mechanical Door V4 production runtime hash mismatch — Gold transition drifted');
+  }
+  log('authority hashes verified (battle HUD donor, lucky donor, source pack record, AV preload zip, Mechanical Door V4 runtime)');
 }
 
 // ── patch engine ────────────────────────────────────────────────────────────
@@ -2027,6 +2034,9 @@ function buildShell(hudProductionHtml) {
   );
   log('  R50J (shell): canonical Gold navigation authority exposed');
 
+  out = adaptGoldShellR50k(out);
+  log('  R50K (shell): Mechanical Door V4 scene coordinator wiring adapted');
+
 
   // ── S12: embed the production-bridged battle HUD payload (same canonical
   // base64 payload mechanism, so loading/transition timing does not drift).
@@ -2092,6 +2102,12 @@ function main() {
   }
   outputs.set('fonts.css', Buffer.from(buildFontsCss(), 'utf8'));
   log(`fonts staged: ${fs.readdirSync(FONT_SRC).length} woff2 + fonts.css`);
+
+  // Mechanical Door V4 is an owner-Gold production runtime, not a demo asset.
+  // Keep it in the generated output graph so a cutover regeneration cannot
+  // silently delete the transition authority.
+  outputs.set('transition/mechanical-door-v4.gold.js', read(TRANSITION_RUNTIME_SRC));
+  log('Mechanical Door V4 runtime staged (hash-pinned Gold authority)');
 
   outputs.set('battle-hud.html', Buffer.from(buildBattleHud(), 'utf8'));
   log('battle-hud.html built (production-bridged donor)');
