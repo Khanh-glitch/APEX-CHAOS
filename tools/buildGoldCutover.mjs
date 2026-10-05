@@ -1694,9 +1694,9 @@ function buildShell(hudProductionHtml) {
     },
     {
       id: 'SHL-S27',
-      why: 'Home story copy right-aligned inside the authored story-copy block only',
+      why: 'Home story hierarchy shares one Gold-authored left edge and defeats legacy global paragraph centering',
       find: /section\.story\.e-story::before,\nsection\.story\.e-story::after\{content:none!important;display:none!important;background:none!important;box-shadow:none!important;backdrop-filter:none!important\}/,
-      replace: (matched) => `${matched}\nsection.story.e-story .copy{text-align:right}`,
+      replace: (matched) => (\n        `${matched}\\n` +\n        `section.story.e-story,section.story.e-story .quest,section.story.e-story .storyTitle,section.story.e-story .location,section.story.e-story .copy{text-align:left!important}\\n` +\n        `section.story.e-story .location,section.story.e-story .copy{margin-left:0!important}`\n      ),
     },
     {
       id: 'SHL-S26',
