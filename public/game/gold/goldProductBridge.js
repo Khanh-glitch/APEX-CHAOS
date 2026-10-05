@@ -600,16 +600,8 @@
     return document.getElementById('game-canvas');
   }
   function hideLegacyProductScreens() {
-    // Gold owns every player-facing product surface. The engine's menu/select
-    // roots stay mounted only as runtime infrastructure and must never enter
-    // the Gold battle compositor, even for one async loading frame.
-    for (const id of ['menu-screen', 'select-screen']) {
-      const el = document.getElementById(id);
-      if (!el) continue;
-      el.classList.add('hidden');
-      el.setAttribute('aria-hidden', 'true');
-      el.style.display = 'none';
-    }
+    // Public menu/picker DOM no longer exists. Only suppress the engine HUD
+    // writer surface while the Gold battle compositor is live.
     const legacyHud = legacyUiElement('hud');
     if (legacyHud) legacyHud.style.opacity = 0;
   }
@@ -621,9 +613,8 @@
     arenaOriginParent = canvas.parentElement;
     arenaOriginNext = canvas.nextElementSibling;
     arena.appendChild(canvas);
-    // Move ONLY the 1000×1000 gameplay canvas. #game-wrapper also contains
-    // legacy menu/select/HUD DOM and moving that wrapper was the root cause of
-    // the old picker visibly contaminating both Gold battle modes.
+    // Move ONLY the 1000×1000 gameplay canvas. #game-wrapper is engine/combat
+    // infrastructure; public product surfaces belong exclusively to Gold.
     canvas.style.position = 'absolute';
     canvas.style.inset = 'auto';
     canvas.style.left = '50%';
@@ -661,7 +652,6 @@
   const LEGACY_BATTLE_IDS = [
     'hud', 'battle-controls', 'battle-pause-btn', 'challenge-caption',
     'countdown-overlay', 'end-screen', 'p1-name', 'p2-name', 'combat-inspector',
-    'menu-screen', 'select-screen',
     // arsenalBattleRuntime creates this overlay only AFTER startMatch(); it
     // contains the legacy B/ESC hint, EXIT button, debug and result layer.
     'aq-dom-hud', 'aq-hint', 'aq-battle-exit', 'aq-debug', 'aq-win',
@@ -808,9 +798,8 @@
     if (window.APEX_GOLD_LOCKED && (window.APEX_GOLD_LOCKED(p1Shell) || window.APEX_GOLD_LOCKED(p2Shell))) return false;
     battleLiveRunning = true;
     try {
-      // The legacy picker/menu live inside #game-wrapper. Hide them BEFORE
-      // deferred runtime work starts so an async barrier can never expose the
-      // retired picker beneath the Gold transition.
+      // Suppress only engine battle chrome before deferred runtime work. The
+      // retired menu/picker DOM has been removed from production entirely.
       hideLegacyProductScreens();
 
       // Runtime FIRST, handoff state SECOND. This order is mandatory: on a cold
