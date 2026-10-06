@@ -1377,7 +1377,9 @@
         weapon,
         // Control labels come from the ACCEPTED production key law, so the HUD
         // can never advertise a key the engine does not accept:
-        //   P1 J/K; Local P2 Digit1/Digit2; BOT P2 = CPU (no human keys).
+        //   P1 J/K; Local P2 = the right-hand numpad pair (Numpad1/Numpad2 —
+        //   the top-row Digit1/Digit2 pair is inert by owner law); BOT P2 = CPU
+        //   (no human keys).
         keyLabels: keyLabelsForSide(i),
       });
       if (f) fighterPos.push({ x: f.x, y: f.y, aim: Number.isFinite(f.aim) ? f.aim : 0 });
@@ -1398,7 +1400,7 @@
     return { state: matchState, fighters: fighterPos };
   }
   // Accepted production key law per side (see heroReworkRuntime J/K and the
-  // Local P2 Digit1/Digit2 seam).
+  // Local P2 right-hand numpad seam: Numpad1 -> A1, Numpad2 -> A2).
   function keyLabelsForSide(sideIndex) {
     const arsenal = window.APEX_ARSENAL;
     const battleMode = arsenal && arsenal.state ? arsenal.state.battleMode : null;
