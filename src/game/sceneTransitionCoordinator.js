@@ -58,15 +58,43 @@ async function decodeLoadedImages(root) {
   }));
 }
 
+// A destination document only services frames and font faces once it is
+// actually rendered. The Lucky Draw donor is same-origin but lives in a
+// `display:none` host until its OWN commit, so between those two facts it never
+// settles: measured live, its requestAnimationFrame callbacks arrived ~1.8s
+// late and its frames can stall completely. Waiting on that parked the door in
+// CLOSING with the bay unable to open (the frozen Lucky Draw report).
+const documentIsRendered = (doc) => {
+  try {
+    if (!doc || !doc.defaultView) return false;
+    if (doc.visibilityState === 'hidden') return false;
+    const frame = doc.defaultView.frameElement;
+    if (!frame) return true;
+    if (!frame.getClientRects || frame.getClientRects().length === 0) return false;
+    const hostView = frame.ownerDocument?.defaultView;
+    if (!hostView?.getComputedStyle) return true;
+    const style = hostView.getComputedStyle(frame);
+    return style.display !== 'none' && style.visibility !== 'hidden';
+  } catch (_) { return true; }
+};
+
 export async function settleSceneElement(root, { verifyImages = true } = {}) {
+  // Media the destination already chose to request is always verified: that is
+  // what "the destination is ready" means. Only the PAINT verification moves,
+  // because a document that cannot render yet cannot be asked for a frame.
   if (verifyImages) await decodeLoadedImages(root);
   const doc = root?.ownerDocument || document;
   const view = doc?.defaultView || window;
-  try { await doc?.fonts?.ready; } catch (_) {}
-  // Commit style/layout, then verify one fully painted destination frame in
-  // the destination document (important for same-origin Lucky Draw iframe).
-  await new Promise((resolve) => (view.requestAnimationFrame || requestAnimationFrame)(resolve));
-  await new Promise((resolve) => (view.requestAnimationFrame || requestAnimationFrame)(resolve));
+  const rendered = documentIsRendered(doc);
+  if (rendered) {
+    try { await doc?.fonts?.ready; } catch (_) {}
+  }
+  // The door covers the LIVE parent surface, so that is the surface whose
+  // painted frame must exist before READY. The hidden destination keeps its own
+  // settle once it is committed and visible.
+  const paintView = rendered ? view : (view.frameElement?.ownerDocument?.defaultView || window);
+  await new Promise((resolve) => (paintView.requestAnimationFrame || requestAnimationFrame)(resolve));
+  await new Promise((resolve) => (paintView.requestAnimationFrame || requestAnimationFrame)(resolve));
 }
 
 function deferred() {
@@ -134,7 +162,7 @@ function resolveNode(candidate, fallback = null) {
  *  - boot black-screen handoff;
  *  - input serialization.
  */
-export function installSceneTransitionCoordinator({ canvas, contentRoot, blackout, stallGuardMs = 6000, hardCapMs = 30000 } = {}) {
+export function installSceneTransitionCoordinator({ canvas, contentRoot, blackout, stallGuardMs = 6000, hardCapMs = 30000, revealGraceMs = 4000 } = {}) {
   if (window.APEX_SCENE_TRANSITION?.version === 'mechanical-door-v4-r50k') return window.APEX_SCENE_TRANSITION;
   if (!canvas) throw new Error('Scene transition canvas is required.');
 
@@ -162,6 +190,16 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
   // the destination stays committed, the cover is removed and input returns.
   const STALL_MS = Math.max(50, Number(stallGuardMs) || 6000);
   const HARD_CAP_MS = Math.max(STALL_MS, Number(hardCapMs) || 30000);
+  // ── Reveal budget (owner law: the door is a flourish, not the scene) ──────
+  // Once the committed destination has been handed to the door (READY) the door
+  // owns only its authored opening: the real engine's openingEnd is 1.68s of
+  // phase time, which on a starved renderer (the engine clamps frame dt) can
+  // stretch into tens of seconds. Past this wall-clock budget the transaction
+  // fail-opens: the cover is released so the destination - already settled and
+  // painted - is what the player keeps. Without this bound a slow frame budget
+  // left the whole shell parked behind a door that was still "opening", which
+  // is the frozen Lucky Draw / unresponsive Mode report.
+  const REVEAL_GRACE_MS = Math.max(50, Number(revealGraceMs) || 4000);
   // Sample often enough that a policy-tight guard is still detected promptly,
   // while the production values keep the check cheap.
   const WATCHDOG_INTERVAL_MS = Math.max(25, Math.min(400, Math.round(STALL_MS / 2)));
@@ -221,22 +259,42 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
     watchdogTimer = setInterval(() => {
       if (active !== tx) { stopWatchdog(); return; }
       const debug = engine?.getDebug?.() || null;
-      const signature = debug ? `${debug.state}|${debug.stateTime}|${debug.holdTime}` : '';
+      // Liveness, not numeric wiggle: the door's OWN clock has to move. The
+      // phase clock may legitimately stand still (a SEALED hold is the door
+      // doing its job) and holdTime/sitting numbers grow while it renders
+      // nothing, so those must never read as progress - a dead render loop used
+      // to reset the stall timer once per sample and defeat the whole guard.
+      const signature = debug
+        ? `${debug.state}|${Math.round((debug.wallTime ?? debug.stateTime ?? 0) / 50)}`
+        : '';
       const now = performance.now();
       if (signature !== watchdogSignature) {
         watchdogSignature = signature;
         watchdogSignatureAt = now;
-        return;
       }
+      if (debug && debug.state === 'OPENING' && !tx.openingAt) tx.openingAt = now;
       const stalledFor = now - watchdogSignatureAt;
       const age = now - tx.startedAt;
-      if (stalledFor >= STALL_MS || age >= HARD_CAP_MS) {
-        const reason = stalledFor >= STALL_MS
+      const revealOverdue = Boolean(tx.openingAt) && now - tx.openingAt >= REVEAL_GRACE_MS;
+      // A dead door is only recoverable once the destination could survive
+      // without its cover. Releasing while prepare() is still in flight swaps
+      // the player onto an unprepared surface AND loses the intent - measured
+      // live: the Lucky Draw bay needs ~7s of font/decode settle, the starving
+      // door stopped drawing after 1.5s, and the old guard cut the scene at 6s,
+      // so the bay never opened. Wait for the destination; the hard cap still
+      // bounds the whole transaction.
+      const doorDead = stalledFor >= STALL_MS && (tx.prepared || age >= HARD_CAP_MS);
+      if (doorDead || age >= HARD_CAP_MS || revealOverdue) {
+        const reason = revealOverdue
+          ? `scene transaction ${tx.name} left the destination behind a still-opening door for ${Math.round(now - tx.openingAt)}ms`
+          : doorDead
           ? `scene transaction ${tx.name} made no progress for ${Math.round(stalledFor)}ms`
           : `scene transaction ${tx.name} exceeded ${Math.round(age)}ms`;
         console.warn(`[scene-transition] ${reason}; releasing the scene surface.`);
         tx.failed = true;
         tx.error = tx.error || new Error(reason);
+        // The destination is ready: hand it to the player before the door goes.
+        forceCommit();
         releaseCover();
         finish(false);
       }
@@ -272,13 +330,29 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       .catch(() => {});
   };
 
+  // Owner law: a scene intent is never swallowed - and that includes the case
+  // where the DOOR is what broke. A destination that finished preparing must
+  // still appear even if the engine never delivered its opaque cover, so a
+  // forced recovery marks the cover as failed and lets the same commit path run.
+  const forceCommit = () => {
+    const tx = active;
+    if (!tx || tx.committed || !tx.prepared) return false;
+    tx.coverFailed = true;
+    // A forced recovery is presentation-only: the caller still learns the door
+    // failed, but the scene must NOT roll back - the destination is what the
+    // player asked for and what prepare() already made ready.
+    tx.forced = true;
+    void commitWhenSafe();
+    return true;
+  };
+
   const commitWhenSafe = async () => {
     const tx = active;
-    if (!tx || tx.committed || !tx.covered || !tx.prepared) return;
+    if (!tx || tx.committed || (!tx.covered && !tx.coverFailed) || !tx.prepared) return;
     tx.committed = true;
     let revealRoot = targetFor(tx);
     try {
-      if (tx.failed) {
+      if (tx.failed && !tx.forced) {
         tx.rollback?.(tx.error);
         revealRoot = sourceFor(tx);
       } else {
@@ -326,6 +400,7 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       // Gold re-samples the REAL final latency for its opening profile.
       if (tx.closePrimed && engine?.readyRequested) engine.readyRequested = false;
       tx.readySent = true;
+      tx.readySentAt = performance.now();
       engine?.ready();
     }
   };
@@ -405,7 +480,10 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       settled: false,
       gateReady: false,
       readySent: false,
+      readySentAt: 0,
+      openingAt: 0,
       closePrimed: false,
+      coverFailed: false,
       closePrimedAt: 0,
       failed: false,
       error: null,
@@ -493,7 +571,7 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
     assetsReady: () => assetsPromise.then(() => true),
     active: () => Boolean(active),
     pending: () => (pendingRequest ? { name: pendingRequest.options?.name || 'scene' } : null),
-    guard: () => ({ stallMs: STALL_MS, hardCapMs: HARD_CAP_MS, intervalMs: WATCHDOG_INTERVAL_MS }),
+    guard: () => ({ stallMs: STALL_MS, hardCapMs: HARD_CAP_MS, intervalMs: WATCHDOG_INTERVAL_MS, revealGraceMs: REVEAL_GRACE_MS }),
     dispose: () => {
       stopWatchdog();
       if (pendingRequest) {

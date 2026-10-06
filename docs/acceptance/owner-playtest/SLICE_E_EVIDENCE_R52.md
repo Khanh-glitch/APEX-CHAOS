@@ -256,3 +256,69 @@ pnpm test:r50-pre-transition → SUITE=0, 21 gate RESULT: PASS
 pnpm build → 324 assets, prune 663 file / 194.157.235 B, forbiddenRuntimeSurvivors: []
 UPDATE_LOCK=1 node tools/testRuntimeRevisionGate.mjs → lock 20261005-owner-playtest-r50k (39 runtimes)
 ```
+
+---
+
+## §E6 — R53: sửa GỐC vấn đề scene-transition (Lucky Draw hết đóng băng)
+
+Báo cáo: *"Lucky Draw vẫn đóng băng"*, *"mode card không phản hồi"*. Đo trên bản shipping
+(pruned `dist` + `vite preview` :4173, 1280×720, fonts intercept để loại yếu tố sandbox):
+
+### Nguyên nhân gốc đã đo được (trước khi sửa)
+
+1. **Input bị khoá suốt transaction, không phải suốt lúc cửa che.**
+   `body.apex-scene-transition-active` bật `pointer-events:none` cho `#gold-shell-host` và
+   `#battle-shell` từ lúc mở transaction tới lúc DONE. Chuỗi hit-test của `.modeCard`:
+   `.modeCard → .modeChoices → #modeSelectScreen → #stage → #gold-shell-host` đều `pe=none`;
+   `elementFromPoint` trả về `#root`. Vì vậy mode card / Fighter Pick / **iframe Lucky Draw**
+   không nhận được click thật (click lập trình vẫn chạy ⇒ không phải handler chết).
+2. **Watchdog bị "số nho" lừa.** Chữ ký tiến trình cũ là `state|stateTime|holdTime`; `holdTime`
+   cứ tăng khi cửa SEALED mà **không vẽ gì**, nên guard tưởng cửa còn sống và chỉ còn trần cứng 30 s.
+3. **Đo được cửa ngừng vẽ**: boot `boot->home` đứng ở `OPENING` sau **17.6 s** (`wallTime` đứng ở
+   18.24 trong hơn 6 s) khi donor Lucky Draw load trên main thread ⇒ `onCover` không bao giờ tới ⇒
+   destination không bao giờ commit.
+4. **Contract READY chờ một document không thể render.** `settleSceneElement` await `fonts.ready`
+   + 2 rAF của **document đích**; `#luckyDonorHost` là `display:none` tới lúc commit, nên donor
+   (cùng origin) không bao giờ settle: rAF trong iframe ẩn trễ ~1.8 s/lần và prepare của
+   `home->lucky` **chưa từng hoàn tất** (`prepared:false` ở mọi mẫu) ⇒ bay không mở.
+5. **Scene intent bị nuốt khi cửa hỏng**: destination đã prepare xong nhưng chưa có `onCover`
+   thì guard cũ `releaseCover()` rồi `finish(false)` — không commit ⇒ người chơi được trả về
+   màn cũ, ý định scene mất.
+
+### Luật mới (đi từ gốc, không vá)
+
+| Luật | Nơi cài | Ý nghĩa |
+| --- | --- | --- |
+| L1 input thuộc về **lớp che**, không thuộc transaction | `src/styles.css` | khoá chỉ khi `data-apex-scene-transition="CLOSING"/"SEALED"`; `OPENING` là người chơi đã sở hữu scene |
+| L2 cửa chỉ sở hữu **một cửa sổ reveal hữu hạn** | `sceneTransitionCoordinator.js` (`revealGraceMs`, mặc định 4000 ms, đo từ chính state `OPENING`) | trần 30 s không còn là cơ chế phục hồi đầu tiên |
+| L3 guard đo **độ sống** của cửa (`debug.wallTime`), không đo số nho | cùng file | cửa chết bị phát hiện kể cả khi đang SEALED |
+| L4 **không cắt** destination đang prepare | cùng file (`doorDead = stalledFor >= STALL_MS && (tx.prepared || age >= HARD_CAP_MS)`) | cửa chết + prepare đang chạy ⇒ chờ; trần cứng vẫn giữ |
+| L5 destination đã prepare **không bị mất** khi cửa hỏng | cùng file (`forceCommit()`, `tx.coverFailed`, `tx.forced`) | `releaseCover()` bây giờ đi kèm commit thật, không rollback |
+| L6 READY **không phụ thuộc frame của document chưa render** | cùng file (`documentIsRendered`, `paintView`) | media đã request vẫn verify; paint-verify chuyển sang **document cha đang sống**; không await fonts của document ẩn |
+
+### Kiểm chứng (sau khi sửa)
+
+Gate mới `tools/testSceneInputLockLawGate.mjs` **40 checks PASS** (gồm 3 test hành vi: cửa sống-nhưng-chậm
+phải fail-open; cửa chết không được cắt destination đang prepare; document ẩn không được chặn READY).
+`test:r50-pre-transition` → **SUITE=0**, **23** `RESULT: PASS`; `pnpm build` BUILD=0; `--check` OK 70 files.
+
+| Kịch bản (dist thật, 1280×720) | Trước | Sau |
+| --- | --- | --- |
+| Boot: input trả lại | `pe:none` suốt transaction, vẫn `OPENING` sau 17.6 s | **2.02 s**, lúc phase `OPENING` (`active:true`) |
+| Boot: transaction kết thúc | chỉ nhờ trần cứng 30 s | **4.72 s** (`phase DONE`) |
+| Lucky Draw mở (`#luckyDonorHost.is-open`) | **không bao giờ mở** (prepare treo, guard cắt ở 6–10 s) | **7.67 s**, `display:block`, `pointer-events:auto` |
+| Click thật trong iframe Lucky Draw (`#backBtn`) | không thể (iframe bị khoá input) | **đóng ở 12.11 s** — click trong bay có tác dụng |
+| home → free battle | không phản hồi trong 45 s | **3.27 s**, `active:false` (không Door, đúng luật R51) |
+| free battle → Fighter Pick (LOCAL) | không phản hồi | **9.54 s**, `active:false` (không Door) |
+
+### §E6b — Bàn phím LOCAL (đo trước, để không sửa nhầm chỗ)
+
+Báo cáo "J/K kích cả hai bên" và "Local 1/2 không kích". Đo trên AIL bus (harness jsdom, gate
+`testHeroReworkRobotPresentationGates.mjs` mục `L-*`, 11 checks PASS):
+
+- LOCAL: `KeyJ` → **chỉ p1** (`AbilityPress/p1/A1`, `P1Press`, `source:'keyboard'`); `KeyK` → **chỉ p1** (`A2`, cast ok).
+- LOCAL: `Digit1` → **chỉ p2** (`AbilityPress/p2/A1`, `P2Press`, `input.key:'Digit1'`); `Digit2` → **chỉ p2** (`A2`).
+- **Một lần bấm không bao giờ fan ra hai bên** (đo: `[p1,p1,p2,p2]`).
+- BOT: `Digit1`/`Digit2` **không phát event nào** (CPU giữ P2) — đúng thiết kế.
+- Nút thắt còn lại của "1/2 không kích" nằm ở **điều kiện kit của body P2** (`canCast` trả `reason:'condition'`,
+  ví dụ HUNTER chưa có vũ khí/đạn), không nằm ở routing bàn phím — đây là việc của mục kế tiếp.

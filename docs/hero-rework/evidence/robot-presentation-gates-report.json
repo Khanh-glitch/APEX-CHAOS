@@ -299,6 +299,98 @@
           "snapUntil": 0.8033333333333338
         }
       }
+    },
+    "L-local-fixture-is-two-different-bodies": {
+      "pass": true,
+      "detail": {
+        "names": [
+          "ROBOT",
+          "HUNTER"
+        ]
+      }
+    },
+    "L-KeyJ is routed to the P1 body": {
+      "pass": true,
+      "detail": {
+        "events": [
+          "RobotA1NoWeapon/undefined/undefined",
+          "RobotA1NoTarget/undefined/undefined",
+          "CastFailCue/p1/A1",
+          "AbilityPress/p1/A1",
+          "P1Press/p1/A1"
+        ]
+      }
+    },
+    "L-KeyK is routed to the P1 body": {
+      "pass": true,
+      "detail": {
+        "events": [
+          "HeroArmorUp/p1/undefined",
+          "RobotA2Start/p1/undefined",
+          "RobotA2Activate/p1/undefined",
+          "Cast/p1/A2",
+          "AbilityPress/p1/A2",
+          "P1Press/p1/A2"
+        ]
+      }
+    },
+    "L-Digit1 is routed to the P2 body": {
+      "pass": true,
+      "detail": {
+        "events": [
+          "CastFailCue/p2/A1",
+          "AbilityPress/p2/A1",
+          "P2Press/p2/A1"
+        ]
+      }
+    },
+    "L-Digit2 is routed to the P2 body": {
+      "pass": true,
+      "detail": {
+        "events": [
+          "CastFailCue/p2/A2",
+          "AbilityPress/p2/A2",
+          "P2Press/p2/A2"
+        ]
+      }
+    },
+    "L-one press never fires both sides": {
+      "pass": true,
+      "detail": {
+        "sides": [
+          "p1",
+          "p1",
+          "p2",
+          "p2"
+        ]
+      }
+    },
+    "L-the key that asked for the cast is recorded on the press": {
+      "pass": true,
+      "detail": {
+        "keys": [
+          "Digit1",
+          "Digit2"
+        ]
+      }
+    },
+    "L-every castpress is attributed to keyboard input": {
+      "pass": true
+    },
+    "L-the P2 press family is published for the P2 body": {
+      "pass": true
+    },
+    "L-BOT mode keeps the CPU on P2 (no human cast)": {
+      "pass": true,
+      "detail": {
+        "events": []
+      }
+    },
+    "L-auto-repeat never re-casts": {
+      "pass": true,
+      "detail": {
+        "events": []
+      }
     }
   },
   "failures": [
@@ -349,8 +441,8 @@
   ],
   "audioCtxCtorCallsAtStart": 1,
   "summary": {
-    "total": 35,
-    "passed": 25,
+    "total": 46,
+    "passed": 36,
     "failed": [
       "P-A1-lock-dash-single-dispatch-bus",
       "P-A1-dash-1-sfx",

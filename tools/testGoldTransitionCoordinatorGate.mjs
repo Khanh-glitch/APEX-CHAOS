@@ -53,7 +53,15 @@ check('known TAU global collision is isolated by module loading',
   coordinator.includes("script.type = 'module'"));
 check('generated transition URL carries R50K revision', goldUrls.includes('/gold/transition/mechanical-door-v4.gold.js?v=20261005-owner-playtest-r50k'));
 check('real DOM replaces demo background tile', coordinator.includes("engine.open({ from: null, autoReadyAfter: null })"));
-check('destination commits only after covered + prepared', coordinator.includes('!tx.covered || !tx.prepared'));
+check('destination commits only after covered + prepared',
+  coordinator.includes('(!tx.covered && !tx.coverFailed) || !tx.prepared'));
+// R53 (owner law: a scene intent is never swallowed): the cover may only be
+// bypassed by the forced recovery of a destination that IS prepared - the door
+// failing is presentation, the scene still has to land.
+check('the cover bypass is reserved for a forced recovery of a prepared destination',
+  /const forceCommit = \(\) => \{\s*const tx = active;\s*if \(!tx \|\| tx\.committed \|\| !tx\.prepared\) return false;/.test(coordinator)
+  && coordinator.includes('tx.coverFailed = true')
+  && coordinator.includes('tx.forced = true'));
 check('destination settles before READY', coordinator.indexOf('await settleSceneElement(revealRoot)') < coordinator.indexOf('engine?.ready()'));
 check('semantic readyGate precedes READY', coordinator.indexOf('if (tx.readyGate && !tx.failed) await tx.readyGate()') < coordinator.indexOf('engine?.ready()'));
 check('adaptive close prime uses Gold READY without authorizing reveal',

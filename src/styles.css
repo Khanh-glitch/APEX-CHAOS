@@ -4223,8 +4223,17 @@ body.apex-battle #battle-controls{
     transform .48s cubic-bezier(.72,0,1,.55),
     opacity .34s cubic-bezier(.85,0,1,1) .06s!important;
 }
-body.apex-scene-transition-active #gold-shell-host,
-body.apex-scene-transition-active #battle-shell{
+/* Input-lock law: the lock belongs to the COVER, never to the transaction.
+   While the Mechanical Door is closing over the outgoing scene (CLOSING) or
+   holding it sealed (SEALED) the shell must not take input - but the moment the
+   already-committed destination starts revealing (OPENING) the player owns the
+   scene again. Keying this on the active class alone held the whole shell
+   (Mode cards, Fighter Pick, Lucky Draw's donor iframe, Battle HUD) input-dead
+   for the entire door lifetime, which is exactly the frozen-scene report. */
+body.apex-scene-transition-active[data-apex-scene-transition="CLOSING"] #gold-shell-host,
+body.apex-scene-transition-active[data-apex-scene-transition="CLOSING"] #battle-shell,
+body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #gold-shell-host,
+body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #battle-shell{
   pointer-events:none!important;
   user-select:none!important;
 }

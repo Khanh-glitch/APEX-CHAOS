@@ -491,6 +491,76 @@ function withSfxCounter(fn) {
     { rival: { lastLockAt: stRealB._lastLockAt || 0, brackets: !!(stRealB.brackets), snapUntil: stRealB.snapUntil || 0 } });
 }
 
+// =============================================================================
+// BOTH HUMAN KEYBOARDS - one press, one body (owner report: "J/K kích cả hai
+// bên" and "Local 1/2 không kích")
+//
+// Measured truth on the shipping handler: LOCAL routes J/K to the P1 body and
+// Digit1/Digit2 to the P2 body through the ONE `HR.pressAbility` executor, and
+// BOT correctly leaves P2 to the CPU. So the keyboard path itself is sound -
+// what these gates pin is that a single press can never fan out to both sides
+// and that the P2 keys keep reaching the P2 body (so a future refactor of the
+// LOCAL P2 handler, or of the pickup/arming economy that feeds it, cannot
+// silently kill the second player's abilities again).
+// =============================================================================
+{
+  const m = Q.start('ROBOT', 'HUNTER', 3201);
+  gate('L-local-fixture-is-two-different-bodies', !!m && win.fighters.length === 2
+    && win.fighters[0].name !== win.fighters[1].name, { names: win.fighters.map((f) => f.name) });
+
+  const press = (code, opts = {}) => {
+    const mark = Q.hr().AIL.bus.ring.length;
+    win.dispatchEvent(new win.KeyboardEvent('keydown', { code, bubbles: true, ...opts }));
+    Q.step(0.12);
+    return Q.busRingFrom(mark).map((e) => ({
+      type: e.type,
+      side: e.payload && e.payload.side,
+      slot: e.payload && e.payload.slot,
+      source: e.payload && e.payload.source,
+      key: e.payload && e.payload.input && e.payload.input.key,
+    }));
+  };
+  const presses = (ev) => ev.filter((e) => e.type === 'AbilityPress');
+  const sides = (ev) => [...new Set(presses(ev).map((e) => e.side))];
+
+  win.APEX_ARSENAL.state.battleMode = 'LOCAL';
+  const j = press('KeyJ');
+  const k = press('KeyK');
+  const d1 = press('Digit1');
+  const d2 = press('Digit2');
+
+  gate('L-KeyJ is routed to the P1 body',
+    sides(j).join() === 'p1' && presses(j).every((e) => e.slot === 'A1'), { events: j.map((e) => e.type + '/' + e.side + '/' + e.slot) });
+  gate('L-KeyK is routed to the P1 body',
+    sides(k).join() === 'p1' && presses(k).every((e) => e.slot === 'A2'), { events: k.map((e) => e.type + '/' + e.side + '/' + e.slot) });
+  gate('L-Digit1 is routed to the P2 body',
+    sides(d1).join() === 'p2' && presses(d1).every((e) => e.slot === 'A1'), { events: d1.map((e) => e.type + '/' + e.side + '/' + e.slot) });
+  gate('L-Digit2 is routed to the P2 body',
+    sides(d2).join() === 'p2' && presses(d2).every((e) => e.slot === 'A2'), { events: d2.map((e) => e.type + '/' + e.side + '/' + e.slot) });
+  gate('L-one press never fires both sides',
+    [j, k, d1, d2].every((ev) => sides(ev).length === 1),
+    { sides: [j, k, d1, d2].map((ev) => sides(ev).join('+') || '-') });
+  gate('L-the key that asked for the cast is recorded on the press',
+    [...presses(d1), ...presses(d2)].map((e) => e.key).join() === 'Digit1,Digit2',
+    { keys: [...presses(d1), ...presses(d2)].map((e) => e.key) });
+  gate('L-every castpress is attributed to keyboard input',
+    [...presses(j), ...presses(k), ...presses(d1), ...presses(d2)].every((e) => e.source === 'keyboard'));
+  gate('L-the P2 press family is published for the P2 body',
+    d1.some((e) => e.type === 'P2Press' && e.side === 'p2') && d2.some((e) => e.type === 'P2Press' && e.side === 'p2'));
+
+  // BOT: the same keys must stay dead - the CPU owns P2.
+  win.APEX_ARSENAL.state.battleMode = 'BOT';
+  const botKeys = [...press('Digit1'), ...press('Digit2')];
+  gate('L-BOT mode keeps the CPU on P2 (no human cast)', presses(botKeys).length === 0,
+    { events: botKeys.slice(0, 4).map((e) => e.type) });
+
+  // Keyboard hygiene: auto-repeat never re-casts.
+  win.APEX_ARSENAL.state.battleMode = 'LOCAL';
+  const repeats = [...press('Digit1', { repeat: true }), ...press('KeyJ', { repeat: true })];
+  gate('L-auto-repeat never re-casts', presses(repeats).length === 0,
+    { events: repeats.slice(0, 4).map((e) => e.type) });
+}
+
 /* ------------------------------------------------------------------ summary */
 const total = Object.keys(report.gates).length;
 const passed = Object.values(report.gates).filter(g => g.pass).length;
