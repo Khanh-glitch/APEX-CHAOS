@@ -325,6 +325,8 @@ Các commit mốc: `8dda0d6` (pipeline + real Battle HUD + Lucky Draw),
 | N2 | BOT + Local: J/K tác động cả hai bên | **XONG** | §E2, +7 check robot ROBOT-vs-ROBOT, +10 check side-aware |
 | N3 | Trả lại transition gốc của donor (`#battleTransition`) | **XONG** | §E3; gate viết lại thành 160 check; adapter là owner duy nhất của vùng entry |
 | N4 | Một authority accent cho Crystal = violet | **XONG** | §E4; gate `testHeroAccentLanguageGate` 27; browser: 4/4 nơi = `#a066f0` |
+| E5 | Critical/Heavy phải phủ **trọn** panel (2 ô skill bị loại) | **XONG** (`c33c96b`) | `SLICE_E_EVIDENCE_R52.md` §E5; gate `testGoldBattleHudAdaptationGate` 27; gốc là blend `screen` trên nền `#0d1013`, không phải z-index |
+| R53 | Scene transition: Lucky Draw đóng băng + mode card không phản hồi | **XONG** (`7e1ccd2`) | §E6; gate mới `testSceneInputLockLawGate` 40; 6 luật gốc (L1..L6) trong `src/styles.css` + `src/game/sceneTransitionCoordinator.js` |
 
 Luật khi làm N3: gate cũ mâu thuẫn với luật mới thì **viết lại trong cùng commit**, kèm
 lý do + trạng thái trước/sau — không xoá assertion im lặng.
