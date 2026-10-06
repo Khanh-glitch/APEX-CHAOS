@@ -502,3 +502,47 @@ Sau (luật R57, ghim trong `test:pick-presentation` 15 check):
 `pnpm test:r50-pre-transition` SUITE=0 / 23 suite PASS; `pnpm build` BUILD=0; cutover `--check` 70 file OK;
 `test:runtime-revision` đã relock (39 runtime); `test:pick-presentation` 15, `test:gold-battle-hud-adaptation` 29,
 `test:side-aware-input` 35, `test:gold-fighter-pick-adaptation` 14, `test:pick-band-law` 66, `test:gold-revision-integrity` 16.
+
+## §E10 — R57 (2026-10-07): audit phần còn lại, đo bằng số
+
+### 1. Cụm "súng / máu / dmg" trên điện thoại (mục 1) — sau khi badge phím rộng ra
+Đo lại bằng `tools/probe/cells.mjs` (tìm ô trống lớn nhất theo DIỆN TÍCH NỘI DUNG, không phải theo cảm giác):
+```
+390×844 BOT   p1 3% (96×36)   p2 3% (180×9)
+390×844 LOCAL p1 1%            p2 1%
+```
+⇒ không còn "ô trống lớn": vùng trống nhất chỉ còn 1–3% của panel và đều là khe giữa hai dòng.
+Badge `NUM1/NUM2` rộng hơn badge cũ nhưng KHÔNG làm tràn ô ở cả 4 tỉ lệ (xem §E9.3: `BADGE_CLIPPED []`).
+
+### 2. BOT có dùng skill không (mục còn tồn) — CÓ
+`BOT` P1=ROBOT (người) vs P2=HUNTER (CPU), đọc telemetry của chính combatant CPU:
+```
+T+10s casts=1 by={A2:1}
+T+20s casts=2 by={A2:1,A1:1}
+T+30s casts=4 by={A2:1,A1:3}   fails=3 (điều kiện/cc hợp lệ)
+```
+⇒ CPU dùng CẢ A1 và A2 liên tục; `aiEnabled=true`. Không còn "BOT không dùng skill".
+
+### 3. Tỉ lệ thân MAGNET trong trận (mục còn tồn) — ĐO ĐƯỢC, KHÔNG SỬA MÙ
+Đo trong không gian thế giới (cùng đơn vị với hit-circle):
+- Hit-circle thật: `radius=75` cho CẢ ROBOT và MAGNET ⇒ đường kính 150.
+- Thân vẽ ra: `META` core 786×1125 canvas px × `SOURCE_SCALE(170/1020=0.1667)` × `bodyK(75/96=0.781)`
+  ⇒ **≈102 × 146 world px**, tức chiều cao ≈ **97%** đường kính hit-circle (102/150 = 68% chiều ngang, đúng dáng người cao hơn rộng).
+⇒ Kết luận: thân MAGNET đang khớp hit-circle trong sai số hợp lý; KHÔNG hạ/nâng scale mù (luật: không giảm chất lượng visual).
+Nếu owner vẫn thấy nhỏ trên máy thật, cần ảnh chụp có vật mốc (ROBOT cùng khung) để so trực tiếp.
+
+### 4. Trạng thái 12 yêu cầu
+| # | Yêu cầu | Trạng thái |
+|---|---|---|
+| 1 | Cụm súng/máu/dmg điện thoại hết ô trống, súng to | Đạt — đo 1–3% (§E10.1), bệ súng 207×53 + đạn lớn (R55) |
+| 2 | Bỏ lớp nền đen centre-out | Đạt — `d8e256a`, full-bleed compositor |
+| 3 | Trả lại transition 2 vệt cho pick→battle | Đạt — `fdc0b89`/`37b3703`, cửa ĐÓNG trước khi tải |
+| 4 | Audit hiệu năng, không giảm visual | Đo: FX không phải nút cổ chai (JS 3–9 ms/2.5 s); sandbox raster-bound; cần so trên máy thật |
+| 5 | Home hiện AC thật | Đạt — `data-apex-ac` đọc trực tiếp từ economy authority |
+| 6 | Bỏ chấm vàng nút dưới | Đạt — SHL-S19a/b |
+| 7 | Giảm thao tác tuần tự | Đạt — Esc 92 ms, về pick READY, rematch 1 cú bấm, K.O. tự về 3.9 s |
+| 8 | Panel BOT = panel Local | Đạt — một luật panel (`0108796` + `dd125ad`) |
+| 9 | Hiệu ứng trạng thái skill | Đạt — tối khi hồi, sáng khi active (đã đo filter) |
+| 10 | SFX không trễ | Đạt — warm trước cue đầu (cached 3/3), hấp thụ liên tiếp vẫn kêu |
+| 11 | LOCAL nhận Num1/Num2 | Đạt — đo trực tiếp `Numpad1/2 → dCasts=1`, hàng trên trơ (§E9.1) + badge nói đúng cặp khoá |
+| 12 | Audit toàn game + chủ động | Đang làm — pick A1/A2/PASSIVE đã sửa (§E9.4); BOT dùng skill xác nhận (§E10.2) |
