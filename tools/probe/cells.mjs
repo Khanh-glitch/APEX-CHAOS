@@ -38,6 +38,9 @@ const out = await page.evaluate(() => {
     for (const el of side.querySelectorAll('*')) {
       const cs = getComputedStyle(el);
       if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) < 0.02) continue;
+      // A translucent sheen sweep spanning a whole tile is decoration, not
+      // content: counting it hid the very dead area the owner reports.
+      if (el.classList.contains('sk-sweep')) continue;
       const hasArt = cs.backgroundImage !== 'none' || el.tagName === 'IMG';
       const hasText = el.children.length === 0 && (el.textContent || '').trim().length > 0;
       if (!hasArt && !hasText) continue;

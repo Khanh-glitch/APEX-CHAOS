@@ -575,8 +575,21 @@ kbd{font:inherit}
    already reads twice over. The band height goes to the held-gun plate. */
 #hud[data-layout="port"][data-mode="1p"] #p2Side .rival-health{display:none}
 #hud[data-layout="port"][data-mode="1p"] #p2Side .skills{grid-template-columns:auto;grid-template-rows:minmax(0,1fr) minmax(0,1fr)}
+/* R56 SPACE LAW (owner: "cả khu vực đó bắt mắt và tối ưu không gian"): the
+   opponent tile row was 81px tall while its art stayed a centred 64px square,
+   which parked a flat ~116x32 band under every label - the last dead cell in
+   the gun/HP/dmg cluster (measured on the rendered pixels, not read off a
+   screenshot). The band is filled with the skill's real cooldown line instead
+   of art resizing, so nothing is distorted and no label loses width. */
 #hud[data-layout="port"][data-mode="1p"] #p2Side .skill{grid-template-columns:var(--artW) minmax(0,1fr);grid-template-rows:100%;grid-template-areas:"art info"}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .sk-info{padding:4px 7px;gap:3px;justify-content:center}
+/* The accepted 64px art column is kept exactly as it was (a wider or
+   cover-cropped art either stole label width or turned into a sliver), and the
+   band the tile used to leave blank under the label is filled with the skill's
+   REAL cooldown/active line. That line already exists on the player's own phone
+   panel, so the opponent panel now carries the same state language instead of
+   dead space. */
+#hud[data-layout="port"][data-mode="1p"] #p2Side .sk-desc{display:block}
+#hud[data-layout="port"][data-mode="1p"] #p2Side .sk-info{padding:4px 7px;gap:3px}
 #hud[data-layout="port"][data-mode="1p"] #p1Side{
   grid-template-columns:minmax(0,40%) minmax(0,1fr);
   grid-template-rows:auto minmax(0,1fr);
