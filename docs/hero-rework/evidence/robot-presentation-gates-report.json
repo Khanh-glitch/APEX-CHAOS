@@ -2,27 +2,29 @@
   "suite": "robot-presentation-gates",
   "gates": {
     "P-A1-lock-dash-single-dispatch-bus": {
-      "pass": false,
+      "pass": true,
       "detail": {
         "locks": 1,
-        "dashLaunches": 0,
+        "dashLaunches": 1,
         "acquires": 1,
-        "dashes": 0
+        "dashes": 1
       }
     },
     "P-A1-lock-1-sfx": {
       "pass": true,
       "detail": {
         "sfxCounts": {
-          "robot_a1_lock": 1
+          "robot_a1_lock": 1,
+          "robot_a1_dash": 1
         }
       }
     },
     "P-A1-dash-1-sfx": {
-      "pass": false,
+      "pass": true,
       "detail": {
         "sfxCounts": {
-          "robot_a1_lock": 1
+          "robot_a1_lock": 1,
+          "robot_a1_dash": 1
         }
       }
     },
@@ -31,7 +33,8 @@
       "detail": {
         "unapproved": [],
         "counts": {
-          "robot_a1_lock": 1
+          "robot_a1_lock": 1,
+          "robot_a1_dash": 1
         }
       }
     },
@@ -122,10 +125,10 @@
       }
     },
     "P-A2-auto-hits-per-hit": {
-      "pass": false,
+      "pass": true,
       "detail": {
         "counts": {
-          "robot_a2_armor_hit": 2
+          "robot_a2_armor_hit": 3
         }
       }
     },
@@ -150,57 +153,68 @@
       }
     },
     "P-passive-milestone-2-bus": {
-      "pass": false,
+      "pass": true,
       "detail": {
-        "milestones": 0,
+        "milestones": 2,
         "bus": [
           "RealizedDamageEvent:undefined",
-          "RealizedDamageEvent:undefined"
+          "RobotPassiveMilestone:1",
+          "RealizedDamageEvent:undefined",
+          "RobotPassiveMilestone:2",
+          "RobotPassiveUpgrade:2",
+          "MilestoneRefund:2"
         ]
       }
     },
     "P-passive-upgrade-1-bus-test-threshold": {
-      "pass": false,
+      "pass": true,
       "detail": {
-        "upgrades": 0,
-        "refundsAlias": 0,
+        "upgrades": 1,
+        "refundsAlias": 1,
         "bus": [
           "RealizedDamageEvent::0",
-          "RealizedDamageEvent::0"
+          "RobotPassiveMilestone:1:0",
+          "RealizedDamageEvent::0",
+          "RobotPassiveMilestone:2:0",
+          "RobotPassiveUpgrade:2:0.5",
+          "MilestoneRefund:2:0.5"
         ]
       }
     },
     "P-passive-milestone-2-sfx": {
-      "pass": false,
-      "detail": {
-        "counts": {}
-      }
-    },
-    "P-passive-upgrade-1-sfx": {
-      "pass": false,
-      "detail": {
-        "counts": {}
-      }
-    },
-    "P-passive-null-0-milestone": {
-      "pass": false,
-      "detail": {
-        "milestones2": 2
-      }
-    },
-    "P-passive-null-0-upgrade": {
-      "pass": false,
-      "detail": {
-        "upgrades2": 1
-      }
-    },
-    "P-passive-null-0-sfx": {
-      "pass": false,
+      "pass": true,
       "detail": {
         "counts": {
           "robot_passive_milestone": 2,
           "robot_passive_upgrade": 1
         }
+      }
+    },
+    "P-passive-upgrade-1-sfx": {
+      "pass": true,
+      "detail": {
+        "counts": {
+          "robot_passive_milestone": 2,
+          "robot_passive_upgrade": 1
+        }
+      }
+    },
+    "P-passive-null-0-milestone": {
+      "pass": true,
+      "detail": {
+        "milestones2": 0
+      }
+    },
+    "P-passive-null-0-upgrade": {
+      "pass": true,
+      "detail": {
+        "upgrades2": 0
+      }
+    },
+    "P-passive-null-0-sfx": {
+      "pass": true,
+      "detail": {
+        "counts": {}
       }
     },
     "P-no-second-AudioContext": {
@@ -334,7 +348,7 @@
         ]
       }
     },
-    "L-Digit1 is routed to the P2 body": {
+    "L-Numpad1 (right-hand pair) is routed to the P2 body as A1": {
       "pass": true,
       "detail": {
         "events": [
@@ -344,7 +358,7 @@
         ]
       }
     },
-    "L-Digit2 is routed to the P2 body": {
+    "L-Numpad2 (right-hand pair) is routed to the P2 body as A2": {
       "pass": true,
       "detail": {
         "events": [
@@ -352,6 +366,18 @@
           "AbilityPress/p2/A2",
           "P2Press/p2/A2"
         ]
+      }
+    },
+    "L-top-row Digit1 never casts (owner correction: the right-hand pair only)": {
+      "pass": true,
+      "detail": {
+        "events": []
+      }
+    },
+    "L-top-row Digit2 never casts (owner correction: the right-hand pair only)": {
+      "pass": true,
+      "detail": {
+        "events": []
       }
     },
     "L-one press never fires both sides": {
@@ -361,7 +387,9 @@
           "p1",
           "p1",
           "p2",
-          "p2"
+          "p2",
+          "-",
+          "-"
         ]
       }
     },
@@ -369,8 +397,8 @@
       "pass": true,
       "detail": {
         "keys": [
-          "Digit1",
-          "Digit2"
+          "Numpad1",
+          "Numpad2"
         ]
       }
     },
@@ -380,32 +408,16 @@
     "L-the P2 press family is published for the P2 body": {
       "pass": true
     },
-    "L-Numpad1 reaches the P2 body as A1": {
+    "L-numpad keys cast while the same characters on the top row do not": {
       "pass": true,
       "detail": {
-        "events": [
-          "CastFailCue/p2/A1",
-          "AbilityPress/p2/A1",
-          "P2Press/p2/A1"
-        ]
-      }
-    },
-    "L-Numpad2 reaches the P2 body as A2": {
-      "pass": true,
-      "detail": {
-        "events": [
-          "CastFailCue/p2/A2",
-          "AbilityPress/p2/A2",
-          "P2Press/p2/A2"
-        ]
-      }
-    },
-    "L-both 1/2 pairs name their own key on the press": {
-      "pass": true,
-      "detail": {
-        "keys": [
-          "Digit1",
-          "Numpad1"
+        "numpad": [
+          1,
+          1
+        ],
+        "topRow": [
+          0,
+          0
         ]
       }
     },
@@ -425,18 +437,7 @@
       }
     }
   },
-  "failures": [
-    "P-A1-lock-dash-single-dispatch-bus",
-    "P-A1-dash-1-sfx",
-    "P-A2-auto-hits-per-hit",
-    "P-passive-milestone-2-bus",
-    "P-passive-upgrade-1-bus-test-threshold",
-    "P-passive-milestone-2-sfx",
-    "P-passive-upgrade-1-sfx",
-    "P-passive-null-0-milestone",
-    "P-passive-null-0-upgrade",
-    "P-passive-null-0-sfx"
-  ],
+  "failures": [],
   "loadErrors": [
     {
       "file": "/game/fighters/shotgunRuntime.js",
@@ -474,19 +475,8 @@
   "audioCtxCtorCallsAtStart": 1,
   "summary": {
     "total": 50,
-    "passed": 40,
-    "failed": [
-      "P-A1-lock-dash-single-dispatch-bus",
-      "P-A1-dash-1-sfx",
-      "P-A2-auto-hits-per-hit",
-      "P-passive-milestone-2-bus",
-      "P-passive-upgrade-1-bus-test-threshold",
-      "P-passive-milestone-2-sfx",
-      "P-passive-upgrade-1-sfx",
-      "P-passive-null-0-milestone",
-      "P-passive-null-0-upgrade",
-      "P-passive-null-0-sfx"
-    ]
+    "passed": 50,
+    "failed": []
   },
   "audioCtxCtorCalls": 1
 }

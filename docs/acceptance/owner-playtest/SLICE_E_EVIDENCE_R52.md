@@ -440,3 +440,16 @@ hero-rework gates 40/50 (10 gate `P-*` đỏ **có sẵn từ trước**, xác n
 danh sách lỗi y hệt); `test:hero-rework:headless` 2 golden đỏ **có sẵn** (crystal-reflect-ice-payload,
 rubber-stores-reflected) — không liên quan thay đổi này.
 `tools/testGoldCrossLawHeadless.mjs` timeout ở màn mode: **có sẵn**, không nằm trong chain pnpm.
+
+### §E9.4 — Robot: hết "bỏ sót vô lý" khi trúng liên tiếp + gate sức mạnh hero về xanh 50/50
+- **Lỗi thật (đã sửa ở runtime):** `robotPresentationRuntime` chặn tiếng "armor hit" theo cửa sổ 0.05 s.
+  Bước thời gian 0.05 s rơi vào 0.0499999 nên **hit thứ 3 bị nuốt** (đo: 3 hit tự động → 2 tiếng).
+  Cửa sổ đó giờ chỉ chặn **trùng cùng một thời điểm** (<1 ms) — đúng luật owner "không bỏ sót vô lý",
+  không súng nào bắn 2 phát trong 1 ms nên không có tiếng thừa.
+- Gate `P-A1-lock-dash-single-dispatch-bus` / `P-A1-dash-1-sfx` trước đây chỉ step 0.1 s trong khi nhịp
+  authored của A1 là 0.26 s (recognize .13 → commit .13 → dash) ⇒ gate đo sai nhịp, không phải sản phẩm sai.
+- Gate passive cũ bơm `milestoneThresholds` (khoá đã bị luật mới 2026-09-29 bỏ) ⇒ nay bơm đúng
+  `firstThreshold/thresholdStep`; ca "null" diễn đạt bằng ngưỡng không thể chạm (`Infinity`).
+- Kết quả: `[ROBOT PRESENTATION GATES] 50/50` (trước 40/50) và **đã được thêm vào chain chính**
+  `test:r50-pre-transition` (`pnpm test:hero-rework:robot-gates`) để không mục lại âm thầm.
+- Chain xanh sau tất cả: `pnpm build` BUILD=0, `test:r50-pre-transition` SUITE=0 / 23 PASS + 50/50 robot gates.

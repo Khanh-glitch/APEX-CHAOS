@@ -1389,8 +1389,15 @@ function renderRig(g) {
         const st = getRobotState(f);
         if (!st) continue;
         if (!st.armor) continue;
-        // Dedup per actual damage event — use timestamp
-        if (st.T - st._lastArmorHitAt < 0.05) continue; // allow rapid automatic hits but not duplicate dispatch from same event
+        // Dedup per actual damage event — timestamp guard for a duplicate
+        // DELIVERY of one event (same instant), never a rate limiter on real
+        // hits. Owner law 2026-10-06 (no illogical omissions): a fast weapon
+        // that lands three absorbed rounds must sound three times. The old
+        // 0.05 s window swallowed any hit a hair under 50 ms after the previous
+        // one (measured: 3 automatic hits -> 2 cues, because a 0.05 s step
+        // lands at 0.0499999 and the `< 0.05` test dropped it). No firearm in
+        // the game can fire twice inside 1 ms, so the guard is now exact.
+        if (st.T - st._lastArmorHitAt < 0.001) continue;
         st._lastArmorHitAt = st.T;
         playRobotSfx('robot_a2_armor_hit', { vol: 0.72 });
         // Visual impact for armor hit

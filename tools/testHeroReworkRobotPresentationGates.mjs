@@ -203,7 +203,11 @@ function withSfxCounter(fn) {
   const busMark = Q.hr().AIL.bus.ring.length;
   const result = withSfxCounter((counts) => {
     const cast = ctl.tryCast('A1', 'gates');
-    Q.step(0.1);
+    // The authored A1 choreography commits the dash after 0.26 s of windup
+    // (recognize .13 -> commit .13 -> launch). Step past the beat; the
+    // assertions below are unchanged: nothing may launch before, and exactly
+    // one launch may result from one activation.
+    Q.step(0.32);
     const bus = Q.busRingFrom(busMark);
     const locks = bus.filter(e => e.type === 'RobotA1Lock' && !e.payload.alias);
     const dashLaunches = bus.filter(e => e.type === 'RobotA1DashLaunch' && !e.payload.alias);
@@ -338,12 +342,18 @@ function withSfxCounter(fn) {
 // Passive milestone 1 / upgrade 1 under test thresholds and 0 under null
 // =============================================================================
 {
-  // Test thresholds — use small damage to cross one at a time (aqDamage 2 => ~14 realized)
+  // Test thresholds. The passive is the owner-corrected ROLLING DAMAGE BURST
+  // law (firstThreshold, then +thresholdStep per milestone, reset after
+  // burstWindowSec of silence) — the retired `milestoneThresholds` array is no
+  // longer read by the runtime, so the gate injects the keys the runtime
+  // actually uses: 10 then +10. aqDamage 2 = ~14 realized damage, so the first
+  // hit crosses 10 (milestone 1, refund 0) and the second crosses 20 inside the
+  // same burst (milestone 2, refund 0.5 into the deliberately cooling A1).
   const m = Q.start('ROBOT', 'ICE', 3005);
   Q.placeFree(300, 500, 1, 0, 700, 500, -1, 0);
   const a = win.fighters[0], b = win.fighters[1];
   const pCt = Q.ct();
-  pCt.skills.PASSIVE.cfg = { ...pCt.skills.PASSIVE.cfg, milestoneThresholds: [10, 20, 30] };
+  pCt.skills.PASSIVE.cfg = { ...pCt.skills.PASSIVE.cfg, firstThreshold: 10, thresholdStep: 10 };
   const ctl = Q.ctl();
   ctl.setCooldown('A1', 8); ctl.setCooldown('A2', 8);
   const busMark = Q.hr().AIL.bus.ring.length;
@@ -362,10 +372,15 @@ function withSfxCounter(fn) {
   gate('P-passive-milestone-2-sfx', (result.counts['robot_passive_milestone'] || 0) === 2, { counts: result.counts });
   gate('P-passive-upgrade-1-sfx', (result.counts['robot_passive_upgrade'] || 0) === 1, { counts: result.counts });
 
-  // Null thresholds -> 0
+  // Unreachable thresholds -> 0. The rolling-burst law always HAS a threshold
+  // (default 150 when config omits it), so "null thresholds" is expressed as a
+  // threshold no single burst can reach: the passive must then stay silent
+  // (no milestone, no upgrade, no cue) no matter how much damage lands.
   const m2 = Q.start('ROBOT', 'ICE', 3006);
   Q.placeFree(300, 500, 1, 0, 700, 500, -1, 0);
   const a2 = win.fighters[0], b2 = win.fighters[1];
+  const pCt2 = Q.ct();
+  pCt2.skills.PASSIVE.cfg = { ...pCt2.skills.PASSIVE.cfg, firstThreshold: Infinity };
   const ctl2 = Q.ctl();
   ctl2.setCooldown('A1', 8); ctl2.setCooldown('A2', 8);
   const busMark2 = Q.hr().AIL.bus.ring.length;

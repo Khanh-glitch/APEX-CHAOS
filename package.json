@@ -43,7 +43,7 @@
     "test:gold-revision-integrity": "node tools/testGoldRevisionIntegrityGate.mjs",
     "test:legacy-surface-cutover": "node tools/testLegacySurfaceCutoverGate.mjs",
     "test:gold-transition": "node tools/testGoldTransitionCoordinatorGate.mjs && node tools/testGoldTransitionRuntimeGate.mjs",
-    "test:r50-pre-transition": "pnpm test:gold-shell-loader && pnpm test:gold-battle-visibility && pnpm test:gold-battle-lifecycle && pnpm test:owner-playtest-economy && pnpm test:gold-fighter-pick-adaptation && pnpm test:gold-battle-hud-adaptation && pnpm test:asset-intent && pnpm test:side-aware-input && pnpm test:battle-hud-live && pnpm test:pick-presentation && pnpm test:multi-pointer-input && pnpm test:pick-band-law && pnpm test:audio-authority && pnpm test:battle-outcome-side && pnpm test:lucky-production-art && pnpm test:gold-revision-integrity && pnpm test:legacy-surface-cutover && pnpm test:gold-transition && pnpm test:scene-route-policy && pnpm test:scene-input-lock && pnpm test:hero-rig-delivery && pnpm test:hero-accent-language",
+    "test:r50-pre-transition": "pnpm test:gold-shell-loader && pnpm test:gold-battle-visibility && pnpm test:gold-battle-lifecycle && pnpm test:owner-playtest-economy && pnpm test:gold-fighter-pick-adaptation && pnpm test:gold-battle-hud-adaptation && pnpm test:asset-intent && pnpm test:side-aware-input && pnpm test:battle-hud-live && pnpm test:pick-presentation && pnpm test:multi-pointer-input && pnpm test:pick-band-law && pnpm test:audio-authority && pnpm test:battle-outcome-side && pnpm test:lucky-production-art && pnpm test:gold-revision-integrity && pnpm test:legacy-surface-cutover && pnpm test:gold-transition && pnpm test:scene-route-policy && pnpm test:scene-input-lock && pnpm test:hero-rig-delivery && pnpm test:hero-accent-language && pnpm test:hero-rework:robot-gates",
     "test:hero-rework:headless": "node tools/smokeHeroReworkHeadless.mjs && node tools/testHeroReworkGoldens.mjs && node tools/testHeroReworkLocomotionGates.mjs && node tools/testHeroReworkRobotGates.mjs && node tools/testHeroReworkRobotPresentationGates.mjs && node tools/testHeroReworkRobotRecoilGate.mjs && node tools/testHeroReworkHunterOwnerFixGates.mjs && node tools/testFrostV1Gates.mjs && node tools/testMagnetV1GameplayGates.mjs && node tools/testMagnetV1PresentationGates.mjs && node tools/testMirrorA1A2Gameplay.mjs && node tools/testMirrorCoreSixInterop.mjs && node tools/testMirrorPresentationBridge.mjs && node tools/testMirrorPresentationG2A2.mjs",
     "assets:verify": "node tools/assetAudit.mjs && node tools/generateAudioWarmBanks.mjs",
     "build": "pnpm arsenal:sfx:materialize && node tools/assetAudit.mjs && vite build && node tools/generatePublicAssetManifest.cjs dist/asset-manifest.json && node tools/pruneShippingDist.mjs",
@@ -52,9 +52,10 @@
     "test:shipping-dist": "node tools/testShippingDist.mjs",
     "test:source-hygiene": "node tools/testProductionSourceHygiene.mjs",
     "test:scene-route-policy": "node tools/testSceneRoutePolicyGate.mjs",
-  "test:scene-input-lock": "node tools/testSceneInputLockLawGate.mjs",
+    "test:scene-input-lock": "node tools/testSceneInputLockLawGate.mjs",
     "test:hero-rig-delivery": "node tools/testHeroBattleRigDeliveryGate.mjs",
-    "test:hero-accent-language": "node tools/testHeroAccentLanguageGate.mjs"
+    "test:hero-accent-language": "node tools/testHeroAccentLanguageGate.mjs",
+    "test:hero-rework:robot-gates": "node tools/testHeroReworkRobotPresentationGates.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
