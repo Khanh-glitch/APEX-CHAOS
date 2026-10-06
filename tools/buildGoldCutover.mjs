@@ -40,6 +40,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { adaptGoldBattleHudR48b } from './goldBattleHudR48b.mjs';
 import { adaptGoldBattleHudR50c } from './goldBattleHudR50c.mjs';
+import { adaptGoldBattleHudR55 } from './goldBattleHudR55.mjs';
 import { adaptGoldShellR50k } from './goldShellR50k.mjs';
 import { adaptGoldShellR52PickBand } from './goldShellR52pickBand.mjs';
 
@@ -842,6 +843,8 @@ const seamPatches = [
   log('  R48B (battle-hud): production assets/semantics + combat FX compositor adapted');
   out = adaptGoldBattleHudR50c(out);
   log('  R50C (battle-hud): live identity/rarity + full-panel impact ownership adapted');
+  out = adaptGoldBattleHudR55(out);
+  log('  R55 (battle-hud): phone panel law + held-gun plate adapted');
   return out;
 }
 

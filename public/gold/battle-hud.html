@@ -410,8 +410,8 @@ kbd{font:inherit}
    The center row becomes a dual-facing timer; all values still read S.players/S.timer. */
 #hud[data-layout="port"][data-mode="2p"]{--railH:34px;--mcW:112px}
 #hud[data-layout="port"][data-mode="2p"] .side{
-  grid-template-rows:auto auto auto auto minmax(0,1fr) auto;
-  grid-template-areas:"id sk" "hp sk" "rival sk" "feed sk" ". sk" "wp sk";
+  grid-template-rows:auto auto auto auto minmax(0,1fr);
+  grid-template-areas:"id sk" "hp sk" "rival sk" "feed sk" "wp sk";
   row-gap:3px}
 #hud[data-layout="port"][data-mode="2p"] .rival-health{grid-area:rival;display:block;padding:1px 3px 2px 0}
 #hud[data-layout="port"][data-mode="2p"] .duel-feed{grid-area:feed;display:flex;opacity:.36}
@@ -455,55 +455,10 @@ kbd{font:inherit}
 
 /* ---------- 5. 1P / 2P MODE MODIFIERS ---------- */
 /* 1P: enemy is not locally controlled -> abilities become threat readouts */
-#hud[data-mode="1p"] #p2Side .skill{pointer-events:none;cursor:default;--artW:var(--thW,56px);background:linear-gradient(270deg,rgba(255,255,255,.035),transparent)}
-#hud[data-mode="1p"] #p2Side .sk-key,
-#hud[data-mode="1p"] #p2Side .sk-desc,
-#hud[data-mode="1p"] #p2Side .wp-swap{display:none}
-#hud[data-mode="1p"] #p2Side .skill::before{opacity:.5}
-#hud[data-mode="1p"] #p2Side .sk-name{font-size:var(--thNF,13px)}
 /* desktop solo */
-#hud[data-layout="desk"][data-mode="1p"] #p2Side{--thW:58px;--thNF:14px}
-#hud[data-layout="desk"][data-mode="1p"] #p2Side .skills{align-self:start;grid-auto-rows:58px;margin-top:6px}
 /* mobile landscape solo: P1 territory widens (thumb), enemy collapses to status column */
-#hud[data-layout="land"][data-mode="1p"]{
-  --crW:156px;
-  --arena:min(calc(var(--availW) - var(--crW) - 200px - 2 * var(--gx)),calc(var(--availH) - var(--railH) - var(--g)));
-  --cr:var(--crW);--cl:calc(var(--availW) - var(--arena) - var(--cr) - 2 * var(--gx))}
-#hud[data-layout="land"][data-mode="1p"] #p1Side{--artW:min(46%,118px);--skNF:14px}
-#hud[data-layout="land"][data-mode="1p"] #p2Side{grid-template-rows:auto auto minmax(0,1fr) auto;grid-template-areas:"id" "sk" "." "wp";--thW:36px;--thNF:11px}
-#hud[data-layout="land"][data-mode="1p"] #p2Side .skills{grid-template-rows:none;grid-auto-rows:40px}
-#hud[data-layout="land"][data-mode="1p"] #p2Side .sk-info{padding:3px 7px;gap:4px}
-#hud[data-layout="land"][data-mode="1p"] #p2Side .sk-art svg{width:68%;height:68%}
-#hud[data-layout="land"][data-mode="1p"] #p2Side .weapon{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"ico txt amm" "mag mag mag";padding:5px 6px 3px 0}
 /* mobile portrait solo: enemy strip / arena / big thumb zone */
-#hud[data-layout="port"][data-mode="1p"]{
-  --stripH:48px;--p1Min:200px;
-  --arena:min(var(--availW),calc(var(--availH) - var(--stripH) - var(--railH) - var(--p1Min) - 3 * var(--g)));
-  grid-template-rows:var(--stripH) var(--railH) var(--arena) minmax(0,1fr)}
-#hud[data-layout="port"][data-mode="1p"] #p1Side{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"id wp" "sk sk";row-gap:8px;padding-bottom:2px;
-  --porW:44px;--porH:44px;--nameF:18px;--skNF:15px;--stF:10.5px;--cdF:30px;--keyS:20px;--keyF:11.5px}
-#hud[data-layout="port"][data-mode="1p"] #p1Side .skills{grid-template-columns:1fr 1fr;gap:8px}
-#hud[data-layout="port"][data-mode="1p"] #p1Side .sk-desc{display:block}
-#hud[data-layout="port"][data-mode="1p"] #p1Side .sk-art svg{width:52%;height:52%}
-#hud[data-layout="port"][data-mode="1p"] #p1Side .weapon{border-top:0;padding:0}
 /* strip is mirrored (rtl): column 1 sits at the right edge -> identity stays on P2's side */
-#hud[data-layout="port"][data-mode="1p"] #p2Side{grid-template-columns:minmax(0,1fr) auto auto;grid-template-rows:100%;grid-template-areas:"id wp sk";column-gap:8px;--porW:34px;--porH:34px;--nameF:14px;--thW:30px;--thNF:9.5px}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .edge{top:auto;bottom:calc(var(--g) / -2)}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .ident{column-gap:7px}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .id-ctrl{display:none}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .skills{grid-template-columns:auto auto;grid-template-rows:100%;gap:5px;align-self:center;height:40px}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .skill{grid-template-columns:var(--thW) auto;grid-template-rows:100%;grid-template-areas:"art info";text-align:start}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .skill::before{inset:auto 0 0 0;height:2px}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .sk-top,
-#hud[data-layout="port"][data-mode="1p"] #p2Side .sk-bar,
-#hud[data-layout="port"][data-mode="1p"] #p2Side .sk-pips{display:none}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .sk-info{padding:3px 6px;gap:3px;justify-content:center}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .sk-name{max-width:64px}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .sk-state{text-align:start;font-size:9px}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .sk-cdn{font-size:12px}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .weapon{grid-template-columns:auto auto;grid-template-rows:auto auto;grid-template-areas:"ico ico" "amm amm";border-top:0;padding:0;align-self:center;row-gap:2px;--wpIW:40px;--amF:13px}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .wp-txt,
-#hud[data-layout="port"][data-mode="1p"] #p2Side .wp-mag{display:none}
 
 /* ---------- 6. LAB / DIAGNOSTICS / REDUCED MOTION ---------- */
 #safeViz{position:absolute;inset:0;pointer-events:none;z-index:40;display:none}
@@ -514,6 +469,125 @@ kbd{font:inherit}
 #diag.on{display:block}
 #diag .ok{color:#7dff9c}#diag .bad{color:#ff6b5b}
 #hud.diag .side,#hud.diag #arenaZone,#hud.diag #versusRail{outline:1px dashed rgba(255,0,200,.45);outline-offset:-1px}
+
+/* ================= 7. R55 PHONE PANEL LAW =================
+   One Gold panel per side in every mode. The mode owns input law (taps, key
+   labels, swap), never the component: the opponent panel is the same vivid,
+   stateful panel Local renders, so BOT and Local can never diverge again.
+   The weapon plate is the cluster's feature: the held gun fills it, the live
+   ammo reads big beside the mag segments and the name keeps the footer. */
+#hud[data-mode="1p"] #p2Side .skill{pointer-events:none;cursor:default}
+#hud[data-mode="1p"] #p2Side .sk-key,
+#hud[data-mode="1p"] #p2Side .wp-swap,
+#hud[data-mode="1p"] #p2Side .sk-slot{display:none}
+#hud[data-layout="desk"][data-mode="1p"] #p2Side .skills{align-self:center;grid-auto-rows:var(--tileH);margin-top:0}
+#hud[data-layout="desk"][data-mode="1p"] #p2Side .sk-name{font-size:var(--skNF)}
+
+/* 7.1 the phone weapon plate: the held gun IS the plate */
+#hud[data-layout="land"] .side,
+#hud[data-layout="port"] .side{--wpH:clamp(60px,19cqh,96px);--amF:clamp(19px,5.2cqh,30px)}
+#hud[data-layout="port"] .side{--wpH:clamp(58px,7.9cqh,92px);--amF:clamp(18px,4.8cqh,28px)}
+#hud[data-layout="land"] .weapon,
+#hud[data-layout="port"] .weapon{
+  position:relative;align-items:center;min-height:var(--wpH);height:100%;
+  grid-template-columns:minmax(0,1fr) auto auto;
+  grid-template-rows:minmax(0,1fr) auto;
+  grid-template-areas:"ico ico swp" "txt amm swp";
+  column-gap:9px;row-gap:1px;padding:4px 0 5px;padding-inline-start:5px;
+  border-top:1px solid var(--line);
+  background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 11%,transparent),transparent 74%)}
+#hud[data-layout="land"] .side[data-mirror] .weapon,
+#hud[data-layout="port"] .side[data-mirror] .weapon{background:linear-gradient(270deg,color-mix(in srgb,var(--acc) 11%,transparent),transparent 74%)}
+#hud[data-layout="land"] .weapon .wp-ico,
+#hud[data-layout="port"] .weapon .wp-ico{width:100%;height:100%;min-width:0;min-height:0;align-self:stretch;justify-self:stretch}
+#hud[data-layout="land"] .weapon .wp-ico.has-tier::before,
+#hud[data-layout="port"] .weapon .wp-ico.has-tier::before{opacity:.95;transform:scale(1);filter:blur(9px)}
+#hud[data-layout="land"] .weapon .wp-txt,
+#hud[data-layout="port"] .weapon .wp-txt{grid-area:txt;align-self:center}
+#hud[data-layout="land"] .weapon .wp-name,
+#hud[data-layout="port"] .weapon .wp-name{font-size:clamp(11px,2.6cqh,15px);letter-spacing:.11em;color:var(--bone2)}
+#hud[data-layout="land"] .weapon .wp-amm,
+#hud[data-layout="port"] .weapon .wp-amm{grid-area:amm;justify-self:end;align-self:center;gap:4px}
+#hud[data-layout="land"] .weapon .wp-mag,
+#hud[data-layout="port"] .weapon .wp-mag{position:absolute;left:0;right:0;bottom:0;height:3px}
+
+/* 7.1b the phone ability well is a well, not a square floating in a dead band:
+   on a phone/landscape tile the art is the tile's full height (a square edge),
+   and in the vertical thumb tiles it is the tile's full width. Either way it
+   bleeds edge to edge instead of parking a band of nothing beside the art. */
+#hud[data-layout="port"] .skill .sk-art>.apex-skill-icon,
+#hud[data-layout="land"] .skill .sk-art>.apex-skill-icon{object-fit:contain}
+#hud[data-layout="port"] .skill .sk-art svg{width:58%;height:58%}
+#hud[data-layout="land"] .skill{grid-template-columns:var(--artW) minmax(0,1fr)}
+#hud[data-layout="land"] .skill .sk-art{width:100%;height:auto;aspect-ratio:1;align-self:center}
+#hud[data-layout="port"][data-mode="1p"] #p2Side .skill{grid-template-columns:var(--artW) minmax(0,1fr)}
+#hud[data-layout="port"][data-mode="1p"] #p2Side .sk-art{width:100%;height:auto;aspect-ratio:1;align-self:center}
+
+/* 7.1c the ammo readout is a live combat number: it turns critical when the
+   magazine can no longer finish a burst (≤25%), and never before. */
+#hud .weapon.low-ammo .wp-cur{color:var(--crit);text-shadow:0 0 10px color-mix(in srgb,var(--crit) 46%,transparent)}
+#hud .weapon.low-ammo .wp-mag i{background:var(--crit)}
+
+/* 7.1d a mirrored panel mirrors its geometry, never its words: names keep
+   reading order (and clip with the ellipsis on the right), the damage feed
+   keeps its word order while the container still packs it inward. */
+#hud[data-layout="desk"] .side[data-mirror] .id-name,
+#hud[data-layout="desk"] .side[data-mirror] .id-sub,
+#hud[data-layout="desk"] .side[data-mirror] .wp-name,
+#hud[data-layout="desk"] .side[data-mirror] .sk-name,
+#hud[data-layout="desk"] .side[data-mirror] .sk-desc,
+#hud[data-layout="desk"] .side[data-mirror] .rival-name,
+#hud[data-layout="land"] .side[data-mirror] .id-name,
+#hud[data-layout="land"] .side[data-mirror] .id-sub,
+#hud[data-layout="land"] .side[data-mirror] .wp-name,
+#hud[data-layout="land"] .side[data-mirror] .sk-name,
+#hud[data-layout="land"] .side[data-mirror] .sk-desc,
+#hud[data-layout="land"] .side[data-mirror] .rival-name{direction:ltr;text-align:right}
+#hud[data-layout="desk"] .side[data-mirror] .duel-feed,
+#hud[data-layout="land"] .side[data-mirror] .duel-feed{direction:ltr}
+
+/* 7.2 portrait Local: in-panel rails + damage feed are part of the panel law */
+#hud[data-layout="port"] .side .vrail{grid-area:hp;grid-column:auto;grid-row:auto;padding:0;direction:ltr;
+  row-gap:1px;grid-template-rows:var(--lblH) var(--barH) var(--accH);
+  --lblH:11px;--barH:8px;--accH:2px;--nmF:9px;--hpF:15px;--hpmF:8px;
+  --tail:10px;--st1:6px;--st2:3px;--taper:11px}
+#hud[data-layout="port"] .side .vr-tag{font-size:8px;padding:1px 4px;letter-spacing:.04em}
+#hud[data-layout="port"] .side .vr-name{font-size:9px;letter-spacing:.1em}
+#hud[data-layout="port"] .side .vr-hp{padding:0 3px;gap:1px}
+#hud[data-layout="port"] .side #p2Rail .vr-shape{transform:none}
+#hud[data-layout="port"][data-mode="1p"] #p2Side .rival-health{grid-area:rival;display:block;padding:1px 3px 2px 0}
+#hud[data-layout="port"][data-mode="1p"] #p2Side .duel-feed{grid-area:feed;display:flex;opacity:.36}
+#hud[data-layout="port"][data-mode="1p"] #p2Side .duel-feed.pulse{opacity:1}
+#hud[data-layout="port"][data-mode="1p"]{
+  --p2H:clamp(150px,20cqh,196px);
+  --p1H:clamp(226px,33cqh,336px);
+  --arena:min(var(--availW),calc(var(--availH) - var(--railH) - var(--p2H) - var(--p1H) - 3 * var(--g)));
+  grid-template-rows:minmax(0,var(--p2H)) var(--railH) var(--arena) minmax(0,var(--p1H))}
+#hud[data-layout="port"][data-mode="1p"] #p2Side{
+  grid-template-columns:minmax(0,1fr) minmax(0,52%);
+  grid-template-rows:auto auto auto minmax(0,1fr);
+  grid-template-areas:"id sk" "hp sk" "feed sk" "wp sk";
+  column-gap:7px;
+  --porW:34px;--porH:34px;--idGap:9px;--nameF:14px;--artW:min(64px,34%);
+  --skNF:12px;--stF:9.5px;--cdF:18px;--keyS:17px}
+/* The opponent's rail already carries the CPU's live HP, and the player's own
+   HP is on the centre rail: the rival row would repeat a number the player
+   already reads twice over. The band height goes to the held-gun plate. */
+#hud[data-layout="port"][data-mode="1p"] #p2Side .rival-health{display:none}
+#hud[data-layout="port"][data-mode="1p"] #p2Side .skills{grid-template-columns:auto;grid-template-rows:minmax(0,1fr) minmax(0,1fr)}
+#hud[data-layout="port"][data-mode="1p"] #p2Side .skill{grid-template-columns:var(--artW) minmax(0,1fr);grid-template-rows:100%;grid-template-areas:"art info"}
+#hud[data-layout="port"][data-mode="1p"] #p2Side .sk-info{padding:4px 7px;gap:3px;justify-content:center}
+#hud[data-layout="port"][data-mode="1p"] #p1Side{
+  grid-template-columns:minmax(0,40%) minmax(0,1fr);
+  grid-template-rows:auto minmax(0,1fr);
+  grid-template-areas:"id wp" "sk sk";
+  row-gap:8px;padding-bottom:2px;
+  --porW:58px;--porH:clamp(56px,10cqh,76px);--idGap:10px;--nameF:19px;
+  --skNF:15px;--stF:10.5px;--cdF:30px;--keyS:20px;--keyF:11.5px}
+#hud[data-layout="port"][data-mode="1p"] #p1Side .skills{grid-template-columns:1fr 1fr}
+#hud[data-layout="port"][data-mode="1p"] #p1Side .sk-desc{display:block}
+#hud[data-layout="port"][data-mode="1p"] #p1Side .sk-art svg{width:52%;height:52%}
+#hud[data-layout="port"][data-mode="1p"] #p1Side .weapon{border-top:1px solid var(--line);padding:4px 0 5px;padding-inline-start:5px}
 @media (prefers-reduced-motion: reduce){
   .vrail.low .vr-low{animation:none;opacity:.5}
   .sk-sweep{display:none}
@@ -884,15 +958,16 @@ function relRect(el){const r=el.getBoundingClientRect(),s=R.stage.getBoundingCli
 function outVec(i){return S.viewport.layout==='port'?(i===0?[0,1]:[0,-1]):(i===0?[-1,0]:[1,0]);}
 function fpos(i){const a=relRect(R.arena),f=G.f[i];return {x:a.x+(f.x+f.jx)/1000*a.w,y:a.y+(f.y+f.jy)/1000*a.h,a};}
 function dockLocalRails(){
- const local=S.viewport.layout==='port'&&S.mode==='2p';
+ const local=S.viewport.layout==='port';
  for(let i=0;i<2;i++){
-  const node=R.rail[i].root,target=local?R.side[i].root:R.vr;
+  const dock=local&&(S.mode==='2p'||i===1);
+  const node=R.rail[i].root,target=dock?R.side[i].root:R.vr;
   if(node.parentElement===target)continue;
-  if(local)target.appendChild(node);
+  if(dock)target.appendChild(node);
   else if(i===0)target.insertBefore(node,R.mc);
   else target.appendChild(node);
  }
- R.mc.classList.toggle('dual-local',local);
+ R.mc.classList.toggle('dual-local',local&&S.mode==='2p');
 }
 
 /* ================= VIEWPORT / LAYOUT ================= */
@@ -907,7 +982,7 @@ function applyViewport(){
  const size=layout==='desk'?(W>=1600&&H>=800?'wide':'desktop'):(Math.min(W,H)>=700?'tablet':'compact');
  S.viewport.layout=layout;S.viewport.size=size;
  R.hud.dataset.layout=layout;R.hud.dataset.size=size;R.hud.dataset.mode=S.mode;
- R.side[1].root.toggleAttribute('data-mirror',!(layout==='port'&&S.mode==='2p'));
+ R.side[1].root.toggleAttribute('data-mirror',layout!=='port');
  dockLocalRails();
  document.body.classList.remove('preview');
  R.frac.setAttribute('viewBox',`0 0 ${W} ${H}`);
@@ -928,8 +1003,8 @@ function renderStatic(){
  // Owner input law (production truth): P1 J/K, Local P2 Digit1/Digit2,
  // BOT P2 = CPU. No manual swap command exists in production, so no
  // swap key is ever advertised here.
- R.side[0].ctrl.textContent=desk?'LOCAL · J K':'LOCAL · TOUCH';
- R.side[1].ctrl.textContent=S.mode==='1p'?'CPU · THREAT':(desk?'LOCAL · 1 2':'LOCAL · TOUCH');
+ R.side[0].ctrl.textContent=desk?'LOCAL · J K':'LOCAL · TAP';
+ R.side[1].ctrl.textContent=S.mode==='1p'?'CPU':(desk?'LOCAL · 1 2':'LOCAL · TAP');
  R.side.forEach((s,i)=>s.skills.forEach((u,k)=>{u.slot.textContent=(S.mode==='1p'&&i===1)?'ENEMY':'ABILITY '+(k+1);u.el.setAttribute('aria-disabled',S.mode==='1p'&&i===1?'true':'false');}));
 }
 function renderRival(viewer){
@@ -1010,8 +1085,8 @@ function renderWeapon(i){
    const tierColor=w.tierColor||'';u.ico.classList.toggle('has-tier',!!tierColor);if(tierColor)u.ico.style.setProperty('--tier',tierColor);else u.ico.style.removeProperty('--tier');u.ico.dataset.tier=w.tier||'';
    u.mag.style.setProperty('--seg',usesAmmo?(100/Math.max(1,w.mag))+'%':'100%');u.wi=ident;
  }
- const rel=!!p.reloadUntil,am=usesAmmo?Math.max(0,Number(p.ammo[p.wi])||0):0,key=rel?'R':(usesAmmo?am+'/'+w.mag:'NA');
- if(u.k!==key){u.k=key;u.cur.textContent=rel?'––':(usesAmmo?am:'—');u.max.textContent=rel?'RELOAD':(usesAmmo?'/'+w.mag:'');u.root.classList.toggle('reloading',rel);u.root.classList.toggle('no-ammo',!usesAmmo);
+ const rel=!!p.reloadUntil,am=usesAmmo?Math.max(0,Number(p.ammo[p.wi])||0):0,key=rel?'R':(usesAmmo?am+'/'+w.mag:'NA')+(usesAmmo&&am<=Math.max(1,w.mag)*.25?'!':'');
+ if(u.k!==key){u.k=key;u.cur.textContent=rel?'––':(usesAmmo?am:'—');u.max.textContent=rel?'RELOAD':(usesAmmo?'/'+w.mag:'');u.root.classList.toggle('reloading',rel);u.root.classList.toggle('no-ammo',!usesAmmo);u.root.classList.toggle('low-ammo',usesAmmo&&am<=Math.max(1,w.mag)*.25&&am>0);
    if(!rel)u.mag.style.clipPath=usesAmmo?`inset(0 ${(100-am/Math.max(1,w.mag)*100).toFixed(2)}% 0 0)`:'inset(0 0 0 0)';}
 }
 function renderSkills(now){
@@ -1068,13 +1143,13 @@ function cast(pi,ai,src){
 function setStatus(i,txt,ms){const el=R.side[i].status;el.textContent=txt;el.getAnimations().forEach(a=>a.cancel());el.animate([{opacity:0},{opacity:1,offset:.06},{opacity:1,offset:.85},{opacity:0}],{duration:ms});}
 /* ================= DAMAGE / HEAL ================= */
 function localDuelStat(a,v,amt,tier,impactAccent){
- if(!(S.viewport.layout==='port'&&S.mode==='2p'))return;
+ if(S.viewport.layout!=='port')return;
  const col=(tier==='crit'||tier==='heavy')?(impactAccent||ACC[a]):'var(--dmg)',label=tier==='heavy'?'HEAVY':tier==='crit'?'CRIT':'HIT';
  const write=(viewer,role)=>{const u=R.side[viewer].feed;clearTimeout(u.timer);u.root.style.setProperty('--feed',col);u.role.textContent=role;u.tier.textContent=label;u.value.textContent=String(Math.round(amt));u.root.classList.remove('pulse');void u.root.offsetWidth;u.root.classList.add('pulse');u.root.animate([{transform:'scale(.96)',opacity:.35},{transform:'scale(1.03)',opacity:1,offset:.18},{transform:'scale(1)',opacity:1}],{duration:260,easing:'ease-out'});u.timer=setTimeout(()=>{u.root.classList.remove('pulse');u.role.textContent='DUEL';u.tier.textContent='READY';u.value.textContent='—';u.root.style.removeProperty('--feed');},tier==='normal'?700:1100);};
  write(a,'DEALT');write(v,'TAKEN');
 }
 function localHealStat(v,amt){
- if(!(S.viewport.layout==='port'&&S.mode==='2p'))return;const u=R.side[v].feed;clearTimeout(u.timer);u.root.style.setProperty('--feed','var(--heal)');u.role.textContent='RECOVER';u.tier.textContent='HEAL';u.value.textContent='+'+Math.round(amt);u.root.classList.remove('pulse');void u.root.offsetWidth;u.root.classList.add('pulse');u.timer=setTimeout(()=>{u.root.classList.remove('pulse');u.role.textContent='DUEL';u.tier.textContent='READY';u.value.textContent='—';u.root.style.removeProperty('--feed');},900);
+ if(S.viewport.layout!=='port')return;const u=R.side[v].feed;clearTimeout(u.timer);u.root.style.setProperty('--feed','var(--heal)');u.role.textContent='RECOVER';u.tier.textContent='HEAL';u.value.textContent='+'+Math.round(amt);u.root.classList.remove('pulse');void u.root.offsetWidth;u.root.classList.add('pulse');u.timer=setTimeout(()=>{u.root.classList.remove('pulse');u.role.textContent='DUEL';u.tier.textContent='READY';u.value.textContent='—';u.root.style.removeProperty('--feed');},900);
 }
 function applyDamage(a,v,amt,tier,impactAccent){
  if(S.ko)return;const now=performance.now(),p=S.players[v];amt=Math.round(amt);
