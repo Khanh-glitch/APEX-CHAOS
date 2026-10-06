@@ -1,0 +1,162 @@
+{
+ "heroId": "ROBOT",
+ "viewport": "1280x720",
+ "t0": 1791280919791,
+ "t1": 1791280949993,
+ "frames": 67,
+ "phases": [
+  {
+   "t": 0,
+   "bt": "is-bot is-active phase-lock",
+   "host": "",
+   "clip": "none",
+   "tf": "none",
+   "vig": "1",
+   "body": "apex-gold-mounted battle-transition-active"
+  },
+  {
+   "t": 26510.4,
+   "bt": "is-bot is-active phase-lock phase-clamp",
+   "host": "",
+   "clip": "none",
+   "tf": "none",
+   "vig": "1",
+   "body": "apex-gold-mounted battle-transition-active"
+  },
+  {
+   "t": 27077.5,
+   "bt": "is-bot is-active phase-lock phase-clamp",
+   "host": "is-preloading",
+   "clip": "inset(0px 50%)",
+   "tf": "matrix(0.965, 0, 0, 0.965, 0, 0)",
+   "vig": "1",
+   "body": "apex-gold-mounted battle-transition-active"
+  },
+  {
+   "t": 27077.8,
+   "bt": "is-bot is-active phase-lock phase-clamp",
+   "host": "is-preloading",
+   "clip": "inset(0px 50%)",
+   "tf": "matrix(0.965, 0, 0, 0.965, 0, 0)",
+   "vig": "1",
+   "body": "apex-gold-mounted battle-transition-active"
+  },
+  {
+   "t": 27153.2,
+   "bt": "is-bot is-active phase-lock phase-clamp",
+   "host": "is-preloading",
+   "clip": "inset(0px 50%)",
+   "tf": "matrix(0.965, 0, 0, 0.965, 0, 0)",
+   "vig": "1",
+   "body": "apex-gold-mounted battle-transition-active"
+  },
+  {
+   "t": 28528.3,
+   "bt": "is-bot is-active phase-lock phase-clamp",
+   "host": "is-transitioning",
+   "clip": "inset(0px 50%)",
+   "tf": "matrix(0.965, 0, 0, 0.965, 0, 0)",
+   "vig": "1",
+   "body": "apex-gold-mounted battle-transition-active"
+  },
+  {
+   "t": 28770.1,
+   "bt": "is-bot is-active phase-lock phase-clamp phase-seam",
+   "host": "is-transitioning",
+   "clip": "inset(0px 50%)",
+   "tf": "matrix(0.965, 0, 0, 0.965, 0, 0)",
+   "vig": "1",
+   "body": "apex-gold-mounted battle-transition-active"
+  },
+  {
+   "t": 28916.7,
+   "bt": "is-bot is-active phase-lock phase-clamp phase-seam",
+   "host": "is-transitioning",
+   "clip": "inset(0px 50%)",
+   "tf": "matrix(0.965, 0, 0, 0.965, 0, 0)",
+   "vig": "1",
+   "body": "apex-gold-mounted battle-transition-active apex-battle"
+  },
+  {
+   "t": 28930.5,
+   "bt": "is-bot is-active phase-lock phase-clamp phase-seam phase-open",
+   "host": "is-transitioning is-reveal",
+   "clip": "inset(0px 50%)",
+   "tf": "matrix(0.965, 0, 0, 0.965, 0, 0)",
+   "vig": "1",
+   "body": "apex-gold-mounted battle-transition-active apex-battle"
+  },
+  {
+   "t": 28938.4,
+   "bt": "is-bot is-active phase-lock phase-clamp phase-seam phase-open",
+   "host": "is-transitioning is-reveal",
+   "clip": "inset(0px 50%)",
+   "tf": "matrix(0.965, 0, 0, 0.965, 0, 0)",
+   "vig": "1",
+   "body": "apex-gold-mounted battle-transition-active apex-battle"
+  },
+  {
+   "t": 29053.4,
+   "bt": "is-bot is-active phase-lock phase-clamp phase-seam phase-open",
+   "host": "is-transitioning is-reveal",
+   "clip": "inset(0px 50%)",
+   "tf": "matrix(0.965, 0, 0, 0.965, 0, 0)",
+   "vig": "1",
+   "body": "apex-gold-mounted battle-transition-active"
+  },
+  {
+   "t": 29361,
+   "bt": "is-bot is-active phase-lock phase-clamp phase-seam phase-open phase-handoff",
+   "host": "is-open",
+   "clip": "none",
+   "tf": "none",
+   "vig": "1",
+   "body": "apex-gold-mounted battle-hud-open"
+  },
+  {
+   "t": 29366.5,
+   "bt": "is-bot is-active phase-lock phase-clamp phase-seam phase-open phase-handoff",
+   "host": "is-open",
+   "clip": "none",
+   "tf": "none",
+   "vig": "1",
+   "body": "apex-gold-mounted battle-hud-open"
+  },
+  {
+   "t": 29366.5,
+   "bt": "is-bot is-active phase-lock phase-clamp phase-seam phase-open phase-handoff",
+   "host": "is-open",
+   "clip": "none",
+   "tf": "none",
+   "vig": "1",
+   "body": "apex-gold-mounted battle-hud-open"
+  },
+  {
+   "t": 29571.2,
+   "bt": "",
+   "host": "is-open",
+   "clip": "none",
+   "tf": "none",
+   "vig": "0",
+   "body": "apex-gold-mounted battle-hud-open"
+  },
+  {
+   "t": 29571.6,
+   "bt": "",
+   "host": "is-open",
+   "clip": "none",
+   "tf": "none",
+   "vig": "0",
+   "body": "apex-gold-mounted battle-hud-open"
+  },
+  {
+   "t": 29571.6,
+   "bt": "",
+   "host": "is-open",
+   "clip": "none",
+   "tf": "none",
+   "vig": "0",
+   "body": "apex-gold-mounted battle-hud-open"
+  }
+ ]
+}

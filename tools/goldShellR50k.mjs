@@ -36,6 +36,8 @@ function replaceOnce(src, needle, replacement, label) {
 // order that replaced the donor's own lifecycle: production READY + the first
 // truth frame land BEFORE the compositor is revealed, and a failed start rolls
 // the whole entry back instead of showing donor defaults.
+// R54: the compositor is full-bleed from the moment it mounts, so the rails'
+// opening IS the reveal - there is no second, centre-out reveal under it.
 const BATTLE_ENTRY_REGION = `  let battleEntryToken=0;
   async function setBattleLive(){
     APEX_GOLD.onSurface&&APEX_GOLD.onSurface('battle');
@@ -144,8 +146,11 @@ const BATTLE_ENTRY_REGION = `  let battleEntryToken=0;
       const liveReady=await setBattleLive();
       if(token!==battleEntryToken)return;
       if(liveReady!==true)throw new Error('Battle runtime did not report READY');
-      // The reveal IS the authored beat: the rails open (430 ms CSS) while the
-      // compositor sliver opens into the full stage.
+      // The reveal IS the authored beat, and the ONLY one: the Gold rails open
+      // (430 ms CSS) onto a compositor that is already full-bleed and live
+      // behind them. R54 removed the compositor's own centre-out clip, which
+      // used to expand a black rectangle out of the middle of the screen one
+      // beat behind the rails (owner report).
       battleTransition.classList.add('phase-open');
       battleHudHost.classList.add('is-reveal');
       if(!await battleBeat(430,token))return;
@@ -214,6 +219,43 @@ export function adaptGoldShellR50k(input) {
     "  function uiFocusMove(){",
     "  function commitScreen(next){\n    screen=next;\n    APEX_GOLD.onSurface&&APEX_GOLD.onSurface(next);\n    stage.classList.remove('flow-transition','match-ready');\n    stage.classList.toggle('screen-mode',next==='mode');\n    stage.classList.toggle('screen-fighter',next==='fighter');\n    modeScreen.setAttribute('aria-hidden',next==='mode'?'false':'true');\n    fighterScreen.setAttribute('aria-hidden',next==='fighter'?'false':'true');\n    if(next!=='home'){stage.classList.remove('intent-story','intent-battle');stage.style.setProperty('--intent','0')}\n  }\n  function focusScreen(next){\n    if(next==='mode')modeCards[modeFocus]?.focus({preventScroll:true});\n    else if(next==='fighter')document.querySelector(`.rosterCard[data-hero=\\\"${activePlayer==='p1'?p1Hero:p2Hero}\\\"]`)?.focus({preventScroll:true});\n    else if(next==='home')battle.focus({preventScroll:true});\n  }\n  // R52 no-swallowed-steps law: while the Mechanical Door owns the screen, a\n  // doorless step intent is QUEUED (latest wins) and drained the moment the Door\n  // settles - never silently dropped. A pressed card must always land.\n  let queuedScreen=null, queuedScreenTimer=0;\n  function drainQueuedScreen(){\n    queuedScreenTimer=0;\n    const next=queuedScreen;\n    if(!next)return;\n    if(window.APEX_SCENE_TRANSITION?.active?.()){queuedScreenTimer=setTimeout(drainQueuedScreen,120);return;}\n    queuedScreen=null;\n    void setScreen(next);\n  }\n  function queueScreen(next){\n    queuedScreen=next;\n    if(!queuedScreenTimer)queuedScreenTimer=setTimeout(drainQueuedScreen,120);\n    return false;\n  }\n  async function setScreen(next){\n    if(next===screen)return true;\n    const tr=window.APEX_SCENE_TRANSITION;\n    if(tr?.active?.())return queueScreen(next);\n    const sceneHeroIds=()=>{\n      const ids=[p1Hero];\n      if(battleMode==='bot')ids.push(botHeroId());\n      else if(!p2Empty||p2HasPicked)ids.push(p2Hero);\n      return [...new Set(ids.filter(Boolean))];\n    };\n    const prepare=async()=>{\n      const heroIds=next==='fighter'?sceneHeroIds():[];\n      if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface(next,{heroIds});\n      if(next==='mode')hydrateDeferredImages(modeScreen);\n      if(next==='fighter'){\n        if(!roster.childElementCount)buildRoster();\n        renderFighter();\n      }\n      // The visible Fighter composition includes world-stage art OUTSIDE the\n      // fighter section, so settle the actual stage rather than a UI sub-tree.\n      await tr?.prepareElement?.(stage);\n    };\n    // R51 route policy: Home, Mode and Fighter Pick are screens of ONE\n    // Gold shell surface. Each already owns its authored screen transition,\n    // so they never engage the Mechanical Door. The Door is a SCENE\n    // authority (boot and the Lucky Draw bay) — Mechanical Door V4 has no shortcut/cancel path.\n    await prepare();\n    commitScreen(next);\n    focusScreen(next);\n    return true;\n  }\n\n",
     'Home/Mode/Fighter scene coordinator'
+  );
+
+  // ── R54: the Home AC readout is production economy, not a constant ────────
+  // The canonical shell prints "350 AC" (the historical START_CREDITS). The real
+  // balance lives in the ONE meta authority, whose single save() path announces
+  // every change as `apex:credits`. This readout follows that truth on boot, on
+  // every mutation, on returning to the product menu and on tab re-focus - and
+  // it only ever rewrites the visible text node, so the corner bracket, the mark
+  // and the layout are untouched.
+  out = replaceOnce(
+    out,
+    '</body>',
+    `<script id="apex-ac-readout">
+(()=>{
+  const node=document.querySelector('[data-apex-ac]');
+  if(!node)return;
+  const format=(n)=>Number(n).toLocaleString('en-US')+' AC';
+  function syncApexAcReadout(){
+    try{
+      const meta=window.APEX_ARSENAL_META;
+      const credits=meta&&typeof meta.credits==='function'?meta.credits():null;
+      if(credits==null)return;
+      const text=format(credits);
+      if(node.textContent!==text)node.textContent=text;
+      node.setAttribute('data-apex-ac-value',String(credits));
+    }catch(error){/* a readout must never break Home */}
+  }
+  syncApexAcReadout();
+  window.addEventListener('apex:credits',syncApexAcReadout);
+  window.addEventListener('apex:product-menu',syncApexAcReadout);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) syncApexAcReadout(); });
+  window.addEventListener('focus',syncApexAcReadout);
+  document.addEventListener('DOMContentLoaded',syncApexAcReadout);
+})();
+</script>
+</body>`,
+    'live AC readout',
   );
 
   out = replaceOnce(

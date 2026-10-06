@@ -168,6 +168,14 @@
       if (typeof localStorage !== 'undefined') localStorage.setItem(KEY, JSON.stringify(st));
     } catch (e) {}
     state = st;
+    // ONE announcement for ONE economy: every balance change (spin, shop,
+    // award, owner seed) travels this exact path, so any readout in any surface
+    // can follow production truth instead of being told about it separately.
+    try {
+      if (typeof window !== 'undefined' && window.dispatchEvent) {
+        window.dispatchEvent(new CustomEvent('apex:credits', { detail: { credits: st.credits } }));
+      }
+    } catch (e) {}
     return st;
   }
   state = load();

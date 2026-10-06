@@ -285,6 +285,12 @@ kbd{font:inherit}
 #hud .side.is-panel-hit .skill{background:linear-gradient(90deg,color-mix(in srgb,var(--hitAcc,#ff8a1e) 20%,#161b20),#0d1013)}
 #hud .side.is-panel-hit .skill::after{border-color:color-mix(in srgb,var(--hitAcc,#ff8a1e) 72%,transparent)}
 #hud .side.is-panel-hit .sk-art{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hitAcc,#ff8a1e) 46%,transparent)}
+#hud .side .skill .sk-art{transition:filter .18s ease}
+#hud .side .skill[data-state="cd"] .sk-art{filter:brightness(.58) saturate(.46)}
+#hud .side .skill[data-state="cd"] .sk-name{opacity:.62}
+#hud .side .skill[data-state="active"]{box-shadow:0 0 0 1px color-mix(in srgb,var(--accA,var(--acc,#ff8a1e)) 58%,transparent),0 0 18px color-mix(in srgb,var(--accA,var(--acc,#ff8a1e)) 26%,transparent)}
+#hud .side .skill[data-state="active"] .sk-art{filter:brightness(1.26) saturate(1.18)}
+#hud .side .skill[data-state="cast"] .sk-art{filter:brightness(1.12) saturate(1.06)}
 .rupture-spectrum{z-index:2;opacity:0;mix-blend-mode:screen;filter:saturate(5) hue-rotate(145deg) brightness(1.35)}
 .rupture-spectrum.red{filter:saturate(7) hue-rotate(300deg) brightness(1.3)}
 .rupture-piece{position:absolute;inset:0;z-index:3;overflow:hidden;pointer-events:none;will-change:transform,opacity;filter:saturate(1.08) contrast(1.06)}

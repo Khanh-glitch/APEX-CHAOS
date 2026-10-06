@@ -548,6 +548,22 @@ function withSfxCounter(fn) {
   gate('L-the P2 press family is published for the P2 body',
     d1.some((e) => e.type === 'P2Press' && e.side === 'p2') && d2.some((e) => e.type === 'P2Press' && e.side === 'p2'));
 
+  // The RIGHT-hand pair (numpad) is the same physical intent as 1/2: the owner
+  // reported "Local chua nhan phim 1 phim 2 ben phai may tinh", so both pairs
+  // must reach the P2 body through the ONE press path.
+  const n1 = press('Numpad1');
+  const n2 = press('Numpad2');
+  gate('L-Numpad1 reaches the P2 body as A1',
+    sides(n1).join() === 'p2' && presses(n1).every((e) => e.slot === 'A1'), { events: n1.map((e) => e.type + '/' + e.side + '/' + e.slot) });
+  gate('L-Numpad2 reaches the P2 body as A2',
+    sides(n2).join() === 'p2' && presses(n2).every((e) => e.slot === 'A2'), { events: n2.map((e) => e.type + '/' + e.side + '/' + e.slot) });
+  gate('L-both 1/2 pairs name their own key on the press',
+    [...presses(d1), ...presses(n1)].map((e) => e.key).join() === 'Digit1,Numpad1',
+    { keys: [...presses(d1), ...presses(n1)].map((e) => e.key) });
+  win.APEX_ARSENAL.state.battleMode = 'BOT';
+  gate('L-the numpad pair is LOCAL-only too',
+    [...press('Numpad1'), ...press('Numpad2')].filter((e) => e.type === 'AbilityPress').length === 0);
+
   // BOT: the same keys must stay dead - the CPU owns P2.
   win.APEX_ARSENAL.state.battleMode = 'BOT';
   const botKeys = [...press('Digit1'), ...press('Digit2')];

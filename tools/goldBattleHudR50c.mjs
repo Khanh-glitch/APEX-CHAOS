@@ -268,6 +268,26 @@ export function adaptGoldBattleHudR50c(input) {
     'panel-wide impact law'
   );
 
+  // ── Owner law (R54): an ability tile must SHOW its own state ──────────────
+  // The HUD already publishes the authoritative state machine per tile
+  // (`data-state` = ready | cast | active | cd) straight from production
+  // cooldown/charge truth, so this is a presentation law with no JS and no new
+  // state: art dims while the slot is cooling, and the tile lifts into its own
+  // accent colour while the ability is ACTIVE. Written with the #hud id so the
+  // layout sections can never outrank it, and in the hero's own accent so the
+  // tile speaks the same colour language as the rest of the panel.
+  once(
+    '#hud .side.is-panel-hit .sk-art{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hitAcc,#ff8a1e) 46%,transparent)}',
+    '#hud .side.is-panel-hit .sk-art{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hitAcc,#ff8a1e) 46%,transparent)}\n' +
+    '#hud .side .skill .sk-art{transition:filter .18s ease}\n' +
+    '#hud .side .skill[data-state="cd"] .sk-art{filter:brightness(.58) saturate(.46)}\n' +
+    '#hud .side .skill[data-state="cd"] .sk-name{opacity:.62}\n' +
+    '#hud .side .skill[data-state="active"]{box-shadow:0 0 0 1px color-mix(in srgb,var(--accA,var(--acc,#ff8a1e)) 58%,transparent),0 0 18px color-mix(in srgb,var(--accA,var(--acc,#ff8a1e)) 26%,transparent)}\n' +
+    '#hud .side .skill[data-state="active"] .sk-art{filter:brightness(1.26) saturate(1.18)}\n' +
+    '#hud .side .skill[data-state="cast"] .sk-art{filter:brightness(1.12) saturate(1.06)}',
+    'ability tile state law'
+  );
+
   once(
     "function disposeRupture(v,token){\n const p=R.ruptures[v];if(p&&token!=null&&p.token!==token)return;",
     "function panelHitWindow(v,accent){\n const root=R.side[v]&&R.side[v].root;if(!root)return;\n root.style.setProperty('--hitAcc',accent||'#ff8a1e');root.classList.add('is-panel-hit');\n clearTimeout(R.hitTimers[v]);\n R.hitTimers[v]=setTimeout(()=>root.classList.remove('is-panel-hit'),RM.matches?120:1120);\n}\nfunction disposeRupture(v,token){\n const p=R.ruptures[v];if(p&&token!=null&&p.token!==token)return;",

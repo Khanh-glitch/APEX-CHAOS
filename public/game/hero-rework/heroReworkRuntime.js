@@ -3581,7 +3581,11 @@
     // BOT mode never reaches this branch: P2 stays CPU-driven there.
     if (!HR.__localP2KeysInstalled && typeof globalScope.addEventListener === 'function') {
       HR.__localP2KeysInstalled = true;
-      const LOCAL_P2_ABILITY_KEYS = { Digit1: 'A1', Digit2: 'A2' };
+      // Owner report "Local chua nhan phim 1 phim 2 ben phai may tinh": the
+      // right-hand pair IS the numpad pair, so BOTH physical 1/2 keys map to the
+      // same slot through the same pressAbility path. Nothing else changes: the
+      // handler still owns P2 only, in LOCAL only, and still drops auto-repeat.
+      const LOCAL_P2_ABILITY_KEYS = { Digit1: 'A1', Digit2: 'A2', Numpad1: 'A1', Numpad2: 'A2' };
       globalScope.addEventListener('keydown', (e) => {
         if (e.repeat) return;
         const slot = LOCAL_P2_ABILITY_KEYS[e.code];

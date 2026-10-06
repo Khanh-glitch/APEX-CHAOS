@@ -268,10 +268,18 @@ ok(!/transitionSound\(|battleTransitionToken/.test(SHELL),
   'no second (superseded) transition authority came back with the rails');
 ok(SHELL.includes('body.battle-transition-active'),
   'the battle reveal owns its transition-active body state');
-ok(/#battleHudHost\.is-transitioning\{clip-path:inset\(0 49\.55% 0 49\.55%\)[^}]*transition:clip-path 430ms/.test(SHELL),
-  'the host compositor sliver opens over the same authored 430 ms beat');
-ok(/#battleHudHost\.is-transitioning\.is-reveal\{clip-path:inset\(0\)/.test(SHELL),
-  'the reveal opens the compositor, not a generic fade');
+// R54 owner law: ONE reveal per beat. The compositor is full-bleed behind the
+// rails so the rails' opening is the only thing the player sees; the superseded
+// centre-out clip grew a black rectangle out of the middle of the screen.
+ok(/#battleHudHost\.is-preloading\{clip-path:none;transform:none;pointer-events:none\}/.test(SHELL) &&
+  /#battleHudHost\.is-transitioning\{clip-path:none;transform:none;pointer-events:none\}/.test(SHELL),
+  'the host compositor is full-bleed behind the rails, never hidden behind a clip');
+ok(!/clip-path:inset\(0 50% 0 50%\)/.test(SHELL) && !/#battleHudHost[^}]*transition:clip-path/.test(SHELL),
+  'the superseded centre-expanding black under-layer is gone');
+ok(/#battleHudHost\.is-transitioning\.is-reveal\{clip-path:none;transform:none\}/.test(SHELL),
+  'the reveal beat is the rails opening over a live stage, not a compositor fade');
+ok(/#battleHudHost\{[^}]*will-change:auto\}/.test(SHELL),
+  'the compositor no longer promotes a clip layer it never plays');
 ok(/is-horizontal/.test(SHELL), 'is-horizontal variant preserved');
 ok(/prefers-reduced-motion/.test(SHELL), 'prefers-reduced-motion handling preserved');
 ok(/reduced\?Math\.min\(ms,24\):ms/.test(SHELL),

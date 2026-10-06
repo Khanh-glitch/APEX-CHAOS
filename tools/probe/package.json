@@ -1,0 +1,10 @@
+{
+  "name": "apex-chaos-probe",
+  "private": true,
+  "type": "module",
+  "description": "Headless probe harness (chromium + CDP) for the pruned dist preview. Local dev tool only; never part of the product build.",
+  "dependencies": {
+    "@sparticuz/chromium": "^131.0.1",
+    "puppeteer-core": "^23.11.1"
+  }
+}

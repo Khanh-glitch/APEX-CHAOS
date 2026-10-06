@@ -1425,32 +1425,72 @@ function buildShell(hudProductionHtml) {
       find: /  <nav class="routes e-routes" aria-label="Main routes">\n    <button class="route" type="button" aria-label="Fighter Shop">/,
       replace: (
         `  <nav class="routes e-routes" aria-label="Main routes">\n` +
-        `    <button class="route is-locked" type="button" aria-label="Fighter Shop (locked)" disabled><span class="notice"></span>`
+        `    <button class="route is-locked" type="button" aria-label="Fighter Shop (locked)" disabled>`
       ),
     },
     {
       id: 'SHL-S16',
       why: 'locked routes: Upgrade',
       find: /<button class="route" type="button" aria-label="Upgrade">/,
-      replace: '<button class="route is-locked" type="button" aria-label="Upgrade (locked)" disabled><span class="notice"></span>',
+      replace: '<button class="route is-locked" type="button" aria-label="Upgrade (locked)" disabled>',
     },
     {
       id: 'SHL-S17',
       why: 'locked routes: Dictionary',
       find: /<button class="route" type="button" aria-label="Dictionary">/,
-      replace: '<button class="route is-locked" type="button" aria-label="Dictionary (locked)" disabled><span class="notice"></span>',
+      replace: '<button class="route is-locked" type="button" aria-label="Dictionary (locked)" disabled>',
     },
     {
       id: 'SHL-S18',
       why: 'locked routes: Missions (quests)',
       find: /<button class="route" type="button" aria-label="Missions">/,
-      replace: '<button class="route is-locked" type="button" aria-label="Missions (locked)" disabled><span class="notice"></span>',
+      replace: '<button class="route is-locked" type="button" aria-label="Missions (locked)" disabled>',
     },
     {
       id: 'SHL-S19',
       why: 'locked routes: Account',
       find: /<button class="route" type="button" aria-label="Account">/,
-      replace: '<button class="route is-locked" type="button" aria-label="Account (locked)" disabled><span class="notice"></span>',
+      replace: '<button class="route is-locked" type="button" aria-label="Account (locked)" disabled>',
+    },
+    {
+      id: 'SHL-S19a',
+      all: true,
+      why: 'owner law: the bottom route buttons carry no yellow notice dots',
+      // Three declarations exist (base + two responsive overrides); a global
+      // match neutralises them all, so the dot can never come back with a
+      // breakpoint.
+      find: /\.route \.notice\{/g,
+      replace: '.route .notice{display:none!important}\n.route .notice{',
+    },
+    {
+      id: 'SHL-S19b',
+      why: 'owner law: the Home AC readout shows the REAL balance, never a constant',
+      find: /<div class="ac" title="Apex Credits"><span class="acMark">A<\/span><span>350 AC<\/span><\/div>/,
+      replace: '<div class="ac" title="Apex Credits"><span class="acMark">A</span><span data-apex-ac>350 AC</span></div>',
+    },
+    // ── S22: ONE reveal for the battle entry ─────────────────────────────────
+    // Owner report (R54): "a black layer expands from the centre and trails
+    // behind the original transition". The battle compositor is a full-screen
+    // near-black surface (#020304), and the superseded law revealed it with its
+    // own centre-out clip (inset(0 50%) -> inset(0), 430 ms) which ran on top of
+    // the Gold rails' own 430 ms opening: two reveals for one beat, the second
+    // reading as a black rectangle growing out of the middle.
+    // The compositor is now full-bleed the moment it mounts and is simply
+    // COVERED by the two rails (z 10000 over z 9999), so the ONE visible reveal
+    // is the Gold rail transition opening onto an already-live battle stage.
+    // The clip/scale transitions are gone with it, and the host no longer
+    // promotes a 100vw x 100vh clip-path layer for a beat it no longer plays.
+    {
+      id: 'SHL-S22',
+      why: 'the battle compositor is full-bleed behind the rails (no centre-expanding black under-layer)',
+      find: '#battleHudHost.is-preloading{clip-path:inset(0 50% 0 50%);transform:scale(.965);pointer-events:none}\n#battleHudHost.is-transitioning{clip-path:inset(0 49.55% 0 49.55%);transform:scale(.965);pointer-events:none;transition:clip-path 430ms cubic-bezier(.18,.76,.16,1),transform 430ms cubic-bezier(.18,.76,.16,1)}\n#battleHudHost.is-transitioning.is-horizontal{clip-path:inset(49.55% 0 49.55% 0)}\n#battleHudHost.is-transitioning.is-reveal{clip-path:inset(0);transform:scale(1)}',
+      replace: '/* R54: the compositor is full-bleed behind the rails; the rails are the reveal. */\n#battleHudHost.is-preloading{clip-path:none;transform:none;pointer-events:none}\n#battleHudHost.is-transitioning{clip-path:none;transform:none;pointer-events:none}\n#battleHudHost.is-transitioning.is-horizontal{clip-path:none}\n#battleHudHost.is-transitioning.is-reveal{clip-path:none;transform:none}',
+    },
+    {
+      id: 'SHL-S22b',
+      why: 'the compositor no longer animates a clip layer it no longer plays',
+      find: '#battleHudHost{position:fixed;inset:0;z-index:9999;display:none;width:100vw;height:100vh;height:100dvh;overflow:hidden;background:#020304;isolation:isolate;transform-origin:50% 50%;will-change:clip-path,transform}',
+      replace: '#battleHudHost{position:fixed;inset:0;z-index:9999;display:none;width:100vw;height:100vh;height:100dvh;overflow:hidden;background:#020304;isolation:isolate;transform-origin:50% 50%;will-change:auto}',
     },
     {
       id: 'SHL-S20',
