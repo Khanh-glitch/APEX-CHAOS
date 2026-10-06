@@ -198,6 +198,34 @@
       policyFor: (hero, cue) => { const s = specOf(hero, cue); return s ? s.policy : null; },
       play,
       dispatch,
+      // OWNER LAW (R56): a cue's FIRST trigger in a match must not pay for its
+      // own fetch+decode. Elements used to be constructed lazily inside
+      // elementFor(), so whichever ability happened to fire first was the one
+      // that sounded late (the owner's "sometimes right, sometimes late").
+      // Warming is scheduling only: the SAME cache, the SAME elements, the SAME
+      // volume policy - nothing new is played, and an already-cached cue is a
+      // no-op.
+      warm: (heroIds) => {
+        const requested = heroIds == null
+          ? HEROES.slice()
+          : (Array.isArray(heroIds) ? heroIds : [heroIds]);
+        const warmed = [];
+        for (const raw of requested) {
+          // Hero ids in this authority are lower-case ('crystala','magnet',
+          // 'frost','mirror'); accept either case from callers.
+          const hero = String(raw == null ? '' : raw).toLowerCase();
+          const cues = CUES[hero];
+          if (!cues) continue;
+          for (const cue of Object.keys(cues)) {
+            const el = elementFor(hero, cue);
+            if (!el) continue;
+            el.preload = 'auto';
+            try { if (typeof el.load === 'function') el.load(); } catch (_) {}
+            warmed.push(keyOf(hero, cue));
+          }
+        }
+        return warmed;
+      },
       // Separate hero-SFX level/mute (MUSIC mute and UI-SFX mute are untouched).
       setVolume: (v) => {
         volume = Math.max(0, Math.min(1, Number(v)));

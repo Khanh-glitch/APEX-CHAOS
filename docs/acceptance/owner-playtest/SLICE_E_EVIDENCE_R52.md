@@ -366,3 +366,44 @@ nút skill P2 cho LOCAL; khoảng trống panel trên điện thoại; nhạc n�
 transition 2 màn hình khép màu riêng từng bên (nếu không tìm được thì dùng transition chung);
 Frost ở pick (mirror ngang + tụt xuống + 1.5×); độ mượt crit/heavy; giảm thao tác sau trận;
 visual nút Lucky Draw (sáng nhẹ, giữ chữ); timing sfx trong trận; phạm vi rung/flash toàn màn hình.
+
+## §E8 — R56: cửa đóng trước, luồng sau trận gọn, SFX không trễ, đo hiệu năng
+
+### 1. pick→battle: cửa ĐÓNG trước, tài nguyên tải NẤP SAU mí cửa (mục 3)
+Trước đây `launchBattleHud` chạy `phase-lock` → `prepareSurface` (tải 25–38 s) → mới clamp/seam:
+ray cửa đứng yên ở pose `lock` suốt thời gian tải — đúng cảm giác "màn pick đứng im, không có gì xảy ra".
+R56 đảo lại (`tools/goldShellR50k.mjs`): `lock` → 180 ms → `clamp` → 240 ms → **`seam`** → tải/mount/config/settle
+→ live → `open` → 430 ms → `handoff`. Đo bằng `tools/probe/entrySeq.mjs magnet`:
+`[[60,phase-lock],[252,phase-clamp],[488,phase-seam],[38846,phase-open],[39299,phase-handoff],[39299,HUD-OPEN]]`
+⇒ cửa khép trong 0.49 s, mí cửa giữ trong lúc tài nguyên tải (không còn pose tĩnh).
+
+### 2. Luồng sau trận: thoát/vào lại chỉ còn MỘT thao tác (mục 7)
+Đo `tools/probe/flow.mjs magnet`:
+- Esc giữa trận → về pick: **92 ms** (HUD là mount cùng-document trong `#battleHudHost`, không phải iframe).
+- Màn pick trở về ở trạng thái READY: cờ `match-ready` đã xoá, nút `LOCK IN›` bật
+  (trước: phải BACK → chọn lại → LOCK IN mới vào lại được).
+- Vào lại trận đúng **1 cú bấm**: 3.6 s khi dist ấm (lượt đầu nguội 36.5 s).
+- K.O. thật: bridge tự đưa về pick sau **3.9 s**, không cần chạm (RESULT_HOLD_MS 2600 + teardown).
+
+### 3. SFX hero hết trễ ở lần kích hoạt đầu tiên (mục 10)
+Gốc: `elementFor()` tạo `new Audio(url)` ngay lúc phát ⇒ cue nào phát trước thì tự trả giá tải + decode giữa trận.
+Sửa: `apexHeroSfx.warm([...])` (dùng lại đúng cache/element, KHÔNG phát gì) + bridge gọi
+`warmMatchHeroAudio(p1,p2)` ngay khi trận live, trước input đầu tiên; nhánh ROBOT dùng `loadRobotAudio()`.
+Đo: `apexHeroSfx.state().cached` sau khi vào trận = **3/3 cue của magnet** (trước khi sửa: **0**).
+
+### 4. Crit/heavy: nút cổ chai KHÔNG phải JS của game (mục 4)
+- `tools/probe/perf.mjs` (burst `APEX_GOLD_HUD.hit/hitStorm` mỗi 260 ms): IDLE p50 450 ms vs FX p50 564 ms;
+  heavy 14 / crit 7, không lỗi.
+- `tools/probe/profile.mjs` (bọc `window.update`, `window.draw`, `Fighter.draw`): 2.5 s tích luỹ
+  `{update: 3 ms, heroDraw:ROBOT: 6 ms, draw: 9 ms}` trong khi trang chỉ vẽ ~5 frame/1.5 s.
+- ⇒ Trong sandbox này giới hạn là compositor/raster (swiftshader), không phải JS vẽ game. Không sửa code vẽ
+  dựa trên số này và **không giảm chất lượng visual**.
+
+### 5. Trả luôn nợ gate: runtime revision lock
+`test:runtime-revision` đã đỏ sẵn ở tip trước (3 runtime đổi mà chưa relock: `productAssetRuntime`,
+`arsenalMetaRuntime`, `heroReworkRuntime`). Đã relock (`UPDATE_LOCK=1`, 39 runtime) và commit lock trong checkpoint này.
+
+### Còn lại của đợt này
+Xác nhận bằng mắt mục 1 (plate súng điện thoại), 2 (bỏ lớp nền đen), 6 (bỏ chấm vàng), 8 (panel BOT = LOCAL),
+9 (trạng thái icon skill); đo lại hiệu năng trên máy thật; nhạc nền preload cùng transition; Frost ở pick;
+tỉ lệ Magnet; audit toàn game (mục 12) + tối ưu khu A1/A2/PASSIVE ở pick.

@@ -808,6 +808,28 @@
       tick();
     });
   }
+  // One warm entry point for the two hero-SFX owners. Unknown ids are ignored
+  // by the authorities themselves, so this can pass shell keys and production
+  // ids without a second mapping table.
+  function warmMatchHeroAudio(...keys) {
+    const ids = [];
+    for (const raw of keys) {
+      const key = String(raw || '').toLowerCase();
+      if (!key) continue;
+      ids.push(key);
+      const production = PRODUCTION_ID_BY_SHELL_KEY[key];
+      if (production) ids.push(production);
+    }
+    // The ONE Core-Six hero-SFX authority is published as `apexHeroSfx` on the
+    // window it installs into; there is no second alias to guess at.
+    try { window.apexHeroSfx?.warm?.(ids); } catch (_) {}
+    try {
+      if (ids.some((id) => id === 'robot' || id === 'newbot')) {
+        window.APEX_ROBOT_PRESENTATION?.loadRobotAudio?.();
+      }
+    } catch (_) {}
+  }
+
   BRIDGE.onBattleLive = async function onBattleLive(pick) {
     if (battleLiveRunning) return false;
     const sessionToken = ++battleSessionToken;
@@ -902,6 +924,12 @@
       const first = projection();
       if (typeof seam.applyState === 'function') seam.applyState(first.state);
       if (typeof seam.syncFighters === 'function') seam.syncFighters(first.fighters);
+      // R56 OWNER LAW — a hero's FIRST cue in a match must not pay for its own
+      // fetch+decode. Warm both hero-SFX authorities for exactly the fighters in
+      // this match, once the engine is real and before the first input can
+      // happen, so no ability sounds late because it happened to be the first
+      // one fired. Warming only creates/loads elements: no cue is played here.
+      warmMatchHeroAudio(p1Shell, p2Shell);
       startPump();
       return true;
     } catch (error) {

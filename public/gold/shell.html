@@ -1709,12 +1709,21 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     battleTransition.setAttribute('aria-hidden','false');
     document.body.classList.add('battle-transition-active');
     try{
-      const heroIds=[p1Hero,battleMode==='bot'?botHeroId():p2Hero].filter(Boolean);
-      if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('battle',{heroIds});
-      if(token!==battleEntryToken)return;
+      // R56 OWNER LAW — the door CLOSES FIRST, the load hides behind it.
+      // The authored close (lock -> clamp -> seam, ~420 ms) plays the moment
+      // LOCK IN lands, then the seam HOLDS with its own life while combat
+      // assets download and the runtime boots. Measured before this: the rails
+      // parked in the static phase-lock pose for the whole 25 s magnet/robot
+      // prepare, which is exactly the owner's "the pick screen just freezes
+      // while nothing else happens" report. Assembly order is unchanged -
+      // prepare -> mount -> config -> settle -> live-ready - only WHEN it runs.
       if(!await battleBeat(180,token))return;
       battleTransition.classList.add('phase-clamp');
       if(!await battleBeat(240,token))return;
+      battleTransition.classList.add('phase-seam');
+      const heroIds=[p1Hero,battleMode==='bot'?botHeroId():p2Hero].filter(Boolean);
+      if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('battle',{heroIds});
+      if(token!==battleEntryToken)return;
       battleHudHost.setAttribute('aria-hidden','false');
       battleHudHost.classList.add('is-preloading');
       await waitBattleHudMount();
@@ -1725,8 +1734,6 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       freezeParentRuntime();
       battleHudHost.classList.remove('is-preloading');
       battleHudHost.classList.add('is-transitioning');
-      if(!await battleBeat(240,token))return;
-      battleTransition.classList.add('phase-seam');
       // OWNER READY LAW: production must be live with the first truth frame
       // applied BEFORE the compositor is revealed. A failed start rolls the
       // entire entry back — donor defaults are never shown to the player.
@@ -1776,6 +1783,18 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     battleHudConfig=null;
     battleHudReady=false;
     screen='fighter';
+    // R56 FLOW LAW — a finished match lands on a pick screen that is READY for
+    // the next one. The match-ready lock used to survive the exit: the roster
+    // stayed dimmed and every rematch cost BACK -> re-pick -> LOCK IN. Clearing
+    // it here keeps the chosen fighter and makes LOCK IN (or one roster tap)
+    // the only step left, which is the owner's "quá nhiều thao tác tuần tự".
+    try{
+      stage.classList.remove('match-ready','lock-impact');
+      if(battleMode==='bot')p1Locked=false;
+      else{p2Locked=false;activePlayer=p1Locked?'p2':'p1'}
+      handoffBanner.textContent=battleMode==='bot'?'BATTLE HANDOFF READY':'BOTH FIGHTERS LOCKED';
+      renderFighter();
+    }catch(_){}
     APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter');
     focusScreen('fighter');
   }
