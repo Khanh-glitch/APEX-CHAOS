@@ -102,7 +102,11 @@ check('Doorless steps verify the destination panel, then settle the stage',
 
 check('activation is separate from preparation', bridge.includes('BRIDGE.prepareSurface = async function prepareSurface') && bridge.includes('BRIDGE.onSurface = function onSurface'));
 check('Battle preparation awaits arsenalProduct', bridge.includes("ensureDeferredRuntimes('arsenalProduct').then"));
-check('Battle asset set is selected-hero scoped', assets.includes("return heroUrls(context.heroIds, ['battleAvatar', 'skillIcons'])"));
+// R52: the battle surface is selected-hero scoped for BOTH the hero art and the
+// arena rig (the rig is what makes a hero body render at all).
+check('Battle asset set is selected-hero scoped',
+  assets.includes("heroUrls(context.heroIds, ['battleAvatar', 'skillIcons'])")
+  && /rigUrls\(context\.heroIds/.test(assets));
 check('empty hero selection never expands to all', assets.includes("heroIds === null") && assets.includes("Array.isArray(heroIds) ? heroIds.filter(Boolean) : []"));
 
 check('generator chains R50K shell adapter', build.includes("import { adaptGoldShellR50k }") && build.includes('adaptGoldShellR50k(out)'));

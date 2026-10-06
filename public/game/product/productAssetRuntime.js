@@ -175,6 +175,26 @@
     } catch (_) { return {}; }
   }
 
+  // In-battle hero rigs (arena body parts). The hero runtimes compose these
+  // URLs at draw time, so they are NOT visible to asset scanners; the generated
+  // ONE authority (window.APEX_HERO_RIGS, published by the app from
+  // src/game/goldAssetManifest.js) both keeps them in the shipping dist and
+  // lets this runtime preload them with the match instead of the first frame.
+  function rigUrls(heroIds, roles) {
+    if (!roles || !roles.has('rig')) return [];
+    const table = window.APEX_HERO_RIGS;
+    if (!table || typeof table !== 'object') return [];
+    const ids = heroIds === null
+      ? Object.keys(table)
+      : (Array.isArray(heroIds) ? heroIds.filter(Boolean) : []);
+    const out = [];
+    for (const id of ids) {
+      const urls = table[String(id || '').toLowerCase()] || table[id];
+      if (Array.isArray(urls)) out.push(...urls.filter(Boolean));
+    }
+    return out;
+  }
+
   function heroUrls(heroIds, roles) {
     const table = roster();
     // Explicit contract: null means "all visible roster"; an omitted/empty
@@ -201,16 +221,19 @@
     if (id === 'home') return STATIC.home.slice();
     if (id === 'mode') return STATIC.mode.slice();
     if (id === 'fighter') {
-      // Roster covers are intentionally all-visible; the large hero art is
-      // only the currently relevant side(s).
+      // Roster covers are intentionally all-visible; the large hero art and the
+      // in-battle rig are only the currently relevant side(s) — the pick screen
+      // is where the match rig gets its head start.
       const covers = heroUrls(null, ['portrait']);
       const focused = heroUrls(context.heroIds, ['art']);
-      return [...covers, ...focused];
+      return [...covers, ...focused, ...rigUrls(context.heroIds, new Set(['rig']))];
     }
     if (id === 'fighter-hero') return heroUrls(context.heroIds, ['portrait', 'art']);
     if (id === 'battle' || id === 'transition') {
-      // Match assets are strictly selected-combatant scoped.
-      return heroUrls(context.heroIds, ['battleAvatar', 'skillIcons']);
+      // Match assets are strictly selected-combatant scoped, and they include
+      // the arena body rig: a fighter whose rig is not ready must never paint a
+      // partial body (owner report: MAGNET / FROST).
+      return [...heroUrls(context.heroIds, ['battleAvatar', 'skillIcons']), ...rigUrls(context.heroIds, new Set(['rig']))];
     }
     if (id === 'lucky') return STATIC.lucky.slice();
     return [];

@@ -23,7 +23,14 @@ check('Home Core is explicit', assetRuntime.includes("home: Object.freeze([") &&
 check('hero preload all-vs-selected is explicit', assetRuntime.includes("heroIds === null") && assetRuntime.includes("Array.isArray(heroIds) ? heroIds.filter(Boolean) : []"));
 check('Fighter covers may preload all visible', assetRuntime.includes("const covers = heroUrls(null, ['portrait'])"));
 check('Fighter large art is selected-only', assetRuntime.includes("const focused = heroUrls(context.heroIds, ['art'])"));
-check('Battle hero art is selected-only', assetRuntime.includes("return heroUrls(context.heroIds, ['battleAvatar', 'skillIcons'])"));
+// R52 (owner: MAGNET had no battle visuals, FROST loaded late): the battle
+// surface preloads the selected combatants' arena rig as well, and it stays
+// strictly selected-only — the rig table is never expanded to all heroes.
+check('Battle hero art is selected-only',
+  assetRuntime.includes("heroUrls(context.heroIds, ['battleAvatar', 'skillIcons'])")
+  && /rigUrls\(context\.heroIds/.test(assetRuntime));
+check('Battle rig is selected-only (never an all-hero preload)',
+  !/rigUrls\(null/.test(assetRuntime));
 
 check('Mode art has no eager src', !shell.includes('<img src="assets/gold/mode-solo.webp"') && !shell.includes('<img src="assets/gold/mode-local.webp"'));
 check('Mode art is data-src deferred', shell.includes('data-apex-src="assets/gold/mode-solo.webp"') && shell.includes('data-apex-src="assets/gold/mode-local.webp"'));

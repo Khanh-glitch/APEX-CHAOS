@@ -76,6 +76,16 @@ const AUTHORITY = {
   mechanicalDoorV4RuntimeSha256: '6d338906e477c13fa42cd6727be7c41bdd0c5b66e12fc140e3836c7858ce0dd2',
 };
 
+function walkFiles(dir, prefix = '') {
+  const out = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) out.push(...walkFiles(path.join(dir, entry.name), rel));
+    else out.push(rel);
+  }
+  return out;
+}
+
 function verifyAuthority() {
   const hud = read(path.join(GOLD_DIR, 'donors', 'battle-hud', 'index.html'));
   if (sha256(hud) !== AUTHORITY.battleHudDecodedSha256) {
@@ -2149,6 +2159,38 @@ function main() {
   };
   outputs.set('manifest.json', Buffer.from(buildManifest(manifestFiles), 'utf8'));
 
+  // ── in-battle hero rig intent (owner report: MAGNET had no visuals at all) ──
+  // The arena bodies that draw from a PNG rig compose their URLs at runtime
+  // (e.g. `/assets/magnet_v1/gold/${id}-${tag}-base.png`), so a literal-path
+  // scanner cannot see them and pruneShippingDist deleted the whole rig from
+  // dist — Magnet rendered NOTHING (fighter + skills). The rig intent is
+  // declared here, ONCE, and emitted into src/game/goldAssetManifest.js so the
+  // audit classifies every rig file SHIPPING and the product asset runtime can
+  // preload it with the match instead of loading it during the first frames
+  // (owner report: FROST loads slower than the others).
+  const HERO_BATTLE_RIG_DIRS = {
+    newbot: ['/assets/hero-rework/robot-final'],
+    crystala: ['/assets/hero-rework/crystala-curated'],
+    frost: ['/assets/hero-rework/frost-v1'],
+    hunter: ['/assets/hero-rework/hunter-v10'],
+    magnet: ['/assets/magnet_v1/gold'],
+    mirror: ['/assets/hero-rework/mirror-curated'],
+  };
+  const RIG_IMAGE = /[.](png|webp|jpg|jpeg|svg)$/i;
+  const heroBattleRigs = {};
+  for (const [hero, dirs] of Object.entries(HERO_BATTLE_RIG_DIRS)) {
+    const urls = [];
+    for (const dir of dirs) {
+      const abs = path.join(REPO, 'public', dir.replace(/^\//, ''));
+      if (!fs.existsSync(abs)) continue;
+      for (const rel of walkFiles(abs)) {
+        const url = dir.replace(/\/$/, '') + '/' + rel;
+        if (RIG_IMAGE.test(url)) urls.push(url);
+      }
+    }
+    urls.sort();
+    heroBattleRigs[hero] = urls;
+  }
   // Shipping classification manifest (written into src/, not public/gold).
   const assetLines = [
     '// ---------------------------------------------------------------------------',
@@ -2164,7 +2206,22 @@ function main() {
     assetLines.push(`  '/gold/${rel}',`);
   }
   assetLines.push("  '/assets/audio/forward_drive_theme.ogg',");
+  for (const url of Object.values(heroBattleRigs).flat()) assetLines.push(`  '${url}',`);
   assetLines.push(']);');
+  assetLines.push('');
+  assetLines.push('// In-battle hero rig intent: the arena body parts each hero runtime loads');
+  assetLines.push('// (composed URLs included). Exported so the product asset runtime can');
+  assetLines.push('// preload them with the match and tools/assetAudit keeps them SHIPPING.');
+  assetLines.push('export const HERO_BATTLE_RIGS = Object.freeze({');
+  for (const hero of Object.keys(heroBattleRigs).sort()) {
+    assetLines.push(`  ${hero}: Object.freeze([`);
+    for (const url of heroBattleRigs[hero]) assetLines.push(`    '${url}',`);
+    assetLines.push('  ]),');
+  }
+  assetLines.push('});');
+  assetLines.push('export const HERO_BATTLE_RIG_ASSETS = Object.freeze(');
+  assetLines.push('  Object.values(HERO_BATTLE_RIGS).flat(),');
+  assetLines.push(');');
   assetLines.push('');
   // Cache identity: the Gold shell / Lucky Draw / battle HUD URLs carry the
   // runtime revision so a prior Gold cutover can never be served from a stale

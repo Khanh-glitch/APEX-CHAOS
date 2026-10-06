@@ -15,7 +15,7 @@ import {
   markBootPhase,
   markLoaderHidden,
 } from './game/performanceMetrics.js';
-import { GOLD_SHELL_URL } from './game/goldAssetManifest.js';
+import { GOLD_SHELL_URL, HERO_BATTLE_RIGS, HERO_BATTLE_RIG_ASSETS } from './game/goldAssetManifest.js';
 import { installSceneTransitionCoordinator } from './game/sceneTransitionCoordinator.js';
 
 const once = { loaded: false };
@@ -187,6 +187,20 @@ export default function App() {
   // Product music lifecycle is owned by productMusicAuthority. React keeps
   // only the single persistent element ref for diagnostics/fallback cleanup.
   const [gameReady, setGameReady] = useState(false);
+
+  useEffect(() => {
+    // In-battle hero rig intent (ONE authority, generated): the product asset
+    // runtime preloads these with the match so a hero body never loads during
+    // the first visible frames (owner report: MAGNET showed nothing at all,
+    // FROST loaded later than the others). Published read-only for the classic
+    // product runtimes, which cannot import the bundle.
+    window.APEX_HERO_RIGS = HERO_BATTLE_RIGS;
+    window.APEX_HERO_RIG_ASSETS = HERO_BATTLE_RIG_ASSETS;
+    return () => {
+      if (window.APEX_HERO_RIGS === HERO_BATTLE_RIGS) delete window.APEX_HERO_RIGS;
+      if (window.APEX_HERO_RIG_ASSETS === HERO_BATTLE_RIG_ASSETS) delete window.APEX_HERO_RIG_ASSETS;
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = document.getElementById('apex-scene-transition');
