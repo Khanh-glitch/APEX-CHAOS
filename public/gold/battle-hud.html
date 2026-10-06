@@ -629,7 +629,8 @@ kbd{font:inherit}
   seam.setLive=function setLive(live){S.paused=!live;};
 
   // Owner input law drives the canonical key hints: P1 J=A1/K=A2, Local 2P
-  // Digit1/Digit2, BOT mode exposes P1 controls only (P2 is real CPU).
+  // Numpad1/Numpad2 (right-hand pair only; the top-row 1/2 pair is inert),
+  // BOT mode exposes P1 controls only (P2 is real CPU).
   function applyKeyLabels(i,labels){
     const u=R.side[i]&&R.side[i].skills;if(!u)return;
     for(let k=0;k<2&&k<u.length;k++){
@@ -1000,11 +1001,12 @@ addEventListener('resize',applyViewport);
 /* ================= RENDER (state -> UI) ================= */
 function renderStatic(){
  const desk=S.viewport.layout==='desk';
- // Owner input law (production truth): P1 J/K, Local P2 Digit1/Digit2,
- // BOT P2 = CPU. No manual swap command exists in production, so no
- // swap key is ever advertised here.
+ // Owner input law (production truth, 2026-10-06): P1 J/K, Local P2 =
+ // the RIGHT-HAND NUMPAD pair only (Numpad1/Numpad2) — the top-row 1/2
+ // pair must not cast, so the hint names NUM. BOT P2 = CPU. No manual
+ // swap command exists in production, so no swap key is advertised.
  R.side[0].ctrl.textContent=desk?'LOCAL · J K':'LOCAL · TAP';
- R.side[1].ctrl.textContent=S.mode==='1p'?'CPU':(desk?'LOCAL · 1 2':'LOCAL · TAP');
+ R.side[1].ctrl.textContent=S.mode==='1p'?'CPU':(desk?'LOCAL · NUM 1 2':'LOCAL · TAP');
  R.side.forEach((s,i)=>s.skills.forEach((u,k)=>{u.slot.textContent=(S.mode==='1p'&&i===1)?'ENEMY':'ABILITY '+(k+1);u.el.setAttribute('aria-disabled',S.mode==='1p'&&i===1?'true':'false');}));
 }
 function renderRival(viewer){

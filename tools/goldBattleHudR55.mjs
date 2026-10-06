@@ -80,8 +80,8 @@ export function adaptGoldBattleHudR55(input) {
     'phone identity hint'
   );
   once(
-    " R.side[1].ctrl.textContent=S.mode==='1p'?'CPU · THREAT':(desk?'LOCAL · 1 2':'LOCAL · TOUCH');",
-    " R.side[1].ctrl.textContent=S.mode==='1p'?'CPU':(desk?'LOCAL · 1 2':'LOCAL · TAP');",
+    " R.side[1].ctrl.textContent=S.mode==='1p'?'CPU · THREAT':(desk?'LOCAL · NUM 1 2':'LOCAL · TOUCH');",
+    " R.side[1].ctrl.textContent=S.mode==='1p'?'CPU':(desk?'LOCAL · NUM 1 2':'LOCAL · TAP');",
     'opponent identity hint'
   );
 

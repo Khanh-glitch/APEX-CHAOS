@@ -495,13 +495,15 @@ function withSfxCounter(fn) {
 // BOTH HUMAN KEYBOARDS - one press, one body (owner report: "J/K kích cả hai
 // bên" and "Local 1/2 không kích")
 //
-// Measured truth on the shipping handler: LOCAL routes J/K to the P1 body and
-// Digit1/Digit2 to the P2 body through the ONE `HR.pressAbility` executor, and
-// BOT correctly leaves P2 to the CPU. So the keyboard path itself is sound -
-// what these gates pin is that a single press can never fan out to both sides
-// and that the P2 keys keep reaching the P2 body (so a future refactor of the
-// LOCAL P2 handler, or of the pickup/arming economy that feeds it, cannot
-// silently kill the second player's abilities again).
+// Measured truth on the shipping handler (owner law 2026-10-06): LOCAL routes
+// J/K to the P1 body and the RIGHT-HAND NUMPAD pair Numpad1/Numpad2 to the P2
+// body through the ONE `HR.pressAbility` executor, while the top-row
+// Digit1/Digit2 pair is deliberately INERT - the owner corrected the mapping
+// ("hien tai ban dang nguoc lai la nut 1 2 dung duoc lai la nut 1 2 nam o hang
+// tren laptop"). BOT correctly leaves P2 to the CPU. What these gates pin is
+// that a single press can never fan out to both sides, that the numpad pair
+// keeps reaching the P2 body, and that no top-row digit can ever cast, so a
+// future refactor of the LOCAL P2 handler cannot silently change the key law.
 // =============================================================================
 {
   const m = Q.start('ROBOT', 'HUNTER', 3201);
@@ -526,6 +528,8 @@ function withSfxCounter(fn) {
   win.APEX_ARSENAL.state.battleMode = 'LOCAL';
   const j = press('KeyJ');
   const k = press('KeyK');
+  const n1 = press('Numpad1');
+  const n2 = press('Numpad2');
   const d1 = press('Digit1');
   const d2 = press('Digit2');
 
@@ -533,46 +537,47 @@ function withSfxCounter(fn) {
     sides(j).join() === 'p1' && presses(j).every((e) => e.slot === 'A1'), { events: j.map((e) => e.type + '/' + e.side + '/' + e.slot) });
   gate('L-KeyK is routed to the P1 body',
     sides(k).join() === 'p1' && presses(k).every((e) => e.slot === 'A2'), { events: k.map((e) => e.type + '/' + e.side + '/' + e.slot) });
-  gate('L-Digit1 is routed to the P2 body',
-    sides(d1).join() === 'p2' && presses(d1).every((e) => e.slot === 'A1'), { events: d1.map((e) => e.type + '/' + e.side + '/' + e.slot) });
-  gate('L-Digit2 is routed to the P2 body',
-    sides(d2).join() === 'p2' && presses(d2).every((e) => e.slot === 'A2'), { events: d2.map((e) => e.type + '/' + e.side + '/' + e.slot) });
-  gate('L-one press never fires both sides',
-    [j, k, d1, d2].every((ev) => sides(ev).length === 1),
-    { sides: [j, k, d1, d2].map((ev) => sides(ev).join('+') || '-') });
-  gate('L-the key that asked for the cast is recorded on the press',
-    [...presses(d1), ...presses(d2)].map((e) => e.key).join() === 'Digit1,Digit2',
-    { keys: [...presses(d1), ...presses(d2)].map((e) => e.key) });
-  gate('L-every castpress is attributed to keyboard input',
-    [...presses(j), ...presses(k), ...presses(d1), ...presses(d2)].every((e) => e.source === 'keyboard'));
-  gate('L-the P2 press family is published for the P2 body',
-    d1.some((e) => e.type === 'P2Press' && e.side === 'p2') && d2.some((e) => e.type === 'P2Press' && e.side === 'p2'));
-
-  // The RIGHT-hand pair (numpad) is the same physical intent as 1/2: the owner
-  // reported "Local chua nhan phim 1 phim 2 ben phai may tinh", so both pairs
-  // must reach the P2 body through the ONE press path.
-  const n1 = press('Numpad1');
-  const n2 = press('Numpad2');
-  gate('L-Numpad1 reaches the P2 body as A1',
+  gate('L-Numpad1 (right-hand pair) is routed to the P2 body as A1',
     sides(n1).join() === 'p2' && presses(n1).every((e) => e.slot === 'A1'), { events: n1.map((e) => e.type + '/' + e.side + '/' + e.slot) });
-  gate('L-Numpad2 reaches the P2 body as A2',
+  gate('L-Numpad2 (right-hand pair) is routed to the P2 body as A2',
     sides(n2).join() === 'p2' && presses(n2).every((e) => e.slot === 'A2'), { events: n2.map((e) => e.type + '/' + e.side + '/' + e.slot) });
-  gate('L-both 1/2 pairs name their own key on the press',
-    [...presses(d1), ...presses(n1)].map((e) => e.key).join() === 'Digit1,Numpad1',
-    { keys: [...presses(d1), ...presses(n1)].map((e) => e.key) });
+  gate('L-top-row Digit1 never casts (owner correction: the right-hand pair only)',
+    presses(d1).length === 0, { events: d1.slice(0, 4).map((e) => e.type + '/' + e.side + '/' + e.slot) });
+  gate('L-top-row Digit2 never casts (owner correction: the right-hand pair only)',
+    presses(d2).length === 0, { events: d2.slice(0, 4).map((e) => e.type + '/' + e.side + '/' + e.slot) });
+  gate('L-one press never fires both sides',
+    [j, k, n1, n2].every((ev) => sides(ev).length === 1)
+    && [d1, d2].every((ev) => sides(ev).length === 0),
+    { sides: [j, k, n1, n2, d1, d2].map((ev) => sides(ev).join('+') || '-') });
+  gate('L-the key that asked for the cast is recorded on the press',
+    [...presses(n1), ...presses(n2)].map((e) => e.key).join() === 'Numpad1,Numpad2',
+    { keys: [...presses(n1), ...presses(n2)].map((e) => e.key) });
+  gate('L-every castpress is attributed to keyboard input',
+    [...presses(j), ...presses(k), ...presses(n1), ...presses(n2)].every((e) => e.source === 'keyboard'));
+  gate('L-the P2 press family is published for the P2 body',
+    n1.some((e) => e.type === 'P2Press' && e.side === 'p2') && n2.some((e) => e.type === 'P2Press' && e.side === 'p2'));
+
+  // The physical distinction is e.code: BOTH pairs report key '1'/'2', so the
+  // handler must map codes, not characters. This gate is the whole correction
+  // in one line - the numpad pair casts, the identical top-row characters do
+  // not - and it is why the fix still works with NumLock off.
+  gate('L-numpad keys cast while the same characters on the top row do not',
+    presses(n1).length === 1 && presses(n2).length === 1
+    && presses(d1).length === 0 && presses(d2).length === 0,
+    { numpad: [presses(n1).length, presses(n2).length], topRow: [presses(d1).length, presses(d2).length] });
   win.APEX_ARSENAL.state.battleMode = 'BOT';
   gate('L-the numpad pair is LOCAL-only too',
     [...press('Numpad1'), ...press('Numpad2')].filter((e) => e.type === 'AbilityPress').length === 0);
 
   // BOT: the same keys must stay dead - the CPU owns P2.
   win.APEX_ARSENAL.state.battleMode = 'BOT';
-  const botKeys = [...press('Digit1'), ...press('Digit2')];
+  const botKeys = [...press('Numpad1'), ...press('Numpad2'), ...press('Digit1'), ...press('Digit2')];
   gate('L-BOT mode keeps the CPU on P2 (no human cast)', presses(botKeys).length === 0,
     { events: botKeys.slice(0, 4).map((e) => e.type) });
 
   // Keyboard hygiene: auto-repeat never re-casts.
   win.APEX_ARSENAL.state.battleMode = 'LOCAL';
-  const repeats = [...press('Digit1', { repeat: true }), ...press('KeyJ', { repeat: true })];
+  const repeats = [...press('Numpad1', { repeat: true }), ...press('KeyJ', { repeat: true })];
   gate('L-auto-repeat never re-casts', presses(repeats).length === 0,
     { events: repeats.slice(0, 4).map((e) => e.type) });
 }

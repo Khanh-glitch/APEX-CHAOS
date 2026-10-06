@@ -608,8 +608,9 @@ async function main() {
   win.eval(`(() => {
     window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'j', code: 'KeyJ', bubbles: true, cancelable: true }));
     window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'k', code: 'KeyK', bubbles: true, cancelable: true }));
-    window.dispatchEvent(new window.KeyboardEvent('keydown', { key: '1', code: 'Digit1', bubbles: true, cancelable: true }));
-    window.dispatchEvent(new window.KeyboardEvent('keydown', { key: '2', code: 'Digit2', bubbles: true, cancelable: true }));
+    // Owner law 2026-10-06: the Local P2 pair IS the right-hand numpad pair.
+    window.dispatchEvent(new window.KeyboardEvent('keydown', { key: '1', code: 'Numpad1', bubbles: true, cancelable: true }));
+    window.dispatchEvent(new window.KeyboardEvent('keydown', { key: '2', code: 'Numpad2', bubbles: true, cancelable: true }));
   })()`);
   const p1Keys = abilityCalls.filter((c) => c.name === spawned.p1Name || c.heroId);
   const p1J = abilityCalls.some((c) => c.slot === 'A1');
@@ -789,18 +790,29 @@ async function main() {
   gate('law2-cast-response-cannot-become-cooldown-authority', castAuthority.after.cooldownLeft === castAuthority.before.cooldownLeft
     && castAuthority.after.charges === castAuthority.before.charges, castAuthority);
 
-  // ── LAW 3 (Local half): Local P2 keys are 1/2 and reach production ────────
-  const localRun = win.eval(`(() => {
-    const p2 = fighters[1];
+  // ── LAW 3 (Local half): Local P2 keys are NUMPAD 1/2 and reach production ──
+  // The top-row Digit1/Digit2 pair is deliberately inert (owner correction
+  // 2026-10-06: "nút 1 2 để trigger P2 ... nên là nút 1 2 ở bên phải của bàn
+  // phím laptop thôi"), so it is measured here too instead of being assumed.
+  const localTopRow = win.eval(`(() => {
+    abilityCalls.length = 0;
     window.dispatchEvent(new window.KeyboardEvent('keydown', { key: '1', code: 'Digit1', bubbles: true, cancelable: true }));
     window.dispatchEvent(new window.KeyboardEvent('keydown', { key: '2', code: 'Digit2', bubbles: true, cancelable: true }));
+    return abilityCalls.filter((c) => c.side === 1).length;
+  })()`);
+  gate('law3-local-top-row-1-2-is-inert-for-p2', localTopRow === 0, { topRowCasts: localTopRow });
+  const localRun = win.eval(`(() => {
+    const p2 = fighters[1];
+    abilityCalls.length = 0;
+    window.dispatchEvent(new window.KeyboardEvent('keydown', { key: '1', code: 'Numpad1', bubbles: true, cancelable: true }));
+    window.dispatchEvent(new window.KeyboardEvent('keydown', { key: '2', code: 'Numpad2', bubbles: true, cancelable: true }));
     return { p2Name: p2.name, battleMode: window.APEX_ARSENAL.state.battleMode };
   })()`);
   const localP2Casts = abilityCalls.filter((c) => c.side === 1);
   drainFrames(3);
   const localProjection = lastProjection();
   const localHudLabels = localProjection && localProjection.sides ? localProjection.sides.map((s) => s.keyLabels) : null;
-  gate('law3-local-p2-keys-1-and-2-reach-production', localP2Casts.length === 2
+  gate('law3-local-p2-numpad-1-and-2-reach-production', localP2Casts.length === 2
     && localP2Casts.map((c) => c.slot).join(',') === 'A1,A2', {
     p2: localRun.p2Name, casts: localP2Casts.map((c) => c.slot), all: abilityCalls.map((c) => ({ slot: c.slot, side: c.side, name: c.name })),
   });

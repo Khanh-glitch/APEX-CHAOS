@@ -3574,18 +3574,21 @@
       });
     }
 
-    // LOCAL 2P human abilities (owner law 2026-10-05): Digit1 -> P2 A1,
-    // Digit2 -> P2 A2. The canonical pressAbility/tryCast path is the ONLY
-    // executor (no second mechanics, no second cooldown authority, no direct
-    // executor calls) and e.repeat guards against auto-repeat activation.
-    // BOT mode never reaches this branch: P2 stays CPU-driven there.
+    // LOCAL 2P human abilities (owner law 2026-10-06): the P2 pair is the
+    // RIGHT-HAND numpad pair ONLY — Numpad1 -> P2 A1, Numpad2 -> P2 A2.
+    // The earlier mapping also accepted the top-row Digit1/Digit2, and the
+    // owner corrected it: "nút 1 2 để trigger P2 ... nên là nút 1 2 ở bên phải
+    // của bàn phím laptop thôi" (the pair that must cast is the right-side one;
+    // the top-row pair was the pair that wrongly worked). Because both physical
+    // pairs report key '1'/'2', the map is keyed by e.code (physical key), which
+    // is what tells Numpad1 from Digit1 — and still works with NumLock off.
+    // The canonical pressAbility/tryCast path is the ONLY executor (no second
+    // mechanics, no second cooldown authority, no direct executor calls) and
+    // e.repeat guards against auto-repeat activation. BOT mode never reaches
+    // this branch: P2 stays CPU-driven there.
     if (!HR.__localP2KeysInstalled && typeof globalScope.addEventListener === 'function') {
       HR.__localP2KeysInstalled = true;
-      // Owner report "Local chua nhan phim 1 phim 2 ben phai may tinh": the
-      // right-hand pair IS the numpad pair, so BOTH physical 1/2 keys map to the
-      // same slot through the same pressAbility path. Nothing else changes: the
-      // handler still owns P2 only, in LOCAL only, and still drops auto-repeat.
-      const LOCAL_P2_ABILITY_KEYS = { Digit1: 'A1', Digit2: 'A2', Numpad1: 'A1', Numpad2: 'A2' };
+      const LOCAL_P2_ABILITY_KEYS = { Numpad1: 'A1', Numpad2: 'A2' };
       globalScope.addEventListener('keydown', (e) => {
         if (e.repeat) return;
         const slot = LOCAL_P2_ABILITY_KEYS[e.code];

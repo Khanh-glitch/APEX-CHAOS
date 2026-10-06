@@ -476,11 +476,12 @@ function buildBattleHud() {
       why: 'replace donor demo control copy (LOCAL · U I E, manual W/E swap claims) with the accepted key law labels',
       find: / R\.side\[0\]\.ctrl\.textContent=desk\?'LOCAL · J K W':'LOCAL · TOUCH';\n R\.side\[1\]\.ctrl\.textContent=S\.mode==='1p'\?'CPU · THREAT':\(desk\?'LOCAL · U I E':'LOCAL · TOUCH'\);/,
       replace: (
-        ` // Owner input law (production truth): P1 J/K, Local P2 Digit1/Digit2,\n` +
-        ` // BOT P2 = CPU. No manual swap command exists in production, so no\n` +
-        ` // swap key is ever advertised here.\n` +
+        ` // Owner input law (production truth, 2026-10-06): P1 J/K, Local P2 =\n` +
+        ` // the RIGHT-HAND NUMPAD pair only (Numpad1/Numpad2) — the top-row 1/2\n` +
+        ` // pair must not cast, so the hint names NUM. BOT P2 = CPU. No manual\n` +
+        ` // swap command exists in production, so no swap key is advertised.\n` +
         ` R.side[0].ctrl.textContent=desk?'LOCAL · J K':'LOCAL · TOUCH';\n` +
-        ` R.side[1].ctrl.textContent=S.mode==='1p'?'CPU · THREAT':(desk?'LOCAL · 1 2':'LOCAL · TOUCH');`
+        ` R.side[1].ctrl.textContent=S.mode==='1p'?'CPU · THREAT':(desk?'LOCAL · NUM 1 2':'LOCAL · TOUCH');`
       ),
     },
     {
@@ -715,7 +716,8 @@ const seamPatches = [
   seam.setLive=function setLive(live){S.paused=!live;};
 
   // Owner input law drives the canonical key hints: P1 J=A1/K=A2, Local 2P
-  // Digit1/Digit2, BOT mode exposes P1 controls only (P2 is real CPU).
+  // Numpad1/Numpad2 (right-hand pair only; the top-row 1/2 pair is inert),
+  // BOT mode exposes P1 controls only (P2 is real CPU).
   function applyKeyLabels(i,labels){
     const u=R.side[i]&&R.side[i].skills;if(!u)return;
     for(let k=0;k<2&&k<u.length;k++){
@@ -1663,6 +1665,85 @@ function buildShell(hudProductionHtml) {
       find: "bot?heroPayload('frost','newbot')",
       replace: "bot?heroPayload(botHeroId(),'newbot')",
     },
+    // ── S56: THE BOT OPPONENT IS THE PLAYER'S CHOICE (owner law 2026-10-06) ──
+    // "cho chế độ BOT người chơi có quyền pick bên BOT thay vì auto ROBOT".
+    // BOT becomes a two-slot pick exactly like Local 1v1: P1 first, then the
+    // CPU's fighter. The choice is written into the ONE production BOT-opponent
+    // authority before the handoff, so the entry transition, the HUD panel and
+    // the spawned CPU all read the fighter the player chose. Nothing about the
+    // default changes: an untouched pick screen still faces ROBOT.
+    {
+      id: 'SHL-S56d',
+      why: 'the BOT panel renders the chosen fighter (art, name, A1/A2/PASSIVE) instead of a static placeholder',
+      find: (text) => {
+        const needle = [
+          "    if(battleMode==='bot'){",
+          "      p2WorldArt.innerHTML=''; p2WorldArt.removeAttribute('data-hero');",
+          "      p2Side.style.setProperty('--heroAccent','var(--orange)');",
+          '      p2Art.innerHTML=`<img class="heroAsset" alt="" draggable="false" src="assets/gold/mode-solo.webp">`; p2Name.textContent=\'BOT\'; p2Tag.textContent=\'OPPONENT AUTO-ASSIGNED\'; p2Flag.textContent=\'BOT\'; p2Skills.innerHTML=\'\'; p2Side.classList.remove(\'is-locked\');',
+          '    } else if(p2Empty){',
+        ].join('\n');
+        return text.includes(needle) ? needle : null;
+      },
+      replace: [
+        "    if(battleMode==='bot'){",
+        '      // R56 one-panel law for the pick screen: the BOT panel is the SAME',
+        '      // panel family as Local P2 — real art, real name, real A1/A2/PASSIVE',
+        '      // rows — because the player chooses that fighter. CPU identity is',
+        '      // carried by the BOT flag, the orange identity border, the reticle and',
+        '      // the scan sweep rather than by hiding the panel content.',
+        "      renderSide(p2Side,p2Hero,'p2',p2Locked);",
+        "      p2Tag.textContent=!p1Locked?'CPU OPPONENT':(p2Locked?'BOT LOCKED':(p2HasPicked?'BOT CHOICE':'SELECT BOT FIGHTER'));",
+        '    } else if(p2Empty){',
+      ].join('\n'),
+    },
+    {
+      id: 'SHL-S56h',
+      why: 'the BOT opponent shell key resolves through the bridge mapping (a chosen CPU opponent resolves to its card)',
+      find: (text) => {
+        const needle = [
+          '      const g=window.APEX_GOLD;',
+          "      if(g&&typeof g.botOpponentProductionId==='function'){",
+          '        const id=g.botOpponentProductionId();',
+          '        if(id&&HEROES[id])return id;',
+          '      }',
+        ].join('\n');
+        return text.includes(needle) ? needle : null;
+      },
+      replace: [
+        '      const g=window.APEX_GOLD;',
+        '      // ONE truth read through the bridge: the production CPU identity.',
+        "      if(g&&typeof g.botOpponentShellKey==='function'){",
+        '        const key=g.botOpponentShellKey();',
+        '        if(key&&HEROES[key])return key;',
+        '      }',
+        "      if(g&&typeof g.botOpponentProductionId==='function'){",
+        '        const id=g.botOpponentProductionId();',
+        '        if(id&&HEROES[id])return id;',
+        '      }',
+      ].join('\n'),
+    },
+    {
+      id: 'SHL-S56i',
+      why: 'the CPU panel keeps the Local P2 art and skill rows (CPU identity lives in the badge, reticle and sweep)',
+      find: (text) => {
+        const needle = [
+          '.fighterSide.bot-side .fighterArtMedia{opacity:.18;filter:grayscale(.75)}',
+          '.fighterSide.bot-side .fighterIdentity{border-color:rgba(255,148,31,.82)}',
+          '.fighterSide.bot-side .skillRows{display:none}',
+        ].join('\n');
+        return text.includes(needle) ? needle : null;
+      },
+      replace: [
+        '/* R56 one-panel law (pick screen): the BOT opponent panel is the same panel',
+        '   family as Local P2 — the player picks that fighter, so its art and its',
+        '   A1/A2/PASSIVE rows must be readable. CPU identity stays explicit: BOT',
+        '   badge, orange identity border, target reticle, scan sweep. */',
+        '.fighterSide.bot-side .fighterArtMedia{opacity:.82;filter:grayscale(.15)}',
+        '.fighterSide.bot-side .fighterIdentity{border-color:rgba(255,148,31,.82)}',
+        '.fighterSide.bot-side .skillRows{display:flex}',
+      ].join('\n'),
+    },
     // ── S23: roster order derives from production authority (no hard cap) ───
     // Every production-visible fighter appears: the playable Core Six are
     // selectable, production-visible future fighters are locked extension
@@ -1998,6 +2079,62 @@ function buildShell(hudProductionHtml) {
   r48ReplaceOnce("      if(!p1Locked){p1Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE HANDOFF READY';", "      if(!p1Locked){p1HasPicked=true;p1Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE HANDOFF READY';", 'BOT lock picked');
   r48ReplaceOnce("    if(activePlayer==='p1'&&!p1Locked){p1Locked=true;activePlayer='p2';p2Hero='newbot';p2Empty=false;renderFighter();", "    if(activePlayer==='p1'&&!p1Locked){p1HasPicked=true;p1Locked=true;activePlayer='p2';p2Hero='newbot';p2Empty=false;p2HasPicked=false;renderFighter();", 'P1 lock picked');
   r48ReplaceOnce("    if(activePlayer==='p2'&&!p2Locked){p2Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BOTH FIGHTERS LOCKED';", "    if(activePlayer==='p2'&&!p2Locked){p2HasPicked=true;p2Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BOTH FIGHTERS LOCKED';", 'P2 lock picked');
+
+  // ── R56: THE BOT OPPONENT IS THE PLAYER'S CHOICE (owner law 2026-10-06) ──
+  // "cho chế độ BOT người chơi có quyền pick bên BOT thay vì auto ROBOT".
+  // BOT becomes a two-slot pick exactly like Local 1v1 - P1 first, then the
+  // CPU's fighter - and the choice is written into the ONE production
+  // BOT-opponent authority before the handoff, so the entry transition, the HUD
+  // and the spawned CPU all read the fighter the player chose. The untouched
+  // default is unchanged: a player who picks nothing still faces ROBOT.
+  r48ReplaceOnce(
+    "    activePlayer='p1'; p1Locked=false; p2Locked=false; p1Hero='newbot'; p2Hero='newbot'; p2Empty=mode!=='bot'; p1HasPicked=false; p2HasPicked=false;",
+    "    activePlayer='p1'; p1Locked=false; p2Locked=false; p1Hero='newbot'; p2Hero='newbot'; p2Empty=mode!=='bot'; p1HasPicked=false; p2HasPicked=false;\n" +
+    "    // BOT: the opponent slot opens on the ONE production CPU identity and is\n" +
+    "    // then the player's to change.\n" +
+    "    if(mode==='bot')p2Hero=botHeroId();",
+    'BOT opponent slot default');
+  r48ReplaceOnce(
+    "    if(battleMode==='bot'){if(p1Locked)return;p1Hero=id;p1HasPicked=true;activePlayer='p1'}",
+    "    // BOT two-slot pick: before P1 is locked a tap means \"my fighter\"; after\n" +
+    "    // that the same tap means \"the CPU's fighter\".\n" +
+    "    if(battleMode==='bot'){if(!p1Locked){p1Hero=id;p1HasPicked=true;activePlayer='p1'}else if(!p2Locked){p2Hero=id;p2Empty=false;p2HasPicked=true}else return}",
+    'BOT slot selectable');
+  r48ReplaceOnce(
+    "      if(!p1Locked){p1HasPicked=true;p1Locked=true;renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE HANDOFF READY';\n      uiSfx('fighter.match_ready');\n      launchBattleHud()}\n      return;",
+    "      // Two-step lock. A BOT slot the previous match already locked (the\n" +
+    "      // post-match READY return) turns the first press into a full launch, so\n" +
+    "      // a rematch stays ONE action.\n" +
+    "      if(!p1Locked){\n" +
+    "        p1HasPicked=true;p1Locked=true;\n" +
+    "        if(!p2Locked){\n" +
+    "          activePlayer='p2';renderFighter();\n" +
+    "          setTimeout(()=>document.querySelector('.rosterCard[data-hero=\"'+p2Hero+'\"]')?.focus({preventScroll:true}),80);\n" +
+    "          return;\n" +
+    "        }\n" +
+    "      } else if(p2Locked)return;\n" +
+    "      p2HasPicked=true;p2Locked=true;\n" +
+    "      // The pick becomes production truth BEFORE the handoff (validated by the\n" +
+    "      // ONE selection authority), so presentation can never advertise a fighter\n" +
+    "      // the CPU will not use.\n" +
+    "      try{window.APEX_GOLD&&window.APEX_GOLD.setBotOpponent&&window.APEX_GOLD.setBotOpponent(p2Hero)}catch(_){}\n" +
+    "      renderFighter();stage.classList.add('match-ready');handoffBanner.textContent='BATTLE HANDOFF READY';\n" +
+    "      uiSfx('fighter.match_ready');\n" +
+    "      launchBattleHud();\n" +
+    "      return;",
+    'BOT two-step lock');
+  r48ReplaceOnce(
+    "    if(battleMode==='bot') lockLabel.textContent=p1Locked?'READY':'LOCK IN';",
+    "    if(battleMode==='bot') lockLabel.textContent=!p1Locked?'LOCK IN':(p2Locked?'READY':'LOCK BOT');",
+    'BOT lock label');
+  r48ReplaceOnce(
+    "      if(battleMode==='bot') selectionPrompt.textContent=p1Locked?'P1 LOCKED':'P1 SELECTING';",
+    "      if(battleMode==='bot') selectionPrompt.textContent=!p1Locked?'P1 SELECTING':(p2Locked?'BOT LOCKED':'BOT SELECTING');",
+    'BOT selection prompt');
+  r48ReplaceOnce(
+    "card.classList.toggle('p2-selected',battleMode!=='bot'&&!p2Empty&&card.dataset.hero===p2Hero)",
+    "card.classList.toggle('p2-selected',!p2Empty&&(battleMode!=='bot'||p1Locked)&&card.dataset.hero===p2Hero)",
+    'BOT roster marker');
   r48ReplaceOnce("</head>", "<style id=\"r48a-fighter-pick-adaptation\">\n.worldHeroGhost{animation:r48HeroRetreatP1 150ms cubic-bezier(.28,.02,.5,1) both!important}\n.worldHeroSlot.p2 .worldHeroGhost{animation-name:r48HeroRetreatP2!important}\n.worldHeroSlot.is-changing>.worldHeroBody{animation:r48HeroEnterP1 220ms cubic-bezier(.12,.9,.18,1) 145ms both!important}\n.worldHeroSlot.p2.is-changing>.worldHeroBody{animation-name:r48HeroEnterP2!important}\n@keyframes r48HeroRetreatP1{0%{opacity:1;transform:none;filter:brightness(.9) saturate(.86)}100%{opacity:0;transform:translate3d(-2.8vw,4px,0) scale(.82);filter:brightness(.45) saturate(.34) blur(1px)}}\n@keyframes r48HeroRetreatP2{0%{opacity:1;transform:none;filter:brightness(.9) saturate(.86)}100%{opacity:0;transform:translate3d(2.8vw,4px,0) scale(.82);filter:brightness(.45) saturate(.34) blur(1px)}}\n@keyframes r48HeroEnterP1{0%{opacity:0;transform:translate3d(-3.2vw,3px,0) scale(.84);filter:brightness(.56) saturate(.48)}68%{opacity:1;transform:translate3d(.45vw,-1px,0) scale(1.008);filter:brightness(1.05) saturate(1)}100%{opacity:1;transform:none;filter:none}}\n@keyframes r48HeroEnterP2{0%{opacity:0;transform:translate3d(3.2vw,3px,0) scale(.84);filter:brightness(.56) saturate(.48)}68%{opacity:1;transform:translate3d(-.45vw,-1px,0) scale(1.008);filter:brightness(1.05) saturate(1)}100%{opacity:1;transform:none;filter:none}}\n.worldHeroSlot.p1[data-hero=\"hunter\"] .worldHeroAsset{transform:scale(.60)!important;scale:1 1!important;transform-origin:50% 58%!important}\n.worldHeroSlot.p2[data-hero=\"hunter\"] .worldHeroAsset{transform:scale(.60)!important;scale:-1 1!important;transform-origin:50% 58%!important}\n.worldHeroSlot.p1[data-hero=\"hunter\"] .worldHeroFxAsset{scale:.60 .60!important}\n.worldHeroSlot.p2[data-hero=\"hunter\"] .worldHeroFxAsset{scale:-.60 .60!important}\n.worldHeroSlot.p1[data-hero=\"frost\"] .worldHeroAsset,.worldHeroSlot.p2[data-hero=\"frost\"] .worldHeroAsset{transform:translateY(14%)!important;scale:-2.5 2.5!important;transform-origin:50% 72%!important;object-position:50% 66%!important}\n.worldHeroSlot.p1[data-hero=\"frost\"] .worldHeroFxAsset,.worldHeroSlot.p2[data-hero=\"frost\"] .worldHeroFxAsset{translate:0 14%!important;scale:-2.5 2.5!important;transform-origin:50% 72%!important}\n.worldHeroSlot[data-hero=\"mirror\"] .mirrorOpponentAsset{opacity:.82!important;filter:brightness(.46) saturate(.62) contrast(1.16) drop-shadow(0 24px 32px rgba(0,0,0,.72))!important}\n.worldHeroSlot.p2[data-hero=\"mirror\"] .mirrorOpponentAsset{scale:-1 1!important}\n.rosterCard.is-locked{position:relative;overflow:hidden;filter:grayscale(.78) brightness(.64)!important}\n.rosterCard.is-locked img{opacity:.22!important}\n.rosterLockedVisual{position:absolute;inset:0 0 30%;display:grid;place-items:center;background:linear-gradient(135deg,rgba(255,255,255,.025),transparent 45%),repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 7px,transparent 7px 14px)}\n.rosterLock{position:absolute!important;inset:0!important;display:grid!important;place-items:center!important;align-content:center!important;gap:9px!important;background:linear-gradient(180deg,rgba(4,5,7,.12),rgba(4,5,7,.76))!important;color:#d5c28d!important;text-align:center!important;pointer-events:none}\n.rosterLock i{position:relative;display:block;width:25px;height:20px;border:2px solid currentColor;border-radius:3px;box-shadow:0 0 14px rgba(213,194,141,.12)}\n.rosterLock i::before{content:\"\";position:absolute;left:50%;top:-14px;width:14px;height:14px;translate:-50% 0;border:2px solid currentColor;border-bottom:0;border-radius:9px 9px 0 0}\n.rosterLock i::after{content:\"\";position:absolute;left:50%;top:6px;width:3px;height:7px;translate:-50% 0;background:currentColor;border-radius:2px}\n.rosterLock b{font-size:8px;font-weight:800;letter-spacing:.22em}\n.rosterCard.art-missing:not(.is-locked) .rosterLockedVisual{opacity:.32}\n</style>\n</head>", 'style append');
 
   // ── R49 root correction: single Pick presentation + READY battle reveal ─

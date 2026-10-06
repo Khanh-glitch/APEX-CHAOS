@@ -114,7 +114,21 @@
   // Presentation (fighter pick, battle-entry transition, handoff payload, HUD
   // identity) must DERIVE from this value; nothing may hardcode a second BOT
   // identity for the same match.
-  const BOT_OPPONENT_ID = 'ROBOT';
+  // The default accepted CPU opponent stays exactly what it always was. It is
+  // now a *choosable* production value instead of a constant (owner law
+  // 2026-10-06: "cho chế độ BOT người chơi có quyền pick bên BOT thay vì auto
+  // ROBOT"), so the shell can hand the player's choice to the ONE authority and
+  // every derivation downstream (transition, HUD, spawned CPU) follows.
+  let botOpponentId = 'ROBOT';
+  function setBotOpponentId(name) {
+    const id = canonicalId(name);
+    if (!id) return false;
+    // The choice obeys the same selection authority as every other pick: a
+    // fighter that cannot be publicly selected can never become the CPU.
+    if (!canPublicSelect(id) && id !== 'ROBOT') return false;
+    botOpponentId = id;
+    return true;
+  }
   window.startMatch = function startProductBattle(...args) {
     if (!window.__apexArsenalSelectPending) return Promise.resolve(false);
     const mode = window.__apexArsenalSelectionMode === 'bot' ? 'BOT' : 'LOCAL';
@@ -185,7 +199,9 @@
     isPending: () => !!window.__apexArsenalSelectPending,
     // The one BOT opponent authority: the production CPU identity every layer
     // (presentation, transition, handoff, HUD, spawned fighter) derives from.
-    botOpponentId: () => BOT_OPPONENT_ID,
+    botOpponentId: () => botOpponentId,
+    // Explicit, validated write path for the player's BOT choice.
+    setBotOpponentId,
   };
   window.apexArsenalShellSelectRuntime = 'ready';
 })();

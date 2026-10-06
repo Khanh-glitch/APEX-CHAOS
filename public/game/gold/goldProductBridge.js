@@ -300,6 +300,26 @@
       const id = botProductionId();
       return GOLD_SHELL_KEY_BY_PRODUCTION_ID[id] || id.toLowerCase();
     };
+    // The player's BOT choice (owner law 2026-10-06) is written through the ONE
+    // production authority, never stored a second time in presentation: resolve
+    // the shell key to its production id and let production validate it. A
+    // rejected id leaves the accepted default untouched and returns false, so
+    // the pick screen can never advertise a fighter the CPU will not use.
+    BRIDGE0.setBotOpponent = function setBotOpponent(shellKey) {
+      const key = String(shellKey || '').toLowerCase();
+      const production = PRODUCTION_ID_BY_SHELL_KEY[key];
+      if (!production) return false;
+      const shells = window.APEX_ARSENAL_SHELLS;
+      if (!shells || typeof shells.setBotOpponentId !== 'function') return false;
+      const applied = shells.setBotOpponentId(production) === true;
+      if (applied) {
+        // Keep the pick-screen presentation in step with production truth in the
+        // same tick (the transition identity and the HUD read the bridge, not a
+        // stale copy). This is a notification, never a second store.
+        try { document.dispatchEvent(new CustomEvent('apex:bot-opponent', { detail: { shellKey: key, productionId: production } })); } catch (_) {}
+      }
+      return applied;
+    };
     // Production-visible roster authority (one explicit mapping covering EVERY
     // production-visible entry; no hard cap, nothing silently omitted).
     BRIDGE0.roster = function goldRoster() {

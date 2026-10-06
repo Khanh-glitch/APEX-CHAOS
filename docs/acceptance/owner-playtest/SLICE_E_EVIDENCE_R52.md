@@ -407,3 +407,36 @@ Sửa: `apexHeroSfx.warm([...])` (dùng lại đúng cache/element, KHÔNG phát
 Xác nhận bằng mắt mục 1 (plate súng điện thoại), 2 (bỏ lớp nền đen), 6 (bỏ chấm vàng), 8 (panel BOT = LOCAL),
 9 (trạng thái icon skill); đo lại hiệu năng trên máy thật; nhạc nền preload cùng transition; Frost ở pick;
 tỉ lệ Magnet; audit toàn game (mục 12) + tối ưu khu A1/A2/PASSIVE ở pick.
+
+## §E9 — R56 tiếp: luật bàn phím P2 (numpad) + BOT cho người chơi pick
+
+### 1. LOCAL 1v1: phím 1/2 của P2 = CỤM NUMPAD BÊN PHẢI (sửa đúng chiều owner báo)
+Gốc: handler LOCAL P2 map `{Digit1,Digit2,Numpad1,Numpad2}` — vì `e.key` của cả hai cụm đều là '1'/'2'
+nên **hàng số trên** cũng kích P2, còn cụm bên phải thì owner tưởng là không chạy. Sửa tại MỘT chỗ
+(`public/game/hero-rework/heroReworkRuntime.js`, `LOCAL_P2_ABILITY_KEYS`): chỉ còn `{Numpad1:'A1',Numpad2:'A2'}`.
+Map theo `e.code` (vị trí vật lý) nên vẫn hoạt động khi tắt NumLock.
+- Gate mới: "L-top-row Digit1/Digit2 never casts", "L-numpad keys cast while the same characters on the top row do not"
+  (tools/testHeroReworkRobotPresentationGates.mjs); cross-law cập nhật tương ứng.
+- Đo sống (`tools/probe/botpick.mjs`): `LOCAL_KEYS {"topRow":[],"numpad":[A1 key=Numpad1, A2 key=Numpad2]}`.
+- HUD: nhãn desk đổi thành `LOCAL · NUM 1 2` (không còn nói "1 2" chung chung).
+
+### 2. BOT: người chơi được PICK bên BOT (thay vì auto ROBOT)
+Từ gốc: CPU opponent là một giá trị production (`arsenalShellSelectRuntime`). Nó trở thành
+**giá trị chọn được, có kiểm duyệt** (`setBotOpponentId`, mặc định vẫn `ROBOT`), bridge mở đường ghi
+(`APEX_GOLD.setBotOpponent(shellKey)`), và shell BOT thành **pick 2 slot như Local**:
+P1 → LOCK IN → chọn fighter cho BOT (`LOCK BOT`) → vào trận.
+- Panel BOT render đúng hero đã chọn (art, tên, PASSIVE/A1/A2) — bỏ placeholder "OPPONENT AUTO-ASSIGNED";
+  danh tính CPU giữ bằng flag BOT + viền cam + reticle + sweeper (bỏ làm mờ/ẩn hàng skill).
+- Đo sống (`tools/probe/botpick.mjs`): mặc định `ROBOT` → sau khi chọn crystala cho BOT:
+  fighters = `["MAGNET","CRYSTAL"]`, HUD P2 = `CRYSTALA`, card `.p2-selected = crystala`.
+- Không hồi quy (`tools/probe/botdefault.mjs`): không chọn gì → `["HUNTER","ROBOT"]`;
+  sau trận về pick ở trạng thái READY, CPU giữ nguyên, vào lại **1 cú bấm** = 3.07 s.
+- Nút BACK/ESC ở màn ready của BOT mở khoá cả hai slot (huỷ lock rõ ràng); nút LOCK IN sau trận vẫn vào ngay.
+
+### 3. Chain gate xanh sau thay đổi
+`pnpm build` BUILD=0; `test:r50-pre-transition` SUITE=0 / 23 PASS; cutover `--check` 70 files OK;
+lifecycle 52 PASS; pick-presentation 11 PASS; pick-band 66 PASS; side-aware 33 PASS;
+hero-rework gates 40/50 (10 gate `P-*` đỏ **có sẵn từ trước**, xác nhận bằng cách stash thay đổi rồi chạy lại:
+danh sách lỗi y hệt); `test:hero-rework:headless` 2 golden đỏ **có sẵn** (crystal-reflect-ice-payload,
+rubber-stores-reflected) — không liên quan thay đổi này.
+`tools/testGoldCrossLawHeadless.mjs` timeout ở màn mode: **có sẵn**, không nằm trong chain pnpm.
