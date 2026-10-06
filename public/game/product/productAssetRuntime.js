@@ -239,6 +239,11 @@
     return [];
   }
 
+  // Bounded fetch/decode pool width. 8 keeps the browser's connection pool and
+  // the decoder busy without starving the live render loop that the battle
+  // entry is compositing over.
+  const PREPARE_CONCURRENCY = 8;
+
   async function prepare(surface, context = {}) {
     const scope = context.scope || ('surface:' + String(surface || 'unknown'));
     const controller = controllerFor(scope);
@@ -246,16 +251,31 @@
     const urls = [...new Set(urlsFor(surface, context).filter(Boolean))];
     const decode = context.decode !== false;
     const intent = context.intent || 'required';
-    const results = [];
-    for (const url of urls) {
-      if (signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
-      const kind = kindOf(url);
-      const rec = kind === 'image' && decode
-        ? await decodeImage(url, { signal, intent })
-        : await fetchBytes(url, { signal, intent });
-      results.push(rec);
-    }
-    return { surface, urls, ready: results.every((r) => r.state === 'READY' || r.state === 'FETCHED') };
+    // ONE bounded pool, not a serial walk. A serial await per URL made a single
+    // hero rig cost 54 round trips: measured cold, a MAGNET battle took 68s to
+    // enter against ROBOT's 31s on the same cache, and the FIFO record log
+    // showed exactly one in-flight asset at every sample. Concurrency changes
+    // SCHEDULING only - the per-URL records, the in-flight dedupe, the abort
+    // contract (checked before each start) and the result order are identical.
+    const results = new Array(urls.length);
+    let cursor = 0;
+    const worker = async () => {
+      for (;;) {
+        const index = cursor;
+        cursor += 1;
+        if (index >= urls.length) return;
+        if (signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
+        const url = urls[index];
+        const kind = kindOf(url);
+        results[index] = kind === 'image' && decode
+          ? await decodeImage(url, { signal, intent })
+          : await fetchBytes(url, { signal, intent });
+      }
+    };
+    await Promise.all(
+      Array.from({ length: Math.max(1, Math.min(PREPARE_CONCURRENCY, urls.length)) }, worker),
+    );
+    return { surface, urls, ready: results.every((r) => r && (r.state === 'READY' || r.state === 'FETCHED')) };
   }
 
   function warm(surface, context = {}) {

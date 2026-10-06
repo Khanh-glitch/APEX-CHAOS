@@ -26,3 +26,6 @@ ARSENAL_PRODUCT_PLAYABLE_WINDOWS.zip
 
 # browser test profile artifacts
 .arsenal-chrome-profile/
+
+# headless probe harness vendor dir
+node_modules/

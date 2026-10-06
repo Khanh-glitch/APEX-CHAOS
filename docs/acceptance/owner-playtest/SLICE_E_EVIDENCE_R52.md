@@ -322,3 +322,47 @@ Báo cáo "J/K kích cả hai bên" và "Local 1/2 không kích". Đo trên AIL 
 - BOT: `Digit1`/`Digit2` **không phát event nào** (CPU giữ P2) — đúng thiết kế.
 - Nút thắt còn lại của "1/2 không kích" nằm ở **điều kiện kit của body P2** (`canCast` trả `reason:'condition'`,
   ví dụ HUNTER chưa có vũ khí/đạn), không nằm ở routing bàn phím — đây là việc của mục kế tiếp.
+
+---
+
+## §E7 — R54: đo trực tiếp các báo cáo mới (đang làm)
+
+### Đã sửa & đo được: asset load tuần tự là gốc của "Magnet/Frost load chậm"
+
+`public/game/product/productAssetRuntime.js` nạp từng asset **một** (`for (const url of urls) await …`).
+Một rig Magnet = **54 file** ⇒ 54 vòng round-trip nối tiếp. Đo trên dist thật (BOT, 1280×720,
+cùng cache, cùng máy):
+
+| Trận | Trước | Sau (pool 8) |
+| --- | --- | --- |
+| MAGNET vs ROBOT vào trận | **68.0 s** | **31.8 s** |
+| ROBOT vs ROBOT vào trận | 31.4 s | 28.4 s |
+
+Sửa: một pool có trần (`PREPARE_CONCURRENCY = 8`), giữ nguyên contract abort/in-flight dedupe/
+thứ tự kết quả. Đo tiếp: `step.mjs` cho thấy **toàn bộ** 25.4 s của `prepareSurface('battle')`
+nằm trong `assets.prepare`; decode p50 ≈ 3.1 s trong sandbox 1 vCPU này.
+
+### Bằng chứng ảnh: body MAGNET có vẽ, nhưng nhỏ bất thường
+
+`docs/acceptance/owner-playtest/fx/…` (probe screenshot): MAGNET vs ROBOT — ROBOT hiện đúng
+frame 96 px, MAGNET chỉ còn **một crest ~34 px** giữa đấu trường (không phải "mất hoàn toàn").
+Đo được: `bodyScale = 0.130 = SOURCE_SCALE(0.1667) × bodyK(0.781)`; donor Gold
+(`docs/hero-rework/magnet-v1/gold/MAGNET_FINAL_DONOR_MAX.html`) vẽ body bằng **chỉ `S_W`**
+(`const S_W=170/1020; // hero ≈170u tall`). Việc nhân thêm `bodyK` là chủ ý của production
+(HX=96 là nửa-extent trong world units) nhưng làm hero nhỏ hơn donor ~22% — cần đối chiếu
+trực tiếp với bản Gold trước khi đổi, vì `testMagnetV1PresentationSemantics.mjs` đang mã hoá
+đúng công thức này (đổi là phải sửa gate trong cùng commit).
+
+### Bàn phím K/J cả hai bên: KHÔNG tái hiện được ở BOT
+
+Đo BOT ROBOT vs ROBOT (pose `armor`, `lockFlash` của cả hai body, mỗi 120 ms):
+`KeyJ` → chỉ P1 đổi trạng thái; P2 giữ `armor:false` suốt; `KeyK` không kích hoạt A2 cho bên nào
+(điều kiện/cooldown). Bản LOCAL (harness jsdom, `L-*`) cũng cho một lần bấm = một bên.
+⇒ Cần tái hiện đúng ngữ cảnh owner (LOCAL + cooldown của riêng P2) trước khi sửa, tránh sửa mù.
+
+### Chưa bắt đầu (đã ghi nhận, theo thứ tự sẽ làm)
+
+nút skill P2 cho LOCAL; khoảng trống panel trên điện thoại; nhạc nền load cùng transition;
+transition 2 màn hình khép màu riêng từng bên (nếu không tìm được thì dùng transition chung);
+Frost ở pick (mirror ngang + tụt xuống + 1.5×); độ mượt crit/heavy; giảm thao tác sau trận;
+visual nút Lucky Draw (sáng nhẹ, giữ chữ); timing sfx trong trận; phạm vi rung/flash toàn màn hình.
