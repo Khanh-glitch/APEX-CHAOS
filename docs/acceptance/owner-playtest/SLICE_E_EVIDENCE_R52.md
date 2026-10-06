@@ -202,6 +202,53 @@ APEX_GOLD.luckyRoster().crystala.accent        = #a066f0
 shell HEROES fallback crystala.accent          = #a066f0
 ```
 
+---
+
+## E5 — Critical/Heavy phải tác động CẢ panel (2 slot skill không được loại trừ)
+
+### Nguyên nhân gốc (đo được, không phải suy đoán)
+
+Panel nạn nhân bị "vỡ" bằng cách clone TOÀN BỘ `.side` rồi phủ lên chính nó
+(`panelRupture` → `.rupture-whole` + 10 mảnh `.rupture-piece`). Nhưng lớp phủ đó được
+blend bằng `mix-blend-mode:screen` — mà **2 slot skill là khối duy nhất tự vẽ nền gần-đen
+(`#0d1013`)**, nên screen gần như vô hình ở đó: ident/weapon tối nên thấy rõ, 2 slot skill
+"không ăn" cú đánh. Số đo độ sáng trung bình (trước → trong cú Heavy, probe `/tmp/browser/lum.mjs`):
+
+| Layout | ident | skill A | skill B | weapon |
+| --- | --- | --- | --- | --- |
+| desk | 28.7 → 45.2 | 38.8 → **38.0** | 42.3 → **42.2** | 25.6 → 33.0 |
+| port | 52.6 → 70.8 | 42.4 → **37.3** | 48.2 → 48.8 | 39.7 → 51.6 |
+| land | 35.3 → 61.9 | 37.4 → 39.6 | 41.4 → 40.4 | 26.9 → 39.3 |
+
+### Cách sửa
+
+R50C adapter (`tools/goldBattleHudR50c.mjs`) — nơi sở hữu vùng FX này — thêm **một** luật:
+cú đánh stamp màu accent của chính giao dịch lên panel nạn nhân trong đúng cửa sổ burst:
+
+```css
+#hud .side.is-panel-hit .skill{background:linear-gradient(90deg,color-mix(in srgb,var(--hitAcc,#ff8a1e) 20%,#161b20),#0d1013)}
+#hud .side.is-panel-hit .skill::after{border-color:color-mix(in srgb,var(--hitAcc,#ff8a1e) 72%,transparent)}
+#hud .side.is-panel-hit .sk-art{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hitAcc,#ff8a1e) 46%,transparent)}
+```
+- `panelHitWindow(v,accent)` bật class + `--hitAcc`, tự tắt sau 1120 ms (reduced-motion 120 ms)
+  và `disposeRupture` dọn sạch → không bao giờ kẹt accent trên tile.
+- Rule viết kèm `#hud` (id) để **thắng mọi section layout** (`#hud[data-layout="port"] .skill`...)
+  — đây chính là lý do bản đầu chỉ đúng ở desk/land mà không đúng ở portrait (đã đo, đã sửa).
+- `fxHeavy` truyền `eventAccent` của chính cú đánh vào `panelRupture(v,token,impactAccent)`.
+
+### Kiểm chứng (sau khi sửa, cùng probe)
+
+| Layout | ident | skill A | skill B | weapon |
+| --- | --- | --- | --- | --- |
+| desk | 28.7 → 47.3 | 38.8 → **53.3** | 42.3 → **57.8** | 25.6 → 35.3 |
+| port | 52.6 → 55.6 | 42.4 → **46.8** | 48.2 → **55.2** | 39.7 → 41.8 |
+| land | 35.3 → 63.5 | 37.4 → **49.0** | 41.4 → **51.0** | 26.9 → 41.5 |
+
+Cả 4 khối của panel (ident · 2 skill · weapon) đều nhận cú đánh ở cả 3 layout. Hit-test DOM
+cũng xác nhận lớp mảnh vỡ phủ trọn rect của panel (`.rupture-piece` = 299×646 px so với panel
+300×648 px ở 1280×720). Gate `testGoldBattleHudAdaptationGate` nay có thêm 8 check cho luật này
+(tổng **27**).
+
 ## Trạng thái chain tại checkpoint này
 
 ```

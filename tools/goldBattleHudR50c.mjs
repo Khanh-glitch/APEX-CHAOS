@@ -250,6 +250,45 @@ export function adaptGoldBattleHudR50c(input) {
     'storm hit accent'
   );
 
+  // ── Owner law (R52): a Critical/Heavy hit affects the FULL panel ──────────
+  // The panel shatter clones the whole side, but the clone is blended with
+  // mix-blend-mode:screen, which is invisible on the ability tiles: they are the
+  // only sub-block that paints its own near-black background (#0d1013), so the
+  // owner read them as "excluded from the hit". The impact now stamps the tiles
+  // with the source accent for the burst window, so every sub-block of the panel
+  // carries the hit.
+  once(
+    '.rupture-whole{z-index:1;opacity:0;filter:url(#panelWarp) saturate(1.16) contrast(1.08);mix-blend-mode:screen}',
+    '.rupture-whole{z-index:1;opacity:0;filter:url(#panelWarp) saturate(1.16) contrast(1.08);mix-blend-mode:screen}\n' +
+    // The layout sections (#hud[data-layout=...]) own .skill, so the impact rule
+    // is written with an id so it wins on every layout, portrait included.
+    '#hud .side.is-panel-hit .skill{background:linear-gradient(90deg,color-mix(in srgb,var(--hitAcc,#ff8a1e) 20%,#161b20),#0d1013)}\n' +
+    '#hud .side.is-panel-hit .skill::after{border-color:color-mix(in srgb,var(--hitAcc,#ff8a1e) 72%,transparent)}\n' +
+    '#hud .side.is-panel-hit .sk-art{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hitAcc,#ff8a1e) 46%,transparent)}',
+    'panel-wide impact law'
+  );
+
+  once(
+    "function disposeRupture(v,token){\n const p=R.ruptures[v];if(p&&token!=null&&p.token!==token)return;",
+    "function panelHitWindow(v,accent){\n const root=R.side[v]&&R.side[v].root;if(!root)return;\n root.style.setProperty('--hitAcc',accent||'#ff8a1e');root.classList.add('is-panel-hit');\n clearTimeout(R.hitTimers[v]);\n R.hitTimers[v]=setTimeout(()=>root.classList.remove('is-panel-hit'),RM.matches?120:1120);\n}\nfunction disposeRupture(v,token){\n const p=R.ruptures[v];if(p&&token!=null&&p.token!==token)return;",
+    'panel hit window helper'
+  );
+  once(
+    "function panelRupture(v,token){\n if(RM.matches)return null;\n disposeRupture(v);",
+    "function panelRupture(v,token,accent){\n if(RM.matches)return null;\n disposeRupture(v);\n panelHitWindow(v,accent);",
+    'panel rupture stamps the tiles'
+  );
+  once(
+    'const panel=panelRupture(v,token);R.ruptures[v]=panel;',
+    'const panel=panelRupture(v,token,impactAccent);R.ruptures[v]=panel;',
+    'heavy burst passes its accent into the panel law'
+  );
+  once(
+    " frac:$('#fracture'),copy:$('#copyLayer'),diag:$('#diag'),rail:[],side:[],ruptures:[null,null],fxTimers:[]};",
+    " frac:$('#fracture'),copy:$('#copyLayer'),diag:$('#diag'),rail:[],side:[],ruptures:[null,null],fxTimers:[],hitTimers:[0,0]};",
+    'panel hit timers state'
+  );
+
   // C3 (owner report: one pad, two fingers, ONE cast): a slot is a single
   // press target. Independent pointers stay independent per (side, slot), but a
   // second pointer landing on a slot that is already held never re-casts it.
@@ -260,7 +299,7 @@ export function adaptGoldBattleHudR50c(input) {
     'phone gesture ownership on the ability pads'
   );
 
-  const must = ['apex-battle-avatar','has-tier','applyIdentityProjection','impactAccent','#globalFx{z-index:35','activeSkillPointers','pointerId:e.pointerId','skill.is-held','data-size="tablet"','S.viewport.size=size','--wpIW:82px','activeSkillSlots','skillSlotKey','touch-action:none'];
+  const must = ['apex-battle-avatar','has-tier','is-panel-hit','--hitAcc','panelHitWindow(v,accent)','applyIdentityProjection','impactAccent','#globalFx{z-index:35','activeSkillPointers','pointerId:e.pointerId','skill.is-held','data-size="tablet"','S.viewport.size=size','--wpIW:82px','activeSkillSlots','skillSlotKey','touch-action:none'];
   for (const token of must) if (!out.includes(token)) throw new Error('R50C invariant missing: ' + token);
   return out;
 }

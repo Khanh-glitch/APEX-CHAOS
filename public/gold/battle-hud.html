@@ -282,6 +282,9 @@ kbd{font:inherit}
 .rupture-group{position:absolute;isolation:isolate;pointer-events:none;will-change:opacity}
 .rupture-copy{position:absolute;inset:0 auto auto 0;min-width:0;min-height:0;margin:0;pointer-events:none;overflow:hidden}
 .rupture-whole{z-index:1;opacity:0;filter:url(#panelWarp) saturate(1.16) contrast(1.08);mix-blend-mode:screen}
+#hud .side.is-panel-hit .skill{background:linear-gradient(90deg,color-mix(in srgb,var(--hitAcc,#ff8a1e) 20%,#161b20),#0d1013)}
+#hud .side.is-panel-hit .skill::after{border-color:color-mix(in srgb,var(--hitAcc,#ff8a1e) 72%,transparent)}
+#hud .side.is-panel-hit .sk-art{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hitAcc,#ff8a1e) 46%,transparent)}
 .rupture-spectrum{z-index:2;opacity:0;mix-blend-mode:screen;filter:saturate(5) hue-rotate(145deg) brightness(1.35)}
 .rupture-spectrum.red{filter:saturate(7) hue-rotate(300deg) brightness(1.3)}
 .rupture-piece{position:absolute;inset:0;z-index:3;overflow:hidden;pointer-events:none;will-change:transform,opacity;filter:saturate(1.08) contrast(1.06)}
@@ -854,7 +857,7 @@ function sideHTML(i){const h=HEROES[i];return `
 
 const R={stage:$('#stage'),hud:$('#hud'),vr:$('#versusRail'),mc:$('#matchCenter'),time:$('#mcTime'),roundEl:$('#mcRound'),
  arena:$('#arena'),cv:$('#arenaCanvas'),afx:$('#arenaFx'),fx:$('#globalFx'),fxCv:$('#fxCanvas'),rupture:$('#ruptureLayer'),flash:$('.gfx-flash'),tension:$('.gfx-tension'),
- frac:$('#fracture'),copy:$('#copyLayer'),diag:$('#diag'),rail:[],side:[],ruptures:[null,null],fxTimers:[]};
+ frac:$('#fracture'),copy:$('#copyLayer'),diag:$('#diag'),rail:[],side:[],ruptures:[null,null],fxTimers:[],hitTimers:[0,0]};
 // Explicit compositor: arena < critical/heavy combat FX < HUD chrome.
 // #hud fills #stage, so reparenting this absolute full-screen node preserves
 // stage-space coordinates while preventing the live arena from covering it.
@@ -1134,7 +1137,7 @@ function fxHeavy(a,v,amt,impactAccent){
  }
  queueFx(()=>{
   if(S.fx.heavyToken[v]!==token)return;
-  const panel=panelRupture(v,token);R.ruptures[v]=panel;
+  const panel=panelRupture(v,token,impactAccent);R.ruptures[v]=panel;
   flash('heavy',v,impactAccent);sweep(a,v,'heavy');shake(v,7);sideRecoil(v,7);edgeShock(v,'heavy',impactAccent);railSurge(v,1);if(!RM.matches)railJolt(v,6);sideLight(v,.72,370);
  },RM.matches?0:78);
  queueFx(()=>{
@@ -1289,14 +1292,21 @@ function makeWarpFilter(v,token){
  const map=document.createElementNS(NS,'feDisplacementMap');map.setAttribute('in','SourceGraphic');map.setAttribute('in2','grain');map.setAttribute('scale','18');map.setAttribute('xChannelSelector','R');map.setAttribute('yChannelSelector','G');
  filter.append(turbulence,map);$('#fxDefs').querySelector('defs').appendChild(filter);return {node:filter,map,id:filter.id};
 }
+function panelHitWindow(v,accent){
+ const root=R.side[v]&&R.side[v].root;if(!root)return;
+ root.style.setProperty('--hitAcc',accent||'#ff8a1e');root.classList.add('is-panel-hit');
+ clearTimeout(R.hitTimers[v]);
+ R.hitTimers[v]=setTimeout(()=>root.classList.remove('is-panel-hit'),RM.matches?120:1120);
+}
 function disposeRupture(v,token){
  const p=R.ruptures[v];if(p&&token!=null&&p.token!==token)return;
  if(p){p.group.remove();p.warp.node.remove();R.ruptures[v]=null;}
  R.frac.querySelectorAll(`g[data-v="${v}"]`).forEach(g=>g.remove());
 }
-function panelRupture(v,token){
+function panelRupture(v,token,accent){
  if(RM.matches)return null;
  disposeRupture(v);
+ panelHitWindow(v,accent);
  const src=R.side[v].root,r=relRect(src),w=src.offsetWidth,h=src.offsetHeight,flip=isLocalP2(v),hit=panelImpact(v,w,h),group=document.createElement('div');
  group.className='rupture-group';group.dataset.v=String(v);group.style.left=r.x+'px';group.style.top=r.y+'px';group.style.width=w+'px';group.style.height=h+'px';group.style.rotate=flip?'180deg':'none';
  const warp=makeWarpFilter(v,token),whole=makePanelSnapshot(v,w,h,'rupture-whole');whole.style.filter=`url(#${warp.id}) saturate(1.16) contrast(1.08)`;

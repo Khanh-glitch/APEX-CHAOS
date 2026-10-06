@@ -144,6 +144,36 @@ check('R49 battle reveal awaits production READY before exposing Gold HUD',
   && shell.includes('const liveReady=await setBattleLive();')
   && shell.includes('if(liveReady!==true)'));
 
+// ── Owner law (R52): a Critical/Heavy hit affects the FULL panel ───────────
+// The victim panel is cloned whole, but the clone is screen-blended, which is
+// invisible over the ability tiles (they paint their own near-black background),
+// so the two skill slots read as excluded from the hit. The impact therefore
+// also stamps the tiles with the source accent for the burst window.
+const r50c = read('tools/goldBattleHudR50c.mjs');
+check('the impact rule reaches the ability tiles on EVERY layout',
+  hud.includes('#hud .side.is-panel-hit .skill{background:linear-gradient(90deg,color-mix(in srgb,var(--hitAcc,#ff8a1e) 20%,#161b20),#0d1013)}')
+  && hud.includes('#hud .side.is-panel-hit .skill::after{border-color:color-mix(in srgb,var(--hitAcc,#ff8a1e) 72%,transparent)}')
+  && hud.includes('#hud .side.is-panel-hit .sk-art{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hitAcc,#ff8a1e) 46%,transparent)}'));
+check('the impact rule is written above the layout sections (id specificity)',
+  /#hud \.side\.is-panel-hit/.test(hud) && !/(^|\n)\.side\.is-panel-hit \.skill\{/.test(hud));
+check('the panel-hit window is driven by the transaction accent',
+  hud.includes('function panelHitWindow(v,accent){')
+  && hud.includes("root.style.setProperty('--hitAcc',accent||'#ff8a1e');root.classList.add('is-panel-hit');"));
+check('the heavy burst passes its own accent into the panel law',
+  hud.includes('const panel=panelRupture(v,token,impactAccent);R.ruptures[v]=panel;')
+  && hud.includes('function panelRupture(v,token,accent){'));
+check('the panel-hit window always ends (no stuck accent on the tiles)',
+  hud.includes("R.hitTimers[v]=setTimeout(()=>root.classList.remove('is-panel-hit'),RM.matches?120:1120);")
+  && hud.includes('hitTimers:[0,0]'));
+check('reduced motion still collapses the panel-hit window',
+  /RM\.matches\?120:1120/.test(hud));
+check('the generator adapter owns the change (never hand-edited output)',
+  r50c.includes('id: \'HUD-')
+  || r50c.includes("'panel-wide impact law'")
+  || r50c.includes('panelHitWindow(v,accent)'));
+check('the R50C adapter still asserts the panel-hit invariant',
+  r50c.includes("'is-panel-hit'") && r50c.includes("'--hitAcc'"));
+
 console.log('GOLD BATTLE HUD ADAPTATION GATE (R49D + R48B production truth)');
 for (const line of pass) console.log(line);
 if (fail.length) {
