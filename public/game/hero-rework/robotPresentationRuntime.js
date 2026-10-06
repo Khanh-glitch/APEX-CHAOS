@@ -1133,6 +1133,28 @@ function renderRig(g) {
     return false;
   }
 
+  // OWNER LAW (R52): a body-scoped presentation event animates EXACTLY the body
+  // that owns it. The mechanics layer used to emit RobotA1*/RobotA2* with only
+  // `hero: 'ROBOT'`, and this handler's guard was optional (`if (payload.fighterId
+  // && …) continue`), so in a ROBOT vs ROBOT match BOTH robots ran the motion
+  // while only one had cast. Resolution order: explicit body id, then the cast
+  // side/combatant that emitted it. If neither is present the event is DROPPED —
+  // a missing identity must never animate every same-hero body again.
+  function eventBody(payload) {
+    const list = globalScope.fighters || [];
+    const id = payload && (payload.fighterId != null ? payload.fighterId
+      : (payload.bodyId != null ? payload.bodyId : null));
+    if (id != null) {
+      for (const f of list) if (f && f.id === id) return f;
+      return null;
+    }
+    const key = String((payload && (payload.combatantId || payload.side)) || '').toLowerCase();
+    if (key === 'p1' || key === '0' || key === 'player1') return list[0] || null;
+    if (key === 'p2' || key === '1' || key === 'player2') return list[1] || null;
+    return null;
+  }
+  globalScope.__apexRobotEventBody = eventBody; // evidence probe only
+
   // Single-dispatch bus handler
   function handleBusEvent(e) {
     if (!e) return;
@@ -1161,11 +1183,10 @@ function renderRig(g) {
         const src = payload.source;
         if (src === 'p2-ai') return; // P2 silent
         const fighters = globalScope.fighters || [];
+        const caster = eventBody(payload);
         for (const f of fighters) {
           if (!isRobotFighter(f)) continue;
-          if (src && src !== 'p1' && src !== 'gates' && src !== 'p1-presentation-test') {
-            if (f !== fighters[0]) continue;
-          }
+          if (f !== caster) continue;
           const st = getRobotState(f);
           if (!st) continue;
           if (st.T - st._lastNoWeaponAt < 0.35) continue;
@@ -1215,7 +1236,7 @@ function renderRig(g) {
       if (isAlias) return; // alias no SFX
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
-        if (payload.fighterId && f.id !== payload.fighterId) continue;
+        if (f !== eventBody(payload)) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
@@ -1255,7 +1276,7 @@ function renderRig(g) {
       }
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
-        if (payload.fighterId && f.id !== payload.fighterId) continue;
+        if (f !== eventBody(payload)) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
@@ -1273,7 +1294,7 @@ function renderRig(g) {
       if (isAlias) return;
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
-        if (payload.fighterId && f.id !== payload.fighterId) continue;
+        if (f !== eventBody(payload)) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
@@ -1302,7 +1323,7 @@ function renderRig(g) {
       if (isAlias) return;
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
-        if (payload.fighterId && f.id !== payload.fighterId) continue;
+        if (f !== eventBody(payload)) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
@@ -1338,7 +1359,7 @@ function renderRig(g) {
       if (isAlias) return;
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
-        if (payload.fighterId && f.id !== payload.fighterId) continue;
+        if (f !== eventBody(payload)) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
@@ -1363,8 +1384,7 @@ function renderRig(g) {
       if (isAlias) return;
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
-        if (payload.bodyId && payload.bodyId !== f.id) continue;
-        if (payload.fighterId && payload.fighterId !== f.id) continue;
+        if (f !== eventBody(payload)) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
@@ -1393,7 +1413,7 @@ function renderRig(g) {
       if (isAlias) return;
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
-        if (payload.fighterId && f.id !== payload.fighterId) continue;
+        if (f !== eventBody(payload)) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
@@ -1412,7 +1432,7 @@ function renderRig(g) {
       if (isAlias) return;
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
-        if (payload.fighterId && f.id !== payload.fighterId) continue;
+        if (f !== eventBody(payload)) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;
@@ -1433,7 +1453,7 @@ function renderRig(g) {
       if (isAlias) return;
       const fighters = globalScope.fighters || [];
       for (const f of fighters) {
-        if (payload.fighterId && f.id !== payload.fighterId) continue;
+        if (f !== eventBody(payload)) continue;
         if (!isRobotFighter(f)) continue;
         const st = getRobotState(f);
         if (!st) continue;

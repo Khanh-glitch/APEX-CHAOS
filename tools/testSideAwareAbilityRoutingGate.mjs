@@ -73,6 +73,35 @@ check('Gold cast routing prefers payload side', bridge.includes("payload.side ==
 check('hero match is fallback only', bridge.includes('Backward compatibility for old recorded events only'));
 check('same-hero first-match loop is no longer primary', !bridge.includes("if (!f || heroIdOf(f) !== hero) continue;"));
 
+// ── 4. the caster identity travels with every body-scoped event ────────────
+// Owner report: "J/K triggered both sides" (input) and — same shape — in a
+// ROBOT vs ROBOT match BOTH robots animated while only one had cast. The input
+// side is the first half; the second half is that a body-scoped presentation cue
+// must NAME its body. These checks bind that law in the shipping sources.
+const robot = fs.readFileSync('public/game/hero-rework/robotPresentationRuntime.js', 'utf8');
+const mechanics = fs.readFileSync('public/game/hero-rework/heroMechanicsRuntime.js', 'utf8');
+
+check('one body resolver exists (fighters[] slot is the arena body)',
+  hr.includes('function bodyOfCombatant(ct) {') && hr.includes('HR.bodyOfCombatant = bodyOfCombatant;'));
+check('executor contexts receive a caster-bound api',
+  hr.includes('function castBoundApi(ct) {') && hr.includes('api: castBoundApi(ct),'));
+check('the bound api stamps fighterId/combatantId/side/heroId on emitted events',
+  /emitEvent: \{\s*\n\s*value: \(type, payload\) => base\.emitEvent\(type, Object\.assign\(\{\}, payload, identity\)\),/.test(hr));
+check('the shared api was never handed to a mechanic context again', !/api: M \? M\.api : null,/.test(hr));
+check('Cast lifecycle events carry the caster body id',
+  (hr.match(/fighterId: bodyOfCombatant\(ct\)\?\.id \?\? null/g) || []).length >= 3);
+check('mechanics emit body-scoped robot cues through the bound api',
+  (mechanics.match(/ctx\.api\.emitEvent\('Robot/g) || []).length >= 8
+  && !/AIL\.bus\.emit\('Robot/.test(mechanics));
+check('the presentation resolves one body per event',
+  robot.includes('function eventBody(payload) {') && /if \(f !== eventBody\(payload\)\) continue;/.test(robot));
+check('no optional identity guard survives (the both-sides bug)',
+  !robot.includes('payload.fighterId &&') && !robot.includes('payload.bodyId &&'));
+check('every body-scoped robot branch is bound to that body',
+  (robot.match(/if \(f !== eventBody\(payload\)\) continue;/g) || []).length >= 8);
+check('the body-scoped branches also fail closed for a robot check',
+  (robot.match(/if \(f !== eventBody\(payload\)\) continue;\s*\n\s*if \(!isRobotFighter\(f\)\) continue;/g) || []).length >= 8);
+
 console.log(['SIDE-AWARE ABILITY ROUTING GATE (owner law: fighter owns the side)', ...notes].join('\n'));
 if (failures.length) {
   console.error(failures.join('\n'));

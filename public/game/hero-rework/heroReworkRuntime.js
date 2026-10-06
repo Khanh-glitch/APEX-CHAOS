@@ -239,13 +239,13 @@
         const ctx = mechCtx(ct, slot);
         if (exec && exec.canCast && !exec.canCast(ctx)) {
           ct.telemetry.castFails += 1;
-          AIL.bus.emit('CastFailCue', { hero: ct.heroId, slot, reason: 'condition', side: input.side, combatantId: input.combatantId, source: input.source, input });
+          AIL.bus.emit('CastFailCue', { hero: ct.heroId, slot, reason: 'condition', side: input.side, combatantId: input.combatantId, fighterId: bodyOfCombatant(ct)?.id ?? null, source: input.source, input });
           return { ok: false, reason: 'condition', failCue: true };
         }
         const ok = exec && exec.cast ? exec.cast(ctx) : false;
         if (!ok) {
           ct.telemetry.castFails += 1;
-          AIL.bus.emit('CastFailCue', { hero: ct.heroId, slot, reason: 'whiff', side: input.side, combatantId: input.combatantId, source: input.source, input });
+          AIL.bus.emit('CastFailCue', { hero: ct.heroId, slot, reason: 'whiff', side: input.side, combatantId: input.combatantId, fighterId: bodyOfCombatant(ct)?.id ?? null, source: input.source, input });
           return { ok: false, reason: 'whiff', failCue: true };
         }
         if(s.cfg.maxCharges) { if(s.charges === s.cfg.maxCharges) s.rechargeLeft = s.cfg.cooldown; s.charges--; }
@@ -253,12 +253,45 @@
         ct.telemetry.casts += 1;
         ct.telemetry.bySkill[slot] = (ct.telemetry.bySkill[slot] || 0) + 1;
         if (ct.telemetry.firstSkillCastAt == null) ct.telemetry.firstSkillCastAt = AIL.clock();
-        AIL.bus.emit('Cast', { hero: ct.heroId, slot, mechanic: s.def.mechanicId, side: input.side, combatantId: input.combatantId, source: input.source, input });
+        AIL.bus.emit('Cast', { hero: ct.heroId, slot, mechanic: s.def.mechanicId, side: input.side, combatantId: input.combatantId, fighterId: bodyOfCombatant(ct)?.id ?? null, source: input.source, input });
         return { ok: true };
       },
     };
   }
   HR.abilityController = abilityController;
+
+  // The ONE body resolver: a combatant owns exactly one arena body, and every
+  // body-scoped presentation event must name it (owner report: J/K ran the
+  // motion on BOTH robots because the mechanics layer emitted RobotA1* events
+  // with only `hero: 'ROBOT'` and no fighter identity).
+  function bodyOfCombatant(ct) {
+    if (!ct || ct.facade) return null;
+    // doc-06 law: the global fighters[] slot holds this combatant's arena body.
+    const list = globalScope.fighters || [];
+    const body = list[ct.idx];
+    return body && !body.facade ? body : null;
+  }
+  HR.bodyOfCombatant = bodyOfCombatant;
+
+  // Per-context view of the executor api: identical to the shared api, except
+  // that every event it emits carries the caster's identity, so presentation can
+  // never guess (and can never animate the wrong side).
+  function castBoundApi(ct) {
+    const base = M ? M.api : null;
+    if (!base) return null;
+    const body = bodyOfCombatant(ct);
+    const identity = {
+      fighterId: body ? body.id : null,
+      combatantId: ct.combatantId || ct.side,
+      side: ct.side,
+      heroId: ct.heroId,
+    };
+    return Object.create(base, {
+      emitEvent: {
+        value: (type, payload) => base.emitEvent(type, Object.assign({}, payload, identity)),
+      },
+    });
+  }
 
   function mechCtx(ct, slot) {
     const s = ct.skills[slot];
@@ -270,7 +303,7 @@
       hero: ct.def,
       combatant: ct,
       store: (ct.store[s.def.mechanicId] = ct.store[s.def.mechanicId] || {}),
-      api: M ? M.api : null,
+      api: castBoundApi(ct),
       AIL,
       bus: AIL.bus,
       rng,

@@ -428,6 +428,69 @@ function withSfxCounter(fn) {
   gate('P-no-clamp-heavy-shuffle-sfx', badKeys.length === 0 && !hasForbidden, { counts: result.counts, unapproved: badKeys });
 }
 
+// =============================================================================
+// ROBOT vs ROBOT — CASTER IDENTITY (owner report: J/K triggered BOTH sides)
+//
+// In a same-hero match a body-scoped cue must animate exactly the body that owns
+// it. The mechanics layer emits `hero:'ROBOT'` + caster identity; this runtime
+// resolves the body strictly and DROPS any event that names nobody, because a
+// missing identity previously meant "loop over every robot body".
+// =============================================================================
+{
+  const m = Q.start('ROBOT', 'ROBOT', 3101);
+  Q.placeFree(250, 700, 1, 0, 150, 150, -1, -0.5);
+  gate('P-BOTH-match-is-robot-vs-robot', Array.isArray(win.fighters) && win.fighters.length === 2
+    && win.fighters.every(f => m && m.combatants.some(c => c.heroId === 'ROBOT')),
+    { heroes: win.fighters.map(f => (win.APEX_ROBOT_PRESENTATION && win.APEX_ROBOT_PRESENTATION.isRobotFighter(f)) ? 'ROBOT' : 'other') });
+
+  const P = win.APEX_ROBOT_PRESENTATION;
+  const [a, b] = win.fighters;
+  const stA = P.getRobotState(a), stB = P.getRobotState(b);
+  gate('P-BOTH-both-bodies-have-robot-state', !!(stA && stB) && stA !== stB);
+
+  const mark = () => ({ a: stA._lastLockAt || 0, b: stB._lastLockAt || 0 });
+  const emit = (type, payload) => { Q.step(0.2); win.APEX_HERO_REWORK.AIL.bus.emit(type, payload); Q.step(0.05); };
+
+  // (1) identity-less event: nobody may react (the both-sides regression).
+  const before = mark();
+  emit('RobotA1Lock', { hero: 'ROBOT' });
+  const afterBare = mark();
+  gate('P-BOTH-identity-less-cue-touches-neither-body',
+    afterBare.a === before.a && afterBare.b === before.b, { before, after: afterBare });
+
+  // (2) explicit body id: only that body reacts.
+  emit('RobotA1Lock', { hero: 'ROBOT', fighterId: b.id });
+  const afterId = mark();
+  gate('P-BOTH-explicit-fighterId-hits-only-that-body',
+    afterId.b > afterBare.b && afterId.a === afterBare.a, { afterBare, afterId });
+
+  // (3) cast side: same law through the side/combatant channel.
+  emit('RobotA1Lock', { hero: 'ROBOT', side: 'p1', combatantId: Q.ct().combatantId });
+  const afterSide = mark();
+  gate('P-BOTH-side-identity-hits-only-that-body',
+    afterSide.a > afterId.a && afterSide.b === afterId.b, { afterId, afterSide });
+
+  // (4) the real path: P1 casts A1 and the rival's body stays untouched.
+  const mReal = Q.start('ROBOT', 'ROBOT', 3102);
+  Q.placeFree(250, 700, 1, 0, 150, 150, -1, -0.5);
+  Q.pushSlot({ x: 850, y: 250, weaponId: 'PISTOL' });
+  const realA = win.fighters[0], realB = win.fighters[1];
+  const stRealA = win.APEX_ROBOT_PRESENTATION.getRobotState(realA);
+  const stRealB = win.APEX_ROBOT_PRESENTATION.getRobotState(realB);
+  const locksB = stRealB._lastLockAt || 0;
+  const bracketsB = stRealB.brackets || null;
+  const snapB = stRealB.snapUntil || 0;
+  const ctlReal = win.APEX_HERO_REWORK.abilityController(win.APEX_HERO_REWORK.byCombatant(realA));
+  const castRes = ctlReal.tryCast('A1', 'gates');
+  const castOk = !!(castRes && (castRes === true || castRes.ok));
+  const lockA = (() => { const st = win.APEX_ROBOT_PRESENTATION.getRobotState(realA); return st ? (st._lastLockAt || 0) : 0; })();
+  Q.step(0.15);
+  gate('P-BOTH-real-cast-fires-on-the-caster-body', castOk && lockA > 0, { castRes, lockA });
+  gate('P-BOTH-real-cast-leaves-the-rival-body-untouched',
+    (stRealB._lastLockAt || 0) === locksB && (stRealB.brackets || null) === bracketsB && (stRealB.snapUntil || 0) === snapB,
+    { rival: { lastLockAt: stRealB._lastLockAt || 0, brackets: !!(stRealB.brackets), snapUntil: stRealB.snapUntil || 0 } });
+}
+
 /* ------------------------------------------------------------------ summary */
 const total = Object.keys(report.gates).length;
 const passed = Object.values(report.gates).filter(g => g.pass).length;

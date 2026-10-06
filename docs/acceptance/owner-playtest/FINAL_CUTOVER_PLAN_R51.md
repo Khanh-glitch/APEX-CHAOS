@@ -317,6 +317,18 @@ Các commit mốc: `8dda0d6` (pipeline + real Battle HUD + Lucky Draw),
 - Sau mỗi lần sửa runtime versioned: `UPDATE_LOCK=1 node tools/testRuntimeRevisionGate.mjs`.
 - Push ngay sau mỗi commit (checkpoint) để owner theo dõi được.
 
+## 7b. N1..N4 — bốn bug owner báo 2026-10-06 (map 1-1)
+
+| # | Owner báo | Trạng thái | Bằng chứng |
+| --- | --- | --- | --- |
+| N1 | Magnet không hiện gì trong battle; Frost load chậm hơn | **XONG** (`a0483dd`) | `SLICE_E_EVIDENCE_R52.md` §E1, gate `testHeroBattleRigDeliveryGate` 24 |
+| N2 | BOT + Local: J/K tác động cả hai bên | **XONG** | §E2, +7 check robot ROBOT-vs-ROBOT, +10 check side-aware |
+| N3 | Trả lại transition gốc của donor (`#battleTransition`) | đang làm | phải **viết lại** `testBattleTransitionAuthorityGate` (đang cấm chính `#battleTransition`) |
+| N4 | Một authority accent cho Crystal = violet | chưa | `apexEngine.js:1164` `#6ed3d8` vs AMETHYST ramp của `crystalaGoldV6.js` |
+
+Luật khi làm N3: gate cũ mâu thuẫn với luật mới thì **viết lại trong cùng commit**, kèm
+lý do + trạng thái trước/sau — không xoá assertion im lặng.
+
 ## 8. Thứ tự thực thi R52 (đang áp dụng)
 
 1. `P5` (economy reseed) + `P7` (xoá tham chiếu chết) — rẻ, rủi ro thấp, gate rõ.
