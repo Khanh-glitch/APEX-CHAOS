@@ -1753,53 +1753,12 @@ function buildShell(hudProductionHtml) {
         `  battle.addEventListener('click',()=>{uiSfx('ui.screen.transition');setScreen('mode')});`
       ),
     },
-    // ── S33: battle-entry transition retimed to a readable beat ────────────
-    // The owner reported an "extremely brief" beat. The six authored phases are
-    // re-timed to ≈1.65 s (still well short of a loading screen) while every
-    // phase keeps its place, the is-reveal beat keeps >= the 430 ms authored
-    // CSS transition, and prefers-reduced-motion still collapses to 24 ms.
-    {
-      id: 'SHL-S33',
-      why: 'battle-entry transition retimed from 1.17 s to a readable 1.65 s',
-      find: /    if\(!await transitionDelay\(110,token\)\)return;/,
-      replace: `    if(!await transitionDelay(180,token))return;`,
-    },
-    {
-      id: 'SHL-S34',
-      why: 'battle-entry transition retiming: clamp -> freeze beat',
-      find: /    if\(!await transitionDelay\(155,token\)\)return;/,
-      replace: `    if(!await transitionDelay(240,token))return;`,
-    },
-    {
-      id: 'SHL-S35',
-      why: 'battle-entry transition retiming: freeze -> seam beat',
-      find: /    if\(!await transitionDelay\(150,token\)\)return;\n    battleTransition\.classList\.add\('phase-seam'\);/,
-      replace: (
-        `    if(!await transitionDelay(240,token))return;\n` +
-        `    battleTransition.classList.add('phase-seam');`
-      ),
-    },
-    {
-      id: 'SHL-S36',
-      why: 'battle-entry transition retiming: seam -> open beat',
-      find: /    if\(!await transitionDelay\(170,token\)\)return;/,
-      replace: `    if(!await transitionDelay(260,token))return;`,
-    },
-    {
-      id: 'SHL-S37',
-      why: 'battle-entry transition retiming: is-reveal beat (>= the authored 430 ms CSS transition)',
-      find: /    if\(!await transitionDelay\(430,token\)\)return;/,
-      replace: `    if(!await transitionDelay(520,token))return;`,
-    },
-    {
-      id: 'SHL-S38',
-      why: 'battle-entry transition retiming: open -> live beat',
-      find: /    if\(!await transitionDelay\(150,token\)\)return;\n    resetBattleTransitionVisuals\(\);/,
-      replace: (
-        `    if(!await transitionDelay(210,token))return;\n` +
-        `    resetBattleTransitionVisuals();`
-      ),
-    },
+    // ── Battle-entry transition timing lives in the R50K adapter ───────────
+    // The R52 owner law (N3) restored the canonical Gold rail transition
+    // (#battleTransition). Its beats are scheduled by the adapter, which is the
+    // LAST writer of that whole lifecycle region, so the old retiming patches of
+    // the superseded donor scheduler were removed with it: they could not reach
+    // the shipped shell and only documented a beat that no longer exists.
     // ── S28: real Git transition SFX replace the synthetic oscillator ──────
     // The seal-phase beep was a short-lived TRIANGLE oscillator (240→640 Hz,
     // 140 ms) — the "strange triangular/noise beat" the owner reported. The

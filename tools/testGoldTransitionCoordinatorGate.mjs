@@ -87,7 +87,12 @@ check('Battle is excluded from Mechanical Door routes',
   !shell.includes("name:'fighter->battle'") &&
   !shell.includes("name:'battle->fighter'") &&
   shell.includes('Battle is NOT a Mechanical Door route'));
-check('old bespoke Battle transition is removed', !shell.includes('#battleTransition') && !shell.includes('id="battleTransition"'));
+// R52 / N3 (owner law): the canonical Gold rail transition IS the battle-entry
+// beat again. What must stay true is that it is ONE authority and that the Door
+// never routes Battle (asserted by the checks around this one).
+check('the canonical rail transition is the battle-entry beat, driven by the adapter',
+  shell.includes('id="battleTransition"') && shell.includes('phase-clamp') && shell.includes('phase-handoff')
+  && !shell.includes('transitionSound(') && !shell.includes('battleTransitionToken'));
 check('active HUD/UI transition still serializes Escape/input', shell.includes('window.APEX_SCENE_TRANSITION?.active?.()'));
 check('Battle lazy-load remains lock-in scoped without using the Door',
   shell.includes("APEX_GOLD.prepareSurface('battle',{heroIds})") &&

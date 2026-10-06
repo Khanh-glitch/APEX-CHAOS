@@ -168,6 +168,32 @@ check('the flattened rig asset list is exported for the app to publish',
     && /heroBattleRigs/.test(gen));
 }
 
+// ── 4b. the asset AUDIT itself classifies them as shipping ───────────────────
+// The audit is what the prune obeys, so the gate re-runs it (it writes the
+// git-ignored reports/asset-audit.json) and proves the composed rig files are no
+// longer LEGACY_NON_SHIPPING — the exact classification that deleted Magnet's
+// 55-file rig and left the hero with no visuals at all.
+{
+  const { spawnSync } = await import('node:child_process');
+  const run = spawnSync(process.execPath, ['tools/assetAudit.mjs'], { cwd: REPO, encoding: 'utf8' });
+  const auditPath = path.join(REPO, 'reports', 'asset-audit.json');
+  if (run.status !== 0 || !fs.existsSync(auditPath)) {
+    check('the asset audit runs (single source of truth for the prune)', false, String(run.stderr || '').slice(0, 200));
+  } else {
+    const audit = JSON.parse(fs.readFileSync(auditPath, 'utf8'));
+    const byPath = new Map((audit.assets || []).map((a) => [a.path, a]));
+    const all = Object.values(rigTable).flat();
+    const missing = all.filter((u) => !byPath.has(u));
+    const legacy = all.filter((u) => (byPath.get(u) || {}).classification === 'LEGACY_NON_SHIPPING');
+    check('the audit knows every declared rig file', missing.length === 0, `${missing.length} unknown`);
+    check('no declared rig file is classified LEGACY_NON_SHIPPING',
+      legacy.length === 0, legacy.slice(0, 3).join(' '));
+    const magnetLegacy = (rigTable.magnet || []).filter((u) => (byPath.get(u) || {}).classification === 'LEGACY_NON_SHIPPING');
+    check('the magnet rig is shipping-classified (owner report: no visuals in battle)',
+      magnetLegacy.length === 0 && (rigTable.magnet || []).length >= 50);
+  }
+}
+
 // ── 5. the pruned dist actually carries them ─────────────────────────────────
 {
   const DIST = path.join(REPO, 'dist');
