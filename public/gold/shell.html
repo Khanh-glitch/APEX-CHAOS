@@ -983,6 +983,29 @@ section.story.e-story .location,section.story.e-story .copy{margin-left:0!import
 #stage.fighter-bot .fighterIdentityZone.p2{right:3.2vw!important;width:30vw!important}
 #stage.fighter-bot .fighterIdentityZone.p2 .fighterIdentity{max-width:330px!important;margin-left:auto!important}
 
+/* ============================================================================
+   R57 OWNER LAW (2026-10-07) — the A1/A2/PASSIVE display at fighter pick.
+   The chips are the only place the player learns what the three slots DO before
+   the match, so they get ONE legible type law instead of the 5–8px sizes the
+   per-breakpoint overrides had stacked up (measured 7.9px at 1280, 6px at 390).
+   Role and key cap are separate marks: the role is the link to the battle HUD
+   ("ABILITY 1" / "ACTIVE WINDOW"), the key cap is the link to the keyboard law.
+   This block is the LAST word on chip typography, so one law wins everywhere.
+   ========================================================================== */
+.skillChip{min-width:0;max-width:100%;gap:6px;font-size:clamp(10px,.78vw,12.5px)!important;letter-spacing:.055em}
+.skillChip .skillType{min-width:0;height:auto;padding:2px 6px;font-size:clamp(8.5px,.62vw,10px)!important;letter-spacing:.13em}
+.skillChip.is-passive .skillType{color:var(--orange)}
+.skillChip .keycap{min-width:clamp(19px,1.5vw,24px)!important;height:clamp(19px,1.5vw,24px)!important;padding:0 4px;margin:0;font-size:clamp(8.5px,.6vw,10px)!important}
+@media(orientation:portrait){
+  .skillChip{font-size:clamp(9.5px,2.6vw,11.5px)!important;gap:5px}
+  .skillChip .skillType{font-size:clamp(8px,2.1vw,9.5px)!important}
+  .skillChip .keycap{min-width:clamp(18px,5vw,22px)!important;height:clamp(18px,5vw,22px)!important;font-size:clamp(7.5px,1.9vw,9px)!important}
+}
+@media(max-height:430px){
+  .skillChip{font-size:9.5px!important}
+  .skillChip .skillType,.skillChip .keycap{font-size:8px!important}
+}
+
 @media(max-width:980px) and (orientation:landscape){
   .fighterIdentityZone.p1 .fighterIdentity,.fighterIdentityZone.p2 .fighterIdentity{left:auto!important;right:auto!important;top:auto!important;bottom:auto!important}
   #stage.fighter-bot .fighterIdentityZone.p2{right:2vw!important;width:29vw!important}
@@ -1819,9 +1842,18 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
 
   function skillMarkup(id,player){
     const s=resolvedSkillCopy(id);
-    const a1=player==='p1'?'<span class="keycap">J</span>':'<span class="skillType">A1</span>';
-    const a2=player==='p1'?'<span class="keycap">K</span>':'<span class="skillType">A2</span>';
-    return `<span class="skillChip"><span style="color:var(--orange);font-size:8px;letter-spacing:.12em">PASSIVE</span>${s[0]}</span><span class="skillChip">${a1}${s[1]}</span><span class="skillChip">${a2}${s[2]}</span>`;
+    // OWNER LAW (2026-10-07) — ONE language for the A1/A2/PASSIVE display on
+    // EVERY side: ROLE (PASSIVE / A1 / A2) + the ability NAME, and the accepted
+    // KEY cap only when a human owns that side (P1 J/K, Local P2 NUM1/NUM2; the
+    // CPU side has no human key). The old markup REPLACED the role with the key
+    // on P1, DROPPED the key on a human P2, and styled PASSIVE as an inline 8px
+    // label — so the pick screen the owner reads never matched the battle HUD it
+    // feeds ("ABILITY 1" / "ACTIVE WINDOW") nor the accepted key law.
+    const key=player==='p1'?['J','K']:(battleMode!=='bot'?['NUM1','NUM2']:null);
+    const chip=(role,name,k)=>'<span class="skillChip'+(k==null?' is-passive':'')+'">'
+      +(k==null||!key?'':'<span class="keycap">'+key[k]+'</span>')
+      +'<span class="skillType">'+role+'</span>'+name+'</span>';
+    return chip('PASSIVE',s[0],null)+chip('A1',s[1],0)+chip('A2',s[2],1);
   }
 
   function renderArt(container,id,flip){

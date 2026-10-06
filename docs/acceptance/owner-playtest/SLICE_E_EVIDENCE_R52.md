@@ -453,3 +453,52 @@ rubber-stores-reflected) — không liên quan thay đổi này.
 - Kết quả: `[ROBOT PRESENTATION GATES] 50/50` (trước 40/50) và **đã được thêm vào chain chính**
   `test:r50-pre-transition` (`pnpm test:hero-rework:robot-gates`) để không mục lại âm thầm.
 - Chain xanh sau tất cả: `pnpm build` BUILD=0, `test:r50-pre-transition` SUITE=0 / 23 PASS + 50/50 robot gates.
+
+## §E9 — R57 (2026-10-07): hai yêu cầu mới của owner + hiển thị A1/A2/PASSIVE ở pick
+
+### 1. LOCAL 1v1: nút P2 là CẶP NUMPAD BÊN PHẢI (đo trực tiếp)
+Luật engine đã đúng (`heroReworkRuntime`: map theo `e.code` = `{Numpad1:'A1',Numpad2:'A2'}`, hàng số trên KHÔNG map).
+Bằng chứng sống tại HEAD (`tools/probe/keys.mjs`, phím bấm CDP thật, đọc telemetry của chính combatant):
+```
+Digit1  dCasts=0 dFails=0   (hàng trên: trơ)
+Digit2  dCasts=0 dFails=0   (hàng trên: trơ)
+Numpad1 dCasts=1            -> P2 A1
+Numpad2 dCasts=1            -> P2 A2
+```
+⇒ `topRowInert=true`, `numpadRouted=true`, `__localP2KeysInstalled=true`, mode=LOCAL.
+
+### 2. BOT: người chơi chọn fighter cho CPU (đo trực tiếp)
+`tools/probe/botpick.mjs hunter`: chọn P1 = ROBOT → LOCK IN chuyển slot sang BOT → bấm HUNTER → vào trận:
+`IN_BATTLE {p1:"ROBOT", p2:"HUNTER", p2NameShown:"HUNTER", p2Portrait:battle_avatar.webp, mode:"BOT", botId:"HUNTER"}`
+⇒ đối thủ spawn ĐÚNG fighter người chơi chọn (một authority sản xuất, không bản sao).
+Âm tính: `BOT_KEY_CALLS []` — trong BOT, phím người không bao giờ cast P2 (CPU thật).
+
+### 3. Sửa GỐC nhãn phím: badge giờ GỌI TÊN đúng cặp khoá
+Trước: badge ghi `1` / `2` (đọc như hàng số) và bị cắt thành `UM 2` ở ô P2 (margin của `direction:rtl`
+hẹp hơn chính chữ; `letter-spacing` kế thừa làm chữ rộng ra, `clip-path` của keycap cắt mất glyph đầu).
+Sửa: `keyLabelsForSide` trả `NUM1`/`NUM2` cho LOCAL P2 (khớp dòng điều khiển `LOCAL · NUM 1 2`),
+và patch `HUD-H28b`: `.sk-key` là KEY CAP — `letter-spacing:.02em;white-space:nowrap;width:max-content`,
+không bao giờ để box hẹp hơn chữ của nó. Đo lại (`keys.mjs`):
+```
+desk  p2 [NUM1 w=49 need=49, NUM2 w=47 need=47]  BADGE_CLIPPED []
+port  p2 [NUM1 w=44 need=44, NUM2 w=44 need=44]  BADGE_CLIPPED []
+land  p2 [NUM1 w=44 need=44, NUM2 w=46 need=44]  BADGE_CLIPPED []
+```
+Gate mới: `test:gold-battle-hud-adaptation` (29) + `test:side-aware-input` (35) khoá cả hai luật.
+
+### 4. A1/A2/PASSIVE ở pick — một ngôn ngữ cho MỌI bên (chủ động, mục 12)
+Trước: chip hiển thị 5–8px (đo 7.9px @1280, 6px @390) và LỆCH NHAU: P1 hiện `J`+tên kỹ năng (mất nhãn A1/A2),
+P2 hiện `A1`/`A2` không có phím (dù P2 là người chơi trong Local), badge PASSIVE là label inline 8px bị ép dòng.
+Sau (luật R57, ghim trong `test:pick-presentation` 15 check):
+- Mọi chip = **VAI TRÒ (PASSIVE / A1 / A2) + TÊN kỹ năng**, kèm **keycap chỉ khi bên đó do người chơi điều khiển**:
+  P1 `J/K`, Local P2 `NUM1/NUM2`, bên CPU không quảng cáo phím nào.
+  VD desk: `[J][A1] MAGNETIC ATTRACTION`, `[K][A2] MAGNETIC REPEL`, `[PASSIVE] TRAJECTORY CONTROL`.
+- Typography một luật: `clamp(10px,.78vw,12.5px)` desk, portrait `clamp(9.5px,2.6vw,11.5px)`, land `9.5px`;
+  role mark viền màu accent như HUD trận; PASSIVE dùng màu orange của shell.
+- Đo lại 4 tỉ lệ: 1280×720 10px, 390×844 10.14px, 844×390 9.5px, 360×780 9.5px — **không overflow**, không cắt chữ.
+- Ảnh: `fx/r57-pick-chips-desk.png`, `fx/r57-pick-chips-port.png`.
+
+### Kiểm chứng sau cùng (checkpoint này)
+`pnpm test:r50-pre-transition` SUITE=0 / 23 suite PASS; `pnpm build` BUILD=0; cutover `--check` 70 file OK;
+`test:runtime-revision` đã relock (39 runtime); `test:pick-presentation` 15, `test:gold-battle-hud-adaptation` 29,
+`test:side-aware-input` 35, `test:gold-fighter-pick-adaptation` 14, `test:pick-band-law` 66, `test:gold-revision-integrity` 16.
