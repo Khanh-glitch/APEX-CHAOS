@@ -377,10 +377,7 @@
     "L-top-row Digit2 never casts (owner correction: the right-hand pair only)": {
       "pass": true,
       "detail": {
-        "events": [
-          "BodyCollision/undefined/undefined",
-          "BodyCollision/undefined/undefined"
-        ]
+        "events": []
       }
     },
     "L-one press never fires both sides": {

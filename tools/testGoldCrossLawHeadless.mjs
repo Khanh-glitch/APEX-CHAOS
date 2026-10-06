@@ -816,8 +816,10 @@ async function main() {
     && localP2Casts.map((c) => c.slot).join(',') === 'A1,A2', {
     p2: localRun.p2Name, casts: localP2Casts.map((c) => c.slot), all: abilityCalls.map((c) => ({ slot: c.slot, side: c.side, name: c.name })),
   });
-  gate('law3-local-hud-labels-are-1-and-2', !!localHudLabels
-    && JSON.stringify(localHudLabels[1]) === JSON.stringify(['1', '2'])
+  // OWNER CORRECTION (2026-10-07): the badge must NAME the accepted pair. The
+  // right-hand numpad pair casts; a bare "1"/"2" badge read as the number row.
+  gate('law3-local-hud-labels-name-the-right-hand-numpad-pair', !!localHudLabels
+    && JSON.stringify(localHudLabels[1]) === JSON.stringify(['NUM1', 'NUM2'])
     && JSON.stringify(localHudLabels[0]) === JSON.stringify(['J', 'K']), { labels: localHudLabels, mode: localRun.battleMode });
   // the Local seam is narrow: it never switches the P2 AI master on
   const botStillCpu = win.eval(`(() => {

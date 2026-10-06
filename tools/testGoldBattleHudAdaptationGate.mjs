@@ -150,6 +150,7 @@ check('R49 battle reveal awaits production READY before exposing Gold HUD',
 // so the two skill slots read as excluded from the hit. The impact therefore
 // also stamps the tiles with the source accent for the burst window.
 const r50c = read('tools/goldBattleHudR50c.mjs');
+const cutover = read('tools/buildGoldCutover.mjs');
 check('the impact rule reaches the ability tiles on EVERY layout',
   hud.includes('#hud .side.is-panel-hit .skill{background:linear-gradient(90deg,color-mix(in srgb,var(--hitAcc,#ff8a1e) 20%,#161b20),#0d1013)}')
   && hud.includes('#hud .side.is-panel-hit .skill::after{border-color:color-mix(in srgb,var(--hitAcc,#ff8a1e) 72%,transparent)}')
@@ -173,6 +174,14 @@ check('the generator adapter owns the change (never hand-edited output)',
   || r50c.includes('panelHitWindow(v,accent)'));
 check('the R50C adapter still asserts the panel-hit invariant',
   r50c.includes("'is-panel-hit'") && r50c.includes("'--hitAcc'"));
+
+// OWNER LAW (2026-10-07): a key badge is a key cap — it must fit its own text
+// in BOTH directions (mirrored Local P2 renders direction:rtl) and must never
+// let its clip-path eat a glyph (the P2 A2 badge painted as "UM 2").
+check('key badges fit their own text (no display tracking, never clipped)',
+  /\.sk-key\{letter-spacing:\.02em;white-space:nowrap;width:max-content\}/.test(hud));
+check('the key-badge law is owned by the generator, never hand-edited',
+  cutover.includes("id: 'HUD-H28b'"));
 
 console.log('GOLD BATTLE HUD ADAPTATION GATE (R49D + R48B production truth)');
 for (const line of pass) console.log(line);

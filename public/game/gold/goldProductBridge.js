@@ -1401,11 +1401,17 @@
   }
   // Accepted production key law per side (see heroReworkRuntime J/K and the
   // Local P2 right-hand numpad seam: Numpad1 -> A1, Numpad2 -> A2).
+  //
+  // OWNER CORRECTION (2026-10-07): the tile badge used to read "1"/"2" while
+  // the accepted physical pair is the RIGHT-HAND NUMPAD. A bare "1" reads as
+  // the number row, so the badge now names the pair it means ("NUM1"/"NUM2")
+  // and matches the desk control line ("LOCAL · NUM 1 2"). This is a copy
+  // truth fix, not a second input law: the accepted codes are unchanged.
   function keyLabelsForSide(sideIndex) {
     const arsenal = window.APEX_ARSENAL;
     const battleMode = arsenal && arsenal.state ? arsenal.state.battleMode : null;
     if (sideIndex === 0) return ['J', 'K'];
-    return battleMode === 'BOT' ? ['CPU', 'CPU'] : ['1', '2'];
+    return battleMode === 'BOT' ? ['CPU', 'CPU'] : ['NUM1', 'NUM2'];
   }
 
   let pumpId = 0;

@@ -485,6 +485,21 @@ function buildBattleHud() {
       ),
     },
     {
+      id: 'HUD-H28b',
+      why: 'the key badge is a KEY CAP: it must fit its own text and never let its clip-path eat a glyph (mirrored Local P2 badge rendered "UM 2" instead of "NUM2")',
+      find: /\.sk-key\{min-width:var\(--keyS,20px\);height:var\(--keyS,20px\);padding:0 4px;display:inline-grid;place-items:center;font-size:var\(--keyF,11px\);font-weight:800;color:#060706;background:var\(--acc\);line-height:1;clip-path:polygon\(0 0,100% 0,100% calc\(100% - 5px\),calc\(100% - 5px\) 100%,0 100%\)\}/,
+      replace: (
+        `.sk-key{min-width:var(--keyS,20px);height:var(--keyS,20px);padding:0 4px;display:inline-grid;place-items:center;font-size:var(--keyF,11px);font-weight:800;color:#060706;background:var(--acc);line-height:1;clip-path:polygon(0 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%)}\n` +
+        `/* OWNER LAW (2026-10-07): the badge is a key cap, not a tracked-out label.\n` +
+        `   The display letter-spacing it inherited made it both wider than intended\n` +
+        `   and WIDER THAN ITS OWN BOX in the mirrored (direction:rtl) Local P2 tile,\n` +
+        `   where clip-path then cut the first glyph — "NUM2" painted as "UM 2"\n` +
+        `   while the identical A1 badge fit. A key cap fits its text in BOTH\n` +
+        `   directions, so: no display tracking, never wraps, box always max-content. */\n` +
+        `.sk-key{letter-spacing:.02em;white-space:nowrap;width:max-content}`
+      ),
+    },
+    {
       id: 'HUD-H26',
       why: 'donor Escape handler: install once + only while this mount is still connected',
       find: /  document\.addEventListener\('keydown',e=>\{\n    if\(e\.key==='Escape'\)\{\n      e\.preventDefault\(\);e\.stopImmediatePropagation\(\);\n      parent\.postMessage\(\{type:'APEX_CHAOS_BATTLE_EXIT'\},'\*'\);\n    \}\n  \},true\);/,

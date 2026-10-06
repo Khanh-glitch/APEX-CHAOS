@@ -214,6 +214,13 @@ kbd{font:inherit}
 .sk-info{grid-area:info;display:flex;flex-direction:column;justify-content:center;gap:var(--infoGap,5px);padding:var(--infoPad,8px 12px);min-width:0}
 .sk-top{display:flex;align-items:center;gap:7px;min-width:0}
 .sk-key{min-width:var(--keyS,20px);height:var(--keyS,20px);padding:0 4px;display:inline-grid;place-items:center;font-size:var(--keyF,11px);font-weight:800;color:#060706;background:var(--acc);line-height:1;clip-path:polygon(0 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%)}
+/* OWNER LAW (2026-10-07): the badge is a key cap, not a tracked-out label.
+   The display letter-spacing it inherited made it both wider than intended
+   and WIDER THAN ITS OWN BOX in the mirrored (direction:rtl) Local P2 tile,
+   where clip-path then cut the first glyph — "NUM2" painted as "UM 2"
+   while the identical A1 badge fit. A key cap fits its text in BOTH
+   directions, so: no display tracking, never wraps, box always max-content. */
+.sk-key{letter-spacing:.02em;white-space:nowrap;width:max-content}
 .sk-slot{font-size:9.5px;letter-spacing:.24em;color:var(--mute);white-space:nowrap}
 .sk-name{font-size:var(--skNF,16px);font-weight:800;letter-spacing:.06em;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sk-desc{font-size:11px;color:var(--mute);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

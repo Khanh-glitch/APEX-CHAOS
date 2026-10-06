@@ -68,6 +68,14 @@ check('P1Press/P2Press derive from the owner side',
 check('P2 AI supplies the P2 side explicitly', hr.includes("{ side: 'p2', source: 'ai' }"));
 check('local P2 keys stay LOCAL-only (BOT keeps the real CPU)',
   /AQS\.state\.battleMode !== 'LOCAL'/.test(hr));
+// OWNER CORRECTION (2026-10-07): the accepted physical pair is the RIGHT-HAND
+// numpad (e.code), so the top-row Digit1/Digit2 pair must never be mapped, and
+// the tile/control COPY must name the pair it means instead of a bare "1".
+check('the Local P2 map is the right-hand numpad pair only',
+  /const LOCAL_P2_ABILITY_KEYS = \{ Numpad1: 'A1', Numpad2: 'A2' \};/.test(hr)
+  && !/Digit1: 'A1'/.test(hr) && !/Digit2: 'A2'/.test(hr));
+check('the Local P2 badge names the numpad pair (never a bare 1/2)',
+  /return battleMode === 'BOT' \? \['CPU', 'CPU'\] : \['NUM1', 'NUM2'\];/.test(bridge));
 check('generic AbilityPress exists', hr.includes("AIL.bus.emit('AbilityPress', press)"));
 check('Gold cast routing prefers payload side', bridge.includes("payload.side === 'p2'") && bridge.includes("payload.side === 'p1'"));
 check('hero match is fallback only', bridge.includes('Backward compatibility for old recorded events only'));
