@@ -7,11 +7,17 @@
 //      (no createOscillator, no per-event AudioContext).
 //   2. Battle entry speaks through the ONE semantic UI-SFX helper exactly once
 //      per cue, and the reveal itself never re-fires a cue.
-//   3. The superseded #battleTransition authority (DOM/CSS/phases/token) is
-//      gone: Mechanical Door V4 routes boot + the two Lucky Draw handoffs only.
-//   4. Battle owns its authored 430 ms clip-path shutter reveal, production
-//      READY lands BEFORE `battle-hud-open`, and a failed start throws instead
-//      of revealing donor defaults.
+//   3. REWRITTEN IN R52 (owner law N3): the owner's own Gold rail transition IS
+//      the battle-entry transition. The R51 assertion that #battleTransition had
+//      to be GONE was correct while the Mechanical Door owned every scene swap;
+//      the owner then reported the authored beat was missing from the product.
+//      The law now is the opposite one — #battleTransition (DOM + canonical CSS
+//      + phase vocabulary + identity copy) is REQUIRED and is driven by the ONE
+//      battle-entry scheduler — while Battle still has no Mechanical Door route
+//      (the Door keeps boot + the two Lucky Draw handoffs only).
+//   4. The reveal is the authored 430 ms beat (rails open + compositor sliver
+//      open, `is-reveal`), production READY lands BEFORE `battle-hud-open`, and
+//      a failed start throws instead of revealing donor defaults.
 //   5. All 18 UI SFX pack files exist and hash-verify against the manifest.
 // ---------------------------------------------------------------------------
 import { readFileSync, existsSync } from 'node:fs';
@@ -220,26 +226,58 @@ ok(!/new\s+(window\.)?(AudioContext|webkitAudioContext)/.test(AUTH_SRC), 'the UI
 ok((AUTH_SRC.match(/new AudioCtor\(/g) || []).length === 1, 'the authority constructs elements in exactly one place');
 ok(/module\.exports/.test(AUTH_SRC), 'the authority remains require-able for tests');
 
-// ── 6. the superseded battle transition used to live here; the law now is that
-// it must be GONE, and that the Door routes only the two Lucky Draw handoffs.
-ok(!/#battleTransition|id="battleTransition"/.test(SHELL),
-  'no superseded #battleTransition authority survives');
-ok(!/bt-(vignette|rail|plate|seam|core|scan)/.test(SHELL),
-  'no superseded transition geometry survives');
+// ── 6. the owner's Gold rail transition is the battle-entry transition (N3) ─
+// Old law (R51, superseded by the owner report): "#battleTransition must be
+// gone". New law: it is REQUIRED, it is the canonical Gold source (geometry,
+// phase vocabulary, identity copy), and it is driven by the ONE scheduler.
+ok(/id="battleTransition" aria-hidden="true"/.test(SHELL),
+  'the canonical #battleTransition DOM is present');
+for (const cls of ['bt-vignette', 'bt-rail bt-p1', 'bt-rail bt-p2', 'bt-plate', 'bt-kicker',
+  'bt-name', 'bt-state', 'bt-seam', 'bt-core', 'bt-scan']) {
+  ok(new RegExp(`class="${cls.replace(/ /g, '\\s+')}"`).test(SHELL),
+    `canonical rail geometry present: ${cls}`);
+}
+ok(/data-bt-name="p1"/.test(SHELL) && /data-bt-name="p2"/.test(SHELL)
+  && /data-bt-state="p1"/.test(SHELL) && /data-bt-state="p2"/.test(SHELL)
+  && /data-bt-kicker="p2"/.test(SHELL) && /data-bt-core/.test(SHELL),
+  'canonical identity hooks are present');
+ok(/#battleTransition\{position:fixed;inset:0;z-index:10000/.test(SHELL),
+  'the canonical rail CSS survived the cutover (z-index above the battle host)');
+ok(/#battleTransition\.phase-clamp \.bt-p1,#battleTransition\.phase-clamp \.bt-p2\{transform:translateX\(0\)\}/.test(SHELL)
+  && /#battleTransition\.phase-open \.bt-p1\{transform:translateX\(-102%\);transition-duration:430ms\}/.test(SHELL),
+  'the canonical clamp/open rail law is present (430 ms authored beat)');
+ok(/#battleTransition\.is-horizontal/.test(SHELL) && /#battleTransition\.is-bot\.phase-clamp \.bt-scan/.test(SHELL),
+  'the is-horizontal (portrait) and is-bot variants are present');
+const phaseOrder = ["classList.add('is-active','phase-lock')", "classList.add('phase-clamp')",
+  "classList.add('phase-seam')", "classList.add('phase-open')", "classList.add('phase-handoff')"]
+  .map((needle) => SHELL.indexOf(needle));
+ok(phaseOrder.every((idx) => idx > -1) && phaseOrder.every((idx, i) => i === 0 || idx > phaseOrder[i - 1]),
+  'the scheduler plays the canonical phase order');
+ok(SHELL.includes("p2='TARGET ACQUIRED'") || SHELL.includes("'TARGET ACQUIRED'") || /TARGET ACQUIRED/.test(SHELL),
+  'the BOT channel copy survives (TARGET ACQUIRED)');
+ok(/SOLO COMBAT CHANNEL/.test(SHELL) && /DUEL COMBAT CHANNEL/.test(SHELL),
+  'both BOT and LOCAL channel copy survive');
+ok(/const horizontal=!bot&&matchMedia\('\(orientation:portrait\)'\)\.matches;/.test(SHELL),
+  'rail orientation follows the real screen aspect (donor law)');
+// The Door keeps boot + the two Lucky Draw handoffs, and never routes battle.
 ok(/name:'home->lucky'/.test(SHELL) && /name:'lucky->home'/.test(SHELL),
   'the Door routes exactly the two Lucky Draw scene handoffs');
 ok(!/name:'fighter->battle'|name:'battle->fighter'/.test(SHELL),
-  'battle has no Mechanical Door route');
+  'battle still has no Mechanical Door route');
+ok(!/transitionSound\(|battleTransitionToken/.test(SHELL),
+  'no second (superseded) transition authority came back with the rails');
 ok(SHELL.includes('body.battle-transition-active'),
   'the battle reveal owns its transition-active body state');
 ok(/#battleHudHost\.is-transitioning\{clip-path:inset\(0 49\.55% 0 49\.55%\)[^}]*transition:clip-path 430ms/.test(SHELL),
-  'the authored 430 ms shutter CSS is present');
+  'the host compositor sliver opens over the same authored 430 ms beat');
 ok(/#battleHudHost\.is-transitioning\.is-reveal\{clip-path:inset\(0\)/.test(SHELL),
-  'the shutter reveals by clip-path, not a generic fade');
-ok(/is-horizontal/.test(SHELL), 'is-horizontal shutter variant preserved');
+  'the reveal opens the compositor, not a generic fade');
+ok(/is-horizontal/.test(SHELL), 'is-horizontal variant preserved');
 ok(/prefers-reduced-motion/.test(SHELL), 'prefers-reduced-motion handling preserved');
-const rmBlock = /@media\s*\(prefers-reduced-motion:\s*reduce\)([\s\S]{0,400})/.exec(SHELL);
-ok(!!rmBlock && /1ms/.test(rmBlock[1]), 'reduced-motion collapses durations to 1ms');
+ok(/reduced\?Math\.min\(ms,24\):ms/.test(SHELL),
+  'the one beat scheduler collapses to the 24 ms reduced-motion floor');
+ok(/@media\(prefers-reduced-motion:reduce\)\{#battleTransition \.bt-rail/.test(SHELL),
+  'the canonical reduced-motion rule for the rails is present');
 
 // ── 7. production READY lands BEFORE the compositor is revealed ────────────
 const liveIdx = SHELL.indexOf('const liveReady=await setBattleLive();');
@@ -252,8 +290,16 @@ ok(preloadIdx > -1 && preloadIdx < liveIdx,
   'the HUD is mounted hidden (is-preloading) while production loads');
 
 // ── 8. the generator owns the change (never hand-edited output) ────────────
-for (const id of ['SHL-S28', 'SHL-S29', 'SHL-S30', 'SHL-S31', 'SHL-S32', 'SHL-S33', 'SHL-S34',
-  'SHL-S35', 'SHL-S36', 'SHL-S37', 'SHL-S38']) {
+// R52: SHL-S33..S38 retimed the SUPERSEDED donor scheduler and could never
+// reach the shipped shell (the R50K adapter is the last writer of that region);
+// they were deleted with it. The live battle-entry owner is the adapter region.
+const ADAPTER = read('tools/goldShellR50k.mjs');
+ok(ADAPTER.includes('const BATTLE_ENTRY_REGION = `'),
+  'the battle-entry scheduler is declared in the generator adapter');
+ok(/BATTLE_ENTRY_REGION,\n\s*'Battle entry lifecycle/.test(ADAPTER),
+  'the adapter writes that region into the shell (never hand-edited output)');
+ok(!/SHL-S3[3-8]/.test(GEN), 'the dead donor-retiming patches are gone');
+for (const id of ['SHL-S28', 'SHL-S29', 'SHL-S30', 'SHL-S31', 'SHL-S32']) {
   ok(GEN.includes(`id: '${id}'`), `generator patch ${id} is declared`);
 }
 ok(!/SHL-S2[0-9]/.test(GEN.replace(/SHL-S2[0-8]/g, '')) || GEN.includes("id: 'SHL-S27'"), 'prior patches intact');
@@ -267,8 +313,8 @@ if (fails.length) {
   process.exit(1);
 }
 console.log('No synthetic oscillator authority survives; battle entry speaks through the');
-console.log('ONE semantic UI-SFX helper once per cue; the superseded #battleTransition');
-console.log('authority is gone and the Door routes only the two Lucky Draw handoffs;');
-console.log('production READY lands before the authored 430 ms shutter reveal; the 18');
-console.log('ui-sfx pack files hash-verify against the manifest.');
+console.log('ONE semantic UI-SFX helper once per cue; the canonical #battleTransition rail');
+console.log('transition IS the battle-entry beat and the Door routes only the two Lucky');
+console.log('Draw handoffs; production READY lands before the authored 430 ms reveal; the');
+console.log('18 ui-sfx pack files hash-verify against the manifest.');
 process.exit(0);

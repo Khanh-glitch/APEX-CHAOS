@@ -28,15 +28,185 @@ function replaceOnce(src, needle, replacement, label) {
   return src.slice(0, a) + replacement + src.slice(a + needle.length);
 }
 
+// ── R52 / N3 — the ONE owner of the Battle entry lifecycle ──────────────────
+// The owner's Gold rail transition (#battleTransition: two rail plates, seam,
+// core) is the battle-entry transition. This region drives its canonical phase
+// vocabulary (phase-lock -> phase-clamp -> phase-seam -> phase-open ->
+// phase-handoff, is-bot / is-horizontal variants) and keeps the R51 readiness
+// order that replaced the donor's own lifecycle: production READY + the first
+// truth frame land BEFORE the compositor is revealed, and a failed start rolls
+// the whole entry back instead of showing donor defaults.
+const BATTLE_ENTRY_REGION = `  let battleEntryToken=0;
+  async function setBattleLive(){
+    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('battle');
+    const ready=APEX_GOLD.onBattleLive
+      ? await Promise.resolve(APEX_GOLD.onBattleLive({mode:battleMode,p1:p1Hero,p2:p2Hero}))
+      : false;
+    if(ready!==true||!window.APEX_GOLD_HUD)return false;
+    // Production projection is now authoritative. Mark the preview handoff
+    // closed so no later HUD_READY/load callback can overwrite live
+    // skill/weapon truth with donor defaults.
+    battleHudConfig={...makeBattleConfig(true)};
+    window.postMessage({type:'APEX_CHAOS_BATTLE_LIVE'},'*');
+    return true;
+  }
+  function waitBattleHudMount(){
+    return new Promise((resolve,reject)=>{
+      battleHudReady=false;
+      const ready=()=>{battleHudReady=true;sendBattleHudConfig();resolve(true);};
+      battleHudFrame.onload=ready;
+      try{APEX_GOLD.mountBattleHud(decodeBattleHud(),ready)}
+      catch(error){reject(error)}
+    });
+  }
+  // Identity is the donor law: the rails carry the match-up (names, accents,
+  // BOT vs DUEL channel) and the rail orientation follows the real screen
+  // aspect, never a fixed axis.
+  function setTransitionIdentity(){
+    if(!battleTransition)return;
+    const bot=battleMode==='bot';
+    const p1=heroPayload(p1Hero,'newbot');
+    const p2=bot?heroPayload(botHeroId(),'newbot'):heroPayload(p2Hero,'newbot');
+    battleTransition.style.setProperty('--p1',p1.accent||'#ff941f');
+    battleTransition.style.setProperty('--p2',p2.accent||'#8bd8ff');
+    battleTransition.querySelector('[data-bt-name="p1"]').textContent=p1.name;
+    battleTransition.querySelector('[data-bt-name="p2"]').textContent=p2.name;
+    battleTransition.querySelector('[data-bt-state="p1"]').textContent='COMBAT LOCK';
+    battleTransition.querySelector('[data-bt-state="p2"]').textContent=bot?'TARGET ACQUIRED':'COMBAT LOCK';
+    battleTransition.querySelector('[data-bt-kicker="p2"]').textContent=bot?'CPU // TARGET':'P2 // FIGHTER';
+    battleTransition.querySelector('[data-bt-core]').textContent=bot?'SOLO COMBAT CHANNEL':'DUEL COMBAT CHANNEL';
+    const horizontal=!bot&&matchMedia('(orientation:portrait)').matches;
+    battleTransition.classList.toggle('is-horizontal',horizontal);
+    battleTransition.classList.toggle('is-bot',bot);
+    battleHudHost.classList.toggle('is-horizontal',horizontal);
+  }
+  function resetBattleTransitionVisuals(){
+    if(!battleTransition)return;
+    battleTransition.classList.remove('is-active','is-bot','is-horizontal','phase-lock','phase-clamp','phase-seam','phase-open','phase-handoff');
+    battleTransition.setAttribute('aria-hidden','true');
+    document.body.classList.remove('battle-transition-active');
+  }
+  function rollbackBattleEntry(){
+    battleEntryToken+=1;
+    document.body.classList.remove('battle-hud-open','battle-transition-active');
+    battleHudHost.classList.remove('is-open','is-preloading','is-transitioning','is-reveal','is-horizontal');
+    battleHudHost.setAttribute('aria-hidden','true');
+    resetBattleTransitionVisuals();
+    resumeParentRuntime();
+    battleHudFrame.onload=null;
+    APEX_GOLD.unmountBattleHud();
+    battleHudConfig=null;
+    battleHudReady=false;
+    screen='fighter';
+    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter');
+  }
+  // ONE beat scheduler: donor beats at production tempo, collapsed to the
+  // reduced-motion floor (24 ms) exactly like the authored source.
+  function battleBeat(ms,token){
+    return new Promise(resolve=>setTimeout(()=>resolve(token===battleEntryToken),reduced?Math.min(ms,24):ms));
+  }
+  async function launchBattleHud(){
+    if(!battleMode||!battleHudHost||!battleHudFrame||screen==='transition'||screen==='battle')return;
+    if(window.APEX_SCENE_TRANSITION?.active?.())return;
+    screen='transition';
+    // Battle is NOT a Mechanical Door route. It owns its own lifecycle and
+    // lazy-loads only when LOCK IN actually requests combat. The entry beat is
+    // a music-allowed scene surface; combat itself takes the music down.
+    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('transition');
+    const token=++battleEntryToken;
+    battleHudConfig=makeBattleConfig(false);
+    setTransitionIdentity();
+    battleTransition.classList.add('is-active','phase-lock');
+    battleTransition.setAttribute('aria-hidden','false');
+    document.body.classList.add('battle-transition-active');
+    try{
+      const heroIds=[p1Hero,battleMode==='bot'?botHeroId():p2Hero].filter(Boolean);
+      if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('battle',{heroIds});
+      if(token!==battleEntryToken)return;
+      if(!await battleBeat(180,token))return;
+      battleTransition.classList.add('phase-clamp');
+      if(!await battleBeat(240,token))return;
+      battleHudHost.setAttribute('aria-hidden','false');
+      battleHudHost.classList.add('is-preloading');
+      await waitBattleHudMount();
+      if(token!==battleEntryToken)return;
+      sendBattleHudConfig();
+      await window.APEX_SCENE_TRANSITION?.prepareElement?.(battleHudHost);
+      if(token!==battleEntryToken)return;
+      freezeParentRuntime();
+      battleHudHost.classList.remove('is-preloading');
+      battleHudHost.classList.add('is-transitioning');
+      if(!await battleBeat(240,token))return;
+      battleTransition.classList.add('phase-seam');
+      // OWNER READY LAW: production must be live with the first truth frame
+      // applied BEFORE the compositor is revealed. A failed start rolls the
+      // entire entry back — donor defaults are never shown to the player.
+      const liveReady=await setBattleLive();
+      if(token!==battleEntryToken)return;
+      if(liveReady!==true)throw new Error('Battle runtime did not report READY');
+      // The reveal IS the authored beat: the rails open (430 ms CSS) while the
+      // compositor sliver opens into the full stage.
+      battleTransition.classList.add('phase-open');
+      battleHudHost.classList.add('is-reveal');
+      if(!await battleBeat(430,token))return;
+      document.body.classList.add('battle-hud-open');
+      document.body.classList.remove('battle-transition-active');
+      battleTransition.classList.add('phase-handoff');
+      battleHudHost.classList.remove('is-transitioning','is-reveal','is-horizontal');
+      battleHudHost.classList.add('is-open');
+      screen='battle';
+      if(!await battleBeat(210,token))return;
+      resetBattleTransitionVisuals();
+      battleHudHost.classList.add('is-open');
+      battleHudHost.setAttribute('aria-hidden','false');
+    }catch(error){
+      if(token!==battleEntryToken)return;
+      rollbackBattleEntry();
+      console.warn('[battle-entry] failed',error);
+    }
+  }
+  function cancelBattleTransition(){
+    if(screen!=='transition')return false;
+    rollbackBattleEntry();
+    return true;
+  }
+  function closeBattleHud(){
+    if(screen==='transition'){cancelBattleTransition();focusScreen('fighter');return}
+    if(!battleHudHost?.classList.contains('is-open'))return;
+    battleEntryToken+=1;
+    battleHudHost.classList.remove('is-open','is-preloading','is-transitioning','is-reveal','is-horizontal');
+    battleHudHost.setAttribute('aria-hidden','true');
+    document.body.classList.remove('battle-hud-open','battle-transition-active');
+    APEX_GOLD.exitBattle&&APEX_GOLD.exitBattle();
+    resumeParentRuntime();
+    battleHudFrame.onload=null;
+    APEX_GOLD.unmountBattleHud();
+    battleHudConfig=null;
+    battleHudReady=false;
+    screen='fighter';
+    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter');
+    focusScreen('fighter');
+  }
+  addEventListener('message',e=>{
+    const d=e.data;
+    if(!d)return;
+    if(d.type==='APEX_CHAOS_HUD_READY'){battleHudReady=true;sendBattleHudConfig();}
+    else if(d.type==='APEX_CHAOS_BATTLE_EXIT')closeBattleHud();
+  });
+
+`;
+
 export function adaptGoldShellR50k(input) {
   let out = String(input || '');
 
-  // Remove the superseded bespoke Battle transition. Mechanical Door V4 owns
-  // boot + navigational HUD/UI transitions only; Battle has no Door route.
-  out = replaceRangeOnce(out, '\n#battleTransition{', '\n</style>', '', 'legacy Battle transition CSS');
-  out = replaceRangeOnce(out, '<div id="battleTransition" aria-hidden="true">', '<div id="battleHudHost" aria-hidden="true">', '', 'legacy Battle transition DOM');
-  out = replaceOnce(out, "  const battleTransition=document.getElementById('battleTransition');\n", '', 'legacy Battle transition node');
-  out = replaceOnce(out, '  let battleTransitionToken=0;\n', '', 'legacy Battle transition token');
+  // ── R52 / N3: the owner's Gold rail transition is KEPT ─────────────────
+  // R50K deleted #battleTransition here and battle entry fell back to a bare
+  // clip-path shutter, so the authored beat (two rail plates + seam + core)
+  // disappeared from the product. The owner's own transition IS the battle
+  // entry transition, so the CSS, the DOM and its node reference are restored
+  // from the canonical source; only the dead phase token is dropped (the ONE
+  // scheduler below owns the token now).
+  out = replaceOnce(out, '  let battleTransitionToken=0;\n', '', 'dead legacy Battle transition token');
 
   out = replaceRangeOnce(
     out,
@@ -57,8 +227,8 @@ export function adaptGoldShellR50k(input) {
     out,
     "  function setBattleLive(){",
     "  function skillMarkup(id,player){",
-    "  let battleEntryToken=0;\n  async function setBattleLive(){\n    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('battle');\n    const ready=APEX_GOLD.onBattleLive\n      ? await Promise.resolve(APEX_GOLD.onBattleLive({mode:battleMode,p1:p1Hero,p2:p2Hero}))\n      : false;\n    if(ready!==true||!window.APEX_GOLD_HUD)return false;\n    // Production projection is now authoritative. Mark the preview handoff\n    // closed so no later HUD_READY/load callback can overwrite live\n    // skill/weapon truth with donor defaults.\n    battleHudConfig={...makeBattleConfig(true)};\n    window.postMessage({type:'APEX_CHAOS_BATTLE_LIVE'},'*');\n    return true;\n  }\n  function waitBattleHudMount(){\n    return new Promise((resolve,reject)=>{\n      battleHudReady=false;\n      const ready=()=>{battleHudReady=true;sendBattleHudConfig();resolve(true);};\n      battleHudFrame.onload=ready;\n      try{APEX_GOLD.mountBattleHud(decodeBattleHud(),ready)}\n      catch(error){reject(error)}\n    });\n  }\n  function rollbackBattleEntry(){\n    battleEntryToken+=1;\n    document.body.classList.remove('battle-hud-open','battle-transition-active');\n    battleHudHost.classList.remove('is-open','is-preloading','is-transitioning','is-reveal','is-horizontal');\n    battleHudHost.setAttribute('aria-hidden','true');\n    resumeParentRuntime();\n    battleHudFrame.onload=null;\n    APEX_GOLD.unmountBattleHud();\n    battleHudConfig=null;\n    battleHudReady=false;\n    screen='fighter';\n    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter');\n  }\n  async function launchBattleHud(){\n    if(!battleMode||!battleHudHost||!battleHudFrame||screen==='transition'||screen==='battle')return;\n    if(window.APEX_SCENE_TRANSITION?.active?.())return;\n    screen='transition';\n    // Battle is NOT a Mechanical Door route. It owns its own lifecycle and\n    // lazy-loads only when LOCK IN actually requests combat. The entry beat is\n    // a music-allowed scene surface; combat itself takes the music down.\n    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('transition');\n    const token=++battleEntryToken;\n    battleHudConfig=makeBattleConfig(false);\n    try{\n      const heroIds=[p1Hero,battleMode==='bot'?botHeroId():p2Hero].filter(Boolean);\n      if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('battle',{heroIds});\n      if(token!==battleEntryToken)return;\n      battleHudHost.setAttribute('aria-hidden','false');\n      battleHudHost.classList.add('is-preloading');\n      await waitBattleHudMount();\n      if(token!==battleEntryToken)return;\n      sendBattleHudConfig();\n      await window.APEX_SCENE_TRANSITION?.prepareElement?.(battleHudHost);\n      if(token!==battleEntryToken)return;\n\n      freezeParentRuntime();\n      // OWNER READY LAW: production must be live with the first truth frame\n      // applied BEFORE the compositor is revealed. A failed start rolls the\n      // entire entry back — donor defaults are never shown to the player.\n      const liveReady=await setBattleLive();\n      if(token!==battleEntryToken)return;\n      if(liveReady!==true)throw new Error('Battle runtime did not report READY');\n      // Gold Battle owns its authored 430 ms shutter reveal. The Door owns boot\n      // and the Lucky Draw bay only, so this beat never engages the coordinator.\n      battleHudHost.classList.toggle('is-horizontal',(battleHudHost.clientWidth||0)>(battleHudHost.clientHeight||0));\n      battleHudHost.classList.remove('is-preloading');\n      battleHudHost.classList.add('is-transitioning');\n      document.body.classList.add('battle-transition-active');\n      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));\n      if(token!==battleEntryToken)return;\n      battleHudHost.classList.add('is-reveal');\n      await new Promise(r=>setTimeout(r,430));\n      if(token!==battleEntryToken)return;\n      battleHudHost.classList.remove('is-transitioning','is-reveal','is-horizontal');\n      battleHudHost.classList.add('is-open');\n      document.body.classList.remove('battle-transition-active');\n      document.body.classList.add('battle-hud-open');\n      screen='battle';\n    }catch(error){\n      if(token!==battleEntryToken)return;\n      rollbackBattleEntry();\n      console.warn('[battle-entry] failed',error);\n    }\n  }\n  function cancelBattleTransition(){\n    if(screen!=='transition')return false;\n    rollbackBattleEntry();\n    return true;\n  }\n  function closeBattleHud(){\n    if(screen==='transition'){cancelBattleTransition();focusScreen('fighter');return}\n    if(!battleHudHost?.classList.contains('is-open'))return;\n    battleEntryToken+=1;\n    battleHudHost.classList.remove('is-open','is-preloading','is-transitioning','is-reveal','is-horizontal');\n    battleHudHost.setAttribute('aria-hidden','true');\n    document.body.classList.remove('battle-hud-open','battle-transition-active');\n    APEX_GOLD.exitBattle&&APEX_GOLD.exitBattle();\n    resumeParentRuntime();\n    battleHudFrame.onload=null;\n    APEX_GOLD.unmountBattleHud();\n    battleHudConfig=null;\n    battleHudReady=false;\n    screen='fighter';\n    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter');\n    focusScreen('fighter');\n  }\n  addEventListener('message',e=>{\n    const d=e.data;\n    if(!d)return;\n    if(d.type==='APEX_CHAOS_HUD_READY'){battleHudReady=true;sendBattleHudConfig();}\n    else if(d.type==='APEX_CHAOS_BATTLE_EXIT')closeBattleHud();\n  });\n\n",
-    'Battle lifecycle decoupled from Mechanical Door'
+    BATTLE_ENTRY_REGION,
+    'Battle entry lifecycle (owner Gold rail transition, R51 readiness order)'
   );
 
   out = replaceRangeOnce(
@@ -92,10 +262,13 @@ export function adaptGoldShellR50k(input) {
   );
 
   const forbidden = [
-    "#battleTransition",
+    // R52 / N3: #battleTransition is RESTORED as the battle-entry transition
+    // (owner law), so it is no longer a forbidden seam. What must never come
+    // back is a SECOND authority for the same beat.
+    "let battleTransitionToken=0;",
+    "function transitionSound(",
     // R51 route policy: screen swaps inside the shell never re-arm the Door.
     "name:`${screen}->${next}`",
-    "id=\"battleTransition\"",
     "function uiFocusMove(){  function uiFocusMove(){",
     "addEventListener('message',e=>{  addEventListener('message',e=>{",
     "window.APEX_GOLD_SHELL_NAVIGATE=navigateGoldShell;  window.APEX_GOLD_SHELL_NAVIGATE=navigateGoldShell;",
@@ -112,6 +285,18 @@ export function adaptGoldShellR50k(input) {
     // The screen router itself is doorless by policy (R51); see forbidden[].
     "R51 route policy",
     "Battle is NOT a Mechanical Door route",
+    // R52 / N3: the battle-entry beat is the owner's Gold rail transition,
+    // driven by this adapter (identity + phase vocabulary + rail geometry).
+    'id="battleTransition" aria-hidden="true"',
+    "function setTransitionIdentity(){",
+    "battleTransition.classList.add('is-active','phase-lock')",
+    "battleTransition.classList.add('phase-clamp')",
+    "battleTransition.classList.add('phase-seam')",
+    "battleTransition.classList.add('phase-open')",
+    "battleTransition.classList.add('phase-handoff')",
+    "SOLO COMBAT CHANNEL",
+    "DUEL COMBAT CHANNEL",
+    "battleBeat(430,token)",
     "name:'home->lucky'",
     "name:'lucky->home'",
     "APEX_GOLD.prepareSurface",

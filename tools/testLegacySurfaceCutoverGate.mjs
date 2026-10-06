@@ -72,8 +72,18 @@ check('styles.css kept its live rules (no accidental wholesale deletion)',
 check('App keeps no retired legacy music identifiers',
   !app.includes('menuMusicAllowed') && !app.includes('useLegacyMusicLifecycle'));
 
-check('old bespoke Battle transition DOM removed', !shell.includes('id="battleTransition"') && !shell.includes('#battleTransition'));
-check('Mechanical Door is the sole public transition route', shell.includes('window.APEX_SCENE_TRANSITION') && !shell.includes('phase-lock') && !shell.includes('phase-clamp'));
+// R52 / N3: the owner's Gold rail transition is the battle-entry transition
+// (restored), so it is no longer a retired surface. The retired surfaces this
+// gate owns are the legacy menu/select runtimes and their music identifiers.
+check('battle-entry rail transition is present and single-authority',
+  shell.includes('id="battleTransition"') && !shell.includes('battleTransitionToken'));
+// R52 / N3: the Door is still the ONE scene-transition route, but the PHASE
+// vocabulary is no longer evidence against it — the owner's battle rail
+// transition legitimately owns phase-lock/phase-clamp/... . The Door's
+// exclusivity is proven by the route law itself (Battle has no Door route).
+check('Mechanical Door is the sole public scene-transition route',
+  shell.includes('window.APEX_SCENE_TRANSITION')
+  && !shell.includes("name:'fighter->battle'") && !shell.includes("name:'battle->fighter'"));
 
 console.log(['LEGACY SURFACE CUTOVER GATE',...passes].join('\n'));
 if(failures.length){console.error(failures.join('\n'));process.exit(1);}

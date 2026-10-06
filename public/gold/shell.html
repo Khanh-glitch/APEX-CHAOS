@@ -1088,6 +1088,54 @@ body.battle-transition-active,body.battle-hud-open{overflow:hidden!important;ove
    but remove its entire visual tree from painting/compositing. */
 body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;pointer-events:none!important;content-visibility:hidden!important;contain:strict!important}
 
+#battleTransition{position:fixed;inset:0;z-index:10000;display:none;pointer-events:auto;overflow:hidden;isolation:isolate;--p1:#ff941f;--p2:#8bd8ff;--seam:#f1f5ef;font-family:Inter,system-ui,Arial,sans-serif;color:#f5f3ec}
+#battleTransition.is-active{display:block}
+#battleTransition .bt-vignette{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,transparent 0 18%,rgba(0,0,0,.18) 58%,rgba(0,0,0,.72) 100%);opacity:0;transition:opacity 220ms ease;pointer-events:none}
+#battleTransition.phase-lock .bt-vignette{opacity:1}
+#battleTransition .bt-rail{position:absolute;top:0;bottom:0;width:calc(50% - 5px);overflow:hidden;background:
+ linear-gradient(180deg,rgba(255,255,255,.045),transparent 13%,transparent 84%,rgba(255,255,255,.025)),
+ repeating-linear-gradient(90deg,rgba(255,255,255,.025) 0 1px,transparent 1px 42px),
+ linear-gradient(135deg,#111519 0%,#080b0e 48%,#030506 100%);
+ box-shadow:0 0 0 1px rgba(255,255,255,.055) inset,0 0 42px rgba(0,0,0,.8);will-change:transform;transition:transform 270ms cubic-bezier(.16,.88,.25,1)}
+#battleTransition .bt-rail::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 0 76%,color-mix(in srgb,var(--accent) 38%,transparent) 93%,color-mix(in srgb,var(--accent) 78%,white) 100%);opacity:.55}
+#battleTransition .bt-rail::after{content:"";position:absolute;top:0;bottom:0;width:3px;background:linear-gradient(180deg,transparent 2%,var(--accent) 26%,#fff 50%,var(--accent) 74%,transparent 98%);filter:drop-shadow(0 0 8px var(--accent));opacity:.92}
+#battleTransition .bt-p1{left:0;--accent:var(--p1);transform:translateX(-105%)}
+#battleTransition .bt-p2{right:0;--accent:var(--p2);transform:translateX(105%)}
+#battleTransition .bt-p1::after{right:0}#battleTransition .bt-p2::after{left:0}
+#battleTransition.phase-clamp .bt-p1,#battleTransition.phase-clamp .bt-p2{transform:translateX(0)}
+#battleTransition.phase-open .bt-p1{transform:translateX(-102%);transition-duration:430ms}
+#battleTransition.phase-open .bt-p2{transform:translateX(102%);transition-duration:430ms}
+#battleTransition .bt-plate{position:absolute;top:50%;width:min(38vw,430px);transform:translateY(-50%);padding:16px 20px;border-top:1px solid color-mix(in srgb,var(--accent) 64%,white);border-bottom:1px solid color-mix(in srgb,var(--accent) 38%,transparent);background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 9%,#080b0e),rgba(4,6,8,.72));box-shadow:0 14px 40px rgba(0,0,0,.4);letter-spacing:.12em;text-transform:uppercase}
+.bt-p1 .bt-plate{right:26px;text-align:right}.bt-p2 .bt-plate{left:26px;text-align:left}
+.bt-kicker{display:block;font-size:10px;opacity:.62;letter-spacing:.24em}.bt-name{display:block;margin-top:5px;font-size:clamp(22px,3vw,48px);line-height:.9;font-weight:950;letter-spacing:.02em;text-shadow:0 0 18px color-mix(in srgb,var(--accent) 34%,transparent)}.bt-state{display:block;margin-top:8px;font-size:9px;color:var(--accent);font-weight:800}
+#battleTransition .bt-seam{position:absolute;left:50%;top:0;bottom:0;width:10px;transform:translateX(-50%) scaleY(.08);opacity:0;background:linear-gradient(180deg,transparent,#fff 14%,var(--seam) 50%,#fff 86%,transparent);box-shadow:0 0 10px #fff,0 0 26px var(--seam),0 0 48px color-mix(in srgb,var(--p1) 50%,var(--p2));transition:transform 190ms cubic-bezier(.2,.9,.2,1),opacity 140ms ease}
+#battleTransition.phase-seam .bt-seam{opacity:1;transform:translateX(-50%) scaleY(1)}
+#battleTransition.phase-open .bt-seam{opacity:0;transform:translateX(-50%) scaleY(1.04);transition-duration:260ms}
+#battleTransition .bt-core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);min-width:250px;padding:10px 18px;text-align:center;background:rgba(3,5,6,.88);border:1px solid rgba(255,255,255,.11);clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px);opacity:0;transition:opacity 130ms ease,transform 180ms cubic-bezier(.2,.9,.2,1);box-shadow:0 12px 30px rgba(0,0,0,.54)}
+#battleTransition.phase-seam .bt-core{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#battleTransition.phase-open .bt-core{opacity:0;transform:translate(-50%,-50%) scale(1.06)}
+.bt-core small{display:block;font-size:8px;letter-spacing:.28em;opacity:.58}.bt-core b{display:block;margin-top:4px;font-size:12px;letter-spacing:.2em}
+#battleTransition .bt-scan{position:absolute;inset:-30% 0 auto 0;height:22%;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--p2) 16%,transparent),transparent);opacity:0;transform:translateY(-100%)}
+#battleTransition.is-bot.phase-clamp .bt-scan{opacity:1;animation:btScan 360ms ease-out forwards}@keyframes btScan{to{transform:translateY(650%)}}
+#battleTransition.phase-handoff{pointer-events:none}
+#battleTransition.phase-handoff .bt-vignette{opacity:0;transition-duration:180ms}
+
+#battleTransition.is-horizontal .bt-rail{left:0;right:0;width:auto;height:calc(50% - 5px);top:auto;bottom:auto;transition-property:transform}
+#battleTransition.is-horizontal .bt-p2{top:0;transform:translateY(-105%)}
+#battleTransition.is-horizontal .bt-p1{bottom:0;transform:translateY(105%)}
+#battleTransition.is-horizontal.phase-clamp .bt-p1,#battleTransition.is-horizontal.phase-clamp .bt-p2{transform:translateY(0)}
+#battleTransition.is-horizontal.phase-open .bt-p2{transform:translateY(-102%)}
+#battleTransition.is-horizontal.phase-open .bt-p1{transform:translateY(102%)}
+#battleTransition.is-horizontal .bt-rail::after{left:0;right:0;width:auto;height:3px;top:auto;bottom:auto;background:linear-gradient(90deg,transparent 2%,var(--accent) 26%,#fff 50%,var(--accent) 74%,transparent 98%)}
+#battleTransition.is-horizontal .bt-p2::after{bottom:0;top:auto}#battleTransition.is-horizontal .bt-p1::after{top:0;bottom:auto}
+#battleTransition.is-horizontal .bt-plate{top:50%;left:50%;right:auto;width:min(72vw,420px);transform:translate(-50%,-50%);text-align:center;padding:10px 16px}
+#battleTransition.is-horizontal .bt-p2 .bt-plate{transform:translate(-50%,-50%) rotate(180deg)}
+#battleTransition.is-horizontal .bt-seam{left:0;right:0;top:50%;bottom:auto;width:auto;height:10px;transform:translateY(-50%) scaleX(.08)}
+#battleTransition.is-horizontal.phase-seam .bt-seam{transform:translateY(-50%) scaleX(1)}
+#battleTransition.is-horizontal.phase-open .bt-seam{transform:translateY(-50%) scaleX(1.04)}
+#battleTransition.is-horizontal .bt-core{min-width:210px}
+@media(max-width:700px){#battleTransition:not(.is-horizontal) .bt-plate{width:42vw;padding:12px 12px}.bt-kicker{font-size:8px}.bt-state{font-size:7px}.bt-name{font-size:clamp(17px,5vw,29px)}#battleTransition .bt-core{min-width:190px;padding:8px 12px}}
+@media(prefers-reduced-motion:reduce){#battleTransition .bt-rail,#battleTransition .bt-seam,#battleTransition .bt-core,#battleHudHost{transition-duration:1ms!important;animation-duration:1ms!important}}
 </style>
 
 
@@ -1263,6 +1311,14 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   </section>
 
 </main>
+
+<div id="battleTransition" aria-hidden="true">
+  <div class="bt-vignette"></div>
+  <section class="bt-rail bt-p1"><div class="bt-plate"><span class="bt-kicker">P1 // FIGHTER</span><b class="bt-name" data-bt-name="p1">NEWBOT</b><span class="bt-state" data-bt-state="p1">COMBAT LOCK</span></div></section>
+  <section class="bt-rail bt-p2"><div class="bt-scan"></div><div class="bt-plate"><span class="bt-kicker" data-bt-kicker="p2">P2 // FIGHTER</span><b class="bt-name" data-bt-name="p2">RIVAL</b><span class="bt-state" data-bt-state="p2">COMBAT LOCK</span></div></section>
+  <div class="bt-seam"></div>
+  <div class="bt-core"><small>ARENA // EAX-01</small><b data-bt-core>COMBAT CHANNEL OPEN</b></div>
+</div>
 
 <div id="battleHudHost" aria-hidden="true">
   <iframe id="battleHudFrame" title="APEX CHAOS Battle HUD" allow="autoplay" referrerpolicy="no-referrer"></iframe>
@@ -1491,6 +1547,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   const battleHudHost=document.getElementById('battleHudHost');
   const battleHudFrame=document.getElementById('battleHudFrame');
   const battleHudPayload=document.getElementById('battleHudPayload');
+  const battleTransition=document.getElementById('battleTransition');
   let battleHudConfig=null;
   let frozenStageAnimations=[];
   let battleHudReady=false;
@@ -1587,11 +1644,39 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       catch(error){reject(error)}
     });
   }
+  // Identity is the donor law: the rails carry the match-up (names, accents,
+  // BOT vs DUEL channel) and the rail orientation follows the real screen
+  // aspect, never a fixed axis.
+  function setTransitionIdentity(){
+    if(!battleTransition)return;
+    const bot=battleMode==='bot';
+    const p1=heroPayload(p1Hero,'newbot');
+    const p2=bot?heroPayload(botHeroId(),'newbot'):heroPayload(p2Hero,'newbot');
+    battleTransition.style.setProperty('--p1',p1.accent||'#ff941f');
+    battleTransition.style.setProperty('--p2',p2.accent||'#8bd8ff');
+    battleTransition.querySelector('[data-bt-name="p1"]').textContent=p1.name;
+    battleTransition.querySelector('[data-bt-name="p2"]').textContent=p2.name;
+    battleTransition.querySelector('[data-bt-state="p1"]').textContent='COMBAT LOCK';
+    battleTransition.querySelector('[data-bt-state="p2"]').textContent=bot?'TARGET ACQUIRED':'COMBAT LOCK';
+    battleTransition.querySelector('[data-bt-kicker="p2"]').textContent=bot?'CPU // TARGET':'P2 // FIGHTER';
+    battleTransition.querySelector('[data-bt-core]').textContent=bot?'SOLO COMBAT CHANNEL':'DUEL COMBAT CHANNEL';
+    const horizontal=!bot&&matchMedia('(orientation:portrait)').matches;
+    battleTransition.classList.toggle('is-horizontal',horizontal);
+    battleTransition.classList.toggle('is-bot',bot);
+    battleHudHost.classList.toggle('is-horizontal',horizontal);
+  }
+  function resetBattleTransitionVisuals(){
+    if(!battleTransition)return;
+    battleTransition.classList.remove('is-active','is-bot','is-horizontal','phase-lock','phase-clamp','phase-seam','phase-open','phase-handoff');
+    battleTransition.setAttribute('aria-hidden','true');
+    document.body.classList.remove('battle-transition-active');
+  }
   function rollbackBattleEntry(){
     battleEntryToken+=1;
     document.body.classList.remove('battle-hud-open','battle-transition-active');
     battleHudHost.classList.remove('is-open','is-preloading','is-transitioning','is-reveal','is-horizontal');
     battleHudHost.setAttribute('aria-hidden','true');
+    resetBattleTransitionVisuals();
     resumeParentRuntime();
     battleHudFrame.onload=null;
     APEX_GOLD.unmountBattleHud();
@@ -1599,6 +1684,11 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     battleHudReady=false;
     screen='fighter';
     APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter');
+  }
+  // ONE beat scheduler: donor beats at production tempo, collapsed to the
+  // reduced-motion floor (24 ms) exactly like the authored source.
+  function battleBeat(ms,token){
+    return new Promise(resolve=>setTimeout(()=>resolve(token===battleEntryToken),reduced?Math.min(ms,24):ms));
   }
   async function launchBattleHud(){
     if(!battleMode||!battleHudHost||!battleHudFrame||screen==='transition'||screen==='battle')return;
@@ -1610,10 +1700,17 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     APEX_GOLD.onSurface&&APEX_GOLD.onSurface('transition');
     const token=++battleEntryToken;
     battleHudConfig=makeBattleConfig(false);
+    setTransitionIdentity();
+    battleTransition.classList.add('is-active','phase-lock');
+    battleTransition.setAttribute('aria-hidden','false');
+    document.body.classList.add('battle-transition-active');
     try{
       const heroIds=[p1Hero,battleMode==='bot'?botHeroId():p2Hero].filter(Boolean);
       if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('battle',{heroIds});
       if(token!==battleEntryToken)return;
+      if(!await battleBeat(180,token))return;
+      battleTransition.classList.add('phase-clamp');
+      if(!await battleBeat(240,token))return;
       battleHudHost.setAttribute('aria-hidden','false');
       battleHudHost.classList.add('is-preloading');
       await waitBattleHudMount();
@@ -1621,30 +1718,32 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       sendBattleHudConfig();
       await window.APEX_SCENE_TRANSITION?.prepareElement?.(battleHudHost);
       if(token!==battleEntryToken)return;
-
       freezeParentRuntime();
+      battleHudHost.classList.remove('is-preloading');
+      battleHudHost.classList.add('is-transitioning');
+      if(!await battleBeat(240,token))return;
+      battleTransition.classList.add('phase-seam');
       // OWNER READY LAW: production must be live with the first truth frame
       // applied BEFORE the compositor is revealed. A failed start rolls the
       // entire entry back — donor defaults are never shown to the player.
       const liveReady=await setBattleLive();
       if(token!==battleEntryToken)return;
       if(liveReady!==true)throw new Error('Battle runtime did not report READY');
-      // Gold Battle owns its authored 430 ms shutter reveal. The Door owns boot
-      // and the Lucky Draw bay only, so this beat never engages the coordinator.
-      battleHudHost.classList.toggle('is-horizontal',(battleHudHost.clientWidth||0)>(battleHudHost.clientHeight||0));
-      battleHudHost.classList.remove('is-preloading');
-      battleHudHost.classList.add('is-transitioning');
-      document.body.classList.add('battle-transition-active');
-      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-      if(token!==battleEntryToken)return;
+      // The reveal IS the authored beat: the rails open (430 ms CSS) while the
+      // compositor sliver opens into the full stage.
+      battleTransition.classList.add('phase-open');
       battleHudHost.classList.add('is-reveal');
-      await new Promise(r=>setTimeout(r,430));
-      if(token!==battleEntryToken)return;
+      if(!await battleBeat(430,token))return;
+      document.body.classList.add('battle-hud-open');
+      document.body.classList.remove('battle-transition-active');
+      battleTransition.classList.add('phase-handoff');
       battleHudHost.classList.remove('is-transitioning','is-reveal','is-horizontal');
       battleHudHost.classList.add('is-open');
-      document.body.classList.remove('battle-transition-active');
-      document.body.classList.add('battle-hud-open');
       screen='battle';
+      if(!await battleBeat(210,token))return;
+      resetBattleTransitionVisuals();
+      battleHudHost.classList.add('is-open');
+      battleHudHost.setAttribute('aria-hidden','false');
     }catch(error){
       if(token!==battleEntryToken)return;
       rollbackBattleEntry();

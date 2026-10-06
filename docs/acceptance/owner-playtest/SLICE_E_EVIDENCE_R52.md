@@ -1,4 +1,4 @@
-# SLICE E — Evidence R52 (checkpoint A + B, commit `a0483dd` + checkpoint B)
+# SLICE E — Evidence R52 (checkpoint A `a0483dd` / B `bd667a1` / C `#battleTransition`)
 
 Ngày: 2026-10-06. Baseline đo: `68fde28`. Mỗi checkpoint = 1 commit + 1 push (luật §7).
 
@@ -109,6 +109,55 @@ trước, gate không nằm trong chain (ghi lại để không quy sai về sau
   resolve đúng một body, không còn guard tuỳ chọn, ≥8 nhánh body-scoped fail-closed.
 
 ---
+
+---
+
+## E3 — N3: trả lại transition gốc của donor (`#battleTransition`) cho cửa vào battle
+
+### Luật cũ vs luật mới (đổi luật có ý thức, không revert ngầm)
+
+- Luật R51: "`#battleTransition` phải BIẾN MẤT" — đúng khi Mechanical Door V4 sở hữu mọi
+  chuyển cảnh. Nhưng khi đó cửa vào battle chỉ còn **shutter clip-path trần**: nhịp đã
+  được owner thiết kế (2 rail + seam + core + câu chữ BOT/DUEL) không còn trong sản phẩm.
+- Luật R52 (N3): `#battleTransition` **LÀ** transition cửa vào battle. Door vẫn là authority
+  duy nhất cho **scene** (boot + 2 nhịp Lucky Draw) và **không** route battle.
+
+### Cách sửa (từ gốc — generator sở hữu, không sửa tay output)
+
+- `tools/goldShellR50k.mjs`: bỏ 3 bước xoá donor (CSS `#battleTransition`, DOM, node const);
+  thêm vùng `BATTLE_ENTRY_REGION` là **một** scheduler sở hữu vòng đời vào battle:
+  `setTransitionIdentity()` (accent/name/kicker/state, BOT `TARGET ACQUIRED` / `CPU // TARGET`
+  / `SOLO COMBAT CHANNEL`, LOCAL `P2 // FIGHTER` / `DUEL COMBAT CHANNEL`, `is-bot` +
+  `is-horizontal` theo tỉ lệ màn hình thật) → `phase-lock` → `phase-clamp` → mount → freeze →
+  **production READY** → `phase-seam` → `phase-open` + `is-reveal` (430 ms) → `battle-hud-open`
+  → `phase-handoff` → reset. Nhịp reduced-motion giữ đúng sàn 24 ms như donor.
+- `tools/buildGoldCutover.mjs`: xoá 6 patch retiming SHL-S33..S38 của scheduler donor đã bị
+  chính adapter thay thế (chúng không thể chạm tới shell ship ra — chỉ ghi lại một nhịp không
+  còn tồn tại).
+- Gate cũ mâu thuẫn được **viết lại trong cùng commit** (không xoá assertion):
+  `testBattleTransitionAuthorityGate` 160 check (yêu cầu DOM + CSS + phase order + copy +
+  reduced-motion + READY trước reveal), `testGoldTransitionCoordinatorGate`,
+  `testLegacySurfaceCutoverGate` (Door vẫn độc quyền route scene).
+
+### Kiểm chứng
+
+- `node tools/buildGoldCutover.mjs --check` → `CHECK OK — 70 generated files match`.
+- Bằng chứng browser (dist đã prune, :4173, probe `/tmp/browser/n3.mjs`): ngay sau LOCK IN,
+  `#battleTransition` mang `is-bot is-active phase-lock` và innerText đúng identity:
+  `P1 // FIGHTER ROBOT COMBAT LOCK / CPU // TARGET ROBOT TARGET ACQUIRED / ARENA // EAX-01
+  SOLO COMBAT CHANNEL`.
+- `pnpm test:r50-pre-transition` → SUITE=0, **21 gate** PASS; battle-transition gate **160/160**;
+  `pnpm build` → 663 file / 194.157.235 B pruned, `forbiddenRuntimeSurvivors: []`.
+
+### Ghi chú probe (không phải bug sản phẩm)
+
+Trong sandbox, `fonts.googleapis.com` không tới được → `document.fonts.ready` treo → bước
+"settle" của shell (có `await fonts.ready`) không commit, nên nếu probe click *trước khi nhịp
+trước đó commit* thì màn hình đứng ở bước cũ. Đã kiểm chứng bằng A/B (build N3 vs build trước
+N3: hành vi giống hệt nhau) và bằng cách đợi `#stage.screen-mode` rồi mới click: luồng đi tới
+Fighter Pick 12 card trong ~2 s. Đây là **giới hạn môi trường probe**, không phải regression của
+N3. Việc bọc `fonts.ready` bằng một trần thời gian (để mạng chậm không bao giờ làm đứng scene)
+là một hạng mục riêng, sẽ làm ở nhánh "frozen" nếu cần.
 
 ## Trạng thái chain tại checkpoint này
 
