@@ -145,8 +145,14 @@
     frost: { name: 'FROST', tag: 'CRYO EDGE UNIT' },
     mirror: { name: 'MIRROR', tag: 'ECHO DUPLICATE' },
   };
+  // ONE accent per hero. These are FALLBACKS for the case where the shell
+  // registry is not loaded yet; the live value is APEX_ARSENAL_SHELLS.typeFor()
+  // -> the fighter type's own authored colour. CRYSTALA is violet because her
+  // whole authored palette is violet (AMETHYST ramp, crystalaGoldV6.js); the
+  // former #55bfff / engine #6ed3d8 were another hero's colour language and
+  // showed up as soon as a crit/heavy slash or a rail plate took her accent.
   const FALLBACK_ACCENTS = {
-    newbot: '#ff941f', hunter: '#96ca2d', crystala: '#55bfff',
+    newbot: '#ff941f', hunter: '#96ca2d', crystala: '#a066f0',
     magnet: '#c7c5e9', frost: '#7ee8ff', mirror: '#e9e5df',
   };
 

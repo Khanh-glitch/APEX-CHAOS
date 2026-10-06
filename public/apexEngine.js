@@ -1161,7 +1161,7 @@ var FighterTypes = [
         draw: (ctx,f) => { const hidden=f.data.hunt>0; ctx.save(); if(hidden) ctx.globalAlpha=.14; drawSketchBlob(ctx,f.radius*.86,f.color,12); drawPolygon(ctx,[[15,-15],[104,0],[15,15],[30,0]],'#d0d0cc','#0d0d0d',4);ctx.fillStyle='#111';ctx.fillRect(-45,-22,34,44); ctx.restore(); if(f.data.hunt>0){ ctx.strokeStyle='rgba(255,45,40,.72)';ctx.lineWidth=6;ctx.beginPath();ctx.arc(0,0,f.radius+20,0,TAU);ctx.stroke();ctx.fillStyle='#ffb0a0';ctx.font='900 15px monospace';ctx.textAlign='center';ctx.fillText('HUNT',0,-f.radius-22);} }
     },
     {
-        name: "CRYSTAL", color: "#6ed3d8", desc: "Diamond prison execution", speed: 405, startDx: 1, startDy: 1,
+        name: "CRYSTAL", color: "#a066f0", desc: "Diamond prison execution", speed: 405, startDx: 1, startDy: 1,
         init: f => { f.data.cd=1.8; },
         update: (f,e,dt) => { f.data.cd-=abilityDt(f,dt); if(f.data.cd<=0){ f.data.cd=2.4; const a=Math.atan2(e.y-f.y,e.x-f.x)+Math.PI/2; const len=190; const cx=(f.x+e.x)/2,cy=(f.y+e.y)/2; projectiles.push({type:'crystal_wall',owner:f,x1:cx-Math.cos(a)*len,y1:cy-Math.sin(a)*len,x2:cx+Math.cos(a)*len,y2:cy+Math.sin(a)*len,life:f.isRage?Infinity:5,maxLife:f.isRage?Infinity:5,hitIds:{},touchCd:{},permanent:f.isRage}); playFighterSound(f,'skill'); checkCrystalDiamond(f); } },
         draw: (ctx,f) => { drawPolygon(ctx,[[0,-75],[58,-18],[35,58],[-35,58],[-58,-18]],f.color,'#0a3236',5);ctx.strokeStyle='#e9ffff';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-75);ctx.lineTo(0,58);ctx.moveTo(-58,-18);ctx.lineTo(58,-18);ctx.moveTo(-35,58);ctx.lineTo(0,-75);ctx.lineTo(35,58);ctx.stroke(); }

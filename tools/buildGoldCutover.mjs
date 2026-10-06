@@ -849,7 +849,7 @@ const seamPatches = [
 // Production roster (src/game/productSurface.js PLAYABLE_ROSTER_IDS) mapped to
 // the Gold pack's canonical shell keys; display names from the hero registry.
 const GOLD_HERO_ACCENTS = {
-  ROBOT: '#ff941f', HUNTER: '#96ca2d', CRYSTAL: '#55bfff',
+  ROBOT: '#ff941f', HUNTER: '#96ca2d', CRYSTAL: '#a066f0',
   MAGNET: '#c7c5e9', ICE: '#7ee8ff', MIRROR: '#e9e5df',
 };
 const LUCKY_ROSTER = [
@@ -1307,6 +1307,26 @@ function buildShell(hudProductionHtml) {
         `<script src="/game/gold/goldProductBridge.js?v=${REVISION}"></script>\n` +
         `<script>\n(() => {\n  'use strict';\n  const stage = document.getElementById('stage');`
       ),
+    },
+    // ── S2b: the first-frame fallback roster speaks the hero accent language ─
+    // The donor JSON is only used before the production bridge resolves, but a
+    // stale accent there is still a second authority: Crystal's old #55bfff
+    // flashed her in another hero's colour on the very first painted frame.
+    // Rewriting the donor accents from GOLD_HERO_ACCENTS keeps ONE accent per
+    // hero in the generated shell (portraits/art still come from the donor).
+    {
+      id: 'SHL-S2b',
+      why: 'donor fallback roster accents are regenerated from the ONE accent table (Crystal violet)',
+      find: /  const HEROES = (\{\"newbot\":[\s\S]*?\});\n/,
+      replace: (matched, donorJson) => {
+        const table = JSON.parse(donorJson);
+        for (const entry of LUCKY_ROSTER) {
+          const hero = table[entry.shellKey];
+          const accent = GOLD_HERO_ACCENTS[entry.productionId];
+          if (hero && accent) hero.accent = accent;
+        }
+        return `  const HEROES = ${JSON.stringify(table)};\n`;
+      },
     },
     // ── S2: roster data comes from production (same HEROES contract) ───────
     {

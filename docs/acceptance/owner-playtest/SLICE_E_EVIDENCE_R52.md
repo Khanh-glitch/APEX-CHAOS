@@ -1,4 +1,4 @@
-# SLICE E — Evidence R52 (checkpoint A `a0483dd` / B `bd667a1` / C `#battleTransition`)
+# SLICE E — Evidence R52 (checkpoint A `a0483dd` / B `bd667a1` / C `0a5ad73` / D `#a066f0`)
 
 Ngày: 2026-10-06. Baseline đo: `68fde28`. Mỗi checkpoint = 1 commit + 1 push (luật §7).
 
@@ -158,6 +158,49 @@ N3: hành vi giống hệt nhau) và bằng cách đợi `#stage.screen-mode` r�
 Fighter Pick 12 card trong ~2 s. Đây là **giới hạn môi trường probe**, không phải regression của
 N3. Việc bọc `fonts.ready` bằng một trần thời gian (để mạng chậm không bao giờ làm đứng scene)
 là một hạng mục riêng, sẽ làm ở nhánh "frozen" nếu cần.
+
+---
+
+## E4 — N4: "Crystal đang bị sai ngôn ngữ màu"
+
+### Nguyên nhân gốc — ba lời khai, không lời nào là của Crystal
+
+| Nơi khai | Giá trị cũ | Vai trò |
+| --- | --- | --- |
+| `public/apexEngine.js` (`FighterTypes` CRYSTAL) | `#6ed3d8` (teal) | màu thân thể trong arena → `accentOf(body)` → **màu slash Critical/Heavy** |
+| `public/game/gold/goldProductBridge.js` `FALLBACK_ACCENTS.crystala` | `#55bfff` (sky) | accent bridge khi shell registry chưa load |
+| `tools/buildGoldCutover.mjs` `GOLD_HERO_ACCENTS.CRYSTAL` | `#55bfff` | accent của roster fallback sinh ra trong shell + Lucky roster |
+
+Cả ba đều **không nằm trong palette của Crystal**. Palette tự tác giả của cô
+(`crystalaGoldV6.js`) là AMETHYST: `#7a3fc6`, `#a86ee6`, `#d3aef7` và bảng tên
+`vio:'#a066f0'`, `hot:'#ff7ae8'`. Vì `accentOf(body) = body.color`, màu sai chảy thẳng vào
+slash crit/heavy, thẻ pick, accent HUD và 2 tấm rail của transition.
+
+### Cách sửa (một ngôn ngữ màu cho mỗi hero)
+
+- `apexEngine.js`: CRYSTAL `#6ed3d8` → **`#a066f0`** (đúng `C.vio` trong palette của cô).
+- `goldProductBridge.js` fallback `.crystala` → `#a066f0` (kèm comment nêu rõ nguồn).
+- `buildGoldCutover.mjs` `GOLD_HERO_ACCENTS.CRYSTAL` → `#a066f0`.
+- **SHL-S2b** (patch mới của generator): roster fallback **trong shell** (JSON của donor) được
+  sinh lại accent từ `GOLD_HERO_ACCENTS` ⇒ shell không còn giữ giá trị cũ trong frame đầu tiên.
+  Portrait/art vẫn lấy từ donor, không sửa gì khác.
+
+### Kiểm chứng
+
+- Gate mới `tools/testHeroAccentLanguageGate.mjs` (**27 check**, đã vào chain
+  `test:r50-pre-transition`): mỗi hero **một** accent trên cả 4 nơi khai; không hai hero trùng
+  accent; accent phải nằm trong **palette tự tác giả** của chính hero đó (≤40° hue — Crystal
+  `#a066f0` hue 265°, cách palette 0°; Hunter 80°, cách 1°); Crystal phải là violet của cô;
+  không còn `#6ed3d8`/`#55bfff` sống trong bất kỳ authority nào; và **slash crit/heavy dùng
+  `impactAccent` của chính cú đánh** (`accentOf(ev.attacker)`, sweep `crit`/`heavy`).
+- Bằng chứng browser trên dist đã prune (:4173, probe `/tmp/browser/accent.mjs`), 0 page error:
+
+```
+APEX_ARSENAL_SHELLS.typeFor('CRYSTAL').color   = #a066f0
+FighterTypes CRYSTAL color                     = #a066f0
+APEX_GOLD.luckyRoster().crystala.accent        = #a066f0
+shell HEROES fallback crystala.accent          = #a066f0
+```
 
 ## Trạng thái chain tại checkpoint này
 

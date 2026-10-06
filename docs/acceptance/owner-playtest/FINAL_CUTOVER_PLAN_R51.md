@@ -324,7 +324,7 @@ Các commit mốc: `8dda0d6` (pipeline + real Battle HUD + Lucky Draw),
 | N1 | Magnet không hiện gì trong battle; Frost load chậm hơn | **XONG** (`a0483dd`) | `SLICE_E_EVIDENCE_R52.md` §E1, gate `testHeroBattleRigDeliveryGate` 24 |
 | N2 | BOT + Local: J/K tác động cả hai bên | **XONG** | §E2, +7 check robot ROBOT-vs-ROBOT, +10 check side-aware |
 | N3 | Trả lại transition gốc của donor (`#battleTransition`) | **XONG** | §E3; gate viết lại thành 160 check; adapter là owner duy nhất của vùng entry |
-| N4 | Một authority accent cho Crystal = violet | chưa | `apexEngine.js:1164` `#6ed3d8` vs AMETHYST ramp của `crystalaGoldV6.js` |
+| N4 | Một authority accent cho Crystal = violet | **XONG** | §E4; gate `testHeroAccentLanguageGate` 27; browser: 4/4 nơi = `#a066f0` |
 
 Luật khi làm N3: gate cũ mâu thuẫn với luật mới thì **viết lại trong cùng commit**, kèm
 lý do + trạng thái trước/sau — không xoá assertion im lặng.
