@@ -6,6 +6,7 @@ const bridge = read('public/game/gold/goldProductBridge.js');
 const shell = read('public/gold/shell.html');
 const generator = read('tools/buildGoldCutover.mjs');
 const adapter = read('tools/goldBattleHudR48b.mjs');
+const r55 = read('tools/goldBattleHudR55.mjs');
 
 const pass = [];
 const fail = [];
@@ -206,9 +207,29 @@ check('Local weapon-row correction is mode-scoped and cannot overwrite BOT',
   && !hud.includes('#hud[data-layout="land"] .side{--wpH:')
   && !hud.includes('#hud[data-layout="port"] .side{--wpH:'));
 check('R55 adapter preserves the donor 1P family',
-  !adapter.includes('opens1p')
-  && !adapter.includes('delete the obsolete one-player panel family')
-  && adapter.includes('two different authored Gold compositions'));
+  !r55.includes('opens1p')
+  && !r55.includes('delete the obsolete one-player panel family')
+  && r55.includes('two different authored Gold compositions'));
+
+check('battle mode is live production truth, not a one-shot handoff',
+  bridge.includes("mode: state && state.battleMode === 'BOT' ? '1p' : '2p'")
+  && hud.includes("if(st.mode==='1p'||st.mode==='2p')seam.setMode(st.mode);")
+  && r55.includes("'per-frame production mode authority'"));
+
+check('tablet Local reallocates space toward weapon instead of whole-HUD scaling',
+  hud.includes('--wpH:clamp(96px,15.5cqh,120px)')
+  && hud.includes('--wpIW:clamp(112px,16cqh,140px)')
+  && hud.includes('width:min(100%,430px)')
+  && !hud.includes('transform:scale(.'));
+
+check('tablet BOT keeps Gold geometry while skill media uses a square aspect well',
+  hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] .skill .sk-art')
+  && hud.includes('width:var(--artW);height:var(--artW);aspect-ratio:1/1')
+  && hud.includes('object-fit:contain'));
+
+check('portrait tablet BOT grows its Gold enemy strip instead of clipping production media',
+  hud.includes('--stripH:64px;--p1Min:240px')
+  && hud.includes('--porW:42px;--porH:42px;--thW:38px;--wpIW:52px'));
 
 console.log('GOLD BATTLE HUD ADAPTATION GATE (R49D + R48B production truth)');
 for (const line of pass) console.log(line);
