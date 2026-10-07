@@ -940,19 +940,27 @@
     const preview=document.createElement('canvas');preview.className='f-preview';preview.width=140;preview.height=96;preview.setAttribute('aria-label','SHOTGUN battle visual preview');
     card.append(name,preview);card.onclick=()=>selectFighter(ft,card);grid.appendChild(card);drawRosterPreview(preview,ft,1001);
   }
-  const previousPopulateRoster=populateRoster;
-  populateRoster=function(){ const result=previousPopulateRoster(); appendShotgunCard(); return result; };
-  const previousSyncSelected=syncSelectedFighterVfx;
-  syncSelectedFighterVfx=function() {
-    const result=previousSyncSelected();
-    [[1,p1Selection],[2,p2Selection]].forEach(([player,fighter])=>{
-      if (fighter?.name!=='SHOTGUN') return;
-      const image=document.getElementById(`p${player}-fighter-vfx`);if(!image)return;
-      const slot=image.closest('.picked-fighter-slot');if(slot)slot.dataset.fighter='SHOTGUN';
-      image.src=FILES.picked;image.classList.add('has-fighter');image.alt=`Player ${player}: SHOTGUN`;
-    });
-    return result;
-  };
+  // TEST-FIXTURE COMPATIBILITY: the current product deliberately deleted the
+  // legacy picker. These historical UI hooks are optional; the fixture's
+  // gameplay/runtime behavior must still load when the old roster globals no
+  // longer exist. Never recreate those globals in production just for a test.
+  if (typeof populateRoster === 'function') {
+    const previousPopulateRoster=populateRoster;
+    populateRoster=function(){ const result=previousPopulateRoster(); appendShotgunCard(); return result; };
+  }
+  if (typeof syncSelectedFighterVfx === 'function') {
+    const previousSyncSelected=syncSelectedFighterVfx;
+    syncSelectedFighterVfx=function() {
+      const result=previousSyncSelected();
+      [[1,p1Selection],[2,p2Selection]].forEach(([player,fighter])=>{
+        if (fighter?.name!=='SHOTGUN') return;
+        const image=document.getElementById(`p${player}-fighter-vfx`);if(!image)return;
+        const slot=image.closest('.picked-fighter-slot');if(slot)slot.dataset.fighter='SHOTGUN';
+        image.src=FILES.picked;image.classList.add('has-fighter');image.alt=`Player ${player}: SHOTGUN`;
+      });
+      return result;
+    };
+  }
 
   function soloFire(st,p,forceDouble=false) {
     p.data.shotgun ||= {shells:6,reload:0,hook:1,counter:1,rngState:(0x51f15e5d^(p.side*2654435761))>>>0}; const s=p.data.shotgun;
