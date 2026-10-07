@@ -228,7 +228,15 @@
       const focused = heroUrls(context.heroIds, ['art']);
       return [...covers, ...focused, ...rigUrls(context.heroIds, new Set(['rig']))];
     }
-    if (id === 'fighter-hero') return heroUrls(context.heroIds, ['portrait', 'art']);
+    if (id === 'fighter-hero') {
+      // R59 selection intent: once the player points at/accepts a fighter,
+      // start decoding that fighter's eventual arena rig WHILE Pick remains
+      // interactive. This is selected-only: no all-roster rig preload.
+      return [
+        ...heroUrls(context.heroIds, ['portrait', 'art']),
+        ...rigUrls(context.heroIds, new Set(['rig'])),
+      ];
+    }
     if (id === 'battle' || id === 'transition') {
       // Match assets are strictly selected-combatant scoped, and they include
       // the arena body rig: a fighter whose rig is not ready must never paint a
