@@ -38,11 +38,6 @@ check('music diagnostics expose last request reason', music.includes("lastReques
 check('hidden/blur lifecycle remains single-authority', music.includes("doc.addEventListener('visibilitychange', handleVisibility)") && music.includes("win.addEventListener('blur', handleBlur)") && music.includes("win.addEventListener('focus', handleFocus)"));
 check('battle WebAudio still rearms after resume', battle.includes("audioCtx.addEventListener('statechange'") && battle.includes("if (!document.hidden && audioCtx.state !== 'running') armBattleAudioUnlock()"));
 
-console.log(['AUDIO AUTHORITY GATE',...passes].join('\n'));
-if(failures.length){console.error(failures.join('\n'));process.exit(1);}
-console.log('RESULT: PASS ('+passes.length+' checks)');
-
-
 // R58 owner-critical audio acceptance.
 const bridge = fs.readFileSync('public/game/gold/goldProductBridge.js','utf8');
 const heroSfx = fs.readFileSync('public/game/heroes/coreSixCuratedSfxAuthority.js','utf8');
@@ -58,4 +53,9 @@ check('Core-Six warm resolves from real media readiness',
   && heroSfx.includes('return Promise.all(waits).then'));
 check('boot announces Home to product music before any navigation gesture',
   app.includes("musicAuthority.setSurface?.('home')"));
+
+console.log(['AUDIO AUTHORITY GATE',...passes].join('\n'));
+if(failures.length){console.error(failures.join('\n'));process.exit(1);}
+console.log('RESULT: PASS ('+passes.length+' checks)');
+
 
