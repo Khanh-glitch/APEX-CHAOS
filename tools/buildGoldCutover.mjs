@@ -2179,7 +2179,7 @@ function buildShell(hudProductionHtml) {
   );
   r49ReplaceOnce(
     "  function sendBattleHudConfig(){\n    if(!battleHudConfig||!battleHudFrame?.contentWindow)return;\n    window.postMessage(battleHudConfig,'*');\n    APEX_GOLD.onHandoff&&APEX_GOLD.onHandoff(battleHudConfig);\n  }",
-    "  function sendBattleHudConfig(){\n    if(!battleHudConfig||battleHudConfig.live===true||!battleHudFrame?.contentWindow)return;\n    window.postMessage(battleHudConfig,'*');\n    APEX_GOLD.onHandoff&&APEX_GOLD.onHandoff(battleHudConfig);\n  }",
+    "  function sendBattleHudConfig(){\n    if(!battleHudConfig||battleHudConfig.live===true||!window.APEX_GOLD_HUD)return;\n    window.postMessage(battleHudConfig,'*');\n    APEX_GOLD.onHandoff&&APEX_GOLD.onHandoff(battleHudConfig);\n  }",
     'preview-only battle handoff'
   );
     r49ReplaceOnce(
