@@ -14,7 +14,7 @@ const goldShell = fs.readFileSync('public/gold/shell.html', 'utf8');
 const mRev = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
 if (!mRev) { console.error('FAIL revision constant missing'); process.exit(1); }
 const revision = mRev[1];
-const expectedRevision = '20261007-r59-presentation-ready';
+const expectedRevision = '20261007-r59-home-ready';
 if (revision !== expectedRevision) {
   console.error(`FAIL this cutover permits exactly one revision: expected=${expectedRevision} actual=${revision}`);
   process.exit(1);
@@ -39,6 +39,21 @@ for (const runtime of ['uiSfxAuthority.js', 'goldProductBridge.js']) {
 if (goldShell.includes('20261005-owner-playtest-r50k') || goldAssets.includes('20261005-owner-playtest-r50k')) {
   console.error('FAIL stale R50K cache identity survived in shipping Gold artifacts');
   process.exit(1);
+}
+
+// Shipping Gold is injected through DOMParser; inline executable scripts are
+// parsed only in the browser. Parse them here too so a literal escape such as
+// "\\n" in statement position can never deploy as "background only, HUD dead".
+const inlineScripts = [...goldShell.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)];
+for (let i = 0; i < inlineScripts.length; i++) {
+  const attrs = inlineScripts[i][1] || '';
+  const code = inlineScripts[i][2] || '';
+  if (/\bsrc\s*=/.test(attrs) || /\btype\s*=\s*["'](?:text\/plain|application\/json)["']/i.test(attrs)) continue;
+  try { new Function(code); }
+  catch (error) {
+    console.error(`FAIL shipping Gold inline script #${i} is not valid JavaScript: ${error.message}`);
+    process.exit(1);
+  }
 }
 const paths = [...new Set([...manifest.matchAll(/'\/(game\/[^']+?)\?v=' \+ APEX_ARSENAL_RUNTIME_REVISION/g)]
   .map((match) => `public/${match[1]}`))];
