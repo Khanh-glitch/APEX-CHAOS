@@ -1654,6 +1654,24 @@
     return res;
   };
 
+  function normalizeAiDecision(raw) {
+    if (raw == null) return { shouldCast:true, score:1, reason:'ready-default', retryAfter:.35 };
+    if (typeof raw === 'boolean') return { shouldCast:raw, score:raw?1:0, reason:raw?'allowed':'rejected', retryAfter:.35 };
+    const shouldCast = raw.shouldCast !== false;
+    const score = Number.isFinite(raw.score) ? clamp(raw.score,0,1) : (shouldCast?1:0);
+    const retryAfter = Number.isFinite(raw.retryAfter) ? clamp(raw.retryAfter,.1,2) : .35;
+    return { shouldCast, score, reason:String(raw.reason || (shouldCast?'selected':'rejected')), retryAfter };
+  }
+
+  function emitAiDecision(type, ct, slot, plan, extra) {
+    const payload = {
+      hero:ct.heroId, slot, side:ct.side, combatantId:ct.combatantId,
+      at:AIL.clock(), ...(extra || {}),
+    };
+    plan.lastDecision = { type, ...payload };
+    AIL.bus.emit(type, payload);
+  }
+
   function p2CastAI(ct, dt) {
     if (!HR.aiEnabled || !M.aiEnabled) return;
     const AQS = globalScope.APEX_ARSENAL;
@@ -1669,19 +1687,40 @@
       const key = `${ct.heroId}:${slot}`;
       const plan = (M.aiCastPlan[key] = M.aiCastPlan[key] || {});
       if (plan.at == null) {
-        // Deterministic post-ready delay (tuning slot).
+        // Deterministic post-ready delay prevents frame-zero reflex casts.
         plan.at = AIL.clock() + 0.4 + rng() * 0.6;
       } else if (AIL.clock() >= plan.at) {
         const exec = MECH.EXECUTORS[ct.skills[slot].def.mechanicId];
-        if (exec && exec.aiCanAttempt && !exec.aiCanAttempt(mechCtx(ct, slot))) {
-          plan.at = AIL.clock() + 0.25; // executor says the cast cannot succeed now
+        const ctx = mechCtx(ct, slot);
+        let decision;
+        try { decision = normalizeAiDecision(exec && exec.aiEvaluate ? exec.aiEvaluate(ctx) : null); }
+        catch (error) { decision = { shouldCast:false, score:0, reason:'policy-error', retryAfter:.5 }; }
+
+        emitAiDecision('AICastConsider', ct, slot, plan, {
+          score:decision.score, reason:decision.reason, shouldCast:decision.shouldCast,
+        });
+        if (!decision.shouldCast) {
+          emitAiDecision('AICastReject', ct, slot, plan, { score:decision.score, reason:decision.reason });
+          plan.at = AIL.clock() + decision.retryAfter;
           continue;
         }
+
+        // Legacy mechanic preflight remains supported for heroes not yet moved
+        // to aiEvaluate(). It prevents impossible casts; tactical utility stays
+        // a separate decision above.
+        if (exec && exec.aiCanAttempt && !exec.aiCanAttempt(ctx)) {
+          emitAiDecision('AICastReject', ct, slot, plan, { score:decision.score, reason:'mechanic-unavailable' });
+          plan.at = AIL.clock() + Math.max(.25, decision.retryAfter);
+          continue;
+        }
+
+        emitAiDecision('AICastSelect', ct, slot, plan, { score:decision.score, reason:decision.reason });
         const res = ctl.tryCast(slot, { side: 'p2', source: 'ai' });
+        emitAiDecision('AICastOutcome', ct, slot, plan, { ok:!!res.ok, reason:res.reason || (res.ok?'cast':'unknown') });
         if (res.ok || res.reason === 'cooldown' || res.reason === 'cc') {
-          plan.at = null; // re-plan after cooldown returns
+          plan.at = null; // re-plan only when the skill is ready again
         } else {
-          plan.at = AIL.clock() + 0.5; // condition unmet: retry shortly
+          plan.at = AIL.clock() + Math.max(.5, decision.retryAfter);
         }
       }
     }
