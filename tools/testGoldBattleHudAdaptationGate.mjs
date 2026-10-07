@@ -6,6 +6,7 @@ const bridge = read('public/game/gold/goldProductBridge.js');
 const shell = read('public/gold/shell.html');
 const generator = read('tools/buildGoldCutover.mjs');
 const adapter = read('tools/goldBattleHudR48b.mjs');
+const r55Adapter = read('tools/goldBattleHudR55.mjs');
 
 const pass = [];
 const fail = [];
@@ -291,9 +292,11 @@ check('C3 is tablet-BOT scoped and does not globally square Local skill wells',
   !hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] .skill .sk-art{width:var(--artW);height:var(--artW);aspect-ratio:1/1')
   && !hud.includes('#hud[data-layout="land"] .skill .sk-art{width:var(--artW);height:var(--artW);aspect-ratio:1/1'));
 check('R55 adapter preserves the donor 1P family',
-  !adapter.includes('opens1p')
-  && !adapter.includes('delete the obsolete one-player panel family')
-  && adapter.includes('two different authored Gold compositions'));
+  !r55Adapter.includes('opens1p')
+  && !r55Adapter.includes('delete the obsolete one-player panel family')
+  && r55Adapter.includes('two different authored Gold compositions')
+  && generator.includes("import { adaptGoldBattleHudR55 } from './goldBattleHudR55.mjs';")
+  && generator.includes('out = adaptGoldBattleHudR55(out);'));
 
 console.log('GOLD BATTLE HUD ADAPTATION GATE (R49D + R48B production truth)');
 for (const line of pass) console.log(line);
