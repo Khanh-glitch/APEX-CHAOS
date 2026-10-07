@@ -161,7 +161,10 @@ try {
     active:window.APEX_SCENE_TRANSITION?.active?.()||false
   }))()`,v=>v?.mode&&v.state==='DONE'&&!v.active);
   const homeModeStates=await transitionSlice(mark);
-  gate('home-to-mode-physical-pointer-uses-full-door-law',homeClick?.hitWithin===true&&mode?.mode&&ordered(homeModeStates),{pointer:homeClick,states:homeModeStates});
+  const homeModeDoorStates=homeModeStates.filter(s=>['CLOSING','SEALED','OPENING'].includes(s));
+  gate('home-to-mode-physical-pointer-is-doorless-gold-shell-step',
+    homeClick?.hitWithin===true&&mode?.mode&&homeModeDoorStates.length===0,
+    {pointer:homeClick,states:homeModeStates});
   report.evidence.push(await screenshot('r50k-mode'));
 
   // MODE -> FIGHTER through the actual card.
@@ -174,13 +177,23 @@ try {
     active:window.APEX_SCENE_TRANSITION?.active?.()||false
   }))()`,v=>v?.fighter&&v.roster>=6&&v.state==='DONE'&&!v.active);
   const modeFighterStates=await transitionSlice(mark);
-  gate('mode-to-fighter-physical-pointer-uses-full-door-law',modeClick?.hitWithin===true&&fighter?.fighter&&fighter.roster>=6&&ordered(modeFighterStates),{pointer:modeClick,states:modeFighterStates,fighter});
+  const modeFighterDoorStates=modeFighterStates.filter(s=>['CLOSING','SEALED','OPENING'].includes(s));
+  gate('mode-to-fighter-physical-pointer-is-doorless-gold-shell-step',
+    modeClick?.hitWithin===true&&fighter?.fighter&&fighter.roster>=6&&modeFighterDoorStates.length===0,
+    {pointer:modeClick,states:modeFighterStates,fighter});
   report.evidence.push(await screenshot('r50k-fighter'));
 
-  // FIGHTER -> BATTLE is deliberately NOT a Mechanical Door route. LOCK IN
-  // lazy-loads/activates combat through the Battle lifecycle only; the scene
-  // transition state stream must remain untouched.
+  // FIGHTER -> BATTLE is deliberately NOT a Mechanical Door route. BOT pick
+  // is a real two-slot flow: lock P1, confirm the CPU/P2 fighter, then lock P2.
+  // Only the second lock may launch combat, and the scene-transition stream
+  // must remain untouched throughout the battle lifecycle.
   mark=await evaluate('window.__APEX_R50K_STATES.length');
+  const p1Pick=await physicalClick('.rosterCard[data-hero="newbot"]');
+  const p1Selected=await poll(`document.querySelector('.rosterCard[data-hero="newbot"]')?.classList.contains('p1-selected')||false`);
+  const p1Lock=await physicalClick('#lockIn');
+  const p2Turn=await poll(`document.getElementById('stage')?.classList.contains('fighter-active-p2')||false`);
+  const p2Pick=await physicalClick('.rosterCard[data-hero="newbot"]');
+  const p2Selected=await poll(`document.querySelector('.rosterCard[data-hero="newbot"]')?.classList.contains('p2-selected')||false`);
   const lockClick=await physicalClick('#lockIn');
   const battle=await poll(`(() => ({
     open:document.body.classList.contains('battle-hud-open'),
@@ -193,8 +206,10 @@ try {
   const fighterBattleStates=await transitionSlice(mark);
   const battleDoorStates=fighterBattleStates.filter(s=>['CLOSING','SEALED','OPENING'].includes(s));
   gate('fighter-to-battle-uses-combat-lifecycle-not-mechanical-door',
-    lockClick?.hitWithin===true&&battle?.open&&battle?.host&&battle?.hud&&battle?.live&&battleDoorStates.length===0,
-    {pointer:lockClick,states:fighterBattleStates,battle});
+    p1Pick?.hitWithin===true&&p1Selected===true&&p1Lock?.hitWithin===true&&p2Turn===true
+    &&p2Pick?.hitWithin===true&&p2Selected===true&&lockClick?.hitWithin===true
+    &&battle?.open&&battle?.host&&battle?.hud&&battle?.live&&battleDoorStates.length===0,
+    {p1Pick,p1Selected,p1Lock,p2Turn,p2Pick,p2Selected,lock:lockClick,states:fighterBattleStates,battle});
   report.evidence.push(await screenshot('r50k-battle'));
 
   // Responsive contract: Gold transition canvas tracks the real viewport after
