@@ -1,7 +1,7 @@
 {
   "generator": "tools/buildGoldCutover.mjs",
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
-  "runtimeRevision": "20261007-r59-hud-mode-tablet",
+  "runtimeRevision": "20261007-r59-bot-ai",
   "files": {
     "assets/gold/apex-chaos-wordmark.png": {
       "bytes": 496066,
