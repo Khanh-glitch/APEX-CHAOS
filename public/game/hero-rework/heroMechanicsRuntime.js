@@ -691,10 +691,70 @@
     return scope.APEX_FROST || null;
   }
 
+  // R59 D6 BOT law: human canCast remains deliberately permissive. CPU
+  // utility is derived only from Frost's authored lane/reach geometry.
+  function frostAiDecision(ctx, kind) {
+    const self = ctx.combatant && ctx.combatant.anchor;
+    if (!self || !(self.hp > 0)) {
+      return { shouldCast:false, score:0, reason:'no-self', retryAfter:.3 };
+    }
+    const enemies=(ctx.api.enemyBodies?ctx.api.enemyBodies(ctx.combatant):[])
+      .filter((body)=>body&&body.hp>0);
+    if (!enemies.length) {
+      return { shouldCast:false, score:0, reason:'no-living-enemy', retryAfter:.35 };
+    }
+
+    if (kind === 'a1') {
+      let dx=Number(self.dir&&self.dir.x)||0, dy=Number(self.dir&&self.dir.y)||0;
+      const dl=Math.hypot(dx,dy);
+      if (dl>1e-6){dx/=dl;dy/=dl;} else {dx=1;dy=0;}
+      const length=Math.max(0,Number(ctx.cfg.length)||0);
+      const halfW=Math.max(0,Number(ctx.cfg.width)||0)/2;
+      const insideLane=(x,y,radius=0)=>{
+        const rx=x-self.x, ry=y-self.y;
+        const along=rx*dx+ry*dy;
+        const lateral=Math.abs(rx*-dy+ry*dx);
+        return along>=-radius && along<=length+radius && lateral<=halfW+radius;
+      };
+      if (enemies.some((body)=>insideLane(body.x,body.y,Number(body.radius)||0))) {
+        return { shouldCast:true, score:.94, reason:'enemy-in-frost-lane', retryAfter:.15 };
+      }
+
+      const cfg=globalScope.APEX_ARSENAL_CONFIG;
+      const isGun=(id)=>!!(id&&id!=='STORMBREAKER'&&id!=='T6'
+        &&cfg&&typeof cfg.isGun==='function'&&cfg.isGun(id));
+      const state=globalScope.APEX_ARSENAL&&globalScope.APEX_ARSENAL.state;
+      const slots=state&&Array.isArray(state.slots)?state.slots:[];
+      if (slots.some((slot)=>slot&&slot.phase==='REVEALED'&&slot.kind!=='HEAL'
+          &&isGun(slot.weaponId)&&insideLane(slot.x,slot.y,16))) {
+        return { shouldCast:true, score:.82, reason:'floor-firearm-in-frost-lane', retryAfter:.2 };
+      }
+      return { shouldCast:false, score:0, reason:'no-frost-breath-target', retryAfter:.3 };
+    }
+
+    if (kind === 'a2') {
+      let speed=Math.max(0,Number(self.baseSpeed)||0);
+      try {
+        if (typeof self.speedMult==='function') speed*=Math.max(0,Number(self.speedMult())||0);
+      } catch (_) {}
+      const window=Math.max(0,Number(ctx.cfg.activeWindow)||0);
+      const trailHalf=Math.max(0,Number(ctx.cfg.trailWidth)||0)/2;
+      const reachable=enemies.some((body)=>{
+        const contact=(Number(self.radius)||0)+(Number(body.radius)||0);
+        return dist(self.x,self.y,body.x,body.y)<=speed*window+contact+trailHalf;
+      });
+      return reachable
+        ? { shouldCast:true, score:.88, reason:'enemy-in-hunt-reach', retryAfter:.15 }
+        : { shouldCast:false, score:0, reason:'no-hunt-reachable-enemy', retryAfter:.3 };
+    }
+
+    return { shouldCast:false, score:0, reason:'unknown-frost-skill', retryAfter:.4 };
+  }
+
   EXECUTORS['frost.breath'] = {
-    // A1 never aims: no target, range, or facing precondition.
+    // Human A1 never aims: no target, range, or facing precondition.
     canCast() { return true; },
-    aiCanAttempt() { return true; },
+    aiEvaluate(ctx) { return frostAiDecision(ctx, 'a1'); },
     cast(ctx) {
       const FR = frostTruth();
       if (!FR) return false;
@@ -709,7 +769,7 @@
 
   EXECUTORS['frost.hunt'] = {
     canCast() { return true; },
-    aiCanAttempt() { return true; },
+    aiEvaluate(ctx) { return frostAiDecision(ctx, 'a2'); },
     cast(ctx) {
       const FR = frostTruth();
       if (!FR) return false;

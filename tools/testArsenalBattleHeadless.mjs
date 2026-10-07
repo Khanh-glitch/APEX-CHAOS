@@ -2074,6 +2074,74 @@ gate('r59-magnet-bot-a2-uses-authored-body-radius',
   && report.r59MagnetBotDecision.bodyCase.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A2'&&e.reason==='enemy-in-repel-radius'),
   report.r59MagnetBotDecision.bodyCase);
 
+// R59 D6 FROST — human legality stays unrestricted, while BOT utility is
+// tied to the authored 650x310 A1 lane and live-speed × 2.0s A2 reach.
+report.r59FrostBotDecision = run(`
+  const HR=window.APEX_HERO_REWORK;
+  const prevProfile=window.__apexArsenalBattleProfile;
+  const startBot=()=>{
+    window.__apexArsenalBattleProfile='BOT';
+    window.__apexArsenalTestStartMatch('ROBOT','ICE');
+    window.__apexArsenalBattleProfile=prevProfile;
+    cancelAnimationFrame(reqId);reqId=0;
+    __APEX_TEST.holdSpawns();
+    projectiles.length=0;
+    const p2=HR.byCombatant(fighters[1]);
+    if(fighters[0].data)fighters[0].data.__hrHoldBody=true;
+    if(fighters[1].data)fighters[1].data.__hrHoldBody=true;
+    return p2;
+  };
+
+  let p2=startBot();
+  fighters[0].x=120;fighters[0].y=500;fighters[1].x=880;fighters[1].y=500;
+  fighters[0].baseSpeed=0;fighters[1].baseSpeed=0;fighters[1].setDir(1,0);
+  const idleMark=HR.AIL.bus.ring.length;
+  for(let i=0;i<180;i++)APEX_ARSENAL.step(1/60);
+  const idle={casts:p2.telemetry.casts,a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,fails:p2.telemetry.castFails,
+    reasons:HR.AIL.bus.ring.slice(idleMark).filter(e=>e.type==='AICastReject'&&e.payload.hero==='ICE')
+      .map(e=>({slot:e.payload.slot,reason:e.payload.reason}))};
+
+  p2=startBot();
+  fighters[0].x=300;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
+  fighters[0].baseSpeed=0;fighters[1].baseSpeed=0;fighters[1].setDir(-1,0);
+  const a1Mark=HR.AIL.bus.ring.length;
+  for(let i=0;i<120;i++)APEX_ARSENAL.step(1/60);
+  const laneCase={a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,
+    decisions:HR.AIL.bus.ring.slice(a1Mark).filter(e=>e.payload&&e.payload.hero==='ICE')
+      .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason}))};
+
+  p2=startBot();
+  fighters[0].x=450;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
+  fighters[0].baseSpeed=0;fighters[1].baseSpeed=200;fighters[1].setDir(0,1);
+  const a2Mark=HR.AIL.bus.ring.length;
+  for(let i=0;i<120;i++)APEX_ARSENAL.step(1/60);
+  const huntCase={a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,
+    decisions:HR.AIL.bus.ring.slice(a2Mark).filter(e=>e.payload&&e.payload.hero==='ICE')
+      .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason}))};
+
+  return {idle,laneCase,huntCase};
+`);
+gate('r59-frost-bot-empty-geometry-preserves-cooldowns',
+  report.r59FrostBotDecision.idle.casts===0
+  && report.r59FrostBotDecision.idle.a1===0
+  && report.r59FrostBotDecision.idle.a2===0
+  && report.r59FrostBotDecision.idle.fails===0,
+  report.r59FrostBotDecision.idle);
+gate('r59-frost-bot-empty-geometry-reasons-are-explicit',
+  report.r59FrostBotDecision.idle.reasons.some(e=>e.slot==='A1'&&e.reason==='no-frost-breath-target')
+  && report.r59FrostBotDecision.idle.reasons.some(e=>e.slot==='A2'&&e.reason==='no-hunt-reachable-enemy'),
+  report.r59FrostBotDecision.idle.reasons);
+gate('r59-frost-bot-a1-uses-authored-lane',
+  report.r59FrostBotDecision.laneCase.a1>=1
+  && report.r59FrostBotDecision.laneCase.a2===0
+  && report.r59FrostBotDecision.laneCase.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A1'&&e.reason==='enemy-in-frost-lane'),
+  report.r59FrostBotDecision.laneCase);
+gate('r59-frost-bot-a2-uses-live-reach-envelope',
+  report.r59FrostBotDecision.huntCase.a1===0
+  && report.r59FrostBotDecision.huntCase.a2>=1
+  && report.r59FrostBotDecision.huntCase.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A2'&&e.reason==='enemy-in-hunt-reach'),
+  report.r59FrostBotDecision.huntCase);
+
 report.postCText = run(`
   const src = [drawBackground.toString(), (window.APEX_ARSENAL_SPAWN.drawSlots||function(){}).toString()].join('\\n');
   return {
