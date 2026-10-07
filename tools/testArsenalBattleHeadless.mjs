@@ -245,6 +245,22 @@ function loadScript(relPath, required) {
 }
 
 loadScript('/apexEngine.js', true);
+
+// TEST-ONLY compatibility for the historical roster fixtures below.
+// Product cutover intentionally deleted these picker globals from apexEngine;
+// legacy fighter fixtures still wrap them while exercising old combat oracles.
+// Keep the shim in THIS harness only — never resurrect retired picker UI in
+// production just so historical acceptance scripts can load.
+const retiredPickerCompat = {
+  populateRoster: () => {},
+  syncSelectedFighterVfx: () => {},
+  selectFighter: () => {},
+  drawRosterPreview: () => {},
+};
+for (const [name, fn] of Object.entries(retiredPickerCompat)) {
+  if (typeof win[name] !== 'function') win[name] = fn;
+}
+
 // The default keeps the original shared-engine acceptance path unchanged.
 // The product-authentic path mirrors current route intent: load only the
 // Arsenal product group and its select group, never BOOT_GAME_RUNTIMES.
