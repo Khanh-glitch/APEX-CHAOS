@@ -7,6 +7,8 @@ const shell = fs.readFileSync('public/gold/shell.html','utf8');
 const generator = fs.readFileSync('tools/buildGoldCutover.mjs','utf8');
 const assetRuntime = fs.readFileSync('public/game/product/productAssetRuntime.js','utf8');
 const shipping = fs.readFileSync('src/game/goldAssetManifest.js','utf8');
+const frostPresentation = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js','utf8');
+const magnetGold = fs.readFileSync('public/game/hero-rework/magnetGoldV1.js','utf8');
 
 const failures=[];
 const notes=[];
@@ -57,6 +59,22 @@ check('selected-fighter warm is memoized per hero instead of abort/restart spam'
   && bridge.includes('if (fighterSelectionWarm.has(id)) return fighterSelectionWarm.get(id);')
   && bridge.includes('fighterSelectionWarm.set(id, job);'));
 check('Battle runtime load is awaited by prepareSurface', bridge.includes("ensureDeferredRuntimes('arsenalProduct').then") && bridge.includes("throw new Error('arsenalProduct runtime group did not reach READY')"));
+check('battle readiness waits for selected presentation art, not just runtime evaluation',
+  bridge.includes('async function warmMatchHeroPresentation(...keys)')
+  && bridge.includes('warmMatchHeroPresentation(...heroIds)')
+  && bridge.includes('warmMatchHeroPresentation(p1Shell, p2Shell)')
+  && bridge.includes("throw new Error('Frost presentation readiness authority unavailable')")
+  && bridge.includes("throw new Error('Magnet presentation readiness authority unavailable')"));
+check('Frost builds one full-quality shared mip cache before reveal',
+  frostPresentation.includes('let sharedArtPromise = null')
+  && frostPresentation.includes('function prepareSharedArt()')
+  && frostPresentation.includes('api.prepareArt = function prepareArt()')
+  && frostPresentation.includes('sharedArt = { mips: loader.mips, shadow: loader.shadowCanvas }')
+  && !frostPresentation.includes('createState.loadStarted'));
+check('Magnet exposes the same one-shot Gold loader promise to battle readiness',
+  magnetGold.includes('const assetReady=loadAssets();')
+  && magnetGold.includes('prepareArt(){return assetReady.then')
+  && (magnetGold.match(/loadAssets\(\)/g) || []).length === 2);
 check('shell awaits scene preparation before reveal', shell.includes("if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface(next,{heroIds})") && shell.includes("if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('battle',{heroIds})"));
 check('Fighter readiness covers world-stage art', shell.includes("await tr?.prepareElement?.(stage,{verifyImages:false})") && shell.includes("await tr?.prepareElement?.(surfaceRoot)"));
 check('Lucky remains click intent', bridge.includes("surface === 'lucky'") && assetRuntime.includes("'/gold/lucky-draw.html'") && shell.includes("name:'home->lucky'"));
