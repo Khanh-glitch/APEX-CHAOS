@@ -369,6 +369,61 @@ try {
     { fields: inspect.fields.length, guns: inspect.floorFirearms.length, bodies: inspect.bodies.length });
 } catch (e) { gate('M07.2-teardown-clears-runtime', false, String(e)); }
 
+
+/* R59 BOT policy: availability != usefulness. These run the real p2CastAI
+ * scheduler; they do not call executor.aiCanAttempt directly. */
+try {
+  win.__apexArsenalBattleProfile = 'BOT';
+  T.start('ROBOT', 'MAGNET'); T.holdSpawns();
+  const [enemy, bot] = H.fighters();
+  enemy.baseSpeed = 0; bot.baseSpeed = 0;
+  enemy.x = 100; enemy.y = 100; bot.x = 900; bot.y = 900;
+  const botCt = HR.byCombatant(bot);
+  HR.setAiEnabled(true);
+  T.step(1.6, 1/60);
+  const idleA1 = botCt.telemetry.bySkill.A1 || 0;
+  const idleA2 = botCt.telemetry.bySkill.A2 || 0;
+  const idleFails = botCt.telemetry.castFails || 0;
+  gate('M11.1-bot-does-not-spend-empty-fields',
+    idleA1 === 0 && idleA2 === 0 && idleFails === 0,
+    { a1: idleA1, a2: idleA2, castFails: idleFails });
+
+  T.pushSlot({ x: 500, y: 500, phase: 'REVEALED', kind: 'WEAPON', weaponId: 'PISTOL' });
+  T.step(1.6, 1/60);
+  gate('M11.2-bot-a1-casts-when-a-real-floor-firearm-exists',
+    (botCt.telemetry.bySkill.A1 || 0) >= 1,
+    { a1: botCt.telemetry.bySkill.A1 || 0 });
+} catch (e) {
+  gate('M11.1-bot-does-not-spend-empty-fields', false, String(e));
+} finally {
+  HR.setAiEnabled(false);
+}
+
+try {
+  win.__apexArsenalBattleProfile = 'BOT';
+  T.start('ROBOT', 'MAGNET'); T.holdSpawns();
+  const [enemy, bot] = H.fighters();
+  enemy.baseSpeed = 0; bot.baseSpeed = 0;
+  enemy.x = 100; enemy.y = 500; bot.x = 900; bot.y = 500;
+  const botCt = HR.byCombatant(bot);
+  const ctl = HR.abilityController(botCt);
+  ctl.setCooldown('A1', 99);
+  HR.setAiEnabled(true);
+  T.step(1.6, 1/60);
+  const farA2 = botCt.telemetry.bySkill.A2 || 0;
+  enemy.x = bot.x - 150; enemy.y = bot.y;
+  T.step(1.6, 1/60);
+  const nearA2 = botCt.telemetry.bySkill.A2 || 0;
+  gate('M11.3-bot-a2-waits-until-repel-has-a-real-target',
+    farA2 === 0 && nearA2 >= 1,
+    { farA2, nearA2, distance: Math.hypot(enemy.x - bot.x, enemy.y - bot.y) });
+} catch (e) {
+  gate('M11.3-bot-a2-waits-until-repel-has-a-real-target', false, String(e));
+} finally {
+  HR.setAiEnabled(false);
+  win.__apexArsenalBattleProfile = 'LOCAL';
+}
+
 const passed = Object.keys(report.gates).length - report.failures.length;
 console.log(`\n[MAGNET V1 GAMEPLAY] ${passed}/${Object.keys(report.gates).length} gates passed`);
 if (report.failures.length) console.error(`FAILURES: ${report.failures.join(', ')}`);
