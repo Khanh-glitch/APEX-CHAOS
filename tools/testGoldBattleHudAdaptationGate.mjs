@@ -13,6 +13,32 @@ function check(name, ok, detail = '') {
   (ok ? pass : fail).push((ok ? 'PASS ' : 'FAIL ') + name + (detail ? ' :: ' + detail : ''));
 }
 
+function webpDimensions(p) {
+  const b = fs.readFileSync(p);
+  if (b.toString('ascii',0,4) !== 'RIFF' || b.toString('ascii',8,12) !== 'WEBP') return null;
+  let off = 12;
+  while (off + 8 <= b.length) {
+    const type = b.toString('ascii',off,off+4);
+    const len = b.readUInt32LE(off+4);
+    const d = off + 8;
+    if (type === 'VP8X' && d + 10 <= b.length) {
+      return {w:1+b[d+4]+(b[d+5]<<8)+(b[d+6]<<16),h:1+b[d+7]+(b[d+8]<<8)+(b[d+9]<<16)};
+    }
+    if (type === 'VP8L' && d + 5 <= b.length && b[d] === 0x2f) {
+      return {w:1+(((b[d+2]&0x3f)<<8)|b[d+1]),h:1+(((b[d+4]&0x0f)<<10)|(b[d+3]<<2)|((b[d+2]&0xc0)>>6))};
+    }
+    if (type === 'VP8 ' && d + 10 <= b.length) {
+      for (let i=d;i<Math.min(d+20,b.length-6);i++) {
+        if (b[i]===0x9d && b[i+1]===0x01 && b[i+2]===0x2a) {
+          return {w:b.readUInt16LE(i+3)&0x3fff,h:b.readUInt16LE(i+5)&0x3fff};
+        }
+      }
+    }
+    off = d + len + (len & 1);
+  }
+  return null;
+}
+
 check('weapon projection exposes real Arsenal asset URL',
   bridge.includes("const meta = av && typeof av.weaponMeta === 'function' ? av.weaponMeta(weaponId) : null;") &&
   bridge.includes("asset = '/assets/arsenal/' + String(meta.file).replace(/^\\/+/, '');"));
@@ -238,6 +264,20 @@ check('C2 does not zoom skills or alter Local weapon-row authority',
   !/R59 C2[\s\S]*?transform\s*:\s*scale/.test(hud)
   && hud.includes('#hud[data-layout="land"][data-mode="2p"] .side{--wpH:')
   && hud.includes('#hud[data-layout="port"][data-mode="2p"] .side{--wpH:'));
+const coreSix = ['newbot','hunter','crystala','magnet','frost','mirror'];
+const coreSkillDims = coreSix.flatMap((hero) => ['a1','a2'].map((slot) => {
+  const d = webpDimensions('public/assets/gold-ui/heroes/'+hero+'/skill_'+slot+'.webp');
+  return {hero,slot,d};
+}));
+check('Core Six A1/A2 source media is square or near-square before CSS',
+  coreSkillDims.every(({d}) => d && d.w > 0 && d.h > 0 && Math.abs(d.w/d.h - 1) <= 0.05),
+  coreSkillDims.map(({hero,slot,d}) => hero+':'+slot+'='+(d?d.w+'x'+d.h:'missing')).join(', '));
+check('BOT landscape tablet uses a square media well without changing tile geometry',
+  hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] .skill .sk-art{width:var(--artW);height:var(--artW);aspect-ratio:1/1;align-self:center;justify-self:start}')
+  && hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] .sk-art>.apex-skill-icon{width:100%;height:100%;object-fit:contain;object-position:center}'));
+check('C3 is tablet-BOT scoped and does not globally square Local skill wells',
+  !hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] .skill .sk-art{width:var(--artW);height:var(--artW);aspect-ratio:1/1')
+  && !hud.includes('#hud[data-layout="land"] .skill .sk-art{width:var(--artW);height:var(--artW);aspect-ratio:1/1'));
 check('R55 adapter preserves the donor 1P family',
   !adapter.includes('opens1p')
   && !adapter.includes('delete the obsolete one-player panel family')
