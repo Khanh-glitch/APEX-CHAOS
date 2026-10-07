@@ -2721,33 +2721,35 @@
     return oldStartSpecificEngineer(ft1, ft2, opts);
   };
 
-  const oldPopulateEngineer = populateRoster;
-  populateRoster = function() {
-    const result = oldPopulateEngineer();
-    const grid = document.getElementById('roster-grid');
-    const activeText = document.querySelector('#roster-tabs button.active')?.textContent || '';
-    const ft = fighterTypeByName('ENGINEER');
-    if (grid && ft && activeText.includes('APEX') && !grid.querySelector('[data-fighter="ENGINEER"]')) {
-      const card = document.createElement('div');
-      card.className = 'fighter-card';
-      card.dataset.fighter = ft.name;
-      card.style.color = ft.color;
-      const name = document.createElement('div');
-      name.className = 'f-name';
-      name.textContent = ft.name;
-      const preview = document.createElement('canvas');
-      preview.className = 'f-preview';
-      preview.width = 140;
-      preview.height = 96;
-      preview.setAttribute('aria-label', 'ENGINEER battle visual preview');
-      card.appendChild(name);
-      card.appendChild(preview);
-      card.onclick = () => selectFighter(ft, card);
-      grid.appendChild(card);
-      drawRosterPreview(preview, ft, 999);
-    }
-    return result;
-  };
+  if (typeof populateRoster === 'function' && typeof selectFighter === 'function' && typeof drawRosterPreview === 'function') {
+    const oldPopulateEngineer = populateRoster;
+    populateRoster = function() {
+      const result = oldPopulateEngineer();
+      const grid = document.getElementById('roster-grid');
+      const activeText = document.querySelector('#roster-tabs button.active')?.textContent || '';
+      const ft = fighterTypeByName('ENGINEER');
+      if (grid && ft && activeText.includes('APEX') && !grid.querySelector('[data-fighter="ENGINEER"]')) {
+        const card = document.createElement('div');
+        card.className = 'fighter-card';
+        card.dataset.fighter = ft.name;
+        card.style.color = ft.color;
+        const name = document.createElement('div');
+        name.className = 'f-name';
+        name.textContent = ft.name;
+        const preview = document.createElement('canvas');
+        preview.className = 'f-preview';
+        preview.width = 140;
+        preview.height = 96;
+        preview.setAttribute('aria-label', 'ENGINEER battle visual preview');
+        card.appendChild(name);
+        card.appendChild(preview);
+        card.onclick = () => selectFighter(ft, card);
+        grid.appendChild(card);
+        drawRosterPreview(preview, ft, 999);
+      }
+      return result;
+    };
+  }
 
   const oldInspectorRowsEngineer = typeof buildInspectorRows === 'function' ? buildInspectorRows : null;
   if (oldInspectorRowsEngineer) {

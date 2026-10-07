@@ -1997,18 +1997,23 @@
   const previousGlyph = fighterGlyph;
   fighterGlyph = function(name) { return name === 'KATANA' ? 'K' : previousGlyph(name); };
 
-  const prevPopulateKatana = populateRoster;
-  populateRoster = function(...args) {
-    const result = prevPopulateKatana.apply(this,args);
-    appendKatanaCard();
-    return result;
-  };
-  const prevSyncSelectedKatana = syncSelectedFighterVfx;
-  syncSelectedFighterVfx = function(...args) {
-    const result = prevSyncSelectedKatana.apply(this,args);
-    syncKatanaSelectedVfx();
-    return result;
-  };
+  const hasLegacyKatanaPicker = typeof populateRoster === 'function'
+    && typeof syncSelectedFighterVfx === 'function'
+    && typeof selectFighter === 'function';
+  if (hasLegacyKatanaPicker) {
+    const prevPopulateKatana = populateRoster;
+    populateRoster = function(...args) {
+      const result = prevPopulateKatana.apply(this,args);
+      appendKatanaCard();
+      return result;
+    };
+    const prevSyncSelectedKatana = syncSelectedFighterVfx;
+    syncSelectedFighterVfx = function(...args) {
+      const result = prevSyncSelectedKatana.apply(this,args);
+      syncKatanaSelectedVfx();
+      return result;
+    };
+  }
   const prevStartKatana = startSpecificMatch;
   startSpecificMatch = function(ft1, ft2, opts={}) {
     document.getElementById('menu-screen')?.classList.add('hidden');
@@ -2142,6 +2147,6 @@
   Object.assign(window.apexReactBridge || {}, { startSpecificMatch, goToMenu });
   Object.assign(window, window.apexReactBridge || {}, { APEX_KATANA:window.APEX_KATANA, startSpecificMatch, goToMenu });
   scheduleKatanaVisualWarmup();
-  if (document.getElementById('roster-grid')) appendKatanaCard();
+  if (hasLegacyKatanaPicker && document.getElementById('roster-grid')) appendKatanaCard();
   console.info('[Apex Chaos] KATANA champion integrated', window.APEX_KATANA.selfTest());
 })();

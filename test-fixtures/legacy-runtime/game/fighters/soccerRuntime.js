@@ -314,25 +314,27 @@
     card.onclick = () => selectFighter(ft, card);
     grid.appendChild(card);
   }
-  const prevPowerPopulateRoster = populateRoster;
-  populateRoster = function() {
-    const grid = document.getElementById('roster-grid');
-    if (!grid) return prevPowerPopulateRoster();
-    ensureRosterTabs(grid);
-    grid.innerHTML = '';
-    rosterListForMode().forEach(ft => renderCard(ft, grid));
-    document.querySelectorAll('#roster-tabs button').forEach(btn => btn.classList.toggle('active', btn.dataset.rosterMode === rosterMode));
-    syncRosterSelections(grid);
-    renderRosterPreviews(true);
-    ensureRosterPreviewLoop();
-  };
-  const prevPowerSelectFighter = selectFighter;
-  selectFighter = function(ft, card) {
-    prevPowerSelectFighter(ft, card);
-    const grid = document.getElementById('roster-grid');
-    if (grid) syncRosterSelections(grid);
-  };
-  if (document.getElementById('roster-grid')) populateRoster();
+  if (typeof populateRoster === 'function' && typeof selectFighter === 'function') {
+    const prevPowerPopulateRoster = populateRoster;
+    populateRoster = function() {
+      const grid = document.getElementById('roster-grid');
+      if (!grid) return prevPowerPopulateRoster();
+      ensureRosterTabs(grid);
+      grid.innerHTML = '';
+      rosterListForMode().forEach(ft => renderCard(ft, grid));
+      document.querySelectorAll('#roster-tabs button').forEach(btn => btn.classList.toggle('active', btn.dataset.rosterMode === rosterMode));
+      syncRosterSelections(grid);
+      renderRosterPreviews(true);
+      ensureRosterPreviewLoop();
+    };
+    const prevPowerSelectFighter = selectFighter;
+    selectFighter = function(ft, card) {
+      prevPowerSelectFighter(ft, card);
+      const grid = document.getElementById('roster-grid');
+      if (grid) syncRosterSelections(grid);
+    };
+    if (document.getElementById('roster-grid')) populateRoster();
+  }
 
   Object.assign(window.apexReactBridge || {}, { goToSelect, startSpecificMatch, updateHUD });
   Object.assign(window, window.apexReactBridge || {});

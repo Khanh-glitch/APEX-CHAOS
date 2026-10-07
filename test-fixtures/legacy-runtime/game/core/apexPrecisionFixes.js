@@ -240,5 +240,5 @@
   const oldCheckCrystal = checkCrystalDiamond;
   checkCrystalDiamond=function(owner){ oldCheckCrystal(owner); projectiles.filter(p=>p.type==='crystal_cage'&&p.owner===owner).forEach(c=>{ if(c.diamond){ const a=-Math.PI/2+Math.PI/7; const sp=Math.hypot(c.diamond.vx||1,c.diamond.vy||1)||owner.baseSpeed*5.8; c.diamond.x=c.x+Math.cos(-Math.PI/2)*(c.radius||220)*.75; c.diamond.y=c.y+Math.sin(-Math.PI/2)*(c.radius||220)*.75; c.diamond.vx=Math.cos(a)*sp; c.diamond.vy=Math.sin(a)*sp; }}); };
 
-  populateRoster();
+  if (typeof populateRoster === 'function') populateRoster();
 })();

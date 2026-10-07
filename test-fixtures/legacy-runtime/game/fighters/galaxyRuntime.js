@@ -633,36 +633,38 @@
     };
   }
   let selectionClick = { name:null, time:0 };
-  const oldPopulateRoster = populateRoster;
-  populateRoster = function() {
-    selectionClick = { name:null, time:0 };
-    oldPopulateRoster();
-    const grid = document.getElementById('roster-grid');
-    if (!grid) return;
-    grid.querySelectorAll('.fighter-card').forEach(card => {
-      const name = card.querySelector('.f-name')?.textContent;
-      if (name === 'NOVA') card.querySelector('.f-name').textContent = 'GALAXY';
-    });
-  };
-  const oldSelectFighter = selectFighter;
-  selectFighter = function(ft, card) {
-    const now = performance.now();
-    if (selectionClick.name === ft.name && now - selectionClick.time <= 350) {
-      if (p2Selection === ft) p2Selection = null;
-      else if (p1Selection === ft && !p2Selection) p1Selection = null;
-      document.querySelectorAll('.fighter-card').forEach(c=>c.classList.remove('selected-p1','selected-p2'));
-      if (p1Selection) [...document.querySelectorAll('.fighter-card')].find(c=>c.querySelector('.f-name')?.textContent===p1Selection.name)?.classList.add('selected-p1');
-      if (p2Selection) [...document.querySelectorAll('.fighter-card')].find(c=>c.querySelector('.f-name')?.textContent===p2Selection.name)?.classList.add('selected-p2');
-      const title = document.getElementById('select-title');
-      if (title) { title.innerText = p1Selection ? 'SELECT PLAYER 2' : 'SELECT PLAYER 1'; title.style.color = p1Selection ? '#ff776f' : '#7fd4ff'; }
-      document.getElementById('start-btn')?.classList.add('hidden');
-      syncSelectedFighterVfx();
+  if (typeof populateRoster === 'function' && typeof selectFighter === 'function' && typeof syncSelectedFighterVfx === 'function') {
+    const oldPopulateRoster = populateRoster;
+    populateRoster = function() {
       selectionClick = { name:null, time:0 };
-      return;
-    }
-    selectionClick = { name:ft.name, time:now };
-    oldSelectFighter(ft, card);
-  };
+      oldPopulateRoster();
+      const grid = document.getElementById('roster-grid');
+      if (!grid) return;
+      grid.querySelectorAll('.fighter-card').forEach(card => {
+        const name = card.querySelector('.f-name')?.textContent;
+        if (name === 'NOVA') card.querySelector('.f-name').textContent = 'GALAXY';
+      });
+    };
+    const oldSelectFighter = selectFighter;
+    selectFighter = function(ft, card) {
+      const now = performance.now();
+      if (selectionClick.name === ft.name && now - selectionClick.time <= 350) {
+        if (p2Selection === ft) p2Selection = null;
+        else if (p1Selection === ft && !p2Selection) p1Selection = null;
+        document.querySelectorAll('.fighter-card').forEach(c=>c.classList.remove('selected-p1','selected-p2'));
+        if (p1Selection) [...document.querySelectorAll('.fighter-card')].find(c=>c.querySelector('.f-name')?.textContent===p1Selection.name)?.classList.add('selected-p1');
+        if (p2Selection) [...document.querySelectorAll('.fighter-card')].find(c=>c.querySelector('.f-name')?.textContent===p2Selection.name)?.classList.add('selected-p2');
+        const title = document.getElementById('select-title');
+        if (title) { title.innerText = p1Selection ? 'SELECT PLAYER 2' : 'SELECT PLAYER 1'; title.style.color = p1Selection ? '#ff776f' : '#7fd4ff'; }
+        document.getElementById('start-btn')?.classList.add('hidden');
+        syncSelectedFighterVfx();
+        selectionClick = { name:null, time:0 };
+        return;
+      }
+      selectionClick = { name:ft.name, time:now };
+      oldSelectFighter(ft, card);
+    };
+  }
   const oldSoloRosterTypes = typeof soloRosterTypes === 'function' ? soloRosterTypes : null;
   if (oldSoloRosterTypes) soloRosterTypes = function(){ return oldSoloRosterTypes().map(t => t.name === 'NOVA' ? legacyNova : t); };
   window.toggleAutoBattlePause = function() {
