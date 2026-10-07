@@ -5,12 +5,12 @@ const build=fs.readFileSync('tools/buildGoldCutover.mjs','utf8');
 const failures=[];const passes=[];
 function check(name,cond){(cond?passes:failures).push((cond?'PASS ':'FAIL ')+name);}
 
-const frost="frost:{scale:1.53,x:0,y:16}";
+const frost="frost:{scale:1.53,x:0,y:23,flip:true}";
 check('Frost presentation is data-owned', shell.includes(frost) && build.includes(frost));
-check('Frost no longer hardcodes one facing', !shell.includes('frost:{scale:1.53,x:0,y:16,face:') && !build.includes('frost:{scale:1.53,x:0,y:16,face:'));
-check('side defaults face inward', shell.includes("const face=Number.isFinite(p.face)?p.face:(player==='p2'?-1:1)"));
+check('Frost facing is hero-specific without a fixed one-side face', shell.includes('frost:{scale:1.53,x:0,y:23,flip:true}') && build.includes('frost:{scale:1.53,x:0,y:23,flip:true}') && !/frost:\\{[^}]*face:/.test(shell));
+check('Frost flips the generic side-facing because its source art is reversed', shell.includes("const baseFace=player==='p2'?-1:1;") && shell.includes("p.flip?-baseFace:baseFace"));
 check('Frost scale is about 1.3x previous', Math.abs(1.53/(1.18)-1.2966)<0.01);
-check('Frost anchor moves downward rather than upward', shell.includes('frost:{scale:1.53,x:0,y:16}'));
+check('Frost anchor moves materially lower while scale stays 1.53', shell.includes('frost:{scale:1.53,x:0,y:23,flip:true}'));
 check('one world hero body is created', shell.includes("body.className='worldHeroBody'"));
 check('full-art echo clone path absent', !shell.includes('ghost=prev.cloneNode(true)') && !shell.includes('echo=img.cloneNode()'));
 check('secondary hero FX cannot duplicate full art', shell.includes('No duplicate image/echo layer'));
