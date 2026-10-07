@@ -276,6 +276,7 @@
         GOLD.cue(ct, 'a2capture', {
           x: ev.x, y: ev.y, nx: ev.nx, ny: ev.ny,
           radialBefore: ev.radialBefore,
+          outVx: ev.outVx, outVy: ev.outVy,
           tangential: ev.tangential,
           duration: ev.duration,
           radius: 225,

@@ -19,11 +19,12 @@ try{
 }catch(e){gate('M11.1-canonical-reference-proof',false,String(e));}
 
 try{
-  const source=fs.readFileSync('public/game/hero-rework/magnetGoldV1.js','utf8'),adapter=fs.readFileSync('public/game/hero-rework/magnetPresentationRuntime.js','utf8');
+  const source=fs.readFileSync('public/game/hero-rework/magnetGoldV1.js','utf8'),adapter=fs.readFileSync('public/game/hero-rework/magnetPresentationRuntime.js','utf8'),gameplay=fs.readFileSync('public/game/hero-rework/magnetGameplayRuntime.js','utf8');
   const a2=source.slice(source.indexOf('function drawReactiveField('),source.indexOf('function drawA1Filaments('));
   gate('M11.3-no-demo-hitboxes-or-fallback-redraw',!/segCircle|const HC=|demo hit/i.test(source)&&!/strokeRect\([^)]*RASTER|fallback redraw/i.test(source),'runtime consumes only pre-baked six-part raster');
   gate('M11.4-gold-owned-a2-angular-never-filled-shield',/ctx\.arc\(/.test(a2)&&/ctx\.stroke\(/.test(a2)&&!/ctx\.fill\(/.test(a2)&&!/(fillStyle|radialGradient)/.test(a2)&&!/function drawReactiveField\(/.test(adapter),'Gold owns stroke-only A2 sectors; adapter owns no A2 drawing');
   gate('M11.5-local-seeded-presentation-rng',/const rng=\{seed:.*0x4d41474e/.test(source)&&/rng\.seed\^=rng\.seed<</.test(source)&&!/Math\.random\(/.test(source),'no gameplay/global RNG consumption');
+  gate('R59F-a2-outgoing-vector-wired',/outVx: bestPlan\.postVx, outVy: bestPlan\.postVy/.test(gameplay)&&/outVx: ev\.outVx, outVy: ev\.outVy/.test(adapter)&&/Math\.atan2\(uy,ux\)/.test(source),'gameplay post-force velocity is the presentation direction authority');
 }catch(e){gate('M11.3-no-demo-hitboxes-or-fallback-redraw',false,String(e));}
 
 const deadline=Date.now()+12000;
@@ -68,6 +69,20 @@ try{
   const st2=PRES.inspect(ct).state;
   gate('M12.3-real-events-drive-presentation',a1.ok&&st.a1Age>0&&st.late===1&&tag.magnetBoosted&&spec.speed===1180&&st2.corridors===1,{a1Age:st.a1Age,late:st.late,corridors:st2.corridors,speed:spec.speed,slotId});
 }catch(e){gate('M12.3-real-events-drive-presentation',false,String(e));}
+
+try{
+  const degrees=[0,45,90,135,180,225,270,315],errors=[];
+  for(const deg of degrees){
+    GOLD.teardown(ct);
+    const angle=deg*Math.PI/180;
+    GOLD.cue(ct,'a2capture',{x:fighter.x+50,y:fighter.y,nx:1,ny:0,outVx:Math.cos(angle)*1400,outVy:Math.sin(angle)*1400,radialBefore:-1400,duration:.07,radius:225});
+    const angles=GOLD.inspect(ct).state?.effects?.corridorAngles||[];
+    const actual=angles[angles.length-1];
+    errors.push(Number.isFinite(actual)?Math.abs(Math.atan2(Math.sin(actual-angle),Math.cos(actual-angle))):Infinity);
+  }
+  const maxError=Math.max(...errors);
+  gate('R59F-a2-outgoing-vector-eight-directions',maxError<1e-9,{degrees,maxError});
+}catch(e){gate('R59F-a2-outgoing-vector-eight-directions',false,String(e));}
 
 try{
   for(let i=0;i<40;i++)win.APEX_HERO_REWORK_AIL.bus.emit('MagnetLateReveal',{combatantIndex:ct.idx,slotId:1000+i});

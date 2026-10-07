@@ -1,5 +1,5 @@
 {
-  "revision": "20261007-r59-e5-selected-match-barrier",
+  "revision": "20261008-r59-cp6-presentation",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
@@ -27,8 +27,8 @@
     "public/game/hero-rework/crystalaGoldV6.js": "cea96dc2b58f5c41fb482e196ec0cf9a2b9c25bb21f2b7df37afc2787b67ab2f",
     "public/game/hero-rework/crystalGameplayRuntime.js": "209b47bd480c4cd0de4ee96a4540867699f828341381d4633b4ff045b02a799d",
     "public/game/hero-rework/frostGameplayRuntime.js": "be7d2dfd8153c71f001278abf56a43bd9790d24e5ce317b04e8039fef69a51de",
-    "public/game/hero-rework/magnetGameplayRuntime.js": "1c1ea058f2b20413fc4888b7f940d858e07f25275a08e80468d20dbd19507c1b",
-    "public/game/hero-rework/magnetGoldV1.js": "83067e2953e2447adf664640b0cc06885019e1cfb24188e13c1be16407fc40d4",
+    "public/game/hero-rework/magnetGameplayRuntime.js": "f2b942add03359e29e6b5e65a36d31d5416c3b929e40a8c376e393366533dd31",
+    "public/game/hero-rework/magnetGoldV1.js": "fa1b2bed4705cc85bff6a449cd1f013483c5c0c07eae0589913540d2708e5b90",
     "public/game/hero-rework/mirrorGoldV1.js": "f7d1817064ca87997050e2f07acd60d98edfd575fbcffbc2ecd08597366f13e7",
     "public/game/hero-rework/heroMechanicsRuntime.js": "10f81d7458d453bec6a82ddfd7ca8383a6c06487bf9f62f07219ed305647f609",
     "public/game/hero-rework/heroReworkRuntime.js": "b3a37b68c3793216a6b8be53dd0f6999729de05831bd585e645bc67f4fadeded",
@@ -38,7 +38,7 @@
     "public/game/hero-rework/crystalaPresentationRuntime.js": "d76cd3874f58faa5c17fb47ce380d2288e0b63663c6059cd35a3a2c67594092c",
     "public/game/hero-rework/frostGoldV1.js": "0d97e857df605a3ac2a5a95099b27fa4037533844142e21e49fbca4667976f1a",
     "public/game/hero-rework/frostPresentationRuntime.js": "026c185366dc163ffe004669e8249aa186037dfca5da0e3169282a76bace014e",
-    "public/game/hero-rework/magnetPresentationRuntime.js": "8c42b90a5f5443ff45c24816691653d3dda1eda803c0214221c3be31f945df69",
+    "public/game/hero-rework/magnetPresentationRuntime.js": "088b8f995584a0b83c1093001edf7c0251081265a40a2ea48f9a0b5939ecc062",
     "public/game/hero-rework/mirrorPresentationRuntime.js": "3713f25305cb588042898e6137ae1c0c7d1b7214b92e32f0393a4cdf4bf96155",
     "public/game/heroes/coreSixCuratedSfxAuthority.js": "3b99fa8bd44dd0482e8a46ab8ba4fb7eafef858b7ff516355e681c10fd46125c",
     "public/game/ui/uiSfxAuthority.js": "196cc910ba9ad0ecacb56070b83ed3d72602a9b802e318b4b3034e659f5cc441"

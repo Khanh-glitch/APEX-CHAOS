@@ -238,13 +238,17 @@ function a2BulletCapture(s,data={}){
   // ~0.07s of catch read plus a slightly longer release streak.
   const x=Number(data.x)||s.root.x, y=Number(data.y)||s.root.y;
   const nx=Number(data.nx)||0, ny=Number(data.ny)||0;        // outward normal at TOI
+  const rawOutVx=Number(data.outVx), rawOutVy=Number(data.outVy);
+  const outSpeed=Math.hypot(rawOutVx,rawOutVy);
+  const hasOutgoing=Number.isFinite(rawOutVx)&&Number.isFinite(rawOutVy)&&outSpeed>1e-6;
+  const ux=hasOutgoing?rawOutVx/outSpeed:nx, uy=hasOutgoing?rawOutVy/outSpeed:ny;
   const tangential=Math.max(0,Number(data.tangential)||0);
   const speed=Math.abs(Number(data.radialBefore)||0);
   const dur=Math.max(.03,Number(data.duration)||.07);
   const power=clamp(speed/5800,.18,1);                        // PISTOL..SNIPER
-  const outAngle=Math.atan2(ny,nx);
-  // Directional release streak along the outward normal, length scaled by the
-  // speed that was actually caught.
+  const outAngle=Math.atan2(uy,ux);
+  // Directional release streak follows the projectile's REAL outgoing
+  // velocity. The field normal is only a zero-vector fallback.
   addCorridor(s,x,y,outAngle,96+150*power,9+7*power,dur*2.6,.52+.34*power);
   // Curved transient showing the bend: an arc hugging the field shell, swept
   // the way the tangential component is carrying the bullet.
@@ -254,7 +258,7 @@ function a2BulletCapture(s,data={}){
     outAngle+tanSign*span*.35,span,dur*3.1,1.5+2.2*power,'a2');
   // Small directional pulse at the catch itself, strongest at catch->release.
   addMotes(s,x,y,2+Math.round(2*power));
-  const side=nx<0?0:1;
+  const side=ux<0?0:1;
   poleChannels(side).forEach(k=>pulse(s,k,.42*power,.05));
   pulse(s,'core.eyes',.22*power,.09);
   s.lastAct=s.simTime;
@@ -510,7 +514,7 @@ function draw(ctx,combatant){
   ctx.save();try{for(const id of IDS)drawPart(ctx,s,id,level,false);for(const id of IDS)drawPart(ctx,s,id,level,true);s.sockets=socketsFor(s);}finally{ctx.restore();}return true;
 }
 function teardown(combatant){if(combatant)states.delete(combatant);else states.clear();}
-function stateSnapshot(s){return s&&{fixedSteps:s.fixedSteps,droppedTime:s.droppedTime,accumulator:s.accumulator,simTime:s.simTime,frameCount:s.frameCount,a1:s.a1,a2:s.a2,passive:s.passive,bodyScale:SOURCE_SCALE*bodyK(s),bodyCalibration:BODY_VISUAL_CALIBRATION,root:{...s.root},visualRoot:visualRoot(s),wallRebound:{active:s.vwall.active,nx:s.vwall.nx,ny:s.vwall.ny,offsetX:s.vwall.ox,offsetY:s.vwall.oy,target:s.vwall.target,age:s.vwall.age,peak:s.vwall.peak,donorN:s.vwall.donorN,donorV:s.vwall.donorV,lastImpact:s.vwall.lastImpact},velocity:{...s.velocity},acceleration:{...s.acceleration},a1Target:{...s.a1Target},desiredA1Target:{...s.desiredA1Target},rig:s.rig,gold:s.gold,sockets:socketsFor(s),objects:{a1:s.objects.a1.length,a2:s.objects.a2.length,a1Kinds:s.objects.a1.map(o=>o.kind),a2Kinds:s.objects.a2.map(o=>o.kind),a2Items:s.objects.a2.map(o=>({kind:o.kind,id:o.id??null,x:o.x,y:o.y}))},effects:{histories:s.histories.size,projectileHistories:[...s.histories.values()].filter(h=>h.kind==='bullet').length,arcs:s.arcs.length,bumps:s.bumps.length,echoes:s.echoes.length,corridors:s.corridors.length,rings:s.rings.length,particles:s.particles.length,hot:[...s.hot]}};}
+function stateSnapshot(s){return s&&{fixedSteps:s.fixedSteps,droppedTime:s.droppedTime,accumulator:s.accumulator,simTime:s.simTime,frameCount:s.frameCount,a1:s.a1,a2:s.a2,passive:s.passive,bodyScale:SOURCE_SCALE*bodyK(s),bodyCalibration:BODY_VISUAL_CALIBRATION,root:{...s.root},visualRoot:visualRoot(s),wallRebound:{active:s.vwall.active,nx:s.vwall.nx,ny:s.vwall.ny,offsetX:s.vwall.ox,offsetY:s.vwall.oy,target:s.vwall.target,age:s.vwall.age,peak:s.vwall.peak,donorN:s.vwall.donorN,donorV:s.vwall.donorV,lastImpact:s.vwall.lastImpact},velocity:{...s.velocity},acceleration:{...s.acceleration},a1Target:{...s.a1Target},desiredA1Target:{...s.desiredA1Target},rig:s.rig,gold:s.gold,sockets:socketsFor(s),objects:{a1:s.objects.a1.length,a2:s.objects.a2.length,a1Kinds:s.objects.a1.map(o=>o.kind),a2Kinds:s.objects.a2.map(o=>o.kind),a2Items:s.objects.a2.map(o=>({kind:o.kind,id:o.id??null,x:o.x,y:o.y}))},effects:{histories:s.histories.size,projectileHistories:[...s.histories.values()].filter(h=>h.kind==='bullet').length,arcs:s.arcs.length,bumps:s.bumps.length,echoes:s.echoes.length,corridors:s.corridors.length,corridorAngles:s.corridors.map(q=>q.angle),rings:s.rings.length,particles:s.particles.length,hot:[...s.hot]}};}
 function inspect(combatant){const s=combatant?states.get(combatant):null;return{ready,loadError:loadError&&String(loadError),stateCount:states.size,state:stateSnapshot(s)};}
 function setRandomSeed(combatant,value){stateFor(combatant).rng.seed=(Number(value)>>>0);}
 

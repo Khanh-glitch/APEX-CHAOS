@@ -512,6 +512,7 @@
           toi: bestPlan.t, x: bestPlan.ex, y: bestPlan.ey,
           nx: bestPlan.nx, ny: bestPlan.ny,
           radialBefore: bestPlan.entryRadial,
+          outVx: bestPlan.postVx, outVy: bestPlan.postVy,
           minRadius: bestPlan.minRadius,
           peakAccel: bestPlan.peakAccel,
           clock: t,

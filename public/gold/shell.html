@@ -1881,14 +1881,54 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     hunter:{scale:.62,x:0,y:5},
     crystala:{scale:.90,x:0,y:4},
     magnet:{scale:.92,x:0,y:4},
-    frost:{scale:1.53,x:0,y:16},
+    frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:.965},
   });
   const worldHeroSwapState=new WeakMap();
+  const visualBottomCache=new Map();
+
+  function visualBottomRatio(img){
+    const key=img.currentSrc||img.src||'';
+    if(visualBottomCache.has(key))return visualBottomCache.get(key);
+    const nw=img.naturalWidth||0,nh=img.naturalHeight||0;
+    if(!(nw>0&&nh>0))return 1;
+    let ratio=1;
+    try{
+      const maxSide=192,k=Math.min(1,maxSide/Math.max(nw,nh));
+      const w=Math.max(1,Math.round(nw*k)),h=Math.max(1,Math.round(nh*k));
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      const cx=cv.getContext('2d',{willReadFrequently:true});
+      if(cx){
+        cx.clearRect(0,0,w,h);cx.drawImage(img,0,0,w,h);
+        const px=cx.getImageData(0,0,w,h).data;
+        let bottom=-1;
+        scan:for(let y=h-1;y>=0;y--)for(let x=0;x<w;x++)if(px[(y*w+x)*4+3]>12){bottom=y;break scan;}
+        if(bottom>=0)ratio=(bottom+1)/h;
+      }
+    }catch(_){}
+    visualBottomCache.set(key,ratio);
+    return ratio;
+  }
+  function anchoredHeroY(img,p){
+    if(!Number.isFinite(p.groundLine))return p.y||0;
+    const w=img.clientWidth||0,h=img.clientHeight||0,nw=img.naturalWidth||0,nh=img.naturalHeight||0;
+    if(!(w>0&&h>0&&nw>0&&nh>0))return p.y||0;
+    const fit=Math.min(w/nw,h/nh),renderedH=nh*fit,top=(h-renderedH)/2;
+    const visualBottom=top+visualBottomRatio(img)*renderedH;
+    const origin=.68*h;
+    const transformedBottom=origin+(p.scale||1)*(visualBottom-origin);
+    return (p.groundLine*h-transformedBottom)/h*100;
+  }
+  function disposeWorldHeroBody(body){
+    const img=body&&body.querySelector&&body.querySelector('.worldHeroAsset');
+    try{img&&img.__apexGroundAnchorObserver&&img.__apexGroundAnchorObserver.disconnect();}catch(_){}
+  }
 
   function presentationFor(renderId,player){
     const p=HERO_PRESENTATION[renderId]||{scale:.94,x:0,y:4};
-    const face=Number.isFinite(p.face)?p.face:(player==='p2'?-1:1);
-    return {scale:p.scale||1,x:p.x||0,y:p.y||0,face};
+    const nativeFacing=Number.isFinite(p.nativeFacing)?p.nativeFacing:1;
+    const desiredSideFacing=player==='p2'?-1:1;
+    const face=nativeFacing*desiredSideFacing;
+    return {scale:p.scale||1,x:p.x||0,y:p.y||0,face,groundLine:Number.isFinite(p.groundLine)?p.groundLine:null};
   }
 
   function applyWorldSlotGeometry(container,player){
@@ -1906,6 +1946,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
 
   function applyHeroPresentation(img,renderId,requestedId,player){
     const p=presentationFor(renderId,player);
+    const y=anchoredHeroY(img,p);
     img.style.setProperty('width','100%','important');
     img.style.setProperty('height','100%','important');
     img.style.setProperty('left','0','important');
@@ -1914,7 +1955,13 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     img.style.setProperty('transform-origin','50% 68%','important');
     img.style.setProperty('scale','1 1','important');
     img.style.setProperty('translate','none','important');
-    img.style.setProperty('transform','translate3d('+p.x+'%,'+p.y+'%,0) scale('+(p.face*p.scale)+','+p.scale+')','important');
+    img.style.setProperty('transform','translate3d('+p.x+'%,'+y+'%,0) scale('+(p.face*p.scale)+','+p.scale+')','important');
+    if(Number.isFinite(p.groundLine)){
+      const syncGround=()=>{const yy=anchoredHeroY(img,p);img.style.setProperty('transform','translate3d('+p.x+'%,'+yy+'%,0) scale('+(p.face*p.scale)+','+p.scale+')','important');};
+      const schedule=()=>requestAnimationFrame(syncGround);
+      if(img.complete)schedule();else img.addEventListener('load',schedule,{once:true});
+      if(typeof ResizeObserver==='function'){const ro=new ResizeObserver(schedule);ro.observe(img);img.__apexGroundAnchorObserver=ro;}
+    }
     if(requestedId==='mirror'){
       img.style.setProperty('opacity','.84','important');
       img.style.setProperty('filter','brightness(.47) saturate(.62) contrast(1.14) drop-shadow(0 24px 32px rgba(0,0,0,.72))','important');
@@ -1939,6 +1986,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   }
 
   function commitWorldHero(container,target,state){
+    container.querySelectorAll(':scope > .worldHeroBody').forEach(disposeWorldHeroBody);
     container.innerHTML='';
     applyWorldSlotGeometry(container,target.player);
     container.style.setProperty('--heroTint',target.hero?.accent||'#ff941f');
@@ -1987,6 +2035,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
       state.swapping=false;
       const latest=state.pending;
       state.pending=null;
+      disposeWorldHeroBody(current);
       current.remove();
       if(latest)commitWorldHero(container,latest,state);
     };
