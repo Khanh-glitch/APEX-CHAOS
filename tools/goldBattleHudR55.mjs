@@ -39,6 +39,14 @@ export function adaptGoldBattleHudR55(input) {
     'CPU/local input hint'
   );
 
+  // Production mode is also DATA truth. Handoff may seed it, but each live
+  // projection must reassert BOT=1p / LOCAL=2p before any rendering.
+  once(
+    "  seam.applyState=function applyState(st){\n    if(!st)return;\n    const now=performance.now();",
+    "  seam.applyState=function applyState(st){\n    if(!st)return;\n    // R59 MODE AUTHORITY: mode is production state, not a one-shot handoff.\n    // This closes Local -> BOT contamination when a stale/missed handoff leaves\n    // S.mode at 2p. Mode is applied before any side renderer runs.\n    if(st.mode==='1p'||st.mode==='2p')seam.setMode(st.mode);\n    const now=performance.now();",
+    'per-frame production mode authority'
+  );
+
   // Live-ammo state; data-only, no mode geometry.
   once(
     " const rel=!!p.reloadUntil,am=usesAmmo?Math.max(0,Number(p.ammo[p.wi])||0):0,key=rel?'R':(usesAmmo?am+'/'+w.mag:'NA');",
@@ -84,6 +92,37 @@ export function adaptGoldBattleHudR55(input) {
 #hud[data-mode="1p"] .wp-ico>.apex-weapon-asset,
 #hud[data-mode="1p"] .sk-art>.apex-skill-icon{width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain}
 #hud[data-mode="1p"] .weapon{min-height:0;max-height:100%}
+
+
+/* R59 TABLET COMPOSITION — tablet is a real allocation tier, not a scaled phone.
+   Local gets a shorter, centered HP read and a materially larger weapon plate.
+   BOT keeps its authored asymmetric Gold geometry; only the media WELL is made
+   square so portrait and landscape skill art both preserve intrinsic ratio. */
+#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] .side{
+  --wpH:clamp(96px,15.5cqh,120px);--wpIW:clamp(112px,16cqh,140px);--amF:clamp(22px,3.5cqh,29px)}
+#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] #p1Rail,
+#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] #p2Rail{width:min(100%,430px)}
+#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] #p1Rail{justify-self:end}
+#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] #p2Rail{justify-self:start}
+
+/* Gold BOT: do not stretch production art to a rectangular tablet cell. */
+#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] .skill .sk-art{
+  width:var(--artW);height:var(--artW);aspect-ratio:1/1;align-self:center;justify-self:start}
+#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] #p2Side .skill .sk-art{
+  width:var(--thW);height:var(--thW)}
+#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] .sk-art>.apex-skill-icon{
+  width:100%;height:100%;object-fit:contain}
+
+/* Portrait tablet BOT needs more than the phone's 48px enemy strip. The Gold
+   ordering is unchanged; only the tablet allocation grows so weapon/art are
+   never forced through the lower crop edge. */
+#hud[data-layout="port"][data-size="tablet"][data-mode="1p"]{
+  --stripH:64px;--p1Min:240px;
+  --arena:min(var(--availW),calc(var(--availH) - var(--stripH) - var(--railH) - var(--p1Min) - 3 * var(--g)))}
+#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p2Side{
+  --porW:42px;--porH:42px;--thW:38px;--wpIW:52px;--amF:15px}
+#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p2Side .skills{height:50px}
+#hud[data-mode="1p"] .weapon{overflow:visible;box-sizing:border-box}
 
 /* Shared live-ammo state. */
 #hud .weapon.low-ammo .wp-cur{color:var(--crit);text-shadow:0 0 10px color-mix(in srgb,var(--crit) 46%,transparent)}

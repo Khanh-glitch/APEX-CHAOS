@@ -1412,6 +1412,9 @@
     // countdown, a round number or win pips.
     const elapsed = state && Number.isFinite(state.time) ? Math.max(0, Number(state.time)) : 0;
     const matchState = {
+      // R59: mode is live production truth. The HUD reasserts this every frame
+      // so a previous Local session can never leave the next BOT mount in 2p.
+      mode: state && state.battleMode === 'BOT' ? '1p' : '2p',
       timer: elapsed,
       timeSemantics: 'elapsed',
       roundAuthority: false,
