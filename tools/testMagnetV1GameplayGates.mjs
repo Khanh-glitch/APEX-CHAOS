@@ -204,6 +204,29 @@ try {
 } catch (e) { gate('M05.1-a2-continuous-field-body-force-and-window', false, String(e)); }
 
 try {
+  const o = start();
+  HR.pressAbility(o.a, 'A2');
+  const mkBullet = (x, y, vx, vy) => ({
+    aq: true, type: 'aq_bullet', weapon: 'PISTOL', life: 2, owner: o.b,
+    x, y, vx, vy, radius: 5, damage: 20, critical: false, __hr: {},
+  });
+  const left = mkBullet(o.a.x - 250, o.a.y, 1000, 0);
+  MAG.stepProjectiles(0.05, [left], HR.byCombatant, win.matchClock);
+  const evLeft = MAG.inspect(win.matchClock).captureEvents[0];
+  const top = mkBullet(o.a.x, o.a.y - 250, 0, 1000);
+  MAG.stepProjectiles(0.05, [top], HR.byCombatant, win.matchClock);
+  const evTop = MAG.inspect(win.matchClock).captureEvents[0];
+  const finite = (e) => e && Number.isFinite(e.nx) && Number.isFinite(e.ny)
+    && Math.abs(Math.hypot(e.nx, e.ny) - 1) < 1e-6;
+  gate('M05.2-a2-capture-vfx-normal-follows-entry-origin',
+    finite(evLeft) && finite(evTop)
+    && evLeft.nx < -0.99 && Math.abs(evLeft.ny) < 0.01
+    && evTop.ny < -0.99 && Math.abs(evTop.nx) < 0.01,
+    { left: evLeft && { nx: evLeft.nx, ny: evLeft.ny },
+      top: evTop && { nx: evTop.nx, ny: evTop.ny } });
+} catch (e) { gate('M05.2-a2-capture-vfx-normal-follows-entry-origin', false, String(e)); }
+
+try {
   T.start('MAGNET', 'MAGNET'); T.holdSpawns();
   const [a, b] = H.fighters();
   a.baseSpeed = 0; b.baseSpeed = 0;
