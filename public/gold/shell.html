@@ -1656,7 +1656,9 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     };
   }
   function sendBattleHudConfig(){
-    if(!battleHudConfig||battleHudConfig.live===true||!battleHudFrame?.contentWindow)return;
+    // Same-document mount: the legacy iframe is removed on first unmount and
+    // cannot be the readiness authority for later sessions.
+    if(!battleHudConfig||battleHudConfig.live===true||!window.APEX_GOLD_HUD)return;
     window.postMessage(battleHudConfig,'*');
     APEX_GOLD.onHandoff&&APEX_GOLD.onHandoff(battleHudConfig);
   }
@@ -1678,7 +1680,6 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     return new Promise((resolve,reject)=>{
       battleHudReady=false;
       const ready=()=>{battleHudReady=true;sendBattleHudConfig();resolve(true);};
-      battleHudFrame.onload=ready;
       try{APEX_GOLD.mountBattleHud(decodeBattleHud(),ready)}
       catch(error){reject(error)}
     });
@@ -1717,7 +1718,6 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     battleHudHost.setAttribute('aria-hidden','true');
     resetBattleTransitionVisuals();
     resumeParentRuntime();
-    battleHudFrame.onload=null;
     APEX_GOLD.unmountBattleHud();
     battleHudConfig=null;
     battleHudReady=false;
@@ -1730,7 +1730,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     return new Promise(resolve=>setTimeout(()=>resolve(token===battleEntryToken),reduced?Math.min(ms,24):ms));
   }
   async function launchBattleHud(){
-    if(!battleMode||!battleHudHost||!battleHudFrame||screen==='transition'||screen==='battle')return;
+    if(!battleMode||!battleHudHost||screen==='transition'||screen==='battle')return;
     if(window.APEX_SCENE_TRANSITION?.active?.())return;
     screen='transition';
     // Battle is NOT a Mechanical Door route. It owns its own lifecycle and
@@ -1813,7 +1813,6 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     document.body.classList.remove('battle-hud-open','battle-transition-active');
     APEX_GOLD.exitBattle&&APEX_GOLD.exitBattle();
     resumeParentRuntime();
-    battleHudFrame.onload=null;
     APEX_GOLD.unmountBattleHud();
     battleHudConfig=null;
     battleHudReady=false;
