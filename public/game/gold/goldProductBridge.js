@@ -431,9 +431,13 @@
       tasks.push(
         ensureDeferredRuntimes('arsenalProduct').then(async (ok) => {
           if (ok !== true) throw new Error('arsenalProduct runtime group did not reach READY');
-          // R58: transition HOLD includes audio readiness. The destination is
-          // not "ready" while first-use SFX can still be downloading/decoding.
-          await warmMatchHeroAudio(...heroIds);
+          // Destination READY means the SELECTED heroes can render their
+          // canonical first frame AND play their first-use audio. Runtime script
+          // evaluation / generic asset decode alone is not renderer readiness.
+          await Promise.all([
+            warmMatchHeroAudio(...heroIds),
+            prepareMatchHeroRenderers(...heroIds),
+          ]);
           return true;
         })
       );
@@ -865,6 +869,39 @@
     return true;
   }
 
+  function rendererReadyTask(label, owner) {
+    if (!owner) return Promise.reject(new Error(label + ' renderer authority unavailable'));
+    if (owner.ready === true) return Promise.resolve(true);
+    if (typeof owner.whenReady !== 'function') {
+      return Promise.reject(new Error(label + ' renderer has no READY contract'));
+    }
+    return Promise.resolve(owner.whenReady()).then((ok) => {
+      if (ok === true || owner.ready === true) return true;
+      throw new Error(label + ' renderer did not reach READY');
+    });
+  }
+
+  // Selected-only canonical renderer barrier. ROBOT/CRYSTAL/MIRROR are
+  // synchronous at runtime evaluation in this baseline; HUNTER/ICE/MAGNET own
+  // asynchronous art banks and must explicitly report READY before battle can
+  // be exposed or the engine can accept input.
+  async function prepareMatchHeroRenderers(...keys) {
+    const ids = new Set();
+    for (const raw of keys) {
+      const key = String(raw || '').toLowerCase();
+      if (!key) continue;
+      ids.add(key);
+      const production = PRODUCTION_ID_BY_SHELL_KEY[key];
+      if (production) ids.add(String(production).toLowerCase());
+    }
+    const tasks = [];
+    if (ids.has('hunter')) tasks.push(rendererReadyTask('HUNTER', window.APEX_HUNTER_PRESENTATION));
+    if (ids.has('frost') || ids.has('ice')) tasks.push(rendererReadyTask('FROST', window.APEX_FROST_PRESENTATION));
+    if (ids.has('magnet')) tasks.push(rendererReadyTask('MAGNET', window.APEX_MAGNET_GOLD));
+    await Promise.all(tasks);
+    return true;
+  }
+
   BRIDGE.onBattleLive = async function onBattleLive(pick) {
     if (battleLiveRunning) return false;
     const sessionToken = ++battleSessionToken;
@@ -904,6 +941,19 @@
         battleLiveRunning = false;
         return false;
       }
+      // Direct-entry safety: the normal shell already awaited the same
+      // selected-hero barrier behind the transition HOLD, but onBattleLive is
+      // also a public API boundary. Do not publish selection/start state until
+      // canonical renderers and first-use audio are READY.
+      await Promise.all([
+        warmMatchHeroAudio(p1Shell, p2Shell),
+        prepareMatchHeroRenderers(p1Shell, p2Shell),
+      ]);
+      if (sessionToken !== battleSessionToken || !hudMounted || !battleLiveRunning) {
+        battleLiveRunning = false;
+        return false;
+      }
+
       window.__apexArsenalSelectionMode = mode.toLowerCase();
       window.__apexArsenalBotBattle = mode === 'BOT';
       window.__apexArsenalFreeBattle = mode !== 'BOT';
@@ -923,16 +973,6 @@
       }
       // Wrap the real HUD observer only after the group is present.
       installEventTranslation();
-
-      // Direct-entry safety: prepareSurface normally warmed audio behind the
-      // transition seam, but onBattleLive is also an API boundary. Await the
-      // same idempotent readiness contract before the engine can accept input.
-      await warmMatchHeroAudio(p1Shell, p2Shell);
-      if (sessionToken !== battleSessionToken || !hudMounted || !battleLiveRunning) {
-        battleLiveRunning = false;
-        restoreArena();
-        return false;
-      }
 
       // Gold-hosted status is set BEFORE startMatch so every fallback branch
       // knows it must never resurrect the legacy selection surface.
