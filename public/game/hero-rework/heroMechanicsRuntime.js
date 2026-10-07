@@ -340,8 +340,65 @@
 
   const MAGNET = () => globalScope.APEX_MAGNET;
 
+  // BOT policy is intentionally narrower than player canCast. Humans may use
+  // either field proactively; the CPU only spends a cooldown when the active
+  // window has something real to influence now or on its incoming trajectory.
+  function magnetAiMeaningful(ctx, kind) {
+    const m = MAGNET();
+    if (!m || !m.canCast(ctx, kind)) return false;
+    const self = ctx.combatant && ctx.combatant.anchor;
+    if (!self) return false;
+    const cfg = globalScope.APEX_ARSENAL_CONFIG;
+    const isGun = (id) => !!(id && id !== 'STORMBREAKER' && id !== 'T6'
+      && cfg && typeof cfg.isGun === 'function' && cfg.isGun(id));
+    const st = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.state;
+    const floor = st && Array.isArray(st.slots)
+      ? st.slots.filter((s) => s && s.phase === 'REVEALED' && s.kind !== 'HEAL' && isGun(s.weaponId))
+      : [];
+
+    // A1's floor-gun attraction is arena-wide by design, so any eligible
+    // revealed firearm is already meaningful even before it reaches Magnet.
+    if (kind === 'a1' && floor.length) return true;
+
+    const radius = kind === 'a1'
+      ? (ctx.cfg.bulletRadius ?? 480)
+      : (ctx.cfg.radius ?? 225);
+    if (kind === 'a2') {
+      const bodies = ctx.api.enemyBodies ? ctx.api.enemyBodies(ctx.combatant) : [];
+      if (bodies.some((b) => b && b.hp > 0 && dist(self.x, self.y, b.x, b.y) <= radius)) return true;
+      if (floor.some((s) => dist(self.x, self.y, s.x, s.y) <= radius)) return true;
+    }
+
+    // A field is also meaningful when a hostile/neutral firearm bullet will
+    // cross its radius DURING the authored active window. No speed tier or
+    // aim heuristic is invented here: this is simple closest-approach truth.
+    const liveFor = kind === 'a1'
+      ? (ctx.cfg.gameplayDuration ?? 1)
+      : (ctx.cfg.duration ?? 1.8);
+    const projectiles = ctx.api.liveProjectiles ? ctx.api.liveProjectiles() : [];
+    for (const p of projectiles) {
+      if (!p || p.aq !== true || p.type !== 'aq_bullet' || p.life === 0
+          || !isGun(p.weapon) || (p.__hr && p.__hr.cryHold)) continue;
+      const ownerCt = ctx.api.combatantOfBody ? ctx.api.combatantOfBody(p.owner) : null;
+      if (ownerCt === ctx.combatant || p.owner === self
+          || (ctx.api.ownsBody && ctx.api.ownsBody(ctx.combatant, p.owner))) continue;
+      const vv = p.vx * p.vx + p.vy * p.vy;
+      if (!(vv > 1)) {
+        if (dist(self.x, self.y, p.x, p.y) <= radius) return true;
+        continue;
+      }
+      const rx = self.x - p.x, ry = self.y - p.y;
+      const t = (rx * p.vx + ry * p.vy) / vv;
+      if (t < 0 || t > liveFor) continue;
+      const qx = p.x + p.vx * t, qy = p.y + p.vy * t;
+      if (dist(self.x, self.y, qx, qy) <= radius) return true;
+    }
+    return false;
+  }
+
   EXECUTORS['magnet.acquisition'] = {
     canCast(ctx) { const m = MAGNET(); return !!(m && m.canCast(ctx, 'a1')); },
+    aiCanAttempt(ctx) { return magnetAiMeaningful(ctx, 'a1'); },
     cast(ctx) {
       const m = MAGNET();
       const ok = !!(m && m.castA1(ctx));
@@ -353,6 +410,7 @@
 
   EXECUTORS['magnet.repulsion_field'] = {
     canCast(ctx) { const m = MAGNET(); return !!(m && m.canCast(ctx, 'a2')); },
+    aiCanAttempt(ctx) { return magnetAiMeaningful(ctx, 'a2'); },
     cast(ctx) {
       const m = MAGNET();
       const ok = !!(m && m.castA2(ctx));
@@ -1015,10 +1073,11 @@
   }
 
   EXECUTORS['mirror.arsenal'] = {
-    // An attempted cast is ACCEPTED even when the opponent holds nothing
-    // eligible: that is a WHIFF which consumes cooldown, not a canCast
-    // failure. Only an already-running Mirror action window blocks the cast.
+    // An attempted HUMAN cast is ACCEPTED even when the opponent holds nothing
+    // eligible: that is a WHIFF which consumes cooldown. The CPU must not
+    // deliberately spend A1 on a whiff; wait until a copyable holder exists.
     canCast(ctx) { return !mirrorBusy(ctx); },
+    aiCanAttempt(ctx) { return !mirrorBusy(ctx) && !!mirrorEligibility(ctx).weaponId; },
     cast(ctx) {
       if (mirrorBusy(ctx)) return false;
       const el = mirrorEligibility(ctx);
