@@ -125,6 +125,25 @@ check('critical/heavy FX cover the full panel without stealing input',
   && /#globalFx\{z-index:\d+;overflow:visible\}/.test(hud)
   && /#ruptureLayer\{[^}]*pointer-events:none/.test(hud));
 
+check('cinematic shake and flash target the full Battle HUD compositor',
+  hud.includes("function shake(v,amount=9){if(RM.matches)return;")
+  && hud.includes("R.hud.animate([{translate:'0 0'}")
+  && hud.includes('.gfx-flash{position:absolute;inset:0;opacity:0}')
+  && hud.includes("const fp=kind==='heavy'||kind==='thunder'?eventEdgePoint(v):fpos(v),el=R.flash;"));
+
+check('Heavy keeps full visual count but batches shard DOM before one live append',
+  hud.includes('shardBatch=document.createDocumentFragment(),shardAnims=[]')
+  && hud.includes('shardBatch.appendChild(piece)')
+  && hud.includes('group.appendChild(shardBatch);')
+  && hud.includes('shardAnims.forEach')
+  && hud.includes("for(let i=0;i<9;i++){"));
+
+check('Heavy spectral recovery batches both colour ghosts before one live append',
+  hud.includes('const spectralBatch=document.createDocumentFragment(),spectral=[];')
+  && hud.includes('spectralBatch.appendChild(ghost)')
+  && hud.includes('panel.group.appendChild(spectralBatch);')
+  && hud.includes("for(const variant of ['cyan','red'])"));
+
 check('generator owns R48B through deterministic adapter',
   generator.includes("import { adaptGoldBattleHudR48b } from './goldBattleHudR48b.mjs';") &&
   generator.includes('out = adaptGoldBattleHudR48b(out);') &&
@@ -137,9 +156,10 @@ check('shipping shell embeds the exact shipping Battle HUD bytes',
   !!payload && decoded === hud,
   payload ? ('decoded=' + decoded.length + ' hud=' + hud.length) : 'payload missing');
 
-check('R49/E1 Frost keeps one hero-level orientation/scale authority across both sides',
-  shell.includes('frost:{scale:1.53,x:0,y:16}')
-  && shell.includes("const face=Number.isFinite(p.face)?p.face:(player==='p2'?-1:1)")
+check('R59 Frost keeps one hero-level orientation/scale authority across both sides',
+  shell.includes('frost:{scale:1.53,x:0,y:23,flip:true}')
+  && shell.includes("const baseFace=player==='p2'?-1:1;")
+  && shell.includes("p.flip?-baseFace:baseFace")
   && shell.includes("applyHeroPresentation(img,target.renderId,target.id,target.player)")
   && !/frost:\{[^}]*face:/.test(shell));
 
