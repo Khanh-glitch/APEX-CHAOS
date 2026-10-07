@@ -149,6 +149,14 @@ jobs:
           APEX_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser
         run: pnpm test:arsenal:browser
 
+      - name: Profile Core Six cold-load phases
+        if: ${{ always() && steps.chrome.outputs.path != '' }}
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: docs/acceptance/arsenal-product/browser
+        run: node tools/profileCoreSixColdLoad.mjs
+
       - name: Upload build and acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
