@@ -634,6 +634,12 @@
       if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(pumpId);
       pumpId = 0;
     }
+    // The donor runs inside a fresh mount IIFE, but window/document listeners
+    // live outside that DOM subtree. Dispose them BEFORE removing the donor so
+    // no previous battle closure can survive into the next session.
+    try { window.APEX_GOLD_HUD?.dispose?.(); } catch (error) {
+      console.warn('[gold-bridge] battle HUD dispose failed', error);
+    }
     if (hudHost) hudHost.textContent = '';
     hudHost = null;
     hudMounted = false;
