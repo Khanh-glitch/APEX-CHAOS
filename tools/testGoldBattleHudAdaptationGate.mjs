@@ -205,6 +205,23 @@ check('Local weapon-row correction is mode-scoped and cannot overwrite BOT',
   && hud.includes('#hud[data-layout="port"][data-mode="2p"] .side{--wpH:')
   && !hud.includes('#hud[data-layout="land"] .side{--wpH:')
   && !hud.includes('#hud[data-layout="port"] .side{--wpH:'));
+check('Local tablet landscape gets wider side allocation and a taller weapon row',
+  hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="2p"]{--sideMin:clamp(236px,22cqw,260px);--localHpW:clamp(320px,36cqw,400px)}')
+  && hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] .side{--wpH:clamp(96px,14cqh,116px)}'));
+check('Local tablet HP bar is shortened symmetrically without moving the full rail',
+  hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] #p1Rail .vr-bar,')
+  && hud.includes('width:min(100%,var(--localHpW));justify-self:end')
+  && hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] #p2Rail .vr-bar,')
+  && hud.includes('width:min(100%,var(--localHpW));justify-self:start'));
+check('Local portrait tablet reserves a larger control zone and weapon row',
+  hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="2p"]{--zoneMin:clamp(198px,18cqh,216px)}')
+  && hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="2p"] .side{--wpH:clamp(92px,8.8cqh,112px)}'));
+check('Local tablet allocation cannot leak into BOT geometry',
+  !hud.includes('[data-size="tablet"][data-mode="1p"]{--sideMin:clamp(236px,22cqw,260px)')
+  && !hud.includes('[data-size="tablet"][data-mode="1p"] .side{--wpH:clamp(96px,14cqh,116px)')
+  && !hud.includes('[data-size="tablet"][data-mode="1p"]{--zoneMin:clamp(198px,18cqh,216px)'));
+check('Local tablet fix does not use whole-HUD transform scaling',
+  !/data-size="tablet"\]\[data-mode="2p"\][^{]*\{[^}]*transform\s*:\s*scale/i.test(hud));
 check('R55 adapter preserves the donor 1P family',
   !adapter.includes('opens1p')
   && !adapter.includes('delete the obsolete one-player panel family')
