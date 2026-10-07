@@ -353,7 +353,7 @@ check('battle donor global resize/message resources are removable',
   && /const onBattleHudMessage=e=>\{/.test(hud)
   && /removeEventListener\('message',onBattleHudMessage\)/.test(hud));
 check('bridge disposes donor before deleting its DOM/seam',
-  (() => { const b=bridge.match(/BRIDGE\\.unmountBattleHud = function unmountBattleHud[\\s\\S]*?\\n  \\};/); return !!b && /APEX_GOLD_HUD\\?\\.dispose\\?\\.\\(\\)/.test(b[0]) && b[0].indexOf('APEX_GOLD_HUD?.dispose?.()') < b[0].indexOf("hudHost.textContent = ''"); })());
+  (() => { const b=bridge.match(/BRIDGE\.unmountBattleHud = function unmountBattleHud[\s\S]*?\n  \};/); return !!b && /APEX_GOLD_HUD\?\.dispose\?\.\(\)/.test(b[0]) && b[0].indexOf('APEX_GOLD_HUD?.dispose?.()') < b[0].indexOf("hudHost.textContent = ''"); })());
 check('generator preserves remount disposal laws',
   /HUD-H32/.test(generator) && /HUD-H33/.test(generator)
   && /seam\.dispose=function dispose/.test(generator));
