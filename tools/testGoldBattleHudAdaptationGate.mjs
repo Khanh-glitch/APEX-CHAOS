@@ -183,21 +183,32 @@ check('key badges fit their own text (no display tracking, never clipped)',
 check('the key-badge law is owned by the generator, never hand-edited',
   cutover.includes("id: 'HUD-H28b'"));
 
-// R58 owner-critical acceptance: BOT uses the Gold HUD geometry absolutely.
-check('BOT does not own a second Battle-HUD geometry family',
-  !hud.includes('#hud[data-layout="port"][data-mode="1p"] #p1Side{')
-  && !hud.includes('#hud[data-layout="port"][data-mode="1p"] #p2Side{')
-  && !hud.includes('#hud[data-layout="port"][data-mode="1p"]{--p2H:')
-  && hud.includes('R58 BOT = Gold HUD, not a second layout family'));
-check('BOT adaptation is input-only (CPU cannot operate Gold controls)',
-  hud.includes('#hud[data-mode="1p"] #p2Side .skill{pointer-events:none;cursor:default}')
-  && hud.includes('#hud[data-mode="1p"] #p2Side .wp-swap,')
-  && hud.includes('#hud[data-mode="1p"] #p2Side .sk-slot{display:none}'));
-check('portrait sides share the Gold identity/HP/rival/feed/weapon row model',
-  hud.includes('grid-template-areas:"id sk" "hp sk" "rival sk" "feed sk" "wp sk"'));
-check('weapon row is bounded inside the side instead of overflowing below it',
-  hud.includes('grid-template-rows:auto minmax(0,1fr) minmax(0,var(--wpH))')
-  && hud.includes('min-height:0;height:100%;max-height:var(--wpH);align-self:end;overflow:visible;'));
+// R58 correction: BOT has its OWN canonical Gold composition.
+const donor = read('docs/gold-ui/current/donors/battle-hud/index.html');
+check('BOT keeps Gold portrait enemy-strip / arena / big-thumb-zone geometry',
+  hud.includes('--stripH:48px;--p1Min:200px')
+  && hud.includes('grid-template-areas:"id wp" "sk sk"')
+  && hud.includes('grid-template-areas:"id wp sk"')
+  && donor.includes('--stripH:48px;--p1Min:200px'));
+check('BOT keeps Gold landscape asymmetric territories',
+  hud.includes('--crW:156px')
+  && hud.includes('#hud[data-layout="land"][data-mode="1p"] #p2Side{grid-template-rows:auto auto minmax(0,1fr) auto;'));
+check('BOT keeps compact Gold CPU threat tiles, not Local-sized abilities',
+  hud.includes('#hud[data-layout="desk"][data-mode="1p"] #p2Side .skills{align-self:start;grid-auto-rows:58px;margin-top:6px}')
+  && hud.includes('#hud[data-layout="port"][data-mode="1p"] #p2Side .skill{grid-template-columns:var(--thW) auto;')
+  && !hud.includes('R58 BOT = Gold HUD, not a second layout family'));
+check('BOT production integration fits assets inside authored slots',
+  hud.includes('#hud[data-mode="1p"] .wp-ico>.apex-weapon-asset,')
+  && hud.includes('#hud[data-mode="1p"] .weapon{min-height:0;max-height:100%}'));
+check('Local weapon-row correction is mode-scoped and cannot overwrite BOT',
+  hud.includes('#hud[data-layout="land"][data-mode="2p"] .side{--wpH:')
+  && hud.includes('#hud[data-layout="port"][data-mode="2p"] .side{--wpH:')
+  && !hud.includes('#hud[data-layout="land"] .side{--wpH:')
+  && !hud.includes('#hud[data-layout="port"] .side{--wpH:'));
+check('R55 adapter preserves the donor 1P family',
+  !adapter.includes('opens1p')
+  && !adapter.includes('delete the obsolete one-player panel family')
+  && adapter.includes('two different authored Gold compositions'));
 
 console.log('GOLD BATTLE HUD ADAPTATION GATE (R49D + R48B production truth)');
 for (const line of pass) console.log(line);
