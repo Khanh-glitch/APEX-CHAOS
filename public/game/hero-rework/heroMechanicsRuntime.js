@@ -1172,10 +1172,21 @@
   }
 
   EXECUTORS['mirror.arsenal'] = {
-    // An attempted cast is ACCEPTED even when the opponent holds nothing
+    // An attempted HUMAN cast is ACCEPTED even when the opponent holds nothing
     // eligible: that is a WHIFF which consumes cooldown, not a canCast
-    // failure. Only an already-running Mirror action window blocks the cast.
+    // failure. BOT utility is intentionally stricter and never spends A1 on
+    // an ineligible snapshot.
     canCast(ctx) { return !mirrorBusy(ctx); },
+    aiEvaluate(ctx) {
+      if (mirrorBusy(ctx)) {
+        return { shouldCast:false, score:0, reason:'mirror-action-busy', retryAfter:.2 };
+      }
+      const el=mirrorEligibility(ctx);
+      if (!el.weaponId) {
+        return { shouldCast:false, score:0, reason:'copy-ineligible-'+String(el.reason||'unknown'), retryAfter:.35 };
+      }
+      return { shouldCast:true, score:.95, reason:'copyable-opponent-weapon', retryAfter:.2 };
+    },
     cast(ctx) {
       if (mirrorBusy(ctx)) return false;
       const el = mirrorEligibility(ctx);

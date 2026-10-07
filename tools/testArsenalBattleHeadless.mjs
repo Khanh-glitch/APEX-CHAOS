@@ -2142,6 +2142,77 @@ gate('r59-frost-bot-a2-uses-live-reach-envelope',
   && report.r59FrostBotDecision.huntCase.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A2'&&e.reason==='enemy-in-hunt-reach'),
   report.r59FrostBotDecision.huntCase);
 
+// R59 D7 MIRROR A1 — BOT never intentionally spends Arsenal on a whiff,
+ // while the authored human whiff remains legal and cooldown-consuming.
+report.r59MirrorA1BotDecision = run(`
+  const HR=window.APEX_HERO_REWORK;
+  const W=window.APEX_ARSENAL.weaponApi;
+  const prevProfile=window.__apexArsenalBattleProfile;
+  const startBot=()=>{
+    window.__apexArsenalBattleProfile='BOT';
+    window.__apexArsenalTestStartMatch('ROBOT','MIRROR');
+    window.__apexArsenalBattleProfile=prevProfile;
+    cancelAnimationFrame(reqId);reqId=0;
+    __APEX_TEST.holdSpawns();
+    projectiles.length=0;
+    fighters[0].baseSpeed=fighters[1].baseSpeed=0;
+    if(fighters[0].data)fighters[0].data.__hrHoldBody=true;
+    if(fighters[1].data)fighters[1].data.__hrHoldBody=true;
+    const p2=HR.byCombatant(fighters[1]);
+    HR.abilityController(p2).setCooldown('A2',999); // isolate A1 policy only
+    return p2;
+  };
+  const sample=(weaponId)=>{
+    const p2=startBot();
+    if(weaponId) W.equip(fighters[0],weaponId);
+    const mark=HR.AIL.bus.ring.length;
+    for(let i=0;i<180;i++) APEX_ARSENAL.step(1/60);
+    return {
+      a1:p2.telemetry.bySkill.A1||0,
+      fails:p2.telemetry.castFails,
+      events:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='MIRROR')
+        .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason,ok:e.payload.ok}))
+    };
+  };
+  const unarmed=sample(null);
+  const t6=sample('STORMBREAKER');
+  const shield=sample('SWIRL_SHIELD');
+  const pistol=sample('PISTOL');
+
+  window.__apexArsenalTestStartMatch('MIRROR','ROBOT');
+  cancelAnimationFrame(reqId);reqId=0;
+  __APEX_TEST.holdSpawns();
+  projectiles.length=0;
+  const p1=HR.byCombatant(fighters[0]);
+  const human=HR.pressAbility(fighters[0],'A1',{source:'r59-human-whiff-proof'});
+  return {
+    unarmed,t6,shield,pistol,
+    human:{ok:human.ok,a1:p1.telemetry.bySkill.A1||0,cd:HR.abilityController(p1).cooldownLeft('A1'),
+      whiff:HR.AIL.bus.ring.slice(-30).some(e=>e.type==='MirrorWhiff'&&e.payload&&e.payload.hero==='MIRROR')}
+  };
+`);
+gate('r59-mirror-bot-a1-holds-on-unarmed',
+  report.r59MirrorA1BotDecision.unarmed.a1===0
+  && report.r59MirrorA1BotDecision.unarmed.fails===0
+  && report.r59MirrorA1BotDecision.unarmed.events.some(e=>e.type==='AICastReject'&&e.slot==='A1'&&e.reason==='copy-ineligible-unarmed'),
+  report.r59MirrorA1BotDecision.unarmed);
+gate('r59-mirror-bot-a1-holds-on-t6-and-shield',
+  report.r59MirrorA1BotDecision.t6.a1===0
+  && report.r59MirrorA1BotDecision.shield.a1===0
+  && report.r59MirrorA1BotDecision.t6.events.some(e=>e.type==='AICastReject'&&e.slot==='A1'&&e.reason==='copy-ineligible-t6')
+  && report.r59MirrorA1BotDecision.shield.events.some(e=>e.type==='AICastReject'&&e.slot==='A1'&&e.reason==='copy-ineligible-shield-excluded'),
+  {t6:report.r59MirrorA1BotDecision.t6,shield:report.r59MirrorA1BotDecision.shield});
+gate('r59-mirror-bot-a1-selects-copyable-weapon',
+  report.r59MirrorA1BotDecision.pistol.a1>=1
+  && report.r59MirrorA1BotDecision.pistol.events.some(e=>e.type==='AICastSelect'&&e.slot==='A1'&&e.reason==='copyable-opponent-weapon'),
+  report.r59MirrorA1BotDecision.pistol);
+gate('r59-mirror-human-whiff-remains-legal',
+  report.r59MirrorA1BotDecision.human.ok===true
+  && report.r59MirrorA1BotDecision.human.a1>=1
+  && report.r59MirrorA1BotDecision.human.cd>0
+  && report.r59MirrorA1BotDecision.human.whiff===true,
+  report.r59MirrorA1BotDecision.human);
+
 report.postCText = run(`
   const src = [drawBackground.toString(), (window.APEX_ARSENAL_SPAWN.drawSlots||function(){}).toString()].join('\\n');
   return {
