@@ -36,6 +36,7 @@ const SHELL = read('public/gold/shell.html');
 const HUD = read('public/gold/battle-hud.html');
 const LUCKY = read('public/gold/lucky-draw.html');
 const AUTH = read('public/game/ui/uiSfxAuthority.js');
+const BRIDGE = read('public/game/gold/goldProductBridge.js');
 const GEN = read('tools/buildGoldCutover.mjs');
 
 const KEYS = [
@@ -75,6 +76,86 @@ ok(declaredKeys.every((k) => KEYS.includes(k)) && KEYS.every((k) => declaredKeys
 ok(/setVolume/.test(AUTH) && /toggleMute/.test(AUTH) && /isMuted/.test(AUTH),
   'the authority has its own volume and mute');
 ok(!/__apexGoldMusicMuted/.test(AUTH), 'the authority never writes the MUSIC mute flag');
+
+// ── E2. first-use readiness uses the SAME cached elements ─────────────────
+ok(/\bwarm:\s*/.test(AUTH) || /\bwarm,/.test(AUTH), 'the authority exposes awaitable warm readiness');
+ok(/warmStatus/.test(AUTH), 'the authority exposes read-only warm diagnostics');
+ok(/surface === 'home' && window\.apexUiSfx\?\.warm/.test(BRIDGE),
+  'Home readiness awaits the existing UI-SFX authority');
+for (const key of ['ui.button.press', 'ui.focus.move', 'ui.screen.transition']) {
+  ok(BRIDGE.includes(`'${key}'`), `Home readiness warms first-use cue ${key}`);
+}
+ok(!BRIDGE.includes("window.apexUiSfx.warm(window.apexUiSfx.keys"), 'Home does not warm the whole 18-key pack');
+
+{
+  const listenersFor = (obj) => {
+    const map = new Map();
+    obj.addEventListener = (type, fn) => {
+      if (!map.has(type)) map.set(type, new Set());
+      map.get(type).add(fn);
+    };
+    obj.removeEventListener = (type, fn) => map.get(type)?.delete(fn);
+    obj.emit = (type) => {
+      for (const fn of [...(map.get(type) || [])]) fn({ type });
+    };
+    return map;
+  };
+  class WarmAudio {
+    static created = 0;
+    static playCalls = 0;
+    static loadCalls = 0;
+    constructor(src) {
+      WarmAudio.created += 1;
+      this.src = src; this.currentSrc = src; this.readyState = 0;
+      this.paused = true; this.ended = false; this.currentTime = 0;
+      this.volume = 1; this.muted = false; this.loop = false;
+      listenersFor(this);
+    }
+    load() {
+      WarmAudio.loadCalls += 1;
+      this.readyState = 3;
+      setTimeout(() => this.emit('canplay'), 0);
+    }
+    play() {
+      WarmAudio.playCalls += 1;
+      this.paused = false;
+      return Promise.resolve();
+    }
+    pause() { this.paused = true; }
+  }
+  const fakeWin = {
+    Audio: WarmAudio, document: {},
+    performance: { now: () => Date.now() },
+    setTimeout, clearTimeout,
+  };
+  fakeWin.window = fakeWin;
+  const sandbox = {
+    window: fakeWin, document: fakeWin.document, console,
+    setTimeout, clearTimeout, Promise, Date, Math, JSON, Object, Array,
+    String, Number, Boolean, RegExp, Error, Map, Set,
+    module: { exports: {} },
+  };
+  sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(AUTH, sandbox, { filename: 'uiSfxAuthority.js' });
+  const ui = fakeWin.apexUiSfx;
+  const first = await ui.warm(['ui.button.press', 'ui.screen.transition'], 500);
+  ok(first.warmed.length === 2 && first.ready === 2,
+    'warm settles the requested first-use cues', JSON.stringify(first));
+  ok(WarmAudio.created === 2 && WarmAudio.loadCalls === 2,
+    'warm creates/loads exactly one cached element per requested cue',
+    `created=${WarmAudio.created} load=${WarmAudio.loadCalls}`);
+  ok(WarmAudio.playCalls === 0, 'warm never manufactures audible playback', String(WarmAudio.playCalls));
+  const createdBeforePlay = WarmAudio.created;
+  ui.play('ui.button.press');
+  await Promise.resolve();
+  ok(WarmAudio.created === createdBeforePlay && WarmAudio.playCalls === 1,
+    'first play reuses the warmed cached element instead of creating a cold element',
+    `created=${WarmAudio.created} plays=${WarmAudio.playCalls}`);
+  const second = await ui.warm(['ui.button.press'], 500);
+  ok(WarmAudio.created === createdBeforePlay && second.ready === 1,
+    're-warm is idempotent and reports already-ready state', JSON.stringify(second));
+}
 
 // ── 4. per-key wiring rules ───────────────────────────────────────────────
 // ui.screen.transition: Home->Mode and Mode->Fighter Pick ONLY.

@@ -5,7 +5,7 @@
 // correction slice (r43) re-keys every versioned runtime and the Gold shell /
 // bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
 // stale cache during owner browser verification.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261007-r59-recovery-boot-theme';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261007-r59-recovery-ui-sfx-warm';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -58,7 +58,7 @@ export const PICK_RUNTIMES = [];
 // volume/mute is separate from the MUSIC mute. Loaded before every screen that
 // can make a sound.
 export const UI_SFX_RUNTIMES = [
-  ['/game/ui/uiSfxAuthority.js', 'uiSfxAuthority'],
+  ['/game/ui/uiSfxAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'uiSfxAuthority'],
 ];
 
 // Fighter Pick is authored inside the Gold shell and needs no deferred

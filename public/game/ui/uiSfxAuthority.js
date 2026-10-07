@@ -63,6 +63,7 @@
     const AudioCtor = win.Audio || (typeof Audio !== 'undefined' ? Audio : null);
     const cache = new Map();       // key -> the ONE cached element for that key
     const lastPlayed = new Map();  // key -> timestamp (debounce support)
+    const warmEvidence = new Map(); // key -> readiness timing/result; never playback
     let volume = UI_SFX_VOLUME;
     let muted = false;
     let focusTimer = 0;
@@ -95,6 +96,85 @@
         if (el && !el.paused && !el.ended) return true;
       }
       return false;
+    }
+
+    // Readiness uses the SAME cached media element that play() will use.
+    // It never calls play(), never creates a second element, and never claims
+    // success from preload metadata alone. A short safety fuse prevents a bad
+    // asset/network from stranding a scene transition forever.
+    function warm(list, timeoutMs) {
+      const requested = Array.isArray(list) && list.length ? [...new Set(list)] : keys();
+      const timeout = Math.max(250, Number(timeoutMs) || 5000);
+      const waits = [];
+      const warmed = [];
+
+      for (const key of requested) {
+        const el = elementFor(key);
+        if (!el) continue;
+        warmed.push(key);
+        const startedAt = (win.performance && win.performance.now) ? win.performance.now() : Date.now();
+        const prior = warmEvidence.get(key);
+        if (Number(el.readyState) >= 3) {
+          warmEvidence.set(key, {
+            key, startedAt: prior?.startedAt ?? startedAt, settledAt: startedAt,
+            ready: true, readyState: Number(el.readyState) || 0, reason: 'already-ready',
+          });
+          continue;
+        }
+
+        waits.push(new Promise((resolve) => {
+          let settled = false;
+          let timer = 0;
+          const done = (ready, reason) => {
+            if (settled) return;
+            settled = true;
+            if (timer) win.clearTimeout(timer);
+            if (typeof el.removeEventListener === 'function') {
+              el.removeEventListener('canplay', onReady);
+              el.removeEventListener('canplaythrough', onReady);
+              el.removeEventListener('loadeddata', onLoaded);
+              el.removeEventListener('error', onError);
+            }
+            const at = (win.performance && win.performance.now) ? win.performance.now() : Date.now();
+            const rec = {
+              key, startedAt: prior?.startedAt ?? startedAt, settledAt: at,
+              ready: !!ready, readyState: Number(el.readyState) || 0, reason,
+            };
+            warmEvidence.set(key, rec);
+            resolve(rec);
+          };
+          const onReady = () => done(true, 'canplay');
+          const onLoaded = () => {
+            if (Number(el.readyState) >= 3) done(true, 'loadeddata-ready');
+          };
+          const onError = () => done(false, 'error');
+
+          warmEvidence.set(key, {
+            key, startedAt: prior?.startedAt ?? startedAt, settledAt: null,
+            ready: false, readyState: Number(el.readyState) || 0, reason: 'warming',
+          });
+
+          if (typeof el.addEventListener === 'function') {
+            el.addEventListener('canplay', onReady, { once: true });
+            el.addEventListener('canplaythrough', onReady, { once: true });
+            el.addEventListener('loadeddata', onLoaded, { once: true });
+            el.addEventListener('error', onError, { once: true });
+          }
+          timer = win.setTimeout(() => done(Number(el.readyState) >= 2, 'timeout'), timeout);
+          try {
+            if (typeof el.load === 'function') el.load();
+            else if (Number(el.readyState) >= 3) done(true, 'already-ready');
+          } catch (_) {
+            done(false, 'load-error');
+          }
+        }));
+      }
+
+      return Promise.all(waits).then((settled) => ({
+        warmed,
+        ready: warmed.filter((key) => warmEvidence.get(key)?.ready).length,
+        settled: settled.length,
+      }));
     }
 
     function play(key, options2) {
@@ -177,16 +257,21 @@
       unmute: () => { muted = false; for (const el of cache.values()) { el.muted = false; el.volume = volume; } return muted; },
       toggleMute: () => (muted ? api.unmute() : api.mute()),
       isMuted: () => muted,
-      // Warm the whole pack once (best-effort; never blocks interaction).
+      // Lightweight legacy preload creates the SAME cached elements. Scene
+      // readiness should use warm(), which also waits for media readiness.
       preload: (list) => {
         const target = Array.isArray(list) && list.length ? list : keys();
         let warmed = 0;
         for (const key of target) { if (elementFor(key)) warmed += 1; }
         return warmed;
       },
+      warm,
+      warmStatus: () => [...warmEvidence.values()].map((rec) => ({ ...rec })),
       state: () => ({
         volume, muted, cached: cache.size, keys: keys().length,
         suppressed: Object.keys(SUPPRESSED_BY).length,
+        warming: [...warmEvidence.values()].filter((rec) => rec.settledAt == null).length,
+        warmReady: [...warmEvidence.values()].filter((rec) => rec.ready).length,
       }),
     };
 

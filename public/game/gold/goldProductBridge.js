@@ -439,6 +439,18 @@
       );
     }
 
+    // E2: only the three cues that can be the FIRST Home interaction are part
+    // of Home readiness. This uses uiSfxAuthority.warm(), which prepares the
+    // exact cached elements play() later reuses; it does not preload all 18
+    // cues and never manufactures audible playback.
+    if (surface === 'home' && window.apexUiSfx?.warm) {
+      tasks.push(window.apexUiSfx.warm([
+        'ui.button.press',
+        'ui.focus.move',
+        'ui.screen.transition',
+      ]));
+    }
+
     if (assets && typeof assets.prepare === 'function') {
       if (surface === 'home') {
         tasks.push(assets.prepare('home', { scope: 'surface:home', intent: 'required' }));
