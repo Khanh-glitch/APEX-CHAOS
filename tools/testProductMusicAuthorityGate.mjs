@@ -6,7 +6,8 @@
 //
 //   * exactly ONE product music element exists, sourced from the Forward Drive
 //     theme — no second Audio, no second music AudioContext,
-//   * playback is requested on the Home surface boot,
+//   * the boot runtime is requested independently of apexEngine and playback
+//     is requested on the initial transition surface,
 //   * a blocked autoplay is recorded HONESTLY (never faked as playing) and the
 //     playhead is never reset because of the block,
 //   * ONE temporary gesture-unlock set is armed on
@@ -21,6 +22,9 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = readFileSync(path.join(ROOT, 'public/game/product/productMusicAuthority.js'), 'utf8');
+const APP_SOURCE = readFileSync(path.join(ROOT, 'src/App.jsx'), 'utf8');
+const MANIFEST_SOURCE = readFileSync(path.join(ROOT, 'src/game/runtimeManifest.js'), 'utf8');
+const LOADER_SOURCE = readFileSync(path.join(ROOT, 'src/game/runtimeLoader.js'), 'utf8');
 
 const notes = [];
 const failures = [];
@@ -29,6 +33,25 @@ function check(name, cond, detail) {
   failures.push(`FAIL ${name}${detail ? ' :: ' + detail : ''}`);
   return false;
 }
+
+// ── E1 boot sequencing: music must not wait for apexEngine / Gold Home ───────
+check('product music has its own boot runtime group',
+  /PRODUCT_MUSIC_BOOT_RUNTIMES\s*=\s*\[/.test(MANIFEST_SOURCE)
+  && /\.\.\.PRODUCT_MUSIC_BOOT_RUNTIMES/.test(MANIFEST_SOURCE));
+check('runtime loader exposes the boot-only music load',
+  /export function loadProductMusicBootRuntime\(\)/.test(LOADER_SOURCE)
+  && /loadRuntimeList\(PRODUCT_MUSIC_BOOT_RUNTIMES\)/.test(LOADER_SOURCE));
+const bootLoadAt = APP_SOURCE.indexOf('await loadProductMusicBootRuntime()');
+const bootSurfaceAt = APP_SOURCE.indexOf("musicAuthority.setSurface?.('transition')");
+const goldMountAt = APP_SOURCE.indexOf('const mountGoldShell = async');
+check('App requests the music authority before publishing the initial transition surface',
+  bootLoadAt >= 0 && bootSurfaceAt > bootLoadAt,
+  `load=${bootLoadAt} surface=${bootSurfaceAt}`);
+check('boot theme request is independent of Gold Home mount',
+  bootSurfaceAt >= 0 && goldMountAt > bootSurfaceAt,
+  `surface=${bootSurfaceAt} goldMount=${goldMountAt}`);
+check('boot music no longer claims Home as the initial request surface',
+  !/musicAuthority\.setSurface\?\.\('home'\)/.test(APP_SOURCE));
 
 const listeners = new Map();
 class FakeAudio {
@@ -127,17 +150,18 @@ const snapshot = () => {
 const beforeArm = snapshot();
 const flush = async () => { for (let i = 0; i < 8; i += 1) await Promise.resolve(); };
 
-// ── Home boot requests playback ──────────────────────────────────────────
+// ── Initial transition boot requests playback ─────────────────────────────
 const before = authority.diagnostics();
-authority.setSurface('home');
+authority.setSurface('transition');
 await flush();
-const afterHome = authority.diagnostics();
-check('Home boot requests playback', afterHome.requested > before.requested, `requested=${afterHome.requested}`);
+const afterBootTransition = authority.diagnostics();
+check('initial transition requests playback', afterBootTransition.requested > before.requested, `requested=${afterBootTransition.requested}`);
 check('a blocked autoplay is recorded HONESTLY (blocked=true, not faked)',
-  afterHome.blocked === true && afterHome.rejected > 0,
-  JSON.stringify({ blocked: afterHome.blocked, rejected: afterHome.rejected }));
+  afterBootTransition.blocked === true && afterBootTransition.rejected > 0,
+  JSON.stringify({ blocked: afterBootTransition.blocked, rejected: afterBootTransition.rejected }));
 check('the blocked state is visible in the public state()',
-  authority.state().blocked === true && authority.state().paused === true);
+  authority.state().blocked === true && authority.state().paused === true
+  && authority.state().surface?.id === 'transition');
 const addedUnlock = snapshot();
 for (const t of armedTypes) addedUnlock[t] = addedUnlock[t].filter((fn) => !beforeArm[t].includes(fn));
 check('ONE temporary gesture-unlock set is armed on all four gesture types',
@@ -167,6 +191,16 @@ check('the gesture listeners are REMOVED after success',
   stillAdded.every((c) => c === 0), stillAdded.join(','));
 check('the blocked state clears after a successful unlock',
   authority.diagnostics().blocked === false && authority.state().paused === false);
+
+const playheadBeforeHome = element.currentTime;
+authority.setSurface('home');
+await flush();
+check('transition -> Home keeps the SAME element and preserved playhead',
+  win.__apexProductMusicHandle.audio === element
+  && authority.state().paused === false
+  && element.currentTime >= playheadBeforeHome,
+  `before=${playheadBeforeHome} after=${element.currentTime}`);
+
 
 // ── no-spam diagnostics ──────────────────────────────────────────────────
 const d = authority.diagnostics();

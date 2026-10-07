@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   loadDeferredGameRuntimes,
   loadMenuInteractiveRuntimes,
+  loadProductMusicBootRuntime,
   scheduleDeferredGameRuntimes,
 } from './game/runtimeLoader.js';
 import { APEX_ARSENAL_RUNTIME_REVISION, preloadRuntimeSources } from './game/runtimeManifest.js';
@@ -291,101 +292,108 @@ export default function App() {
   };
 
   useEffect(() => {
-    // ── the one product music authority (owner law 2026-10-05) ────────────
-    // Home / Mode / Fighter select / battle-entry transition keep the Forward
-    // Drive theme playing continuously; Lucky Draw / Upgrade / Missions / Shop
-    // and a live match do not. A match start fades the theme OUT and the
-    // result/return fades it back IN from the preserved playhead. The single
-    // persistent element, the surface policy, the fades and the M mute all
-    // live in the product music runtime; this effect only installs it and
-    // publishes it for the Gold bridge (never a second music manager).
-    const music = window.installProductMusicAuthority
-      ? window.installProductMusicAuthority({
-        window, document,
-        allowedSurfaces: [...MENU_MUSIC_ALLOWED_SURFACES],
-      })
-      : null;
-    // ONE persistent product-music element in the whole product: the one the
-    // authority owns. The App deliberately does NOT create its own Audio here
-    // (a second element would be a second product music source). §A4 — the
-    // authority warms the theme in the background before the first user
-    // gesture; preload never blocks menu interactivity and playback still
-    // respects autoplay policy (no forced audible autoplay).
-    const audio = (music && music.audio) ? music.audio : null;
-    if (audio) {
-      audio.__apexMenuMusic = true;
-      menuAudioRef.current = audio;
-    }
-    // Evidence probe (§A4): read-only BGM readiness without exposing the
-    // element itself (it is deliberately never attached to the DOM).
-    window.__apexMenuBgmState = () => {
-      const a = menuAudioRef.current;
-      if (!a) return null;
-      return {
-        preload: a.preload,
-        readyState: a.readyState,
-        networkState: a.networkState,
-        paused: a.paused,
-        src: a.currentSrc || a.src,
-      };
-    };
-    window.apexStopMenuMusic = () => stopMenuMusic();
-    window.apexPlayMenuMusic = () => playMenuMusic();
-    const musicAuthority = music ? music.api : null;
-    if (musicAuthority) {
-      window.apexProductMusic = musicAuthority;
-      // R58 owner law: boot starts on Home. Announce it NOW, not after the
-      // first Gold navigation callback. The authority already called load()
-      // when its Tier-1 runtime installed, so this is the earliest legal play
-      // request on the SAME persistent element. Browsers that forbid audible
-      // autoplay still fall through to the authority's one-gesture unlock.
-      musicAuthority.setSurface?.('home');
-      // Legacy menu-music probes keep reading the SAME element.
+    // E1 — boot music is independent of apexEngine. The initial Mechanical
+    // Door starts immediately; in parallel we fetch/evaluate ONLY the one
+    // Forward Drive authority runtime. As soon as it exists, the boot scene is
+    // announced as "transition", which causes the authority itself to issue
+    // the earliest honest play() request on its ONE persistent media element.
+    //
+    // If browser autoplay policy rejects that request, the authority records
+    // blocked=true and arms its one-shot gesture unlock. We never claim audible
+    // playback from preload/readiness alone, and we never create a second
+    // element as a workaround.
+    let disposed = false;
+    let musicHandle = null;
+    let audio = null;
+
+    const exposeMusicDiagnostics = (musicAuthority) => {
       window.__apexMenuBgmState = () => {
-        const st = musicAuthority.state();
-        if (!st || !audio) return null;
+        const a = menuAudioRef.current;
+        if (!a) return null;
+        const st = musicAuthority?.state?.() || null;
+        const diag = musicAuthority?.diagnostics?.() || null;
         return {
-          preload: audio.preload, readyState: audio.readyState, networkState: audio.networkState,
-          paused: st.paused, src: st.src,
+          preload: a.preload,
+          readyState: a.readyState,
+          networkState: a.networkState,
+          paused: st ? st.paused : a.paused,
+          src: st ? st.src : (a.currentSrc || a.src),
+          blocked: st ? !!st.blocked : null,
+          requested: diag ? diag.requested : null,
+          success: diag ? diag.success : null,
+          rejected: diag ? diag.rejected : null,
+          surface: st && st.surface ? st.surface.id : null,
         };
       };
-      // Compatibility names must never seek the product theme. Surface changes
-      // pause/fade the ONE persistent element and resume the same playhead.
-      window.apexStopMenuMusic = () => {
-        if (typeof musicAuthority.fadeOut === 'function') {
-          musicAuthority.fadeOut(MENU_MUSIC_FADE_MS);
-          return;
-        }
-        audio?.pause();
-      };
-      window.apexPlayMenuMusic = () => {
-        const st = musicAuthority.state();
-        if (!st || !st.allowed || !audio) return;
-        // Route through the authority's request() so a blocked autoplay arms
-        // the ONE temporary gesture-unlock set instead of failing silently.
-        if (typeof musicAuthority.request === 'function') {
-          musicAuthority.request('legacy-menu');
-          return;
-        }
-        audio.volume = MENU_MUSIC_VOLUME;
-        const p = audio.play();
-        if (p && typeof p.catch === 'function') p.catch(() => {});
-      };
-    }
+    };
 
-    // OWNER LAW (R52): the product music authority is the ONE owner of autoplay
-    // unlock and of the hidden/blur lifecycle, on its ONE persistent element.
-    // The retired legacy mirror of that state machine (a second pause-state
-    // memory that could only ever read a deleted menu surface) is deleted
-    // instead of re-gated: two memories racing is exactly what the authority
-    // exists to prevent.
+    const installBootMusic = async () => {
+      try {
+        await loadProductMusicBootRuntime();
+        if (disposed) return;
+
+        musicHandle = window.installProductMusicAuthority
+          ? window.installProductMusicAuthority({
+            window, document,
+            allowedSurfaces: [...MENU_MUSIC_ALLOWED_SURFACES],
+          })
+          : window.__apexProductMusicHandle || null;
+
+        audio = musicHandle?.audio || window.__apexProductMusicHandle?.audio || null;
+        const musicAuthority = musicHandle?.api || window.apexProductMusic || null;
+        if (!audio || !musicAuthority) return;
+
+        audio.__apexMenuMusic = true;
+        menuAudioRef.current = audio;
+        window.apexProductMusic = musicAuthority;
+        exposeMusicDiagnostics(musicAuthority);
+
+        window.apexStopMenuMusic = () => {
+          if (typeof musicAuthority.fadeOut === 'function') {
+            musicAuthority.fadeOut(MENU_MUSIC_FADE_MS);
+            return;
+          }
+          audio.pause();
+        };
+        window.apexPlayMenuMusic = () => {
+          const st = musicAuthority.state?.();
+          if (!st || !st.allowed) return;
+          if (typeof musicAuthority.request === 'function') {
+            musicAuthority.request('legacy-menu');
+            return;
+          }
+          audio.volume = MENU_MUSIC_VOLUME;
+          const p = audio.play();
+          if (p && typeof p.catch === 'function') p.catch(() => {});
+        };
+
+        // Critical ordering: "transition" is published here, before Gold Home
+        // is mounted/READY. setSurface owns the play() request, so boot playback
+        // begins during the loading transition when policy permits it.
+        musicAuthority.setSurface?.('transition');
+        window.__apexBootThemeRequested = true;
+      } catch (error) {
+        // Audio failure may not strand the boot door or the Home surface.
+        // The state is explicit so owner/browser diagnostics can distinguish
+        // "runtime failed" from an ordinary NotAllowedError autoplay block.
+        window.__apexBootThemeRequested = false;
+        window.__apexBootThemeError = String(error?.message || error);
+        console.warn('[product-music] Boot theme authority failed to load.', error);
+      }
+    };
+
+    void installBootMusic();
+
     return () => {
+      disposed = true;
       if (audio) audio.pause();
-      menuAudioRef.current = null;
+      if (menuAudioRef.current === audio) menuAudioRef.current = null;
       if (window.apexStopMenuMusic) delete window.apexStopMenuMusic;
       if (window.apexPlayMenuMusic) delete window.apexPlayMenuMusic;
       if (window.__apexMenuBgmState) delete window.__apexMenuBgmState;
-      if (music && typeof music.dispose === 'function') music.dispose();
+      delete window.__apexBootThemeRequested;
+      delete window.__apexBootThemeError;
+      if (musicHandle && typeof musicHandle.dispose === 'function') musicHandle.dispose();
     };
   }, []);
 

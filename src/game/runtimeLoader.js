@@ -1,6 +1,7 @@
 import {
   ARSENAL_HUB_RUNTIMES,
   MENU_INTERACTIVE_RUNTIMES,
+  PRODUCT_MUSIC_BOOT_RUNTIMES,
   MODE_DEFERRED_RUNTIMES,
   SELECT_RUNTIMES,
   WARMUP_GROUP_SEQUENCE,
@@ -158,6 +159,16 @@ function enqueueGroup(runtimes, { priority = false } = {}) {
   }
   void pumpQueue();
   return Promise.all(entries.map((e) => e.promise));
+}
+
+let productMusicBootPromise = null;
+export function loadProductMusicBootRuntime() {
+  if (productMusicBootPromise) return productMusicBootPromise;
+  productMusicBootPromise = loadRuntimeList(PRODUCT_MUSIC_BOOT_RUNTIMES).catch((error) => {
+    productMusicBootPromise = null;
+    throw error;
+  });
+  return productMusicBootPromise;
 }
 
 export async function loadMenuInteractiveRuntimes() {

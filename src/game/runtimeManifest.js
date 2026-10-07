@@ -5,7 +5,7 @@
 // correction slice (r43) re-keys every versioned runtime and the Gold shell /
 // bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
 // stale cache during owner browser verification.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261007-r59-recovery-crystala-ai';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261007-r59-recovery-boot-theme';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -23,9 +23,16 @@ export const APEX_ARSENAL_RUNTIME_REVISION = '20261007-r59-recovery-crystala-ai'
 // single persistent media element, surface policy + fades + M mute) installs
 // here so every later surface — including the Gold product shell — talks to
 // exactly one music owner. Nothing else is needed before a product surface.
+// E1 boot-audio dependency: this one tiny runtime is requested as soon as the
+// initial Mechanical Door transition starts. MENU_INTERACTIVE reuses the exact
+// same tuple, so there is still one script identity / one music authority.
+export const PRODUCT_MUSIC_BOOT_RUNTIMES = [
+  ['/game/product/productMusicAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'productMusicAuthority'],
+];
+
 export const MENU_INTERACTIVE_RUNTIMES = [
   ['/game/core/apexBattleAudioRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexBattleAudioRuntime'],
-  ['/game/product/productMusicAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'productMusicAuthority'],
+  ...PRODUCT_MUSIC_BOOT_RUNTIMES,
   ['/game/product/productAssetRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'productAssetRuntime'],
 ];
 
