@@ -73,7 +73,7 @@ async function loadAssets(){
     await Promise.all(jobs);ready=true;
   }catch(error){loadError=error;}
 }
-loadAssets();
+const assetReady=loadAssets();
 
 const states=new Map();
 function createState(combatant){
@@ -511,6 +511,10 @@ function setRandomSeed(combatant,value){stateFor(combatant).rng.seed=(Number(val
 g.APEX_MAGNET_GOLD={
   version:'2.0.0-canonical-engine',DT,META,BODY_REF,BODY_VISUAL_CALIBRATION,
   updateFrame,tick,cue,drawArenaDistortion,drawBefore,draw,drawActor:draw,drawAfter,getSockets,teardown,inspect,setRandomSeed,
+  // R59 readiness: the canonical loader already starts at script evaluation;
+  // expose THAT same promise so Battle HOLD can await all full-quality PNG
+  // layers instead of merely awaiting the JS file.
+  prepareArt(){return assetReady.then(()=>{if(loadError)throw loadError;if(!ready)throw new Error('MAGNET Gold art not ready');return true;});},
   get ready(){return ready;},
 };
 g.apexMagnetGoldV1='ready';
