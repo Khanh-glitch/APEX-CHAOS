@@ -1612,6 +1612,9 @@ function buildShell(hudProductionHtml) {
       replace: (
         `    uiSfx('ui.option.confirm');\n` +
         `    renderFighter();\n` +
+        `    // R59: selecting a hero is an asset intent too. Start decoding that\n` +
+        `    // exact hero's battle rig now; never wait for LOCK IN to discover it.\n` +
+        `    try{APEX_GOLD.warmFighterSelection&&void APEX_GOLD.warmFighterSelection([id])}catch(_){}\n` +
         `    if(motion){stage.classList.remove('hero-switch-impact')`
       ),
     },
