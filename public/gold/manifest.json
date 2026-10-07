@@ -196,8 +196,8 @@
       "sha256": "42ed36822b3dd931e779bc729902fa594dafd0ba9a46b5d0d4f0a25e19a639a5"
     },
     "battle-hud.html": {
-      "bytes": 121582,
-      "sha256": "b03a8bef79b862771a305cc92c0a5e7dabdb08a4a7d67fd525d67fd361ff57ca"
+      "bytes": 119371,
+      "sha256": "ef8a9fb91d6d9e70a88a8f12cd1cf8b8690e8200d3736d1ca00c7752eb0991a5"
     },
     "fonts.css": {
       "bytes": 6552,
@@ -272,8 +272,8 @@
       "sha256": "6e43189bf78a1daa3e7e93f15d32727920b92948bd7aa41fe88a257de7098690"
     },
     "shell.html": {
-      "bytes": 384488,
-      "sha256": "c1d78f1583663e4cfd3e16850b502fca70a5aa1ad4cf9b58fbec031d94189226"
+      "bytes": 381540,
+      "sha256": "465dc594eafae745ccbdea0f15356276cc00f641d96abf65c73150f27b7c3778"
     },
     "transition/mechanical-door-v4.gold.js": {
       "bytes": 2666593,

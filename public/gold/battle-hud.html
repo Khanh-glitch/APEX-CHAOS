@@ -491,12 +491,20 @@ kbd{font:inherit}
 #hud[data-layout="desk"][data-mode="1p"] #p2Side .sk-name{font-size:var(--skNF)}
 
 /* 7.1 the phone weapon plate: the held gun IS the plate */
-#hud[data-layout="land"] .side,
-#hud[data-layout="port"] .side{--wpH:clamp(60px,19cqh,96px);--amF:clamp(19px,5.2cqh,30px)}
-#hud[data-layout="port"] .side{--wpH:clamp(58px,7.9cqh,92px);--amF:clamp(18px,4.8cqh,28px)}
+#hud[data-layout="desk"] .side{--wpH:clamp(66px,10.5cqh,104px)}
+#hud[data-layout="land"] .side{--wpH:clamp(52px,17cqh,84px);--amF:clamp(19px,5.2cqh,30px)}
+#hud[data-layout="port"] .side{--wpH:clamp(52px,7.2cqh,84px);--amF:clamp(18px,4.8cqh,28px)}
+/* R58 fit law: reserve a bounded weapon row inside the side's OWN grid.
+   Nothing grows below the panel and nothing uses whole-HUD scaling. */
+#hud[data-layout="desk"] .side,
+#hud[data-layout="land"] .side{grid-template-rows:auto minmax(0,1fr) minmax(0,var(--wpH))}
+#hud[data-layout="port"] .side{
+  grid-template-rows:auto auto auto auto minmax(0,var(--wpH));
+  grid-template-areas:"id sk" "hp sk" "rival sk" "feed sk" "wp sk";
+  row-gap:3px}
 #hud[data-layout="land"] .weapon,
 #hud[data-layout="port"] .weapon{
-  position:relative;align-items:center;min-height:var(--wpH);height:100%;
+  position:relative;align-items:center;min-height:0;height:100%;max-height:var(--wpH);align-self:end;overflow:visible;
   grid-template-columns:minmax(0,1fr) auto auto;
   grid-template-rows:minmax(0,1fr) auto;
   grid-template-areas:"ico ico swp" "txt amm swp";
@@ -553,7 +561,12 @@ kbd{font:inherit}
 #hud[data-layout="desk"] .side[data-mirror] .duel-feed,
 #hud[data-layout="land"] .side[data-mirror] .duel-feed{direction:ltr}
 
-/* 7.2 portrait Local: in-panel rails + damage feed are part of the panel law */
+/* 7.2 R58 BOT = Gold HUD, not a second layout family.
+   Portrait uses the SAME component rows as Gold Local: identity / live HP /
+   rival / damage feed / weapon beside the two authored ability tiles.
+   BOT adapts ONLY ownership: CPU has no keycaps, no tap target and no swap.
+   There is deliberately no [data-mode="1p"] geometry, skill zoom or custom
+   p1/p2 height. That is the regression boundary the owner asked for. */
 #hud[data-layout="port"] .side .vrail{grid-area:hp;grid-column:auto;grid-row:auto;padding:0;direction:ltr;
   row-gap:1px;grid-template-rows:var(--lblH) var(--barH) var(--accH);
   --lblH:11px;--barH:8px;--accH:2px;--nmF:9px;--hpF:15px;--hpmF:8px;
@@ -562,52 +575,9 @@ kbd{font:inherit}
 #hud[data-layout="port"] .side .vr-name{font-size:9px;letter-spacing:.1em}
 #hud[data-layout="port"] .side .vr-hp{padding:0 3px;gap:1px}
 #hud[data-layout="port"] .side #p2Rail .vr-shape{transform:none}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .rival-health{grid-area:rival;display:block;padding:1px 3px 2px 0}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .duel-feed{grid-area:feed;display:flex;opacity:.36}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .duel-feed.pulse{opacity:1}
-#hud[data-layout="port"][data-mode="1p"]{
-  --p2H:clamp(150px,20cqh,196px);
-  --p1H:clamp(226px,33cqh,336px);
-  --arena:min(var(--availW),calc(var(--availH) - var(--railH) - var(--p2H) - var(--p1H) - 3 * var(--g)));
-  grid-template-rows:minmax(0,var(--p2H)) var(--railH) var(--arena) minmax(0,var(--p1H))}
-#hud[data-layout="port"][data-mode="1p"] #p2Side{
-  grid-template-columns:minmax(0,1fr) minmax(0,52%);
-  grid-template-rows:auto auto auto minmax(0,1fr);
-  grid-template-areas:"id sk" "hp sk" "feed sk" "wp sk";
-  column-gap:7px;
-  --porW:34px;--porH:34px;--idGap:9px;--nameF:14px;--artW:min(64px,34%);
-  --skNF:12px;--stF:9.5px;--cdF:18px;--keyS:17px}
-/* The opponent's rail already carries the CPU's live HP, and the player's own
-   HP is on the centre rail: the rival row would repeat a number the player
-   already reads twice over. The band height goes to the held-gun plate. */
-#hud[data-layout="port"][data-mode="1p"] #p2Side .rival-health{display:none}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .skills{grid-template-columns:auto;grid-template-rows:minmax(0,1fr) minmax(0,1fr)}
-/* R56 SPACE LAW (owner: "cả khu vực đó bắt mắt và tối ưu không gian"): the
-   opponent tile row was 81px tall while its art stayed a centred 64px square,
-   which parked a flat ~116x32 band under every label - the last dead cell in
-   the gun/HP/dmg cluster (measured on the rendered pixels, not read off a
-   screenshot). The band is filled with the skill's real cooldown line instead
-   of art resizing, so nothing is distorted and no label loses width. */
-#hud[data-layout="port"][data-mode="1p"] #p2Side .skill{grid-template-columns:var(--artW) minmax(0,1fr);grid-template-rows:100%;grid-template-areas:"art info"}
-/* The accepted 64px art column is kept exactly as it was (a wider or
-   cover-cropped art either stole label width or turned into a sliver), and the
-   band the tile used to leave blank under the label is filled with the skill's
-   REAL cooldown/active line. That line already exists on the player's own phone
-   panel, so the opponent panel now carries the same state language instead of
-   dead space. */
-#hud[data-layout="port"][data-mode="1p"] #p2Side .sk-desc{display:block}
-#hud[data-layout="port"][data-mode="1p"] #p2Side .sk-info{padding:4px 7px;gap:3px}
-#hud[data-layout="port"][data-mode="1p"] #p1Side{
-  grid-template-columns:minmax(0,40%) minmax(0,1fr);
-  grid-template-rows:auto minmax(0,1fr);
-  grid-template-areas:"id wp" "sk sk";
-  row-gap:8px;padding-bottom:2px;
-  --porW:58px;--porH:clamp(56px,10cqh,76px);--idGap:10px;--nameF:19px;
-  --skNF:15px;--stF:10.5px;--cdF:30px;--keyS:20px;--keyF:11.5px}
-#hud[data-layout="port"][data-mode="1p"] #p1Side .skills{grid-template-columns:1fr 1fr}
-#hud[data-layout="port"][data-mode="1p"] #p1Side .sk-desc{display:block}
-#hud[data-layout="port"][data-mode="1p"] #p1Side .sk-art svg{width:52%;height:52%}
-#hud[data-layout="port"][data-mode="1p"] #p1Side .weapon{border-top:1px solid var(--line);padding:4px 0 5px;padding-inline-start:5px}
+#hud[data-layout="port"] .side .rival-health{grid-area:rival;display:block;padding:1px 3px 2px 0}
+#hud[data-layout="port"] .side .duel-feed{grid-area:feed;display:flex;opacity:.36}
+#hud[data-layout="port"] .side .duel-feed.pulse{opacity:1}
 @media (prefers-reduced-motion: reduce){
   .vrail.low .vr-low{animation:none;opacity:.5}
   .sk-sweep{display:none}
