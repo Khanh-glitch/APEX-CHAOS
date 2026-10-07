@@ -122,6 +122,7 @@ jobs:
           echo "LAUNCHER SMOKE PASS: ports $PORT1 and $PORT2, source SHA $SHA"
 
       - name: Start Vite for browser acceptance
+        if: ${{ always() }}
         shell: bash
         run: |
           pnpm dev:lan >/tmp/arsenal-vite.log 2>&1 &
@@ -134,6 +135,7 @@ jobs:
           exit 1
 
       - name: Locate Chrome or Chromium
+        if: ${{ always() }}
         id: chrome
         shell: bash
         run: |
