@@ -985,8 +985,36 @@
     const p=globalScope.APEX_HUNTER_PRESENTATION;
     return !!p?.ready && !ctx.combatant.store.__hunterAction && p.idle(ctx.combatant.anchor);
   }
+  function hunterSnareDecision(ctx){
+    if(!hunterReady(ctx)||!ctx.api.canPlaceSnare(ctx.combatant,ctx.cfg.maxActiveTraps)){
+      return {shouldCast:false,score:0,reason:'snare-mechanic-unavailable',retryAfter:.25};
+    }
+    const self=ctx.combatant.anchor;
+    const trapR=(globalScope.APEX_HUNTER_PRESENTATION&&globalScope.APEX_HUNTER_PRESENTATION.trapWorldRadius)||46;
+    let best=null;
+    for(const body of ctx.api.enemyBodies(ctx.combatant)){
+      if(!body||body.hp<=0)continue;
+      const contact=trapR+(Number(body.radius)||0);
+      const rx=body.x-self.x,ry=body.y-self.y;
+      if(Math.hypot(rx,ry)<=contact){
+        return {shouldCast:true,score:1,reason:'enemy-at-trap-origin',retryAfter:.12};
+      }
+      const v=body.__hrVel||{x:0,y:0},vv=(Number(v.x)||0)**2+(Number(v.y)||0)**2;
+      if(!(vv>1))continue;
+      const t=-(rx*(Number(v.x)||0)+ry*(Number(v.y)||0))/vv;
+      if(t<0||t>ctx.cfg.trapLifetime)continue;
+      const qx=body.x+(Number(v.x)||0)*t,qy=body.y+(Number(v.y)||0)*t;
+      if(dist(self.x,self.y,qx,qy)<=contact){
+        const score=Math.max(.68,1-.25*(t/Math.max(.001,ctx.cfg.trapLifetime)));
+        if(!best||score>best.score)best={shouldCast:true,score,reason:'enemy-crossing-trap-origin',retryAfter:.15};
+      }
+    }
+    return best||{shouldCast:false,score:0,reason:'no-trap-crossing',retryAfter:.35};
+  }
+
   EXECUTORS['hunter.snare'] = {
     canCast(ctx){return hunterReady(ctx)&&ctx.api.canPlaceSnare(ctx.combatant,ctx.cfg.maxActiveTraps);},
+    aiEvaluate(ctx){return hunterSnareDecision(ctx);},
     cast(ctx){
       if(!this.canCast(ctx))return false;
       const a=ctx.combatant.anchor, measured=a.__hrVel;
@@ -1048,8 +1076,65 @@
     ctx.store.pounce=null;ctx.combatant.store.__hunterAction=null;
     globalScope.APEX_HUNTER_PRESENTATION.catch(a);
   }
+  function hunterInterceptTime(self,target,cfg){
+    const speed=Math.max(0,Number(cfg.moveSpeed)||0);
+    const maxT=Math.max(0,Number(cfg.maxMoveTime)||0);
+    const contact=(Number(self.radius)||0)+(Number(target.radius)||0);
+    const rx=target.x-self.x,ry=target.y-self.y;
+    const C=rx*rx+ry*ry-contact*contact;
+    if(C<=0)return 0;
+    if(!(speed>0)||!(maxT>0))return null;
+    const v=target.__hrVel||{x:0,y:0},vx=Number(v.x)||0,vy=Number(v.y)||0;
+    const A=vx*vx+vy*vy-speed*speed;
+    const B=2*(rx*vx+ry*vy-speed*contact);
+    let roots=[];
+    if(Math.abs(A)<1e-8){
+      if(B<0)roots=[-C/B];
+    }else{
+      const D=B*B-4*A*C;
+      if(D>=0){
+        const q=Math.sqrt(D);
+        roots=[(-B-q)/(2*A),(-B+q)/(2*A)];
+      }
+    }
+    roots=roots.filter((t)=>Number.isFinite(t)&&t>=0&&t<=maxT).sort((a,b)=>a-b);
+    return roots.length?roots[0]:null;
+  }
+
+  function hunterPounceDecision(ctx){
+    if(!hunterReady(ctx))return {shouldCast:false,score:0,reason:'hunter-action-busy',retryAfter:.2};
+    const self=ctx.combatant.anchor;
+    let best={score:0,reason:'no-physical-intercept'},hadIntercept=false;
+    for(const body of ctx.api.enemyBodies(ctx.combatant)){
+      if(!body||body.hp<=0)continue;
+      const t=hunterInterceptTime(self,body,ctx.cfg);
+      if(t==null)continue;
+      hadIntercept=true;
+      const targetCt=ctx.api.combatantOfBody(body);
+      const held=targetCt&&ctx.api.heldWeapon?ctx.api.heldWeapon(targetCt):null;
+      const ranged=!!(held&&held.def&&held.def.category==='ranged');
+      if(ranged){
+        const score=Math.max(.86,1-.20*(t/Math.max(.001,ctx.cfg.maxMoveTime)));
+        if(score>best.score)best={score,reason:'disarm-intercept'};
+        continue;
+      }
+      if(typeof body.hasStatus==='function'&&body.hasStatus('stun'))continue;
+      const v=body.__hrVel||{x:0,y:0};
+      const rx=body.x-self.x,ry=body.y-self.y;
+      const approaching=rx*(Number(v.x)||0)+ry*(Number(v.y)||0)<0;
+      if(approaching){
+        const score=Math.max(.70,.86-.16*(t/Math.max(.001,ctx.cfg.maxMoveTime)));
+        if(score>best.score)best={score,reason:'closing-contact-intercept'};
+      }
+    }
+    return best.score>=.68
+      ? {shouldCast:true,score:best.score,reason:best.reason,retryAfter:.14}
+      : {shouldCast:false,score:best.score,reason:hadIntercept?'intercept-low-value':best.reason,retryAfter:.3};
+  }
+
   EXECUTORS['hunter.pounce_weak'] = {
     canCast: hunterReady,
+    aiEvaluate(ctx){return hunterPounceDecision(ctx);},
     cast(ctx){if(!hunterReady(ctx)||!ctx.api.enemyBodies(ctx.combatant).length)return false;
       ctx.store.pounce={windupLeft:ctx.cfg.windup,elapsed:0};ctx.combatant.store.__hunterAction='a2';
       globalScope.APEX_HUNTER_PRESENTATION.begin(ctx.combatant.anchor,'a2');return true;

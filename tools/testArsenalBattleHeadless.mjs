@@ -2351,6 +2351,91 @@ gate('r59-mirror-human-a2-remains-manual-legal',
   report.r59MirrorA2Position.human.ok===true&&report.r59MirrorA2Position.human.a2>=1,
   report.r59MirrorA2Position.human);
 
+// R59 D10 HUNTER — trap only on a real crossing forecast; pounce only when
+// physical intercept is possible AND the outcome is worth the 12s cooldown.
+report.r59HunterBotDecision = run(`
+  const HR=window.APEX_HERO_REWORK,W=window.APEX_ARSENAL.weaponApi;
+  const prevProfile=window.__apexArsenalBattleProfile;
+  const startBot=()=>{
+    window.__apexArsenalBattleProfile='BOT';
+    window.__apexArsenalTestStartMatch('ROBOT','HUNTER');
+    window.__apexArsenalBattleProfile=prevProfile;
+    cancelAnimationFrame(reqId);reqId=0;
+    __APEX_TEST.holdSpawns();projectiles.length=0;
+    fighters[0].baseSpeed=fighters[1].baseSpeed=0;
+    if(fighters[0].data)fighters[0].data.__hrHoldBody=true;
+    if(fighters[1].data)fighters[1].data.__hrHoldBody=true;
+    return HR.byCombatant(fighters[1]);
+  };
+
+  let p2=startBot();
+  fighters[0].x=400;fighters[0].y=500;fighters[1].x=700;fighters[1].y=500;
+  let ctl=HR.abilityController(p2);ctl.setCooldown('A2',999);
+  const missMark=HR.AIL.bus.ring.length;
+  for(let i=0;i<160;i++){
+    fighters[0].__hrVel={x:0,y:180};
+    APEX_ARSENAL.step(1/60);
+  }
+  const trapMiss={a1:p2.telemetry.bySkill.A1||0,
+    decisions:HR.AIL.bus.ring.slice(missMark).filter(e=>e.payload&&e.payload.hero==='HUNTER'&&e.payload.slot==='A1')
+      .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
+
+  p2=startBot();
+  fighters[0].x=400;fighters[0].y=500;fighters[1].x=700;fighters[1].y=500;
+  ctl=HR.abilityController(p2);ctl.setCooldown('A2',999);
+  const crossMark=HR.AIL.bus.ring.length;
+  for(let i=0;i<160;i++){
+    fighters[0].__hrVel={x:180,y:0};
+    APEX_ARSENAL.step(1/60);
+  }
+  const trapCross={a1:p2.telemetry.bySkill.A1||0,
+    decisions:HR.AIL.bus.ring.slice(crossMark).filter(e=>e.payload&&e.payload.hero==='HUNTER'&&e.payload.slot==='A1')
+      .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
+
+  p2=startBot();
+  fighters[0].x=420;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
+  ctl=HR.abilityController(p2);ctl.setCooldown('A1',999);
+  W.equip(fighters[0],'PISTOL');
+  const disarmMark=HR.AIL.bus.ring.length;
+  for(let i=0;i<120;i++){
+    fighters[0].__hrVel={x:0,y:0};
+    APEX_ARSENAL.step(1/60);
+  }
+  const disarm={a2:p2.telemetry.bySkill.A2||0,
+    decisions:HR.AIL.bus.ring.slice(disarmMark).filter(e=>e.payload&&e.payload.hero==='HUNTER'&&e.payload.slot==='A2')
+      .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
+
+  p2=startBot();
+  fighters[0].x=420;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
+  ctl=HR.abilityController(p2);ctl.setCooldown('A1',999);
+  const holdMark=HR.AIL.bus.ring.length;
+  for(let i=0;i<120;i++){
+    fighters[0].__hrVel={x:0,y:0};
+    APEX_ARSENAL.step(1/60);
+  }
+  const lowValue={a2:p2.telemetry.bySkill.A2||0,
+    decisions:HR.AIL.bus.ring.slice(holdMark).filter(e=>e.payload&&e.payload.hero==='HUNTER'&&e.payload.slot==='A2')
+      .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
+
+  return {trapMiss,trapCross,disarm,lowValue};
+`);
+gate('r59-hunter-a1-holds-when-route-misses-origin',
+  report.r59HunterBotDecision.trapMiss.a1===0
+  && report.r59HunterBotDecision.trapMiss.decisions.some(e=>e.type==='AICastReject'&&e.reason==='no-trap-crossing'),
+  report.r59HunterBotDecision.trapMiss);
+gate('r59-hunter-a1-predicts-crossing-through-trap-origin',
+  report.r59HunterBotDecision.trapCross.a1>=1
+  && report.r59HunterBotDecision.trapCross.decisions.some(e=>e.type==='AICastSelect'&&e.reason==='enemy-crossing-trap-origin'),
+  report.r59HunterBotDecision.trapCross);
+gate('r59-hunter-a2-prioritizes-ranged-disarm-intercept',
+  report.r59HunterBotDecision.disarm.a2>=1
+  && report.r59HunterBotDecision.disarm.decisions.some(e=>e.type==='AICastSelect'&&e.reason==='disarm-intercept'),
+  report.r59HunterBotDecision.disarm);
+gate('r59-hunter-a2-holds-reachable-but-low-value-target',
+  report.r59HunterBotDecision.lowValue.a2===0
+  && report.r59HunterBotDecision.lowValue.decisions.some(e=>e.type==='AICastReject'&&e.reason==='intercept-low-value'),
+  report.r59HunterBotDecision.lowValue);
+
 report.postCText = run(`
   const src = [drawBackground.toString(), (window.APEX_ARSENAL_SPAWN.drawSlots||function(){}).toString()].join('\\n');
   return {
