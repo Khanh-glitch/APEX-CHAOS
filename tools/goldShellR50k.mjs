@@ -56,7 +56,6 @@ const BATTLE_ENTRY_REGION = `  let battleEntryToken=0;
     return new Promise((resolve,reject)=>{
       battleHudReady=false;
       const ready=()=>{battleHudReady=true;sendBattleHudConfig();resolve(true);};
-      battleHudFrame.onload=ready;
       try{APEX_GOLD.mountBattleHud(decodeBattleHud(),ready)}
       catch(error){reject(error)}
     });
@@ -95,7 +94,6 @@ const BATTLE_ENTRY_REGION = `  let battleEntryToken=0;
     battleHudHost.setAttribute('aria-hidden','true');
     resetBattleTransitionVisuals();
     resumeParentRuntime();
-    battleHudFrame.onload=null;
     APEX_GOLD.unmountBattleHud();
     battleHudConfig=null;
     battleHudReady=false;
@@ -108,7 +106,7 @@ const BATTLE_ENTRY_REGION = `  let battleEntryToken=0;
     return new Promise(resolve=>setTimeout(()=>resolve(token===battleEntryToken),reduced?Math.min(ms,24):ms));
   }
   async function launchBattleHud(){
-    if(!battleMode||!battleHudHost||!battleHudFrame||screen==='transition'||screen==='battle')return;
+    if(!battleMode||!battleHudHost||screen==='transition'||screen==='battle')return;
     if(window.APEX_SCENE_TRANSITION?.active?.())return;
     screen='transition';
     // Battle is NOT a Mechanical Door route. It owns its own lifecycle and
@@ -191,7 +189,6 @@ const BATTLE_ENTRY_REGION = `  let battleEntryToken=0;
     document.body.classList.remove('battle-hud-open','battle-transition-active');
     APEX_GOLD.exitBattle&&APEX_GOLD.exitBattle();
     resumeParentRuntime();
-    battleHudFrame.onload=null;
     APEX_GOLD.unmountBattleHud();
     battleHudConfig=null;
     battleHudReady=false;
