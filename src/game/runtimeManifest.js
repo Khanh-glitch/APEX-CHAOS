@@ -5,7 +5,7 @@
 // correction slice (r43) re-keys every versioned runtime and the Gold shell /
 // bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
 // stale cache during owner browser verification.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261005-owner-playtest-r50k';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261007-r58-audio-ready';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -110,7 +110,7 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   // The ONE curated hero-SFX authority for the four newer Core Six heroes
   // (CRYSTALA / MAGNET / FROST / MIRROR), plus its production event bridge.
   // ROBOT and HUNTER keep their existing accepted SFX authorities untouched.
-  ['/game/heroes/coreSixCuratedSfxAuthority.js', 'apexCoreSixCuratedSfxAuthority'],
+  ['/game/heroes/coreSixCuratedSfxAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCoreSixCuratedSfxAuthority'],
   ['/game/heroes/coreSixCuratedSfxBridge.js', 'apexCoreSixCuratedSfxBridge'],
 ];
 

@@ -41,3 +41,21 @@ check('battle WebAudio still rearms after resume', battle.includes("audioCtx.add
 console.log(['AUDIO AUTHORITY GATE',...passes].join('\n'));
 if(failures.length){console.error(failures.join('\n'));process.exit(1);}
 console.log('RESULT: PASS ('+passes.length+' checks)');
+
+
+// R58 owner-critical audio acceptance.
+const bridge = fs.readFileSync('public/game/gold/goldProductBridge.js','utf8');
+const heroSfx = fs.readFileSync('public/game/heroes/coreSixCuratedSfxAuthority.js','utf8');
+check('battle transition awaits the one match-audio readiness seam',
+  bridge.includes('await warmMatchHeroAudio(...heroIds)')
+  && bridge.includes('await warmMatchHeroAudio(p1Shell, p2Shell)'));
+check('Arsenal/Hunter decoded bank is awaited, not fire-and-forget',
+  bridge.includes('window.APEX_ARSENAL_AV?.warmAudio')
+  && bridge.includes('tasks.push(Promise.resolve(window.APEX_ARSENAL_AV.warmAudio()))'));
+check('Core-Six warm resolves from real media readiness',
+  heroSfx.includes("el.addEventListener('canplay', onReady")
+  && heroSfx.includes("el.addEventListener('loadeddata', onReady")
+  && heroSfx.includes('return Promise.all(waits).then'));
+check('boot announces Home to product music before any navigation gesture',
+  app.includes("musicAuthority.setSurface?.('home')"));
+

@@ -198,33 +198,64 @@
       policyFor: (hero, cue) => { const s = specOf(hero, cue); return s ? s.policy : null; },
       play,
       dispatch,
-      // OWNER LAW (R56): a cue's FIRST trigger in a match must not pay for its
-      // own fetch+decode. Elements used to be constructed lazily inside
-      // elementFor(), so whichever ability happened to fire first was the one
-      // that sounded late (the owner's "sometimes right, sometimes late").
-      // Warming is scheduling only: the SAME cache, the SAME elements, the SAME
-      // volume policy - nothing new is played, and an already-cached cue is a
-      // no-op.
+      // OWNER LAW (R58): warming is a READINESS contract, not a scheduling
+      // hint. The previous R56 implementation called load() and returned
+      // immediately, so the transition could reveal battle while the first
+      // ability's media element was still fetching/decoding. Keep the SAME
+      // cached elements and volume policy, but resolve only when each requested
+      // cue can actually start (or has failed/settled).
       warm: (heroIds) => {
         const requested = heroIds == null
           ? HEROES.slice()
           : (Array.isArray(heroIds) ? heroIds : [heroIds]);
+        const waits = [];
         const warmed = [];
         for (const raw of requested) {
-          // Hero ids in this authority are lower-case ('crystala','magnet',
-          // 'frost','mirror'); accept either case from callers.
           const hero = String(raw == null ? '' : raw).toLowerCase();
           const cues = CUES[hero];
           if (!cues) continue;
           for (const cue of Object.keys(cues)) {
             const el = elementFor(hero, cue);
             if (!el) continue;
+            const key = keyOf(hero, cue);
+            warmed.push(key);
             el.preload = 'auto';
-            try { if (typeof el.load === 'function') el.load(); } catch (_) {}
-            warmed.push(keyOf(hero, cue));
+            if (Number(el.readyState) >= 3) continue;
+            waits.push(new Promise((resolve) => {
+              let settled = false;
+              let timer = 0;
+              const done = (ok) => {
+                if (settled) return;
+                settled = true;
+                if (timer) win.clearTimeout(timer);
+                if (typeof el.removeEventListener === 'function') {
+                  el.removeEventListener('canplay', onReady);
+                  el.removeEventListener('canplaythrough', onReady);
+                  el.removeEventListener('loadeddata', onReady);
+                  el.removeEventListener('error', onError);
+                }
+                resolve(ok);
+              };
+              const onReady = () => done(true);
+              const onError = () => done(false);
+              if (typeof el.addEventListener === 'function') {
+                el.addEventListener('canplay', onReady, { once: true });
+                el.addEventListener('canplaythrough', onReady, { once: true });
+                el.addEventListener('loadeddata', onReady, { once: true });
+                el.addEventListener('error', onError, { once: true });
+              }
+              // Network stalls must not deadlock the product forever. Eight
+              // seconds is a safety fuse; normal warm paths resolve far sooner.
+              timer = win.setTimeout(() => done(Number(el.readyState) >= 2), 8000);
+              try { if (typeof el.load === 'function') el.load(); } catch (_) { done(false); }
+            }));
           }
         }
-        return warmed;
+        return Promise.all(waits).then((ready) => ({
+          warmed,
+          ready: ready.filter(Boolean).length,
+          settled: waits.length,
+        }));
       },
       // Separate hero-SFX level/mute (MUSIC mute and UI-SFX mute are untouched).
       setVolume: (v) => {

@@ -334,6 +334,12 @@ export default function App() {
     const musicAuthority = music ? music.api : null;
     if (musicAuthority) {
       window.apexProductMusic = musicAuthority;
+      // R58 owner law: boot starts on Home. Announce it NOW, not after the
+      // first Gold navigation callback. The authority already called load()
+      // when its Tier-1 runtime installed, so this is the earliest legal play
+      // request on the SAME persistent element. Browsers that forbid audible
+      // autoplay still fall through to the authority's one-gesture unlock.
+      musicAuthority.setSurface?.('home');
       // Legacy menu-music probes keep reading the SAME element.
       window.__apexMenuBgmState = () => {
         const st = musicAuthority.state();

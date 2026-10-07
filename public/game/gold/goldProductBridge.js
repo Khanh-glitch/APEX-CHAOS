@@ -429,8 +429,11 @@
 
     if (surface === 'battle' || surface === 'transition') {
       tasks.push(
-        ensureDeferredRuntimes('arsenalProduct').then((ok) => {
+        ensureDeferredRuntimes('arsenalProduct').then(async (ok) => {
           if (ok !== true) throw new Error('arsenalProduct runtime group did not reach READY');
+          // R58: transition HOLD includes audio readiness. The destination is
+          // not "ready" while first-use SFX can still be downloading/decoding.
+          await warmMatchHeroAudio(...heroIds);
           return true;
         })
       );
@@ -828,10 +831,12 @@
       tick();
     });
   }
-  // One warm entry point for the two hero-SFX owners. Unknown ids are ignored
-  // by the authorities themselves, so this can pass shell keys and production
-  // ids without a second mapping table.
-  function warmMatchHeroAudio(...keys) {
+  // ONE match-audio readiness seam. R58 deliberately waits for the existing
+  // owners instead of inventing another player: Arsenal/Hunter uses decoded
+  // AudioBuffers, Core-Six uses its cached HTMLAudioElements, Robot uses its
+  // accepted decoded buffer bank. The transition may hold; the first gameplay
+  // trigger may not become the downloader.
+  async function warmMatchHeroAudio(...keys) {
     const ids = [];
     for (const raw of keys) {
       const key = String(raw || '').toLowerCase();
@@ -840,14 +845,24 @@
       const production = PRODUCTION_ID_BY_SHELL_KEY[key];
       if (production) ids.push(production);
     }
-    // The ONE Core-Six hero-SFX authority is published as `apexHeroSfx` on the
-    // window it installs into; there is no second alias to guess at.
-    try { window.apexHeroSfx?.warm?.(ids); } catch (_) {}
+    const tasks = [];
     try {
-      if (ids.some((id) => id === 'robot' || id === 'newbot')) {
-        window.APEX_ROBOT_PRESENTATION?.loadRobotAudio?.();
+      if (window.APEX_ARSENAL_AV?.warmAudio) {
+        tasks.push(Promise.resolve(window.APEX_ARSENAL_AV.warmAudio()));
       }
     } catch (_) {}
+    try {
+      if (window.apexHeroSfx?.warm) {
+        tasks.push(Promise.resolve(window.apexHeroSfx.warm(ids)));
+      }
+    } catch (_) {}
+    try {
+      if (ids.some((id) => id === 'robot' || id === 'newbot')) {
+        tasks.push(Promise.resolve(window.APEX_ROBOT_PRESENTATION?.loadRobotAudio?.()));
+      }
+    } catch (_) {}
+    await Promise.all(tasks);
+    return true;
   }
 
   BRIDGE.onBattleLive = async function onBattleLive(pick) {
@@ -909,6 +924,16 @@
       // Wrap the real HUD observer only after the group is present.
       installEventTranslation();
 
+      // Direct-entry safety: prepareSurface normally warmed audio behind the
+      // transition seam, but onBattleLive is also an API boundary. Await the
+      // same idempotent readiness contract before the engine can accept input.
+      await warmMatchHeroAudio(p1Shell, p2Shell);
+      if (sessionToken !== battleSessionToken || !hudMounted || !battleLiveRunning) {
+        battleLiveRunning = false;
+        restoreArena();
+        return false;
+      }
+
       // Gold-hosted status is set BEFORE startMatch so every fallback branch
       // knows it must never resurrect the legacy selection surface.
       window.__apexGoldBattleHosted = true;
@@ -944,12 +969,8 @@
       const first = projection();
       if (typeof seam.applyState === 'function') seam.applyState(first.state);
       if (typeof seam.syncFighters === 'function') seam.syncFighters(first.fighters);
-      // R56 OWNER LAW — a hero's FIRST cue in a match must not pay for its own
-      // fetch+decode. Warm both hero-SFX authorities for exactly the fighters in
-      // this match, once the engine is real and before the first input can
-      // happen, so no ability sounds late because it happened to be the first
-      // one fired. Warming only creates/loads elements: no cue is played here.
-      warmMatchHeroAudio(p1Shell, p2Shell);
+      // Audio was already awaited before startMatch; projection can begin with
+      // no first-trigger network/decode debt.
       startPump();
       return true;
     } catch (error) {
