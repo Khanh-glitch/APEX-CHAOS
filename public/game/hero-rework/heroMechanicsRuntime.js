@@ -365,8 +365,79 @@
 
   const MAGNET = () => globalScope.APEX_MAGNET;
 
+  function magnetAiDecision(ctx, kind) {
+    const m = MAGNET();
+    if (!m || !m.canCast(ctx, kind)) {
+      return { shouldCast:false, score:0, reason:'field-overlap', retryAfter:.25 };
+    }
+    const self = ctx.combatant && ctx.combatant.anchor;
+    if (!self) return { shouldCast:false, score:0, reason:'no-self', retryAfter:.35 };
+
+    const cfg = globalScope.APEX_ARSENAL_CONFIG;
+    const isGun = (id) => !!(id && id !== 'STORMBREAKER' && id !== 'T6'
+      && cfg && typeof cfg.isGun === 'function' && cfg.isGun(id));
+    const state = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.state;
+    const floor = state && Array.isArray(state.slots)
+      ? state.slots.filter((slot) => slot && slot.phase === 'REVEALED'
+          && slot.kind !== 'HEAL' && isGun(slot.weaponId))
+      : [];
+
+    // A1 attraction owns arena-wide floor-gun force, so a real eligible floor
+    // firearm is already a concrete target; no invented AI range is needed.
+    if (kind === 'a1' && floor.length) {
+      return { shouldCast:true, score:1, reason:'eligible-floor-firearm', retryAfter:.2 };
+    }
+
+    const radius = kind === 'a1'
+      ? (ctx.cfg.bulletRadius ?? 480)
+      : (ctx.cfg.radius ?? 225);
+
+    if (kind === 'a2') {
+      const enemies = ctx.api.enemyBodies ? ctx.api.enemyBodies(ctx.combatant) : [];
+      if (enemies.some((body) => body && body.hp > 0
+          && dist(self.x,self.y,body.x,body.y) <= radius)) {
+        return { shouldCast:true, score:.9, reason:'enemy-in-repel-radius', retryAfter:.15 };
+      }
+      if (floor.some((slot) => dist(self.x,self.y,slot.x,slot.y) <= radius)) {
+        return { shouldCast:true, score:.72, reason:'floor-firearm-in-radius', retryAfter:.2 };
+      }
+    }
+
+    // Closest-approach truth during the authored active window. This covers
+    // hostile and neutral firearm bullets while excluding own/T6/non-firearm
+    // objects; no aim/speed-tier heuristic is introduced.
+    const liveFor = kind === 'a1'
+      ? (ctx.cfg.gameplayDuration ?? 1)
+      : (ctx.cfg.duration ?? 1.8);
+    const projectiles = ctx.api.liveProjectiles ? ctx.api.liveProjectiles() : [];
+    for (const p of projectiles) {
+      if (!p || p.aq !== true || p.type !== 'aq_bullet' || p.life === 0
+          || !isGun(p.weapon) || (p.__hr && p.__hr.cryHold)) continue;
+      const ownerCt = ctx.api.combatantOfBody ? ctx.api.combatantOfBody(p.owner) : null;
+      if (ownerCt === ctx.combatant || p.owner === self
+          || (ctx.api.ownsBody && ctx.api.ownsBody(ctx.combatant,p.owner))) continue;
+      const vv = p.vx*p.vx + p.vy*p.vy;
+      if (!(vv > 1)) {
+        if (dist(self.x,self.y,p.x,p.y) <= radius) {
+          return { shouldCast:true, score:.92, reason:'firearm-projectile-in-field', retryAfter:.12 };
+        }
+        continue;
+      }
+      const rx=self.x-p.x, ry=self.y-p.y;
+      const t=(rx*p.vx + ry*p.vy)/vv;
+      if (t < 0 || t > liveFor) continue;
+      const qx=p.x+p.vx*t, qy=p.y+p.vy*t;
+      if (dist(self.x,self.y,qx,qy) <= radius) {
+        return { shouldCast:true, score:.96, reason:'incoming-firearm-projectile', retryAfter:.12 };
+      }
+    }
+
+    return { shouldCast:false, score:0, reason:'no-field-target', retryAfter:.35 };
+  }
+
   EXECUTORS['magnet.acquisition'] = {
     canCast(ctx) { const m = MAGNET(); return !!(m && m.canCast(ctx, 'a1')); },
+    aiEvaluate(ctx) { return magnetAiDecision(ctx, 'a1'); },
     cast(ctx) {
       const m = MAGNET();
       const ok = !!(m && m.castA1(ctx));
@@ -378,6 +449,7 @@
 
   EXECUTORS['magnet.repulsion_field'] = {
     canCast(ctx) { const m = MAGNET(); return !!(m && m.canCast(ctx, 'a2')); },
+    aiEvaluate(ctx) { return magnetAiDecision(ctx, 'a2'); },
     cast(ctx) {
       const m = MAGNET();
       const ok = !!(m && m.castA2(ctx));
