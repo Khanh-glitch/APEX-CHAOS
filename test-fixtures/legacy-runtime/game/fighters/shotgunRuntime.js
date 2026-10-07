@@ -940,19 +940,28 @@
     const preview=document.createElement('canvas');preview.className='f-preview';preview.width=140;preview.height=96;preview.setAttribute('aria-label','SHOTGUN battle visual preview');
     card.append(name,preview);card.onclick=()=>selectFighter(ft,card);grid.appendChild(card);drawRosterPreview(preview,ft,1001);
   }
-  const previousPopulateRoster=populateRoster;
-  populateRoster=function(){ const result=previousPopulateRoster(); appendShotgunCard(); return result; };
-  const previousSyncSelected=syncSelectedFighterVfx;
-  syncSelectedFighterVfx=function() {
-    const result=previousSyncSelected();
-    [[1,p1Selection],[2,p2Selection]].forEach(([player,fighter])=>{
-      if (fighter?.name!=='SHOTGUN') return;
-      const image=document.getElementById(`p${player}-fighter-vfx`);if(!image)return;
-      const slot=image.closest('.picked-fighter-slot');if(slot)slot.dataset.fighter='SHOTGUN';
-      image.src=FILES.picked;image.classList.add('has-fighter');image.alt=`Player ${player}: SHOTGUN`;
-    });
-    return result;
-  };
+  // Current product cutover retired the legacy roster/pick globals. Keep this
+  // fixture loadable against current-only apexEngine.js without recreating
+  // retired product APIs; historical harnesses still receive the old patches.
+  const hasLegacyPicker = typeof populateRoster === 'function'
+    && typeof syncSelectedFighterVfx === 'function'
+    && typeof selectFighter === 'function'
+    && typeof drawRosterPreview === 'function';
+  if (hasLegacyPicker) {
+    const previousPopulateRoster=populateRoster;
+    populateRoster=function(){ const result=previousPopulateRoster(); appendShotgunCard(); return result; };
+    const previousSyncSelected=syncSelectedFighterVfx;
+    syncSelectedFighterVfx=function() {
+      const result=previousSyncSelected();
+      [[1,p1Selection],[2,p2Selection]].forEach(([player,fighter])=>{
+        if (fighter?.name!=='SHOTGUN') return;
+        const image=document.getElementById(`p${player}-fighter-vfx`);if(!image)return;
+        const slot=image.closest('.picked-fighter-slot');if(slot)slot.dataset.fighter='SHOTGUN';
+        image.src=FILES.picked;image.classList.add('has-fighter');image.alt=`Player ${player}: SHOTGUN`;
+      });
+      return result;
+    };
+  }
 
   function soloFire(st,p,forceDouble=false) {
     p.data.shotgun ||= {shells:6,reload:0,hook:1,counter:1,rngState:(0x51f15e5d^(p.side*2654435761))>>>0}; const s=p.data.shotgun;
@@ -1044,6 +1053,6 @@
   window.APEX_SHOTGUN={constants:C,files:FILES,audioFiles:AUDIO_FILES,images,audio,audioPools,vfx,state,ShotgunType,rageChance,validHookPath,resolveBatch,fireCycle,counterBlast,startCooling,playShotgunSound,soloFire,soloHook,soloCounter,soloAdvanceMotion,drawSolo,updateVfx,drawVfx,selfTest};
   window.FighterTypes=FighterTypes;window.apexFighterTypes=FighterTypes;
   Object.assign(window.apexReactBridge||{},{startSpecificMatch,goToMenu});
-  if(document.getElementById('roster-grid')&&!document.getElementById('select-screen')?.classList.contains('hidden'))appendShotgunCard();
+  if(hasLegacyPicker&&document.getElementById('roster-grid')&&!document.getElementById('select-screen')?.classList.contains('hidden'))appendShotgunCard();
   console.info('[Apex Chaos] SHOTGUN champion integrated',selfTest());
 })();
