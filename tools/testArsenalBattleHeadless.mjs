@@ -2280,6 +2280,77 @@ gate('r59-mirror-human-whiff-remains-legal',
   && report.r59MirrorA1BotDecision.human.whiff===true,
   report.r59MirrorA1BotDecision.human);
 
+// R59 D9 MIRROR A2 — Exchange is a position trade, so BOT compares real
+// consequences at the authored SNAP edge instead of using a distance trigger.
+report.r59MirrorA2Position = run(`
+  const HR=window.APEX_HERO_REWORK,W=window.APEX_ARSENAL.weaponApi;
+  const prevProfile=window.__apexArsenalBattleProfile;
+  const startBot=()=>{
+    window.__apexArsenalBattleProfile='BOT';
+    window.__apexArsenalTestStartMatch('ROBOT','MIRROR');
+    window.__apexArsenalBattleProfile=prevProfile;
+    cancelAnimationFrame(reqId);reqId=0;
+    __APEX_TEST.holdSpawns();projectiles.length=0;
+    fighters[0].baseSpeed=fighters[1].baseSpeed=0;
+    if(fighters[0].data)fighters[0].data.__hrHoldBody=true;
+    if(fighters[1].data)fighters[1].data.__hrHoldBody=true;
+    const p2=HR.byCombatant(fighters[1]);
+    HR.abilityController(p2).setCooldown('A1',999);
+    return p2;
+  };
+
+  let p2=startBot();
+  fighters[0].x=300;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
+  let mark=HR.AIL.bus.ring.length;
+  for(let i=0;i<180;i++)APEX_ARSENAL.step(1/60);
+  const neutral={a2:p2.telemetry.bySkill.A2||0,
+    decisions:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='MIRROR'&&e.payload.slot==='A2')
+      .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
+
+  p2=startBot();
+  fighters[0].x=300;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
+  projectiles.push({type:'aq_bullet',aq:true,owner:fighters[0],weapon:'PISTOL',
+    x:650,y:500,px:650,py:500,vx:80,vy:0,radius:4,life:4,maxLife:4,color:'#fff'});
+  mark=HR.AIL.bus.ring.length;
+  for(let i=0;i<90;i++)APEX_ARSENAL.step(1/60);
+  const projectileEscape={a2:p2.telemetry.bySkill.A2||0,
+    decisions:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='MIRROR'&&e.payload.slot==='A2')
+      .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
+
+  p2=startBot();
+  fighters[0].x=400;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
+  W.equip(fighters[0],'PISTOL');
+  __APEX_TEST.pushSlot({x:400,y:500,phase:'REVEALED',kind:'WEAPON',weaponId:'SHOTGUN',revealedFor:0});
+  mark=HR.AIL.bus.ring.length;
+  for(let i=0;i<180;i++)APEX_ARSENAL.step(1/60);
+  const pickupSwap={a2:p2.telemetry.bySkill.A2||0,
+    decisions:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='MIRROR'&&e.payload.slot==='A2')
+      .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
+
+  window.__apexArsenalTestStartMatch('MIRROR','ROBOT');
+  cancelAnimationFrame(reqId);reqId=0;__APEX_TEST.holdSpawns();projectiles.length=0;
+  const humanCt=HR.byCombatant(fighters[0]);
+  HR.abilityController(humanCt).setCooldown('A1',999);
+  const human=HR.pressAbility(fighters[0],'A2',{source:'r59-human-exchange-proof'});
+
+  return {neutral,projectileEscape,pickupSwap,human:{ok:human.ok,a2:humanCt.telemetry.bySkill.A2||0}};
+`);
+gate('r59-mirror-a2-holds-without-position-upgrade',
+  report.r59MirrorA2Position.neutral.a2===0
+  && report.r59MirrorA2Position.neutral.decisions.some(e=>e.type==='AICastReject'&&e.reason==='no-position-upgrade'),
+  report.r59MirrorA2Position.neutral);
+gate('r59-mirror-a2-escapes-authored-window-projectile-threat',
+  report.r59MirrorA2Position.projectileEscape.a2>=1
+  && report.r59MirrorA2Position.projectileEscape.decisions.some(e=>e.type==='AICastSelect'&&e.reason==='escape-incoming-projectile'),
+  report.r59MirrorA2Position.projectileEscape);
+gate('r59-mirror-a2-swaps-onto-real-pickup-touch-zone',
+  report.r59MirrorA2Position.pickupSwap.a2>=1
+  && report.r59MirrorA2Position.pickupSwap.decisions.some(e=>e.type==='AICastSelect'&&e.reason==='swap-onto-pickup'),
+  report.r59MirrorA2Position.pickupSwap);
+gate('r59-mirror-human-a2-remains-manual-legal',
+  report.r59MirrorA2Position.human.ok===true&&report.r59MirrorA2Position.human.a2>=1,
+  report.r59MirrorA2Position.human);
+
 report.postCText = run(`
   const src = [drawBackground.toString(), (window.APEX_ARSENAL_SPAWN.drawSlots||function(){}).toString()].join('\\n');
   return {

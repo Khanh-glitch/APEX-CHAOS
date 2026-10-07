@@ -1338,12 +1338,99 @@
     ctx.api.note('mirror.arsenal', 'copy-expired', { weapon: cp.weaponId });
   }
 
+  function mirrorA2PositionDecision(ctx) {
+    if (mirrorBusy(ctx)) return { shouldCast:false, score:0, reason:'mirror-action-busy', retryAfter:.2 };
+    const self=ctx.combatant&&ctx.combatant.anchor;
+    const enemy=ctx.api.enemyOf(ctx.combatant);
+    const foe=enemy&&enemy.anchor;
+    if (!self||!foe||self.hp<=0||foe.hp<=0) {
+      return { shouldCast:false, score:0, reason:'no-live-exchange-target', retryAfter:.3 };
+    }
+
+    // Evaluate where both bodies are expected to be at the AUTHORED SNAP edge,
+    // not where they happened to stand when K was considered.
+    const snapAt=MIRROR_A2TS*MIRROR_A2_SNAP_U;
+    const endAt=MIRROR_A2TS*MIRROR_A2_END_U;
+    const S=ctx.api.gameSize||1000;
+    const project=(b)=>{
+      const v=b.__hrVel||{x:0,y:0},r=Number(b.radius)||0;
+      return {
+        x:Math.max(r,Math.min(S-r,b.x+(Number(v.x)||0)*snapAt)),
+        y:Math.max(r,Math.min(S-r,b.y+(Number(v.y)||0)*snapAt)),
+      };
+    };
+    const here=project(self), there=project(foe);
+
+    // Position threat uses the same bullet collision radius scale as the live
+    // projectile pass and only the remaining authored Exchange action window.
+    const CFG=globalScope.APEX_ARSENAL_CONFIG||{};
+    const hitScale=Number(CFG.BULLET_HIT_RADIUS_SCALE)||.78;
+    const projectileThreatAt=(pos)=>{
+      for (const p of (ctx.api.liveProjectiles?ctx.api.liveProjectiles():[])) {
+        if (!p||p.life===0||!Number.isFinite(p.x)||!Number.isFinite(p.y)
+            ||!Number.isFinite(p.vx)||!Number.isFinite(p.vy)) continue;
+        const ownerCt=ctx.api.combatantOfBody?ctx.api.combatantOfBody(p.owner):null;
+        if (ownerCt===ctx.combatant||p.owner===self
+            ||(ctx.api.ownsBody&&ctx.api.ownsBody(ctx.combatant,p.owner))) continue;
+        const vv=p.vx*p.vx+p.vy*p.vy;
+        const rr=(Number(self.radius)||0)*hitScale+(Number(p.radius)||0);
+        if (!(vv>1)) {
+          if (dist(pos.x,pos.y,p.x,p.y)<=rr) return true;
+          continue;
+        }
+        const rx=pos.x-p.x,ry=pos.y-p.y;
+        const t=(rx*p.vx+ry*p.vy)/vv;
+        if (t<snapAt||t>endAt) continue;
+        const qx=p.x+p.vx*t,qy=p.y+p.vy*t;
+        if (dist(pos.x,pos.y,qx,qy)<=rr) return true;
+      }
+      return false;
+    };
+
+    const FR=globalScope.APEX_FROST;
+    const onFrost=(pos)=>!!(FR&&FR.isSurfaceAt&&FR.isSurfaceAt(pos.x,pos.y));
+    const ownHeld=ctx.api.heldWeapon?ctx.api.heldWeapon(ctx.combatant):null;
+    const touchR=(Number(self.radius)||0)*.6+(Number(CFG.PICKUP_RADIUS)||42)+(Number(CFG.PICKUP_TOUCH_BONUS)||30);
+    const valuablePickupAt=(pos)=>{
+      const state=globalScope.APEX_ARSENAL&&globalScope.APEX_ARSENAL.state;
+      for (const slot of (state&&Array.isArray(state.slots)?state.slots:[])) {
+        if (!slot||slot.phase!=='REVEALED'||dist(pos.x,pos.y,slot.x,slot.y)>touchR) continue;
+        if (slot.kind==='HEAL') {
+          if (self.hp<(self.maxHp||self.hp)-1) return true;
+          continue;
+        }
+        if (!ownHeld) return true;
+      }
+      return false;
+    };
+
+    const hereThreat=projectileThreatAt(here), thereThreat=projectileThreatAt(there);
+    const hereIce=onFrost(here), thereIce=onFrost(there);
+    const herePickup=valuablePickupAt(here), therePickup=valuablePickupAt(there);
+    let score=0,reason='no-position-upgrade',bestGain=0;
+    const gain=(v,r)=>{
+      score+=v;
+      if (v>bestGain){bestGain=v;reason=r;}
+    };
+    if (hereThreat&&!thereThreat) gain(.86,'escape-incoming-projectile');
+    else if (!hereThreat&&thereThreat) score-=.86;
+    if (hereIce&&!thereIce) gain(.58,'escape-frost-surface');
+    else if (!hereIce&&thereIce) score-=.58;
+    if (!herePickup&&therePickup) gain(.72,'swap-onto-pickup');
+    else if (herePickup&&!therePickup) score-=.46;
+
+    if (score>=.55) return { shouldCast:true, score:Math.min(1,score), reason, retryAfter:.18 };
+    return { shouldCast:false, score:Math.max(0,score),
+      reason:score<0?'swap-position-worse':'no-position-upgrade', retryAfter:.3 };
+  }
+
   EXECUTORS['mirror.exchange'] = {
     canCast(ctx) {
       if (mirrorBusy(ctx)) return false;
       const enemy = ctx.api.enemyOf(ctx.combatant);
       return !!(enemy && enemy.anchor && enemy.anchor.hp > 0);
     },
+    aiEvaluate(ctx) { return mirrorA2PositionDecision(ctx); },
     cast(ctx) {
       if (!this.canCast(ctx)) return false;
       const a = mirrorBegin(ctx, 'A2');
