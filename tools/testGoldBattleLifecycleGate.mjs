@@ -36,10 +36,11 @@ check('battle HUD seam is cleared on mount/unmount',
 check('battle bridge owns a monotonic deferred-launch session token',
   /let battleSessionToken = 0;/.test(bridge)
   && /const sessionToken = \+\+battleSessionToken;/.test(bridge));
-check('deferred battle launch rechecks token + mount state after await',
-  /const loaded = await ensureDeferredRuntimes\('arsenalProduct'\);/.test(bridge)
-  && /sessionToken !== battleSessionToken/.test(bridge)
-  && /!hudMounted \|\| !battleLiveRunning/.test(bridge));
+check('selected battle-runtime launch rechecks token + mount state after await',
+  /function ensureSelectedBattleRuntimes\(heroIds\)/.test(bridge)
+  && /return ensureDeferredRuntimes\('arsenalProduct'\)/.test(bridge)
+  && /const loaded = await ensureSelectedBattleRuntimes\(\[p1Shell, p2Shell\]\);/.test(bridge)
+  && /!loaded \|\| sessionToken !== battleSessionToken \|\| !hudMounted \|\| !battleLiveRunning/.test(bridge));
 check('exit and unmount invalidate deferred battle launches',
   (bridge.match(/battleSessionToken \+= 1;/g) || []).length >= 2);
 
@@ -96,9 +97,9 @@ check('Gold battle relocates ONLY the gameplay canvas, never the legacy game-wra
   && !/arena\.appendChild\(wrap\)/.test(bridge)
   && /Move ONLY the 1000×1000 gameplay canvas/.test(bridge));
 
-check('legacy product menu/select suppression runs before deferred battle loading and again before live paint',
+check('legacy engine HUD suppression runs before selected-runtime loading and again before live paint',
   /function hideLegacyProductScreens\(\)/.test(bridge)
-  && bridge.indexOf('hideLegacyProductScreens();') < bridge.indexOf("await ensureDeferredRuntimes('arsenalProduct')")
+  && bridge.indexOf('hideLegacyProductScreens();') < bridge.indexOf('await ensureSelectedBattleRuntimes([p1Shell, p2Shell])')
   && (bridge.match(/hideLegacyProductScreens\(\);/g) || []).length >= 3);
 check('legacy product screens are deleted from the shipped surface, not merely suppressed',
   !/id="(menu|select)-screen"/.test(read('index.html'))
@@ -125,8 +126,9 @@ check('Gold shell awaits production READY before battle-hud-open',
   && /if\(liveReady!==true\)/.test(shell)
   && shell.indexOf('const liveReady=await setBattleLive();') < shell.indexOf("document.body.classList.add('battle-hud-open')"));
 
-check('battle handoff messages are preview-only after production becomes live',
-  /if\(!battleHudConfig\|\|battleHudConfig\.live===true\|\|!battleHudFrame\?\.contentWindow\)return;/.test(shell));
+check('same-document battle handoff messages are preview-only after production becomes live',
+  /if\(!battleHudConfig\|\|battleHudConfig\.live===true\|\|!window\.APEX_GOLD_HUD\)return;/.test(shell)
+  && !/battleHudFrame\?\.contentWindow/.test(shell));
 
 const liveBlock = shell.match(/async function setBattleLive\(\)\{[\s\S]*?\n  \}/);
 check('production READY frame cannot be overwritten by a later donor handoff',
@@ -188,9 +190,11 @@ check('App installs exactly ONE music lifecycle (no legacy mirror)',
   && !/addEventListener\('blur'/.test(app)
   && !/addEventListener\('focus'/.test(app)
   && /window\.apexProductMusic = musicAuthority;/.test(app));
-const authorityCompat = app.match(/const musicAuthority = music \? music\.api : null;[\s\S]*?const launchProductSurface = /);
+const authorityCompat = app.match(/const stopMenuMusic = \(\) => \{[\s\S]*?const launchProductSurface = /);
 check('the authority-backed compatibility wrappers never seek currentTime=0',
-  !!authorityCompat && !/currentTime\s*=\s*0/.test(authorityCompat[0])
+  !!authorityCompat
+  && /window\.apexProductMusic/.test(authorityCompat[0])
+  && !/currentTime\s*=\s*0/.test(authorityCompat[0])
   && !/currentTime\s*=\s*0/.test(app));
 
 // R52 fewer forced steps: a backdrop tap leaves the Free Battle step, but only
