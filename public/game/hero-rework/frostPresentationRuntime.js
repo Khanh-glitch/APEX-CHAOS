@@ -71,6 +71,7 @@ const HR = g.APEX_HERO_REWORK || null;
 const api = g.APEX_FROST_PRESENTATION = { ready: false };
 let warned = 0;
 let sharedArt = null; // { mips, shadow } once the first engine load resolves
+let sharedArtPromise = null; // one preload/build transaction for every Frost instance
 function warnOnce(e) {
   if (warned < 6) { warned++; try { console.warn('[frost-presentation]', e); } catch (_) {} }
 }
@@ -343,6 +344,44 @@ api.ambienceState = function () {
   return { level: +ambience.level.toFixed(4), target: +ambience.target.toFixed(4), activeIce: ambience.activeIce };
 };
 
+// R59 battle-readiness contract. Frost Gold's high-quality mip chain used to
+// start only when the first live combatant state was created, putting image
+// downsampling + shadow preparation on the battle-entry frame. Build it once
+// while the battle transition is holding, then share the immutable art cache
+// with every live/rematch Frost engine. No mip level or visual layer is removed.
+function prepareSharedArt() {
+  if (sharedArt) return Promise.resolve(sharedArt);
+  if (sharedArtPromise) return sharedArtPromise;
+  if (!G || typeof G.FrostEngine !== 'function') {
+    return Promise.reject(new Error('Frost Gold engine unavailable during presentation warmup'));
+  }
+  const loader = new G.FrostEngine();
+  if (typeof loader.load !== 'function') {
+    return Promise.reject(new Error('Frost Gold art loader unavailable during presentation warmup'));
+  }
+  sharedArtPromise = Promise.resolve(loader.load()).then(() => {
+    if (!loader.ready || !loader.mips || !Object.keys(loader.mips).length) {
+      throw new Error('Frost Gold art warmup completed without mip assets');
+    }
+    sharedArt = { mips: loader.mips, shadow: loader.shadowCanvas };
+    for (const [, state] of liveStates) {
+      state.engine.mips = sharedArt.mips;
+      state.engine.shadowCanvas = sharedArt.shadow;
+      try { state.engine.prepareSurfaces(state.engine.iceCanvas.width, state.engine.iceCanvas.height); } catch (err) { warnOnce(err); }
+      state.engine.ready = true;
+    }
+    api.ready = true;
+    return sharedArt;
+  }).catch((err) => {
+    api.error = String(err);
+    throw err;
+  });
+  return sharedArtPromise;
+}
+api.prepareArt = function prepareArt() {
+  return prepareSharedArt().then(() => true);
+};
+
 function frostCfg(ct) {
   const sk = (ct && ct.skills) || {};
   return {
@@ -365,32 +404,23 @@ function createState(ct) {
     const host = (g.ctx && g.ctx.canvas) || g.canvas || (g.document && g.document.getElementById && g.document.getElementById('gameCanvas'));
     if (host && typeof e.prepareSurfaces === 'function') e.prepareSurfaces(host.width, host.height);
   } catch (err) { warnOnce(err); }
-  // Art load is per-engine with a module-shared promise (first engine wins),
-  // but mips live ON the engine: every later engine backfills from the
-  // shared art cache so rematches/mirrors render (mips are read-only after
-  // load, safe to share).
+  // Consume the one shared art cache. If direct-entry bypassed the Gold
+  // transition, start the same idempotent warm contract here; live state never
+  // invents a second loader or a second mip chain.
   if (sharedArt) {
     e.mips = sharedArt.mips;
     e.shadowCanvas = sharedArt.shadow;
     try { e.prepareSurfaces(e.iceCanvas.width, e.iceCanvas.height); } catch (err) { warnOnce(err); }
     e.ready = true;
     api.ready = true;
-  } else if (!createState.loadStarted && typeof e.load === 'function') {
-    createState.loadStarted = true;
-    try {
-      e.load().then(() => {
-        sharedArt = { mips: e.mips, shadow: e.shadowCanvas };
-        for (const [, other] of liveStates) {
-          if (other.engine !== e) {
-            other.engine.mips = e.mips;
-            other.engine.shadowCanvas = e.shadowCanvas;
-            try { other.engine.prepareSurfaces(other.engine.iceCanvas.width, other.engine.iceCanvas.height); } catch (prepErr) { warnOnce(prepErr); }
-            other.engine.ready = true;
-          }
-        }
-        api.ready = true;
-      }).catch((err) => { api.error = String(err); });
-    } catch (err) { api.error = String(err); }
+  } else {
+    prepareSharedArt().then((art) => {
+      e.mips = art.mips;
+      e.shadowCanvas = art.shadow;
+      try { e.prepareSurfaces(e.iceCanvas.width, e.iceCanvas.height); } catch (prepErr) { warnOnce(prepErr); }
+      e.ready = true;
+      api.ready = true;
+    }).catch((err) => { api.error = String(err); });
   }
   const S = {
     ct, fighter: f, engine: e, cfg,
