@@ -1,18 +1,16 @@
 #!/usr/bin/env node
 // Checkpoint 1 truth probe — renderer readiness + remount lifecycle contracts.
 //
-// This is intentionally a RED-ORACLE probe for the exact CP1 baseline.
-// It reads shipping source only; it never patches runtime behavior.
-//
-// A failure here means the destination readiness contract can declare battle
-// READY while a hero's canonical renderer is still asynchronously loading, or
-// a remounted donor leaves a global listener behind.
+// RED on the exact d032 baseline; GREEN only when the product owns explicit
+// selected-hero renderer readiness and donor-global teardown.
 
 import fs from 'node:fs';
 
 const read = (p) => fs.readFileSync(p, 'utf8');
 const bridge = read('public/game/gold/goldProductBridge.js');
 const hud = read('public/gold/battle-hud.html');
+const generator = read('tools/buildGoldCutover.mjs');
+const hunterPresentation = read('public/game/hero-rework/hunterPresentationRuntime.js');
 const frostGold = read('public/game/hero-rework/frostGoldV1.js');
 const frostPresentation = read('public/game/hero-rework/frostPresentationRuntime.js');
 const magnetGold = read('public/game/hero-rework/magnetGoldV1.js');
@@ -31,98 +29,75 @@ function gate(name, ok, detail = '') {
 }
 
 const prepare = bridge.match(/BRIDGE\.prepareSurface = async function prepareSurface[\s\S]*?\n  \};/)?.[0] || '';
+const onBattleLive = bridge.match(/BRIDGE\.onBattleLive = async function onBattleLive[\s\S]*?\n  \};/)?.[0] || '';
 const unmount = bridge.match(/BRIDGE\.unmountBattleHud = function unmountBattleHud[\s\S]*?\n  \};/)?.[0] || '';
-const mount = bridge.match(/BRIDGE\.mountBattleHud = function mountBattleHud[\s\S]*?\n  \};/)?.[0] || '';
+const rendererHelper = bridge.match(/async function prepareMatchHeroRenderers[\s\S]*?\n  \}/)?.[0] || '';
 
-// Evidence that runtime evaluation and renderer readiness are distinct events.
 const magnetAsyncInternal =
-  /let ready=false,loadError=null;/.test(magnetGold)
-  && /async function loadAssets\(\)/.test(magnetGold)
-  && /await Promise\.all\(jobs\);ready=true;/.test(magnetGold)
-  && /\nloadAssets\(\);/.test(magnetGold)
+  /let ready=false,loadError=null,loadPromise=null;/.test(magnetGold)
+  && /function whenReady\(\)/.test(magnetGold)
+  && /await Promise\.all\(jobs\)/.test(magnetGold)
   && /if\(!ready\|\|!ctx\|\|!combatant/.test(magnetGold);
 
 const frostAsyncInternal =
   /this\.ready = false;/.test(frostGold)
   && /async load\(\)/.test(frostGold)
-  && /await Promise\.all\(LAYERS\.map/.test(frostGold)
-  && /this\.ready = true;/.test(frostGold)
-  && /const api = g\.APEX_FROST_PRESENTATION = \{ ready: false \};/.test(frostPresentation)
-  && /e\.load\(\)\.then\(\(\) =>/.test(frostPresentation);
+  && /let readyPromise = null;/.test(frostPresentation)
+  && /api\.whenReady = function whenReady\(\)/.test(frostPresentation);
 
-report.observations.magnetInternalAsyncRenderer = magnetAsyncInternal;
-report.observations.frostInternalAsyncRenderer = frostAsyncInternal;
+const hunterAsyncInternal =
+  /const readyPromise=G\.load\(\)/.test(hunterPresentation)
+  && /api\.whenReady=\(\)=>/.test(hunterPresentation)
+  && /if\(api\.ready&&this\.hp>0\)/.test(hunterPresentation);
 
-gate('Magnet canonical renderer has an asynchronous post-evaluation READY state',
-  magnetAsyncInternal,
-  'loadAssets() is fire-and-forget; draw() refuses canonical rendering until ready=true');
+gate('Hunter exposes canonical presentation READY', hunterAsyncInternal);
+gate('Frost exposes pre-match canonical presentation READY', frostAsyncInternal);
+gate('Magnet exposes canonical Gold renderer READY', magnetAsyncInternal);
 
-gate('Frost canonical renderer has an asynchronous post-evaluation READY state',
-  frostAsyncInternal,
-  'FrostEngine.load()/presentation ready resolve after runtime script evaluation');
+gate('Selected-only renderer barrier covers Hunter/Frost/Magnet',
+  /ids\.has\('hunter'\)/.test(rendererHelper)
+  && /ids\.has\('frost'\).*ids\.has\('ice'\)/s.test(rendererHelper)
+  && /ids\.has\('magnet'\)/.test(rendererHelper)
+  && /APEX_HUNTER_PRESENTATION/.test(rendererHelper)
+  && /APEX_FROST_PRESENTATION/.test(rendererHelper)
+  && /APEX_MAGNET_GOLD/.test(rendererHelper));
 
-// The actual product barrier must await the renderer owner, not merely fetch
-// the same URLs through a parallel asset runtime.
-const bridgeWaitsMagnet =
-  /APEX_MAGNET_GOLD/.test(prepare)
-  && /(ready|inspect|whenReady|awaitReady|loadAssets)/.test(prepare);
-const bridgeWaitsFrost =
-  /APEX_FROST_PRESENTATION|APEX_FROST_GOLD/.test(prepare)
-  && /(ready|inspect|whenReady|awaitReady|load\(\))/.test(prepare);
+gate('Battle surface HOLD waits for selected renderer READY',
+  /ensureDeferredRuntimes\('arsenalProduct'\)/.test(prepare)
+  && /prepareMatchHeroRenderers\(\.\.\.heroIds\)/.test(prepare)
+  && /warmMatchHeroAudio\(\.\.\.heroIds\)/.test(prepare));
 
-report.observations.prepareSurfaceAwaitsDeferredRuntime =
-  /ensureDeferredRuntimes\('arsenalProduct'\)/.test(prepare);
-report.observations.prepareSurfaceAwaitsProductAssetRuntime =
-  /assets\.prepare\('battle'/.test(prepare);
-report.observations.prepareSurfaceAwaitsHeroAudio =
-  /warmMatchHeroAudio/.test(prepare);
-report.observations.prepareSurfaceWaitsMagnetCanonicalRenderer = bridgeWaitsMagnet;
-report.observations.prepareSurfaceWaitsFrostCanonicalRenderer = bridgeWaitsFrost;
+gate('Direct battle API waits before publishing selection/start state',
+  /prepareMatchHeroRenderers\(p1Shell, p2Shell\)/.test(onBattleLive)
+  && onBattleLive.indexOf('prepareMatchHeroRenderers(p1Shell, p2Shell)')
+     < onBattleLive.indexOf('window.__apexArsenalSelectionMode'));
 
-// These are expected to FAIL on d032 if the readiness hole exists.
-gate('Battle READY explicitly waits for Magnet canonical renderer READY',
-  bridgeWaitsMagnet,
-  'productAssetRuntime decode is not the same promise as Magnet Gold Image objects');
+gate('Magnet presentation falls back until renderer readiness',
+  /!GOLD\.ready\) return previous\.call\(this, ctx\);/.test(magnetPresentation));
 
-gate('Battle READY explicitly waits for Frost canonical renderer READY',
-  bridgeWaitsFrost,
-  'runtime evaluation / generic asset decode does not await Frost presentation ready');
+gate('Battle bridge calls donor dispose before removing donor DOM',
+  /APEX_GOLD_HUD\?\.dispose\?\.\(\)/.test(unmount)
+  && unmount.indexOf('APEX_GOLD_HUD?.dispose?.()') < unmount.indexOf("hudHost.textContent = ''"));
 
-// Verify why the absence is user-visible rather than merely diagnostic.
-gate('Magnet presentation falls back until Gold renderer is ready',
-  /if \(!ct \|\| !\(this\.hp > 0\) \|\| !GOLD\.ready\) return previous\.call\(this, ctx\);/.test(magnetPresentation),
-  'first visible frames can use the previous renderer');
-gate('Frost presentation falls through until presentation ready',
-  /if \(isFrostBody\(this\) && this\.hp > 0 && api\.ready\)/.test(frostPresentation)
-  && /else \{[\s\S]*?prevDraw\.call\(this, ctx\)/.test(frostPresentation),
-  'first visible frames can use the previous renderer');
+gate('Donor owns removable resize observer/listener + RAF',
+  /const __apexResizeObserver=new ResizeObserver\(resizeCanvas\)/.test(hud)
+  && /removeEventListener\('resize',applyViewport\)/.test(hud)
+  && /__apexHudFrame=requestAnimationFrame\(frame\)/.test(hud)
+  && /cancelAnimationFrame\(__apexHudFrame\)/.test(hud));
 
-// Remount lifecycle: mount executes the donor inline IIFE every battle.
-// The donor installs an anonymous global message listener every execution.
-// If unmount does not remove it, the old donor closure remains retained by
-// window. This is a real lifecycle leak even if most stale callbacks happen to
-// become no-ops after the current donor applies the requested mode first.
-const donorGlobalMessageListener =
-  /window\.addEventListener\('message',e=>\{/.test(hud);
-const donorExecutedEachMount =
-  /inline\.join\('\n;\n'\)/.test(mount)
-  && /host\.appendChild\(run\)/.test(mount);
-const unmountRemovesMessageListener =
-  /removeEventListener\('message'/.test(unmount);
+gate('Donor handoff message listener is named and disposable',
+  /const onBattleHudMessage=e=>\{/.test(hud)
+  && /addEventListener\('message',onBattleHudMessage\)/.test(hud)
+  && /removeEventListener\('message',onBattleHudMessage\)/.test(hud));
 
-report.observations.donorGlobalMessageListener = donorGlobalMessageListener;
-report.observations.donorExecutedEachMount = donorExecutedEachMount;
-report.observations.unmountRemovesMessageListener = unmountRemovesMessageListener;
+gate('Generator carries the same disposal laws',
+  /HUD-H32/.test(generator) && /HUD-H33/.test(generator)
+  && /seam\.dispose=function dispose/.test(generator)
+  && /cancelAnimationFrame\(__apexHudFrame\)/.test(generator));
 
-gate('Battle HUD unmount releases donor global message listener',
-  !donorGlobalMessageListener || !donorExecutedEachMount || unmountRemovesMessageListener,
-  'anonymous window message listener is reinstalled by every donor mount and is not released');
-
-// Guardrail: do not misdiagnose the already-fixed lexical-remount problem.
-gate('Donor scripts are isolated in a fresh IIFE per mount',
-  /function apexGoldHudMount\(\)/.test(mount)
-  && /inline\.join\('\n;\n'\)/.test(mount),
-  'rules out the old top-level const redeclaration theory');
+gate('Donor scripts remain isolated in a fresh IIFE per mount',
+  /function apexGoldHudMount\(\)/.test(bridge)
+  && /inline\.join\('\n;\n'\)/.test(bridge));
 
 console.log(JSON.stringify(report, null, 2));
 if (report.failures.length) {
