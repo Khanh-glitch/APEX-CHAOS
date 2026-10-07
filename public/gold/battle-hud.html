@@ -548,6 +548,19 @@ kbd{font:inherit}
 #hud[data-layout="land"][data-mode="2p"] .weapon .wp-mag,
 #hud[data-layout="port"][data-mode="2p"] .weapon .wp-mag{position:absolute;left:0;right:0;bottom:0;height:3px}
 
+/* R59 C1 — Local tablet composition is its own allocation tier.
+   Give weapons real visual mass, keep the arena dominant, and shorten only
+   the HP bar/accent geometry instead of scaling the whole HUD. BOT/1P is
+   deliberately excluded from every selector below. */
+#hud[data-layout="land"][data-size="tablet"][data-mode="2p"]{--sideMin:clamp(236px,22cqw,260px);--localHpW:clamp(320px,36cqw,400px)}
+#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] .side{--wpH:clamp(96px,14cqh,116px)}
+#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] #p1Rail .vr-bar,
+#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] #p1Rail .vr-acc{width:min(100%,var(--localHpW));justify-self:end}
+#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] #p2Rail .vr-bar,
+#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] #p2Rail .vr-acc{width:min(100%,var(--localHpW));justify-self:start}
+#hud[data-layout="port"][data-size="tablet"][data-mode="2p"]{--zoneMin:clamp(198px,18cqh,216px)}
+#hud[data-layout="port"][data-size="tablet"][data-mode="2p"] .side{--wpH:clamp(92px,8.8cqh,112px)}
+
 /* BOT: fit REAL production assets into Gold's EXISTING slots. No skill zoom,
    no row rewrite, no Local geometry. */
 #hud[data-mode="1p"] .wp-ico>.apex-weapon-asset,
