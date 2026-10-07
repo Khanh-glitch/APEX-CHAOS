@@ -2,6 +2,7 @@ import fs from 'node:fs';
 
 const manifest = fs.readFileSync('src/game/runtimeManifest.js','utf8');
 const loader = fs.readFileSync('src/game/runtimeLoader.js','utf8');
+const arsenalConfig = fs.readFileSync('public/game/arsenal/arsenalConfig.js','utf8');
 const bridge = fs.readFileSync('public/game/gold/goldProductBridge.js','utf8');
 const shell = fs.readFileSync('public/gold/shell.html','utf8');
 const generator = fs.readFileSync('tools/buildGoldCutover.mjs','utf8');
@@ -56,7 +57,18 @@ check('Battle runtime load is selected-combatant scoped and awaited',
   bridge.includes('ensureSelectedBattleRuntimes(heroIds).then')
   && bridge.includes("throw new Error('selected battle runtime set did not reach READY')")
   && loader.includes('export function loadBattleGameRuntimes(heroIds)')
+  && loader.includes('window.__apexBattleRuntimeState')
   && manifest.includes('export function arsenalBattleRuntimesFor(heroIds)'));
+check('Match gameplay barrier preserves selected-runtime authority',
+  arsenalConfig.includes("if (destination === 'match')")
+  && arsenalConfig.includes('window.__apexBattleRuntimeState')
+  && arsenalConfig.includes('if (!runtimeTierReady(destination))')
+  && arsenalConfig.includes("await ensure('arsenalProduct')")
+  && arsenalConfig.includes('selected battle runtime set did not finish loading'));
+check('Lab readiness still requires canonical full Arsenal graph',
+  arsenalConfig.includes("if (destination === 'match')")
+  && arsenalConfig.includes('// Lab/diagnostics keep the canonical full graph requirement.')
+  && arsenalConfig.includes('return fullReady;'));
 check('shell awaits scene preparation before reveal', shell.includes("if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface(next,{heroIds})") && shell.includes("if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('battle',{heroIds})"));
 check('Fighter readiness covers world-stage art', shell.includes("await tr?.prepareElement?.(stage,{verifyImages:false})") && shell.includes("await tr?.prepareElement?.(surfaceRoot)"));
 check('Lucky remains click intent', bridge.includes("surface === 'lucky'") && assetRuntime.includes("'/gold/lucky-draw.html'") && shell.includes("name:'home->lucky'"));

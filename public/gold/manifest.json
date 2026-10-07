@@ -1,7 +1,7 @@
 {
   "generator": "tools/buildGoldCutover.mjs",
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
-  "runtimeRevision": "20261007-r59-e4-selected-hero-runtime",
+  "runtimeRevision": "20261007-r59-e5-selected-match-barrier",
   "files": {
     "assets/gold/apex-chaos-wordmark.png": {
       "bytes": 496066,
@@ -272,8 +272,8 @@
       "sha256": "6e43189bf78a1daa3e7e93f15d32727920b92948bd7aa41fe88a257de7098690"
     },
     "shell.html": {
-      "bytes": 387636,
-      "sha256": "fb4fa5bb94f2efc324a2d562e3ace6e52ca1232c3aa456a79ffebed052bb272f"
+      "bytes": 387638,
+      "sha256": "930441679b54bcc1e987439d25b047c20af8ab3164fc3157a5997afbf087ce20"
     },
     "transition/mechanical-door-v4.gold.js": {
       "bytes": 2666593,

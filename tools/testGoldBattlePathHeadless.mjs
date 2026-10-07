@@ -262,9 +262,11 @@ loadScript('/game/gold/goldProductBridge.js', true);
 // This harness loads every runtime directly — the runtimeLoader group flags
 // the gameplay-ready barrier reads never exist here. Declare the group state
 // only; the real AV image/audio preload still runs for real below.
-win['__apexDeferredRuntimesReady_arsenalProduct'] = true;
+win['__apexDeferredRuntimesReady_arsenalProduct'] = false;
 win['__apexDeferredRuntimesReady_select'] = true;
-win.__apexEnsureDeferredRuntimes = async () => true;
+win.__apexBattleRuntimeState = { key: 'headless-selected', heroIds: ['newbot'], ready: true };
+let fullRuntimeFallbackCalls = 0;
+win.__apexEnsureDeferredRuntimes = async () => { fullRuntimeFallbackCalls += 1; return true; };
 win.__apexEnsureBattleRuntimes = async () => true;
 
 // ------------------------------------------------------------ test plumbing
@@ -377,7 +379,9 @@ async function main() {
   await win.APEX_GOLD.onBattleLive({ mode: 'local', p1: 'newbot', p2: 'newbot' });
   const loadIdx = entryOrder.findIndex((e) => e === 'load:selected:newbot,newbot');
   const startIdx = entryOrder.indexOf('startMatch');
-  gate('battle-live-preloads-selected-hero-runtimes-before-start', loadIdx >= 0 && startIdx > loadIdx, { order: entryOrder.slice() });
+  gate('battle-live-preloads-selected-hero-runtimes-before-start',
+    loadIdx >= 0 && startIdx > loadIdx && fullRuntimeFallbackCalls === 0,
+    { order: entryOrder.slice(), fullRuntimeFallbackCalls });
 
   // 2) the real match started (production truth, not donor state) — the entry
   //    resolves through the real gameplay barrier, so wait for it.

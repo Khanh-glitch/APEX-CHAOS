@@ -230,17 +230,38 @@ export function loadDeferredGameRuntimes(group, { priority = true } = {}) {
 // runtime key dedupes prepareSurface -> onBattleLive and makes rematches add
 // only modules not already evaluated.
 const battleRuntimePromises = new Map();
+const battleRuntimeReadyKeys = new Set();
+function publishBattleRuntimeState(key, heroIds, ready) {
+  window.__apexBattleRuntimeState = {
+    key,
+    heroIds: [...new Set((Array.isArray(heroIds) ? heroIds : []).map((id) => String(id || '').toLowerCase()).filter(Boolean))],
+    ready: ready === true,
+  };
+}
 export function loadBattleGameRuntimes(heroIds) {
   const runtimes = arsenalBattleRuntimesFor(heroIds);
   const key = runtimes.map(([src]) => src).join('\n');
+  if (battleRuntimeReadyKeys.has(key)) {
+    publishBattleRuntimeState(key, heroIds, true);
+    return Promise.resolve(true);
+  }
   if (battleRuntimePromises.has(key)) return battleRuntimePromises.get(key);
+  publishBattleRuntimeState(key, heroIds, false);
   const gate = enqueueGroup(runtimes, { priority: true })
-    .then(() => true)
+    .then(() => {
+      battleRuntimeReadyKeys.add(key);
+      publishBattleRuntimeState(key, heroIds, true);
+      return true;
+    })
     .catch((error) => {
       battleRuntimePromises.delete(key);
+      if (window.__apexBattleRuntimeState?.key === key) publishBattleRuntimeState(key, heroIds, false);
       throw error;
     });
   battleRuntimePromises.set(key, gate);
+  // Audio scoping is a separate optimization seam. Preserve the accepted
+  // arsenalProduct audio warm contract in E5; this change owns runtime
+  // readiness only.
   warmGroupAudioWhenReady('arsenalProduct', gate);
   hintRuntimeSources(runtimes, 'prefetch');
   return gate;

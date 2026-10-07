@@ -1,5 +1,5 @@
 {
-  "revision": "20261007-r59-e4-selected-hero-runtime",
+  "revision": "20261007-r59-e5-selected-match-barrier",
   "files": {
     "public/game/core/apexBattleAudioRuntime.js": "365b70242ad2c06f61ce835b8ef92a51ec540a25df3a6726e79df89980fac7c9",
     "public/game/product/productMusicAuthority.js": "0b687ecc051b0ccabef8e7cf3a4267fa9ad64ad380216e786ed9fb5e7233476e",
@@ -10,7 +10,7 @@
     "public/game/core/apexArsenalProductDrawRecoveryRuntime.js": "b8b515fe710642614a4a1a671fe0da7f2295aaff9e439e10a16ecec6cc953c71",
     "public/game/gold/goldProductBridge.js": "73a24ca85ad6618350f505157d12c2aa4385762fcca41065833833919134474f",
     "public/game/arsenal/arsenalCWeaponSet.generated.js": "4db9cfee2f53bb70ebc1a8c3c21ecff9237177e932d1ef6c778135cee6774688",
-    "public/game/arsenal/arsenalConfig.js": "53c5f287580efed171c7718d6803a56d4812ca051a50cc9857f6f4bc7a359572",
+    "public/game/arsenal/arsenalConfig.js": "8e68bbb44a09a87d95c5c198cfce82ab5a5c5f5001f76a2196590adaccc524c5",
     "public/game/arsenal/arsenalIdentityRuntime.js": "3289fa204d1b2eeab946cc57e43670815f1d934ff803b082134a9541ba94f944",
     "public/game/arsenal/arsenalWeaponRuntime.js": "03a78cd058812f013c6972a9c00ecaf6c3491f4319396678a1014af93f2674bb",
     "public/game/arsenal/arsenalSpawnRuntime.js": "ea1628887a4220eb2f68901498c98add4f2572e541ec309f7c44c24928e07226",

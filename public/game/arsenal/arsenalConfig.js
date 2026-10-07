@@ -427,6 +427,7 @@
       readiness: {
         'hub-ready': !!(window.APEX_ARSENAL_META && document.getElementById('aq-meta-root')),
         'arsenal-full-runtime-ready': !!window['__apexDeferredRuntimesReady_arsenalProduct'],
+        'selected-battle-runtime-ready': !!(window.__apexBattleRuntimeState && window.__apexBattleRuntimeState.ready === true),
         'av-images-ready': !!(AV && AV.imagesSettled && AV.imagesSettled()),
         // CP7: compare against the TOTAL — audioReady() is a count and its
         // truthiness was true after a single decode, reporting the audio
@@ -435,10 +436,19 @@
       },
     };
   };
-  window.apexArsenalBarrierSatisfied = function () {
-    // Warm fast path: the full tier is loaded and images are settled — the
-    // destination may open synchronously (zero added latency on re-entry).
-    return !!(window['__apexDeferredRuntimesReady_arsenalProduct']
+  function runtimeTierReady(destination) {
+    const fullReady = !!window['__apexDeferredRuntimesReady_arsenalProduct'];
+    if (destination === 'match') {
+      const selected = window.__apexBattleRuntimeState;
+      return fullReady || !!(selected && selected.ready === true);
+    }
+    // Lab/diagnostics keep the canonical full graph requirement.
+    return fullReady;
+  }
+  window.apexArsenalBarrierSatisfied = function (destination) {
+    // Warm fast path: the runtime tier required by THIS destination is loaded
+    // and shared Arsenal presentation images are settled.
+    return !!(runtimeTierReady(destination)
       && window.APEX_ARSENAL_AV
       && window.APEX_ARSENAL_AV.imagesSettled
       && window.APEX_ARSENAL_AV.imagesSettled());
@@ -474,7 +484,7 @@
     // returns true so the caller can open the destination in the same task —
     // zero added latency for re-entry. Returns false when the async barrier
     // must be used instead.
-    if (window.apexArsenalBarrierSatisfied()) {
+    if (window.apexArsenalBarrierSatisfied(destination)) {
       const t = window.__apexArsenalTransition;
       t.state = destination === 'lab' ? 'lab-ready' : 'match-ready';
       t.destination = destination;
@@ -488,7 +498,7 @@
     const t = window.__apexArsenalTransition;
     const readyState = destination === 'lab' ? 'lab-ready' : 'match-ready';
     const loadingState = destination === 'lab' ? 'lab-loading' : 'match-loading';
-    if (window.apexArsenalBarrierSatisfied()) {
+    if (window.apexArsenalBarrierSatisfied(destination)) {
       t.state = readyState;
       t.destination = destination;
       t.lastDurationMs = 0;
@@ -503,10 +513,18 @@
     showTransitionBadge(destination);
     t._pending = (async () => {
       try {
-        const ensure = window.__apexEnsureDeferredRuntimes;
-        if (typeof ensure === 'function') await ensure('arsenalProduct');
-        if (!window['__apexDeferredRuntimesReady_arsenalProduct']) {
-          throw new Error('arsenalProduct runtime group did not finish loading');
+        // Public match entry already awaited the exact selected-combatant set
+        // behind the Gold transition. Do not immediately load every other hero.
+        // Lab and compatibility/direct entry still fail open to the canonical
+        // full product graph.
+        if (!runtimeTierReady(destination)) {
+          const ensure = window.__apexEnsureDeferredRuntimes;
+          if (typeof ensure === 'function') await ensure('arsenalProduct');
+        }
+        if (!runtimeTierReady(destination)) {
+          throw new Error(destination === 'match'
+            ? 'selected battle runtime set did not finish loading'
+            : 'arsenalProduct runtime group did not finish loading');
         }
         const AV = window.APEX_ARSENAL_AV;
         if (AV && AV.preload) {
