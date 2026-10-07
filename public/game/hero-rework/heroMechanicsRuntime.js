@@ -65,6 +65,11 @@
       const pick = ctx.api.nearestRevealedPickup(ctx.combatant, { excludeT6: true });
       return !!pick; // no eligible pickup -> fail-cue, cooldown untouched
     },
+    // R59 BOT law: ability availability is not tactical permission.
+    // Stay idle when there is no useful pickup instead of spamming failed A1 attempts.
+    aiCanAttempt(ctx) {
+      return !!ctx.api.nearestRevealedPickup(ctx.combatant, { excludeT6: true });
+    },
     cast(ctx) {
       const pick = ctx.api.nearestRevealedPickup(ctx.combatant, { excludeT6: true });
       if (!pick) return false;
@@ -133,6 +138,39 @@
   };
 
   EXECUTORS['robot.virtual_armor'] = {
+    // R59 BOT law: Virtual Armor responds to a credible threat. It is not a
+    // match-start timer. Human input remains unrestricted.
+    aiCanAttempt(ctx) {
+      const self = ctx.combatant && ctx.combatant.anchor;
+      const enemy = ctx.api.enemyOf(ctx.combatant);
+      const foe = enemy && enemy.anchor;
+      if (!self || !enemy || !foe) return false;
+
+      // Incoming hostile projectile: predict closest approach for the next
+      // 0.9s and spend armor only if its path actually threatens Robot.
+      const bodyThreatRadius = Math.max(95, Number(self.radius || 75) + 55);
+      const projectiles = ctx.api.liveProjectiles ? ctx.api.liveProjectiles() : [];
+      for (const p of projectiles) {
+        if (!p || p.life === 0 || !Number.isFinite(p.x) || !Number.isFinite(p.y)
+            || !Number.isFinite(p.vx) || !Number.isFinite(p.vy)) continue;
+        const ownerCt = ctx.api.combatantOfBody ? ctx.api.combatantOfBody(p.owner) : null;
+        const hostile = ownerCt ? ownerCt === enemy
+          : (p.owner === foe || (ctx.api.ownsBody && ctx.api.ownsBody(enemy, p.owner)));
+        if (!hostile) continue;
+        const vv = p.vx * p.vx + p.vy * p.vy;
+        if (!(vv > 1)) continue;
+        const rx = self.x - p.x, ry = self.y - p.y;
+        const t = (rx * p.vx + ry * p.vy) / vv;
+        if (t < 0 || t > 0.9) continue;
+        const qx = p.x + p.vx * t, qy = p.y + p.vy * t;
+        if (Math.hypot(self.x - qx, self.y - qy) <= bodyThreatRadius) return true;
+      }
+
+      // No projectile yet: an actually armed opponent in fighting range is a
+      // valid anticipatory use. An unarmed opponent is not.
+      const held = ctx.api.heldWeapon ? ctx.api.heldWeapon(enemy) : null;
+      return !!held && dist(self.x, self.y, foe.x, foe.y) <= 480;
+    },
     cast(ctx) {
       ctx.store.armorUntil = ctx.clock() + ctx.cfg.duration;
       ctx.store._endEmitted = false;
