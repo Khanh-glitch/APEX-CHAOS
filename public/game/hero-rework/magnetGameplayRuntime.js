@@ -363,10 +363,16 @@
       });
     }
 
-    const entryRadial = (() => {
-      const nx = ex - cx, ny = ey - cy, nd = Math.hypot(nx, ny);
-      return nd > EPS ? (p.vx * nx + p.vy * ny) / nd : 0;
+    // Presentation needs the REAL boundary normal. Previously the capture
+    // event read bestPlan.nx/ny even though the plan never stored them;
+    // undefined -> Gold's Number(...)||0 -> atan2(0,0)=0 made every outer
+    // corridor point horizontally right regardless of projectile origin.
+    const entryNormal = (() => {
+      const dx = ex - cx, dy = ey - cy, d = Math.hypot(dx, dy);
+      return d > EPS ? { nx: dx / d, ny: dy / d } : { nx: 0, ny: 0 };
     })();
+    const entryRadial = p.vx * entryNormal.nx + p.vy * entryNormal.ny;
+    const entryTangential = p.vx * (-entryNormal.ny) + p.vy * entryNormal.nx;
 
     const firstEntry = !ep.entered;
     ep.entered = true;
@@ -379,7 +385,8 @@
         postVx: vx, postVy: vy,
         finalX: x, finalY: y,
         poly, minRadius, peakAccel,
-        entryRadial, insideAtFrameStart: insideNow,
+        nx: entryNormal.nx, ny: entryNormal.ny,
+        entryRadial, entryTangential, insideAtFrameStart: insideNow,
       },
       firstEntry,
       telemetry: {
@@ -468,6 +475,8 @@
           if (report.firstEntry) {
             entries.push({ owner: f.owner, x: report.plan.ex, y: report.plan.ey, t: report.plan.t,
               cx: report.cx, cy: report.cy,
+              nx: report.plan.nx, ny: report.plan.ny,
+              tangential: report.plan.entryTangential,
               radialBefore: report.plan.entryRadial,
               // H-PHYS2: velocity is CONTINUOUS across field entry. There is no
               // radialAfter=0 snap; the field only begins acting here.
@@ -511,6 +520,7 @@
           projectile: p, owner: bestPlan.fieldOwner,
           toi: bestPlan.t, x: bestPlan.ex, y: bestPlan.ey,
           nx: bestPlan.nx, ny: bestPlan.ny,
+          tangential: bestPlan.entryTangential,
           radialBefore: bestPlan.entryRadial,
           minRadius: bestPlan.minRadius,
           peakAccel: bestPlan.peakAccel,
