@@ -336,6 +336,7 @@
   const CRY = () => globalScope.APEX_CRYSTAL;
 
   EXECUTORS['crystal.awakening'] = {
+    aiEvaluate(ctx) { const c = CRY(); return c && c.aiAwakeningOpportunity ? c.aiAwakeningOpportunity(ctx) : { shouldCast:false, score:0, reason:'crystal-runtime-unavailable' }; },
     cast(ctx) { const c = CRY(); return !!(c && c.castAwakening(ctx)); },
     onTick() {},   // driven from the rework projectile pass (APEX_CRYSTAL.tick)
     onTeardown(ctx) { const c = CRY(); if (c) c.teardown(ctx.combatant); },
@@ -346,7 +347,9 @@
     // (K decision window + 6 ORBIT snapshot at the INPUT EDGE) first; otherwise
     // the Wall fallback on BLADE L/R [0,1], which may also fire with K off.
     canCast(ctx) { const c = CRY(); return !!(c && c.canCastConstruct(ctx)); },
-    // P2 AI only attempts when the cast can succeed (no fail-cue spam).
+    // P2 AI separates utility from legality: Crystal truth decides whether
+    // the currently legal HEXA/WALL is worth spending now.
+    aiEvaluate(ctx) { const c = CRY(); return c && c.aiConstructOpportunity ? c.aiConstructOpportunity(ctx) : { shouldCast:false, score:0, reason:'crystal-runtime-unavailable' }; },
     aiCanAttempt(ctx) { const c = CRY(); return !!(c && c.aiCanAttemptConstruct(ctx)); },
     cast(ctx) { const c = CRY(); return !!(c && c.castConstruct(ctx)); },
   };

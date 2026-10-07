@@ -738,6 +738,101 @@ function canCastConstruct(ctx) {
 function aiCanAttemptConstruct(ctx) {
   return canCastConstruct(ctx);
 }
+
+// R59 D11 BOT helpers live beside Crystal truth so AI consumes the SAME shard,
+// threat, read-radius and construct authorities as gameplay. No parallel shard
+// model and no duplicate projectile eligibility rules.
+function aiReadThreats(st, radius = SCAN) {
+  const b = st && st.ct && st.ct.anchor;
+  if (!b) return [];
+  const out = [];
+  for (const p of (g.projectiles || [])) {
+    if (notAThreat(st, p)) continue;
+    const hr = p.__hr || null;
+    if (hr && (hr.cryTid || hr.cryLost)) continue;
+    if (Math.hypot(p.x - b.x, p.y - b.y) <= radius) out.push(p);
+  }
+  return out;
+}
+
+function aiBodyThreats(st, horizon) {
+  const b = st && st.ct && st.ct.anchor;
+  if (!b) return [];
+  const C = CFG() || {}, hitScale = C.BULLET_HIT_RADIUS_SCALE || 0.78;
+  const bv = b.__hrVel || { x: 0, y: 0 };
+  const out = [];
+  for (const p of (g.projectiles || [])) {
+    if (notAThreat(st, p)) continue;
+    const t = firstWithin(
+      p.x - b.x, p.y - b.y,
+      (Number(p.vx) || 0) - (Number(bv.x) || 0),
+      (Number(p.vy) || 0) - (Number(bv.y) || 0),
+      (Number(b.radius) || 0) * hitScale + (Number(p.radius) || 0)
+    );
+    if (t != null && t <= horizon && (!(p.life >= 0) || t <= p.life + 1e-9)) out.push({ p, t });
+  }
+  return out;
+}
+
+function aiAwakeningOpportunity(ctx) {
+  const st = ensure(ctx.combatant);
+  if (kActive(st)) return { shouldCast:false, score:0, reason:'awakening-already-live', retryAfter:.25 };
+
+  const free = availableIds(st).length;
+  const readRadius = ctx.cfg.scanRadius != null ? ctx.cfg.scanRadius : SCAN;
+  const threats = free > 0 ? aiReadThreats(st, readRadius) : [];
+  if (threats.length) {
+    const useful = Math.min(free, threats.length);
+    return {
+      shouldCast:true,
+      score:Math.min(1, .80 + useful * .03),
+      reason:'read-radius-projectile-threat',
+      retryAfter:.12,
+    };
+  }
+
+  // Offensive K intent is explicit: K is worth spending when it can immediately
+  // unlock the six-shard HEXA decision. If J is cooling down or a construct is
+  // already live, READY K alone is not utility.
+  const a1 = st.ct.skills && st.ct.skills.A1;
+  const liveConstruct = st.constructs.some((c) => c && c.state === 'LIVE');
+  const hexaSetup = free >= SHARDS && !!enemyAnchorOf(st.ct)
+    && a1 && !(a1.cdLeft > 0) && !liveConstruct;
+  if (hexaSetup) {
+    return { shouldCast:true, score:.76, reason:'hexa-setup-ready', retryAfter:.16 };
+  }
+  return { shouldCast:false, score:0, reason:'no-awakening-purpose', retryAfter:.32 };
+}
+
+function aiConstructOpportunity(ctx) {
+  const st = ensure(ctx.combatant);
+  if (!canCastConstruct(ctx)) {
+    return { shouldCast:false, score:0, reason:'construct-unavailable', retryAfter:.25 };
+  }
+
+  if (hexaPathAvailable(st)) {
+    // HEXA consumes all six shards. If K currently has an eligible hostile
+    // projectile inside its actual 450 read radius, reserve the resource for
+    // refraction instead of blindly turning every K into a Prison.
+    const kcfg = st.ct.skills && st.ct.skills.A2 && st.ct.skills.A2.cfg;
+    const threats = aiReadThreats(st, (kcfg && kcfg.scanRadius) || SCAN);
+    if (threats.length) {
+      return { shouldCast:false, score:.28, reason:'preserve-shards-for-intercept', retryAfter:.16 };
+    }
+    return { shouldCast:true, score:.94, reason:'hexa-control-window', retryAfter:.12 };
+  }
+
+  if (wallPathAvailable(st)) {
+    const horizon = Math.max(.1, Number(ctx.cfg.wall && ctx.cfg.wall.solidLifetime) || 4);
+    const threats = aiBodyThreats(st, horizon);
+    if (threats.length) {
+      return { shouldCast:true, score:.88, reason:'wall-block-incoming-projectile', retryAfter:.12 };
+    }
+    return { shouldCast:false, score:0, reason:'no-wall-threat', retryAfter:.3 };
+  }
+  return { shouldCast:false, score:0, reason:'construct-unavailable', retryAfter:.25 };
+}
+
 function castConstruct(ctx) {
   const ct = ctx.combatant, st = ensure(ct), now = AIL.clock();
   const ea = enemyAnchorOf(ct), me = ct.anchor;
@@ -915,6 +1010,7 @@ function afterBodyHit(p, target, realized) {
 Object.assign(CR, {
   tick, holdStep, resolveBullet, capsules, thrownSurface, thrownHit, noteBodyHit, afterBodyHit,
   castAwakening, canCastConstruct, castConstruct, aiCanAttemptConstruct,
+  aiAwakeningOpportunity, aiConstructOpportunity,
   stateOf,
   setPresentation(on) {
     presentation = !!on;

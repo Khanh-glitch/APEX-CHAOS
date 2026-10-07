@@ -2436,6 +2436,92 @@ gate('r59-hunter-a2-holds-reachable-but-low-value-target',
   && report.r59HunterBotDecision.lowValue.decisions.some(e=>e.type==='AICastReject'&&e.reason==='intercept-low-value'),
   report.r59HunterBotDecision.lowValue);
 
+// R59 D11 CRYSTALA — K opens for real refraction demand or an immediate HEXA
+// plan; J preserves shards under threat, otherwise commits the useful construct.
+report.r59CrystalaBotDecision = run(`
+  const HR=window.APEX_HERO_REWORK,CR=window.APEX_CRYSTAL;
+  const prevProfile=window.__apexArsenalBattleProfile;
+  const startBot=()=>{
+    window.__apexArsenalBattleProfile='BOT';
+    window.__apexArsenalTestStartMatch('ROBOT','CRYSTAL');
+    window.__apexArsenalBattleProfile=prevProfile;
+    cancelAnimationFrame(reqId);reqId=0;
+    __APEX_TEST.holdSpawns();projectiles.length=0;
+    fighters[0].baseSpeed=fighters[1].baseSpeed=0;
+    if(fighters[0].data)fighters[0].data.__hrHoldBody=true;
+    if(fighters[1].data)fighters[1].data.__hrHoldBody=true;
+    fighters[0].x=220;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
+    return HR.byCombatant(fighters[1]);
+  };
+
+  let p2=startBot();
+  let ctl=HR.abilityController(p2);ctl.setCooldown('A1',999);
+  let mark=HR.AIL.bus.ring.length;
+  for(let i=0;i<180;i++)APEX_ARSENAL.step(1/60);
+  const idle={a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,
+    decisions:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='CRYSTAL')
+      .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason,score:e.payload.score}))};
+
+  p2=startBot();
+  mark=HR.AIL.bus.ring.length;
+  for(let i=0;i<180;i++)APEX_ARSENAL.step(1/60);
+  const combo={a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,
+    decisions:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='CRYSTAL')
+      .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason,score:e.payload.score}))};
+
+  p2=startBot();
+  ctl=HR.abilityController(p2);ctl.setCooldown('A1',999);
+  projectiles.push({type:'aq_bullet',aq:true,owner:fighters[0],weapon:'PISTOL',
+    x:500,y:200,px:500,py:200,vx:0,vy:-10,radius:4,life:5,maxLife:5,color:'#fff'});
+  mark=HR.AIL.bus.ring.length;
+  for(let i=0;i<120;i++)APEX_ARSENAL.step(1/60);
+  const readThreat={a2:p2.telemetry.bySkill.A2||0,
+    decisions:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='CRYSTAL'&&e.payload.slot==='A2')
+      .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
+
+  p2=startBot();
+  ctl=HR.abilityController(p2);ctl.setCooldown('A2',999);
+  projectiles.push({type:'aq_bullet',aq:true,owner:fighters[0],weapon:'PISTOL',
+    x:650,y:500,px:650,py:500,vx:80,vy:0,radius:4,life:5,maxLife:5,color:'#fff'});
+  mark=HR.AIL.bus.ring.length;
+  for(let i=0;i<90;i++)APEX_ARSENAL.step(1/60);
+  const wallThreat={a1:p2.telemetry.bySkill.A1||0,
+    decisions:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='CRYSTAL'&&e.payload.slot==='A1')
+      .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
+
+  p2=startBot();
+  ctl=HR.abilityController(p2);ctl.setCooldown('A2',999);
+  CR.castAwakening({combatant:p2,cfg:p2.skills.A2.cfg});
+  projectiles.push({type:'aq_bullet',aq:true,owner:fighters[0],weapon:'PISTOL',
+    x:500,y:200,px:500,py:200,vx:0,vy:-10,radius:4,life:5,maxLife:5,color:'#fff'});
+  const preserve=CR.aiConstructOpportunity({combatant:p2,cfg:p2.skills.A1.cfg});
+
+  return {idle,combo,readThreat,wallThreat,preserve};
+`);
+gate('r59-crystala-holds-k-without-refraction-or-hexa-purpose',
+  report.r59CrystalaBotDecision.idle.a2===0
+  && report.r59CrystalaBotDecision.idle.decisions.some(e=>e.type==='AICastReject'&&e.slot==='A2'&&e.reason==='no-awakening-purpose'),
+  report.r59CrystalaBotDecision.idle);
+gate('r59-crystala-k-then-j-forms-hexa-intent',
+  report.r59CrystalaBotDecision.combo.a2>=1
+  && report.r59CrystalaBotDecision.combo.a1>=1
+  && report.r59CrystalaBotDecision.combo.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A2'&&e.reason==='hexa-setup-ready')
+  && report.r59CrystalaBotDecision.combo.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A1'&&e.reason==='hexa-control-window'),
+  report.r59CrystalaBotDecision.combo);
+gate('r59-crystala-k-reads-authority-450-projectile-radius',
+  report.r59CrystalaBotDecision.readThreat.a2>=1
+  && report.r59CrystalaBotDecision.readThreat.decisions.some(e=>e.type==='AICastSelect'&&e.reason==='read-radius-projectile-threat'),
+  report.r59CrystalaBotDecision.readThreat);
+gate('r59-crystala-wall-reacts-to-real-body-threat',
+  report.r59CrystalaBotDecision.wallThreat.a1>=1
+  && report.r59CrystalaBotDecision.wallThreat.decisions.some(e=>e.type==='AICastSelect'&&e.reason==='wall-block-incoming-projectile'),
+  report.r59CrystalaBotDecision.wallThreat);
+gate('r59-crystala-hexa-preserves-shards-for-live-intercept',
+  report.r59CrystalaBotDecision.preserve
+  && report.r59CrystalaBotDecision.preserve.shouldCast===false
+  && report.r59CrystalaBotDecision.preserve.reason==='preserve-shards-for-intercept',
+  report.r59CrystalaBotDecision.preserve);
+
 report.postCText = run(`
   const src = [drawBackground.toString(), (window.APEX_ARSENAL_SPAWN.drawSlots||function(){}).toString()].join('\\n');
   return {
