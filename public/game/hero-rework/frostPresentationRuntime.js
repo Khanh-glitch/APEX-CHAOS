@@ -257,6 +257,49 @@ function isolated(ctx, fn) {
 // Map (iterable) keyed by anchor; swept every tick against live combatants.
 const liveStates = new Map();
 let lastMatch = null;
+let readyPromise = null;
+
+function attachSharedArt(engine) {
+  if (!engine || !sharedArt) return;
+  engine.mips = sharedArt.mips;
+  engine.shadowCanvas = sharedArt.shadow;
+  try { engine.prepareSurfaces(engine.iceCanvas.width, engine.iceCanvas.height); } catch (err) { warnOnce(err); }
+  engine.ready = true;
+}
+
+function publishSharedArt(engine) {
+  sharedArt = { mips: engine.mips, shadow: engine.shadowCanvas };
+  for (const [, other] of liveStates) if (other.engine !== engine) attachSharedArt(other.engine);
+  api.ready = true;
+  api.error = null;
+}
+
+function beginReadyLoad(engine) {
+  if (api.ready && sharedArt) {
+    if (engine) attachSharedArt(engine);
+    return Promise.resolve(true);
+  }
+  if (readyPromise) {
+    if (!engine) return readyPromise;
+    return readyPromise.then((ok) => { attachSharedArt(engine); return ok; });
+  }
+  const source = engine || (G && G.FrostEngine ? new G.FrostEngine() : null);
+  if (!source || typeof source.load !== 'function') {
+    const error = new Error('Frost canonical renderer loader unavailable');
+    api.error = String(error);
+    return Promise.reject(error);
+  }
+  readyPromise = Promise.resolve(source.load()).then(() => {
+    publishSharedArt(source);
+    return true;
+  }).catch((error) => {
+    api.error = String(error);
+    throw error;
+  });
+  readyPromise.catch(() => {});
+  if (!engine || engine === source) return readyPromise;
+  return readyPromise.then((ok) => { attachSharedArt(engine); return ok; });
+}
 // TEMP Slice 2 motion-readability diagnostic. Toggle from the console with
 // APEX_FROST_PRESENTATION.setReactionParticlesEnabled(false); primary body
 // motion remains active while bullet/wall/body debris is suppressed.
@@ -370,27 +413,10 @@ function createState(ct) {
   // shared art cache so rematches/mirrors render (mips are read-only after
   // load, safe to share).
   if (sharedArt) {
-    e.mips = sharedArt.mips;
-    e.shadowCanvas = sharedArt.shadow;
-    try { e.prepareSurfaces(e.iceCanvas.width, e.iceCanvas.height); } catch (err) { warnOnce(err); }
-    e.ready = true;
+    attachSharedArt(e);
     api.ready = true;
-  } else if (!createState.loadStarted && typeof e.load === 'function') {
-    createState.loadStarted = true;
-    try {
-      e.load().then(() => {
-        sharedArt = { mips: e.mips, shadow: e.shadowCanvas };
-        for (const [, other] of liveStates) {
-          if (other.engine !== e) {
-            other.engine.mips = e.mips;
-            other.engine.shadowCanvas = e.shadowCanvas;
-            try { other.engine.prepareSurfaces(other.engine.iceCanvas.width, other.engine.iceCanvas.height); } catch (prepErr) { warnOnce(prepErr); }
-            other.engine.ready = true;
-          }
-        }
-        api.ready = true;
-      }).catch((err) => { api.error = String(err); });
-    } catch (err) { api.error = String(err); }
+  } else {
+    beginReadyLoad(e).catch((err) => { api.error = String(err); });
   }
   const S = {
     ct, fighter: f, engine: e, cfg,
@@ -2001,11 +2027,9 @@ api.clearIntegrityTrace = function () {
   for (const [, S] of liveStates) { S.integrityActiveIds = new Set(); S.integrityRetired = 0; }
 };
 
-if (G && typeof G.load === 'function' && !api.ready) {
-  try {
-    G.load().then(() => { api.ready = true; }).catch((e) => { api.error = String(e); });
-  } catch (e) { api.error = String(e); }
-}
+api.whenReady = function whenReady() {
+  return beginReadyLoad();
+};
 
 g.apexFrostPresentationRuntime = 'ready';
 })(typeof window !== 'undefined' ? window : globalThis);
