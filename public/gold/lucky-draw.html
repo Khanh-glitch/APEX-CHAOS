@@ -310,7 +310,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .d10{background:linear-gradient(#ff8a3d,#e85a0c 55%,#b8440a);color:#1a0b03;box-shadow:inset 0 2px 0 rgba(255,220,180,.6),inset 0 -3px 0 rgba(0,0,0,.25)}
 .d10:hover,.d10:focus-visible{filter:brightness(1.08)}
 .draw:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
-.draw[data-press="1"],.draw:active{transform:translateY(3px) scale(.975);filter:brightness(.85)}
+.draw[data-press="1"],.draw:active{transform:translateY(2px) scale(.985);filter:brightness(1.08) saturate(1.05)}
+.draw .dk{transition:filter .12s ease-out,transform .12s ease-out}
+.draw[data-press="1"] .dk,.draw:active .dk{filter:brightness(1.7) drop-shadow(0 0 .45em currentColor);transform:scaleY(.92)}
 #stage[data-busy="1"] .d1{filter:saturate(.3) brightness(.55);cursor:default}
 #stage[data-busy="1"]:not([data-mode="10"]) .d10{filter:saturate(.3) brightness(.55);cursor:default}
 .d10 .skip{display:none}

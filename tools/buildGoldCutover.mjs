@@ -927,6 +927,13 @@ function buildLuckyDonor() {
       find: /<b id="scrap">48,000<\/b><small>SCRAP<\/small>/,
       replace: '<b id="scrap">350</b><small>AC</small>',
     },
+    // ── R59G: tactile Lucky press stays bright, readable and edge-led ────────
+    {
+      id: 'LKY-R59G',
+      why: 'Lucky press compresses 2px while luminance and edge/icon energy rise; release settles through donor transitions',
+      find: '.draw[data-press="1"],.draw:active{transform:translateY(3px) scale(.975);filter:brightness(.85)}',
+      replace: '.draw[data-press="1"],.draw:active{transform:translateY(2px) scale(.985);filter:brightness(1.08) saturate(1.05)}\n.draw .dk{transition:filter .12s ease-out,transform .12s ease-out}\n.draw[data-press="1"] .dk,.draw:active .dk{filter:brightness(1.7) drop-shadow(0 0 .45em currentColor);transform:scaleY(.92)}',
+    },
     // ── L6b: LAB/preview CSS rules are inert without their elements ─────────
     {
       id: 'LKY-L6b',

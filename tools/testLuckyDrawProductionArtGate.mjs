@@ -26,6 +26,15 @@ check('pool count reflects currently drawable locked pool', lucky.includes('pc.t
 check('draw preflights presentation before AC spend', lucky.indexOf('drawPool.some(id => productionFighterIndex(id) < 0)') < lucky.indexOf('const res = meta.spin()'));
 check('economy still owns draw result and debit', lucky.includes('const res = meta.spin()') && meta.includes('state.credits -= DRAW_COST'));
 check('generator mirrors registry and silhouette laws', build.includes("id: 'LKY-R50I-1'") && build.includes("id: 'LKY-R50I-2'"));
+check('Lucky press brightens instead of dimming and moves by only 2px',
+  lucky.includes('transform:translateY(2px) scale(.985);filter:brightness(1.08) saturate(1.05)')
+  && !lucky.includes('filter:brightness(.85)'));
+check('Lucky press gives the edge/icon bar its own luminance response',
+  lucky.includes('.draw[data-press="1"] .dk,.draw:active .dk{filter:brightness(1.7) drop-shadow(0 0 .45em currentColor);transform:scaleY(.92)}'));
+check('Lucky release settles through the authored transform/filter transition',
+  lucky.includes('transition:transform .07s ease-out,filter .2s')
+  && lucky.includes("b.addEventListener('pointerup', () => { b.dataset.press = '0'; });"));
+check('generator owns Lucky press feedback', build.includes("id: 'LKY-R59G'"));
 
 console.log(['LUCKY DRAW PRODUCTION ART GATE',...passes].join('\n'));
 if(failures.length){console.error(failures.join('\n'));process.exit(1);}

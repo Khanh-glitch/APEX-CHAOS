@@ -1112,8 +1112,13 @@ function renderSkills(now){
   const frac=a.next?clamp(remaining/Math.max(.05,a.cd),0,1):0;
   const activeRemaining=a.activeUntil?Math.max(0,(a.activeUntil-now)/1000):0;
   const activeFrac=a.duration>0?clamp(activeRemaining/a.duration,0,1):0;
-  const st=activeRemaining>0?'active':now<a.castUntil?'cast':a.charges>0?'ready':'cd';
-  if(st!==u.st){u.el.dataset.state=st;u.st=st;}
+  const st=now<a.castUntil?'cast':activeRemaining>0?'active':a.charges>0?'ready':'cd';
+  const prevSt=u.st;
+  if(st!==prevSt){
+   if(prevSt==='cd'&&st==='ready'){u.readyAgainUntil=now+720;readyPop(u,i,k);}
+   else if(st!=='ready')u.readyAgainUntil=0;
+   u.el.dataset.state=st;u.st=st;
+  }
   u.el.dataset.kind=a.kind||'cooldown';
   const maskFrac=(st==='cd'&&a.charges<=0)?frac:0;
   const m=`scaleY(${maskFrac.toFixed(3)})`;if(u.k.m!==m){u.mask.style.transform=m;u.k.m=m;}
@@ -1121,10 +1126,11 @@ function renderSkills(now){
   const b=`scaleX(${meter.toFixed(3)})`;if(u.k.b!==b){u.bar.style.transform=b;u.k.b=b;}
   const secs=remaining.toFixed(1),activeSecs=activeRemaining.toFixed(1);
   let txt='READY';
-  if(activeRemaining>0)txt='ACTIVE '+activeSecs+'s';
-  else if(a.kind==='charges')txt=a.next&&a.charges<a.max?(a.charges+'/'+a.max+' · '+secs+'s'):(a.charges+'/'+a.max);
-  else if(st==='cast')txt='CAST';
-  else if(st==='cd')txt=secs+'s';
+  if(st==='cast')txt='PRESS-CAST';
+  else if(activeRemaining>0)txt='ACTIVE '+activeSecs+'s';
+  else if(st==='ready'&&now<(u.readyAgainUntil||0))txt='READY AGAIN';
+  else if(st==='cd')txt='COOLDOWN '+secs+'s';
+  else if(a.kind==='charges')txt=a.next&&a.charges<a.max?('READY · '+a.charges+'/'+a.max+' · '+secs+'s'):('READY · '+a.charges+'/'+a.max);
   if(u.k.t!==txt){u.state.textContent=txt;u.k.t=txt;}
   const cd=st==='cd'?secs:'';if(u.k.c!==cd){u.cdn.textContent=cd;u.k.c=cd;}
   if(u.k.p!==a.charges){u.pips.forEach((el,j)=>el.classList.toggle('on',j<a.charges));u.k.p=a.charges;}

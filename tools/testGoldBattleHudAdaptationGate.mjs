@@ -99,10 +99,15 @@ check('battle HUD replaces donor skill glyph with production skill icon',
   hud.includes("u.art.classList.add('has-production-icon')") &&
   hud.includes('.sk-art.has-production-icon>svg{display:none}'));
 
-check('battle HUD renders cooldown, charge/recharge and active-duration semantics separately',
+check('battle HUD renders the full production skill-state language',
   hud.includes("u.el.dataset.kind=a.kind||'cooldown'") &&
+  hud.includes("txt='PRESS-CAST'") &&
   hud.includes("txt='ACTIVE '+activeSecs+'s'") &&
-  hud.includes("a.charges+'/'+a.max+' · '+secs+'s'"));
+  hud.includes("txt='READY AGAIN'") &&
+  hud.includes("txt='COOLDOWN '+secs+'s'") &&
+  hud.includes("'READY · '+a.charges+'/'+a.max") &&
+  hud.includes("prevSt==='cd'&&st==='ready'") &&
+  hud.includes('readyPop(u,i,k)'));
 
 check('donor no longer auto-completes production cooldown/charge state',
   hud.includes('Production projection is the ONLY cooldown/charge authority.') &&
@@ -141,6 +146,11 @@ check('critical/heavy FX cover the full panel without stealing input',
   && /#copyLayer,#globalFx\{position:absolute;inset:0;pointer-events:none/.test(hud)
   && /#globalFx\{z-index:\d+;overflow:visible\}/.test(hud)
   && /#ruptureLayer\{[^}]*pointer-events:none/.test(hud));
+check('Heavy shake moves the whole HUD composition, not only the victim panel',
+  hud.slice(hud.indexOf('function fxHeavy'),hud.indexOf('function fxThunder')).includes('R.hud.animate('));
+check('Critical/Heavy flash remains a global compositor layer',
+  hud.includes('class="gfx-flash"') && hud.includes('#globalFx') && hud.includes("flash('crit',v") && hud.includes("flash('heavy',v"));
+
 
 check('generator owns R48B through deterministic adapter',
   generator.includes("import { adaptGoldBattleHudR48b } from './goldBattleHudR48b.mjs';") &&
@@ -154,11 +164,13 @@ check('shipping shell embeds the exact shipping Battle HUD bytes',
   !!payload && decoded === hud,
   payload ? ('decoded=' + decoded.length + ' hud=' + hud.length) : 'payload missing');
 
-check('R49/E1 Frost keeps one hero-level orientation/scale authority across both sides',
-  shell.includes('frost:{scale:1.53,x:0,y:16}')
-  && shell.includes("const face=Number.isFinite(p.face)?p.face:(player==='p2'?-1:1)")
+check('R59/CP6 Frost keeps accepted scale with native-facing and visual ground authority',
+  shell.includes('frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:.965}')
+  && shell.includes('const face=nativeFacing*desiredSideFacing')
+  && shell.includes('function visualBottomRatio(img)')
+  && shell.includes('function anchoredHeroY(img,p)')
   && shell.includes("applyHeroPresentation(img,target.renderId,target.id,target.player)")
-  && !/frost:\{[^}]*face:/.test(shell));
+  && !shell.includes('frost:{scale:1.53,x:0,y:16}'));
 
 check('R49 Mirror remains opponent-derived with no static selected-large placeholder',
   shell.includes('function mirrorOpponentHero(player)')
