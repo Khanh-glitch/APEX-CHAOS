@@ -652,10 +652,61 @@
     return scope.APEX_FROST || null;
   }
 
+  // R59 BOT law: canCast is player/mechanic legality; this predicate is CPU
+  // usefulness only. Every threshold below is derived from the authored Frost
+  // geometry/window itself, never from a second "AI balance" number.
+  function frostAiMeaningful(ctx, kind) {
+    const self = ctx.combatant && ctx.combatant.anchor;
+    if (!self || !(self.hp > 0)) return false;
+    const enemies = (ctx.api.enemyBodies ? ctx.api.enemyBodies(ctx.combatant) : [])
+      .filter((body) => body && body.hp > 0);
+    if (!enemies.length) return false;
+
+    if (kind === 'a1') {
+      let dx = Number(self.dir && self.dir.x) || 0;
+      let dy = Number(self.dir && self.dir.y) || 0;
+      const dl = Math.hypot(dx, dy);
+      if (dl > 1e-6) { dx /= dl; dy /= dl; } else { dx = 1; dy = 0; }
+      const length = Math.max(0, Number(ctx.cfg.length) || 0);
+      const halfW = Math.max(0, Number(ctx.cfg.width) || 0) / 2;
+      const insideLane = (x, y, radius = 0) => {
+        const rx = x - self.x, ry = y - self.y;
+        const along = rx * dx + ry * dy;
+        const lateral = Math.abs(rx * -dy + ry * dx);
+        return along >= -radius && along <= length + radius && lateral <= halfW + radius;
+      };
+      if (enemies.some((body) => insideLane(body.x, body.y, Number(body.radius) || 0))) return true;
+
+      // Frost floor also freezes eligible revealed firearms. A floor gun only
+      // justifies A1 when the SAME authored lane would actually cover it.
+      const cfg = globalScope.APEX_ARSENAL_CONFIG;
+      const isGun = (id) => !!(id && id !== 'STORMBREAKER' && id !== 'T6'
+        && cfg && typeof cfg.isGun === 'function' && cfg.isGun(id));
+      const state = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.state;
+      const slots = state && Array.isArray(state.slots) ? state.slots : [];
+      return slots.some((slot) => slot && slot.phase === 'REVEALED' && slot.kind !== 'HEAL'
+        && isGun(slot.weaponId) && insideLane(slot.x, slot.y, 16));
+    }
+
+    if (kind === 'a2') {
+      let speed = Math.max(0, Number(self.baseSpeed) || 0);
+      try {
+        if (typeof self.speedMult === 'function') speed *= Math.max(0, Number(self.speedMult()) || 0);
+      } catch (_) {}
+      const window = Math.max(0, Number(ctx.cfg.activeWindow) || 0);
+      const trailHalf = Math.max(0, Number(ctx.cfg.trailWidth) || 0) / 2;
+      return enemies.some((body) => {
+        const contact = (Number(self.radius) || 0) + (Number(body.radius) || 0);
+        return dist(self.x, self.y, body.x, body.y) <= speed * window + contact + trailHalf;
+      });
+    }
+    return false;
+  }
+
   EXECUTORS['frost.breath'] = {
-    // A1 never aims: no target, range, or facing precondition.
+    // Human A1 never aims: no target, range, or facing precondition.
     canCast() { return true; },
-    aiCanAttempt() { return true; },
+    aiCanAttempt(ctx) { return frostAiMeaningful(ctx, 'a1'); },
     cast(ctx) {
       const FR = frostTruth();
       if (!FR) return false;
@@ -670,7 +721,7 @@
 
   EXECUTORS['frost.hunt'] = {
     canCast() { return true; },
-    aiCanAttempt() { return true; },
+    aiCanAttempt(ctx) { return frostAiMeaningful(ctx, 'a2'); },
     cast(ctx) {
       const FR = frostTruth();
       if (!FR) return false;
@@ -1177,6 +1228,18 @@
       if (mirrorBusy(ctx)) return false;
       const enemy = ctx.api.enemyOf(ctx.combatant);
       return !!(enemy && enemy.anchor && enemy.anchor.hp > 0);
+    },
+    // Human input may exchange at any legal distance. The CPU waits until the
+    // swap changes territory: inside the real body-contact envelope both
+    // endpoints are already the same tactical space, so spending A2 is noise.
+    aiCanAttempt(ctx) {
+      if (mirrorBusy(ctx)) return false;
+      const self = ctx.combatant && ctx.combatant.anchor;
+      const enemy = ctx.api.enemyOf(ctx.combatant);
+      const foe = enemy && enemy.anchor;
+      if (!self || !foe || !(foe.hp > 0)) return false;
+      const contact = (Number(self.radius) || 0) + (Number(foe.radius) || 0);
+      return dist(self.x, self.y, foe.x, foe.y) > contact;
     },
     cast(ctx) {
       if (!this.canCast(ctx)) return false;
