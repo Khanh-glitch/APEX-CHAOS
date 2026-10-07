@@ -222,6 +222,22 @@ check('Local tablet allocation cannot leak into BOT geometry',
   && !hud.includes('[data-size="tablet"][data-mode="1p"]{--zoneMin:clamp(198px,18cqh,216px)'));
 check('Local tablet fix does not use whole-HUD transform scaling',
   !/data-size="tablet"\]\[data-mode="2p"\][^{]*\{[^}]*transform\s*:\s*scale/i.test(hud));
+check('BOT desk and landscape reserve weapon rows inside their own 1P grids',
+  hud.includes('#hud[data-layout="desk"][data-mode="1p"] .side{--botWpH:clamp(72px,11cqh,104px);grid-template-rows:auto minmax(0,1fr) minmax(0,var(--botWpH))}')
+  && hud.includes('#hud[data-layout="land"][data-mode="1p"] #p1Side{--botWpH:clamp(56px,12cqh,82px);grid-template-rows:auto minmax(0,1fr) minmax(0,var(--botWpH))}')
+  && hud.includes('#hud[data-layout="land"][data-mode="1p"] #p2Side{--botWpH:clamp(52px,11cqh,76px);grid-template-rows:auto auto minmax(0,1fr) minmax(0,var(--botWpH))}'));
+check('BOT weapon containment does not import Local geometry',
+  hud.includes('#hud[data-layout="desk"][data-mode="1p"] .weapon,')
+  && hud.includes('#hud[data-layout="land"][data-mode="1p"] .weapon{height:100%;max-height:var(--botWpH);align-self:end;overflow:visible;box-sizing:border-box}')
+  && !hud.includes('#hud[data-layout="land"][data-mode="1p"] .weapon{position:relative;align-items:center;min-height:0;height:100%;max-height:var(--wpH)'));
+check('portrait tablet BOT expands only the authored 1P strip/control allocation',
+  hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="1p"]{--stripH:64px;--p1Min:240px;')
+  && hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p2Side{--porW:42px;--porH:42px;--thW:38px;--wpIW:52px;--amF:15px}')
+  && hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p2Side .skills{height:50px}'));
+check('C2 does not zoom skills or alter Local weapon-row authority',
+  !/R59 C2[\s\S]*?transform\s*:\s*scale/.test(hud)
+  && hud.includes('#hud[data-layout="land"][data-mode="2p"] .side{--wpH:')
+  && hud.includes('#hud[data-layout="port"][data-mode="2p"] .side{--wpH:'));
 check('R55 adapter preserves the donor 1P family',
   !adapter.includes('opens1p')
   && !adapter.includes('delete the obsolete one-player panel family')
