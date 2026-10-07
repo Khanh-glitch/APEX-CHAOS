@@ -2317,12 +2317,24 @@ report.r59MirrorA2Position = run(`
 
   p2=startBot();
   fighters[0].x=300;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
-  projectiles.push({type:'aq_bullet',aq:true,owner:fighters[0],weapon:'PISTOL',
-    // Arrival lands inside Exchange's authored 0.25–0.64s decision window.
-    x:650,y:500,px:650,py:500,vx:500,vy:0,radius:4,life:4,maxLife:4,color:'#fff'});
   mark=HR.AIL.bus.seq;
-  for(let i=0;i<90;i++)APEX_ARSENAL.step(1/60);
-  const projectileEscape={a2:p2.telemetry.bySkill.A2||0,
+  // Prime one real neutral rejection first. Its retryAfter is exactly 0.3s,
+  // so the next policy sample has a deterministic clock instead of depending
+  // on the initial 0.4–1.0s anti-frame-zero jitter.
+  let projectilePrimed=false;
+  for(let i=0;i<90&&!projectilePrimed;i++){
+    APEX_ARSENAL.step(1/60);
+    projectilePrimed=HR.AIL.bus.since(mark).some(e=>e.type==='AICastReject'
+      && e.payload&&e.payload.hero==='MIRROR'&&e.payload.slot==='A2'
+      && e.payload.reason==='no-position-upgrade');
+  }
+  // At injection the contact ETA is ~0.69s. At the scheduled reevaluation
+  // 0.3s later, ~0.39s remains: safely inside Exchange's authored
+  // SNAP→END threat window [0.25, 0.64] and still before physical contact.
+  projectiles.push({type:'aq_bullet',aq:true,owner:fighters[0],weapon:'PISTOL',
+    x:600,y:500,px:600,py:500,vx:200,vy:0,radius:4,life:4,maxLife:4,color:'#fff'});
+  for(let i=0;i<60;i++)APEX_ARSENAL.step(1/60);
+  const projectileEscape={primed:projectilePrimed,a2:p2.telemetry.bySkill.A2||0,
     decisions:HR.AIL.bus.since(mark).filter(e=>e.payload&&e.payload.hero==='MIRROR'&&e.payload.slot==='A2')
       .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
 
@@ -2349,7 +2361,8 @@ gate('r59-mirror-a2-holds-without-position-upgrade',
   && report.r59MirrorA2Position.neutral.decisions.some(e=>e.type==='AICastReject'&&e.reason==='no-position-upgrade'),
   report.r59MirrorA2Position.neutral);
 gate('r59-mirror-a2-escapes-authored-window-projectile-threat',
-  report.r59MirrorA2Position.projectileEscape.a2>=1
+  report.r59MirrorA2Position.projectileEscape.primed===true
+  && report.r59MirrorA2Position.projectileEscape.a2>=1
   && report.r59MirrorA2Position.projectileEscape.decisions.some(e=>e.type==='AICastSelect'&&e.reason==='escape-incoming-projectile'),
   report.r59MirrorA2Position.projectileEscape);
 gate('r59-mirror-a2-swaps-onto-real-pickup-touch-zone',

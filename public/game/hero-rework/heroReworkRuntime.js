@@ -964,7 +964,13 @@
     const W = globalScope.APEX_ARSENAL && globalScope.APEX_ARSENAL.weaponApi;
     if (!W || !W.getHolder || !body) return null;
     const h = W.getHolder(body);
-    return h && h.weaponId ? { weaponId: h.weaponId, holder: h } : null;
+    // Stable equipment read-model for mechanic policy: preserve the real holder
+    // while exposing the immutable definition and live metadata that tactical
+    // evaluators need. Consumers must not reach back into fighter.data directly.
+    return h && h.weaponId ? {
+      weaponId: h.weaponId, holder: h,
+      def: h.def || null, meta: h.meta || null,
+    } : null;
   }
 
   /* ==================================================================== *
