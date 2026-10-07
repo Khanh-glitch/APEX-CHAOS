@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = readFileSync(path.join(ROOT, 'public/game/product/productMusicAuthority.js'), 'utf8');
+const APP = readFileSync(path.join(ROOT, 'src/App.jsx'), 'utf8');
 
 const notes = [];
 const failures = [];
@@ -98,6 +99,12 @@ const authority = win.apexProductMusic;
 const moduleExports = sandbox.module.exports;
 check('the shipping module also exports its CommonJS surface',
   !!moduleExports && moduleExports.SOURCE === '/assets/audio/forward_drive_theme.ogg');
+
+check('boot announces Home immediately after Tier-1 music runtime becomes available',
+  /await loadMenuInteractiveRuntimes\(\);[\s\S]{0,700}?window\.apexProductMusic\?\.setSurface\?\.\('home'\);[\s\S]{0,350}?finishRuntimeLoad\(\);/.test(APP));
+check('React binds the one music authority after gameReady instead of losing the first-mount race',
+  APP.includes('if (!gameReady) return undefined;')
+  && /\}, \[gameReady\]\);[\s\S]{0,120}?const launchProductSurface/.test(APP));
 
 check('the ONE product music authority is installed', !!authority && typeof authority.state === 'function');
 check('the music source is the Forward Drive theme',
