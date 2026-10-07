@@ -590,6 +590,18 @@ kbd{font:inherit}
   if(seam.__installed===seamVersion)return;
   seam.__installed=seamVersion;
   seam.version=seamVersion;
+  const disposers=[];
+  seam.addDisposer=function addDisposer(fn){if(typeof fn==='function')disposers.push(fn);};
+  seam.dispose=function dispose(){
+    if(seam.__disposed)return;
+    seam.__disposed=true;
+    while(disposers.length){const fn=disposers.pop();try{fn();}catch(_){}}
+  };
+  seam.addDisposer(()=>{
+    try{__apexResizeObserver.disconnect();}catch(_){}
+    try{removeEventListener('resize',applyViewport);}catch(_){}
+    try{if(__apexHudFrame)cancelAnimationFrame(__apexHudFrame);}catch(_){}
+  });
 
   // Real fighter positions (production arena space, 0..1000) drive the
   // canonical FX anchor points (popups, sweeps, flashes, streaks).
@@ -974,7 +986,8 @@ function sizeFxCanvas(){const d=Math.min(2,devicePixelRatio||1),w=Math.max(1,Mat
  if(R.fxCv.width!==w||R.fxCv.height!==h){R.fxCv.width=w;R.fxCv.height=h;}
  R.fxCtx.setTransform(d,0,0,d,0,0);
 }
-new ResizeObserver(resizeCanvas).observe(R.arena);
+const __apexResizeObserver=new ResizeObserver(resizeCanvas);
+__apexResizeObserver.observe(R.arena);
 addEventListener('resize',applyViewport);
 
 /* ================= RENDER (state -> UI) ================= */
@@ -1536,15 +1549,15 @@ R.stage.addEventListener('pointercancel',e=>finishSkillPointer(e,false));
 R.stage.addEventListener('lostpointercapture',e=>{if(activeSkillPointers.has(e.pointerId))finishSkillPointer(e,false);});
 
 /* ================= PRODUCTION PUMP ================= */
-let __apexLast=performance.now();
+let __apexLast=performance.now(),__apexHudFrame=0;
 function frame(now){
- if(!R.stage||!R.stage.isConnected)return;
+ if(!R.stage||!R.stage.isConnected){__apexHudFrame=0;return;}
  const dt=Math.min(.05,(now-__apexLast)/1000);__apexLast=now;
  try{APEX_GOLD_HUD.tick(dt,now);}catch(err){}
- requestAnimationFrame(frame);
+ __apexHudFrame=requestAnimationFrame(frame);
 }
 
-applyViewport();requestAnimationFrame(frame);
+applyViewport();__apexHudFrame=requestAnimationFrame(frame);
 </script>
 
 <style id="apex-handoff-bridge-style">
@@ -1590,7 +1603,7 @@ applyViewport();requestAnimationFrame(frame);
       }
     }
   }
-  window.addEventListener('message',e=>{
+  const onBattleHudMessage=e=>{
     const d=e.data;
     if(!d)return;
     if(d.type==='APEX_CHAOS_BATTLE_HANDOFF'){
@@ -1610,7 +1623,9 @@ applyViewport();requestAnimationFrame(frame);
     if(d.type==='APEX_CHAOS_BATTLE_PAUSE'){
       if(typeof S!=='undefined')S.paused=true;
     }
-  });
+  };
+  window.addEventListener('message',onBattleHudMessage);
+  window.APEX_GOLD_HUD?.addDisposer?.(()=>window.removeEventListener('message',onBattleHudMessage));
   if(!document.__apexGoldHudExitKey){
     document.__apexGoldHudExitKey=true;
     document.addEventListener('keydown',e=>{
