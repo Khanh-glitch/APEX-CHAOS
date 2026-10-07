@@ -23,6 +23,10 @@ check('Home Core is explicit', assetRuntime.includes("home: Object.freeze([") &&
 check('hero preload all-vs-selected is explicit', assetRuntime.includes("heroIds === null") && assetRuntime.includes("Array.isArray(heroIds) ? heroIds.filter(Boolean) : []"));
 check('Fighter covers may preload all visible', assetRuntime.includes("const covers = heroUrls(null, ['portrait'])"));
 check('Fighter large art is selected-only', assetRuntime.includes("const focused = heroUrls(context.heroIds, ['art'])"));
+check('Fighter per-selection intent includes the selected hero rig',
+  assetRuntime.includes("if (id === 'fighter-hero') {")
+  && assetRuntime.includes("...rigUrls(context.heroIds, new Set(['rig']))")
+  && !/fighter-hero[^\n]*heroIds === null/.test(assetRuntime));
 // R52 (owner: MAGNET had no battle visuals, FROST loaded late): the battle
 // surface preloads the selected combatants' arena rig as well, and it stays
 // strictly selected-only — the rig table is never expanded to all heroes.
@@ -43,6 +47,15 @@ check('reference-only Pick images absent from shipping manifest', !shipping.incl
 check('generator excludes reference-only assets', generator.includes('NON_SHIPPING_GOLD_ASSETS'));
 
 check('surface activation and preparation are separate', bridge.includes('BRIDGE.onSurface = function onSurface') && bridge.includes('BRIDGE.prepareSurface = async function prepareSurface'));
+check('accepted Pick selection starts a selected-only rig decode before LOCK IN',
+  bridge.includes('BRIDGE.warmFighterSelection = function warmFighterSelection')
+  && bridge.includes("assets.prepare('fighter-hero'")
+  && bridge.includes("scope: 'intent:fighter-hero:' + id")
+  && shell.includes("APEX_GOLD.warmFighterSelection&&void APEX_GOLD.warmFighterSelection([id])"));
+check('selected-fighter warm is memoized per hero instead of abort/restart spam',
+  bridge.includes('const fighterSelectionWarm = new Map();')
+  && bridge.includes('if (fighterSelectionWarm.has(id)) return fighterSelectionWarm.get(id);')
+  && bridge.includes('fighterSelectionWarm.set(id, job);'));
 check('Battle runtime load is awaited by prepareSurface', bridge.includes("ensureDeferredRuntimes('arsenalProduct').then") && bridge.includes("throw new Error('arsenalProduct runtime group did not reach READY')"));
 check('shell awaits scene preparation before reveal', shell.includes("if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface(next,{heroIds})") && shell.includes("if(APEX_GOLD.prepareSurface)await APEX_GOLD.prepareSurface('battle',{heroIds})"));
 check('Fighter readiness covers world-stage art', shell.includes("await tr?.prepareElement?.(stage,{verifyImages:false})") && shell.includes("await tr?.prepareElement?.(surfaceRoot)"));
