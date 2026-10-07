@@ -97,7 +97,7 @@ gate('Generator carries the same disposal laws',
 
 gate('Donor scripts remain isolated in a fresh IIFE per mount',
   /function apexGoldHudMount\(\)/.test(bridge)
-  && /inline\.join\('\\\\n;\\\\n'\)/.test(bridge));
+  && /inline\.join\('\\n;\\n'\)/.test(bridge));
 
 console.log(JSON.stringify(report, null, 2));
 if (report.failures.length) {
