@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  loadBattleGameRuntimes,
   loadDeferredGameRuntimes,
   loadMenuInteractiveRuntimes,
   loadProductMusicBootRuntime,
@@ -61,6 +62,7 @@ function injectApexEngine(scriptRef, engineSrc) {
         await loadMenuInteractiveRuntimes();
         markBootPhase('menu-runtime-ready');
         window.__apexEnsureDeferredRuntimes = loadDeferredGameRuntimes;
+        window.__apexEnsureBattleRuntimes = loadBattleGameRuntimes;
         finishRuntimeLoad();
       } catch (error) {
         console.warn('[asset-loader] Failed menu-interactive game runtime.', error);

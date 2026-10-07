@@ -264,6 +264,8 @@ loadScript('/game/gold/goldProductBridge.js', true);
 // only; the real AV image/audio preload still runs for real below.
 win['__apexDeferredRuntimesReady_arsenalProduct'] = true;
 win['__apexDeferredRuntimesReady_select'] = true;
+win.__apexEnsureDeferredRuntimes = async () => true;
+win.__apexEnsureBattleRuntimes = async () => true;
 
 // ------------------------------------------------------------ test plumbing
 const report = { gates: {}, failures: [], loadErrors, evidence: [], runtimeScriptCount: loadedRuntimeSrcs.size };
@@ -361,10 +363,10 @@ gate('handoff-accents-come-from-production', (() => {
 // ---------------------------------------------------------------- run matrix
 async function main() {
   // 1) product-group preload ordering (real async entry)
-  const loader = win.__apexEnsureDeferredRuntimes;
-  win.__apexEnsureDeferredRuntimes = function recordingLoader(group) {
-    entryOrder.push(`load:${group}`);
-    return loader ? loader(group) : Promise.resolve();
+  const loader = win.__apexEnsureBattleRuntimes;
+  win.__apexEnsureBattleRuntimes = function recordingBattleLoader(heroIds) {
+    entryOrder.push(`load:selected:${(heroIds || []).join(',')}`);
+    return loader ? loader(heroIds) : Promise.resolve();
   };
   const realStartMatch = win.startMatch;
   win.startMatch = function recordingStartMatch(...args) {
@@ -373,9 +375,9 @@ async function main() {
   };
   entryOrder.length = 0;
   await win.APEX_GOLD.onBattleLive({ mode: 'local', p1: 'newbot', p2: 'newbot' });
-  const loadIdx = entryOrder.findIndex((e) => e === 'load:arsenalProduct');
+  const loadIdx = entryOrder.findIndex((e) => e === 'load:selected:newbot,newbot');
   const startIdx = entryOrder.indexOf('startMatch');
-  gate('battle-live-preloads-product-group-before-start', loadIdx >= 0 && startIdx > loadIdx, { order: entryOrder.slice() });
+  gate('battle-live-preloads-selected-hero-runtimes-before-start', loadIdx >= 0 && startIdx > loadIdx, { order: entryOrder.slice() });
 
   // 2) the real match started (production truth, not donor state) — the entry
   //    resolves through the real gameplay barrier, so wait for it.

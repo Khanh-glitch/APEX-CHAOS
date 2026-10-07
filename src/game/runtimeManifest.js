@@ -5,7 +5,7 @@
 // correction slice (r43) re-keys every versioned runtime and the Gold shell /
 // bridge / Lucky Draw URLs so no prior cutover artifact can be served from a
 // stale cache during owner browser verification.
-export const APEX_ARSENAL_RUNTIME_REVISION = '20261007-r59-recovery-headless-closure';
+export const APEX_ARSENAL_RUNTIME_REVISION = '20261007-r59-e4-selected-hero-runtime';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime loading is classified by NEED, not by historical placement.
@@ -120,6 +120,70 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/heroes/coreSixCuratedSfxAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCoreSixCuratedSfxAuthority'],
   ['/game/heroes/coreSixCuratedSfxBridge.js', 'apexCoreSixCuratedSfxBridge'],
 ];
+
+// E4 — battle runtime selection. ARSENAL_PRODUCT_RUNTIMES above remains the
+// ONE canonical full graph (Lab/diagnostics/compatibility). Public battle entry
+// takes a filtered VIEW of that same ordered graph so only the two selected
+// fighters pay hero-specific evaluation cost. Filtering instead of concatenating
+// sub-groups preserves every historical dependency edge and script order.
+export const CORE_SIX_BATTLE_RUNTIME_PATHS = Object.freeze({
+  newbot: Object.freeze([
+    '/game/hero-rework/robotPresentationRuntime.js',
+  ]),
+  hunter: Object.freeze([
+    '/game/hero-rework/hunterGoldV10.js',
+    '/game/hero-rework/hunterPresentationRuntime.js',
+  ]),
+  crystala: Object.freeze([
+    '/game/hero-rework/crystalaGoldV6.js',
+    '/game/hero-rework/crystalGameplayRuntime.js',
+    '/game/hero-rework/crystalaPresentationRuntime.js',
+  ]),
+  magnet: Object.freeze([
+    '/game/hero-rework/magnetGameplayRuntime.js',
+    '/game/hero-rework/magnetGoldV1.js',
+    '/game/hero-rework/magnetPresentationRuntime.js',
+  ]),
+  frost: Object.freeze([
+    '/game/hero-rework/frostGameplayRuntime.js',
+    '/game/hero-rework/frostGoldV1.js',
+    '/game/hero-rework/frostPresentationRuntime.js',
+  ]),
+  mirror: Object.freeze([
+    '/game/hero-rework/mirrorGoldV1.js',
+    '/game/hero-rework/mirrorPresentationRuntime.js',
+  ]),
+});
+
+const CORE_SIX_RUNTIME_KEY_ALIASES = Object.freeze({
+  newbot: 'newbot', robot: 'newbot',
+  hunter: 'hunter',
+  crystala: 'crystala', crystal: 'crystala',
+  magnet: 'magnet',
+  frost: 'frost', ice: 'frost',
+  mirror: 'mirror',
+});
+const BATTLE_RUNTIME_OWNER_BY_PATH = new Map();
+for (const [hero, paths] of Object.entries(CORE_SIX_BATTLE_RUNTIME_PATHS)) {
+  for (const path of paths) BATTLE_RUNTIME_OWNER_BY_PATH.set(path, hero);
+}
+function battleRuntimeHeroKey(value) {
+  return CORE_SIX_RUNTIME_KEY_ALIASES[String(value || '').trim().toLowerCase()] || null;
+}
+export function arsenalBattleRuntimesFor(heroIds) {
+  const raw = Array.isArray(heroIds) ? heroIds.filter(Boolean) : [];
+  // Fail open to the canonical full graph when a caller supplies no selection
+  // or a future/unknown fighter. Optimization may never break future content.
+  if (!raw.length) return ARSENAL_PRODUCT_RUNTIMES.slice();
+  const normalized = raw.map(battleRuntimeHeroKey);
+  if (normalized.some((hero) => !hero)) return ARSENAL_PRODUCT_RUNTIMES.slice();
+  const selected = new Set(normalized);
+  return ARSENAL_PRODUCT_RUNTIMES.filter(([src]) => {
+    const path = String(src).split(/[?#]/, 1)[0];
+    const owner = BATTLE_RUNTIME_OWNER_BY_PATH.get(path);
+    return !owner || selected.has(owner);
+  });
+}
 
 // Shipping product groups only. Historical generic Battle groups are
 // test-only fixtures and are intentionally absent from this production map.

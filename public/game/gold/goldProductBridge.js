@@ -429,8 +429,8 @@
 
     if (surface === 'battle' || surface === 'transition') {
       tasks.push(
-        ensureDeferredRuntimes('arsenalProduct').then(async (ok) => {
-          if (ok !== true) throw new Error('arsenalProduct runtime group did not reach READY');
+        ensureSelectedBattleRuntimes(heroIds).then(async (ok) => {
+          if (ok !== true) throw new Error('selected battle runtime set did not reach READY');
           // R58: transition HOLD includes audio readiness. The destination is
           // not "ready" while first-use SFX can still be downloading/decoding.
           await warmMatchHeroAudio(...heroIds);
@@ -843,6 +843,19 @@
       tick();
     });
   }
+  // E4 selected-runtime seam. Current App publishes this as soon as the menu
+  // runtime is ready. Standalone/older hosts fail open to the canonical full
+  // arsenalProduct graph; optimization must never become a boot dependency.
+  function ensureSelectedBattleRuntimes(heroIds) {
+    const loader = window.__apexEnsureBattleRuntimes;
+    if (typeof loader !== 'function') return ensureDeferredRuntimes('arsenalProduct');
+    try {
+      return Promise.resolve(loader(heroIds)).then(() => true, () => false);
+    } catch (error) {
+      return Promise.resolve(false);
+    }
+  }
+
   // ONE match-audio readiness seam. R58 deliberately waits for the existing
   // owners instead of inventing another player: Arsenal/Hunter uses decoded
   // AudioBuffers, Core-Six uses its cached HTMLAudioElements, Robot uses its
@@ -900,7 +913,7 @@
       // load arsenalShellSelectRuntime creates APEX_ARSENAL_SHELLS and its
       // pending-selection state. Writing those fields before the script exists
       // makes the flow timing-dependent and lets slow loads erase the handoff.
-      const loaded = await ensureDeferredRuntimes('arsenalProduct');
+      const loaded = await ensureSelectedBattleRuntimes([p1Shell, p2Shell]);
       if (!loaded || sessionToken !== battleSessionToken || !hudMounted || !battleLiveRunning) {
         battleLiveRunning = false;
         return false;

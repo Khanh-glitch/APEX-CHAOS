@@ -18,6 +18,8 @@ import {
 import {
   ARSENAL_PRODUCT_RUNTIMES,
   ARSENAL_SHARED_ENGINE_RUNTIMES,
+  CORE_SIX_BATTLE_RUNTIME_PATHS,
+  arsenalBattleRuntimesFor,
   CURRENT_COMBAT_CORE_RUNTIMES,
   MODE_DEFERRED_RUNTIMES,
   SELECT_RUNTIMES,
@@ -317,6 +319,21 @@ gate('neutral-product-runtime-and-warmup-closure', () => {
   assert.deepEqual(Object.keys(MODE_DEFERRED_RUNTIMES).sort(), ['arsenalProduct']);
   assert.deepEqual(WARMUP_GROUP_SEQUENCE, []);
   assert.ok(!WARMUP_GROUP_SEQUENCE.some((group) => /quest/i.test(group)));
+
+  const selectedBattle = runtimePaths(arsenalBattleRuntimesFor(['newbot', 'mirror']));
+  const selectedPositions = selectedBattle.map((src) => active.indexOf(src));
+  assert.ok(selectedBattle.includes('/game/hero-rework/robotPresentationRuntime.js'));
+  assert.ok(selectedBattle.includes('/game/hero-rework/mirrorGoldV1.js'));
+  assert.ok(selectedBattle.includes('/game/hero-rework/mirrorPresentationRuntime.js'));
+  for (const hero of ['hunter', 'crystala', 'magnet', 'frost']) {
+    for (const scopedPath of CORE_SIX_BATTLE_RUNTIME_PATHS[hero]) {
+      assert.ok(!selectedBattle.includes(scopedPath), `unselected ${hero} runtime leaked into selected battle: ${scopedPath}`);
+    }
+  }
+  assert.deepEqual(selectedPositions, selectedPositions.slice().sort((a, b) => a - b),
+    'selected battle view must preserve canonical arsenalProduct order');
+  assert.deepEqual(runtimePaths(arsenalBattleRuntimesFor(['future-fighter'])), active,
+    'unknown future fighter must fail open to the canonical full graph');
 
   const manifest = source('src/game/runtimeManifest.js');
   const loader = source('src/game/runtimeLoader.js');

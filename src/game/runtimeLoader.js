@@ -1,6 +1,7 @@
 import {
   ARSENAL_HUB_RUNTIMES,
   MENU_INTERACTIVE_RUNTIMES,
+  arsenalBattleRuntimesFor,
   PRODUCT_MUSIC_BOOT_RUNTIMES,
   MODE_DEFERRED_RUNTIMES,
   SELECT_RUNTIMES,
@@ -221,6 +222,27 @@ export function loadDeferredGameRuntimes(group, { priority = true } = {}) {
   if (priority) warmGroupAudioWhenReady(group, gate);
   hintRuntimeSources(runtimes, 'prefetch');
   if (group === 'all') window.__apexDeferredRuntimesPromise = gate;
+  return gate;
+}
+
+// E4 public battle path: selected-combatant runtime view. The canonical
+// arsenalProduct group remains available for Lab/diagnostics. A stable ordered
+// runtime key dedupes prepareSurface -> onBattleLive and makes rematches add
+// only modules not already evaluated.
+const battleRuntimePromises = new Map();
+export function loadBattleGameRuntimes(heroIds) {
+  const runtimes = arsenalBattleRuntimesFor(heroIds);
+  const key = runtimes.map(([src]) => src).join('\n');
+  if (battleRuntimePromises.has(key)) return battleRuntimePromises.get(key);
+  const gate = enqueueGroup(runtimes, { priority: true })
+    .then(() => true)
+    .catch((error) => {
+      battleRuntimePromises.delete(key);
+      throw error;
+    });
+  battleRuntimePromises.set(key, gate);
+  warmGroupAudioWhenReady('arsenalProduct', gate);
+  hintRuntimeSources(runtimes, 'prefetch');
   return gate;
 }
 
