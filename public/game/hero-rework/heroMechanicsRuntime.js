@@ -691,11 +691,14 @@
     return scope.APEX_FROST || null;
   }
 
-  // R59 D6 BOT law: human canCast remains deliberately permissive. CPU
-  // utility is derived only from Frost's authored lane/reach geometry.
+  // R59 D8 BOT law: Frost is a control-loop hero, so "can reach" is not
+  // enough. CPU values what the cast changes: fresh ice control, route cuts,
+  // Frozen-Gun setup, and A2 steal opportunity. Every spatial/timing number is
+  // read from Frost's authored skill/law; no second AI-only range exists.
   function frostAiDecision(ctx, kind) {
     const self = ctx.combatant && ctx.combatant.anchor;
-    if (!self || !(self.hp > 0)) {
+    const FR = frostTruth();
+    if (!self || !(self.hp > 0) || !FR) {
       return { shouldCast:false, score:0, reason:'no-self', retryAfter:.3 };
     }
     const enemies=(ctx.api.enemyBodies?ctx.api.enemyBodies(ctx.combatant):[])
@@ -703,6 +706,9 @@
     if (!enemies.length) {
       return { shouldCast:false, score:0, reason:'no-living-enemy', retryAfter:.35 };
     }
+    const onIce=(x,y)=>!!(FR.isSurfaceAt&&FR.isSurfaceAt(x,y));
+    const ownHeld=ctx.api.heldWeapon?ctx.api.heldWeapon(ctx.combatant):null;
+    const consider=(best,score,reason)=>score>(best.score||0)?{score,reason}:best;
 
     if (kind === 'a1') {
       let dx=Number(self.dir&&self.dir.x)||0, dy=Number(self.dir&&self.dir.y)||0;
@@ -716,20 +722,46 @@
         const lateral=Math.abs(rx*-dy+ry*dx);
         return along>=-radius && along<=length+radius && lateral<=halfW+radius;
       };
-      if (enemies.some((body)=>insideLane(body.x,body.y,Number(body.radius)||0))) {
-        return { shouldCast:true, score:.94, reason:'enemy-in-frost-lane', retryAfter:.15 };
+      const laneAlong=(x,y)=>(x-self.x)*dx+(y-self.y)*dy;
+      let best={score:0,reason:'no-frost-breath-target'};
+
+      // Current contact lane: strongest when it creates NEW x0.5 enemy floor.
+      for (const body of enemies) {
+        const r=Number(body.radius)||0;
+        const current=insideLane(body.x,body.y,r);
+        const along=laneAlong(body.x,body.y);
+        const frontShare=length>1?Math.max(0,Math.min(1,along/length)):0;
+        const lead=Math.max(0,Number(ctx.cfg.castCommit)||0)
+          + Math.max(0,Number(FR.LAW&&FR.LAW.frontSeconds)||0)*frontShare;
+        const v=body.__hrVel||{x:0,y:0};
+        const px=body.x+(Number(v.x)||0)*lead, py=body.y+(Number(v.y)||0)*lead;
+        const projected=insideLane(px,py,r);
+        if (current) {
+          const fresh=!onIce(body.x,body.y);
+          best=consider(best,(fresh ? .78 : .46)+(onIce(self.x,self.y)?.06:0),
+            fresh?'fresh-control-lane':'already-controlled-lane');
+        } else if (projected) {
+          const fresh=!onIce(px,py);
+          best=consider(best,fresh ? .84 : .50,
+            fresh?'cut-moving-enemy-route':'projected-controlled-lane');
+        }
       }
 
-      const cfg=globalScope.APEX_ARSENAL_CONFIG;
-      const isGun=(id)=>!!(id&&id!=='STORMBREAKER'&&id!=='T6'
-        &&cfg&&typeof cfg.isGun==='function'&&cfg.isGun(id));
+      // A1 is also a weapon-control tool: a floor firearm in the lane becomes
+      // Frozen and is denied to non-Frost pickup. If Frost is unarmed this is
+      // both denial AND a Frozen-Gun setup, so it outranks generic zoning.
       const state=globalScope.APEX_ARSENAL&&globalScope.APEX_ARSENAL.state;
       const slots=state&&Array.isArray(state.slots)?state.slots:[];
-      if (slots.some((slot)=>slot&&slot.phase==='REVEALED'&&slot.kind!=='HEAL'
-          &&isGun(slot.weaponId)&&insideLane(slot.x,slot.y,16))) {
-        return { shouldCast:true, score:.82, reason:'floor-firearm-in-frost-lane', retryAfter:.2 };
+      for (const slot of slots) {
+        if (!slot||slot.phase!=='REVEALED'||slot.kind==='HEAL'
+            ||!FR.isFreezableFirearm(slot)||!insideLane(slot.x,slot.y,16)) continue;
+        best=consider(best,ownHeld ? .68 : .96,
+          ownHeld?'deny-floor-firearm':'freeze-pickup-setup');
       }
-      return { shouldCast:false, score:0, reason:'no-frost-breath-target', retryAfter:.3 };
+
+      return best.score>=.62
+        ? { shouldCast:true, score:Math.min(1,best.score), reason:best.reason, retryAfter:.15 }
+        : { shouldCast:false, score:best.score, reason:best.reason, retryAfter:.28 };
     }
 
     if (kind === 'a2') {
@@ -739,13 +771,38 @@
       } catch (_) {}
       const window=Math.max(0,Number(ctx.cfg.activeWindow)||0);
       const trailHalf=Math.max(0,Number(ctx.cfg.trailWidth)||0)/2;
-      const reachable=enemies.some((body)=>{
+      const selfOnIce=onIce(self.x,self.y);
+      let best={score:0,reason:'no-hunt-reachable-enemy'};
+
+      for (const body of enemies) {
         const contact=(Number(self.radius)||0)+(Number(body.radius)||0);
-        return dist(self.x,self.y,body.x,body.y)<=speed*window+contact+trailHalf;
-      });
-      return reachable
-        ? { shouldCast:true, score:.88, reason:'enemy-in-hunt-reach', retryAfter:.15 }
-        : { shouldCast:false, score:0, reason:'no-hunt-reachable-enemy', retryAfter:.3 };
+        const d=dist(self.x,self.y,body.x,body.y);
+        if (d>speed*window+contact+trailHalf) continue;
+
+        const enemyCt=ctx.api.combatantOfBody?ctx.api.combatantOfBody(body):null;
+        const enemyHeld=enemyCt&&ctx.api.heldWeapon?ctx.api.heldWeapon(enemyCt):null;
+        const stealable=!ownHeld&&enemyHeld&&FR.isFreezableFirearm({
+          weaponId:enemyHeld.weaponId,tier:enemyHeld.meta&&enemyHeld.meta.tier,
+        });
+        const enemyOnIce=onIce(body.x,body.y);
+        const frozen=typeof body.hasStatus==='function'&&body.hasStatus('freeze');
+
+        // Merely reachable is intentionally below the cast threshold.
+        let score=.38;
+        let reason='reachable-only';
+        if (!enemyOnIce) { score+=.26; reason='lay-control-trail'; }
+        if (selfOnIce) score+=.08; // leverage the real x1.5 Frost surface speed.
+        if (enemyHeld) score+=.08; // armed pressure is worth closing, but not alone.
+        if (stealable) { score+=.48; reason='steal-frozen-gun'; }
+        if (frozen&&!stealable) score-=.16; // already controlled: preserve cooldown.
+        if (d<=contact+trailHalf+12) score+=.06; // immediate physical proc, geometry-derived.
+
+        best=consider(best,Math.min(1,score),reason);
+      }
+
+      return best.score>=.62
+        ? { shouldCast:true, score:best.score, reason:best.reason, retryAfter:.15 }
+        : { shouldCast:false, score:best.score, reason:best.reason, retryAfter:.28 };
     }
 
     return { shouldCast:false, score:0, reason:'unknown-frost-skill', retryAfter:.4 };

@@ -691,6 +691,9 @@ const FR = {
       frozen: Object.keys(st.freeze).length,
     };
   },
+  // Read-only tactical query. AI/presentation may ask the SAME surface
+  // authority gameplay uses; callers never reconstruct ice geometry.
+  isSurfaceAt(x, y, now = clock()) { return activeFrostSurfaceAt(x, y, now); },
   isFreezableFirearm,
   holderInTransfer,   // stolen holder still in Gold transfer flight (pre-dock)
 };

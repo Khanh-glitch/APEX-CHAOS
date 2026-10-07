@@ -2134,13 +2134,80 @@ gate('r59-frost-bot-empty-geometry-reasons-are-explicit',
 gate('r59-frost-bot-a1-uses-authored-lane',
   report.r59FrostBotDecision.laneCase.a1>=1
   && report.r59FrostBotDecision.laneCase.a2===0
-  && report.r59FrostBotDecision.laneCase.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A1'&&e.reason==='enemy-in-frost-lane'),
+  && report.r59FrostBotDecision.laneCase.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A1'&&(e.reason==='fresh-control-lane'||e.reason==='cut-moving-enemy-route')),
   report.r59FrostBotDecision.laneCase);
 gate('r59-frost-bot-a2-uses-live-reach-envelope',
   report.r59FrostBotDecision.huntCase.a1===0
   && report.r59FrostBotDecision.huntCase.a2>=1
-  && report.r59FrostBotDecision.huntCase.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A2'&&e.reason==='enemy-in-hunt-reach'),
+  && report.r59FrostBotDecision.huntCase.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A2'&&e.reason==='lay-control-trail'),
   report.r59FrostBotDecision.huntCase);
+
+// R59 D8 FROST tactical consequences: existing ice should make a redundant
+// Rush less attractive, while a stealable gun or Frozen-Gun setup should
+// sharply increase utility.
+report.r59FrostTactical = run(`
+  const HR=window.APEX_HERO_REWORK, FR=window.APEX_FROST, W=window.APEX_ARSENAL.weaponApi;
+  const prevProfile=window.__apexArsenalBattleProfile;
+  const startBot=()=>{
+    window.__apexArsenalBattleProfile='BOT';
+    window.__apexArsenalTestStartMatch('ROBOT','ICE');
+    window.__apexArsenalBattleProfile=prevProfile;
+    cancelAnimationFrame(reqId);reqId=0;
+    __APEX_TEST.holdSpawns(); projectiles.length=0;
+    fighters[0].baseSpeed=0; fighters[1].baseSpeed=200;
+    if(fighters[0].data)fighters[0].data.__hrHoldBody=true;
+    if(fighters[1].data)fighters[1].data.__hrHoldBody=true;
+    return HR.byCombatant(fighters[1]);
+  };
+
+  let p2=startBot();
+  fighters[0].x=450;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;fighters[1].setDir(-1,0);
+  let ctl=HR.abilityController(p2); ctl.setCooldown('A1',999); ctl.setCooldown('A2',999);
+  FR.castBreath({combatant:p2,cfg:p2.skills.A1.cfg});
+  for(let i=0;i<55;i++) APEX_ARSENAL.step(1/60);
+  const onIce=FR.isSurfaceAt(fighters[0].x,fighters[0].y);
+  ctl.setCooldown('A2',0);
+  const holdMark=HR.AIL.bus.ring.length;
+  for(let i=0;i<120;i++) APEX_ARSENAL.step(1/60);
+  const controlledHold={onIce,a2:p2.telemetry.bySkill.A2||0,
+    decisions:HR.AIL.bus.ring.slice(holdMark).filter(e=>e.payload&&e.payload.hero==='ICE')
+      .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason,score:e.payload.score}))};
+
+  p2=startBot();
+  fighters[0].x=470;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;fighters[1].setDir(-1,0);
+  ctl=HR.abilityController(p2); ctl.setCooldown('A1',999);
+  W.equip(fighters[0],'PISTOL');
+  const stealMark=HR.AIL.bus.ring.length;
+  for(let i=0;i<120;i++) APEX_ARSENAL.step(1/60);
+  const steal={a2:p2.telemetry.bySkill.A2||0,
+    decisions:HR.AIL.bus.ring.slice(stealMark).filter(e=>e.payload&&e.payload.hero==='ICE')
+      .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason,score:e.payload.score}))};
+
+  p2=startBot();
+  fighters[0].x=120;fighters[0].y=850;fighters[1].x=800;fighters[1].y=500;fighters[1].setDir(-1,0);
+  ctl=HR.abilityController(p2); ctl.setCooldown('A2',999);
+  __APEX_TEST.pushSlot({x:500,y:500,phase:'REVEALED',kind:'WEAPON',weaponId:'PISTOL',revealedFor:0});
+  const pickupMark=HR.AIL.bus.ring.length;
+  for(let i=0;i<120;i++) APEX_ARSENAL.step(1/60);
+  const pickupSetup={a1:p2.telemetry.bySkill.A1||0,
+    decisions:HR.AIL.bus.ring.slice(pickupMark).filter(e=>e.payload&&e.payload.hero==='ICE')
+      .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason,score:e.payload.score}))};
+
+  return {controlledHold,steal,pickupSetup};
+`);
+gate('r59-frost-a2-holds-when-target-already-controlled',
+  report.r59FrostTactical.controlledHold.onIce===true
+  && report.r59FrostTactical.controlledHold.a2===0
+  && report.r59FrostTactical.controlledHold.decisions.some(e=>e.type==='AICastReject'&&e.slot==='A2'&&e.reason==='reachable-only'),
+  report.r59FrostTactical.controlledHold);
+gate('r59-frost-a2-prioritizes-stealable-weapon',
+  report.r59FrostTactical.steal.a2>=1
+  && report.r59FrostTactical.steal.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A2'&&e.reason==='steal-frozen-gun'),
+  report.r59FrostTactical.steal);
+gate('r59-frost-a1-builds-frozen-gun-setup-when-unarmed',
+  report.r59FrostTactical.pickupSetup.a1>=1
+  && report.r59FrostTactical.pickupSetup.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A1'&&e.reason==='freeze-pickup-setup'),
+  report.r59FrostTactical.pickupSetup);
 
 // R59 D7 MIRROR A1 — BOT never intentionally spends Arsenal on a whiff,
  // while the authored human whiff remains legal and cooldown-consuming.
