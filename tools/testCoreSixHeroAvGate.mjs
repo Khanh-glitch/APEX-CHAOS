@@ -343,8 +343,8 @@ ok(/captureExternalShardSide/.test(GAMEPLAY_SOURCES), 'the shard-side provenance
 for (const id of ['apexCoreSixCuratedSfxAuthority', 'apexCoreSixCuratedSfxBridge']) {
   ok(MANIFEST_RT.includes(id), `${id} is registered in the runtime manifest`);
 }
-ok(MANIFEST_RT.includes("'/game/heroes/coreSixCuratedSfxAuthority.js'"),
-  'the authority path is registered');
+ok(MANIFEST_RT.includes("'/game/heroes/coreSixCuratedSfxAuthority.js?v=' + APEX_ARSENAL_RUNTIME_REVISION"),
+  'the authority path is registered through the shared revision cache-bust');
 ok(MANIFEST_RT.includes("'/game/heroes/coreSixCuratedSfxBridge.js'"),
   'the bridge path is registered');
 ok(!/AudioContext/.test(AUTH), 'the hero-SFX authority builds no AudioContext');

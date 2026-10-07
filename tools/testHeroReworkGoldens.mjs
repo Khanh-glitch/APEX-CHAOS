@@ -6,8 +6,8 @@
  * fuzz, per docs/hero-rework/phase1/05_IMPLEMENTATION_TASK_FINAL.md §CP-HR5.
  *
  * Goldens (deterministic, rework cast/movement AI OFF):
- *   G1 CRYSTAL reflect x ICE payload (chill survives reflection)
- *   G2 MIRROR neutral portal x ICE (neutral exit, no hero credit, chill lands)
+ *   G1 CRYSTAL reflect x FROST frozen-bullet provenance (payload survives reflection)
+ *   G2 MIRROR neutral portal x FROST identity (neutral exit, no hero credit)
  *   G3 BLACK_HOLE stores a REFLECTED projectile (chain reflect -> store)
  *   G4 RUBBER stores a REFLECTED projectile (compression window)
  *   G5 TIME replay x MIRROR portal (replay exits neutral, no re-record)
@@ -293,7 +293,7 @@ gate('goldens-boot', hrFilesLoaded && hrLoadErrors.length === 0,
 const W = () => HR.match ? HR.match.world : null;
 
 /* ================================================================== *
- * G1 — CRYSTAL reflection x ICE payload (chill survives reflection)
+ * G1 — CRYSTAL reflection x FROST frozen-bullet provenance
  * ================================================================== */
 // CRYSTALA V1: the old always-on body reflect is gone. A Crystal reflects through its REAL construct (the J Wall)
 // or a K shard, so the reflect goldens now build a real Wall first: K, then a sacrificial 0-damage hostile decoy keeps
@@ -321,27 +321,31 @@ try {
   // INTERCEPTS deterministically: the moment the reflected projectile
   // appears, the shooter is moved onto its measured path via the production
   // relocate API (the same call SNIPER farthest-corner makes).
-  T.place(350, 500, 630, 500);
+  // V2 shard reflection needs real approach distance before body TOI can win.
+  // Reuse the same 580px geometry proven by G3 in this suite.
+  T.place(200, 500, 780, 500);
   const wallA = crystalWall(1);
-  const ice = T.ctl(0);
-  const a1 = ice.tryCast('A1', 'goldens'); // Ice Bullets: own shots apply CHILL
-  T.equip(0, 'MAGNUM_500'); // range 1276px — survives the full round trip
+  T.equip(0, 'MAGNUM_500'); // same long-lived real projectile as G3
+  const frostBody = win.fighters[0];
+  const frostHolder = win.APEX_ARSENAL.weaponApi.getHolder(frostBody);
+  if (frostHolder) win.APEX_FROST.noteFrozenPickup(frostBody, frostHolder, { weaponId: 'MAGNUM_500' });
+  const frozenPayloadArmed = !!(frostHolder && frostHolder.__frostFrozen);
   const mark = T.busMark();
-  let reflectSeen = false, chilledIce = false, creditedCrystal = false, runError = null;
+  let reflectSeen = false, creditedCrystal = false, runError = null;
   let payloadKept = false, controllerFlipped = false, intercepted = false;
   const traj = [];
   win.APEX_ARSENAL.events.length = 0;
   const crystalBody = win.fighters[1];
   const api = HR.match.api;
   try {
-    for (let f = 0; f < 420 && !(reflectSeen && chilledIce && creditedCrystal); f++) {
+    for (let f = 0; f < 420 && !(reflectSeen && payloadKept && creditedCrystal); f++) {
       T.step(1 / 60);
       reflectSeen = reflectSeen || T.busSince(mark, 'CrystalReflect') > 0;
       if (reflectSeen && !intercepted) {
         const p = win.projectiles.find(q => q && q.aq && q.owner === crystalBody);
         if (p) {
-          payloadKept = !!(p.__hr && p.__hr.chill); // ICE payload survives reflection
-          controllerFlipped = true; // reflect rewrote the controller to CRYSTAL
+          payloadKept = !!(p.__hr && p.__hr.frost && p.__hr.frost.shooter === frostBody);
+          controllerFlipped = p.owner === crystalBody; // reflect rewrote controller, provenance stayed Frost
           const sp = Math.hypot(p.vx, p.vy) || 1;
           const tx = p.x + (p.vx / sp) * 110, ty = p.y + (p.vy / sp) * 110;
           api.relocate(win.fighters[0], tx, ty, 'goldens.reflect-intercept');
@@ -354,19 +358,18 @@ try {
       }
       const c2 = HR.byCombatant(win.fighters[1]);
       creditedCrystal = c2 && c2.telemetry && c2.telemetry.damageDealt > 0;
-      const c1 = HR.byCombatant(win.fighters[0]);
-      chilledIce = !!(c1 && HR.AIL.StatusResolver.has(win.fighters[0], 'CHILL'));
     }
   } catch (e) { runError = String(e && e.message); }
   const hitLines = win.APEX_ARSENAL.events.filter(e => e.includes('HIT')).slice(0, 6);
-  // Laws: reflect fires; the payload + controller flip survive in flight;
-  // and when the reflected projectile connects, CHILL lands on the victim
-  // and the damage credits CRYSTAL (the reflecting combatant).
+  // Current laws: the real Frost frozen-bullet provenance survives a legal
+  // Crystala reflection while projectile control changes to CRYSTAL; a later
+  // hit is credited to the reflecting combatant. Freeze-proc RNG is covered by
+  // Frost's dedicated gates and is deliberately not duplicated here.
   gate('golden-crystal-reflect-ice-payload',
-    wallA.wall && a1 && a1.ok && reflectSeen && payloadKept && controllerFlipped
-    && chilledIce && creditedCrystal && !runError,
-    { wall: wallA, a1: a1 && a1.ok, reflectSeen, payloadKept, controllerFlipped, intercepted,
-      chilledIce, creditedCrystal, traj, hitLines, runError });
+    wallA.wall && frozenPayloadArmed && reflectSeen && payloadKept && controllerFlipped
+    && creditedCrystal && !runError,
+    { wall: wallA, frozenPayloadArmed, reflectSeen, payloadKept, controllerFlipped, intercepted,
+      creditedCrystal, traj, hitLines, runError });
   snapshot('golden-crystal-reflect-ice-payload');
 } catch (e) { gate('golden-crystal-reflect-ice-payload', false, String(e && e.message)); }
 
@@ -488,7 +491,9 @@ try {
   // the moment the reflected projectile appears, RUBBER is relocated onto
   // its measured path via the production relocate API, and the compression
   // window (2.5s) must STORE the returning projectile.
-  T.place(350, 500, 630, 500);
+  // Same proven V2 shard-reflection geometry as G3/G1; 280px let body TOI
+  // win before the 300px shard-contact ring could resolve.
+  T.place(200, 500, 780, 500);
   const wallG4 = crystalWall(1);
   const rub = T.ctl(0);
   const a2 = rub.tryCast('A2', 'goldens'); // compression store window (2.5s)

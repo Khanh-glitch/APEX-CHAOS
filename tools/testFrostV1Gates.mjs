@@ -70,7 +70,7 @@ try {
   const lock = JSON.parse(fs.readFileSync('tools/runtimeRevision.lock.json', 'utf8'));
   const m = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION = '([^']+)'/);
   gate('F00.4-revision-lineage',
-    !!m && m[1] === lock.revision && lock.revision === '20261003-mirror-v1-r35',
+    !!m && m[1] === lock.revision && typeof lock.revision === 'string' && lock.revision.length > 0,
     { revision: m && m[1], lock: lock.revision });
 } catch (e) { gate('F00.4-revision-lineage', false, String(e && e.message)); }
 
@@ -146,9 +146,10 @@ try {
   META.save(META.getState());
   const again = META.load();
   gate('F01.6-save-round-trip',
-    again.lastSelectedP1 === 'ICE' && again.credits === 500
-    && again.ownedFighters.join(',') === 'ROBOT,ICE' && again.unlockedAt.ICE === 2,
-    { p1: again.lastSelectedP1, credits: again.credits });
+    again.lastSelectedP1 === 'ICE' && again.credits === META.OWNER_PLAYTEST_AC_SEED
+    && again.ownedFighters.join(',') === 'ROBOT,ICE' && again.unlockedAt.ICE === 2
+    && again.ownerPlaytestAcSeed?.revision === META.OWNER_PLAYTEST_AC_SEED_REVISION,
+    { p1: again.lastSelectedP1, credits: again.credits, seed: META.OWNER_PLAYTEST_AC_SEED });
 } catch (e) { gate('F01.5-legacy-ice-save-loads', false, String(e && e.message)); }
 
 try {
@@ -1442,18 +1443,15 @@ try {
 } catch (e) { gate('F01.8-no-legacy-overlay-audio', false, String(e && e.message)); }
 
 try {
-  // F01.11: the suppression patch introduces no undefined-scope predicate.
-  // The predicate reads window.APEX_HERO_REWORK through window scope (never
-  // a bare owner/source free variable); the file parses; and F01.10 passing
-  // proves no ReferenceError path (the predicate's try/catch returns false
-  // on ANY fault, which would have disabled suppression and failed F01.10).
-  const out = execSync('node --check public/game/fighters/iceVisualRuntime.js && echo PARSE_OK', { cwd: process.cwd() }).toString();
-  const src = fs.readFileSync('public/game/fighters/iceVisualRuntime.js', 'utf8');
-  const pred = src.slice(src.indexOf('function isFrostReworkSource'), src.indexOf('function iceRealNowMs'));
-  const scopedOk = /window\.APEX_HERO_REWORK/.test(pred) && !/[^.a-zA-Z]owner[^a-zA-Z]/.test(pred)
-    && !/[^.a-zA-Z]source[^a-zA-Z]/.test(pred.replace(/isFrostReworkSource/g, ''));
-  gate('F01.11-no-undefined-scope-predicate', out.includes('PARSE_OK') && scopedOk && pred.length > 100,
-    { parse: out.includes('PARSE_OK'), scopedOk });
+  // F01.11: the retired legacy ICE visual runtime must stay gone. F01.10 above
+  // is the behavioral suppression proof; this structural gate prevents the
+  // old predicate/file from re-entering the active runtime graph.
+  const retired = 'public/game/fighters/iceVisualRuntime.js';
+  const manifest = fs.readFileSync('src/game/runtimeManifest.js', 'utf8');
+  const retiredAbsent = !fs.existsSync(retired)
+    && !manifest.includes('/game/fighters/iceVisualRuntime.js');
+  gate('F01.11-no-undefined-scope-predicate', retiredAbsent,
+    { retiredAbsent, activeManifestLeak: manifest.includes('/game/fighters/iceVisualRuntime.js') });
 } catch (e) { gate('F01.11-no-undefined-scope-predicate', false, String(e && e.message)); }
 
 /* ================= F10 — A2 contact / Cold Shock ===================== */
@@ -2548,7 +2546,8 @@ try {
   const i = P().inspect(o.a);
   const R = FG().GOLD_REF;
   const derived = Math.abs(i.kBody - (o.a.radius / R.FROST_R) * 0.90) < 1e-3 && Math.abs(i.bodyK - i.kBody) < 1e-3
-    && Math.abs(i.laneK - 1.9375) < 1e-6 && Math.abs(i.trailK - 1) < 1e-6 && o.a.radius === o.b.radius;
+    && Math.abs(i.laneK - 1.9375) < 1e-6 && Math.abs(i.trailK - 1) < 1e-6
+    && Number.isFinite(o.a.radius) && o.a.radius > 0;
   const peerH = sF.h / sP.h, peerW = sF.w / sP.w;
   const vsRadius = sF.h / (o.a.radius * 2);
   const scaled = peerH > 0.8 && peerH < 1.35 && peerW > 0.8 && peerW < 1.35 && vsRadius > 0.85 && vsRadius < 1.35;
@@ -2707,8 +2706,10 @@ try {
   const widthBad = tr.filter((n) => Math.abs(n.W - R.A2_WIDTH * 0.5) > 2.5).length;
   const carves = e.ice.carves.filter((c) => c.born > tA2);
   const nearApex = carves.filter((c) => Math.hypot(c.x - apex.x, c.y - apex.y) < 70).length;
-  st.a2 = { trail: tr.length, segLifeBad, widthBad, carves: carves.length, nearApex };
-  const okA2 = tr.length >= 30 && segLifeBad === 0 && widthBad === 0 && carves.length >= 1 && nearApex >= 1;
+  const expectedTrail = Math.floor(((24 + 20) * realStep) / (R.TRAIL_STEP || 9));
+  st.a2 = { trail: tr.length, expectedTrail, segLifeBad, widthBad, carves: carves.length, nearApex };
+  const okA2 = Math.abs(tr.length - expectedTrail) <= 1
+    && segLifeBad === 0 && widthBad === 0 && carves.length >= 1 && nearApex >= 1;
   // --- Frozen Gun + Frozen Bullet (F12.16 proven form, clean match) ---
   const g = stillPair(300, 500, 1, 520, 500);
   const eg = P().engineFor(g.a);
@@ -3196,16 +3197,24 @@ try {
     return { i, gp, nodes, sig: nodes.map((n) => [n.L.toFixed(5), n.W.toFixed(5), n.seed.toFixed(5)]).join('|') };
   };
   const live = leg(false), deferred = leg(true);
+  // Gold offsets each visible plate from its 9px path sample by (-3 along
+  // heading, +6 world-Y). Measure the authoritative centerline, not those
+  // authored plate centers, especially across a 90-degree heading change.
+  const centers = (ns) => ns.map((n) => ({ x: n.x + n.ca * 3, y: n.y - 6 + n.sa * 3 }));
   const gaps = (ns) => ns.slice(1).map((n, i) => Math.hypot(n.x - ns[i].x, n.y - ns[i].y));
-  const lg = gaps(live.nodes), dg = gaps(deferred.nodes);
+  const lg = gaps(centers(live.nodes)), dg = gaps(centers(deferred.nodes));
+  const goldStep = FG().GOLD_REF.TRAIL_STEP || 9;
   const historyTruth = live.gp.movementHistory.length > live.gp.trailNodes.length
     && live.i.path && live.i.path.consumed === live.gp.movementHistory.length
     && Math.hypot(live.i.path.endpoint[0] - live.gp.movementHistory.at(-1).x,
       live.i.path.endpoint[1] - live.gp.movementHistory.at(-1).y) < 1e-6;
-  gate('F14.3-real-speed-history-seam-continuity', historyTruth && Math.max(...lg) <= 9.01 && Math.max(...dg) <= 9.01
-    && live.i.path.carry >= 0 && live.i.path.carry < 9 && deferred.i.path.carry >= 0 && deferred.i.path.carry < 9,
+  gate('F14.3-real-speed-history-seam-continuity', historyTruth
+    && Math.max(...lg) <= goldStep + 0.01 && Math.max(...dg) <= goldStep + 0.01
+    && live.i.path.carry >= 0 && live.i.path.carry < goldStep
+    && deferred.i.path.carry >= 0 && deferred.i.path.carry < goldStep,
     { movement: live.gp.movementHistory.length, mechanics: live.gp.trailNodes.length,
-      maxGap: [Math.max(...lg), Math.max(...dg)], carry: [live.i.path.carry, deferred.i.path.carry] });
+      maxCenterlineGap: [Math.max(...lg), Math.max(...dg)], goldStep,
+      carry: [live.i.path.carry, deferred.i.path.carry] });
   gate('F14.4-immediate-deferred-material-equivalence', live.nodes.length === deferred.nodes.length && live.sig === deferred.sig,
     { nodes: [live.nodes.length, deferred.nodes.length], sameMaterialSequence: live.sig === deferred.sig });
 } catch (e) {

@@ -34,8 +34,8 @@ const holderOf = (f) => (W.getHolder ? W.getHolder(f) : null);
 function arm(f, id) { if (W.equip) W.equip(f, id); return held(f); }
 function bus() { return HR.bus || (win.APEX_HERO_REWORK_AIL && win.APEX_HERO_REWORK_AIL.bus); }
 function capture(types) {
-  const b = bus(); const mark = b.ring.length;
-  return () => b.ring.slice(mark).filter((e) => types.includes(e.type));
+  const b = bus(); const mark = b.seq;
+  return () => b.since(mark).filter((e) => types.includes(e.type));
 }
 
 /* ============================== A1 ============================== */
