@@ -1493,25 +1493,29 @@ function shatterPanel(panel){
  panel.warp.map.setAttribute('scale','7');
  whole.animate([{opacity:.7,transform:'scale(1)'},{opacity:.18,transform:'scale(1.012)'}],{duration:210,easing:'ease-in',fill:'forwards'});
  queueFx(()=>{if(R.ruptures[panel.v]===panel){panel.warp.map.setAttribute('scale','0');whole.style.filter='none';whole.remove();}},280);
- const maxSpan=Math.max(w,h);
+ const maxSpan=Math.max(w,h),shardBatch=document.createDocumentFragment(),shardAnims=[];
  cells.forEach((cell,index)=>{
   const poly=cell.poly.map(p=>`${(p.x/w*100).toFixed(2)}% ${(p.y/h*100).toFixed(2)}%`).join(',');
   const piece=document.createElement('div');piece.className='rupture-piece';piece.style.clipPath=`polygon(${poly})`;
-  const clone=makePanelSnapshot(panel.v,w,h);piece.appendChild(clone);group.appendChild(piece);
+  const clone=makePanelSnapshot(panel.v,w,h);piece.appendChild(clone);shardBatch.appendChild(piece);
   const cx=cell.poly.reduce((n,p)=>n+p.x,0)/cell.poly.length,cy=cell.poly.reduce((n,p)=>n+p.y,0)/cell.poly.length;
   let dx=cx-hit.x,dy=cy-hit.y,len=Math.hypot(dx,dy)||1;const force=clamp(21-len/maxSpan*18,4,21),tx=dx/len*force+rnd(-2,2),ty=dy/len*force+rnd(-2,2),rot=rnd(-2.4,2.4);
-  piece.animate([{opacity:0,transform:'translate(0,0) rotate(0deg)'},{opacity:.96,transform:'translate(0,0) rotate(0deg)',offset:.14},{opacity:.9,transform:`translate(${tx}px,${ty}px) rotate(${rot}deg)`,offset:.38},{opacity:.52,transform:`translate(${tx*.62}px,${ty*.62}px) rotate(${rot*.64}deg)`,offset:.68},{opacity:0,transform:`translate(${tx*.36}px,${ty*.36}px) rotate(${rot*.42}deg)`}],{duration:930,delay:index*9,easing:'cubic-bezier(.18,.72,.25,1)',fill:'forwards'});
+  shardAnims.push({piece,index,tx,ty,rot});
  });
+ group.appendChild(shardBatch);
+ shardAnims.forEach(({piece,index,tx,ty,rot})=>piece.animate([{opacity:0,transform:'translate(0,0) rotate(0deg)'},{opacity:.96,transform:'translate(0,0) rotate(0deg)',offset:.14},{opacity:.9,transform:`translate(${tx}px,${ty}px) rotate(${rot}deg)`,offset:.38},{opacity:.52,transform:`translate(${tx*.62}px,${ty*.62}px) rotate(${rot*.64}deg)`,offset:.68},{opacity:0,transform:`translate(${tx*.36}px,${ty*.36}px) rotate(${rot*.42}deg)`}],{duration:930,delay:index*9,easing:'cubic-bezier(.18,.72,.25,1)',fill:'forwards'}));
  const r=clamp(maxSpan*.095,18,44),lens=document.createElement('i');lens.className='rupture-lens';lens.style.left=(hit.x-r)+'px';lens.style.top=(hit.y-r)+'px';lens.style.width=(r*2)+'px';lens.style.height=(r*2)+'px';group.appendChild(lens);
  lens.animate([{opacity:0,transform:'scale(.36)'},{opacity:.92,transform:'scale(1.08)',offset:.34},{opacity:.45,transform:'scale(1.16)',offset:.62},{opacity:0,transform:'scale(1.22)'}],{duration:620,easing:'ease-out',fill:'forwards'});
 }
 function addSpectralRecovery(panel){
  if(!panel||!panel.group.isConnected)return;
+ const spectralBatch=document.createDocumentFragment(),spectral=[];
  for(const variant of ['cyan','red']){
-  const ghost=makePanelSnapshot(panel.v,panel.w,panel.h,'rupture-spectrum');ghost.classList.add(variant);panel.group.appendChild(ghost);
-  const dx=variant==='cyan'?2:-2,dy=variant==='cyan'?-1:1;
-  ghost.animate([{opacity:0,transform:`translate(${dx*2}px,${dy*2}px)`},{opacity:.22,transform:`translate(${dx}px,${dy}px)`,offset:.22},{opacity:0,transform:'translate(0,0)'}],{duration:430,easing:'ease-out',fill:'forwards'});
+  const ghost=makePanelSnapshot(panel.v,panel.w,panel.h,'rupture-spectrum');ghost.classList.add(variant);spectralBatch.appendChild(ghost);
+  const dx=variant==='cyan'?2:-2,dy=variant==='cyan'?-1:1;spectral.push({ghost,dx,dy});
  }
+ panel.group.appendChild(spectralBatch);
+ spectral.forEach(({ghost,dx,dy})=>ghost.animate([{opacity:0,transform:`translate(${dx*2}px,${dy*2}px)`},{opacity:.22,transform:`translate(${dx}px,${dy}px)`,offset:.22},{opacity:0,transform:'translate(0,0)'}],{duration:430,easing:'ease-out',fill:'forwards'}));
 }
 function sideAnchor(v,kind='stamp'){
  const root=relRect(R.side[v].root),side=R.side[v].root,sk=side.querySelector('.skills'),id=side.querySelector('.ident'),wp=side.querySelector('.weapon'),rail=R.rail[v].root;
