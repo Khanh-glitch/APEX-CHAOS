@@ -49,8 +49,9 @@ check('Hunter physical scale comes from the one authority, not side-specific CSS
   && !/r49-fighter-presentation-authority[\s\S]*data-hero="hunter"[\s\S]*transform:scale/.test(shell));
 
 check('Frost uses one hero-level scale/orientation authority, feet-first and mirrored per side',
-  shell.includes('frost:{scale:1.53,x:0,y:16}')
-  && shell.includes("const face=Number.isFinite(p.face)?p.face:(player==='p2'?-1:1)")
+  shell.includes('frost:{scale:1.53,x:0,y:23,flip:true}')
+  && shell.includes("const baseFace=player==='p2'?-1:1;")
+  && shell.includes("p.flip?-baseFace:baseFace")
   && shell.includes("applyHeroPresentation(img,target.renderId,target.id,target.player)")
   && shell.includes("setProperty('transform-origin','50% 68%','important')")
   // E1 owner law: no per-hero fixed facing and no historical CSS geometry
