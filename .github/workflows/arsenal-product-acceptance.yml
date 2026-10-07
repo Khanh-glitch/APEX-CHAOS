@@ -53,6 +53,9 @@ jobs:
           pnpm arsenal:sfx:materialize
           git diff --exit-code -- public/assets/arsenal/av
 
+      - name: Run owner playtest candidate clean-room gates
+        run: pnpm test:owner-playtest-candidate
+
       - name: Run targeted Hero Rework smoke
         run: AQ_EVIDENCE_DIR=/tmp/arsenal-closure-smoke node tools/smokeHeroReworkHeadless.mjs
 
