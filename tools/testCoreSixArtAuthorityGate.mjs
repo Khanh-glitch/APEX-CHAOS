@@ -170,8 +170,11 @@ check('NEWBOT selected presentation no longer clones the Home robot instead of P
   !/#stage > \.heroWrap/.test(worldRenderer));
 check('one hero-level presentation authority owns world-stage scale/orientation for both sides',
   /const HERO_PRESENTATION=Object\.freeze\(\{/.test(shell)
-  && /applyHeroPresentation\(img,target\.renderId,target\.id,target\.player\)/.test(worldBody)
-  && /const face=Number\.isFinite\(p\.face\)\?p\.face:\(player==='p2'\?-1:1\)/.test(shell));
+  && /function presentationFor\(renderId,player\)/.test(shell)
+  && /const nativeFacing=Number\.isFinite\(p\.nativeFacing\)\?p\.nativeFacing:1;/.test(shell)
+  && /const desiredSideFacing=player==='p2'\?-1:1;/.test(shell)
+  && /const face=nativeFacing\*desiredSideFacing;/.test(shell)
+  && /applyHeroPresentation\(img,target\.renderId,target\.id,target\.player\)/.test(worldBody));
 check('WORLD_ART static override is retired (empty) and Mirror presentation is runtime-derived',
   /const WORLD_ART = \{\};/.test(shell) && /mirrorOpponentHero\(player\)/.test(worldRenderer));
 
