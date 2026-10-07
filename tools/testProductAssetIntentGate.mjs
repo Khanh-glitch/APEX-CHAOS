@@ -15,6 +15,7 @@ const magnetPresentation = fs.readFileSync('public/game/hero-rework/magnetPresen
 const mirrorGold = fs.readFileSync('public/game/hero-rework/mirrorGoldV1.js','utf8');
 const mirrorPresentation = fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js','utf8');
 const crystalaPresentation = fs.readFileSync('public/game/hero-rework/crystalaPresentationRuntime.js','utf8');
+const coldProfiler = fs.readFileSync('tools/profileCoreSixColdLoad.mjs','utf8');
 
 const failures=[];
 const notes=[];
@@ -96,13 +97,20 @@ check('Robot measures synchronous sprite preprocess',
   robotPresentation.includes("'preprocess-start'") && robotPresentation.includes("'preprocess-ready'"));
 check('Hunter measures Gold load/derive preprocess',
   hunterPresentation.includes("'preprocess-start'") && hunterPresentation.includes("'preprocess-ready'"));
-check('Frost measures Gold mip/surface preprocess',
-  frostPresentation.includes("'preprocess-start'") && frostPresentation.includes("'preprocess-ready'"));
+check('Frost measures instance Gold mip/surface preprocess',
+  frostPresentation.includes("source: 'FrostEngine.load'")
+  && frostPresentation.includes("e.load().then")
+  && !frostPresentation.includes("typeof G.load === 'function'"));
 check('Magnet measures the Gold image fanout loader itself',
   magnetGold.includes("'preprocess-start'") && magnetGold.includes("'preprocess-ready'")
   && magnetGold.includes('assetJobs:jobs.length'));
 check('Mirror measures first-use raster bake',
   mirrorGold.includes("'preprocess-start'") && mirrorGold.includes("'preprocess-ready'"));
+check('browser cold profiler requires the full load ladder',
+  coldProfiler.includes('v.profile.assets.ready === v.profile.assets.count')
+  && coldProfiler.includes('!!v.profile.runtimeReadyAt')
+  && coldProfiler.includes('!!v.profile.preprocessReadyAt')
+  && coldProfiler.includes('!!v.profile.firstCompleteFrameAt'));
 check('Crystala reports procedural preprocess explicitly',
   crystalaPresentation.includes("'preprocess-start'") && crystalaPresentation.includes("'preprocess-ready'"));
 

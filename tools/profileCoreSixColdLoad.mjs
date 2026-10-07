@@ -177,7 +177,16 @@ async function runHero(hero, index) {
         profile:p,
         errors:(window.__APEX_COLD_ERRORS||[]).slice()
       };
-    })()`, (v) => v?.live && v?.hud && !!v.profile?.firstCompleteFrameAt,
+    })()`, (v) => v?.live && v?.hud
+      && !!v.profile?.assets?.requestStartAt
+      && v.profile.assets.count > 0
+      && v.profile.assets.observed === v.profile.assets.count
+      && v.profile.assets.ready === v.profile.assets.count
+      && !!v.profile.assets.fetchDoneAt
+      && !!v.profile.assets.decodeDoneAt
+      && !!v.profile.runtimeReadyAt
+      && !!v.profile.preprocessReadyAt
+      && !!v.profile.firstCompleteFrameAt,
     { attempts:3000, interval:80 });
 
     if (sample.errors.length) {
@@ -198,10 +207,10 @@ async function runHero(hero, index) {
 }
 
 const report = {
-  checkpoint:'R59-E3b',
+  checkpoint:'R59-E3d',
   sha:process.env.GITHUB_SHA || null,
   appUrl,
-  definition:'fresh Chrome user-data-dir per hero; real BOT pick/lock flow; sample after first-complete-frame',
+  definition:'fresh Chrome user-data-dir per hero; real BOT pick/lock flow; sample after full request/fetch/decode/runtime/preprocess/first-complete-frame ladder',
   heroes:{},
   failures:[],
 };

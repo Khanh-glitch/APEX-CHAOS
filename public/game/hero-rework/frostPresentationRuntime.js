@@ -380,6 +380,7 @@ function createState(ct) {
     api.ready = true;
   } else if (!createState.loadStarted && typeof e.load === 'function') {
     createState.loadStarted = true;
+    loadProbe('preprocess-start', { source: 'FrostEngine.load' });
     try {
       e.load().then(() => {
         sharedArt = { mips: e.mips, shadow: e.shadowCanvas };
@@ -392,8 +393,15 @@ function createState(ct) {
           }
         }
         api.ready = true;
-      }).catch((err) => { api.error = String(err); });
-    } catch (err) { api.error = String(err); }
+        loadProbe('preprocess-ready', { cacheStats: G.cacheStats ? { ...G.cacheStats } : null });
+      }).catch((err) => {
+        api.error = String(err);
+        loadProbe('preprocess-error', { error: String(err) });
+      });
+    } catch (err) {
+      api.error = String(err);
+      loadProbe('preprocess-error', { error: String(err) });
+    }
   }
   const S = {
     ct, fighter: f, engine: e, cfg,
@@ -2007,21 +2015,6 @@ api.clearIntegrityTrace = function () {
   for (const [, S] of liveStates) { S.integrityActiveIds = new Set(); S.integrityRetired = 0; }
 };
 
-if (G && typeof G.load === 'function' && !api.ready) {
-  loadProbe('preprocess-start', { source: 'APEX_FROST_GOLD.load' });
-  try {
-    G.load().then(() => {
-      api.ready = true;
-      loadProbe('preprocess-ready', { cacheStats: G.cacheStats ? { ...G.cacheStats } : null });
-    }).catch((e) => {
-      api.error = String(e);
-      loadProbe('preprocess-error', { error: String(e) });
-    });
-  } catch (e) {
-    api.error = String(e);
-    loadProbe('preprocess-error', { error: String(e) });
-  }
-}
 
 loadProbe('runtime-ready', { runtime: 'frostPresentationRuntime' });
 g.apexFrostPresentationRuntime = 'ready';
