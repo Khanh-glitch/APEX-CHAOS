@@ -40,6 +40,7 @@ check('battle WebAudio still rearms after resume', battle.includes("audioCtx.add
 
 // R58 owner-critical audio acceptance.
 const bridge = fs.readFileSync('public/game/gold/goldProductBridge.js','utf8');
+const shell = fs.readFileSync('public/gold/shell.html','utf8');
 const heroSfx = fs.readFileSync('public/game/heroes/coreSixCuratedSfxAuthority.js','utf8');
 check('battle transition awaits the one match-audio readiness seam',
   bridge.includes('await warmMatchHeroAudio(...heroIds)')
@@ -51,8 +52,12 @@ check('Core-Six warm resolves from real media readiness',
   heroSfx.includes("el.addEventListener('canplay', onReady")
   && heroSfx.includes("el.addEventListener('loadeddata', onReady")
   && heroSfx.includes('return Promise.all(waits).then'));
-check('boot announces Home to product music before any navigation gesture',
-  app.includes("musicAuthority.setSurface?.('home')"));
+check('boot announces transition before Home is ready, then Gold Home owns the Home surface announcement',
+  app.includes("musicAuthority.setSurface?.('transition')")
+  && app.includes('before Gold Home')
+  && shell.includes("APEX_GOLD.onSurface&&APEX_GOLD.onSurface('home')")
+  && music.includes("const ALLOWED_SURFACES = ['home', 'mode', 'fighter', 'transition']")
+  && !app.includes("musicAuthority.setSurface?.('home')"));
 
 console.log(['AUDIO AUTHORITY GATE',...passes].join('\n'));
 if(failures.length){console.error(failures.join('\n'));process.exit(1);}
