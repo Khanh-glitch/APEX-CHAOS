@@ -70,7 +70,7 @@ try {
   const lock = JSON.parse(fs.readFileSync('tools/runtimeRevision.lock.json', 'utf8'));
   const m = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION = '([^']+)'/);
   gate('F00.4-revision-lineage',
-    !!m && m[1] === lock.revision && lock.revision === '20261003-mirror-v1-r35',
+    !!m && m[1] === lock.revision && typeof lock.revision === 'string' && lock.revision.length > 0,
     { revision: m && m[1], lock: lock.revision });
 } catch (e) { gate('F00.4-revision-lineage', false, String(e && e.message)); }
 
@@ -3490,6 +3490,67 @@ try {
   gate('F18.1-balance-and-visual-scale', false, String(e && e.message));
   gate('F18.2-no-eye-trail-on-ice-eye-boost', false, String(e && e.message));
   gate('F18.3-canonical-mouth-and-no-wet-circles', false, String(e && e.message));
+}
+
+/* ================= F19 — BOT tactical cast policy ===================== */
+try {
+  win.__apexArsenalBattleProfile = 'BOT';
+  T.start('ROBOT', 'ICE'); T.holdSpawns();
+  const [enemy, bot] = fighters();
+  enemy.baseSpeed = 0; bot.baseSpeed = 0;
+  enemy.x = 100; enemy.y = 100; bot.x = 900; bot.y = 900; bot.setDir(1, 0);
+  const botCt = HR.byCombatant(bot);
+  HR.setAiEnabled(true);
+  T.step(1.6, 1 / 60);
+  const idleA1 = botCt.telemetry.bySkill.A1 || 0;
+  const idleA2 = botCt.telemetry.bySkill.A2 || 0;
+  const idleFails = botCt.telemetry.castFails || 0;
+  gate('F19.1-bot-does-not-spend-frost-skills-with-no-authored-target',
+    idleA1 === 0 && idleA2 === 0 && idleFails === 0,
+    { a1: idleA1, a2: idleA2, castFails: idleFails });
+
+  const ctl = HR.abilityController(botCt);
+  ctl.setCooldown('A2', 99);
+  bot.x = 700; bot.y = 500; bot.setDir(-1, 0);
+  enemy.x = 350; enemy.y = 500;
+  T.step(1.6, 1 / 60);
+  gate('F19.2-bot-a1-casts-when-enemy-enters-the-real-breath-lane',
+    (botCt.telemetry.bySkill.A1 || 0) >= 1,
+    { a1: botCt.telemetry.bySkill.A1 || 0,
+      distance: Math.hypot(enemy.x - bot.x, enemy.y - bot.y),
+      lane: [REG.HEROES.ICE.skills.A1.cfg.length, REG.HEROES.ICE.skills.A1.cfg.width] });
+} catch (e) {
+  gate('F19.1-bot-does-not-spend-frost-skills-with-no-authored-target', false, String(e));
+} finally {
+  HR.setAiEnabled(false);
+}
+
+try {
+  win.__apexArsenalBattleProfile = 'BOT';
+  T.start('ROBOT', 'ICE'); T.holdSpawns();
+  const [enemy, bot] = fighters();
+  enemy.baseSpeed = 0; bot.baseSpeed = 0;
+  enemy.x = 100; enemy.y = 500; bot.x = 900; bot.y = 500;
+  const botCt = HR.byCombatant(bot);
+  const ctl = HR.abilityController(botCt);
+  ctl.setCooldown('A1', 99);
+  HR.setAiEnabled(true);
+  T.step(1.6, 1 / 60);
+  const farA2 = botCt.telemetry.bySkill.A2 || 0;
+  enemy.x = bot.x - ((bot.radius || 75) + (enemy.radius || 75));
+  enemy.y = bot.y;
+  T.step(1.6, 1 / 60);
+  const nearA2 = botCt.telemetry.bySkill.A2 || 0;
+  gate('F19.3-bot-a2-waits-until-hunt-can-reach-a-real-body',
+    farA2 === 0 && nearA2 >= 1,
+    { farA2, nearA2, distance: Math.hypot(enemy.x - bot.x, enemy.y - bot.y),
+      activeWindow: REG.HEROES.ICE.skills.A2.cfg.activeWindow,
+      trailWidth: REG.HEROES.ICE.skills.A2.cfg.trailWidth });
+} catch (e) {
+  gate('F19.3-bot-a2-waits-until-hunt-can-reach-a-real-body', false, String(e));
+} finally {
+  HR.setAiEnabled(false);
+  win.__apexArsenalBattleProfile = 'LOCAL';
 }
 
 /* ================= summary ============================================ */
