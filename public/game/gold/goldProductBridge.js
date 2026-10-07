@@ -421,6 +421,34 @@
     // the exact destination requirement set is READY.
     theme.setSurface(surfaceId);
   };
+  // R59 selection-intent warm cache. A fighter that the player actually
+  // selects gets its own art + arena rig decoded while Pick remains usable.
+  // One promise per hero prevents rapid repeat clicks from abort/restarting the
+  // same decode chain; failures are evicted so a later selection can retry.
+  const fighterSelectionWarm = new Map();
+  BRIDGE.warmFighterSelection = function warmFighterSelection(heroIds) {
+    const assets = window.apexProductAssets;
+    const ids = [...new Set((Array.isArray(heroIds) ? heroIds : []).filter(Boolean).map((id) => String(id).toLowerCase()))];
+    if (!assets || typeof assets.prepare !== 'function' || !ids.length) return Promise.resolve(false);
+    const jobs = ids.map((id) => {
+      if (fighterSelectionWarm.has(id)) return fighterSelectionWarm.get(id);
+      const job = assets.prepare('fighter-hero', {
+        scope: 'intent:fighter-hero:' + id,
+        heroIds: [id],
+        intent: 'warm',
+      }).then((result) => result && result.ready === true).catch((error) => {
+        fighterSelectionWarm.delete(id);
+        if (!error || error.name !== 'AbortError') {
+          console.warn('[gold-assets] selected fighter warm failed', id, error);
+        }
+        return false;
+      });
+      fighterSelectionWarm.set(id, job);
+      return job;
+    });
+    return Promise.all(jobs).then((results) => results.every(Boolean));
+  };
+
   BRIDGE.prepareSurface = async function prepareSurface(surfaceId, context = {}) {
     const surface = String(surfaceId || '').toLowerCase();
     const assets = window.apexProductAssets;
