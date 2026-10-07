@@ -1943,7 +1943,7 @@ report.r59RobotBotDecision = run(`
   if (fighters[0].data) fighters[0].data.__hrHoldBody = true;
   if (fighters[1].data) fighters[1].data.__hrHoldBody = true;
 
-  const mark = HR.AIL.bus.ring.length;
+  const mark = HR.AIL.bus.seq;
   for (let i = 0; i < 180; i++) APEX_ARSENAL.step(1/60);
   const idle = {
     casts: p2.telemetry.casts,
@@ -1951,7 +1951,7 @@ report.r59RobotBotDecision = run(`
     a1: p2.telemetry.bySkill.A1 || 0,
     a2: p2.telemetry.bySkill.A2 || 0,
   };
-  const idleEvents = HR.AIL.bus.ring.slice(mark);
+  const idleEvents = HR.AIL.bus.since(mark);
   const idleRejects = idleEvents.filter(e => e.type === 'AICastReject' && e.payload.hero === 'ROBOT')
     .map(e => ({slot:e.payload.slot,reason:e.payload.reason}));
 
@@ -1973,7 +1973,7 @@ report.r59RobotBotDecision = run(`
     a2: p2.telemetry.bySkill.A2 || 0,
     fails: p2.telemetry.castFails,
   };
-  const decisions = HR.AIL.bus.ring.slice(mark).filter(e =>
+  const decisions = HR.AIL.bus.since(mark).filter(e =>
     (e.type === 'AICastConsider' || e.type === 'AICastReject' || e.type === 'AICastSelect' || e.type === 'AICastOutcome')
     && e.payload.hero === 'ROBOT'
   ).map(e => ({type:e.type,slot:e.payload.slot,reason:e.payload.reason,ok:e.payload.ok}));
@@ -2026,31 +2026,31 @@ report.r59MagnetBotDecision = run(`
 
   let p2 = startBot();
   fighters[0].x = 120; fighters[0].y = 500; fighters[1].x = 880; fighters[1].y = 500;
-  const markIdle = HR.AIL.bus.ring.length;
+  const markIdle = HR.AIL.bus.seq;
   for (let i=0;i<180;i++) APEX_ARSENAL.step(1/60);
   const idle = {casts:p2.telemetry.casts,a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,fails:p2.telemetry.castFails};
-  const idleReasons = HR.AIL.bus.ring.slice(markIdle).filter(e=>e.type==='AICastReject'&&e.payload.hero==='MAGNET')
+  const idleReasons = HR.AIL.bus.since(markIdle).filter(e=>e.type==='AICastReject'&&e.payload.hero==='MAGNET')
     .map(e=>({slot:e.payload.slot,reason:e.payload.reason}));
 
   // New match isolates A1. The floor gun is outside A2's 225 radius but A1
   // attraction is arena-wide by gameplay authority.
   p2 = startBot();
   fighters[0].x = 120; fighters[0].y = 500; fighters[1].x = 880; fighters[1].y = 500;
-  const markA1 = HR.AIL.bus.ring.length;
+  const markA1 = HR.AIL.bus.seq;
   __APEX_TEST.pushSlot({x:500,y:500,phase:'REVEALED',kind:'WEAPON',weaponId:'PISTOL',revealedFor:0});
   for (let i=0;i<120;i++) APEX_ARSENAL.step(1/60);
   const floorCase = {a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,
-    decisions:HR.AIL.bus.ring.slice(markA1).filter(e=>e.payload&&e.payload.hero==='MAGNET')
+    decisions:HR.AIL.bus.since(markA1).filter(e=>e.payload&&e.payload.hero==='MAGNET')
       .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason}))};
 
   // New match isolates A2 with no floor gun/projectile: only real enemy-body
   // proximity can justify the field.
   p2 = startBot();
   fighters[0].x = 650; fighters[0].y = 500; fighters[1].x = 820; fighters[1].y = 500;
-  const markA2 = HR.AIL.bus.ring.length;
+  const markA2 = HR.AIL.bus.seq;
   for (let i=0;i<120;i++) APEX_ARSENAL.step(1/60);
   const bodyCase = {a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,
-    decisions:HR.AIL.bus.ring.slice(markA2).filter(e=>e.payload&&e.payload.hero==='MAGNET')
+    decisions:HR.AIL.bus.since(markA2).filter(e=>e.payload&&e.payload.hero==='MAGNET')
       .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason}))};
 
   return {idle,idleReasons,floorCase,bodyCase};
@@ -2095,28 +2095,28 @@ report.r59FrostBotDecision = run(`
   let p2=startBot();
   fighters[0].x=120;fighters[0].y=500;fighters[1].x=880;fighters[1].y=500;
   fighters[0].baseSpeed=0;fighters[1].baseSpeed=0;fighters[1].setDir(1,0);
-  const idleMark=HR.AIL.bus.ring.length;
+  const idleMark=HR.AIL.bus.seq;
   for(let i=0;i<180;i++)APEX_ARSENAL.step(1/60);
   const idle={casts:p2.telemetry.casts,a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,fails:p2.telemetry.castFails,
-    reasons:HR.AIL.bus.ring.slice(idleMark).filter(e=>e.type==='AICastReject'&&e.payload.hero==='ICE')
+    reasons:HR.AIL.bus.since(idleMark).filter(e=>e.type==='AICastReject'&&e.payload.hero==='ICE')
       .map(e=>({slot:e.payload.slot,reason:e.payload.reason}))};
 
   p2=startBot();
   fighters[0].x=300;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
   fighters[0].baseSpeed=0;fighters[1].baseSpeed=0;fighters[1].setDir(-1,0);
-  const a1Mark=HR.AIL.bus.ring.length;
+  const a1Mark=HR.AIL.bus.seq;
   for(let i=0;i<120;i++)APEX_ARSENAL.step(1/60);
   const laneCase={a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,
-    decisions:HR.AIL.bus.ring.slice(a1Mark).filter(e=>e.payload&&e.payload.hero==='ICE')
+    decisions:HR.AIL.bus.since(a1Mark).filter(e=>e.payload&&e.payload.hero==='ICE')
       .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason}))};
 
   p2=startBot();
   fighters[0].x=450;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
   fighters[0].baseSpeed=0;fighters[1].baseSpeed=200;fighters[1].setDir(0,1);
-  const a2Mark=HR.AIL.bus.ring.length;
+  const a2Mark=HR.AIL.bus.seq;
   for(let i=0;i<120;i++)APEX_ARSENAL.step(1/60);
   const huntCase={a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,
-    decisions:HR.AIL.bus.ring.slice(a2Mark).filter(e=>e.payload&&e.payload.hero==='ICE')
+    decisions:HR.AIL.bus.since(a2Mark).filter(e=>e.payload&&e.payload.hero==='ICE')
       .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason}))};
 
   return {idle,laneCase,huntCase};
@@ -2167,30 +2167,30 @@ report.r59FrostTactical = run(`
   for(let i=0;i<55;i++) APEX_ARSENAL.step(1/60);
   const onIce=FR.isSurfaceAt(fighters[0].x,fighters[0].y);
   ctl.setCooldown('A2',0);
-  const holdMark=HR.AIL.bus.ring.length;
+  const holdMark=HR.AIL.bus.seq;
   for(let i=0;i<120;i++) APEX_ARSENAL.step(1/60);
   const controlledHold={onIce,a2:p2.telemetry.bySkill.A2||0,
-    decisions:HR.AIL.bus.ring.slice(holdMark).filter(e=>e.payload&&e.payload.hero==='ICE')
+    decisions:HR.AIL.bus.since(holdMark).filter(e=>e.payload&&e.payload.hero==='ICE')
       .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason,score:e.payload.score}))};
 
   p2=startBot();
   fighters[0].x=470;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;fighters[1].setDir(-1,0);
   ctl=HR.abilityController(p2); ctl.setCooldown('A1',999);
   W.equip(fighters[0],'PISTOL');
-  const stealMark=HR.AIL.bus.ring.length;
+  const stealMark=HR.AIL.bus.seq;
   for(let i=0;i<120;i++) APEX_ARSENAL.step(1/60);
   const steal={a2:p2.telemetry.bySkill.A2||0,
-    decisions:HR.AIL.bus.ring.slice(stealMark).filter(e=>e.payload&&e.payload.hero==='ICE')
+    decisions:HR.AIL.bus.since(stealMark).filter(e=>e.payload&&e.payload.hero==='ICE')
       .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason,score:e.payload.score}))};
 
   p2=startBot();
   fighters[0].x=120;fighters[0].y=850;fighters[1].x=800;fighters[1].y=500;fighters[1].setDir(-1,0);
   ctl=HR.abilityController(p2); ctl.setCooldown('A2',999);
   __APEX_TEST.pushSlot({x:500,y:500,phase:'REVEALED',kind:'WEAPON',weaponId:'PISTOL',revealedFor:0});
-  const pickupMark=HR.AIL.bus.ring.length;
+  const pickupMark=HR.AIL.bus.seq;
   for(let i=0;i<120;i++) APEX_ARSENAL.step(1/60);
   const pickupSetup={a1:p2.telemetry.bySkill.A1||0,
-    decisions:HR.AIL.bus.ring.slice(pickupMark).filter(e=>e.payload&&e.payload.hero==='ICE')
+    decisions:HR.AIL.bus.since(pickupMark).filter(e=>e.payload&&e.payload.hero==='ICE')
       .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason,score:e.payload.score}))};
 
   return {controlledHold,steal,pickupSetup};
@@ -2232,12 +2232,12 @@ report.r59MirrorA1BotDecision = run(`
   const sample=(weaponId)=>{
     const p2=startBot();
     if(weaponId) W.equip(fighters[0],weaponId);
-    const mark=HR.AIL.bus.ring.length;
+    const mark=HR.AIL.bus.seq;
     for(let i=0;i<180;i++) APEX_ARSENAL.step(1/60);
     return {
       a1:p2.telemetry.bySkill.A1||0,
       fails:p2.telemetry.castFails,
-      events:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='MIRROR')
+      events:HR.AIL.bus.since(mark).filter(e=>e.payload&&e.payload.hero==='MIRROR')
         .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason,ok:e.payload.ok}))
     };
   };
@@ -2301,30 +2301,30 @@ report.r59MirrorA2Position = run(`
 
   let p2=startBot();
   fighters[0].x=300;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
-  let mark=HR.AIL.bus.ring.length;
+  let mark=HR.AIL.bus.seq;
   for(let i=0;i<180;i++)APEX_ARSENAL.step(1/60);
   const neutral={a2:p2.telemetry.bySkill.A2||0,
-    decisions:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='MIRROR'&&e.payload.slot==='A2')
+    decisions:HR.AIL.bus.since(mark).filter(e=>e.payload&&e.payload.hero==='MIRROR'&&e.payload.slot==='A2')
       .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
 
   p2=startBot();
   fighters[0].x=300;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
   projectiles.push({type:'aq_bullet',aq:true,owner:fighters[0],weapon:'PISTOL',
     x:650,y:500,px:650,py:500,vx:80,vy:0,radius:4,life:4,maxLife:4,color:'#fff'});
-  mark=HR.AIL.bus.ring.length;
+  mark=HR.AIL.bus.seq;
   for(let i=0;i<90;i++)APEX_ARSENAL.step(1/60);
   const projectileEscape={a2:p2.telemetry.bySkill.A2||0,
-    decisions:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='MIRROR'&&e.payload.slot==='A2')
+    decisions:HR.AIL.bus.since(mark).filter(e=>e.payload&&e.payload.hero==='MIRROR'&&e.payload.slot==='A2')
       .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
 
   p2=startBot();
   fighters[0].x=400;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
   W.equip(fighters[0],'PISTOL');
   __APEX_TEST.pushSlot({x:400,y:500,phase:'REVEALED',kind:'WEAPON',weaponId:'SHOTGUN',revealedFor:0});
-  mark=HR.AIL.bus.ring.length;
+  mark=HR.AIL.bus.seq;
   for(let i=0;i<180;i++)APEX_ARSENAL.step(1/60);
   const pickupSwap={a2:p2.telemetry.bySkill.A2||0,
-    decisions:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='MIRROR'&&e.payload.slot==='A2')
+    decisions:HR.AIL.bus.since(mark).filter(e=>e.payload&&e.payload.hero==='MIRROR'&&e.payload.slot==='A2')
       .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
 
   window.__apexArsenalTestStartMatch('MIRROR','ROBOT');
@@ -2371,50 +2371,50 @@ report.r59HunterBotDecision = run(`
   let p2=startBot();
   fighters[0].x=400;fighters[0].y=500;fighters[1].x=700;fighters[1].y=500;
   let ctl=HR.abilityController(p2);ctl.setCooldown('A2',999);
-  const missMark=HR.AIL.bus.ring.length;
+  const missMark=HR.AIL.bus.seq;
   for(let i=0;i<160;i++){
     fighters[0].__hrVel={x:0,y:180};
     APEX_ARSENAL.step(1/60);
   }
   const trapMiss={a1:p2.telemetry.bySkill.A1||0,
-    decisions:HR.AIL.bus.ring.slice(missMark).filter(e=>e.payload&&e.payload.hero==='HUNTER'&&e.payload.slot==='A1')
+    decisions:HR.AIL.bus.since(missMark).filter(e=>e.payload&&e.payload.hero==='HUNTER'&&e.payload.slot==='A1')
       .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
 
   p2=startBot();
   fighters[0].x=400;fighters[0].y=500;fighters[1].x=700;fighters[1].y=500;
   ctl=HR.abilityController(p2);ctl.setCooldown('A2',999);
-  const crossMark=HR.AIL.bus.ring.length;
+  const crossMark=HR.AIL.bus.seq;
   for(let i=0;i<160;i++){
     fighters[0].__hrVel={x:180,y:0};
     APEX_ARSENAL.step(1/60);
   }
   const trapCross={a1:p2.telemetry.bySkill.A1||0,
-    decisions:HR.AIL.bus.ring.slice(crossMark).filter(e=>e.payload&&e.payload.hero==='HUNTER'&&e.payload.slot==='A1')
+    decisions:HR.AIL.bus.since(crossMark).filter(e=>e.payload&&e.payload.hero==='HUNTER'&&e.payload.slot==='A1')
       .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
 
   p2=startBot();
   fighters[0].x=420;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
   ctl=HR.abilityController(p2);ctl.setCooldown('A1',999);
   W.equip(fighters[0],'PISTOL');
-  const disarmMark=HR.AIL.bus.ring.length;
+  const disarmMark=HR.AIL.bus.seq;
   for(let i=0;i<120;i++){
     fighters[0].__hrVel={x:0,y:0};
     APEX_ARSENAL.step(1/60);
   }
   const disarm={a2:p2.telemetry.bySkill.A2||0,
-    decisions:HR.AIL.bus.ring.slice(disarmMark).filter(e=>e.payload&&e.payload.hero==='HUNTER'&&e.payload.slot==='A2')
+    decisions:HR.AIL.bus.since(disarmMark).filter(e=>e.payload&&e.payload.hero==='HUNTER'&&e.payload.slot==='A2')
       .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
 
   p2=startBot();
   fighters[0].x=420;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
   ctl=HR.abilityController(p2);ctl.setCooldown('A1',999);
-  const holdMark=HR.AIL.bus.ring.length;
+  const holdMark=HR.AIL.bus.seq;
   for(let i=0;i<120;i++){
     fighters[0].__hrVel={x:0,y:0};
     APEX_ARSENAL.step(1/60);
   }
   const lowValue={a2:p2.telemetry.bySkill.A2||0,
-    decisions:HR.AIL.bus.ring.slice(holdMark).filter(e=>e.payload&&e.payload.hero==='HUNTER'&&e.payload.slot==='A2')
+    decisions:HR.AIL.bus.since(holdMark).filter(e=>e.payload&&e.payload.hero==='HUNTER'&&e.payload.slot==='A2')
       .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
 
   return {trapMiss,trapCross,disarm,lowValue};
@@ -2456,37 +2456,37 @@ report.r59CrystalaBotDecision = run(`
 
   let p2=startBot();
   let ctl=HR.abilityController(p2);ctl.setCooldown('A1',999);
-  let mark=HR.AIL.bus.ring.length;
+  let mark=HR.AIL.bus.seq;
   for(let i=0;i<180;i++)APEX_ARSENAL.step(1/60);
   const idle={a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,
-    decisions:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='CRYSTAL')
+    decisions:HR.AIL.bus.since(mark).filter(e=>e.payload&&e.payload.hero==='CRYSTAL')
       .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason,score:e.payload.score}))};
 
   p2=startBot();
-  mark=HR.AIL.bus.ring.length;
+  mark=HR.AIL.bus.seq;
   for(let i=0;i<180;i++)APEX_ARSENAL.step(1/60);
   const combo={a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,
-    decisions:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='CRYSTAL')
+    decisions:HR.AIL.bus.since(mark).filter(e=>e.payload&&e.payload.hero==='CRYSTAL')
       .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason,score:e.payload.score}))};
 
   p2=startBot();
   ctl=HR.abilityController(p2);ctl.setCooldown('A1',999);
   projectiles.push({type:'aq_bullet',aq:true,owner:fighters[0],weapon:'PISTOL',
     x:500,y:200,px:500,py:200,vx:0,vy:-10,radius:4,life:5,maxLife:5,color:'#fff'});
-  mark=HR.AIL.bus.ring.length;
+  mark=HR.AIL.bus.seq;
   for(let i=0;i<120;i++)APEX_ARSENAL.step(1/60);
   const readThreat={a2:p2.telemetry.bySkill.A2||0,
-    decisions:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='CRYSTAL'&&e.payload.slot==='A2')
+    decisions:HR.AIL.bus.since(mark).filter(e=>e.payload&&e.payload.hero==='CRYSTAL'&&e.payload.slot==='A2')
       .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
 
   p2=startBot();
   ctl=HR.abilityController(p2);ctl.setCooldown('A2',999);
   projectiles.push({type:'aq_bullet',aq:true,owner:fighters[0],weapon:'PISTOL',
     x:650,y:500,px:650,py:500,vx:80,vy:0,radius:4,life:5,maxLife:5,color:'#fff'});
-  mark=HR.AIL.bus.ring.length;
+  mark=HR.AIL.bus.seq;
   for(let i=0;i<90;i++)APEX_ARSENAL.step(1/60);
   const wallThreat={a1:p2.telemetry.bySkill.A1||0,
-    decisions:HR.AIL.bus.ring.slice(mark).filter(e=>e.payload&&e.payload.hero==='CRYSTAL'&&e.payload.slot==='A1')
+    decisions:HR.AIL.bus.since(mark).filter(e=>e.payload&&e.payload.hero==='CRYSTAL'&&e.payload.slot==='A1')
       .map(e=>({type:e.type,reason:e.payload.reason,score:e.payload.score}))};
 
   p2=startBot();
