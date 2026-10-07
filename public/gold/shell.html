@@ -2122,6 +2122,9 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     else if(activePlayer==='p1'&&!p1Locked){p1Hero=id;p1HasPicked=true} else if(activePlayer==='p2'&&!p2Locked){p2Hero=id;p2Empty=false;p2HasPicked=true} else return;
     uiSfx('ui.option.confirm');
     renderFighter();
+    // R59: selecting a hero is an asset intent too. Start decoding that
+    // exact hero's battle rig now; never wait for LOCK IN to discover it.
+    try{APEX_GOLD.warmFighterSelection&&void APEX_GOLD.warmFighterSelection([id])}catch(_){}
     if(motion){stage.classList.remove('hero-switch-impact');void stage.offsetWidth;stage.classList.add('hero-switch-impact');setTimeout(()=>stage.classList.remove('hero-switch-impact'),460)}
   }
 
