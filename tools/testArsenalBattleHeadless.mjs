@@ -440,7 +440,9 @@ gate('entry-state',
   report.entry.gameState === 'ARSENAL'
   && report.entry.hero.hp === 1000 && report.entry.rival.hp === 1000
   && report.entry.hero.weapon === 'NONE' && report.entry.rival.weapon === 'NONE'
-  && report.entry.menuHidden
+  // The legacy menu DOM is a harness relic; current production is hosted by
+  // the Gold shell. Battle entry truth is the active Arsenal state + live HUD.
+  && report.entry.hudOpacity === '1'
   && report.entry.p1Name === 'HERO' && report.entry.p2Name === 'RIVAL',
   report.entry);
 
@@ -5078,13 +5080,15 @@ const battleRuntimeSrc = fs.readFileSync(path.join(REPO, 'public/game/modes/arse
 const goldShellSrc = fs.readFileSync(path.join(REPO, 'public/gold/shell.html'), 'utf8');
 gate('gold-battle-exit-returns-directly-to-fighter-pick',
   battleRuntimeSrc.includes('Gold-hosted battle: engine teardown ONLY')
-  && battleRuntimeSrc.includes("['menu-screen', 'select-screen'].forEach")
+  && battleRuntimeSrc.includes("window.postMessage({ type: 'APEX_CHAOS_BATTLE_EXIT' }")
   && !goldShellSrc.includes("name:'battle->fighter'")
   && goldShellSrc.includes('Battle is NOT a Mechanical Door route')
+  && goldShellSrc.includes('function closeBattleHud(){')
   && goldShellSrc.includes("screen='fighter'")
   && goldShellSrc.includes("APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter')"),
   {
     goldEngineTeardownOnly: battleRuntimeSrc.includes('Gold-hosted battle: engine teardown ONLY'),
+    goldExitPostsToHost: battleRuntimeSrc.includes("window.postMessage({ type: 'APEX_CHAOS_BATTLE_EXIT' }"),
     battleUsesMechanicalDoor: goldShellSrc.includes("name:'battle->fighter'"),
     fighterCommit: goldShellSrc.includes("screen='fighter'"),
   });
