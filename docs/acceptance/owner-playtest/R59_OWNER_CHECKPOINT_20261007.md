@@ -127,6 +127,22 @@ Do NOT reduce Frost resolution/VFX/mip quality before profiling.
 
 Status: optimization landed, but hitch is NOT declared solved. Owner/perf observation still required.
 
+## NEW BLOCKER observed after this checkpoint — Home HUD missing
+
+Owner screenshot after the pause request shows:
+- Home background art is loaded and visible.
+- The whole Home HUD/content layer is absent.
+- The scene is visibly darkened as if a cover/dimmer/transition state is still active.
+
+This is NOT accepted and must be treated as the first blocker on resume.
+
+Initial diagnosis only — no runtime fix was made in this pause checkpoint:
+- It does not look like a missing background asset.
+- The symptom is consistent with Home surface visibility / transition-cover release / stale screen-state authority.
+- First resume action should reproduce on a clean load and inspect Home layer visibility, active screen state, transition cover/dimmer ownership, and whether the mechanical door commits/reveals Home correctly.
+
+Do not paper over this with z-index or opacity CSS until the owning state/transition bug is identified.
+
 ## Current highest-priority verification sequence
 
 1. iPad Local Battle HUD proportions.
