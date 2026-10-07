@@ -106,6 +106,21 @@ check('Battle lazy-load remains lock-in scoped without using the Door',
   shell.includes("APEX_GOLD.prepareSurface('battle',{heroIds})") &&
   shell.includes('Battle is NOT a Mechanical Door route') &&
   !shell.includes("name:'fighter->battle'"));
+// R59 B2: Battle HUD is same-document. The iframe is donor-era markup and
+// MUST NOT own handoff/readiness after the first unmount.
+check('same-document Battle handoff is never gated by the retired iframe',
+  shell.includes("if(!battleHudConfig||battleHudConfig.live===true||!window.APEX_GOLD_HUD)return;")
+  && !shell.includes("if(!battleHudConfig||battleHudConfig.live===true||!battleHudFrame?.contentWindow)return;"));
+check('Battle remount readiness uses the bridge callback, not iframe load',
+  shell.includes("try{APEX_GOLD.mountBattleHud(decodeBattleHud(),ready)}")
+  && !shell.includes('battleHudFrame.onload=ready;')
+  && !shell.includes('battleHudFrame.onload=null;')
+  && !shell.includes("if(!battleMode||!battleHudHost||!battleHudFrame||screen==='transition'||screen==='battle')return;"));
+check('generator owns the remount-safe same-document lifecycle',
+  build.includes("if(!battleHudConfig||battleHudConfig.live===true||!window.APEX_GOLD_HUD)return;")
+  && !adapter.includes('battleHudFrame.onload=ready;')
+  && !adapter.includes('battleHudFrame.onload=null;')
+  && adapter.includes("if(!battleMode||!battleHudHost||screen==='transition'||screen==='battle')return;"));
 check('Lucky READY verifies iframe document', shell.includes('frame.contentDocument') && shell.includes('doc?.documentElement'));
 check('Fighter READY settles actual world stage', shell.includes('await tr?.prepareElement?.(surfaceRoot)') && shell.includes('await tr?.prepareElement?.(stage,{verifyImages:false})'));
 check('Doorless steps verify the destination panel, then settle the stage',
