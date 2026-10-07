@@ -1188,6 +1188,22 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
 .rosterLock b{font-size:8px;font-weight:800;letter-spacing:.22em}
 .rosterCard.art-missing:not(.is-locked) .rosterLockedVisual{opacity:.32}
 </style>
+<style id="r59-bottom-route-press-law">
+/* R59 owner law: bottom-route press is a tactile dark-metal response.
+   Never flood the button orange and never hide/recolor away the label. */
+.route{-webkit-tap-highlight-color:transparent}
+.route:not(.is-locked):active{
+  color:#f3ece1!important;
+  background:linear-gradient(180deg,rgba(34,35,38,.88),rgba(14,15,18,.94))!important;
+  transform:translateY(1px) scale(.986)!important;
+  filter:brightness(1.07)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,148,31,.24),0 0 16px rgba(255,148,31,.15)!important}
+.route:not(.is-locked):active svg{
+  color:var(--orange)!important;transform:scale(.96)!important;
+  filter:drop-shadow(0 0 6px rgba(255,148,31,.34))}
+.route:not(.is-locked):active span{
+  color:inherit!important;opacity:1!important;visibility:visible!important}
+</style>
 </head>
 <body>
 <main id="stage" data-apex-shell-stage="true" aria-label="APEX CHAOS Home">

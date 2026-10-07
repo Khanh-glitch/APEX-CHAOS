@@ -77,6 +77,17 @@ check('no other script block calls the block-local uiSfx helper', bareOutside.le
   `calls=${bareOutside.length}`);
 check('the Lucky Draw bay closes through the Door (open/close pair)', /name:'home->lucky'/.test(shell) && /name:'lucky->home'/.test(shell));
 
+check('bottom-route press stays dark, lightly glows, and keeps its label visible',
+  shell.includes('id="r59-bottom-route-press-law"')
+  && shell.includes('.route:not(.is-locked):active{')
+  && shell.includes('background:linear-gradient(180deg,rgba(34,35,38,.88),rgba(14,15,18,.94))!important')
+  && shell.includes('box-shadow:inset 0 0 0 1px rgba(255,148,31,.24),0 0 16px rgba(255,148,31,.15)!important')
+  && shell.includes('.route:not(.is-locked):active span{')
+  && shell.includes('opacity:1!important;visibility:visible!important'));
+check('R50K owns the same bottom-route press rule so rebuild cannot regress it',
+  adapter.includes("'bottom-route press law'")
+  && adapter.includes('r59-bottom-route-press-law'));
+
 // ── 3. battle HUD seam guard + payload identity ──────────────────────────
 check('the HUD guards the seam before setMode (bridge deletes it on unmount)',
   /if\(window\.APEX_GOLD_HUD\)window\.APEX_GOLD_HUD\.setMode\(/.test(hud));

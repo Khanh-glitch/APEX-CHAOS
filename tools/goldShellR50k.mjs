@@ -322,6 +322,13 @@ export function adaptGoldShellR50k(input) {
     'doorless step-weight law (one settle per step)'
   );
 
+  out = replaceOnce(
+    out,
+    "</head>",
+    "<style id=\"r59-bottom-route-press-law\">\n/* R59 owner law: bottom-route press is a tactile dark-metal response.\n   Never flood the button orange and never hide/recolor away the label. */\n.route{-webkit-tap-highlight-color:transparent}\n.route:not(.is-locked):active{\n  color:#f3ece1!important;\n  background:linear-gradient(180deg,rgba(34,35,38,.88),rgba(14,15,18,.94))!important;\n  transform:translateY(1px) scale(.986)!important;\n  filter:brightness(1.07)!important;\n  box-shadow:inset 0 0 0 1px rgba(255,148,31,.24),0 0 16px rgba(255,148,31,.15)!important}\n.route:not(.is-locked):active svg{\n  color:var(--orange)!important;transform:scale(.96)!important;\n  filter:drop-shadow(0 0 6px rgba(255,148,31,.34))}\n.route:not(.is-locked):active span{\n  color:inherit!important;opacity:1!important;visibility:visible!important}\n</style>\n" + "</head>",
+    'bottom-route press law'
+  );
+
   const forbidden = [
     // R52 / N3: #battleTransition is RESTORED as the battle-entry transition
     // (owner law), so it is no longer a forbidden seam. What must never come
