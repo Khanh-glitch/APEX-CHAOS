@@ -461,7 +461,10 @@
           if (ok !== true) throw new Error('arsenalProduct runtime group did not reach READY');
           // R58: transition HOLD includes audio readiness. The destination is
           // not "ready" while first-use SFX can still be downloading/decoding.
-          await warmMatchHeroAudio(...heroIds);
+          await Promise.all([
+            warmMatchHeroAudio(...heroIds),
+            warmMatchHeroPresentation(...heroIds),
+          ]);
           return true;
         })
       );
@@ -893,6 +896,37 @@
     return true;
   }
 
+  // Selected-hero presentation is part of destination readiness, not a
+  // post-reveal enhancement. Only heroes with asynchronous full-quality art
+  // preparation participate here; other Core Six presentations stay untouched.
+  async function warmMatchHeroPresentation(...keys) {
+    const ids = new Set();
+    for (const raw of keys) {
+      const key = String(raw || '').toLowerCase();
+      if (!key) continue;
+      ids.add(key);
+      const production = PRODUCTION_ID_BY_SHELL_KEY[key];
+      if (production) ids.add(String(production).toLowerCase());
+    }
+    const tasks = [];
+    if (ids.has('frost') || ids.has('ice')) {
+      const frost = window.APEX_FROST_PRESENTATION;
+      if (!frost || typeof frost.prepareArt !== 'function') {
+        throw new Error('Frost presentation readiness authority unavailable');
+      }
+      tasks.push(Promise.resolve(frost.prepareArt()));
+    }
+    if (ids.has('magnet')) {
+      const magnet = window.APEX_MAGNET_GOLD;
+      if (!magnet || typeof magnet.prepareArt !== 'function') {
+        throw new Error('Magnet presentation readiness authority unavailable');
+      }
+      tasks.push(Promise.resolve(magnet.prepareArt()));
+    }
+    await Promise.all(tasks);
+    return true;
+  }
+
   BRIDGE.onBattleLive = async function onBattleLive(pick) {
     if (battleLiveRunning) return false;
     const sessionToken = ++battleSessionToken;
@@ -955,7 +989,10 @@
       // Direct-entry safety: prepareSurface normally warmed audio behind the
       // transition seam, but onBattleLive is also an API boundary. Await the
       // same idempotent readiness contract before the engine can accept input.
-      await warmMatchHeroAudio(p1Shell, p2Shell);
+      await Promise.all([
+        warmMatchHeroAudio(p1Shell, p2Shell),
+        warmMatchHeroPresentation(p1Shell, p2Shell),
+      ]);
       if (sessionToken !== battleSessionToken || !hudMounted || !battleLiveRunning) {
         battleLiveRunning = false;
         restoreArena();
