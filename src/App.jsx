@@ -59,6 +59,12 @@ function injectApexEngine(scriptRef, engineSrc) {
         // else loads as background warmup or route intent.
         await loadMenuInteractiveRuntimes();
         markBootPhase('menu-runtime-ready');
+        // R59 BOOT MUSIC ORDER: productMusicAuthority is a Tier-1 runtime, so
+        // THIS is the first moment its single media element definitely exists.
+        // Announce Home while the mechanical boot transition is still covering
+        // the page. This closes the mount-effect race where the effect ran
+        // before the runtime existed and music waited for the first UI action.
+        window.apexProductMusic?.setSurface?.('home');
         window.__apexEnsureDeferredRuntimes = loadDeferredGameRuntimes;
         finishRuntimeLoad();
       } catch (error) {
@@ -291,6 +297,9 @@ export default function App() {
   };
 
   useEffect(() => {
+    // The authority is a Tier-1 classic runtime. On the first React mount it
+    // may not exist yet; bind only after gameReady proves Tier-1 finished.
+    if (!gameReady) return undefined;
     // ── the one product music authority (owner law 2026-10-05) ────────────
     // Home / Mode / Fighter select / battle-entry transition keep the Forward
     // Drive theme playing continuously; Lucky Draw / Upgrade / Missions / Shop
@@ -387,7 +396,7 @@ export default function App() {
       if (window.__apexMenuBgmState) delete window.__apexMenuBgmState;
       if (music && typeof music.dispose === 'function') music.dispose();
     };
-  }, []);
+  }, [gameReady]);
 
   const launchProductSurface = async (surfaceId, { admin = false } = {}) => {
     const surface = getProductSurface(surfaceId);
