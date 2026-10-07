@@ -9,12 +9,35 @@ const manifest = fs.readFileSync('src/game/runtimeManifest.js', 'utf8');
 const loader = fs.readFileSync('src/game/runtimeLoader.js', 'utf8');
 const app = fs.readFileSync('src/App.jsx', 'utf8');
 const engine = fs.readFileSync('public/apexEngine.js', 'utf8');
+const goldAssets = fs.readFileSync('src/game/goldAssetManifest.js', 'utf8');
+const goldShell = fs.readFileSync('public/gold/shell.html', 'utf8');
 const mRev = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/);
 if (!mRev) { console.error('FAIL revision constant missing'); process.exit(1); }
 const revision = mRev[1];
 const expectedRevision = '20261007-r59-pick-rig-warm';
 if (revision !== expectedRevision) {
   console.error(`FAIL this cutover permits exactly one revision: expected=${expectedRevision} actual=${revision}`);
+  process.exit(1);
+}
+
+const goldUrls = [
+  'GOLD_SHELL_URL', 'GOLD_LUCKY_DRAW_URL', 'GOLD_BATTLE_HUD_URL', 'GOLD_TRANSITION_URL',
+];
+for (const key of goldUrls) {
+  const match = goldAssets.match(new RegExp(`export const ${key} = '[^']+\\?v=([^']+)'`));
+  if (!match || match[1] !== expectedRevision) {
+    console.error(`FAIL Gold artifact URL cache key drift: ${key}=${match ? match[1] : 'missing'} expected=${expectedRevision}`);
+    process.exit(1);
+  }
+}
+for (const runtime of ['uiSfxAuthority.js', 'goldProductBridge.js']) {
+  if (!goldShell.includes(`/game/${runtime === 'goldProductBridge.js' ? 'gold/' : 'ui/'}${runtime}?v=${expectedRevision}`)) {
+    console.error(`FAIL shipping Gold shell runtime cache key drift: ${runtime}`);
+    process.exit(1);
+  }
+}
+if (goldShell.includes('20261005-owner-playtest-r50k') || goldAssets.includes('20261005-owner-playtest-r50k')) {
+  console.error('FAIL stale R50K cache identity survived in shipping Gold artifacts');
   process.exit(1);
 }
 const paths = [...new Set([...manifest.matchAll(/'\/(game\/[^']+?)\?v=' \+ APEX_ARSENAL_RUNTIME_REVISION/g)]
