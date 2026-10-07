@@ -597,6 +597,46 @@ function withSfxCounter(fn) {
     { events: repeats.slice(0, 4).map((e) => e.type) });
 }
 
+/* ---------------------------------------------------------- R59 BOT AI law */
+{
+  const ex = win.APEX_HERO_REWORK_MECHANICS.EXECUTORS;
+  const self = { x: 500, y: 500, radius: 75 };
+  const foe = { x: 760, y: 500, radius: 75 };
+  const robotCt = { anchor: self };
+  const enemyCt = { anchor: foe };
+  const mk = ({ pickup = null, held = null, projectiles = [] } = {}) => ({
+    combatant: robotCt,
+    api: {
+      nearestRevealedPickup: () => pickup,
+      enemyOf: () => enemyCt,
+      heldWeapon: (ct) => ct === enemyCt ? held : null,
+      liveProjectiles: () => projectiles,
+      combatantOfBody: (body) => body === foe ? enemyCt : (body === self ? robotCt : null),
+      ownsBody: (ct, body) => ct === enemyCt && body === foe,
+    },
+  });
+  gate('AI-ROBOT-A1-idle-without-eligible-pickup',
+    ex['robot.weapon_dash'].aiCanAttempt(mk()) === false);
+  gate('AI-ROBOT-A1-attempts-when-real-pickup-exists',
+    ex['robot.weapon_dash'].aiCanAttempt(mk({ pickup: { id: 7, x: 600, y: 500, weaponId: 'PISTOL' } })) === true);
+  gate('AI-ROBOT-A2-does-not-open-armor-vs-unarmed-rival',
+    ex['robot.virtual_armor'].aiCanAttempt(mk()) === false);
+  gate('AI-ROBOT-A2-reacts-to-armed-rival-in-fighting-range',
+    ex['robot.virtual_armor'].aiCanAttempt(mk({ held: { weaponId: 'PISTOL' } })) === true);
+  foe.x = 990; foe.y = 990;
+  gate('AI-ROBOT-A2-does-not-burn-on-distant-armed-rival',
+    ex['robot.virtual_armor'].aiCanAttempt(mk({ held: { weaponId: 'PISTOL' } })) === false);
+  foe.x = 760; foe.y = 500;
+  gate('AI-ROBOT-A2-reacts-to-hostile-near-term-projectile-intercept',
+    ex['robot.virtual_armor'].aiCanAttempt(mk({ projectiles: [
+      { owner: foe, x: 760, y: 500, vx: -520, vy: 0, life: 1 }
+    ] })) === true);
+  gate('AI-ROBOT-A2-ignores-projectile-moving-away',
+    ex['robot.virtual_armor'].aiCanAttempt(mk({ projectiles: [
+      { owner: foe, x: 650, y: 500, vx: 520, vy: 0, life: 1 }
+    ] })) === false);
+}
+
 /* ------------------------------------------------------------------ summary */
 const total = Object.keys(report.gates).length;
 const passed = Object.values(report.gates).filter(g => g.pass).length;
