@@ -19,7 +19,8 @@ const failures=[];const passes=[];
 function check(name,cond){(cond?passes:failures).push((cond?'PASS ':'FAIL ')+name);}
 const sha=(buf)=>crypto.createHash('sha256').update(buf).digest('hex');
 
-check('runtime revision is R50K', manifest.includes("20261005-owner-playtest-r50k"));
+const currentRevision = manifest.match(/APEX_ARSENAL_RUNTIME_REVISION\s*=\s*'([^']+)'/)?.[1] || '';
+check('runtime revision is present and current', !!currentRevision && currentRevision === '20261007-r59-presentation-ready');
 check('Gold runtime hash matches audited donor adaptation',
   sha(runtime)==='6d338906e477c13fa42cd6727be7c41bdd0c5b66e12fc140e3836c7858ce0dd2');
 check('Gold close timing preserved', runtimeText.includes('closeEnd: 1.68'));
@@ -51,7 +52,8 @@ check('known TAU global collision is isolated by module loading',
   apexEngine.includes('var TAU') &&
   runtimeText.includes('const TAU') &&
   coordinator.includes("script.type = 'module'"));
-check('generated transition URL carries R50K revision', goldUrls.includes('/gold/transition/mechanical-door-v4.gold.js?v=20261005-owner-playtest-r50k'));
+check('generated transition URL carries the current runtime revision',
+  !!currentRevision && goldUrls.includes('/gold/transition/mechanical-door-v4.gold.js?v=' + currentRevision));
 check('real DOM replaces demo background tile', coordinator.includes("engine.open({ from: null, autoReadyAfter: null })"));
 check('destination commits only after covered + prepared',
   coordinator.includes('(!tx.covered && !tx.coverFailed) || !tx.prepared'));
