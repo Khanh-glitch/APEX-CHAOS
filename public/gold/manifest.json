@@ -1,7 +1,7 @@
 {
   "generator": "tools/buildGoldCutover.mjs",
   "canonicalAuthority": "docs/gold-ui/current (owner Gold source pack, SHA-pinned)",
-  "runtimeRevision": "20261007-r59-magnet-vector",
+  "runtimeRevision": "20261007-r59-pick-rig-warm",
   "files": {
     "assets/gold/apex-chaos-wordmark.png": {
       "bytes": 496066,
@@ -272,8 +272,8 @@
       "sha256": "6e43189bf78a1daa3e7e93f15d32727920b92948bd7aa41fe88a257de7098690"
     },
     "shell.html": {
-      "bytes": 390174,
-      "sha256": "8caf73fafcd36c8b88648f5a39cd185370d811110433c99949c954cdc0f9d7de"
+      "bytes": 390411,
+      "sha256": "9dce67542c53de0c927e9c50662d9f91d1f709c6c0ad67e80c4b56ec087aea6c"
     },
     "transition/mechanical-door-v4.gold.js": {
       "bytes": 2666593,
