@@ -61,7 +61,9 @@ const dom = new JSDOM(`<!doctype html><html><body>
     <div id="solo-screen" class="screen hidden"><div id="solo-hud"></div></div>
     <div id="trial-screen" class="screen hidden"></div>
     <div id="tam-chien-screen" class="screen hidden"></div>
-    <div id="roster-grid"></div>
+    <!-- No legacy roster-grid: current production deleted that picker. The
+         historical runtimes may wrap picker callbacks, but headless combat
+         acceptance must not accidentally activate retired picker UI paths. -->
   </div>
     <aside id="p2-combat-panel" class="combat-panel">
       <div class="cp-identity">
