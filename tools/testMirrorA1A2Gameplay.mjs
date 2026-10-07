@@ -541,6 +541,64 @@ try {
       note: 'payload is the exact truth G rebases Gold shiftHist from; never cleared here' });
 } catch (e) { gate('E-A2-20-history-handoff-payload-coherent', false, String(e)); }
 
+/* ================= R59 — BOT tactical cast policy ==================== */
+try {
+  win.__apexArsenalBattleProfile = 'BOT';
+  T.start('ROBOT', 'MIRROR'); T.holdSpawns();
+  const [enemy, bot] = H.fighters();
+  enemy.baseSpeed = 0; bot.baseSpeed = 0;
+  enemy.x = 300; enemy.y = 500; bot.x = 700; bot.y = 500;
+  const botCt = HR.byCombatant(bot);
+  const ctl = HR.abilityController(botCt);
+  ctl.setCooldown('A2', 99);
+  HR.setAiEnabled(true);
+  T.step(1.6, 1 / 60);
+  const emptyA1 = botCt.telemetry.bySkill.A1 || 0;
+  const emptyFails = botCt.telemetry.castFails || 0;
+  gate('E-BOT-01-A1-waits-for-copyable-opponent-weapon',
+    emptyA1 === 0 && emptyFails === 0,
+    { a1: emptyA1, castFails: emptyFails, enemyHeld: held(enemy) });
+
+  arm(enemy, 'PISTOL');
+  T.step(1.6, 1 / 60);
+  gate('E-BOT-02-A1-casts-on-real-copyable-holder',
+    (botCt.telemetry.bySkill.A1 || 0) >= 1,
+    { a1: botCt.telemetry.bySkill.A1 || 0, enemyHeld: held(enemy) });
+} catch (e) {
+  gate('E-BOT-01-A1-waits-for-copyable-opponent-weapon', false, String(e));
+} finally {
+  HR.setAiEnabled(false);
+}
+
+try {
+  win.__apexArsenalBattleProfile = 'BOT';
+  T.start('ROBOT', 'MIRROR'); T.holdSpawns();
+  const [enemy, bot] = H.fighters();
+  enemy.baseSpeed = 0; bot.baseSpeed = 0;
+  bot.x = 500; bot.y = 500;
+  enemy.x = bot.x - ((bot.radius || 75) + (enemy.radius || 75)); enemy.y = bot.y;
+  const botCt = HR.byCombatant(bot);
+  const ctl = HR.abilityController(botCt);
+  ctl.setCooldown('A1', 99);
+  HR.setAiEnabled(true);
+  T.step(1.6, 1 / 60);
+  const contactA2 = botCt.telemetry.bySkill.A2 || 0;
+
+  enemy.x = 200; enemy.y = 500;
+  T.step(1.6, 1 / 60);
+  const separatedA2 = botCt.telemetry.bySkill.A2 || 0;
+  gate('E-BOT-03-A2-does-not-spend-swap-inside-body-contact-envelope',
+    contactA2 === 0 && separatedA2 >= 1,
+    { contactA2, separatedA2,
+      contactEnvelope: (bot.radius || 75) + (enemy.radius || 75),
+      separatedDistance: Math.hypot(enemy.x - bot.x, enemy.y - bot.y) });
+} catch (e) {
+  gate('E-BOT-03-A2-does-not-spend-swap-inside-body-contact-envelope', false, String(e));
+} finally {
+  HR.setAiEnabled(false);
+  win.__apexArsenalBattleProfile = 'LOCAL';
+}
+
 fs.mkdirSync('docs/hero-rework/mirror-v1/evidence', { recursive: true });
 fs.writeFileSync('docs/hero-rework/mirror-v1/evidence/e-a1-a2-gameplay.json',
   JSON.stringify({ generatedAt: new Date().toISOString(), ...report, pass: report.failures.length === 0 }, null, 2));
