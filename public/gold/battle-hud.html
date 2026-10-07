@@ -582,6 +582,13 @@ kbd{font:inherit}
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p2Side .skills{height:50px}
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] .weapon{overflow:visible;box-sizing:border-box}
 
+/* R59 C3 — BOT tablet skill media uses a stable square well.
+   Core Six production A1/A2 files are square/near-square assets; the old land
+   grid stretched the media CELL vertically even though object-fit preserved the
+   bitmap. Keep Gold tile/text geometry, center one square media well inside it. */
+#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] .skill .sk-art{width:var(--artW);height:var(--artW);aspect-ratio:1/1;align-self:center;justify-self:start}
+#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] .sk-art>.apex-skill-icon{width:100%;height:100%;object-fit:contain;object-position:center}
+
 /* Shared live-ammo state. */
 #hud .weapon.low-ammo .wp-cur{color:var(--crit);text-shadow:0 0 10px color-mix(in srgb,var(--crit) 46%,transparent)}
 #hud .weapon.low-ammo .wp-mag i{background:var(--crit)}
