@@ -20,7 +20,9 @@
  *   meta:   note/emitEvent, isT6Weapon, gameSize
  *
  * Executor hooks (all optional except where noted):
- *   canCast(ctx)            -> false = fail-cue, cooldown NOT consumed
+ *   canCast(ctx)            -> mechanic legality; false = fail-cue, cooldown NOT consumed
+ *   aiEvaluate(ctx)          -> optional BOT utility decision {shouldCast,score,reason,retryAfter}
+ *   aiCanAttempt(ctx)        -> optional BOT mechanic preflight (legacy compatible)
  *   cast(ctx)               -> required for ACTIVE; false = whiff (no cd)
  *   onTick(ctx, dt)
  *   onTakeDamage(ctx, body, packet) -> packet|null (transform incoming)
@@ -64,6 +66,31 @@
     canCast(ctx) {
       const pick = ctx.api.nearestRevealedPickup(ctx.combatant, { excludeT6: true });
       return !!pick; // no eligible pickup -> fail-cue, cooldown untouched
+    },
+    // BOT policy is separate from human legality. A human may deliberately
+    // dash for any eligible pickup; CPU spends A1 only when the pickup solves
+    // a real equipment problem or denies a nearby unarmed rival.
+    aiEvaluate(ctx) {
+      const self = ctx.combatant && ctx.combatant.anchor;
+      const pick = ctx.api.nearestRevealedPickup(ctx.combatant, { excludeT6: true });
+      if (!self || !pick) return { shouldCast:false, score:0, reason:'no-eligible-pickup', retryAfter:.75 };
+
+      const held = ctx.api.heldWeapon ? ctx.api.heldWeapon(ctx.combatant) : null;
+      if (!held) return { shouldCast:true, score:1, reason:'unarmed-pickup', retryAfter:.25 };
+
+      // Already armed: preserve the cooldown unless this is a genuine denial
+      // race against an unarmed opponent close to the same revealed pickup.
+      const enemy = ctx.api.enemyOf ? ctx.api.enemyOf(ctx.combatant) : null;
+      const foe = enemy && enemy.anchor;
+      const foeHeld = enemy && ctx.api.heldWeapon ? ctx.api.heldWeapon(enemy) : null;
+      if (foe && !foeHeld) {
+        const selfD = dist(self.x,self.y,pick.x,pick.y);
+        const foeD = dist(foe.x,foe.y,pick.x,pick.y);
+        if (selfD <= 260 && foeD <= 190) {
+          return { shouldCast:true, score:.68, reason:'deny-contested-pickup', retryAfter:.3 };
+        }
+      }
+      return { shouldCast:false, score:.16, reason:'already-armed', retryAfter:1.0 };
     },
     cast(ctx) {
       const pick = ctx.api.nearestRevealedPickup(ctx.combatant, { excludeT6: true });
@@ -133,6 +160,42 @@
   };
 
   EXECUTORS['robot.virtual_armor'] = {
+    // Virtual Armor is defensive utility, not a match-start timer. Human input
+    // remains unrestricted; only BOT evaluates whether a credible threat exists.
+    aiEvaluate(ctx) {
+      const self = ctx.combatant && ctx.combatant.anchor;
+      const enemy = ctx.api.enemyOf ? ctx.api.enemyOf(ctx.combatant) : null;
+      const foe = enemy && enemy.anchor;
+      if (!self || !enemy || !foe) return { shouldCast:false, score:0, reason:'no-rival', retryAfter:.3 };
+
+      // Predict hostile projectile closest approach over the next 0.9 s.
+      const threatRadius = Math.max(95, Number(self.radius || 40) + 55);
+      const projectiles = ctx.api.liveProjectiles ? ctx.api.liveProjectiles() : [];
+      for (const p of projectiles) {
+        if (!p || p.life === 0 || !Number.isFinite(p.x) || !Number.isFinite(p.y)
+            || !Number.isFinite(p.vx) || !Number.isFinite(p.vy)) continue;
+        const ownerCt = ctx.api.combatantOfBody ? ctx.api.combatantOfBody(p.owner) : null;
+        const hostile = ownerCt ? ownerCt === enemy
+          : (p.owner === foe || (ctx.api.ownsBody && ctx.api.ownsBody(enemy,p.owner)));
+        if (!hostile) continue;
+        const vv = p.vx*p.vx + p.vy*p.vy;
+        if (!(vv > 1)) continue;
+        const rx = self.x-p.x, ry = self.y-p.y;
+        const t = (rx*p.vx + ry*p.vy) / vv;
+        if (t < 0 || t > .9) continue;
+        const qx = p.x + p.vx*t, qy = p.y + p.vy*t;
+        if (dist(self.x,self.y,qx,qy) <= threatRadius) {
+          return { shouldCast:true, score:1, reason:'incoming-projectile', retryAfter:.15 };
+        }
+      }
+
+      const foeHeld = ctx.api.heldWeapon ? ctx.api.heldWeapon(enemy) : null;
+      const range = dist(self.x,self.y,foe.x,foe.y);
+      if (foeHeld && range <= 420) {
+        return { shouldCast:true, score:.72, reason:'armed-rival-range', retryAfter:.2 };
+      }
+      return { shouldCast:false, score:0, reason:foeHeld?'armed-rival-far':'no-credible-threat', retryAfter:.2 };
+    },
     cast(ctx) {
       ctx.store.armorUntil = ctx.clock() + ctx.cfg.duration;
       ctx.store._endEmitted = false;
