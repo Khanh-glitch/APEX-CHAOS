@@ -2005,6 +2005,75 @@ gate('r59-robot-bot-policy-rejections-do-not-count-as-cast-fails',
   report.r59RobotBotDecision.idle.fails === 0,
   report.r59RobotBotDecision);
 
+// R59 D5 MAGNET — READY is not a reason to open a field. Both abilities must
+// hold on an empty/far board, A1 may spend on a real arena-wide floor firearm,
+// and A2 may spend when a living opponent is inside its authored 225 radius.
+report.r59MagnetBotDecision = run(`
+  const HR = window.APEX_HERO_REWORK;
+  const prevProfile = window.__apexArsenalBattleProfile;
+  const startBot = () => {
+    window.__apexArsenalBattleProfile = 'BOT';
+    window.__apexArsenalTestStartMatch('ROBOT', 'MAGNET');
+    window.__apexArsenalBattleProfile = prevProfile;
+    cancelAnimationFrame(reqId); reqId = 0;
+    __APEX_TEST.holdSpawns();
+    projectiles.length = 0;
+    fighters[0].baseSpeed = fighters[1].baseSpeed = 0;
+    if (fighters[0].data) fighters[0].data.__hrHoldBody = true;
+    if (fighters[1].data) fighters[1].data.__hrHoldBody = true;
+    return HR.byCombatant(fighters[1]);
+  };
+
+  let p2 = startBot();
+  fighters[0].x = 120; fighters[0].y = 500; fighters[1].x = 880; fighters[1].y = 500;
+  const markIdle = HR.AIL.bus.ring.length;
+  for (let i=0;i<180;i++) APEX_ARSENAL.step(1/60);
+  const idle = {casts:p2.telemetry.casts,a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,fails:p2.telemetry.castFails};
+  const idleReasons = HR.AIL.bus.ring.slice(markIdle).filter(e=>e.type==='AICastReject'&&e.payload.hero==='MAGNET')
+    .map(e=>({slot:e.payload.slot,reason:e.payload.reason}));
+
+  // New match isolates A1. The floor gun is outside A2's 225 radius but A1
+  // attraction is arena-wide by gameplay authority.
+  p2 = startBot();
+  fighters[0].x = 120; fighters[0].y = 500; fighters[1].x = 880; fighters[1].y = 500;
+  const markA1 = HR.AIL.bus.ring.length;
+  __APEX_TEST.pushSlot({x:500,y:500,phase:'REVEALED',kind:'WEAPON',weaponId:'PISTOL',revealedFor:0});
+  for (let i=0;i<120;i++) APEX_ARSENAL.step(1/60);
+  const floorCase = {a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,
+    decisions:HR.AIL.bus.ring.slice(markA1).filter(e=>e.payload&&e.payload.hero==='MAGNET')
+      .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason}))};
+
+  // New match isolates A2 with no floor gun/projectile: only real enemy-body
+  // proximity can justify the field.
+  p2 = startBot();
+  fighters[0].x = 650; fighters[0].y = 500; fighters[1].x = 820; fighters[1].y = 500;
+  const markA2 = HR.AIL.bus.ring.length;
+  for (let i=0;i<120;i++) APEX_ARSENAL.step(1/60);
+  const bodyCase = {a1:p2.telemetry.bySkill.A1||0,a2:p2.telemetry.bySkill.A2||0,
+    decisions:HR.AIL.bus.ring.slice(markA2).filter(e=>e.payload&&e.payload.hero==='MAGNET')
+      .map(e=>({type:e.type,slot:e.payload.slot,reason:e.payload.reason}))};
+
+  return {idle,idleReasons,floorCase,bodyCase};
+`);
+gate('r59-magnet-bot-empty-board-preserves-fields',
+  report.r59MagnetBotDecision.idle.casts===0
+  && report.r59MagnetBotDecision.idle.a1===0
+  && report.r59MagnetBotDecision.idle.a2===0
+  && report.r59MagnetBotDecision.idle.fails===0,
+  report.r59MagnetBotDecision);
+gate('r59-magnet-bot-empty-board-reasons-are-explicit',
+  report.r59MagnetBotDecision.idleReasons.some(e=>e.slot==='A1'&&e.reason==='no-field-target')
+  && report.r59MagnetBotDecision.idleReasons.some(e=>e.slot==='A2'&&e.reason==='no-field-target'),
+  report.r59MagnetBotDecision.idleReasons);
+gate('r59-magnet-bot-a1-uses-real-floor-firearm',
+  report.r59MagnetBotDecision.floorCase.a1>=1
+  && report.r59MagnetBotDecision.floorCase.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A1'&&e.reason==='eligible-floor-firearm'),
+  report.r59MagnetBotDecision.floorCase);
+gate('r59-magnet-bot-a2-uses-authored-body-radius',
+  report.r59MagnetBotDecision.bodyCase.a2>=1
+  && report.r59MagnetBotDecision.bodyCase.decisions.some(e=>e.type==='AICastSelect'&&e.slot==='A2'&&e.reason==='enemy-in-repel-radius'),
+  report.r59MagnetBotDecision.bodyCase);
+
 report.postCText = run(`
   const src = [drawBackground.toString(), (window.APEX_ARSENAL_SPAWN.drawSlots||function(){}).toString()].join('\\n');
   return {
