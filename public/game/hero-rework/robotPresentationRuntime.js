@@ -26,6 +26,9 @@
   const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
   const mix = (a, b, t) => a + (b - a) * t;
   const wrapA = (a) => { while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU; return a; };
+  const loadProbe = (phase, detail) => {
+    try { return globalScope.apexHeroLoadTelemetry?.mark?.('newbot', phase, detail); } catch (_) { return null; }
+  };
 
   const HS = 172;
   const HSC = HS / 1280;
@@ -1475,7 +1478,9 @@ function renderRig(g) {
   }
 
   function install() {
+    loadProbe('preprocess-start', { source: 'ensureSprites' });
     ensureSprites();
+    loadProbe(SPR.ready ? 'preprocess-ready' : 'preprocess-error', { spriteReady: !!SPR.ready });
     loadRobotAudio();
     // Reuse the engine's user-gesture unlock; never construct another context.
     globalScope.addEventListener?.('pointerdown', () => {
@@ -1534,6 +1539,7 @@ function renderRig(g) {
           ctx.restore();
           ctx.globalAlpha = 1;
           try { renderRobotWorld(ctx, this, st); } catch (e) { console.warn('[robot-presentation] world render failed', e); }
+          loadProbe('first-complete-frame', { frame: Number.isFinite(globalScope.__apexRenderFrame) ? globalScope.__apexRenderFrame : null });
           return;
         }
         return prevDraw.call(this, ctx);
@@ -1703,6 +1709,7 @@ function renderRig(g) {
     isRobotFighter,
     version: '1.1.0-owner-visual-checkpoint-20260929'
   };
+  loadProbe('runtime-ready', { runtime: 'robotPresentationRuntime' });
   globalScope.apexRobotPresentationRuntime = 'ready';
 
   if (globalScope.Fighter) install();

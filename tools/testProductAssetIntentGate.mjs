@@ -7,6 +7,14 @@ const shell = fs.readFileSync('public/gold/shell.html','utf8');
 const generator = fs.readFileSync('tools/buildGoldCutover.mjs','utf8');
 const assetRuntime = fs.readFileSync('public/game/product/productAssetRuntime.js','utf8');
 const shipping = fs.readFileSync('src/game/goldAssetManifest.js','utf8');
+const robotPresentation = fs.readFileSync('public/game/hero-rework/robotPresentationRuntime.js','utf8');
+const hunterPresentation = fs.readFileSync('public/game/hero-rework/hunterPresentationRuntime.js','utf8');
+const frostPresentation = fs.readFileSync('public/game/hero-rework/frostPresentationRuntime.js','utf8');
+const magnetGold = fs.readFileSync('public/game/hero-rework/magnetGoldV1.js','utf8');
+const magnetPresentation = fs.readFileSync('public/game/hero-rework/magnetPresentationRuntime.js','utf8');
+const mirrorGold = fs.readFileSync('public/game/hero-rework/mirrorGoldV1.js','utf8');
+const mirrorPresentation = fs.readFileSync('public/game/hero-rework/mirrorPresentationRuntime.js','utf8');
+const crystalaPresentation = fs.readFileSync('public/game/hero-rework/crystalaPresentationRuntime.js','utf8');
 
 const failures=[];
 const notes=[];
@@ -49,6 +57,54 @@ check('Fighter readiness covers world-stage art', shell.includes("await tr?.prep
 check('Lucky remains click intent', bridge.includes("surface === 'lucky'") && assetRuntime.includes("'/gold/lucky-draw.html'") && shell.includes("name:'home->lucky'"));
 check('transition runtime is a shipping asset', shipping.includes("'/gold/transition/mechanical-door-v4.gold.js'"));
 check('runtime loader still exposes priority route path', loader.includes('loadDeferredGameRuntimes(group, { priority = true } = {})'));
+
+// E3 — profiling only. These checks intentionally prove observability rather
+// than performance: optimization belongs to E4/E5 after owner/browser samples.
+check('asset records capture request/fetch/decode/bytes',
+  assetRuntime.includes('requestedAt: 0')
+  && assetRuntime.includes('fetchStartedAt: 0')
+  && assetRuntime.includes('bytes: 0')
+  && assetRuntime.includes('decodeStartedAt: 0')
+  && assetRuntime.includes('readyAt: 0'));
+check('asset fetch measures actual response bytes',
+  assetRuntime.includes('const bytes = await response.arrayBuffer()')
+  && assetRuntime.includes('rec.bytes = bytes.byteLength || 0'));
+check('Core Six profiler API is public and read-only',
+  assetRuntime.includes('window.apexHeroLoadTelemetry = Object.freeze')
+  && assetRuntime.includes('profile: heroProfile')
+  && assetRuntime.includes('snapshot: heroProfiles'));
+check('profile reports full cold-load ladder',
+  ['requestStartAt','fetchDoneAt','decodeDoneAt','runtimeReadyAt','preprocessReadyAt','firstCompleteFrameAt']
+    .every((token)=>assetRuntime.includes(token)));
+check('E3 does not change the bounded load pool',
+  /const PREPARE_CONCURRENCY = 8;/.test(assetRuntime)
+  && /Array\.from\(\{ length: Math\.max\(1, Math\.min\(PREPARE_CONCURRENCY, urls\.length\)\) \}, worker\)/.test(assetRuntime));
+
+const probes = [
+  ['newbot', robotPresentation],
+  ['hunter', hunterPresentation],
+  ['frost', frostPresentation],
+  ['magnet', magnetPresentation],
+  ['mirror', mirrorPresentation],
+  ['crystala', crystalaPresentation],
+];
+for (const [hero, source] of probes) {
+  check(`${hero} publishes runtime-ready`, source.includes("'runtime-ready'"));
+  check(`${hero} publishes first-complete-frame`, source.includes("'first-complete-frame'"));
+}
+check('Robot measures synchronous sprite preprocess',
+  robotPresentation.includes("'preprocess-start'") && robotPresentation.includes("'preprocess-ready'"));
+check('Hunter measures Gold load/derive preprocess',
+  hunterPresentation.includes("'preprocess-start'") && hunterPresentation.includes("'preprocess-ready'"));
+check('Frost measures Gold mip/surface preprocess',
+  frostPresentation.includes("'preprocess-start'") && frostPresentation.includes("'preprocess-ready'"));
+check('Magnet measures the Gold image fanout loader itself',
+  magnetGold.includes("'preprocess-start'") && magnetGold.includes("'preprocess-ready'")
+  && magnetGold.includes('assetJobs:jobs.length'));
+check('Mirror measures first-use raster bake',
+  mirrorGold.includes("'preprocess-start'") && mirrorGold.includes("'preprocess-ready'"));
+check('Crystala reports procedural preprocess explicitly',
+  crystalaPresentation.includes("'preprocess-start'") && crystalaPresentation.includes("'preprocess-ready'"));
 
 console.log(['PRODUCT ASSET INTENT GATE',...notes].join('\n'));
 if(failures.length){

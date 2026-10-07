@@ -18,6 +18,10 @@
   if (g.APEX_CRYSTALA_PRESENTATION) return;
 
   const GOLD = g.APEX_CRYSTALA_GOLD;
+  const loadProbe = (phase, detail) => {
+    try { return g.apexHeroLoadTelemetry?.mark?.('crystala', phase, detail); } catch (_) { return null; }
+  };
+  loadProbe('preprocess-start', { source: 'procedural-rig' });
   const CRY = g.APEX_CRYSTAL;
   const HR = g.APEX_HERO_REWORK;
 
@@ -174,6 +178,9 @@
     // Generic engine status cues stay OUTSIDE Chamber's actor source, matching
     // the normal Fighter.draw contract without re-rendering the base fighter.
     drawGenericStatusVfx(ctx, f);
+    loadProbe('first-complete-frame', {
+      frame: Number.isFinite(g.__apexRenderFrame) ? g.__apexRenderFrame : null,
+    });
   }
 
   function poisonLevel(exposure = 0) {
@@ -579,5 +586,7 @@
   };
 
   g.APEX_CRYSTALA_PRESENTATION = api;
+  loadProbe('preprocess-ready', { source: 'procedural-rig', ready: true });
+  loadProbe('runtime-ready', { runtime: 'crystalaPresentationRuntime' });
   g.apexCrystalaPresentationRuntime = 'ready';
 })(typeof window !== 'undefined' ? window : globalThis);

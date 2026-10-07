@@ -7,6 +7,31 @@
   const records = new Map();
   const inFlight = new Map();
   const scopeControllers = new Map();
+  // E3 profiling-only telemetry. Presentation runtimes publish milestones here;
+  // no timing value feeds readiness, scheduling, render, or gameplay.
+  const heroLoadPhases = new Map();
+  const CORE_SIX = Object.freeze(['newbot','hunter','crystala','magnet','frost','mirror']);
+  const now = () => performance.now();
+  function heroKey(input) {
+    const raw = String(input || '').toLowerCase();
+    if (raw === 'robot') return 'newbot';
+    if (raw === 'crystal') return 'crystala';
+    if (raw === 'ice') return 'frost';
+    return raw;
+  }
+  function markHeroLoad(hero, phase, detail) {
+    const key = heroKey(hero);
+    if (!key || !phase) return null;
+    let rec = heroLoadPhases.get(key);
+    if (!rec) { rec = { hero:key, phases:Object.create(null), events:[] }; heroLoadPhases.set(key, rec); }
+    const at = now();
+    const evt = { phase:String(phase), at, detail: detail && typeof detail === 'object' ? { ...detail } : detail || null };
+    rec.events.push(evt);
+    // First observation owns the canonical phase timestamp; repeats stay in
+    // events for debugging but never rewrite cold-load truth.
+    if (!rec.phases[evt.phase]) rec.phases[evt.phase] = evt;
+    return evt;
+  }
 
   const STATIC = Object.freeze({
     // Home Core is the ONLY scene required by cold boot. Keep this list small
@@ -61,7 +86,11 @@
         path: pathOnly(url),
         kind: kindOf(url),
         state: 'UNLOADED',
+        requestedAt: 0,
+        fetchStartedAt: 0,
         fetchedAt: 0,
+        bytes: 0,
+        decodeStartedAt: 0,
         readyAt: 0,
         error: '',
         lastIntent: '',
@@ -82,18 +111,21 @@
   async function fetchBytes(input, { signal, intent = 'required' } = {}) {
     const rec = recordFor(input);
     rec.lastIntent = intent;
+    if (!rec.requestedAt) rec.requestedAt = now();
     if (rec.state === 'READY' || rec.state === 'FETCHED') return rec;
     const key = rec.url + '|fetch';
     if (inFlight.has(key)) return inFlight.get(key);
     const task = (async () => {
       rec.state = 'FETCHING';
       rec.error = '';
+      if (!rec.fetchStartedAt) rec.fetchStartedAt = now();
       try {
         const response = await fetch(rec.url, { cache: 'force-cache', signal });
         if (!response.ok) throw new Error(String(response.status) + ' ' + response.statusText);
-        await response.arrayBuffer();
+        const bytes = await response.arrayBuffer();
+        rec.bytes = bytes.byteLength || 0;
         rec.state = 'FETCHED';
-        rec.fetchedAt = performance.now();
+        rec.fetchedAt = now();
         return rec;
       } catch (error) {
         if (error && error.name === 'AbortError') {
@@ -121,6 +153,7 @@
       await fetchBytes(rec.url, { signal, intent });
       if (signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
       rec.state = 'DECODING';
+      if (!rec.decodeStartedAt) rec.decodeStartedAt = now();
       try {
         await new Promise((resolve, reject) => {
           const img = new Image();
@@ -150,7 +183,7 @@
           }
         });
         rec.state = 'READY';
-        rec.readyAt = performance.now();
+        rec.readyAt = now();
         return rec;
       } catch (error) {
         if (error && error.name === 'AbortError') {
@@ -295,11 +328,60 @@
     scopeControllers.delete(key);
   }
 
+  function heroAssetUrls(hero) {
+    const key = heroKey(hero);
+    return [...new Set([
+      ...heroUrls([key], ['battleAvatar', 'skillIcons']),
+      ...rigUrls([key], new Set(['rig'])),
+    ].filter(Boolean))];
+  }
+
+  function heroProfile(hero) {
+    const key = heroKey(hero);
+    const urls = heroAssetUrls(key);
+    const recs = urls.map((url) => records.get(cleanUrl(url))).filter(Boolean);
+    const times = (name) => recs.map((r) => Number(r[name]) || 0).filter((v) => v > 0);
+    const first = (name) => { const a = times(name); return a.length ? Math.min(...a) : 0; };
+    const last = (name) => { const a = times(name); return a.length ? Math.max(...a) : 0; };
+    const phases = heroLoadPhases.get(key)?.phases || {};
+    const requestStartAt = first('requestedAt');
+    const fetchDoneAt = last('fetchedAt');
+    const decodeDoneAt = last('readyAt');
+    const runtimeReadyAt = phases['runtime-ready']?.at || 0;
+    const preprocessReadyAt = phases['preprocess-ready']?.at || 0;
+    const firstCompleteFrameAt = phases['first-complete-frame']?.at || 0;
+    return {
+      hero:key,
+      assets:{
+        count:urls.length,
+        observed:recs.length,
+        ready:recs.filter((r)=>r.state==='READY'||r.state==='FETCHED').length,
+        bytes:recs.reduce((n,r)=>n+(Number(r.bytes)||0),0),
+        requestStartAt, fetchDoneAt, decodeDoneAt,
+        requestToFetchMs:requestStartAt&&fetchDoneAt?fetchDoneAt-requestStartAt:null,
+        requestToDecodeMs:requestStartAt&&decodeDoneAt?decodeDoneAt-requestStartAt:null,
+        decodeSpanMs:(first('decodeStartedAt')&&decodeDoneAt)?decodeDoneAt-first('decodeStartedAt'):null,
+      },
+      runtimeReadyAt:runtimeReadyAt||null,
+      preprocessReadyAt:preprocessReadyAt||null,
+      firstCompleteFrameAt:firstCompleteFrameAt||null,
+      requestToRuntimeMs:requestStartAt&&runtimeReadyAt?runtimeReadyAt-requestStartAt:null,
+      requestToPreprocessMs:requestStartAt&&preprocessReadyAt?preprocessReadyAt-requestStartAt:null,
+      requestToFirstFrameMs:requestStartAt&&firstCompleteFrameAt?firstCompleteFrameAt-requestStartAt:null,
+      phases:Object.fromEntries(Object.entries(phases).map(([name,evt])=>[name,{...evt}])),
+    };
+  }
+
+  function heroProfiles() {
+    return Object.fromEntries(CORE_SIX.map((hero)=>[hero,heroProfile(hero)]));
+  }
+
   function snapshot() {
     return {
       records: Array.from(records.values()).map((r) => Object.assign({}, r)),
       scopes: Array.from(scopeControllers.keys()),
       inflight: Array.from(inFlight.keys()),
+      heroes: heroProfiles(),
     };
   }
 
@@ -310,6 +392,13 @@
     warm,
     cancel,
     state: snapshot,
+    profileHero: heroProfile,
+    profileHeroes: heroProfiles,
+  });
+  window.apexHeroLoadTelemetry = Object.freeze({
+    mark: markHeroLoad,
+    profile: heroProfile,
+    snapshot: heroProfiles,
   });
   window.apexProductAssetRuntime = 'ready';
 })();

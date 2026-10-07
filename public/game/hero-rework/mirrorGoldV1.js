@@ -1947,16 +1947,22 @@ function createMirrorInstance(options) {
 // Gold bakes at init(). Production bakes lazily on first use, in Gold's order.
 let baked = false;
 let bakeError = null;
+const loadProbe = (phase, detail) => {
+  try { return g.apexHeroLoadTelemetry?.mark?.('mirror', phase, detail); } catch (_) { return null; }
+};
 function ensureBaked() {
   if (baked || bakeError) return baked;
-  if (!doc) { bakeError = new Error('no document'); return false; }
+  if (!doc) { bakeError = new Error('no document'); loadProbe('preprocess-error',{error:'no document'}); return false; }
+  loadProbe('preprocess-start',{source:'Mirror raster bake'});
   try {
     bs = 7;              // Gold's authored baker seed, restated so a re-bake is identical
     bakeSupport();
     bakeArt();
     baked = true;
+    loadProbe('preprocess-ready',{baked:true});
   } catch (e) {
     bakeError = e;
+    loadProbe('preprocess-error',{error:String(e)});
   }
   return baked;
 }

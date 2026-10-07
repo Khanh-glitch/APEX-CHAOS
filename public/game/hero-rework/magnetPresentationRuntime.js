@@ -12,6 +12,9 @@
   const AIL = g.APEX_HERO_REWORK_AIL;
   const MAG = g.APEX_MAGNET;
   const GOLD = g.APEX_MAGNET_GOLD;
+  const loadProbe = (phase, detail) => {
+    try { return g.apexHeroLoadTelemetry?.mark?.('magnet', phase, detail); } catch (_) { return null; }
+  };
   const states = new Map();
   const scheduler = { tickCalls: 0, advancedFrames: 0, duplicateCalls: 0 };
   let unsubscribers = [];
@@ -381,6 +384,9 @@
       drawStatus(ctx, this);
       GOLD.drawAfter(ctx, ct);
       renderPostWorldInterop(ctx, this);
+      loadProbe('first-complete-frame', {
+        frame: Number.isFinite(g.__apexRenderFrame) ? g.__apexRenderFrame : null,
+      });
     };
   }
 
@@ -443,5 +449,6 @@
     teardown,
     inspect,
   };
+  loadProbe('runtime-ready', { runtime: 'magnetPresentationRuntime' });
   g.apexMagnetPresentationRuntime = 'ready';
 })(typeof window !== 'undefined' ? window : globalThis);

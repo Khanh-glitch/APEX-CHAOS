@@ -69,6 +69,9 @@ const FR = g.APEX_FROST || null;
 const HR = g.APEX_HERO_REWORK || null;
 
 const api = g.APEX_FROST_PRESENTATION = { ready: false };
+const loadProbe = (phase, detail) => {
+  try { return g.apexHeroLoadTelemetry?.mark?.('frost', phase, detail); } catch (_) { return null; }
+};
 let warned = 0;
 let sharedArt = null; // { mips, shadow } once the first engine load resolves
 function warnOnce(e) {
@@ -1590,6 +1593,9 @@ function ensureDrawWraps() {
           isolated(ctx, () => postWorld(ctx));
         }
       } catch (err) { warnOnce(err); }
+      if (bypassed) loadProbe('first-complete-frame', {
+        frame: Number.isFinite(g.__apexRenderFrame) ? g.__apexRenderFrame : null,
+      });
     };
   }
   if (typeof g.drawProjectiles === 'function' && !g.drawProjectiles.__frostWrapped) {
@@ -2002,10 +2008,21 @@ api.clearIntegrityTrace = function () {
 };
 
 if (G && typeof G.load === 'function' && !api.ready) {
+  loadProbe('preprocess-start', { source: 'APEX_FROST_GOLD.load' });
   try {
-    G.load().then(() => { api.ready = true; }).catch((e) => { api.error = String(e); });
-  } catch (e) { api.error = String(e); }
+    G.load().then(() => {
+      api.ready = true;
+      loadProbe('preprocess-ready', { cacheStats: G.cacheStats ? { ...G.cacheStats } : null });
+    }).catch((e) => {
+      api.error = String(e);
+      loadProbe('preprocess-error', { error: String(e) });
+    });
+  } catch (e) {
+    api.error = String(e);
+    loadProbe('preprocess-error', { error: String(e) });
+  }
 }
 
+loadProbe('runtime-ready', { runtime: 'frostPresentationRuntime' });
 g.apexFrostPresentationRuntime = 'ready';
 })(typeof window !== 'undefined' ? window : globalThis);

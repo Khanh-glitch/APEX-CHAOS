@@ -13,6 +13,9 @@
   const HR = g.APEX_HERO_REWORK;
   const AIL = g.APEX_HERO_REWORK_AIL;
   const GOLD = g.APEX_MIRROR_GOLD;
+  const loadProbe = (phase, detail) => {
+    try { return g.apexHeroLoadTelemetry?.mark?.('mirror', phase, detail); } catch (_) { return null; }
+  };
   const VERSION = 'r2-semantic-gold-presentation';
   const STEP = 1 / 120;
   const MAX_SUBSTEPS = 8;
@@ -1093,6 +1096,11 @@
       // Preserve the existing Robot -> Hunter -> Crystala -> Frost -> Magnet
       // actor chain. The Arsenal foreground owns the later A1World dispatch,
       // after every fighter and held-weapon draw has completed.
+      if (state && this === ct.anchor && this.hp > 0) {
+        loadProbe('first-complete-frame', {
+          frame: Number.isFinite(g.__apexRenderFrame) ? g.__apexRenderFrame : null,
+        });
+      }
       return result;
     };
     drawWrapper.__mirrorPresentationWrapped = true;
@@ -1188,5 +1196,6 @@
   g.APEX_MIRROR_PRESENTATION = api;
   installDraw();
   reconcile(currentMatch());
+  loadProbe('runtime-ready', { runtime: 'mirrorPresentationRuntime' });
   g.apexMirrorPresentationRuntime = 'ready';
 })(typeof window !== 'undefined' ? window : globalThis);

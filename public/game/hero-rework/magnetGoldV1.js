@@ -55,8 +55,10 @@ const bump=(t,u,h,d)=>t<0?0:t<u?smooth(0,u,t):t<u+h?1:t<u+h+d?1-smooth(0,d,t-u-h
 
 const images={};
 let ready=false,loadError=null;
+const loadProbe=(phase,detail)=>{try{return g.apexHeroLoadTelemetry?.mark?.('magnet',phase,detail);}catch(_){return null;}};
 function loadImage(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error(`MAGNET Gold asset failed: ${src}`));im.src=src;});}
 async function loadAssets(){
+  loadProbe('preprocess-start',{source:'MAGNET Gold 54-image loader'});
   try{
     const jobs=[];
     for(const id of IDS){
@@ -71,7 +73,11 @@ async function loadAssets(){
       }
     }
     await Promise.all(jobs);ready=true;
-  }catch(error){loadError=error;}
+    loadProbe('preprocess-ready',{assetJobs:jobs.length});
+  }catch(error){
+    loadError=error;
+    loadProbe('preprocess-error',{error:String(error)});
+  }
 }
 loadAssets();
 

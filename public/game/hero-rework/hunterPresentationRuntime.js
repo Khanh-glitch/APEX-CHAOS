@@ -7,8 +7,10 @@
 (function(g){
 'use strict';if(g.APEX_HUNTER_PRESENTATION)return;
 const G=g.APEX_HUNTER_GOLD,HR=g.APEX_HERO_REWORK,states=new WeakMap();let assets=null;
+const loadProbe=(phase,detail)=>{try{return g.apexHeroLoadTelemetry?.mark?.('hunter',phase,detail);}catch(_){return null;}};
 const api=g.APEX_HUNTER_PRESENTATION={ready:false,trapWorldRadius:0};
-G.load().then(a=>{assets=a;api.ready=true;measure();}).catch(e=>{api.error=String(e);console.error('[Hunter V10 assets]',e);});
+loadProbe('preprocess-start',{source:'APEX_HUNTER_GOLD.load'});
+G.load().then(a=>{assets=a;api.ready=true;measure();loadProbe('preprocess-ready',{cacheStats:G.cacheStats?{...G.cacheStats}:null});}).catch(e=>{api.error=String(e);loadProbe('preprocess-error',{error:String(e)});console.error('[Hunter V10 assets]',e);});
 const scale=f=>2*(f.radius||75)/(555*.335),offset=98*.335;
 function hunter(f){return HR.byCombatant(f)?.heroId==='HUNTER';}
 function state(f){if(states.has(f))return states.get(f);const cv=document.createElement('canvas');cv.width=cv.height=1;const s=new G.Stage(cv);s.auto=false;s.art=assets?.art||{};s.glow=assets?.glow||{};s.ready=!!assets;s.fighter=f;s.scale=scale(f);s.a1Motion=null;s.plantTrap=function(){G.Stage.prototype.plantTrap.call(this);this.pendingPlant=true;};states.set(f,s);sync(s);s.integrateHunter(0);return s;}
@@ -84,7 +86,7 @@ function actorCore(c,f){const s=state(f);sync(s);s.integrateHunter(0);c.save();c
 function fxAfter(c,f){const s=state(f);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.ribL.draw(c,s.time);s.ribR.draw(c,s.time);c.restore();}
 // Equipped-weapon dispatch lives ONLY in the Arsenal quest weapon pass (single
 // dispatch law); body() never draws the weapon a second time.
-function body(c,f){const P=g.APEX_CHAMBER_PALETTE;echoesBefore(c,f);if(P&&P.actorRender&&P.isActive())P.actorRender(c,f,f.x,f.y,oc=>actorCore(oc,f));else actorCore(c,f);fxAfter(c,f);}
+function body(c,f){const P=g.APEX_CHAMBER_PALETTE;echoesBefore(c,f);if(P&&P.actorRender&&P.isActive())P.actorRender(c,f,f.x,f.y,oc=>actorCore(oc,f));else actorCore(c,f);fxAfter(c,f);loadProbe('first-complete-frame',{frame:Number.isFinite(g.__apexRenderFrame)?g.__apexRenderFrame:null});}
 function layer(c,which){if(!api.ready||!HR.match)return;for(const t of HR.match.world.snares){if(!t.visual)continue;const k=scale(t.owner.anchor),v=t.visual;v.tr.x=t.x/k;v.tr.y=t.y/k;c.save();c.scale(k,k);G.rtDraw(v,c,null,which);c.restore();}}
 function weakLayer(c){if(!api.ready||!HR.match)return;for(const ct of HR.match.combatants){if(ct.heroId!=='HUNTER')continue;const s=states.get(ct.anchor);if(!s||(s.p.weak||0)<=0)continue;c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.drawWeak(c);c.restore();}}
 const baseProjectiles=g.drawProjectiles;g.drawProjectiles=function(c){baseProjectiles(c);layer(c,'back');for(const ct of HR.match?.combatants||[])if(ct.heroId==='HUNTER'&&api.ready){const s=state(ct.anchor);c.save();c.scale(s.scale,s.scale);c.translate(0,-offset);s.fx.draw(c,false);c.restore();}};
@@ -112,5 +114,6 @@ const baseDraw=g.Fighter.prototype.draw;g.Fighter.prototype.draw=function(c){if(
 api.inspect=f=>{const s=state(f),m=s.a1Motion;return{mode:s.h.mode,phase:s.h.phase,scale:s.scale,pose:{...s.pose},aura:s.auraAlpha?.x||0,echoes:s.echoes.length,weak:s.p.weak||0,
  a1:m?{offset:m.offset,goldT:m.goldT,refX:m.x.x,refPx:m.px,timeScale:s.timeScale}:null};};
 api.cacheStats=G.cacheStats;
+loadProbe('runtime-ready',{runtime:'hunterPresentationRuntime'});
 g.apexHunterPresentationRuntime='ready';
 })(window);
