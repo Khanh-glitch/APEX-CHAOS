@@ -1882,13 +1882,13 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     hunter:{scale:.62,x:0,y:5},
     crystala:{scale:.90,x:0,y:4},
     magnet:{scale:.92,x:0,y:4},
-    frost:{scale:1.53,x:0,y:16},
+    frost:{scale:1.53,x:0,y:23,flip:true},
   });
   const worldHeroSwapState=new WeakMap();
 
   function presentationFor(renderId,player){
     const p=HERO_PRESENTATION[renderId]||{scale:.94,x:0,y:4};
-    const face=Number.isFinite(p.face)?p.face:(player==='p2'?-1:1);
+    const baseFace=player==='p2'?-1:1;\n    const face=Number.isFinite(p.face)?p.face:(p.flip?-baseFace:baseFace);
     return {scale:p.scale||1,x:p.x||0,y:p.y||0,face};
   }
 
