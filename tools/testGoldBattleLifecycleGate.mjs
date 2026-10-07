@@ -319,6 +319,45 @@ if (authority && audio) {
   check('shipping product music authority installs in harness', false);
 }
 
+// CP2: destination READY is selected-hero canonical-renderer readiness, not
+// merely runtime-script evaluation or generic duplicate asset decode.
+const rendererBarrier = bridge.match(/async function prepareMatchHeroRenderers[\s\S]*?\n  \}/);
+check('selected hero renderer barrier covers all async Core-Six renderers',
+  !!rendererBarrier
+  && /APEX_HUNTER_PRESENTATION/.test(rendererBarrier[0])
+  && /APEX_FROST_PRESENTATION/.test(rendererBarrier[0])
+  && /APEX_MAGNET_GOLD/.test(rendererBarrier[0]));
+const prepareSurfaceBlock = bridge.match(/BRIDGE\.prepareSurface = async function prepareSurface[\s\S]*?\n  \};/);
+check('battle prepareSurface awaits renderer + audio readiness after deferred runtimes',
+  !!prepareSurfaceBlock
+  && /ensureDeferredRuntimes\('arsenalProduct'\)/.test(prepareSurfaceBlock[0])
+  && /prepareMatchHeroRenderers\(\.\.\.heroIds\)/.test(prepareSurfaceBlock[0])
+  && /warmMatchHeroAudio\(\.\.\.heroIds\)/.test(prepareSurfaceBlock[0]));
+const liveEntryBlock = bridge.match(/BRIDGE\.onBattleLive = async function onBattleLive[\s\S]*?\n  \};/);
+check('direct battle API waits renderer readiness before publishing selection',
+  !!liveEntryBlock
+  && liveEntryBlock[0].indexOf('prepareMatchHeroRenderers(p1Shell, p2Shell)')
+     < liveEntryBlock[0].indexOf('window.__apexArsenalSelectionMode'));
+check('Hunter/Frost/Magnet expose awaitable renderer owners',
+  /api\.whenReady=\(\)=>/.test(read('public/game/hero-rework/hunterPresentationRuntime.js'))
+  && /api\.whenReady = function whenReady\(\)/.test(read('public/game/hero-rework/frostPresentationRuntime.js'))
+  && /function whenReady\(\)/.test(read('public/game/hero-rework/magnetGoldV1.js')));
+
+// CP2: same-document donor remounts must release every per-mount global.
+check('battle donor exposes one disposal authority',
+  /seam\.addDisposer=function addDisposer/.test(hud)
+  && /seam\.dispose=function dispose/.test(hud));
+check('battle donor global resize/message resources are removable',
+  /const __apexResizeObserver=new ResizeObserver\(resizeCanvas\)/.test(hud)
+  && /removeEventListener\('resize',applyViewport\)/.test(hud)
+  && /const onBattleHudMessage=e=>\{/.test(hud)
+  && /removeEventListener\('message',onBattleHudMessage\)/.test(hud));
+check('bridge disposes donor before deleting its DOM/seam',
+  (() => { const b=bridge.match(/BRIDGE\.unmountBattleHud = function unmountBattleHud[\s\S]*?\n  \};/); return !!b && /APEX_GOLD_HUD\?\.dispose\?\.\(\)/.test(b[0]) && b[0].indexOf('APEX_GOLD_HUD?.dispose?.()') < b[0].indexOf("hudHost.textContent = ''"); })());
+check('generator preserves remount disposal laws',
+  /HUD-H32/.test(generator) && /HUD-H33/.test(generator)
+  && /seam\.dispose=function dispose/.test(generator));
+
 const out = ['GOLD BATTLE LIFECYCLE GATE (R49D root ownership)', ...pass];
 if (fail.length) {
   out.push('', ...fail, '', 'RESULT: FAIL (' + fail.length + ')');

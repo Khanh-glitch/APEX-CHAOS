@@ -403,7 +403,20 @@ function buildBattleHud() {
       id: 'HUD-H18',
       why: 'boot line starts the production pump only (resetDemo no longer exists)',
       find: /resetDemo\(\);applyViewport\(\);requestAnimationFrame\(frame\);/,
-      replace: 'applyViewport();requestAnimationFrame(frame);',
+      replace: 'applyViewport();__apexHudFrame=requestAnimationFrame(frame);',
+    },
+    // ── H32/H33: every mount owns and releases its global resources ────────
+    {
+      id: 'HUD-H32',
+      why: 'name the viewport ResizeObserver so the production seam can disconnect it on unmount',
+      find: /new ResizeObserver\(resizeCanvas\)\.observe\(R\.arena\);\naddEventListener\('resize',applyViewport\);/,
+      replace: `const __apexResizeObserver=new ResizeObserver(resizeCanvas);\n__apexResizeObserver.observe(R.arena);\naddEventListener('resize',applyViewport);`,
+    },
+    {
+      id: 'HUD-H33',
+      why: 'name the per-mount handoff message listener and register it with the seam disposer',
+      find: /  window\.addEventListener\('message',e=>\{([\s\S]*?)\n  \}\);(?=\n  if\(!document\.__apexGoldHudExitKey\))/,
+      replace: `  const onBattleHudMessage=e=>{$1\n  };\n  window.addEventListener('message',onBattleHudMessage);\n  window.APEX_GOLD_HUD?.addDisposer?.(()=>window.removeEventListener('message',onBattleHudMessage));`,
     },
     // ── H19: dead donor sim functions removed (unreferenced after patches) ──
     {
@@ -548,12 +561,12 @@ function buildBattleHud() {
       find: /\/\* =+ LOOP =+ \*\/[\s\S]*?requestAnimationFrame\(frame\);\n\}/,
       replace: (
         `/* ================= PRODUCTION PUMP ================= */\n` +
-        `let __apexLast=performance.now();\n` +
+        `let __apexLast=performance.now(),__apexHudFrame=0;\n` +
         `function frame(now){\n` +
-        ` if(!R.stage||!R.stage.isConnected)return;\n` +
+        ` if(!R.stage||!R.stage.isConnected){__apexHudFrame=0;return;}\n` +
         ` const dt=Math.min(.05,(now-__apexLast)/1000);__apexLast=now;\n` +
         ` try{APEX_GOLD_HUD.tick(dt,now);}catch(err){}\n` +
-        ` requestAnimationFrame(frame);\n` +
+        ` __apexHudFrame=requestAnimationFrame(frame);\n` +
         `}\n`
       ),
     },
@@ -712,6 +725,18 @@ const seamPatches = [
   if(seam.__installed===seamVersion)return;
   seam.__installed=seamVersion;
   seam.version=seamVersion;
+  const disposers=[];
+  seam.addDisposer=function addDisposer(fn){if(typeof fn==='function')disposers.push(fn);};
+  seam.dispose=function dispose(){
+    if(seam.__disposed)return;
+    seam.__disposed=true;
+    while(disposers.length){const fn=disposers.pop();try{fn();}catch(_){}}
+  };
+  seam.addDisposer(()=>{
+    try{__apexResizeObserver.disconnect();}catch(_){}
+    try{removeEventListener('resize',applyViewport);}catch(_){}
+    try{if(__apexHudFrame)cancelAnimationFrame(__apexHudFrame);}catch(_){}
+  });
 
   // Real fighter positions (production arena space, 0..1000) drive the
   // canonical FX anchor points (popups, sweeps, flashes, streaks).

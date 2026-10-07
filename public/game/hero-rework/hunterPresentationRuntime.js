@@ -8,7 +8,10 @@
 'use strict';if(g.APEX_HUNTER_PRESENTATION)return;
 const G=g.APEX_HUNTER_GOLD,HR=g.APEX_HERO_REWORK,states=new WeakMap();let assets=null;
 const api=g.APEX_HUNTER_PRESENTATION={ready:false,trapWorldRadius:0};
-G.load().then(a=>{assets=a;api.ready=true;measure();}).catch(e=>{api.error=String(e);console.error('[Hunter V10 assets]',e);});
+const readyPromise=G.load().then(a=>{assets=a;api.ready=true;api.error=null;measure();return true;})
+ .catch(e=>{api.error=String(e);console.error('[Hunter V10 assets]',e);throw e;});
+readyPromise.catch(()=>{});
+api.whenReady=()=>api.ready?Promise.resolve(true):readyPromise;
 const scale=f=>2*(f.radius||75)/(555*.335),offset=98*.335;
 function hunter(f){return HR.byCombatant(f)?.heroId==='HUNTER';}
 function state(f){if(states.has(f))return states.get(f);const cv=document.createElement('canvas');cv.width=cv.height=1;const s=new G.Stage(cv);s.auto=false;s.art=assets?.art||{};s.glow=assets?.glow||{};s.ready=!!assets;s.fighter=f;s.scale=scale(f);s.a1Motion=null;s.plantTrap=function(){G.Stage.prototype.plantTrap.call(this);this.pendingPlant=true;};states.set(f,s);sync(s);s.integrateHunter(0);return s;}

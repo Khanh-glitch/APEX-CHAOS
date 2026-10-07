@@ -54,10 +54,11 @@ const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
 const bump=(t,u,h,d)=>t<0?0:t<u?smooth(0,u,t):t<u+h?1:t<u+h+d?1-smooth(0,d,t-u-h):0;
 
 const images={};
-let ready=false,loadError=null;
+let ready=false,loadError=null,loadPromise=null;
 function loadImage(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error(`MAGNET Gold asset failed: ${src}`));im.src=src;});}
-async function loadAssets(){
-  try{
+function loadAssets(){
+  if(loadPromise)return loadPromise;
+  loadPromise=(async()=>{
     const jobs=[];
     for(const id of IDS){
       images[id]=[];
@@ -70,10 +71,14 @@ async function loadAssets(){
         }
       }
     }
-    await Promise.all(jobs);ready=true;
-  }catch(error){loadError=error;}
+    await Promise.all(jobs);
+    ready=true;loadError=null;
+    return true;
+  })().catch(error=>{loadError=error;throw error;});
+  return loadPromise;
 }
-loadAssets();
+function whenReady(){return ready?Promise.resolve(true):loadAssets();}
+loadAssets().catch(()=>{});
 
 const states=new Map();
 function createState(combatant){
@@ -510,7 +515,7 @@ function setRandomSeed(combatant,value){stateFor(combatant).rng.seed=(Number(val
 
 g.APEX_MAGNET_GOLD={
   version:'2.0.0-canonical-engine',DT,META,BODY_REF,BODY_VISUAL_CALIBRATION,
-  updateFrame,tick,cue,drawArenaDistortion,drawBefore,draw,drawActor:draw,drawAfter,getSockets,teardown,inspect,setRandomSeed,
+  updateFrame,tick,cue,drawArenaDistortion,drawBefore,draw,drawActor:draw,drawAfter,getSockets,teardown,inspect,setRandomSeed,whenReady,
   get ready(){return ready;},
 };
 g.apexMagnetGoldV1='ready';
