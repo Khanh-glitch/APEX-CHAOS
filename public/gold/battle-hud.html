@@ -585,6 +585,41 @@ kbd{font:inherit}
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p2Side .skills{height:50px}
 #hud[data-mode="1p"] .weapon{overflow:visible;box-sizing:border-box}
 
+
+/* R59 SKILL-STATE LEGIBILITY — state must read before the player reads copy.
+   No zoom/reflow: cooldown and active use contrast, progress and edge light. */
+#hud .skill{transition:background .14s ease,box-shadow .14s ease,opacity .14s ease}
+#hud .skill[data-state="cd"]{
+  background:linear-gradient(90deg,rgba(6,8,10,.94),rgba(12,15,18,.90));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.035)}
+#hud .skill[data-state="cd"] .sk-art{filter:saturate(.42) brightness(.72)}
+#hud .skill[data-state="cd"] .sk-mask{
+  background:repeating-linear-gradient(135deg,rgba(3,4,5,.84) 0 7px,rgba(11,13,15,.88) 7px 14px);
+  border-bottom:1px solid rgba(255,255,255,.12)}
+#hud .skill[data-state="cd"] .sk-cdn{
+  font-size:calc(var(--cdF,22px) * 1.08);font-weight:900;color:#f2eee7;
+  text-shadow:0 2px 8px #000,0 0 10px rgba(255,255,255,.10)}
+#hud .skill[data-state="cd"] .sk-bar{height:5px;background:#181d21}
+#hud .skill[data-state="cd"] .sk-bar i{opacity:.72}
+#hud .skill[data-state="active"]{
+  background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 22%,#11161a),#0e1215 76%);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 68%,transparent),
+             inset 0 0 20px color-mix(in srgb,var(--acc) 10%,transparent)}
+#hud .skill[data-state="active"]::after{border-color:color-mix(in srgb,var(--acc) 72%,transparent)}
+#hud .skill[data-state="active"] .sk-art{
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 62%,transparent),
+             inset 0 0 18px color-mix(in srgb,var(--acc) 18%,transparent)}
+#hud .skill[data-state="active"] .sk-art>.apex-skill-icon{opacity:1}
+#hud .skill[data-state="active"] .sk-state{
+  color:#fff;font-weight:900;text-shadow:0 0 10px color-mix(in srgb,var(--acc) 64%,transparent)}
+#hud .skill[data-state="active"] .sk-bar{height:6px;background:color-mix(in srgb,var(--acc) 18%,#15191d)}
+#hud .skill[data-state="active"] .sk-bar i{box-shadow:0 0 10px color-mix(in srgb,var(--acc) 72%,transparent)}
+#hud .skill[data-state="ready"] .sk-state{color:var(--acc)}
+@media(prefers-reduced-motion:no-preference){
+  #hud .skill[data-state="active"]::before{animation:apexSkillActivePulse .72s ease-in-out infinite alternate}
+}
+@keyframes apexSkillActivePulse{from{opacity:.62}to{opacity:1}}
+
 /* Shared live-ammo state. */
 #hud .weapon.low-ammo .wp-cur{color:var(--crit);text-shadow:0 0 10px color-mix(in srgb,var(--crit) 46%,transparent)}
 #hud .weapon.low-ammo .wp-mag i{background:var(--crit)}

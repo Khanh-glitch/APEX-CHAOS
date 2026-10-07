@@ -79,6 +79,14 @@ check('battle HUD renders cooldown, charge/recharge and active-duration semantic
   hud.includes("txt='ACTIVE '+activeSecs+'s'") &&
   hud.includes("a.charges+'/'+a.max+' · '+secs+'s'"));
 
+check('skill state is visually legible without zooming or reflowing tiles',
+  hud.includes('R59 SKILL-STATE LEGIBILITY')
+  && hud.includes('#hud .skill[data-state="cd"] .sk-mask')
+  && hud.includes('#hud .skill[data-state="active"] .sk-state')
+  && hud.includes('#hud .skill[data-state="active"] .sk-bar')
+  && hud.includes('@keyframes apexSkillActivePulse')
+  && !/skill\[data-state="(?:cd|active)"\][^}]*transform:scale/.test(hud));
+
 check('donor no longer auto-completes production cooldown/charge state',
   hud.includes('Production projection is the ONLY cooldown/charge authority.') &&
   !hud.includes("if(a.next&&now>=a.next){a.charges++;"));
