@@ -422,7 +422,9 @@ gate('entry-state',
   report.entry.gameState === 'ARSENAL'
   && report.entry.hero.hp === 1000 && report.entry.rival.hp === 1000
   && report.entry.hero.weapon === 'NONE' && report.entry.rival.weapon === 'NONE'
-  && report.entry.menuHidden
+  // Current product cutover is host-neutral: this direct-runtime fixture may
+  // leave the retired legacy menu node visible. Battle truth is the active
+  // ARSENAL state + HUD identity, not legacy menu-screen visibility.
   && report.entry.p1Name === 'HERO' && report.entry.p2Name === 'RIVAL',
   report.entry);
 
@@ -1956,7 +1958,8 @@ report.r59RobotBotDecision = run(`
     .map(e => ({slot:e.payload.slot,reason:e.payload.reason}));
 
   // Real A1 utility appears: Robot is unarmed and a legal revealed pickup exists.
-  __APEX_TEST.pushSlot({ x: 760, y: 500, phase: 'REVEALED', weaponId: 'PISTOL', revealedFor: 0 });
+  // Outside physical touch range: A1 must be the mechanism that reaches it.
+  __APEX_TEST.pushSlot({ x: 620, y: 500, phase: 'REVEALED', weaponId: 'PISTOL', revealedFor: 0 });
   for (let i = 0; i < 120; i++) APEX_ARSENAL.step(1/60);
   const afterPickup = {
     a1: p2.telemetry.bySkill.A1 || 0,
@@ -2231,7 +2234,12 @@ report.r59MirrorA1BotDecision = run(`
   };
   const sample=(weaponId)=>{
     const p2=startBot();
-    if(weaponId) W.equip(fighters[0],weaponId);
+    if(weaponId) {
+      W.equip(fighters[0],weaponId);
+      // Freeze autonomous weapon use so this scenario observes Mirror's A1
+      // eligibility policy against a still-held real weapon.
+      if(fighters[0].data && fighters[0].data.arsenal) fighters[0].data.arsenal.elapsed=-10;
+    }
     const mark=HR.AIL.bus.seq;
     for(let i=0;i<180;i++) APEX_ARSENAL.step(1/60);
     return {
@@ -2310,7 +2318,8 @@ report.r59MirrorA2Position = run(`
   p2=startBot();
   fighters[0].x=300;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
   projectiles.push({type:'aq_bullet',aq:true,owner:fighters[0],weapon:'PISTOL',
-    x:650,y:500,px:650,py:500,vx:80,vy:0,radius:4,life:4,maxLife:4,color:'#fff'});
+    // Arrival lands inside Exchange's authored 0.25–0.64s decision window.
+    x:650,y:500,px:650,py:500,vx:500,vy:0,radius:4,life:4,maxLife:4,color:'#fff'});
   mark=HR.AIL.bus.seq;
   for(let i=0;i<90;i++)APEX_ARSENAL.step(1/60);
   const projectileEscape={a2:p2.telemetry.bySkill.A2||0,
@@ -2396,6 +2405,8 @@ report.r59HunterBotDecision = run(`
   fighters[0].x=420;fighters[0].y=500;fighters[1].x=800;fighters[1].y=500;
   ctl=HR.abilityController(p2);ctl.setCooldown('A1',999);
   W.equip(fighters[0],'PISTOL');
+  // Preserve the ranged holder until Hunter reaches its AI decision beat.
+  if(fighters[0].data && fighters[0].data.arsenal) fighters[0].data.arsenal.elapsed=-10;
   const disarmMark=HR.AIL.bus.seq;
   for(let i=0;i<120;i++){
     fighters[0].__hrVel={x:0,y:0};
@@ -5659,13 +5670,16 @@ const battleRuntimeSrc = fs.readFileSync(path.join(REPO, 'public/game/modes/arse
 const goldShellSrc = fs.readFileSync(path.join(REPO, 'public/gold/shell.html'), 'utf8');
 gate('gold-battle-exit-returns-directly-to-fighter-pick',
   battleRuntimeSrc.includes('Gold-hosted battle: engine teardown ONLY')
-  && battleRuntimeSrc.includes("['menu-screen', 'select-screen'].forEach")
+  && battleRuntimeSrc.includes("window.postMessage({ type: 'APEX_CHAOS_BATTLE_EXIT' }")
+  && !battleRuntimeSrc.includes("['menu-screen', 'select-screen'].forEach")
   && !goldShellSrc.includes("name:'battle->fighter'")
   && goldShellSrc.includes('Battle is NOT a Mechanical Door route')
   && goldShellSrc.includes("screen='fighter'")
   && goldShellSrc.includes("APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter')"),
   {
     goldEngineTeardownOnly: battleRuntimeSrc.includes('Gold-hosted battle: engine teardown ONLY'),
+    hostExitMessage: battleRuntimeSrc.includes("window.postMessage({ type: 'APEX_CHAOS_BATTLE_EXIT' }"),
+    legacySelectMutationAbsent: !battleRuntimeSrc.includes("['menu-screen', 'select-screen'].forEach"),
     battleUsesMechanicalDoor: goldShellSrc.includes("name:'battle->fighter'"),
     fighterCommit: goldShellSrc.includes("screen='fighter'"),
   });
