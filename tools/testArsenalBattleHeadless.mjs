@@ -1923,6 +1923,88 @@ gate('postc-robot-selectable', report.postCRobot.name === 'ROBOT' && report.post
 gate('postc-robot-no-consume-without-pickup', report.postCRobot.failedNoPickup, report.postCRobot);
 gate('postc-robot-dash-to-revealed', report.postCRobot.dashed && report.postCRobot.cdAfter > 5, report.postCRobot);
 
+// R59 D1-D3 — BOT intelligence means context-dependent decisions, not merely
+// proving the CPU can trigger an executor. Robot must hold both cooldowns in an
+// irrelevant opening, spend A1 for a real pickup, and spend A2 only after a
+// credible threat appears.
+report.r59RobotBotDecision = run(`
+  const HR = window.APEX_HERO_REWORK;
+  const prevProfile = window.__apexArsenalBattleProfile;
+  window.__apexArsenalBattleProfile = 'BOT';
+  window.__apexArsenalTestStartMatch('ICE', 'ROBOT');
+  window.__apexArsenalBattleProfile = prevProfile;
+  cancelAnimationFrame(reqId); reqId = 0;
+  __APEX_TEST.holdSpawns();
+  projectiles.length = 0;
+
+  const p2 = HR.byCombatant(fighters[1]);
+  fighters[0].x = 160; fighters[0].y = 500; fighters[1].x = 820; fighters[1].y = 500;
+  fighters[0].baseSpeed = 0; fighters[1].baseSpeed = 0;
+  if (fighters[0].data) fighters[0].data.__hrHoldBody = true;
+  if (fighters[1].data) fighters[1].data.__hrHoldBody = true;
+
+  const mark = HR.AIL.bus.ring.length;
+  for (let i = 0; i < 180; i++) APEX_ARSENAL.step(1/60);
+  const idle = {
+    casts: p2.telemetry.casts,
+    fails: p2.telemetry.castFails,
+    a1: p2.telemetry.bySkill.A1 || 0,
+    a2: p2.telemetry.bySkill.A2 || 0,
+  };
+  const idleEvents = HR.AIL.bus.ring.slice(mark);
+  const idleRejects = idleEvents.filter(e => e.type === 'AICastReject' && e.payload.hero === 'ROBOT')
+    .map(e => ({slot:e.payload.slot,reason:e.payload.reason}));
+
+  // Real A1 utility appears: Robot is unarmed and a legal revealed pickup exists.
+  __APEX_TEST.pushSlot({ x: 760, y: 500, phase: 'REVEALED', weaponId: 'PISTOL', revealedFor: 0 });
+  for (let i = 0; i < 120; i++) APEX_ARSENAL.step(1/60);
+  const afterPickup = {
+    a1: p2.telemetry.bySkill.A1 || 0,
+    a2: p2.telemetry.bySkill.A2 || 0,
+  };
+
+  // A2 still has no reason until the rival is actually armed/in range.
+  const a2BeforeThreat = p2.telemetry.bySkill.A2 || 0;
+  fighters[0].x = 430; fighters[0].y = 500; fighters[1].x = 690; fighters[1].y = 500;
+  APEX_ARSENAL.weaponApi.equip(fighters[0], 'PISTOL');
+  for (let i = 0; i < 120; i++) APEX_ARSENAL.step(1/60);
+  const afterThreat = {
+    a1: p2.telemetry.bySkill.A1 || 0,
+    a2: p2.telemetry.bySkill.A2 || 0,
+    fails: p2.telemetry.castFails,
+  };
+  const decisions = HR.AIL.bus.ring.slice(mark).filter(e =>
+    (e.type === 'AICastConsider' || e.type === 'AICastReject' || e.type === 'AICastSelect' || e.type === 'AICastOutcome')
+    && e.payload.hero === 'ROBOT'
+  ).map(e => ({type:e.type,slot:e.payload.slot,reason:e.payload.reason,ok:e.payload.ok}));
+
+  return { battleMode:APEX_ARSENAL.state.battleMode, idle, idleRejects, afterPickup, a2BeforeThreat, afterThreat, decisions };
+`);
+gate('r59-robot-bot-idle-preserves-cooldowns',
+  report.r59RobotBotDecision.battleMode === 'BOT'
+  && report.r59RobotBotDecision.idle.casts === 0
+  && report.r59RobotBotDecision.idle.a1 === 0
+  && report.r59RobotBotDecision.idle.a2 === 0
+  && report.r59RobotBotDecision.idle.fails === 0,
+  report.r59RobotBotDecision);
+gate('r59-robot-bot-rejects-have-visible-reasons',
+  report.r59RobotBotDecision.idleRejects.some(e => e.slot === 'A1' && e.reason === 'no-eligible-pickup')
+  && report.r59RobotBotDecision.idleRejects.some(e => e.slot === 'A2' && e.reason === 'no-credible-threat'),
+  report.r59RobotBotDecision.idleRejects);
+gate('r59-robot-bot-a1-spends-only-after-real-pickup',
+  report.r59RobotBotDecision.afterPickup.a1 >= 1
+  && report.r59RobotBotDecision.decisions.some(e => e.type === 'AICastSelect' && e.slot === 'A1' && e.reason === 'unarmed-pickup'),
+  report.r59RobotBotDecision);
+gate('r59-robot-bot-a2-waits-then-reacts-to-threat',
+  report.r59RobotBotDecision.a2BeforeThreat === 0
+  && report.r59RobotBotDecision.afterThreat.a2 >= 1
+  && report.r59RobotBotDecision.decisions.some(e => e.type === 'AICastSelect' && e.slot === 'A2'
+    && (e.reason === 'armed-rival-range' || e.reason === 'incoming-projectile')),
+  report.r59RobotBotDecision);
+gate('r59-robot-bot-policy-rejections-do-not-count-as-cast-fails',
+  report.r59RobotBotDecision.idle.fails === 0,
+  report.r59RobotBotDecision);
+
 report.postCText = run(`
   const src = [drawBackground.toString(), (window.APEX_ARSENAL_SPAWN.drawSlots||function(){}).toString()].join('\\n');
   return {
