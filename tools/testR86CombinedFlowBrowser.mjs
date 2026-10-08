@@ -54,6 +54,10 @@ try{
   });
   await command('Page.enable');
   await command('Runtime.enable');
+  // Start Chrome at the actual target CSS viewport. Without this the boot
+  // Home test would accidentally run at CDP's default landscape 800x600.
+  await command('Emulation.setDeviceMetricsOverride',{width:361,height:545,
+    deviceScaleFactor:2,mobile:true,screenWidth:361,screenHeight:545});
   // Test the production Vite document, NOT standalone shell.html.
   await command('Page.navigate',{url:url.toString()});
   let homeMounted=false;
