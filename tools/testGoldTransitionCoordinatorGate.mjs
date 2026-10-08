@@ -91,6 +91,9 @@ check('source collapse matches Gold standalone',
   css.includes('transform:scale(.54)!important') &&
   css.includes('transform .48s cubic-bezier(.72,0,1,.55)') &&
   css.includes('opacity .34s cubic-bezier(.85,0,1,1) .06s'));
+check('R64 Door canvas leaves the compositor after DONE and returns on next transaction',
+  coordinator.includes("canvas.style.display = 'none';\n    canvas.setAttribute('aria-hidden', 'true');\n    clearNodeMotion(sourceFor(tx))") &&
+  coordinator.includes("canvas.style.display = 'block';\n    canvas.setAttribute('aria-hidden', 'false');\n    bodyState('CLOSING')"));
 check('R62 destination is already full size behind the opening Door',
   coordinator.includes('if (revealRoot) clearNodeMotion(revealRoot);') &&
   coordinator.includes('onReveal: () => {') &&
