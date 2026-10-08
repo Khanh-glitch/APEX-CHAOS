@@ -4294,13 +4294,18 @@ body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #battle-s
 }
 #apex-boot-start:active .apex-boot-start-art{filter:brightness(1.34)}
 
-/* R68 title-adjacent START: only the START mark; keep center core unobstructed. */
+/* R69 door-logo-anchored START: donor draws APEX CHAOS near 89% viewport
+   height (center + .79*R). Place the one-word START over that title region,
+   away from the central mechanical core. */
 #apex-boot-start.apex-boot-start-plate{
- top:clamp(130px,27vh,310px)!important;bottom:auto!important;
- width:min(290px,43vw)!important;aspect-ratio:400/116!important;
+ top:auto!important;bottom:clamp(45px,9vh,130px)!important;
+ width:min(260px,40vw)!important;aspect-ratio:400/116!important;
  min-width:0!important;min-height:0!important;
 }
 #apex-boot-start .apex-boot-start-art{width:100%;height:100%}
 @media (max-width:620px){
- #apex-boot-start.apex-boot-start-plate{top:clamp(90px,24vh,210px)!important;width:min(230px,56vw)!important}
+ #apex-boot-start.apex-boot-start-plate{
+  top:auto!important;bottom:clamp(28px,9vh,88px)!important;
+  width:min(205px,53vw)!important;
+ }
 }
