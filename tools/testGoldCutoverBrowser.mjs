@@ -281,6 +281,36 @@ try {
     portraitTablet);
   report.evidence.push(await screenshot('r62-ipad-portrait-bot'));
 
+  // R68 runtime render probe: sample the true image-bound state layers, not
+  // string-presence gates. Temporarily toggle presentation only, then restore.
+  const skillArtProbe=await evaluate(`(() => {
+    const node=document.querySelector('#battleHudHost #p1Side .skill');
+    const art=node?.querySelector('.sk-art');
+    const ring=art?.querySelector('.apex-state-ring');
+    const shade=art?.querySelector('.apex-state-shade');
+    if(!node||!art||!ring||!shade)return {found:false};
+    const original=node.dataset.state;
+    const originalProgress=art.style.getPropertyValue('--apex-active-progress');
+    const originalShade=art.style.getPropertyValue('--apex-cd-shade');
+    const bounds=(el)=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height}};
+    const artBounds=bounds(art),ringBounds=bounds(ring),shadeBounds=bounds(shade);
+    node.dataset.state='active';art.style.setProperty('--apex-active-progress','.5');
+    const active={opacity:getComputedStyle(ring).opacity,gradient:getComputedStyle(ring).backgroundImage};
+    node.dataset.state='cd';art.style.setProperty('--apex-cd-shade','.75');
+    const cooling={opacity:getComputedStyle(shade).opacity,transform:getComputedStyle(shade).transform};
+    node.dataset.state=original;
+    if(originalProgress)art.style.setProperty('--apex-active-progress',originalProgress);else art.style.removeProperty('--apex-active-progress');
+    if(originalShade)art.style.setProperty('--apex-cd-shade',originalShade);else art.style.removeProperty('--apex-cd-shade');
+    const same=(a,b)=>Math.abs(a.x-b.x)<2&&Math.abs(a.y-b.y)<2&&Math.abs(a.w-b.w)<2&&Math.abs(a.h-b.h)<2;
+    return {found:true,bounded:same(artBounds,ringBounds)&&same(artBounds,shadeBounds),active,cooling};
+  })()`);
+  gate('R68-art-state-is-bounded-and-actually-rendered',
+    skillArtProbe.found&&skillArtProbe.bounded&&
+    Number(skillArtProbe.active?.opacity)>.85&&
+    skillArtProbe.active?.gradient?.includes('conic-gradient')&&
+    Number(skillArtProbe.cooling?.opacity)>.85&&
+    skillArtProbe.cooling?.transform!=='none',
+    skillArtProbe);
   // Responsive contract: Gold transition canvas tracks the real viewport after
   // a portrait resize; donor DPR/geometry logic remains runtime authority.
   await command('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true,screenWidth:390,screenHeight:844});
