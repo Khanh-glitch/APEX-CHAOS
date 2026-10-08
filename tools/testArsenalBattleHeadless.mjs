@@ -5701,6 +5701,74 @@ gate('gold-battle-exit-returns-directly-to-fighter-pick',
 run(`__APEX_TEST.redraw(); return true;`);
 snapshot('arsenal-product-menu-after-battle-exit');
 
+// CP04 — opt-in real-engine FIRST WAKE 2v2 smoke. Not part of normal Arsenal
+// baseline acceptance. Run: node tools/testArsenalBattleHeadless.mjs
+// --product-authentic --quest-first-wake
+if (process.argv.includes('--quest-first-wake')) {
+  let result;
+  try {
+    result = run(`
+      window.__APEX_QUEST_DEV = true;
+      const started = window.__apexQuestFirstWakeStart?.() === true;
+      const AQ = window.APEX_ARSENAL;
+      const W = AQ.weaponApi;
+      const f = window.fighters || [];
+      const roster = { started, count:f.length, ids:f.map(x=>x.questId),
+        hp:f.map(x=>x.maxHp), teams:f.map(x=>x.questTeam) };
+      if (!started || f.length !== 4) return { roster, ready:false };
+      // Freeze only locomotion for deterministic firearm adjudication.
+      f.forEach(x => { x.baseSpeed=0; x.data.__hrHoldBody=true; });
+      f[0].x=170;f[0].y=300;
+      f[2].x=290;f[2].y=300; // friendly is BETWEEN shooter and hostile.
+      f[1].x=550;f[1].y=300;
+      f[3].x=790;f[3].y=300;
+      AQ.state.spawnHeld=true;AQ.state.spawnTimer=1e6;AQ.state.slots=[];
+      const before=f.map(x=>x.hp);
+      W.fireBullet({ owner:f[0],x:220,y:300,angle:0,speed:2600,
+        damage:10,weapon:'PISTOL' });
+      AQ.step(0.14);
+      const after=f.map(x=>x.hp);
+      const realFirearm={ before,after,
+        allyUntouched:after[2]===before[2],
+        hitScrapA:after[1]<before[1],
+        scrapBUntouched:after[3]===before[3] };
+      W.equip(f[3],'PISTOL');
+      const equipped = W.getHolder(f[3])?.weaponId === 'PISTOL';
+      f[1].hp=0;f[3].hp=0;
+      AQ.step(1/60);
+      const complete = AQ.state.questOutcome==='COMPLETE'
+        && AQ.state.winnerSide===null;
+      window.exitArsenalBattleMode();
+      const resetStarted=window.__apexQuestFirstWakeStart?.()===true;
+      const resetF=window.fighters||[];
+      if (resetStarted) {
+        resetF[0].hp=0;
+        window.APEX_ARSENAL.step(1/60);
+      }
+      const retry=resetStarted && window.APEX_ARSENAL.state.questOutcome==='RETRY';
+      window.exitArsenalBattleMode();
+      return { roster,realFirearm,equipped,complete,retry };
+    `);
+    gate('quest-cp04-four-real-fighters',
+      !!result?.roster?.started && result.roster.count===4
+      && JSON.stringify(result.roster.hp)==='[1000,350,1000,350]'
+      && JSON.stringify(result.roster.teams)==='["ALLY","HOSTILE","ALLY","HOSTILE"]',
+      result?.roster);
+    gate('quest-cp04-firearm-real-team-adjudication',
+      !!result?.realFirearm?.allyUntouched
+      && !!result.realFirearm.hitScrapA
+      && !!result.realFirearm.scrapBUntouched, result?.realFirearm);
+    gate('quest-cp04-real-equipment-owner',
+      result?.equipped===true,{equipped:result?.equipped});
+    gate('quest-cp04-real-ko-complete-and-retry',
+      result?.complete===true && result?.retry===true,
+      {complete:result?.complete,retry:result?.retry});
+  } catch (error) {
+    gate('quest-cp04-real-engine-runner', false,
+      {error:String(error?.stack||error)});
+  }
+}
+
 // ------------------------------------------------------------------- summary
 report.summary = {
   total: Object.keys(report.gates).length,
