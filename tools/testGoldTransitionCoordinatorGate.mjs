@@ -37,6 +37,12 @@ for(const token of ['TRIGGER CLOSE','READY → OPEN','closeBtn','readyBtn','rese
   check(`production transition has no demo token: ${token}`, !runtimeText.includes(token));
 }
 
+check('R61 START waits for Home and music while keeping the mount effect alive',
+  app.includes("await window.APEX_GOLD.prepareSurface('home')") &&
+  app.includes('await window.__apexBootMusicReady;') &&
+  app.includes("start.id = 'apex-boot-start'") &&
+  app.includes("music.request('boot-start')") &&
+  app.indexOf('setGoldReady(true);') > app.indexOf('signalBootReady?.();'));
 check('boot begins black', app.includes('id="apex-boot-blackout"') && !app.includes('id="loading-screen"'));
 check('one transition canvas is mounted', app.includes('id="apex-scene-transition"'));
 check('Home Core is awaited before boot READY', app.includes("await window.APEX_GOLD.prepareSurface('home')") && app.includes('signalBootReady'));
