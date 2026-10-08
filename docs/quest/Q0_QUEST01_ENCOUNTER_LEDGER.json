@@ -1,0 +1,414 @@
+{
+  "schema": "apex.quest01.q0.encounter-ledger.v1",
+  "authority_status": "Q0_AUDITED_PENDING_CONFLICT_RESOLUTION",
+  "code_sha": "350b9e234a165d3626cd388be7e66ebbd8c1f91c",
+  "reference_authority": {
+    "sha": "94427ddad881c7d13c73e9e91ed53b970ebd8791",
+    "path": "docs/story/APEX_CHAOS_QUEST_01_IMPLEMENTATION_AUTHORITY_V1_2026-10-03.md"
+  },
+  "narrative_labels": [
+    "WAKE",
+    "REFLEX",
+    "WORKSHOP",
+    "FIRST_WAKE",
+    "SCRAP_SWARM",
+    "WEAPON_RAIN",
+    "CHARGE_THE_BREAKER",
+    "BREACH_WAVES",
+    "RIVET_OVERRIDDEN",
+    "TOT_LAST_CHOICE",
+    "OUTSIDE"
+  ],
+  "narrative_group_count": 10,
+  "encounter_count": 8,
+  "global_laws": {
+    "auto_battle": true,
+    "human_ability_keys": [
+      "J",
+      "K"
+    ],
+    "match_hp": 1000,
+    "arsenal_damage_scale": 7,
+    "normal_drop_interval_s": 4.5,
+    "max_offensive_active": 5,
+    "stormbreaker_normal_pool": false,
+    "tot_permanent_shutdown_story": true,
+    "rivet_survives_unresolved": true
+  },
+  "encounters": [
+    {
+      "id": "E01",
+      "name": "REFLEX",
+      "node": "WAKE_REFLEX",
+      "allies": [
+        "NEWBOT"
+      ],
+      "opponents": [
+        "T.O.T"
+      ],
+      "hp": {
+        "NEWBOT": 1000,
+        "T.O.T": 1000
+      },
+      "gates": [
+        "real_R1_pistol_hit_TOT",
+        "real_R2_pistol_hit_NEWBOT",
+        "real_successful_J",
+        "real_successful_K",
+        "both_hp_at_or_below_500",
+        "rivet_stormbreaker_suppression"
+      ],
+      "completion": "STORY_HOLD_TO_WORKSHOP",
+      "status": "NOT_IMPLEMENTED",
+      "source_state": "QIA_PLUS_OWNER_TUTORIAL_GATE"
+    },
+    {
+      "id": "E02",
+      "name": "FIRST WAKE",
+      "node": "FIRST_WAKE",
+      "allies": [
+        "NEWBOT",
+        "T.O.T"
+      ],
+      "opponents": [
+        "SCRAP_A",
+        "SCRAP_B"
+      ],
+      "hp": {
+        "NEWBOT": 1000,
+        "T.O.T": 1000,
+        "SCRAP_A": 350,
+        "SCRAP_B": 350
+      },
+      "gates": [
+        "two_hostiles_canonically_KO",
+        "NEWBOT_KO_retries",
+        "TOT_KO_does_not_immediately_fail"
+      ],
+      "completion": "ALL_HOSTILES_KO",
+      "status": "PLAYABLE_SPIKE_ONLY",
+      "source_state": "QIA"
+    },
+    {
+      "id": "E03",
+      "name": "SCRAP SWARM",
+      "node": "SCRAP_SWARM",
+      "allies": [
+        "NEWBOT"
+      ],
+      "waves": [
+        {
+          "count": 3,
+          "hp": 280
+        },
+        {
+          "count": 4,
+          "hp": 220
+        }
+      ],
+      "gates": [
+        "two_waves_only",
+        "hp_and_cd_persist"
+      ],
+      "completion": "SECOND_WAVE_ALL_KO",
+      "status": "NOT_IMPLEMENTED",
+      "source_state": "QIA"
+    },
+    {
+      "id": "E04",
+      "name": "WEAPON RAIN",
+      "node": "WEAPON_RAIN",
+      "allies": [
+        "NEWBOT"
+      ],
+      "conditional_allies": [
+        "T.O.T"
+      ],
+      "opponents": [
+        {
+          "count": 2,
+          "hp": 450
+        }
+      ],
+      "drop": {
+        "cadence_s": [
+          3,
+          1.6
+        ],
+        "burst_telegraphs": 3,
+        "cap": 5
+      },
+      "gates": [
+        "all_hostiles_KO",
+        "final_rain_observation_complete"
+      ],
+      "completion": "BOTH_CONDITIONS",
+      "status": "NOT_IMPLEMENTED",
+      "source_state": "QIA"
+    },
+    {
+      "id": "E05",
+      "name": "CHARGE THE BREAKER",
+      "node": "CHARGE_THE_BREAKER",
+      "allies": [
+        "NEWBOT"
+      ],
+      "target": {
+        "kind": "IMPACT_ACCUMULATOR",
+        "accepted_damage_tuning": 6000,
+        "inert": true
+      },
+      "drop": {
+        "cadence_s": [
+          3,
+          2.2
+        ],
+        "burst_telegraphs": 3,
+        "cap": 5
+      },
+      "gates": [
+        "real_accepted_damage_only",
+        "stormbreaker_infrastructure_pulse"
+      ],
+      "completion": "CHARGE_100_PERCENT",
+      "status": "NOT_IMPLEMENTED",
+      "source_state": "QIA_TUNING"
+    },
+    {
+      "id": "E06",
+      "name": "BREACH WAVES",
+      "node": "BREACH_WAVES",
+      "source_qia_allies": [
+        "NEWBOT",
+        "T.O.T"
+      ],
+      "source_qia_rivet_role": "RIG_OPERATOR",
+      "later_owner_direction_allies": [
+        "NEWBOT",
+        "T.O.T",
+        "RIVET"
+      ],
+      "rig_conflict_unresolved": true,
+      "waves": [
+        {
+          "count": 3,
+          "hp": 300,
+          "cadence_s": 4.5
+        },
+        {
+          "count": 4,
+          "hp": 260,
+          "cadence_s": 3.5
+        },
+        {
+          "count": 3,
+          "hp": 320,
+          "cadence_s": 3,
+          "authored_weapon_burst": 2
+        }
+      ],
+      "global_weapon_cap": 5,
+      "retreat": {
+        "provisional_hp_threshold": 100,
+        "threshold_locked": false,
+        "defeat_if_all_withdrawn": true,
+        "jk_handoff_priority": [
+          "NEWBOT",
+          "T.O.T",
+          "RIVET"
+        ],
+        "ai_skill_kit_unresolved": true
+      },
+      "completion": "WAVES_CLEAR_AND_TEAM_ACTIVE",
+      "status": "NOT_IMPLEMENTED_CONFLICT",
+      "source_state": "QIA_PLUS_OWNER_DESIGN_CHANGE"
+    },
+    {
+      "id": "E07",
+      "name": "RIVET OVERRIDDEN",
+      "node": "RIVET_OVERRIDDEN",
+      "allies": [
+        "NEWBOT"
+      ],
+      "opponents": [
+        "RIVET"
+      ],
+      "hp": {
+        "NEWBOT": 1000,
+        "RIVET": 1000
+      },
+      "hp_thresholds": {
+        "RIVET": [
+          750,
+          450,
+          180
+        ]
+      },
+      "gates": [
+        "single_first_downcross_trigger",
+        "no_stormbreaker_boss",
+        "RIVET_not_combat_dead",
+        "NEWBOT_KO_retries"
+      ],
+      "completion": "RIVET_FIRST_DOWNCROSS_180",
+      "status": "NOT_IMPLEMENTED",
+      "source_state": "QIA"
+    },
+    {
+      "id": "E08",
+      "name": "T.O.T LAST CHOICE",
+      "node": "TOT_LAST_CHOICE",
+      "allies": [
+        "NEWBOT"
+      ],
+      "opponents": [
+        "T.O.T"
+      ],
+      "hp": {
+        "NEWBOT": 1000,
+        "T.O.T": 1000
+      },
+      "hp_thresholds": {
+        "T.O.T": [
+          700,
+          120
+        ]
+      },
+      "stormbreaker": {
+        "single_artifact": true,
+        "hit_damage": 446,
+        "hit_stun_s": 2,
+        "speed": 1350,
+        "homing_rad_s": 2.6,
+        "miss_timeout_s": 2.2,
+        "floor_stun_s": 1,
+        "floor_damage": 0
+      },
+      "gates": [
+        "one_real_stormbreaker_release",
+        "checkpoint_before_stormbreaker",
+        "no_combat_death_at_120",
+        "latch_voluntary_choice",
+        "permanent_shutdown_from_gate"
+      ],
+      "completion": "OUTSIDE_AFTER_GATE",
+      "status": "NOT_IMPLEMENTED",
+      "source_state": "QIA"
+    }
+  ],
+  "dialogue": [
+    {
+      "id": "L-01",
+      "encounter": "E07",
+      "speaker": "RIVET",
+      "text": "Lùi lại.",
+      "status": "LOCKED_VERBATIM_QIA"
+    },
+    {
+      "id": "L-02",
+      "encounter": "E08",
+      "speaker": "NEWBOT",
+      "text": "Chúng ta là bạn à?",
+      "status": "LOCKED_VERBATIM_QIA"
+    },
+    {
+      "id": "L-03",
+      "encounter": "E08",
+      "speaker": "T.O.T",
+      "text": "Tôi nghĩ vậy.",
+      "status": "LOCKED_VERBATIM_QIA"
+    },
+    {
+      "id": "L-04",
+      "encounter": "E08",
+      "speaker": "NEWBOT",
+      "text": "Tôi không đánh nữa!",
+      "status": "LOCKED_VERBATIM_QIA"
+    },
+    {
+      "id": "L-05",
+      "encounter": "E08",
+      "speaker": "T.O.T",
+      "text": "Cậu phải đánh.",
+      "status": "LOCKED_VERBATIM_QIA"
+    },
+    {
+      "id": "L-06",
+      "encounter": "E08",
+      "speaker": "T.O.T",
+      "text": "Nếu cậu dừng...",
+      "status": "LOCKED_VERBATIM_QIA"
+    },
+    {
+      "id": "L-07",
+      "encounter": "E08",
+      "speaker": "T.O.T",
+      "text": "...tôi sẽ không.",
+      "status": "LOCKED_VERBATIM_QIA"
+    },
+    {
+      "id": "L-08",
+      "encounter": "E08",
+      "speaker": "T.O.T",
+      "text": "Từ lúc tỉnh dậy đến giờ... tôi chưa từng chọn được mình có nhặt súng hay không.",
+      "status": "LOCKED_VERBATIM_QIA"
+    },
+    {
+      "id": "L-09",
+      "encounter": "E08",
+      "speaker": "T.O.T",
+      "text": "Nhưng tôi có thể chọn mình làm gì với nó.",
+      "status": "LOCKED_VERBATIM_QIA"
+    },
+    {
+      "id": "L-10",
+      "encounter": "E08",
+      "speaker": "T.O.T",
+      "text": "Đi.",
+      "status": "LOCKED_VERBATIM_QIA"
+    },
+    {
+      "id": "L-11",
+      "encounter": "E08",
+      "speaker": "T.O.T",
+      "text": "Cậu muốn biết mình là ai mà.",
+      "status": "LOCKED_VERBATIM_QIA"
+    },
+    {
+      "id": "L-12",
+      "encounter": "E08",
+      "speaker": "T.O.T",
+      "text": "Lần này...",
+      "status": "LOCKED_VERBATIM_QIA"
+    },
+    {
+      "id": "L-13",
+      "encounter": "E08",
+      "speaker": "T.O.T",
+      "text": "...tôi dừng được rồi.",
+      "status": "LOCKED_VERBATIM_QIA"
+    }
+  ],
+  "open_items": [
+    "X-01",
+    "X-02",
+    "X-03",
+    "X-04",
+    "X-05",
+    "X-06",
+    "X-07",
+    "X-08",
+    "X-09",
+    "X-10",
+    "X-11",
+    "X-12"
+  ],
+  "recovered_sources": {
+    "cp01_sha256": "7f073f321cb64f442726934002bbcb8a9d3a2135fbf4463e9acf28a7d8cd2dfb",
+    "cp02_sha256": "62eb4bd1a6e4cf6001c9568a09f23b9ffcef77a6bf922ddc5d3babc3573fd427",
+    "cp03_sha256": "ac06d25d3fb2f48706493b76384c6ff35be43f8a45d1335bcb6e1b67220c43d5",
+    "gold_v12_sha256": "3817ab8b0ab674af9573704f20173ff1edfae5e26598f843b1dd1ab422ff3685",
+    "gold_v12_present_in_repo": false
+  },
+  "warning": "Index only. Never use it to synthesize lore, fabricated dialogue, or unapproved T.O.T/RIVET abilities."
+}
