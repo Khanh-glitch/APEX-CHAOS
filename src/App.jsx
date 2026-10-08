@@ -605,8 +605,8 @@ export default function App() {
               // Gold flow animations include "top" in their transition list.
               // During Chrome mobile viewport changes that interpolates HITBOXES
               // toward stale coordinates for 380ms. Preserve scene fades/slide
-              // but make measured Home position changes atomic.
-              actions.style.transitionProperty = 'opacity, transform, translate, left, right, width, filter';
+              // but make all measured Home geometry changes atomic.
+              actions.style.transitionProperty = 'opacity, transform, translate, filter';
               const stageRect = stage.getBoundingClientRect();
               const bandRect = routes.getBoundingClientRect();
               const actionRect = actions.getBoundingClientRect();
