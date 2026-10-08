@@ -291,9 +291,17 @@
         slot.predictedHeroETA = predictContactETA(slot, hero);
         slot.predictedRivalETA = predictContactETA(slot, rival);
 
+        // Quest may have four independent Fighters. Ordinary BOT/LOCAL still
+        // uses the exact original two entries, including HUD telemetry.
+        const predictionActors = state.questFirstWake
+          ? (fighters || []).filter(f => f && f.hp > 0) : [hero, rival];
         const candidates = [];
-        if (slot.predictedHeroETA != null) candidates.push({ eta: slot.predictedHeroETA, fighter: hero });
-        if (slot.predictedRivalETA != null) candidates.push({ eta: slot.predictedRivalETA, fighter: rival });
+        for (const actor of predictionActors) {
+          const eta = actor === hero ? slot.predictedHeroETA
+            : actor === rival ? slot.predictedRivalETA
+            : predictContactETA(slot, actor);
+          if (eta != null) candidates.push({ eta, fighter: actor });
+        }
         candidates.sort((a, b) => a.eta - b.eta);
 
         const earliest = candidates[0] || null;
@@ -302,7 +310,10 @@
 
         const weaponApi = AQ.weaponApi;
         if (earliest && weaponApi && earliest.fighter && !weaponApi.getHolder(earliest.fighter)) {
-          const other = earliest.fighter === hero ? rival : hero;
+          const opponents = state.questFirstWake && window.APEX_QUEST_MULTI_ACTOR_CORE
+            ? window.APEX_QUEST_MULTI_ACTOR_CORE.livingEnemies(earliest.fighter, fighters)
+            : [earliest.fighter === hero ? rival : hero];
+          const other = opponents.find(f => f && weaponApi.getHolder(f)) || null;
           const otherHold = other ? weaponApi.getHolder(other) : null;
           const threatId = otherHold && otherHold.weaponId;
           if (threatId && CFG.isOffensive && CFG.isOffensive(threatId) && threatId !== 'SWIRL_SHIELD' && threatId !== 'TOWER_SHIELD') {
@@ -382,7 +393,9 @@
     const pickupActorList = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.pickupActors)
       ? window.APEX_HERO_REWORK.pickupActors()
       : undefined;
-    const actors = pickupActorList || fighters;
+    const actors = state.questFirstWake
+      ? (fighters || []).filter(f => f && f.hp > 0)
+      : (pickupActorList || fighters);
 
     for (const slot of state.slots) {
       if (slot.phase !== 'REVEALED' && slot.phase !== 'COUNTER_RESERVED') continue;
