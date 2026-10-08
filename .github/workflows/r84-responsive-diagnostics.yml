@@ -35,6 +35,7 @@ jobs:
             public/assets/gold-ui
             public/assets/loading
             public/assets/pick_ui_final
+            public/assets/ui
             public/assets/ui_2026
             public/assets/fonts
             tools/testR84ResponsiveRootCauseBrowser.mjs
