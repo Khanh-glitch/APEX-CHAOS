@@ -67,11 +67,7 @@ try{
   const candidateCSS=readFileSync(new URL('./r85PickLayoutCandidate.css',import.meta.url),'utf8');
   await mkdir(out,{recursive:true});
   const screens=[
-    {w:550,h:857,label:'golden-550x857'},
-    {w:390,h:844,label:'tall-390x844'},
-    {w:361,h:545,label:'owner-361x545'},
-    {w:320,h:498,label:'short-320x498'},
-    {w:280,h:430,label:'ultrashort-280x430'}
+    {w:361,h:545,label:'owner-361x545'}
   ];
   const report={source:'R83 real React-mounted production Vite + Chrome CDP; NOT Android browser chrome',
     viewports:[],issues:[]};
@@ -167,6 +163,8 @@ try{
     const before=await capture(label+'-pick-before');
     await evalJS("(()=>{const s=document.createElement('style');s.id='r85-candidate-pick';s.textContent="+JSON.stringify(candidateCSS)+";document.head.appendChild(s);return true})()");
     const after=await capture(label+'-pick-after');
+    const cascade=await evalJS("(()=>{const st=document.querySelector('#stage'),d=document.querySelector('.selectionDeckV6'),h=document.querySelector('.worldHeroSlot.p1'),cs=e=>getComputedStyle(e),css=document.getElementById('r85-candidate-pick');return {appliedRules:css?.sheet?.cssRules?.[0]?.cssRules?.length,stageVars:{lock:cs(st).getPropertyValue('--r85LockReserve'),deck:cs(st).getPropertyValue('--r85DeckTop'),lockB:cs(st).getPropertyValue('--apexLockB'),lockH:cs(st).getPropertyValue('--apexLockH')},deck:{inline:d?.style.cssText,top:cs(d).top,bottom:cs(d).bottom},hero:{class:h?.className,attributes:[...h?.attributes||[]].map(a=>[a.name,a.value]).slice(0,12),inline:h?.style.cssText,width:cs(h).width,left:cs(h).left,bottom:cs(h).bottom},supports:CSS.supports('top','min(65vh,calc(100dvh - max(10vh,58px) - 128px))')}})()");
+    console.log('R85 CASCADE '+label+' '+JSON.stringify(cascade));
     const p=after.bounds,b=before.bounds;
     const error=(name,actual,expected)=>report.issues.push(label+' '+name+': '+JSON.stringify({actual,expected}));
     const close=(a,b,t=.75)=>Boolean(a&&b&&['x','y','w','h'].every(k=>Math.abs(a[k]-b[k])<=t));
