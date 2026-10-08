@@ -159,8 +159,8 @@ try{
   // Screen transition must not leave stale inline Home coordinates.
   await command('Emulation.setDeviceMetricsOverride',{width:280,height:430,
     deviceScaleFactor:2,mobile:true,screenWidth:280,screenHeight:430});
-  const target=new URL(url);target.searchParams.set('apexHomeSolver','1');
-  await command('Page.navigate',{url:target.href});
+  const finalUrl=new URL(url);finalUrl.searchParams.set('apexHomeSolver','1');
+  await command('Page.navigate',{url:finalUrl.href});
   if(!(await wait("!!document.getElementById('apex-boot-start')")))throw Error('missing final START');
   await click('#apex-boot-start');
   if(!(await wait("document.body?.dataset?.apexSceneTransition==='DONE'")))throw Error('missing final Home');
