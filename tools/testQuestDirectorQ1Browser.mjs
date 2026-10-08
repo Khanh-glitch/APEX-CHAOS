@@ -338,7 +338,7 @@ try{
   // the real physical hit did NOT create a duplicate side-panel stack.
   // The in-arena popup and combat shatter/flash remain.
   await sleep(250);
-  const q3vDuplicateFx=await evalPage("(()=>{\\n const host=document.getElementById('battleHudHost'),hud=host?.querySelector('#hud');\\n const copy=host?.querySelector('#copyLayer');\\n return {quest:hud?.dataset.quest,popups:host?.querySelectorAll('#arenaFx .dmg')?.length||0,duplicateLabels:copy?.querySelectorAll('.stamp.crit,.stamp.heavy,.bignum.c,.bignum.h')?.length||0};\\n})()");
+  const q3vDuplicateFx=await evalPage("(()=>{\n const host=document.getElementById('battleHudHost'),hud=host?.querySelector('#hud');\n const copy=host?.querySelector('#copyLayer');\n return {quest:hud?.dataset.quest,popups:host?.querySelectorAll('#arenaFx .dmg')?.length||0,duplicateLabels:copy?.querySelectorAll('.stamp.crit,.stamp.heavy,.bignum.c,.bignum.h')?.length||0};\n})()");
   gate('Q3v real Quest PISTOL crit/heavy has no duplicate label over faction HP',
     q3vDuplicateFx?.quest==='1'&&q3vDuplicateFx?.duplicateLabels===0,
     q3vDuplicateFx);
