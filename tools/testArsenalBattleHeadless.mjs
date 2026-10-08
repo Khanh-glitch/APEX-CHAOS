@@ -5906,6 +5906,11 @@ if (process.argv.includes('--quest-n-actors')) {
   f.forEach((a,i)=>{a.x=100+i*115;a.y=890;});
   player.x=170;player.y=550;tot.x=330;tot.y=550;
   e1.x=650;e1.y=550;
+  // The preceding REAL grenade set the global hit-stop. Let that freeze
+  // expire on the canonical frame step before testing a separate thrown
+  // attack. Otherwise dt is legally multiplied by 0.1, leaving DAGGER
+  // inside its real 0.35s collision grace: a false negative, not a hit.
+  A.step(.2);
   const hpBefore={enemy:e1.hp,ally:tot.hp};
   W.spawnThrownMelee(player,'DAGGER',0);
   const spawned=projectiles.some(p=>p.aq&&p.type==='aq_thrown'&&p.weapon==='DAGGER'&&p.owner===player);
