@@ -5754,6 +5754,9 @@ if (process.argv.includes('--quest-first-wake')) {
         && slot.phase==='REMOVED' && slot.pickedBy===f[2].name;
       W.equip(f[3],'PISTOL');
       const equipped = W.getHolder(f[3])?.weaponId === 'PISTOL';
+      const goldBefore=window.__apexQuestGoldDraws||0;
+      window.__APEX_TEST.redraw(); // real world canvas, both Gold NPCs visible
+      const goldDrawCalls=(window.__apexQuestGoldDraws||0)-goldBefore;
       f[1].hp=0;f[3].hp=0;
       AQ.step(1/60);
       const complete = AQ.state.questOutcome==='COMPLETE'
@@ -5767,7 +5770,7 @@ if (process.argv.includes('--quest-first-wake')) {
       }
       const retry=resetStarted && window.APEX_ARSENAL.state.questOutcome==='RETRY';
       window.exitArsenalBattleMode();
-      return { roster,realFirearm,reverseFirearm,realTotPickup,equipped,complete,retry };
+      return { roster,realFirearm,reverseFirearm,realTotPickup,equipped,goldDrawCalls,complete,retry };
     `);
     gate('quest-cp04-four-real-fighters',
       !!result?.roster?.started && result.roster.count===4
@@ -5787,6 +5790,8 @@ if (process.argv.includes('--quest-first-wake')) {
       result?.realTotPickup===true,{realTotPickup:result?.realTotPickup});
     gate('quest-cp04-real-equipment-owner',
       result?.equipped===true,{equipped:result?.equipped});
+    gate('quest-cp04-gold-v12-inspired-world-render',
+      result?.goldDrawCalls>=2,{goldDrawCalls:result?.goldDrawCalls});
     gate('quest-cp04-real-ko-complete-and-retry',
       result?.complete===true && result?.retry===true,
       {complete:result?.complete,retry:result?.retry});
