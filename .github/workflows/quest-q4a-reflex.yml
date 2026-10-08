@@ -33,7 +33,9 @@ jobs:
         run: node tools/testQuestMultiActorCore.mjs
       - name: Verify Q2 generalized roster policy
         run: node tools/testQuestGenericRosterQ2.mjs
-      - name: Q4A pure E01 acceptance receipts\n        run: node tools/testQuestReflexReceiptsQ4.mjs\n      - name: Q4A real E01 and Arsenal 1v2 2v2 3v4 integration
+      - name: Q4A pure E01 acceptance receipts
+        run: node tools/testQuestReflexReceiptsQ4.mjs
+      - name: Q4A real E01 and Arsenal 1v2 2v2 3v4 integration
         env:
           APEX_EVIDENCE_DIR: /tmp/quest-q2-multi
         run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-n-actors --quest-reflex-real
