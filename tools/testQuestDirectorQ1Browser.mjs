@@ -405,6 +405,23 @@ try{
         &&measured?.railsInsideViewport===true
         &&measured.questSlots[0]===3&&measured.questSlots[1]===4,
         measured);
+      // Q3v strictly audits two-axis containment and real content in mounted Gold.
+      // No global CSS/grid changes; keep visual owner sign-off separate.
+      const q3vVisual=await evalPage("(()=>{\n const host=document.getElementById('battleHudHost'),hud=host?.querySelector('#hud');\n const rect=el=>{const r=el?.getBoundingClientRect();return r?{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}:null;};\n const view={width:innerWidth,height:innerHeight};\n const inside=(r,pad=2)=>!!r&&r.width>0&&r.height>0&&r.left>=-pad&&r.top>=-pad&&r.right<=view.width+pad&&r.bottom<=view.height+pad;\n const separated=(a,b,pad=1)=>!a||!b||a.right<=b.left+pad||b.right<=a.left+pad||a.bottom<=b.top+pad||b.bottom<=a.top+pad;\n const text=el=>{if(!el)return null;const st=getComputedStyle(el);return {value:el.textContent.trim(),visible:st.display!=='none'&&st.visibility!=='hidden',scrollWidth:el.scrollWidth,clientWidth:el.clientWidth,font:st.fontFamily,size:st.fontSize,rect:rect(el),fits:el.scrollWidth<=el.clientWidth+1};};\n const center=rect(hud?.querySelector('#matchCenter'));\n const rails=[1,2].map(i=>{const el=hud?.querySelector('#p'+i+'Rail');const hp=el?.querySelector('.vr-hp');const current=el?.querySelector('.vr-cur');const max=el?.querySelector('.vr-max');const group=rect(hp);\n  return {side:i,rect:rect(el),hp:group,current:text(current),max:text(max),\n   digitsInside:inside(rect(current))&&inside(rect(max)),groupInside:inside(group),\n   noCenterCollision:separated(group,center),textFits:!!current&&!!max&&current.scrollWidth<=current.clientWidth+1&&max.scrollWidth<=max.clientWidth+1};\n });\n const sides=[1,2].map(i=>{const side=hud?.querySelector('#p'+i+'Side');const name=side?.querySelector('.id-name');return {side:i,rect:rect(side),name:text(name),\n   abilitiesVisible:!!side?.querySelector('.skills')&&getComputedStyle(side.querySelector('.skills')).display!=='none',\n   weaponVisible:!!side?.querySelector('.weapon')&&getComputedStyle(side.querySelector('.weapon')).display!=='none'};});\n const skillNames=[...(hud?.querySelectorAll('#p1Side .sk-name')||[])].map(text);\n const arena=rect(document.getElementById('game-canvas'));\n const railBounds=rails.every(r=>inside(r.rect));\n const arenaBounds=inside(arena);\n const hpReadable=rails.every(r=>r.digitsInside&&r.groupInside&&r.noCenterCollision&&r.textFits);\n const factionReadable=sides.every(r=>r.name?.visible&&r.name.fits&&inside(r.name.rect));\n return {viewport:view,layout:hud?.dataset.layout,size:hud?.dataset.size,quest:hud?.dataset.quest,\n  railBounds,arenaBounds,hpReadable,factionReadable,rails,sides,arena,center,skillNames,\n  requiresOwnerVisualReview:true};\n})()");
+      await writeFile(path.join(evidenceDir,'q3v-'+c.name+'-readability.json'),
+        JSON.stringify(q3vVisual,null,2));
+      gate('Q3v '+c.name+' arena AND HP rails fully inside viewport',
+        q3vVisual?.quest==='1'&&q3vVisual.railBounds&&q3vVisual.arenaBounds,
+        {layout:q3vVisual?.layout,size:q3vVisual?.size,rails:q3vVisual?.rails?.map(x=>x.rect),
+         arena:q3vVisual?.arena,viewport:q3vVisual?.viewport});
+      gate('Q3v '+c.name+' physical HP digits do not crop or overlap timer',
+        q3vVisual?.hpReadable===true,
+        {rails:q3vVisual?.rails,center:q3vVisual?.center});
+      gate('Q3v '+c.name+' faction names are visible and not ellipsized',
+        q3vVisual?.factionReadable===true,
+        {sides:q3vVisual?.sides});
+      // K label truncation, sparse tablet hierarchy and V12 art remain owner QA.
+
     }
     await cmd('Emulation.setDeviceMetricsOverride',{
       width:390,height:844,deviceScaleFactor:3,mobile:true,
