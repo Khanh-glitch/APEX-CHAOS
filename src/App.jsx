@@ -448,7 +448,8 @@ export default function App() {
       try {
         // Shop/Draw/selection save + shell authority (hub group) before mount.
         await loadDeferredGameRuntimes('arsenalHub');
-        const response = await fetch(GOLD_SHELL_URL, { cache: 'force-cache' });
+        // The Gold document is executable product UI. Never pin stale HTML in a returning browser.
+        const response = await fetch(GOLD_SHELL_URL, { cache: 'no-cache' });
         if (!response.ok) throw new Error(`gold shell HTTP ${response.status}`);
         const html = await response.text();
         if (cancelled) return;
@@ -533,6 +534,49 @@ export default function App() {
             run.textContent = planned.text;
             host.appendChild(run);
           }
+        }
+        // R76 diagnostic only: inspect Android's real visual viewport and tap stack.
+        // No layout/style/interaction changes. Available in DevTools as
+        // window.__apexHomeInputDiagnostics.snapshot().
+        if (!window.__apexHomeInputDiagnostics) {
+          const snapshot = () => {
+            const rect = (selector) => {
+              const el = document.querySelector(selector);
+              if (!el) return null;
+              const r = el.getBoundingClientRect();
+              const css = getComputedStyle(el);
+              return { x:r.x, y:r.y, width:r.width, height:r.height,
+                bottom:r.bottom, zIndex:css.zIndex, pointerEvents:css.pointerEvents };
+            };
+            const a=rect('#freeBattle'), b=rect('#stage .routes');
+            const overlap=Boolean(a&&b&&a.x < b.x+b.width&&a.x+a.width>b.x&&a.y<b.bottom&&a.bottom>b.y);
+            return { url:location.href, shell:GOLD_SHELL_URL,
+              inner:{ width:innerWidth,height:innerHeight },
+              visual:window.visualViewport?{width:visualViewport.width,height:visualViewport.height,
+                offsetTop:visualViewport.offsetTop,offsetLeft:visualViewport.offsetLeft,scale:visualViewport.scale}:null,
+              battle:a,routes:b,overlap };
+          };
+          let lastOverlap=false;
+          const measure=()=>{
+            const d=snapshot();
+            if(d.overlap!==lastOverlap){lastOverlap=d.overlap;
+              if(d.overlap)console.warn('[apex-home-hit-test] overlap detected',d);
+            }
+          };
+          const tap=(e)=>{
+            const target=e.target?.closest?.('#freeBattle,#stage .routes,.route');
+            if(!target)return;
+            const d=snapshot();
+            console.info('[apex-home-hit-test] input', { target:target.id||target.className,
+              type:e.type, hit:document.elementFromPoint(e.clientX,e.clientY)?.id||
+              document.elementFromPoint(e.clientX,e.clientY)?.className, geometry:d });
+          };
+          window.__apexHomeInputDiagnostics={snapshot};
+          window.addEventListener('resize',measure,{passive:true});
+          window.visualViewport?.addEventListener('resize',measure,{passive:true});
+          window.visualViewport?.addEventListener('scroll',measure,{passive:true});
+          document.addEventListener('pointerdown',tap,{capture:true,passive:true});
+          requestAnimationFrame(measure);
         }
         host.dataset.apexGoldMounted = '1';
         document.body.classList.add('apex-gold-mounted');
