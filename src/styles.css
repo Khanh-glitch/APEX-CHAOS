@@ -4309,3 +4309,43 @@ body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #battle-s
   width:min(205px,53vw)!important;
  }
 }
+
+/* R72 boot START: owner white-metal artwork, centered on the vertical axis
+   below the mechanical core. Transform-only idle motion; no layout reflow.
+   Existing click and readiness laws remain App-owned. */
+#apex-boot-start.apex-boot-start-plate{
+  left:50%!important;top:67%!important;bottom:auto!important;
+  width:min(410px,58vw)!important;max-width:calc(100vw - 32px);
+  height:auto!important;aspect-ratio:3/1!important;
+  transform:translate(-50%,-50%)!important;
+  background:transparent!important;border:0!important;
+  clip-path:none!important;outline-offset:4px;
+  animation:apex-r72-start-idle 2.6s ease-in-out infinite;
+  will-change:transform;
+}
+#apex-boot-start .apex-boot-start-art{
+  display:block;width:100%;height:100%;object-fit:contain;
+  filter:drop-shadow(0 9px 16px rgba(0,0,0,.64));
+  transition:filter 120ms ease;
+}
+#apex-boot-start:hover .apex-boot-start-art,
+#apex-boot-start:focus-visible .apex-boot-start-art{
+  filter:drop-shadow(0 0 15px rgba(255,129,25,.66)) brightness(1.09);
+}
+#apex-boot-start:hover,#apex-boot-start:focus-visible{
+  animation-play-state:paused;
+  transform:translate(-50%,-50%) scale(1.035)!important;
+}
+#apex-boot-start:focus-visible{outline:2px solid #ffb556!important}
+@keyframes apex-r72-start-idle{
+  0%,100%{transform:translate(-50%,-50%) scale(1)}
+  50%{transform:translate(-50%,calc(-50% - 3px)) scale(1.014)}
+}
+@media(max-width:620px){
+  #apex-boot-start.apex-boot-start-plate{
+    top:69%!important;width:min(330px,75vw)!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  #apex-boot-start.apex-boot-start-plate{animation:none!important;will-change:auto}
+}

@@ -548,24 +548,43 @@ export default function App() {
         // loaded (a fast Home mount can otherwise race the async audio module).
         await window.__apexBootMusicReady;
         if (cancelled) return;
+        // Decode the only START art before presenting it; Home and music readiness
+        // remain the authority. The original vector is a safe asset-failure fallback.
+        const startArtUrl = '/assets/ui/apex-transition-start-r72.webp';
+        const startArt = new Image();
+        startArt.src = startArtUrl;
+        try { await startArt.decode(); } catch (_) {}
+        if (cancelled) return;
         await new Promise((resolve) => {
           if (cancelled) { resolve(); return; }
           const start = document.createElement('button');
           start.type = 'button';
           start.id = 'apex-boot-start';
-          start.innerHTML = '<img class="apex-boot-start-art" src="/assets/ui/apex-transition-start-plate.svg" alt="" draggable="false">';
+          start.innerHTML = '<img class="apex-boot-start-art" src="' +
+            (startArt.naturalWidth ? startArtUrl : '/assets/ui/apex-transition-start-plate.svg') +
+            '" alt="" draggable="false">';
           start.setAttribute('aria-label', 'Start APEX CHAOS');
           start.className = 'apex-boot-start-plate';
-          start.addEventListener('click', () => {
-            // Call playback synchronously in the trusted gesture, not after await.
+          let activated = false;
+          const activateStart = () => {
+            if (activated) return;
+            activated = true;
+            // Hide in the same trusted input event, before requesting Door OPEN.
+            // Do not defer this to transition timing or any async audio callback.
+            start.remove();
             try {
               const music = window.apexProductMusic;
               if (music?.request) music.request('boot-start');
               else window.apexPlayMenuMusic?.();
             } catch (error) { console.warn('[boot-start] music request', error); }
-            start.remove();
             resolve();
-          }, { once: true });
+          };
+          start.addEventListener('pointerdown', (event) => {
+            if (event.pointerType === 'mouse' && event.button !== 0) return;
+            activateStart();
+          });
+          // Enter/Space and assistive activation use click.
+          start.addEventListener('click', activateStart);
           document.body.appendChild(start);
         });
         if (cancelled) return;

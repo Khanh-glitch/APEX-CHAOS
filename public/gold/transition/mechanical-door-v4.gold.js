@@ -1823,7 +1823,9 @@ class TransitionEngine {
             this.glowCircle(1.4 * R * Math.min(1.6, P.coreI), [255, 190, 130], 0.28 * clamp(P.coreI * 0.6) * P.coreAlpha);
             ctx.restore();
         }
-        if (P.logoA > 0.01) {
+        // R72: owner requested no donor APEX CHAOS title on the Door.
+        // Do not change logo loading, pose timing or any mechanical layers.
+        if (false && P.logoA > 0.01) {
             this.layer(0.8, P.zoom);
             const lg = this.assets.logo;
             const lw = Math.min(0.34 * R, this.W * 0.16, this.H * 0.22);

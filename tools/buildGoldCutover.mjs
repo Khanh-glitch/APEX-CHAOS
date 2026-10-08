@@ -49,6 +49,7 @@ const GOLD_DIR = path.join(REPO, 'docs', 'gold-ui', 'current');
 const PRELOAD_DIR = path.join(REPO, 'docs', 'gold-ui', 'preload');
 const FONT_SRC = path.join(REPO, 'tools', 'gold-cutover', 'fonts');
 const TAB_FAVICON_SRC = path.join(REPO, 'tools', 'gold-cutover', 'assets', 'favicon-tab-apex.svg');
+const TAB_FAVICON_R72_SRC = path.join(REPO, 'tools', 'gold-cutover', 'assets', 'favicon-r72-owner.png');
 const TRANSITION_RUNTIME_SRC = path.join(REPO, 'public', 'gold', 'transition', 'mechanical-door-v4.gold.js');
 const NON_SHIPPING_GOLD_ASSETS = new Set([
   'gold/pick-reference-overlay.png',
@@ -1308,7 +1309,7 @@ function buildShell(hudProductionHtml) {
       id: 'SHL-S0',
       why: 'owner-provided APEX mark replaces only the browser tab favicon',
       find: '<link rel="icon" type="image/png" href="assets/gold/favicon-apex-chaos.png">',
-      replace: '<link rel="icon" type="image/svg+xml" href="assets/gold/favicon-tab-apex.svg">',
+      replace: '<link rel="icon" type="image/png" href="assets/gold/favicon-r72-owner.png?v=r72">',
     },
     {
       id: 'SHL-S0a',
@@ -2308,6 +2309,7 @@ function main() {
   // Production-only owner favicon stays outside the SHA-pinned canonical donor
   // pack, then joins the generated shipping tree through this explicit overlay.
   outputs.set('assets/gold/favicon-tab-apex.svg', read(TAB_FAVICON_SRC));
+  outputs.set('assets/gold/favicon-r72-owner.png', read(TAB_FAVICON_R72_SRC));
   log('owner tab favicon staged (production overlay; canonical profile avatar untouched)');
 
   for (const file of fs.readdirSync(FONT_SRC)) {
