@@ -187,6 +187,9 @@ check('R62 simultaneous Crit/Heavy preserves all shards but mounts in one batch'
   hud.includes('group.appendChild(shardBatch);') &&
   hud.includes('shardAnimations.forEach(start=>start());') &&
   !hud.includes('piece.appendChild(clone);group.appendChild(piece);'));
+check('R66 SVG motif cannot be hidden by legacy donor symbol selector',
+ hud.includes('.side-art:not(.apex-hero-motif)>svg{display:none}') &&
+ !hud.includes('.side-art>svg{display:none}'));
 check('R65 landscape panels use hero-specific vector motifs instead of avatar enlargements',
  hud.includes('R65 geometric field floats behind readable controls') &&
  hud.includes("art.classList.add('apex-hero-motif')") &&
