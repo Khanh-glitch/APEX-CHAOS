@@ -92,7 +92,7 @@ try{
       const a=actions.getBoundingClientRect(),r=routes.getBoundingClientRect(),b=battle.getBoundingClientRect();
       const hit=document.elementFromPoint(b.left+b.width/2,b.top+b.height/2);
       return {width:innerWidth,height:innerHeight,stageHeight:document.querySelector('#stage')?.getBoundingClientRect().height,guardPresent:!!window.__apexHomeGeometryGuard,guard:window.__apexHomeGeometryGuard?.snapshot()??null,inlineTop:actions.style.top,computedTop:getComputedStyle(actions).top,transitionProperty:getComputedStyle(actions).transitionProperty,animationName:getComputedStyle(actions).animationName,inlinePriority:actions.style.getPropertyPriority('top'),styleSheetTopRules:[...document.styleSheets].flatMap(sheet=>{try{return [...sheet.cssRules].filter(rule=>rule.cssText?.includes('.actions')&&rule.cssText?.includes('top:')).slice(-4).map(rule=>rule.cssText.slice(0,250))}catch{return[]}}).slice(-8),stageClass:document.querySelector('#stage')?.className,visualHeight:visualViewport?.height??null,battleY:b.y,battleHeight:b.height,gap:r.top-a.bottom,actionsTop:a.top,
-        hit:!!hit?.closest?.('#freeBattle'),hitName:hit?.id||hit?.className||''};
+        hit:!!hit?.closest?.('#freeBattle'),hitName:hit?.id||hit?.className||'',hitTag:hit?.tagName||null,hitStack:document.elementsFromPoint(centerX,centerY).slice(0,9).map(el=>({tag:el.tagName,id:el.id||'',className:typeof el.className==='string'?el.className:'',pointerEvents:getComputedStyle(el).pointerEvents,opacity:getComputedStyle(el).opacity})),battleRect:{x:b.x,y:b.y,w:b.width,h:b.height},center:{x:centerX,y:centerY}};
     })()`);
     const unchanged=height<640||Math.abs(sample.actionsTop-(height<=700?.654:.671)*height)<3;
     const ok=sample.gap>=7&&sample.hit&&unchanged;
