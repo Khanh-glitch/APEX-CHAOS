@@ -64,9 +64,6 @@ try{
   if(!homeMounted)throw new Error('React-mounted Home/boot START unavailable');
 
   const out='docs/acceptance/r85-responsive-pick';
-  const candidateCSS=readFileSync(new URL('./r85PickLayoutCandidate.css',import.meta.url),'utf8');
-  const { solveShortPortraitPick }=await import('./r85PickSolverCandidate.mjs');
-  await mkdir(out,{recursive:true});
   const screens=[
     {w:550,h:857,label:'golden-550x857'},
     {w:390,h:844,label:'tall-390x844'},
@@ -166,16 +163,8 @@ try{
     if(!(await wait("document.querySelector('#stage')?.classList.contains('screen-fighter') && document.querySelectorAll('#fighterRoster .rosterCard').length>=6")))throw Error('R85 Pick missing at '+label);
     await sleep(450);
     const before=await capture(label+'-pick-before');
-    await evalJS("(()=>{const s=document.createElement('style');s.id='r85-candidate-pick';s.textContent="+JSON.stringify(candidateCSS)+";document.head.appendChild(s);return true})()");
-    const solved=solveShortPortraitPick({width:w,height:h});
-    if(solved){
-      const px=v=>v.toFixed(4)+'px';
-      // Gold owns inline-important hero geometry; candidate must reuse the
-      // same authority level, not add higher-specificity CSS wars.
-      const updated=await evalJS("(()=>{const stage=document.querySelector('#stage'),deck=document.querySelector('.selectionDeckV6');const p=JSON.parse("+JSON.stringify(JSON.stringify(solved,{heroBottomForInfoHeight:undefined}))+");const px=v=>v.toFixed(4)+'px';stage.style.setProperty('--r85DeckTop',px(p.deckTop),'important');stage.style.setProperty('--r85LockReserve',px(p.lockReserve),'important');deck.style.setProperty('top',px(p.deckTop),'important');deck.style.setProperty('bottom',px(p.lockReserve),'important');const info=document.querySelector('.fighterIdentityZone.p1 .fighterIdentity');const infoHeight=info.getBoundingClientRect().height;for(const player of ['p1','p2']){const hero=document.querySelector('.worldHeroSlot.'+player);if(!hero)continue;hero.style.setProperty('top',px(p.heroTop),'important');hero.style.setProperty('bottom',px(p.height-p.deckTop+8+infoHeight+2),'important');hero.style.setProperty('width',px(p.heroWidth),'important');hero.style.setProperty('left',player==='p1'?px(p.heroLeft):'auto','important');hero.style.setProperty('right',player==='p2'?px(p.heroLeft):'auto','important');}return{top:p.deckTop,lock:p.lockReserve,infoHeight}})()");
-      console.log('R85 SOLVER '+label+' '+JSON.stringify(updated));
-    }
-
+    if(!(await evalJS("Boolean(window.__apexR85Pick?.enable?.())")))throw Error('R85 runtime probe missing');
+    await sleep(150);
     const after=await capture(label+'-pick-after');
     const cascade=await evalJS("(()=>{const st=document.querySelector('#stage'),d=document.querySelector('.selectionDeckV6'),h=document.querySelector('.worldHeroSlot.p1'),cs=e=>getComputedStyle(e),css=document.getElementById('r85-candidate-pick');return {appliedRules:css?.sheet?.cssRules?.[0]?.cssRules?.length,stageVars:{lock:cs(st).getPropertyValue('--r85LockReserve'),deck:cs(st).getPropertyValue('--r85DeckTop'),lockB:cs(st).getPropertyValue('--apexLockB'),lockH:cs(st).getPropertyValue('--apexLockH')},deck:{inline:d?.style.cssText,top:cs(d).top,bottom:cs(d).bottom},hero:{class:h?.className,attributes:[...h?.attributes||[]].map(a=>[a.name,a.value]).slice(0,12),inline:h?.style.cssText,width:cs(h).width,left:cs(h).left,bottom:cs(h).bottom},supports:CSS.supports('top','min(65vh,calc(100dvh - max(10vh,58px) - 128px))')}})()");
     console.log('R85 CASCADE '+label+' '+JSON.stringify(cascade));
@@ -201,6 +190,16 @@ try{
       if(!(p.pickHeader&&p.pickHeader.right<=w+1&&p.pickHeader.x>=-1))
         error('header out of viewport',p.pickHeader,w);
       if(!(p.fighterName&&p.fighterName.w>=w*.5))error('name dock too narrow',p.fighterName,w);
+    }
+    if(h<=700){
+      await click('#fighterRoster .rosterCard[data-hero="hunter"]');
+      if(!(await wait("document.querySelector('#p1Name')?.textContent?.trim()==='HUNTER'")))
+        error('Hunter selection did not update fighter name',null,'HUNTER');
+      const hunter=await capture(label+'-hunter-selected');
+      if(!(hunter.bounds.hero&&hunter.bounds.hero.w>=w*.88))
+        error('hero switch reset proportional stage',hunter.bounds.hero,w);
+      if(!(hunter.bounds.deck&&hunter.bounds.card&&hunter.bounds.card.h>=48))
+        error('hero switch lost roster sizing',hunter.bounds.card?.h,'>=48');
     }
     report.viewports.push({viewport,start,home:homeSnap,mode,pickBefore:before,pickAfter:after});
     console.log('R85 CHECKPOINT '+label+' '+JSON.stringify({
