@@ -5,9 +5,9 @@ const build=fs.readFileSync('tools/buildGoldCutover.mjs','utf8');
 const failures=[];const passes=[];
 function check(name,cond){(cond?passes:failures).push((cond?'PASS ':'FAIL ')+name);}
 
-const frost="frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:.965}";
+const frost="frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:1.025}";
 check('Frost presentation is data-owned', shell.includes(frost) && build.includes(frost));
-check('Frost owns native facing without changing accepted scale', shell.includes("frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:.965}") && build.includes("frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:.965}"));
+check('Frost owns native facing without changing accepted scale', shell.includes("frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:1.025}") && build.includes("frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:1.025}"));
 check('facing composes hero native facing with desired side facing', shell.includes("const face=nativeFacing*desiredSideFacing") && build.includes("const face=nativeFacing*desiredSideFacing"));
 check('Frost scale is about 1.3x previous', Math.abs(1.53/(1.18)-1.2966)<0.01);
 check('Frost uses visual bottom anchor instead of a hand-tuned y nudge', shell.includes('function visualBottomRatio(img)') && shell.includes('function anchoredHeroY(img,p)') && !shell.includes('frost:{scale:1.53,x:0,y:16}') && build.includes('function visualBottomRatio(img)'));
