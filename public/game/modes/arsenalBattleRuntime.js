@@ -957,7 +957,13 @@
   let reflexUnbind = null;
   function detachReflexReceipt() {
     if(reflexUnbind){const fn=reflexUnbind;reflexUnbind=null;fn();}
-    AQ.state?.questReflexGate?.close?.();
+    // Do not leave an inactive match's receipt object readable or attached
+    // to Gold/AIL. Teardown must be symmetrical for RETURN, REMATCH and retry.
+    if(AQ.state){
+      AQ.state.questReflexGate?.close?.();
+      AQ.state.questReflexGate=null;
+      AQ.state.questReflex=false;
+    }
   }
   function attachReflexReceipt(gate) {
     const hud=window.APEX_COMBAT_HUD;
@@ -1188,7 +1194,8 @@
   };
   // Read-only pilot receipt snapshot; no mission advance, no fake HP setter.
   window.__apexQuestReflexRead = function readQ4ARealReflexPilot() {
-    return AQ.state?.questReflex ? AQ.state.questReflexGate?.snapshot() : null;
+    return AQ.state?.active&&AQ.state?.questReflex
+      ? AQ.state.questReflexGate?.snapshot() : null;
   };
   window.__apexQuestTestRosterStart = function startQuestNActorFixture(name) {
     // Hard boundary: test-only on loopback. Not a Story skip or public entry.
