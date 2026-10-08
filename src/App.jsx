@@ -578,6 +578,77 @@ export default function App() {
           document.addEventListener('pointerdown',tap,{capture:true,passive:true});
           requestAnimationFrame(measure);
         }
+        // R78: production-only Home geometry authority.
+        // The donor shell is imported into React's document, so viewport units
+        // observed by a standalone /gold/shell.html test are not authoritative.
+        // Measure the ACTUAL two button bands after mount instead of assuming
+        // that a particular phone aspect ratio predicts their hit rectangles.
+        if (!window.__apexHomeGeometryGuard) {
+          const stage = document.getElementById('stage');
+          const actions = stage?.querySelector('.actions');
+          const routes = stage?.querySelector('.routes');
+          if (stage && actions && routes) {
+            let scheduled = false;
+            let last = null;
+            const layout = () => {
+              scheduled = false;
+              if (!stage.isConnected) return;
+              const portrait = matchMedia('(orientation: portrait)').matches;
+              const home = !stage.classList.contains('screen-mode')
+                && !stage.classList.contains('screen-fighter')
+                && !stage.classList.contains('screen-battle');
+              if (!portrait || !home) {
+                actions.style.removeProperty('top');
+                return;
+              }
+              const stageRect = stage.getBoundingClientRect();
+              const bandRect = routes.getBoundingClientRect();
+              const actionRect = actions.getBoundingClientRect();
+              if (!(stageRect.height > 0 && actionRect.height > 0)) return;
+              const compact = matchMedia('(max-height: 700px)').matches;
+              const authoredTop = stageRect.height * (compact ? .654 : .671);
+              const ceiling = bandRect.top - stageRect.top - actionRect.height - 10;
+              const top = Math.max(0, Math.min(authoredTop, ceiling));
+              actions.style.top = top.toFixed(2) + 'px';
+              last = { stageHeight: stageRect.height, authoredTop, top,
+                ceiling, shifted: top < authoredTop - .5,
+                gap: bandRect.top - (stageRect.top + top + actionRect.height) };
+              if (last.shifted) {
+                console.info('[apex-home-geometry] short portrait safety constraint', last);
+              }
+            };
+            const request = () => {
+              if (scheduled) return;
+              scheduled = true;
+              requestAnimationFrame(layout);
+            };
+            const observer = new ResizeObserver(request);
+            observer.observe(stage);
+            observer.observe(actions);
+            observer.observe(routes);
+            const mutation = new MutationObserver(request);
+            mutation.observe(stage, { attributes:true, attributeFilter:['class'] });
+            window.addEventListener('resize', request, { passive:true });
+            window.addEventListener('orientationchange', request, { passive:true });
+            window.visualViewport?.addEventListener('resize', request, { passive:true });
+            window.visualViewport?.addEventListener('scroll', request, { passive:true });
+            window.__apexHomeGeometryGuard = {
+              snapshot: () => ({ ...last, visualHeight: window.visualViewport?.height ?? null }),
+              remeasure: request,
+              dispose: () => {
+                observer.disconnect();
+                mutation.disconnect();
+                window.removeEventListener('resize', request);
+                window.removeEventListener('orientationchange', request);
+                window.visualViewport?.removeEventListener('resize', request);
+                window.visualViewport?.removeEventListener('scroll', request);
+                actions.style.removeProperty('top');
+                delete window.__apexHomeGeometryGuard;
+              },
+            };
+            request();
+          }
+        }
         host.dataset.apexGoldMounted = '1';
         document.body.classList.add('apex-gold-mounted');
         // Boot READY includes the explicit Home Core asset set (including CSS
