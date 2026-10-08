@@ -49,7 +49,7 @@ check('Hunter physical scale comes from the one authority, not side-specific CSS
   && !/r49-fighter-presentation-authority[\s\S]*data-hero="hunter"[\s\S]*transform:scale/.test(shell));
 
 check('Frost uses one hero-level scale/orientation authority, alpha-bottom grounded and mirrored per side',
-  shell.includes('frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:.965}')
+  shell.includes('frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:1.025}')
   && shell.includes('const face=nativeFacing*desiredSideFacing')
   && shell.includes('function visualBottomRatio(img)')
   && shell.includes('function anchoredHeroY(img,p)')
