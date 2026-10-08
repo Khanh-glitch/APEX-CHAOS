@@ -139,12 +139,13 @@ try{
   const small=await shot('production-battle-361x545');
   const b=small.battle;
   check('361x545 live arena >=300px',b.arena?.w>=300,b.arena);
-  check('361x545 gun visible inside P1',b.weapon&&b.p1&&b.weapon.y>=b.p1.y-2&&b.weapon.bottom<=b.p1.bottom+2,{weapon:b.weapon,p1:b.p1});
-  check('361x545 gun NAME inside P1',b.weaponName&&b.p1&&b.weaponName.y>=b.p1.y-2&&b.weaponName.bottom<=b.p1.bottom+2,{name:b.weaponName,p1:b.p1});
+  check('361x545 gun visible inside P1',b.weapon&&b.p1&&b.weapon.y>=b.p1.y-2&&b.weapon.bottom<=b.p1.bottom+2&&b.weapon.w>=105&&b.weapon.h>=28,{weapon:b.weapon,p1:b.p1});
+  check('361x545 gun NAME inside P1',b.weaponName&&b.p1&&b.weaponName.w>=60&&b.weaponName.y>=b.p1.y-2&&b.weaponName.bottom<=b.p1.bottom+2,{name:b.weaponName,p1:b.p1});
   check('361x545 skill KEY inside P1',b.skillKey&&b.p1&&b.skillKey.y>=b.p1.y-2&&b.skillKey.bottom<=b.p1.bottom+2,{key:b.skillKey,p1:b.p1});
   await command('Emulation.setDeviceMetricsOverride',{width:550,height:857,deviceScaleFactor:2,mobile:true,screenWidth:550,screenHeight:857});
   const golden=await shot('production-battle-550x857');
   check('550x857 retains full Golden arena',golden.battle.arena?.w>=520,golden.battle.arena);
+  check('550x857 real weapon footer restored and bounded',golden.battle.weapon&&golden.battle.weapon.h>=28&&golden.battle.weapon.w>=160&&golden.battle.weaponName&&golden.battle.weaponName.w>=70&&golden.battle.weaponName.bottom<=golden.battle.p1.bottom+2,{weapon:golden.battle.weapon,name:golden.battle.weaponName,panel:golden.battle.p1});
   await writeFile(dir+'/production-report.json',JSON.stringify({mode,small,golden,failures},null,2));
   if(failures.length)throw Error('R83 production flow fails '+failures.length+' checks');
   console.log('PASS R83 production Local battle screenshots + geometry at 361x545 and 550x857');
