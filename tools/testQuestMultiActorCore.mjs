@@ -81,7 +81,7 @@ check(()=>assert.equal(Q.firstWakeOutcome(a).status,'ACTIVE'));
 {
   const b=fresh();b[2].hp=0;
   check(()=>assert.equal(Q.livingEnemies(b[0],b).length,1));
-  check(()=>assert.deepEqual(Q.splashEnemies(b[0],b).map(x=>x.id),[202]));
+  check(()=>assert.deepEqual(Array.from(Q.splashEnemies(b[0],b),x=>x.id),[202]));
 }
 {
   const b=fresh();b[2].questTeam='ALLY';b[2].x=90;
