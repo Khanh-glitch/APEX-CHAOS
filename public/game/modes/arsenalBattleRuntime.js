@@ -389,7 +389,12 @@
     const aqHp = (f) => (HRW && HRW.bodyHudHp) ? HRW.bodyHudHp(f).hp : f.hp;
     if (state.questMultiActor && !state.over && !state.labMode && window.APEX_QUEST_MULTI_ACTOR_CORE) {
       const Q = window.APEX_QUEST_MULTI_ACTOR_CORE;
-      const outcome = state.questFirstWake ? Q.firstWakeOutcome(fighters)
+      // E01 can only reach the RIVET hold after genuine PISTOL + J/K receipts;
+      // no two-team KO rule may auto-complete this tutorial encounter.
+      const pilot = state.questReflex ? state.questReflexGate?.poll() : null;
+      const outcome = state.questReflex
+        ? {status:fighters.some(f=>f?.hp<=0)?'RETRY':'ACTIVE',reason:'reflex-pilot-'+(pilot?.phase||'closed')}
+        : state.questFirstWake ? Q.firstWakeOutcome(fighters)
         : Q.teamsOutcome(fighters);
       if (outcome.status === 'RETRY' || outcome.status === 'COMPLETE') {
         state.over = 'QUEST_' + (state.questFirstWake ? 'FIRST_WAKE_' : 'FIXTURE_') + outcome.status;
@@ -947,6 +952,32 @@
   // Entry / exit (handoff §12)
   // -------------------------------------------------------------------------
   let keyListener = null;
+  // E01 Q4A pilot: observing original engine events is allowed; modifying
+  // realized damage, skill cooldown or the Director checkpoint is not.
+  let reflexUnbind = null;
+  function detachReflexReceipt() {
+    if(reflexUnbind){const fn=reflexUnbind;reflexUnbind=null;fn();}
+    AQ.state?.questReflexGate?.close?.();
+  }
+  function attachReflexReceipt(gate) {
+    const hud=window.APEX_COMBAT_HUD;
+    const bus=window.APEX_HERO_REWORK_AIL?.bus;
+    if(!hud||typeof hud.onRealizedDamage!=='function'||!bus?.on)return false;
+    const previous=hud.onRealizedDamage;
+    const observer=function onQuestReflexDamage(ev) {
+      // Original damage + Gold observers keep their unchanged authority.
+      const result=previous.apply(this,arguments);
+      gate.acceptDamage(ev);
+      return result;
+    };
+    hud.onRealizedDamage=observer;
+    const off=bus.on('Cast',ev=>gate.acceptCast(ev));
+    reflexUnbind=()=>{
+      if(hud.onRealizedDamage===observer)hud.onRealizedDamage=previous;
+      if(typeof off==='function')off();
+    };
+    return true;
+  }
 
   function onKeyDown(e) {
     if (e.code === 'F3') {
@@ -1007,6 +1038,12 @@
       && window.__APEX_TEST_MODE === true && localTestHost && questCore
       ? questCore.fixtureRoster(options.questFixture) : null;
     if (options.questFixture && !questFixture) return false;
+    // Q4A native REFLEX pilot is loopback TEST ONLY, never a story skip.
+    const questReflex=options.questReflex===true
+      && window.__APEX_TEST_MODE===true && localTestHost
+      && !!questCore && !!window.APEX_QUEST_REFLEX_RECEIPTS;
+    if(options.questReflex && !questReflex)return false;
+    detachReflexReceipt();
     resetState();
     if (AQ.feel && AQ.feel.resetMatch) AQ.feel.resetMatch();
     // OWNER LAW (R52): the legacy menu/select DOM is deleted from the product —
@@ -1023,12 +1060,15 @@
     const questFirstWake = options.questFirstWake === true
       && t1.name === 'ROBOT'
       && !!questCore;
-    const questMultiActor = questFirstWake || !!questFixture;
+    const questMultiActor = questFirstWake || !!questFixture || questReflex;
     if (questMultiActor) {
       // Same engine Fighter instances, same physical weapon/damage update and
       // same per-actor HP. No cloned Quest combat loop. TEST fixture is
       // isolated from the story Director and makes NO progress/save changes.
-      const specs = questFirstWake ? questCore.fixtureRoster('2v2') : questFixture;
+      const specs = questReflex
+        ? [{questId:'NEWBOT',questTeam:'ALLY',hp:1000,x:230,y:500,kind:'newbot'},
+           {questId:'T.O.T',questTeam:'HOSTILE',hp:1000,x:770,y:500,kind:'tot'}]
+        : (questFirstWake ? questCore.fixtureRoster('2v2') : questFixture);
       const NPC_TYPES = Object.freeze({
         scout:['SCRAP SCOUT','#c88d48'],bulwark:['IRON BULWARK','#6f7f90'],
         tot:['T.O.T','#80b4c2'],rivet:['RIVET','#c39f76'],
@@ -1070,9 +1110,17 @@
       }
       AQ.state.questMultiActor = true;
       AQ.state.questFirstWake = questFirstWake;
-      AQ.state.questTestFixture = questFirstWake ? null : String(options.questFixture);
+      AQ.state.questReflex = questReflex;
+      AQ.state.questTestFixture = questReflex||questFirstWake ? null : String(options.questFixture);
       AQ.state.questActorCount = validated.count;
       AQ.state.questOutcome = null;
+      if(questReflex){
+        const gate=window.APEX_QUEST_REFLEX_RECEIPTS.create(()=>fighters);
+        if(!attachReflexReceipt(gate)){
+          gate.close(); AQ.state.active=false; return false;
+        }
+        AQ.state.questReflexGate=gate;
+      }
     } else {
       fighters = [
         new Fighter(1, 220, GAME_SIZE / 2, t1),
@@ -1133,6 +1181,15 @@
     if (window.__APEX_QUEST_DEV !== true) return false;
     return window.startArsenalBattleMode('ROBOT', 'ROBOT', { questFirstWake: true });
   };
+  window.__apexQuestReflexStart = function startQ4ARealReflexPilot() {
+    if(window.__APEX_TEST_MODE!==true
+      ||!['localhost','127.0.0.1','::1'].includes(String(window.location?.hostname||'')))return false;
+    return window.startArsenalBattleMode('ROBOT','ROBOT',{questReflex:true});
+  };
+  // Read-only pilot receipt snapshot; no mission advance, no fake HP setter.
+  window.__apexQuestReflexRead = function readQ4ARealReflexPilot() {
+    return AQ.state?.questReflex ? AQ.state.questReflexGate?.snapshot() : null;
+  };
   window.__apexQuestTestRosterStart = function startQuestNActorFixture(name) {
     // Hard boundary: test-only on loopback. Not a Story skip or public entry.
     if (window.__APEX_TEST_MODE !== true ||
@@ -1191,6 +1248,7 @@
   };
 
   window.exitArsenalBattleMode = function exitArsenalBattleMode(options = {}) {
+    detachReflexReceipt();
     const opts = (options && typeof options === 'object') ? options : {};
     const goldHosted = opts.goldHosted === true || window.__apexGoldBattleHosted === true;
     const state = AQ.state;
