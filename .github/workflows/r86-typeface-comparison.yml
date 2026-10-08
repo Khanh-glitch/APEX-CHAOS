@@ -3,7 +3,7 @@ name: R86 Typeface Cross-Device Research
 on:
   push:
     branches:
-      - arena/r86-font-comparison-solver-lab
+      - arena/r86-home-geometry-solver-lab
     paths:
       - '.github/workflows/r86-typeface-comparison.yml'
       - 'tools/goldBattleHudR83.mjs'
