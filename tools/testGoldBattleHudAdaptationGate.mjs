@@ -166,7 +166,7 @@ check('shipping shell embeds the exact shipping Battle HUD bytes',
   payload ? ('decoded=' + decoded.length + ' hud=' + hud.length) : 'payload missing');
 
 check('R59/CP6 Frost keeps accepted scale with native-facing and visual ground authority',
-  shell.includes('frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:.965}')
+  shell.includes('frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:.985}')
   && shell.includes('const face=nativeFacing*desiredSideFacing')
   && shell.includes('function visualBottomRatio(img)')
   && shell.includes('function anchoredHeroY(img,p)')
