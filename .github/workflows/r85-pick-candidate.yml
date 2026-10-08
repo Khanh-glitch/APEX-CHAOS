@@ -8,6 +8,7 @@ on:
       - '.github/workflows/r85-pick-candidate.yml'
       - 'tools/goldBattleHudR83.mjs'
       - 'tools/testR85PickCandidateBrowser.mjs'
+      - 'tools/testR85LocalPickFlowBrowser.mjs'
       - 'tools/r85PickLayoutCandidate.css'
       - 'tools/r85PickSolverCandidate.mjs'
       - 'src/game/shortPortraitPick.css'
@@ -45,6 +46,7 @@ jobs:
             public/assets/ui_2026
             public/assets/fonts
             tools/testR85PickCandidateBrowser.mjs
+            tools/testR85LocalPickFlowBrowser.mjs
             tools/r85PickLayoutCandidate.css
             tools/r85PickSolverCandidate.mjs
             index.html
@@ -77,6 +79,7 @@ jobs:
             sleep 1
           done
           CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testR85PickCandidateBrowser.mjs
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testR85LocalPickFlowBrowser.mjs
       - name: Upload comparison images and geometry evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -84,5 +87,6 @@ jobs:
           name: r85-responsive-pick
           path: |
             docs/acceptance/r85-responsive-pick/
+            docs/acceptance/r85-local-pick/
             /tmp/r85-vite.log
           if-no-files-found: warn
