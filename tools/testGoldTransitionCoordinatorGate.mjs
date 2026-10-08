@@ -91,7 +91,11 @@ check('source collapse matches Gold standalone',
   css.includes('transform:scale(.54)!important') &&
   css.includes('transform .48s cubic-bezier(.72,0,1,.55)') &&
   css.includes('opacity .34s cubic-bezier(.85,0,1,1) .06s'));
-check('target reveal scale matches Gold standalone', coordinator.includes('(1.12 - 0.12 * p).toFixed(4)'));
+check('R62 destination is already full size behind the opening Door',
+  coordinator.includes('if (revealRoot) clearNodeMotion(revealRoot);') &&
+  coordinator.includes('onReveal: () => {') &&
+  !coordinator.includes("revealRoot.style.transform = 'scale(1.12)'") &&
+  !coordinator.includes('(1.12 - 0.12 * p).toFixed(4)'));
 check('responsive engine owns canvas resize', runtimeText.includes('window.addEventListener(\'resize\'') && runtimeText.includes('computeGeo'));
 check('canvas DPR budget preserved', runtimeText.includes('3.2e6'));
 
