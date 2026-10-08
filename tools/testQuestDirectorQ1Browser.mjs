@@ -342,6 +342,12 @@ try{
   // Q3u: capture the REAL draw transform of a native Arsenal PISTOL sprite.
   // The visible gun must follow its smaller Gold chassis, but Arsenal's
   // ballistic muzzle must remain unchanged; no fake holder/hitbox.
+  // A missing or still-loading PISTOL PNG cannot prove a grip transform.
+  // Use the actual authored asset and its normal async image cache.
+  const q3uAsset=await evalPage("(async()=>{\n const AV=window.APEX_ARSENAL_AV;\n if(!AV?.preload||!AV?.weaponImage)return {ready:false,reason:'presentation API unavailable'};\n AV.preload({audio:false});\n if(!AV.weaponImage('PISTOL'))await AV.whenImagesReady(7000);\n const img=AV.weaponImage('PISTOL');\n return {ready:!!img,meta:AV.weaponMeta('PISTOL'),\n  image:img?{w:img.w,h:img.h}:null,\n  stats:{loaded:AV.stats.imagesLoaded,failed:AV.stats.imagesFailed,total:AV.imagesTotal()}};\n})()");
+  gate('Q3u original PISTOL PNG is ready before sampling held-gun artwork',
+    q3uAsset?.ready===true&&q3uAsset?.meta?.file?.endsWith('PISTOL.png')
+      &&q3uAsset.image?.w>0,q3uAsset);
   const q3uGrip=await evalPage("(()=>{\n const A=window.APEX_ARSENAL,W=A?.weaponApi,AV=window.APEX_ARSENAL_AV,R=window.APEX_QUEST_V12_RIG;\n const actor=(window.fighters||[]).find(f=>f.questId==='SCRAP-B');\n if(!A?.state?.questMultiActor||!actor||!W?.equip||!AV?.drawEquippedWeapon||!R?.inspect)return {ready:false};\n const equipped=W.equip(actor,'PISTOL');\n const h=W.getHolder(actor);\n if(!equipped||!h)return {ready:false,equipped};\n h.meta.aimAngle=0;\n Object.assign(h.meta.pose,{localX:0,localY:0,recoil:0,rotKick:0,flourish:0,scaleX:1});\n const canvas=document.createElement('canvas');canvas.width=1000;canvas.height=1000;\n const ctx=canvas.getContext('2d');\n actor.draw(ctx); // Establish actual rig scale from original renderer.\n const rig=R.inspect(actor);\n const physicsBefore=W.worldAnchor(actor,'PISTOL','muzzle',0);\n let translation=null,rect=null;\n const translate=ctx.translate.bind(ctx),drawImage=ctx.drawImage.bind(ctx);\n ctx.translate=(x,y)=>{translation={x,y};return translate(x,y)};\n ctx.drawImage=(...args)=>{if(args.length===9)rect={w:args[7],h:args[8]};return drawImage(...args)};\n const rendered=AV.drawEquippedWeapon(ctx,actor,h);\n const physicsAfter=W.worldAnchor(actor,'PISTOL','muzzle',0);\n const offset=translation?.x-actor.x;\n return {ready:true,rendered,rigFactor:rig?.scaleFactor,offset,\n   expectedOffset:actor.radius*.78*.82,drawRect:rect,\n   muzzleUnchanged:physicsBefore.x===physicsAfter.x&&physicsBefore.y===physicsAfter.y,\n   physicsDistance:Math.hypot(physicsBefore.x-actor.x,physicsBefore.y-actor.y)};\n})()");
   gate('Q3u held PISTOL render-only center follows the compact Gold grip at 82%',
     q3uGrip?.ready&&q3uGrip?.rendered===true&&q3uGrip?.rigFactor===.82
@@ -365,7 +371,7 @@ try{
   gate('Q3u private 3v4 Quest fixture starts without exposing a player story skip',
     q3uFixture?.started===true&&q3uFixture.fixture==='3v4'
        &&q3uFixture.count===7,q3uFixture);
-  const q3uSeven=await poll("(()=>{\n const f=window.fighters||[],rig=window.APEX_QUEST_V12_RIG,A=window.APEX_ARSENAL;\n const specs=f.map(a=>({id:a.questId,kind:a.questVisualId||null,team:a.questTeam,\n  physicalRadius:a.radius,visual:rig?.inspect?.(a)||null}));\n const hud=document.getElementById('battleHudHost'),sides=['ALLY','HOSTILE'];\n const rails=sides.map((team,i)=>{\n  const members=f.filter(a=>a.questTeam===team);\n  const root=hud?.querySelector('#p'+(i+1)+'Rail');\n  const slots=[...(root?.querySelectorAll('.vr-quest-slots > span')||[])];\n  return {team,count:members.length,slots:slots.map(n=>n.dataset.actor),\n   segmentMatch:slots.length===members.length&&slots.every((n,k)=>n.dataset.actor===members[k].questId)};\n });\n return {started:A?.state?.questTestFixture==='3v4',actors:specs,rails,\n  errors:rig?.stats?.failed||0};\n})()",
+  const q3uSeven=await poll("(()=>{\n const f=window.fighters||[],rig=window.APEX_QUEST_V12_RIG,A=window.APEX_ARSENAL;\n const specs=f.map(a=>({id:a.questId,kind:a.questVisualId||null,team:a.questTeam,\n   physicalRadius:a.radius,visual:rig?.inspect?.(a)||null}));\n const projection=window.APEX_GOLD_PROJECTION?.().state||{};\n const groups=projection.questTeams||[],sides=projection.sides||[];\n const projected=['ALLY','HOSTILE'].map((team,i)=>{\n   const members=f.filter(a=>a.questTeam===team),g=groups[i]||[],side=sides[i]||{};\n   const hp=members.reduce((sum,a)=>sum+Math.max(0,a.hp),0);\n   const max=members.reduce((sum,a)=>sum+Math.max(0,a.maxHp),0);\n   return {team,count:members.length,segmentIds:g.map(a=>a.id),\n     expectedIds:members.map(a=>a.questId),hp,max,\n     shownHp:side.hp,shownMax:side.maxHp,\n     match:g.length===members.length&&g.every((a,k)=>\n       a.id===members[k].questId&&a.hp===members[k].hp&&a.maxHp===members[k].maxHp)\n       &&side.hp===hp&&side.maxHp===max};\n });\n return {started:A?.state?.questTestFixture==='3v4',actors:specs,projected,\n   errors:rig?.stats?.failed||0};\n})()",
     x=>x?.started&&x.actors?.length===7&&['SCRAP-C','SCRAP-D'].every(id=>x.actors.find(a=>a.id===id)?.visual?.clock>0),120);
   const reaver=q3uSeven?.actors?.find(a=>a.id==='SCRAP-C');
   const sentinel=q3uSeven?.actors?.find(a=>a.id==='SCRAP-D');
@@ -375,9 +381,12 @@ try{
        &&reaver.visual.clock>0&&sentinel.visual.clock>0
        &&q3uSeven.errors===0,
     {reaver,sentinel,failures:q3uSeven?.errors});
-  gate('Q3u two original Gold rails show seven independent physical HP segments',
-    q3uSeven?.rails?.[0]?.count===3&&q3uSeven?.rails?.[1]?.count===4
-       &&q3uSeven.rails.every(x=>x.segmentMatch),q3uSeven?.rails);
+  // The loopback 3v4 fixture is NOT a Story-mounted Gold HUD. Verify the
+  // canonical projection Gold would consume; FIRST WAKE independently
+  // tests the actual mounted two-rail DOM in this same Chrome run.
+  gate('Q3u 3v4 supplies seven true Fighter HP slots in Gold HUD projection',
+    q3uSeven?.projected?.[0]?.count===3&&q3uSeven?.projected?.[1]?.count===4
+       &&q3uSeven.projected.every(x=>x.match),q3uSeven?.projected);
   await image('06-q3u-seven-fighter-chrome');
   // Teardown must not alter Director WAKE, Quest result or normal Arena.
   await pressEscape();
