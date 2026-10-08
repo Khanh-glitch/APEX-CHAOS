@@ -160,6 +160,7 @@
     return { ok: true, reason: 'valid-2v2' };
   }
 
+  root.apexQuestMultiActorCore = 'ready';
   root.APEX_QUEST_MULTI_ACTOR_CORE = Object.freeze({
     alive, hostile, livingEnemies, nearestEnemy, sweptEntry,
     firstProjectileHit, splashEnemies, closestEligiblePickup, separateBodyOverlaps,
