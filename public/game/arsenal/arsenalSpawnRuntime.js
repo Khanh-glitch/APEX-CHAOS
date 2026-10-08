@@ -291,9 +291,9 @@
         slot.predictedHeroETA = predictContactETA(slot, hero);
         slot.predictedRivalETA = predictContactETA(slot, rival);
 
-        // Quest may have four independent Fighters. Ordinary BOT/LOCAL still
+        // Quest may have N independent canonical Fighters. Ordinary BOT/LOCAL still
         // uses the exact original two entries, including HUD telemetry.
-        const predictionActors = state.questFirstWake
+        const predictionActors = state.questMultiActor
           ? (fighters || []).filter(f => f && f.hp > 0) : [hero, rival];
         const candidates = [];
         for (const actor of predictionActors) {
@@ -310,7 +310,7 @@
 
         const weaponApi = AQ.weaponApi;
         if (earliest && weaponApi && earliest.fighter && !weaponApi.getHolder(earliest.fighter)) {
-          const opponents = state.questFirstWake && window.APEX_QUEST_MULTI_ACTOR_CORE
+          const opponents = state.questMultiActor && window.APEX_QUEST_MULTI_ACTOR_CORE
             ? window.APEX_QUEST_MULTI_ACTOR_CORE.livingEnemies(earliest.fighter, fighters)
             : [earliest.fighter === hero ? rival : hero];
           const other = opponents.find(f => f && weaponApi.getHolder(f)) || null;
@@ -393,7 +393,7 @@
     const pickupActorList = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.pickupActors)
       ? window.APEX_HERO_REWORK.pickupActors()
       : undefined;
-    const actors = state.questFirstWake
+    const actors = state.questMultiActor
       ? (fighters || []).filter(f => f && f.hp > 0)
       : (pickupActorList || fighters);
 
