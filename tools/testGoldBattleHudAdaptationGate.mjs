@@ -165,6 +165,11 @@ check('shipping shell embeds the exact shipping Battle HUD bytes',
   !!payload && decoded === hud,
   payload ? ('decoded=' + decoded.length + ' hud=' + hud.length) : 'payload missing');
 
+check('R60 Heavy reuses one sanitized DOM snapshot for independent Voronoi shards',
+  hud.includes('const shardTemplate=makePanelSnapshot(panel.v,w,h);') &&
+  hud.includes('const clone=shardTemplate.cloneNode(true);piece.appendChild(clone);') &&
+  !hud.includes('const clone=makePanelSnapshot(panel.v,w,h);piece.appendChild(clone);') &&
+  r55Adapter.includes("'Heavy shards reuse sanitized template'"));
 check('R60 BOT tablet has two balanced square-oriented thumb targets',
   hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] #p1Side .skills{') &&
   hud.includes('grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:minmax(0,1fr)') &&
