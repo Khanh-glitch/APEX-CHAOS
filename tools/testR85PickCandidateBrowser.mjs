@@ -167,6 +167,10 @@ try{
     if(!(await evalJS("Boolean(window.__apexR85Pick?.enable?.())")))throw Error('R85 runtime probe missing');
     await sleep(150);
     const after=await capture(label+'-pick-after');
+    const skillFit=await evalJS("(()=>{const e=document.querySelector('.fighterIdentityZone.p1 .skillRows'),r=e?.getBoundingClientRect();if(!r)return null;const chips=[...e.querySelectorAll('.skillChip')].map(n=>{const a=n.getBoundingClientRect();return {text:n.textContent.trim(),x:a.x,y:a.y,right:a.right,bottom:a.bottom,w:a.width,h:a.height,scrollW:n.scrollWidth,clientW:n.clientWidth,scrollH:n.scrollHeight,clientH:n.clientHeight}});return{w:r.width,h:r.height,scrollWidth:e.scrollWidth,clientWidth:e.clientWidth,chips,visible:chips.length===3&&chips.every(n=>n.x>=r.x-1&&n.right<=r.right+1&&n.y>=r.y-1&&n.bottom<=r.bottom+1&&n.scrollW<=n.clientW+2&&n.scrollH<=n.clientH+2)}})()");
+    console.log('R85 SKILLS '+label+' '+JSON.stringify(skillFit));
+    if(h<=700&&!skillFit?.visible)report.issues.push(label+' all three skill slots must be visible without scrolling: '+JSON.stringify(skillFit));
+
     const cascade=await evalJS("(()=>{const st=document.querySelector('#stage'),d=document.querySelector('.selectionDeckV6'),h=document.querySelector('.worldHeroSlot.p1'),cs=e=>getComputedStyle(e),css=document.getElementById('r85-candidate-pick');return {appliedRules:css?.sheet?.cssRules?.[0]?.cssRules?.length,stageVars:{lock:cs(st).getPropertyValue('--r85LockReserve'),deck:cs(st).getPropertyValue('--r85DeckTop'),lockB:cs(st).getPropertyValue('--apexLockB'),lockH:cs(st).getPropertyValue('--apexLockH')},deck:{inline:d?.style.cssText,top:cs(d).top,bottom:cs(d).bottom},hero:{class:h?.className,attributes:[...h?.attributes||[]].map(a=>[a.name,a.value]).slice(0,12),inline:h?.style.cssText,width:cs(h).width,left:cs(h).left,bottom:cs(h).bottom},supports:CSS.supports('top','min(65vh,calc(100dvh - max(10vh,58px) - 128px))')}})()");
     console.log('R85 CASCADE '+label+' '+JSON.stringify(cascade));
     const p=after.bounds,b=before.bounds;
