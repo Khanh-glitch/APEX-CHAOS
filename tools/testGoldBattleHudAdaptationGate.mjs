@@ -170,6 +170,11 @@ check('R60 Heavy reuses one sanitized DOM snapshot for independent Voronoi shard
   hud.includes('const clone=shardTemplate.cloneNode(true);piece.appendChild(clone);') &&
   !hud.includes('const clone=makePanelSnapshot(panel.v,w,h);piece.appendChild(clone);') &&
   r55Adapter.includes("'Heavy shards reuse sanitized template'"));
+check('R62 tablet BOT portrait dock keeps arena and Local untouched',
+  hud.includes('R62 tablet portrait BOT: hero-control dock') &&
+  hud.includes('grid-template-areas:"id id id" "s1 wp s2"') &&
+  hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skills{display:contents}') &&
+  !hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="2p"] #p1Side .skills{display:contents}'));
 check('R61 compact Local does not reduce arena for panel fit',
  hud.includes('R61 compact Local: keep arena sizing') &&
  !hud.includes('--zoneMin:clamp(158px,24cqh,174px)') &&
