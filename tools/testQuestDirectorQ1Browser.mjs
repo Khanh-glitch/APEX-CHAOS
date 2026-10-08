@@ -366,7 +366,7 @@ try{
     q3uFixture?.started===true&&q3uFixture.fixture==='3v4'
        &&q3uFixture.count===7,q3uFixture);
   const q3uSeven=await poll("(()=>{\n const f=window.fighters||[],rig=window.APEX_QUEST_V12_RIG,A=window.APEX_ARSENAL;\n const specs=f.map(a=>({id:a.questId,kind:a.questVisualId||null,team:a.questTeam,\n  physicalRadius:a.radius,visual:rig?.inspect?.(a)||null}));\n const hud=document.getElementById('battleHudHost'),sides=['ALLY','HOSTILE'];\n const rails=sides.map((team,i)=>{\n  const members=f.filter(a=>a.questTeam===team);\n  const root=hud?.querySelector('#p'+(i+1)+'Rail');\n  const slots=[...(root?.querySelectorAll('.vr-quest-slots > span')||[])];\n  return {team,count:members.length,slots:slots.map(n=>n.dataset.actor),\n   segmentMatch:slots.length===members.length&&slots.every((n,k)=>n.dataset.actor===members[k].questId)};\n });\n return {started:A?.state?.questTestFixture==='3v4',actors:specs,rails,\n  errors:rig?.stats?.failed||0};\n})()",
-    x=>x?.started&&x.actors?.length===7&&x.actors.every(a=>a.id==='NEWBOT'||a.visual!==null),160);
+    x=>x?.started&&x.actors?.length===7&&['SCRAP-C','SCRAP-D'].every(id=>x.actors.find(a=>a.id===id)?.visual?.clock>0),120);
   const reaver=q3uSeven?.actors?.find(a=>a.id==='SCRAP-C');
   const sentinel=q3uSeven?.actors?.find(a=>a.id==='SCRAP-D');
   gate('Q3u 3v4 renders the REAL Reaver and Sentinel from Gold V12',
