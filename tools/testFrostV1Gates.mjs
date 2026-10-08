@@ -2545,8 +2545,13 @@ try {
   const sP = bodyBox(px, o.b.x, o.b.y, 130, localBg(px, o.b.x, o.b.y, 130));
   const i = P().inspect(o.a);
   const R = FG().GOLD_REF;
+  // P().inspect is a public diagnostic surface and intentionally rounds these
+  // scale ratios to 3 decimals. Compare against the same public precision,
+  // while deriving the values from live cfg + Gold reference geometry.
+  const laneExpected = +((o.ct.skills.A1.cfg.width / R.A1_WIDTH).toFixed(3));
+  const trailExpected = +((o.ct.skills.A2.cfg.trailWidth / R.A2_WIDTH).toFixed(3));
   const derived = Math.abs(i.kBody - (o.a.radius / R.FROST_R) * 0.90) < 1e-3 && Math.abs(i.bodyK - i.kBody) < 1e-3
-    && Math.abs(i.laneK - 1.9375) < 1e-6 && Math.abs(i.trailK - 1) < 1e-6
+    && i.laneK === laneExpected && i.trailK === trailExpected
     && Number.isFinite(o.a.radius) && o.a.radius > 0;
   const peerH = sF.h / sP.h, peerW = sF.w / sP.w;
   const vsRadius = sF.h / (o.a.radius * 2);
