@@ -212,6 +212,24 @@ try{
     q3Slots?.quest==='1'&&q3Slots?.railCount===2
        &&q3Slots.sections?.every(s=>s.correct&&s.actual.length===2),q3Slots);
   await image('03-cp04-preview-four-fighters');
+  // Q3: exercise a genuine Arsenal PISTOL collision, never direct HP mutation.
+  const q3RealShot=await evalPage("(()=>{\n  const A=window.APEX_ARSENAL,W=A?.weaponApi,f=window.fighters||[];\n  const source=f.find(x=>x.questId==='NEWBOT');\n  const victim=f.find(x=>x.questId==='SCRAP-A');\n  const other=f.find(x=>x.questId==='SCRAP-B');\n  if(!A?.state?.questMultiActor||!source||!victim||!other||!W?.fireBullet)return {started:false};\n  f.forEach((x,i)=>{x.baseSpeed=0;x.data.__hrHoldBody=true;x.x=120+i*125;x.y=865;});\n  source.x=170;source.y=300;victim.x=590;victim.y=300;other.x=820;other.y=790;\n  A.state.spawnHeld=true;A.state.spawnTimer=1e6;A.state.slots=[];\n  const before={target:victim.hp,other:other.hp,allies:f.filter(x=>x.questTeam==='ALLY').map(x=>x.hp)};\n  W.fireBullet({owner:source,x:220,y:300,angle:0,speed:2600,damage:10,weapon:'PISTOL'});\n  A.step(.16);\n  return {started:true,before,after:{target:victim.hp,other:other.hp,\n    allies:f.filter(x=>x.questTeam==='ALLY').map(x=>x.hp)}};\n})()");
+  gate('Q3 actual PISTOL damages only the aimed physical Scrap Bot',
+    !!q3RealShot?.started&&q3RealShot.after.target<q3RealShot.before.target
+    &&q3RealShot.after.other===q3RealShot.before.other
+    &&JSON.stringify(q3RealShot.after.allies)===JSON.stringify(q3RealShot.before.allies),q3RealShot);
+  const q3PostHit=await poll("(()=>{\n  const host=document.getElementById('battleHudHost'),f=window.fighters||[];\n  return ['ALLY','HOSTILE'].map((team,i)=>{\n    const actors=f.filter(x=>x.questTeam===team),rail=host?.querySelector('#p'+(i+1)+'Rail');\n    const segments=[...(rail?.querySelectorAll('.vr-quest-slots > span')||[])];\n    return {\n      team,hp:Math.round(actors.reduce((n,a)=>n+Math.max(0,a.hp),0)),\n      shown:Number(rail?.querySelector('.vr-cur')?.textContent),\n      max:actors.reduce((n,a)=>n+Math.max(0,a.maxHp),0),\n      maxShown:Number((rail?.querySelector('.vr-max')?.textContent||'').replace(/[^0-9.]/g,'')),\n      slots:segments.map(s=>({id:s.dataset.actor,value:Number(s.style.getPropertyValue('--qhp'))})),\n      match:segments.length===actors.length&&segments.every((s,j)=>\n        s.dataset.actor===actors[j].questId&&\n        Math.abs(Number(s.style.getPropertyValue('--qhp'))-actors[j].hp/actors[j].maxHp)<.002)\n    };\n  });\n})()",
+    v=>v?.length===2&&v.every(x=>x.match&&x.hp===x.shown&&x.max===x.maxShown),120);
+  gate('Q3 Gold team totals and only damaged actor segment track real projectile HP',
+    !!q3PostHit?.[1]?.slots?.[1]&&q3PostHit[1].slots[0].value<1
+     &&q3PostHit[1].slots[1].value===1
+     &&q3PostHit.every(x=>x.match&&x.hp===x.shown&&x.max===x.maxShown),q3PostHit);
+  const q3RailGeometry=await evalPage("(()=>{\n  const h=document.getElementById('battleHudHost'),hud=h?.querySelector('#hud'),layout=hud?.dataset.layout;\n  const rails=[1,2].map(i=>{\n    const rail=h?.querySelector('#p'+i+'Rail'),hp=rail?.querySelector('.vr-hp'),label=rail?.querySelector('.vr-lbl');\n    const a=rail?.getBoundingClientRect(),b=hp?.getBoundingClientRect();\n    return {label:getComputedStyle(label).display,\n      fit:!!a&&!!b&&b.left>=a.left-1&&b.right<=a.right+1};\n  });\n  return {layout,quest:hud?.dataset.quest,rails};\n})()");
+  gate('Q3 mobile Quest rail labels never overlap the actual HP numbers',
+    q3RailGeometry?.quest==='1'&&q3RailGeometry.rails.every(x=>
+      x.fit&&(q3RailGeometry.layout==='desk'||x.label==='none')),q3RailGeometry);
+  await image('03b-cp04-after-real-hit');
+
   await pressEscape();
   const after=await poll(`(()=>({
     battleOpen:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,
