@@ -1508,10 +1508,12 @@ function shatterPanel(panel){
  whole.animate([{opacity:.7,transform:'scale(1)'},{opacity:.18,transform:'scale(1.012)'}],{duration:210,easing:'ease-in',fill:'forwards'});
  queueFx(()=>{if(R.ruptures[panel.v]===panel){panel.warp.map.setAttribute('scale','0');whole.style.filter='none';whole.remove();}},280);
  const maxSpan=Math.max(w,h);
+ // One sanitized live snapshot per impact: each Voronoi piece retains independent motion.
+ const shardTemplate=makePanelSnapshot(panel.v,w,h);
  cells.forEach((cell,index)=>{
   const poly=cell.poly.map(p=>`${(p.x/w*100).toFixed(2)}% ${(p.y/h*100).toFixed(2)}%`).join(',');
   const piece=document.createElement('div');piece.className='rupture-piece';piece.style.clipPath=`polygon(${poly})`;
-  const clone=makePanelSnapshot(panel.v,w,h);piece.appendChild(clone);group.appendChild(piece);
+  const clone=shardTemplate.cloneNode(true);piece.appendChild(clone);group.appendChild(piece);
   const cx=cell.poly.reduce((n,p)=>n+p.x,0)/cell.poly.length,cy=cell.poly.reduce((n,p)=>n+p.y,0)/cell.poly.length;
   let dx=cx-hit.x,dy=cy-hit.y,len=Math.hypot(dx,dy)||1;const force=clamp(21-len/maxSpan*18,4,21),tx=dx/len*force+rnd(-2,2),ty=dy/len*force+rnd(-2,2),rot=rnd(-2.4,2.4);
   piece.animate([{opacity:0,transform:'translate(0,0) rotate(0deg)'},{opacity:.96,transform:'translate(0,0) rotate(0deg)',offset:.14},{opacity:.9,transform:`translate(${tx}px,${ty}px) rotate(${rot}deg)`,offset:.38},{opacity:.52,transform:`translate(${tx*.62}px,${ty*.62}px) rotate(${rot*.64}deg)`,offset:.68},{opacity:0,transform:`translate(${tx*.36}px,${ty*.36}px) rotate(${rot*.42}deg)`}],{duration:930,delay:index*9,easing:'cubic-bezier(.18,.72,.25,1)',fill:'forwards'});
