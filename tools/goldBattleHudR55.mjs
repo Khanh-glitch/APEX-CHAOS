@@ -164,8 +164,8 @@ export function adaptGoldBattleHudR55(input) {
    hide both legacy donor glyphs instead of hardcoding Frost/Hunter motifs. */
 #hud[data-layout="desk"] .side-art.apex-hero-watermark,
 #hud[data-layout="land"] .side-art.apex-hero-watermark{display:block;opacity:.17;overflow:hidden}
-#hud[data-layout="desk"] .side-art>svg,
-#hud[data-layout="land"] .side-art>svg{display:none}
+#hud[data-layout="desk"] .side-art:not(.apex-hero-motif)>svg,
+#hud[data-layout="land"] .side-art:not(.apex-hero-motif)>svg{display:none}
 #hud .side-art.apex-hero-watermark>.apex-hero-watermark-img{
   width:100%;height:100%;object-fit:contain;display:block;
   filter:saturate(.6) contrast(1.12);
