@@ -71,7 +71,12 @@
     if(!f || !V12[f.questVisualId]) return false;
     // Exact-owner V12 is the preferred per-fighter visual; preserve this CP04
     // palette silhouette only as an observable compatibility fallback.
-    if(root.APEX_QUEST_V12_RIG?.draw?.(c,f)) return true;
+    if(root.APEX_QUEST_V12_RIG?.draw?.(c,f)) {
+      // Preserve CP04's existing count for ANY real Gold-family body draw;
+      // the V12 adapter separately counts exact owner-rig frames.
+      root.__apexQuestGoldDraws = (root.__apexQuestGoldDraws || 0) + 1;
+      return true;
+    }
     const v=f.questVisualId,p=V12[v];
     const now=Number(root.APEX_ARSENAL?.state?.time||0);
     const phi=Math.sin(now*(v==='scout'?4.3:v==='reaver'?3.8:2.6)+(f.id||0));
