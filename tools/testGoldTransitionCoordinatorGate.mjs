@@ -41,6 +41,11 @@ check('R61 user-paced boot START cannot trip the scene hard cap before consent',
   coordinator.includes('if (tx.boot && !bootReadySignalled) return;') &&
   coordinator.includes('active.startedAt = performance.now();') &&
   coordinator.includes('watchdogSignatureAt = active.startedAt;'));
+check('R65 START renders a separate visual asset while preserving a real button',
+  app.includes('/assets/ui/apex-transition-start-plate.svg') &&
+  app.includes("start.className = 'apex-boot-start-plate'") &&
+  css.includes('R65 dedicated START artwork') &&
+  !app.includes('start.textContent = \'START\';'));
 check('R61 START waits for Home and music while keeping the mount effect alive',
   app.includes("await window.APEX_GOLD.prepareSurface('home')") &&
   app.includes('await window.__apexBootMusicReady;') &&
