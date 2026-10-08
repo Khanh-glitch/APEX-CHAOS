@@ -3,7 +3,7 @@ export const R83_MODE_CSS = "/* R83 SHORT-PORTRAIT MODE SELECT COMPOSITION.\n   
 export function adaptGoldShellR83(out){
   if(out.includes('R83 SHORT-PORTRAIT MODE SELECT COMPOSITION')) throw new Error('R83 mode duplicate');
   if(!out.includes('</head>'))throw new Error('R83 expected Gold shell closing head');
-  return out.replace('</head>','<style id="r83-mode-short-portrait">
-'+R83_MODE_CSS+'</style>
-</head>');
+  // Keep newlines explicit, not raw newlines inside a JavaScript string.
+  const lf=String.fromCharCode(10);
+  return out.replace('</head>','<style id="r83-mode-short-portrait">'+lf+R83_MODE_CSS+'</style>'+lf+'</head>');
 }
