@@ -2,6 +2,7 @@
 // CSS-pixel portrait viewports; does not claim to emulate Android browser chrome.
 import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 
 const url=process.env.APEX_APP_URL || 'http://127.0.0.1:5173/';
 const chromePath=process.env.CHROME_PATH;
@@ -69,6 +70,65 @@ try{
   if(!bootDone)throw new Error('Real boot transition did not complete');
   const cases=[[480,0],[540,0],[568,0],[600,0],[640,0],[700,0],[844,0],[568,24],[640,24]];
   console.log('R78 full React-mounted Home booted; testing '+cases.length+' viewports');
+
+  // R80: compare the two near-identical aspect ratios in the REAL mounted
+  // product. This is observation-only: do not change any accepted layout.
+  const evidenceDir='docs/acceptance/arsenal-product/browser/viewport-comparison';
+  await mkdir(evidenceDir,{recursive:true});
+  const captures=[];
+  const inspect=async (label,width,height) => {
+    await command('Emulation.setDeviceMetricsOverride',{width,height,
+      deviceScaleFactor:2,mobile:true,screenWidth:width,screenHeight:height});
+    await sleep(650);
+    const datum=await evalJS(`(() => {
+      const rect=sel=>{const el=document.querySelector(sel);
+        if(!el)return null;
+        const r=el.getBoundingClientRect(),c=getComputedStyle(el);
+        return {x:r.x,y:r.y,w:r.width,h:r.height,visible:c.visibility,
+          display:c.display,overflow:c.overflow,font:c.fontSize}};
+      const stage=document.querySelector('#stage');
+      return {window:{w:innerWidth,h:innerHeight,dpr:devicePixelRatio},
+        visual:visualViewport?{w:visualViewport.width,h:visualViewport.height,scale:visualViewport.scale}:null,
+        media:{max360:matchMedia('(max-width:360px)').matches,
+          max700h:matchMedia('(max-height:700px)').matches,portrait:matchMedia('(orientation:portrait)').matches},
+        stageClass:stage?.className,
+        rects:{story:rect('.story'),storyTitle:rect('.storyTitle'),
+          actions:rect('.actions'),routes:rect('.routes'),
+          fighterArena:rect('.fighterArena'),selectionDeck:rect('.selectionDeckV6'),
+          roster:rect('#fighterRoster'),firstCard:rect('#fighterRoster .rosterCard')},
+        nodes:{rosterCount:document.querySelectorAll('#fighterRoster .rosterCard').length}};
+    })()`);
+    const shot=await command('Page.captureScreenshot',{format:'png',fromSurface:true});
+    await writeFile(evidenceDir+'/'+label+'.png',Buffer.from(shot.data,'base64'));
+    captures.push({label,...datum});
+    console.log('R80 COMPARISON '+label+' '+JSON.stringify(datum));
+  };
+  await inspect('home-550x857',550,857);
+  await inspect('home-360x560',360,560);
+  // Navigate via the real Gold product UI. No bypass of the screen lifecycle.
+  const click=async selector=>{
+    const pos=await evalJS(`(() => {const el=document.querySelector(${JSON.stringify(selector)});
+      if(!el)return null;const r=el.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()`);
+    if(!pos)throw new Error('R80 expected click target missing '+selector);
+    await command('Input.dispatchMouseEvent',{type:'mousePressed',x:pos.x,y:pos.y,button:'left',clickCount:1});
+    await command('Input.dispatchMouseEvent',{type:'mouseReleased',x:pos.x,y:pos.y,button:'left',clickCount:1});
+  };
+  await click('#freeBattle');
+  for(let i=0;i<100;i++){
+    if(await evalJS("document.querySelector('#stage')?.classList.contains('screen-mode')"))break;
+    await sleep(80);
+  }
+  await click('.modeCard[data-mode="bot"]');
+  for(let i=0;i<100;i++){
+    if(await evalJS("document.querySelector('#stage')?.classList.contains('screen-fighter')"))break;
+    await sleep(80);
+  }
+  if(!(await evalJS("document.querySelector('#stage')?.classList.contains('screen-fighter')"))) {
+    throw new Error('R80 real mode-to-fighter navigation did not complete');
+  }
+  await inspect('fighter-360x560',360,560);
+  await inspect('fighter-550x857',550,857);
+  await writeFile(evidenceDir+'/comparison.json',JSON.stringify(captures,null,2));
 
   const failures=[];
   for(const [height,safeB] of cases){
