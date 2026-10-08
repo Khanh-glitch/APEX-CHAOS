@@ -91,7 +91,7 @@ try{
       const battle=document.querySelector('#freeBattle');
       const a=actions.getBoundingClientRect(),r=routes.getBoundingClientRect(),b=battle.getBoundingClientRect();
       const hit=document.elementFromPoint(b.left+b.width/2,b.top+b.height/2);
-      return {width:innerWidth,height:innerHeight,stageHeight:document.querySelector('#stage')?.getBoundingClientRect().height,gap:r.top-a.bottom,actionsTop:a.top,
+      return {width:innerWidth,height:innerHeight,stageHeight:document.querySelector('#stage')?.getBoundingClientRect().height,guardPresent:!!window.__apexHomeGeometryGuard,guard:window.__apexHomeGeometryGuard?.snapshot()??null,inlineTop:actions.style.top,computedTop:getComputedStyle(actions).top,stageClass:document.querySelector('#stage')?.className,visualHeight:visualViewport?.height??null,battleY:b.y,battleHeight:b.height,gap:r.top-a.bottom,actionsTop:a.top,
         hit:!!hit?.closest?.('#freeBattle'),hitName:hit?.id||hit?.className||''};
     })()`);
     const unchanged=height<640||Math.abs(sample.actionsTop-(height<=700?.654:.671)*height)<3;
