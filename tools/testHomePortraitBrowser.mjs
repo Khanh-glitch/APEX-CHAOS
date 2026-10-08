@@ -3,7 +3,7 @@
 import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 
-const url=process.env.APEX_APP_URL || 'http://127.0.0.1:5173/gold/shell.html';
+const url=process.env.APEX_APP_URL || 'http://127.0.0.1:5173/';
 const chromePath=process.env.CHROME_PATH;
 if(!chromePath)throw new Error('CHROME_PATH not set');
 const port=9235;
@@ -48,13 +48,34 @@ try{
   });
   await command('Page.enable');
   await command('Runtime.enable');
+  // Test the production Vite document, NOT standalone shell.html.
+  await command('Page.navigate',{url});
+  let homeMounted=false;
+  for(let i=0;i<400;i++){
+    const value=await evalJS("Boolean(document.querySelector('#gold-shell-host[data-apex-gold-mounted=\\"1\\"] #stage')&&document.querySelector('#apex-boot-start'))").catch(()=>false);
+    if(value){homeMounted=true;break}
+    await sleep(75);
+  }
+  if(!homeMounted)throw new Error('React-mounted Home/boot START unavailable');
+  const startRect=await evalJS(`(() => {const r=document.querySelector('#apex-boot-start').getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}})()`);
+  await command('Input.dispatchMouseEvent',{type:'mousePressed',x:startRect.x,y:startRect.y,button:'left',clickCount:1});
+  await command('Input.dispatchMouseEvent',{type:'mouseReleased',x:startRect.x,y:startRect.y,button:'left',clickCount:1});
+  let bootDone=false;
+  for(let i=0;i<300;i++){
+    bootDone=await evalJS("document.body?.dataset?.apexSceneTransition==='DONE'&&document.getElementById('apex-scene-transition')?.style?.display==='none'").catch(()=>false);
+    if(bootDone)break;
+    await sleep(75);
+  }
+  if(!bootDone)throw new Error('Real boot transition did not complete');
   const cases=[[480,0],[540,0],[568,0],[600,0],[640,0],[700,0],[844,0],[568,24],[640,24]];
+  console.log('R78 full React-mounted Home booted; testing '+cases.length+' viewports');
+
   const failures=[];
   for(const [height,safeB] of cases){
     await command('Emulation.setDeviceMetricsOverride',{
       width:360,height,deviceScaleFactor:1,mobile:true,screenWidth:360,screenHeight:height,
     });
-    await command('Page.navigate',{url});
+    // Resize the SAME mounted production Home without resetting state.
     let loaded=false;
     for(let i=0;i<100;i++){
       const found=await evalJS("Boolean(document.querySelector('#stage .actions')&&document.querySelector('#stage .routes')&&document.querySelector('#freeBattle'))").catch(()=>false);
@@ -70,7 +91,7 @@ try{
       const battle=document.querySelector('#freeBattle');
       const a=actions.getBoundingClientRect(),r=routes.getBoundingClientRect(),b=battle.getBoundingClientRect();
       const hit=document.elementFromPoint(b.left+b.width/2,b.top+b.height/2);
-      return {width:innerWidth,height:innerHeight,gap:r.top-a.bottom,actionsTop:a.top,
+      return {width:innerWidth,height:innerHeight,stageHeight:document.querySelector('#stage')?.getBoundingClientRect().height,gap:r.top-a.bottom,actionsTop:a.top,
         hit:!!hit?.closest?.('#freeBattle'),hitName:hit?.id||hit?.className||''};
     })()`);
     const unchanged=height<640||Math.abs(sample.actionsTop-(height<=700?.654:.671)*height)<3;
