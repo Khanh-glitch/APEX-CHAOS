@@ -5801,6 +5801,90 @@ if (process.argv.includes('--quest-first-wake')) {
   }
 }
 
+// Q2 — authentic multi-actor fixtures run on the real Arsenal engine.
+// Test-only start does not write Quest Director completion.
+if (process.argv.includes('--quest-n-actors')) {
+  const q2Script = `
+  const shape=__SHAPE__;
+  const rejected=window.__apexQuestTestRosterStart('not-real')===false;
+  const started=window.__apexQuestTestRosterStart(shape)===true;
+  const AQ=window.APEX_ARSENAL, Q=window.APEX_QUEST_MULTI_ACTOR_CORE, W=AQ.weaponApi;
+  const f=window.fighters||[];
+  const roster={started,shape,actors:f.map(x=>({id:x.questId,team:x.questTeam,maxHp:x.maxHp})),validation:Q.validateRoster(f)};
+  if(!started)return {rejected,roster};
+  f.forEach((x,i)=>{x.baseSpeed=0;x.data.__hrHoldBody=true;x.x=120+i*115;x.y=880});
+  AQ.state.spawnHeld=true;AQ.state.spawnTimer=1e6;AQ.state.slots=[];
+  const ally=f.filter(x=>x.questTeam==='ALLY'),hostile=f.filter(x=>x.questTeam==='HOSTILE');
+  ally[0].x=170;ally[0].y=300;hostile[0].x=590;hostile[0].y=300;
+  if(ally[1]){ally[1].x=320;ally[1].y=300;}
+  const before=f.map(x=>x.hp);
+  W.fireBullet({owner:ally[0],x:220,y:300,angle:0,speed:2600,damage:10,weapon:'PISTOL'});
+  AQ.step(.16);
+  const direct={hit:hostile[0].hp<before[f.indexOf(hostile[0])],
+    friendsUntouched:ally.every(x=>x.hp===before[f.indexOf(x)]),
+    otherHostilesUntouched:hostile.slice(1).every(x=>x.hp===before[f.indexOf(x)])};
+  const victim=ally[ally.length-1],shooter=hostile[hostile.length-1];
+  f.forEach((x,i)=>{x.x=120+i*115;x.y=880;});
+  victim.x=310;victim.y=500;shooter.x=825;shooter.y=500;
+  hostile[0].x=610;hostile[0].y=500;
+  const beforeReturn=f.map(x=>x.hp);
+  W.fireBullet({owner:shooter,x:770,y:500,angle:Math.PI,speed:2600,damage:10,weapon:'PISTOL'});
+  AQ.step(.2);
+  const reverse={hit:victim.hp<beforeReturn[f.indexOf(victim)],
+    hostileUntouched:hostile.every(x=>x.hp===beforeReturn[f.indexOf(x)])};
+  const slot={id:77001,x:victim.x,y:victim.y,phase:'REVEALED',weaponId:'PISTOL',
+    kind:'WEAPON',spawnTime:AQ.state.time,revealedFor:0,rejectedFor:{},tier:null};
+  AQ.state.slots.push(slot);
+  window.APEX_ARSENAL_SPAWN.resolvePickups();
+  const pickup={owned:W.getHolder(victim)?.weaponId==='PISTOL',
+    removed:slot.phase==='REMOVED',name:slot.pickedBy===victim.name};
+  const equipped=W.equip(shooter,'PISTOL')===true&&W.getHolder(shooter)?.weaponId==='PISTOL';
+  AQ.state.slots=[];AQ.state.spawnHeld=false;
+  const spawn=window.APEX_ARSENAL_SPAWN;
+  let accepted=0;for(let i=0;i<10;i++)if(spawn.trySpawnSlot())accepted++;
+  const active=AQ.state.slots.filter(x=>x.phase!=='REMOVED'&&x.kind!=='HEAL').length;
+  const slotCount={accepted,active};
+  AQ.state.spawnHeld=true;
+  hostile.forEach(x=>{x.hp=0;});AQ.step(1/60);
+  const result={outcome:AQ.state.questOutcome,winnerSide:AQ.state.winnerSide};
+  window.exitArsenalBattleMode();
+  const exit={active:AQ.state.active,slots:AQ.state.slots.length,state:gameState};
+  const resetStarted=window.__apexQuestTestRosterStart(shape)===true;
+  if(resetStarted){window.fighters.find(x=>x.questId==='NEWBOT').hp=0;AQ.step(1/60);}
+  const retry=resetStarted&&AQ.state.questOutcome==='RETRY';
+  window.exitArsenalBattleMode();
+  return {rejected,roster,direct,reverse,pickup,equipped,slotCount,result,exit,retry};
+`;
+  for(const shape of ['1v2','2v2','3v4']){
+    try{
+      const data=run(q2Script.replace('__SHAPE__',JSON.stringify(shape)));
+      gate('q2-'+shape+'-roster',!!data?.rejected&&data?.roster?.started
+        &&data.roster.validation.ok
+        &&data.roster.actors.length===Number(shape[0])+Number(shape[2]),data?.roster);
+      gate('q2-'+shape+'-swept-real-projectile-and-no-friendly-fire',
+        data?.direct?.hit&&data.direct.friendsUntouched&&data.direct.otherHostilesUntouched,data?.direct);
+      gate('q2-'+shape+'-real-reverse-projectile-and-no-friendly-fire',
+        data?.reverse?.hit&&data.reverse.hostileUntouched,data?.reverse);
+      gate('q2-'+shape+'-real-pickup',
+        data?.pickup?.owned&&data.pickup.removed&&data.pickup.name,data?.pickup);
+      gate('q2-'+shape+'-real-equip',data?.equipped===true,{equipped:data?.equipped});
+      gate('q2-'+shape+'-cap-five',data?.slotCount?.active===5
+        &&data.slotCount.accepted===5,data?.slotCount);
+      gate('q2-'+shape+'-engine-ko-and-retry',
+        data?.result?.outcome==='COMPLETE'&&data?.result?.winnerSide===null
+        &&data?.retry===true,data?.result);
+      gate('q2-'+shape+'-teardown',
+        data?.exit?.active===false&&data?.exit?.slots===0&&data?.exit?.state==='MENU',data?.exit);
+    }catch(error){gate('q2-'+shape+'-real-engine-runner',false,
+      {error:String(error?.stack||error)});}
+  }
+  try{
+    const restored=run("const started=window.__apexArsenalTestStartMatch('ROBOT','ROBOT')===true;const A=window.APEX_ARSENAL;const snap={started,count:(window.fighters||[]).length,quest:!!A.state?.questMultiActor,fixture:A.state?.questTestFixture||null};if(started)window.exitArsenalBattleMode();return snap;");
+    gate('q2-clean-1v1-after-fixtures',restored?.started&&restored.count===2
+      &&restored.quest===false&&restored.fixture===null,restored);
+  }catch(error){gate('q2-normal-reentry-runner',false,{error:String(error?.stack||error)});}
+}
+
 // ------------------------------------------------------------------- summary
 report.summary = {
   total: Object.keys(report.gates).length,
