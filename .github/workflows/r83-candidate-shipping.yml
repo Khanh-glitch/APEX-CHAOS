@@ -7,6 +7,11 @@ on:
       - arena/r83-local-portrait-layout-solver
     paths:
       - '.github/workflows/r83-candidate-shipping.yml'
+      - 'tools/goldShellR83.mjs'
+      - 'tools/goldBattleHudR83.mjs'
+      - 'tools/buildGoldCutover.mjs'
+      - 'public/gold/battle-hud.html'
+      - 'public/gold/shell.html'
 
 permissions:
   contents: read
@@ -33,6 +38,10 @@ jobs:
           run_install: false
       - name: Install exact locked dependencies
         run: pnpm install --frozen-lockfile
+      - name: Syntax-check both R83 source adapters
+        run: |
+          node --check tools/goldShellR83.mjs
+          node --check tools/goldBattleHudR83.mjs
       - name: Verify canonical Gold generator reproduces checked-in HUD and Shell
         run: node tools/buildGoldCutover.mjs --check
       - name: Verify R82 opt-in feature is still isolated
