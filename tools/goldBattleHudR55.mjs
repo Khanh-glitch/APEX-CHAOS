@@ -113,6 +113,27 @@ export function adaptGoldBattleHudR55(input) {
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p2Side .skills{height:50px}
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] .weapon{overflow:visible;box-sizing:border-box}
 
+/* R60 compact Local portrait: reserve rows for both sets of controls without
+   scaling the whole HUD. No tablet, landscape, or BOT geometry is changed. */
+@media (max-width:430px) and (max-height:720px){
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"]{
+    --zoneMin:clamp(158px,24cqh,174px);--g:4px;
+  }
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side{
+    --porW:32px;--porH:32px;--idGap:5px;--nameF:13px;
+    --tw:min(108px,calc((100cqw - 18px)*.29));--skGap:4px;
+    --wpH:clamp(43px,7cqh,52px);--wpIW:42px;
+    grid-template-rows:auto auto auto auto minmax(0,var(--wpH));
+    row-gap:2px;
+  }
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .duel-feed{height:17px;padding:1px 3px}
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .vrail{--lblH:10px;--barH:7px;--accH:2px}
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .weapon{padding:2px 0 3px;column-gap:4px}
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .wp-name{font-size:10px}
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .sk-info{padding:3px 4px 4px;gap:3px}
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .sk-state{font-size:8px;letter-spacing:.06em}
+}
+
 /* R59 C3 — BOT tablet skill media uses a stable square well.
    Core Six production A1/A2 files are square/near-square assets; the old land
    grid stretched the media CELL vertically even though object-fit preserved the
