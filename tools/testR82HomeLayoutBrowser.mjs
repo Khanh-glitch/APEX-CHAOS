@@ -88,14 +88,19 @@ try{
     const b=c?.getBoundingClientRect();
     const hit=b?document.elementFromPoint(b.left+b.width/2,b.top+b.height/2):null;
     const sels={
-      story:'.story',title:'.storyTitle',actions:'.actions',primary:'#freeBattle',
-      secondary:'.actions .secondary',routes:'.routes',brand:'.brand',
+      story:'.story',quest:'.quest',title:'.storyTitle',titleLine1:'.storyTitle span:first-child',titleLine2:'.storyTitle span:last-child',location:'.location',actions:'.actions',primary:'#continueStory',
+      secondary:'#freeBattle',primaryLabel:'#continueStory .label',secondaryLabel:'#freeBattle .label',routes:'.routes',lucky:'#openLuckyDraw',brand:'.brand',
       profile:'.profile',hero:'.heroWrap',
     };
     const rects=Object.fromEntries(Object.entries(sels).map(([name,sel])=>[name,rect(sel)]));
-    return {w:innerWidth,h:innerHeight,lab:window.__apexHomeLayoutLab?.snapshot()??null,
+    const first=document.querySelector('#continueStory')?.getBoundingClientRect();
+    const firstHit=first?document.elementFromPoint(first.left+first.width/2,first.top+first.height/2):null;
+    const targets=['#continueStory','#freeBattle','#openLuckyDraw','.profileIdentity','.settings'].map(sel=>{
+      const el=document.querySelector(sel),r=el?.getBoundingClientRect();return {sel,w:r?.width??null,h:r?.height??null};
+    });
+    return {w:innerWidth,h:innerHeight,lab:window.__apexHomeLayoutLab?.snapshot()??null,targets,
       stageClass:document.querySelector('#stage')?.className,rects,
-      hitBattle:Boolean(hit?.closest?.('#freeBattle')),
+      hitBattle:Boolean(hit?.closest?.('#freeBattle')),hitContinue:Boolean(firstHit?.closest?.('#continueStory')),
       hitStack:b?document.elementsFromPoint(b.left+b.width/2,b.top+b.height/2).slice(0,5).map(e=>e.id||e.className?.toString().slice(0,60)||e.tagName):[]};
   };
   const capture = async (label,w,h) => {
@@ -109,12 +114,57 @@ try{
     console.log('R82 GEOMETRY '+label+' '+JSON.stringify(data));
     if(!data.rects.story||!data.rects.primary||!data.rects.routes)throw Error(label+' missing DOM');
     if(!data.hitBattle)throw Error(label+' Free Battle visual center is not hittable: '+JSON.stringify(data.hitStack));
+    if(!data.hitContinue)throw Error(label+' Continue Story visual center is not hittable');
     return data;
   };
   const native={};
   native.ref=await capture('native-550x857',550,857);
   native.small=await capture('native-360x560',360,560);
   native.outband=await capture('native-390x844',390,844);
+
+  // Inspect Mode/Fighter on the *unchanged native* Home flow first.
+  const click=async selector=>{
+    const pos=await evalJS('(()=>{const e=document.querySelector('+JSON.stringify(selector)+');if(!e)return null;const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()');
+    if(!pos)throw Error('Expected button missing: '+selector);
+    await command('Input.dispatchMouseEvent',{type:'mousePressed',x:pos.x,y:pos.y,button:'left',clickCount:1});
+    await command('Input.dispatchMouseEvent',{type:'mouseReleased',x:pos.x,y:pos.y,button:'left',clickCount:1});
+  };
+  const waitClass=async name=>{
+    for(let i=0;i<100;i++){
+      if(await evalJS("document.querySelector('#stage')?.classList.contains("+JSON.stringify(name)+")").catch(()=>false))return true;
+      await sleep(100);
+    }
+    return false;
+  };
+  const pickMeasure=()=> {
+    const selectors={header:'.fighterHeaderV6',deck:'.selectionDeckV6',
+      roster:'#fighterRoster',card:'#fighterRoster .rosterCard',
+      lock:'.lockMechanismV6',art:'.worldHeroSlot.p1',identity:'.fighterIdentityZone.p1'};
+    const rect=selector=>{const el=document.querySelector(selector);
+      if(!el)return null;const r=el.getBoundingClientRect();
+      return {x:r.x,y:r.y,w:r.width,h:r.height};
+    };
+    return {stage:document.querySelector('#stage')?.className,
+      rects:Object.fromEntries(Object.entries(selectors).map(([k,v])=>[k,rect(v)]))};
+  };
+  const pickShot=async label=>{
+    await sleep(1000);
+    const data=await evalJS('('+pickMeasure.toString()+')()');
+    const shot=await command('Page.captureScreenshot',{format:'png',fromSurface:true});
+    await writeFile(outputDir+'/'+label+'.png',Buffer.from(shot.data,'base64'));
+    console.log('R82 PICK '+label+' '+JSON.stringify(data));
+    if(!data.rects.deck||!data.rects.roster||!data.rects.card||!data.rects.lock)throw Error(label+' missing pick geometry');
+    return data;
+  };
+  await command('Emulation.setDeviceMetricsOverride',{width:360,height:560,
+    deviceScaleFactor:2,mobile:true,screenWidth:360,screenHeight:560});
+  await sleep(450);
+  await click('#freeBattle');
+  if(!(await waitClass('screen-mode')))throw Error('Native Free Battle to Mode failed');
+  await click('.modeCard[data-mode="bot"]');
+  if(!(await waitClass('screen-fighter')))throw Error('Native BOT to Fighter Pick failed');
+  native.fighter=await pickShot('native-fighter-360x560');
+
   const labUrl=new URL(url);labUrl.searchParams.set('apexLayoutLab','home');
   await command('Emulation.setDeviceMetricsOverride',{width:550,height:857,
     deviceScaleFactor:2,mobile:true,screenWidth:550,screenHeight:857});
@@ -148,7 +198,7 @@ try{
   for(const key of ['ref','outband']){
     const before=native[key],after=trial[key];
     accept(key+' opt-in inactive',after.lab?.active===false,{lab:after.lab});
-    for(const k of ['story','title','actions','primary','secondary','routes','brand','profile']){
+    for(const k of ['story','quest','title','titleLine1','titleLine2','location','actions','primary','secondary','primaryLabel','secondaryLabel','routes','lucky','brand','profile']){
       const a=before.rects[k],b=after.rects[k];
       if(!a||!b){accept(key+'/'+k+' exists',false);continue;}
       const maxDiff=Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y),Math.abs(a.w-b.w),Math.abs(a.h-b.h));
@@ -162,7 +212,7 @@ try{
     accept(name+' lab enabled',active,{lab:small.lab});
     if(!active)continue;
     const s=small.lab.scale,ox=small.lab.offsetX,oy=small.lab.offsetY;
-    for(const k of ['story','title','actions','primary','secondary','routes','brand','profile']){
+    for(const k of ['story','quest','title','titleLine1','titleLine2','location','actions','primary','secondary','primaryLabel','secondaryLabel','routes','lucky','brand','profile']){
       const a=native.ref.rects[k],b=small.rects[k];
       if(!a||!b){accept(name+'/'+k+' exists',false);continue;}
       const current={x:(b.x-ox)/s,y:(b.y-oy)/s,w:b.w/s,h:b.h/s};
@@ -181,13 +231,27 @@ try{
   const clickCenter=await evalJS("(()=>{const r=document.querySelector('#freeBattle').getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}})()");
   await command('Input.dispatchMouseEvent',{type:'mousePressed',x:clickCenter.x,y:clickCenter.y,button:'left',clickCount:1});
   await command('Input.dispatchMouseEvent',{type:'mouseReleased',x:clickCenter.x,y:clickCenter.y,button:'left',clickCount:1});
-  let routed=false;
-  for(let i=0;i<100;i++){
-    routed=await evalJS("document.querySelector('#stage')?.classList.contains('screen-mode')").catch(()=>false);
-    if(routed)break;
-    await sleep(100);
-  }
+  let routed=await waitClass('screen-mode');
   accept('real scaled Free Battle button opens Mode Select',routed);
+  if(routed){
+    await click('.modeCard[data-mode="bot"]');
+    const pickReady=await waitClass('screen-fighter');
+    accept('scaled Home to BOT Fighter Pick',pickReady);
+    if(pickReady){
+      trial.fighter=await pickShot('lab-fighter-360x560');
+      for(const key of ['header','deck','roster','card','lock','identity']){
+        const a=native.fighter.rects[key],b=trial.fighter.rects[key];
+        if(!a||!b){accept('fighter '+key+' present',false);continue;}
+        const err=Math.max(...['x','y','w','h'].map(k=>Math.abs(a[k]-b[k])));
+        accept('fighter '+key+' unchanged',err<=1.5,{err,baseline:a,lab:b});
+      }
+    }
+  }
+  for(const [label,x] of [['360x560',trial.small],['320x498',trial.smaller]]){
+    const short=x.targets.filter(t=>t.w!==null&&(t.h<44||t.w<44));
+    // Explicitly report the UI/UX tradeoff: scaled geometry != 44px touch comfort.
+    console.log('R82 TOUCH REPORT '+label+' '+JSON.stringify({short,targetCount:x.targets.length,targets:x.targets}));
+  }
   await writeFile(outputDir+'/comparison.json',JSON.stringify({native,trial,failures},null,2));
   if(failures.length)throw Error('R82 design-space experiment failed '+failures.length+' geometry/interaction checks. See comparison.json');
   console.log('PASS R82 actual Chrome Home equivalence/interaction');
