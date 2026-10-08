@@ -160,6 +160,20 @@ try{
     {id:'T.O.T',team:'ALLY',hp:1000},
     {id:'SCRAP-B',team:'HOSTILE',hp:350}]),result?.actors);
   gate('Dev override does not remain enabled',result?.devFlag===false,{devFlag:result?.devFlag});
+  // Q3 actual Chrome gate — a static source or fallback silhouette is NOT a
+  // substitute for two independently instantiated owner V12 spring rigs.
+  const v12=await poll(`(()=>({
+    registered:window.apexQuestV12Rig==='ready',
+    draws:window.APEX_QUEST_V12_RIG?.stats?.draws||0,
+    instances:window.APEX_QUEST_V12_RIG?.stats?.instances||0,
+    failed:window.APEX_QUEST_V12_RIG?.stats?.failed||0,
+    lastError:window.APEX_QUEST_V12_RIG?.stats?.lastError||null,
+    donor:window.APEX_QUEST_V12_RIG?.sourceSha256||null,
+    hostiles:(window.fighters||[]).filter(f=>f.questTeam==='HOSTILE').map(f=>f.questVisualId)
+  }))()`,v=>v?.draws>=10&&v?.instances>=2,120);
+  gate('Q3 actual V12 spring rigs draw both hostiles in real Chrome',
+    v12?.registered&&v12?.instances>=2&&v12?.draws>=10&&v12?.failed===0
+      &&v12?.donor==='3817ab8b0ab674af9573704f20173ff1edfae5e26598f843b1dd1ab422ff3685',v12);
   await image('03-cp04-preview-four-fighters');
   await pressEscape();
   const after=await poll(`(()=>({
