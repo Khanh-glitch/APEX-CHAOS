@@ -4310,11 +4310,11 @@ body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #battle-s
  }
 }
 
-/* R72 boot START: owner white-metal artwork, centered on the vertical axis
-   below the mechanical core. Transform-only idle motion; no layout reflow.
+/* R73 boot START polish: keep owner white-metal artwork centered on the vertical axis,
+   but seat it lower under the mechanical core. Transparent asset + lighter shadow preserve crisp edges.
    Existing click and readiness laws remain App-owned. */
 #apex-boot-start.apex-boot-start-plate{
-  left:50%!important;top:67%!important;bottom:auto!important;
+  left:50%!important;top:78%!important;bottom:auto!important;
   width:min(410px,58vw)!important;max-width:calc(100vw - 32px);
   height:auto!important;aspect-ratio:3/1!important;
   transform:translate(-50%,-50%);
@@ -4325,7 +4325,7 @@ body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #battle-s
 }
 #apex-boot-start .apex-boot-start-art{
   display:block;width:100%;height:100%;object-fit:contain;
-  filter:drop-shadow(0 9px 16px rgba(0,0,0,.64));
+  filter:drop-shadow(0 4px 7px rgba(0,0,0,.46)) contrast(1.035);
   transition:filter 120ms ease;
 }
 #apex-boot-start:hover .apex-boot-start-art,
@@ -4343,7 +4343,7 @@ body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #battle-s
 }
 @media(max-width:620px){
   #apex-boot-start.apex-boot-start-plate{
-    top:69%!important;width:min(330px,75vw)!important;
+    top:80%!important;width:min(330px,75vw)!important;
   }
 }
 @media(prefers-reduced-motion:reduce){
