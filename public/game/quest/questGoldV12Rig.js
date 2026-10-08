@@ -2501,7 +2501,7 @@ function draw(ctx,real) {
         mechanics:null
       };
       const presentation=new RobotPresentation(shadow,LAYOUTS[variant],buildRigArt(variant),null);
-      record={shadow,presentation,lastHp:real.hp,lastNow:now,lastPulses:null,lastAlive:true};
+      record={shadow,presentation,lastHp:real.hp,lastNow:now,lastPulses:null,lastAlive:true,hitEvents:0,recoilEvents:0,deathEvents:0,scale:0,scaleFactor:1};
       actors.set(real,record);stats.instances++;
     }
     const {shadow,presentation}=record;
@@ -2520,7 +2520,7 @@ function draw(ctx,real) {
         data:{point:{x:Number(hit?.x)||shadow.x,y:Number(hit?.y)||shadow.y},
           direction,damageBeforeArmor:record.lastHp-real.hp}
       });
-      stats.realHitEvents++;
+      stats.realHitEvents++;record.hitEvents++;
     }
     if(Number.isFinite(pulses)&&record.lastPulses!=null&&pulses>record.lastPulses&&equipped){
       // Arsenal's actual pose pulse count is the firing authority.
@@ -2528,10 +2528,11 @@ function draw(ctx,real) {
         type:'WeaponFired',fighterId:shadow.id,
         data:{k:1,aim:shadow.aim,muzzle:{x:shadow.x,y:shadow.y},weaponType:'pistol'}
       });
-      stats.realRecoilEvents++;
+      stats.realRecoilEvents++;record.recoilEvents++;
     }
     if(record.lastAlive&&!shadow.alive){
       presentation.enqueue({type:'FighterDied',fighterId:shadow.id,data:{}});
+      record.deathEvents++;
     }
     record.lastHp=real.hp;record.lastAlive=shadow.alive;
     record.lastPulses=Number.isFinite(pulses)?pulses:null;
@@ -2549,7 +2550,15 @@ function draw(ctx,real) {
     // Do not normalize every Gold species to the same Arsenal collision radius.
     // The donor's original proportions (Scout smaller, Bulwark broader) are
     // presentation identity; its REAL collider remains the Arsenal Fighter.
-    const ratio=0.93*Math.max(0.35,Math.min(1.2,(Number(real.radius)||75)/75));
+    const canonicalScale=0.93*Math.max(0.35,Math.min(1.2,(Number(real.radius)||75)/75));
+    // Q3t owner sizing: three non-NEWBOT FIRST WAKE bodies are 18% smaller
+    // visually. Keep the physical Fighter radius, speed, gun origin and
+    // damage unchanged. Later Reaver/Sentinel retain V12 donor proportions.
+    const questFirstWakeCompact = !!ar?.state?.questFirstWake &&
+      (variant==='operator'||variant==='scout'||variant==='bulwark');
+    const ratio=canonicalScale*(questFirstWakeCompact?0.82:1);
+    record.scale=ratio;
+    record.scaleFactor=questFirstWakeCompact?0.82:1;
     ctx.scale(ratio,ratio);
     const m=ctx.getTransform();
     // Measured from the actual canvas matrix AFTER undoing engine movement
@@ -2572,7 +2581,29 @@ function draw(ctx,real) {
     return false; // previous CP04 renderer is the fallback, not a fake PASS
   }
 }
+// Read-only diagnostic: Chrome acceptance can check the REAL donor springs
+// without overlaying the arena, mutating the actor or inventing event cues.
+function inspect(real){
+  const record=real&&actors.get(real);
+  if(!record)return null;
+  const p=record.presentation;
+  return {
+    id:String(real.questId||real.id),
+    variant:real.questVisualId,
+    scale:record.scale,
+    scaleFactor:record.scaleFactor,
+    colliderRadius:Number(real.radius),
+    pose:p.debug(),
+    motionEnergy:p.motionEnergy,
+    clock:p.clock,
+    hitEvents:record.hitEvents,
+    recoilEvents:record.recoilEvents,
+    deathEvents:record.deathEvents,
+    alive:record.shadow.alive,
+    position:{x:record.shadow.x,y:record.shadow.y}
+  };
+}
 function reset(){actors=new WeakMap();faulty=new WeakSet();stats.instances=0;stats.facingByQuestId={};}
-root.APEX_QUEST_V12_RIG=Object.freeze({draw,reset,stats,sourceSha256:'3817ab8b0ab674af9573704f20173ff1edfae5e26598f843b1dd1ab422ff3685'});
+root.APEX_QUEST_V12_RIG=Object.freeze({draw,inspect,reset,stats,sourceSha256:'3817ab8b0ab674af9573704f20173ff1edfae5e26598f843b1dd1ab422ff3685'});
 root.apexQuestV12Rig='ready';
 })(typeof window!=='undefined'?window:globalThis);
