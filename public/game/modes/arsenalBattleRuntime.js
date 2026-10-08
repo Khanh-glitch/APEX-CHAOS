@@ -883,6 +883,24 @@
     // this world-space pass, before real equipment and VFX. No HUD takeover.
     if (AQ.state?.questFirstWake) {
       for (const f of fighters.slice(2)) if (f) f.draw(ctx);
+      // Four independent actual HP pools: world-space progress readable
+      // without pretending the two-column Gold 1v1 HUD supports four sides.
+      ctx.save();ctx.font='700 13px sans-serif';ctx.textAlign='center';
+      for (const f of fighters) {
+        if (!f) continue;
+        const x=f.x, y=f.y-(f.radius||75)-26;
+        const ratio=Math.max(0,Math.min(1,f.hp/Math.max(1,f.maxHp)));
+        ctx.fillStyle='#101820';ctx.fillRect(x-39,y,78,9);
+        ctx.fillStyle=f.questTeam==='ALLY'?'#65d6d6':'#ed825d';
+        ctx.fillRect(x-38,y+1,76*ratio,7);
+        ctx.fillStyle='#fff0d4';
+        ctx.fillText(f.questId||f.name,x,y-4);
+      }
+      if (AQ.state.questOutcome) {
+        ctx.font='900 48px sans-serif';ctx.fillStyle='#ffdf9e';
+        ctx.fillText(AQ.state.questOutcome==='COMPLETE'?'FIRST WAKE CLEAR':'NEWBOT KO — RETRY',GAME_SIZE/2,148);
+      }
+      ctx.restore();
     }
     // baseDraw has already rendered primary bodies. Preserve Gold's exact
     // order: body → A2 residue → real held weapon → plate-clipped A1World.
@@ -1015,12 +1033,12 @@
         new Fighter(1, 220, 310, t1),
         new Fighter(2, 780, 310, makeNpc('SCRAP SCOUT', '#c88d48')),
         new Fighter(3, 220, 690, makeNpc('T.O.T', '#80b4c2')),
-        new Fighter(4, 780, 690, makeNpc('SCRAP BOT', '#b55c43')),
+        new Fighter(4, 780, 690, makeNpc('IRON BULWARK', '#6f7f90')),
       ];
       fighters[0].questId = 'NEWBOT'; fighters[0].questTeam = 'ALLY';
-      fighters[1].questId = 'SCRAP-A'; fighters[1].questTeam = 'HOSTILE';
+      fighters[1].questId = 'SCRAP-A'; fighters[1].questTeam = 'HOSTILE'; fighters[1].questVisualId = 'scout';
       fighters[2].questId = 'T.O.T'; fighters[2].questTeam = 'ALLY';
-      fighters[3].questId = 'SCRAP-B'; fighters[3].questTeam = 'HOSTILE';
+      fighters[3].questId = 'SCRAP-B'; fighters[3].questTeam = 'HOSTILE'; fighters[3].questVisualId = 'bulwark';
       AQ.state.questFirstWake = true;
       AQ.state.questOutcome = null;
     } else {
