@@ -234,6 +234,42 @@ try{
     q3sMinimal?.quest==='1'&&q3sMinimal.elements.every(x=>x.every(d=>d==='none'))
       &&q3sMinimal.p1Skill!=='none'
       &&String(q3sMinimal.enemyName).includes('SCRAP'),q3sMinimal);
+  // Real Chrome temporal evidence: sample multiple autonomous render frames,
+  // not one static screenshot and not a forged presentation event.
+  const q3tSamples=[];
+  for(let i=0;i<9;i++){
+    q3tSamples.push(await evalPage("(()=>{\n const rig=window.APEX_QUEST_V12_RIG,actors=window.fighters||[];\n return {time:window.APEX_ARSENAL?.state?.time,\n  actors:actors.map(f=>({id:f.questId,radius:f.radius,visual:f.questVisualId||null,\n    spr:rig?.inspect?.(f)||null}))};\n})()"));
+    await sleep(110);
+  }
+  const q3tIdentifiers=['T.O.T','SCRAP-A','SCRAP-B'];
+  const q3tTriples=q3tIdentifiers.map(id=>q3tSamples
+    .map(frame=>frame?.actors?.find(f=>f.id===id)).filter(Boolean));
+  const q3tSizing=q3tTriples.map((frames,i)=>({
+    id:q3tIdentifiers[i],samples:frames.length,
+    radii:[...new Set(frames.map(f=>f.radius))],
+    scales:frames.map(f=>f.spr?.scaleFactor),
+    drawable:frames.every(f=>f.spr?.scaleFactor===.82&&f.spr?.scale>0)
+  }));
+  gate('Q3t exactly three non-NEWBOT bodies scaled 0.82 visually without collider edits',
+    q3tSizing.every(g=>g.samples===9&&g.drawable&&g.radii.length===1)
+    &&q3tSamples.every(frame=>frame.actors.find(f=>f.id==='NEWBOT')?.spr===null),
+    {size:q3tSizing,unchangedNewbot:q3tSamples[0]?.actors?.find(f=>f.id==='NEWBOT')});
+  const q3tMotion=q3tTriples.map((frames,i)=>{
+    const poses=frames.map(f=>f.spr?.pose).filter(Boolean);
+    const vals=poses.map(p=>[p.calTh0,p.calDx0,p.spin0,p.lagX]);
+    const delta=Math.max(...vals.map(v=>Math.abs(v[0]-vals[0][0])
+      +Math.abs(v[1]-vals[0][1])*.01+Math.abs(v[2]-vals[0][2])));
+    const clocks=frames.map(f=>f.spr?.clock);
+    const positions=frames.map(f=>f.spr?.position).filter(Boolean);
+    const moved=positions.length?Math.hypot(
+      positions.at(-1).x-positions[0].x,positions.at(-1).y-positions[0].y):0;
+    return {id:q3tIdentifiers[i],sampleCount:frames.length,deltaSpring:delta,
+      advancedClock:clocks.at(-1)>clocks[0]+.3,movedWorldUnits:moved,
+      firstPose:poses[0],lastPose:poses.at(-1)};
+  });
+  gate('Q3t three donor spring rigs genuinely animate over 9 real Chrome frames',
+    q3tMotion.every(m=>m.sampleCount===9&&m.advancedClock
+      &&Number.isFinite(m.deltaSpring)&&m.deltaSpring>.002),q3tMotion);
   await image('03-cp04-preview-four-fighters');
   // Temporarily stop autonomous RAF simulation while exercising live PISTOL
   // collision on the same real Quest Fighters. A.step() below remains the
@@ -242,11 +278,16 @@ try{
   const q3Freeze=await evalPage("(()=>{if(typeof window.update!=='function')return false;if(window.__q3NativeUpdate)return false;window.__q3NativeUpdate=window.update;window.update=function q3HoldAutonomousStep(){};return true})()");
   gate('Q3 Chrome fixture safely isolates physical bullets from ongoing RAF combat',q3Freeze===true,{paused:q3Freeze});
   // Q3: exercise a genuine Arsenal PISTOL collision, never direct HP mutation.
-  const q3RealShot=await evalPage("(()=>{\n  const A=window.APEX_ARSENAL,W=A?.weaponApi,f=window.fighters||[];\n  const source=f.find(x=>x.questId==='NEWBOT');\n  const victim=f.find(x=>x.questId==='SCRAP-A');\n  const other=f.find(x=>x.questId==='SCRAP-B');\n  if(!A?.state?.questMultiActor||!source||!victim||!other||!W?.fireBullet)return {started:false};\n  f.forEach((x,i)=>{x.baseSpeed=0;x.data.__hrHoldBody=true;x.x=120+i*125;x.y=865;});\n  source.x=170;source.y=300;victim.x=590;victim.y=300;other.x=820;other.y=790;\n  A.state.spawnHeld=true;A.state.spawnTimer=1e6;A.state.slots=[];\n  f.forEach(x=>{x.statuses={};});\n  // This is a controlled live-projectile test within a previously active\n  // match. Drain OLD ordnance so an unrelated mid-flight bullet cannot damage\n  // an innocent ally during the exact controlled ballistic solver step.\n  // Only the browser fixture clears it; production Arena rules are unchanged.\n  if(!Array.isArray(window.projectiles))return {started:false,reason:'transient-projectiles-not-exposed'};\n  window.projectiles.length=0;\n  const before={target:victim.hp,other:other.hp,allies:f.filter(x=>x.questTeam==='ALLY').map(x=>x.hp)};\n  W.fireBullet({owner:source,x:220,y:300,angle:0,speed:2600,damage:10,weapon:'PISTOL'});\n  A.step(.16);\n  return {started:true,before,after:{target:victim.hp,other:other.hp,\n    allies:f.filter(x=>x.questTeam==='ALLY').map(x=>x.hp)}};\n})()");
+  const q3RealShot=await evalPage("(()=>{\n  const A=window.APEX_ARSENAL,W=A?.weaponApi,f=window.fighters||[];\n  const source=f.find(x=>x.questId==='NEWBOT');\n  const victim=f.find(x=>x.questId==='SCRAP-A');\n  const other=f.find(x=>x.questId==='SCRAP-B');\n  if(!A?.state?.questMultiActor||!source||!victim||!other||!W?.fireBullet)return {started:false};\n  f.forEach((x,i)=>{x.baseSpeed=0;x.data.__hrHoldBody=true;x.x=120+i*125;x.y=865;});\n  source.x=170;source.y=300;victim.x=590;victim.y=300;other.x=820;other.y=790;\n  A.state.spawnHeld=true;A.state.spawnTimer=1e6;A.state.slots=[];\n  f.forEach(x=>{x.statuses={};});\n  // This is a controlled live-projectile test within a previously active\n  // match. Drain OLD ordnance so an unrelated mid-flight bullet cannot damage\n  // an innocent ally during the exact controlled ballistic solver step.\n  // Only the browser fixture clears it; production Arena rules are unchanged.\n  if(!Array.isArray(window.projectiles))return {started:false,reason:'transient-projectiles-not-exposed'};\n  window.projectiles.length=0;\n  const rig=window.APEX_QUEST_V12_RIG;\n  const before={target:victim.hp,other:other.hp,allies:f.filter(x=>x.questTeam==='ALLY').map(x=>x.hp),\n    hitEvents:rig?.inspect?.(victim)?.hitEvents||0};\n  W.fireBullet({owner:source,x:220,y:300,angle:0,speed:2600,damage:10,weapon:'PISTOL'});\n  A.step(.16);\n  // The exact donor consumes the REAL loss on its normal Fighter.draw path.\n  const canvas=document.createElement('canvas');canvas.width=1000;canvas.height=1000;\n  victim.draw(canvas.getContext('2d'));\n  return {started:true,before,after:{target:victim.hp,other:other.hp,\n    allies:f.filter(x=>x.questTeam==='ALLY').map(x=>x.hp),\n    hitEvents:rig?.inspect?.(victim)?.hitEvents||0}};\n})()");
   gate('Q3 actual PISTOL damages only the aimed physical Scrap Bot',
     !!q3RealShot?.started&&q3RealShot.after.target<q3RealShot.before.target
     &&q3RealShot.after.other===q3RealShot.before.other
     &&JSON.stringify(q3RealShot.after.allies)===JSON.stringify(q3RealShot.before.allies),q3RealShot);
+  gate('Q3t donor hit spring receives exactly one authentic Arsenal PISTOL collision',
+    q3RealShot?.after?.hitEvents===q3RealShot?.before?.hitEvents+1
+      &&q3RealShot.after.target<q3RealShot.before.target,
+    {before:q3RealShot?.before?.hitEvents,after:q3RealShot?.after?.hitEvents,
+      physicalDamage:q3RealShot?.before?.target-q3RealShot?.after?.target});
   const q3PostHit=await poll("(()=>{\n  const host=document.getElementById('battleHudHost'),f=window.fighters||[];\n  return ['ALLY','HOSTILE'].map((team,i)=>{\n    const actors=f.filter(x=>x.questTeam===team),rail=host?.querySelector('#p'+(i+1)+'Rail');\n    const segments=[...(rail?.querySelectorAll('.vr-quest-slots > span')||[])];\n    return {\n      team,hp:Math.round(actors.reduce((n,a)=>n+Math.max(0,a.hp),0)),\n      shown:Number(rail?.querySelector('.vr-cur')?.textContent),\n      max:actors.reduce((n,a)=>n+Math.max(0,a.maxHp),0),\n      maxShown:Number((rail?.querySelector('.vr-max')?.textContent||'').replace(/[^0-9.]/g,'')),\n      slots:segments.map(s=>({id:s.dataset.actor,value:Number(s.style.getPropertyValue('--qhp'))})),\n      match:segments.length===actors.length&&segments.every((s,j)=>\n        s.dataset.actor===actors[j].questId&&\n        Math.abs(Number(s.style.getPropertyValue('--qhp'))-actors[j].hp/actors[j].maxHp)<.002)\n    };\n  });\n})()",
     v=>v?.length===2&&v.every(x=>x.match&&x.hp===x.shown&&x.max===x.maxShown),120);
   gate('Q3 Gold team totals and only damaged actor segment track real projectile HP',
