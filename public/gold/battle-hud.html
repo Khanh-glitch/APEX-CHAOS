@@ -105,6 +105,12 @@ kbd{font:inherit}
 #hud[data-quest="1"] #p2Side .portrait,
 #hud[data-quest="1"] #p2Side .id-ctrl{display:none}
 #hud[data-quest="1"] #p2Side .ident{grid-template-columns:minmax(0,1fr)}
+/* Gold QA/template captions and "P2" rival badge are not Quest fiction.
+   Faction labels + real team HP already supply the useful information. */
+#hud[data-quest="1"] .vr-sub,
+#hud[data-quest="1"] .id-sub,
+#hud[data-quest="1"] #p2Side .id-tag,
+#hud[data-quest="1"] #p2Rail .vr-tag{display:none}
 
 /* Quest narrow rails: team identities already appear in both side panels.
    Keep aggregate digits readable by removing only the redundant rail label. */
