@@ -384,6 +384,34 @@ try{
     q3uSeven?.projected?.[0]?.count===3&&q3uSeven?.projected?.[1]?.count===4
       &&q3uSeven.projected.every(x=>x.match&&x.domMatch),q3uSeven?.projected);
   await image('06-q3u-seven-fighter-chrome');
+  // Q3u small-viewports are real Chrome viewport reflows, not screenshots
+  // resized in an image editor. Preserve the original 390×844 mobile
+  // emulation after every audit so normal ESC/WAKE gates remain comparable.
+  if(isMobile){
+    const cases=[
+      {name:'iphone-se',w:320,h:568,angle:0,orientation:'portraitPrimary',dpr:2},
+      {name:'compact-phone',w:360,h:560,angle:0,orientation:'portraitPrimary',dpr:2},
+      {name:'tablet-landscape',w:1024,h:768,angle:90,orientation:'landscapePrimary',dpr:2},
+    ];
+    for(const c of cases){
+      await cmd('Emulation.setDeviceMetricsOverride',{
+        width:c.w,height:c.h,deviceScaleFactor:c.dpr,mobile:true,
+        screenOrientation:{type:c.orientation,angle:c.angle}});
+      await sleep(350);
+      const measured=await evalPage("(()=>{\n const h=document.getElementById('battleHudHost'),canvas=document.getElementById('game-canvas');\n const read=el=>{const r=el?.getBoundingClientRect();return r?{left:r.left,right:r.right,top:r.top,bottom:r.bottom,w:r.width,h:r.height}:null};\n const bars=[read(h?.querySelector('#p1Rail')),read(h?.querySelector('#p2Rail'))];\n const arena=read(canvas);\n const w=window.innerWidth,hgt=window.innerHeight;\n const intersects=r=>!!r&&r.right>1&&r.left<w-1&&r.bottom>1&&r.top<hgt-1&&r.w>15&&r.h>6;\n const fullyInside=r=>intersects(r)&&r.left>=-2&&r.right<=w+2;\n return {viewport:{w,h:hgt},hudOpen:h?.classList.contains('is-open')===true,\n   bars,arena,visible:bars.every(intersects)&&intersects(arena),\n   railsInsideViewport:bars.every(fullyInside),questSlots:[1,2].map(i=>\n     h?.querySelectorAll('#p'+i+'Rail .vr-quest-slots > span')?.length||0)};\n})()");
+      await image('07-q3u-'+c.name);
+      gate('Q3u '+c.name+' keeps real 3v4 arena and both HP rails accessible',
+        measured?.hudOpen===true&&measured?.visible===true
+        &&measured?.railsInsideViewport===true
+        &&measured.questSlots[0]===3&&measured.questSlots[1]===4,
+        measured);
+    }
+    await cmd('Emulation.setDeviceMetricsOverride',{
+      width:390,height:844,deviceScaleFactor:3,mobile:true,
+      screenOrientation:{type:'portraitPrimary',angle:0}});
+    await sleep(250);
+  }
+
   await pressEscape();
   const after=await poll(`(()=>({
     battleOpen:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,
