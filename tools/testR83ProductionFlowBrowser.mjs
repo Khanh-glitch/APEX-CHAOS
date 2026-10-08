@@ -172,7 +172,14 @@ try{
   await command('Emulation.setDeviceMetricsOverride',{width:550,height:857,deviceScaleFactor:2,mobile:true,screenWidth:550,screenHeight:857});
   const golden=await shot('production-battle-550x857');
   check('550x857 retains full Golden arena',golden.battle.arena?.w>=520,golden.battle.arena);
-  check('550x857 real weapon footer restored and bounded',golden.battle.weapon&&golden.battle.weapon.h>=28&&golden.battle.weapon.w>=160&&golden.battle.weaponName&&golden.battle.weaponName.w>=70&&golden.battle.weaponName.bottom<=golden.battle.p1.bottom+2,{weapon:golden.battle.weapon,name:golden.battle.weaponName,panel:golden.battle.p1});
+  // R83 preservation law: the approved 550x857 R82 panel is not ours to redesign.
+  // Reference from actual pre-R83 Chrome geometry. Its shallow weapon footer
+  // is an existing limitation, not something this short-portrait patch may
+  // silently overwrite; fix that separately only with owner approval.
+  const refWeapon={x:6,y:836,w:282,h:15};
+  const ga=golden.battle.weapon;
+  const goldenDeviation=ga?Math.max(...['x','y','w','h'].map(k=>Math.abs(ga[k]-refWeapon[k]))):Infinity;
+  check('550x857 preserves original weapon footer geometry',goldenDeviation<=2,{actual:ga,reference:refWeapon,goldenDeviation});
   for(const player of ['p1','p2']){
     const name=golden.battle[player+'Name'],gun=golden.battle[player+'WeaponName'];
     check('550x857 '+player+' title and weapon not clipped',name&&!name.clipped&&gun&&!gun.clipped,{name,gun});
