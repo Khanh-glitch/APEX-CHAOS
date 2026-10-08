@@ -11,6 +11,10 @@
       "bytes": 32526,
       "sha256": "6782e49177fcd86c363455288335b2ea2c1ea88e4e973aa6754e8cd69cff3888"
     },
+    "assets/gold/favicon-r72-owner.png": {
+      "bytes": 3481,
+      "sha256": "6d38b63ee577a291a578c6859edb8070bd615f68eb69ae753386aa2473693d3e"
+    },
     "assets/gold/favicon-tab-apex.svg": {
       "bytes": 5283,
       "sha256": "445449459179376e824b4be53fdb286fb023d9ec52c52953d070284d53724ee8"
@@ -196,8 +200,8 @@
       "sha256": "42ed36822b3dd931e779bc729902fa594dafd0ba9a46b5d0d4f0a25e19a639a5"
     },
     "battle-hud.html": {
-      "bytes": 128204,
-      "sha256": "9f7539fda56aad09a14743bdc6007b8ea37dbd105d0485a3cb0cd86023817010"
+      "bytes": 133887,
+      "sha256": "7e3796383d764ff707a8c2e7346721535bee1867d59ab1a1c810c32b4fb2768f"
     },
     "fonts.css": {
       "bytes": 6552,
@@ -272,8 +276,8 @@
       "sha256": "bd1e4d828101da94d773fb108d3c8dfca170280464bd153b66a0e321597f4b2e"
     },
     "shell.html": {
-      "bytes": 396903,
-      "sha256": "33581d8207432f2da59950c00bd6f0debc0b0ac6170485d2611624b4e4bd62d5"
+      "bytes": 405377,
+      "sha256": "f35c8ea4529394ff18d45cef384bdba005736485990036b6946e6888e9cd3f72"
     },
     "transition/mechanical-door-v4.gold.js": {
       "bytes": 2666593,
