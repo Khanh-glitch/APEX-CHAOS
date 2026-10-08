@@ -1,5 +1,5 @@
-/* APEX CHAOS CP04 — pure team/target authority for a Quest-only 2v2 spike.
- * Deliberately NOT loaded by the production runtime manifest.
+/* APEX CHAOS Q2 — pure Quest team/target/roster authority.
+ * Loaded only in the isolated Quest feature runtime branch.
  * No damage, projectile, cooldown, weapon, HUD or movement laws are copied here.
  * Future integration must call these selectors from the real Arsenal lifecycle.
  */
@@ -126,6 +126,76 @@
     return resolved;
   }
 
+  // Q2 — general actor-contract and immutable *test-only* compositions.
+  // No independent combat physics or synthetic HP; actual Fighters are
+  // instantiated and advanced by the existing Arsenal battle runtime.
+  const FIXTURES = Object.freeze({
+    '1v2': Object.freeze([
+      { questId:'NEWBOT', questTeam:'ALLY', hp:1000, x:190, y:480, kind:'newbot' },
+      { questId:'SCRAP-A', questTeam:'HOSTILE', hp:350, x:775, y:290, kind:'scout' },
+      { questId:'SCRAP-B', questTeam:'HOSTILE', hp:350, x:775, y:700, kind:'bulwark' },
+    ]),
+    '2v2': Object.freeze([
+      { questId:'NEWBOT', questTeam:'ALLY', hp:1000, x:220, y:310, kind:'newbot' },
+      { questId:'SCRAP-A', questTeam:'HOSTILE', hp:350, x:780, y:310, kind:'scout' },
+      { questId:'T.O.T', questTeam:'ALLY', hp:1000, x:220, y:690, kind:'tot' },
+      { questId:'SCRAP-B', questTeam:'HOSTILE', hp:350, x:780, y:690, kind:'bulwark' },
+    ]),
+    '3v4': Object.freeze([
+      { questId:'NEWBOT', questTeam:'ALLY', hp:1000, x:210, y:240, kind:'newbot' },
+      { questId:'SCRAP-A', questTeam:'HOSTILE', hp:300, x:790, y:170, kind:'scout' },
+      { questId:'T.O.T', questTeam:'ALLY', hp:1000, x:210, y:510, kind:'tot' },
+      { questId:'SCRAP-B', questTeam:'HOSTILE', hp:260, x:790, y:390, kind:'bulwark' },
+      { questId:'RIVET', questTeam:'ALLY', hp:1000, x:210, y:780, kind:'rivet' },
+      { questId:'SCRAP-C', questTeam:'HOSTILE', hp:260, x:790, y:615, kind:'reaver' },
+      { questId:'SCRAP-D', questTeam:'HOSTILE', hp:320, x:790, y:850, kind:'sentinel' },
+    ])
+  });
+  function fixtureRoster(name) {
+    const spec = FIXTURES[String(name || '')];
+    if (!spec) return null;
+    // No caller can mutate the shared fixture definition.
+    return spec.map((a) => ({ ...a }));
+  }
+  function validateRoster(actors, options = {}) {
+    if (!Array.isArray(actors) || actors.length < 2 || actors.length > 12)
+      return { ok:false, reason:'actor-count-out-of-range' };
+    const actorIds = new Set(), questIds = new Set();
+    let allies = 0, hostiles = 0, players = 0;
+    for (const a of actors) {
+      const qid = a && a.questId;
+      if (!a || a.id == null || !Number.isFinite(+a.id) ||
+          typeof qid !== 'string' || !/^[A-Za-z0-9.-]{1,24}$/.test(qid) ||
+          !finite(a.hp) || a.hp < 0 || !finite(a.maxHp) || !(a.maxHp > 0) ||
+          a.hp > a.maxHp ||
+          !finite(a.x) || !finite(a.y) || !finite(a.radius) || !(a.radius > 0))
+        return { ok:false, reason:'invalid-actor' };
+      if (actorIds.has(identity(a))) return { ok:false, reason:'duplicate-physical-id' };
+      if (questIds.has(qid)) return { ok:false, reason:'duplicate-quest-id' };
+      actorIds.add(identity(a));questIds.add(qid);
+      if (team(a)==='ALLY') allies++;
+      else if (team(a)==='HOSTILE') hostiles++;
+      else return { ok:false, reason:'invalid-team' };
+      if (qid === 'NEWBOT' && team(a) === 'ALLY') players++;
+    }
+    if (!allies || !hostiles) return { ok:false, reason:'missing-team' };
+    if (options.requireNewbot !== false && players !== 1)
+      return { ok:false, reason:'missing-newbot' };
+    return { ok:true, reason:'valid-roster', count:actors.length, allies, hostiles };
+  }
+  function teamsOutcome(actors, options = {}) {
+    const check = validateRoster(actors, options);
+    if (!check.ok) return {status:'INVALID',reason:check.reason};
+    const player = actors.find(a => a.questId === 'NEWBOT');
+    if (options.retryOnNewbotKO !== false && (!player || !alive(player)))
+      return {status:'RETRY',reason:'newbot-ko'};
+    if (actors.filter(a=>team(a)==='HOSTILE').every(a=>!alive(a)))
+      return {status:'COMPLETE',reason:'hostiles-ko'};
+    if (actors.filter(a=>team(a)==='ALLY').every(a=>!alive(a)))
+      return {status:'RETRY',reason:'all-allies-ko'};
+    return {status:'ACTIVE',reason:'combat-live'};
+  }
+
   // FIRST WAKE: NEWBOT failure is authoritative; T.O.T being KO'd does not
   // make the quest unwinnable. Never grant synthetic HP to allies.
   function firstWakeOutcome(actors, playerId = 'NEWBOT') {
@@ -164,6 +234,6 @@
   root.APEX_QUEST_MULTI_ACTOR_CORE = Object.freeze({
     alive, hostile, livingEnemies, nearestEnemy, sweptEntry,
     firstProjectileHit, splashEnemies, closestEligiblePickup, separateBodyOverlaps,
-    firstWakeOutcome, validateFirstWake,
+    firstWakeOutcome, validateFirstWake, fixtureRoster, validateRoster, teamsOutcome,
   });
 })(typeof window !== 'undefined' ? window : globalThis);
