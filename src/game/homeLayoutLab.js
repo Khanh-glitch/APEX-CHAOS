@@ -52,7 +52,9 @@ if (new URLSearchParams(window.location.search).get('apexLayoutLab') === 'home')
     'top:var(--apexLabProfileTop)!important;',
     'scale:var(--apexLabS)!important;transform-origin:100% 0!important;',
     '}',
-    '/* World and hero art retain their existing Gold choreography and geometry. */'
+    '.' + CLASS + ' #stage:not(.screen-mode):not(.screen-fighter):not(.screen-battle) .heroWrap {',
+    'top:6.5vh!important;width:91vw!important;',
+    '}',
   ].join('\n');
   const style = document.createElement('style');
   style.id = 'apex-r82-home-layout-lab-only';
