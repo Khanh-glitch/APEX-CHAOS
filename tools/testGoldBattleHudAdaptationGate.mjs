@@ -170,6 +170,11 @@ check('R60 Heavy reuses one sanitized DOM snapshot for independent Voronoi shard
   hud.includes('const clone=shardTemplate.cloneNode(true);piece.appendChild(clone);') &&
   !hud.includes('const clone=makePanelSnapshot(panel.v,w,h);piece.appendChild(clone);') &&
   r55Adapter.includes("'Heavy shards reuse sanitized template'"));
+check('R62 landscape/desk side backdrops follow real hero identity',
+  hud.includes('hero-aware backdrop: portrait source is game-authoritative') &&
+  hud.includes('art.classList.add(\'apex-hero-watermark\')') &&
+  hud.includes("image.getAttribute('src')!==avatar") &&
+  r55Adapter.includes("'hero-aware panel watermark projection'"));
 check('R62 tablet BOT portrait dock keeps arena and Local untouched',
   hud.includes('R62 tablet portrait BOT: hero-control dock') &&
   hud.includes('grid-template-areas:"id id id" "s1 wp s2"') &&
