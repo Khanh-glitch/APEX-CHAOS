@@ -625,6 +625,15 @@ kbd{font:inherit}
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon .wp-amm{justify-self:center}
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon .wp-mag{display:none}
 
+/* R62 hero-aware backdrop: portrait source is game-authoritative for each side;
+   hide both legacy donor glyphs instead of hardcoding Frost/Hunter motifs. */
+#hud[data-layout="desk"] .side-art.apex-hero-watermark,
+#hud[data-layout="land"] .side-art.apex-hero-watermark{display:block;opacity:.17;overflow:hidden}
+#hud .side-art.apex-hero-watermark>svg{display:none}
+#hud .side-art.apex-hero-watermark>.apex-hero-watermark-img{
+  width:100%;height:100%;object-fit:contain;display:block;
+  filter:saturate(.6) contrast(1.12);
+}
 /* Shared live-ammo state. */
 #hud .weapon.low-ammo .wp-cur{color:var(--crit);text-shadow:0 0 10px color-mix(in srgb,var(--crit) 46%,transparent)}
 #hud .weapon.low-ammo .wp-mag i{background:var(--crit)}
@@ -696,6 +705,21 @@ kbd{font:inherit}
     if(name){HEROES[i].name=name;if(side.name&&side.name.textContent!==name)side.name.textContent=name;if(rail.name&&rail.name.textContent!==name)rail.name.textContent=name;const rival=R.side[i^1]&&R.side[i^1].rival&&R.side[i^1].rival.name;if(rival&&rival.textContent!==name)rival.textContent=name;}
     if(sub){HEROES[i].sub=sub;if(side.sub&&side.sub.textContent!==sub)side.sub.textContent=sub;if(rail.sub&&rail.sub.textContent!==sub)rail.sub.textContent=sub;}
     const avatar=String(identity.battleAvatar||'');
+    // R62: Side art follows actual player identity, never the two donor glyphs.
+    if (avatar) {
+      const art=side.root.querySelector('.side-art');
+      if (art) {
+        let image=art.querySelector('.apex-hero-watermark-img');
+        if (!image) {
+          image=document.createElement('img');
+          image.className='apex-hero-watermark-img';
+          image.alt=''; image.draggable=false;
+          art.appendChild(image);
+        }
+        if (image.getAttribute('src')!==avatar) image.setAttribute('src',avatar);
+        art.classList.add('apex-hero-watermark');
+      }
+    }
     if(side.portrait&&avatar&&side.avatarSrc!==avatar){let img=side.portrait.querySelector(':scope > .apex-battle-avatar');if(!img){img=document.createElement('img');img.className='apex-battle-avatar';img.alt='';img.draggable=false;side.portrait.insertBefore(img,side.portrait.firstChild);}img.onerror=()=>{if(side.avatarSrc===avatar){side.avatarSrc='';side.portrait.classList.remove('has-production-avatar');img.remove();}};img.src=avatar;side.avatarSrc=avatar;side.portrait.classList.add('has-production-avatar');}
   }
 
