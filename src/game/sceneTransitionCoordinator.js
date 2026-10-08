@@ -369,11 +369,9 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       }
 
       clearNodeMotion(sourceFor(tx));
-      if (revealRoot) {
-        revealRoot.style.transformOrigin = 'center';
-        // Exact standalone Gold target staging.
-        revealRoot.style.transform = 'scale(1.12)';
-      }
+      // R62: Door alone owns the reveal. Destination must already be at
+      // its final size behind the opening leaves, without an iris/zoom layer.
+      if (revealRoot) clearNodeMotion(revealRoot);
 
       // Opening is forbidden until the actual destination has committed a
       // rendered frame and any semantic live gate has completed.
@@ -429,11 +427,9 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
         active.covered = true;
         void commitWhenSafe();
       },
-      onReveal: (p) => {
-        const tx = active;
-        if (!tx || !tx.committed) return;
-        const root = tx.failed ? sourceFor(tx) : targetFor(tx);
-        if (root) root.style.transform = `scale(${(1.12 - 0.12 * p).toFixed(4)})`;
+      onReveal: () => {
+        // Intentionally no secondary target animation behind Gold's door.
+        // The destination is fully painted before OPENING starts.
       },
       onDone: () => finish(!active?.failed),
     });
