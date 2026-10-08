@@ -141,6 +141,15 @@ kbd{font:inherit}
   font-size:clamp(11px,1.56cqh,12px)
 }
 
+/* Q3v Quest-only compact portrait text. Full J/K names may flow to a
+   second line inside their existing authored cards; never grow the card,
+   shift battle zones, or change normal BOT/Local composition. */
+#hud[data-quest="1"][data-layout="port"] #p1Side .sk-name{
+  white-space:normal;overflow:visible;text-overflow:clip;
+  overflow-wrap:normal;word-break:normal;
+  line-height:1.1;letter-spacing:.025em;
+}
+
 /* --- Match center / timer --- */
 #matchCenter{grid-column:2 / 4;grid-row:1;justify-self:center;position:relative;width:var(--mcW);height:100%;z-index:2;cursor:pointer}
 .mc-plate{position:absolute;left:0;right:0;top:0;height:calc(100% + var(--notch));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding-bottom:var(--notch);
