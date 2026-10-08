@@ -443,6 +443,9 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
     const donorPose = engine.pose.bind(engine);
     engine.pose = () => {
       const p = donorPose();
+      // R72: hide only the donor title drawing, preserving the canonical
+      // hash-pinned Door runtime and all mechanical motion/timings.
+      p.logoA = 0;
       if (engine.state === 'OPENING') {
         p.cover = 0;
         p.revealR = 0;

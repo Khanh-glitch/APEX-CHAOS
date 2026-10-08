@@ -4317,7 +4317,7 @@ body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #battle-s
   left:50%!important;top:67%!important;bottom:auto!important;
   width:min(410px,58vw)!important;max-width:calc(100vw - 32px);
   height:auto!important;aspect-ratio:3/1!important;
-  transform:translate(-50%,-50%)!important;
+  transform:translate(-50%,-50%);
   background:transparent!important;border:0!important;
   clip-path:none!important;outline-offset:4px;
   animation:apex-r72-start-idle 2.6s ease-in-out infinite;
