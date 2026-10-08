@@ -165,6 +165,11 @@ check('shipping shell embeds the exact shipping Battle HUD bytes',
   !!payload && decoded === hud,
   payload ? ('decoded=' + decoded.length + ' hud=' + hud.length) : 'payload missing');
 
+check('R60 BOT tablet has two balanced square-oriented thumb targets',
+  hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] #p1Side .skills{') &&
+  hud.includes('grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:minmax(0,1fr)') &&
+  hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] #p1Side .skill{') &&
+  !hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] #p1Side .skills{'));
 check('R60 compact Local remains phone/2P-scoped with dedicated safe row allocation',
   hud.includes('@media (max-width:430px) and (max-height:720px)') &&
   hud.includes('#hud[data-layout="port"][data-size="compact"][data-mode="2p"]{') &&
