@@ -99,6 +99,33 @@
     return best;
   }
 
+  // Quest-only simple body separation for all independent Fighter anchors.
+  // No status/damage callback is invented; the existing Fighter motion and
+  // Arsenal weapon transactions remain authoritative.
+  function separateBodyOverlaps(actors) {
+    if (!Array.isArray(actors)) return 0;
+    let resolved = 0;
+    for (let i = 0; i < actors.length; i++) {
+      const a = actors[i];
+      if (!alive(a)) continue;
+      for (let j = i + 1; j < actors.length; j++) {
+        const b = actors[j];
+        if (!alive(b)) continue;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const min = Number(a.radius || 0) + Number(b.radius || 0);
+        const dsq = dx * dx + dy * dy;
+        if (!(min > 0) || dsq >= min * min) continue;
+        const d = Math.sqrt(dsq);
+        const nx = d > EPS ? dx / d : 1, ny = d > EPS ? dy / d : 0;
+        const excess = (min - d) / 2;
+        a.x -= nx * excess; a.y -= ny * excess;
+        b.x += nx * excess; b.y += ny * excess;
+        resolved++;
+      }
+    }
+    return resolved;
+  }
+
   // FIRST WAKE: NEWBOT failure is authoritative; T.O.T being KO'd does not
   // make the quest unwinnable. Never grant synthetic HP to allies.
   function firstWakeOutcome(actors, playerId = 'NEWBOT') {
@@ -135,7 +162,7 @@
 
   root.APEX_QUEST_MULTI_ACTOR_CORE = Object.freeze({
     alive, hostile, livingEnemies, nearestEnemy, sweptEntry,
-    firstProjectileHit, splashEnemies, closestEligiblePickup,
+    firstProjectileHit, splashEnemies, closestEligiblePickup, separateBodyOverlaps,
     firstWakeOutcome, validateFirstWake,
   });
 })(typeof window !== 'undefined' ? window : globalThis);
