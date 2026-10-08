@@ -193,6 +193,24 @@ try{
      &&q3Teams?.left?.max===q3Teams.ally.max&&q3Teams.right.max===q3Teams.hostile.max
      &&q3Teams.left.hp===Math.round(q3Teams.ally.hp)
      &&q3Teams.right.hp===Math.round(q3Teams.hostile.hp),q3Teams);
+  const q3Slots=await poll(`(()=>{
+    const host=document.getElementById('battleHudHost');
+    const teams=['ALLY','HOSTILE'];
+    const sections=teams.map((team,i)=>{
+      const expected=(window.fighters||[]).filter(f=>f.questTeam===team);
+      const spans=[...(host?.querySelectorAll('#p'+(i+1)+'Rail .vr-quest-slots > span')||[])];
+      return {team,expected:expected.map(f=>f.questId),actual:spans.map(s=>s.dataset.actor),
+        ratios:spans.map(s=>Number(s.style.getPropertyValue('--qhp'))),
+        correct:spans.length===expected.length&&spans.every((s,j)=>
+          s.dataset.actor===expected[j].questId&&
+          Math.abs(Number(s.style.getPropertyValue('--qhp'))-Math.max(0,expected[j].hp/expected[j].maxHp))<.002)};
+    });
+    return {quest:host?.querySelector('#hud')?.dataset.quest,sections,
+      railCount:host?.querySelectorAll('#p1Rail,#p2Rail').length};
+  })()`,v=>v?.quest==='1'&&v?.railCount===2&&v.sections?.every(s=>s.correct),120);
+  gate('Q3 Gold keeps only two canonical bars with independent fixed actor HP slots',
+    q3Slots?.quest==='1'&&q3Slots?.railCount===2
+       &&q3Slots.sections?.every(s=>s.correct&&s.actual.length===2),q3Slots);
   await image('03-cp04-preview-four-fighters');
   await pressEscape();
   const after=await poll(`(()=>({
