@@ -2261,6 +2261,13 @@ function buildShell(hudProductionHtml) {
     out = out.replace(r77Anchor, r77CSS + r77Anchor);
   }
 
+  // R81: keep generated Shell consistent with checked-in short-portrait law.
+  const r81Style = "<style id=\"r81-portrait-compact\">\n@media (orientation:portrait) and (max-width:420px) and (max-height:650px) {\n#stage.ready:not(.screen-mode):not(.screen-fighter) .story{top:37.5vh;transition-property:opacity,transform,translate,filter}\n#stage.ready:not(.screen-mode):not(.screen-fighter) .storyTitle{font-size:clamp(30px,9.5vw,36px);line-height:.82}\n#stage.ready:not(.screen-mode):not(.screen-fighter) .actions{gap:6px}\n#stage.ready:not(.screen-mode):not(.screen-fighter) .actions .cta{height:45px}\n#stage.ready:not(.screen-mode):not(.screen-fighter) .actions .secondary{height:35px}\n#stage.ready:not(.screen-mode):not(.screen-fighter) .routes .route{height:34px}\n#stage.screen-fighter .selectionDeckV6{top:70.8vh!important}\n}\n</style>\n";
+  if (!out.includes('r81-portrait-compact')) {
+    if (!out.includes('</head>')) throw new Error('R81 shell head missing');
+    out = out.replace('</head>', r81Style + '</head>');
+  }
+
   // ── S12: embed the production-bridged battle HUD payload (same canonical
   // base64 payload mechanism, so loading/transition timing does not drift).
   const payloadB64 = Buffer.from(hudProductionHtml, 'utf8').toString('base64');
