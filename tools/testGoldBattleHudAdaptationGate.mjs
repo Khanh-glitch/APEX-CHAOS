@@ -170,6 +170,10 @@ check('R60 Heavy reuses one sanitized DOM snapshot for independent Voronoi shard
   hud.includes('const clone=shardTemplate.cloneNode(true);piece.appendChild(clone);') &&
   !hud.includes('const clone=makePanelSnapshot(panel.v,w,h);piece.appendChild(clone);') &&
   r55Adapter.includes("'Heavy shards reuse sanitized template'"));
+check('R63 solo portrait iPad skill states use existing runtime authority',
+ hud.includes('R63 skill readability: emphasize actual Gold runtime') &&
+ ['cast','active','cd','ready'].every(state => hud.includes('#p1Side .skill[data-state="'+state+'"]')) &&
+ hud.includes('const st=now<a.castUntil?\'cast\':activeRemaining>0?\'active\':a.charges>0?\'ready\':\'cd\''));
 check('R62 simultaneous Crit/Heavy preserves all shards but mounts in one batch',
   hud.includes('const shardBatch=document.createDocumentFragment(),shardAnimations=[];') &&
   hud.includes('shardBatch.appendChild(piece);') &&
