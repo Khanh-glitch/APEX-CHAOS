@@ -162,6 +162,20 @@ try{
   await inspect('fighter-360x560',360,560);
   await inspect('fighter-550x857',550,857);
   await writeFile(evidenceDir+'/comparison.json',JSON.stringify(captures,null,2));
+  // R81 visual geometry acceptance: compare the actual two UI surfaces.
+  const byLabel=Object.fromEntries(captures.map(x=>[x.label,x]));
+  const smallHome=byLabel['home-360x560']?.rects,largeHome=byLabel['home-550x857']?.rects;
+  const smallPick=byLabel['fighter-360x560']?.rects,largePick=byLabel['fighter-550x857']?.rects;
+  const rules=[
+    ['R81 Home Story separated from CTA',smallHome?.story?.y+smallHome?.story?.h <= smallHome?.actions?.y-10],
+    ['R81 Home CTA separated from route band',smallHome?.actions?.y+smallHome?.actions?.h <= smallHome?.routes?.y-8],
+    ['R81 Fighter roster gets legible short-portrait area',smallPick?.firstCard?.h >= 35 && smallPick?.roster?.h >= 95],
+    ['R81 550px Home story retains approved geometry',Math.abs((largeHome?.story?.y??0)-370.2)<3 && Math.abs((largeHome?.actions?.y??0)-575)<3],
+    ['R81 550px Fighter roster retains approved geometry',Math.abs((largePick?.roster?.h??0)-135.4)<3],
+  ];
+  for(const [name,ok] of rules)console.log((ok?'PASS ':'FAIL ')+name);
+  if(rules.some(([,ok])=>!ok))throw new Error('R81 viewport design regression: '+JSON.stringify(captures));
+
 
 
 }finally{
