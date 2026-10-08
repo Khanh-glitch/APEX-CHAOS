@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { attachBootStartViewportGuard } from './game/bootStartViewportGuard.js';
 import {
   loadBattleGameRuntimes,
   loadDeferredGameRuntimes,
@@ -688,9 +689,11 @@ export default function App() {
           start.setAttribute('aria-label', 'Start APEX CHAOS');
           start.className = 'apex-boot-start-plate';
           let activated = false;
+          let stopStartGuard = () => {};
           const activateStart = () => {
             if (activated) return;
             activated = true;
+            stopStartGuard();
             // Hide in the same trusted input event, before requesting Door OPEN.
             // Do not defer this to transition timing or any async audio callback.
             start.remove();
@@ -708,6 +711,7 @@ export default function App() {
           // Enter/Space and assistive activation use click.
           start.addEventListener('click', activateStart);
           document.body.appendChild(start);
+          stopStartGuard = attachBootStartViewportGuard(start);
         });
         if (cancelled) return;
         await window.APEX_SCENE_TRANSITION?.signalBootReady?.();
