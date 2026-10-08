@@ -321,6 +321,16 @@ try{
       &&Math.abs(q3CrossActorFx.before.target-q3CrossActorFx.after.target
         -q3GoldHits.reduce((v,h)=>v+h.amount,0))<.01,
     {hits:q3GoldHits,before:q3CrossActorFx?.before,after:q3CrossActorFx?.after});
+  // Genuine gun recoil evidence: native Arsenal equips + advances a live
+  // PISTOL; only native poseKick can produce holder.meta.pose.pulses.
+  // The donor must observe those pulses and animate its own gunKick spring.
+  const q3tNativeRecoil=await evalPage("(()=>{\n const A=window.APEX_ARSENAL,W=A?.weaponApi,rig=window.APEX_QUEST_V12_RIG,f=window.fighters||[];\n const shooter=f.find(x=>x.questId==='SCRAP-B'),target=f.find(x=>x.questId==='T.O.T');\n if(!A?.state?.questMultiActor||!W?.equip||!rig?.inspect||!shooter||!target)return {ready:false};\n shooter.x=585;shooter.y=500;target.x=320;target.y=500;\n if(!W.equip(shooter,'PISTOL'))return {ready:false,reason:'native-equip-failed'};\n const ctx=document.createElement('canvas').getContext('2d');\n shooter.draw(ctx);\n const initial=rig.inspect(shooter);\n let maxPulse=Number(W.getHolder(shooter)?.meta?.pose?.pulses)||0;\n let lastGunKick=initial?.pose?.gunKick||0;\n let maxDeltaGunKick=0;\n const reads=[];\n for(let i=0;i<17;i++){\n   A.step(.09);\n   shooter.draw(ctx);\n   const holder=W.getHolder(shooter);\n   maxPulse=Math.max(maxPulse,Number(holder?.meta?.pose?.pulses)||0);\n   const value=rig.inspect(shooter);\n   if(value){\n     maxDeltaGunKick=Math.max(maxDeltaGunKick,Math.abs(value.pose.gunKick-lastGunKick));\n     lastGunKick=value.pose.gunKick;\n     reads.push({step:i,recoilEvents:value.recoilEvents,kick:value.pose.gunKick});\n   }\n }\n const ending=rig.inspect(shooter);\n return {ready:true,maxNativeFirePulses:maxPulse,\n   before:initial?.recoilEvents,after:ending?.recoilEvents,\n   springKickChanged:maxDeltaGunKick,\n   modelScale:ending?.scaleFactor,\n   reads:reads.filter(x=>x.recoilEvents>initial.recoilEvents).slice(0,5)};\n})()");
+  gate('Q3t native PISTOL fire pulses drive REAL V12 Bulwark recoil spring',
+    q3tNativeRecoil?.ready===true
+      &&q3tNativeRecoil.maxNativeFirePulses>0
+      &&q3tNativeRecoil.after>q3tNativeRecoil.before
+      &&q3tNativeRecoil.springKickChanged>.005
+      &&q3tNativeRecoil.modelScale===.82,q3tNativeRecoil);
   const q3Restored=await evalPage("(()=>{const old=window.__q3NativeUpdate;if(typeof old!=='function')return false;window.update=old;delete window.__q3NativeUpdate;return window.update===old})()");
   gate('Q3 fixture restores original engine RAF update before exiting Quest',q3Restored===true,{restored:q3Restored});
   await pressEscape();
