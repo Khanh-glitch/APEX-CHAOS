@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
+const isMobile=process.argv.includes('--mobile');
 const appUrl=process.env.APEX_APP_URL||'http://127.0.0.1:5173';
 const endpoint=process.env.APEX_CDP_ENDPOINT||'http://127.0.0.1:9231';
 const chromePath=process.env.CHROME_PATH||'google-chrome';
@@ -11,8 +12,8 @@ const evidenceDir=process.env.APEX_EVIDENCE_DIR||'/tmp/quest-cp04-browser';
 const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
 const chrome=process.env.APEX_CDP_ENDPOINT?null:spawn(chromePath,[
   '--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check',
-  '--no-sandbox','--remote-debugging-port=9231','--window-size=1365,768',
-  '--user-data-dir='+path.join('/tmp','apex-quest-cp04-cdp'),
+  '--no-sandbox','--remote-debugging-port=9231',isMobile?'--window-size=390,844':'--window-size=1365,768',
+  '--user-data-dir='+path.join('/tmp',isMobile?'apex-quest-cp04-mobile':'apex-quest-cp04-cdp'),
   appUrl],{stdio:'ignore'});
 let socket;
 let serial=0;const pending=new Map();const gates=[], failures=[];
@@ -74,14 +75,19 @@ async function click(selector){
       hit:top===e||e.contains(top),vis:getComputedStyle(e).visibility};
   })()`,v=>v?.exists&&v.hit&&v.enabled&&v.w>10&&v.h>10,90);
   if(!p?.hit||!p.enabled||p.w<10)throw new Error('Click target not physically hittable: '+selector+' '+JSON.stringify(p));
-  await cmd('Input.dispatchMouseEvent',{type:'mouseMoved',x:p.x,y:p.y});
-  await cmd('Input.dispatchMouseEvent',{type:'mousePressed',x:p.x,y:p.y,button:'left',clickCount:1});
-  await cmd('Input.dispatchMouseEvent',{type:'mouseReleased',x:p.x,y:p.y,button:'left',clickCount:1});
+  if(isMobile){
+    await cmd('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:p.x,y:p.y}]});
+    await cmd('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  }else{
+    await cmd('Input.dispatchMouseEvent',{type:'mouseMoved',x:p.x,y:p.y});
+    await cmd('Input.dispatchMouseEvent',{type:'mousePressed',x:p.x,y:p.y,button:'left',clickCount:1});
+    await cmd('Input.dispatchMouseEvent',{type:'mouseReleased',x:p.x,y:p.y,button:'left',clickCount:1});
+  }
   return p;
 }
 async function image(name){
   const r=await cmd('Page.captureScreenshot',{format:'png'});
-  await writeFile(path.join(evidenceDir,name+'.png'),Buffer.from(r.data,'base64'));
+  await writeFile(path.join(evidenceDir,name+(isMobile?'-mobile':'')+'.png'),Buffer.from(r.data,'base64'));
 }
 async function pressEscape(){
   await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
@@ -91,6 +97,11 @@ try{
   await mkdir(evidenceDir,{recursive:true});
   await connect();
   await cmd('Runtime.enable');await cmd('Page.enable');
+  if(isMobile){
+    await cmd('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:3,mobile:true,
+      screenOrientation:{type:'portraitPrimary',angle:0}});
+    await cmd('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:1});
+  }
   await cmd('Page.navigate',{url:appUrl});
   const boot=await poll(`(()=>({
     start:!!document.getElementById('apex-boot-start'),
@@ -139,7 +150,7 @@ try{
 }catch(err){
   gate('Browser route execution',false,{error:String(err.stack||err)});
 }finally{
-  await writeFile(path.join(evidenceDir,'quest-continue-story-browser-report.json'),JSON.stringify({gates,failures},null,2));
+  await writeFile(path.join(evidenceDir,'quest-continue-story-browser-report'+(isMobile?'-mobile':'')+'.json'),JSON.stringify({gates,failures},null,2));
   try{socket?.close();}catch(_){}
   chrome?.kill();
 }
