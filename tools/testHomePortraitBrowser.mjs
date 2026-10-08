@@ -52,7 +52,7 @@ try{
   await command('Page.navigate',{url});
   let homeMounted=false;
   for(let i=0;i<400;i++){
-    const value=await evalJS("Boolean(document.querySelector('#gold-shell-host[data-apex-gold-mounted=\\"1\\"] #stage')&&document.querySelector('#apex-boot-start'))").catch(()=>false);
+    const value=await evalJS("Boolean(document.querySelector('#gold-shell-host #stage') && document.getElementById('gold-shell-host')?.dataset.apexGoldMounted==='1' && document.querySelector('#apex-boot-start'))").catch(()=>false);
     if(value){homeMounted=true;break}
     await sleep(75);
   }
