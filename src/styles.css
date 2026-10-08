@@ -4275,3 +4275,21 @@ body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #battle-s
 }
 #apex-boot-start:active{transform:translateX(-50%) scale(.97);filter:brightness(1.45)}
 @media (prefers-reduced-motion:reduce){#apex-boot-start{transition:none!important}}
+
+
+/* R65 dedicated START artwork: an actual asset, layered over Gold door's
+   existing APEX CHAOS title; hit target stays the same real button. */
+#apex-boot-start.apex-boot-start-plate{
+  background:none!important;box-shadow:none!important;border:0!important;
+  clip-path:none!important;min-width:0!important;min-height:0!important;
+  width:min(460px,72vw);padding:0!important;gap:0!important;
+  bottom:max(2vh,12px);aspect-ratio:680/240;
+}
+#apex-boot-start .apex-boot-start-art{
+  display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;
+  filter:drop-shadow(0 12px 22px rgba(0,0,0,.8));
+}
+#apex-boot-start:hover .apex-boot-start-art,#apex-boot-start:focus-visible .apex-boot-start-art{
+  filter:drop-shadow(0 0 18px rgba(245,159,42,.62)) brightness(1.14);
+}
+#apex-boot-start:active .apex-boot-start-art{filter:brightness(1.34)}
