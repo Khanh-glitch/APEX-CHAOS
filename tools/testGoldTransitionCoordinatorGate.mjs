@@ -37,6 +37,10 @@ for(const token of ['TRIGGER CLOSE','READY → OPEN','closeBtn','readyBtn','rese
   check(`production transition has no demo token: ${token}`, !runtimeText.includes(token));
 }
 
+check('R61 user-paced boot START cannot trip the scene hard cap before consent',
+  coordinator.includes('if (tx.boot && !bootReadySignalled) return;') &&
+  coordinator.includes('active.startedAt = performance.now();') &&
+  coordinator.includes('watchdogSignatureAt = active.startedAt;'));
 check('R61 START waits for Home and music while keeping the mount effect alive',
   app.includes("await window.APEX_GOLD.prepareSurface('home')") &&
   app.includes('await window.__apexBootMusicReady;') &&
