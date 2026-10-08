@@ -1068,13 +1068,35 @@
   // burst present as their own tier (normal/crit) instead of re-triggering the
   // Heavy family. The latch clears when the window drains (new burst).
   const heavyLatch = [0, 0];
+  // Q3: Quest teams have independent physical victims, not one HP pool.
+  const questHeavyByVictim = new Map();
   let translationInstalled = false;
 
   function sideOfBody(body) {
+    if (window.APEX_ARSENAL?.state?.questMultiActor) {
+      return body?.questTeam === 'ALLY' ? 0 : body?.questTeam === 'HOSTILE' ? 1 : -1;
+    }
     const id = body && body.id;
     return (id === 1 || id === 2) ? id - 1 : -1;
   }
-  function heavyTierFor(victimIdx, amount, now) {
+  function questTeamHp(team) {
+    const actors = Array.isArray(window.fighters) ? window.fighters : [];
+    return actors.filter(f => f?.questTeam === team).reduce((sum, f) => sum + Math.max(0, Number(f.hp) || 0), 0);
+  }
+  function heavyTierFor(victimIdx, amount, now, victim) {
+    // Quest Heavy is per real VICTIM; summing different robots into one
+    // side-based burst would falsely classify ordinary hits as Heavy.
+    if (window.APEX_ARSENAL?.state?.questMultiActor && victim?.questId) {
+      const key = String(victim.questId);
+      let h = questHeavyByVictim.get(key);
+      if (!h) { h = { window: [], latch: 0 }; questHeavyByVictim.set(key, h); }
+      h.window.push({ t: now, amount });
+      while (h.window.length && now - h.window[0].t > HEAVY_WINDOW_MS) h.window.shift();
+      if (h.window.reduce((sum, e) => sum + e.amount, 0) <= HEAVY_THRESHOLD) return false;
+      if (h.latch && now - h.latch <= HEAVY_WINDOW_MS) return false;
+      h.latch = now;
+      return true;
+    }
     const w = heavyWindows[victimIdx];
     w.push({ t: now, amount });
     while (w.length && now - w[0].t > HEAVY_WINDOW_MS) w.shift();
@@ -1103,12 +1125,14 @@
     const now = performance.now();
     const amount = Math.max(0, Number(ev.amount) || 0);
     if (!(amount > 0)) return;
-    const victimHp = (ev.victim && typeof ev.victim.hp === 'number') ? ev.victim.hp : null;
+    const victimHp = window.APEX_ARSENAL?.state?.questMultiActor
+      ? questTeamHp(ev.victim.questTeam)
+      : ((ev.victim && typeof ev.victim.hp === 'number') ? ev.victim.hp : null);
     // Capture the source accent on THIS transaction. Never mutate one shared
     // CSS variable: simultaneous Local hits must keep their own source color.
     const impactAccent = accentOf(ev.attacker);
     const storm = stormbreakerHit(ev);
-    const heavy = heavyTierFor(v, amount, now);
+    const heavy = heavyTierFor(v, amount, now, ev.victim);
     if (storm) {
       if (seam.hitStorm) seam.hitStorm(a, v, amount, victimHp, impactAccent);
       else seam.hit(a, v, amount, 'heavy', victimHp, impactAccent);
@@ -1185,6 +1209,7 @@
     heavyWindows[1].length = 0;
     heavyLatch[0] = 0;
     heavyLatch[1] = 0;
+    questHeavyByVictim.clear();
   }
 
   // ── per-frame production projection → canonical HUD state ───────────────
@@ -1400,11 +1425,15 @@
     const combat = window.APEX_COMBAT_HUD;
     const base = (combat && typeof combat.projection === 'function') ? combat.projection() : null;
     const fighters = window.fighters;
+    const questRoster = state?.questMultiActor && Array.isArray(fighters)
+      ? [fighters.filter(f => f?.questTeam === 'ALLY'), fighters.filter(f => f?.questTeam === 'HOSTILE')] : null;
     const sides = [];
     const fighterPos = [];
     for (let i = 0; i < 2; i++) {
-      const f = Array.isArray(fighters) ? fighters[i] : null;
-      const projSide = base && Array.isArray(base.sides) ? base.sides[i] : null;
+      const group = questRoster ? questRoster[i] : null;
+      const f = questRoster ? (group[0] || null) : (Array.isArray(fighters) ? fighters[i] : null);
+      // 1v1 combat projection names the first two bodies. Quest is two TEAMS.
+      const projSide = questRoster ? null : (base && Array.isArray(base.sides) ? base.sides[i] : null);
       const identity = (projSide && projSide.identity) || {};
       const vitals = (projSide && projSide.vitals) || {};
       const liveHeroId = canonicalHeroId(identity.heroId || heroIdOf(f) || '');
@@ -1414,15 +1443,20 @@
       const skills = skillProjection(f);
       const weapon = weaponProjection(f) || { id: 'UNARMED', name: 'UNARMED', type: 'UNARMED', asset: '', tier: '', tierColor: '', index: 0, mag: 0, ammo: 0, usesAmmo: false, reloading: false, alt: '' };
       const vitalsFallback = vitalsProjection(f) || { hp: 0, maxHp: 1000 };
+      const teamVitals = group ? {
+        hp: group.reduce((sum, actor) => sum + Math.max(0, Number(actor.hp) || 0), 0),
+        maxHp: group.reduce((sum, actor) => sum + Math.max(0, Number(actor.maxHp) || 0), 0)
+      } : null;
+      const teamName = group ? (i === 0 ? 'ALLIES ×' : 'SCRAP ×') + group.length : null;
       sides.push({
-        hp: (vitals && Number.isFinite(vitals.hp)) ? vitals.hp : vitalsFallback.hp,
-        maxHp: (vitals && Number.isFinite(vitals.maxHp)) ? vitals.maxHp : vitalsFallback.maxHp,
+        hp: teamVitals ? teamVitals.hp : ((vitals && Number.isFinite(vitals.hp)) ? vitals.hp : vitalsFallback.hp),
+        maxHp: teamVitals ? teamVitals.maxHp : ((vitals && Number.isFinite(vitals.maxHp)) ? vitals.maxHp : vitalsFallback.maxHp),
         rage: (vitals && Number.isFinite(vitals.rage)) ? vitals.rage : 0,
         accent: identity.color || (f && f.color) || '#ffffff',
-        name: identity.name || (f && f.name) || '',
+        name: teamName || identity.name || (f && f.name) || '',
         identity: {
           heroId: liveHeroId,
-          name: identity.name || (f && f.name) || '',
+          name: teamName || identity.name || (f && f.name) || '',
           tag: copy.tag || '',
           battleAvatar: art.battleAvatar || art.portrait || '',
           accent: identity.color || (f && f.color) || '#ffffff',
@@ -1450,6 +1484,11 @@
       roundAuthority: false,
       ko: !!(state && state.over && !state.questFirstWake),
       sides,
+      // Metadata only: the live Gold HUD still has TWO original rails.
+      // Q3 segmentation will use these independent real actor HP entries.
+      questTeams: questRoster ? questRoster.map(group => group.map(f => ({
+        id: f.questId, hp: Math.max(0, Number(f.hp)||0), maxHp: Math.max(0, Number(f.maxHp)||0)
+      }))) : null,
     };
     return { state: matchState, fighters: fighterPos };
   }
