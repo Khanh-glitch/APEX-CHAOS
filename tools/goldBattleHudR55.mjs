@@ -156,6 +156,15 @@ export function adaptGoldBattleHudR55(input) {
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon .wp-amm{justify-self:center}
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon .wp-mag{display:none}
 
+/* R62 hero-aware backdrop: portrait source is game-authoritative for each side;
+   hide both legacy donor glyphs instead of hardcoding Frost/Hunter motifs. */
+#hud[data-layout="desk"] .side-art.apex-hero-watermark,
+#hud[data-layout="land"] .side-art.apex-hero-watermark{display:block;opacity:.17;overflow:hidden}
+#hud .side-art.apex-hero-watermark>svg{display:none}
+#hud .side-art.apex-hero-watermark>.apex-hero-watermark-img{
+  width:100%;height:100%;object-fit:contain;display:block;
+  filter:saturate(.6) contrast(1.12);
+}
 /* Shared live-ammo state. */
 #hud .weapon.low-ammo .wp-cur{color:var(--crit);text-shadow:0 0 10px color-mix(in srgb,var(--crit) 46%,transparent)}
 #hud .weapon.low-ammo .wp-mag i{background:var(--crit)}
@@ -189,5 +198,11 @@ export function adaptGoldBattleHudR55(input) {
     'Heavy shards reuse sanitized template'
   );
 
+  // Hero identities are projected from production; watermark comes from real avatar.
+  once(
+    "    const avatar=String(identity.battleAvatar||'');",
+    "    const avatar=String(identity.battleAvatar||'');\n    // R62: Side art follows actual player identity, never the two donor glyphs.\n    if (avatar) {\n      const art=side.root.querySelector('.side-art');\n      if (art) {\n        let image=art.querySelector('.apex-hero-watermark-img');\n        if (!image) {\n          image=document.createElement('img');\n          image.className='apex-hero-watermark-img';\n          image.alt=''; image.draggable=false;\n          art.appendChild(image);\n        }\n        if (image.getAttribute('src')!==avatar) image.setAttribute('src',avatar);\n        art.classList.add('apex-hero-watermark');\n      }\n    }",
+    'hero-aware panel watermark projection'
+  );
   return out;
 }
