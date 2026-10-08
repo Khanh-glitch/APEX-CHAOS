@@ -74,21 +74,25 @@
   }
   #stage.screen-fighter .fighterIdentityZone .fighterTag {display:none!important}
   #stage.screen-fighter .fighterIdentityZone .skillRows {
-    grid-area:skills;display:flex!important;flex-wrap:nowrap!important;
-    overflow-x:auto!important;overflow-y:hidden!important;
+    grid-area:skills;display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    overflow:visible!important;
     max-width:100%!important;min-width:0!important;margin:0!important;
-    gap:4px!important;scrollbar-width:none
+    gap:3px!important
   }
   #stage.screen-fighter .fighterIdentityZone .skillRows::-webkit-scrollbar {display:none}
   #stage.screen-fighter .fighterIdentityZone .skillChip {
-    flex:0 0 auto!important;width:auto!important;max-width:none!important;
-    padding:3px 5px!important;min-height:22px!important;
-    font-size:clamp(8px,2.5vw,10px)!important;white-space:nowrap!important
+    display:flex!important;flex-wrap:wrap!important;align-items:center!important;
+    align-content:center!important;justify-content:flex-start!important;
+    flex:initial!important;width:100%!important;min-width:0!important;max-width:100%!important;
+    padding:3px!important;min-height:30px!important;gap:1px 2px!important;
+    font-size:clamp(7.5px,2.15vw,9px)!important;line-height:1.1!important;
+    white-space:normal!important;overflow-wrap:anywhere!important
   }
   #stage.screen-fighter .fighterIdentityZone .skillChip .skillType {
-    font-size:8px!important;white-space:nowrap!important
+    font-size:clamp(7.5px,2vw,9px)!important;white-space:nowrap!important
   }
   #stage.screen-fighter .fighterIdentityZone .skillChip .keycap {
-    min-width:16px!important;height:16px!important;font-size:8px!important
+    min-width:14px!important;height:14px!important;font-size:7.5px!important
   }
 }
