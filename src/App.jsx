@@ -553,16 +553,9 @@ export default function App() {
           const start = document.createElement('button');
           start.type = 'button';
           start.id = 'apex-boot-start';
-          start.textContent = 'START';
+          start.innerHTML = '<span class="apex-boot-start-eyebrow" aria-hidden="true">APEX // SYSTEM READY</span><span class="apex-boot-start-main">START <span aria-hidden="true">›</span></span><span class="apex-boot-start-foot" aria-hidden="true">INITIATE PROTOCOL</span>';
           start.setAttribute('aria-label', 'Start APEX CHAOS');
-          Object.assign(start.style, {
-            position: 'fixed', left: '50%', bottom: 'max(11%, 48px)',
-            transform: 'translateX(-50%)', zIndex: '2147483640',
-            border: '1px solid #dc9d45', background: '#101013',
-            color: '#ffd98a', font: '800 26px Teko, sans-serif',
-            letterSpacing: '0.16em', padding: '10px 50px', cursor: 'pointer',
-            boxShadow: '0 0 24px #d48d2840', touchAction: 'manipulation'
-          });
+          start.className = 'apex-boot-start-plate';
           start.addEventListener('click', () => {
             // Call playback synchronously in the trusted gesture, not after await.
             try {
