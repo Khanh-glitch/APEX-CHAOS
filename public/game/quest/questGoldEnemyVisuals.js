@@ -93,7 +93,7 @@
     // auto-movement heading from Fighter.draw; gameplay movement is untouched.
     const dirX=Number.isFinite(f.dir?.x)?f.dir.x:1;
     const dirY=Number.isFinite(f.dir?.y)?f.dir.y:0;
-    c.rotate(-Math.atan2(dirY,dirX)+Math.PI/2);
+    c.rotate(-Math.atan2(dirY,dirX));
     const scale=Math.max(.4,Math.min(1.1,(f.radius||75)/76));
     c.scale(scale,scale);
     c.shadowColor=p.glow;c.shadowBlur=5;

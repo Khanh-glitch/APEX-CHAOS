@@ -2545,7 +2545,7 @@ function draw(ctx,real) {
     // optic, shell, weapon and hit spring movement from the donor.
     const dirX=Number.isFinite(real.dir?.x)?real.dir.x:1;
     const dirY=Number.isFinite(real.dir?.y)?real.dir.y:0;
-    ctx.rotate(-Math.atan2(dirY,dirX)+Math.PI/2);
+    ctx.rotate(-Math.atan2(dirY,dirX));
     // Do not normalize every Gold species to the same Arsenal collision radius.
     // The donor's original proportions (Scout smaller, Bulwark broader) are
     // presentation identity; its REAL collider remains the Arsenal Fighter.
