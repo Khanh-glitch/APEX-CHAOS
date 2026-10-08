@@ -5878,6 +5878,56 @@ if (process.argv.includes('--quest-n-actors')) {
     }catch(error){gate('q2-'+shape+'-real-engine-runner',false,
       {error:String(error?.stack||error)});}
   }
+  // Q2 multi-family damage provenance: real thrown and grenade ordnance
+  // must select eligible hostile targets, not arbitrarily the first body.
+  const q2ExoticScript = `
+  const started=window.__apexQuestTestRosterStart('3v4')===true;
+  const A=window.APEX_ARSENAL,W=A.weaponApi,f=window.fighters||[];
+  if(!started)return {started};
+  A.state.spawnHeld=true;A.state.spawnTimer=1e6;A.state.slots=[];
+  f.forEach((a,i)=>{a.baseSpeed=0;a.data.__hrHoldBody=true;a.x=100+i*120;a.y=890;});
+  const player=f.find(x=>x.questId==='NEWBOT');
+  const tot=f.find(x=>x.questId==='T.O.T');
+  const rivet=f.find(x=>x.questId==='RIVET');
+  const e1=f.find(x=>x.questId==='SCRAP-A'),e2=f.find(x=>x.questId==='SCRAP-B');
+  const others=f.filter(x=>x.questTeam==='HOSTILE'&&!['SCRAP-A','SCRAP-B'].includes(x.questId));
+  player.x=140;player.y=300;tot.x=590;tot.y=470;rivet.x=140;rivet.y=740;
+  e1.x=590;e1.y=300;e2.x=745;e2.y=300;
+  others.forEach((x,i)=>{x.x=670+i*160;x.y=860;});
+  const before={ally:[player.hp,tot.hp,rivet.hp],hostile:[e1.hp,e2.hp]};
+  W.throwGrenade({owner:player,x:590,y:300,angle:0,speed:0,weapon:'GRENADE'});
+  const grenadesBefore=projectiles.filter(x=>x.aq&&x.type==='aq_grenade').length;
+  A.step(1.43);
+  const grenade={projectileCreated:grenadesBefore===1,
+    twoHostilesDamaged:e1.hp<before.hostile[0]&&e2.hp<before.hostile[1],
+    totUntouched:tot.hp===before.ally[1],
+    rivetUntouched:rivet.hp===before.ally[2],
+    ownerUntouched:player.hp===before.ally[0]};
+  f.forEach((a,i)=>{a.x=100+i*115;a.y=890;});
+  player.x=170;player.y=550;tot.x=330;tot.y=550;
+  e1.x=650;e1.y=550;
+  const hpBefore={enemy:e1.hp,ally:tot.hp};
+  W.spawnThrownMelee(player,'DAGGER',0);
+  const spawned=projectiles.some(p=>p.aq&&p.type==='aq_thrown'&&p.weapon==='DAGGER'&&p.owner===player);
+  A.step(.42);
+  const thrown={spawned,hitEnemy:e1.hp<hpBefore.enemy,allyUntouched:tot.hp===hpBefore.ally};
+  window.exitArsenalBattleMode();
+  return {started,grenade,thrown};
+`;
+  try {
+    const exotic=run(q2ExoticScript);
+    gate('q2-3v4-real-grenade-two-hostiles-not-allies',
+      !!exotic?.started&&!!exotic.grenade?.projectileCreated
+      &&!!exotic.grenade.twoHostilesDamaged
+      &&!!exotic.grenade.totUntouched&&!!exotic.grenade.rivetUntouched
+      &&!!exotic.grenade.ownerUntouched,exotic?.grenade);
+    gate('q2-3v4-real-thrown-melee-through-ally',
+      !!exotic?.started&&!!exotic.thrown?.spawned&&!!exotic.thrown.hitEnemy
+      &&!!exotic.thrown.allyUntouched,exotic?.thrown);
+  } catch(error){
+    gate('q2-3v4-grenade-and-thrown-real-engine-runner',false,
+      {error:String(error?.stack||error)});
+  }
   try{
     const restored=run("const started=window.__apexArsenalTestStartMatch('ROBOT','ROBOT')===true;const A=window.APEX_ARSENAL;const snap={started,count:(window.fighters||[]).length,quest:!!A.state?.questMultiActor,fixture:A.state?.questTestFixture||null};if(started)window.exitArsenalBattleMode();return snap;");
     gate('q2-clean-1v1-after-fixtures',restored?.started&&restored.count===2
