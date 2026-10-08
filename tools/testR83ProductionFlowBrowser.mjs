@@ -32,7 +32,7 @@ const evalJS=async expression=>{
 };
 try{
   let target;
-  for(let i=0;i<120;i++){
+  for(let i=0;i<450;i++){
     try{
       const pages=await fetch('http://127.0.0.1:'+port+'/json/list').then(r=>r.json());
       target=pages.find(x=>x.type==='page');
