@@ -64,6 +64,7 @@ try{
   if(!homeMounted)throw new Error('React-mounted Home/boot START unavailable');
 
   const out='docs/acceptance/r85-responsive-pick';
+  await mkdir(out,{recursive:true});
   const screens=[
     {w:550,h:857,label:'golden-550x857'},
     {w:390,h:844,label:'tall-390x844'},
