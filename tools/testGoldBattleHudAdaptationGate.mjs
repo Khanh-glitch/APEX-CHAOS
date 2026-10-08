@@ -170,6 +170,13 @@ check('R60 Heavy reuses one sanitized DOM snapshot for independent Voronoi shard
   hud.includes('const clone=shardTemplate.cloneNode(true);piece.appendChild(clone);') &&
   !hud.includes('const clone=makePanelSnapshot(panel.v,w,h);piece.appendChild(clone);') &&
   r55Adapter.includes("'Heavy shards reuse sanitized template'"));
+check('R65 artwork-level state and geometric hero motifs replace portrait watermark',
+ hud.includes('R65 — skill artwork carries live authority') &&
+ hud.includes('.skill[data-state="active"] .sk-art') &&
+ hud.includes('.skill[data-state="cd"] .sk-art') &&
+ hud.includes('const patterns={') &&
+ hud.includes("art.classList.add('apex-hero-motif')") &&
+ !hud.includes("art.classList.add('apex-hero-watermark')"));
 check('R63 solo portrait iPad skill states use existing runtime authority',
  hud.includes('R63 skill readability: emphasize actual Gold runtime') &&
  ['cast','active','cd','ready'].every(state => hud.includes('#p1Side .skill[data-state="'+state+'"]')) &&
