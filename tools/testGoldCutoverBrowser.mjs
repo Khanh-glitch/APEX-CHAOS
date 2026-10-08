@@ -164,6 +164,28 @@ try {
   gate('boot-dark-to-gold-door-to-home',!!boot?.engine&&boot.coordinator==='mechanical-door-v4-r50k'&&boot.blackout&&ordered(bootStates),{boot,states:bootStates});
   gate('legacy-loader-menu-picker-not-mounted',boot?.loading===false&&boot?.oldMenu===false&&boot?.oldPicker===false,boot);
   gate('boot-has-no-window-errors',(await evaluate('window.__APEX_R50K_ERRORS.slice()')).length===0,await evaluate('window.__APEX_R50K_ERRORS.slice()'));
+  // R63 verifies the actual rendered destination, not just the Door state.
+  // A successful Door can otherwise expose a hidden/zoomed/black secondary layer.
+  const bootReveal=await evaluate(`(() => {
+    const host=document.getElementById('gold-shell-host');
+    const stage=document.getElementById('stage');
+    const door=document.getElementById('apex-scene-transition');
+    const start=document.getElementById('apex-boot-start');
+    const h=host&&getComputedStyle(host);
+    const r=stage?.getBoundingClientRect();
+    const music=window.__apexMenuBgmState?.()||null;
+    return {
+      hostVisible:!!h&&h.display!=='none'&&h.visibility!=='hidden'&&Number(h.opacity)>0.95,
+      transform:h?.transform||'', stageWidth:r?.width||0,stageHeight:r?.height||0,
+      startGone:!start, doorVisible:door?.style.display!=='none',
+      musicPaused:music?.paused??null, musicBlocked:music?.blocked??null
+    };
+  })()`);
+  gate('R63-door-reveals-full-size-real-Home-without-second-iris',
+    bootReveal.hostVisible&&bootReveal.startGone&&
+    (bootReveal.transform==='none'||bootReveal.transform==='matrix(1, 0, 0, 1, 0, 0)')&&
+    bootReveal.stageWidth>=.9*1600&&bootReveal.stageHeight>=.9*900,
+    bootReveal);
   report.evidence.push(await screenshot('r50k-boot-home'));
 
   // HOME -> MODE by the actual Gold CTA.
