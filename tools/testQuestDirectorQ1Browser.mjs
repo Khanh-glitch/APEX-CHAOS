@@ -485,6 +485,41 @@ try{
   }))()`,v=>v?.visible,100);
   gate('Reloaded Continue Story resumes actual WAKE, not completed preview',restored?.node==='WAKE'&&restored?.checkpoint==='WAKE',restored);
   await image('05-reload-resumes-WAKE');
+  // Q4A: physical Gold-shell click, not a hidden fixture behind Home.
+  // Genuine Quest E01 must be NEWBOT versus T.O.T, with one authored
+  // PISTOL telegraph in the same REAL Arsenal spawned-slot collection.
+  await click('#q4ReflexPreview');
+  const reflex=await poll(`(()=>{const A=window.APEX_ARSENAL,s=A?.state,h=document.getElementById('battleHudHost'),f=window.fighters||[];
+    const hud=h?.querySelector('#hud');
+    return {open:h?.classList.contains('is-open')===true,quest:!!s?.questReflex,
+      roster:f.map(x=>({id:x.questId,team:x.questTeam,maxHp:x.maxHp})),
+      phase:window.__apexQuestReflexRead?.()?.phase||null,
+      names:[hud?.querySelector('#p1Side .id-name')?.textContent?.trim(),
+             hud?.querySelector('#p2Side .id-name')?.textContent?.trim()],
+      questHud:hud?.dataset.quest,
+      playerMeta:hud?.querySelector('#p1Side .id-ctrl')?getComputedStyle(hud.querySelector('#p1Side .id-ctrl')).display:null,
+      scripted:(s?.slots||[]).filter(x=>x.questWeaponId==='PISTOL').map(x=>({id:x.id,phase:x.phase,weapon:x.weaponId})),
+      story:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId};})()`,
+    x=>x?.open&&x.quest&&x.questHud==='1'&&x.scripted?.length>=1,320);
+  gate('Q4A physically clicked REFLEX opens LIVE Gold with real R1 PISTOL telegraph',
+    reflex?.open&&reflex?.quest&&reflex?.phase==='R1_PISTOL'
+    &&reflex?.roster?.length===2
+    &&reflex.roster[0].id==='NEWBOT'&&reflex.roster[1].id==='T.O.T'
+    &&reflex.scripted.length>=1&&reflex.story==='WAKE',reflex);
+  gate('Q4A REFLEX Gold displays T.O.T, never generic SCRAP or LOCAL meta',
+    reflex?.names?.[0]==='NEWBOT'&&reflex?.names?.[1]==='T.O.T'
+    &&reflex.playerMeta==='none',reflex);
+  await image('08-q4a-reflex-gold-real');
+  await pressEscape();
+  const afterReflex=await poll(`(()=>({
+    opened:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,
+    checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,
+    read:window.__apexQuestReflexRead?.(),active:window.APEX_ARSENAL?.state?.active}))()`,
+    x=>x?.opened===false&&x.active===false,150);
+  gate('Q4A REFLEX exit releases receipt and preserves real WAKE checkpoint',
+    afterReflex?.opened===false&&afterReflex?.active===false
+    &&afterReflex?.read==null&&afterReflex?.checkpoint==='WAKE',afterReflex);
+
 }catch(err){
   gate('Browser route execution',false,{error:String(err.stack||err)});
 }finally{
