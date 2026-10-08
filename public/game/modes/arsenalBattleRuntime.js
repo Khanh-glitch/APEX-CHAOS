@@ -307,7 +307,21 @@
       // POST-C §6: P1 cooldown-only skills wait for J. Gate wraps P1 update
       // only; P2 keeps automatic kit behavior.
       const gate = window.APEX_ARSENAL_SKILL_GATE;
-      if (fighters[0] && fighters[1]) {
+      if (state.questFirstWake && window.APEX_QUEST_MULTI_ACTOR_CORE) {
+        const Q = window.APEX_QUEST_MULTI_ACTOR_CORE;
+        // Quest actor update follows the SAME Fighter.update and holder pipeline.
+        // Resolve hostiles by team, never by index. Do not run legacy 1v1
+        // collision callbacks against the two anchors as though they were
+        // always enemies (Quest includes allies and more than two bodies).
+        for (const fighter of fighters) {
+          if (!fighter || fighter.hp <= 0) continue;
+          const enemy = Q.nearestEnemy(fighter, fighters);
+          if (fighter === fighters[0] && gate?.preUpdate) gate.preUpdate(fighter, dt);
+          fighter.update(dt, enemy);
+          if (fighter === fighters[0] && gate?.postUpdate) gate.postUpdate(fighter);
+        }
+        Q.separateBodyOverlaps(fighters);
+      } else if (fighters[0] && fighters[1]) {
         if (gate && gate.preUpdate) gate.preUpdate(fighters[0], dt);
         fighters[0].update(dt, fighters[1]);
         if (gate && gate.postUpdate) gate.postUpdate(fighters[0]);
@@ -373,7 +387,16 @@
     const HRW = window.APEX_HERO_REWORK;
     const aqKO = (f) => (HRW && HRW.bodyKO) ? HRW.bodyKO(f) : (f.hp <= 0);
     const aqHp = (f) => (HRW && HRW.bodyHudHp) ? HRW.bodyHudHp(f).hp : f.hp;
-    if (!state.labMode && !state.over && fighters[0] && fighters[1] && (aqKO(fighters[0]) || aqKO(fighters[1]))) {
+    if (state.questFirstWake && !state.over && !state.labMode && window.APEX_QUEST_MULTI_ACTOR_CORE) {
+      const outcome = window.APEX_QUEST_MULTI_ACTOR_CORE.firstWakeOutcome(fighters);
+      if (outcome.status === 'RETRY' || outcome.status === 'COMPLETE') {
+        state.over = 'QUEST_FIRST_WAKE_' + outcome.status;
+        state.questOutcome = outcome.status;
+        // No economy award, no 1v1 winnerSide or Gold result transition.
+        AQ.log('QUEST_OUTCOME', outcome.status + ' reason=' + outcome.reason);
+        updateHUD();
+      }
+    } else if (!state.questFirstWake && !state.labMode && !state.over && fighters[0] && fighters[1] && (aqKO(fighters[0]) || aqKO(fighters[1]))) {
       const winner = aqHp(fighters[0]) > aqHp(fighters[1]) ? fighters[0] : fighters[1];
       const winnerSide = winner === fighters[0] ? 'P1' : 'P2';
       // Side is the outcome authority. Fighter name remains legacy display
@@ -856,7 +879,12 @@
     ctx.scale(view.zoom, view.zoom);
     ctx.translate(-GAME_SIZE / 2, -GAME_SIZE / 2);
     const tEq = performance.now();
-    // baseDraw has already rendered every live body. Preserve Gold's exact
+    // baseDraw renders two primary bodies; Quest extra Fighter anchors use
+    // this world-space pass, before real equipment and VFX. No HUD takeover.
+    if (AQ.state?.questFirstWake) {
+      for (const f of fighters.slice(2)) if (f) f.draw(ctx);
+    }
+    // baseDraw has already rendered primary bodies. Preserve Gold's exact
     // order: body → A2 residue → real held weapon → plate-clipped A1World.
     window.APEX_MIRROR_PRESENTATION?.renderPostFighterResidue?.(ctx);
     drawEquippedWeapons(ctx);
@@ -966,13 +994,44 @@
 
     const [t1, t2] = types;
     lastShells = [t1.name, t2.name];
-    fighters = [
-      new Fighter(1, 220, GAME_SIZE / 2, t1),
-      new Fighter(2, GAME_SIZE - 220, GAME_SIZE / 2, t2),
-    ];
+    const questFirstWake = options.questFirstWake === true
+      && t1.name === 'ROBOT'
+      && !!window.APEX_QUEST_MULTI_ACTOR_CORE;
+    if (questFirstWake) {
+      // No prototype combat engine. All four are real Apex Fighters. Their
+      // blank NPC kits do not add forbidden Hero actives. NEWBOT stays the
+      // canonical ROBOT with its real A1/A2 and passive, wired to J/K.
+      const makeNpc = (name, color) => {
+        const def = makeArsenalFighterType(name, color, -1, 0.5);
+        def.arsenalBlank = true;
+        def.draw = function (c, f) {
+          const gold = window.APEX_QUEST_GOLD_ENEMIES;
+          if (gold?.draw && gold.draw(c, f)) return;
+          drawSketchBlob(c, f.radius, f.color, 17);
+        };
+        return def;
+      };
+      fighters = [
+        new Fighter(1, 220, 310, t1),
+        new Fighter(2, 780, 310, makeNpc('SCRAP SCOUT', '#c88d48')),
+        new Fighter(3, 220, 690, makeNpc('T.O.T', '#80b4c2')),
+        new Fighter(4, 780, 690, makeNpc('SCRAP BOT', '#b55c43')),
+      ];
+      fighters[0].questId = 'NEWBOT'; fighters[0].questTeam = 'ALLY';
+      fighters[1].questId = 'SCRAP-A'; fighters[1].questTeam = 'HOSTILE';
+      fighters[2].questId = 'T.O.T'; fighters[2].questTeam = 'ALLY';
+      fighters[3].questId = 'SCRAP-B'; fighters[3].questTeam = 'HOSTILE';
+      AQ.state.questFirstWake = true;
+      AQ.state.questOutcome = null;
+    } else {
+      fighters = [
+        new Fighter(1, 220, GAME_SIZE / 2, t1),
+        new Fighter(2, GAME_SIZE - 220, GAME_SIZE / 2, t2),
+      ];
+    }
     for (const f of fighters) {
-      f.maxHp = CFG.MATCH_HP;
-      f.hp = CFG.MATCH_HP;
+      f.maxHp = questFirstWake && f.questTeam === 'HOSTILE' ? 350 : CFG.MATCH_HP;
+      f.hp = f.maxHp;
       const a = Math.random() * TAU;
       f.setDir(Math.cos(a), Math.sin(a));
     }
@@ -1016,6 +1075,11 @@
   }
   window.startArsenalBattleMode = function startProductArsenalBattle(p1Name, p2Name, options) {
     return startArsenalBattleMode(p1Name, p2Name, options);
+  };
+  window.__apexQuestFirstWakeStart = function startQuestFirstWakeSpike() {
+    // Explicit feature opt-in on the disposable Quest branch only.
+    if (window.__APEX_QUEST_DEV !== true) return false;
+    return window.startArsenalBattleMode('ROBOT', 'ROBOT', { questFirstWake: true });
   };
   window.__apexArsenalTestStartMatch = function startArsenalTestFixture(p1Name, p2Name) {
     if (window.__APEX_TEST_MODE !== true || !['localhost', '127.0.0.1', '::1'].includes(String(window.location?.hostname || ''))) return false;
@@ -1167,6 +1231,11 @@
       aqProjectiles: projectiles.filter(p => p && p.aq).length,
       hero: fighterSnapshot(fighters[0]),
       rival: fighterSnapshot(fighters[1]),
+      questFirstWake: !!state.questFirstWake,
+      questOutcome: state.questOutcome || null,
+      questActors: state.questFirstWake ? fighters.map(f => ({
+        questId: f.questId, questTeam: f.questTeam, ...fighterSnapshot(f),
+      })) : null,
       slots: state.slots.map(slot => ({
         id: slot.id,
         phase: slot.phase,
