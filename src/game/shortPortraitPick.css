@@ -1,0 +1,94 @@
+/* R85 compact Fighter Pick laboratory: a single height budget.
+   Read-only candidate until measured and reviewed. Not imported into shipping. */
+@media (orientation:portrait) and (max-height:700px) {
+  #stage.screen-fighter {
+    --r85LockReserve:max(10vh,calc(var(--apexLockB) + var(--apexLockH) + .8vh));
+    --r85DeckTop:min(65vh,calc(100dvh - var(--r85LockReserve) - 128px));
+  }
+  #stage.screen-fighter .fighterHeaderV6 {
+    top:1.5vh!important;left:3vw!important;right:3vw!important;
+    translate:none!important;width:94vw!important;text-align:center!important;
+    gap:2px!important;pointer-events:none
+  }
+  #stage.screen-fighter .fighterHeaderV6 h2 {
+    font-size:clamp(14px,5vw,23px)!important;letter-spacing:-.025em!important;
+    line-height:1!important;white-space:nowrap!important
+  }
+  #stage.screen-fighter .fighterHeaderV6 .fighterKicker {
+    font-size:6px!important;letter-spacing:.18em!important
+  }
+  #stage.screen-fighter .selectionDeckV6 {
+    top:var(--r85DeckTop)!important;
+    bottom:var(--r85LockReserve)!important;
+    height:auto!important;min-height:0!important
+  }
+  #stage.screen-fighter .selectionDeckV6 .roster {
+    grid-template-rows:repeat(2,minmax(0,1fr))!important
+  }
+  #stage.screen-fighter .selectionDeckV6 .rosterCard img {height:72%!important}
+  #stage.screen-fighter .selectionDeckV6 .rosterName {
+    height:28%!important;font-size:clamp(8px,2.8vw,11px)!important
+  }
+  #stage.screen-fighter .worldHeroSlot,
+  #stage.screen-fighter .worldHeroSlot[data-hero],
+  #stage.screen-fighter .worldHeroSlot.p1[data-hero],
+  #stage.screen-fighter .worldHeroSlot.p2[data-hero] {
+    top:11.7vh!important;
+    bottom:calc(100dvh - var(--r85DeckTop) + 66px)!important;
+    width:104vw!important
+  }
+  #stage.screen-fighter .worldHeroSlot.p1,
+  #stage.screen-fighter .worldHeroSlot.p1[data-hero] {
+    left:-2vw!important;right:auto!important
+  }
+  #stage.screen-fighter .worldHeroSlot.p2,
+  #stage.screen-fighter .worldHeroSlot.p2[data-hero] {
+    right:-2vw!important;left:auto!important
+  }
+  #stage.screen-fighter .worldHeroSlot .heroWrap {
+    width:90%!important;left:5%!important
+  }
+  #stage.screen-fighter .worldHeroSlot.p2 .heroWrap {
+    left:auto!important;right:5%!important
+  }
+  #stage.screen-fighter .fighterIdentityZone {
+    top:auto!important;
+    bottom:calc(100dvh - var(--r85DeckTop) + 8px)!important;
+    width:92vw!important;left:4vw!important;right:auto!important;height:auto!important
+  }
+  #stage.screen-fighter .fighterIdentityZone .fighterIdentity {
+    display:grid!important;
+    grid-template-columns:auto minmax(0,1fr);
+    grid-template-rows:auto auto;
+    grid-template-areas:"flag name" "skills skills";
+    align-items:center;column-gap:8px;row-gap:3px;
+    padding:4px 7px 5px!important;max-width:100%!important;overflow:hidden!important
+  }
+  #stage.screen-fighter .fighterIdentityZone .playerFlag {
+    grid-area:flag;margin:0!important;align-self:center
+  }
+  #stage.screen-fighter .fighterIdentityZone .fighterName {
+    grid-area:name;margin:0!important;
+    font-size:clamp(19px,5.8vw,27px)!important;line-height:1!important;
+    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important
+  }
+  #stage.screen-fighter .fighterIdentityZone .fighterTag {display:none!important}
+  #stage.screen-fighter .fighterIdentityZone .skillRows {
+    grid-area:skills;display:flex!important;flex-wrap:nowrap!important;
+    overflow-x:auto!important;overflow-y:hidden!important;
+    max-width:100%!important;min-width:0!important;margin:0!important;
+    gap:4px!important;scrollbar-width:none
+  }
+  #stage.screen-fighter .fighterIdentityZone .skillRows::-webkit-scrollbar {display:none}
+  #stage.screen-fighter .fighterIdentityZone .skillChip {
+    flex:0 0 auto!important;width:auto!important;max-width:none!important;
+    padding:3px 5px!important;min-height:22px!important;
+    font-size:clamp(8px,2.5vw,10px)!important;white-space:nowrap!important
+  }
+  #stage.screen-fighter .fighterIdentityZone .skillChip .skillType {
+    font-size:8px!important;white-space:nowrap!important
+  }
+  #stage.screen-fighter .fighterIdentityZone .skillChip .keycap {
+    min-width:16px!important;height:16px!important;font-size:8px!important
+  }
+}
