@@ -1205,6 +1205,41 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
 #stage.screen-fighter .selectionDeckV6{top:70.8vh!important}
 }
 </style>
+<style id="r83-mode-short-portrait">
+/* R83 SHORT-PORTRAIT MODE SELECT COMPOSITION.
+   Preserves Gold card artwork/hierarchy. Reallocates the height budget as
+   proportions of the live viewport; only active on Mode (not Home/Pick).
+   The old dim Home route band must not bleed through the Mode cards. */
+@media (orientation:portrait) and (max-height:720px) {
+  #stage.screen-mode .routes,
+  #stage.screen-mode .bottom-depth{
+    opacity:0!important;
+    visibility:hidden;
+    pointer-events:none!important;
+  }
+  #stage.screen-mode .modeSelectScreen{
+    top:39.3vh;
+    bottom:7.2vh;
+    min-height:0;
+  }
+  #stage.screen-mode .modeHeader{flex:0 0 auto}
+  #stage.screen-mode .modeChoices{
+    flex:1 1 auto;
+    min-height:0;
+    grid-template-rows:repeat(2,minmax(0,1fr));
+    gap:clamp(5px,.95vh,8px);
+    margin-top:clamp(6px,1.4vh,10px);
+  }
+  #stage.screen-mode .modeCard,
+  #stage.screen-mode .modeArt{
+    min-height:0;
+    height:100%;
+  }
+  #stage.screen-mode .modeName{
+    font-size:clamp(26px,8.2vw,35px);
+  }
+}
+</style>
 </head>
 <body>
 <main id="stage" data-apex-shell-stage="true" aria-label="APEX CHAOS Home">
