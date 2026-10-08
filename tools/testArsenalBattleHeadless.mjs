@@ -5983,6 +5983,74 @@ if (process.argv.includes('--quest-n-actors')) {
   }
 }
 
+// Q4A: live Arsenal projectile and accepted HeroRework Cast receipts.
+// This pilot cannot clear Story and stops at the RIVET hold.
+if(process.argv.includes('--quest-reflex-real')){
+  try{
+    const proof=run(`
+      const started=window.__apexQuestReflexStart?.()===true;
+      const A=window.APEX_ARSENAL,W=A?.weaponApi,HR=window.APEX_HERO_REWORK;
+      const f=window.fighters||[],n=f[0],t=f[1];
+      if(!started||!A?.state?.questReflex||!HR?.isReworkFighter?.(n))return {started,ready:false};
+      const read=()=>window.__apexQuestReflexRead?.(),begin=read();
+      A.state.spawnHeld=true;A.state.spawnTimer=1e6;A.state.slots=[];
+      f.forEach(x=>{x.baseSpeed=0;x.data.__hrHoldBody=true;});
+      const shots=[];
+      function realShot(src,victim,damage=7){
+        const right=src===n;
+        src.x=right?170:830;src.y=330;
+        victim.x=right?650:350;victim.y=330;
+        window.projectiles.length=0;
+        const before=victim.hp;
+        W.fireBullet({owner:src,x:right?225:775,y:330,angle:right?0:Math.PI,
+          speed:2600,damage,weapon:'PISTOL',critical:false});
+        A.step(.2);
+        const hit=victim.hp<before;
+        shots.push({src:src.questId,victim:victim.questId,before,after:victim.hp,hit});
+        return hit;
+      }
+      const r1=realShot(n,t),afterR1=read();
+      const r2=realShot(t,n),afterR2=read();
+      // A1 really requires a live REVEALED gun. Set up a test fixture slot;
+      // neither the skill result nor the hit receipt is fabricated.
+      A.state.slots.push({id:44001,x:520,y:750,phase:'REVEALED',weaponId:'PISTOL',
+        kind:'WEAPON',spawnTime:A.state.time,revealedFor:0,rejectedFor:{},tier:null});
+      const j=HR.pressAbility(n,'A1',{side:'p1',source:'keyboard',key:'KeyJ'});
+      const afterJ=read();
+      const k=HR.pressAbility(n,'A2',{side:'p1',source:'keyboard',key:'KeyK'});
+      const afterK=read();
+      let count=0,hitT=0,hitN=0;
+      while((n.hp>500||t.hp>500)&&count++<36&&!A.state.over){
+        if(t.hp>500&&realShot(n,t,7))hitT++;
+        if(n.hp>500&&realShot(t,n,7))hitN++;
+      }
+      const last=read(),engineOver=A.state.over;
+      window.exitArsenalBattleMode();
+      const closed=window.__apexQuestReflexRead?.()===null;
+      return {started,ready:true,begin,r1,r2,afterR1,afterR2,j,k,afterJ,afterK,
+        hitT,hitN,count,last,engineOver,closed,shots:shots.slice(0,5),
+        roster:f.map(x=>({id:x.questId,team:x.questTeam,maxHp:x.maxHp}))};
+    `);
+    gate('q4a-live-reflex-canonical-two-actor-roster',
+      proof?.ready&&proof.begin?.phase==='R1_PISTOL'
+      &&JSON.stringify(proof.roster.map(x=>x.id))==='["NEWBOT","T.O.T"]',proof?.roster);
+    gate('q4a-live-reflex-native-pistol-reverse-order',
+      proof?.r1&&proof.r2&&proof.afterR1?.phase==='R2_PISTOL'
+      &&proof.afterR2?.phase==='J_CAST',proof?.shots);
+    gate('q4a-live-reflex-successful-j-k-not-raw-key',
+      proof?.j?.ok===true&&proof?.k?.ok===true
+      &&proof.afterJ?.phase==='K_CAST'&&proof.afterK?.phase==='BOTH_HALF',
+      {j:proof?.j,k:proof?.k,afterJ:proof?.afterJ,afterK:proof?.afterK});
+    gate('q4a-live-reflex-real-hp-rivet-hold-not-fake-clear',
+      proof?.hitN>0&&proof?.hitT>0&&proof.last?.phase==='AWAIT_RIVET'
+      &&proof.last?.complete===false&&proof.last?.storyProgress===false
+      &&proof.engineOver===null&&proof.closed,
+      {hp:proof?.last?.hp,phase:proof?.last?.phase,engineOver:proof?.engineOver,closed:proof?.closed});
+  }catch(error){
+    gate('q4a-native-reflex-runner',false,{error:String(error?.stack||error)});
+  }
+}
+
 // ------------------------------------------------------------------- summary
 report.summary = {
   total: Object.keys(report.gates).length,
