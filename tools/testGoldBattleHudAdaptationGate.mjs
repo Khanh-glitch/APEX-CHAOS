@@ -170,18 +170,12 @@ check('R60 Heavy reuses one sanitized DOM snapshot for independent Voronoi shard
   hud.includes('const clone=shardTemplate.cloneNode(true);piece.appendChild(clone);') &&
   !hud.includes('const clone=makePanelSnapshot(panel.v,w,h);piece.appendChild(clone);') &&
   r55Adapter.includes("'Heavy shards reuse sanitized template'"));
-check('R60 BOT tablet has two balanced square-oriented thumb targets',
-  hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] #p1Side .skills{') &&
-  hud.includes('grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:minmax(0,1fr)') &&
-  hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] #p1Side .skill{') &&
-  !hud.includes('#hud[data-layout="land"][data-size="tablet"][data-mode="2p"] #p1Side .skills{'));
-check('R60 compact Local remains phone/2P-scoped with dedicated safe row allocation',
-  hud.includes('@media (max-width:430px) and (max-height:720px)') &&
-  hud.includes('#hud[data-layout="port"][data-size="compact"][data-mode="2p"]{') &&
-  hud.includes('--zoneMin:clamp(158px,24cqh,174px)') &&
-  !hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="2p"]{--zoneMin:clamp(158px'));
+check('R61 compact Local does not reduce arena for panel fit',
+ hud.includes('R61 compact Local: keep arena sizing') &&
+ !hud.includes('--zoneMin:clamp(158px,24cqh,174px)') &&
+ !hud.includes('R60 BOT landscape tablet:'));
 check('R59/CP6 Frost keeps accepted scale with native-facing and visual ground authority',
-  shell.includes('frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:.985}')
+  shell.includes('frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:1.025}')
   && shell.includes('const face=nativeFacing*desiredSideFacing')
   && shell.includes('function visualBottomRatio(img)')
   && shell.includes('function anchoredHeroY(img,p)')
