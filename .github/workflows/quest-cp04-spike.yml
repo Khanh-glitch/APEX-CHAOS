@@ -1,0 +1,42 @@
+name: Quest CP04 isolated 2v2 spike
+
+on:
+  push:
+    branches:
+      - 'quest/cp04-multi-actor-spike-r59'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quest-spike:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install locked tooling
+        run: pnpm install --frozen-lockfile
+      - name: Materialize sound assets for faithful engine boot
+        run: pnpm arsenal:sfx:materialize
+      - name: Check Quest pure selector adversarial cases
+        run: node tools/testQuestMultiActorCore.mjs
+      - name: Run REAL Arsenal headless FIRST WAKE 2v2 and existing regressions
+        env:
+          APEX_EVIDENCE_DIR: /tmp/quest-cp04-acceptance
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-first-wake
+      - name: Record evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quest-cp04-real-engine-headless
+          path: /tmp/quest-cp04-acceptance/
+          if-no-files-found: warn
