@@ -679,6 +679,32 @@ kbd{font:inherit}
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill .sk-art{width:min(100%,138px);height:min(100%,138px)}
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon{align-self:end;max-height:124px;min-height:98px;padding:5px 7px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(7,10,14,.84))}
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon .wp-ico{min-height:48px}
+/* R67 art-first status: perimeter progress (not blurred artwork).
+   CD shade descends within the image; active edge advances for actual duration. */
+#hud .skill .sk-art{isolation:isolate;filter:none!important;box-shadow:none!important;overflow:hidden}
+#hud .skill .sk-art::after{display:none!important}
+#hud .skill .sk-art .apex-state-ring{
+ position:absolute;inset:0;z-index:6;pointer-events:none;opacity:0;
+ border:3px solid transparent;
+ background:conic-gradient(from -90deg,var(--acc) calc(var(--apex-active-progress,0)*1turn),transparent 0) border-box;
+ -webkit-mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);
+ -webkit-mask-composite:xor;mask-composite:exclude;
+ filter:none;transition:opacity .08s;
+}
+#hud .skill[data-state="active"] .sk-art .apex-state-ring{opacity:1}
+#hud .skill .sk-art .apex-state-shade{
+ position:absolute;inset:0;z-index:5;pointer-events:none;
+ background:rgba(0,2,6,.79);opacity:0;transform-origin:50% 0;
+ transform:scaleY(var(--apex-cd-shade,0));transition:opacity .12s;
+}
+#hud .skill[data-state="cd"] .sk-art .apex-state-shade{opacity:1}
+#hud .skill[data-state="active"] .sk-art{
+ outline:2px solid var(--acc);outline-offset:-2px;
+}
+#hud .skill[data-state="cast"] .sk-art{
+ outline:2px solid #ffd18a;outline-offset:-2px;
+}
+#hud .skill[data-state="ready"] .sk-art{outline:0}
 /* Shared live-ammo state. */
 #hud .weapon.low-ammo .wp-cur{color:var(--crit);text-shadow:0 0 10px color-mix(in srgb,var(--crit) 46%,transparent)}
 #hud .weapon.low-ammo .wp-mag i{background:var(--crit)}
@@ -1040,7 +1066,7 @@ function sideHTML(i){const h=HEROES[i];return `
  <div class="duel-feed" aria-live="polite"><span class="df-role">DUEL</span><b class="df-tier">READY</b><b class="df-value">—</b></div>
  <div class="skills">${h.abilities.map((a,k)=>`
    <button class="skill" type="button" data-p="${i+1}" data-i="${k}" data-state="ready" aria-label="${a.name} (${a.key})">
-     <span class="sk-art">${a.icon}<span class="sk-mask"></span><span class="sk-cdn ltr"></span><span class="sk-sweep"></span></span>
+     <span class="sk-art">${a.icon}<span class="apex-state-shade"></span><span class="apex-state-ring"></span><span class="sk-mask"></span><span class="sk-cdn ltr"></span><span class="sk-sweep"></span></span>
      <span class="sk-info">
        <span class="sk-top"><kbd class="sk-key">${a.key}</kbd><span class="sk-slot"></span></span>
        <span class="sk-name">${a.name}</span>
@@ -1228,6 +1254,11 @@ function renderSkills(now){
   u.el.dataset.kind=a.kind||'cooldown';
   const maskFrac=(st==='cd'&&a.charges<=0)?frac:0;
   const m=`scaleY(${maskFrac.toFixed(3)})`;if(u.k.m!==m){u.mask.style.transform=m;u.k.m=m;}
+  // Source-of-truth state controls artwork, not just the label below it.
+  // Active perimeter fills in exact proportion to the ability's active duration.
+  // CD shade decreases from fully covered to clear as recharge completes.
+  u.art.style.setProperty('--apex-active-progress',String(st==='active'?1-activeFrac:0));
+  u.art.style.setProperty('--apex-cd-shade',String(st==='cd'?frac:0));
   const meter=activeRemaining>0?activeFrac:(a.next?(1-frac):1);
   const b=`scaleX(${meter.toFixed(3)})`;if(u.k.b!==b){u.bar.style.transform=b;u.k.b=b;}
   const secs=remaining.toFixed(1),activeSecs=activeRemaining.toFixed(1);
