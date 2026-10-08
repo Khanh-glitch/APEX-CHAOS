@@ -1440,7 +1440,7 @@
       timer: elapsed,
       timeSemantics: 'elapsed',
       roundAuthority: false,
-      ko: !!(state && state.over),
+      ko: !!(state && state.over && !state.questFirstWake),
       sides,
     };
     return { state: matchState, fighters: fighterPos };
@@ -1500,7 +1500,9 @@
     if (typeof seam.syncFighters === 'function') seam.syncFighters(proj.fighters);
     const arsenal = window.APEX_ARSENAL;
     const state = arsenal && arsenal.state ? arsenal.state : null;
-    const over = state && state.over ? String(state.over) : null;
+    // Quest result is owned by the Quest Director, not Gold's 1v1 win
+    // counter or 2600 ms auto-return. The two systems must not race.
+    const over = state && !state.questFirstWake && state.over ? String(state.over) : null;
     if (over && over !== lastKo) {
       lastKo = over;
       // ONE result signal for the shell: the match is over, so the backdrop tap
