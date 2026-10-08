@@ -141,6 +141,28 @@ export function adaptGoldBattleHudR55(input) {
 #hud[data-layout="land"][data-size="tablet"][data-mode="1p"] .skill .sk-art{width:var(--artW);height:var(--artW);aspect-ratio:1/1;align-self:center;justify-self:start}
 #hud[data-layout="land"][data-size="tablet"][data-mode="1p"] .sk-art>.apex-skill-icon{width:100%;height:100%;object-fit:contain;object-position:center}
 
+/* R60 BOT landscape tablet: two near-square thumb targets replace stretched
+   horizontal skill bars. The weapon remains a separate readable footer;
+   the Local shared-device composition is not touched. */
+#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] #p1Side .skills{
+  grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:minmax(0,1fr);
+  height:clamp(130px,23cqh,168px);align-self:end;gap:7px;
+}
+#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] #p1Side .skill{
+  grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;
+  grid-template-areas:"art" "info";text-align:center;
+}
+#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] #p1Side .skill .sk-art{
+  width:min(100%,88px);height:min(100%,88px);justify-self:center;align-self:center;
+}
+#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] #p1Side .sk-info{
+  padding:3px 4px 6px;gap:3px;align-items:center;
+}
+#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] #p1Side .sk-name{font-size:11px;max-width:100%;text-align:center}
+#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] #p1Side .sk-state{font-size:9px;text-align:center;letter-spacing:.04em}
+#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] #p1Side .sk-desc,
+#hud[data-layout="land"][data-size="tablet"][data-mode="1p"] #p1Side .sk-slot{display:none}
+
 /* Shared live-ammo state. */
 #hud .weapon.low-ammo .wp-cur{color:var(--crit);text-shadow:0 0 10px color-mix(in srgb,var(--crit) 46%,transparent)}
 #hud .weapon.low-ammo .wp-mag i{background:var(--crit)}
