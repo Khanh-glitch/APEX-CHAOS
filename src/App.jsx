@@ -536,7 +536,6 @@ export default function App() {
         }
         host.dataset.apexGoldMounted = '1';
         document.body.classList.add('apex-gold-mounted');
-        setGoldReady(true);
         // Boot READY includes the explicit Home Core asset set (including CSS
         // layer art), then the coordinator verifies DOM decode/font/layout.
         if (window.APEX_GOLD?.prepareSurface) {
@@ -578,6 +577,10 @@ export default function App() {
         });
         if (cancelled) return;
         await window.APEX_SCENE_TRANSITION?.signalBootReady?.();
+        // Publish state only after the complete boot handshake: setting this
+        // earlier triggers the effect cleanup, setting cancelled=true while
+        // Home preparation / START is still pending.
+        setGoldReady(true);
       } catch (error) {
         console.warn('[gold-shell] Gold product shell mount failed.', error);
       }
