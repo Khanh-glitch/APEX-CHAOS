@@ -947,7 +947,12 @@
     const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     const kind = crit ? 'crit' : 'dmg';
     if (fam === 'SHOTGUN' || fam === 'AUTO') {
-      const key = (victim && victim.name) + '|' + (fam === 'SHOTGUN' ? 'SG' : 'AU');
+      // In Quest, display names repeat across multiple physical Scrap Bots.
+      // Aggregate only per real Quest actor, never by a shared display label.
+      // Preserve the established BOT/LOCAL key and timing unchanged.
+      const victimKey = AQ.state?.questMultiActor && victim?.questId
+        ? victim.questId : victim?.name;
+      const key = String(victimKey) + '|' + (fam === 'SHOTGUN' ? 'SG' : 'AU');
       const windowMs = fam === 'AUTO' ? 110 : 50;
       const prev = agg.get(key);
       if (prev && now - prev.t < windowMs) {
