@@ -1369,7 +1369,14 @@ function fxCrit(a,v,amt,impactAccent){
  sweep(a,v,'crit');chromaSweep(a,v);
  queueFx(()=>{
   flash('crit',v,impactAccent);railSurge(v,1);if(!RM.matches)railJolt(v,6);sideRecoil(v,10);edgeShock(v,'crit',impactAccent);sideLight(v,0.45,240);
-  popup(v,amt,'c',impactAccent);bigNumber(v,amt,'c',impactAccent);stamp(v,'CRITICAL','crit',impactAccent);
+  popup(v,amt,'c',impactAccent);
+  // Quest many-Fighter combat already displays the REAL numeric popup on the
+  // victim in the arena. Gold's second enormous panel copy sits on the
+  // faction name/HP in compact landscape; retain the original twin-copy
+  // sequence for BOT/Local ONLY.
+  if(R.hud.dataset.quest!=='1'){
+    bigNumber(v,amt,'c',impactAccent);stamp(v,'CRITICAL','crit',impactAccent);
+  }
  },RM.matches?0:120);
 }
 function fxHeavy(a,v,amt,impactAccent){
@@ -1390,7 +1397,10 @@ function fxHeavy(a,v,amt,impactAccent){
   const panel=R.ruptures[v];
   if(panel){panel.cells=voronoiPanel(panel.w,panel.h,panel.hit);fracture(v,panel);shatterPanel(panel);}
   sideRecoil(v,14);railSurge(v,2);if(!RM.matches)railJolt(v,10);
-  popup(v,amt,'h',impactAccent);bigNumber(v,amt,'h',impactAccent);stamp(v,'DEVASTATING','heavy',impactAccent);
+  popup(v,amt,'h',impactAccent);
+  if(R.hud.dataset.quest!=='1'){
+    bigNumber(v,amt,'h',impactAccent);stamp(v,'DEVASTATING','heavy',impactAccent);
+  }
  },RM.matches?80:174);
  queueFx(()=>{
   if(S.fx.heavyToken[v]!==token)return;
@@ -1405,7 +1415,10 @@ function fxThunder(a,v,amt,impactAccent){
  thunderStrike(a,v);flash('thunder',v);sideLight(0,.62,310);sideLight(1,.62,310);
  railSurge(a,1);railSurge(v,1);if(!RM.matches){railJolt(v,7);sideRecoil(v,8);edgeShock(v,'crit',impactAccent);}
  queueFx(()=>{
-  popup(v,amt,'c',impactAccent);bigNumber(v,amt,'c',impactAccent);stamp(v,'THUNDER','crit',impactAccent);
+  popup(v,amt,'c',impactAccent);
+  if(R.hud.dataset.quest!=='1'){
+    bigNumber(v,amt,'c',impactAccent);stamp(v,'THUNDER','crit',impactAccent);
+  }
  },88);
 }
 function sideLight(i,peak,duration){

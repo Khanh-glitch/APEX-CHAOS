@@ -332,6 +332,17 @@ try{
   // Genuine gun recoil evidence: native Arsenal equips + advances a live
   // PISTOL; only native poseKick can produce holder.meta.pose.pulses.
   // The donor must observe those pulses and animate its own gunKick spring.
+  // Q3v LIVE damage presentation regression. Earlier Q3u screenshots had
+  // enormous CRITICAL/DEVASTATING labels covering the faction's own name.
+  // Wait past the scheduled Gold crit/heavy callback (174 ms) and assert
+  // the real physical hit did NOT create a duplicate side-panel stack.
+  // The in-arena popup and combat shatter/flash remain.
+  await sleep(250);
+  const q3vDuplicateFx=await evalPage("(()=>{\\n const host=document.getElementById('battleHudHost'),hud=host?.querySelector('#hud');\\n const copy=host?.querySelector('#copyLayer');\\n return {quest:hud?.dataset.quest,popups:host?.querySelectorAll('#arenaFx .dmg')?.length||0,duplicateLabels:copy?.querySelectorAll('.stamp.crit,.stamp.heavy,.bignum.c,.bignum.h')?.length||0};\\n})()");
+  gate('Q3v real Quest PISTOL crit/heavy has no duplicate label over faction HP',
+    q3vDuplicateFx?.quest==='1'&&q3vDuplicateFx?.duplicateLabels===0,
+    q3vDuplicateFx);
+
   const q3tNativeRecoil=await evalPage("(()=>{\n const A=window.APEX_ARSENAL,W=A?.weaponApi,rig=window.APEX_QUEST_V12_RIG,f=window.fighters||[];\n const shooter=f.find(x=>x.questId==='SCRAP-B'),target=f.find(x=>x.questId==='T.O.T');\n if(!A?.state?.questMultiActor||!W?.equip||!rig?.inspect||!shooter||!target)return {ready:false};\n shooter.x=585;shooter.y=500;target.x=320;target.y=500;\n if(!W.equip(shooter,'PISTOL'))return {ready:false,reason:'native-equip-failed'};\n const ctx=document.createElement('canvas').getContext('2d');\n shooter.draw(ctx);\n const initial=rig.inspect(shooter);\n let maxPulse=Number(W.getHolder(shooter)?.meta?.pose?.pulses)||0;\n let lastGunKick=initial?.pose?.gunKick||0;\n let maxDeltaGunKick=0;\n const reads=[];\n for(let i=0;i<17;i++){\n   A.step(.09);\n   shooter.draw(ctx);\n   const holder=W.getHolder(shooter);\n   maxPulse=Math.max(maxPulse,Number(holder?.meta?.pose?.pulses)||0);\n   const value=rig.inspect(shooter);\n   if(value){\n     maxDeltaGunKick=Math.max(maxDeltaGunKick,Math.abs(value.pose.gunKick-lastGunKick));\n     lastGunKick=value.pose.gunKick;\n     reads.push({step:i,recoilEvents:value.recoilEvents,kick:value.pose.gunKick});\n   }\n }\n const ending=rig.inspect(shooter);\n return {ready:true,maxNativeFirePulses:maxPulse,\n   before:initial?.recoilEvents,after:ending?.recoilEvents,\n   springKickChanged:maxDeltaGunKick,\n   modelScale:ending?.scaleFactor,\n   reads:reads.filter(x=>x.recoilEvents>initial.recoilEvents).slice(0,5)};\n})()");
   gate('Q3t native PISTOL fire pulses drive REAL V12 Bulwark recoil spring',
     q3tNativeRecoil?.ready===true
