@@ -273,6 +273,9 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
         watchdogSignatureAt = now;
       }
       if (debug && debug.state === 'OPENING' && !tx.openingAt) tx.openingAt = now;
+      // Explicit boot START is an intentional user-paced sealed hold, not a
+      // stalled scene. Never consume the 30s watchdog budget while waiting.
+      if (tx.boot && !bootReadySignalled) return;
       const stalledFor = now - watchdogSignatureAt;
       const age = now - tx.startedAt;
       const revealOverdue = Boolean(tx.openingAt) && now - tx.openingAt >= REVEAL_GRACE_MS;
@@ -537,6 +540,12 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       // Boot only needs fonts + two painted frames after the Home DOM is mounted.
       await settleSceneElement(defaultRoot(), { verifyImages: false });
       bootReadySignalled = true;
+      // Restore a full liveness budget after the user has explicitly started;
+      // otherwise an idle START screen would instantly trip the age hard cap.
+      if (active?.boot) {
+        active.startedAt = performance.now();
+        watchdogSignatureAt = active.startedAt;
+      }
       bootReady.resolve(true);
       return true;
     } catch (error) {
