@@ -28,6 +28,13 @@
       base:'#4f6f90',light:'#8fb4d6',dark:'#223347',metal:'#58626e',
       metalDark:'#1a2129',metalLight:'#a7b4c2',accent:'#31e0ff',
       accent2:'#a8f3ff',glow:'#35e8ff'
+    },
+    // Owner-selected Gold fifth chassis: white/amber OPERATOR is a TEMPORARY
+    // art stand-in for T.O.T. No copied OPERATOR combat/skills.
+    operator: {
+      base:'#e8e2d2',light:'#ffffff',dark:'#8c8573',metal:'#3a3d42',
+      metalDark:'#141518',metalLight:'#a9adb3',accent:'#f0a31a',
+      accent2:'#ffd27a',glow:'#ffb02e'
     }
   });
   const path = (c,points,fill,stroke='#14181d',width=3) => {
@@ -82,7 +89,11 @@
     const phi=Math.sin(now*(v==='scout'?4.3:v==='reaver'?3.8:2.6)+(f.id||0));
     const armed=!!root.APEX_ARSENAL?.weaponApi?.getHolder?.(f);
     c.save();
-    // The Fighter.draw caller has ALREADY applied world translate+heading.
+    // CP04 fallback also faces forward rather than inheriting the physical
+    // auto-movement heading from Fighter.draw; gameplay movement is untouched.
+    const dirX=Number.isFinite(f.dir?.x)?f.dir.x:1;
+    const dirY=Number.isFinite(f.dir?.y)?f.dir.y:0;
+    c.rotate(-Math.atan2(dirY,dirX)+Math.PI/2);
     const scale=Math.max(.4,Math.min(1.1,(f.radius||75)/76));
     c.scale(scale,scale);
     c.shadowColor=p.glow;c.shadowBlur=5;
