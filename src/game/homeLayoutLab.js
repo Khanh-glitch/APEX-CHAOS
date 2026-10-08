@@ -43,7 +43,7 @@ if (new URLSearchParams(window.location.search).get('apexLayoutLab') === 'home')
     'height:46px!important;',
     '}',
     '.' + CLASS + ' #stage:not(.screen-mode):not(.screen-fighter):not(.screen-battle) .brand {',
-    'left:calc(var(--apexLabX) + 22px * var(--apexLabS))!important;',
+    'left:var(--apexLabBandLeft)!important;',
     'top:var(--apexLabBrandTop)!important;',
     'width:150px!important;scale:var(--apexLabS)!important;transform-origin:0 0!important;',
     '}',
