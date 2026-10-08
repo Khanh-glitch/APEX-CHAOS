@@ -599,8 +599,14 @@ export default function App() {
                 && !stage.classList.contains('screen-battle');
               if (!portrait || !home) {
                 actions.style.removeProperty('top');
+                actions.style.removeProperty('transition-property');
                 return;
               }
+              // Gold flow animations include "top" in their transition list.
+              // During Chrome mobile viewport changes that interpolates HITBOXES
+              // toward stale coordinates for 380ms. Preserve scene fades/slide
+              // but make measured Home position changes atomic.
+              actions.style.transitionProperty = 'opacity, transform, translate, left, right, width, filter';
               const stageRect = stage.getBoundingClientRect();
               const bandRect = routes.getBoundingClientRect();
               const actionRect = actions.getBoundingClientRect();
@@ -643,6 +649,7 @@ export default function App() {
                 window.visualViewport?.removeEventListener('resize', request);
                 window.visualViewport?.removeEventListener('scroll', request);
                 actions.style.removeProperty('top');
+                actions.style.removeProperty('transition-property');
                 delete window.__apexHomeGeometryGuard;
               },
             };
