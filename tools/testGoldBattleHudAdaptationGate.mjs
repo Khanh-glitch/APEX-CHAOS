@@ -165,6 +165,11 @@ check('shipping shell embeds the exact shipping Battle HUD bytes',
   !!payload && decoded === hud,
   payload ? ('decoded=' + decoded.length + ' hud=' + hud.length) : 'payload missing');
 
+check('R60 compact Local remains phone/2P-scoped with dedicated safe row allocation',
+  hud.includes('@media (max-width:430px) and (max-height:720px)') &&
+  hud.includes('#hud[data-layout="port"][data-size="compact"][data-mode="2p"]{') &&
+  hud.includes('--zoneMin:clamp(158px,24cqh,174px)') &&
+  !hud.includes('#hud[data-layout="port"][data-size="tablet"][data-mode="2p"]{--zoneMin:clamp(158px'));
 check('R59/CP6 Frost keeps accepted scale with native-facing and visual ground authority',
   shell.includes('frost:{scale:1.53,x:0,nativeFacing:-1,groundLine:.985}')
   && shell.includes('const face=nativeFacing*desiredSideFacing')
