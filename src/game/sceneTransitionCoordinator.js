@@ -313,6 +313,10 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
     const tx = active;
     if (!tx) return;
     stopWatchdog();
+    // The canvas is a COVER only. Once Gold reports DONE it must leave the
+    // compositor; otherwise its black smoke frame obscures the live Home.
+    canvas.style.display = 'none';
+    canvas.setAttribute('aria-hidden', 'true');
     clearNodeMotion(sourceFor(tx));
     clearNodeMotion(targetFor(tx));
     document.body.classList.remove('apex-scene-transition-active');
@@ -493,6 +497,7 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
     const sourceRoot = sourceFor(tx);
     if (!boot) sourceRoot?.classList.add('apex-scene-collapse');
 
+    canvas.style.display = 'block';
     canvas.setAttribute('aria-hidden', 'false');
     bodyState('CLOSING');
     // Gold's demo source-image tile pass is intentionally omitted in product:
