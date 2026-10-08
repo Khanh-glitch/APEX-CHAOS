@@ -16,7 +16,8 @@ let chrome = null;
 if (!process.env.APEX_CDP_ENDPOINT) {
   chrome = spawn(chromePath, [
     '--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check',
-    // Real user-gesture autoplay policy: START must earn playback permission.'--remote-debugging-port=9224',
+    // Real gesture autoplay policy: do not bypass Chrome's media restrictions.
+    '--remote-debugging-port=9224',
     '--window-size=1600,900','--user-data-dir=' + path.join(process.cwd(), '.arsenal-chrome-profile'),
     appUrl,
   ], { stdio:'ignore', detached:false });
