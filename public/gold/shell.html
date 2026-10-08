@@ -1358,21 +1358,26 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
 
 <script src="/game/ui/uiSfxAuthority.js?v=20261008-r76-shell-cache-boundary"></script>
 <script src="/game/gold/goldProductBridge.js?v=20261008-r76-shell-cache-boundary"></script>
+<script src="/game/quest/quest01Director.js?v=20261008-q1-director-01"></script>
 <script>
 (() => {
   'use strict';
   const stage = document.getElementById('stage');
   const story = document.getElementById('continueStory');
-  // Quest-branch CP04 playtest entry: Continue Story opens FIRST WAKE through
-  // the SAME Gold battle loading/transition pipeline as Free Battle.
-  // No Quest unlock is added to the production product graph.
+  // Q1: story entry always restores the earliest genuine Quest checkpoint.
+  // CP04 FIRST WAKE remains an explicitly labelled, non-progressing preview.
   story?.addEventListener('click',()=>{
     if(screen!=='home'||window.APEX_SCENE_TRANSITION?.active?.())return;
+    const director=window.APEX_QUEST01_DIRECTOR;
+    if(!director){console.warn('[quest-q1] director unavailable; refusing to skip WAKE');return;}
     uiSfx('ui.screen.transition');
-    questPreview=true;
-    battleMode='bot';
-    p1Hero='newbot';p2Hero='newbot';
-    void launchBattleHud();
+    director.show({onPreview:()=>{
+      if(screen!=='home'||window.APEX_SCENE_TRANSITION?.active?.())return;
+      questPreview=true;
+      battleMode='bot';
+      p1Hero='newbot';p2Hero='newbot';
+      void launchBattleHud();
+    }});
   });
   const battle = document.getElementById('freeBattle');
   const modeScreen = document.getElementById('modeSelectScreen');
