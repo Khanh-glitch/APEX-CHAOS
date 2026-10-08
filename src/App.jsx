@@ -553,7 +553,7 @@ export default function App() {
           const start = document.createElement('button');
           start.type = 'button';
           start.id = 'apex-boot-start';
-          start.innerHTML = '<span class="apex-boot-start-eyebrow" aria-hidden="true">APEX // SYSTEM READY</span><span class="apex-boot-start-main">START <span aria-hidden="true">›</span></span><span class="apex-boot-start-foot" aria-hidden="true">INITIATE PROTOCOL</span>';
+          start.innerHTML = '<img class="apex-boot-start-art" src="/assets/ui/apex-transition-start-plate.svg" alt="" draggable="false">';
           start.setAttribute('aria-label', 'Start APEX CHAOS');
           start.className = 'apex-boot-start-plate';
           start.addEventListener('click', () => {
