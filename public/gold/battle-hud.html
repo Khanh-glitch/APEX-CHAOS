@@ -85,6 +85,17 @@ kbd{font:inherit}
 .vr-ghost,.vr-fill{transform-origin:0 50%;will-change:transform}
 .vr-ghost{background:linear-gradient(90deg,#5c0a0a,#e52a2a 85%,#ffc9b8)}
 .vr-fill{background:linear-gradient(180deg,rgba(255,255,255,.4) 0,rgba(255,255,255,.4) 2px,rgba(255,255,255,0) 2px,rgba(255,255,255,0) 55%,rgba(0,0,0,.25) 100%),linear-gradient(90deg,var(--fill0),var(--fill1) 58%,var(--fill2) 93%,#fff 100%)}
+/* Q3 Quest-only segmentation INSIDE the original Gold rail footprint.
+   Each fixed slot shows one physical Fighter's own HP fraction. */
+.vr-quest-slots{position:absolute;inset:0;display:none;direction:ltr;pointer-events:none;z-index:3;gap:2px}
+.vr-quest-slots>span{position:relative;flex:1 1 0;min-width:0;background:#090d11}
+.vr-quest-slots>span>i{position:absolute;inset:0;display:block;transform-origin:0 50%;transform:scaleX(var(--qhp,1));
+  background:linear-gradient(180deg,rgba(255,255,255,.38) 0,transparent 44%,rgba(0,0,0,.25) 100%),
+  linear-gradient(90deg,var(--fill0),var(--fill1) 78%,var(--fill2))}
+#hud[data-quest="1"] .vr-quest-slots{display:flex}
+#hud[data-quest="1"] .vr-clip>.vr-fill,#hud[data-quest="1"] .vr-clip>.vr-ghost{visibility:hidden}
+#hud[data-quest="1"] .vr-name{letter-spacing:.06em;font-size:calc(var(--nmF)*.93)}
+#hud[data-quest="1"] .vr-cur{font-size:calc(var(--hpF)*.9)}
 .vr-heal{background:var(--heal);opacity:0}
 .vr-low{background:linear-gradient(90deg,rgba(255,40,40,.55),transparent 40%);opacity:0}
 .vrail.low .vr-low{animation:lowPulse .9s ease-in-out infinite alternate}
@@ -714,6 +725,44 @@ kbd{font:inherit}
     if(side.portrait&&avatar&&side.avatarSrc!==avatar){let img=side.portrait.querySelector(':scope > .apex-battle-avatar');if(!img){img=document.createElement('img');img.className='apex-battle-avatar';img.alt='';img.draggable=false;side.portrait.insertBefore(img,side.portrait.firstChild);}img.onerror=()=>{if(side.avatarSrc===avatar){side.avatarSrc='';side.portrait.classList.remove('has-production-avatar');img.remove();}};img.src=avatar;side.avatarSrc=avatar;side.portrait.classList.add('has-production-avatar');}
   }
 
+  function syncQuestRailSlots(teams) {
+    const quest=Array.isArray(teams) && teams.length===2;
+    if(R.hud)R.hud.dataset.quest=quest?'1':'0';
+    for(let i=0;i<2;i++){
+      const clip=R.rail[i]?.bar?.querySelector('.vr-clip');
+      if(!clip)continue;
+      let lane=clip.querySelector('.vr-quest-slots');
+      if(!quest||!Array.isArray(teams[i])||!teams[i].length){
+        if(lane)lane.remove();
+        continue;
+      }
+      const actors=teams[i];
+      if(!lane){
+        lane=document.createElement('div');
+        lane.className='vr-quest-slots';
+        clip.appendChild(lane);
+      }
+      if(lane.children.length!==actors.length){
+        lane.replaceChildren(...actors.map(()=>{
+          const segment=document.createElement('span');
+          segment.appendChild(document.createElement('i'));
+          return segment;
+        }));
+      }
+      actors.forEach((actor,k)=>{
+        const slot=lane.children[k];
+        const max=Math.max(1,Number(actor.maxHp)||1);
+        const ratio=Math.max(0,Math.min(1,(Number(actor.hp)||0)/max));
+        const ident=String(actor.id||'');
+        if(slot.dataset.actor!==ident)slot.dataset.actor=ident;
+        const value=ratio.toFixed(4);
+        if(slot.style.getPropertyValue('--qhp')!==value)slot.style.setProperty('--qhp',value);
+        slot.title=ident+' '+Math.round(Number(actor.hp)||0)+'/'+Math.round(max);
+      });
+    }
+    if(quest)renderTimer(); // Gold demo timer must not survive the first real Quest frame
+  }
+
   // Per-frame production projection -> canonical renderers.
   seam.applyState=function applyState(st){
     if(!st)return;
@@ -801,6 +850,7 @@ kbd{font:inherit}
         }
       }
     }
+    syncQuestRailSlots(st.questTeams);
   };
 
   // Discrete production events -> canonical presentation (real values).
