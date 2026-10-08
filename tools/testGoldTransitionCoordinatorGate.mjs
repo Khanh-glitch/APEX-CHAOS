@@ -99,6 +99,14 @@ check('source collapse matches Gold standalone',
 check('R64 Door canvas leaves the compositor after DONE and returns on next transaction',
   coordinator.includes("canvas.style.display = 'none';\n    canvas.setAttribute('aria-hidden', 'true');\n    clearNodeMotion(sourceFor(tx))") &&
   coordinator.includes("canvas.style.display = 'block';\n    canvas.setAttribute('aria-hidden', 'false');\n    bodyState('CLOSING')"));
+check('R69 donor OPENING radial background has been neutralized at pose authority',
+  runtimeText.includes("if (s === 'OPENING' && P.revealR > 0.5)") &&
+  coordinator.includes("const donorPose = engine.pose.bind(engine);") &&
+  coordinator.includes("if (engine.state === 'OPENING') {") &&
+  coordinator.includes("p.cover = 0;") &&
+  coordinator.includes("p.revealR = 0;") &&
+  coordinator.includes("p.vignette = 0;") &&
+  coordinator.includes("openingBacking: engine?.apexOpeningBacking || null"));
 check('R62 destination is already full size behind the opening Door',
   coordinator.includes('if (revealRoot) clearNodeMotion(revealRoot);') &&
   coordinator.includes('onReveal: () => {') &&
