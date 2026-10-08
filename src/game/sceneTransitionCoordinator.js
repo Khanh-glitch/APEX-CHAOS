@@ -435,6 +435,21 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       },
       onDone: () => finish(!active?.failed),
     });
+    // R69 owner authority: the donor draws an EXTRA opaque radial background,
+    // then cuts a growing center hole during OPENING. That is the unwanted
+    // black iris behind the mechanical plates (not a DOM zoom or leftover
+    // canvas). Keep Gold's door, rings, smoke, timing and donor bytes intact;
+    // adapt only the unwanted backing fields for the actual OPENING frames.
+    const donorPose = engine.pose.bind(engine);
+    engine.pose = () => {
+      const p = donorPose();
+      if (engine.state === 'OPENING') {
+        p.cover = 0;
+        p.revealR = 0;
+        p.vignette = 0;
+      }
+      return p;
+    };
     return engine;
   };
 
