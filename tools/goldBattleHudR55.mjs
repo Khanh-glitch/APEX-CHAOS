@@ -128,34 +128,6 @@ export function adaptGoldBattleHudR55(input) {
 #hud[data-layout="land"][data-size="tablet"][data-mode="1p"] .skill .sk-art{width:var(--artW);height:var(--artW);aspect-ratio:1/1;align-self:center;justify-self:start}
 #hud[data-layout="land"][data-size="tablet"][data-mode="1p"] .sk-art>.apex-skill-icon{width:100%;height:100%;object-fit:contain;object-position:center}
 
-/* R62 tablet portrait BOT: hero-control dock for two-thumb grip.
-   Arena and opponent threat strip are untouched; this affects P1 only. */
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side{
-  grid-template-columns:clamp(150px,19cqw,190px) clamp(180px,23cqw,250px) clamp(150px,19cqw,190px);
-  grid-template-rows:auto minmax(152px,1fr);
-  grid-template-areas:"id id id" "s1 wp s2";
-  justify-content:space-between;column-gap:10px;row-gap:7px;--artW:100%;
-}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skills{display:contents}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"art" "info";max-height:192px}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill:first-child{grid-area:s1}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill:last-child{grid-area:s2}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .sk-art{width:min(100%,124px);height:min(100%,124px);justify-self:center}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .sk-info{padding:4px 5px 6px;gap:3px;align-items:center}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .sk-top{justify-content:center}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .sk-desc{display:none}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .sk-name{font-size:12px;text-align:center}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon{
-  grid-area:wp;display:grid;align-content:center;justify-items:center;
-  grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(76px,1fr) auto auto;
-  grid-template-areas:"ico" "txt" "amm";padding:8px 6px;
-  border-top:1px solid var(--acc);background:linear-gradient(180deg,var(--accA),rgba(8,12,16,.93));
-}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon .wp-ico{width:100%;height:100%;min-height:76px}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon .wp-txt{display:block;text-align:center}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon .wp-amm{justify-self:center}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon .wp-mag{display:none}
-
 /* R65 geometric field floats behind readable controls, never shows donor symbols. */
 #hud[data-layout="desk"] .side-art.apex-hero-motif,
 #hud[data-layout="land"] .side-art.apex-hero-motif{display:block;opacity:.10;overflow:hidden}
@@ -170,46 +142,6 @@ export function adaptGoldBattleHudR55(input) {
   width:100%;height:100%;object-fit:contain;display:block;
   filter:saturate(.6) contrast(1.12);
 }
-/* R63 skill readability: emphasize actual Gold runtime cast/active/cd/ready
-   authority, not a second timer. Restrict to the solo iPad portrait dock. */
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill[data-state="cast"]{
-  box-shadow:inset 0 0 0 2px #ffc15a;background:linear-gradient(180deg,rgba(255,175,62,.21),#101418);
-}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill[data-state="active"]{
-  box-shadow:inset 0 0 0 2px var(--acc);
-}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill[data-state="cd"] .sk-art{
-  filter:grayscale(.65) brightness(.72);
-}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill[data-state="ready"] .sk-art{
-  filter:none;
-}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill .sk-state{
-  text-align:center;max-width:100%;font-weight:900;font-size:11px;letter-spacing:.03em;
-  white-space:normal;overflow-wrap:anywhere;
-}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill[data-state="cast"] .sk-state{color:#ffc15a}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill[data-state="cd"] .sk-state{color:#d5d7db}
-/* R65 — skill artwork carries live authority; captions remain supplementary. */
-#hud .skill .sk-art{isolation:isolate;transition:filter .17s ease,box-shadow .17s ease}
-#hud .skill .sk-art::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity .16s ease;background:var(--acc)}
-#hud .skill[data-state="cd"] .sk-art{filter:brightness(.30) saturate(.28)}
-#hud .skill[data-state="cd"] .sk-art::after{opacity:.19;background:#030508}
-#hud .skill[data-state="cast"] .sk-art{filter:brightness(1.45) saturate(1.2);box-shadow:inset 0 0 25px var(--acc)}
-#hud .skill[data-state="cast"] .sk-art::after{opacity:.22;mix-blend-mode:screen}
-#hud .skill[data-state="active"] .sk-art{filter:brightness(1.62) saturate(1.45);box-shadow:inset 0 0 30px var(--acc),0 0 16px color-mix(in srgb,var(--acc) 72%,transparent)}
-#hud .skill[data-state="active"] .sk-art::after{opacity:.28;mix-blend-mode:screen}
-#hud .skill[data-state="ready"] .sk-art{filter:brightness(1.07) saturate(1.05)}
-#hud .skill[data-state="ready"] .sk-art::after{opacity:0}
-/* R65 — unequal thumb reach zones and subordinate weapon console; arena law unchanged. */
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side{
- grid-template-columns:minmax(130px,1fr) minmax(130px,.72fr) minmax(130px,1fr);
- align-content:end;column-gap:clamp(12px,2.2cqw,27px);
-}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill{align-self:end;max-height:180px;min-height:138px}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill .sk-art{width:min(100%,138px);height:min(100%,138px)}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon{align-self:end;max-height:124px;min-height:98px;padding:5px 7px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(7,10,14,.84))}
-#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon .wp-ico{min-height:48px}
 /* Shared live-ammo state. */
 #hud .weapon.low-ammo .wp-cur{color:var(--crit);text-shadow:0 0 10px color-mix(in srgb,var(--crit) 46%,transparent)}
 #hud .weapon.low-ammo .wp-mag i{background:var(--crit)}
@@ -257,12 +189,7 @@ export function adaptGoldBattleHudR55(input) {
   once(" });\n const r=clamp(maxSpan*.095,18,44),lens=document.createElement('i');"," });\n group.appendChild(shardBatch);\n shardAnimations.forEach(start=>start());\n const r=clamp(maxSpan*.095,18,44),lens=document.createElement('i');",'single Heavy insert before animations');
   // R65 replace the prior enlarged-avatar watermark with vector motifs.
   once("    const avatar=String(identity.battleAvatar||'');\n    // R62: Side art follows actual player identity, never the two donor glyphs.\n    if (avatar) {\n      const art=side.root.querySelector('.side-art');\n      if (art) {\n        let image=art.querySelector('.apex-hero-watermark-img');\n        if (!image) {\n          image=document.createElement('img');\n          image.className='apex-hero-watermark-img';\n          image.alt=''; image.draggable=false;\n          art.appendChild(image);\n        }\n        if (image.getAttribute('src')!==avatar) image.setAttribute('src',avatar);\n        art.classList.add('apex-hero-watermark');\n      }\n    }\n","    const avatar=String(identity.battleAvatar||'');\n    // R65: hero-specific geometric field, never a scaled portrait.\n    const heroId=String(identity.id||identity.heroId||identity.key||name||'').toLowerCase();\n    const motif=heroId.includes('frost')?'frost':heroId.includes('hunter')?'hunter':heroId.includes('crystal')?'crystala':heroId.includes('magnet')?'magnet':heroId.includes('mirror')?'mirror':'robot';\n    const art=side.root.querySelector('.side-art');\n    if(art){\n      const patterns={\n        robot:'<path d=\"M30 150L130 40 210 150 130 260Z M130 40V260 M30 150H210\"/><circle cx=\"130\" cy=\"150\" r=\"49\"/><circle cx=\"130\" cy=\"150\" r=\"16\"/>',\n        frost:'<path d=\"M130 15V285 M14 150H246 M40 60L220 240 M220 60L40 240\"/><path d=\"M130 15L105 75 155 75Z M130 285L105 225 155 225Z\"/>',\n        hunter:'<path d=\"M20 260Q120 190 60 30 M240 260Q140 190 200 30 M60 30L130 130 200 30 M75 245L130 150 185 245\"/>',\n        crystala:'<path d=\"M130 12L245 122 205 260 55 260 15 122Z M130 12V280 M15 122H245 M55 260L130 122 205 260\"/>',\n        magnet:'<circle cx=\"130\" cy=\"150\" r=\"103\"/><circle cx=\"130\" cy=\"150\" r=\"60\"/><circle cx=\"130\" cy=\"150\" r=\"21\"/><path d=\"M5 150H255 M130 20V280\"/>',\n        mirror:'<path d=\"M130 5V290 M130 25L25 100 65 255 130 290 M130 25L235 100 195 255 130 290 M25 100L130 180 235 100 M65 255L130 180 195 255\"/>'\n      };\n      art.innerHTML='<svg aria-hidden=\"true\" viewBox=\"0 0 260 300\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linejoin=\"bevel\">'+patterns[motif]+'</svg>';\n      art.classList.add('apex-hero-motif');\n    }\n",'hero-specific vector motif');
-  // R67: image-bounded energy progress and cooling shade; live ability clock.
-  once("/* Shared live-ammo state. */","/* R68 themed panels: stronger hero motifs and refined iPad dock material.\n   No geometry, input ownership, arena or ability authority changes. */\n#hud[data-layout=\"desk\"] .side-art.apex-hero-motif,\n#hud[data-layout=\"land\"] .side-art.apex-hero-motif{opacity:.34;mix-blend-mode:screen}\n#hud[data-layout=\"desk\"] .side-art.apex-hero-motif svg,\n#hud[data-layout=\"land\"] .side-art.apex-hero-motif svg{display:block;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--acc) 54%,transparent))}\n#hud[data-layout=\"port\"][data-size=\"tablet\"][data-mode=\"1p\"] #p1Side .skill{\nborder:1px solid color-mix(in srgb,var(--acc) 34%,#202830);background:linear-gradient(160deg,rgba(21,29,36,.90),rgba(8,12,16,.96))}\n#hud[data-layout=\"port\"][data-size=\"tablet\"][data-mode=\"1p\"] #p1Side .weapon{\nborder:1px solid color-mix(in srgb,var(--acc) 27%,#161b21);background:linear-gradient(180deg,rgba(26,30,36,.91),rgba(8,12,16,.96))}\n/* R67 art-first status: perimeter progress (not blurred artwork).\n   CD shade descends within the image; active edge advances for actual duration. */\n#hud .skill .sk-art{isolation:isolate;filter:none!important;box-shadow:none!important;overflow:hidden}\n#hud .skill .sk-art::after{display:none!important}\n#hud .skill .sk-art .apex-state-ring{\n position:absolute;inset:0;z-index:6;pointer-events:none;opacity:0;\n border:3px solid transparent;\n background:conic-gradient(from -90deg,var(--acc) calc(var(--apex-active-progress,0)*1turn),transparent 0) border-box;\n -webkit-mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);\n -webkit-mask-composite:xor;mask-composite:exclude;\n filter:none;transition:opacity .08s;\n}\n#hud .skill[data-state=\"active\"] .sk-art .apex-state-ring{opacity:1}\n#hud .skill .sk-art .apex-state-shade{\n position:absolute;inset:0;z-index:5;pointer-events:none;\n background:rgba(0,2,6,.79);opacity:0;transform-origin:50% 0;\n transform:scaleY(var(--apex-cd-shade,0));transition:opacity .12s;\n}\n#hud .skill[data-state=\"cd\"] .sk-art .apex-state-shade{opacity:1}\n#hud .skill[data-state=\"active\"] .sk-art{\n outline:2px solid var(--acc);outline-offset:-2px;\n}\n#hud .skill[data-state=\"cast\"] .sk-art{\n outline:2px solid #ffd18a;outline-offset:-2px;\n}\n#hud .skill[data-state=\"ready\"] .sk-art{outline:0}\n/* Shared live-ammo state. */",'art-first status styling');
-  once("     <span class=\"sk-art\">${a.icon}<span class=\"sk-mask\"></span>","     <span class=\"sk-art\">${a.icon}<span class=\"apex-state-shade\"></span><span class=\"apex-state-ring\"></span><span class=\"sk-mask\"></span>",'art-first skill elements');
-  once("  const meter=activeRemaining>0?activeFrac:(a.next?(1-frac):1);","  // Source-of-truth state controls artwork, not just the label below it.\n  // Active perimeter fills in exact proportion to the ability's active duration.\n  // CD shade decreases from fully covered to clear as recharge completes.\n  u.art.style.setProperty('--apex-active-progress',String(st==='active'?1-activeFrac:0));\n  u.art.style.setProperty('--apex-cd-shade',String(st==='cd'?frac:0));\n  const meter=activeRemaining>0?activeFrac:(a.next?(1-frac):1);",'art-first live ability progress');
-  once("#hud .skill[data-state=\"active\"] .sk-art .apex-state-ring{opacity:1}","@keyframes apex-art-orbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}\n#hud .skill[data-state=\"active\"] .sk-art .apex-state-ring::before{\n content:\"\";position:absolute;inset:-1px;\n background:radial-gradient(circle at 50% 3px,#fff 0 2px,var(--acc) 3px,transparent 8px);\n animation:apex-art-orbit var(--apex-active-duration,1s) linear both;\n filter:drop-shadow(0 0 3px var(--acc));pointer-events:none;\n}\n#hud .skill[data-state=\"active\"] .sk-art .apex-state-ring{opacity:1}",'ACTIVE perimeter spark');
-  once("  u.art.style.setProperty('--apex-active-progress',String(st==='active'?1-activeFrac:0));","  u.art.style.setProperty('--apex-active-duration',Math.max(.05,Number(a.duration)||.05)+'s');\n  u.art.style.setProperty('--apex-active-progress',String(st==='active'?1-activeFrac:0));",'ACTIVE perimeter orbit duration');
-  once("#hud .skill .sk-art .apex-state-shade{","/* R69 art authority: avoid stacking the donor's old dark mask on the\n   new curtain; keep countdown glyph above the moving shade. */\n#hud .skill .sk-art>.sk-mask{display:none!important}\n#hud .skill .sk-art>.sk-cdn{z-index:8}\n#hud .skill .sk-art .apex-state-shade{",'single cooldown shade and readable glyph');
+  // R70: retain only approved motif and clean skill artwork; no portrait BOT overrides.
+  once("/* Shared live-ammo state. */","/* R68 themed panels: approved hero motifs only. */\n#hud[data-layout=\"desk\"] .side-art.apex-hero-motif,\n#hud[data-layout=\"land\"] .side-art.apex-hero-motif{opacity:.34;mix-blend-mode:screen}\n#hud[data-layout=\"desk\"] .side-art.apex-hero-motif svg,\n#hud[data-layout=\"land\"] .side-art.apex-hero-motif svg{display:block;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--acc) 54%,transparent))}\n/* R70 skill image: no progress ring, glow, or animated cover; preserve timers and states. */\n#hud .skill .sk-art{filter:none!important;box-shadow:none!important;outline:none!important}\n#hud .skill .sk-art::after{display:none!important}\n#hud .skill .sk-art>.sk-mask,\n#hud .skill .sk-art>.sk-sweep{display:none!important}\n/* Shared live-ammo state. */",'R70 scoped visual removal');
   return out;
 }
