@@ -622,7 +622,15 @@ export default function App() {
               if (!(stageRect.height > 0 && actionRect.height > 0)) return;
               const compact = matchMedia('(max-height: 700px)').matches;
               const authoredTop = stageRect.height * (compact ? .654 : .671);
-              const ceiling = bandRect.top - stageRect.top - actionRect.height - 10;
+              // R86 opt-in: the painted route bar can still be translating
+              // after Home readiness. getBoundingClientRect() includes that
+              // temporary transform and yields a stale, too-low ceiling.
+              // offsetTop is the layout position before transitions. The
+              // routes live directly under #stage, so their offset is stable.
+              const stableRouteTop = homeSolverLab && routes.offsetParent === stage
+                ? routes.offsetTop
+                : bandRect.top - stageRect.top;
+              const ceiling = stableRouteTop - actionRect.height - 10;
               const top = Math.max(0, Math.min(authoredTop, ceiling));
               actions.style.top = top.toFixed(2) + 'px';
               let storyGeometry = null;
