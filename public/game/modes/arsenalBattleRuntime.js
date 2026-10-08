@@ -1061,8 +1061,10 @@
       ? questCore.fixtureRoster(options.questFixture) : null;
     if (options.questFixture && !questFixture) return false;
     // Q4A native REFLEX pilot is loopback TEST ONLY, never a story skip.
+    const reflexAuthorized=(window.__APEX_TEST_MODE===true&&localTestHost)
+      ||(window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true);
     const questReflex=options.questReflex===true
-      && window.__APEX_TEST_MODE===true && localTestHost
+      && reflexAuthorized
       && !!questCore && !!window.APEX_QUEST_REFLEX_RECEIPTS;
     if(options.questReflex && !questReflex)return false;
     detachReflexReceipt();
@@ -1209,8 +1211,9 @@
     return window.startArsenalBattleMode('ROBOT', 'ROBOT', { questFirstWake: true });
   };
   window.__apexQuestReflexStart = function startQ4ARealReflexPilot() {
-    if(window.__APEX_TEST_MODE!==true
-      ||!['localhost','127.0.0.1','::1'].includes(String(window.location?.hostname||'')))return false;
+    if(!((window.__APEX_TEST_MODE===true
+      && ['localhost','127.0.0.1','::1'].includes(String(window.location?.hostname||'')))
+      ||(window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true)))return false;
     return window.startArsenalBattleMode('ROBOT','ROBOT',{questReflex:true});
   };
   // Read-only pilot receipt snapshot; no mission advance, no fake HP setter.

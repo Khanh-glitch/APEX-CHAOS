@@ -150,6 +150,10 @@ kbd{font:inherit}
   line-height:1.1;letter-spacing:.025em;
 }
 
+/* Q4A Quest actors are not LOCAL P1/P2 UI metadata. The real NEWBOT and
+   T.O.T names plus segmented HP already identify the combatants. */
+#hud[data-quest="1"] #p1Side .id-ctrl{display:none}
+
 /* --- Match center / timer --- */
 #matchCenter{grid-column:2 / 4;grid-row:1;justify-self:center;position:relative;width:var(--mcW);height:100%;z-index:2;cursor:pointer}
 .mc-plate{position:absolute;left:0;right:0;top:0;height:calc(100% + var(--notch));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding-bottom:var(--notch);

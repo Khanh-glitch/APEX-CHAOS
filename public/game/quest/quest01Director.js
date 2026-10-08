@@ -121,11 +121,12 @@
     overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-label','Quest 01 story checkpoint');
     // Static trusted template: copy is set via textContent only.
-    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine">Q1 DIRECTOR BUILD — This is a checkpoint shell, not the finished WAKE or REFLEX scene. The CP04 preview does not complete story checkpoints.</div></div>';
+    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine">Q1 DIRECTOR BUILD — This is a checkpoint shell, not the finished WAKE or REFLEX scene. Neither preview completes story checkpoints; REFLEX currently stops before the unauthored RIVET suppression.</div></div>';
     d.body.appendChild(overlay);
     overlay.querySelector('#q1Exit').addEventListener('click',hide);
     overlay.querySelector('#q1Preview').addEventListener('click',()=>{const cb=callbacks && callbacks.onPreview;hide(); if(typeof cb==='function')cb();});
-    overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();e.preventDefault();hide();}else if(e.key==='Tab'){const els=[overlay.querySelector('#q1Preview'),overlay.querySelector('#q1Exit')];const index=els.indexOf(d.activeElement);if(e.shiftKey && index===0){e.preventDefault();els[1].focus();}if(!e.shiftKey&&index===1){e.preventDefault();els[0].focus();}}});
+    overlay.querySelector('#q4ReflexPreview').addEventListener('click',()=>{const cb=callbacks && callbacks.onReflexPreview;hide(); if(typeof cb==='function')cb();});
+    overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();e.preventDefault();hide();}else if(e.key==='Tab'){const els=[overlay.querySelector('#q1Preview'),overlay.querySelector('#q4ReflexPreview'),overlay.querySelector('#q1Exit')];const index=els.indexOf(d.activeElement);if(e.shiftKey&&index===0){e.preventDefault();els[els.length-1].focus();}if(!e.shiftKey&&index===els.length-1){e.preventDefault();els[0].focus();}}});
     return overlay;
   }
   function show(options) {
