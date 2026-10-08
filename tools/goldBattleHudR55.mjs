@@ -156,6 +156,10 @@ export function adaptGoldBattleHudR55(input) {
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon .wp-amm{justify-self:center}
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon .wp-mag{display:none}
 
+/* R65 geometric field floats behind readable controls, never shows donor symbols. */
+#hud[data-layout="desk"] .side-art.apex-hero-motif,
+#hud[data-layout="land"] .side-art.apex-hero-motif{display:block;opacity:.10;overflow:hidden}
+#hud .side-art.apex-hero-motif svg{display:block;transform:rotate(-12deg) scale(1.17)}
 /* R62 hero-aware backdrop: portrait source is game-authoritative for each side;
    hide both legacy donor glyphs instead of hardcoding Frost/Hunter motifs. */
 #hud[data-layout="desk"] .side-art.apex-hero-watermark,
@@ -186,6 +190,26 @@ export function adaptGoldBattleHudR55(input) {
 }
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill[data-state="cast"] .sk-state{color:#ffc15a}
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill[data-state="cd"] .sk-state{color:#d5d7db}
+/* R65 — skill artwork carries live authority; captions remain supplementary. */
+#hud .skill .sk-art{isolation:isolate;transition:filter .17s ease,box-shadow .17s ease}
+#hud .skill .sk-art::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity .16s ease;background:var(--acc)}
+#hud .skill[data-state="cd"] .sk-art{filter:brightness(.30) saturate(.28)}
+#hud .skill[data-state="cd"] .sk-art::after{opacity:.19;background:#030508}
+#hud .skill[data-state="cast"] .sk-art{filter:brightness(1.45) saturate(1.2);box-shadow:inset 0 0 25px var(--acc)}
+#hud .skill[data-state="cast"] .sk-art::after{opacity:.22;mix-blend-mode:screen}
+#hud .skill[data-state="active"] .sk-art{filter:brightness(1.62) saturate(1.45);box-shadow:inset 0 0 30px var(--acc),0 0 16px color-mix(in srgb,var(--acc) 72%,transparent)}
+#hud .skill[data-state="active"] .sk-art::after{opacity:.28;mix-blend-mode:screen}
+#hud .skill[data-state="ready"] .sk-art{filter:brightness(1.07) saturate(1.05)}
+#hud .skill[data-state="ready"] .sk-art::after{opacity:0}
+/* R65 — unequal thumb reach zones and subordinate weapon console; arena law unchanged. */
+#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side{
+ grid-template-columns:minmax(130px,1fr) minmax(130px,.72fr) minmax(130px,1fr);
+ align-content:end;column-gap:clamp(12px,2.2cqw,27px);
+}
+#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill{align-self:end;max-height:180px;min-height:138px}
+#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill .sk-art{width:min(100%,138px);height:min(100%,138px)}
+#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon{align-self:end;max-height:124px;min-height:98px;padding:5px 7px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(7,10,14,.84))}
+#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .weapon .wp-ico{min-height:48px}
 /* Shared live-ammo state. */
 #hud .weapon.low-ammo .wp-cur{color:var(--crit);text-shadow:0 0 10px color-mix(in srgb,var(--crit) 46%,transparent)}
 #hud .weapon.low-ammo .wp-mag i{background:var(--crit)}
@@ -231,5 +255,7 @@ export function adaptGoldBattleHudR55(input) {
   once("piece.appendChild(clone);group.appendChild(piece);","piece.appendChild(clone);shardBatch.appendChild(piece);",'single Heavy batch insertion');
   once("  piece.animate([{opacity:0,transform:'translate(0,0) rotate(0deg)'},{opacity:.96,transform:'translate(0,0) rotate(0deg)',offset:.14},{opacity:.9,transform:`translate(${tx}px,${ty}px) rotate(${rot}deg)`,offset:.38},{opacity:.52,transform:`translate(${tx*.62}px,${ty*.62}px) rotate(${rot*.64}deg)`,offset:.68},{opacity:0,transform:`translate(${tx*.36}px,${ty*.36}px) rotate(${rot*.42}deg)`}],{duration:930,delay:index*9,easing:'cubic-bezier(.18,.72,.25,1)',fill:'forwards'});","  shardAnimations.push(()=>piece.animate([{opacity:0,transform:'translate(0,0) rotate(0deg)'},{opacity:.96,transform:'translate(0,0) rotate(0deg)',offset:.14},{opacity:.9,transform:`translate(${tx}px,${ty}px) rotate(${rot}deg)`,offset:.38},{opacity:.52,transform:`translate(${tx*.62}px,${ty*.62}px) rotate(${rot*.64}deg)`,offset:.68},{opacity:0,transform:`translate(${tx*.36}px,${ty*.36}px) rotate(${rot*.42}deg)`}],{duration:930,delay:index*9,easing:'cubic-bezier(.18,.72,.25,1)',fill:'forwards'}));",'delayed Heavy animation setup');
   once(" });\n const r=clamp(maxSpan*.095,18,44),lens=document.createElement('i');"," });\n group.appendChild(shardBatch);\n shardAnimations.forEach(start=>start());\n const r=clamp(maxSpan*.095,18,44),lens=document.createElement('i');",'single Heavy insert before animations');
+  // R65 replace the prior enlarged-avatar watermark with vector motifs.
+  once("    const avatar=String(identity.battleAvatar||'');\n    // R62: Side art follows actual player identity, never the two donor glyphs.\n    if (avatar) {\n      const art=side.root.querySelector('.side-art');\n      if (art) {\n        let image=art.querySelector('.apex-hero-watermark-img');\n        if (!image) {\n          image=document.createElement('img');\n          image.className='apex-hero-watermark-img';\n          image.alt=''; image.draggable=false;\n          art.appendChild(image);\n        }\n        if (image.getAttribute('src')!==avatar) image.setAttribute('src',avatar);\n        art.classList.add('apex-hero-watermark');\n      }\n    }\n","    const avatar=String(identity.battleAvatar||'');\n    // R65: hero-specific geometric field, never a scaled portrait.\n    const heroId=String(identity.id||identity.heroId||identity.key||name||'').toLowerCase();\n    const motif=heroId.includes('frost')?'frost':heroId.includes('hunter')?'hunter':heroId.includes('crystal')?'crystala':heroId.includes('magnet')?'magnet':heroId.includes('mirror')?'mirror':'robot';\n    const art=side.root.querySelector('.side-art');\n    if(art){\n      const patterns={\n        robot:'<path d=\"M30 150L130 40 210 150 130 260Z M130 40V260 M30 150H210\"/><circle cx=\"130\" cy=\"150\" r=\"49\"/><circle cx=\"130\" cy=\"150\" r=\"16\"/>',\n        frost:'<path d=\"M130 15V285 M14 150H246 M40 60L220 240 M220 60L40 240\"/><path d=\"M130 15L105 75 155 75Z M130 285L105 225 155 225Z\"/>',\n        hunter:'<path d=\"M20 260Q120 190 60 30 M240 260Q140 190 200 30 M60 30L130 130 200 30 M75 245L130 150 185 245\"/>',\n        crystala:'<path d=\"M130 12L245 122 205 260 55 260 15 122Z M130 12V280 M15 122H245 M55 260L130 122 205 260\"/>',\n        magnet:'<circle cx=\"130\" cy=\"150\" r=\"103\"/><circle cx=\"130\" cy=\"150\" r=\"60\"/><circle cx=\"130\" cy=\"150\" r=\"21\"/><path d=\"M5 150H255 M130 20V280\"/>',\n        mirror:'<path d=\"M130 5V290 M130 25L25 100 65 255 130 290 M130 25L235 100 195 255 130 290 M25 100L130 180 235 100 M65 255L130 180 195 255\"/>'\n      };\n      art.innerHTML='<svg aria-hidden=\"true\" viewBox=\"0 0 260 300\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linejoin=\"bevel\">'+patterns[motif]+'</svg>';\n      art.classList.add('apex-hero-motif');\n    }\n",'hero-specific vector motif');
   return out;
 }
