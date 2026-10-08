@@ -2252,6 +2252,15 @@ function buildShell(hudProductionHtml) {
   log('  R52 (shell): Fighter-Pick bottom band law derived from the canonical deck/lock rules');
 
 
+  // R77: shipping source and generated shell must carry the same
+  // conditional portrait collision bound. It never changes the normal layout.
+  const r77Anchor = '@media(prefers-reduced-motion:reduce){';
+  const r77CSS = "/* R77 portrait interaction safety: at non-colliding heights min() retains 65.4vh.\n   Route band = 2 * 42px + 5px; actions = 60px + 8px + 46px. */\n@media (orientation:portrait) and (max-height:700px){\n  .actions{top:min(65.4vh,calc(100% - var(--safeB) - .7vh - 89px - 8px - 114px))}\n}\n\n";
+  if (!out.includes('R77 portrait interaction safety')) {
+    if (!out.includes(r77Anchor)) throw new Error('R77 reduced-motion CSS anchor missing');
+    out = out.replace(r77Anchor, r77CSS + r77Anchor);
+  }
+
   // ── S12: embed the production-bridged battle HUD payload (same canonical
   // base64 payload mechanism, so loading/transition timing does not drift).
   const payloadB64 = Buffer.from(hudProductionHtml, 'utf8').toString('base64');
