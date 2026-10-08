@@ -96,7 +96,7 @@ try{
     return {
       viewport:{w:innerWidth,h:innerHeight},screen:document.querySelector('#stage')?.className,
       mode:{title:rect('.modeTitle'),bot:rect('.modeCard[data-mode="bot"]'),
-        local:rect('.modeCard[data-mode="local"]'),routes:rect('.routes')},
+        local:rect('.modeCard[data-mode="local1v1"]'),routes:rect('.routes')},
       battle:{arena:rect('#battleHudHost #arena'),p1:rect('#battleHudHost #p1Side'),
         p2:rect('#battleHudHost #p2Side'),weapon:rect('#battleHudHost #p1Side .weapon'),
         weaponName:rect('#battleHudHost #p1Side .wp-name'),
@@ -121,7 +121,7 @@ try{
   const mode=await shot('production-mode-361x545');
   check('Mode cards fully inside viewport',mode.mode.bot&&mode.mode.local&&mode.mode.local.bottom<=542&&mode.mode.bot.y>=0,mode.mode);
   check('Home route does not bleed under Mode',mode.mode.routes?.opacity==='0'&&mode.mode.routes?.visibility==='hidden',mode.mode.routes);
-  await click('.modeCard[data-mode="local"]');
+  await click('.modeCard[data-mode="local1v1"]');
   const fighterReady=await wait("document.querySelector('#stage')?.classList.contains('screen-fighter') && document.querySelectorAll('#fighterRoster .rosterCard').length>=6");
   check('Mode to Local Fighter Pick',fighterReady);
   if(!fighterReady)throw Error('Fighter Pick not reached');
