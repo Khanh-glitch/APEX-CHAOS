@@ -120,12 +120,17 @@ try {
   await command('Page.enable');
   await command('Page.addScriptToEvaluateOnNewDocument',{source:`
     window.__APEX_R50K_STATES=[];
+    window.__APEX_R69_OPEN_BACKING=[];
     window.__APEX_R50K_ERRORS=[];
     window.addEventListener('error',e=>window.__APEX_R50K_ERRORS.push(String(e.message||e.error||'error')));
     const sample=()=>{
       const s=document.body?.dataset?.apexSceneTransition;
       const a=window.__APEX_R50K_STATES;
       if(s&&a[a.length-1]!==s)a.push(s);
+      const tx=window.APEX_SCENE_TRANSITION?.state?.();
+      if(s==='OPENING'&&tx?.openingBacking)
+        window.__APEX_R69_OPEN_BACKING.push({...tx.openingBacking});
+
     };
     const start=()=>{
       if(!document.documentElement){setTimeout(start,4);return;}
@@ -161,6 +166,11 @@ try {
   }))()`,v=>v?.engine&&v.coordinator==='mechanical-door-v4-r50k'&&v.stage&&v.state==='DONE'&&v.blackout,
   {attempts:400,interval:75});
   const bootStates=[...new Set(await evaluate('window.__APEX_R50K_STATES.slice()'))];
+  const openingFrames=await evaluate('window.__APEX_R69_OPEN_BACKING.slice()');
+  gate('R69 actual OPENING pose never paints opaque black iris',
+    openingFrames.length>0&&openingFrames.every(f=>
+      f.cover===0&&f.revealR===0&&f.vignette===0),
+    {frames:openingFrames.length,first:openingFrames[0],last:openingFrames.at(-1)});
   gate('boot-dark-to-gold-door-to-home',!!boot?.engine&&boot.coordinator==='mechanical-door-v4-r50k'&&boot.blackout&&ordered(bootStates),{boot,states:bootStates});
   gate('legacy-loader-menu-picker-not-mounted',boot?.loading===false&&boot?.oldMenu===false&&boot?.oldPicker===false,boot);
   gate('boot-has-no-window-errors',(await evaluate('window.__APEX_R50K_ERRORS.slice()')).length===0,await evaluate('window.__APEX_R50K_ERRORS.slice()'));
