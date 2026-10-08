@@ -93,6 +93,10 @@ try{
   };
   const geometry=()=>{
     const rect=sel=>{const e=document.querySelector(sel);if(!e)return null;const r=e.getBoundingClientRect();const c=getComputedStyle(e);return{x:r.x,y:r.y,w:r.width,h:r.height,bottom:r.bottom,right:r.right,opacity:c.opacity,visibility:c.visibility};};
+    const content=sel=>{const e=document.querySelector(sel);if(!e)return null;return{
+      text:(e.textContent||'').trim(),width:e.clientWidth,scrollWidth:e.scrollWidth,
+      clipped:e.scrollWidth>e.clientWidth+1,rect:rect(sel)};
+    };
     return {
       viewport:{w:innerWidth,h:innerHeight},screen:document.querySelector('#stage')?.className,
       mode:{title:rect('.modeTitle'),bot:rect('.modeCard[data-mode="bot"]'),
@@ -101,7 +105,15 @@ try{
         p2:rect('#battleHudHost #p2Side'),weapon:rect('#battleHudHost #p1Side .weapon'),
         weaponName:rect('#battleHudHost #p1Side .wp-name'),
         skill:rect('#battleHudHost #p1Side .skill'),
-        skillKey:rect('#battleHudHost #p1Side .sk-key')}
+        skillKey:rect('#battleHudHost #p1Side .sk-key'),
+        p1Name:content('#battleHudHost #p1Side .id-name'),
+        p1Hp:rect('#battleHudHost #p1Rail .vr-hp'),
+        p1WeaponName:content('#battleHudHost #p1Side .wp-name'),
+        p2Name:content('#battleHudHost #p2Side .id-name'),
+        p2Hp:rect('#battleHudHost #p2Rail .vr-hp'),
+        p2WeaponName:content('#battleHudHost #p2Side .wp-name'),
+        p1Skills:rect('#battleHudHost #p1Side .skills'),
+        p2Skills:rect('#battleHudHost #p2Side .skills')}
     };
   };
   const shot=async label=>{
@@ -142,11 +154,31 @@ try{
   check('361x545 gun visible inside P1',b.weapon&&b.p1&&b.weapon.y>=b.p1.y-2&&b.weapon.bottom<=b.p1.bottom+2&&b.weapon.w>=105&&b.weapon.h>=28,{weapon:b.weapon,p1:b.p1});
   check('361x545 gun NAME inside P1',b.weaponName&&b.p1&&b.weaponName.w>=60&&b.weaponName.y>=b.p1.y-2&&b.weaponName.bottom<=b.p1.bottom+2,{name:b.weaponName,p1:b.p1});
   check('361x545 skill KEY inside P1',b.skillKey&&b.p1&&b.skillKey.y>=b.p1.y-2&&b.skillKey.bottom<=b.p1.bottom+2,{key:b.skillKey,p1:b.p1});
+  for(const player of ['p1','p2']){
+    const side=b[player],name=b[player+'Name'],hp=b[player+'Hp'],gun=b[player+'WeaponName'],skills=b[player+'Skills'];
+    check('361x545 '+player+' fighter name not clipped',name&&name.width>=55&&!name.clipped&&name.rect.x>=side.x-2&&name.rect.right<=side.right+2,{name,side});
+    check('361x545 '+player+' health bar visible',hp&&hp.w>=50&&hp.h>=12,{hp,side});
+    check('361x545 '+player+' gun text not clipped',gun&&gun.width>=55&&!gun.clipped,{gun,side});
+    check('361x545 '+player+' skills not covering whole panel',skills&&skills.w<side.w*.55,{skills,side});
+  }
+
   await command('Emulation.setDeviceMetricsOverride',{width:550,height:857,deviceScaleFactor:2,mobile:true,screenWidth:550,screenHeight:857});
   const golden=await shot('production-battle-550x857');
   check('550x857 retains full Golden arena',golden.battle.arena?.w>=520,golden.battle.arena);
   check('550x857 real weapon footer restored and bounded',golden.battle.weapon&&golden.battle.weapon.h>=28&&golden.battle.weapon.w>=160&&golden.battle.weaponName&&golden.battle.weaponName.w>=70&&golden.battle.weaponName.bottom<=golden.battle.p1.bottom+2,{weapon:golden.battle.weapon,name:golden.battle.weaponName,panel:golden.battle.p1});
-  await writeFile(dir+'/production-report.json',JSON.stringify({mode,small,golden,failures},null,2));
+  for(const player of ['p1','p2']){
+    const name=golden.battle[player+'Name'],gun=golden.battle[player+'WeaponName'];
+    check('550x857 '+player+' title and weapon not clipped',name&&!name.clipped&&gun&&!gun.clipped,{name,gun});
+  }
+  await command('Emulation.setDeviceMetricsOverride',{width:320,height:498,deviceScaleFactor:2,mobile:true,screenWidth:320,screenHeight:498});
+  const ultraSmall=await shot('production-battle-320x498');
+  check('320x498 mobile arena preserved',ultraSmall.battle.arena?.w>=270,ultraSmall.battle.arena);
+  for(const player of ['p1','p2']){
+    const gun=ultraSmall.battle[player+'WeaponName'],name=ultraSmall.battle[player+'Name'];
+    check('320x498 '+player+' real labels have space',name&&name.width>=40&&!name.clipped&&gun&&gun.width>=35&&!gun.clipped,{name,gun});
+  }
+
+  await writeFile(dir+'/production-report.json',JSON.stringify({mode,small,golden,ultraSmall,failures},null,2));
   if(failures.length)throw Error('R83 production flow fails '+failures.length+' checks');
   console.log('PASS R83 production Local battle screenshots + geometry at 361x545 and 550x857');
 }finally{
