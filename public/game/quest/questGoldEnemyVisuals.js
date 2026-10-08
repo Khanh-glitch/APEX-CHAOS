@@ -121,6 +121,9 @@
     }
     // Actual HP source only. No synthetic armor or power indicators.
     c.restore();
+    // Diagnostic only: counts REAL world-canvas enemy draws for the headless
+    // acceptance harness. Does not feed simulation or collision.
+    root.__apexQuestGoldDraws = (root.__apexQuestGoldDraws || 0) + 1;
     return true;
   }
   root.APEX_QUEST_GOLD_ENEMIES=Object.freeze({ draw, palettes:V12 });
