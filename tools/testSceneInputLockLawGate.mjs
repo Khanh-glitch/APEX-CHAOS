@@ -145,6 +145,8 @@ class FakeDoorEngine {
   }
   done() { this.state = 'DONE'; this.callbacks.onState?.('DONE'); this.callbacks.onDone?.(); }
   destroy() { this.destroyCount += 1; }
+  // Current Gold coordinator adapts the real donor pose during OPENING.
+  pose() { return { logoA: 1, cover: 1, revealR: 1, vignette: 1 }; }
   getDebug() { return { state: this.state, wallTime: this.wallTime }; }
 }
 
