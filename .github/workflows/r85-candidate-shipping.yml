@@ -49,8 +49,11 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Syntax-check both R85 source adapters
         run: |
-          node --check tools/goldShellR85.mjs
-          node --check tools/goldBattleHudR85.mjs
+          node --check tools/goldShellR83.mjs
+          node --check tools/goldBattleHudR83.mjs
+          node --check src/game/shortPortraitPickSolver.js
+          node --check src/game/shortPortraitPickRuntime.js
+          node --check src/game/bootStartViewportGuard.js
       - name: Verify committed Gold equals canonical generated output
         run: node tools/buildGoldCutover.mjs --check
       - name: Independently regenerate Gold and reject ANY tracked drift
