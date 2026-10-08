@@ -166,6 +166,26 @@ export function adaptGoldBattleHudR55(input) {
   width:100%;height:100%;object-fit:contain;display:block;
   filter:saturate(.6) contrast(1.12);
 }
+/* R63 skill readability: emphasize actual Gold runtime cast/active/cd/ready
+   authority, not a second timer. Restrict to the solo iPad portrait dock. */
+#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill[data-state="cast"]{
+  box-shadow:inset 0 0 0 2px #ffc15a;background:linear-gradient(180deg,rgba(255,175,62,.21),#101418);
+}
+#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill[data-state="active"]{
+  box-shadow:inset 0 0 0 2px var(--acc);
+}
+#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill[data-state="cd"] .sk-art{
+  filter:grayscale(.65) brightness(.72);
+}
+#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill[data-state="ready"] .sk-art{
+  filter:none;
+}
+#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill .sk-state{
+  text-align:center;max-width:100%;font-weight:900;font-size:11px;letter-spacing:.03em;
+  white-space:normal;overflow-wrap:anywhere;
+}
+#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill[data-state="cast"] .sk-state{color:#ffc15a}
+#hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill[data-state="cd"] .sk-state{color:#d5d7db}
 /* Shared live-ammo state. */
 #hud .weapon.low-ammo .wp-cur{color:var(--crit);text-shadow:0 0 10px color-mix(in srgb,var(--crit) 46%,transparent)}
 #hud .weapon.low-ammo .wp-mag i{background:var(--crit)}
