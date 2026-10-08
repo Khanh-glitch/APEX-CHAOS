@@ -96,6 +96,15 @@ kbd{font:inherit}
 #hud[data-quest="1"] .vr-clip>.vr-fill,#hud[data-quest="1"] .vr-clip>.vr-ghost{visibility:hidden}
 #hud[data-quest="1"] .vr-name{letter-spacing:.06em;font-size:calc(var(--nmF)*.93)}
 #hud[data-quest="1"] .vr-cur{font-size:calc(var(--hpF)*.9)}
+/* Quest narrow rails: team identities already appear in both side panels.
+   Keep aggregate digits readable by removing only the redundant rail label. */
+#hud[data-quest="1"]:is([data-layout="port"],[data-layout="land"]) .vr-lbl{display:none}
+#hud[data-quest="1"]:is([data-layout="port"],[data-layout="land"]) .vrail{
+  grid-template-columns:minmax(0,1fr);grid-template-areas:"hp" "bar" "acc"
+}
+#hud[data-quest="1"]:is([data-layout="port"],[data-layout="land"]) .vr-hp{
+  min-width:0;justify-self:center;align-self:center;direction:ltr;padding:0
+}
 .vr-heal{background:var(--heal);opacity:0}
 .vr-low{background:linear-gradient(90deg,rgba(255,40,40,.55),transparent 40%);opacity:0}
 .vrail.low .vr-low{animation:lowPulse .9s ease-in-out infinite alternate}
