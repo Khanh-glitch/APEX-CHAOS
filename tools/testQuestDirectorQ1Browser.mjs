@@ -339,6 +339,15 @@ try{
       &&q3tNativeRecoil.after>q3tNativeRecoil.before
       &&q3tNativeRecoil.springKickChanged>.005
       &&q3tNativeRecoil.modelScale===.82,q3tNativeRecoil);
+  // Q3u: capture the REAL draw transform of a native Arsenal PISTOL sprite.
+  // The visible gun must follow its smaller Gold chassis, but Arsenal's
+  // ballistic muzzle must remain unchanged; no fake holder/hitbox.
+  const q3uGrip=await evalPage("(()=>{\n const A=window.APEX_ARSENAL,W=A?.weaponApi,AV=window.APEX_ARSENAL_AV,R=window.APEX_QUEST_V12_RIG;\n const actor=(window.fighters||[]).find(f=>f.questId==='SCRAP-B');\n if(!A?.state?.questMultiActor||!actor||!W?.equip||!AV?.drawEquippedWeapon||!R?.inspect)return {ready:false};\n const equipped=W.equip(actor,'PISTOL');\n const h=W.getHolder(actor);\n if(!equipped||!h)return {ready:false,equipped};\n h.meta.aimAngle=0;\n Object.assign(h.meta.pose,{localX:0,localY:0,recoil:0,rotKick:0,flourish:0,scaleX:1});\n const canvas=document.createElement('canvas');canvas.width=1000;canvas.height=1000;\n const ctx=canvas.getContext('2d');\n actor.draw(ctx); // Establish actual rig scale from original renderer.\n const rig=R.inspect(actor);\n const physicsBefore=W.worldAnchor(actor,'PISTOL','muzzle',0);\n let translation=null,rect=null;\n const translate=ctx.translate.bind(ctx),drawImage=ctx.drawImage.bind(ctx);\n ctx.translate=(x,y)=>{translation={x,y};return translate(x,y)};\n ctx.drawImage=(...args)=>{if(args.length===9)rect={w:args[7],h:args[8]};return drawImage(...args)};\n const rendered=AV.drawEquippedWeapon(ctx,actor,h);\n const physicsAfter=W.worldAnchor(actor,'PISTOL','muzzle',0);\n const offset=translation?.x-actor.x;\n return {ready:true,rendered,rigFactor:rig?.scaleFactor,offset,\n   expectedOffset:actor.radius*.78*.82,drawRect:rect,\n   muzzleUnchanged:physicsBefore.x===physicsAfter.x&&physicsBefore.y===physicsAfter.y,\n   physicsDistance:Math.hypot(physicsBefore.x-actor.x,physicsBefore.y-actor.y)};\n})()");
+  gate('Q3u held PISTOL render-only center follows the compact Gold grip at 82%',
+    q3uGrip?.ready&&q3uGrip?.rendered===true&&q3uGrip?.rigFactor===.82
+       &&Math.abs(q3uGrip.offset-q3uGrip.expectedOffset)<.05
+       &&q3uGrip.muzzleUnchanged===true
+       &&q3uGrip.drawRect?.w>0,q3uGrip);
   const q3Restored=await evalPage("(()=>{const old=window.__q3NativeUpdate;if(typeof old!=='function')return false;window.update=old;delete window.__q3NativeUpdate;return window.update===old})()");
   gate('Q3 fixture restores original engine RAF update before exiting Quest',q3Restored===true,{restored:q3Restored});
   await pressEscape();
@@ -349,6 +358,37 @@ try{
   }))()`,v=>!v?.battleOpen&&v?.state!=='ARSENAL',150);
   gate('Exiting CP04 preview does NOT advance story checkpoint',!after?.battleOpen&&after?.checkpoint==='WAKE',after);
   await image('04-return-home');
+  // Q3u 3v4 is a protected loopback TEST fixture, never a story skip.
+  // After FIRST WAKE exits, launch all four owner Gold robot variants
+  // through actual Arsenal Fighter constructors and require Chrome draws.
+  const q3uFixture=await evalPage("(()=>{\n if(!['localhost','127.0.0.1','::1'].includes(location.hostname))return {started:false,reason:'not loopback'};\n const previously=window.__APEX_TEST_MODE;\n try{\n   window.__APEX_TEST_MODE=true;\n   const started=window.__apexQuestTestRosterStart?.('3v4')===true;\n   return {started,fixture:window.APEX_ARSENAL?.state?.questTestFixture,\n     count:(window.fighters||[]).length,originalFlag:previously===true};\n }finally{\n   if(previously===undefined)delete window.__APEX_TEST_MODE;\n   else window.__APEX_TEST_MODE=previously;\n }\n})()");
+  gate('Q3u private 3v4 Quest fixture starts without exposing a player story skip',
+    q3uFixture?.started===true&&q3uFixture.fixture==='3v4'
+       &&q3uFixture.count===7,q3uFixture);
+  const q3uSeven=await poll("(()=>{\n const f=window.fighters||[],rig=window.APEX_QUEST_V12_RIG,A=window.APEX_ARSENAL;\n const specs=f.map(a=>({id:a.questId,kind:a.questVisualId||null,team:a.questTeam,\n  physicalRadius:a.radius,visual:rig?.inspect?.(a)||null}));\n const hud=document.getElementById('battleHudHost'),sides=['ALLY','HOSTILE'];\n const rails=sides.map((team,i)=>{\n  const members=f.filter(a=>a.questTeam===team);\n  const root=hud?.querySelector('#p'+(i+1)+'Rail');\n  const slots=[...(root?.querySelectorAll('.vr-quest-slots > span')||[])];\n  return {team,count:members.length,slots:slots.map(n=>n.dataset.actor),\n   segmentMatch:slots.length===members.length&&slots.every((n,k)=>n.dataset.actor===members[k].questId)};\n });\n return {started:A?.state?.questTestFixture==='3v4',actors:specs,rails,\n  errors:rig?.stats?.failed||0};\n})()",
+    x=>x?.started&&x.actors?.length===7&&x.actors.every(a=>a.id==='NEWBOT'||a.visual!==null),160);
+  const reaver=q3uSeven?.actors?.find(a=>a.id==='SCRAP-C');
+  const sentinel=q3uSeven?.actors?.find(a=>a.id==='SCRAP-D');
+  gate('Q3u 3v4 renders the REAL Reaver and Sentinel from Gold V12',
+    reaver?.kind==='reaver'&&sentinel?.kind==='sentinel'
+       &&reaver?.visual?.variant==='reaver'&&sentinel?.visual?.variant==='sentinel'
+       &&reaver.visual.clock>0&&sentinel.visual.clock>0
+       &&q3uSeven.errors===0,
+    {reaver,sentinel,failures:q3uSeven?.errors});
+  gate('Q3u two original Gold rails show seven independent physical HP segments',
+    q3uSeven?.rails?.[0]?.count===3&&q3uSeven?.rails?.[1]?.count===4
+       &&q3uSeven.rails.every(x=>x.segmentMatch),q3uSeven?.rails);
+  await image('06-q3u-seven-fighter-chrome');
+  // Teardown must not alter Director WAKE, Quest result or normal Arena.
+  await pressEscape();
+  const q3uExit=await poll(`(()=>({battleOpen:document.getElementById('battleHudHost')?.classList.contains('is-open'),
+    active:window.APEX_ARSENAL?.state?.active,
+    checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()`,
+    x=>!x?.battleOpen&&!x?.active,120);
+  gate('Q3u 3v4 fixture clean teardown retains unadvanced WAKE story',
+    q3uExit?.battleOpen===false&&!q3uExit?.active
+      &&q3uExit?.checkpoint==='WAKE',q3uExit);
+
   await cmd('Page.navigate',{url:appUrl});
   const bootAgain=await poll(`(()=>({
     start:!!document.getElementById('apex-boot-start'),
