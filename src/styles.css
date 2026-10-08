@@ -4293,3 +4293,14 @@ body.apex-scene-transition-active[data-apex-scene-transition="SEALED"] #battle-s
   filter:drop-shadow(0 0 18px rgba(245,159,42,.62)) brightness(1.14);
 }
 #apex-boot-start:active .apex-boot-start-art{filter:brightness(1.34)}
+
+/* R68 title-adjacent START: only the START mark; keep center core unobstructed. */
+#apex-boot-start.apex-boot-start-plate{
+ top:clamp(130px,27vh,310px)!important;bottom:auto!important;
+ width:min(290px,43vw)!important;aspect-ratio:400/116!important;
+ min-width:0!important;min-height:0!important;
+}
+#apex-boot-start .apex-boot-start-art{width:100%;height:100%}
+@media (max-width:620px){
+ #apex-boot-start.apex-boot-start-plate{top:clamp(90px,24vh,210px)!important;width:min(230px,56vw)!important}
+}
