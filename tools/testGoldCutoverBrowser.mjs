@@ -283,7 +283,7 @@ try {
 
   // R68 runtime render probe: sample the true image-bound state layers, not
   // string-presence gates. Temporarily toggle presentation only, then restore.
-  const skillArtProbe=await evaluate(`(() => {
+  const skillArtProbe=await evaluate(`(async () => {
     const node=document.querySelector('#battleHudHost #p1Side .skill');
     const art=node?.querySelector('.sk-art');
     const ring=art?.querySelector('.apex-state-ring');
@@ -295,8 +295,10 @@ try {
     const bounds=(el)=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height}};
     const artBounds=bounds(art),ringBounds=bounds(ring),shadeBounds=bounds(shade);
     node.dataset.state='active';art.style.setProperty('--apex-active-progress','.5');
+    await new Promise(resolve=>setTimeout(resolve,160));
     const active={opacity:getComputedStyle(ring).opacity,gradient:getComputedStyle(ring).backgroundImage};
     node.dataset.state='cd';art.style.setProperty('--apex-cd-shade','.75');
+    await new Promise(resolve=>setTimeout(resolve,160));
     const cooling={opacity:getComputedStyle(shade).opacity,transform:getComputedStyle(shade).transform};
     node.dataset.state=original;
     if(originalProgress)art.style.setProperty('--apex-active-progress',originalProgress);else art.style.removeProperty('--apex-active-progress');
