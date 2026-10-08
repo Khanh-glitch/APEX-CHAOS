@@ -1592,6 +1592,9 @@
    * Enemy resolution hook (makeCtx) — body-aware + SNIPER aim-lost.
    * ------------------------------------------------------------------ */
   HR.resolveEnemyBody = function resolveEnemyBody(f, baseEnemy) {
+    const quest = globalScope.APEX_ARSENAL?.state?.questFirstWake
+      && globalScope.APEX_QUEST_MULTI_ACTOR_CORE;
+    if (quest) return quest.nearestEnemy(f, globalScope.fighters || []);
     if (!M) return undefined; // no rework match: keep base resolution
     const ct = combatantOfBody(f);
     if (!ct) return undefined;
@@ -1619,6 +1622,9 @@
     return M.combatants.flatMap((ct) => livingBodies(ct));
   };
   HR.splashTargets = function splashTargets(owner) {
+    const quest = globalScope.APEX_ARSENAL?.state?.questFirstWake
+      && globalScope.APEX_QUEST_MULTI_ACTOR_CORE;
+    if (quest) return quest.splashEnemies(owner, globalScope.fighters || []);
     if (!M) return undefined;
     const ownerCt = combatantOfBody(owner);
     const out = [];
@@ -3389,9 +3395,13 @@
     const shooterCt = combatantOfBody(p.owner);
     const neutral = p.__hr && p.__hr.neutral;
     let best = null, bestToi = 2;
-    for (const ct of M.combatants) {
-      if (!neutral && ct === shooterCt) continue;
-      for (const b of livingBodies(ct)) {
+    const quest = globalScope.APEX_ARSENAL?.state?.questFirstWake
+      && globalScope.APEX_QUEST_MULTI_ACTOR_CORE;
+    const eligibleBodies = quest
+      ? quest.livingEnemies(p.owner, globalScope.fighters || [])
+      : M.combatants.flatMap(ct =>
+          (!neutral && ct === shooterCt) ? [] : livingBodies(ct));
+    for (const b of eligibleBodies) {
         const hitR = b.radius * BULLET_HIT_SCALE + p.radius;
         if (pathToPointDist(p, b.x, b.y) >= hitR) continue;
         let t = null;
@@ -3402,8 +3412,8 @@
           break; // sub-segments are already in travel order
         }
         if (t == null) continue;
-        if (t < bestToi) { bestToi = t; best = b; }
-      }
+        if (t < bestToi || (Math.abs(t - bestToi) < 1e-9 && best
+          && String(b.id) < String(best.id))) { bestToi = t; best = b; }
     }
     return best ? { body: best, t: bestToi } : null;
   }
@@ -3429,6 +3439,9 @@
   function thrownHomingTarget(p) {
     // STORMBREAKER pursues the owner's LIVING opponent (first other body —
     // parity with base first-found anchor; rework adds earliest living body).
+    const quest = globalScope.APEX_ARSENAL?.state?.questFirstWake
+      && globalScope.APEX_QUEST_MULTI_ACTOR_CORE;
+    if (quest) return quest.nearestEnemy(p.owner, globalScope.fighters || []);
     if (!M) return null;
     const shooterCt = combatantOfBody(p.owner);
     for (const ct of M.combatants) {
