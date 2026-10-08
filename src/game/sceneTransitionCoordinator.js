@@ -447,6 +447,8 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
         p.cover = 0;
         p.revealR = 0;
         p.vignette = 0;
+        // Production-observable data for physical browser acceptance.
+        engine.apexOpeningBacking = { cover: p.cover, revealR: p.revealR, vignette: p.vignette };
       }
       return p;
     };
@@ -623,6 +625,7 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       failed: active.failed,
       elapsedMs: performance.now() - active.startedAt,
       engine: engine?.getDebug?.() || null,
+      openingBacking: engine?.apexOpeningBacking || null,
     } : { active: false, state: engine?.state || 'IDLE', engine: engine?.getDebug?.() || null },
   });
 
