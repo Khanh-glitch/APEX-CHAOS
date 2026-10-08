@@ -33,14 +33,14 @@ jobs:
         run: node tools/testQuestMultiActorCore.mjs
       - name: Verify Q2 generalized roster policy
         run: node tools/testQuestGenericRosterQ2.mjs
-      - name: Real Arsenal FIRST WAKE and production regressions
-        env:
-          APEX_EVIDENCE_DIR: /tmp/quest-q2-real-combat
-        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-first-wake
       - name: REAL Arsenal 1v2 2v2 3v4 integration and normal 1v1 teardown
         env:
           APEX_EVIDENCE_DIR: /tmp/quest-q2-multi
         run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-n-actors
+      - name: Real Arsenal FIRST WAKE and production regressions
+        env:
+          APEX_EVIDENCE_DIR: /tmp/quest-q2-real-combat
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-first-wake
       - name: Production build
         run: pnpm build
       - name: Start Vite for real Chrome physical click/touch acceptance
