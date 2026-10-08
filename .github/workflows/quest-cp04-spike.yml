@@ -58,6 +58,12 @@ jobs:
           APEX_APP_URL: http://127.0.0.1:5173
           APEX_EVIDENCE_DIR: /tmp/quest-cp04-browser
         run: node tools/testQuestContinueStoryBrowser.mjs
+      - name: Physically tap Continue Story on mobile-size Chrome
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/quest-cp04-browser
+        run: node tools/testQuestContinueStoryBrowser.mjs --mobile
       - name: Record evidence
         if: always()
         uses: actions/upload-artifact@v4
