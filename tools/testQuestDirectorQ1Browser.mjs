@@ -356,23 +356,17 @@ try{
        &&q3uGrip.drawRect?.w>0,q3uGrip);
   const q3Restored=await evalPage("(()=>{const old=window.__q3NativeUpdate;if(typeof old!=='function')return false;window.update=old;delete window.__q3NativeUpdate;return window.update===old})()");
   gate('Q3 fixture restores original engine RAF update before exiting Quest',q3Restored===true,{restored:q3Restored});
-  await pressEscape();
-  const after=await poll(`(()=>({
-    battleOpen:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,
-    checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,
-    state:window.gameState
-  }))()`,v=>!v?.battleOpen&&v?.state!=='ARSENAL',150);
-  gate('Exiting CP04 preview does NOT advance story checkpoint',!after?.battleOpen&&after?.checkpoint==='WAKE',after);
-  await image('04-return-home');
   // Q3u 3v4 is a protected loopback TEST fixture, never a story skip.
-  // After FIRST WAKE exits, launch all four owner Gold robot variants
-  // through actual Arsenal Fighter constructors and require Chrome draws.
+  // Within the already-mounted FIRST WAKE Gold Battle, launch the protected
+  // 3v4 fixture so real seven-player sprites appear ON SCREEN, not behind Home.
   const q3uFixture=await evalPage("(()=>{\n if(!['localhost','127.0.0.1','::1'].includes(location.hostname))return {started:false,reason:'not loopback'};\n const previously=window.__APEX_TEST_MODE;\n try{\n   window.__APEX_TEST_MODE=true;\n   const started=window.__apexQuestTestRosterStart?.('3v4')===true;\n   return {started,fixture:window.APEX_ARSENAL?.state?.questTestFixture,\n     count:(window.fighters||[]).length,originalFlag:previously===true};\n }finally{\n   if(previously===undefined)delete window.__APEX_TEST_MODE;\n   else window.__APEX_TEST_MODE=previously;\n }\n})()");
   gate('Q3u private 3v4 Quest fixture starts without exposing a player story skip',
     q3uFixture?.started===true&&q3uFixture.fixture==='3v4'
        &&q3uFixture.count===7,q3uFixture);
-  const q3uSeven=await poll("(()=>{\n const f=window.fighters||[],rig=window.APEX_QUEST_V12_RIG,A=window.APEX_ARSENAL;\n const specs=f.map(a=>({id:a.questId,kind:a.questVisualId||null,team:a.questTeam,\n   physicalRadius:a.radius,visual:rig?.inspect?.(a)||null}));\n const projection=window.APEX_GOLD_PROJECTION?.().state||{};\n const groups=projection.questTeams||[],sides=projection.sides||[];\n const projected=['ALLY','HOSTILE'].map((team,i)=>{\n   const members=f.filter(a=>a.questTeam===team),g=groups[i]||[],side=sides[i]||{};\n   const hp=members.reduce((sum,a)=>sum+Math.max(0,a.hp),0);\n   const max=members.reduce((sum,a)=>sum+Math.max(0,a.maxHp),0);\n   return {team,count:members.length,segmentIds:g.map(a=>a.id),\n     expectedIds:members.map(a=>a.questId),hp,max,\n     shownHp:side.hp,shownMax:side.maxHp,\n     match:g.length===members.length&&g.every((a,k)=>\n       a.id===members[k].questId&&a.hp===members[k].hp&&a.maxHp===members[k].maxHp)\n       &&side.hp===hp&&side.maxHp===max};\n });\n return {started:A?.state?.questTestFixture==='3v4',actors:specs,projected,\n   errors:rig?.stats?.failed||0};\n})()",
-    x=>x?.started&&x.actors?.length===7&&['SCRAP-C','SCRAP-D'].every(id=>x.actors.find(a=>a.id===id)?.visual?.clock>0),120);
+  const q3uSeven=await poll("(()=>{\n const f=window.fighters||[],rig=window.APEX_QUEST_V12_RIG,A=window.APEX_ARSENAL;\n const specs=f.map(a=>({id:a.questId,kind:a.questVisualId||null,team:a.questTeam,\n   physicalRadius:a.radius,visual:rig?.inspect?.(a)||null}));\n const projection=window.APEX_GOLD_PROJECTION?.().state||{};\n const groups=projection.questTeams||[],sides=projection.sides||[];\n const host=document.getElementById('battleHudHost');\n const canvas=document.getElementById('game-canvas');\n const canvasRect=canvas?.getBoundingClientRect();\n const projected=['ALLY','HOSTILE'].map((team,i)=>{\n   const members=f.filter(a=>a.questTeam===team),g=groups[i]||[],side=sides[i]||{};\n   const hp=members.reduce((sum,a)=>sum+Math.max(0,a.hp),0);\n   const max=members.reduce((sum,a)=>sum+Math.max(0,a.maxHp),0);\n   const slots=[...(host?.querySelectorAll('#p'+(i+1)+'Rail .vr-quest-slots > span')||[])];\n   return {team,count:members.length,segmentIds:g.map(a=>a.id),\n     expectedIds:members.map(a=>a.questId),hp,max,\n     shownHp:side.hp,shownMax:side.maxHp,\n     domSlots:slots.map(a=>a.dataset.actor),\n     domMatch:slots.length===members.length&&slots.every((n,k)=>n.dataset.actor===members[k].questId),\n     match:g.length===members.length&&g.every((a,k)=>\n       a.id===members[k].questId&&a.hp===members[k].hp&&a.maxHp===members[k].maxHp)\n       &&side.hp===hp&&side.maxHp===max};\n });\n return {started:A?.state?.questTestFixture==='3v4',actors:specs,projected,\n   surface:{open:host?.classList.contains('is-open')===true,\n     canvasVisible:!!canvasRect&&canvasRect.width>100&&canvasRect.height>100},\n   errors:rig?.stats?.failed||0};\n})()",
+    x=>x?.started&&x.actors?.length===7&&x.surface?.open&&x.surface?.canvasVisible
+      &&x.projected?.[0]?.domMatch&&x.projected?.[1]?.domMatch
+      &&['SCRAP-C','SCRAP-D'].every(id=>x.actors.find(a=>a.id===id)?.visual?.clock>0),120);
   const reaver=q3uSeven?.actors?.find(a=>a.id==='SCRAP-C');
   const sentinel=q3uSeven?.actors?.find(a=>a.id==='SCRAP-D');
   gate('Q3u 3v4 renders the REAL Reaver and Sentinel from Gold V12',
@@ -381,23 +375,21 @@ try{
        &&reaver.visual.clock>0&&sentinel.visual.clock>0
        &&q3uSeven.errors===0,
     {reaver,sentinel,failures:q3uSeven?.errors});
-  // The loopback 3v4 fixture is NOT a Story-mounted Gold HUD. Verify the
-  // canonical projection Gold would consume; FIRST WAKE independently
-  // tests the actual mounted two-rail DOM in this same Chrome run.
-  gate('Q3u 3v4 supplies seven true Fighter HP slots in Gold HUD projection',
+  gate('Q3u Gold really mounts the seven-body Quest fight on the visible canvas',
+    q3uSeven?.surface?.open===true&&q3uSeven?.surface?.canvasVisible===true,
+    q3uSeven?.surface);
+  gate('Q3u mounted Gold rails show 3+4 real independent Fighter HP segments',
     q3uSeven?.projected?.[0]?.count===3&&q3uSeven?.projected?.[1]?.count===4
-       &&q3uSeven.projected.every(x=>x.match),q3uSeven?.projected);
+      &&q3uSeven.projected.every(x=>x.match&&x.domMatch),q3uSeven?.projected);
   await image('06-q3u-seven-fighter-chrome');
-  // Teardown must not alter Director WAKE, Quest result or normal Arena.
   await pressEscape();
-  const q3uExit=await poll(`(()=>({battleOpen:document.getElementById('battleHudHost')?.classList.contains('is-open'),
-    active:window.APEX_ARSENAL?.state?.active,
-    checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()`,
-    x=>!x?.battleOpen&&!x?.active,120);
-  gate('Q3u 3v4 fixture clean teardown retains unadvanced WAKE story',
-    q3uExit?.battleOpen===false&&!q3uExit?.active
-      &&q3uExit?.checkpoint==='WAKE',q3uExit);
-
+  const after=await poll(`(()=>({
+    battleOpen:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,
+    checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,
+    state:window.gameState
+  }))()`,v=>!v?.battleOpen&&v?.state!=='ARSENAL',150);
+  gate('Exiting CP04 preview does NOT advance story checkpoint',!after?.battleOpen&&after?.checkpoint==='WAKE',after);
+  await image('04-return-home');
   await cmd('Page.navigate',{url:appUrl});
   const bootAgain=await poll(`(()=>({
     start:!!document.getElementById('apex-boot-start'),
