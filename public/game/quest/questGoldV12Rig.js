@@ -2551,14 +2551,13 @@ function draw(ctx,real) {
     // The donor's original proportions (Scout smaller, Bulwark broader) are
     // presentation identity; its REAL collider remains the Arsenal Fighter.
     const canonicalScale=0.93*Math.max(0.35,Math.min(1.2,(Number(real.radius)||75)/75));
-    // Q3t owner sizing: three non-NEWBOT FIRST WAKE bodies are 18% smaller
-    // visually. Keep the physical Fighter radius, speed, gun origin and
-    // damage unchanged. Later Reaver/Sentinel retain V12 donor proportions.
-    const questFirstWakeCompact = !!ar?.state?.questFirstWake &&
-      (variant==='operator'||variant==='scout'||variant==='bulwark');
-    const ratio=canonicalScale*(questFirstWakeCompact?0.82:1);
+    // Owner sizing for the three non-NEWBOT FIRST WAKE models: 18% smaller
+    // anywhere they recur in Quest. Do not alter physical Fighter radius,
+    // weapon muzzle, pathfinding or other Gold variants not yet approved.
+    const ownerCompact=(variant==='operator'||variant==='scout'||variant==='bulwark');
+    const ratio=canonicalScale*(ownerCompact?0.82:1);
     record.scale=ratio;
-    record.scaleFactor=questFirstWakeCompact?0.82:1;
+    record.scaleFactor=ownerCompact?0.82:1;
     ctx.scale(ratio,ratio);
     const m=ctx.getTransform();
     // Measured from the actual canvas matrix AFTER undoing engine movement
