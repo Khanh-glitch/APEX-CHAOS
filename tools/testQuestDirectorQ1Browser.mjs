@@ -420,6 +420,18 @@ try{
       gate('Q3v '+c.name+' faction names are visible and not ellipsized',
         q3vVisual?.factionReadable===true,
         {sides:q3vVisual?.sides});
+      // Owner visual finding: the tablet 200px Quest panel cuts BOTH real
+      // skill names to ellipses. Test the actual rendered name text, not
+      // the skill tile's existence or an abstract fixture width.
+      if(c.name==='tablet-landscape'){
+        gate('Q3v tablet Quest J/K show their FULL real names without ellipsis',
+          Array.isArray(q3vVisual?.skillNames)
+          &&q3vVisual.skillNames.length===2
+          &&q3vVisual.skillNames.every(x=>x.visible&&x.fits)
+          &&q3vVisual.skillNames[0].value==='WEAPON DASH'
+          &&q3vVisual.skillNames[1].value==='VIRTUAL ARMOR',
+          {skills:q3vVisual.skillNames});
+      }
       // K label truncation, sparse tablet hierarchy and V12 art remain owner QA.
 
     }
