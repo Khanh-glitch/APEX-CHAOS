@@ -33,6 +33,8 @@ jobs:
         env:
           APEX_EVIDENCE_DIR: /tmp/quest-cp04-acceptance
         run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-first-wake
+      - name: Build production bundle on the Quest branch
+        run: pnpm build
       - name: Record evidence
         if: always()
         uses: actions/upload-artifact@v4
