@@ -12,6 +12,8 @@ on:
       - 'tools/buildGoldCutover.mjs'
       - 'public/gold/battle-hud.html'
       - 'public/gold/shell.html'
+      - 'public/gold/manifest.json'
+      - 'src/game/goldAssetManifest.js'
 
 permissions:
   contents: read
