@@ -5732,6 +5732,26 @@ if (process.argv.includes('--quest-first-wake')) {
         allyUntouched:after[2]===before[2],
         hitScrapA:after[1]<before[1],
         scrapBUntouched:after[3]===before[3] };
+      // The opposing Scrap Bot's REAL projectile must ignore its teammate
+      // (Sc​​rap A) and hit T.O.T behind it. Owner is NOT in HR.combatants[].
+      const beforeReturn=f.map(x=>x.hp);
+      W.fireBullet({owner:f[3],x:740,y:300,angle:Math.PI,speed:2600,
+        damage:10,weapon:'PISTOL'});
+      AQ.step(0.18);
+      const afterReturn=f.map(x=>x.hp);
+      const reverseFirearm={
+        friendlyScrapUntouched:afterReturn[1]===beforeReturn[1],
+        totDamaged:afterReturn[2]<beforeReturn[2],
+        newbotUntouched:afterReturn[0]===beforeReturn[0]
+      };
+      // Authentic production slot -> resolvePickups -> holder ownership.
+      const slot={id:9991,x:f[2].x,y:f[2].y,phase:'REVEALED',
+        weaponId:'PISTOL',kind:'WEAPON',spawnTime:AQ.state.time,
+        revealedFor:0,rejectedFor:{},tier:null};
+      AQ.state.slots.push(slot);
+      window.APEX_ARSENAL_SPAWN.resolvePickups();
+      const realTotPickup=W.getHolder(f[2])?.weaponId==='PISTOL'
+        && slot.phase==='REMOVED' && slot.pickedBy===f[2].name;
       W.equip(f[3],'PISTOL');
       const equipped = W.getHolder(f[3])?.weaponId === 'PISTOL';
       f[1].hp=0;f[3].hp=0;
@@ -5747,7 +5767,7 @@ if (process.argv.includes('--quest-first-wake')) {
       }
       const retry=resetStarted && window.APEX_ARSENAL.state.questOutcome==='RETRY';
       window.exitArsenalBattleMode();
-      return { roster,realFirearm,equipped,complete,retry };
+      return { roster,realFirearm,reverseFirearm,realTotPickup,equipped,complete,retry };
     `);
     gate('quest-cp04-four-real-fighters',
       !!result?.roster?.started && result.roster.count===4
@@ -5758,6 +5778,13 @@ if (process.argv.includes('--quest-first-wake')) {
       !!result?.realFirearm?.allyUntouched
       && !!result.realFirearm.hitScrapA
       && !!result.realFirearm.scrapBUntouched, result?.realFirearm);
+    gate('quest-cp04-reverse-friendly-fire',
+      result?.reverseFirearm?.friendlyScrapUntouched
+      && result?.reverseFirearm?.totDamaged
+      && result?.reverseFirearm?.newbotUntouched,
+      result?.reverseFirearm);
+    gate('quest-cp04-real-floor-pickup-for-tot',
+      result?.realTotPickup===true,{realTotPickup:result?.realTotPickup});
     gate('quest-cp04-real-equipment-owner',
       result?.equipped===true,{equipped:result?.equipped});
     gate('quest-cp04-real-ko-complete-and-retry',
