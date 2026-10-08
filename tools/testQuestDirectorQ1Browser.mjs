@@ -174,6 +174,25 @@ try{
   gate('Q3 actual V12 spring rigs draw both hostiles in real Chrome',
     v12?.registered&&v12?.instances>=2&&v12?.draws>=10&&v12?.failed===0
       &&v12?.donor==='3817ab8b0ab674af9573704f20173ff1edfae5e26598f843b1dd1ab422ff3685',v12);
+  // Q3 semantic Gold HUD law: both SIDE bars summarize every independent
+  // physical Quest HP pool; displaying the first actor's HP is false.
+  const q3Teams=await poll(`(()=>{
+    const host=document.getElementById('battleHudHost');
+    const actors=window.fighters||[];
+    const sum=team=>actors.filter(f=>f.questTeam===team).reduce((t,f)=>({
+      hp:t.hp+Math.max(0,Number(f.hp)||0),max:t.max+Math.max(0,Number(f.maxHp)||0),
+      count:t.count+1
+    }),{hp:0,max:0,count:0});
+    const read=i=>({hp:Number(host?.querySelector('#p'+i+'Rail .vr-cur')?.textContent),
+      max:Number((host?.querySelector('#p'+i+'Rail .vr-max')?.textContent||'').replace(/[^0-9.]/g,''))});
+    return {ally:sum('ALLY'),hostile:sum('HOSTILE'),left:read(1),right:read(2)};
+  })()`,v=>v?.left?.max===v?.ally?.max&&v?.right?.max===v?.hostile?.max
+       &&v?.left?.hp===Math.round(v?.ally?.hp)&&v?.right?.hp===Math.round(v?.hostile?.hp),120);
+  gate('Q3 Gold two panels show real aggregate Quest HP without a fake shared health pool',
+    q3Teams?.ally?.count===2&&q3Teams?.hostile?.count===2
+     &&q3Teams?.left?.max===q3Teams.ally.max&&q3Teams.right.max===q3Teams.hostile.max
+     &&q3Teams.left.hp===Math.round(q3Teams.ally.hp)
+     &&q3Teams.right.hp===Math.round(q3Teams.hostile.hp),q3Teams);
   await image('03-cp04-preview-four-fighters');
   await pressEscape();
   const after=await poll(`(()=>({
