@@ -642,6 +642,97 @@ kbd{font:inherit}
   .vrail.low .vr-low{animation:none;opacity:.5}
   .sk-sweep{display:none}
 }
+/* R83 LOCAL-PORTRAIT SOLVER CANDIDATE.
+   The full-size Gold composition is the authority. Below its effective design
+   height, partition the SAME four territories proportionally, rather than
+   reserving two immutable 132px side zones at 545px screen height.
+   Only compact portrait Local 2P; BOT/tablet/land/desk untouched.
+   Mirrored P2 orientation, arena canvas, coordinate system, and inputs unchanged. */
+@media (orientation:portrait) and (max-height:720px) {
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"]{
+    --pad:clamp(4px,0.7cqh,6px);
+    --g:clamp(3px,0.7cqh,6px);
+    --railH:clamp(24px,3.97cqh,34px);
+    --zoneMin:clamp(83px,15.45cqh,132px);
+    --mcW:clamp(84px,20.35cqw,112px);
+    --mcTF:clamp(13px,2.22cqh,19px);
+  }
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side{
+    --shortIdH:clamp(24px,4.45cqh,32px);
+    --shortHpH:clamp(16px,2.8cqh,23px);
+    --porW:clamp(23px,4.2cqh,32px);
+    --porH:var(--porW);
+    --idGap:clamp(3px,0.6cqh,5px);
+    --nameF:clamp(11px,1.95cqh,16px);
+    --skGap:clamp(3px,0.65cqh,6px);
+    --keyS:clamp(14px,2.1cqh,18px);
+    --keyF:clamp(8px,1.3cqh,10.5px);
+    --skNF:clamp(8px,1.4cqh,11.5px);
+    --stF:clamp(7px,1.1cqh,9.5px);
+    --cdF:clamp(14px,2.6cqh,22px);
+    --swH:clamp(26px,4.4cqh,44px);
+    --swW:var(--swH);
+    --wpIW:clamp(27px,4.75cqh,48px);
+    --wpNF:clamp(8px,1.2cqh,11px);
+    --amF:clamp(11px,2cqh,17px);
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-rows:var(--shortIdH) var(--shortHpH) minmax(0,1fr);
+    grid-template-areas:"id sk" "hp sk" "wp sk";
+    row-gap:2px;
+    column-gap:clamp(3px,0.6cqh,6px);
+  }
+  /* Both owner HP rails remain real and always visible. The short panel
+     omits only the redundant opponent recap and decorative duel feed. */
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .rival-health,
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .duel-feed{display:none}
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] #p1Rail,
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] #p2Rail{
+    --lblH:7px;--barH:5px;--accH:2px;
+    --nmF:clamp(7px,1.05cqh,9px);
+    --hpF:clamp(10px,1.75cqh,15px);
+  }
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .vrail{
+    grid-template-rows:var(--lblH) var(--barH) var(--accH);
+    row-gap:1px;
+    overflow:hidden;
+  }
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .ident{
+    overflow:hidden;
+  }
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .id-txt{gap:1px}
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .id-row{gap:3px}
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .id-ctrl{font-size:7px;letter-spacing:.08em}
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .id-tag{font-size:8px;padding:0 4px}
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .skills{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-rows:minmax(0,1fr);
+    min-height:0;
+    gap:var(--skGap);
+  }
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .skill{
+    min-height:0;
+    grid-template-rows:minmax(0,1fr) auto;
+  }
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .sk-info{
+    padding:2px 3px 3px;gap:2px;
+  }
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .sk-top{top:3px;inset-inline-start:3px}
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .weapon{
+    grid-area:wp;
+    min-height:0;
+    max-height:none;
+    height:100%;
+    grid-template-rows:minmax(0,1fr) auto;
+    padding:1px 2px 2px;
+    column-gap:3px;
+    row-gap:0;
+    overflow:hidden;
+  }
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .wp-name{font-size:9px}
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .wp-swap{
+    min-height:0;padding:0 1px;align-self:stretch;
+  }
+}
 </style>
 
 <script>
