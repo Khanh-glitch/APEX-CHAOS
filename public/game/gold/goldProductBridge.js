@@ -1447,7 +1447,7 @@
         hp: group.reduce((sum, actor) => sum + Math.max(0, Number(actor.hp) || 0), 0),
         maxHp: group.reduce((sum, actor) => sum + Math.max(0, Number(actor.maxHp) || 0), 0)
       } : null;
-      const teamName = group ? (i === 0 ? 'ALLIES ×' : 'SCRAP ×') + group.length : null;
+      const teamName = group ? (i === 0 ? 'NEWBOT' : 'SCRAP') : null;
       sides.push({
         hp: teamVitals ? teamVitals.hp : ((vitals && Number.isFinite(vitals.hp)) ? vitals.hp : vitalsFallback.hp),
         maxHp: teamVitals ? teamVitals.maxHp : ((vitals && Number.isFinite(vitals.maxHp)) ? vitals.maxHp : vitalsFallback.maxHp),
