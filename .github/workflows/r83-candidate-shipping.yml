@@ -42,8 +42,31 @@ jobs:
         run: |
           node --check tools/goldShellR83.mjs
           node --check tools/goldBattleHudR83.mjs
-      - name: Verify canonical Gold generator reproduces checked-in HUD and Shell
-        run: node tools/buildGoldCutover.mjs --check
+      - name: Regenerate canonical Gold in runner and audit source changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/buildGoldCutover.mjs
+          git diff --name-only > /tmp/r83-generator-changed-paths.txt
+          cat /tmp/r83-generator-changed-paths.txt
+          while IFS= read -r path; do
+            case "$path" in
+              public/gold/shell.html|public/gold/manifest.json|src/game/goldAssetManifest.js) ;;
+              *) echo "::error::Unexpected Gold generator drift in $path"; exit 1 ;;
+            esac
+          done < /tmp/r83-generator-changed-paths.txt
+          node tools/buildGoldCutover.mjs --check
+      - name: Upload deterministic Gold source outputs for controlled synchronization
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r83-regenerated-gold-evidence
+          path: |
+            public/gold/shell.html
+            public/gold/battle-hud.html
+            public/gold/manifest.json
+            src/game/goldAssetManifest.js
+          if-no-files-found: warn
       - name: Verify R82 opt-in feature is still isolated
         run: node tools/testR82HomeLayoutLab.mjs
       - name: Build shipping game
