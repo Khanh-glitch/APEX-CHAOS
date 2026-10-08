@@ -2260,6 +2260,10 @@ function buildShell(hudProductionHtml) {
   if (!payloadMatch) throw new Error('patch SHL-S12 could not find the battle HUD payload script');
   out = out.replace(payloadRe, `$1${payloadB64}$3`);
   log('  patch SHL-S12 (shell): production-bridged battle HUD payload embedded (canonical base64 mechanism preserved)');
+  // Version the two external shell scripts together with the generated shell.
+  // A reused old script URL may otherwise execute against new shell DOM.
+  out = out.replace(/(\/game\/(?:ui\/uiSfxAuthority|gold\/goldProductBridge)\.js\?v=)[^"']+/g,
+    (_, prefix) => prefix + REVISION);
   return out;
 }
 
