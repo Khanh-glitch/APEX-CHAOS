@@ -160,9 +160,14 @@ try{
   const p2Ready=await wait("document.querySelector('#stage')?.classList.contains('fighter-active-p2')");
   check('P1 locked, P2 active',p2Ready);
   if(!p2Ready)throw Error('P2 handoff missing');
+  await click('.rosterCard[data-hero="hunter"]'); await sleep(350);
   const p2Pick=await shot('production-pick-p2-361x545');
   check('P2 R85 card >=48px',p2Pick.pick.card?.h>=48,p2Pick.pick.card);
   check('P2 R85 hero stage wide',p2Pick.pick.p2?.w>=320,p2Pick.pick.p2);
+  check('P2 Hunter identity active and art uncut',
+    p2Pick.pick.p2?.x>=-15&&p2Pick.pick.p2?.right>=330&&
+    p2Pick.pick.infoP2?.w>=320,p2Pick.pick);
+
   check('P2 R85 info clears roster',p2Pick.pick.infoP2?.bottom<p2Pick.pick.deck?.y-1,p2Pick.pick);
 
   await click('.rosterCard[data-hero="newbot"]');await sleep(350);
