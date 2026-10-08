@@ -44,6 +44,7 @@ import { adaptGoldBattleHudR55 } from './goldBattleHudR55.mjs';
 import { adaptGoldBattleHudR83 } from './goldBattleHudR83.mjs';
 import { adaptGoldShellR50k } from './goldShellR50k.mjs';
 import { adaptGoldShellR52PickBand } from './goldShellR52pickBand.mjs';
+import { adaptGoldShellR83 } from './goldShellR83.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const GOLD_DIR = path.join(REPO, 'docs', 'gold-ui', 'current');
@@ -2270,6 +2271,9 @@ function buildShell(hudProductionHtml) {
     if (!out.includes('</head>')) throw new Error('R81 shell head missing');
     out = out.replace('</head>', r81Style + '</head>');
   }
+
+  out = adaptGoldShellR83(out);
+  log('  R83 (shell): short Mode Select portrait geometry');
 
   // ── S12: embed the production-bridged battle HUD payload (same canonical
   // base64 payload mechanism, so loading/transition timing does not drift).
