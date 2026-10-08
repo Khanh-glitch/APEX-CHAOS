@@ -41,6 +41,7 @@ import { fileURLToPath } from 'node:url';
 import { adaptGoldBattleHudR48b } from './goldBattleHudR48b.mjs';
 import { adaptGoldBattleHudR50c } from './goldBattleHudR50c.mjs';
 import { adaptGoldBattleHudR55 } from './goldBattleHudR55.mjs';
+import { adaptGoldBattleHudR83 } from './goldBattleHudR83.mjs';
 import { adaptGoldShellR50k } from './goldShellR50k.mjs';
 import { adaptGoldShellR52PickBand } from './goldShellR52pickBand.mjs';
 
@@ -863,6 +864,8 @@ const seamPatches = [
   log('  R50C (battle-hud): live identity/rarity + full-panel impact ownership adapted');
   out = adaptGoldBattleHudR55(out);
   log('  R55 (battle-hud): phone panel law + held-gun plate adapted');
+  out = adaptGoldBattleHudR83(out);
+  log('  R83 (battle-hud): short Local portrait geometry solver candidate');
   return out;
 }
 
