@@ -9,6 +9,7 @@ on:
       - 'tools/goldBattleHudR83.mjs'
       - 'tools/testR85PickCandidateBrowser.mjs'
       - 'tools/testR86CombinedFlowBrowser.mjs'
+      - 'src/App.jsx'
       - 'tools/r85PickLayoutCandidate.css'
       - 'tools/r85PickSolverCandidate.mjs'
       - 'src/game/shortPortraitPick.css'
@@ -86,7 +87,7 @@ jobs:
         with:
           name: r86-combined-flow
           path: |
-            docs/acceptance/r86-combined-flow/
+            docs/acceptance/r85-responsive-pick/
             docs/acceptance/r86-combined-flow/
             /tmp/r86-integrated-vite.log
           if-no-files-found: warn
