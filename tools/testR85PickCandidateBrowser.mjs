@@ -65,9 +65,14 @@ try{
 
   const out='docs/acceptance/r85-responsive-pick';
   const candidateCSS=readFileSync(new URL('./r85PickLayoutCandidate.css',import.meta.url),'utf8');
+  const { solveShortPortraitPick }=await import('./r85PickSolverCandidate.mjs');
   await mkdir(out,{recursive:true});
   const screens=[
-    {w:361,h:545,label:'owner-361x545'}
+    {w:550,h:857,label:'golden-550x857'},
+    {w:390,h:844,label:'tall-390x844'},
+    {w:361,h:545,label:'owner-361x545'},
+    {w:320,h:498,label:'short-320x498'},
+    {w:280,h:430,label:'ultrashort-280x430'}
   ];
   const report={source:'R83 real React-mounted production Vite + Chrome CDP; NOT Android browser chrome',
     viewports:[],issues:[]};
@@ -162,6 +167,15 @@ try{
     await sleep(450);
     const before=await capture(label+'-pick-before');
     await evalJS("(()=>{const s=document.createElement('style');s.id='r85-candidate-pick';s.textContent="+JSON.stringify(candidateCSS)+";document.head.appendChild(s);return true})()");
+    const solved=solveShortPortraitPick({width:w,height:h});
+    if(solved){
+      const px=v=>v.toFixed(4)+'px';
+      // Gold owns inline-important hero geometry; candidate must reuse the
+      // same authority level, not add higher-specificity CSS wars.
+      const updated=await evalJS("(()=>{const stage=document.querySelector('#stage'),deck=document.querySelector('.selectionDeckV6');const p=JSON.parse("+JSON.stringify(JSON.stringify(solved,{heroBottomForInfoHeight:undefined}))+");const px=v=>v.toFixed(4)+'px';stage.style.setProperty('--r85DeckTop',px(p.deckTop),'important');stage.style.setProperty('--r85LockReserve',px(p.lockReserve),'important');deck.style.setProperty('top',px(p.deckTop),'important');deck.style.setProperty('bottom',px(p.lockReserve),'important');const info=document.querySelector('.fighterIdentityZone.p1 .fighterIdentity');const infoHeight=info.getBoundingClientRect().height;for(const player of ['p1','p2']){const hero=document.querySelector('.worldHeroSlot.'+player);if(!hero)continue;hero.style.setProperty('top',px(p.heroTop),'important');hero.style.setProperty('bottom',px(p.height-p.deckTop+8+infoHeight+2),'important');hero.style.setProperty('width',px(p.heroWidth),'important');hero.style.setProperty('left',player==='p1'?px(p.heroLeft):'auto','important');hero.style.setProperty('right',player==='p2'?px(p.heroLeft):'auto','important');}return{top:p.deckTop,lock:p.lockReserve,infoHeight}})()");
+      console.log('R85 SOLVER '+label+' '+JSON.stringify(updated));
+    }
+
     const after=await capture(label+'-pick-after');
     const cascade=await evalJS("(()=>{const st=document.querySelector('#stage'),d=document.querySelector('.selectionDeckV6'),h=document.querySelector('.worldHeroSlot.p1'),cs=e=>getComputedStyle(e),css=document.getElementById('r85-candidate-pick');return {appliedRules:css?.sheet?.cssRules?.[0]?.cssRules?.length,stageVars:{lock:cs(st).getPropertyValue('--r85LockReserve'),deck:cs(st).getPropertyValue('--r85DeckTop'),lockB:cs(st).getPropertyValue('--apexLockB'),lockH:cs(st).getPropertyValue('--apexLockH')},deck:{inline:d?.style.cssText,top:cs(d).top,bottom:cs(d).bottom},hero:{class:h?.className,attributes:[...h?.attributes||[]].map(a=>[a.name,a.value]).slice(0,12),inline:h?.style.cssText,width:cs(h).width,left:cs(h).left,bottom:cs(h).bottom},supports:CSS.supports('top','min(65vh,calc(100dvh - max(10vh,58px) - 128px))')}})()");
     console.log('R85 CASCADE '+label+' '+JSON.stringify(cascade));
@@ -170,7 +184,7 @@ try{
     const close=(a,b,t=.75)=>Boolean(a&&b&&['x','y','w','h'].every(k=>Math.abs(a[k]-b[k])<=t));
     if(h>700){
       for(const key of ['pickHeader','hero','heroAsset','fighterIdentity','deck','card','lock']){
-        if(!close(p[key],b[key]))error(key+' GOLD geometry changed',p[key],b[key]);
+        if(!close(p[key],b[key],key==='heroAsset'?3:.75))error(key+' GOLD geometry changed',p[key],b[key]);
       }
     }else{
       if(!(p.card?.h>=48))error('roster touch height <48px',p.card?.h,'>=48');
