@@ -375,7 +375,15 @@
         th.meta.pose.rotKick = poseRecipe('TOWER_SHIELD').blockRot;
       }
     }
-    const dealt = amount * mult;
+    // E01 pilot last-resort safety: keep BOTH training participants alive
+    // until accepted J/K + half-HP receipts. Scoped to Quest REFLEX only;
+    // all normal Arsenal weapon physics, percentages and crits unchanged.
+    const reflexFloor=AQ.state?.questReflex===true
+      && (target.questId==='NEWBOT'||target.questId==='T.O.T') ? 250 : 0;
+    const dealt=reflexFloor>0
+      ? Math.min(amount*mult,Math.max(0,target.hp-reflexFloor))
+      : amount*mult;
+    if(!(dealt>0))return 0;
     if (target) {
       target.__aqHitCrit = !!opts.critical;
       // V1 blood port §6: real firearm impact metadata rides next to the crit

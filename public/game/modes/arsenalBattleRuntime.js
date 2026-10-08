@@ -291,6 +291,22 @@
           }
         }
       }
+      // E01 only: stage-directed placement of the two approved R1/R2
+      // PISTOL DROPS. All reveal and pickup physics stay in Arsenal SPAWN.
+      // A third post-R2 drop, when needed for Weapon Dash, comes from the
+      // NORMAL 4.5-second Arsenal drop cadence rather than a fake equip.
+      if(state.questReflex && state.questReflexGate){
+        const stage=state.questReflexGate.snapshot().phase;
+        const q=state.questReflexSpawns||(state.questReflexSpawns={});
+        if(stage==='R1_PISTOL'&&!q.r1) {
+          q.r1=!!SPAWN.trySpawnSlot({questWeaponId:'PISTOL',questPoint:{x:330,y:500}});
+        }else if(stage==='R2_PISTOL'&&!q.r2) {
+          q.r2=!!SPAWN.trySpawnSlot({questWeaponId:'PISTOL',questPoint:{x:670,y:500}});
+        }else if(stage==='J_CAST'&&!q.jDrop) {
+          q.jDrop=true;
+          state.spawnTimer=Math.min(state.spawnTimer,0);
+        }
+      }
       // Fixed spawn cadence — independent of collection state (handoff §5).
       if (!state.labMode) state.spawnTimer -= dt;
       let guard = 0;
@@ -1126,6 +1142,11 @@
           gate.close(); AQ.state.active=false; return false;
         }
         AQ.state.questReflexGate=gate;
+        // Only scripted R1/R2 spawn at first. The normal Arsenal cadence
+        // resumes when J needs a real revealed pickup after R2.
+        AQ.state.spawnTimer=1e6;
+        AQ.state.spawnHeld=true;
+        AQ.state.questReflexSpawns={r1:false,r2:false,jDrop:false};
       }
     } else {
       fighters = [

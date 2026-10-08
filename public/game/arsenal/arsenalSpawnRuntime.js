@@ -126,7 +126,15 @@
       return null;
     }
 
-    const point = pickSpawnPoint(state.slots);
+    // E01 REFLEX only: authored R1/R2 PISTOL locations. This still enters
+    // the canonical TELEGRAPH → REVEALED → actual pickup/equip pipeline.
+    // Never let public normal/Local modes request a fixed weapon or point.
+    const forcedQuest=state.questReflex===true && opts?.questWeaponId==='PISTOL'
+      && Number.isFinite(opts?.questPoint?.x)&&Number.isFinite(opts?.questPoint?.y);
+    const point=forcedQuest
+      ? {x:Math.max(180,Math.min(820,opts.questPoint.x)),
+         y:Math.max(180,Math.min(820,opts.questPoint.y))}
+      : pickSpawnPoint(state.slots);
     const slot = {
       id: state.nextSlotId++,
       x: point.x,
@@ -134,6 +142,7 @@
       phase: 'TELEGRAPH',
       weaponId: null,
       forceFirearm: !!(opts && opts.forceFirearm),
+      questWeaponId: forcedQuest ? 'PISTOL' : null,
       // V2 B-handoff A-CORR-2: fixed 2.0s whole-circle reveal lead per slot.
       revealLeadSeconds: Number(CFG.REVEAL_LEAD_SECONDS ?? 2.0),
       revealedFor: 0,
@@ -203,7 +212,9 @@
 
   function revealSlot(slot, eta, fighter, force = false) {
     slot.phase = 'REVEALED';
-    slot.weaponId = slot.forceFirearm ? selectFirearmWeapon() : selectSpawnWeapon();
+    slot.weaponId= AQ.state?.questReflex===true && slot.questWeaponId==='PISTOL'
+      ? 'PISTOL'
+      : (slot.forceFirearm ? selectFirearmWeapon() : selectSpawnWeapon());
     slot.tier = CFG.tierOf ? CFG.tierOf(slot.weaponId) : null;
     slot.revealedFor = 0;
     const etaText = Number.isFinite(eta) ? eta.toFixed(2) : 'null';
