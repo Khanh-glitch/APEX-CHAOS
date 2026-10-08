@@ -166,7 +166,8 @@ try{
   if(!(await wait("document.body?.dataset?.apexSceneTransition==='DONE'")))throw Error('missing final Home');
   await click('#freeBattle');
   assert('Mode transition still works',await wait("document.querySelector('#stage')?.classList.contains('screen-mode')"));
-  const residual=await evalJS("(()=>{const s=document.querySelector('.story'),a=document.querySelector('.actions');return{storyTop:s?.style.top,actionsTop:a?.style.top}})()");
+  const reset=await wait("(()=>{const s=document.querySelector('.story'),a=document.querySelector('.actions');return !s?.style.top&&!a?.style.top})()");
+  const residual=await evalJS("(()=>{const s=document.querySelector('.story'),a=document.querySelector('.actions');return{storyTop:s?.style.top,actionsTop:a?.style.top,reset:"+ "reset" +"}})()");
   assert('Home inline corrections removed in Mode',!residual.storyTop&&!residual.actionsTop,residual);
   await writeFile(out+'/report.json',JSON.stringify({results,failures},null,2));
   console.log('R86 HOME FINAL '+JSON.stringify({viewports:viewportCases.length,failures}));
