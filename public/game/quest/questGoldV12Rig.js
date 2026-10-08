@@ -2483,7 +2483,7 @@ const {LAYOUTS}=__req('/layouts');
 const {buildRigArt}=__req('/art/robots');
 let actors=new WeakMap();
 let faulty=new WeakSet();
-const stats={attempts:0,draws:0,instances:0,failed:0,realHitEvents:0,realRecoilEvents:0,operatorDraws:0,lastError:null};
+const stats={attempts:0,draws:0,instances:0,failed:0,realHitEvents:0,realRecoilEvents:0,operatorDraws:0,facingByQuestId:{},lastError:null};
 function draw(ctx,real) {
   const variant=real?.questVisualId;
   if(!variant||!['scout','bulwark','reaver','sentinel','operator'].includes(variant)||!ctx?.getTransform)return false;
@@ -2552,6 +2552,11 @@ function draw(ctx,real) {
     const ratio=0.93*Math.max(0.35,Math.min(1.2,(Number(real.radius)||75)/75));
     ctx.scale(ratio,ratio);
     const m=ctx.getTransform();
+    // Measured from the actual canvas matrix AFTER undoing engine movement
+    // heading, not inferred from a wished-for orientation. Debug state only.
+    const angle=Math.atan2(m.b,m.a);
+    const identity=String(real.questId||real.id);
+    stats.facingByQuestId[identity]={angle,dir:Math.atan2(dirY,dirX)};
     const cam=[m.a,m.b,m.c,m.d,m.e-m.a*shadow.x-m.c*shadow.y,m.f-m.b*shadow.x-m.d*shadow.y];
     // One source of physical pose, one source of world transform. Arsenal still
     // paints the REAL weapon on top after this fighter-body pass.
@@ -2567,7 +2572,7 @@ function draw(ctx,real) {
     return false; // previous CP04 renderer is the fallback, not a fake PASS
   }
 }
-function reset(){actors=new WeakMap();faulty=new WeakSet();stats.instances=0;}
+function reset(){actors=new WeakMap();faulty=new WeakSet();stats.instances=0;stats.facingByQuestId={};}
 root.APEX_QUEST_V12_RIG=Object.freeze({draw,reset,stats,sourceSha256:'3817ab8b0ab674af9573704f20173ff1edfae5e26598f843b1dd1ab422ff3685'});
 root.apexQuestV12Rig='ready';
 })(typeof window!=='undefined'?window:globalThis);
