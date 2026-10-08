@@ -541,6 +541,37 @@ export default function App() {
         if (window.APEX_GOLD?.prepareSurface) {
           await window.APEX_GOLD.prepareSurface('home');
         }
+        // Owner boot START: user gesture is needed for reliable audible music.
+        // Home assets are settled BEFORE this control is shown; the mechanical
+        // door remains closed until the player's explicit START interaction.
+        await new Promise((resolve) => {
+          if (cancelled) { resolve(); return; }
+          const start = document.createElement('button');
+          start.type = 'button';
+          start.id = 'apex-boot-start';
+          start.textContent = 'START';
+          start.setAttribute('aria-label', 'Start APEX CHAOS');
+          Object.assign(start.style, {
+            position: 'fixed', left: '50%', bottom: 'max(11%, 48px)',
+            transform: 'translateX(-50%)', zIndex: '2147483640',
+            border: '1px solid #dc9d45', background: '#101013',
+            color: '#ffd98a', font: '800 26px Teko, sans-serif',
+            letterSpacing: '0.16em', padding: '10px 50px', cursor: 'pointer',
+            boxShadow: '0 0 24px #d48d2840', touchAction: 'manipulation'
+          });
+          start.addEventListener('click', () => {
+            // Call playback synchronously in the trusted gesture, not after await.
+            try {
+              const music = window.apexProductMusic;
+              if (music?.request) music.request('boot-start');
+              else window.apexPlayMenuMusic?.();
+            } catch (error) { console.warn('[boot-start] music request', error); }
+            start.remove();
+            resolve();
+          }, { once: true });
+          document.body.appendChild(start);
+        });
+        if (cancelled) return;
         await window.APEX_SCENE_TRANSITION?.signalBootReady?.();
       } catch (error) {
         console.warn('[gold-shell] Gold product shell mount failed.', error);
