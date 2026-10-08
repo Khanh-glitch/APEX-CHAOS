@@ -2483,10 +2483,10 @@ const {LAYOUTS}=__req('/layouts');
 const {buildRigArt}=__req('/art/robots');
 let actors=new WeakMap();
 let faulty=new WeakSet();
-const stats={attempts:0,draws:0,instances:0,failed:0,realHitEvents:0,realRecoilEvents:0,lastError:null};
+const stats={attempts:0,draws:0,instances:0,failed:0,realHitEvents:0,realRecoilEvents:0,operatorDraws:0,lastError:null};
 function draw(ctx,real) {
   const variant=real?.questVisualId;
-  if(!variant||!['scout','bulwark','reaver','sentinel'].includes(variant)||!ctx?.getTransform)return false;
+  if(!variant||!['scout','bulwark','reaver','sentinel','operator'].includes(variant)||!ctx?.getTransform)return false;
   if(faulty.has(real))return false;
   stats.attempts++;
   try {
@@ -2540,8 +2540,12 @@ function draw(ctx,real) {
     record.lastNow=now;
     if(delta>0)presentation.step(delta);
     ctx.save();
-    // Gold art faces -Y; Apex Fighter.draw already rotates the canvas toward +X.
-    ctx.rotate(Math.PI/2);
+    // Parent Fighter.draw rotates by MOVEMENT heading. The Gold V12 rig is a
+    // forward-facing chassis: cancel only that rotation; retain genuine arm,
+    // optic, shell, weapon and hit spring movement from the donor.
+    const dirX=Number.isFinite(real.dir?.x)?real.dir.x:1;
+    const dirY=Number.isFinite(real.dir?.y)?real.dir.y:0;
+    ctx.rotate(-Math.atan2(dirY,dirX)+Math.PI/2);
     // Do not normalize every Gold species to the same Arsenal collision radius.
     // The donor's original proportions (Scout smaller, Bulwark broader) are
     // presentation identity; its REAL collider remains the Arsenal Fighter.
@@ -2554,6 +2558,7 @@ function draw(ctx,real) {
     presentation.drawBody(ctx,cam);
     ctx.restore();
     stats.draws++;
+    if(variant==='operator')stats.operatorDraws++;
     root.__apexQuestV12Draws=(root.__apexQuestV12Draws||0)+1;
     return true;
   }catch(e){
