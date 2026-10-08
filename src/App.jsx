@@ -384,7 +384,7 @@ export default function App() {
       }
     };
 
-    void installBootMusic();
+    window.__apexBootMusicReady = installBootMusic();
 
     return () => {
       disposed = true;
@@ -395,6 +395,7 @@ export default function App() {
       if (window.__apexMenuBgmState) delete window.__apexMenuBgmState;
       delete window.__apexBootThemeRequested;
       delete window.__apexBootThemeError;
+      delete window.__apexBootMusicReady;
       if (musicHandle && typeof musicHandle.dispose === 'function') musicHandle.dispose();
     };
   }, []);
@@ -544,6 +545,10 @@ export default function App() {
         // Owner boot START: user gesture is needed for reliable audible music.
         // Home assets are settled BEFORE this control is shown; the mechanical
         // door remains closed until the player's explicit START interaction.
+        // START must not become actionable before the single music authority has
+        // loaded (a fast Home mount can otherwise race the async audio module).
+        await window.__apexBootMusicReady;
+        if (cancelled) return;
         await new Promise((resolve) => {
           if (cancelled) { resolve(); return; }
           const start = document.createElement('button');
