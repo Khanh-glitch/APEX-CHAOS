@@ -187,11 +187,12 @@ check('R62 simultaneous Crit/Heavy preserves all shards but mounts in one batch'
   hud.includes('group.appendChild(shardBatch);') &&
   hud.includes('shardAnimations.forEach(start=>start());') &&
   !hud.includes('piece.appendChild(clone);group.appendChild(piece);'));
-check('R62 landscape/desk side backdrops follow real hero identity',
-  hud.includes('hero-aware backdrop: portrait source is game-authoritative') &&
-  hud.includes('art.classList.add(\'apex-hero-watermark\')') &&
-  hud.includes("image.getAttribute('src')!==avatar") &&
-  r55Adapter.includes("'hero-aware panel watermark projection'"));
+check('R65 landscape panels use hero-specific vector motifs instead of avatar enlargements',
+ hud.includes('R65 geometric field floats behind readable controls') &&
+ hud.includes("art.classList.add('apex-hero-motif')") &&
+ hud.includes("motif=heroId.includes('frost')") &&
+ r55Adapter.includes("'hero-specific vector motif'") &&
+ !hud.includes("art.classList.add('apex-hero-watermark')"));
 check('R62 tablet BOT portrait dock keeps arena and Local untouched',
   hud.includes('R62 tablet portrait BOT: hero-control dock') &&
   hud.includes('grid-template-areas:"id id id" "s1 wp s2"') &&
