@@ -3,16 +3,20 @@
 import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { openSync, readFileSync } from 'node:fs';
 
 const url=process.env.APEX_APP_URL || 'http://127.0.0.1:5173/';
 const chromePath=process.env.CHROME_PATH;
 if(!chromePath)throw new Error('CHROME_PATH not set');
 const port=9246;
+const chromeLogFile='/tmp/r82-chrome.log';
+const chromeLogFd=openSync(chromeLogFile,'w');
 const chrome=spawn(chromePath,[
-  '--headless=new','--no-sandbox','--disable-gpu','--no-first-run',
+  '--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',
+  '--remote-allow-origins=*','--no-first-run',
   '--remote-debugging-port='+port,'--user-data-dir=/tmp/apex-r82-layout-lab-cdp-'+process.pid,
   'about:blank',
-],{stdio:'ignore'});
+],{stdio:['ignore',chromeLogFd,chromeLogFd]});
 let socket;
 const pending=new Map();
 let serial=0;
@@ -36,7 +40,7 @@ try{
     }catch{}
     await sleep(100);
   }
-  if(!target)throw new Error('Chrome CDP page unavailable');
+  if(!target)throw new Error('Chrome CDP page unavailable; exit='+chrome.exitCode+'; chrome log:\n'+readFileSync(chromeLogFile,'utf8').slice(-4000));
   socket=new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve,reject)=>{
     socket.addEventListener('open',resolve,{once:true});
