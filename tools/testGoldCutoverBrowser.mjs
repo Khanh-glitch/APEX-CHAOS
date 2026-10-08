@@ -226,6 +226,39 @@ try {
     {p1Pick,p1Selected,p1Lock,p2Turn,p2Pick,p2Selected,lock:lockClick,states:fighterBattleStates,battle});
   report.evidence.push(await screenshot('r50k-battle'));
 
+  // R62 physical BOT portrait inspection: exactly the user's iPad Pro 13
+  // viewport. Verify actual DOM hit-target geometry, not CSS source tokens.
+  await command('Emulation.setDeviceMetricsOverride',{
+    width:1032,height:1376,deviceScaleFactor:1,mobile:true,
+    screenWidth:1032,screenHeight:1376
+  });
+  await sleep(500);
+  const portraitTablet=await evaluate(`(() => {
+    const hud=document.querySelector('#battleHudHost #hud');
+    const p1=hud?.querySelector('#p1Side');
+    const a=hud?.querySelector('#arena');
+    const weapon=p1?.querySelector('.weapon');
+    const skills=[...(p1?.querySelectorAll('.skill')||[])];
+    const rect=(node)=>{const r=node?.getBoundingClientRect();return r?
+      {x:r.x,y:r.y,w:r.width,h:r.height,bottom:r.bottom}:null};
+    return {layout:hud?.dataset.layout,size:hud?.dataset.size,
+      mode:hud?.dataset.mode,arena:rect(a),weapon:rect(weapon),
+      skills:skills.map(rect),panel:rect(p1)};
+  })()`);
+  const shapes=portraitTablet?.skills||[];
+  gate('R62-iPad-portrait-BOT-near-square-thumb-controls',
+    portraitTablet?.layout==='port'&&portraitTablet?.size==='tablet'&&
+    portraitTablet?.mode==='1p'&&shapes.length===2&&
+    shapes.every(r=>r&&r.w>=115&&r.h>=115&&r.w/r.h>=.65&&r.w/r.h<=1.45),
+    portraitTablet);
+  gate('R62-iPad-portrait-weapon-centered-between-thumb-controls',
+    portraitTablet?.weapon?.w>=150&&
+    portraitTablet?.weapon?.x>shapes[0]?.x+shapes[0]?.w-3&&
+    portraitTablet?.weapon?.x+portraitTablet.weapon.w<shapes[1]?.x+3&&
+    portraitTablet?.arena?.w>=.65*1032,
+    portraitTablet);
+  report.evidence.push(await screenshot('r62-ipad-portrait-bot'));
+
   // Responsive contract: Gold transition canvas tracks the real viewport after
   // a portrait resize; donor DPR/geometry logic remains runtime authority.
   await command('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true,screenWidth:390,screenHeight:844});
