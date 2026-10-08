@@ -743,7 +743,10 @@ border:1px solid color-mix(in srgb,var(--acc) 27%,#161b21);background:linear-gra
 #hud[data-layout="land"] .side[data-mirror] .sk-name,
 #hud[data-layout="land"] .side[data-mirror] .sk-desc,
 #hud[data-layout="land"] .side[data-mirror] .rival-name{direction:ltr;text-align:right}
-
+@media (prefers-reduced-motion: reduce){
+  .vrail.low .vr-low{animation:none;opacity:.5}
+  .sk-sweep{display:none}
+}
 </style>
 
 <script>
