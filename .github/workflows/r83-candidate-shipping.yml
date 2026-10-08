@@ -42,19 +42,14 @@ jobs:
         run: |
           node --check tools/goldShellR83.mjs
           node --check tools/goldBattleHudR83.mjs
-      - name: Regenerate canonical Gold in runner and audit source changes
+      - name: Verify committed Gold equals canonical generated output
+        run: node tools/buildGoldCutover.mjs --check
+      - name: Independently regenerate Gold and reject ANY tracked drift
         shell: bash
         run: |
           set -euo pipefail
           node tools/buildGoldCutover.mjs
-          git diff --name-only > /tmp/r83-generator-changed-paths.txt
-          cat /tmp/r83-generator-changed-paths.txt
-          while IFS= read -r path; do
-            case "$path" in
-              public/gold/shell.html|public/gold/manifest.json|src/game/goldAssetManifest.js) ;;
-              *) echo "::error::Unexpected Gold generator drift in $path"; exit 1 ;;
-            esac
-          done < /tmp/r83-generator-changed-paths.txt
+          git diff --exit-code -- public/gold src/game/goldAssetManifest.js
           node tools/buildGoldCutover.mjs --check
       - name: Upload deterministic Gold source outputs for controlled synchronization
         if: always()
