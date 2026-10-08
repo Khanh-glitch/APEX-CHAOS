@@ -323,6 +323,38 @@ try {
     Number(skillArtProbe.cooling?.opacity)>.85&&
     skillArtProbe.cooling?.transform!=='none',
     skillArtProbe);
+  // Capture visually inspectable evidence of the actual image-only treatment.
+  // Restore the live gameplay state immediately after each screenshot.
+  const artVisualSelector='#battleHudHost #p1Side .skill';
+  await evaluate(`(() => {
+    const el=document.querySelector('#battleHudHost #p1Side .skill');
+    const art=el?.querySelector('.sk-art');
+    if(!el||!art)return;
+    window.__APEX_R69_ART_RESTORE={
+      el,art,state:el.dataset.state,
+      progress:art.style.getPropertyValue('--apex-active-progress'),
+      shade:art.style.getPropertyValue('--apex-cd-shade')
+    };
+    el.dataset.state='active';
+    art.style.setProperty('--apex-active-progress','.65');
+  })()`);
+  await sleep(190);
+  report.evidence.push(await screenshot('r69-skill-image-active'));
+  await evaluate(`(() => {
+    const s=window.__APEX_R69_ART_RESTORE;if(!s)return;
+    s.el.dataset.state='cd';
+    s.art.style.setProperty('--apex-cd-shade','.82');
+  })()`);
+  await sleep(190);
+  report.evidence.push(await screenshot('r69-skill-image-cooldown'));
+  await evaluate(`(() => {
+    const s=window.__APEX_R69_ART_RESTORE;if(!s)return;
+    s.el.dataset.state=s.state;
+    for(const [key,v] of [['--apex-active-progress',s.progress],['--apex-cd-shade',s.shade]]){
+      if(v)s.art.style.setProperty(key,v);else s.art.style.removeProperty(key);
+    }
+    delete window.__APEX_R69_ART_RESTORE;
+  })()`);
   // Responsive contract: Gold transition canvas tracks the real viewport after
   // a portrait resize; donor DPR/geometry logic remains runtime authority.
   await command('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true,screenWidth:390,screenHeight:844});
