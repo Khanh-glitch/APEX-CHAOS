@@ -183,5 +183,18 @@ export function adaptGoldBattleHudR55(input) {
 `;
   once(anchor, LAW, 'Gold mode integration law');
 
+  // R60 Heavy: do the expensive live-panel sanitize once per hit, not per shard.
+  // Keep every shard's independent CSS clip and animation exactly as authored.
+  once(
+    ' const maxSpan=Math.max(w,h);\n cells.forEach((cell,index)=>{',
+    ' const maxSpan=Math.max(w,h);\n // One sanitized live snapshot per impact: each Voronoi piece retains independent motion.\n const shardTemplate=makePanelSnapshot(panel.v,w,h);\n cells.forEach((cell,index)=>{',
+    'Heavy snapshot preparation'
+  );
+  once(
+    '  const clone=makePanelSnapshot(panel.v,w,h);piece.appendChild(clone);group.appendChild(piece);',
+    '  const clone=shardTemplate.cloneNode(true);piece.appendChild(clone);group.appendChild(piece);',
+    'Heavy shards reuse sanitized template'
+  );
+
   return out;
 }
