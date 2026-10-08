@@ -600,10 +600,10 @@ kbd{font:inherit}
 /* R62 tablet portrait BOT: hero-control dock for two-thumb grip.
    Arena and opponent threat strip are untouched; this affects P1 only. */
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side{
-  grid-template-columns:minmax(0,1fr) minmax(148px,.85fr) minmax(0,1fr);
+  grid-template-columns:clamp(150px,19cqw,190px) clamp(180px,23cqw,250px) clamp(150px,19cqw,190px);
   grid-template-rows:auto minmax(152px,1fr);
   grid-template-areas:"id id id" "s1 wp s2";
-  column-gap:10px;row-gap:7px;--artW:100%;
+  justify-content:space-between;column-gap:10px;row-gap:7px;--artW:100%;
 }
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skills{display:contents}
 #hud[data-layout="port"][data-size="tablet"][data-mode="1p"] #p1Side .skill{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"art" "info";max-height:192px}
