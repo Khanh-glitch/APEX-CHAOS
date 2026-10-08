@@ -588,6 +588,10 @@ export default function App() {
           const stage = document.getElementById('stage');
           const actions = stage?.querySelector('.actions');
           const routes = stage?.querySelector('.routes');
+          const story = stage?.querySelector('.story');
+          // R86: evaluate the existing geometry authority in an opt-in lab.
+          // No effect at all on ordinary Gold URLs.
+          const homeSolverLab = new URLSearchParams(window.location.search).get('apexHomeSolver') === '1';
           if (stage && actions && routes) {
             let scheduled = false;
             let last = null;
@@ -601,6 +605,10 @@ export default function App() {
               if (!portrait || !home) {
                 actions.style.removeProperty('top');
                 actions.style.removeProperty('transition-property');
+                if (homeSolverLab && story) {
+                  story.style.removeProperty('top');
+                  story.style.removeProperty('transition-property');
+                }
                 return;
               }
               // Gold flow animations include "top" in their transition list.
@@ -617,9 +625,31 @@ export default function App() {
               const ceiling = bandRect.top - stageRect.top - actionRect.height - 10;
               const top = Math.max(0, Math.min(authoredTop, ceiling));
               actions.style.top = top.toFixed(2) + 'px';
+              let storyGeometry = null;
+              if (homeSolverLab && story) {
+                // One authority for both stacked content islands. Always
+                // remeasure the donor's *authored* story top, never the last
+                // corrective value (prevents cumulative resize drift).
+                story.style.transitionProperty = 'opacity, transform, translate, filter';
+                story.style.removeProperty('top');
+                const sr = story.getBoundingClientRect();
+                const authoredStoryTop = sr.top - stageRect.top;
+                const storyCeiling = top - sr.height - 12;
+                const minStoryTop = stageRect.height * .18;
+                const storyTop = Math.max(minStoryTop, Math.min(authoredStoryTop, storyCeiling));
+                if (storyTop < authoredStoryTop - .5) {
+                  story.style.top = storyTop.toFixed(2) + 'px';
+                }
+                storyGeometry = {
+                  authoredStoryTop, storyTop, storyHeight: sr.height,
+                  storyCeiling, storyToActions: top - storyTop - sr.height,
+                  feasible: storyCeiling >= minStoryTop
+                };
+              }
               last = { stageHeight: stageRect.height, authoredTop, top,
                 ceiling, shifted: top < authoredTop - .5,
-                gap: bandRect.top - (stageRect.top + top + actionRect.height) };
+                gap: bandRect.top - (stageRect.top + top + actionRect.height),
+                story: storyGeometry };
               if (last.shifted) {
                 console.info('[apex-home-geometry] short portrait safety constraint', last);
               }
@@ -633,6 +663,7 @@ export default function App() {
             observer.observe(stage);
             observer.observe(actions);
             observer.observe(routes);
+            if (homeSolverLab && story) observer.observe(story);
             const mutation = new MutationObserver(request);
             mutation.observe(stage, { attributes:true, attributeFilter:['class'] });
             window.addEventListener('resize', request, { passive:true });
@@ -651,6 +682,10 @@ export default function App() {
                 window.visualViewport?.removeEventListener('scroll', request);
                 actions.style.removeProperty('top');
                 actions.style.removeProperty('transition-property');
+                if (homeSolverLab && story) {
+                  story.style.removeProperty('top');
+                  story.style.removeProperty('transition-property');
+                }
                 delete window.__apexHomeGeometryGuard;
               },
             };
