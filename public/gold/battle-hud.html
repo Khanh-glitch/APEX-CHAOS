@@ -709,6 +709,10 @@ border:1px solid color-mix(in srgb,var(--acc) 27%,#161b21);background:linear-gra
  filter:drop-shadow(0 0 3px var(--acc));pointer-events:none;
 }
 #hud .skill[data-state="active"] .sk-art .apex-state-ring{opacity:1}
+/* R69 art authority: avoid stacking the donor's old dark mask on the
+   new curtain; keep countdown glyph above the moving shade. */
+#hud .skill .sk-art>.sk-mask{display:none!important}
+#hud .skill .sk-art>.sk-cdn{z-index:8}
 #hud .skill .sk-art .apex-state-shade{
  position:absolute;inset:0;z-index:5;pointer-events:none;
  background:rgba(0,2,6,.79);opacity:0;transform-origin:50% 0;
