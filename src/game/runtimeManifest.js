@@ -99,6 +99,7 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/arsenal/arsenalMetaRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalMetaRuntime'],
   // CP04 branch-only: side-effect-free Quest selectors, inactive in BOT/LOCAL.
   ['/game/quest/questMultiActorCore.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestMultiActorCore'],
+  ['/game/quest/questGoldEnemyVisuals.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestGoldEnemyVisuals'],
   ['/game/modes/arsenalBattleRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalBattleRuntime'],
   ['/game/hero-rework/crystalaGoldV6.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalaGoldV6'],
   ['/game/hero-rework/crystalGameplayRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexCrystalGameplayRuntime'],
