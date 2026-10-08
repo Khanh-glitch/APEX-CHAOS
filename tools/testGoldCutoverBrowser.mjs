@@ -16,7 +16,7 @@ let chrome = null;
 if (!process.env.APEX_CDP_ENDPOINT) {
   chrome = spawn(chromePath, [
     '--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check',
-    '--autoplay-policy=no-user-gesture-required','--remote-debugging-port=9224',
+    // Real user-gesture autoplay policy: START must earn playback permission.'--remote-debugging-port=9224',
     '--window-size=1600,900','--user-data-dir=' + path.join(process.cwd(), '.arsenal-chrome-profile'),
     appUrl,
   ], { stdio:'ignore', detached:false });
@@ -135,6 +135,19 @@ try {
   `});
   await command('Page.navigate',{url:appUrl});
 
+  // R61: START is the user's real gesture after Home assets and music authority
+  // have loaded. Do not bypass the browser autoplay policy in this test.
+  const startReady=await poll(`(() => ({
+    button:!!document.getElementById('apex-boot-start'),
+    shell:document.getElementById('gold-shell-host')?.dataset?.apexGoldMounted==='1',
+    music:typeof window.apexProductMusic?.request==='function',
+    black:document.getElementById('apex-boot-blackout')?.hidden===true
+  }))()`,v=>v?.button&&v.shell&&v.music,{attempts:400,interval:75});
+  gate('boot-START-appears-after-Home-and-music-authority',
+    !!startReady?.button&&!!startReady?.shell&&!!startReady?.music&&!startReady?.black,startReady);
+  report.evidence.push(await screenshot('r61-boot-start'));
+  const startClick=await physicalClick('#apex-boot-start');
+  gate('boot-START-is-physically-clickable',startClick?.hitWithin===true,startClick);
   const boot=await poll(`(() => ({
     engine:!!window.__apexEngineReady,
     coordinator:window.APEX_SCENE_TRANSITION?.version||'',
