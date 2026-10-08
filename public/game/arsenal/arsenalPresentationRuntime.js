@@ -736,16 +736,24 @@
     if (!weaponMeta(weaponId)) return false;
     const params = weaponDrawParams(weaponId, category, fighter.radius || 75);
     const p = pose || {};
-    const offset = params.offset + (p.localX || 0) - (p.recoil || 0);
-    const lateral = p.localY || 0;
+    // Q3u presentation-only grip: Gold V12 Scout/Bulwark/T.O.T bodies were
+    // resized, but Arsenal held-gun artwork still used the unscaled Fighter
+    // radius. Scale the gun IMAGE and its rendered hand offset together.
+    // Physics/muzzle/worldAnchor, pickup, gun ownership and AI are untouched.
+    const questRigScale = window.APEX_ARSENAL?.state?.questMultiActor &&
+      fighter.questVisualId ? window.APEX_QUEST_V12_RIG?.inspect?.(fighter)?.scaleFactor : null;
+    const artScale = Number.isFinite(questRigScale) && questRigScale >= 0.5 &&
+      questRigScale <= 1 ? questRigScale : 1;
+    const offset = (params.offset + (p.localX || 0) - (p.recoil || 0)) * artScale;
+    const lateral = (p.localY || 0) * artScale;
     const drawAngle = aimAngle + params.drawOffset + (p.rotKick || 0) + (p.flourish || 0);
     const x = fighter.x + Math.cos(aimAngle) * offset + Math.cos(aimAngle + Math.PI / 2) * lateral;
     const y = fighter.y + Math.sin(aimAngle) * offset + Math.sin(aimAngle + Math.PI / 2) * lateral;
     return drawWeaponSprite(ctx, weaponId, x, y, {
       mode: 'equipped',
       useWorld: params.useWorld,
-      scaleMul: p.scaleX || 1,
-      targetLongSide: params.targetLongSide * (p.scaleX || 1),
+      scaleMul: (p.scaleX || 1) * artScale,
+      targetLongSide: params.targetLongSide * (p.scaleX || 1) * artScale,
       angle: drawAngle,
       alpha: alpha == null ? 0.98 : alpha,
       glow: category === 'defense' ? '#9fe8ff' : null,
