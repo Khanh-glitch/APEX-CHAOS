@@ -386,10 +386,8 @@ export function installSceneTransitionCoordinator({ canvas, contentRoot, blackou
       try { tx.rollback?.(error); } catch (_) {}
       revealRoot = sourceFor(tx);
       clearNodeMotion(revealRoot);
-      if (revealRoot) {
-        revealRoot.style.transformOrigin = 'center';
-        revealRoot.style.transform = 'scale(1.12)';
-      }
+      // Rollback also reveals the actual scene directly, never a zoom iris.
+      if (revealRoot) clearNodeMotion(revealRoot);
       try { await settleSceneElement(revealRoot); } catch (_) {}
       tx.gateReady = true;
     }
