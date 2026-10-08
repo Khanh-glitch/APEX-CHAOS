@@ -5938,6 +5938,49 @@ if (process.argv.includes('--quest-n-actors')) {
     gate('q2-clean-1v1-after-fixtures',restored?.started&&restored.count===2
       &&restored.quest===false&&restored.fixture===null,restored);
   }catch(error){gate('q2-normal-reentry-runner',false,{error:String(error?.stack||error)});}
+
+  // Q3 identity law: two REAL SMG hits into different physical Scrap Bots
+  // that happen to share a display name must yield two separate popups.
+  // Quest IDs stay distinct; no damage is mocked or artificially credited.
+  const q3PopupScript = `
+  const started=window.__apexQuestTestRosterStart('3v4')===true;
+  const A=window.APEX_ARSENAL,W=A.weaponApi,f=window.fighters||[];
+  if(!started)return {started};
+  A.state.spawnHeld=true;A.state.spawnTimer=1e6;A.state.slots=[];
+  f.forEach((a,i)=>{a.baseSpeed=0;a.data.__hrHoldBody=true;a.x=100+i*110;a.y=900;});
+  const shooter=f.find(x=>x.questId==='NEWBOT');
+  const e1=f.find(x=>x.questId==='SCRAP-A'),e2=f.find(x=>x.questId==='SCRAP-B');
+  e2.name=e1.name; // Adversarial duplicate DISPLAY name, not duplicate identity
+  shooter.x=170;shooter.y=300;e1.x=620;e1.y=300;e2.x=620;e2.y=620;
+  const firstBefore=e1.hp;
+  W.fireBullet({owner:shooter,x:220,y:300,angle:0,speed:2600,damage:10,weapon:'SMG'});
+  A.step(.19);
+  const firstAfter=e1.hp;
+  shooter.y=620;
+  const secondBefore=e2.hp;
+  W.fireBullet({owner:shooter,x:220,y:620,angle:0,speed:2600,damage:10,weapon:'SMG'});
+  A.step(.19);
+  const secondAfter=e2.hp;
+  const popups=window.APEX_ARSENAL_FEEL.livePopups()
+    .filter(p=>p.kind==='dmg'||p.kind==='crit')
+    .map(p=>({kind:p.kind,text:p.text,x:p.x,y:p.y}));
+  const result={started,sameName:e1.name===e2.name,
+    distinctQuestIds:e1.questId!==e2.questId,
+    firstRealHit:firstAfter<firstBefore,secondRealHit:secondAfter<secondBefore,
+    popups};
+  window.exitArsenalBattleMode();
+  return result;
+  `;
+  try {
+    const d=run(q3PopupScript);
+    gate('q3-real-smg-same-name-distinct-quest-popup-identity',
+      !!d?.started&&d.sameName&&d.distinctQuestIds
+        &&d.firstRealHit&&d.secondRealHit
+        &&d.popups.length===2
+        &&Math.abs(d.popups[0].y-d.popups[1].y)>100,d);
+  } catch(error) {
+    gate('q3-real-smg-popup-identity-runner',false,{error:String(error?.stack||error)});
+  }
 }
 
 // ------------------------------------------------------------------- summary
