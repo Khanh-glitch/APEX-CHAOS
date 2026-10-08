@@ -198,6 +198,48 @@ try {
     bootReveal);
   report.evidence.push(await screenshot('r50k-boot-home'));
 
+  // R77: measure actual Home hit rectangles in the browser, not only CSS
+  // source or guessed device ratios. Revert all overrides before normal play.
+  const homePortraitProbes = [];
+  const portraitCases = [
+    [480,0],[540,0],[568,0],[600,0],[640,0],[700,0],[844,0],
+    [568,24],[640,24],
+  ];
+  try {
+    for (const [height,safeB] of portraitCases) {
+      await command('Emulation.setDeviceMetricsOverride',{
+        width:360,height,deviceScaleFactor:1,mobile:true,
+        screenWidth:360,screenHeight:height,
+      });
+      await evaluate(`document.documentElement.style.setProperty('--safeB',${JSON.stringify(String(safeB)+'px')})`);
+      await sleep(120);
+      const sample=await evaluate(`(() => {
+        const actions=document.querySelector('#stage .actions');
+        const routes=document.querySelector('#stage .routes');
+        const battle=document.querySelector('#freeBattle');
+        const a=actions?.getBoundingClientRect(), r=routes?.getBoundingClientRect(), b=battle?.getBoundingClientRect();
+        if(!a||!r||!b)return {valid:false};
+        const centerX=b.left+b.width/2,centerY=b.top+b.height/2;
+        const hit=document.elementFromPoint(centerX,centerY);
+        return {valid:true,viewport:{width:innerWidth,height:innerHeight},
+          actionsTop:a.top,actionsBottom:a.bottom,routesTop:r.top,
+          gap:r.top-a.bottom,battleHit:!!hit?.closest?.('#freeBattle')};
+      })()`);
+      homePortraitProbes.push({height,safeB,...sample});
+    }
+  } finally {
+    await evaluate("document.documentElement.style.removeProperty('--safeB')");
+    await command('Emulation.clearDeviceMetricsOverride');
+    await sleep(180);
+  }
+  gate('R77-Android-short-portrait-primary-buttons-never-intersect-route-band',
+    homePortraitProbes.every(p=>p.valid&&p.gap>=7&&p.battleHit),
+    homePortraitProbes);
+  gate('R77-healthy-portrait-height-preserves-authored-primary-position',
+    homePortraitProbes.filter(p=>p.safeB===0&&p.height>=640)
+      .every(p=>Math.abs(p.actionsTop-(p.height<=700?.654:.671)*p.height)<3),
+    homePortraitProbes.filter(p=>p.safeB===0&&p.height>=640));
+
   // HOME -> MODE by the actual Gold CTA.
   let mark=(await evaluate('window.__APEX_R50K_STATES.length'));
   const homeClick=await physicalClick('#freeBattle');
