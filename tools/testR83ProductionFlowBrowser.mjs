@@ -108,9 +108,11 @@ try{
         skillKey:rect('#battleHudHost #p1Side .sk-key'),
         p1Name:content('#battleHudHost #p1Side .id-name'),
         p1Hp:rect('#battleHudHost #p1Rail .vr-hp'),
+        p1HpBar:rect('#battleHudHost #p1Rail .vr-bar'),
         p1WeaponName:content('#battleHudHost #p1Side .wp-name'),
         p2Name:content('#battleHudHost #p2Side .id-name'),
         p2Hp:rect('#battleHudHost #p2Rail .vr-hp'),
+        p2HpBar:rect('#battleHudHost #p2Rail .vr-bar'),
         p2WeaponName:content('#battleHudHost #p2Side .wp-name'),
         p1Skills:rect('#battleHudHost #p1Side .skills'),
         p2Skills:rect('#battleHudHost #p2Side .skills')}
@@ -157,7 +159,12 @@ try{
   for(const player of ['p1','p2']){
     const side=b[player],name=b[player+'Name'],hp=b[player+'Hp'],gun=b[player+'WeaponName'],skills=b[player+'Skills'];
     check('361x545 '+player+' fighter name not clipped',name&&name.width>=55&&!name.clipped&&name.rect.x>=side.x-2&&name.rect.right<=side.right+2,{name,side});
-    check('361x545 '+player+' health bar visible',hp&&hp.w>=50&&hp.h>=12,{hp,side});
+    const bar=b[player+'HpBar'];
+    // Reference Gold's numeric HP box is 11.7px high at 550x857;
+    // at 545px, proportional height is 7.4px (not a 12px floor).
+    const scaledHpMin=11.6875*(545/857)-0.3;
+    check('361x545 '+player+' HP NUMERALS scale from Gold',hp&&hp.w>=30&&hp.h>=scaledHpMin,{hp,scaledHpMin,side});
+    check('361x545 '+player+' HEALTH TRACK present',bar&&bar.w>=95&&bar.h>=4,{bar,side});
     check('361x545 '+player+' gun text not clipped',gun&&gun.width>=55&&!gun.clipped,{gun,side});
     check('361x545 '+player+' skills not covering whole panel',skills&&skills.w<side.w*.55,{skills,side});
   }
