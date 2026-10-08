@@ -1235,6 +1235,11 @@
       return true;
     }
 
+    // Q2 teardown authority: the game must cease being ARSENAL before
+    // handing back to any menu navigator, including a replaced/async menu
+    // adapter. The Gold-hosted path already applies this exact state law.
+    // Mark MENU synchronously to prevent a stale simulation frame/input.
+    gameState = 'MENU';
     // Legacy/non-Gold entry keeps its historical destination, but resumes the
     // ONE theme element from its preserved playhead (never restart at 0).
     goToMenu();
