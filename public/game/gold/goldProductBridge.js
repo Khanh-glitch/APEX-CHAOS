@@ -893,12 +893,13 @@
   BRIDGE.onBattleLive = async function onBattleLive(pick) {
     if (battleLiveRunning) return false;
     const sessionToken = ++battleSessionToken;
-    const mode = (pick && pick.mode === 'bot') ? 'BOT' : 'LOCAL';
+    const questFirstWake = pick && pick.mode === 'quest-first-wake';
+    const mode = questFirstWake || (pick && pick.mode === 'bot') ? 'BOT' : 'LOCAL';
     const p1Shell = String((pick && pick.p1) || 'newbot').toLowerCase();
     // BOT OPPONENT = ONE TRUTH: the production CPU identity, never a second
     // hardcoded presentation identity.
-    const p2Shell = mode === 'BOT'
-      ? BRIDGE.botOpponentShellKey()
+    const p2Shell = questFirstWake ? 'newbot'
+      : mode === 'BOT' ? BRIDGE.botOpponentShellKey()
       : String((pick && pick.p2) || 'newbot').toLowerCase();
     const p1 = PRODUCTION_ID_BY_SHELL_KEY[p1Shell] || 'ROBOT';
     const p2 = PRODUCTION_ID_BY_SHELL_KEY[p2Shell] || 'ROBOT';
@@ -934,7 +935,7 @@
       window.__apexArsenalFreeBattle = mode !== 'BOT';
       window.p1Selection = p1Type;
       window.p2Selection = p2Type;
-      window.__apexArsenalSelectPending = true;
+      window.__apexArsenalSelectPending = !questFirstWake;
 
       // The Gold shell already published the music-off battle surface. From
       // here the bridge starts only the real engine + presentation projection.
@@ -962,13 +963,20 @@
       // Gold-hosted status is set BEFORE startMatch so every fallback branch
       // knows it must never resurrect the legacy selection surface.
       window.__apexGoldBattleHosted = true;
-      if (typeof window.startMatch !== 'function') {
+      if (!questFirstWake && typeof window.startMatch !== 'function') {
         console.warn('[gold-bridge] startMatch unavailable; battle did not start.');
         battleLiveRunning = false;
         window.__apexGoldBattleHosted = false;
         return false;
       }
-      const started = await Promise.resolve(window.startMatch());
+      // CP04 playtest alone uses the opt-in Quest entry. Both modes still
+      // resolve through the ONE real Arsenal startArsenalBattleMode and the
+      // same Gold READY contract; no second battle engine or fake art scene.
+      const started = questFirstWake ? (() => {
+        window.__APEX_QUEST_DEV = true;
+        try { return window.__apexQuestFirstWakeStart?.() === true; }
+        finally { delete window.__APEX_QUEST_DEV; }
+      })() : await Promise.resolve(window.startMatch());
       if (started !== true || sessionToken !== battleSessionToken || !hudMounted || !battleLiveRunning) {
         console.warn('[gold-bridge] production match start did not reach READY.');
         battleLiveRunning = false;
