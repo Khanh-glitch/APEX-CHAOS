@@ -103,7 +103,7 @@
   // make the quest unwinnable. Never grant synthetic HP to allies.
   function firstWakeOutcome(actors, playerId = 'NEWBOT') {
     if (!Array.isArray(actors)) return { status: 'INVALID', reason: 'missing-roster' };
-    const player = actors.find((a) => identity(a) === String(playerId));
+    const player = actors.find((a) => a && a.questId === String(playerId));
     if (!player || team(player) !== 'ALLY') return { status: 'INVALID', reason: 'missing-player' };
     const foes = actors.filter((a) => team(a) === 'HOSTILE');
     if (!foes.length) return { status: 'INVALID', reason: 'no-hostiles' };
