@@ -96,6 +96,16 @@ kbd{font:inherit}
 #hud[data-quest="1"] .vr-clip>.vr-fill,#hud[data-quest="1"] .vr-clip>.vr-ghost{visibility:hidden}
 #hud[data-quest="1"] .vr-name{letter-spacing:.06em;font-size:calc(var(--nmF)*.93)}
 #hud[data-quest="1"] .vr-cur{font-size:calc(var(--hpF)*.9)}
+/* Quest enemies are blank Arsenal NPCs, not player-two heroes. The donor's
+   A1/A2 READY tiles, hero avatar and first-enemy UNARMED slot are invented
+   1v1 information here; avoid advertising abilities/equipment not owned
+   by the hostile SQUAD. Retain Gold framing, faction caption and HP rail. */
+#hud[data-quest="1"] #p2Side .skills,
+#hud[data-quest="1"] #p2Side .weapon,
+#hud[data-quest="1"] #p2Side .portrait,
+#hud[data-quest="1"] #p2Side .id-ctrl{display:none}
+#hud[data-quest="1"] #p2Side .ident{grid-template-columns:minmax(0,1fr)}
+
 /* Quest narrow rails: team identities already appear in both side panels.
    Keep aggregate digits readable by removing only the redundant rail label. */
 #hud[data-quest="1"]:is([data-layout="port"],[data-layout="land"]) .vr-lbl{display:none}
