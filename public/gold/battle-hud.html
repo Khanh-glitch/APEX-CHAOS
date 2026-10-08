@@ -675,7 +675,9 @@ kbd{font:inherit}
     --wpIW:clamp(27px,4.75cqh,48px);
     --wpNF:clamp(8px,1.2cqh,11px);
     --amF:clamp(11px,2cqh,17px);
-    grid-template-columns:minmax(0,1fr) auto;
+    /* Content-asset-independent column widths: min-content of real skill
+       images/names may never starve the weapon/player column to 4px. */
+    grid-template-columns:minmax(0,42fr) minmax(0,58fr);
     grid-template-rows:var(--shortIdH) var(--shortHpH) minmax(0,1fr);
     grid-template-areas:"id sk" "hp sk" "wp sk";
     row-gap:2px;
@@ -731,6 +733,41 @@ kbd{font:inherit}
   #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .wp-name{font-size:9px}
   #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .wp-swap{
     min-height:0;padding:0 1px;align-self:stretch;
+  }
+}
+
+/* R83 CORRECTIVE LONG PORTRAIT FOOTER: Gold’s 5 auto rows leave ~15px
+   for the real weapon at 550x857, clipping the label outside the player
+   territory. Keep opponent HP and original art while reclaiming the 22px
+   decorative duel-feed row for the weapon. Short portrait has its own solver. */
+@media (orientation:portrait) and (min-height:721px) {
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side{
+    grid-template-rows:auto auto auto minmax(0,1fr);
+    grid-template-areas:"id sk" "hp sk" "rival sk" "wp sk";
+    row-gap:2px;
+    grid-template-columns:minmax(0,42fr) minmax(0,58fr);
+  }
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .duel-feed{
+    display:none;
+  }
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .weapon{
+    grid-area:wp;
+    height:100%;
+    min-height:0;
+    max-height:none;
+    grid-template-columns:auto minmax(0,1fr) auto;
+    grid-template-rows:minmax(0,1fr) auto;
+    grid-template-areas:"ico txt swp" "ico amm swp";
+    column-gap:5px;
+    row-gap:0;
+    padding:2px 3px 3px;
+    overflow:hidden;
+  }
+  #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .weapon .wp-ico{
+    width:min(100%,var(--wpIW));
+    height:100%;
+    max-height:100%;
+    align-self:center;
   }
 }
 </style>
