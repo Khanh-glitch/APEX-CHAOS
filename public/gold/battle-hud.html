@@ -675,9 +675,11 @@ kbd{font:inherit}
     --wpIW:clamp(27px,4.75cqh,48px);
     --wpNF:clamp(8px,1.2cqh,11px);
     --amF:clamp(11px,2cqh,17px);
-    /* Content-asset-independent column widths: min-content of real skill
-       images/names may never starve the weapon/player column to 4px. */
-    grid-template-columns:minmax(0,42fr) minmax(0,58fr);
+    /* At matched aspect ratios, Gold skill tiles are 122px wide at 550px.
+       Scale their MAX width to 22.4cqw instead of letting both consume
+       2x105px on a 361px phone. Give player info remaining space. */
+    --tw:min(122px,22.4cqw);
+    grid-template-columns:minmax(0,1fr) auto;
     grid-template-rows:var(--shortIdH) var(--shortHpH) minmax(0,1fr);
     grid-template-areas:"id sk" "hp sk" "wp sk";
     row-gap:2px;
@@ -745,7 +747,8 @@ kbd{font:inherit}
     grid-template-rows:auto auto auto minmax(0,1fr);
     grid-template-areas:"id sk" "hp sk" "rival sk" "wp sk";
     row-gap:2px;
-    grid-template-columns:minmax(0,42fr) minmax(0,58fr);
+    --tw:min(122px,22.4cqw);
+    grid-template-columns:minmax(0,1fr) auto;
   }
   #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .duel-feed{
     display:none;
