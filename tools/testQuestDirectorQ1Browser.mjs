@@ -230,6 +230,22 @@ try{
       x.fit&&(q3RailGeometry.layout==='desk'||x.label==='none')),q3RailGeometry);
   await image('03b-cp04-after-real-hit');
 
+  // Q3 Gold visual routing must accept physical striker id 4 / victim id 3,
+  // not just legacy 1v1 id 1 and id 2. Spy on the Gold seam only; every
+  // event below comes from swept PISTOL collisions in the real Arsenal engine.
+  const q3CrossActorFx=await evalPage("(()=>{\n  const A=window.APEX_ARSENAL,W=A?.weaponApi,f=window.fighters||[];\n  const shooter=f.find(x=>x.questId==='SCRAP-B');\n  const target=f.find(x=>x.questId==='T.O.T');\n  const neighbor=f.find(x=>x.questId==='NEWBOT');\n  const seam=window.APEX_GOLD_HUD;\n  if(!A?.state?.questMultiActor||!shooter||!target||!neighbor||!W?.fireBullet||!seam?.hit)\n    return {started:false};\n  f.forEach((x,i)=>{x.baseSpeed=0;x.data.__hrHoldBody=true;x.x=100+i*125;x.y=890;});\n  shooter.x=825;shooter.y=500;target.x=310;target.y=500;\n  neighbor.x=160;neighbor.y=790;\n  A.state.spawnHeld=true;A.state.spawnTimer=1e6;A.state.slots=[];\n  const before={target:target.hp,neighbor:neighbor.hp};\n  const hits=[],original=seam.hit;\n  seam.hit=function(a,v,amount,tier,afterHp,accent){\n    hits.push({a,v,amount,tier,afterHp,accent});\n    return original.apply(this,arguments);\n  };\n  try{\n    W.fireBullet({owner:shooter,x:770,y:500,angle:Math.PI,speed:2600,damage:10,weapon:'PISTOL',critical:true});\n    A.step(.2);\n    for(let i=0;i<3;i++)\n      W.fireBullet({owner:shooter,x:770,y:500,angle:Math.PI,speed:2600,damage:10,weapon:'PISTOL',critical:false});\n    A.step(.2);\n  }finally{seam.hit=original;}\n  return {started:true,before,after:{target:target.hp,neighbor:neighbor.hp},hits};\n})()");
+  const q3GoldHits=(q3CrossActorFx?.hits||[]).filter(h=>h.a===1&&h.v===0);
+  gate('Q3 physical Scrap-B to T.O.T critical reaches Gold from fighter id>2',
+    q3CrossActorFx?.started===true
+      &&q3CrossActorFx.after.target<q3CrossActorFx.before.target
+      &&q3CrossActorFx.after.neighbor===q3CrossActorFx.before.neighbor
+      &&q3GoldHits.some(h=>h.tier==='crit'&&h.amount>0),q3CrossActorFx);
+  gate('Q3 per-victim Heavy fires once for real PISTOL burst from fighter id>2',
+    q3GoldHits.filter(h=>h.tier==='heavy').length===1
+      &&q3GoldHits.reduce((v,h)=>v+h.amount,0)>200
+      &&Math.abs(q3CrossActorFx.before.target-q3CrossActorFx.after.target
+        -q3GoldHits.reduce((v,h)=>v+h.amount,0))<.01,
+    {hits:q3GoldHits,before:q3CrossActorFx?.before,after:q3CrossActorFx?.after});
   await pressEscape();
   const after=await poll(`(()=>({
     battleOpen:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,
