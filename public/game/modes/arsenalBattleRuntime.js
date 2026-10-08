@@ -885,18 +885,17 @@
     // this world-space pass, before real equipment and VFX. No HUD takeover.
     if (AQ.state?.questMultiActor) {
       for (const f of fighters.slice(2)) if (f) f.draw(ctx);
-      // Four independent actual HP pools: world-space progress readable
-      // without pretending the two-column Gold 1v1 HUD supports four sides.
-      ctx.save();ctx.font='700 13px sans-serif';ctx.textAlign='center';
+      // The original Gold HUD already gives two team totals and one
+      // independent segment per fighter. Suppress redundant developer IDs
+      // above every moving head. Only show compact local HP for injury.
+      ctx.save();
       for (const f of fighters) {
-        if (!f) continue;
-        const x=f.x, y=f.y-(f.radius||75)-26;
+        if (!f || f.hp<=0 || f.hp>=f.maxHp-0.1) continue;
+        const x=f.x,y=f.y-(f.radius||75)-19;
         const ratio=Math.max(0,Math.min(1,f.hp/Math.max(1,f.maxHp)));
-        ctx.fillStyle='#101820';ctx.fillRect(x-39,y,78,9);
-        ctx.fillStyle=f.questTeam==='ALLY'?'#65d6d6':'#ed825d';
-        ctx.fillRect(x-38,y+1,76*ratio,7);
-        ctx.fillStyle='#fff0d4';
-        ctx.fillText(f.questId||f.name,x,y-4);
+        ctx.fillStyle='rgba(7,11,15,.8)';ctx.fillRect(x-27,y,54,5);
+        ctx.fillStyle=f.questTeam==='ALLY'?'#65cfc4':'#df7859';
+        ctx.fillRect(x-26,y+1,52*ratio,3);
       }
       if (AQ.state.questOutcome) {
         ctx.font='900 48px sans-serif';ctx.fillStyle='#ffdf9e';
@@ -1055,6 +1054,9 @@
         if (spec.kind === 'scout' || spec.kind === 'bulwark' ||
             spec.kind === 'reaver' || spec.kind === 'sentinel')
           f.questVisualId = spec.kind;
+        // T.O.T gets the owner's Gold V12 fifth "OPERATOR" chassis for now.
+        // Quest still owns T.O.T identity, HP, allegiance, AI and no skills.
+        if (spec.kind === 'tot') f.questVisualId = 'operator';
         f.maxHp = spec.hp;
         f.hp = spec.hp;
         return f;
