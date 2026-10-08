@@ -1592,7 +1592,7 @@
    * Enemy resolution hook (makeCtx) — body-aware + SNIPER aim-lost.
    * ------------------------------------------------------------------ */
   HR.resolveEnemyBody = function resolveEnemyBody(f, baseEnemy) {
-    const quest = globalScope.APEX_ARSENAL?.state?.questFirstWake
+    const quest = globalScope.APEX_ARSENAL?.state?.questMultiActor
       && globalScope.APEX_QUEST_MULTI_ACTOR_CORE;
     if (quest) return quest.nearestEnemy(f, globalScope.fighters || []);
     if (!M) return undefined; // no rework match: keep base resolution
@@ -1622,7 +1622,7 @@
     return M.combatants.flatMap((ct) => livingBodies(ct));
   };
   HR.splashTargets = function splashTargets(owner) {
-    const quest = globalScope.APEX_ARSENAL?.state?.questFirstWake
+    const quest = globalScope.APEX_ARSENAL?.state?.questMultiActor
       && globalScope.APEX_QUEST_MULTI_ACTOR_CORE;
     if (quest) return quest.splashEnemies(owner, globalScope.fighters || []);
     if (!M) return undefined;
@@ -3395,7 +3395,7 @@
     const shooterCt = combatantOfBody(p.owner);
     const neutral = p.__hr && p.__hr.neutral;
     let best = null, bestToi = 2;
-    const quest = globalScope.APEX_ARSENAL?.state?.questFirstWake
+    const quest = globalScope.APEX_ARSENAL?.state?.questMultiActor
       && globalScope.APEX_QUEST_MULTI_ACTOR_CORE;
     const eligibleBodies = quest
       ? quest.livingEnemies(p.owner, globalScope.fighters || [])
@@ -3439,7 +3439,7 @@
   function thrownHomingTarget(p) {
     // STORMBREAKER pursues the owner's LIVING opponent (first other body —
     // parity with base first-found anchor; rework adds earliest living body).
-    const quest = globalScope.APEX_ARSENAL?.state?.questFirstWake
+    const quest = globalScope.APEX_ARSENAL?.state?.questMultiActor
       && globalScope.APEX_QUEST_MULTI_ACTOR_CORE;
     if (quest) return quest.nearestEnemy(p.owner, globalScope.fighters || []);
     if (!M) return null;
