@@ -201,6 +201,33 @@ try{
         error('hero switch reset proportional stage',hunter.bounds.hero,w);
       if(!(hunter.bounds.deck&&hunter.bounds.card&&hunter.bounds.card.h>=48))
         error('hero switch lost roster sizing',hunter.bounds.card?.h,'>=48');
+      if(label==='owner-361x545'){
+        await command('Emulation.setDeviceMetricsOverride',{width:550,height:857,
+          deviceScaleFactor:2,mobile:true,screenWidth:550,screenHeight:857});
+        await sleep(350);
+        const tall=await capture('owner-live-resize-to-550x857');
+        const pickState=await evalJS('window.__apexR85Pick?.snapshot()');
+        const hero=tall.bounds.hero;
+        const canonical=hero&&Math.abs(hero.w-277.75)<=2&&hero.x>-30&&hero.x<-20;
+        if(!canonical || pickState?.active===true)
+          error('live resize from short to Golden did not restore Gold hero geometry',hero,pickState);
+        await command('Emulation.setDeviceMetricsOverride',{width:w,height:h,
+          deviceScaleFactor:2,mobile:true,screenWidth:w,screenHeight:h});
+        await sleep(350);
+        const shortAgain=await capture('owner-live-resize-back-to-361x545');
+        if(!(shortAgain.bounds.card?.h>=48&&shortAgain.bounds.hero?.w>=w*.88))
+          error('responsive solver failed to re-enter compact mode after Golden',shortAgain.bounds.card,shortAgain.bounds.hero);
+        await evalJS('window.__apexR85Pick.disable()');
+        await sleep(250);
+        const off=await capture('owner-pick-disabled-gold');
+        if(!(off.bounds.card?.h<48&&Math.abs(off.bounds.hero?.w-182.296875)<3))
+          error('disabling R85 did not restore untouched R83 layout',off.bounds.card,off.bounds.hero);
+        await evalJS('window.__apexR85Pick.enable()');
+        await sleep(250);
+        const on=await capture('owner-pick-reenabled');
+        if(!(on.bounds.card?.h>=48&&on.bounds.hero?.w>=w*.88))
+          error('re-enabling R85 failed after disable',on.bounds.card,on.bounds.hero);
+      }
     }
     report.viewports.push({viewport,start,home:homeSnap,mode,pickBefore:before,pickAfter:after});
     console.log('R85 CHECKPOINT '+label+' '+JSON.stringify({
