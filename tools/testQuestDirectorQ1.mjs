@@ -1,0 +1,38 @@
+// Q1 deterministic route, save, corrupt-save and safe-baseline unit acceptance.
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+const source=readFileSync(new URL('../public/game/quest/quest01Director.js',import.meta.url),'utf8');
+const storage=()=>{const data=new Map();return {getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,String(v)),setRaw:(k,v)=>data.set(k,v),dump:()=>[...data]};};
+const load=store=>{const module={exports:{}};const context={module,Date,JSON,console,localStorage:store};vm.runInNewContext(source,context,{filename:'quest01Director.js'});return {module:module.exports,publicApi:context.APEX_QUEST01_DIRECTOR};};
+let pass=0,fail=0;
+const assert=(label,yes,details)=>{console.log((yes?'PASS ':'FAIL ')+label+(details?' — '+details:''));if(yes)pass++;else fail++;};
+const store=storage(), {module,publicApi}=load(store);
+const d=module.create(store);
+assert('11 ordered narrative nodes',module.NODES.length===11&&module.NODES[0].id==='WAKE'&&module.NODES.at(-1).id==='OUTSIDE');
+assert('Initial WAKE is not auto-completed',d.beginOrResume().checkpointId==='WAKE'&&d.checkpoint().completedCueIds.length===0);
+assert('No public skip or progress mutation API',!('advance' in publicApi)&&!('_transitionForNodeTest' in publicApi)&&!('setCheckpoint' in publicApi));
+assert('Current story nodes do not claim finished encounter',module.NODES.filter(n=>n.type==='ENCOUNTER').every(n=>n.status!=='IMPLEMENTED'));
+const first=d.checkpoint();
+assert('Versioned canonical checkpoint fields',first.schemaVersion===1&&first.questId==='THE_ONES_THROWN_AWAY'&&first.stormbreakerArtifactPhase==='SEALED'&&first.phaseId==='ENTRY');
+assert('Cannot skip WAKE to FIRST_WAKE',d._transitionForNodeTest('FIRST_WAKE').ok===false&&d.checkpoint().checkpointId==='WAKE');
+assert('Invalid checkpoint cannot be persisted',d._transitionForNodeTest('BAD_NODE').ok===false);
+const ids=module.NODES.map(n=>n.id);
+let ordered=true,events=[];
+for(let i=1;i<ids.length;i++){const r=d._transitionForNodeTest(ids[i]);events.push([ids[i],r.ok]);if(!r.ok)ordered=false;}
+assert('Adjacent-only script harness reaches OUTSIDE',ordered&&d.checkpoint().checkpointId==='OUTSIDE',JSON.stringify(events));
+const reload=load(store).module.create(store), snapshot=reload.beginOrResume();
+assert('Reload resumes identical checkpoint and session',snapshot.checkpointId==='OUTSIDE'&&snapshot.sessionId===first.sessionId);
+assert('OUTSIDE still not marked game completed',!('completed' in snapshot)&&snapshot.completedCueIds.length===0);
+const fresh=module.create(storage());
+assert('Separate profile storage starts WAKE',fresh.beginOrResume().checkpointId==='WAKE');
+const corrupted=storage();corrupted.setRaw(module.STORAGE_KEY,'{broken json');
+assert('Corrupted storage fails safely to WAKE',module.create(corrupted).beginOrResume().checkpointId==='WAKE');
+const fake=storage();fake.setRaw(module.STORAGE_KEY,JSON.stringify({...first,checkpointId:'RIVET_OVERRIDDEN',encounterId:'E07',stormbreakerArtifactPhase:'RELEASED'}));
+assert('Unsafe artifact save rejected',module.create(fake).beginOrResume().checkpointId==='WAKE');
+const future=storage();future.setRaw(module.STORAGE_KEY,JSON.stringify({...first,contentRevision:'q2-unknown'}));
+assert('Unknown save revision rejects without guessing migration',module.create(future).beginOrResume().checkpointId==='WAKE');
+const denied={getItem:()=>{throw new Error('Storage blocked')},setItem:()=>{throw new Error('Storage blocked')}};
+const memory=module.create(denied);memory.beginOrResume();memory._transitionForNodeTest('REFLEX');
+assert('Storage-denied fallback still holds in-memory progress',memory.checkpoint().checkpointId==='REFLEX'&&!!memory.diagnostics().storageError);
+assert('No battle state fields persisted',!JSON.stringify(memory.checkpoint()).includes('"fighters"')&&!JSON.stringify(memory.checkpoint()).includes('"projectiles"'));
+console.log('Q1 director acceptance '+pass+' PASS / '+fail+' FAIL');if(fail)process.exitCode=1;
