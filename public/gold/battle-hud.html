@@ -737,6 +737,12 @@ kbd{font:inherit}
         continue;
       }
       const actors=teams[i];
+      // The Gold template prints /1000 statically; its original renderRail
+      // only updates the numerator. Quest must show the REAL sum of max HP.
+      const maxLabel=R.rail[i].root.querySelector('.vr-max');
+      const teamMax=actors.reduce((n,f)=>n+Math.max(0,Number(f.maxHp)||0),0);
+      const maxCopy='/'+Math.round(teamMax);
+      if(maxLabel&&maxLabel.textContent!==maxCopy)maxLabel.textContent=maxCopy;
       if(!lane){
         lane=document.createElement('div');
         lane.className='vr-quest-slots';
