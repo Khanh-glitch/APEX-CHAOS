@@ -1,0 +1,247 @@
+// R77 Home layout browser regression. Uses actual Blink layout/hit testing at
+// CSS-pixel portrait viewports; does not claim to emulate Android browser chrome.
+import { spawn } from 'node:child_process';
+import { setTimeout as sleep } from 'node:timers/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { openSync, readFileSync } from 'node:fs';
+
+const baseUrl=process.env.APEX_APP_URL || 'http://127.0.0.1:5173/';
+const url=new URL(baseUrl);url.searchParams.set('apexPickLab','1');url.searchParams.set('apexHomeSolver','1');
+const chromePath=process.env.CHROME_PATH;
+if(!chromePath)throw new Error('CHROME_PATH not set');
+const port=9291;
+const chromeLogFile='/tmp/r86-combined-chrome.log';
+const chromeLogFd=openSync(chromeLogFile,'w');
+const chrome=spawn(chromePath,[
+  '--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',
+  '--remote-allow-origins=*','--no-first-run',
+  '--remote-debugging-port='+port,'--user-data-dir=/tmp/apex-r86-combined-lab-cdp-'+process.pid,
+  'about:blank',
+],{stdio:['ignore',chromeLogFd,chromeLogFd]});
+let socket;
+const pending=new Map();
+let serial=0;
+const command=(method,params={})=>{
+  const id=++serial;
+  socket.send(JSON.stringify({id,method,params}));
+  return new Promise((resolve,reject)=>pending.set(id,{resolve,reject}));
+};
+const evalJS=async expression=>{
+  const r=await command('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});
+  if(r.exceptionDetails)throw new Error(r.exceptionDetails.text||'Browser evaluation failed');
+  return r.result?.value;
+};
+try{
+  let target;
+  for(let i=0;i<450;i++){
+    try{
+      const pages=await fetch('http://127.0.0.1:'+port+'/json/list').then(r=>r.json());
+      target=pages.find(x=>x.type==='page');
+      if(target)break;
+    }catch{}
+    await sleep(100);
+  }
+  if(!target)throw new Error('Chrome CDP page unavailable; exit='+chrome.exitCode+'; chrome log:\n'+readFileSync(chromeLogFile,'utf8').slice(-4000));
+  socket=new WebSocket(target.webSocketDebuggerUrl);
+  await new Promise((resolve,reject)=>{
+    socket.addEventListener('open',resolve,{once:true});
+    socket.addEventListener('error',reject,{once:true});
+  });
+  socket.addEventListener('message',e=>{
+    const data=JSON.parse(e.data);if(!pending.has(data.id))return;
+    const p=pending.get(data.id);pending.delete(data.id);
+    data.error?p.reject(new Error(data.error.message)):p.resolve(data.result);
+  });
+  await command('Page.enable');
+  await command('Runtime.enable');
+  // Test the production Vite document, NOT standalone shell.html.
+  await command('Page.navigate',{url:url.toString()});
+  let homeMounted=false;
+  for(let i=0;i<400;i++){
+    const value=await evalJS("Boolean(document.querySelector('#gold-shell-host #stage') && document.getElementById('gold-shell-host')?.dataset.apexGoldMounted==='1' && document.querySelector('#apex-boot-start'))").catch(()=>false);
+    if(value){homeMounted=true;break}
+    await sleep(75);
+  }
+  if(!homeMounted)throw new Error('React-mounted Home/boot START unavailable');
+  const startRect=await evalJS(`(() => {const r=document.querySelector('#apex-boot-start').getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}})()`);
+  await command('Input.dispatchMouseEvent',{type:'mousePressed',x:startRect.x,y:startRect.y,button:'left',clickCount:1});
+  await command('Input.dispatchMouseEvent',{type:'mouseReleased',x:startRect.x,y:startRect.y,button:'left',clickCount:1});
+  let bootDone=false;
+  for(let i=0;i<300;i++){
+    bootDone=await evalJS("document.body?.dataset?.apexSceneTransition==='DONE'&&document.getElementById('apex-scene-transition')?.style?.display==='none'").catch(()=>false);
+    if(bootDone)break;
+    await sleep(75);
+  }
+  if(!bootDone)throw new Error('Real boot transition did not complete');
+
+  // Combined R86: same real session covers START -> Home guarded geometry
+  // -> P1/P2 compact Fighter Pick -> Local Battle -> Battle exit -> Pick.
+  const homeGeom=await evalJS("(()=>{const s=document.querySelector('.story')?.getBoundingClientRect(),a=document.querySelector('.actions')?.getBoundingClientRect(),r=document.querySelector('.routes')?.getBoundingClientRect(),guard=window.__apexHomeGeometryGuard?.snapshot();return{story:s?{top:s.top,bottom:s.bottom}:null,actions:a?{top:a.top,bottom:a.bottom}:null,routes:r?{top:r.top,bottom:r.bottom}:null,guard}})()");
+
+  const dir='docs/acceptance/r86-combined-flow';
+  await mkdir(dir,{recursive:true});
+  const failures=[];
+  const check=(name,ok,detail)=>{console.log((ok?'PASS':'FAIL')+' R86 COMBINED '+name+' '+JSON.stringify(detail));if(!ok)failures.push(name);};
+  check('combined Home Story never overlaps CTA',homeGeom?.story&&homeGeom?.actions&&homeGeom.actions.top-homeGeom.story.bottom>=11,homeGeom);
+  check('combined Home CTA leaves >=8px route clearance',homeGeom?.actions&&homeGeom?.routes&&homeGeom.routes.top-homeGeom.actions.bottom>=8,homeGeom);
+  check('both layout solvers opt-in and mounted',Boolean(homeGeom?.guard?.story)&&await evalJS("Boolean(window.__apexR85Pick?.snapshot)"),{homeGeom});
+  const center=sel=>'(()=>{const el=document.querySelector('+JSON.stringify(sel)+');const r=el?.getBoundingClientRect();return r?{x:r.x+r.width/2,y:r.y+r.height/2}:null})()';
+  const click=async sel=>{
+    const c=await evalJS(center(sel));if(!c)throw Error('Missing interactive '+sel);
+    await command('Input.dispatchMouseEvent',{type:'mousePressed',x:c.x,y:c.y,button:'left',clickCount:1});
+    await command('Input.dispatchMouseEvent',{type:'mouseReleased',x:c.x,y:c.y,button:'left',clickCount:1});
+  };
+  const wait=async exp=>{
+    for(let i=0;i<450;i++){
+      if(await evalJS(exp).catch(()=>false))return true;
+      await sleep(100);
+    }
+    return false;
+  };
+  const geometry=()=>{
+    const rect=sel=>{const e=document.querySelector(sel);if(!e)return null;const r=e.getBoundingClientRect();const c=getComputedStyle(e);return{x:r.x,y:r.y,w:r.width,h:r.height,bottom:r.bottom,right:r.right,opacity:c.opacity,visibility:c.visibility};};
+    const content=sel=>{const e=document.querySelector(sel);if(!e)return null;return{
+      text:(e.textContent||'').trim(),width:e.clientWidth,scrollWidth:e.scrollWidth,
+      clipped:e.scrollWidth>e.clientWidth+1,rect:rect(sel)};
+    };
+    return {
+      viewport:{w:innerWidth,h:innerHeight},screen:document.querySelector('#stage')?.className,
+      pick:{p1:rect('.worldHeroSlot.p1'),p2:rect('.worldHeroSlot.p2'),
+        infoP1:rect('.fighterIdentityZone.p1'),infoP2:rect('.fighterIdentityZone.p2'),
+        deck:rect('.selectionDeckV6'),card:rect('#fighterRoster .rosterCard:not(.is-locked)'),
+        lock:rect('#lockIn')},
+      mode:{title:rect('.modeTitle'),bot:rect('.modeCard[data-mode="bot"]'),
+        local:rect('.modeCard[data-mode="local1v1"]'),routes:rect('.routes')},
+      battle:{arena:rect('#battleHudHost #arena'),p1:rect('#battleHudHost #p1Side'),
+        p2:rect('#battleHudHost #p2Side'),weapon:rect('#battleHudHost #p1Side .weapon'),
+        weaponName:rect('#battleHudHost #p1Side .wp-name'),
+        skill:rect('#battleHudHost #p1Side .skill'),
+        skillKey:rect('#battleHudHost #p1Side .sk-key'),
+        p1Name:content('#battleHudHost #p1Side .id-name'),
+        p1Hp:rect('#battleHudHost #p1Rail .vr-hp'),
+        p1HpBar:rect('#battleHudHost #p1Rail .vr-bar'),
+        p1WeaponName:content('#battleHudHost #p1Side .wp-name'),
+        p2Name:content('#battleHudHost #p2Side .id-name'),
+        p2Hp:rect('#battleHudHost #p2Rail .vr-hp'),
+        p2HpBar:rect('#battleHudHost #p2Rail .vr-bar'),
+        p2WeaponName:content('#battleHudHost #p2Side .wp-name'),
+        p1Skills:rect('#battleHudHost #p1Side .skills'),
+        p2Skills:rect('#battleHudHost #p2Side .skills')}
+    };
+  };
+  const shot=async label=>{
+    await sleep(900);
+    const data=await evalJS('('+geometry.toString()+')()');
+    const screenshot=await command('Page.captureScreenshot',{format:'png',fromSurface:true});
+    await writeFile(dir+'/'+label+'.png',Buffer.from(screenshot.data,'base64'));
+    console.log('R86 COMBINED SNAP '+label+' '+JSON.stringify(data));
+    return data;
+  };
+  await command('Emulation.setDeviceMetricsOverride',{width:361,height:545,deviceScaleFactor:2,mobile:true,screenWidth:361,screenHeight:545});
+  await sleep(550);
+  await click('#freeBattle');
+  const modeReady=await wait("document.querySelector('#stage')?.classList.contains('screen-mode')");
+  check('Home to Mode',modeReady);
+  if(!modeReady)throw Error('Mode not reached');
+  const mode=await shot('production-mode-361x545');
+  check('Mode cards fully inside viewport',mode.mode.bot&&mode.mode.local&&mode.mode.local.bottom<=542&&mode.mode.bot.y>=0,mode.mode);
+  check('Home route does not bleed under Mode',mode.mode.routes?.opacity==='0'&&mode.mode.routes?.visibility==='hidden',mode.mode.routes);
+  await click('.modeCard[data-mode="local1v1"]');
+  const fighterReady=await wait("document.querySelector('#stage')?.classList.contains('screen-fighter') && document.querySelectorAll('#fighterRoster .rosterCard').length>=6");
+  check('Mode to Local Fighter Pick',fighterReady);
+  if(!fighterReady)throw Error('Fighter Pick not reached');
+  const p1Pick=await shot('production-pick-361x545');
+  check('P1 R85 card >=48px',p1Pick.pick.card?.h>=48,p1Pick.pick.card);
+  check('P1 R85 hero stage wide',p1Pick.pick.p1?.w>=320,p1Pick.pick.p1);
+  check('P1 R85 info clears roster',p1Pick.pick.infoP1?.bottom<p1Pick.pick.deck?.y-1,p1Pick.pick);
+  await command('Emulation.setDeviceMetricsOverride',{width:320,height:498,deviceScaleFactor:2,mobile:true,screenWidth:320,screenHeight:498});
+  const compressed=await shot('production-pick-resized-320x498');
+  check('Responsive Pick survives live resize',compressed.pick.card?.h>=48&&compressed.pick.p1?.w>=275,compressed.pick);
+  await command('Emulation.setDeviceMetricsOverride',{width:361,height:545,deviceScaleFactor:2,mobile:true,screenWidth:361,screenHeight:545});
+  const resizedBack=await shot('production-pick-restored-361x545');
+  check('Responsive Pick restores on resize',resizedBack.pick.card?.h>=48&&resizedBack.pick.p1?.w>=320,resizedBack.pick);
+
+  await click('.rosterCard[data-hero="newbot"]');await sleep(350);
+  await click('#lockIn');
+  const p2Ready=await wait("document.querySelector('#stage')?.classList.contains('fighter-active-p2')");
+  check('P1 locked, P2 active',p2Ready);
+  if(!p2Ready)throw Error('P2 handoff missing');
+  await click('.rosterCard[data-hero="hunter"]'); await sleep(350);
+  const p2Pick=await shot('production-pick-p2-361x545');
+  const p2SkillsFit=await evalJS("(()=>{const e=document.querySelector('.fighterIdentityZone.p2 .skillRows'),r=e?.getBoundingClientRect();if(!r)return null;const a=[...e.querySelectorAll('.skillChip')].map(c=>{const z=c.getBoundingClientRect();return{text:c.textContent.trim(),x:z.x,right:z.right,y:z.y,bottom:z.bottom,scrollW:c.scrollWidth,clientW:c.clientWidth,scrollH:c.scrollHeight,clientH:c.clientHeight}});return{count:a.length,allVisible:a.length===3&&a.every(z=>z.x>=r.x-1&&z.right<=r.right+1&&z.y>=r.y-1&&z.bottom<=r.bottom+1&&z.scrollW<=z.clientW+2&&z.scrollH<=z.clientH+2),cards:a}})()");
+  check('P2 all 3 skills visible in dock without scrolling',p2SkillsFit?.allVisible,p2SkillsFit);
+
+  check('P2 R85 card >=48px',p2Pick.pick.card?.h>=48,p2Pick.pick.card);
+  check('P2 R85 hero stage wide',p2Pick.pick.p2?.w>=320,p2Pick.pick.p2);
+  check('P2 Hunter identity active and art uncut',
+    p2Pick.pick.p2?.x>=-15&&p2Pick.pick.p2?.right>=330&&
+    p2Pick.pick.infoP2?.w>=320,p2Pick.pick);
+
+  check('P2 R85 info clears roster',p2Pick.pick.infoP2?.bottom<p2Pick.pick.deck?.y-1,p2Pick.pick);
+
+  await click('.rosterCard[data-hero="newbot"]');await sleep(350);
+  await click('#lockIn');
+  const battleReady=await wait("document.body.classList.contains('battle-hud-open') && document.querySelector('#battleHudHost #arena')?.getBoundingClientRect().width>0");
+  check('Real Local Battle started',battleReady);
+  if(!battleReady)throw Error('Local Battle not started');
+  const small=await shot('production-battle-361x545');
+  const b=small.battle;
+  check('361x545 live arena >=300px',b.arena?.w>=300,b.arena);
+  check('361x545 gun visible inside P1',b.weapon&&b.p1&&b.weapon.y>=b.p1.y-2&&b.weapon.bottom<=b.p1.bottom+2&&b.weapon.w>=105&&b.weapon.h>=28,{weapon:b.weapon,p1:b.p1});
+  check('361x545 gun NAME inside P1',b.weaponName&&b.p1&&b.weaponName.w>=60&&b.weaponName.y>=b.p1.y-2&&b.weaponName.bottom<=b.p1.bottom+2,{name:b.weaponName,p1:b.p1});
+  check('361x545 skill KEY inside P1',b.skillKey&&b.p1&&b.skillKey.y>=b.p1.y-2&&b.skillKey.bottom<=b.p1.bottom+2,{key:b.skillKey,p1:b.p1});
+  for(const player of ['p1','p2']){
+    const side=b[player],name=b[player+'Name'],hp=b[player+'Hp'],gun=b[player+'WeaponName'],skills=b[player+'Skills'];
+    check('361x545 '+player+' fighter name not clipped',name&&name.width>=55&&!name.clipped&&name.rect.x>=side.x-2&&name.rect.right<=side.right+2,{name,side});
+    const bar=b[player+'HpBar'];
+    // Reference Gold's numeric HP box is 11.7px high at 550x857;
+    // at 545px, proportional height is 7.4px (not a 12px floor).
+    const scaledHpMin=11.6875*(545/857)-0.3;
+    check('361x545 '+player+' HP NUMERALS scale from Gold',hp&&hp.w>=30&&hp.h>=scaledHpMin,{hp,scaledHpMin,side});
+    check('361x545 '+player+' HEALTH TRACK present',bar&&bar.w>=95&&bar.h>=4,{bar,side});
+    check('361x545 '+player+' gun text not clipped',gun&&gun.width>=55&&!gun.clipped,{gun,side});
+    check('361x545 '+player+' skills not covering whole panel',skills&&skills.w<side.w*.55,{skills,side});
+  }
+
+  await command('Emulation.setDeviceMetricsOverride',{width:550,height:857,deviceScaleFactor:2,mobile:true,screenWidth:550,screenHeight:857});
+  const golden=await shot('production-battle-550x857');
+  check('550x857 retains full Golden arena',golden.battle.arena?.w>=520,golden.battle.arena);
+  // R83 preservation law: the approved 550x857 R82 panel is not ours to redesign.
+  // Reference from actual pre-R83 Chrome geometry. Its shallow weapon footer
+  // is an existing limitation, not something this short-portrait patch may
+  // silently overwrite; fix that separately only with owner approval.
+  const refWeapon={x:6,y:836,w:282,h:15};
+  const ga=golden.battle.weapon;
+  const goldenDeviation=ga?Math.max(...['x','y','w','h'].map(k=>Math.abs(ga[k]-refWeapon[k]))):Infinity;
+  check('550x857 preserves original weapon footer geometry',goldenDeviation<=2,{actual:ga,reference:refWeapon,goldenDeviation});
+  for(const player of ['p1','p2']){
+    const name=golden.battle[player+'Name'],gun=golden.battle[player+'WeaponName'];
+    check('550x857 '+player+' title and weapon not clipped',name&&!name.clipped&&gun&&!gun.clipped,{name,gun});
+  }
+  await command('Emulation.setDeviceMetricsOverride',{width:320,height:498,deviceScaleFactor:2,mobile:true,screenWidth:320,screenHeight:498});
+  const ultraSmall=await shot('production-battle-320x498');
+  check('320x498 mobile arena preserved',ultraSmall.battle.arena?.w>=270,ultraSmall.battle.arena);
+  for(const player of ['p1','p2']){
+    const gun=ultraSmall.battle[player+'WeaponName'],name=ultraSmall.battle[player+'Name'];
+    check('320x498 '+player+' real labels have space',name&&name.width>=40&&!name.clipped&&gun&&gun.width>=35&&!gun.clipped,{name,gun});
+  }
+
+  // A live battle exit is signalled via the production bridge used by
+  // real HUD Close; returning to Fighter Pick may write Gold inline positions.
+  await evalJS("window.postMessage({type:'APEX_CHAOS_BATTLE_EXIT'},'*')");
+  const returnPick=await wait("document.querySelector('#stage')?.classList.contains('screen-fighter') && !document.body.classList.contains('battle-hud-open')");
+  check('Battle exit returns to Fighter Pick',returnPick);
+  if(returnPick){
+    await sleep(350);
+    const returnSnap=await shot('combined-return-to-pick');
+    check('Pick layout restored after Battle exit',returnSnap.pick.card?.h>=48&&returnSnap.pick.p1?.w>=320,returnSnap.pick);
+    const l=await evalJS("window.__apexR85Pick?.snapshot()");
+    check('Pick solver active again after rematch',l?.active===true,l);
+  }
+  await writeFile(dir+'/production-report.json',JSON.stringify({mode,p1Pick,compressed,resizedBack,p2Pick,small,golden,ultraSmall,failures},null,2));
+  if(failures.length)throw Error('R83 production flow fails '+failures.length+' checks');
+  console.log('PASS R86 combined Home and Pick and Local battle screenshots + geometry at 361x545 and 550x857');
+}finally{
+  try{socket?.close()}catch{}
+  chrome.kill('SIGTERM');
+}
