@@ -307,7 +307,7 @@
       // POST-C §6: P1 cooldown-only skills wait for J. Gate wraps P1 update
       // only; P2 keeps automatic kit behavior.
       const gate = window.APEX_ARSENAL_SKILL_GATE;
-      if (state.questFirstWake && window.APEX_QUEST_MULTI_ACTOR_CORE) {
+      if (state.questMultiActor && window.APEX_QUEST_MULTI_ACTOR_CORE) {
         const Q = window.APEX_QUEST_MULTI_ACTOR_CORE;
         // Quest actor update follows the SAME Fighter.update and holder pipeline.
         // Resolve hostiles by team, never by index. Do not run legacy 1v1
@@ -387,10 +387,12 @@
     const HRW = window.APEX_HERO_REWORK;
     const aqKO = (f) => (HRW && HRW.bodyKO) ? HRW.bodyKO(f) : (f.hp <= 0);
     const aqHp = (f) => (HRW && HRW.bodyHudHp) ? HRW.bodyHudHp(f).hp : f.hp;
-    if (state.questFirstWake && !state.over && !state.labMode && window.APEX_QUEST_MULTI_ACTOR_CORE) {
-      const outcome = window.APEX_QUEST_MULTI_ACTOR_CORE.firstWakeOutcome(fighters);
+    if (state.questMultiActor && !state.over && !state.labMode && window.APEX_QUEST_MULTI_ACTOR_CORE) {
+      const Q = window.APEX_QUEST_MULTI_ACTOR_CORE;
+      const outcome = state.questFirstWake ? Q.firstWakeOutcome(fighters)
+        : Q.teamsOutcome(fighters);
       if (outcome.status === 'RETRY' || outcome.status === 'COMPLETE') {
-        state.over = 'QUEST_FIRST_WAKE_' + outcome.status;
+        state.over = 'QUEST_' + (state.questFirstWake ? 'FIRST_WAKE_' : 'FIXTURE_') + outcome.status;
         state.questOutcome = outcome.status;
         // No economy award, no 1v1 winnerSide or Gold result transition.
         AQ.log('QUEST_OUTCOME', outcome.status + ' reason=' + outcome.reason);
@@ -881,7 +883,7 @@
     const tEq = performance.now();
     // baseDraw renders two primary bodies; Quest extra Fighter anchors use
     // this world-space pass, before real equipment and VFX. No HUD takeover.
-    if (AQ.state?.questFirstWake) {
+    if (AQ.state?.questMultiActor) {
       for (const f of fighters.slice(2)) if (f) f.draw(ctx);
       // Four independent actual HP pools: world-space progress readable
       // without pretending the two-column Gold 1v1 HUD supports four sides.
@@ -898,7 +900,7 @@
       }
       if (AQ.state.questOutcome) {
         ctx.font='900 48px sans-serif';ctx.fillStyle='#ffdf9e';
-        ctx.fillText(AQ.state.questOutcome==='COMPLETE'?'FIRST WAKE CLEAR':'NEWBOT KO — RETRY',GAME_SIZE/2,148);
+        ctx.fillText(AQ.state.questOutcome==='COMPLETE'?(AQ.state.questFirstWake?'FIRST WAKE CLEAR':'QUEST TEST CLEAR'):'NEWBOT KO — RETRY',GAME_SIZE/2,148);
       }
       ctx.restore();
     }
@@ -999,6 +1001,13 @@
       types = [p1, p2];
     }
 
+    // Q2 internal-only N-actor fixtures are never public Quest progression.
+    // Public Gold Continue Story retains exact CP04 FIRST WAKE composition.
+    const questCore = window.APEX_QUEST_MULTI_ACTOR_CORE;
+    const questFixture = typeof options.questFixture === 'string'
+      && window.__APEX_TEST_MODE === true && localTestHost && questCore
+      ? questCore.fixtureRoster(options.questFixture) : null;
+    if (options.questFixture && !questFixture) return false;
     resetState();
     if (AQ.feel && AQ.feel.resetMatch) AQ.feel.resetMatch();
     // OWNER LAW (R52): the legacy menu/select DOM is deleted from the product —
@@ -1014,14 +1023,23 @@
     lastShells = [t1.name, t2.name];
     const questFirstWake = options.questFirstWake === true
       && t1.name === 'ROBOT'
-      && !!window.APEX_QUEST_MULTI_ACTOR_CORE;
-    if (questFirstWake) {
-      // No prototype combat engine. All four are real Apex Fighters. Their
-      // blank NPC kits do not add forbidden Hero actives. NEWBOT stays the
-      // canonical ROBOT with its real A1/A2 and passive, wired to J/K.
-      const makeNpc = (name, color) => {
-        const def = makeArsenalFighterType(name, color, -1, 0.5);
-        def.arsenalBlank = true;
+      && !!questCore;
+    const questMultiActor = questFirstWake || !!questFixture;
+    if (questMultiActor) {
+      // Same engine Fighter instances, same physical weapon/damage update and
+      // same per-actor HP. No cloned Quest combat loop. TEST fixture is
+      // isolated from the story Director and makes NO progress/save changes.
+      const specs = questFirstWake ? questCore.fixtureRoster('2v2') : questFixture;
+      const NPC_TYPES = Object.freeze({
+        scout:['SCRAP SCOUT','#c88d48'],bulwark:['IRON BULWARK','#6f7f90'],
+        tot:['T.O.T','#80b4c2'],rivet:['RIVET','#c39f76'],
+        reaver:['CLAW REAVER','#b07e6b'],sentinel:['CORE SENTINEL','#8898a5'],
+      });
+      const makeNpc = (kind) => {
+        const spec = NPC_TYPES[kind];
+        if (!spec) return null;
+        const def = makeArsenalFighterType(spec[0], spec[1], -1, 0.5);
+        def.arsenalBlank = true; // No fabricated skills or passive.
         def.draw = function (c, f) {
           const gold = window.APEX_QUEST_GOLD_ENEMIES;
           if (gold?.draw && gold.draw(c, f)) return;
@@ -1029,17 +1047,29 @@
         };
         return def;
       };
-      fighters = [
-        new Fighter(1, 220, 310, t1),
-        new Fighter(2, 780, 310, makeNpc('SCRAP SCOUT', '#c88d48')),
-        new Fighter(3, 220, 690, makeNpc('T.O.T', '#80b4c2')),
-        new Fighter(4, 780, 690, makeNpc('IRON BULWARK', '#6f7f90')),
-      ];
-      fighters[0].questId = 'NEWBOT'; fighters[0].questTeam = 'ALLY';
-      fighters[1].questId = 'SCRAP-A'; fighters[1].questTeam = 'HOSTILE'; fighters[1].questVisualId = 'scout';
-      fighters[2].questId = 'T.O.T'; fighters[2].questTeam = 'ALLY';
-      fighters[3].questId = 'SCRAP-B'; fighters[3].questTeam = 'HOSTILE'; fighters[3].questVisualId = 'bulwark';
-      AQ.state.questFirstWake = true;
+      fighters = specs.map((spec, i) => {
+        const type = spec.kind === 'newbot' ? t1 : makeNpc(spec.kind);
+        const f = new Fighter(i+1, spec.x, spec.y, type);
+        f.questId = spec.questId;
+        f.questTeam = spec.questTeam;
+        if (spec.kind === 'scout' || spec.kind === 'bulwark' ||
+            spec.kind === 'reaver' || spec.kind === 'sentinel')
+          f.questVisualId = spec.kind;
+        f.maxHp = spec.hp;
+        f.hp = spec.hp;
+        return f;
+      });
+      // Fail closed before a simulation frame can run on bad Quest inputs.
+      const validated = questCore.validateRoster(fighters);
+      if (!validated.ok || (questFirstWake && !questCore.validateFirstWake(fighters).ok)) {
+        AQ.log('QUEST_ROSTER_INVALID', validated.reason);
+        AQ.state.active=false;
+        return false;
+      }
+      AQ.state.questMultiActor = true;
+      AQ.state.questFirstWake = questFirstWake;
+      AQ.state.questTestFixture = questFirstWake ? null : String(options.questFixture);
+      AQ.state.questActorCount = validated.count;
       AQ.state.questOutcome = null;
     } else {
       fighters = [
@@ -1048,7 +1078,9 @@
       ];
     }
     for (const f of fighters) {
-      f.maxHp = questFirstWake && f.questTeam === 'HOSTILE' ? 350 : CFG.MATCH_HP;
+      // Quest actor HP is specified by their encounter roster; normal 1v1
+      // continues using canonical MATCH_HP. Do not manufacture shared HP.
+      if (!questMultiActor) f.maxHp = CFG.MATCH_HP;
       f.hp = f.maxHp;
       const a = Math.random() * TAU;
       f.setDir(Math.cos(a), Math.sin(a));
@@ -1098,6 +1130,14 @@
     // Explicit feature opt-in on the disposable Quest branch only.
     if (window.__APEX_QUEST_DEV !== true) return false;
     return window.startArsenalBattleMode('ROBOT', 'ROBOT', { questFirstWake: true });
+  };
+  window.__apexQuestTestRosterStart = function startQuestNActorFixture(name) {
+    // Hard boundary: test-only on loopback. Not a Story skip or public entry.
+    if (window.__APEX_TEST_MODE !== true ||
+        !['localhost', '127.0.0.1', '::1'].includes(String(window.location?.hostname || '')))
+      return false;
+    if (!window.APEX_QUEST_MULTI_ACTOR_CORE?.fixtureRoster(name)) return false;
+    return window.startArsenalBattleMode('ROBOT', 'ROBOT', { questFixture: name });
   };
   window.__apexArsenalTestStartMatch = function startArsenalTestFixture(p1Name, p2Name) {
     if (window.__APEX_TEST_MODE !== true || !['localhost', '127.0.0.1', '::1'].includes(String(window.location?.hostname || ''))) return false;
@@ -1250,8 +1290,10 @@
       hero: fighterSnapshot(fighters[0]),
       rival: fighterSnapshot(fighters[1]),
       questFirstWake: !!state.questFirstWake,
+      questMultiActor: !!state.questMultiActor,
+      questTestFixture: state.questTestFixture || null,
       questOutcome: state.questOutcome || null,
-      questActors: state.questFirstWake ? fighters.map(f => ({
+      questActors: state.questMultiActor ? fighters.map(f => ({
         questId: f.questId, questTeam: f.questTeam, ...fighterSnapshot(f),
       })) : null,
       slots: state.slots.map(slot => ({
