@@ -1,0 +1,88 @@
+name: R82 Isolated Responsive Preservation Lab
+on:
+  push:
+    branches:
+      - arena/r82-responsive-preservation-lab
+    paths:
+      - 'src/game/homeLayoutLab.js'
+      - 'src/main.jsx'
+      - 'tools/testR82HomeLayoutBrowser.mjs'
+      - 'tools/testR82HomeLayoutLab.mjs'
+      - '.github/workflows/r82-layout-lab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  home-geometry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Shallow sparse checkout of only the Home runtime
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+            src
+            public/apexEngine.js
+            public/gold
+            public/game
+            public/assets/audio
+            public/assets/gold-ui
+            public/assets/loading
+            public/assets/pick_ui_final
+            public/assets/ui_2026
+            public/assets/fonts
+            tools/testR82HomeLayoutBrowser.mjs
+            tools/testR82HomeLayoutLab.mjs
+            tools/buildGoldCutover.mjs
+            index.html
+            package.json
+            pnpm-lock.yaml
+            vite.config.js
+          sparse-checkout-cone-mode: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify opt-in isolation contract
+        run: node tools/testR82HomeLayoutLab.mjs
+
+      - name: Run actual production React Home in Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          pnpm exec vite --host 127.0.0.1 --port 5173 --strictPort >/tmp/r82-vite.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:5173/ >/dev/null
+          CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testR82HomeLayoutBrowser.mjs
+
+      - name: Upload screenshots and geometry reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r82-layout-geometry-lab
+          path: |
+            docs/acceptance/arsenal-product/browser/r82-layout-lab/
+            /tmp/r82-vite.log
+          if-no-files-found: warn
