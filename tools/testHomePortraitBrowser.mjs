@@ -71,6 +71,39 @@ try{
   const cases=[[480,0],[540,0],[568,0],[600,0],[640,0],[700,0],[844,0],[568,24],[640,24]];
   console.log('R78 full React-mounted Home booted; testing '+cases.length+' viewports');
 
+  const failures=[];
+  for(const [height,safeB] of cases){
+    await command('Emulation.setDeviceMetricsOverride',{
+      width:360,height,deviceScaleFactor:1,mobile:true,screenWidth:360,screenHeight:height,
+    });
+    // Resize the SAME mounted production Home without resetting state.
+    let loaded=false;
+    for(let i=0;i<100;i++){
+      const found=await evalJS("Boolean(document.querySelector('#stage .actions')&&document.querySelector('#stage .routes')&&document.querySelector('#freeBattle'))").catch(()=>false);
+      if(found){loaded=true;break}
+      await sleep(100);
+    }
+    if(!loaded)throw new Error('Gold Shell Home DOM missing at height '+height);
+    await evalJS("document.documentElement.style.setProperty('--safeB',"+JSON.stringify(safeB+'px')+")");
+    await sleep(250);
+    const sample=await evalJS(`(() => {
+      const actions=document.querySelector('#stage .actions');
+      const routes=document.querySelector('#stage .routes');
+      const battle=document.querySelector('#freeBattle');
+      const a=actions.getBoundingClientRect(),r=routes.getBoundingClientRect(),b=battle.getBoundingClientRect();
+      const centerX=b.left+b.width/2,centerY=b.top+b.height/2;
+      const hit=document.elementFromPoint(centerX,centerY);
+      return {width:innerWidth,height:innerHeight,stageHeight:document.querySelector('#stage')?.getBoundingClientRect().height,guardPresent:!!window.__apexHomeGeometryGuard,guard:window.__apexHomeGeometryGuard?.snapshot()??null,inlineTop:actions.style.top,computedTop:getComputedStyle(actions).top,transitionProperty:getComputedStyle(actions).transitionProperty,animationName:getComputedStyle(actions).animationName,inlinePriority:actions.style.getPropertyPriority('top'),styleSheetTopRules:[...document.styleSheets].flatMap(sheet=>{try{return [...sheet.cssRules].filter(rule=>rule.cssText?.includes('.actions')&&rule.cssText?.includes('top:')).slice(-4).map(rule=>rule.cssText.slice(0,250))}catch{return[]}}).slice(-8),stageClass:document.querySelector('#stage')?.className,visualHeight:visualViewport?.height??null,battleY:b.y,battleHeight:b.height,gap:r.top-a.bottom,actionsTop:a.top,
+        hit:!!hit?.closest?.('#freeBattle'),hitName:hit?.id||hit?.className||'',hitTag:hit?.tagName||null,hitStack:document.elementsFromPoint(centerX,centerY).slice(0,9).map(el=>({tag:el.tagName,id:el.id||'',className:typeof el.className==='string'?el.className:'',pointerEvents:getComputedStyle(el).pointerEvents,opacity:getComputedStyle(el).opacity})),battleRect:{x:b.x,y:b.y,w:b.width,h:b.height},center:{x:centerX,y:centerY}};
+    })()`);
+    const unchanged=height<640||Math.abs(sample.actionsTop-(height<=700?.654:.671)*height)<3;
+    const ok=sample.gap>=7&&sample.hit&&unchanged;
+    console.log((ok?'PASS':'FAIL')+' R77 '+height+'px safe='+safeB+'px '+JSON.stringify(sample));
+    if(!ok)failures.push({height,safeB,...sample,unchanged});
+  }
+  if(failures.length)throw new Error('R77 Chrome viewport regressions: '+JSON.stringify(failures));
+  console.log('R77 Chrome portrait geometry and hit testing: PASS '+cases.length+'/9');
+
   // R80: compare the two near-identical aspect ratios in the REAL mounted
   // product. This is observation-only: do not change any accepted layout.
   const evidenceDir='docs/acceptance/arsenal-product/browser/viewport-comparison';
@@ -130,38 +163,7 @@ try{
   await inspect('fighter-550x857',550,857);
   await writeFile(evidenceDir+'/comparison.json',JSON.stringify(captures,null,2));
 
-  const failures=[];
-  for(const [height,safeB] of cases){
-    await command('Emulation.setDeviceMetricsOverride',{
-      width:360,height,deviceScaleFactor:1,mobile:true,screenWidth:360,screenHeight:height,
-    });
-    // Resize the SAME mounted production Home without resetting state.
-    let loaded=false;
-    for(let i=0;i<100;i++){
-      const found=await evalJS("Boolean(document.querySelector('#stage .actions')&&document.querySelector('#stage .routes')&&document.querySelector('#freeBattle'))").catch(()=>false);
-      if(found){loaded=true;break}
-      await sleep(100);
-    }
-    if(!loaded)throw new Error('Gold Shell Home DOM missing at height '+height);
-    await evalJS("document.documentElement.style.setProperty('--safeB',"+JSON.stringify(safeB+'px')+")");
-    await sleep(250);
-    const sample=await evalJS(`(() => {
-      const actions=document.querySelector('#stage .actions');
-      const routes=document.querySelector('#stage .routes');
-      const battle=document.querySelector('#freeBattle');
-      const a=actions.getBoundingClientRect(),r=routes.getBoundingClientRect(),b=battle.getBoundingClientRect();
-      const centerX=b.left+b.width/2,centerY=b.top+b.height/2;
-      const hit=document.elementFromPoint(centerX,centerY);
-      return {width:innerWidth,height:innerHeight,stageHeight:document.querySelector('#stage')?.getBoundingClientRect().height,guardPresent:!!window.__apexHomeGeometryGuard,guard:window.__apexHomeGeometryGuard?.snapshot()??null,inlineTop:actions.style.top,computedTop:getComputedStyle(actions).top,transitionProperty:getComputedStyle(actions).transitionProperty,animationName:getComputedStyle(actions).animationName,inlinePriority:actions.style.getPropertyPriority('top'),styleSheetTopRules:[...document.styleSheets].flatMap(sheet=>{try{return [...sheet.cssRules].filter(rule=>rule.cssText?.includes('.actions')&&rule.cssText?.includes('top:')).slice(-4).map(rule=>rule.cssText.slice(0,250))}catch{return[]}}).slice(-8),stageClass:document.querySelector('#stage')?.className,visualHeight:visualViewport?.height??null,battleY:b.y,battleHeight:b.height,gap:r.top-a.bottom,actionsTop:a.top,
-        hit:!!hit?.closest?.('#freeBattle'),hitName:hit?.id||hit?.className||'',hitTag:hit?.tagName||null,hitStack:document.elementsFromPoint(centerX,centerY).slice(0,9).map(el=>({tag:el.tagName,id:el.id||'',className:typeof el.className==='string'?el.className:'',pointerEvents:getComputedStyle(el).pointerEvents,opacity:getComputedStyle(el).opacity})),battleRect:{x:b.x,y:b.y,w:b.width,h:b.height},center:{x:centerX,y:centerY}};
-    })()`);
-    const unchanged=height<640||Math.abs(sample.actionsTop-(height<=700?.654:.671)*height)<3;
-    const ok=sample.gap>=7&&sample.hit&&unchanged;
-    console.log((ok?'PASS':'FAIL')+' R77 '+height+'px safe='+safeB+'px '+JSON.stringify(sample));
-    if(!ok)failures.push({height,safeB,...sample,unchanged});
-  }
-  if(failures.length)throw new Error('R77 Chrome viewport regressions: '+JSON.stringify(failures));
-  console.log('R77 Chrome portrait geometry and hit testing: PASS '+cases.length+'/9');
+
 }finally{
   try{socket?.close()}catch{}
   chrome.kill('SIGTERM');
