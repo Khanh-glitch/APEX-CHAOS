@@ -182,7 +182,7 @@ try {
     };
   })()`);
   gate('R63-door-reveals-full-size-real-Home-without-second-iris',
-    bootReveal.hostVisible&&bootReveal.startGone&&
+    bootReveal.hostVisible&&bootReveal.startGone&&!bootReveal.doorVisible&&
     (bootReveal.transform==='none'||bootReveal.transform==='matrix(1, 0, 0, 1, 0, 0)')&&
     bootReveal.stageWidth>=.9*1600&&bootReveal.stageHeight>=.9*900,
     bootReveal);
