@@ -162,6 +162,9 @@ try{
   if(!p2Ready)throw Error('P2 handoff missing');
   await click('.rosterCard[data-hero="hunter"]'); await sleep(350);
   const p2Pick=await shot('production-pick-p2-361x545');
+  const p2SkillsFit=await evalJS("(()=>{const e=document.querySelector('.fighterIdentityZone.p2 .skillRows'),r=e?.getBoundingClientRect();if(!r)return null;const a=[...e.querySelectorAll('.skillChip')].map(c=>{const z=c.getBoundingClientRect();return{text:c.textContent.trim(),x:z.x,right:z.right,y:z.y,bottom:z.bottom,scrollW:c.scrollWidth,clientW:c.clientWidth,scrollH:c.scrollHeight,clientH:c.clientHeight}});return{count:a.length,allVisible:a.length===3&&a.every(z=>z.x>=r.x-1&&z.right<=r.right+1&&z.y>=r.y-1&&z.bottom<=r.bottom+1&&z.scrollW<=z.clientW+2&&z.scrollH<=z.clientH+2),cards:a}})()");
+  check('P2 all 3 skills visible in dock without scrolling',p2SkillsFit?.allVisible,p2SkillsFit);
+
   check('P2 R85 card >=48px',p2Pick.pick.card?.h>=48,p2Pick.pick.card);
   check('P2 R85 hero stage wide',p2Pick.pick.p2?.w>=320,p2Pick.pick.p2);
   check('P2 Hunter identity active and art uncut',
