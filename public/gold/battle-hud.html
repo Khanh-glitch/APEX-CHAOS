@@ -708,7 +708,10 @@ kbd{font:inherit}
   #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .id-ctrl{font-size:7px;letter-spacing:.08em}
   #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .id-tag{font-size:8px;padding:0 4px}
   #hud[data-layout="port"][data-size="compact"][data-mode="2p"] .side .skills{
-    grid-template-columns:repeat(2,minmax(0,1fr));
+    /* Do not allow intrinsic skill media/labels to expand the auto column. */
+    grid-template-columns:var(--tw) var(--tw);
+    width:max-content;
+    justify-self:end;
     grid-template-rows:minmax(0,1fr);
     min-height:0;
     gap:var(--skGap);
