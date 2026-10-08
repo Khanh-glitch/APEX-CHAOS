@@ -1363,7 +1363,17 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   'use strict';
   const stage = document.getElementById('stage');
   const story = document.getElementById('continueStory');
-  story?.addEventListener('click',()=>uiSfx('ui.button.press'));
+  // Quest-branch CP04 playtest entry: Continue Story opens FIRST WAKE through
+  // the SAME Gold battle loading/transition pipeline as Free Battle.
+  // No Quest unlock is added to the production product graph.
+  story?.addEventListener('click',()=>{
+    if(screen!=='home'||window.APEX_SCENE_TRANSITION?.active?.())return;
+    uiSfx('ui.screen.transition');
+    questPreview=true;
+    battleMode='bot';
+    p1Hero='newbot';p2Hero='newbot';
+    void launchBattleHud();
+  });
   const battle = document.getElementById('freeBattle');
   const modeScreen = document.getElementById('modeSelectScreen');
   const fighterScreen = document.getElementById('fighterSelectScreen');
@@ -1419,6 +1429,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   let parallax = !reduced;
   let tx=0, ty=0, cx=0, cy=0, raf=0;
   let screen='home', battleMode=null, modeFocus=0, activePlayer='p1';
+  let questPreview=false; // CP04 branch only; not a public Quest release.
   let p1Hero='newbot', p2Hero='newbot', p1Locked=false, p2Locked=false, p2Empty=true, p1HasPicked=false, p2HasPicked=false, transitionTimer=0;
 
   function syncModes(){
@@ -1666,7 +1677,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
   async function setBattleLive(){
     APEX_GOLD.onSurface&&APEX_GOLD.onSurface('battle');
     const ready=APEX_GOLD.onBattleLive
-      ? await Promise.resolve(APEX_GOLD.onBattleLive({mode:battleMode,p1:p1Hero,p2:p2Hero}))
+      ? await Promise.resolve(APEX_GOLD.onBattleLive({mode:questPreview?'quest-first-wake':battleMode,p1:p1Hero,p2:p2Hero}))
       : false;
     if(ready!==true||!window.APEX_GOLD_HUD)return false;
     // Production projection is now authoritative. Mark the preview handoff
@@ -1699,7 +1710,16 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     battleTransition.querySelector('[data-bt-state="p1"]').textContent='COMBAT LOCK';
     battleTransition.querySelector('[data-bt-state="p2"]').textContent=bot?'TARGET ACQUIRED':'COMBAT LOCK';
     battleTransition.querySelector('[data-bt-kicker="p2"]').textContent=bot?'CPU // TARGET':'P2 // FIGHTER';
-    battleTransition.querySelector('[data-bt-core]').textContent=bot?'SOLO COMBAT CHANNEL':'DUEL COMBAT CHANNEL';
+    battleTransition.querySelector('[data-bt-core]').textContent=questPreview
+      ? 'QUEST 01 // FIRST WAKE PLAYTEST'
+      : bot?'SOLO COMBAT CHANNEL':'DUEL COMBAT CHANNEL';
+    if(questPreview){
+      battleTransition.querySelector('[data-bt-name="p1"]').textContent='NEWBOT + T.O.T';
+      battleTransition.querySelector('[data-bt-name="p2"]').textContent='SCRAP A + SCRAP B';
+      battleTransition.querySelector('[data-bt-state="p1"]').textContent='TWO ALLIES';
+      battleTransition.querySelector('[data-bt-state="p2"]').textContent='TWO HOSTILES';
+      battleTransition.querySelector('[data-bt-kicker="p2"]').textContent='FIRST WAKE // 2v2';
+    }
     const horizontal=!bot&&matchMedia('(orientation:portrait)').matches;
     battleTransition.classList.toggle('is-horizontal',horizontal);
     battleTransition.classList.toggle('is-bot',bot);
@@ -1721,8 +1741,13 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     APEX_GOLD.unmountBattleHud();
     battleHudConfig=null;
     battleHudReady=false;
-    screen='fighter';
-    APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter');
+    if(questPreview){
+      questPreview=false; battleMode=null;
+      commitScreen('home'); focusScreen('home');
+    }else{
+      screen='fighter';
+      APEX_GOLD.onSurface&&APEX_GOLD.onSurface('fighter');
+    }
   }
   // ONE beat scheduler: donor beats at production tempo, collapsed to the
   // reduced-motion floor (24 ms) exactly like the authored source.
@@ -1805,7 +1830,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     return true;
   }
   function closeBattleHud(){
-    if(screen==='transition'){cancelBattleTransition();focusScreen('fighter');return}
+    if(screen==='transition'){const wasQuest=questPreview;cancelBattleTransition();focusScreen(wasQuest?'home':'fighter');return}
     if(!battleHudHost?.classList.contains('is-open'))return;
     battleEntryToken+=1;
     battleHudHost.classList.remove('is-open','is-preloading','is-transitioning','is-reveal','is-horizontal');
@@ -1816,6 +1841,11 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     APEX_GOLD.unmountBattleHud();
     battleHudConfig=null;
     battleHudReady=false;
+    if(questPreview){
+      questPreview=false; battleMode=null;
+      commitScreen('home'); focusScreen('home');
+      return; // CP04 returns to story entry, never fighter pick
+    }
     screen='fighter';
     // R56 FLOW LAW — a finished match lands on a pick screen that is READY for
     // the next one. The match-ready lock used to survive the exit: the roster
