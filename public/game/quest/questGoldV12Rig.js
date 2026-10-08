@@ -2542,7 +2542,10 @@ function draw(ctx,real) {
     ctx.save();
     // Gold art faces -Y; Apex Fighter.draw already rotates the canvas toward +X.
     ctx.rotate(Math.PI/2);
-    const ratio=Math.max(0.35,Math.min(1.45,(Number(real.radius)||LAYOUTS[variant].radius)/LAYOUTS[variant].radius));
+    // Do not normalize every Gold species to the same Arsenal collision radius.
+    // The donor's original proportions (Scout smaller, Bulwark broader) are
+    // presentation identity; its REAL collider remains the Arsenal Fighter.
+    const ratio=0.93*Math.max(0.35,Math.min(1.2,(Number(real.radius)||75)/75));
     ctx.scale(ratio,ratio);
     const m=ctx.getTransform();
     const cam=[m.a,m.b,m.c,m.d,m.e-m.a*shadow.x-m.c*shadow.y,m.f-m.b*shadow.x-m.d*shadow.y];
