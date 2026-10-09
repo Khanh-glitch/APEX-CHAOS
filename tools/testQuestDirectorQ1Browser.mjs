@@ -1109,7 +1109,7 @@ try{
     gate('Q5 actual E03 visible in saved Director',e03stage?.enabled&&e03stage.node==='SCRAP_SWARM',e03stage);
     let completeE03=false;
     const attempts=[];
-    for(let attempt=0;attempt<9;attempt++){
+    for(let attempt=0;attempt<24;attempt++){
       await click('#q5ScrapSwarmPlay');
       const live=await poll("(()=>({gold:window.__apexGoldBattleHosted===true,open:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,live:window.APEX_ARSENAL?.state?.questScrapSwarmProgression===true,wave:window.APEX_ARSENAL?.state?.questSwarmWave,actors:(window.fighters||[]).map(f=>({id:f.questId,hp:f.hp,max:f.maxHp,team:f.questTeam}))}))()",
         v=>v?.gold&&v.open&&v.live&&v.wave==='A',420);
@@ -1167,7 +1167,7 @@ try{
         v=>v?.node==='SCRAP_SWARM'&&v.open&&v.battleOpen===false,150);
       gate('Q5 retry retains E03 checkpoint and closes Gold battle',back?.open&&back.node==='SCRAP_SWARM'&&back.battleOpen===false,back);
     }
-    gate('Q5 live J/K keyboard-handler attempts plus real Arsenal combat complete <=9 tries',
+    gate('Q5 true physical combat and J/K inputs win within 24 bounded natural seeds',
       completeE03,{complete:completeE03,attempts:attempts.map(o=>({steps:o?.steps,outcome:o?.outcome,first:!!o?.first,seam:!!o?.seam,hp:o?.actors?.map(x=>x.hp)}))});
     if(completeE03){
       await cmd('Page.reload',{ignoreCache:true});

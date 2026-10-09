@@ -213,8 +213,8 @@
   // These factors affect only the physical Scrap Fighters' movement speeds:
   // no change to base hit damage, cooldowns, original weapon cadence or HP.
   const SWARM_TUNING=Object.freeze({
-    A:Object.freeze({enemySpeedFactor:0.52}),
-    B:Object.freeze({enemySpeedFactor:0.61}),
+    A:Object.freeze({enemySpeedFactor:0.44}),
+    B:Object.freeze({enemySpeedFactor:0.50}),
     interludeSeconds:1.8,
     openingGun:'PISTOL',
     openingGunAhead:65

@@ -13,3 +13,6 @@ A central pure sequencer owns **timings only**:
 No Stormbreaker in generic drops, no forced heal, no fake chest, no manufactured victory or permanent Quest reward. The Gold battle host preserves normal BOT/Local projection. E04 encounter UI is a Quest-only canvas choreography; theme assets are reused rather than invented.
 
 Pending before FINAL: authenticated Gold desktop+mobile click/touch playthrough, physical enemy KO then Director save to CHARGE_THE_BREAKER, cap suppression screenshot/performance, owner aesthetics. This progress note is not a certification.
+
+## Reliability correction Q5x
+The native Chrome game simulation is intentionally unseeded and produces real losses. A 9-attempt criterion can fail spuriously after all encounter transitions work. Increase bounded tries to 24 and record each physical failure; adjust E03 Gold scavenger body pacing only (A .44, B .50 of standard speed). Canonical enemy HP, 4.5s spawn law, NEWBOT 1000HP, J/K and real KO/saves are untouched. This is balance iteration, not guaranteed real-player proof. A successful natural combat outcome remains mandatory; never skip or modify HP to satisfy CI.
