@@ -1249,6 +1249,53 @@ try{
           x=>x?.node==='CHARGE_THE_BREAKER',180);
         gate('E04 reload retains real E05 without replaying two defeated hostiles',
           restoredE05?.node==='CHARGE_THE_BREAKER'&&restoredE05.cues===12,restoredE05);
+        const ready=await poll("(()=>({boot:document.getElementById('apex-boot-start')?.getBoundingClientRect()?.width>0,node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()",
+          x=>x?.boot&&x.node==='CHARGE_THE_BREAKER',300);
+        gate('E05 saved Gold boot is legitimate after E04',ready?.boot===true,ready);
+        await click('#apex-boot-start');
+        await poll("(()=>document.body.dataset.apexSceneTransition==='DONE'&&document.getElementById('apex-boot-blackout')?.hidden===true)()",Boolean,300);
+        await click('#continueStory');
+        const chapter=await evalPage("(()=>({id:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,button:document.getElementById('q5BreakerChargePlay')?.hidden===false}))()");
+        gate('E05 saved Director exposes physical impact accumulator',chapter?.id==='CHARGE_THE_BREAKER'&&chapter.button,chapter);
+        await image('26-e05-charge-chapter');
+        await click('#q5BreakerChargePlay');
+        const real=await poll("(()=>({gold:window.__apexGoldBattleHosted===true,hud:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,active:window.APEX_ARSENAL?.state?.questBreakerChargeProgression===true,actors:(window.fighters||[]).map(f=>({id:f.questId,team:f.questTeam,hp:f.hp,max:f.maxHp,world:f.questWorldObject}))}))()",
+          x=>x?.gold&&x.hud&&x.active,420);
+        gate('E05 real Gold/Arsenal world collider 1000 vs inert 6000',
+          real?.gold===true&&real?.hud===true&&real?.active===true
+          &&real.actors?.[0]?.id==='NEWBOT'&&real.actors?.[0]?.max===1000
+          &&real.actors?.[1]?.id==='BREAKER-CORE'&&real.actors?.[1]?.max===6000
+          &&real.actors?.[1]?.world===true&&real.actors?.[1]?.team==='TARGET',real);
+        const tooEarly=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E05_BREAKER_CHARGE_CLEAR'))()");
+        gate('E05 cannot skip 6000 actual weapon damage or relay',tooEarly?.ok===false,tooEarly);
+        const actual=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=window.APEX_QUEST_MULTI_ACTOR_CORE,W=A.weaponApi,f=window.fighters,hero=f[0],target=f[1];let organicSteps=0,organicHits=0;const hp0=target.hp;let last=hp0,maxSlots=0;for(;organicSteps<18000&&target.hp>0;organicSteps++){if(organicSteps%80===0)window.dispatchEvent(new KeyboardEvent('keydown',{key:'j',code:'KeyJ',bubbles:true}));if(organicSteps%200===0)window.dispatchEvent(new KeyboardEvent('keydown',{key:'k',code:'KeyK',bubbles:true}));A.step(.05);maxSlots=Math.max(maxSlots,A.state.slots.filter(s=>s.kind!=='HEAL'&&s.phase!=='REMOVED').length);if(target.hp<last)organicHits++;last=target.hp;if(A.state.over)break;}const organicDmg=hp0-target.hp;let assistedShots=0,assistedHits=0;while(target.hp>0&&assistedShots++<180){const before=target.hp;const p={x:target.x-400,y:target.y,angle:0,speed:2400,damage:15,owner:hero,weapon:'PISTOL'};W.fireBullet(p);for(let i=0;i<13;i++)A.step(.04);if(target.hp<before)assistedHits++;}let pulseSteps=0;while(!A.state.over&&pulseSteps++<500)A.step(.05);const pulse=A.state.questBreakerSequence?.snapshot?.();return{organicSteps,organicDmg,organicHits,assistedShots,assistedHits,pulseSteps,maxSlots,charge:Q.breakerChargeProgress(f),outcome:Q.breakerChargeOutcome(f,pulse?.pulseObserved),pulse,stateOutcome:A.state.questOutcome,over:A.state.over,view:A.state.questBreakerStoryView?.snapshot?.(),heroHp:hero.hp,targetHp:target.hp,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}})()");
+        gate('E05 native simulation never permits >5 offensive slots',actual?.maxSlots<=5,actual?.maxSlots);
+        gate('E05 accepts 6000 actual damage from existing combat physics, not HP setter',
+          actual?.targetHp===0&&actual?.charge===1
+          &&actual?.outcome?.status==='COMPLETE'
+          &&actual?.pulse?.requested===3
+          &&actual.pulse.accepted+actual.pulse.suppressed===3
+          &&actual?.pulse?.pulseObserved===true
+          &&actual?.stateOutcome==='COMPLETE'
+          &&actual?.over==='QUEST_BREAKER_CHARGE_COMPLETE'
+          &&actual?.view?.current==='E05_BREAKER_CHARGE_CLEAR'
+          &&actual?.view?.active===true
+          &&actual?.checkpoint==='CHARGE_THE_BREAKER',actual);
+        const denied=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E05_BREAKER_CHARGE_CLEAR'))()");
+        gate('E05 cannot save before result presentation acknowledgment',denied?.ok===false,denied);
+        await image('27-e05-authentic-infrastructure-pulse-result');
+        await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+        const saved=await poll("(()=>({id:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,stage:document.getElementById('apexQuest01Stage')?.dataset.node,open:document.getElementById('apexQuest01Stage')?.hidden===false,goldClosed:document.getElementById('battleHudHost')?.classList.contains('is-open')===false}))()",
+          x=>x?.id==='BREACH_WAVES'&&x?.open&&x?.goldClosed,180);
+        gate('E05 real acknowledged 6000 charge closes Gold and saves BREACH_WAVES',
+          saved?.id==='BREACH_WAVES'&&saved?.stage==='BREACH_WAVES'
+          &&saved?.goldClosed===true,saved);
+        await image('28-e05-breach-checkpoint');
+        await cmd('Page.reload',{ignoreCache:true});
+        const restored=await poll("(()=>({id:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,cues:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.completedCueIds?.length}))()",
+          x=>x?.id==='BREACH_WAVES',180);
+        gate('E05 persistent native checkpoint has 13 signed cues after reload',
+          restored?.id==='BREACH_WAVES'&&restored.cues===13,restored);
       }
     }
   }

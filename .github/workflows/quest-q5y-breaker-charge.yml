@@ -35,3 +35,41 @@ jobs:
         run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breaker-native
       - name: Production build
         run: pnpm build
+      - name: Start physical Gold / Vite server
+        shell: bash
+        run: |
+          pnpm dev:lan > /tmp/q5y-e05-vite.log 2>&1 &
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/q5y-e05-vite.log
+          exit 1
+      - name: Find Chrome
+        id: chrome
+        shell: bash
+        run: |
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$BIN"
+          echo "path=$BIN" >> "$GITHUB_OUTPUT"
+      - name: Chrome desktop physical signed E01–E05 gameplay
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/q5y-e05
+        run: node tools/testQuestDirectorQ1Browser.mjs
+      - name: Chrome mobile touch physical signed E01–E05 gameplay
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/q5y-e05
+        run: node tools/testQuestDirectorQ1Browser.mjs --mobile
+      - name: Save actual Gold screenshots, native logs and receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quest-q5y-e05-native-chrome-evidence
+          path: |
+            /tmp/q5y-e05/
+            /tmp/q5y-e05-vite.log
+          if-no-files-found: warn
