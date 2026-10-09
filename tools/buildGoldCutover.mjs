@@ -2345,6 +2345,31 @@ function applyB05Overlay(name,html) {
   }
 }
 
+// B3 separate Quest presentation profile; the original R90 Gold HUD is
+// preserved for BOT/LOCAL, and the canonical Gold build remains reproducible.
+function applyQuestGoldPresentation(html) {
+  const style=fs.readFileSync(path.join(REPO,'tools','goldQuestPresentation.css'),'utf8');
+  const begin='  function syncQuestRailSlots(teams) {';
+  const end='  // Per-frame production projection -> canonical renderers.';
+  const lo=html.indexOf(begin),hi=html.indexOf(end,lo);
+  if(lo<0||hi<0||hi<=lo)throw new Error('B3 missing existing production Quest rail source');
+  let rail=html.slice(lo,hi);
+  const before=`        const value=ratio.toFixed(4);
+        if(slot.style.getPropertyValue('--qhp')!==value)slot.style.setProperty('--qhp',value);`;
+  const after=`        // One CONTIGUOUS energy rail: each real Fighter contributes its
+        // current HP as a share of TEAM MAX. Damage anywhere shortens the
+        // full bar from its trailing edge; no fake dark divider or notch.
+        const portion=Math.max(0,Math.min(1,(Number(actor.hp)||0)/Math.max(1,teamMax)));
+        const basis=(portion*100).toFixed(5)+'%';
+        if(slot.style.flexBasis!==basis)slot.style.flexBasis=basis;
+        if(slot.style.getPropertyValue('--qhp')!=='1')slot.style.setProperty('--qhp','1');`;
+  if(rail.split(before).length!==2)throw new Error('B3 original Quest slot projection changed; re-audit');
+  rail=rail.replace(before,after);
+  let next=html.slice(0,lo)+rail+html.slice(hi);
+  if(next.split('</head>').length!==2)throw new Error('B3 expected exactly one Gold head');
+  next=next.replace('</head>','<style id="apexQuestArenaFirstProfile">\n'+style+'\n</style>\n</head>');
+  return next;
+}
 function main() {
   verifyAuthority();
   materializeTheme();
@@ -2389,7 +2414,7 @@ function main() {
   outputs.set('transition/mechanical-door-v4.gold.js', read(TRANSITION_RUNTIME_SRC));
   log('Mechanical Door V4 runtime staged (hash-pinned Gold authority)');
 
-  outputs.set('battle-hud.html', Buffer.from(applyB05Overlay('battle-hud.html', buildBattleHud()), 'utf8'));
+  outputs.set('battle-hud.html', Buffer.from(applyQuestGoldPresentation(applyB05Overlay('battle-hud.html', buildBattleHud())), 'utf8'));
   log('battle-hud.html built (production-bridged donor)');
   outputs.set('lucky-draw.html', Buffer.from(buildLuckyDonor(), 'utf8'));
   log('lucky-draw.html built (localized + production-bridged donor)');

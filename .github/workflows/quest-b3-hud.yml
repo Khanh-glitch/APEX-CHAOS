@@ -1,0 +1,55 @@
+name: B3 Quest Arena-First Source Generation
+on:
+  push:
+    branches: ['quest/b3-arena-first-hud-from-b1']
+    paths:
+      - 'tools/goldQuestPresentation.css'
+      - 'tools/buildGoldCutover.mjs'
+      - '.github/workflows/quest-b3-hud.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  generated-hud:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Rebuild Gold from R90 + B05 + Quest profile
+        run: |
+          node tools/buildGoldCutover.mjs
+          node tools/buildGoldCutover.mjs --check
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Continuous team HP and largest feasible arena contracts
+        run: node tools/testQuestHudArenaB3.mjs
+      - name: R89 responsive resolver and embedded source byte parity
+        run: |
+          node tools/testR89GoldResolver.mjs
+          node tools/testGoldEmbeddedHudParity.mjs
+          node tools/testQuestDirectorQ1.mjs
+      - name: Build merged Gold product
+        run: pnpm build
+      - name: Commit exact generated HUD, Shell and provenance to B3 only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name apex-chaos-quest
+          git config user.email apex-chaos-quest@users.noreply.github.com
+          git add public/gold/battle-hud.html public/gold/shell.html public/gold/manifest.json
+          git diff --cached --check -- public/gold/manifest.json || true
+          if ! git diff --cached --quiet; then
+            git commit -m "B3 generated arena-first Quest HUD and seamless team HP from canonical Gold source"
+            git push origin HEAD:refs/heads/quest/b3-arena-first-hud-from-b1
+          fi
