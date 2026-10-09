@@ -21,7 +21,7 @@ const signed={snapshot:()=>({wave:'C',phase:'COMPLETE',completed:3,receipts:wave
  wave,physicalKOs:Array.from({length:n},(_,i)=>({id:wave+i,hp:0,maxHp:300})),
  allies:allies.map(x=>({id:x.questId,hp:x.hp,maxHp:x.maxHp}))
 }))})};
-ok(!rig.acceptNativeWaveClear(roster(3,true),signed).ok,'reject final wave wrong size');
+ok(!rig.acceptNativeWaveClear(roster(4,true),signed).ok,'reject final wave wrong size');
 ok(!rig.acceptNativeWaveClear([...allies.map(a=>({...a})),...roster(3,true).slice(3)],signed).ok,'reject replaced ally instances');
 ok(!rig.acceptNativeWaveClear(roster(3,true),{snapshot:()=>({...signed.snapshot(),completed:2})}).ok,'reject incomplete wave ledger');
 ok(rig.acceptNativeWaveClear(roster(3,true),signed).ok,'only three genuinely signed waves advance');
