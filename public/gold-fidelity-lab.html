@@ -60,8 +60,15 @@
       // Always boot the REAL application on the same origin at /.
       // Deliberately exclude any R82/R85/R86 opt-in reflow experiments.
       const target = new URL('/', location.origin);
+      // Preserve ALL existing game/debug/deep-link parameters for the real
+      // child game. Only compositor-specific parameters stay in this parent.
+      for (const [key,value] of search) {
+        if (!['goldViewport','goldDevice','goldProfile'].includes(key))
+          target.searchParams.append(key,value);
+      }
       // The embedded child always runs the native Gold game: no recursion.
       target.searchParams.set('goldViewport','native');
+      target.hash=location.hash;
       frame.src = target.href;
       let metrics = null;
       let pending = 0;
