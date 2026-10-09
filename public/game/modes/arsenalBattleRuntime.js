@@ -257,9 +257,23 @@
   // -------------------------------------------------------------------------
   // Simulation tick — the ONLY gameplay step; rAF and headless tests share it.
   // -------------------------------------------------------------------------
+  function presentNextRealStoryBeat(state){
+    const view=state?.questStoryView;
+    if(!view||view.active())return;
+    // take() is presentation-only. It cannot advance Director or spoof a Cast.
+    let cue;
+    while((cue=state.questStory?.take?.())){
+      if(view.offer(cue))return;
+    }
+  }
+
   function stepSimulation(dt) {
     const state = AQ.state;
     if (!state || !state.active) return;
+    // One Quest-owned lease pauses the ENTIRE Arsenal simulation only
+    // while a physically earned story panel is visible. BOT/Local unchanged.
+    // No internal clocks, weapon projectiles or cooldowns advance here.
+    if(state.questReflex===true&&state.questStoryView?.active())return;
     // Q4B: once all four actual REFLEX receipts and BOTH true <=500 HP
     // crossings have been accepted, stop the training exchange. The next
     // authorized story action belongs to RIVET (NOT a generic winner/KO).
@@ -320,6 +334,7 @@
       state.questStory?.observeReflex?.(
         state.questReflexGate?.snapshot?.(),
         window.__apexQuestReflexTechnicalRead?.());
+      presentNextRealStoryBeat(state);
       if(AQ.feel?.tick)AQ.feel.tick(dt);
       for(let i=particles.length-1;i>=0;i--){
         const p=particles[i];p.update(dt);
@@ -527,6 +542,7 @@
       // no two-team KO rule may auto-complete this tutorial encounter.
       const pilot = state.questReflex ? state.questReflexGate?.poll() : null;
       if(pilot)state.questStory?.observeReflex?.(pilot,null);
+      if(pilot)presentNextRealStoryBeat(state);
       const outcome = state.questReflex
         ? {status:fighters.some(f=>f?.hp<=0)?'RETRY':'ACTIVE',reason:'reflex-pilot-'+(pilot?.phase||'closed')}
         : state.questFirstWake ? Q.firstWakeOutcome(fighters)
@@ -1097,6 +1113,8 @@
     if(AQ.state){
       AQ.state.questReflexGate?.close?.();
       AQ.state.questReflexGate=null;
+      AQ.state.questStoryView?.close?.();
+      AQ.state.questStoryView=null;
       AQ.state.questStory?.close?.();
       AQ.state.questStory=null;
       AQ.state.questReflex=false;
@@ -1267,6 +1285,16 @@
         AQ.state.questReflexGate=gate;
         AQ.state.questStory=window.APEX_QUEST_STORY_BEATS?.create?.()||null;
         AQ.state.questStory?.observeReflex?.(gate.snapshot(),null);
+        if(options.questStoryPresentation===true && window.__apexGoldBattleHosted===true
+          && window.APEX_QUEST_STORY_PRESENTATION){
+          const ownerState=AQ.state;
+          AQ.state.questStoryView=window.APEX_QUEST_STORY_PRESENTATION.create({
+            onAdvance:()=>{
+              if(AQ.state===ownerState&&ownerState.active
+                &&ownerState.questReflex===true)presentNextRealStoryBeat(ownerState);
+            }
+          });
+        }
         // Only scripted R1/R2 spawn at first. The normal Arsenal cadence
         // resumes when J needs a real revealed pickup after R2.
         AQ.state.spawnTimer=1e6;
@@ -1337,7 +1365,11 @@
     if(!((window.__APEX_TEST_MODE===true
       && ['localhost','127.0.0.1','::1'].includes(String(window.location?.hostname||'')))
       ||(window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true)))return false;
-    return window.startArsenalBattleMode('ROBOT','ROBOT',{questReflex:true});
+    const withStory=window.__APEX_QUEST_STORY_PLAYBACK===true
+      &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true;
+    delete window.__APEX_QUEST_STORY_PLAYBACK;
+    return window.startArsenalBattleMode('ROBOT','ROBOT',
+      {questReflex:true,questStoryPresentation:withStory});
   };
   // One-shot RIVET engineering preview. Owner has NOT approved the rescue
   // choreography, final model, target or Story progression. The weapon must
@@ -1384,6 +1416,10 @@
   window.__apexQuestStoryBeatsRead=function(){
     const s=AQ.state;
     return s?.active&&s.questReflex===true?s.questStory?.snapshot?.()||null:null;
+  };
+  window.__apexQuestStoryViewRead=function(){
+    const s=AQ.state;
+    return s?.active&&s.questReflex===true?s.questStoryView?.snapshot?.()||null:null;
   };
   window.__apexQuestReflexTechnicalRead=function(){
     const s=AQ.state;

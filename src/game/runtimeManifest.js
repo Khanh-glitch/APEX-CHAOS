@@ -101,6 +101,7 @@ export const ARSENAL_PRODUCT_RUNTIMES = [
   ['/game/quest/questMultiActorCore.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestMultiActorCore'],
   ['/game/quest/questReflexReceipts.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestReflexReceipts'],
   ['/game/quest/questStoryInterludes.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestStoryInterludes'],
+  ['/game/quest/questStoryPresentation.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestStoryPresentation'],
   ['/game/quest/questGoldV12Rig.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestV12Rig'],
   ['/game/quest/questGoldEnemyVisuals.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexQuestGoldEnemyVisuals'],
   ['/game/modes/arsenalBattleRuntime.js?v=' + APEX_ARSENAL_RUNTIME_REVISION, 'apexArsenalBattleRuntime'],
