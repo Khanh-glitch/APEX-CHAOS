@@ -288,6 +288,8 @@
        &&state.questFirstWakeStoryView?.active())return;
     if(state.questWeaponRainProgression===true
        &&state.questRainStoryView?.active())return;
+    if(state.questBreakerChargeProgression===true
+       &&state.questBreakerStoryView?.active())return;
     if(state.questScrapSwarmProgression===true){
       // E03 interlude is NOT a second match. Freeze physics/cooldowns, retain
       // existing NEWBOT instance, pickups, weapon ownership and projectiles.
@@ -404,6 +406,18 @@
     matchClock += dt;
     state.time += dt;
     if (!state.over) {
+      if(state.questBreakerChargeProgression===true&&state.questBreakerSequence){
+        const Q=window.APEX_QUEST_MULTI_ACTOR_CORE;
+        const p=Q.breakerChargeProgress(fighters);
+        const prior=state.questBreakerSequence.snapshot().phase;
+        const status=state.questBreakerSequence.tick(state.time,p,()=>SPAWN.trySpawnSlot());
+        state.questBreakerPhase=status.phase;
+        if(prior!==status.phase){
+          AQ.log('QUEST_E05_CHARGE_PHASE',status.phase);
+          window.apexUiSfx?.play?.('ui.screen.transition');
+          state.spawnTimer=Math.min(state.spawnTimer,state.questBreakerSequence.cadence(p||0));
+        }
+      }
       if(state.questWeaponRainProgression===true&&state.questRainSequence){
         // All three burst requests go through SPAWN.trySpawnSlot, including
         // ordinary cap suppression. An unseen 6th slot is never manufactured.
@@ -431,7 +445,8 @@
         // E03 allocates its regular first 4.5s-cycle slot to a REAL nearby
         // protagonist firearm, instead of spawning two competing guns at t=0.
         && !(state.questScrapSwarmProgression && state.questSwarmOpeningDropPending)
-        && state.questWeaponRainProgression!==true;
+        && state.questWeaponRainProgression!==true
+        && !(state.questBreakerChargeProgression&&state.questBreakerOpeningDropPending);
       let emergencySpawned = false;
       if (!emergencyGunNeeded) {
         state.unarmedFastConsumed = false;
@@ -491,8 +506,26 @@
       let guard = 0;
       while (!state.labMode && state.spawnTimer <= 0 && guard++ < 4) {
         state.spawnTimer += state.questWeaponRainProgression===true
-          ?state.questRainSequence.cadence():CFG.SPAWN_CADENCE_SECONDS;
+          ?state.questRainSequence.cadence()
+          :state.questBreakerChargeProgression===true
+            ?state.questBreakerSequence.cadence(
+              window.APEX_QUEST_MULTI_ACTOR_CORE?.breakerChargeProgress(fighters)||0)
+            :CFG.SPAWN_CADENCE_SECONDS;
         if (emergencySpawned) continue;
+        if(state.questBreakerChargeProgression===true
+          &&state.questBreakerOpeningDropPending===true){
+          const hero=fighters.find(f=>f?.questId==='NEWBOT'&&f.hp>0);
+          if(hero){
+            const slot=SPAWN.trySpawnSlot({
+              questWeaponId:'PISTOL',questStage:'E05_OPENING',
+              questPickupOwner:'NEWBOT',
+              questPoint:{x:Math.max(130,Math.min(870,hero.x+65)),y:hero.y}
+            });
+            if(slot){state.questBreakerOpeningDropPending=false;
+              AQ.log('QUEST_E05_REAL_FIRST_PICKUP','physical PISTOL, not equip');}
+          }
+          continue;
+        }
         if(state.questScrapSwarmProgression===true
           &&state.questSwarmOpeningDropPending===true){
           const pilot=(fighters||[]).find(f=>f?.questId==='NEWBOT'&&f.hp>0);
@@ -557,13 +590,14 @@
         // collision callbacks against the two anchors as though they were
         // always enemies (Quest includes allies and more than two bodies).
         for (const fighter of fighters) {
-          if (!fighter || fighter.hp <= 0) continue;
+          if (!fighter || fighter.hp <= 0 || fighter.questWorldObject===true) continue;
           const enemy = Q.nearestEnemy(fighter, fighters);
           if (fighter === fighters[0] && gate?.preUpdate) gate.preUpdate(fighter, dt);
           fighter.update(dt, enemy);
           if (fighter === fighters[0] && gate?.postUpdate) gate.postUpdate(fighter);
         }
-        Q.separateBodyOverlaps(fighters);
+        if(state.questBreakerChargeProgression!==true)
+          Q.separateBodyOverlaps(fighters);
       } else if (fighters[0] && fighters[1]) {
         if (gate && gate.preUpdate) gate.preUpdate(fighters[0], dt);
         fighters[0].update(dt, fighters[1]);
@@ -642,6 +676,8 @@
         : state.questScrapSwarmProgression ? Q.scrapSwarmOutcome(fighters,state.questSwarmWave)
         : state.questWeaponRainProgression ? Q.weaponRainOutcome(fighters,
           state.questRainSequence?.snapshot()?.observed===true)
+        : state.questBreakerChargeProgression ? Q.breakerChargeOutcome(fighters,
+          state.questBreakerSequence?.snapshot()?.pulseObserved===true)
         : state.questFirstWake ? Q.firstWakeOutcome(fighters)
         : Q.teamsOutcome(fighters);
       if(state.questScrapSwarmProgression===true&&outcome.status==='NEXT_WAVE'
@@ -659,6 +695,7 @@
       if (outcome.status === 'RETRY' || outcome.status === 'COMPLETE') {
         state.over = 'QUEST_' + (state.questScrapSwarmProgression?'SCRAP_SWARM_':
           state.questWeaponRainProgression?'WEAPON_RAIN_':
+          state.questBreakerChargeProgression?'BREAKER_CHARGE_':
           state.questFirstWake ? 'FIRST_WAKE_' : 'FIXTURE_') + outcome.status;
         state.questOutcome = outcome.status;
         // No economy award, no 1v1 winnerSide or Gold result transition.
@@ -677,6 +714,10 @@
         if(state.questWeaponRainProgression===true&&state.questRainStoryView){
           state.questRainStoryView.offer({id:outcome.status==='COMPLETE'
             ?'E04_WEAPON_RAIN_CLEAR':'E04_WEAPON_RAIN_RETRY'});
+        }
+        if(state.questBreakerChargeProgression===true
+           &&outcome.status==='COMPLETE'&&state.questBreakerStoryView){
+          state.questBreakerStoryView.offer({id:'E05_BREAKER_CHARGE_CLEAR'});
         }
         updateHUD();
       }
@@ -1222,6 +1263,33 @@
     c.restore();
   }
 
+  function drawBreakerProgress(c,s){
+    if(!s?.questBreakerChargeProgression)return;
+    const Q=window.APEX_QUEST_MULTI_ACTOR_CORE;
+    const v=Q?.breakerChargeProgress?.(fighters);
+    const target=fighters.find(x=>x?.questWorldObject===true);
+    if(!target||v==null)return;
+    c.save();
+    const r=target.radius+24;
+    c.lineWidth=10;c.strokeStyle='#282d31';
+    c.beginPath();c.arc(target.x,target.y,r,-Math.PI/2,Math.PI*1.5);c.stroke();
+    c.strokeStyle=v>=1?'#fff0d3':'#e6a44b';c.shadowColor='#e9a64b';c.shadowBlur=18;
+    c.beginPath();c.arc(target.x,target.y,r,-Math.PI/2,-Math.PI/2+v*Math.PI*2);c.stroke();
+    c.shadowBlur=0;c.textAlign='center';
+    c.fillStyle='#fbdfb2';c.font='900 21px Bahnschrift,Arial,sans-serif';
+    c.fillText('IMPACT ACCUMULATOR',target.x,target.y-r-24);
+    c.fillStyle='#fff7dc';c.font='900 32px Bahnschrift,Arial,sans-serif';
+    c.fillText(Math.round(v*100)+'%',target.x,target.y-r-54);
+    const milestones=Q.BREAKER_SPEC?.milestones||[];
+    for(const m of milestones){
+      const a=-Math.PI/2+m*Math.PI*2;
+      const x=target.x+Math.cos(a)*r,y=target.y+Math.sin(a)*r;
+      c.fillStyle=v>=m?'#fff3cb':'#61616a';
+      c.beginPath();c.arc(x,y,5,0,Math.PI*2);c.fill();
+    }
+    c.restore();
+  }
+
   function drawForeground() {
     const t0 = performance.now();
     const view = window.__apexCameraView || { shakeX: 0, shakeY: 0, zoom: 1 };
@@ -1273,6 +1341,7 @@
     if (AQ.feel && AQ.feel.drawForeground) AQ.feel.drawForeground(ctx);
     drawQuestSwarmInterlude(ctx,AQ.state);
     drawWeaponRainCinematic(ctx,AQ.state);
+    drawBreakerProgress(ctx,AQ.state);
     ctx.restore();
     syncDomHud();
     aqPerfMark('foregroundTotal', performance.now() - t0);
@@ -1442,6 +1511,17 @@
       &&typeof window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat==='function'
       &&!!window.APEX_QUEST_STORY_PRESENTATION;
     if((options.questWeaponRain||options.questWeaponRainProgression)&&!rainStory)return false;
+    const breakerStory=options.questBreakerChargeProgression===true
+      &&options.questBreakerCharge===true
+      &&types[0]?.name==='ROBOT'&&!questReflex
+      &&options.questFirstWake!==true&&options.questScrapSwarm!==true
+      &&options.questWeaponRain!==true
+      &&!!questCore&&typeof questCore.createBreakerChargeSequence==='function'
+      &&window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true
+      &&directorCheckpoint==='CHARGE_THE_BREAKER'
+      &&typeof window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat==='function'
+      &&!!window.APEX_QUEST_STORY_PRESENTATION;
+    if((options.questBreakerCharge||options.questBreakerChargeProgression)&&!breakerStory)return false;
     detachReflexReceipt();
     resetState();
     if (AQ.feel && AQ.feel.resetMatch) AQ.feel.resetMatch();
@@ -1461,7 +1541,8 @@
       && !!questCore;
     const questScrapSwarm=scrapSwarmStory;
     const questWeaponRain=rainStory;
-    const questMultiActor = questFirstWake || questScrapSwarm || questWeaponRain || !!questFixture || questReflex;
+    const questBreakerCharge=breakerStory;
+    const questMultiActor = questFirstWake || questScrapSwarm || questWeaponRain || questBreakerCharge || !!questFixture || questReflex;
     if (questMultiActor) {
       // Same engine Fighter instances, same physical weapon/damage update and
       // same per-actor HP. No cloned Quest combat loop. TEST fixture is
@@ -1471,9 +1552,11 @@
            {questId:'T.O.T',questTeam:'HOSTILE',hp:1000,x:770,y:500,kind:'tot'}]
         : (questFirstWake ? questCore.fixtureRoster('2v2') :
           questScrapSwarm ? questCore.scrapSwarmRoster('A') :
-          questWeaponRain ? questCore.weaponRainRoster() :questFixture);
+          questWeaponRain ? questCore.weaponRainRoster() :
+          questBreakerCharge ? questCore.breakerChargeRoster() :questFixture);
       const NPC_TYPES = Object.freeze({
         scout:['SCRAP SCOUT','#c88d48'],bulwark:['IRON BULWARK','#6f7f90'],
+        accumulator:['IMPACT ACCUMULATOR','#e1b66f'],
         tot:['T.O.T','#e8e2d2'],rivet:['RIVET','#c39f76'],
         reaver:['CLAW REAVER','#b07e6b'],sentinel:['CORE SENTINEL','#8898a5'],
       });
@@ -1482,6 +1565,31 @@
         if (!spec) return null;
         const def = makeArsenalFighterType(spec[0], spec[1], -1, 0.5);
         def.arsenalBlank = true; // No fabricated skills or passive.
+        if(kind==='accumulator'){
+          def.speed=0;
+          def.draw=function(c,f){
+            c.save();const r=f.radius||75;
+            const pct=Math.max(0,Math.min(1,f.hp/Math.max(1,f.maxHp)));
+            c.shadowColor='#ffae58';c.shadowBlur=18+24*(1-pct);
+            c.fillStyle='#191d24';c.strokeStyle='#c18843';c.lineWidth=6;
+            c.beginPath();
+            for(let i=0;i<8;i++){
+              const a=i*Math.PI/4-Math.PI/8;
+              const x=Math.cos(a)*r,y=Math.sin(a)*r;
+              if(i)c.lineTo(x,y);else c.moveTo(x,y);
+            }
+            c.closePath();c.fill();c.stroke();c.shadowBlur=0;
+            c.save();c.rotate(Math.PI/4);
+            c.strokeStyle='#f8c06e';c.lineWidth=4;c.strokeRect(-r*.43,-r*.43,r*.86,r*.86);
+            c.restore();
+            c.beginPath();c.arc(0,0,r*.28,0,Math.PI*2);
+            c.fillStyle='#c98632';c.fill();
+            c.beginPath();c.arc(0,0,r*.2,0,Math.PI*2);
+            c.fillStyle='#ffedb9';c.fill();
+            c.restore();
+          };
+          return def;
+        }
         def.draw = function (c, f) {
           const gold = window.APEX_QUEST_GOLD_ENEMIES;
           if (gold?.draw && gold.draw(c, f)) return;
@@ -1502,6 +1610,11 @@
         const f = new Fighter(id, spec.x, spec.y, type);
         f.questId = spec.questId;
         f.questTeam = spec.questTeam;
+        if(spec.questWorldObject===true){
+          f.questWorldObject=true;
+          f.baseSpeed=0;
+          if(f.data)f.data.__hrHoldBody=true;
+        }
         if (spec.kind === 'scout' || spec.kind === 'bulwark' ||
             spec.kind === 'reaver' || spec.kind === 'sentinel')
           f.questVisualId = spec.kind;
@@ -1514,10 +1627,13 @@
       };
       fighters = specs.map((spec,i)=>makeQuestFighter(spec,i+1));
       // Fail closed before a simulation frame can run on bad Quest inputs.
-      const validated = questCore.validateRoster(fighters);
+      const validated = questBreakerCharge
+        ?questCore.validateBreakerCharge(fighters)
+        :questCore.validateRoster(fighters);
       if (!validated.ok || (questFirstWake && !questCore.validateFirstWake(fighters).ok)
           ||(questScrapSwarm&&!questCore.validateScrapSwarmWave(fighters,'A').ok)
-          ||(questWeaponRain&&!questCore.validateWeaponRain(fighters).ok)) {
+          ||(questWeaponRain&&!questCore.validateWeaponRain(fighters).ok)
+          ||(questBreakerCharge&&!questCore.validateBreakerCharge(fighters).ok)) {
         AQ.log('QUEST_ROSTER_INVALID', validated.reason);
         AQ.state.active=false;
         return false;
@@ -1527,6 +1643,13 @@
       AQ.state.questFirstWakeProgression = firstWakeStory;
       AQ.state.questScrapSwarmProgression=questScrapSwarm;
       AQ.state.questWeaponRainProgression=questWeaponRain;
+      AQ.state.questBreakerChargeProgression=questBreakerCharge;
+      if(questBreakerCharge){
+        AQ.state.questBreakerSequence=questCore.createBreakerChargeSequence();
+        AQ.state.questBreakerPhase='CHARGING';
+        AQ.state.questBreakerOpeningDropPending=true;
+        AQ.state.spawnTimer=0;
+      }
       if(questWeaponRain){
         AQ.state.questRainSequence=questCore.createWeaponRainSequence();
         AQ.state.questRainPhase='DRIZZLE';
@@ -1547,6 +1670,24 @@
       AQ.state.questTestFixture = questReflex||questFirstWake ? null : String(options.questFixture);
       AQ.state.questActorCount = validated.count;
       AQ.state.questOutcome = null;
+      if(questBreakerCharge){
+        const ownerState=AQ.state;
+        AQ.state.questBreakerStoryView=window.APEX_QUEST_STORY_PRESENTATION.create({
+          onAdvance:(beatId)=>{
+            if(AQ.state!==ownerState||!ownerState.active
+              ||ownerState.questBreakerChargeProgression!==true)return;
+            if(beatId!=='E05_BREAKER_CHARGE_CLEAR')return;
+            const signed=window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat?.(beatId);
+            if(signed?.ok!==true){AQ.log('QUEST_E05_SAVE_DENIED',String(signed?.reason));return;}
+            window.exitArsenalBattleMode?.();
+            window.APEX_QUEST01_DIRECTOR?.show?.({
+              onScrapSwarmStory:window.__apexGoldQuestScrapSwarmStoryEntry,
+              onWeaponRainStory:window.__apexGoldQuestWeaponRainStoryEntry,
+              onBreakerChargeStory:window.__apexGoldQuestBreakerChargeStoryEntry
+            });
+          }
+        });
+      }
       if(questWeaponRain){
         const ownerState=AQ.state;
         AQ.state.questRainStoryView=window.APEX_QUEST_STORY_PRESENTATION.create({
@@ -1791,6 +1932,14 @@
       questWeaponRain:true,questWeaponRainProgression:true
     })===true;
   };
+  window.__apexQuestBreakerChargeStoryStart=function startRealE05FromDirector(){
+    if(window.__APEX_QUEST_DEV!==true||window.__apexGoldBattleHosted!==true
+       ||window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId!=='CHARGE_THE_BREAKER')
+      return false;
+    return window.startArsenalBattleMode('ROBOT','ROBOT',{
+      questBreakerCharge:true,questBreakerChargeProgression:true
+    })===true;
+  };
   window.__apexQuestReflexStart = function startQ4ARealReflexPilot() {
     if(!((window.__APEX_TEST_MODE===true
       && ['localhost','127.0.0.1','::1'].includes(String(window.location?.hostname||'')))
@@ -1964,6 +2113,10 @@
       state.questRainStoryView=null;
       state.questRainSequence?.close?.();
       state.questRainSequence=null;
+      state.questBreakerStoryView?.close?.();
+      state.questBreakerStoryView=null;
+      state.questBreakerSequence?.close?.();
+      state.questBreakerSequence=null;
       for (const f of fighters || []) if (f && f.data) f.data.arsenal = null;
       state.active = false;
       state.slots = [];
