@@ -11,6 +11,11 @@ const d=module.create(store);
 assert('11 ordered narrative nodes',module.NODES.length===11&&module.NODES[0].id==='WAKE'&&module.NODES.at(-1).id==='OUTSIDE');
 assert('Initial WAKE is not auto-completed',d.beginOrResume().checkpointId==='WAKE'&&d.checkpoint().completedCueIds.length===0);
 assert('No public skip or progress mutation API',!('advance' in publicApi)&&!('_transitionForNodeTest' in publicApi)&&!('setCheckpoint' in publicApi));
+assert('Q4H no native transition without live Arsenal Story authority',
+  publicApi.acceptNativeBeat('WAKE_OPEN').ok===false
+  &&publicApi.acceptNativeBeat('WORKSHOP_ARRIVAL').ok===false
+  &&publicApi.acceptNativeBeat('BAD_BEAT').ok===false
+  &&publicApi.checkpoint().checkpointId==='WAKE');
 assert('Current story nodes do not claim finished encounter',module.NODES.filter(n=>n.type==='ENCOUNTER').every(n=>n.status!=='IMPLEMENTED'));
 const first=d.checkpoint();
 assert('Versioned canonical checkpoint fields',first.schemaVersion===1&&first.questId==='THE_ONES_THROWN_AWAY'&&first.stormbreakerArtifactPhase==='SEALED'&&first.phaseId==='ENTRY');
