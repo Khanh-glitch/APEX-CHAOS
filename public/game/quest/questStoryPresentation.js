@@ -37,7 +37,28 @@
  '#apexQuestStoryView button:focus-visible{outline:3px solid #f8d29c;outline-offset:3px}',
  '@media(max-width:620px){#apexQuestStoryView .qs-body{width:100%;padding:12px max(10px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));gap:9px}#apexQuestStoryView .qs-comic{height:clamp(125px,30dvh,310px);max-height:30dvh;grid-template-columns:1.3fr .8fr}#apexQuestStoryView .qs-footer{grid-template-columns:1fr;gap:12px;padding:14px}#apexQuestStoryView .qs-controls{justify-content:flex-end}#apexQuestStoryView button{min-height:44px;min-width:98px}#apexQuestStoryView .qs-chip{font-size:15px}}',
  '@media(max-height:470px){#apexQuestStoryView .qs-body{grid-template-rows:auto minmax(68px,1fr) auto;padding:7px max(9px,env(safe-area-inset-right)) 7px max(9px,env(safe-area-inset-left));gap:6px}#apexQuestStoryView .qs-comic{height:24dvh;max-height:24dvh}#apexQuestStoryView .qs-footer{padding:9px;gap:8px}#apexQuestStoryView .qs-chapter{font-size:21px}#apexQuestStoryView .qs-line{font-size:18px}#apexQuestStoryView button{min-height:37px}}',
- '@media(prefers-reduced-motion:reduce){#apexQuestStoryView .qs-body,#apexQuestStoryView .qs-comic,#apexQuestStoryView.qs-workshop::after{animation:none}#apexQuestStoryView.qs-workshop::after{opacity:0}}'
+ // Q5 visual acceptance: the HUD/legacy K.O. belongs to an earlier scene.
+ // Cover it completely; only these unaltered live-Arsenal stills are shown.
+ '#apexQuestStoryView{place-items:center;background:radial-gradient(ellipse at 64% 24%,#302315,#06080b 62%,#030406);}',
+ '#apexQuestStoryView::before{opacity:.19;mix-blend-mode:normal}',
+ '#apexQuestStoryView .qs-body{max-height:96dvh;max-width:1140px;padding:clamp(12px,2vw,25px);}',
+ '#apexQuestStoryView .qs-comic{height:clamp(190px,44dvh,480px);max-height:45dvh;grid-template-columns:1.35fr 1fr;}',
+ '#apexQuestStoryView .qs-shot{border:1px solid #af8447;box-shadow:0 13px 46px #000b,0 0 0 1px #d9a24d20 inset;}',
+ '#apexQuestStoryView .qs-shot canvas{object-fit:cover;filter:contrast(1.15) saturate(.92) brightness(.94)}',
+ '#apexQuestStoryView .qs-shot--detail canvas{transform:none;filter:contrast(1.18) saturate(.74) brightness(.83)}',
+ '#apexQuestStoryView .qs-chapter{font-size:clamp(27px,5vw,53px)}',
+ '#apexQuestStoryView .qs-footer{background:linear-gradient(100deg,#242015,#0c1014 67%);border-left-color:#f0ae54;}',
+ '#apexQuestStoryView .qs-controls button{transition:transform .16s,filter .16s;}',
+ '#apexQuestStoryView .qs-controls button:hover{filter:brightness(1.12)}',
+ '#apexQuestStoryView .qs-controls button:active{transform:scale(.98)}',
+ '#apexQuestStoryView.qs-finale .qs-chapter{font-size:clamp(32px,6vw,66px)}',
+ '#apexQuestStoryView.qs-finale .qs-comic{height:clamp(240px,49dvh,540px);max-height:50dvh;}',
+ '#apexQuestStoryView.qs-finale .qs-footer{border-left-width:6px;box-shadow:0 15px 55px #000c}',
+ '#apexQuestStoryView.qs-finale .qs-line{font-size:clamp(26px,4vw,49px);line-height:1.03}',
+ '#apexQuestStoryView .qs-stats{margin:9px 0 0;color:#d3c9b6;font:800 12px/1.3 Bahnschrift,Arial,sans-serif;letter-spacing:.12em}',
+ '@media(max-width:620px){#apexQuestStoryView .qs-body{padding:max(12px,env(safe-area-inset-top)) max(11px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(11px,env(safe-area-inset-left));max-height:96dvh}#apexQuestStoryView .qs-comic{height:clamp(158px,34dvh,315px);max-height:34dvh}#apexQuestStoryView.qs-finale .qs-comic{grid-template-columns:1fr;height:clamp(220px,43dvh,465px);max-height:43dvh}#apexQuestStoryView.qs-finale .qs-shot--detail{display:none}#apexQuestStoryView.qs-finale .qs-footer{gap:8px;padding:14px}#apexQuestStoryView.qs-finale .qs-line{font-size:clamp(25px,6.5vw,42px)}#apexQuestStoryView .qs-controls{justify-content:flex-end}#apexQuestStoryView button{min-width:92px}}',
+ '@media(max-height:470px){#apexQuestStoryView .qs-body{max-height:100dvh;padding:5px 10px}#apexQuestStoryView.qs-finale .qs-comic{height:23dvh;max-height:23dvh;grid-template-columns:1.35fr 1fr}#apexQuestStoryView.qs-finale .qs-shot--detail{display:block}#apexQuestStoryView.qs-finale .qs-line{font-size:20px}}',
+ '@media(prefers-reduced-motion:reduce){#apexQuestStoryView .qs-body,#apexQuestStoryView .qs-comic,#apexQuestStoryView.qs-workshop::after{animation:none}#apexQuestStoryView.qs-workshop::after{opacity:0}#apexQuestStoryView button{transition:none}}'
  ].join('\n');
  const LABEL=Object.freeze({
   // Canon only: SCRAP BASIN is the approved disposal site. No invented
@@ -49,18 +70,18 @@
   E01_J_REVEAL:{title:'UNKNOWN ROUTINE',left:'NEWBOT',right:'A1',line:'UNKNOWN ROUTINE — J',kicker:'ROUTINE DETECTED'},
   E01_K_REVEAL:{title:'SECOND ROUTINE',left:'NEWBOT',right:'A2',line:'K',kicker:'NEW COMMAND'},
   E01_RIVET_HOLD:{title:'REFLEX',left:'NEWBOT',right:'T.O.T',line:'COMBAT INTERRUPTED',kicker:'BOTH FIGHTERS // HOLD'},
-  E01_RIVET_SUPPRESSION_TECH:{title:'STORMBREAKER',left:'RIVET',right:'SCRAP BASIN',line:'GROUND SUPPRESSION',kicker:'REAL FLOOR CONTACT // 0 ALLY DAMAGE'},
+  E01_RIVET_SUPPRESSION_TECH:{title:'STORMBREAKER',left:'RIVET',right:'SCRAP BASIN',line:'GROUND SUPPRESSION',kicker:'STORMBREAKER // GROUND CONTACT'},
   WORKSHOP_ARRIVAL:{title:'THREE FAILURES',left:'NEWBOT',right:'T.O.T + RIVET',line:'NO VALID NETWORK ID',kicker:'WORKSHOP // NETWORK IDENTITIES'},
   E02_FIRST_WAKE_CLEAR:{title:'FIRST WAKE',left:'NEWBOT + T.O.T',right:'SCRAP BOTS',
-    line:'SURVIVED',kicker:'TWO HOSTILES // KO CONFIRMED'},
+    line:'WE HELD THE LINE',kicker:'TWO HOSTILES DOWN'},
   E02_FIRST_WAKE_RETRY:{title:'FIRST WAKE',left:'NEWBOT',right:'SCRAP BOTS',
     line:'NEWBOT DOWN',kicker:'RETRY // CHECKPOINT'},
   E03_SCRAP_SWARM_CLEAR:{title:'SCRAP SWARM',left:'NEWBOT',right:'SCRAP BASIN',
-    line:'SEVEN CONTACTS CLEARED',kicker:'WAVE 02 / 02 · REAL KO VERIFIED'},
+    line:'THE BASIN GOES QUIET',kicker:'WAVE 02 / 02 · SEVEN CONTACTS SILENCED'},
   E03_SCRAP_SWARM_RETRY:{title:'SCRAP SWARM',left:'NEWBOT',right:'SCRAP BASIN',
     line:'SIGNAL LOST',kicker:'NEWBOT KO · RETRY CHECKPOINT'},
   E04_WEAPON_RAIN_CLEAR:{title:'WEAPON RAIN',left:'NEWBOT',right:'TWO HOSTILES',
-    line:'STORM OF STEEL',kicker:'TWO REAL KOs · FINAL RAIN OBSERVED'},
+    line:'THE STORM HAS PASSED',kicker:'FINAL DESCENT · TWO HOSTILES DOWN'},
   E04_WEAPON_RAIN_RETRY:{title:'WEAPON RAIN',left:'NEWBOT',right:'SCRAP BASIN',
     line:'SIGNAL LOST',kicker:'RETRY · CHECKPOINT PRESERVED'}
  });
@@ -81,11 +102,29 @@
   const advance=typeof options.onAdvance==='function'?options.onAdvance:()=>{};
   const e=(type,cls,txt)=>{const x=doc.createElement(type);if(cls)x.className=cls;if(txt)x.textContent=txt;return x};
   const source=()=>doc.getElementById('game-canvas');
-  function still(canvas){
+  function still(canvas,focus){
    const src=source();const ctx=canvas.getContext?.('2d');
    if(!src||!ctx||!src.width||!src.height)return false;
    canvas.width=src.width;canvas.height=src.height;
-   try{ctx.drawImage(src,0,0);return true;}catch(_){return false;}
+   const actors=Array.isArray(root.fighters)?root.fighters:[];
+   const target=focus==='ALLY'
+     ?actors.find(a=>a?.questId==='NEWBOT')
+     :actors.find(a=>a?.questTeam==='HOSTILE'&&a.hp<=0)||
+      actors.find(a=>a?.questTeam==='HOSTILE');
+   // Compose two DIFFERENT authentic physical camera angles of the real
+   // paused scene. Never generate characters, damage or a fake background.
+   try{
+     if(target&&Number.isFinite(target.x)&&Number.isFinite(target.y)){
+       const sxSize=src.width*(focus==='ALLY'?.67:.58);
+       const sySize=src.height*(focus==='ALLY'?.67:.58);
+       const sx=Math.max(0,Math.min(src.width-sxSize,
+         target.x/src.width*src.width-sxSize/2));
+       const sy=Math.max(0,Math.min(src.height-sySize,
+         target.y/src.height*src.height-sySize/2));
+       ctx.drawImage(src,sx,sy,sxSize,sySize,0,0,canvas.width,canvas.height);
+     }else ctx.drawImage(src,0,0);
+     return true;
+   }catch(_){return false;}
   }
   function keyDown(ev){
    if(!activeId)return;
@@ -99,6 +138,7 @@
   function createUI(cue){
    const meta=LABEL[cue.id];if(!meta)return null;
    const layer=e('section','','');layer.id='apexQuestStoryView';layer.dataset.beat=cue.id;
+   if(/_CLEAR$/.test(cue.id))layer.classList.add('qs-finale');
    if(cue.id==='WORKSHOP_ARRIVAL')layer.classList.add('qs-workshop');
    layer.setAttribute('role','dialog');layer.setAttribute('aria-modal','true');layer.setAttribute('aria-label','Quest story scene');
    const body=e('div','qs-body'),top=e('div','qs-top'),head=e('div','');
@@ -107,13 +147,24 @@
    const comic=e('div','qs-comic');
    for(const [i,name] of [meta.left,meta.right].entries()){
     const shot=e('div','qs-shot'+(i===1?' qs-shot--detail':''));
-    const picture=e('canvas','');picture.setAttribute('aria-hidden','true');still(picture);
+    const picture=e('canvas','');picture.setAttribute('aria-hidden','true');
+    still(picture,i===0?'ALLY':'HOSTILE');
     shot.append(picture,e('div','qs-chip',name),e('span','qs-frame','0'+(i+1)));
     comic.appendChild(shot);
    }
    const footer=e('div','qs-footer'),words=e('div','');
    words.append(e('div','qs-kicker',meta.kicker),e('div','qs-line',meta.line));
-   const controls=e('div','qs-controls'),skip=e('button','qs-skip','SKIP BEAT'),
+   if(/_CLEAR$/.test(cue.id)){
+     const roster=Array.isArray(root.fighters)?root.fighters:[];
+     const hero=roster.find(f=>f?.questId==='NEWBOT');
+     const state=root.APEX_ARSENAL?.state;
+     const defeated=roster.filter(f=>f?.questTeam==='HOSTILE'&&f.hp<=0).length+
+       (state?.questScrapSwarmProgression===true?(state.questSwarmWaveAReceipt?.length||0):0);
+     if(hero&&Number.isFinite(hero.hp)&&defeated>0)
+       words.append(e('div','qs-stats','NEWBOT  '+Math.max(0,Math.round(hero.hp))+
+         ' / '+Math.round(hero.maxHp||1000)+' HP   ·   '+defeated+' HOSTILES DOWN'));
+   }
+   const controls=e('div','qs-controls'),skip=e('button','qs-skip','SKIP ›'),
     cont=e('button','','CONTINUE ›');
    skip.type=cont.type='button';skip.addEventListener('click',()=>finish(true));
    cont.addEventListener('click',()=>finish(false));
