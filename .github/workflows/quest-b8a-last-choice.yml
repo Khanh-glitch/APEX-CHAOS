@@ -1,0 +1,30 @@
+name: B8a T.O.T Nonlethal Last Choice Contract
+on:
+  push:
+    branches: ['quest/b8a-tot-last-choice-contract-from-b7e']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pure-final-choice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - name: B8a native-bound Story/Stormbreaker threshold policy
+        run: node tools/testQuestTotLastChoiceB8a.mjs
+      - name: B7c physical accepted-damage policy regression
+        run: node tools/testQuestRivetThresholdB7a.mjs
+      - name: B7d physical E07 1v1 regression
+        run: |
+          pnpm arsenal:sfx:materialize
+          node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-rivet-encounter-native
+      - name: Gold provenance and production build
+        run: |
+          node tools/buildGoldCutover.mjs --check
+          pnpm build
