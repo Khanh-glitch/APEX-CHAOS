@@ -1399,6 +1399,23 @@ try{
             progressed?.checkpoint==='BREACH_WAVES',progressed);
           await image('31-e06-native-wave-a-gold');
           if(process.argv.includes('--verify-breach-three-waves')){
+            // B6n ENGINE-INSTRUMENTED skill integration test:
+            // the slot is born through real SPAWN.trySpawnSlot, then moved and
+            // revealed for CI determinism. Real Arsenal.resolvePickups/equip
+            // and Gold pressSkill own the actual holder transaction.
+            const skills=await evalPage("(()=>{const A=window.APEX_ARSENAL,S=window.APEX_ARSENAL_SPAWN,G=window.APEX_GOLD,W=A.weaponApi,Q=A.state.questBreachCompanionSkills,roster=window.fighters,[n,t,r]=roster;const start={nWithdrawn:n.withdrawn,tWithdrawn:t.withdrawn,tx:t.x,ty:t.y};if(!Q||!S||!G||!W)return{ok:false,reason:'missing-native-entry'};n.withdrawn=true;A.state.slots=[];t.x=320;t.y=480;if(W.getHolder(t))W.consume(t,'b6n-probe-clear');const recipient=Q.currentRecipient();G.pressSkill(0,1,{source:'B6N_CHROME'});const primed=Q.snapshot().tot.phase;const slot=S.trySpawnSlot({forceFirearm:true});if(!slot)return{ok:false,reason:'native-slot-unavailable'};slot.phase='REVEALED';slot.weaponId='PISTOL';slot.kind='GUN';slot.x=t.x;slot.y=t.y;S.resolvePickups();const stored=Q.snapshot().tot,unarmed=W.getHolder(t)===null,slotRemoved=slot.phase==='REMOVED';G.pressSkill(0,1,{source:'B6N_CHROME'});const drawn=W.getHolder(t),after=Q.snapshot().tot;const sameGun=drawn?.weaponId==='PISTOL'&&drawn.shotsFired===0;const cooldown=after.kCooldown;W.consume(t,'b6n-probe-finished');t.x=start.tx;t.y=start.ty;n.withdrawn=true;t.withdrawn=true;const rivetOwner=Q.currentRecipient();G.pressSkill(0,1,{source:'B6N_CHROME'});const nativeArmor=Q.mitigate(r,100);n.withdrawn=start.nWithdrawn;t.withdrawn=start.tWithdrawn;A.state.slots=[];return{ok:true,recipient,primed,stored:stored.phase,storedGun:stored.storedWeapon,unarmed,slotRemoved,sameGun,after:after.phase,cooldown,rivetOwner,nativeArmor,survived:roster.slice(0,3).every(f=>f.hp>0),realSlotId:slot.id}})()");
+            gate('B6n Gold touch K primes native T.O.T and stores true Arsenal floor gun',
+              skills?.ok&&skills?.recipient==='T.O.T'&&skills?.primed==='CAPTURE'
+              &&skills?.stored==='STORED'&&skills?.storedGun==='PISTOL'
+              &&skills?.unarmed&&skills?.slotRemoved&&Number.isInteger(skills?.realSlotId),skills);
+            gate('B6n Gold second K retrieves real pistol without firing or duplication',
+              skills?.sameGun&&skills?.after==='READY'&&skills?.cooldown>0,skills);
+            gate('B6n Gold touch priority activates original-stat RIVET armor when two withdrew',
+              skills?.rivetOwner==='RIVET'&&Math.abs(skills?.nativeArmor-45)<1e-5
+              &&skills?.survived,skills);
+            await image('31b-e06-real-companion-skill-handoff');
+          }
+          if(process.argv.includes('--verify-breach-three-waves')){
             // ENGINE-INSTRUMENTED acceptance: projectiles and HP/KO authority
             // are real. Fighter positions are controlled to make CI reliable.
             // This is NOT a substitute for an unassisted owner balance test.
