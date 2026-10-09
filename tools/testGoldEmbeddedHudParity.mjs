@@ -7,12 +7,12 @@ import { createHash } from 'node:crypto';
 // Quest/solo/gameplay rules inside the shell payload.
 const shell=fs.readFileSync('public/gold/shell.html','utf8');
 const hud=fs.readFileSync('public/gold/battle-hud.html');
-const scripts=[...shell.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script>/gi)];
-const candidates=scripts.filter(([,attrs])=>/\\bid\\s*=\\s*["']battleHudPayload["']/i.test(attrs));
+const scripts=[...shell.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+const candidates=scripts.filter(([,attrs])=>/\bid\s*=\s*["']battleHudPayload["']/i.test(attrs));
 if(candidates.length!==1)throw new Error('Expected exactly one embedded Battle HUD donor, found '+candidates.length);
 const text=candidates[0][2].trim();
-if(!/^[a-z0-9+/=\\s]+$/i.test(text))throw new Error('Embedded Battle HUD payload contains non-Base64 characters');
-const embedded=Buffer.from(text.replace(/\\s+/g,''),'base64');
+if(!/^[a-z0-9+/=\s]+$/i.test(text))throw new Error('Embedded Battle HUD payload contains non-Base64 characters');
+const embedded=Buffer.from(text.replace(/\s+/g,''),'base64');
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const equal=embedded.equals(hud);
 console.log(JSON.stringify({matching:equal,embeddedBytes:embedded.length,standaloneBytes:hud.length,
