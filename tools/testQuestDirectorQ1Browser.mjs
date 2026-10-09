@@ -57,6 +57,24 @@ function cmd(method,params={}){
   socket.send(JSON.stringify({id,method,params}));
   return new Promise((resolve,reject)=>pending.set(id,{resolve,reject}));
 }
+// A Gold navigation sometimes replaces the Chrome renderer target. The
+// previous WebSocket can close on a perfectly valid Page.reload command.
+// Reacquire a real page endpoint and runtime; never skip or synthesize any
+// Quest action, Director save, damage or user click.
+async function reloadAndReattach(){
+  try{await cmd('Page.reload',{ignoreCache:true});}
+  catch(e){
+    if(!/Inspected target navigated or closed|WebSocket is not open|WebSocket closed/.test(String(e)))
+      throw e;
+  }
+  await sleep(350);
+  try{socket?.close();}catch(_){}
+  for(const p of pending.values())p.reject(new Error('CDP page target replaced during Gold reload'));
+  pending.clear();
+  await connect();
+  await cmd('Runtime.enable');
+  await cmd('Page.enable');
+}
 async function evalPage(expression){
   const v=await cmd('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true,userGesture:true});
   if(v.exceptionDetails)throw new Error(v.exceptionDetails.exception?.description||v.exceptionDetails.text);
@@ -1014,7 +1032,7 @@ try{
     &&saved?.stage==='WORKSHOP'&&saved?.stageOpen===true
     &&saved?.battleOpen===false,saved);
   await image('19-q4h-real-workshop-saved');
-  await cmd('Page.reload',{ignoreCache:true});
+  await reloadAndReattach();
   const reloaded=await poll("(()=>({id:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,cues:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.completedCueIds?.length,phase:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.phaseId,artifact:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.stormbreakerArtifactPhase}))()",
     v=>v?.id==='WORKSHOP',160);
   gate('Q4H real browser reload resumes signed WORKSHOP checkpoint, not a combat frame',
@@ -1129,7 +1147,7 @@ try{
   gate('Q4I at least one full natural two-vs-two match completed without synthetic HP',
     complete&&organic.length<=5,{complete,attempts:organic.map(x=>({frames:x?.frames,outcome:x?.outcome,node:x?.node,hp:x?.actors?.map(a=>a.hp)}))});
   if(complete){
-    await cmd('Page.reload',{ignoreCache:true});
+    await reloadAndReattach();
     const restored=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,cues:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.completedCueIds?.length}))()",
       x=>x?.node==='SCRAP_SWARM',160);
     gate('Q4I reload resumes real E03 checkpoint without replaying defeated E02',
@@ -1209,7 +1227,7 @@ try{
     gate('Q5 true physical combat and J/K inputs win within 24 bounded natural seeds',
       completeE03,{complete:completeE03,attempts:attempts.map(o=>({steps:o?.steps,outcome:o?.outcome,first:!!o?.first,seam:!!o?.seam,hp:o?.actors?.map(x=>x.hp)}))});
     if(completeE03){
-      await cmd('Page.reload',{ignoreCache:true});
+      await reloadAndReattach();
       const restoredE04=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,cues:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.completedCueIds?.length}))()",
         v=>v?.node==='WEAPON_RAIN',160);
       gate('Q5 real reload restores E04 and exactly 11 authored cue IDs',
@@ -1283,7 +1301,7 @@ try{
       gate('E04 at least one honest full Chrome victory without HP injection',
         clearE04,{victory:clearE04,attempts:attemptsE04.map(x=>({steps:x?.n,result:x?.outcome,phases:x?.phases,max:x?.maxOffensive,gunUptime:x?.gunUptimePct,hp:x?.roster?.map(y=>y.hp)}))});
       if(clearE04){
-        await cmd('Page.reload',{ignoreCache:true});
+        await reloadAndReattach();
         const restoredE05=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,cues:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.completedCueIds?.length}))()",
           x=>x?.node==='CHARGE_THE_BREAKER',180);
         gate('E04 reload retains real E05 without replaying two defeated hostiles',
@@ -1330,7 +1348,7 @@ try{
           saved?.id==='BREACH_WAVES'&&saved?.stage==='BREACH_WAVES'
           &&saved?.goldClosed===true,saved);
         await image('28-e05-breach-checkpoint');
-        await cmd('Page.reload',{ignoreCache:true});
+        await reloadAndReattach();
         const restored=await poll("(()=>({id:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,cues:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.completedCueIds?.length}))()",
           x=>x?.id==='BREACH_WAVES',180);
         gate('E05 persistent native checkpoint has 13 signed cues after reload',
