@@ -555,7 +555,19 @@ try{
   await image('08-q4a-reflex-gold-real');
   // Q4C.4 RED-LAW: no rig release may be granted merely because E01 began.
   const deniedEarly=await evalPage(`(()=>{
-    return window.__apexQuestRivetPreviewRelease?.() || null;
+    // The public Gold Story preview is NOT a Story-release authorization.
+    // Test this unpublished engineering seam only on localhost with a
+    // transient test capability, then always restore the original value.
+    if(!['localhost','127.0.0.1','::1'].includes(location.hostname))
+      return {ok:false,reason:'not-loopback'};
+    const previous=window.__APEX_TEST_MODE;
+    try{
+      window.__APEX_TEST_MODE=true;
+      return window.__apexQuestRivetPreviewRelease?.()||null;
+    }finally{
+      if(previous===undefined)delete window.__APEX_TEST_MODE;
+      else window.__APEX_TEST_MODE=previous;
+    }
   })()`);
   gate('Q4C4 real Gold rejects RIVET before R1/R2/J/K and HP gates',
     deniedEarly?.ok===false&&deniedEarly?.reason==='real-safe-hold-required',
@@ -640,8 +652,21 @@ try{
     const before={hp:actors.map(f=>f.hp),time:s?.time,
       pos:actors.map(f=>[f.x,f.y]),
       slots:s?.slots?.map(x=>[x.id,x.phase])};
-    const first=window.__apexQuestRivetPreviewRelease?.();
-    const duplicate=window.__apexQuestRivetPreviewRelease?.();
+    // Q3U browser tests already exercise loopback-only test authority via
+    // a temporary __APEX_TEST_MODE. Apply that same strict scope here.
+    // No shipped Gold interaction can start the rig on its own.
+    const previous=window.__APEX_TEST_MODE;
+    let first,duplicate;
+    try{
+      if(!['localhost','127.0.0.1','::1'].includes(location.hostname))
+        return {first:{ok:false,reason:'not-loopback'}};
+      window.__APEX_TEST_MODE=true;
+      first=window.__apexQuestRivetPreviewRelease?.();
+      duplicate=window.__apexQuestRivetPreviewRelease?.();
+    }finally{
+      if(previous===undefined)delete window.__APEX_TEST_MODE;
+      else window.__APEX_TEST_MODE=previous;
+    }
     const holder=A?.weaponApi?.getHolder(s?.questRivetPreview?.operator);
     return {first,duplicate,before,holder:holder?.weaponId,
       liveRoster:actors.map(f=>f.questId),
