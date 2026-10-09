@@ -8,6 +8,17 @@ gate('Quest-only style appended after donor Gold',p.includes('<style id="apexQue
 gate('same Gold generator owns responsive + Quest',base.includes('applyQuestGoldPresentation(applyB05Overlay'));
 gate('normal BOT/LOCAL keep R90 geometry',css.includes('#hud[data-quest="1"][data-layout="desk"]')
   &&!css.includes('#hud[data-layout="desk"]{'));
+gate('Quest desktop/land MUST NOT shift R90 arena center',
+  !/#[^\n{]*data-quest="1"[^{}]*\{[^}]*--(?:arena|cl|cr|q-left|q-right)\s*:/.test(css));
+gate('Quest cannot miniaturize original Gold J/K skills',
+  !/--(?:tileH|artW|skNF|infoPad|wpIW)\s*:/.test(css)
+  &&!css.includes('width:min(100%,265px)'));
+gate('Quest land preserves visible real skill status',
+  css.includes('#p1Side .sk-meter')&&css.includes('flex-direction:column')
+  &&css.includes('#p1Side .sk-state'));
+gate('Quest E01 LOCKED dims real icon with R70 effects disabled',
+  css.includes('.skill[data-state="locked"] .sk-art>.apex-skill-icon{opacity:.35}'));
+
 gate('1P portrait arena-first and vertical safe controls',css.includes('--p1Min:clamp(148px,24dvh,190px)'));
 gate('Quest 1P landscape right side compressed for arena',
   css.includes('--q-right:clamp(36px,6vw,56px)'));
