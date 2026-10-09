@@ -1,0 +1,80 @@
+name: B6j E06 Real Gold Desktop and Touch Entrance
+on:
+  push:
+    branches: ['quest/b6j-e06-gold-chrome-gates-from-b6i']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: E06 actual 3-wave combat and withdrawal regression
+        run: |
+          node tools/buildGoldCutover.mjs --check
+          node tools/testQuestBreachPolicyQ6.mjs
+          node tools/testQuestBreachLifecycleB6d.mjs
+          node tools/testQuestBreachRetreatB6e.mjs
+          node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breach-native
+      - run: pnpm build
+  browser-entrance:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [desktop, mobile]
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Start actual Gold/Vite server
+        shell: bash
+        run: |
+          pnpm dev:lan > /tmp/b6j-vite.log 2>&1 &
+          for i in $(seq 1 100); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/b6j-vite.log
+          exit 1
+      - name: Locate headless Chrome
+        id: chrome
+        shell: bash
+        run: |
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$BIN"
+          echo "path=$BIN" >> "$GITHUB_OUTPUT"
+      - name: Signed E01–E05 journey + physical Gold E06 entry
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/b6j-${{ matrix.target }}
+        shell: bash
+        run: |
+          if [ "${{ matrix.target }}" = mobile ]; then
+            node tools/testQuestDirectorQ1Browser.mjs --mobile --verify-breach-entry
+          else
+            node tools/testQuestDirectorQ1Browser.mjs --verify-breach-entry
+          fi
+      - name: Preserve actual Chrome screenshots and receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b6j-e06-real-gold-${{ matrix.target }}
+          path: |
+            /tmp/b6j-${{ matrix.target }}/
+            /tmp/b6j-vite.log
+          if-no-files-found: warn

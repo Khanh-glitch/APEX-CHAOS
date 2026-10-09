@@ -1353,6 +1353,52 @@ try{
           x=>x?.id==='BREACH_WAVES',180);
         gate('E05 persistent native checkpoint has 13 signed cues after reload',
           restored?.id==='BREACH_WAVES'&&restored.cues===13,restored);
+        // B6j: continue through the REAL Gold chapter interface into E06.
+        // Do not synthesize E06 victory, boss unlock, HP, or approval of kits.
+        if(process.argv.includes('--verify-breach-entry')){
+          const booted=await poll("(()=>({start:document.getElementById('apex-boot-start')?.getBoundingClientRect()?.width>0,node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()",
+            x=>x?.start&&x.node==='BREACH_WAVES',300);
+          gate('B6j physical Gold boot retains signed E06 checkpoint',booted?.start===true,booted);
+          await click('#apex-boot-start');
+          await poll("(()=>document.body.dataset.apexSceneTransition==='DONE'&&document.getElementById('apex-boot-blackout')?.hidden===true)()",Boolean,300);
+          await click('#continueStory');
+          const chapter=await poll("(()=>({id:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,button:document.getElementById('q6BreachPlay')?.hidden===false,stage:document.getElementById('apexQuest01Stage')?.dataset.node}))()",
+            x=>x?.id==='BREACH_WAVES'&&x?.button&&x?.stage==='BREACH_WAVES',150);
+          gate('B6j E06 reachable through real Gold Quest stage button',
+            chapter?.id==='BREACH_WAVES'&&chapter?.button&&chapter?.stage==='BREACH_WAVES',chapter);
+          await image('29-e06-real-checkpoint-stage');
+          const early=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E06_BREACH_CLEAR'))()");
+          gate('B6j no E07 advancement by unsupported early E06 story beat',
+            early?.ok===false,early);
+          await click('#q6BreachPlay');
+          const battle=await poll("(()=>({gold:window.__apexGoldBattleHosted===true,hud:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,active:window.APEX_ARSENAL?.state?.questBreachProgression===true,roster:(window.fighters||[]).map(f=>({id:f.questId,team:f.questTeam,hp:f.hp,max:f.maxHp,kind:f.questSpecies,withdrawn:f.withdrawn===true})),wave:window.APEX_ARSENAL?.state?.questBreachLifecycle?.snapshot?.(),story:window.APEX_ARSENAL?.state?.questBreachStoryView?.snapshot?.()}))()",
+            x=>x?.gold&&x?.hud&&x?.active&&x?.roster?.length===6,450);
+          const allies=battle?.roster?.filter(f=>f.team==='ALLY')||[];
+          const foes=battle?.roster?.filter(f=>f.team==='HOSTILE')||[];
+          gate('B6j Gold mounted native 3 allies and exactly 3 real LV1 Scouts',
+            battle?.gold&&battle?.hud&&battle?.active
+            &&allies.map(a=>a.id).join('|')==='NEWBOT|T.O.T|RIVET'
+            &&allies.every(a=>a.hp===1000&&!a.withdrawn)
+            &&foes.length===3&&foes.every(f=>f.kind==='scout'&&f.hp===300)
+            &&battle?.wave?.wave==='A'&&battle?.wave?.phase==='ACTIVE',
+            {roster:battle?.roster,wave:battle?.wave});
+          gate('B6j RIVET rig-lock story blocks the genuine simulation on entry',
+            battle?.story?.active===true&&battle?.story?.current==='E06_RIG_LOCK',battle?.story);
+          const paused=await evalPage("(()=>{const A=window.APEX_ARSENAL,t=A.state.time,h=window.fighters.map(f=>f.hp);A.step(.2);return{sameClock:A.state.time===t,sameHp:h.every((x,i)=>window.fighters[i].hp===x)}})()");
+          gate('B6j cinematic intro cannot leak combat time or damage',
+            paused?.sameClock===true&&paused?.sameHp===true,paused);
+          await image('30-e06-rig-lock-real-gold');
+          await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+          const live=await poll("(()=>({active:window.APEX_ARSENAL?.state?.questBreachProgression===true,story:window.APEX_ARSENAL?.state?.questBreachStoryView?.active?.()===true,phase:window.APEX_ARSENAL?.state?.questBreachLifecycle?.snapshot?.().phase}))()",
+            x=>x?.active&&!x?.story&&x?.phase==='ACTIVE',80);
+          const progressed=await evalPage("(()=>{const A=window.APEX_ARSENAL,t=A.state.time;A.step(.05);return{advanced:A.state.time>t,wave:A.state.questBreachLifecycle.snapshot().wave,cap:A.state.slots.filter(s=>s.kind!=='HEAL'&&s.phase!=='REMOVED').length,checkpoint:window.APEX_QUEST01_DIRECTOR.checkpoint().checkpointId}})()");
+          gate('B6j true Arena engine resumes wave A and respects pickup cap',
+            live?.active&&live?.phase==='ACTIVE'&&progressed?.advanced
+            &&progressed?.wave==='A'&&progressed?.cap<=5,progressed);
+          gate('B6j no fake E06 completion or E07 save on first frame',
+            progressed?.checkpoint==='BREACH_WAVES',progressed);
+          await image('31-e06-native-wave-a-gold');
+        }
       }
     }
   }
