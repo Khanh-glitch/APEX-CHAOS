@@ -24,6 +24,20 @@
     "public/game/arsenal/arsenalShellSelectRuntime.js": "c20d6147c086460bd6d8d4de4365ef5b54c612f5056cd2704dc61bd06745d648",
     "public/game/arsenal/arsenalChamberPaletteRuntime.js": "dea5c0cf90465ab18731dc61df4d4568ef4275695d0b81482e779806322f91a6",
     "public/game/arsenal/arsenalMetaRuntime.js": "cd848c2a0ee1611e9c702bd7352d15257ca0f682c9a037579248f812c1925a45",
-    "public/game/quest/questMultiActorCore.js": "acdca5f504c383c0879973d7aa4b83d1f65fdd102baba94cbee3961365bdc328"
+    "public/game/quest/questMultiActorCore.js": "acdca5f504c383c0879973d7aa4b83d1f65fdd102baba94cbee3961365bdc328",
+    "public/game/quest/questBreachWavesCore.js": "9eb01f7beb4198a3fa62fdf603355fd83aec5a191582509918a34a41423b8332",
+    "public/game/quest/questBreachRetreatAuthority.js": "31e97d710792fde2cbd41503937c2c1cb134b1715bea458a1b7601be7c9eb060",
+    "public/game/quest/questBreachRigAuthority.js": "ec6099851882918530c41f4e9e99d7d6ae44eef100b3b3100789d40e5ab2b9b6",
+    "public/game/quest/questCompanionNativeRuntime.js": "a2ce6b79d6b494277b556b4d58475ddf92724d4d95f0c664d472522d25fa2fc7",
+    "public/game/quest/questRivetThresholdAuthority.js": "614b245d7f98a35b70b05475a6478f270d20d1ca50092f6799bbc992471c5721",
+    "public/game/quest/questRivetRealDamageAdapter.js": "12627775a6e8a79c38bd7060119b8addf77140c5e0063dd0b4db0c089954c4a5",
+    "public/game/quest/questTotLastChoiceAuthority.js": "6d8a15c2a05597954d90d3794d24f715d01b4403fc1f766cac47d2029aa85496",
+    "public/game/quest/questTotRealDamageAdapter.js": "528a72a4f923ef9f4bf9fdd622060f6b8c32d00dab1d560bf9bec6e2f5bac104",
+    "public/game/quest/questTotNativeStormRuntime.js": "3738efa8470ddc671430189323bbe84e7526ff63c6e2a9aaef1775cd75abaeeb",
+    "public/game/quest/questEnemyAbilities.js": "e7cad1974997443cc61813caea356b60ceda68e9797959928728f45e0a0c9956",
+    "public/game/quest/questReflexReceipts.js": "848660abbead853d83fb4ec0cbfe4671c32493b4562b865f4fe9e6600ffa1620",
+    "public/game/quest/questStoryInterludes.js": "c3b9d6886c63b003a5ba05d1d54c1ced21e4ddf3266e069138887f25d48172ac",
+    "public/game/quest/questStoryPresentation.js": "c96ffda01088698fea5739092acae08d2cb5e56be6bcd2e8bb6c7f16cfb804b7",
+    "public/game/quest/questGoldV12Rig.js": "9a0d1ed0be2d893d2d1696894908f62397eae781d5269051d0df41c5c6b0ea72"
   }
 }
