@@ -1048,7 +1048,7 @@ try{
       await image('20-q4i-first-wake-native-ko-result');
       await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
       const cleared=await poll("(()=>({checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint(),stage:document.getElementById('apexQuest01Stage')?.dataset.node,stageOpen:document.getElementById('apexQuest01Stage')?.hidden===false,battleOpen:document.getElementById('battleHudHost')?.classList.contains('is-open')}))()",
-        v=>v?.checkpoint?.checkpointId==='SCRAP_SWARM'&&v?.stageOpen===true,160);
+        v=>v?.checkpoint?.checkpointId==='SCRAP_SWARM'&&v?.stageOpen===true&&v?.battleOpen===false,160);
       gate('Q4I physical E02 victory acknowledgment saves SCRAP_SWARM, no match reward',
         cleared?.checkpoint?.checkpointId==='SCRAP_SWARM'
         &&cleared?.checkpoint?.encounterId==='E03'
