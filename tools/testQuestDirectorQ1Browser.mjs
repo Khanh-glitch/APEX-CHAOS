@@ -784,8 +784,8 @@ try{
   const storyButton=await evalPage("(()=>({button:!!document.getElementById('q4eStoryPreview'),checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()");
   gate('Q4E3 Quest WAKE exposes opt-in story preview without progressing save',
     storyButton?.button===true&&storyButton?.checkpoint==='WAKE',storyButton);
-  const storyClick=await click('#q4eStoryPreview');
-  gate('Q4E3 story version selected by real physical click',storyClick.hit,storyClick);
+  const q4eClick=await click('#q4eStoryPreview');
+  gate('Q4E3 story version selected by real physical click',q4eClick.hit,q4eClick);
   const storyLive=await poll("(()=>({open:document.getElementById('battleHudHost')?.classList.contains('is-open'),quest:window.APEX_ARSENAL?.state?.questReflex,view:window.__apexQuestStoryViewRead?.(),actors:(window.fighters||[]).length}))()",
     v=>v?.open===true&&v?.quest===true&&v?.view?.active===false&&v?.actors===2,450);
   gate('Q4E3 Story preview uses same two actual Arsenal Fighters and mounts presentation',
