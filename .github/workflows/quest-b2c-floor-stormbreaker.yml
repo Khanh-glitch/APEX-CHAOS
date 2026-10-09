@@ -1,0 +1,31 @@
+name: B2c Stormbreaker Story Floor Authority
+on:
+  push:
+    branches: ['quest/b2c-floor-stormbreaker-from-b3b']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - name: B2c invalid receipts cannot be signed as floor rescue
+        run: node tools/testQuestStormbreakerFloorB2c.mjs
+      - name: Responsive Gold regenerated sources
+        run: node tools/buildGoldCutover.mjs --check
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Confirm normal Quest loot still T1/T2
+        run: node tools/testQuestRarityB1.mjs
+      - name: Quest HUD + transparent pickup + Gold physics
+        run: |
+          node tools/testQuestHudArenaB3.mjs
+          node tools/testQuestTransparentReflexB2.mjs
+          node tools/testQuestEnemyAbilitiesB1.mjs
+      - name: Production build
+        run: pnpm build

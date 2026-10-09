@@ -64,69 +64,76 @@
   // Q4C4 test rig. This is NOT an authorization to complete E01, save REFLEX
   // or trigger WORKSHOP. There is no substitute for a signed cinematic beat.
   // Inputs are LIVE Quest/Arsenal references, never a fabricated combat step.
-  function technicalHandoff({gate,hold,rig,actors,projectiles,time,over} = {}){
+  // Narrative STORMBREAKER receipt: intentionally NOT a throwable weapon.
+  // A proof is accepted ONLY after the real slot exists, Gold's electric
+  // simulator has emitted bolts for multiple physical frames, and ≥3s passed.
+  // This never grants story completion or persistent checkpoint by itself.
+  function technicalHandoff({gate,hold,rig,actors,projectiles,time,over}={}){
     const no=reason=>Object.freeze({ready:false,reason,storyComplete:false});
     const snap=gate?.snapshot?.();
     if(!snap?.active||snap.phase!=='AWAIT_RIVET'||snap.awaitingRivet!==true
-      ||snap.complete!==false||snap.storyProgress!==false)return no('missing-real-e01-gate');
-    const rs=snap.receipts||[];
-    if(rs.length!==4
-      ||rs[0]?.kind!=='PISTOL_HIT'||rs[0].from!=='NEWBOT'||rs[0].to!=='T.O.T'
-      ||rs[1]?.kind!=='PISTOL_HIT'||rs[1].from!=='T.O.T'||rs[1].to!=='NEWBOT'
-      ||rs[2]?.kind!=='CAST'||rs[2].slot!=='A1'
-      ||rs[3]?.kind!=='CAST'||rs[3].slot!=='A2'
-      ||!Number.isSafeInteger(rs[2].seq)||!Number.isSafeInteger(rs[3].seq)
-      ||rs[3].seq<=rs[2].seq)return no('invalid-real-receipts');
+       ||snap.complete!==false||snap.storyProgress!==false)return no('missing-real-e01-gate');
+    const receipts=snap.receipts||[];
+    if(receipts.length!==4
+       ||receipts[0]?.kind!=='PISTOL_HIT'||receipts[0].from!=='NEWBOT'||receipts[0].to!=='T.O.T'
+       ||receipts[1]?.kind!=='PISTOL_HIT'||receipts[1].from!=='T.O.T'||receipts[1].to!=='NEWBOT'
+       ||receipts[2]?.kind!=='CAST'||receipts[2].slot!=='A1'
+       ||receipts[3]?.kind!=='CAST'||receipts[3].slot!=='A2'
+       ||!Number.isSafeInteger(receipts[2].seq)||!Number.isSafeInteger(receipts[3].seq)
+       ||receipts[3].seq<=receipts[2].seq)return no('invalid-real-receipts');
     if(!Array.isArray(actors)||actors.length!==2)return no('wrong-live-roster');
-    const n=actors.find(x=>x?.questId==='NEWBOT'&&x.questTeam==='ALLY');
-    const t=actors.find(x=>x?.questId==='T.O.T'&&x.questTeam==='HOSTILE');
-    // Only live HP threshold and authentic receipt matter. The previous
-    // >=250 hidden floor silently invalidated a successful low-HP lesson.
-    if(!n||!t||n===t||n.hp<=0||t.hp<=0||n.hp>500||t.hp>500
-      ||snap.hp?.newbot!==n.hp||snap.hp?.tot!==t.hp)return no('inconsistent-fighter-hp');
+    const newbot=actors.find(f=>f?.questId==='NEWBOT'&&f.questTeam==='ALLY');
+    const tot=actors.find(f=>f?.questId==='T.O.T'&&f.questTeam==='HOSTILE');
+    if(!newbot||!tot||newbot===tot||newbot.id===tot.id
+      ||![newbot,tot].every(f=>Number.isFinite(f.hp)&&f.hp>0&&f.hp<=500)
+      ||snap.hp?.newbot!==newbot.hp||snap.hp?.tot!==tot.hp)
+      return no('inconsistent-real-fighter-hp');
     if(hold?.phase!=='AWAIT_RIVET'||hold.hp?.length!==2||hold.at!==time
-      ||hold.hp.some(h=>!actors.some(a=>a.questId===h.id&&a.hp===h.hp)))
+      ||hold.hp.some(h=>!actors.some(f=>f.questId===h.id&&f.hp===h.hp)))
       return no('safe-hold-changed');
-    if(!rig||rig.authority!=='ARSENAL_STORMBREAKER_EQUIP_PREVIEW'
-      ||rig.phase!=='SETTLED'||rig.settled!==true
-      ||rig.sawFlight!==true||rig.peakFlight!==1||rig.storyComplete!==false)
-      return no('preview-not-settled');
-    const strike=rig.groundImpact;
-    const point=rig.aimPoint;
-    if(!strike||strike.kind!=='REAL_ARSENAL_FLOOR_CONTACT'
-      ||strike.weapon!=='STORMBREAKER'||strike.owner!=='RIVET'
-      ||strike.projectileType!=='aq_thrown'
-      ||!Number.isFinite(strike.x)||!Number.isFinite(strike.y)
-      ||!point||strike.x!==point.x||strike.y!==point.y
-      ||!Number.isFinite(strike.flightTime)||strike.flightTime<0)
-      return no('missing-physical-floor-contact');
-    const expectedX=(actors[0].x+actors[1].x)/2;
-    const expectedY=(actors[0].y+actors[1].y)/2;
-    if(Math.abs(strike.x-Math.max(45,Math.min(955,expectedX)))>0.001
-      ||Math.abs(strike.y-Math.max(45,Math.min(955,expectedY)))>0.001)
-      return no('strike-not-between-fighters');
-    const b=rig.birth;
-    if(b?.kind!=='aq_thrown'||b.weapon!=='STORMBREAKER'||b.owner!=='RIVET'
-      ||![b.x,b.y,b.vx,b.vy].every(Number.isFinite)
-      ||Math.hypot(b.vx,b.vy)<100)return no('unproven-arsenal-throw');
-    // Safely fail if any physical training-state field drifted during the rig
-    // flight. Comparison uses a snapshot captured BEFORE the real equip.
+    if(!rig||rig.authority!=='ARSENAL_STORMBREAKER_FLOOR_MANIFEST'
+       ||rig.phase!=='SETTLED'||rig.settled!==true
+       ||!Number.isFinite(rig.elapsed)||rig.elapsed<3
+       ||!Number.isInteger(rig.electricFrames)||rig.electricFrames<10
+       ||!Number.isInteger(rig.peakBolts)||rig.peakBolts<=0
+       ||rig.storyComplete!==false)return no('gold-floor-lightning-incomplete');
+    if(!Number.isInteger(rig.slotId)||rig.slotId<=0)return no('missing-floor-slot');
+    const slots=rig.getSlots?.();
+    if(!Array.isArray(slots)||slots.length!==1)return no('unexpected-floor-inventory');
+    const slot=slots[0];
+    if(slot?.id!==rig.slotId||slot.questNarrativeOnly!==true
+       ||slot.questStage!=='E01_GROUND_SUPPRESSION'
+       ||slot.weaponId!=='STORMBREAKER'||slot.phase!=='REVEALED'
+       ||slot.tier!=='T6'||!Number.isFinite(slot.x)||!Number.isFinite(slot.y))
+      return no('missing-physical-narrative-slot');
+    const point=rig.aimPoint,impact=rig.groundImpact;
+    if(!point||!impact||impact.kind!=='REAL_ARSENAL_FLOOR_SPAWN'
+       ||impact.slotId!==slot.id
+       ||![impact.x,impact.y,point.x,point.y].every(Number.isFinite)
+       ||slot.x!==impact.x||slot.y!==impact.y
+       ||impact.x!==point.x||impact.y!==point.y)
+       return no('unproven-ground-location');
+    const midX=Math.max(120,Math.min(880,(newbot.x+tot.x)/2));
+    const midY=Math.max(120,Math.min(880,(newbot.y+tot.y)/2));
+    if(Math.abs(midX-slot.x)>0.001||Math.abs(midY-slot.y)>0.001)
+      return no('ground-not-between-fighters');
     const frozen=rig.freeze;
     if(!frozen||frozen.time!==time
-      ||JSON.stringify(frozen.hp)!==JSON.stringify(actors.map(a=>[a.questId,a.hp]))
-      ||JSON.stringify(frozen.pos)!==JSON.stringify(actors.map(a=>[a.questId,a.x,a.y]))
-      ||JSON.stringify(frozen.slots)!==JSON.stringify(
-        (rig.getSlots?.()||[]).map(s=>[s.id,s.phase]))
-      ||!Array.isArray(frozen.slots))return no('combat-state-drift');
+       ||JSON.stringify(frozen.hp)!==JSON.stringify(actors.map(f=>[f.questId,f.hp]))
+       ||JSON.stringify(frozen.pos)!==JSON.stringify(actors.map(f=>[f.questId,f.x,f.y]))
+       ||!Array.isArray(frozen.slots)||frozen.slots.length>5
+       ||frozen.slots.some(x=>x?.[0]===slot.id))
+       return no('combat-state-drift');
     if(!Array.isArray(projectiles)||projectiles.length!==0||over!=null)
       return no('unresolved-combat');
-    return Object.freeze({
-      ready:true,kind:'E01_RIVET_TECHNICAL_PREVIEW',
-      phase:'PREVIEW_SETTLED',storyComplete:false,
-      checkpointAuthorized:false,weapon:b.weapon,operator:b.owner,
-      groundImpact:Object.freeze({x:strike.x,y:strike.y,kind:strike.kind}),
-      receipts:4,liveFighters:2,projectiles:0
-    });
+    return Object.freeze({ready:true,kind:'E01_RIVET_TECHNICAL_PREVIEW',
+      phase:'FLOOR_DISCHARGED',storyComplete:false,checkpointAuthorized:false,
+      weapon:'STORMBREAKER',operator:'RIVET',
+      groundImpact:Object.freeze({x:slot.x,y:slot.y,
+        kind:'REAL_ARSENAL_FLOOR_SPAWN',slotId:slot.id}),
+      receipts:4,liveFighters:2,projectiles:0,
+      electricFrames:rig.electricFrames,peakBolts:rig.peakBolts,
+      elapsed:rig.elapsed});
   }
   root.APEX_QUEST_REFLEX_RECEIPTS=Object.freeze({create,PHASES,technicalHandoff});
   root.apexQuestReflexReceipts='ready';
