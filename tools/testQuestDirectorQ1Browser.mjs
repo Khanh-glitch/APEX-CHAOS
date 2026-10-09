@@ -90,9 +90,24 @@ async function click(selector){
     await cmd('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:p.x,y:p.y}]});
     await cmd('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   }else{
+    // Desktop users hover before pressing. The authored Gold CTA animates
+    // during pointerenter; hit-test and re-center AFTER hover, otherwise the
+    // synthetic press may land on Free Battle behind a moving Continue CTA.
     await cmd('Input.dispatchMouseEvent',{type:'mouseMoved',x:p.x,y:p.y});
-    await cmd('Input.dispatchMouseEvent',{type:'mousePressed',x:p.x,y:p.y,button:'left',clickCount:1});
-    await cmd('Input.dispatchMouseEvent',{type:'mouseReleased',x:p.x,y:p.y,button:'left',clickCount:1});
+    await sleep(85);
+    const hovered=await poll(`(()=>{
+      const e=document.querySelector(${probe});
+      if(!e)return {exists:false};
+      const r=e.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
+      const top=document.elementFromPoint(x,y);
+      return {exists:true,x,y,w:r.width,h:r.height,
+        enabled:!e.disabled,hit:top===e||e.contains(top)};
+    })()`,v=>v?.exists&&v.hit&&v.enabled&&v.w>10&&v.h>10,24);
+    if(!hovered?.hit)throw new Error('Gold hover moved click target outside hitbox: '+selector+' '+JSON.stringify(hovered));
+    await cmd('Input.dispatchMouseEvent',{type:'mouseMoved',x:hovered.x,y:hovered.y});
+    await cmd('Input.dispatchMouseEvent',{type:'mousePressed',x:hovered.x,y:hovered.y,button:'left',clickCount:1});
+    await cmd('Input.dispatchMouseEvent',{type:'mouseReleased',x:hovered.x,y:hovered.y,button:'left',clickCount:1});
+    p={...p,hovered};
   }
   return p;
 }
@@ -1033,13 +1048,16 @@ try{
   gate('Q4I START pointer release cannot ghost-open Free Battle mode',
     homeAfterBoot?.ready&&homeAfterBoot.mode===false
       &&homeAfterBoot.fighter===false,homeAfterBoot);
+    // Read-only capture-phase evidence of the real pointer event target.
+  // Never preventDefault, redirect, .click() or invoke Quest functions.
+  await evalPage("(()=>{window.__apexQuestHomeTapTrace=[];for(const kind of ['pointerdown','pointerup','click'])window.addEventListener(kind,e=>{const a=window.__apexQuestHomeTapTrace;if(a?.length<18)a.push({kind,id:e.target?.id||null,stage:document.getElementById('stage')?.className,ts:Math.round(performance.now())})},{capture:true});return true})()");
     const storyTap=await click('#continueStory');
   const stage=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,exists:!!document.getElementById('q4iFirstWakePlay'),panel:document.getElementById('apexQuest01Stage')?.hidden===false,play:document.getElementById('q4iFirstWakePlay')?.hidden,opening:document.getElementById('q4hQuestPlay')?.hidden,transition:window.APEX_SCENE_TRANSITION?.active?.()===true,stageClass:document.getElementById('stage')?.className}))()",
     v=>v?.exists===true&&v.panel===true&&v.node==='WORKSHOP',160);
   gate('Q4I WORKSHOP exposes first real E02, not the retired REFLEX opening',
     storyTap.hit&&stage?.node==='WORKSHOP'&&stage?.exists===true
     &&stage?.panel===true&&stage?.play===false&&stage?.opening===true,
-    {tap:storyTap,...stage});
+    {tap:storyTap,...stage,events:await evalPage("window.__apexQuestHomeTapTrace||[]")});
   if(!stage?.exists||stage?.panel!==true)
     throw new Error('Q4I Gold Home has not opened actual Quest Director: '+JSON.stringify(stage));
   const begin=await click('#q4iFirstWakePlay');
