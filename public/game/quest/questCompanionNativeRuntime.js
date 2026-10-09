@@ -97,6 +97,9 @@ function create({actors,policy,weaponApi,state,log}={}){
    if(id==='RIVET'&&slot==='J'){
      if(s.phase!=='READY')return deny('interceptor-already-planted');
      s.phase='WAITING';s.waitLeft=CONFIG[id].J.waitSeconds;
+     // Freeze the actual research chassis as a collision-static body.
+     // Native Quest separation transfers overlap to the moving opponent.
+     if(rivet.data)rivet.data.questResearchAnchored=true;
      s.initialInside=new Set(candidates(owner).filter(x=>
        dist(x,owner)<=CONFIG[id].J.catchRadius).map(x=>x.questId));
      s.target=null;s.cd=CONFIG[id].J.cooldown;
@@ -163,10 +166,16 @@ function create({actors,policy,weaponApi,state,log}={}){
  }
  function tickIntercept(dt){
    const s=states.RIVET.J;
-   if(s.phase==='READY')return;
-   if(!active(rivet)||rivet.hasStatus?.('stun')||rivet.hasStatus?.('freeze')){
-     s.phase='READY';s.target=null;return;
+   if(s.phase==='READY'){
+     if(rivet.data)rivet.data.questResearchAnchored=false;
+     return;
    }
+   if(!active(rivet)||rivet.hasStatus?.('stun')||rivet.hasStatus?.('freeze')){
+     s.phase='READY';s.target=null;
+     if(rivet.data)rivet.data.questResearchAnchored=false;
+     return;
+   }
+   if(rivet.data)rivet.data.questResearchAnchored=true;
    if(s.phase==='WAITING'){
      rivet.data.positionLocked=true;s.waitLeft-=dt;
      const radius=CONFIG.RIVET.J.catchRadius;
@@ -182,12 +191,15 @@ function create({actors,policy,weaponApi,state,log}={}){
        s.target=caught;s.phase='CLAMPED';s.lockLeft=CONFIG.RIVET.J.lockSeconds;
        emit('RIVET','PHYSICAL_INTERCEPT',{victim:caught.questId});
      }else if(s.waitLeft<=0){
-       s.phase='READY';emit('RIVET','INTERCEPT_TIMEOUT');
+       s.phase='READY';
+       if(rivet.data)rivet.data.questResearchAnchored=false;
+       emit('RIVET','INTERCEPT_TIMEOUT');
      }
    }else if(s.phase==='CLAMPED'){
      rivet.data.positionLocked=true;s.lockLeft-=dt;
      if(!viable(s.target)||s.lockLeft<=0){
        s.phase='READY';s.target=null;
+       if(rivet.data)rivet.data.questResearchAnchored=false;
        emit('RIVET','INTERCEPT_RELEASE');
      }
    }
@@ -368,6 +380,7 @@ function create({actors,policy,weaponApi,state,log}={}){
  function close(){
    closed=true;states['T.O.T'].J.dash=null;states['T.O.T'].K.stored=null;
    states.RIVET.J.phase='READY';states.RIVET.J.target=null;
+   if(rivet.data)rivet.data.questResearchAnchored=false;
    states.RIVET.K.armorLeft=0;
  }
  return Object.freeze({press,tick,onRealPickup,mitigate,skillProjection,draw,snapshot,close,

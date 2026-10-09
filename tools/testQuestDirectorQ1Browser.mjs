@@ -1425,6 +1425,8 @@ try{
             gate('B6n real Rivet J waits for native enemy body to physically enter trap',
               intercept?.planted==='WAITING'&&!intercept?.early&&intercept?.hit
               &&intercept?.clamped==='CLAMPED'&&intercept?.event
+              &&Math.abs(intercept?.nearEnd?.r?.[0]-intercept?.plantedState?.r?.[0])<1
+              &&Math.abs(intercept?.nearEnd?.r?.[1]-intercept?.plantedState?.r?.[1])<1
               &&intercept?.live&&intercept?.save==='BREACH_WAVES',intercept);
             await image('31c-e06-real-rivet-interceptor');
             const inputSetup=await evalPage("(()=>{const A=window.APEX_ARSENAL,S=window.APEX_ARSENAL_SPAWN;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;const p=S.trySpawnSlot({forceFirearm:true});if(!p)return{ok:false};p.phase='REVEALED';p.weaponId='PISTOL';p.kind='GUN';p.x=t.x+270;p.y=t.y;return{ok:true,id:p.id,recipient:A.state.questBreachCompanionSkills.currentRecipient()}})()");

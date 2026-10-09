@@ -121,6 +121,7 @@ pass(SK.CONFIG.RIVET.J.catchRadius>=150+25,'RIVET J catch band extends beyond tw
  pass(s.kit.currentRecipient()==='RIVET','second withdrawal transfers control to RIVET');
  s.e.x=650;s.e.y=180;
  pass(s.kit.press('J').ok,'research robot plants stationary interceptor');
+ pass(s.r.data.questResearchAnchored===true,'real research chassis is collision-static while planted');
  s.kit.tick(.1);
  pass(s.r.data.positionLocked===true,'RIVET anchors at physical location while waiting');
  pass(!s.e.statusCalls.length,'enemy outside entry radius is not auto-stunned');
@@ -134,6 +135,7 @@ pass(SK.CONFIG.RIVET.J.catchRadius>=150+25,'RIVET J catch band extends beyond tw
  pass(s.e.statusCalls.length===countAtHit,'no repeated contact status every frame');
  s.kit.tick(.85);
  pass(s.kit.snapshot().rivet.phase==='READY','RIVET resumes after lock interval');
+ pass(s.r.data.questResearchAnchored===false,'real research chassis unlocks after physical clamp release');
  pass(!s.kit.press('J').ok,'RIVET J respects cooldown after valid clamp');
  s.kit.tick(12);
  pass(s.kit.press('K').ok,'RIVET K is playable after J, independent cooldown');

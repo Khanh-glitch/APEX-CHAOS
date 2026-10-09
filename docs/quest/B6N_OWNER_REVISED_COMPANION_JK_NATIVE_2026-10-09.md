@@ -44,3 +44,7 @@ RIVET pauses its **real Fighter body**, not a remote turret. Newly crossing host
 `--quest-breach-native` verifies existing actual Fighter combat continues; Gold Chrome `--verify-breach-three-waves` validates the wider Quest entrance and story but is engine-instrumented and **does not prove natural AI balance or perceptual quality**.
 
 No new canon speech; first owner gameplay feedback needed before Gold-visual/timing final lock.
+
+## B6n collision correction (2026-10-09)
+
+The original J catch radius 145 was unreachable with real 75+75 Fighter collider separation. A legal 190px catch radius allows the hostile to enter a 40px approach band without penetrating either body. Browser evidence then revealed the Quest N-body collision solver could still move a planted RIVET because it split all overlaps equally. The E06-only `questResearchAnchored` flag now preserves the chassis coordinate; the mobile actor receives the separation displacement, and the flag is cleared on clamp expiration, cast timeout, stun, withdrawal and match teardown. No Free Battle/global movement semantics were changed.
