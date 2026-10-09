@@ -241,7 +241,7 @@
       '@keyframes q1Enter{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}',
       '#apexQuest01Stage .q1-panel::before{content:"";pointer-events:none;position:absolute;inset:0;opacity:.09;background:repeating-linear-gradient(0deg,transparent 0 3px,#ddd 4px 4.5px)}',
       '#apexQuest01Stage .q1-progress{height:3px;background:#34312b;margin:18px 0 4px;position:relative;overflow:hidden}',
-      '#apexQuest01Stage .q1-progress::before{content:"";position:absolute;inset:0 auto 0 0;width:var(--quest-progress,9.1%);background:linear-gradient(90deg,#8d5926,#ffc174);box-shadow:0 0 12px #efa448}'
+      '#apexQuest01Stage .q1-progress::before{content:"";position:absolute;inset:0 auto 0 0;width:var(--quest-progress,9.1%);background:linear-gradient(90deg,#8d5926,#ffc174);box-shadow:0 0 12px #efa448}',
       '#apexQuest01Stage .q1-eyebrow{font-size:11px;letter-spacing:.22em;color:#c5a069;font-weight:700;}',
       '#apexQuest01Stage h2{font-family:Impact,"Arial Narrow",Arial,sans-serif;font-size:clamp(36px,7vw,72px);line-height:.93;margin:18px 0 16px;letter-spacing:.045em;text-transform:uppercase;text-shadow:0 4px 19px #0008;}',
       '#apexQuest01Stage .q1-sub{font-size:13px;line-height:1.7;color:#c9cbd0;max-width:48ch;}',
@@ -253,7 +253,7 @@
       '#apexQuest01Stage button:where(:hover,:focus-visible){filter:brightness(1.13);box-shadow:0 8px 24px #b9742644;}',
       '#apexQuest01Stage button:active{transform:scale(.985)}',
       '@media(max-height:520px){#apexQuest01Stage{padding:8px}#apexQuest01Stage .q1-panel{padding:14px;max-height:calc(100dvh - 16px)}#apexQuest01Stage h2{font-size:clamp(28px,7vh,48px);margin:8px 0}#apexQuest01Stage .q1-status{margin:10px 0 4px}}',
-      '@media(prefers-reduced-motion:reduce){#apexQuest01Stage .q1-panel,#apexQuest01Stage button{animation:none;transition:none}}'
+      '@media(prefers-reduced-motion:reduce){#apexQuest01Stage .q1-panel,#apexQuest01Stage button{animation:none;transition:none}}',
       '#apexQuest01Stage button.q1-back{background:transparent;border-color:#61666b;color:#d1d1cf;}',
       '#apexQuest01Stage .q1-fine{margin-top:16px;font-size:11px;color:#9fa5ad;line-height:1.5;}'
     ].join('\n');
