@@ -24,6 +24,9 @@
  '#apexQuestStoryView .qs-shot::before{content:"";position:absolute;z-index:2;top:0;left:0;width:38%;height:3px;background:#ffaf45;box-shadow:0 0 16px #ed9c35}',
  '#apexQuestStoryView .qs-chip{position:absolute;z-index:4;bottom:10px;left:12px;font:900 clamp(15px,2vw,26px)/1 Impact,"Arial Narrow",sans-serif;letter-spacing:.1em;text-shadow:0 2px 12px #000}',
  '#apexQuestStoryView .qs-frame{font:800 10px Arial,sans-serif;letter-spacing:.15em;position:absolute;z-index:4;right:9px;top:10px;color:#f1c990}',
+ '#apexQuestStoryView.qs-workshop{background:#010204}',
+ '#apexQuestStoryView.qs-workshop::after{content:"";position:absolute;z-index:10;inset:0;background:#000;pointer-events:none;animation:qsBlackout .95s ease-out both}',
+ '@keyframes qsBlackout{0%,42%{opacity:1}100%{opacity:0}}',
  '#apexQuestStoryView .qs-footer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center;padding:clamp(12px,2.2vw,26px);background:linear-gradient(105deg,#18191dec,#0b0e12ef);border:1px solid #62543e;border-left:4px solid #d79541;box-shadow:0 8px 32px #0008}',
  '#apexQuestStoryView .qs-kicker{font:800 10px Arial,sans-serif;letter-spacing:.23em;color:#e0a653;margin-bottom:7px}',
  '#apexQuestStoryView .qs-line{font:800 clamp(18px,3.1vw,36px)/1.12 Impact,"Arial Narrow",sans-serif;letter-spacing:.035em;overflow-wrap:anywhere;max-width:55ch}',
@@ -33,7 +36,7 @@
  '#apexQuestStoryView button:focus-visible{outline:3px solid #f8d29c;outline-offset:3px}',
  '@media(max-width:620px){#apexQuestStoryView .qs-body{width:100%;padding:12px max(10px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));gap:9px}#apexQuestStoryView .qs-comic{height:clamp(125px,30dvh,310px);max-height:30dvh;grid-template-columns:1.3fr .8fr}#apexQuestStoryView .qs-footer{grid-template-columns:1fr;gap:12px;padding:14px}#apexQuestStoryView .qs-controls{justify-content:flex-end}#apexQuestStoryView button{min-height:44px;min-width:98px}#apexQuestStoryView .qs-chip{font-size:15px}}',
  '@media(max-height:470px){#apexQuestStoryView .qs-body{grid-template-rows:auto minmax(68px,1fr) auto;padding:7px max(9px,env(safe-area-inset-right)) 7px max(9px,env(safe-area-inset-left));gap:6px}#apexQuestStoryView .qs-comic{height:24dvh;max-height:24dvh}#apexQuestStoryView .qs-footer{padding:9px;gap:8px}#apexQuestStoryView .qs-chapter{font-size:21px}#apexQuestStoryView .qs-line{font-size:18px}#apexQuestStoryView button{min-height:37px}}',
- '@media(prefers-reduced-motion:reduce){#apexQuestStoryView .qs-body{animation:none}}'
+ '@media(prefers-reduced-motion:reduce){#apexQuestStoryView .qs-body,#apexQuestStoryView.qs-workshop::after{animation:none}#apexQuestStoryView.qs-workshop::after{opacity:0}}'
  ].join('\n');
  const LABEL=Object.freeze({
   E01_R1_IMPACT:{title:'REFLEX',left:'NEWBOT',right:'T.O.T',line:'FIRST IMPACT',kicker:'PISTOL // CONTACT'},
@@ -41,7 +44,8 @@
   E01_J_REVEAL:{title:'UNKNOWN ROUTINE',left:'NEWBOT',right:'A1',line:'UNKNOWN ROUTINE — J',kicker:'ROUTINE DETECTED'},
   E01_K_REVEAL:{title:'SECOND ROUTINE',left:'NEWBOT',right:'A2',line:'K',kicker:'NEW COMMAND'},
   E01_RIVET_HOLD:{title:'REFLEX',left:'NEWBOT',right:'T.O.T',line:'COMBAT INTERRUPTED',kicker:'BOTH FIGHTERS // HOLD'},
-  E01_RIVET_SUPPRESSION_TECH:{title:'STORMBREAKER',left:'RIVET',right:'SCRAP BASIN',line:'STORMBREAKER',kicker:'RIG // PHYSICAL RELEASE'}
+  E01_RIVET_SUPPRESSION_TECH:{title:'STORMBREAKER',left:'RIVET',right:'SCRAP BASIN',line:'GROUND SUPPRESSION',kicker:'REAL FLOOR CONTACT // 0 ALLY DAMAGE'},
+  WORKSHOP_ARRIVAL:{title:'THREE FAILURES',left:'NEWBOT',right:'T.O.T + RIVET',line:'NO VALID NETWORK ID',kicker:'WORKSHOP // NETWORK IDENTITIES'}
  });
  const singleton={style:null};
  function ensureStyle(doc){
@@ -78,6 +82,7 @@
   function createUI(cue){
    const meta=LABEL[cue.id];if(!meta)return null;
    const layer=e('section','','');layer.id='apexQuestStoryView';layer.dataset.beat=cue.id;
+   if(cue.id==='WORKSHOP_ARRIVAL')layer.classList.add('qs-workshop');
    layer.setAttribute('role','dialog');layer.setAttribute('aria-modal','true');layer.setAttribute('aria-label','Quest story scene');
    const body=e('div','qs-body'),top=e('div','qs-top'),head=e('div','');
    head.append(e('div','qs-episode','QUEST 01 · THE ONES THROWN AWAY'),e('div','qs-chapter',meta.title));
