@@ -42,6 +42,7 @@ jobs:
             if curl -fsS http://127.0.0.1:5173/gold-fidelity-profiles.mjs >/dev/null; then break; fi
             sleep 1
           done
+          R89_ONLY_INTERMEDIATE=1 CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testR89GoldProfilesBrowser.mjs
           CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testR89GoldProfilesBrowser.mjs
       - name: Save browser evidence
         if: always()
