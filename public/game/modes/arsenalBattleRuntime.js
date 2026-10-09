@@ -1772,6 +1772,15 @@
         return f;
       };
       fighters = specs.map((spec,i)=>makeQuestFighter(spec,i+1));
+      // Native actor CONSTRUCTION receipt is immutable before the first
+      // physical simulation frame. Mobile may take damage while Gold is
+      // asynchronously mounting the HUD; don't confuse a later HP read with
+      // an illegal starting HP or silently weaken the 1000/350/1000/350 law.
+      if(questFirstWake)AQ.state.questFirstWakeSpawnReceipt=Object.freeze(
+        fighters.map(a=>Object.freeze({
+          questId:a.questId,hp:a.hp,maxHp:a.maxHp,team:a.questTeam
+        }))
+      );
       // Fail closed before a simulation frame can run on bad Quest inputs.
       const validated = questBreakerCharge
         ?questCore.validateBreakerCharge(fighters)

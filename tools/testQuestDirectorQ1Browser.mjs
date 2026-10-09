@@ -1079,13 +1079,16 @@ try{
   if(!stage?.exists||stage?.panel!==true)
     throw new Error('Q4I Gold Home has not opened actual Quest Director: '+JSON.stringify(stage));
   const begin=await click('#q4iFirstWakePlay');
-  let started=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,active:window.APEX_ARSENAL?.state?.active,first:window.APEX_ARSENAL?.state?.questFirstWake,route:window.APEX_ARSENAL?.state?.questFirstWakeProgression,gold:window.__apexGoldBattleHosted===true,hud:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,step:typeof window.APEX_ARSENAL?.step==='function',roster:(window.fighters||[]).map(x=>({id:x.questId,team:x.questTeam,hp:x.hp}))}))()",
+  let started=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,active:window.APEX_ARSENAL?.state?.active,first:window.APEX_ARSENAL?.state?.questFirstWake,route:window.APEX_ARSENAL?.state?.questFirstWakeProgression,gold:window.__apexGoldBattleHosted===true,hud:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,step:typeof window.APEX_ARSENAL?.step==='function',spawnReceipt:window.APEX_ARSENAL?.state?.questFirstWakeSpawnReceipt,roster:(window.fighters||[]).map(x=>({id:x.questId,team:x.questTeam,hp:x.hp}))}))()",
     v=>v?.node==='FIRST_WAKE'&&v?.route===true&&v?.active===true&&v.gold&&v.hud&&v.step,420);
   gate('Q4I Gold-owned entry authenticates actual HUD plus native 2v2',
     begin.hit&&started?.gold===true&&started?.hud===true&&started?.step===true
     &&started?.first===true&&started?.roster?.length===4
     &&started.roster.map(x=>x.id).join('|')==='NEWBOT|SCRAP-A|T.O.T|SCRAP-B'
-    &&started.roster.map(x=>x.hp).join('|')==='1000|350|1000|350',started);
+    &&started.spawnReceipt?.map(x=>x.questId).join('|')==='NEWBOT|SCRAP-A|T.O.T|SCRAP-B'
+    &&started.spawnReceipt.map(x=>x.hp).join('|')==='1000|350|1000|350'
+    &&started.spawnReceipt.every((x,i)=>x.maxHp===x.hp
+      &&started.roster[i].hp>=0&&started.roster[i].hp<=x.hp),started);
   if(!started?.step||!started?.hud)
     throw new Error('Q4I genuine Gold READY absent: '+JSON.stringify(started));
   const premature=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E02_FIRST_WAKE_CLEAR'))()");
