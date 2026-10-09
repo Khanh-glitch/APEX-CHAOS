@@ -712,13 +712,16 @@
                   shake: spec.shake != null ? spec.shake : 15,
                   hitStop: spec.hitStop != null ? spec.hitStop : 0.08,
                 });
+                // E08 causal receipt must be committed immediately after the
+                // REAL swept hit + native damage, before any VFX/SFX callback
+                // can re-enter presentation or clear a transient projectile.
+                if(p.questTotArtifactId&&AQ.state?.questTotStormNative?.onResolve?.(p,'HIT')!==true)
+                  throw Error('E08 real Stormbreaker confirmed impact receipt denied');
                 if (window.APEX_ARSENAL_STORM && window.APEX_ARSENAL_STORM.onImpact) {
                   window.APEX_ARSENAL_STORM.onImpact(hit.x, hit.y, target);
                 }
                 window.avCue('storm_impact', { weapon: 'STORMBREAKER', x: hit.x, y: hit.y });
                 log('STORM_IMPACT', `target=${target.name} x=${Math.round(hit.x)} y=${Math.round(hit.y)}`);
-                if(p.questTotArtifactId&&AQ.state?.questTotStormNative?.onResolve?.(p,'HIT')!==true)
-                  throw Error('E08 real Stormbreaker confirmed impact receipt denied');
                 projectiles.splice(i, 1);
                 continue;
               }
