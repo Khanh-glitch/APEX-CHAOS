@@ -39,11 +39,16 @@ verify('shipping Gold preserves same two-column design',
  /grid-template-columns:\s*1fr\s+1fr/.test(liveSkills));
 verify('owner donor does NOT require firearm between two square skills',
  !/grid-template-areas:\s*"s1 wp s2"/.test(donorSide));
-verify('R62 obsolete gate still exists and remains a visible release blocker',
- test.includes("gate('R62-iPad-portrait-BOT-near-square-thumb-controls'")&&
- test.includes("gate('R62-iPad-portrait-weapon-centered-between-thumb-controls'"));
-verify('R68 overlay gate remains explicit, not silently deleted',
- test.includes("gate('R68-art-state-is-bounded-and-actually-rendered'"));
+verify('R62 physical iPad geometry and true touch target gates are preserved',
+ test.includes("gate('R62-iPad-owner-Gold-portrait-BOT-dock-geometry'")&&
+ test.includes("gate('R62-iPad-owner-Gold-portrait-BOT-real-skill-hit-targets'")&&
+ test.includes("portraitTablet?.skillHits?.every(Boolean)===true")&&
+ !test.includes("gate('R62-iPad-portrait-BOT-near-square-thumb-controls'"));
+verify('R68 real loaded art and cooldown state gate survives R70 removal',
+ test.includes("gate('R68-art-state-is-bounded-and-actually-rendered'")&&
+ test.includes('skillArtProbe.imageLoaded===true')&&
+ test.includes('skillArtProbe.cooling?.opacity<.48')&&
+ test.includes('skillArtProbe.overlayDisabled===true'));
 verify('owner R70 clean production skill image is implemented',
  product.includes('/* R70 skill image: no progress ring, glow, or animated cover; preserve timers and states. */')&&
  product.includes('#hud .skill .sk-art>.sk-mask,')&&
@@ -52,7 +57,9 @@ verify('Door deliberately leaves viewport when idle and enters during transition
  coord.includes("canvas.style.display = 'none'")&&
  coord.includes("canvas.style.display = 'block'")&&
  coord.includes("canvas.setAttribute('aria-hidden', 'true')"));
-verify('original browser canvas gate remains explicit',
- test.includes("gate('gold-transition-responsive-canvas-follows-portrait-viewport'"));
+verify('Door backing + visible-active/hidden-DONE behavior are both enforced',
+ test.includes("gate('gold-transition-responsive-canvas-follows-portrait-viewport'")&&
+ test.includes('responsive.backingW>=390*responsive.dpr')&&
+ test.includes("responsive.ariaHidden==='true'"));
 console.log('B8qb canonical-source audit: '+checks+' / '+checks+' PASS');
-console.log('IMPORTANT: Product Acceptance remains a separate gate. R62 tablet dock, R63 readability and R65 art-quality are NOT cleared by this audit.');
+console.log('IMPORTANT: real Product Acceptance CI remains independent; passing geometry and art probes cannot replace owner visual acceptance.');
