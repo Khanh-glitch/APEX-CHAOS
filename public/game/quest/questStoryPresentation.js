@@ -50,7 +50,11 @@
   E01_K_REVEAL:{title:'SECOND ROUTINE',left:'NEWBOT',right:'A2',line:'K',kicker:'NEW COMMAND'},
   E01_RIVET_HOLD:{title:'REFLEX',left:'NEWBOT',right:'T.O.T',line:'COMBAT INTERRUPTED',kicker:'BOTH FIGHTERS // HOLD'},
   E01_RIVET_SUPPRESSION_TECH:{title:'STORMBREAKER',left:'RIVET',right:'SCRAP BASIN',line:'GROUND SUPPRESSION',kicker:'REAL FLOOR CONTACT // 0 ALLY DAMAGE'},
-  WORKSHOP_ARRIVAL:{title:'THREE FAILURES',left:'NEWBOT',right:'T.O.T + RIVET',line:'NO VALID NETWORK ID',kicker:'WORKSHOP // NETWORK IDENTITIES'}
+  WORKSHOP_ARRIVAL:{title:'THREE FAILURES',left:'NEWBOT',right:'T.O.T + RIVET',line:'NO VALID NETWORK ID',kicker:'WORKSHOP // NETWORK IDENTITIES'},
+  E02_FIRST_WAKE_CLEAR:{title:'FIRST WAKE',left:'NEWBOT + T.O.T',right:'SCRAP BOTS',
+    line:'SURVIVED',kicker:'TWO HOSTILES // KO CONFIRMED'},
+  E02_FIRST_WAKE_RETRY:{title:'FIRST WAKE',left:'NEWBOT',right:'SCRAP BOTS',
+    line:'NEWBOT DOWN',kicker:'RETRY // CHECKPOINT'}
  });
  const singleton={style:null};
  function ensureStyle(doc){
