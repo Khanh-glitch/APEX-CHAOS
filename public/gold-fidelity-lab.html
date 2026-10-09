@@ -36,7 +36,7 @@
     <iframe id="gold-document" title="APEX CHAOS Gold design viewport" loading="eager" allow="autoplay; fullscreen; gamepad" allowfullscreen></iframe>
   </div>
   <script type="module">
-    import { GOLD_PROFILES, chooseGoldProfile, fitGoldProfile } from '/gold-fidelity-profiles.mjs';
+    import { GOLD_PROFILES, chooseGoldProfile, deriveGoldDesignSpace, fitGoldProfile } from '/gold-fidelity-profiles.mjs';
     (() => {
       'use strict';
       const frame = document.getElementById('gold-document');
@@ -65,23 +65,24 @@
         // Fit it inside the actual visual viewport. Neither is device-model
         // detection, and both work for arbitrary physical pixel dimensions.
         const selected = chooseGoldProfile(window.innerWidth,window.innerHeight,forcedId);
-        const fit = fitGoldProfile(selected,w,h,ox,oy);
+        const design = deriveGoldDesignSpace(selected,window.innerWidth,window.innerHeight);
+        const fit = fitGoldProfile(design,w,h,ox,oy);
         if (!fit) return;
         // Switch native Gold profile without replacing the iframe document.
         // The actual game's own media queries and HUD layout resolver react
         // to the child resize; its ongoing match is not restarted.
-        if (frame.style.width !== selected.width+'px') {
-          viewport.style.width = selected.width+'px';
-          frame.style.width = selected.width+'px';
+        if (frame.style.width !== design.width+'px') {
+          viewport.style.width = design.width+'px';
+          frame.style.width = design.width+'px';
         }
-        if (frame.style.height !== selected.height+'px') {
-          viewport.style.height = selected.height+'px';
-          frame.style.height = selected.height+'px';
+        if (frame.style.height !== design.height+'px') {
+          viewport.style.height = design.height+'px';
+          frame.style.height = design.height+'px';
         }
         viewport.style.transform = 'translate3d('+fit.left.toFixed(5)+'px,'+
           fit.top.toFixed(5)+'px,0) scale('+fit.scale.toFixed(9)+')';
         metrics = Object.freeze({
-          ...fit,profileFamily:selected.family,forcedProfile:Boolean(forcedId),
+          ...fit,profileFamily:selected.family,anchor:design.anchor,forcedProfile:Boolean(forcedId),
           child:{
             width:frame.contentWindow?.innerWidth??null,
             height:frame.contentWindow?.innerHeight??null
