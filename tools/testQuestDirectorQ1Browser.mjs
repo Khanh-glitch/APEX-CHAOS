@@ -736,6 +736,7 @@ try{
       storyProgress:window.__apexQuestReflexRead?.()?.storyProgress,
       complete:window.__apexQuestReflexRead?.()?.complete,
       technical:window.__apexQuestReflexTechnicalRead?.(),
+      storyBeats:window.__apexQuestStoryBeatsRead?.(),
       over:s?.over||null};
   })()`);
   gate('Q4C4 Stormbreaker naturally resolves with no HP/time/slot/cast/save drift',
@@ -749,6 +750,10 @@ try{
     &&q4cSettle?.checkpoint==='WAKE'
     &&q4cSettle?.storyProgress===false&&q4cSettle?.complete===false
     &&q4cSettle?.technical?.ready===true
+    &&q4cSettle?.storyBeats?.emitted?.join('|')===
+      'E01_R1_IMPACT|E01_R2_IMPACT|E01_J_REVEAL|E01_K_REVEAL|E01_RIVET_HOLD|E01_RIVET_SUPPRESSION_TECH'
+    &&q4cSettle.storyBeats.checkpointAuthorized===false
+    &&q4cSettle.storyBeats.storyComplete===false
     &&q4cSettle.technical.kind==='E01_RIVET_TECHNICAL_PREVIEW'
     &&q4cSettle.technical.checkpointAuthorized===false
     &&q4cSettle.technical.storyComplete===false
@@ -762,6 +767,7 @@ try{
     checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,
     read:window.__apexQuestReflexRead?.(),
     technical:window.__apexQuestReflexTechnicalRead?.(),
+    storyBeats:window.__apexQuestStoryBeatsRead?.(),
     active:window.APEX_ARSENAL?.state?.active}))()`,
     x=>x?.opened===false&&x.active===false,150);
   gate('Q4A REFLEX exit releases receipt and preserves real WAKE checkpoint',
@@ -769,6 +775,7 @@ try{
     &&afterReflex?.read==null
     &&afterReflex?.technical?.ready===false
     &&afterReflex?.technical?.reason==='no-active-reflex'
+    &&afterReflex?.storyBeats==null
     &&afterReflex?.checkpoint==='WAKE',afterReflex);
 
 }catch(err){
