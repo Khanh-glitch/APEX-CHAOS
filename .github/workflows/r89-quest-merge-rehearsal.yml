@@ -1,0 +1,64 @@
+name: R89 Quest 01 Merge Rehearsal (Read-Only)
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - arena/r89-font-parity-quest-merge-prep
+    paths:
+      - 'docs/integration/**'
+      - '.github/workflows/r89-quest-merge-rehearsal.yml'
+permissions:
+  contents: read
+jobs:
+  quest-merge-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Dry-run exact Quest snapshot (never modify a branch)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports/integration
+          QUEST_REF='quest/q4e-story-interludes-from-q4d'
+          QUEST_SHA='4af7cb1ef1f6580c5ce6e2fcbfc0575dd00185ff'
+          git fetch origin "refs/heads/$QUEST_REF:refs/remotes/origin/$QUEST_REF"
+          ACTUAL="$(git rev-parse "refs/remotes/origin/$QUEST_REF")"
+          BASE="$(git merge-base HEAD "$QUEST_SHA")"
+          git diff --name-only "$BASE" HEAD | LC_ALL=C sort > reports/integration/responsive-files.txt
+          git diff --name-only "$BASE" "$QUEST_SHA" | LC_ALL=C sort > reports/integration/quest-files.txt
+          comm -12 reports/integration/responsive-files.txt reports/integration/quest-files.txt > reports/integration/shared-files.txt
+          set +e
+          git merge-tree --write-tree --messages HEAD "$QUEST_SHA" > reports/integration/merge-tree.txt 2>&1
+          RESULT=$?
+          set -e
+          {
+            echo '# R89 / Quest Q4E merge rehearsal'
+            echo "responsive_head=$(git rev-parse HEAD)"
+            echo "quest_pinned=$QUEST_SHA"
+            echo "quest_remote_head=$ACTUAL"
+            echo "merge_base=$BASE"
+            echo "merge_tree_exit=$RESULT"
+            if [ "$ACTUAL" != "$QUEST_SHA" ]; then
+              echo 'status=STALE_QUEST_SNAPSHOT_REAUDIT_REQUIRED'
+            elif [ "$RESULT" = 0 ]; then
+              echo 'status=CLEAN_TREE_STILL_REQUIRES_VISUAL_AND_OWNER_ACCEPTANCE'
+            else
+              echo 'status=CONFLICTS_REQUIRE_EXPLICIT_THREE_WAY_RECONCILIATION'
+            fi
+            echo '--- Overlapping files ---'
+            cat reports/integration/shared-files.txt
+            echo '--- Merge tree diagnostic (first 100 lines) ---'
+            head -100 reports/integration/merge-tree.txt
+          } | tee reports/integration/summary.txt
+          test "$ACTUAL" = "$QUEST_SHA" || echo "::warning::Quest advanced after this pinned rehearsal snapshot."
+          test "$RESULT" = 0 || echo "::warning::Three-way conflicts exist; never auto-merge authored Gold shell/HUD."
+      - name: Save reproducible merge overlap and conflict receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r89-q4e-merge-rehearsal
+          path: reports/integration/
+          if-no-files-found: error
