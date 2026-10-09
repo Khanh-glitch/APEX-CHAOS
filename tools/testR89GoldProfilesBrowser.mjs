@@ -115,7 +115,8 @@ try{
     'landscape-phone':['land','compact'],'landscape-ultrawide':['land','compact'],
     'desktop':['desk','desktop'],'desktop-wide':['desk','wide']
   };
-  for(const profile of GOLD_PROFILES){
+  const anchorProfiles=process.env.R89_ONLY_INTERMEDIATE==='1'?[]:GOLD_PROFILES;
+  for(const profile of anchorProfiles){
     const full={w:profile.width,h:profile.height};
     const small={w:Math.round(full.w*.6),h:Math.round(full.h*.6)};
     check(profile.id+' same aspect chooses same profile',
@@ -196,7 +197,11 @@ try{
                   y:frame.top+(rect.top+rect.height/2)*scale};
     const hit=d.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2);
     const view={w:window.innerWidth,h:window.innerHeight};
-    return {rect:{x:rect.x,y:rect.y,w:rect.width,h:rect.height},
+    const physical={x:frame.left+rect.left*scale,y:frame.top+rect.top*scale,w:rect.width*scale,h:rect.height*scale};
+    const visibleW=Math.max(0,Math.min(view.w,physical.x+physical.w)-Math.max(0,physical.x));
+    const visibleH=Math.max(0,Math.min(view.h,physical.y+physical.h)-Math.max(0,physical.y));
+    const visibleFraction=physical.w*physical.h>0?visibleW*visibleH/(physical.w*physical.h):0;
+    return {physical,visibleFraction,rect:{x:rect.x,y:rect.y,w:rect.width,h:rect.height},
       center,view,hidden:style.display==='none'||style.visibility==='hidden'||Number(style.opacity)<.01,
       within:center.x>=0&&center.x<=view.w&&center.y>=0&&center.y<=view.h,
       hittable:Boolean(hit&&(hit===n||n.contains(hit)))};
@@ -214,21 +219,21 @@ try{
       Math.abs(meta.design.width/meta.design.height-v.w/v.h)<.00001&&
       Math.abs(meta.letterboxX)<.1&&Math.abs(meta.letterboxY)<.1,meta);
     const start=await evalJS('('+screenAudit.toString()+')("#apex-boot-start")');
-    check(v.name+' START center visible and hittable',start.within&&start.hittable&&!start.hidden,start);
+    check(v.name+' START center visible and hittable',start.within&&start.hittable&&!start.hidden&&start.visibleFraction>.95,start);
     await click('#apex-boot-start');
     if(!(await wait(homeDone)))throw Error('R89 intermediate Home not ready '+v.name);
     const free=await evalJS('('+screenAudit.toString()+')("#freeBattle")');
-    check(v.name+' Free Battle center visible/hittable',free.within&&free.hittable&&!free.hidden,free);
+    check(v.name+' Free Battle center visible/hittable',free.within&&free.hittable&&!free.hidden&&free.visibleFraction>.95,free);
     await click('#freeBattle');
     if(!(await wait("(()=>{const c=window.__apexGoldFidelity?.child();return c?.document.querySelector('#stage')?.classList.contains('screen-mode')})()")))
       throw Error(v.name+' mode unavailable');
     const mode=await evalJS('('+screenAudit.toString()+')(".modeCard[data-mode=local1v1]")');
-    check(v.name+' Local 1v1 center visible/hittable',mode.within&&mode.hittable&&!mode.hidden,mode);
+    check(v.name+' Local 1v1 center visible/hittable',mode.within&&mode.hittable&&!mode.hidden&&mode.visibleFraction>.95,mode);
     await click('.modeCard[data-mode="local1v1"]');
     if(!(await wait("(()=>{const c=window.__apexGoldFidelity?.child();return c?.document.querySelector('#stage')?.classList.contains('screen-fighter')&&c.document.querySelectorAll('#fighterRoster .rosterCard').length>=6})()")))
       throw Error(v.name+' pick unavailable');
     const fighter=await evalJS('('+screenAudit.toString()+')(".rosterCard[data-hero=newbot]")');
-    check(v.name+' Fighter roster on screen',fighter.within&&fighter.hittable&&!fighter.hidden,fighter);
+    check(v.name+' Fighter roster on screen',fighter.within&&fighter.hittable&&!fighter.hidden&&fighter.visibleFraction>.95,fighter);
     await click('.rosterCard[data-hero="newbot"]');
     // Gold's flowUp starts 300ms after stage change, lasting another 380ms.
     // Clicking LOCK before it finishes is testing an intentionally hidden
@@ -236,7 +241,7 @@ try{
     const lockReady=await wait("(()=>{const c=window.__apexGoldFidelity?.child();const n=c?.document.querySelector('#lockIn');if(!n)return false;const s=c.getComputedStyle(n);return s.visibility!=='hidden'&&s.display!=='none'&&Number(s.opacity)>.95&&s.pointerEvents!=='none'})()");
     const lock=await evalJS('('+screenAudit.toString()+')("#lockIn")');
     check(v.name+' LOCK fully revealed and hittable',
-      lockReady&&lock.within&&lock.hittable&&!lock.hidden,{lockReady,lock});
+      lockReady&&lock.within&&lock.hittable&&!lock.hidden&&lock.visibleFraction>.95,{lockReady,lock});
     await click('#lockIn');
     if(!(await wait("(()=>window.__apexGoldFidelity?.child()?.document.querySelector('#stage')?.classList.contains('fighter-active-p2'))()")))throw Error(v.name+' P2 handoff failed');
     await click('.rosterCard[data-hero="newbot"]');
@@ -304,7 +309,7 @@ try{
   }
 
   await writeFile(dir+'/report.json',JSON.stringify({output,failures},null,2));
-  console.log('R89 FINAL '+JSON.stringify({profiles:GOLD_PROFILES.length,cases:GOLD_PROFILES.length*2+intermediate.length+2,failures:failures.length}));
+  console.log('R89 FINAL '+JSON.stringify({profiles:anchorProfiles.length,cases:anchorProfiles.length*2+intermediate.length+2,failures:failures.length}));
   if(failures.length)throw Error('R89 native Gold profile invariance failed '+failures.length);
 }finally{
   try{socket?.close()}catch{}
