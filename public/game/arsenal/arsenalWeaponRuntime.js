@@ -1100,7 +1100,7 @@
     if(!v43SpriteCache.has(url)&&typeof Image==='function'){
       const image=new Image();image.src=url;v43SpriteCache.set(url,image);
     }
-    return v43SpriteCache.get(url)||null;
+    return (window.APEX_ARSENAL_AV?.imageByPath?.(url))||v43SpriteCache.get(url)||null;
   }
   function drawArsenalProjectiles(ctx) {
     const av = window.APEX_ARSENAL_AV;

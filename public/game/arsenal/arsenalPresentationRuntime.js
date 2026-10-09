@@ -12,7 +12,17 @@
   // Checkpoint A/B collage atlas. Senko-reprocessed gun family + bespoke
   // melee/shield/grenade/casing, all in one flat-fill/outline language.
   const C_SET = window.APEX_ARSENAL_C_SET || { weapons: {}, muzzleFrames: [] };
-  function weaponMeta(id) { return C_SET.weapons[id] || null; }
+  // Original owner V4.3 equipment silhouettes (WebP, alpha intact).
+  // Dimensions describe the actual uploaded images; shared sprite transform,
+  // pose/ghost/pickup pipeline is unchanged.
+  const V43_META={
+    FLARE_GUN:{w:768,h:422},TACTICAL_CROSSBOW:{w:768,h:294},
+    STEEL_BALL_LAUNCHER:{w:768,h:387},COMBAT_BOOMERANG:{w:768,h:409},
+    RPG_7:{w:768,h:247},FLAMETHROWER:{w:768,h:324},
+    PLASMA_SPLITTER:{w:768,h:300},SHRAPNEL_MINE_LAUNCHER:{w:768,h:341}
+  };
+  for(const [id,meta] of Object.entries(V43_META))meta.file='v43/'+id+'.webp';
+  function weaponMeta(id) { return C_SET.weapons[id] || V43_META[id] || null; }
   function weaponAbs(meta) { return '/assets/arsenal/' + meta.file; }
   const MUZZLE_FRAMES = C_SET.muzzleFrames || []; // [{ file, w, h }] warm family
   const muzzleAbs = (f) => AV_ROOT + f.file;
@@ -228,6 +238,9 @@
 
   const ALL_IMAGES = [
     ...Object.values(C_SET.weapons).map((m) => weaponAbs(m)),
+    ...Object.values(V43_META).map((m) => weaponAbs(m)),
+    '/assets/arsenal/v43/BOLT.webp','/assets/arsenal/v43/STEEL_BALL.webp',
+    '/assets/arsenal/v43/RPG_ROCKET.webp','/assets/arsenal/v43/SHRAPNEL_MINE.webp',
     ...MUZZLE_FRAMES.map((f) => muzzleAbs(f)),
     ATLAS.file,
     SMOKE('01'), SMOKE('03'), SPARK('05'), SPARK('07'),
@@ -944,6 +957,7 @@
     drawDetachedWeapon,
     weaponImage,
     weaponMeta,
+    imageByPath: (p)=>getImg(p),
       describe: () => ({
       root: AV_ROOT,
       weaponSet: Object.fromEntries(Object.entries(C_SET.weapons).map(([k, m]) => [k, m.file])),

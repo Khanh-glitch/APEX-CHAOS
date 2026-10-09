@@ -431,6 +431,9 @@
     MOSSBERG_500: 158, SHOTGUN: 160, SAWED_OFF: 132, JACKHAMMER: 156,
     STORMBREAKER: 150, // red-tier floor read (x0.92 display mode ≈ 138px)
   };
+  for(const [id,spec] of Object.entries(CONFIG.V43_WEAPONS||{})){
+    CONFIG.FIREARM_LONG_SIDE[id]=spec.worldWidth;
+  }
   CONFIG.HEAL_WEIGHTS = {
     HEAL_H1: 7, HEAL_H2: 5, HEAL_H3: 3, HEAL_H4: 2, HEAL_H5: 1,
   };
