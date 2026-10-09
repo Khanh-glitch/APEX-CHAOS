@@ -36,7 +36,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { adaptGoldBattleHudR48b } from './goldBattleHudR48b.mjs';
 import { adaptGoldBattleHudR50c } from './goldBattleHudR50c.mjs';
@@ -2307,6 +2308,43 @@ function buildManifest(files) {
   }, null, 2)}\n`;
 }
 
+// B0.5 preserves both authored Quest HUD/Story sections and R90 viewport
+// constraints as reviewable source overlays. They patch generated Gold in a
+// clean temporary directory and fail closed when donor context changes.
+function applyB05Overlay(name,html) {
+  const patchFile=path.join(REPO,'tools','goldB05Overlays',name+'.patch');
+  if(!fs.existsSync(patchFile))return html;
+  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'apex-gold-b05-'));
+  const dest=path.join(temp,'public','gold',name);
+  const isShell=name==='shell.html';
+  const payloadRe=/(<script id="battleHudPayload" type="text\/plain">)([\s\S]*?)(<\/script>)/;
+  const sentinel='__B05_EMBEDDED_HUD_FROM_CURRENT_CANONICAL_SOURCE__';
+  let encoded=null,work=html;
+  if(isShell){
+    const match=payloadRe.exec(html);
+    if(!match)throw new Error('B05 shell lost canonical Battle HUD payload');
+    encoded=match[2];
+    work=html.replace(payloadRe,(_,a,b,c)=>a+sentinel+c);
+  }
+  try {
+    fs.mkdirSync(path.dirname(dest),{recursive:true});
+    fs.writeFileSync(dest,work,'utf8');
+    const result=spawnSync('git',['apply','--unsafe-paths','--whitespace=nowarn',patchFile],
+      {cwd:temp,encoding:'utf8'});
+    if(result.status!==0)throw new Error('B05 authored patch is stale for '+name+
+      '\n'+(result.stderr||result.stdout));
+    let updated=fs.readFileSync(dest,'utf8');
+    if(isShell){
+      if(!updated.includes(sentinel))throw new Error('B05 shell overlay mutated HUD seam');
+      updated=updated.replace(sentinel,encoded);
+    }
+    log('  B05 explicit Quest/Responsive overlay '+name+' applied');
+    return updated;
+  }finally{
+    fs.rmSync(temp,{recursive:true,force:true});
+  }
+}
+
 function main() {
   verifyAuthority();
   materializeTheme();
@@ -2351,11 +2389,11 @@ function main() {
   outputs.set('transition/mechanical-door-v4.gold.js', read(TRANSITION_RUNTIME_SRC));
   log('Mechanical Door V4 runtime staged (hash-pinned Gold authority)');
 
-  outputs.set('battle-hud.html', Buffer.from(buildBattleHud(), 'utf8'));
+  outputs.set('battle-hud.html', Buffer.from(applyB05Overlay('battle-hud.html', buildBattleHud()), 'utf8'));
   log('battle-hud.html built (production-bridged donor)');
   outputs.set('lucky-draw.html', Buffer.from(buildLuckyDonor(), 'utf8'));
   log('lucky-draw.html built (localized + production-bridged donor)');
-  outputs.set('shell.html', Buffer.from(buildShell(outputs.get('battle-hud.html').toString('utf8')), 'utf8'));
+  outputs.set('shell.html', Buffer.from(applyB05Overlay('shell.html', buildShell(outputs.get('battle-hud.html').toString('utf8'))), 'utf8'));
   log('shell.html built (canonical shell + production patches)');
 
   const manifestFiles = {};

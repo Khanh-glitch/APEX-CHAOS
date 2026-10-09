@@ -1,0 +1,52 @@
+name: B05 Gold authored source reconciliation
+on:
+  push:
+    branches: ['quest/b05-r90-q5-real-integration']
+    paths:
+      - 'tools/createB05GoldOverlays.mjs'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  generated-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Derive two inspectable Gold patch overlays and assert byte parity
+        run: node tools/createB05GoldOverlays.mjs
+      - name: Verify generator on repeated immutable invocation
+        run: node tools/buildGoldCutover.mjs --check
+      - name: Install and run Quest+Gold regression
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm arsenal:sfx:materialize
+          node tools/testR89GoldResolver.mjs
+          node tools/testGoldEmbeddedHudParity.mjs
+          node tools/testQuestDirectorQ1.mjs
+          node tools/testQuestGenericRosterQ2.mjs
+          node tools/testQuestScrapSwarmQ5.mjs
+          node tools/testQuestWeaponRainQ5.mjs
+          node tools/testQuestBreakerChargeQ5.mjs
+          pnpm build
+      - name: Commit only to Quest integration branch after reproducible source gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "apex-chaos-integration"
+          git config user.email "apex-chaos-integration@users.noreply.github.com"
+          git add tools/goldB05Overlays public/gold/battle-hud.html public/gold/shell.html tools/buildGoldCutover.mjs
+          git diff --cached --check
+          git commit -m "B0.5 make R90+Q5 Gold generator reproduce merged authored HUD and Shell"
+          git push origin HEAD:refs/heads/quest/b05-r90-q5-real-integration
