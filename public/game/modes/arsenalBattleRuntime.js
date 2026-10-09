@@ -301,6 +301,8 @@
        &&state.questBreakerStoryView?.active())return;
     if(state.questBreachProgression===true
        &&state.questBreachStoryView?.active())return;
+    if(state.questBreachProgression===true
+       &&state.questBreachRig?.snapshot?.().phase==='AWAIT_RIG_LOCK')return;
     if(state.questBreachEncounter===true){
       const lifecycle=state.questBreachLifecycle;
       if(!lifecycle){AQ.log('B6F_MISSING_WAVE_CONTROLLER','');return;}
@@ -804,6 +806,10 @@
           state.questBreakerStoryView.offer({id:'E05_BREAKER_CHARGE_CLEAR'});
         }
         if(state.questBreachProgression===true&&state.questBreachStoryView){
+          if(outcome.status==='COMPLETE'){
+            const signed=state.questBreachRig?.acceptNativeWaveClear(fighters,state.questBreachLifecycle);
+            if(signed?.ok!==true){AQ.log('E06_SIGNED_WAVE_DENIED',String(signed?.reason));return;}
+          }
           state.questBreachStoryView.offer({id:outcome.status==='COMPLETE'
              ?'E06_BREACH_CLEAR':'E06_BREACH_RETRY'});
         }
@@ -1800,6 +1806,10 @@
         AQ.state.questRivetReceipts=receipts;
       }
       if(breachActive){
+        if(breachStory){
+          if(typeof window.APEX_QUEST_BREACH_RIG?.create!=='function')return false;
+          AQ.state.questBreachRig=window.APEX_QUEST_BREACH_RIG.create(breachPolicy);
+        }
         AQ.state.questBreachLifecycle=breachPolicy.createWaveLifecycle();
         AQ.state.questBreachPhase='ACTIVE';
         AQ.state.questBreachCreateFighter=makeQuestFighter;
@@ -1848,7 +1858,12 @@
           onAdvance:(beatId)=>{
             if(AQ.state!==ownerState||!ownerState.active
               ||ownerState.questBreachProgression!==true)return;
-            if(beatId==='E06_RIG_LOCK')return;
+            if(beatId==='E06_RIG_LOCK'){
+              const sign=ownerState.questBreachRig?.acknowledgeLock(fighters);
+              if(sign?.ok!==true)AQ.log('E06_RIG_LOCK_DENIED',String(sign?.reason));
+              else AQ.log('E06_PASSIVE_HOLD','RIVET frontline, no automatic rig');
+              return;
+            }
             if(!['E06_BREACH_CLEAR','E06_BREACH_RETRY'].includes(beatId))return;
             // Preview only: no invented E07 save before the owner resolves
             // rig handoff and approved companion J/K kits.
@@ -2331,6 +2346,7 @@
       state.questEnemyAbilities?.close?.();
       state.questEnemyAbilities=null;
       state.questBreachStoryView?.close?.();state.questBreachStoryView=null;
+    state.questBreachRig?.close?.();state.questBreachRig=null;
       state.questBreachRetreat?.close?.();state.questBreachRetreat=null;
       state.questRivetAdapter?.close?.();state.questRivetAdapter=null;
       state.questBreachLifecycle?.close?.();state.questBreachLifecycle=null;
