@@ -5815,6 +5815,105 @@ if (process.argv.includes('--quest-first-wake')) {
   }
 }
 
+// Q5 engine-only physical-hit assay: uses REAL Arsenal bullets, never writes
+// hostile HP. Isolated local Director fixture is NOT a Story save or final
+// natural-play acceptance; desktop/mobile Chrome owns that separate gate.
+if (process.argv.includes('--quest-scrap-swarm-native')) {
+  let output;
+  try {
+    output=run(`
+      const priorDirector=window.APEX_QUEST01_DIRECTOR;
+      window.APEX_QUEST01_DIRECTOR={
+        checkpoint:()=>({checkpointId:'SCRAP_SWARM'}),
+        acceptNativeBeat:()=>({ok:false,reason:'isolated-test-no-save'})
+      };
+      window.__APEX_QUEST_DEV=true;
+      window.__apexGoldBattleHosted=true;
+      const started=window.__apexQuestScrapSwarmStoryStart?.()===true;
+      delete window.__APEX_QUEST_DEV;
+      const A=window.APEX_ARSENAL, Q=window.APEX_QUEST_MULTI_ACTOR_CORE;
+      const W=A?.weaponApi;
+      if(!started||!A?.state?.questScrapSwarmProgression){
+        window.__apexGoldBattleHosted=false;
+        window.APEX_QUEST01_DIRECTOR=priorDirector;
+        return {started,initial:false};
+      }
+      const player=window.fighters[0],all=()=>window.fighters;
+      A.state.spawnHeld=true;A.state.spawnTimer=1e8;
+      A.state.slots=[];
+      player.baseSpeed=0;
+      player.data.__hrHoldBody=true;
+      let totalHits=0;
+      function physicalKo(id){
+        const f=all();
+        const target=f.find(x=>x.questId===id);
+        if(!target)return false;
+        f.forEach((a,i)=>{a.baseSpeed=0;a.data.__hrHoldBody=true;a.x=250+i*150;a.y=900});
+        player.x=130;player.y=500;
+        target.x=640;target.y=500;
+        let shotCount=0;
+        while(target.hp>0&&shotCount++<20&&!A.state.over){
+          const before=target.hp;
+          W.fireBullet({owner:player,x:210,y:500,angle:0,
+            speed:2600,damage:10,weapon:'PISTOL'});
+          A.step(.2);
+          if(target.hp<before)totalHits++;
+        }
+        return target.hp<=0;
+      }
+      const waveAInit=Q.validateScrapSwarmWave(all(),'A');
+      const aIds=all().filter(x=>x.questTeam==='HOSTILE').map(x=>x.questId);
+      const aHits=aIds.map(physicalKo);
+      const phaseAfterA=A.state.questSwarmPhase;
+      const receipt=A.state.questSwarmWaveAReceipt;
+      const hpBefore=player.hp,slotsBefore=A.state.slots,holderBefore=W.getHolder(player);
+      A.step(1.81);
+      const waveBInit=Q.validateScrapSwarmWave(all(),'B');
+      const sameHero=all()[0]===player,slotsSame=A.state.slots===slotsBefore;
+      const hpAfter=player.hp,holderSame=W.getHolder(player)===holderBefore;
+      const bIds=all().filter(x=>x.questTeam==='HOSTILE').map(x=>x.questId);
+      const bHits=bIds.map(physicalKo);
+      const result={started,waveAInit,phaseAfterA,receipt,aIds,aHits,
+        waveBInit,sameHero,slotsSame,hpBefore,hpAfter,holderSame,
+        bIds,bHits,totalHits,
+        outcome:A.state.questOutcome,over:A.state.over,
+        canonical:Q.scrapSwarmOutcome(all(),'B'),
+        story:A.state.questSwarmStoryView?.snapshot?.(),
+        node:window.APEX_QUEST01_DIRECTOR.checkpoint().checkpointId};
+      window.exitArsenalBattleMode();
+      window.__apexGoldBattleHosted=false;
+      window.APEX_QUEST01_DIRECTOR=priorDirector;
+      return result;
+    `);
+    gate('Q5 native physical hit test boots real Arsenal E03 (fixture authorization)',
+      output?.started===true&&output?.waveAInit?.ok===true,output);
+    gate('Q5 wave A consists of THREE real physical Arsenal KOs',
+      output?.aHits?.length===3&&output.aHits.every(Boolean)
+      &&output?.totalHits>=7&&output?.receipt?.length===3
+      &&output.receipt.every(x=>x.hp<=0)
+      &&output?.phaseAfterA==='INTERLUDE',
+      {ids:output?.aIds,hits:output?.aHits,receipt:output?.receipt,totalHits:output?.totalHits});
+    gate('Q5 interlude keeps hero, HP, held gun and floor-slot collection',
+      output?.waveBInit?.ok===true&&output?.sameHero===true
+      &&output?.slotsSame===true&&output?.holderSame===true
+      &&output?.hpBefore===output?.hpAfter,
+      {roster:output?.waveBInit,sameHero:output?.sameHero,slotsSame:output?.slotsSame,
+        hp:[output?.hpBefore,output?.hpAfter],holderSame:output?.holderSame});
+    gate('Q5 wave B four real physical KOs author true result panel, no fake save',
+      output?.bHits?.length===4&&output.bHits.every(Boolean)
+      &&output?.outcome==='COMPLETE'
+      &&output?.over==='QUEST_SCRAP_SWARM_COMPLETE'
+      &&output?.canonical?.status==='COMPLETE'
+      &&output?.story?.current==='E03_SCRAP_SWARM_CLEAR'
+      &&output?.story?.active===true
+      &&output?.node==='SCRAP_SWARM',
+      {ids:output?.bIds,hits:output?.bHits,outcome:output?.outcome,
+        over:output?.over,canonical:output?.canonical,story:output?.story,node:output?.node});
+  }catch(error){
+    gate('Q5 native physical-hit integration',false,{error:String(error?.stack||error)});
+  }
+}
+
 // Q2 — authentic multi-actor fixtures run on the real Arsenal engine.
 // Test-only start does not write Quest Director completion.
 if (process.argv.includes('--quest-n-actors')) {
