@@ -1027,7 +1027,13 @@ try{
     v=>v?.ready&&v.done&&v.blackout,180);
   gate('Q4I entrance touch lease releases before Quest chapter action',
     inputReady?.ready===true,inputReady);
-  const storyTap=await click('#continueStory');
+  // Assert boot START never falls through into a hidden Free Battle press.
+  // This is actual Gold stage state, not a fabricated Quest routing event.
+  const homeAfterBoot=await evalPage("(()=>({stageClass:document.getElementById('stage')?.className,mode:document.getElementById('stage')?.classList.contains('screen-mode')===true,fighter:document.getElementById('stage')?.classList.contains('screen-fighter')===true,ready:document.getElementById('stage')?.classList.contains('ready')===true}))()");
+  gate('Q4I START pointer release cannot ghost-open Free Battle mode',
+    homeAfterBoot?.ready&&homeAfterBoot.mode===false
+      &&homeAfterBoot.fighter===false,homeAfterBoot);
+    const storyTap=await click('#continueStory');
   const stage=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,exists:!!document.getElementById('q4iFirstWakePlay'),panel:document.getElementById('apexQuest01Stage')?.hidden===false,play:document.getElementById('q4iFirstWakePlay')?.hidden,opening:document.getElementById('q4hQuestPlay')?.hidden,transition:window.APEX_SCENE_TRANSITION?.active?.()===true,stageClass:document.getElementById('stage')?.className}))()",
     v=>v?.exists===true&&v.panel===true&&v.node==='WORKSHOP',160);
   gate('Q4I WORKSHOP exposes first real E02, not the retired REFLEX opening',

@@ -766,14 +766,25 @@ export default function App() {
           start.setAttribute('aria-label', 'Start APEX CHAOS');
           start.className = 'apex-boot-start-plate';
           let activated = false;
+          let cleanupQueued = false;
           let stopStartGuard = () => {};
+          const retireStart = (delay = 0) => {
+            if (cleanupQueued) return;
+            cleanupQueued = true;
+            // Do not remove a target DURING pointerdown: pointerup/click may
+            // otherwise land on Free Battle behind the opened Door.
+            setTimeout(() => start.remove(), delay);
+          };
           const activateStart = () => {
             if (activated) return;
             activated = true;
             stopStartGuard();
-            // Hide in the same trusted input event, before requesting Door OPEN.
-            // Do not defer this to transition timing or any async audio callback.
-            start.remove();
+            // Visual disappears in the SAME trusted event, while the old
+            // invisible hit surface intercepts the remaining pointer sequence.
+            start.style.transition = 'none';
+            start.style.opacity = '0';
+            start.setAttribute('aria-hidden', 'true');
+            start.tabIndex = -1;
             try {
               const music = window.apexProductMusic;
               if (music?.request) music.request('boot-start');
@@ -783,10 +794,24 @@ export default function App() {
           };
           start.addEventListener('pointerdown', (event) => {
             if (event.pointerType === 'mouse' && event.button !== 0) return;
+            event.stopPropagation();
             activateStart();
+          }, { capture: true });
+          start.addEventListener('pointerup', (event) => {
+            event.stopPropagation();
+            // Touch synthetic click is sometimes delivered after pointerup.
+            // The invisible target remains for that event, then disposes.
+            if (activated) retireStart(200);
+          }, { capture: true });
+          start.addEventListener('pointercancel', () => {
+            if (activated) retireStart(200);
           });
-          // Enter/Space and assistive activation use click.
-          start.addEventListener('click', activateStart);
+          // Enter/Space and assistive activation, plus normal click cleanup.
+          start.addEventListener('click', (event) => {
+            event.stopPropagation();
+            activateStart();
+            retireStart();
+          }, { capture: true });
           document.body.appendChild(start);
           stopStartGuard = attachBootStartViewportGuard(start);
         });
