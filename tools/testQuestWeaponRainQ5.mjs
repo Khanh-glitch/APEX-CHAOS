@@ -6,7 +6,7 @@ const root={};vm.runInNewContext(fs.readFileSync(
 const Q=root.APEX_QUEST_MULTI_ACTOR_CORE;
 let n=0;const gate=(name,ok)=>{assert.ok(ok,name);n++;console.log('PASS E04 '+name);};
 const f=Q.weaponRainRoster().map((x,i)=>({...x,id:i+1,maxHp:x.hp,radius:75}));
-gate('native exact 1v2 HP',f.length===3&&f[0].maxHp===1000&&f.slice(1).every(x=>x.maxHp===450));
+gate('native exact 1v2 HP',f.length===3&&f[0].maxHp===1000&&f[1].maxHp===180&&f[2].maxHp===160);
 gate('roster validation',Q.validateWeaponRain(f).ok);
 gate('armed combat initial active',Q.weaponRainOutcome(f,false).status==='ACTIVE');
 f.slice(1).forEach(x=>x.hp=0);

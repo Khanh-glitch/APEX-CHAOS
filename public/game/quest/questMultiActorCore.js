@@ -288,8 +288,8 @@
   function weaponRainRoster(){
     return [
       {questId:'NEWBOT',questTeam:'ALLY',hp:1000,x:195,y:500,kind:'newbot'},
-      {questId:'RAIN-A',questTeam:'HOSTILE',hp:450,x:785,y:280,kind:'scout'},
-      {questId:'RAIN-B',questTeam:'HOSTILE',hp:450,x:785,y:740,kind:'reaver'}
+      {questId:'RAIN-A',questTeam:'HOSTILE',hp:180,x:785,y:280,kind:'scout'},
+      {questId:'RAIN-B',questTeam:'HOSTILE',hp:160,x:785,y:740,kind:'reaver'}
     ];
   }
   function validateWeaponRain(actors){

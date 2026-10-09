@@ -1235,13 +1235,13 @@ try{
         gate('E04 physical Gold weapon-rain battle ready '+trial,
           live?.gold&&live?.hud&&live?.active
           &&live?.roster?.map(x=>x.id).join('|')==='NEWBOT|RAIN-A|RAIN-B'
-          &&live.roster.map(x=>x.maxHp).join('|')==='1000|450|450',live);
+          &&live.roster.map(x=>x.maxHp).join('|')==='1000|180|160',live);
         if(!live?.active||!live?.hud)throw Error('E04 Gold true battle not live');
         if(trial===0){
           const denied=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E04_WEAPON_RAIN_CLEAR'))()");
           gate('E04 cannot claim win before authentic KO and final rain',denied?.ok===false,denied);
         }
-        const one=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=window.APEX_QUEST_MULTI_ACTOR_CORE;let n=0,maxOffensive=0;let phases=[];let last='';for(;n<7800;n++){if(n%80===0)window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyJ',key:'j',bubbles:true}));if(n%200===0)window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyK',key:'k',bubbles:true}));A.step(.05);const snap=A.state.questRainSequence?.snapshot?.();if(snap?.phase!==last){last=snap?.phase;phases.push({phase:last,time:A.state.time,attempted:snap?.attempted,accepted:snap?.accepted,rejected:snap?.rejected});}maxOffensive=Math.max(maxOffensive,(A.state.slots||[]).filter(x=>x.kind!=='HEAL'&&x.phase!=='REMOVED').length);if(A.state.over)break;}return{n,maxOffensive,phases,rain:A.state.questRainSequence?.snapshot?.(),outcome:A.state.questOutcome,over:A.state.over,canonical:Q.weaponRainOutcome(window.fighters,A.state.questRainSequence?.snapshot?.()?.observed===true),roster:(window.fighters||[]).map(x=>({id:x.questId,team:x.questTeam,hp:x.hp,maxHp:x.maxHp})),view:A.state.questRainStoryView?.snapshot?.(),checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}})()");
+        const one=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=window.APEX_QUEST_MULTI_ACTOR_CORE;let n=0,maxOffensive=0,gunFrames=0;let phases=[];let last='';const hero=window.fighters.find(x=>x.questId==='NEWBOT');for(;n<7800;n++){if(n%80===0)window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyJ',key:'j',bubbles:true}));if(n%200===0)window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyK',key:'k',bubbles:true}));A.step(.05);if(A.weaponApi.getHolder(hero))gunFrames++;const snap=A.state.questRainSequence?.snapshot?.();if(snap?.phase!==last){last=snap?.phase;phases.push({phase:last,time:A.state.time,attempted:snap?.attempted,accepted:snap?.accepted,rejected:snap?.rejected});}maxOffensive=Math.max(maxOffensive,(A.state.slots||[]).filter(x=>x.kind!=='HEAL'&&x.phase!=='REMOVED').length);if(A.state.over)break;}return{n,maxOffensive,gunUptimePct:Math.round(gunFrames/Math.max(1,n+1)*100),phases,rain:A.state.questRainSequence?.snapshot?.(),outcome:A.state.questOutcome,over:A.state.over,canonical:Q.weaponRainOutcome(window.fighters,A.state.questRainSequence?.snapshot?.()?.observed===true),roster:(window.fighters||[]).map(x=>({id:x.questId,team:x.questTeam,hp:x.hp,maxHp:x.maxHp})),view:A.state.questRainStoryView?.snapshot?.(),checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}})()");
         attemptsE04.push(one);
         gate('E04 never exceeds five real offensive floor slots '+trial,one?.maxOffensive<=5,one?.maxOffensive);
         if(one?.outcome==='COMPLETE'){
@@ -1281,7 +1281,7 @@ try{
         gate('E04 retry fully closes Gold and returns saved chapter',ready?.node==='WEAPON_RAIN'&&ready.closed,ready);
       }
       gate('E04 at least one honest full Chrome victory without HP injection',
-        clearE04,{victory:clearE04,attempts:attemptsE04.map(x=>({steps:x?.n,result:x?.outcome,phases:x?.phases,max:x?.maxOffensive,hp:x?.roster?.map(y=>y.hp)}))});
+        clearE04,{victory:clearE04,attempts:attemptsE04.map(x=>({steps:x?.n,result:x?.outcome,phases:x?.phases,max:x?.maxOffensive,gunUptime:x?.gunUptimePct,hp:x?.roster?.map(y=>y.hp)}))});
       if(clearE04){
         await cmd('Page.reload',{ignoreCache:true});
         const restoredE05=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,cues:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.completedCueIds?.length}))()",
