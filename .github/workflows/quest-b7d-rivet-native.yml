@@ -1,7 +1,7 @@
-name: B7c Real Fighter RIVET Nonlethal Thresholds
+name: B7d Isolated Native RIVET E07 Real Fight
 on:
   push:
-    branches: ['quest/b7c-native-rivet-damage-from-b6k']
+    branches: ['quest/b7d-isolated-native-rivet-encounter-from-b7c']
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,6 +21,8 @@ jobs:
         run: node tools/testQuestRivetThresholdB7a.mjs
       - name: Actual native Fighter 1000→400→375→180, terminal protection
         run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-rivet-native
+      - name: E07 isolated actual 1v1 Arsenal bullet threshold battle
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-rivet-encounter-native
       - name: Regression of E06 three-wave physical battle and retreat
         run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breach-native
       - name: Canonical Gold provenance
