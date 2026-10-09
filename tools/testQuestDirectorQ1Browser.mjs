@@ -668,7 +668,8 @@ try{
       else window.__APEX_TEST_MODE=previous;
     }
     const holder=A?.weaponApi?.getHolder(s?.questRivetPreview?.operator);
-    return {first,duplicate,before,holder:holder?.weaponId,
+    const premature=window.__apexQuestReflexTechnicalRead?.();
+    return {first,duplicate,before,holder:holder?.weaponId,premature,
       liveRoster:actors.map(f=>f.questId),
       stage:window.__apexQuestReflexRead?.()?.phase,
       checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId};
@@ -677,6 +678,8 @@ try{
     q4cKick?.first?.ok===true&&q4cKick?.duplicate?.ok===false
     &&q4cKick?.duplicate?.reason==='already-released'
     &&q4cKick?.holder==='STORMBREAKER'
+    &&q4cKick?.premature?.ready===false
+    &&q4cKick?.premature?.reason==='preview-not-settled'
     &&q4cKick?.liveRoster?.join(',')==='NEWBOT,T.O.T'
     &&q4cKick?.stage==='AWAIT_RIVET'&&q4cKick?.checkpoint==='WAKE',q4cKick);
   const q4cFlight=await evalPage(`(()=>{
@@ -757,11 +760,16 @@ try{
   const afterReflex=await poll(`(()=>({
     opened:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,
     checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,
-    read:window.__apexQuestReflexRead?.(),active:window.APEX_ARSENAL?.state?.active}))()`,
+    read:window.__apexQuestReflexRead?.(),
+    technical:window.__apexQuestReflexTechnicalRead?.(),
+    active:window.APEX_ARSENAL?.state?.active}))()`,
     x=>x?.opened===false&&x.active===false,150);
   gate('Q4A REFLEX exit releases receipt and preserves real WAKE checkpoint',
     afterReflex?.opened===false&&afterReflex?.active===false
-    &&afterReflex?.read==null&&afterReflex?.checkpoint==='WAKE',afterReflex);
+    &&afterReflex?.read==null
+    &&afterReflex?.technical?.ready===false
+    &&afterReflex?.technical?.reason==='no-active-reflex'
+    &&afterReflex?.checkpoint==='WAKE',afterReflex);
 
 }catch(err){
   gate('Browser route execution',false,{error:String(err.stack||err)});
