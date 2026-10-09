@@ -5867,9 +5867,13 @@ if (process.argv.includes('--quest-scrap-swarm-native')) {
       const phaseAfterA=A.state.questSwarmPhase;
       const receipt=A.state.questSwarmWaveAReceipt;
       const hpBefore=player.hp,slotsBefore=A.state.slots,holderBefore=W.getHolder(player);
-      for(let time=0;time<1.85-1e-9;time+=.05)A.step(.05);
+      // A.step clamps dt to its engine's frame budget (measured 1.76s
+      // from thirty-seven .05 calls). Test the observed physical phase,
+      // never assume a caller-supplied wall-clock sum is simulated time.
+      let seamSteps=0;
+      while(A.state.questSwarmPhase==='INTERLUDE'&&seamSteps++<300)A.step(.05);
       const waveBInit=Q.validateScrapSwarmWave(all(),'B');
-      const seamDiagnosis={phase:A.state.questSwarmPhase,
+      const seamDiagnosis={seamSteps,phase:A.state.questSwarmPhase,
         elapsed:A.state.questSwarmInterludeElapsed,
         wave:A.state.questSwarmWave,
         hasFactory:typeof A.state.questSwarmCreateFighter==='function',
