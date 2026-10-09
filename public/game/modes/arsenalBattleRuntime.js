@@ -361,32 +361,19 @@
       // Q4C preview: tick ONLY the real RIVET rig holder and its Arsenal
       // projectile, never resume fighters, spawns, time, skills or pickups.
       const rig=state.questRivetPreview;
-      if(rig && rig.phase!=='SETTLED'){
-        // A real thrown weapon can be created inside updateHolder. Never
-        // simulate and remove it in its birth frame before a Gold frame
-        // has a chance to see the actual STORMBREAKER flight. This is an
-        // isolated rig handoff, not synthetic projectile creation.
-        const before=projectiles.filter(p=>p.questRivetSuppression===true);
-        weaponApi.updateHolder(rig.operator,dt);
-        const born=projectiles.filter(p=>p.questRivetSuppression===true);
-        const justLaunched=!rig.sawFlight&&before.length===0&&born.length>0;
-        if(justLaunched){
-          rig.birth=Object.freeze({
-            x:born[0].x,y:born[0].y,vx:born[0].vx,vy:born[0].vy,
-            weapon:born[0].weapon,owner:born[0].owner?.questId,
-            kind:born[0].type
-          });
-        }else{
-          weaponApi.updateArsenalProjectiles(dt);
-        }
-        const live=projectiles.filter(p=>p.questRivetSuppression===true);
-        if(live.length){
-          rig.sawFlight=true;
-          rig.phase='FLIGHT';
-          rig.peakFlight=Math.max(rig.peakFlight,live.length);
-        }else if(rig.sawFlight){
+      if(rig&&rig.phase==='FLOOR_CHARGING'){
+        rig.elapsed+=dt;
+        const storm=window.APEX_ARSENAL_STORM;
+        if(storm?.spawnCount?.()>0&&storm?.boltCount?.()>0)
+          rig.electricFrames++;
+        rig.peakBolts=Math.max(rig.peakBolts,storm?.boltCount?.()||0);
+        const slot=state.slots.find(x=>x.id===rig.slotId);
+        if(rig.elapsed>=3.0&&rig.electricFrames>=10
+          &&rig.peakBolts>0&&slot?.weaponId==='STORMBREAKER'
+          &&slot.phase==='REVEALED'&&slot.questNarrativeOnly===true){
           rig.phase='SETTLED';rig.settled=true;
-          AQ.log('QUEST_RIVET_PREVIEW_SETTLED','real flight resolved; Story stays WAKE');
+          AQ.log('QUEST_RIVET_FLOOR_DISCHARGED',
+            'authored ground weapon + real Gold lightning; no thrown weapon');
         }
       }
       weaponApi.tickVisuals(dt);
@@ -1833,7 +1820,7 @@
               }else if(beatId==='E01_RIVET_SUPPRESSION_TECH'){
                 const proof=window.__apexQuestReflexTechnicalRead?.();
                 if(proof?.ready===true && proof?.groundImpact?.kind===
-                   'REAL_ARSENAL_FLOOR_CONTACT'
+                   'REAL_ARSENAL_FLOOR_SPAWN'
                    &&proof.checkpointAuthorized===false){
                   // A genuine settled E01 may preview the next cinematic
                   // storytelling PANEL, but there is NO WORKSHOP save/write.
@@ -2008,50 +1995,54 @@
       &&state?.questStoryView
       &&window.__apexGoldBattleHosted===true;
     const authorized=storyAuthorized||(window.__APEX_TEST_MODE===true
-      && ['localhost','127.0.0.1','::1'].includes(String(window.location?.hostname||'')))
+      &&['localhost','127.0.0.1','::1'].includes(String(window.location?.hostname||'')))
       ||(window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true);
     if(!authorized)return {ok:false,reason:'preview-only'};
     if(!state?.active||state.questReflex!==true
-       ||state.questReflexGate?.snapshot()?.awaitingRivet!==true
-       ||state.questReflexHold?.phase!=='AWAIT_RIVET')
+      ||state.questReflexGate?.snapshot()?.awaitingRivet!==true
+      ||state.questReflexHold?.phase!=='AWAIT_RIVET')
       return {ok:false,reason:'real-safe-hold-required'};
     if(state.questRivetPreview)return {ok:false,reason:'already-released'};
     if(projectiles.length)return {ok:false,reason:'unsettled-projectiles'};
-    // Recalculate the world-ground target only AFTER real HP/skill hold.
-    // This is a non-combatant floor point, never a Fighter or dummy HP pool.
-    const alive=(fighters||[]).filter(f=>f?.hp>0);
-    if(alive.length!==2)return {ok:false,reason:'wrong-fighter-pair'};
-    const floorX=Math.max(45,Math.min(955,(alive[0].x+alive[1].x)/2));
-    const floorY=Math.max(45,Math.min(955,(alive[0].y+alive[1].y)/2));
-    const operator={id:'Q01-RIVET-RIG-PREVIEW',name:'RIVET',questId:'RIVET',
-      questTeam:'RIG_OPERATOR',hp:1000,maxHp:1000,
-      // Keep the thrown-weapon spawn safely INSIDE the arena even when
-      // the midpoint is near the north wall. Too-near-wall launches
-      // ricochet/exit before any real ground contact (Q4F RED finding).
-      // A low midpoint flips the shot northward instead of forcing it
-      // against the world boundary. Arsenal owns the resulting direction.
-      x:floorX,y:floorY>=180?Math.max(85,floorY-270):Math.min(915,floorY+270),
-      radius:8,dir:{x:0,y:floorY>=180?1:-1},data:{}};
-    // Suppression reaches the computed midpoint via the original weapon's
-    // real throw lifecycle; neither friend becomes a target or loses HP.
-    state.questRivetPreview={
-      phase:'READY',operator,aimPoint:{x:floorX,y:floorY,hp:1},
-      sawFlight:false,peakFlight:0,settled:false,groundImpact:null,
-      storyComplete:false,authority:'ARSENAL_STORMBREAKER_EQUIP_PREVIEW',
-      freeze:{
-        time:state.time,
-        hp:(fighters||[]).map(f=>[f.questId,f.hp]),
-        pos:(fighters||[]).map(f=>[f.questId,f.x,f.y]),
-        slots:(state.slots||[]).map(s=>[s.id,s.phase])
-      },
-      getSlots:()=>state.slots||[]
+    const live=(fighters||[]).filter(f=>f?.hp>0);
+    if(live.length!==2)return {ok:false,reason:'wrong-fighter-pair'};
+    const x=Math.max(120,Math.min(880,(live[0].x+live[1].x)/2));
+    const y=Math.max(120,Math.min(880,(live[0].y+live[1].y)/2));
+    const freeze={
+      time:state.time,
+      hp:live.map(f=>[f.questId,f.hp]),
+      pos:live.map(f=>[f.questId,f.x,f.y]),
+      slots:state.slots.map(slot=>[slot.id,slot.phase])
     };
-    if(!weaponApi.equip(operator,'STORMBREAKER')){
-      state.questRivetPreview=null;
-      return {ok:false,reason:'real-equip-failed'};
+    // Cinematic starts after combat is genuinely frozen: retire previous
+    // floor pickups at the visible battle interruption, not between
+    // tutorial stages. Maintain offensive cap 5 for the ONE narrative item.
+    const previousSlots=state.slots;
+    state.slots=[];
+    const slot=SPAWN.trySpawnSlot({
+      questWeaponId:'STORMBREAKER',
+      questStage:'E01_GROUND_SUPPRESSION',
+      questPoint:{x,y}
+    });
+    if(!slot||slot.questNarrativeOnly!==true){
+      state.slots=previousSlots;
+      return {ok:false,reason:'ground-manifest-rejected'};
     }
-    AQ.log('QUEST_RIVET_PREVIEW_START','real Stormbreaker equipped off roster');
-    return {ok:true,phase:'READY'};
+    // Actual Arsenal slot and Gold Stormbreaker floor VFX authority.
+    // Not equippable: this is the authored rescue, never random T6 loot.
+    slot.phase='REVEALED';slot.weaponId='STORMBREAKER';
+    slot.tier='T6';slot.revealedFor=0;
+    state.questRivetPreview={
+      phase:'FLOOR_CHARGING',authority:'ARSENAL_STORMBREAKER_FLOOR_MANIFEST',
+      slotId:slot.id,aimPoint:{x,y},
+      groundImpact:{kind:'REAL_ARSENAL_FLOOR_SPAWN',x,y,slotId:slot.id},
+      elapsed:0,electricFrames:0,peakBolts:0,settled:false,
+      storyComplete:false,freeze,
+      getSlots:()=>state.slots
+    };
+    AQ.log('QUEST_RIVET_FLOOR_SPAWN',
+      'one visible Story Stormbreaker in physical Arsenal slot');
+    return {ok:true,phase:'FLOOR_CHARGING'};
   }
   // Public engineering preview deliberately receives no internalStory
   // capability. Passing arbitrary arguments cannot promote it to Story.
