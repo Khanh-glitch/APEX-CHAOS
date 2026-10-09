@@ -6068,7 +6068,7 @@ if(process.argv.includes('--quest-reflex-real')){
 if(process.argv.includes('--quest-reflex-real')){
   try{
     const trials=[];
-    for(let trial=0;trial<3;trial++){
+    for(let trial=0;trial<12;trial++){
     const natural=run(`
       const entered=window.__apexQuestReflexStart?.()===true;
       const A=window.APEX_ARSENAL, W=A?.weaponApi,f=window.fighters||[];
@@ -6101,12 +6101,13 @@ if(process.argv.includes('--quest-reflex-real')){
     `);
     trials.push(natural);
     }
-    gate('q4a-organic-reflex-3-of-3-r1-r2-real-pickups-no-synthetic-shots',
-      trials.length===3&&trials.every(natural=>
+    gate('q4a-organic-reflex-12-of-12-r1-r2-real-pickups-no-synthetic-shots',
+      trials.length===12&&trials.every(natural=>
       natural?.ready===true&&natural?.clean===true
       &&natural?.seen?.NEWBOT===true&&natural?.seen?.['T.O.T']===true
-      &&natural?.actualStagePickups?.some(p=>p.stage==='R1_PISTOL'&&p.owner==='NEWBOT'&&p.weapon==='PISTOL')
-      &&natural?.actualStagePickups?.some(p=>p.stage==='R2_PISTOL'&&p.owner==='T.O.T'&&p.weapon==='PISTOL')
+      &&natural?.actualStagePickups?.some(p=>p.stage==='R1_PISTOL'&&p.owner==='NEWBOT'&&p.weapon==='PISTOL'&&p.time>=.65)
+      &&natural?.actualStagePickups?.some(p=>p.stage==='R2_PISTOL'&&p.owner==='T.O.T'&&p.weapon==='PISTOL'
+        &&p.time>natural.actualStagePickups.find(q=>q.stage==='R1_PISTOL')?.time)
       &&natural?.phase==='J_CAST'&&natural?.over===null
       &&natural?.receipts?.length>=2
       &&natural.receipts[0].kind==='PISTOL_HIT'
