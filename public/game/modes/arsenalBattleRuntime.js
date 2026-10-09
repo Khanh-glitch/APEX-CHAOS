@@ -213,8 +213,17 @@
       let mech = null;
       if (!isWeapon) {
         mech = nativeMechanic(label, statusDamage);
-        const mult = CFG.NATIVE_ARSENAL_MULT[mech] != null ? CFG.NATIVE_ARSENAL_MULT[mech] : CFG.NATIVE_ARSENAL_MULT.default;
-        scaled = amount * mult;
+        // Owner-authored Quest LV2/LV3 damage has explicit final HP values:
+        // 50 per collision and 100 per laser. The global Free Battle
+        // native-kit balance reduction must not silently halve these.
+        // This STILL calls the original Fighter.takeDamage with full normal
+        // immunity/mitigation and telemetry; no direct HP write.
+        const exactQuestHit=st.questMultiActor===true
+          &&(label==='quest-reaver-contact'||label==='quest-sentinel-blue-laser');
+        const mult=exactQuestHit?1:(
+          CFG.NATIVE_ARSENAL_MULT[mech]!=null
+            ?CFG.NATIVE_ARSENAL_MULT[mech]:CFG.NATIVE_ARSENAL_MULT.default);
+        scaled=amount*mult;
       }
       // Lab: temporary HP headroom lets the unmodified engine resolve the
       // ENTIRE real hit (including lethal-equivalent damage, HUD, VFX and
