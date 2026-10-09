@@ -41,7 +41,7 @@ function create(){
     emit('E01_RIVET_HOLD');
   if(issued.has('E01_RIVET_HOLD')&&tech?.ready===true
     &&tech.kind==='E01_RIVET_TECHNICAL_PREVIEW'
-    &&tech.phase==='PREVIEW_SETTLED'
+    &&tech.phase==='FLOOR_DISCHARGED'
     &&tech.checkpointAuthorized===false&&tech.storyComplete===false
     &&tech.weapon==='STORMBREAKER'&&tech.operator==='RIVET')
     emit('E01_RIVET_SUPPRESSION_TECH');

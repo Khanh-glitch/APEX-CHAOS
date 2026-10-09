@@ -29,7 +29,7 @@ g.observeReflex(snap('AWAIT_RIVET',[r1,r2,j,k],550));
 ok('both HP real thresholds required before rescue hold',!g.snapshot().emitted.includes('E01_RIVET_HOLD'));
 g.observeReflex(snap('AWAIT_RIVET',[r1,r2,j,k]));
 ok('valid ordered receipts/HP permit hold only',g.snapshot().emitted.at(-1)==='E01_RIVET_HOLD');
-const tech={ready:true,kind:'E01_RIVET_TECHNICAL_PREVIEW',phase:'PREVIEW_SETTLED',
+const tech={ready:true,kind:'E01_RIVET_TECHNICAL_PREVIEW',phase:'FLOOR_DISCHARGED',
  checkpointAuthorized:false,storyComplete:false,weapon:'STORMBREAKER',operator:'RIVET'};
 g.observeReflex(snap('AWAIT_RIVET',[r1,r2,j,k]),{...tech,checkpointAuthorized:true});
 ok('forged permission cannot complete rescue cue',!g.snapshot().emitted.includes('E01_RIVET_SUPPRESSION_TECH'));

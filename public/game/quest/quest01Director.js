@@ -304,8 +304,8 @@
       const ground=q.questRivetPreview?.groundImpact;
       if(proof?.ready!==true||proof.kind!=='E01_RIVET_TECHNICAL_PREVIEW'
         ||proof.checkpointAuthorized!==false||proof.storyComplete!==false
-        ||proof.groundImpact?.kind!=='REAL_ARSENAL_FLOOR_CONTACT'
-        ||ground?.kind!=='REAL_ARSENAL_FLOOR_CONTACT'
+        ||proof.groundImpact?.kind!=='REAL_ARSENAL_FLOOR_SPAWN'
+        ||ground?.kind!=='REAL_ARSENAL_FLOOR_SPAWN'
         ||ground?.x!==proof.groundImpact.x||ground?.y!==proof.groundImpact.y
         ||!Array.isArray(root.projectiles)||root.projectiles.length!==0
         ||q.over!=null)return no('no-physical-rescue-proof');

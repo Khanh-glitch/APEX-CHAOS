@@ -767,7 +767,7 @@ try{
     &&q4cSettle?.technical?.peakBolts>0
     &&q4cSettle?.technical?.elapsed>=3
     &&q4cSettle?.storyBeats?.emitted?.join('|')===
-      'E01_R1_IMPACT|E01_R2_IMPACT|E01_J_REVEAL|E01_K_REVEAL|E01_RIVET_HOLD'
+      'E01_R1_IMPACT|E01_R2_IMPACT|E01_J_REVEAL|E01_K_REVEAL|E01_RIVET_HOLD|E01_RIVET_SUPPRESSION_TECH'
     &&q4cSettle.storyBeats.checkpointAuthorized===false
     &&q4cSettle.storyBeats.storyComplete===false
     &&q4cSettle.technical.kind==='E01_RIVET_TECHNICAL_PREVIEW'
@@ -871,15 +871,15 @@ try{
   // CDP touchEnd is delivered asynchronously. Observe the result of the
   // PHYSICAL tap; do not direct-call any rescue function to fake success.
   const auto=await poll("(()=>({start:window.APEX_ARSENAL?.state?.questStoryRescueStart,phase:window.APEX_ARSENAL?.state?.questRivetPreview?.phase,view:window.__apexQuestStoryViewRead?.()}))()",
-    v=>v?.start?.ok===true&&v?.phase==='READY'&&v?.view?.active===false,90);
-  gate('Q4G physical Continue triggers exactly one authorized genuine rig equip',
-    holdClick.hit&&auto?.start?.ok===true&&auto?.phase==='READY'
+    v=>v?.start?.ok===true&&(v?.phase==='FLOOR_CHARGING'||v?.phase==='SETTLED')&&v?.view?.active===false,90);
+  gate('Q4G physical Continue starts exactly one real Stormbreaker floor manifestation',
+    holdClick.hit&&auto?.start?.ok===true&&['FLOOR_CHARGING','SETTLED'].includes(auto?.phase)
     &&auto?.view?.active===false,auto);
   const q4gGround=await evalPage("(()=>{const A=window.APEX_ARSENAL;let n=0;for(;n<450;n++){A.step(.05);if(window.__apexQuestStoryViewRead?.()?.active)break;}const rig=A.state.questRivetPreview,proof=window.__apexQuestReflexTechnicalRead?.();return {steps:n,scene:window.__apexQuestStoryViewRead?.()?.current,rig:rig?.phase,contact:rig?.groundImpact,proof,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,hp:window.fighters.map(f=>f.hp),storySave:window.__apexQuestReflexRead?.()?.storyProgress,visualImpacts:window.APEX_ARSENAL_STORM?.stats?.impacts}})()");
-  gate('Q4G actual ground-struck Stormbreaker opens cinematic, no 446 HP or save',
+  gate('Q4G grounded Stormbreaker electrifies for 3s, opens scene without HP/save mutation',
     q4gGround?.scene==='E01_RIVET_SUPPRESSION_TECH'
     &&q4gGround?.rig==='SETTLED'
-    &&q4gGround?.contact?.kind==='REAL_ARSENAL_FLOOR_CONTACT'
+    &&q4gGround?.contact?.kind==='REAL_ARSENAL_FLOOR_SPAWN'
     &&q4gGround?.proof?.ready===true
     &&q4gGround?.checkpoint==='WAKE'
     &&q4gGround?.storySave===false
@@ -969,13 +969,13 @@ try{
     deniedBefore?.ok===false,deniedBefore);
   await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
   const rig=await poll("(()=>({ok:window.APEX_ARSENAL?.state?.questStoryRescueStart?.ok,phase:window.APEX_ARSENAL?.state?.questRivetPreview?.phase}))()",
-    v=>v?.ok===true&&v.phase==='READY',100);
-  gate('Q4H physical rescue acknowledgement equips one genuine Stormbreaker',
-    rig?.ok===true&&rig.phase==='READY',rig);
+    v=>v?.ok===true&&['FLOOR_CHARGING','SETTLED'].includes(v.phase),100);
+  gate('Q4H physical acknowledgment starts one genuine floor Stormbreaker',
+    rig?.ok===true&&['FLOOR_CHARGING','SETTLED'].includes(rig.phase),rig);
   const struck=await evalPage("(()=>{const A=window.APEX_ARSENAL;let n=0;for(;n<550;n++){A.step(.05);if(window.__apexQuestStoryViewRead?.()?.active)break;}return {steps:n,scene:window.__apexQuestStoryViewRead?.()?.current,hit:A.state.questRivetPreview?.groundImpact,proof:window.__apexQuestReflexTechnicalRead?.(),node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,hp:(window.fighters||[]).map(x=>x.hp)}})()");
-  gate('Q4H one swept Arsenal floor strike is necessary, and not a save trigger',
+  gate('Q4H one physical floor manifestation/discharge is necessary, not a save trigger',
     struck?.scene==='E01_RIVET_SUPPRESSION_TECH'
-    &&struck?.hit?.kind==='REAL_ARSENAL_FLOOR_CONTACT'
+    &&struck?.hit?.kind==='REAL_ARSENAL_FLOOR_SPAWN'
     &&struck?.proof?.ready===true&&struck?.node==='REFLEX'
     &&JSON.stringify(struck?.hp)===JSON.stringify(kCast?.hp),struck);
   await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
