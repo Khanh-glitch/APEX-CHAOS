@@ -16,7 +16,7 @@ const chrome=process.env.APEX_CDP_ENDPOINT?null:spawn(chromePath,[
   '--user-data-dir='+path.join('/tmp',isMobile?'apex-quest-q1-mobile':'apex-quest-q1-cdp'),
   appUrl],{stdio:'ignore'});
 let socket;
-let serial=0;const pending=new Map();const gates=[], failures=[];
+let serial=0;const pending=new Map();const gates=[], failures=[],browserConsole=[];
 const gate=(label,pass,data)=>{
   gates.push({label,pass:!!pass,data});
   if(!pass)failures.push(label);
@@ -39,6 +39,13 @@ async function connect(){
   });
   socket.addEventListener('message',({data})=>{
     const msg=JSON.parse(data);
+    if(msg.method==='Runtime.consoleAPICalled'||msg.method==='Runtime.exceptionThrown'){
+      const v=msg.params||{};
+      browserConsole.push({kind:msg.method,
+        text:(v.args||[]).map(a=>a.value??a.description??'').join(' '),
+        error:v.exceptionDetails?.exception?.description||''});
+      if(browserConsole.length>80)browserConsole.shift();
+    }
     if(!msg.id||!pending.has(msg.id))return;
     const p=pending.get(msg.id);pending.delete(msg.id);
     if(msg.error)p.reject(new Error(msg.error.message));
@@ -1103,12 +1110,16 @@ try{
       gate('Q5 authentic Gold-mounted E03 wave A entry '+attempt,
         live?.live&&live?.gold&&live?.open&&live?.actors?.length===4
         &&live.actors[0]?.id==='NEWBOT'&&live.actors.slice(1).every(a=>a.max===280),live);
-      if(!live?.live||!live?.open)throw new Error('Q5 Gold-owned E03 boot failed');
+      if(!live?.live||!live?.open){
+        const diagnostics=await evalPage("(()=>({questReady:typeof window.__apexQuestScrapSwarmStoryStart,questCore:!!window.APEX_QUEST_MULTI_ACTOR_CORE,coreWave:window.APEX_QUEST_MULTI_ACTOR_CORE?.scrapSwarmRoster?.('A')?.length,shellType:window.APEX_ARSENAL_SHELLS?.typeFor?.('ROBOT')?.name,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,goldHosted:window.__apexGoldBattleHosted===true,state:{active:window.APEX_ARSENAL?.state?.active,quest:window.APEX_ARSENAL?.state?.questScrapSwarmProgression},hud:document.getElementById('battleHudHost')?.className,stage:document.getElementById('apexQuest01Stage')?.hidden===false,body:document.body.className,errors:window.apexEarlyErrors?.slice?.(-6)}))()");
+        gate('Q5 blocked Gold entry root-cause diagnostics',false,{diagnostics,console:browserConsole.slice(-22)});
+        throw new Error('Q5 Gold-owned E03 boot failed');
+      }
       if(attempt===0){
         const skip=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E03_SCRAP_SWARM_CLEAR'))()");
         gate('Q5 cannot skip either of two native waves',skip?.ok===false,skip);
       }
-      const organic=await evalPage("(()=>{const A=window.APEX_ARSENAL, Q=window.APEX_QUEST_MULTI_ACTOR_CORE; const f=window.fighters; const n=f[0], slots=A.state.slots; const W=A.weaponApi; const h=W.getHolder(n); let steps=0;let first=null,seam=null;for(;steps<9600;steps++){A.step(.05);if(!first&&A.state.questSwarmPhase==='INTERLUDE'){first={wave:A.state.questSwarmWave,receipt:A.state.questSwarmWaveAReceipt,actors:f.map(a=>({id:a.questId,hp:a.hp})),player:n.hp,phase:A.state.questSwarmPhase,slotsSame:slots===A.state.slots};}if(first&&!seam&&A.state.questSwarmWave==='B'){seam={playerSame:f[0]===n,hpAfter:n.hp,slotsSame:slots===A.state.slots,holderSame:W.getHolder(n)===h,roster:Q.validateScrapSwarmWave(f,'B'),receipt:A.state.questSwarmWaveAReceipt};}if(A.state.over)break;}return{steps,outcome:A.state.questOutcome,over:A.state.over,wave:A.state.questSwarmWave,phase:A.state.questSwarmPhase,first,seam,actors:f.map(a=>({id:a.questId,hp:a.hp,max:a.maxHp,team:a.questTeam})),view:A.state.questSwarmStoryView?.snapshot?.(),checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}})()");
+      const organic=await evalPage("(()=>{const A=window.APEX_ARSENAL, Q=window.APEX_QUEST_MULTI_ACTOR_CORE; const f=window.fighters; const n=f[0], slots=A.state.slots; const W=A.weaponApi; let hAtWaveAEnd=null; let steps=0;let first=null,seam=null;for(;steps<9600;steps++){A.step(.05);if(!first&&A.state.questSwarmPhase==='INTERLUDE'){hAtWaveAEnd=W.getHolder(n);first={wave:A.state.questSwarmWave,receipt:A.state.questSwarmWaveAReceipt,actors:f.map(a=>({id:a.questId,hp:a.hp})),player:n.hp,phase:A.state.questSwarmPhase,slotsSame:slots===A.state.slots};}if(first&&!seam&&A.state.questSwarmWave==='B'){seam={playerSame:f[0]===n,hpAfter:n.hp,slotsSame:slots===A.state.slots,holderSame:W.getHolder(n)===hAtWaveAEnd,roster:Q.validateScrapSwarmWave(f,'B'),receipt:A.state.questSwarmWaveAReceipt};}if(A.state.over)break;}return{steps,outcome:A.state.questOutcome,over:A.state.over,wave:A.state.questSwarmWave,phase:A.state.questSwarmPhase,first,seam,actors:f.map(a=>({id:a.questId,hp:a.hp,max:a.maxHp,team:a.questTeam})),view:A.state.questSwarmStoryView?.snapshot?.(),checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}})()");
       attempts.push(organic);
       if(organic?.first)gate('Q5 real three-hostile KO launches interlude '+attempt,
         organic.first.wave==='A'&&organic.first.receipt?.length===3
