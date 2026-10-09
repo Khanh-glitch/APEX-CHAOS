@@ -1,0 +1,68 @@
+name: R89 Font Parity + Legacy Cleanup (Fast)
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - arena/r89-font-parity-quest-merge-prep
+    paths:
+      - 'src/App.jsx'
+      - 'src/main.jsx'
+      - 'src/game/goldFontParity.css'
+      - 'src/game/homeLayoutLab.js'
+      - 'src/game/shortPortraitPickRuntime.js'
+      - 'tools/testR89GoldProfilesBrowser.mjs'
+      - '.github/workflows/r89-font-parity-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  typography-and-cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify retired modules are not booted or shipped
+        run: |
+          test ! -e src/game/homeLayoutLab.js
+          test ! -e src/game/shortPortraitPickRuntime.js
+          test ! -e src/game/shortPortraitPick.css
+          ! grep -q "homeLayoutLab.js" src/main.jsx
+          ! grep -q "shortPortraitPickRuntime.js" src/main.jsx
+          test -s src/game/goldFontParity.css
+      - name: Install locked dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.9 --activate
+          pnpm install --frozen-lockfile
+      - name: Verify real Chromium font family and mobile hit regions
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          pnpm exec vite --host 127.0.0.1 --port 5173 --strictPort >/tmp/r89-font-vite.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/gold-fidelity-profiles.mjs >/dev/null; then READY=1; break; fi
+            sleep 1
+          done
+          test "$READY" = 1
+          R89_ONLY_INTERMEDIATE=1 CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:5173/ node tools/testR89GoldProfilesBrowser.mjs
+      - name: Build and verify localized typeface assets in shipped bundle
+        run: |
+          pnpm build
+          node tools/testShippingDist.mjs
+          test -s dist/gold/fonts.css
+          test -s dist/gold/fonts/oswald-latin-700-normal.woff2
+          test -s dist/gold/fonts/oswald-latin-ext-700-normal.woff2
+      - name: Save font fidelity screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r89-font-parity-browser-proof
+          path: docs/acceptance/r89-gold-profiles/
+          if-no-files-found: warn
