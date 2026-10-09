@@ -1397,8 +1397,13 @@
     const floorY=Math.max(45,Math.min(955,(alive[0].y+alive[1].y)/2));
     const operator={id:'Q01-RIVET-RIG-PREVIEW',name:'RIVET',questId:'RIVET',
       questTeam:'RIG_OPERATOR',hp:1000,maxHp:1000,
-      x:floorX,y:Math.max(12,Math.min(988,floorY-300)),radius:8,
-      dir:{x:0,y:1},data:{}};
+      // Keep the thrown-weapon spawn safely INSIDE the arena even when
+      // the midpoint is near the north wall. Too-near-wall launches
+      // ricochet/exit before any real ground contact (Q4F RED finding).
+      // A low midpoint flips the shot northward instead of forcing it
+      // against the world boundary. Arsenal owns the resulting direction.
+      x:floorX,y:floorY>=180?Math.max(85,floorY-270):Math.min(915,floorY+270),
+      radius:8,dir:{x:0,y:floorY>=180?1:-1},data:{}};
     // Suppression reaches the computed midpoint via the original weapon's
     // real throw lifecycle; neither friend becomes a target or loses HP.
     state.questRivetPreview={
