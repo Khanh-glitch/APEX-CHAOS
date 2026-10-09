@@ -83,6 +83,11 @@ function create({state,hero,tot,weaponApi,spawn,authority,onCue}={}){
  function snapshot(){return Object.freeze({
    ...adapter.snapshot(),spawned,returned,slotId:slot?.id||null,
    slotPhase:slot?.phase||null,cradle,projectileReleased:!!projectile,
+   projectileState:projectile?.state||null,
+   projectileFlightTime:projectile?.flightTime??null,
+   projectileLife:projectile?.life??null,
+   projectilePos:projectile?{x:projectile.x,y:projectile.y}:null,
+   projectileInWorld:!!(projectile&&root.projectiles?.includes(projectile)),
    projectileNative:projectile?.type==='aq_thrown'
       &&projectile?.questTotArtifactId===String(slot?.id),
    receipts:receipts.map(r=>({...r})),pendingScenes:queue.slice()
