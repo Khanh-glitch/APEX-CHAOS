@@ -103,8 +103,32 @@
     return tEnter;
   }
 
+  // Quest 01 weapon economy is explicitly ONLY white/green T1/T2.
+  // The donor's T3–T6 loot weighting remains unchanged in Free Battle.
+  const isQuestWeaponContext=()=>AQ.state?.questMultiActor===true
+    ||AQ.state?.questReflex===true;
+  function questTierAllowed(id){
+    const tier=CFG.tierOf?.(id);
+    return tier==='T1'||tier==='T2';
+  }
+  function questWeaponPool(){
+    const ids=[...(CFG.BY_TIER?.T1||[]),...(CFG.BY_TIER?.T2||[])];
+    return ids.filter(id=>CFG.isOffensive?.(id)
+      &&id!=='SWIRL_SHIELD'&&id!=='TOWER_SHIELD');
+  }
+  function chooseQuestWeapon(random,onlyGun){
+    const ids=questWeaponPool().filter(id=>!onlyGun||CFG.isGun?.(id));
+    if(!ids.length)return 'PISTOL';
+    let sum=0;
+    for(const id of ids)sum+=weightFor(id);
+    let roll=random()*sum;
+    for(const id of ids){roll-=weightFor(id);if(roll<0)return id;}
+    return ids[ids.length-1];
+  }
+
   function selectFirearmWeapon(rng) {
     const random = typeof rng === 'function' ? rng : (AQ.rng || Math.random);
+    if(isQuestWeaponContext())return chooseQuestWeapon(random,true);
     const ids = (CFG.GUN_REGISTRY || []).map((e) => e.id);
     if (!ids.length) return 'PISTOL';
     if (CFG.selectOffensiveWeapon) {
@@ -210,6 +234,7 @@
   }
   function selectSpawnWeapon(rng) {
     const random = typeof rng === 'function' ? rng : (AQ.rng || Math.random);
+    if(isQuestWeaponContext())return chooseQuestWeapon(random,false);
     if (CFG.selectOffensiveWeapon) return CFG.selectOffensiveWeapon(random).id;
     const ids = (CFG.OFFENSIVE_WEAPON_IDS || CFG.P0_WEAPON_IDS).filter((id) => id !== 'SWIRL_SHIELD' && id !== 'TOWER_SHIELD');
     let total = 0;
@@ -230,6 +255,12 @@
     slot.weaponId=slot.questWeaponId || (AQ.state?.questReflex===true
       ? 'PISTOL'
       : (slot.forceFirearm ? selectFirearmWeapon() : selectSpawnWeapon()));
+    // This is a SECOND authority barrier on the actual visible slot, so
+    // newly added reveal pathways can never display blue+ Quest loot.
+    if(isQuestWeaponContext()&&!questTierAllowed(slot.weaponId)){
+      log('QUEST_RARITY_DENIED',String(slot.weaponId));
+      slot.weaponId='PISTOL';
+    }
     slot.tier = CFG.tierOf ? CFG.tierOf(slot.weaponId) : null;
     slot.revealedFor = 0;
     const etaText = Number.isFinite(eta) ? eta.toFixed(2) : 'null';
@@ -350,7 +381,8 @@
         // The generic automatic counter system may transform a floor gun
         // into SWIRL_SHIELD. Never let it replace the E01 authored PISTOL;
         // otherwise R2 can be armed with a shield and soft-lock indefinitely.
-        if (state.questReflex!==true && !slot.questPickupOwner && earliest && weaponApi && earliest.fighter && !weaponApi.getHolder(earliest.fighter)) {
+        if (state.questReflex!==true&&state.questMultiActor!==true
+          && !slot.questPickupOwner && earliest && weaponApi && earliest.fighter && !weaponApi.getHolder(earliest.fighter)) {
           const opponents = state.questMultiActor && window.APEX_QUEST_MULTI_ACTOR_CORE
             ? window.APEX_QUEST_MULTI_ACTOR_CORE.livingEnemies(earliest.fighter, fighters)
             : [earliest.fighter === hero ? rival : hero];

@@ -25,6 +25,8 @@ jobs:
       - run: pnpm arsenal:sfx:materialize
       - name: B1 real engine reflectDir and contact event law
         run: node tools/testQuestContactReflectionB1.mjs
+      - name: Quest actual weapon selection T1/T2 barrier
+        run: node tools/testQuestRarityB1.mjs
       - name: Prior Quest and source generation regression
         run: |
           node tools/testQuestGenericRosterQ2.mjs
