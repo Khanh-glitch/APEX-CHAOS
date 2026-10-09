@@ -314,6 +314,17 @@ try{
     output.push({id:v.name,solo:true,before,after});
   }
 
+  // Safe rollback must load the genuine top-level Gold game, even with an
+  // iPhone user agent. No nested frame, redirect loop or custom viewport.
+  await resize(375,667);
+  await command('Emulation.setUserAgentOverride',{userAgent:iPhoneUA});
+  const nativeURL=new URL('/',url);nativeURL.searchParams.set('goldViewport','native');
+  await command('Page.navigate',{url:nativeURL.href});
+  const nativeReady=await wait("Boolean(document.querySelector('#stage')&&document.getElementById('apex-boot-start'))");
+  check('R89 mobile native rollback retains direct game',nativeReady&&
+    await evalJS("location.pathname==='/'&&!window.__apexGoldFidelity&&!!document.querySelector('#stage')"));
+  await command('Emulation.setUserAgentOverride',{userAgent:originalUA});
+
   await writeFile(dir+'/report.json',JSON.stringify({output,failures},null,2));
   console.log('R89 FINAL '+JSON.stringify({profiles:anchorProfiles.length,cases:anchorProfiles.length*2+intermediate.length+2,failures:failures.length}));
   if(failures.length)throw Error('R89 native Gold profile invariance failed '+failures.length);
