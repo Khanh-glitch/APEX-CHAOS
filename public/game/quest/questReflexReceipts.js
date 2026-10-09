@@ -80,8 +80,9 @@
     if(!Array.isArray(actors)||actors.length!==2)return no('wrong-live-roster');
     const n=actors.find(x=>x?.questId==='NEWBOT'&&x.questTeam==='ALLY');
     const t=actors.find(x=>x?.questId==='T.O.T'&&x.questTeam==='HOSTILE');
+    // Only live HP threshold and authentic receipt matter. The previous
+    // >=250 hidden floor silently invalidated a successful low-HP lesson.
     if(!n||!t||n===t||n.hp<=0||t.hp<=0||n.hp>500||t.hp>500
-      ||n.hp<250||t.hp<250
       ||snap.hp?.newbot!==n.hp||snap.hp?.tot!==t.hp)return no('inconsistent-fighter-hp');
     if(hold?.phase!=='AWAIT_RIVET'||hold.hp?.length!==2||hold.at!==time
       ||hold.hp.some(h=>!actors.some(a=>a.questId===h.id&&a.hp===h.hp)))

@@ -1,0 +1,42 @@
+name: Quest B3b Integrated Responsive HUD and Honest E01
+on:
+  push:
+    branches: ['quest/b3b-integrated-hud-reflex-from-b1']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - name: Prove generated R90 + Quest HUD byte parity
+        run: node tools/buildGoldCutover.mjs --check
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Arena-first and continuous team health
+        run: node tools/testQuestHudArenaB3.mjs
+      - name: Honest E01 pickup and spawn invariants
+        run: node tools/testQuestTransparentReflexB2.mjs
+      - name: Free Battle and Quest weapon rarity
+        run: node tools/testQuestRarityB1.mjs
+      - name: Native reflection and enemy skill rules
+        run: |
+          node tools/testQuestContactReflectionB1.mjs
+          node tools/testQuestEnemyAbilitiesB1.mjs
+          node tools/testQuestScrapSwarmQ5.mjs
+          node tools/testQuestWeaponRainQ5.mjs
+          node tools/testQuestBreakerChargeQ5.mjs
+      - name: Gold responsive and Quest director authority
+        run: |
+          node tools/testR89GoldResolver.mjs
+          node tools/testGoldEmbeddedHudParity.mjs
+          node tools/testQuestDirectorQ1.mjs
+      - name: Production build
+        run: pnpm build
+      - name: E01 organic 12-trial real Arsenal gameplay (known red, no gate skip)
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic
