@@ -1486,15 +1486,53 @@ try{
             gate('B6l RIVET return is not prematurely certified as E07',
               beforeFinal?.phase==='RIVET_RETURNED'&&beforeFinal?.stage==='BREACH_WAVES',beforeFinal);
             await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
-            const done=await poll("(()=>({stage:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId,open:document.getElementById('apexQuest01Stage')?.hidden===false,hudClosed:document.getElementById('battleHudHost')?.classList.contains('is-open')===false}))()",
-              x=>x?.stage==='BREACH_WAVES'&&x?.open&&x?.hudClosed,180);
-            gate('B6k final cinematic acknowledgment closes old Gold surface without fabricating E07 progress',
-              done?.stage==='BREACH_WAVES'&&done?.open&&done?.hudClosed,done);
-            await image('33-e06-preview-back-to-chapter');
+            const done=await poll("(()=>({stage:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId,open:document.getElementById('apexQuest01Stage')?.hidden===false,hudClosed:document.getElementById('battleHudHost')?.classList.contains('is-open')===false,e07:document.getElementById('q7RivetPlay')?.hidden===false}))()",
+              x=>x?.stage==='RIVET_OVERRIDDEN'&&x?.open&&x?.hudClosed&&x?.e07,180);
+            gate('B7 genuine signed E06 KOs and ordered rig beats unlock E07 Gold chapter',
+              done?.stage==='RIVET_OVERRIDDEN'&&done?.open&&done?.hudClosed&&done?.e07,done);
+            await image('33-e06-signed-rivet-chapter');
             await reloadAndReattach();
             const retained=await poll("(()=>window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId)()",
-              x=>x==='BREACH_WAVES',180);
-            gate('B6k reload preserves legitimately signed E06 checkpoint after preview',retained==='BREACH_WAVES',retained);
+              x=>x==='RIVET_OVERRIDDEN',180);
+            gate('B7 reload preserves signed E07 checkpoint, not E06 preview',retained==='RIVET_OVERRIDDEN',retained);
+            if(process.argv.includes('--verify-rivet-gold')){
+              await click('#q7RivetPlay');
+              const entry=await poll("(()=>({game:window.APEX_ARSENAL?.state?.active,story:window.APEX_ARSENAL?.state?.questRivetStoryView?.snapshot?.(),boss:(window.fighters||[]).find(x=>x.questId==='RIVET')?.hp,hero:(window.fighters||[]).find(x=>x.questId==='NEWBOT')?.hp,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}))()",
+                x=>x?.game&&x?.story?.current==='E07_START'&&x?.boss===1000&&x?.hero===1000,180);
+              gate('B7 E07 Gold opens genuine repaired 1000-HP NEWBOT + hostile RIVET Fighter',
+                entry?.game&&entry?.boss===1000&&entry?.hero===1000
+                &&entry?.save==='RIVET_OVERRIDDEN',entry);
+              const early=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E07_RECOVERY'))()");
+              gate('B7 early E07 continuation never skips physical nonlethal boss fight',
+                early?.ok===false,early);
+              await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+              const combat=await evalPage("(()=>{const A=window.APEX_ARSENAL,W=A.weaponApi,[n,r]=window.fighters;if(!A.state.questRivetProgression)return{ok:false};A.state.spawnHeld=true;A.state.spawnTimer=1e6;A.state.slots=[];n.x=145;n.y=500;r.x=660;r.y=500;n.baseSpeed=r.baseSpeed=0;n.data.__hrHoldBody=r.data.__hrHoldBody=true;W.fireBullet({owner:n,x:250,y:500,angle:0,speed:2800,damage:900,weapon:'PISTOL'});for(let i=0;i<16;i++)A.step(.025);const snap=A.state.questRivetAdapter?.snapshot?.();return{ok:true,hp:r.hp,heroHp:n.hp,outcome:A.state.questOutcome,over:A.state.over,stop:snap?.stopped,cues:snap?.cues?.map(x=>x.threshold),remaining:A.state.questRivetCueQueue?.slice(),save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}})()");
+              gate('B7 native Arsenal projectile hits the real RIVET and stops at exactly 180 HP',
+                combat?.ok&&combat?.hp===180&&combat?.heroHp>0
+                &&combat?.outcome==='COMPLETE'&&combat?.stop===true
+                &&combat?.cues?.join('|')==='750|450|180'
+                &&combat?.save==='RIVET_OVERRIDDEN',combat);
+              for(const beat of ['E07_RIVET_COMMAND_750','E07_RIVET_COMMAND_450','E07_RIVET_NONLETHAL_STOP']){
+                const scene=await poll("(()=>{window.APEX_ARSENAL?.step?.(.025);return window.APEX_ARSENAL?.state?.questRivetStoryView?.snapshot?.().current})()",
+                  x=>x===beat,150);
+                gate('B7 physical threshold story displayed only after real accepted HP: '+beat,scene===beat,scene);
+                await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+              }
+              const recover=await poll("(()=>({cue:window.APEX_ARSENAL?.state?.questRivetStoryView?.snapshot?.().current,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}))()",
+                x=>x?.cue==='E07_RECOVERY'&&x?.save==='RIVET_OVERRIDDEN',90);
+              gate('B7 E07 survival and recovery narrative before saving E08',
+                recover?.cue==='E07_RECOVERY'&&recover?.save==='RIVET_OVERRIDDEN',recover);
+              await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+              const final=await poll("(()=>({save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId,open:document.getElementById('apexQuest01Stage')?.hidden===false,hud:document.getElementById('battleHudHost')?.classList.contains('is-open')}))()",
+                x=>x?.save==='TOT_LAST_CHOICE'&&x?.open&&!x?.hud,180);
+              gate('B7 real E07 nonlethal RIVET + complete causal story saves E08 chapter',
+                final?.save==='TOT_LAST_CHOICE'&&final?.open&&!final?.hud,final);
+              await image('34-e07-signed-tot-next-chapter');
+              await reloadAndReattach();
+              const permanent=await poll("(()=>window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId)()",
+                x=>x==='TOT_LAST_CHOICE',160);
+              gate('B7 Gold reload preserves actual completed E07 without rerunning boss',permanent==='TOT_LAST_CHOICE',permanent);
+            }
           }
 
         }
