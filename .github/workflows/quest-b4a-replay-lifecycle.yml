@@ -27,3 +27,39 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Production build
         run: pnpm build
+      - name: Start real Gold Vite server
+        shell: bash
+        run: |
+          pnpm dev:lan > /tmp/b4a-vite.log 2>&1 &
+          for i in $(seq 1 75); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/b4a-vite.log
+          exit 1
+      - name: Locate Chrome
+        id: chrome
+        shell: bash
+        run: |
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$BIN"
+          echo "path=$BIN" >> "$GITHUB_OUTPUT"
+      - name: Physical desktop Gold stage replay
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_EVIDENCE_DIR: /tmp/b4a-replay
+        run: node tools/testQuestStageHubBrowserB4.mjs
+      - name: Physical mobile touch Gold stage replay
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_EVIDENCE_DIR: /tmp/b4a-replay
+        run: node tools/testQuestStageHubBrowserB4.mjs --mobile
+      - name: Capture Gold replay screenshots and receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b4a-gold-replay-desktop-mobile-evidence
+          path: |
+            /tmp/b4a-replay/
+            /tmp/b4a-vite.log
+          if-no-files-found: warn
