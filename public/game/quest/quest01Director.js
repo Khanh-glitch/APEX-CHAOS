@@ -77,6 +77,21 @@
     function diagnostics() {
       return {checkpointId:load().checkpointId,storageError:readError,revision:CONTENT_REVISION};
     }
+    function commitNativeTransition(target,cueIds) {
+      // Never exposed to the browser as a generic checkpoint setter.
+      // Only accept an ADJACENT native beat after the live game has already
+      // passed the stricter receipt, actual impact and scene-ack gates below.
+      const prev=load(),from=NODE_IDS.indexOf(prev.checkpointId),to=NODE_IDS.indexOf(target);
+      if(to!==from+1)return {ok:false,reason:'non-adjacent-native-transition'};
+      if(!Array.isArray(cueIds)||!cueIds.length
+         ||cueIds.some(x=>typeof x!=='string'||x.length>128))
+        return {ok:false,reason:'invalid-native-cues'};
+      const all=[...new Set([...prev.completedCueIds,...cueIds])];
+      if(all.length>150)return {ok:false,reason:'cue-limit'};
+      current={...prev,checkpointId:target,encounterId:byId(target).encounterId||null,
+        phaseId:'ENTRY',completedCueIds:all,updatedAt:Date.now()};
+      return {ok:true,state:persist()};
+    }
     function transitionForTest(target) {
       // Not exposed on browser singleton. Node/VM-only proof of deterministic
       // route ordering. NOT quest completion and NOT a cheat/unlock API.
@@ -86,10 +101,60 @@
         phaseId:'ENTRY',updatedAt:Date.now()};
       return {ok:true,state:persist()};
     }
-    return { beginOrResume,checkpoint,diagnostics, _transitionForNodeTest:transitionForTest };
+    return { beginOrResume,checkpoint,diagnostics,
+      _commitNativeTransition:commitNativeTransition,
+      _transitionForNodeTest:transitionForTest };
   }
   const storage = root.localStorage || null;
   const core = create(storage);
+  function acceptNativeBeat(beat) {
+    const no=reason=>Object.freeze({ok:false,reason});
+    const A=root.APEX_ARSENAL,q=A?.state,actors=root.fighters;
+    if(!q?.active||q.questReflex!==true||q.questStoryCompletion!==true
+      ||!Array.isArray(actors)||actors.length!==2
+      ||actors[0]?.questId!=='NEWBOT'||actors[1]?.questId!=='T.O.T'
+      ||actors[0]?.questTeam!=='ALLY'||actors[1]?.questTeam!=='HOSTILE')
+      return no('no-authorized-live-e01');
+    const v=q.questStoryView?.snapshot?.();
+    if(!v||v.active!==false||!Array.isArray(v.shown)||v.closed!==false)
+      return no('scene-not-acknowledged');
+    const gate=q.questReflexGate?.snapshot?.();
+    if(!gate?.active)return no('no-real-reflex');
+    const checkpoint=core.checkpoint().checkpointId;
+    if(beat==='WAKE_OPEN'){
+      if(checkpoint!=='WAKE'||v.shown.join('|')!=='WAKE_OPEN'
+         ||gate.phase!=='R1_PISTOL'||gate.receipts?.length!==0
+         ||!actors.every(f=>f.hp===1000&&f.maxHp===1000)
+         ||q.questRivetPreview)return no('wake-not-earned');
+      return core._commitNativeTransition('REFLEX',['WAKE_OPEN']);
+    }
+    if(beat==='WORKSHOP_ARRIVAL'){
+      if(checkpoint!=='REFLEX'||q.questWorkshopPreview!==true
+         ||q.questStoryRescueStart?.ok!==true
+         ||gate.phase!=='AWAIT_RIVET'||gate.receipts?.length!==4)
+        return no('workshop-not-earned');
+      const expected=['E01_R1_IMPACT','E01_R2_IMPACT','E01_J_REVEAL',
+        'E01_K_REVEAL','E01_RIVET_HOLD','E01_RIVET_SUPPRESSION_TECH',
+        'WORKSHOP_ARRIVAL'];
+      const observed=v.shown[0]==='WAKE_OPEN'?v.shown.slice(1):v.shown;
+      if(observed.join('|')!==expected.join('|'))return no('incomplete-cinematic-route');
+      // Crucially, this proof REBUILDS from actual engine state, not from
+      // caller-provided flags. A storyboard click alone can never pass.
+      const proof=root.__apexQuestReflexTechnicalRead?.();
+      const ground=q.questRivetPreview?.groundImpact;
+      if(proof?.ready!==true||proof.kind!=='E01_RIVET_TECHNICAL_PREVIEW'
+        ||proof.checkpointAuthorized!==false||proof.storyComplete!==false
+        ||proof.groundImpact?.kind!=='REAL_ARSENAL_FLOOR_CONTACT'
+        ||ground?.kind!=='REAL_ARSENAL_FLOOR_CONTACT'
+        ||ground?.x!==proof.groundImpact.x||ground?.y!==proof.groundImpact.y
+        ||!Array.isArray(root.projectiles)||root.projectiles.length!==0
+        ||q.over!=null)return no('no-physical-rescue-proof');
+      return core._commitNativeTransition('WORKSHOP',[
+        'E01_R1_IMPACT','E01_R2_IMPACT','E01_J_REVEAL','E01_K_REVEAL',
+        'E01_RIVET_HOLD','E01_RIVET_SUPPRESSION_TECH','WORKSHOP_ARRIVAL']);
+    }
+    return no('unsupported-native-beat');
+  }
   // Presentation lives only in the Gold Home document and never touches the
   // existing Gold HUD geometry, canvas or battle engine.
   let overlay = null;
@@ -121,11 +186,18 @@
     overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-label','Quest 01 story checkpoint');
     // Static trusted template: copy is set via textContent only.
-    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">STORY + REFLEX · Q4E3</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine">Q1 DIRECTOR BUILD — This is a checkpoint shell, not the finished WAKE or REFLEX scene. Neither preview completes story checkpoints; REFLEX currently stops before the unauthored RIVET suppression.</div></div>';
+    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine">Q1 DIRECTOR BUILD — This is a checkpoint shell, not the finished WAKE or REFLEX scene. Neither preview completes story checkpoints; The preview reaches the real RIVET floor suppression and WORKSHOP but does not save. START QUEST runs the signed opening with checkpoint progression to WORKSHOP.</div></div>';
     d.body.appendChild(overlay);
     overlay.querySelector('#q1Exit').addEventListener('click',hide);
     overlay.querySelector('#q1Preview').addEventListener('click',()=>{const cb=callbacks && callbacks.onPreview;hide(); if(typeof cb==='function')cb();});
     overlay.querySelector('#q4ReflexPreview').addEventListener('click',()=>{const cb=callbacks && callbacks.onReflexPreview;hide();root.__APEX_QUEST_STORY_PLAYBACK=false;if(typeof cb==='function')cb();});
+    overlay.querySelector('#q4hQuestPlay').addEventListener('click',()=>{
+      if(!['WAKE','REFLEX'].includes(core.checkpoint().checkpointId))return;
+      const cb=callbacks&&callbacks.onReflexPreview;hide();
+      root.__APEX_QUEST_STORY_PLAYBACK=true;
+      root.__APEX_QUEST_STORY_FULL=true;
+      if(typeof cb==='function')cb();
+    });
     // The Story preview is an isolated alternative presentation of the same
     // Arsenal duel. It cannot mark REFLEX complete, unlock a checkpoint or
     // be reached by a generic Story save transition.
@@ -134,7 +206,7 @@
       root.__APEX_QUEST_STORY_PLAYBACK=true;
       if(typeof cb==='function')cb();
     });
-    overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();e.preventDefault();hide();}else if(e.key==='Tab'){const els=[overlay.querySelector('#q1Preview'),overlay.querySelector('#q4ReflexPreview'),overlay.querySelector('#q4eStoryPreview'),overlay.querySelector('#q1Exit')];const index=els.indexOf(d.activeElement);if(e.shiftKey&&index===0){e.preventDefault();els[els.length-1].focus();}if(!e.shiftKey&&index===els.length-1){e.preventDefault();els[0].focus();}}});
+    overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();e.preventDefault();hide();}else if(e.key==='Tab'){const els=[overlay.querySelector('#q1Preview'),overlay.querySelector('#q4ReflexPreview'),overlay.querySelector('#q4eStoryPreview'),overlay.querySelector('#q4hQuestPlay'),overlay.querySelector('#q1Exit')];const index=els.indexOf(d.activeElement);if(e.shiftKey&&index===0){e.preventDefault();els[els.length-1].focus();}if(!e.shiftKey&&index===els.length-1){e.preventDefault();els[0].focus();}}});
     return overlay;
   }
   function show(options) {
@@ -147,6 +219,7 @@
     el.querySelector('#q1Title').textContent=node.label;
     el.querySelector('#q1Copy').textContent=node.copy || 'This story chapter has not yet been implemented.';
     el.querySelector('#q1Status').textContent='CHECKPOINT ' + String(NODE_IDS.indexOf(node.id)+1).padStart(2,'0') + ' / 11 · ' + node.status.replaceAll('_',' ');
+    el.querySelector('#q4hQuestPlay').hidden=!['WAKE','REFLEX'].includes(node.id);
     previousFocus=root.document.activeElement;
     el.hidden=false;
     el.querySelector('#q1Exit').focus({preventScroll:true});
@@ -160,7 +233,8 @@
   }
   const api=Object.freeze({
     beginOrResume:core.beginOrResume, checkpoint:core.checkpoint,
-    diagnostics:core.diagnostics, show, hide, isVisible:()=>!!(overlay&&!overlay.hidden),
+    diagnostics:core.diagnostics, acceptNativeBeat, show, hide,
+    isVisible:()=>!!(overlay&&!overlay.hidden),
     sequence:()=>NODES.map(({id,label,type,status,encounterId})=>({id,label,type,status,encounterId:encounterId||null})),
     STORAGE_KEY
   });
