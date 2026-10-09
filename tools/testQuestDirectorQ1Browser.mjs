@@ -1423,6 +1423,14 @@ try{
               &&intercept?.clamped==='CLAMPED'&&intercept?.event
               &&intercept?.live&&intercept?.save==='BREACH_WAVES',intercept);
             await image('31c-e06-real-rivet-interceptor');
+            const inputSetup=await evalPage("(()=>{const A=window.APEX_ARSENAL,S=window.APEX_ARSENAL_SPAWN;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;const p=S.trySpawnSlot({forceFirearm:true});if(!p)return{ok:false};p.phase='REVEALED';p.weaponId='PISTOL';p.kind='GUN';p.x=t.x+270;p.y=t.y;return{ok:true,id:p.id,recipient:A.state.questBreachCompanionSkills.currentRecipient()}})()");
+            gate('B6n KeyJ probe has real revealed floor pistol and T.O.T skill lease',
+              inputSetup?.ok&&inputSetup?.recipient==='T.O.T',inputSetup);
+            await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
+            await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
+            const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot();const ok=snap.currentRecipient==='T.O.T'&&snap.tot.jCooldown>9&&snap.tot.dashing;window.fighters[0].withdrawn=false;A.state.slots=[];return{ok,cooldown:snap.tot.jCooldown,dash:snap.tot.dashing,recipient:snap.currentRecipient}})()");
+            gate('B6n physical keyboard J dispatch reaches the same T.O.T native dash',
+              keyResult?.ok&&keyResult?.cooldown>9,keyResult);
           }
           if(process.argv.includes('--verify-breach-three-waves')){
             // ENGINE-INSTRUMENTED acceptance: projectiles and HP/KO authority
