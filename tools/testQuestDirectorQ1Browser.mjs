@@ -1125,7 +1125,7 @@ try{
         const skip=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E03_SCRAP_SWARM_CLEAR'))()");
         gate('Q5 cannot skip either of two native waves',skip?.ok===false,skip);
       }
-      const organic=await evalPage("(()=>{const A=window.APEX_ARSENAL, Q=window.APEX_QUEST_MULTI_ACTOR_CORE; const f=window.fighters; const n=f[0], slots=A.state.slots; const W=A.weaponApi; let hAtWaveAEnd=null; let steps=0;let first=null,seam=null;for(;steps<9600;steps++){A.step(.05);if(!first&&A.state.questSwarmPhase==='INTERLUDE'){hAtWaveAEnd=W.getHolder(n);first={wave:A.state.questSwarmWave,receipt:A.state.questSwarmWaveAReceipt,actors:f.map(a=>({id:a.questId,hp:a.hp})),player:n.hp,phase:A.state.questSwarmPhase,slotsSame:slots===A.state.slots};}if(first&&!seam&&A.state.questSwarmWave==='B'){seam={playerSame:f[0]===n,hpAfter:n.hp,slotsSame:slots===A.state.slots,holderSame:W.getHolder(n)===hAtWaveAEnd,roster:Q.validateScrapSwarmWave(f,'B'),receipt:A.state.questSwarmWaveAReceipt};}if(A.state.over)break;}return{steps,outcome:A.state.questOutcome,over:A.state.over,wave:A.state.questSwarmWave,phase:A.state.questSwarmPhase,first,seam,actors:f.map(a=>({id:a.questId,hp:a.hp,max:a.maxHp,team:a.questTeam})),view:A.state.questSwarmStoryView?.snapshot?.(),checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}})()");
+      const organic=await evalPage("(()=>{const A=window.APEX_ARSENAL, Q=window.APEX_QUEST_MULTI_ACTOR_CORE; const f=window.fighters; const n=f[0], slots=A.state.slots; const W=A.weaponApi; let hAtWaveAEnd=null; let steps=0;let first=null,seam=null;for(;steps<9600;steps++){if(steps%80===0){window.dispatchEvent(new KeyboardEvent('keydown',{key:'j',code:'KeyJ',bubbles:true}));}if(steps%200===0){window.dispatchEvent(new KeyboardEvent('keydown',{key:'k',code:'KeyK',bubbles:true}));}A.step(.05);if(!first&&A.state.questSwarmPhase==='INTERLUDE'){hAtWaveAEnd=W.getHolder(n);first={wave:A.state.questSwarmWave,receipt:A.state.questSwarmWaveAReceipt,actors:f.map(a=>({id:a.questId,hp:a.hp})),player:n.hp,phase:A.state.questSwarmPhase,slotsSame:slots===A.state.slots};}if(first&&!seam&&A.state.questSwarmWave==='B'){seam={playerSame:f[0]===n,hpAfter:n.hp,slotsSame:slots===A.state.slots,holderSame:W.getHolder(n)===hAtWaveAEnd,roster:Q.validateScrapSwarmWave(f,'B'),receipt:A.state.questSwarmWaveAReceipt};}if(A.state.over)break;}return{steps,outcome:A.state.questOutcome,over:A.state.over,wave:A.state.questSwarmWave,phase:A.state.questSwarmPhase,first,seam,actors:f.map(a=>({id:a.questId,hp:a.hp,max:a.maxHp,team:a.questTeam})),view:A.state.questSwarmStoryView?.snapshot?.(),checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}})()");
       attempts.push(organic);
       if(organic?.first)gate('Q5 real three-hostile KO launches interlude '+attempt,
         organic.first.wave==='A'&&organic.first.receipt?.length===3
@@ -1167,7 +1167,7 @@ try{
         v=>v?.node==='SCRAP_SWARM'&&v.open&&v.battleOpen===false,150);
       gate('Q5 retry retains E03 checkpoint and closes Gold battle',back?.open&&back.node==='SCRAP_SWARM'&&back.battleOpen===false,back);
     }
-    gate('Q5 organic Arsenal waves complete without synthetic KO in <=9 tries',
+    gate('Q5 live J/K keyboard-handler attempts plus real Arsenal combat complete <=9 tries',
       completeE03,{complete:completeE03,attempts:attempts.map(o=>({steps:o?.steps,outcome:o?.outcome,first:!!o?.first,seam:!!o?.seam,hp:o?.actors?.map(x=>x.hp)}))});
     if(completeE03){
       await cmd('Page.reload',{ignoreCache:true});
