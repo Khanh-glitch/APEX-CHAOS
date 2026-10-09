@@ -1,0 +1,54 @@
+name: B6i Gold Authenticated E06 Scene Pilot
+on:
+  push:
+    branches: ['quest/b6i-gold-breach-entry-from-b6h']
+    paths:
+      - 'tools/questB6iGoldShell.mjs'
+      - 'tools/buildGoldCutover.mjs'
+      - '.github/workflows/quest-b6i-gold-breach.yml'
+  workflow_dispatch:
+permissions: {contents: write}
+jobs:
+  gold-e06:
+    runs-on: ubuntu-latest
+    timeout-minutes: 48
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0, persist-credentials: true}
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - name: Generate canonical Gold, check only expected differences
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/buildGoldCutover.mjs
+          node tools/buildGoldCutover.mjs --check
+          git diff --name-only | tee /tmp/b6i-gold-diff.txt
+          if grep -vE '^public/gold/(shell.html|manifest.json)$' /tmp/b6i-gold-diff.txt; then
+            echo "::error::Gold source drift outside E06 integration"
+            exit 1
+          fi
+      - name: Native Quest physics, signed earlier progression and build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm arsenal:sfx:materialize
+          node tools/testQuestBreachPolicyQ6.mjs
+          node tools/testQuestBreachLifecycleB6d.mjs
+          node tools/testQuestBreachRetreatB6e.mjs
+          node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breach-targeting
+          node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breach-native
+          node tools/testQuestDirectorQ1.mjs
+          node tools/testQuestBreakerChargeQ5.mjs
+          pnpm build
+      - name: Commit only generated Shell and manifest in E06 pilot branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name apex-chaos-integration
+          git config user.email apex-chaos-integration@users.noreply.github.com
+          git add public/gold/shell.html public/gold/manifest.json
+          if git diff --cached --quiet; then echo "Gold already reproduced"; exit 0; fi
+          git commit -m "B6i source-generated Gold E06 pilot Shell and canonical manifest"
+          git push origin HEAD:refs/heads/quest/b6i-gold-breach-entry-from-b6h
