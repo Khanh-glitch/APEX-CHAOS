@@ -1429,7 +1429,7 @@ try{
               &&Math.abs(intercept?.nearEnd?.r?.[1]-intercept?.plantedState?.r?.[1])<1
               &&intercept?.live&&intercept?.save==='BREACH_WAVES',intercept);
             await image('31c-e06-real-rivet-interceptor');
-            const inputSetup=await evalPage("(()=>{const A=window.APEX_ARSENAL,S=window.APEX_ARSENAL_SPAWN,Q=A.state.questBreachCompanionSkills;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;A.state.slots=[];Q.tick(12);const before=Q.snapshot();const p=S.trySpawnSlot({forceFirearm:true});if(!p)return{ok:false};p.phase='REVEALED';p.weaponId='PISTOL';p.kind='GUN';p.x=t.x+270;p.y=t.y;return{ok:true,id:p.id,recipient:Q.currentRecipient(),jBefore:before.tot.jCooldown,priorDashes:before.events.filter(e=>e.kind==='DASH_LOCK').length}})()");
+            const inputSetup=await evalPage("(()=>{const A=window.APEX_ARSENAL,S=window.APEX_ARSENAL_SPAWN,Q=A.state.questBreachCompanionSkills;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;A.state.slots=[];Q.tick(12);const before=Q.snapshot();const p=S.trySpawnSlot({forceFirearm:true});if(!p)return{ok:false};p.phase='REVEALED';p.weaponId='PISTOL';p.kind='GUN';p.x=t.x+270;p.y=t.y;window.__B8KeyJSpawnRestore={spawnHeld:A.state.spawnHeld,spawnTimer:A.state.spawnTimer};A.state.spawnHeld=true;A.state.spawnTimer=1e6;return{ok:true,id:p.id,recipient:Q.currentRecipient(),jBefore:before.tot.jCooldown,priorDashes:before.events.filter(e=>e.kind==='DASH_LOCK').length}})()");
             gate('B6n KeyJ probe has real revealed floor pistol and T.O.T skill lease',
               inputSetup?.ok&&inputSetup?.recipient==='T.O.T'&&inputSetup?.jBefore===0,inputSetup);
             if(!isMobile){
@@ -1437,6 +1437,10 @@ try{
               // Mobile uses the ACTUAL Gold touch K probe below instead.
               await cmd('Page.bringToFront');
               await evalPage("(()=>{window.focus();window.__B8KEYJ_EVENTS=[];window.addEventListener('keydown',e=>{if(e.code==='KeyJ')window.__B8KEYJ_EVENTS.push({code:e.code,repeat:e.repeat,focused:document.hasFocus(),time:performance.now()})},true);return{state:window.gameState,focus:document.hasFocus()}})()");
+              // Hold only the *background spawn clock* during this one physical input
+              // probe, so the native nearest-floor pickup cannot be silently
+              // replaced by a newly spawned gun. Restore the clock afterwards.
+              // The spawned pistol is still a genuine Arsenal floor slot.
               // The Gold story overlay can suspend companion casts for a few
               // real-time frames. Retry only real CDP keydown/up gestures;
               // NEVER call the native skill API from the test.
@@ -1452,7 +1456,7 @@ try{
               // reads it. The authoritative proof of physical keyboard input
               // is a NEW slot-bound accepted DASH_LOCK receipt + consumed real J
               // cooldown; an instantaneous "dashing=true" read is a race.
-              const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot(),events=snap.events.filter(e=>e.kind==='DASH_LOCK'&&e.id==='T.O.T'&&e.source==='keyboard');const last=events.at(-1);window.fighters[0].withdrawn=false;A.state.slots=[];return{ok:!!last&&snap.tot.jCooldown>0&&snap.tot.jCooldown<=10,cooldown:snap.tot.jCooldown,dashing:snap.tot.dashing,receipt:last||null,keyboardDashCount:events.length,recipient:snap.currentRecipient,gameState:window.gameState,focused:document.hasFocus(),keys:window.__B8KEYJ_EVENTS}})()");
+              const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot(),events=snap.events.filter(e=>e.kind==='DASH_LOCK'&&e.id==='T.O.T'&&e.source==='keyboard');const last=events.at(-1);window.fighters[0].withdrawn=false;A.state.slots=[];if(window.__B8KeyJSpawnRestore){A.state.spawnHeld=window.__B8KeyJSpawnRestore.spawnHeld;A.state.spawnTimer=window.__B8KeyJSpawnRestore.spawnTimer;delete window.__B8KeyJSpawnRestore;}return{ok:!!last&&snap.tot.jCooldown>0&&snap.tot.jCooldown<=10,cooldown:snap.tot.jCooldown,dashing:snap.tot.dashing,receipt:last||null,keyboardDashCount:events.length,recipient:snap.currentRecipient,gameState:window.gameState,focused:document.hasFocus(),keys:window.__B8KEYJ_EVENTS}})()");
               gate('B6n desktop physical KeyJ generates NEW native keyboard DASH_LOCK for exact floor slot',
                 keyResult?.ok&&keyResult?.receipt?.slotId===inputSetup?.id&&
                 keyResult?.receipt?.source==='keyboard'&&keyResult?.focused&&
