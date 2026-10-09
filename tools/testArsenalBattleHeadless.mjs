@@ -6176,6 +6176,33 @@ if(process.argv.includes('--quest-breach-targeting')){
   }catch(e){gate('B6g native team-targeted projectiles',false,{error:String(e?.stack||e)})}
 }
 
+// B7c — direct authentic Fighter.takeDamage transaction with an explicitly
+// separate hostile RIVET instance. NOT a simulated E07 story encounter.
+if(process.argv.includes('--quest-rivet-native')){
+  try{
+    const v=run("\nwindow.__APEX_TEST_MODE=true;\nconst started=window.__apexQuestBreachFixtureStart?.()===true;\nconst A=window.APEX_ARSENAL,controller=window.APEX_QUEST_RIVET_DAMAGE_ADAPTER,\n      threshold=window.APEX_QUEST_RIVET_THRESHOLDS;\nif(!started||!A?.state?.questBreachTest||!controller||!threshold)return {started,ready:false};\nconst actors=window.fighters,hero=actors.find(f=>f.questId==='NEWBOT');\nconst donor=actors.find(f=>f.questId==='RIVET');\nconst made=A.state.questBreachCreateFighter({\n questId:'RIVET',questTeam:'HOSTILE',hp:1000,x:660,y:500,kind:'bulwark'\n},101);\nconst events=[],authority=controller.create({thresholds:threshold,onCue:e=>events.push(e)});\nconst denied=authority.attach(donor);\nconst attached=authority.attach(made);\nif(!attached.ok)return {started,denied,attached};\nconst originalMethod=made.takeDamage;\nmade.takeDamage(600,hero,'e07-native-accepted');\nconst first={hp:made.hp,damageLabels:hero.damageLabels?.['e07-native-accepted']||0,cues:events.map(e=>e.threshold)};\nmade.takeDamage(25,hero,'e07-native-next');\nconst middle={hp:made.hp,cues:events.length};\nmade.takeDamage(500,hero,'e07-native-stop');\nconst stop={hp:made.hp,stopped:authority.snapshot().stopped,cues:events.map(e=>e.threshold),\n damageLabels:hero.damageLabels?.['e07-native-stop']||0};\nmade.takeDamage(99999,hero,'e07-native-blocked');\nconst after={hp:made.hp,pending:authority.snapshot().pending,\n duplicateEvents:events.length,heroDamage:hero.damageLabels?.['e07-native-blocked']||0};\nauthority.close();\nconst detached=!made.__apexQuestBeforeAcceptedDamage&&!made.__apexQuestAfterAcceptedDamage;\nwindow.exitArsenalBattleMode();\nreturn {started,denied,attached,first,middle,stop,after,detached,\n realFighterOriginalMethod:originalMethod===made.takeDamage,\n saved:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId||null};\n");
+    gate('B7c accepts only a newly built hostile 1000HP RIVET Fighter',
+      v?.started===true&&v?.denied?.ok===false&&v?.attached?.ok===true,
+      {started:v?.started,denied:v?.denied,attached:v?.attached});
+    gate('B7c inherited Fighter.takeDamage produces true 750 and 450 crossings',
+      v?.realFighterOriginalMethod===true&&v?.first?.hp===400
+      &&v?.first?.damageLabels===600
+      &&v?.first?.cues?.join('|')==='750|450',v?.first);
+    gate('B7c unrelated physical hit does not reissue boss cues',
+      v?.middle?.hp===375&&v?.middle?.cues===2,v?.middle);
+    gate('B7c real 500-hit locks nonlethal 180HP and emits final cue',
+      v?.stop?.hp===180&&v?.stop?.stopped===true
+      &&v?.stop?.cues?.join('|')==='750|450|180'
+      &&v?.stop?.damageLabels===195,v?.stop);
+    gate('B7c post-stop hits cannot change HP or emit new events',
+      v?.after?.hp===180&&v?.after?.pending===false
+      &&v?.after?.duplicateEvents===3&&v?.after?.heroDamage===0,v?.after);
+    gate('B7c restores original Fighter hooks and never saves E07 progress',
+      v?.detached===true&&v?.saved!=='RIVET_OVERRIDDEN',
+      {detached:v?.detached,save:v?.saved});
+  }catch(e){gate('B7c real Fighter accepted-damage hook',false,{error:String(e?.stack||e)})}
+}
+
 // Q2 — authentic multi-actor fixtures run on the real Arsenal engine.
 // Test-only start does not write Quest Director completion.
 if (process.argv.includes('--quest-n-actors')) {
