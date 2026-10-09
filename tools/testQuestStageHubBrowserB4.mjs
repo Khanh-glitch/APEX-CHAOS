@@ -104,7 +104,10 @@ try{
  const exit=await exec('(()=>{const D=window.APEX_QUEST01_DIRECTOR;window.exitArsenalBattleMode();return {ended:window.APEX_ARSENAL.state.active===false,exit:D.exitReplay(),node:D.checkpoint().checkpointId,save:JSON.parse(localStorage.getItem(D.STORAGE_KEY)).checkpointId}})()');
  gate('After disposal replay exits and original permanent save is restored',
    exit.ended&&exit.exit&&exit.node==='CHARGE_THE_BREAKER'&&exit.save==='CHARGE_THE_BREAKER',exit);
- await cmd('Page.reload',{ignoreCache:true});
+ // Chrome may reject the pending Page.reload response after swapping the
+ // renderer target; the subsequent checkpoint poll is the actual authority.
+ try{await cmd('Page.reload',{ignoreCache:true})}
+ catch(e){if(!String(e).includes('Inspected target navigated or closed'))throw e;}
  const restored=await poll('(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,replay:window.APEX_QUEST01_DIRECTOR?.replayStatus()?.active}))()',v=>v?.node==='CHARGE_THE_BREAKER',210);
  gate('After reload no temporary chapter survives',restored?.replay===false,restored);
 }catch(e){gate('Gold replay real-browser execution',false,{error:String(e.stack||e).slice(0,1200)})}
