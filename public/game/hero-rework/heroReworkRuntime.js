@@ -3667,7 +3667,8 @@
         if (e.code !== 'KeyK' || e.repeat) return;
         if (globalScope.gameState !== 'ARSENAL' || !M) return;
         const f = globalScope.fighters && globalScope.fighters[0];
-        if (f && HR.isReworkFighter(f)) HR.pressAbility(f, 'A2', { side: sideOfFighter(f), source: 'keyboard', key: 'KeyK' });
+        if (f && !(globalScope.APEX_ARSENAL?.state?.questMultiActor && f.withdrawn===true)
+            && HR.isReworkFighter(f)) HR.pressAbility(f, 'A2', { side: sideOfFighter(f), source: 'keyboard', key: 'KeyK' });
       });
     }
 
