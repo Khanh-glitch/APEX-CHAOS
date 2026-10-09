@@ -1448,8 +1448,8 @@
       // E01 J unlock after R2, K unlock only on successful J Cast.
       if(state?.questReflex===true&&i===0){
         const phase=state.questReflexGate?.snapshot()?.phase;
-        skills[0].locked=!['J_CAST','K_CAST','BOTH_HALF','AWAIT_RIVET'].includes(phase);
-        skills[1].locked=!['K_CAST','BOTH_HALF','AWAIT_RIVET'].includes(phase);
+        skills[0].locked=!['J_CAST','K_CAST','BOTH_HALF'].includes(phase);
+        skills[1].locked=!['K_CAST','BOTH_HALF'].includes(phase);
       }
       const weapon = weaponProjection(f) || { id: 'UNARMED', name: 'UNARMED', type: 'UNARMED', asset: '', tier: '', tierColor: '', index: 0, mag: 0, ammo: 0, usesAmmo: false, reloading: false, alt: '' };
       const vitalsFallback = vitalsProjection(f) || { hp: 0, maxHp: 1000 };

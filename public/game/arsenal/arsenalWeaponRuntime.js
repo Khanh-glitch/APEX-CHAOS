@@ -360,6 +360,11 @@
     return dmg;
   }
   function aqDamage(target, amount, source, weaponId, opts = {}) {
+    // A late weapon transaction must not injure either training Fighter
+    // after the genuine E01 rescue threshold. This checks the REAL receipt
+    // gate, not a UI flag, and is inactive in every non-REFLEX match.
+    if(AQ.state?.questReflex===true
+      &&AQ.state.questReflexGate?.snapshot()?.awaitingRivet===true)return 0;
     if (!target || target.hp <= 0 || !(amount > 0)) return 0;
     amount = scaleEquipmentDamage(amount, weaponId, !!opts.critical);
     let mult = 1;

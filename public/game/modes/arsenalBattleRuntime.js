@@ -260,6 +260,20 @@
   function stepSimulation(dt) {
     const state = AQ.state;
     if (!state || !state.active) return;
+    // Q4B: once all four actual REFLEX receipts and BOTH true <=500 HP
+    // crossings have been accepted, stop the training exchange. The next
+    // authorized story action belongs to RIVET (NOT a generic winner/KO).
+    // This is a reversible pilot hold, not an invented Stormbreaker release.
+    if(state.questReflex===true && state.questReflexGate?.snapshot()?.awaitingRivet===true){
+      if(!state.questReflexHold){
+        state.questReflexHold={
+          phase:'AWAIT_RIVET',at:state.time,
+          hp:(fighters||[]).map(f=>({id:f.questId,hp:f.hp}))
+        };
+        AQ.log('QUEST_REFLEX_SAFE_HOLD','accepted real J/K + both real HP<=500; awaiting RIVET');
+      }
+      return;
+    }
     matchClock += dt;
     state.time += dt;
     if (!state.over) {

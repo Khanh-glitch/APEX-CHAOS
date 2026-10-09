@@ -6139,7 +6139,31 @@ if(process.argv.includes('--quest-reflex-real')){
           if(snap()?.phase==='AWAIT_RIVET'||A.state.over)break;
         }
         const final=snap();
-        halfHp={phase:final?.phase,hp:f.map(x=>x.hp),lowest,
+        // Hold-law regression: after the accepted BOTH<=500 crossing the
+        // player has no reason to lose health, tick cooldowns, auto-fire or
+        // accidentally re-cast while RIVET's real rescue is unimplemented.
+        let holdProbe=null;
+        if(final?.phase==='AWAIT_RIVET'){
+          A.step(.05); // records the pending safe-hold from real receipts
+          const beforeHold={hp:f.map(x=>x.hp),time:A.state.time,
+            pos:f.map(x=>[x.x,x.y]),slots:A.state.slots.map(x=>[x.id,x.phase]),
+            projectiles:window.projectiles.length};
+          for(let tick=0;tick<120;tick++)A.step(.05);
+          const lateJ=HR.pressAbility(f[0],'A1',{side:'p1',source:'keyboard',key:'KeyJ'});
+          const lateK=HR.pressAbility(f[0],'A2',{side:'p1',source:'keyboard',key:'KeyK'});
+          const rejectedImpact=W.aqDamage(f[0],100,f[1],'PISTOL');
+          const afterHold={hp:f.map(x=>x.hp),time:A.state.time,
+            pos:f.map(x=>[x.x,x.y]),slots:A.state.slots.map(x=>[x.id,x.phase]),
+            projectiles:window.projectiles.length};
+          holdProbe={beforeHold,afterHold,
+            stable:JSON.stringify(beforeHold)===JSON.stringify(afterHold),
+            lateJ:lateJ.reason,lateK:lateK.reason,
+            lateJok:lateJ.ok,lateKok:lateK.ok,
+            rejectedImpact,
+            holdRecord:A.state.questReflexHold,
+            phase:snap()?.phase};
+        }
+        halfHp={phase:final?.phase,hp:f.map(x=>x.hp),lowest,holdProbe,
           complete:final?.complete,story:final?.storyProgress,
           over:A.state.over,frames,seconds:+(frames*.05).toFixed(2),
           activeMax,stormPoolObserved:t6,
@@ -6176,6 +6200,16 @@ if(process.argv.includes('--quest-reflex-real')){
         &&x.halfHp.complete===false&&x.halfHp.story===false
         &&x.halfHp.over===null&&x.halfHp.activeMax<=5),
       trials.slice(0,8).map(x=>x?.halfHp));
+    gate('q4b-reflex-safe-hold-freezes-native-HP-positions-slots-and-JK',
+      trials.slice(0,8).length===8&&trials.slice(0,8).every(x=>{
+        const h=x?.halfHp?.holdProbe;
+        return h?.stable===true
+          &&h?.phase==='AWAIT_RIVET'
+          &&h?.lateJ==='quest-stage-locked'&&h?.lateK==='quest-stage-locked'
+          &&h?.lateJok===false&&h?.lateKok===false
+          &&h?.rejectedImpact===0
+          &&h?.holdRecord?.phase==='AWAIT_RIVET';
+      }),trials.slice(0,8).map(x=>x?.halfHp?.holdProbe));
     gate('q4a-organic-reflex-j-k-real-accepted-casts-without-synthetic-pickup',
       trials.length===12&&trials.every(x=>x?.skillPilot?.earlyBlocked===true
         &&x?.skillPilot?.j===true

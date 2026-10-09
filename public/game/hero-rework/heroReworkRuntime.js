@@ -235,8 +235,8 @@
         const quest=globalScope.APEX_ARSENAL?.state;
         if(quest?.questReflex===true&&ct.anchor?.questId==='NEWBOT'){
           const phase=quest.questReflexGate?.snapshot()?.phase;
-          const allowJ=['J_CAST','K_CAST','BOTH_HALF','AWAIT_RIVET'].includes(phase);
-          const allowK=['K_CAST','BOTH_HALF','AWAIT_RIVET'].includes(phase);
+          const allowJ=['J_CAST','K_CAST','BOTH_HALF'].includes(phase);
+          const allowK=['K_CAST','BOTH_HALF'].includes(phase);
           if((slot==='A1'&&!allowJ)||(slot==='A2'&&!allowK))
             return {ok:false,reason:'quest-stage-locked'};
         }
