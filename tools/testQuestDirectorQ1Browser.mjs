@@ -1082,6 +1082,83 @@ try{
       x=>x?.node==='SCRAP_SWARM',160);
     gate('Q4I reload resumes real E03 checkpoint without replaying defeated E02',
       restored?.node==='SCRAP_SWARM'&&restored?.cues===10,restored);
+    // Q5: navigate by physically using Gold; never sign a wave from a test
+    // callback. Actual combat and actual NEWBOT defeat remain in Arsenal.
+    const q5boot=await poll("(()=>({start:document.getElementById('apex-boot-start')?.getBoundingClientRect()?.width>0,node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()",
+      v=>v?.start&&v.node==='SCRAP_SWARM',320);
+    gate('Q5 saved E03 has real Gold START gate',!!q5boot?.start,q5boot);
+    await click('#apex-boot-start');
+    const q5home=await poll("(()=>({done:document.body.dataset.apexSceneTransition==='DONE',hidden:document.getElementById('apex-boot-blackout')?.hidden===true}))()",
+      v=>v?.done&&v.hidden,320);
+    gate('Q5 physical START enters Gold Home',!!q5home?.done&&q5home.hidden,q5home);
+    await click('#continueStory');
+    const e03stage=await evalPage("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,enabled:document.querySelector('#q5ScrapSwarmPlay')?.hidden===false}))()");
+    gate('Q5 actual E03 visible in saved Director',e03stage?.enabled&&e03stage.node==='SCRAP_SWARM',e03stage);
+    let completeE03=false;
+    const attempts=[];
+    for(let attempt=0;attempt<9;attempt++){
+      await click('#q5ScrapSwarmPlay');
+      const live=await poll("(()=>({gold:window.__apexGoldBattleHosted===true,open:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,live:window.APEX_ARSENAL?.state?.questScrapSwarmProgression===true,wave:window.APEX_ARSENAL?.state?.questSwarmWave,actors:(window.fighters||[]).map(f=>({id:f.questId,hp:f.hp,max:f.maxHp,team:f.questTeam}))}))()",
+        v=>v?.gold&&v.open&&v.live&&v.wave==='A',420);
+      gate('Q5 authentic Gold-mounted E03 wave A entry '+attempt,
+        live?.live&&live?.gold&&live?.open&&live?.actors?.length===4
+        &&live.actors[0]?.id==='NEWBOT'&&live.actors.slice(1).every(a=>a.max===280),live);
+      if(!live?.live||!live?.open)throw new Error('Q5 Gold-owned E03 boot failed');
+      if(attempt===0){
+        const skip=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E03_SCRAP_SWARM_CLEAR'))()");
+        gate('Q5 cannot skip either of two native waves',skip?.ok===false,skip);
+      }
+      const organic=await evalPage("(()=>{const A=window.APEX_ARSENAL, Q=window.APEX_QUEST_MULTI_ACTOR_CORE; const f=window.fighters; const n=f[0], slots=A.state.slots; const W=A.weaponApi; const h=W.getHolder(n); let steps=0;let first=null,seam=null;for(;steps<9600;steps++){A.step(.05);if(!first&&A.state.questSwarmPhase==='INTERLUDE'){first={wave:A.state.questSwarmWave,receipt:A.state.questSwarmWaveAReceipt,actors:f.map(a=>({id:a.questId,hp:a.hp})),player:n.hp,phase:A.state.questSwarmPhase,slotsSame:slots===A.state.slots};}if(first&&!seam&&A.state.questSwarmWave==='B'){seam={playerSame:f[0]===n,hpAfter:n.hp,slotsSame:slots===A.state.slots,holderSame:W.getHolder(n)===h,roster:Q.validateScrapSwarmWave(f,'B'),receipt:A.state.questSwarmWaveAReceipt};}if(A.state.over)break;}return{steps,outcome:A.state.questOutcome,over:A.state.over,wave:A.state.questSwarmWave,phase:A.state.questSwarmPhase,first,seam,actors:f.map(a=>({id:a.questId,hp:a.hp,max:a.maxHp,team:a.questTeam})),view:A.state.questSwarmStoryView?.snapshot?.(),checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}})()");
+      attempts.push(organic);
+      if(organic?.first)gate('Q5 real three-hostile KO launches interlude '+attempt,
+        organic.first.wave==='A'&&organic.first.receipt?.length===3
+        &&organic.first.receipt.every(f=>f.hp<=0)&&organic.first.slotsSame,organic.first);
+      if(organic?.seam)gate('Q5 wave B retains same NEWBOT, slots and holder object '+attempt,
+        organic.seam.playerSame&&organic.seam.slotsSame
+        &&organic.seam.roster?.ok===true
+        &&organic.seam.receipt?.length===3,organic.seam);
+      if(organic?.outcome==='COMPLETE'){
+        gate('Q5 four REAL wave B KOs and living NEWBOT author result',
+          organic?.wave==='B'&&organic?.seam?.roster?.ok===true
+          &&organic?.first?.receipt?.length===3
+          &&organic.actors[0]?.hp>0
+          &&organic.actors.filter(a=>a.team==='HOSTILE').length===4
+          &&organic.actors.filter(a=>a.team==='HOSTILE').every(a=>a.hp<=0)
+          &&organic?.view?.active===true
+          &&organic.view.current==='E03_SCRAP_SWARM_CLEAR'
+          &&organic?.checkpoint==='SCRAP_SWARM',organic);
+        const early=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E03_SCRAP_SWARM_CLEAR'))()");
+        gate('Q5 win cannot save until its real result is acknowledged',
+          early?.ok===false,early);
+        await image('22-q5-e03-native-victory');
+        await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+        const saved=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,stage:document.getElementById('apexQuest01Stage')?.dataset.node,open:document.getElementById('apexQuest01Stage')?.hidden===false,battleOpen:document.getElementById('battleHudHost')?.classList.contains('is-open')}))()",
+          v=>v?.node==='WEAPON_RAIN'&&v?.open&&v?.battleOpen===false,170);
+        gate('Q5 real acknowledged result closes Gold and saves E04 WEAPON_RAIN',
+          saved?.node==='WEAPON_RAIN'&&saved?.stage==='WEAPON_RAIN'
+          &&saved?.battleOpen===false,saved);
+        completeE03=true;break;
+      }
+      gate('Q5 natural NEWBOT defeat retries without chapter skip '+attempt,
+        organic?.outcome==='RETRY'
+        &&organic?.view?.active===true
+        &&organic?.view?.current==='E03_SCRAP_SWARM_RETRY'
+        &&organic?.checkpoint==='SCRAP_SWARM',organic);
+      if(organic?.outcome!=='RETRY')break;
+      await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+      const back=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,open:document.getElementById('apexQuest01Stage')?.hidden===false,battleOpen:document.getElementById('battleHudHost')?.classList.contains('is-open')}))()",
+        v=>v?.node==='SCRAP_SWARM'&&v.open&&v.battleOpen===false,150);
+      gate('Q5 retry retains E03 checkpoint and closes Gold battle',back?.open&&back.node==='SCRAP_SWARM'&&back.battleOpen===false,back);
+    }
+    gate('Q5 organic Arsenal waves complete without synthetic KO in <=9 tries',
+      completeE03,{complete:completeE03,attempts:attempts.map(o=>({steps:o?.steps,outcome:o?.outcome,first:!!o?.first,seam:!!o?.seam,hp:o?.actors?.map(x=>x.hp)}))});
+    if(completeE03){
+      await cmd('Page.reload',{ignoreCache:true});
+      const restoredE04=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,cues:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.completedCueIds?.length}))()",
+        v=>v?.node==='WEAPON_RAIN',160);
+      gate('Q5 real reload restores E04 and exactly 11 authored cue IDs',
+        restoredE04?.node==='WEAPON_RAIN'&&restoredE04.cues===11,restoredE04);
+    }
   }
   }
 

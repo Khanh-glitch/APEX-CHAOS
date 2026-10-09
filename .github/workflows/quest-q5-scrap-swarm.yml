@@ -32,3 +32,41 @@ jobs:
         run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-first-wake
       - name: Production build
         run: pnpm build
+      - name: Boot Chrome with real physical click/touch
+        shell: bash
+        run: |
+          pnpm dev:lan > /tmp/quest-q5-vite.log 2>&1 &
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/quest-q5-vite.log
+          exit 1
+      - name: Locate Chrome
+        id: chrome
+        shell: bash
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          echo "path=$CHROME" >> "$GITHUB_OUTPUT"
+      - name: Native Q4I -> Q5 E03 desktop Chrome acceptance
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/quest-q5-browser
+        run: node tools/testQuestDirectorQ1Browser.mjs
+      - name: Native Q4I -> Q5 E03 mobile Chrome touch acceptance
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/quest-q5-browser
+        run: node tools/testQuestDirectorQ1Browser.mjs --mobile
+      - name: Archive E03 physical evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quest-q5-real-waves-browser-evidence
+          path: |
+            /tmp/quest-q5-browser/
+            /tmp/quest-q5-vite.log
+          if-no-files-found: warn
