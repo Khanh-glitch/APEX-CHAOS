@@ -174,8 +174,13 @@ ok(/SUPPRESSED_BY/.test(AUTH) && /'ui\.button\.press':\s*\[/.test(AUTH),
 ok(AUTH.includes("'fighter.lock_in'"), 'fighter.lock_in is one of the suppressing cues');
 ok(/b\.addEventListener\('click',\(\)=>\{uiSfx\('ui\.button\.press'\);selectHero\(id\)\}\)/
   .test(SHELL), 'roster card press plays ui.button.press');
-ok(/story\?\.addEventListener\('click',\(\)=>uiSfx\('ui\.button\.press'\)\)/.test(SHELL),
-  'the primary Home CTA plays ui.button.press');
+// Quest Home has one guarded callback shared by click and touch release:
+ // play the press cue ONCE before opening the actual Director, not a third
+ // screen-transition cue or duplicate sound on pointer compatibility events.
+ok(/const openQuestFromHome=\(\)=>\{[\s\S]*?uiSfx\('ui\.button\.press'\);[\s\S]*?director\.show/.test(SHELL)
+  &&/story\?\.addEventListener\('click',openQuestFromHome\)/.test(SHELL)
+  &&/story\?\.addEventListener\('touchend',[\s\S]*?openQuestFromHome\(\)/.test(SHELL),
+  'the primary Home CTA plays one ui.button.press via guarded click/touch Director entry');
 
 // Focus move is debounced.
 ok(/focusMove/.test(AUTH) && /FOCUS_MOVE_DEBOUNCE_MS/.test(AUTH), 'the authority debounces focus-move');

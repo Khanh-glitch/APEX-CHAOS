@@ -1427,7 +1427,7 @@ body.battle-hud-open [data-apex-shell-stage="true"]{visibility:hidden!important;
     if(screen!=='home'||window.APEX_SCENE_TRANSITION?.active?.())return;
     const director=window.APEX_QUEST01_DIRECTOR;
     if(!director){console.warn('[quest-q1] director unavailable; refusing to skip WAKE');return;}
-    uiSfx('ui.screen.transition');
+    uiSfx('ui.button.press');
     director.show({onPreview:()=>{
       if(screen!=='home'||window.APEX_SCENE_TRANSITION?.active?.())return;
       questPreview=true;questPreviewKind='first-wake';
