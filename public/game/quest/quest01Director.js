@@ -151,10 +151,15 @@
         ||q.questOutcome!=='COMPLETE'||q.over!=='QUEST_SCRAP_SWARM_COMPLETE'
         ||!Array.isArray(actors)||Q?.scrapSwarmOutcome?.(actors,'B')?.status!=='COMPLETE')
         return no('e03-native-combat-not-earned');
+      // The same authored Quest roster defines BOTH creation and native
+      // Director verification; never leave a stale HP literal after honest
+      // difficulty tuning. Receipt still requires each of the 3 REAL KOs.
       const first=q.questSwarmWaveAReceipt;
-      if(!Array.isArray(first)||first.length!==3
-        ||first.some(x=>!['SWARM-A1','SWARM-A2','SWARM-A3'].includes(x.questId)
-          ||x.hp>0||x.maxHp!==280)
+      const expected=Q?.scrapSwarmRoster?.('A')?.slice(1);
+      if(!Array.isArray(expected)||expected.length!==3
+        ||!Array.isArray(first)||first.length!==expected.length
+        ||first.some(x=>x.hp>0
+          ||!expected.some(s=>s.questId===x.questId&&x.maxHp===s.hp))
         ||new Set(first.map(x=>x.questId)).size!==3)
         return no('e03-prior-wave-unverified');
       const v=q.questSwarmStoryView?.snapshot?.();
