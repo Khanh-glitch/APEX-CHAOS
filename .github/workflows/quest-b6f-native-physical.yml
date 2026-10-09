@@ -7,7 +7,7 @@ permissions: {contents: read}
 jobs:
   native:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 48
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -30,3 +30,41 @@ jobs:
           node tools/testQuestBreakerChargeQ5.mjs
           node tools/buildGoldCutover.mjs --check
           pnpm build
+      - name: Start authentic Gold surface on Vite
+        shell: bash
+        run: |
+          pnpm dev:lan > /tmp/b6f-vite.log 2>&1 &
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/b6f-vite.log
+          exit 1
+      - name: Find Chrome binary
+        id: chrome
+        shell: bash
+        run: |
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$BIN"
+          echo "path=$BIN" >> "$GITHUB_OUTPUT"
+      - name: E01–E05 genuine Chrome Desktop no-retreat regression
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/b6f-gold
+        run: node tools/testQuestDirectorQ1Browser.mjs
+      - name: E01–E05 genuine Chrome mobile/touch no-retreat regression
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/b6f-gold
+        run: node tools/testQuestDirectorQ1Browser.mjs --mobile
+      - name: Upload visual and physical Gold evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b6f-physical-three-wave-and-unchanged-gold-e01-e05
+          path: |
+            /tmp/b6f-gold/
+            /tmp/b6f-vite.log
+          if-no-files-found: warn
