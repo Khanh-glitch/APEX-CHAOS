@@ -1,0 +1,36 @@
+name: B5a exact generated Gold manifest from mobile touch fix
+on:
+  push:
+    branches: ['quest/b5a-real-swarm-telemetry-from-b4b']
+    paths:
+      - '.github/workflows/quest-b5a-gold-source-sync.yml'
+  workflow_dispatch:
+permissions: {contents: write}
+jobs:
+  canonical-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0, persist-credentials: true}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - name: Regenerate Gold, reject any gameplay or Shell drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/buildGoldCutover.mjs
+          git diff --name-only | tee /tmp/b5a-generated.txt
+          test "$(wc -l < /tmp/b5a-generated.txt)" -eq 1
+          grep -qx public/gold/manifest.json /tmp/b5a-generated.txt
+          node tools/buildGoldCutover.mjs --check
+      - name: Commit ONLY canonical manifest provenance on B5a
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name apex-chaos-integration
+          git config user.email apex-chaos-integration@users.noreply.github.com
+          git add public/gold/manifest.json
+          git diff --cached --check
+          git commit -m "B5a update Gold generated manifest for real mobile Quest touch input"
+          git push origin HEAD:refs/heads/quest/b5a-real-swarm-telemetry-from-b4b
