@@ -1,0 +1,7 @@
+# B6d actual wave director contract — FIRST WAKE to BREACH (no fake gameplay)
+
+Base B5g `4b4d0a692f17b8124edf922df68cbc63dc98e707` is the physically signed Gold E01–E05 parent; E06 owner-canon stage spec stays immutable. The controller adds an explicit **three-phase state machine** on top of the immutable rulebook. It **never** allocates/destroys Fighter objects or changes HP; Arsenal owns the physical factories, KO and gun/cooldown.
+
+For each wave, `observe` accepts a genuine team array with exact Fighter identity and validates 3/4/3 physical defeated-hostile bodies. It freezes an immutable KO/ally-HP receipt, then enters an interlude. `prepareNext` only runs after 1.8s and verifies the three exact same ally objects have identical HP/withdrawal; calling it creates *candidate* hostiles through a caller-supplied genuine Fighter factory. `commitNext` only accepts those identical objects; no wave can be silently skipped, created twice or awarded twice. The third receipt is the ONLY candidate for COMPLETE.
+
+**Not yet playable**: connecting this sequencer to Gold/Arsenal, intercepting damage before 100 HP withdrawal, and the visible RIVET rig handoff still require native verification. No E06 checkpoint or ending is granted here. No new weapons, motion, lore, or effect has been authored. This is a real, reusable contract and should be integrated through separate gated commits, not treated as a completed game chapter.
