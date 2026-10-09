@@ -1420,6 +1420,20 @@ try{
               &&three?.saved==='BREACH_WAVES',
               {outcome:three?.outcome,over:three?.over,story:three?.scene,saved:three?.saved});
             await image('32-e06-real-ten-KO-result');
+            const downstream=[
+              'E06_RELAY_REPLY','E06_NETWORK_SCAN',
+              'E06_RIG_RETURN','E06_OVERRIDE_BUILDUP'
+            ];
+            for(const cue of downstream){
+              await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+              const actual=await poll("(()=>({current:window.APEX_ARSENAL?.state?.questBreachStoryView?.snapshot?.().current,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId,rig:window.APEX_ARSENAL?.state?.questBreachRig?.snapshot?.().phase}))()",
+                x=>x?.current===cue&&x?.save==='BREACH_WAVES',120);
+              gate('B6l canonical post-wave beat '+cue+' has no premature E07 save',
+                actual?.current===cue&&actual?.save==='BREACH_WAVES',actual);
+            }
+            const beforeFinal=await evalPage("(()=>({phase:window.APEX_ARSENAL?.state?.questBreachRig?.snapshot?.().phase,stage:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}))()");
+            gate('B6l RIVET return is not prematurely certified as E07',
+              beforeFinal?.phase==='RIVET_RETURNED'&&beforeFinal?.stage==='BREACH_WAVES',beforeFinal);
             await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
             const done=await poll("(()=>({stage:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId,open:document.getElementById('apexQuest01Stage')?.hidden===false,hudClosed:document.getElementById('battleHudHost')?.classList.contains('is-open')===false}))()",
               x=>x?.stage==='BREACH_WAVES'&&x?.open&&x?.hudClosed,180);
