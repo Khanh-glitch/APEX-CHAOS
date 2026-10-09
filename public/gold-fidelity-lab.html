@@ -60,6 +60,8 @@
       // Always boot the REAL application on the same origin at /.
       // Deliberately exclude any R82/R85/R86 opt-in reflow experiments.
       const target = new URL('/', location.origin);
+      // The embedded child always runs the native Gold game: no recursion.
+      target.searchParams.set('goldViewport','native');
       frame.src = target.href;
       let metrics = null;
       let pending = 0;
