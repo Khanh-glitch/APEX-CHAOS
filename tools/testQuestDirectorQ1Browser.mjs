@@ -1175,6 +1175,81 @@ try{
         v=>v?.node==='WEAPON_RAIN',160);
       gate('Q5 real reload restores E04 and exactly 11 authored cue IDs',
         restoredE04?.node==='WEAPON_RAIN'&&restoredE04.cues===11,restoredE04);
+
+      // Q5p E04 — replayed physically from the SAVED E03 victory. The
+      // Director never receives an injected test-only checkpoint.
+      const e04start=await poll("(()=>({enabled:document.getElementById('apex-boot-start')?.getBoundingClientRect()?.width>0,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}))()",
+        x=>x?.enabled&&x?.checkpoint==='WEAPON_RAIN',300);
+      gate('E04 starts after genuine reload at WEAPON_RAIN',e04start?.enabled===true,e04start);
+      await click('#apex-boot-start');
+      await poll("(()=>document.body.dataset.apexSceneTransition==='DONE'&&document.getElementById('apex-boot-blackout')?.hidden===true)()",Boolean,300);
+      await click('#continueStory');
+      const stageE04=await evalPage("(()=>({id:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,play:document.getElementById('q5WeaponRainPlay')?.hidden===false}))()");
+      gate('E04 saved chapter physically exposes Gold weapon rain',stageE04?.id==='WEAPON_RAIN'&&stageE04.play,stageE04);
+      await image('23-e04-gold-chapter-opening');
+      const attemptsE04=[];
+      let clearE04=false;
+      for(let trial=0;trial<12;trial++){
+        await click('#q5WeaponRainPlay');
+        const live=await poll("(()=>({gold:window.__apexGoldBattleHosted===true,hud:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,active:window.APEX_ARSENAL?.state?.questWeaponRainProgression===true,roster:(window.fighters||[]).map(x=>({id:x.questId,maxHp:x.maxHp,hp:x.hp}))}))()",
+          x=>x?.gold&&x?.hud&&x?.active,420);
+        gate('E04 physical Gold weapon-rain battle ready '+trial,
+          live?.gold&&live?.hud&&live?.active
+          &&live?.roster?.map(x=>x.id).join('|')==='NEWBOT|RAIN-A|RAIN-B'
+          &&live.roster.map(x=>x.maxHp).join('|')==='1000|450|450',live);
+        if(!live?.active||!live?.hud)throw Error('E04 Gold true battle not live');
+        if(trial===0){
+          const denied=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E04_WEAPON_RAIN_CLEAR'))()");
+          gate('E04 cannot claim win before authentic KO and final rain',denied?.ok===false,denied);
+        }
+        const one=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=window.APEX_QUEST_MULTI_ACTOR_CORE;let n=0,maxOffensive=0;let phases=[];let last='';for(;n<7800;n++){if(n%80===0)window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyJ',key:'j',bubbles:true}));if(n%200===0)window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyK',key:'k',bubbles:true}));A.step(.05);const snap=A.state.questRainSequence?.snapshot?.();if(snap?.phase!==last){last=snap?.phase;phases.push({phase:last,time:A.state.time,attempted:snap?.attempted,accepted:snap?.accepted,rejected:snap?.rejected});}maxOffensive=Math.max(maxOffensive,(A.state.slots||[]).filter(x=>x.kind!=='HEAL'&&x.phase!=='REMOVED').length);if(A.state.over)break;}return{n,maxOffensive,phases,rain:A.state.questRainSequence?.snapshot?.(),outcome:A.state.questOutcome,over:A.state.over,canonical:Q.weaponRainOutcome(window.fighters,A.state.questRainSequence?.snapshot?.()?.observed===true),roster:(window.fighters||[]).map(x=>({id:x.questId,team:x.questTeam,hp:x.hp,maxHp:x.maxHp})),view:A.state.questRainStoryView?.snapshot?.(),checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId}})()");
+        attemptsE04.push(one);
+        gate('E04 never exceeds five real offensive floor slots '+trial,one?.maxOffensive<=5,one?.maxOffensive);
+        if(one?.outcome==='COMPLETE'){
+          gate('E04 authentic two-hostile KO PLUS witnessed three-cap burst',
+            one?.canonical?.status==='COMPLETE'
+            &&one?.rain?.observed===true&&one.rain.attempted===3
+            &&one.rain.accepted+one.rain.rejected===3
+            &&one.roster?.filter(x=>x.team==='HOSTILE').length===2
+            &&one.roster.filter(x=>x.team==='HOSTILE').every(x=>x.hp<=0)
+            &&one.roster[0]?.hp>0
+            &&one.view?.active===true
+            &&one.view?.current==='E04_WEAPON_RAIN_CLEAR'
+            &&one.checkpoint==='WEAPON_RAIN',one);
+          const early=await evalPage("(()=>window.APEX_QUEST01_DIRECTOR?.acceptNativeBeat('E04_WEAPON_RAIN_CLEAR'))()");
+          gate('E04 visible result cannot sign Director prematurely',early?.ok===false,early);
+          await image('24-e04-native-two-ko-result');
+          await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+          const saved=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,chapter:document.getElementById('apexQuest01Stage')?.dataset.node,chapterVisible:document.getElementById('apexQuest01Stage')?.hidden===false,hudOpen:document.getElementById('battleHudHost')?.classList.contains('is-open')}))()",
+            x=>x?.node==='CHARGE_THE_BREAKER'&&x.chapterVisible&&x.hudOpen===false,170);
+          gate('E04 actual result acknowledgement closes Gold and saves E05',
+            saved?.node==='CHARGE_THE_BREAKER'
+            &&saved?.chapter==='CHARGE_THE_BREAKER'
+            &&saved?.hudOpen===false,saved);
+          clearE04=true;
+          await image('25-e04-charge-the-breaker-checkpoint');
+          break;
+        }
+        gate('E04 NEWBOT physical KO requires retry rather than checkpoint skip '+trial,
+          one?.outcome==='RETRY'
+          &&one?.view?.current==='E04_WEAPON_RAIN_RETRY'
+          &&one?.view?.active===true
+          &&one?.checkpoint==='WEAPON_RAIN',one);
+        if(one?.outcome!=='RETRY')break;
+        await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
+        const ready=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,stage:document.getElementById('apexQuest01Stage')?.hidden===false,closed:document.getElementById('battleHudHost')?.classList.contains('is-open')===false}))()",
+          x=>x?.node==='WEAPON_RAIN'&&x?.stage&&x?.closed,170);
+        gate('E04 retry fully closes Gold and returns saved chapter',ready?.node==='WEAPON_RAIN'&&ready.closed,ready);
+      }
+      gate('E04 at least one honest full Chrome victory without HP injection',
+        clearE04,{victory:clearE04,attempts:attemptsE04.map(x=>({steps:x?.n,result:x?.outcome,phases:x?.phases,max:x?.maxOffensive,hp:x?.roster?.map(y=>y.hp)}))});
+      if(clearE04){
+        await cmd('Page.reload',{ignoreCache:true});
+        const restoredE05=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,cues:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.completedCueIds?.length}))()",
+          x=>x?.node==='CHARGE_THE_BREAKER',180);
+        gate('E04 reload retains real E05 without replaying two defeated hostiles',
+          restoredE05?.node==='CHARGE_THE_BREAKER'&&restoredE05.cues===12,restoredE05);
+      }
     }
   }
   }
