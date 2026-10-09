@@ -1115,7 +1115,7 @@ try{
         v=>v?.gold&&v.open&&v.live&&v.wave==='A',420);
       gate('Q5 authentic Gold-mounted E03 wave A entry '+attempt,
         live?.live&&live?.gold&&live?.open&&live?.actors?.length===4
-        &&live.actors[0]?.id==='NEWBOT'&&live.actors.slice(1).every(a=>a.max===280),live);
+        &&live.actors[0]?.id==='NEWBOT'&&live.actors.slice(1).every(a=>a.max===120),live);
       if(!live?.live||!live?.open){
         const diagnostics=await evalPage("(()=>({questReady:typeof window.__apexQuestScrapSwarmStoryStart,questCore:!!window.APEX_QUEST_MULTI_ACTOR_CORE,coreWave:window.APEX_QUEST_MULTI_ACTOR_CORE?.scrapSwarmRoster?.('A')?.length,shellType:window.APEX_ARSENAL_SHELLS?.typeFor?.('ROBOT')?.name,checkpoint:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,goldHosted:window.__apexGoldBattleHosted===true,state:{active:window.APEX_ARSENAL?.state?.active,quest:window.APEX_ARSENAL?.state?.questScrapSwarmProgression},hud:document.getElementById('battleHudHost')?.className,stage:document.getElementById('apexQuest01Stage')?.hidden===false,body:document.body.className,errors:window.apexEarlyErrors?.slice?.(-6)}))()");
         gate('Q5 blocked Gold entry root-cause diagnostics',false,{diagnostics,console:browserConsole.slice(-22)});

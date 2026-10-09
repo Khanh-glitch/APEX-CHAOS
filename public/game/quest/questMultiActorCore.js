@@ -232,15 +232,15 @@
   // Three Gold Scrap chassis may be reused; no invented hero skill kit.
   const SWARM_WAVES=Object.freeze({
     A:Object.freeze([
-      Object.freeze({questId:'SWARM-A1',questTeam:'HOSTILE',hp:280,x:760,y:220,kind:'scout'}),
-      Object.freeze({questId:'SWARM-A2',questTeam:'HOSTILE',hp:280,x:785,y:500,kind:'scout'}),
-      Object.freeze({questId:'SWARM-A3',questTeam:'HOSTILE',hp:280,x:760,y:780,kind:'scout'}),
+      Object.freeze({questId:'SWARM-A1',questTeam:'HOSTILE',hp:120,x:760,y:220,kind:'scout'}),
+      Object.freeze({questId:'SWARM-A2',questTeam:'HOSTILE',hp:120,x:785,y:500,kind:'scout'}),
+      Object.freeze({questId:'SWARM-A3',questTeam:'HOSTILE',hp:120,x:760,y:780,kind:'scout'}),
     ]),
     B:Object.freeze([
-      Object.freeze({questId:'SWARM-B1',questTeam:'HOSTILE',hp:220,x:760,y:150,kind:'scout'}),
-      Object.freeze({questId:'SWARM-B2',questTeam:'HOSTILE',hp:220,x:810,y:375,kind:'scout'}),
-      Object.freeze({questId:'SWARM-B3',questTeam:'HOSTILE',hp:220,x:810,y:625,kind:'reaver'}),
-      Object.freeze({questId:'SWARM-B4',questTeam:'HOSTILE',hp:220,x:760,y:850,kind:'scout'}),
+      Object.freeze({questId:'SWARM-B1',questTeam:'HOSTILE',hp:90,x:760,y:150,kind:'scout'}),
+      Object.freeze({questId:'SWARM-B2',questTeam:'HOSTILE',hp:90,x:810,y:375,kind:'scout'}),
+      Object.freeze({questId:'SWARM-B3',questTeam:'HOSTILE',hp:90,x:810,y:625,kind:'reaver'}),
+      Object.freeze({questId:'SWARM-B4',questTeam:'HOSTILE',hp:90,x:760,y:850,kind:'scout'}),
     ])
   });
   function scrapSwarmRoster(wave) {

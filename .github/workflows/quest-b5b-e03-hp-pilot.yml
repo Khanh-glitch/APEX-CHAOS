@@ -1,0 +1,62 @@
+name: B5b E03 real 1.2x HP pilot (no fake KO)
+on:
+  push:
+    branches: ['quest/b5b-e03-open-hp-pilot-from-b5a']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  native-physical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Source contract, no bypass
+        run: |
+          node tools/testQuestScrapSwarmQ5.mjs
+          node tools/testQuestReplayHubB4.mjs
+          node tools/buildGoldCutover.mjs --check
+      - run: pnpm build
+      - name: Start actual Gold Vite
+        shell: bash
+        run: |
+          pnpm dev:lan > /tmp/b5b-vite.log 2>&1 &
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/b5b-vite.log
+          exit 1
+      - name: Detect Chrome
+        id: chrome
+        shell: bash
+        run: |
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$BIN"
+          echo "path=$BIN" >> "$GITHUB_OUTPUT"
+      - name: Desktop full canonical E01-E05 real damage and SAVE
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/b5b-native
+        run: node tools/testQuestDirectorQ1Browser.mjs
+      - name: Mobile full E01-E05 real touch and SAVE
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_APP_URL: http://127.0.0.1:5173
+          APEX_EVIDENCE_DIR: /tmp/b5b-native
+        run: node tools/testQuestDirectorQ1Browser.mjs --mobile
+      - name: Preserve real Gold evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b5b-e03-hp-pilot-real-evidence
+          path: |
+            /tmp/b5b-native/
+            /tmp/b5b-vite.log
+          if-no-files-found: warn
