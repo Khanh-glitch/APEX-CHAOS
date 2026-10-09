@@ -204,6 +204,7 @@
     overlay.querySelector('#q4eStoryPreview').addEventListener('click',()=>{
       const cb=callbacks&&callbacks.onReflexPreview;hide();
       root.__APEX_QUEST_STORY_PLAYBACK=true;
+      delete root.__APEX_QUEST_STORY_FULL;
       if(typeof cb==='function')cb();
     });
     overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();e.preventDefault();hide();}else if(e.key==='Tab'){const els=[overlay.querySelector('#q1Preview'),overlay.querySelector('#q4ReflexPreview'),overlay.querySelector('#q4eStoryPreview'),overlay.querySelector('#q4hQuestPlay'),overlay.querySelector('#q1Exit')];const index=els.indexOf(d.activeElement);if(e.shiftKey&&index===0){e.preventDefault();els[els.length-1].focus();}if(!e.shiftKey&&index===els.length-1){e.preventDefault();els[0].focus();}}});
