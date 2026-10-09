@@ -47,6 +47,8 @@ jobs:
             cat reports/integration-b05/overlap.txt
             echo "status=$([ "$MERGE_EXIT" = 0 ] && echo CLEAN_UNREVIEWED || echo MANUAL_RECONCILIATION_REQUIRED)"
           } | tee reports/integration-b05/summary.txt
+          echo '--- Merge-tree conflict details (first 65 lines) ---'
+          head -65 reports/integration-b05/merge-tree.txt
           test "$COMMON" = '53cb5b48b14d24d2bcc596a3ca5e4a54704a44dc'
           test "$(wc -l < reports/integration-b05/overlap.txt)" -eq 2
           grep -qx 'public/gold/shell.html' reports/integration-b05/overlap.txt

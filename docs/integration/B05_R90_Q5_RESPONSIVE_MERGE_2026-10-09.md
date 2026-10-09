@@ -47,3 +47,11 @@ Likewise, Q5 gameplay has not yet adopted the new collision, enemy skill/speed, 
 - Never treat responsive/Quest viewport equality across radically different device classes as a promise; verify **same existing Gold family** and exact aspect behavior.
 - If owner-responsive branch moves while Quest integration is active, pin new SHA and rerun overlap/reconciliation, not silent rebasing.
 - Responsive outer layout vs Quest inner arena is layered: an R89-accurate outer viewport can still show an overly small inner Quest arena; this is precisely B3's separate task.
+
+## Actual read-only Q5/R90 three-way receipt
+- GitHub Actions run **37902041236** SUCCESS in **research/report validation**, NOT successful product merge.
+- Input SHAs exactly as pinned above; ancestor `53cb5b48b14d24d2bcc596a3ca5e4a54704a44dc`.
+- Actual `git merge-tree --write-tree --messages` exit **1** => **MANUAL_RECONCILIATION_REQUIRED**.
+- Shared modified files: **exactly `public/gold/battle-hud.html` and `public/gold/shell.html`**, unchanged from static REST comparison.
+- Therefore B0.5 is a **required** merge-resolution stage before any B1/B3 Quest changes; do not claim R90 integrated or Q5+Responsive tests complete.
+- Workflow deliberately exits success on expected conflict to preserve evidence; next gate must demand a clean resolved *integrated* tree and visual/browser tests.
