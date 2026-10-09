@@ -21,6 +21,7 @@
         if (window.top === window && !native && (mode === '1' || handheld)) {
           const target = new URL('/gold-fidelity-lab.html', location.origin);
           target.search = q.toString();
+          target.hash = location.hash;
           location.replace(target.href);
         }
       })();
