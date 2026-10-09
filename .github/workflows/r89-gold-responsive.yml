@@ -4,8 +4,15 @@ on:
   push:
     branches:
       - arena/r89-gold-responsive-runtime
+      - arena/r89-font-parity-quest-merge-prep
     paths:
       - 'index.html'
+      - 'src/App.jsx'
+      - 'src/main.jsx'
+      - 'src/game/goldFontParity.css'
+      - 'src/game/homeLayoutLab.js'
+      - 'src/game/shortPortraitPickRuntime.js'
+      - 'docs/integration/**'
       - 'public/gold-fidelity-profiles.mjs'
       - 'public/gold-fidelity-lab.html'
       - 'tools/testR89GoldResolver.mjs'
