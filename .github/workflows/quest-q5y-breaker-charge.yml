@@ -1,0 +1,37 @@
+name: Quest Q5y E05 Charge The Breaker
+on:
+  push:
+    branches: ['quest/q5y-e05-charge-from-q5x']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  e05-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 38
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Q1 Director and Q2 regression
+        run: |
+          node tools/testQuestDirectorQ1.mjs
+          node tools/testQuestGenericRosterQ2.mjs
+      - name: E03 & E04 immutable canon and phase contract
+        run: |
+          node tools/testQuestScrapSwarmQ5.mjs
+          node tools/testQuestWeaponRainQ5.mjs
+      - name: E05 inert world-target / 6000 genuine damage contract
+        run: node tools/testQuestBreakerChargeQ5.mjs
+      - name: E05 actual Arsenal bullet collider and milestone acceptance
+        run: node tools/testArsenalBattleHeadless.mjs --product-authentic --quest-breaker-native
+      - name: Production build
+        run: pnpm build

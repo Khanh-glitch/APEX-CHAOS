@@ -6017,6 +6017,93 @@ if(process.argv.includes('--quest-weapon-rain-native')){
   }catch(e){gate('E04 native integration test failed',false,{error:String(e?.stack||e)});}
 }
 
+// Q5 E05: real Arsenal projectile hits, 6,000 accepted damage and
+// physically existing inert target. No write to Fighter.hp or counterfeit KO.
+if(process.argv.includes('--quest-breaker-native')){
+  try{
+    const r=run(`
+      const oldDirector=window.APEX_QUEST01_DIRECTOR;
+      window.APEX_QUEST01_DIRECTOR={
+        checkpoint:()=>({checkpointId:'CHARGE_THE_BREAKER'}),
+        acceptNativeBeat:()=>({ok:false,reason:'headless-does-not-save'})
+      };
+      window.__APEX_QUEST_DEV=true;window.__apexGoldBattleHosted=true;
+      const started=window.__apexQuestBreakerChargeStoryStart?.()===true;
+      delete window.__APEX_QUEST_DEV;
+      const A=window.APEX_ARSENAL,Q=window.APEX_QUEST_MULTI_ACTOR_CORE;
+      if(!started||!A?.state?.questBreakerChargeProgression)return {started,ready:false};
+      const f=window.fighters,hero=f[0],target=f[1],W=A.weaponApi;
+      const initial=Q.validateBreakerCharge(f);
+      A.step(.05);
+      const pickup=A.state.slots.find(s=>s.questStage==='E05_OPENING');
+      const physicalPickup=pickup?{
+        kind:pickup.phase,weapon:pickup.questWeaponId,
+        owner:pickup.questPickupOwner,
+        slot:pickup.id,near:Math.hypot(hero.x-pickup.x,hero.y-pickup.y)<110
+      }:null;
+      const unchangedBase=target.baseSpeed===0&&target.questWorldObject===true;
+      hero.baseSpeed=0;hero.data.__hrHoldBody=true;hero.x=150;hero.y=500;
+      target.x=680;target.y=500;
+      let acceptedHits=0,lastDamage=0,shots=0,sim=0,maxOffensive=0;
+      const shotsBefore=target.hp;
+      while(target.hp>0&&shots++<90){
+        const before=target.hp;
+        W.fireBullet({owner:hero,x:260,y:500,angle:0,
+          speed:2600,damage:15,weapon:'PISTOL'});
+        for(let k=0;k<14;k++){
+          A.step(.04);sim++;
+          maxOffensive=Math.max(maxOffensive,A.state.slots.filter(s=>
+            s.phase!=='REMOVED'&&s.kind!=='HEAL').length);
+        }
+        if(target.hp<before){acceptedHits++;lastDamage+=before-target.hp;}
+      }
+      let chargeSteps=0;
+      while(!A.state.questBreakerSequence?.snapshot()?.pulseObserved
+        &&chargeSteps++<330)A.step(.05);
+      const receipt=A.state.questBreakerSequence?.snapshot();
+      const finish={
+        started,initial,physicalPickup,unchangedBase,shotsBefore,
+        targetHp:target.hp,targetAlive:target.hp>0,acceptedHits,
+        lastDamage,shots,sim,maxOffensive,chargeSteps,receipt,
+        progress:Q.breakerChargeProgress(f),
+        status:Q.breakerChargeOutcome(f,receipt?.pulseObserved===true),
+        result:A.state.questOutcome,over:A.state.over,
+        scene:A.state.questBreakerStoryView?.snapshot?.(),
+        checkpoint:window.APEX_QUEST01_DIRECTOR.checkpoint().checkpointId
+      };
+      window.exitArsenalBattleMode();
+      window.APEX_QUEST01_DIRECTOR=oldDirector;window.__apexGoldBattleHosted=false;
+      return finish;
+    `);
+    gate('E05 genuine Gold-authorized inert target and valid 6000HP collider',
+      r?.started&&r?.initial?.ok&&r?.unchangedBase===true,
+      {started:r?.started,roster:r?.initial,inert:r?.unchangedBase});
+    gate('E05 first PISTOL is a real physical Arsenal floor item',
+      r?.physicalPickup?.kind==='TELEGRAPH'
+      &&r?.physicalPickup?.weapon==='PISTOL'
+      &&r?.physicalPickup?.owner==='NEWBOT'
+      &&r?.physicalPickup?.near===true,r?.physicalPickup);
+    gate('E05 accepted real PISTOL collisions alone reach full 6000',
+      r?.shotsBefore===6000&&r?.acceptedHits>=7
+      &&r?.targetHp===0&&r?.lastDamage>=5999
+      &&r?.progress===1,
+      {shots:r?.shots,hits:r?.acceptedHits,dmg:r?.lastDamage,hp:r?.targetHp,progress:r?.progress});
+    gate('E05 actual cap and pulse phases do not invent a sixth item',
+      r?.maxOffensive<=5&&r?.receipt?.requested===3
+      &&r?.receipt?.accepted+r?.receipt?.suppressed===3
+      &&r?.receipt?.pulseObserved===true
+      &&r?.receipt?.milestones?.join('|')==='0.25|0.5|0.75|0.9|1',
+      {max:r?.maxOffensive,receipt:r?.receipt,chargeSteps:r?.chargeSteps});
+    gate('E05 actual complete result waits for physical scene acknowledgement',
+      r?.status?.status==='COMPLETE'
+      &&r?.result==='COMPLETE'&&r?.over==='QUEST_BREAKER_CHARGE_COMPLETE'
+      &&r?.scene?.active===true
+      &&r?.scene?.current==='E05_BREAKER_CHARGE_CLEAR'
+      &&r?.checkpoint==='CHARGE_THE_BREAKER',
+      {status:r?.status,over:r?.over,scene:r?.scene,checkpoint:r?.checkpoint});
+  }catch(e){gate('E05 real Arsenal integration',false,{error:String(e?.stack||e)});}
+}
+
 // Q2 — authentic multi-actor fixtures run on the real Arsenal engine.
 // Test-only start does not write Quest Director completion.
 if (process.argv.includes('--quest-n-actors')) {
