@@ -1439,9 +1439,14 @@ try{
               await evalPage("(()=>{window.focus();return{state:window.gameState,focus:document.hasFocus()}})()");
               await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
               await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
-              const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot();const ok=snap.currentRecipient==='T.O.T'&&snap.tot.jCooldown>9&&snap.tot.dashing;window.fighters[0].withdrawn=false;A.state.slots=[];return{ok,cooldown:snap.tot.jCooldown,dash:snap.tot.dashing,recipient:snap.currentRecipient,gameState:window.gameState,focused:document.hasFocus()}})()");
-              gate('B6n desktop physical KeyJ dispatch reaches the same T.O.T native dash',
-                keyResult?.ok&&keyResult?.cooldown>9,keyResult);
+              // Real-time battle may complete/cancel a 0.55s dash before CDP
+              // reads it. The authoritative proof of physical keyboard input
+              // is the exact accepted DASH_LOCK receipt + a consumed real J
+              // cooldown; an instantaneous "dashing=true" read is a race.
+              const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot(),events=snap.events.filter(e=>e.kind==='DASH_LOCK'&&e.id==='T.O.T'&&e.source==='keyboard');const last=events.at(-1),ok=snap.currentRecipient==='T.O.T'&&snap.tot.jCooldown>0&&snap.tot.jCooldown<=10&&!!last;window.fighters[0].withdrawn=false;A.state.slots=[];return{ok,cooldown:snap.tot.jCooldown,dashing:snap.tot.dashing,receipt:last||null,recipient:snap.currentRecipient,gameState:window.gameState,focused:document.hasFocus()}})()");
+              gate('B6n desktop real KeyJ dispatch creates native DASH_LOCK receipt for actual floor slot',
+                keyResult?.ok&&keyResult?.receipt?.slotId===inputSetup?.id&&
+                keyResult?.receipt?.source==='keyboard'&&keyResult?.focused,keyResult);
             }else{
               await evalPage("(()=>{window.fighters[0].withdrawn=false;window.APEX_ARSENAL.state.slots=[];return true})()");
             }
