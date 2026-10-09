@@ -90,12 +90,18 @@ try{
  await click('#continueStory');
  const stage=await poll('(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,shown:document.querySelector("#apexQuest01Stage")?.hidden===false}))()',x=>x?.shown&&x.node==='CHARGE_THE_BREAKER',110);
  gate('Quest hub shows saved E05',stage?.shown&&stage.node==='CHARGE_THE_BREAKER',stage);
+ const causeE05=await exec('document.querySelector("#q1Context")?.textContent');
+ gate('E05 chapter explains impact objective and relay cause',
+   causeE05?.includes('accumulator')&&causeE05.includes('relay'),{causeE05});
  const unlocked=await exec('(()=>({e03:document.querySelector("#q1StageHub [data-stage=SCRAP_SWARM]")?.disabled,e06:document.querySelector("#q1StageHub [data-stage=BREACH_WAVES]")?.disabled}))()');
  gate('Only completed stage replay enabled, E06 remains locked',unlocked.e03===false&&unlocked.e06===true,unlocked);
  await picture('hub');
  await click('#q1StageHub [data-stage=SCRAP_SWARM]');
  const chosen=await poll('(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,replay:window.APEX_QUEST01_DIRECTOR?.replayStatus()?.active,save:JSON.parse(localStorage.getItem(window.APEX_QUEST01_DIRECTOR.STORAGE_KEY)).checkpointId}))()',x=>x?.replay&&x.node==='SCRAP_SWARM',110);
  gate('Real replay click creates volatile E03 without changing permanent E05',chosen?.save==='CHARGE_THE_BREAKER',chosen);
+ const causeE03=await exec('document.querySelector("#q1Context")?.textContent');
+ gate('E03 replay tells the player why two waves follow E02',
+   causeE03?.includes('Two successive enemy waves'),{causeE03});
  await picture('selected');
  await click('#q5ScrapSwarmPlay');
  const battle=await poll('(()=>({active:window.APEX_ARSENAL?.state?.active,swarm:window.APEX_ARSENAL?.state?.questScrapSwarmProgression,host:document.querySelector("#battleHudHost")?.classList.contains("is-open"),ids:window.fighters?.map(f=>f.questId)}))()',v=>v?.active&&v?.swarm&&v?.host,420);

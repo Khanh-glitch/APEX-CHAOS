@@ -20,6 +20,18 @@
     { id:'TOT_LAST_CHOICE', label:'T.O.T — LAST CHOICE', type:'ENCOUNTER', encounterId:'E08', status:'PENDING_IMPLEMENTATION' },
     { id:'OUTSIDE', label:'OUTSIDE', type:'STORY', status:'PENDING_IMPLEMENTATION' }
   ]);
+  // Stage signposts are SYSTEM/NARRATOR information, not character speech.
+  // They make each change in gameplay causal without inventing canon dialogue.
+  // E06–E08 dialogue remains locked; do not preview spoiler text in the hub.
+  const STORY_CONTEXT=Object.freeze({
+    WAKE:'NEWBOT is awake, but the network cannot identify it. Another discarded unit is nearby.',
+    REFLEX:'NEWBOT and T.O.T have not learned to recognize each other. Weapon contact reveals what their old routines can still do.',
+    WORKSHOP:'RIVET stopped the duel with Stormbreaker. Three rejected machines reach the workshop together.',
+    FIRST_WAKE:'Two Scrap Scouts approach the workshop perimeter. NEWBOT and T.O.T must defend it together.',
+    SCRAP_SWARM:'The basin is not secure. Two successive enemy waves now force NEWBOT to hold the ground without a free reset.',
+    WEAPON_RAIN:'The supply rhythm accelerates while two hostiles remain active. Every weapon is a real Arsenal pickup, not falling scenery.',
+    CHARGE_THE_BREAKER:'The inert accumulator accepts weapon impacts. Filling its charge sends one infrastructure pulse toward the relay.'
+  });
   const NODE_IDS = NODES.map(n => n.id);
   const byId = id => NODES.find(n => n.id === id) || null;
   const copy = value => JSON.parse(JSON.stringify(value));
@@ -325,6 +337,9 @@
       '#apexQuest01Stage .q1-eyebrow{font-size:11px;letter-spacing:.22em;color:#c5a069;font-weight:700;}',
       '#apexQuest01Stage h2{font-family:Impact,"Arial Narrow",Arial,sans-serif;font-size:clamp(36px,7vw,72px);line-height:.93;margin:18px 0 16px;letter-spacing:.045em;text-transform:uppercase;text-shadow:0 4px 19px #0008;}',
       '#apexQuest01Stage .q1-sub{font-size:13px;line-height:1.7;color:#c9cbd0;max-width:48ch;}',
+      '#apexQuest01Stage .q1-cause{margin-top:14px;padding:12px 14px;border-left:2px solid #c18a48;background:#e7a65d0c;display:grid;gap:6px;}',
+      '#apexQuest01Stage .q1-cause-kicker{font-size:10px;letter-spacing:.16em;font-weight:800;color:#d7ac72;}',
+      '#apexQuest01Stage .q1-cause-text{font:500 12px/1.6 Arial,sans-serif;color:#d4d6d5;max-width:52ch;}',
       '#apexQuest01Stage .q1-status{margin:24px 0 12px;color:#c4a777;font-size:11px;letter-spacing:.13em;}',
       '#apexQuest01Stage .q1-actions{display:grid;gap:10px;margin-top:22px;}',
       '#apexQuest01Stage button{font:700 13px Arial,sans-serif;letter-spacing:.1em;min-height:48px;padding:12px 15px;border:1px solid #9a8259;color:#f6eee0;background:#403725;cursor:pointer;}',
@@ -349,7 +364,7 @@
     overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-label','Quest 01 story checkpoint');
     // Static trusted template: copy is set via textContent only.
-    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><div class="q1-progress" aria-hidden="true"></div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q4iFirstWakePlay">BEGIN FIRST WAKE · E02</button><button type="button" id="q5ScrapSwarmPlay">ENTER SCRAP SWARM · E03</button><button type="button" id="q5WeaponRainPlay">ENTER WEAPON RAIN · E04</button><button type="button" id="q5BreakerChargePlay">CHARGE THE BREAKER · E05</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine" id="q1Objective"></div><nav class="q1-hub" aria-label="Quest encounter replay"><h3>QUEST STAGES / REPLAY</h3><div class="q1-hub-grid" id="q1StageHub"></div><div class="q1-replay-note" id="q1ReplayNotice"></div></nav></div>';
+    overlay.innerHTML='<div class="q1-panel"><div class="q1-eyebrow">QUEST 01 // THE ONES THROWN AWAY</div><div class="q1-progress" aria-hidden="true"></div><h2 id="q1Title"></h2><p class="q1-sub" id="q1Copy"></p><div class="q1-cause" id="q1Cause" hidden><div class="q1-cause-kicker">WHY THIS CHAPTER</div><div class="q1-cause-text" id="q1Context"></div></div><p class="q1-status" id="q1Status"></p><div class="q1-actions"><button type="button" id="q4hQuestPlay">START QUEST 01 · OPENING</button><button type="button" id="q4iFirstWakePlay">BEGIN FIRST WAKE · E02</button><button type="button" id="q5ScrapSwarmPlay">ENTER SCRAP SWARM · E03</button><button type="button" id="q5WeaponRainPlay">ENTER WEAPON RAIN · E04</button><button type="button" id="q5BreakerChargePlay">CHARGE THE BREAKER · E05</button><button type="button" id="q1Preview">PLAYTEST FIRST WAKE · CP04</button><button type="button" id="q4ReflexPreview">PLAYTEST REFLEX · Q4A</button><button type="button" id="q4eStoryPreview">REFLEX · STORY PREVIEW</button><button type="button" class="q1-back" id="q1Exit">RETURN HOME</button></div><div class="q1-fine" id="q1Objective"></div><nav class="q1-hub" aria-label="Quest encounter replay"><h3>QUEST STAGES / REPLAY</h3><div class="q1-hub-grid" id="q1StageHub"></div><div class="q1-replay-note" id="q1ReplayNotice"></div></nav></div>';
     d.body.appendChild(overlay);
     overlay.querySelector('#q1Exit').addEventListener('click',()=>{
       if(replaySession)exitReplay();else hide();
@@ -428,6 +443,9 @@
     el.dataset.node=node.id;
     el.querySelector('#q1Title').textContent=node.label;
     el.querySelector('#q1Copy').textContent=node.copy||'Another chapter waits beyond the scrap.';
+    const chapterContext=STORY_CONTEXT[node.id]||'';
+    el.querySelector('#q1Context').textContent=chapterContext;
+    el.querySelector('#q1Cause').hidden=!chapterContext;
     const index=NODE_IDS.indexOf(node.id);
     el.querySelector('#q1Status').textContent='CHAPTER '+String(index+1).padStart(2,'0')+' / 11';
     el.querySelector('.q1-panel').style.setProperty('--quest-progress',((index+1)/NODE_IDS.length*100).toFixed(2)+'%');
@@ -503,6 +521,6 @@
   });
   root.APEX_QUEST01_DIRECTOR = api;
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports={create,makeState,sanitize,NODES,STORAGE_KEY,CONTENT_REVISION};
+    module.exports={create,makeState,sanitize,NODES,STORY_CONTEXT,STORAGE_KEY,CONTENT_REVISION};
   }
 })(typeof window !== 'undefined' ? window : globalThis);

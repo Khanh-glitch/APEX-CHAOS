@@ -1,0 +1,63 @@
+name: B4b Causal Story Signposts on Real Gold
+on:
+  push:
+    branches: ['quest/b4b-causal-story-from-b4a']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  native-and-gold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 34
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - name: Story and canon constraints
+        run: node tools/testQuestCausalNarrativeB4.mjs
+      - name: Replay permanent save and real-result guards
+        run: |
+          node tools/testQuestReplayHubB4.mjs
+          node tools/testQuestDirectorQ1.mjs
+          node tools/testQuestStormbreakerFloorB2c.mjs
+      - name: Gold source reproducibility
+        run: node tools/buildGoldCutover.mjs --check
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Run native Gold Vite
+        shell: bash
+        run: |
+          pnpm dev:lan >/tmp/b4b-vite.log 2>&1 &
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/b4b-vite.log
+          exit 1
+      - name: Find Chrome
+        id: chrome
+        shell: bash
+        run: |
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$BIN"
+          echo "path=$BIN" >> "$GITHUB_OUTPUT"
+      - name: Chrome Gold chapter context and replay desktop
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_EVIDENCE_DIR: /tmp/b4b-proof
+        run: node tools/testQuestStageHubBrowserB4.mjs
+      - name: Chrome Gold chapter context and replay mobile
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_EVIDENCE_DIR: /tmp/b4b-proof
+        run: node tools/testQuestStageHubBrowserB4.mjs --mobile
+      - name: Preserve real screenshots and click evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b4b-real-gold-causal-scenes
+          path: |
+            /tmp/b4b-proof/
+            /tmp/b4b-vite.log
+          if-no-files-found: warn
