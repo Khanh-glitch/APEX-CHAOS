@@ -39,18 +39,18 @@ jobs:
           BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
           test -n "$BIN"
           echo "path=$BIN" >> "$GITHUB_OUTPUT"
-      - name: Desktop full canonical E01-E05 real damage and SAVE
+      - name: Desktop real E03 independent HP pilot (up to 12 physical attempts)
         env:
           CHROME_PATH: ${{ steps.chrome.outputs.path }}
           APEX_APP_URL: http://127.0.0.1:5173
           APEX_EVIDENCE_DIR: /tmp/b5b-native
-        run: node tools/testQuestDirectorQ1Browser.mjs
-      - name: Mobile full E01-E05 real touch and SAVE
+        run: node tools/testQuestSwarmPilotB5.mjs
+      - name: Mobile real E03 independent HP pilot (up to 12 physical touch attempts)
         env:
           CHROME_PATH: ${{ steps.chrome.outputs.path }}
           APEX_APP_URL: http://127.0.0.1:5173
           APEX_EVIDENCE_DIR: /tmp/b5b-native
-        run: node tools/testQuestDirectorQ1Browser.mjs --mobile
+        run: node tools/testQuestSwarmPilotB5.mjs --mobile
       - name: Preserve real Gold evidence
         if: always()
         uses: actions/upload-artifact@v4

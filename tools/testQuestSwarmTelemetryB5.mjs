@@ -4,7 +4,7 @@
 import {spawn} from 'node:child_process';
 import {mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
-const mobile=process.argv.includes('--mobile'),port=mobile?9435:9434;
+const mobile=process.argv.includes('--mobile'),port=Number(process.env.APEX_CDP_PORT)||(mobile?9435:9434);
 const url=process.env.APEX_APP_URL||'http://127.0.0.1:5173';
 const binary=process.env.CHROME_PATH||'google-chrome';
 const output=process.env.APEX_EVIDENCE_DIR||'/tmp/b4a-real';
@@ -12,7 +12,7 @@ await mkdir(output,{recursive:true});
 const browser=spawn(binary,['--headless=new','--disable-gpu','--no-first-run',
  '--no-sandbox','--remote-debugging-port='+port,
  '--window-size='+(mobile?'390,844':'1365,768'),
- '--user-data-dir=/tmp/apex-b4a-chrome-'+(mobile?'mobile':'desktop'),url],{stdio:'ignore'});
+ '--user-data-dir=/tmp/apex-b5b-chrome-'+port,url],{stdio:'ignore'});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 let socket,serial=0,failed=0;
 const waiters=new Map(),receipts=[];
