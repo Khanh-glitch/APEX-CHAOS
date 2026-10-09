@@ -8,7 +8,8 @@ const cases=[
   ['large-phone-portrait',430,932,'phone','portrait-tall','port','compact'],
   ['tablet-portrait',820,1180,'tablet','portrait-tablet','port','tablet'],
   ['tablet-landscape',1024,768,'tablet','landscape-tablet','land','tablet'],
-  ['tablet-wide-landscape',1180,820,'tablet','landscape-phone','land','compact'],
+  ['tablet-wide-landscape',1180,820,'tablet','landscape-tablet-wide','land','tablet'],
+  ['tablet-long-landscape',1280,800,'tablet','landscape-tablet-wide','land','tablet'],
   ['desktop-16-9',1920,1080,'desktop','desktop-wide','desk','wide'],
   ['desktop-16-10',1440,900,'desktop','desktop','desk','desktop'],
   ['desktop-narrow-window',940,720,'desktop','landscape-tablet','land','tablet']
@@ -27,6 +28,7 @@ for(const [name,w,h,device,id,layout,size] of cases){
   assert(Math.abs(design.width/design.height-w/h)<0.00001,name+' continuous aspect');
   count++;
 }
+assert.equal(chooseGoldProfile(1180,820,null,{deviceClass:'tablet'}).id,'landscape-tablet-wide');
 assert.equal(detectGoldDeviceClass({userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)'}),'phone');
 assert.equal(detectGoldDeviceClass({userAgent:'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X)'}),'tablet');
 assert.equal(detectGoldDeviceClass({userAgent:'Mozilla/5.0 (Macintosh; Intel Mac OS X)',touchPoints:5}),'tablet');
