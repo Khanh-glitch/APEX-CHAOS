@@ -1,0 +1,29 @@
+name: B4 Temporary Quest Stage Hub Replay Isolation
+on:
+  push:
+    branches: ['quest/b4-temporary-stage-hub-from-b2c']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - name: Replay cannot modify checkpoint, skip fights or unlock future chapters
+        run: node tools/testQuestReplayHubB4.mjs
+      - name: Original native Quest story progression remains protected
+        run: node tools/testQuestDirectorQ1.mjs
+      - name: Stormbreaker floor proof remains strict
+        run: node tools/testQuestStormbreakerFloorB2c.mjs
+      - name: Generated R90 Quest HUD and stage layout stay coherent
+        run: |
+          node tools/buildGoldCutover.mjs --check
+          node tools/testQuestHudArenaB3.mjs
+      - run: pnpm install --frozen-lockfile
+      - name: Production build
+        run: pnpm build
