@@ -908,6 +908,13 @@
       }
       return;
     }
+    // E05's authentic fixed collider is machinery, not an organism.
+    // The Gold charge ring and engine's brass impact sparks provide the
+    // hit feedback. Do NOT paint biological blood or a red damage popup
+    // onto the IMPACT ACCUMULATOR. Arithmetic and real damage telemetry
+    // already completed in Fighter.takeDamage and remain untouched.
+    if(AQ.state?.questBreakerChargeProgression===true
+       &&victim?.questWorldObject===true)return;
     const colors = pigment(victim);
     const rgb = colors.legacy;
     const crit = !!opts.critical;
