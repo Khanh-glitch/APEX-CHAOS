@@ -1,0 +1,24 @@
+name: B6a Owner Breach Three-Wave Contract
+on:
+  push:
+    branches: ['quest/b6a-breach-wave-runtime-from-b5a']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  canon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - name: Owner 3 species, 3 allies, real impact retreat boundary
+        run: node tools/testQuestBreachPolicyQ6.mjs
+      - name: Gold source reproducibility and preceding E05 law
+        run: |
+          node tools/buildGoldCutover.mjs --check
+          node tools/testQuestBreakerChargeQ5.mjs
+      - run: pnpm build
