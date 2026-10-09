@@ -99,9 +99,30 @@ try{
  gate('Gold home actually opened after door',home);
  const beforeClick=await exec('(()=>{const e=document.querySelector("#continueStory"),r=e?.getBoundingClientRect();return{buttonRect:r?{x:r.x,y:r.y,width:r.width,height:r.height}:null,door:document.body.dataset.apexSceneTransition,transitionActive:window.APEX_SCENE_TRANSITION?.active?.(),blackout:document.querySelector("#apex-boot-blackout")?.hidden,open:document.querySelector("#apexQuest01Stage")?.hidden===false,hasDirector:!!window.APEX_QUEST01_DIRECTOR,screen:document.body.dataset.apexScreen||null}})()');
  console.log('B5_HOME_PRECLICK '+JSON.stringify(beforeClick));
+ // Passive capture-phase instrumentation: don't set state, change event
+ // default, or artificially call .click(). This observes physical touch only.
+ await exec(`(()=>{window.__b5TouchEvents=[];const el=document.querySelector('#continueStory');
+   const log=(scope,type)=>(e)=>window.__b5TouchEvents.push({scope,type,
+     target:e.target?.id,defaultPrevented:e.defaultPrevented,
+     trusted:e.isTrusted,time:performance.now()});
+   for(const type of ['pointerdown','pointerup','touchstart','touchend','click']){
+     document.addEventListener(type,log('document',type),{capture:true,once:true,passive:true});
+     el?.addEventListener(type,log('button',type),{capture:true,once:true,passive:true});
+   }
+   return true;})()`);
  await click('#continueStory');
  const stage=await poll('(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,shown:document.querySelector("#apexQuest01Stage")?.hidden===false,door:document.body.dataset.apexSceneTransition,transitionActive:window.APEX_SCENE_TRANSITION?.active?.(),blackout:document.querySelector("#apex-boot-blackout")?.hidden,buttonPresent:!!document.querySelector("#continueStory"),hubExists:!!document.querySelector("#q1StageHub")}))()',x=>x?.shown&&x.node==='CHARGE_THE_BREAKER',110);
  console.log('B5_HOME_POSTCLICK '+JSON.stringify(stage));
+ const touchEvidence=await exec(`(()=>({
+   events:window.__b5TouchEvents||[],
+   screen:{w:innerWidth,h:innerHeight,dpr:devicePixelRatio,
+     viewport:{w:visualViewport?.width,scale:visualViewport?.scale}},
+   stageClass:document.querySelector('#stage')?.className,
+   activeElement:document.activeElement?.id,
+   actor:document.elementFromPoint(250,500)?.id,
+   questStage:document.querySelector('#apexQuest01Stage')?.outerHTML?.slice(0,250)
+ }))()`);
+ console.log('B5_TOUCH_DISPATCH '+JSON.stringify(touchEvidence));
  if(!stage?.shown)await picture('missed-continue-story');
  gate('Quest hub shows saved E05',stage?.shown&&stage.node==='CHARGE_THE_BREAKER',stage);
  const causeE05=await exec('document.querySelector("#q1Context")?.textContent');
