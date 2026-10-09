@@ -6143,6 +6143,7 @@ if(process.argv.includes('--quest-reflex-real')){
         // player has no reason to lose health, tick cooldowns, auto-fire or
         // accidentally re-cast while RIVET's real rescue is unimplemented.
         let holdProbe=null;
+        let rivetPreview=null;
         if(final?.phase==='AWAIT_RIVET'){
           A.step(.05); // records the pending safe-hold from real receipts
           const beforeHold={hp:f.map(x=>x.hp),time:A.state.time,
@@ -6162,8 +6163,29 @@ if(process.argv.includes('--quest-reflex-real')){
             rejectedImpact,
             holdRecord:A.state.questReflexHold,
             phase:snap()?.phase};
+          // The true REFLEX duel reached this state without fabricated
+          // HP/projectiles/casts. Invoke the guarded preview just once.
+          const first=A.beginQuestRivetPreview(),second=A.beginQuestRivetPreview();
+          const frozen={hp:f.map(x=>x.hp),pos:f.map(x=>[x.x,x.y]),
+            slots:A.state.slots.map(x=>[x.id,x.phase]),clock:A.state.time};
+          let launches=0,maxLive=0,authentic=false;
+          for(let i=0;i<120;i++){
+            A.step(.05);
+            const bolts=window.projectiles.filter(x=>x.questRivetSuppression===true);
+            if(bolts.length)launches++;
+            maxLive=Math.max(maxLive,bolts.length);
+            if(bolts.some(x=>x.aq===true&&x.type==='aq_thrown'
+              &&x.weapon==='STORMBREAKER'&&x.owner?.questId==='RIVET'))authentic=true;
+          }
+          const afterRig={hp:f.map(x=>x.hp),pos:f.map(x=>[x.x,x.y]),
+            slots:A.state.slots.map(x=>[x.id,x.phase]),clock:A.state.time};
+          const q=A.state.questRivetPreview;
+          rivetPreview={first,second,frozen,afterRig,launches,maxLive,authentic,
+            phase:q?.phase,settled:q?.settled,peak:q?.peakFlight,
+            live:window.projectiles.filter(x=>x.questRivetSuppression).length,
+            story:snap()?.storyProgress,complete:snap()?.complete,over:A.state.over};
         }
-        halfHp={phase:final?.phase,hp:f.map(x=>x.hp),lowest,holdProbe,
+        halfHp={phase:final?.phase,hp:f.map(x=>x.hp),lowest,holdProbe,rivetPreview,
           complete:final?.complete,story:final?.storyProgress,
           over:A.state.over,frames,seconds:+(frames*.05).toFixed(2),
           activeMax,stormPoolObserved:t6,
@@ -6212,6 +6234,16 @@ if(process.argv.includes('--quest-reflex-real')){
           &&h.beforeHold.projectiles===0&&h.afterHold.projectiles===0
           &&Number.isInteger(h.holdRecord.interruptedProjectiles);
       }),trials.slice(0,8).map(x=>x?.halfHp?.holdProbe));
+    gate('q4c-rivet-one-authentic-stormbreaker-flight-while-combat-frozen',
+      trials.slice(0,8).length===8&&trials.slice(0,8).every(x=>{
+        const v=x?.halfHp?.rivetPreview;
+        return v?.first?.ok===true&&v?.second?.ok===false
+          &&v?.second?.reason==='already-released'
+          &&v?.authentic===true&&v?.launches>0&&v?.maxLive===1&&v?.peak===1
+          &&v?.phase==='SETTLED'&&v?.settled===true&&v?.live===0
+          &&JSON.stringify(v?.frozen)===JSON.stringify(v?.afterRig)
+          &&v?.story===false&&v?.complete===false&&v?.over===null;
+      }),trials.slice(0,8).map(x=>x?.halfHp?.rivetPreview));
     gate('q4a-organic-reflex-j-k-real-accepted-casts-without-synthetic-pickup',
       trials.length===12&&trials.every(x=>x?.skillPilot?.earlyBlocked===true
         &&x?.skillPilot?.j===true

@@ -277,7 +277,11 @@
     // rework layer active, resolve the nearest living enemy BODY (SLIME
     // children are valid auto-targets) and honor SNIPER aim-lost. Returns
     // undefined when no rework match exists -> base resolution is untouched.
-    if (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.resolveEnemyBody) {
+    // Q4C: preview-only registered rig holder uses a NON-COMBATANT
+    // aim marker. All real Fighter targeting and HR semantics are untouched.
+    if (AQ.state?.questRivetPreview?.operator === f) {
+      enemy = AQ.state.questRivetPreview.aimPoint;
+    } else if (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.resolveEnemyBody) {
       const resolved = window.APEX_HERO_REWORK.resolveEnemyBody(f, enemy);
       if (resolved !== undefined) enemy = resolved;
     }
@@ -616,7 +620,7 @@
           // heroManipulationImmune (crystal reflect / magnet shell /
           // gravity well all leave it alone), and the target is ONLY ever
           // the owner's living opponent.
-          if (p.weapon === 'STORMBREAKER') {
+          if (p.weapon === 'STORMBREAKER' && p.questRivetSuppression !== true) {
             const tgt = fighters.find(f => f && f !== p.owner && f.hp > 0);
             if (tgt) {
               let cur = Math.atan2(p.vy, p.vx);
@@ -637,7 +641,9 @@
           p.rot += p.spin * dt;
           // Swept segment vs fighter circle — damage exactly once, on hit.
           const target = fighters.find(f => f && f !== p.owner && f.hp > 0);
-          if (target && p.grace <= 0) {
+          // Never manufacture a 446HP impact on the paused friends;
+          // this is a non-canonical, non-damaging lane flyby only.
+          if (target && p.grace <= 0 && p.questRivetSuppression !== true) {
             const hitR = target.radius * CFG.BULLET_HIT_RADIUS_SCALE + p.radius;
             if (distPointToSegment(target.x, target.y, p.px, p.py, p.x, p.y) < hitR) {
               const spec = CFG.WEAPONS[p.weapon] || {};
@@ -1074,6 +1080,8 @@
       // or reposition it, gravity wells can't pull/absorb it. Hero
       // manipulation can't redirect the pursuit.
       heroManipulationImmune: weaponId === 'STORMBREAKER',
+      questRivetSuppression: weaponId === 'STORMBREAKER'
+        && AQ.state?.questRivetPreview?.operator === f,
       __hr: __hrTag,
     });
     window.avCue('melee_throw', { weapon: weaponId, x: f.x, y: f.y, angle });

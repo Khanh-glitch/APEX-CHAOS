@@ -282,8 +282,25 @@
       // Preserve the cinematic freeze of game physics while allowing
       // noncombat visuals to decay and camera shake to settle naturally.
       // No actor movement, pickup updates, damage or weapon cooldown tick.
+      // Q4C preview: tick ONLY the real RIVET rig holder and its Arsenal
+      // projectile, never resume fighters, spawns, time, skills or pickups.
+      const rig=state.questRivetPreview;
+      if(rig && rig.phase!=='SETTLED'){
+        weaponApi.updateHolder(rig.operator,dt);
+        weaponApi.updateArsenalProjectiles(dt);
+        const live=projectiles.filter(p=>p.questRivetSuppression===true);
+        if(live.length){
+          rig.sawFlight=true;
+          rig.phase='FLIGHT';
+          rig.peakFlight=Math.max(rig.peakFlight,live.length);
+        }else if(rig.sawFlight){
+          rig.phase='SETTLED';rig.settled=true;
+          AQ.log('QUEST_RIVET_PREVIEW_SETTLED','real flight resolved; Story stays WAKE');
+        }
+      }
       weaponApi.tickVisuals(dt);
       window.APEX_ARSENAL_AV?.tick?.(dt);
+      if(rig)window.APEX_ARSENAL_STORM?.tick?.(dt);
       if(AQ.feel?.tick)AQ.feel.tick(dt);
       for(let i=particles.length-1;i>=0;i--){
         const p=particles[i];p.update(dt);
@@ -1298,6 +1315,39 @@
       ||(window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true)))return false;
     return window.startArsenalBattleMode('ROBOT','ROBOT',{questReflex:true});
   };
+  // One-shot RIVET engineering preview. Owner has NOT approved the rescue
+  // choreography, final model, target or Story progression. The weapon must
+  // actually equip, wind up, throw and exit via Arsenal; no synthetic bolt.
+  function beginQuestRivetPreview(){
+    const state=AQ.state;
+    const authorized=(window.__APEX_TEST_MODE===true
+      && ['localhost','127.0.0.1','::1'].includes(String(window.location?.hostname||'')))
+      ||(window.__APEX_QUEST_DEV===true&&window.__apexGoldBattleHosted===true);
+    if(!authorized)return {ok:false,reason:'preview-only'};
+    if(!state?.active||state.questReflex!==true
+       ||state.questReflexGate?.snapshot()?.awaitingRivet!==true
+       ||state.questReflexHold?.phase!=='AWAIT_RIVET')
+      return {ok:false,reason:'real-safe-hold-required'};
+    if(state.questRivetPreview)return {ok:false,reason:'already-released'};
+    if(projectiles.length)return {ok:false,reason:'unsettled-projectiles'};
+    const operator={id:'Q01-RIVET-RIG-PREVIEW',name:'RIVET',questId:'RIVET',
+      questTeam:'RIG_OPERATOR',hp:1000,maxHp:1000,
+      x:500,y:72,radius:8,dir:{x:0,y:1},data:{}};
+    // Coordinates below are experimental, NOT an art/Story decision.
+    state.questRivetPreview={
+      phase:'READY',operator,aimPoint:{x:500,y:925,hp:1},
+      sawFlight:false,peakFlight:0,settled:false,
+      storyComplete:false,authority:'ARSENAL_STORMBREAKER_EQUIP_PREVIEW'
+    };
+    if(!weaponApi.equip(operator,'STORMBREAKER')){
+      state.questRivetPreview=null;
+      return {ok:false,reason:'real-equip-failed'};
+    }
+    AQ.log('QUEST_RIVET_PREVIEW_START','real Stormbreaker equipped off roster');
+    return {ok:true,phase:'READY'};
+  }
+  AQ.beginQuestRivetPreview=beginQuestRivetPreview;
+  window.__apexQuestRivetPreviewRelease=beginQuestRivetPreview;
   // Read-only pilot receipt snapshot; no mission advance, no fake HP setter.
   window.__apexQuestReflexRead = function readQ4ARealReflexPilot() {
     return AQ.state?.active&&AQ.state?.questReflex
