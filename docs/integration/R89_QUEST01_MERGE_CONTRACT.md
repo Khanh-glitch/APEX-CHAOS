@@ -30,3 +30,16 @@
 
 ## Rollback
 At all times `?goldViewport=native` boots the direct native Gold game. The font parity change is isolated in `src/game/goldFontParity.css` mounted from `src/App.jsx` after the donor's styles. Revert that small module change independently if the typography geometry does not pass visual review; do not revert Quest features.
+
+
+## First real three-way rehearsal receipt (2026-10-09)
+- Rehearsal: https://github.com/Khanh-glitch/APEX-CHAOS/actions/runs/37879331525
+- Responsive snapshot: `fd3d87fd9fcf7f4a0b375bbd35f3510a9afa86ae`.
+- Quest Q4E snapshot: `4af7cb1ef1f6580c5ce6e2fcbfc0575dd00185ff` (matches then-current remote HEAD).
+- Common base `53cb5b48b14d24d2bcc596a3ca5e4a54704a44dc`.
+- Shared edited paths are exactly `public/gold/shell.html` and `public/gold/battle-hud.html`.
+- `git merge-tree` returned exit 1: **content conflict in `public/gold/shell.html` only**; `public/gold/battle-hud.html` auto-merged structurally. "CI success" refers to producing the correct conflict report, NOT an accepted merge.
+- Cause to inspect first: each branch embeds the full donor Battle HUD as a large Base64 text payload under `<script id="battleHudPayload" type="text/plain">` inside Shell. R89's compiled HUD and Quest's actor-modified HUD both rewrote this payload. An ordinary source-line merge cannot safely select either encoded copy.
+- **Reconciliation law:** Merge authored `battle-hud.html` first; inspect Quest 3v4 HP/identity and R89 responsive Gold rules. Then regenerate Shell's embedded `battleHudPayload` from that **exact merged Battle HUD byte sequence**, re-check its decoded equality, and restore all independent responsive Home/Pick CSS changes from R89 and Quest story/presentation changes from Q4E. Never treat the Base64 blob as a human-readable conflict to manually splice.
+- Since Shell/HUD are Gold-generated artifacts, confirm the upstream adapter/cutover source produces exactly the merged output; otherwise `buildGoldCutover --check` or a later generation could erase the merge. A manual edit to generated Shell alone is NOT a durable integration.
+- Before any combined-branch write, inspect the staged conflict markers and run a byte-for-byte decoded payload-to-HUD check. No merge to shared owner branches or production has happened.
