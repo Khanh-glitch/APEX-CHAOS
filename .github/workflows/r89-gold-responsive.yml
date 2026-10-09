@@ -5,6 +5,7 @@ on:
     branches:
       - arena/r89-gold-responsive-runtime
     paths:
+      - 'index.html'
       - 'public/gold-fidelity-profiles.mjs'
       - 'public/gold-fidelity-lab.html'
       - 'tools/testR89GoldResolver.mjs'
