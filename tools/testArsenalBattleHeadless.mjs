@@ -6122,6 +6122,20 @@ if(process.argv.includes('--quest-enemy-native')){
   }catch(e){gate('B1 native enemy abilities integration',false,{error:String(e?.stack||e)})}
 }
 
+// B2 true engine floor-pickup fairness, not a static comment gate.
+if(process.argv.includes('--quest-honest-reflex')){
+  try{
+    const p=run("\nconst entered=window.__apexQuestReflexStart?.()===true;\nconst A=window.APEX_ARSENAL,W=A?.weaponApi,S=window.APEX_ARSENAL_SPAWN;\nif(!entered||!A.state.questReflex)return {entered};\nA.state.spawnHeld=true; A.state.slots=[];A.state.spawnTimer=9999;\nA.step(.05);\nconst first=A.state.slots.find(s=>s.questStage==='R1_PISTOL');\nconst newbot=window.fighters.find(f=>f.questId==='NEWBOT');\nconst tot=window.fighters.find(f=>f.questId==='T.O.T');\nif(!first)return {entered,first:null};\nnewbot.x=130;newbot.y=130;tot.x=first.x;tot.y=first.y;\nfirst.phase='REVEALED';first.weaponId='PISTOL';first.tier='T1';\nS.resolvePickups();\nconst actual={intended:first.questPickupOwner,picked:first.pickedBy,\nholder:W.getHolder(tot)?.weaponId,\nnotForced:W.getHolder(newbot)==null,\nreceipts:A.state.questReflexPickupLog||[],\nstage:window.__apexQuestReflexRead?.()?.phase};\nconst other=S.trySpawnSlot({questWeaponId:'PISTOL',questStage:'R2_PISTOL',\nquestPickupOwner:'T.O.T',questPoint:{x:500,y:500}});\nA.step(.016);\nconst persistence=other&&other.phase!=='REMOVED';\nwindow.exitArsenalBattleMode();\nreturn {entered,actual,persistence};\n");
+    gate('B2 T.O.T may genuinely collect a pistol intended for NEWBOT',
+      p?.entered===true&&p?.actual?.intended==='NEWBOT'
+      &&p?.actual?.holder==='PISTOL'&&p?.actual?.notForced===true,p?.actual);
+    gate('B2 opportunistic collector does not fabricate ordered lesson receipt',
+      p?.actual?.receipts?.length===0&&p?.actual?.stage==='R1_PISTOL',p?.actual);
+    gate('B2 stage marker never erases a physical floor gun',
+      p?.persistence===true,p?.persistence);
+  }catch(err){gate('B2 physical tutorial permission',false,{error:String(err?.stack||err)})}
+}
+
 // Q2 — authentic multi-actor fixtures run on the real Arsenal engine.
 // Test-only start does not write Quest Director completion.
 if (process.argv.includes('--quest-n-actors')) {
