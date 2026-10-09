@@ -6153,6 +6153,29 @@ if(process.argv.includes('--quest-breach-native')){
   }catch(e){gate('B6f native integration could not complete',false,{error:String(e?.stack||e)});}
 }
 
+// B6g native adversarial proof: Quest shots may not pick the first array
+// actor if it is an ally, behind the impact, or withdrawn. No HP setters.
+if(process.argv.includes('--quest-breach-targeting')){
+  try{
+    const r=run("\nwindow.__APEX_TEST_MODE=true;\nconst started=window.__apexQuestBreachFixtureStart?.()===true;\nconst A=window.APEX_ARSENAL,W=A?.weaponApi,actors=window.fighters;\nif(!started||!A?.state?.questBreachTest)return {started,ready:false};\nconst by=id=>actors.find(f=>f.questId===id);\nconst hero=by('NEWBOT'),tot=by('T.O.T'),rivet=by('RIVET');\nconst near=by('BREACH-A3'),far=by('BREACH-A1'),other=by('BREACH-A2');\nA.state.spawnHeld=true;A.state.spawnTimer=1e6;A.state.slots=[];\nfor(const f of actors){f.baseSpeed=0;f.data.__hrHoldBody=true;f.x=900;f.y=900;}\nhero.x=100;hero.y=500;tot.x=300;tot.y=500;rivet.x=340;rivet.y=500;\nnear.x=520;near.y=500;far.x=760;far.y=500;other.x=850;other.y=900;\nconst start={tot:tot.hp,rivet:rivet.hp,near:near.hp,far:far.hp,hero:hero.hp};\nW.fireBullet({owner:hero,x:200,y:500,angle:0,speed:2400,damage:8,weapon:'PISTOL'});\nfor(let i=0;i<14;i++)A.step(.025);\nconst allyShot={tot:tot.hp,rivet:rivet.hp,near:near.hp,far:far.hp,\n hpBefore:start,stillA:A.state.questBreachLifecycle.snapshot().wave};\nconst friendlyDamage=W.aqDamage(rivet,15,hero,'PISTOL');\nconst friendly={out:friendlyDamage,hp:rivet.hp};\nnear.x=520;near.y=700;\ntot.x=300;tot.y=700;rivet.x=320;rivet.y=700;\nconst firstHero=hero.hp;\nW.fireBullet({owner:far,x:700,y:500,angle:Math.PI,speed:2600,damage:8,weapon:'PISTOL'});\nfor(let i=0;i<14;i++)A.step(.025);\nconst enemyShot={heroHp:hero.hp,heroBefore:firstHero,nearHp:near.hp,totHp:tot.hp};\ntot.takeDamage(2000,far,'real-retreat-acceptance',false);\ntot.x=305;tot.y=500;const retiredHp=tot.hp;\nconst previousHero=hero.hp;\nW.fireBullet({owner:far,x:700,y:500,angle:Math.PI,speed:2600,damage:8,weapon:'PISTOL'});\nfor(let i=0;i<14;i++)A.step(.025);\nconst retiredShot={hp:tot.hp,withdrawn:tot.withdrawn,heroBefore:previousHero,\n heroAfter:hero.hp,retiredHp};\nconst readonly={wave:A.state.questBreachLifecycle.snapshot().wave,\n phase:A.state.questBreachLifecycle.snapshot().phase};\nwindow.exitArsenalBattleMode();\nreturn {started,allyShot,friendly,enemyShot,retiredShot,readonly};\n");
+    gate('B6g authentic Arsenal bullet hits nearest hostile through two living allies',
+      r?.started===true&&r.allyShot?.near<r.allyShot?.hpBefore?.near
+      &&r.allyShot.far===r.allyShot.hpBefore.far
+      &&r.allyShot.tot===r.allyShot.hpBefore.tot
+      &&r.allyShot.rivet===r.allyShot.hpBefore.rivet
+      &&r.allyShot.stillA==='A',r?.allyShot);
+    gate('B6g real damage authority rejects allied weapon damage',
+      r?.friendly?.out===0&&r.friendly.hp===r.allyShot.hpBefore.rivet,r?.friendly);
+    gate('B6g native enemy bullet ignores fellow hostiles, strikes live hero',
+      r?.enemyShot?.heroHp<r.enemyShot?.heroBefore,r?.enemyShot);
+    gate('B6g native withdrawn ally is not targetable or damageable',
+      r?.retiredShot?.withdrawn===true&&r.retiredShot.hp===100
+      &&r.retiredShot.heroAfter<r.retiredShot.heroBefore,r?.retiredShot);
+    gate('B6g avoids fictional wave advancement on incomplete enemies',
+      r?.readonly?.wave==='A'&&r.readonly.phase==='ACTIVE',r?.readonly);
+  }catch(e){gate('B6g native team-targeted projectiles',false,{error:String(e?.stack||e)})}
+}
+
 // Q2 — authentic multi-actor fixtures run on the real Arsenal engine.
 // Test-only start does not write Quest Director completion.
 if (process.argv.includes('--quest-n-actors')) {
