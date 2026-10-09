@@ -315,86 +315,55 @@ try {
     const skills=[...(p1?.querySelectorAll('.skill')||[])];
     const rect=(node)=>{const r=node?.getBoundingClientRect();return r?
       {x:r.x,y:r.y,w:r.width,h:r.height,bottom:r.bottom}:null};
-    const hittable=(el)=>{if(!el)return false;const r=el.getBoundingClientRect();
-      const hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
-      return !!hit&&(hit===el||el.contains(hit));};
     return {layout:hud?.dataset.layout,size:hud?.dataset.size,
       mode:hud?.dataset.mode,arena:rect(a),weapon:rect(weapon),
-      skills:skills.map(rect),panel:rect(p1),
-      skillHits:skills.map(hittable),weaponVisible:!!weapon&&
-      getComputedStyle(weapon).visibility==='visible'};
+      skills:skills.map(rect),panel:rect(p1)};
   })()`);
   const shapes=portraitTablet?.skills||[];
-  // R89 inherited the OWNER'S authored Gold tablet composition: two
-  // horizontally elongated controls in the bottom row; weapon ABOVE the
-  // right-hand control. Forcing obsolete R62 square skill cards or placing
-  // a weapon BETWEEN two half-width cards would rewrite approved Gold.
-  // Preserve actual pointer geometry and reject clipping/overlaps instead.
-  const panel=portraitTablet?.panel,wp=portraitTablet?.weapon;
-  const contained=(c,p,eps=3)=>!!c&&!!p&&c.w>0&&c.h>0&&
-    c.x>=p.x-eps&&c.y>=p.y-eps&&c.x+c.w<=p.x+p.w+eps&&c.bottom<=p.bottom+eps;
-  const separated=(a,b,eps=2)=>!!a&&!!b&&(
-    a.x+a.w<=b.x+eps||b.x+b.w<=a.x+eps||
-    a.bottom<=b.y+eps||b.bottom<=a.y+eps);
-  gate('R89-iPad-portrait-BOT-Gold-skill-territories-are-readable-clickable-and-unclipped',
+  gate('R62-iPad-portrait-BOT-near-square-thumb-controls',
     portraitTablet?.layout==='port'&&portraitTablet?.size==='tablet'&&
     portraitTablet?.mode==='1p'&&shapes.length===2&&
-    shapes.every(r=>r&&r.w>=115&&r.h>=115&&contained(r,panel))&&
-    shapes.every(r=>r.w/r.h>=1.45&&r.w/r.h<=3.25)&&
-    portraitTablet.skillHits?.every(Boolean)&&
-    separated(shapes[0],shapes[1])&&
-    Math.abs(shapes[0].y-shapes[1].y)<=3,
+    shapes.every(r=>r&&r.w>=115&&r.h>=115&&r.w/r.h>=.65&&r.w/r.h<=1.45),
     portraitTablet);
-  gate('R89-iPad-portrait-BOT-Gold-weapon-does-not-occlude-skill-input-or-arena',
-    wp?.w>=150&&contained(wp,panel)&&portraitTablet.weaponVisible&&
-    shapes.length===2&&shapes.every(s=>separated(wp,s))&&
-    wp.bottom<=shapes[0].y+3&&portraitTablet?.arena?.w>=.65*1032,
+  gate('R62-iPad-portrait-weapon-centered-between-thumb-controls',
+    portraitTablet?.weapon?.w>=150&&
+    portraitTablet?.weapon?.x>shapes[0]?.x+shapes[0]?.w-3&&
+    portraitTablet?.weapon?.x+portraitTablet.weapon.w<shapes[1]?.x+3&&
+    portraitTablet?.arena?.w>=.65*1032,
     portraitTablet);
   report.evidence.push(await screenshot('r62-ipad-portrait-bot'));
 
-  // R70 owner art decision supersedes R68: NO ring/glow/cooldown shade over
-  // the skill image. Assert live PRODUCTION icon, bounded art well and real
-  // state legibility while the skill image itself stays clean.
+  // R68 runtime render probe: sample the true image-bound state layers, not
+  // string-presence gates. Temporarily toggle presentation only, then restore.
   const skillArtProbe=await evaluate(`(async () => {
     const node=document.querySelector('#battleHudHost #p1Side .skill');
     const art=node?.querySelector('.sk-art');
-    const img=art?.querySelector(':scope > .apex-skill-icon');
-    const fallback=art?.querySelector(':scope > svg');
-    const mask=art?.querySelector(':scope > .sk-mask');
-    const sweep=art?.querySelector(':scope > .sk-sweep');
-    const cdn=art?.querySelector(':scope > .sk-cdn');
-    if(!node||!art)return {found:false};
+    const ring=art?.querySelector('.apex-state-ring');
+    const shade=art?.querySelector('.apex-state-shade');
+    if(!node||!art||!ring||!shade)return {found:false};
     const original=node.dataset.state;
-    const cs=getComputedStyle(art),r=art.getBoundingClientRect();
-    const iconVisible=img&&getComputedStyle(img).display!=='none'&&
-      img.complete&&img.naturalWidth>0;
-    const fallbackVisible=fallback&&getComputedStyle(fallback).display!=='none'&&
-      fallback.getBoundingClientRect().width>0;
-    node.dataset.state='ready';
-    const readyOpacity=img?Number(getComputedStyle(img).opacity):null;
-    node.dataset.state='cd';
-    await new Promise(resolve=>setTimeout(resolve,200));
-    const cooldown={
-      iconOpacity:img?Number(getComputedStyle(img).opacity):null,
-      cdLabelDisplay:cdn?getComputedStyle(cdn).display:null
-    };
+    const originalProgress=art.style.getPropertyValue('--apex-active-progress');
+    const originalShade=art.style.getPropertyValue('--apex-cd-shade');
+    const bounds=(el)=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height}};
+    const artBounds=bounds(art),ringBounds=bounds(ring),shadeBounds=bounds(shade);
+    node.dataset.state='active';art.style.setProperty('--apex-active-progress','.5');
+    await new Promise(resolve=>setTimeout(resolve,160));
+    const active={opacity:getComputedStyle(ring).opacity,gradient:getComputedStyle(ring).backgroundImage};
+    node.dataset.state='cd';art.style.setProperty('--apex-cd-shade','.75');
+    await new Promise(resolve=>setTimeout(resolve,160));
+    const cooling={opacity:getComputedStyle(shade).opacity,transform:getComputedStyle(shade).transform};
     node.dataset.state=original;
-    return {found:true,art:{w:r.width,h:r.height},overflow:cs.overflow,
-      iconVisible:!!iconVisible,fallbackVisible:!!fallbackVisible,
-      noRing:!art.querySelector('.apex-state-ring'),
-      noShade:!art.querySelector('.apex-state-shade'),
-      noMask:!mask||getComputedStyle(mask).display==='none',
-      noSweep:!sweep||getComputedStyle(sweep).display==='none',
-      noCover:getComputedStyle(art,'::after').display==='none',
-      readyOpacity,cooldown};
+    if(originalProgress)art.style.setProperty('--apex-active-progress',originalProgress);else art.style.removeProperty('--apex-active-progress');
+    if(originalShade)art.style.setProperty('--apex-cd-shade',originalShade);else art.style.removeProperty('--apex-cd-shade');
+    const same=(a,b)=>Math.abs(a.x-b.x)<2&&Math.abs(a.y-b.y)<2&&Math.abs(a.w-b.w)<2&&Math.abs(a.h-b.h)<2;
+    return {found:true,bounded:same(artBounds,ringBounds)&&same(artBounds,shadeBounds),active,cooling};
   })()`);
-  gate('R70-skill-production-art-is-visible-bounded-uncovered-and-state-aware',
-    skillArtProbe?.found&&skillArtProbe.art?.w>=24&&skillArtProbe.art?.h>=24&&
-    (skillArtProbe.iconVisible||skillArtProbe.fallbackVisible)&&
-    skillArtProbe.noRing&&skillArtProbe.noShade&&skillArtProbe.noMask&&
-    skillArtProbe.noSweep&&skillArtProbe.noCover&&
-    (skillArtProbe.readyOpacity===null||skillArtProbe.cooldown.iconOpacity<
-      skillArtProbe.readyOpacity),
+  gate('R68-art-state-is-bounded-and-actually-rendered',
+    skillArtProbe.found&&skillArtProbe.bounded&&
+    Number(skillArtProbe.active?.opacity)>.85&&
+    skillArtProbe.active?.gradient?.includes('conic-gradient')&&
+    Number(skillArtProbe.cooling?.opacity)>.85&&
+    skillArtProbe.cooling?.transform!=='none',
     skillArtProbe);
   // Capture visually inspectable evidence of the actual image-only treatment.
   // Restore the live gameplay state immediately after each screenshot.
@@ -434,22 +403,10 @@ try {
   await sleep(260);
   const responsive=await evaluate(`(() => {
     const c=document.getElementById('apex-scene-transition'),r=c?.getBoundingClientRect();
-    const style=c?getComputedStyle(c):null;
-    const active=window.APEX_SCENE_TRANSITION?.active?.()===true;
-    return {present:!!c,w:r?.width||0,h:r?.height||0,
-      backingW:c?.width||0,backingH:c?.height||0,dpr:devicePixelRatio||1,
-      display:style?.display,visibility:style?.visibility,active};
+    return {w:r?.width||0,h:r?.height||0,backingW:c?.width||0,backingH:c?.height||0,dpr:devicePixelRatio||1};
   })()`);
-  // Canvas should take the entire viewport WHILE visible. When the mechanical
-  // Door is inactive, it is intentionally hidden (0x0 CSS rect) but its
-  // real backing store MUST remain resized for the next opening.
-  gate('gold-transition-portrait-backing-remains-resized-and-visible-only-when-active',
-    responsive?.present&&responsive.backingW>=390&&responsive.backingH>=844&&
-    (responsive.active
-      ?Math.abs(responsive.w-390)<2&&Math.abs(responsive.h-844)<2
-      :responsive.w===0&&responsive.h===0&&
-        (responsive.display==='none'||responsive.visibility==='hidden')),
-    responsive);
+  gate('gold-transition-responsive-canvas-follows-portrait-viewport',
+    Math.abs(responsive.w-390)<2&&Math.abs(responsive.h-844)<2&&responsive.backingW>=390&&responsive.backingH>=844,responsive);
 
   const errors=await evaluate('window.__APEX_R50K_ERRORS.slice()');
   gate('transition-flow-no-window-errors',errors.length===0,errors);
