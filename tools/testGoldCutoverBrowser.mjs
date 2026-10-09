@@ -382,7 +382,9 @@ try {
     node.dataset.state=original;
     return {found:true,imageLoaded:icon.complete&&icon.naturalWidth>0,
       naturalWidth:icon.naturalWidth,imageFit:getComputedStyle(icon).objectFit,
-      imageBounds:within(a,i),stateBounds:within(box,textBox),
+      imageBounds:within(a,i),imageClipped:getComputedStyle(art).overflow==='hidden',
+      imageArea:i.w>0&&i.h>0&&i.right>a.x+2&&i.x<a.right-2&&i.bottom>a.y+2&&i.y<a.bottom-2,
+      stateBounds:within(box,textBox),
       stateFont:parseFloat(getComputedStyle(state).fontSize),
       overlayDisabled:[...art.querySelectorAll('.sk-mask,.sk-sweep')].every(e=>getComputedStyle(e).display==='none'),
       noRetiredRings:!art.querySelector('.apex-state-ring,.apex-state-shade'),
@@ -391,7 +393,8 @@ try {
   gate('R68-art-state-is-bounded-and-actually-rendered',
     skillArtProbe?.found===true&&skillArtProbe.imageLoaded===true&&
     skillArtProbe.imageFit==='contain'&&
-    skillArtProbe.imageBounds===true&&skillArtProbe.stateBounds===true&&
+    skillArtProbe.imageClipped===true&&skillArtProbe.imageArea===true&&
+    skillArtProbe.stateBounds===true&&
     skillArtProbe.stateFont>=10&&
     skillArtProbe.overlayDisabled===true&&skillArtProbe.noRetiredRings===true&&
     skillArtProbe.ready?.opacity>.90&&skillArtProbe.active?.opacity>.90&&
