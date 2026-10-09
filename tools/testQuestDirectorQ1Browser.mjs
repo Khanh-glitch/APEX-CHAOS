@@ -1585,13 +1585,18 @@ try{
                 const eligible=await poll("(()=>window.APEX_ARSENAL?.state?.questTotStoryView?.snapshot?.().current)()",x=>x==='E08_STORMBREAKER_ELIGIBLE',80);
                 gate('B8 owner story responds only to real accepted 700HP crossing',eligible==='E08_STORMBREAKER_ELIGIBLE',eligible);
                 await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
-                const storm=await poll("(()=>{const A=window.APEX_ARSENAL;if(A?.state?.active&&!A.state.questTotStoryView?.active())A.step(.025);const n=A?.state?.questTotStormNative?.snapshot?.();return{boss:window.fighters?.[1]?.hp,hero:window.fighters?.[0]?.hp,phase:n?.phase,storm:n?.stormReceipts,returned:n?.returned,slot:n?.slotId,cradle:n?.cradle,receipts:n?.receipts,view:A?.state?.questTotStoryView?.snapshot?.().current}})()",
+                const storm=await poll("(()=>{const A=window.APEX_ARSENAL;if(A?.state?.active&&!A.state.questTotStoryView?.active())A.step(.025);const n=A?.state?.questTotStormNative?.snapshot?.();return{boss:window.fighters?.[1]?.hp,hero:window.fighters?.[0]?.hp,phase:n?.phase,storm:n?.stormReceipts,returned:n?.returned,slot:n?.slotId,cradle:n?.cradle,receipts:n?.receipts,slots:A?.state?.slots?.map(s=>({id:s.id,phase:s.phase,kind:s.questStage})),flying:window.projectiles?.filter(p=>p.weapon==='STORMBREAKER').map(p=>({tag:p.questTotArtifactId,kind:p.type,state:p.state,owner:p.owner?.questId,life:p.life})),logs:A?.logs?.slice?.(-7),view:A?.state?.questTotStoryView?.snapshot?.().current}})()",
                   x=>x?.returned&&x?.phase==='DUEL_TO_120'&&x?.view==='E08_STORMBREAKER_RESOLVED',280);
                 gate('B8 ONE real slot reveal→T.O.T pickup→native aq_thrown→physical hit/miss→same cradle',
                   storm?.returned&&storm?.phase==='DUEL_TO_120'
                   &&storm?.storm?.map(x=>x.event).join('|')==='SPAWN|PICKUP|RESOLVED'
                   &&storm?.receipts?.filter(x=>x.native==='THROW')?.length===1
                   &&storm?.cradle?.slotId===storm?.slot,storm);
+                if(!storm?.returned){
+                  const forensic=await evalPage("(()=>{const A=window.APEX_ARSENAL;return {slots:A?.state?.slots?.map(s=>({id:s.id,phase:s.phase,kind:s.questStage})),projectiles:window.projectiles?.map(p=>({weapon:p.weapon,type:p.type,state:p.state,tag:p.questTotArtifactId,owner:p.owner?.questId})),storm:A?.state?.questTotStormNative?.snapshot?.(),logs:A?.logs?.slice?.(-20)}})()");
+                  gate('B8 blocked STORM native lifecycle forensic capture',true,forensic);
+                  throw Error('B8 real STORM projectile did not close its authenticated lifecycle');
+                }
                 await image('35-e08-physical-stormbreaker-return');
                 await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
                 const finalHit=await evalPage("(()=>{const A=window.APEX_ARSENAL,W=A.weaponApi,[n,t]=window.fighters;W.fireBullet({owner:n,x:250,y:500,angle:0,speed:2800,damage:1200,weapon:'PISTOL'});for(let i=0;i<16;i++)A.step(.025);let s=A.state.questTotStormNative.snapshot();return{hero:n.hp,boss:t.hp,phase:s.phase,outcome:A.state.questOutcome,over:A.state.over,events:s.events,save:window.APEX_QUEST01_DIRECTOR?.checkpoint?.()?.checkpointId}})()");
