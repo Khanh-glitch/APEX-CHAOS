@@ -715,7 +715,7 @@
                 // E08 causal receipt must be committed immediately after the
                 // REAL swept hit + native damage, before any VFX/SFX callback
                 // can re-enter presentation or clear a transient projectile.
-                if(p.questTotArtifactId&&AQ.state?.questTotStormNative?.onResolve?.(p,'HIT')!==true)
+                if(p.questTotArtifactId&&p.questTotCommitResolution?.('HIT')!==true)
                   throw Error('E08 real Stormbreaker confirmed impact receipt denied');
                 if (window.APEX_ARSENAL_STORM && window.APEX_ARSENAL_STORM.onImpact) {
                   window.APEX_ARSENAL_STORM.onImpact(hit.x, hit.y, target);
@@ -1152,7 +1152,7 @@
   function thrownExit(p) {
     // Physical exit: the sprite tumbles away under gravity; alpha cleanup
     // only in the final moments (presentation), never as the primary exit.
-    if(p.questTotArtifactId&&AQ.state?.questTotStormNative?.onResolve?.(p,'MISS')!==true)
+    if(p.questTotArtifactId&&p.questTotCommitResolution?.('MISS')!==true)
       throw Error('E08 Stormbreaker missed projectile exit receipt denied');
     p.state = 'exit';
     p.vx *= 0.35;

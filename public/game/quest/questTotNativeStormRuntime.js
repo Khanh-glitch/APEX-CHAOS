@@ -60,6 +60,11 @@ function create({state,hero,tot,weaponApi,spawn,authority,onCue}={}){
      ||p.owner!==tot||p.type!=='aq_thrown'||p.weapon!=='STORMBREAKER'
      ||adapter.snapshot().phase!==authority.PHASE.HELD)return false;
    projectile=p;p.questTotArtifactId=String(slot.id);
+   // Bind the terminal receipt to THIS specific real projectile before
+   // it enters collision processing. Native hit resolution must never rely
+   // on a transient global AQ.state lookup *after* damage/VFX callbacks.
+   // The closure still validates identity, phase and the same picked slot.
+   p.questTotCommitResolution=(resolution)=>onResolve(p,resolution);
    receipts.push(Object.freeze({native:'THROW',slotId:slot.id,
      projectileType:p.type,speed:Math.hypot(p.vx,p.vy)}));
    return true;
