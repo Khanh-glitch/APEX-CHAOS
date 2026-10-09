@@ -90,7 +90,15 @@ try{
       child:{w:win.innerWidth,h:win.innerHeight,session:win.performance.timeOrigin},
       home:{title:box('.storyTitle'),story:box('.story'),actions:box('.actions'),routes:box('.routes'),free:box('#freeBattle')},
       pick:{card:box('#fighterRoster .rosterCard:not(.is-locked)'),hero:box('.worldHeroSlot.p1')},
-      battle:{mode:hud?.dataset.mode,layout:hud?.dataset.layout,size:hud?.dataset.size,arena:box('#battleHudHost #arena')}
+      battle:{mode:hud?.dataset.mode,layout:hud?.dataset.layout,size:hud?.dataset.size,arena:box('#battleHudHost #arena')},
+      fontParity:{
+        display:win.getComputedStyle(d.querySelector('.storyTitle')||d.body).fontFamily,
+        ui:win.getComputedStyle(d.querySelector('#stage')||d.body).getPropertyValue('--fUi').trim(),
+        action:win.getComputedStyle(d.querySelector('#stage')||d.body).getPropertyValue('--fAction').trim(),
+        battle:win.getComputedStyle(d.querySelector('#battleHudHost')||d.body).fontFamily,
+        registered:[...d.fonts].filter(f=>f.family.replace(/[\x22\x27]/g,'')==='Oswald').map(f=>({weight:f.weight,status:f.status})),
+        ready:d.fonts.status
+      }
     };
   };
   const capture=async name=>{
@@ -134,6 +142,12 @@ try{
       await command('Page.navigate',{url:link.href});
       await boot();
       const home=await capture(profile.id+'-'+v.name+'-Home');
+      check(profile.id+'/'+v.name+' uses one registered local Gold display face',
+        home.fontParity.display.includes('Oswald')&&
+        home.fontParity.ui.includes('Oswald')&&
+        home.fontParity.action.includes('Oswald')&&
+        home.fontParity.registered.some(f=>f.weight==='700'&&f.status==='loaded'),
+        home.fontParity);
       const geometry=home.layout;
       check(profile.id+'/'+v.name+' correct authored Gold composition',
         home.profile===profile.id &&
@@ -163,6 +177,8 @@ try{
       if(!(await wait("(()=>{const d=window.__apexGoldFidelity?.child()?.document;return d?.body.classList.contains('battle-hud-open')&&d.querySelector('#battleHudHost #arena')?.getBoundingClientRect().width>0})()")))
         throw Error(profile.id+' real Battle failed');
       const battle=await capture(profile.id+'-'+v.name+'-Battle');
+      check(profile.id+'/'+v.name+' Battle text has cross-platform face',
+        battle.fontParity.battle.includes('Oswald'),battle.fontParity);
       const expected=layoutExpected[profile.id];
       check(profile.id+'/'+v.name+' native Battle Gold layout and size',
         battle.battle.layout===expected[0]&&battle.battle.size===expected[1]&&battle.battle.mode==='2p',battle.battle);
@@ -227,6 +243,9 @@ try{
     check(v.name+' START center visible and hittable',start.within&&start.hittable&&!start.hidden&&start.visibleFraction>.95,start);
     await click('#apex-boot-start');
     if(!(await wait(homeDone)))throw Error('R89 intermediate Home not ready '+v.name);
+    const currentFont=await evalJS("(()=>{const d=window.__apexGoldFidelity.child().document;return {display:d.defaultView.getComputedStyle(d.querySelector('.storyTitle')).fontFamily,loaded:[...d.fonts].some(f=>f.family.replace(/[\\x22\\x27]/g,'')==='Oswald'&&f.status==='loaded')}})()");
+    check(v.name+' phone typography matches desktop-shipped Gold',
+      currentFont.display.includes('Oswald')&&currentFont.loaded,currentFont);
     const free=await evalJS('('+screenAudit.toString()+')("#freeBattle")');
     check(v.name+' Free Battle center visible/hittable',free.within&&free.hittable&&!free.hidden&&free.visibleFraction>.95,free);
     await click('#freeBattle');
