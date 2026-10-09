@@ -1073,13 +1073,19 @@ try{
       &&one?.scene?.active===true
       &&one?.over==='QUEST_FIRST_WAKE_RETRY',one);
     await click('#apexQuestStoryView .qs-controls button:not(.qs-skip)');
-    const again=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,stage:document.getElementById('apexQuest01Stage')?.dataset.node,open:document.getElementById('apexQuest01Stage')?.hidden===false}))()",
-      v=>v?.node==='FIRST_WAKE'&&v?.open===true,150);
-    gate('Q4I retry only resumes existing FIRST_WAKE checkpoint',
-      again?.node==='FIRST_WAKE'&&again?.stage==='FIRST_WAKE',again);
+    const again=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,stage:document.getElementById('apexQuest01Stage')?.dataset.node,open:document.getElementById('apexQuest01Stage')?.hidden===false,battleOpen:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,hosted:window.__apexGoldBattleHosted===true}))()",
+      v=>v?.node==='FIRST_WAKE'&&v?.open===true&&v?.battleOpen===false&&v?.hosted===false,190);
+    gate('Q4I retry waits for old Gold battle HUD to ACTUALLY close',
+      again?.node==='FIRST_WAKE'&&again?.stage==='FIRST_WAKE'
+      &&again?.battleOpen===false&&again?.hosted===false,again);
     await click('#q4iFirstWakePlay');
-    started=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,active:window.APEX_ARSENAL?.state?.active,route:window.APEX_ARSENAL?.state?.questFirstWakeProgression}))()",
-      v=>v?.active===true&&v?.route===true,120);
+    started=await poll("(()=>({node:window.APEX_QUEST01_DIRECTOR?.checkpoint()?.checkpointId,active:window.APEX_ARSENAL?.state?.active,route:window.APEX_ARSENAL?.state?.questFirstWakeProgression,over:window.APEX_ARSENAL?.state?.over,gold:window.__apexGoldBattleHosted===true,hud:document.getElementById('battleHudHost')?.classList.contains('is-open')===true,roster:(window.fighters||[]).map(x=>({id:x.questId,hp:x.hp}))}))()",
+      v=>v?.active===true&&v?.route===true&&v.over==null
+        &&v.gold===true&&v.hud===true&&v.roster?.length===4
+        &&v.roster.map(x=>x.hp).join('|')==='1000|350|1000|350',350);
+    gate('Q4I retry uses new fully-mounted Gold battle, never stale result',
+      started?.active===true&&started?.gold===true&&started?.hud===true
+      &&started?.over==null&&started?.roster?.length===4,started);
   }
   gate('Q4I at least one full natural two-vs-two match completed without synthetic HP',
     complete&&organic.length<=5,{complete,attempts:organic.map(x=>({frames:x?.frames,outcome:x?.outcome,node:x?.node,hp:x?.actors?.map(a=>a.hp)}))});
