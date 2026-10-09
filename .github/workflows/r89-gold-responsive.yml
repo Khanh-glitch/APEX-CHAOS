@@ -56,6 +56,25 @@ jobs:
           grep -q 'goldViewport' dist/index.html
           grep -q 'goldViewport' dist/gold-fidelity-lab.html
           node tools/testShippingDist.mjs
+      - name: Run built-distribution Chromium mobile / rotation smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort >/tmp/r89-shipping-preview.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true' EXIT
+          READY=0
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/index.html >/dev/null; then
+              READY=1
+              break
+            fi
+            sleep 1
+          done
+          test "$READY" = 1
+          R89_ONLY_INTERMEDIATE=1 CHROME_PATH="$CHROME" APEX_APP_URL=http://127.0.0.1:4173/ node tools/testR89GoldProfilesBrowser.mjs
       - name: Publish independent R89 preview bundle (NOT production deploy)
         uses: actions/upload-artifact@v4
         with:
