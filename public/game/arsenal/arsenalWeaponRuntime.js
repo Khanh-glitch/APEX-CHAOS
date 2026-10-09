@@ -369,7 +369,10 @@
     // gate, not a UI flag, and is inactive in every non-REFLEX match.
     if(AQ.state?.questReflex===true
       &&AQ.state.questReflexGate?.snapshot()?.awaitingRivet===true)return 0;
-    if (!target || target.hp <= 0 || !(amount > 0)) return 0;
+    if (!target || target.hp <= 0 || target.withdrawn===true || !(amount > 0)) return 0;
+    // Native Quest team, including withdrawn allies; ordinary Free Battle unaffected.
+    if(AQ.state?.questMultiActor===true && source?.questTeam && target.questTeam
+      &&source.questTeam===target.questTeam)return 0;
     amount = scaleEquipmentDamage(amount, weaponId, !!opts.critical);
     let mult = 1;
     const th = getHolder(target);
@@ -538,7 +541,10 @@
     const splashTargets = (window.APEX_HERO_REWORK && window.APEX_HERO_REWORK.splashTargets)
       ? window.APEX_HERO_REWORK.splashTargets(p.owner)
       : undefined;
-    const splashList = splashTargets || fighters;
+    const questCore=window.APEX_QUEST_MULTI_ACTOR_CORE;
+    const splashList=AQ.state?.questMultiActor===true
+      ?(questCore?.splashEnemies?.(p.owner,fighters)||[])
+      :(splashTargets||fighters);
     for (const f of splashList) {
       if (!f || f.hp <= 0 || f === p.owner) continue;
       const d = dist(p.x, p.y, f.x, f.y);
@@ -568,16 +574,25 @@
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         if (p.x < -20 || p.x > GAME_SIZE + 20 || p.y < -20 || p.y > GAME_SIZE + 20) { p.life = 0; continue; }
-        const target = fighters.find(f => f && f !== p.owner && f.hp > 0);
+        const questHit=AQ.state?.questMultiActor===true
+          ?window.APEX_QUEST_MULTI_ACTOR_CORE?.firstProjectileHit?.({
+            owner:p.owner,actors:fighters,from:{x:p.px,y:p.py},
+            to:{x:p.x,y:p.y},projectileRadius:p.radius,
+            bodyRadiusScale:CFG.BULLET_HIT_RADIUS_SCALE
+          }):null;
+        const target=AQ.state?.questMultiActor===true
+          ?questHit?.actor
+          :fighters.find(f=>f&&f!==p.owner&&f.hp>0);
         if (target) {
           const hitR = target.radius * CFG.BULLET_HIT_RADIUS_SCALE + p.radius;
-          if (distPointToSegment(target.x, target.y, p.px, p.py, p.x, p.y) < hitR) {
+          if(questHit||distPointToSegment(target.x,target.y,p.px,p.py,p.x,p.y)<hitR){
             const heavy = !!p.heavy;
             // V1 blood port §6: consume the REAL collision point + REAL
             // projectile travel vector at impact (visual consumer only —
             // never gameplay truth).
-            const hit = sweptSegmentCircleHit(p.px, p.py, p.x, p.y, target.x, target.y, hitR)
-              || { x: p.x, y: p.y };
+            const hit=questHit||
+              sweptSegmentCircleHit(p.px,p.py,p.x,p.y,target.x,target.y,hitR)
+              || {x:p.x,y:p.y};
             aqDamage(target, p.damage, p.owner, p.weapon, {
               knockback: p.knockback, stun: p.stun, hitStop: heavy ? 0.05 : 0, critical: !!p.critical,
               impact: { x: hit.x, y: hit.y, vx: p.vx, vy: p.vy },
@@ -621,7 +636,9 @@
           // gravity well all leave it alone), and the target is ONLY ever
           // the owner's living opponent.
           if (p.weapon === 'STORMBREAKER' && p.questRivetSuppression !== true) {
-            const tgt = fighters.find(f => f && f !== p.owner && f.hp > 0);
+            const tgt=AQ.state?.questMultiActor===true
+              ?window.APEX_QUEST_MULTI_ACTOR_CORE?.nearestEnemy?.(p.owner,fighters)
+              :fighters.find(f=>f&&f!==p.owner&&f.hp>0);
             if (tgt) {
               let cur = Math.atan2(p.vy, p.vx);
               const want = Math.atan2(tgt.y - p.y, tgt.x - p.x);
@@ -665,12 +682,20 @@
             }
           }
           // Swept segment vs fighter circle — damage exactly once, on hit.
-          const target = fighters.find(f => f && f !== p.owner && f.hp > 0);
+          const questHit=AQ.state?.questMultiActor===true
+            ?window.APEX_QUEST_MULTI_ACTOR_CORE?.firstProjectileHit?.({
+              owner:p.owner,actors:fighters,from:{x:p.px,y:p.py},
+              to:{x:p.x,y:p.y},projectileRadius:p.radius,
+              bodyRadiusScale:CFG.BULLET_HIT_RADIUS_SCALE
+            }):null;
+          const target=AQ.state?.questMultiActor===true
+            ?questHit?.actor
+            :fighters.find(f=>f&&f!==p.owner&&f.hp>0);
           // Never manufacture a 446HP impact on the paused friends;
           // this is a non-canonical, non-damaging lane flyby only.
           if (target && p.grace <= 0 && p.questRivetSuppression !== true) {
             const hitR = target.radius * CFG.BULLET_HIT_RADIUS_SCALE + p.radius;
-            if (distPointToSegment(target.x, target.y, p.px, p.py, p.x, p.y) < hitR) {
+            if(questHit||distPointToSegment(target.x,target.y,p.px,p.py,p.x,p.y)<hitR){
               const spec = CFG.WEAPONS[p.weapon] || {};
               // STORMBREAKER: confirmed hit resolves damage through the ONE
               // melee authority (x1.5) + x7 scale, real engine stun, then the
@@ -679,7 +704,9 @@
               // in the opponent). The VFX consumer gets the REAL swept
               // collision point (visual only — damage is already resolved).
               if (p.weapon === 'STORMBREAKER') {
-                const hit = sweptSegmentCircleHit(p.px, p.py, p.x, p.y, target.x, target.y, hitR) || { x: p.x, y: p.y };
+                const hit=questHit||
+                  sweptSegmentCircleHit(p.px,p.py,p.x,p.y,target.x,target.y,hitR)||
+                  {x:p.x,y:p.y};
                 aqDamage(target, CFG.meleeDamage('STORMBREAKER'), p.owner, 'STORMBREAKER', {
                   knockback: spec.knockback, stun: spec.stun,
                   shake: spec.shake != null ? spec.shake : 15,
