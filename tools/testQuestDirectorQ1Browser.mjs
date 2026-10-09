@@ -1429,9 +1429,9 @@ try{
               &&Math.abs(intercept?.nearEnd?.r?.[1]-intercept?.plantedState?.r?.[1])<1
               &&intercept?.live&&intercept?.save==='BREACH_WAVES',intercept);
             await image('31c-e06-real-rivet-interceptor');
-            const inputSetup=await evalPage("(()=>{const A=window.APEX_ARSENAL,S=window.APEX_ARSENAL_SPAWN;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;const p=S.trySpawnSlot({forceFirearm:true});if(!p)return{ok:false};p.phase='REVEALED';p.weaponId='PISTOL';p.kind='GUN';p.x=t.x+270;p.y=t.y;return{ok:true,id:p.id,recipient:A.state.questBreachCompanionSkills.currentRecipient()}})()");
+            const inputSetup=await evalPage("(()=>{const A=window.APEX_ARSENAL,S=window.APEX_ARSENAL_SPAWN,Q=A.state.questBreachCompanionSkills;const [n,t]=window.fighters;n.withdrawn=true;t.withdrawn=false;A.state.slots=[];Q.tick(12);const before=Q.snapshot();const p=S.trySpawnSlot({forceFirearm:true});if(!p)return{ok:false};p.phase='REVEALED';p.weaponId='PISTOL';p.kind='GUN';p.x=t.x+270;p.y=t.y;return{ok:true,id:p.id,recipient:Q.currentRecipient(),jBefore:before.tot.jCooldown,priorDashes:before.events.filter(e=>e.kind==='DASH_LOCK').length}})()");
             gate('B6n KeyJ probe has real revealed floor pistol and T.O.T skill lease',
-              inputSetup?.ok&&inputSetup?.recipient==='T.O.T',inputSetup);
+              inputSetup?.ok&&inputSetup?.recipient==='T.O.T'&&inputSetup?.jBefore===0,inputSetup);
             if(!isMobile){
               // Desktop physical keyboard; foreground the renderer first.
               // Mobile uses the ACTUAL Gold touch K probe below instead.
@@ -1441,12 +1441,13 @@ try{
               await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'j',code:'KeyJ',windowsVirtualKeyCode:74});
               // Real-time battle may complete/cancel a 0.55s dash before CDP
               // reads it. The authoritative proof of physical keyboard input
-              // is the exact accepted DASH_LOCK receipt + a consumed real J
+              // is a NEW slot-bound accepted DASH_LOCK receipt + consumed real J
               // cooldown; an instantaneous "dashing=true" read is a race.
-              const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot(),events=snap.events.filter(e=>e.kind==='DASH_LOCK'&&e.id==='T.O.T'&&e.source==='keyboard');const last=events.at(-1),ok=snap.currentRecipient==='T.O.T'&&snap.tot.jCooldown>0&&snap.tot.jCooldown<=10&&!!last;window.fighters[0].withdrawn=false;A.state.slots=[];return{ok,cooldown:snap.tot.jCooldown,dashing:snap.tot.dashing,receipt:last||null,recipient:snap.currentRecipient,gameState:window.gameState,focused:document.hasFocus()}})()");
+              const keyResult=await evalPage("(()=>{const A=window.APEX_ARSENAL,Q=A.state.questBreachCompanionSkills;const snap=Q.snapshot(),events=snap.events.filter(e=>e.kind==='DASH_LOCK'&&e.id==='T.O.T');const last=events.at(-1),ok=snap.currentRecipient==='T.O.T'&&snap.tot.jCooldown>0&&snap.tot.jCooldown<=10&&!!last;window.fighters[0].withdrawn=false;A.state.slots=[];return{ok,cooldown:snap.tot.jCooldown,dashing:snap.tot.dashing,receipt:last||null,dashCount:events.length,recipient:snap.currentRecipient,gameState:window.gameState,focused:document.hasFocus()}})()");
               gate('B6n desktop real KeyJ dispatch creates native DASH_LOCK receipt for actual floor slot',
                 keyResult?.ok&&keyResult?.receipt?.slotId===inputSetup?.id&&
-                keyResult?.receipt?.source==='keyboard'&&keyResult?.focused,keyResult);
+                keyResult?.dashCount===inputSetup?.priorDashes+1&&
+                keyResult?.focused,{...keyResult,setup:inputSetup});
             }else{
               await evalPage("(()=>{window.fighters[0].withdrawn=false;window.APEX_ARSENAL.state.slots=[];return true})()");
             }
