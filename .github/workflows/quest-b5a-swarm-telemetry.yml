@@ -1,0 +1,60 @@
+name: B5a Native E03 Read-Only Combat Telemetry
+on:
+  push:
+    branches: ['quest/b5a-real-swarm-telemetry-from-b4b']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 26
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.9, run_install: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: pnpm}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm arsenal:sfx:materialize
+      - name: Source source-signed Quest and responsive stability
+        run: |
+          node tools/testQuestReplayHubB4.mjs
+          node tools/testQuestScrapSwarmQ5.mjs
+          node tools/buildGoldCutover.mjs --check
+      - run: pnpm build
+      - name: Start Gold Vite
+        shell: bash
+        run: |
+          pnpm dev:lan > /tmp/b5a-vite.log 2>&1 &
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/b5a-vite.log
+          exit 1
+      - name: Chrome path
+        id: chrome
+        shell: bash
+        run: |
+          BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$BIN"
+          echo "path=$BIN" >> "$GITHUB_OUTPUT"
+      - name: Desktop actual E03 native damage/pickup trace
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_EVIDENCE_DIR: /tmp/b5a-telemetry
+        run: node tools/testQuestSwarmTelemetryB5.mjs --diagnose-e03
+      - name: Mobile actual E03 native damage/pickup trace
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.path }}
+          APEX_EVIDENCE_DIR: /tmp/b5a-telemetry
+        run: node tools/testQuestSwarmTelemetryB5.mjs --diagnose-e03 --mobile
+      - name: Preserve source-truth E03 diagnostics and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b5a-e03-real-combat-telemetry
+          path: |
+            /tmp/b5a-telemetry/
+            /tmp/b5a-vite.log
+          if-no-files-found: warn
